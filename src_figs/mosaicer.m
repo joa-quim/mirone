@@ -137,12 +137,22 @@ function hand = popup_grd_dir_CB(hObject, handles, opt)
 	end
 	handles.files_dir = new_dir;
 
-	exts = {'hgt' 'zip' 'gz'};
-	if (get(handles.radio_srtm30, 'Val'))
+	exts = {'hgt' 'zip' 'gz'};		prefix = '';
+	if (get(handles.radio_srtm5, 'Val'))		% Here we will only search for zip files
+		exts = 'zip';	prefix = 'srtm_';
+	elseif (get(handles.radio_srtm30, 'Val'))
 		exts{1} = 'srtm';
 	end
-	[handles.srtm_files, handles.srtm_compfiles, handles.srtm_exts, handles.srtm_patos, handles.srtm_patos_comp] = ...
-		get_fnames_ext(new_dir,exts);
+	if (get(handles.radio_srtm, 'Val'))
+		[handles.srtm_files, handles.srtm_compfiles, handles.srtm_ext, handles.srtm_pato, handles.srtm_pato_comp] = ...
+			get_fnames_ext(new_dir, exts, prefix);
+	elseif (get(handles.radio_srtm30, 'Val'))
+		[handles.srtm30_files, handles.srtm30_compfiles, handles.srtm30_ext, handles.srtm30_pato, handles.srtm30_pato_comp] = ...
+			get_fnames_ext(new_dir, exts, prefix);
+	else
+		[handles.srtm5_files, handles.srtm5_compfiles, handles.srtm5_ext, handles.srtm5_pato, handles.srtm5_pato_comp] = ...
+			get_fnames_ext(new_dir, exts, prefix);
+	end
 
 	if (nargout),	hand = handles;
 	else			guidata(handles.figure1,handles)
@@ -150,7 +160,7 @@ function hand = popup_grd_dir_CB(hObject, handles, opt)
 
 % -------------------------------------------------------------------------
 function push_grd_dir_CB(hObject, handles)
-% Change dir to where files of interest are stored. Call popup_dir to finish work
+% Change dir to where files of interest are stored. Call popup_grd_dir to finish work
 	if (strcmp(computer, 'PCWIN'))
 		work_dir = uigetfolder_win32('Select a directory', cd);
 	else            % This guy doesn't let to be compiled
@@ -158,7 +168,7 @@ function push_grd_dir_CB(hObject, handles)
 	end
 	if (isempty(work_dir)),		return,		end
 	handles.last_directories = [cellstr(work_dir); handles.last_directories];
-	set(handles.popup_dir,'Str',handles.last_directories)
+	set(handles.popup_grd_dir,'Str',handles.last_directories)
 	guidata(hObject, handles);
 	popup_grd_dir_CB(hObject, handles, work_dir)
 
@@ -174,6 +184,7 @@ function radio_srtm_CB(hObject, handles)
 		set(handles.hPatches,   'Vis', 'on')
 	else
 		handles = draw_srtm_mesh(handles, handles.hRectangle);
+		handles = popup_grd_dir_CB(handles.popup_grd_dir, handles);		% Find if def dir has files of interest
 		guidata(handles.figure1,handles)
 	end
 	if (get(handles.check_web,'val')),		check_web_CB(handles.check_web, handles),	end
@@ -185,11 +196,12 @@ function radio_srtm5_CB(hObject, handles)
 	set(handles.slider_zoomFactor, 'Enable', 'off')
 	if (~isempty(handles.hPatches30)),		set(handles.hPatches30, 'Vis', 'off'),	end
 	if (~isempty(handles.hPatches)),		set(handles.hPatches,   'Vis', 'off'),	end
-	if (~isempty(handles.hPatchImgs)),	set(handles.hPatchImgs,'Vis', 'off'),	end
+	if (~isempty(handles.hPatchImgs)),		set(handles.hPatchImgs,'Vis', 'off'),	end
 	if (~isempty(handles.hPatches5))
 		set(handles.hPatches5,   'Vis', 'on')
 	else
 		handles = draw_srtm5_mesh(handles, handles.hRectangle);
+		handles = popup_grd_dir_CB(handles.popup_grd_dir, handles);		% Find if def dir has files of interest
 		guidata(handles.figure1,handles)
 	end
 	if (get(handles.check_web,'val')),		check_web_CB(handles.check_web, handles),	end
@@ -200,12 +212,13 @@ function radio_srtm30_CB(hObject, handles)
 	set([handles.radio_srtm handles.radio_srtm5 handles.radio_tileImages], 'Val', 0)
 	set(handles.slider_zoomFactor, 'Enable', 'off')
 	if (~isempty(handles.hPatches)),		set(handles.hPatches,  'Vis', 'off'),	end
-	if (~isempty(handles.hPatches5)),		set(handles.hPatches5,  'Vis', 'off'),	end
-	if (~isempty(handles.hPatchImgs)),	set(handles.hPatchImgs,'Vis', 'off'),	end
+	if (~isempty(handles.hPatches5)),		set(handles.hPatches5, 'Vis', 'off'),	end
+	if (~isempty(handles.hPatchImgs)),		set(handles.hPatchImgs,'Vis', 'off'),	end
 	if (~isempty(handles.hPatches30))
 		set(handles.hPatches30,   'Vis', 'on')
 	else
 		handles = draw_srtm30_mesh(handles, handles.hRectangle);
+		handles = popup_grd_dir_CB(handles.popup_grd_dir, handles);		% Find if def dir has files of interest
 		guidata(handles.figure1,handles)
 	end
 	if (get(handles.check_web,'val')),		check_web_CB(handles.check_web, handles),	end
@@ -215,6 +228,9 @@ function check_web_CB(hObject, handles)
 % Set pre-set web addresses of known data sources
 	url = '';
 	if (get(hObject,'Val'))
+		if (get(handles.radio_srtm5,'Val'))		% This one is unbearable slow
+			set(hObject,'Val',0),	return
+		end
 		set([handles.popup_grd_dir handles.push_grd_dir],'Enable', 'off')
 		if (get(handles.radio_srtm,'Val'))
 			url = 'http://dds.cr.usgs.gov/srtm/version2_1/SRTM3/Eurasia/';
@@ -233,88 +249,6 @@ function edit_url_CB(hObject, handles)
 	guidata(handles.figure1, handles)
 
 % -----------------------------------------------------------------------------------------
-function [fnames,limits] = sort_patches(handles)
-% Sort the tile names (those that were selected) in order that follow a matrix
-% with origin at the lower left corner of the enclosing rectangle.
-% Also returns the limits of the enclosing rectangle.
-	x_min = [];		x_max = [];		y_min = [];		y_max = [];		limits = [];
-	h = findobj(handles.hPatches,'UserData',1);		% Get selected tiles
-	names = get(h,'Tag');							% Get their names
-	if (isempty(names)),		fnames = [];	return,	end
-	if (~isa(names, 'cell')),	names = {names};	end
-
-	nTiles = numel(names);
-	mesh_idx = cell(1,nTiles);
-	for (i = 1:nTiles),		mesh_idx{i} = getappdata(h(i),'MeshIndex');		end
-	[B,IX] = sort(mesh_idx);
-	if (numel(IX) > 1),		fnames = names(IX);			% Order tile names according to the sorted mesh_idx
-	else					fnames = names;				% Only one tile; nothing to sort
-	end
-
-	% Find the map limits of the total collection of tiles
-	idx_r = zeros(1,nTiles);		idx_c = zeros(1,nTiles);
-	for (i = 1:nTiles)
-		% Find the tile coordinates from the file name
-		if (iscell(fnames))		[PATH,FNAME] = fileparts(fnames{i});
-		else					[PATH,FNAME] = fileparts(fnames);
-		end
-		x_w = strfind(FNAME,'W');	x_e = strfind(FNAME,'E');
-		y_s = strfind(FNAME,'S');	y_n = strfind(FNAME,'N');
-		if ~isempty(x_w),			ind_x = x_w(1);     lon_sng = -1;
-		elseif  ~isempty(x_e)		ind_x = x_e(1);     lon_sng = 1;
-		end
-
-		if ~isempty(y_n),		lat_sng = 1;
-		elseif ~isempty(y_s)	lat_sng = -1;
-		end
-		lon = str2double(FNAME(ind_x+1:ind_x+3)) * lon_sng;
-		lat = str2double(FNAME(2:ind_x-1)) * lat_sng;
-
-		if (isempty(x_min))
-			x_min = lon;    x_max = lon + 1;    y_min = lat;    y_max = lat + 1;
-		else
-			x_min = min(x_min,lon);		x_max = max(x_max,lon+1);
-			y_min = min(y_min,lat);		y_max = max(y_max,lat+1);
-		end
-		% Convert the sorted mesh index to row and column vectors
-		[t,r] = strtok(B{i},'x');
-		idx_r(i) = str2double(t);		idx_c(i) = str2double(r(2:end));
-	end
-	limits = [x_min x_max y_min y_max];
-
-	% If we have only one tile (trivial case) there is no need for the following tests
-	if (nTiles == 1),	return,		end
-
-	% Build a test mesh index with the final correct order 
-	min_r = min(idx_r);		max_r = max(idx_r);
-	min_c = min(idx_c);		max_c = max(idx_c);
-	k = 1;					n_r = numel(min_r:max_r);		n_c = numel(min_c:max_c);
-	nNames = numel(min_r:max_r) * numel(min_c:max_c);
-	test_mesh = cell(1, nNames);
-	for (i = min_r:max_r)
-		for (j = min_c:max_c)
-			test_mesh{k} = [num2str(i) 'x' num2str(j)];
-			k = k + 1;
-		end
-	end
-
-	t_names = repmat({'void'},1,nNames);
-	BB = B;
-	for (i = nTiles+1:nNames),		BB{i} = '0x0';		end
-
-	% Check t_names against fnames to find the matrix correct order
-	fail = 0;
-	for (i = 1:nNames)
-		k = i - fail;
-		if (strcmp(BB{k},test_mesh{i}))
-			t_names{i} = fnames{k};
-		else
-			fail = fail + 1;
-		end
-	end
-	fnames = reshape(t_names,n_c,n_r)';
-
-% -----------------------------------------------------------------------------------------
 function handles = draw_srtm_mesh(handles, h)
 % Draw 1 degree squares corresponding to the SRTM1|3 tiles
 	hAx = get(h,'Parent');
@@ -325,12 +259,12 @@ function handles = draw_srtm_mesh(handles, h)
 	n = numel(x);			m = numel(y);
 	hp = zeros(m-1,n-1);
 	for (i = 1:m-1)
+		yp = [y(i) y(i+1) y(i+1) y(i) y(i)];
+		c1 = 'N';			c2 = 'E';			% Default guesses
+		if (y(i) < 0),		c1 = 'S';	end
 		for (j = 1:n-1)		% col
 			xp = [x(j) x(j) x(j+1) x(j+1) x(j)];
-			yp = [y(i) y(i+1) y(i+1) y(i) y(i)];
 			mesh_idx = sprintf('%dx%d', i,j);
-			c1 = 'N';		c2 = 'E';			% Default guesses
-			if (y(i) < 0),	c1 = 'S';	end
 			if (x(j) < 0),	c2 = 'W';	end
 			tag = sprintf('%s%.2d%s%.3d.hgt', c1, abs(y(i)), c2, abs(x(j)));
 			hp(i,j) = patch('Xdata',xp, 'YData',yp, 'Parent',hAx, 'FaceColor','y', 'FaceAlpha',0.5, ...
@@ -341,46 +275,36 @@ function handles = draw_srtm_mesh(handles, h)
 	handles.hPatches = hp;
 
 % -----------------------------------------------------------------------------------------
-function bdn_srtmTile(obj, evt, hFig)
-	handles = guidata(hFig);
-	tag = get(gcbo,'Tag');
-	xx = strcmp(tag, handles.srtm_files);		xz = strcmp(tag, handles.srtm_compfiles);
-
-	if (~get(gcbo,'UserData'))			% If not selected    
-		set(gcbo,'FaceColor','g','UserData',1)
-		if ( (isempty(xx) && isempty(xz)) && isempty(get(handles.edit_url,'Str')) )	% If WEB dl let it go
-			%str = ['The file ' tag ' does not exist in the current directory'];
-			set(gcbo,'FaceColor','r')
-			pause(1)
-			set(gcbo,'FaceColor','y','UserData',0)
-		end
-	else
-		set(gcbo,'FaceColor','y','UserData',0)
-	end
-
-% -----------------------------------------------------------------------------------------
 function handles = draw_srtm30_mesh(handles, h)
 % Draw patches corresponding to the SRTM30 tiles
 	hAx = get(h,'Parent');
 	x = get(h,'XData');				y = get(h,'YData');
-	xx = fix(abs(x+180)/40) + 1;	xx = [min(xx) max(xx)];
-	x_min = (xx(1)-1) * 40 - 180;	x_max = xx(2) * 40 - 180;
-	yy = fix(abs(90-y)/50) + 1;		yy = [min(yy) max(yy)];
-	y_max = 90 + (yy(2)-1) * 50;	y_min = 90 + yy(1) * 50;
+	jx = fix(abs(x+180)/40) + 1;	jx = [min(jx) max(jx)];
+	x_min = (jx(1)-1) * 40 - 180;	x_max = jx(2) * 40 - 180;
+	iy = fix(abs(90-y)/50) + 1;		iy = [min(iy) max(iy)];
+	y_max = 90 - (iy(1)-1) * 50;	y_min = 90 - iy(2) * 50;
 	x = x_min:40:x_max;				y = y_min:50:y_max;
 	n = numel(x);					m = numel(y);
 	hp = zeros(m-1,n-1);
 
-	for (i = yy(1):yy(2))
-		yp = [-i*50 -(i-1)*50 -(i-1)*50 -i*50 -i*50] + 90;
+	for (i = 1:m-1)
+%	for (i = iy(1):iy(2))
+% 		yp = [-i*50 -(i-1)*50 -(i-1)*50 -i*50 -i*50] + 90;
+		yp = [y(i) y(i+1) y(i+1) y(i) y(i)];
 		c2 = 'n';			c1 = 'w';			% Default guesses
 		if (yp(2) < 0),		c2 = 's';	end
-		for (j = xx(1):xx(2))
-			xp = [(j-1)*40 (j-1)*40 j*40 j*40 (j-1)*40] - 180;
+		for (j = 1:n-1)		% col
+%		for (j = jx(1):jx(2))
+% 			xp = [(j-1)*40 (j-1)*40 j*40 j*40 (j-1)*40] - 180;
+			xp = [x(j) x(j) x(j+1) x(j+1) x(j)];
+			mesh_idx = sprintf('%dx%d', i,j);
 			if (xp(1) > 0),	c1 = 'e';	end
-			tag = sprintf('%s%.3d%s%.2d.Bathymetry.srtm', c1, abs(xp(1)), c2, abs(yp(2)));
-			hp(i-yy(1)+1,j-xx(1)+1) = patch('Xdata',xp, 'YData',yp, 'Parent',hAx, 'FaceColor','y', 'FaceAlpha',0.5, ...
+ 			tag = sprintf('%s%.3d%s%.2d.Bathymetry.srtm', c1, abs(xp(1)), c2, abs(yp(2)));
+% 			hp(i-iy(1)+1,j-jx(1)+1) = patch('Xdata',xp, 'YData',yp, 'Parent',hAx, 'FaceColor','y', 'FaceAlpha',0.5, ...
+			hp(i,j) = patch('Xdata',xp, 'YData',yp, 'Parent',hAx, 'FaceColor','y', 'FaceAlpha',0.5, ...
 				'Tag',tag, 'UserData',0, 'ButtonDownFcn',{@bdn_srtmTile, handles.figure1});
+% 			setappdata(hp(i-iy(1)+1,j-jx(1)+1),'MeshIndex',mesh_idx)
+			setappdata(hp(i,j),'MeshIndex',mesh_idx)
 		end
 	end
 % 	% Southern tile row has a different width
@@ -399,19 +323,19 @@ function handles = draw_srtm5_mesh(handles, h)
 % Draw 1 degree squares corresponding to the SRTM1|3 tiles
 	hAx = get(h,'Parent');
 	x = get(h,'XData');				y = get(h,'YData');
-	xx = fix(abs(x+180)/5) + 1;		xx = [min(xx) max(xx)];
-	x_min = (xx(1)-1) * 5 - 180;	x_max = xx(2) * 5 - 180;
-	yy = fix(abs(60-y)/5) + 1;		yy = [min(yy) max(yy)];
-	y_max = 60 - (yy(1)-1) * 5;		y_min = 60 - yy(2) * 5;
+	jx = fix(abs(x+180)/5) + 1;		jx = [min(jx) max(jx)];
+	x_min = (jx(1)-1) * 5 - 180;	x_max = jx(2) * 5 - 180;
+	iy = fix(abs(60-y)/5) + 1;		iy = [min(iy) max(iy)];
+	y_max = 60 - (iy(1)-1) * 5;		y_min = 60 - iy(2) * 5;
 	x = x_min:5:x_max;				y = y_min:5:y_max;
 	n = numel(x);					m = numel(y);
 	hp = zeros(m-1,n-1);
 	for (i = 1:m-1)
+		yp = [y(i) y(i+1) y(i+1) y(i) y(i)];
 		for (j = 1:n-1)		% col
 			xp = [x(j) x(j) x(j+1) x(j+1) x(j)];
-			yp = [y(i) y(i+1) y(i+1) y(i) y(i)];
 			mesh_idx = sprintf('%dx%d', i,j);
-			tag = sprintf('srtm_%.2d_%.2d.zip', j, i);
+			tag = sprintf('srtm_%.2d_%.2d.zip', jx(1)+(j-1), iy(2)-(i-1));
 			hp(i,j) = patch('Xdata',xp, 'YData',yp, 'Parent',hAx, 'FaceColor','y', 'FaceAlpha',0.5, ...
 				'Tag',tag, 'UserData',0, 'ButtonDownFcn',{@bdn_srtmTile, handles.figure1});
 			setappdata(hp(i,j),'MeshIndex',mesh_idx)
@@ -420,7 +344,31 @@ function handles = draw_srtm5_mesh(handles, h)
 	handles.hPatches5 = hp;
 
 % -----------------------------------------------------------------------------------------
-function [files,comp_files,comp_ext,patos,patos_comp] = get_fnames_ext(pato, ext)
+function bdn_srtmTile(obj, evt, hFig)
+	handles = guidata(hFig);
+	tag = get(gcbo,'Tag');
+	if (get(handles.radio_srtm, 'Val'))
+		xx = strcmp(tag, handles.srtm_files);		xz = strcmp(tag, handles.srtm_compfiles);
+	elseif (get(handles.radio_srtm30, 'Val'))
+		xx = strcmp(tag, handles.srtm30_files);		xz = strcmp(tag, handles.srtm30_compfiles);
+	else
+		xx = strcmp(tag, handles.srtm5_files);		xz = strcmp(tag, handles.srtm5_compfiles);
+	end
+
+	if (~get(gcbo,'UserData'))			% If not selected    
+		set(gcbo,'FaceColor','g','UserData',1)
+		if ( (~any(xx) && ~any(xz)) && isempty(get(handles.edit_url,'Str')) )	% If WEB dl let it go
+			%str = ['The file ' tag ' does not exist in the current directory'];
+			set(gcbo,'FaceColor','r')
+			pause(1)
+			set(gcbo,'FaceColor','y','UserData',0)
+		end
+	else
+		set(gcbo,'FaceColor','y','UserData',0)
+	end
+
+% ------------------------------------------------------------------------------------------
+function [files, comp_files, comp_ext, patos, patos_comp] = get_fnames_ext(pato, ext, prefix)
 % Get the list of all files with extention "EXT" seating in the "PATO" dir
 % EXT may be either a char or a cell array. In the first case, only files with extension EXT
 % will be returned (that is;  COMP_FILES & COMP_EXT are empty)
@@ -432,7 +380,8 @@ function [files,comp_files,comp_ext,patos,patos_comp] = get_fnames_ext(pato, ext
 % COMP_EXT is a cell array of chars with the extensions corresponding to COMP_FILES.
 % An example is the search for files terminating in *.dat or *.dat.zip (EXT = {'dat' 'zip'})
 
-	comp_files = [];		comp_ext = [];		ext2 = [];
+	comp_files = [];		comp_ext = [];		patos_comp = [];	ext2 = [];
+	if (nargin == 2),		prefix = '';		end
 	if ( (pato(end) ~= '\') || (pato(end) ~= '/') )
 		pato(end+1) = filesep;
 	end
@@ -443,7 +392,7 @@ function [files,comp_files,comp_ext,patos,patos_comp] = get_fnames_ext(pato, ext
 		ext1 = ext;
 	end
 
-	tmp = dir([pato '*.' ext1]);
+	tmp = dir([pato prefix '*.' ext1]);
 	files = {tmp(:).name}';
 	patos = repmat({pato},numel(files),1);
 
@@ -647,7 +596,7 @@ function push_OK_CB(hObject, handles)
 % -------------------------------------------------------------------------
 function mosaic_srtm(handles)
 % Build a mosaic of SRTM1|3 tiles
-	[fnames,limits] = sort_patches(handles);
+	[fnames,limits] = sort_patches(handles, 3);
 	if (isempty(fnames))	return,		end
 	m = 1;		n = 1;		% If one tile only
 	if iscell(fnames),		[m,n] = size(fnames);	end
@@ -659,22 +608,20 @@ function mosaic_srtm(handles)
 	aguentabar(0,'title','Now wait (reading SRTM files)');		k = 1;
 	for (i = 1:m)				% Loop over selected tiles (by rows)
 		for (j = 1:n)			%           "              (and by columns)
-			if (m*n == 1),		cur_file = fnames{1};		% Trivial case (One tile only)
-			else				cur_file = fnames{i,j};
-			end
+			cur_file = fnames{i,j};
 			if (strcmp(cur_file,'void')),	continue,	end        % blank tile
 
 			if (~from_web)
 				ii = strcmp(cur_file, handles.srtm_files);
-				if ~isempty(ii)     % It may be empty when fnames{i,j} == 'void' OR file is compressed
-					full_name = [handles.srtm_patos(ii) '/' handles.srtm_files(ii)];
-				else                % Try with a compressed version
+				if (any(ii))		% File is not compressed
+					full_name = [handles.srtm_pato{ii} handles.srtm_files{ii}];
+				else				% Try with a compressed version
 					ii = strcmp(cur_file, handles.srtm_compfiles);
 					if any(ii)		% Got a compressed file.
-						if (strcmpi(handles.srtm_exts(ii),'.zip'))
-							full_name = ['/vsizip/' handles.srtm_patos_comp{ii} handles.srtm_compfiles{ii} handles.srtm_exts{ii}];
-						elseif (strcmpi(handles.srtm_exts(ii),'.gz'))
-							full_name = ['/vsigzip/' handles.srtm_patos_comp{ii} handles.srtm_compfiles{ii} handles.srtm_exts{ii}];
+						if (strcmpi(handles.srtm_ext{ii},'.zip'))
+							full_name = ['/vsizip/' handles.srtm_pato_comp{ii} handles.srtm_compfiles{ii} handles.srtm_ext{ii}];
+						elseif (strcmpi(handles.srtm_ext(ii),'.gz'))
+							full_name = ['/vsigzip/' handles.srtm_pato_comp{ii} handles.srtm_compfiles{ii} handles.srtm_ext{ii}];
 						end
 					end
 				end
@@ -683,7 +630,7 @@ function mosaic_srtm(handles)
 				full_name = ['/vsizip/vsicurl/' get(handles.edit_url,'Str') '/' cur_file '.zip'];
 			end
 
-			Z = single(gdalread(full_name, '-U'));
+			Z = gdalread(full_name, '-U', '-s');
 			if (i == 1 && j == 1 && size(Z,1) == 3601)
 				RC = 3601;
 				Z_tot = repmat(single(NaN), m*RC, n*RC);	% We must resize the whole thing
@@ -699,12 +646,218 @@ function mosaic_srtm(handles)
 			k = k + 1;
 		end
 	end
-	aguentabar(1)		% Close it
-	x_inc = 1 / (RC-1);		y_inc = x_inc;
-	tmp.head = [limits z_min z_max 0 x_inc y_inc];
-	tmp.X = linspace(limits(1), limits(2), RC);		tmp.Y = linspace(limits(3), limits(4), RC);
+	if (RC == 1201),	inc = 3 / 3600;		% SRTM3c
+	else				inc = 1 / 3600;		% SRTM1c
+	end
+	tmp.head = [limits z_min z_max 0 inc inc];
+	tmp.X = linspace(limits(1), limits(2), size(Z_tot,2));
+	tmp.Y = linspace(limits(3), limits(4), size(Z_tot,1));
 	tmp.name = 'SRTM blend';
 	mirone(Z_tot,tmp);
+
+% -------------------------------------------------------------------------
+function mosaic_srtm5(handles)
+% Build a mosaic of SRTM 5 degs (CGIAR messy) tiles
+	[fnames,limits] = sort_patches(handles, 5);
+	if (isempty(fnames))	return,		end
+	m = 1;		n = 1;		% If one tile only
+	if iscell(fnames),		[m,n] = size(fnames);	end
+	RC = 6001;
+
+	z_min = 1e100;     z_max = -z_min;
+	Z_tot = repmat(single(NaN), m*(RC-1)+1, n*(RC-1)+1);
+	aguentabar(0,'title','Reading files');		k = 1;
+	for (i = 1:m)				% Loop over selected tiles (by rows)
+		for (j = 1:n)			%           "              (and by columns)
+			cur_file = fnames{i,j};
+			if (strcmp(cur_file,'void')),	continue,	end        % blank tile
+
+			ii = strcmp(cur_file, handles.srtm5_files);		% the 'srtm_files' are actually zip files
+			[PATO,FNAME] = fileparts(cur_file);
+			if (~any(ii))
+				msgbox(['Something screwed on fishing this tile: ' FNAME],'Error','error'),	continue
+			end
+			full_name  = ['/vsizip/' handles.srtm5_pato{ii} cur_file '/' FNAME '.tif'];
+			full_name2 = ['/vsizip/' handles.srtm5_pato{ii} cur_file '/' FNAME '.asc'];
+
+			try		[Z, att] = gdalread(full_name, '-U', '-s');
+			catch
+				try
+					[Z, att] = gdalread(full_name2, '-U', '-s');
+				catch
+					msgbox([cur_file ' does not contain a valid .asc or .tif grid file'],'Error','error'),	continue
+				end
+			end
+			if (size(Z,1) == 6000)			% Old version of this mess
+				msgbox([cur_file ' is from older V4.0 version, which is not suported here (size matters)'],'Error','error')
+				return
+			end
+			Z(Z == att.Band(1).NoDataValue) = NaN;
+			z_min = min(z_min,att.GMT_hdr(5));		z_max = max(z_max,att.GMT_hdr(6));
+			i_r = (1+(i-1)*(RC-1)):i*(RC-1)+1;
+			i_c = (1+(j-1)*(RC-1)):j*(RC-1)+1;
+			Z_tot(i_r, i_c) = Z;
+			aguentabar(k/(m*n))
+			k = k + 1;
+		end
+	end
+	inc =  3/3600;
+	tmp.head = [limits z_min z_max 0 inc inc];
+	tmp.X = linspace(limits(1), limits(2), size(Z_tot,2));
+	tmp.Y = linspace(limits(3), limits(4), size(Z_tot,1));
+	tmp.name = 'SRTM_5_blend';
+	mirone(Z_tot,tmp);
+
+% -------------------------------------------------------------------------
+function mosaic_srtm30(handles)
+% Build a mosaic of SRTM30 tiles
+	[fnames,limits] = sort_patches(handles, 30);
+	if (isempty(fnames))	return,		end
+	m = 1;		n = 1;		% If one tile only
+	if iscell(fnames),		[m,n] = size(fnames);	end
+	RC = [6000 4800];
+
+	z_min = 1e100;     z_max = -z_min;	%x_min = 1e10;	x_max = -x_min;	y_min = 1e10;	y_max = -y_min;
+	if (m * n > 1)
+		Z_tot = repmat(single(NaN), m*RC(1), n*RC(2));		% Only if we are really mosaicing
+	end
+	aguentabar(0,'title','Reading SRTM30 file(s)');		k = 1;
+	for (i = 1:m)				% Loop over selected tiles	(by rows)
+		for (j = 1:n)			%			"				(and by columns)
+			cur_file = fnames{i,j};
+			if (strcmp(cur_file,'void')),	continue,	end		% blank tile
+
+			ii = strcmp(cur_file, handles.srtm30_files);
+			if (any(ii))		% File is not compressed
+				full_name = [handles.srtm30_pato{ii} handles.srtm30_files{ii}];
+				name_hdr = write_esri_hdr(full_name,'SRTM30');
+			else				% Try with a compressed version ---------- NOT IMPLEMENTED YET --------
+				ii = strcmp(cur_file, handles.srtm30_compfiles);
+				if any(ii)		% Got a compressed file.
+					if (strcmpi(handles.srtm30_ext{ii},'.zip'))
+						full_name = ['/vsizip/' handles.srtm30_pato_comp{ii} handles.srtm30_compfiles{ii} handles.srtm30_ext{ii}];
+					elseif (strcmpi(handles.srtm_ext(ii),'.gz'))
+						full_name = ['/vsigzip/' handles.srtm30_pato_comp{ii} handles.srtm30_compfiles{ii} handles.srtm30_ext{ii}];
+					end
+				end
+			end
+
+			[Z, att] = gdalread(full_name, '-U', '-s');
+			Z(Z == att.Band(1).NoDataValue) = NaN;
+			z_min = min(z_min,att.GMT_hdr(5));		z_max = max(z_max,att.GMT_hdr(6));
+			i_r = (1+(i-1)*RC(1)):i*RC(1);
+			i_c = (1+(j-1)*RC(2)):j*RC(2);
+			if (m * n == 1),	Z_tot = Z;				% One tile only
+			else				Z_tot(i_r, i_c) = Z;
+			end
+			delete(name_hdr);
+			aguentabar(k/(m*n)),	k = k + 1;
+		end
+	end
+	limits = limits + [att.GMT_hdr(8) -att.GMT_hdr(8) att.GMT_hdr(9) -att.GMT_hdr(9)]/2;	%SRTM30 are pix reg
+	tmp.head = [limits z_min z_max 0 att.GMT_hdr(8:9)];
+	tmp.X = linspace(limits(1), limits(2), size(Z_tot,2));
+	tmp.Y = linspace(limits(3), limits(4), size(Z_tot,1));
+	tmp.name = 'SRTM blend';
+	mirone(Z_tot,tmp);
+
+% -----------------------------------------------------------------------------------------
+function [fnames,limits] = sort_patches(handles, type)
+% Sort the tile names (those that were selected) in order that follow a matrix
+% with origin at the lower left corner of the enclosing rectangle.
+% Also returns the limits of the enclosing rectangle.
+% TYPE indicates which kind of srtm files are we dealing with (3, 5 or 30)
+	x_min = [];		x_max = [];		y_min = [];		y_max = [];		limits = [];
+	if (type == 3 || type == 1)		% Get selected tiles by type
+		h = findobj(handles.hPatches,'UserData',1);
+		tileW = 1;		tileH = 1;	% Tile size in degrees
+	elseif (type == 5)
+		h = findobj(handles.hPatches5,'UserData',1);
+		tileW = 5;		tileH = 5;
+	else
+		h = findobj(handles.hPatches30,'UserData',1);
+		tileW = 40;		tileH = 50;
+	end
+	names = get(h,'Tag');							% Get their names
+	if (isempty(names)),		fnames = [];		return,	end
+	if (~isa(names, 'cell')),	names = {names};	end
+
+	nTiles = numel(names);
+	mesh_idx = cell(1,nTiles);
+	for (i = 1:nTiles),		mesh_idx{i} = getappdata(h(i),'MeshIndex');		end
+	[B,IX] = sort(mesh_idx);
+	fnames = names(IX);			% Order tile names according to the sorted mesh_idx
+
+	% Find the map limits of the total collection of tiles
+	idx_r = zeros(1,nTiles);		idx_c = zeros(1,nTiles);
+	for (i = 1:nTiles)
+		% Find the tile coordinates from the file name
+		if (iscell(fnames))		[PATH,FNAME] = fileparts(fnames{i});
+		else					[PATH,FNAME] = fileparts(fnames);
+		end
+		if (type ~= 5)			% Non-CGIAR grid
+			FNAME = upper(FNAME);		% SRTM30 came in lower cases
+			x_w = strfind(FNAME,'W');	x_e = strfind(FNAME,'E');
+			y_s = strfind(FNAME,'S');	y_n = strfind(FNAME,'N');
+			if ~isempty(x_w),			ind_x = x_w(1);		lon_sng = -1;
+			elseif  ~isempty(x_e)		ind_x = x_e(1);		lon_sng = 1;
+			end
+
+			if ~isempty(y_n),			ind_y = y_n(1);		lat_sng = 1;
+			elseif ~isempty(y_s)		ind_y = y_s(1);		lat_sng = -1;
+			end
+			lon = str2double(FNAME(ind_x+1:ind_x+3)) * lon_sng;
+			if (type <= 3),			lat = str2double(FNAME(2:ind_x-1)) * lat_sng;
+			else					lat = str2double(FNAME(ind_y+1:ind_y+2)) * lat_sng - tileH;
+			end
+		else					% CGIAR grids
+			lon = (str2double(FNAME(6:7)) - 1) * 5 - 180;
+			lat = 60 - str2double(FNAME(9:10)) * 5;			% so to get the bottom latitude
+		end
+
+		if (isempty(x_min))
+			x_min = lon;    x_max = lon + tileW;    y_min = lat;    y_max = lat + tileH;
+		else
+			x_min = min(x_min,lon);		x_max = max(x_max,lon+tileW);
+			y_min = min(y_min,lat);		y_max = max(y_max,lat+tileH);
+		end
+		% Convert the sorted mesh index to row and column vectors
+		[t,r] = strtok(B{i},'x');
+		idx_r(i) = str2double(t);		idx_c(i) = str2double(r(2:end));
+	end
+	limits = [x_min x_max y_min y_max];
+
+	% If we have only one tile (trivial case) there is no need for the following tests
+	if (nTiles == 1),	return,		end
+
+	% Build a test mesh index with the final correct order 
+	min_r = min(idx_r);		max_r = max(idx_r);
+	min_c = min(idx_c);		max_c = max(idx_c);
+	k = 1;					n_r = numel(min_r:max_r);		n_c = numel(min_c:max_c);
+	nNames = numel(min_r:max_r) * numel(min_c:max_c);
+	test_mesh = cell(1, nNames);
+	for (i = min_r:max_r)
+		for (j = min_c:max_c)
+			test_mesh{k} = [num2str(i) 'x' num2str(j)];
+			k = k + 1;
+		end
+	end
+
+	t_names = repmat({'void'},1,nNames);
+	BB = B;
+	for (i = nTiles+1:nNames),		BB{i} = '0x0';		end
+
+	% Check t_names against fnames to find the matrix correct order
+	fail = 0;
+	for (i = 1:nNames)
+		k = i - fail;
+		if (strcmp(BB{k},test_mesh{i}))
+			t_names{i} = fnames{k};
+		else
+			fail = fail + 1;
+		end
+	end
+	fnames = reshape(t_names,n_c,n_r)';
 
 % -----------------------------------------------------------------------------------------
 function mosaic_images(handles)
