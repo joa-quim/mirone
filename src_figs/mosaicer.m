@@ -752,7 +752,7 @@ function mosaic_srtm30(handles)
 	tmp.head = [limits z_min z_max 0 att.GMT_hdr(8:9)];
 	tmp.X = linspace(limits(1), limits(2), size(Z_tot,2));
 	tmp.Y = linspace(limits(3), limits(4), size(Z_tot,1));
-	tmp.name = 'SRTM blend';
+	tmp.name = 'SRTM30_blend';
 	mirone(Z_tot,tmp);
 
 % -----------------------------------------------------------------------------------------
@@ -800,13 +800,13 @@ function [fnames,limits] = sort_patches(handles, type)
 			if ~isempty(y_n),			ind_y = y_n(1);		lat_sng = 1;
 			elseif ~isempty(y_s)		ind_y = y_s(1);		lat_sng = -1;
 			end
-			lon = str2double(FNAME(ind_x+1:ind_x+3)) * lon_sng;
-			if (type <= 3),			lat = str2double(FNAME(2:ind_x-1)) * lat_sng;
-			else					lat = str2double(FNAME(ind_y+1:ind_y+2)) * lat_sng - tileH;
+			lon = sscanf(FNAME(ind_x+1:ind_x+3), '%f') * lon_sng;
+			if (type <= 3),			lat = sscanf(FNAME(2:ind_x-1), '%f') * lat_sng;
+			else					lat = sscanf(FNAME(ind_y+1:ind_y+2), '%f') * lat_sng - tileH;
 			end
 		else					% CGIAR grids
-			lon = (str2double(FNAME(6:7)) - 1) * 5 - 180;
-			lat = 60 - str2double(FNAME(9:10)) * 5;			% so to get the bottom latitude
+			lon = (sscanf(FNAME(6:7), '%f') - 1) * 5 - 180;
+			lat = 60 - sscanf(FNAME(9:10), '%f') * 5;		% so to get the bottom latitude
 		end
 
 		if (isempty(x_min))
@@ -817,7 +817,7 @@ function [fnames,limits] = sort_patches(handles, type)
 		end
 		% Convert the sorted mesh index to row and column vectors
 		[t,r] = strtok(B{i},'x');
-		idx_r(i) = str2double(t);		idx_c(i) = str2double(r(2:end));
+		idx_r(i) = sscanf(t, '%f');		idx_c(i) = sscanf(r(2:end), '%f');
 	end
 	limits = [x_min x_max y_min y_max];
 
@@ -1113,5 +1113,228 @@ uicontrol('Parent',h1,...
 'Tag','push_OK');
 
 function mosaicer_uiCB(hObject, eventdata)
+% This function is executed by the callback and than the handles is allways updated.
+	feval([get(hObject,'Tag') '_CB'],hObject, guidata(hObject));
+
+% ----------------------------------------------------------------------------------------
+% ----------------------------------------------------------------------------------------
+function varargout = tiles_servers(varargin)
+% ... 
+	if (numel(varargin) < 3)
+		error('tiles_servers: input must have 3 arguments')
+	end
+
+	hObject = figure('Vis','off');
+	tiles_servers_LayoutFcn(hObject);
+	handles = guihandles(hObject);
+	move2side(hObject, 'center')
+
+	handles.servers_image  = varargin{1};
+	handles.servers_road   = varargin{2};
+	handles.servers_hybrid = varargin{3};
+	order = varargin{4};
+
+	% ------- Fill edit and popup menus with just recieved info -----------
+	set(handles.edit_aerial,  'String', handles.servers_image{order(1)} )
+	set(handles.edit_road,    'String', handles.servers_road{order(2)} )
+	set(handles.edit_hybrid,  'String', handles.servers_hybrid{order(3)} )
+	set(handles.popup_aerial, 'String', handles.servers_image, 'Val', order(1))
+	set(handles.popup_road,   'String', handles.servers_road,  'Val', order(2))
+	set(handles.popup_hybrid, 'String', handles.servers_hybrid,'Val', order(3))
+	handles.aerial = handles.servers_image{order(1)};					% Initializations
+	handles.road   = handles.servers_road{order(2)};
+	handles.hybrid = handles.servers_hybrid{order(3)};
+	handles.aerial_ind = order(1);		handles.road_ind = order(2);	handles.hybrid_ind = order(3);
+	% ---------------------------------------------------------------------
+
+	guidata(hObject, handles);
+	set(hObject,'Vis','on');
+
+	% UIWAIT makes tiles_servers wait for user response
+	uiwait(handles.figure1);
+	handles = guidata(hObject);
+	varargout{1} = handles.output;
+	if ( ishandle(handles.figure1) ),	delete(handles.figure1),	end
+
+% -----------------------------------------------------------------------------------------
+function edit_aerial_CB(hObject, handles, opt)
+	if (nargin == 3),		handles.aerial = opt;		% Called by popupmenu
+	else					handles.aerial = get(hObject, 'String');
+	end
+	guidata(handles.figure1, handles)
+
+% -----------------------------------------------------------------------------------------
+function edit_road_CB(hObject, handles, opt)
+	if (nargin == 3),		handles.road = opt;			% Called by popupmenu
+	else					handles.road = get(hObject, 'String');
+	end
+	guidata(handles.figure1, handles)
+
+% -----------------------------------------------------------------------------------------
+function edit_hybrid_CB(hObject, handles, opt)
+	if (nargin == 3),		handles.hybrid = opt;		% Called by popupmenu
+	else					handles.hybrid = get(hObject, 'String');
+	end
+	guidata(handles.figure1, handles)
+
+% -----------------------------------------------------------------------------------------
+function popup_aerial_CB(hObject, handles)
+% Get selected server and transmit info to corresponding edit box (which will do the rest) 
+	val = get(hObject,'Value');
+	contents = get(hObject,'String');		server = contents{val};
+	set(handles.edit_aerial, 'String', server)
+	handles.aerial_ind = val;
+	edit_aerial_CB(hObject, handles, server)
+
+% -----------------------------------------------------------------------------------------
+function popup_road_CB(hObject, handles)
+% Get selected server and transmit info to corresponding edit box (which will do the rest) 
+	val = get(hObject,'Value');
+	contents = get(hObject,'String');		server = contents{val};
+	set(handles.edit_road, 'String', server)
+	handles.road_ind = val;
+	edit_road_CB(hObject, handles, server)
+
+% -----------------------------------------------------------------------------------------
+function popup_hybrid_CB(hObject, handles)
+% Get selected server and transmit info to corresponding edit box (which will do the rest) 
+	val = get(hObject,'Value');
+	contents = get(hObject,'String');		server = contents{val};
+	set(handles.edit_hybrid, 'String', server)
+	handles.hybrid_ind = val;
+	edit_hybrid_CB(hObject, handles, server)
+
+% -----------------------------------------------------------------------------------------
+function push__OK__CB(hObject, handles)
+	out.whatkind = {handles.aerial; handles.road; handles.hybrid};		% Selected server for "whatkind"
+	out.order = [handles.aerial_ind; handles.road_ind; handles.hybrid_ind];		% Indices order to recover correspondent quadkeey
+	handles.output = out;		guidata(hObject,handles)
+	guidata(handles.figure1, handles)
+	uiresume(handles.figure1);
+
+% -----------------------------------------------------------------------------------------
+function push_cancel_CB(hObject, handles)
+	handles.output = [];
+	guidata(hObject,handles)
+	uiresume(handles.figure1);
+
+% -----------------------------------------------------------------------------------------
+% --- Executes when user attempts to close figure1.
+function figure_servers_CloseRequestFcn(hObject, eventdata)
+	handles = guidata(hObject);
+	if isequal(get(handles.figure1, 'waitstatus'), 'waiting')
+		% The GUI is still in UIWAIT, UIRESUME
+		handles.output = [];		% User gave up, return nothing
+		guidata(hObject, handles);	uiresume(handles.figure1);
+	else    % The GUI is no longer waiting, just close it
+		handles.output = [];		% User gave up, return nothing
+		guidata(hObject, handles);	delete(handles.figure1);
+	end
+
+% -----------------------------------------------------------------------------------------
+% --- Executes on key press over figure1 with no controls selected.
+function figure_servers_KeyPressFcn(hObject, eventdata)
+	handles = guidata(hObject);
+	if isequal(get(hObject,'CurrentKey'),'escape')
+		handles.output = [];		% User said no by hitting escape
+		guidata(hObject, handles);	uiresume(handles.figure1);
+	end
+
+% --- Creates and returns a handle to the GUI figure. 
+function tiles_servers_LayoutFcn(h1)
+
+set(h1, 'Position',[520 541 550 175],...
+'CloseRequestFcn',@figure_servers_CloseRequestFcn,...
+'Color',get(0,'factoryUicontrolBackgroundColor'),...
+'KeyPressFcn',@figure_servers_KeyPressFcn,...
+'MenuBar','none',...
+'Name','Tiles servers',...
+'NumberTitle','off',...
+'Resize','off',...
+'HandleVisibility','callback',...
+'Tag','figure1');
+
+uicontrol('Parent',h1, 'Position',[10 133 251 21],...
+'BackgroundColor',[1 1 1],...
+'Call',@tiles_servers_uiCB,...
+'HorizontalAlignment','left',...
+'Style','edit', 'Tag','edit_aerial');
+
+uicontrol('Parent',h1, 'Position',[10 83 251 21],...
+'BackgroundColor',[1 1 1],...
+'Call',@tiles_servers_uiCB,...
+'HorizontalAlignment','left',...
+'Style','edit', 'Tag','edit_road');
+
+uicontrol('Parent',h1, 'Position',[10 33 251 21],...
+'BackgroundColor',[1 1 1],...
+'Call',@tiles_servers_uiCB,...
+'HorizontalAlignment','left',...
+'Style','edit',...
+'Tag','edit_hybrid');
+
+uicontrol('Parent',h1, 'Position',[10 55 110 15],...
+'FontName','Helvetica',...
+'HorizontalAlignment','left',...
+'String','Hybrid request from:',...
+'Style','text');
+
+uicontrol('Parent',h1, 'Position',[10 106 110 15],...
+'FontName','Helvetica',...
+'HorizontalAlignment','left',...
+'String','Map request from:',...
+'Style','text');
+
+uicontrol('Parent',h1, 'Position',[10 157 110 15],...
+'FontName','Helvetica',...
+'HorizontalAlignment','left',...
+'String','Image request from:',...
+'Style','text');
+
+uicontrol('Parent',h1, 'Position',[269 133 271 22],...
+'BackgroundColor',[1 1 1],...
+'Call',@tiles_servers_uiCB,...
+'Style','popupmenu',...
+'Tooltip','Read from ''tileServers.txt'' on ''data'' directory',...
+'Value',1,...
+'Tag','popup_aerial');
+
+uicontrol('Parent',h1, 'Position',[269 83 271 22],...
+'BackgroundColor',[1 1 1],...
+'Call',@tiles_servers_uiCB,...
+'Style','popupmenu',...
+'Tooltip','Read from ''tileServers.txt'' on ''data'' directory',...
+'Value',1,...
+'Tag','popup_road');
+
+uicontrol('Parent',h1, 'Position',[269 33 271 22],...
+'BackgroundColor',[1 1 1],...
+'Call',@tiles_servers_uiCB,...
+'Style','popupmenu',...
+'Tooltip','Read from ''tileServers.txt'' on ''data'' directory',...
+'Value',1,...
+'Tag','popup_hybrid');
+
+uicontrol('Parent',h1, 'Position',[320 157 150 16],...
+'FontName','Helvetica',...
+'String','Alernatives imported from file',...
+'Tooltip','Read from ''tileServers.txt'' on ''data'' directory',...
+'Style','text');
+
+uicontrol('Parent',h1, 'Position',[381 3 70 23],...
+'Call',@tiles_servers_uiCB,...
+'FontName','Helvetica',...
+'FontWeight','bold',...
+'String','OK',...
+'Tag','push__OK_');
+
+uicontrol('Parent',h1, 'Position',[471 3 70 23],...
+'Call',@tiles_servers_uiCB,...
+'FontName','Helvetica',...
+'FontWeight','bold',...
+'String','Cancel',...
+'Tag','push_cancel');
+
+function tiles_servers_uiCB(hObject, eventdata)
 % This function is executed by the callback and than the handles is allways updated.
 	feval([get(hObject,'Tag') '_CB'],hObject, guidata(hObject));
