@@ -288,22 +288,16 @@ function handles = draw_srtm30_mesh(handles, h)
 	hp = zeros(m-1,n-1);
 
 	for (i = 1:m-1)
-%	for (i = iy(1):iy(2))
-% 		yp = [-i*50 -(i-1)*50 -(i-1)*50 -i*50 -i*50] + 90;
 		yp = [y(i) y(i+1) y(i+1) y(i) y(i)];
 		c2 = 'n';			c1 = 'w';			% Default guesses
 		if (yp(2) < 0),		c2 = 's';	end
 		for (j = 1:n-1)		% col
-%		for (j = jx(1):jx(2))
-% 			xp = [(j-1)*40 (j-1)*40 j*40 j*40 (j-1)*40] - 180;
 			xp = [x(j) x(j) x(j+1) x(j+1) x(j)];
 			mesh_idx = sprintf('%dx%d', i,j);
 			if (xp(1) > 0),	c1 = 'e';	end
  			tag = sprintf('%s%.3d%s%.2d.Bathymetry.srtm', c1, abs(xp(1)), c2, abs(yp(2)));
-% 			hp(i-iy(1)+1,j-jx(1)+1) = patch('Xdata',xp, 'YData',yp, 'Parent',hAx, 'FaceColor','y', 'FaceAlpha',0.5, ...
 			hp(i,j) = patch('Xdata',xp, 'YData',yp, 'Parent',hAx, 'FaceColor','y', 'FaceAlpha',0.5, ...
 				'Tag',tag, 'UserData',0, 'ButtonDownFcn',{@bdn_srtmTile, handles.figure1});
-% 			setappdata(hp(i-iy(1)+1,j-jx(1)+1),'MeshIndex',mesh_idx)
 			setappdata(hp(i,j),'MeshIndex',mesh_idx)
 		end
 	end
