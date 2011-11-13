@@ -30,104 +30,98 @@ function varargout = srtm_tool(varargin)
 		handles.path_data = ['tmp' filesep];
 	end
 
-%set(hObject,'doublebuffer','on','RendererMode','auto');
-
-% See what kind of SRTMs we are going to deal with
-if ~isempty(varargin)
-    if (strcmp(varargin{1},'srtm30'))
-        handles.have_srtm30 = 1;    handles.have_srtm3 = 0;    handles.have_srtm1 = 0;
-        handles.RC = [];
-        set(handles.push_draw_rectangle,'Visible','off')  % We don't need it
-    elseif (strcmp(varargin{1},'srtm1'))
-        handles.have_srtm30 = 0;    handles.have_srtm3 = 0;    handles.have_srtm1 = 1;
-        handles.RC = 3600;          % Number of rows & cols -1
-    else    % Default to SRTM 3c
-        handles.have_srtm30 = 0;    handles.have_srtm3 = 1;    handles.have_srtm1 = 0;
-        handles.RC = 1200;          % Number of rows & cols -1
-    end
-else        % Default to SRTM 3c
-    handles.have_srtm30 = 0;    handles.have_srtm3 = 1;    handles.have_srtm1 = 0;
-    handles.RC = 1200;
-end
-
-handles.figHandle = hObject;
-handles.patchHandles = [];
-
-handles.w_map = flipdim(imread([d_path 'etopo2.jpg']),1);
-image([-180 180],[-90 90],handles.w_map);   axis xy;
-
-%opt_R = ['-R-180/180/-90/90'];      opt_res = '-Dl';
-%boundaries = shoredump(opt_R,opt_res);
-%h_boundaries = line(boundaries(1,:),boundaries(2,:),'Linewidth',0.5,'Color','w','Tag','PoliticalBoundaries');
-
-load([d_path 'm_coasts.mat']);
-line(ncst(:,1),ncst(:,2),'Linewidth',1,'Color','w','Tag','PoliticalBoundaries');
-
-% Read the directory list from mirone_pref
-directory_list = [];
-load([d_path 'mirone_pref.mat']);
-j = false(1,length(directory_list));					% vector for eventual cleaning non-existing dirs
-
-if iscell(directory_list)								% When exists a dir list in mirone_pref
-    for i = 1:length(directory_list)
-        if ~exist(directory_list{i},'dir'),   j(i) = 1;   end
-    end
-    directory_list(j) = [];								% clean eventual non-existing directories
-    if ~isempty(directory_list)							% If there is one left
-        set(handles.popup_dir_list,'String',directory_list)
-        handles.last_directories = directory_list;
-        handles.files_dir = handles.last_directories{1};
-        handles.last_dir = handles.last_directories{1};	% Initialize last_dir to files_dir
-    else
-        set(handles.popup_dir_list,'String',pwd)
-        handles.last_directories = cellstr(pwd);
-        handles.files_dir = pwd;
-        handles.last_dir = pwd;
-    end
-else													% mirone_pref had no dir list
-    handles.last_directories = cellstr(pwd);
-    set(handles.popup_dir_list,'String',handles.last_directories)
-    handles.files_dir = pwd;
-    handles.last_dir = pwd;
-end
-
-% Find out what files do we have available here
-if (handles.have_srtm30)
-    % Get the list of all SRTM30 files sitting in the current work dir
-    % A Note here. I added this option latter than the SRTM3 and it uses a different
-    % strategy for finding files, if they are compressed and what's the compression.
-    [handles.srtm30_files,handles.srtm30_compfiles,handles.srtm30_exts] = ...
-        get_fnames_ext(handles.files_dir,{'srtm' 'zip' 'gz'});
-    guidata(hObject, handles);
-    set_srtm30_mesh(handles);       % Draw the SRTM30 rectangle tiles
-else
-    % Get the list of all SRTM files sitting in the current work dir
-    handles.srtm_files = dir([handles.files_dir filesep '*.hgt']);
-    handles.srtm_zipfiles = dir([handles.files_dir filesep '*.hgt.zip']);
-    handles.srtm_files = rmfield(handles.srtm_files,{'date','isdir','bytes'});      % We don't need those
-    handles.srtm_zipfiles = rmfield(handles.srtm_zipfiles,{'date','isdir','bytes'});
-	% Rip the compress type extension from file names (It will be easiear to deal with latter down)
-	for i=1:length(handles.srtm_zipfiles)
-        [PATH,FNAME] = fileparts(handles.srtm_zipfiles(i).name);
-        handles.srtm_zipfiles(i).name = [PATH FNAME];
+	% See what kind of SRTMs we are going to deal with
+	if ~isempty(varargin)
+		if (strcmp(varargin{1},'srtm30'))
+			handles.have_srtm30 = 1;    handles.have_srtm3 = 0;    handles.have_srtm1 = 0;
+			handles.RC = [];
+			set(handles.push_draw_rectangle,'Visible','off')  % We don't need it
+		elseif (strcmp(varargin{1},'srtm1'))
+			handles.have_srtm30 = 0;    handles.have_srtm3 = 0;    handles.have_srtm1 = 1;
+			handles.RC = 3600;          % Number of rows & cols -1
+		else    % Default to SRTM 3c
+			handles.have_srtm30 = 0;    handles.have_srtm3 = 1;    handles.have_srtm1 = 0;
+			handles.RC = 1200;          % Number of rows & cols -1
+		end
+	else        % Default to SRTM 3c
+		handles.have_srtm30 = 0;    handles.have_srtm3 = 1;    handles.have_srtm1 = 0;
+		handles.RC = 1200;
 	end
-    % Create a new field to store also the files path (FDS I was not able to dot any other way)
-	for i=1:length(handles.srtm_files)
-        handles.srtm_files(i).path = [handles.files_dir filesep];
-	end
-	for i=1:length(handles.srtm_zipfiles)
-        handles.srtm_zipfiles(i).path = [handles.files_dir filesep];
-	end
-end
 
-% Get the handles of the warning text and set it to invisible
-handles.warnHandle = findobj(hObject,'Tag','text_warning');
-set(handles.warnHandle,'Visible','off')
+	handles.figHandle = hObject;
+	handles.patchHandles = [];
 
-% Choose default command line output for srtm_tool_export
-guidata(hObject, handles);
-if (nargout),	varargout{1} = hObject;		end
-set(hObject,'Visible','on');
+	handles.w_map = flipdim(imread([d_path 'etopo2.jpg']),1);
+	image([-180 180],[-90 90],handles.w_map);   axis xy;
+
+	load([d_path 'm_coasts.mat']);
+	line(ncst(:,1),ncst(:,2),'Linewidth',1,'Color','w','Tag','PoliticalBoundaries');
+
+	% Read the directory list from mirone_pref
+	directory_list = [];
+	load([d_path 'mirone_pref.mat']);
+	j = false(1,length(directory_list));				% vector for eventual cleaning non-existing dirs
+
+	if iscell(directory_list)							% When exists a dir list in mirone_pref
+		for i = 1:length(directory_list)
+			if ~exist(directory_list{i},'dir'),   j(i) = 1;   end
+		end
+		directory_list(j) = [];							% clean eventual non-existing directories
+		if ~isempty(directory_list)						% If there is one left
+			set(handles.popup_dir_list,'String',directory_list)
+			handles.last_directories = directory_list;
+			handles.files_dir = handles.last_directories{1};
+			handles.last_dir = handles.last_directories{1};	% Initialize last_dir to files_dir
+		else
+			set(handles.popup_dir_list,'String',cd)
+			handles.last_directories = cellstr(cd);
+			handles.files_dir = cd;
+			handles.last_dir = cd;
+		end
+	else												% mirone_pref had no dir list
+		handles.last_directories = cellstr(cd);
+		set(handles.popup_dir_list,'String',handles.last_directories)
+		handles.files_dir = cd;
+		handles.last_dir = cd;
+	end
+
+	% Find out what files do we have available here
+	if (handles.have_srtm30)
+		% Get the list of all SRTM30 files seating in the current work dir
+		% A Note here. I added this option latter than the SRTM3 and it uses a different
+		% strategy for finding files, if they are compressed and what's the compression.
+		[handles.srtm30_files,handles.srtm30_compfiles,handles.srtm30_exts] = ...
+			get_fnames_ext(handles.files_dir,{'srtm' 'zip' 'gz'});
+		guidata(hObject, handles);
+		set_srtm30_mesh(handles);       % Draw the SRTM30 rectangle tiles
+	else
+		% Get the list of all SRTM files seating in the current work dir
+		handles.srtm_files = dir([handles.files_dir filesep '*.hgt']);
+		handles.srtm_zipfiles = dir([handles.files_dir filesep '*.hgt.zip']);
+		handles.srtm_files = rmfield(handles.srtm_files,{'date','isdir','bytes'});      % We don't need those
+		handles.srtm_zipfiles = rmfield(handles.srtm_zipfiles,{'date','isdir','bytes'});
+		% Rip the compress type extension from file names (It will be easiear to deal with latter down)
+		for i=1:length(handles.srtm_zipfiles)
+			[PATH,FNAME] = fileparts(handles.srtm_zipfiles(i).name);
+			handles.srtm_zipfiles(i).name = [PATH FNAME];
+		end
+		% Create a new field to store also the files path (FDS I was not able to dot any other way)
+		for i=1:length(handles.srtm_files)
+			handles.srtm_files(i).path = [handles.files_dir filesep];
+		end
+		for i=1:length(handles.srtm_zipfiles)
+			handles.srtm_zipfiles(i).path = [handles.files_dir filesep];
+		end
+	end
+
+	% Get the handles of the warning text and set it to invisible
+	handles.warnHandle = findobj(hObject,'Tag','text_warning');
+	set(handles.warnHandle,'Visible','off')
+
+	% Choose default command line output for srtm_tool_export
+	guidata(hObject, handles);
+	if (nargout),	varargout{1} = hObject;		end
+	set(hObject,'Visible','on');
 
 % -----------------------------------------------------------------------------------------
 function toggle_zoom_OnOff_CB(hObject, handles)
@@ -182,7 +176,7 @@ function popup_dir_list_CB(hObject, handles, opt)
 		return
 	end
 
-	% Get the list of all SRTM_1_or_3 files sitting in the new selected dir
+	% Get the list of all SRTM_1_or_3 files seating in the new selected dir
 	more_srtm_files = dir([new_dir filesep '*.hgt']);
 	more_srtm_zipfiles = dir([new_dir filesep '*.hgt.zip']);
 
@@ -235,7 +229,7 @@ function push_change_dir_CB(hObject, handles)
 	end
 	if (strcmp(computer, 'PCWIN'))
 		work_dir = uigetfolder_win32('Select a directory', cd);
-	else            % This guy doesn't let to be compiled
+	else			% This guy doesn't let to be compiled
 		work_dir = uigetdir(cd, 'Select a directory');
 	end
 	if ~isempty(work_dir)
@@ -269,25 +263,22 @@ function push_OK_CB(hObject, handles)
 
 	[fnames,limits] = sort_patches(handles);
 	if (isempty(fnames))	return,		end
-	if iscell(fnames)
-		[m,n] = size(fnames);
-	else        % One tile only
-		m = 1;  n = 1;
-	end
+	m = 1;		n = 1;		% If one tile only
+	if iscell(fnames),		[m,n] = size(fnames);	end
 
 	z_min = [];     z_max = [];     del_file = 0;     x_inc = 1/handles.RC;     y_inc = 1/handles.RC;
-	Z_tot = single(ones(m*handles.RC+1,n*handles.RC+1)*NaN);
+	Z_tot = repmat(single(NaN), m*handles.RC+1, n*handles.RC+1);
 	aguentabar(0,'Now wait (reading SRTM files)');     k = 1;
 	for (i = 1:m)				% Loop over selected tiles (by rows)
 		for (j = 1:n)			%           "              (and by columns)
 			if (m*n == 1)   % Trivial case (One tile only)
 				cur_file = fnames{1};
 				ii = strcmp(cur_file, {handles.srtm_files.name});
-				if ~isempty(ii)
+				if any(ii)
 					full_name = [handles.srtm_files(ii).path cur_file];
 				else
 					ii = strcmp(cur_file, {handles.srtm_zipfiles.name});
-					if ~isempty(ii) % Got a zipped file. Unzip it to the TMP dir
+					if any(ii)	% Got a zipped file. Unzip it to the TMP dir
 						%str = ['unzip -qq ' handles.srtm_zipfiles(ii).path cur_file '.zip' ' -d ' handles.path_data];
 						full_name = [handles.srtm_zipfiles(ii).path cur_file '.zip'];
 						if (handles.have_srtm1)		warn = 'warn';
@@ -301,11 +292,11 @@ function push_OK_CB(hObject, handles)
 			else
 				cur_file = fnames{i,j};
 				ii = strcmp(cur_file, {handles.srtm_files.name});
-				if ~isempty(ii)     % It may be empty when fnames{i,j} == 'void' OR file is compressed
+				if any(ii)		% It may be empty when fnames{i,j} == 'void' OR file is compressed
 					full_name = [handles.srtm_files(ii).path cur_file];
 				else                % Try with a compressed (zipped) version
 					ii = strcmp(cur_file, {handles.srtm_zipfiles.name});
-					if ~isempty(ii) % Got a zipped file. Unzip it to the TMP dir
+					if any(ii)		% Got a zipped file. Unzip it to the TMP dir
 						full_name = [handles.srtm_zipfiles(ii).path cur_file '.zip'];
 						if (handles.have_srtm1),	warn = 'warn';
 						else						warn = [];
@@ -481,7 +472,7 @@ function bdn_srtmTile(obj,eventdata,handles)
 	stat = get(gcbo,'UserData');
 	if ~stat        % If not selected    
 		set(gcbo,'FaceColor','r','UserData',1)
-		if (isempty(xx) && isempty(xz))
+		if ((~any(xx) && ~any(xz)))
 			str = ['The file ' tag ' does not exist in the current directory'];
 			set(handles.warnHandle,'String',str,'Visible','on')
 			pause(1)
@@ -525,23 +516,23 @@ function bdn_srtm30Tile(obj,eventdata,handles)
 	tag = get(gcbo,'Tag');
 	handles = guidata(handles.figHandle);		% We may need to have an updated version of handles
 	xx = strcmp(tag, handles.srtm30_files);   xz = [];
-	if (isempty(xx))			% Try to see if we have a gziped version
+	if (isempty(xx) || ~any(xx))			% Try to see if we have a gziped version
 		xz = strcmp(tag, handles.srtm30_compfiles);
 	end
-	if (isempty(xz))			% Try again to see if we have a ziped version
+	if (isempty(xz) || ~any(xz))			% Try again to see if we have a ziped version
 		xz = strcmp(tag, handles.srtm30_compfiles);
 	end
 
 	stat = get(gcbo,'UserData');
-	if ~stat        % If not selected
-		if (isempty(xx) && isempty(xz))      % File not found
+	if ~stat		% If not selected
+		if ( (isempty(xx) && isempty(xz)) || (~any(xx) && ~any(xz)) )      % File not found
 			set(gcbo,'FaceColor','r','FaceAlpha',0.5,'UserData',1)
 			str = ['The file ' tag ' does not exist in the current directory'];
 			set(handles.warnHandle,'String',str,'Visible','on')
 			pause(1)
 			set(handles.warnHandle,'Visible','off')        
 			set(gcbo,'FaceColor','none','UserData',0)
-		else        % Found file
+		else		% Found file
 			h_ones = findobj(handles.figure1,'Type','patch','UserData',1);
 			h = setxor(gcbo,h_ones);
 			if (~isempty(h))		% De-select the other selected patch because we don't do mosaic with SRTM30
@@ -565,11 +556,11 @@ function read_srtm30(handles)
 
 	del_file = 0;
 	ii = strcmp(fname, handles.srtm30_files);
-	if ~isempty(ii)
+	if (~isempty(ii) || any(ii))
 		full_name = [handles.files_dir filesep fname];
 	else                % Compressed file
 		ii = strcmp(fname, handles.srtm30_compfiles);
-		if ~isempty(ii) % Got a compressed file. Uncompress it to the current dir
+		if (~isempty(ii) || any(ii))	% Got a compressed file. Uncompress it to the current dir
 			full_name = [handles.files_dir filesep fname handles.srtm30_exts{ii}];
 			full_name = decompress(full_name, 'warn');
 			if (isempty(full_name))		return,		end		% Error message already issued
@@ -596,46 +587,40 @@ function read_srtm30(handles)
 
 % -----------------------------------------------------------------------------------------
 function [files,comp_files,comp_ext] = get_fnames_ext(pato, ext)
-% Get the list of all files with extention "EXT" sitting in the "PATO" dir
+% Get the list of all files with extention "EXT" seating in the "PATO" dir
 % EXT may be either a char or a cell array. In the first case, only files with extension EXT
 % will be returned (that is;  COMP_FILES & COMP_EXT are empty)
 % On the second case, extra values of EXT will will be searched as well (that is; files with
-% extension *.EXT{1}.EXT{2:length(EXT)}.
-% FILES is a cell arrays of chars with the names that have extension EXT.
-% COMP_FILES is a cell arrays of chars with the names that had extension EXT{2, or 3, or 4, etc...}.
+% extension *.EXT{1}.EXT{2:numel(EXT)}.
+% FILES is a cell array of chars with the names that have extension EXT.
+% COMP_FILES is a cell array of chars with the names that had extension EXT{2, or 3, or 4, etc...}.
 % NOTE: the last extension is removed. E.G if file was lixo.dat.zip, it will become lixo.dat
-% COMP_EXT is a cell arrays of chars with the extensions corresponding to COMP_FILES.
+% COMP_EXT is a cell array of chars with the extensions corresponding to COMP_FILES.
 % An example is the search for files terminating in *.dat or *.dat.zip (EXT = {'dat' 'zip'})
 
-	comp_files =[];     comp_ext = [];
-	if (~(strcmp(pato(end),'\') || strcmp(pato(end),'/')))
+	comp_files = [];		comp_ext = [];		ext2 = [];
+	if ( (pato(end) ~= '\') || (pato(end) ~= '/') )
 		pato(end+1) = filesep;
-	else
-		pato(end) = filesep;
 	end
 	if (iscell(ext))
 		ext1 = ext{1};
-		ext2 = cell(1,numel(ext)-1);
-		for (k = 2:length(ext))
-			ext2{k-1} = ext{k};
-		end
+		if (numel(ext) > 1),	ext2 = ext(2:end);		end
 	else
-		ext1 = ext;    ext2 = [];
+		ext1 = ext;
 	end
 
-	tmp = dir([pato filesep '*.' ext1]);
+	tmp = dir([pato '*.' ext1]);
 	files = {tmp(:).name}';
 
-	if (~isempty(ext2))         % That is, if we have one or more compression types (e.g. 'zip' 'gz')
-		comp_files = [];		comp_ext = [];
-		for (k=1:numel(ext2))  % Loop over compression types
-			tmp = dir([pato filesep '*.' ext1 '.' ext2{k}]);
+	if (~isempty(ext2))				% That is, if we have one or more compression types (e.g. 'zip' 'gz')
+		for (k = 1:numel(ext2))		% Loop over compression types
+			tmp = dir([pato '*.' ext1 '.' ext2{k}]);
 			tmp = {tmp(:).name}';
-			tmp1 = [];
-			for m=1:length(tmp) % Loop over compressed files
+			tmp1 = cell(1, numel(tmp));
+			for (m = 1:numel(tmp))	% Loop over compressed files
 				[PATH,FNAME,EXT] = fileparts(tmp{m});
 				tmp{m} = [PATH,FNAME];
-				tmp1{m} = EXT;  % Save File last extension as well
+				tmp1{m} = EXT;		% Save File last extension as well
 			end
 			comp_files = [comp_files; tmp];
 			comp_ext = [comp_ext; tmp1'];
