@@ -710,6 +710,7 @@ function mosaic_srtm30(handles)
 	m = 1;		n = 1;		% If one tile only
 	if iscell(fnames),		[m,n] = size(fnames);	end
 	RC = [6000 4800];
+% 	from_web = get(handles.check_web,'Val');
 
 	z_min = 1e100;     z_max = -z_min;	%x_min = 1e10;	x_max = -x_min;	y_min = 1e10;	y_max = -y_min;
 	if (m * n > 1)
@@ -721,19 +722,25 @@ function mosaic_srtm30(handles)
 			cur_file = fnames{i,j};
 			if (strcmp(cur_file,'void')),	continue,	end		% blank tile
 
-			ii = strcmp(cur_file, handles.srtm30_files);
-			if (any(ii))		% File is not compressed
-				full_name = [handles.srtm30_pato{ii} handles.srtm30_files{ii}];
-				name_hdr = write_esri_hdr(full_name,'SRTM30');
-			else				% Try with a compressed version ---------- NOT IMPLEMENTED YET --------
-				ii = strcmp(cur_file, handles.srtm30_compfiles);
-				if any(ii)		% Got a compressed file.
-					if (strcmpi(handles.srtm30_ext{ii},'.zip'))
-						full_name = ['/vsizip/' handles.srtm30_pato_comp{ii} handles.srtm30_compfiles{ii} handles.srtm30_ext{ii}];
-					elseif (strcmpi(handles.srtm_ext(ii),'.gz'))
-						full_name = ['/vsigzip/' handles.srtm30_pato_comp{ii} handles.srtm30_compfiles{ii} handles.srtm30_ext{ii}];
+			if (~from_web)
+				ii = strcmp(cur_file, handles.srtm30_files);
+				if (any(ii))		% File is not compressed
+					full_name = [handles.srtm30_pato{ii} handles.srtm30_files{ii}];
+					name_hdr = write_esri_hdr(full_name,'SRTM30');
+				else				% Try with a compressed version ---------- NOT IMPLEMENTED YET --------
+					ii = strcmp(cur_file, handles.srtm30_compfiles);
+					if any(ii)		% Got a compressed file.
+						if (strcmpi(handles.srtm30_ext{ii},'.zip'))
+							full_name = ['/vsizip/' handles.srtm30_pato_comp{ii} handles.srtm30_compfiles{ii} handles.srtm30_ext{ii}];
+						elseif (strcmpi(handles.srtm_ext(ii),'.gz'))
+							full_name = ['/vsigzip/' handles.srtm30_pato_comp{ii} handles.srtm30_compfiles{ii} handles.srtm30_ext{ii}];
+						end
+						name_hdr = write_vrt(full_name,'SRTM30');
 					end
 				end
+			else
+				aguentabar(-1,'title',['Downloading file: ' cur_file]);
+				full_name = ['/vsicurl/' get(handles.edit_url,'Str') '/' cur_file];
 			end
 
 			[Z, att] = gdalread(full_name, '-U', '-s');
