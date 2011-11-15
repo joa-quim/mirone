@@ -55,6 +55,8 @@ function hObject = empilhador_OpeningFcn(varargin)
 	handles.OneByOneNameList = [];	% For when files are loaded one by one (risky)
 	handles.OneByOneFirst = true;	% Safety valve to deal with the load one by one case
 	handles.testedDS = false;		% To test if a Sub-Dataset request is idiot
+	handles.Interactive = false;	% Used when need to reinterpolate L2 files. FALSE means do not
+									% call the helper window that asks questions (use default ans)
 
 	% -------------- Import/set icons --------------------------------------------
 	load([d_path 'mirone_icons.mat'],'Mfopen_ico');
@@ -168,7 +170,7 @@ function push_namesList_CB(hObject, handles, opt)
 		for (k = 1:m),		handles.strTimes{k} = sprintf('%d',k);		end
 	end
 	if (~isempty(handles.SDSinfo))
-		handles.SDSthis = str2num(handles.SDSinfo{1}(4:end));
+		handles.SDSthis = str2double(handles.SDSinfo{1}(4:end));
 	end
 	% --------------------------------------------------------------------------
 
@@ -420,7 +422,12 @@ function cut2cdf(handles, got_R, west, east, south, north)
 		end
 
 		% In the following, if any of slope, intercept or base changes from file to file ... f
-		[Z, handles.have_nans] = getZ(handles.nameList{k}, att, is_modis, is_linear, is_log, slope, intercept, base, opt_R, handles);
+		[Z, handles.have_nans, att] = ...
+			getZ(handles.nameList{k}, att, is_modis, is_linear, is_log, slope, intercept, base, opt_R, handles);
+
+		if (isfield(att, 'hdrModisL2') && ~isempty(att.hdrModisL2))	% Grid was very likely reinterpolated. Update header
+			handles.head = att.GMT_hdr;
+		end
 
 		if (get(handles.radio_conv2vtk,'Val'))				% Write this layer of the VTK file and continue
 			write_vtk(fid, grd_out, Z);
@@ -468,18 +475,23 @@ function [head, opt_R, slope, intercept, base, is_modis, is_linear, is_log, N_sp
 			get_headerInfo(handles, got_R, west, east, south, north)
 % ...
 
-	att = read_gdal(handles.nameList{1}, [], handles.IamCompiled, '-M','-C');	% Do this because it deals also with ziped files
+	att = get_attribs(handles.nameList{1});
 
 	if ( att.RasterCount == 0 && ~isempty(att.Subdatasets) )
 		if (~isempty(handles.SDSinfo))
 			ind = strfind(att.Subdatasets{handles.SDSthis}, '=');
+			indSDS = handles.SDSthis;
 		elseif (strncmp(att.DriverShortName, 'HDF4', 4))	% Some MODIS files
 			ind = strfind(att.Subdatasets{1}, '=');
+			indSDS = 1;
 		else
 			errordlg('File has Sub-Datasets but you told me nothing about it.','ERROR'),	return
 		end
-		FileName = att.Subdatasets{1}(ind+1:end);		% First "ind" chars are of the form SUBDATASET_1_NAME=
+		indSDS = indSDS * 2 - 1;
+		AllSubdatasets = att.Subdatasets;				% Copy this for keeping it as a subdatast field too
+		FileName = att.Subdatasets{indSDS}(ind+1:end);	% First "ind" chars are of the form SUBDATASET_1_NAME=
 		att = gdalread(FileName,'-M','-C');				% Try again (it will probably fail on ziped files)
+		att.AllSubdatasets = AllSubdatasets;			% A non-standard that is also in some cases set in Mirone
 	end
 
 	% GDAL wrongly reports the corners as [0 nx] [0 ny] when no SRS
@@ -736,9 +748,11 @@ function [Z, have_nans, att] = getZ(fname, att, is_modis, is_linear, is_log, slo
 % ATT may be still unknown (empty). In that case it will be returned by read_gdal()
 % HANDLES, is transmitted only within internal calls of this function (that is, not from outside calls)
 
+	str_d = [];			IamInteractive = true;
 	if (nargin < 9),	opt_R = ' ';	end
-	str_d = [];
-	if (nargin == 10 && ~isempty(handles.SDSinfo))	% We have a Sub-Dataset request
+	if (nargin == 10 && ~handles.Interactive),	IamInteractive = false;		end		% External calls may be interactive
+	%if (nargin == 10 && ~isempty(handles.SDSinfo))	% We have a Sub-Dataset request
+	if (nargin == 10 && ~isempty(handles.SDSinfo) && ~isempty(att) && ~isempty(att.Subdatasets))	% HORRIBLE PATCH. We have a Sub-Dataset request
 		clear_att = false;
 		if (isempty(att))
 			[fname, str_d] = deal_with_compressed(fname);
@@ -769,7 +783,7 @@ function [Z, have_nans, att] = getZ(fname, att, is_modis, is_linear, is_log, slo
 		Corners.UL = att.Corners.UL;
 	end
 
-	[Z, att, known_coords] = read_gdal(fname, att, IamCompiled, '-C', opt_R, '-U');
+	[Z, att, known_coords] = read_gdal(fname, att, IamCompiled, IamInteractive, '-C', opt_R, '-U');
 
 	% See if we knew the image coordinates but that knowedge is lost in new att
 	if ( ~known_coords && ~isempty(GMT_hdr) )	% For the moment we only know for sure for L2 georeferenced products
@@ -827,33 +841,38 @@ function [Z, have_nans, att] = getZ(fname, att, is_modis, is_linear, is_log, slo
 	end
 
 % -----------------------------------------------------------------------------------------
-function [Z, att, known_coords] = read_gdal(full_name, att, IamCompiled, varargin)
+function att = get_attribs(full_name)
+% Get the file's metadata and also tests if an SDS was required but does not exist
+	att = gdalread(full_name, '-M');
+	if ( att.RasterCount > 0 && numel(varargin) <= 2)		% 
+		handles = guidata(gcf);
+		if (~isempty(handles.SDSinfo) && handles.SDSthis > 1 && ~handles.testedDS)
+			handles.testedDS = true;
+			guidata(handles.figure1, handles)
+			errordlg('Input File has no Sub-Datasets so the silly sub-dataset request forced me to abort.','Error')
+			error('empilhador: File has no Sub-Datasets so the silly sub-dataset request forced me to abort')
+		end
+	end
+
+% -----------------------------------------------------------------------------------------
+function [Z, att, known_coords] = read_gdal(full_name, att, IamCompiled, IamInteractive, varargin)
 % Help function to gdalread that deals with cases when file is compressed.
 % ATT is the GDALREAD returned attributes. If empty, we'll get it here
-% VARARGIN will normally contain one or more of '-C', '-M', opt_R, '-U'
+% VARARGIN will normally contain one or more of '-C', opt_R, '-U'
 % WARNING: If exist(att.hdfInfo) than att.fname should exist as well (both non standard)
 
 	NoDataValue = [];		% Some defaults
 	known_coords = false;	% If we know for sure the coords (as for georefed L2 products) tell that to caller
 	[full_name, str_d, uncomp_name] = deal_with_compressed(full_name);
-	
+
 	opt_e = '';
 	if (IamCompiled),	opt_e = '-e';	end		% Use aguentabar.dll
 
 	if (isempty(att))
-		att = gdalread(full_name, '-M');		% This first call is used in the next test
-		if ( att.RasterCount > 0 && numel(varargin) <= 2)		% CONVOLUTED TEST, BUT THIS IS A CONFUSED PROGRAM
-			handles = guidata(gcf);
-			if ( ~isempty(handles.SDSinfo) && handles.SDSthis > 1 && ~handles.testedDS)
-				handles.testedDS = true;
-				guidata(handles.figure1, handles)
-				errordlg('Input File has no Sub-Datasets so the silly sub-dataset request forced me to abort.','Error')
-				error('empilhador: File has no Sub-Datasets so the silly sub-dataset request forced me to abort')
-			end
-		end
+		att = get_attribs(full_name);
 	end
 
-	if ( att.RasterCount == 0 && ~isempty(att.Subdatasets) && strncmp(att.DriverShortName, 'HDF4', 4) )		% Some MODIS files
+	if (att.RasterCount == 0 && ~isempty(att.Subdatasets) && strncmp(att.DriverShortName, 'HDF4', 4))		% Some MODIS files
 		sds_num = 1;
 		handles = guidata(gcf);
 		if (~isempty(handles.SDSinfo))		sds_num = handles.SDSthis * 2 - 1;		end		% We have a SubDataset request
@@ -897,7 +916,8 @@ function [Z, att, known_coords] = read_gdal(full_name, att, IamCompiled, varargi
 			clear lon lat cols_vec
 			opt_R = sprintf('-R%.10f/%.10f/%.10f/%.10f', x_min, x_max, y_min, y_max);
 
-			AllSubdatasets = att.AllSubdatasets;
+			AllSubdatasets = att.AllSubdatasets;		% Copy of all subdatsets names in this sub-dataset att
+			full_name = att.Name;
 			NoDataValue = att.Band(1).NoDataValue;		% Save this that has been ESTIMATED before
 			if (strcmp(varargin{end}, '-U')),	varargin(end) = [];		end		% We also don't want to UpDown
 			opt_L = '-L';
@@ -936,9 +956,12 @@ function [Z, att, known_coords] = read_gdal(full_name, att, IamCompiled, varargi
 
 		% For MODIS L2 products, we may still have many things to do
 		if (strcmp(opt_L,'-L'))		% We are using this as an indication that the file is MODIS (need clever solution)
-			what = l2_choices(AllSubdatasets);			% Call secondary GUI to select what to do next
+			what = [];				% Force a default action
+			if (IamInteractive)
+				what = l2_choices(AllSubdatasets);		% Call secondary GUI to select what to do next
+			end
 			if (isempty(what))							% User killed the window, but it's too late to stop so pretend ...
-				what =  struct('georeference',0,'nearneighbor',1,'mask',0,'coastRes',0,'quality','');	% sensor coords
+				what =  struct('georeference',1,'nearneighbor',0,'mask',0,'coastRes',0,'quality','');	% sensor coords
 			end
 			if ( ~isempty(what.quality) && what.quality < 2 )		% We have a quality request
 				qual = gdalread(what.qualSDS, opt_L);
