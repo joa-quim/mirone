@@ -851,7 +851,7 @@ function [Z, have_nans, att] = getZ(fname, att, is_modis, is_linear, is_log, slo
 function att = get_attribs(full_name)
 % Get the file's metadata and also tests if an SDS was required but does not exist
 	att = gdalread(full_name, '-M');
-	if ( att.RasterCount > 0 && numel(varargin) <= 2)		% 
+	if (att.RasterCount > 0)
 		handles = guidata(gcf);
 		if (~isempty(handles.SDSinfo) && handles.SDSthis > 1 && ~handles.testedDS)
 			handles.testedDS = true;
