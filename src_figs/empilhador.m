@@ -422,8 +422,10 @@ function cut2cdf(handles, got_R, west, east, south, north)
 		end
 
 		% In the following, if any of slope, intercept or base changes from file to file ... f
+		NoDataValue = att.Band(1).NoDataValue;		% Backup it because it might be changed for other (now unknow) reasons.
 		[Z, handles.have_nans, att] = ...
 			getZ(handles.nameList{k}, att, is_modis, is_linear, is_log, slope, intercept, base, opt_R, handles);
+		att.Band(1).NoDataValue = NoDataValue;
 
 		if (isfield(att, 'hdrModisL2') && ~isempty(att.hdrModisL2))	% Grid was very likely reinterpolated. Update header
 			handles.head = att.GMT_hdr;
@@ -478,16 +480,15 @@ function [head, opt_R, slope, intercept, base, is_modis, is_linear, is_log, N_sp
 	att = get_attribs(handles.nameList{1});
 
 	if ( att.RasterCount == 0 && ~isempty(att.Subdatasets) )
+		indSDS = 1;
 		if (~isempty(handles.SDSinfo))
-			ind = strfind(att.Subdatasets{handles.SDSthis}, '=');
-			indSDS = handles.SDSthis;
+			indSDS = handles.SDSthis * 2 - 1;
+			ind = strfind(att.Subdatasets{indSDS}, '=');
 		elseif (strncmp(att.DriverShortName, 'HDF4', 4))	% Some MODIS files
 			ind = strfind(att.Subdatasets{1}, '=');
-			indSDS = 1;
 		else
 			errordlg('File has Sub-Datasets but you told me nothing about it.','ERROR'),	return
 		end
-		indSDS = indSDS * 2 - 1;
 		AllSubdatasets = att.Subdatasets;				% Copy this for keeping it as a subdatast field too
 		FileName = att.Subdatasets{indSDS}(ind+1:end);	% First "ind" chars are of the form SUBDATASET_1_NAME=
 		att = gdalread(FileName,'-M','-C');				% Try again (it will probably fail on ziped files)
@@ -500,7 +501,7 @@ function [head, opt_R, slope, intercept, base, is_modis, is_linear, is_log, N_sp
 	end
 
 	N_spatialSize = att.RasterYSize;		integDim = 2;
-
+	
 	att.fname = handles.nameList{1};			% This case needs it
 	[head , slope, intercept, base, is_modis, is_linear, is_log, att, opt_R] = ...
 		getFromMETA(att, got_R, handles, west, east, south, north);
@@ -553,6 +554,12 @@ function [head , slope, intercept, base, is_modis, is_linear, is_log, att, opt_R
 		end
 		is_modis = true;						% We'll use this knowledge to 'avoid' Land pixels = -32767  
 		att.hdrModisL2 = hdf_funs('hdfinfo', att.fname);
+		if (got_R)			% For L2 files we cannot find -R here (before sensor to geog coords conversion)
+							% So we store the croping info in 'att' to use later after reinterpolation
+			att.crop_info.opt_R = sprintf('-R%.8f/%.8f/%.8f/%.8f',west,east,south,north);
+			att.crop_info.limits = [west east south north];
+			got_R = false;	% So that last block in this function won't try to execute.
+		end
 	elseif ( modis_or_seawifs && strncmp(att.DriverShortName, 'HDF4', 4) )
 		x_max = search_scaleOffset(att.Metadata, 'Easternmost');	% Easternmost Latitude=180
 		x_min = search_scaleOffset(att.Metadata, 'Westernmost');	% Westernmost Latitude=-180
@@ -956,18 +963,22 @@ function [Z, att, known_coords] = read_gdal(full_name, att, IamCompiled, IamInte
 
 		% For MODIS L2 products, we may still have many things to do
 		if (strcmp(opt_L,'-L'))		% We are using this as an indication that the file is MODIS (need clever solution)
-			what = [];				% Force a default action
 			if (IamInteractive)
 				what = l2_choices(AllSubdatasets);		% Call secondary GUI to select what to do next
+			else
+				what =  struct('georeference',1,'nearneighbor',0,'mask',0,'coastRes',0,'quality','');	% sensor coords
+				if (isfield(att, 'crop_info'))			% We have a crop request
+					opt_R = att.crop_info.opt_R;
+				end
 			end
 			if (isempty(what))							% User killed the window, but it's too late to stop so pretend ...
-				what =  struct('georeference',1,'nearneighbor',0,'mask',0,'coastRes',0,'quality','');	% sensor coords
+				what =  struct('georeference',1,'nearneighbor',1,'mask',0,'coastRes',0,'quality','');	% sensor coords
 			end
 			if ( ~isempty(what.quality) && what.quality < 2 )		% We have a quality request
 				qual = gdalread(what.qualSDS, opt_L);
 				Z(qual > what.quality) = NoDataValue;
 			end
-			if ( ~isempty(what) && what.georeference)
+			if (~isempty(what) && what.georeference)
 				ind = (Z == (att.Band(1).NoDataValue));
 				Z(ind) = [];		lon_full(ind) = [];		lat_full(ind) = [];
 				if (what.nearneighbor)
