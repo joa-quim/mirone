@@ -19,15 +19,17 @@ function varargout = mosaicer(varargin)
 	handles.hPatchImgs = [];
 	handles.url_manual = '';
 
-	% Choose what tyoe of patches to plot based on rectangle's area (GRID oriented decision)
+	% Choose what type of patches to plot based on rectangle's area (GRID oriented decision)
 	x = diff(get(handles.hRectangle,'XData'));		y = diff(get(handles.hRectangle,'YData'));
 	area = max(abs(x)) * max(abs(y));
 	if (area < 30)
-		handles = draw_srtm_mesh(handles, handles.hRectangle);
+		handles = draw_srtm_mesh(handles, handles.hRectangle);		% True SRTM tiles
 	elseif (area < 150)
-		handles = draw_srtm5_mesh(handles, handles.hRectangle);
+		handles = draw_srtm5_mesh(handles, handles.hRectangle);		% The CGIAR 5º blends
+		set(handles.radio_srtm5, 'Val', 1),			set(handles.radio_srtm, 'Val', 0)
 	else
-		handles = draw_srtm30_mesh(handles, handles.hRectangle);
+		handles = draw_srtm30_mesh(handles, handles.hRectangle);	% Sandwell's 30' big ones
+		set(handles.radio_srtm30, 'Val', 1),		set(handles.radio_srtm, 'Val', 0)
 	end
 
 	% --------------------- Read the directory and cache dir list from mirone_pref ----------------------
@@ -196,7 +198,7 @@ function radio_srtm5_CB(hObject, handles)
 	set(handles.slider_zoomFactor, 'Enable', 'off')
 	if (~isempty(handles.hPatches30)),		set(handles.hPatches30, 'Vis', 'off'),	end
 	if (~isempty(handles.hPatches)),		set(handles.hPatches,   'Vis', 'off'),	end
-	if (~isempty(handles.hPatchImgs)),		set(handles.hPatchImgs,'Vis', 'off'),	end
+	if (~isempty(handles.hPatchImgs)),		set(handles.hPatchImgs, 'Vis', 'off'),	end
 	if (~isempty(handles.hPatches5))
 		set(handles.hPatches5,   'Vis', 'on')
 	else
@@ -576,7 +578,7 @@ function toggle_mesh_CB(hObject, handles)
 
 % -------------------------------------------------------------------------
 function push_OK_CB(hObject, handles)
-% ...
+% Pick the right function to do the building work
 	if (get(handles.radio_srtm,'Val'))
 		mosaic_srtm(handles)
 	elseif (get(handles.radio_srtm5,'Val'))
@@ -599,7 +601,7 @@ function mosaic_srtm(handles)
 
 	z_min = 1e100;     z_max = -z_min;
 	Z_tot = repmat(single(NaN), m*(RC-1)+1, n*(RC-1)+1);
-	aguentabar(0,'title','Now wait (reading SRTM files)');		k = 1;
+	aguentabar(0,'title','Reading SRTM files');		k = 1;
 	for (i = 1:m)				% Loop over selected tiles (by rows)
 		for (j = 1:n)			%           "              (and by columns)
 			cur_file = fnames{i,j};
@@ -660,7 +662,7 @@ function mosaic_srtm5(handles)
 
 	z_min = 1e100;     z_max = -z_min;
 	Z_tot = repmat(single(NaN), m*(RC-1)+1, n*(RC-1)+1);
-	aguentabar(0,'title','Reading files');		k = 1;
+	aguentabar(0,'title','Reading CGIAR files');		k = 1;
 	for (i = 1:m)				% Loop over selected tiles (by rows)
 		for (j = 1:n)			%           "              (and by columns)
 			cur_file = fnames{i,j};
