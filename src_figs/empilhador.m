@@ -398,9 +398,9 @@ function cut2cdf(handles, got_R, west, east, south, north)
 		return
 	end
 
-	% Read relevant metadata
-	[head, opt_R, slope, intercept, base, is_modis, is_linear, is_log, N_spatialSize, integDim, att] = ...
-		get_headerInfo(handles, got_R, west, east, south, north);
+	% Read relevant metadata. Attention, if we have a subdataset request ATT holds the attribs of the SDS
+	[head, opt_R, slope, intercept, base, is_modis, is_linear, is_log, att, do_SDS] = ...
+		get_headerInfo(handles, handles.nameList{1}, got_R, west, east, south, north);
 
 	handles.geog = 1;			handles.head = head;
 	handles.was_int16 = 0;		handles.computed_grid = 0;
@@ -419,6 +419,10 @@ function cut2cdf(handles, got_R, west, east, south, north)
 			if (strcmp(resp, 'No')),	return
 			else						continue
 			end
+		end
+
+		if (do_SDS)		% If we have an SDS request, get the attribs of that SDS (needed in getZ)
+			[att, do_SDS] = get_att(handles, handles.nameList{k});
 		end
 
 		% In the following, if any of slope, intercept or base changes from file to file ... f
@@ -473,13 +477,29 @@ function cut2cdf(handles, got_R, west, east, south, north)
 	set(handles.listbox_list,'Val',1)
 
 % -----------------------------------------------------------------------------------------
-function [head, opt_R, slope, intercept, base, is_modis, is_linear, is_log, N_spatialSize, integDim, att] = ...
-			get_headerInfo(handles, got_R, west, east, south, north)
+function [head, opt_R, slope, intercept, base, is_modis, is_linear, is_log, att, do_SDS] = ...
+			get_headerInfo(handles, name, got_R, west, east, south, north)
 % ...
 
-	att = get_attribs(handles.nameList{1});
+	[att, do_SDS] = get_att(handles, name);
 
-	if ( att.RasterCount == 0 && ~isempty(att.Subdatasets) )
+	% GDAL wrongly reports the corners as [0 nx] [0 ny] when no SRS
+	if ( isequal((att.Corners.LR - att.Corners.UL), [att.RasterXSize att.RasterYSize]) && ~all(att.Corners.UL) )
+		att.GMT_hdr(1:4) = [1 att.RasterXSize 1 att.RasterYSize];
+	end
+	
+	att.fname = name;			% This case needs it
+	[head , slope, intercept, base, is_modis, is_linear, is_log, att, opt_R] = ...
+		getFromMETA(att, got_R, handles, west, east, south, north);
+
+% -----------------------------------------------------------------------------------------
+function [att, indSDS] = get_att(handles, name)
+% Get the attributes of the root file or, in case we have one, of the requested subdataset
+
+	indSDS = 0;
+	att = get_baseNameAttribs(name);
+
+	if ( att.RasterCount == 0 && ~isempty(att.Subdatasets) )	
 		indSDS = 1;
 		if (~isempty(handles.SDSinfo))
 			indSDS = handles.SDSthis * 2 - 1;
@@ -487,24 +507,14 @@ function [head, opt_R, slope, intercept, base, is_modis, is_linear, is_log, N_sp
 		elseif (strncmp(att.DriverShortName, 'HDF4', 4))	% Some MODIS files
 			ind = strfind(att.Subdatasets{1}, '=');
 		else
-			errordlg('File has Sub-Datasets but you told me nothing about it.','ERROR'),	return
+			errordlg('File has Sub-Datasets but you told me nothing about it.','ERROR')
+			error('File has Sub-Datasets but you told me nothing about it.')
 		end
-		AllSubdatasets = att.Subdatasets;				% Copy this for keeping it as a subdatast field too
+		AllSubdatasets = att.Subdatasets;				% Copy this for keeping it as a subdataset field too
 		FileName = att.Subdatasets{indSDS}(ind+1:end);	% First "ind" chars are of the form SUBDATASET_1_NAME=
 		att = gdalread(FileName,'-M','-C');				% Try again (it will probably fail on ziped files)
 		att.AllSubdatasets = AllSubdatasets;			% A non-standard that is also in some cases set in Mirone
 	end
-
-	% GDAL wrongly reports the corners as [0 nx] [0 ny] when no SRS
-	if ( isequal((att.Corners.LR - att.Corners.UL), [att.RasterXSize att.RasterYSize]) && ~all(att.Corners.UL) )
-		att.GMT_hdr(1:4) = [1 att.RasterXSize 1 att.RasterYSize];
-	end
-
-	N_spatialSize = att.RasterYSize;		integDim = 2;
-	
-	att.fname = handles.nameList{1};			% This case needs it
-	[head , slope, intercept, base, is_modis, is_linear, is_log, att, opt_R] = ...
-		getFromMETA(att, got_R, handles, west, east, south, north);
 
 % -----------------------------------------------------------------------------------------
 function [head , slope, intercept, base, is_modis, is_linear, is_log, att, opt_R] = ...
@@ -758,16 +768,20 @@ function [Z, have_nans, att] = getZ(fname, att, is_modis, is_linear, is_log, slo
 	str_d = [];			IamInteractive = true;
 	if (nargin < 9),	opt_R = ' ';	end
 	if (nargin == 10 && ~handles.Interactive),	IamInteractive = false;		end		% External calls may be interactive
-	%if (nargin == 10 && ~isempty(handles.SDSinfo))	% We have a Sub-Dataset request
-	if (nargin == 10 && ~isempty(handles.SDSinfo) && ~isempty(att) && ~isempty(att.Subdatasets))	% HORRIBLE PATCH. We have a Sub-Dataset request
+
+	if (nargin == 10 && ~isempty(handles.SDSinfo))		% We have a Sub-Dataset request
 		clear_att = false;
-		if (isempty(att))
-			[fname, str_d] = deal_with_compressed(fname);
+		if (~isempty(att) && ~isempty(att.Subdatasets))
+			ind = strfind(att.Subdatasets{handles.SDSthis * 2 - 1}, '=');
+			fname = att.Subdatasets{handles.SDSthis * 2 - 1}(ind+1:end);	% First "ind" chars are of the form SUBDATASET_?_NAME=
+		elseif (~isempty(att) && isempty(att.Subdatasets))
+			ind = strfind(att.AllSubdatasets{handles.SDSthis * 2 - 1}, '=');
+			fname = att.AllSubdatasets{handles.SDSthis * 2 - 1}(ind+1:end);
+		else		% isempty(att) = true
+			[fname, str_d] = deal_with_compressed(fname);		% MUST GET RID OF THIS (read compressed directly)
 			att = gdalread(fname, '-M');	clear_att = true;
 			if (~isempty(str_d)),	str_d = fname;		end
 		end
-		ind = strfind(att.Subdatasets{handles.SDSthis * 2 - 1}, '=');
-		fname = att.Subdatasets{handles.SDSthis * 2 - 1}(ind+1:end);	% First "ind" chars are of the form SUBDATASET_?_NAME=
 		if (clear_att),		att = [];	end
 		IamCompiled = handles.IamCompiled;
 	else
@@ -848,7 +862,7 @@ function [Z, have_nans, att] = getZ(fname, att, is_modis, is_linear, is_log, slo
 	end
 
 % -----------------------------------------------------------------------------------------
-function att = get_attribs(full_name)
+function att = get_baseNameAttribs(full_name)
 % Get the file's metadata and also tests if an SDS was required but does not exist
 	att = gdalread(full_name, '-M');
 	if (att.RasterCount > 0)
@@ -876,7 +890,7 @@ function [Z, att, known_coords] = read_gdal(full_name, att, IamCompiled, IamInte
 	if (IamCompiled),	opt_e = '-e';	end		% Use aguentabar.dll
 
 	if (isempty(att))
-		att = get_attribs(full_name);
+		att = get_baseNameAttribs(full_name);
 	end
 
 	if (att.RasterCount == 0 && ~isempty(att.Subdatasets) && strncmp(att.DriverShortName, 'HDF4', 4))		% Some MODIS files
