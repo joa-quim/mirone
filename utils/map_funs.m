@@ -62,13 +62,13 @@ elseif ~isequal(size(lat),size(lon))
 end
 
 %  Ensure at a terminating NaN in the vectors
-if ~isnan( lat(length(lat)) );    lat = [lat; NaN];   end
-if ~isnan( lon(length(lon)) );    lon = [lon; NaN];   end
+if ~isnan( lat(numel(lat)) );    lat = [lat; NaN];   end
+if ~isnan( lon(numel(lon)) );    lon = [lon; NaN];   end
 
 %  Ensure vectors don't begin with NaNs
 if isnan(lat(1)) || isnan(lon(1))
-	lat = lat(2:length(lat));
-	lon = lon(2:length(lon));
+	lat = lat(2:numel(lat));
+	lon = lon(2:numel(lon));
 end
 
 %  Find segment demarcations
@@ -80,14 +80,22 @@ if ~isequal(indx,indx2)
 end
 
 %  Extract each segment
-for (i = 1:length(indx))	% Pull segment out of main vectors
+latcells = cell(1,numel(indx));
+loncells = cell(1,numel(indx));
+ind = false(1, numel(indx));
+for (i = 1:numel(indx))	% Pull segment out of main vectors
 	if (i > 1)
 		latcells{i} = lat(indx(i-1)+1:indx(i)-1);
 		loncells{i} = lon(indx(i-1)+1:indx(i)-1);
+		if (isempty(latcells{i})),	ind(i) = true;	end			% They may be empty if consecutive NaNs
 	else
 		latcells{i} = lat(1:indx(i)-1);
 		loncells{i} = lon(1:indx(i)-1);
 	end
+end
+if (any(ind))			% if we have empties, remove them
+	latcells(ind) = [];
+	loncells(ind) = [];
 end
 
 % ---------------------------------------------------------------------
