@@ -54,7 +54,8 @@ if (~isa(texto,'cell')),		texto = cellstr(texto);	end
 
 switch option
 	case 'create'
-		[figpos, figName, posTxt, movepos, bgcolor, fwcolor, Font, addButt, winMaxH] = parse_inputs(texto, varargin{:});
+		[figpos, figName, posTxt, movepos, bgcolor, fwcolor, Font, addButt, winMaxH, modal] = ...
+			parse_inputs(texto, varargin{:});
 		if (isempty(movepos))			% Reposition figure on screen
 			figpos = getnicelocation(figpos, 'pixels');
 		end
@@ -80,6 +81,9 @@ switch option
 				'Tag','plotaMiMa');
 		end
 
+		if (modal)		% Make the Fig modal
+			set(hFig,'WindowStyle','modal')
+		end
 		if (~isempty(movepos))			% Reposition figure on screen
 			move2side(hFig, movepos)
 		end
@@ -109,11 +113,11 @@ switch option
 				set([hFig,hTxt], 'unit', 'pix')
 				figpos = get(hFig, 'Pos');
 				extent = get(hTxt,'Extent');
-				if (addButt)		extent(4) = extent(4) + 30;		end	% Need to take button size into account
-				figpos(4) = round(extent(4)+10);						% New fig height
-				figpos = getnicelocation(figpos, 'pixels');				% Reposition again
+				extent(4) = extent(4) + 30;							% Need to take button size into account
+				figpos(4) = round(extent(4)+10);					% New fig height
+				figpos = getnicelocation(figpos, 'pixels');			% Reposition again
 				set(hFig, 'Pos', figpos)
-				set(hTxt, 'Pos', [posTxt(1:3) extent(4)])				% Update text position after fig resizing
+				set(hTxt, 'Pos', [posTxt(1:3) extent(4)])			% Update text position after fig resizing
 				set([hFig,hTxt], 'unit', 'norm')
 			end
 		end
@@ -147,7 +151,7 @@ switch option
 end
 
 % ------------------------------------------------------------------------------------	
-function [figpos, figName, posTxt, movepos, bgcolor, fwcolor, Font, addButt, winMaxH] = parse_inputs(texto, varargin)
+function [figpos, figName, posTxt, movepos, bgcolor, fwcolor, Font, addButt, winMaxH, modal] = parse_inputs(texto, varargin)
 % Parse inputs and compute also fig and text sizes
 
 	if ( rem(numel(varargin), 2) )
@@ -155,7 +159,7 @@ function [figpos, figName, posTxt, movepos, bgcolor, fwcolor, Font, addButt, win
 	end
 	% Assign defaults
 	win_width = 0;		win_height = 0;		movepos = [];	fwcolor = 'k';	bgcolor = [.95 .95 .95];
-	addButt = false;
+	addButt = false;	modal = false;
 	figName = 'Message window';
 	Font.Size = 9;
 	Font.Weight = 'demi';
@@ -174,6 +178,7 @@ function [figpos, figName, posTxt, movepos, bgcolor, fwcolor, Font, addButt, win
 				case 'fontsize',	Font.Size = varargin{k+1};
 				case 'fontname',	Font.Name = varargin{k+1};
 				case 'button',		addButt = true;
+				case 'modal',		modal = true;
 			end
 		end
 	end
