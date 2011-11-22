@@ -421,8 +421,8 @@ function cut2cdf(handles, got_R, west, east, south, north)
 			end
 		end
 
-		if (do_SDS)		% If we have an SDS request, get the attribs of that SDS (needed in getZ)
-			[att, do_SDS] = get_att(handles, handles.nameList{k});
+		if (do_SDS && k > 1)		% If we have an SDS request, get the attribs of that SDS (needed in getZ)
+			[att, do_SDS] = get_headerInfo(handles, handles.nameList{k}, got_R, west, east, south, north);
 		end
 
 		% In the following, if any of slope, intercept or base changes from file to file ... f
@@ -479,7 +479,8 @@ function cut2cdf(handles, got_R, west, east, south, north)
 % -----------------------------------------------------------------------------------------
 function [head, opt_R, slope, intercept, base, is_modis, is_linear, is_log, att, do_SDS] = ...
 			get_headerInfo(handles, name, got_R, west, east, south, north)
-% ...
+% Get several direct and inderect (computed) informations about the file NAME or one of its subdatasets.
+% The [att, do_SDS] = get_headerInfo(...) form is also supported and used when processing L2 files.
 
 	[att, do_SDS] = get_att(handles, name);
 
@@ -491,6 +492,11 @@ function [head, opt_R, slope, intercept, base, is_modis, is_linear, is_log, att,
 	att.fname = name;			% This case needs it
 	[head , slope, intercept, base, is_modis, is_linear, is_log, att, opt_R] = ...
 		getFromMETA(att, got_R, handles, west, east, south, north);
+	
+	if (nargout <= 2)			% Short form
+		head = att;
+		if (nargout == 2),		opt_R = do_SDS;		end
+	end
 
 % -----------------------------------------------------------------------------------------
 function [att, indSDS] = get_att(handles, name)
