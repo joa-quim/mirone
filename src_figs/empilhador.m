@@ -431,6 +431,14 @@ function cut2cdf(handles, got_R, west, east, south, north)
 			getZ(handles.nameList{k}, att, is_modis, is_linear, is_log, slope, intercept, base, opt_R, handles);
 		att.Band(1).NoDataValue = NoDataValue;
 
+		% Check if all grids have the same size
+		if (k == 1)
+			n_rows = size(Z,1);		n_cols = size(Z,2);
+		elseif (~isequal([n_rows n_cols],[size(Z,1) size(Z,2)]))
+			warndlg(['The grid ' handles.nameList{k} ' has different size than precedents. Jumping it.'],'Warning')
+			continue
+		end
+
 		if (isfield(att, 'hdrModisL2') && ~isempty(att.hdrModisL2))	% Grid was very likely reinterpolated. Update header
 			handles.head = att.GMT_hdr;
 		end
