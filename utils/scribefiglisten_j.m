@@ -40,7 +40,7 @@ if ~isempty(ax)
     % create listeners for axes if they don't exist
     for i=1:length(ax)
         % don't create them for axes that are legends or colorbars
-        if ~any(strcmp(get(get(ax(i),'children'),'tag'),'TMW_COLORBAR')) & ...
+        if ~any(strcmp(get(get(ax(i),'children'),'tag'),'TMW_COLORBAR')) && ...
                 ~strcmp(get(ax(i),'tag'),'legend')
             if isempty(findprop(handle(ax(i)),'ScribeFigAxListeners'))
                 % create listeners property
@@ -73,8 +73,8 @@ type = get(chh,'type');
 
 % don't do anything if child being added is a temporary text or uicontrol
 % object (e.g. used to get the dimensions of a string) as in legend
-if (strcmpi(tag,'temphackytext') & strcmpi(type,'text')) | ...
-        (strcmpi(tag,'temphackyui') & strcmpi(type,'uicontrol'))
+if (strcmpi(tag,'temphackytext') && strcmpi(type,'text')) || ...
+        (strcmpi(tag,'temphackyui') && strcmpi(type,'uicontrol'))
  
 % if obect being added is a legend, and zoom_j or rotate3d is on,
 % turn it off and then on again to make state data saved by
@@ -115,8 +115,8 @@ type = get(chh,'type');
 % don't do anything if child being removed is a temporary
 % text or ui object (e.g. used to get the dimensions of a string)
 % as in legend
-if (strcmpi(tag,'temphackytext') & strcmpi(type,'text')) | ...
-        (strcmpi(tag,'temphackyui') & strcmpi(type,'uicontrol'))
+if (strcmpi(tag,'temphackytext') && strcmpi(type,'text')) || ...
+        (strcmpi(tag,'temphackyui') && strcmpi(type,'uicontrol'))
 
 % if obect being removed is a legend, and zoom_j or rotate3d is on,
 % turn it off and then on again to make state data saved by
@@ -155,9 +155,9 @@ function scribeFigAxChildAdded(src,event,fig)
     
     % don't turn zoom_j/rotate3d off if obect being added is a temporary text or ui object
     % or a legend delete proxy
-    if ~strcmpi(tag,'LegendDeleteProxy') & ... 
-        ~(strcmpi(tag,'temphackytext') & strcmpi(type,'text')) & ...
-        ~(strcmpi(tag,'temphackyui') & strcmpi(type,'uicontrol'))
+    if ~strcmpi(tag,'LegendDeleteProxy') && ... 
+        ~(strcmpi(tag,'temphackytext') && strcmpi(type,'text')) && ...
+        ~(strcmpi(tag,'temphackyui') && strcmpi(type,'uicontrol'))
      
         zoom_j(fig,'off');
         %rotate3d(fig,'off');
@@ -175,9 +175,9 @@ function scribeFigAxChildRemoved(src,event,fig)
     
     % don't turn zoom_j/rotate3d off if obect being added is a temporary text or ui object
     % or a legend delete proxy
-    if ~strcmpi(tag,'LegendDeleteProxy') & ... 
-        ~(strcmpi(tag,'temphackytext') & strcmpi(type,'text')) & ...
-        ~(strcmpi(tag,'temphackyui') & strcmpi(type,'uicontrol'))
+    if ~strcmpi(tag,'LegendDeleteProxy') && ... 
+        ~(strcmpi(tag,'temphackytext') && strcmpi(type,'text')) && ...
+        ~(strcmpi(tag,'temphackyui') && strcmpi(type,'uicontrol'))
      
         zoom_j(fig,'off');
         %rotate3d(fig,'off');
