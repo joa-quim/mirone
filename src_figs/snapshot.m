@@ -28,6 +28,7 @@ function varargout = snapshot(varargin)
 	snapshot_LayoutFcn(hObject);
 	handles = guihandles(hObject);
 	move2side(hObject,'center')
+	handles.IAmOctave = (exist('OCTAVE_VERSION','builtin') ~= 0);	% To know if we are running under Octave
 
 	handles.hCallingFig = varargin{1};
 	handlesMir = guidata(handles.hCallingFig);
@@ -419,11 +420,17 @@ function [fname,ext] = stripExt(fname)
 % --- Executes when user attempts to close figure1.
 function figure1_CloseRequestFcn(hObject, eventdata)
 	handles = guidata(hObject);
-	if isequal(get(handles.figure1, 'waitstatus'), 'waiting')
+	if (~handles.IAmOctave)
+		do_uiresume = strcmp(get(hObject, 'waitstatus'), 'waiting');
+	else
+		do_uiresume = strcmp(get(hObject, '__uiwait_state__'), 'none');
+	end
+	if (do_uiresume)
 		% The GUI is still in UIWAIT, us UIRESUME
-		guidata(handles.figure1, handles);    uiresume(handles.figure1);
-	else    % The GUI is no longer waiting, just close it
-		delete(handles.figure1);
+		guidata(hObject, handles);    uiresume(hObject);
+	else
+		% The GUI is no longer waiting, just close it
+		delete(hObject)
 	end
 
 % --- Creates and returns a handle to the GUI figure. 
