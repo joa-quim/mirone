@@ -22,6 +22,7 @@ function varargout = bg_region(varargin)
 	bg_region_LayoutFcn(hObject);
 	handles = guihandles(hObject);
 	move2side(hObject,'center');
+	handles.IAmOctave = (exist('OCTAVE_VERSION','builtin') ~= 0);	% To know if we are running under Octave
 
 	handles.command = cell(15,1);
 
@@ -230,15 +231,20 @@ function push_OK_CB(hObject, handles)
 % --------------------------------------------------------------------------------------------------
 % --- Executes when user attempts to close figure1.
 function figure1_CloseRequestFcn(hObject, eventdata)
-	handles = guidata(hObject);
-	if isequal(get(handles.figure1, 'waitstatus'), 'waiting')
+    handles = guidata(hObject);
+	if (~handles.IAmOctave)
+		do_uiresume = strcmp(get(hObject, 'waitstatus'), 'waiting');
+	else
+		do_uiresume = strcmp(get(hObject, '__uiwait_state__'), 'none');
+	end
+	if (do_uiresume)
 		% The GUI is still in UIWAIT, us UIRESUME
-		handles.output = [];        % User gave up, return nothing
-		guidata(hObject, handles);    uiresume(handles.figure1);
+		handles.output = [];		% User gave up, return nothing
+		guidata(hObject, handles);	uiresume(hObject);
 	else
 		% The GUI is no longer waiting, just close it
-		handles.output = [];        % User gave up, return nothing
-		guidata(hObject, handles);    delete(handles.figure1);
+		handles.output = [];		% User gave up, return nothing
+		guidata(hObject, handles);	delete(handles.figure1);
 	end
 
 % --- Executes on key press over figure1 with no controls selected.
