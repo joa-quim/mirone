@@ -3017,9 +3017,7 @@ function BP_CloseRequestFcn(hObject, eventdata)
 % --- Executes when user attempts to close figure1.
 function BP_KeyPressFcn(hObject, eventdata)
 	handles = guidata(hObject);
-	if isequal(get(handles.figure1, 'waitstatus'), 'waiting')
-		uiresume(handles.figure1);		% The GUI is still in UIWAIT, us UIRESUME
-	end
+	uiresume(handles.figure1);		% The GUI is still in UIWAIT, us UIRESUME
 
 % ------------------------------------------------------------------------
 function bandpass_LayoutFcn(h1)
