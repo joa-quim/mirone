@@ -143,7 +143,7 @@ function push_Cancel_CB(hObject, handles)
 
 function push_OK_CB(hObject, handles)
 	xx = get(handles.edit_ShowCommand, 'String');
-	if findstr(xx,'//') | findstr(xx,'///')
+	if strfind(xx,'//') || strfind(xx,'///')
 		errordlg('You didn''t fill all mandatory fields','Error')
 		return
 	end
