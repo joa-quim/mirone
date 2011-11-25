@@ -24,7 +24,8 @@ function varargout = bg_map(varargin)
 	bg_map_LayoutFcn(hObject);
 	handles = guihandles(hObject);
 	move2side(hObject,'center');
- 
+ 	handles.IAmOctave = (exist('OCTAVE_VERSION','builtin') ~= 0);	% To know if we are running under Octave
+
 	if (numel(varargin) > 0)
 		handles.f_path = varargin{1};
 	else
@@ -181,12 +182,19 @@ function radio_360_CB(hObject, handles)
 % ----------------------------------------------------------------------------------------
 function figure1_CloseRequestFcn(hObject, eventdata)
 	handles = guidata(hObject);
-	if isequal(get(handles.figure1, 'waitstatus'), 'waiting')
-		handles.output = [];			% User gave up, return nothing
-		guidata(hObject, handles);		uiresume(hObject);
-	else								% The GUI is no longer waiting, just close it
-		handles.output = [];			% User gave up, return nothing
-		guidata(hObject, handles);		delete(hObject);
+	if (~handles.IAmOctave)
+		do_uiresume = strcmp(get(hObject, 'waitstatus'), 'waiting');
+	else
+		do_uiresume = strcmp(get(hObject, '__uiwait_state__'), 'none');
+	end
+	if (do_uiresume)
+		% The GUI is still in UIWAIT, us UIRESUME
+		handles.output = [];		% User gave up, return nothing
+		guidata(hObject, handles);	uiresume(hObject);
+	else
+		% The GUI is no longer waiting, just close it
+		handles.output = [];		% User gave up, return nothing
+		guidata(hObject, handles);	delete(handles.figure1);
 	end
 
 % ----------------------------------------------------------------------------------------
