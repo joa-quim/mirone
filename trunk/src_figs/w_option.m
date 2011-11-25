@@ -16,82 +16,83 @@ function varargout = w_option(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
  
-hObject = figure('Tag','figure1','Visible','off');
-w_option_LayoutFcn(hObject);
-handles = guihandles(hObject);
-move2side(hObject,'right')
+	hObject = figure('Tag','figure1','Visible','off');
+	w_option_LayoutFcn(hObject);
+	handles = guihandles(hObject);
+	move2side(hObject,'right')
+	handles.IAmOctave = (exist('OCTAVE_VERSION','builtin') ~= 0);	% To know if we are running under Octave
 
-handles.command = cell(20,1);
-handles.command{4}  = '-W';
-if (isempty(varargin))      % Default Line thickness and color
-    handles.command{5}  = '0.5p';
-    handles.command{7}  = '0';    handles.command{9}  = '0';    handles.command{11}  = '0';
-    handles.command{6}  = '/';    handles.command{8}  = '/';    handles.command{10}  = '/';
-    handles.command{12} = '';
-else
-    handles.command{5}  = [varargin{1} 'p'];      cor = varargin{2};
-    handles.command{7}  = cor{1};   handles.command{9}  = cor{2};   handles.command{11}  = cor{3};
-    handles.command{6}  = '/';    handles.command{8}  = '/';    handles.command{10}  = '/';
-    handles.command{12} = varargin{3};
-    k = strmatch(varargin{1},{'0.5' '1' '2' '3' '5' '7' '10'},'exact');
-    if (~isempty(k))                % Check line thickness
-        set(handles.popup_LineThickness, 'Value', k);
-    end
-    if (~isempty(varargin{3}))      % Check line style
-        k = strmatch(varargin{3},{'ta' 'to' 't10_2_2_5:5'});
-        set(handles.popup_LineType, 'Value', k+1);
-    end
-    if (~strcmp(cor{1},'0') || ~strcmp(cor{2},'0') || ~strcmp(cor{3},'0'))
-        if (strcmp(cor{1},'200') && strcmp(cor{2},'200') && strcmp(cor{3},'200'))
-            set(handles.popup_LineColor,'Value',2)
-        elseif (strcmp(cor{1},'255') && strcmp(cor{2},'255') && strcmp(cor{3},'255'))
-            set(handles.popup_LineColor,'Value',3)
-        elseif (strcmp(cor{1},'255') && strcmp(cor{2},'0') && strcmp(cor{3},'0'))
-            set(handles.popup_LineColor,'Value',4)
-        elseif (strcmp(cor{1},'0') && strcmp(cor{2},'255') && strcmp(cor{3},'0'))
-            set(handles.popup_LineColor,'Value',5)
-        elseif (strcmp(cor{1},'0') && strcmp(cor{2},'0') && strcmp(cor{3},'255'))
-            set(handles.popup_LineColor,'Value',6)
-        elseif (strcmp(cor{1},'0') && strcmp(cor{2},'255') && strcmp(cor{3},'255'))
-            set(handles.popup_LineColor,'Value',7)
-        elseif (strcmp(cor{1},'255') && strcmp(cor{2},'255') && strcmp(cor{3},'0'))
-            set(handles.popup_LineColor,'Value',8)
-        elseif (strcmp(cor{1},'255') && strcmp(cor{2},'0') && strcmp(cor{3},'255'))
-            set(handles.popup_LineColor,'Value',9)
-        end
-    end
-end
+	handles.command = cell(20,1);
+	handles.command{4}  = '-W';
+	if (isempty(varargin))      % Default Line thickness and color
+		handles.command{5}  = '0.5p';
+		handles.command{7}  = '0';    handles.command{9}  = '0';    handles.command{11}  = '0';
+		handles.command{6}  = '/';    handles.command{8}  = '/';    handles.command{10}  = '/';
+		handles.command{12} = '';
+	else
+		handles.command{5}  = [varargin{1} 'p'];      cor = varargin{2};
+		handles.command{7}  = cor{1};   handles.command{9}  = cor{2};   handles.command{11}  = cor{3};
+		handles.command{6}  = '/';    handles.command{8}  = '/';    handles.command{10}  = '/';
+		handles.command{12} = varargin{3};
+		k = strmatch(varargin{1},{'0.5' '1' '2' '3' '5' '7' '10'},'exact');
+		if (~isempty(k))                % Check line thickness
+			set(handles.popup_LineThickness, 'Value', k);
+		end
+		if (~isempty(varargin{3}))      % Check line style
+			k = strmatch(varargin{3},{'ta' 'to' 't10_2_2_5:5'});
+			set(handles.popup_LineType, 'Value', k+1);
+		end
+		if (~strcmp(cor{1},'0') || ~strcmp(cor{2},'0') || ~strcmp(cor{3},'0'))
+			if (strcmp(cor{1},'200') && strcmp(cor{2},'200') && strcmp(cor{3},'200'))
+				set(handles.popup_LineColor,'Value',2)
+			elseif (strcmp(cor{1},'255') && strcmp(cor{2},'255') && strcmp(cor{3},'255'))
+				set(handles.popup_LineColor,'Value',3)
+			elseif (strcmp(cor{1},'255') && strcmp(cor{2},'0') && strcmp(cor{3},'0'))
+				set(handles.popup_LineColor,'Value',4)
+			elseif (strcmp(cor{1},'0') && strcmp(cor{2},'255') && strcmp(cor{3},'0'))
+				set(handles.popup_LineColor,'Value',5)
+			elseif (strcmp(cor{1},'0') && strcmp(cor{2},'0') && strcmp(cor{3},'255'))
+				set(handles.popup_LineColor,'Value',6)
+			elseif (strcmp(cor{1},'0') && strcmp(cor{2},'255') && strcmp(cor{3},'255'))
+				set(handles.popup_LineColor,'Value',7)
+			elseif (strcmp(cor{1},'255') && strcmp(cor{2},'255') && strcmp(cor{3},'0'))
+				set(handles.popup_LineColor,'Value',8)
+			elseif (strcmp(cor{1},'255') && strcmp(cor{2},'0') && strcmp(cor{3},'255'))
+				set(handles.popup_LineColor,'Value',9)
+			end
+		end
+	end
 
-set(handles.edit_LineThickness_pt, 'String', handles.command{5}(1:end-1));
-set(handles.edit_LineColor_R, 'String', [handles.command{7}]);
-set(handles.edit_LineColor_G, 'String', handles.command{9});
-set(handles.edit_LineColor_B, 'String', handles.command{11});
-set(handles.edit_ShowCommand, 'String', [handles.command{4:end}]);
-pushbutton_Example_CB(hObject, handles)
+	set(handles.edit_LineThickness_pt, 'String', handles.command{5}(1:end-1));
+	set(handles.edit_LineColor_R, 'String', [handles.command{7}]);
+	set(handles.edit_LineColor_G, 'String', handles.command{9});
+	set(handles.edit_LineColor_B, 'String', handles.command{11});
+	set(handles.edit_ShowCommand, 'String', [handles.command{4:end}]);
+	pushbutton_Example_CB(hObject, handles)
 
-a(:,:,1) = color_wheel(10,0);     % 21x21
-a(:,:,2) = color_wheel(10,1);
-a(:,:,3) = color_wheel(10,2);
-set(handles.pushbutton_CustomColor,'CData',a)
+	a(:,:,1) = color_wheel(10,0);     % 21x21
+	a(:,:,2) = color_wheel(10,1);
+	a(:,:,3) = color_wheel(10,2);
+	set(handles.pushbutton_CustomColor,'CData',a)
 
-% Choose default command line output for w_option_export
-handles.output = hObject;
-guidata(hObject, handles);
+	% Choose default command line output for w_option_export
+	handles.output = hObject;
+	guidata(hObject, handles);
 
-set(hObject,'Visible','on');
-% UIWAIT makes w_option_export wait for user response (see UIRESUME)
-uiwait(handles.figure1);
+	set(hObject,'Visible','on');
+	% UIWAIT makes w_option_export wait for user response (see UIRESUME)
+	uiwait(handles.figure1);
 
-handles = guidata(hObject);
-varargout{1} = handles.output;
-delete(handles.figure1);
+	handles = guidata(hObject);
+	varargout{1} = handles.output;
+	delete(handles.figure1);
 
 %----------------------------------------------------------------
 function C = color_wheel(n,i)     % It will eventualy become that
-r = 0:n;  r = [r (n-1):-1:0]'/n;
-theta = (pi+i*2*pi/3)*(-n:n)/n;
-X = r*cos(theta);
-C = (X + 1) / 2;
+	r = 0:n;  r = [r (n-1):-1:0]'/n;
+	theta = (pi+i*2*pi/3)*(-n:n)/n;
+	X = r*cos(theta);
+	C = (X + 1) / 2;
 
 %-----------------------------------------------------------------
 function popup_LineType_CB(hObject, handles)
@@ -239,50 +240,53 @@ function edit_LineColor_B_CB(hObject, handles)
 
 %----------------------------------------------------------------------------------------------
 function pushbutton_Example_CB(hObject, handles)
-x = linspace(0,1,10);   y = ones(1,10);
-if ischar(handles.command{5}(end))    thick = str2double(handles.command{5}(1:end-1));
-else    thick = str2double(handles.command{5});     end
-r = str2double(handles.command{7}) / 255;
-g = str2double(handles.command{9}) / 255;
-b = str2double(handles.command{11}) / 255;
-if strcmp(handles.command{12},'ta')      % dashed
-    ltype = '--';
-elseif strcmp(handles.command{12},'to')  % doted
-    ltype = ':';
-elseif strcmp(handles.command{12},'')  % solid
-    ltype = '-';
-else                                    % dash-dot
-    ltype = '-.';
-end
-plot(x,y,ltype,'LineWidth',thick,'Color',[r g b])
-set(gca,'Visible','off')
+	x = linspace(0,1,10);   y = ones(1,10);
+	if ischar(handles.command{5}(end))    thick = str2double(handles.command{5}(1:end-1));
+	else    thick = str2double(handles.command{5});     end
+	r = str2double(handles.command{7}) / 255;
+	g = str2double(handles.command{9}) / 255;
+	b = str2double(handles.command{11}) / 255;
+	if strcmp(handles.command{12},'ta')      % dashed
+		ltype = '--';
+	elseif strcmp(handles.command{12},'to')  % doted
+		ltype = ':';
+	elseif strcmp(handles.command{12},'')  % solid
+		ltype = '-';
+	else                                    % dash-dot
+		ltype = '-.';
+	end
+	plot(x,y,ltype,'LineWidth',thick,'Color',[r g b])
+	set(gca,'Visible','off')
 
 %----------------------------------------------------------------------------------------------
 function pushbutton_OK_CB(hObject, handles)
-handles.output = get(handles.edit_ShowCommand, 'String');
-guidata(hObject,handles)
-uiresume(handles.figure1);
+	handles.output = get(handles.edit_ShowCommand, 'String');
+	guidata(hObject,handles)
+	uiresume(handles.figure1);
 
 %----------------------------------------------------------------------------------------------
 function pushbutton_Cancel_CB(hObject, handles)
-handles.output = '';        % User gave up, return nothing
-guidata(hObject, handles);
-uiresume(handles.figure1);
+	handles.output = '';        % User gave up, return nothing
+	guidata(hObject, handles);
+	uiresume(handles.figure1);
 
 % --- Executes when user attempts to close figure1.
 function figure1_CloseRequestFcn(hObject, evt)
-handles = guidata(hObject);
-if isequal(get(handles.figure1, 'waitstatus'), 'waiting')
-    % The GUI is still in UIWAIT, us UIRESUME
-    handles.output = '';        % User gave up, return nothing
-    guidata(hObject, handles);
-    uiresume(handles.figure1);
-else
-    % The GUI is no longer waiting, just close it
-    handles.output = '';        % User gave up, return nothing
-    guidata(hObject, handles);
-    delete(handles.figure1);
-end
+	handles = guidata(hObject);
+	if (~handles.IAmOctave)
+		do_uiresume = strcmp(get(hObject, 'waitstatus'), 'waiting');
+	else
+		do_uiresume = strcmp(get(hObject, '__uiwait_state__'), 'none');
+	end
+	if (do_uiresume)
+		% The GUI is still in UIWAIT, us UIRESUME
+		handles.output = [];		% User gave up, return nothing
+		guidata(hObject, handles);    uiresume(hObject);
+	else
+		% The GUI is no longer waiting, just close it
+		handles.output = [];		% User gave up, return nothing
+		guidata(hObject, handles);    delete(handles.figure1);
+	end
 
 % --- Executes on key press over figure1 with no controls selected.
 function figure1_KeyPressFcn(hObject, evt)
