@@ -23,6 +23,7 @@ function varargout = color_palettes(varargin)
 
 	handles.z_min = [];     handles.z_max = [];     handles.z_min_orig = [];    handles.z_max_orig = [];	cmap = [];
 	handles.have_nans = 0;	handles.hCallingFig = [];	later_ReadPalette = false;
+	handles.IAmOctave = (exist('OCTAVE_VERSION','builtin') ~= 0);	% To know if we are running under Octave
 
 	if (nargin == 1 && isstruct(varargin{1}))
 		handMir = varargin{1};
@@ -141,7 +142,7 @@ function varargout = color_palettes(varargin)
 	guidata(hObject, handles);
 	set(hObject,'Visible','on');
 
-	% UIWAIT makes color_palettes_export wait for user response (see UIRESUME)
+	% UIWAIT makes color_palettes wait for user response (see UIRESUME)
 	if (nargout)
 		set(handles.push_retColorMap,'Visible','on')
 		set(handles.edit_Zmax,'Visible','off')      % The other on the row are already hiden by the pushbutton
@@ -157,7 +158,8 @@ function varargout = color_palettes(varargin)
 
 % -----------------------------------------------------------------------------------
 function listbox1_CB(hObject, handles)
-	contents = get(hObject,'String');		pal = contents{get(hObject,'Value')};
+	contents = get(hObject,'String');
+	pal = contents{get(hObject,'Value')};
 	handles.thematic = false;
 	if (numel(pal) > 8 && strcmp(pal(1:8),'Imported'))
 		pal = pal(1:8);
@@ -1308,7 +1310,12 @@ function cmap = vivid(varargin)
 % ------------------------------------------------------------------------
 function figure1_CloseRequestFcn(hObject, eventdata)
     handles = guidata(hObject);
-	if isequal(get(hObject, 'waitstatus'), 'waiting')
+	if (~handles.IAmOctave)
+		do_uiresume = strcmp(get(hObject, 'waitstatus'), 'waiting');
+	else
+		do_uiresume = strcmp(get(hObject, '__uiwait_state__'), 'none');
+	end
+	if (do_uiresume)
 		% The GUI is still in UIWAIT, us UIRESUME
 		handles.killed = true;      % User gave up, return nothing
 		guidata(hObject, handles);    uiresume(hObject);
@@ -1316,7 +1323,7 @@ function figure1_CloseRequestFcn(hObject, eventdata)
 		% The GUI is no longer waiting, just close it
 		delete(hObject)
 	end
-	
+
 % --------------------------------------------------------------------
 % --- Creates and returns a handle to the GUI figure. 
 function color_palettes_LayoutFcn(h1)
