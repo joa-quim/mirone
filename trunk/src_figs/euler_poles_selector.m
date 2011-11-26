@@ -555,14 +555,16 @@ function push_Cancel_CB(hObject, handles)
 %--------------------------------------------------------------------------------------------------
 function figure1_CloseRequestFcn(hObject, evt)
 	handles = guidata(hObject);
-	if isequal(get(handles.figure1, 'waitstatus'), 'waiting')
-        % The GUI is still in UIWAIT, us UIRESUME
-        handles.output = [];        % User gave up, return nothing
-        guidata(hObject, handles);    uiresume(handles.figure1);
+	if (exist('OCTAVE_VERSION','builtin'))		% To know if we are running under Octave
+		do_uiresume = strcmp(get(handles.figure1, '__uiwait_state__'), 'none');
 	else
-        % The GUI is no longer waiting, just close it
-        handles.output = [];        % User gave up, return nothing
-        guidata(hObject, handles);    delete(handles.figure1);
+		do_uiresume = strcmp(get(handles.figure1, 'waitstatus'), 'waiting');
+	end
+	if (do_uiresume)		% The GUI is still in UIWAIT, us UIRESUME
+		handles.output = [];		% User gave up, return nothing
+		guidata(handles.figure1, handles);	uiresume(handles.figure1);
+	else					% The GUI is no longer waiting, just close it
+		delete(handles.figure1);
 	end
 
 %--------------------------------------------------------------------------------------------------

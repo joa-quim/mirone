@@ -116,10 +116,16 @@ function pushbutton2_Callback(hObject, eventdata, handles)
 
 % --- Executes when user attempts to close figure1.
 function figure1_CloseRequestFcn(hObject, eventdata, handles)
-	if isequal(get(handles.figure1, 'waitstatus'), 'waiting')
-        uiresume(handles.figure1);      % The GUI is still in UIWAIT, us UIRESUME
+	handles = guidata(hObject);
+	if (exist('OCTAVE_VERSION','builtin'))		% To know if we are running under Octave
+		do_uiresume = strcmp(get(handles.figure1, '__uiwait_state__'), 'none');
 	else
-        delete(handles.figure1);        % The GUI is no longer waiting, just close it
+		do_uiresume = strcmp(get(handles.figure1, 'waitstatus'), 'waiting');
+	end
+	if (do_uiresume)		% The GUI is still in UIWAIT, us UIRESUME
+		uiresume(handles.figure1);
+	else					% The GUI is no longer waiting, just close it
+		delete(handles.figure1);
 	end
 
 % --- Executes on key press over figure1 with no controls selected.

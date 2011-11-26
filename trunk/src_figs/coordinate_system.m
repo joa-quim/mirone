@@ -20,7 +20,6 @@ function varargout = coordinate_system(varargin)
 	coordinate_system_LayoutFcn(hObject);
 	handles = guihandles(hObject);
 	move2side(hObject,'center');
-	handles.IAmOctave = (exist('OCTAVE_VERSION','builtin') ~= 0);	% To know if we are running under Octave
 
 % Declare the currently existing groups
 if (numel(varargin) == 3)
@@ -570,19 +569,16 @@ uiresume(handles.figure1);
 % --- Executes when user attempts to close figure1.
 function figure1_CloseRequestFcn(hObject, eventdata)
 	handles = guidata(hObject);
-	if (~handles.IAmOctave)
-		do_uiresume = strcmp(get(hObject, 'waitstatus'), 'waiting');
+	if (exist('OCTAVE_VERSION','builtin'))		% To know if we are running under Octave
+		do_uiresume = strcmp(get(handles.figure1, '__uiwait_state__'), 'none');
 	else
-		do_uiresume = strcmp(get(hObject, '__uiwait_state__'), 'none');
+		do_uiresume = strcmp(get(handles.figure1, 'waitstatus'), 'waiting');
 	end
-	if (do_uiresume)
-		% The GUI is still in UIWAIT, us UIRESUME
+	if (do_uiresume)		% The GUI is still in UIWAIT, us UIRESUME
 		handles.output = [];		% User gave up, return nothing
-		guidata(hObject, handles);    uiresume(hObject);
-	else
-		% The GUI is no longer waiting, just close it
-		handles.output = [];		% User gave up, return nothing
-		guidata(hObject, handles);    delete(handles.figure1);
+		guidata(handles.figure1, handles);	uiresume(handles.figure1);
+	else					% The GUI is no longer waiting, just close it
+		delete(handles.figure1);
 	end
 
 %-------------------------------------------------------------------------------------
