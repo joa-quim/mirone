@@ -197,10 +197,10 @@ function Resize1(axHandle, imHandle, imSize, opt, withSliders, firstFigSize)
 	figUnits = get(figHandle, 'Units');			set(figHandle, 'Units', 'pixels');
 
 % ---------------------------------------------
-    h_Xlabel = get(axHandle,'Xlabel');      h_Ylabel = get(axHandle,'Ylabel');
+    h_Xlabel = get(axHandle,'Xlabel');			h_Ylabel = get(axHandle,'Ylabel');
     units_save = get(h_Xlabel,'units');
-    set(h_Xlabel,'units','pixels');         set(h_Ylabel,'units','pixels');
-    Xlabel_pos = get(h_Xlabel,'pos');       Ylabel_pos = get(h_Ylabel,'Extent');
+    set(h_Xlabel,'units','pixels');				set(h_Ylabel,'units','pixels');
+    Xlabel_pos = get(h_Xlabel,'position');		Ylabel_pos = get(h_Ylabel,'Extent');
 
     % One more atempt to make any sense out of this non-sense
     tenSizeX = 0;       tenSizeY = 0;   % When axes labels have 10^n this will hold its ~ text height
