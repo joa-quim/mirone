@@ -40,7 +40,10 @@ function [H1,handles,home_dir] = mirone_uis(home_dir)
 	end
 
 	IAmAMac = strncmp(computer,'MAC',3);
-	if (IAmAMac)	figW = 800;		end		% On Macs buttons have different sizes 
+	if (IAmAMac)	figW = 800;		end		% On Macs buttons have different sizes
+	
+	IAmOctave = (exist('OCTAVE_VERSION','builtin') ~= 0);	% To know if we are running under Octave
+	if (IAmOctave)	figW = 750;		end		% QtHandles has different padding size
 
 	% Import icons and fetch home_dir if compiled and called by extension association
 	% Here is what will happen. When called by windows extension association the 'home_dir'
@@ -65,6 +68,7 @@ H1 = figure('PaperUnits','centimeters',...
 'DoubleBuffer','on',...
 'IntegerHandle','off',...
 'MenuBar','none',...
+'Toolbar', 'none',...
 'Name','Mirone 2.2.0b',...
 'NumberTitle','off',...
 'PaperPositionMode','auto',...
@@ -723,13 +727,14 @@ if (IamCompiled)
 end
 uimenu('Parent',h, 'Call',['mirone(''FileOpenWebImage_CB'',guidata(gcbo),',...
 	' ''http://www2.clustrmaps.com/stats/maps-clusters/w3.ualg.pt-~jluis-mirone-world.jpg'',''nikles'');'],'Label','See visitors map','Sep','on');
-uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 13 Nov 2011'',''2.2.0b'')','Label','About','Sep','on');
+uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 26 Nov 2011'',''2.2.0b'')','Label','About','Sep','on');
 
 %% --------------------------- Build HANDLES and finish things here
 	handles = guihandles(H1);
 	handles.version7 = version7;			% If == 1 => R14 or latter
 	handles.IamCompiled = IamCompiled;		% If == 1 than we know that we are dealing with a compiled (V3) version
 	handles.IAmAMac = IAmAMac;
+	handles.IAmOctave = IAmOctave;			% To know if we are runing under Octave
 	if (version7),  set(H1,'Pos',[pos(1:3) 1]);    end     % Adjust for the > R13 bugginess
 	handles.RecentF = handles.RecentF(end:-1:1);  % Inverse creation order so that newest files show on top of the list
 	handles.noVGlist = hVG;					% List of ui handles that will not show when "not valid grid"
