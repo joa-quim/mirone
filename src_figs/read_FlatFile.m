@@ -302,10 +302,14 @@ guidata(hObject, handles);    uiresume(handles.figure1);
 
 % ------------------------------------------------------------------------------------------
 function push_cancel_CB(hObject, handles)
-	if isequal(get(handles.figure1, 'waitstatus'), 'waiting')
-		% The GUI is still in UIWAIT, us UIRESUME
-		guidata(handles.figure1, handles);    uiresume(handles.figure1);
-	else    % The GUI is no longer waiting, just close it
+	if (exist('OCTAVE_VERSION','builtin'))		% To know if we are running under Octave
+		do_uiresume = strcmp(get(hObject, '__uiwait_state__'), 'none');
+	else
+		do_uiresume = strcmp(get(hObject, 'waitstatus'), 'waiting');
+	end
+	if (do_uiresume)		% The GUI is still in UIWAIT, us UIRESUME
+		uiresume(hObject);
+	else					% The GUI is no longer waiting, just close it
 		delete(handles.figure1)
 	end
 

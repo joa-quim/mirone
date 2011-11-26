@@ -83,6 +83,7 @@ function varargout = rotatetool(varargin)
 	rotatetool_LayoutFcn(hObject);
 	handles = guihandles(hObject);
 	move2side(hObject,'right')
+	handles.IAmOctave = (exist('OCTAVE_VERSION','builtin') ~= 0);	% To know if we are running under Octave
 
 	% Some initializations
 	handles.frame_axesPos = get(handles.frame_axes,'Pos');
@@ -313,14 +314,17 @@ function popup_interpmenu_CB(hObject, handles)
 
 % ----------------------------------------------------------------------------
 function push_cancel_CB(hObject, handles)
-if isequal(get(handles.figure1, 'waitstatus'), 'waiting')
-    % The GUI is still in UIWAIT, us UIRESUME
-    handles.cancel = 1;      % User gave up, return nothing
-    guidata(hObject, handles);    uiresume(handles.figure1);
-else
-    % The GUI is no longer waiting, just close it
-    delete(handles.figure1)
-end
+	if (~handles.IAmOctave)
+		do_uiresume = strcmp(get(handles.figure1, 'waitstatus'), 'waiting');
+	else
+		do_uiresume = strcmp(get(handles.figure1, '__uiwait_state__'), 'none');
+	end
+	if (do_uiresume)		% The GUI is still in UIWAIT, us UIRESUME
+		handles.cancel = 1;		% User gave up, return nothing
+		guidata(handles.figure1, handles);    uiresume(handles.figure1);
+	else					% The GUI is no longer waiting, just close it
+		delete(handles.figure1);
+	end
 
 % ----------------------------------------------------------------------------
 function push_apply_CB(hObject, handles)
@@ -358,12 +362,16 @@ function push_apply_CB(hObject, handles)
         guidata(handles.figure1,handles)
     end
 
-    if isequal(get(handles.figure1, 'waitstatus'), 'waiting')
-        % The GUI is still in UIWAIT, let us UIRESUME
-        uiresume(handles.figure1);
-    else
-        delete(handles.figure1)
-    end
+	if (~handles.IAmOctave)
+		do_uiresume = strcmp(get(handles.figure1, 'waitstatus'), 'waiting');
+	else
+		do_uiresume = strcmp(get(handles.figure1, '__uiwait_state__'), 'none');
+	end
+	if (do_uiresume)		% The GUI is still in UIWAIT, us UIRESUME
+		uiresume(handles.figure1);
+	else					% The GUI is no longer waiting, just close it
+		delete(handles.figure1);
+	end
 
 %=============================
 function updateAngleInfo(handles,angle)
