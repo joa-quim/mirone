@@ -125,7 +125,7 @@ function [t,r] = getMenuLabel(s)
     % S contains the Menu label and proj string. Return the Label in T and the remaining in R 
     [t,r] = strtok(s);
     if (t(1) == '"')    % A composite name (for example "Portuguese Mess")
-        ind = findstr(r,'"');
+        ind = strfind(r,'"');
         t = [t(2:end) r(1:ind(1)-1)];
         r = r(ind(1)+1:end);
     end
