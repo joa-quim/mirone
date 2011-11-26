@@ -205,6 +205,7 @@ function Resize1(axHandle, imHandle, imSize, opt, withSliders, firstFigSize)
     % One more atempt to make any sense out of this non-sense
     tenSizeX = 0;       tenSizeY = 0;   % When axes labels have 10^n this will hold its ~ text height
     XTickLabel = get(axHandle,'XTickLabel');    XTick = get(axHandle,'XTick');
+	if (isa(XTickLabel,'cell')),		XTickLabel = XTickLabel{end};		end		% In Octave it is
     if (XTick(end) ~= 0)				% See that we do not devide by zero
 		test_tick = XTick(end);			test_tick_str = sscanf(XTickLabel(end,:),'%f');
 	else								% They cannot be both zero
@@ -219,6 +220,7 @@ function Resize1(axHandle, imHandle, imSize, opt, withSliders, firstFigSize)
     % OK, here the problem is that YTickLabel still does not exist (imageHeight +- 2 or 3)
     set(axHandle, 'Position', axPos+[0 -500 0 500]);        % So, use this trick to set it up
     YTickLabel = get(axHandle,'YTickLabel');    YTick = get(axHandle,'YTick');
+	if (isa(YTickLabel,'cell')),		YTickLabel = YTickLabel{end};		end		% In Octave it is
     if (YTick(end) ~= 0)				% See that we do not devide by zero
         test_tick = YTick(end);			test_tick_str = sscanf(YTickLabel(end,:),'%f');
 	else								% They cannot be both zero
