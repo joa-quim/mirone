@@ -1313,14 +1313,15 @@ function figure1_CloseRequestFcn(hObject, eventdata)
 	if (~handles.IAmOctave)
 		do_uiresume = strcmp(get(hObject, 'waitstatus'), 'waiting');
 	else
-		do_uiresume = strcmp(get(hObject, '__uiwait_state__'), 'none');
+		do_uiresume = false;
+		try				% Wrap it with a try because there is no guarantiee the prop exists
+			do_uiresume = strcmp(get(hObject, '__uiwait_state__'), 'none');
+		end
 	end
-	if (do_uiresume)
-		% The GUI is still in UIWAIT, us UIRESUME
+	if (do_uiresume)	% The GUI is still in UIWAIT, us UIRESUME
 		handles.killed = true;      % User gave up, return nothing
 		guidata(hObject, handles);    uiresume(hObject);
-	else
-		% The GUI is no longer waiting, just close it
+	else				% The GUI is no longer waiting, just close it
 		delete(hObject)
 	end
 
@@ -1433,23 +1434,23 @@ uicontrol('Parent',h1, 'Call',@color_palettes_uiCB,...
 'Pos',[12 196 45 15], 'String','ML', 'Style','radiobutton', 'Tag','radio_ML','Val',1);
 
 uicontrol('Parent',h1, 'Call',@color_palettes_uiCB,...
-'Pos',[70 196 55 15], 'String','GMT', 'Style','radiobutton', 'Tag','radio_GMT');
+'Pos',[70 196 55 15], 'String','GMT', 'Style','radiobutton', 'Tag','radio_GMT','Val',0);
 
 uicontrol('Parent',h1, 'Call',@color_palettes_uiCB,...
-'Pos',[133 196 45 15], 'String','MR', 'Style','radiobutton', 'Tag','radio_MR');
+'Pos',[133 196 45 15], 'String','MR', 'Style','radiobutton', 'Tag','radio_MR','Val',0);
 
 uicontrol('Parent',h1, 'Call',@color_palettes_uiCB,...
-'Pos',[12 176 55 15],'String','CAR', 'Style','radiobutton', 'Tag','radio_CAR');
+'Pos',[12 176 55 15],'String','CAR', 'Style','radiobutton', 'Tag','radio_CAR','Val',0);
 
 uicontrol('Parent',h1, 'Call',@color_palettes_uiCB,...
-'Pos',[70 176 60 15],'String','GIMP', 'Style','radiobutton','Tag','radio_GIMP');
+'Pos',[70 176 60 15],'String','GIMP', 'Style','radiobutton','Tag','radio_GIMP','Val',0);
 
 uicontrol('Parent',h1, 'Call',@color_palettes_uiCB,...
-'Pos',[133 176 80 15], 'String','Thematic', 'Style','radiobutton', 'Tag','radio_T');
+'Pos',[133 176 80 15], 'String','Thematic', 'Style','radiobutton', 'Tag','radio_T','Val',0);
 
 uicontrol('Parent',h1, 'Call',@color_palettes_uiCB,...
 'ToolTip','Take a natural logarithm (ln()) of the current color palette', ...
-'Pos',[210 186 85 15],'String','Logaritmize', 'Style','checkbox','Tag','check_logIt');
+'Pos',[210 186 85 15],'String','Logaritmize', 'Style','checkbox','Tag','check_logIt','Val',0);
 
 uimenu('Parent',h1, 'Call',@color_palettes_uiCB, 'Label','Help', 'Tag','Help');
 
