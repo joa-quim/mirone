@@ -901,6 +901,7 @@ function PanZoom_CB(handles, hObject, opt)
 % --------------------------------------------------------------------
 function zoom_state(handles, state)
 % Sets the zoom sate to off, or reset it to on if ...
+	if (handles.IAmOctave),		guidata(handles.figure1,handles),	return,		end
 	switch state
 		case 'off_yes'			% Set zoom permanently off
 			zoom_j('off');
