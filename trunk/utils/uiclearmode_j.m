@@ -66,8 +66,6 @@ function uistate = uiclearmode_j(fig, varargin)
 %  cursors specially by not reseting them and storing
 %  OLDPTR in UISTATE instead.
 
-%#function scribeclearmode
-
 nargs = nargin;
 docontext = 0;
 docontext_preserve = 0;
@@ -124,3 +122,38 @@ elseif docontext_preserve
 else  
     uistate.docontext=0;
 end
+
+% --------------------------
+function scribeclearmode(fig,varargin)
+%SCRIBECLEARMODE  Plot Editor helper function
+%   Utility for cooperative mode switching. Before taking over a figure, call 
+%       SCRIBECLEARMODE(Fig, OffCallbackFcn, Args, ...)
+%
+%   The OffCallbackFcn is stored with on the figure and is
+%   executed with the arguments Args the next time OffCallbackFcn
+%   is called.  In other words, SCRIBECLEARMODE notifies the
+%   current mode that a new mode is taking over and also installs
+%   its own notification function.
+
+%   Copyright 1984-2002 The MathWorks, Inc. 
+
+	% clear the current mode
+	s = getappdata(fig,'ScribeClearModeCallback');
+	if (~isempty(s) && isa(s,'cell'))
+		func = s{1};
+		if (numel(s) > 1)
+			feval(func,s{2:end});
+		else
+			feval(func);
+		end
+	end
+
+	% set notification callback for the new mode
+	if (nargin > 2)
+		s = varargin;
+		setappdata(fig,'ScribeClearModeCallback',s);
+	else
+		if isappdata(fig,'ScribeClearModeCallback')
+			rmappdata(fig,'ScribeClearModeCallback');
+		end
+	end
