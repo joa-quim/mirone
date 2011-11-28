@@ -130,7 +130,9 @@ end
 set(images, 'ButtonDownFcn', 'pixval_stsbar(''ButtonDownOnImage'')', ...
 	'Interruptible', 'off', 'BusyAction', 'Queue');
 axHandles = get(images, {'Parent'});
+if (~isa(axHandles,'cell')),	axHandles = {axHandles};	end		% Octavish
 axCurPt = get([axHandles{:}], {'CurrentPoint'});
+if (~isa(axCurPt,'cell')),		axCurPt = {axCurPt};		end		% Octavish
 
 % Loop over the axes, see if we are above any of them
 imageHandle = 0;  
