@@ -1313,7 +1313,7 @@ function figure1_CloseRequestFcn(hObject, eventdata)
 	if (~handles.IAmOctave)
 		do_uiresume = strcmp(get(hObject, 'waitstatus'), 'waiting');
 	else
-		do_uiresume = ( isprop(hObject, '__uiwait_state__') && strcmp(get(hObject, '__uiwait_state__'), 'none') );
+		do_uiresume = ( isprop(hObject, '__uiwait_state__') && strcmp(get(hObject, '__uiwait_state__'), 'active') );
 	end
 	if (do_uiresume)	% The GUI is still in UIWAIT, us UIRESUME
 		handles.killed = true;      % User gave up, return nothing
