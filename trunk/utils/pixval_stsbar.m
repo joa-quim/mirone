@@ -17,16 +17,10 @@ function pixval_stsbar(arg1)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-if (nargin==0),  arg1 = [];    end
+if (nargin == 0),	arg1 = [];		end
 
 if ischar(arg1) % execute a callback
 	switch lower(arg1)
-		case 'pixvalmotionfcn'
-			PixvalMotionFcn;
-		case 'buttondownonimage'
-			ButtonDownOnImage;
-		case 'backtonormalpixvaldisplay'
-			BackToNormalPixvalDisplay;
 		case 'exit'
 			displayBar = findobj(gcf, 'Tag', 'pixValStsBar');
 			dbud = get(displayBar, 'UserData');
@@ -42,9 +36,8 @@ else
 	end
 	dbud.figHandle = figHandle;
 	dbud.displayMode = 'normal';
-	% Save the interactive state of the figure. UICLEARMODE now does everything that UISUSPEND
-	% used to do. It calls SCRIBECLEARMODE to take care of SCRIBE.  We WILL be restoring
-	% the state - this is a change.  UICLEARMODE also registers a way to disable pixval_stsbar
+	% Save the interactive state of the figure. It calls SCRIBECLEARMODE to take care of SCRIBE.
+	% We WILL be restoring the state - this is a change.  UICLEARMODE also registers a way to disable pixval_stsbar
 	dbud.oldFigureUIState = uiclearmode_j(figHandle,'pixval_stsbar');
 	% Create position vectors for Text
 	handsBar = getappdata(figHandle,'CoordsStBar');
@@ -67,7 +60,7 @@ else
 						'Interruptible', 'off');
             
 	% Register the motion function and button up function
-	set(figHandle, 'WindowButtonMotionFcn', 'pixval_stsbar(''PixvalMotionFcn'')')
+	set(figHandle, 'WindowButtonMotionFcn', {@PixvalMotionFcn,DisplayBar})
 	% Reset the original 'KeyPressFcn' since we dont need a private one here
 	set(figHandle, 'KeyPressFcn', dbud.oldFigureUIState.KeyPressFcn)
 	handles = guidata(figHandle);
@@ -80,44 +73,28 @@ else
 	dbud.toProjPT = 0;
 
 	set(DisplayBar, 'UserData', dbud);
-	PixvalMotionFcn(DisplayBar);
+	PixvalMotionFcn([], [], DisplayBar);
 end
 
 %-----------------------------------------------------------------------------------------
-function PixvalMotionFcn(displayBar)
-if (nargin < 1),  displayBar = findobj(gcbf, 'Tag', 'pixValStsBar');   end
+function PixvalMotionFcn(obj, evt, displayBar)
 
-if isempty(displayBar)
-	% Pixval is in a half-broken state.  Another function (like zoom) has
-	% restored pixval callbacks and PIXVAL has already been uninstalled.
-	% Call uisuspend to gracefully get rid of the callbacks.
+	dbud = get(displayBar, 'UserData');
 
-	% Note 7/21/98 - Since we are now using UICLEARMODE instead of
-	% UISUSPEND, I think that we should never get into this
-	% state.  It will only happen if a user writes a function
-	% which calls UIRESTORE without ever calling UICLEARMDOE or
-	% SCRIBECLEARMODE.  We'll leave this code here just to be safe.
-	uisuspend_j(gcbf);
-	return
-end
-
-dbud = get(displayBar, 'UserData');
-
-if strcmp(dbud.displayMode, 'normal')           % See if we're above the displayBar
-      [imageHandle,imageType,img,x,y] = OverImage(dbud.figHandle);
-      if imageHandle ~= 0
-		  % Update the Pixel Value display
-		  UpdatePixelValues(dbud.figHandle,imageHandle, imageType, displayBar,img,x,y);
-      end
-elseif strcmp(dbud.displayMode, 'distance')     % If we're in distance mode and in another image, clean up a bit.
-   [imageHandle,imageType,img,x,y] = OverImage(dbud.figHandle);
-   if imageHandle ~= 0
-      if imageHandle == dbud.buttonDownImage
-		  UpdatePixelValues(dbud.figHandle,imageHandle, imageType, displayBar,img,x,y);
-      end
-   end
-end
-set(displayBar, 'UserData', dbud);
+	if strcmp(dbud.displayMode, 'normal')           % See if we're above the displayBar
+		  [imageHandle,imageType,img,x,y] = OverImage(dbud.figHandle);
+		  if (imageHandle ~= 0)						% Update the Pixel Value display
+			  UpdatePixelValues(dbud.figHandle,imageHandle, imageType, displayBar,img,x,y);
+		  end
+	elseif strcmp(dbud.displayMode, 'distance')     % If we're in distance mode and in another image, clean up a bit.
+	   [imageHandle,imageType,img,x,y] = OverImage(dbud.figHandle);
+	   if imageHandle ~= 0
+		  if imageHandle == dbud.buttonDownImage
+			  UpdatePixelValues(dbud.figHandle,imageHandle, imageType, displayBar,img,x,y);
+		  end
+	   end
+	end
+	set(displayBar, 'UserData', dbud);
 
 %-----------------------------------------------------------------------------------------
 function [imageHandle,imageType,img,x,y] = OverImage(figHandle)
@@ -127,20 +104,17 @@ if isempty(images)
 	imageHandle=0;   imageType='';   img=[];     x=0;    y=0;   return
 end
 % Make sure that the Image's Button Down & Up functions will queue
-set(images, 'ButtonDownFcn', 'pixval_stsbar(''ButtonDownOnImage'')', ...
-	'Interruptible', 'off', 'BusyAction', 'Queue');
+set(images, 'ButtonDownFcn', {@ButtonDownOnImage,figHandle}, 'Interruptible','off', 'BusyAction','Queue');
 axHandles = get(images, {'Parent'});
-if (~isa(axHandles,'cell')),	axHandles = {axHandles};	end		% Octavish
 axCurPt = get([axHandles{:}], {'CurrentPoint'});
-if (~isa(axCurPt,'cell')),		axCurPt = {axCurPt};		end		% Octavish
 
 % Loop over the axes, see if we are above any of them
 imageHandle = 0;  
-for k=1:length(axHandles)
+for (k = 1:numel(axHandles))
 	XLim = get(axHandles{k}, 'XLim');   YLim = get(axHandles{k}, 'YLim');
 	pt = axCurPt{k};
 	x = pt(1,1);	y = pt(1,2);
-	if x>=XLim(1) && x<=XLim(2) && y>=YLim(1) && y<=YLim(2)
+	if (x >= XLim(1) && x <= XLim(2) && y >= YLim(1) && y <= YLim(2))
 		imageHandle = images(k);
 		break
 	end
@@ -343,9 +317,11 @@ end
 set(displayBar, 'String', pixval_str, 'UserData', dbud);
 
 %-----------------------------------------------------------------------------------------
-function ButtonDownOnImage
-	imageHandle = gcbo;
-	figHandle = get(get(imageHandle,'Parent'),'Parent');
+function ButtonDownOnImage(obj, evt, hFig)
+% 	imageHandle = gcbo;
+% 	figHandle = get(get(imageHandle,'Parent'),'Parent');
+	imageHandle = obj;
+	figHandle = hFig;
 	stype = get(figHandle,'selectiontype');
 	if (strcmp(stype,'alt'))		% A right-click, either return or pass control to ...
 		if ( ~isempty(getappdata(figHandle,'LinkedTo')) )
@@ -365,12 +341,11 @@ function ButtonDownOnImage
 	dbud.displayMode = 'distance';
 	dbud.buttonDownImage = imageHandle;
 	set(displayBar, 'UserData', dbud);
-	set(dbud.figHandle, 'WindowButtonUpFcn', 'pixval_stsbar(''BackToNormalPixvalDisplay'')');
-	PixvalMotionFcn(displayBar);
+	set(dbud.figHandle, 'WindowButtonUpFcn', {@BackToNormalPixvalDisplay, displayBar});
+	PixvalMotionFcn([], [], displayBar);
 
 %-----------------------------------------------------------------------------------------
-function BackToNormalPixvalDisplay
-	displayBar = findobj(gcbo, 'Tag', 'pixValStsBar');
+function BackToNormalPixvalDisplay(obj, evt, displayBar)
 	dbud = get(displayBar, 'UserData');
 	delete(dbud.line);
 	dbud.line = [];     dbud.x0 = []; dbud.y0 = [];
@@ -378,17 +353,17 @@ function BackToNormalPixvalDisplay
 	dbud.displayMode = 'normal';
 	dbud.buttonDownImage = 0;
 	set(displayBar, 'UserData', dbud);
-	PixvalMotionFcn(displayBar);
+	PixvalMotionFcn([], [], displayBar);
 
 %-----------------------------------------------------------------------------------------
 function pixelx = axes2pix(dim, x, axesx)
-	%AXES2PIX Convert axes coordinates to pixel coordinates.
-	%   PIXELX = AXES2PIX(DIM, X, AXESX) converts axes coordinates
-	%   (as returned by get(gca, 'CurrentPoint'), for example) into
-	%   pixel coordinates.  X should be the vector returned by
-	%   X = get(image_handle, 'XData') (or 'YData').  DIM is the
-	%   number of image columns for the x coordinate, or the number
-	%   of image rows for the y coordinate.
+%AXES2PIX Convert axes coordinates to pixel coordinates.
+%   PIXELX = AXES2PIX(DIM, X, AXESX) converts axes coordinates
+%   (as returned by get(gca, 'CurrentPoint'), for example) into
+%   pixel coordinates.  X should be the vector returned by
+%   X = get(image_handle, 'XData') (or 'YData').  DIM is the
+%   number of image columns for the x coordinate, or the number
+%   of image rows for the y coordinate.
 	
 	if (max(size(dim)) ~= 1);   error('First argument must be a scalar.'),	end
 	if (min(size(x)) > 1);      error('X must be a vector.'),				end
