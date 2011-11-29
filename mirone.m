@@ -493,8 +493,8 @@ if ~isempty(opt)				% OPT must be a rectangle/polygon handle (the rect may serve
 	if ( (numel(opt) == 1) && ishandle(opt) )
 		x = get(opt,'XData');	y = get(opt,'YData');
 	else
-		if (size(opt,2) > 2),	x = opt(1,:);	y = opt(2,:);		% Row vectors
-		else					x = opt(:,1)';	y = opt(:,2)';		% Were col vectors, make them row for consistency
+		if (size(opt,2) > 2),	x = opt(1,1:end);	y = opt(2,1:end);	% Row vectors
+		else					x = opt(:,1)';		y = opt(:,2)';		% Were col vectors, make them row for consistency
 		end
 	end
 	if ~( (x(1) == x(end)) && (y(1) == y(end)) && numel(x) == 5 && ...
@@ -761,12 +761,12 @@ if ~isempty(opt2)		% Here we have to update the image in the processed region
 		set(handles.figure1,'pointer','arrow'),		return
 	end
 	if (isempty(img)),		img = get(handles.hImg,'CData');	end		% If img was not recomputed, get from screen 
-	handles.img_back = img(r_c(1):r_c(2),r_c(3):r_c(4),:);		% For the undo op
+	handles.img_back = img(r_c(1):r_c(2),r_c(3):r_c(4),1:end);			% For the undo op
 	if (~isempty(mask) && handles.Illumin_type ~= 0)
 		mask = repmat(~mask,[1 1 3]);
 		z_int(mask) = handles.img_back(mask);
 	end
-	img(r_c(1):r_c(2),r_c(3):r_c(4),:) = z_int;			clear z_int Z_rect R;
+	img(r_c(1):r_c(2),r_c(3):r_c(4),1:end) = z_int;			clear z_int Z_rect R;
 	set(handles.hImg,'CData',img)
 
 	head(5) = z_min;	head(6) = z_max;
@@ -788,7 +788,7 @@ function do_undo(obj,event,hFig,h,img)
 	Z(handles.r_c(1):handles.r_c(2),handles.r_c(3):handles.r_c(4)) = handles.Z_back;
 	setappdata(handles.figure1,'dem_z',Z);
 	handles.origFig = get(handles.hImg,'CData');
-	handles.origFig(handles.r_c(1):handles.r_c(2),handles.r_c(3):handles.r_c(4),:) = handles.img_back;
+	handles.origFig(handles.r_c(1):handles.r_c(2),handles.r_c(3):handles.r_c(4),1:end) = handles.img_back;
 	set(handles.hImg,'CData',handles.origFig)
 	guidata(handles.figure1,handles)
 	delete(findobj(get(h,'UIContextMenu'),'Label', 'Undo'))
@@ -1470,8 +1470,8 @@ function erro = FileOpenGeoTIFF_CB(handles, tipo, opt)
 		else
 			try
 				pal = att.Band(1).ColorMap.CMap;	pal = pal(:,1:3);		% GDAL creates a Mx4 colormap
-				if ((handles.head(6)+1) < size(pal,1) && isequal(pal(handles.head(6)+2,:), [0 0 0]) )
-					pal(handles.head(6)+2:end,:) = [];		% TEMP!? GDAL forces pals of 256 and that screws some cases
+				if ((handles.head(6)+1) < size(pal,1) && isequal(pal(handles.head(6)+2,1:end), [0 0 0]) )
+					pal(handles.head(6)+2:end,1:end) = [];		% TEMP!? GDAL forces pals of 256 and that screws some cases
 				end
 			catch,	warndlg('Figure ColorMap had troubles. Replacing by a default one.','Warning'); pal = jet(256);
 			end
@@ -1875,8 +1875,8 @@ function ImageIllumGray(luz, handles, color)
 		for i = 1:size(ind_s,1)
 			tmp1 = (ind_s(i,1):ind_s(i,2));		% Indexes with overlapping zone
 			tmp2 = ind(i,1):ind(i,2);			% Indexes of chunks without the overlaping zone
-			tmp = shade_manip_raster((luz.azim-90)*D2R,luz.elev*D2R,Z(tmp1,:));
-			img = [img; tmp(tmp2,:)];
+			tmp = shade_manip_raster((luz.azim-90)*D2R,luz.elev*D2R,Z(tmp1,1:end));
+			img = [img; tmp(tmp2,1:end)];
 		end
 	else
 		img = shade_manip_raster((luz.azim-90)*D2R,luz.elev*D2R,Z);		% [0-1] matrix (reflectance)
@@ -1925,13 +1925,13 @@ function ImageIllumFalseColor(luz, handles)
 			for i = 1:size(ind_s,1)
 				tmp1 = (ind_s(i,1):ind_s(i,2));		% Indexes with overlapping zone
 				tmp2 = ind(i,1):ind(i,2);			% Indexes of chunks without the overlaping zone
-				tmp_1 = shade_manip_raster((luz.azim(1)-90)*D2R, luz.elev*D2R, Z(tmp1,:), size_amp);
+				tmp_1 = shade_manip_raster((luz.azim(1)-90)*D2R, luz.elev*D2R, Z(tmp1,1:end), size_amp);
 				tmp_1 = uint8((254 * tmp_1) + 1);
-				tmp_2 = shade_manip_raster((luz.azim(2)-90)*D2R, luz.elev*D2R, Z(tmp1,:), size_amp);
+				tmp_2 = shade_manip_raster((luz.azim(2)-90)*D2R, luz.elev*D2R, Z(tmp1,1:end), size_amp);
 				tmp_2 = uint8((254 * tmp_2) + 1);
-				tmp_3 = shade_manip_raster((luz.azim(3)-90)*D2R, luz.elev*D2R, Z(tmp1,:), size_amp);
+				tmp_3 = shade_manip_raster((luz.azim(3)-90)*D2R, luz.elev*D2R, Z(tmp1,1:end), size_amp);
 				tmp_3 = uint8((254 * tmp_3) + 1);
-				zz1 = [zz1; tmp_1(tmp2,:)];		zz2 = [zz2; tmp_2(tmp2,:)];		zz3 = [zz3; tmp_3(tmp2,:)];
+				zz1 = [zz1; tmp_1(tmp2,1:end)];		zz2 = [zz2; tmp_2(tmp2,1:end)];		zz3 = [zz3; tmp_3(tmp2,1:end)];
 			end
 			zz(:,:,1) = zz1;	zz(:,:,2) = zz2;	zz(:,:,3) = zz3;
 		else
@@ -1973,8 +1973,8 @@ function ImageAnaglyph_CB(handles)
 		for i = 1:size(ind_s,1)
 			tmp1 = (ind_s(i,1):ind_s(i,2));		% Indexes with overlapping zone
 			tmp2 = ind(i,1):ind(i,2);			% Indexes of chunks without the overlaping zone
-			tmp = shade_manip_raster(azimuth,elevation,Z(tmp1,:));
-			sh = [sh; tmp(tmp2,:)];
+			tmp = shade_manip_raster(azimuth,elevation,Z(tmp1,1:end));
+			sh = [sh; tmp(tmp2,1:end)];
 		end
 	else
 		sh = shade_manip_raster(azimuth,elevation,Z);
@@ -2002,7 +2002,7 @@ function ImageAnaglyph_CB(handles)
 			end
 			l = j + iz;			r = decal + j-iz;
 		end
-		ar(i,:) = left;			ag(i,:) = right;
+		ar(i,1:end) = left;		ag(i,1:end) = right;
 		left(:) = uint8(0);		right(:) = uint8(0);
 	end
 	zz(:,:,1) = ar;		zz(:,:,2) = ag;		zz(:,:,3) = ag; 
@@ -2022,12 +2022,12 @@ function img = shade_manip_raster(azimuth, elevation, Z, size_amp)
 	dZdc = zeros(size(Z));		dZdr = zeros(size(Z));
 
 	% Take forward differences on left and right edges
-	dZdr(1,:) = Z(2,:) - Z(1,:);	dZdr(end,:) = Z(end,:) - Z(end-1,:);
-	dZdc(:,1) = Z(:,2) - Z(:,1);	dZdc(:,end) = Z(:,end) - Z(:,end-1);
+	dZdr(1,1:end) = Z(2,1:end) - Z(1,1:end);	dZdr(end,1:end) = Z(end,1:end) - Z(end-1,1:end);
+	dZdc(:,1)     = Z(:,2) - Z(:,1);			dZdc(:,end) = Z(:,end) - Z(:,end-1);
 
 	% Take centered differences on interior points
-	dZdr(2:end-1,:) = (Z(3:end,:)-Z(1:end-2,:)) / size_amp;
-	dZdc(:,2:end-1) = (Z(:,3:end)-Z(:,1:end-2)) / size_amp;
+	dZdr(2:end-1,1:end) = (Z(3:end,1:end)-Z(1:end-2,1:end)) / size_amp;
+	dZdc(:,2:end-1)     = (Z(:,3:end)-Z(:,1:end-2)) / size_amp;
 	img = (dZdr*u1 + dZdc*u2 - 2*u3) ./ (sqrt(dZdr .^ 2 + dZdc .^ 2 + 4));
 	img(img < 0) = 0;	img(img > 1) = 1;
 
@@ -2083,7 +2083,7 @@ function ImageRetroShade_CB(handles)
 	if (~isequal(size(R), [m n]))			% Happens when parent doesn't completely overlaps son image
 		[img2, r_c] = cropimg(handles.head(1:2),handles.head(3:4),img,rect_crop,'out_grid');
 		img2 = shading_mat(img2,R,'no_scale');
-		img(r_c(1):r_c(2), r_c(3):r_c(4), :) = img2;
+		img(r_c(1):r_c(2), r_c(3):r_c(4), 1:end) = img2;
 	else
 		img = shading_mat(img,R,'no_scale');
 	end
@@ -2172,7 +2172,7 @@ function ImageDrape_CB(handles)
 			parent_img = ind2rgb8(parent_img,get(h_f,'Colormap'));
 		end
 		if (alfa)		% We must process this case here
-			tmp = parent_img(r_c(1):r_c(2),r_c(3):r_c(4),:);
+			tmp = parent_img(r_c(1):r_c(2),r_c(3):r_c(4), 1:end);
 			cvlib_mex('addweighted',son_img,(1 - alfa),tmp,alfa)	% In-place
 			alfa = 0;	% We don't want to repeat the alpha blending below
 		end
@@ -2182,7 +2182,7 @@ function ImageDrape_CB(handles)
 				tmp(transp) = tmp2(transp);		son_img(:,:,k) = tmp;
 			end
 		end
-		parent_img(r_c(1):r_c(2),r_c(3):r_c(4),:) = son_img;
+		parent_img(r_c(1):r_c(2),r_c(3):r_c(4), 1:end) = son_img;
 		son_img = parent_img;		% Do this to be compatible with the blind_drape mode
 	end
 
@@ -2226,7 +2226,7 @@ function ToolsMeasureAreaPerCor_CB(handles)
 	if (ndims(img) == 3)	% RGB, reject unless it as a "gray RGB"
 		ind_m = round(rand(1,5)*(ny-1)+1);
 		ind_n = round(rand(1,5)*(nx-1)+1);
-		df = diff(double(img(ind_m,ind_n,:)),1,3);
+		df = diff(double(img(ind_m,ind_n, 1:end)),1,3);
 		if (~any(df(:) ~= 0))			% Yeap, a RGB gray
 			img(:,:,2:3) = [];			% Remove the non-needed pages
 		else
@@ -2245,7 +2245,7 @@ function ToolsMeasureAreaPerCor_CB(handles)
 		Y(end+1) = Y(end);		% Some cases need one extra value in Y(y3L(i)+1) below
 		DX = (X(2) - X(1)) * 111.1949;		DY = (Y(2) - Y(1)) * 111.1949;		% Convert DX|Y to km (at the equator)
 		for (i=1:numel(y3L)-1)
-			threeL = img(y3L(i):y3L(i+1)-1,:);		% Chop 3 lines from image
+			threeL = img(y3L(i):y3L(i+1)-1,1:end);	% Chop 3 lines from image
 			counts = counts + imhistc(threeL, n, 0, n) * DY * DX * cos(Y(y3L(i)+1)*D2R);
 		end
 		ColNames = {'Intensity' 'Area km^2'};
@@ -2254,7 +2254,7 @@ function ToolsMeasureAreaPerCor_CB(handles)
 		ColNames = {'Intensity' 'N pixels'};
 	end
 	ind = (counts == 0);
-	counts(ind) = [];		pal(ind,:) = [];		% Remove zero counts
+	counts(ind) = [];		pal(ind,1:end) = [];		% Remove zero counts
 	tableGUI('array',[round(pal(:,1)*255) counts],'ColWidth',[60 90],'ColNames',ColNames,...
 		'FigName','Area measures','RowNumbers','y','MAX_ROWS',20,'modal','');
 	double2ascii([handles.path_tmp 'area_per_color.dat'],[round(pal(:,1)*255) counts],'%d\t%g')		% Save the result
@@ -2634,7 +2634,7 @@ function DrawImportShape_CB(handles, fname)
 			errordlg('Your background image is in geographics but the shape file has unknown coords.','ERROR'),	return	
 		end
 		if (do_project)
-			tmp = [s.BoundingBox];		tmp = tmp(1:2,:)';
+			tmp = [s.BoundingBox];		tmp = tmp(1:2,1:end)';
 			tmp = ogrproj(tmp, projStruc);		% Reproject all BB right away
 			for (k = 1:numel(s))
 				k2 = 2*k;		k1 = k2 - 1;
@@ -3529,9 +3529,9 @@ function GridToolsSmooth_CB(handles)
 		for k = 1:size(ind_s,1)
 			tmp1 = (ind_s(k,1):ind_s(k,2));		% Indexes with overlapping zone
 			tmp2 = ind(k,1):ind(k,2);			% Indexes of chunks without the overlaping zone
-			pp = spl_fun('csaps',{Y(tmp1),X},Z(tmp1,:),resp);
+			pp = spl_fun('csaps',{Y(tmp1),X},Z(tmp1, 1:end),resp);
 			tmp = spl_fun('fnval',pp,{Y(tmp1),X});
-			Zs = [Zs; tmp(tmp2,:)];
+			Zs = [Zs; tmp(tmp2, 1:end)];
 		end
 		clear pp tmp;
 		Z = Zs;
@@ -3576,7 +3576,7 @@ if (size(ind_s,1) > 1),						% There is still a very strange thing that I don't 
 	for k = 1:size(ind_s,1)
 		tmp1 = (ind_s(k,1):ind_s(k,2));		% Indexes with overlapping zone
 		tmp2 = ind(k,1):ind(k,2);			% Indexes of chunks without the overlaping zone
-		pp = spl_fun('csaps',{Y(tmp1),X},Z(tmp1,:),str2double(resp{1}));
+		pp = spl_fun('csaps',{Y(tmp1),X},Z(tmp1, 1:end),str2double(resp{1}));
 		DfDX = spl_fun('fnder',pp, [1 0]);			% df / dx
 		vx = spl_fun('fnval',DfDX,{Y(tmp1),X});		clear DfDX;
 		DfDY = spl_fun('fnder',pp, [0 1]);			% df / dy
@@ -3594,7 +3594,7 @@ if (size(ind_s,1) > 1),						% There is still a very strange thing that I don't 
 				tmp(i,j) = (v * [Hxx(i,j) Hxy(i,j); Hxy(i,j) Hyy(i,j)] * v') / (v*v');
 			end
 		end
-		R = [R; tmp(tmp2,:)];
+		R = [R; tmp(tmp2, 1:end)];
 	end
 else
 	pp = spl_fun('csaps',{Y,X},Z,str2double(resp{1}));		clear Z;
@@ -3822,7 +3822,8 @@ if (strcmp(opt,'ppa'))
 	[X,Y,Z,handles.head] = load_grd(handles);
 	if isempty(Z),		return,		end
 	out = grdppa_m(Z,handles.head);
-	h_ridge = line(out(1,:),out(2,:),'Linewidth',handles.DefLineThick,'Color',handles.DefLineColor,'Tag','creast_line','Userdata',1);
+	h_ridge = line(out(1,1:end),out(2,1:end), 'Linewidth',handles.DefLineThick, ...
+		'Color',handles.DefLineColor,'Tag','creast_line','Userdata',1);
 	multi_segs_str = cell(length(h_ridge),1);	% Just create a set of empty info strings
 	draw_funs(h_ridge,'isochron',multi_segs_str)
 	set(handles.figure1,'pointer','arrow')
@@ -3908,9 +3909,9 @@ elseif (strcmp(opt,'Circles'))
 	for k = 1:size(B,1)
 		x = B(k,1) + B(k,3) * xx;			y = B(k,2) + B(k,3) * yy;
 		h_circ = line('XData',x, 'YData',y, 'Parent',handles.axes1, 'Linewidth',handles.DefLineThick, ...
-				'Color',handles.DefLineColor,'Userdata',B(k,:));
+				'Color',handles.DefLineColor,'Userdata',B(k,1:end));
 		draw_funs(h_circ,'SessionRestoreCircleCart')	% Give uicontext
-		setappdata(h_circ,'LonLatRad',B(k,:))
+		setappdata(h_circ,'LonLatRad',B(k,1:end))
 		%setappdata(h_circ,'X',xx);		setappdata(h_circ,'Y',yy);
 	end
 else							% Display the bw image where the edges are the whites
