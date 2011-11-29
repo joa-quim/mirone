@@ -344,7 +344,7 @@ function push_OK_CB(hObject, handles)
 function figure1_CloseRequestFcn(hObject, eventdata)
 	handles = guidata(hObject);
 	if (exist('OCTAVE_VERSION','builtin'))		% To know if we are running under Octave
-		do_uiresume = strcmp(get(handles.figure1, '__uiwait_state__'), 'none');
+		do_uiresume = ( isprop(hObject, '__uiwait_state__') && strcmp(get(hObject, '__uiwait_state__'), 'active') );
 	else
 		do_uiresume = strcmp(get(handles.figure1, 'waitstatus'), 'waiting');
 	end
