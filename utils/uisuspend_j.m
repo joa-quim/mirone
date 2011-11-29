@@ -19,15 +19,16 @@ function uistate = uisuspend_j(fig, setdefaults)
 %   'plotedit' desabled (We don't use that in Mirone, well for the time beeing ...)
 
 if (nargin < 2)
-    setdefaults = logical(1);
+    setdefaults = true;
 end
 
-%chi = findobj(fig);
-chi = findobj(fig,'Type','axes');               % Megas saving (and speed)
-chi = [chi; findobj(fig,'Type','image')];
-chi = [chi; findobj(fig,'Type','line')];
-chi = [chi; findobj(fig,'Type','patch')];
-chi = [chi; findobj(fig,'Type','text')];
+% Try to minimize as possible the highly inefficient Octave's findobj
+h1 = findobj(fig,'-depth',1,'Type','axes');
+h2 = findobj(h1,'-depth',1,'Type','image');
+h3 = findobj(h2,'-depth',1,'Type','line');
+h4 = findobj(h2,'-depth',1,'Type','patch');
+h5 = findobj(h2,'-depth',1,'Type','text');
+chi = [h1; h2; h3; h4; h5];
 
 uistate = struct(...
         'figureHandle',          fig, ...
@@ -64,4 +65,4 @@ end
 
 % wrap cell arrays in another cell array for passing to the struct command
 function x = Lwrap(x)
-if (iscell(x)),  x = {x};    end
+	if (iscell(x)),  x = {x};    end
