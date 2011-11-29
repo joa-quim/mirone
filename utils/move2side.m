@@ -128,11 +128,11 @@ function [new_pos, bars_height] = move_to(fig, position, ecran)
 	wfudge =  6;
 	hfudge = 24;
 
-	if ~isempty(findall(fig,'type','uimenu'))
+	if ~isempty(findall(fig,'-depth',1,'type','uimenu'))
 		hfudge = hfudge + 32;
 	end
 
-	n_toolbars = numel(findall(fig,'type','uitoolbar'));
+	n_toolbars = numel(findall(fig,'-depth',1,'type','uitoolbar'));
 	if (n_toolbars > 0)
 		hfudge = hfudge + 24 * n_toolbars;
 	end
