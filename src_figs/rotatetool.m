@@ -317,7 +317,7 @@ function push_cancel_CB(hObject, handles)
 	if (~handles.IAmOctave)
 		do_uiresume = strcmp(get(handles.figure1, 'waitstatus'), 'waiting');
 	else
-		do_uiresume = strcmp(get(handles.figure1, '__uiwait_state__'), 'none');
+		do_uiresume = ( isprop(hObject, '__uiwait_state__') && strcmp(get(hObject, '__uiwait_state__'), 'active') );
 	end
 	if (do_uiresume)		% The GUI is still in UIWAIT, us UIRESUME
 		handles.cancel = 1;		% User gave up, return nothing
@@ -365,7 +365,7 @@ function push_apply_CB(hObject, handles)
 	if (~handles.IAmOctave)
 		do_uiresume = strcmp(get(handles.figure1, 'waitstatus'), 'waiting');
 	else
-		do_uiresume = strcmp(get(handles.figure1, '__uiwait_state__'), 'none');
+		do_uiresume = ( isprop(hObject, '__uiwait_state__') && strcmp(get(hObject, '__uiwait_state__'), 'active') );
 	end
 	if (do_uiresume)		% The GUI is still in UIWAIT, us UIRESUME
 		uiresume(handles.figure1);
