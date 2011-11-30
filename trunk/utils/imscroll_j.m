@@ -69,10 +69,10 @@ function imscroll_j(hAxes,opt)
 function PanZoomSetSliders(ax,hSliders)
 % Find out which slider function to call
 
-	lims = getappdata(ax,'ThisImageLims');
-	if (isempty(lims)),     lims = get_full_limits(ax);   end
+	limits = getappdata(ax,'ThisImageLims');
+	if (isempty(limits)),     limits = get_full_limits(ax);   end
 
-	x = lims(1:2);                  y = lims(3:4);
+	x = limits(1:2);                  y = limits(3:4);
 	xVisibleLim = get(ax,'XLim');   yVisibleLim = get(ax,'YLim');
 
 	for (i = 1:numel(hSliders))
@@ -149,10 +149,10 @@ function ZoomSetSliderVER(ax,hSlider,y,yVisibleLim)
 function SetSliderHor(ax,hSlider)
 % Update the image according to de Horizontal slider value
 
-	lims = getappdata(ax,'ThisImageLims');
-	if (isempty(lims)),     lims = get_full_limits(ax);   end
+	limits = getappdata(ax,'ThisImageLims');
+	if (isempty(limits)),     limits = get_full_limits(ax);   end
 
-	x = lims(1:2);
+	x = limits(1:2);
 	xVisibleLim = get(ax,'XLim');
 	VisWinWidth = diff(xVisibleLim);				% Width of the visible window
 	%xVisWinLast = xVisibleLim(1) + VisWinWidth;	% X coords of the last visible point
@@ -171,10 +171,10 @@ function SetSliderHor(ax,hSlider)
 function SetSliderVer(ax,hSlider)
 % Update the image according to de Vertical slider value
 
-	lims = getappdata(ax,'ThisImageLims');
-	if (isempty(lims)),     lims = get_full_limits(ax);   end
+	limits = getappdata(ax,'ThisImageLims');
+	if (isempty(limits)),     limits = get_full_limits(ax);   end
 
-	y = lims(3:4);
+	y = limits(3:4);
 	yVisibleLim = get(ax,'YLim');
 	VisWinHeight = diff(yVisibleLim);				% Height of the visible window
 	%yVisWinLast = yVisibleLim(1) + VisWinHeight;	% Y coords of the last visible point
@@ -201,157 +201,54 @@ function SetSliderVer(ax,hSlider)
 	set(ax,'YLim',new_yLim),	refresh
 
 %------------------------------------------------------------------------------------
-function lims = get_full_limits(h)
-%GET_FULL_LIMITS 3D object limits.
-%   LIMS=GET_FULL_LIMITS(H)  limits of the objects in vector H.
-%   LIMS=GET_FULL_LIMITS(AX) limits of the objects that are children 
-%                      of axes AX. If the axes has no children or none of
-%                      children contribute to the limits, the limits of the
-%                      axes AX are returned.    
-%   LIMS=GET_FULL_LIMITS     limits of the objects that are children 
-%                      of the current axes. If the axes has no children or none of
-%                      children contribute to the limits, the limits of the
-%                      current axes are returned.
-%   GET_FULL_LIMITS calculates the 3D limits of the objects specified. The
-%   limits are returned in the form [xmin xmax ymin ymax zmin zmax].
-%
-%  If the limits are invalid, an empty array is returned.
-
-%   Copyright 1984-2009 The MathWorks, Inc.
-
-	if (nargin == 0),	h = gca;	end
-
-	h = h(ishandle(h));		% A cose des mouches
-	%Save a reference to the input object
-	hInput = h;
+function limits = get_full_limits(hAx)
+%Get the full limits of the contents of axes hAx.
+%   If the axes has no children or they do not contribute to the limits, 
+%	the limits of the axes hAx are returned.   
 
 	xmin = nan;		xmax = nan;
 	ymin = nan;		ymax = nan;
-	zmin = nan;		zmax = nan;
 
-	if (strcmp(get(h, 'type'), 'axes'))
-		ch = [];
-		for (i = 1:numel(h))		% Get the axes children.
-			newCh = findobj(h(i));
-			ch = [ch;newCh(2:end)]; %#ok<AGROW>
-		end
-		h = ch;
-	end
+	hObj = findobj(hAx,'-depth',1);		% Get childrens
 
-	for (i = 1:numel(h))
-		validtype = false;
-		type = get(h(i),'type');
+	for (i = 1:numel(hObj))
+		type = get(hObj(i),'type');
 		switch type
+			case 'axes'
+				x = get(hObj(i), 'xlim');
+				y = get(hObj(i), 'ylim');
+				xmin = x(1);	xmax = x(2);
+				ymin = y(1);	ymax = y(2);
 			case {'image', 'line', 'surface'}
-				xd = get(h(i), 'xdata');
-				yd = get(h(i), 'ydata');
-				validtype = ~isempty(xd) && ~isempty(yd) && any(isfinite(xd(:))) && any(isfinite(yd(:)));
 				if (strcmp(type, 'image'))
-					if ( validtype )
-						zd = 0;
-						[xd,yd] = localGetImageBounds(h(i));
+					% Make sure X|Ydata are in pixel registered mode. If they were already than we have
+					% a problem, but that shouldn't happen because 'ThisImageLims' has been filled before
+					x = get(hObj(i), 'XData');
+					y = get(hObj(i), 'YData');
+					[m, n, k] = size(get(hObj(i),'CData'));
+					if (numel(x) == 2)		% An image
+						dx2 = ( (x(end) - x(1)) / (n - 1) ) / 2;
+						dy2 = ( (y(end) - y(1)) / (m - 1) ) / 2;
+					else
+						dx2 = (x(2) - x(1)) / 2;
+						dy2 = (y(2) - y(1)) / 2;
 					end
-				else
-					zd = get(h(i), 'zdata');
-					if isempty(zd)
-						if (strcmp(type, 'line')),	zd = 0; % a line can have empty zdata
-						else						validtype = false;
-						end
-					end
+					x = [x(1) x(end)] + [-dx2 dx2];
+					y = [y(1) y(end)] + [-dy2 dy2];
 				end
 
 			case 'patch'
-				v = get(h(i), 'vertices');
-				validtype = ~isempty(v) && any(isfinite(v(:)));
-				if validtype
-					f = get(h(i), 'faces');
-					v = v(f(isfinite(f)),:);
-					xd = v(:,1);
-					yd = v(:,2);
-					if (size(v,2) == 2),	zd = 0;
-					else					zd = v(:,3);
-					end
-				end
+				verts = get(hObj(i), 'vertices');
+				faces = get(hObj(i), 'faces');
+				verts = verts(faces(isfinite(faces)),:);
+				x = verts(:,1);
+				y = verts(:,2);
 			end
 
-		if validtype
-			xmin = min(xmin, min(xd(:)));
-			xmax = max(xmax, max(xd(:)));
-			ymin = min(ymin, min(yd(:)));
-			ymax = max(ymax, max(yd(:)));
-			zmin = min(zmin, min(zd(:)));
-			zmax = max(zmax, max(zd(:)));
-		end
+			xmin = min(xmin, min(x));
+			xmax = max(xmax, max(x));
+			ymin = min(ymin, min(y));
+			ymax = max(ymax, max(y));
 	end
 
-	lims = [xmin xmax ymin ymax zmin zmax];
-	if any(isnan(lims)),	lims = [];	end
-	% If the lims are empty and the input argument was
-	% an AXES object, return the lims of the AXES.
-	% This can happen if either the axes has no children
-	% or none of the children contributed to the limits.
-	if( isempty(lims) && (numel(findobj(hInput,'flat','type','axes')) == numel(hInput)))
-		xl = xlim(hInput);
-		yl = ylim(hInput);
-		zl = zlim(hInput);
-		xmin = xl(1);  xmax = xl(2); 
-		ymin = yl(1);  ymax = yl(2); 
-		zmin = zl(1);  zmax = zl(2); 
-		lims = [xmin xmax ymin ymax zmin zmax];
-	end
-
-%----------------------------------
-function [xd,yd] = localGetImageBounds(h)
-% Determine the bounds of the image
-
-xdata = get(h,'XData');
-ydata = get(h,'YData');
-cdata = get(h,'CData');
-m = size(cdata,1);
-n = size(cdata,2);
-
-[xd(1), xd(2)] = localComputeImageEdges(xdata,n);
-[yd(1), yd(2)] = localComputeImageEdges(ydata,m);
-
-%----------------------------------
-function [min,max]= localComputeImageEdges(xdata,num)
-% Determine the bounds of an image edge
-
-% This algorithm is an exact duplication of the image HG c-code 
-% Reference: src/hg/gs_obj/image.cpp, ComputeImageEdges(...)
-
-offset = .5;
-nreals = length(xdata);
-old_nreals = nreals;
-
-if (old_nreals>1 && isequal(xdata(1),xdata(end)))
-    nreals = 1;
-end
-
-first_last(1) = 1;
-first_last(2) = num;
-
-if (num==0) 
-	min = nan;
-	max = nan;
-else
-    first_last(1) = xdata(1);
-    if (nreals>1) 
-        first_last(2) = xdata(end);
-    else
-        first_last(2) = first_last(1) + num - 1;
-    end
-    
-    % Data should be monotonically increasing
-    if (first_last(2) < first_last(1)) 
-        first_last = fliplr(first_last);
-    end
-    
-    if (num > 1) 
-		offset = (first_last(2) - first_last(1)) / (2 * (num-1));
-    elseif (nreals > 1)
-		offset = xdata(end) - xdata(1);
-    end
-    min = first_last(1) - offset;
-    max = first_last(2) + offset;
-end
+	limits = [xmin xmax ymin ymax];
