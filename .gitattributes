@@ -316,6 +316,7 @@ lib_mex/mosaicer.dll -text
 lib_mex/mpgwrite.dll -text
 lib_mex/mxgridtrimesh.dll -text
 lib_mex/nearneighbor_m.dll -text
+lib_mex/octave/Makefile -text
 lib_mex/ogrproj.dll -text
 lib_mex/ogrread.dll -text
 lib_mex/ordf.dll -text
