@@ -99,7 +99,7 @@ function PixvalMotionFcn(obj, evt, displayBar)
 %-----------------------------------------------------------------------------------------
 function [imageHandle,imageType,img,x,y] = OverImage(figHandle)
 % Return the index of which image we are over, and return a 0 if we aren't above an image.
-images = findobj(figHandle, 'type', 'image');
+images = findobj(figHandle, '-depth',2, 'type','image');
 if isempty(images)
 	imageHandle=0;   imageType='';   img=[];     x=0;    y=0;   return
 end

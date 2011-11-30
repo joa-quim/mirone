@@ -88,43 +88,36 @@ function varargout = resizetrue(handles, opt, axis_t)
 		varargout{1} =  round((axPos(3) / imageWidth + axPos(4) / imageHeight) * 0.5 * 100);
 	end
 
-%--------------------------------------------
-% Subfunction ParseInputs
-%--------------------------------------------
+%--------------------------------------------------------------------------------
 function [axHandle,imHandle,msg] = ParseInputs(varargin)
 
-msg = '';   axHandle = [];      imHandle = [];          figHandle = [];
+	msg = '';   axHandle = [];      imHandle = [];
 
-if (nargin == 0);    axHandle = gca;    end
-    
-if (nargin >= 1)
-    if (~ishandle(varargin{1}) || ~strcmp(get(varargin{1},'type'),'figure'))
-        msg = 'FIG must be a valid figure handle';      return;
-    else
-        figHandle = varargin{1};
-    end
-    axHandle = get(figHandle, 'CurrentAxes');
-    if (isempty(axHandle));     msg = 'Current figure has no axes';     return;    end
-end
+	if (~ishandle(varargin{1}) || ~strcmp(get(varargin{1},'type'),'figure'))
+		msg = 'FIG must be a valid figure handle';      return;
+	else
+		hFig = varargin{1};
+	end
+	axHandle = get(hFig, 'CurrentAxes');
+	if (isempty(axHandle));     msg = 'Current figure has no axes';     return;    end
 
-if (isempty(figHandle))
-    figHandle = get(axHandle, 'Parent');
-end
 
-% Find all the images and texturemapped surfaces in the current figure.  These are the candidates.
-h = [findobj(figHandle, 'Type', 'image') ;
-    findobj(figHandle, 'Type', 'surface', 'FaceColor', 'texturemap')];
+	% Find all the images and texturemapped surfaces in the current figure.  These are the candidates.
+	h = [findobj(axHandle, '-depth',1, 'Type', 'image');
+		findobj(axHandle, '-depth',1, 'Type', 'surface', 'FaceColor', 'texturemap')];
 
-if (isempty(h)),    msg = 'No images or texturemapped surfaces in the figure';    return;   end
+	if (isempty(h))
+		msg = 'No images or texturemapped surfaces in the figure';	return
+	end
 
-% Start with the first object on the list as the initial candidate.
-% If it's not in the current axes, look for another one that is.
-imHandle = h(1);
-if (get(imHandle,'Parent') ~= axHandle)
-    for k = 2:length(h)
-        if (get(h(k),'Parent') == axHandle),    imHandle = h(k);    break;        end
-    end
-end
+	% Start with the first object on the list as the initial candidate.
+	% If it's not in the current axes, look for another one that is.
+	imHandle = h(1);
+	if (get(imHandle,'Parent') ~= axHandle)
+		for k = 2:numel(h)
+			if (get(h(k),'Parent') == axHandle),    imHandle = h(k);    break;        end
+		end
+	end
 
 %--------------------------------------------
 % Subfunction Resize1
