@@ -52,6 +52,7 @@
 
 #include "mex.h"
 #include <string.h>
+#include <stdio.h>
 
 #define CNULL		((char *)NULL)
 #ifndef TRUE
