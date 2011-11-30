@@ -67,7 +67,12 @@ function hObject = mirone_OpeningFcn(varargin)
 	global home_dir;	fsep = filesep;
 	if (isempty(home_dir))		% First time call. Find out where we are
 		home_dir = fileparts(mfilename('fullpath'));			% Get the Mirone home dir and set path
-		addpath(home_dir, [home_dir fsep 'src_figs'],[home_dir fsep 'lib_mex'],[home_dir fsep 'utils']);
+		addpath(home_dir, [home_dir fsep 'src_figs'],[home_dir fsep 'utils']);
+		if (exist('OCTAVE_VERSION','builtin') ~= 0)				% This is a repetition of the test later in mirone_uis
+			addpath([home_dir fsep 'lib_mex' fsep 'octave' fsep octave_config_info.canonical_host_type]);
+		else
+			addpath([home_dir fsep 'lib_mex']);
+		end
 	end
 	[hObject,handles,home_dir] = mirone_uis(home_dir);
 
@@ -1644,7 +1649,7 @@ function handles = show_image(handles, fname, X, Y, I, validGrid, axis_t, adjust
 	end
 	set(handles.noAxes,'Vis', st{~strcmp(axis_t,'off') + 1})
 	set(handles.toGE,'Enable', st{min(handles.geog,1) + 1})
-	set(findobj(handles.Projections,'Label','GMT project'), 'Vis', st{validGrid + 1})
+	set(findobj(handles.Projections,'-depth',1,'Label','GMT project'), 'Vis', st{validGrid + 1})
 	if (handles.geog),		set(handles.DrawGeogCirc,'Tooltip','Draw geographical circle')
 	else					set(handles.DrawGeogCirc,'Tooltip','Draw circle')
 	end
@@ -1670,7 +1675,7 @@ function handles = show_image(handles, fname, X, Y, I, validGrid, axis_t, adjust
 			end
 			tmp = {['+ ' 'RGB']; I; tmp1; tmp2; ''; 1:3; [size(I,1) size(I,2) 3]; 'Mirone'};
 			setappdata(handles.figure1,'BandList',tmp)
-			set(findobj(handles.figure1,'Label','Load Bands'),'Vis','on')
+			set(findobj(handles.Image,'-depth',1,'Label','Load Bands'),'Vis','on')
 		elseif (ndims(I) == 2)		% Remove it so it won't try to operate on indexed images
 			if (isappdata(handles.figure1,'BandList')),		rmappdata(handles.figure1,'BandList'),	end
 			set(findobj(handles.figure1,'Label','Load Bands'),'Vis','off')
