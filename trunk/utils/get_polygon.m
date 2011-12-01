@@ -54,8 +54,10 @@ setappdata(ud.GETLINE_FIG, 'FromGetPolygon', ud);
 % We're ready; wait for the user to do the drag. Wrap the call to waitfor
 % in try-catch so we'll have a chance to clean up after ourselves.
 errCatch = 0;
-try         waitfor(ud.GETLINE_H1, 'UserData', 'Completed');
-catch       errCatch = 1;
+try
+	waitfor(ud.GETLINE_H1, 'UserData', 'Completed');
+catch
+	errCatch = 1;
 end
 
 % After the waitfor, if GETLINE_H1 is still valid and its UserData is 'Completed', then the user
@@ -88,7 +90,7 @@ end
 
 % Restore the figure's initial state
 if (ishandle(ud.GETLINE_FIG))
-   uirestore_fig(state);
+   uirestore_j(state, 'nochildren');
    set(ud.GETLINE_FIG, 'DoubleBuffer', old_db);
    try, rmappdata(ud.GETLINE_FIG,'FromGetPolygon');     end
 end

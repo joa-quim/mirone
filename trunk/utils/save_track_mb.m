@@ -60,8 +60,11 @@ set(gcbf, 'UserData', ud);
 % We're ready; wait for the user to do the drag. Wrap the call to waitfor
 % in try-catch so we'll have a chance to clean up after ourselves.
 errCatch = 0;
-try          waitfor(ud.GETLINE_H1, 'UserData', 'Completed');
-catch      errCatch = 1;   end
+try
+	waitfor(ud.GETLINE_H1, 'UserData', 'Completed');
+catch
+	errCatch = 1;
+end
 
 % After the waitfor, if GETLINE_H1 is still valid and its UserData is 'Completed', then the user
 % completed the drag.  If not, the user interrupted the action somehow, perhaps by a Ctrl-C in the
@@ -90,11 +93,11 @@ else
             lon_i = lon(1:length(lon)-1);   lon_f = lon(2:length(lon));
             tmp = sin(lat_i).*sin(lat_f) + cos(lat_i).*cos(lat_f).*cos(lon_f-lon_i);
             x = sum(acos(tmp) * earth_rad / 1.852);     % Distance in NM
-        catch  x = [];          % When user gave up or an error (?) occured
+		catch,	x = [];          % When user gave up or an error (?) occured
         end
     else                                            % Save track
-        try      x = getappdata(ud.GETLINE_H1,'Xvert');   y = getappdata(ud.GETLINE_H1,'Yvert');
-        catch  x = [];     y = [];     end     % When user gave up or an error (?) occured
+        try		x = getappdata(ud.GETLINE_H1,'Xvert');   y = getappdata(ud.GETLINE_H1,'Yvert');
+		catch,	x = [];     y = [];     end     % When user gave up or an error (?) occured
     end
 end
 
@@ -103,7 +106,7 @@ if (ishandle(ud.GETLINE_H1));    delete(ud.GETLINE_H1);     end
 
 % Restore the figure's initial state
 if (ishandle(ud.GETLINE_FIG))
-   uirestore_fig(state);
+   uirestore_j(state, 'nochildren');
    set(ud.GETLINE_FIG, 'DoubleBuffer', old_db);
 end
 

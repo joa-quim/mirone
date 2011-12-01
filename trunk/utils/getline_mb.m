@@ -129,7 +129,8 @@ if (ishandle(ud.GETLINE_H2));    delete(ud.GETLINE_H2);     end
 
 % Restore the figure's initial state
 if (ishandle(ud.GETLINE_FIG))
-   uirestore_fig(state);   set(ud.GETLINE_FIG, 'DoubleBuffer', old_db);
+   uirestore_j(state, 'nochildren');
+   set(ud.GETLINE_FIG, 'DoubleBuffer', old_db);
 end
 
 CleanUp(xlimorigmode,ylimorigmode);

@@ -5,8 +5,8 @@ function [p1,p2,lh1] = rubberbandbox(varargin)
 %        [p1,p2]=rubberbox(h);  uses axes refered to by handle, h
 %        [p1,p2,lh]=rubberbox(...);  returns handle of the rubberbox and dont't erase it
 % Based on an idea of Sandra Martinka's Rubberline
-% Written/Edited by Bob Hamans (B.C.Hamans@student.tue.nl) 02-04-2003
-% Havily modified for Mirone use (J. Luis).
+% Edited by Bob Hamans (B.C.Hamans@student.tue.nl) 02-04-2003
+% Re-written for Mirone use (J. Luis).
 % E.G rectangles have origin at LowerLeft corner and handles to rect lines are cw oriented.
 
 %	Copyright (c) 2004-2011 by J. Luis
@@ -77,7 +77,7 @@ elseif (nargout == 3)
     p1(1) = x_min;  p1(2) = y_min;  p2(1) = x_max;  p2(2) = y_max;
     set(lh1,'XData',[x_min,x_min,x_max,x_max,x_min],'YData',[y_min,y_max,y_max,y_min,y_min])
 end
-uirestore_fig(state);         % Restore the figure's initial state
+uirestore_j(state, 'nochildren');         % Restore the figure's initial state
 
 % -------------------------------------------------------------------------
 function wbmf(obj,eventdata,utemp)   % window motion callback function

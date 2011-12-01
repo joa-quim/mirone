@@ -139,4 +139,4 @@ s = get(h,'userdata');
 x = get(s.markers,'XData');     y = get(s.markers,'YData');
 s.limits = [x(:) y(:)];
 set(h,'userdata',s)
-uirestore_fig(state);         % Restore the figure's initial state
+uirestore_j(state, 'nochildren');         % Restore the figure's initial state

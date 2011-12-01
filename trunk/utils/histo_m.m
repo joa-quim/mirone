@@ -167,7 +167,7 @@ if (~hold_state)
        set(h,{'edgecolor'},get(h,{'facecolor'}));
 	end
 end
-uirestore_fig(state);         % Restore the figure's initial state
+uirestore_j(state, 'nochildren');         % Restore the figure's initial state
 if (nargout==1),   xo = h;     end
 
 %--------------------------------------------------------------------------------

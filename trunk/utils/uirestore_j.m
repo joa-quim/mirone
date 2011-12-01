@@ -35,20 +35,20 @@ if strcmp('on',get(fig,'BeingDeleted'))
     return
 end
 
-updateFigure   = 1;
-updateChildren = 1;
-updateUICtrl   = 1;
+updateFigure   = true;
+updateChildren = true;
+updateUICtrl   = true;
 
 if (nargin == 2)
     if strcmpi(kidsOnly, 'children');
-        updateFigure   = 0;
+        updateFigure   = false;
     elseif strcmpi(kidsOnly, 'nochildren');
-        updateChildren = 0;
-        updateUICtrl   = 0;
+        updateChildren = false;
+        updateUICtrl   = false;
     elseif strcmpi(kidsOnly,'uicontrols')
-        updateChildren = 0;
+        updateChildren = false;
     elseif strcmpi(kidsOnly,'nouicontrols')
-        updateUICtrl   = 0;
+        updateUICtrl   = false;
     end
 end
 

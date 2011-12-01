@@ -486,8 +486,8 @@ function wbm_MovePolygon(obj,evt,h,lim,hAxes)
 
 % ---------
 function wbd_MovePolygon(obj,eventdata,h,state)
-	uirestore_fig(state);           % Restore the figure's initial state
-	ui_edit_polygon(h)              % Reset the edition functions with the correct handle
+	uirestore_j(state, 'nochildren');	% Restore the figure's initial state
+	ui_edit_polygon(h)					% Reset the edition functions with the correct handle
 % -----------------------------------------------------------------------------------------
 
 % -----------------------------------------------------------------------------------------
@@ -1554,11 +1554,11 @@ function wbm_vector(obj,eventdata,origin,h,hAxes, hscale, vscale)
  	set(h(1),'XData',xt, 'YData',yt);
 
 function wbd_vector(obj,eventdata,h,state)
-    uirestore_fig(state);           % Restore the figure's initial state
+	uirestore_j(state, 'nochildren');	% Restore the figure's initial state
 	x = get(h(2), 'XData');		y = get(h(2), 'YData');
 	ud.tail = [x; y];		ud.vFac = 1.3;		ud.headHeight = 12;
 	set(h(1), 'UserData', ud)
-	delete(h(2));				% We don't need this (support) line anymore
+	delete(h(2));						% We don't need this (support) line anymore
 	set_vector_uicontext(h(1))
     ui_edit_polygon(h(1))
 % -----------------------------------------------------------------
@@ -1601,7 +1601,7 @@ function wbd_gcircle(obj,eventdata,h,state)
 	x = get(h, 'XData');			y = get(h, 'YData');
 	az = azimuth_geo(y(1), x(1), y(end), x(end));
 	setappdata(h,'Azim',az);		set(h,'Tag','GreatCircle')
-	uirestore_fig(state);			% Restore the figure's initial state
+	uirestore_j(state, 'nochildren');	% Restore the figure's initial state
 % -----------------------------------------------------------------------------------------
 
 % -----------------------------------------------------------------------------------------
@@ -1646,8 +1646,8 @@ function wbd_circle(obj,eventdata,h,state)
 	lon_lat_rad = get(h,'UserData');	setappdata(h,'LonLatRad',lon_lat_rad)   % save this in appdata
 	set(h,'Tag','circleCart')
     rmappdata(h,'X');			rmappdata(h,'Y');
-	set(h,'UserData',[])		% Clean UserData so that it doesn't risk to crash write_fleder
-	uirestore_fig(state);		% Restore the figure's initial state
+	set(h,'UserData',[])				% Clean UserData so that it doesn't risk to crash write_fleder
+	uirestore_j(state, 'nochildren');	% Restore the figure's initial state
 % -----------------------------------------------------------------------------------------
 
 % -----------------------------------------------------------------------------------------
@@ -1691,7 +1691,7 @@ function wbd_MoveCircle(obj,eventdata,h,state,hAxes)
 	lon_lat_rad = get(h,'UserData');	setappdata(h,'LonLatRad',lon_lat_rad)	% save this in appdata
 	set(h,'UserData',[])			% Clean UserData so that it doesn't risk to crash write_fleder
     rmappdata(h,'X');				rmappdata(h,'Y');
-	uirestore_fig(state);			% Restore the figure's initial state
+	uirestore_j(state, 'nochildren');	% Restore the figure's initial state
 
 % -----------------------------------------------------------------------------------------
 function change_CircCenter1(obj,eventdata,h)
@@ -1950,7 +1950,7 @@ function wbd_txt(obj,eventdata,h,state,hAxes)
 	x_lim = get(hAxes,'xlim');      y_lim = get(hAxes,'ylim');
 	if (x<x_lim(1)) || (x>x_lim(2)) || (y<y_lim(1)) || (y>y_lim(2));   return; end
 	refresh
-	uirestore_fig(state);           % Restore the figure's initial state
+	uirestore_j(state, 'nochildren');	% Restore the figure's initial state
 % -----------------------------------------------------------------------------------------
 
 % -----------------------------------------------------------------------------------------
@@ -2578,7 +2578,7 @@ function deleteObj(hTesoura)
 function wbd_delObj(obj,event,hFig,hTesoura,state)
 	stype = get(hFig,'selectiontype');
 	if (stype(1) == 'a')                    % A right click ('alt'), end killing
-		uirestore_fig(state)
+		uirestore_j(state, 'nochildren');	% Restore the figure's initial state
 		set(hTesoura,'State','off')         % Set the Toggle button state to depressed
 		return
 	end
