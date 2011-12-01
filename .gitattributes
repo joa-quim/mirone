@@ -824,7 +824,6 @@ utils/read_grid.m -text
 utils/reduce_qslim.m -text
 utils/register_img.m -text
 utils/resampsep.dll -text
-utils/resetplotview.m -text
 utils/resizetrue.m -text
 utils/roi_filtering.m -text
 utils/rot_euler.m -text
