@@ -3,16 +3,13 @@ function scribefiglisten_j(fig,onoff)
 % SCRIBEFIGLISTEN(fig,onoff) creates child added/removed listeners 
 % (if they do not already exist) for fig and its non-legend,
 % non-colorbar axes children, and enables (onoff=true) or 
-% disables(onoff=false)them. Firing listeners turns off zoom_j and 
-% rotate3d for the figure.
-% Called by zoom_j and rotate3d
+% disables(onoff=false)them. Firing listeners turns off zoom_j for the figure.
+% Called by zoom_j
 %
 
 %   Glen M. DeLoid 02-01-2001
 %   Copyright 1984-2002 The MathWorks, Inc. 
 %   $Revision: 1.5 $  $Date: 2002/04/08 21:44:36 $
-
-% Commented all calls to rotate3d
 
 	% create listeners if they don't already exist
 	if isempty(findprop(handle(fig),'ScribeFigListeners'))
@@ -60,7 +57,7 @@ function scribefiglisten_j(fig,onoff)
 %------------------------------------------------------------------------%
 function scribeFigChildAdded(src,event,fig)
 % figure add child callback if the added child is an axes or is 
-% a uicontextmenu or uicontrol turn off zoom_j and rotate3d
+% a uicontextmenu or uicontrol turn off zoom_j
 
 	chh = handle(event.child);
 	tag = get(chh,'tag');
@@ -71,34 +68,28 @@ function scribeFigChildAdded(src,event,fig)
 	if (strcmpi(tag,'temphackytext') && strcmpi(type,'text')) || ...
 			(strcmpi(tag,'temphackyui') && strcmpi(type,'uicontrol'))
 
-		% if obect being added is a legend, and zoom_j or rotate3d is on, turn it
+		% if obect being added is a legend, and zoom_j is on, turn it
 		% off and then on again to make state data saved by uiclearmode current.
 	elseif strcmpi(tag,'legend')
 		if strcmpi('out',zoom_j(fig,'getmode'))
 			zoom_j(fig,'off');
 			zoom_j(fig,'outmode');
-% 		elseif isappdata(fig,'Rotate3dOnState')
-% 			rotate3d(fig,'off');
-% 			rotate3d(fig,'on');
 		elseif isappdata(fig,'ZoomOnState')
 			zoomstate = getappdata(fig,'ZoomOnState');
 			zoom_j(fig,'off');
 			zoom_j(fig,zoomstate);
 		end
 
-		% otherwise if object is an axes, uicontextmenu or uicontrol turn zoom_j and rotate3d off.
-	elseif  event.child.isa('hg.axes') | event.child.isa('hg.uicontextmenu') | ...
-			event.child.isa('hg.uicontrol')
+		% otherwise if object is an axes, uicontextmenu or uicontrol turn zoom_j off.
+	elseif  event.child.isa('hg.axes') | event.child.isa('hg.uicontextmenu') | event.child.isa('hg.uicontrol')
 
 		zoom_j(fig,'off');
-		%rotate3d(fig,'off');
-
 	end
 
 %------------------------------------------------------------------------%
 function scribeFigChildRemoved(src,event,fig)
 % figure remove child callback if the child is an axes or is
-% a uicontextmenu or uicontrol turn off zoom_j and rotate3d
+% a uicontextmenu or uicontrol turn off zoom_j
 
 	chh = handle(event.child);
 	tag = get(chh,'tag');
@@ -109,15 +100,12 @@ function scribeFigChildRemoved(src,event,fig)
 	if (strcmpi(tag,'temphackytext') && strcmpi(type,'text')) || ...
 			(strcmpi(tag,'temphackyui') && strcmpi(type,'uicontrol'))
 
-		% if object being removed is a legend, and zoom_j or rotate3d is on, turn
+		% if object being removed is a legend, and zoom_j is on, turn
 		% it off and then on again to make state data saved by uiclearmode current.
 	elseif strcmpi(tag,'legend')
 		if strcmpi('out',zoom_j(fig,'getmode'))
 			zoom_j(fig,'off');
 			zoom_j(fig,'outmode');
-% 		elseif isappdata(fig,'Rotate3dOnState')
-% 			rotate3d(fig,'off');
-% 			rotate3d(fig,'on');
 		elseif isappdata(fig,'ZoomOnState')
 			zoomstate = getappdata(fig,'ZoomOnState');
 			zoom_j(fig,'off');
@@ -125,40 +113,35 @@ function scribeFigChildRemoved(src,event,fig)
 		end
 
 		% otherwise if object is an axes, uicontextmenu or uicontrol turn zoom_j and rotate3d off.
-	elseif  event.child.isa('hg.axes') | event.child.isa('hg.uicontextmenu') | ...
-			event.child.isa('hg.uicontrol')
+	elseif  event.child.isa('hg.axes') | event.child.isa('hg.uicontextmenu') | event.child.isa('hg.uicontrol')
 
 		zoom_j(fig,'off');
-		%rotate3d(fig,'off');   
 	end
 
 %------------------------------------------------------------------------%
 function scribeFigAxChildAdded(src,event,fig)
-% axes add child callback turn off zoom_j and rotate3d
+% axes add child callback turn off zoom_j
 	chh = handle(event.child);
 	tag = get(chh,'tag');
 	type = get(chh,'type');
 
-	% don't turn zoom_j/rotate3d off if obect being added is a temporary text or ui object
+	% don't turn zoom_j off if object being added is a temporary text or ui object
 	% or a legend delete proxy
 	if ~strcmpi(tag,'LegendDeleteProxy') && ~(strcmpi(tag,'temphackytext') && ...
 			strcmpi(type,'text')) && ~(strcmpi(tag,'temphackyui') && strcmpi(type,'uicontrol'))
 		zoom_j(fig,'off');
-		%rotate3d(fig,'off');
 	end
-
 
 %------------------------------------------------------------------------%
 function scribeFigAxChildRemoved(src,event,fig)
-% axes remove child callback turn off zoom_j and rotate3d
+% axes remove child callback turn off zoom_j
 	chh = handle(event.child);
 	tag = get(chh,'tag');
 	type = get(chh,'type');
 
-	% don't turn zoom_j/rotate3d off if obect being added is a temporary text or ui object
+	% don't turn zoom_j off if object being added is a temporary text or ui object
 	% or a legend delete proxy
 	if ~strcmpi(tag,'LegendDeleteProxy') && ~(strcmpi(tag,'temphackytext') && ...
 			strcmpi(type,'text')) && ~(strcmpi(tag,'temphackyui') && strcmpi(type,'uicontrol'))
 		zoom_j(fig,'off');
-		%rotate3d(fig,'off');
 	end
