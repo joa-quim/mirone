@@ -70,7 +70,7 @@ function [out1,out2] = uicirclegeo(varargin)
 	% do this, we are just kicked out of the program whithout having time to do anything.
 	try
 		waitfor(h_circ, 'Tag', 'Completed');
-		uirestore_fig(state);         % Restore the figure's initial state
+		uirestore_j(state, 'nochildren');         % Restore the figure's initial state
 	end
 
 	lon_lat_rad = getappdata(h_circ,'LonLatRad');
@@ -202,7 +202,7 @@ function wbu_MoveCircle(obj,eventdata,h,hcenter,hend,state)
 	if ishandle(s.hcontrol)     % That is, if user didn't kill the controls window
         set(s.hcontrol,'userdata',s)
 	end
-	uirestore_fig(state);         % Restore the figure's initial state
+	uirestore_j(state, 'nochildren');         % Restore the figure's initial state
 
 % -----------------------------------------------------------------------------------------
 function resize_circle(obj,eventdata,h)
@@ -265,7 +265,7 @@ function wbu_ResizeCircle(obj,eventdata,h,hcenter,hend,state)
 	s.az = azimuth_geo(s.clat,s.clon,s.rlat,s.rlon);
 	set(h,'userdata',s);
 	setappdata(h,'LonLatRad',[s.clon s.clat s.rad])
-	uirestore_fig(state)		% Restore the figure's initial state
+	uirestore_j(state, 'nochildren')		% Restore the figure's initial state
 
 %---------------------------------------------------------------------------------------------------
 function circleui(action)
