@@ -80,7 +80,7 @@ zoomCommand=lower(zoomCommand);
 if strcmp(zoomCommand,'off')
     % turn zoom off
     doZoomOff(fig);
-    scribefiglisten_j(fig,'off');
+    %scribefiglisten_j(fig,'off');
     state = getappdata(fig,'ZOOMFigureState');
     if ~isempty(state)
         % since we didn't set the pointer, make sure it does not get reset
@@ -152,7 +152,7 @@ end
 switch zoomCommand
 case 'down'
     % Activate axis that is clicked in
-    allAxes = findall(datachildren(fig),'flat','type','axes');
+    allAxes = findobj(fig,'-depth',1,'type','axes');
     ZOOM_found = 0;
 
     % this test may be causing failures for 3d axes
@@ -177,63 +177,63 @@ case 'down'
 
     axz = get(ax,'ZLabel');
 
-    if fZoom3d
-        viewData = getappdata(axz,'ZOOMAxesView');
-        if isempty(viewData)
-            viewProps = {'CameraTarget' 'CameraTargetMode'...
-                    'CameraViewAngle' 'CameraViewAngleMode'};
-            setappdata(axz,'ZOOMAxesViewProps', viewProps);
-            setappdata(axz,'ZOOMAxesView', get(ax,viewProps));
-        end
-        if isempty(zoomMode) || strcmp(zoomMode,'in');
-            zoomLeftFactor = 1.5;
-            zoomRightFactor = .75;
-        elseif strcmp(zoomMode,'out');
-            zoomLeftFactor = .75;
-            zoomRightFactor = 1.5;
-        end
-        switch selection_type
-            case 'open'
-                set(ax,getappdata(axz,'ZOOMAxesViewProps'), getappdata(axz,'ZOOMAxesView'));
-            case 'normal'
-                newTarget = mean(get(ax,'CurrentPoint'),1);
-                set(ax,'CameraTarget',newTarget);
-                camzoom(ax,zoomLeftFactor);
-            otherwise
-                newTarget = mean(get(ax,'CurrentPoint'),1);
-                set(ax,'CameraTarget',newTarget);
-                camzoom(ax,zoomRightFactor);
-        end
-        return
-    end
+	if fZoom3d
+		viewData = getappdata(axz,'ZOOMAxesView');
+		if isempty(viewData)
+			viewProps = {'CameraTarget' 'CameraTargetMode'...
+					'CameraViewAngle' 'CameraViewAngleMode'};
+			setappdata(axz,'ZOOMAxesViewProps', viewProps);
+			setappdata(axz,'ZOOMAxesView', get(ax,viewProps));
+		end
+		if isempty(zoomMode) || strcmp(zoomMode,'in');
+			zoomLeftFactor = 1.5;
+			zoomRightFactor = .75;
+		elseif strcmp(zoomMode,'out');
+			zoomLeftFactor = .75;
+			zoomRightFactor = 1.5;
+		end
+		switch selection_type
+			case 'open'
+				set(ax,getappdata(axz,'ZOOMAxesViewProps'), getappdata(axz,'ZOOMAxesView'));
+			case 'normal'
+				newTarget = mean(get(ax,'CurrentPoint'),1);
+				set(ax,'CameraTarget',newTarget);
+				camzoom(ax,zoomLeftFactor);
+			otherwise
+				newTarget = mean(get(ax,'CurrentPoint'),1);
+				set(ax,'CameraTarget',newTarget);
+				camzoom(ax,zoomRightFactor);
+		end
+		return
+	end
 
-    if isempty(zoomMode) || strcmp(zoomMode,'in');
-        switch selection_type
-            case 'normal'           % Zoom in
-                m = 1;
-                scale_factor = 2;   % the default zooming factor
-            case 'open'             % Zoom all the way out
-                zoom_j(fig,'out');
-                return;
-            otherwise               % Zoom partially out
-                m = -1;
-                scale_factor = 2;
-        end
-    elseif strcmp(zoomMode,'out')
-        switch selection_type
-            case 'normal'           % Zoom partially out
-                m = -1;
-                scale_factor = 2;
-            case 'open'             % Zoom all the way out
-                zoom_j(fig,'out');
-                return;
-            otherwise               % Zoom in
-                m = 1;
-                scale_factor = 2; % the default zooming factor
-            end
-    else % unrecognized zoomMode
-        return
-    end
+	if isempty(zoomMode) || strcmp(zoomMode,'in');
+		switch selection_type
+			case 'normal'           % Zoom in
+				m = 1;
+				scale_factor = 2;   % the default zooming factor
+			case 'open'             % Zoom all the way out
+				zoom_j(fig,'out');
+				return;
+			otherwise               % Zoom partially out
+				m = -1;
+				scale_factor = 2;
+		end
+	elseif strcmp(zoomMode,'out')
+		switch selection_type
+			case 'normal'           % Zoom partially out
+				m = -1;
+				scale_factor = 2;
+			case 'open'             % Zoom all the way out
+				zoom_j(fig,'out');
+				return;
+			otherwise               % Zoom in
+				m = 1;
+				scale_factor = 2; % the default zooming factor
+		end
+	else % unrecognized zoomMode
+		return
+	end
 
     ZOOM_Pt1 = get_currentpoint(ax);
     ZOOM_Pt2 = ZOOM_Pt1;
@@ -364,7 +364,7 @@ case 'on',
     % whether or not zoom is on and in what type of 'on' state
     % it is. This appdata will not exist when zoom is off
     setappdata(fig,'ZoomOnState','on');
-    scribefiglisten_j(fig,'on');
+    %scribefiglisten_j(fig,'on');
     doZoomIn(fig)
 	if ( ~isempty(funHand) )					% If we have a function handle to execute later, save it now
 		hz = get(ax,'ZLabel');
