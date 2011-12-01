@@ -202,7 +202,7 @@ function wbm_MoveRect(obj,eventdata, h, lim, width, hAxes, hXmin, hXmax)
 
 % ---------
 function wbu_MoveRect(obj,eventdata,h,state)
-	uirestore_fig(state);           % Restore the figure's initial state
+	uirestore_j(state, 'nochildren');           % Restore the figure's initial state
 % -----------------------------------------------------------------------------------------
 
 

@@ -345,7 +345,7 @@ function wbm_dynSlope(obj,eventdata, x0, I0, hAxes, hLine, hULine, hFLine, hTxt,
 	set(hULine,'XData', xUnderLine)
 
 function wbu_dynSlope(obj,eventdata, h, xFact, SpectorGrant, state)
-    uirestore_fig(state);           % Restore the figure's initial state
+    uirestore_j(state, 'nochildren');				% Restore the figure's initial state
 	mb_e_slp = get(h(end), 'UserData');
 	if (isempty(mb_e_slp))		return,		end		% Happens when a single click on fig
 	cmenuHand = uicontextmenu('Parent',state.figureHandle);
