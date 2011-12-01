@@ -7,10 +7,8 @@ function [out] = pan(arg1,arg2)
 %  PAN by itself toggles the state.
 %
 %  PAN(FIG,...) works on specified figure handle.
-%  
-%  Use LINKAXES to link panning across multiple axes.
-%
-%  See also ZOOM, LINKAXES.
+
+% Copyright 2003-2004 The MathWorks, Inc.
 
 % Undocumented syntax
 %  PAN(FIG,STYLE); where STYLE = 'x'|'y'|'xy', Note: syntax doesn't turn pan on like 'xon'
@@ -58,7 +56,6 @@ function locSetState(target,state)
 % target = figure || axes
 % state = 'on' || 'off'
 
-%fig = ancestor(target,'hg.figure');
 fig = target;
 pandata = locGetData(fig);
 uistate = pandata.uistate;
@@ -105,24 +102,6 @@ if strcmpi(state,'on')
         %locSetData(fig,pandata);
     end
         
-    % Create context menu
-    c = locUICreateDefaultContextMenu(fig);
-
-    % Add context menu to the figure, axes, and axes children
-    % but NOT to uicontrols or other widgets at the figure level.
-    if ishandle(c)
-         set(fig,'UIContextMenu',c);
-         ax_child = findobj(fig,'type','axes');
-         for n = 1:length(ax_child)
-              kids = findobj(ax_child(n));
-              set(kids,'UIContextMenu',c);
-              set(ax_child(n),'UIContextMenu',c);                  
-         end
-    end
-    
-    % Store context menu handle 
-    pandata.uicontextmenu = c;
-        
     % Enable pan mode
     set(fig,'WindowButtonDownFcn',{@locWindowButtonDownFcn,fig});
     set(fig,'WindowButtonMotionFcn',{@locWindowButtonMotionFcn,target});
@@ -145,9 +124,6 @@ else
     
     % Turn off UI
     locDoPanOff(fig);
-    if ishandle(pandata.uicontextmenu)
-        delete(pandata.uicontextmenu);
-    end
 end
 
 %-----------------------------------------------%
@@ -192,7 +168,6 @@ resetplotview(ax,'ApplyStoredView');
 function locDoPan(ax,origlim,newlim)
 
 % Pan
-%axis(ax,newlim);
 set(ax,'XLim',newlim(1:2),'YLim',newlim(3:4),'XLimMode','manual','YLimMode','manual');
 
 % Create command structure
@@ -361,10 +336,10 @@ set(ax,'units',orig_units);
     % For log plots, untransform limits
     if is_abscissa_log
         new_lim1 = 10.^new_lim1;
-        curr_lim2 = 10.^curr_lim2;
+        %curr_lim2 = 10.^curr_lim2;
     end
     if is_ordinate_log
-        curr_lim1 = 10.^curr_lim1;
+        %curr_lim1 = 10.^curr_lim1;
         new_lim2 = 10.^new_lim2;
     end
 
@@ -447,7 +422,7 @@ test2 = camup(ax)~=0;
 ind = find(test1 & test2);
 
 dim1 = ind(1);
-dim2 = find(xor(test1,test2));
+dim2 = xor(test1,test2);
 
 key = {'x','y','z'};
 abscissa = key{dim2};   ordinate = key{dim1};
@@ -480,20 +455,20 @@ for i=1:length(allAxes),
 %       end
 %    end
         
-   if ~doIgnore
-       cp = get(fig,'CurrentPoint');
-       orig_ax_units = get(candidate_ax,'units');
-       set(candidate_ax,'units','pixels')
-       pos = get(candidate_ax,'position');
-       set(candidate_ax,'units',orig_ax_units)
-       if cp(1) >= pos(1) && cp(1) <= pos(1)+pos(3) && ...
-          cp(2) >= pos(2) && cp(2) <= pos(2)+pos(4)
-            set(fig,'currentaxes',candidate_ax);
-            ax = candidate_ax;
-            break
-       end %if
-    end %if
-end % for
+	if ~doIgnore
+		cp = get(fig,'CurrentPoint');
+		orig_ax_units = get(candidate_ax,'units');
+		set(candidate_ax,'units','pixels')
+		pos = get(candidate_ax,'position');
+		set(candidate_ax,'units',orig_ax_units)
+		if cp(1) >= pos(1) && cp(1) <= pos(1)+pos(3) && ...
+			cp(2) >= pos(2) && cp(2) <= pos(2)+pos(4)
+			set(fig,'currentaxes',candidate_ax);
+			ax = candidate_ax;
+			break
+		end
+	end
+end
 
 % restore state
 set(fig,'units',orig_fig_units)
@@ -507,7 +482,6 @@ if isempty(pandata)
     pandata.orig_axlim = [];
     pandata.last_pixel = [];
     pandata.style = 'xy';
-    pandata.uicontextmenu = [];
     pandata.enable = 'off';
 end
 
@@ -530,101 +504,6 @@ set(findall(fig,'tag','figMenuPan'),'Checked','off');
 
 % Remove when uitoolfactory is in place
 set(findall(fig,'tag','figToolPan'),'State','off');
-
-%-----------------------------------------------% 
-function [hui] = locUICreateDefaultContextMenu(hFig)
-% Create default context menu
-
-hui = [];           % My hack (JL) to short circuit these funtions and not make errors if it ever comes here
-
-% props = [];
-% props_context.Parent = hFig;
-% props_context.Tag = 'PanContextMenu';
-% props_context.Callback = {@locUIContextMenuCallback,hFig};
-% props_context.ButtonDown = {@locUIContextMenuCallback,hFig};
-% hui = uicontextmenu(props_context);
-% 
-% % Generic attributes for all pan context menus
-% props.Callback = {@locUIContextMenuCallback,hFig};
-% props.Parent = hui;
-% 
-% % Full View context menu
-% props.Label = 'Reset to Original View';
-% props.Tag = 'ResetView';
-% props.Separator = 'off';
-% ufullview = uimenu(props);
-% 
-% % Pan Constraint context menu
-% props.Callback = '';
-% props.Label = 'Pan Options';
-% props.Tag = 'Constraint';
-% props.Separator = 'on';
-% uConstraint = uimenu(props);
-% 
-% props.Parent = uConstraint;
-% 
-% props.Callback = {@locUIContextMenuCallback,hFig};
-% props.Label = 'Unconstrained Pan';
-% props.Tag = 'PanUnconstrained';
-% props.Separator = 'off';
-% uimenu(props);
-% 
-% props.Label = 'Horizontal Pan (Applies to 2-D Plots Only)';
-% props.Tag = 'PanHorizontal';
-% uimenu(props);
-% 
-% props.Label = 'Vertical Pan (Applies to 2-D Plots Only)';
-% props.Tag = 'PanVertical';
-% uimenu(props);
-
-% %-------------------------------------------------%  
-% function locUIContextMenuCallback(obj,evd,hFig)
-% 
-% tag = get(obj,'tag');
-% 
-% switch(tag)    
-%     case 'PanContextMenu'
-%         pandata = locGetData(hFig);
-%         locUIContextMenuUpdate(hFig,pandata.style);
-%     case 'ResetView'        
-%         hObject = hittest(gcbf);
-%         hAxes = ancestor(hObject,'hg.axes');  
-%         resetplotview(hAxes,'ApplyStoredView');
-%     case 'PanUnconstrained'
-%         locUIContextMenuUpdate(hFig,'xy');
-%     case 'PanHorizontal'
-%         locUIContextMenuUpdate(hFig,'x');
-%     case 'PanVertical'
-%         locUIContextMenuUpdate(hFig,'y');
-% end
-
-% %-------------------------------------------------%  
-% function locUIContextMenuUpdate(hFig,pan_Constraint)
-% 
-% ux = findall(hFig,'Tag','PanHorizontal','Type','UIMenu');
-% uy = findall(hFig,'Tag','PanVertical','Type','UIMenu');
-% uxy = findall(hFig,'Tag','PanUnconstrained','Type','UIMenu');
-% 
-% pandata = locGetData(hFig);
-% pandata.style = pan_Constraint;
-% locSetData(hFig,pandata);
-% 
-% switch(pan_Constraint) 
-%   case 'xy'
-%       set(ux,'checked','off');
-%       set(uy,'checked','off');
-%       set(uxy,'checked','on');
-% 
-%   case 'x'
-%       set(ux,'checked','on');
-%       set(uy,'checked','off');
-%       set(uxy,'checked','off');
-% 
-%   case 'y'
-%       set(ux,'checked','off');
-%       set(uy,'checked','on');
-%       set(uxy,'checked','off');
-% end
   
 %---------------------------------------------------------------------------------
 function ChangeAxesLabels(hFig,hAx,type,eixo)
@@ -659,3 +538,146 @@ switch type
         set(hAx,[eixo,'TickLabel'],str_e);
         setappdata(hAx,'LabelFormatType','DegMinSecDec')               % Save it so zoom can know the label type
 end
+
+
+% ------------------------------------------------------------------------------
+function [retval] = resetplotview(hAxes,varargin)
+% Internal use only. This function may be removed in a future release.
+
+
+% This helper is used by zoom, pan, menu
+%
+% RESETPLOTVIEW(AX,'InitializeCurrentView') 
+%     Saves current view only if no view information already exists. 
+% RESETPLOTVIEW(AX,'BestDataFitView') 
+%     Reset plot view to fit all applicable data
+% RESETPLOTVIEW(AX,'SaveCurrentView') 
+%     Stores view state (limits, camera) 
+% RESETPLOTVIEW(AX,'GetStoredViewStruct') 
+%     Retrieves view information in the form of a structure. 
+% RESETPLOTVIEW(AX,'ApplyStoredView') 
+%     Apply stored view state to axes
+% RESETPLOTVIEW(AX,'ApplyStoredViewLimitsOnly') 
+%     Apply axes limit in stored state to axes
+% RESETPLOTVIEW(AX,'ApplyStoredViewViewAngleOnly') 
+%     Apply axes camera view angle in stored state to axes
+
+%if any(isempty(hAxes)) | ~any(ishandle(hAxes)) | ~any(isa(handle(hAxes), 'hg.axes'))
+if any(isempty(hAxes)) || ~any(ishandle(hAxes))
+  return;
+end
+
+for n = 1:length(hAxes)
+    retval = localResetPlotView(hAxes(n),varargin{:});
+end
+
+%--------------------------------------------------%
+function [retval] = localResetPlotView(hAxes,varargin)
+
+retval = [];
+
+KEY = 'matlab_graphics_resetplotview';
+
+switch varargin{1}
+    case 'InitializeCurrentView'
+        viewinfo = getappdata(hAxes,KEY);
+        if isempty(viewinfo)
+            viewinfo = localCreateViewInfo(hAxes);
+            setappdata(hAxes,KEY,viewinfo);                
+        end
+    case 'SaveCurrentView'
+        viewinfo = localCreateViewInfo(hAxes);
+        setappdata(hAxes,KEY,viewinfo);  
+    case 'GetStoredViewStruct'
+        retval = getappdata(hAxes,KEY);
+    case 'ApplyStoredView'
+        viewinfo = getappdata(hAxes,KEY);
+        localApplyViewInfo(hAxes,viewinfo);
+    case 'ApplyStoredViewLimitsOnly'
+        viewinfo = getappdata(hAxes,KEY);
+        localApplyLimits(hAxes,viewinfo);
+    case 'ApplyStoredViewViewAngleOnly'
+        viewinfo = getappdata(hAxes,KEY);
+        localApplyViewAngle(hAxes,viewinfo);
+    otherwise
+        error('Invalid Input');
+end
+
+%----------------------------------------------------%
+function [viewinfo] = localApplyViewAngle(hAxes,viewinfo)
+
+if ~isempty(viewinfo)
+    set(hAxes,'CameraViewAngle',viewinfo.CameraViewAngle);
+end
+
+%----------------------------------------------------%
+function [viewinfo] = localApplyLimits(hAxes,viewinfo)
+
+if ~isempty(viewinfo)
+    set(hAxes,'XLim',viewinfo.XLim,...
+              'YLim',viewinfo.YLim,...
+              'ZLim',viewinfo.ZLim);
+    set(hAxes,'XLimMode',viewinfo.XLimMode,...
+              'YLimMode',viewinfo.YLimMode,...
+              'ZLimMode',viewinfo.ZLimMode);
+end
+
+%----------------------------------------------------%
+function [viewinfo] = localApplyViewInfo(hAxes,viewinfo)
+
+if ~isempty(viewinfo)
+     % Set state properties, this will force all corresponding modes to manual
+     set(hAxes,'DataAspectRatio',viewinfo.DataAspectRatio,...
+             'PlotBoxAspectRatio',viewinfo.PlotBoxAspectRatio,...
+             'XLim',viewinfo.XLim,...
+             'YLim',viewinfo.YLim,...
+             'ZLim',viewinfo.ZLim,...
+             'CameraViewAngle',viewinfo.CameraViewAngle,...
+             'CameraPosition',viewinfo.CameraPosition,...
+             'CameraTarget',viewinfo.CameraTarget,...
+             'CameraUpVector',viewinfo.CameraUpVector);
+     % Force HG to update internal state of axes by querying.  
+     % We could also use a drawnow here, but that will cause
+     % a "flash" on the figure window
+     %drawnow;
+     % Now set mode properties so that any auto modes are building
+     % off of previous state.
+     
+     set(hAxes,'DataAspectRatioMode',viewinfo.DataAspectRatioMode,...
+             'PlotBoxAspectRatioMode',viewinfo.PlotBoxAspectRatioMode,...
+             'XLimMode',viewinfo.XLimMode,...
+             'YLimMode',viewinfo.YLimMode,...
+             'ZLimMode',viewinfo.ZLimMode,...
+             'CameraViewAngleMode',viewinfo.CameraViewAngleMode,...
+             'CameraTargetMode',viewinfo.CameraTargetMode,...
+             'CameraUpVectorMode',viewinfo.CameraUpVectorMode);
+      
+    set(hAxes,'CameraPositionMode',viewinfo.CameraPositionMode);    
+    
+    % work around for geck 
+    set(hAxes,'View',viewinfo.View);  
+end
+    
+%----------------------------------------------------%
+function [viewinfo] = localCreateViewInfo(hAxes)         
+
+% Store axes view state
+viewinfo.DataAspectRatio = get(hAxes,'DataAspectRatio');
+viewinfo.DataAspectRatioMode = get(hAxes,'DataAspectRatioMode');
+viewinfo.PlotBoxAspectRatio = get(hAxes,'PlotBoxAspectRatio');
+viewinfo.PlotBoxAspectRatioMode = get(hAxes,'PlotBoxAspectRatioMode');
+viewinfo.XLim = get(hAxes,'xLim');
+viewinfo.XLimMode = get(hAxes,'XLimMode');
+viewinfo.YLim = get(hAxes,'yLim');
+viewinfo.YLimMode = get(hAxes,'YLimMode');
+viewinfo.ZLim = get(hAxes,'zLim');
+viewinfo.ZLimMode = get(hAxes,'ZLimMode');
+viewinfo.CameraPosition = get(hAxes,'CameraPosition');
+viewinfo.CameraViewAngleMode = get(hAxes,'CameraViewAngleMode');
+viewinfo.CameraTarget = get(hAxes,'CameraTarget');
+viewinfo.CameraPositionMode = get(hAxes,'CameraPositionMode');
+viewinfo.CameraUpVector = get(hAxes,'CameraUpVector');
+viewinfo.CameraTargetMode = get(hAxes,'CameraTargetMode');
+viewinfo.CameraViewAngle = get(hAxes,'CameraViewAngle');
+viewinfo.CameraUpVectorMode = get(hAxes,'CameraUpVectorMode');
+viewinfo.View = get(hAxes,'View');
