@@ -71,8 +71,11 @@ setappdata(gcbf,'haveUserdata',1);  % Notify other eventual functions that may b
 % We're ready; wait for the user to do the drag. Wrap the call to waitfor
 % in try-catch so we'll have a chance to clean up after ourselves.
 errCatch = 0;
-try			waitfor(ud.GETLINE_H1, 'UserData', 'Completed');
-catch,		errCatch = 1;   end
+try
+	waitfor(ud.GETLINE_H1, 'UserData', 'Completed');
+catch
+	errCatch = 1;
+end
 
 % After the waitfor, if GETLINE_H1 is still valid and its UserData is 'Completed', then the user
 % completed the drag.  If not, the user interrupted the action somehow, perhaps by a Ctrl-C in the
@@ -91,7 +94,7 @@ if (ishandle(ud.GETLINE_H1));    delete(ud.GETLINE_H1);     end
 
 % Restore the figure's initial state
 if (ishandle(ud.GETLINE_FIG))
-   uirestore_fig(state);
+   uirestore_j(state, 'nochildren');
    set(ud.GETLINE_FIG, 'DoubleBuffer', old_db);
 end
 

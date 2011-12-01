@@ -4,8 +4,8 @@ function move_obj(arg)
 %   set(obj, 'ButtonDownFcn', 'move_obj(1)');
 % using deltas allows us to drag big objects
 %
-% The original version came from the lightspeed toolbox from Tom Minka, but I
-% changed it to make it more robust and to respect previous 'windowbutton*' settings
+% The original idea was from the lightspeed toolbox from Tom Minka, but
+% rewritten to make it more robust and to respect previous 'windowbutton*' settings
 
 %	Copyright (c) 2004-2011 by J. Luis
 %
@@ -21,7 +21,6 @@ function move_obj(arg)
 %
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
-
 
 this_obj = gco;
 last_pos = getappdata(this_obj,'pos');
@@ -74,4 +73,4 @@ end
 
 %--------------------------------------------------
 function wbu_move_obj(obj,eventdata,h,state)
-	uirestore_fig(state);			% Restore the figure's initial state
+	uirestore_j(state, 'nochildren');			% Restore the figure's initial state
