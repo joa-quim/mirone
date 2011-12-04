@@ -365,7 +365,7 @@ case 'on',
     % it is. This appdata will not exist when zoom is off
     setappdata(fig,'ZoomOnState','on');
     %scribefiglisten_j(fig,'on');
-    doZoomIn(fig)
+	setappdata(fig,'ZOOMFigureMode','in');
 	if ( ~isempty(funHand) )					% If we have a function handle to execute later, save it now
 		hz = get(ax,'ZLabel');
 		setappdata(hz,'ExtFunHand', funHand)
@@ -373,10 +373,12 @@ case 'on',
 	end
     return
 case 'inmode'
-    zoom_j(fig,'on');    doZoomIn(fig)
+    zoom_j(fig,'on');
+	setappdata(fig,'ZOOMFigureMode','in');
     return
 case 'outmode'
-    zoom_j(fig,'on');    doZoomOut(fig)
+    zoom_j(fig,'on');
+	setappdata(fig,'ZOOMFigureMode','out');
     return
 case 'reset',
     axz = get(ax,'ZLabel');
@@ -688,21 +690,7 @@ function ylim = get_ylim(ax)
 	end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function doZoomIn(fig)
-	set(findall(fig,'Tag','figToolZoomIn'),'State','on');
-	set(findall(fig,'Tag','figToolZoomOut'),'State','off');
-	setappdata(fig,'ZOOMFigureMode','in');
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function doZoomOut(fig)
-	set(findall(fig,'Tag','figToolZoomIn'),'State','off');
-	set(findall(fig,'Tag','figToolZoomOut'),'State','on');
-	setappdata(fig,'ZOOMFigureMode','out');
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function doZoomOff(fig)
-	set(findall(fig,'Tag','figToolZoomIn'),'State','off');
-	set(findall(fig,'Tag','figToolZoomOut'),'State','off');
 	if ~isempty(getappdata(fig,'ZoomFigureMode'))
         rmappdata(fig,'ZOOMFigureMode');
 	end
