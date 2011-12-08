@@ -1,3 +1,4 @@
+%#codegen
 function [out] = pan(arg1,arg2)
 %PAN Interactively pan the view of a plot
 %  PAN ON turns on mouse-based panning.
@@ -18,7 +19,7 @@ function [out] = pan(arg1,arg2)
 % Higly hacked version to work in R13 and only in 2D (that's all that is needed to Mirone)
 out = [];
 
-if nargin==0 
+if (nargin == 0) 
     fig = gcf; % caller did not specify handle
     locSetState(fig,'toggle');
 elseif nargin==1
@@ -32,23 +33,15 @@ elseif nargin==2
     if ~ishandle(arg1), error('Unknown figure.'); end
     switch arg2
         case 'getstyle'   
-           out = locGetStyle(arg1);   
+			pandata = locGetData(arg1);
+			out = pandata.style;
         case 'ison'
-           out = locIsOn(arg1);
+			pandata = locGetData(arg1);
+			out = strcmp(pandata.enable,'on');
         otherwise
            locSetState(arg1,arg2);
     end
 end
-
-%-----------------------------------------------%
-function [out] = locIsOn(fig)
-pandata = locGetData(fig);
-out = strcmp(pandata.enable,'on');
-
-%-----------------------------------------------%
-function [out] = locGetStyle(fig)
-pandata = locGetData(fig);
-out = pandata.style;
 
 %-----------------------------------------------%
 function locSetState(target,state)
@@ -146,7 +139,7 @@ switch sel_type
         pandata.axes = ax;
         setptr(fig,'closedhand');
     case 'open' % double click (left or right)
-        locReturnHome(ax);
+		resetplotview(ax,'ApplyStoredView');	% Fit plot to axes 
     case 'alt' % right click
         % do nothing, reserved for context menu
     case 'extend' % center click
@@ -158,11 +151,6 @@ end
 pandata.orig_axlim = [get(ax,'XLim') get(ax,'YLim')];
 
 locSetData(fig,pandata);
-
-%-----------------------------------------------%
-function locReturnHome(ax)
-% Fit plot to axes                
-resetplotview(ax,'ApplyStoredView');
 
 %-----------------------------------------------%
 function locDoPan(ax,origlim,newlim)
@@ -402,15 +390,6 @@ set(ax,'units',orig_units);
         end
     end
 
-% else % 3-D
-%     % Force ax to be in vis3d to avoid wacky resizing
-%     axis(ax,'vis3d');
-% 
-%     % For now, just do the same thing as camera toolbar panning.
-%     junk = nan;
-%     camdolly(ax,-delta_pixel1,-delta_pixel2, junk, 'movetarget', 'pixels');
-% end
-
 %-----------------------------------------------%
 function [abscissa, ordinate] = locGetOrdinate(ax)
 % Pre-condition: 2-D plot
@@ -443,7 +422,7 @@ if ~ishandle(fig),    return;   end
 allAxes = findobj(datachildren(fig),'type','axes');
 orig_fig_units = get(fig,'units');
 set(fig,'units','pixels');
-for i=1:length(allAxes),
+for i=1:numel(allAxes),
    candidate_ax=allAxes(i);
    
    % Check behavior support
@@ -539,14 +518,9 @@ switch type
         setappdata(hAx,'LabelFormatType','DegMinSecDec')               % Save it so zoom can know the label type
 end
 
-
 % ------------------------------------------------------------------------------
 function [retval] = resetplotview(hAxes,varargin)
-% Internal use only. This function may be removed in a future release.
 
-
-% This helper is used by zoom, pan, menu
-%
 % RESETPLOTVIEW(AX,'InitializeCurrentView') 
 %     Saves current view only if no view information already exists. 
 % RESETPLOTVIEW(AX,'BestDataFitView') 
@@ -562,9 +536,8 @@ function [retval] = resetplotview(hAxes,varargin)
 % RESETPLOTVIEW(AX,'ApplyStoredViewViewAngleOnly') 
 %     Apply axes camera view angle in stored state to axes
 
-%if any(isempty(hAxes)) | ~any(ishandle(hAxes)) | ~any(isa(handle(hAxes), 'hg.axes'))
 if any(isempty(hAxes)) || ~any(ishandle(hAxes))
-  return;
+	return
 end
 
 for n = 1:length(hAxes)
