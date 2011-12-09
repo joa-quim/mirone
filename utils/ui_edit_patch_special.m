@@ -94,7 +94,7 @@ if (strcmp(stype,'open'))
     return
 end
 
-state = uisuspend_fig(s.h_fig);               % Remember initial figure state
+state = uisuspend_j(s.h_fig);					% Remember initial figure state
 x_lim = get(s.h_axes,'xlim');        y_lim = get(s.h_axes,'ylim');
 current_pt = get(s.h_axes, 'CurrentPoint');
 setappdata(s.h_patch,'old_pt',[current_pt(1,1) current_pt(1,2)])

@@ -465,7 +465,7 @@ function copy_line_object(obj,evt,hFig,hAxes)
         set(h,'Call',hFun)
     end
 	rmappdata(newH,'polygon_data')          % Remove the parent's ui_edit_polygon appdata
-	state = uisuspend_fig(hFig);            % Remember initial figure state
+	state = uisuspend_j(hFig);            % Remember initial figure state
 	x_lim = get(hAxes,'xlim');        y_lim = get(hAxes,'ylim');
 	current_pt = get(hAxes, 'CurrentPoint');
 	setappdata(newH,'old_pt',[current_pt(1,1) current_pt(1,2)])
@@ -1523,7 +1523,7 @@ function hVec = DrawVector
     hFig = get(0,'CurrentFigure');          handles = guidata(hFig);
 	hVec(1) = patch('XData',[], 'YData', [],'FaceColor',handles.DefLineColor,'EdgeColor',handles.DefLineColor,'LineWidth',handles.DefLineThick,'Tag','Arrow');
 	hVec(2) = line('XData', [], 'YData', [],'Color',handles.DefLineColor,'LineWidth',handles.DefLineThick,'Tag','Arrow');
-	state = uisuspend_fig(hFig);        % Remember initial figure state
+	state = uisuspend_j(hFig);        % Remember initial figure state
 	set(hFig,'Pointer', 'crosshair');
 	w = waitforbuttonpress;
 	if w == 0       % A mouse click
@@ -1567,7 +1567,7 @@ function wbd_vector(obj,eventdata,h,state)
 function h_gcirc = DrawGreatCircle
     hFig = get(0,'CurrentFigure');		handles = guidata(hFig);
     h_gcirc = line('XData', [], 'YData', [],'Color',handles.DefLineColor,'LineWidth',handles.DefLineThick);
-	state = uisuspend_fig(hFig);		% Remember initial figure state
+	state = uisuspend_j(hFig);		% Remember initial figure state
 	set(hFig,'Pointer', 'crosshair');	% to avoid the compiler BUG
 	w = waitforbuttonpress;
 	if w == 0							% A mouse click
@@ -1612,7 +1612,7 @@ function h_circ = DrawCartesianCircle
 	hFig = get(0,'CurrentFigure');          handles = guidata(hFig);
 	h_circ = line('XData', [], 'YData', [],'Color',handles.DefLineColor,'LineWidth',handles.DefLineThick);
 	%set(hFig,'WindowButtonDownFcn',{@circFirstButtonDown,h_circ}, 'Pointer', 'crosshair');
-	state = uisuspend_fig(hFig);		% Remember initial figure state
+	state = uisuspend_j(hFig);		% Remember initial figure state
 	set(hFig,'Pointer', 'crosshair');	% to avoid the compiler BUG
 	w = waitforbuttonpress;
 	if w == 0       % A mouse click
@@ -1670,7 +1670,7 @@ function h_circ = draw_circleEulerPole(lon,lat)
 function move_circle(obj,eventdata,h)
 % ONLY FOR CARTESIAN CIRCLES.
 	hFig = get(0,'CurrentFigure');		hAxes = get(hFig,'CurrentAxes');
-	state = uisuspend_fig(hFig);		% Remember initial figure state
+	state = uisuspend_j(hFig);		% Remember initial figure state
 	np = numel(get(h,'XData'));			x = linspace(-pi,pi,np);
 	setappdata(h,'X',cos(x));			setappdata(h,'Y',sin(x))	% Save unit circle coords
 	center = getappdata(h,'LonLatRad');
@@ -1937,7 +1937,7 @@ function copy_text_object(obj,eventdata)
 function move_text(obj,eventdata)
 	h = gco;
     hFig = get(0,'CurrentFigure');  hAxes = get(hFig,'CurrentAxes');
-	state = uisuspend_fig(hFig);     % Remember initial figure state
+	state = uisuspend_j(hFig);     % Remember initial figure state
 	set(hFig,'WindowButtonMotionFcn',{@wbm_txt,h,hAxes},'WindowButtonDownFcn',{@wbd_txt,h,state,hAxes});
 	refresh
 function wbm_txt(obj,eventdata,h,hAxes)
@@ -2571,7 +2571,7 @@ function deleteObj(hTesoura)
 	pointer(15,6:7) = 1;
     
     hFig = get(get(hTesoura,'Parent'),'Parent');
-    state = uisuspend_fig(hFig);
+    state = uisuspend_j(hFig);
     set(hFig,'Pointer','custom','PointerShapeCData',pointer,'PointerShapeHotSpot',[1 8],...
         'WindowButtonDownFcn',{@wbd_delObj,hFig,hTesoura,state})
     
