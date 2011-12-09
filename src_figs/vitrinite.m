@@ -248,7 +248,7 @@ function push_callibrate_CB(hObject, handles)
 % -------------------------------------------------------------------------------------
 function push_getTiePoint_CB(hObject, handles)
 % Get a tie point from the current Marker image
-	[x,y,but]  = ginput_pointer(1,'crosshair');
+	[x,y,but]  = click_e_point(1,'crosshair');
 	if (but ~= 1),   return;     end
 	params.Point = [x y];	params.Tolerance = 10;		params.Connect = 4;
 
@@ -271,7 +271,7 @@ function push_getAvgReflec_CB(hObject, handles)
 	if (~handles.IamCallibrated)
 		errordlg('You need to callibrate the sample image first.','ERROR'); return
 	end
-	[x,y,but]  = ginput_pointer(1,'crosshair');
+	[x,y,but]  = click_e_point(1,'crosshair');
 	if (but ~= 1),   return;     end
 	params.Point = [x y];    params.Tolerance = 5;    params.Connect = 8;
 	hAx = get(handles.figure1,'CurrentAxes');
