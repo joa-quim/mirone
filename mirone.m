@@ -2419,7 +2419,7 @@ function DrawEulerPoleCircle_CB(handles)
 		set(h_circ,'Userdata',s)
 		draw_funs(h_circ,'SessionRestoreCircle')
 	else
-		pt = ginput_pointer(1,'crosshair');
+		pt = click_e_point(1,'crosshair');
 		if (isempty(pt)),	return,		end
 		lon = pt(1);		lat = pt(2);
 		[Vx, Vy] = draw_funs([], 'compute_EulerVel', lat, lon, plat, plon, out.omega, 'Nikles');
@@ -3323,7 +3323,7 @@ function ImageMapLimits_CB(handles, opt)
 function GeophysicsSwanPlotStations_CB(handles)
 	if (aux_funs('msg_dlg',14,handles)),	return,		end
 	zoom_state(handles,'maybe_off');
-	pt = ginput_pointer(1,'crosshair');
+	pt = click_e_point(1,'crosshair');
 	if (isempty(pt)),	return,		end
 	handles.maregraphs_count = handles.maregraphs_count + 1;	% Count number of maregraphs
 	h = line('XData',pt(1,1),'YData',pt(1,2),'Parent',handles.axes1,'Marker','o','MarkerFaceColor','y',...
