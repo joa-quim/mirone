@@ -267,7 +267,7 @@ end
 key=0;      ii=[];     first = 1;  button = 1;    lineHandle = [];
 while key==0
     if (first),     x = pt(1,1);    y = pt(1,2);    first = 0;
-    else           [x,y,button] = ginput_pointer(1,'crosshair');     end
+    else           [x,y,button] = click_e_point(1,'crosshair');     end
     if button~=1, lineHandle=[];    return;     end
     for i=1:length(h_lines)
         ii=[ii,i];

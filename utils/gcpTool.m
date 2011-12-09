@@ -244,7 +244,7 @@ function InsertPoint_CB(hObject,event)
 	but = 1;    count = handles.count;
 	while (but == 1)
 		lastClickedAx = getappdata(handles.figure1,'clickedAx');
-		[x,y,but] = ginput_pointer(1,'crosshair');
+		[x,y,but] = click_e_point(1,'crosshair');
 		if (but ~= 1)										% Stop insertion and do eventual cleaning
 			if (~handles.isCoupled)							% Unmatched point point
 				delete(handles.hLastPt)
@@ -331,7 +331,7 @@ function InsertPointAndPred_CB(hObject,event)
 
 	but = 1;    count = handles.count;
 	while (but == 1)
-		[x,y,but] = ginput_pointer(1,'crosshair');
+		[x,y,but] = click_e_point(1,'crosshair');
 		if (but ~= 1)		% Input ended
 			set([handles.Zoom handles.Mao],'Enable','on')
 			break
