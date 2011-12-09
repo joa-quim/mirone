@@ -906,7 +906,7 @@ function PanZoom_CB(handles, hObject, opt)
 % --------------------------------------------------------------------
 function zoom_state(handles, state)
 % Sets the zoom sate to off, or reset it to on if ...
-	if (handles.IAmOctave),		guidata(handles.figure1,handles),	return,		end
+	%if (handles.IAmOctave),		guidata(handles.figure1,handles),	return,		end
 	switch state
 		case 'off_yes'			% Set zoom permanently off
 			zoom_j('off');
@@ -2329,7 +2329,12 @@ function hand = Draw_CB(handles, tipo, smb)
 	if (strcmp(tipo, 'Vector'))
 		draw_funs([],'DrawVector')		% Vectors are ploted there
 	else
-		pt = ginput_pointer(1,'crosshair');
+		%pt = ginput_pointer(1,'crosshair');
+		pt = click_e_point(1,'crosshair');
+		if (isempty(pt))
+			if (nargout),	hand = [];	end
+			zoom_state(handles,'maybe_on');		return
+		end
 		if (strcmp(tipo, 'Symbol'))
 			h = line(pt(1,1),pt(1,2),'Marker',smb,'MarkerFaceColor','y','MarkerEdgeColor','k','MarkerSize',10,'Tag','Symbol');
 		elseif (strcmp(tipo, 'Text'))
