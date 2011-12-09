@@ -369,7 +369,7 @@ function flood_clickedcallback(hObject, eventdata)
         end
         img = cvlib_mex('floodfill',img,params);
         set(handles.hImage,'CData', img); 
-        [x,y,but] = ginput_pointer(1,getPointer('bucket'),[16 15]);  % Get next point
+        [x,y,but] = click_e_point(1,getPointer('bucket'),[16 15]);  % Get next point
         [x,y] = getpixcoords(handles,x,y);
         params.Point = [x y];
     end
@@ -388,7 +388,7 @@ function [params,but] = prepareParams(handles, opt, opt2)
     but = 1;                            % Initialize to a left click
     poin = 'crosshair';
     if (numel(opt) == 256),        poin = opt;    end
-    [x,y,but]  = ginput_pointer(1,poin,opt2);
+    [x,y,but]  = click_e_point(1,poin,opt2);
     [x,y] = getpixcoords(handles,x,y);
     params.Point = [x y];
     params.Tolerance = handles.tol;

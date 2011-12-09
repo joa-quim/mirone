@@ -208,7 +208,7 @@ function push_clearCacheInfo_CB(hObject, handles)
 % -----------------------------------------------------------------------------------------
 function click_anchor_CB(hObject, event)
 	handles = guidata(hObject);
-	pt = ginput_pointer(1,'crosshair');
+	pt = click_e_point(1,'crosshair');
 	hAnchor = findobj(handles.axes1,'Tag','Anchor');
 	if (isempty(hAnchor))
 		hAnchor = line(pt(1,1),pt(1,2),'Marker','p','MarkerFaceColor','y','MarkerEdgeColor','k','MarkerSize',12,'Tag','Anchor');
