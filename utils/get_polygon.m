@@ -200,7 +200,7 @@ function [lineHandle,barHandles,button] = get_trackHandle(pt)
 	key = 0;	first = 1;		button = 1;
 	while (key == 0)
 		if (first),		first = 0;
-		else            [x,y,button] = ginput_pointer(1,'crosshair');
+		else            [x,y,button] = click_e_point(1,'crosshair');
 		end
 		if (button ~= 1),	lineHandle=[];	return,		end
 		if (any(h_lines == gco)),	lineHandle = gco;		key=1;		end

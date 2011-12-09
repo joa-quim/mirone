@@ -32,7 +32,7 @@ function TTT(handles,opt)
 	if (aux_funs('msg_dlg',14,handles)),	return,		end
 	if (nargin == 1),   opt = [];   end
 	if isempty(opt)							% Plot the source
-		pt = ginput_pointer(1,'crosshair');
+		pt = click_e_point(1,'crosshair');
 		h = line('XData',pt(1,1),'YData',pt(1,2), 'Parent',handles.axes1,'Marker','o', ...
 			'MarkerFaceColor','y','MarkerEdgeColor','k','MarkerSize',10,'Tag','TTT');
 		draw_funs(h,'DrawSymbol')			% Set symbol's uicontextmenu
