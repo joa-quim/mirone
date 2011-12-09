@@ -126,7 +126,7 @@ function xo = bar(varargin)
 [msg,x,y,xx,yy,linetype,plottype,barwidth,equal] = makebars(varargin{:});
 if ~isempty(msg), error(msg); end
 
-state = uisuspend_fig(gcf);				% Remember initial figure state
+state = uisuspend_j(gcf);				% Remember initial figure state
 h_img = findobj(gcf, 'type', 'image');	% To be used if a Mirone figure is the gcf
 if (~isempty(h_img))
     cax = newplot(h_img);

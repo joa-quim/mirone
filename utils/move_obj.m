@@ -65,7 +65,7 @@ switch arg
 		last_pos = get(gca,'CurrentPoint');
 		setappdata(this_obj,'pos', last_pos(1,:));
 		% set callbacks
-		state = uisuspend_fig(hFig);		% Remember initial figure state
+		state = uisuspend_j(hFig);		% Remember initial figure state
 		set(hFig, 'pointer', 'fleur');
 		set(hFig, 'windowbuttonmotionfcn', 'move_obj(2)');
 		set(hFig, 'windowbuttonupfcn', {@wbu_move_obj,this_obj,state});

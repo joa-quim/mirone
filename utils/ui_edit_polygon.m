@@ -492,7 +492,7 @@ function state = uisuspend_safe(h_fig)
 		end
 	end
 
-	state = uisuspend_fig(h_fig);         % Remember initial figure state
+	state = uisuspend_j(h_fig);         % Remember initial figure state
 	state.KeyPressFcn = KPs;            % Set to its true value for use in uirestore
 
 %--------------------------------------------------

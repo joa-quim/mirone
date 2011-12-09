@@ -38,7 +38,7 @@ hFig = get(h,'Parent');
 set(hFig, 'CurrentAxes', h)			% Was not necessarely the case
 
 % Get current user data
-state = uisuspend_fig(hFig);		% Remember initial figure state
+state = uisuspend_j(hFig);			% Remember initial figure state
 cudata = get(hFig,'UserData'); 
 set(hFig,'Pointer','Crosshair')
 % Wait for left mouse button to be pressed
