@@ -22,46 +22,46 @@ function out = zoom_j(varargin)
 %   The pointer now turns into a magnifier when zoom is 'on'    (4-1-06)
 
 %
-% PARSE ARGS - set fig and zoomCommand
+% PARSE ARGS - set fig and zoomCmd
 %
 
 funHand = [];		% It may evantually come to contain a function handle
 switch nargin
 	case 0      % no arg in
-        zoomCommand = 'toggle';
+        zoomCmd = 'toggle';
         fig = get(0,'currentfigure');
         if isempty(fig),    return;    end
 	case 1      % one arg in
         % If argument is string, it is a zoom command (i.e. (on, off, down, xdown, etc.).
         if ischar(varargin{1})
-			zoomCommand=varargin{1};
+			zoomCmd=varargin{1};
         else    % Otherwise, the argument is assumed to be a zoom factor.
 			scale_factor=varargin{1};
-			zoomCommand='scale';
+			zoomCmd='scale';
         end
         fig = get(0,'currentfigure');
         if isempty(fig),    return;    end
 	case 2      % two arg in
-        fig=varargin{1};
-        if ( ~ishandle(fig) ),		error('First argument must be a figure handle.'),	end
+        fig = varargin{1};
+        if (~ishandle(fig)),		error('First argument must be a figure handle.'),	end
         if (isnumeric(varargin{2}))
-			scale_factor=varargin{2};
-			zoomCommand='scale';
+			scale_factor = varargin{2};
+			zoomCmd = 'scale';
         else
-			zoomCommand=varargin{2};
+			zoomCmd = varargin{2};
         end
 	case 3      % three arg in. Third, if empty, center zoom on current point, otherwise -- function handle world
 		fig = varargin{1};
 		if ( isempty(varargin{3}) )				% Do a zoom centered on the current point or the image center
 			scale_factor = varargin{2};
-			zoomCommand = 'ptscale';
+			zoomCmd = 'ptscale';
 			anchor_pt = [];
 		elseif ( numel(varargin{3}) == 2 && isnumeric(varargin{3}(1)) )	% Center on the varargin{3} point
 			scale_factor = varargin{2};
-			zoomCommand = 'ptscale';
+			zoomCmd = 'ptscale';
 			anchor_pt = varargin{3};
 		else
-			zoomCommand = varargin{2};
+			zoomCmd = varargin{2};
 			funHand = varargin{3}{1};			% Tchan tchan -- a function handle
 			if ( numel(varargin{3}) > 1 )
 				funHvarargins = varargin{3}(2:end);
@@ -71,23 +71,20 @@ switch nargin
 		end
 	otherwise   % too many args
         error(nargchk(0, 3, nargin));
-end % switch nargin
+end
 
 %------------------------------------------------------------------------------%
-zoomCommand=lower(zoomCommand);
-% zoomCommand 'off'
-%
-if strcmp(zoomCommand,'off')
-    % turn zoom off
+zoomCmd = lower(zoomCmd);
+
+if strcmp(zoomCmd,'off')			% turn zoom off
     doZoomOff(fig);
     %scribefiglisten_j(fig,'off');
     state = getappdata(fig,'ZOOMFigureState');
     if ~isempty(state)
         % since we didn't set the pointer, make sure it does not get reset
         % ptr = get(fig,'pointer');     % NOW WE DO (JL)
-        % restore figure and non-uicontrol children
-        % don't restore uicontrols because they were restored
-        % already when zoom was turned on
+        % restore figure and non-uicontrol children don't restore uicontrols
+        % because they were restored already when zoom was turned on
         uirestore_j(state,'nouicontrols');
         %set(fig,'pointer',ptr)
         if isappdata(fig,'ZOOMFigureState')
@@ -97,7 +94,7 @@ if strcmp(zoomCommand,'off')
         % of this appdata indicates that zoom is off.
         if isappdata(fig,'ZoomOnState'),    rmappdata(fig,'ZoomOnState');   end
     end
-	if ( ~isempty(funHand) )					% If we had a function handle saved, kill it now
+	if (~isempty(funHand))					% If we had a function handle saved, kill it now
 		hz = get(get(fig,'currentaxes'),'ZLabel');
 		rmappdata(hz,'ExtFunHand')
 		rmappdata(hz,'ExtFunHvararg')
@@ -114,49 +111,49 @@ rbbox_mode = 0;
 zoomx = 1; zoomy = 1;
 % catch 3d zoom
 if ~isempty(ax) && any(get(ax,'view')~=[0 90]) ...
-        && ~(strcmp(zoomCommand,'scale') || strcmp(zoomCommand,'fill'))
+        && ~(strcmp(zoomCmd,'scale') || strcmp(zoomCmd,'fill'))
     fZoom3d = 1;
 else
     fZoom3d = 0;
 end
 
 %----------------------------------------------------------------------------------%
-% the zoomCommand is 'toggle'
-%
-if strcmp(zoomCommand,'toggle'),
-    state = getappdata(fig,'ZOOMFigureState');
-    if isempty(state),  zoom_j(fig,'on');
-    else                zoom_j(fig,'off');    end
-    return
+% the zoomCmd is 'toggle'
+if strcmp(zoomCmd,'toggle'),
+	state = getappdata(fig,'ZOOMFigureState');
+	if isempty(state),	zoom_j(fig,'on');
+	else				zoom_j(fig,'off');
+	end
+	return
 end
 
 %----------------------------------------------------------------------------------%
 % Set/check a few more things before switching to one of remaining zoom actions
 %
-% Set zoomx,zoomy and zoomCommand for constrained zooms
-if strcmp(zoomCommand,'xdown'),
-    zoomy = 0; zoomCommand = 'down'; % Constrain y
-elseif strcmp(zoomCommand,'ydown')
-    zoomx = 0; zoomCommand = 'down'; % Constrain x
+% Set zoomx,zoomy and zoomCmd for constrained zooms
+if strcmp(zoomCmd,'xdown'),
+    zoomy = 0; zoomCmd = 'down'; % Constrain y
+elseif strcmp(zoomCmd,'ydown')
+    zoomx = 0; zoomCmd = 'down'; % Constrain x
 end
 
 % Catch bad argin/argout match
-if (nargout ~= 0) && ~isequal(zoomCommand,'getmode') && ...
-        ~isequal(zoomCommand,'getlimits') && ~isequal(zoomCommand,'getconnect')
+if (nargout ~= 0) && ~isequal(zoomCmd,'getmode') && ...
+        ~isequal(zoomCmd,'getlimits') && ~isequal(zoomCmd,'getconnect')
     error('ZOOM only returns an output if the command is getmode, getlimits, or getconnect');
 end
 
 %----------------------------------------------------------------------------------%
 % Switch for rest of zoomCommands
 %
-switch zoomCommand
+switch zoomCmd
 case 'down'
     % Activate axis that is clicked in
     allAxes = findobj(fig,'-depth',1,'type','axes');
     ZOOM_found = 0;
 
     % this test may be causing failures for 3d axes
-    for i=1:length(allAxes)
+    for i=1:numel(allAxes)
         ax=allAxes(i);
         ZOOM_Pt1 = get(ax,'CurrentPoint');
         xlim = get(ax,'xlim');
@@ -180,8 +177,7 @@ case 'down'
 	if fZoom3d
 		viewData = getappdata(axz,'ZOOMAxesView');
 		if isempty(viewData)
-			viewProps = {'CameraTarget' 'CameraTargetMode'...
-					'CameraViewAngle' 'CameraViewAngleMode'};
+			viewProps = {'CameraTarget' 'CameraTargetMode' 'CameraViewAngle' 'CameraViewAngleMode'};
 			setappdata(axz,'ZOOMAxesViewProps', viewProps);
 			setappdata(axz,'ZOOMAxesView', get(ax,viewProps));
 		end
@@ -302,7 +298,7 @@ case 'down'
     limits = zoom_j(fig,'getlimits');
 
 case 'scale',
-    if all(get(ax,'view')==[0 90]), % 2D zooming with scale_factor
+    if (all(get(ax,'view')==[0 90]))				% 2D zooming with scale_factor
         % Activate axis that is clicked in
         ZOOM_found = 0;
         ax = gca;
@@ -325,7 +321,7 @@ case 'scale',
         old_CameraViewAngle = get(ax,'CameraViewAngle')*pi/360;
         ncva = atan(tan(old_CameraViewAngle)*(1/scale_factor))*360/pi;
         set(ax,'CameraViewAngle',ncva);
-        return;
+        return
     end
     limits = zoom_j(fig,'getlimits');
 case 'getmode'
@@ -388,14 +384,11 @@ case 'reset',
     return
 case 'xon',
     zoom_j(fig,'on') % Set up userprop
-    set(fig,'windowbuttondownfcn','zoom_j(gcbf,''xdown'')', ...
-        'windowbuttonupfcn','ones;', ...
-        'windowbuttonmotionfcn','','buttondownfcn','',...
-        'interruptible','on');
+    set(fig,'windowbuttondownfcn','zoom_j(gcbf,''xdown'')', 'windowbuttonupfcn','ones;', ...
+        'windowbuttonmotionfcn','','buttondownfcn','', 'interruptible','on');
     set(ax,'interruptible','on')
-    % set an appdata so it will always be possible to determine whether
-    % or not zoom is on and in what type of 'on' stat it is.
-    % this appdata will not exist when zoom is off
+    % set an appdata so it will always be possible to determine whether or not zoom is on
+    % and in what type of 'on' state it is. This appdata will not exist when zoom is off
     setappdata(fig,'ZoomOnState','xon');
     return
 case 'yon',
@@ -415,16 +408,17 @@ case 'getlimits', % Get axis limits
     axz = get(ax,'ZLabel');
     limits = getappdata(axz,'ZOOMAxesData');
     % Do simple checking of userdata
-    if size(limits,2)==4 && size(limits,1)<=2,
-        if all(limits(1,[1 3])<limits(1,[2 4])),
+    if (size(limits,2) == 4 && size(limits,1) <= 2)
+        if all(limits(1,[1 3]) < limits(1,[2 4])),
             out = limits(1,:);
             return   % Quick return
         else
             getlimits = -1; % Don't munge data
         end
-    else
-        if isempty(limits), getlimits = 1;
-        else                getlimits = -1;     end
+	else
+		if isempty(limits),	getlimits = 1;
+		else				getlimits = -1;
+		end
     end
     % If I've made it to here, we need to compute appropriate axis limits.
     if isempty(getappdata(axz,'ZOOMAxesData')),
@@ -447,11 +441,13 @@ case 'getlimits', % Get axis limits
                     x = [min(min(x)) max(max(x))];
                     y = [min(min(y)) max(max(y))];
                     [ma,na] = size(get(h(i),'Cdata'));
-                    if (na > 1),    dx = diff(x)/(na-1);
-                    else            dx = 1;     end
-                    if (ma > 1),    dy = diff(y)/(ma-1);
-                    else            dy = 1;     end
-                    x = x + [-dx dx]/2; y = y + [-dy dy]/2;
+					if (na > 1),	dx = diff(x)/(na-1);
+					else			dx = 1;
+					end
+					if (ma > 1),	dy = diff(y)/(ma-1);
+					else			dy = 1;
+					end
+					x = x + [-dx dx]/2; y = y + [-dy dy]/2;
                 end
                 xmin = min(xmin,min(min(x)));
                 xmax = max(xmax,max(max(x)));
@@ -515,7 +511,7 @@ case 'ptscale'
     end
     limits = zoom_j(fig,'getlimits');
 otherwise
-    error(['Unknown option: ',zoomCommand,'.']);
+    error(['Unknown option: ',zoomCmd,'.']);
 end
 
 %---------------- Actual zoom operation -------------------------------------------%
@@ -603,7 +599,7 @@ if (zoomy)
             ChangeAxesLabels(fig,ax,labelType,'Y')
     end
     h = list(2);
-    while h ~= ax,
+    while (h ~= ax)
         set(h,'ylim',a(3:4))
         % Get next axes in the list
         hz = get(h,'ZLabel');
@@ -664,7 +660,7 @@ end
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function p = get_currentpoint(ax)
-	%GET_CURRENTPOINT Return equivalent linear scale current point
+%GET_CURRENTPOINT Return equivalent linear scale current point
 	p = get(ax,'currentpoint'); p = p(1,1:2);
 	if strcmp(get(ax,'XScale'),'log'),
         p(1) = log10(p(1));
@@ -675,7 +671,7 @@ function p = get_currentpoint(ax)
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function xlim = get_xlim(ax)
-	%GET_XLIM Return equivalent linear scale xlim
+%GET_XLIM Return equivalent linear scale xlim
 	xlim = get(ax,'xlim');
 	if strcmp(get(ax,'XScale'),'log'),
         xlim = log10(xlim);
@@ -683,7 +679,7 @@ function xlim = get_xlim(ax)
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function ylim = get_ylim(ax)
-	%GET_YLIM Return equivalent linear scale ylim
+%GET_YLIM Return equivalent linear scale ylim
 	ylim = get(ax,'ylim');
 	if strcmp(get(ax,'YScale'),'log'),
         ylim = log10(ylim);
