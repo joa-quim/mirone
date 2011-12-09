@@ -236,7 +236,7 @@ ALLbarHandles = tmp2(find(tmp2 ~= 0));         % get the handles to ALL bar hand
 key=0;      ii=[];     first = 1;  button = 1;    lineHandle = [];     barHandles = [];
 while key==0
     if (first),     x = pt(1,1);    y = pt(1,2);    first = 0;
-    else           [x,y,button] = ginput_pointer(1,'crosshair');
+    else           [x,y,button] = click_e_point(1,'crosshair');
     end
     if button~=1, lineHandle=[];    return;     end
     for i=1:length(h_lines)
