@@ -49,7 +49,7 @@ function [out1,out2] = uicirclegeo(varargin)
 		s.h_fig = gcf;		s.h_axes = gca;
 	end
 
-	state = uisuspend_fig(s.h_fig);   % Remember initial figure state
+	state = uisuspend_j(s.h_fig);   % Remember initial figure state
 
 	%  Plot the circles
 	set(s.h_fig,'Pointer', 'crosshair');
@@ -150,7 +150,7 @@ function wbd_circle(obj,eventdata,hFig,hAxes,h)
 function move_circle(obj,eventdata,h)
 % Translate the circle
 	s = get(h,'userdata');		handles = guidata(s.h_fig);
-	state = uisuspend_fig(s.h_fig);   % Remember initial figure state
+	state = uisuspend_j(s.h_fig);   % Remember initial figure state
 	center = getappdata(h,'LonLatRad');
 	hcenter = s.hcenter;		hend = s.hend;
 	x_lim = get(s.h_axes,'xlim');      y_lim = get(s.h_axes,'ylim');
@@ -208,7 +208,7 @@ function wbu_MoveCircle(obj,eventdata,h,hcenter,hend,state)
 function resize_circle(obj,eventdata,h)
 % Resize the circle
 	s = get(h,'userdata');		handles = guidata(s.h_fig);
-	state = uisuspend_fig(s.h_fig);		% Remember initial figure state
+	state = uisuspend_j(s.h_fig);		% Remember initial figure state
 	x_lim = get(s.h_axes,'xlim');		y_lim = get(s.h_axes,'ylim');
 	center = [s.clon s.clat];
 	hcenter = s.hcenter;				hend = s.hend;
