@@ -266,7 +266,7 @@ function dynSlope_CB(obj, eventdata)
 		end
 	end
 
-	state = uisuspend_fig(handles.figure1);				% Remember initial figure state
+	state = uisuspend_j(handles.figure1);				% Remember initial figure state
 	set(handles.figure1,'Pointer', 'crosshair');
 
 	SpectorGrant = false;		xFact = 1;

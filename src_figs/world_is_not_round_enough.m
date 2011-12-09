@@ -173,7 +173,7 @@ function Z = to_from_180(handles, handMir, Z, x_min, x_max, dy, eps_x)
 function moveRect(obj, evt, handles, hRect)
 	hFig = handles.figure1;			hAxes = handles.axes1;
 	hXmin = handles.edit_xMin;		hXmax = handles.edit_xMax;
-	state = uisuspend_fig(hFig);            % Remember initial figure state
+	state = uisuspend_j(hFig);            % Remember initial figure state
 	x_lim = get(hAxes,'xlim');		y_lim = get(hAxes,'ylim');
 	current_pt = get(hAxes, 'CurrentPoint');
 	set(hRect,'UserData',[current_pt(1,1) current_pt(1,2)])
