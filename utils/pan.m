@@ -1,4 +1,3 @@
-%#codegen
 function [out] = pan(arg1,arg2)
 %PAN Interactively pan the view of a plot
 %  PAN ON turns on mouse-based panning.
