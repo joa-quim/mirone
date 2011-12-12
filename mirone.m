@@ -1605,7 +1605,7 @@ function handles = show_image(handles, fname, X, Y, I, validGrid, axis_t, adjust
 	end
 
 	handles.hImg = image(X,Y,I,'Parent',handles.axes1);
-	zoom_state(handles,'off_yes');
+	if (~handles.no_file),	zoom_state(handles,'off_yes');	end		% No need to check when first file in
 	if (islogical(I))
 		set(handles.hImg,'CDataMapping','scaled');		set(handles.figure1,'ColorMap',gray(16));
 	else
