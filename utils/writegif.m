@@ -37,7 +37,7 @@ paramPairs = {};    msg = '';
 
 if (nargin < 2)
     msg = 'Too few input arguments';
-    return;
+    return
 end
 
 firstString = [];
@@ -50,13 +50,13 @@ end
 
 if (isempty(firstString))
     msg = 'Invalid input arguments: missing filename';
-    return;
+    return
 end
 
 switch firstString
 case 1
     msg = 'Invalid input arguments: first argument should not be a string';
-    return;
+    return
     
 case 2      % imwrite(data, filename, ...)
     data = varargin{1};
@@ -68,23 +68,23 @@ case 3      % imwrite(data, map, filename, ...)
     filename = varargin{3};
     if (size(map,2) ~= 3)
         msg = 'Invalid colormap';
-        return;
+        return
     end
     
-    if ((min(map(:)) < 0) | (max(map(:)) > 1))
+    if ((min(map(:)) < 0) || (max(map(:)) > 1))
         warning('Colormap data should be in the range 0 to 1.')
     end
 
 otherwise
     msg = 'Invalid input arguments: missing filename';
-    return;
+    return
 end
 
 if (length(varargin) > firstString)
     % There are additional arguments after the filename.
     if (~ischar(varargin{firstString + 1}))
         msg = 'Invalid input arguments.';
-        return;
+        return
     end
     
     % Is the argument after the filename a format specifier?
@@ -103,13 +103,13 @@ end
 % Do some validity checking on param-value pairs
 if (rem(length(paramPairs), 2) ~= 0)
     msg = 'Invalid input syntax';
-    return;
+    return
 end
 
 for k = 1:2:length(paramPairs)
     if (~ischar(paramPairs{k}))
         msg = 'Parameter names must be strings';
-        return;
+        return
     end
 end
 
@@ -302,7 +302,7 @@ for k = 1:2:length(varargin)
             end
         case 'comment'
             comment = value;
-            if (~ischar(comment) & ~iscellstr(comment))
+            if (~ischar(comment) && ~iscellstr(comment))
                 error(['''Comment'' value must be a column vector cell array of' ...
                      ' strings or a char matrix']);
             elseif(iscellstr(comment))
@@ -335,7 +335,7 @@ for k = 1:2:length(varargin)
                 transparentcolor = round(double(value));
                 transparentcolor = transparentcolor - double(not(zerobased));  %if one-based image data, then this is also treated as one-based
             else
-                error(['TransparentColor must be an integer.']);
+                error('TransparentColor must be an integer.');
             end
         case 'loopcount'
             if(isnumeric(value) && (value==inf || (value<=65535 && value>=0)))
@@ -440,7 +440,7 @@ else                cmaplength = size(map,2);
 end
 
 greaterthancmap = find(mat>=cmaplength);
-lessthancmap = find(mat<0);
+lessthancmap = mat<0;
 
 if(~isempty(greaterthancmap) || ~isempty(find(mat<0)))
     warning('Image data contains values that are out of range.  Out of range values will be given the nearest valid value.');
