@@ -538,7 +538,7 @@ if nargin > 1
       validRangeStrings = {'original','full'};
       rangeStr = checkstrs(varargin{idx}, validRangeStrings,mfilename,'Range',idx);
       if strmatch(rangeStr,'original')
-        selectedRange = double([min(I(:)), max(I(:))]);;
+        selectedRange = double([min(I(:)), max(I(:))]);
       end
      otherwise
       eid = sprintf('Images:%s:internalError', mfilename);
@@ -771,7 +771,7 @@ else
     if (nargin > 2)     firstStringToProcess = 3;   end
     conn = varargin{2};
     checkinput(conn, {'double'}, {}, mfilename, 'CONN', 2);
-    if (conn~=4 & conn~=8)
+    if (conn~=4 && conn~=8)
       eid = sprintf('Images:%s:badScalarConn', mfilename);
       msg = 'A scalar connectivity specifier CONN must either be 4 or 8';
       error(eid, msg);
@@ -834,7 +834,7 @@ else
     checkinput(n,{'double'},{'scalar' 'real' 'integer'}, 'bweuler', 'N', 2);
 end
 
-if n~=8 & n~=4
+if n~=8 && n~=4
     eid = 'Images:bweuler:invalidN';
     error(eid,'%s','N must be either 4 or 8.');
 end
@@ -1090,7 +1090,7 @@ xfirst = x(1);      xlast = x(max(size(x)));
 
 if (dim == 1)   pixelx = axesx - xfirst + 1;    return;     end
 xslope = (dim - 1) / (xlast - xfirst);
-if ((xslope == 1) & (xfirst == 1))
+if ((xslope == 1) && (xfirst == 1))
   pixelx = axesx;
 else
   pixelx = xslope * (axesx - xfirst) + 1;
@@ -1107,7 +1107,7 @@ if nargin==1, % Uniform spacing case (fast)
   hd = f1;
   hd = rot90(fftshift(rot90(hd,2)),2); % Inverse fftshift
   h = fftshift(ifft2(hd));
-elseif nargin==2 | nargin==3,
+elseif nargin==2 || nargin==3,
   msg = 'Wrong number of input arguments.';
   eid = sprintf('Images:%s:expectedOneOrFourInputs',mfilename);
   error(eid, msg);
@@ -1116,11 +1116,11 @@ else, % Create filter of size SIZ to solve problem at the points (f1,f2,hd)
     hd = double(hd);
   end  
   % Expand f1 and f2 if they are vectors.
-  if min(size(f1))==1 & min(size(f2))==1 & any(size(hd)~=size(f1)),
+  if min(size(f1))==1 && min(size(f2))==1 && any(size(hd)~=size(f1)),
     [f1,f2] = meshgrid(f1,f2);
   end
-  if prod(size(hd))<prod(siz),
-      msg = ['Not enough desired frequency points. Results may be inaccurate.'];
+  if numel(hd)<prod(siz),
+      msg = 'Not enough desired frequency points. Results may be inaccurate.';
       wid = sprintf('Images:%s:notEnoughFreqPoints',mfilename);
       warning(wid,msg);
   end
@@ -1255,7 +1255,7 @@ switch type
 
 %---------------------------------------------------------------
 function [type, p2, p3] = ParseInputs_fspecial(varargin)
-type = '';      p2 = [];    p3 = [];
+p2 = [];    p3 = [];
 
 % Check the number of input arguments.
 checknargin(1,3,nargin,mfilename);
@@ -1305,11 +1305,11 @@ switch nargin
               checkinput(p2,{'double'},{'positive','finite','real','nonempty','scalar'},mfilename,'RADIUS or LEN',2);
           case {'gaussian','log','average'}
               checkinput(p2,{'double'},{'positive','finite','real','nonempty','integer'},mfilename,'HSIZE',2);
-              if prod(size(p2)) > 2
+              if numel(p2) > 2
                   msg = 'HSIZE should have 1 or 2 elements.';
                   eid = sprintf('Images:%s:wrongSizeN', mfilename);
                   error(eid,msg);
-              elseif (prod(size(p2))==1)
+              elseif (numel(p2)==1)
                   p2 = [p2 p2]; 
               end
        end       
@@ -1322,11 +1322,11 @@ switch nargin
           case {'gaussian','log'}
               checkinput(p2,{'double'},{'positive','finite','real','nonempty','integer'},mfilename,'N',2);
               checkinput(p3,{'double'},{'positive','finite','real','nonempty','scalar'},mfilename,'SIGMA',3);
-              if prod(size(p2)) > 2
+              if numel(p2) > 2
                   msg = sprintf('%s: size(N) should be less than or equal 2.', upper(mfilename));
                   eid = sprintf('Images:%s:wrongSizeN', mfilename);
                   error(eid,msg);
-              elseif (prod(size(p2))==1)
+              elseif (numel(p2)==1)
                   p2 = [p2 p2]; 
               end
           otherwise   
@@ -1433,20 +1433,20 @@ checkinput(a,'uint8 uint16 double','nonsparse 2d',mfilename,'I',1);
 NPTS = 256;
 if nargin==1, % Histogram equalization of intensity image
     n = 64; % Default n
-    hgram = ones(1,n)*(prod(size(a))/n);
+    hgram = ones(1,n)*(numel(a)/n);
     n = NPTS;
     kind = 1;
 elseif nargin==2,
-    if prod(size(cm))==1,  
+    if numel(cm)==1,  
         % histeq(I,N); Histogram equalization of intensity image
         m = cm;
-        hgram = ones(1,m)*(prod(size(a))/m);
+        hgram = ones(1,m)*(numel(a)/m);
         n = NPTS;
         kind = 1;
-    elseif size(cm,2)==3 & size(cm,1)>1,
+    elseif size(cm,2)==3 && size(cm,1)>1,
         % histeq(X,map); Histogram equalization of indexed image
         n = size(cm,1);
-        hgram = ones(1,n)*(prod(size(a))/n);
+        hgram = ones(1,n)*(numel(a)/n);
         kind = 2;
         if isa(a, 'uint16')
             msg = 'Histogram equalization of UINT16 indexed images is not supported.';
@@ -1480,7 +1480,7 @@ if min(size(hgram))>1,
 end
 
 % Normalize hgram 
-hgram = hgram*(prod(size(a))/sum(hgram));       % Set sum = prod(size(a))
+hgram = hgram*(numel(a)/sum(hgram));       % Set sum = prod(size(a))
 m = length(hgram);
 
 % Compute cumulative histograms
@@ -1492,14 +1492,14 @@ else    % Convert image to equivalent gray image
     nn = imhist_j(I,n)';
     cum = cumsum(nn);
 end
-cumd = cumsum(hgram*prod(size(a))/sum(hgram));
+cumd = cumsum(hgram*numel(a)/sum(hgram));
 
 % Create transformation to an intensity image by minimizing the error
 % between desired and actual cumulative histogram.
 tol = ones(m,1)*min([nn(1:n-1),0;0,nn(2:n)])/2;
 err = (cumd(:)*ones(1,n)-ones(m,1)*cum(:)')+tol;
-d = find(err < -prod(size(a))*sqrt(eps));
-if ~isempty(d), err(d) = prod(size(a))*ones(size(d)); end
+d = find(err < -numel(a)*sqrt(eps));
+if ~isempty(d), err(d) = numel(a)*ones(size(d)); end
 [dum,T] = min(err);
 T = (T-1)/(m-1); 
 
@@ -2232,7 +2232,7 @@ if isa(img, 'double')
    d = img;
 elseif isa(img, 'logical')
    d = double(img);
-elseif isa(img, 'uint8') | isa(img, 'uint16')
+elseif isa(img, 'uint8') || isa(img, 'uint16')
    if nargin==1
       if isa(img, 'uint8')
           d = double(img)/255;
@@ -2343,7 +2343,7 @@ else
     valid_strings = {'uint8' 'uint16' 'uint32' 'int8' 'int16' 'int32' 'single' 'double'};
     output_class = checkstrs(output_class, valid_strings, mfilename,'OUTPUT_CLASS', 3);
 end
-if (prod(size(Y)) == 1) & isa(Y, 'double')
+if (numel(Y) == 1) && isa(Y, 'double')
     Z = imlincomb(1.0, X, Y, output_class);
 else
     Z = imlincomb(1.0, X, 1.0, Y, output_class);
@@ -2432,7 +2432,6 @@ end
 function [img,grayFlag,rgbFlag,low_in,high_in,low_out,high_out,gamma] = ParseInputs_imadjust_j(varargin)
 checknargin(1,4,nargin,mfilename);
 % Default values
-img = [];
 lowhigh_in  = [0; 1];
 lowhigh_out = [0; 1];
 gamma = 1;
@@ -2505,7 +2504,7 @@ if grayFlag
   end
     range_min = range(1); range_max = range(2);
 else
-  if (numel(range) ~= 2) & ~isequal(size(range),[2 3])
+  if (numel(range) ~= 2) && ~isequal(size(range),[2 3])
     eid = sprintf('Images:%s:InputMustBe2ElVecOr2by3Matrix','range_split');
     error(eid, '%s\n%s', msg1, 'to be a two-element vector or a 2-by-3 matrix.');
   end
@@ -2525,8 +2524,8 @@ if any(low_in>=high_in)
     error(eid,msg);
 end
 
-if min(low_in)<0 | max(low_in)>1 | min(high_in)<0 | max(high_in)>1 | ...
-        min(low_out)<0 | max(low_out)>1 | min(high_out)<0  | max(high_out)>1
+if min(low_in)<0 || max(low_in)>1 || min(high_in)<0 || max(high_in)>1 || ...
+        min(low_out)<0 || max(low_out)>1 || min(high_out)<0  || max(high_out)>1
     msg = sprintf('%s: %s %s', upper(mfilename),...
                   'LOW_IN, HIGH_IN, LOW_OUT and HIGH_OUT',...
                   'must be in the range [0.0, 1.0].');
@@ -2593,7 +2592,7 @@ if  isempty(h)
   else %Full
     if all(im_size>0)
       b = a;
-      if im_size<size_a  %Output is smaller than input
+      if im_size < size_a  %Output is smaller than input
         b(:) = [];
       else %Grow the array, is this a no-op?
         b(:) = 0;        b = b(:);
@@ -2782,7 +2781,7 @@ end
 
 X = im2uint8(X);
  
-if ((size(m,2) ~= 3) || (size(m,1) == 1) | ndims(m) > 2)
+if ((size(m,2) ~= 3) || (size(m,1) == 1) || ndims(m) > 2)
   eid = sprintf(':%s:colormapMustBe2D','dither');  
   error(eid,['In function %s, input colormap has to be a ',...
              '2D array with at least 2 rows and exactly 3 columns.'], 'dither');
@@ -2798,10 +2797,9 @@ function [yout,x] = imhist_j(varargin)
 if islogical(a)
     if (n ~= 2)
         error(':imhist:invalidParameterForLogical', '%s', 'N must be set to two for a logical image.');
-        return
     end
     y(2) = sum(a(:));
-    y(1) = prod(size(a)) - y(2);
+    y(1) = numel(a) - y(2);
     y = y';
 else
     y = imhistc(a, n, isScaled, top); % Call MEX file to do work.
@@ -2873,7 +2871,7 @@ end
 
 %check images
 images = varargin(2:2:end);
-if ~iscell(images) | isempty(images)
+if ~iscell(images) || isempty(images)
   displayInternalError('images');
 end
 
@@ -2884,7 +2882,7 @@ end
 scalars = [varargin{1:2:end}];
 
 %make sure it is a vector
-if ( ndims(scalars)~=2 | (all(size(scalars)~=1) & any(size(scalars)~=0)) )
+if ( ndims(scalars)~=2 || (all(size(scalars)~=1) && any(size(scalars)~=0)) )
   displayInternalError('scalars');
 end
 
@@ -2895,7 +2893,7 @@ function Z = imsubtract(X,Y)
 %   $Revision: 1.12 $  $Date: 2003/03/05 19:42:51 $
 
 error(nargchk(2,2,nargin))
-if (prod(size(Y)) == 1) & strcmp(class(Y),'double')
+if (numel(Y) == 1) && strcmp(class(Y),'double')
     Z = imlincomb(1.0, X, -Y);
 else
     Z = imlincomb(1.0, X, -1.0, Y);
@@ -2970,7 +2968,7 @@ function B = ordfilt2(varargin)
 %   Copyright 1993-2003 The MathWorks, Inc.  
 %   $Revision: 5.22 $  $Date: 2003/03/05 22:29:18 $
 
-[A,order,domain,s,padopt,msg] = ParseInputs_ordfilt2(varargin{:});
+[A,order,domain,s,padopt] = ParseInputs_ordfilt2(varargin{:});
 domainSize = size(domain);
 center = floor((domainSize + 1) / 2);
 [r,c] = find(domain);
@@ -3068,7 +3066,7 @@ if (islogical(a))    b = logical(b);    end
 
 %----------------------------------------------------------------------------------
 function b = ConstantPad(a, padSize, padVal, direction)
-numDims = prod(size(padSize));
+numDims = numel(padSize);
 
 % Form index vectors to subsasgn input array into output array.
 % Also compute the size of the output array.
@@ -3097,7 +3095,7 @@ b(idx{:}) = a;
 %----------------------------------------------------------------------------------
 function b = CircularPad(a, padSize, direction)
 
-numDims = prod(size(padSize));
+numDims = numel(padSize);
 % Form index vectors to subsasgn input array into output array.
 % Also compute the size of the output array.
 idx   = cell(1,numDims);
@@ -3120,7 +3118,7 @@ b = a(idx{:});
 %----------------------------------------------------------------------------------
 function b = SymmetricPad(a, padSize, direction)
 
-numDims = prod(size(padSize));
+numDims = numel(padSize);
 % Form index vectors to subsasgn input array into output array.
 % Also compute the size of the output array.
 idx   = cell(1,numDims);
@@ -3140,7 +3138,7 @@ b = a(idx{:});
 %----------------------------------------------------------------------------------
 function b = ReplicatePad(a, padSize, direction)
 
-numDims = prod(size(padSize));
+numDims = numel(padSize);
 % Form index vectors to subsasgn input array into output array.
 % Also compute the size of the output array.
 idx   = cell(1,numDims);
@@ -3174,7 +3172,7 @@ checkinput(padSize, {'double'}, {'real' 'vector' 'nonnan' 'nonnegative' ...
                     'integer'}, mfilename, 'PADSIZE', 2);
 
 % Preprocess the padding size
-if (prod(size(padSize)) < ndims(a))
+if (numel(padSize) < ndims(a))
     padSize           = padSize(:);
     padSize(ndims(a)) = 0;
 end
@@ -3202,7 +3200,7 @@ if nargin > 2
 end
     
 % Check the input array type
-if strcmp(method,'constant') & ~(isnumeric(a) | islogical(a))
+if strcmp(method,'constant') && ~(isnumeric(a) || islogical(a))
     id = sprintf('Images:%s:badTypeForConstantPadding', mfilename);
     msg1 = sprintf('Function %s expected A (argument 1)',mfilename);
     msg2 = 'to be numeric or logical for constant padding.';
@@ -3508,7 +3506,7 @@ end
 
 % Make sure polygon is closed.
 if (~isempty(xi))
-    if ((xi(1) ~= xi(end)) | (yi(1) ~= yi(end)))
+    if ((xi(1) ~= xi(end)) || (yi(1) ~= yi(end)))
         xi = [xi;xi(1)]; yi = [yi;yi(1)];
     end
 end
@@ -3555,14 +3553,14 @@ case 5,    % SYNTAX: roipoly_j(x,y,A,xi,yi)
     a = varargin{3};
     xi = varargin{4}(:);    yi = varargin{5}(:);
     nrows = size(a,1);      ncols = size(a,2);
-    x = [x(1) x(prod(size(x)))];
-    y = [y(1) y(prod(size(y)))];
+    x = [x(1) x(numel(x))];
+    y = [y(1) y(numel(y))];
 case 6,    % SYNTAX: roipoly_j(x,y,m,n,xi,yi)
     x = varargin{1};        y = varargin{2}; 
     nrows = varargin{3};    ncols = varargin{4};
     xi = varargin{5}(:);    yi = varargin{6}(:);
-    x = [x(1) x(prod(size(x)))];
-    y = [y(1) y(prod(size(y)))];
+    x = [x(1) x(numel(x))];
+    y = [y(1) y(numel(y))];
 otherwise,
     error('Invalid input arguments.');
 end
@@ -3708,13 +3706,12 @@ nbins = 256;
 tol_low = tol(1);
 tol_high = tol(2);
 [m,n,p] = size(img);
-limits_same = 0;                     % This is a boolean value
 
 for i = 1:p                          % Find limits, one plane at a time
     N = imhist_j(img(:,:,i),nbins);
     cdf = cumsum(N)/sum(N);
-    ilow = min(find(cdf>tol_low));
-    ihigh = min(find(cdf>=tol_high));   
+    ilow = min(find(cdf > tol_low));
+    ihigh = min(find(cdf >= tol_high));   
     ilowhigh(:,i) = [ilow;ihigh];
 
     if ilow==ihigh               
@@ -3747,7 +3744,7 @@ if nargin > 1
     end
 end
 
-if ( any(tol < 0) | any(tol>1) | any(isnan(tol)) )
+if ( any(tol < 0) || any(tol>1) || any(isnan(tol)) )
     msgId = 'Images:stretchlim:tolOutOfRange';
     error(msgId,'%s','TOL must be in the range [0 1].');
 end
@@ -3756,7 +3753,6 @@ checkinput(img, {'uint8', 'uint16', 'double'}, {'real', 'nonsparse'}, mfilename,
 
 if (ndims(img) > 3) 
     msgId = 'Images:stretchlim:dimTooHigh';
-    msg = 'STRETCHLIM only supports individual images.';
     error(msgId,'%s','STRETCHLIM only supports individual images.');
 end
 
@@ -3882,48 +3878,57 @@ end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function tf = check_real(A)
-try    tf = isreal(A);
-catch  tf = false;      end
+try		tf = isreal(A);
+catch,	tf = false;
+end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function tf = check_even(A)
-try    tf = ~any(rem(double(A(:)),2));
-catch  tf = false;      end
+try		tf = ~any(rem(double(A(:)),2));
+catch,	tf = false;
+end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function tf = check_vector(A)
-try    tf = (ndims(A) == 2) && (any(size(A) == 1) || all(size(A) == 0));
-catch  tf = false;      end
+try		tf = (ndims(A) == 2) && (any(size(A) == 1) || all(size(A) == 0));
+catch,	tf = false;
+end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function tf = check_row(A)
-try    tf = (ndims(A) == 2) && ((size(A,1) == 1) || isequal(size(A), [0 0]));
-catch  tf = false;      end
+try		tf = (ndims(A) == 2) && ((size(A,1) == 1) || isequal(size(A), [0 0]));
+catch,	tf = false;
+end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function tf = check_column(A)
-try    tf = (ndims(A) == 2) && ((size(A,2) == 1) || isequal(size(A), [0 0]));
-catch  tf = false;      end
+try		tf = (ndims(A) == 2) && ((size(A,2) == 1) || isequal(size(A), [0 0]));
+catch,	tf = false;
+end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function tf = check_scalar(A)
-try    tf = all(size(A) == 1);
-catch  tf = false;      end
+try		tf = all(size(A) == 1);
+catch,	tf = false;
+end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function tf = check_2d(A)
-try    tf = ndims(A) == 2;
-catch  tf = false;      end
+try		tf = ndims(A) == 2;
+catch,	tf = false;
+end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function tf = check_nonsparse(A)
-try    tf = ~issparse(A);
-catch  tf = false;      end
+try		tf = ~issparse(A);
+catch,	tf = false;
+end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function tf = check_nonempty(A)
-try,    tf = ~isempty(A);
-catch,  tf = false;     end
+try,	tf = ~isempty(A);
+catch,	tf = false;
+end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function tf = check_integer(A)
@@ -4199,7 +4204,7 @@ function [x,y] = intline(x1, x2, y1, y2)
 dx = abs(x2 - x1);      dy = abs(y2 - y1);
 
 % Check for degenerate case.
-if ((dx == 0) & (dy == 0))  x = x1;  y = y1;  return;   end
+if ((dx == 0) && (dy == 0))  x = x1;  y = y1;  return;   end
 
 flip = 0;
 if (dx >= dy)
@@ -4260,7 +4265,7 @@ end
 if (length(charLocation) > 1)    % More than one string in input list
     eid = 'Images:medfilt2:tooManyStringInputs';
     error(eid,'%s','Too many input string arguments.');
-elseif (length(charLocation) == 0)    % No string specified
+elseif (isempty(charLocation))    % No string specified
     padopt = 'zeros';
 else
     options = {'indexed', 'zeros', 'symmetric'};
@@ -4274,9 +4279,9 @@ if (strcmp(padopt, 'indexed'))
     end
 end
 
-if length(varargin) == 1,
+if numel(varargin) == 1,
   mn = [3 3];% default
-elseif length(varargin) >= 2,
+elseif numel(varargin) >= 2,
   mn = varargin{2}(:).';
   if size(mn,2)~=2,
     msg = 'MEDFILT2(A,[M N]): Second argument must consist of two integers.';
@@ -4502,7 +4507,7 @@ function B = CheckInputImage_morphop(A,op_function)
 function CheckUnpackedM_morphop(unpacked_M, M)
 	if unpacked_M >= 0
 		d = 32*M - unpacked_M;
-		if (d < 0) | (d > 31)
+		if (d < 0) || (d > 31)
 			error('imerode:inconsistentUnpackedM','M is not consistent with the row dimension of the image.');
 		end
 	end
@@ -4547,8 +4552,8 @@ function tf = isflat(se)
 %   the same size as SE.
 % tf:           double logical array, same size as se, containing 0s and 1s. 
 
-	tf = logical(zeros(size(se)));
-	for k = 1:prod(size(se))
+	tf = false(size(se));
+	for k = 1:numel(se)
 		tf(k) = ~any(se(k).height(:));
 	end
 
@@ -4674,7 +4679,7 @@ if (nargin == 0)		% No input arguments --- return empty strel
 	se.height = [];
 	se.decomposition = [];
 	se.version = 1;
-elseif ((nargin == 1) & isa(varargin{1}, 'strel'))
+elseif ((nargin == 1) && isa(varargin{1}, 'strel'))
     % One strel input --- return it unchanged
     se = varargin{1};
     return
@@ -4694,7 +4699,7 @@ se.version = 1;
 se.nhood = nhood ~= 0;
 se.height = height;
 
-if (~isempty(nhood) & all(nhood(:)) & ~any(height(:)))
+if (~isempty(nhood) && all(nhood(:)) && ~any(height(:)))
     % Strel is flat with an all-ones neighborhood.  Decide whether to decompose it.
     size_nhood = size(nhood);
     % Heuristic --- if theoretical computation advantage is
@@ -4812,7 +4817,7 @@ n = size(a,2);
 rr = 2:m-1; cc=2:n-1;
 
 % The output edge map:
-e = repmat(false, m, n);
+e = false(m, n);
 
 if strcmp(method,'canny')
    % Magic numbers
@@ -4868,7 +4873,7 @@ if strcmp(method,'canny')
    elseif length(thresh)==2
       lowThresh = thresh(1);
       highThresh = thresh(2);
-      if (lowThresh >= highThresh) | (highThresh >= 1)
+      if (lowThresh >= highThresh) || (highThresh >= 1)
          error('Thresh must be [low high], where low < high < 1.');
       end
    end
@@ -4898,7 +4903,7 @@ elseif any(strcmp(method, {'log','marr-hildreth','zerocross'}))
       op = H; 
    end
    
-   op = op - sum(op(:))/prod(size(op)); % make the op to sum to zero
+   op = op - sum(op(:))/numel(op); % make the op to sum to zero
    b = filter2(op,a);
    
    if (isempty(thresh))      thresh = .75*mean2(abs(b(rr,cc)));   end
@@ -4921,13 +4926,13 @@ elseif any(strcmp(method, {'log','marr-hildreth','zerocross'}))
       % Look for the zero crossings: +0-, -0+ and their transposes
       % The edge lies on the Zero point
       zero = (rz+1) + cz*m;   % Linear index for zero points
-      zz = find(b(zero-1) < 0 & b(zero+1) > 0 & abs( b(zero-1)-b(zero+1) ) > 2*thresh);     % [- 0 +]'
+      zz = b(zero-1) < 0 & b(zero+1) > 0 & abs( b(zero-1)-b(zero+1) ) > 2*thresh;     % [- 0 +]'
       e(zero(zz)) = 1;
-      zz = find(b(zero-1) > 0 & b(zero+1) < 0 & abs( b(zero-1)-b(zero+1) ) > 2*thresh);     % [+ 0 -]'
+      zz = b(zero-1) > 0 & b(zero+1) < 0 & abs( b(zero-1)-b(zero+1) ) > 2*thresh;     % [+ 0 -]'
       e(zero(zz)) = 1;
-      zz = find(b(zero-m) < 0 & b(zero+m) > 0 & abs( b(zero-m)-b(zero+m) ) > 2*thresh);     % [- 0 +]
+      zz = b(zero-m) < 0 & b(zero+m) > 0 & abs( b(zero-m)-b(zero+m) ) > 2*thresh;     % [- 0 +]
       e(zero(zz)) = 1;
-      zz = find(b(zero-m) > 0 & b(zero+m) < 0 & abs( b(zero-m)-b(zero+m) ) > 2*thresh);     % [+ 0 -]
+      zz = b(zero-m) > 0 & b(zero+m) < 0 & abs( b(zero-m)-b(zero+m) ) > 2*thresh;     % [+ 0 -]
       e(zero(zz)) = 1;
    end
 
@@ -4944,7 +4949,7 @@ else  % one of the easy methods (roberts,sobel,prewitt)
       bx = abs(filter2(op',a)); by = abs(filter2(op,a));
       b = kx*bx.*bx + ky*by.*by;
       if isempty(thresh), % Determine cutoff based on RMS estimate of noise
-         cutoff = 4*sum(sum(b(rr,cc)))/prod(size(b(rr,cc))); thresh = sqrt(cutoff);
+         cutoff = 4*sum(sum(b(rr,cc)))/numel(b(rr,cc)); thresh = sqrt(cutoff);
       else                   % Use relative tolerance specified by the user
          cutoff = (thresh).^2;
       end
@@ -4953,7 +4958,7 @@ else  % one of the easy methods (roberts,sobel,prewitt)
          if i==mblocks, rows = (1:nrem(1)); end
          for j=0:nblocks,
             if j==0, cols = 1:blk(2); elseif j==nblocks, cols=(1:nrem(2)); end
-            if ~isempty(rows) & ~isempty(cols)
+            if ~isempty(rows) && ~isempty(cols)
                r = rr(i*mb+rows); c = cc(j*nb+cols);
                e(r,c) = (b(r,c)>cutoff) & ...
                ( ( (bx(r,c) >= (kx*by(r,c)-eps*100)) & ...
@@ -4969,7 +4974,7 @@ else  % one of the easy methods (roberts,sobel,prewitt)
       bx = abs(filter2(op',a)); by = abs(filter2(op,a));
       b = kx*bx.*bx + ky*by.*by;
       if isempty(thresh), % Determine cutoff based on RMS estimate of noise
-         cutoff = 4*sum(sum(b(rr,cc)))/prod(size(b(rr,cc))); thresh = sqrt(cutoff);
+         cutoff = 4*sum(sum(b(rr,cc)))/numel(b(rr,cc)); thresh = sqrt(cutoff);
       else                   % Use relative tolerance specified by the user
          cutoff = (thresh).^2;
       end
@@ -4978,7 +4983,7 @@ else  % one of the easy methods (roberts,sobel,prewitt)
          if i==mblocks, rows = (1:nrem(1)); end
          for j=0:nblocks,
             if j==0, cols = 1:blk(2); elseif j==nblocks, cols=(1:nrem(2)); end
-            if ~isempty(rows) & ~isempty(cols)
+            if ~isempty(rows) && ~isempty(cols)
                r = rr(i*mb+rows); c = cc(j*nb+cols);
                e(r,c) = (b(r,c)>cutoff) & ...
                ( ( (bx(r,c) >= (kx*by(r,c)-eps*100) ) & ...
@@ -4994,7 +4999,7 @@ else  % one of the easy methods (roberts,sobel,prewitt)
       bx = abs(filter2(op,a)); by = abs(filter2(rot90(op),a));
       b = kx*bx.*bx + ky*by.*by;
       if isempty(thresh), % Determine cutoff based on RMS estimate of noise
-         cutoff = 6*sum(sum(b(rr,cc)))/prod(size(b(rr,cc))); thresh = sqrt(cutoff);
+         cutoff = 6*sum(sum(b(rr,cc)))/numel(b(rr,cc)); thresh = sqrt(cutoff);
       else                   % Use relative tolerance specified by the user
          cutoff = (thresh).^2;
       end
@@ -5003,7 +5008,7 @@ else  % one of the easy methods (roberts,sobel,prewitt)
          if i==mblocks, rows = (1:nrem(1)); end
          for j=0:nblocks,
             if j==0, cols = 1:blk(2); elseif j==nblocks, cols=(1:nrem(2)); end
-            if ~isempty(rows) & ~isempty(cols)
+            if ~isempty(rows) && ~isempty(cols)
                r = rr(i*mb+rows); c = cc(j*nb+cols);
                e(r,c) = (b(r,c)>cutoff) & ...
                ( ( (bx(r,c) >= (kx*by(r,c)-eps*100)) & ...
@@ -5060,7 +5065,7 @@ end
 % Exclude the exterior pixels
 if ~isempty(idx)
    v = mod(idx,m);
-   extIdx = find(v==1 | v==0 | idx<=m | (idx>(n-1)*m));
+   extIdx = v==1 | v==0 | idx<=m | (idx>(n-1)*m);
    idx(extIdx) = [];
 end
 
@@ -5139,10 +5144,10 @@ switch Method
 case {'prewitt','sobel','roberts'}
    threshSpecified = 0;  % Threshold is not yet specified
    for i = nonstr
-      if prod(size(varargin{i}))<=1 & ~threshSpecified % Scalar or empty
+      if numel(varargin{i})<=1 && ~threshSpecified % Scalar or empty
          Thresh = varargin{i};
          threshSpecified = 1;
-      elseif prod(size(varargin{i}))==2  % The dreaded K vector
+      elseif numel(varargin{i})==2  % The dreaded K vector
          warning(['BW = EDGE(... , K) is an obsolete syntax. '...
            'Use BW = EDGE(... , DIRECTION), where DIRECTION is a string.']);
          K=varargin{i};     
@@ -5154,17 +5159,17 @@ case 'canny'
    Sigma = 1.0;          % Default Std dev of gaussian for canny
    threshSpecified = 0;  % Threshold is not yet specified
    for i = nonstr
-      if prod(size(varargin{i}))==2 & ~threshSpecified
+      if numel(varargin{i})==2 && ~threshSpecified
          Thresh = varargin{i};
          threshSpecified = 1;
-      elseif prod(size(varargin{i}))==1 
+      elseif numel(varargin{i})==1 
          if ~threshSpecified
             Thresh = varargin{i};
             threshSpecified = 1;
          else
             Sigma = varargin{i};
          end
-      elseif isempty(varargin{i}) & ~threshSpecified
+      elseif isempty(varargin{i}) && ~threshSpecified
          % Thresh = [];
          threshSpecified = 1;
       else
@@ -5174,7 +5179,7 @@ case 'canny'
 case 'log'
    threshSpecified = 0;  % Threshold is not yet specified
    for i = nonstr
-      if prod(size(varargin{i}))<=1  % Scalar or empty
+      if numel(varargin{i})<=1  % Scalar or empty
          if ~threshSpecified
             Thresh = varargin{i};
             threshSpecified = 1;
@@ -5188,10 +5193,10 @@ case 'log'
 case 'zerocross'
    threshSpecified = 0;  % Threshold is not yet specified
    for i = nonstr
-      if prod(size(varargin{i}))<=1 & ~threshSpecified % Scalar or empty
+      if numel(varargin{i})<=1 && ~threshSpecified % Scalar or empty
          Thresh = varargin{i};
          threshSpecified = 1;
-      elseif prod(size(varargin{i})) > 1 % The filter for zerocross
+      elseif numel(varargin{i}) > 1 % The filter for zerocross
          H = varargin{i};
       else
          error('Invalid input arguments');
@@ -5199,11 +5204,11 @@ case 'zerocross'
    end
 case 'marr-hildreth'
    for i = nonstr
-      if prod(size(varargin{i}))<=1  % Scalar or empty
+      if numel(varargin{i})<=1  % Scalar or empty
          Thresh = varargin{i};
-      elseif prod(size(varargin{i}))==2  % The dreaded K vector 
+      elseif numel(varargin{i})==2  % The dreaded K vector 
          warning('The [kx ky] direction factor has no effect for ''Marr-Hildreth''.');
-      elseif prod(size(varargin{i})) > 2 % The filter for zerocross
+      elseif numel(varargin{i}) > 2 % The filter for zerocross
          H = varargin{i};
       else
          error('Invalid input arguments');
@@ -5249,9 +5254,7 @@ end
 %--------------------------------------------------------------
 function y = mean2(x)
 %MEAN2 Compute mean of matrix elements.
-%   Copyright 1993-2003 The MathWorks, Inc.  
-%   $Revision: 5.20 $  $Date: 2003/01/17 16:27:46 $
-y = sum(x(:))/numel(x);
+	y = sum(x(:))/numel(x);
 
 %--------------------------------------------------------------
 function varargout = bwselect(varargin)
@@ -5259,7 +5262,7 @@ function varargout = bwselect(varargin)
 %   Copyright 1993-2003 The MathWorks, Inc.  
 %   $Revision: 1.25 $  $Date: 2003/01/27 20:15:57 $
 
-[xdata,ydata,BW,xi,yi,r,c,n,newFig] = ParseInputs_bwselect(varargin{:});
+[xdata,ydata,BW,xi,yi,r,c,n] = ParseInputs_bwselect(varargin{:});
 
 seed_indices = sub2ind(size(BW), r(:), c(:));
 BW2 = imfill(~BW, seed_indices, n);
@@ -5468,7 +5471,7 @@ elseif do_interactive
 end
 
 % Convert to linear indices if necessary.
-if ~do_fillholes & (size(locations,2) ~= 1)
+if ~do_fillholes && (size(locations,2) ~= 1)
     idx = cell(1,ndims(IM));
     for k = 1:ndims(IM)
         idx{k} = locations(:,k);
@@ -5483,7 +5486,7 @@ function locations = check_locations(locations, image_size)
 
 checkinput(locations, {'double'}, {'real' 'positive' 'integer' '2d'}, mfilename, 'LOCATIONS', 2);
 num_dims = length(image_size);
-if (size(locations,2) ~= 1) & (size(locations,2) ~= num_dims)
+if (size(locations,2) ~= 1) && (size(locations,2) ~= num_dims)
     msgId = sprintf('Images:%s:badLocationSize', mfilename);
     error(msgId,'Function %s expected its %s input argument, LOCATIONS, to have either 1 or NDIMS(IM) columns.', ...
           mfilename, num2ordinal(2));
@@ -5514,11 +5517,11 @@ error(nargchk(2,2,nargin))
 
 if (~ischar(type))    error('TYPE must be a string.');  end
 
-if ~isnumeric(num_dims) | (prod(size(num_dims)) ~= 1)
+if ~isnumeric(num_dims) || (numel(num_dims) ~= 1)
     error('NUM_DIMS must be a scalar integer >= 2.');
 end
 num_dims = double(num_dims);
-if (num_dims ~= round(num_dims)) | (num_dims < 2)
+if (num_dims ~= round(num_dims)) || (num_dims < 2)
     error('NUM_DIMS must be a scalar integer >= 2.');
 end
 
@@ -5560,7 +5563,7 @@ function checkconn(conn,function_name,variable_name,arg_position)
 checkinput(conn,{'double' 'logical'},{'real' 'nonsparse'},function_name,variable_name,arg_position);
 
 if all(size(conn) == 1)
-    if (conn ~= 1) & (conn ~= 4) & (conn ~= 8) & (conn ~= 6) & (conn ~= 18) & (conn ~= 26)
+    if (conn ~= 1) && (conn ~= 4) && (conn ~= 8) && (conn ~= 6) && (conn ~= 18) && (conn ~= 26)
         msg1 = first_line(variable_name, function_name, arg_position);
         msg2 = 'A scalar connectivity specifier must be 1, 4, 6, 8, 18, or 26.';
         error(sprintf('Images:%s:badScalarConn', function_name),'%s\n%s',msg1,msg2);
@@ -5745,7 +5748,7 @@ else    % BWMORPH(A, lut, n)
 end
 
 cout = c;
-if ((nargout == 2) & isempty(lut))
+if ((nargout == 2) && isempty(lut))
     message = ['LUT output argument is no longer supported', ...
                 ' for the "', deblank(matchStrings(idx,:)), '" operation'];
     warning(message);
@@ -6718,23 +6721,19 @@ checkinput(tol, {'double'}, {'nonempty','real','nonnan','nonnegative','finite'},
 
 if any(tol < 0) || any(tol > 1)
     error('Images:decorrstretch:tolOutOfRange','Elements of TOL must be in the range [0 1].');
-    return;
 end
 
 n = numel(tol);
 if n > 2
     error('Images:decorrstretch:tolHasTooManyElements','TOL must have 1 or 2 elements.');
-    return;
 end
 
 if (n == 2) && ~(tol(1) < tol(2))
     error('Images:decorrstretch:tolNotIncreasing','TOL(1) must be less than TOL(2).');
-    return;
 end
 
 if (n == 1) && (tol(1) >= 0.5)
     error('Images:decorrstretch:tolOutOfRange','Scalar TOL must be in the range [0 0.5).');
-    return;
 end
 
 if (n == 1),    tol = [tol 1-tol];  end
@@ -7523,10 +7522,10 @@ if ~computedStats.Extrema
             minC = min(c);
             maxC = max(c);
             
-            minRSet = find(r==minR);
-            maxRSet = find(r==maxR);
-            minCSet = find(c==minC);
-            maxCSet = find(c==maxC);
+            minRSet = r==minR;
+            maxRSet = r==maxR;
+            minCSet = c==minC;
+            maxCSet = c==maxC;
 
             % Points 1 and 2 are on the top row.
             r1 = minR;
@@ -7692,7 +7691,7 @@ if ~(computedStats.MajorAxisLength & computedStats.MinorAxisLength & ...
                 num = 2*uxy;
                 den = uxx - uyy + sqrt((uxx - uyy)^2 + 4*uxy^2);
             end
-            if (num == 0) & (den == 0)
+            if (num == 0) && (den == 0)
                 stats(k).Orientation = 0;
             else
                 stats(k).Orientation = (180/pi) * atan(num/den);
@@ -7922,11 +7921,11 @@ end
 checkinput(L, {'numeric'}, {'real', 'integer', 'nonnegative'}, mfilename, 'L', 1);
 
 list = varargin(2:end);
-if (~isempty(list) & ~iscell(list{1}) & strcmp(lower(list{1}), 'all'))
+if (~isempty(list) && ~iscell(list{1}) && strcmpi(list{1}, 'all'))
     reqStats = officialStats;
     reqStatsIdx = 1:length(officialStats);
     
-elseif (isempty(list) | (~iscell(list{1}) & strcmp(lower(list{1}),'basic')))
+elseif (isempty(list) || (~iscell(list{1}) && strcmpi(list{1},'basic')))
     % Default list
     reqStats = {'Area' 'Centroid' 'BoundingBox'};
 else
