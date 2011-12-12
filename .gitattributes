@@ -685,7 +685,6 @@ utils/hellinger.m -text
 utils/histo_m.m -text
 utils/histos_seis.m -text
 utils/imcapture.m -text
-utils/imcrop.m -text
 utils/imfilter_mex.dll -text
 utils/img_fun.m -text
 utils/img_fun.p -text
@@ -701,7 +700,6 @@ utils/inv__lwm.dll -text
 utils/inv_lwm.dll -text
 utils/inv_piecewiselinear.dll -text
 utils/iptcheckinput.dll -text
-utils/iptchecknargin.m -text
 utils/ivan_the_terrible.m -text
 utils/jd2date.m -text
 utils/limpa.p -text
