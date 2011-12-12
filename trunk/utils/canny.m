@@ -1,7 +1,7 @@
 function [eout,thresh] = canny(varargin)
 %CANNY Find edges in intensity image (cvlib_mex powered version).
 %
-% This is the matlab version picked from edge.m but modified to work in singles by the help of cvlib_mex
+% Re-written version to work in singles by the help of cvlib_mex
 %
 %   BW = CANNY(I,THRESH) specifies sensitivity thresholds for the
 %   Canny method. THRESH is a two-element vector in which the first element
@@ -24,13 +24,12 @@ is_indexed = false;
 % Transform to a double precision intensity image if necessary
 if (isa(a,'double') || isa(a,'logical'))
 	a = single(a);
-	%a = im2single(a);
 elseif isa(a,'uint8')
 	if (~is_indexed)
 		a = single(a);
-		cvlib_mex('CvtScale', a, 1. / 255);	%a = single(a) / 255;
+		cvlib_mex('CvtScale', a, 1. / 255);
 	else
-		cvlib_mex('addS',single(a), 1);		%a = single(a) + 1;
+		cvlib_mex('addS',single(a), 1);
 	end
 
 elseif isa(a,'uint16')
@@ -63,7 +62,6 @@ end
 	
 	pw = 1:30; % possible widths
 	ssq = sigma^2;
-	%width = find(exp(-(pw.*pw)/(2*ssq))>GaussianDieOff,1,'last');
 	width = find(exp(-(pw.*pw)/(2*ssq)) > GaussianDieOff);
 	if isempty(width)
 		width = 1;  % the user entered a really small sigma
@@ -77,8 +75,8 @@ end
 	% Find the directional derivative of 2D Gaussian (along X-axis)
 	% Since the result is symmetric along X, we can get the derivative along
 	% Y-axis simply by transposing the result for X direction.
-	[x,y]=meshgrid(-width:width,-width:width);
-	dgau2D=-x.*exp(-(x.*x+y.*y)/(2*ssq))/(pi*ssq);
+	[x,y]  = meshgrid(-width:width,-width:width);
+	dgau2D = -x.*exp(-(x.*x+y.*y)/(2*ssq))/(pi*ssq);
 	
 	% Convolve the filters with the image in each direction
 	% The canny edge detector first requires convolution with
@@ -96,19 +94,15 @@ end
 	ay = img_fun('imfilter',aSmooth, dgau2D', 'conv','replicate');
 	clear aSmooth;
 	
-	%mag = sqrt((ax.*ax) + (ay.*ay));
 	mag = cvlib_mex('hypot', ax, ay);
 	magmax = max(mag(:));
 	if magmax > 0
-		%mag = mag / magmax;   % normalize
-		mag= cvlib_mex('CvtScale', mag, 1. / double(magmax));
+		mag = cvlib_mex('CvtScale', mag, 1. / double(magmax));
 	end
   
 	% Select the thresholds
 	if isempty(thresh) 
-		%counts=imhist(mag, 64);
 		counts = double(imhistc(mag, 64, 1, 1));   % Call MEX file to do work.
-		%highThresh = find(cumsum(counts) > PercentOfPixelsNotEdges*m*n,1,'first') / 64;
 		highThresh = find(cumsum(counts) > PercentOfPixelsNotEdges*m*n);
 		highThresh = highThresh(1) / 64;
 		lowThresh = ThresholdRatio*highThresh;
@@ -132,7 +126,7 @@ end
 	% We will accrue indices which specify ON pixels in strong edgemap
 	% The array e will become the weak edge map.
 	idxStrong = [];  
-	for dir = 1:4
+	for (dir = 1:4)
 		idxLocalMax = cannyFindLocalMaxima(dir,ax,ay,mag);
 		idxWeak = idxLocalMax(mag(idxLocalMax) > lowThresh);
 		eout(idxWeak)=1;
@@ -179,11 +173,9 @@ function idxLocalMax = cannyFindLocalMaxima(direction,ix,iy,mag)
 
 switch direction
 	case 1
-		%idx = find((iy<=0 & ix>-iy)  | (iy>=0 & ix<-iy));
 		cvlib_mex('CvtScale',iy,-1);      % Permanently make iy = -iy;
 		idx = find((iy > 0 & ix > iy) | (iy < 0 & ix < iy));
 	case 2
-		%idx = find((ix>0 & -iy>=ix)  | (ix<0 & -iy<=ix));
 		idx = find((ix > 0 & iy >= ix)  | (ix < 0 & iy <= ix));
 		% Undo the above iy = -iy. I have to do this due to the inplace nature of
 		% operation done by cvlib_mex.
@@ -197,7 +189,7 @@ end
 % Exclude the exterior pixels
 if ~isempty(idx)
 	v = mod(idx,m);
-	extIdx = find(v==1 | v==0 | idx<=m | (idx>(n-1)*m));
+	extIdx = (v == 1 | v == 0 | idx <= m | (idx > (n-1)*m));
 	idx(extIdx) = [];
 end
 
@@ -208,9 +200,6 @@ gradmag = mag(idx);
 % Do the linear interpolations for the interior pixels
 switch direction
 	case 1
-		%   d = abs(iyv./ixv);
-		%   gradmag1 = mag(idx+m).*(1-d) + mag(idx+m-1).*d; 
-		%   gradmag2 = mag(idx-m).*(1-d) + mag(idx-m+1).*d; 
 		cvlib_mex('div',iyv, ixv)
 		d = cvlib_mex('abs',iyv);  d_1 = cvlib_mex('subRS',d,1);     % 1 - d
 		tmp = cvlib_mex('mul',mag(idx+m),d_1);  gradmag1 = cvlib_mex('mul',mag(idx+m-1),d);
@@ -218,9 +207,6 @@ switch direction
 		tmp = cvlib_mex('mul',mag(idx-m),d_1);  gradmag2 = cvlib_mex('mul',mag(idx-m+1),d);
 		cvlib_mex('add',gradmag2,tmp);
 	case 2
-		%   d = abs(ixv./iyv);
-		%   gradmag1 = mag(idx-1).*(1-d) + mag(idx+m-1).*d; 
-		%   gradmag2 = mag(idx+1).*(1-d) + mag(idx-m+1).*d; 
 		cvlib_mex('div',ixv, iyv)
 		d = cvlib_mex('abs',ixv);  d_1 = cvlib_mex('subRS',d,1);     % 1 - d
 		tmp = cvlib_mex('mul',mag(idx-1),d_1);  gradmag1 = cvlib_mex('mul',mag(idx+m-1),d);
@@ -228,9 +214,6 @@ switch direction
 		tmp = cvlib_mex('mul',mag(idx+1),d_1);  gradmag2 = cvlib_mex('mul',mag(idx-m+1),d);
 		cvlib_mex('add',gradmag2,tmp);
 	case 3
-		%   d = abs(ixv./iyv);
-		%   gradmag1 = mag(idx-1).*(1-d) + mag(idx-m-1).*d; 
-		%   gradmag2 = mag(idx+1).*(1-d) + mag(idx+m+1).*d; 
 		cvlib_mex('div',ixv, iyv)
 		d = cvlib_mex('abs',ixv);  d_1 = cvlib_mex('subRS',d,1);     % 1 - d
 		tmp = cvlib_mex('mul',mag(idx-1),d_1);  gradmag1 = cvlib_mex('mul',mag(idx-m-1),d);
@@ -238,9 +221,6 @@ switch direction
 		tmp = cvlib_mex('mul',mag(idx+1),d_1);  gradmag2 = cvlib_mex('mul',mag(idx+m+1),d);
 		cvlib_mex('add',gradmag2,tmp);
 	case 4
-		%   d = abs(iyv./ixv);
-		%   gradmag1 = mag(idx-m).*(1-d) + mag(idx-m-1).*d; 
-		%   gradmag2 = mag(idx+m).*(1-d) + mag(idx+m+1).*d; 
 		cvlib_mex('div',iyv, ixv)
 		d = cvlib_mex('abs',iyv);  d_1 = cvlib_mex('subRS',d,1);     % 1 - d
 		tmp = cvlib_mex('mul',mag(idx-m),d_1);  gradmag1 = cvlib_mex('mul',mag(idx-m-1),d);
@@ -250,13 +230,8 @@ switch direction
 end
 idxLocalMax = idx(gradmag >= gradmag1 & gradmag >= gradmag2); 
 
-
 % ---------------------------------------------------------------------
 function [I,Thresh,Sigma] = parse_inputs(varargin)
-% OUTPUTS:
-%   I      Image Data
-%   Thresh Threshold value
-%   Sigma  standard deviation of Gaussian
 
 	error(nargchk(1,3,nargin));
 
