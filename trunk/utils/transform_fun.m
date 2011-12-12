@@ -3255,10 +3255,10 @@ end
 if length(n_dimensions) ~= 1
     error('''NDims'' must have a scalar value.');
 end
-if ~isa(n_dimensions,'double') | ~isreal(n_dimensions)
+if ~isa(n_dimensions,'double') || ~isreal(n_dimensions)
     error('''NDims'' must have numeric, real value.');
 end
-if n_dimensions ~= floor(n_dimensions) | n_dimensions < 1
+if n_dimensions ~= floor(n_dimensions) || n_dimensions < 1
     error('''NDims'' must have a positive integer value.');
 end
 
@@ -3402,7 +3402,7 @@ end
 %--------------------------------------------------------------------------
 function positiveHalf = SampleKernel( kernel, halfwidth, frequency )
 
-if length(kernel) ~= 1 | ~isa(kernel,'function_handle')
+if length(kernel) ~= 1 || ~isa(kernel,'function_handle')
     error('kernel must be a function handle.');
 end
 n = floor(halfwidth * frequency);
@@ -3537,7 +3537,7 @@ function tflip = fliptform( t )
 
 checknargin(1,1,nargin,mfilename);
 
-if ~istform(t) | (length(t) ~= 1)
+if ~istform(t) || (length(t) ~= 1)
     eid = sprintf('Images:%s:tMustBeSingleTformStruct',mfilename);
     error(eid, 'T must be a single TFORM struct.');
 end
@@ -3712,7 +3712,7 @@ else
           'Function %s expected a TFORM struct as its first or second argument.',f.name);
 end
 
-if ~istform(t) | (numel(t) ~= 1)
+if ~istform(t) || (numel(t) ~= 1)
     error(sprintf('Images:%s:InvalidTform',f.name),...
          'Function %s expected T to be a single TFORM struct.', f.name);
 end
@@ -4115,7 +4115,6 @@ end
 in_vertices = bounds_to_vertices(in_bounds);
 in_points = add_in_between_points(in_vertices);
 out_points = zeros(size(in_points));
-num_dims = size(in_points,2);
 success = 1;
 options = optimset('Display','off');
 for k = 1:size(in_points,1)
@@ -4205,7 +4204,7 @@ if ~istform(tform)
     error(sprintf('Images:%s:firstInputMustBeTformStruct',mfilename),msg);
 end
 
-if prod(size(tform)) ~= 1
+if numel(tform) ~= 1
     msg = sprintf('%s: First input argument must be a 1-by-1 TFORM struct.',upper(mfilename));
     error(sprintf('Images:%s:firstInputMustBeOneByOneTformStruct',mfilename),msg);
 end
@@ -4215,7 +4214,7 @@ if tform.ndims_in ~= tform.ndims_out
     error(sprintf('Images:%s:inOutDimsOfTformMustBeSame',mfilename),msg);
 end
 
-if ~isnumeric(inbounds) | (ndims(inbounds) > 2) | (size(inbounds,1) ~= 2)
+if ~isnumeric(inbounds) || (ndims(inbounds) > 2) || (size(inbounds,1) ~= 2)
     msg = sprintf('%s: INBOUNDS must be a 2-by-NUM_DIMS numeric matrix.',upper(mfilename));
     error(sprintf('Images:%s:inboundsMustBe2byN',mfilename),msg);
 end

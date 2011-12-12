@@ -65,7 +65,8 @@ n = length(x);
 if nargin>2&&nmin>0, minn = nmin; else minn = 2; end
 if n<minn
    error('SPLINES:CHCKXYWP:toofewpoints', ...
-   'There should be at least %g data sites.',minn), end
+   'There should be at least %g data sites.',minn)
+end
 
 % re-sort, if needed, to ensure nondecreasing site sequence:
 tosort = false;
@@ -155,7 +156,8 @@ if ~isempty(nany)
    n = length(x);
    if n<minn
       error('SPLINES:CHCKXYWP:toofewX', ...
-      'There should be at least %g data sites.',minn), end
+      'There should be at least %g data sites.',minn)
+   end
    if roughnessw  % as a first approximation, simply ignore the
                   % specified weight to the left of any ignored point.
       p(max(nany,2)) = [];
@@ -177,19 +179,19 @@ if ~all(diff(x)) % conflate repeat sites, averaging the corresponding values
                  % and summing the corresponding weights
    mults = knt2mlt(x);
    for j=find(diff([mults;0])<0).'
-      if nonemptyw
+		if nonemptyw
          temp = sum(w(j-mults(j):j));
-	 if nargin>5
-	    tolred = tolred + w(j-mults(j):j)*sum(y(j-mults(j):j,:).^2,2); 
-	 end
-         y(j-mults(j),:) = (w(j-mults(j):j)*y(j-mults(j):j,:))/temp;
-         w(j-mults(j)) = temp;
-         if nargin>5
-	    tolred = tolred - temp*sum(y(j-mults(j),:).^2);
-	 end
-      else
-         y(j-mults(j),:) = mean(y(j-mults(j):j,:),1);
-      end
+			if nargin>5
+				tolred = tolred + w(j-mults(j):j)*sum(y(j-mults(j):j,:).^2,2); 
+			end
+			y(j-mults(j),:) = (w(j-mults(j):j)*y(j-mults(j):j,:))/temp;
+			w(j-mults(j)) = temp;
+			if nargin>5
+				tolred = tolred - temp*sum(y(j-mults(j),:).^2);
+			end
+		else
+			y(j-mults(j),:) = mean(y(j-mults(j):j,:),1);
+		end
    end
       
    repeats = find(mults);
@@ -248,7 +250,8 @@ if iscell(x)     % we are to handle gridded data
    if length(sizey)<m
      error('SPLINES:CSAPS:toofewdims',...
           ['If X is a cell-array of length m, then Y must have', ...
-            ' at least m dimensions.']), end
+            ' at least m dimensions.'])
+   end
 
    if length(sizey)==m,  % grid values of a scalar-valued function
      if issparse(y), y = full(y); end 
@@ -558,7 +561,7 @@ case 'ol'    % convert univariate structured form to corresponding
             g = [10 f.dim f.pieces f.breaks(:).' f.order f.coefs(:).'];
          case {'B-','BB'}
             g = [11 f.dim f.number f.coefs(:).' f.order f.knots(:).'];
-            if f.form(1:2)=='BB', g(1) = 12; end
+            if (strcmp(f.form(1:2),'BB')),		g(1) = 12;	end
          otherwise
             error('SPLINES:FN2FM:unknownfn','Unknown function type encountered.')
          end
@@ -633,7 +636,7 @@ if ~isstruct(fn)    % this branch should eventually be abandoned
          case 10, ppbrk(fn);
          case {11,12}, spbrk(fn);
          otherwise
-            fprintf(['Its parts are not (yet) available.\n'])
+            fprintf('Its parts are not (yet) available.\n')
          end
       end
    end
@@ -710,13 +713,14 @@ if nargin<2, dorder=1; end
 
 switch f.form(1:2)
 case 'pp' % the function is in ppform:
-   [breaks,coefs,l,k,d]=ppbrk(f);
-   if iscell(breaks) % the function is multivariate
-      m = length(k);
-      if length(dorder)~=m
-         error('SPLINES:FNDER:ordermustbevec', ...
-              ['DORDER should be a ' num2str(m) '-vector.']), end
-      sizec = [d,l.*k]; %size(coefs);
+	[breaks,coefs,l,k,d]=ppbrk(f);
+	if iscell(breaks) % the function is multivariate
+		m = length(k);
+		if length(dorder)~=m
+			error('SPLINES:FNDER:ordermustbevec', ...
+				['DORDER should be a ' num2str(m) '-vector.'])
+		end
+		sizec = [d,l.*k]; %size(coefs);
       for i=m:-1:1
          dd = prod(sizec(1:m));
          dpp = fnderp(ppmak(breaks{i},reshape(coefs,dd*l(i),k(i)),dd), ...
@@ -729,18 +733,19 @@ case 'pp' % the function is in ppform:
          end
       end
       fprime = ppmak(breaks,coefs,sizec);
-   else
-      fprime = fnderp(f,dorder);
-   end
+	else
+		fprime = fnderp(f,dorder);
+	end
 
 case {'B-','BB'} % the function is in B-form or BB-form;
                  % omit trivial B-spline terms.
    [knots,coefs,n,k,d]=spbrk(f);
    if iscell(knots)       % the function is multivariate
       m = length(knots);
-      if length(dorder)~=m
-         error('SPLINES:FNDER:ordermustbevec', ...
-              ['DORDER should be a ' num2str(m) '-vector.']), end
+		if length(dorder)~=m
+			error('SPLINES:FNDER:ordermustbevec', ...
+				['DORDER should be a ' num2str(m) '-vector.'])
+		end
       sizec = [d,n];% size(coefs);
       for i=m:-1:1
          dsp = fnderb(spmak(knots{i},...
@@ -758,7 +763,7 @@ case {'B-','BB'} % the function is in B-form or BB-form;
    end
 case {'rp','rB'}
   error('SPLINES:FNDER:notforrat',...
-       ['FNDER does not work for rational splines. Use FNTLR instead.'])
+       'FNDER does not work for rational splines. Use FNTLR instead.')
 case 'st'
    if strcmp(f.form,'st-tp00')
       if length(dorder)~=2||sum(dorder)>1
@@ -1621,7 +1626,8 @@ if iscell(pp.breaks)   % we are dealing with a multivariate spline
       if ~iscell(left)
          temp = left; left = cell(1,m); [left{:}] = deal(temp);
       end
-   else      left = cell(1,m);   end
+   else      left = cell(1,m);
+   end
 
    if iscell(x)  % evaluation on a mesh
       if length(x)~=m, error(['X should specify a(n) ',num2str(m), '-dimensional grid.']), end
@@ -1966,7 +1972,7 @@ if nargin==0;
 end
 
 if nargin>2
-   if prod(size(coefs))~=prod(sizec)
+   if numel(coefs)~=prod(sizec)
      error('SPLINES:SPMAK:coefsdontmatchsize', ...
            'The coefficient array is not of the explicitly specified size.')
    end
