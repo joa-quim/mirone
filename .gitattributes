@@ -859,10 +859,8 @@ utils/ui_edit_polygon.m -text
 utils/uicirclegeo.m -text
 utils/uiclearmode_j.m -text
 utils/uintlutc.dll -text
-utils/uirestore_fig.m -text
 utils/uirestore_j.m -text
 utils/uistack_j.m -text
-utils/uisuspend_fig.m -text
 utils/uisuspend_j.m -text
 utils/url2image.m -text
 utils/vdist.m -text
