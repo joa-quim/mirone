@@ -1,4 +1,4 @@
-function [out1,out2,out3] = ginput_pointer(arg1,arg2,arg3)
+function [out1,out2,out3] = click_e_point(arg1,arg2,arg3)
 %GINPUT Graphical input from mouse.
 %   [X,Y] = GINPUT_POINTER(N) gets N points from the current axes and returns 
 %   the X- and Y-coordinates in length N vectors X and Y.  The cursor
@@ -119,7 +119,7 @@ else
     end
    
     % Remove figure button functions
-    state = uisuspend_fig(fig);
+    state = uisuspend_j(fig);
     if strcmp(new_pointer,'custom')              % Also changed here
         set(fig,'pointer',new_pointer,'PointerShapeCData',arg2)
         if (~isempty(PSHS)),    set(fig,'PointerShapeHotSpot',PSHS);    end
