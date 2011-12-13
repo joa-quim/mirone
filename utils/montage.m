@@ -350,6 +350,31 @@ if size(A, 3) == 1
 else
     lims = [0 1];
     if ~(isa(A,'single') || isa(A,'double'))
-        lims = lims * double(intmax(class(A)));
+        lims = lims * double(loc_intmax(class(A)));
     end
 end
+
+% ------------------------------------------------------------------------
+function imax = loc_intmax(classname)
+%INTMAX Largest positive integer value.
+%   LOC_INTMAX(CLASSNAME) is the largest positive value in the integer class
+%   CLASSNAME. Valid values of CLASSNAME are 'int8', 'uint8', 'int16',
+%   'uint16', 'int32', 'uint32'.
+
+	switch (classname)
+		case 'int8'
+			imax = int8(127);
+		case 'uint8'
+			imax = uint8(255);
+		case 'int16'
+			imax = int16(32767);
+		case 'uint16'
+			imax = uint16(65535);
+		case 'int32'
+			imax = int32(2147483647);
+		case 'uint32'
+			imax = uint32(4294967295);
+		otherwise
+			error('montage:loc_intmax:invalidClassName','Invalid class name.')
+	end
+
