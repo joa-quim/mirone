@@ -421,8 +421,6 @@ mex/grdwrite_m.c -text
 mex/igrf_m.c -text
 mex/isf_head.h -text
 mex/lasreader_mex.c -text
-mex/make_mexs.m -text
-mex/make_mexs64.m -text
 mex/makefile.mexs -text
 mex/mansinha_m.c -text
 mex/mapproject_m.c -text
