@@ -56,8 +56,8 @@ function hObject = mirone_OpeningFcn(varargin)
 %----- Those are ..., the hell with explanations for what I don't realy understand. They are needed, that's all.
 %#function gmtlist_m country_select read_isf choosebox magbarcode listbox_message add_poles animate_seismicity
 %#function get_polygon rot_euler datums telha_m find_clusters fft_stuff select_cols uistack_j smoothing_param
-%#function patch_meca ui_edit_patch_special bands_list multibandread_j imscroll_j iptchecknargin
-%#function mltable_j iptcheckinput resampsep intmax wgifc telhometro vitrinite edit_line move_obj make_arrow
+%#function patch_meca ui_edit_patch_special bands_list multibandread_j imscroll_j
+%#function mltable_j iptcheckinput resampsep wgifc telhometro vitrinite edit_line move_obj make_arrow
 %#function edit_track_mb save_track_mb houghmex qhullmx writegif mpgwrite cq helpdlg
 %#function move2side aguentabar gdal_project gdalwarp_mex poly2mask_fig url2image calc_bonin_euler_pole spline_interp
 %#function mat2clip buffer_j PolygonClip trend1d_m akimaspline shake_mex ground_motion wms_tool microlev
@@ -909,7 +909,7 @@ function zoom_state(handles, state)
 	%if (handles.IAmOctave),		guidata(handles.figure1,handles),	return,		end
 	switch state
 		case 'off_yes'			% Set zoom permanently off
-			zoom_j('off');
+			if (~handles.no_file),	zoom_j('off');		end		% No need to check when first file in
 			set(handles.Zoom,'State','off');
 			handles.zoom_state = 0;		guidata(handles.figure1,handles)
 		case 'maybe_off'		% If zoom was active, keep trace of it
@@ -1605,7 +1605,7 @@ function handles = show_image(handles, fname, X, Y, I, validGrid, axis_t, adjust
 	end
 
 	handles.hImg = image(X,Y,I,'Parent',handles.axes1);
-	if (~handles.no_file),	zoom_state(handles,'off_yes');	end		% No need to check when first file in
+	zoom_state(handles,'off_yes')
 	if (islogical(I))
 		set(handles.hImg,'CDataMapping','scaled');		set(handles.figure1,'ColorMap',gray(16));
 	else
