@@ -464,7 +464,7 @@ function lowhigh = localStretchlim(img,tol)
 function updateAll(handles,newClim, opt)
 % This function is called by the edit boxes and the Apply button
 	if (strcmp(opt,'convert'))
-		newClim = double(intmax(handles.imgClass)) * newClim;
+		newClim = double(loc_intmax(handles.imgClass)) * newClim;
 	elseif (strcmp(opt,'width'))
 		x_center = get(handles.h_vert_lines{handles.currAxes}(2),'XData');
 		newClim = [x_center-newClim(1)/2 x_center+newClim(1)/2];
@@ -503,6 +503,30 @@ function updateAll(handles,newClim, opt)
 	set(handles.text_stat,'String',str)
 	handles.satistic{handles.currAxes} = str;
 	guidata(handles.figure1,handles)
+
+% ------------------------------------------------------------------------
+function imax = loc_intmax(classname)
+%INTMAX Largest positive integer value.
+%   LOC_INTMAX(CLASSNAME) is the largest positive value in the integer class
+%   CLASSNAME. Valid values of CLASSNAME are 'int8', 'uint8', 'int16',
+%   'uint16', 'int32', 'uint32'.
+
+	switch (classname)
+		case 'int8'
+			imax = int8(127);
+		case 'uint8'
+			imax = uint8(255);
+		case 'int16'
+			imax = int16(32767);
+		case 'uint16'
+			imax = uint16(65535);
+		case 'int32'
+			imax = int32(2147483647);
+		case 'uint32'
+			imax = uint32(4294967295);
+		otherwise
+			error('image_enhance:loc_intmax:invalidClassName','Invalid class name.')
+	end
 
 % --------------------------------------------------------------------------
 function wbm_vertLine(obj,eventdata,handles)
