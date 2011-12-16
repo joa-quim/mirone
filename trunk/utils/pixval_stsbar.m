@@ -1,7 +1,7 @@
 function pixval_stsbar(arg1)
 %   This is based on the defunct pixval, but heavily hacked in several ways.
-%   For example, it shows the DEM Z value instead of it's color and it doesn't create a new figure
 
+% Coffeeright J. Luis 2004-2012
 
 if (nargin == 0),	arg1 = [];		end
 
