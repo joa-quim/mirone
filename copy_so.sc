@@ -6,7 +6,7 @@
 # It should only be needed if we want to create a distributable package
 
 lib_loc=/usr/local/lib
-gmt_loc=/Users/j/programs/GMT/lib
+gmt_loc=/Users/j/programs/GMTdev/GMT4/lib
 
 # On Mac set it like this
 mac_sufix=.dylib
@@ -64,8 +64,25 @@ cp -f /usr/local/bin/gdalinfo .
 cp -f /usr/local/bin/gdal_translate .
 
 # ---------- netcdf libs ---------------------------
-cp -f ${lib_loc}/libnetcdf${linus_sufix}.4${mac_sufix} .
-ln -s -f libnetcdf${linus_sufix}.4${mac_sufix} libnetcdf${linus_sufix}${mac_sufix}
+cp -f ${lib_loc}/libnetcdf${linus_sufix}.7${mac_sufix} .
+ln -s -f libnetcdf${linus_sufix}.7${mac_sufix} libnetcdf${linus_sufix}${mac_sufix}
+
+# ---------- HDF5 libs ---------------------------
+cp -f ${lib_loc}/libhdf5${linus_sufix}.7${mac_sufix} .
+ln -s -f libhdf5${linus_sufix}.7${mac_sufix} libhdf5${linus_sufix}${mac_sufix}
+
+cp -f ${lib_loc}/libhdf5_hl${linus_sufix}.7${mac_sufix} .
+ln -s -f libhdf5_hl${linus_sufix}.7${mac_sufix} libhdf5_hl${linus_sufix}${mac_sufix}
+
+cp -f ${lib_loc}/libmfhdf${linus_sufix}.0${mac_sufix} .
+ln -s -f libmfhdf${linus_sufix}.0${mac_sufix} libmfhdf${linus_sufix}${mac_sufix}
+
+cp -f ${lib_loc}/libdf${linus_sufix}.0${mac_sufix} .
+ln -s -f libdf${linus_sufix}.0${mac_sufix} libdf${linus_sufix}${mac_sufix}
+
+
+# ---------- Don't know why this. Should be an internal dependency to gdal
+cp -f /usr/local/Cellar/jpeg/8c/lib/libjpeg.8.dylib .
 
 # ---------- Proj4 libs ----------------------------
 #cp -f ${lib_loc}/libproj${linus_sufix}.0.6.6${mac_sufix} .
