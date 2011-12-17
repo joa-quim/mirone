@@ -23,9 +23,18 @@ install_name_tool -id libNCSUtil.dylib	libNCSUtil.0.0.0.dylib
 
 install_name_tool -id libgdal.dylib libgdal.1.dylib 
 install_name_tool -change /usr/local/lib/libNCSEcw.0.dylib	../libNCSEcw.dylib	libgdal.dylib
+install_name_tool -change /usr/local/lib/libNCSEcwC.0.dylib	../libNCSEcwC.dylib	libgdal.dylib
 install_name_tool -change /usr/local/lib/libNCSCnet.0.dylib	../libNCSCnet.dylib	libgdal.dylib
 install_name_tool -change /usr/local/lib/libNCSUtil.0.dylib	../libNCSUtil.dylib	libgdal.dylib
+
 install_name_tool -change /usr/local/lib/libnetcdf.7.dylib	../libnetcdf.dylib	libgdal.dylib
+install_name_tool -change /usr/local/lib/libhdf5.7.dylib	../libhdf5.dylib	libgdal.dylib
+install_name_tool -change /usr/local/lib/libhdf5_hl.7.dylib	../libhdf5_hl.dylib	libgdal.dylib
+install_name_tool -change /usr/local/lib/libmfhdf.0.dylib	../libmfhdf.dylib	libgdal.dylib
+install_name_tool -change /usr/local/lib/libdf.0.dylib		../libdf.dylib		libgdal.dylib
+
+# ------------------ jpeg????
+install_name_tool -change /usr/local/Cellar/jpeg/8c/lib/libjpeg.8.dylib	../libjpeg.8.dylib		libgdal.dylib
 
 # ------------------ OpenCVs
 install_name_tool -id libopencv_core.dylib	libopencv_core.2.2.0.dylib
