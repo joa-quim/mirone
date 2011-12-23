@@ -55,8 +55,6 @@ switch opt(1:4)
 		[varargout{1} varargout{2}] = localPolysplit(varargin{:});
 	case 'adju'		% 'adjust_lims'
 		[varargout{1} varargout{2}] = adjust_lims(varargin{:});
-	case 'axes'		% 'axes2pix'
-		varargout{1} = axes2pix(varargin{:});
 	case 'insi'		% 'insideRect'
 		varargout{1} = insideRect(varargin{:});
 	case 'stri'		% 'strip_bg_color'
@@ -469,28 +467,6 @@ function clean_GRDappdata(handles)
 	try
 		rmappdata(handles.figure1,'dem_x');     rmappdata(handles.figure1,'dem_y');
 		rmappdata(handles.figure1,'dem_z');
-	end
-
-%-----------------------------------------------------------------------------------------
-function pixelx = axes2pix(dim, x, axesx)
-%AXES2PIX Convert axes coordinates to pixel coordinates.
-%   PIXELX = AXES2PIX(DIM, X, AXESX) converts axes coordinates
-%   (as returned by get(gca, 'CurrentPoint'), for example) into
-%   pixel coordinates.  X should be the vector returned by
-%   X = get(image_handle, 'XData') (or 'YData').  DIM is the
-%   number of image columns for the x coordinate, or the number
-%   of image rows for the y coordinate.
-
-%   Copyright 1993-2002 The MathWorks, Inc.  
-%   $Revision: 5.12 $  $Date: 2002/03/15 15:57:01 $
-
-	if (max(size(dim)) ~= 1);   error('First argument must be a scalar.'),	end
-	if (min(size(x)) > 1);      error('X must be a vector.'),				end
-	xfirst = x(1);      xlast = x(max(size(x)));
-	if (dim == 1);      pixelx = axesx - xfirst + 1;	return,		end
-	xslope = (dim - 1) / (xlast - xfirst);
-	if ((xslope == 1) && (xfirst == 1));     pixelx = axesx;
-	else    pixelx = xslope * (axesx - xfirst) + 1;
 	end
 
 % --------------------------------------------------------------------------------
