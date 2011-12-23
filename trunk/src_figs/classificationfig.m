@@ -299,28 +299,21 @@ function [x,y] = getpixcoords(handles,x,y)
         X = [handles.head(1) handles.head(2)];
         Y = [handles.head(3) handles.head(4)];
     end
-    x = localAxes2pix(handles.imgSize(2),X,x);
-    y = localAxes2pix(handles.imgSize(1),Y,y);
+    x = getPixel_coords(handles.imgSize(2),X,x);
+    y = getPixel_coords(handles.imgSize(1),Y,y);
 
 % -------------------------------------------------------------------------------------
-function pixelx = localAxes2pix(dim, x, axesx)
-%   Convert axes coordinates to pixel coordinates.
-%   PIXELX = AXES2PIX(DIM, X, AXESX) converts axes coordinates
-%   (as returned by get(gca, 'CurrentPoint'), for example) into
-%   pixel coordinates.  X should be the vector returned by
-%   X = get(image_handle, 'XData') (or 'YData').  DIM is the
-%   number of image columns for the x coordinate, or the number
-%   of image rows for the y coordinate.
+function pix_coords = getPixel_coords(img_length, XData, axes_coord)
+% Convert coordinates from axes (real coords) to image (pixel) coordinates.
+% IMG_LENGTH is the image width (n_columns)
+% XDATA is the image's [x_min x_max] in axes coordinates
+% AXES_COORD is the (x,y) coordinate of the point(s) to be converted
 
-	xfirst = x(1);      xlast = x(max(size(x)));	
-	if (dim == 1)
-        pixelx = axesx - xfirst + 1;        return;
-	end
-	xslope = (dim - 1) / (xlast - xfirst);
-	if ((xslope == 1) && (xfirst == 1))
-        pixelx = axesx;
+	slope = (img_length - 1) / (XData(end) - XData(1));
+	if ((XData(1) == 1) && (slope == 1))
+		pix_coords = axes_coord;
 	else
-        pixelx = xslope * (axesx - xfirst) + 1;
+		pix_coords = slope * (axes_coord - XData(1)) + 1;
 	end
 
 % -------------------------------------------------------------------------------------
