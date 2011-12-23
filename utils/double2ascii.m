@@ -96,13 +96,13 @@ function double2ascii(filename, X, formatStr, multiseg)
 			fprintf(fid, fmt, X');
 		else							% YES, we have them (then multisegs)
 			if (ncols == 2)
-				[y_cell,x_cell] = localPolysplit(X(:,2),X(:,1));
+				[y_cell,x_cell] = aux_funs('localPolysplit',X(:,2),X(:,1));
 				for (k = 1:numel(x_cell))
 					fprintf(fid,'%s\n','>');
 					fprintf(fid, fmt, [x_cell{k}(:)'; y_cell{k}(:)']);
 				end
 			elseif (ncols == 3)
-				[y_cell,x_cell,z_cell] = localPolysplit(X(:,2), X(:,1), X(:,3));
+				[y_cell,x_cell,z_cell] = aux_funs('localPolysplit',X(:,2), X(:,1), X(:,3));
 				for (k = 1:numel(x_cell))
 					fprintf(fid,'%s\n','>');
 					fprintf(fid, fmt, [x_cell{k}(:)'; y_cell{k}(:)'; z_cell{k}(:)']);
@@ -114,73 +114,6 @@ function double2ascii(filename, X, formatStr, multiseg)
 	end
 
 	fclose(fid);
-
-% --------------------------------------------------------------------------------
-function [latcells,loncells,Zcells] = localPolysplit(lat,lon, Z)
-%POLYSPLIT Extract segments of NaN-delimited polygon vectors to cell arrays
-%
-%   [LATCELLS,LONCELLS] = POLYSPLIT(LAT,LON) returns the NaN-delimited
-%   segments of the vectors LAT and LON as N-by-1 cell arrays with one
-%   polygon segment per cell.  LAT and LON must be the same size and have
-%   identically-placed NaNs.  The polygon segments are column vectors if
-%   LAT and LON are column vectors, and row vectors otherwise.
-
-% Copyright 1996-2006 The MathWorks, Inc.
-% $Revision: 1.4.4.5 $    $Date: 2006/05/24 03:35:26 $
-
-	n_arg = nargin;
-	if (n_arg == 2)
-		[lat, lon] = localRemoveExtraNanSeps(lat, lon);
-	else
-		[lat, lon, Z] = localRemoveExtraNanSeps(lat, lon, Z);
-	end
-	indx = find(isnan(lat(:)));         % Find NaN locations.
-	
-	% Simulate the trailing NaN if it's missing.
-	if ~isempty(lat) && ~isnan(lat(end))
-        indx(end+1,1) = numel(lat) + 1;
-	end
-	
-	%  Extract each segment into pre-allocated N-by-1 cell arrays, where N is
-	%  the number of polygon segments.  (Add a leading zero to the indx array
-	%  to make indexing work for the first segment.)
-	N = numel(indx);
-	latcells = cell(N,1);       loncells = cell(N,1);
-	if (n_arg == 3),			Zcells = cell(N,1);
-	else						Zcells = [];
-	end
-	indx = [0; indx];
-	for k = 1:N
-        iStart = indx(k)   + 1;
-        iEnd   = indx(k+1) - 1;
-        latcells{k} = lat(iStart:iEnd);
-        loncells{k} = lon(iStart:iEnd);
-		if (n_arg == 3),	Zcells{k} = Z(iStart:iEnd);		end
-	end
-
-% --------------------------------------------------------------------------------
-function [xdata, ydata, zdata] = localRemoveExtraNanSeps(xdata, ydata, zdata)
-    %removeExtraNanSeps  Clean up NaN separators in polygons and lines
-
-	p = find(isnan(xdata(:)'));     % Determing the positions of each NaN.
-	
-	% Determine the position of each NaN that is not the final element in a sequence of contiguous NaNs.
-	q = p(diff(p) == 1);
-	
-	% If there's a leading sequence of NaNs (a sequence starting with a NaN in
-	% position 1), determine the position of each NaN in this sequence.
-	if isempty(p),      r = [];
-	else                r = find((p - (1:numel(p))) == 0);
-	end
-	
-	% Determine the position of each excess NaN.
-	if isempty(r),      s = q;
-	else                s = [r q(q > r(end))];
-	end
-	
-	% Remove the excess NaNs.
-	xdata(s) = [];      ydata(s) = [];
-	if (nargin >= 3),   zdata(s) = [];  end
 
 %---------------------------------------------------------------------------------
 function fmt = make_print_format(formatStr, ncols, kpercent)
