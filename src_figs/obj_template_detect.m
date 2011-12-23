@@ -98,8 +98,8 @@ function push_matchTemplate_CB(hObject, handles)
 	method = str{get(handles.popupmenu1,'Val')};
 	rect = match_template(target, template, method);
 	
-	x = round( localAxes2pix(size(target,2),handles.handMir.head(1:2), rect(:,2)) );
-	y = round( localAxes2pix(size(target,1),handles.handMir.head(3:4), rect(:,1)) );
+	x = round( getPixel_coords(size(target,2),handles.handMir.head(1:2), rect(:,2)) );
+	y = round( getPixel_coords(size(target,1),handles.handMir.head(3:4), rect(:,1)) );
 
 	h = line('XData', x, 'YData', y, 'Parent', handles.handMir.axes1, ...
 		'Color',handles.handMir.DefLineColor, 'LineWidth', handles.handMir.DefLineThick);
@@ -194,27 +194,19 @@ function [rect, result] = match_template(target, template, method)
 		result(i+r2-1, j:j+c2-1)=255;
 	end
 
-% ----------------------------------------------------------------------------------
-function pixelx = localAxes2pix(dim, x, axesx)
-%   Convert axes coordinates to pixel coordinates.
-%   PIXELX = AXES2PIX(DIM, X, AXESX) converts axes coordinates
-%   (as returned by get(gca, 'CurrentPoint'), for example) into
-%   pixel coordinates.  X should be the vector returned by
-%   X = get(image_handle, 'XData') (or 'YData').  DIM is the
-%   number of image columns for the x coordinate, or the number
-%   of image rows for the y coordinate.
+% -------------------------------------------------------------------------------------
+function pix_coords = getPixel_coords(img_length, XData, axes_coord)
+% Convert coordinates from axes (real coords) to image (pixel) coordinates.
+% IMG_LENGTH is the image width (n_columns)
+% XDATA is the image's [x_min x_max] in axes coordinates
+% AXES_COORD is the (x,y) coordinate of the point(s) to be converted
 
-	xfirst = x(1);      xlast = x(max(size(x)));	
-	if (dim == 1)
-        pixelx = axesx - xfirst + 1;        return;
-	end
-	xslope = (dim - 1) / (xlast - xfirst);
-	if ((xslope == 1) && (xfirst == 1))
-        pixelx = axesx;
+	slope = (img_length - 1) / (XData(end) - XData(1));
+	if ((XData(1) == 1) && (slope == 1))
+		pix_coords = axes_coord;
 	else
-        pixelx = xslope * (axesx - xfirst) + 1;
+		pix_coords = slope * (axes_coord - XData(1)) + 1;
 	end
-
 
 % --- Creates and returns a handle to the GUI figure. 
 function obj_template_detect_LayoutFcn(h1)
