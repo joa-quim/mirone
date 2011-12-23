@@ -126,8 +126,8 @@ try             % I'm fed up with so many possible errors
                 errordlg('Incomplete table of Control Points','Error')
                 return                              % User gave up
             end
-            input_x = aux_funs('axes2pix',size(get(hImg,'CData'),2),get(hImg,'XData'),x);
-            input_y = aux_funs('axes2pix',size(get(hImg,'CData'),1),get(hImg,'YData'),y);
+            input_x = getPixel_coords(size(get(hImg,'CData'),2),get(hImg,'XData'),x);
+            input_y = getPixel_coords(size(get(hImg,'CData'),1),get(hImg,'YData'),y);
             input = [input_x(:) input_y(:)];
             setappdata(handles.figure1,'GCPregImage',[input base])
             
@@ -408,3 +408,17 @@ else
 	hS = get(hPts,'uicontextmenu');
 	set(findobj(hS,'Tag','GCPlab'),'Label','Show GCP numbers')
 end
+
+% -------------------------------------------------------------------------------------
+function pix_coords = getPixel_coords(img_length, XData, axes_coord)
+% Convert coordinates from axes (real coords) to image (pixel) coordinates.
+% IMG_LENGTH is the image width (n_columns)
+% XDATA is the image's [x_min x_max] in axes coordinates
+% AXES_COORD is the (x,y) coordinate of the point(s) to be converted
+
+	slope = (img_length - 1) / (XData(end) - XData(1));
+	if ((XData(1) == 1) && (slope == 1))
+		pix_coords = axes_coord;
+	else
+		pix_coords = slope * (axes_coord - XData(1)) + 1;
+	end

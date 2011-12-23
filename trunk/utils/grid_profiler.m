@@ -69,8 +69,8 @@ function [xx, yy, zz] = grid_profiler(hFig, xp, yp, point_int, do_dynamic, do_st
 			xx = xx(round(size(xx,1)/2),:);		yy = yy(round(size(xx,1)/2),:);		% Mid track coordinates
 		else												% NEARNEIGBOR mode
 			[rows,cols] = size(Z);
-			rp = aux_funs('axes2pix',rows, get(handles.hImg,'YData'),yy);
-			cp = aux_funs('axes2pix',cols, get(handles.hImg,'XData'),xx);
+			rp = getPixel_coords(rows, get(handles.hImg,'YData'),yy);
+			cp = getPixel_coords(cols, get(handles.hImg,'XData'),xx);
 			r = min(rows, max(1, round(rp)));	c = min(cols, max(1, round(cp)));
 			rc = (c - 1) * rows + r;
 			zz = double(Z(rc));
@@ -247,4 +247,18 @@ function [xx, yy] = make_track(x, y, dx, dy, do_stack)
 			
 		end			% End of, stack track line edited?
 
+	end
+
+% -------------------------------------------------------------------------------------
+function pix_coords = getPixel_coords(img_length, XData, axes_coord)
+% Convert coordinates from axes (real coords) to image (pixel) coordinates.
+% IMG_LENGTH is the image width (n_columns)
+% XDATA is the image's [x_min x_max] in axes coordinates
+% AXES_COORD is the (x,y) coordinate of the point(s) to be converted
+
+	slope = (img_length - 1) / (XData(end) - XData(1));
+	if ((XData(1) == 1) && (slope == 1))
+		pix_coords = axes_coord;
+	else
+		pix_coords = slope * (axes_coord - XData(1)) + 1;
 	end

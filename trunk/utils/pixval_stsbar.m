@@ -147,8 +147,8 @@ function UpdatePixelValues(figHandle,imageHandle, imageType, displayBar,img,x,y)
  		if (pMode || rcMode)
 			% Inside each grid cell, which is a pixel in the screen, display only the grid node value
 			[rows,cols,colors] = size(img);
-			rp = axes2pix(rows, get(imageHandle,'YData'),y);
-			cp = axes2pix(cols, get(imageHandle,'XData'),x);
+			rp = getPixel_coords(rows, get(imageHandle,'YData'),y);
+			cp = getPixel_coords(cols, get(imageHandle,'XData'),x);
 			r = min(rows, max(1, round(rp)));   c = min(cols, max(1, round(cp)));
 			if (pMode)
 				Z = getappdata(figHandle,'dem_z');
@@ -161,8 +161,8 @@ function UpdatePixelValues(figHandle,imageHandle, imageType, displayBar,img,x,y)
 		end
 	else                    % work on a image type
 		[rows,cols,colors] = size(img);
-		rp = axes2pix(rows, get(imageHandle,'YData'),y);
-		cp = axes2pix(cols, get(imageHandle,'XData'),x);
+		rp = getPixel_coords(rows, get(imageHandle,'YData'),y);
+		cp = getPixel_coords(cols, get(imageHandle,'XData'),x);
 		r = min(rows, max(1, round(rp)));   c = min(cols, max(1, round(cp)));
 		if strcmp(imageType,'indexed')
 			map = get(dbud.figHandle, 'Colormap');
@@ -341,23 +341,18 @@ function BackToNormalPixvalDisplay(obj, evt, displayBar)
 	set(displayBar, 'UserData', dbud);
 	PixvalMotionFcn([], [], displayBar);
 
-%-----------------------------------------------------------------------------------------
-function pixelx = axes2pix(dim, x, axesx)
-%AXES2PIX Convert axes coordinates to pixel coordinates.
-%   PIXELX = AXES2PIX(DIM, X, AXESX) converts axes coordinates
-%   (as returned by get(gca, 'CurrentPoint'), for example) into
-%   pixel coordinates.  X should be the vector returned by
-%   X = get(image_handle, 'XData') (or 'YData').  DIM is the
-%   number of image columns for the x coordinate, or the number
-%   of image rows for the y coordinate.
-	
-	if (max(size(dim)) ~= 1);   error('First argument must be a scalar.'),	end
-	if (min(size(x)) > 1);      error('X must be a vector.'),				end
-	xfirst = x(1);		xlast = x(max(size(x)));
-	if (dim == 1),		pixelx = axesx - xfirst + 1;	return,		end
-	xslope = (dim - 1) / (xlast - xfirst);
-	if ((xslope == 1) && (xfirst == 1));     pixelx = axesx;
-	else    pixelx = xslope * (axesx - xfirst) + 1;
+% -------------------------------------------------------------------------------------
+function pix_coords = getPixel_coords(img_length, XData, axes_coord)
+% Convert coordinates from axes (real coords) to image (pixel) coordinates.
+% IMG_LENGTH is the image width (n_columns)
+% XDATA is the image's [x_min x_max] in axes coordinates
+% AXES_COORD is the (x,y) coordinate of the point(s) to be converted
+
+	slope = (img_length - 1) / (XData(end) - XData(1));
+	if ((XData(1) == 1) && (slope == 1))
+		pix_coords = axes_coord;
+	else
+		pix_coords = slope * (axes_coord - XData(1)) + 1;
 	end
 
 %----------------------------------------------------------------------
