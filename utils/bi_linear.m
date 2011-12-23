@@ -32,21 +32,27 @@ sout = find((s<1) | (s>ncols));
 if ~isempty(sout), s(sout) = ones(size(sout)); end
 
 % Check for out of range values of t and set to 1
-tout = find((t<1) | (t>nrows));
+tout = find((t < 1) | (t > nrows));
 if ~isempty(tout), t(tout) = ones(size(tout)); end
 
 % Matrix element indexing
 ndx = floor(t)+floor(s-1)*nrows;
 
 % Compute intepolation parameters, check for boundary value.
-if isempty(s), d = s; else d = find(s==ncols); end
+if isempty(s),	d = s;
+else			d = find(s == ncols);
+end
 s(:) = (s - floor(s));
 if ~isempty(d), s(d) = s(d)+1; ndx(d) = ndx(d)-nrows; end
 
 % Compute intepolation parameters, check for boundary value.
-if isempty(t), d = t; else d = find(t==nrows); end
+if isempty(t),	d = t;
+else			d = find(t == nrows);
+end
 t(:) = (t - floor(t));
-if ~isempty(d), t(d) = t(d)+1; ndx(d) = ndx(d)-1; end
+if (~isempty(d))
+	t(d) = t(d)+1;		ndx(d) = ndx(d)-1;
+end
 
 % Make sure arg3_? is of double type
 if (~isa(arg3,'double'))
@@ -62,8 +68,6 @@ else
 end
 
 % Now interpolate
-% F = ( arg3(ndx).*(1-t) + arg3(ndx+1).*t ).*(1-s) + ...
-%        ( arg3(ndx+nrows).*(1-t) + arg3(ndx+(nrows+1)).*t ).*s;
 F = (arg3_1.*(1-t) + arg3_2.*t).*(1-s) + (arg3_3.*(1-t) + arg3_4.*t).*s;
    
 % Now set out of range values to NaN.
