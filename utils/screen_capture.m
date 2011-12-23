@@ -19,41 +19,34 @@ img = pj.Return;
 
 % --------------------------------------------------------------------
 function [pj, devices, options] = inputcheck_j( pj, varargin )
-%INPUTCHECK Method to validate input arguments to PRINT.
-%   Parses input arguments, updates state of PrintJob object accordingly.
-%   Returns PrintJob object and cell-arrays for the lists of devices and
-%   options that can legally be passed to PRINT.
-%
-%   Copyright 1984-2002 The MathWorks, Inc. 
+% Method to validate input arguments to PRINT.
 
-%Get cell arrays of driver specific information
-[ options, devices, extensions, classes, colorDevs, destinations ] = printtables;
+	%Get cell arrays of driver specific information
+	[options, devices, extensions, classes, colorDevs, destinations ] = printtables;
 
-for i = 1 : length(varargin)
-    cur_arg = varargin{i};
-    if ~ischar( cur_arg )
-        %Non-string argument better be a handle of a Figure or model.
-        pj.Handles = [ pj.Handles LocalCheckHandles(cur_arg) ];
-    elseif (cur_arg(1) ~= '-')
-        pj.FileName = cur_arg;
-    else
-        % Device name
-        [ pj, devIndex ] = LocalCheckDevice( pj, cur_arg, devices );            
-        pj.DriverExt = extensions{ devIndex };
-        pj.DriverClass = classes{ devIndex };
-        pj.DriverColor = strcmp( 'C', colorDevs{ devIndex } );
-        pj.DriverColorSet = 1;
-        pj.DriverExport = strcmp( 'X', destinations{ devIndex } );
-    end
-end
+	for i = 1 : length(varargin)
+		cur_arg = varargin{i};
+		if (~ischar(cur_arg))
+			pj.Handles = [ pj.Handles LocalCheckHandles(cur_arg) ];
+		elseif (cur_arg(1) ~= '-')
+			pj.FileName = cur_arg;
+		else
+			[ pj, devIndex ] = LocalCheckDevice( pj, cur_arg, devices );            
+			pj.DriverExt = extensions{ devIndex };
+			pj.DriverClass = classes{ devIndex };
+			pj.DriverColor = strcmp( 'C', colorDevs{ devIndex } );
+			pj.DriverColorSet = 1;
+			pj.DriverExport = strcmp( 'X', destinations{ devIndex } );
+		end
+	end
 
 % --------------------------------------------------------------------
 function h = LocalCheckHandles( cur_arg )
-%    Checks that input matrix is full of handles to Figures and/or models.
-if ~iscell( cur_arg )
-    cur_arg = { cur_arg };
-end
-h = cur_arg;
+% Checks that input matrix is full of handles to Figures and/or models.
+	if ~iscell( cur_arg )
+		cur_arg = {cur_arg};
+	end
+	h = cur_arg;
 
 % --------------------------------------------------------------------
 function [ pj, devIndex ] = LocalCheckDevice( pj, cur_arg, devices )
@@ -93,24 +86,17 @@ else
 end
 
 function pj = render_j( pj, h )
-%RENDER Method to draw a model or Figure on current page of a print job.
-%   Figure or model is drawn in the output format specified by the device
-%   option to PRINT.
-%   Copyright 1984-2002 The MathWorks, Inc. 
+% Method to draw a model or Figure on current page of a print job.
+% Figure or model is drawn in the output format specified by the device option to PRINT.
 
 try
     pj.Error = 0;  %So caller knows there was an error
     %Make argument cell array for calling HARDCOPY
     inputargs = LocalPrintJob2Arguments( pj, h );
                        
-    %Create the output file
-    try
-        pj.Return = hardcopy( inputargs{:} );
-        wasErr = 0;
-    catch
-        wasErr = 1;
-    end        
+	pj.Return = hardcopy( inputargs{:} );
 catch
+	pj.Error = 1;
     errordlg('An error occured while doing the screen capture','Error');
 end
 
