@@ -1064,10 +1064,10 @@ function B = betacf(A,B,X,IER)
 	end
 	IER = 106;
 	B = AZ;
+
 % -------------------------------------------------------------------------------------
 function [latout,lonout] = reducem_m(latin,lonin,epstol)
-
-%REDUCEM  Reduce the number of points in vector data
+%  Reduce the number of points in vector data
 %
 %  [latout,lonout] = REDUCEM(latin,lonin,tol) reduces the number of points
 %  in vector map data using the Douglas-Peucker line simplification
@@ -1079,10 +1079,6 @@ function [latout,lonout] = reducem_m(latin,lonin,epstol)
 %  [latout,lonout] = REDUCEM(latin,lonin,tol) uses the provided
 %  tolerance. The units of the tolerance are degrees of arc on the surface
 %  of a sphere.
-
-%  Copyright 1996-2003 The MathWorks, Inc.
-%  Written by:  A. Kim, W. Stumpf
-%  $Revision: 1.13 $  $Date: 2003/05/20 21:00:47 $
 
 
 % add wrap-around nans if necessary
@@ -1141,7 +1137,7 @@ for n=1:npatches
 
 		% combine patch halves if necessary
 		ntmp = length(lt2);
-		if ~(length(lt1)==2 & length(lt2)==2)
+		if ~(length(lt1)==2 && length(lt2)==2)
 			ltp = [lt1; lt2(2:ntmp)];
 			lnp = [ln1; ln2(2:ntmp)];
 			latout = [latout; ltp; nan];
@@ -1163,13 +1159,13 @@ end
 
 % remove wrap-around nans if added above
 nnew = length(latout);
-if nanadd1 & nanadd2
+if nanadd1 && nanadd2
 	latout = latout(2:nnew-1);
 	lonout = lonout(2:nnew-1);
-elseif nanadd1 & ~nanadd2
+elseif nanadd1 && ~nanadd2
 	latout = latout(2:nnew);
 	lonout = lonout(2:nnew);
-elseif ~nanadd1 & nanadd2
+elseif ~nanadd1 && nanadd2
 	latout = latout(1:nnew-1);
 	lonout = lonout(1:nnew-1);
 end
