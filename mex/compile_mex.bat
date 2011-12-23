@@ -26,7 +26,7 @@ REM ------------- Set the compiler (set to 'icl' to use the Intel compiler) ----
 SET CC=icl
 
 REM If set to "yes", linkage is done againsts ML6.5 Libs (needed in compiled version)
-SET R13="no"
+SET R13="yes"
 
 REM Set it to "yes" or "no" to build under 64-bits or 32-bits respectively.
 SET WIN64="no"
@@ -48,10 +48,10 @@ SET MSVC_VER="1600"
 
 REM --- Next allows compiling with the compiler you want against the ML6.5 libs (needed in stand-alone version)
 IF %R13%=="yes" (
-rem SET MATLIB=C:\SVN\pracompila\MAT65\lib\win32\microsoft
-rem SET MATINC=C:\SVN\pracompila\MAT65\include
-SET MATLIB=C:\SVN\pracompila\ML2007b_w32\lib\win32\microsoft
-SET MATINC=C:\SVN\pracompila\ML2007b_w32\include
+SET MATLIB=C:\SVN\pracompila\MAT65\lib\win32\microsoft
+SET MATINC=C:\SVN\pracompila\MAT65\include
+rem SET MATLIB=C:\SVN\pracompila\ML2007b_w32\lib\win32\microsoft
+rem SET MATINC=C:\SVN\pracompila\ML2007b_w32\include
 SET _MX_COMPAT=
 SET MEX_EXT="dll"
 
