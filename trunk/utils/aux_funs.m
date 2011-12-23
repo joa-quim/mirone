@@ -603,7 +603,7 @@ function [data, agency] = mgd77info(fname)
 	ind = strcmp({s.Attribute.Name}, 'Source_Institution');			agency = s.Attribute(ind).Value;
 
 % --------------------------------------------------------------------------------
-function [latcells,loncells] = localPolysplit(lat,lon)
+function [latcells,loncells] = localPolysplit(lat,lon, Z)
 %POLYSPLIT Extract segments of NaN-delimited polygon vectors to cell arrays
 %
 %   [LATCELLS,LONCELLS] = POLYSPLIT(LAT,LON) returns the NaN-delimited
@@ -615,7 +615,12 @@ function [latcells,loncells] = localPolysplit(lat,lon)
 % Copyright 1996-2006 The MathWorks, Inc.
 % $Revision: 1.4.4.5 $    $Date: 2006/05/24 03:35:26 $
 
-	[lat, lon] = localRemoveExtraNanSeps(lat, lon);
+	n_arg = nargin;
+	if (n_arg == 2)
+		[lat, lon] = localRemoveExtraNanSeps(lat, lon);
+	else
+		[lat, lon, Z] = localRemoveExtraNanSeps(lat, lon, Z);
+	end
 	indx = find(isnan(lat(:)));         % Find NaN locations.
 	
 	% Simulate the trailing NaN if it's missing.
@@ -628,12 +633,16 @@ function [latcells,loncells] = localPolysplit(lat,lon)
 	%  to make indexing work for the first segment.)
 	N = numel(indx);
 	latcells = cell(N,1);       loncells = cell(N,1);
+	if (n_arg == 3),			Zcells = cell(N,1);
+	else						Zcells = [];
+	end
 	indx = [0; indx];
 	for k = 1:N
-		iStart = indx(k)   + 1;
-		iEnd   = indx(k+1) - 1;
-		latcells{k} = lat(iStart:iEnd);
-		loncells{k} = lon(iStart:iEnd);
+        iStart = indx(k)   + 1;
+        iEnd   = indx(k+1) - 1;
+        latcells{k} = lat(iStart:iEnd);
+        loncells{k} = lon(iStart:iEnd);
+		if (n_arg == 3),	Zcells{k} = Z(iStart:iEnd);		end
 	end
 
 % --------------------------------------------------------------------------------
