@@ -2595,7 +2595,9 @@ if nargin < 6
         hessflag = 0;
         if nargin < 4
             gradflag = 0;
-        end,end,end
+		end
+	end
+end
 
 msg='';
 nonlconmsg =  ['NONLCON must be a function.'];
@@ -2695,8 +2697,7 @@ end
 
 % --------------------------------------------------------------------
 function y = nanmean(x)
-%NANMEAN Average or mean ignoring NaNs.
-%   Copyright 1993-2003 The MathWorks, Inc. 
+% Average or mean ignoring NaNs.
 
 if (isempty(x))     y = NaN;    return;     end     % Check for empty input.
 
@@ -2720,8 +2721,7 @@ y(i) = NaN;
 
 % -----------------------------------------------
 function y = nansum(x)
-%NANSUM Sum ignoring NaNs.
-%   Copyright 1993-2002 The MathWorks, Inc. 
+% Sum ignoring NaNs.
 
 % Replace NaNs with zeros.
 nans = isnan(x);
