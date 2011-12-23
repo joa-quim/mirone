@@ -79,7 +79,7 @@ function [plon,plat,omega] = calc_bonin_euler_pole (xx,yy,x2,y2)
 	% Compute the new angle between the rotated first side and the original second side
 
 	% Make the 4th vertice be the new North Pole
-	orig = new_Npole(yy(4),xx(4));
+	orig = map_funs('new_Npole',yy(4),xx(4));
 	[lat_brPN,lon_brPN] = rotate(lat_br/D2R,lon_br/D2R,orig);
 	[yy(3),xx(3)] = rotate(yy(3),xx(3),orig);
 	teta2 = (xx(3) - lon_brPN) * D2R;
@@ -120,59 +120,20 @@ function [plon,plat,omega] = calc_bonin_euler_pole (xx,yy,x2,y2)
 	end
 
 %--------------------------------------------------------------------------------------------------
-function origin = new_Npole(polelat,polelon)
-%NEW_NPOLE  Computes the origin vector to place a point at the North pole (angles are in degrees)
-% Copyright 1996-2003 The MathWorks, Inc.
-
-%  Transform input data to radians
-D2R = pi / 180;
-polelat = polelat(:) * D2R;
-polelon = polelon(:) * D2R;
-
-%  Get the indices for the northern and southern hemisphere new poles
-ind1 = find(polelat >= 0);    ind2 = find(polelat <  0);
-
-origlat = zeros(size(polelat));
-origlon = zeros(size(polelon));
-orient  = zeros(size(polelat));
-
-%  Compute the origin for northern hemisphere poles
-if ~isempty(ind1)
-    origlat(ind1) = pi/2 - polelat(ind1);
-    origlon(ind1) = pi*((abs(polelon(ind1)+pi)/pi) - ...        % Make sure that angles are in [-180 180] range
-        2*ceil(((abs(polelon(ind1)+pi)/pi)-1)/2)) .* sign(polelon(ind1)+pi);
-    ind3 = find(polelat == pi/2);    %  Correct for any poles staying at the north pole
-    if ~isempty(ind3)
-        origlon(ind3) = pi*((abs(polelon(ind3)+pi)/pi) - ...    % Make sure that angles are in [-180 180] range
-            2*ceil(((abs(polelon(ind3)+pi)/pi)-1)/2)) .* sign(polelon(ind3)+pi);
-    end
-end
-
-%  Compute the origin for southern hemisphere poles
-if ~isempty(ind2)
-    origlat(ind2) = pi/2 + polelat(ind2);
-    origlon(ind2) = pi*((abs(polelon(ind2)+pi)/pi) - ...        % Make sure that angles are in [-180 180] range
-        2*ceil(((abs(polelon(ind2)+pi)/pi)-1)/2)) .* sign(polelon(ind2)+pi);
-	orient(ind2)  = -pi;
-end
-
-origin = [origlat origlon orient] / D2R;    %  Transform back to degrees
-
-%--------------------------------------------------------------------------------------------------
 function [lat1,lon1] = rotate(lat,lon,orig)
 %ROTATE  Rotate data for specified orig and orientation (angles are in degrees)
 	
 D2R = pi / 180;
 lat = lat * D2R;    lon = lon * D2R;    orig = orig * D2R;
 
-rot1 = [cos(orig(2)) sin(orig(2))  0        % Rotation matrix about x axis
+rot1 = [cos(orig(2)) sin(orig(2))  0
        -sin(orig(2)) cos(orig(2))  0
 	    0            0             1];
-rot2 = [cos(orig(1)) 0 sin(orig(1))         % Rotation matrix about y axis
+rot2 = [cos(orig(1)) 0 sin(orig(1))
         0            1 0
 	   -sin(orig(1)) 0 cos(orig(1))];
 rot3 = [1  0            0
-        0  cos(orig(3)) sin(orig(3))        % Rotation matrix about z axis
+        0  cos(orig(3)) sin(orig(3))
         0 -sin(orig(3)) cos(orig(3))];
 
 rot = rot3 * rot2 * rot1;                   % Euler rotation matrix
