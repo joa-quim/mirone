@@ -1516,7 +1516,7 @@ end
 			end
 
 			if (any(isnan(xx{i})))      % If we have NaNs we need to split into segments
-				[latcells,loncells] = polysplit(yy{i}(:),xx{i}(:));
+				[latcells,loncells] = aux_funs('polysplit', yy{i}(:),xx{i}(:));
 				for (j=1:numel(loncells))
 					fprintf(fid,'%s\n',mlt_comm);
 					fprintf(fid,'%.5f\t%.5f\n',[loncells{j}(:)'; latcells{j}(:)']);
@@ -1563,7 +1563,7 @@ end
 				fid = fopen(name,'wt');
 				for j=m(i)+1:m(i+1)
 					if (any(isnan(xx{j})))          % If we have NaNs we need to split into segments
-						[latcells,loncells] = polysplit(yy{j}(:),xx{j}(:));
+						[latcells,loncells] = aux_funs('polysplit', yy{j}(:),xx{j}(:));
 						for (k=1:numel(loncells))
 							fprintf(fid,'>\n');
 							fprintf(fid,'%.5f\t%.5f\n',[loncells{k}(:)'; latcells{k}(:)']);
@@ -1832,109 +1832,6 @@ function [ALLpatchHand, hAlfaPatch] = findTransparents(ALLpatchHand)
 	end
 	hAlfaPatch = ALLpatchHand(ind);			% Split the transparent and non-transparent
 	ALLpatchHand(ind) = [];
-
-% --------------------------------------------------------------------------------
-function [latcells,loncells] = polysplit(lat,lon)
-%POLYSPLIT Extract segments of NaN-delimited polygon vectors to cell arrays
-%
-%   [LATCELLS,LONCELLS] = POLYSPLIT(LAT,LON) returns the NaN-delimited
-%   segments of the vectors LAT and LON as N-by-1 cell arrays with one
-%   polygon segment per cell.  LAT and LON must be the same size and have
-%   identically-placed NaNs.  The polygon segments are column vectors if
-%   LAT and LON are column vectors, and row vectors otherwise.
-
-% Copyright 1996-2006 The MathWorks, Inc.
-% $Revision: 1.4.4.5 $    $Date: 2006/05/24 03:35:26 $
-
-% checkinput(lat,{'numeric'},{'real','vector'},mfilename,'LAT',1);
-% checkinput(lon,{'numeric'},{'real','vector'},mfilename,'LON',2);
-[lat, lon] = removeExtraNanSeparators(lat, lon);
-
-% Find NaN locations.
-indx = find(isnan(lat(:)));
-
-% Simulate the trailing NaN if it's missing.
-if ~isempty(lat) && ~isnan(lat(end))
-    indx(end+1,1) = numel(lat) + 1;
-end
-
-%  Extract each segment into pre-allocated N-by-1 cell arrays, where N is
-%  the number of polygon segments.  (Add a leading zero to the indx array
-%  to make indexing work for the first segment.)
-N = numel(indx);
-latcells = cell(N,1);
-loncells = cell(N,1);
-indx = [0; indx];
-for k = 1:N
-	iStart = indx(k)   + 1;
-	iEnd   = indx(k+1) - 1;
-	latcells{k} = lat(iStart:iEnd);
-	loncells{k} = lon(iStart:iEnd);
-end
-
-% --------------------------------------------------------------------------------
-function [xdata, ydata, zdata] = removeExtraNanSeparators(xdata, ydata, zdata)
-%removeExtraNanSeparators  Clean up NaN separators in polygons and lines
-%
-%   [XDATA, YDATA] = removeExtraNanSeparators(XDATA, YDATA) removes NaNs
-%   from the vectors XDATA and YDATA, leaving only isolated NaN separators.
-%   If present, one or more leading NaNs are removed entirely.  If present,
-%   a single trailing NaN is preserved.  NaNs are removed, but never added,
-%   so if the input lacks a trailing NaN, so will the output.  XDATA and
-%   YDATA must match in size and have identical NaN locations.
-%
-%   [XDATA, YDATA, ZDATA] = removeExtraNanSeparators(XDATA, YDATA, ZDATA)
-%   removes NaNs from the vectors XDATA, YDATA, and ZDATA, leaving only
-%   isolated NaN separators and optionally, consistent with the input, a
-%   single trailing NaN.
-%
-%   Examples
-%   --------
-%   xin = [NaN NaN 1:3 NaN 4:5 NaN NaN NaN 6:9 NaN NaN]
-%   yin = xin;
-%   [xout, yout] = removeExtraNanSeparators(xin, yin);
-%   xout
-%
-%   xin = [NaN 1:3 NaN NaN 4:5 NaN NaN NaN 6:9]'
-%   yin = xin;
-%   zin = xin;
-%   [xout, yout, zout] = removeExtraNanSeparators(xin, yin, zin);
-%   xout
-
-% Copyright 2005-2006 The MathWorks, Inc.
-% $Revision: 1.1.6.4 $  $Date: 2006/06/15 20:11:13 $
-
-% if nargin < 3
-%     if ~isequal(isnan(xdata), isnan(ydata))
-%         eid = sprintf('%s:%s:inconsistentXY', getcomp, mfilename);
-%         error(eid,'XDATA and YDATA mismatch in size or NaN locations.')
-%     end
-% else
-%     if ~isequal(isnan(xdata), isnan(ydata), isnan(zdata))
-%         eid = sprintf('%s:%s:inconsistentXYZ', getcomp, mfilename);
-%         error(eid,'XDATA, YDATA (or ZDATA) mismatch in size or NaN locations.')
-%     end
-% end
-
-p = find(isnan(xdata(:)'));     % Determing the positions of each NaN.
-
-% Determine the position of each NaN that is not the final element in a sequence of contiguous NaNs.
-q = p(diff(p) == 1);
-
-% If there's a leading sequence of NaNs (a sequence starting with a NaN in
-% position 1), determine the position of each NaN in this sequence.
-if isempty(p),      r = [];
-else                r = find((p - (1:numel(p))) == 0);
-end
-
-% Determine the position of each excess NaN.
-if isempty(r),      s = q;
-else                s = [r q(q > r(end))];
-end
-
-% Remove the excess NaNs.
-xdata(s) = [];      ydata(s) = [];
-if (nargin >= 3),   zdata(s) = [];  end
 
 %-------------------------------------------------------------------------------------
 function figure1_KeyPressFcn(hObject, eventdata)
