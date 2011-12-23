@@ -50,16 +50,11 @@ function [selection,value] = choosebox(varargin)
 %                     'SelectString','Files to delete:',...
 %                     'ListString',str)
 %
-%   inspired by listdlg.m from Mathworks.
+%   inspired by listdlg.m.
 %
 %   programmed by Peter Wasmeier, Technical University of Munich
 %   p.wasmeier@bv.tum.de
 %   11-12-03
-
-%   Original listdlg file by
-%   T. Krauss, 12/7/95, P.N. Secakusuma, 6/10/97
-%   Copyright 1984-2002 The MathWorks, Inc.
-%   $Revision: 1.20 $  $Date: 2002/04/09 01:36:06 $
 
 %   Test:  d = dir;[s,v] = choosebox('Name','File deletion','PromptString','Files remaining in this directory:','SelectString','Files to delete:','ListString',{d.name});
 
@@ -538,31 +533,31 @@ function doRight(varargin)
 
 %-----------------------------------------------------------------------------------
 function doLeft(varargin)
-ad = getappdata(0,'ListDialogAppData');
-leftbox = findobj(ad.hFig,'Tag','leftbox');
-rightbox = findobj(ad.hFig,'Tag','rightbox');
-selection = get(rightbox,'Value');
-if (ad.cmode == 1)      % if selected items had been removed
-    % Sort in the items from right hand side again
-    for i=1:length(selection)
-        next_item = min( find(ad.pos_left > ad.pos_right(selection(i))) );
-        if isempty(next_item)   % Inserting item is last one
-            ad.pos_left(end+1)=ad.pos_right(selection(i));
-            ad.fromstring(end+1)=ad.tostring(selection(i));
-        elseif next_item==ad.pos_left(1)    % Inserting item is first one
-            ad.pos_left=[ad.pos_right(selection(i));ad.pos_left];
-            ad.fromstring=[ad.tostring(selection(i)); ad.fromstring];
-        else                    % Inserting item is anywhere in the middle
-            ad.pos_left=[ad.pos_left(1:next_item-1);ad.pos_right(selection(i));ad.pos_left(next_item:end)];
-            ad.fromstring=[ad.fromstring(1:next_item-1); ad.tostring(selection(i)); ad.fromstring(next_item:end)];
-        end
-    end
-end
-ad.pos_right(selection)=[];
-ad.tostring(selection)=[];
-setappdata(0,'ListDialogAppData',ad)
-set(leftbox,'String',ad.fromstring,'Value',[]);
-set(rightbox,'String',ad.tostring,'Value',[]);
+	ad = getappdata(0,'ListDialogAppData');
+	leftbox = findobj(ad.hFig,'Tag','leftbox');
+	rightbox = findobj(ad.hFig,'Tag','rightbox');
+	selection = get(rightbox,'Value');
+	if (ad.cmode == 1)      % if selected items had been removed
+		% Sort in the items from right hand side again
+		for i=1:length(selection)
+			next_item = min( find(ad.pos_left > ad.pos_right(selection(i))) );
+			if isempty(next_item)   % Inserting item is last one
+				ad.pos_left(end+1)=ad.pos_right(selection(i));
+				ad.fromstring(end+1)=ad.tostring(selection(i));
+			elseif (next_item == ad.pos_left(1))		% Inserting item is first one
+				ad.pos_left=[ad.pos_right(selection(i));ad.pos_left];
+				ad.fromstring=[ad.tostring(selection(i)); ad.fromstring];
+			else                    % Inserting item is anywhere in the middle
+				ad.pos_left=[ad.pos_left(1:next_item-1);ad.pos_right(selection(i));ad.pos_left(next_item:end)];
+				ad.fromstring=[ad.fromstring(1:next_item-1); ad.tostring(selection(i)); ad.fromstring(next_item:end)];
+			end
+		end
+	end
+	ad.pos_right(selection)=[];
+	ad.tostring(selection)=[];
+	setappdata(0,'ListDialogAppData',ad)
+	set(leftbox,'String',ad.fromstring,'Value',[]);
+	set(rightbox,'String',ad.tostring,'Value',[]);
 
 % ---------------------------------------------------------------------------------------
 function stages = finite2stages(lon, lat, omega, t_start, half, side)
