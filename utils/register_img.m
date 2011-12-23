@@ -126,8 +126,8 @@ try             % I'm fed up with so many possible errors
                 errordlg('Incomplete table of Control Points','Error')
                 return                              % User gave up
             end
-            input_x = axes2pix(size(get(hImg,'CData'),2),get(hImg,'XData'),x);
-            input_y = axes2pix(size(get(hImg,'CData'),1),get(hImg,'YData'),y);
+            input_x = aux_funs('axes2pix',size(get(hImg,'CData'),2),get(hImg,'XData'),x);
+            input_y = aux_funs('axes2pix',size(get(hImg,'CData'),1),get(hImg,'YData'),y);
             input = [input_x(:) input_y(:)];
             setappdata(handles.figure1,'GCPregImage',[input base])
             
