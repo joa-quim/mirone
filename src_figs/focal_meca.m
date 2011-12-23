@@ -40,10 +40,10 @@ function varargout = focal_meca(varargin)
 		if (handles.no_file)			% Need to create a background image
 			w = varargin{4}(1);			e = varargin{4}(2);
 			s = varargin{4}(3);			n = varargin{4}(4);
-			pixelx = round(axes2pix(5400, [-180 180], [w e]));				% Convert to the correct indices of big image 
-			pixely = 2700 - round(axes2pix(2700, [-90 90], [s n])) + 1;		% Again the Y origin shit
-			pixely = pixely(2:-1:1);
-			opt_r = sprintf('-r%d/%d/%d/%d', pixelx(1:2), pixely(1:2));
+			pix_x = round(getPixel_coords(5400, [-180 180], [w e]));			% Convert to the correct indices of big image 
+			pix_y = 2700 - round(getPixel_coords(2700, [-90 90], [s n])) + 1;% Again the Y origin shit
+			pix_y = pix_y(2:-1:1);
+			opt_r = sprintf('-r%d/%d/%d/%d', pix_x(1:2), pix_y(1:2));
 			img = gdalread([handMir.home_dir filesep 'data' filesep 'etopo4.jpg'], opt_r, '-U');
 
 			x_inc = (e - w) / (size(img,2)-1);		y_inc = (n - s) / (size(img,1)-1);
@@ -593,6 +593,20 @@ function hFig = findMe(tagFig)
 	set(0,'ShowHiddenHandles','on');
 	hFig = findobj(get(0,'Children'),'flat', 'tag',tagFig);
 	set(0,'ShowHiddenHandles',showBak);
+
+%-----------------------------------------------------------------------------------------
+function pix_coords = getPixel_coords(img_length, XData, axes_coord)
+% Convert coordinates from axes (real coords) to image (pixel) coordinates.
+% IMG_LENGTH is the image width (n_columns)
+% XDATA is the image's [x_min x_max] in axes coordinates
+% AXES_COORD is the (x,y) coordinate of the point(s) to be converted
+
+	slope = (img_length - 1) / (XData(end) - XData(1));
+	if ((XData(1) == 1) && (slope == 1))
+		pix_coords = axes_coord;
+	else
+		pix_coords = slope * (axes_coord - XData(1)) + 1;
+	end
 
 % ----------------------------------------------------------------------------------
 function figure1_KeyPressFcn(hObject, eventdata)

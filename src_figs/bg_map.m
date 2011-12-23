@@ -133,17 +133,17 @@ function toggle_region_CB(hObject, handles)
 	[n_row, n_col, k] = size(get(findobj(handles.axes1,'Type', 'image'),'CData'));
 	x_min = -180;		y_min = -90;	inc = 360 / n_col;
   
-	w = (p1(1) - 1) * inc + x_min;		e = (p2(1) - 1) * inc + x_min;			% Get Region in geogs
-	s = (n_row - p2(2)) * inc + y_min;	n = (n_row - p1(2)) * inc + y_min;		% Also change the stupid origin from UL to BL corner
-	pixelx = round(axes2pix(5400, [-180 180], [w e]));					% Now convert to the correct indices of big image 
-	pixely = 2700 - round(axes2pix(2700, [-90 90], [s n])) + 1;			% Again the Y origin shit
-	pixely = pixely(2:-1:1);
+	w = (p1(1) - 1) * inc + x_min;		e = (p2(1) - 1) * inc + x_min;		% Get Region in geogs
+	s = (n_row - p2(2)) * inc + y_min;	n = (n_row - p1(2)) * inc + y_min;	% Also change the stupid origin from UL to BL corner
+	pix_x = round(getPixel_coords(5400, [-180 180], [w e]));					% Now convert to the correct indices of big image 
+	pix_y = 2700 - round(getPixel_coords(2700, [-90 90], [s n])) + 1;			% Again the Y origin shit
+	pix_y = pix_y(2:-1:1);
 	
-	if ( (diff(pixelx(1:2)) < 10) || (diff(pixely(1:2)) < 10) )
+	if ( (diff(pix_x(1:2)) < 10) || (diff(pix_y(1:2)) < 10) )
 		return
 	end
 
-	opt_r = sprintf('-r%d/%d/%d/%d', pixelx(1:2), pixely(1:2));
+	opt_r = sprintf('-r%d/%d/%d/%d', pix_x(1:2), pix_y(1:2));
 
 	h = patch('XData',[p1(1) p2(1) p2(1) p1(1)],'YData',[p1(2) p1(2) p2(2) p2(2)],'FaceColor','none');
 	out.img = get_img(handles.figure1, h, [handles.f_path 'etopo4.jpg'], opt_r, '-U');
@@ -177,6 +177,20 @@ function radio_180_CB(hObject, handles)
 function radio_360_CB(hObject, handles)
 	if (~get(hObject,'Val')),		set(hObject,'Val', 1),		return,		end
 	set(handles.radio_180, 'Val', 0)
+
+% -------------------------------------------------------------------------------------
+function pix_coords = getPixel_coords(img_length, XData, axes_coord)
+% Convert coordinates from axes (real coords) to image (pixel) coordinates.
+% IMG_LENGTH is the image width (n_columns)
+% XDATA is the image's [x_min x_max] in axes coordinates
+% AXES_COORD is the (x,y) coordinate of the point(s) to be converted
+
+	slope = (img_length - 1) / (XData(end) - XData(1));
+	if ((XData(1) == 1) && (slope == 1))
+		pix_coords = axes_coord;
+	else
+		pix_coords = slope * (axes_coord - XData(1)) + 1;
+	end
 
 % ----------------------------------------------------------------------------------------
 function figure1_CloseRequestFcn(hObject, eventdata)

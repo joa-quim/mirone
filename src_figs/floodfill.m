@@ -316,8 +316,8 @@ function ShapeFirstButtonDown(handles,state,opt)
 function wbm_circle(obj,eventdata,handles,first_pt,IMG,lineThick,lineType)
     % Draw a circle
     pt = get(handles.hCallingAxes, 'CurrentPoint');
-    x = round( localAxes2pix(handles.imgSize(2),handles.head(1:2),pt(1,1)) );
-    y = round( localAxes2pix(handles.imgSize(1),handles.head(3:4),pt(1,2)) );
+    x = round( getPixel_coords(handles.imgSize(2),handles.head(1:2),pt(1,1)) );
+    y = round( getPixel_coords(handles.imgSize(1),handles.head(3:4),pt(1,2)) );
     if (~insideRect(handles,x,y)),      return;     end
     dx = abs(x - first_pt(1));          dy = abs(y - first_pt(2));
     rad = round(sqrt(dx*dx + dy*dy));   dt = round(abs(lineThick)/2) + 2;
@@ -336,8 +336,8 @@ function wbm_circle(obj,eventdata,handles,first_pt,IMG,lineThick,lineType)
 function wbm_ellipse(obj,eventdata,handles,first_pt,IMG,lineThick,lineType)
     % Draw an ellipse
     pt = get(handles.hCallingAxes, 'CurrentPoint');
-    x = round( localAxes2pix(handles.imgSize(2),handles.head(1:2),pt(1,1)) );
-    y = round( localAxes2pix(handles.imgSize(1),handles.head(3:4),pt(1,2)) );
+    x = round( getPixel_coords(handles.imgSize(2),handles.head(1:2),pt(1,1)) );
+    y = round( getPixel_coords(handles.imgSize(1),handles.head(3:4),pt(1,2)) );
     if (~insideRect(handles,x,y)),      return;     end
     dx = abs(x - first_pt(1));          dy = abs(y - first_pt(2));
     dt = round(abs(lineThick)/2) + 2;
@@ -358,8 +358,8 @@ function wbm_ellipse(obj,eventdata,handles,first_pt,IMG,lineThick,lineType)
 function wbm_rectangle(obj,eventdata,handles,first_pt,IMG,lineThick,lineType)
     % Draw a circle
     pt = get(handles.hCallingAxes, 'CurrentPoint');
-    x = round( localAxes2pix(handles.imgSize(2),handles.head(1:2),pt(1,1)) );
-    y = round( localAxes2pix(handles.imgSize(1),handles.head(3:4),pt(1,2)) );
+    x = round( getPixel_coords(handles.imgSize(2),handles.head(1:2),pt(1,1)) );
+    y = round( getPixel_coords(handles.imgSize(1),handles.head(3:4),pt(1,2)) );
     if (~insideRect(handles,x,y)),      return;     end
     dt = round(abs(lineThick)/2) + 2;
     win_dx = abs(x - first_pt(1)) + dt + 2;         win_dy = abs(y - first_pt(2)) + dt + 2;
@@ -420,8 +420,8 @@ function [x,y] = getpixcoords(handles,x,y)
 		X = [handles.head(1) handles.head(2)];
 		Y = [handles.head(3) handles.head(4)];
 	end
-	x = localAxes2pix(handles.imgSize(2),X,x);
-	y = localAxes2pix(handles.imgSize(1),Y,y);
+	x = getPixel_coords(handles.imgSize(2),X,x);
+	y = getPixel_coords(handles.imgSize(1),Y,y);
 
 % --------------------------------------------------------------------
 function res = insideRect(handles,x,y)
@@ -771,30 +771,23 @@ function edit_minPts_CB(hObject, eventdata, handles)
 function push_restoreImg_CB(hObject, eventdata, handles)
     set(handles.hImage,'CData',handles.origFig)
 
-% -------------------------------------------------------------------------------------
-function pixelx = localAxes2pix(dim, x, axesx)
-%   Convert axes coordinates to pixel coordinates.
-%   PIXELX = AXES2PIX(DIM, X, AXESX) converts axes coordinates
-%   (as returned by get(gca, 'CurrentPoint'), for example) into
-%   pixel coordinates.  X should be the vector returned by
-%   X = get(image_handle, 'XData') (or 'YData').  DIM is the
-%   number of image columns for the x coordinate, or the number
-%   of image rows for the y coordinate.
+%-----------------------------------------------------------------------------------------
+function pix_coords = getPixel_coords(img_length, XData, axes_coord)
+% Convert coordinates from axes (real coords) to image (pixel) coordinates.
+% IMG_LENGTH is the image width (n_columns)
+% XDATA is the image's [x_min x_max] in axes coordinates
+% AXES_COORD is the (x,y) coordinate of the point(s) to be converted
 
-	xfirst = x(1);      xlast = x(max(size(x)));	
-	if (dim == 1)
-        pixelx = axesx - xfirst + 1;        return;
-	end
-	xslope = (dim - 1) / (xlast - xfirst);
-	if ((xslope == 1) && (xfirst == 1))
-        pixelx = axesx;
+	slope = (img_length - 1) / (XData(end) - XData(1));
+	if ((XData(1) == 1) && (slope == 1))
+		pix_coords = axes_coord;
 	else
-        pixelx = xslope * (axesx - xfirst) + 1;
+		pix_coords = slope * (axes_coord - XData(1)) + 1;
 	end
 
 % -------------------------------------------------------------------------------------
 function y = mean2(x)
-%MEAN2 Compute mean of matrix elements.
+% Compute mean of matrix elements.
 	y = sum(x(:)) / numel(x);
 
 % -------------------------------------------------------------------------------------
