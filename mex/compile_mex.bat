@@ -74,7 +74,7 @@ SET MEX_EXT="mexw32"
  
 REM -------------- Set up libraries here -------------------------------------------------
 IF %WIN64%=="yes" (
-SET  NETCDF_LIB=C:\progs_cygw\netcdf-3.6.3\compileds\VC10_64\lib\libnetcdf.lib
+SET  NETCDF_LIB=C:\programs\compa_libs\netcdf-4.1.2b\compileds\VC10_64\lib\libnetcdf.lib
 SET     GMT_LIB=c:\progs_cygw\GMTdev\gmt4\WIN64\lib\gmt.lib
 SET GMT_MGG_LIB=c:\progs_cygw\GMTdev\gmt4\WIN64\lib\gmt_mgg.lib
 SET    GDAL_LIB=c:\programs\GDALtrunk\gdal\compileds\VC10_64\lib\gdal_i.lib
@@ -89,7 +89,7 @@ SET     LAS_LIB=C:\programs\compa_libs\liblas-src-1.2.1\lib\VC10_64\liblas_i.lib
 ) ELSE (
 
 IF %MSVC_VER%=="1600" (
-SET  NETCDF_LIB=C:\progs_cygw\netcdf-3.6.3\compileds\VC10_32\lib\libnetcdf.lib
+SET  NETCDF_LIB=C:\programs\compa_libs\netcdf-4.1.2b\compileds\VC10_32\lib\libnetcdf.lib
 SET     GMT_LIB=c:\progs_cygw\GMTdev\gmt4\WIN32\lib\gmt.lib
 SET GMT_MGG_LIB=c:\progs_cygw\GMTdev\gmt4\WIN32\lib\gmt_mgg.lib
 SET    GDAL_LIB=c:\programs\GDALtrunk\gdal\compileds\VC10_32\lib\gdal_i.lib
@@ -113,7 +113,7 @@ SET  CXCORE_LIB=C:\programs\OpenCV_SVN\lib\cxcore200.lib
 SET     LAS_LIB=C:\programs\compa_libs\liblas-src-1.2.1\lib\VC10_32\liblas_i.lib
 ) )
 
-SET NETCDF_INC=C:\progs_cygw\netcdf-3.6.3\include
+SET NETCDF_INC=C:\programs\compa_libs\netcdf-4.1.2b\compileds\VC10_32\include
 SET GMT_INC=c:\progs_cygw\GMTdev\gmt4\include
 SET GDAL_INC=c:\programs\GDALtrunk\gdal\compileds\VC10_32\include
 SET CV_INC=C:\programs\OpenCV_SVN\include\opencv
@@ -168,7 +168,7 @@ link  /out:"%%G.%MEX_EXT%" %LINKFLAGS% /implib:templib.x %%G.obj
 )
 
 %CC% -DWIN32 %COMPFLAGS% -I%MATINC% %OPTIMFLAGS% %_MX_COMPAT% %TIMEIT% PolygonClip.c gpc.c  
-link  /out:"%%G.%MEX_EXT%" %LINKFLAGS% /implib:templib.x PolygonClip.obj gpc.obj
+link  /out:"PolygonClip.%MEX_EXT%" %LINKFLAGS% /implib:templib.x PolygonClip.obj gpc.obj
 
 REM --------------------- CPPs --------------------------------------------------
 for %%G in (clipbd_mex akimaspline) do (
@@ -226,7 +226,7 @@ IF "%1"=="swan" GOTO END
 
 REM ---------------------- MEXNC ----------------------------------------------------
 :MEXNC
-%CC% -DWIN32 %COMPFLAGS% -I%MATINC% -I%NETCDF_INC% %OPTIMFLAGS% %_MX_COMPAT% %TIMEIT% -DDLL_NETCDF mexnc\mexgateway.c mexnc\netcdf2.c mexnc\netcdf3.c mexnc\common.c
+%CC% -DWIN32 %COMPFLAGS% -I%MATINC% -I%NETCDF_INC% %OPTIMFLAGS% %_MX_COMPAT% %TIMEIT% -DDLL_NETCDF -DNC4_V2_COMPAT mexnc\mexgateway.c mexnc\netcdf2.c mexnc\netcdf3.c mexnc\common.c
 link  /out:"mexnc.%MEX_EXT%" %LINKFLAGS% %NETCDF_LIB% /implib:templib.x mexgateway.obj netcdf2.obj netcdf3.obj common.obj
 IF "%1"=="MEXNC" GOTO END
 
