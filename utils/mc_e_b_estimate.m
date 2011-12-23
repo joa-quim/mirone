@@ -527,42 +527,40 @@ if (~isreal(fStdDev) && ~isnan(fStdDev)),    fStdDev = 0;     end
 
 % --------------------------------------------------------------------
 function y = nanmean(x)
-%NANMEAN Average or mean ignoring NaNs.
-%   Copyright 1993-2003 The MathWorks, Inc. 
+% Average or mean ignoring NaNs.
 
-if (isempty(x)),     y = NaN;    return;     end     % Check for empty input.
+	if (isempty(x)),     y = NaN;    return;     end     % Check for empty input.
 
-% Replace NaNs with zeros.
-nans = isnan(x);
-i = find(nans);
-x(i) = zeros(size(i));
+	% Replace NaNs with zeros.
+	nans = isnan(x);
+	i = find(nans);
+	x(i) = zeros(size(i));
 
-% count terms in sum over first non-singleton dimension
-dim = find(size(x)>1);
-if (isempty(dim)),  dim = 1;
-else                    dim = dim(1);
-end
-count = sum(~nans,dim);
+	% count terms in sum over first non-singleton dimension
+	dim = find(size(x)>1);
+	if (isempty(dim)),  dim = 1;
+	else				dim = dim(1);
+	end
+	count = sum(~nans,dim);
 
-% Protect against a column of all NaNs
-i = find(count==0);
-count(i) = 1;
-y = sum(x,dim)./count;
-y(i) = NaN;
+	% Protect against a column of all NaNs
+	i = find(count==0);
+	count(i) = 1;
+	y = sum(x,dim)./count;
+	y(i) = NaN;
 
 % -----------------------------------------------
 function y = nansum(x)
-%NANSUM Sum ignoring NaNs.
-%   Copyright 1993-2002 The MathWorks, Inc. 
+% Sum ignoring NaNs.
 
-% Replace NaNs with zeros.
-nans = isnan(x);
-i = find(nans);
-x(i) = zeros(size(i));
+	% Replace NaNs with zeros.
+	nans = isnan(x);
+	i = find(nans);
+	x(i) = zeros(size(i));
 
-% Protect against an entire column of NaNs
-y = sum(x);     i = find(all(nans));
-y(i) = i + NaN;
+	% Protect against an entire column of NaNs
+	y = sum(x);     i = find(all(nans));
+	y(i) = i + NaN;
 
 % -----------------------------------------------
 function out = bootrsp(in,B)
@@ -747,7 +745,7 @@ for (nCnt = (fMcStart - 0.9):fBinning:(fMcStart + 1.5))
         fStartMag = nCnt;           % Starting magnitude (hypothetical Mc)
    
         % log10(N)=A-B*M
-        vMag = [fStartMag:fBinning:15]; % Ending magnitude must be sufficiently high
+        vMag = (fStartMag:fBinning:15); % Ending magnitude must be sufficiently high
         vNumber = 10.^(log10(nNumberEvents)-fBValue*(vMag - fStartMag));
         vNumber = round(vNumber);
     
@@ -1017,16 +1015,13 @@ end
 
 %--------------------------------------------------------------------------------
 function y = prctile(x,p)
-%PRCTILE gives the percentiles of the sample in X.
+% Percentiles of the sample in X.
 %   Y = PRCTILE(X,P) returns a value that is greater than P percent
 %   of the values in X. For example, if P = 50  Y is the median of X. 
 %
 %   P may be either a scalar or a vector.  If X is a matrix, the ith
 %   row of Y is the P(i) percentile of each column of X.  If X is a
 %   vector, Y has the same shape as P.
-
-%   Copyright 1993-2003 The MathWorks, Inc. 
-%   $Revision: 2.12 $  $Date: 2002/12/12 21:51:15 $
 
 [prows pcols] = size(p);
 if (prows ~= 1 && pcols ~= 1)

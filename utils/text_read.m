@@ -161,7 +161,7 @@ function out = LocalRowColShuffle(in)
 
 %-------------------------------------------------------------------------------------------------------
 function delim = guessdelim(str)
-%GUESSDELIM Take stab at default delim for this string.
+% Take tab at default delim for this string.
 %   Copyright 1984-2002 The MathWorks, Inc. 
 
 if isempty(str),    delim = '';    return;  end     % return if str is empty
@@ -243,211 +243,208 @@ delim = goodDelims{1};
 
 %-------------------------------------------------------------------------------------------------------
 function [numericData, textData, numHeaderRows] = stringparse(string, delimiter, headerLines)
-%STRINGPARSE Helper function for importdata.
-% Copyright 1984-2002 The MathWorks, Inc.
 
-numericData = [];
-textData = {};
-numHeaderRows = 0;
+	numericData = [];
+	textData = {};
+	numHeaderRows = 0;
 
-% gracefully handle empty
-if ( isempty(string) || all(isspace(string)) ),    return;   end
+	if ( isempty(string) || all(isspace(string)) ),    return;   end
 
-% validate delimiter 
-if nargin == 1
-    delimiter = guessdelim(string);
-else    % handle \t
-    delimiter = sprintf(delimiter);
-    if (numel(delimiter) > 1)
-        error('Multi character delimiters not supported.')
-    end
-end
-
-if (nargin < 3),    headerLines = NaN;      end
-
-% use what user asked for header lines if specified
-[numDataCols, numHeaderRows, numHeaderCols, numHeaderChars] = analyze(string, delimiter, headerLines);
-
-% fetch header lines and look for a line of column headers
-headerLine = {};
-headerData = {};
-origHeaderData = headerData;
-useAsCells = 1;
-
-if numHeaderRows
-    firstLineOffset = numHeaderRows - 1;
-    headerData = strread(string,'%[^\n]',firstLineOffset,'delimiter',delimiter);
-    origHeaderData = headerData;
-    
-    if numDataCols
-        headerData = [origHeaderData, cell(length(origHeaderData), numHeaderCols + numDataCols - 1)];
-    else
-        headerData = [origHeaderData, cell(length(origHeaderData), numHeaderCols)];
-    end
-    
-    headerLine = strread(string,'%[^\n]',1,'headerlines',firstLineOffset,'delimiter',delimiter);
-    origHeaderLine = headerLine;
-    useAsCells = 0;
-    
-    if ~isempty(delimiter) && ~isempty(headerLine) && ~isempty(strfind(deblank(headerLine{:}), delimiter))
-        cellLine = split(headerLine{:}, delimiter);
-        if length(cellLine) == numHeaderCols + numDataCols
-            headerLine = cellLine;
-            useAsCells = 1;
-        end
-    end
-    
-    if (~useAsCells)
-        if numDataCols
-            headerLine = [origHeaderLine, cell(1, numHeaderCols + numDataCols - 1)];
-        else
-            headerLine = [origHeaderLine, cell(1, numHeaderCols)];
-        end
-    end
-end
-
-if isempty(delimiter)
-    formatString = [repmat('%s', 1, numHeaderCols) repmat('%n', 1, numDataCols)];
-else
-    formatString = [repmat(['%[^' delimiter ']'], 1, numHeaderCols) repmat('%n', 1, numDataCols)];
-end
-
-textCellData = {};
-numericCellData = {};
-
-% call strread with format string
-% (if we got here, there must be at least one good chunk on the 1st line in the file)
-if numHeaderCols && numDataCols
-    [textCellData{1:numHeaderCols}, numericCellData{1:numDataCols}] = ...
-        strread(string,formatString,1,'delimiter',delimiter,'headerlines',numHeaderRows);
-elseif numDataCols
-    [numericCellData{1:numDataCols}] = ...
-        strread(string,formatString,1,'delimiter',delimiter,'headerlines',numHeaderRows);
-end
-
-% now try again for the whole shootin' match
-try
-    if numHeaderCols && numDataCols
-        [textCellData{1:numHeaderCols}, numericCellData{1:numDataCols}] = ...
-            strread(string,formatString,'delimiter',delimiter,'headerlines',numHeaderRows);
-    elseif numDataCols
-        [numericCellData{1:numDataCols}] = ...
-            strread(string,formatString,'delimiter',delimiter,'headerlines',numHeaderRows);
-    end
-    wasError = 0;
-catch
-    wasError = 1;
-	warning(lasterr);
-end
-
-% setup some default answers if we're not able to do the full read below
-if numHeaderCols
-    numRows = length(textCellData{1});
-else
-    numRows = 0;
-end
-
-if (numDataCols && ~numRows && ~isempty(numericCellData{1}))
-    numRows = length(numericCellData{1});
-end
-
-if (nargout > 1)
-    for i = 1:numHeaderCols
-        textData(:,i) = textCellData{i};
-    end
-end
-
-numericData = zeros(numRows,numel(numericCellData));
-
-for (i = 1:numDataCols)
-    numericData(:,i) = numericCellData{i};
-    if (nargout > 1), textData(:,i+numHeaderCols) = cell(numRows, 1); end
-end
-
-if (nargout > 1)
-    if ~isempty(headerLine)
-        textData = [headerLine; textData];
-    end
-    
-    if ~isempty(headerData)
-        textData = [headerData; textData];
-    end    
-end
-
-% if the first pass failed to read the whole shootin' match, try again using the character offset
-if wasError && numHeaderChars
-    % rebuild format string
-    formatString = ['%' num2str(numHeaderChars) 'c' repmat('%n', 1, numDataCols)];
-    textCharData = '';		numRows = 0;
-	try
-        [textCharData, numericCellData{1:numDataCols}] = ...
-            strread(string,formatString,'delimiter',delimiter,'headerlines',numHeaderRows,'returnonerror',1);
-        numHeaderCols = 1;
-        if ~isempty(numericCellData)
-            numRows = length(numericCellData{1});
-        else
-            numRows = length(textCharData);
-        end
+	% validate delimiter 
+	if nargin == 1
+		delimiter = guessdelim(string);
+	else    % handle \t
+		delimiter = sprintf(delimiter);
+		if (numel(delimiter) > 1)
+			error('Multi character delimiters not supported.')
+		end
 	end
 
-	if numDataCols
-		headerData = [origHeaderData, cell(length(origHeaderData), numHeaderCols + numDataCols - 1)];
+	if (nargin < 3),    headerLines = NaN;      end
+
+	% use what user asked for header lines if specified
+	[numDataCols, numHeaderRows, numHeaderCols, numHeaderChars] = analyze(string, delimiter, headerLines);
+
+	% fetch header lines and look for a line of column headers
+	headerLine = {};
+	headerData = {};
+	origHeaderData = headerData;
+	useAsCells = 1;
+
+	if numHeaderRows
+		firstLineOffset = numHeaderRows - 1;
+		headerData = strread(string,'%[^\n]',firstLineOffset,'delimiter',delimiter);
+		origHeaderData = headerData;
+
+		if numDataCols
+			headerData = [origHeaderData, cell(length(origHeaderData), numHeaderCols + numDataCols - 1)];
+		else
+			headerData = [origHeaderData, cell(length(origHeaderData), numHeaderCols)];
+		end
+
+		headerLine = strread(string,'%[^\n]',1,'headerlines',firstLineOffset,'delimiter',delimiter);
+		origHeaderLine = headerLine;
+		useAsCells = 0;
+
+		if ~isempty(delimiter) && ~isempty(headerLine) && ~isempty(strfind(deblank(headerLine{:}), delimiter))
+			cellLine = split(headerLine{:}, delimiter);
+			if length(cellLine) == numHeaderCols + numDataCols
+				headerLine = cellLine;
+				useAsCells = 1;
+			end
+		end
+
+		if (~useAsCells)
+			if numDataCols
+				headerLine = [origHeaderLine, cell(1, numHeaderCols + numDataCols - 1)];
+			else
+				headerLine = [origHeaderLine, cell(1, numHeaderCols)];
+			end
+		end
+	end
+
+	if isempty(delimiter)
+		formatString = [repmat('%s', 1, numHeaderCols) repmat('%n', 1, numDataCols)];
 	else
-		headerData = [origHeaderData, cell(length(origHeaderData), numHeaderCols)];
+		formatString = [repmat(['%[^' delimiter ']'], 1, numHeaderCols) repmat('%n', 1, numDataCols)];
 	end
 
-	if ~useAsCells
-        if numDataCols
-            headerLine = [origHeaderLine, cell(1, numHeaderCols + numDataCols - 1)];
-        else
-            headerLine = [origHeaderLine, cell(1, numHeaderCols)];
-        end
+	textCellData = {};
+	numericCellData = {};
+
+	% call strread with format string
+	% (if we got here, there must be at least one good chunk on the 1st line in the file)
+	if numHeaderCols && numDataCols
+		[textCellData{1:numHeaderCols}, numericCellData{1:numDataCols}] = ...
+			strread(string,formatString,1,'delimiter',delimiter,'headerlines',numHeaderRows);
+	elseif numDataCols
+		[numericCellData{1:numDataCols}] = ...
+			strread(string,formatString,1,'delimiter',delimiter,'headerlines',numHeaderRows);
+	end
+
+	% now try again for the whole shootin' match
+	try
+		if numHeaderCols && numDataCols
+			[textCellData{1:numHeaderCols}, numericCellData{1:numDataCols}] = ...
+				strread(string,formatString,'delimiter',delimiter,'headerlines',numHeaderRows);
+		elseif numDataCols
+			[numericCellData{1:numDataCols}] = ...
+				strread(string,formatString,'delimiter',delimiter,'headerlines',numHeaderRows);
+		end
+		wasError = 0;
+	catch
+		wasError = 1;
+		warning(lasterr);
+	end
+
+	% setup some default answers if we're not able to do the full read below
+	if numHeaderCols
+		numRows = length(textCellData{1});
+	else
+		numRows = 0;
+	end
+
+	if (numDataCols && ~numRows && ~isempty(numericCellData{1}))
+		numRows = length(numericCellData{1});
+	end
+
+	if (nargout > 1)
+		for i = 1:numHeaderCols
+			textData(:,i) = textCellData{i};
+		end
 	end
 
 	numericData = zeros(numRows,numel(numericCellData));
+
 	for (i = 1:numDataCols)
 		numericData(:,i) = numericCellData{i};
+		if (nargout > 1), textData(:,i+numHeaderCols) = cell(numRows, 1); end
 	end
 
-    if (nargout > 1 && ~isempty(textCharData))
-        textCellData = cellstr(textCharData);
-        if ~isempty(headerLine)
-            textData = [headerLine;
-                textCellData(1:numRows), cell(numRows, numHeaderCols + numDataCols - 1)];
-        else
-            textData = [textCellData(1:numRows), cell(numRows, numHeaderCols + numDataCols - 1)];
-        end
-        
-        if ~isempty(headerData)
-            textData = [headerData; textData];
-        end
-    end
-end
+	if (nargout > 1)
+		if ~isempty(headerLine)
+			textData = [headerLine; textData];
+		end
 
-if (nargout > 1 && ~isempty(textData))    % trim trailing empty rows from textData
-    i = 1;
-    while i <= size(textData,1)
-        if all(cellfun('isempty',textData(i,:)))
-            break;
-        end
-        i = i + 1;
-    end
-    if i <= size(textData,1)
-        textData = textData(1:i-1,:);
-    end
-    
-    % trim trailing empty cols from textData
-    i = 1;
-    while (i <= size(textData,2))
-        if all(cellfun('isempty',textData(:,i)))
-            break;
-        end
-        i = i + 1;
-    end
-    if (i <= size(textData,2))
-        textData = textData(:,1:i-1);
-    end
-end
+		if ~isempty(headerData)
+			textData = [headerData; textData];
+		end    
+	end
+
+	% if the first pass failed to read the whole shootin' match, try again using the character offset
+	if wasError && numHeaderChars
+		% rebuild format string
+		formatString = ['%' num2str(numHeaderChars) 'c' repmat('%n', 1, numDataCols)];
+		textCharData = '';		numRows = 0;
+		try
+			[textCharData, numericCellData{1:numDataCols}] = ...
+				strread(string,formatString,'delimiter',delimiter,'headerlines',numHeaderRows,'returnonerror',1);
+			numHeaderCols = 1;
+			if ~isempty(numericCellData)
+				numRows = length(numericCellData{1});
+			else
+				numRows = length(textCharData);
+			end
+		end
+
+		if numDataCols
+			headerData = [origHeaderData, cell(length(origHeaderData), numHeaderCols + numDataCols - 1)];
+		else
+			headerData = [origHeaderData, cell(length(origHeaderData), numHeaderCols)];
+		end
+
+		if ~useAsCells
+			if numDataCols
+				headerLine = [origHeaderLine, cell(1, numHeaderCols + numDataCols - 1)];
+			else
+				headerLine = [origHeaderLine, cell(1, numHeaderCols)];
+			end
+		end
+
+		numericData = zeros(numRows,numel(numericCellData));
+		for (i = 1:numDataCols)
+			numericData(:,i) = numericCellData{i};
+		end
+
+		if (nargout > 1 && ~isempty(textCharData))
+			textCellData = cellstr(textCharData);
+			if ~isempty(headerLine)
+				textData = [headerLine;
+					textCellData(1:numRows), cell(numRows, numHeaderCols + numDataCols - 1)];
+			else
+				textData = [textCellData(1:numRows), cell(numRows, numHeaderCols + numDataCols - 1)];
+			end
+
+			if ~isempty(headerData)
+				textData = [headerData; textData];
+			end
+		end
+	end
+
+	if (nargout > 1 && ~isempty(textData))    % trim trailing empty rows from textData
+		i = 1;
+		while i <= size(textData,1)
+			if all(cellfun('isempty',textData(i,:)))
+				break;
+			end
+			i = i + 1;
+		end
+		if i <= size(textData,1)
+			textData = textData(1:i-1,:);
+		end
+
+		% trim trailing empty cols from textData
+		i = 1;
+		while (i <= size(textData,2))
+			if all(cellfun('isempty',textData(:,i)))
+				break;
+			end
+			i = i + 1;
+		end
+		if (i <= size(textData,2))
+			textData = textData(:,1:i-1);
+		end
+	end
 
 %-------------------------------------------------------------------------------------------------------
 function [numColumns, numHeaderRows, numHeaderCols, numHeaderChars] = analyze(string, delimiter, header)
