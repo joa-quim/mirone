@@ -4061,7 +4061,10 @@ function TransferB_CB(handles, opt)
 				n = n + 1;			ind_all(k) = true;
 			end
 		end
-		if (n == 1),	return,		end				% Nothing new to update
+		if (n == 1)									% Nothing new to update
+			builtin('delete',dest_fiche);
+			msgbox('This Mirone version is updated to latest.','Nothing New'),	return
+		end
 		nomes = nomes(ind_all);						% Retain only the original names (that may include a path) to dl
 
 		ind = false(1,n-1);			msg = [];
