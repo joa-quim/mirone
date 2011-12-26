@@ -623,6 +623,7 @@ utils/buffer_j.m -text
 utils/bwbound_unique.m -text
 utils/calc_bonin_euler_pole.m -text
 utils/calc_omori.m -text
+utils/calc_omori_aux.p -text
 utils/canny.m -text
 utils/cdf2pal.m -text
 utils/circ_geo.m -text
