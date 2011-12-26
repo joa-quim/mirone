@@ -358,7 +358,7 @@ kMean1 = loops(nMean,5);        kMean2 = loops(nMean,6);
 mMedModF = [pMean1, pstd1, pMean2, pstd2, cMean1, cstd1, cMean2, cstd2, kMean1, kstd1, kMean2, kstd2];
 
 % -----------------------------------------------
-function [fStdDev] = calc_StdDev(vDistribution);
+function [fStdDev] = calc_StdDev(vDistribution)
 % Computes the standard deviation of a non-parameterized distribution 
 %
 % Input:   vDistribution -> Vector containing the distribution
@@ -377,158 +377,10 @@ fStdDev = sqrt(nansum(vDist)-(nanmean(vDistribution))^2);
 % the argument of the sqrt-coomand may be not zero although it should. 
 % Thus the sqrt outputs a complex number, although it should be zero! 
 % This is fixed now by the following if command.
-if (~isreal(fStdDev) & ~isnan(fStdDev))    fStdDev = 0;     end
+if (~isreal(fStdDev) && ~isnan(fStdDev))    fStdDev = 0;     end
 
 % --------------------------------------------------------------------------------------
-function [H,pValue,KSstatistic] = kstest2(x1 , x2 , alpha , tail)
-%KSTEST2 Two-sample Kolmogorov-Smirnov goodness-of-fit hypothesis test.
-%   H = KSTEST2(X1,X2,ALPHA,TAIL) performs a Kolmogorov-Smirnov (K-S) test 
-%   to determine if independent random samples, X1 and X2, are drawn from 
-%   the same underlying continuous population. ALPHA and TAIL are optional
-%   scalar inputs: ALPHA is the desired significance level (default = 0.05); 
-%   TAIL indicates the type of test (default = 0). H indicates the result of
-%   the hypothesis test:
-%      H = 0 => Do not reject the null hypothesis at significance level ALPHA.
-%      H = 1 => Reject the null hypothesis at significance level ALPHA.
-% 
-%   Let F1(x) and F2(x) be the empirical distribution functions from sample 
-%   vectors X1 and X2, respectively. The 2-sample K-S test hypotheses and 
-%   test statistic are:
-%
-%   Null Hypothesis: F1(x) = F2(x) for all x
-%      For TAIL =  0 (2-sided test), alternative: F1(x) not equal to F2(x).
-%      For TAIL =  1 (1-sided test), alternative: F1(x) > F2(x).
-%      For TAIL = -1 (1-sided test), alternative: F1(x) < F2(x).
-%
-%   For TAIL = 0, 1, and -1, the test statistics are T = max|F1(x) - F2(x)|,
-%   T = max[F1(x) - F2(x)], and T = max[F2(x) - F1(x)], respectively.
-%
-%   The decision to reject the null hypothesis occurs when the significance 
-%   level, ALPHA, equals or exceeds the P-value.
-%
-%   X1 and X2 are row or column vectors of lengths N1 and N2, respectively, 
-%   and represent random samples from some underlying distribution(s). 
-%   Missing observations, indicated by NaN's (Not-a-Number), are ignored.
-%
-%   [H,P] = KSTEST2(...) also returns the asymptotic P-value P.
-%
-%   [H,P,KSSTAT] = KSTEST2(...) also returns the K-S test statistic KSSTAT
-%   defined above for the test type indicated by TAIL.
-%
-%   The asymptotic P-value becomes very accurate for large sample sizes, and
-%   is believed to be reasonably accurate for sample sizes N1 and N2 such 
-%   that (N1*N2)/(N1 + N2) >= 4.
-
-% Author(s): R.A. Baker, 08/14/98
-% Copyright 1993-2002 The MathWorks, Inc. 
-% $Revision: 1.5 $   $ Date: 1998/01/30 13:45:34 $
-
-%
-% References:
-%   (1) Massey, F.J., "The Kolmogorov-Smirnov Test for Goodness of Fit",
-%         Journal of the American Statistical Association, 46 (March 1956), 68-77.
-%   (2) Miller, L.H., "Table of Percentage Points of Kolmogorov Statistics",
-%         Journal of the American Statistical Association, (March 1951), 111-121.
-%   (3) Conover, W.J., "Practical Nonparametric Statistics", 
-%         John Wiley & Sons, Inc., 1980.
-%   (4) Press, W.H., et. al., "Numerical Recipes in C", 
-%         Cambridge University Press, 1992.
- 
-if (nargin < 2)    error(' At least 2 inputs are required.');   end
-
-% Ensure each sample is a VECTOR.
-[rows1 , columns1]  =  size(x1);
-[rows2 , columns2]  =  size(x2);
-
-if (rows1 ~= 1) & (columns1 ~= 1) 
-    error(' Sample ''X1'' must be a vector.');
-end
-
-if (rows2 ~= 1) & (columns2 ~= 1) 
-    error(' Sample ''X2'' must be a vector.');
-end
-
-% Remove missing observations indicated by NaN's, and 
-% ensure that valid observations remain.
-x1  =  x1(~isnan(x1));
-x2  =  x2(~isnan(x2));
-x1  =  x1(:);
-x2  =  x2(:);
-
-if (isempty(x1))   error(' Sample vector ''X1'' is composed of all NaN''s.');   end
-if (isempty(x2))   error(' Sample vector ''X2'' is composed of all NaN''s.');   end
-
-% Ensure the significance level, ALPHA, is a scalar 
-% between 0 and 1 and set default if necessary.
-if (nargin >= 3) & ~isempty(alpha)
-   if prod(size(alpha)) > 1
-      error(' Significance level ''Alpha'' must be a scalar.');
-   end
-   if (alpha <= 0 | alpha >= 1)
-      error(' Significance level ''Alpha'' must be between 0 and 1.'); 
-   end
-else
-   alpha  =  0.05;
-end
-
-% Ensure the type-of-test indicator, TAIL, is a scalar integer from 
-% the allowable set {-1 , 0 , 1}, and set default if necessary.
-if (nargin >= 4) & ~isempty(tail)
-   if prod(size(tail)) > 1
-      error(' Type-of-test indicator ''Tail'' must be a scalar.');
-   end
-   if (tail ~= -1) & (tail ~= 0) & (tail ~= 1)
-      error(' Type-of-test indicator ''Tail'' must be -1, 0, or 1.');
-   end
-else
-   tail  =  0;
-end
-
-% Calculate F1(x) and F2(x), the empirical (i.e., sample) CDFs.
-binEdges   = [-inf ; sort([x1;x2]) ; inf];
-
-binCounts1 = histc (x1, binEdges);
-binCounts2 = histc (x2, binEdges);
-
-sumCounts1 = cumsum(binCounts1)./sum(binCounts1);
-sumCounts2 = cumsum(binCounts2)./sum(binCounts2);
-
-sampleCDF1 = sumCounts1(1:end-1);
-sampleCDF2 = sumCounts2(1:end-1);
-
-% Compute the test statistic of interest.
-switch tail
-   case  0      %  2-sided test: T = max|F1(x) - F2(x)|.
-      deltaCDF = abs(sampleCDF1 - sampleCDF2);
-   case -1      %  1-sided test: T = max[F2(x) - F1(x)].
-      deltaCDF = sampleCDF2 - sampleCDF1;
-   case  1      %  1-sided test: T = max[F1(x) - F2(x)].
-      deltaCDF = sampleCDF1 - sampleCDF2;
-end
-
-KSstatistic = max(deltaCDF);
-
-% Compute the asymptotic P-value approximation and accept or
-% reject the null hypothesis on the basis of the P-value.
-n1     = length(x1);
-n2     = length(x2);
-n      = n1 * n2 /(n1 + n2);
-lambda = max((sqrt(n) + 0.12 + 0.11/sqrt(n)) * KSstatistic , 0);
-
-if (tail ~= 0)        % 1-sided test.
-    pValue = exp(-2 * lambda * lambda);
-else                % 2-sided test (default).
-    %  Use the asymptotic Q-function to approximate the 2-sided P-value.
-   j = [1:101]';
-   pValue  =  2 * sum((-1).^(j-1).*exp(-2*lambda*lambda*j.^2));
-   if (pValue < 0)  pValue = 0; end
-   if (pValue > 1)  pValue = 1; end
-end
-
-H = (alpha >= pValue);
-
-% --------------------------------------------------------------------------------------
-function [pv1, pv2, cv1, cv2, kv1, kv2, fAIC, fL] = bruteforceloglike_a2(tas, fT1, nMod);
+function [pv1, pv2, cv1, cv2, kv1, kv2, fAIC, fL] = bruteforceloglike_a2(tas, fT1, nMod)
 % Calculates by a constrained grid search the parameters of the modified Omori formula 
 % using the log likelihood function by Ogata (1983) and calculates the best model by the
 % corrected AIC (Burnham & Anderson(2002)
@@ -602,7 +454,7 @@ end
 fAIC = -2*(-fL)+2*fPar+2*fPar*(fPar+1)/(fk-fPar-1);
 
 %----------------------------------------------------------------------------------
-function fL = bruteloglike(vValues,time_as);
+function fL = bruteloglike(vValues,time_as)
 % This function calculates the log likelihood 
 % function for the modeled aftershock sequence and the maximum likelihood estimate for k, c and p
 % Reference: Ogata, Estimation of the parameters in the modified Omori formula 
@@ -628,7 +480,7 @@ nNumEvents = length(time_as);
 fL = -(nNumEvents*log(k)-p*sum(log(time_as+c))-k*fAcp);
 
 %----------------------------------------------------------------------------------
-function fL = bruteloglike_pck2(vValues,tas,fT1);
+function fL = bruteloglike_pck2(vValues,tas,fT1)
 % Function to calculate the log likelihood function of an Omori law including one
 % secondary aftershock at time fT1. Assume p and c constant for the entire sequence,
 % but different k's before and after fT1
@@ -691,7 +543,7 @@ fL_per2 = fTerm1-fTerm2;
 fL = -(fL_per1+fL_per2);
 
 %----------------------------------------------------------------------------------
-function fL = bruteloglike_p2ck2(vValues,tas,fT1);
+function fL = bruteloglike_p2ck2(vValues,tas,fT1)
 % Function to calculate the log likelihood function of an Omori law including one
 % secondary aftershock at time fT1. c constant , p and k different before and after fT1
 %
@@ -738,13 +590,13 @@ fpsup2 = 1-p2;
 
 fTerm1 = sum(log(k1*(vTperiod2+c1).^(-p1)+k2*(vTperiod2-fT1+c2).^(-p2)));
 
-if (p1~=1 & p2~=2)
+if (p1~=1 && p2~=2)
     fTerm2a = k1/fpsup1*((fTend+c1).^fpsup1-(fT1+c1).^fpsup1);
     fTerm2b = k2/fpsup2*((fTend-fT1+c2).^fpsup2-c2.^fpsup2);
     fTerm2 = fTerm2a + fTerm2b;
-elseif (p1==1 & p2==1)
+elseif (p1==1 && p2==1)
     fTerm2 = k1*(log(fTend+c1)-log(fT1+c1))+k2*(log(fTend-fT1+c2)-log(c2));
-elseif (p1~=1 & p2==1)
+elseif (p1~=1 && p2==1)
     fTerm2a = k1/fpsup1*((fTend+c1).^fpsup1-(fT1+c1).^fpsup1);
     fTerm2b = k2*(log(fTend-fT1+c2)-log(c2));
     fTerm2 = fTerm2a + fTerm2b;
@@ -760,7 +612,7 @@ fL_per2 = fTerm1-fTerm2;
 fL = -(fL_per1+fL_per2);
 
 %----------------------------------------------------------------------------------
-function fL = bruteloglike_p2c2k2(vValues,tas,fT1);
+function fL = bruteloglike_p2c2k2(vValues,tas,fT1)
 % Function to calculate the log likelihood function of an Omori law including one
 % secondary aftershock at time fT1. p, c and k different before and after fT1
 %
@@ -805,13 +657,13 @@ fL_per1 = nEvents*log(k1)-p1*sum(log(vTperiod1+c1))-k1*fAcp;
 fpsup1 = 1-p1;      fpsup2 = 1-p2;
 
 fTerm1 = sum(log(k1*(vTperiod2+c1).^(-p1)+k2*(vTperiod2-fT1+c2).^(-p2)));
-if (p1~=1 & p2~=2)
+if (p1~=1 && p2~=2)
     fTerm2a = k1/fpsup1*((fTend+c1).^fpsup1-(fT1+c1).^fpsup1);
     fTerm2b = k2/fpsup2*((fTend-fT1+c2).^fpsup2-c2.^fpsup2);
     fTerm2 = fTerm2a + fTerm2b;
-elseif (p1==1 & p2==1)
+elseif (p1==1 && p2==1)
     fTerm2 = k1*(log(fTend+c1)-log(fT1+c1))+k2*(log(fTend-fT1+c2)-log(c2));
-elseif (p1~=1 & p2==1)
+elseif (p1~=1 && p2==1)
     fTerm2a = k1/fpsup1*((fTend+c1).^fpsup1-(fT1+c1).^fpsup1);
     fTerm2b = k2*(log(fTend-fT1+c2)-log(c2));
     fTerm2 = fTerm2a + fTerm2b;
@@ -825,6 +677,154 @@ fL_per2 = fTerm1-fTerm2;
 
 % Add upp likelihoods
 fL = -(fL_per1+fL_per2);
+
+% --------------------------------------------------------------------------------------
+function [H,pValue,KSstatistic] = kstest2(x1 , x2 , alpha , tail)
+%KSTEST2 Two-sample Kolmogorov-Smirnov goodness-of-fit hypothesis test.
+%   H = KSTEST2(X1,X2,ALPHA,TAIL) performs a Kolmogorov-Smirnov (K-S) test 
+%   to determine if independent random samples, X1 and X2, are drawn from 
+%   the same underlying continuous population. ALPHA and TAIL are optional
+%   scalar inputs: ALPHA is the desired significance level (default = 0.05); 
+%   TAIL indicates the type of test (default = 0). H indicates the result of
+%   the hypothesis test:
+%      H = 0 => Do not reject the null hypothesis at significance level ALPHA.
+%      H = 1 => Reject the null hypothesis at significance level ALPHA.
+% 
+%   Let F1(x) and F2(x) be the empirical distribution functions from sample 
+%   vectors X1 and X2, respectively. The 2-sample K-S test hypotheses and 
+%   test statistic are:
+%
+%   Null Hypothesis: F1(x) = F2(x) for all x
+%      For TAIL =  0 (2-sided test), alternative: F1(x) not equal to F2(x).
+%      For TAIL =  1 (1-sided test), alternative: F1(x) > F2(x).
+%      For TAIL = -1 (1-sided test), alternative: F1(x) < F2(x).
+%
+%   For TAIL = 0, 1, and -1, the test statistics are T = max|F1(x) - F2(x)|,
+%   T = max[F1(x) - F2(x)], and T = max[F2(x) - F1(x)], respectively.
+%
+%   The decision to reject the null hypothesis occurs when the significance 
+%   level, ALPHA, equals or exceeds the P-value.
+%
+%   X1 and X2 are row or column vectors of lengths N1 and N2, respectively, 
+%   and represent random samples from some underlying distribution(s). 
+%   Missing observations, indicated by NaN's (Not-a-Number), are ignored.
+%
+%   [H,P] = KSTEST2(...) also returns the asymptotic P-value P.
+%
+%   [H,P,KSSTAT] = KSTEST2(...) also returns the K-S test statistic KSSTAT
+%   defined above for the test type indicated by TAIL.
+%
+%   The asymptotic P-value becomes very accurate for large sample sizes, and
+%   is believed to be reasonably accurate for sample sizes N1 and N2 such 
+%   that (N1*N2)/(N1 + N2) >= 4.
+
+% Author(s): R.A. Baker, 08/14/98
+% Copyright 1993-2002 The MathWorks, Inc. 
+% $Revision: 1.5 $   $ Date: 1998/01/30 13:45:34 $
+
+%
+% References:
+%   (1) Massey, F.J., "The Kolmogorov-Smirnov Test for Goodness of Fit",
+%         Journal of the American Statistical Association, 46 (March 1956), 68-77.
+%   (2) Miller, L.H., "Table of Percentage Points of Kolmogorov Statistics",
+%         Journal of the American Statistical Association, (March 1951), 111-121.
+%   (3) Conover, W.J., "Practical Nonparametric Statistics", 
+%         John Wiley & Sons, Inc., 1980.
+%   (4) Press, W.H., et. al., "Numerical Recipes in C", 
+%         Cambridge University Press, 1992.
+ 
+if (nargin < 2)    error(' At least 2 inputs are required.');   end
+
+% Ensure each sample is a VECTOR.
+[rows1 , columns1]  =  size(x1);
+[rows2 , columns2]  =  size(x2);
+
+if (rows1 ~= 1) && (columns1 ~= 1) 
+    error(' Sample ''X1'' must be a vector.');
+end
+
+if (rows2 ~= 1) && (columns2 ~= 1) 
+    error(' Sample ''X2'' must be a vector.');
+end
+
+% Remove missing observations indicated by NaN's, and 
+% ensure that valid observations remain.
+x1  =  x1(~isnan(x1));
+x2  =  x2(~isnan(x2));
+x1  =  x1(:);
+x2  =  x2(:);
+
+if (isempty(x1))   error(' Sample vector ''X1'' is composed of all NaN''s.');   end
+if (isempty(x2))   error(' Sample vector ''X2'' is composed of all NaN''s.');   end
+
+% Ensure the significance level, ALPHA, is a scalar 
+% between 0 and 1 and set default if necessary.
+if (nargin >= 3) && ~isempty(alpha)
+   if numel(alpha) > 1
+      error(' Significance level ''Alpha'' must be a scalar.');
+   end
+   if (alpha <= 0 || alpha >= 1)
+      error(' Significance level ''Alpha'' must be between 0 and 1.'); 
+   end
+else
+   alpha  =  0.05;
+end
+
+% Ensure the type-of-test indicator, TAIL, is a scalar integer from 
+% the allowable set {-1 , 0 , 1}, and set default if necessary.
+if (nargin >= 4) && ~isempty(tail)
+   if numel(tail) > 1
+      error(' Type-of-test indicator ''Tail'' must be a scalar.');
+   end
+   if (tail ~= -1) && (tail ~= 0) && (tail ~= 1)
+      error(' Type-of-test indicator ''Tail'' must be -1, 0, or 1.');
+   end
+else
+   tail  =  0;
+end
+
+% Calculate F1(x) and F2(x), the empirical (i.e., sample) CDFs.
+binEdges   = [-inf ; sort([x1;x2]) ; inf];
+
+binCounts1 = histc (x1, binEdges);
+binCounts2 = histc (x2, binEdges);
+
+sumCounts1 = cumsum(binCounts1)./sum(binCounts1);
+sumCounts2 = cumsum(binCounts2)./sum(binCounts2);
+
+sampleCDF1 = sumCounts1(1:end-1);
+sampleCDF2 = sumCounts2(1:end-1);
+
+% Compute the test statistic of interest.
+switch tail
+   case  0      %  2-sided test: T = max|F1(x) - F2(x)|.
+      deltaCDF = abs(sampleCDF1 - sampleCDF2);
+   case -1      %  1-sided test: T = max[F2(x) - F1(x)].
+      deltaCDF = sampleCDF2 - sampleCDF1;
+   case  1      %  1-sided test: T = max[F1(x) - F2(x)].
+      deltaCDF = sampleCDF1 - sampleCDF2;
+end
+
+KSstatistic = max(deltaCDF);
+
+% Compute the asymptotic P-value approximation and accept or
+% reject the null hypothesis on the basis of the P-value.
+n1     = length(x1);
+n2     = length(x2);
+n      = n1 * n2 /(n1 + n2);
+lambda = max((sqrt(n) + 0.12 + 0.11/sqrt(n)) * KSstatistic , 0);
+
+if (tail ~= 0)        % 1-sided test.
+    pValue = exp(-2 * lambda * lambda);
+else                % 2-sided test (default).
+    %  Use the asymptotic Q-function to approximate the 2-sided P-value.
+   j = [1:101]';
+   pValue  =  2 * sum((-1).^(j-1).*exp(-2*lambda*lambda*j.^2));
+   if (pValue < 0)  pValue = 0; end
+   if (pValue > 1)  pValue = 1; end
+end
+
+H = (alpha >= pValue);
 
 % -------------------------------------------------------------------------------------------------
 function [X,FVAL,EXITFLAG,OUTPUT,LAMBDA,GRAD,HESSIAN] = fmincon_m(FUN,X,A,B,Aeq,Beq,LB,UB,NONLCON,options,varargin)
@@ -860,12 +860,16 @@ large = 'large-scale';
 medium = 'medium-scale';
 
 if nargin < 10, options=[];
-   if nargin < 9, NONLCON=[];
-      if nargin < 8, UB = [];
-         if nargin < 7, LB = [];
-            if nargin < 6, Beq=[];
-               if nargin < 5, Aeq =[];
-               end, end, end, end, end, end
+	if nargin < 9, NONLCON=[];
+		if nargin < 8, UB = [];
+			if nargin < 7, LB = [];
+				if nargin < 6, Beq=[];
+					if nargin < 5, Aeq =[];	end
+				end
+			end
+		end
+	end
+end
 
 lenVarIn = length(varargin);
 XOUT=X(:);
@@ -2146,7 +2150,7 @@ while iterations < maxiter
             actlambda = rlambda;
             actlambda(eqix) = abs(rlambda(eqix));
             indlam = find(actlambda < 0);
-            if (~length(indlam)) 
+            if (~~isempty(indlam)) 
                 lambda(indepInd(ACTIND)) = normf * (rlambda./normA(ACTIND));
                 ACTIND = indepInd(ACTIND);
                 output.iterations = iterations;
@@ -2224,7 +2228,7 @@ while iterations < maxiter
         actlambda = rlambda;
         actlambda(eqix)=abs(actlambda(eqix));
         indlam = find(actlambda<0);
-        if length(indlam)
+        if ~isempty(indlam)
             if STEPMIN > errnorm
                 % If there is no chance of cycling then pick the constraint 
                 % which causes the biggest reduction in the cost function. 
@@ -2319,7 +2323,7 @@ while iterations < maxiter
             actlambda(1:neqcstr) = abs(actlambda(1:neqcstr));
             indlam = find(actlambda < errnorm);
             lambda(indepInd(ACTINDtmp)) = normf * (rlambda./normA(ACTINDtmp));
-            if ~length(indlam)
+            if ~(~isempty(indlam))
                 ACTIND = indepInd(ACTIND);
                 output.iterations = iterations;
                 return
@@ -2490,7 +2494,7 @@ if ~strcmp(how,'infeasible') && ACTCNT > 0
 end
 
 % --------------------------------------------------------------------------------
-function [SD, dirType] = compdir(Z,H,gf,nvars,f);
+function [SD, dirType] = compdir(Z,H,gf,nvars,f)
 % COMPDIR Computes a search direction in a subspace defined by Z.  [SD,
 % dirType] = compdir(Z,H,gf,nvars,f) returns a search direction for the
 % subproblem 0.5*Z'*H*Z + Z'*gf. Helper function for NLCONST. SD is Newton
@@ -2516,7 +2520,7 @@ if ~p  % positive definite: use Newton direction
     dirType = Newton;
 else % not positive definite
     [L,sneg] = choltrap(projH);
-    if ~isempty(sneg) & sneg'*projH*sneg < -sqrt(eps) % if negative enough
+    if ~isempty(sneg) && sneg'*projH*sneg < -sqrt(eps) % if negative enough
         SD = Z*sneg;
         dirType = NegCurv;
     else % Not positive definite, not negative definite "enough" so use steepest descent direction
@@ -2608,15 +2612,15 @@ hessfcn = [];
 calltype = 'fun';
 
 % {fun}
-if (isa(funstr, 'cell') & length(funstr)==1)    % take the cellarray apart: we know it is nonempty
+if (isa(funstr, 'cell') && length(funstr)==1)    % take the cellarray apart: we know it is nonempty
     [funfcn, msg] = fcnchk1(funstr{1},lenVarIn);
     if (~isempty(msg))      error(msg);    end
     % {fun,[]}      
-elseif isa(funstr, 'cell') & length(funstr)==2 & isempty(funstr{2})
+elseif isa(funstr, 'cell') && length(funstr)==2 && isempty(funstr{2})
     [funfcn, msg] = fcnchk1(funstr{1},lenVarIn);
     if (~isempty(msg))      error(msg);    end
     % {fun, grad}   
-elseif isa(funstr, 'cell') & length(funstr)==2 % and ~isempty(funstr{2})
+elseif isa(funstr, 'cell') && length(funstr)==2 % and ~isempty(funstr{2})
     
     [funfcn, msg] = fcnchk1(funstr{1},lenVarIn);
     if (~isempty(msg))      error(msg);    end
@@ -2627,11 +2631,11 @@ elseif isa(funstr, 'cell') & length(funstr)==2 % and ~isempty(funstr{2})
         calltype = 'fun';
     end
     % {fun, [], []}   
-elseif isa(funstr, 'cell') & length(funstr)==3 & ~isempty(funstr{1}) & isempty(funstr{2}) & isempty(funstr{3})
+elseif isa(funstr, 'cell') && length(funstr)==3 && ~isempty(funstr{1}) && isempty(funstr{2}) && isempty(funstr{3})
     [funfcn, msg] = fcnchk1(funstr{1},lenVarIn);
     if (~isempty(msg))      error(msg);    end
     % {fun, grad, hess}   
-elseif isa(funstr, 'cell') & length(funstr)==3 & ~isempty(funstr{2}) & ~isempty(funstr{3})
+elseif isa(funstr, 'cell') && length(funstr)==3 && ~isempty(funstr{2}) && ~isempty(funstr{3})
     [funfcn, msg] = fcnchk1(funstr{1},lenVarIn);
     if (~isempty(msg))      error(msg);    end
     [gradfcn, msg] = fcnchk1(funstr{2},lenVarIn);
@@ -2639,16 +2643,16 @@ elseif isa(funstr, 'cell') & length(funstr)==3 & ~isempty(funstr{2}) & ~isempty(
     [hessfcn, msg] = fcnchk1(funstr{3},lenVarIn);
     if (~isempty(msg))      error(msg);    end
     calltype = 'fun_then_grad_then_hess';
-    if ~hessflag & ~gradflag
+    if ~hessflag && ~gradflag
         calltype = 'fun';
-    elseif hessflag & ~gradflag
+    elseif hessflag && ~gradflag
         calltype = 'fun';
-    elseif ~hessflag & gradflag
+    elseif ~hessflag && gradflag
         calltype = 'fun_then_grad';
     end
     
     % {fun, grad, []}   
-elseif isa(funstr, 'cell') & length(funstr)==3 & ~isempty(funstr{2}) & isempty(funstr{3})
+elseif isa(funstr, 'cell') && length(funstr)==3 && ~isempty(funstr{2}) && isempty(funstr{3})
     [funfcn, msg] = fcnchk1(funstr{1},lenVarIn);
     if (~isempty(msg))      error(msg);    end
     [gradfcn, msg] = fcnchk1(funstr{2},lenVarIn);
