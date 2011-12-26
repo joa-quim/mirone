@@ -83,7 +83,7 @@ PROG_SIMPLE	= test_gmt igrf_m scaleto8 tsun2 wave_travel_time mansinha_m telha_m
 
 # netCDF mexs (other than GMT ones)
 PROG_withCDF	= swan
-PROG_GDAL	= gdalread gdalwrite ogrproj gdalwarp_mex gdaltransform_mex
+PROG_GDAL	= gdalread gdalwrite ogrproj gdalwarp_mex gdaltransform_mex ogrread
 PROG_MEXNC	= mex_nc
 PROG_OCV	= cvlib_mex
 PROG_SHAPE	= mex_shape
@@ -203,6 +203,8 @@ gdalwarp_mex:
 		$(MEX) $(GDAL_FLAGS) gdalwarp_mex.cpp $(GDAL_LIB) $(MEXLIB)
 ogrproj:
 		$(MEX) $(GDAL_FLAGS) ogrproj.cpp $(GDAL_LIB) $(MEXLIB)
+ogrread:
+		$(MEX) $(GDAL_FLAGS) ogrread.c $(GDAL_LIB) $(MEXLIB)
 gdaltransform_mex:
 		$(MEX) $(GDAL_FLAGS) gdaltransform_mex.cpp $(GDAL_LIB) $(MEXLIB)
 
