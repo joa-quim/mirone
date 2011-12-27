@@ -723,6 +723,7 @@ function n_tiles = mosaic_srtm30(handles)
 	if iscell(fnames),		[m,n] = size(fnames);	end
 	RC = [6000 4800];
 % 	from_web = get(handles.check_web,'Val');
+	from_web = false;
 
 	z_min = 1e100;     z_max = -z_min;	%x_min = 1e10;	x_max = -x_min;	y_min = 1e10;	y_max = -y_min;
 	if (m * n > 1)
