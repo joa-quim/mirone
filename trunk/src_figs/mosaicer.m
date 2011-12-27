@@ -502,7 +502,7 @@ function push_cache_dir_CB(hObject, handles)
 		cache_dir = uigetdir(cd, 'Select a directory');
 	end
 	if ~isempty(cache_dir)
-		popup_cache_dir_CB(handles.popup_directory_list, handles, cache_dir)
+		popup_cache_dir_CB(handles.popup_cache_dir, handles, cache_dir)
 	end
 
 % -------------------------------------------------------------------------
@@ -580,18 +580,22 @@ function toggle_mesh_CB(hObject, handles)
 function push_OK_CB(hObject, handles)
 % Pick the right function to do the building work
 	if (get(handles.radio_srtm,'Val'))
-		mosaic_srtm(handles)
+		n_tiles = mosaic_srtm(handles);
 	elseif (get(handles.radio_srtm5,'Val'))
-		mosaic_srtm5(handles)
+		n_tiles = mosaic_srtm5(handles);
 	elseif (get(handles.radio_srtm30,'Val'))
-		mosaic_srtm30(handles)
+		n_tiles = mosaic_srtm30(handles);
 	elseif (get(handles.radio_tileImages,'Val'))
-		mosaic_images(handles)
+		n_tiles = mosaic_images(handles);
+	end
+	if (n_tiles == 0)
+		warndlg('No tiles were actualy selected, so there is nothing to do.','Warning')
 	end
 
 % -------------------------------------------------------------------------
-function mosaic_srtm(handles)
+function n_tiles = mosaic_srtm(handles)
 % Build a mosaic of SRTM1|3 tiles
+	n_tiles = 0;			% Counter to the number of processed tiles
 	[fnames,limits] = sort_patches(handles, 3);
 	if (isempty(fnames))	return,		end
 	m = 1;		n = 1;		% If one tile only
@@ -642,6 +646,8 @@ function mosaic_srtm(handles)
 			k = k + 1;
 		end
 	end
+	n_tiles = m * n;
+
 	if (RC == 1201),	inc = 3 / 3600;		% SRTM3c
 	else				inc = 1 / 3600;		% SRTM1c
 	end
@@ -652,8 +658,9 @@ function mosaic_srtm(handles)
 	mirone(Z_tot,tmp);
 
 % -------------------------------------------------------------------------
-function mosaic_srtm5(handles)
+function n_tiles = mosaic_srtm5(handles)
 % Build a mosaic of SRTM 5 degs (CGIAR messy) tiles
+	n_tiles = 0;			% Counter to the number of processed tiles
 	[fnames,limits] = sort_patches(handles, 5);
 	if (isempty(fnames))	return,		end
 	m = 1;		n = 1;		% If one tile only
@@ -697,6 +704,8 @@ function mosaic_srtm5(handles)
 			k = k + 1;
 		end
 	end
+	n_tiles = m * n;
+
 	inc =  3/3600;
 	tmp.head = [limits z_min z_max 0 inc inc];
 	tmp.X = linspace(limits(1), limits(2), size(Z_tot,2));
@@ -705,8 +714,9 @@ function mosaic_srtm5(handles)
 	mirone(Z_tot,tmp);
 
 % -------------------------------------------------------------------------
-function mosaic_srtm30(handles)
+function n_tiles = mosaic_srtm30(handles)
 % Build a mosaic of SRTM30 tiles
+	n_tiles = 0;			% Counter to the number of processed tiles
 	[fnames,limits] = sort_patches(handles, 30);
 	if (isempty(fnames))	return,		end
 	m = 1;		n = 1;		% If one tile only
@@ -757,6 +767,8 @@ function mosaic_srtm30(handles)
 			aguentabar(k/(m*n)),	k = k + 1;
 		end
 	end
+	n_tiles = m * n;
+
 	limits = limits + [att.GMT_hdr(8) -att.GMT_hdr(8) att.GMT_hdr(9) -att.GMT_hdr(9)]/2;	%SRTM30 are pix reg
 	tmp.head = [limits z_min z_max 0 att.GMT_hdr(8:9)];
 	tmp.X = linspace(limits(1), limits(2), size(Z_tot,2));
@@ -863,9 +875,10 @@ function [fnames,limits] = sort_patches(handles, type)
 	fnames = reshape(t_names,n_c,n_r)';
 
 % -----------------------------------------------------------------------------------------
-function mosaic_images(handles)
+function n_tiles = mosaic_images(handles)
 % Test if everything is ok and call mosaicing function with (which outputs to Mirone)
 
+	n_tiles = 0;			% Counter to the number of processed tiles
 	ind = get(handles.hPatchImgs, 'UserData');
 	if (isempty(ind)),		return,		end			% No patches ploted
 	ind = logical(cat(1,ind{:}));
@@ -884,6 +897,7 @@ function mosaic_images(handles)
 	if (zoomLevel > 18 && get(handles.toggle_map,'Val'))				% Map have 18 as zoom level limit (hybrid???)
 		zoomLevel = 18;
 	end
+	n_tiles = 1;		% Don't know how many actually processed tiles, but it doesn't really matter.
 
 	[whatkind, source_PN, source_PV] = get_kind(handles);
 	url2image('callmir',lon,lat, zoomLevel, 'cache', cacheDir, 'what',whatkind, source_PN, source_PV, 'verbose','yes');
