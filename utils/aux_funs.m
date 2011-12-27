@@ -603,7 +603,7 @@ function [data, agency] = mgd77info(fname)
 	ind = strcmp({s.Attribute.Name}, 'Source_Institution');			agency = s.Attribute(ind).Value;
 
 % --------------------------------------------------------------------------------
-function [latcells,loncells] = localPolysplit(lat,lon, Z)
+function [latcells,loncells,Zcells] = localPolysplit(lat,lon, Z)
 %POLYSPLIT Extract segments of NaN-delimited polygon vectors to cell arrays
 %
 %   [LATCELLS,LONCELLS] = POLYSPLIT(LAT,LON) returns the NaN-delimited
