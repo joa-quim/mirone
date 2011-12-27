@@ -313,6 +313,8 @@ function varargout = load_xyz(handles, opt, opt2)
 			multi_segs_str{1}(2:6) = [];								% Rip the swap CLOSE identifier
 			do_patch = true;
 
+		elseif (strfind(multi_segs_str{1}, ' -G'))						% -G option (paint) alone is enough to make it a patch
+			do_patch = true;
 		end
 
 		% If OUT is requested there is nothing left to be done here  
