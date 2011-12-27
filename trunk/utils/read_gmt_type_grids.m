@@ -61,7 +61,7 @@ function [handles, X, Y, Z, head, misc] = read_gmt_type_grids(handles,fullname,o
 
 	if (~infoOnly)
 		[handles, X, Y, Z, head, misc] = read_grid(handles,fullname,tipo);
-	elseif ( strmatch(tipo,{'CDF' 'SRF6' 'SRF7'}) )
+	elseif ( any(strcmp(tipo,{'CDF' 'SRF6' 'SRF7'})) )
 		if (opt(1) == 's')          % Get the info on the struct form
 			X = grdinfo_m(fullname,'hdr_struct');       % Output goes in the second arg
 		else                        % Get the info on the vector form
@@ -97,7 +97,7 @@ if (strcmp(tipo,'CDF'))
 		str = sprintf(['First attempt to load netCDF file failed because ... \n\n\n %s\n\n\n       Trying now with GMT mex ...' ...
 		'\n\nBTW. Please inform me about this error so that I can try to correct it.\nThanks.'], lasterr);
 		warndlg(str,'Info')
-		if ( ~isempty(findstr(lasterr, 'Out of memory')) ) % If its a memory problem, no use to insist
+		if ( ~isempty(strfind(lasterr, 'Out of memory')) ) % If its a memory problem, no use to insist
 			error(lasterr)
 		end
     	[X, Y, Z, head] = grdread_m(fullname,'single',opt_I);
@@ -111,13 +111,14 @@ if (strcmp(tipo,'CDF'))
         head(7) = 0;
     end
 elseif (strcmp(tipo,'SRF6'))
-	ID = fread(fid,4,'*char');
+	fread(fid,4,'*char');
 	n_cols = fread(fid,1,'int16');			n_rows = fread(fid,1,'int16');
 	head = (fread(fid,6,'double'))';
 	Z = fread(fid,n_rows*n_cols,'*float32');	fclose(fid);
     Z = reshape(Z, n_cols, n_rows)';
+	handles.have_nans = grdutils(Z,'-N');		% Check for the degenerated case where a Surfer grid has native NaNs
 	ind = (Z >= 1e38);
-	if (any(ind))
+	if (any(ind(:)))
     	Z(ind) = NaN;    handles.have_nans = 1;
 	end
 	head(7:9) = [0 diff(head(1:2))/(n_cols - 1) diff(head(3:4))/(n_rows - 1)];
