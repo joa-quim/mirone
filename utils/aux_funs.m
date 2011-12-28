@@ -182,8 +182,8 @@ function out = findFileType(fname)
 	elseif ( strcmpi(EXT,'.nc') )		% .nc files can have grids, mgd77 files or any other thing
 		s = nc_funs('info',fname);
 		try
-			if     ( any(strcmp({s.Dimension.Name}, 'id_dim')) ),			out = 'mgg_gmt';
-			elseif ( any(strcmp({s.Attribute.Name}, 'SHAPENC_type')) ),		out = 'ncshape';
+			if     ( strcmp({s.Dimension.Name}, 'id_dim') ),			out = 'mgg_gmt';
+			elseif ( strcmp({s.Attribute.Name}, 'SHAPENC_type') ),		out = 'ncshape';
 			else	out = 'gmt';
 			end
 		catch
@@ -195,25 +195,32 @@ function out = findFileType(fname)
 		out = 'geotif';
 	elseif ( any(strcmpi(EXT,{'.ecw' '.jp2'})) )	% This is a special case (they cause memory fragmentation)
 		out = 'ecw';
-	elseif ( any(strcmpi(EXT,'.mat')) )
+	elseif ( strcmpi(EXT,'.mat') )
 		load(fname,'grd_name')
 		% The mat file is a Session file if it has a var named grd_name (empty or not). Use try because dumb compiler
-		try,	isempty(grd_name);		out = 'mat';	end
+		try
+			isempty(grd_name);
+			out = 'mat';
+		end
 	elseif ( any(strcmpi(EXT,{'.n1' '.n14' '.n15' '.n16' '.n17'})) )
 		out = 'multiband';
-	elseif ( any(strcmpi(EXT,'.img')) )
+	elseif ( strcmpi(EXT,'.img') )
 		nome = [PATH filesep FNAME '.lbl'];
 		if (exist(nome, 'file'))
 			out = 'mola';
 		else
 			out = 'envherd';
 		end
-	elseif ( any(strcmpi(EXT,'.cpt')) ),		out = 'cpt';
+	elseif ( strcmpi(EXT,'.cpt') ),		out = 'cpt';
 	elseif ( any(strcmpi(EXT,{'.dat' '.xy' '.b'}))),	out = 'dat';
-	elseif ( any(strcmpi(EXT,'.shp')) ),		out = 'shp';
-	elseif ( any(strcmpi(EXT,'.las')) ),		out = 'las';
-	elseif ( any(strcmpi(EXT,'.gmt')) )			% In future we'll have to test if MGG or ogr2ogr (e.g. multiseg) file
-		out = 'mgg_gmt';
+	elseif ( strcmpi(EXT,'.shp') ),		out = 'shp';
+	elseif ( strcmpi(EXT,'.las') ),		out = 'las';
+	elseif ( strcmpi(EXT,'.gmt') )
+		fid = fopen(fname,'rt');
+		ID = fread(fid,7,'*char');      ID = ID';      fclose(fid);
+		if (strncmp(ID,'# @VGMT', 7)),	out = 'ogr';
+		else							out = 'mgg_gmt';
+		end
 	elseif ( any(strcmpi(EXT,{'.kml' '.gml' '.dxf' '.gpx' '.dgn' '.csv' '.s57' '.svg'})) )
 		out = 'ogr';
 	else
