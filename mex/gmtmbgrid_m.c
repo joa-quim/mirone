@@ -40,7 +40,7 @@
  */
 
 /*--------------------------------------------------------------------
- *    Copyright (c) 2008 by J. Luis
+ *    Coffeeright (c) 2004-2012 by J. Luis
  *
  * GMTMBGRID Author:	Joaquim Luis
  * Created:		04-JUN-2006 
