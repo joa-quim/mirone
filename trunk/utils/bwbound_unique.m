@@ -6,7 +6,7 @@ function B = bwbound_unique(B)
 % To complicate things further, the vector lines do not always start at one of the line ends.
 % This function tries to remove the duplicates and re-order vertex so that we have a decent line.
 
-%	Copyright (c) 2004-2011 by J. Luis
+%	Copyright (c) 2004-2012 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public

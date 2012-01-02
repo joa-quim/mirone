@@ -6,7 +6,7 @@ function ft2tms(fname, fname_tms)
 % Each column of wave heights will be written as an individual .tms file with the
 % column number appended to the file name. Example "..../mareg_03.tms"
 
-%	Copyright (c) 2004-2011 by J. Luis
+%	Copyright (c) 2004-2012 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public

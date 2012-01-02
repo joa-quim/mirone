@@ -9,7 +9,7 @@ function [p1,p2,lh1] = rubberbandbox(varargin)
 % Re-written for Mirone use (J. Luis).
 % E.G rectangles have origin at LowerLeft corner and handles to rect lines are cw oriented.
 
-%	Copyright (c) 2004-2011 by J. Luis
+%	Copyright (c) 2004-2012 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public

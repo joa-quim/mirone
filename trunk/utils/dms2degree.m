@@ -2,7 +2,7 @@ function deg = dms2degree(dd, mm, ss)
 % DMS2DEGREE2 Converts angles from deg, min, sec to decimal degrees
 % If only two inputs are provided, it is interpreted as deg, min
 
-%	Copyright (c) 2004-2011 by J. Luis
+%	Copyright (c) 2004-2012 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public

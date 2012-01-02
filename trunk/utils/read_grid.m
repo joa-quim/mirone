@@ -14,7 +14,7 @@ function [Z, X, Y, srsWKT, handles, att] = read_grid(handles, fullname, tipo, op
 % OPT		-> -R<...> or -P<...> options of gdalread OR the "att" attributes structure
 %				got from att = gdalread(fname,'-M',...). This argument is optional
 
-%	Copyright (c) 2004-2011 by J. Luis
+%	Copyright (c) 2004-2012 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public

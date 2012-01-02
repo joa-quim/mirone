@@ -5,7 +5,7 @@ function [s,w] = mat_lyies(str,opt)
 % OPT is an optional text string with the file name that will hold the output
 % to stdout. This file will not be deleted upon exit.
 
-%	Copyright (c) 2004-2011 by J. Luis
+%	Copyright (c) 2004-2012 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public

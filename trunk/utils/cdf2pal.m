@@ -3,7 +3,7 @@ function new_pal = cdf2pal(z_min,z_max,z_mean,z_std,pal,n)
 % re-compute PAL as a continuous-color-palette, with a non-linear histogram-equalized
 % The idea is beased on grd2cpt. If n == 64 the WS "stupid bug fix" may not be enough
 
-%	Copyright (c) 2004-2011 by J. Luis
+%	Copyright (c) 2004-2012 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public

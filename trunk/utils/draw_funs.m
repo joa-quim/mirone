@@ -6,7 +6,7 @@ function varargout = draw_funs(hand, varargin)
 %   OPT     is a string for choosing what action to perform
 %   DATA    contains data currently used in the volcanoes, fogspots and some other option
 
-%	Copyright (c) 2004-2011 by J. Luis
+%	Copyright (c) 2004-2012 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public

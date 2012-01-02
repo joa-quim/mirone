@@ -62,7 +62,7 @@ function ui_edit_polygon(varargin)
 %	JL	25-Aug-2008 Added the "e" (extend) keyboard option
 %	JL	08-Feb-2010 Added 'y' or 'x' to the move_choice option
 
-%	Copyright (c) 2004-2011 by J. Luis
+%	Copyright (c) 2004-2012 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
