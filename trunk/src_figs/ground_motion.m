@@ -7,7 +7,7 @@ function varargout = ground_motion(varargin)
 %	Bulletin of the Seismological Society of America; October 2007; v. 97; no. 5; p. 1379-1395;
 %	DOI: 10.1785/0120060267
 
-%	Copyright (c) 2004-2011 by J. Luis
+%	Copyright (c) 2004-2012 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public

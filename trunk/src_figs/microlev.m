@@ -1,7 +1,7 @@
 function varargout = microlev(varargin)
 % Helper window to perform microlleveling filter on magnetic grids
 
-%	Copyright (c) 2004-2011 by J. Luis
+%	Copyright (c) 2004-2012 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public

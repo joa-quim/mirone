@@ -8,7 +8,7 @@ function listbox_message(text,ind,opt)
 %   'del' deletes field number 'ind'
 %   'ins' inserts a new field at position 'ind'
 
-%	Copyright (c) 2004-2011 by J. Luis
+%	Copyright (c) 2004-2012 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public

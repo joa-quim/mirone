@@ -6,7 +6,7 @@ function varargout = aquamoto(varargin)
 %	To read a file and tell aquaPlugin to search the control script name in the OPTcontrol.txt file:
 %		aquamoto('file.nc', 0)
 
-%	Copyright (c) 2004-2011 by J. Luis
+%	Copyright (c) 2004-2012 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
