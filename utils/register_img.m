@@ -4,7 +4,7 @@ function register_img(handles,h,GCPs)
 % H is the handle of a line or patch object
 % GCPs is a Mx4 matrix with the source and target GCP coordinates (normally given by GDAL)
 
-%	Copyright (c) 2004-2011 by J. Luis
+%	Copyright (c) 2004-2012 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public

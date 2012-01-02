@@ -17,7 +17,7 @@ function [chunk_s,chunk] = tile(m,height,skirt)
 %        199   302              3   102
 %        299   402              3   104
 
-%	Copyright (c) 2004-2011 by J. Luis
+%	Copyright (c) 2004-2012 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public

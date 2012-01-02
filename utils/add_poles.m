@@ -8,7 +8,7 @@ function [lon_s,lat_s,ang_s] = add_poles(lon1, lat1, ang1, lon2, lat2, ang2, ecc
 %	ECC = -1	 ->		use the default value for the WGS84 datum
 %	ECC = 0		 ->		Ignore the to geocentric conversion request
 
-%	Copyright (c) 2004-2011 by J. Luis
+%	Copyright (c) 2004-2012 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public

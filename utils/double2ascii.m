@@ -29,7 +29,7 @@ function double2ascii(filename, X, formatStr, multiseg)
 %		double2ascii('foo2.txt', X, '%d  %5.2f  %10.3e');
 
 % Distantly rooted on file with the same name by Denis Gilbert
-%	Copyright (c) 2004-2011 by J. Luis
+%	Copyright (c) 2004-2012 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public

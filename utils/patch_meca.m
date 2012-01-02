@@ -6,7 +6,7 @@ function [comp,dilat] = patch_meca(str1,dip1,rake1,str2,dip2,rake2)
 % COMP  -> Nx2 (x,y) var in the range [-1 1] with the compressive quadrants
 % DILAT -> Nx2 (x,y) var in the range [-1 1] with the dilatation quadrants
 
-%	Copyright (c) 2004-2011 by J. Luis
+%	Copyright (c) 2004-2012 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public

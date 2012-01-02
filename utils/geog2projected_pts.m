@@ -25,7 +25,7 @@ function [xy_prj, msg, opt_R] = geog2projected_pts(handles,xy,lims,pad)
 % the earthquakes() GUI, is enough that this handles is a structure with just handles.figure1 &
 % handles.axes1 which are the handles of the Figure and its Axes
 
-%	Copyright (c) 2004-2011 by J. Luis
+%	Copyright (c) 2004-2012 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public

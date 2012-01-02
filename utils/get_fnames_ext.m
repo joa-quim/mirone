@@ -11,7 +11,7 @@ function [files,comp_files,comp_ext] = get_fnames_ext(pato, ext)
 % COMP_EXT is a cell arrays of chars with the extensions corresponding to COMP_FILES.
 % An example is the search for files terminating in *.dat or *.dat.zip (EXT = {'dat' 'zip'})
 
-%	Copyright (c) 2004-2011 by J. Luis
+%	Copyright (c) 2004-2012 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public

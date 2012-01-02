@@ -4,7 +4,7 @@ function val = string_token(s,st)
 % val = STRING_TOKEN(S,ST) (or STRING_TOKEN(S)) returns a cell matrix with the individual
 % tokens. If an error ocurrs or with an empty imput, it returns an empty cell matrix
 
-%	Copyright (c) 2004-2011 by J. Luis
+%	Copyright (c) 2004-2012 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public

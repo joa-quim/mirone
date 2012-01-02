@@ -7,7 +7,7 @@ function save_seismicity(h_mir_fig, h_events, opt)
 % OPT ... handle to a polygon (for the moment). In this case H_EVENTS must be []
 % WARNING: The memory monster is at the wild
 
-%	Copyright (c) 2004-2011 by J. Luis
+%	Copyright (c) 2004-2012 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public

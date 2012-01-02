@@ -8,7 +8,7 @@ function Angles = dec2deg(vector_decimal_angles, opt)
 %      is an array with 3 columns [deg minutes seconds]. Otherwise, the
 %      output is an array of strings with the form deg:min:sec
 
-%	Copyright (c) 2004-2011 by J. Luis
+%	Copyright (c) 2004-2012 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public

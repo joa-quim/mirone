@@ -24,7 +24,7 @@ function handFig = message_win(option, texto, varargin)
 %								ud.hAxe = handles.axes1;	ud.p1 = [xx_min yy_min];	
 %								ud.p2 = [xx_max yy_max];	set(hMsg, 'UserData', ud)
 
-%	Copyright (c) 2004-2011 by J. Luis
+%	Copyright (c) 2004-2012 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public

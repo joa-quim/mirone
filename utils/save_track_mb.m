@@ -5,7 +5,7 @@ function [x,y] = save_track_mb(varargin)
 %   A left-click selects the MB track. Any other click confirms either the saving,
 %   deleting or compute it's length.
   
-%	Copyright (c) 2004-2011 by J. Luis
+%	Copyright (c) 2004-2012 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public

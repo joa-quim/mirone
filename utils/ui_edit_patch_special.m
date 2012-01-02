@@ -4,7 +4,7 @@ function ui_edit_patch_special(varargin)
 %  ui_edit_patch_special. Double clicking on the patch displays its vertices limits.
 %  To move, click and drag on the patch. To stop "moving mode" double click again.
 
-%	Copyright (c) 2004-2011 by J. Luis
+%	Copyright (c) 2004-2012 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public

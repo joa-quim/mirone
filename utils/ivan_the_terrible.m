@@ -7,7 +7,7 @@ function inc = ivan_the_terrible(dx,n,mod,one_or_zero)
 % (see below) that, on the contrary of a previous one (supposadly clever but very slow), works prety well.
 % ONE_OR_ZERO is a scalar with either 1 (grid registration) or 0 (pixel registration)
 
-%	Copyright (c) 2004-2011 by J. Luis
+%	Copyright (c) 2004-2012 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
