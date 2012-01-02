@@ -5,7 +5,7 @@ function varargout = grdtrend_mir(varargin)
 %   out.opt_what -> It wil be '-T','-D' or 'W' and optionaly it may have a 'r' apended
 %   out.opt_N    -> Number of model parameters (allways)
 
-%	Copyright (c) 2004-2011 by J. Luis
+%	Copyright (c) 2004-2012 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public

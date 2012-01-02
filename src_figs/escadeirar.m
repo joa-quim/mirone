@@ -2,7 +2,7 @@ function varargout = escadeirar(varargin)
 % Interface figure to create grids that have constant values in the nodes between contours
 % That is as if they were rice fields on mountain areas.
 %
-%	Copyright (c) 2004-2011 by J. Luis
+%	Copyright (c) 2004-2012 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
