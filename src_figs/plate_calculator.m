@@ -5,7 +5,7 @@ function varargout = plate_calculator(varargin)
 %       16-Oct-2004 Replaced APKIM2000 by DEOS2K model. However, APKIM2000 functions
 %                   where left in the code for the case they will be needed in future
 
-%	Copyright (c) 2004-2011 by J. Luis
+%	Copyright (c) 2004-2012 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public

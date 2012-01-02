@@ -3,7 +3,7 @@ function varargout = mag_synthetic(varargin)
 %
 % This function has the magmodel repeated from 'ecran'. This is bad practice
 
-%	Copyright (c) 2004-2011 by J. Luis
+%	Copyright (c) 2004-2012 by J. Luis
 %
 %	This program is free software; you can redistribute it and/or modify
 %	it under the terms of the GNU General Public License as published by
