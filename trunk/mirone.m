@@ -6,7 +6,7 @@ function varargout = mirone(varargin)
 %	mirone('CALLBACK',handles,...) calls the local function named CALLBACK with the given input arguments.
 
 % $ID:$
-%	Copyright (c) 2004-2010 by J. Luis
+%	Copyright (c) 2004-2012 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
