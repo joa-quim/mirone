@@ -2,7 +2,7 @@ function [lon,lat] = gcirc(lon1,lat1,lon2,lat2,npts)
 % Compute greate circle between (lon1,lat1) and (lon2,lat2)
 % IF NPTS is not given, use a default of 100
 
-%	Copyright (c) 2004-2011 by J. Luis
+%	Copyright (c) 2004-2012 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public

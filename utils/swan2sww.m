@@ -22,7 +22,7 @@ function swan2sww(fname, fname_sww)
 % resides on the same directory as the grids that will be accessed. Otherwise, gridnames must
 % be preceded by their full path.
 
-%	Copyright (c) 2004-2011 by J. Luis
+%	Copyright (c) 2004-2012 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public

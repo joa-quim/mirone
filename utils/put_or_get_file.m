@@ -2,7 +2,7 @@ function [FileName,PathName,handles] = put_or_get_file(handles,str1,str2,type, e
 % Use this function to select input or output filename
 % EXT if provided forces 'FileName' to output with that wished extension
 
-%	Copyright (c) 2004-2011 by J. Luis
+%	Copyright (c) 2004-2012 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public

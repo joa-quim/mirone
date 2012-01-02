@@ -38,7 +38,7 @@ function shapenc(fname, data, varargin)
 %	To append the contents of swarm2.b to the larger file (tey are related) just run it with larger file's name
 %	shapenc('acores_mepc_1.nc','swarm2.b','-b','s3','geog',1,'outer','poly2.dat')
 
-%	Copyright (c) 2004-2011 by J. Luis
+%	Copyright (c) 2004-2012 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public

@@ -22,7 +22,7 @@ function varargout = getline_j(varargin)
 %   Havily hacked version of getline that, contrary to the original, let be compiled.
 %   Also the right-click button was reprogramed. Now it removes the previously selected point.
 
-%	Copyright (c) 2004-2011 by J. Luis
+%	Copyright (c) 2004-2012 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public

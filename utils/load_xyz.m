@@ -26,7 +26,7 @@ function varargout = load_xyz(handles, opt, opt2)
 %		'>-:'		swap 1st and 2nd columns (assumed as (y,x) -> (x,y))
 %		'>CLOSE'	plot patches instead of lines (idependently of pline being closed or not)
 
-%	Copyright (c) 2004-2011 by J. Luis
+%	Copyright (c) 2004-2012 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public

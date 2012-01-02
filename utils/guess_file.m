@@ -7,7 +7,7 @@ function [bin,n_column,multi_seg,n_headers] = guess_file(fiche, opt1, opt2)
 % OPT1, if given, will be MAXCHARS
 % OPT2, if given, will be nl_max
 
-%	Copyright (c) 2004-2011 by J. Luis
+%	Copyright (c) 2004-2012 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public

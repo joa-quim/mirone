@@ -3,7 +3,7 @@ function [az, az2] = azimuth_geo(lat1,lon1,lat2,lon2,unites)
 % lon1, lat1, ... are in degrees (unless, see below) and may be scalars or column vectors. 
 % If UNITES exists and == 'rad', lats & lons are assumed to be in radians and so will be az
 
-%	Copyright (c) 2004-2011 by J. Luis
+%	Copyright (c) 2004-2012 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public

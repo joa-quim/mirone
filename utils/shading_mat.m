@@ -2,7 +2,7 @@ function    img = shading_mat(img,R,scale)
 % New version that calls a mex function named mex_illuminate
 % With this we gained in performance by a factor > 2
 
-%	Copyright (c) 2004-2011 by J. Luis
+%	Copyright (c) 2004-2012 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public

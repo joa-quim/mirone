@@ -7,7 +7,7 @@ function [handles, X, Y, Z, head, misc] = read_gmt_type_grids(handles,fullname,o
 % The HANDLES fields 'grdname', 'image_type', 'have_nans' and 'computed_grid' are reset
 % and 'was_int16' may or not
 
-%	Copyright (c) 2004-2011 by J. Luis
+%	Copyright (c) 2004-2012 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
