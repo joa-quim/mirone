@@ -1,7 +1,7 @@
 function varargout = draw_scale(varargin)
 % command line arguments to draw_scale
 
-%	Copyright (c) 2004-2011 by J. Luis
+%	Copyright (c) 2004-2012 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
