@@ -1,5 +1,7 @@
 * text=auto !eol
+/INSTALL.OSX -text
 /cfitsio_w32.dll -text
+/chrpath.sc -text
 continents/AUS_ABS_hybrid.stg -text
 continents/AUS_torsvik.stg -text
 continents/EANT_ABS_hybrid.stg -text
