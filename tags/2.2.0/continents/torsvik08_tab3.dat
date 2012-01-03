@@ -1,0 +1,779 @@
+-27.1  17.9   0.6    5 !SAfr<-EUR
+-26.3  18.4   1.2   10 !SAfr<-EUR
+-24.6  18.9   1.8   15 !SAfr<-EUR
+-22.7  17.2   2.4   20 !SAfr<-EUR
+-19.0  20.7   3.0   25 !SAfr<-EUR
+-19.5  24.9   4.3   30 !SAfr<-EUR
+-19.3  27.2   5.8   35 !SAfr<-EUR
+-18.5  28.7   7.5   40 !SAfr<-EUR
+-18.2  30.3   9.0   45 !SAfr<-EUR
+-16.7  30.8  10.0   50 !SAfr<-EUR
+-15.4  32.7  11.3   55 !SAfr<-EUR
+-15.7  34.8  12.6   60 !SAfr<-EUR
+-15.8  36.0  13.6   65 !SAfr<-EUR
+-16.1  35.4  14.9   70 !SAfr<-EUR
+-15.7  35.5  15.5   75 !SAfr<-EUR
+-15.2  36.1  16.9   80 !SAfr<-EUR
+-14.2  37.0  18.8   85 !SAfr<-EUR
+-13.7  39.6  21.9   90 !SAfr<-EUR
+-13.7  39.8  25.2   95 !SAfr<-EUR
+-12.5  40.2  28.5  100 !SAfr<-EUR
+-11.2  41.6  31.7  105 !SAfr<-EUR
+ -9.8  42.6  34.5  110 !SAfr<-EUR
+ -8.5  43.4  37.3  115 !SAfr<-EUR
+ -6.9  44.5  40.3  120 !SAfr<-EUR
+ -6.3  45.3  42.0  125 !SAfr<-EUR
+ -5.7  45.9  43.0  130 !SAfr<-EUR
+ -5.3  46.6  44.0  135 !SAfr<-EUR
+ -4.9  47.3  45.2  140 !SAfr<-EUR
+ -4.8  47.8  46.4  145 !SAfr<-EUR
+ -4.0  48.6  47.9  150 !SAfr<-EUR
+ -2.2  49.8  50.0  155 !SAfr<-EUR
+ -1.2  50.6  52.1  160 !SAfr<-EUR
+ -0.3  51.4  54.2  165 !SAfr<-EUR
+  0.6  52.1  56.3  170 !SAfr<-EUR
+  1.9  52.9  59.6  175 !SAfr<-EUR
+  2.0  53.0  60.0  180 !SAfr<-EUR
+  2.0  53.0  60.4  185 !SAfr<-EUR
+  2.1  53.1  60.8  190 !SAfr<-EUR
+  2.2  53.2  61.1  195 !SAfr<-EUR
+  2.2  53.3  61.5  200 !SAfr<-EUR
+  2.6  53.2  59.7  205 !SAfr<-EUR
+  2.9  53.1  57.8  210 !SAfr<-EUR
+  3.3  53.1  55.9  215 !SAfr<-EUR
+  3.6  52.9  53.6  220 !SAfr<-EUR
+  4.0  52.7  51.4  225 !SAfr<-EUR
+  4.4  52.4  49.1  230 !SAfr<-EUR
+  4.8  52.2  46.8  235 !SAfr<-EUR
+  5.3  51.9  44.5  240 !SAfr<-EUR
+  5.3  51.9  44.5  245 !SAfr<-EUR
+  5.3  51.9  44.5  250 !SAfr<-EUR
+  5.3  51.9  44.5  255 !SAfr<-EUR
+  5.3  51.9  44.5  260 !SAfr<-EUR
+  5.3  51.9  44.5  265 !SAfr<-EUR
+  5.3  51.9  44.5  270 !SAfr<-EUR
+  5.3  51.9  44.5  275 !SAfr<-EUR
+  5.3  51.9  44.5  280 !SAfr<-EUR
+  5.3  51.9  44.5  285 !SAfr<-EUR
+  5.3  51.9  44.5  290 !SAfr<-EUR
+  5.3  51.9  44.5  295 !SAfr<-EUR
+  5.3  51.9  44.5  300 !SAfr<-EUR
+  5.3  51.9  44.5  305 !SAfr<-EUR
+  5.3  51.9  44.5  310 !SAfr<-EUR
+  5.3  51.9  44.5  315 !SAfr<-EUR
+  5.3  51.9  44.5  320 !SAfr<-EUR
+
+ 22.8  80.9   1.3    5 !SAfr<-NAM
+ 22.9  80.9   2.6   10 !SAfr<-NAM
+ 23.2  80.9   4.1   15 !SAfr<-NAM
+ 24.4  80.6   5.5   20 !SAfr<-NAM
+ 28.1  79.5   6.8   25 !SAfr<-NAM
+ 12.5  77.3   8.6   30 !SAfr<-NAM
+  3.5  75.4  10.5   35 !SAfr<-NAM
+ -1.1  74.5  12.6   40 !SAfr<-NAM
+ -4.3  74.3  14.6   45 !SAfr<-NAM
+ -3.5  75.9  16.2   50 !SAfr<-NAM
+  4.1  79.8  17.6   55 !SAfr<-NAM
+  5.1  81.6  19.1   60 !SAfr<-NAM
+  3.2  82.6  20.7   65 !SAfr<-NAM
+ -6.5  81.6  22.4   70 !SAfr<-NAM
+-13.1  80.4  24.6   75 !SAfr<-NAM
+-18.8  78.2  27.5   80 !SAfr<-NAM
+-21.3  76.2  30.5   85 !SAfr<-NAM
+-23.0  74.6  33.8   90 !SAfr<-NAM
+-24.7  72.0  36.9   95 !SAfr<-NAM
+-24.0  70.0  40.2  100 !SAfr<-NAM
+-23.3  69.1  43.6  105 !SAfr<-NAM
+-22.6  68.3  47.0  110 !SAfr<-NAM
+-21.8  67.6  50.4  115 !SAfr<-NAM
+-20.4  67.1  53.9  120 !SAfr<-NAM
+-19.7  67.0  55.6  125 !SAfr<-NAM
+-19.1  67.0  56.7  130 !SAfr<-NAM
+-18.7  67.1  57.9  135 !SAfr<-NAM
+-18.4  67.2  59.2  140 !SAfr<-NAM
+-18.3  67.1  60.5  145 !SAfr<-NAM
+-17.6  67.3  62.2  150 !SAfr<-NAM
+-15.5  67.6  64.6  155 !SAfr<-NAM
+-14.5  67.6  66.8  160 !SAfr<-NAM
+-13.6  67.7  69.1  165 !SAfr<-NAM
+-12.8  67.8  71.4  170 !SAfr<-NAM
+-11.5  67.7  74.8  175 !SAfr<-NAM
+-11.5  67.7  75.3  180 !SAfr<-NAM
+-11.5  67.7  75.7  185 !SAfr<-NAM
+-11.5  67.7  76.1  190 !SAfr<-NAM
+-11.5  67.7  76.6  195 !SAfr<-NAM
+-11.5  67.7  77.0  200 !SAfr<-NAM
+-11.5  67.7  77.4  205 !SAfr<-NAM
+-11.5  67.7  77.9  210 !SAfr<-NAM
+-11.5  67.7  78.3  215 !SAfr<-NAM
+-11.5  67.7  78.3  220 !SAfr<-NAM
+-11.5  67.7  78.3  225 !SAfr<-NAM
+-11.5  67.7  78.3  230 !SAfr<-NAM
+-11.5  67.7  78.3  235 !SAfr<-NAM
+-11.5  67.7  78.3  240 !SAfr<-NAM
+-11.5  67.7  78.3  245 !SAfr<-NAM
+-11.5  67.7  78.3  250 !SAfr<-NAM
+-11.5  67.7  78.3  255 !SAfr<-NAM
+-11.5  67.7  78.3  260 !SAfr<-NAM
+-11.5  67.7  78.3  265 !SAfr<-NAM
+-11.5  67.7  78.3  270 !SAfr<-NAM
+-11.5  67.7  78.3  275 !SAfr<-NAM
+-11.5  67.7  78.3  280 !SAfr<-NAM
+-11.5  67.7  78.3  285 !SAfr<-NAM
+-11.5  67.7  78.3  290 !SAfr<-NAM
+-11.5  67.7  78.3  295 !SAfr<-NAM
+-11.5  67.7  78.3  300 !SAfr<-NAM
+-11.5  67.7  78.3  305 !SAfr<-NAM
+-11.5  67.7  78.3  310 !SAfr<-NAM
+-11.5  67.7  78.3  315 !SAfr<-NAM
+-11.5  67.7  78.3  320 !SAfr<-NAM
+
+ 22.8  80.9   1.3    5 !SAfr<-GRE
+ 22.9  80.9   2.6   10 !SAfr<-GRE
+ 23.2  80.9   4.1   15 !SAfr<-GRE
+ 24.4  80.6   5.5   20 !SAfr<-GRE
+ 28.1  79.5   6.8   25 !SAfr<-GRE
+ 12.5  77.3   8.6   30 !SAfr<-GRE
+  7.2  74.8  10.2   35 !SAfr<-GRE
+  9.5  72.6  11.5   40 !SAfr<-GRE
+ 11.4  71.4  12.7   45 !SAfr<-GRE
+ 20.7  71.0  14.2   50 !SAfr<-GRE
+ 29.6  71.8  16.8   55 !SAfr<-GRE
+ 30.5  71.9  17.5   60 !SAfr<-GRE
+ 32.9  71.3  17.6   65 !SAfr<-GRE
+ 29.0  69.8  17.9   70 !SAfr<-GRE
+ 26.6  69.0  18.5   75 !SAfr<-GRE
+ 21.0  67.6  19.8   80 !SAfr<-GRE
+ 16.4  66.3  21.5   85 !SAfr<-GRE
+ 11.5  65.9  24.2   90 !SAfr<-GRE
+  5.5  64.2  26.9   95 !SAfr<-GRE
+  2.8  62.7  30.1  100 !SAfr<-GRE
+  1.6  62.4  33.3  105 !SAfr<-GRE
+  0.9  62.1  36.5  110 !SAfr<-GRE
+  0.5  61.8  39.7  115 !SAfr<-GRE
+  0.8  61.8  43.1  120 !SAfr<-GRE
+  1.0  61.9  44.9  125 !SAfr<-GRE
+  1.3  62.2  46.0  130 !SAfr<-GRE
+  1.6  62.4  47.1  135 !SAfr<-GRE
+  1.6  62.7  48.4  140 !SAfr<-GRE
+  1.3  62.9  49.7  145 !SAfr<-GRE
+  1.8  63.2  51.4  150 !SAfr<-GRE
+  3.6  63.7  53.8  155 !SAfr<-GRE
+  4.2  64.1  56.0  160 !SAfr<-GRE
+  4.8  64.4  58.3  165 !SAfr<-GRE
+  5.3  64.7  60.6  170 !SAfr<-GRE
+  6.0  64.8  64.1  175 !SAfr<-GRE
+  6.0  64.9  64.5  180 !SAfr<-GRE
+  5.9  64.9  64.9  185 !SAfr<-GRE
+  5.9  65.0  65.4  190 !SAfr<-GRE
+  5.8  65.0  65.8  195 !SAfr<-GRE
+  5.8  65.1  66.2  200 !SAfr<-GRE
+  5.7  65.1  66.7  205 !SAfr<-GRE
+  5.7  65.2  67.1  210 !SAfr<-GRE
+  5.6  65.2  67.5  215 !SAfr<-GRE
+  5.6  65.2  67.5  220 !SAfr<-GRE
+  5.6  65.2  67.5  225 !SAfr<-GRE
+  5.6  65.2  67.5  230 !SAfr<-GRE
+  5.6  65.2  67.5  235 !SAfr<-GRE
+  5.6  65.2  67.5  240 !SAfr<-GRE
+  5.6  65.2  67.5  245 !SAfr<-GRE
+  5.6  65.2  67.5  250 !SAfr<-GRE
+  5.6  65.2  67.5  255 !SAfr<-GRE
+  5.6  65.2  67.5  260 !SAfr<-GRE
+  5.6  65.2  67.5  265 !SAfr<-GRE
+  5.6  65.2  67.5  270 !SAfr<-GRE
+  5.6  65.2  67.5  275 !SAfr<-GRE
+  5.6  65.2  67.5  280 !SAfr<-GRE
+  5.6  65.2  67.5  285 !SAfr<-GRE
+  5.6  65.2  67.5  290 !SAfr<-GRE
+  5.6  65.2  67.5  295 !SAfr<-GRE
+  5.6  65.2  67.5  300 !SAfr<-GRE
+  5.6  65.2  67.5  305 !SAfr<-GRE
+  5.6  65.2  67.5  310 !SAfr<-GRE
+  5.6  65.2  67.5  315 !SAfr<-GRE
+  5.6  65.2  67.5  320 !SAfr<-GRE
+
+-40.2  62.1   1.6    5 !SAfr<-Parana
+-40.3  61.8   3.3   10 !SAfr<-Parana
+-38.1  59.6   5.4   15 !SAfr<-Parana
+-37.1  58.5   7.5   20 !SAfr<-Parana
+-36.4  57.7   9.6   25 !SAfr<-Parana
+-34.5  56.7  11.9   30 !SAfr<-Parana
+-33.4  56.5  14.3   35 !SAfr<-Parana
+-32.6  57.1  16.6   40 !SAfr<-Parana
+-31.4  57.0  18.6   45 !SAfr<-Parana
+-31.2  58.2  20.5   50 !SAfr<-Parana
+-31.9  60.7  22.0   55 !SAfr<-Parana
+-32.8  62.5  23.3   60 !SAfr<-Parana
+-33.5  63.7  24.6   65 !SAfr<-Parana
+-33.4  63.5  26.1   70 !SAfr<-Parana
+-33.9  63.2  28.6   75 !SAfr<-Parana
+-34.3  62.7  31.5   80 !SAfr<-Parana
+-34.3  61.2  34.4   85 !SAfr<-Parana
+-34.5  59.1  37.3   90 !SAfr<-Parana
+-34.7  57.2  40.3   95 !SAfr<-Parana
+-34.8  55.7  43.3  100 !SAfr<-Parana
+-34.9  54.3  46.4  105 !SAfr<-Parana
+-35.0  53.1  49.5  110 !SAfr<-Parana
+-35.0  52.2  51.7  115 !SAfr<-Parana
+-35.0  51.6  52.8  120 !SAfr<-Parana
+-33.9  50.7  54.0  125 !SAfr<-Parana
+-33.4  48.5  55.4  130 !SAfr<-Parana
+-33.3  47.5  56.0  135 !SAfr<-Parana
+-33.3  47.5  56.1  140 !SAfr<-Parana
+-33.3  47.5  56.1  145 !SAfr<-Parana
+-33.3  47.5  56.2  150 !SAfr<-Parana
+-33.3  47.5  56.2  155 !SAfr<-Parana
+-33.3  47.5  56.2  160 !SAfr<-Parana
+-33.3  47.5  56.2  165 !SAfr<-Parana
+-33.3  47.5  56.2  170 !SAfr<-Parana
+-33.3  47.5  56.2  175 !SAfr<-Parana
+-33.3  47.5  56.2  180 !SAfr<-Parana
+-33.3  47.5  56.2  185 !SAfr<-Parana
+-33.3  47.5  56.2  190 !SAfr<-Parana
+-33.3  47.5  56.2  195 !SAfr<-Parana
+-33.3  47.5  56.2  200 !SAfr<-Parana
+-33.3  47.5  56.2  205 !SAfr<-Parana
+-33.3  47.5  56.2  210 !SAfr<-Parana
+-33.3  47.5  56.2  215 !SAfr<-Parana
+-33.3  47.5  56.2  220 !SAfr<-Parana
+-33.3  47.5  56.2  225 !SAfr<-Parana
+-33.3  47.5  56.2  230 !SAfr<-Parana
+-33.3  47.5  56.2  235 !SAfr<-Parana
+-33.3  47.5  56.2  240 !SAfr<-Parana
+-33.3  47.5  56.2  245 !SAfr<-Parana
+-33.3  47.5  56.2  250 !SAfr<-Parana
+-33.3  47.5  56.2  255 !SAfr<-Parana
+-33.3  47.5  56.2  260 !SAfr<-Parana
+-33.3  47.5  56.2  265 !SAfr<-Parana
+-33.3  47.5  56.2  270 !SAfr<-Parana
+-33.3  47.5  56.2  275 !SAfr<-Parana
+-33.3  47.5  56.2  280 !SAfr<-Parana
+-33.3  47.5  56.2  285 !SAfr<-Parana
+-33.3  47.5  56.2  290 !SAfr<-Parana
+-33.3  47.5  56.2  295 !SAfr<-Parana
+-33.3  47.5  56.2  300 !SAfr<-Parana
+-33.3  47.5  56.2  305 !SAfr<-Parana
+-33.3  47.5  56.2  310 !SAfr<-Parana
+-33.3  47.5  56.2  315 !SAfr<-Parana
+-33.3  47.5  56.2  320 !SAfr<-Parana
+
+  0.0  90.0   0.0    5 !SAfr<-NWAFR
+  0.0  90.0   0.0   10 !SAfr<-NWAFR
+  0.0  90.0   0.0   15 !SAfr<-NWAFR
+  0.0  90.0   0.0   20 !SAfr<-NWAFR
+  0.0  90.0   0.0   25 !SAfr<-NWAFR
+  0.0  90.0   0.0   30 !SAfr<-NWAFR
+  0.0  90.0   0.0   35 !SAfr<-NWAFR
+  0.0  90.0   0.0   40 !SAfr<-NWAFR
+  0.0  90.0   0.0   45 !SAfr<-NWAFR
+  0.0  90.0   0.0   50 !SAfr<-NWAFR
+  0.0  90.0   0.0   55 !SAfr<-NWAFR
+  0.0  90.0   0.0   60 !SAfr<-NWAFR
+  0.0  90.0   0.0   65 !SAfr<-NWAFR
+  0.0  90.0   0.0   70 !SAfr<-NWAFR
+  0.0  90.0   0.0   75 !SAfr<-NWAFR
+  0.0  90.0   0.0   80 !SAfr<-NWAFR
+  6.7  19.6   0.0   85 !SAfr<-NWAFR
+  6.7  16.6  -0.2   90 !SAfr<-NWAFR
+  6.7  16.5  -0.4   95 !SAfr<-NWAFR
+  6.7  16.5  -0.5  100 !SAfr<-NWAFR
+  6.7  16.5  -0.7  105 !SAfr<-NWAFR
+  6.7  16.5  -0.8  110 !SAfr<-NWAFR
+  6.7  16.5  -1.0  115 !SAfr<-NWAFR
+  6.7  16.5  -1.1  120 !SAfr<-NWAFR
+  6.7  16.5  -1.2  125 !SAfr<-NWAFR
+  6.7  16.5  -1.2  130 !SAfr<-NWAFR
+  6.7  16.5  -1.2  135 !SAfr<-NWAFR
+  6.7  16.5  -1.2  140 !SAfr<-NWAFR
+  6.7  16.5  -1.2  145 !SAfr<-NWAFR
+  6.7  16.5  -1.2  150 !SAfr<-NWAFR
+  6.7  16.5  -1.2  155 !SAfr<-NWAFR
+  6.7  16.5  -1.2  160 !SAfr<-NWAFR
+  6.7  16.5  -1.2  165 !SAfr<-NWAFR
+  6.7  16.5  -1.2  170 !SAfr<-NWAFR
+  6.7  16.5  -1.2  175 !SAfr<-NWAFR
+  6.7  16.5  -1.2  180 !SAfr<-NWAFR
+  6.7  16.5  -1.2  185 !SAfr<-NWAFR
+  6.7  16.5  -1.2  190 !SAfr<-NWAFR
+  6.7  16.5  -1.2  195 !SAfr<-NWAFR
+  6.7  16.5  -1.2  200 !SAfr<-NWAFR
+  6.7  16.5  -1.2  205 !SAfr<-NWAFR
+  6.7  16.5  -1.2  210 !SAfr<-NWAFR
+  6.7  16.5  -1.2  215 !SAfr<-NWAFR
+  6.7  16.5  -1.2  220 !SAfr<-NWAFR
+  6.7  16.5  -1.2  225 !SAfr<-NWAFR
+  6.7  16.5  -1.2  230 !SAfr<-NWAFR
+  6.7  16.5  -1.2  235 !SAfr<-NWAFR
+  6.7  16.5  -1.2  240 !SAfr<-NWAFR
+  6.7  16.5  -1.2  245 !SAfr<-NWAFR
+  6.7  16.5  -1.2  250 !SAfr<-NWAFR
+  6.7  16.5  -1.2  255 !SAfr<-NWAFR
+  6.7  16.5  -1.2  260 !SAfr<-NWAFR
+  6.7  16.5  -1.2  265 !SAfr<-NWAFR
+  6.7  16.5  -1.2  270 !SAfr<-NWAFR
+  6.7  16.5  -1.2  275 !SAfr<-NWAFR
+  6.7  16.5  -1.2  280 !SAfr<-NWAFR
+  6.7  16.5  -1.2  285 !SAfr<-NWAFR
+  6.7  16.5  -1.2  290 !SAfr<-NWAFR
+  6.7  16.5  -1.2  295 !SAfr<-NWAFR
+  6.7  16.5  -1.2  300 !SAfr<-NWAFR
+  6.7  16.5  -1.2  305 !SAfr<-NWAFR
+  6.7  16.5  -1.2  310 !SAfr<-NWAFR
+  6.7  16.5  -1.2  315 !SAfr<-NWAFR
+  6.7  16.5  -1.2  320 !SAfr<-NWAFR
+
+  0.0  90.0   0.0    5 !SAfr<-NEAFR
+  0.0  90.0   0.0   10 !SAfr<-NEAFR
+  0.0  90.0   0.0   15 !SAfr<-NEAFR
+  0.0  90.0   0.0   20 !SAfr<-NEAFR
+  0.0  90.0   0.0   25 !SAfr<-NEAFR
+  0.0  90.0   0.0   30 !SAfr<-NEAFR
+  0.0  90.0   0.0   35 !SAfr<-NEAFR
+  0.0  90.0   0.0   40 !SAfr<-NEAFR
+  0.0  90.0   0.0   45 !SAfr<-NEAFR
+  0.0  90.0   0.0   50 !SAfr<-NEAFR
+  0.0  90.0   0.0   55 !SAfr<-NEAFR
+  0.0  90.0   0.0   60 !SAfr<-NEAFR
+  0.0  90.0   0.0   65 !SAfr<-NEAFR
+  0.0  90.0   0.0   70 !SAfr<-NEAFR
+  0.0  90.0   0.0   75 !SAfr<-NEAFR
+  0.0  90.0   0.0   80 !SAfr<-NEAFR
+-61.4  27.9   0.0   85 !SAfr<-NEAFR
+-61.4  39.8  -0.1   90 !SAfr<-NEAFR
+-61.4  40.8  -0.2   95 !SAfr<-NEAFR
+-61.4  40.3  -0.3  100 !SAfr<-NEAFR
+-61.4  40.6  -0.4  105 !SAfr<-NEAFR
+-61.4  40.6  -0.5  110 !SAfr<-NEAFR
+-61.4  40.5  -0.6  115 !SAfr<-NEAFR
+-61.4  40.5  -0.7  120 !SAfr<-NEAFR
+-61.4  40.5  -0.7  125 !SAfr<-NEAFR
+-61.4  40.5  -0.7  130 !SAfr<-NEAFR
+-61.4  40.5  -0.7  135 !SAfr<-NEAFR
+-61.4  40.5  -0.7  140 !SAfr<-NEAFR
+-61.4  40.5  -0.7  145 !SAfr<-NEAFR
+-61.4  40.5  -0.7  150 !SAfr<-NEAFR
+-61.4  40.5  -0.7  155 !SAfr<-NEAFR
+-61.4  40.5  -0.7  160 !SAfr<-NEAFR
+-61.4  40.5  -0.7  165 !SAfr<-NEAFR
+-61.4  40.5  -0.7  170 !SAfr<-NEAFR
+-61.4  40.5  -0.7  175 !SAfr<-NEAFR
+-61.4  40.5  -0.7  180 !SAfr<-NEAFR
+-61.4  40.5  -0.7  185 !SAfr<-NEAFR
+-61.4  40.5  -0.7  190 !SAfr<-NEAFR
+-61.4  40.5  -0.7  195 !SAfr<-NEAFR
+-61.4  40.5  -0.7  200 !SAfr<-NEAFR
+-61.4  40.5  -0.7  205 !SAfr<-NEAFR
+-61.4  40.5  -0.7  210 !SAfr<-NEAFR
+-61.4  40.5  -0.7  215 !SAfr<-NEAFR
+-61.4  40.5  -0.7  220 !SAfr<-NEAFR
+-61.4  40.5  -0.7  225 !SAfr<-NEAFR
+-61.4  40.5  -0.7  230 !SAfr<-NEAFR
+-61.4  40.5  -0.7  235 !SAfr<-NEAFR
+-61.4  40.5  -0.7  240 !SAfr<-NEAFR
+-61.4  40.4  -0.7  245 !SAfr<-NEAFR
+-61.4  40.4  -0.7  250 !SAfr<-NEAFR
+-61.4  40.4  -0.7  255 !SAfr<-NEAFR
+-61.4  40.4  -0.7  260 !SAfr<-NEAFR
+-61.4  40.4  -0.7  265 !SAfr<-NEAFR
+-61.4  40.4  -0.7  270 !SAfr<-NEAFR
+-61.4  40.4  -0.7  275 !SAfr<-NEAFR
+-61.4  40.4  -0.7  280 !SAfr<-NEAFR
+-61.4  40.4  -0.7  285 !SAfr<-NEAFR
+-61.4  40.4  -0.7  290 !SAfr<-NEAFR
+-61.4  40.4  -0.7  295 !SAfr<-NEAFR
+-61.4  40.4  -0.7  300 !SAfr<-NEAFR
+-61.4  40.4  -0.7  305 !SAfr<-NEAFR
+-61.4  40.4  -0.7  310 !SAfr<-NEAFR
+-61.4  40.4  -0.7  315 !SAfr<-NEAFR
+-61.4  40.4  -0.7  320 !SAfr<-NEAFR
+
+ 32.9  22.7  -2.3    5 !SAfr<-India
+ 33.1  23.8  -4.6   10 !SAfr<-India
+ 27.4  27.1  -6.0   15 !SAfr<-India
+ 23.9  29.6  -7.5   20 !SAfr<-India
+ 33.2  25.1 -10.3   25 !SAfr<-India
+ 38.5  22.5 -13.3   30 !SAfr<-India
+ 41.3  22.6 -15.9   35 !SAfr<-India
+ 42.7  25.5 -17.4   40 !SAfr<-India
+ 40.1  24.2 -19.7   45 !SAfr<-India
+ 34.2  24.0 -23.5   50 !SAfr<-India
+ 29.2  22.1 -28.3   55 !SAfr<-India
+ 25.2  19.5 -34.4   60 !SAfr<-India
+ 21.9  19.0 -40.2   65 !SAfr<-India
+ 18.9  20.5 -44.4   70 !SAfr<-India
+ 18.2  21.8 -47.3   75 !SAfr<-India
+ 18.2  22.3 -49.1   80 !SAfr<-India
+ 22.1  21.8 -53.8   85 !SAfr<-India
+ 27.5  20.0 -58.8   90 !SAfr<-India
+ 28.1  20.7 -57.8   95 !SAfr<-India
+ 28.8  21.3 -56.8  100 !SAfr<-India
+ 29.6  21.9 -55.9  105 !SAfr<-India
+ 30.3  22.6 -54.9  110 !SAfr<-India
+ 31.1  23.3 -54.0  115 !SAfr<-India
+ 32.0  24.0 -53.1  120 !SAfr<-India
+ 34.8  23.4 -55.2  125 !SAfr<-India
+ 36.2  21.2 -60.1  130 !SAfr<-India
+ 36.2  21.2 -61.6  135 !SAfr<-India
+ 37.5  21.9 -61.5  140 !SAfr<-India
+ 39.0  22.6 -62.5  145 !SAfr<-India
+ 40.4  24.1 -62.9  150 !SAfr<-India
+ 41.2  26.9 -61.6  155 !SAfr<-India
+ 42.1  29.8 -60.5  160 !SAfr<-India
+ 42.1  29.8 -60.5  165 !SAfr<-India
+ 42.1  29.8 -60.5  170 !SAfr<-India
+ 42.1  29.8 -60.5  175 !SAfr<-India
+ 42.1  29.8 -60.5  180 !SAfr<-India
+ 42.1  29.8 -60.5  185 !SAfr<-India
+ 42.1  29.8 -60.5  190 !SAfr<-India
+ 42.1  29.8 -60.5  195 !SAfr<-India
+ 42.1  29.8 -60.5  200 !SAfr<-India
+ 42.1  29.8 -60.5  205 !SAfr<-India
+ 42.1  29.8 -60.5  210 !SAfr<-India
+ 42.1  29.8 -60.5  215 !SAfr<-India
+ 42.1  29.8 -60.5  220 !SAfr<-India
+ 42.1  29.8 -60.5  225 !SAfr<-India
+ 42.1  29.8 -60.5  230 !SAfr<-India
+ 42.1  29.8 -60.5  235 !SAfr<-India
+ 42.1  29.8 -60.5  240 !SAfr<-India
+ 42.1  29.8 -60.5  245 !SAfr<-India
+ 42.1  29.8 -60.5  250 !SAfr<-India
+ 42.1  29.8 -60.5  255 !SAfr<-India
+ 42.1  29.8 -60.5  260 !SAfr<-India
+ 42.1  29.8 -60.5  265 !SAfr<-India
+ 42.1  29.8 -60.5  270 !SAfr<-India
+ 42.1  29.8 -60.5  275 !SAfr<-India
+ 42.1  29.8 -60.5  280 !SAfr<-India
+ 42.1  29.8 -60.5  285 !SAfr<-India
+ 42.1  29.8 -60.5  290 !SAfr<-India
+ 42.1  29.8 -60.5  295 !SAfr<-India
+ 42.1  29.8 -60.5  300 !SAfr<-India
+ 42.1  29.8 -60.5  305 !SAfr<-India
+ 42.1  29.8 -60.5  310 !SAfr<-India
+ 42.1  29.8 -60.5  315 !SAfr<-India
+ 42.1  29.8 -60.5  320 !SAfr<-India
+
+  0.0  90.0   0.0    5 !SAfr<-Madagascar
+  0.0  90.0   0.0   10 !SAfr<-Madagascar
+  0.0  90.0   0.0   15 !SAfr<-Madagascar
+  0.0  90.0   0.0   20 !SAfr<-Madagascar
+  0.0  90.0   0.0   25 !SAfr<-Madagascar
+  0.0  90.0   0.0   30 !SAfr<-Madagascar
+  0.0  90.0   0.0   35 !SAfr<-Madagascar
+  0.0  90.0   0.0   40 !SAfr<-Madagascar
+  0.0  90.0   0.0   45 !SAfr<-Madagascar
+  0.0  90.0   0.0   50 !SAfr<-Madagascar
+  0.0  90.0   0.0   55 !SAfr<-Madagascar
+  0.0  90.0   0.0   60 !SAfr<-Madagascar
+  0.0  90.0   0.0   65 !SAfr<-Madagascar
+  0.0  90.0   0.0   70 !SAfr<-Madagascar
+  0.0  90.0   0.0   75 !SAfr<-Madagascar
+  0.0  90.0   0.0   80 !SAfr<-Madagascar
+  0.0  90.0   0.0   85 !SAfr<-Madagascar
+  0.0  90.0   0.0   90 !SAfr<-Madagascar
+  0.0  90.0   0.0   95 !SAfr<-Madagascar
+  0.0  90.0   0.0  100 !SAfr<-Madagascar
+  0.0  90.0   0.0  105 !SAfr<-Madagascar
+  0.0  90.0   0.0  110 !SAfr<-Madagascar
+  0.0  90.0   0.0  115 !SAfr<-Madagascar
+  0.0  90.0   0.0  120 !SAfr<-Madagascar
+-63.3   2.6   1.8  125 !SAfr<-Madagascar
+-63.3   2.6   3.9  130 !SAfr<-Madagascar
+-57.6   1.5   5.7  135 !SAfr<-Madagascar
+-55.9   1.0   7.2  140 !SAfr<-Madagascar
+118.3   0.6  -8.9  145 !SAfr<-Madagascar
+119.8   4.5 -10.9  150 !SAfr<-Madagascar
+130.1  10.6 -13.0  155 !SAfr<-Madagascar
+137.5  14.8 -15.4  160 !SAfr<-Madagascar
+137.5  14.8 -15.4  165 !SAfr<-Madagascar
+137.5  14.8 -15.4  170 !SAfr<-Madagascar
+137.5  14.8 -15.4  175 !SAfr<-Madagascar
+137.5  14.8 -15.4  180 !SAfr<-Madagascar
+137.5  14.8 -15.4  185 !SAfr<-Madagascar
+137.5  14.8 -15.4  190 !SAfr<-Madagascar
+137.5  14.8 -15.4  195 !SAfr<-Madagascar
+137.5  14.8 -15.4  200 !SAfr<-Madagascar
+137.5  14.8 -15.4  205 !SAfr<-Madagascar
+137.5  14.8 -15.4  210 !SAfr<-Madagascar
+137.5  14.8 -15.4  215 !SAfr<-Madagascar
+137.5  14.8 -15.4  220 !SAfr<-Madagascar
+137.5  14.8 -15.4  225 !SAfr<-Madagascar
+137.5  14.8 -15.4  230 !SAfr<-Madagascar
+137.5  14.8 -15.4  235 !SAfr<-Madagascar
+137.5  14.8 -15.4  240 !SAfr<-Madagascar
+137.5  14.8 -15.4  245 !SAfr<-Madagascar
+137.5  14.8 -15.4  250 !SAfr<-Madagascar
+137.5  14.8 -15.4  255 !SAfr<-Madagascar
+137.5  14.8 -15.4  260 !SAfr<-Madagascar
+137.5  14.8 -15.4  265 !SAfr<-Madagascar
+137.5  14.8 -15.4  270 !SAfr<-Madagascar
+137.5  14.8 -15.4  275 !SAfr<-Madagascar
+137.5  14.8 -15.4  280 !SAfr<-Madagascar
+137.5  14.8 -15.4  285 !SAfr<-Madagascar
+137.5  14.8 -15.4  290 !SAfr<-Madagascar
+137.5  14.8 -15.4  295 !SAfr<-Madagascar
+137.5  14.8 -15.4  300 !SAfr<-Madagascar
+137.5  14.8 -15.4  305 !SAfr<-Madagascar
+137.5  14.8 -15.4  310 !SAfr<-Madagascar
+137.5  14.8 -15.4  315 !SAfr<-Madagascar
+137.5  14.8 -15.4  320 !SAfr<-Madagascar
+
+ 54.3   9.7  -3.3    5 !SAfr<-Australia
+ 52.8  10.4  -6.2   10 !SAfr<-Australia
+ 49.8  11.5  -9.0   15 !SAfr<-Australia
+ 48.0  12.4 -11.8   20 !SAfr<-Australia
+ 48.3  12.9 -15.0   25 !SAfr<-Australia
+ 49.9  12.8 -18.1   30 !SAfr<-Australia
+ 50.8  13.5 -20.9   35 !SAfr<-Australia
+ 52.7  14.1 -22.1   40 !SAfr<-Australia
+ 54.7  14.4 -22.9   45 !SAfr<-Australia
+ 56.5  14.7 -23.6   50 !SAfr<-Australia
+ 57.3  14.0 -24.7   55 !SAfr<-Australia
+ 57.9  12.9 -25.7   60 !SAfr<-Australia
+ 58.8  13.6 -26.3   65 !SAfr<-Australia
+ 60.2  17.3 -26.3   70 !SAfr<-Australia
+ 63.3  19.8 -26.7   75 !SAfr<-Australia
+ 68.5  20.5 -26.6   80 !SAfr<-Australia
+ 74.6  19.8 -26.9   85 !SAfr<-Australia
+ 80.9  17.7 -28.9   90 !SAfr<-Australia
+ 86.2  15.9 -31.1   95 !SAfr<-Australia
+ 89.3  18.4 -30.7  100 !SAfr<-Australia
+ 95.6  17.9 -32.6  105 !SAfr<-Australia
+101.0  17.3 -34.8  110 !SAfr<-Australia
+105.6  16.8 -37.4  115 !SAfr<-Australia
+109.4  16.4 -40.3  120 !SAfr<-Australia
+110.3  15.7 -42.3  125 !SAfr<-Australia
+111.6  15.9 -44.4  130 !SAfr<-Australia
+113.1  15.9 -46.6  135 !SAfr<-Australia
+113.7  15.6 -48.3  140 !SAfr<-Australia
+113.1  15.0 -50.5  145 !SAfr<-Australia
+113.5  15.5 -52.5  150 !SAfr<-Australia
+115.7  17.6 -54.3  155 !SAfr<-Australia
+117.8  19.5 -56.2  160 !SAfr<-Australia
+117.8  19.5 -56.2  165 !SAfr<-Australia
+117.8  19.5 -56.2  170 !SAfr<-Australia
+117.8  19.5 -56.2  175 !SAfr<-Australia
+117.8  19.5 -56.2  180 !SAfr<-Australia
+117.8  19.5 -56.2  185 !SAfr<-Australia
+117.8  19.5 -56.2  190 !SAfr<-Australia
+117.8  19.5 -56.2  195 !SAfr<-Australia
+117.8  19.5 -56.2  200 !SAfr<-Australia
+117.8  19.5 -56.2  205 !SAfr<-Australia
+117.8  19.5 -56.2  210 !SAfr<-Australia
+117.8  19.5 -56.2  215 !SAfr<-Australia
+117.8  19.5 -56.2  220 !SAfr<-Australia
+117.8  19.5 -56.2  225 !SAfr<-Australia
+117.8  19.5 -56.2  230 !SAfr<-Australia
+117.8  19.5 -56.2  235 !SAfr<-Australia
+117.8  19.5 -56.2  240 !SAfr<-Australia
+117.8  19.5 -56.2  245 !SAfr<-Australia
+117.8  19.5 -56.2  250 !SAfr<-Australia
+117.8  19.5 -56.2  255 !SAfr<-Australia
+117.8  19.5 -56.2  260 !SAfr<-Australia
+117.8  19.5 -56.2  265 !SAfr<-Australia
+117.8  19.5 -56.2  270 !SAfr<-Australia
+117.8  19.5 -56.2  275 !SAfr<-Australia
+117.8  19.5 -56.2  280 !SAfr<-Australia
+117.8  19.5 -56.2  285 !SAfr<-Australia
+117.8  19.5 -56.2  290 !SAfr<-Australia
+117.8  19.5 -56.2  295 !SAfr<-Australia
+117.8  19.5 -56.2  300 !SAfr<-Australia
+117.8  19.5 -56.2  305 !SAfr<-Australia
+117.8  19.5 -56.2  310 !SAfr<-Australia
+117.8  19.5 -56.2  315 !SAfr<-Australia
+117.8  19.5 -56.2  320 !SAfr<-Australia
+
+-49.4  8.2   0.8   5 !SAfr<-East Antarctica
+-49.4  8.2   1.5  10 !SAfr<-East Antarctica
+-48.4  9.8   2.1  15 !SAfr<-East Antarctica
+-47.9 10.7   2.8  20 !SAfr<-East Antarctica
+-48.2 11.4   3.8  25 !SAfr<-East Antarctica
+-48.3 11.8   4.8  30 !SAfr<-East Antarctica
+-46.1 12.5   6.0  35 !SAfr<-East Antarctica
+-41.5 13.6   7.4  40 !SAfr<-East Antarctica
+-41.1 11.1   8.5  45 !SAfr<-East Antarctica
+-40.9  9.1   9.6  50 !SAfr<-East Antarctica
+-43.5  9.4  10.3  55 !SAfr<-East Antarctica
+-47.4 10.6  10.8  60 !SAfr<-East Antarctica
+-47.7  8.1  11.3  65 !SAfr<-East Antarctica
+-43.3  0.4  12.2  70 !SAfr<-East Antarctica
+138.9  3.7 -13.8  75 !SAfr<-East Antarctica
+142.7  2.7 -16.1  80 !SAfr<-East Antarctica
+144.7  0.6 -18.8  85 !SAfr<-East Antarctica
+-37.0  1.4  22.3  90 !SAfr<-East Antarctica
+-38.3  2.9  25.8  95 !SAfr<-East Antarctica
+146.5  3.1 -26.8 100 !SAfr<-East Antarctica
+148.9  5.5 -30.3 105 !SAfr<-East Antarctica
+150.7  7.4 -33.9 110 !SAfr<-East Antarctica
+152.3  9.0 -37.6 115 !SAfr<-East Antarctica
+153.6 10.3 -41.3 120 !SAfr<-East Antarctica
+152.4  9.4 -43.0 125 !SAfr<-East Antarctica
+151.5  9.1 -45.3 130 !SAfr<-East Antarctica
+150.9  8.6 -47.6 135 !SAfr<-East Antarctica
+150.1  8.0 -49.2 140 !SAfr<-East Antarctica
+148.1  7.3 -50.7 145 !SAfr<-East Antarctica
+147.1  7.4 -52.6 150 !SAfr<-East Antarctica
+148.0  9.0 -55.4 155 !SAfr<-East Antarctica
+148.8 10.5 -58.2 160 !SAfr<-East Antarctica
+148.8 10.5 -58.2 165 !SAfr<-East Antarctica
+148.8 10.5 -58.2 170 !SAfr<-East Antarctica
+148.8 10.5 -58.2 175 !SAfr<-East Antarctica
+148.8 10.5 -58.2 180 !SAfr<-East Antarctica
+148.8 10.5 -58.2 185 !SAfr<-East Antarctica
+148.8 10.5 -58.2 190 !SAfr<-East Antarctica
+148.8 10.5 -58.2 195 !SAfr<-East Antarctica
+148.8 10.5 -58.2 200 !SAfr<-East Antarctica
+148.8 10.5 -58.2 205 !SAfr<-East Antarctica
+148.8 10.5 -58.2 210 !SAfr<-East Antarctica
+148.8 10.5 -58.2 215 !SAfr<-East Antarctica
+148.8 10.5 -58.2 220 !SAfr<-East Antarctica
+148.8 10.5 -58.2 225 !SAfr<-East Antarctica
+148.8 10.5 -58.2 230 !SAfr<-East Antarctica
+148.8 10.5 -58.2 235 !SAfr<-East Antarctica
+148.8 10.5 -58.2 240 !SAfr<-East Antarctica
+148.8 10.5 -58.2 245 !SAfr<-East Antarctica
+148.8 10.5 -58.2 250 !SAfr<-East Antarctica
+148.8 10.5 -58.2 255 !SAfr<-East Antarctica
+148.8 10.5 -58.2 260 !SAfr<-East Antarctica
+148.8 10.5 -58.2 265 !SAfr<-East Antarctica
+148.8 10.5 -58.2 270 !SAfr<-East Antarctica
+148.8 10.5 -58.2 275 !SAfr<-East Antarctica
+148.8 10.4 -58.2 280 !SAfr<-East Antarctica
+148.8 10.5 -58.2 285 !SAfr<-East Antarctica
+148.8 10.5 -58.2 290 !SAfr<-East Antarctica
+148.8 10.5 -58.2 295 !SAfr<-East Antarctica
+148.8 10.5 -58.2 300 !SAfr<-East Antarctica
+148.8 10.4 -58.2 305 !SAfr<-East Antarctica
+148.8 10.5 -58.2 310 !SAfr<-East Antarctica
+148.8 10.5 -58.2 315 !SAfr<-East Antarctica
+148.8 10.5 -58.2 320 !SAfr<-East Antarctica
+
+-40.2  62.1   1.6   5 !SAfr<-Colorado
+-40.3  61.8   3.3  10 !SAfr<-Colorado
+-38.1  59.6   5.4  15 !SAfr<-Colorado
+-37.1  58.5   7.5  20 !SAfr<-Colorado
+-36.4  57.7   9.6  25 !SAfr<-Colorado
+-34.5  56.7  11.9  30 !SAfr<-Colorado
+-33.4  56.5  14.3  35 !SAfr<-Colorado
+-32.6  57.1  16.6  40 !SAfr<-Colorado
+-31.4  57.0  18.6  45 !SAfr<-Colorado
+-31.2  58.2  20.5  50 !SAfr<-Colorado
+-31.9  60.7  22.0  55 !SAfr<-Colorado
+-32.8  62.5  23.3  60 !SAfr<-Colorado
+-33.5  63.7  24.6  65 !SAfr<-Colorado
+-33.4  63.5  26.1  70 !SAfr<-Colorado
+-33.9  63.2  28.6  75 !SAfr<-Colorado
+-34.3  62.7  31.5  80 !SAfr<-Colorado
+-34.3  61.2  34.4  85 !SAfr<-Colorado
+-34.5  59.1  37.3  90 !SAfr<-Colorado
+-34.7  57.2  40.3  95 !SAfr<-Colorado
+-34.8  55.7  43.3 100 !SAfr<-Colorado
+-34.9  54.3  46.4 105 !SAfr<-Colorado
+-35.0  53.1  49.5 110 !SAfr<-Colorado
+-35.0  52.2  51.7 115 !SAfr<-Colorado
+-35.0  51.6  52.8 120 !SAfr<-Colorado
+-33.9  50.7  54.0 125 !SAfr<-Colorado
+-33.4  48.5  55.4 130 !SAfr<-Colorado
+-33.3  47.5  56.0 135 !SAfr<-Colorado
+-33.3  47.5  56.1 140 !SAfr<-Colorado
+-33.3  47.5  56.1 145 !SAfr<-Colorado
+-33.3  47.5  56.2 150 !SAfr<-Colorado
+-33.3  47.5  56.2 155 !SAfr<-Colorado
+-33.3  47.5  56.2 160 !SAfr<-Colorado
+-33.3  47.5  56.2 165 !SAfr<-Colorado
+-33.3  47.5  56.2 170 !SAfr<-Colorado
+-33.3  47.5  56.2 175 !SAfr<-Colorado
+-33.3  47.5  56.2 180 !SAfr<-Colorado
+-33.3  47.5  56.2 185 !SAfr<-Colorado
+-33.3  47.5  56.2 190 !SAfr<-Colorado
+-33.3  47.5  56.2 195 !SAfr<-Colorado
+-33.3  47.5  56.2 200 !SAfr<-Colorado
+-33.3  47.5  56.2 205 !SAfr<-Colorado
+-33.3  47.5  56.2 210 !SAfr<-Colorado
+-33.3  47.5  56.2 215 !SAfr<-Colorado
+-33.3  47.5  56.2 220 !SAfr<-Colorado
+-33.3  47.5  56.2 225 !SAfr<-Colorado
+-33.3  47.5  56.2 230 !SAfr<-Colorado
+-33.3  47.5  56.2 235 !SAfr<-Colorado
+-33.3  47.5  56.2 240 !SAfr<-Colorado
+-33.3  47.5  56.2 245 !SAfr<-Colorado
+-33.3  47.5  56.2 250 !SAfr<-Colorado
+-33.3  47.5  56.2 255 !SAfr<-Colorado
+-33.3  47.5  56.2 260 !SAfr<-Colorado
+-33.3  47.5  56.2 265 !SAfr<-Colorado
+-33.3  47.5  56.2 270 !SAfr<-Colorado
+-33.3  47.5  56.2 275 !SAfr<-Colorado
+-33.3  47.5  56.2 280 !SAfr<-Colorado
+-33.3  47.5  56.2 285 !SAfr<-Colorado
+-33.3  47.5  56.2 290 !SAfr<-Colorado
+-33.3  47.5  56.2 295 !SAfr<-Colorado
+-33.3  47.5  56.2 300 !SAfr<-Colorado
+-33.3  47.5  56.2 305 !SAfr<-Colorado
+-33.3  47.5  56.2 310 !SAfr<-Colorado
+-33.3  47.5  56.2 315 !SAfr<-Colorado
+-33.3  47.5  56.2 320 !SAfr<-Colorado
+
+-40.2  62.1   1.6   5 !SAfr<-SouthAmerCraton
+-40.3  61.8   3.3  10 !SAfr<-SouthAmerCraton
+-38.1  59.6   5.4  15 !SAfr<-SouthAmerCraton
+-37.1  58.5   7.5  20 !SAfr<-SouthAmerCraton
+-36.4  57.7   9.6  25 !SAfr<-SouthAmerCraton
+-34.5  56.7  11.9  30 !SAfr<-SouthAmerCraton
+-33.4  56.5  14.3  35 !SAfr<-SouthAmerCraton
+-32.6  57.1  16.6  40 !SAfr<-SouthAmerCraton
+-31.4  57.0  18.6  45 !SAfr<-SouthAmerCraton
+-31.2  58.2  20.5  50 !SAfr<-SouthAmerCraton
+-31.9  60.7  22.0  55 !SAfr<-SouthAmerCraton
+-32.8  62.5  23.3  60 !SAfr<-SouthAmerCraton
+-33.5  63.7  24.6  65 !SAfr<-SouthAmerCraton
+-33.4  63.5  26.1  70 !SAfr<-SouthAmerCraton
+-33.9  63.2  28.6  75 !SAfr<-SouthAmerCraton
+-34.3  62.7  31.5  80 !SAfr<-SouthAmerCraton
+-34.3  61.2  34.4  85 !SAfr<-SouthAmerCraton
+-34.5  59.1  37.3  90 !SAfr<-SouthAmerCraton
+-34.7  57.2  40.3  95 !SAfr<-SouthAmerCraton
+-34.8  55.7  43.3 100 !SAfr<-SouthAmerCraton
+-34.9  54.3  46.4 105 !SAfr<-SouthAmerCraton
+-35.0  53.1  49.5 110 !SAfr<-SouthAmerCraton
+-35.0  52.2  51.7 115 !SAfr<-SouthAmerCraton
+-35.0  51.6  52.8 120 !SAfr<-SouthAmerCraton
+-33.9  50.7  54.0 125 !SAfr<-SouthAmerCraton
+-32.8  50.1  54.9 130 !SAfr<-SouthAmerCraton
+-32.5  50.0  55.1 135 !SAfr<-SouthAmerCraton
+-32.5  50.0  55.1 140 !SAfr<-SouthAmerCraton
+-32.5  50.0  55.1 145 !SAfr<-SouthAmerCraton
+-32.5  50.0  55.1 150 !SAfr<-SouthAmerCraton
+-32.5  50.0  55.1 155 !SAfr<-SouthAmerCraton
+-32.5  50.0  55.1 160 !SAfr<-SouthAmerCraton
+-32.5  50.0  55.1 165 !SAfr<-SouthAmerCraton
+-32.5  50.0  55.1 170 !SAfr<-SouthAmerCraton
+-32.5  50.0  55.1 175 !SAfr<-SouthAmerCraton
+-32.5  50.0  55.1 180 !SAfr<-SouthAmerCraton
+-32.5  50.0  55.1 185 !SAfr<-SouthAmerCraton
+-32.5  50.0  55.1 190 !SAfr<-SouthAmerCraton
+-32.5  50.0  55.1 195 !SAfr<-SouthAmerCraton
+-32.5  50.0  55.1 200 !SAfr<-SouthAmerCraton
+-32.5  50.0  55.1 205 !SAfr<-SouthAmerCraton
+-32.5  50.0  55.1 210 !SAfr<-SouthAmerCraton
+-32.5  50.0  55.1 215 !SAfr<-SouthAmerCraton
+-32.5  50.0  55.1 220 !SAfr<-SouthAmerCraton
+-32.5  50.0  55.1 225 !SAfr<-SouthAmerCraton
+-32.5  50.0  55.1 230 !SAfr<-SouthAmerCraton
+-32.5  50.0  55.1 235 !SAfr<-SouthAmerCraton
+-32.5  50.0  55.1 240 !SAfr<-SouthAmerCraton
+-32.5  50.0  55.1 245 !SAfr<-SouthAmerCraton
+-32.5  50.0  55.1 250 !SAfr<-SouthAmerCraton
+-32.5  50.0  55.1 255 !SAfr<-SouthAmerCraton
+-32.5  50.0  55.1 260 !SAfr<-SouthAmerCraton
+-32.5  50.0  55.1 265 !SAfr<-SouthAmerCraton
+-32.5  50.0  55.1 270 !SAfr<-SouthAmerCraton
+-32.5  50.0  55.1 275 !SAfr<-SouthAmerCraton
+-32.5  50.0  55.1 280 !SAfr<-SouthAmerCraton
+-32.5  50.0  55.1 285 !SAfr<-SouthAmerCraton
+-32.5  50.0  55.1 290 !SAfr<-SouthAmerCraton
+-32.5  50.0  55.1 295 !SAfr<-SouthAmerCraton
+-32.5  50.0  55.1 300 !SAfr<-SouthAmerCraton
+-32.5  50.0  55.1 305 !SAfr<-SouthAmerCraton
+-32.5  50.0  55.1 310 !SAfr<-SouthAmerCraton
+-32.5  50.0  55.1 315 !SAfr<-SouthAmerCraton
+-32.5  50.0  55.1 320 !SAfr<-SouthAmerCraton
