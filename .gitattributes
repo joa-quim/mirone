@@ -250,6 +250,9 @@ gmt_userdir/gmt.conf -text
 gmt_userdir/us.d -text
 /gunzip.exe -text
 /hd425m_mir32.dll -text
+/hdf4_w32.dll -text
+/hdf5_hl_w32.dll -text
+/hdf5_w32.dll -text
 /hdf5dll.dll -text
 /hm425m_mir32.dll -text
 lib_mex/CalcMD5.dll -text
@@ -345,11 +348,14 @@ lib_mex/uintlutc.dll -text
 lib_mex/wave_travel_time.dll -text
 lib_mex/wgifc.dll -text
 /libcurl_mir32.dll -text
+/libcurl_w32.dll -text
 /libecwj2_mir32.dll -text
 /libexpat_w32.dll -text
 /libjpeg_mir32.dll -text
+/libjpeg_w32.dll -text
 /liblas_m.dll -text
 /libmmd.dll -text
+/libnetcdf4_w32.dll -text
 /libnetcdf_w32.dll -text
 /libsift.dll -text
 /lti_dsdk_dll.dll -text
@@ -477,6 +483,7 @@ mex/wave_travel_time.c -text
 mex/write_mex.c -text
 mex/x_system.h -text
 mex/xyzokb_m.c -text
+/mfhdf4_w32.dll -text
 /mirone.m -text
 /mirone_uis.m -text
 /msvcp100.dll -text
@@ -499,6 +506,7 @@ netcdf3.6.3/lib/libnetcdf_w32.lib -text
 /opencv_objdetect211.dll -text
 /opencv_video211.dll -text
 /proj_mir32.dll -text
+/proj_w32.dll -text
 /psl.dll -text
 /ripa_in_Mac.sc -text
 src_figs/about_box.m -text
@@ -760,5 +768,7 @@ utils/writegif.p -text
 utils/writekml.m -text
 utils/zoom_j.p -text
 /wget.exe -text
+/xdr_w32.dll -text
 /xerces-c_3_1_w32.dll -text
 /zlib1_mir32.dll -text
+/zlib1_w32.dll -text
