@@ -412,6 +412,7 @@ mex/gmtlist_m.c -text
 mex/gmtmbgrid_m.c -text
 mex/gpc.c -text
 mex/gpc.h -text
+mex/gravity_glib.cpp -text
 mex/grd2cdf.c -text
 mex/grdfft_m.c -text
 mex/grdfilter_m.c -text
