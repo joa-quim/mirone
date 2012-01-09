@@ -54,7 +54,7 @@ function aquaPlugin(handles, auto)
 			'conv2vtk' ...			% 9 - Convert a 3D netCDF file into a VTK format
 			};
 
-	qual = casos{4};			% <== Active by MANUAL selection. May be override by next section
+	qual = casos{1};			% <== Active by MANUAL selection. May be override by next section
 
 	n_args = nargin;
 	if (get(handles.check_plugFun, 'Val'))	% This way, the stand alone version can work too
@@ -76,9 +76,9 @@ function aquaPlugin(handles, auto)
 		case 'zonal'				% CASE 1
 			integ_lon = true;
 			dlat = 1.0;
-			trends = true;			% If true compute the trends (per stripe) of the zonal integration
+			trends = false;			% If true compute the trends (per stripe) of the zonal integration
 			sub_set = [0 0];		% [jump_start stop_before_end], make it [] or [0 0] to be ignored
-			fnamPoly1 = 'plataforma_poly.dat';		% If this name is uncorrect, another will be asked
+			fnamPoly1 = 'C:\a1\pathfinder\plataforma_poly.dat';		% If this name is uncorrect, another will be asked
 			fnamPoly2 = 'poly_largo.dat';	%fnamPoly2= [];	% If it exists, compute difference of zonal integrations
 			fnameFlag  = 'C:\a1\pathfinder\qual_82_09.nc';	% If not empty check againts this file (For monthly data)
 			quality = 6;			% Retain only values of quality >= this (or <= abs(this) when MODIS). Ingored if fname = []
@@ -164,6 +164,9 @@ function out = zonal(handles, dlat, integ_lon, do_trends, sub_set, fnamePoly1, f
 % DLAT 			width of the box in the direction orthogonal to INTEG_LON
 % INTEG_LON 	If true, integration is done along longitude
 % DO_TRENDS		If false compute zonal integrations. Otherwise compute trends of the zonal integrations (per DLAT)
+%				Note that X coords are different in the above two cases. They represent the layer number
+%				for the zonal integration case and is up tp the user to make it correspond to a date, but they the
+%				spatial coordinate orthogonal to the integration direction for the DO_TRENDS == TRUE case
 %
 % OPTIONS: Since the number of options is variable some make mandatory that prev args exist. In that case use [] if needed
 %
@@ -315,6 +318,7 @@ function out = zonal(handles, dlat, integ_lon, do_trends, sub_set, fnamePoly1, f
 	if (~nargout)
 		zz = grdutils(allSeries,'-L');
 		head = [1 nSeries vecD(1) vecD(end) zz(1) zz(2) 0 1 dlat];
+		clear tmp;				% To shut up a useless ML warning due to what will happen at next line
 		tmp.X = 1:nSeries;		tmp.Y = linspace( (vecD(1)+dlat/2), (vecD(end)-dlat/2), nStripes );
 		if (~do_trends)			% 2D, Mirone
 			tmp.head = [head(1:2) tmp.Y(1) tmp.Y(end) head(5:end)];
