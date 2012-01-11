@@ -1476,14 +1476,16 @@ function erro = FileOpenGeoTIFF_CB(handles, tipo, opt)
 			try
 				pal = att.Band(1).ColorMap.CMap;	pal = pal(:,1:3);		% GDAL creates a Mx4 colormap
 				if ((handles.head(6)+1) < size(pal,1) && isequal(pal(handles.head(6)+2,1:end), [0 0 0]) )
-					pal(handles.head(6)+2:end,1:end) = [];		% TEMP!? GDAL forces pals of 256 and that screws some cases
+					pal(handles.head(6)+2:end,:) = [];		% TEMP!? GDAL forces pals of 256 and that screws some cases
 				end
-			catch,	warndlg('Figure ColorMap had troubles. Replacing by a default one.','Warning'); pal = jet(256);
+			catch
+				warndlg('Figure ColorMap had troubles. Replacing by a default one.','Warning'); pal = jet(256);
 			end
 		end
 	elseif (strcmpi(att.ColorInterp,'gray'))
-			pal = repmat( (att.GMT_hdr(5):att.GMT_hdr(6))' / att.GMT_hdr(6), 1, 3);
-	else	pal = gray(256);
+		pal = repmat( (att.GMT_hdr(5):att.GMT_hdr(6))' / att.GMT_hdr(6), 1, 3);
+	else
+		pal = gray(256);
 	end
 
 	if (~isempty(att.GCPvalues) && isempty(att.GeoTransform))		% Save GCPs so that we can plot them and warp the image
