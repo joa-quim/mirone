@@ -34,6 +34,13 @@
 #define CNULL	((char *)NULL)
 #define Loc_copysign(x,y) ((y) < 0.0 ? -fabs(x) : fabs(x))
 
+#ifndef rint
+#define rint(x) (floor((x)+0.5))
+#endif
+#ifndef irint
+#define irint(x) ((int)rint(x))
+#endif
+
 using namespace std;
 using namespace GeographicLib;
 
@@ -47,7 +54,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	int		got_R = FALSE, error = FALSE, circle = FALSE;
 	char	**argv, *i_1;
 	float	*out4;
-	double	*in, *out, *hdr, lat = 0, h = 0, delta_x = 0, delta_y = 0;
+	double	*in, *out, *hdr, lon, lat = 0, h = 0, delta_x = 0, delta_y = 0;
 	double	west, east, south, north;
 	std::string dir;
 	std::string model = GravityModel::DefaultGravityName();
@@ -57,7 +64,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		ANOMALY = 2,
 		UNDULATION = 3,
 	};
-	unsigned mode = GRAVITY;	
+	unsigned mode = UNDULATION;	
 
 #ifdef MIR_TIMEIT
 	//#if HAVE_OPENMP
@@ -78,7 +85,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 
 	/* get the length of the input string */
 	argv = (char **)mxCalloc(argc, sizeof(char *));
-	argv[0] = "gravity_geoglib";
+	argv[0] = "gravity_glib";
 	for (i = 1; i < argc; i++)
 		argv[i] = (char *)mxArrayToString(prhs[i+n_arg_no_char-1]);
 
@@ -143,8 +150,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	if (got_R) {		// A grid request. We need to compute n_row, n_columns and make adjustments
 		if (delta_x <= 0 || delta_y <= 0)
 			mexErrMsgTxt("GRAVITY_GLIB: Error, option -I not provided or non-sense values transmitted.");
-		n_row = floor((north - south) / delta_y) + 1;
-		n_col = floor((east - west) / delta_x) + 1;
+		n_row = irint((north - south) / delta_y) + 1;
+		n_col = irint((east - west) / delta_x) + 1;
 	}
 
 	if (!got_R) {
@@ -238,11 +245,11 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 #if HAVE_OPENMP
 #pragma omp parallel for
 #endif
-				for (i = 0; i < n_row; ++i) { // Loop over latitudes
-					lat = north - i * delta_y;
+				for (i = 0; i < n_row; i++) { // Loop over latitudes
+					lat = south + i * delta_y;
 					GravityCircle c(g.Circle(lat, 0, GravityModel::GEOID_HEIGHT));
-					for (j = 0; j < n_col; ++j) { // Loop over longitudes
-						double lon = j * delta_x;
+					for (j = 0; j < n_col; j++) { // Loop over longitudes
+						lon = west + j * delta_x;
 						out4[i + j*n_row] = float(c.GeoidHeight(lon));
 					}
 				}				
