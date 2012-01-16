@@ -41,7 +41,9 @@ function [Z, X, Y, srsWKT, handles, att] = read_grid(handles, fullname, tipo, op
 		handles.ForceInsitu = false;
 		handles.grdMaxSize = 1e15;
 	end
-	if (handles.ForceInsitu),	opt_I = '-I';		end	% Use only in desperate cases.
+	try
+		if (handles.ForceInsitu),	opt_I = '-I';		end	% Use only in desperate cases.
+	end
 	handles.was_int16 = 0;			% To make sure that it wasnt left = 1 from a previous use.
 
 	if (strncmp(tipo,'GMT',3))		% GMT_relatives - Reading is done by the read_gmt_type_grids function
