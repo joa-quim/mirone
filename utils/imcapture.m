@@ -214,133 +214,137 @@ function img = imcapture( h, opt, dpi, opt2, opt3)
 
 % ------------------------------------------------------------------    
 function [img, msg] = imgOnly(opt, hAxes, varargin)
-    % Capture the image, and optionaly the frame, mantaining the original image aspect ratio.
-    % We do that be messing with the Figure's 'PaperPosition' property
-    h = varargin{1};    msg = [];
-    if (isempty(hAxes) || numel(hAxes) > 1)
-        msg = 'With the selected options the figure must contain one, and one ONLY axes';
-        return
-    end
-    im = get(findobj(hAxes,'Type','image'),'CData');
+% Capture the image, and optionaly the frame, mantaining the original image aspect ratio.
+% We do that be messing with the Figure's 'PaperPosition' property
+	h = varargin{1};    msg = [];
+	if (isempty(hAxes) || numel(hAxes) > 1)
+		msg = 'With the selected options the figure must contain one, and one ONLY axes';
+		return
+	end
+	im = get(findobj(hAxes,'Type','image'),'CData');
 	if (~isempty(im))
-        nx = size(im,2);                ny = size(im,1);
-    else                    % We have something else. A plot, a surface, etc ...
-        axUnit = get(hAxes,'Units');    set(hAxes,'Units','pixels')
-        axPos = get(hAxes,'pos');       set(hAxes,'Units',axUnit)
-        nx = axPos(3);                  ny = axPos(4);
+		nx = size(im,2);                ny = size(im,1);
+	else                    % We have something else. A plot, a surface, etc ...
+		axUnit = get(hAxes,'Units');    set(hAxes,'Units','pixels')
+		axPos = get(hAxes,'pos');       set(hAxes,'Units',axUnit)
+		nx = axPos(3);                  ny = axPos(4);
 	end
 
-    PU = get(h,'paperunits');       set(h,'paperunits','inch')
-    pp = get(h,'paperposition');    PPM = get(h,'PaperPositionMode');
-    dpi = (nx / pp(3));             % I used to have a round() here but this pobably more correct
-    % Here is the key point of all this manip.
-    set(h,'paperposition',[pp(1:3) ny / dpi])
+	PU = get(h,'paperunits');       set(h,'paperunits','inch')
+	pp = get(h,'paperposition');    PPM = get(h,'PaperPositionMode');
+	dpi = (nx / pp(3));             % I used to have a round() here but this pobably more correct
+	% Here is the key point of all this manip.
+	set(h,'paperposition',[pp(1:3) ny / dpi])
 
-    axUnit = get(hAxes,'Units');
-    axPos = get(hAxes,'pos');           % Save this because we will have to restore it later
-    set(hAxes,'Units','Normalized')     % This is the default, but be sure
-    fig_c = get(h,'Color');       set(h,'Color','w')
-    
-    [all_axes, cbWidth] = getAllAxes(h);% Find all visible axes plus eventual Mirone Colorbar
-    % If there are more than one axis, put them out of sight so that they wont interfere
-    % (Just make them invisible is not enough)
-    if (numel(all_axes) > 1)
-        other_axes = setxor(hAxes,all_axes);
-        otherPos = get(other_axes,'Pos');
-        bakAxPos = otherPos;
-        if (~iscell(otherPos))
-            otherPos(1) = 5;
-            set(other_axes,'Pos',otherPos)
-        else
-            for (i=1:numel(other_axes))
-                otherPos{i}(1) = 5;
-                set(other_axes(i),'Pos',otherPos{i})
-            end
-        end
-    end
-    
-    tenSizeX = 0;       tenSizeY = 0;
-    have_frames = false;
-    axVis = get(hAxes,'Visible');
-    if (isempty(opt))                   % Pure Image only capture. Even if axes are visible, ignore them
-        set(hAxes,'pos',[0 0 1 1],'Visible','off')
-    elseif (strcmp(get(hAxes,'Visible'),'on'))  % Try to capture an image that respects the data aspect ratio
-        have_frames = true;
+	axUnit = get(hAxes,'Units');
+	axPos = get(hAxes,'pos');           % Save this because we will have to restore it later
+	set(hAxes,'Units','Normalized')     % This is the default, but be sure
+	fig_c = get(h,'Color');       set(h,'Color','w')
+
+	[all_axes, cbWidth, cbAx] = getAllAxes(h);	% Find all visible axes plus eventual Mirone Colorbar
+	% If there are more than one axis, put them out of sight so that they wont interfere
+	% (Just make them invisible is not enough)
+	if (numel(all_axes) > 1)
+		other_axes = setxor(hAxes,all_axes);
+		otherPos = get(other_axes,'Pos');
+		bakAxPos = otherPos;
+		if (~iscell(otherPos))
+			otherPos(1) = 5;
+			set(other_axes,'Pos',otherPos)
+		else
+			for (i=1:numel(other_axes))
+				otherPos{i}(1) = 5;
+				set(other_axes(i),'Pos',otherPos{i})
+			end
+		end
+	end
+
+	tenSizeX = 0;       tenSizeY = 0;
+	have_frames = false;
+	axVis = get(hAxes,'Visible');
+	if (isempty(opt))                   % Pure Image only capture. Even if axes are visible, ignore them
+		set(hAxes,'pos',[0 0 1 1],'Visible','off')
+	elseif (strcmp(get(hAxes,'Visible'),'on'))  % Try to capture an image that respects the data aspect ratio
+		have_frames = true;
 		h_Xlabel = get(hAxes,'Xlabel');         h_Ylabel = get(hAxes,'Ylabel');
 		units_save = get(h_Xlabel,'units');
 		set(h_Xlabel,'units','pixels');         set(h_Ylabel,'units','pixels');
 		Xlabel_pos = get(h_Xlabel,'pos');		Ylabel_pos = get(h_Ylabel,'Extent');
-		
-        XTickLabel = get(hAxes,'XTickLabel');       XTick = get(hAxes,'XTick');
-        YTickLabel = get(hAxes,'YTickLabel');       YTick = get(hAxes,'YTick');
-        if ( str2double(XTickLabel(end,:)) / XTick(end) < 0.1 )
-            % We have a 10 power. That's the only way I found to detect
-            % the presence of this otherwise completely ghost text.
-            tenSizeX = 20;       % Take into account the 10 power text size
-        end
-        if ( str2double(YTickLabel(end,:)) / YTick(end) < 0.1 )
-            tenSizeY = 20;       % Take into account the 10 power text size
-        end
-            
-        old_FU = get(hAxes,'FontUnits');        set(hAxes,'FontUnits','points')
-        FontSize = get(hAxes,'FontSize');       set(hAxes,'FontUnits',old_FU)
-        nYchars = size(YTickLabel,2);
-        % This is kitchen sizing, but what else can it be done with such can of bugs?
-        Ylabel_pos(1) = max(abs(Ylabel_pos(1)), nYchars * FontSize * 0.8 + 2);
-	
-        y_margin = abs(Xlabel_pos(2))+get(h_Xlabel,'Margin') + tenSizeX + tenSizeY;    % To hold the Xlabel height
+
+		XTickLabel = get(hAxes,'XTickLabel');       XTick = get(hAxes,'XTick');
+		YTickLabel = get(hAxes,'YTickLabel');       YTick = get(hAxes,'YTick');
+		if ( str2double(XTickLabel(end,:)) / XTick(end) < 0.1 )
+			% We have a 10 power. That's the only way I found to detect
+			% the presence of this otherwise completely ghost text.
+			tenSizeX = 20;       % Take into account the 10 power text size
+		end
+		if ( str2double(YTickLabel(end,:)) / YTick(end) < 0.1 )
+			tenSizeY = 20;       % Take into account the 10 power text size
+		end
+
+		old_FU = get(hAxes,'FontUnits');        set(hAxes,'FontUnits','points')
+		FontSize = get(hAxes,'FontSize');       set(hAxes,'FontUnits',old_FU)
+		nYchars = size(YTickLabel,2);
+		% This is kitchen sizing, but what else can it be done with such can of bugs?
+		Ylabel_pos(1) = max(abs(Ylabel_pos(1)), nYchars * FontSize * 0.8 + 2);
+
+		y_margin = abs(Xlabel_pos(2))+get(h_Xlabel,'Margin') + tenSizeX + tenSizeY;    % To hold the Xlabel height
 		x_margin = abs(Ylabel_pos(1))+get(h_Ylabel,'Margin');               % To hold the Ylabel width
-        if (y_margin > 70)          % Play safe. LabelPos non-sense is always ready to strike 
-            y_margin = 30 + tenSizeX + tenSizeY;
-        end
-        if (x_margin > 60)          % Play safe. LabelPos non-sense is always ready to strike 
-            x_margin = 60;
-        end
-        
-        figUnit = get(h,'Units');        set(h,'Units','pixels')
-        figPos = get(h,'pos');           set(h,'Units',figUnit)
-        x0 = x_margin / figPos(3);
-        y0 = y_margin / figPos(4);
-        tenSizeY = tenSizeY / figPos(4);    % Normalize it as well
-        cbWidth = cbWidth / figPos(3);      % Either 0 or the Mirone Colorbar width
-        set(hAxes,'pos',[x0 y0-tenSizeY 1-[x0+cbWidth y0]-1e-2])
-        set(h_Xlabel,'units',units_save);     set(h_Ylabel,'units',units_save);
-    else            % Dumb choice. 'imgAx' selected but axes are invisible. Default to Image only
-        set(hAxes,'pos',[0 0 1 1],'Visible','off')
-    end
-    
-    confirm = false;			Stsb = [];
-    try
-        if (strcmp(varargin{4},'-r0'))              % One-to-one capture
-            varargin{4} = ['-r' sprintf('%d',round(dpi))];
-            confirm = true;
-            mrows = ny;            ncols = nx;      % To use in "confirm"
-        elseif (numel(varargin{4}) == 2)            % New size in mrows ncols
-            mrows = varargin{4}(1);
-            ncols = varargin{4}(2);
-            if (~have_frames)
-                set(h,'paperposition',[pp(1:2) ncols/dpi mrows/dpi])
-                confirm = true;
-            else                        % This is kind of very idiot selection, but let it go
-                wdt = pp(3);          hgt = pp(3) * mrows/ncols;
-                set(h,'paperposition',[pp(1:2) wdt hgt])
-            end
-            varargin{4} = ['-r' sprintf('%d',round(dpi))];
-        else                            % Fourth arg contains the dpi
-            if (have_frames)
-                wdt = pp(3);          hgt = pp(3) * ny/nx;
-                set(h,'paperposition',[pp(1:2) wdt hgt])
-            end
-        end
-        if (numel(varargin) == 5)       % Vector graphics formats
-            set(h,'paperposition',[pp(1:2) varargin{5}*2.54])       % I warned in doc to use CM dimensions
-            varargin(5) = [];           % We don't want it to go into hardcopy
-        end
-        
+		if (y_margin > 70)          % Play safe. LabelPos non-sense is always ready to strike 
+			y_margin = 30 + tenSizeX + tenSizeY;
+		end
+		if (x_margin > 60)          % Play safe. LabelPos non-sense is always ready to strike 
+			x_margin = 60;
+		end
+
+		figUnit = get(h,'Units');        set(h,'Units','pixels')
+		figPos = get(h,'pos');           set(h,'Units',figUnit)
+		x0 = x_margin / figPos(3);
+		y0 = y_margin / figPos(4);
+		tenSizeY = tenSizeY / figPos(4);    % Normalize it as well
+		cbWidth = cbWidth / figPos(3);      % Either 0 or the Mirone Colorbar width
+		set(hAxes,'pos',[x0 y0-tenSizeY 1-[x0+cbWidth y0]-1e-2])
+		if (~isempty(cbAx))					% If we have one color bar we must deal with it too
+			cbar_pos = get(cbAx,'Pos');
+			set(cbAx, 'Pos', [(x0 + 1 - (x0+cbWidth)) (y0-tenSizeY) cbar_pos(3) cbar_pos(4)]);
+		end
+		set(h_Xlabel,'units',units_save);     set(h_Ylabel,'units',units_save);
+	else            % Dumb choice. 'imgAx' selected but axes are invisible. Default to Image only
+		set(hAxes,'pos',[0 0 1 1],'Visible','off')
+	end
+
+	confirm = false;			Stsb = [];
+	try
+		if (strcmp(varargin{4},'-r0'))              % One-to-one capture
+			varargin{4} = ['-r' sprintf('%d',round(dpi))];
+			confirm = true;
+			mrows = ny;            ncols = nx;      % To use in "confirm"
+		elseif (numel(varargin{4}) == 2)            % New size in mrows ncols
+			mrows = varargin{4}(1);
+			ncols = varargin{4}(2);
+			if (~have_frames)
+				set(h,'paperposition',[pp(1:2) ncols/dpi mrows/dpi])
+				confirm = true;
+			else                        % This is kind of very idiot selection, but let it go
+				wdt = pp(3);          hgt = pp(3) * mrows/ncols;
+				set(h,'paperposition',[pp(1:2) wdt hgt])
+			end
+			varargin{4} = ['-r' sprintf('%d',round(dpi))];
+		else                            % Fourth arg contains the dpi
+			if (have_frames)
+				wdt = pp(3);          hgt = pp(3) * ny/nx;
+				set(h,'paperposition',[pp(1:2) wdt hgt])
+			end
+		end
+		if (numel(varargin) == 5)       % Vector graphics formats
+			set(h,'paperposition',[pp(1:2) varargin{5}*2.54])       % I warned in doc to use CM dimensions
+			varargin(5) = [];           % We don't want it to go into hardcopy
+		end
+
 		% This block is meant to deal with Mirone figures. Other cases were not tested recently
 		Stsb = getappdata(h,'CoordsStBar');		% Mirone status bar
 		if (~isempty(Stsb)),		set(Stsb(2:end), 'Vis', 'off'),		end
-		
+
 		DAR = get(hAxes, 'DataAspectRatio');
 		
 % 		leave_DAR_alone = false;
@@ -351,67 +355,70 @@ function [img, msg] = imgOnly(opt, hAxes, varargin)
 		if (DAR(1) == 1 && DAR(2) < 1)		% Mirone Figs with cos(lat) active
 			leave_DAR_alone = false;
 		end
-		
-		if ( ~isequal(DAR, [1 1 1]) && ~leave_DAR_alone ),	set(hAxes, 'DataAspectRatio', [1 1 1]);		end
 
-        img = hardcopy( varargin{:} );      % CAPTURE -- CAPTURE -- CAPTURE -- CAPTURE -- CAPTURE
+ 		if ( ~isequal(DAR, [1 1 1]) && ~leave_DAR_alone ),	set(hAxes, 'DataAspectRatio', [1 1 1]);		end
 
-        if (confirm)                        % We asked for a pre-determined size. Check that the result is correct
-            dy = mrows - size(img,1);       % DX & DY should be zero or one (when it buggs).
-            dx = ncols - size(img,2);
-            if (dx ~= 0 || dy ~= 0)         % ML failed (probably R14). Repeat to make it obey
-                mrows_desBUG = mrows + dy;
-                ncols_desBUG = ncols + dx;
-                set(h,'paperposition',[pp(1:2) ncols_desBUG/dpi mrows_desBUG/dpi])
-                img = hardcopy( varargin{:} );      % Insist
-            end
-        end
+		img = hardcopy( varargin{:} );      % CAPTURE -- CAPTURE -- CAPTURE -- CAPTURE -- CAPTURE
+
+		if (confirm)                        % We asked for a pre-determined size. Check that the result is correct
+			dy = mrows - size(img,1);       % DX & DY should be zero or one (when it buggs).
+			dx = ncols - size(img,2);
+			if (dx ~= 0 || dy ~= 0)         % ML failed (probably R14). Repeat to make it obey
+				mrows_desBUG = mrows + dy;
+				ncols_desBUG = ncols + dx;
+				set(h,'paperposition',[pp(1:2) ncols_desBUG/dpi mrows_desBUG/dpi])
+				img = hardcopy( varargin{:} );      % Insist
+			end
+		end
 		if (~isempty(Stsb)),	set(Stsb(2:end), 'Vis', 'on'),	end
 		if (~isequal(DAR, [1 1 1]) && ~leave_DAR_alone),	set(hAxes, 'DataAspectRatio', DAR);			end		% Reset it if its the case
-    catch                                   % If it screws, restore original Fig properties anyway
-        set(hAxes,'Units',axUnit,'pos',axPos,'Visible','on')
-        set(h,'paperposition',pp,'paperunits',PU,'PaperPositionMode',PPM,'Color',fig_c)
+		if (~isempty(cbAx))		% Reset the color bar into its original position
+			set(cbAx, 'Pos', cbar_pos);
+		end
+	catch                                   % If it screws, restore original Fig properties anyway
+		set(hAxes,'Units',axUnit,'pos',axPos,'Visible','on')
+		set(h,'paperposition',pp,'paperunits',PU,'PaperPositionMode',PPM,'Color',fig_c)
 		if (~isempty(Stsb)),	set(Stsb(2:end), 'Vis', 'on'),	end
-        msg = lasterr;      img = [];
-    end
-   
-    % If there are more than one axis, bring them to their's original positions
-    if (numel(all_axes) > 1)
-        if (~iscell(otherPos))
-            set(other_axes,'Pos',bakAxPos)
-        else
-            for (i=1:numel(other_axes)),    set(other_axes(i),'Pos',bakAxPos{i});  end
-        end
-    end
-    
-    % Reset the original fig properties
-    set(hAxes,'Units',axUnit,'pos',axPos,'Visible',axVis)
-    set(h,'paperposition',pp,'paperunits',PU,'PaperPositionMode',PPM,'Color',fig_c)
+		msg = lasterr;      img = [];
+	end
+
+	% If there are more than one axis, bring them to their's original positions
+	if (numel(all_axes) > 1)
+		if (~iscell(otherPos))
+			set(other_axes,'Pos',bakAxPos)
+		else
+			for (i=1:numel(other_axes)),    set(other_axes(i),'Pos',bakAxPos{i});  end
+		end
+	end
+
+	% Reset the original fig properties
+	set(hAxes,'Units',axUnit,'pos',axPos,'Visible',axVis)
+	set(h,'paperposition',pp,'paperunits',PU,'PaperPositionMode',PPM,'Color',fig_c)
     
 % ------------------------------------------------------------------    
 function img = allInFig(varargin)
-    % Get everything in the Figure
-    h = varargin{1};
-    fig_c = get(h,'Color');       set(h,'Color','w')
-    if (numel(varargin) == 3)
-        varargin{4} = '-r150';
-    end
-    img = hardcopy( varargin{:} );    
-    set(h,'Color',fig_c)
+% Get everything in the Figure
+	h = varargin{1};
+	fig_c = get(h,'Color');       set(h,'Color','w')
+	if (numel(varargin) == 3)
+		varargin{4} = '-r150';
+	end
+	img = hardcopy( varargin{:} );    
+	set(h,'Color',fig_c)
     
 % ------------------------------------------------------------------    
 function [all_axes, cbFullWidth, cbAx] = getAllAxes(hFig)
-    % Finds all visible axes plus the Mirone Colorbar (if present) which
-    % has its Handlevisibility set to 'off'
-    cbFullWidth = 0;
-    all_axes = findobj(hFig,'Type','axes');
-    set(0,'ShowHiddenHandles','on')
-    cbAx = findobj(hFig,'Type','axes','Tag','MIR_CBat');
-    set(0,'ShowHiddenHandles','off')
+% Finds all visible axes plus the Mirone Colorbar (if present) which
+% has its Handlevisibility set to 'off'
+	cbFullWidth = 0;
+	all_axes = findobj(hFig,'Type','axes');
+	set(0,'ShowHiddenHandles','on')
+	cbAx = findobj(hFig,'Type','axes','Tag','MIR_CBat');
+	set(0,'ShowHiddenHandles','off')
 
-    if (~isempty(cbAx))
+	if (~isempty(cbAx))
 		h_Ylabel = get(cbAx,'Ylabel');		units_save = get(h_Ylabel,'units');
 		set(h_Ylabel,'units','pixels');		Ylabel_pos = get(h_Ylabel,'Extent');
-        set(h_Ylabel,'units',units_save)
-        cbFullWidth = Ylabel_pos(1);
-    end
+		set(h_Ylabel,'units',units_save)
+		cbFullWidth = Ylabel_pos(1);
+	end
