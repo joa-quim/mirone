@@ -47,7 +47,7 @@ function varargout = snapshot(varargin)
 		% Already the default
 	end
 
-	% Add this figure handle to the carra?as list
+	% Add this figure handle to the carraças list
 	plugedWin = getappdata(handles.hCallingFig,'dependentFigs');
 	plugedWin = [plugedWin hObject];
 	setappdata(handles.hCallingFig,'dependentFigs',plugedWin);
@@ -125,10 +125,14 @@ function varargout = snapshot(varargin)
 	% ---------------- Fill the edit file name with a default value
 	if (~handles.noname)
 		fname = get(handlesMir.figure1,'Name');
+		if (fname(end) == '%' && strncmp(fname, 'Cropped', 7))	% Get rid of eventual ' @ xxx%' in the name
+			ind = strfind(fname, ' @');
+			if (~isempty(ind)),		fname(ind(1):end) = [];		end
+		end
 		fname = strrep(fname,' ','_');
 		[pato,fname] = fileparts(fname);
 		if (islogical(get(handlesMir.hImg,'CData')) && handles.imgOnly)   % Best proposition when we have a logical (mask) image
-			fname = [handlesMir.work_dir filesep fname '.png'];
+			fname = [handlesMir.work_dir fname '.png'];
 			set(handles.popup_fileType,'Val',2)
 			set(handles.checkbox_origSize,'Val',1)
 			set(handles.slider_quality,'Visible','off')
@@ -136,7 +140,7 @@ function varargout = snapshot(varargin)
 			set(handles.text_qualityLev,'Visible','off')
 			handles.txtThisSize = handles.txtOrigSize;
 		else
-			fname = [handlesMir.work_dir filesep fname '.jpg'];
+			fname = [handlesMir.work_dir fname '.jpg'];
 		end
 		set(handles.edit_fname,'String',fname);
 	else
@@ -160,13 +164,13 @@ function varargout = snapshot(varargin)
 
 	handles.hImg = handlesMir.hImg;
 	handles.hCallingAx = handlesMir.axes1;
-	handles.currMag  = 1;       % Current magnification
-	handles.quality = 75;       % Current quality level. Only applyes to the jpeg format
-	handles.currDPI  = 150;     % Current DPI for rasters
-	handles.currVecDPI = 300;   % Current DPI for vector graphics
-	handles.vecGraph = 0;       % To signal when we are dealing with vector graphics
+	handles.currMag = 1;		% Current magnification
+	handles.quality = 75;		% Current quality level. Only applyes to the jpeg format
+	handles.currDPI = 150;		% Current DPI for rasters
+	handles.currVecDPI = 300;	% Current DPI for vector graphics
+	handles.vecGraph = 0;		% To signal when we are dealing with vector graphics
 
-	% ----------------- Choose default command line output for snapshot_export
+	% ----------------- Choose default command line output for snapshot
 	handles.output = [];
 	guidata(hObject, handles);
 	set(hObject,'Visible','on');
@@ -195,7 +199,7 @@ function sliderRange(handles,magnification,val)
 function edit_fname_CB(hObject, handles)
 	fname = get(hObject,'String');
 	[pato,fname,ext] = fileparts(fname);
-	if (~strmatch(lower(ext),handles.exts))
+	if ( ~any(strcmpi(ext, handles.exts)) )
 		errordlg('You cannot choose a different file format than the ones offered to you.','ERROR')
 		set(hObject,'String','')
 	end
@@ -210,7 +214,7 @@ function push_outFile_CB(hObject, handles)
 	if isequal(FileName,0),		return,		end
 
 	[pato,fname,ext] = fileparts(FileName);
-	if (~strcmpi(ext,handles.exts{val}))
+	if (~isempty(ext) && ~strcmpi(ext,handles.exts{val}))
 		errordlg(['You cannot choose a different file format here. It has to be of type ' handles.exts{val}],'ERROR')
 		return
 	end
@@ -231,7 +235,7 @@ function popup_fileType_CB(hObject, handles)
 			set(handles.checkbox_origSize,'Enable','on')
 		end
 		sliderRange(handles,magn,val);						handles.vecGraph = 0;
-	elseif (strmatch(ext,{'.ps' '.eps' '.ai' '.emf'}))
+	elseif ( any(strcmp(ext,{'.ps' '.eps' '.ai' '.emf'})) )
 		set(handles.slider_quality,'Visible','off');        set(handles.text_Quality,'Visible','off')
 		set(handles.text_qualityLev,'Visible','off');       set(handles.edit_imgSize,'String','Don''t know')
 		set(handles.checkbox_origSize,'Enable','off')
