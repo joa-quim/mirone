@@ -166,6 +166,7 @@ function hObject = mirone_OpeningFcn(varargin)
 		end
 	end	
 	handles.work_dir = handles.last_directories{1};
+	if (handles.work_dir ~= fsep),		handles.work_dir = [handles.work_dir fsep];		end
 	handles.last_dir = handles.last_directories{1};			% Initialize last_dir to work_dir
 	setappdata(hObject,'swathRatio',handles.swathRatio);	% I need this for getline_mb
 
