@@ -76,6 +76,11 @@ function varargout = grdsample_mir(varargin)
 	new_frame3D(hObject, handles.GLG, handles.frame1)
 	%------------- END Pro look (3D) -----------------------------------------------------
 
+	% Add this figure handle to the carraças list
+	plugedWin = getappdata(handles.hMirFig,'dependentFigs');
+	plugedWin = [plugedWin hObject];
+	setappdata(handles.hMirFig,'dependentFigs',plugedWin);
+
 	guidata(hObject, handles);
 
 	set(hObject,'Visible','on');
@@ -152,7 +157,7 @@ function push_OK_CB(hObject, handles)
 	x_min = get(handles.edit_x_min,'String');   x_max = get(handles.edit_x_max,'String');
 	y_min = get(handles.edit_y_min,'String');   y_max = get(handles.edit_y_max,'String');
 	if isempty(x_min) || isempty(x_max) || isempty(y_min) || isempty(y_max)
-        errordlg('One or more grid limits are empty. Open your yes.','Error');    return
+        errordlg('One or more grid limits are empty. Try with your yes open.','Error');    return
 	end
 
 	nx = str2double(get(handles.edit_Ncols,'String'));
@@ -172,8 +177,7 @@ function push_OK_CB(hObject, handles)
 	% See if grid limits were changed
 	if ( (abs(handles.x_min-handles.x_min_or) > 1e-5) || (abs(handles.x_max-handles.x_max_or) > 1e-5) || ...
             (abs(handles.y_min-handles.y_min_or) > 1e-5) || (abs(handles.y_max-handles.y_max_or) > 1e-5))
-        opt_R = ['-R' sprintf('%.8g',handles.x_min) '/' sprintf('%.8g',handles.x_max) '/' ...
-            sprintf('%.8g',handles.y_min) '/' sprintf('%.8g',handles.y_max)];
+        opt_R = sprintf('-R%.12g/%.12g/%.12g/%.12g',handles.x_min, handles.x_max, handles.y_min, handles.y_max);
         x_min = handles.x_min;    x_max = handles.x_max;
         y_min = handles.y_min;    y_max = handles.y_max;
         if (~n_set)     % Only limits had changed, but we need also to return the -N option
