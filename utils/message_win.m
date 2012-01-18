@@ -107,7 +107,9 @@ switch option
 		if ( extent(4) > 1 || addButt)		% Text too big to fit in?
 			if (figpos(4) == winMaxH)		% Yes, add a slider to the figure
 				posTxt = get(hTxt,'Position');
-				set_slider(hFig, hTxt, posTxt, ceil(extent(4)))
+				set_slider(hFig, hTxt, posTxt, ceil(extent(4)));
+				figpos(3) = figpos(3) + 15;	% Extend fig width by the slider width (15 pixels)
+				set(hFig, 'Pos', figpos)
 			else
 				% Previous size estimates failed. Estimate again.
 				set([hFig,hTxt], 'unit', 'pix')
@@ -134,7 +136,11 @@ switch option
 		extent = get(hTxt,'Extent');
 		
 		if (extent(4) > 1 && isempty(hSlider))		% Text to big to fit. Add a slider to the figure
+			old_u = get(hFig,'Units');		set(hFig,'Units','pixel')
 			set_slider(hFig, hTxt, posTxt, (extent(4)))
+			figpos = get(hFig, 'Pos');
+			figpos(3) = figpos(3) + 15;	% Extend fig width by the slider width (15 pixels)
+			set(hFig, 'Pos', figpos),		set(hFig, 'Units',old_u)
 		elseif (extent(4) > 1)						% Slider already exists; scroll it down
 			scal = get(hSlider, 'Max');
 			if (scal < extent(4))
@@ -224,15 +230,25 @@ function figSize = getnicelocation(figSize, figUnits)
 
 	old_u = get(hFigParent,'Units');
 	set(hFigParent,'Units',figUnits);
-	container_size = get(hFigParent,propName);
+	parentSize = get(hFigParent,propName);
 	set(hFigParent,'Units',old_u);
 
-	figSize(1) = container_size(1)  + 1/2*(container_size(3) - figSize(3));
-	figSize(2) = container_size(2)  + 2/3*(container_size(4) - figSize(4));
+	figSize(1) = parentSize(1) + 1/2*(parentSize(3) - figSize(3));
+	figSize(2) = parentSize(2) + 2/3*(parentSize(4) - figSize(4));
+
+	% Now check if window does go out the ceiling
+	SS = get(0,'ScreenSize');
+	if ( (figSize(2) + figSize(4) + 30) > SS(4))
+		figSize(2) = figSize(2) - (figSize(2) + figSize(4) + 30 - SS(4));	% Longer but clearer
+	end
 
 % ------------------------------------------------------------------------------------	
 function set_slider(hFig, hTxt, posTxt, scal)
-	pos = [0.96 0 .04 1];
+% 
+	set(hFig, 'Units', 'pixels')
+	pos = get(hFig, 'Pos');
+	sliderW = 15 / pos(3);			% Make the slider 15 pixels wide
+	pos = [1-sliderW 0 sliderW 1];
 	if (scal > 1)	scal = scal - 1;	end
 	cb_slide_step = {@slide_step, hTxt, posTxt};
 	uicontrol(hFig,'style','slider','unit','normalized','pos',pos,...
