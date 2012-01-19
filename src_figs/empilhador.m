@@ -576,11 +576,11 @@ function [head , slope, intercept, base, is_modis, is_linear, is_log, att, opt_R
 			NoDataValue = guess_nodataval(att.subDsName);
 			if (~isempty(NoDataValue)),		att.Band(1).NoDataValue = NoDataValue;		end
 		end
-		is_modis = true;						% We'll use this knowledge to 'avoid' Land pixels = -32767  
+		is_modis = true;					% We'll use this knowledge to 'avoid' Land pixels = -32767  
 		att.hdrModisL2 = hdf_funs('hdfinfo', att.fname);
 		if (got_R)			% For L2 files we cannot find -R here (before sensor to geog coords conversion)
 							% So we store the croping info in 'att' to use later after reinterpolation
-			att.crop_info.opt_R = sprintf('-R%.8f/%.8f/%.8f/%.8f',west,east,south,north);
+			att.crop_info.opt_R = sprintf('-R%.12g/%.12g/%.12g/%.12g',west,east,south,north);
 			att.crop_info.limits = [west east south north];
 			got_R = false;	% So that last block in this function won't try to execute.
 		end
@@ -928,27 +928,40 @@ function [Z, att, known_coords] = read_gdal(full_name, att, IamCompiled, IamInte
 		Z = flipud(Z);
 	else
 		opt_L = ' ';	GCPvalues = [];
-		if (isfield(att, 'hdrModisL2') && ~isempty(att.hdrModisL2) )
-			% These boys think they are very funy. Oh it's so cute to write the file from right-to-left !!!
-			Vg_index = numel(att.hdrModisL2.Vgroup);	% The uncomprehensible MESS never ends. Assume last has things of interst
-			lon = fliplr( hdf_funs('hdfread', att.fname, att.hdrModisL2.Vgroup(Vg_index).SDS(1).Name, 'index', {[],[], []}) );
-			lat = fliplr( hdf_funs('hdfread', att.fname, att.hdrModisL2.Vgroup(Vg_index).SDS(2).Name, 'index', {[],[], []}) );
-			cntl_pt_cols = hdf_funs('hdfread', att.fname, att.hdrModisL2.Vgroup(Vg_index).SDS(3).Name, 'index', {[],[], []});
+		if (isfield(att, 'hdrModisL2') && ~isempty(att.hdrModisL2))
+			% First check if lon, lat are of the same size of Z. If yes, than there is no need to reinterpolate
+			% the location grids ... to their same positions. This has the further advantage that all readings are
+			% done with GDAL and so will work also with the stand-alone version.
+			lonID = find_in_subdatasets(att.AllSubdatasets, 'longitude');
+			ind = strfind(att.AllSubdatasets{lonID},'=');			% Still must rip the 'SUBDATASET_XX_NAME='
+			lon_full = gdalread(att.AllSubdatasets{lonID}(ind+1:end), '-L');
+			if ( isequal(size(lon_full), [att.RasterYSize att.RasterXSize]) )
+				latID = find_in_subdatasets(att.AllSubdatasets, 'latitude');
+				ind = strfind(att.AllSubdatasets{latID},'=');
+				lat_full = gdalread(att.AllSubdatasets{latID}(ind+1:end), '-L');
 
-			cntl_pt_cols = double(cntl_pt_cols);
-			lat = double(lat);		lon = double(lon);
-			lat_full = zeros(size(lon,1), cntl_pt_cols(end));
-			lon_full = zeros(size(lon,1), cntl_pt_cols(end));
-			cols_vec = 1:cntl_pt_cols(end);
-			for (k = 1:size(lon,1))
-				lon_full(k,:) = akimaspline(cntl_pt_cols, lon(k,:), cols_vec);
-				lat_full(k,:) = akimaspline(cntl_pt_cols, lat(k,:), cols_vec);
+			else			% Bad luck. We need to go through the hdfread way.
+				% These boys think they are very funy. Oh it's so cute to write the file from right-to-left !!!
+				Vg_index = numel(att.hdrModisL2.Vgroup);	% The uncomprehensible MESS never ends. Assume last has things of interst
+				lon = fliplr( hdf_funs('hdfread', att.fname, att.hdrModisL2.Vgroup(Vg_index).SDS(1).Name, 'index', {[],[], []}) );
+				lat = fliplr( hdf_funs('hdfread', att.fname, att.hdrModisL2.Vgroup(Vg_index).SDS(2).Name, 'index', {[],[], []}) );
+				cntl_pt_cols = hdf_funs('hdfread', att.fname, att.hdrModisL2.Vgroup(Vg_index).SDS(3).Name, 'index', {[],[], []});
+
+				cntl_pt_cols = double(cntl_pt_cols);
+				lat = double(lat);		lon = double(lon);
+				lat_full = zeros(size(lon,1), cntl_pt_cols(end));
+				lon_full = zeros(size(lon,1), cntl_pt_cols(end));
+				cols_vec = 1:cntl_pt_cols(end);
+				for (k = 1:size(lon,1))
+					lon_full(k,:) = akimaspline(cntl_pt_cols, lon(k,:), cols_vec);
+					lat_full(k,:) = akimaspline(cntl_pt_cols, lat(k,:), cols_vec);
+				end
+				clear lon lat cols_vec
 			end
-			x_min = min([lon(1) lon(1,end) lon(end,1) lon(end)]);
-			x_max = max([lon(1) lon(1,end) lon(end,1) lon(end)]);
-			y_min = min([lat(1) lat(1,end) lat(end,1) lat(end)]);
-			y_max = max([lat(1) lat(1,end) lat(end,1) lat(end)]);
-			clear lon lat cols_vec
+			x_min = min([lon_full(1) lon_full(1,end) lon_full(end,1) lon_full(end)]);
+			x_max = max([lon_full(1) lon_full(1,end) lon_full(end,1) lon_full(end)]);
+			y_min = min([lat_full(1) lat_full(1,end) lat_full(end,1) lat_full(end)]);
+			y_max = max([lat_full(1) lat_full(1,end) lat_full(end,1) lat_full(end)]);
 			opt_R = sprintf('-R%.10f/%.10f/%.10f/%.10f', x_min, x_max, y_min, y_max);
 
 			AllSubdatasets = att.AllSubdatasets;		% Copy of all subdatsets names in this sub-dataset att
@@ -978,7 +991,7 @@ function [Z, att, known_coords] = read_gdal(full_name, att, IamCompiled, IamInte
 % 		end
 
 		if (nargout == 2)
-			[Z, att] = gdalread(full_name, varargin{:}, opt_L);	% This ATT might be of a subdataset
+			[Z, att] = gdalread(full_name, varargin{:}, opt_L);	% This ATT may be of a subdataset
 		else
 			Z = gdalread(full_name, varargin{:}, opt_L);
 		end
@@ -994,11 +1007,15 @@ function [Z, att, known_coords] = read_gdal(full_name, att, IamCompiled, IamInte
 			if (IamInteractive)
 				what = l2_choices(AllSubdatasets);		% Call secondary GUI to select what to do next
 			else
-				what =  struct('georeference',1,'nearneighbor',0,'mask',0,'coastRes',0,'quality','');	% sensor coords
+				what = struct('georeference',1,'nearneighbor',0,'mask',0,'coastRes',0,'quality','');	% sensor coords
 				if (isfield(att, 'crop_info'))			% We have a crop request
 					opt_R = att.crop_info.opt_R;
 				end
 			end
+
+			% Go check if -R or quality flags request exists in OPTcontrol.txt file
+			[opt_R, opt_I, opt_C, bitflags, flagsID] = sniff_in_OPTcontrol(opt_R, att);		% Output opt_R gets preference
+			
 			if (isempty(what))							% User killed the window, but it's too late to stop so pretend ...
 				what =  struct('georeference',1,'nearneighbor',1,'mask',0,'coastRes',0,'quality','');	% sensor coords
 			end
@@ -1007,13 +1024,28 @@ function [Z, att, known_coords] = read_gdal(full_name, att, IamCompiled, IamInte
 				Z(qual > what.quality) = NoDataValue;
 			end
 			if (~isempty(what) && what.georeference)
+				if (~isempty(bitflags))
+					ind = strfind(att.AllSubdatasets{flagsID},'=');	% Still must rip the 'SUBDATASET_XX_NAME='
+					Zf = gdalread(att.AllSubdatasets{flagsID}(ind+1:end), varargin{:}, opt_L);
+					c = false(size(Zf));
+					Zf = uint32(Zf);
+					for (k = 1:numel(Zf))
+						if ( any(bitget(Zf(k),bitflags)) ),	c(k) = true;	end
+					end
+					clear Zf
+					Z(c) = [];		lon_full(c) = [];		lat_full(c) = [];
+					clear c
+				end
 				ind = (Z == (att.Band(1).NoDataValue));
 				Z(ind) = [];		lon_full(ind) = [];		lat_full(ind) = [];
+				if (isempty(opt_I)),	opt_I = '-I0.01';	end
+				if (isempty(opt_C)),	opt_C = '-C3';		end		% For gmtmbgrid only
 				if (what.nearneighbor)
 					lon_full = single(lon_full);			lat_full = single(lat_full);	Z = single(Z);
-					[Z, head] = nearneighbor_m(lon_full(:), lat_full(:), Z(:), opt_R, opt_e, '-N2', '-I0.01', '-S0.04');
+					[Z, head] = nearneighbor_m(lon_full(:), lat_full(:), Z(:), opt_R, opt_e, '-N2', opt_I, '-S0.04');
 				else
-					[Z, head] = gmtmbgrid_m(lon_full(:), lat_full(:), double(Z(:)), '-I0.01', opt_R, '-Mz', '-C5');
+					if (~isa(lon_full,'double')),	lon_full = double(lon_full);	lat_full = double(lat_full);	end
+					[Z, head] = gmtmbgrid_m(lon_full(:), lat_full(:), double(Z(:)), opt_I, opt_R, '-Mz', opt_C);
 					Z = single(Z);
 				end
 				if (what.mask)
@@ -1027,6 +1059,7 @@ function [Z, att, known_coords] = read_gdal(full_name, att, IamCompiled, IamInte
 				att.Band(1).NoDataValue = [];		% Don't waist time later trying to NaNify again
 				x_min = head(1) - head(8)/2;		x_max = head(2) + head(8)/2;		% Goto pixel registration
 				y_min = head(3) - head(9)/2;		y_max = head(4) + head(9)/2;
+				att.GMT_hdr(7) = 1;
 			end
 			att.RasterXSize = size(Z,2);		att.RasterYSize = size(Z,1);
 			att.Band.XSize = size(Z,2);			att.Band.YSize = size(Z,1);
@@ -1037,6 +1070,95 @@ function [Z, att, known_coords] = read_gdal(full_name, att, IamCompiled, IamInte
 
 	if (~isempty(fname)),	att.fname = fname;		end		% Needed in some HDF cases
 	if (~isempty(str_d)),	delete(uncomp_name);	end		% Delete uncompressed file
+
+% -----------------------------------------------------------------------------------------
+function [opt_R, opt_I, opt_C, bitflags, flagsID] = sniff_in_OPTcontrol(old_R, att)
+% Check the OPTcontrol file for particular requests in terms of -R, -I or quality flags
+% OPT_R is what the OPTcontrol has in
+% BITFLAGS is a vector with the bit number corresponding to the flgs keys in OPTcontrol
+% FLAGSID is the subdatset number adress of the flags array (l2_flags)
+
+	got_flags = false;		bitflags = [];		flagsID = 0;
+	opt_I = [];				opt_C = [];
+	opt_R = old_R;			% In case we return without finding a new -R
+	mir_dirs = getappdata(0,'MIRONE_DIRS');
+	if (~isempty(mir_dirs))
+		opt_file = [mir_dirs.home_dir '/data/OPTcontrol.txt'];
+	else
+		return				% Since we cannot find the OPTcontrol file
+	end
+	if (~(exist(opt_file, 'file') == 2)),		return,		end		% Nickles
+	
+	fid = fopen(opt_file, 'r');
+	c = (fread(fid,'*char'))';      fclose(fid);
+	lines = strread(c,'%s','delimiter','\n');   clear c fid;
+	m = numel(lines);
+	for (k = 1:m)
+		if (~strncmp(lines{k},'MIR_EMPILHADOR',8)),	continue,	end
+		opt = ddewhite(lines{k}(15:end));
+		got_one = false;
+		[t,r] = strtok(opt);
+		while (t)
+			if (strncmp(t,'-R',2)),		opt_R = t;		got_one = true;
+			elseif (strncmp(t,'-I',2)),	opt_I = t;		got_one = true;
+			elseif (strncmp(t,'-C',2)),	opt_C = t;		got_one = true;
+			end
+			[t,r] = strtok(ddewhite(r));
+		end
+		if (got_one),	continue,	end		% Done with this line
+		got_flags = true;			% If it comes here means that we have a flags request
+		flaglist = opt;
+	end
+
+	if (got_flags)
+		% Before anything else find the 'fl_flags' array ID. If not found go away right away
+		flagsID = find_in_subdatasets(att.AllSubdatasets, 'l2_flags');
+		if (~flagsID)
+			warndlg('You requested for a FLAGS masking (via OPTcontrol.txt) but this file does not have one "l2_flags" array','Warning')
+			return
+		end
+
+		fmap = {'ATMFAIL' 1;
+				'LAND' 2;
+				'HIGLINT' 4;
+				'HILT' 5;
+				'HISATZEN' 6;
+				'STRAYLIGHT' 9;
+				'CLDICE' 10;
+				'COCCOLITH' 11;
+				'HISOLZEN' 13;
+				'LOWLW' 15;
+				'CHLFAIL' 16;
+				'NAVWARN' 17;
+				'MAXAERITER' 20;
+				'CHLWARN' 22;
+				'ATMWARN' 23;
+				'NAVFAIL' 26;
+				'FILTER' 27};
+		
+		loc = [0 strfind(flaglist, ',') numel(flaglist)+1];		% Find the ',' separator. Add 2 to easy algo
+		c = false(1, numel(loc)-1);								% Vector with as many elements as input flags
+		fmap_names = fmap(:,1);
+		for (k = 1:numel(loc)-1)		% Loop over number of input flag keys
+			ind = strcmp(flaglist(loc(k)+1 : loc(k+1)-1), fmap_names);
+			n = find(ind);
+			if (~isempty(n)),	c(n) = true;	end
+		end
+		c = c(c);						% Retain only the confirmed ones
+		bitflags = [fmap{c,2}];
+	end
+
+% -----------------------------------------------------------------------------------------
+function ID = find_in_subdatasets(AllSubdatasets, name)
+% Find the position in the subdatasets array containing the array called 'name'
+	got_it = false;		ID = 0;
+	for (k = 2:2:numel(AllSubdatasets))
+		ind = strfind(AllSubdatasets{k}, ' ');
+		if ( strncmp(AllSubdatasets{k}(ind(1)+1:end), name, numel(name)) )
+			got_it = true;		break
+		end
+	end
+	if (got_it),	ID = k - 1;		end		% -1 because the subdataset name is one position before
 
 % -----------------------------------------------------------------------------------------
 function [full_name, str_d, uncompressed_name] = deal_with_compressed(full_name)
@@ -1303,9 +1425,9 @@ function push_OK_CB(hObject, handles)
 
 % -----------------------------------------------------------------------
 function figure1_CloseRequestFcn(hObject, eventdata)
-% The GUI is still in UIWAIT, us UIRESUME
+% The GUI is still in UIWAIT, do UIRESUME
 	handles = guidata(hObject);
-	handles.out = '';        % User gave up, return nothing
+	handles.out = '';		% User gave up, return nothing
 	guidata(handles.figure1, handles);
 	uiresume(handles.figure1);
 
@@ -1314,7 +1436,7 @@ function figure1_KeyPressFcn(hObject, eventdata)
 % Check for "escape"
 	if isequal(get(hObject,'CurrentKey'),'escape')
 		handles = guidata(hObject);
-		handles.out = '';    % User said no by hitting escape
+		handles.out = '';	% User said no by hitting escape
 		guidata(handles.figure1, handles);
 		uiresume(handles.figure1);
 	end
