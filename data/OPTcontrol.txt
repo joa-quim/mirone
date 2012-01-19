@@ -47,3 +47,8 @@ MIR_CPT zzz C:\a1\pathfinder\zzz.cpt
 
 # File with case selection and the EXACT arguments to run one of the main functions in aquaPlugin
 MIR_AQUAPLUG C:\SVN\mironeWC\data\example_data\aquaplug_CASE5_sc.txt 
+
+# Variables used in converting L2 satellite images from sensor to geographical coordinates.
+# First one contains parameters of interpolation (-C is gmtmbgrid only) and second are quality flags for SeaWiffs
+MIR_EMPILHADOR -R-12/-7/35/38 -I0.01 -C1
+MIR_EMPILHADOR  ATMFAIL,LAND,HIGLINT,HILT,HISATZEN,STRAYLIGHT,CLDICE,COCCOLITH,HISOLZEN,LOWLW,CHLFAIL,NAVWARN,MAXAERITER,CHLWARN,ATMWARN,NAVFAIL,FILTER
