@@ -140,7 +140,11 @@ function varargout = snapshot(varargin)
 			set(handles.text_qualityLev,'Visible','off')
 			handles.txtThisSize = handles.txtOrigSize;
 		else
-			fname = [handlesMir.work_dir fname '.jpg'];
+			prefix = handlesMir.work_dir;
+			if (prefix(end) ~= '\' && prefix(end) ~= '/')		% For a bloody reason compiled version looses '\' at the end
+				prefix = [prefix '/'];		% '/' works for Windows as well
+			end
+			fname = [prefix fname '.jpg'];
 		end
 		set(handles.edit_fname,'String',fname);
 	else
