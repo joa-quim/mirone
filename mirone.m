@@ -2824,7 +2824,7 @@ function DrawContours_CB(handles, opt)
 		nexti = i+npoints+1;
 		xdata = c(1,i+1:i+npoints);		ydata = c(2,i+1:i+npoints);
 		% Create the lines
-		cu = line('XData',xdata,'YData',ydata,'LineWidth',1,'Color','k','Parent',handles.axes1,'userdata',z_level,'Tag','contour');
+		cu = line('XData',xdata,'YData',ydata,'LineWidth',1,'Color','k', 'Parent',handles.axes1,'userdata',z_level,'Tag','contour');
 		h_cont = [h_cont; cu(:)];
 		cont = [cont; z_level];
 		i = nexti;
@@ -2837,6 +2837,7 @@ function DrawContours_CB(handles, opt)
 		h_label = clabel_j(c,h_cont);		% Label countours automatically
 		set(h_label,'Tag','contour');		% The tag is used in "Delete all contours" to delete also the labels
 	end
+	drawnow									% Don't wait for the next (SLOW) operations to display the contours
 	for (i = 1:numel(h_cont))				% Set convenient uicontexts. One for each contour
 		setappdata(h_cont(i),'cont_label',get(h_cont(i),'UserData'))	% Used in write_script
 		draw_funs(h_cont(i),'ContourLines',h_label)
