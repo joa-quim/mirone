@@ -260,7 +260,8 @@ function flood_clickedcallback(hObject, eventdata)
 	set(handles.hCallingFig,'Pointer', 'custom','PointerShapeCData',getPointer('bucket'),'PointerShapeHotSpot',[16 15])
 	[params,but] = prepareParams(handles,getPointer('bucket'),[16 15]);
 	if (isempty(params) || but ~= 1 || ~insideRect(handles,params.Point(1),params.Point(2)))
-		set(handles.hCallingFig,'Pointer', 'arrow');        return;
+		set(handles.hCallingFig,'Pointer', 'arrow');
+		return
 	end
 	while (but == 1)
 		img = get(handles.hImage,'CData');
@@ -269,8 +270,10 @@ function flood_clickedcallback(hObject, eventdata)
 			handles.origFig = img;      % Update the copy of the original image
 			guidata(handles.figure1,handles)
 		end
-		img = cvlib_mex('floodfill',img,params);
-		set(handles.hImage,'CData', img); 
+		if ( insideRect(handles,params.Point(1),params.Point(2)) )
+			img = cvlib_mex('floodfill',img,params);
+			set(handles.hImage,'CData', img);
+		end
 		[x,y,but] = click_e_point(1,getPointer('bucket'),[16 15]);  % Get next point
 		[x,y] = getpixcoords(handles,x,y);
 		params.Point = [x y];
