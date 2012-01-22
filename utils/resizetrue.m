@@ -200,7 +200,7 @@ function resize(hAxes, hImg, imSize, opt, withSliders, firstFigSize)
 	else								% They cannot be both zero
 		test_tick = XTick(end-1);		test_tick_str = sscanf(XTickLabel(end-1,:),'%f');
     end
-    if ( test_tick_str / test_tick < 0.1 )
+    if ( test_tick_str && (test_tick_str / test_tick < 0.1) )	% Also test if first guy is != 0
 		% We have a 10 power. That's the only way I found to detect
 		% the presence of this otherwise completely ghost text.
 		tenSizeX = 1;       % Take into account the 10 power text size when creating the pixval stsbar
@@ -224,7 +224,7 @@ function resize(hAxes, hImg, imSize, opt, withSliders, firstFigSize)
 	figTopBorder = figTopBorder + tenSizeY;
 
     sldT = 0;
-    if (withSliders),       sldT = 7;      end      % Slider thickness
+    if (withSliders),       sldT = 9;      end      % Slider thickness
 
 	% What are the gutter sizes?
 	gutterLeft = max(axPos(1) - 1, 0);
@@ -319,13 +319,13 @@ function resize(hAxes, hImg, imSize, opt, withSliders, firstFigSize)
 
 	if ~strncmp(opt,'sCap',4)		% sCapture. I'm not sure this is used anymore
         %-------------- This section simulates a box at the bottom of the figure
-        sbPos(1) = 1;               sbPos(2) = 2;
+        sbPos(1) = 1;               sbPos(2) = 1;
         sbPos(3) = figPos(3)-2;     sbPos(4) = H-1;
         h = axes('Parent',hFig,'Box','off','Visible','off','Tag','sbAxes','Units','Pixels',...
 			'Position',sbPos,'XLim',[0 sbPos(3)],'YLim',[0 H-1]);
         tenXMargin = 1;
         if (tenSizeX),     tenXMargin = 30;     end
-        hFieldFrame = createframe(h,[1 (figPos(3) - tenXMargin)],H);
+        hFieldFrame = createframe(h, [1 (figPos(3) - tenXMargin)], H);
         setappdata(hFig,'CoordsStBar',[h hFieldFrame]);  % Save it for use in ...
         set(hFieldFrame,'Visible','on')
         set(h,'HandleVisibility','off')
@@ -341,7 +341,7 @@ function resize(hAxes, hImg, imSize, opt, withSliders, firstFigSize)
 	if ~strcmp(opt,'sCapture'),   pixval_stsbar(hFig);  end
 
 %--------------------------------------------------------------------------
-function hFrame = createframe(ah,fieldPos,H)
+function hFrame = createframe(ah, fieldPos, H)
 % Creates a virtual panel surrounding the field starting at fieldPos(1) and
 % ending end fieldPos(2) pixels. ah is the sb's handle (axes).
 % It returns a handle array designating the frame.
@@ -366,14 +366,15 @@ function figPos = setSliders(hFig, hAxes, figPos, axPos, sldT, H)
 
     hSliders = getappdata(hAxes,'SliderAxes');
 	if (isempty(hSliders))
-		sliderVer = uicontrol('Units','pixels','Style','slider','Parent',hFig,...
-            'Pos',[axPos(1)+axPos(3)+1 axPos(2) sldT axPos(4)+1],'Background',[.9 .9 .9]);
-		sliderHor = uicontrol('Units','pixels','Style','slider','Parent',hFig,...
+		sliderVer = uicontrol('Units','pixels','Style','slider','Parent',hFig, 'Visible','off',...
+            'Pos',[axPos(1)+axPos(3)+2 axPos(2) sldT axPos(4)+1],'Background',[.9 .9 .9]);
+		sliderHor = uicontrol('Units','pixels','Style','slider','Parent',hFig, 'Visible','off',...
             'Pos',[axPos(1) H-1 axPos(3)+1 sldT],'Background',[.95 .95 .95]);
 		set(sliderHor,'Min',0,'Max',1,'Value',0,'Tag','HOR','Callback',{@slider_Cb,hAxes,'SetSliderHor'})
-		%set(sliderVer,'Min',0,'Max',1,'Value',0,'Tag','VER','Callback',{@slider_Cb,hAxes,'SetSliderVer'})
-		set(sliderVer,'Min',0,'Max',1,'Value',0,'Tag','VER','Callback','imscroll_j(gca,''SetSliderVer'')')
+		set(sliderVer,'Min',0,'Max',1,'Value',0,'Tag','VER','Callback',{@slider_Cb,hAxes,'SetSliderVer'})
+		%set(sliderVer,'Min',0,'Max',1,'Value',0,'Tag','VER','Callback','imscroll_j(gca,''SetSliderVer'')')
 		% Register the sliders in the axe's appdata
+		drawnow			% Needed because otherwise - BUG BUG - next line would change the VER slider thickness !!!!!
 		setappdata(hAxes,'SliderAxes',[sliderHor sliderVer])
 		imscroll_j(hAxes,'ZoomSetSliders')              % ...
 	else			% We have them already. They just need to be updated
