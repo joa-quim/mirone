@@ -34,7 +34,7 @@ switch arg
 	
 		switch get(this_obj, 'type')
 			case 'text',	obj_pos = get(this_obj, 'Pos')';
-			case 'line', 
+			case {'line' 'patch'}, 
 				obj_pos(1,:) = get(this_obj,'xdata');
 				obj_pos(2,:) = get(this_obj,'ydata');
 			otherwise error(['cannot handle type ' get(this_obj,'type')])
@@ -53,7 +53,7 @@ switch arg
 		end
 		switch get(this_obj, 'type')
 			case 'text',	set(this_obj, 'Pos', new_pos);		refresh
-			case 'line',
+			otherwise
 				set(this_obj, 'xdata', new_pos(1,:), 'ydata', new_pos(2,:));
 		end
 		setappdata(this_obj,'pos', pos);
