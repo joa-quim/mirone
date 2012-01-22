@@ -560,7 +560,7 @@ function hand = region2tiles(handles,lon,lat,zoomFactor)
 		for (i = 1:m)
 			yp = [tiles_bb(k,3) tiles_bb(k,4) tiles_bb(k,4) tiles_bb(k,3)];
 			hp(i,j) = patch('XData',xp,'YData',yp,'Parent',hAx,'FaceColor','y','EdgeColor','k', ...
-				'FaceAlpha',0.5, 'UserData',0, 'ButtonDownFcn',@bdn_tile, 'HitTest', 'on');
+				'FaceAlpha',0.5, 'UserData',0, 'ButtonDownFcn',@bdn_tile_region, 'HitTest', 'on');
 			k = k + 1;
 		end
 	end
@@ -572,7 +572,7 @@ function hand = region2tiles(handles,lon,lat,zoomFactor)
 	end
 
 % -----------------------------------------------------------------------------------------
-function bdn_tile(obj,evt)
+function bdn_tile_region(obj,evt)
 	stat = get(gcbo,'UserData');
 	if (~stat),		set(gcbo,'FaceColor','g','UserData',1)        % If not selected
 	else			set(gcbo,'FaceColor','y','UserData',0)
