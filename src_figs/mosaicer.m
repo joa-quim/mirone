@@ -27,10 +27,13 @@ function varargout = mosaicer(varargin)
 	handMir = guidata(handles.hMirFig);
 	handles.last_dir = handMir.last_dir;
 	handles.path_data = handMir.path_data;
+	handles.path_tmp = handMir.path_tmp;
 
 	handles.hPatches30 = [];
 	handles.hPatches5 = [];
 	handles.hPatches = [];
+	handles.hPatchesGMTED = [];
+	handles.hPatchesACE = [];
 	handles.hPatchImgs = [];
 	handles.url_manual = '';
 
@@ -38,12 +41,12 @@ function varargout = mosaicer(varargin)
 	x = diff(get(handles.hRectangle,'XData'));		y = diff(get(handles.hRectangle,'YData'));
 	area = max(abs(x)) * max(abs(y));
 	if (area < 30)
-		handles = draw_srtm_mesh(handles, handles.hRectangle);		% True SRTM tiles
+		handles = draw_srtm_mesh(handles);		% True SRTM tiles
 	elseif (area < 150)
-		handles = draw_srtm5_mesh(handles, handles.hRectangle);		% The CGIAR 5º blends
+		handles = draw_srtm5_mesh(handles);		% The CGIAR 5º blends
 		set(handles.radio_srtm5, 'Val', 1),			set(handles.radio_srtm, 'Val', 0)
 	else
-		handles = draw_srtm30_mesh(handles, handles.hRectangle);	% Sandwell's 30' big ones
+		handles = draw_srtm30_mesh(handles);		% Sandwell's 30' big ones
 		set(handles.radio_srtm30, 'Val', 1),		set(handles.radio_srtm, 'Val', 0)
 	end
 
@@ -132,6 +135,11 @@ function varargout = mosaicer(varargin)
 	new_frame3D(hObject, [handles.text_TitFrame1 handles.text_TitFrame2])
 	%------------- END Pro look (3D) ------------------------------
 
+	% Add this figure handle to the carraças list
+	plugedWin = getappdata(handles.hMirFig,'dependentFigs');
+	plugedWin = [plugedWin hObject];
+	setappdata(handles.hMirFig,'dependentFigs',plugedWin);
+
 	set(hObject,'Visible','on');
 	guidata(hObject, handles);
 	if (nargout),	varargout{1} = hObject;		end
@@ -191,52 +199,84 @@ function push_grd_dir_CB(hObject, handles)
 
 % -------------------------------------------------------------------------
 function radio_srtm_CB(hObject, handles)
-	if (~get(hObject,'Val')),		set(hObject,'Val',1),	return,		end
-	set([handles.radio_srtm5 handles.radio_srtm30 handles.radio_tileImages], 'Val', 0)
-	set(handles.slider_zoomFactor, 'Enable', 'off')
-	if (~isempty(handles.hPatches30)),		set(handles.hPatches30, 'Vis', 'off'),	end
-	if (~isempty(handles.hPatches5)),		set(handles.hPatches5,  'Vis', 'off'),	end
-	if (~isempty(handles.hPatchImgs)),	set(handles.hPatchImgs,'Vis', 'off'),	end
-	if (~isempty(handles.hPatches))
-		set(handles.hPatches,   'Vis', 'on')
-	else
-		handles = draw_srtm_mesh(handles, handles.hRectangle);
-		handles = popup_grd_dir_CB(handles.popup_grd_dir, handles);		% Find if def dir has files of interest
-		guidata(handles.figure1,handles)
+	radio_types(hObject, handles)
+	if (~get(handles.check_web,'Val') && ~isempty(get(handles.edit_url,'Str')))
+		set(handles.edit_url,'Str','')		% Hapened if SRTM5 + Web was attemped
 	end
-	if (get(handles.check_web,'val')),		check_web_CB(handles.check_web, handles),	end
 
 % -------------------------------------------------------------------------
 function radio_srtm5_CB(hObject, handles)
-	if (~get(hObject,'Val')),		set(hObject,'Val',1),	return,		end
-	set([handles.radio_srtm handles.radio_srtm30 handles.radio_tileImages], 'Val', 0)
-	set(handles.slider_zoomFactor, 'Enable', 'off')
-	if (~isempty(handles.hPatches30)),		set(handles.hPatches30, 'Vis', 'off'),	end
-	if (~isempty(handles.hPatches)),		set(handles.hPatches,   'Vis', 'off'),	end
-	if (~isempty(handles.hPatchImgs)),		set(handles.hPatchImgs, 'Vis', 'off'),	end
-	if (~isempty(handles.hPatches5))
-		set(handles.hPatches5,   'Vis', 'on')
-	else
-		handles = draw_srtm5_mesh(handles, handles.hRectangle);
-		handles = popup_grd_dir_CB(handles.popup_grd_dir, handles);		% Find if def dir has files of interest
-		guidata(handles.figure1,handles)
-	end
-	if (get(handles.check_web,'val')),		check_web_CB(handles.check_web, handles),	end
+	radio_types(hObject, handles)
 
 % -------------------------------------------------------------------------
 function radio_srtm30_CB(hObject, handles)
+	radio_types(hObject, handles)
+	if (~get(handles.check_web,'Val') && ~isempty(get(handles.edit_url,'Str')))
+		set(handles.edit_url,'Str','')		% Hapened if SRTM5 + Web was attemped
+	end
+
+% -------------------------------------------------------------------------
+function radio_gmted075_CB(hObject, handles)
+	radio_types(hObject, handles)
+
+% -------------------------------------------------------------------------
+function radio_gmted150_CB(hObject, handles)
+	radio_types(hObject, handles)
+
+% -------------------------------------------------------------------------
+function radio_gmted300_CB(hObject, handles)
+	radio_types(hObject, handles)
+
+% -------------------------------------------------------------------------
+function radio_ace_CB(hObject, handles)
+	radio_types(hObject, handles)
+
+% -------------------------------------------------------------------------
+function radio_types(hObject, handles)
+% Centralized function that sets/unsets different properties of the 'radios' family
 	if (~get(hObject,'Val')),		set(hObject,'Val',1),	return,		end
-	set([handles.radio_srtm handles.radio_srtm5 handles.radio_tileImages], 'Val', 0)
-	set(handles.slider_zoomFactor, 'Enable', 'off')
-	if (~isempty(handles.hPatches)),		set(handles.hPatches,  'Vis', 'off'),	end
-	if (~isempty(handles.hPatches5)),		set(handles.hPatches5, 'Vis', 'off'),	end
-	if (~isempty(handles.hPatchImgs)),		set(handles.hPatchImgs,'Vis', 'off'),	end
-	if (~isempty(handles.hPatches30))
-		set(handles.hPatches30,   'Vis', 'on')
+	nome = get(hObject,'Str');
+	if (nome(1) == 'S' && nome(end-1) == '5'),	nome(end) = [];		end		% Don't take the risk to try to recognize the º symbol
+	names = {'SRTM' 'radio_srtm' 'hPatches';
+		'SRTM30' 'radio_srtm30' 'hPatches30';
+		'SRTM5' 'radio_srtm5' 'hPatches5';
+		'GMTED075' 'radio_gmted075' 'hPatchesGMTED';
+		'GMTED150' 'radio_gmted150' 'hPatchesGMTED';
+		'GMTED300' 'radio_gmted300' 'hPatchesGMTED';
+		'ACE' 'radio_ace' 'hPatchesACE'};
+	ind = strcmp(nome, names(:,1));
+	this_radio = names(ind,:);					% Isolate data referring to current name
+	names(ind,:) = [];							% Remove current name from the pack list
+	for (k = 1:size(names,1))
+		set(handles.(names{k,2}), 'Val', 0)		% Set other radios to 0
+		if (~isempty(handles.(names{k,3})))
+			set(handles.(names{k,3}), 'Vis', 'off')	% Hide already created patches of different type
+		end
+	end
+
+	if ( ~isempty(handles.(this_radio{3})) )	% Patches already exist. Just set them visible
+		set(handles.(this_radio{3}), 'Vis', 'on')
 	else
-		handles = draw_srtm30_mesh(handles, handles.hRectangle);
-		handles = popup_grd_dir_CB(handles.popup_grd_dir, handles);		% Find if def dir has files of interest
+		switch nome
+			case 'SRTM',	handles = draw_srtm_mesh(handles);
+			case 'SRTM30',	handles = draw_srtm30_mesh(handles);
+			case 'SRTM5',	handles = draw_srtm5_mesh(handles);
+			case {'GMTED075' 'GMTED150' 'GMTED300'}
+							handles = draw_gmted_mesh(handles);
+			case 'ACE',		handles = draw_ace_mesh(handles);
+		end
+		if ( any(strcmp({'SRTM' 'SRTM30' 'SRTM5'}, nome)) )
+			handles = popup_grd_dir_CB(handles.popup_grd_dir, handles);		% Find if def dir has files of interest
+		end
 		guidata(handles.figure1,handles)
+
+		if ( any(strcmp({'GMTED075' 'GMTED150' 'GMTED300' 'ACE'}, nome)) )	% Web only cases. Different treatment
+			set(handles.edit_url, 'Str', 'Web only (Via internaly generated VRTs)', 'Enable', 'off')
+			set(handles.check_web, 'Val', 1, 'Enable', 'off')
+			return
+		else
+			set([handles.check_web handles.edit_url], 'Enable', 'on')		% Other cases are free to be changed
+		end
 	end
 	if (get(handles.check_web,'val')),		check_web_CB(handles.check_web, handles),	end
 
@@ -245,7 +285,8 @@ function check_web_CB(hObject, handles)
 % Set pre-set web addresses of known data sources
 	url = '';
 	if (get(hObject,'Val'))
-		if (get(handles.radio_srtm5,'Val'))		% This one is unbearable slow
+		if (get(handles.radio_srtm5,'Val'))		% This one is unbearably slow
+			set(handles.edit_url, 'Str', 'This one is unbearably slow')
 			set(hObject,'Val',0),	return
 		end
 		set([handles.popup_grd_dir handles.push_grd_dir],'Enable', 'off')
@@ -266,10 +307,10 @@ function edit_url_CB(hObject, handles)
 	guidata(handles.figure1, handles)
 
 % -----------------------------------------------------------------------------------------
-function handles = draw_srtm_mesh(handles, h)
+function handles = draw_srtm_mesh(handles)
 % Draw 1 degree squares corresponding to the SRTM1|3 tiles
-	hAx = get(h,'Parent');
-	x = get(h,'XData');		y = get(h,'YData');
+	hAx = get(handles.hRectangle,'Parent');
+	x = get(handles.hRectangle,'XData');		y = get(handles.hRectangle,'YData');
 	x_min = floor(min(x));	x_max = ceil(max(x));
 	y_min = floor(min(y));	y_max = ceil(max(y));
 	x = x_min:x_max;		y = y_min:y_max;
@@ -285,36 +326,32 @@ function handles = draw_srtm_mesh(handles, h)
 			if (x(j) < 0),	c2 = 'W';	end
 			tag = sprintf('%s%.2d%s%.3d.hgt', c1, abs(y(i)), c2, abs(x(j)));
 			hp(i,j) = patch('Xdata',xp, 'YData',yp, 'Parent',hAx, 'FaceColor','y', 'FaceAlpha',0.5, ...
-				'Tag',tag, 'UserData',0, 'ButtonDownFcn',{@bdn_srtmTile, handles.figure1});
+				'Tag',tag, 'UserData',0, 'ButtonDownFcn',{@bdn_Tile, handles.figure1});
 			setappdata(hp(i,j),'MeshIndex',mesh_idx)
 		end
 	end
+	uistack_j(handles.hRectangle,'top')
 	handles.hPatches = hp;
 
 % -----------------------------------------------------------------------------------------
-function handles = draw_srtm30_mesh(handles, h)
+function handles = draw_srtm30_mesh(handles)
 % Draw patches corresponding to the SRTM30 tiles
-	hAx = get(h,'Parent');
-	x = get(h,'XData');				y = get(h,'YData');
-	jx = fix(abs(x+180)/40) + 1;	jx = [min(jx) max(jx)];
-	x_min = (jx(1)-1) * 40 - 180;	x_max = jx(2) * 40 - 180;
-	iy = fix(abs(90-y)/50) + 1;		iy = [min(iy) max(iy)];
-	y_max = 90 - (iy(1)-1) * 50;	y_min = 90 - iy(2) * 50;
-	x = x_min:40:x_max;				y = y_min:50:y_max;
-	n = numel(x);					m = numel(y);
+	hAx = get(handles.hRectangle,'Parent');
+	[x, y, xP, yP] = mosaic_grid(handles.hRectangle, 40, 50);
+	n = numel(xP);					m = numel(yP);
 	hp = zeros(m-1,n-1);
 
 	for (i = 1:m-1)
-		yp = [y(i) y(i+1) y(i+1) y(i) y(i)];
+		yp = [yP(i) yP(i+1) yP(i+1) yP(i) yP(i)];
 		c2 = 'n';			c1 = 'w';			% Default guesses
 		if (yp(2) < 0),		c2 = 's';	end
 		for (j = 1:n-1)		% col
-			xp = [x(j) x(j) x(j+1) x(j+1) x(j)];
+			xp = [xP(j) xP(j) xP(j+1) xP(j+1) xP(j)];
 			mesh_idx = sprintf('%dx%d', i,j);
 			if (xp(1) > 0),	c1 = 'e';	end
  			tag = sprintf('%s%.3d%s%.2d.Bathymetry.srtm', c1, abs(xp(1)), c2, abs(yp(2)));
 			hp(i,j) = patch('Xdata',xp, 'YData',yp, 'Parent',hAx, 'FaceColor','y', 'FaceAlpha',0.5, ...
-				'Tag',tag, 'UserData',0, 'ButtonDownFcn',{@bdn_srtmTile, handles.figure1});
+				'Tag',tag, 'UserData',0, 'ButtonDownFcn',{@bdn_Tile, handles.figure1});
 			setappdata(hp(i,j),'MeshIndex',mesh_idx)
 		end
 	end
@@ -327,48 +364,97 @@ function handles = draw_srtm30_mesh(handles, h)
 % 		tag = sprintf('%s%.3d.s60.Bathymetry.srtm', c1, abs(xp(1)));
 % 		patch(xp,yp,0,'FaceColor','none','Tag',tag,'UserData',0,'ButtonDownFcn',@bdn_srtm30Tile);
 % 	end
+	uistack_j(handles.hRectangle,'top')
 	handles.hPatches30 = hp;
 
 % -----------------------------------------------------------------------------------------
-function handles = draw_srtm5_mesh(handles, h)
-% Draw 1 degree squares corresponding to the SRTM1|3 tiles
-	hAx = get(h,'Parent');
-	x = get(h,'XData');				y = get(h,'YData');
+function handles = draw_srtm5_mesh(handles)
+% Draw 5 degree squares corresponding to the SRTM5 tiles
+	hAx = get(handles.hRectangle,'Parent');
+	x = get(handles.hRectangle,'XData');	y = get(handles.hRectangle,'YData');
 	jx = fix(abs(x+180)/5) + 1;		jx = [min(jx) max(jx)];
 	x_min = (jx(1)-1) * 5 - 180;	x_max = jx(2) * 5 - 180;
 	iy = fix(abs(60-y)/5) + 1;		iy = [min(iy) max(iy)];
 	y_max = 60 - (iy(1)-1) * 5;		y_min = 60 - iy(2) * 5;
-	x = x_min:5:x_max;				y = y_min:5:y_max;
-	n = numel(x);					m = numel(y);
+	xP = x_min:5:x_max;				yP = y_min:5:y_max;
+	n = numel(xP);					m = numel(yP);
 	hp = zeros(m-1,n-1);
 	for (i = 1:m-1)
-		yp = [y(i) y(i+1) y(i+1) y(i) y(i)];
+		yp = [yP(i) yP(i+1) yP(i+1) yP(i) yP(i)];
 		for (j = 1:n-1)		% col
-			xp = [x(j) x(j) x(j+1) x(j+1) x(j)];
+			xp = [xP(j) xP(j) xP(j+1) xP(j+1) xP(j)];
 			mesh_idx = sprintf('%dx%d', i,j);
 			tag = sprintf('srtm_%.2d_%.2d.zip', jx(1)+(j-1), iy(2)-(i-1));
 			hp(i,j) = patch('Xdata',xp, 'YData',yp, 'Parent',hAx, 'FaceColor','y', 'FaceAlpha',0.5, ...
-				'Tag',tag, 'UserData',0, 'ButtonDownFcn',{@bdn_srtmTile, handles.figure1});
+				'Tag',tag, 'UserData',0, 'ButtonDownFcn',{@bdn_Tile, handles.figure1});
 			setappdata(hp(i,j),'MeshIndex',mesh_idx)
 		end
 	end
+	uistack_j(handles.hRectangle,'top')
 	handles.hPatches5 = hp;
 
 % -----------------------------------------------------------------------------------------
-function bdn_srtmTile(obj, evt, hFig)
+function handles = draw_gmted_mesh(handles)
+% Draw a single patch of the size of displayed map. We ignore here that GMTED is made of
+% 20x30 degrees tiles because of the multiple resolution issue. Res is selected via radio button
+	hAx = get(handles.hRectangle,'Parent');
+	[x, y, xP, yP, x_min, y_max, jx, iy] = mosaic_grid(handles.hRectangle, 30, 20);
+	n = numel(xP);					m = numel(yP);
+	hp = zeros(m-1,n-1);
+	for (i = 1:m-1)
+		yp = [yP(i) yP(i+1) yP(i+1) yP(i) yP(i)];
+		for (j = 1:n-1)		% col
+			xp = [xP(j) xP(j) xP(j+1) xP(j+1) xP(j)];
+			mesh_idx = sprintf('%dx%d', i,j);
+			tag = sprintf('gmted_%.2d_%.2d.zip', jx(1)+(j-1), iy(2)-(i-1));
+			hp(i,j) = patch('Xdata',xp, 'YData',yp, 'Parent',hAx, 'FaceColor','y', 'FaceAlpha',0.5, ...
+							'Tag',tag, 'UserData',0, 'ButtonDownFcn',{@bdn_Tile, handles.figure1});
+			setappdata(hp(i,j),'MeshIndex',mesh_idx)
+		end
+	end
+	uistack_j(handles.hRectangle,'top')
+	handles.hPatchesGMTED = hp;
+
+% -----------------------------------------------------------------------------------------
+function handles = draw_ace_mesh(handles)
+% Draw 15 degree squares corresponding to the ACE tiles
+	hAx = get(handles.hRectangle,'Parent');
+	[x, y, xP, yP, x_min, y_max, jx, iy] = mosaic_grid(handles.hRectangle, 15, 15);
+	n = numel(xP);			m = numel(yP);
+	hp = zeros(m-1,n-1);
+	for (i = 1:m-1)
+		yp = [yP(i) yP(i+1) yP(i+1) yP(i) yP(i)];
+		for (j = 1:n-1)		% col
+			xp = [xP(j) xP(j) xP(j+1) xP(j+1) xP(j)];
+			mesh_idx = sprintf('%dx%d', i,j);
+			tag = sprintf('srtm_%.2d_%.2d.zip', jx(1)+(j-1), iy(2)-(i-1));
+			hp(i,j) = patch('Xdata',xp, 'YData',yp, 'Parent',hAx, 'FaceColor','y', 'FaceAlpha',0.5, ...
+							'Tag',tag, 'UserData',0, 'ButtonDownFcn',{@bdn_Tile, handles.figure1});
+			setappdata(hp(i,j),'MeshIndex',mesh_idx)
+		end
+	end
+	uistack_j(handles.hRectangle,'top')
+	handles.hPatchesACE = hp;
+
+% -----------------------------------------------------------------------------------------
+function bdn_Tile(obj, evt, hFig)
 	handles = guidata(hFig);
 	tag = get(gcbo,'Tag');
 	if (get(handles.radio_srtm, 'Val'))
 		xx = strcmp(tag, handles.srtm_files);		xz = strcmp(tag, handles.srtm_compfiles);
 	elseif (get(handles.radio_srtm30, 'Val'))
 		xx = strcmp(tag, handles.srtm30_files);		xz = strcmp(tag, handles.srtm30_compfiles);
+	elseif (get(handles.radio_srtm5, 'Val'))
+		xx = strcmp(tag, handles.srtm5_files);		xz = strcmp(tag, handles.srtm5_compfiles);
+	elseif (get(handles.radio_ace, 'Val'))
+		xx = strcmp(tag, handles.srtm5_files);		xz = strcmp(tag, handles.srtm5_compfiles);
 	else
 		xx = strcmp(tag, handles.srtm5_files);		xz = strcmp(tag, handles.srtm5_compfiles);
 	end
 
 	if (~get(gcbo,'UserData'))			% If not selected    
 		set(gcbo,'FaceColor','g','UserData',1)
-		if ( (~any(xx) && ~any(xz)) && isempty(get(handles.edit_url,'Str')) )	% If WEB dl let it go
+		if ( (~any(xx) && ~any(xz)) && isempty(get(handles.edit_url,'Str')) )	% If FALSE ==> WEB dl, we are done
 			%str = ['The file ' tag ' does not exist in the current directory'];
 			set(gcbo,'FaceColor','r')
 			pause(1)
@@ -394,7 +480,7 @@ function [files, comp_files, comp_ext, patos, patos_comp] = get_fnames_ext(pato,
 	comp_files = [];		comp_ext = [];		patos_comp = [];	ext2 = [];
 	if (nargin == 2),		prefix = '';		end
 	if ( (pato(end) ~= '\') || (pato(end) ~= '/') )
-		pato(end+1) = filesep;
+		pato(end+1) = '/';
 	end
 	if (iscell(ext))
 		ext1 = ext{1};
@@ -553,7 +639,7 @@ function push_src_CB(hObject, handles)
 
 % -------------------------------------------------------------------------
 function toggle_mesh_CB(hObject, handles)
-% Plot a squared mesh appropriate for the selected dataset
+% Plot the squared mesh appropriate for the selected dataset
 	if (~get(hObject,'Val'))			% Make everybody invisible
 		set(handles.hPatches,  'Vis', 'off'),		set(handles.hPatches30,'Vis', 'off')
 		set(handles.hPatches5, 'Vis', 'off'),		set(handles.hPatchImgs, 'Vis', 'off')
@@ -561,26 +647,26 @@ function toggle_mesh_CB(hObject, handles)
 		rectSize = [get(handles.hRectangle,'XData') get(handles.hRectangle,'YData')];
 		if (any(handles.rectOrigSize - rectSize))		% Rectangle was edited, must recompute patches
 			if (get(handles.radio_srtm,'Val'))
-				handles = draw_srtm_mesh(handles, handles.hRectangle);
+				handles = draw_srtm_mesh(handles);
 			elseif (get(handles.radio_srtm30,'Val'))
-				handles = draw_srtm30_mesh(handles, handles.hRectangle);
+				handles = draw_srtm30_mesh(handles);
 			elseif (get(handles.radio_srtm5,'Val'))
-				handles = draw_srtm5_mesh(handles, handles.hRectangle);
+				handles = draw_srtm5_mesh(handles);
 			else				% Image tiles
 				handles = region2tiles(handles);
 			end
 		else							% Either make it visible or compute if first time call
 			if (get(handles.radio_srtm,'Val'))
 				if (~isempty(handles.hPatches)),	set(handles.hPatches, 'Vis', 'on')
-				else								handles = draw_srtm_mesh(handles, handles.hRectangle);
+				else								handles = draw_srtm_mesh(handles);
 				end
 			elseif (get(handles.radio_srtm30,'Val'))
 				if (~isempty(handles.hPatches30)),	set(handles.hPatches30, 'Vis', 'on')
-				else								handles = draw_srtm30_mesh(handles, handles.hRectangle);
+				else								handles = draw_srtm30_mesh(handles);
 				end
 			elseif (get(handles.radio_srtm5,'Val'))
 				if (~isempty(handles.hPatches5)),	set(handles.hPatches5, 'Vis', 'on')
-				else								handles = draw_srtm5_mesh(handles, handles.hRectangle);
+				else								handles = draw_srtm5_mesh(handles);
 				end
 			else
 				if (~isempty(handles.hPatchImgs)),	set(handles.hPatchImgs, 'Vis', 'on')
@@ -600,6 +686,10 @@ function push_OK_CB(hObject, handles)
 		n_tiles = mosaic_srtm5(handles);
 	elseif (get(handles.radio_srtm30,'Val'))
 		n_tiles = mosaic_srtm30(handles);
+	elseif (get(handles.radio_gmted075,'Val') || get(handles.radio_gmted150,'Val') ||get(handles.radio_gmted300,'Val'))
+		n_tiles = mosaic_gmted(handles);
+	elseif (get(handles.radio_ace,'Val'))
+		n_tiles = mosaic_ace(handles);
 	elseif (get(handles.radio_tileImages,'Val'))
 		n_tiles = mosaic_images(handles);
 	end
@@ -792,6 +882,110 @@ function n_tiles = mosaic_srtm30(handles)
 	tmp.name = 'SRTM30_blend';
 	mirone(Z_tot,tmp);
 
+% -------------------------------------------------------------------------
+function n_tiles = mosaic_gmted(handles)
+% Build a mosaic of GMTED tiles
+	n_tiles = 0;			% Counter to the number of processed tiles
+	[x, y, xP, yP, x_min, y_max] = mosaic_grid(handles.hRectangle, 30, 20);
+
+	local_pato = handles.path_tmp;		% VRT files will be stored here
+	prefix = '/vsicurl/http://igskmncngs506.cr.usgs.gov/gmted/Global_tiles_GMTED/';
+
+	if (get(handles.radio_gmted075,'Val'))
+		prefix = [prefix '075darcsec/bln/'];
+		inc = 1 / 480;		n_cols = 14400;		n_rows = 9600;		res = '075';
+	elseif (get(handles.radio_gmted150,'Val'))
+		prefix = [prefix '150darcsec/bln/'];
+		inc = 1 / 240;		n_cols = 7200;		n_rows = 4800;		res = '150';
+	else
+		prefix = [prefix '300darcsec/bln/'];
+		inc = 1 / 120;		n_cols = 3600;		n_rows = 2400;		res = '300';
+	end
+
+	n = numel(xP);				m = numel(yP);
+	names_vrt = cell((m-1)*(n-1),1);
+	W = 'W';	S = 'S';
+	ii = 0;		k = 1;
+	for (i = m:-1:2)			% Row
+		if (y(i) >= 0),			S = 'N';	end
+		for (j = 1:n-1)			% Col
+			if (xP(j) >= 0),	W = 'E';	end
+			name_ = sprintf('%.2d%c%.3d%c_20101117_gmted_bln%s.tif', abs(yP(i-1)), S, abs(xP(j)), W, res);
+			name = {[local_pato name_]; sprintf('%s/%c%.3d/%s',prefix,W,abs(xP(j)),name_);'simple'};
+			names_vrt{k,1} = write_vrt(name, [xP(j) yP(i) n_cols n_rows inc inc -32768 1 2], 0);
+			names_vrt{k,2} = ii;		% Indices to compute the the '<DstRect xOff yOff later in write_vrt
+			names_vrt{k,3} = j - 1;
+			k = k + 1;
+		end
+		ii = ii + 1;
+	end
+
+	write_vrt([local_pato 'mater.xxx'], [x_min y_max n_cols n_rows inc inc -32768 1 2], 1, names_vrt);
+
+	% Now do the reading
+	opt_R = sprintf('-R%.18g/%.18g/%.18g/%.18g', min(x),max(x),min(y),max(y));
+	[Z, X, Y, srsWKT, hand] = read_grid([], [local_pato 'mater.vrt'], 'OVR', opt_R);
+	zz = grdutils(Z,'-L');		hand.head(5:6) = zz(:)';
+	tmp.head = hand.head;		tmp.X = X;		tmp.Y = Y;
+	if (~isempty(srsWKT))		tmp.srsWKT = srsWKT;	end
+	tmp.name = 'GMTED_cut';
+	tmp.was_int16 = hand.was_int16;
+	tmp.Nodata_int16 = hand.Nodata_int16;
+	mirone(Z,tmp);
+
+% -------------------------------------------------------------------------
+function n_tiles = mosaic_ace(handles)
+% Build a mosaic of ACE tiles
+% http://tethys.eaprs.cse.dmu.ac.uk/ACE2/links/ACE2_3_SECONDS/ACE2_3S_HEIGHTS/00N000E_3S.ACE2.gz
+% http://tethys.eaprs.cse.dmu.ac.uk/ACE2/links/ACE2_9_SECONDS/ACE2_9S_HEIGHTS/00N000E_9S.ACE2.gz
+% http://tethys.eaprs.cse.dmu.ac.uk/ACE2/links/ACE2_30_SECONDS/ACE2_30S_BOTH/00N000E_BOTH_30S.ACE2.gz
+% http://oceancolor.gsfc.nasa.gov/cgi/l3/A20113612011363.L3m_3D_NSST_4.ico.png?sub=img
+% http://oceandata.sci.gsfc.nasa.gov/cgi/getfile/A20113632011365.L3m_3D_NSST_4.bz2
+	n_tiles = 0;			% Counter to the number of processed tiles
+	[x, y, xP, yP, x_min, y_max] = mosaic_grid(handles.hRectangle, 15, 15);
+	
+	prefix = '/vsicurl/http://tethys.eaprs.cse.dmu.ac.uk/ACE2/links/ACE2_30_SECONDS/ACE2_30S_BOTH/';
+	local_pato = handles.path_tmp;
+	n = numel(xP);				m = numel(yP);
+	names_vrt = cell((m-1)*(n-1),1);k = 1;
+	ii = 0;			W = 'W';	S = 'S';
+	for (i = m:-1:2)			% Row
+		if (y(i) >= 0),			S = 'N';	end
+		for (j = 1:n-1)			% Col
+			if (xP(j) >= 0),	W = 'E';	end
+			name_ = sprintf('%.2d%c%.3d%c_BOTH_30S.ACE2', abs(yP(i-1)), S, abs(xP(j)), W);
+			name = {[local_pato name_]; [prefix name_ '.gz']; 'simple'};
+			names_vrt{k,1} = write_vrt(name, [xP(j) yP(i) 1800 1800 1/120 1/120 -9500 1 2], 0);
+			names_vrt{k,2} = ii;		% Indices to compute the the '<DstRect xOff yOff later in write_vrt
+			names_vrt{k,3} = j - 1;
+			k = k + 1;
+		end
+		ii = ii + 1;
+	end
+
+	write_vrt([local_pato 'mater.xxx'], [x_min y_max 1800 1800 1/120 1/120 -9500 1 2], 1, names_vrt);
+	
+	% Now do the reading
+	opt_R = sprintf('-R%.18g/%.18g/%.18g/%.18g', min(x),max(x),min(y),max(y));
+	[Z, X, Y, srsWKT, hand] = read_grid([], [local_pato 'mater.vrt'], 'OVR', opt_R);
+	zz = grdutils(Z,'-L');		hand.head(5:6) = zz(:)';
+	tmp.head = hand.head;		tmp.X = X;		tmp.Y = Y;
+	if (~isempty(srsWKT))		tmp.srsWKT = srsWKT;	end
+	tmp.name = 'ACE_cut';
+	tmp.was_int16 = hand.was_int16;
+	tmp.Nodata_int16 = hand.Nodata_int16;
+	mirone(Z,tmp);
+
+% -----------------------------------------------------------------------------------------
+function [x, y, xP, yP, x_min, y_max, jx, iy] = mosaic_grid(hRect, dx, dy)
+% ...
+	x = get(hRect,'XData');			y = get(hRect,'YData');
+	jx = fix(abs(x+180)/dx) + 1;	jx = [min(jx) max(jx)];
+	x_min = (jx(1)-1) * dx - 180;	x_max = jx(2) * dx - 180;
+	iy = fix(abs(90-y)/dy) + 1;		iy = [min(iy) max(iy)];
+	y_max = 90 - (iy(1)-1) * dy;	y_min = 90 - iy(2) * dy;
+	xP = x_min:dx:x_max;			yP = y_min:dy:y_max;
+
 % -----------------------------------------------------------------------------------------
 function [fnames,limits] = sort_patches(handles, type)
 % Sort the tile names (those that were selected) in order that follow a matrix
@@ -826,7 +1020,10 @@ function [fnames,limits] = sort_patches(handles, type)
 		if (iscell(fnames))		[PATH,FNAME] = fileparts(fnames{i});
 		else					[PATH,FNAME] = fileparts(fnames);
 		end
-		if (type ~= 5)			% Non-CGIAR grid
+		if (type == 5)			% CGIAR grid
+			lon = (sscanf(FNAME(6:7), '%f') - 1) * 5 - 180;
+			lat = 60 - sscanf(FNAME(9:10), '%f') * 5;		% so to get the bottom latitude
+		else
 			FNAME = upper(FNAME);		% SRTM30 came in lower cases
 			x_w = strfind(FNAME,'W');	x_e = strfind(FNAME,'E');
 			y_s = strfind(FNAME,'S');	y_n = strfind(FNAME,'N');
@@ -841,9 +1038,6 @@ function [fnames,limits] = sort_patches(handles, type)
 			if (type <= 3),			lat = sscanf(FNAME(2:ind_x-1), '%f') * lat_sng;
 			else					lat = sscanf(FNAME(ind_y+1:ind_y+2), '%f') * lat_sng - tileH;
 			end
-		else					% CGIAR grids
-			lon = (sscanf(FNAME(6:7), '%f') - 1) * 5 - 180;
-			lat = 60 - sscanf(FNAME(9:10), '%f') * 5;		% so to get the bottom latitude
 		end
 
 		if (isempty(x_min))
@@ -948,7 +1142,7 @@ function figure1_CloseRequestFcn(hObject, eventdata)
 	% These leave in the Mirone figure
 	delete(handles.figure1),		delete(handles.hPatches)
 	delete(handles.hPatches5),		delete(handles.hPatches30)
-	delete(handles.hPatchImgs)
+	delete(handles.hPatchImgs),		delete(handles.hPatchesACE)
 
 % ----------------------------------------------------------- 
 function mosaicer_LayoutFcn(h1)
@@ -1007,19 +1201,46 @@ uicontrol('Parent',h1, 'Position',[11 244 65 21],...
 'Value',1,...
 'Tag','radio_srtm');
 
-uicontrol('Parent',h1, 'Position',[95 244 75 21],...
+uicontrol('Parent',h1, 'Position',[90 244 75 21],...
 'Call',@mosaicer_uiCB,...
 'String','SRTM30',...
 'Style','radiobutton',...
 'Tag','radio_srtm30');
 
-uicontrol('Parent',h1, 'Position',[180 244 75 21],...
+uicontrol('Parent',h1, 'Position',[170 244 75 21],...
 'Call',@mosaicer_uiCB,...
 'String','SRTM5º',...
 'Style','radiobutton',...
 'Tag','radio_srtm5');
 
-uicontrol('Parent',h1, 'Position',[10 180 140 21],...
+uicontrol('Parent',h1, 'Position',[240 260 75 20],...
+'Call',@mosaicer_uiCB,...
+'String','GMTED075',...
+'Style','radiobutton',...
+'Tooltip','7.5 seconds resolution grids',...
+'Tag','radio_gmted075');
+
+uicontrol('Parent',h1, 'Position',[240 244 75 19],...
+'Call',@mosaicer_uiCB,...
+'String','GMTED150',...
+'Style','radiobutton',...
+'Tooltip','15 seconds resolution grids',...
+'Tag','radio_gmted150');
+
+uicontrol('Parent',h1, 'Position',[240 227 75 20],...
+'Call',@mosaicer_uiCB,...
+'String','GMTED300',...
+'Style','radiobutton',...
+'Tooltip','30 seconds resolution grids',...
+'Tag','radio_gmted300');
+
+% uicontrol('Parent',h1, 'Position',[325 244 75 21],...
+% 'Call',@mosaicer_uiCB,...
+% 'String','ACE',...
+% 'Style','radiobutton',...
+% 'Tag','radio_ace');
+
+uicontrol('Parent',h1, 'Position',[10 180 140 20],...
 'Call',@mosaicer_uiCB,...
 'String','OR Web download',...
 'Style','checkbox',...
