@@ -179,7 +179,7 @@ function RasterBand_complex(fid, names, n_rows, n_cols, endian, nodata, tipo, ba
 	fprintf(fid,'</VRTDataset>\n');
 
 % ---------------------------------------------
-function [lon_min lat_max n_cols n_rows x_inc y_inc nodata] = known_cases(fname, tipo)
+function [lon_min, lat_max, n_cols, n_rows, x_inc, y_inc, nodata] = known_cases(fname, tipo)
 % ...
 	lon_sng = 0;    lat_sng = 0;
 	% Find the tile coordinates from the file name
