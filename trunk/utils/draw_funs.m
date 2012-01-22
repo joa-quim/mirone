@@ -1606,7 +1606,7 @@ function wbd_gcircle(obj,eventdata,h,state)
 
 % -----------------------------------------------------------------------------------------
 function h_circ = DrawCartesianCircle
-% THIS IS NOW ONLY USED NOW WITH CARTESIAN CIRCLES
+% THIS IS ONLY USED NOW WITH CARTESIAN CIRCLES
 % Given one more compiler BUG, (WindowButtonDownFcn cannot be redefined)
 % I found the following workaround.
 	hFig = get(0,'CurrentFigure');          handles = guidata(hFig);
@@ -1647,6 +1647,7 @@ function wbd_circle(obj,eventdata,h,state)
 	set(h,'Tag','circleCart')
     rmappdata(h,'X');			rmappdata(h,'Y');
 	set(h,'UserData',[])				% Clean UserData so that it doesn't risk to crash write_fleder
+	set(h, 'ButtonDownFcn', 'move_obj(1)')
 	uirestore_j(state, 'nochildren');	% Restore the figure's initial state
 % -----------------------------------------------------------------------------------------
 
