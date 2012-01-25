@@ -818,7 +818,7 @@ function [Z, have_nans, att] = getZ(fname, att, is_modis, is_linear, is_log, slo
 		Corners.UL = att.Corners.UL;
 	end
 
-	[Z, att, known_coords] = read_gdal(fname, att, IamCompiled, IamInteractive, '-C', opt_R, '-U');
+	[Z, att, known_coords, have_nans] = read_gdal(fname, att, IamCompiled, IamInteractive, '-C', opt_R, '-U');
 
 	% See if we knew the image coordinates but that knowedge is lost in new att
 	if ( ~known_coords && ~isempty(GMT_hdr) )	% For the moment we only know for sure for L2 georeferenced products
@@ -833,6 +833,21 @@ function [Z, have_nans, att] = getZ(fname, att, is_modis, is_linear, is_log, slo
 
 	if ( is_modis && ~isempty(att.Band(1).NoDataValue) && saveNoData)	% att.Band... is isempty when all work has been done before
 		att.Band(1).NoDataValue = NoDataValue;		% Shity format doesn't inform on the no-data.
+	end
+
+	if (isempty(have_nans))			% It's only non-empty when processing L2 products with reinterpolation
+		[Z, have_nans, att] = sanitizeZ(Z, att, is_modis, is_linear, is_log, slope, intercept, base);
+	end
+
+% -----------------------------------------------------------------------------------------
+function [Z, have_nans, att] = sanitizeZ(Z, att, is_modis, is_linear, is_log, slope, intercept, base)
+% Take care of possible scaling/offset transformations.
+% Have it separate in a function because when processing L2 products we need to apply this right
+% before the interpolation (in read_gdal()). This is too early with regard to the normal work-flow
+% where it is applied at the end of function getZ
+
+	if (nargin == 2)	% Go again to getFromMETA but without changing again att
+		[head, slope, intercept, base, is_modis, is_linear, is_log] = getFromMETA(att);
 	end
 
 	ind = [];
@@ -866,7 +881,7 @@ function [Z, have_nans, att] = getZ(fname, att, is_modis, is_linear, is_log, slo
 	end
 	have_nans = 0;
 	if (~isempty(ind))
-		if (~isa(Z,'single') || ~isa(Z,'double'))		% Otherwise NaNs would be converted to 0
+		if (~isa(Z,'single') && ~isa(Z,'double'))		% Otherwise NaNs would be converted to 0
 			Z = single(Z);
 		end
 		Z(ind) = NaN;		have_nans = 1;
@@ -876,26 +891,13 @@ function [Z, have_nans, att] = getZ(fname, att, is_modis, is_linear, is_log, slo
 	end
 
 % -----------------------------------------------------------------------------------------
-function att = get_baseNameAttribs(full_name)
-% Get the file's metadata and also tests if an SDS was required but does not exist
-	att = gdalread(full_name, '-M');
-	if (att.RasterCount > 0)
-		handles = guidata(gcf);
-		if (~isempty(handles.SDSinfo) && handles.SDSthis > 1 && ~handles.testedDS)
-			handles.testedDS = true;
-			guidata(handles.figure1, handles)
-			errordlg('Input File has no Sub-Datasets so the silly sub-dataset request forced me to abort.','Error')
-			error('empilhador: File has no Sub-Datasets so the silly sub-dataset request forced me to abort')
-		end
-	end
-
-% -----------------------------------------------------------------------------------------
-function [Z, att, known_coords] = read_gdal(full_name, att, IamCompiled, IamInteractive, varargin)
+function [Z, att, known_coords, have_nans] = read_gdal(full_name, att, IamCompiled, IamInteractive, varargin)
 % Help function to gdalread that deals with cases when file is compressed.
 % ATT is the GDALREAD returned attributes. If empty, we'll get it here
 % VARARGIN will normally contain one or more of '-C', opt_R, '-U'
 % WARNING: If exist(att.hdfInfo) than att.fname should exist as well (both non standard)
 
+	have_nans = [];			% Will only become ~[] when input is a L2 product to be interpolated and referenced
 	NoDataValue = [];		% Some defaults
 	known_coords = false;	% If we know for sure the coords (as for georefed L2 products) tell that to caller
 	[full_name, str_d, uncomp_name] = deal_with_compressed(full_name);
@@ -958,10 +960,20 @@ function [Z, att, known_coords] = read_gdal(full_name, att, IamCompiled, IamInte
 				end
 				clear lon lat cols_vec
 			end
-			x_min = min([lon_full(1) lon_full(1,end) lon_full(end,1) lon_full(end)]);
-			x_max = max([lon_full(1) lon_full(1,end) lon_full(end,1) lon_full(end)]);
-			y_min = min([lat_full(1) lat_full(1,end) lat_full(end,1) lat_full(end)]);
-			y_max = max([lat_full(1) lat_full(1,end) lat_full(end,1) lat_full(end)]);
+			x_min = double(min([lon_full(1) lon_full(1,end) lon_full(end,1) lon_full(end)]));	% double because R6.5
+			x_max = double(max([lon_full(1) lon_full(1,end) lon_full(end,1) lon_full(end)]));
+			y_min = double(min([lat_full(1) lat_full(1,end) lat_full(end,1) lat_full(end)]));
+			y_max = double(max([lat_full(1) lat_full(1,end) lat_full(end,1) lat_full(end)]));
+			if ( any([x_min x_max y_min y_max] == -999) )		% CAN WE BELIVE THIS???? BUT HAPPENS!!!!!!!!!!!
+				% YES, L2 MODIS files can have -999 as coordinates. This is unbelievable but happens.
+				% The remedy is to recompute limits and forget the f.. coordinates that will be trimmed by -R below
+				indNotFckCoords = (lon_full ~= -999);
+				x_min = double( min(min(lon_full(indNotFckCoords))) );
+				x_max = double( max(max(lon_full(indNotFckCoords))) );
+				y_min = double( min(min(lat_full(indNotFckCoords))) );
+				y_max = double( max(max(lat_full(indNotFckCoords))) );
+				clear indNotFckCoords
+			end
 			opt_R = sprintf('-R%.10f/%.10f/%.10f/%.10f', x_min, x_max, y_min, y_max);
 
 			AllSubdatasets = att.AllSubdatasets;		% Copy of all subdatsets names in this sub-dataset att
@@ -970,25 +982,6 @@ function [Z, att, known_coords] = read_gdal(full_name, att, IamCompiled, IamInte
 			if (strcmp(varargin{end}, '-U')),	varargin(end) = [];		end		% We also don't want to UpDown
 			opt_L = '-L';
 		end
-
-% 		% Experimental code only - to read and grid MODIS L3 Binned products
-% 		if (strcmp(att.Band(1).DataType,'L3Bin'))
-% 			west_data  = att.hdfinfo.Attributes(38).Value;		east_data  = att.hdfinfo.Attributes(37).Value;
-% 			south_data = att.hdfinfo.Attributes(36).Value;		north_data = att.hdfinfo.Attributes(35).Value;
-% 			out = swreadl3b_m(att.fname,att.subDsName,[-20 -10 32 44]);
-% 			opt_R = '-R-20/-10/32/44';
-% 			[Z, head] = nearneighbor_m(out(:,1), out(:,2), out(:,3), opt_R, opt_e, '-N2', '-I0.01', '-S0.04');
-% 			att.GMT_hdr = head;
-% 			known_coords = true;				% Signal that coordinates are known and should not be guessed again
-% 			att.Band(1).NoDataValue = [];		% Don't waist time later trying to NaNify again
-% 			x_min = head(1) - head(8)/2;		x_max = head(2) + head(8)/2;		% Goto pixel registration
-% 			y_min = head(3) - head(9)/2;		y_max = head(4) + head(9)/2;
-% 			att.RasterXSize = size(Z,2);		att.RasterYSize = size(Z,1);
-% 			att.Band.XSize = size(Z,2);			att.Band.YSize = size(Z,1);
-% 			att.Corners.LL = [x_min y_min];		att.Corners.UL = [x_min y_max];		% CONFIRMAR
-% 			att.Corners.UR = [x_max y_max];		att.Corners.LR = [x_max y_min];
-% 			return
-% 		end
 
 		if (nargout == 2)
 			[Z, att] = gdalread(full_name, varargin{:}, opt_L);	% This ATT may be of a subdataset
@@ -1004,6 +997,11 @@ function [Z, att, known_coords] = read_gdal(full_name, att, IamCompiled, IamInte
 
 		% For MODIS L2 products, we may still have many things to do
 		if (strcmp(opt_L,'-L'))		% We are using this as an indication that the file is MODIS (need clever solution)
+
+			% Here we must sanitize Z in case we must apply a scale/offset transform and/or NaNifying NodataValues
+			[Z, have_nans, att] = sanitizeZ(Z, att);
+			if (have_nans),		NoDataValue = NaN;		end
+
 			if (IamInteractive)
 				what = l2_choices(AllSubdatasets);		% Call secondary GUI to select what to do next
 			else
@@ -1019,11 +1017,12 @@ function [Z, att, known_coords] = read_gdal(full_name, att, IamCompiled, IamInte
 			if (isempty(what))							% User killed the window, but it's too late to stop so pretend ...
 				what =  struct('georeference',1,'nearneighbor',1,'mask',0,'coastRes',0,'quality','');	% sensor coords
 			end
-			if ( ~isempty(what.quality) && what.quality < 2 )		% We have a quality request
+			if ( isempty(bitflags) && ~isempty(what.quality) && what.quality < 2 )		% We have a GUI quality request
 				qual = gdalread(what.qualSDS, opt_L);
 				Z(qual > what.quality) = NoDataValue;
 			end
-			if (~isempty(what) && what.georeference)
+
+			if (~isempty(what) && what.georeference)	% OK, let's interpolate it into a regular geog grid
 				if (~isempty(bitflags))
 					ind = strfind(att.AllSubdatasets{flagsID},'=');	% Still must rip the 'SUBDATASET_XX_NAME='
 					Zf = gdalread(att.AllSubdatasets{flagsID}(ind+1:end), varargin{:}, opt_L);
@@ -1038,6 +1037,11 @@ function [Z, att, known_coords] = read_gdal(full_name, att, IamCompiled, IamInte
 				end
 				ind = (Z == (att.Band(1).NoDataValue));
 				Z(ind) = [];		lon_full(ind) = [];		lat_full(ind) = [];
+				if (isempty(Z))
+					errordlg('As a result of applying (probably wrongly) quality flags (in OPTcontrol.txt), no data was left. Aborting','Error')
+					error('As a result of applying (probably wrongly) quality flags, no data was left. Aborting')
+				end
+
 				if (isempty(opt_I)),	opt_I = '-I0.01';	end
 				if (isempty(opt_C)),	opt_C = '-C3';		end		% For gmtmbgrid only
 				if (what.nearneighbor)
@@ -1072,11 +1076,27 @@ function [Z, att, known_coords] = read_gdal(full_name, att, IamCompiled, IamInte
 	if (~isempty(str_d)),	delete(uncomp_name);	end		% Delete uncompressed file
 
 % -----------------------------------------------------------------------------------------
+function att = get_baseNameAttribs(full_name)
+% Get the file's metadata and also tests if an SDS was required but does not exist
+	att = gdalread(full_name, '-M');
+	if (att.RasterCount > 0)
+		handles = guidata(gcf);
+		if (~isempty(handles.SDSinfo) && handles.SDSthis > 1 && ~handles.testedDS)
+			handles.testedDS = true;
+			guidata(handles.figure1, handles)
+			errordlg('Input File has no Sub-Datasets so the silly sub-dataset request forced me to abort.','Error')
+			error('empilhador: File has no Sub-Datasets so the silly sub-dataset request forced me to abort')
+		end
+	end
+
+% -----------------------------------------------------------------------------------------
 function [opt_R, opt_I, opt_C, bitflags, flagsID] = sniff_in_OPTcontrol(old_R, att)
 % Check the OPTcontrol file for particular requests in terms of -R, -I or quality flags
 % OPT_R is what the OPTcontrol has in
-% BITFLAGS is a vector with the bit number corresponding to the flgs keys in OPTcontrol
+% BITFLAGS is a vector with the bit number corresponding to the flgs keys in OPTcontrol.
+%			Returns [] when no bitflags keywords are found.
 % FLAGSID is the subdatset number adress of the flags array (l2_flags)
+%			Return 0 when no l2_flags array is found.
 
 	got_flags = false;		bitflags = [];		flagsID = 0;
 	opt_I = [];				opt_C = [];
@@ -1134,17 +1154,18 @@ function [opt_R, opt_I, opt_C, bitflags, flagsID] = sniff_in_OPTcontrol(old_R, a
 				'CHLWARN' 22;
 				'ATMWARN' 23;
 				'NAVFAIL' 26;
-				'FILTER' 27};
+				'FILTER' 27;
+				'SSTWARN' 28;
+				'SSTFAIL' 29};
 		
 		loc = [0 strfind(flaglist, ',') numel(flaglist)+1];		% Find the ',' separator. Add 2 to easy algo
-		c = false(1, numel(loc)-1);								% Vector with as many elements as input flags
+		c = false(1, size(fmap,1));								% Vector with as many elements as input flags
 		fmap_names = fmap(:,1);
 		for (k = 1:numel(loc)-1)		% Loop over number of input flag keys
 			ind = strcmp(flaglist(loc(k)+1 : loc(k+1)-1), fmap_names);
 			n = find(ind);
 			if (~isempty(n)),	c(n) = true;	end
 		end
-		c = c(c);						% Retain only the confirmed ones
 		bitflags = [fmap{c,2}];
 	end
 
@@ -1357,7 +1378,7 @@ function varargout = l2_choices(varargin)
 	for (k = numel(AllSubdatasets):-2:2)
 		ind = strfind(AllSubdatasets{k}, ' ');
 		subDsName = AllSubdatasets{k}(ind(1)+1:ind(2)-1);		% Get dataset name
-		if (strcmp(subDsName,'qual_sst'))
+		if (strncmp(subDsName,'qual_sst',8))
 			set([handles.popup_quality handles.text_quality],'Enable','on')
 			ind = strfind(AllSubdatasets{k-1}, '=');
 			handles.out.qualSDS = AllSubdatasets{k-1}(ind+1:end);
@@ -1416,9 +1437,11 @@ function push_OK_CB(hObject, handles)
 	handles.out.georeference = get(handles.radio_georef, 'Val');
 	handles.out.nearneighbor = get(handles.radio_interpNear, 'Val');
 	handles.out.mask = get(handles.check_landMask, 'Val');
-	ind = get(handles.popup_quality, 'Val');
-	if (ind ~= 1)
-		handles.out.quality = 3 - ind;
+	if ( strcmp(get(handles.popup_quality,'Enable'),'on') )		% Only if we are using it
+		ind = get(handles.popup_quality, 'Val');
+		if (ind ~= 1)
+			handles.out.quality = 3 - ind;
+		end
 	end
 	guidata(handles.figure1, handles)
 	uiresume(handles.figure1);
@@ -1444,7 +1467,7 @@ function figure1_KeyPressFcn(hObject, eventdata)
 % --- Creates and returns a handle to the GUI figure. 
 function l2_choices_LayoutFcn(h1)
 
-set(h1, 'Position',[520 400 271 148],...
+set(h1, 'Position',[520 400 291 148],...
 'CloseRequestFcn',@figure1_CloseRequestFcn,...
 'Color',get(0,'factoryUicontrolBackgroundColor'),...
 'KeyPressFcn',@figure1_KeyPressFcn,...
@@ -1481,24 +1504,25 @@ uicontrol('Parent',h1, 'Position',[10 78 231 16],...
 'Tooltip','Reinterpolate data to get a georeferenced grid. (It may take 1 minute)',...
 'Tag','radio_georef');
 
-uicontrol('Parent',h1, 'Position',[31 55 101 16],...
+uicontrol('Parent',h1, 'Position',[31 55 131 16],...
+'Call',@l2_choices_uiCB,...
+'Enable','off',...
+'FontName','Helvetica',...
+'String','Minimum curvature',...
+'Style','radiobutton',...
+'Value',1,...
+'Tooltip','Interpolation method',...
+'Tag','radio_interpMin');
+
+uicontrol('Parent',h1, 'Position',[31 36 110 16],...
 'Call',@l2_choices_uiCB,...
 'Enable','off',...
 'FontName','Helvetica',...
 'String','Nearneighbor',...
 'Style','radiobutton',...
 'Tooltip','Interpolation method',...
-'Value',1,...
+'Value',0,...
 'Tag','radio_interpNear');
-
-uicontrol('Parent',h1, 'Position',[31 36 121 16],...
-'Call',@l2_choices_uiCB,...
-'Enable','off',...
-'FontName','Helvetica',...
-'String','Minimum curvature',...
-'Style','radiobutton',...
-'Tooltip','Interpolation method',...
-'Tag','radio_interpMin');
 
 uicontrol('Parent',h1, 'Position',[10 6 51 22],...
 'BackgroundColor',[1 1 1],...
@@ -1507,7 +1531,7 @@ uicontrol('Parent',h1, 'Position',[10 6 51 22],...
 'String',{'2'; '1'; '0'},...
 'Style','popupmenu',...
 'Tooltip','Select the least quality level. 2 - worst - means all values. 0 - only the best',...
-'Value',1,...
+'Value',3,...
 'Tag','popup_quality');
 
 uicontrol('Parent',h1, 'Position',[64 10 75 15],...
@@ -1518,7 +1542,7 @@ uicontrol('Parent',h1, 'Position',[64 10 75 15],...
 'Style','text',...
 'Tag','text_quality');
 
-uicontrol('Parent',h1, 'Position',[160 48 110 15],...
+uicontrol('Parent',h1, 'Position',[180 48 110 15],...
 'Call',@l2_choices_uiCB,...
 'Enable','off',...
 'String','Apply Land Mask',...
@@ -1526,7 +1550,7 @@ uicontrol('Parent',h1, 'Position',[160 48 110 15],...
 'Tooltip','Mask reinterpolated Land pixels (need high definition coastlines installed)',...
 'Tag','check_landMask');
 
-uicontrol('Parent',h1, 'Position',[195 7 66 23],...
+uicontrol('Parent',h1, 'Position',[215 7 66 23],...
 'Call',@l2_choices_uiCB,...
 'FontName','Helvetica',...
 'FontSize',9,...
