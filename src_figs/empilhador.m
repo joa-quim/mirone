@@ -107,33 +107,47 @@ function push_namesList_CB(hObject, handles, opt)
 	names = strread(c,'%s','delimiter','\n');   clear c fid;
 	m = length(names);
 
-	handles.strTimes = cell(m,1);	% To hold time steps as strings
-	SDSinfo = cell(m,1);			% To hold Sub Datasets info
-	handles.SDSinfo = [];			% If above exists, it will be copied here
+	handles.strTimes = cell(m,1);		% To hold time steps as strings
+	SDSinfo = cell(m,1);				% To hold Sub Datasets info
+	handles.SDSinfo = [];				% If above exists, it will be copied here
 	c = false(m,1);
-	caracol = false(m,1);
+	caracol = false(m,1);				% Case name list has '@' to pause for a CD change
 
 	n_msg = 1;							% Will hold the "change DV messages" counter
 	if (n_column > 1)					% When 2nd column holds the 3D numbering
 		for (k = 1:m)
 			[t,r] = strtok(names{k});
-			if (t(1) == '#' || isempty(t)),  	c(k) = true;	continue,	end		% Jump empty and comment lines
+			if (t(1) == '#' || numel(t) < 2),	c(k) = true;	continue,	end		% Jump empty and comment lines
 			if ( t(1) == '@')
 				caracol(k) = true;
-				if (~isempty(t(2:end))),		handles.changeCD_msg{n_msg} = t(2:end);		% The '@' was glued with the message
-				else							handles.changeCD_msg{n_msg} = r;
+				if (~isempty(t(2:end))),	handles.changeCD_msg{n_msg} = t(2:end);		% The '@' was glued with the message
+				else						handles.changeCD_msg{n_msg} = r;
 				end
 				n_msg = n_msg + 1;
 				continue
 			end
 
-			names{k} = t;
+			names{k} = ddewhite(t);
 			if (n_column == 2)			% Names & numeric label format
 				r = ddewhite(r);
 				handles.strTimes{k} = r;
 			else						% Names, numeric label & SDS info format
 				[t,r] = strtok(r);
 				t = ddewhite(t);
+				if (t(1) == '?')		% Means get the numeric label as time extracted from file name (OceanColor products)
+					% Example names: A2012024021000.L2_LAC_SST4 S1998001130607.L2_MLAC_OC.x.hdf
+					[PATH,FNAME,EXT] = fileparts(names{k});
+					indDot = strfind(FNAME,'.');
+					if (~isempty(indDot) && strcmpi(FNAME(16:17), 'L2'))	% Second case type name
+						FNAME(indDot(1):end) = [];
+					elseif (~isempty(EXT) && strcmpi(EXT(2:3), 'L2'))		% First case type name (nothing to do)
+					else
+						errordlg(sprintf('This "%s" is not a MODIS type name',names{k}),'ERROR'),	return
+					end
+					% Compose name as YYYY.xxxxx where 'xxxxx' is the decimal day of year truncated to hour precision
+					%t = sprintf('%s.%f',FNAME(2:5),sscanf(FNAME(6:8),'%f') + sscanf(FNAME(9:10),'%f')/24); 
+					t = sprintf('%f',sscanf(FNAME(6:8),'%f') + sscanf(FNAME(9:10),'%f')/24); 
+				end
 				handles.strTimes{k} = t;
 				SDSinfo{k} = ddewhite(r);
 			end
@@ -896,6 +910,9 @@ function [Z, att, known_coords, have_nans] = read_gdal(full_name, att, IamCompil
 % ATT is the GDALREAD returned attributes. If empty, we'll get it here
 % VARARGIN will normally contain one or more of '-C', opt_R, '-U'
 % WARNING: If exist(att.hdfInfo) than att.fname should exist as well (both non standard)
+%
+% KNOWN_COORDS	Is a logical that whn true the informs the caller that we already know the coordinates for sure
+%				and no attempt should be made to fish them from the matadata info.
 
 	have_nans = [];			% Will only become ~[] when input is a L2 product to be interpolated and referenced
 	NoDataValue = [];		% Some defaults
@@ -1006,6 +1023,12 @@ function [Z, att, known_coords, have_nans] = read_gdal(full_name, att, IamCompil
 				what = l2_choices(AllSubdatasets);		% Call secondary GUI to select what to do next
 			else
 				what = struct('georeference',1,'nearneighbor',0,'mask',0,'coastRes',0,'quality','');	% sensor coords
+				ID = find_in_subdatasets(AllSubdatasets, 'qual_sst', 8);	% Check if we have a quality flags array
+				if (ID)
+					ind = strfind(AllSubdatasets{ID}, '=');			% Yes we have. Use it if not overruled by info in OPTcontrol
+					what.qualSDS = AllSubdatasets{ID}(ind+1:end);
+					what.quality = 0;
+				end
 				if (isfield(att, 'crop_info'))			% We have a crop request
 					opt_R = att.crop_info.opt_R;
 				end
@@ -1013,7 +1036,7 @@ function [Z, att, known_coords, have_nans] = read_gdal(full_name, att, IamCompil
 
 			% Go check if -R or quality flags request exists in OPTcontrol.txt file
 			[opt_R, opt_I, opt_C, bitflags, flagsID] = sniff_in_OPTcontrol(opt_R, att);		% Output opt_R gets preference
-			
+
 			if (isempty(what))							% User killed the window, but it's too late to stop so pretend ...
 				what =  struct('georeference',1,'nearneighbor',1,'mask',0,'coastRes',0,'quality','');	% sensor coords
 			end
@@ -1062,8 +1085,7 @@ function [Z, att, known_coords, have_nans] = read_gdal(full_name, att, IamCompil
 				known_coords = true;				% Signal that coordinates are known and should not be guessed again
 				att.Band(1).NoDataValue = [];		% Don't waist time later trying to NaNify again
 				x_min = head(1) - head(8)/2;		x_max = head(2) + head(8)/2;		% Goto pixel registration
-				y_min = head(3) - head(9)/2;		y_max = head(4) + head(9)/2;
-				att.GMT_hdr(7) = 1;
+				y_min = head(3) - head(9)/2;		y_max = head(4) + head(9)/2;		% But not for att.GMT_hdr(7)
 			end
 			att.RasterXSize = size(Z,2);		att.RasterYSize = size(Z,1);
 			att.Band.XSize = size(Z,2);			att.Band.YSize = size(Z,1);
@@ -1170,12 +1192,16 @@ function [opt_R, opt_I, opt_C, bitflags, flagsID] = sniff_in_OPTcontrol(old_R, a
 	end
 
 % -----------------------------------------------------------------------------------------
-function ID = find_in_subdatasets(AllSubdatasets, name)
+function ID = find_in_subdatasets(AllSubdatasets, name, ncmp)
 % Find the position in the subdatasets array containing the array called 'name'
+% NCMP	is an optional argument containing the N if the strNcmp function.
+%		If not provided, defaults to numel(name)
+
+	if (nargin == 2),	ncmp = numel(name);		end
 	got_it = false;		ID = 0;
 	for (k = 2:2:numel(AllSubdatasets))
 		ind = strfind(AllSubdatasets{k}, ' ');
-		if ( strncmp(AllSubdatasets{k}(ind(1)+1:end), name, numel(name)) )
+		if ( strncmp(AllSubdatasets{k}(ind(1)+1:end), name, ncmp) )
 			got_it = true;		break
 		end
 	end
@@ -1375,15 +1401,11 @@ function varargout = l2_choices(varargin)
 	handles.out.quality = '';
 
 	AllSubdatasets = varargin{1};
-	for (k = numel(AllSubdatasets):-2:2)
-		ind = strfind(AllSubdatasets{k}, ' ');
-		subDsName = AllSubdatasets{k}(ind(1)+1:ind(2)-1);		% Get dataset name
-		if (strncmp(subDsName,'qual_sst',8))
-			set([handles.popup_quality handles.text_quality],'Enable','on')
-			ind = strfind(AllSubdatasets{k-1}, '=');
-			handles.out.qualSDS = AllSubdatasets{k-1}(ind+1:end);
-			break
-		end
+	ID = find_in_subdatasets(AllSubdatasets, 'qual_sst', 8);
+	if (ID)
+		set([handles.popup_quality handles.text_quality],'Enable','on')
+		ind = strfind(AllSubdatasets{ID}, '=');
+		handles.out.qualSDS = AllSubdatasets{ID}(ind+1:end);
 	end
 
 	guidata(hObject, handles);
