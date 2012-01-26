@@ -76,6 +76,17 @@ function edit_namesList_CB(hObject, handles)
 
 % -----------------------------------------------------------------------------------------
 function push_namesList_CB(hObject, handles, opt)
+% Read an ascii file with a list of names to process. The file list may have 1,2 or 3 columns
+% First column always holds the filename that can be absolute, relative or have no path info.
+%		If only one column in file the "Time" info below is computed as (1:number_of_files)
+% Second column is normally the "Time" info. That is, a number that will be used as the 'time'
+%		in the 3D netCDF file. In case of L2 scene products one can use '?' to instruct the
+%		program to get the time from the HDF file name, which is assume to be YYYYDDDHHMMSS....
+% Third column is used when the HDF file has many sub-datasets and we want to select one in
+%		particular. In that case use the (clumsy) construct: 'sdsN' as in sds3 where 'sds' is
+%		fix and N is the number of the subdataset as it appears when one do gdalinfo or in the
+%		table window that pops up when one attempts to open the HDF file directly in Mirone.
+
     if (nargin == 2)        % Direct call
     	str1 = {'*.dat;*.DAT;*.txt;*.TXT', 'Data files (*.dat,*.DAT,*.txt,*.TXT)';'*.*', 'All Files (*.*)'};
         [FileName,PathName,handles] = put_or_get_file(handles, str1,'File with grids list','get');
@@ -130,23 +141,13 @@ function push_namesList_CB(hObject, handles, opt)
 			names{k} = ddewhite(t);
 			if (n_column == 2)			% Names & numeric label format
 				r = ddewhite(r);
+				if (r(1) == '?'),	r = squize_time_from_name(names{k});	end
 				handles.strTimes{k} = r;
 			else						% Names, numeric label & SDS info format
 				[t,r] = strtok(r);
 				t = ddewhite(t);
 				if (t(1) == '?')		% Means get the numeric label as time extracted from file name (OceanColor products)
-					% Example names: A2012024021000.L2_LAC_SST4 S1998001130607.L2_MLAC_OC.x.hdf
-					[PATH,FNAME,EXT] = fileparts(names{k});
-					indDot = strfind(FNAME,'.');
-					if (~isempty(indDot) && strcmpi(FNAME(16:17), 'L2'))	% Second case type name
-						FNAME(indDot(1):end) = [];
-					elseif (~isempty(EXT) && strcmpi(EXT(2:3), 'L2'))		% First case type name (nothing to do)
-					else
-						errordlg(sprintf('This "%s" is not a MODIS type name',names{k}),'ERROR'),	return
-					end
-					% Compose name as YYYY.xxxxx where 'xxxxx' is the decimal day of year truncated to hour precision
-					%t = sprintf('%s.%f',FNAME(2:5),sscanf(FNAME(6:8),'%f') + sscanf(FNAME(9:10),'%f')/24); 
-					t = sprintf('%f',sscanf(FNAME(6:8),'%f') + sscanf(FNAME(9:10),'%f')/24); 
+					t = squize_time_from_name(names{k});
 				end
 				handles.strTimes{k} = t;
 				SDSinfo{k} = ddewhite(r);
@@ -213,6 +214,24 @@ function push_namesList_CB(hObject, handles, opt)
 	set(handles.edit_namesList, 'String', fname)
 	set(handles.listbox_list,'String',handles.shortNameList)
 	guidata(handles.figure1,handles)
+
+% -----------------------------------------------------------------------------------------
+function t = squize_time_from_name(name)
+% ... Read the name of L2 daily scene product and convert it into a time string.
+% The name algo is simple YYYYDDDHHMMSS where DDD is day of the year.
+
+	% Example names: A2012024021000.L2_LAC_SST4 S1998001130607.L2_MLAC_OC.x.hdf
+	[PATH,FNAME,EXT] = fileparts(name);
+	indDot = strfind(FNAME,'.');
+	if (~isempty(indDot) && strcmpi(FNAME(16:17), 'L2'))	% Second case type name
+		FNAME(indDot(1):end) = [];
+	elseif (~isempty(EXT) && strcmpi(EXT(2:3), 'L2'))		% First case type name (nothing to do)
+	else
+		errordlg(sprintf('This "%s" is not a MODIS type name',name),'ERROR'),	return
+	end
+	% Compose name as YYYY.xxxxx where 'xxxxx' is the decimal day of year truncated to hour precision
+	%t = sprintf('%s.%f',FNAME(2:5),sscanf(FNAME(6:8),'%f') + sscanf(FNAME(9:10),'%f')/24); 
+	t = sprintf('%f',sscanf(FNAME(6:8),'%f') + sscanf(FNAME(9:10),'%f')/24); 
 
 % -----------------------------------------------------------------------------------------
 function radio_conv2netcdf_CB(hObject, handles)
