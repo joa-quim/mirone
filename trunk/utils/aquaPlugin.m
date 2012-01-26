@@ -52,9 +52,10 @@ function aquaPlugin(handles, auto)
 			'pass_by_count' ...		% 7 - Check the curently active 3D file against a count file
 			'do_math' ...			% 8 - Perform some basic agebraic operations with the 3D planes
 			'conv2vtk' ...			% 9 - Convert a 3D netCDF file into a VTK format
+			'L2_periods' ...		% 10 - Calculate composites of L2 products over fixed periods
 			};
 
-	qual = casos{1};			% <== Active by MANUAL selection. May be override by next section
+	qual = casos{10};			% <== Active by MANUAL selection. May be override by next section
 
 	n_args = nargin;
 	if (get(handles.check_plugFun, 'Val'))	% This way, the stand alone version can work too
@@ -155,6 +156,16 @@ function aquaPlugin(handles, auto)
 			end
 		case 'conv2vtk'				% CASE 9
 			write_vtk(handles)
+		case 'L2_periods'			% CASE 10
+			period = 3;				% Number of days in each period
+			regMinMax = [0 inf];	% If want to limit the admissible Z values ([min max])
+			tipoStat = 0;			% 0, Compute MEAN, 1 compute MINimum and 2 compute MAXimum of the ANO period
+			grd_out = 'C:\SVN\mironeWC\tmp\lixoL2.nc';
+			if (internal_master)
+				calc_L2_periods(handles, period, tipoStat, regMinMax, grd_out)
+			else
+				calc_L2_periods(handles, out{2:end})
+			end
 	end
 
 % ----------------------1-------2--------3---------4---------5---------6-----------7----------8---------9----
@@ -593,10 +604,11 @@ function calc_yearMean(handles, months, fname2, flag, nCells, fname3, splina, ti
 %
 % FNAME3 	Optional name of a netCDF file where interpolated nodes will be set to FLAG
 %			and the others retain their FNAME2 value. This corresponds to the promotion
-%			of interpolated nodes to quality FLAG. Only used if PINTANOES == TRUE
+%			of interpolated nodes to quality FLAG.
 %
 % SPLINA	Logical that if true instruct to spline interpolate the missing monthly values
-%			before computing the yearly mean. This option acumulates with that of PINTANOES
+%			before computing the yearly mean. Optionaly, it may be a 2 elements vector with
+%			the MIN and MAX values allowed on the Z function (default [0 32])
 %
 % TIPOSTAT	Variable to control what statistic to compute.
 %			0 Compute MEAN of MONTHS period. 1 Compute MINimum and 2 compute MAXimum
@@ -790,7 +802,7 @@ function calc_yearMean(handles, months, fname2, flag, nCells, fname3, splina, ti
 						x = this_months(ind);			y0 = y(ind);
  						akimaspline(x, y0, this_months, yy);
 						y(first_wanted_month:last_wanted_month) = yy(first_wanted_month:last_wanted_month);
-						if (~ind(1) || ~ind(end))			% Cases when where we would have extrapolations
+						if (~ind(1) || ~ind(end))			% Cases when we would have extrapolations
 							if (~ind(1))
 								ki = 1;
 								while (~ind(ki)),	ki = ki + 1;	end
@@ -823,7 +835,7 @@ function calc_yearMean(handles, months, fname2, flag, nCells, fname3, splina, ti
 			% Now we can finaly compute the season MEAN or MIN or MAX
 			tmp = doM_or_M_or_M(ZtoSpline, first_wanted_month, last_wanted_month, regionalMIN, regionalMAX, tipoStat);
 
-		end							% End interpolate along time
+		end							% End interpolate along time (SPLINA)
 
 		tmp(tmp == 0) = NaN;		% Reset the NaNs
 
@@ -853,10 +865,71 @@ function calc_yearMean(handles, months, fname2, flag, nCells, fname3, splina, ti
 		double2ascii( fname, timeSeries, ['%d' repmat('\t%.4f',[1 size(timeSeries,2)-1])] );
 	end
 
+% ------------------------------------------------------------------------------
+function calc_L2_periods(handles, period, tipoStat, regMinMax, grd_out)
+% Compute averages for 1, 3, 8, month periods of L2 data processed by empilhador
+%
+% PERIOD	Number of days of the composit period (e.g. 3, 8, 30). A variable number
+%			of layers per day is allowed. 
+%
+% TIPOSTAT	Variable to control what statistic to compute.
+%			0 Compute MEAN of MONTHS period. 1 Compute MINimum and 2 compute MAXimum
+%
+% REGMINMAX	A 2 elements vector with the MIN and MAX values allowed on the Z function (default [0 inf])
+%
+% GRD_OUT	Name of the netCDF file where to store the result. If not provided, it will be asked here.
+
+	if (nargin < 5)	% Note: old and simple CASE 3 in main cannot send here the output name 
+		txt1 = 'netCDF grid format (*.nc,*.grd)';	txt2 = 'Select output netCDF grid';
+		[FileName,PathName] = put_or_get_file(handles,{'*.nc;*.grd',txt1; '*.*', 'All Files (*.*)'},txt2,'put','.nc');
+		if isequal(FileName,0),		return,		end
+		grd_out = [PathName FileName];
+	end
+	if (nargin < 4)
+		regionalMIN = 0;	regionalMAX = inf;
+	else
+		regionalMIN = regMinMax(1);		regionalMAX = regMinMax(2);
+	end
+
+	[z_id, s, rows, cols] = get_ncInfos(handles);
+
+	tempos = handles.time(:);
+	N = histc(fix(tempos), (fix(tempos(1)) : fix(tempos(end))));
+	n_periods = ceil(numel(N) / period);	% By using ceil we are allowing that the last period is not fully filled.
+	handles.was_int16 = false;
+
+	aguentabar(0,'title','Computing period means.','CreateCancelBtn');
+
+	c = 1;		% Counter to the current layer number being processed. Runs from (1:handles.number_of_timesteps)
+	for (m = 1:n_periods)
+
+		n_ini = (m-1) * period + 1;
+		n_fim = n_ini + period - 1;
+		Z = alloc_mex(rows, cols, cumsum(N(n_ini:n_fim)), 'single', NaN);
+		for (n = n_ini:n_fim)		% Loop over the days in current period
+			for (k = 1:N(n))		% Loop over number of daily scenes (can easily be > 1)
+				Z(:,:,c) = nc_funs('varget', handles.fname, s.Dataset(z_id).Name, [c-1 0 0], [1 rows cols]);
+				c = c + 1;
+			end
+		end
+		tmp = doM_or_M_or_M(Z, 1, size(Z,3), regionalMIN, regionalMAX, tipoStat);
+		tmp(tmp == 0) = NaN;		% Reset the NaNs
+
+		% Write this layer to file
+		if (m == 1),		nc_io(grd_out, sprintf('w%d/time',n_periods), handles, reshape(tmp,[1 size(tmp)]))
+		else				nc_io(grd_out, sprintf('w%d', m-1), handles, tmp)
+		end
+
+		h = aguentabar(m/n_periods,'title','Computing period means.');	drawnow
+		if (isnan(h)),	break,	end
+
+	end
+
 % ----------------------------------------------------------------------
 function out = doM_or_M_or_M(ZtoSpline, first_wanted_month, last_wanted_month, regionalMIN, regionalMAX, tipo)
 % Compute either the MEAN (TIPO = 0) or the MIN (TIPO = 1) or MAX of the period selected
 % by the first_wanted_month:last_wanted_month vector. Normaly a year but can be a season as well.
+% This function was only used when SPLINA (see above in calc_yearMean()) up to Mirone 2.2.0
 
 	if (tipo == 0)				% Compute the MEAN of the considered period
 		out = ZtoSpline(:,:,first_wanted_month);
