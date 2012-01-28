@@ -186,13 +186,13 @@ end
 % Get the number of lines
 n_row = str2double(get(handles.edit_nLines,'String'));
 if (isnan(n_row))
-    errordlg('ERROR: Must inform me on the number of "Number of Lines".','ERROR');  return
+	errordlg('ERROR: Must inform me on the number of "Number of Lines".','ERROR');  return
 end
 
 % Get number of bands
 n_band = str2double(get(handles.edit_nBands,'String'));
 if (isnan(n_band))
-    errordlg('ERROR: Must inform me on the number of "Number of Bands".','ERROR');  return
+	errordlg('ERROR: Must inform me on the number of "Number of Bands".','ERROR');  return
 end
 
 % Initialize those
@@ -259,7 +259,9 @@ if (get(handles.check_swapBytes,'Value'))
 end
 
 % OK, do the reading. But shit we still need to test for 8 possibilities
-fname = handles.fname;  dims = [n_row n_col n_band];    interl = handles.interleave;
+fname = handles.fname;
+dims = [n_row n_col n_band];
+interl = handles.interleave;
 if (got_subset_row && got_subset_column && got_subset_band)         % All three
     raw = multibandread_j(fname,dims,fmt,hdr,interl,endian,subset_row,subset_column,subset_band);
     third_out = [subset_row; subset_column; subset_band];
@@ -298,7 +300,8 @@ end
 
 handles.output{2} = {fmt, hdr, handles.interleave, endian};
 handles.output{3} = third_out;
-guidata(hObject, handles);    uiresume(handles.figure1);
+guidata(hObject, handles);
+uiresume(handles.figure1);
 
 % ------------------------------------------------------------------------------------------
 function push_cancel_CB(hObject, handles)
@@ -380,7 +383,7 @@ uicontrol('Parent',h1,'BackgroundColor',[1 1 1],...
 'Value',1,'Tag','popup_dataType');
 
 uicontrol('Parent',h1,...
-'FontName','Helvetica','Position',[127 16 77 15],'String','Swap bytes',...
+'FontName','Helvetica','Position',[127 16 85 15],'String','Swap bytes',...
 'Style','checkbox',...
 'TooltipString','Swap byte order (default is Little endian. eg. Intel order)',...
 'Tag','check_swapBytes');
@@ -401,7 +404,7 @@ uicontrol('Parent',h1,...
 'Style','radiobutton','Tag','radio_BIP');
 
 uicontrol('Parent',h1,...
-'Call',{@flatfile_uiCB,h1,'push_OK_CB'},...
+'Call',@flatfile_uiCB,...
 'FontName','Helvetica','FontSize',9,'Position',[434 6 65 23],...
 'String','OK','Tag','push_OK');
 
