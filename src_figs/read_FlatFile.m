@@ -174,134 +174,134 @@ function radio_BIP_CB(hObject, handles)
 % ------------------------------------------------------------------------------------------
 function push_OK_CB(hObject, handles)
 
-% Get the skip header bytes
-hdr = str2double(get(handles.edit_nHeadeBytes,'String'));
+	% Get the skip header bytes
+	hdr = str2double(get(handles.edit_nHeadeBytes,'String'));
 
-% Get the Pixels per line
-n_col = str2double(get(handles.edit_pixelsPerLine,'String'));
-if (isnan(n_col))
-    errordlg('ERROR: Must inform me on the number of "Pixels per Line".','ERROR');  return
-end
-
-% Get the number of lines
-n_row = str2double(get(handles.edit_nLines,'String'));
-if (isnan(n_row))
-	errordlg('ERROR: Must inform me on the number of "Number of Lines".','ERROR');  return
-end
-
-% Get number of bands
-n_band = str2double(get(handles.edit_nBands,'String'));
-if (isnan(n_band))
-	errordlg('ERROR: Must inform me on the number of "Number of Bands".','ERROR');  return
-end
-
-% Initialize those
-got_subset_row = 0;         got_subset_column = 0;          got_subset_band = 0;
-
-% Test for First and Last bands
-kf = str2double(get(handles.edit_firstBand,'String'));
-kl = str2double(get(handles.edit_lastBand,'String'));
-if (kf > kl)
-    errordlg('IDIOT COICE OF First and Last bands parameters.','Chico Clever'); return
-end
-if (kf ~= 1 || kl ~= n_band)    % We have band subset request
-    subset_band = {'Band','Direct',kf:kl};
-    got_subset_band = 1;
-end
-
-% Test for a row subset request
-krf = str2double(get(handles.edit_Yfirst,'String'));        % First row
-krl = str2double(get(handles.edit_Ylast,'String'));         % Last row
-krs = str2double(get(handles.edit_Ysample,'String'));       % Increment row
-if ( (~isnan(krl) && krl ~= n_row) || krs ~= 1)
-    subset_row = {'Row','Range',[krf krs krl]};
-    got_subset_row = 1;
-elseif (isnan(krl) && krs ~= 1)
-    errordlg('ERROR: To select a ROW step, you must also give the last row.','ERROR')
-    return
-elseif (krl-krf < 10*krs)
-    errordlg('ERROR: Improper choice of First and Last rows.','ERROR');     return
-end
-
-% Test for a column subset request
-kcf = str2double(get(handles.edit_Xfirst,'String'));        % First column
-kcl = str2double(get(handles.edit_Xlast,'String'));         % Last column
-kcs = str2double(get(handles.edit_Xsample,'String'));       % Increment column
-if ( (~isnan(kcl) && kcl ~= n_col) || kcs ~= 1)
-    subset_column = {'Column','Range',[kcf kcs kcl]};
-    got_subset_column = 1;
-elseif (isnan(kcl) && kcs ~= 1)
-    errordlg('ERROR: To select a COLUMN step, you must also give the last column.','ERROR')
-    return
-elseif (kcl-kcf < 10*kcs)
-    errordlg('ERROR: Improper choice of First and Last columns.','ERROR');     return
-end
-
-% Test for the Interleave format
-if (isempty(handles.interleave))
-    errordlg('Must select the Interleave format','Error');    return
-end
-
-% Get the Pixel resolution
-switch (get(handles.popup_dataType,'Value'))
-    case 1,        fmt = '*uint8';
-    case 2,        fmt = '*uint16';
-    case 3,        fmt = '*int16';
-    case 4,        fmt = '*uint32';
-    case 5,        fmt = '*int32';
-    case 6,        fmt = '*float';
-end
-
-% Get the endianess
-endian = 'ieee-le';         % Default ot little-endian
-if (get(handles.check_swapBytes,'Value'))
-    endian = 'ieee-be';
-end
-
-% OK, do the reading. But shit we still need to test for 8 possibilities
-fname = handles.fname;
-dims = [n_row n_col n_band];
-interl = handles.interleave;
-if (got_subset_row && got_subset_column && got_subset_band)         % All three
-    raw = multibandread_j(fname,dims,fmt,hdr,interl,endian,subset_row,subset_column,subset_band);
-    third_out = [subset_row; subset_column; subset_band];
-elseif (got_subset_row && got_subset_column && ~got_subset_band)    % Row & Column
-    raw = multibandread_j(fname,dims,fmt,hdr,interl,endian,subset_row,subset_column);
-    third_out = [subset_row; subset_column];
-elseif (got_subset_row && got_subset_band && ~got_subset_column)    % Row & Band
-    raw = multibandread_j(fname,dims,fmt,hdr,interl,endian,subset_row,subset_band);
-    third_out = [subset_row; subset_band];
-elseif (got_subset_column && got_subset_band && ~got_subset_row)    % Column & Band
-    raw = multibandread_j(fname,dims,fmt,hdr,interl,endian,subset_column,subset_band);
-    third_out = [subset_column; subset_band];
-elseif (got_subset_row && ~got_subset_column && ~got_subset_band)   % Row only
-    raw = multibandread_j(fname,dims,fmt,hdr,interl,endian,subset_row);
-    third_out = subset_row;
-elseif (got_subset_column && ~got_subset_row && ~got_subset_band)   % Column only
-    raw = multibandread_j(fname,dims,fmt,hdr,interl,endian,subset_column);
-    third_out = subset_column;
-elseif (got_subset_band && ~got_subset_row && ~got_subset_column)   % Band only
-    raw = multibandread_j(fname,dims,fmt,hdr,interl,endian,subset_band);
-    third_out = subset_band;
-else
-    raw = multibandread_j(fname,dims,fmt,hdr,interl,endian);
-    third_out = [];
-end
-
-if (~isa(raw,'uint8'))
-    img = alloc_mex(size(raw),'uint8');     % Pre allocation
-	for i=1:size(raw,3)
-        img(:,:,i) = scaleto8(raw(:,:,i));
+	% Get the Pixels per line
+	n_col = str2double(get(handles.edit_pixelsPerLine,'String'));
+	if (isnan(n_col))
+		errordlg('ERROR: Must inform me on the number of "Pixels per Line".','ERROR');  return
 	end
-    handles.output{1} = img;
-else
-    handles.output{1} = raw;
-end
 
-handles.output{2} = {fmt, hdr, handles.interleave, endian};
-handles.output{3} = third_out;
-guidata(hObject, handles);
-uiresume(handles.figure1);
+	% Get the number of lines
+	n_row = str2double(get(handles.edit_nLines,'String'));
+	if (isnan(n_row))
+		errordlg('ERROR: Must inform me on the number of "Number of Lines".','ERROR');  return
+	end
+
+	% Get number of bands
+	n_band = str2double(get(handles.edit_nBands,'String'));
+	if (isnan(n_band))
+		errordlg('ERROR: Must inform me on the number of "Number of Bands".','ERROR');  return
+	end
+
+	% Initialize those
+	got_subset_row = 0;         got_subset_column = 0;          got_subset_band = 0;
+
+	% Test for First and Last bands
+	kf = str2double(get(handles.edit_firstBand,'String'));
+	kl = str2double(get(handles.edit_lastBand,'String'));
+	if (kf > kl)
+		errordlg('SILY COICE OF First and Last bands parameters.','Chico Clever'); return
+	end
+	if (kf ~= 1 || kl ~= n_band)    % We have band subset request
+		subset_band = {'Band','Direct',kf:kl};
+		got_subset_band = 1;
+	end
+
+	% Test for a row subset request
+	krf = str2double(get(handles.edit_Yfirst,'String'));        % First row
+	krl = str2double(get(handles.edit_Ylast,'String'));         % Last row
+	krs = str2double(get(handles.edit_Ysample,'String'));       % Increment row
+	if ( (~isnan(krl) && krl ~= n_row) || krs ~= 1)
+		subset_row = {'Row','Range',[krf krs krl]};
+		got_subset_row = 1;
+	elseif (isnan(krl) && krs ~= 1)
+		errordlg('ERROR: To select a ROW step, you must also give the last row.','ERROR')
+		return
+	elseif (krl-krf < 10*krs)
+		errordlg('ERROR: Improper choice of First and Last rows.','ERROR');     return
+	end
+
+	% Test for a column subset request
+	kcf = str2double(get(handles.edit_Xfirst,'String'));        % First column
+	kcl = str2double(get(handles.edit_Xlast,'String'));         % Last column
+	kcs = str2double(get(handles.edit_Xsample,'String'));       % Increment column
+	if ( (~isnan(kcl) && kcl ~= n_col) || kcs ~= 1)
+		subset_column = {'Column','Range',[kcf kcs kcl]};
+		got_subset_column = 1;
+	elseif (isnan(kcl) && kcs ~= 1)
+		errordlg('ERROR: To select a COLUMN step, you must also give the last column.','ERROR')
+		return
+	elseif (kcl-kcf < 10*kcs)
+		errordlg('ERROR: Improper choice of First and Last columns.','ERROR');     return
+	end
+
+	% Test for the Interleave format
+	if (isempty(handles.interleave))
+		errordlg('Must select the Interleave format','Error');    return
+	end
+
+	% Get the Pixel resolution
+	switch (get(handles.popup_dataType,'Value'))
+		case 1,		fmt = '*uint8';
+		case 2,		fmt = '*uint16';
+		case 3,		fmt = '*int16';
+		case 4,		fmt = '*uint32';
+		case 5,		fmt = '*int32';
+		case 6,		fmt = '*float';
+	end
+
+	% Get the endianess
+	endian = 'ieee-le';         % Default ot little-endian
+	if (get(handles.check_swapBytes,'Value'))
+		endian = 'ieee-be';
+	end
+
+	% OK, do the reading. But shit we still need to test for 8 possibilities
+	fname = handles.fname;
+	dims = [n_row n_col n_band];
+	interl = handles.interleave;
+	if (got_subset_row && got_subset_column && got_subset_band)         % All three
+		raw = multibandread_j(fname,dims,fmt,hdr,interl,endian,subset_row,subset_column,subset_band);
+		third_out = [subset_row; subset_column; subset_band];
+	elseif (got_subset_row && got_subset_column && ~got_subset_band)    % Row & Column
+		raw = multibandread_j(fname,dims,fmt,hdr,interl,endian,subset_row,subset_column);
+		third_out = [subset_row; subset_column];
+	elseif (got_subset_row && got_subset_band && ~got_subset_column)    % Row & Band
+		raw = multibandread_j(fname,dims,fmt,hdr,interl,endian,subset_row,subset_band);
+		third_out = [subset_row; subset_band];
+	elseif (got_subset_column && got_subset_band && ~got_subset_row)    % Column & Band
+		raw = multibandread_j(fname,dims,fmt,hdr,interl,endian,subset_column,subset_band);
+		third_out = [subset_column; subset_band];
+	elseif (got_subset_row && ~got_subset_column && ~got_subset_band)   % Row only
+		raw = multibandread_j(fname,dims,fmt,hdr,interl,endian,subset_row);
+		third_out = subset_row;
+	elseif (got_subset_column && ~got_subset_row && ~got_subset_band)   % Column only
+		raw = multibandread_j(fname,dims,fmt,hdr,interl,endian,subset_column);
+		third_out = subset_column;
+	elseif (got_subset_band && ~got_subset_row && ~got_subset_column)   % Band only
+		raw = multibandread_j(fname,dims,fmt,hdr,interl,endian,subset_band);
+		third_out = subset_band;
+	else
+		raw = multibandread_j(fname,dims,fmt,hdr,interl,endian);
+		third_out = [];
+	end
+
+	if (~isa(raw,'uint8'))
+		img = alloc_mex(size(raw),'uint8');     % Pre allocation
+		for i=1:size(raw,3)
+			img(:,:,i) = scaleto8(raw(:,:,i));
+		end
+		handles.output{1} = img;
+	else
+		handles.output{1} = raw;
+	end
+
+	handles.output{2} = {fmt, hdr, handles.interleave, endian};
+	handles.output{3} = third_out;
+	guidata(hObject, handles);
+	uiresume(handles.figure1);
 
 % ------------------------------------------------------------------------------------------
 function push_cancel_CB(hObject, handles)
@@ -399,7 +399,7 @@ uicontrol('Parent',h1,...
 'Style','radiobutton','Tag','radio_BIL');
 
 uicontrol('Parent',h1,...
-'Call',{@flatfile_uiCB,h1,'radio_BIP_CB'},...
+'Call',@flatfile_uiCB,...
 'FontName','Helvetica','Position',[372 17 41 15],'String','BIP',...
 'Style','radiobutton','Tag','radio_BIP');
 
