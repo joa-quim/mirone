@@ -182,7 +182,7 @@ function RasterBand_complex(fid, names, params)
 function RasterBand_raw(fid, name, params)
 % ... params.nTotalBands
 	for (k = 1:numel(params.band))
-		fprintf(fid,'  <VRTRasterBand dataType="%s" band="%d" subClass="VRTRawRasterBand">\n', bands.type, params.band(k));
+		fprintf(fid,'  <VRTRasterBand dataType="%s" band="%d" subClass="VRTRawRasterBand">\n', params.type, params.band(k));
 		fprintf(fid,'    <SourceFilename relativetoVRT="%d">%s</SourceFilename>\n', params.relative2VRT, name);
 		if (strcmp(params.interleave,'BSQ'))
 			fprintf(fid,'    <ImageOffset>%d</ImageOffset>\n', params.ImageOffset + (k-1) * params.nXSize * params.nYSize);
