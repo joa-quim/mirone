@@ -228,10 +228,6 @@ function radio_gmted300_CB(hObject, handles)
 	radio_types(hObject, handles)
 
 % -------------------------------------------------------------------------
-function radio_ace_CB(hObject, handles)
-	radio_types(hObject, handles)
-
-% -------------------------------------------------------------------------
 function radio_types(hObject, handles)
 % Centralized function that sets/unsets different properties of the 'radios' family
 	if (~get(hObject,'Val')),		set(hObject,'Val',1),	return,		end
@@ -242,8 +238,8 @@ function radio_types(hObject, handles)
 		'SRTM5' 'radio_srtm5' 'hPatches5';
 		'GMTED075' 'radio_gmted075' 'hPatchesGMTED';
 		'GMTED150' 'radio_gmted150' 'hPatchesGMTED';
-		'GMTED300' 'radio_gmted300' 'hPatchesGMTED';
-		'ACE' 'radio_ace' 'hPatchesACE'};
+		'GMTED300' 'radio_gmted300' 'hPatchesGMTED'};
+% 		'ACE' 'radio_ace' 'hPatchesACE'};
 	ind = strcmp(nome, names(:,1));
 	this_radio = names(ind,:);					% Isolate data referring to current name
 	names(ind,:) = [];							% Remove current name from the pack list
@@ -445,8 +441,6 @@ function bdn_Tile(obj, evt, hFig)
 	elseif (get(handles.radio_srtm30, 'Val'))
 		xx = strcmp(tag, handles.srtm30_files);		xz = strcmp(tag, handles.srtm30_compfiles);
 	elseif (get(handles.radio_srtm5, 'Val'))
-		xx = strcmp(tag, handles.srtm5_files);		xz = strcmp(tag, handles.srtm5_compfiles);
-	elseif (get(handles.radio_ace, 'Val'))
 		xx = strcmp(tag, handles.srtm5_files);		xz = strcmp(tag, handles.srtm5_compfiles);
 	else
 		xx = strcmp(tag, handles.srtm5_files);		xz = strcmp(tag, handles.srtm5_compfiles);
@@ -688,8 +682,6 @@ function push_OK_CB(hObject, handles)
 		n_tiles = mosaic_srtm30(handles);
 	elseif (get(handles.radio_gmted075,'Val') || get(handles.radio_gmted150,'Val') ||get(handles.radio_gmted300,'Val'))
 		n_tiles = mosaic_gmted(handles);
-	elseif (get(handles.radio_ace,'Val'))
-		n_tiles = mosaic_ace(handles);
 	elseif (get(handles.radio_tileImages,'Val'))
 		n_tiles = mosaic_images(handles);
 	end
@@ -884,8 +876,8 @@ function n_tiles = mosaic_srtm30(handles)
 
 % -------------------------------------------------------------------------
 function n_tiles = mosaic_gmted(handles)
-% Build a mosaic of GMTED tiles
-	n_tiles = 0;			% Counter to the number of processed tiles
+% Get a subregion of a one or a mosaic of GMTED tiles
+	n_tiles = 1;			% Used only to NOT trigger a "No tilles selected" warning
 	[x, y, xP, yP, x_min, y_max] = mosaic_grid(handles.hRectangle, 30, 20);
 
 	local_pato = handles.path_tmp;		% VRT files will be stored here
@@ -912,7 +904,7 @@ function n_tiles = mosaic_gmted(handles)
 			if (xP(j) >= 0),	W = 'E';	end
 			name_ = sprintf('%.2d%c%.3d%c_20101117_gmted_bln%s.tif', abs(yP(i-1)), S, abs(xP(j)), W, res);
 			name = {[local_pato name_]; sprintf('%s/%c%.3d/%s',prefix,W,abs(xP(j)),name_);'simple'};
-			names_vrt{k,1} = write_vrt(name, [xP(j) yP(i) n_cols n_rows inc inc -32768 1 2], 0);
+			names_vrt{k,1} = write_vrt(name, [xP(j) yP(i) n_cols n_rows inc inc], [], 'nodata',-32768, 'PixelOffset',2, 'relative',0);
 			names_vrt{k,2} = ii;		% Indices to compute the the '<DstRect xOff yOff later in write_vrt
 			names_vrt{k,3} = j - 1;
 			k = k + 1;
@@ -920,7 +912,7 @@ function n_tiles = mosaic_gmted(handles)
 		ii = ii + 1;
 	end
 
-	write_vrt([local_pato 'mater.xxx'], [x_min y_max n_cols n_rows inc inc -32768 1 2], 1, names_vrt);
+	write_vrt([local_pato 'mater.xxx'], [x_min y_max n_cols n_rows inc inc], names_vrt, 'nodata',-32768, 'PixelOffset',2, 'relative',1);
 
 	% Now do the reading
 	opt_R = sprintf('-R%.18g/%.18g/%.18g/%.18g', min(x),max(x),min(y),max(y));
@@ -955,15 +947,15 @@ function n_tiles = mosaic_ace(handles)
 			if (xP(j) >= 0),	W = 'E';	end
 			name_ = sprintf('%.2d%c%.3d%c_BOTH_30S.ACE2', abs(yP(i-1)), S, abs(xP(j)), W);
 			name = {[local_pato name_]; [prefix name_ '.gz']; 'simple'};
-			names_vrt{k,1} = write_vrt(name, [xP(j) yP(i) 1800 1800 1/120 1/120 -9500 1 2], 0);
-			names_vrt{k,2} = ii;		% Indices to compute the the '<DstRect xOff yOff later in write_vrt
+			names_vrt{k,1} = write_vrt(name, [xP(j) yP(i) 1800 1800 1/120 1/120], [], 'nodata',-12000, 'PixelOffset',2, 'relative',1);
+			names_vrt{k,2} = ii;
 			names_vrt{k,3} = j - 1;
 			k = k + 1;
 		end
 		ii = ii + 1;
 	end
 
-	write_vrt([local_pato 'mater.xxx'], [x_min y_max 1800 1800 1/120 1/120 -9500 1 2], 1, names_vrt);
+	write_vrt([local_pato 'mater.xxx'], [x_min y_max 1800 1800 1/120 1/120], names_vrt, 'nodata',-12000, 'PixelOffset',2, 'relative',1);
 	
 	% Now do the reading
 	opt_R = sprintf('-R%.18g/%.18g/%.18g/%.18g', min(x),max(x),min(y),max(y));
@@ -1142,7 +1134,7 @@ function figure1_CloseRequestFcn(hObject, eventdata)
 	% These leave in the Mirone figure
 	delete(handles.figure1),		delete(handles.hPatches)
 	delete(handles.hPatches5),		delete(handles.hPatches30)
-	delete(handles.hPatchImgs),		delete(handles.hPatchesACE)
+	delete(handles.hPatchesGMTED),	delete(handles.hPatchImgs)
 
 % ----------------------------------------------------------- 
 function mosaicer_LayoutFcn(h1)
