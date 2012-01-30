@@ -903,8 +903,9 @@ function n_tiles = mosaic_gmted(handles)
 		for (j = 1:n-1)			% Col
 			if (xP(j) >= 0),	W = 'E';	end
 			name_ = sprintf('%.2d%c%.3d%c_20101117_gmted_bln%s.tif', abs(yP(i-1)), S, abs(xP(j)), W, res);
-			name = {[local_pato name_]; sprintf('%s/%c%.3d/%s',prefix,W,abs(xP(j)),name_);'simple'};
-			names_vrt{k,1} = write_vrt(name, [xP(j) yP(i) n_cols n_rows inc inc], [], 'nodata',-32768, 'PixelOffset',2, 'relative',0);
+			name = {[local_pato name_]; sprintf('%s/%c%.3d/%s',prefix,W,abs(xP(j)),name_)};
+			names_vrt{k,1} = write_vrt(name, [xP(j) yP(i) n_cols n_rows inc inc], [], ...
+				'nodata',-32768, 'PixelOffset',2, 'relative',0, 'source','simple');
 			names_vrt{k,2} = ii;		% Indices to compute the the '<DstRect xOff yOff later in write_vrt
 			names_vrt{k,3} = j - 1;
 			k = k + 1;
