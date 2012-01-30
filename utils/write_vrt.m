@@ -60,10 +60,7 @@ function [name_vrt, comp_type] = write_vrt(full_name, opt, names, varargin)
 	% Check if VTR and pointed file live in different places
 	if (isa(full_name,'cell'))
 		pointed_file = full_name{2};
-		if (numel(full_name) == 3)
-			simple = strncmpi(full_name{3},'simple',3);
-			bare = false;
-		end
+		bare = false;
 		full_name = full_name{1};
 	else
 		pointed_file = full_name;	% The live together
@@ -110,7 +107,7 @@ function [name_vrt, comp_type] = write_vrt(full_name, opt, names, varargin)
 		if (only_one)			% A VRT for a single file
 			if (bare)
 				RasterBand_bare(fid, pointed_file, params)
-			elseif (simple)
+			elseif (strcmpi(params.source, 'simple'))
 				RasterBand_simple(fid, pointed_file, params)
 			end
 		else					% A master VRT with individual VRTS as 'childrens'
