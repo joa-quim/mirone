@@ -1,4 +1,4 @@
-function [name_vrt, comp_type] = write_vrt(full_name, opt, rel, names)
+function [name_vrt, comp_type] = write_vrt(full_name, opt, names, varargin)
 % Write an GDAL .vrt header companion of the raw file FULL_NAME
 %
 % If FULL_NAME is a two elements cell array, first elements contains the VRT full file name
@@ -6,10 +6,12 @@ function [name_vrt, comp_type] = write_vrt(full_name, opt, rel, names)
 %
 % OPT contains the type of file we will deal with
 %   Predefined values are 'SRTM30' or 'SRTM1'
-%   Optionaly it may have [lon_min lat_max n_cols n_rows x_inc y_inc nodata_value]
-%   OR [lon_min lat_max n_cols n_rows x_inc y_inc nodata_value byte_order n_bytes]
-%       Where BYTE_ORDER is = 1 to indicate 'Intel' or = 0 'Motorola' byte order
-%       N_BYTES is what it says (per grid value)
+%   Optionaly it may have [x_min y_max n_cols n_rows x_inc y_inc]
+%
+% NAMES	When writing a composit VRT holds the names if the individual VRTs. Otherwise empty.
+%
+% VARARGIN - See the params defaults below (to be completed)
+%
 % It returns the header full name (e.g with absolute path)
 % It also tests if file is zip or gzip compressed. In case it is, the
 % compression type is returned in COMP_TYPE. Otherwise it is empty.
@@ -29,29 +31,30 @@ function [name_vrt, comp_type] = write_vrt(full_name, opt, rel, names)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-	BYTEORDER = 'MSB';      % Make these defaults to work with SRTM cases
-	pixOff = 2;
+	params.raw = false;
+	params.band = 1;
+	params.BYTEORDER = 'LSB';
+	params.PixelOffset = 2;
+	params.relative2VRT = 0;
+	params.type = 'Int16';
+	params.source = 'simple';
+	params.nodata = false;
+	params.interleave = 'BSQ';
+	params.ImageOffset = 0;
+	params = parse_pv_pairs(params, varargin);
+
 	only_one = true;
 	bare = true;
-	relative = 0;
 	comp_type = [];
-	
-	if (nargin == 4),	only_one = false;	end
-	if (nargin >= 3),	relative = rel;		end
+
+	if (~isempty(names)),	only_one = false;	end
 
 	if (ischar(opt))
 		opt = upper(opt);
 	else
-		lon_min = opt(1);   lat_max = opt(2);
+		x_min = opt(1);		y_max = opt(2);
 		n_cols = opt(3);    n_rows = opt(4);
 		x_inc = opt(5);     y_inc = opt(6);
-		nodata = opt(7);
-		if (numel(opt) == 9)
-			if (opt(8)),    BYTEORDER = 'LSB';
-			else            BYTEORDER = 'MSB';
-			end
-			pixOff = opt(9);
-		end
 	end
 
 	% Check if VTR and pointed file live in different places
@@ -59,7 +62,6 @@ function [name_vrt, comp_type] = write_vrt(full_name, opt, rel, names)
 		pointed_file = full_name{2};
 		if (numel(full_name) == 3)
 			simple = strncmpi(full_name{3},'simple',3);
-			complx = strncmpi(full_name{3},'complex',3);
 			bare = false;
 		end
 		full_name = full_name{1};
@@ -82,9 +84,12 @@ function [name_vrt, comp_type] = write_vrt(full_name, opt, rel, names)
 	end
 
 	if (ischar(opt))				% SRTM1|3|30
-		[lon_min lat_max n_cols n_rows x_inc y_inc nodata] = known_cases(fname, opt);
+		[x_min y_max n_cols n_rows x_inc y_inc params.nodata] = known_cases(fname, opt);
+		params.BYTEORDER = 'MSB';
 	end
 	y_inc = -abs(y_inc);			% GDAL wants it like that
+	
+	params.nXSize = n_cols;			params.nYSize = n_rows;
 
 	name_vrt = [PATH name_copy '.vrt'];		% The extension has already been removed above
 	fid = fopen(name_vrt,'wt');
@@ -98,17 +103,21 @@ function [name_vrt, comp_type] = write_vrt(full_name, opt, rel, names)
 	end
 	
 	fprintf(fid,'<VRTDataset rasterXSize="%d" rasterYSize="%d">;\n', n_totalCols, n_totalRows);
-	fprintf(fid, '%s\n', SRS_block);
-	fprintf(fid,'  <GeoTransform>%.18g, %.19g,  0.0,  %.18g,  0.0, %.19g</GeoTransform>\n', lon_min,x_inc,lat_max, y_inc);
+	if (~params.raw)
+		fprintf(fid, '%s\n', SRS_block);
+		fprintf(fid,'  <GeoTransform>%.18g, %.19g,  0.0,  %.18g,  0.0, %.19g</GeoTransform>\n', x_min,x_inc,y_max, y_inc);
 
-	if (only_one)			% A VRT for a single file
-		if (bare)
-			RasterBand_bare(fid, pointed_file, 0, pixOff, n_cols, BYTEORDER, nodata, 'Int16', 1, relative)
-		elseif (simple)
-			RasterBand_simple(fid, pointed_file, n_rows, n_cols, BYTEORDER, nodata, 'Int16', 1, relative)
+		if (only_one)			% A VRT for a single file
+			if (bare)
+				RasterBand_bare(fid, pointed_file, params)
+			elseif (simple)
+				RasterBand_simple(fid, pointed_file, params)
+			end
+		else					% A master VRT with individual VRTS as 'childrens'
+			RasterBand_complex(fid, names, params)
 		end
-	else					% A master VRT with individual VRTS as 'childrens'
-		RasterBand_complex(fid, names, n_rows, n_cols, BYTEORDER, nodata, 'Int16', 1, 1)
+	else
+		RasterBand_raw(fid, pointed_file, params)
 	end
 
 	fclose(fid);
@@ -122,64 +131,82 @@ function txt = SRS_block(opt)
 		'UNIT[&quot;degree&quot;,0.0174532925199433,AUTHORITY[&quot;EPSG&quot;,&quot;9122&quot;]],'...
 		'AUTHORITY[&quot;EPSG&quot;,&quot;4326&quot;]]</SRS>'];
 
-% --------------------------1-----2------3-------4-------5------6--------7------8----9-------10---
-function RasterBand_bare(fid, name, imgOff, pixOff, n_cols, endian, nodata, tipo, band, relative)
+% ----------------------------------------------------------------------------------
+function RasterBand_bare(fid, name, params)
 % Create a RasterBand block. Last 3 args are optional under the condition on next lines
-	if (nargin <= 7)
-		tipo = 'Int16';		% Default to this data type
-		band = 1;			% Default band number
-		relative = 0;		% relativetoVRT number
-	elseif (nargin <= 8)
-		band = 1;		relative = 0;
-	elseif (nargin <= 9)
-		relative = 0;
-	end
-	fprintf(fid,'  <VRTRasterBand dataType="%s" band="%d" subClass="VRTRawRasterBand">\n', tipo, band);
-	fprintf(fid,'    <SourceFilename relativetoVRT="%d">%s</SourceFilename>\n', relative, name);
-	fprintf(fid,'    <ImageOffset>%d</ImageOffset>\n', imgOff);
-	fprintf(fid,'    <PixelOffset>%d</PixelOffset>\n', pixOff);
-	fprintf(fid,'    <LineOffset>%d</LineOffset>\n', pixOff * n_cols);
-	fprintf(fid,'    <ByteOrder>%s</ByteOrder>\n', endian);
-	fprintf(fid,'    <NoDataValue>%f</NoDataValue>\n', nodata);
+	fprintf(fid,'  <VRTRasterBand dataType="%s" band="%d" subClass="VRTRawRasterBand">\n', params.type, params.band(1));
+	fprintf(fid,'    <SourceFilename relativetoVRT="%d">%s</SourceFilename>\n', params.relative2VRT, name);
+	fprintf(fid,'    <ImageOffset>%d</ImageOffset>\n', params.ImageOffset);
+	fprintf(fid,'    <PixelOffset>%d</PixelOffset>\n', params.PixelOffset);
+	fprintf(fid,'    <LineOffset>%d</LineOffset>\n', params.PixelOffset * params.nXSize);
+	fprintf(fid,'    <ByteOrder>%s</ByteOrder>\n', params.BYTEORDER);
+	fprintf(fid,'    <NoDataValue>%f</NoDataValue>\n', params.nodata);
 	fprintf(fid,'  </VRTRasterBand>\n');
 	fprintf(fid,'</VRTDataset>\n');
 
-% --------------------------1-----2------3-------4-------5------6--------7------8----9----
-function RasterBand_simple(fid, name, n_rows, n_cols, endian, nodata, tipo, band, relative)
+% ----------------------------------------------------------------------------------
+function RasterBand_simple(fid, name, params)
 % Create a RasterBand block. Last 3 args are optional under the condition on next lines
-	fprintf(fid,'  <VRTRasterBand dataType="%s" band="%d">\n', tipo, band);
-	fprintf(fid,'    <NoDataValue>%f</NoDataValue>\n', nodata);
+	fprintf(fid,'  <VRTRasterBand dataType="%s" band="%d">\n', params.type, params.band(1));
+	fprintf(fid,'    <NoDataValue>%f</NoDataValue>\n', params.nodata);
 	fprintf(fid,'    <SimpleSource>\n');
-	fprintf(fid,'      <SourceFilename relativetoVRT="%d">%s</SourceFilename>\n', relative, name);
-	fprintf(fid,'      <SourceBand>%d</SourceBand>\n', band);
-	fprintf(fid,'      <SourceProperties RasterXSize="%d" RasterYSize="%d" DataType="%s" BlockXSize="%d" BlockYSize="1"/>\n',n_cols,n_rows,tipo,n_cols);
-	fprintf(fid,'      <SrcRect xOff="0" yOff="0" xSize="%d" ySize="%d"/>\n', n_cols, n_rows);
-	fprintf(fid,'      <DstRect xOff="0" yOff="0" xSize="%d" ySize="%d"/>\n', n_cols, n_rows);
+	fprintf(fid,'      <SourceFilename relativetoVRT="%d">%s</SourceFilename>\n', params.relative2VRT, name);
+	fprintf(fid,'      <SourceBand>%d</SourceBand>\n', params.band(1));
+	fprintf(fid,'      <SourceProperties RasterXSize="%d" RasterYSize="%d" DataType="%s" BlockXSize="%d" BlockYSize="1"/>\n', ...
+		params.nXSize, params.nXSize, params.type, params.nXSize);
+	fprintf(fid,'      <SrcRect xOff="0" yOff="0" xSize="%d" ySize="%d"/>\n', params.nXSize, params.nYSize);
+	fprintf(fid,'      <DstRect xOff="0" yOff="0" xSize="%d" ySize="%d"/>\n', params.nXSize, params.nYSize);
 	fprintf(fid,'    </SimpleSource>\n');
 	fprintf(fid,'  </VRTRasterBand>\n');
 	fprintf(fid,'</VRTDataset>\n');
 
 % ----------------------------------------------------------------------------------
-function RasterBand_complex(fid, names, n_rows, n_cols, endian, nodata, tipo, band, relative)
-% Create a RasterBand block. Last 3 args are optional under the condition on next lines
+function RasterBand_complex(fid, names, params)
+% Create a RasterBand block.
 
-	fprintf(fid,'  <VRTRasterBand dataType="%s" band="%d">\n', tipo, band);
-	fprintf(fid,'    <NoDataValue>%f</NoDataValue>\n', nodata);
+	fprintf(fid,'  <VRTRasterBand dataType="%s" band="%d">\n', params.type, params.band(1));
+	fprintf(fid,'    <NoDataValue>%f</NoDataValue>\n', params.nodata);
 	for (k = 1:size(names,1))
 		fprintf(fid,'    <ComplexSource>\n');
-		fprintf(fid,'      <SourceFilename relativetoVRT="%d">%s</SourceFilename>\n', relative, names{k,1});
-		fprintf(fid,'      <SourceBand>%d</SourceBand>\n', band);
-		fprintf(fid,'      <SourceProperties RasterXSize="%d" RasterYSize="%d" DataType="%s" BlockXSize="1800" BlockYSize="1"/>\n',n_cols,n_rows,tipo);
-		fprintf(fid,'      <SrcRect xOff="0" yOff="0" xSize="%d" ySize="%d"/>\n', n_cols, n_rows);
-		fprintf(fid,'      <DstRect xOff="%d" yOff="%d" xSize="%d" ySize="%d"/>\n', names{k,2}*n_cols, names{k,3}*n_rows, n_cols, n_rows);
-		fprintf(fid,'      <NODATA>%f</NODATA>\n', nodata);
+		fprintf(fid,'      <SourceFilename relativetoVRT="%d">%s</SourceFilename>\n', params.relative2VRT, names{k,1});
+		fprintf(fid,'      <SourceBand>%d</SourceBand>\n', params.band(1));
+		fprintf(fid,'      <SourceProperties RasterXSize="%d" RasterYSize="%d" DataType="%s" BlockXSize="1800" BlockYSize="1"/>\n', ...
+			params.nXSize, params.nYSize, params.type);
+		fprintf(fid,'      <SrcRect xOff="0" yOff="0" xSize="%d" ySize="%d"/>\n', params.nXSize, params.nYSize);
+		fprintf(fid,'      <DstRect xOff="%d" yOff="%d" xSize="%d" ySize="%d"/>\n', ...
+			names{k,3}*params.nXSize, names{k,2}*params.nYSize, params.nXSize, params.nYSize);
+		fprintf(fid,'      <NODATA>%f</NODATA>\n', params.nodata);
 		fprintf(fid,'    </ComplexSource>\n');
 	end
 	fprintf(fid,'  </VRTRasterBand>\n');
 	fprintf(fid,'</VRTDataset>\n');
 
+% ----------------------------------------------------------------------------------
+function RasterBand_raw(fid, name, params)
+% ... params.nTotalBands
+	for (k = 1:numel(params.band))
+		fprintf(fid,'  <VRTRasterBand dataType="%s" band="%d" subClass="VRTRawRasterBand">\n', bands.type, params.band(k));
+		fprintf(fid,'    <SourceFilename relativetoVRT="%d">%s</SourceFilename>\n', params.relative2VRT, name);
+		if (strcmp(params.interleave,'BSQ'))
+			fprintf(fid,'    <ImageOffset>%d</ImageOffset>\n', params.ImageOffset + (k-1) * params.nXSize * params.nYSize);
+			fprintf(fid,'    <PixelOffset>%d</PixelOffset>\n', params.PixelOffset);
+			fprintf(fid,'    <LineOffset>%d</LineOffset>\n',   params.nXSize);
+		elseif (strcmp(params.interleave,'BIL'))
+			fprintf(fid,'    <ImageOffset>%d</ImageOffset>\n', params.ImageOffset + (k-1) * params.nXSize);
+			fprintf(fid,'    <PixelOffset>%d</PixelOffset>\n', params.PixelOffset);
+			fprintf(fid,'    <LineOffset>%d</LineOffset>\n',   params.nXSize * params.nTotalBands);
+		else			% BIP and RGB or RGBA only
+			fprintf(fid,'    <ImageOffset>%d</ImageOffset>\n', params.ImageOffset + k - 1);
+			fprintf(fid,'    <PixelOffset>%d</PixelOffset>\n', numel(params.band));
+			fprintf(fid,'    <LineOffset>%d</LineOffset>\n',   params.nXSize * numel(params.band));
+		end
+		fprintf(fid,'    <ByteOrder>%s</ByteOrder>\n', params.BYTEORDER);
+		fprintf(fid,'  </VRTRasterBand>\n');
+	end
+	fprintf(fid,'</VRTDataset>\n');
+
 % ---------------------------------------------
-function [lon_min, lat_max, n_cols, n_rows, x_inc, y_inc, nodata] = known_cases(fname, tipo)
+function [x_min, y_max, n_cols, n_rows, x_inc, y_inc, nodata] = known_cases(fname, tipo)
 % ...
 	lon_sng = 0;    lat_sng = 0;
 	% Find the tile coordinates from the file name
@@ -197,17 +224,17 @@ function [lon_min, lat_max, n_cols, n_rows, x_inc, y_inc, nodata] = known_cases(
 		end
 
 		x_inc = 30 / 3600;      y_inc = x_inc;
-		lon_min = str2double(fname(ind_x+1:ind_x+3)) * lon_sng;
-		lat_max = str2double(fname(ind_y+1:ind_y+2)) * lat_sng;
+		x_min = str2double(fname(ind_x+1:ind_x+3)) * lon_sng;
+		y_max = str2double(fname(ind_y+1:ind_y+2)) * lat_sng;
 		nodata = -32768;
 
-		if (lat_max > -60)      % Lower row tiles have different size
+		if (y_max > -60)      % Lower row tiles have different size
 			n_rows = 6000;      n_cols = 4800;
 		else
 			n_rows = 3600;      n_cols = 7200;
 		end
-		lon_min = lon_min + x_inc / 2;      % Remember that those are pixel registered grids.
-		lat_max = lat_max - y_inc / 2;
+		x_min = x_min + x_inc / 2;      % Remember that those are pixel registered grids.
+		y_max = y_max - y_inc / 2;
 	elseif (strcmp(tipo,'SRTM1') || strcmp(tipo,'SRTM3'))
 		x_w = strfind(fname(1:7),'w');
 		x_e = strfind(fname(1:7),'e');
@@ -219,8 +246,8 @@ function [lon_min, lat_max, n_cols, n_rows, x_inc, y_inc, nodata] = known_cases(
 
 		if ~isempty(y_n),        lat_sng = 1;
 		elseif ~isempty(y_s),   lat_sng = -1;    end
-		lon_min = str2double(fname(ind_x+1:ind_x+3)) * lon_sng;
-		lat_max = str2double(fname(2:ind_x-1)) * lat_sng + 1;
+		x_min = str2double(fname(ind_x+1:ind_x+3)) * lon_sng;
+		y_max = str2double(fname(2:ind_x-1)) * lat_sng + 1;
 		nodata = -32768;
 		if (strcmp(tipo,'SRTM1'))
 			n_rows = 3601;      n_cols = 3601;      x_inc = 1 / 3600;
@@ -229,3 +256,90 @@ function [lon_min, lat_max, n_cols, n_rows, x_inc, y_inc, nodata] = known_cases(
 		end
 		y_inc = x_inc;
 	end
+
+% ----------------------------------------------------------------------------
+function params = parse_pv_pairs(params, pv_pairs)
+% parse_pv_pairs: parses sets of property value pairs, allows defaults
+% usage: params=parse_pv_pairs(default_params,pv_pairs)
+%
+% arguments: (input)
+%  default_params - structure, with one field for every potential
+%             property/value pair. Each field will contain the default
+%             value for that property. If no default is supplied for a
+%             given property, then that field must be empty.
+%
+%  pv_array - cell array of property/value pairs.
+%             Case is ignored when comparing properties to the list
+%             of field names. Also, any unambiguous shortening of a
+%             field/property name is allowed.
+%
+% arguments: (output)
+%  params   - parameter struct that reflects any updated property/value
+%             pairs in the pv_array.
+%
+% Example usage:
+% First, set default values for the parameters. Assume we have four
+% parameters that we wish to use optionally in the function examplefun.
+%
+%  - 'viscosity', which will have a default value of 1
+%  - 'volume', which will default to 1
+%  - 'pie' - which will have default value 3.141592653589793
+%  - 'description' - a text field, left empty by default
+%
+% The first argument to examplefun is one which will always be supplied.
+%
+%   function examplefun(dummyarg1,varargin)
+%   params.Viscosity = 1;
+%   params.Volume = 1;
+%   params.Pie = 3.141592653589793
+%
+%   params.Description = '';
+%   params=parse_pv_pairs(params,varargin);
+%   params
+%
+% Use examplefun, overriding the defaults for 'pie', 'viscosity'
+% and 'description'. The 'volume' parameter is left at its default.
+%
+%   examplefun(rand(10),'vis',10,'pie',3,'Description','Hello world')
+%
+% params = 
+%     Viscosity: 10
+%        Volume: 1
+%           Pie: 3
+%   Description: 'Hello world'
+%
+% Note that capitalization was ignored, and the property 'viscosity' was truncated
+% as supplied. Also note that the order the pairs were supplied was arbitrary.
+
+n = length(pv_pairs) / 2;
+
+if (n == 0),	return,		end     % just return the defaults
+
+if n ~= floor(n)
+    error 'Property/value pairs must come in PAIRS.'
+end
+
+if ~isstruct(params)
+    error 'No structure for defaults was supplied'
+end
+
+% there was at least one pv pair. process any supplied
+propnames = fieldnames(params);
+lpropnames = lower(propnames);
+for (i = 1:n)
+	p_i = lower(pv_pairs{2*i-1});
+	v_i = pv_pairs{2*i};
+	
+	ind = strcmp(p_i, lpropnames);
+    if (~any(ind))
+	    ind = find(strncmp(p_i, lpropnames, length(p_i)));
+        if isempty(ind)
+            error(['No matching property found for: ', pv_pairs{2*i-1}])
+	    elseif (length(ind) > 1)
+            error(['Ambiguous property name: ', pv_pairs{2*i-1}])
+        end
+    end
+    p_i = propnames{ind};
+	%params = setfield(params,p_i,v_i);      % override the corresponding default in params
+	params.(p_i) = v_i;
+end
