@@ -1054,7 +1054,7 @@ function [Z, att, known_coords, have_nans] = read_gdal(full_name, att, IamCompil
 			end
 
 			% Go check if -R or quality flags request exists in OPTcontrol.txt file
-			[opt_R, opt_I, opt_C, bitflags, flagsID] = sniff_in_OPTcontrol(opt_R, att);		% Output opt_R gets preference
+			[opt_R, opt_I, opt_C, bitflags, flagsID, despike] = sniff_in_OPTcontrol(opt_R, att);	% Output opt_R gets preference
 
 			if (isempty(what))							% User killed the window, but it's too late to stop so pretend ...
 				what =  struct('georeference',1,'nearneighbor',1,'mask',0,'coastRes',0,'quality','');	% sensor coords
@@ -1062,6 +1062,10 @@ function [Z, att, known_coords, have_nans] = read_gdal(full_name, att, IamCompil
 			if ( isempty(bitflags) && ~isempty(what.quality) && what.quality < 2 )		% We have a GUI quality request
 				qual = gdalread(what.qualSDS, opt_L);
 				Z(qual > what.quality) = NoDataValue;
+			end
+
+			if (despike)					% MODIS SST are horribly spiked every other 10 vertical positions in
+				Z = clipMySpikes(Z);		% sensor coordinates. This functions signifficantly reduces that effect.
 			end
 
 			if (~isempty(what) && what.georeference)	% OK, let's interpolate it into a regular geog grid
@@ -1117,6 +1121,22 @@ function [Z, att, known_coords, have_nans] = read_gdal(full_name, att, IamCompil
 	if (~isempty(str_d)),	delete(uncomp_name);	end		% Delete uncompressed file
 
 % -----------------------------------------------------------------------------------------
+function Z = clipMySpikes(Z)
+% MODIS L2 SST show an incredible noise level peaking at every other 10 rows of data in
+% sensor coordinates. One simple but quite efficient way of reducing (but not eliminating)
+% is to replace the screwed value by the average of its neighbors.
+
+	n_rows = size(Z,1);
+	indSpikesC = 11:10:n_rows-5;		% Index o spiky values
+	indSpikesB = 10:10:n_rows-5;		% Index of the Before spikies
+	indSpikesA = 12:10:n_rows-5;		% Index of the After spikies
+	for (k = 1:size(Z,2))
+		col = Z(:,k);
+		col(indSpikesC) = (col(indSpikesA) + col(indSpikesB)) / 2;	% Replace spikies by average of neighbors
+		Z(:,k) = col;					% and put it back
+	end
+
+% -----------------------------------------------------------------------------------------
 function att = get_baseNameAttribs(full_name)
 % Get the file's metadata and also tests if an SDS was required but does not exist
 	att = gdalread(full_name, '-M');
@@ -1131,15 +1151,17 @@ function att = get_baseNameAttribs(full_name)
 	end
 
 % -----------------------------------------------------------------------------------------
-function [opt_R, opt_I, opt_C, bitflags, flagsID] = sniff_in_OPTcontrol(old_R, att)
+function [opt_R, opt_I, opt_C, bitflags, flagsID, despike] = sniff_in_OPTcontrol(old_R, att)
 % Check the OPTcontrol file for particular requests in terms of -R, -I or quality flags
 % OPT_R is what the OPTcontrol has in
 % BITFLAGS is a vector with the bit number corresponding to the flgs keys in OPTcontrol.
 %			Returns [] when no bitflags keywords are found.
 % FLAGSID is the subdatset number adress of the flags array (l2_flags)
 %			Return 0 when no l2_flags array is found.
+% DESPIKE	MODIS L2 SST show an incredible noise level peaking at every other 10 rows of data in
+%			sensor coordinates. If the keyword MIR_EMPILHADOR_C exists, DESPIKE is set to true.
 
-	got_flags = false;		bitflags = [];		flagsID = 0;
+	got_flags = false;		bitflags = [];		flagsID = 0;	despike = false;
 	opt_I = [];				opt_C = [];
 	opt_R = old_R;			% In case we return without finding a new -R
 	mir_dirs = getappdata(0,'MIRONE_DIRS');
@@ -1155,7 +1177,7 @@ function [opt_R, opt_I, opt_C, bitflags, flagsID] = sniff_in_OPTcontrol(old_R, a
 	lines = strread(c,'%s','delimiter','\n');   clear c fid;
 	m = numel(lines);
 	for (k = 1:m)
-		if (~strncmp(lines{k},'MIR_EMPILHADOR',8)),	continue,	end
+		if (~strncmp(lines{k},'MIR_EMPILHADOR',9)),	continue,	end
 		opt = ddewhite(lines{k}(15:end));
 		got_one = false;
 		[t,r] = strtok(opt);
@@ -1167,8 +1189,13 @@ function [opt_R, opt_I, opt_C, bitflags, flagsID] = sniff_in_OPTcontrol(old_R, a
 			[t,r] = strtok(ddewhite(r));
 		end
 		if (got_one),	continue,	end		% Done with this line
-		got_flags = true;			% If it comes here means that we have a flags request
-		flaglist = opt;
+		if (strcmp(lines{k}(15:16),'_F'))	% We have a bitflags request
+			got_flags = true;			% If it comes here means that we have a flags request
+			flaglist = opt;
+		elseif (strcmp(lines{k}(15:16),'_C'))	% Despike MODIS SST
+			% The key MIR_EMPILHADOR_C has currently one argument only, 'AVG', but this may change
+			despike = true;
+		end
 	end
 
 	if (got_flags)
