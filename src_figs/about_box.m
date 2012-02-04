@@ -45,6 +45,9 @@ function varargout = about_box(varargin)
 	end
 	
 	set(hObject,'Vis','on');
+	if (strncmp(computer,'PC',2))
+		WindowAPI(hObject, 'TopMost')
+	end
 	guidata(hObject,handles)
 	if (nargout),    varargout{1} = hObject;    end
 
