@@ -1297,6 +1297,10 @@ function FileOpenWebImage_CB(handles, fname, opt)
 		handles.head = [-180 180 -57 78 0 255 0 360/(size(I,2)-1) 135/(size(I,1)-1)];
 		X = [-180 180];		Y = [-57 78];		ax_dir = 'xy';		I = flipdim(I,1);
 		handles.geog = 1;	handles.image_type = 3;
+		if (~handles.no_file)		% When current Mirone fig is not empty, display the visitors map on a new one
+			tmp.head = handles.head;	tmp.X = X;		tmp.Y = Y;		tmp.geog = 1;	tmp.name = 'Visitors';
+			mirone(I, tmp),		return
+		end
 	else
 		handles.head = [1 size(I,2) 1 size(I,1) 0 255 0 1 1];	% Fake a grid reg GMT header
 		handles.image_type = 2;		X = [];		Y = [];			ax_dir = 'off';
