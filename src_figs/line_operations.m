@@ -18,8 +18,12 @@ function varargout = line_operations(varargin)
 	
 	if (isempty(varargin)),		return,		end
 	if (~isfield(varargin{1}, 'head')),		return,		end		% Call from an empty fig
-	
-	floating = false;
+
+	if (strncmp(computer,'PC',2))
+		floating = true;
+	else
+		floating = false;
+	end
  
 	hMirFig = varargin{1}.figure1;
 	hMirAxes = varargin{1}.axes1;
@@ -78,11 +82,6 @@ function varargout = line_operations(varargin)
 	handles.path_tmp = varargin{1}.path_tmp;
 	IamCompiled = varargin{1}.IamCompiled;
 
-	if (floating)
-		move2side(handles.hMirFig, hObject, 'north')
-		set(hObject,'Visible','on');
-	end
-
 	handles.known_ops = {'bezier'; 'buffer'; 'bspline'; 'cspline'; 'group'; 'line2patch'; 'polysimplify'; 'polyunion'; 'polyintersect'; ...
 			'polyxor'; 'polyminus'; 'pline'; 'scale'; 'stitch'; 'thicken'; 'toRidge'; 'hand2Workspace'};
 	handles.hLine = [];
@@ -90,6 +89,12 @@ function varargout = line_operations(varargin)
 	set(handles.popup_cmds,'String', {'Possible commands'; 'bezier N'; 'buffer DIST'; 'bspline'; 'cspline N RES'; 'group lines'; 'line2patch'; 'polysimplify TOL'; ...
 			'polyunion'; 'polyintersect'; 'polyxor'; 'polyminus'; ...
 			'pline [x1 ..xn; y1 .. yn]'; 'scale to [-0.5 0.5]'; 'stitch TOL'; 'thicken N'; 'toRidge 5'; 'hand2Workspace'} )
+
+	if (floating)
+		move2side(handles.hMirFig, hObject, 'north')
+		set(hObject,'Visible','on');
+		WindowAPI(hObject, 'TopMost')
+	end
 
 	handles.ttips = cell(numel(handles.known_ops));
 	handles.ttips{1} = 'Select one operation from this list';
