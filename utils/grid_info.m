@@ -16,106 +16,110 @@ function grid_info(handles,X,Y,hdr)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-if (nargin == 3 && strcmp(Y,'gdal'))			% Just extract the relevant info from the attribute struct
-	att2Hdr(handles,X);			return
-elseif (nargin == 3 && strcmp(Y,'iminfo'))
-	img2Hdr(handles,X);			return
-elseif (nargin == 4 && strcmp(Y,'iminfo'))      % Used when an non-referenced image was sent in input
-	img2Hdr(handles,X,hdr);		return
-elseif (nargin == 4 && strcmp(Y,'referenced'))	% Used when referenced img/grid was sent in input
-	ref2Hdr(handles,X,hdr);		return
-end
-
-if (handles.no_file)	return,		end
- 
-if (handles.image_type == 1)					% Image derived from a GMT grdfile
-	Z = getappdata(handles.figure1,'dem_z');	% We want the Z for statistics (might not be in argin)
-	if (isempty(Z))
-		warndlg('Grid too big to be in memory so I cannot report info','Warning')
-		return
+	if (nargin == 3 && strcmp(Y,'gdal'))			% Just extract the relevant info from the attribute struct
+		att2Hdr(handles,X);			return
+	elseif (nargin == 3 && strcmp(Y,'iminfo'))
+		img2Hdr(handles,X);			return
+	elseif (nargin == 4 && strcmp(Y,'iminfo'))      % Used when an non-referenced image was sent in input
+		img2Hdr(handles,X,hdr);		return
+	elseif (nargin == 4 && strcmp(Y,'referenced'))	% Used when referenced img/grid was sent in input
+		ref2Hdr(handles,X,hdr);		return
 	end
-	nx = size(Z,2);		ny = size(Z,1);
-	try
-		if (~handles.computed_grid)
-			info1 = grdinfo_m(handles.grdname,'hdr_struct');    % info1 is a struct with the GMT grdinfo style
+
+	if (handles.no_file)	return,		end
+
+	if (handles.image_type == 1)					% Image derived from a GMT grdfile
+		Z = getappdata(handles.figure1,'dem_z');	% We want the Z for statistics (might not be in argin)
+		if (isempty(Z))
+			warndlg('Grid too big to be in memory so I cannot report info','Warning')
+			return
 		end
-		erro = false;
-	catch
-		erro = true;
-	end
+		nx = size(Z,2);		ny = size(Z,1);
+		try
+			if (~handles.computed_grid)
+				info1 = grdinfo_m(handles.grdname,'hdr_struct');    % info1 is a struct with the GMT grdinfo style
+			end
+			erro = false;
+		catch
+			erro = true;
+		end
 
-	if (handles.computed_grid || erro)
-		info1.Title = 'Unknown';	info1.Command = ' ';	info1.Remark = 'INTERNALY COMPUTED GRID';
-		info1.X_info(4) = nx;		info1.Y_info(4) = ny;
-		info1.Scale = [1 0 -1];
-		info1.Registration = 'Registration:  grid (guessed)';
-	end
+		if (handles.computed_grid || erro)
+			info1.Title = 'Unknown';	info1.Command = ' ';	info1.Remark = 'INTERNALY COMPUTED GRID';
+			info1.X_info(4) = nx;		info1.Y_info(4) = ny;
+			info1.Scale = [1 0 -1];
+			info1.Registration = 'Registration:  grid (guessed)';
+		end
 
-	info2 = grdutils(Z,'-H');				% info2 is a vector with [z_min z_max i_zmin i_zmax n_nans mean std]
-	info2(3:4) = info2(3:4) + 1;			% Info from grdutils is zero based
+		info2 = grdutils(Z,'-H');				% info2 is a vector with [z_min z_max i_zmin i_zmax n_nans mean std]
+		info2(3:4) = info2(3:4) + 1;			% Info from grdutils is zero based
 
-	w{1} = ['Title: ' info1.Title];
-	w{2} = ['Command: ' info1.Command];
-	w{3} = ['Remark: ' info1.Remark];
-	w{4} = info1.Registration;
-	w{5} = ['grdfile format: #' sprintf('%d',info1.Scale(3))];
-	txt1 = sprintf('%.8g',handles.head(1));		% x_min
-	txt2 = sprintf('%.8g',handles.head(2));		% x_max
-	txt3 = sprintf('%.8g',handles.head(8));		% x_inc
-	w{6} = ['x_min: ' txt1 '  x_max: ' txt2 '  x_inc: ' txt3 '  nx: ' sprintf('%d',info1.X_info(4))];
-	txt1 = sprintf('%.8g',handles.head(3));		% y_min
-	txt2 = sprintf('%.8g',handles.head(4));		% y_max
-	txt3 = sprintf('%.8g',handles.head(9));		% y_inc
-	w{7} = ['y_min: ' txt1 '  y_max: ' txt2 '  y_inc: ' txt3 '  ny: ' sprintf('%d',info1.Y_info(4))];
-	txt1 = sprintf('%.8g',info2(1));			% z_min
-	txt2 = sprintf('%.8g',info2(2));			% z_max
+		w{1} = ['Title: ' info1.Title];
+		w{2} = ['Command: ' info1.Command];
+		w{3} = ['Remark: ' info1.Remark];
+		w{4} = info1.Registration;
+		w{5} = ['grdfile format: #' sprintf('%d',info1.Scale(3))];
+		txt1 = sprintf('%.8g',handles.head(1));		% x_min
+		txt2 = sprintf('%.8g',handles.head(2));		% x_max
+		txt3 = sprintf('%.8g',handles.head(8));		% x_inc
+		w{6} = ['x_min: ' txt1 '  x_max: ' txt2 '  x_inc: ' txt3 '  nx: ' sprintf('%d',info1.X_info(4))];
+		txt1 = sprintf('%.8g',handles.head(3));		% y_min
+		txt2 = sprintf('%.8g',handles.head(4));		% y_max
+		txt3 = sprintf('%.8g',handles.head(9));		% y_inc
+		w{7} = ['y_min: ' txt1 '  y_max: ' txt2 '  y_inc: ' txt3 '  ny: ' sprintf('%d',info1.Y_info(4))];
+		txt1 = sprintf('%.8g',info2(1));			% z_min
+		txt2 = sprintf('%.8g',info2(2));			% z_max
 
-	if (handles.head(7))	half = 0.5;
-	else					half = 0;
-	end
-	xx_min = handles.head(1) + (fix(info2(3) / ny) + half) * handles.head(8);    % x of z_min
-	xx_max = handles.head(1) + (fix(info2(4) / ny) + half) * handles.head(8);    % x of z_max
-	yy_min = handles.head(3) + (rem(info2(3)-1, ny) + half) * handles.head(9);   % y of z_min
-	yy_max = handles.head(3) + (rem(info2(4)-1, ny) + half) * handles.head(9);   % y of z_max
-	txt_x1 = sprintf('%.8g',xx_min);
-	txt_x2 = sprintf('%.8g',xx_max);
-	txt_y1 = sprintf('%.8g',yy_min);
-	txt_y2 = sprintf('%.8g',yy_max);
+		if (handles.head(7))	half = 0.5;
+		else					half = 0;
+		end
+		xx_min = handles.head(1) + (fix(info2(3) / ny) + half) * handles.head(8);    % x of z_min
+		xx_max = handles.head(1) + (fix(info2(4) / ny) + half) * handles.head(8);    % x of z_max
+		yy_min = handles.head(3) + (rem(info2(3)-1, ny) + half) * handles.head(9);   % y of z_min
+		yy_max = handles.head(3) + (rem(info2(4)-1, ny) + half) * handles.head(9);   % y of z_max
+		txt_x1 = sprintf('%.8g',xx_min);
+		txt_x2 = sprintf('%.8g',xx_max);
+		txt_y1 = sprintf('%.8g',yy_min);
+		txt_y2 = sprintf('%.8g',yy_max);
 
-	w{8} = ['z_min: ' txt1 '   at x = ' txt_x1 '   y = ' txt_y1]; 
-	w{9} = ['z_max: ' txt2 '   at x = ' txt_x2 '   y = ' txt_y2];
+		w{8} = ['z_min: ' txt1 '   at x = ' txt_x1 '   y = ' txt_y1]; 
+		w{9} = ['z_max: ' txt2 '   at x = ' txt_x2 '   y = ' txt_y2];
 
-	w{10} = ['scale factor: ' num2str(info1.Scale(1)) '        add_offset: ' num2str(info1.Scale(2))];
-	if (~isequal(info2,0))
-		w{11} = sprintf('mean: %.8g    stdev: %.8g',info2(6), info2(7));
+		w{10} = ['scale factor: ' num2str(info1.Scale(1)) '        add_offset: ' num2str(info1.Scale(2))];
+		if (~isequal(info2,0))
+			w{11} = sprintf('mean: %.8g    stdev: %.8g',info2(6), info2(7));
+		else
+			w{11} = 'WARNING: GRID WAS NOT IN MEMORY SO SOME INFO MIGHT NO BE ENTIRELY CORRECT.';
+		end
+		if (info2(5))       % We have NaNs, report them also
+			w{12} = ['nodes set to NaN: ' sprintf('%d',info2(5))];
+		end
+		hMsg = message_win('create',w, 'figname','Grid Info', 'button','yes');
+
+		% Give message_win the info needed to plot the grid's min/Max
+		ud.hAxe = handles.axes1;	ud.p1 = [xx_min yy_min];	ud.p2 = [xx_max yy_max];
+		set(hMsg, 'UserData', ud)
 	else
-		w{11} = 'WARNING: GRID WAS NOT IN MEMORY SO SOME INFO MIGHT NO BE ENTIRELY CORRECT.';
-	end
-	if (info2(5))       % We have NaNs, report them also
-		w{12} = ['nodes set to NaN: ' sprintf('%d',info2(5))];
-	end
-	hMsg = message_win('create',w, 'figname','Grid Info', 'button','yes');
-	
-	% Give message_win the info needed to plot the grid's min/Max
-	ud.hAxe = handles.axes1;	ud.p1 = [xx_min yy_min];	ud.p2 = [xx_max yy_max];
-	set(hMsg, 'UserData', ud)
-else
-    InfoMsg = getappdata(handles.axes1,'InfoMsg');
-    if (~isempty(InfoMsg))
-		meta = getappdata(handles.hImg,'meta');
-		if (~isempty(meta))
-			InfoMsg = [InfoMsg; {' '; ' '}; meta];
+		InfoMsg = getappdata(handles.axes1,'InfoMsg');
+		if (~isempty(InfoMsg))
+			meta = getappdata(handles.hImg,'meta');
+			if (~isempty(meta))
+				InfoMsg = [InfoMsg; {' '; ' '}; meta];
+			end
+			hMsg = message_win('create',InfoMsg, 'figname', 'Grid Info');
+		else
+			hMsg = msgbox('Info missing or nothing to info about?','???');
 		end
-		hMsg = message_win('create',InfoMsg, 'figname', 'Grid Info');
-    else
-		hMsg = msgbox('Info missing or nothing to info about?','???');
-    end
-end
+	end
 
-% Add the Message figure handle to the carraças list
-plugedWin = getappdata(handles.figure1,'dependentFigs');
-plugedWin = [plugedWin hMsg];
-setappdata(handles.figure1,'dependentFigs',plugedWin);
+	% Add the Message figure handle to the carraças list
+	plugedWin = getappdata(handles.figure1,'dependentFigs');
+	plugedWin = [plugedWin hMsg];
+	setappdata(handles.figure1,'dependentFigs',plugedWin);
+
+	if (strncmp(computer,'PC',2))
+		WindowAPI(hMsg, 'TopMost')
+	end
 
 % --------------------------------------------------------------------
 function att2Hdr(handles,att)
