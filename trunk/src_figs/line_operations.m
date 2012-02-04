@@ -79,7 +79,7 @@ function varargout = line_operations(varargin)
 	IamCompiled = varargin{1}.IamCompiled;
 
 	if (floating)
-		move2side(handles.hMirFig, hObject, 'bottom')
+		move2side(handles.hMirFig, hObject, 'north')
 		set(hObject,'Visible','on');
 	end
 
@@ -96,12 +96,14 @@ function varargout = line_operations(varargin)
 	handles.ttips{2} = sprintf(['Fit a Bezier curve to a polyline.\n' ...
 								'Replace N by the number of nodes of the Bezier curve [default 100].']);
 	handles.ttips{3} = sprintf(['Compute buffer zones arround polylines.\n' ...
-								'Replace DIST by the width of the buffer zone.\n\n' ...
+								'Replace DIST by the width of the buffer zone.\n' ...
+								'Optionaly if map is in geogs apend M, K or N to DIST\n' ...
+								'to indicate Meters, Kilometers or NMiles (e.g. 10M)\n\n' ...
 								'Optionally you can append NPTS, DIR or GEOD options. Where:\n' ...
 								'NPTS -> Number of points used to contruct the circles\n' ...
-								'around each polygon vertex. If omitted, default is 13.\n' ...
+								'around each polygon vertex. If omitted, default is 13.\n\n' ...
 								'DIR -> ''in'', ''out'' or ''both'' selects whether to plot\n' ...
-								'inside, outside or both delineations of the buffer zone.\n' ...
+								'inside, outside or both delineations of the buffer zone.\n\n' ...
 								'GEOD -> ''geod'', or [A B|F] uses an ellipsoidal model.\n' ...
 								'First of this cases uses WGS-84 Ellipsoid. Second form selects\n' ...
 								'an ellipsoid with A = semi-major axis and B = semi-minor axis\n' ...
@@ -238,12 +240,23 @@ function push_apply_CB(hObject, handles)
 			direction = 'both';		npts = 13;		% Defaults (+ next line)
 			geodetic = handles.geog;		% 1 uses spherical aproximation -- OR -- 0 do cartesian calculation
 			dist = out.dist;
-			if (out.dir)		direction = out.dir;	end
-			if (out.npts)		npts = out.npts;		end
-			if (out.ab)
-				geodetic = out.ab;
-			elseif (out.geod)
-				geodetic = out.geod;
+			if (out.dir),		direction = out.dir;	end
+			if (out.npts),		npts = out.npts;		end
+			if (out.ab),		geodetic = out.ab;		% Custom ellipsoid
+			elseif (out.geod)	geodetic = out.geod;	% WGS84
+			end
+
+			if (out.toDegFac)		% Convert to degrees using the simple s = R*theta relation
+				dist = (dist * out.toDegFac) / 6371005.076 * 180 / pi;		% Use the Authalic radius
+			end
+			% Now we will test if user got confused and sent in wrong DIST unites (for geog only)
+			if (geodetic)
+				lims = getappdata(handles.hMirAxes,'ThisImageLims');
+				if ( dist > sqrt( diff(lims(1:2))^2 + diff(lims(3:4))^2)/2 )	% Almost sure a mistake
+					msg = sprintf('You probably gave a bad buffer width (DIST) as the buffer line will be out of map.\nShell I stop?');
+					r = yes_or_no('string',msg,'title','Warning');
+					if (r(1) == 'N'),	return,		end
+				end
 			end
 
 			for (k = 1:numel(handles.hLine))
@@ -251,7 +264,7 @@ function push_apply_CB(hObject, handles)
  				[y, x] = buffer_j(y, x, dist, direction, npts, geodetic);
 				if (isempty(x)),	return,		end
 				ind = find(isnan(x));
-				if (isempty(ind))			% One only, so no doubts
+				if (isempty(ind))				% One only, so no doubts
 					h = patch('XData',x, 'YData',y, 'Parent',handles.hMirAxes, 'EdgeColor',handles.lc, ...
 						'FaceColor','none', 'LineWidth',handles.lt, 'Tag','polybuffer');
 					uistack_j(h,'bottom'),		draw_funs(h,'line_uicontext')
@@ -265,7 +278,9 @@ function push_apply_CB(hObject, handles)
 							 'EdgeColor',handles.lc, 'FaceColor','none', 'LineWidth',handles.lt, 'Tag','polybuffer');
 					end
 					% Do this after so that when it takes time (uistack may be slow) the user won't notice it
-					for (m = 1:numel(i)),	uistack_j(h(m),'bottom'),		draw_funs(h(m),'line_uicontext'),		end
+					for (m = 1:numel(i))
+						uistack_j(h(m),'bottom'),		draw_funs(h(m),'line_uicontext')
+					end
 				end
 			end
 
@@ -620,16 +635,30 @@ function res = local_nchoosek(n ,k)   % A faster stripped alternative of nchoose
 % --------------------------------------------------------------------------------------------------
 function [out, msg] = validate_args(qual, str, np)
 % Check for errors on arguments to operation QUAL and return required args, or error
+% WARN: the NP arg has not always the same meaning. For 'buffer' it holds the handles.geog
 	msg = [];	out = [];
 	switch qual
 		case 'buffer'
 			out.dir = false;	out.npts = false;		out.ab = false;		out.geod = false;
+			convFrom = false;	out.toDegFac = false;	% If we are to convert meters, kilometers or nmiles to degrees
 			[t, str] = strtok(str);
 			if (strcmp(t, 'DIST'))
 				msg = 'The argument "DIST" must be replaced by a numeric value representing the width of the buffer zone';	return
 			end
+			if (np)		% Here 'np' is actually the handles.geog
+				if ( strcmpi(t(end), 'm') || strcmpi(t(end), 'k') || strcmpi(t(end), '') )	% Convert any of those to degrees
+					convFrom = lower(t(end));		t(end) = [];
+				end
+			end
 			out.dist = abs( str2double(t) );
 			if (isnan(out.dist)),		msg = 'BUFFER argument is nonsense';	return,		end
+			if (convFrom)		% Right. We must convert the DIST distance given in cartesians to degrees
+				% But the problem is that here we don't know the lat so we can't finish the conversion. So, send back the collected info
+				if (convFrom == 'm'),		out.toDegFac = 1;
+				elseif (convFrom == 'k'),	out.toDegFac = 1000;
+				else						out.toDegFac = 1852;
+				end
+			end
 
 			% OPTIONS
 			str = strrep(str,'''','');		% no ' ' around the char variables
