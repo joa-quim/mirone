@@ -23,7 +23,7 @@ REM Author: Joaquim Luis, 09-MAY-2010
 REM --------------------------------------------------------------------------------------
 
 REM ------------- Set the compiler (set to 'icl' to use the Intel compiler) --------------
-SET CC=icl
+SET CC=cl
 
 REM If set to "yes", linkage is done againsts ML6.5 Libs (needed in compiled version)
 SET R13="yes"
@@ -135,10 +135,6 @@ REM ___________________ STOP EDITING HERE ______________________________________
 SET LDEBUG=
 IF %DEBUG%=="yes" SET LDEBUG=/debug
 
-REM link /out:"test_gmt.mexw32" /dll /export:mexFunction /LIBPATH:"C:\PROGRAMS\MATLAB\R2009B\extern\lib\win32\microsoft" libmx.lib libmex.lib libmat.lib /MACHINE:X86 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /incremental:NO /implib:"C:\TMP\MEX_IF~1\templib.x" /MAP:"test_gmt.mexw32.map"  @C:\TMP\MEX_IF~1\MEX_TMP.RSP   
-
-REM cl  -DWIN32 /c /Zp8 /GR /W3 /EHs /D_CRT_SECURE_NO_DEPRECATE /D_SCL_SECURE_NO_DEPRECATE /D_SECURE_SCL=0 /DMATLAB_MEX_FILE /nologo /MD /FoC:\TMP\MEX_IF~1\test_gmt.obj -IC:\PROGRAMS\MATLAB\R2009B\extern\include /O2 /Oy- /DNDEBUG -DMX_COMPAT_32 test_gmt.c 
-
 SET COMPFLAGS=/c /Zp8 /GR /EHs /D_CRT_SECURE_NO_DEPRECATE /D_SCL_SECURE_NO_DEPRECATE /D_SECURE_SCL=0 /DMATLAB_MEX_FILE /nologo /MD 
 IF %DEBUG%=="no" SET OPTIMFLAGS=/Ox /DNDEBUG
 IF %DEBUG%=="yes" SET OPTIMFLAGS=/Z7
@@ -161,7 +157,7 @@ REM ------------------ "simple" (no external Libs dependency) ------------------
 :simple
 for %%G in (test_gmt igrf_m scaleto8 tsun2 wave_travel_time mansinha_m telha_m range_change country_select 
 	mex_illuminate grdutils read_isf alloc_mex susan set_gmt mxgridtrimesh trend1d_m gmtmbgrid_m 
-	grdgradient_m grdtrack_m spa_mex mirblock write_mex xyzokb_m distmin CalcMD5) do ( 
+	grdgradient_m grdtrack_m spa_mex mirblock write_mex xyzokb_m distmin CalcMD5 WindowAPI) do ( 
 
 %CC% -DWIN32 %COMPFLAGS% -I%MATINC% %OPTIMFLAGS% %_MX_COMPAT% %TIMEIT% %%G.c
 link  /out:"%%G.%MEX_EXT%" %LINKFLAGS% /implib:templib.x %%G.obj
