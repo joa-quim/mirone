@@ -103,7 +103,11 @@ function [out1,out2,out3] = click_e_point(arg1,arg2,arg3)
 			else
 				button = get(hFig, 'SelectionType');
 				if strcmp(button,'open')
-					button = b(numel(b));
+					if (isempty(b))		% A double click when the b vector is still empty would cause an error
+						button = 1;		% Pretend it was a normal click
+					else
+						button = b(numel(b));
+					end
 				elseif strcmp(button,'normal')
 					button = 1;
 				elseif strcmp(button,'extend')
