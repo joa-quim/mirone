@@ -194,8 +194,8 @@ function [lineHandle,barHandles,button] = get_trackHandle(pt)
 			tmp1(i) = 0;	tmp2(i) = h_lines(i);      % get the bar (or circle) handles
 		end
 	end
-	h_lines = h_lines(find(tmp1 ~= 0));			% get only the tracks handles
-	ALLbarHandles = tmp2(find(tmp2 ~= 0));		% get the handles to ALL bar handles (e.g. all bars of all tracks)
+	h_lines = h_lines(tmp1 ~= 0);			% get only the tracks handles
+	ALLbarHandles = tmp2(tmp2 ~= 0);		% get the handles to ALL bar handles (e.g. all bars of all tracks)
 	
 	key = 0;	first = 1;		button = 1;
 	while (key == 0)
