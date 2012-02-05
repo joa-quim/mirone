@@ -361,6 +361,7 @@ lib_mex/wgifc.dll -text
 /lti_dsdk_dll.dll -text
 mex/CalcMD5.c -text
 mex/PolygonClip.c -text
+mex/WindowAPI.c -text
 mex/akimaspline.cpp -text
 mex/alloc_mex.c -text
 mex/callMir.c -text
