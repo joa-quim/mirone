@@ -122,9 +122,12 @@ uipushtool('parent',hTB,'Click','mirone(''Draw_CB'',guidata(gcbo),''Vector'')', 
 	'Tag','DrawArrow','cdata',Marrow_ico,'Tooltip','Draw Arrow');
 uitoggletool('parent',hTB,'Click','mirone(''PanZoom_CB'',guidata(gcbo),gcbo,''zoom'')', ...
 	'Tag','Zoom','cdata',zoom_ico,'Tooltip','Zooming on/off','Sep','on');
-uitoggletool('parent',hTB,'Click','mirone(''PanZoom_CB'',guidata(gcbo),gcbo,''pan'')', 'Tag','Mao','cdata',mao,'Tooltip','Pan');
-uitoggletool('parent',hTB,'Click','draw_funs(gcbo,''deleteObj'')', 'Tag','Tesoura','cdata',cut_ico,'Tooltip','Delete objects');
-uipushtool('parent',hTB,'Click','color_palettes(guidata(gcbo))', 'Tag','ColorPal','cdata',color_ico,'Tooltip','Color Palettes');
+uitoggletool('parent',hTB,'Click','mirone(''PanZoom_CB'',guidata(gcbo),gcbo,''pan'')', ...
+	'Tag','Mao','cdata',mao,'Tooltip','Pan');
+uitoggletool('parent',hTB,'Click','draw_funs(gcbo,''deleteObj'')', ...
+	'Tag','Tesoura','cdata',cut_ico,'Tooltip','Delete objects');
+uipushtool('parent',hTB,'Click','color_palettes(guidata(gcbo))', ...
+	'Tag','ColorPal','cdata',color_ico,'Tooltip','Color Palettes');
 hVG(2) = uipushtool('parent',hTB,'Click','mirone(''ImageIllumModel_CB'',guidata(gcbo),''grdgradient_A'')', ...
 	'Tag','Shading','cdata',shade2_ico,'Tooltip','Shaded illumination','Sep','on');
 hVG(3) = uipushtool('parent',hTB,'Click','mirone(''ImageAnaglyph_CB'',guidata(gcbo))', ...
@@ -727,7 +730,7 @@ if (IamCompiled)
 end
 uimenu('Parent',h, 'Call',['mirone(''FileOpenWebImage_CB'',guidata(gcbo),',...
 	' ''http://www2.clustrmaps.com/stats/maps-clusters/w3.ualg.pt-~jluis-mirone-world.jpg'',''nikles'');'],'Label','See visitors map','Sep','on');
-uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 22 Jan 2012'',''2.2.1b'')','Label','About','Sep','on');
+uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 05 Feb 2012'',''2.2.1b'')','Label','About','Sep','on');
 
 %% --------------------------- Build HANDLES and finish things here
 	handles = guihandles(H1);
