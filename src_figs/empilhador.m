@@ -79,13 +79,17 @@ function push_namesList_CB(hObject, handles, opt)
 % Read an ascii file with a list of names to process. The file list may have 1,2 or 3 columns
 % First column always holds the filename that can be absolute, relative or have no path info.
 %		If only one column in file the "Time" info below is computed as (1:number_of_files)
+%
 % Second column is normally the "Time" info. That is, a number that will be used as the 'time'
 %		in the 3D netCDF file. In case of L2 scene products one can use '?' to instruct the
 %		program to get the time from the HDF file name, which is assume to be YYYYDDDHHMMSS....
+%
 % Third column is used when the HDF file has many sub-datasets and we want to select one in
 %		particular. In that case use the (clumsy) construct: 'sdsN' as in sds3 where 'sds' is
 %		fix and N is the number of the subdataset as it appears when one do gdalinfo or in the
 %		table window that pops up when one attempts to open the HDF file directly in Mirone.
+%		NEWs: It is now possible to provide the SDS name instead of the 'sdsN' described above.
+%		But to destinguish both mechanisms the SDS name must be prepended with a '-', as in -sst4
 
     if (nargin == 2)        % Direct call
     	str1 = {'*.dat;*.DAT;*.txt;*.TXT', 'Data files (*.dat,*.DAT,*.txt,*.TXT)';'*.*', 'All Files (*.*)'};
@@ -177,15 +181,20 @@ function push_namesList_CB(hObject, handles, opt)
 	end
 
 	% -------------- Check if we have a Sub-Datasets request ------------------
-	if (n_column == 3 && strncmpi(SDSinfo{1}, 'sds', 3))
-		if (any(c)),	SDSinfo(c) = [];	end
+	if ( n_column == 3 && (strncmpi(SDSinfo{1}, 'sds', 3) || SDSinfo{1}(1) == '-') )
+		if (any(c)),	SDSinfo(c) = [];	end		% Remove comment lines
 		handles.SDSinfo = SDSinfo;
-	elseif (n_column == 2 && strncmpi(handles.strTimes{1}, 'sds', 3))		% Two cols with SDS info in the second
+	elseif (n_column == 2 && (strncmpi(handles.strTimes{1}, 'sds', 3) || SDSinfo{1}(1) == '-') )
+		% Two cols with SDS info in the second
 		handles.SDSinfo = handles.strTimes;
 		for (k = 1:m),		handles.strTimes{k} = sprintf('%d',k);		end
 	end
 	if (~isempty(handles.SDSinfo))
-		handles.SDSthis = str2double(handles.SDSinfo{1}(4:end));
+		if (strncmpi(handles.SDSinfo{1}, 'sds', 3))				% Old way. Kept for backward compatibility
+			handles.SDSthis = str2double(handles.SDSinfo{1}(4:end));
+		else
+			handles.SDSthis = handles.SDSinfo{1}(2:end);		% Should have the SDSname prepended with a '-' sign
+		end
 	end
 	% --------------------------------------------------------------------------
 
@@ -523,7 +532,7 @@ function [head, opt_R, slope, intercept, base, is_modis, is_linear, is_log, att,
 % Get several direct and inderect (computed) informations about the file NAME or one of its subdatasets.
 % The [att, do_SDS] = get_headerInfo(...) form is also supported and used when processing L2 files.
 
-	[att, do_SDS] = get_att(handles, name);
+	[att, do_SDS, handles] = get_att(handles, name);
 
 	% GDAL wrongly reports the corners as [0 nx] [0 ny] when no SRS
 	if ( isequal((att.Corners.LR - att.Corners.UL), [att.RasterXSize att.RasterYSize]) && ~all(att.Corners.UL) )
@@ -540,7 +549,7 @@ function [head, opt_R, slope, intercept, base, is_modis, is_linear, is_log, att,
 	end
 
 % -----------------------------------------------------------------------------------------
-function [att, indSDS] = get_att(handles, name)
+function [att, indSDS, handles] = get_att(handles, name)
 % Get the attributes of the root file or, in case we have one, of the requested subdataset
 
 	indSDS = 0;
@@ -549,6 +558,14 @@ function [att, indSDS] = get_att(handles, name)
 	if ( att.RasterCount == 0 && ~isempty(att.Subdatasets) )	
 		indSDS = 1;
 		if (~isempty(handles.SDSinfo))
+			if (ischar(handles.SDSthis))				% The SDS info is still in its name form. Must convert to number
+				ind = find_in_subdatasets(att.Subdatasets, handles.SDSthis);
+				if (~ind)
+					errordlg('The provided name of the Subdataset does not exist in file. Bye.','Error')
+					error('The provided name of the Subdataset does not exist in file.')
+				end
+				handles.SDSthis = (ind + 1) / 2;		% Do this calc because we need here the SDS number from top of file
+			end
 			indSDS = handles.SDSthis * 2 - 1;
 			ind = strfind(att.Subdatasets{indSDS}, '=');
 		elseif (strncmp(att.DriverShortName, 'HDF4', 4))	% Some MODIS files
