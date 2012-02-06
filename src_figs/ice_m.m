@@ -198,8 +198,14 @@ function varargout = ice_m(varargin)
 	lc = fsz(1) + (size(handles.input, 2) / 4) + (3 * fsz(3) / 4);
 	lc = min(lc, ssz(3) - uisz(3)) + 5;
 	set(handles.figure1, 'Position', [lc bc uisz(3:4)]);
-	graph(handles);		render(handles);
-	
+	graph(handles);
+	render(handles);
+
+	% Add this figure handle to the carraças list
+	plugedWin = getappdata(handles.hMirFig,'dependentFigs');
+	plugedWin = [plugedWin hObject];
+	setappdata(handles.hMirFig,'dependentFigs',plugedWin);
+
 	% Update handles and make ICE wait before exit if required.
 	guidata(hObject, handles);
 	%if (strcmpi(wait, 'on')),	uiwait(handles.figure1);	end
@@ -260,7 +266,7 @@ handles = guidata(hObject);
 handles.plotbox = get(handles.curve_axes, 'Position');
 [inplot, x, y] = cursor(hObject, handles);
 if inplot
-	nodes = getfield(handles, handles.curve);
+	nodes = handles.(handles.curve);
 	i = find(x >= nodes(:, 1));      below = max(i);
 	above = min(below + 1, size(nodes, 1));
 	if (x - nodes(below, 1)) > (nodes(above, 1) - x)    
@@ -313,7 +319,7 @@ function ice_m_WindowButtonMotionFcn(hObject, eventdata)
 	if (~strcmpi(handles.updown, 'down')),		return,		end
 	[inplot, x, y] = cursor(hObject, handles);
 	if inplot
-		nodes = getfield(handles, handles.curve);
+		nodes = handles.(handles.curve);
 		nudge = handles.smooth(handles.cindex) / 256;
 		if (handles.node ~= 1) && (handles.node ~= size(nodes, 1))
 			if (x >= nodes(handles.above, 1)),			x = nodes(handles.above, 1) - nudge;
@@ -391,7 +397,7 @@ function check_smooth_CB(hObject, handles)
 %  component and redraw mapping function.
 	if get(hObject, 'Value')
 		handles.smooth(handles.cindex) = 1;
-		nodes = getfield(handles, handles.curve);
+		nodes = handles.(handles.curve);
 		nodes = spreadout(nodes);
 		handles = setfield(handles, handles.curve, nodes);
 	else  
@@ -463,7 +469,8 @@ function check_pdf_CB(hObject, handles)
 	else  
 		handles.pdf(handles.cindex) = 0;    
 	end
-	guidata(handles.figure1, handles);      graph(handles);
+	guidata(handles.figure1, handles);
+	graph(handles);
 
 %-------------------------------------------------------------------%
 function check_cdf_CB(hObject, handles)
@@ -495,7 +502,7 @@ function check_mapimage_CB(hObject, handles)
 function graph(handles)
 %  Interpolate and plot mapping functions and optional reference PDF(s) or CDF(s).
 
-nodes = getfield(handles, handles.curve);
+nodes = handles.(handles.curve);
 c = handles.cindex;     dfx = 0:1/255:1;
 colors = ['k' 'r' 'g' 'b'];
     
