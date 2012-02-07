@@ -172,7 +172,7 @@ function push_namesList_CB(hObject, handles, opt)
 	end
 
 	if (any(c))					% Remove eventual comment lines
-		names(c) = [];			handles.strTimes(c) = [];		caracol(c) = [];
+		names(c) = [];			handles.strTimes(c) = [];		caracol(c) = [];	SDSinfo(c) = [];
 	end
 	m = numel(names);			% Count remaining ones
 	
@@ -182,7 +182,6 @@ function push_namesList_CB(hObject, handles, opt)
 
 	% -------------- Check if we have a Sub-Datasets request ------------------
 	if ( n_column == 3 && (strncmpi(SDSinfo{1}, 'sds', 3) || SDSinfo{1}(1) == '-') )
-		if (any(c)),	SDSinfo(c) = [];	end		% Remove comment lines
 		handles.SDSinfo = SDSinfo;
 	elseif (n_column == 2 && (strncmpi(handles.strTimes{1}, 'sds', 3) || SDSinfo{1}(1) == '-') )
 		% Two cols with SDS info in the second
@@ -192,6 +191,7 @@ function push_namesList_CB(hObject, handles, opt)
 	if (~isempty(handles.SDSinfo))
 		if (strncmpi(handles.SDSinfo{1}, 'sds', 3))				% Old way. Kept for backward compatibility
 			handles.SDSthis = str2double(handles.SDSinfo{1}(4:end));
+			handles.SDSinfo = handles.SDSthis;					% Make it numeric to help test inside att_get()
 		else
 			handles.SDSthis = handles.SDSinfo{1}(2:end);		% Should have the SDSname prepended with a '-' sign
 		end
@@ -443,6 +443,7 @@ function cut2cdf(handles, got_R, west, east, south, north)
 	% Read relevant metadata. Attention, if we have a subdataset request ATT holds the attribs of the SDS
 	[head, opt_R, slope, intercept, base, is_modis, is_linear, is_log, att, do_SDS] = ...
 		get_headerInfo(handles, handles.nameList{1}, got_R, west, east, south, north);
+	handles = guidata(handles.figure1);			% The get_att() function may have changed handles
 
 	handles.geog = 1;			handles.head = head;
 	handles.was_int16 = 0;		handles.computed_grid = 0;
@@ -465,6 +466,7 @@ function cut2cdf(handles, got_R, west, east, south, north)
 
 		if (do_SDS && k > 1)		% If we have an SDS request, get the attribs of that SDS (needed in getZ)
 			[att, do_SDS] = get_headerInfo(handles, handles.nameList{k}, got_R, west, east, south, north);
+			handles = guidata(handles.figure1);		% The get_att() function may have changed handles
 		end
 
 		% In the following, if any of slope, intercept or base changes from file to file ... f
@@ -558,17 +560,17 @@ function [att, indSDS] = get_att(handles, name)
 	if ( att.RasterCount == 0 && ~isempty(att.Subdatasets) )	
 		indSDS = 1;
 		if (~isempty(handles.SDSinfo))
-			if (ischar(handles.SDSthis))				% The SDS info is in its name form. Must convert to number
-				ind = find_in_subdatasets(att.Subdatasets, handles.SDSthis);
+			if (~isnumeric(handles.SDSinfo))			% The SDS info is in its name form. Must convert to number
+				ind = find_in_subdatasets(att.Subdatasets, handles.SDSinfo{1}(2:end));	% Remember, first char is '-'
 				if (~ind)
 					errordlg('The provided name of the Subdataset does not exist in file. Bye.','Error')
 					error('The provided name of the Subdataset does not exist in file.')
 				end
-				indSDS = (ind + 1) / 2;					% Do this calc because we need here the SDS number from top of file
-			else
-				indSDS = handles.SDSthis * 2 - 1;
+				handles.SDSthis = (ind + 1) / 2;		% Do this calc because we need here the SDS number from top of file
+				guidata(handles.figure1, handles)
 			end
-			ind = strfind(att.Subdatasets{indSDS}, '=');
+			ind = strfind(att.Subdatasets{handles.SDSthis * 2 - 1}, '=');
+			indSDS = handles.SDSthis * 2 - 1;
 		elseif (strncmp(att.DriverShortName, 'HDF4', 4))	% Some MODIS files
 			ind = strfind(att.Subdatasets{1}, '=');
 		else
