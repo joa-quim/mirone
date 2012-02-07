@@ -532,7 +532,7 @@ function [head, opt_R, slope, intercept, base, is_modis, is_linear, is_log, att,
 % Get several direct and inderect (computed) informations about the file NAME or one of its subdatasets.
 % The [att, do_SDS] = get_headerInfo(...) form is also supported and used when processing L2 files.
 
-	[att, do_SDS, handles] = get_att(handles, name);
+	[att, do_SDS] = get_att(handles, name);
 
 	% GDAL wrongly reports the corners as [0 nx] [0 ny] when no SRS
 	if ( isequal((att.Corners.LR - att.Corners.UL), [att.RasterXSize att.RasterYSize]) && ~all(att.Corners.UL) )
@@ -549,7 +549,7 @@ function [head, opt_R, slope, intercept, base, is_modis, is_linear, is_log, att,
 	end
 
 % -----------------------------------------------------------------------------------------
-function [att, indSDS, handles] = get_att(handles, name)
+function [att, indSDS] = get_att(handles, name)
 % Get the attributes of the root file or, in case we have one, of the requested subdataset
 
 	indSDS = 0;
@@ -558,15 +558,16 @@ function [att, indSDS, handles] = get_att(handles, name)
 	if ( att.RasterCount == 0 && ~isempty(att.Subdatasets) )	
 		indSDS = 1;
 		if (~isempty(handles.SDSinfo))
-			if (ischar(handles.SDSthis))				% The SDS info is still in its name form. Must convert to number
+			if (ischar(handles.SDSthis))				% The SDS info is in its name form. Must convert to number
 				ind = find_in_subdatasets(att.Subdatasets, handles.SDSthis);
 				if (~ind)
 					errordlg('The provided name of the Subdataset does not exist in file. Bye.','Error')
 					error('The provided name of the Subdataset does not exist in file.')
 				end
-				handles.SDSthis = (ind + 1) / 2;		% Do this calc because we need here the SDS number from top of file
+				indSDS = (ind + 1) / 2;					% Do this calc because we need here the SDS number from top of file
+			else
+				indSDS = handles.SDSthis * 2 - 1;
 			end
-			indSDS = handles.SDSthis * 2 - 1;
 			ind = strfind(att.Subdatasets{indSDS}, '=');
 		elseif (strncmp(att.DriverShortName, 'HDF4', 4))	% Some MODIS files
 			ind = strfind(att.Subdatasets{1}, '=');
