@@ -1103,26 +1103,28 @@ function [Z, att, known_coords, have_nans] = read_gdal(full_name, att, IamCompil
 				end
 				ind = (Z == (att.Band(1).NoDataValue));
 				Z(ind) = [];		lon_full(ind) = [];		lat_full(ind) = [];
-				if (isempty(Z))
-					errordlg('As a result of applying (probably wrongly) quality flags (in OPTcontrol.txt), no data was left. Aborting','Error')
-					error('As a result of applying (probably wrongly) quality flags, no data was left. Aborting')
-				end
 
 				if (isempty(opt_I)),	opt_I = '-I0.01';	end
 				if (isempty(opt_C)),	opt_C = '-C3';		end		% For gmtmbgrid only
-				if (what.nearneighbor)
-					lon_full = single(lon_full);			lat_full = single(lat_full);	Z = single(Z);
-					[Z, head] = nearneighbor_m(lon_full(:), lat_full(:), Z(:), opt_R, opt_e, '-N2', opt_I, '-S0.04');
+
+				if (isempty(Z))			% Instead of aborting we let it go with fully NaNified array
+					disp(['As a result of applying (probably wrongly) quality flags, no data was left in: ' full_name])
+					[Z, head] = nearneighbor_m(single(1e3), single(1e3), single(0), opt_R, opt_e, '-N1', opt_I, '-S0.02');
 				else
-					if (~isa(lon_full,'double')),	lon_full = double(lon_full);	lat_full = double(lat_full);	end
-					[Z, head] = gmtmbgrid_m(lon_full(:), lat_full(:), double(Z(:)), opt_I, opt_R, '-Mz', opt_C);
-					Z = single(Z);
-				end
-				if (what.mask)
-					opt_D = {'-Dc' '-Dl' '-Di' '-Dh' '-Df'};
-					opt_D = opt_D{what.coastRes};
-					mask = grdlandmask_m(opt_R, opt_D, opt_e, '-I0.01', '-V');
-					Z(mask) = NaN;
+					if (what.nearneighbor)
+						lon_full = single(lon_full);			lat_full = single(lat_full);	Z = single(Z);
+						[Z, head] = nearneighbor_m(lon_full(:), lat_full(:), Z(:), opt_R, opt_e, '-N2', opt_I, '-S0.04');
+					else
+						if (~isa(lon_full,'double')),	lon_full = double(lon_full);	lat_full = double(lat_full);	end
+						[Z, head] = gmtmbgrid_m(lon_full(:), lat_full(:), double(Z(:)), opt_I, opt_R, '-Mz', opt_C);
+						Z = single(Z);
+					end
+					if (what.mask)
+						opt_D = {'-Dc' '-Dl' '-Di' '-Dh' '-Df'};
+						opt_D = opt_D{what.coastRes};
+						mask = grdlandmask_m(opt_R, opt_D, opt_e, '-I0.01', '-V');
+						Z(mask) = NaN;
+					end
 				end
 				att.GMT_hdr = head;
 				known_coords = true;				% Signal that coordinates are known and should not be guessed again
