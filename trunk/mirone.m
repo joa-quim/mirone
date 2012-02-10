@@ -3342,6 +3342,7 @@ function GeophysicsSwanPlotStations_CB(handles)
 % --------------------------------------------------------------------
 function GRDdisplay(handles, X, Y, Z, head, tit, name, srsWKT)
 % Show matrix Z in a new window.
+	if (isa(Z,'double')),		Z = single(Z);	end
 	if (handles.have_nans),		zz = grdutils(Z,'-L');
 	else						zz = [min(Z(:)) max(Z(:))];
 	end
