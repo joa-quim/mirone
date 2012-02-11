@@ -36,15 +36,18 @@ function varargout = grdgradient_mir(varargin)
     
 	if (handMir.no_file)
 		errordlg('GRDGRADIENT: You didn''t even load a file. What are you expecting then?','ERROR')
-		delete(hObject);    return
+		delete(hObject);
+		return
 	end
 	if (~handMir.validGrid)
 		errordlg('GRDGRADIENT: This operation is deffined only for images derived from DEM grids.','ERROR')
-		delete(hObject);    return
+		delete(hObject);
+		return
 	end
 	if (isempty(handles.Z))
 		errordlg('GRDGRADIENT: Grid was not saved in memory. Increase "Grid max size" and start over.','ERROR')
-		delete(hObject);    return
+		delete(hObject);
+		return
 	end
 
     handles.hMirFig = handMir.figure1;
@@ -59,6 +62,12 @@ function varargout = grdgradient_mir(varargin)
 
 	%------------ Give a Pro look (3D) to the frame box ----------------------------
 	new_frame3D(hObject, handles.text_HLA, [handles.frame1 handles.frame2])
+	%------------- END Pro look (3D) ------------------------------
+
+	% Add this figure handle to the carraças list
+	plugedWin = getappdata(handles.hMirFig,'dependentFigs');
+	plugedWin = [plugedWin hObject];
+	setappdata(handles.hMirFig,'dependentFigs',plugedWin);
 
 	guidata(hObject, handles);
 
@@ -122,11 +131,11 @@ function check_magnitude_grad_CB(hObject, handles)
 	set(handles.listbox_azim1,'Value',1);       set(handles.listbox_azim2,'Value',1);
 	set(handles.listbox_azim1,'Enable','on');   set(handles.listbox_azim2,'Enable','on');
 	if get(hObject,'Value')
+		set(handles.check_direction_grad,'Value',1,'Enable','on');
 		set(handles.popup_direction_grad,'Enable','on');
 	else
 		set(handles.check_magnitude_grad,'Value',0);
 		set(handles.popup_direction_grad,'Value',1);
-		set(handles.popup_direction_grad,'Enable','off');
 	end
 
 % ------------------------------------------------------------------------------------
@@ -283,14 +292,14 @@ function push_OK_CB(hObject, handles)
 	end
 
 	% Consistency check
-	if ~(a_set || d_set)
-		errordlg('Must select one of "Horizontal Light" or "Gradient Direction"','Error');  return
+	if ~(a_set || d_set || n_set || s_set)
+		errordlg('You haven''t select anything usefull to do.','Chico Clever');   return
 	end
 	if (s_set && ~d_set)
 		errordlg('Computing scalar magnitudes implyies selecting also "Gradient Direction"','Error');  return
 	end
-	if ~(a_set || d_set || n_set || s_set)
-		errordlg('You haven''t select anything usefull to do.','Chico Clever');   return
+	if ~(a_set || d_set)
+		errordlg('Must select one of "Horizontal Light" or "Gradient Direction"','Error');  return
 	end
 
 	if (handles.geog),           opt_M = '-M';        end
@@ -352,9 +361,9 @@ uicontrol('Parent',h1,...
 'String','?',...
 'Tag','push_Help_Azim');
 
-uicontrol('Parent',h1, 'Pos',[279 146 125 17],...
+uicontrol('Parent',h1, 'Pos',[279 146 180 17],...
 'Call',@grdgradient_mir_uiCB,...
-'String','Gradient direction',...
+'String','Gradient direction (Aspect)',...
 'Style','checkbox',...
 'Tooltip','Find the direction of the gradient of the data',...
 'Tag','check_direction_grad');
