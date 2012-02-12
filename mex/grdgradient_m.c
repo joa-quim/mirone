@@ -50,9 +50,6 @@
  * Date: 	17 Aug 2004
  * Modified	12 Jan 2006 - Extended -E (lambertian) option
  *
- * Note: This version differs slightly from the original in C. Namely -S
- * option makes the output contain |grad z| instead of the directional derivatives.
- *
  * Usage
  * Zout = grdgradient_m(Zin,head,'options');
  *
@@ -74,6 +71,9 @@
  *	 
  *		11/10/11 J Luis, Now works in column major order, which means we can do things faster but
  *		                 above all we save a lot of memory by not making one copy of input array.
+ *	 
+ *		12/02/12 J Luis, Add -S<p|d> to compute slope in percentage or degrees. Also -A now multiplies
+ *		                 input array by -1, instead of relying that it was done by the caller.
  */
  
 #include "mex.h"
@@ -126,12 +126,12 @@ struct GRD_HEADER {
 	int ny;				/* Number of rows */
 	int node_offset;		/* 0 for node grids, 1 for pixel grids */
 	/* This section is flexible. It is not copied to any grid header */
-	int type;			/* Grid format */
+	int type;				/* Grid format */
 	char name[256];			/* Actual name of the file after any ?<varname> and =<stuff> has been removed */
 	char varname[80];		/* NetCDF: variable name */
 	int y_order;			/* NetCDF: 1 if S->N, -1 if N->S */
-	int z_id;			/* NetCDF: id of z field */
-	int ncid;			/* NetCDF: file ID */
+	int z_id;				/* NetCDF: id of z field */
+	int ncid;				/* NetCDF: file ID */
 	int t_index[3];			/* NetCDF: index of higher coordinates */
 	double nan_value;		/* Missing value as stored in grid file */
 	double xy_off;			/* 0.0 (node_offset == 0) or 0.5 ( == 1) */
@@ -144,8 +144,8 @@ struct GRD_HEADER {
 	double z_max;			/* Maximum z value */
 	double x_inc;			/* x increment */
 	double y_inc;			/* y increment */
-	double z_scale_factor;		/* grd values must be multiplied by this */
-	double z_add_offset;		/* After scaling, add this */
+	double z_scale_factor;	/* grd values must be multiplied by this */
+	double z_add_offset;	/* After scaling, add this */
 	char x_units[80];		/* units in x-direction */
 	char y_units[80];		/* units in y-direction */
 	char z_units[80];		/* grid value units */
@@ -182,7 +182,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	unsigned char *ui_1, *o_ui1, *pdata_ui1;
 
 	int	error = FALSE, map_units = FALSE, normalize = FALSE, atan_trans = FALSE, bad, do_direct_deriv = FALSE;
-	int	find_directions = FALSE, do_cartesian = FALSE, do_orientations = FALSE, save_slopes = FALSE, add_ninety = FALSE;
+	int	find_directions = FALSE, do_cartesian = FALSE, do_orientations = FALSE, save_slopes = FALSE;
+	int slope_percent = FALSE, slope_deg = FALSE, add_ninety = FALSE;
 	int	lambertian_s = FALSE, peucker = FALSE, lambertian = FALSE, unknown_nans = TRUE, check_nans = FALSE;
 	int	sigma_set = FALSE, offset_set = FALSE, exp_trans = FALSE, two_azims = FALSE;
 	int	is_double = FALSE, is_single = FALSE, is_int32 = FALSE, is_int16 = FALSE;
@@ -348,6 +349,12 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 
 				case 'S':
 					save_slopes = TRUE;
+					if (argv[i][2]) {
+						if (argv[i][2] == 'p')
+							slope_percent = TRUE;
+						else if (argv[i][2] == 'd')
+							slope_deg = TRUE;
+					}
 					break;
 				default:
 					error = TRUE;
@@ -359,7 +366,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	if (argc == 1 || error) {
 		mexPrintf ("grdgradient - Compute directional gradients from grdfiles\n\n");
 		mexPrintf ( "usage: R = grdgradient_m(infile,head,'[-A<azim>[/<azim2>]]', '[-D[a][o][n]]', '[-L<flag>]',\n");
-		mexPrintf ( "'[-M]', '[-N[t_or_e][<amp>[/<sigma>[/<offset>]]]]', '[-S]', '[-a<nan_val>]')\n\n");
+		mexPrintf ( "'[-M]', '[-N[t_or_e][<amp>[/<sigma>[/<offset>]]]]', '[-S<p|d>]', '[-a<nan_val>]')\n\n");
 		mexPrintf ("\t<infile> is name of input array\n");
 		mexPrintf ("\t<head> is array header descriptor of the form\n");
 		mexPrintf ("\t [x_min x_max y_min y_max z_min zmax 0 x_inc y_inc]\n");
@@ -395,17 +402,14 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		mexPrintf ( "\t  -Ne will make exp  transform, then scale to <amp> [1.0]\n");
 		mexPrintf ( "\t  -Nt<amp>/<sigma>[/<offset>] or -Ne<amp>/<sigma>[/<offset>] sets sigma\n");
 		mexPrintf ( "\t     (and offset) for transform. [sigma, offset estimated from data]\n");
-		mexPrintf ( "\t-S output |grad z| instead of directional derivatives; requires -D\n");
+		mexPrintf ( "\t-S output |grad z| (slope)\n");
+		mexPrintf ( "\t     append 'p' or 'd' to compute slope in percentage or degrees, respectively.\n");
 		mexPrintf ( "\t-a NaN value. Use 1 to not change the illuminated NaNs color [default is NaN]\n");
 		return;
 	}
 
 	if (!(do_direct_deriv || find_directions || lambertian_s || lambertian || peucker)) {
 		mexPrintf ("GMT SYNTAX ERROR:  Must specify -A or -D\n");
-		error++;
-	}
-	if (save_slopes && !find_directions) {
-		mexPrintf ("GMT SYNTAX ERROR -S option:  Must specify -D\n");
 		error++;
 	}
 	if (do_direct_deriv && (azim < 0.0 || azim >= 360.0)) {
@@ -501,37 +505,43 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	if (is_double) {
 		for (i = i2 = 0; i < nx; i++) {
 			k1 = my * (i + 2) + 2;
-			for (j = 0; j < ny; j++) data[j + k1] = (float)z_8[i2++];
+			for (j = 0; j < ny; j++)
+				data[j + k1] = (float)z_8[i2++];
 		}
 	}
 	else if (is_single) {
 		for (i = i2 = 0; i < nx; i++) {
 			k1 = my * (i + 2) + 2;
-			for (j = 0; j < ny; j++) data[j + k1] = z_4[i2++];
+			for (j = 0; j < ny; j++)
+				data[j + k1] = z_4[i2++];
 		}
 	}
 	else if (is_int32) {
 		for (i = i2 = 0; i < nx; i++) {
 			k1 = my * (i + 2) + 2;
-			for (j = 0; j < ny; j++) data[j + k1] = (float)i_4[i2++];
+			for (j = 0; j < ny; j++)
+				data[j + k1] = (float)i_4[i2++];
 		}
 	}
 	else if (is_int16) {
 		for (i = i2 = 0; i < nx; i++) {
 			k1 = my * (i + 2) + 2;
-			for (j = 0; j < ny; j++) data[j + k1] = (float)i_2[i2++];
+			for (j = 0; j < ny; j++)
+				data[j + k1] = (float)i_2[i2++];
 		}
 	}
 	else if (is_uint16) {
 		for (i = i2 = 0; i < nx; i++) {
 			k1 = my * (i + 2) + 2;
-			for (j = 0; j < ny; j++) data[j + k1] = (float)ui_2[i2++];
+			for (j = 0; j < ny; j++)
+				data[j + k1] = (float)ui_2[i2++];
 		}
 	}
 	else if (is_uint8) {
 		for (i = i2 = 0; i < nx; i++) {
 			k1 = my * (i + 2) + 2;
-			for (j = 0; j < ny; j++) data[j + k1] = (float)ui_1[i2++];
+			for (j = 0; j < ny; j++)
+				data[j + k1] = (float)ui_1[i2++];
 		}
 	}
 
@@ -544,6 +554,11 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 			}
 		}
 	}
+
+	/* For direction derivatives we need to revert the sign of Z */
+	if (do_direct_deriv)
+		for (i = 0; i < nm; i++)
+			data[i] *= -1;
 
 	GMT_boundcond_param_prep (&header, &edgeinfo);
 
@@ -691,6 +706,15 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 			}
 			n_used++;
 		}
+	}
+
+	if (slope_percent) {
+		for (i = 0; i < nm; i++)
+			data[i] *= 100;
+	}
+	else if (slope_deg) {
+		for (i = 0; i < nm; i++)
+			data[i] = atan(data[i]) * R2D;
 	}
 
 	if (map_units) {
