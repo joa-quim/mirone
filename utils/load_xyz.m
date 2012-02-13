@@ -1,7 +1,7 @@
 function varargout = load_xyz(handles, opt, opt2)
 % Read a generic ascii file that can be, or not, a multiseg file
 %
-%	Multi-segs files accept -G, -W & -S GMT type options.
+%	Multi-segs files accept -G & -W GMT type options.
 %	It does also deal with the case of ploting the isochrons.dat
 %
 %	HANDLES	->	Should be the Mirone handles. However, when this function is used with output
@@ -96,7 +96,7 @@ function varargout = load_xyz(handles, opt, opt2)
 
 		[bin, n_column, multi_seg, n_headers] = guess_file(fname);
 		if (isempty(bin))
-			errordlg(['Error reading file (probaby empty)' fname],'Error'),	return
+			errordlg(['Error reading file (probably empty)' fname],'Error'),	return
 		end
 		if (isa(bin,'struct') || bin ~= 0)				% ---****** BINARY FILE *******---
 			if (isa(bin,'struct'))
@@ -310,10 +310,10 @@ function varargout = load_xyz(handles, opt, opt2)
 			clear tmp
 
 		elseif (strncmp(multi_segs_str{1}, '>CLOSE', 6))				% Closed or not, plot a patch
-			multi_segs_str{1}(2:6) = [];								% Rip the swap CLOSE identifier
+			multi_segs_str{1}(2:6) = [];								% Rip the CLOSE identifier
 			do_patch = true;
 
-		elseif (strfind(multi_segs_str{1}, ' -G'))						% -G option (paint) alone is enough to make it a patch
+		elseif (line_type(3) ~= 'P' && strfind(multi_segs_str{1}, '-G'))% -G (paint) alone is enough to make it a patch (if ~point)
 			do_patch = true;
 		end
 
@@ -362,7 +362,17 @@ function varargout = load_xyz(handles, opt, opt2)
 			if (isempty(lThick)),	lThick = handles.DefLineThick;	end		% IF not provided, use default
 			if (isempty(cor)),		cor = handles.DefLineColor;		end		%           "
 
-			if (~do_patch || got_arrow)				% Line plottings
+			if (do_patch)
+				Fcor = parseG(multi_segs_str{i});
+				if (isempty(Fcor)),		Fcor = 'none';		end
+				hPat = patch('XData',tmpx,'YData',tmpy,'Parent',handles.axes1,'Linewidth',lThick,'EdgeColor',cor,'FaceColor',Fcor);
+				if (~isempty(tmpz))
+					set(hPat,'UserData',tmpz');
+				end	
+				draw_funs(hPat,'line_uicontext')
+				n_clear(i) = true;			% Must delete this header info because it only applyies to lines, not patches
+
+			else					% Line plottings
 				% See if we need to wrap arround the earth roundness discontinuity. Using 0.5 degrees from border. 
 				if (handles.geog == 1 && ~do_project && (XMin < -179.5 || XMax > 179.5) )
 						[tmpy, tmpx, tmpz] = map_funs('trimwrap', tmpy, tmpx, [-90 90], [XMin XMax], tmpz, 'wrap');
@@ -377,8 +387,10 @@ function varargout = load_xyz(handles, opt, opt2)
 							hLine(i) = line('XData',tmpx,'YData',tmpy,'Parent',handles.axes1,'Linewidth',lThick,...
 									'Color',cor,'Tag',tag,'Userdata',n_isoc);
 						case 'AsPoint'
+							Fcor = parseG(multi_segs_str{i});			% See if user wants colored pts
+							if (isempty(Fcor)),		Fcor = 'k';		end
 							hLine(i) = line('XData',tmpx,'YData',tmpy,'Parent',handles.axes1, 'LineStyle','none', 'Marker','o',...
-								'MarkerEdgeColor','k','MarkerFaceColor','k','MarkerSize',2,'Tag','Pointpolyline');
+								'MarkerEdgeColor','k','MarkerFaceColor',Fcor, 'MarkerSize',2,'Tag','Pointpolyline');
 							draw_funs(hLine(i),'DrawSymbol')			% Set marker's uicontextmenu (tag is very important)
 						case 'AsMaregraph'
 							hLine(i) = line('XData',tmpx,'YData',tmpy,'Parent',handles.axes1, 'LineStyle','none', 'Marker','o',...
@@ -418,15 +430,6 @@ function varargout = load_xyz(handles, opt, opt2)
 					end
 				end
 
-			else							% Closed line (parch)
-				Fcor = parseG(multi_segs_str{i});
-				if (isempty(Fcor)),      Fcor = 'none';   end
-				hPat = patch('XData',tmpx,'YData',tmpy,'Parent',handles.axes1,'Linewidth',lThick,'EdgeColor',cor,'FaceColor',Fcor);
-				if (~isempty(tmpz))
-					set(hPat,'UserData',tmpz');
-				end	
-				draw_funs(hPat,'line_uicontext')
-				n_clear(i) = true;			% Must delete this header info because it only applyies to lines, not patches
 			end
 		end
 		multi_segs_str(n_clear) = [];		% Clear the unused info
