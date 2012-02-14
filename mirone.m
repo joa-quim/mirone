@@ -1424,6 +1424,17 @@ function erro = FileOpenGeoTIFF_CB(handles, tipo, opt)
 
 	if ( att.RasterCount == 0 && ~isempty(att.Subdatasets) )
 		str = strrep(att.Subdatasets, '=', ' ');
+		c = false(1, numel(str));
+		for (k = 2:2:numel(str))						% Seek for non-interesting (params) arrays 
+			indF = strfind(str{k}, ']');
+			ind = strfind(str{k}(1:indF), 'x');
+			if (isempty(ind) || numel(ind) > 1)			% Don't want 1D or 3D arrays
+				c(k) = true;	c(k-1) = true;		continue
+			end
+			if ((indF - ind) == 2),		c(k) = true;	c(k-1) = true;	end		% Don't want arrays with less than 10 (2 char) columns
+		end
+		if (any(c)),	str(c) = [];		end			% Remove non-interesting arrays from sight
+
 		[s,ok] = listdlg('PromptString',{'This file has subdatasets' 'you have to select one:'}, 'ListSize', ...
 				[min(numel(str{1})*7,640) min((size(str,1)*20 + 50), 200)], ...
 				'Name','DATASET Selection', 'SelectionMode','single', 'ListString',str);	pause(0.01)
