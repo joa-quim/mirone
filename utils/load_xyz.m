@@ -1,7 +1,9 @@
 function varargout = load_xyz(handles, opt, opt2)
 % Read a generic ascii file that can be, or not, a multiseg file
 %
-%	Multi-segs files accept -G & -W GMT type options.
+%	Multi-segs files accept -G, -S & -W GMT type options.
+%		-S<symb>[size] accepts these GMT type symbol codes <a|c|d|h|i|n|p|s|x|+>
+%
 %	It does also deal with the case of ploting the isochrons.dat
 %
 %	HANDLES	->	Should be the Mirone handles. However, when this function is used with output
@@ -313,7 +315,8 @@ function varargout = load_xyz(handles, opt, opt2)
 			multi_segs_str{1}(2:6) = [];								% Rip the CLOSE identifier
 			do_patch = true;
 
-		elseif (line_type(3) ~= 'P' && strfind(multi_segs_str{1}, '-G'))% -G (paint) alone is enough to make it a patch (if ~point)
+		elseif (line_type(3) ~= 'P' && ~isempty(strfind(multi_segs_str{1},'-G')) && isempty(strfind(multi_segs_str{1},'-S')) )
+			% -G (paint) alone is enough to make it a patch (if ~point)
 			do_patch = true;
 		end
 
@@ -362,6 +365,14 @@ function varargout = load_xyz(handles, opt, opt2)
 			if (isempty(lThick)),	lThick = handles.DefLineThick;	end		% IF not provided, use default
 			if (isempty(cor)),		cor = handles.DefLineColor;		end		%           "
 
+			% ---------- Check if we have a symbols request. If yes turn the 'AsPoint' option on --------
+			[marker, markerSize, multi_segs_str{i}] = parseS(multi_segs_str{i});
+			if (~isempty(marker))
+				line_type = 'AsPoint';
+			else
+				marker = 'o';	markerSize = 2;		% The old defaults
+			end
+
 			if (do_patch)
 				Fcor = parseG(multi_segs_str{i});
 				if (isempty(Fcor)),		Fcor = 'none';		end
@@ -389,8 +400,8 @@ function varargout = load_xyz(handles, opt, opt2)
 						case 'AsPoint'
 							Fcor = parseG(multi_segs_str{i});			% See if user wants colored pts
 							if (isempty(Fcor)),		Fcor = 'k';		end
-							hLine(i) = line('XData',tmpx,'YData',tmpy,'Parent',handles.axes1, 'LineStyle','none', 'Marker','o',...
-								'MarkerEdgeColor','k','MarkerFaceColor',Fcor, 'MarkerSize',2,'Tag','Pointpolyline');
+							hLine(i) = line('XData',tmpx,'YData',tmpy,'Parent',handles.axes1, 'LineStyle','none', 'Marker',marker,...
+								'MarkerEdgeColor','k','MarkerFaceColor',Fcor, 'MarkerSize',markerSize,'Tag','Pointpolyline');
 							draw_funs(hLine(i),'DrawSymbol')			% Set marker's uicontextmenu (tag is very important)
 						case 'AsMaregraph'
 							hLine(i) = line('XData',tmpx,'YData',tmpy,'Parent',handles.axes1, 'LineStyle','none', 'Marker','o',...
@@ -517,6 +528,37 @@ function [thick, cor, str2] = parseW(str)
 		end
 		% Notice that we cannot have -W100 represent a color because it would have been interpret above as a line thickness
 		if (any(isnan(cor))),   cor = [];   end
+	end
+
+% --------------------------------------------------------------------
+function [symbol, symbSize, str2] = parseS(str)
+% Parse the STR string in search for a -S<symbol>[size]. Valid options are -S...
+% If not found or error SYMBOL = [] &/or SYMBSIZE = [].
+% STR2 is the STR string less the -S<symb>[size] part
+	symbol = [];	symbSize = 2;	str2 = str;
+	ind = strfind(str,'-S');
+	if (isempty(ind)),		return,		end     % No -S option
+	try
+		[strS, rem] = strtok(str(ind:end));
+		str2 = [str(1:ind(1)-1) rem];   % Remove the -S<str> from STR
+
+		strS(1:2) = [];					% Remove the '-S' part from strS
+		% OK, now 'strS' must contain the symbol and optionally its size
+		switch strS(1)
+			case 'a',		symbol = '*';
+			case 'c',		symbol = 'o';
+			case 'd',		symbol = 'd';
+			case 'h',		symbol = 'h';
+			case 'i',		symbol = 'v';
+			case 'n',		symbol = 'p';
+			case 'p',		symbol = '.';
+			case 's',		symbol = 's';
+			case 'x',		symbol = 'x';
+			case '+',		symbol = '+';
+			otherwise,		symbol = 'o';
+		end
+		if (numel(strS) > 1),	symbSize = str2double(strS(2:end));		end
+		if (isnan(symbSize)),	symbSize = 3;	end
 	end
 
 % --------------------------------------------------------------------------------
