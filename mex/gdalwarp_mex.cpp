@@ -66,7 +66,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	static int runed_once = FALSE;	/* It will be set to true if reaches end of main */
 
 	const int *dim_array;
-	int	nx, ny, i, m, n, c, nBands, registration = 1;
+	int	nx, ny, i, j, m, n, c, nBands, registration = 1;
 	int	n_dims, typeCLASS, nBytes;
 	char	*pszSrcSRS = NULL, *pszSrcWKT = NULL;
 	char	*pszDstSRS = NULL, *pszDstWKT = NULL;
@@ -414,7 +414,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	/* ------------------------------------------------------------------ */
 
 	if ( nGCPCount != 0 ) {
-		if (GDALSetGCPs( hSrcDS, nGCPCount, pasGCPs, "" ) != CE_None)
+		if (GDALSetGCPs(hSrcDS, nGCPCount, pasGCPs, "") != CE_None)
 			mexPrintf("GDALWARP WARNING: writing GCPs failed.\n");
 	}
 
@@ -424,28 +424,97 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 
 	void *hTransformArg;
 
-	hTransformArg = 
-    		GDALCreateGenImgProjTransformer( hSrcDS, pszSrcWKT, NULL, pszDstWKT, 
-						 nGCPCount == 0 ? FALSE : TRUE, 0, nOrder );
+	hTransformArg = GDALCreateGenImgProjTransformer(hSrcDS, pszSrcWKT, NULL, pszDstWKT, 
+											nGCPCount == 0 ? FALSE : TRUE, 0, nOrder);
 	if( hTransformArg == NULL )
 		mexErrMsgTxt("GDALTRANSFORM: Generating transformer failed.");
+
+	GDALTransformerInfo *psInfo = (GDALTransformerInfo*)hTransformArg;
 
 	/* -------------------------------------------------------------------------- */
 	/*      Get approximate output georeferenced bounds and resolution for file
 	/* -------------------------------------------------------------------------- */
-	eErr = GDALSuggestedWarpOutput2( hSrcDS, GDALGenImgProjTransform, hTransformArg, 
-                                adfDstGeoTransform, &nPixels, &nLines, adfExtent, 0 );
+	if (GDALSuggestedWarpOutput2(hSrcDS, GDALGenImgProjTransform, hTransformArg, 
+	                             adfDstGeoTransform, &nPixels, &nLines, adfExtent,
+	                             0) != CE_None ) {
+	    GDALClose(hSrcDS);
+		mexErrMsgTxt("GDALWARP: GDALSuggestedWarpOutput2 failed.");
+	}
 
-	dfMinX = adfExtent[0];
-	dfMaxX = adfExtent[2];
-	dfMaxY = adfExtent[3];
-	dfMinY = adfExtent[1];
-	dfResX = adfDstGeoTransform[1];
-	dfResY = fabs(adfDstGeoTransform[5]);
+	if (CPLGetConfigOption( "CHECK_WITH_INVERT_PROJ", NULL ) == NULL) {
+		double MinX = adfExtent[0];
+		double MaxX = adfExtent[2];
+		double MaxY = adfExtent[3];
+		double MinY = adfExtent[1];
+		int bSuccess = TRUE;
+            
+		/* Check that the the edges of the target image are in the validity area */
+		/* of the target projection */
+#define N_STEPS 20
+		for (i = 0; i <= N_STEPS && bSuccess; i++) {
+			for (j = 0; j <= N_STEPS && bSuccess; j++) {
+				double dfRatioI = i * 1.0 / N_STEPS;
+				double dfRatioJ = j * 1.0 / N_STEPS;
+				double expected_x = (1 - dfRatioI) * MinX + dfRatioI * MaxX;
+				double expected_y = (1 - dfRatioJ) * MinY + dfRatioJ * MaxY;
+				double x = expected_x;
+				double y = expected_y;
+				double z = 0;
+				/* Target SRS coordinates to source image pixel coordinates */
+				if (!psInfo->pfnTransform(hTransformArg, TRUE, 1, &x, &y, &z, &bSuccess) || !bSuccess)
+					bSuccess = FALSE;
+				/* Source image pixel coordinates to target SRS coordinates */
+				if (!psInfo->pfnTransform(hTransformArg, FALSE, 1, &x, &y, &z, &bSuccess) || !bSuccess)
+					bSuccess = FALSE;
+				if (fabs(x - expected_x) > (MaxX - MinX) / nPixels ||
+					fabs(y - expected_y) > (MaxY - MinY) / nLines)
+					bSuccess = FALSE;
+			}
+		}
+            
+		/* If not, retry with CHECK_WITH_INVERT_PROJ=TRUE that forces ogrct.cpp */
+		/* to check the consistency of each requested projection result with the */
+		/* invert projection */
+		if (!bSuccess) {
+			CPLSetConfigOption( "CHECK_WITH_INVERT_PROJ", "TRUE" );
+			CPLDebug("WARP", "Recompute out extent with CHECK_WITH_INVERT_PROJ=TRUE");
 
-	CPLAssert( eErr == CE_None );
+			if (GDALSuggestedWarpOutput2(hSrcDS, GDALGenImgProjTransform, hTransformArg, 
+			                             adfDstGeoTransform, &nPixels, &nLines, adfExtent,
+			                              0) != CE_None ) {
+			    GDALClose(hSrcDS);
+				mexErrMsgTxt("GDALWARO: GDALSuggestedWarpOutput2 failed.");
+			}
+		}
+	}
+
+	/* -------------------------------------------------------------------- */
+	/*      Expand the working bounds to include this region, ensure the    */
+	/*      working resolution is no more than this resolution.             */
+	/* -------------------------------------------------------------------- */
+	if( dfMaxX == 0.0 && dfMinX == 0.0 ) {
+		dfMinX = adfExtent[0];
+		dfMaxX = adfExtent[2];
+		dfMaxY = adfExtent[3];
+		dfMinY = adfExtent[1];
+		dfResX = adfDstGeoTransform[1];
+		dfResY = ABS(adfDstGeoTransform[5]);
+	}
+	else {
+		dfMinX = MIN(dfMinX,adfExtent[0]);
+		dfMaxX = MAX(dfMaxX,adfExtent[2]);
+		dfMaxY = MAX(dfMaxY,adfExtent[3]);
+		dfMinY = MIN(dfMinY,adfExtent[1]);
+		dfResX = MIN(dfResX,adfDstGeoTransform[1]);
+		dfResY = MIN(dfResY,ABS(adfDstGeoTransform[5]));
+	}
 
 	GDALDestroyGenImgProjTransformer( hTransformArg );
+
+	/* -------------------------------------------------------------------- */
+	/*      Turn the suggested region into a geotransform and suggested     */
+	/*      number of pixels and lines.                                     */
+	/* -------------------------------------------------------------------- */
 
 	adfDstGeoTransform[0] = dfMinX;
 	adfDstGeoTransform[1] = dfResX;
