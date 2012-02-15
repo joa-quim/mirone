@@ -2471,6 +2471,15 @@ function DrawGeogCircle_CB(handles, opt)
 
 % --------------------------------------------------------------------
 function DrawImportText_CB(handles)
+% Read a file with text to plot.
+% Minimum content per line is "X Y TEXT", but can also have an option -F like in GMT5 before the TEXT
+% Accepted forms of -F are
+%	-F[+a<angle>][+j<T|M|B|L|C|R>][+f<size>,<font>,<color>], where +f can be still be incomplete as in:
+%			+f<size> || +f<size>,<font> || +f<size>,=,<color>
+%			<size> is the font size in points. It can have a 'p' appended as in 12p but that's ignored
+%			<font> is a valid Matlab fontName
+%			<color> is a 'r/g/b' [0 255] color string
+
 	if (handles.no_file),	return,		end
 	str1 = {'*.txt;*.TXT;*.dat;*.DAT', 'Text file (*.txt,*.TXT,*.dat,*.DAT)';'*.*', 'All Files (*.*)'};
 	[FileName,PathName] = put_or_get_file(handles,str1,'Select input text file name','get');
@@ -2504,13 +2513,67 @@ function DrawImportText_CB(handles)
 	indx = (str.y < limits(3) | str.y > limits(4));		str.x(indx) = [];		str.y(indx) = [];	str.name(indx) = [];
 	if (numel(str.x) == 0),		return,		end			% No texts inside area. Return.
 
-	for (k = 1:numel(str.x))
-		fz = 10;		% Default font size
+	for (k = 1:numel(str.x))		% Loop over number of text strings
+		ang = 0;	fz = 10;		% Default font size and rotation
+		fontName = 'Book Antiqua';
+		fontColor = 'k';
+		HorzAlng = 'center';	VertAlng = 'baseline';
+		nc = numel(str.name{k});
+
+		if (nc > 2 && strcmp(str.name{k}(1:2), '-F'))	% A GMT5 type -F option like in pstext
+			[t, r] = strtok(str.name{k});
+			if (isempty(r)),	r = 'Empty text is nice, isn''t it?';	end		% There was nothing to plot
+			str.name{k} = ddewhite(r);
+			t = t(3:end);						% Strip the '-F'
+			ind = strfind(t, '+');
+			ind(end+1) = numel(t) + 1;			% To easy up the algo below
+			for (n = 1:numel(ind)-1)
+				tok = t(ind(n)+2:ind(n+1)-1);
+				switch t(ind(n)+1)
+					case 'a'
+						ang = str2double(tok);
+						if (isnan(ang)),	ang = 0;	end
+					case 'j'
+						switch upper(tok)
+							case {'TL' 'LT'},	HorzAlng = 'left';		VertAlng = 'cap';
+							case {'ML' 'LM'},	HorzAlng = 'left';		VertAlng = 'middle';
+							case {'BL' 'LB'},	HorzAlng = 'left';		VertAlng = 'baseline';
+							case {'TC' 'CT'},	HorzAlng = 'center';	VertAlng = 'cap';
+							case {'MC' 'CM'},	HorzAlng = 'center';	VertAlng = 'middle';
+							case {'BC' 'CB'},	HorzAlng = 'center';	VertAlng = 'baseline';
+							case {'TR' 'RT'},	HorzAlng = 'right';		VertAlng = 'cap';
+							case {'MR' 'RM'},	HorzAlng = 'right';		VertAlng = 'middle';
+							case {'BR' 'RB'},	HorzAlng = 'right';		VertAlng = 'baseline';
+						end
+					case 'f'		% Parse for a complete +f<size>,<font>,<color> OR partial +f<size> || +f<size>,<font>
+						i = strfind(tok, ',');
+						if (isempty(i)),	i = numel(tok) + 1;		end		% Pretend we had one comma
+						fz = str2double(tok(1:i(1)-1));				% try a unitless size
+						if (isnan(fz)),		fz = str2double(tok(1:i(1)-2));		end		% Try removing last char as in '12p'
+						if (isnan(fz)),		fz = 10;	end			% If still fails, fall back to default
+						if (numel(i) == 1 && numel(tok) > i)		% -F+f<size>,fontName
+							fontName = tok(i(1)+1:end);
+						elseif (numel(i) == 2 && numel(tok) > i(2))	% -F+f<size>,fontName,color
+							fontName = tok(i(1)+1:i(2)-1);
+						else
+							continue
+						end
+						if (fontName == '='),	fontName = 'Book Antiqua';	end
+						if (numel(i) == 2)							% -F+fsize,fontName,fontColor
+							tok = tok(i(2)+1:end);					% Reuse this var. It's the last token
+							is = strfind(tok,'/');
+							if (numel(is) ~= 2),	continue,	end		% Not a r/g/b color
+							fontColor = reshape(sscanf(tok,'%d/%d/%d') / 255, 1, 3);
+						end
+				end
+			end
+		end
 		if (str.name{k}(1) == '_')			% If leading field is of the form _numeric, take it as font size
 			[t, r] = strtok(str.name{k});		fz = str2double(t(2:end));		str.name{k} = r;
 			if (isnan(fz)),		fz = 10;		end		% Bad luck or stupid user error
 		end
-		h = text(str.x(k),str.y(k),str.name{k},'FontSize', fz, 'FontName','Book Antiqua','FontWeight','bold','VerticalAlignment','baseline','Margin',1);
+		h = text(str.x(k),str.y(k),str.name{k},'FontSize', fz, 'FontName',fontName,'FontWeight','bold', ...
+			'Rotation',ang, 'Color',fontColor, 'HorizontalAlignment',HorzAlng, 'VerticalAlignment',VertAlng, 'Margin',1);
 		draw_funs(h,'DrawText')
 	end
 
