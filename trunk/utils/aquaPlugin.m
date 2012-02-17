@@ -892,28 +892,33 @@ function calc_L2_periods(handles, period, tipoStat, regMinMax, grd_out)
 	end
 
 	[z_id, s, rows, cols] = get_ncInfos(handles);
-
 	tempos = handles.time(:);
-	N = histc(fix(tempos), (fix(tempos(1)) : fix(tempos(end))));
-	n_periods = ceil(numel(N) / period);	% By using ceil we are allowing that the last period is not fully filled.
-	handles.was_int16 = false;
+
+	if (numel(period) == 1)
+		periods = fix(tempos(1)) : period : fix(tempos(end))+period-1;	% Don't risk to loose an incomplete last interval
+	else
+		periods = period;
+	end
+	N = histc( fix(tempos), periods );
+
+	handles.was_int16 = false;		% I have to get rid of the need to set this
 
 	aguentabar(0,'title','Computing period means.','CreateCancelBtn');
 
 	c = 1;		% Counter to the current layer number being processed. Runs from (1:handles.number_of_timesteps)
-	for (m = 1:n_periods)
+	for (m = 1:numel(periods)-1)
 
-		n_ini = (m-1) * period + 1;
-		n_fim = n_ini + period - 1;
-		Z = alloc_mex(rows, cols, cumsum(N(n_ini:n_fim)), 'single', NaN);
-		for (n = n_ini:n_fim)		% Loop over the days in current period
-			for (k = 1:N(n))		% Loop over number of daily scenes (can easily be > 1)
+		if (N(m) ~= 0)
+			Z = alloc_mex(rows, cols, N(m), 'single', NaN);
+			for (n = 1:N(m))		% Loop over the days in current period
 				Z(:,:,c) = nc_funs('varget', handles.fname, s.Dataset(z_id).Name, [c-1 0 0], [1 rows cols]);
 				c = c + 1;
 			end
+			tmp = doM_or_M_or_M(Z, 1, size(Z,3), regionalMIN, regionalMAX, tipoStat);
+			tmp(tmp == 0) = NaN;		% Reset the NaNs
+		else
+			tmp = alloc_mex(rows, cols, 1, 'single', NaN);
 		end
-		tmp = doM_or_M_or_M(Z, 1, size(Z,3), regionalMIN, regionalMAX, tipoStat);
-		tmp(tmp == 0) = NaN;		% Reset the NaNs
 
 		% Write this layer to file
 		if (m == 1),		nc_io(grd_out, sprintf('w%d/time',n_periods), handles, reshape(tmp,[1 size(tmp)]))
