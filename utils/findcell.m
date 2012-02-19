@@ -69,29 +69,29 @@ function varargout = findcell(k,c,varargin)
 % modified:
 %	us	14-Mar-2003 20:40:37	/ TMW
 
-if	nargout
+if (nargout)
 	varargout = cell(nargout,1);
 end
-if	nargin < 2 || isempty(k) || isempty(c)
+if (nargin < 2 || isempty(k) || isempty(c))
     error('Wrong number of input args')
 end
 [p,k,c] = chk_input(k,c);
-if (p.res), return;     end
+if (p.res),		return,		end
 
 % get/set options
-mat=[];
+mat = [];
 p = get_opt(p,varargin{:});
 
 % precondition key/cells
-c=c(:);
-cs=length(c);
-cl=length([c{:}]);
+c  = c(:);
+cs = length(c);
+cl = length([c{:}]);
 
 if (p.cflg)			% ... do NOT search across <cell>s
 	if (ischar(k) && all(p.isc))
 		k=double(k);
 		inn=cellfun('length',c)';
-		c=[c num2cell(0*ones(cs,1))];
+		c=[c num2cell(zeros(cs,1))];
 		c=reshape(c.',1,2*cs);
 		in=cellfun('length',c)';
 		c=double([c{:}]);
@@ -111,7 +111,7 @@ else				% ...	do search across <cell>s
 end
 
 % find indices
-ix = strfind(k,c);
+ix = findstr(k,c);
 if	~isempty(ix)
 	[mx,mn]=meshgrid(ix,cumsum(in)-in);
 	crow=sum(mx>mn,1)';
