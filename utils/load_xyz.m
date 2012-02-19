@@ -124,7 +124,7 @@ function varargout = load_xyz(handles, opt, opt2)
 			return
 		end
 		BB = out_nc.BB;
-		numeric_data = cell(out_nc.n_PolyOUT + out_nc.n_PolyIN,1);
+		numeric_data = cell(out_nc.n_PolyOUT + out_nc.n_PolyIN, 1);
 		kk = 1;
 		for (k = 1:out_nc.n_PolyOUT)		% Order will be for each swarm OUT + its INs
 			numeric_data{kk} = [out_nc.Poly(k).OUT.lon out_nc.Poly(k).OUT.lat];
@@ -135,11 +135,22 @@ function varargout = load_xyz(handles, opt, opt2)
 			end
 			kk = kk + 1;
 		end
+		
+		if (~isempty(out_nc.description))
+			desc = ['> ' out_nc.description];
+		else
+			desc = '> Nikles ';
+		end
 		if (numel(numeric_data) > 1)
 			multi_seg = true;
-			multi_segs_str = repmat({'> Nikles '},numel(numeric_data),1);
+			multi_segs_str = repmat({desc}, numel(numeric_data),1);
 		else
-			multi_segs_str = {'> Nikles '};
+			multi_segs_str = {desc};
+		end
+
+		% Add the referencing info to multi_segs_str{1} so that later the recogn algo is the same as for ascii files
+		if ( ~isempty(out_nc.SRS) && out_nc.SRS(1) == '+' )		% Only proj4 are accepted
+			multi_segs_str{1} = [multi_segs_str{1} ' ' out_nc.SRS];
 		end
 	end
 
@@ -151,6 +162,7 @@ function varargout = load_xyz(handles, opt, opt2)
 		names = {fname};
 	end
 
+	% ------------------ Section to deal with START NEW FIG or PLOT ON EXISTING FIG ----------
 	if (handles.no_file)		% Start empty but below we'll find the true data region
 		if (ischar(handles.DefLineColor) && handles.DefLineColor(1) == 'w')
 			handles.DefLineColor = 'k';		% To not plot a white line over a white background
@@ -162,13 +174,13 @@ function varargout = load_xyz(handles, opt, opt2)
 			j = strfind(fname,filesep);
 			if (isempty(j)),    fname = sprintf('%s%s',PathName, fname);   end		% Need to add path as well 
 			if (isempty(n_headers)),    n_headers = NaN;    end
-			if (~got_nc)			% Otherwise data was read already
+			if (~got_nc)				% Otherwise data was read already
 				if (multi_seg)
 					[numeric_data, multi_segs_str] = text_read(fname,NaN,n_headers,'>');
 				elseif (~is_bin)
 					numeric_data = text_read(fname,NaN,n_headers);
-				else				% Try luck with a binary file
-					fid = fopen(fname);		numeric_data = fread(fid,['*' bin.type]);		fclose(fid);
+				else					% Try luck with a binary file
+					fid = fopen(fname);		numeric_data = fread(fid,['*' bin.type]);	fclose(fid);
 					numeric_data = reshape(numeric_data,bin.nCols,numel(numeric_data)/bin.nCols)';
 					if (bin.twoD && (bin.nCols > 2)),	numeric_data(:,3:end) = [];		end % Retain only X,Y 
 				end
@@ -221,16 +233,17 @@ function varargout = load_xyz(handles, opt, opt2)
 	elseif (~nargout)				% Reading over an established region
 		XYlim = getappdata(handles.axes1,'ThisImageLims');
 		xx = XYlim(1:2);			yy = XYlim(3:4);
-		if (handles.is_projected && (got_isoc == 1 || handles.defCoordsIn > 0) )
+		if (handles.is_projected && (got_isoc || handles.defCoordsIn > 0) )
 			do_project = true;
 		end
 		XMin = XYlim(1);			XMax = XYlim(2);		% In case we need this names below for line trimming
 	end
+	% --------------------- End of CREATE NEW FIG / PLOT on EXISTING ONE -----------------
 
 	% --------------------------- Main loop over data files ------------------------------
 	for (k = 1:numel(names))
 		fname = names{k};
-		if (handles.no_file && k == 1)			% Rename figure with draged file name
+		if (handles.no_file && k == 1)			% Rename figure with dragged file name
 			[pato,barName] = fileparts(fname);
 			old_name = get(hMirFig,'Name');		ind = strfind(old_name, '@');
 			set(hMirFig,'Name',[barName old_name(ind-1:end)])
@@ -281,7 +294,7 @@ function varargout = load_xyz(handles, opt, opt2)
 			if (~got_arrow),	multi_segs_str{1}(2:6) = [];	end			% Rip the ARROW identifier
 			got_arrow = true;
 			if (n_column < 4)
-				errordlg('Files for arrow plot need 4 columns with the traditial (x,y,u,v)','ERROR'),	return
+				errordlg('Files for arrow plot need 4 columns with the traditional (x,y,u,v)','ERROR'),	return
 			end
 			UV = cell(n_segments,1);
 			for (i = 1:n_segments)		% Split the XY & UV columns to be compatible with the other options
@@ -320,20 +333,39 @@ function varargout = load_xyz(handles, opt, opt2)
 			do_patch = true;
 		end
 
-		% If OUT is requested there is nothing left to be done here  
+		% ---------- If OUT is requested there is nothing left to be done here --------------
 		if (nargout)
 			if (orig_no_mseg),		numeric_data = numeric_data{1};		end
 			varargout{1} = numeric_data;
 			if (nargout == 2),	varargout{2} = multi_segs_str;		end
 			return
 		end
+		% -----------------------------------------------------------------------------------
+
+		% ------------------ Check if first header line has a PROJ4 string ------------------
+		[projStr, multi_segs_str{1}] = parseProj(multi_segs_str{1});
+		if (~isempty(projStr)),		do_project = true;		end
+		%------------------------------------------------------------------------------------
 
 		drawnow
-		for (i = 1:n_segments)
+		for (i = 1:n_segments)		% Loop over number of segments of current file (external loop)
 			tmpz = [];
 			if (do_project)         % We need to project
 				try
-					numeric_data{i} = geog2projected_pts(handles,numeric_data{i});
+					if (~isempty(projStr))
+						numeric_data{i} = proj2proj_pts(handles, numeric_data{i}, 'srcProj4', projStr);
+
+						if (k == 1 && i == 1)	% First time. Store proj info if Figure's appdata
+							if ( isempty(getappdata(handles.figure1,'ProjWKT')) && ...
+								 isempty(getappdata(handles.figure1,'Proj4')) && ...
+								 isempty(getappdata(handles.figure1,'ProjGMT')) )
+								setappdata(handles.figure1,'Proj4', projStr)
+								handles.is_projected = true;
+							end
+						end
+					else
+						numeric_data{i} = proj2proj_pts(handles, numeric_data{i});
+					end
 					if (any( isinf(numeric_data{1}(1:min(20,size(numeric_data{1},1)))) ))
 						warndlg('Your data was probably already projected. Right-click on the axes frame and uncheck the ''Load files in Geogs'' ','Warning')
 					end
@@ -460,7 +492,8 @@ function varargout = load_xyz(handles, opt, opt2)
 	set(handles.figure1,'pointer','arrow')
 
 	if (handles.no_file)		% Be very carefull, do not trust on the 'geog' estimate donne in show_image (too soon)
-		geog = handles.geog;	handles = guidata(handles.figure1);		handles.geog = geog;
+		geog = handles.geog;	 is_projected = handles.is_projected;
+		handles = guidata(handles.figure1);		handles.geog = geog;	 handles.is_projected = is_projected;
 	end
 	guidata(handles.figure1,handles)
 
@@ -496,7 +529,7 @@ function [thick, cor, str2] = parseW(str)
 % STR2 is the STR string less the -W[thick,][r/g/b] part
 	thick = [];     cor = [];   str2 = str;
 	ind = strfind(str,'-W');
-	if (isempty(ind)),      return;     end     % No -W option
+	if (isempty(ind)),		return,		end     % No -W option
 	try                                 % There are so many ways to have it wrong that I won't bother testing
 		[strW, rem] = strtok(str(ind:end));
 		str2 = [str(1:ind(1)-1) rem];   % Remove the -W<str> from STR
@@ -529,6 +562,30 @@ function [thick, cor, str2] = parseW(str)
 		% Notice that we cannot have -W100 represent a color because it would have been interpret above as a line thickness
 		if (any(isnan(cor))),   cor = [];   end
 	end
+
+% --------------------------------------------------------------------
+function [proj, str2] = parseProj(str)
+% Parse the STR string in search for a +proj4 string indicating data SRS
+% The proj4 sting should be one single word e.g. +proj4=latlong or enclose in "+proj4=latlong +datum=..."
+% In ater case the "" are sriped from the return PROJ variable
+% STR2 is the STR string less the ["]+proj4... part
+	proj = [];		str2 = str;
+	ind = strfind(str, '+proj');
+	if (isempty(ind)),		return,		end			% No proj. Go away.
+	
+	if (str(ind(1)-1) == '"')				% a "+proj4=... ... ..."
+		ind2 = strfind(str, '"');
+		if (numel(ind2) < 2)
+			disp('Error in proj4 string of this file. Ignoring projection request')
+			return
+		end
+		proj = str(ind(1):ind2(2)-1);
+		str(ind(1)-1:ind2(2)) = [];			% Strip the proj string
+	else
+		proj = strtok(str(ind(1):end));		% For example +proj4=longlat
+		str(ind(1):ind(1)+numel(proj)-1) = [];	% Strip the proj string
+	end
+	str2 = str;
 
 % --------------------------------------------------------------------
 function [symbol, symbSize, str2] = parseS(str)
@@ -568,6 +625,8 @@ function out = read_shapenc(fname)
 %	n_swarms			number of data groups (so to speak)
 %	type				Geometry Type like in shapefiles e.g. 'PointZ'
 %	BB					The 2D BoundingBox
+%	SRS					The referencing system. Usualy a proj4 string (empty if no 'spatial_ref')
+%	description			Datse description (or empty if none)
 %	n_PolyOUT			Total number of Outer polygons
 %	n_PolyIN			Total number of Inner polygons (irrespective of their parents)
 %	Poly(n).OUT.lon		N struct array where N is the number of outer polygons (MAX = n_swarms)
@@ -589,6 +648,20 @@ function out = read_shapenc(fname)
 
 	ind = strcmp({s.Attribute.Name},'BoundingBox');
 	out.BB = s.Attribute(ind).Value;
+
+	ind = strcmp({s.Attribute.Name},'spatial_ref');
+	if (~isempty(ind))
+		out.SRS = s.Attribute(ind).Value;
+	else
+		out.SRS = [];
+	end
+
+	ind = strcmpi({s.Attribute.Name},'description');
+	if (~isempty(ind))
+		out.description = s.Attribute(ind).Value;
+	else
+		out.description = [];
+	end
 
 	out.n_PolyOUT = 0;		out.n_PolyIN = 0;		% They will be updated later
 
