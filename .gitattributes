@@ -719,6 +719,7 @@ utils/new_frame3D.m -text
 utils/pan.p -text
 utils/patch_meca.m -text
 utils/pixval_stsbar.m -text
+utils/proj2proj_pts.m -text
 utils/projection_menu.m -text
 utils/put_or_get_file.m -text
 utils/read_gdal_info.m -text
