@@ -1,14 +1,15 @@
 #Menu SubMenu 	GMT -J ProjectionString plus eventual -C<fe/fn> -T<datum>
 None	0  	0
-UTMs	UTM26	-Ju26
-UTMs	UTM29	-Ju29
-Mercator    0	-Jm0/0
-"Mercator Sphere GMT"    0	-Jm0/0 -C --ELLIPSOID=Sphere
+UTMs	UTM26	+proj=utm +zone=26 +k=0.9996 +ellps=grs80 +towgs84=0,0,0
+UTMs	UTM29	+proj=utm +zone=29 +k=0.9996 +ellps=grs80 +towgs84=0,0,0
+UTMs	UTM30	+proj=utm +zone=30 +k=0.9996 +ellps=grs80 +towgs84=0,0,0
+#Mercator    0	-Jm0/0
+#"Mercator Sphere GMT"    0	-Jm0/0 -C --ELLIPSOID=Sphere
 "Mercator Sphere Prj4"    0	+proj=merc +R=6371008.7714
 
-"Portuguese system" "Gauss (D73 - GMT)"	-Jt-8:07:54.862/39:40 -C180.598/-86.99 -T220/48
+#"Portuguese system" "Gauss (D73 - GMT)"	-Jt-8:07:54.862/39:40 -C180.598/-86.99 -T220/48
 
-"Portuguese system" "Gauss-Militar (DLx - GMT)"	-Jt-8:07:54.862/39:40 -C200000/300000 -T220/49
+#"Portuguese system" "Gauss-Militar (DLx - GMT)"	-Jt-8:07:54.862/39:40 -C200000/300000 -T220/49
 
 # Next we have Proj4 ProjectionString 
 
@@ -16,11 +17,11 @@ Mercator    0	-Jm0/0
 
 "Portuguese system" "Gauss-Militar (DLx)"	+proj=tmerc +lat_0=39.66666666666666 +lon_0=-8.131906111111111 +k=1.0 +x_0=200000 +y_0=300000 +ellps=intl +towgs84=-304.046,-60.576,103.640,0,0,0,0
 
-"Portuguese system" "Gauss (D73)"	+proj=tmerc +lat_0=39.666666666666667 +lon_0=-8.13190611111111 +k=1.0 +x_0=180.598 +y_0=-86.99 +ellps=intl +towgs84=-223.237,110.193,36.649,0,0,0,0
+"Portuguese system" "Gauss (D73)"	+proj=tmerc +lat_0=39.666666666666667 +lon_0=-8.13190611111111 +k=1.0 +x_0=180.598 +y_0=-86.99 +ellps=intl +towgs84=-230.994,102.591,25.199,0.633,-0.239,0.9,1.95
 
 "Portuguese system" "Gauss (WGS84)"	+proj=tmerc +lat_0=39.668258333333333 +lon_0=-8.133108611111111 +k=1.0 +x_0=0 +y_0=0 +ellps=wgs84
 
 "Portuguese system" "UTM (ED50)"	+proj=utm +zone=29 +k=0.9996 +ellps=intl +towgs84=-85.858,-108.681,-120.361,0,0,0,0
 
-"Polar Stereographic" 0	+proj=stere +lat_0=-60 +lon_0=-55 +k=0.9996 +x_0=0 +y_0=0 +a=6378137.000 +b=6356752.314245
-"Polar Stereographic GMT" 0 -Js-55/-60 -C
+#"Polar Stereographic" 0	+proj=stere +lat_0=-60 +lon_0=-55 +k=0.9996 +x_0=0 +y_0=0 +a=6378137.000 +b=6356752.314245
+#"Polar Stereographic GMT" 0 -Js-55/-60 -C
