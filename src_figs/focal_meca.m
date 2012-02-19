@@ -100,7 +100,7 @@ function varargout = focal_meca(varargin)
 		set(handles.listbox_readFilter,'String',str);
 
 		handles_fake.figure1 = handles.hMirFig;				% Create a fake handles only for
-		handles_fake.axes1 = handles.mironeAxes;			% geog2projected_pts() satisfaction
+		handles_fake.axes1 = handles.mironeAxes;			% proj2proj_pts() satisfaction
 		handles_fake.geog = handMir.geog;
 		handles.handles_fake = handles_fake;
 
@@ -118,7 +118,7 @@ function varargout = focal_meca(varargin)
     if (handles.is_projected && handles.defCoordsIn > 0)        % We need a proj job here
         tmp = [handles.x_min handles.y_min; handles.x_max handles.y_max];
         lims = [handles.x_min handles.x_max handles.y_min handles.y_max 0];
-        tmp = geog2projected_pts(handles.handles_fake,tmp, lims);
+        tmp = proj2proj_pts(handles.handles_fake,tmp, 'srcProj4','+proj=longlat','lim',lims);
         x_min = tmp(1,1);           x_max = tmp(2,1);
         y_min = tmp(1,2);           y_max = tmp(2,2);
         handles.lims_geogs = [x_min x_max y_min y_max];     % We'll need this if reading an external file
@@ -402,9 +402,9 @@ function push_OK_CB(hObject, handles)
     % See if we need to project
     if (handles.is_projected && handles.defCoordsIn > 0)        % We need a proj job here
 		lims = [handles.x_min handles.x_max handles.y_min handles.y_max];
-		tmp = geog2projected_pts(handles.handles_fake,handles.data(:,1:2), lims);
+        tmp = proj2proj_pts(handles.handles_fake,handles.data(:,1:2), 'srcProj4','+proj=longlat','lim',lims);
 		handles.data(:,1:2) = tmp;
-		[handles.plot_pos] = geog2projected_pts(handles.handles_fake,handles.plot_pos, lims);
+		[handles.plot_pos] = proj2proj_pts(handles.handles_fake,handles.plot_pos, 'srcProj4','+proj=longlat','lim',lims);
     end
 
 	% ------------ OK, now we are ready to plot the mechanisms
