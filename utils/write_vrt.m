@@ -105,7 +105,7 @@ function [name_vrt, comp_type] = write_vrt(full_name, opt, names, varargin)
 		fprintf(fid,'  <GeoTransform>%.18g, %.19g,  0.0,  %.18g,  0.0, %.19g</GeoTransform>\n', x_min,x_inc,y_max, y_inc);
 
 		if (only_one)			% A VRT for a single file
-			if (bare)
+			if ( (bare || params.raw) && ~strcmpi(params.source, 'simple') )
 				RasterBand_bare(fid, pointed_file, params)
 			elseif (strcmpi(params.source, 'simple'))
 				RasterBand_simple(fid, pointed_file, params)
