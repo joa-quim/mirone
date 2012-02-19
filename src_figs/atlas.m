@@ -34,7 +34,7 @@ function varargout = atlas(varargin)
 	handles.is_projected = handMir.is_projected;
 	handles.d_path = handMir.path_data;
 	handles_fake.figure1 = handles.mirone_fig;              % Create a fake handles only for
-	handles_fake.axes1 = handles.mironeAxes;                % geog2projected_pts() satisfaction
+	handles_fake.axes1 = handles.mironeAxes;                % proj2proj_pts() satisfaction
 	handles_fake.geog = handMir.geog;
 	handles.handles_fake = handles_fake;
 	handles.path_tmp = handMir.path_tmp;
@@ -346,7 +346,7 @@ for (k = 1:length(paises.ct))
         yy = paises.ct(k).Country(2,ini:fim);
         
         if (handles.is_projected)        % We need a proj job here
-			tmp = geog2projected_pts(handles.handles_fake,[xx; yy]', handles.h_calling_lims);
+			tmp = proj2proj_pts(handles.handles_fake,[xx; yy]', 'srcProj4','+proj=longlat','lim',handles.h_calling_lims);
 			xx = tmp(:,1);			yy = tmp(:,2);
         end
         
@@ -370,7 +370,7 @@ if (~isempty(handles.plot_fontSize))
         xx = paises.ct(k).Centroide(1);
         yy = paises.ct(k).Centroide(2);
         if (handles.is_projected)        % We need a proj job here
-            tmp = geog2projected_pts(handles.handles_fake,[xx yy], handles.h_calling_lims);
+			tmp = proj2proj_pts(handles.handles_fake,[xx yy], 'srcProj4','+proj=longlat','lim',handles.h_calling_lims);
             xx = tmp(:,1);           yy = tmp(:,2);
         end
         if (~handles.got_uisetfont)
