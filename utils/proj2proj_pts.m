@@ -56,7 +56,7 @@ function [out, msg, opt_R] = proj2proj_pts(handles, data, varargin)
 	elseif (~isempty(srcWKT))
 		projStruc.SrcProjWKT = srcWKT;
 	else
-		error('Unforeseen case in pro2proj_pts')		% The GMT case
+		error('Unforeseen case in pro2proj_pts (no source referencing system)')		% The GMT case
 	end
 	projStruc.DstProjWKT = dstWKT;
 
@@ -72,7 +72,7 @@ function [out, msg, opt_R] = proj2proj_pts(handles, data, varargin)
 	end
 	
 	if (~isempty(limits))
-		out = trim_lims(out, lims, pad);
+		out = trim_lims(out, limits, pad);
 	end
 	
 	if (nargout == 3)
