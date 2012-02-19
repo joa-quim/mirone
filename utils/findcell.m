@@ -111,7 +111,7 @@ else				% ...	do search across <cell>s
 end
 
 % find indices
-ix=findstr(k,c);
+ix = strfind(k,c);
 if	~isempty(ix)
 	[mx,mn]=meshgrid(ix,cumsum(in)-in);
 	crow=sum(mx>mn,1)';
