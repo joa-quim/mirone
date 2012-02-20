@@ -870,7 +870,14 @@ function calc_L2_periods(handles, period, tipoStat, regMinMax, grd_out)
 % Compute averages for 1, 3, 8, month periods of L2 data processed by empilhador
 %
 % PERIOD	Number of days of the composit period (e.g. 3, 8, 30). A variable number
-%			of layers per day is allowed. 
+%			of layers per day is allowed.
+%			Alternatively PERIOD can be a vector with the periods to compute, and they don't
+%			need to have all the same interval. But ATTENTION that the elements of this
+%			vector need to cover the dates in the 3rth dim of the input nc file.
+%			This allows selecting a fix start. E.G this will compute 3 days composits of
+%			the first 29 days of January 2012.
+%				PERIOD=2012.0:3/365:(2012+29/365);
+%			Off course dates in input must fall in this period, otherwise output is NaNs only
 %
 % TIPOSTAT	Variable to control what statistic to compute.
 %			0 Compute MEAN of MONTHS period. 1 Compute MINimum and 2 compute MAXimum
@@ -896,8 +903,10 @@ function calc_L2_periods(handles, period, tipoStat, regMinMax, grd_out)
 
 	if (numel(period) == 1)
 		periods = fix(tempos(1)) : period : fix(tempos(end))+period-1;	% Don't risk to loose an incomplete last interval
+		half_period = repmat(period/2, 1, numel(periods));		% for naming layers in nc file
 	else
 		periods = period;
+		half_period = [diff(periods(:)')/2 (periods(end) - periods(end-1))/2];	% Repeat last value
 	end
 	N = histc( fix(tempos), periods );
 
@@ -906,7 +915,7 @@ function calc_L2_periods(handles, period, tipoStat, regMinMax, grd_out)
 	aguentabar(0,'title','Computing period means.','CreateCancelBtn');
 
 	c = 1;		% Counter to the current layer number being processed. Runs from (1:handles.number_of_timesteps)
-	n_periods = numel(periods) - 1; 
+	n_periods = numel(periods); 
 	for (m = 1:n_periods)
 
 		if (N(m) ~= 0)
@@ -921,9 +930,12 @@ function calc_L2_periods(handles, period, tipoStat, regMinMax, grd_out)
 			tmp = alloc_mex(rows, cols, 1, 'single', NaN);
 		end
 
+		% Compute the mean time of this bin and use it to name the layer
+		thisLevel = periods(m) + half_period(m);
+
 		% Write this layer to file
-		if (m == 1),		nc_io(grd_out, sprintf('w%d/time',n_periods), handles, reshape(tmp,[1 size(tmp)]))
-		else				nc_io(grd_out, sprintf('w%d', m-1), handles, tmp)
+		if (m == 1),		nc_io(grd_out, sprintf('w%f/time',-thisLevel), handles, reshape(tmp,[1 size(tmp)]))
+		else				nc_io(grd_out, sprintf('w%d\\%f', m-1, thisLevel), handles, tmp)
 		end
 
 		h = aguentabar(m/n_periods,'title','Computing period means.');	drawnow
