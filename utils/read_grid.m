@@ -30,7 +30,7 @@ function [Z, X, Y, srsWKT, handles, att] = read_grid(handles, fullname, tipo, op
 % --------------------------------------------------------------------
 
 	if (nargin == 3)	opt = ' ';	end
-	opt_I = ' ';	srsWKT = [];	att = [];	Z = [];		X = [];		Y = [];
+	opt_I = ' ';	srsWKT = [];	att = [];	attVRT = [];	Z = [];		X = [];		Y = [];
 	if (isa(fullname, 'cell') && numel(fullname) == 2 )
 		fname = [fullname{1} fullname{2}];
 	else
@@ -61,6 +61,11 @@ function [Z, X, Y, srsWKT, handles, att] = read_grid(handles, fullname, tipo, op
 				fname_t = [fname(1:end-3) 'lbl'];
 				if (strcmp(tipo,'MOLA_lbl') || exist(fname_t, 'file'))
 					fname = fname_t;
+					[limits, n_cols, n_rows, n_bytes, A_rad, B_rad, inc] = parse_MOLA_lbl(fname);
+					fnameVRT = write_vrt(fname, [limits(1) limits(4) n_cols n_rows inc inc], [], ...
+								'source', 'simple','BYTEORDER','MSB','PixelOffset',2);
+					attVRT = gdalread(fnameVRT, '-M','-C');
+					builtin('delete',fnameVRT);
 				end
 			else
 				[PATH,FNAME,EXT] = fileparts(fname);
@@ -72,6 +77,11 @@ function [Z, X, Y, srsWKT, handles, att] = read_grid(handles, fullname, tipo, op
 			end
 			try
 				att = gdalread(fname,'-M','-C', opt);
+				if (~isempty(attVRT))
+					att.GeoTransform = attVRT.GeoTransform;		att.GMT_hdr = attVRT.GMT_hdr;
+					att.GEOGCorners = attVRT.GEOGCorners;		att.Corners = attVRT.Corners;
+					att.ProjectionRef = ogrproj(sprintf('+proj=longlat +a=%.3f +b=%.3f +no_defs',A_rad,B_rad));
+				end
 			catch
 				errordlg(['GDALREAD: Unable to open file ' fname],'Error'),		return
 			end
@@ -157,4 +167,73 @@ function [data, did_scale] = handle_scaling(data, att)
 		data = cvlib_mex('CvtScale',data, scale_factor);
 	else
 		data = cvlib_mex('addS',data, add_offset);
+	end
+
+% --------------------------------------------------------------------------------------
+function [limits, n_cols, n_rows, n_bytes, A_rad, B_rad, inc] = parse_MOLA_lbl(fname)
+% This a resseruction of my old way because I found GDAL is bugged in decoding
+% those Martian PSD files and I'm afraid a fix will take forever to come.
+% LIMITS	[x_min x_max y_min y_max] suposedly in grid-registration
+	fid = fopen(fname,'rt');
+	if (fid < 0)
+		msg = ['ERROR: Could not open format descriptive file: ' fname];
+		errordlg(msg,'Error');		error(msg);
+	end
+	s = strread(fread(fid,'*char').','%s','delimiter','\n');	fclose(fid);
+
+	res = findcell('LINES', s);					ind = strfind(s{res.cn},'=');
+	n_rows = str2double(s{res.cn}(ind(1)+1:end));
+
+	s = s(res.cn+1:end);		% Strip the lines before this. They would only waste memory.
+
+	res = findcell('LINE_SAMPLES', s);			ind = strfind(s{res.cn},'=');
+	n_cols = str2double(s{res.cn}(ind(1)+1:end));
+
+	res = findcell('A_AXIS_RADIUS', s);			ind = strfind(s{res.cn},'=');
+	A_rad = str2double( strtok(s{res.cn}(ind(1)+1:end)) ) * 1000;
+
+	res = findcell('B_AXIS_RADIUS', s);			ind = strfind(s{res.cn},'=');
+	B_rad = str2double( strtok(s{res.cn}(ind(1)+1:end)) ) * 1000;
+
+	res = findcell('SAMPLE_BITS', s);			ind = strfind(s{res.cn},'=');
+	n_bytes = str2double(s{res.cn}(ind(1)+1:end)) / 8;
+
+	res = findcell('CENTER_LATITUDE', s);		ind = strfind(s{res.cn},'=');
+	lat0 = str2double(strtok(s{res.cn}(ind(1)+1:end)));
+
+	res = findcell('CENTER_LONGITUDE', s);		ind = strfind(s{res.cn},'=');
+	lon0 = str2double(strtok(s{res.cn}(ind(1)+1:end)));
+
+	res = findcell('LINE_FIRST_PIXEL', s);		ind = strfind(s{res.cn},'=');
+	line_first_pix = str2double(s{res.cn}(ind(1)+1:end));
+
+	res = findcell('LINE_LAST_PIXEL', s);		ind = strfind(s{res.cn},'=');
+	line_last_pix = str2double(s{res.cn}(ind(1)+1:end));
+
+	res = findcell('SAMPLE_FIRST_PIXEL', s);	ind = strfind(s{res.cn},'=');
+	sample_first_pix = str2double(s{res.cn}(ind(1)+1:end));
+
+	res = findcell('SAMPLE_LAST_PIXEL', s);		ind = strfind(s{res.cn},'=');
+	sample_last_pix = str2double(s{res.cn}(ind(1)+1:end));
+
+	res = findcell('MAP_RESOLUTION', s);		ind = strfind(s{res.cn},'=');
+	inc = 1 / str2double(strtok(s{res.cn}(ind(1)+1:end)));
+
+	res = findcell('WESTERNMOST_LONGITUDE', s);	ind = strfind(s{res.cn},'=');
+	W0 = str2double(strtok(s{res.cn}(ind(1)+1:end)));
+
+	res = findcell('LINE_PROJECTION_OFFSET', s);	ind = strfind(s{res.cn},'=');
+	line_off = str2double(s{res.cn}(ind(1)+1:end));
+
+	res = findcell('SAMPLE_PROJECTION_OFFSET', s);	ind = strfind(s{res.cn},'=');
+	sample_off = str2double(s{res.cn}(ind(1)+1:end));
+
+	limits = [(sample_first_pix - sample_off)*inc+lon0 (sample_last_pix - sample_off)*inc+lon0 ...
+		(line_first_pix - line_off)*inc+lat0 (line_last_pix - line_off)*inc+lat0];
+
+	% Because I don't know if the PDS (lbl) files are always pix-reg as the cases I tested
+	% I'm using this crazy schema to determine that. Couldn't they just report that on file?
+	% What the hell are those LINE_PROJECTION_OFFSET meant for????
+	if ( (abs(W0 - limits(1)) - inc) < 1e-5 )
+		limits = limits + [-inc inc -inc inc] / 2;
 	end
