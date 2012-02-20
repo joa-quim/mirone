@@ -2505,7 +2505,7 @@ function DrawImportText_CB(handles)
 
 	limits = getappdata(handles.axes1,'ThisImageLims');
 	if (handles.is_projected && handles.defCoordsIn > 0)
-		tmp = pro2proj_pts(handles,[str.x str.y],'lim',limits,'srcProj4','+proj=longlat');
+		tmp = proj2proj_pts(handles,[str.x str.y],'lim',limits,'srcProj4','+proj=longlat');
 		str.x = tmp(:,1);		str.y = tmp(:,2);
 	end
 	% Get rid of Texts that are outside the map limits
