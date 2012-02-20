@@ -906,7 +906,8 @@ function calc_L2_periods(handles, period, tipoStat, regMinMax, grd_out)
 	aguentabar(0,'title','Computing period means.','CreateCancelBtn');
 
 	c = 1;		% Counter to the current layer number being processed. Runs from (1:handles.number_of_timesteps)
-	for (m = 1:numel(periods)-1)
+	n_periods = numel(periods) - 1; 
+	for (m = 1:n_periods)
 
 		if (N(m) ~= 0)
 			Z = alloc_mex(rows, cols, N(m), 'single', NaN);
