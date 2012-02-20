@@ -45,7 +45,7 @@ function [out, msg, opt_R] = proj2proj_pts(handles, data, varargin)
 
 	if (isempty(dstWKT))		% NOTHING to do here. Return whatever we got in except if we have a limits request
 		if (~isempty(limits))
-			data = trim_lims(data, lims, pad);
+			data = trim_lims(data, limits, pad);
 		end
 		out = data;
 		return
