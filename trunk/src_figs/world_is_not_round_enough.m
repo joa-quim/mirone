@@ -179,18 +179,11 @@ function push_apply_CB(hObject, handles)
 function Z = to_from_180(handles, handMir, Z, x_min, x_max, dy, eps_x)
 % Note that the x_min,x_max here it's already the destination because they were already updated
 	n_col = size(Z,2);		ncM = fix(n_col / 2);
-	%isOdd = (n_col / 2 - fix(n_col / 2) > 0);
 	if ( x_min >= 0 && (abs(x_max - 360) < eps_x) )			% [-180 180] -> [0 360]
 		Z = [Z(:,ncM+1:end,:) Z(:,1:ncM,:)];
-		% Cut the second half and past it before the old first half
-		%[Z_rect,r_c] = cropimg(handles.head(1:2),handles.head(3:4),Z,[0 handles.square(1,2) 180 dy],'out_grid');
- 		%Z = [Z_rect Z(:, 1:(size(Z,2)-size(Z_rect,2)), :)];
 		handMir.geog = 2;		guidata(handMir.figure1,handMir);
 	elseif ( x_min < 180 && (abs(x_max - 180) < eps_x) )	% [0 360] -> [-180 180]
 		Z = [Z(:,ncM+1:end,:) Z(:,1:ncM,:)];
-		% Cut the first half and past it after the old second half
-		%[Z_rect,r_c] = cropimg(handles.head(1:2),handles.head(3:4),Z,[0 handles.square(1,2) 180 dy],'out_grid');
- 		%Z = [Z(:, (size(Z,2)-size(Z_rect,2)):end, :) Z_rect];
 		handMir.geog = 1;		guidata(handMir.figure1,handMir);
 	end
 
