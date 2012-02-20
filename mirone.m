@@ -56,7 +56,7 @@ function hObject = mirone_OpeningFcn(varargin)
 %----- Those are ..., the hell with explanations for what I don't realy understand. They are needed, that's all.
 %#function gmtlist_m country_select read_isf choosebox magbarcode listbox_message add_poles animate_seismicity
 %#function get_polygon rot_euler datums telha_m find_clusters fft_stuff select_cols uistack_j smoothing_param
-%#function patch_meca ui_edit_patch_special bands_list multibandread_j imscroll_j
+%#function patch_meca ui_edit_patch_special bands_list multibandread_j imscroll_j geog2projected_pts
 %#function mltable_j iptcheckinput resampsep wgifc telhometro vitrinite edit_line move_obj make_arrow
 %#function edit_track_mb save_track_mb houghmex qhullmx writegif mpgwrite cq helpdlg
 %#function move2side aguentabar gdal_project gdalwarp_mex poly2mask_fig url2image calc_bonin_euler_pole spline_interp
@@ -2505,7 +2505,7 @@ function DrawImportText_CB(handles)
 
 	limits = getappdata(handles.axes1,'ThisImageLims');
 	if (handles.is_projected && handles.defCoordsIn > 0)
-		tmp = geog2projected_pts(handles,[str.x str.y],limits);
+		tmp = pro2proj_pts(handles,[str.x str.y],'lim',limits,'srcProj4','+proj=longlat');
 		str.x = tmp(:,1);		str.y = tmp(:,2);
 	end
 	% Get rid of Texts that are outside the map limits
