@@ -37,13 +37,25 @@ function varargout = world_is_not_round_enough(varargin)
 	handles.hMirImg = handMir.hImg;
 	handles.head = handMir.head;
 	handles.validGrid = handMir.validGrid;
+	handles.isGblobalPixReg = false;
 	d_path = handMir.path_data;
 	handles.dx = diff(handles.head(1:2));
-	handles.square = [handles.head(1) handles.head(3);  handles.head(1) handles.head(4); ...
-					handles.head(2) handles.head(4); handles.head(2) handles.head(3); handles.head(1) handles.head(3)];
-	
-	if (handles.dx < (360 - handles.head(8)/2))
-		set([handles.push_to360 handles.push_to180],'Enable','inactive')
+	handles.square = [handles.head(1) handles.head(3);	handles.head(1) handles.head(4); ...
+					  handles.head(2) handles.head(4);	handles.head(2) handles.head(3); ...
+					  handles.head(1) handles.head(3)];
+
+	% First check if it's a global pix-reg image
+	if ( abs(handles.dx - (360 - handles.head(8))) < 1e-5 )		% Yes, it is.
+		handles.isGblobalPixReg = true;
+		handles.square(1,1) = handles.square(1,1) - handles.head(8)/2;
+		handles.square(2,1) = handles.square(1,1);
+		handles.square(3,1) = handles.square(3,1) + handles.head(8)/2;
+		handles.square(4,1) = handles.square(3,1);
+		handles.square(5,1) = handles.square(1,1);
+	end
+
+	if ( (handles.dx < (360 - handles.head(8)/2)) && ~handles.isGblobalPixReg )
+		%set([handles.push_to360 handles.push_to180],'Enable','inactive')
 		str = sprintf(['This button is blocked because the map is not global\n' ...
 						'That is, it does not cover 360 degrees of longitude\n' ...
 						'You can still click and drag the rectangle and try luck.']);
@@ -52,20 +64,21 @@ function varargout = world_is_not_round_enough(varargin)
 		set(handles.push_to360,'Tooltip', 'Convert map longitudes from [-180 180] to [0 360].')
 		set(handles.push_to180,'Tooltip', 'Convert map longitudes from [0 360] to [-180 180].')
 	end
-	set(handles.edit_xMin,'String', sprintf('%.6f',handles.square(1,1)) )
-	set(handles.edit_xMax,'String', sprintf('%.6f',handles.square(3,1)) )
+	set(handles.edit_xMin,'String', sprintf('%.10g',handles.square(1,1)) )
+	set(handles.edit_xMax,'String', sprintf('%.10g',handles.square(3,1)) )
 
 	% Import the world map
 	handles.w_map = flipdim(imread([d_path 'logo_etopo2.jpg']),1);
 	siza = size(handles.w_map);
 	handles.w_map = [handles.w_map handles.w_map(:,1:fix(siza(2)/2)+1,:) ];
 	
-	image([-180 360],[-90 90],handles.w_map);   set(handles.axes1,'YDir','normal');
-	handles.hRectLims = patch('Parent',handles.axes1, 'xdata', handles.square(:,1), 'ydata', handles.square(:,2), ...
-		'LineWidth',3, 'FaceColor','none');
+	image([-180 360],[-90 90],handles.w_map,'Parent',handles.axes1);
+	set(handles.axes1,'YDir','normal');
+	handles.hRectLims = patch('Parent',handles.axes1, 'xdata', handles.square(:,1), ...
+						'ydata', handles.square(:,2), 'LineWidth',3, 'FaceColor','none');
 	set(handles.hRectLims,'buttondownfcn',{@moveRect, handles, handles.hRectLims});
 
-	% Add this figure handle to the carra?as list
+	% Add this figure handle to the carraças list
 	plugedWin = getappdata(handles.hMirFig,'dependentFigs');
 	plugedWin = [plugedWin hObject];
 	setappdata(handles.hMirFig,'dependentFigs',plugedWin);
@@ -100,6 +113,7 @@ function edit_xMin_CB(hObject, handles)
 
 % -------------------------------------------------------------------------------------
 function push_to360_CB(hObject, handles)
+% [-180 180] -> [0 360]
 	rect_x = get(handles.hRectLims, 'xdata');
 	rect_x = rect_x + 180;
 	if (rect_x(4) > 360),	return,		end
@@ -108,6 +122,7 @@ function push_to360_CB(hObject, handles)
 
 % -------------------------------------------------------------------------------------
 function push_to180_CB(hObject, handles)
+% [0 360] -> [-180 180]
 	rect_x = get(handles.hRectLims, 'xdata');
 	rect_x = rect_x - 180;
 	if (rect_x(1) < -180),	return,		end
@@ -148,7 +163,11 @@ function push_apply_CB(hObject, handles)
 		X(1) = x_min;		X(2) = x_max;
 		set(handles.hMirAxes,'XLim',X)
 	end
+	handles.head(1:2) = [X(1) X(end)];		guidata(handles.figure1, handles)
 	handMir.head(1:2) = [X(1) X(end)];
+	if (handles.isGblobalPixReg)			% Need to reset the grid-reg coords (they were extended)
+		handMir.head(1:2) = handMir.head(1:2) + [handMir.head(8) -handMir.head(8)]/2;
+	end
 	guidata(handles.hMirFig, handMir)
 
 	set(handles.hMirImg,'CData', Z, 'XData', X);
@@ -158,15 +177,21 @@ function push_apply_CB(hObject, handles)
 
 % -----------------------------------------------------------------------------------------
 function Z = to_from_180(handles, handMir, Z, x_min, x_max, dy, eps_x)
-
-	if ( x_min >= 0 && (abs(x_max - 360) < eps_x) )			% 360 -> 180
-		[Z_rect,r_c] = cropimg(handles.head(1:2),handles.head(3:4),Z,[x_min handles.square(1,2) 180 dy],'out_grid');
-		Z = [Z_rect Z(:, 1:(size(Z,2)-size(Z_rect,2)), :)];
-		handMir.geog = 1;		guidata(handMir.figure1,handMir);
-	elseif ( x_min < 180 && (abs(x_max - 180) < eps_x) )	% 180 -> 360
-		[Z_rect,r_c] = cropimg(handles.head(1:2),handles.head(3:4),Z,[x_min handles.square(1,2) 180 dy],'out_grid');
-		Z = [Z(:, (size(Z,2)-size(Z_rect,2)):end, :) Z_rect];
+% Note that the x_min,x_max here it's already the destination because they were already updated
+	n_col = size(Z,2);		ncM = fix(n_col / 2);
+	%isOdd = (n_col / 2 - fix(n_col / 2) > 0);
+	if ( x_min >= 0 && (abs(x_max - 360) < eps_x) )			% [-180 180] -> [0 360]
+		Z = [Z(:,ncM+1:end,:) Z(:,1:ncM,:)];
+		% Cut the second half and past it before the old first half
+		%[Z_rect,r_c] = cropimg(handles.head(1:2),handles.head(3:4),Z,[0 handles.square(1,2) 180 dy],'out_grid');
+ 		%Z = [Z_rect Z(:, 1:(size(Z,2)-size(Z_rect,2)), :)];
 		handMir.geog = 2;		guidata(handMir.figure1,handMir);
+	elseif ( x_min < 180 && (abs(x_max - 180) < eps_x) )	% [0 360] -> [-180 180]
+		Z = [Z(:,ncM+1:end,:) Z(:,1:ncM,:)];
+		% Cut the first half and past it after the old second half
+		%[Z_rect,r_c] = cropimg(handles.head(1:2),handles.head(3:4),Z,[0 handles.square(1,2) 180 dy],'out_grid');
+ 		%Z = [Z(:, (size(Z,2)-size(Z_rect,2)):end, :) Z_rect];
+		handMir.geog = 1;		guidata(handMir.figure1,handMir);
 	end
 
 % -----------------------------------------------------------------------------------------
