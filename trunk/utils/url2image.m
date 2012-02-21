@@ -434,7 +434,7 @@ function [url, lon_mm, lat_mm, x, y] = tile2url(opt, geoid, quadkey, prefix, lon
 function [cache, cache_supp, ext, isWW] = completeCacheName(cache, ext, zoomL, decimal_adress, whatKind)
 % See if we have a "World Wind" with "Virtual Earth" cache. If yes complete the dir name for
 % the tile in question, which is expressed in DECIMAL_ADRESS.
-% For the type 2) cache refered at the main help, if cache dir doesn't end wit 'cache', append it as well
+% For the type 2) cache refered at the main help, if cache dir doesn't end with 'cache', append it as well
 	isWW = false;				% Will be true if CACHE is a WW cache
 	cache_supp = [];
 	if ( ~isempty(cache) )
@@ -442,7 +442,7 @@ function [cache, cache_supp, ext, isWW] = completeCacheName(cache, ext, zoomL, d
 		fsep = filesep;
 		if ( strcmp(nome, 'Virtual Earth') )
 			%cache = [cache fsep sprintf('%d%c%c%c%.4d',zoomL-1,fsep,whatKind(1), fsep, decimal_adress(2) )];
-			if (whatKind(1) == 'a'),	ext = 'jpeg';		% IDIOTS, could not have used .jpg ?
+			if (whatKind(1) == 'a'),	ext = 'jpeg';		% Ghrr, could they not have used .jpg ?
 			else						ext = 'png';
 			end
 			isWW = true;
