@@ -77,7 +77,15 @@ function edit_namesList_CB(hObject, handles)
 % -----------------------------------------------------------------------------------------
 function push_namesList_CB(hObject, handles, opt)
 % Read an ascii file with a list of names to process. The file list may have 1,2 or 3 columns
-% First column always holds the filename that can be absolute, relative or have no path info.
+%
+% OPT	contains either the filename with the fields described bellow or is empty, in which
+%		case that name will be asked here.
+%		Alternatively it can contain a wildcard string that will be expanded to create the
+%		filename automatically in the same dir of the data. The contents of the wildcard should
+%		follow what is explained below, but one possible example is provided right now (no quotes)
+%		'C:\a1\*.L2_LAC_SST4 ? -sst4'
+%
+% First column holds the filename that can be absolute, relative or have no path info.
 %		If only one column in file the "Time" info below is computed as (1:number_of_files)
 %
 % Second column is normally the "Time" info. That is, a number that will be used as the 'time'
@@ -89,13 +97,14 @@ function push_namesList_CB(hObject, handles, opt)
 %		fix and N is the number of the subdataset as it appears when one do gdalinfo or in the
 %		table window that pops up when one attempts to open the HDF file directly in Mirone.
 %		NEWs: It is now possible to provide the SDS name instead of the 'sdsN' described above.
-%		But to destinguish both mechanisms the SDS name must be prepended with a '-', as in -sst4
+%		But to distinguish both mechanisms the SDS name must be prepended with a '-', as in -sst4
 
     if (nargin == 2)        % Direct call
     	str1 = {'*.dat;*.DAT;*.txt;*.TXT', 'Data files (*.dat,*.DAT,*.txt,*.TXT)';'*.*', 'All Files (*.*)'};
         [FileName,PathName,handles] = put_or_get_file(handles, str1,'File with grids list','get');
 	    if isequal(FileName,0),		return,		end
     else        % File name on input
+		opt = check_wildcard_fname(opt);	% Check if a lazy 'path/*.xxx X X' request
         [PathName,FNAME,EXT] = fileparts(opt);
         PathName = [PathName filesep];      % To be coherent with the 'if' branch
         FileName = [FNAME EXT];
@@ -145,13 +154,13 @@ function push_namesList_CB(hObject, handles, opt)
 			names{k} = ddewhite(t);
 			if (n_column == 2)			% Names & numeric label format
 				r = ddewhite(r);
-				if (r(1) == '?'),	r = squize_time_from_name(names{k});	end
+				if (r(1) == '?'),	r = squeeze_time_from_name(names{k});	end
 				handles.strTimes{k} = r;
 			else						% Names, numeric label & SDS info format
 				[t,r] = strtok(r);
 				t = ddewhite(t);
 				if (t(1) == '?')		% Means get the numeric label as time extracted from file name (OceanColor products)
-					t = squize_time_from_name(names{k});
+					t = squeeze_time_from_name(names{k});
 				end
 				handles.strTimes{k} = t;
 				SDSinfo{k} = ddewhite(r);
@@ -225,7 +234,45 @@ function push_namesList_CB(hObject, handles, opt)
 	guidata(handles.figure1,handles)
 
 % -----------------------------------------------------------------------------------------
-function t = squize_time_from_name(name)
+function fname = check_wildcard_fname(strin)
+% Check if user gave a 'path/*.xxx ? -sdsname' on input and if yes, create a resp file
+
+	if ( isempty(strfind(strin, '*')) )		% Normal fname input. Nothing to do here
+		fname = strin;		return
+	end
+
+	[t, r] = strtok(strin);
+	dirlist = dir(t);
+	if (isempty(dirlist))
+		errordlg('Wildcard search return an empty result. Have to abort here','ERROR')
+		error('Wildcard search return an empty result. Have to abort here')
+	end
+
+	[PATO,FNAME,EXT] = fileparts(t);
+	fname = [PATO '/' 'automatic_list.txt'];
+	fid = fopen(fname,'w');
+	if (fid < 0),
+		error('Fail to create the resp file in data directory. Permissions problem?')
+	end
+	% Here we assume that the OS returns a list already lexically sorted
+	[t, r] = strtok(r);
+	for (k = 1:numel(dirlist))
+		fprintf(fid, '%s/%s', PATO, dirlist(k).name);	% The file name
+		if (~isempty(t))
+			fprintf(fid, '\t%s', t);			% Normally the "Time" info
+			if (~isempty(r))
+				fprintf(fid, '\t%s\n', r);		% The SDS name or number
+			else
+				fprintf(fid, '\n');
+			end
+		else
+			fprintf(fid, '\n');
+		end
+	end
+	fclose(fid);
+
+% -----------------------------------------------------------------------------------------
+function t = squeeze_time_from_name(name)
 % ... Read the name of L2 daily scene product and convert it into a time string.
 % The name algo is simple YYYYDDDHHMMSS where DDD is day of the year.
 
