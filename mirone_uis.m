@@ -339,6 +339,7 @@ uimenu('Parent',h,'Call','mirone(''Transfer_CB'',guidata(gcbo),''toRGB'')','Labe
 uimenu('Parent',h,'Call','mirone(''Transfer_CB'',guidata(gcbo),''8-bit'')','Label','8-bit color','Tag','ImMod8cor');
 uimenu('Parent',h,'Call','mirone(''Transfer_CB'',guidata(gcbo),''gray'')','Label','Gray scale','Tag','ImMod8gray');
 uimenu('Parent',h,'Call','mirone(''Transfer_CB'',guidata(gcbo),''bw'')','Label','Black and White','Tag','ImModBW');
+uimenu('Parent',h,'Call','thresholdit(gcf)','Label','Limiares','Sep','on');
 uimenu('Parent',h,'Call','mirone(''ImageResetOrigImg_CB'',guidata(gcbo))','Label','Original Image','Sep','on');
 
 % ------------ Image filters _______ TO BE CONTINUED
@@ -398,7 +399,6 @@ uimenu('Parent',h,'Call','vitrinite','Label','Vitrinite','Sep','on');
 
 uimenu('Parent',hTL,'Call','run_cmd(guidata(gcbo))','Label','Run ML Command','Sep','on');
 uimenu('Parent',hTL,'Call','line_operations(guidata(gcbo))','Label','Vector Operations','Tag','lineOP');
-% uimenu('Parent',hTL,'Call','shape_tool(gcf)','Label','Limiares','Sep','on');
 % uimenu('Parent',hTL,'Call','autofaults(guidata(gcbo))','Label','Auto falhas','Sep','on');
 
 %% --------------------------- DRAW ------------------------------------
@@ -730,7 +730,7 @@ if (IamCompiled)
 end
 uimenu('Parent',h, 'Call',['mirone(''FileOpenWebImage_CB'',guidata(gcbo),',...
 	' ''http://www2.clustrmaps.com/stats/maps-clusters/w3.ualg.pt-~jluis-mirone-world.jpg'',''nikles'');'],'Label','See visitors map','Sep','on');
-uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 19 Feb 2012'',''2.3.0dev'')','Label','About','Sep','on');
+uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 22 Feb 2012'',''2.3.0dev'')','Label','About','Sep','on');
 
 %% --------------------------- Build HANDLES and finish things here
 	handles = guihandles(H1);
