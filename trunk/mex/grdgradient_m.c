@@ -564,7 +564,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 
 	/* For direction derivatives we need to revert the sign of Z */
 	if (do_change_Zsign)
-		for (i = 0; i < nm; i++)
+		for (i = 0; i < (nx+4)*(ny+4); i++)
 			data[i] *= -1;
 
 	GMT_boundcond_param_prep (&header, &edgeinfo);
