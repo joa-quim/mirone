@@ -1027,7 +1027,7 @@ function [Z, att, known_coords, have_nans] = read_gdal(full_name, att, IamCompil
 	try		fname = att.fname;
 	catch,	fname = [];
 	end
-	if (isfield(att, 'hdrInfo') && ~isempty(att.hdrInfo) && (strcmp(att.hdrInfo.SDS.Name,'sst')) && all(isempty(strfind(varargin, '-C'))) )
+	if (isfield(att, 'hdrInfo') && ~isempty(att.hdrInfo) && (strcmp(att.hdrInfo.SDS.Name,'sst')) && isempty(strfind([varargin{:}], '-C')) )
 		% Only particular case dealt now. This is HORRIBLE. Patches, over patches, over patches.
 		Z = hdf_funs('hdfread', att.fname, att.hdrInfo.SDS.Name, 'index', {[1 1],[1 1], [att.RasterYSize att.RasterXSize]});
 		Z = flipud(Z);
