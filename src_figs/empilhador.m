@@ -192,7 +192,7 @@ function push_namesList_CB(hObject, handles, opt)
 	% -------------- Check if we have a Sub-Datasets request ------------------
 	if ( n_column == 3 && (strncmpi(SDSinfo{1}, 'sds', 3) || SDSinfo{1}(1) == '-') )
 		handles.SDSinfo = SDSinfo;
-	elseif (n_column == 2 && (strncmpi(handles.strTimes{1}, 'sds', 3) || SDSinfo{1}(1) == '-') )
+	elseif (n_column == 2 && (strncmpi(handles.strTimes{1}, 'sds', 3)) )
 		% Two cols with SDS info in the second
 		handles.SDSinfo = handles.strTimes;
 		for (k = 1:m),		handles.strTimes{k} = sprintf('%d',k);		end
@@ -1027,8 +1027,8 @@ function [Z, att, known_coords, have_nans] = read_gdal(full_name, att, IamCompil
 	try		fname = att.fname;
 	catch,	fname = [];
 	end
-	if (isfield(att, 'hdrInfo') && ~isempty(att.hdrInfo) && (strcmp(att.hdrInfo.SDS.Name,'sst')) )
-		% Only particular case dealt now
+	if (isfield(att, 'hdrInfo') && ~isempty(att.hdrInfo) && (strcmp(att.hdrInfo.SDS.Name,'sst')) && all(isempty(strfind(varargin, '-C'))) )
+		% Only particular case dealt now. This is HORRIBLE. Patches, over patches, over patches.
 		Z = hdf_funs('hdfread', att.fname, att.hdrInfo.SDS.Name, 'index', {[1 1],[1 1], [att.RasterYSize att.RasterXSize]});
 		Z = flipud(Z);
 	else
