@@ -34,7 +34,7 @@ function varargout = image_enhance(varargin)
 
 	if (isempty(varargin))	return,		end
 
-	hObject = figure('Vis','off');
+	hObject = figure('Vis','on');
 	image_enhance_LayoutFcn(hObject);
 	handles = guihandles(hObject);
 	move2side(hObject,'right')
@@ -56,10 +56,10 @@ function varargout = image_enhance(varargin)
 			NaN	NaN	NaN	NaN	NaN	NaN	NaN	2	NaN	NaN	NaN	NaN	NaN	NaN	NaN	NaN; ...
 			NaN	NaN	NaN	NaN	NaN	NaN	NaN	NaN	NaN	NaN	NaN	NaN	NaN	NaN	NaN	NaN]';
 
-	handles.h_mirone_fig = varargin{1};
-	handles.hMironeAxes = findobj(handles.h_mirone_fig,'Type','axes');
-	handles.h_mirone_img = findobj(handles.h_mirone_fig,'Type','image');
-	img = (get(handles.h_mirone_img,'CData'));
+	handMir = guidata(varargin{1});
+	handles.hMirAxes = handMir.axes1;
+	handles.hMirImg = handMir.hImg;
+	img = (get(handles.hMirImg,'CData'));
 
 	if (isempty(img))
 		errordlg('C''mon load a file first. It''s logic, isn''t it?','Error')
@@ -70,7 +70,7 @@ function varargout = image_enhance(varargin)
 		set(handles.edit_percentOutliersR,'BackgroundColor','r')
 		handles.percentOutliers(1:3) = [2 2 2];
 	elseif (ndims(img) == 2)
-		set(handles.h_mirone_img,'CDataMapping','scaled')   % We will change CLim in intensity images
+		set(handles.hMirImg,'CDataMapping','scaled')   % We will change CLim in intensity images
 		handles.isRGB = 0;
 		handles.percentOutliers = 2;
 		% OK, here we must reshape the GUI, but we can delete some uis first
@@ -107,16 +107,20 @@ function varargout = image_enhance(varargin)
 	handles.satistic(1) = {' '};
 
 	if (~handles.isRGB)
-		handles.currAxes = 1;   axes(handles.axes1);    localImhist(handles,img);
-		handles = guidata(handles.figure1);     % The handles has been saved in plot_results
-		handles.minCData = double(min(min(img)));       handles.maxCData = double(max(max(img)));
+		handles.currAxes = 1;	set(handles.figure1,'CurrentAxes',handles.axes1);
+		localImhist(handles,img);
+		handles = guidata(handles.figure1);			% The handles has been saved in plot_results
+		handles.minCData = double(min(min(img)));	handles.maxCData = double(max(max(img)));
 	else
-		handles.currAxes = 3;   axes(handles.axes3);    localImhist(handles,img(:,:,3));
-		handles = guidata(handles.figure1);     % The handles has been saved in plot_results
-		handles.currAxes = 2;   axes(handles.axes2);    localImhist(handles,img(:,:,2));
-		handles = guidata(handles.figure1);     % The handles has been saved in plot_results
-		handles.currAxes = 1;   axes(handles.axes1);    localImhist(handles,img(:,:,1));
-		handles = guidata(handles.figure1);     % The handles has been saved in plot_results
+		handles.currAxes = 3;	set(handles.figure1,'CurrentAxes',handles.axes3);
+		localImhist(handles,img(:,:,3));
+		handles = guidata(handles.figure1);			% The handles has been saved in plot_results
+		handles.currAxes = 2;	set(handles.figure1,'CurrentAxes',handles.axes2);
+		localImhist(handles,img(:,:,2));
+		handles = guidata(handles.figure1);			% The handles has been saved in plot_results
+		handles.currAxes = 1;	set(handles.figure1,'CurrentAxes',handles.axes1);
+		localImhist(handles,img(:,:,1));
+		handles = guidata(handles.figure1);			% The handles has been saved in plot_results
 		handles.minCData(1) = double(min(min(img(:,:,1))));
 		handles.maxCData(1) = double(max(max(img(:,:,1))));
 		handles.minCData(2) = double(min(min(img(:,:,2))));
@@ -247,33 +251,33 @@ end
 
 % --------------------------------------------------------------------------
 function push_contStrectch_CB(hObject, handles)
-limsR = get(handles.patch(1),'XData');
-if (handles.isRGB)
-    limsG = get(handles.patch(2),'XData');
-    limsB = get(handles.patch(3),'XData');
-    low_high = [limsR(1) limsG(1) limsB(1); limsR(4) limsG(4) limsB(4)] / 255;
-else
-    low_high = [limsR(1) limsR(4)] / 255;
-end
-set(handles.figure1,'pointer','watch')
-img = img_fun('imadjust_j',handles.orig_img,low_high,[]);
-set(handles.h_mirone_img, 'Cdata', img)
-set(handles.figure1,'pointer','arrow')
+	limsR = get(handles.patch(1),'XData');
+	if (handles.isRGB)
+		limsG = get(handles.patch(2),'XData');
+		limsB = get(handles.patch(3),'XData');
+		low_high = [limsR(1) limsG(1) limsB(1); limsR(4) limsG(4) limsB(4)] / 255;
+	else
+		low_high = [limsR(1) limsR(4)] / 255;
+	end
+	set(handles.figure1,'pointer','watch')
+	img = img_fun('imadjust_j',handles.orig_img,low_high,[]);
+	set(handles.hMirImg, 'Cdata', img)
+	set(handles.figure1,'pointer','arrow')
 
 % --------------------------------------------------------------------------
 function push_decorrStrectch_CB(hObject, handles)
-set(handles.figure1,'pointer','watch')
-tol = str2double(get(handles.edit_percentOutliersR,'String')) / 100 / 2;
-img = img_fun('decorrstretch',handles.orig_img, 'Tol', tol);
-set(handles.h_mirone_img, 'Cdata', img)
-set(handles.figure1,'pointer','arrow')
+	set(handles.figure1,'pointer','watch')
+	tol = str2double(get(handles.edit_percentOutliersR,'String')) / 100 / 2;
+	img = img_fun('decorrstretch',handles.orig_img, 'Tol', tol);
+	set(handles.hMirImg, 'Cdata', img)
+	set(handles.figure1,'pointer','arrow')
 
 % --------------------------------------------------------------------------
 function push_scaterPlot_CB(hObject, handles)
 [m,n,k] = size(handles.orig_img);
 if (m*n > 256*256)      % For scater plots we don't need all points (If they are many)
     fac = min(256/m,256/n);
-    img = localImresize(get(handles.h_mirone_img,'CData'),fac);
+    img = localImresize(get(handles.hMirImg,'CData'),fac);
     r = img(:,:,1);     g = img(:,:,2);     b = img(:,:,3);
 else
     r = handles.orig_img(:,:,1);     g = handles.orig_img(:,:,2);     b = handles.orig_img(:,:,3);
@@ -490,7 +494,7 @@ function updateAll(handles,newClim, opt)
 	handles.widthWindow(handles.currAxes) = round(newClim(2)-newClim(1));
 	handles.centerWindow(handles.currAxes) = round((newClim(1)+newClim(2))/2);
 
-	if (~handles.isRGB),    set(handles.hMironeAxes,'CLim',newClim);  end
+	if (~handles.isRGB),    set(handles.hMirAxes,'CLim',newClim);  end
 	set(handles.patch(handles.currAxes),'XData',[newClim(1) newClim(1) newClim(2) newClim(2)]);
 	set(handles.h_vert_lines{handles.currAxes}(1),'XData',[newClim(1) newClim(1)])
 	set(handles.h_vert_lines{handles.currAxes}(2),'XData',[(newClim(1)+newClim(2))/2 (newClim(1)+newClim(2))/2])
@@ -536,7 +540,7 @@ function wbm_vertLine(obj,eventdata,handles)
 	pt = get(hAxes, 'CurrentPoint');        lim = [get(hAxes,'XLim') get(hAxes,'YLim')];
 	if (pt(1,1) < lim(1)) || (pt(1,1) > lim(2)) || (pt(1,2) < lim(3)) || (pt(1,2) > lim(4));
 		set(handles.figure1,'Pointer','arrow','WindowButtonDownFcn',{@wbd_strayClick,handles})
-		return;
+		return
 	end
 	xx = get(handles.h_vert_lines{handles.currAxes},'XData');
 	if ( abs(pt(1,1) - xx{1}(1)) < 2)
@@ -578,7 +582,7 @@ function drag_vertLine(obj,eventdata,h,handles,n)
 	set(h,'XData',[x x]);
 	% OK, now adapt the patch accordingly
 	switch n
-		case 1              % Update the left side
+		case 1				% Update the left side
 			x = (xp(1) + xp(4)) / 2;
 			new_patch_lims = [round(pt(1,1)) round(pt(1,1)) xp(3) xp(4)];
 			set(handles.h_vert_lines{handles.currAxes}(2),'XData',[x x])    % Update central line
@@ -586,7 +590,7 @@ function drag_vertLine(obj,eventdata,h,handles,n)
 			set(handles.edit_widthWindow,'String',round(xp(4)-pt(1,1)))
 			handles.minWindow(handles.currAxes) = round(pt(1,1));
 			handles.widthWindow(handles.currAxes) = round(xp(4)-pt(1,1));
-		case 2              % Update both left and right sides
+		case 2				% Update both left and right sides
 			dx = xp(4) - xp(1);
 			xp(1) = max(handles.min_max{handles.currAxes}(1),pt(1,1)-dx/2);
 			xp(4) = min(handles.min_max{handles.currAxes}(2),pt(1,1)+dx/2);
@@ -599,7 +603,7 @@ function drag_vertLine(obj,eventdata,h,handles,n)
 			handles.minWindow(handles.currAxes) = round(xp(1));
 			handles.maxWindow(handles.currAxes) = round(xp(4));
 			handles.widthWindow(handles.currAxes) = round(xp(4)-xp(1));
-		case 3              % Update the right side
+		case 3				% Update the right side
 			x = (xp(1) + xp(4)) / 2;
 			new_patch_lims = [xp(1) xp(2) round(pt(1,1)) round(pt(1,1))];
 			set(handles.h_vert_lines{handles.currAxes}(2),'XData',[x x])    % Update central line
@@ -610,7 +614,7 @@ function drag_vertLine(obj,eventdata,h,handles,n)
 	end
 
 	handles.centerWindow(handles.currAxes) = round(x);
-	set(handles.hMironeAxes,'CLim',[new_patch_lims(1) new_patch_lims(4)])
+	set(handles.hMirAxes,'CLim',[new_patch_lims(1) new_patch_lims(4)])
 	set(handles.patch(handles.currAxes),'XData',new_patch_lims)
 	set(handles.edit_centerWindow,'String',round(x))
 	idx = (handles.histo{handles.currAxes}(:,1) >= new_patch_lims(1)) & (handles.histo{handles.currAxes}(:,1) <= new_patch_lims(4));
@@ -625,7 +629,7 @@ function wbu_vertLine(obj,eventdata,handles)
 	'WindowButtonMotionFcn',{@wbm_vertLine,handles});
 
 	xp = get(handles.patch(handles.currAxes),'XData');
-	set(handles.hMironeAxes,'CLim',[xp(1) xp(4)])
+	set(handles.hMirAxes,'CLim',[xp(1) xp(4)])
 
 % --------------------------------------------------------------------------
 function swap_radios(handles,n)
@@ -678,21 +682,21 @@ uicontrol('Parent',h1, 'Position',[10 462 111 55], 'Style','frame');
 
 uicontrol('Parent',h1, 'BackgroundColor',[0.753 0.753 0.753],...
 'Enable','inactive', 'HorizontalAlignment','center',...
-'Position',[65 489 47 21], 'Style','edit', 'Tag','edit_minRange');
+'Position',[66 489 46 20], 'Style','edit', 'Tag','edit_minRange');
 
 uicontrol('Parent',h1, 'HorizontalAlignment','right',...
 'Position',[5 491 60 15], 'String','Minimum:', 'Style','text');
 
 uicontrol('Parent',h1, 'BackgroundColor',[0.753 0.753 0.753],...
 'Enable','inactive', 'HorizontalAlignment','center',...
-'Position',[65 467 47 21], 'Style','edit', 'Tag','edit_maxRange');
+'Position',[66 467 46 20], 'Style','edit', 'Tag','edit_maxRange');
 
 uicontrol('Parent',h1, 'HorizontalAlignment','right',...
 'Position',[5 472 60 15], 'String','Maximum:', 'Style','text');
 
 uicontrol('Parent',h1, 'BackgroundColor',[1 1 1],...
 'Call',@main_uiCB,...
-'HorizontalAlignment','center', 'Position',[186 489 47 21],...
+'HorizontalAlignment','center', 'Position',[186 489 47 20],...
 'Style','edit', 'Tag','edit_minWindow');
 
 uicontrol('Parent',h1, 'HorizontalAlignment','right',...
@@ -700,7 +704,7 @@ uicontrol('Parent',h1, 'HorizontalAlignment','right',...
 
 uicontrol('Parent',h1, 'BackgroundColor',[1 1 1],...
 'Call',@main_uiCB,...
-'HorizontalAlignment','center','Position',[186 467 47 21],...
+'HorizontalAlignment','center','Position',[186 467 47 20],...
 'Style','edit', 'Tag','edit_maxWindow');
 
 uicontrol('Parent',h1, 'HorizontalAlignment','right',...
@@ -708,7 +712,7 @@ uicontrol('Parent',h1, 'HorizontalAlignment','right',...
 
 uicontrol('Parent',h1, 'BackgroundColor',[1 1 1],...
 'Call',@main_uiCB,...
-'HorizontalAlignment','center','Position',[294 488 47 21],...
+'HorizontalAlignment','center','Position',[294 488 47 20],...
 'Style','edit', 'Tag','edit_widthWindow');
 
 uicontrol('Parent',h1, 'HorizontalAlignment','right',...
@@ -716,7 +720,7 @@ uicontrol('Parent',h1, 'HorizontalAlignment','right',...
 
 uicontrol('Parent',h1, 'BackgroundColor',[1 1 1],...
 'Call',@main_uiCB,...
-'HorizontalAlignment','center','Position',[294 466 47 21],...
+'HorizontalAlignment','center','Position',[294 466 47 20],...
 'Style','edit', 'Tag','edit_centerWindow');
 
 uicontrol('Parent',h1, 'HorizontalAlignment','right',...
