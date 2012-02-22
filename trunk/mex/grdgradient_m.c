@@ -71,9 +71,13 @@
  *	 
  *		11/10/11 J Luis, Now works in column major order, which means we can do things faster but
  *		                 above all we save a lot of memory by not making one copy of input array.
- *	 
+ *
  *		12/02/12 J Luis, Add -S<p|d> to compute slope in percentage or degrees. Also -A now multiplies
  *		                 input array by -1, instead of relying that it was done by the caller.
+ *
+ *		22/02/12 J Luis, The above blind multiplication by -1 if -A was an error. Illumination doesn't
+ *		                 want that, but directional deriv does. So add a new -z option to rescale by -1
+ *
  */
  
 #include "mex.h"
@@ -183,7 +187,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 
 	int	error = FALSE, map_units = FALSE, normalize = FALSE, atan_trans = FALSE, bad, do_direct_deriv = FALSE;
 	int	find_directions = FALSE, do_cartesian = FALSE, do_orientations = FALSE, save_slopes = FALSE;
-	int slope_percent = FALSE, slope_deg = FALSE, add_ninety = FALSE;
+	int slope_percent = FALSE, slope_deg = FALSE, add_ninety = FALSE, do_change_Zsign = FALSE;
 	int	lambertian_s = FALSE, peucker = FALSE, lambertian = FALSE, unknown_nans = TRUE, check_nans = FALSE;
 	int	sigma_set = FALSE, offset_set = FALSE, exp_trans = FALSE, two_azims = FALSE;
 	int	is_double = FALSE, is_single = FALSE, is_int32 = FALSE, is_int16 = FALSE;
@@ -355,6 +359,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 						else if (argv[i][2] == 'd')
 							slope_deg = TRUE;
 					}
+					break;
+				case 'z':
+					do_change_Zsign = TRUE;		/* Multiply Z by -1 */
 					break;
 				default:
 					error = TRUE;
@@ -556,7 +563,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	}
 
 	/* For direction derivatives we need to revert the sign of Z */
-	if (do_direct_deriv)
+	if (do_change_Zsign)
 		for (i = 0; i < nm; i++)
 			data[i] *= -1;
 
