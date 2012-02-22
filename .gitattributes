@@ -603,6 +603,7 @@ src_figs/surface_options.m -text
 src_figs/swan_options.m -text
 src_figs/tableGUI.m -text
 src_figs/telhometro.m -text
+src_figs/thresholdit.m -text
 src_figs/tiles_tool.m -text
 src_figs/time_stamp.m -text
 src_figs/tsunamovie.m -text
