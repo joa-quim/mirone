@@ -287,8 +287,7 @@ function push_OK_CB(hObject, handles)
 	if (handles.geog),           opt_M = '-M';        end
 
 	set(handles.figure1,'pointer','watch');     set(handles.hMirFig,'pointer','watch')
-% 	newZ = grdgradient_m(single(-double(handles.Z)),handles.head,opt_A,opt_D,opt_L,opt_M,opt_N, opt_S);
-	newZ = grdgradient_m(handles.Z, handles.head, opt_A, opt_D, opt_L, opt_M, opt_N, opt_S);
+	newZ = grdgradient_m(handles.Z, handles.head, opt_A, opt_D, opt_L, opt_M, opt_N, opt_S, '-z');	% Use new option -z to *=-1
 	zz = grdutils(newZ,'-L');       handles.head(5:6) = zz(1:2);
 	set(handles.figure1,'pointer','arrow');     set(handles.hMirFig,'pointer','arrow')
     tmp.X = linspace(handles.head(1),handles.head(2),size(handles.Z,2));
