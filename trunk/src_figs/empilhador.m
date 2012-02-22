@@ -224,7 +224,7 @@ function push_namesList_CB(hObject, handles, opt)
 		for (k = 1:m)
 			c(k) = (exist(names{k},'file') ~= 2);		% Flag to kill all non-existant files
 		end
-		names(c) = [];		handles.shortNameList(c) = [];
+		names(c) = [];		handles.shortNameList(c) = [];	handles.strTimes(c) = [];
 	end
 
 	handles.nameList = names;
