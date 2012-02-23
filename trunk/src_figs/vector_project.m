@@ -164,7 +164,7 @@ function edit_prjDestiny_CB(hObject, handles)
 function edit_fileLeft_CB(hObject, handles)
 % Read the input file
 	fname = get(hObject, 'Str');
-	if (exist(fname, 'file') == 2)
+	if (exist(fname, 'file') ~= 2)
 		errordlg('Error: file does not exist','Error')
 		set(hObject, 'Str', '')
 		handles.fileDataLeft = [];		% Reset, just in case it had something already
@@ -227,7 +227,9 @@ function out = push_OK_CB(hObject, handles)
 			if (numel(xy_prj) == 3),	set(handles.edit_zRight, 'Str', num2str(xy_prj(3))),	end
 		end
 	else
-		if (isempty(handles.fileDataLeft)),		return,		end
+		if (isempty(handles.fileDataLeft))
+			errordlg('OOps, no data to convert','Error'),	return
+		end
 		fname = get(handles.edit_fileRight, 'Str');
 		if (isempty(fname))
 			errordlg('Need to know the output file name','Error'),	return
@@ -246,6 +248,7 @@ function out = push_OK_CB(hObject, handles)
 			if (nargout),		out = xy_prj;
 			else				double2ascii(fname,xy_prj,'%f','maybeMultis');
 			end
+			msgbox('Finish conversion','Finito')
 		end
 	end
 
