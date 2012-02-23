@@ -144,15 +144,25 @@ function edit_mad_CB(hObject, handles)
 
 % -------------------------------------------------------------------------------------
 function push_okUP_CB(hObject, handles)
+% ...
+	up = [];
 	xx = abs(str2double(get(handles.edit_percent, 'String'))) * 0.01;
 	if (~isnan(xx))
-		s = sort(handles.Z(:));
+		if (handles.have_nans)
+			ind = ~isnan(handles.Z);
+			s = sort(handles.Z(ind(:)));
+		else
+			s = sort(handles.Z(:));
+		end
 		n_out = round(numel(s) * xx/2);
 		low = s(n_out);		up = s(numel(s) - n_out);
 	end
+
 	xx = abs(str2double(get(handles.edit_nSigma, 'String')));
 	if (~isnan(xx))
-		med_std = grdutils(handles.Z, '-S');		media = double(med_std(1));		stdv = double(med_std(2));
+		med_std = grdutils(handles.Z, '-S');
+		media = double(med_std(1));
+		stdv = double(med_std(2));
 		low = media - xx * stdv;	up = media + xx * stdv;
 	end
 	xx = abs(str2double(get(handles.edit_mad, 'String')));
@@ -170,6 +180,8 @@ function push_okUP_CB(hObject, handles)
 		end
 		low = med - xx * mad;		up = med + xx * mad;
 	end
+	
+	if (isempty(up)),	return,		end			% No entries in any of the option boxes
 	set(handles.edit_above, 'String', up)
 	set(handles.edit_below, 'String', low)
 	handles.above = up;
