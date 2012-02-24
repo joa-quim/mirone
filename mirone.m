@@ -1869,7 +1869,7 @@ function Reft = ImageIllumLambert(luz, handles, opt)
 	else						img = handles.origFig;
 	end
 	if (ndims(img) == 2),		img = ind2rgb8(img,get(handles.figure1,'Colormap'));	end
-	img = shading_mat(img,R,'no_scale');
+	mex_illuminate(img,R)		% New. It can now operate insitu too
 	
 	if ( handles.have_nans && ~isequal(handles.bg_color, [1 1 1]) && ~strcmp(OPT_a,' ') )	% Non-white or black NaN color requested
 		ind = isnan(Z);			bg_color = uint8(handles.bg_color * 255);
