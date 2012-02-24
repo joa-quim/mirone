@@ -22,7 +22,10 @@
  * Date:	15/02/04
  *
  * Modified:	17/08/04
- *		It now also accepts second input argument in single precision 
+ *		It now also accepts second input argument in single precision
+ *
+ *		24/02/2012
+ *		Use OpenMP when #if HAVE_OPENMP. Can also do inplace illumination
 */
 
 #ifndef MIN
@@ -45,23 +48,32 @@
 #include "mex.h"
 #include <time.h>
 
+#if HAVE_OPENMP
+#include <omp.h>
+#endif
+
 void GMT_rgb_to_hsv(int rgb[], double *h, double *s, double *v);
 void GMT_hsv_to_rgb(int rgb[], double h, double s, double v);
 void GMT_illuminate (double intensity, int rgb[]);
 
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
-	int rgb_pt[3], nx, ny, m, n, nm, k, nsubs, is_single = 0;
-	char *r_out, *g_out, *b_out;
+	int rgb_pt[3], nx, ny, m, n, nm, k1, k2, k3, nsubs, is_single = 0, dims[3];
+	char *r_out, *g_out, *b_out, *rgb_out;
 	unsigned char *rgb;
 	float  *R_s;
 	double intensity, *R_d;
 	clock_t tic;
 
-	if (nrhs != 2 || nlhs != 3) {
-		mexPrintf ("usage: [r,g,b] = mex_illuminate(rgb,R);\n");
-		mexPrintf (" 	where rgb is a [n_row,n_col,3] uint8 matrix\n");
-		mexPrintf (" 	R is a double precision matrix with reflectance coeficients\n");
-		mexPrintf (" 	and r,g,b are 2D short int matrices with their color changed\n");
+	if (nrhs != 2 || nlhs == 2 || nlhs > 3) {
+		mexPrintf ("usage: rgb_out = mex_illuminate(rgb,R);\n");
+		mexPrintf ("	where rgb is a [n_row,n_col,3] uint8 matrix\n");
+		mexPrintf ("	R is a single|double precision matrix with reflectance coeficients\n");
+		mexPrintf ("	and rgb_out is the illuminated image.\n");
+		mexPrintf ("	Optionaly use the syntax:\n");
+		mexPrintf ("	[r,g,b] = mex_illuminate(rgb,R);\n");
+		mexPrintf (" 	where r,g,b are 2D short int matrices with their color changed\n");
+		mexPrintf ("	Finally, without output one can also do inplace illumination\n");
+		mexPrintf ("	mex_illuminate(rgb,R);\n");
 		return;
 	}
 
@@ -97,6 +109,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		mexPrintf("mex_illuminate error: Image and Reflectance arrays MUST have the same number of rows & columns\n");
 		return;
 	}
+	nm = nx * ny;
 
 	/* Create a matrix for the return arrays */
 	rgb = (unsigned char *)mxGetData(prhs[0]);
@@ -104,28 +117,54 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		R_s = (float *)mxGetData(prhs[1]);
 	else
 		R_d = mxGetPr(prhs[1]);
-	plhs[0] = mxCreateNumericMatrix(ny, nx, mxUINT8_CLASS, mxREAL);
-	plhs[1] = mxCreateNumericMatrix(ny, nx, mxUINT8_CLASS, mxREAL);
-	plhs[2] = mxCreateNumericMatrix(ny, nx, mxUINT8_CLASS, mxREAL);
-	r_out = (char *)mxGetData(plhs[0]);
-	g_out = (char *)mxGetData(plhs[1]);
-	b_out = (char *)mxGetData(plhs[2]);
-	nm = nx * ny;
 
-	for (k = 0; k < nm; k++) {
-		rgb_pt[0] = (int)rgb[k];
-		rgb_pt[1] = (int)rgb[k + nm];
-		rgb_pt[2] = (int)rgb[k + 2*nm];
+	if (nlhs == 3) {
+		plhs[0] = mxCreateNumericMatrix(ny, nx, mxUINT8_CLASS, mxREAL);
+		plhs[1] = mxCreateNumericMatrix(ny, nx, mxUINT8_CLASS, mxREAL);
+		plhs[2] = mxCreateNumericMatrix(ny, nx, mxUINT8_CLASS, mxREAL);
+		r_out = (char *)mxGetData(plhs[0]);
+		g_out = (char *)mxGetData(plhs[1]);
+		b_out = (char *)mxGetData(plhs[2]);
+	}
+	else if (nlhs == 1) {
+		dims[0] = ny;		dims[1] = nx;		dims[2] = 3;
+		plhs[0] = mxCreateNumericArray(3, dims, mxUINT8_CLASS, mxREAL);
+		rgb_out = (char *)mxGetData(plhs[0]);
+	}
+
+#if HAVE_OPENMP
+#pragma omp parallel for  private(k1, rgb_pt)
+#endif
+	for (k1 = 0; k1 < nm; k1++) {
+		k2 = k1 + nm;
+		k3 = k2 + nm;
+		rgb_pt[0] = rgb[k1];
+		rgb_pt[1] = rgb[k2];
+		rgb_pt[2] = rgb[k3];
 		if (is_single)
-			intensity = (double)R_s[k];
+			intensity = R_s[k1];
 		else
-			intensity = R_d[k];
+			intensity = R_d[k1];
 		if (intensity == 0.0) continue;
 		GMT_illuminate (intensity, rgb_pt);
-		r_out[k] = rgb_pt[0];
-		g_out[k] = rgb_pt[1];
-		b_out[k] = rgb_pt[2];
+
+		if (nlhs == 0) {
+			rgb[k1] = rgb_pt[0];
+			rgb[k2] = rgb_pt[1];
+			rgb[k3] = rgb_pt[2];
+		}
+		else if (nlhs == 1) {
+			rgb_out[k1] = rgb_pt[0];
+			rgb_out[k2] = rgb_pt[1];
+			rgb_out[k3] = rgb_pt[2];
+		}
+		else {
+			r_out[k1] = rgb_pt[0];
+			g_out[k1] = rgb_pt[1];
+			b_out[k1] = rgb_pt[2];
+		}
 	}
+
 
 #ifdef MIR_TIMEIT
 	mexPrintf("MEX_ILLUMINATE: CPU ticks = %.3f\tCPS = %d\n", (double)(clock() - tic), CLOCKS_PER_SEC);
