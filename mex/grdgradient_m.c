@@ -78,6 +78,8 @@
  *		22/02/12 J Luis, The above blind multiplication by -1 if -A was an error. Illumination doesn't
  *		                 want that, but directional deriv does. So add a new -z option to rescale by -1
  *
+ *		25/02/12 J Luis, A side effect of the change to column major order was that eastward illuminations
+ *		                 and vice-versa. Making the change ang = 360 - ang; solves the issue.
  */
  
 #include "mex.h"
@@ -171,7 +173,7 @@ void GMT_boundcond_init (struct GMT_EDGEINFO *edgeinfo);
 int GMT_boundcond_set (struct GRD_HEADER *h, struct GMT_EDGEINFO *edgeinfo, int *pad, float *a);
 int GMT_boundcond_param_prep (struct GRD_HEADER *h, struct GMT_EDGEINFO *edgeinfo);
 int GMT_boundcond_parse (struct GMT_EDGEINFO *edgeinfo, char *edgestring);
-
+void angreloc(double *a);
 
 /* --------------------------------------------------------------------------- */
 /* Matlab Gateway routine */
@@ -244,6 +246,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 					do_direct_deriv = TRUE;
 					j = sscanf(&argv[i][2], "%lf/%lf", &azim, &azim2);
 					two_azims = (j == 2);
+					angreloc(&azim);		/* Adjust because of change to column major order */
+					if (two_azims) angreloc(&azim2);
 					break;
 				case 'D':
 					find_directions = TRUE;
@@ -282,6 +286,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 							mexPrintf("GRDGRADIENT SYNTAX ERROR -Es option: Must give azim & elevation\t=%d\n", j);
 							return;
 						}
+						angreloc(&azim);
 						p0 = cos((90 - azim)*D2R) * tan((90 - elev)*D2R);
 						q0 = sin((90 - azim)*D2R) * tan((90 - elev)*D2R);
 						p0q0_cte = sqrt(1 + p0*p0 + q0*q0);
@@ -293,6 +298,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 						mexPrintf("GRDGRADIENT: SYNTAX ERROR -E option: Must give at least azim & elevation\t=%d\n", j);
 						return;
 					}
+					angreloc(&azim);	/* Adjust because of change to column major order */
 					while (azim < 0) azim += 360;
 					while (azim > 360) azim -= 360;
 					elev = 90 - elev;
@@ -876,6 +882,13 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	mexPrintf("GRDGRADIENT_M: CPU ticks = %.3f\tCPS = %d\n", (double)(clock() - tic), CLOCKS_PER_SEC);
 #endif
 
+}
+
+void angreloc(double *a) {
+	/* Adjustment because of change to column major order.
+	   Without this eastward illuminations became westwards and vice-versa. */
+
+	*a = 360 - *a;
 }
 
 double specular(double nx, double ny, double nz, double *s) {
