@@ -730,7 +730,7 @@ if (IamCompiled)
 end
 uimenu('Parent',h, 'Call',['mirone(''FileOpenWebImage_CB'',guidata(gcbo),',...
 	' ''http://www2.clustrmaps.com/stats/maps-clusters/w3.ualg.pt-~jluis-mirone-world.jpg'',''nikles'');'],'Label','See visitors map','Sep','on');
-uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 22 Feb 2012'',''2.3.0dev'')','Label','About','Sep','on');
+uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 25 Feb 2012'',''2.3.0dev'')','Label','About','Sep','on');
 
 %% --------------------------- Build HANDLES and finish things here
 	handles = guihandles(H1);
@@ -796,7 +796,7 @@ function figure1_ResizeFcn(hObj, event)
 	handles = guidata(hObj);
 	if (isempty(handles)),      return,     end
 	screen = get(0,'ScreenSize');	    pos = get(handles.figure1,'Pos');
-	if ( isequal(screen(3), pos(3)) && handles.oldSize(1,4) > 20)			% Do not allow figure miximizing
+	if ( pos(1) == 1 && isequal(screen(3), pos(3)) && handles.oldSize(1,4) > 20)	% Do not allow figure miximizing
 		set(handles.figure1,'Pos',handles.oldSize(1,:))
 	else
 		hSliders = getappdata(handles.axes1,'SliderAxes');
