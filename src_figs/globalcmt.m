@@ -284,8 +284,8 @@ function push_OK_CB(hObject, handles)
 			set(handles.figure1,'pointer','arrow'),		return
 		end
 
-		eols = find(todos == char(10));				% Find the new line breaks
-		todos(eols(numel(eols)-9):end) = [];		% Remove last 9 lines that have no data
+		ind = strfind(todos', '<hr>');				% Find first occurrence of one 'hline' and break it there
+		todos(ind(1):end) = [];
 
 		if (n == 1)
 			[lix lat lon depth lix lix mag lix lix lix lix lix lix lix] = ...
