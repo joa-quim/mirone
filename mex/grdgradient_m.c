@@ -88,6 +88,10 @@
 #include <float.h>
 #include <time.h>
 
+#if HAVE_OPENMP
+#include <omp.h>
+#endif
+
 #define GMT_SMALL		1.0e-4	/* Needed when results aren't exactly zero but close */
 
 #define	FALSE	0
@@ -647,6 +651,10 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		y_factor = -dx_grid / (2 * lim_z);
 	}
 
+#if HAVE_OPENMP
+#pragma omp parallel for  private(i, j, ij, k, n, dzdx, dzdy, dzds1, dzds2, ave_gradient, min_gradient, max_gradient, x_factor, dx_grid) shared(data)
+#endif
+
 	for (i = k = 0; i < header.nx; i++) {
 		ij = (i + 2) * my + 2;
 		for (j = 0; j < header.ny; j++, k++, ij++) {
@@ -888,7 +896,8 @@ void angreloc(double *a) {
 	/* Adjustment because of change to column major order.
 	   Without this eastward illuminations became westwards and vice-versa. */
 
-	*a = 360 - *a;
+	if (*a != 0)
+		*a = 360 - *a;
 }
 
 double specular(double nx, double ny, double nz, double *s) {
