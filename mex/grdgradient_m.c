@@ -651,10 +651,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		y_factor = -dx_grid / (2 * lim_z);
 	}
 
-#if HAVE_OPENMP
-#pragma omp parallel for  private(i, j, ij, k, n, dzdx, dzdy, dzds1, dzds2, ave_gradient, min_gradient, max_gradient, x_factor, dx_grid) shared(data)
-#endif
-
 	for (i = k = 0; i < header.nx; i++) {
 		ij = (i + 2) * my + 2;
 		for (j = 0; j < header.ny; j++, k++, ij++) {
@@ -734,6 +730,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 			data[i] *= 100;
 	}
 	else if (slope_deg) {
+#if HAVE_OPENMP
+#pragma omp parallel for
+#endif
 		for (i = 0; i < nm; i++)
 			data[i] = atan(data[i]) * R2D;
 	}
@@ -768,9 +767,15 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 				else {
 					denom = 0.0;
 					if (!check_nans) {
+#if HAVE_OPENMP
+#pragma omp parallel for
+#endif
 						for (k = 0; k < nm; k++) denom += pow(data[k] - ave_gradient, 2.0);
 					}
 					else {
+#if HAVE_OPENMP
+#pragma omp parallel for
+#endif
 						for (k = 0; k < nm; k++) 
 							if (!ISNAN_F(data[k])) denom += pow(data[k] - ave_gradient, 2.0);
 					}
@@ -779,9 +784,15 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 				}
 				rpi = 2.0 * norm_val / M_PI;
 				if (!check_nans) {
+#if HAVE_OPENMP
+#pragma omp parallel for
+#endif
 					for (k = 0; k < nm; k++) data[k] = (float)(rpi * atan((data[k] - ave_gradient)*denom));
 				}
 				else {
+#if HAVE_OPENMP
+#pragma omp parallel for
+#endif
 					for (k = 0; k < nm; k++) 
 						if (!ISNAN_F (data[k])) data[k] = (float)(rpi * atan((data[k] - ave_gradient)*denom));
 				}

@@ -57,6 +57,10 @@
 #include "float.h"
 #include <time.h>
 
+#if HAVE_OPENMP
+#include <omp.h>
+#endif
+
 int mxUnshareArray(mxArray *);
 
 /* --------------------------------------------------------------------------- */
@@ -252,6 +256,9 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	}
 	else if (is_single) {
 		if (!got_limits) {
+#if HAVE_OPENMP
+#pragma omp parallel for private(i)
+#endif
 			for (i = 0; i < nx*ny; i++) {
 				if (ISNAN_F(z_4[i])) continue;
 				min = MIN(min,z_4[i]);
@@ -259,6 +266,9 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 			}
 		}
 		else {			/* Replace outside limits values by min | max */
+#if HAVE_OPENMP
+#pragma omp parallel for private(i)
+#endif
 			for (i = 0; i < nx*ny; i++) {
 				if (ISNAN_F(z_4[i])) continue;
 				if (z_4[i] < min) z_4[i] = min;
@@ -270,12 +280,18 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 				range = new_range / (max - min);
 
 			if (scale8) {	/* Scale to uint8 */
+#if HAVE_OPENMP
+#pragma omp parallel for private(i)
+#endif
 				for (i = 0; i < nx*ny; i++) {	/* if z == NaN, out will be = 0 */
 					if (ISNAN_F(z_4[i])) continue;
 					out8[i] = (char)(((z_4[i] - min) * range) + add_off);
 				}
 			} 
 			else if (scale16) {	/* Scale to uint16 */
+#if HAVE_OPENMP
+#pragma omp parallel for private(i)
+#endif
 				for (i = 0; i < nx*ny; i++) {
 					if (ISNAN_F(z_4[i])) continue;
 					out16[i] = (unsigned short int)(((z_4[i] - min) * range) + add_off);

@@ -243,7 +243,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 			}
 			else {
 #if HAVE_OPENMP
-#pragma omp parallel for
+#pragma omp parallel for private(j)
 #endif
 				for (i = 0; i < n_row; i++) { // Loop over latitudes
 					lat = south + i * delta_y;
