@@ -309,19 +309,19 @@ function hObject = mirone_OpeningFcn(varargin)
 		info = set_gmt(['GMT_USERDIR=' home_dir fsep 'gmt_userdir']);
 		setappdata(0,'gmt_version',info);	% Save it so that the next time a new mirone window is opened
 	end
-	if (info.full ~= 'y'),
+	if (~strcmp(info.full, 'y'))
 		set([handles.CoastLineFull handles.PBFull handles.RiversFull], 'Enable','off')
 	end
-	if (info.high ~= 'y')
+	if (~strcmp(info.high, 'y'))
 		set([handles.CoastLineHigh handles.PBHigh handles.RiversHigh], 'Enable','off')
 	end
-	if (info.intermediate ~= 'y')
+	if (~strcmp(info.intermediate, 'y'))
 		set([handles.CoastLineInterm handles.PBInterm handles.RiversInterm], 'Enable','off')
 	end
-	if (info.low ~= 'y')
+	if (~strcmp(info.low, 'y'))
 		set([handles.CoastLineLow handles.PBLow handles.RiversLow], 'Enable','off')
 	end
-	if (info.crude ~= 'y')
+	if (~strcmp(info.crude, 'y'))
 		set([handles.CoastLineCrude handles.PBCrude handles.RiversCrude], 'Enable','off')
 	end
 
@@ -4112,7 +4112,8 @@ function TransferB_CB(handles, opt)
 		dumpmemmex
 
  	elseif (strcmp(opt,'lasterr'))				% Show last error (standalone only and for debug)
-		msgbox(sprintf('Last error message in stack is:\n\n%s\n',lasterr),'Debug message')
+		lstErr = lasterror;
+		msgbox(sprintf('Last error message in stack is:\n\n%s\n%s\n',lstErr.message, lstErr.identifier),'Debug message')
 
  	elseif (strcmp(opt,'fract'))				% Fractal surf. Have to do it here due to dumb compiler limitations
 		gen_UMF2d;
