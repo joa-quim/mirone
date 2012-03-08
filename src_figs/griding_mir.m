@@ -80,7 +80,7 @@ function varargout = griding_mir(varargin)
 		set(handles.edit_S1_Neighbor,'Enable', 'off', 'Backgroundcolor',[.764,.603,.603])
 		set(handles.popup_S2_Neighbor,'Enable', 'off', 'Backgroundcolor',[.764,.603,.603])
 		set(handles.push_Help_S,'Enable', 'off')
-		set(handles.checkbox_Option_F,'Enable', 'off')
+		set(handles.check_Option_F,'Enable', 'off')
 	elseif strcmp(type,'triangulate')
 		set(hObject,'Name','Triangulate')
 		set(handles.popup_GridMethod, 'String', {'Delauny Triangulation';'Minimum Curvature';'Near Neighbor'});
@@ -92,7 +92,7 @@ function varargout = griding_mir(varargin)
 		set(hObject,'Name','Nearneighbor')
 		%set(handles.popup_GridMethod, 'String', {'Near Neighbor';'Delauny Triangulation';'Minimum Curvature'});
 		set(handles.popup_GridMethod, 'String', {'Near Neighbor';'Minimum Curvature'});
-		set(handles.checkbox_Option_V,'Enable', 'off')
+		set(handles.check_Option_V,'Enable', 'off')
 		handles.command{1} = 'nearneighbor ';
 	else			% Defaults to surface
 		set(hObject,'Name','Surface')
@@ -101,7 +101,7 @@ function varargout = griding_mir(varargin)
 		handles.command{1} = 'surface ';
 		set(handles.edit_S1_Neighbor,'Enable', 'off', 'Backgroundcolor',[.764,.603,.603])
 		set(handles.popup_S2_Neighbor,'Enable', 'off', 'Backgroundcolor',[.764,.603,.603])
-		set(handles.checkbox_Option_F,'Enable', 'off')
+		set(handles.check_Option_F,'Enable', 'off')
 		set(handles.push_Help_S,'Enable', 'off')
 	end
 
@@ -122,7 +122,7 @@ function varargout = griding_mir(varargin)
 	if (nargout),	varargout{1} = hObject;		end
 
 % -----------------------------------------------------------------------------------
-function checkbox_Option_H_CB(hObject, handles)
+function check_Option_H_CB(hObject, handles)
 if get(hObject,'Value')
     if isempty(get(handles.edit_InputFile,'String'))
         handles.command{41} = ' -H';
@@ -172,11 +172,11 @@ switch str{val};
         handles.command{38} = '';     handles.command{39} = '';
         set(handles.edit_binary_ncolumnIn,'String','3')
         set(handles.edit_binary_ncolumnIn,'Enable','off', 'Backgroundcolor',[.764,.603,.603])
-        set(handles.checkbox_Option_H,'Enable','on')
+        set(handles.check_Option_H,'Enable','on')
         set(handles.edit_nHeaders,'Enable','on', 'Backgroundcolor','white')
-        set(handles.checkbox_Option_H,'Value',0);   set(handles.edit_nHeaders,'String','1');
+        set(handles.check_Option_H,'Value',0);   set(handles.edit_nHeaders,'String','1');
         set(handles.edit_binary_ncolumnIn,'Visible','off')
-        if ~get(handles.checkbox_Option_H,'Value')
+        if ~get(handles.check_Option_H,'Value')
             set(handles.edit_nHeaders,'Enable','off', 'Backgroundcolor',[.764,.603,.603])
             set(hObject,'Enable','off')
         end
@@ -184,15 +184,15 @@ switch str{val};
         set(handles.edit_binary_ncolumnIn,'Visible','on')
         handles.command{38} = ' -bi';  handles.command{41} = '';    handles.command{42} = '';
         set(handles.edit_binary_ncolumnIn,'Enable','on', 'Backgroundcolor','white')
-        set(handles.checkbox_Option_H,'Value',0);   set(handles.edit_nHeaders,'String','1');
-        set(handles.checkbox_Option_H,'Enable','off')
+        set(handles.check_Option_H,'Value',0);   set(handles.edit_nHeaders,'String','1');
+        set(handles.check_Option_H,'Enable','off')
         set(handles.edit_nHeaders,'Enable','off', 'Backgroundcolor',[.764,.603,.603])
     case 'binary single'
         set(handles.edit_binary_ncolumnIn,'Visible','on')
         handles.command{38} = ' -bis';  handles.command{41} = '';    handles.command{42} = '';
         %set(handles.edit_binary_ncolumnIn,'Enable','on', 'Backgroundcolor','white')
-        set(handles.checkbox_Option_H,'Value',0);   set(handles.edit_nHeaders,'String','1');
-        set(handles.checkbox_Option_H,'Enable','off')
+        set(handles.check_Option_H,'Value',0);   set(handles.edit_nHeaders,'String','1');
+        set(handles.check_Option_H,'Enable','off')
         set(handles.edit_nHeaders,'Enable','off', 'Backgroundcolor',[.764,.603,.603])
 end
 guidata(hObject,handles)
@@ -289,7 +289,7 @@ else
     set(handles.edit_y_min,'String','');     set(handles.edit_y_max,'String','');
     set(handles.edit_x_inc,'String','');     set(handles.edit_y_inc,'String','');
     set(handles.edit_Ncols,'String','');    set(handles.edit_Nrows,'String','');
-    set(handles.checkbox_ToggleXY,'Value',0);
+    set(handles.check_ToggleXY,'Value',0);
     %set(handles.popup_binInput,'Value',1);
     %set(handles.edit_binary_ncolumnIn,'String','3');
     for i = 3:length(handles.command)   handles.command{i} = '';  end
@@ -347,7 +347,7 @@ function edit_Nrows_CB(hObject, handles)
 	dim_funs('nRows', hObject, handles)
 
 % -----------------------------------------------------------------------------------
-function checkbox_ToggleXY_CB(hObject, handles)
+function check_ToggleXY_CB(hObject, handles)
 if get(hObject,'Value')
     t_xmin = get(handles.edit_x_min,'String');   t_xmax = get(handles.edit_x_max,'String');
     t_ymin = get(handles.edit_y_min,'String');   t_ymax = get(handles.edit_y_max,'String');
@@ -393,7 +393,7 @@ else
 end
 
 % -----------------------------------------------------------------------------------
-function checkbox_Option_F_CB(hObject, handles)
+function check_Option_F_CB(hObject, handles)
 	if get(hObject,'Value')
 		handles.one_or_zero = 0;    handles.command{44} = ' -F';
 	else
@@ -463,7 +463,7 @@ switch str{val};
         set(handles.edit_S1_Neighbor,'Enable', 'off', 'Backgroundcolor',[.764,.603,.603])
         set(handles.popup_S2_Neighbor,'Enable', 'off', 'Backgroundcolor',[.764,.603,.603])
         set(handles.push_Help_S,'Enable', 'off')
-        set(handles.checkbox_Option_F,'Enable', 'off')
+        set(handles.check_Option_F,'Enable', 'off')
         handles.command{19} = '';     handles.command{20} = '';
         handles.command{21} = '';     handles.command{30} = '';
         handles.command{1} = 'surface ';
@@ -472,7 +472,7 @@ switch str{val};
         set(handles.edit_S1_Neighbor,'Enable', 'off', 'Backgroundcolor',[.764,.603,.603])
         set(handles.popup_S2_Neighbor,'Enable', 'off', 'Backgroundcolor',[.764,.603,.603])
         set(handles.push_Help_S,'Enable', 'off')
-        set(handles.checkbox_Option_F,'Enable', 'on')
+        set(handles.check_Option_F,'Enable', 'on')
         handles.command{19} = '';     handles.command{20} = '';
         handles.command{21} = '';     handles.command{30} = '';
         handles.command{1} = 'triangulate ';
@@ -481,7 +481,7 @@ switch str{val};
         set(handles.edit_S1_Neighbor,'Enable', 'on', 'Backgroundcolor','white')
         set(handles.popup_S2_Neighbor,'Enable', 'on', 'Backgroundcolor','white')
         set(handles.push_Help_S,'Enable', 'on')
-        set(handles.checkbox_Option_F,'Enable', 'on')
+        set(handles.check_Option_F,'Enable', 'on')
         set(handles.edit_S1_Neighbor,'String','')
         set(handles.popup_S2_Neighbor,'Value',1)
         handles.command{1} = 'nearneighbor ';     handles.command{30} = '';
@@ -514,7 +514,7 @@ function push_OK_CB(hObject, handles)
 		out{i} = tok;        i = i + 1;
 	end
 
-	if (get(handles.checkbox_Option_V,'Value'))
+	if (get(handles.check_Option_V,'Value'))
 		out{end+1} = '-V';
 	end
 	
@@ -534,7 +534,11 @@ function push_OK_CB(hObject, handles)
 		errordlg('Must give a value for "Search radius".','Error'),		return
 	end
 
-	opt_R = sprintf('-R%.10f/%.10f/%.10f/%.10f',handles.x_min, handles.x_max, handles.y_min, handles.y_max);
+	if (~get(handles.check_ToggleXY,'Val'))
+		opt_R = sprintf('-R%.10f/%.10f/%.10f/%.10f',handles.x_min, handles.x_max, handles.y_min, handles.y_max);
+	else
+		opt_R = sprintf('-R%.10f/%.10f/%.10f/%.10f',handles.y_min, handles.y_max, handles.x_min, handles.x_max);
+	end
 	opt_I = ['-I' get(handles.edit_x_inc,'string') '/' get(handles.edit_y_inc,'string')];
 	if (handles.IamCompiled),	opt_e = '-e';
 	else						opt_e = '';
@@ -655,7 +659,7 @@ uicontrol('Parent',h1,...
 'String','Headers?',...
 'Style','checkbox',...
 'Tooltip','Are there any header lines in the input file?',...
-'Tag','checkbox_Option_H');
+'Tag','check_Option_H');
 
 uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
@@ -787,7 +791,7 @@ uicontrol('Parent',h1,...
 'String','Toggle x,y',...
 'Style','checkbox',...
 'Tooltip','Toggle x and y columns',...
-'Tag','checkbox_ToggleXY');
+'Tag','check_ToggleXY');
 
 uicontrol('Parent',h1,...
 'Call',@griding_mir_uiCB,...
@@ -795,7 +799,7 @@ uicontrol('Parent',h1,...
 'String','Pixel registration',...
 'Style','checkbox',...
 'Tooltip','Make image type grid',...
-'Tag','checkbox_Option_F');
+'Tag','check_Option_F');
 
 uicontrol('Parent',h1,...
 'Call',@griding_mir_uiCB,...
@@ -847,7 +851,7 @@ uicontrol('Parent',h1,...
 'Position',[20 10 75 15],...
 'String','Verbose',...
 'Style','checkbox',...
-'Tag','checkbox_Option_V');
+'Tag','check_Option_V');
 
 uicontrol('Parent',h1,...
 'Enable','inactive',...
