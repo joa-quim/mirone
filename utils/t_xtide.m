@@ -523,14 +523,15 @@ function [datet,Y,M,D,nD] = init(datet)
 if (~nargin)    datet=date;     end
 
 %day list
-%listJ={'Mo','Tu','We','Th','Fr','Sa','Su'};     % uncomment for European calendar style
-listJ={'Su','Mo','Tu','We','Th','Fr','Sa'};    % uncomment for US calendar style
+%listJ={'Mo','Tu','We','Th','Fr','Sa','Su'};	% uncomment for European calendar style
+listJ={'Su','Mo','Tu','We','Th','Fr','Sa'};		% uncomment for US calendar style
 
 listM={'Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'};    % month list
 
 %year, month and day
-Y = str2num(datet(end-3:end));      M = datet(end-7:end-5);
-M = strmatch(M,listM);              D = str2num(datet(1:2));
+Y = str2double(datet(end-3:end));		D = str2double(datet(1:2));
+M = datet(end-7:end-5);					M = strcmp(M,listM);
+M = find(M);		% 'M' was a logical array
 
 hfig=figure('units','pixels','position',[0 0 290 330],'menubar','none','numbertitle','off', ...
             'name','Calendar','resize','off','keypressfcn','uisetdate(''changeyear'')', ...
