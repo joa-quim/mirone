@@ -1365,11 +1365,15 @@ if (~isempty(ALLpatchHand))
 		x = get(focHandAnchor,'XData');			y = get(focHandAnchor,'YData');
 		if (iscell(x)),		x = cell2mat(x);	y = cell2mat(y);    end
 		id_anch = find(diff(x,1,2));
+		if (isempty(id_anch)),		id_anch = find(diff(y,1,2));	end		% Rare cases were movement was vertical
 
 		psmeca_line = cell(numel(focHand),1);
 		for (k = 1:numel(focHand)),		psmeca_line{k} = getappdata(focHand(k),'psmeca_com');	end
 		psmeca_line = cat(1,psmeca_line{:});    % This also get us rid of empty cell fields.
-              
+
+		if (isequal(psmeca_line(1,1:2), [x(end,1) y(end,1)]))	% Don't know why but both vars have reverse order
+			x = x(end:-1:1, :);		y = y(end:-1:1, :);
+		end
 		n_cols = size(psmeca_line,2);
 		if (n_cols == 10 || n_cols == 14),		with_label = 1;
 		else									with_label = 0;
