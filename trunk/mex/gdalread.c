@@ -1330,10 +1330,16 @@ mxArray *populate_metadata_struct (char *gdal_filename , int correct_bounds, int
 	/* Fill in the rest of the GMT header values (If ...) */
 	if (raster_count > 0) {
 		if (z_min == 1e50) {		/* We don't know yet the dataset Min/Max */
-			adfMinMax[0] = GDALGetRasterMinimum( hBand, &bGotMin );
+			/*adfMinMax[0] = GDALGetRasterMinimum( hBand, &bGotMin );
 			adfMinMax[1] = GDALGetRasterMaximum( hBand, &bGotMax );
 			if(!(bGotMin && bGotMax))
-				GDALComputeRasterMinMax( hBand, FALSE, adfMinMax );
+				GDALComputeRasterMinMax( hBand, FALSE, adfMinMax );*/
+			/* If file is a "VRT/Virtual Raster" do NOT try to compute min/max and trust on XML info */
+			if (strcmp(GDALGetDriverShortName(hDriver), "VRT"))
+				GDALComputeRasterMinMax( hBand, FALSE, adfMinMax );		/* NO VRT, scan file to compute min/max */
+			else
+				GDALComputeRasterMinMax( hBand, TRUE, adfMinMax );		/* VRT, believe in metadata info */
+
 			dptr2[4] = adfMinMax[0];
 			dptr2[5] = adfMinMax[1];
 		}
