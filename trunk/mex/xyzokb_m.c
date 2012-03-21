@@ -205,7 +205,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	int	zero = FALSE, bat = TRUE, do_track = FALSE, min_thick = FALSE;
 	int	inc_set = FALSE, do_grid = FALSE;
 	int	m_var = FALSE, DO = TRUE, exact = TRUE, verbose = FALSE;
-	int 	triangulate = FALSE, raw = FALSE, stl = FALSE;
+	int triangulate = FALSE, raw = FALSE, stl = FALSE;
 	int	i, j, ii, nx, ny, k, kk, ij, ndata_r = 0;
 	int	ndata_p, ndata_xyz, ndata_t, nx_p, ny_p, n_vert_max;
 	int	z_th, n_triang, ndata_m, ndata_s, n_swap = 0, nFacet;
@@ -215,7 +215,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	mwSize	*faces = NULL;
 	float	one_100, *ptr_s = NULL, *vertices = NULL, *out_s;
 	double	s_rad = 50000, s_rad2, z_dir = -1, z0 = 0.1, rho = 0.0, zobs = 0, dz = 0;
-	double	w = 0.0, e = 0.0, s = 0.0, n = 0.0, t_mag, a, DX, DY, DZ;
+	double	w = 0.0, e = 0.0, s = 0.0, n = 0.0, t_mag, a, DX, DY;
 	double	t_dec, t_dip, m_int, m_dec, m_dip, cc_t, cs_t, s_t, *ptr_d, *out_d;
 	double	*x_obs = NULL, *y_obs = NULL, *z_obs = NULL, *x = NULL, *y = NULL, *cos_vec = NULL;
 	double	west, east, south, north, x_inc, y_inc;
@@ -262,7 +262,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 					grav = FALSE;
                                         break;
 				case 'C':
-                                        rho = atof (&argv[i][2]);
+					rho = atof (&argv[i][2]);
 					rho *= 6.674e-6;
 					break;
 				case 'D':
@@ -273,7 +273,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 					inc_set = TRUE;
 					break;
 	 			case 'L':
-                                        zobs = atof (&argv[i][2]);
+					zobs = atof (&argv[i][2]);
 					break;
 	 			case 'M':
 					geo = TRUE;
@@ -283,7 +283,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 					const_th = TRUE;
 					break;
 	 			case 'S':
-                                        s_rad = atof (&argv[i][2]);
+					s_rad = atof (&argv[i][2]);
 					s_rad *= 1000.;
 					exact = FALSE;
 					break;
@@ -346,8 +346,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 					min_thick = TRUE;
 					break;
 				case 'Z':
-                                        z0 = atof(&argv[i][2]);
-                                        break;
+					z0 = atof(&argv[i][2]);
+					break;
 	 			case '0':
 					zero = TRUE;
 					break;
@@ -363,30 +363,30 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	}
 	
 	if (nlhs == 0) {
-		mexPrintf ("xyzokb - Computes the gravity/magnetic effect of a body by the method of Okabe\n\n");
-		mexPrintf( "usage: xyzokb [-C<density>] [-R<w/e/s/n>]\n");
-		mexPrintf( "\t[-Z<level>] [-T] [-L<z_observation>] [-S<radius>] [-D]\n");
-		mexPrintf( "\t[z<dz>] [-Bf_dec/f_dip/m_int/m_dec/m_dip]\n");
-		mexPrintf( "\t[-0] [-t[<d>xyz_file/vert_file[/m]]|<r>raw_file] [-P<thick>] [-V]\n");
+		mexPrintf("xyzokb - Computes the gravity/magnetic effect of a body by the method of Okabe\n\n");
+		mexPrintf("usage: xyzokb [-C<density>] [-R<w/e/s/n>]\n");
+		mexPrintf("\t[-Z<level>] [-T] [-L<z_observation>] [-S<radius>] [-D]\n");
+		mexPrintf("\t[z<dz>] [-Bf_dec/f_dip/m_int/m_dec/m_dip]\n");
+		mexPrintf("\t[-0] [-t[<d>xyz_file/vert_file[/m]]|<r>raw_file] [-P<thick>] [-V]\n");
 
-		mexPrintf ("\txyzfile is the file whose grav/mag efect is to be computed.\n");
-		mexPrintf ("\t-B sets parameters for computation of magnetic anomaly\n");
-		mexPrintf ("\t   f_dec/f_dip -> geomagnetic declination/inclination\n");
-		mexPrintf ("\t   m_int/m_dec/m_dip -> body magnetic intensity/declination/inclination\n");
-		mexPrintf ("\t-C sets body density in SI\n");
-		mexPrintf ("\t-I sets the grid spacing for the grid.  Append m for minutes, c for seconds\n");
-		mexPrintf ("\t-L sets level of observation [Default = 0]\n");
-		mexPrintf ("\t-M Map units TRUE; x,y in degrees, dist units in m.\n\t   [Default dist unit = x,y unit].\n");
-		mexPrintf ("\t-P give layer thickness in m [Default = 0 m]\n");
-		mexPrintf ("\t-S search radius in km\n");
-		mexPrintf ("\t-t Give either names of xyz[m] and vertex files or of a raw file defining a close surface.\n");
-		mexPrintf ("\t   In the first case append an d imediatly after -t and optionaly a /m after the vertex file name.\n");
-		mexPrintf ("\t   In the second case append an r imediatly after -t and before the raw file name.\n");
-		mexPrintf ("\t-Z z level of reference plane [Default = 0]\n");
-		mexPrintf ("\t-z don't compute prism efect if it's thickness < dz [Default = 0 m]\n");
-		mexPrintf ("\t-0 for some unknown reason some observation points far from poligon\n");
-		mexPrintf ("\t   which effect is beeing computed have a slightly negative gravity\n");
-		mexPrintf ("\t   contribution. This option turns it to zero\n");
+		mexPrintf("\txyzfile is the file whose grav/mag efect is to be computed.\n");
+		mexPrintf("\t-B sets parameters for computation of magnetic anomaly\n");
+		mexPrintf("\t   f_dec/f_dip -> geomagnetic declination/inclination\n");
+		mexPrintf("\t   m_int/m_dec/m_dip -> body magnetic intensity/declination/inclination\n");
+		mexPrintf("\t-C sets body density in SI\n");
+		mexPrintf("\t-I sets the grid spacing for the grid.  Append m for minutes, c for seconds\n");
+		mexPrintf("\t-L sets level of observation [Default = 0]\n");
+		mexPrintf("\t-M Map units TRUE; x,y in degrees, dist units in m.\n\t   [Default dist unit = x,y unit].\n");
+		mexPrintf("\t-P give layer thickness in m [Default = 0 m]\n");
+		mexPrintf("\t-S search radius in km\n");
+		mexPrintf("\t-t Give either names of xyz[m] and vertex files or of a raw file defining a close surface.\n");
+		mexPrintf("\t   In the first case append an d imediatly after -t and optionaly a /m after the vertex file name.\n");
+		mexPrintf("\t   In the second case append an r imediatly after -t and before the raw file name.\n");
+		mexPrintf("\t-Z z level of reference plane [Default = 0]\n");
+		mexPrintf("\t-z don't compute prism efect if it's thickness < dz [Default = 0 m]\n");
+		mexPrintf("\t-0 for some unknown reason some observation points far from poligon\n");
+		mexPrintf("\t   which effect is beeing computed have a slightly negative gravity\n");
+		mexPrintf("\t   contribution. This option turns it to zero\n");
 		return;
 	}
 
@@ -403,7 +403,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	else
 		type = (char *)mxArrayToString(mx_ptr);
 
-	if ( !strcmp(type, "FV") || !strcmp(type, "fv") ) {
+	if (!strcmp(type, "FV") || !strcmp(type, "fv")) {
 		mx_ptr = mxGetField(prhs[0], 0, "faces");
 		if (mx_ptr == NULL)
 			mexErrMsgTxt("XYZOKB: Input Error. Structure must have a member named 'faces'.");
@@ -472,7 +472,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		}
 		else if (mx_ptr != NULL && do_grid)
 			mexPrintf ("XYZOKB: Warning: Given both grid and profile options. Ignoring profile.\n");
-
 	}
 
 	/* ------------------------------------------------------------------------------------------ */
@@ -584,10 +583,13 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	if (do_grid) {
 		double x_inc2 = 0.0, y_inc2 = 0.0;
 		if (!node_offset) {		/* Pixel reg */
-			x_inc2 = x_inc / 2;	y_inc2 = y_inc / 2;
+			x_inc2 = x_inc / 2;
+			y_inc2 = y_inc / 2;
 		}
-		for (i = 0; i < nx; i++) x[i] = (i == (nx-1)) ?  east - x_inc2 :   west + i * x_inc + x_inc2;
-		for (j = 0; j < ny; j++) y[j] = (j == (ny-1)) ? -south - y_inc2 : -(north - j * y_inc - y_inc2);
+		for (i = 0; i < nx; i++)
+			x[i] = (i == (nx-1)) ?  east - x_inc2 :   west + i * x_inc + x_inc2;
+		for (j = 0; j < ny; j++)
+			y[j] = (j == (ny-1)) ? -south - y_inc2 : -(north - j * y_inc - y_inc2);
 	}
 	if (triangulate) {
 		n_triang = ndata_t;
@@ -725,9 +727,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 							DO = TRUE;
 						else {
 							DX = t_center[i].x - x_obs[ii];
-							DY = t_center[i].y - y_obs[ii];
-							DZ = t_center[i].z - z_obs[ii];
-							DO = (DX*DX + DY*DY + DZ*DZ < s_rad2); 
+							DY = t_center[i].y - y_obs[k];
+							DO = (DX*DX + DY*DY) < s_rad2; 
 						}
 						if (DO) {
 							a = okabe (rho, x_obs[ii], y_obs[k], zobs, bd_desc, km, pm, loc_or);
@@ -746,8 +747,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 					else {
 						DX = t_center[i].x - x_obs[kk];
 						DY = t_center[i].y - y_obs[kk];
-						DZ = t_center[i].z - z_obs[kk];
-						DO = (DX*DX + DY*DY + DZ*DZ < s_rad2); 
+						DO = (DX*DX + DY*DY) < s_rad2; 
 					}
 					if (DO) {
 						a = okabe (rho, x_obs[kk], y_obs[kk], zobs, bd_desc, km, pm, loc_or);
@@ -792,14 +792,12 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 /* -------------------------------------------------------------------------*/
 int read_xyz (FILE *fp_xyz, char *xyz_file, double z_dir, int m_var, int geo) {
 	/* read xyz[m] file with point data coordinates */
-
 	return (0);
 }
 
 /* -----------------------------------------------------------------*/
 int read_t (FILE *fp_t, char *t_file) {
 	/* read file with vertex indexes of triangles */
-
 	return (0);
 }
 
