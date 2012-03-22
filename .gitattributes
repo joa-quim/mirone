@@ -468,6 +468,7 @@ mex/sift/minpq.c -text
 mex/sift/minpq.h -text
 mex/sift/sift.c -text
 mex/sift/sift.h -text
+mex/solidos_m.c -text
 mex/spa.c -text
 mex/spa.h -text
 mex/spa_mex.c -text
