@@ -214,7 +214,7 @@ function push_outFile_CB(hObject, handles)
 	val = get(handles.popup_fileType,'Val');    
 	str = {handles.exts{val} contents{val}};
 	handMir = guidata(handles.hCallingFig);
-	[FileName,PathName] = put_or_get_file(handMir, str,'Select File name','put');
+	[FileName,PathName] = put_or_get_file(handMir, str,'Select File name','put', handles.exts{val}); % FORCE ext (compiler bug)
 	if isequal(FileName,0),		return,		end
 
 	[pato,fname,ext] = fileparts(FileName);
