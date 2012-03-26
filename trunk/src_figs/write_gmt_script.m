@@ -1589,13 +1589,37 @@ end
 	end
 
 %% ------------- Search for text strings ---------------------------------------------
-if (~isempty(ALLtextHand))          % ALLtextHand was found above in the search for contours
-	if (~isempty(ALLtextHand))      % We (still) have text fields
+	if (~isempty(ALLtextHand))      % ALLtextHand was found above in the search for contours -- We (still) have text fields
 		pos = get(ALLtextHand,'Position');      %font = get(ALLtextHand,'FontName');
 		fsize = get(ALLtextHand,'FontSize');    fcolor = get(ALLtextHand,'Color');
+
+		% Find the Hor/Vert alignment
+		HA = get(ALLtextHand, 'HorizontalAlignment');
+		VA = get(ALLtextHand, 'VerticalAlignment');
+		if (isa(HA,'cell'))		% Get only the first char of each row
+			HA_ = char(zeros(numel(HA),1));
+			VA_ = char(zeros(numel(HA),1));
+			for (k = 1:numel(HA))
+				HA_(k) = upper(HA{k}(1));
+				VA_(k) = upper(VA{k}(1));
+			end
+			HA = HA_;	VA = VA_;	clear HA_ VA_
+		else
+			HA = upper(HA(1));		VA = upper(VA(1));
+		end
+		ind = (HA ~= 'L') & (HA ~= 'C') & (HA ~= 'R');		% Equivalent to GMT's 'LCR'
+		if (any(ind))
+			HA(ind) = 'L';		% 'Others' get 'L(eft)'
+		end
+		ind = (VA ~= 'T') & (VA ~= 'M') & (VA ~= 'M');		% Equivalent to GMT's 'TMB'
+		if (any(ind))
+			VA(ind) = 'B';		% 'Others' get 'B(ottom)'
+		end
+		HV = [HA VA];			% Hor/Ver justification code
+
 		if (isnumeric(fcolor))
 			fcolor = round(fcolor * 255);
-			if (numel(fcolor) == 1)
+			if (numel(fcolor) == 1 && fcolor ~= 0)
 				opt_G = {sprintf(' -G%d', fcolor)};
 			elseif (~isequal(fcolor, [0 0 0]))
 				opt_G = {sprintf(' -G%d/%d/%d', fcolor(1:3))};
@@ -1617,25 +1641,26 @@ if (~isempty(ALLtextHand))          % ALLtextHand was found above in the search 
             tmp = cell2mat(fcolor) * 255;
             opt_G = cell(size(tmp,1),1);
 			for (m = 1:size(tmp,1))
-				opt_G{m} = {sprintf(' -G%d/%d/%d', tmp(1:3))};
+				if (isequal(tmp(m,:), [0 0 0])),	opt_G{m} = {''};	continue,	end
+				opt_G{m} = {sprintf(' -G%d/%d/%d', tmp(m,1:3))};
 			end
 		else
 			opt_G = {''};
 		end
-        str = get(ALLtextHand,'String');      angle = get(ALLtextHand,'Rotation');
+        str = get(ALLtextHand,'String');		angle = get(ALLtextHand,'Rotation');
         if (~iscell(pos))				% Make them cells for author's mental sanity
             pos = num2cell(pos(:),1);	fsize = num2cell(fsize,1);		angle = num2cell(angle,1);
             str = {str};				%font = {font};
         end
-        n_text = length(str);
-		script{l} = ' ';        l=l+1;
+        n_text = numel(str);
+		script{l} = ' ';		l=l+1;
         script{l} = [comm ' ---- Plot text strings'];   l=l+1;    
         for (i = 1:n_text)
-			frmt = 'echo %.5f %.5f %d %.2f 4 LB %s | pstext %s %s  -R -J -O -K >> %sps%s';
+			frmt = 'echo %.5f %.5f %d %.2f 4 %s %s | pstext %s %s  -R -J -O -K >> %sps%s';
 			% Quick and dirty patch for when opt_G is a cell of cells and it than crash below on sprintf
 			texto = opt_G{i};
 			if (isa(texto,'cell')),		texto = texto{1};	end
-			script{l} = sprintf(frmt, pos{i}(1), pos{i}(2), fsize{i}, angle{i}, str{i}(1,:), ellips, texto, pb, pf);
+			script{l} = sprintf(frmt, pos{i}(1), pos{i}(2), fsize{i}, angle{i}, HV(i,:), str{i}(1,:), ellips, texto, pb, pf);
 			l = l + 1;
 			this_nLines = size(str{i},1);		% How many lines has this text element?
 			if (this_nLines > 1)				% More than one. So try to estimate each line Pos from a simple calculus
@@ -1648,7 +1673,6 @@ if (~isempty(ALLtextHand))          % ALLtextHand was found above in the search 
 			end
         end
 	end
-end
 
 %% ------------- Search for colorbar -------------------------------------------
 	if (strcmp(get(handMir.PalAt,'Check'),'on') || strcmp(get(handMir.PalIn,'Check'),'on'))
