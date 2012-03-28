@@ -58,7 +58,7 @@ function hObject = mirone_OpeningFcn(varargin)
 %#function get_polygon rot_euler datums telha_m find_clusters fft_stuff select_cols uistack_j smoothing_param
 %#function patch_meca ui_edit_patch_special bands_list multibandread_j imscroll_j geog2projected_pts
 %#function mltable_j iptcheckinput resampsep wgifc telhometro vitrinite edit_line move_obj make_arrow
-%#function edit_track_mb save_track_mb houghmex qhullmx writegif mpgwrite cq helpdlg
+%#function edit_track_mb save_track_mb houghmex qhullmx writegif mpgwrite cq helpdlg movegui
 %#function move2side aguentabar gdal_project gdalwarp_mex poly2mask_fig url2image calc_bonin_euler_pole spline_interp
 %#function mat2clip buffer_j PolygonClip trend1d_m akimaspline shake_mex ground_motion wms_tool microlev
 %#function lasreader_mex write_esri_hdr distmin mag_synthetic image_histo write_gmt_symb mkpj decompress mosaicer
@@ -1433,7 +1433,7 @@ function erro = FileOpenGeoTIFF_CB(handles, tipo, opt)
 			end
 			if ((indF - ind) == 2),		c(k) = true;	c(k-1) = true;	end		% Don't want arrays with less than 10 (2 char) columns
 		end
-		if (any(c)),	str(c) = [];		end			% Remove non-interesting arrays from sight
+		if (~all(c) && any(c)),		str(c) = [];	end	% Remove non-interesting arrays from sight
 
 		[s,ok] = listdlg('PromptString',{'This file has subdatasets' 'you have to select one:'}, 'ListSize', ...
 				[min(numel(str{1})*7,640) min((size(str,1)*20 + 50), 200)], ...
@@ -2699,6 +2699,7 @@ function DrawImportShape_CB(handles, fname)
 	if ( exist([PathName filesep fnamePRJ '.prj'], 'file') )
 		fid = fopen([PathName filesep fnamePRJ '.prj']);
 		theProj = fread(fid,inf,'*char')';		fclose(fid);
+		if (strncmp(theProj,'+proj',5)),	theProj = ogrproj(theProj);		end		% proj info was a proj4 string
 	end
 
 	region = [s(1).BoundingBox(1,1:2) s(1).BoundingBox(2,1:2)];
