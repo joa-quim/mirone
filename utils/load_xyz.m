@@ -502,16 +502,16 @@ function [cor, str2] = parseG(str)
 % Parse the STR string in search of color. If not found or error COR = [].
 % STR2 is the STR string less the -Gr/g/b part
 	cor = [];   str2 = str;
-	ind = strfind(str,'-G');
-	if (isempty(ind)),      return;     end     % No -G option
+	ind = strfind(str,' -G');
+	if (isempty(ind)),      return;     end		% No -G option
 	try									% There are so many ways to have it wrong that I won't bother testing
-		[strG, rem] = strtok(str(ind:end));
-		str2 = [str(1:ind(1)-1) rem];   % Remove the -G<str> from STR
+		[strG, rem] = strtok(str(ind+1:end));
+		str2 = [str(1:ind(1)) rem];		% Remove the -G<str> from STR
 
 		strG(1:2) = [];					% Remove the '-G' part from strG
 		% OK, now 'strG' must contain the color in the r/g/b form
 		ind = strfind(strG,'/');
-		if (isempty(ind))           % E.G. -G100 form
+		if (isempty(ind))				% E.G. -G100 form
 			cor = eval(['[' strG ']']);
 			cor = [cor cor cor] / 255;
 		else
@@ -528,23 +528,23 @@ function [thick, cor, str2] = parseW(str)
 % If not found or error THICK = [] &/or COR = [].
 % STR2 is the STR string less the -W[thick,][r/g/b] part
 	thick = [];     cor = [];   str2 = str;
-	ind = strfind(str,'-W');
-	if (isempty(ind)),		return,		end     % No -W option
+	ind = strfind(str,' -W');
+	if (isempty(ind)),		return,		end		% No -W option
 	try                                 % There are so many ways to have it wrong that I won't bother testing
-		[strW, rem] = strtok(str(ind:end));
-		str2 = [str(1:ind(1)-1) rem];   % Remove the -W<str> from STR
+		[strW, rem] = strtok(str(ind+1:end));
+		str2 = [str(1:ind(1)) rem];		% Remove the -W<str> from STR
 
-		strW(1:2) = [];                 % Remove the '-W' part from strW
+		strW(1:2) = [];					% Remove the '-W' part from strW
 		% OK, now 'strW' must contain the pen in the thick,r/g/b form
 		ind = strfind(strW,',');
-		if (~isempty(ind))          % First thing before the comma must be the line thickness
+		if (~isempty(ind))				% First thing before the comma must be the line thickness
 			thick = eval(['[' strW(1:ind(1)-1) ']']);
-			strW = strW(ind(1)+1:end);  % Remove the line thickness part
-		else                        % OK, no comma. So we have either a thickness XOR a color
+			strW = strW(ind(1)+1:end);	% Remove the line thickness part
+		else							% OK, no comma. So we have either a thickness XOR a color
 			ind = strfind(strW,'/');
-			if (isempty(ind))       % No color. Take it as a thickness
+			if (isempty(ind))			% No color. Take it as a thickness
 				thick = eval(['[' strW ']']);
-			else                    % A color
+			else						% A color
 				cor = [eval(['[' strW(1:ind(1)-1) ']']) eval(['[' strW(ind(1)+1:ind(2)-1) ']']) eval(['[' strW(ind(2)+1:end) ']'])];
 				cor = cor / 255;
 				if (any(isnan(cor))),   cor = [];   end
@@ -593,11 +593,11 @@ function [symbol, symbSize, str2] = parseS(str)
 % If not found or error SYMBOL = [] &/or SYMBSIZE = [].
 % STR2 is the STR string less the -S<symb>[size] part
 	symbol = [];	symbSize = 2;	str2 = str;
-	ind = strfind(str,'-S');
-	if (isempty(ind)),		return,		end     % No -S option
+	ind = strfind(str,' -S');
+	if (isempty(ind)),		return,		end		% No -S option
 	try
-		[strS, rem] = strtok(str(ind:end));
-		str2 = [str(1:ind(1)-1) rem];   % Remove the -S<str> from STR
+		[strS, rem] = strtok(str(ind+1:end));
+		str2 = [str(1:ind(1)) rem];		% Remove the -S<str> from STR
 
 		strS(1:2) = [];					% Remove the '-S' part from strS
 		% OK, now 'strS' must contain the symbol and optionally its size
