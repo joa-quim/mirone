@@ -2,9 +2,13 @@ function varargout = draw_funs(hand, varargin)
 %function OUT = draw_funs(hand,opt,data)
 %   This contains several functions necessary to the "Draw" menu of mirone
 %   There are no error checking.
-%   HAND    contains the handle to the graphical object
+%   HAND    contains the handle to the graphical object (or eventually empty for direct access)
 %   OPT     is a string for choosing what action to perform
 %   DATA    contains data currently used in the volcanoes, fogspots and some other option
+%
+%	To use the direct access mode to any of the local functions that don't need to fish
+%	the data from an object handle, call with HAND = []. E.g (in load_xyz)
+%	draw_funs([], 'doSave_formated', x, y, z)
 
 %	Copyright (c) 2004-2012 by J. Luis
 %
@@ -22,10 +26,10 @@ function varargout = draw_funs(hand, varargin)
 % --------------------------------------------------------------------
 
 % A bit of strange tests but they are necessary for the cases when we use the new feval(fun,varargin{:}) 
-opt = varargin{1};		% function name to evaluate (new) or keeword to select one (old form)
+opt = varargin{1};		% function name to evaluate (new) or keyword to select one (old form)
 if (numel(varargin) > 1)
 	data = varargin{2};
-	if (isempty(data))		% We need this for backward compatibility
+	if (isempty(data))		% We need this for backward compatibility (Don't know anymore where)
 		varargin(2) = [];
 	end
 end
