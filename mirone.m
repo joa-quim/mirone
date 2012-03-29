@@ -58,7 +58,7 @@ function hObject = mirone_OpeningFcn(varargin)
 %#function get_polygon rot_euler datums telha_m find_clusters fft_stuff select_cols uistack_j smoothing_param
 %#function patch_meca ui_edit_patch_special bands_list multibandread_j imscroll_j geog2projected_pts
 %#function mltable_j iptcheckinput resampsep wgifc telhometro vitrinite edit_line move_obj make_arrow
-%#function edit_track_mb save_track_mb houghmex qhullmx writegif mpgwrite cq helpdlg movegui
+%#function edit_track_mb save_track_mb houghmex qhullmx writegif mpgwrite cq helpdlg
 %#function move2side aguentabar gdal_project gdalwarp_mex poly2mask_fig url2image calc_bonin_euler_pole spline_interp
 %#function mat2clip buffer_j PolygonClip trend1d_m akimaspline shake_mex ground_motion wms_tool microlev
 %#function lasreader_mex write_esri_hdr distmin mag_synthetic image_histo write_gmt_symb mkpj decompress mosaicer
