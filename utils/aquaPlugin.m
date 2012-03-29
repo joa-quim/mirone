@@ -954,14 +954,14 @@ function out = doM_or_M_or_M(ZtoSpline, first_wanted_month, last_wanted_month, r
 		out(out < regionalMIN | out > regionalMAX) = NaN;
 		ind = isnan(out);
 		contanoes = alloc_mex(size(ind,1), size(ind,2), 'single');
-		contanoes = contanoes + ~ind;
+		cvlib_mex('add', contanoes, single(~ind));
 		out(ind) = 0;						% Mutate NaNs to 0 so that they don't screw the adition
 		for (n = (first_wanted_month+1):last_wanted_month)
 			tmp = ZtoSpline(:,:,n);
 			tmp(tmp < regionalMIN | tmp > regionalMAX) = NaN;
 			ind = isnan(tmp);
 			tmp(ind) = 0;
-			contanoes = contanoes + ~ind;
+			cvlib_mex('add', contanoes, single(~ind));
 			cvlib_mex('add',out,tmp);
 		end
 		cvlib_mex('div', out, contanoes);			% The mean
