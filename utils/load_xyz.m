@@ -148,6 +148,11 @@ function varargout = load_xyz(handles, opt, opt2)
 			multi_segs_str = {desc};
 		end
 
+		for (k = 1:numel(multi_segs_str))			% Append the individual description to the Dataset's one
+			multi_segs_str{k} = sprintf('%s\n\n    %s', multi_segs_str{k}, out_nc.Poly(k).OUT.desc);
+		end
+		out_nc.fname = fname;		% Store the names as we will need it in the set_extra_uicb_options()
+
 		% Add the referencing info to multi_segs_str{1} so that later the recogn algo is the same as for ascii files
 		if ( ~isempty(out_nc.SRS) && out_nc.SRS(1) == '+' )		% Only proj4 are accepted
 			multi_segs_str{1} = [multi_segs_str{1} ' ' out_nc.SRS];
@@ -495,7 +500,46 @@ function varargout = load_xyz(handles, opt, opt2)
 		geog = handles.geog;	 is_projected = handles.is_projected;
 		handles = guidata(handles.figure1);		handles.geog = geog;	 handles.is_projected = is_projected;
 	end
+	if (got_nc)
+		set_extra_uicb_options(handles, hLine, out_nc)	% Reset two Callbacks in UIContextMenu to offer plot/save
+	end
 	guidata(handles.figure1,handles)
+
+% --------------------------------------------------------------------
+function set_extra_uicb_options(handles, hLine, out_nc)
+% Reuse two meaningless entries (in this context) of the polygon's UIContextMenu to allow
+% either ploting the interior points to a shape_nc polygon or directly save it on file.
+% Note that the saving, because is done by the draw_funs 'doSave_formated' ... does what it says.
+% OUT_NC is the output of the read_shapenc(fname) call + file name
+
+	h1 = get(get(hLine(1),'UIContextMenu'),'Children');
+	h2 = findobj(h1,'-depth',0, 'Label','Line azimuths');	% Resuse this entry that has no sense in this context
+	set(h2,'Label','Plot interior points')
+	set(h2,'Call',{@nc_plotSave_pts, out_nc.fname, out_nc.PolyIndex, 'plot'})
+	set(h2,'Pos',2)			% Move it up on the UIContextMenu order (and hope it doesn't screw)
+	h2 = findobj(h1,'-depth',0, 'Label','Point interpolation');	% Reuse this one too
+	set(h2,'Label','Save interior points to file')
+	set(h2,'Call',{@nc_plotSave_pts, out_nc.fname, out_nc.PolyIndex, 'save'})
+	set(h2,'Pos',3)
+
+function nc_plotSave_pts(obj, evt, fname, PolyIndex, opt)
+% Plot or save the points in the interior of the selected Outer polygon (of an shape_nc file)
+
+	hLine = gco;
+	ud = get(hLine,'UserData');
+	s = nc_funs('info',fname);
+	x = nc_funs('varget', fname, s.Dataset(PolyIndex(ud) - 4).Name);
+	y = nc_funs('varget', fname, s.Dataset(PolyIndex(ud) - 3).Name);
+	if (opt(1) == 'p')
+		hAx = get(hLine, 'Parent');
+		h = line('XData',x,'YData',y,'Parent',hAx, 'LineStyle','none', 'Marker','.',...
+		'MarkerSize',2, 'Tag','Pointpolyline');
+		draw_funs(h,'DrawSymbol')			% Set marker's uicontextmenu
+	else
+		z = nc_funs('varget', fname, s.Dataset(PolyIndex(ud) - 2).Name);
+		draw_funs([], 'doSave_formated', x, y, z)		% The first arg (empty) means no data fishing in handles
+	end
+% --------------------------------------------------------------------
 
 % --------------------------------------------------------------------
 function [cor, str2] = parseG(str)
@@ -626,11 +670,16 @@ function out = read_shapenc(fname)
 %	type				Geometry Type like in shapefiles e.g. 'PointZ'
 %	BB					The 2D BoundingBox
 %	SRS					The referencing system. Usualy a proj4 string (empty if no 'spatial_ref')
-%	description			Datse description (or empty if none)
+%	description			Dataset description (or empty if none)
 %	n_PolyOUT			Total number of Outer polygons
 %	n_PolyIN			Total number of Inner polygons (irrespective of their parents)
 %	Poly(n).OUT.lon		N struct array where N is the number of outer polygons (MAX = n_swarms)
 %	Poly(n).OUT.lat				"
+%	Poly(n).OUT.desc	Description of the individual polygon (may be different from the dataset desc)
+%	PolyIndex			Index of the "lonPolyOUT" variables. With this we can later fetch the
+%						interior points bacause we know that Z, Lat, Lon are -2,-3,-4 index behind
+%						e.g, this will read the Z's of points inside the PolyOUT_1
+%						z = nc_funs('varget', fname, s.Dataset(PolyIndex(1)-2).Name);
 %
 % If N above > 0 for each Outer polygon we can have M Inner polygons, as in
 %	out.Poly(n).IN(i).lon		Where i = 1:M
@@ -663,17 +712,21 @@ function out = read_shapenc(fname)
 		out.description = [];
 	end
 
-	out.n_PolyOUT = 0;		out.n_PolyIN = 0;		% They will be updated later
+	out.n_PolyOUT = 0;		out.n_PolyIN = 0;	out.PolyIndex = 0;		% They will be updated later
 
 	% Find the outer polygons
 	ind = find(strncmp({s.Dataset.Name},'lonPolyOUT',10));
 	n_PolyOUT = numel(ind);
 	if (n_PolyOUT)
 		out.Poly(n_PolyOUT).OUT.lon = [];		out.Poly(n_PolyOUT).OUT.lat = [];
+		out.Poly(n_PolyOUT).OUT.desc = [];
 		for (k = 1:n_PolyOUT)
 			out.Poly(k).OUT.lon = nc_funs('varget', fname, s.Dataset(ind(k)).Name);
 			out.Poly(k).OUT.lat = nc_funs('varget', fname, s.Dataset(ind(k)+1).Name);
+			ii = find(strcmpi({s.Dataset(ind(k)-1).Attribute.Name},'name'));
+			out.Poly(k).OUT.desc = s.Dataset(ind(k)-1).Attribute(ii(1)).Value;		% Description of this polygon
 		end
+		out.PolyIndex = ind;		% With this we know that Z = ind - 2; lat = ind - 3 and lon = ind - 4
 	end
 
 	% Find the inner polygons (if any)
