@@ -46,7 +46,7 @@ function hObject = mirone_OpeningFcn(varargin)
 %#function range_change swan tsun2 mansinha_m deform_mansinha deform_okada dim_funs
 %----- These are for image
 %#function grayto8 grayto16 grayxform imfilter_mex imhistc imlincombc parityscan intlutc ordf
-%#function imreconstructmex applylutc bwboundariesmex bwlabel1 bwlabel2 ditherc
+%#function imreconstructmex applylutc bwboundariesmex bwlabel1 bwlabel2 ditherc bwlabelnmex
 %----- These are in utils
 %#function tabpanelfcn degree2dms dms2degree dec2deg dec_year ivan_the_terrible ddewhite string_token
 %#function test_dms text_read double2ascii save_seismicity jd2date trimpatch
