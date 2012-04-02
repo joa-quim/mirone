@@ -78,11 +78,16 @@ function varargout = load_xyz(handles, opt, opt2)
 			{'*.dat;*.DAT', 'Data files (*.dat,*.DAT)';'*.*', 'All Files (*.*)'},'Select File','get');
 		if isequal(FileName,0),		return,		end
 		fname = [PathName FileName];
+		[lix,lix,EXT] = fileparts(FileName);
 	elseif (nargin >= 2)		% Read a ascii file of which we already know the name (drag N'drop)
 		fname = opt;
-		PathName = fileparts(fname);			% We need the 'PathName' below
+		[PathName,lix,EXT] = fileparts(fname);			% We need the 'PathName' below
 	end
 	if (nargin == 3)
+		if (strcmp(opt2, 'AsLine') && strcmpi(EXT, '.nc'))			% A shapenc loaded 'AsLine', but confirm
+			drv = aux_funs('findFileType',fname);
+			if (strcmp(drv, 'ncshape')),	opt2 = 'ncshape';	end
+		end
 		if (strcmp(opt2, 'AsArrow'))		got_arrow = true;		% This case does not care about 'line_type'
 		elseif (strcmp(opt2, 'ncshape'))	got_nc = true;			%
 		else								line_type = opt2;
