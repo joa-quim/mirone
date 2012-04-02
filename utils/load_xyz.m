@@ -148,8 +148,10 @@ function varargout = load_xyz(handles, opt, opt2)
 			multi_segs_str = {desc};
 		end
 
-		for (k = 1:numel(multi_segs_str))			% Append the individual description to the Dataset's one
-			multi_segs_str{k} = sprintf('%s\n\n    %s', multi_segs_str{k}, out_nc.Poly(k).OUT.desc);
+		if (numel(out_nc.Poly) == numel(multi_segs_str))% UGLY PATCH FOR WHEN INNER POLYGONS WOULD SCREW ALL
+			for (k = 1:numel(multi_segs_str))			% Append the individual description to the Dataset's one
+				multi_segs_str{k} = sprintf('%s\n\n    %s', multi_segs_str{k}, out_nc.Poly(k).OUT.desc);
+			end
 		end
 		out_nc.fname = fname;		% Store the names as we will need it in the set_extra_uicb_options()
 
@@ -724,7 +726,11 @@ function out = read_shapenc(fname)
 			out.Poly(k).OUT.lon = nc_funs('varget', fname, s.Dataset(ind(k)).Name);
 			out.Poly(k).OUT.lat = nc_funs('varget', fname, s.Dataset(ind(k)+1).Name);
 			ii = find(strcmpi({s.Dataset(ind(k)-1).Attribute.Name},'name'));
-			out.Poly(k).OUT.desc = s.Dataset(ind(k)-1).Attribute(ii(1)).Value;		% Description of this polygon
+			if (~isempty(ii))
+				out.Poly(k).OUT.desc = s.Dataset(ind(k)-1).Attribute(ii(1)).Value;		% Description of this polygon
+			else
+				out.Poly(k).OUT.desc = 'Nickles';
+			end
 		end
 		out.PolyIndex = ind;		% With this we know that Z = ind - 2; lat = ind - 3 and lon = ind - 4
 	end
