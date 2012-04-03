@@ -140,7 +140,8 @@ function varargout = parker_stuff(varargin)
 function edit_BatGrid_CB(hObject, handles)
 	fname = get(hObject,'String');
 	if isempty(fname)
-		handles.Z_bat = [];		return
+		handles.Z_bat = [];		guidata(handles.figure1,handles)
+		return
 	end
 	% Let the push_BatGrid_CB do all the work
 	push_BatGrid_CB(handles.push_BatGrid, handles, fname)
@@ -159,6 +160,9 @@ function push_BatGrid_CB(hObject, handles, opt)
 	end
 
 	[handles, X, Y, handles.Z_bat, handles.head_bat] = read_gmt_type_grids(handles,fname);
+	if (numel(handles.head_bat) > 9)		% May happen when grids are read by "grdread_m"
+		handles.head_src = handles.head_bat(1:9);
+	end
 
 	% See if Source/Mag grid is already loaded and, if yes, if they are compatible
 	if (~isempty(get(handles.edit_SourceGrid,'String')))
@@ -182,7 +186,8 @@ function push_BatGrid_CB(hObject, handles, opt)
 function edit_SourceGrid_CB(hObject, handles)
 	fname = get(hObject,'String');
 	if isempty(fname)
-		handles.Z_src = [];    return;
+		handles.Z_src = [];		guidata(handles.figure1,handles)
+		return;
 	end
 	% Let the push_SourceGrid_CB do all the work
 	push_SourceGrid_CB(handles.push_SourceGrid, handles, fname)
@@ -202,6 +207,9 @@ function push_SourceGrid_CB(hObject, handles, opt)
 
 	if (~strcmp(fname,'__inMEM'))	% Otherwise we already know those (fished in Mirone handles)
 		[handles, handles.X, handles.Y, handles.Z_src, handles.head_src] = read_gmt_type_grids(handles,fname);
+		if (numel(handles.head_src) > 9)		% May happen when grids are read by "grdread_m"
+			handles.head_src = handles.head_src(1:9);
+		end
 	end
 	
 	% See if Bat grid is already loaded and, if yes, if both grids are compatible
