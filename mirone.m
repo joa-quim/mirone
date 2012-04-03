@@ -2045,8 +2045,10 @@ function img = shade_manip_raster(azimuth, elevation, Z, size_amp)
 	dZdc = zeros(size(Z));		dZdr = zeros(size(Z));
 
 	% Take forward differences on left and right edges
-	dZdr(1,1:end) = Z(2,1:end) - Z(1,1:end);	dZdr(end,1:end) = Z(end,1:end) - Z(end-1,1:end);
-	dZdc(:,1)     = Z(:,2) - Z(:,1);			dZdc(:,end) = Z(:,end) - Z(:,end-1);
+	dZdr(1,1:end)	= (Z(2,1:end) - Z(1,1:end)) / size_amp;
+	dZdr(end,1:end)	= (Z(end,1:end) - Z(end-1,1:end)) / size_amp;
+	dZdc(:,1)		= (Z(:,2) - Z(:,1)) / size_amp;
+	dZdc(:,end)		= (Z(:,end) - Z(:,end-1)) / size_amp;
 
 	% Take centered differences on interior points
 	dZdr(2:end-1,1:end) = (Z(3:end,1:end)-Z(1:end-2,1:end)) / size_amp;
