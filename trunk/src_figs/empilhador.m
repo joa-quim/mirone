@@ -1208,7 +1208,7 @@ function Z = clipMySpikes(Z)
 % -----------------------------------------------------------------------------------------
 function att = get_baseNameAttribs(full_name)
 % Get the file's metadata and also tests if an SDS was required but does not exist
-	att = gdalread(full_name, '-M');
+	att = gdalread(full_name, '-M', '-C');
 	if (att.RasterCount > 0)
 		handles = guidata(gcf);
 		if (~isempty(handles.SDSinfo) && handles.SDSthis > 1 && ~handles.testedDS)
