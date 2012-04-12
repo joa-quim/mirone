@@ -666,9 +666,10 @@ function push_showSlice_CB(hObject, eventdata, handles)
 		V = double( mxgridtrimesh(handles.volumes, [handles.x(:) handles.y(:) V(:)],x,y) );
 		s.hAx = handles.handMir.axes1;		s.hQuiver = handles.hQuiver;	s.spacingChanged = handles.spacingChanged;
 		handles.hQuiver = loc_quiver(s, x, y, U, V, handles.vecScale);
-		set(handles.hQuiver(1), 'UserData', single([x(:)' y(:)' U(:)' V(:)']))		% Store for eventual future file saving
+		set(handles.hQuiver(1), 'UserData', {x,y,U,V})		% Store for eventual future file saving
 		cmenuHand = uicontextmenu('Parent',handles.handMir.figure1);
-		set(handles.hQuiver(1), 'UIContextMenu', cmenuHand);		set(handles.hQuiver(2), 'UIContextMenu', cmenuHand);
+		set(handles.hQuiver(1), 'UIContextMenu', cmenuHand);
+		set(handles.hQuiver(2), 'UIContextMenu', cmenuHand);
 		uimenu(cmenuHand, 'Label', 'Save arrows', 'Call', {@save_arrows, handles.hQuiver(1)});
 		if (handles.spacingChanged),	handles.spacingChanged = false;		end		% Worked once, reset it
 	elseif (~isempty(handles.hQuiver))			% If we had plotted vectors, delete them
@@ -2213,8 +2214,10 @@ function save_arrows(hObject, evt, hQuiver)
 	if isequal(FileName,0),		return,		end
 	f_name = [PathName FileName];
 	
-	vecs = double(get(hQuiver, 'UserData'));
-	double2ascii(f_name, vecs, '%.6f\t%.6f\t.6f\t%.6f');
+	setas = get(hQuiver, 'UserData');
+	x = repmat(setas{1},numel(setas{2}),1);
+	y = repmat(setas{2}(:),numel(setas{1}),1);
+	double2ascii(f_name, [x(:) y(:) setas{3}(:) setas{4}(:)], '%.6f\t%.6f\t%.6f\t%.6f');
 
 % -----------------------------------------------------------------------------------------
 function push_plugFun_CB(hObject, eventdata, handles)
