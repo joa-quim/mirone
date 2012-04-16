@@ -1,6 +1,7 @@
 function varargout = line_operations(varargin)
 % Wraper figure to perform vectorial operations on line/patch objects
 
+% $Id$
 %	Copyright (c) 2004-2012 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
@@ -652,7 +653,7 @@ function update_GMT_DB(handles, TOL)
 				xG = [xG(1:Is-1) x xG(Ie+1:end)];
 				yG = [yG(1:Is-1) y yG(Ie+1:end)];
 				set(hGMT_DB, 'XData', xG, 'YData', yG)
-				setappdata(hGMT_DB,'DBupdated',true)	% Kind of flag to guide during the saving step
+				setappdata(hGMT_DB,'edited',true)	% Kind of flag to guide during the saving step
 				delete(hLine(k))		% Delete this updatter line since it was used already
 			end
 		end
