@@ -630,7 +630,6 @@ function update_GMT_DB(handles, TOL)
 	for (n = 1:numel(hGMT_DB))
 		xG = get(hGMT_DB(n), 'XData');		yG = get(hGMT_DB(n), 'YData');
 		for (k = 1:numel(hLines))
-			%x = get(hLines(k), 'XData');	y = get(hLines(k), 'YData');
 			[x, y] = check_bombordo(hLines(k));
 			x0 = x(1) - ds;		x1 = x(1) + ds;
 			y0 = y(1) - ds;		y1 = y(1) + ds;
@@ -653,6 +652,7 @@ function update_GMT_DB(handles, TOL)
 				xG = [xG(1:Is-1) x xG(Ie+1:end)];
 				yG = [yG(1:Is-1) y yG(Ie+1:end)];
 				set(hGMT_DB, 'XData', xG, 'YData', yG)
+				setappdata(hGMT_DB,'DBupdated',true)	% Kind of flag to guide during the saving step
 				delete(hLine(k))		% Delete this updatter line since it was used already
 			end
 		end
