@@ -354,10 +354,17 @@ function varargout = load_xyz(handles, opt, opt2)
 		end
 		% -----------------------------------------------------------------------------------
 
+		% ------------------ Check if it is a GSHHS or WDBII file ---------------------------
+		if (numel(multi_segs_str{1}) > 120 && strcmp(multi_segs_str{1}(2:7),' Id = ') && ...
+				numel(strfind(multi_segs_str{1},'=')) > 10)
+			tag = 'GMT_DBpolyline';
+		end
+		% -----------------------------------------------------------------------------------
+
 		% ------------------ Check if first header line has a PROJ4 string ------------------
 		[projStr, multi_segs_str{1}] = parseProj(multi_segs_str{1});
 		if (~isempty(projStr)),		do_project = true;		end
-		%------------------------------------------------------------------------------------
+		% -----------------------------------------------------------------------------------
 
 		drawnow
 		for (i = 1:n_segments)		% Loop over number of segments of current file (external loop)
