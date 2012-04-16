@@ -211,10 +211,14 @@ function out = findFileType(fname)
 		else
 			out = 'envherd';
 		end
-	elseif ( strcmpi(EXT,'.cpt') ),		out = 'cpt';
-	elseif ( any(strcmpi(EXT,{'.dat' '.xy' '.b'}))),	out = 'dat';
-	elseif ( strcmpi(EXT,'.shp') ),		out = 'shp';
-	elseif ( strcmpi(EXT,'.las') ),		out = 'las';
+	elseif ( strcmpi(EXT,'.cpt') )
+		out = 'cpt';
+	elseif ( any(strcmpi(EXT,{'.dat' '.xy' '.b' '.txt'})))
+		out = 'dat';
+	elseif ( strcmpi(EXT,'.shp') )
+		out = 'shp';
+	elseif ( strcmpi(EXT,'.las') )
+		out = 'las';
 	elseif ( strcmpi(EXT,'.gmt') )
 		fid = fopen(fname,'rt');
 		ID = fread(fid,7,'*char');      ID = ID';      fclose(fid);
@@ -227,6 +231,8 @@ function out = findFileType(fname)
 		% Before we give up with a 'dono' check if its a netCDF file.
 		% One normaly shouldn't need it if the GDAL netCDF driver
 		% (which is where the 'dono's end up) was not so broken.
+		% This, 2012, is probably no longer true but I leave it till
+		% I have the time/patience to do a proper testing.
 		fid = fopen(fname, 'r');
 		if (fid < 0)
 			out = 'dono';
@@ -693,26 +699,26 @@ function appProjectionRef(handles, strWKT)
 
 % -*-*-*-*-*-*-$-$-$-$-$-$-#-#-#-#-#-#-%-%-%-%-%-%-@-@-@-@-@-@-(-)-(-)-(-)-&-&-&-&-&-&-{-}-{-}-{-}-
 function out = decodeProjectionRef(strProj)
-    ind = findstr(strProj,char(10));
+    ind = strfind(strProj,char(10));
     out.datum = [];     out.ellipsoid = [];     out.projection = [];
     if (numel(ind) <= 1),   return;    end
     
     ind = [0 ind length(strProj)-1];
     for (i=1:numel(ind)-1)
         str = strProj(ind(i)+1:ind(i+1)-1);
-        if ~isempty(findstr(str,'GEOGCS'))      % Get datum
-            xx = findstr(str,'"');
+        if ~isempty(strfind(str,'GEOGCS'))      % Get datum
+            xx = strfind(str,'"');
             if (numel(xx) < 2),     continue;   end
             out.datum = str(xx(1)+1:xx(2)-1);
         end
-        if ~isempty(findstr(str,'SPHEROID'))      % Get ellipsoid
+        if ~isempty(strfind(str,'SPHEROID'))      % Get ellipsoid
             if (numel(xx) < 2),     continue;   end
-            xx = findstr(str,'"');
+            xx = strfind(str,'"');
             out.ellipsoid = str(xx(1)+1:xx(2)-1);
         end
-        if ~isempty(findstr(str,'PROJECTION'))      % Get ellipsoid
+        if ~isempty(strfind(str,'PROJECTION'))      % Get ellipsoid
             if (numel(xx) < 2),     continue;   end
-            xx = findstr(str,'"');
+            xx = strfind(str,'"');
             out.projection = str(xx(1)+1:xx(2)-1);
         end
     end
