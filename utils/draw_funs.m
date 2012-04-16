@@ -1330,7 +1330,7 @@ function ll = show_LineLength(obj, eventdata, h, opt)
 	% Contour lines for example have NaNs and not at the same x,y positions (???)
 	ix = isnan(x);      x(ix) = [];     y(ix) = [];
 	iy = isnan(y);      x(iy) = [];     y(iy) = [];
-	if (handles.geog)
+	if (handles.geog && handles.DefineMeasureUnit(1) ~= 'u')
 		lat_i = y(1:end-1);   lat_f = y(2:end);     clear y;
 		lon_i = x(1:end-1);   lon_f = x(2:end);     clear x;
 		tmp = vdist(lat_i,lon_i,lat_f,lon_f,handles.DefineEllipsoide([1 3]));
