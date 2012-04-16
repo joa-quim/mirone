@@ -820,13 +820,13 @@ function setCoastLineUictx(h)
 	cb_color = uictx_color(h);				% there are 9 cb_color outputs
 	
 	uimenu(cmenuHand, 'Label', label, 'Call', 'delete(gco)');
-	uimenu(cmenuHand, 'Label', 'Edit line (left-click on it)', 'Call', 'edit_line');
 	uimenu(cmenuHand, 'Label', 'Save coastline', 'Call', {@save_formated,h});
 	
 	setLineWidth(uimenu(cmenuHand, 'Label', 'Line Width', 'Sep','on'), cb_LineWidth)
 	item_ls = uimenu(cmenuHand, 'Label', 'Line Style');
 	setLineStyle(item_ls,{cb13 cb14 cb15 cb16})
 	setLineColor(uimenu(cmenuHand, 'Label', 'Line Color'), cb_color)
+	ui_edit_polygon(h)
 
 % -----------------------------------------------------------------------------------------
 function set_PB_uicontext(h,data)
