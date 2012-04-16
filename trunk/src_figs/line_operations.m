@@ -82,13 +82,28 @@ function varargout = line_operations(varargin)
 	handles.path_tmp = varargin{1}.path_tmp;
 	IamCompiled = varargin{1}.IamCompiled;
 
-	handles.known_ops = {'bezier'; 'buffer'; 'bspline'; 'cspline'; 'group'; 'line2patch'; 'polysimplify'; 'polyunion'; 'polyintersect'; ...
-			'polyxor'; 'polyminus'; 'pline'; 'scale'; 'stitch'; 'thicken'; 'toRidge'; 'hand2Workspace'};
+	handles.known_ops = {'bezier'; 'buffer'; 'bspline'; 'cspline'; 'group'; 'line2patch'; 'polysimplify'; 'polyunion'; ...
+			'polyintersect'; 'polyxor'; 'polyminus'; 'pline'; 'scale'; 'stitch'; 'thicken'; 'toRidge'};
 	handles.hLine = [];
+	popup_cmds = {'Possible commands'; 'bezier N'; 'buffer DIST'; 'bspline'; 'cspline N RES'; ...
+			'group lines'; 'line2patch'; 'polysimplify TOL'; 'polyunion'; 'polyintersect'; 'polyxor'; 'polyminus'; ...
+			'pline [x1 ..xn; y1 .. yn]'; 'scale to [-0.5 0.5]'; 'stitch TOL'; 'thicken N'; 'toRidge 5'};
+
+	if (~IamCompiled)
+		handles.known_ops{end+1} = 'hand2Workspace';
+		popup_cmds{end+1} = 'hand2Workspace';
+	end
+
+	% --- See if we have one GMT database file loaded, as they trigger a dedicated function -----
+	hGMT_DB = findobj(handles.hMirAxes, 'tag','GMT_DBpolyline');
+	if (~isempty(hGMT_DB))
+		handles.known_ops{end+1} = 'GMT_DB';
+		popup_cmds{end+1} = 'GMT_DB';
+	end
+	% -------------------------------------------------------------------------------------------
+
 	set(handles.popup_cmds,'Tooltip', 'Select one operation from this list')
-	set(handles.popup_cmds,'String', {'Possible commands'; 'bezier N'; 'buffer DIST'; 'bspline'; 'cspline N RES'; 'group lines'; 'line2patch'; 'polysimplify TOL'; ...
-			'polyunion'; 'polyintersect'; 'polyxor'; 'polyminus'; ...
-			'pline [x1 ..xn; y1 .. yn]'; 'scale to [-0.5 0.5]'; 'stitch TOL'; 'thicken N'; 'toRidge 5'; 'hand2Workspace'} )
+	set(handles.popup_cmds,'String', popup_cmds);
 
 	if (floating)
 		move2side(handles.hMirFig, hObject, 'north')
@@ -96,7 +111,7 @@ function varargout = line_operations(varargin)
 		WindowAPI(hObject, 'TopMost')
 	end
 
-	handles.ttips = cell(numel(handles.known_ops));
+	handles.ttips = cell(numel(handles.known_ops)+1,1);
 	handles.ttips{1} = 'Select one operation from this list';
 	handles.ttips{2} = sprintf(['Fit a Bezier curve to a polyline.\n' ...
 								'Replace N by the number of nodes of the Bezier curve [default 100].']);
@@ -153,10 +168,18 @@ function varargout = line_operations(varargin)
 	handles.ttips{17} = sprintf(['Calculate a new line with vertex siting on top of nearby ridges.\n' ...
 								'The parameter N is used to search for ridges only inside a sub-region\n' ...
 								'2Nx2N centered on current vertex. Default is 5, but you can change it.']);
-	handles.ttips{18} = sprintf(['Send the selected object handles to the Matlab workspace.\n' ...
-								'Use this if you want to gain access to all handle properties.']);
 
-	if (IamCompiled),	handles.known_ops(end) = [];	handles.ttips(end) = [];	end		% regretably
+	n = 17;			% NEED TO BE EQUAL TO LAST EXPLICITLY ttips{n} above
+	if (~IamCompiled)
+		n = n + 1;
+		handles.ttips{n} = sprintf(['Send the selected object handles to the Matlab workspace.\n' ...
+								'Use this if you want to gain access to all handle properties.']);
+	end
+	if (~isempty(hGMT_DB))
+		n = n + 1;
+		handles.ttips{n} = sprintf(['Update the GMT coastlines, rivers or boundaries DB.\n' ...
+								'Just load the to-be-updated lines and hit "Apply".']);
+	end
 
 	% Add this figure handle to the carraças list
 	plugedWin = getappdata(handles.hMirFig,'dependentFigs');
@@ -206,7 +229,8 @@ function push_apply_CB(hObject, handles)
 		% Here (will come) a function call which tries to adress the general command issue
 		return
 	end
-	if ( isempty(handles.hLine) && ~strcmp(handles.known_ops{ind}, 'pline') && ~strcmp(handles.known_ops{ind},'scale') )
+	if ( isempty(handles.hLine) && ~strcmp(handles.known_ops{ind}, 'pline') && ...
+			~strcmp(handles.known_ops{ind},'scale') && ~strcmp(handles.known_ops{ind},'GMT_DB') )
 		errordlg('Fiu Fiu!! Apply WHERE????','ERROR'),	return
 	end
 	if ( ~strcmp(handles.known_ops{ind},'pline') && ~strcmp(handles.known_ops{ind},'scale') )
@@ -215,7 +239,7 @@ function push_apply_CB(hObject, handles)
 			errordlg('Invalid handle. You probably killed the line(s)','ERROR'),	return
 		end
 	end
-	
+
 	switch handles.known_ops{ind}
 
 		case 'bezier'
@@ -586,7 +610,71 @@ function push_apply_CB(hObject, handles)
 			end
 			clear mapproject_m			% Because of the memory leaks
 			set(hanMir.figure1,'pointer','arrow')
+
+		case 'GMT_DB'
+			update_GMT_DB(handles)
 	end
+
+% -------------------------------------------------------------------------------------------------
+function update_GMT_DB(handles, TOL)
+% Take the GMT database polygons displayed in the figure and update them with the
+% data from other ordinary polylines also present in the figure. The updating is done
+% after a guessing, via distance calculations, of what is closest to which.
+% End points of ordinary plines further away than DS (below) are discarded as potential
+% updaters to the GMT_DBpolyline line types.
+
+	ds = 0.02;			% Endpoints must be closer than this to the GMD_DB polygones 
+	hGMT_DB = findobj(handles.hMirAxes, 'tag','GMT_DBpolyline');
+	hLines = findobj(handles.hMirAxes, 'type', 'line');
+	hLines = setxor(hGMT_DB, hLines);	% The hGMT_DB was repeated as they are also of type 'line'
+	for (n = 1:numel(hGMT_DB))
+		xG = get(hGMT_DB(n), 'XData');		yG = get(hGMT_DB(n), 'YData');
+		for (k = 1:numel(hLines))
+			%x = get(hLines(k), 'XData');	y = get(hLines(k), 'YData');
+			[x, y] = check_bombordo(hLines(k));
+			x0 = x(1) - ds;		x1 = x(1) + ds;
+			y0 = y(1) - ds;		y1 = y(1) + ds;
+			ind = ( xG > x0 & xG < x1 & yG > y0 & yG < y1);
+			% 'ind' is not empty when the updating line is close to old one
+			if (any(ind))
+				id = find(ind);			% Index of points inside the searching region
+				dist2 = vdist(y(1), x(1), yG(id), xG(id));
+				[mins, Is] = min(dist2);
+				Is = Is + id(1) - 1;
+
+				% Now find the index of the last point of the chunk to be replaced
+				x0 = x(end) - ds;		x1 = x(end) + ds;
+				y0 = y(end) - ds;		y1 = y(end) + ds;
+				ind = ( xG > x0 & xG < x1 & yG > y0 & yG < y1);
+				id = find(ind);			% Index of points inside the searching region
+				dist2 = vdist(y(end), x(end), yG(id), xG(id));
+				[mine, Ie] = min(dist2);
+				Ie = Ie + id(1) - 1;
+				xG = [xG(1:Is-1) x xG(Ie+1:end)];
+				yG = [yG(1:Is-1) y yG(Ie+1:end)];
+				set(hGMT_DB, 'XData', xG, 'YData', yG)
+				delete(hLine(k))		% Delete this updatter line since it was used already
+			end
+		end
+	end
+
+function [x, y] = check_bombordo(hLine)
+% Get the data points from the line handle and check that they are "bombordo" oriented
+% as required by the GMT database coastlines. If not, reverse them.
+
+	x = get(hLine, 'XData');	y = get(hLine, 'YData');
+	N = numel(x);		n = 2;
+	det = (x(2) - x(1)) * (y(3) - y(1)) - (x(3) - x(1)) * (y(2) - y(1));
+	while (det == 0 && n < N - 2)		% If first points are colinear, keep calculating till find one != 0
+		det = (x(n+1) - x(n)) * (y(n+2) - y(n)) - (x(n+2) - x(n)) * (y(n+1) - y(n));	
+	end
+	if (det > 0)			% If determinant is positive data is CCW oriented (leave land on estibordo)
+		x = x(end:-1:1);	% and we have to revert it
+		y = y(end:-1:1);
+	elseif (det == 0)
+		warndlg('CHECK BOMBORDO: Very strange polygon that is a pure straight line.','Warning')
+	end
+% -------------------------------------------------------------------------------------------------
 
 % -------------------------------------------------------------------------------------------------
 function [hLineClosest, endType, indOfFound] = find_closestline(hMe, hLines, TOL)
