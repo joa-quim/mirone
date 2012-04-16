@@ -62,6 +62,7 @@ function ui_edit_polygon(varargin)
 %	JL	25-Aug-2008 Added the "e" (extend) keyboard option
 %	JL	08-Feb-2010 Added 'y' or 'x' to the move_choice option
 
+% $Id$
 %	Copyright (c) 2004-2012 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
@@ -287,7 +288,8 @@ function wbm_EditPolygon(obj,eventdata,h,lim,hFig)
 	set(s.hCurrentMarker,'XData',newx,'YData',newy)	% Move the current point marker together with the editing point
 
 %--------------------------------------------------
-function wbu_EditPolygon(obj,eventdata,h,state)
+function wbu_EditPolygon(obj,evt,h,state)
+	setappdata(h,'edited',true)
 	uirestore_j(state, 'nochildren');	% Restore the figure's initial state
 
 %--------------------------------------------------
@@ -310,7 +312,7 @@ function move_polygon(h)
 		'WindowButtonUpFcn',{@wbu_MovePolygon,h,state}, 'Pointer','fleur');
 
 %--------------------------------------------------
-function wbm_MovePolygon(obj,eventdata,h,lim)
+function wbm_MovePolygon(obj,evt,h,lim)
 	s = getappdata(h,'polygon_data');
 	pt = get(s.h_ax, 'CurrentPoint');
 	if (pt(1,1) < lim(1)) || (pt(1,1) > lim(2)) || (pt(1,2) < lim(3)) || (pt(1,2) > lim(4)),	return,	end
@@ -340,11 +342,12 @@ function wbm_MovePolygon(obj,eventdata,h,lim)
 	end
 
 %--------------------------------------------------
-function wbu_MovePolygon(obj,eventdata,h,state)
+function wbu_MovePolygon(obj,evt,h,state)
+	setappdata(h,'edited',true)
 	uirestore_j(state, 'nochildren');		% Restore the figure's initial state
 
 %--------------------------------------------------
-function KeyPress_local(obj,eventdata,h)
+function KeyPress_local(obj,evt,h)
 
 if (~ishandle(h)),		return,		end
 s = getappdata(h,'polygon_data');
@@ -360,10 +363,9 @@ switch key
 		delete(s.hCurrentMarker);         s.hCurrentMarker = [];
 		s.vert_index = [];
 		set(s.h_pol,'XData',x,'YData',y)		% Update data
-		if (~isempty(z))
-			setappdata(s.h_pol,'ZData',z)
-		end
-                       
+		if (~isempty(z)),		setappdata(s.h_pol,'ZData',z),		end
+		setappdata(h,'edited',true)
+
 	case {'i', 'I', '+'}				% insert vertex
 		pt = get(s.h_ax, 'CurrentPoint');
 		x = get(s.h_pol,'XData');		y = get(s.h_pol,'YData');
@@ -381,9 +383,8 @@ switch key
 			set(s.hCurrentMarker,'XData',pt(1,1),'YData',pt(1,2));
 		end
 		set(s.h_pol,'XData',x,'YData',y)
-		if (~isempty(z))
-			setappdata(s.h_pol,'ZData',z)
-		end
+		if (~isempty(z)),		setappdata(s.h_pol,'ZData',z),		end
+		setappdata(h,'edited',true)
 
 	case {'b', 'B'}						% break line
 		if (isempty(s.vert_index)),		return,		end		% No reference vertice selected
@@ -412,6 +413,8 @@ switch key
 		ui_edit_polygon(tmp)
 		s.is_closed = false;		% Its not closed anymore
 		uistack_j(tmp,'bottom')      % I'm not yet ready to accept this bloated op
+		setappdata(h,'edited',true)
+		setappdata(tmp,'edited',true)
 
 	case {'c', 'C'}					% close line
 		if (s.is_patch || s.is_closed),		return,		end		% Don't close what is already closed
@@ -421,6 +424,7 @@ switch key
 		set(s.h_pol,'XData',[x x(1)],'YData',[y y(1)]);
 		if (~isempty(z)),	setappdata(s.h_pol,'ZData',[z z(1)]),		end
 		s.is_closed = true;
+		setappdata(h,'edited',true)
 
 	case {'e', 'E'}					% edit (extend) line with getline_j
 		s.vert_index = [];			% delete vertex markers
@@ -438,6 +442,7 @@ switch key
 		n2 = numel(x);
 		set(s.h_pol, 'XData',x, 'YData',y);
 		if (~isempty(z)),	setappdata(s.h_pol,'ZData',[z repmat(z(end),1,n2-n1)]);	end		% Reset the Zs
+		setappdata(h,'edited',true)
 		return
                        
 	case {'n', 'p'}							% Move active vertex one step forward or backward
@@ -467,6 +472,7 @@ switch key
 		setappdata(p,'polygon_data',s_old);			% Set the corrected appdata
 		polygonui(s.h_pol)							% Remove the markers
 		delete(s.h_pol)								% Delete the ancestor
+		setappdata(h,'edited',true)
 		ui_edit_polygon(p)							% Start all over
 		return
 
