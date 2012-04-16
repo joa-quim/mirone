@@ -1281,16 +1281,17 @@ function show_Area(obj,eventdata,h)
 	iy = isnan(y);
 	x(iy) = [];				y(iy) = [];
 	if ~( (x(1) == x(end)) && (y(1) == y(end)) )
-        msg{1} = 'This is not a closed line. Result is therefore probably VERY idiot';
+        msg{1} = 'This is not a closed line. Therefore the result is probably ...';
 	else
         msg{1} = '';
 	end
 	if (handles.geog)
-        area = area_geo(y,x);    % Area is reported on the unit sphere
-		eRad = handles.EarthRad;	str_units = 'km^2';
-		if (handles.DefineMeasureUnit(1) == 'm'),	eRad = eRad * 1000;		str_units = 'm^2';	end
-        area = area * 4 * pi * (eRad ^2);
-        msg{2} = sprintf('Area = %g %s', area, str_units);
+        area = area_geo(y,x,handles.DefineEllipsoide);    % Area is reported on the default ellipsoide
+		str_units = 'm^2';		frmt = '%.2f';
+		if (handles.DefineMeasureUnit(1) == 'k')
+			area = area * 1e-6;		str_units = 'km^2';		frmt = '%.3f';
+		end
+        msg{2} = sprintf(['Area = ' frmt ' ' str_units], area);
         msgbox(msg,'Area')
 	else
         area = polyarea(x,y);   % Area is reported in map user unites
