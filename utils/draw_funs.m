@@ -10,6 +10,7 @@ function varargout = draw_funs(hand, varargin)
 %	the data from an object handle, call with HAND = []. E.g (in load_xyz)
 %	draw_funs([], 'doSave_formated', x, y, z)
 
+% $Id$
 %	Copyright (c) 2004-2012 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
@@ -2257,7 +2258,7 @@ function remove_symbolClass(obj,eventdata,h)
 	delete(h_all)
 
 % -----------------------------------------------------------------------------------------
-function remove_singleContour(obj,eventdata,h)
+function remove_singleContour(obj, evt, h)
 	% Delete an individual contour and its eventual label(s)
 	labHand = getappdata(h,'LabelHands');
 	if (~isempty(labHand))
@@ -2266,37 +2267,56 @@ function remove_singleContour(obj,eventdata,h)
 	delete(h)
 
 % -----------------------------------------------------------------------------------------
-function save_line(obj,eventdata,h)
+function save_line(obj, evt, h)
 % Save either individual as well as class lines. The latter uses the ">" symbol to separate segments
 	if (nargin == 3),   h = h(ishandle(h));     end
 	handles = guidata(gcbo);
 	str1 = {'*.dat;*.DAT', 'Line file (*.dat,*.DAT)'; '*.*', 'All Files (*.*)'};
 	[FileName,PathName] = put_or_get_file(handles,str1,'Select Line File name','put','.dat');
-	if isequal(FileName,0),		return,		end
-	if (nargin == 2)	% Save only one line   
-		x = get(gco,'XData');    y = get(gco,'YData');
-	else				% Save a line class
-		x = get(h,'XData');      y = get(h,'YData');
-	end
-	
+	if isequal(FileName,0),			return,		end
+	if (nargin == 2),	h = gco;	end			% Save only one line
+	x = get(h,'XData');				y = get(h,'YData');
+
 	fname = [PathName FileName];
 	[PATH,FNAME,EXT] = fileparts([PathName FileName]);
 	if isempty(EXT),    fname = [PathName FNAME '.dat'];    end
+
+	if (strcmp(get(h, 'Tag'),'GMT_DBpolyline'))
+		save_GMT_DB_asc(h, fname)
+		return
+	end
 	
 	fid = fopen(fname, 'w');
-	if (fid < 0),   errordlg(['Can''t open file:  ' fname],'Error');    return;     end
+	if (fid < 0),	errordlg(['Can''t open file:  ' fname],'Error'),	return,		end
 	if (~iscell(x))
 		fprintf(fid,'%.5f\t%.5f\n',[x(:)'; y(:)']);
 	else
-		for i=1:length(h)
+		for (i = 1:numel(h))
 			fprintf(fid,'%s\n','>');
 			fprintf(fid,'%.5f\t%.5f\n',[x{i}(:)'; y{i}(:)']);
 		end
 	end
 	fclose(fid);
 
+function save_GMT_DB_asc(h, fname)
+% Go through all GMT_DB polygons present in figure and save only those who have been edited
+	fid = fopen(fname, 'w');
+	if (fid < 0),	errordlg(['Can''t open file:  ' fname],'Error'),	return,		end
+	h = findobj('Tag','GMT_DBpolyline');
+	for (k = 1:numel(h))
+		if ( isempty(getappdata(h(k), 'edited')) ),		continue,	end		% Skip because it was not modified
+		hdr = getappdata(h(k), 'LineInfo');
+		x = get(h(k), 'XData');			y = get(h(k), 'YData');
+		ind1 = strfind(hdr,'N = ');		ind2 = strfind(hdr,'G = ');
+		hdr = sprintf('> %s%d %s', hdr(1:ind1+3), numel(x), hdr(ind2:end));
+		fprintf(fid,'%s\n',hdr);
+		fprintf(fid,'%.6f\t%.6f\n',[x; y]);
+	end
+	fclose(fid);
 % -----------------------------------------------------------------------------------------
-function export_symbol(obj, eventdata, h, opt)
+
+% -----------------------------------------------------------------------------------------
+function export_symbol(obj, evt, h, opt)
 	h = h(ishandle(h));
 	tag = get(h,'Tag');
 	xx = get(h,'XData');    yy = get(h,'YData');
@@ -2504,7 +2524,7 @@ function ODP_info(obj,eventdata,h,leg,site,z,penetration)
 			double(leg(i)), double(z(i)), double(penetration(i)) ),'ODP info')
 
 % -----------------------------------------------------------------------------------------
-function Isochrons_Info(obj,eventdata,data)
+function Isochrons_Info(obj, evt, data)
 	i = get(gco,'Userdata');
 	if (isstruct(i))    % This happens when h is ui_edit_polygon(ed)
 		i = i.old_ud;
