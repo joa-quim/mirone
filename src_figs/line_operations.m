@@ -20,11 +20,8 @@ function varargout = line_operations(varargin)
 	if (isempty(varargin)),		return,		end
 	if (~isfield(varargin{1}, 'head')),		return,		end		% Call from an empty fig
 
-	if (strncmp(computer,'PC',2))
-		floating = true;
-	else
-		floating = false;
-	end
+	isPC = strncmp(computer,'PC',2);
+	floating = isPC;
  
 	hMirFig = varargin{1}.figure1;
 	hMirAxes = varargin{1}.axes1;
@@ -81,6 +78,7 @@ function varargout = line_operations(varargin)
 	handles.geog = varargin{1}.geog;
 	handles.head = varargin{1}.head;
 	handles.path_tmp = varargin{1}.path_tmp;
+	handles.isPC = isPC;
 	IamCompiled = varargin{1}.IamCompiled;
 
 	handles.known_ops = {'bezier'; 'buffer'; 'bspline'; 'cspline'; 'group'; 'line2patch'; 'polysimplify'; 'polyunion'; ...
@@ -220,7 +218,9 @@ function popup_cmds_CB(hObject, handles)
 function push_apply_CB(hObject, handles)
 	cmd = get(handles.edit_cmd,'String');
 	if (isempty(cmd))
-		errordlg('Fiu Fiu!! Apply WHAT????','ERROR'),	return
+		h = errordlg('Fiu Fiu!! Apply WHAT????','ERROR');
+		if (handles.isPC),	WindowAPI(h, 'TopMost'),	end
+		return
 	end
 
 	[t, r] = strtok(cmd);
@@ -232,12 +232,17 @@ function push_apply_CB(hObject, handles)
 	end
 	if ( isempty(handles.hLine) && ~strcmp(handles.known_ops{ind}, 'pline') && ...
 			~strcmp(handles.known_ops{ind},'scale') && ~strcmp(handles.known_ops{ind},'GMT_DB') )
-		errordlg('Fiu Fiu!! Apply WHERE????','ERROR'),	return
+		h = errordlg('Fiu Fiu!! Apply WHERE????','ERROR');
+		if (handles.isPC),	WindowAPI(h, 'TopMost'),	end
+		return
 	end
-	if ( ~strcmp(handles.known_ops{ind},'pline') && ~strcmp(handles.known_ops{ind},'scale') )
+	if ( ~strcmp(handles.known_ops{ind},'pline') && ~strcmp(handles.known_ops{ind},'scale') && ...
+			 ~strcmp(handles.known_ops{ind},'GMT_DB') )
 		handles.hLine = handles.hLine(ishandle(handles.hLine));
 		if (isempty(handles.hLine))
-			errordlg('Invalid handle. You probably killed the line(s)','ERROR'),	return
+			h = errordlg('Invalid handle. You probably killed the line(s)','ERROR');
+			if (handles.isPC),	WindowAPI(h, 'TopMost'),	end
+			return
 		end
 	end
 
@@ -338,7 +343,8 @@ function push_apply_CB(hObject, handles)
 
 		case 'group'
 			if ( ~strcmp(get(handles.hLine(1),'Type'),'line') )
-				warndlg('The selected object is not of type LINE. Objects of type PATCH are not currently "groupable"','Warning')
+				h = warndlg('The selected object is not of type LINE. Objects of type PATCH are not currently "groupable"','Warning');
+				if (handles.isPC),	WindowAPI(h, 'TopMost'),	end
 				return
 			end
 			lt = get(handles.hLine, 'LineWidth');		lc = get(handles.hLine, 'Color');
@@ -412,7 +418,8 @@ function push_apply_CB(hObject, handles)
 				h = line('XData',x, 'YData',y, 'Parent',handles.hMirAxes, 'Color',handles.lc, 'LineWidth',handles.lt, 'Tag','polyline');
 				draw_funs(h,'line_uicontext')
 			catch
-				errordlg(['Something screwd up. Error message is ' lasterr])
+				h = errordlg(['Something screwd up. Error message is ' lasterr]);
+				if (handles.isPC),	WindowAPI(h, 'TopMost'),	end
 			end
 
 		case 'scale'
@@ -638,7 +645,7 @@ function update_GMT_DB(handles, TOL)
 			% 'ind' is not empty when the updating line is close to old one
 			if (any(ind))
 				id = find(ind);			% Index of points inside the searching region
-				dist2 = vdist(y(1), x(1), yG(id), xG(id));
+				dist2 = vdist(y(1), x(1), yG(id), xG(id), [6378137, 0, 1/298.2572235630]);
 				[mins, Is] = min(dist2);
 				Is = Is + id(1) - 1;
 
@@ -647,34 +654,45 @@ function update_GMT_DB(handles, TOL)
 				y0 = y(end) - ds;		y1 = y(end) + ds;
 				ind = ( xG > x0 & xG < x1 & yG > y0 & yG < y1);
 				id = find(ind);			% Index of points inside the searching region
-				dist2 = vdist(y(end), x(end), yG(id), xG(id));
+				dist2 = vdist(y(end), x(end), yG(id), xG(id), [6378137, 0, 1/298.2572235630]);
 				[mine, Ie] = min(dist2);
 				Ie = Ie + id(1) - 1;
 				xG = [xG(1:Is-1) x xG(Ie+1:end)];
 				yG = [yG(1:Is-1) y yG(Ie+1:end)];
 				set(hGMT_DB, 'XData', xG, 'YData', yG)
 				setappdata(hGMT_DB,'edited',true)	% Kind of flag to guide during the saving step
-				delete(hLine(k))		% Delete this updatter line since it was used already
+				delete(hLines(k))		% Delete this updatter line since it was used already
 			end
 		end
 	end
 
 function [x, y] = check_bombordo(hLine)
-% Get the data points from the line handle and check that they are "bombordo" oriented
+% Get the data points from the line handle and check that they are "bombordo" (CCW) oriented
 % as required by the GMT database coastlines. If not, reverse them.
 
 	x = get(hLine, 'XData');	y = get(hLine, 'YData');
-	N = numel(x);		n = 2;
-	det = (x(2) - x(1)) * (y(3) - y(1)) - (x(3) - x(1)) * (y(2) - y(1));
-	while (det == 0 && n < N - 2)		% If first points are colinear, keep calculating till find one != 0
-		det = (x(n+1) - x(n)) * (y(n+2) - y(n)) - (x(n+2) - x(n)) * (y(n+1) - y(n));	
-	end
-	if (det > 0)			% If determinant is positive data is CCW oriented (leave land on estibordo)
+	xt = x(1:2:end-1);			yt = y(1:2:end-1);	% Ensure testing polygon is not closed and save resources
+	xt = xt - mean(xt);
+	n = numel(xt);
+	i = [2:n 1];
+	j = [3:n 1 2];
+	k = (1:n);
+	a = sum(xt(i) .* (yt(j) - yt(k)));
+	if (a < 0)				% If area is negative data is CW oriented (leave land on estibordo)
 		x = x(end:-1:1);	% and we have to revert it
 		y = y(end:-1:1);
-	elseif (det == 0)
-		warndlg('CHECK BOMBORDO: Very strange polygon that is a pure straight line.','Warning')
-	end
+	end	
+% 	N = numel(x);		n = 2;
+% 	det = (x(2) - x(1)) * (y(3) - y(1)) - (x(3) - x(1)) * (y(2) - y(1));
+% 	while (det == 0 && n < N - 2)		% If first points are colinear, keep calculating till find one != 0
+% 		det = (x(n+1) - x(n)) * (y(n+2) - y(n)) - (x(n+2) - x(n)) * (y(n+1) - y(n));	
+% 	end
+% 	if (det > 0)			% If determinant is positive data is CCW oriented (leave land on estibordo)
+% 		x = x(end:-1:1);	% and we have to revert it
+% 		y = y(end:-1:1);
+% 	elseif (det == 0)
+% 		warndlg('CHECK BOMBORDO: Very strange polygon that is a pure straight line.','Warning')
+% 	end
 % -------------------------------------------------------------------------------------------------
 
 % -------------------------------------------------------------------------------------------------
