@@ -661,6 +661,7 @@ function update_GMT_DB(handles, TOL)
 					h = warndlg(['The updating polygon had a wrong orientation non detected by the test,' ...
 						' or the test failled miserably. In either case, polygon was ignored.'],'Warning');
 					if (handles.isPC),	WindowAPI(h, 'TopMost'),	end
+					continue
 				end
 				xG = [xG(1:Is-1) x xG(Ie+1:end)];
 				yG = [yG(1:Is-1) y yG(Ie+1:end)];
