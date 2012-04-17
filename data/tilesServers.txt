@@ -5,7 +5,7 @@
 # BEFORE YOU ASK. GOOGLE MAPS USE OUTSIDE GOOGLES PRODUCTS IS ILEGAL ACCORDING TO THEIR TERMS OF USE
 #		Images						Maps					Hybrid			Quadtree key
 a0.ortho.tiles.virtualearth.net/tiles/a	r0.ortho.tiles.virtualearth.net/tiles/r	h0.ortho.tiles.virtualearth.net/tiles/h		0132
-khm0.google.com/kh/v=81&x=		mt2.google.com/mt/v=w2.92&x= 	mt3.google.com/mt/v=w2t.92&x= 		qrst
+khm0.google.com/kh/v=108&x=		mt2.google.com/mt/v=w2.92&x= 	mt3.google.com/mt/v=w2t.92&x= 		qrst
 mw1.google.com/mw-planetary/mars/elevation/t mw1.google.com/mw-planetary/mars/elevation/t mw1.google.com/mw-planetary/mars/elevation/t	qrst
 mw1.google.com/mw-planetary/mars/visible/t mw1.google.com/mw-planetary/mars/visible/t mw1.google.com/mw-planetary/mars/visible/t	qrst
 mw1.google.com/mw-planetary/mars/infrared/t mw1.google.com/mw-planetary/mars/infrared/t mw1.google.com/mw-planetary/mars/infrared/t	qrst
