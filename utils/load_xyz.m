@@ -28,6 +28,7 @@ function varargout = load_xyz(handles, opt, opt2)
 %		'>-:'		swap 1st and 2nd columns (assumed as (y,x) -> (x,y))
 %		'>CLOSE'	plot patches instead of lines (idependently of pline being closed or not)
 
+% $Id: $
 %	Copyright (c) 2004-2012 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
@@ -67,6 +68,7 @@ function varargout = load_xyz(handles, opt, opt2)
 	struc_vimage = [];
 	is_bin = false;				% To flag binary files
 	BB = [];					% To eventually hold a BoundingBox
+	is_GMT_DB = false;			% To flag the special cases when we are dealing with the GMT database polygons
 	% ---------------------------------------------------------------------
 
 	% ------------------- Parse inputs ------------------------------------
@@ -357,7 +359,7 @@ function varargout = load_xyz(handles, opt, opt2)
 		% ------------------ Check if it is a GSHHS or WDBII file ---------------------------
 		if (numel(multi_segs_str{1}) > 120 && strcmp(multi_segs_str{1}(2:7),' Id = ') && ...
 				numel(strfind(multi_segs_str{1},'=')) > 10)
-			tag = 'GMT_DBpolyline';
+			tag = 'GMT_DBpolyline';		is_GMT_DB = true;
 		end
 		% -----------------------------------------------------------------------------------
 
@@ -394,17 +396,23 @@ function varargout = load_xyz(handles, opt, opt2)
 			end
 
 			indx = false;	indy = false;			% Default to no need for map clipping
-			difes = [( double(numeric_data{i}(1,1)) - double(numeric_data{i}(end,1)) ) ...	% Remember R13
-				( double(numeric_data{i}(1,2)) - double(numeric_data{i}(end,2)) )];
-			if (any(abs(difes) > 1e-4))				% Not a closed polygon
-				if (handles.no_file)
-					tmpx = numeric_data{i}(:,1);	tmpy = numeric_data{i}(:,2);
-				else
-					[tmpx,tmpy,indx,indy] = ...		% Get rid of points that are outside the map limits
-						aux_funs('in_map_region',handles,numeric_data{i}(:,1),numeric_data{i}(:,2),tol,[xx yy]);
-				end
-			else
+			if (handles.no_file)
 				tmpx = numeric_data{i}(:,1);		tmpy = numeric_data{i}(:,2);
+			else
+	 			difes = [( double(numeric_data{i}(1,1)) - double(numeric_data{i}(end,1)) ) ...	% Remember R13
+					( double(numeric_data{i}(1,2)) - double(numeric_data{i}(end,2)) )];
+				if (any(abs(difes) > 1e-5))			% Assume a not closed polygon
+					[tmpx, tmpy, indx, indy] = ...	% Get rid of points that are outside the map limits
+						aux_funs('in_map_region',handles,numeric_data{i}(:,1),numeric_data{i}(:,2),tol,[xx yy]);
+				elseif (~is_GMT_DB)
+					% TEMPORARY. For now if the polygon is partially inside we plot it all (no clipping)
+					[tmpx, tmpy, indx, indy] = ...
+						aux_funs('in_map_region',handles,numeric_data{i}(:,1),numeric_data{i}(:,2),-1,[xx yy]);
+				else
+					% SPECIAL case of GMT database polygons. Lon my be wrapped around the sphere and header string updated
+					[tmpx, tmpy, indx, indy, multi_segs_str{i}] = ...
+						aux_funs('in_map_region',handles,numeric_data{i}(:,1),numeric_data{i}(:,2),-1,[xx yy],multi_segs_str{i});
+				end
 			end
 			if (isempty(tmpx)),     n_clear(i) = true;     continue,		end     % Store indexes for clearing vanished segments info
 			if ( numel(numeric_data{i}(1,:)) >= 3 )		% If we have a Z column
