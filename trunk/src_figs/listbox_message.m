@@ -1,13 +1,14 @@
-function listbox_message(text,ind,opt)
+function listbox_message(texto,ind,opt)
 % Display a text file in a listbox
-% TEXT is the text to add to the lisbox fields
+% TEXTO is the text to add to the lisbox fields
 % IND is the number on the lisbox fields (equivalent to the 'Value' propertie)
 % OPT = 'add' OR = 'rep' OR = 'del' OR = 'ins'. Where
 %   'add' adds a new field at the end of list
-%   'rep' replaces field number 'ind' by 'text'
+%   'rep' replaces field number 'ind' by 'texto'
 %   'del' deletes field number 'ind'
 %   'ins' inserts a new field at position 'ind'
 
+% $Id: $
 %	Copyright (c) 2004-2012 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
@@ -35,36 +36,36 @@ function listbox_message(text,ind,opt)
 
 	h_oldF = findobj('Tag','FigIsocAges');
 
-if (isempty(h_oldF))        % First time call. Create figure
-	hf = figure('menubar','none','Tag','FigIsocAges','numbertitle','off','Name','Ages',...
-		'resizefcn',@resize_callback);
-	addSaveButton(hf,'SAVE');
+	if (isempty(h_oldF))        % First time call. Create figure
+		hf = figure('menubar','none','Tag','FigIsocAges','numbertitle','off','Name','Ages',...
+			'resizefcn',@resize_callback);
+		addSaveButton(hf,'SAVE');
 
-	tbpos = getTBPos(hf);
-	h_list = uicontrol(hf,'style','listbox','position',tbpos,'BackgroundColor',[1 1 1],...
-		'tag','textbox','string',{text});
+		tbpos = getTBPos(hf);
+		h_list = uicontrol(hf,'style','listbox','position',tbpos,'BackgroundColor',[1 1 1],...
+			'tag','textbox','string',{texto});
 
-	handles = guihandles(hf);
-	handles.h_list = h_list;
-	guidata(hf,handles);
-else
-	handles = guidata(h_oldF);
-	if (~isempty(handles))
-		str = get(handles.h_list,'String');
-		if (any(strcmp(opt,{'rep' 'add'}))) % Replace entry number 'ind'
-			str{ind} = text;
-		elseif (strcmp(opt,'del'))          % Delete the entry number 'ind'
-			str(ind) = [];
-		else                                % New field inserted at position 'ind'
-			tmp = cell(length(str)+1,1);
-			tmp(1:ind-1) = str(1:ind-1);
-			tmp(ind) = {text};
-			tmp(ind+1:length(str)+1) = str(ind:end);
-			str = tmp;
+		handles = guihandles(hf);
+		handles.h_list = h_list;
+		guidata(hf,handles);
+	else
+		handles = guidata(h_oldF);
+		if (~isempty(handles))
+			str = get(handles.h_list,'String');
+			if (any(strcmp(opt,{'rep' 'add'}))) % Replace entry number 'ind'
+				str{ind} = texto;
+			elseif (strcmp(opt,'del'))          % Delete the entry number 'ind'
+				str(ind) = [];
+			else                                % New field inserted at position 'ind'
+				tmp = cell(length(str)+1,1);
+				tmp(1:ind-1) = str(1:ind-1);
+				tmp(ind) = {texto};
+				tmp(ind+1:length(str)+1) = str(ind:end);
+				str = tmp;
+			end
+			set(handles.h_list,'string',str);
 		end
-		set(handles.h_list,'string',str);
 	end
-end
 
 %------------------------------------
 function resize_callback(obj,eventdata)
