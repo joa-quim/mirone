@@ -2733,65 +2733,63 @@ function sout = ddewhite(s)
 %   Author:      Peter J. Acklam
 %   Time-stamp:  2002-03-03 13:45:06 +0100
 	
-	error(nargchk(1, 1, nargin));
-	if ~ischar(s),   error('DDWHITE ERROR: Input must be a string (char array).');     end
-	if isempty(s),   sout = s;      return;     end
+	if (nargin == 0),	error('DDWHITE ERROR: No input transmitted.');     end
+	if ~ischar(s),		error('DDWHITE ERROR: Input must be a string (char array).');     end
+	if isempty(s),		sout = s;		return,		end
 	
 	[r, c] = find(~isspace(s));
-	if (size(s, 1) == 1),   sout = s(min(c):max(c));
-	else                    sout = s(:,min(c):max(c));
+	if (size(s, 1) == 1),	sout = s(min(c):max(c));
+	else					sout = s(:,min(c):max(c));
 	end
 
 % --------------------------------------------------------------------
 function set_transparency(obj,eventdata, h_patch)
 % Sets the transparency of a patch object
 
-if (nargin == 2)
-	h_patch = gco;
-end
-p_fc = get(h_patch,'FaceColor');
-if ( strcmpi(p_fc,'none') )
-	msg{1} = 'Transparency assumes that the element has a color';
-	msg{2} = 'However, as you will agree, that is not the case.';
-	msg{3} = 'See "Fill color" in this element properties.';
-	warndlg(msg,'Warning')
-	return
-end
+	if (nargin == 2),	h_patch = gco;	end
+	p_fc = get(h_patch,'FaceColor');
+	if ( strcmpi(p_fc,'none') )
+		msg{1} = 'Transparency assumes that the element has a color';
+		msg{2} = 'However, as you will agree, that is not the case.';
+		msg{3} = 'See "Fill color" in this element properties.';
+		warndlg(msg,'Warning')
+		return
+	end
 
-handles = guidata(get(0,'CurrentFigure'));
-r_mode = get(handles.figure1,'RendererMode');
-if (~strcmp(r_mode,'auto'))
-	set(handles.figure1,'RendererMode','auto')
-end
+	handles = guidata(get(0,'CurrentFigure'));
+	r_mode = get(handles.figure1,'RendererMode');
+	if (~strcmp(r_mode,'auto'))
+		set(handles.figure1,'RendererMode','auto')
+	end
 
-set(handles.figure1,'doublebuffer','on')        % I may be wrong, but I think patches are full of bugs
+	set(handles.figure1,'doublebuffer','on')        % I may be wrong, but I think patches are full of bugs
 
-% Define height of the bar code
-width = 7.0;            % Figure width in cm
-height = 1.5;           % Figure height in cm
+	% Define height of the bar code
+	width = 7.0;            % Figure width in cm
+	height = 1.5;           % Figure height in cm
 
-% Create figure for transparency display
-F = figure('Units','centimeters',...
-	'Position',[1 10 [width height]],...
-	'Toolbar','none', 'Menubar','none',...
-	'Numbertitle','off',...
-	'Name','Transparency',...
-	'RendererMode','auto',...
-	'Visible','of',...
-	'Color',[.75 .75 .75]);
+	% Create figure for transparency display
+	F = figure('Units','centimeters',...
+		'Position',[1 10 [width height]],...
+		'Toolbar','none', 'Menubar','none',...
+		'Numbertitle','off',...
+		'Name','Transparency',...
+		'RendererMode','auto',...
+		'Visible','of',...
+		'Color',[.75 .75 .75]);
 
-T = uicontrol('style','text','string','Transparency  ',...
-	'fontweight','bold','horizontalalignment','left',...
-	'units','normalized','pos',[0.05  0.2  0.7  0.25],...
-	'backgroundcolor',[.75 .75 .75]);
+	T = uicontrol('style','text','string','Transparency  ',...
+		'fontweight','bold','horizontalalignment','left',...
+		'units','normalized','pos',[0.05  0.2  0.7  0.25],...
+		'backgroundcolor',[.75 .75 .75]);
 
-transp = get(h_patch,'FaceAlpha');     % Get the previous transparency value
+	transp = get(h_patch,'FaceAlpha');     % Get the previous transparency value
 
-pos=[0.02 0.5 .97 .25];
-S = {@apply_transparency,T,h_patch,handles};
-uicontrol('style','slider','units','normalized','position',pos, 'Call',S,'min',0,'max',1,'Value',transp);
+	pos=[0.02 0.5 .97 .25];
+	S = {@apply_transparency,T,h_patch,handles};
+	uicontrol('style','slider','units','normalized','position',pos, 'Call',S,'min',0,'max',1,'Value',transp);
 
-set(F,'Visible','on')
+	set(F,'Visible','on')
 
 % -----------------------------------------------------------------------------------------
 function apply_transparency(obj,eventdata,T,h_patch,handles)
