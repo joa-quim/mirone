@@ -265,7 +265,7 @@ function sow_GMT_DB_IDs(obj, event)
 		if ( any( (x >= rx(1) & x <= rx(2)) & (y >= ry(1) & y <= ry(2)) ) )
 			str = getappdata(hGMT_DB(m), 'LineInfo');
 			ind_IDi = strfind(str, 'Id = ');		ind_IDe = strfind(str, ' N =');
-			ID{m} = str(ind_IDi+6:ind_IDe-1);
+			ID{m} = str(ind_IDi+5:ind_IDe-1);
 			c(m) = true;
 		end
 	end
