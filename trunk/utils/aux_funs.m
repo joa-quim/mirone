@@ -3,6 +3,7 @@ function  varargout = aux_funs(opt,varargin)
 % of the Mirone's callback functions. I puted them here to release somehow
 % the burden of the non-stop groing length of the Mirone code.
 
+% $Id$
 %	Copyright (c) 2004-2012 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
@@ -96,14 +97,16 @@ function StoreZ(handles,X,Y,Z)
 	setappdata(handles.figure1,'dem_x',X);  setappdata(handles.figure1,'dem_y',Y);
 
 % --------------------------------------------------------------------
-function [x,y,indx,indy] = in_map_region(handles,x,y,tol,map_lims)
+function [x,y,indx,indy,hdr_str] = in_map_region(handles, x, y, tol, map_lims, hdr_str)
 %   Given X & Y vectors retain only the elements that are inside the current map region
 %   OPTIONS:
 %   TOL is used normally when ploting lines and serves to extend the map
 %       limits so that lines are allowed to be drawn until the image borders
-%   MAP_LIMS a 1x4 vector with [x_min x_max y_min y_max]. If not given it will be geted here
+%   MAP_LIMS a 1x4 vector with [x_min x_max y_min y_max]. If not given it will be fetch here
 %   NOTE THAT ALL ARGUMENTS MUST BE PROVIDED, EVEN IF THEY ARE EMPTY
-	if (isempty(tol)),   tol = 0;    end
+
+	if (isempty(tol)),	tol = 0;		end
+	if (nargin == 5),	hdr_str = [];	end
 	if (isempty(map_lims))
         x_lim = get(handles.axes1,'Xlim');      y_lim = get(handles.axes1,'Ylim');
 	else
@@ -112,15 +115,48 @@ function [x,y,indx,indy] = in_map_region(handles,x,y,tol,map_lims)
 	if (handles.geog == 2 && x_lim(2) > 180)			% If basemap is in the [0 360] range
 		indx = (x < 0);		x(indx) = x(indx) + 360;	% and we may need the wrapping. Do it.
 	end
-	indx = find((x < x_lim(1)-tol) | (x > x_lim(2)+tol));
-	x(indx) = [];           y(indx) = [];
-	if (nargout == 2),      clear indx;     end         % Save memory
-	indy = find((y < y_lim(1)-tol) | (y > y_lim(2)+tol));
-	x(indy) = [];           y(indy) = [];
-	axes(handles.axes1)     % This is for the GCP mode be able to plot on the Master Image
+
+	if (tol >= 0)
+		indx = find((x < x_lim(1)-tol) | (x > x_lim(2)+tol));
+		x(indx) = [];           y(indx) = [];
+		if (nargout == 2),      clear indx;     end         % Save memory
+		indy = find((y < y_lim(1)-tol) | (y > y_lim(2)+tol));
+		x(indy) = [];           y(indy) = [];
+		set(handles.figure1,'CurrentAxes',handles.axes1)	% This is for the GCP mode be able to plot on the Master Image
+	else
+		indx = [];		indy = [];				% Set this while we don't do any cipping
+		if (nargin == 6)						% Very special case of GMT_DB polygons
+			ind_Gi = strfind(hdr_str, 'G = ');		ind_Ge = strfind(hdr_str, ' L =');	
+			%ind_Ei = strfind(hdr_str, 'E = ');		ind_Ee = strfind(hdr_str, ' S =');	
+			ind_Ri = strfind(hdr_str, 'R = ');		ind_Re = strfind(hdr_str, ' A =');
+			pol_lims = sscanf(hdr_str(ind_Ri+4:ind_Re-1), '%f/%f/%f/%f')';	% This polygon limits
+			green = sscanf(hdr_str(ind_Gi+4:ind_Ge-1), '%d');				% Greenwich and/or Dateline crossing
+			%datelon = sscanf(hdr_str(ind_Ei+4:ind_Ee-1), '%d');
+			reco = rectangle_and(map_lims, pol_lims);
+			if (isempty(reco) && ~green)		% Try again by checking if there is a [-180 180] [0 360] ambiguity
+				if (handles.geog == 1)			% lon [-180 180]
+					reco = rectangle_and(map_lims, pol_lims - [360 360 0 0]);
+					shift = -360;
+				else							% DON'T LIKE THIS CASE. IT SHOULD NEVER OCCUR
+					reco = rectangle_and(map_lims, pol_lims + [360 360 0 0]);
+					shift = 360;
+				end
+				if (~isempty(reco))				% Ah ah, got one. Wrap it to the visible side of the world
+					x = x + shift;
+					hdr_str = sprintf('%s%f/%f/%f/%f%s', ...
+						hdr_str(1:ind_Ri+3), pol_lims(1:2)+shift,pol_lims(3:4), hdr_str(ind_Re:end));
+				else
+					x = [];		y = [];			% No interception
+				end
+			end
+		elseif ~( min(x) >= x_lim(1) || max(x) <= x_lim(2) || min(y) >= y_lim(1) || max(y) <= y_lim(2) )
+			x = [];		y = [];		% No interception
+			% there is no 'else' case while the rectangle cipping is not implemented
+		end
+	end
 
 % --------------------------------------------------------------------
-function [rect,rect_crop] = rectangle_and(head1,head2)
+function [rect,rect_crop] = rectangle_and(head1, head2)
 %   Given two handles.head vectors, compute the intersection rectangle of the two regions
 %	RECT id a 5x2 matrix with rectangle coords X in first col and Y in second
 %	RECT_CROP is a row vector with [Xll Yll DX DY] (Xll -> lower left point)
