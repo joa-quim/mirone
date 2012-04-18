@@ -5,7 +5,7 @@ function varargout = mirone(varargin)
 %
 %	mirone('CALLBACK',handles,...) calls the local function named CALLBACK with the given input arguments.
 
-% $ID:$
+% $Id: $
 %	Copyright (c) 2004-2012 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
@@ -327,7 +327,7 @@ function hObject = mirone_OpeningFcn(varargin)
 
 	guidata(hObject, handles);
 	tmp.home_dir = home_dir;	tmp.work_dir = handles.work_dir;	tmp.last_dir = handles.last_dir;
-	setappdata(0,'MIRONE_DIRS',tmp);			% To access from places where handles.home_dir is unknown (must precede gateLoadFile())
+	setappdata(0,'MIRONE_DIRS',tmp);		% To access from places where handles.home_dir is unknown (must precede gateLoadFile())
 	if (~isempty(drv))
 		gateLoadFile(handles,drv,varargin{1});		% load recognized file types
 	else
@@ -1983,7 +1983,8 @@ function ImageAnaglyph_CB(handles)
 
 	if (handles.geog)
 		p_size = sqrt((x_inc * deg2m) * (y_inc * deg2m * cos ((y_max + y_min)*0.5 * D2R))); 
-	else		p_size = x_inc * y_inc;
+	else
+		p_size = x_inc * y_inc;
 	end
 
 	azimuth	= -90 * D2R;	elevation = 20 * D2R;
