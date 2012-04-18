@@ -630,25 +630,28 @@ function update_GMT_DB(handles, TOL)
 % after a guessing, via distance calculations, of what is closest to which.
 % End points of ordinary plines further away than DS (below) are discarded as potential
 % updaters to the GMT_DBpolyline line types.
+%
+% It would be nice to search for the closest GMT_DB / Updater pair and not just the first
+% one that is found, but I'm not sure it worth the effort. Some day perhaps.
 
 	ds = 0.02;			% Endpoints must be closer than this to the GMD_DB polygones 
 	hGMT_DB = findobj(handles.hMirAxes, 'tag','GMT_DBpolyline');
 	hLines = findobj(handles.hMirAxes, 'type', 'line');
 	hLines = setxor(hGMT_DB, hLines);	% The hGMT_DB was repeated as they are also of type 'line'
-	for (n = 1:numel(hGMT_DB))
-		xG = get(hGMT_DB(n), 'XData');		yG = get(hGMT_DB(n), 'YData');
-		%is_DBclosed = (xG(1) == xG(end) && yG(1) == yG(end));		% YES fos the coastlines, but forcedly for others
-		for (k = 1:numel(hLines))
-			[x, y] = check_bombordo(hLines(k));
-			%is_UPDATERclosed = (x(1) == x(end) && y(1) == y(end));
+	for (k = 1:numel(hLines))
+		[x, y] = check_bombordo(hLines(k));
+		%is_UPDATERclosed = (x(1) == x(end) && y(1) == y(end));
+		for (n = 1:numel(hGMT_DB))
+			xG = get(hGMT_DB(n), 'XData');		yG = get(hGMT_DB(n), 'YData');
+			%is_DBclosed = (xG(1) == xG(end) && yG(1) == yG(end));		% YES for the coastlines, but not forcedly for others
 			x0 = x(1) - ds;		x1 = x(1) + ds;
 			y0 = y(1) - ds;		y1 = y(1) + ds;
 			ind = ( xG > x0 & xG < x1 & yG > y0 & yG < y1);
 			% 'ind' is not empty when the updating line is close to old one
 			if (any(ind))
 				id = find(ind);			% Index of points inside the searching region
-				dist2 = vdist(y(1), x(1), yG(id), xG(id), [6378137, 0, 1/298.2572235630]);
-				[mins, Is] = min(dist2);
+				dist = vdist(y(1), x(1), yG(id), xG(id), [6378137, 0, 1/298.2572235630]);
+				[minS, Is] = min(dist);
 				Is = Is + id(1) - 1;
 
 				% Now find the index of the last point of the chunk to be replaced
@@ -656,8 +659,8 @@ function update_GMT_DB(handles, TOL)
 				y0 = y(end) - ds;		y1 = y(end) + ds;
 				ind = ( xG > x0 & xG < x1 & yG > y0 & yG < y1);
 				id = find(ind);			% Index of points inside the searching region
-				dist2 = vdist(y(end), x(end), yG(id), xG(id), [6378137, 0, 1/298.2572235630]);
-				[mine, Ie] = min(dist2);
+				dist = vdist(y(end), x(end), yG(id), xG(id), [6378137, 0, 1/298.2572235630]);
+				[minE, Ie] = min(dist);
 				Ie = Ie + id(1) - 1;
 				if (Ie < Is)
 					h = warndlg(['The updating polygon had a wrong orientation non detected by the test,' ...
@@ -669,7 +672,8 @@ function update_GMT_DB(handles, TOL)
 				yG = [yG(1:Is-1) y yG(Ie+1:end)];
 				set(hGMT_DB(n), 'XData', xG, 'YData', yG)
 				setappdata(hGMT_DB(n),'edited',true)	% Kind of flag to guide during the saving step
-				delete(hLines(k))		% Delete this updatter line since it was used already
+				delete(hLines(k))					% Delete this updatter line since it was used already
+				break
 			end
 		end
 	end
@@ -690,17 +694,6 @@ function [x, y] = check_bombordo(hLine)
 		x = x(end:-1:1);	% and we have to revert it
 		y = y(end:-1:1);
 	end	
-% 	N = numel(x);		n = 2;
-% 	det = (x(2) - x(1)) * (y(3) - y(1)) - (x(3) - x(1)) * (y(2) - y(1));
-% 	while (det == 0 && n < N - 2)		% If first points are colinear, keep calculating till find one != 0
-% 		det = (x(n+1) - x(n)) * (y(n+2) - y(n)) - (x(n+2) - x(n)) * (y(n+1) - y(n));	
-% 	end
-% 	if (det > 0)			% If determinant is positive data is CCW oriented (leave land on estibordo)
-% 		x = x(end:-1:1);	% and we have to revert it
-% 		y = y(end:-1:1);
-% 	elseif (det == 0)
-% 		warndlg('CHECK BOMBORDO: Very strange polygon that is a pure straight line.','Warning')
-% 	end
 % -------------------------------------------------------------------------------------------------
 
 % -------------------------------------------------------------------------------------------------
