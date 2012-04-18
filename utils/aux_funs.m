@@ -264,19 +264,14 @@ function out = findFileType(fname)
 	elseif ( any(strcmpi(EXT,{'.kml' '.gml' '.dxf' '.gpx' '.dgn' '.csv' '.s57' '.svg'})) )
 		out = 'ogr';
 	else
-		% Before we give up with a 'dono' check if its a netCDF file.
-		% One normaly shouldn't need it if the GDAL netCDF driver
-		% (which is where the 'dono's end up) was not so broken.
-		% This, 2012, is probably no longer true but I leave it till
-		% I have the time/patience to do a proper testing.
-		fid = fopen(fname, 'r');
-		if (fid < 0)
-			out = 'dono';
-			return
-		end
-		ID = fread(fid,3,'*char');      ID = ID';      fclose(fid);
-		if (strcmp(ID, 'CDF')),			out = 'gmt';
-		else							out = 'dono';
+		% OK, here we'll send ASCII files to load_xyz and binary to GDAL ... and see what happens.
+		bin = guess_file(fname);
+		if (isempty(bin))		% Should be a "ERROR READING FILE"
+			out = 'boom';		% Unknow from caller, but it will trigger the error message
+		elseif (bin == 0)
+			out = 'dat';		% ASCII, send it to try luck with load_xyz
+		else
+			out = 'dono';		% It will go try luck with GDAL
 		end
 	end
 
