@@ -637,8 +637,10 @@ function update_GMT_DB(handles, TOL)
 	hLines = setxor(hGMT_DB, hLines);	% The hGMT_DB was repeated as they are also of type 'line'
 	for (n = 1:numel(hGMT_DB))
 		xG = get(hGMT_DB(n), 'XData');		yG = get(hGMT_DB(n), 'YData');
+		%is_DBclosed = (xG(1) == xG(end) && yG(1) == yG(end));		% YES fos the coastlines, but forcedly for others
 		for (k = 1:numel(hLines))
 			[x, y] = check_bombordo(hLines(k));
+			%is_UPDATERclosed = (x(1) == x(end) && y(1) == y(end));
 			x0 = x(1) - ds;		x1 = x(1) + ds;
 			y0 = y(1) - ds;		y1 = y(1) + ds;
 			ind = ( xG > x0 & xG < x1 & yG > y0 & yG < y1);
@@ -665,8 +667,8 @@ function update_GMT_DB(handles, TOL)
 				end
 				xG = [xG(1:Is-1) x xG(Ie+1:end)];
 				yG = [yG(1:Is-1) y yG(Ie+1:end)];
-				set(hGMT_DB, 'XData', xG, 'YData', yG)
-				setappdata(hGMT_DB,'edited',true)	% Kind of flag to guide during the saving step
+				set(hGMT_DB(n), 'XData', xG, 'YData', yG)
+				setappdata(hGMT_DB(n),'edited',true)	% Kind of flag to guide during the saving step
 				delete(hLines(k))		% Delete this updatter line since it was used already
 			end
 		end
