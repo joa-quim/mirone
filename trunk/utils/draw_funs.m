@@ -302,7 +302,7 @@ function set_line_uicontext(h, opt)
 			uimenu(item_tools, 'Label', 'Histogram', 'Call', 'image_histo(guidata(gcbo),gco)');
 		end
 		uimenu(item_tools, 'Label', 'Image process', 'Sep','on', 'Call', 'mirone(''DrawClosedPolygon_CB'',guidata(gcbo),gco)');
-		deal_opts({'MGG' 'MICROLEV'}, cmenuHand);
+		deal_opts({'MGG' 'MICROLEV' 'GMT_DB_IDS'}, cmenuHand);
 	end
 
 	if (~IS_SEISPOLYG && LINE_ISCLOSED && ~IS_RECTANGLE)
@@ -2632,7 +2632,7 @@ function del_line(obj,eventdata,h)
 % -----------------------------------------------------------------------------------------
 function del_insideRect(obj,eventdata,h)
 % Delete all lines/patches/text objects that have at least one vertex inside the rectangle
-    
+
 	s = getappdata(h,'polygon_data');
 	if (~isempty(s))            % If the rectangle is in edit mode, force it out of edit
 		if strcmpi(s.controls,'on'),    ui_edit_polygon(h);     end
@@ -2667,7 +2667,7 @@ function del_insideRect(obj,eventdata,h)
 			delete(hLP(i))
 		end
 	end
-	
+
 	found = false;
 	for (i=1:numel(hText))      % Text objs are a bit different, so treat them separately
 		pos = get(hText(i),'Position');
