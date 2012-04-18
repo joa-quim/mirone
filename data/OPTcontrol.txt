@@ -46,7 +46,7 @@ MIR_CPT zzz C:\a1\pathfinder\zzz.cpt
 #MIR_OD C:\SVN\mironeWC\continents\out_displacement.dat
 
 # File with case selection and the EXACT arguments to run one of the main functions in aquaPlugin
-MIR_AQUAPLUG C:\SVN\mironeWC\data\example_data\aquaplug_CASE5_sc.txt 
+MIR_AQUAPLUG C:\SVN\mironeWC\data\example_data\aquaplug_CASE4_sc.txt 
 
 # Variables used in converting L2 satellite images from sensor to geographical coordinates.
 # First one contains parameters of interpolation (-C is gmtmbgrid only) and second are quality flags for SeaWiffs
@@ -55,3 +55,6 @@ MIR_AQUAPLUG C:\SVN\mironeWC\data\example_data\aquaplug_CASE5_sc.txt
 #MIR_EMPILHADOR_F LAND,SSTWARN,SSTFAIL
 # Uncomment to despike the MODIS L2 SST noise that it displays every other 10 rows 
 #MIR_EMPILHADOR_C AVG
+
+# Activate the option to display the GMT database polygons ID inside a ROI rectangle
+MIR_GMT_DB_IDS
