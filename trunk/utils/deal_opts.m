@@ -10,6 +10,7 @@ function out = deal_opts(opt, opt2, varargin)
 % OPT2 optionally may hold the name of an internal sub-function, in which case that function
 % is called with eventual extra arguments transmited in varargin
 
+% $Id$
 %	Copyright (c) 2004-2012 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
@@ -52,8 +53,8 @@ function out = deal_opts(opt, opt2, varargin)
 		opt = {opt};
 	end
 
-	for (k = 1:numel(lines))
-		for (n = 1:numel(opt))		% Somtimes one single call holgs multiple choices
+	for (k = 1:numel(lines))		% Loop over the keyword lines of the OPTcontrol.txt file
+		for (n = 1:numel(opt))		% Somtimes one single call holds multiple choices
 			switch lower(opt{n})
 				case 'gmtedit'		% To select what to plot in GMTEDIT slots
 					if (strncmp(lines{k}(5:end),'GMTEDIT',7))
@@ -89,6 +90,15 @@ function out = deal_opts(opt, opt2, varargin)
 							hCust = uimenu(opt2, 'Label', 'Custom','Sep','on');
 						end
 						uimenu(hCust, 'Label', 'ROI microleveling', 'Call', 'microlev(gco)');
+						break
+					end
+
+				case 'gmt_db_ids'		% To report the IDs of the GMT database polygons inside rectangle
+					if (strncmp(lines{k}(5:end),'GMT_DB_IDS',10))
+						if (~hCust)				% Create a uimenu associated to a rectangle
+							hCust = uimenu(opt2, 'Label', 'Custom','Sep','on');
+						end
+						uimenu(hCust, 'Label', 'Show GMT db polygon IDs', 'Call', @sow_GMT_DB_IDs);
 						break
 					end
 			end
@@ -239,3 +249,29 @@ function tracks = get_MGGtracks(obj, event, x, y)
 		mirone('GeophysicsImportGmtFile_CB',guidata(gcbo), tracks)
 	end
 	delete(tmp_file);
+	
+% -----------------------------------------------------------------------------------------
+function sow_GMT_DB_IDs(obj, event)
+% See if there are GMT DB polygons inside the rectangle, and if yes display their IDs
+
+	hRect = gco;		handles = guidata(hRect);
+
+	hGMT_DB = findobj(handles.axes1, 'tag','GMT_DBpolyline');
+	rx = get(hRect,'XData');		ry = get(hRect,'YData');
+	rx = [min(rx) max(rx)];			ry = [min(ry) max(ry)];
+	c = false(numel(hGMT_DB),1);	ID = cell(numel(hGMT_DB),1);
+	for (m = 1:numel(hGMT_DB))			% Loop over objects to find out which cross the rectangle
+		x = get(hGMT_DB(m),'XData');	y = get(hGMT_DB(m),'YData');
+		if ( any( (x >= rx(1) & x <= rx(2)) & (y >= ry(1) & y <= ry(2)) ) )
+			str = getappdata(hGMT_DB(m), 'LineInfo');
+			ind_IDi = strfind(str, 'Id = ');		ind_IDe = strfind(str, ' N =');
+			ID{m} = str(ind_IDi+6:ind_IDe-1);
+			c(m) = true;
+		end
+	end
+	if (any(c))
+		ID = ID(c);
+		listbox_message(ID, 1, 'add')
+	else
+		msgbox('Nope, nothing arround here')
+	end
