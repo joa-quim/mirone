@@ -1,6 +1,8 @@
 function listbox_message(texto,ind,opt)
 % Display a text file in a listbox
-% TEXTO is the text to add to the lisbox fields
+% TEXTO is the text to add to the lisbox fields.
+%	On the first call to this fucntion (that is when the list is empty) TEXTO
+%	can be either a char string or a cell array of strings.
 % IND is the number on the lisbox fields (equivalent to the 'Value' propertie)
 % OPT = 'add' OR = 'rep' OR = 'del' OR = 'ins'. Where
 %   'add' adds a new field at the end of list
@@ -8,7 +10,7 @@ function listbox_message(texto,ind,opt)
 %   'del' deletes field number 'ind'
 %   'ins' inserts a new field at position 'ind'
 
-% $Id: $
+% $Id$
 %	Copyright (c) 2004-2012 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
@@ -42,8 +44,9 @@ function listbox_message(texto,ind,opt)
 		addSaveButton(hf,'SAVE');
 
 		tbpos = getTBPos(hf);
+		if (~isa(texto, 'cell')),	texto = {texto};	end
 		h_list = uicontrol(hf,'style','listbox','position',tbpos,'BackgroundColor',[1 1 1],...
-			'tag','textbox','string',{texto});
+			'Min',0, 'Max',2, 'tag','textbox', 'string',texto);
 
 		handles = guihandles(hf);
 		handles.h_list = h_list;
@@ -93,10 +96,15 @@ function savebutton_callback(obj,eventdata)
 	handles = guidata(obj);
 	str = get(handles.h_list,'String');
 	ages = sort(str2double(str));
+	if (any(ages - fix(ages)))		% See if data are all floats or all integers.
+		frmt = '%.3f';				% This manip is harmless because the ages array is always small
+	else
+		frmt = '%d';
+	end
 	str1 = {'*.dat;*.DAT', 'Data file (*.dat,*.DAT)';'*.*', 'All Files (*.*)'};
 	[FileName,PathName] = uiputfile(str1,'Select output file name');
-	if isequal(FileName,0);     return;     end
-	double2ascii([PathName FileName],ages,'%.3f');
+	if isequal(FileName,0),		return,		end
+	double2ascii([PathName FileName], ages, frmt);
 
 %------------------------------------
 function tbpos = getSavePos(hf)
