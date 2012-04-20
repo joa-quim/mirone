@@ -84,7 +84,8 @@ function TTT(handles,opt)
 			end
 			tt = sqrt(tmp/size(xy_t,1));	tit = 'Ray tracing solution';	clear tmp;
 		end
-		head(5) = min(min(tt));    head(6) = max(max(tt));
+		zz = grdutils(tt,'-L');
+		head(5:6) = double(zz(1:2));
 		tmp.X = X;		tmp.Y = Y;		tmp.head = head;	tmp.name = tit;
 		set(handles.figure1,'pointer','arrow');
 		mirone(tt, tmp);
