@@ -61,8 +61,8 @@ function ui_edit_polygon(varargin)
 %					Allow choosing what mouse selection is used to move the whole polygon.
 %	JL	25-Aug-2008 Added the "e" (extend) keyboard option
 %	JL	08-Feb-2010 Added 'y' or 'x' to the move_choice option
+%	JL	21-apr-2012 Significant re-write with a large boost in efficiency by not needing to duplicate line
 
-% $Id$
 %	Copyright (c) 2004-2012 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
@@ -77,6 +77,8 @@ function ui_edit_polygon(varargin)
 %
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
+
+% $Id$
 
 	if (isa(varargin{end},'char'))	% Moving polygon option was transmitted in input
 		move_choice = varargin{end};
@@ -109,12 +111,23 @@ function ui_edit_polygon(varargin)
 			s = getappdata(varargin{i},'polygon_data');
 			if strcmpi(s.controls,'on')
 				set(s.h_fig,'selectiontype','open');
-				polygonui(s.h_pol)
+				if (s.duplicate)			% Old style wich implies creating a line copy
+					polygonui(s.h_pol)
+				else
+					polygonui(s.h_pol)		% Faster routines that only switch markers on/off
+				end
 			end
 
 		else
+			if (~strcmp(get(varargin{i},'Marker'),'none'))	% Lines with markers need a different set of functions
+				s.duplicate = true;							% Because we can't simply set the markers ON to use for
+			else											% edition. Instead we need to create a copy of the line object
+				s.duplicate = false;
+			end
+
 			% Creating data-structure for polygon
 			s.h_pol = varargin{i};
+			s.h_vert = [];
 			s.hCurrentMarker = [];
 			s.h_ax = get(s.h_pol,'parent');
 			s.h_fig = get(s.h_ax,'parent');
@@ -154,7 +167,11 @@ function ui_edit_polygon(varargin)
 
 			s.what_move = move_choice;
 
-			set(s.h_pol,'buttondownfcn',@polygonui);
+			if (~s.duplicate)
+				set(s.h_pol,'buttondownfcn',@polygonui);		% Faster routines that only switch markers on/off
+			else
+				set(s.h_pol,'buttondownfcn',@polygonui);	% Old style wich implies creating a line copy
+			end
 			setappdata(s.h_pol,'polygon_data',s)
 		end
 	end
@@ -168,9 +185,13 @@ function polygonui(varargin)
 	if (~strcmpi(stype,'open')),	return,		end
 
 	switch s.controls
-		case 'on'					% Getting out of the edit mode
-			set(s.h_pol, 'Marker', 'none')
-			s.vert_index = [];		% delete vertice markers
+		case 'on'						% Getting out of the edit mode
+			s.vert_index = [];			% delete vertice markers
+			if (~s.duplicate)
+				set(s.h_pol, 'Marker', 'none')
+			else
+				delete(s.h_vert);		s.h_vert = [];		
+			end
 			if (~isempty(s.hCurrentMarker) && ishandle(s.hCurrentMarker))
 				delete(s.hCurrentMarker);		s.hCurrentMarker = [];
 			end
@@ -185,21 +206,26 @@ function polygonui(varargin)
 			h_active = getappdata(s.h_fig,'epActivHand');
 			if (h_active),		polygonui(h_active),	end
 			setappdata(s.h_fig,'epActivHand',s.h_pol)
-
 			s.controls = 'on';
-			set(s.h_pol, 'Marker','s','MarkerEdgeColor','r', 'MarkerFaceColor','none', ...
-					'MarkerSize',5,'buttondownfcn',{@edit_polygon,s.h_pol});
+			if (~s.duplicate)
+				set(s.h_pol, 'Marker','s','MarkerEdgeColor','r', 'MarkerFaceColor','none', ...
+						'MarkerSize',5,'buttondownfcn',{@edit_polygon,s.h_pol});
+			else
+				s.h_vert = line('xdata',get(s.h_pol,'XData'),'ydata',get(s.h_pol,'YData'), ...
+						'Parent',s.h_ax, 'Marker','s','color','r', 'MarkerFaceColor','none', ...
+						'linestyle','none','MarkerSize',5,'buttondownfcn',{@edit_polygon,s.h_pol});
+			end
 			set(s.h_fig,'KeyPressFcn',{@KeyPress_local, s.h_pol})
 			setappdata(s.h_pol,'polygon_data',s)
 	end
 
 %--------------------------------------------------
-function edit_polygon(obj,eventdata,h)
+function edit_polygon(obj,evt,h)
 % Edit the polygon whose handle is h
 	s = getappdata(h,'polygon_data');
 	stype = get(s.h_fig,'selectiontype');
 	if strcmp(stype,'open')					% When a line has many vertices, the markers may completely
-		polygonui(s.h_pol,eventdata)		% hide it. So the only way to get out of edition mode is
+		polygonui(s.h_pol,evt)				% hide it. So the only way to get out of edition mode is
 		return								% to provide an other exit. That's where this call to
 	end										% polygonui('markermousedown') comes to hand.        
 
@@ -286,9 +312,16 @@ function wbm_EditPolygon(obj,eventdata,h,lim,hFig)
 
 	set(s.h_pol, 'XData',x, 'YData',y);
 	set(s.hCurrentMarker,'XData',newx,'YData',newy)	% Move the current point marker together with the editing point
+	if (s.duplicate)
+		set(s.h_vert,'XData',x, 'YData',y)			% Move the marker together with the editing point
+	end
 
 %--------------------------------------------------
 function wbu_EditPolygon(obj,evt,h,state)
+	s = getappdata(h,'polygon_data');
+	if (s.duplicate)
+		uistack(s.h_vert,'top')			% Need to do this because the black marker has no ButtonDown and was on top
+	end
 	setappdata(h,'edited',true)
 	uirestore_j(state, 'nochildren');	% Restore the figure's initial state
 
@@ -317,9 +350,8 @@ function wbm_MovePolygon(obj,evt,h,lim)
 	pt = get(s.h_ax, 'CurrentPoint');
 	if (pt(1,1) < lim(1)) || (pt(1,1) > lim(2)) || (pt(1,2) < lim(3)) || (pt(1,2) > lim(4)),	return,	end
 	old_pt = getappdata(s.h_pol,'old_pt');
-	xx = get(s.h_pol,'XData');      yy = get(s.h_pol,'YData');
-	dx = pt(1,1) - old_pt(1);       dy = pt(1,2) - old_pt(2);
-	xx = xx + dx;                   yy = yy + dy;
+	dx = pt(1,1) - old_pt(1);			dy = pt(1,2) - old_pt(2);
+	xx = get(s.h_pol,'XData') + dx;		yy = get(s.h_pol,'YData') + dy;
 	setappdata(s.h_pol,'old_pt',[pt(1,1) pt(1,2)])
  	if ( isempty(s.what_move) || s.what_move(1) == 'a' )
 		set(s.h_pol, 'XData',xx, 'YData',yy);
@@ -332,8 +364,13 @@ function wbm_MovePolygon(obj,evt,h,lim)
 	if (~isempty(s.hCurrentMarker))				% If the black marker exists, move it too
 		x = get(s.hCurrentMarker,'XData');		y = get(s.hCurrentMarker,'YData');
 		if ( isempty(s.what_move) || s.what_move(1) == 'a' )
-			x = x + dx;		y = y + dy;
-	 	elseif ( ~isempty(s.what_move) && s.what_move(1) == 'y' )
+			if (isa(xx,'double'))
+				x = x + dx;		y = y + dy;
+			else
+				x = cvlib_mex('addS', x, dx);	% R13 ...
+				y = cvlib_mex('addS', y, dy);
+			end
+	 	elseif ( ~isempty(s.what_move) && s.what_move(1) == 'y' )	% gmtedit, I think
 			y = y + dy;
 		else
 			x = x + dx;
@@ -343,6 +380,10 @@ function wbm_MovePolygon(obj,evt,h,lim)
 
 %--------------------------------------------------
 function wbu_MovePolygon(obj,evt,h,state)
+	s = getappdata(h,'polygon_data');
+	if (s.duplicate)
+		uistack(s.h_vert,'top')			% Need to do this because the black marker has no ButtonDown and was on top
+	end
 	setappdata(h,'edited',true)
 	uirestore_j(state, 'nochildren');		% Restore the figure's initial state
 
@@ -362,7 +403,9 @@ switch key
 		if (~isempty(z)),	z(s.vert_index) = [];	end
 		delete(s.hCurrentMarker);         s.hCurrentMarker = [];
 		s.vert_index = [];
-		set(s.h_pol,'XData',x,'YData',y)		% Update data
+		if (~s.duplicate),	set(s.h_pol,'XData',x,'YData',y)		% Update data
+		else				set([s.h_pol s.h_vert],'XData',x,'YData',y)
+		end
 		if (~isempty(z)),		setappdata(s.h_pol,'ZData',z),		end
 		setappdata(h,'edited',true)
 
@@ -382,7 +425,9 @@ switch key
 			s.vert_index = s.vert_index+1;
 			set(s.hCurrentMarker,'XData',pt(1,1),'YData',pt(1,2));
 		end
-		set(s.h_pol,'XData',x,'YData',y)
+		if (~s.duplicate),	set(s.h_pol,'XData',x,'YData',y)		% Update data
+		else				set([s.h_pol s.h_vert],'XData',x,'YData',y)
+		end
 		if (~isempty(z)),		setappdata(s.h_pol,'ZData',z),		end
 		setappdata(h,'edited',true)
 
@@ -395,7 +440,9 @@ switch key
 
 		if (numel(x1) == 1 || numel(x2) == 1),		return,		end         % We don't break at extremities
 
-		set(s.h_pol,'XData',x1,'YData',y1);
+		if (~s.duplicate),	set(s.h_pol,'XData',x1,'YData',y1)
+		else				set([s.h_pol s.h_vert],'XData',x1,'YData',y1)
+		end
 		if (~isempty(z))
 			z1 = z(1:s.vert_index);     z2 = z(s.vert_index:end);
 			setappdata(s.h_pol,'ZData',z1)
@@ -427,6 +474,7 @@ switch key
 		setappdata(h,'edited',true)
 
 	case {'e', 'E'}					% edit (extend) line with getline_j
+		if (s.duplicate),	delete(s.h_vert);		s.h_vert = [];		end
 		s.vert_index = [];			% delete vertex markers
 		if (~isempty(s.hCurrentMarker) && ishandle(s.hCurrentMarker))
 			delete(s.hCurrentMarker);		s.hCurrentMarker = [];
