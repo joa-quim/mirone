@@ -17,13 +17,15 @@ function    img = shading_mat(img,R,scale)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
+% $Id$
+
 	if (nargin == 2),    scale = 'scale';    end
 
 	rows = size(img,1);
 	cols = size(img,2);
-	if (strcmp(scale,'scale'))      % Scale R into [-1 1] interval
-		if (~isa(R,'double')),      R = double(R);  end
-		Rmax = max(R(:));   Rmin = min(R(:));
+	if (strcmp(scale,'scale'))		% Scale R into [-1 1] interval
+		if (~isa(R,'double')),		R = double(R);  end
+		Rmax = max(R(:));			Rmin = min(R(:));
 		esc = 1 / (Rmax -Rmin);
 		R = (-1 + 2*((R-Rmin)*esc)) * 0.95;
 	end
@@ -33,5 +35,4 @@ function    img = shading_mat(img,R,scale)
 		R = cvlib_mex('resize',R,[rows cols]);
 	end
 
-	[r,g,b] = mex_illuminate(img,R);        % mex_illuminate should output img
-	img = reshape([r g b],rows,cols,3);
+	img = mex_illuminate(img,R);		% It now uses OpenMP
