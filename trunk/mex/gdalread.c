@@ -22,7 +22,7 @@
  *
  * Revision 22 12/11/2011 Added option -s to force output as float. Force error when fail to open file
  * Revision 21 23/02/2010 nedCDF bug is perhaps fixed. Limit previous solution to to pre 1.7 version
- * Revision 20 17/02/2009 Added -L option to deal with MODIS L2 left-right flipping stupidity
+ * Revision 20 17/02/2009 Added -L option to deal with MODIS L2 left-right flipping
  * Revision 19 15/01/2009 Added the "Name" field to the attributes struct
  * Revision 18 18/03/2008 Another attempt to patch the broken netCDF driver
  * Revision 17 26/01/2008 Moved the y_min > y_max test to before the correct_bounds case.  
@@ -1348,10 +1348,14 @@ mxArray *populate_metadata_struct (char *gdal_filename , int correct_bounds, int
 			dptr2[5] = z_max;
 		}	
 
-		if (!pixel_reg)			/* See if we want grid or pixel registration */
-			dptr2[6] = 0;
-		else
+		/* See if we want grid or pixel registration */
+		if (correct_bounds == FALSE && pixel_reg == FALSE)	/* Neither -C or -F so use GDAL defaults */
 			dptr2[6] = 1;
+		else if (pixel_reg)
+			dptr2[6] = 1;		/* pixel registration */
+		else
+			dptr2[6] = 0;		/* grid registration */
+
 		dptr2[7] = adfGeoTransform[1];
 		dptr2[8] = fabs(adfGeoTransform[5]);
 
