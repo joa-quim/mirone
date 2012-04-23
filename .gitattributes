@@ -507,6 +507,7 @@ netcdf3.6.3/include/netcdfcpp.h -text
 netcdf3.6.3/lib/libnetcdf_w32.dll -text
 netcdf3.6.3/lib/libnetcdf_w32.exp -text
 netcdf3.6.3/lib/libnetcdf_w32.lib -text
+/netcdf4_w32.dll -text
 /opencv_calib3d211.dll -text
 /opencv_core211.dll -text
 /opencv_imgproc211.dll -text
