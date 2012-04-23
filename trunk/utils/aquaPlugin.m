@@ -37,6 +37,8 @@ function aquaPlugin(handles, auto)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
+% $Id$
+
 	if ( isempty(handles.fname) )
 		errordlg('Fast trigger, you probably killed my previous encarnation. Now you have to start again. Bye.','Error')
 		return
@@ -678,14 +680,18 @@ function calc_yearMean(handles, months, fname2, flag, nCells, fname3, splina, ti
 		regionalMIN = 0;				regionalMAX = 32;
 	end
 
+	handles.geog = 1;		handles.was_int16 = 0;		handles.computed_grid = 0;
+	n_anos = handles.number_of_timesteps / 12;
+
 	if (splina)
 		n_pad_months = 7;		% Example: if months = 7:9 interpolation domain is 7-n_pad_months-1:9+n_pad_months
+		if (n_anos == 1)
+			n_pad_months = 0;
+			warndlg('Time series is too short to do the spline interpolation option.','WARNING')
+		end
 		total_months = numel(months) + 2*n_pad_months;
 		ZtoSpline = alloc_mex(rows, cols, total_months, 'single', NaN);
 	end
-
-	handles.geog = 1;		handles.was_int16 = 0;		handles.computed_grid = 0;
-	n_anos = handles.number_of_timesteps / 12;
 
 	aguentabar(0,'title','Computing annual means.','CreateCancelBtn');
 	if (~splina)
