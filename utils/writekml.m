@@ -16,6 +16,8 @@ function writekml(handles,Z,fname)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
+% $Id$
+
 	if (handles.no_file)	return,		end
 	if (nargin <= 2)
 		if (nargin == 1)					% Only HANDLES was transmited (called via clicked callback)
@@ -180,31 +182,38 @@ function writekml(handles,Z,fname)
 				writePolygon(fid, lonc, latc, z, cores, 1, 'SSs')
 			end
 			fprintf(fid,'\t%s\n','</Folder>');
-			ALLlineHand = setxor(ALLlineHand, h);           % h is processed, remove it from handles list
+			ALLlineHand = setxor(ALLlineHand, h);			% h is processed, remove it from handles list
 		end
 
 		% Search for points as Markers but first look for 'DATABASE' symbols
 		hDB = findobj(ALLlineHand,'Tag','City_major');
 		hDB = [hDB; findobj(ALLlineHand,'Tag','City_other')];
 		if (~isempty(hDB))
-			ALLlineHand = setxor(ALLlineHand, hDB);     % I'm removing those for now, but I might change my mind
+			ALLlineHand = setxor(ALLlineHand, hDB);			% I'm removing those for now, but I might change my mind
 		end
 		hDB = findobj(ALLlineHand,'Tag','DSDP');
 		hDB = [hDB; findobj(ALLlineHand,'Tag','ODP')];
-		if (~isempty(hDB))                                  % ODP & DSDP & IODP & proposals
+		if (~isempty(hDB))									% ODP & DSDP & IODP & proposals
 			fprintf(fid,'\t%s\n','<NetworkLink>');
 			fprintf(fid,'\t\t%s%s%s\n','<Url><href>',[handles.path_data 'iodp_doc.kmz'],'</href></Url>');        
 			fprintf(fid,'\t%s\n','</NetworkLink>');
 			ALLlineHand = setxor(ALLlineHand, hDB);
 		end
 		hDB = findobj(ALLlineHand,'Tag','volcano');
-		if (~isempty(hDB))                                  % GOTO SMITHSONIAN FILE
+		if (~isempty(hDB))									% GOTO SMITHSONIAN FILE
 			fprintf(fid,'\t%s\n','<NetworkLink>');
 			fprintf(fid,'\t\t%s%s%s\n','<Url><href>',[handles.path_data 'gvp_world.kmz'],'</href></Url>');
 			fprintf(fid,'\t%s\n','</NetworkLink>');
 			ALLlineHand = setxor(ALLlineHand, hDB);
 		end
-		hDB = findobj(ALLlineHand,'Tag','hotspot');          % FOGSPOTS
+		hDB = findobj(ALLlineHand,'Tag','hydro');
+		if (~isempty(hDB))									% GOTO INTERRIDGE FILE
+			fprintf(fid,'\t%s\n','<NetworkLink>');
+			fprintf(fid,'\t\t%s%s%s\n','<Url><href>',[handles.path_data 'vents_InterRidge.kmz'],'</href></Url>');
+			fprintf(fid,'\t%s\n','</NetworkLink>');
+			ALLlineHand = setxor(ALLlineHand, hDB);
+		end
+		hDB = findobj(ALLlineHand,'Tag','hotspot');			% FOGSPOTS
 		if (~isempty(hDB))
 			% Read the whole list. No point in ploting only the visible ones in Mirone window
 			fp = fopen([handles.path_data 'hotspots.dat'],'r');
@@ -314,9 +323,9 @@ function writekml(handles,Z,fname)
 		end
 	end
 
-	% ------------------------------------------------------------------------------------
-	function writeStyle(fid,nTab,fname_img,name)
-	% Write a style block
+% ------------------------------------------------------------------------------------
+function writeStyle(fid,nTab,fname_img,name)
+% Write a style block
 
 	sTab = repmat('\t',1,nTab);             sTab_p1 = repmat('\t',1,(nTab+1));
 	sTab_p2 = repmat('\t',1,(nTab+2));      sTab_p3 = repmat('\t',1,(nTab+3));
@@ -350,9 +359,9 @@ function writekml(handles,Z,fname)
 	fprintf(fid,[sTab_p1 '%s\n'],'</Pair>');
 	fprintf(fid,[sTab '%s\n'],'</StyleMap>');
 
-	% ------------------------------------------------------------------------------------
-	function writePolygon(fid, x, y, z, cores, extrude, name, line_thick)
-	% Write a polygon (patch)
+% ------------------------------------------------------------------------------------
+function writePolygon(fid, x, y, z, cores, extrude, name, line_thick)
+% Write a polygon (patch)
 
 	if (extrude),       outline = 0;    % Do not draw oulines with extrusions
 	else                outline = 1;
@@ -404,9 +413,9 @@ function writekml(handles,Z,fname)
 	fprintf(fid,[sTab_p1 '%s\n'],'</Polygon>');
 	fprintf(fid,[sTab '%s\n'],'</Placemark>');    
 
-	% ------------------------------------------------------------------------------------
-	function writePolyLine(fid,x,y,z,line_color,line_thick,name)
-	% Write a polyline
+% ------------------------------------------------------------------------------------
+function writePolyLine(fid,x,y,z,line_color,line_thick,name)
+% Write a polyline
 
 	if (nargin == 6),   name = 'Polyline';  end
 	x = x(:)';    y = y(:)';        % Make sure they are row vectors
@@ -436,9 +445,9 @@ function writekml(handles,Z,fname)
 	fprintf(fid,[sTab_p1 '%s\n'],'</LineString>');
 	fprintf(fid,[sTab '%s\n'],'</Placemark>');
 
-	% ------------------------------------------------------------------------------------
-	function writeQuakes(fid,nTab,x,y,z,mag,scale,name)
-	% Write earthquakes
+% ------------------------------------------------------------------------------------
+function writeQuakes(fid,nTab,x,y,z,mag,scale,name)
+% Write earthquakes
 
 	sTab = repmat('\t',1,nTab);             sTab_p1 = repmat('\t',1,(nTab+1));
 	sTab_p2 = repmat('\t',1,(nTab+2));      sTab_p3 = repmat('\t',1,(nTab+3));
@@ -467,9 +476,9 @@ function writekml(handles,Z,fname)
 
 	fprintf(fid,[sTab '%s\n'],'</Folder>');
 
-	% ------------------------------------------------------------------------------------
-	function writeSymbols(fid,nTab,x,y,scale,nameGroup,names)
-	% Write symbols coordinates. The symbol icon was already saved with 'Style'
+% ------------------------------------------------------------------------------------
+function writeSymbols(fid,nTab,x,y,scale,nameGroup,names)
+% Write symbols coordinates. The symbol icon was already saved with 'Style'
 
 	sTab_p1 = repmat('\t',1,(nTab+1));		sTab_p2 = repmat('\t',1,(nTab+2));
 	sTab_p3 = repmat('\t',1,(nTab+3));		sTab_p4 = repmat('\t',1,(nTab+4));
