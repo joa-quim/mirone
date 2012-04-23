@@ -20,6 +20,8 @@ function varargout = empilhador(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
+% $Id$
+
 	if (nargin > 1 && ischar(varargin{1}))
 		gui_CB = str2func(varargin{1});
 		[varargout{1:nargout}] = feval(gui_CB,varargin{2:end});
@@ -82,8 +84,9 @@ function push_namesList_CB(hObject, handles, opt)
 %		case that name will be asked here.
 %		Alternatively it can contain a wildcard string that will be expanded to create the
 %		filename automatically in the same dir of the data. The contents of the wildcard should
-%		follow what is explained below, but one possible example is provided right now (no quotes)
+%		follow what is explained below, but two possible examples are provided right now (no quotes)
 %		'C:\a1\*.L2_LAC_SST4 ? -sst4'
+%		'C:\a1\*.hdf * -qual'
 %
 % First column holds the filename that can be absolute, relative or have no path info.
 %		If only one column in file the "Time" info below is computed as (1:number_of_files)
@@ -115,6 +118,8 @@ function push_namesList_CB(hObject, handles, opt)
 
     if isempty(bin)					% If error in reading file
 		errordlg(['Error reading file ' fname],'Error'),	return
+	elseif (n_column == 0)			% A hole in guess_file logic (error message already issued)
+		return
 	elseif (bin)					% Binary file. Assume it's a target file, not a name list
 		[PATH,FNAME,EXT] = fileparts(fname);
 		handles.OneByOneNameList{end+1} = fname;		% Save the full name
@@ -152,15 +157,19 @@ function push_namesList_CB(hObject, handles, opt)
 			end
 
 			names{k} = ddewhite(t);
-			if (n_column == 2)			% Names & numeric label format
+			if (n_column == 2)			% Names & numeric label format OR names & sdsname
 				r = ddewhite(r);
-				if (r(1) == '?'),	r = squeeze_time_from_name(names{k});	end
+				if (r(1) == '?')
+					r = squeeze_time_from_name(names{k});
+				end
 				handles.strTimes{k} = r;
 			else						% Names, numeric label & SDS info format
 				[t,r] = strtok(r);
 				t = ddewhite(t);
 				if (t(1) == '?')		% Means get the numeric label as time extracted from file name (OceanColor products)
 					t = squeeze_time_from_name(names{k});
+				elseif (r(1) == '*')	% 
+					t = sprintf('%d', k);
 				end
 				handles.strTimes{k} = t;
 				SDSinfo{k} = ddewhite(r);
@@ -192,7 +201,7 @@ function push_namesList_CB(hObject, handles, opt)
 	% -------------- Check if we have a Sub-Datasets request ------------------
 	if ( n_column == 3 && (strncmpi(SDSinfo{1}, 'sds', 3) || SDSinfo{1}(1) == '-') )
 		handles.SDSinfo = SDSinfo;
-	elseif (n_column == 2 && (strncmpi(handles.strTimes{1}, 'sds', 3)) )
+	elseif (n_column == 2 && (strncmpi(handles.strTimes{1}, 'sds', 3) || handles.strTimes{1}(1) == '-') )
 		% Two cols with SDS info in the second
 		handles.SDSinfo = handles.strTimes;
 		for (k = 1:m),		handles.strTimes{k} = sprintf('%d',k);		end
@@ -248,7 +257,7 @@ function fname = check_wildcard_fname(strin)
 		error('Wildcard search return an empty result. Have to abort here')
 	end
 
-	[PATO,FNAME,EXT] = fileparts(t);
+	PATO = fileparts(t);
 	fname = [PATO '/' 'automatic_list.txt'];
 	fid = fopen(fname,'w');
 	if (fid < 0),
@@ -1208,7 +1217,7 @@ function Z = clipMySpikes(Z)
 % -----------------------------------------------------------------------------------------
 function att = get_baseNameAttribs(full_name)
 % Get the file's metadata and also tests if an SDS was required but does not exist
-	att = gdalread(full_name, '-M', '-C');
+	att = gdalread(full_name, '-M');
 	if (att.RasterCount > 0)
 		handles = guidata(gcf);
 		if (~isempty(handles.SDSinfo) && handles.SDSthis > 1 && ~handles.testedDS)
