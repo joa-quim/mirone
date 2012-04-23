@@ -353,6 +353,7 @@ lib_mex/wgifc.dll -text
 /libcurl_w32.dll -text
 /libecwj2_mir32.dll -text
 /libexpat_w32.dll -text
+/libiomp5md.dll -text
 /libjpeg_mir32.dll -text
 /libjpeg_w32.dll -text
 /liblas_m.dll -text
