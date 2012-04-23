@@ -217,6 +217,7 @@ doc/MironeMan.chm -text
 /gdal.dll -text
 /gdal_ECW_JP2ECW.dll -text
 /gdal_translate.exe -text
+/gdal_w32.dll -text
 /gdalinfo.exe -text
 /generatekeys.exe -text
 /gmt.dll -text
