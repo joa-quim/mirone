@@ -209,6 +209,7 @@ data/sst_by_ifremer.txt -text
 data/swan.par -text
 data/t_xtide.mat -text
 data/tilesServers.txt -text
+data/vents_InterRidge.kmz -text
 data/volcanoes.dat -text
 data/wcity.dat -text
 data/wcity_major.dat -text
