@@ -1,13 +1,15 @@
 50.17      6.85   WEST_EIFEL_VOLC_FIELD         Germany            Maars               Radiocarbon
-45.50      2.75   CHAINE_DES_PUYS               France             Cinder_cones        Radiocarbon
-42.17      2.53   OLOT_VOLC_FIELD               Spain              Pyroclastic_cones   Holocene?
+45.775     2.97   CHAINE_DES_PUYS               France             Cinder_cones        Radiocarbon
+42.17      2.53   OLOT_VOLC_FIELD               Spain              Pyroclastic_cones   Holocene
+38.87     -4.02   CALATRAVA_VOLC_FIELD		Spain		   Pyroclastic_cones   Radiocarbon
 43.25     10.87   LARDERELLO                    Italy              Explosion_craters   Historical
 42.90     11.63   AMIATA                        Italy              Lava_domes          Pleistocene-Fumarolic
 42.60     11.93   VULSINI                       Italy              Caldera             Historical
-41.73     12.70   ALBANO,_MONTE                 Italy              Caldera             Holocene?
+41.73     12.70   COLLI_ALBANI                  Italy              Caldera             Holocene?
 40.827    14.139  CAMPI_FLEGREI                 Italy              Caldera             Historical
 40.821    14.426  VESUVIUS                      Italy              Complex_volcano     Historical
-40.73     13.898  ISCHIA                        Italy              Complex_volcano     Historical
+40.73     13.897  ISCHIA                        Italy              Complex_volcano     Historical
+39.48     14.83   PALINURO			Italy		   Submarine_volcano   Radiocarbon
 38.789    15.213  STROMBOLI                     Italy              Stratovolcano       Historical
 38.48     14.95   LIPARI                        Italy              Stratovolcano       Historical
 38.404    14.962  VULCANO                       Italy              Stratovolcano       Historical
@@ -17,218 +19,233 @@
 37.615    23.336  METHANA                       Greece             Lava_domes          Historical
 36.699    24.439  MILOS                         Greece             Stratovolcanoes     Holocene
 36.404    25.396  SANTORINI                     Greece             Shield_volcanoes    Historical
-36.58     27.18   NISYROS                       Greece             Stratovolcano       Historical
-36.63     27.10   YALI                          Greece             Lava_domes          Holocene
-36.829    27.257  KOS                           Greece             Fumarole_fields     Pleistocene-Fumarolic
+36.586    27.160  NISYROS                       Greece             Stratovolcano       Historical
+36.671    27.140  YALI                          Greece             Lava_domes          Holocene
+36.852    27.251  KOS                           Greece             Fumarole_fields     Pleistocene-Fumarolic
 38.58     28.52   KULA                          Turkey             Cinder_cones        Holocene
 37.67     33.65   KARAPINAR_FIELD               Turkey             Cinder_cones        Holocene
 38.13     34.17   HASAN_DAGI                    Turkey             Stratovolcano       Holocene
-38.25     34.57   GOLLU_DAG                     Turkey             Lava_dome           Holocene
-38.57     34.52   ACIGOL-NEVSEHIR               Turkey             Maars               Holocene
+38.25     34.57   GOLLU_DAG                     Turkey             Lava_dome           Holocene?
+38.57     34.52   ACIGOL-NEVSEHIR               Turkey             Caldera             Holocene
 38.52     35.48   ERCIYES_DAGI                  Turkey             Stratovolcano       Holocene
 37.67     39.83   KARACALIDAG                   Turkey             Shield_volcano      Holocene
-38.65     42.02   NEMRUT_DAGI                   Turkey             Stratovolcano       Historical
+38.65     42.23   NEMRUT_DAGI                   Turkey             Stratovolcano       Historical
 38.92     42.82   SUPHAN_DAGI                   Turkey             Stratovolcano       Holocene
-39.17     43.33   GIREKOL                       Turkey             Unknown             Holocene
-39.33     43.83   TENDURUK_DAGI                 Turkey             Shield_volcano      Holocene
-39.70     44.28   ARARAT,_MT.                   Turkey             Stratovolcano       Holocene
+39.17     43.33   GIREKOL_TEPE                  Turkey             Shield_volcano      Holocene
+39.37     43.87   TENDUREK_DAGI                 Turkey             Shield_volcano      Holocene
+39.70     44.30   ARARAT                        Turkey             Stratovolcano       Holocene
 40.75     42.90   KARS_PLATEAU                  Turkey             Volcanic_field      Holocene?
-43.33     42.45   ELBRUS                        Russia-SW          Stratovolcano       Tephrochronology
+43.33     42.45   ELBRUS                        SW_Russia          Stratovolcano       Tephrochronology
 42.70     44.50   KASBEK                        Georgia            Stratovolcano       Tephrochronology
 42.55     44.00   KABARGIN_OTH_GROUP            Georgia            Cinder_cones        Holocene
 42.45     44.25   UNNAMED                       Georgia            Cinder_cones        Holocene
-41.55     43.60   UNNAMED                       Georgia            Cones               Holocene
-40.55     44.12   ARAGATS                       Armenia            Stratovolcano       Holocene
-40.275    44.75   AGMAGAN-KARADAG               Armenia            Volcanic_field      Holocene
-39.70     45.542  DAR-ALAGES                    Armenia            Unknown             Holocene
-15.70     41.742  TEYR,_DJEBEL                  Red_Sea            Stratovolcano       Historical
-15.08     42.17   ZUBAYR,_JEBEL                 Red_Sea            Shield_volcano      Historical
-15.042    39.82   JALUA                         Ethiopia           Stratovolcano       Holocene
-14.88     39.92   ALID                          Ethiopia           Stratovolcano       Holocene
+41.55     43.60   UNNAMED                       Georgia            Lava_cones          Holocene
+40.53     44.20   ARAGATS                       Armenia            Stratovolcano       Holocene
+40.275    44.75   GHEGAM-RIDGE	                Armenia            Volcanic_field      Anthropology
+39.70     45.542  DAR-ALAGES                    Armenia            Pyroclastic_cones   Anthropology
+40.02     45.78   PORAK		                Armenia            Stratovolcano       Anthropology
+39.73     46.02	  TSKHOUK-KARCKAR		Armenia            Pyroclastic_cones   Tephrochronology
+15.55     41.83   JEBEL_AT_TAIR                 Yemen              Stratovolcano       Historical
+15.05     42.18   JEBEL_ZUBAIR                  Yemen              Shield_volcano      Historical
+14.02	  42.75	  ZUKUR				Yemen              Shield_volcano      Holocene
+13.72	  42.73	  HANISH			Yemen              Shield_volcano      Holocene
+15.042    39.82   JALUA                         Eritrea            Stratovolcano       Holocene
+14.88     39.92   ALID                          Eritrea            Stratovolcano       Holocene
 14.242    40.30   DALLOL                        Ethiopia           Explosion_crater    Historical
 13.975    40.408  GADA_ALE                      Ethiopia           Stratovolcano       Holocene
-13.92     40.42   CATHERINE                     Ethiopia           Tuff_ring           Holocene
-13.82     40.55   ALU                           Ethiopia           Fissure_vents       Holocene
+13.825    40.508  ALU                           Ethiopia           Fissure_vents       Holocene
 13.792    40.55   DALAFFILLA                    Ethiopia           Stratovolcano       Holocene
 13.725    40.60   BORALE_ALE                    Ethiopia           Stratovolcano       Holocene
 13.60     40.67   ERTA_ALE                      Ethiopia           Shield_volcano      Historical
 13.52     40.63   ALE_BAGU                      Ethiopia           Stratovolcano       Holocene
 13.50     40.72   HAYLI_GUBBI                   Ethiopia           Shield_volcano      Holocene
-13.58     41.808  DUBBI                         Ethiopia           Stratovolcano       Historical
-13.37     41.70   NABRO                         Ethiopia           Stratovolcano       Holocene?
+13.58     41.808  DUBBI                         Eritrea            Stratovolcano       Historical
+13.37     41.70   NABRO                         Eritrea            Stratovolcano       Holocene?
 13.27     41.65   MALLAHLE                      Ethiopia           Stratovolcano       Holocene?
-13.18     41.725  SORKALE                       Ethiopia           Stratovolcano       Holocene?
+13.18     41.725  SORK_ALE                      Ethiopia           Stratovolcano       Holocene?
 13.07     41.60   ASAVYO                        Ethiopia           Shield_volcano      Holocene
 13.10     41.15   MAT_ALA                       Ethiopia           Shield_volcano      Holocene
 13.28     41.07   TAT_ALI                       Ethiopia           Shield_volcano      Holocene
 13.30     40.98   BORAWLI                       Ethiopia           Stratovolcano       Holocene
-13.08     40.85   AFDERA                        Ethiopia           Stratovolcano       Holocene?
+13.08     40.85   AFDERÀ                        Ethiopia           Stratovolcano       Holocene?
 13.02     40.20   MA_ALALTA                     Ethiopia           Stratovolcano       Holocene
 12.88     40.57   ALAYTA                        Ethiopia           Shield_volcano      Historical
 12.60     40.48   DABBAHU                       Ethiopia           Stratovolcano       Holocene
 12.38     40.07   DABBAYRA                      Ethiopia           Shield_volcano      Holocene
-12.17     40.82   HARARO_MANDA                  Ethiopia           Fissure_vents       Holocene
+12.17     40.82   MANDA_HARARO                  Ethiopia           Shield_volcano      Historical
 11.73     40.25   GROPPO                        Ethiopia           Stratovolcano       Holocene
-11.88     41.208  KURUB                         Ethiopia           Stratovolcano       Holocene
-11.63     41.45   BORAWLI_COMPLEX               Ethiopia           Lava_domes          Holocene
-12.38     42.20   MANDA-INAKIR                  Ethiopia           Fissure_vents       Historical
-12.47     42.40   MOUSA_ALLI                    Ethiopia           Stratovolcano       Holocene
-12.55     42.53   GUFA                          Ethiopia           Volcanic_field      Holocene
-12.95     42.43   ASSAB_VOLC_FIELD              Ethiopia           Volcanic_field      Holocene
-11.58     42.47   ARDOUKOBA                     Djibouti           Fissure_vents       Historical
-11.53     42.05   TIHO                          Djibouti           Fumarole_field      Pleistocene-Fumarolic
+11.88     41.208  KURUB                         Ethiopia           Shield_volcano      Holocene
+11.75     41.18   MANDA_GARGORI                 Ethiopia           Fissure_vents       Anthropology
+11.63     41.45   BORAWLI                       Ethiopia           Lava_domes          Holocene
+12.38     42.20   MANDA-INAKIR                  Ethiopia/Djibouti  Fissure_vents       Anthropology
+12.47     42.40   MOUSA_ALLI                    Ethiopia/Eritrea/Djibouti           Stratovolcano       Holocene
+12.55     42.53   GUFA                          Eritrea/Djibouti            Volcanic_field      Holocene
+12.95     42.43   ASSAB_VOLC_FIELD              Eritrea            Volcanic_field      Holocene
+11.58     42.47   ARDOUKÔBA                     Djibouti           Fissure_vents       Historical
 11.42     42.20   GARBES                        Djibouti           Fumarole_field      Pleistocene-Fumarolic
 11.25     41.83   BOINA                         Djibouti           Fumarole_field      Pleistocene-Fumarolic
-11.28     41.63   DAMA_ALI                      Ethiopia           Shield_volcano      Holocene
-11.27     41.52   ASMARA                        Ethiopia           Pyroclastic_cone    Holocene
+11.28     41.63   DAMA_ALI                      Ethiopia           Shield_volcano      Historical
 11.08     41.27   GABILLEMA                     Ethiopia           Stratovolcano       Holocene
 10.58     41.042  YANGUDI                       Ethiopia           Complex_volcano     Holocene
 10.082    40.702  AYELU                         Ethiopia           Stratovolcano       Holocene
 10.07     40.84   ADWA                          Ethiopia           Stratovolcano       Holocene
  9.78     40.33   HERTALI                       Ethiopia           Fissure_vent        Holocene
- 9.57     40.28   LIADO_HAYK_FIELD              Ethiopia           Maars               Holocene?
+ 9.57     40.28   LIADO_HAYK_VOLC_FIELD         Ethiopia           Maars               Holocene?
  9.35     40.13   DOFEN                         Ethiopia           Stratovolcano       Holocene
  8.975    39.93   FENTALE                       Ethiopia           Stratovolcano       Historical
- 8.95     39.75   BERU                          Ethiopia           Unknown             Holocene
+ 8.95     39.75   BERU                          Ethiopia           Volcanic_field      Holocene
  8.80     39.692  KONE                          Ethiopia           Calderas            Historical
  8.70     39.63   UNNAMED                       Ethiopia           Pyroclastic_cones   Holocene
  8.558    39.475  BOSET-BERICHA                 Ethiopia           Stratovolcanoes     Holocene
- 8.78     38.98   BISHOFTU_FIELD                Ethiopia           Fissure_vents       Holocene
+ 8.78     38.98   BISHOFTU_VOLC_FIELD           Ethiopia           Fissure_vents       Holocene
  8.62     38.95   UNNAMED                       Ethiopia           Fissure_vents       Holocene
  8.43     39.35   SODORE                        Ethiopia           Pyroclastic_cones   Holocene
- 8.35     39.18   GEDAMSA_CALDERA               Ethiopia           Caldera             Holocene
+ 8.35     39.18   GEDAMSA	                Ethiopia           Caldera             Holocene
  8.27     39.03   BORA-BERICCIO_COMPLEX         Ethiopia           Pumice_cones        Holocene
- 8.158    39.13   TULLU_MOJE                    Ethiopia           Pumice_cones        Anthropology
+ 8.158    39.13   TULLU_MOJE                    Ethiopia           Pumice_cone         Anthropology
  8.07     39.07   UNNAMED                       Ethiopia           Fissure_vents       Holocene
- 7.95     38.93   UNNAMED                       Ethiopia           Fissure_vents       Holocene
+ 7.95     38.93   EAST_ZWAY                     Ethiopia           Fissure_vents       Holocene
  8.05     38.35   BUTAJIRI-SILTI_FIELD          Ethiopia           Fissure_vents       Holocene
  7.77     38.78   ALUTU                         Ethiopia           Stratovolcano       Holocene
- 7.47     38.55   SHALA                         Ethiopia           Stratovolcano       Holocene
+ 7.47     38.55   O'A_CALDERA                   Ethiopia           Caldera             Holocene
  7.18     38.43   CORBETTI_CALDERA              Ethiopia           Caldera             Holocene
- 7.07     38.10   BILATE_RIVER_FIELD            Ethiopia           Volcanic_field      Holocene
+ 7.07     38.10   BILATE_RIVER_FIELD            Ethiopia           Maars               Holocene
  7.42     35.43   TEPI                          Ethiopia           Shield_volcano      Holocene
  6.78     37.83   HOBICHA_CALDERA               Ethiopia           Caldera             Holocene?
- 6.65     38.12   CHIRACHA                      Ethiopia           Stratovolcano       Holocene
- 5.92     37.57   TOSA_SUCHA                    Ethiopia           Cinder_cones        Holocene
+ 6.65     38.12   CHIRACHA                      Ethiopia           Stratovolcano       Holocene?
+ 5.93     37.57   TOSA_SUCHA                    Ethiopia           Cinder_cones        Holocene
  5.65     37.67   UNNAMED                       Ethiopia           Cinder_cones        Holocene
  5.10     35.88   KORATH_RANGE                  Ethiopia           Tuff_cones          Holocene?
- 4.08     37.42   MEGA_BASALT_FIELD             Ethiopia           Pyroclastic_cones   Holocene
- 4.07     36.05   NORTH_ISLAND                  Africa-E           Tuff_cones          Holocene
- 3.50     36.042  CENTRAL_ISLAND                Africa-E           Stratovolcano       Holocene
- 2.63     36.60   SOUTH_ISLAND                  Africa-E           Stratovolcano       Historical
- 2.32     37.97   MARSABIT                      Africa-E           Shield_volcano      Holocene?
- 2.32     36.57   BARRIER,_THE                  Africa-E           Shield_volcano      Historical
- 1.90     36.27   NAMARUNU                      Africa-E           Shield_volcano      Tephrochronology
- 1.57     37.90   SEGERERUA_PLATEAU             Africa-E           Pyroclastic_cones   Holocene
- 1.50     36.33   EMURUANGOGOLAK                Africa-E           Shield_volcano      Radiocarbon
- 1.15     36.23   SILALI                        Africa-E           Shield_volcano      Ar/Ar
- 0.92     36.18   PAKA                          Africa-E           Shield_volcano      Ar/Ar
- 0.77     36.12   KOROSI                        Africa-E           Shield_volcano      Holocene
- 0.63     36.08   OL_KOKWE                      Africa-E           Shield_volcano      Holocene
- 0.23     37.87   NYAMBENI_HILLS                Africa-E           Shield_volcano      Holocene
- -0.20    36.07   MENENGAI                      Africa-E           Shield_volcano      Tephrochronology
- -0.38    34.50   HOMA_MOUNTAIN                 Africa-E           Complex_volcano     Holocene
- -0.52    36.27   ELMENTEITA_BADLANDS           Africa-E           Pyroclastic_cones   Holocene
- -0.63    36.23   EBURRU,_OL_DOINYO             Africa-E           Complex_volcano     Holocene
- -0.904   36.292  OLKARIA                       Africa-E           Pumice_cones        Radiocarbon
- -0.92    36.45   LONGONOT                      Africa-E           Shield_volcano      Anthropology
- -1.175   36.35   SUSWA                         Africa-E           Shield_volcano      Holocene
- -2.751   35.902  LENGAI,_OL_DOINYO             Africa-E           Stratovolcano       Historical
- -2.68    37.88   CHYULU_HILLS                  Africa-E           Volcanic_field      Anthropology
- -3.07    37.35   KILIMANJARO                   Africa-E           Stratovolcano       Holocene
- -3.25    36.75   MERU                          Africa-E           Stratovolcano       Historical
- -4.87    31.92   IGWISI_HILLS                  Africa-E           Tuff_cones          Holocene
- -8.63    33.57   UNNAMED                       Africa-E           Pyroclastic_cone    Holocene
- -8.75    33.80   SW_USANGU_BASIN               Africa-E           Volcanic_field      Holocene
- -8.97    33.57   NGOZI                         Africa-E           Caldera             Holocene
- -8.93    33.40   IZUMBWE-MPOLI                 Africa-E           Pyroclastic_cones   Holocene
- -9.13    33.67   RUNGWE                        Africa-E           Stratovolcano       Holocene
- -9.23    33.78   KIEYO                         Africa-E           Stratovolcano       Historical
- 0.73     30.38   RUSEKERE                      Africa-C           Tuff_cones          Holocene
- 0.70     30.25   FORT_PORTAL_FIELD             Africa-C           Tuff_cones          Holocene
- 0.45     30.25   KYATWA_VOLC_FIELD             Africa-C           Tuff_cones          Holocene
- -0.08    29.92   KATWE-KIKORONGO_FIELD         Africa-C           Tuff_cones          Holocene
- -0.20    30.08   BUNYARUGURU_FIELD             Africa-C           Explosion_craters   Holocene
- -0.47    30.18   KATUNGA                       Africa-C           Tuff_cone           Holocene
- -0.93    29.33   MAY-YA-MOTO                   Africa-C           Fumarole_field      Fumarolic
- -1.408   29.20   NYAMURAGIRA                   Africa-C           Shield_volcano      Historical
- -1.52    29.25   NYIRAGONGO                    Africa-C           Stratovolcano       Historical
- -1.50    29.45   KARISIMBI                     Africa-C           Stratovolcano       Holocene
- -1.47    29.492  VISOKE                        Africa-C           Stratovolcano       Historical
- -1.38    29.67   MUHAVURA                      Africa-C           Stratovolcano       Holocene
- -1.23    29.72   BUFUMBIRA                     Africa-C           Cinder_cones        Holocene
- -2.32    28.75   TSHIBINDA                     Africa-C           Cinder_cones        Holocene
-10.75     12.00   BIU_PLATEAU                   Africa-W           Volcanic_field      Holocene?
- 7.25     13.67   NGAOUNDERE_PLATEAU            Africa-W           Volcanic_field      Holocene?
- 6.25     10.50   OKU_VOLC_FIELD                Africa-W           Maars               Radiocarbon
- 5.03      9.83   MANENGOUBA                    Africa-W           Stratovolcano       Holocene
- 4.203     9.17   CAMEROON,_MT.                 Africa-W           Stratovolcano       Historical
- 3.58      8.75   SANTA_ISABEL                  Africa-W           Shield_volcano      Historical
- 3.35      8.63   SAN_JOAQUIN                   Africa-W           Shield_volcano      Holocene
- 3.35      8.52   SAN_CARLOS                    Africa-W           Shield_volcano      Holocene
- 0.32      6.72   SAO_TOME                      Africa-W           Shield_volcano      Holocene?
-27.25     17.50   HARUJ                         Africa-N           Scoria_cones        Holocene
-21.33     16.33   TOH,_TARSO                    Africa-N           Volcanic_field      Holocene
-21.03     16.45   TOUSSIDE,_TARSO               Africa-N           Stratovolcano       Holocene
-20.92     17.28   VOON,_TARSO                   Africa-N           Stratovolcano       Fumarolic
-19.80     18.53   KOUSSI,_EMI                   Africa-N           Stratovolcano       Holocene
-12.95     24.27   MARRA,_JEBEL                  Africa-N           Volcanic_field      Radiocarbon
-14.50     25.80   KUTUM_VOLC_FIELD              Africa-N           Scoria_cones        Holocene?
-15.13     26.17   MEIDOB_VOLC_FIELD             Africa-N           Scoria_cones        Holocene
-18.33     32.75   BAYUDA_VOLC_FIELD             Africa-N           Cinder_cones        Radiocarbon
-18.20     33.80   UMM_MARAFIEB,_JEBEL           Africa-N           Scoria_cones        Holocene?
+ 4.08     37.42   MEGA_BASALT_FIELD             Ethiopia/Kenya     Pyroclastic_cones   Holocene
+ 4.07     36.05   NORTH_ISLAND                  Kenya              Tuff_cones          Holocene
+ 3.50     36.042  CENTRAL_ISLAND                Kenya              Stratovolcano       Holocene
+ 2.63     36.60   SOUTH_ISLAND                  Kenya              Stratovolcano       Historical
+ 2.32     37.97   MARSABIT                      Kenya              Shield_volcano      Holocene?
+ 2.32     36.57   THE_BARRIER                   Kenya              Shield_volcano      Historical
+ 1.90     36.27   NAMARUNU                      Kenya              Shield_volcano      Tephrochronology
+ 1.57     37.90   SEGERERUA_PLATEAU             Kenya              Pyroclastic_cones   Holocene
+ 1.50     36.33   EMURUANGOGOLAK                Kenya              Shield_volcano      Radiocarbon
+ 1.15     36.23   SILALI                        Kenya              Shield_volcano      Ar/Ar
+ 0.92     36.18   PAKA                          Kenya              Shield_volcano      Ar/Ar
+ 0.77     36.12   KOROSI                        Kenya              Shield_volcano      Holocene
+ 0.63     36.08   OL_KOKWE                      Kenya              Shield_volcano      Holocene
+ 0.23     37.87   NYAMBENI_HILLS                Kenya              Shield_volcano      Holocene
+ -0.20    36.07   MENENGAI                      Kenya              Shield_volcano      Tephrochronology
+ -0.38    34.50   HOMA_MOUNTAIN                 Kenya              Complex_volcano     Holocene
+ -0.52    36.27   ELMENTEITA_BADLANDS           Kenya              Pyroclastic_cones   Holocene
+ -0.65    36.22   OL_DOINYO_EBURRU              Kenya              Complex_volcano     Holocene
+ -0.904   36.292  OLKARIA                       Kenya              Pumice_cones        Radiocarbon
+ -0.92    36.45   LONGONOT                      Kenya              Shield_volcano      Anthropology
+ -1.175   36.35   SUSWA                         Kenya              Shield_volcano      Holocene
+ -2.751   35.902  OL_DOINYO_LENGAI              Kenya              Stratovolcano       Historical
+ -2.68    37.88   CHYULU_HILLS                  Kenya              Volcanic_field      Anthropology
+ -3.07    37.35   KILIMANJARO                   Tanzania           Stratovolcano       Holocene
+ -3.25    36.75   MERU                          Tanzania           Stratovolcano       Historical
+ -4.87    31.92   IGWISI_HILLS                  Tanzania           Tuff_cones          Holocene
+ -8.63    33.57   UNNAMED                       Tanzania           Pyroclastic_cone    Holocene
+ -8.75    33.80   SW_USANGU_BASIN               Tanzania           Lava_domes          Holocene
+ -8.97    33.57   NGOZI                         Tanzania           Caldera             Radiocarbon
+ -8.93    33.40   IZUMBWE-MPOLI                 Tanzania           Pyroclastic_cones   Holocene
+ -9.13    33.67   RUNGWE                        Tanzania           Stratovolcano       Holocene
+ -9.23    33.78   KYEJO                         Tanzania           Stratovolcano       Historical
+ 0.70     30.25   FORT_PORTAL                   Uganda             Tuff_cones          Holocene
+ 0.45     30.25   KYATWA_VOLC_FIELD             Uganda             Tuff_cones          Holocene?
+ -0.08    29.92   KATWE-KIKORONGO               Uganda             Tuff_cones          Holocene
+ -0.20    30.08   BUNYARUGURU                   Uganda             Maars               Holocene
+ -0.47    30.18   KATUNGA                       Uganda             Tuff_cone           Holocene
+ -0.93    29.33   MAY-YA-MOTO                   Uganda             Fumarole_field      Fumarolic
+ -1.408   29.20   NYAMURAGIRA                   DR_of_Congo        Shield_volcano      Historical
+ -1.52    29.25   NYIRAGONGO                    DR_of_Congo        Stratovolcano       Historical
+ -1.50    29.45   KARISIMBI                     DR_of_Congo/Rwanda Stratovolcano       Holocene
+ -1.47    29.492  VISOKE                        DR_of_Congo/Rwanda Stratovolcano       Historical
+ -1.38    29.67   MUHAVURA                      Uganda/Rwanda      Stratovolcano       Holocene
+ -1.23    29.72   BUFUMBIRA                     Uganda             Cinder_cones        Holocene?
+ -2.32    28.75   TSHIBINDA                     DR_of_Congo        Cinder_cones        Holocene
+10.75     12.00   BIU_PLATEAU                   Nigeria            Volcanic_field      Holocene?
+ 7.25     13.67   NGAOUNDERE_PLATEAU            Cameroon           Volcanic_field      Holocene?
+ 6.25     10.50   OKU_VOLC_FIELD                Cameroon           Stratovolcano       Holocene?
+ 5.03      9.83   MANENGOUBA                    Cameroon           Stratovolcano       Holocene?
+ 4.203     9.17   CAMEROON                      Cameroon           Stratovolcano       Historical
+ 3.35      8.52   SAN_CARLOS                    Equatorial_Guinea  Shield_volcano      Holocene
+ 3.35      8.63   SAN_JOAQUIN                   Equatorial_Guinea  Shield_volcano      Holocene
+ 3.58      8.75   SANTA_ISABEL                  Equatorial_Guinea  Shield_volcano      Historical
+ 0.20      6.72   SÃO_TOMÉ                      S.Tomé_e_Príncipe  Shield_volcano      Holocene?
+17.68      8.50   TODRA_VOLC_FIELD              Niger		   Cinder_cones	       Holocene
+19.83      2.83   TIN_ZAOUATENE_VOLC_FIELD      Mali               Volcanic_field      Holocene
+22.67      5.00   TAHALRA_VOLC_FIELD            Algeria            Pyroclastic_cones   Holocene
+23.33      5.83   ATAKOR_VOLC_FIELD             Algeria            Scoria_cones        Holocene
+23.92      5.83   MANZAZ_VOLC_FIELD             Algeria            Scoria_cones        Holocene
+25.05     17.55   WAU-EN-NAMUS                  Libya              Caldera             Holocene?
+27.25     17.50   HARUJ                         Libya              Volcanic_field      Holocene
+21.33     16.33   TARSO_TÔH                     Chad               Volcanic_field      Holocene
+21.03     16.45   TARSO_TOUSSIDÉ                Chad               Stratovolcano       Holocene
+20.92     17.28   TARSO_VOON                    Chad               Stratovolcano       Fumarolic
+19.80     18.53   EMI_KOUSSI                    Chad               Pyroclastic_shield  Holocene
+12.95     24.27   JEBEL_MARRA                   Sudan              Volcanic_field      Radiocarbon
+14.57     25.85   KUTUM_VOLC_FIELD              Sudan              Scoria_cones        Holocene?
+15.13     26.17   MEIDOB_VOLC_FIELD             Sudan              Scoria_cones        Holocene
+18.33     32.75   BAYUDA_VOLC_FIELD             Sudan              Cinder_cones        Radiocarbon
+18.17     33.83   JEBEL_UMM_ARAFIEB             Sudan              Shield_volcano      Holocene?
 36.53     40.85   SHARAT_KOVAKAB                Syria              Volcanic_field      Holocene
-36.67     37.00   UNNAMED                       Syria              Unknown             Historical
-33.308    36.925  UNNAMED                       Syria              Volcanic_field      Holocene
-33.15     36.258  UNNAMED                       Syria              Volcanic_field      Holocene
-33.08     37.15   ES_SAFA                       Syria              Volcanic_field      Historical
-32.658    36.425  UNNAMED                       Syria              Volcanic_field      Holocene
-27.80     36.17   RAHAH,_HARRAT_AR              Arabia-W           Volcanic_field      Anthropology
-27.08     37.25   UWAYRID,_HARRAT               Arabia-W           Volcanic_field      Anthropology
-25.17     37.75   LUNAYYIR,_HARRAT              Arabia-W           Volcanic_field      Historical
-26.58     40.20   ITHNAYN,_HARRAT               Arabia-W           Volcanic_field      Holocene
-25.00     39.92   KHAYBAR,_HARRAT               Arabia-W           Volcanic_field      Historical
-23.08     39.78   RAHAT,_HARRAT                 Arabia-W           Volcanic_field      Historical
-22.80     41.38   KISHB,_HARRAT                 Arabia-W           Volcanic_field      Holocene
-17.05     42.83   YAR,_JABAL                    Arabia-W           Volcanic_field      Historical
-15.63     44.08   ARHAB,_HARRA_OF               Arabia-S           Volcanic_field      Historical
-15.28     44.22   MARHA,_JABAL_EL-              Arabia-S           Tuff_cone           Holocene
-15.43     44.78   HAYLAN,_JABAL                 Arabia-S           Volcanic_field      Anthropology
-14.57     44.67   DHAMAR,_HARRAS_OF             Arabia-S           Volcanic_field      Historical
-14.05     44.75   HAMMAN_DEMT,_JABAL            Arabia-S           Cone                Anthropology
-12.25     45.00   UNNAMED                       Arabia-S           Submarine_volcano   Uncertain
-13.58     46.12   SAWAD,_HARRA_ES-              Arabia-S           Volcanic_field      Historical
-14.05     48.33   BAL_HAF,_HARRA_OF             Arabia-S           Volcanic_field      Holocene
-15.55     50.63   BIR_BORHUT                    Arabia-S           Volcanic_field      Holocene?
-35.951    52.109  DAMAVAND                      Iran               Stratovolcano       Holocene
+36.67     37.00   UNNAMED                       Syria              Volcanic_field      Historical
+33.10     35.97   GOLAN_HEIGHTS                 Syria              Volcanic_field      Holocene
+33.00	  36.63   UNNAMED                       Syria              Volcanic_field      Radiocarbon
+33.25     37.07   ES_SAFA                       Syria              Volcanic_field      Historical
+32.658    36.425  JABAL_AD_DRUZE	 	Syria              Volcanic_field      Holocene
+31.08	  38.42   AL_HARRAH			Saudi_Arabia	   Volcanic_field      Holocene
+27.80     36.17   HARRAT_AR_RAHAH               Saudi_Arabia	   Volcanic_field      Anthropology
+27.08     37.25   HARRAT_'UWAYRID               Saudi_Arabia	   Volcanic_field      Anthropology
+25.17     37.75   HARRAT_LUNAYYIR               Saudi_Arabia	   Volcanic_field      Historical
+26.58     40.20   HARRAT_ITHNAYN                Saudi_Arabia	   Volcanic_field      Holocene
+25.00     39.92   HARRAT_KHAYBAR                Saudi_Arabia	   Volcanic_field      Historical
+23.08     39.78   HARRAT_RAHAT                  Saudi_Arabia	   Volcanic_field      Historical
+22.80     41.38   HARRAT_KISHB                  Saudi_Arabia	   Volcanic_field      Holocene
+18.37     41.63   HARRAT_AL_BIRK                Saudi_Arabia	   Volcanic_field      Holocene
+17.05     42.83   JABAL_YAR                     Saudi_Arabia	   Volcanic_field      Historical
+15.63     44.08   HARRA_OF_ARHAB                Yemen    	   Volcanic_field      Historical
+15.28     44.22   JABAL_EL-MARHA                Yemen              Tuff_cone           Holocene?
+15.43     44.78   JABAL_HAYLAN                  Yemen              Volcanic_field      Anthropology
+14.57     44.67   HARRAS_OF_DHAMAR              Yemen              Volcanic_field      Historical
+12.25     45.00   UNNAMED                       Yemen              Submarine_volcano   Uncertain
+13.58     46.12   HARRA_ES-SAWÂD                Yemen              Volcanic_field      Historical
+14.05     48.33   HARRA_OF_BAL_HAF              Yemen              Volcanic_field      Holocene
+15.55     50.63   BIR_BORHUT                    Yemen              Volcanic_field      Holocene?
+39.25     45.17   UNNAMED                       Iran               Volcanic_field      Holocene
+37.75     46.43   SAHAND			Iran		   Stratovolcano       Holocene
+38.25     47.92   SABALAN			Iran		   Stratovolcano       Holocene
+35.951    52.109  DAMAVAND                      Iran               Stratovolcano       Uranium-series
 29.40     57.57   QAL'EH_HASAN_ALI              Iran               Maars               Holocene?
 28.07     60.00   BAZMAN                        Iran               Stratovolcano       Fumarolic
 28.17     60.67   UNNAMED                       Iran               Volcanic_field      Holocene?
 28.60     61.60   TAFTAN                        Iran               Stratovolcano       Holocene
-33.95     67.92   DACHT-I-NAVAR_GROUP           Afghanistan        Lava_domes          Holocene
-34.25     67.97   VAKAK_GROUP                   Afghanistan        Volcanic_field      Holocene
--11.47    43.33   GRILLE,_LA                    Indian_O.-W        Shield_volcano      Holocene
--11.75    43.38   KARTHALA                      Indian_O.-W        Shield_volcano      Historical
--21.229   55.713  FOURNAISE,_PITON_DE_LA        Indian_O.-W        Shield_volcano      Historical
+33.95     67.92   DACHT-I-NAVAR_GROUP           Afghanistan        Lava_domes          Holocene?
+34.25     67.97   VAKAK_GROUP                   Afghanistan        Volcanic_field      Holocene?
+-11.47    43.33   LA_GRILLE                     Comoros            Shield_volcano      Holocene
+-11.75    43.38   KARTHALA                      Comoros            Shield_volcano      Historical
+-11.75    43.38   MAYOTTE_ISLAND                France             Shield_volcano      Tephrochronology
 -12.48    49.10   AMBRE-BOBAOMBY                Madagascar         Volcanic_field      Holocene
 -13.32    48.48   NOSY-BE                       Madagascar         Cinder_cones        Holocene
 -14.30    48.67   ANKAIZINA_FIELD               Madagascar         Cinder_cones        Holocene
 -19.00    46.77   ITASY_VOLC_FIELD              Madagascar         Scoria_cones        Radiocarbon
 -19.40    47.20   ANKARATRA_FIELD               Madagascar         Cinder_cones        Holocene
--53.106   73.513  HEARD                         Indian_O.-S        Stratovolcano       Historical
--49.58    69.50   KERGUELEN_ISLANDS             Indian_O.-S        Stratovolcanoes     Holocene
--38.72    77.53   ST._PAUL                      Indian_O.-S        Stratovolcano       Historical
--37.83    77.52   AMSTERDAM_ISLAND              Indian_O.-S        Stratovolcano       Holocene
--46.42    51.63   POSSESSION,_ILE_DE_LA         Indian_O.-S        Stratovolcano       Holocene
--46.10    50.23   COCHONS,_ILE_AUX              Indian_O.-S        Stratovolcano       Holocene
--46.63    37.95   PRINCE_EDWARD_ISLAND          Indian_O.-S        Shield_volcano      Holocene
--46.90    37.75   MARION_ISLAND                 Indian_O.-S        Shield_volcanoes    Historical
-11.75     80.75   UNNAMED                       Indian_O.-E        Submarine_volcano_? Uncertain
+-21.229   55.713  PITON_DE_LA_FOURNAISE         France             Shield_volcano      Historical
+-37.721   77.721  BOOMERANG_SEAMOUNT            France             Submarine_volcano   Historical
+-37.83    77.52   AMSTERDAM_ISLAND              France             Stratovolcano       Holocene
+-38.72    77.53   ST._PAUL                      France             Stratovolcano       Historical
+-53.106   73.513  HEARD                         Australia          Stratovolcano       Historical
+-53.03    72.60   McDONALD_ISLANDS              Australia          Complex_volcano     Historical
+-46.42    51.63   ILE_DE_LA_POSSESSION          France             Stratovolcano       Holocene
+-46.10    50.23   ILE_AUX_COCHONS               France             Stratovolcano       Holocene
+-46.43    52.20   ILE_DE_L'EST                  France             Stratovolcano       Holocene?
+-49.58    69.50   KERGUELEN_ISLANDS             France             Stratovolcanoes     Holocene?
+-46.63    37.95   PRINCE_EDWARD_ISLAND          South_Africa       Shield_volcano      Holocene
+-46.90    37.75   MARION_ISLAND                 South_Africa       Shield_volcanoes    Historical
+11.75     80.75   UNNAMED                       India              Submarine_volcano_? Uncertain
 -35.30   173.90   KAIKOHE-BAY_OF_ISLANDS        New_Zealand        Volcanic_field      Radiocarbon
 -35.75   174.27   WHANGAREI                     New_Zealand        Cinder_cones        Holocene?
 -36.90   174.87   AUCKLAND_FIELD                New_Zealand        Volcanic_field      Radiocarbon
 -37.28   176.25   MAYOR_ISLAND                  New_Zealand        Shield_volcano      Radiocarbon
--39.30   174.07   EGMONT                        New_Zealand        Stratovolcano       Radiocarbon
+-39.30   174.07   TARANAKI_[EGMONT]             New_Zealand        Stratovolcano       Radiocarbon
 -37.52   177.18   WHITE_ISLAND                  New_Zealand        Stratovolcanoes     Historical
 -37.858  176.98   WHALE_ISLAND                  New_Zealand        Complex_volcano     Pleistocene-Fumarolic
 -38.08   176.27   ROTORUA                       New_Zealand        Caldera             Pleistocene-Geysers
@@ -238,29 +255,39 @@
 -38.82   176.00   TAUPO                         New_Zealand        Caldera             Radiocarbon
 -39.13   175.642  TONGARIRO                     New_Zealand        Stratovolcanoes     Historical
 -39.28   175.57   RUAPEHU                       New_Zealand        Stratovolcano       Historical
+-36.466  177.839  CLARK                         New_Zealand        Submarine_volcano   Fumarolic
+-36.321  178.028  TANGAROA                      New_Zealand        Submarine_volcano   Fumarolic
 -35.50   178.875  RUMBLE_I                      New_Zealand        Submarine_volcano   Uncertain
 -35.43   178.65   RUMBLE_II                     New_Zealand        Submarine_volcano   Uncertain
--35.745  178.478  RUMBLE_III                    New_Zealand        Submarine_volcano   Hydrophonic
+-35.353  178.527  RUMBLE_II_WEST                New_Zealand        Submarine_volcano   Fumarolic
+-35.745  178.478  RUMBLE_III                    New_Zealand        Submarine_volcano   Historical
 -36.22   178.05   RUMBLE_IV                     New_Zealand        Submarine_volcano   Fumarolic
 -36.139  178.197  RUMBLE_V                      New_Zealand        Submarine_volcano   Fumarolic
+-35.004  178.973  HEALY                         New_Zealand        Submarine_volcano   Radiocarbon
+-34.875  179.075  BROTHERS                      New_Zealand        Submarine_volcano   Fumarolic
 -30.542  -178.561 CURTIS_ISLAND                 Kermadec_Is          Submarine_volcano   Uncertain
--30.23   -178.92  BRIMSTONE_ISLAND              Kermadec_Is          Submarine_volcano_? Uncertain
--30.20   -178.47  MACAULEY_ISLAND               Kermadec_Is          Caldera             Holocene
+-30.542  -178.561 VOLCANO_W                     Kermadec_Is          Submarine_volcanoes Fumarolic
+-30.20   -178.47  MACAULEY_ISLAND               Kermadec_Is          Caldera             Radiocarbon
+-30.036  -178.712 GIGGENBACH                    Kermadec_Is          Submarine_volcano   Fumarolic
 -29.27   -177.92  RAOUL_ISLAND                  Kermadec_Is          Stratovolcano       Historical
--29.18   -177.87  UNNAMED                       Kermadec_Is          Submarine_volcano   Historical
 -25.888  -177.188 MONOWAI_SEAMOUNT              Kermadec_Is          Submarine_volcano   Historical
+-24.80   -177.02  UNNAMED                       Tonga-SW_Pacific     Submarine_volcano   Historical
 -21.38   -175.65  UNNAMED                       Tonga-SW_Pacific     Submarine_volcano   Historical
+-21.15   -175.75  UNNAMED                       Tonga-SW_Pacific     Submarine_volcano   Historical
 -20.85   -175.53  UNNAMED                       Tonga-SW_Pacific     Submarine_volcano   Historical
--20.57   -175.38  UNNAMED                       Tonga-SW_Pacific     Submarine_volcano   Historical
+-20.57   -175.38  HUNGA_TONGA-HUNGA_HA'APAI     Tonga-SW_Pacific     Submarine_volcano   Historical
 -20.32   -175.42  FALCON_ISLAND                 Tonga-SW_Pacific     Submarine_volcano   Historical
 -19.75   -175.07  TOFUA                         Tonga-SW_Pacific     Caldera             Historical
 -19.18   -174.87  METIS_SHOAL                   Tonga-SW_Pacific     Submarine_volcano   Historical
 -18.992  -174.775 HOME_REEF                     Tonga-SW_Pacific     Submarine_volcano   Historical
 -18.806  -174.65  LATE                          Tonga-SW_Pacific     Stratovolcano       Historical
+-8.325   -174.365 UNNAMED                       Tonga-SW_Pacific     Submarine_volcano   Historical
 -18.02   -174.325 FONUALEI                      Tonga-SW_Pacific     Stratovolcano       Historical
 -15.62   -173.67  CURACOA                       Tonga-SW_Pacific     Submarine_volcano   Historical
 -15.60   -175.63  NIUAFO'OU                     Tonga-SW_Pacific     Shield_volcano      Historical
--14.23   -169.07  UNNAMED                       Samoa-SW_Pacific     Submarine_volcano   Uncertain
+-15.37   -174.23  TAFU-MAKA                     Tonga-SW_Pacific     Submarine_volcano   Historical
+-15.37   -174.23  WEST_MATA                     Tonga-SW_Pacific     Submarine_volcano   Historical
+-14.215  -169.058 VAILULU'U                     Samoa-SW_Pacific     Submarine_volcano   Historical
 -14.23   -169.454 TA'U                          Samoa-SW_Pacific     Shield_volcano      Holocene
 -14.175  -169.618 OFU-OLOSEGA                   Samoa-SW_Pacific     Shield_volcanoes    Historical
 -14.295  -170.70  TUTUILA                       Samoa-SW_Pacific     Tuff_cones          Holocene
@@ -269,6 +296,7 @@
 -13.30   -176.17  WALLIS_ISLANDS                SW_Pacific           Shield_volcanoes    Holocene
 -16.82   -179.97  TAVEUNI                       Fiji_Is-SW_Pacific   Shield_volcano      Radiocarbon
 -17.32   179.40   KORO                          Fiji_Is-SW_Pacific   Cinder_cones        Holocene?
+-19.12   177.98   NABUKELEVU                    Fiji_Is-SW_Pacific   Lava_domes          Radiocarbon
  -2.38   147.35   ST._ANDREW_STRAIT             Admiralty_Is-SW_Pac  Complex_volcano     Historical
  -2.57   147.28   BALUAN                        Admiralty_Is-SW_Pac  Stratovolcano       Holocene?
  -3.03   147.78   UNNAMED                       Admiralty_Is-SW_Pac  Submarine_volcano   Hydrophonic
@@ -287,7 +315,7 @@
  -5.20   148.57   UNNAMED                       New_Britain-SW_Pac   Submarine_volcano_? Uncertain
  -5.525  148.42   LANGILA                       New_Britain-SW_Pac   Complex_volcano     Historical
  -4.55   149.125  NARAGE                        New_Britain-SW_Pac   Stratovolcano       Pleistocene-Geysers
- -4.63   149.35   MUNDUA                        New_Britain-SW_Pac   Complex_volcano     Holocene
+ -4.63   149.35   MUNDUA                        New_Britain-SW_Pac   Complex_volcano     Holocene?
  -4.692  149.50   GAROVE                        New_Britain-SW_Pac   Stratovolcano       Holocene
  -5.056  150.108  DAKATAUA                      New_Britain-SW_Pac   Caldera             Anthropology
  -5.15   150.03   BOLA                          New_Britain-SW_Pac   Stratovolcano       Holocene
@@ -296,12 +324,14 @@
  -5.47   150.50   LOLO                          New_Britain-SW_Pac   Stratovolcano       Holocene?
  -5.58   150.52   PAGO                          New_Britain-SW_Pac   Caldera             Historical
  -5.53   150.90   WALO                          New_Britain-SW_Pac   Hydrothermal_field  Hot_Springs
+ -5.50   150.942  SULU_RANGE			New_Britain-SW_Pac   Stratovolcanoes     Fumarolic
  -5.33   151.10   HARGY                         New_Britain-SW_Pac   Stratovolcano       Radiocarbon
  -5.20   151.23   BAMUS                         New_Britain-SW_Pac   Stratovolcano       Anthropology
  -5.05   151.33   ULAWUN                        New_Britain-SW_Pac   Stratovolcano       Historical
  -4.92   151.158  LOLOBAU                       New_Britain-SW_Pac   Caldera             Historical
  -4.75   150.85   UNNAMED                       New_Britain-SW_Pac   Submarine_volcano_? Uncertain
  -4.271  152.203  RABAUL                        New_Britain-SW_Pac   Pyroclastic_shield  Historical
+ -4.12   152.20   TAVUI                         New_Britain-SW_Pac   Caldera             Radiocarbon
  -5.90   143.15   DOMA_PEAKS                    New_Guinea           Stratovolcano       Holocene?
  -6.58   145.08   CRATER_MOUNTAIN               New_Guinea           Stratovolcano       Holocene?
  -7.05   145.858  YELIA                         New_Guinea           Stratovolcano       Holocene?
@@ -341,8 +371,8 @@
 -15.40   167.83   AOBA                          Vanuatu-SW_Pacific   Shield_volcano      Anthropology
 -16.25   168.12   AMBRYM                        Vanuatu-SW_Pacific   Stratovolcano       Historical
 -16.507  168.346  LOPEVI                        Vanuatu-SW_Pacific   Stratovolcano       Historical
--16.68   168.37   EAST_EPI                      Vanuatu-SW_Pacific   Caldera             Historical
--16.73   168.28   KUTALI,_TAVANI                Vanuatu-SW_Pacific   Stratovolcanoes     Holocene?
+-16.68   168.37   EPI                           Vanuatu-SW_Pacific   Caldera             Historical
+-16.73   168.28   TAVANI_KUTALI                 Vanuatu-SW_Pacific   Stratovolcanoes     Holocene?
 -16.80   168.43   TAVAI_RURO                    Vanuatu-SW_Pacific   Stratovolcano       Holocene?
 -16.829  168.536  KUWAE                         Vanuatu-SW_Pacific   Caldera             Historical
 -16.992  168.592  UNNAMED                       Vanuatu-SW_Pacific   Stratovolcanoes     Holocene
@@ -350,6 +380,7 @@
 -18.75   169.23   TRAITOR'S_HEAD                Vanuatu-SW_Pacific   Stratovolcano       Historical
 -19.52   169.425  YASUR                         Vanuatu-SW_Pacific   Stratovolcano       Historical
 -20.20   169.83   ANEITYUM                      Vanuatu-SW_Pacific   Stratovolcanoes     Holocene?
+-20.98   170.28   EASTERN_GEMINI_SEAMOUNT       SW_Pacific           Submarine_volcano   Historical
 -22.33   171.32   MATTHEW_ISLAND                SW_Pacific           Stratovolcano       Historical
 -22.40   172.05   HUNTER_ISLAND                 SW_Pacific           Stratovolcano       Historical
 -25.78   168.63   UNNAMED                       SW_Pacific           Submarine_volcano   Hydrophonic
@@ -368,22 +399,23 @@
  2.03     98.93   HELATOBA-TARUTUNG             Sumatra              Fumarole_field      Fumarolic
  1.57     99.25   BUAL_BUALI                    Sumatra              Stratovolcano       Fumarolic
  0.687    99.537  SORIKMARAPI                   Sumatra              Stratovolcano       Historical
+ 0.47     99.67   MALITANG			Sumatra              Stratovolcano       Holocene
  0.079    99.982  TALAKMAU                      Sumatra              Complex_volcano     Holocene
  -0.38   100.471  MARAPI                        Sumatra              Complex_volcano     Historical
  -0.433  100.317  TANDIKAT                      Sumatra              Stratovolcano       Historical
  -0.978  100.679  TALANG                        Sumatra              Stratovolcano       Historical
  -1.692  101.27   KERINCI                       Sumatra              Stratovolcano       Historical
+ -2.592  101.63   KUNYIT                        Sumatra              Stratovolcano       Fumarolic
  -2.27   101.60   HUTAPANJANG                   Sumatra              Stratovolcano       Holocene
  -2.42   101.73   SUMBING                       Sumatra              Stratovolcano       Historical
- -2.592  101.63   KUNYIT                        Sumatra              Stratovolcano       Fumarolic
  -2.82   102.02   PENDAN                        Sumatra              Unknown             Holocene
  -2.82   102.18   BELIRANG-BERITI               Sumatra              Compound_volcano    Fumarolic
- -3.38   102.37   LUMUTDAUN,_BUKIT              Sumatra              Stratovolcano       Fumarolic
+ -3.38   102.37   BUKIT_DAUN                    Sumatra              Stratovolcano       Fumarolic
  -3.52   102.62   KABA                          Sumatra              Stratovolcano       Historical
  -4.03   103.13   DEMPO                         Sumatra              Stratovolcano       Historical
  -4.27   103.30   PATAH                         Sumatra              Unknown             Uncertain
- -4.22   103.62   LUMUT_BALAI,_BUKIT            Sumatra              Stratovolcano_?     Fumarolic
- -4.43   103.67   BESAR,_GUNUNG                 Sumatra              Stratovolcano_?     Historical
+ -4.22   103.62   BUKIT_LUMUT_BALAI             Sumatra              Stratovolcano_?     Fumarolic
+ -4.43   103.67   BESAR                         Sumatra              Stratovolcano_?     Historical
  -4.83   103.92   RANAU                         Sumatra              Caldera             Holocene?
  -5.12   104.32   SEKINCAU_BELIRANG             Sumatra              Caldera             Fumarolic
  -5.25   104.27   SUOH                          Sumatra              Maars               Historical
@@ -392,21 +424,21 @@
  -6.102  105.423  KRAKATAU                      Indonesia            Caldera             Historical
  -6.20   105.97   DANAU_COMPLEX                 Java                 Caldera             Holocene
  -6.27   106.042  KARANG                        Java                 Stratovolcano       Fumarolic
- -6.73   106.65   KIARABERES-GAGAK              Java                 Stratovolcano       Historical
- -6.75   106.68   PERBAKTI                      Java                 Stratovolcano       Fumarolic
+ -6.342  105.975  PULOSARI			Java                 Stratovolcano       Holocene
+ -6.75   106.68   PERBAKTI-GAGAK                Java                 Stratovolcanoes     Historical
  -6.72   106.73   SALAK                         Java                 Stratovolcano       Historical
  -6.78   106.98   GEDE                          Java                 Stratovolcano       Historical
  -7.15   107.37   PATUHA                        Java                 Stratovolcano       Holocene
  -7.208  107.63   WAYANG-WINDU                  Java                 Stratovolcano       Fumarolic
  -6.77   107.60   TANGKUBANPARAHU               Java                 Stratovolcano       Historical
  -7.32   107.73   PAPANDAYAN                    Java                 Stratovolcano       Historical
- -7.23   107.72   KAWAHMANUK                    Java                 Fumarole_field      Fumarolic
- -7.125  107.80   KAWAHKAMOJANG                 Java                 Fumarole_field      Fumarolic
+ -7.23   107.72   KENDANG                       Java                 Stratovolcano       Holocene
+ -7.125  107.80   KAWAH_KAMOJANG                Java                 Fumarole_field      Fumarolic
  -7.13   107.83   GUNTUR                        Java                 Complex_volcano     Historical
  -6.77   107.95   TAMPOMAS                      Java                 Stratovolcano       Holocene
  -7.25   108.05   GALUNGGUNG                    Java                 Stratovolcano       Historical
  -7.208  108.07   TALAGABODAS                   Java                 Stratovolcano       Fumarolic
- -7.17   108.08   KAWAHKARAHA                   Java                 Fumarole_field      Fumarolic
+ -7.17   108.08   KAWAH_KARAHA                  Java                 Fumarole_field      Fumarolic
  -6.892  108.40   CEREME                        Java                 Stratovolcano       Historical
  -7.242  109.208  SLAMET                        Java                 Stratovolcano       Historical
  -7.20   109.92   DIENG_VOLC_COMPLEX            Java                 Complex_volcano     Historical
@@ -438,9 +470,9 @@
  -8.25   118.00   TAMBORA                       Lesser_Sunda_Is      Stratovolcano       Historical
  -8.18   119.058  SANGEANG_API                  Lesser_Sunda_Is      Complex_volcano     Historical
  -8.52   119.35   GILIBANTA                     Lesser_Sunda_Is      Submarine_volcano_? Uncertain
- -8.68   120.025  SANO,_WAI                     Lesser_Sunda_Is      Caldera             Fumarolic
+ -8.68   120.025  WAI_SANO                      Lesser_Sunda_Is      Caldera             Fumarolic
  -8.68   120.48   POCO_LEOK                     Lesser_Sunda_Is      Unknown             Fumarolic
- -8.62   120.52   RANAKAH,_GUNUNG               Lesser_Sunda_Is      Lava_domes          Historical
+ -8.62   120.52   RANAKAH                       Lesser_Sunda_Is      Lava_domes          Historical
  -8.875  120.95   INIERIE                       Lesser_Sunda_Is      Stratovolcano       Fumarolic
  -8.73   120.98   INIELIKA                      Lesser_Sunda_Is      Complex_volcano     Historical
  -8.808  121.18   EBULOBO                       Lesser_Sunda_Is      Stratovolcano       Historical
@@ -458,7 +490,7 @@
  -8.272  123.505  LEWOTOLO                      Lesser_Sunda_Is      Stratovolcano       Historical
  -8.53   123.42   ILILABALEKAN                  Lesser_Sunda_Is      Stratovolcano       Fumarolic
  -8.54   123.59   ILIWERUNG                     Lesser_Sunda_Is      Complex_volcano     Historical
- -7.792  123.579  TARA,_BATU                    Lesser_Sunda_Is      Stratovolcano       Historical
+ -7.792  123.579  BATU_TARA                    Lesser_Sunda_Is      Stratovolcano       Historical
  -8.51   124.148  SIRUNG                        Lesser_Sunda_Is      Complex_volcano     Historical
  -7.53   123.95   YERSEY                        Lesser_Sunda_Is      Submarine_volcano_? Uncertain
  -6.62   124.22   EMPEROR_OF_CHINA              Banda_Sea            Submarine_volcano_? Uncertain
@@ -484,36 +516,44 @@
  3.138   125.491  BANUA_WUHU                    Sangihe_Is-Indonesia Submarine_volcano   Historical
  3.67    125.50   AWU                           Sangihe_Is-Indonesia Stratovolcano       Historical
  3.97    124.17   UNNAMED                       Sangihe_Is-Indonesia Submarine_volcano_? Uncertain
+ 1.83    127.83   TARAKAN                       Halmahera-Indonesia  Pyroclastic_cones   Holocene
  1.70    127.87   DUKONO                        Halmahera-Indonesia  Complex_volcano     Historical
+ 1.63    127.67   TOBARU                        Halmahera-Indonesia  Unknown             Holocene
  1.48    127.63   IBU                           Halmahera-Indonesia  Stratovolcano       Historical
  1.375   127.52   GAMKONORA                     Halmahera-Indonesia  Stratovolcano       Historical
  1.30    127.43   TODOKO-RANU                   Halmahera-Indonesia  Calderas            Fumarolic
  1.17    127.32   JAILOLO                       Halmahera-Indonesia  Stratovolcano       Holocene
+ 0.90    127.32   HIRI				Halmahera-Indonesia  Stratovolcano       Holocene
  0.80    127.325  GAMALAMA                      Halmahera-Indonesia  Stratovolcanoes     Historical
- 0.45    127.40   MOTIR                         Halmahera-Indonesia  Stratovolcano       Uncertain
+ 0.658   127.40   TIDORE			Halmahera-Indonesia  Stratovolcano       Holocene
+ 0.57    127.40   MARE				Halmahera-Indonesia  Stratovolcano       Holocene
+ 0.45    127.40   MOTI                          Halmahera-Indonesia  Stratovolcano       Holocene
  0.32    127.40   MAKIAN                        Halmahera-Indonesia  Stratovolcano       Historical
+ 0.07    127.42   TIGALU			Halmahera-Indonesia  Stratovolcano       Holocene
+ 0.53    127.48   AMASING			Halmahera-Indonesia  Stratovolcanoes     Holocene
+ 0.77    127.72   BIBINOI			Halmahera-Indonesia  Stratovolcanoes     Holocene
  4.40    117.88   BOMBALAI                      Borneo               Cone                Holocene?
- 5.95    121.07   BUD_DAJO                      Sulu_Is-Philippines  Pyroclastic_cones   Historical
+ 6.013   121.057  JOLO                          Sulu_Is-Philippines  Pyroclastic_cones   Historical
  5.40    125.375  BALUT                         Mindanao-Philippines Stratovolcano       Holocene
+ 6.113   124.892  PARKER                        Mindanao-Philippines Stratovolcano       Holocene
  6.37    125.108  MATUTUM                       Mindanao-Philippines Stratovolcano       Holocene
  6.987   125.273  APO                           Mindanao-Philippines Stratovolcano       Fumarolic
  7.393   126.397  LEONARD_RANGE                 Mindanao-Philippines Stratovolcano       Holocene
- 7.443   126.073  UNNAMED                       Mindanao-Philippines Unknown             Hot_Springs
  7.647   124.32   MAKATURING                    Mindanao-Philippines Stratovolcano       Holocene
- 7.65    124.47   LATUKAN                       Mindanao-Philippines Stratovolcano       Holocene
+ 7.65    124.47   LATUKAN                       Mindanao-Philippines Stratovolcano       Holocene?
  7.67    124.50   RAGANG                        Mindanao-Philippines Stratovolcano       Historical
- 7.95    124.80   KALATUNGAN                    Mindanao-Philippines Stratovolcano       Holocene
+ 7.95    124.80   KALATUNGAN                    Mindanao-Philippines Stratovolcano       Holocene?
  7.877   125.068  CALAYO                        Mindanao-Philippines Tuff_cone           Historical
  8.22    123.63   MALINDANG                     Mindanao-Philippines Stratovolcano       Holocene
- 8.80    124.92   BALATOCAN                     Mindanao-Philippines Compound_volcano    Fumarolic
- 9.203   124.673  HIBOK-HIBOK                   Mindanao-Philippines Stratovolcano       Historical
+ 8.77    124.98   BALATUKAN                     Mindanao-Philippines Compound_volcano    Uncertain
+ 9.203   124.673  CAMIGUIN 	                Mindanao-Philippines Stratovolcanoes     Historical
  9.593   125.52   PACO                          Mindanao-Philippines Compound_volcano    Fumarolic
- 9.258   123.175  MAGASO                        Philippines-C        Stratovolcano       Holocene
-10.412   123.132  CANLAON                       Philippines-C        Stratovolcano       Historical
+ 9.258   123.175  CUERNOS_DE_NEGROS             Philippines-C        Stratovolcano       Holocene
+10.412   123.132  KANALAON                      Philippines-C        Stratovolcano       Historical
 10.615   123.22   MANDALAGAN                    Philippines-C        Stratovolcano       Holocene
 10.77    123.23   SILAY                         Philippines-C        Stratovolcano       Holocene
 10.287   125.22   CABALIAN                      Philippines-C        Stratovolcano       Holocene
-10.872   124.853  MAHAGNOA                      Philippines-C        Stratovolcano       Fumarolic
+10.872   124.853  MAHAGNAO                      Philippines-C        Stratovolcano       Fumarolic
 11.523   124.534  BILIRAN                       Philippines-C        Compound_volcano    Historical
 12.77    124.05   BULUSAN_                      Luzon-Philippines    Stratovolcano       Historical
 13.05    123.958  POCDOL_MOUNTAINS              Luzon-Philippines    Compound_volcano    Holocene
@@ -522,19 +562,19 @@
 13.422   123.597  MALINAO                       Luzon-Philippines    Stratovolcano       Fumarolic
 13.457   123.457  IRIGA                         Luzon-Philippines    Stratovolcano       Historical
 13.658   123.37   ISAROG                        Luzon-Philippines    Stratovolcano       Holocene
-14.02    122.792  LABO                          Luzon-Philippines    Compound_volcano    Holocene
+14.02    122.792  LABO                          Luzon-Philippines    Compound_volcano    Holocene?
 13.24    122.018  MALINDIG                      Luzon-Philippines    Stratovolcano_?     Hot_Springs
 13.53    121.078  DAGIT-DAGITAN                 Luzon-Philippines    Stratovolcano       Pleistocene-Fumarolic
 13.723   120.893  PANAY                         Luzon-Philippines    Stratovolcano       Pleistocene-Fumarolic
 14.07    121.48   BANAHAW                       Luzon-Philippines    Complex_volcano     Holocene
-14.12    121.30   LAGUNA_VOLC_FIELD             Luzon-Philippines    Scoria_cones        Anthropology
-14.13    121.20   MAQUILING                     Luzon-Philippines    Stratovolcano       Holocene
+14.12    121.30   SAN_PABLO_VOLC_FIELD          Luzon-Philippines    Stratovolcano       Anthropology
+14.13    121.20   MAQUILING                     Luzon-Philippines    Stratovolcano       Holocene?
 14.002   120.993  TAAL                          Luzon-Philippines    Stratovolcano       Historical
-14.35    121.33   JALAJALA                      Luzon-Philippines    Fumarole_field      Fumarolic
+14.42    121.27   LAGUNA_CALDERA		Luzon-Philippines    Caldera		 Fumarolic
 14.50    120.50   MARIVELES                     Luzon-Philippines    Stratovolcano       Radiocarbon
 14.705   120.40   NATIB                         Luzon-Philippines    Stratovolcano       Holocene?
 15.13    120.35   PINATUBO                      Luzon-Philippines    Stratovolcano       Historical
-15.20    120.742  ARAYAT                        Luzon-Philippines    Stratovolcano       Holocene
+15.20    120.742  ARAYAT                        Luzon-Philippines    Stratovolcano       Holocene?
 15.828   120.805  AMORONG                       Luzon-Philippines    Unknown             Fumarolic
 16.33    120.55   SANTO_TOMAS                   Luzon-Philippines    Stratovolcano       Uncertain
 17.147   120.98   PATOC                         Luzon-Philippines    Stratovolcano       Fumarolic
@@ -546,12 +586,13 @@
 19.523   121.94   BABUYAN_CLARO                 Luzon_Is-N_of        Stratovolcanoes     Historical
 20.33    121.75   UNNAMED                       Luzon_Is-N_of        Submarine_volcano   Historical
 20.469   122.01   IRAYA                         Luzon_Is-N_of        Stratovolcano       Historical
+19.70    110.10   HAINAN_DAO                    SE_Asia              Pyroclastic_cones   Historical
 20.83    109.78   LEIZHOU_BANDAO                SE_Asia              Volcanic_field      Holocene
-15.38    109.12   CU-LAO_RE_GROUP               SE_Asia              Cones               Holocene
+15.38    109.12   Cù-LAO_RÉ_GROUP               SE_Asia              Cones               Holocene
 14.93    108.00   TOROENG_PRONG                 SE_Asia              Unknown             Holocene?
 11.60    108.20   HAUT_DONG_NAI                 SE_Asia              Volcanic_field      Holocene?
 10.80    107.20   BAS_DONG_NAI                  SE_Asia              Volcanic_field      Holocene?
-10.158   109.014  CENDRES,_ILE_DES              SE_Asia              Submarine_volcanoes Historical
+10.158   109.014  ILE_DES_CENDRES               SE_Asia              Submarine_volcanoes Historical
  9.83    109.05   VETERAN                       SE_Asia              Submarine_volcano   Fumarolic
 20.87     95.23   POPA                          SE_Asia              Stratovolcano       Anthropology
 22.28     95.10   LOWER_CHINDWIN                SE_Asia              Volcanic_field      Holocene?
@@ -562,15 +603,17 @@
 21.83    121.18   UNNAMED                       Taiwan-E_of          Submarine_volcano   Historical
 24.00    121.83   UNNAMED                       Taiwan-E_of          Submarine_volcano   Historical
 24.85    121.92   KUEI-SHAN-TAO                 Taiwan               Stratovolcano       Pleistocene-Fumarolic
-25.17    121.52   DATUN_GROUP                   Taiwan               Stratovolcano       Pleistocene-Fumarolic
+25.17    121.52   TATUN_GROUP                   Taiwan               Stratovolcano       Pleistocene-Fumarolic
 25.42    122.33   UNNAMED                       Taiwan-N_of          Submarine_volcano   Historical
 25.63    122.07   PENG-CHIA-HSU                 Taiwan-N_of          Stratovolcano       Pleistocene-Fumarolic
 26.18    122.458  ZENGYU                        Taiwan-N_of          Submarine_volcano   Historical
 24.558   124.00   IRIOMOTE-JIMA                 Ryukyu_Is            Submarine_volcano   Historical
-27.85    128.25   OKINAWA-TORI-SHIMA            Ryukyu_Is            Complex_volcano     Historical
+27.877   128.224  IWO-TORI-SHIMA                Ryukyu_Is            Complex_volcano     Historical
 29.45    129.60   AKUSEKI-JIMA                  Ryukyu_Is            Stratovolcano       Holocene
 29.53    129.72   SUWANOSE-JIMA                 Ryukyu_Is            Stratovolcano       Historical
 29.85    129.87   NAKANO-SHIMA                  Ryukyu_Is            Stratovolcanoes     Historical
+29.879   129.625  KOGAJA-JIMA  			Ryukyu_Is            Lava_domes          Holocene?
+29.90    129.544  GAJA-JIMA  			Ryukyu_Is            Stratovolcano       Holocene?
 29.97    129.93   KUCHINO-SHIMA                 Ryukyu_Is            Stratovolcanoes     Holocene
 30.43    130.22   KUCHINOERABU-JIMA             Ryukyu_Is            Stratovolcanoes     Historical
 30.78    130.28   KIKAI                         Ryukyu_Is            Caldera             Historical
@@ -578,6 +621,7 @@
 31.58    130.67   SAKURA-JIMA                   Kyushu-Japan         Stratovolcano       Historical
 31.768   130.594  SUMIYOSHI-IKE                 Kyushu-Japan         Maars               Radiocarbon
 31.93    130.87   KIRISHIMA                     Kyushu-Japan         Shield_volcano      Historical
+32.653   128.851  FUKUE-JIMA                    Kyushu-Japan         Shield_volcano      Historical
 32.75    130.30   UNZEN                         Kyushu-Japan         Complex_volcano     Historical
 32.88    131.10   ASO                           Kyushu-Japan         Caldera             Historical
 33.08    131.25   KUJU_GROUP                    Kyushu-Japan         Stratovolcanoes     Historical
@@ -642,31 +686,46 @@
 31.92    139.92   BAYONNAISE_ROCKS              Izu_Is-Japan         Submarine_volcano   Historical
 31.32    140.05   SMITH_ROCK                    Izu_Is-Japan         Submarine_volcano   Historical
 30.48    140.32   TORI-SHIMA                    Izu_Is-Japan         Stratovolcano       Historical
-29.22    140.80   OMACHI_SEAMOUNT               Izu_Is-Japan         Submarine_volcano   Uncertain
+29.789   140.345  SOFUGAN                       Izu_Is-Japan         Stratovolcano       Uncertain
+28.60    140.63   SUIYO_SEAMOUNT                Izu_Is-Japan         Submarine_volcano   Fumarolic
+28.32    140.57   MOKUYO_SEAMOUNT               Izu_Is-Japan         Submarine_volcano   Fumarolic
+28.60    140.63   DOYO_SEAMOUNT                 Izu_Is-Japan         Submarine_volcano   Fumarolic
 27.243   140.877  NISHINO-SHIMA                 Volcano_Is-Japan     Caldera             Historical
+26.67    141.00   KAIKATA_SEAMOUNT              Volcano_Is-Japan     Submarine_volcano   Fumarolic
 26.13    144.48   UNNAMED                       Volcano_Is-Japan     Submarine_volcano_? Uncertain
 26.122   141.102  KAITOKU_SEAMOUNT              Volcano_Is-Japan     Submarine_volcano   Historical
 25.43    141.23   KITA-IWO-JIMA                 Volcano_Is-Japan     Stratovolcano       Historical
-24.75    141.33   IWO-JIMA                      Volcano_Is-Japan     Caldera             Historical
-24.28    141.52   SHIN-IWO-JIMA                 Volcano_Is-Japan     Submarine_volcano   Historical
+24.75    141.33   IOTO                          Volcano_Is-Japan     Caldera             Historical
+26.122   141.102  KITA-FUKUTOKUTAI              Volcano_Is-Japan     Submarine_volcano   Historical
+24.28    141.485  FUKUTOKU-OKNABA               Volcano_Is-Japan     Submarine_volcano   Historical
 23.507   141.905  MINAMI-HIYOSHI                Volcano_Is-Japan     Submarine_volcano   Historical
 23.075   142.308  NIKKO                         Volcano_Is-Japan     Submarine_volcano   Uncertain
 21.925   143.442  FUKUJIN                       Volcano_Is-Japan     Submarine_volcano   Historical
-21.77    143.72   KASUGA_SEAMOUNT               Volcano_Is-Japan     Submarine_volcano   Uncertain
+21.77    143.72   KASUGA                        Volcano_Is-Japan     Submarine_volcano   Historical
+21.60    143.637  MINAMI_KASUGA                 Volcano_Is-Japan     Submarine_volcano   Holocene
+21.485   143.637  NW_EIFUKU                     Volcano_Is-Japan     Submarine_volcano   Fumarolic
+21.324   144.197  DAIKOKU                       Volcano_Is-Japan     Submarine_volcano   Fumarolic
 21.00    142.90   UNNAMED                       Mariana_Is-C_Pac     Submarine_volcano_? Uncertain
 20.30    143.20   UNNAMED                       Mariana_Is-C_Pac     Submarine_volcano_? Uncertain
 20.53    144.90   FARALLON_DE_PAJAROS           Mariana_Is-C_Pac     Stratovolcano       Historical
 20.43    145.03   AHYI                          Mariana_Is-C_Pac     Submarine_volcano   Uncertain
 20.13    145.10   SUPPLY_REEF                   Mariana_Is-C_Pac     Submarine_volcano   Hydrophonic
+20.02	 145.22	  MAUG_ISLANDS			Mariana_Is-C_Pac     Stratovolcano       Fumarolic
 19.67    145.40   ASUNCION                      Mariana_Is-C_Pac     Stratovolcano       Historical
 18.77    145.67   AGRIGAN                       Mariana_Is-C_Pac     Stratovolcano       Historical
 18.13    145.80   PAGAN                         Mariana_Is-C_Pac     Stratovolcanoes     Historical
 17.60    145.83   ALAMAGAN                      Mariana_Is-C_Pac     Stratovolcano       Radiocarbon
 17.32    145.85   GUGUAN                        Mariana_Is-C_Pac     Stratovolcano       Historical
+16.88	 145.85   ZEALANDIA_BANK		Mariana_Is-C_Pac     Stratovolcano       Fumarolic
 16.708   145.78   SARIGAN                       Mariana_Is-C_Pac     Stratovolcano       Holocene
+16.58    145.78   SOUTH_SARIGAN_SEAMOUNT        Mariana_Is-C_Pac     Stratovolcano       Historical
 16.35    145.67   ANATAHAN                      Mariana_Is-C_Pac     Stratovolcano       Holocene
+15.93	 145.67   EAST_DIAMANTE			Mariana_Is-C_Pac     Submarine_volcano   Fumarolic
 15.62    145.57   RUBY                          Mariana_Is-C_Pac     Submarine_volcano   Hydrophonic
 15.00    145.25   ESMERALDA_BANK                Mariana_Is-C_Pac     Submarine_volcano   Fumarolic
+13.40	 143.92   NW_ROTA-1			Mariana_Is-C_Pac     Submarine_volcano   Fumarolic
+16.58    145.78   FORECAST_SEAMOUNT             Mariana_Is-C_Pac     Submarine_volcano   Fumarolic
+13.25    144.02   SEAMOUNT_X                    Mariana_Is-C_Pac     Submarine_volcano   Fumarolic
 41.50    139.37   OSHIMA-OSHIMA                 Hokkaido-Japan       Stratovolcano       Historical
 41.80    141.17   E-SAN_                        Hokkaido-Japan       Stratovolcano       Historical
 42.07    140.68   KOMAGA-TAKE                   Hokkaido-Japan       Stratovolcano       Historical
@@ -725,7 +784,7 @@
 48.958   153.93   EKARMA                        Kurile_Is            Stratovolcano       Historical
 48.77    154.02   KUNTOMINTAR                   Kurile_Is            Hydrothermal_field  Pleistocene-Fumarolic
 48.875   154.175  SINARKA                       Kurile_Is            Stratovolcano       Historical
-49.12    154.508  HARIMKOTAN                    Kurile_Is            Stratovolcano       Historical
+49.12    154.508  KHARIMKOTAN                   Kurile_Is            Stratovolcano       Historical
 49.35    154.70   TAO-RUSYR_CALDERA             Kurile_Is            Stratovolcano       Historical
 49.57    154.808  NEMO_PEAK                     Kurile_Is            Caldera             Historical
 50.20    154.98   SHIRINKI                      Kurile_Is            Stratovolcano       Holocene
@@ -739,26 +798,27 @@
 51.10    156.72   MASHKOVTSEV                   Kamchatka            Stratovolcano       Holocene
 51.30    156.87   KAMBALNY                      Kamchatka            Stratovolcano       Holocene
 51.357   156.75   KOSHELEV                      Kamchatka            Stratovolcano       Historical
-51.60    156.55   UNNAMED                       Kamchatka            Cinder_cone         Holocene
-51.43    156.93   PAUZHETKA                     Kamchatka            Calderas            Radiocarbon
+51.57    156.60   YAVINSKY                      Kamchatka            Cinder_cone         Holocene
+51.43    156.93   DIKY_GREBEN                   Kamchatka            Lava_domes          Radiocarbon
+51.45	 157.12   KURILE_LAKE			Kamchatka            Caldera	         Radiocarbon
 51.49    157.20   ILYINSKY                      Kamchatka            Stratovolcano       Historical
 51.57    157.323  ZHELTOVSKY                    Kamchatka            Stratovolcano       Historical
 51.65    157.35   KELL                          Kamchatka            Stratovolcano       Holocene
-51.75    157.27   BELEN'KAYA                    Kamchatka            Stratovolcano       Holocene
+51.75    157.27   BELENKAYA                     Kamchatka            Stratovolcano       Holocene
 51.80    157.53   KSUDACH                       Kamchatka            Shield_volcano      Historical
 51.88    157.38   OZERNOY                       Kamchatka            Shield_volcano      Holocene
-52.02    157.53   PLOSKY_VOLC_GROUP             Kamchatka            Volcanic_field      Holocene
+52.02    157.53   OLKOVIY_VOLC_GROUP            Kamchatka            Volcanic_field      Holocene
 52.063   157.703  KHODUTKA                      Kamchatka            Stratovolcanoes     Radiocarbon
 52.113   157.849  PIRATKOVSKY                   Kamchatka            Stratovolcano       Holocene
 52.077   157.477  OLKOVIY                       Kamchatka            Shield_volcano      Holocene
-52.154   157.322  OSTANETS                      Kamchatka            Shield_volcanoes    Holocene
+52.146   157.322  OSTANETS                      Kamchatka            Shield_volcanoes    Holocene
 52.22    157.428  OTDELNIY                      Kamchatka            Shield_volcanoes    Holocene
 52.33    157.33   UNNAMED                       Kamchatka            Pyroclastic_cones   Holocene
 52.25    157.60   TUNDROVIY                     Kamchatka            Shield_volcanoes    Holocene
-52.453   158.195  MUTNOVSKY                     Kamchatka            Complex_volcano     Historical
 52.263   157.787  GOLAYA                        Kamchatka            Stratovolcano       Holocene
 52.355   157.827  ASACHA                        Kamchatka            Complex_volcano     Holocene
 52.43    157.93   VISOKIY                       Kamchatka            Stratovolcano       Holocene
+52.453   158.195  MUTNOVSKY                     Kamchatka            Complex_volcano     Historical
 52.558   158.03   GORELY                        Kamchatka            Caldera             Historical
 52.543   157.335  OPALA                         Kamchatka            Caldera             Radiocarbon
 52.57    157.02   UNNAMED                       Kamchatka            Cinder_cone         Holocene
@@ -770,12 +830,12 @@
 52.90    157.78   BOLSHE-BANNAYA                Kamchatka            Lava_domes          Holocene
 53.32    158.688  KORYAKSKY                     Kamchatka            Stratovolcano       Historical
 53.255   158.83   AVACHINSKY                    Kamchatka            Stratovolcano       Historical
-53.63    158.10   UNNAMED                       Kamchatka            Cinder_cones        Holocene
-53.63    158.42   VEER                          Kamchatka            Cinder_cones        Historical
 53.637   158.922  DZENZURSKY                    Kamchatka            Compound_volcano    Holocene
 53.59    159.147  ZHUPANOVSKY                   Kamchatka            Compound_volcano    Historical
+53.63    158.42   VEER                          Kamchatka            Cinder_cones        Historical
+53.83	 158.05   KOSTAKAN			Kamchatka            Cinder_cones        Holocene
+53.905   158.07   BAKENING                      Kamchatka            Stratovolcano       Tephrochronology
 53.905   158.385  ZAVARITSKY                    Kamchatka            Stratovolcano       Holocene
-53.905   158.07   BAKENIN                       Kamchatka            Caldera             Holocene
 53.98    159.45   AKADEMIA_NAUK                 Kamchatka            Stratovolcanoes     Holocene
 54.05    159.43   KARYMSKY                      Kamchatka            Stratovolcano       Historical
 54.13    159.67   MALY_SEMIACHIK                Kamchatka            Caldera             Historical
@@ -785,9 +845,10 @@
 54.487   160.253  KIKHPINYCH                    Kamchatka            Stratovolcanoes     Radiocarbon
 54.593   160.273  KRASHENINNIKOV                Kamchatka            Caldera             Radiocarbon
 54.753   160.527  KRONOTSKY                     Kamchatka            Stratovolcano       Historical
+54.92    160.03   SCHMIDT                       Kamchatka            Shield_volcano      Holocene
 54.973   160.702  GAMCHEN                       Kamchatka            Complex_volcano     Holocene
 55.032   160.72   KOMAROV                       Kamchatka            Stratovolcano       Holocene
-55.07    160.77   KOLKHOZHNY                    Kamchatka            Stratovolcano       Holocene
+55.07    160.77   VYSOKY                        Kamchatka            Stratovolcano       Holocene
 55.13    160.32   KIZIMEN                       Kamchatka            Stratovolcano       Historical
 55.23    160.587  IULT                          Kamchatka            Stratovolcano       Holocene
 55.92    161.75   UNNAMED                       Kamchatka            Cinder_cones        Holocene?
@@ -802,62 +863,69 @@
 56.53    160.87   UNNAMED                       Kamchatka            Cinder_cones        Holocene
 56.653   161.36   SHIVELUCH                     Kamchatka            Stratovolcano       Historical
 55.42    167.33   PIIP                          Kamchatka-E_of       Submarine_volcano   Tephrochronology
-54.75    157.38   HANGAR                        Kamchatka            Stratovolcano       Radiocarbon
+54.75    157.38   KHANGAR                       Kamchatka            Stratovolcano       Radiocarbon
+55.55    157.47   CHERPUK_GROUP			Kamchatka            Pyroclastic_cones   Radiocarbon
 55.68    157.73   ICHINSKY                      Kamchatka            Stratovolcano       Holocene
 55.82    157.98   MALY_PAYALPAN                 Kamchatka            Shield_volcanoes    Holocene
 55.88    157.78   BOLSHOY_PAYALPAN              Kamchatka            Shield_volcanoes    Holocene
-55.20    158.47   PLOSKY                        Kamchatka            Shield_volcano      Holocene
-55.43    158.65   AKHTANG                       Kamchatka            Shield_volcano      Holocene
-55.58    158.38   KOZYREVSKY                    Kamchatka            Shield_volcano      Holocene
-55.65    158.80   ROMANOVKA                     Kamchatka            Stratovolcano       Holocene
-56.08    158.38   UKSICHAN                      Kamchatka            Shield_volcano      Holocene
+55.20    158.47   PLOSKY                        Kamchatka            Shield_volcano      Holocene?
+55.43    158.65   AKHTANG                       Kamchatka            Shield_volcano      Holocene?
+55.58    158.38   KOZYREVSKY                    Kamchatka            Shield_volcano      Holocene?
+55.65    158.80   ROMANOVKA                     Kamchatka            Stratovolcano       Holocene?
+56.08    158.38   UKSICHAN                      Kamchatka            Shield_volcano      Holocene?
 56.47    157.80   BOLSHOY-KEKUKNAYSKY           Kamchatka            Shield_volcanoes    Holocene
-56.37    158.37   KULKEV                        Kamchatka            Shield_volcano      Holocene
-56.33    158.67   GEODESISTOY                   Kamchatka            Shield_volcano      Holocene
-56.32    158.83   ANAUN                         Kamchatka            Stratovolcano       Holocene
-56.37    159.03   KRAINY                        Kamchatka            Shield_volcano      Holocene
-56.40    158.85   KEKURNY                       Kamchatka            Shield_volcanoes    Holocene
-56.57    158.52   EGGELLA                       Kamchatka            Shield_volcano      Holocene
-56.82    158.95   UNNAMED                       Kamchatka            Shield_volcano      Holocene
-56.52    159.53   VERKHOVOY                     Kamchatka            Shield_volcano      Holocene
+56.37    158.37   KULKEV                        Kamchatka            Shield_volcano      Holocene?
+56.33    158.67   GEODESISTOY                   Kamchatka            Shield_volcano      Holocene?
+56.32    158.83   ANAUN                         Kamchatka            Stratovolcano       Holocene?
+56.37    159.03   KRAINY                        Kamchatka            Shield_volcano      Holocene?
+56.40    158.85   KEKURNY                       Kamchatka            Shield_volcanoes    Holocene?
+56.57    158.52   EGGELLA                       Kamchatka            Shield_volcano      Holocene?
+56.82    158.95   UNNAMED                       Kamchatka            Shield_volcano      Holocene?
+56.52    159.53   VERKHOVOY                     Kamchatka            Shield_volcano      Holocene?
 56.70    159.65   ALNEY-CHASHAKONDZHA           Kamchatka            Stratovolcano       Holocene
-56.82    159.67   CHERNY                        Kamchatka            Stratovolcano       Holocene
-56.85    159.80   POGRANYCHNY                   Kamchatka            Shield_volcanoes    Holocene
-56.88    159.95   ZAOZERNY                      Kamchatka            Shield_volcanoes    Holocene
+56.82    159.67   CHERNY                        Kamchatka            Stratovolcano       Holocene?
+56.85    159.80   POGRANYCHNY                   Kamchatka            Shield_volcanoes    Holocene?
+56.88    159.95   ZAOZERNY                      Kamchatka            Shield_volcanoes    Holocene?
 56.97    159.78   BLIZNETS                      Kamchatka            Stratovolcano       Holocene
 57.10    159.93   KEBENEY                       Kamchatka            Shield_volcano      Holocene
 57.13    160.40   FEDOTYCH                      Kamchatka            Shield_volcano      Holocene
+57.15    161.08   SHISEIKA			Kamchatka            Lava_dome           Radiocarbon
+57.20    160.40   TERPUK	                Kamchatka            Shield_volcano      Radiocarbon
 57.23    160.08   SEDANKINSKY                   Kamchatka            Shield_volcano      Holocene
 57.33    160.20   GORNY_INSTITUTE               Kamchatka            Stratovolcano       Holocene
-57.30    159.83   LEUTONGEY                     Kamchatka            Shield_volcano      Holocene
-57.32    159.97   TUZOVSKY                      Kamchatka            Shield_volcanoes    Holocene
+57.30    159.83   LEUTONGEY                     Kamchatka            Shield_volcano      Holocene?
+57.32    159.97   TUZOVSKY                      Kamchatka            Shield_volcanoes    Holocene?
+57.35    160.97   KINENIN			Kamchatka            Maar	         Radiocarbon
+57.35    161.37   BLIZNETSKY			Kamchatka            Lava_cone	         Radiocarbon
 57.40    160.10   TITILA                        Kamchatka            Shield_volcano      Holocene
-57.43    160.20   MEZHDUSOPOCHNY                Kamchatka            Shield_volcano      Holocene
-57.45    160.37   SHISHEL                       Kamchatka            Shield_volcano      Holocene
+57.43    160.20   MEZHDUSOPOCHNY                Kamchatka            Shield_volcano      Holocene?
+57.45    160.37   SHISHEL                       Kamchatka            Shield_volcano      Holocene?
 57.53    160.53   ELOVSKY                       Kamchatka            Shield_volcanoes    Holocene
-57.70    160.40   ALNGEY                        Kamchatka            Stratovolcano       Holocene
-57.70    160.58   UKA                           Kamchatka            Shield_volcano      Holocene
-57.80    160.67   KAILENEY                      Kamchatka            Shield_volcano      Holocene
-57.83    160.25   PLOSKY                        Kamchatka            Shield_volcano      Holocene
-57.88    160.53   BELY                          Kamchatka            Shield_volcanoes    Holocene
-57.97    160.65   ATLASOVA                      Kamchatka            Shield_volcanoes    Holocene
-58.02    160.75   SNEZHNIY                      Kamchatka            Shield_volcano      Holocene
-58.08    160.77   IKTUNUP                       Kamchatka            Shield_volcanoes    Holocene
+57.70    160.40   ALNGEY                        Kamchatka            Stratovolcano       Holocene?
+57.70    160.58   UKA                           Kamchatka            Shield_volcano      Holocene?
+57.80    160.67   KAILENEY                      Kamchatka            Shield_volcano      Holocene?
+57.83    160.25   PLOSKY                        Kamchatka            Shield_volcano      Holocene?
+57.88    160.53   BELY                          Kamchatka            Shield_volcanoes    Holocene?
+57.97    160.65   NYLGIMELKIN                   Kamchatka            Shield_volcanoes    Radiocarbon
+58.02    160.75   SNEZHNIY                      Kamchatka            Shield_volcano      Holocene?
+58.08    160.77   IKTUNUP                       Kamchatka            Shield_volcanoes    Holocene?
+58.13    160.82   SPOKOINY                      Kamchatka            Stratovolcano       Radiocarbon
 58.18    160.82   OSTRY                         Kamchatka            Stratovolcanoes     Holocene
-58.20    160.97   SNEGOVOY                      Kamchatka            Shield_volcano      Holocene
+58.20    160.97   SNEGOVOY                      Kamchatka            Shield_volcano      Holocene?
 58.28    160.87   SEVERNY                       Kamchatka            Shield_volcano      Holocene
-58.40    161.08   IETTUNUP                      Kamchatka            Shield_volcanoes    Holocene
-58.37    160.62   VOYAMPOLSKY                   Kamchatka            Shield_volcanoes    Holocene
-66.12    165.63   ALUCHIN_GROUP                 Russia-NE            Cones               Holocene
-67.17    165.20   ANJUISKY                      Russia-NE            Complex_volcano     Tephrochronology
+58.40    161.08   IETTUNUP                      Kamchatka            Shield_volcanoes    Holocene?
+58.37    160.62   VOYAMPOLSKY                   Kamchatka            Shield_volcanoes    Holocene?
+66.12    165.63   ALUCHIN_GROUP                 Russia-NE            Cones               Holocene?
+67.17    165.20   ANJUISKY                      Russia-NE            Complex_volcano     Tephrochronology?
 66.43    143.73   BALAGAN-TAS                   Russia-NE            Cinder_cone         Historical
-44.50    135.50   SOUTHERN_SIKHOTE-ALIN         Russia-SE            Volcanic_field      Holocene
+44.50    135.50   SIKHOTE-ALIN           	Russia-SE            Volcanic_field      Holocene
 56.33    118.07   NE_UDOKAN_PLATEAU             Russia-SE            Volcanic_field      Holocene
-56.18    117.47   UDOKAN_VOLC_FIELD             Russia-SE            Shield_volcanoes    Radiocarbon
-50.52    103.25   DGIDA_BASIN                   Russia-SE            Cinder_cones        Holocene
-51.50    102.50   TUNKIN_DEPRESSION             Russia-SE            Volcanic_field      Holocene
-52.70     98.98   OKA_VOLC_FIELD                Russia-SE            Cinder_cones        Holocene
-52.33     98.00   ULUG-ARGINSKY                 Russia-SE            Cinder_cone         Holocene
+56.18    117.47   UDOKAN_PLATEAU                Russia-SE            Shield_volcanoes    Radiocarbon
+53.70    113.30   VITIM_PLATEAU                 Russia-SE            Cinder_cones        Holocene
+51.50    102.50   TUNKIN_DEPRESSION             Russia-SE            Volcanic_field      Holocene?
+50.52    103.25   DGIDA_BASIN                   Russia-SE            Cinder_cones        Holocene?
+52.70     98.98   OKA_PLATEAU	                Russia-SE            Cinder_cones        Holocene
+52.33     98.00   AZAS_PLATEAU	                Russia-SE            Volcanic_field      Holocene
 48.17     99.70   TARYATU-CHULUTU               Mongolia             Volcanic_field      Holocene
 48.67    102.75   KHANUY_GOL                    Mongolia             Volcanic_field      Holocene
 47.12    109.08   BUS-OBO                       Mongolia             Cinder_cone         Holocene?
@@ -866,19 +934,19 @@
 42.90     89.25   TURFAN                        China-W              Cone                Historical
 42.50     86.50   TIANSHAN_VOLC_GROUP           China-W              Volcanic_field      Historical
 35.52     80.20   KUNLUN_VOLC_GROUP             China-W              Pyroclastic_cones   Historical
-35.85     91.70   UNNAMED                       China-W              Volcanic_field      Holocene
+35.85     91.70   ARSHAN                        China-W              Volcanic_field      Holocene
 40.00    113.28   DATONG                        China-E              Cinder_cones        Historical
-41.47    113.00   HONGGEERTU                    China-E              Cinder_cones        Holocene
+41.47    113.00   HONGGEERTU                    China-E              Cinder_cones        Holocene?
 49.37    125.92   KELUO_GROUP                   China-E              Pyroclastic_cones   Holocene
 48.72    126.12   WUDALIANCHI                   China-E              Volcanic_field      Historical
-44.08    128.83   JINGPOHU                      China-E              Volcanic_field      Radiocarbon
+44.08    128.83   JINGBO	                China-E              Volcanic_field      Radiocarbon
 42.33    126.50   LONGGANG_GROUP                China-E              Cinder_cones        Radiocarbon
-41.98    128.08   BAITOUSHAN                    China-E              Stratovolcano       Historical
+41.98    128.08   CHANGBAISHAN                  China-E              Stratovolcano       Historical
 41.33    128.00   XIANJINDAO                    Korea                Unknown             Historical
 38.33    127.33   CH'UGA-RYONG                  Korea                Shield_volcano      Holocene?
 37.50    130.87   ULREUNG                       Korea                Stratovolcano       Radiocarbon
 33.37    126.53   HALLA                         Korea                Shield_volcano      Historical
-52.37    175.98   BULDIR                        Aleutian_Is          Stratovolcano       Holocene
+52.37    175.98   BULDIR                        Aleutian_Is          Stratovolcano       Holocene?
 52.10    177.60   KISKA                         Aleutian_Is          Stratovolcano       Historical
 52.02    178.13   SEGULA                        Aleutian_Is          Stratovolcano       Holocene
 51.97    178.33   DAVIDOF                       Aleutian_Is          Stratovolcano       Holocene?
@@ -890,12 +958,13 @@
 51.90    -177.43  BOBROF                        Aleutian_Is         Stratovolcano       Holocene?
 51.92    -177.17  KANAGA                        Aleutian_Is         Stratovolcano       Historical
 51.93    -176.75  MOFFETT                       Aleutian_Is         Stratovolcano       Holocene
-51.98    -176.60  ADAGDAK                       Aleutian_Is         Stratovolcano       Holocene
+51.98    -176.60  ADAGDAK                       Aleutian_Is         Stratovolcano       Pleistocene-Hot_Springs
 52.08    -176.13  GREAT_SITKIN                  Aleutian_Is         Stratovolcano       Historical
 52.18    -175.50  KASATOCHI                     Aleutian_Is         Stratovolcano       Historical
-52.22    -175.13  KONIUJI                       Aleutian_Is         Stratovolcano       Uncertain
+52.22    -175.13  KONIUJI                       Aleutian_Is         Stratovolcano       Ar/Ar
 52.03    -174.93  SERGIEF                       Aleutian_Is         Stratovolcano       Uncertain
-52.38    -174.15  ATKA                          Aleutian_Is         Stratovolcanoes     Historical
+52.332   -174.137 ATKA                          Aleutian_Is         Stratovolcanoes     Historical
+52.381   -174.154 KOROVIN                       Aleutian_Is         Stratovolcanoes     Historical
 52.32    -172.52  SEGUAM                        Aleutian_Is         Stratovolcanoes     Historical
 52.50    -171.25  AMUKTA                        Aleutian_Is         Stratovolcano       Historical
 52.57    -171.13  CHAGULAK                      Aleutian_Is         Stratovolcano       Holocene
@@ -903,7 +972,8 @@
 52.75    -170.12  HERBERT                       Aleutian_Is         Stratovolcano       Holocene
 52.90    -170.05  CARLISLE                      Aleutian_Is         Stratovolcano       Historical
 52.82    -169.95  CLEVELAND                     Aleutian_Is         Stratovolcano       Historical
-53.07    -169.77  ULIAGA                        Aleutian_Is         Stratovolcano       Holocene?
+52.83    -169.77  TANA				Aleutian_Is         Stratovolcanoes     Holocene
+53.07    -169.77  ULIAGA                        Aleutian_Is         Stratovolcano       Holocene
 52.97    -169.72  KAGAMIL                       Aleutian_Is         Stratovolcano       Historical
 53.13    -168.68  VSEVIDOF                      Aleutian_Is         Stratovolcano       Historical
 53.15    -168.55  RECHESCHNOI                   Aleutian_Is         Stratovolcano       Holocene
@@ -915,7 +985,7 @@
 54.52    -164.65  WESTDAHL                      Aleutian_Is         Stratovolcano       Historical
 54.67    -164.35  FISHER                        Aleutian_Is         Stratovolcano       Historical
 54.75    -163.97  SHISHALDIN                    Aleutian_Is         Stratovolcano       Historical
-54.75    -163.73  ISANOTSKI                     Aleutian_Is         Stratovolcano       Historical
+54.75    -163.73  ISANOTSKI                     Aleutian_Is         Stratovolcano       Uncertain
 54.80    -163.60  ROUNDTOP                      Aleutian_Is         Stratovolcano       Holocene
 55.42    -163.15  AMAK                          Aleutian_Is         Stratovolcano       Historical
 55.07    -162.82  FROSTY                        Alaska_Peninsula    Stratovolcanoes     Holocene
@@ -924,7 +994,7 @@
 55.42    -161.90  PAVLOF                        Alaska_Peninsula    Stratovolcano       Historical
 55.45    -161.87  PAVLOF_SISTER                 Alaska_Peninsula    Stratovolcano       Historical
 55.62    -161.22  DANA                          Alaska_Peninsula    Stratovolcano       Radiocarbon
-55.93    -160.00  UNNAMED                       Alaska_Peninsula    Cinder_cones        Holocene
+55.913   -160.041 STEPOVAK_BAY_2                Alaska_Peninsula    Cinder_cones        Holocene
 56.02    -159.80  KUPREANOF                     Alaska_Peninsula    Stratovolcano       Historical
 56.17    -159.38  VENIAMINOF                    Alaska_Peninsula    Stratovolcano       Historical
 56.53    -158.80  BLACK_PEAK                    Alaska_Peninsula    Stratovolcano       Radiocarbon
@@ -932,16 +1002,16 @@
 57.02    -157.18  YANTARNI                      Alaska_Peninsula    Stratovolcano       Tephrochronology
 57.13    -157.00  CHIGINAGAK                    Alaska_Peninsula    Stratovolcano       Historical
 57.38    -156.75  KIALAGVIK                     Alaska_Peninsula    Stratovolcano       Holocene
+57.751   -156.368 UGASHIK-PEULIK                Alaska_Peninsula    Stratovolcano       Historical
+57.832   -156.510 UKINREK_MAARS                 Alaska_Peninsula    Maars               Historical
 57.87    -155.42  UNNAMED                       Alaska_Peninsula    Lava_dome           Holocene
-57.75    -156.37  UGASHIK-PEULIK                Alaska_Peninsula    Stratovolcano       Historical
-57.83    -156.52  UKINREK_MAARS                 Alaska_Peninsula    Maars               Historical
 58.17    -155.35  MARTIN                        Alaska_Peninsula    Stratovolcano       Historical
 58.20    -155.25  MAGEIK                        Alaska_Peninsula    Stratovolcano       Historical
 58.23    -155.08  TRIDENT                       Alaska_Peninsula    Stratovolcano       Historical
 58.27    -154.98  KATMAI                        Alaska_Peninsula    Stratovolcano       Historical
 58.27    -155.16  NOVARUPTA                     Alaska_Peninsula    Caldera             Historical
 58.35    -155.10  GRIGGS                        Alaska_Peninsula    Stratovolcano       Holocene
-58.33    -154.68  SNOWY                         Alaska_Peninsula    Stratovolcano       Fumarolic
+58.33    -154.68  SNOWY_MOUNTAIN                Alaska_Peninsula    Stratovolcano       Radiocarbon
 58.42    -154.45  DENISON                       Alaska_Peninsula    Stratovolcano       Uncertain
 58.43    -154.40  STELLER                       Alaska_Peninsula    Unknown             Uncertain
 58.47    -154.35  KUKAK                         Alaska_Peninsula    Stratovolcano       Fumarolic
@@ -954,27 +1024,28 @@
 60.48    -152.75  REDOUBT                       Alaska-SW           Stratovolcano       Historical
 61.30    -152.25  SPURR                         Alaska-SW           Stratovolcano       Historical
 61.62    -152.48  HAYES                         Alaska-SW           Stratovolcano       Radiocarbon
-66.35    -164.33  ESPENBERG                     Alaska-W            Volcanic_field      Tephrochronology
-65.60    -163.92  IMURUK_LAKE                   Alaska-W            Shield_volcanoes    Radiocarbon
-63.60    -170.43  KOOKOOLIGIT_MOUNTAINS         Alaska-W            Shield_volcano      Holocene
-63.45    -162.12  ST._MICHAEL                   Alaska-W            Cinder_cones        Anthropology
-61.43    -164.47  INGAKSLUGWAT_HILLS            Alaska-W            Cinder_cones        Holocene
-60.02    -166.33  NUNIVAK_ISLAND                Alaska-W            Shield_volcano      Holocene
 57.18    -170.30  ST._PAUL_ISLAND               Alaska-W            Cinder_cones        Holocene
+60.02    -166.33  NUNIVAK_ISLAND                Alaska-W            Shield_volcano      Holocene
+61.43    -164.47  INGAKSLUGWAT_HILLS            Alaska-W            Cinder_cones        Holocene
+63.45    -162.12  ST._MICHAEL                   Alaska-W            Cinder_cones        Anthropology
+63.60    -170.43  KOOKOOLIGIT_MOUNTAINS         Alaska-W            Shield_volcano      Holocene
+65.60    -163.92  IMURUK_LAKE                   Alaska-W            Shield_volcanoes    Radiocarbon
+66.35    -164.33  ESPENBERG                     Alaska-W            Volcanic_field      Tephrochronology
 64.07    -148.42  BUZZARD_CREEK                 Alaska-E            Tuff_rings          Radiocarbon
 62.22    -144.13  SANFORD                       Alaska-E            Shield_volcano      Holocene?
 62.00    -144.02  WRANGELL                      Alaska-E            Shield_volcano      Historical
-62.13    -143.08  GORDON                        Alaska-E            Cinder_cones        Holocene
-61.38    -141.75  BONA-CHURCHILL                Alaska-E            Stratovolcanoes     Radiocarbon
+62.13    -143.08  GORDON                        Alaska-E            Cinder_cones        Holocene?
+61.38    -141.75  CHURCHILL                     Alaska-E            Stratovolcanoes     Radiocarbon
 57.05    -135.75  EDGECUMBE                     Alaska-SE           Stratovolcanoes     Radiocarbon
 56.50    -133.10  DUNCAN_CANAL                  Alaska-SE           Unknown             Holocene
 55.25    -133.30  TLEVAK_STRAIT-SUEMEZ_IS.      Alaska-SE           Volcanic_field      Holocene
 55.32    -131.05  REVILLAGIGEDO_ISLAND          Alaska-SE           Cinder_cones        Holocene?
-62.93    -137.38  FORT_SELKIRK                  Canada              Volcanic_field      Holocene
+62.93    -137.38  FORT_SELKIRK                  Canada              Volcanic_field      Holocene?
 60.42    -135.42  ALLIGATOR_LAKE                Canada              Volcanic_field      Holocene
-59.68    -133.32  RUBY_MOUNTAIN                 Canada              Cinder_cones        Historical
-58.60    -131.97  HEART_PEAKS                   Canada              Shield_volcano      Holocene
-58.42    -131.35  LEVEL_MOUNTAIN                Canada              Shield_volcano      Holocene
+59.68    -133.32  ATLIN_VOLC_FIELD              Canada              Cinder_cones        Historical
+59.37	 -130.58  TUYA_VOLC_FIELD               Canada              Volcanic_field      Holocene
+58.60    -131.97  HEART_PEAKS                   Canada              Shield_volcano      Holocene?
+58.42    -131.35  LEVEL_MOUNTAIN                Canada              Shield_volcano      Holocene?
 57.72    -130.63  EDZIZA                        Canada              Stratovolcano       Radiocarbon
 57.43    -130.68  SPECTRUM_RANGE                Canada              Shield_volcano      Holocene
 56.78    -131.28  HOODOO_MOUNTAIN               Canada              Subglacial_volcano  Holocene
@@ -989,7 +1060,7 @@
 50.80    -123.40  BRIDGE_RIVER_CONES            Canada              Volcanic_field      Holocene
 50.63    -123.50  MEAGER                        Canada              Complex_volcano     Radiocarbon
 49.92    -123.03  GARIBALDI_LAKE                Canada              Volcanic_field      Holocene
-49.85    -123.00  GARIBALDI,_MT.                Canada              Stratovolcano       Radiocarbon
+49.85    -123.00  GARIBALDI                     Canada              Stratovolcano       Radiocarbon
 48.786   -121.82  BAKER                         US-Washington       Stratovolcano       Historical
 48.112   -121.113 GLACIER_PEAK                  US-Washington       Stratovolcano       Tephrochronology
 46.87    -121.758 RAINIER                       US-Washington       Stratovolcano       Dendrochronology
@@ -1007,7 +1078,7 @@
 44.10    -121.77  SOUTH_SISTER                  US-Oregon           Complex_volcano     Radiocarbon
 43.979   -121.688 BACHELOR                      US-Oregon           Stratovolcano       Tephrochronology
 43.57    -121.82  DAVIS_LAKE                    US-Oregon           Volcanic_field      Radiocarbon
-43.722   -121.229 NEWBERRY_VOLCANO              US-Oregon           Shield_volcano      Radiocarbon
+43.722   -121.229 NEWBERRY                      US-Oregon           Shield_volcano      Radiocarbon
 43.512   -120.861 DEVILS_GARDEN                 US-Oregon           Volcanic_field      Holocene?
 43.472   -120.754 SQUAW_RIDGE_FIELD             US-Oregon           Volcanic_field      Holocene?
 43.361   -120.669 FOUR_CRATERS_LAVA_FIELD       US-Oregon           Volcanic_field      Holocene?
@@ -1025,103 +1096,126 @@
 40.78    -121.60  TWIN_BUTTES                   US-California       Cinder_cones        Holocene?
 40.68    -121.55  TUMBLE_BUTTES                 US-California       Cinder_cones        Holocene?
 40.63    -121.43  POTATO_BUTTE                  US-California       Shield_volcanoes    Holocene?
-40.492   -121.508 LASSEN_VOLC_CENTER            US-Calif            Stratovolcano       Historical
+40.492   -121.508 LASSEN_VOLC_CENTER            US-California       Stratovolcano       Historical
 40.63    -120.83  EAGLE_LAKE_FIELD              US-California       Fissure_vents       Holocene?
 38.97    -122.77  CLEAR_LAKE                    US-California       Volcanic_field      Holocene
-38.00    -119.03  MONO_LAKE_VOLC_FIELD          US-Calif            Cinder_cones        Tephrochronology
+38.00    -119.03  MONO_LAKE_VOLC_FIELD          US-California       Cinder_cones        Tephrochronology
 37.88    -119.00  MONO_CRATERS                  US-California       Lava_domes          Radiocarbon
 37.692   -119.02  INYO_CRATERS                  US-California       Lava_domes          Radiocarbon
 37.70    -118.87  LONG_VALLEY                   US-California       Caldera             Pleistocene-Fumarolic
-37.58    -119.05  RED_CONES                     US-California       Cinder_cones        Holocene
-37.02    -117.45  UBEHEBE_CRATERS               US-Calif            Maars               Holocene
-36.358   -118.32  GOLDEN_TROUT_CREEK            US-Calif            Volcanic_field      Tephrochronology
+37.631   -119.032 MAMMOTH_MOUNTAIN              US-California       Cinder_cones        Holocene
+37.02    -117.45  UBEHEBE_CRATERS               US-California       Maars               Holocene
+36.358   -118.32  GOLDEN_TROUT_CREEK            US-California       Volcanic_field      Tephrochronology
 36.03    -117.82  COSO_VOLC_FIELD               US-California       Lava_domes          Pleistocene-Hot_Springs
-34.75    -116.625 LAVIC_LAKE                    US-California       Volcanic_field      Holocene
-34.55    -115.78  AMBOY                         US-California       Cinder_cone         Holocene
+34.75    -116.625 LAVIC_LAKE                    US-California       Volcanic_field      Holocene?
+34.55    -115.78  AMBOY                         US-California       Cinder_cone         Holocene?
+33.20	 -115.62  SALTON_BUTTES                 US-California       Lava_domes 		Hydration_rind
 43.07    -114.43  SHOSHONE_LAVA_FIELD           US-Idaho            Cinder_cones        Holocene?
 43.42    -113.50  CRATERS_OF_THE_MOON           US-Idaho            Cinder_cones        Radiocarbon
 42.88    -113.22  WAPI_LAVA_FIELD               US-Idaho            Shield_volcano      Radiocarbon
 43.50    -112.45  HELL'S_HALF_ACRE              US-Idaho            Shield_volcano      Radiocarbon
 44.43    -110.67  YELLOWSTONE                   US-Wyoming          Calderas            Tephrochronology
+39.53	 -118.87  SODA_LAKES			US-Nevada           Maars	        Holocene
 39.375   -119.72  STEAMBOAT_SPRINGS             US-Nevada           Lava_domes          Pleistocene-Fumarolic
 38.48    -115.97  LUNAR_CRATER_FIELD            US-Nevada           Cinder_cones        Holocene?
 36.77    -116.55  CRATER_FLAT                   US-Nevada           Volcanic_field      Holocene?
-37.257   -113.625 SANTA_CLARA                   US-Utah             Volcanic_field      Holocene
+37.257   -113.625 SANTA_CLARA                   US-Utah             Volcanic_field      Holocene?
 37.33    -113.12  KOLOB                         US-Utah             Volcanic_field      Holocene?
-37.328   -112.408 BALD_KNOLL                    US-Utah             Cinder_cones        Holocene?
+37.328   -112.408 BALD_KNOLL                    US-Utah             Cinder_cones        Holocene
 37.58    -112.67  MARKAGUNT_PLATEAU             US-Utah             Volcanic_field      Dendrochronology
 38.97    -112.50  BLACK_ROCK_DESERT             US-Utah             Volcanic_field      Radiocarbon
-39.65    -107.03  DOTSERO                       US-Colorado         Explosion_crater    Radiocarbon
+39.65    -107.03  DOTSERO                       US-Colorado         Maar		Radiocarbon
 36.38    -113.13  UINKARET_FIELD                US-Arizona          Volcanic_field      Holocene
 35.37    -111.50  SUNSET_CRATER                 US-Arizona          Cinder_cone         Dendrochronology
 33.78    -105.93  CARRIZOZO                     US-New_Mexico       Cinder_cone         Holocene
 34.80    -108.00  ZUNI-BANDERA                  US-New_Mexico       Volcanic_field      Anthropology
 35.87    -106.57  VALLES_CALDERA                US-New_Mexico       Caldera             Pleistocene-Fumarolic
 36.42    -104.08  RATON-CLAYTON                 US-New_Mexico       Volcanic_field      Tephrochronology
-46.52    -129.58  UNNAMED                       Pacific-NE          Submarine_volcano   Historical
-45.03    -130.20  UNNAMED                       Pacific-NE          Submarine_volcano   Historical
+47.95	 -129.10  ENDEAVOUR_RIGDE		JdF_Ridge	    Submarine_volcano   Uranium-series
+46.88	 -129.33  COBB_SEGMENT			JdF_Ridge	    Submarine_volcano   Uranium-series
+46.52    -129.58  COAXIAL_SEGMENT               JdF_Ridge	    Submarine_volcano   Historical
+45.95    -130.00  AXIAL_SEAMOUNT                JdF_Ridge	    Submarine_volcano   Historical
+44.83    -130.30  CLEFT_SEGMENT                 JdF_Ridge	    Submarine_volcano   Historical
+42.67    -126.78  NORTH_GORDA_RIDGE             Gorda_Ridge	    Submarine_volcano   Historical
+40.98    -127.50  ESCANABA_SEGMENT              Gorda_Ridge	    Submarine_volcano   Uranium-series
 31.75    -124.25  UNNAMED                       Pacific-NE          Submarine_volcano_? Uncertain
-18.92    -155.27  LOIHI_SEAMOUNT                Hawaiian_Is         Submarine_volcano   Seismicity
+18.92    -155.27  LOIHI_SEAMOUNT                Hawaiian_Is         Submarine_volcano   Historical
 19.425   -155.292 KILAUEA                       Hawaiian_Is         Shield_volcano      Historical
 19.475   -155.608 MAUNA_LOA                     Hawaiian_Is         Shield_volcano      Historical
 19.82    -155.47  MAUNA_KEA                     Hawaiian_Is         Shield_volcano      Radiocarbon
 19.692   -155.87  HUALALAI                      Hawaiian_Is         Shield_volcano      Historical
-20.57    -156.57  KAHOOLAWE                     Hawaiian_Is         Shield_volcano      Holocene?
+20.57    -156.57  KAHO'OLAWE                    Hawaiian_Is         Shield_volcano      Holocene?
 20.708   -156.25  HALEAKALA                     Hawaiian_Is         Shield_volcano      Historical
 21.37    -157.80  KOOLAU                        Hawaiian_Is         Shield_volcano      Holocene?
 21.75    -158.75  UNNAMED                       Hawaiian_Is         Submarine_volcano   Uncertain
 23.58    -163.83  UNNAMED                       Hawaiian_Is         Submarine_volcano   Historical
+16.55    -105.32  NORTHERN_EPR-SEGMENT_R02      Pacific-E           Submarine_volcano   Magnetism
+15.83    -105.43  NORTHERN_EPR-SEGMENT_R03      Pacific-E           Submarine_volcano   Magnetism
+10.73    -103.58  UNNAMED                       Pacific-E           Submarine_volcano   Historical
  9.82    -104.30  UNNAMED                       Pacific-E           Submarine_volcano   Historical
  0.792   -86.15   GALAPAGOS_RIFT                Pacific-E           Submarine_volcano   Holocene
+ -8.27   -107.95  UNNAMED                       Pacific-E           Submarine_volcano   Historical
+-17.436  -113.206 SOUTHERN_EPR-SEGMENT_K        Pacific-E           Submarine_volcano   Historical
+-18.175  -113.35  SOUTHERN_EPR-SEGMENT_J        Pacific-E           Submarine_volcano   Magnetism
+-18.53   -113.42  SOUTHERN_EPR-SEGMENT_I        Pacific-E           Submarine_volcano   Magnetism
 -17.57   -148.85  TEAHITIA                      Society_Is-C_Pac    Submarine_volcano   Seismicity
 -17.642  -148.60  ROCARD                        Society_Is-C_Pac    Submarine_volcano   Seismicity
 -18.32   -148.67  MOUA_PIHAA                    Society_Is-C_Pac    Submarine_volcano   Seismicity
 -17.87   -148.07  MEHETIA                       Society_Is-C_Pac    Stratovolcano       Anthropology
--28.98   -140.25  MACDONALD                     Austral_Is-C_Pac    Submarine_volcano   Hydrophonic
+-25.37   -129.27  ADAMS_SEAMOUNT		C_Pac               Submarine_volcano   K/Ar
+-28.98   -140.25  MACDONALD                     Austral_Is-C_Pac    Submarine_volcano   Historical
 -27.12   -109.45  EASTER_ISLAND                 Pacific-C           Shield_volcanoes    Holocene
 -49.68   -178.77  ANTIPODES_ISLAND              Pacific-S           Pyroclastic_cones   Holocene?
 -53.90   -140.30  UNNAMED                       Pacific-S           Submarine_volcano   Uncertain
 -55.97   -143.17  UNNAMED                       Pacific-S           Submarine_volcano   Uncertain
-32.418   -115.305 PRIETO,_CERRO                 Mexico              Cinder_cone         Holocene
-31.773   -113.498 PINACATE_PEAKS                Mexico              Cinder_cones        Historical
+32.418   -115.305 CERRO_PRIETO                  Mexico              Lava_dome           Holocene?
+31.772   -113.498 PINACATE                      Mexico              Cinder_cones        Historical
 30.468   -115.996 SAN_QUINTIN_VOLC_FIELD        Mexico              Cinder_cones        Holocene
-29.814   -114.384 SAN_LUIS_GONZAGA,_ISLA        Mexico              Explosion_craters   Holocene
-29.33    -114.50  JARAQUAY_VOLC_FIELD           Mexico              Cinder_cones        Holocene
+29.814   -114.384 ISLA_SAN_LUIS		        Mexico              Tuff_cone		Holocene
+29.33    -114.50  JARAGUAY_VOLC_FIELD           Mexico              Cinder_cones        Holocene
 29.08    -113.513 CORONADO                      Mexico              Stratovolcano       Fumarolic
-29.07    -118.28  GUADELUPE                     Mexico              Shield_volcano      Holocene
+29.07    -118.28  GUADALUPE                     Mexico              Shield_volcano      Holocene
 28.50    -113.75  SAN_BORJA_VOLC_FIELD          Mexico              Cinder_cones        Holocene
 28.00    -115.00  UNNAMED                       Mexico              Submarine_volcano_? Uncertain
-27.47    -112.591 TRES_VIRGENES                 Mexico              Stratovolcano       Historical
-27.392   -111.858 TORTUGA,_ISLA                 Mexico              Shield_volcano      Holocene
-19.30    -110.82  BARCENA                       Mexico-Is           Cinder_cones        Historical
+27.47    -112.591 TRES_VIRGENES                 Mexico              Stratovolcano       Holocene?
+27.392   -111.858 ISLA_TORTUGA                  Mexico              Shield_volcano      Holocene
+19.30    -110.82  BÁRCENA                       Mexico-Is           Cinder_cones        Historical
 18.78    -110.95  SOCORRO                       Mexico-Is           Shield_volcano      Historical
 24.15    -104.45  DURANGO_VOLC_FIELD            Mexico              Cinder_cones        Holocene
-21.45    -104.73  SANGANGUEY                    Mexico              Stratovolcano       Holocene
+21.45    -104.73  SANGANGÜEY                    Mexico              Stratovolcano       Holocene
 21.27    -104.70  TEPETILTIC,_VOLCAN            Mexico              Stratovolcano       Holocene
-21.125   -104.50  CEBORUCO,_VOLCAN              Mexico              Stratovolcano       Historical
+21.125   -104.50  CEBORUCO		        Mexico              Stratovolcano       Historical
 20.62    -104.83  MASCOTA_VOLC_FIELD            Mexico              Shield_volcanoes    Holocene
-19.514   -103.62  COLIMA_VOLC_COMPLEX           Mexico              Stratovolcano       Historical
-19.48    -102.25  MICHOACAN-GUANAJUATO          Mexico              Cinder_cones        Historical
-19.724    -99.757 JOCOTITLAN                    Mexico              Stratovolcano       Radiocarbon
+19.514   -103.62  COLIMA			Mexico              Stratovolcanoes     Historical
+19.85    -101.75  MICHOACÁN-GUANAJUATO          Mexico              Cinder_cones        Historical
+19.40	 -100.25  ZITÁCUERO-VALLE_DE_BRAVO	Mexico              Caldera	        Ar/Ar
+19.724    -99.757 JOCOTITLÁN                    Mexico              Stratovolcano       Radiocarbon
+19.108    -99.758 NEVADO_DE_TOLUCA		Mexico              Stratovolcano       Radiocarbon
 19.08     -99.48  HOLOTEPEC                     Mexico              Volcanic_field      Radiocarbon
 19.08     -99.13  CHICHINAUTZIN                 Mexico              Volcanic_field      Radiocarbon
 19.17     -98.82  TENAYO_GROUP                  Mexico              Cinder_cones        Holocene
 19.32     -99.00  SANTA_CATARINA_RANGE          Mexico              Volcanic_field      Anthropology
-19.75     -98.808 GORDO,_CERRO                  Mexico              Cinder_cone         Holocene
-19.923    -98.747 PITOS,_SIERRA_DE_LAS          Mexico              Unknown             Holocene
+19.75     -98.808 CERRO_GORDO                   Mexico              Cinder_cone         Holocene?
+19.923    -98.747 SIERRA_DE_LAS_PITOS           Mexico              Unknown             Holocene
 19.308    -98.70  PAPAYO                        Mexico              Lava_dome           Holocene
 19.179    -98.642 IZTACCIHUATL                  Mexico              Stratovolcano       Holocene
-19.023    -98.622 POPOCATEPETL                  Mexico              Stratovolcanoes     Historical
-19.23     -98.03  MALINCHE,_LA                  Mexico              Stratovolcano       Holocene?
-19.03     -97.268 ORIZABA,_PICO_DE              Mexico              Stratovolcano       Historical
-18.572    -95.169 SAN_MARTIN,_VOLCAN_DE         Mexico              Shield_volcano      Historical
-17.36     -93.228 CHICHON,_EL                   Mexico              Lava_domes          Historical
-15.13     -92.113 TACANA                        Mexico              Stratovolcano       Historical
+19.023    -98.622 POPOCATÉPETL                  Mexico              Stratovolcanoes     Historical
+19.23     -98.03  LA_MALINCHE                   Mexico              Stratovolcano       Radiocarbon
+19.27	  -97.47  SERDÁN-ORIENTAL		Mexico              Tuff_cones          Holocene
+19.809    -96.526 LOS_ATLIXCOS		        Mexico              Shield_volcano      Holocene
+19.67     -96.75  NAOLINCO_VOLC_FIELD		Mexico		    Pyroclastic_cones	Radiocarbon
+19.493    -97.15  COFRE_DE_PEROTE	        Mexico              Shield_volcanoes    Radiocarbon
+19.33     -97.25  LA_GLORIA		        Mexico              Volcanic_field	Holocene
+19.15     -97.27  LAS_CUMBRES                   Mexico              Stratovolcano       Radiocarbon
+19.03     -97.268 PICO_DE_ORIZABA               Mexico              Stratovolcano       Historical
+18.572    -95.169 SAN_MARTIN		        Mexico              Shield_volcano      Historical
+17.36     -93.228 EL_CHICHON                    Mexico              Lava_domes          Historical
+15.13     -92.112 TACANÁ                        Mexico              Stratovolcano       Historical
 15.034    -91.903 TAJUMULCO                     Guatemala           Stratovolcano       Holocene
 14.756    -91.552 SANTA_MARIA                   Guatemala           Stratovolcano       Historical
 14.82     -91.48  ALMOLONGA                     Guatemala           Stratovolcano       Historical
-14.75     -91.43  TZANJUYUB,_VOLCAN_DE          Guatemala           Stratovolcano       Pleistocene-Fumarolic
-14.583    -91.186 ATITLAN                       Guatemala           Stratovolcano       Historical
+14.75     -91.43  TZANJUYUB		        Guatemala           Stratovolcano       Pleistocene-Fumarolic
+14.583    -91.186 ATITLÁN                       Guatemala           Stratovolcano       Historical
 14.613    -91.189 TOLIMAN                       Guatemala           Stratovolcano       Holocene
 14.501    -90.876 ACATENANGO                    Guatemala           Stratovolcano       Historical
 14.473    -90.88  FUEGO                         Guatemala           Stratovolcano       Historical
@@ -1130,84 +1224,88 @@
 14.33     -90.40  CUILAPA-BARBARENA             Guatemala           Volcanic_field      Holocene
 14.156    -90.407 TECUAMBURRO                   Guatemala           Stratovolcano       Radiocarbon
 14.03     -90.10  MOYUTA                        Guatemala           Stratovolcano       Hot_Springs
-14.30     -90.00  FLORES,_VOLCAN_DE             Guatemala           Volcanic_field      Holocene
+14.30     -90.00  FLORES	                Guatemala           Volcanic_field      Holocene
 14.12     -89.73  CHINGO_VOLC_FIELD             Guatemala           Stratovolcano       Holocene
-14.33     -89.87  SANTIAGO,_CERRO               Guatemala           Volcanic_field      Holocene
-14.40     -89.78  SUCHITAN_VOLC_FIELD           Guatemala           Stratovolcanoes     Holocene
-14.42     -89.68  IXTEPEQUE,_VOLCAN             Guatemala           Lava_domes          Holocene
-14.55     -89.63  IPALA_VOLC_FIELD              Guatemala           Stratovolcano       Holocene
-14.83     -89.55  CHIQUIMULA_FIELD              Guatemala           Cinder_cones        Holocene
-14.65     -89.35  QUEZALTEPEQUE                 Guatemala           Unknown             Holocene
-13.891    -89.786 VERDE,_LAGUNA                 El_Salvador         Stratovolcanoes     Holocene
-14.05     -89.63  SINGUIL,_CERRO                El_Salvador         Cinder_cone         Holocene
+14.33     -89.87  CERRO_SANTIAGO                Guatemala           Volcanic_field      Holocene
+14.40     -89.78  SUCHITÁN		        Guatemala           Stratovolcanoes     Holocene
+14.12	  -89.73  CHINGO		        Guatemala           Stratovolcano       Holocene
+14.42     -89.68  IXTEPEQUE		        Guatemala           Lava_domes          Holocene
+14.55     -89.63  IPALA		                Guatemala           Stratovolcano       Holocene
+14.83     -89.55  CHIQUIMULA_VOLC_FIELD         Guatemala           Cinder_cones        Holocene
+14.65     -89.35  QUEZALTEPEQUE                 Guatemala           Volcanic_field      Holocene
 14.27     -89.47  SAN_DIEGO                     El_Salvador         Volcanic_field      Holocene
+14.05     -89.63  CERRO_SINGÜIL                 El_Salvador         Cinder_cone         Holocene
+13.891    -89.786 APANECA_RANGE                 El_Salvador         Stratovolcanoes     Holocene
 13.853    -89.63  SANTA_ANA                     El_Salvador         Stratovolcano       Historical
 13.813    -89.633 IZALCO                        El_Salvador         Stratovolcano       Historical
 13.87     -89.55  COATEPEQUE_CALDERA            El_Salvador         Caldera             Holocene
 13.736    -89.286 SAN_SALVADOR                  El_Salvador         Stratovolcano       Historical
-13.90     -89.12  GUAZAPA                       El_Salvador         Stratovolcano       Holocene
+13.90     -89.12  GUAZAPA                       El_Salvador         Stratovolcano       Holocene?
 13.672    -89.053 ILOPANGO                      El_Salvador         Caldera             Historical
 13.623    -88.852 SAN_VICENTE                   El_Salvador         Stratovolcano       Fumarolic
 13.72     -88.77  APASTEPEQUE_FIELD             El_Salvador         Volcanic_field      Holocene
-13.45     -88.53  TABURETE                      El_Salvador         Stratovolcano       Holocene
+13.45     -88.53  TABURETE                      El_Salvador         Stratovolcano       Holocene?
 13.497    -88.503 TECAPA                        El_Salvador         Stratovolcano       Fumarolic
-13.42     -88.47  USULUTAN                      El_Salvador         Stratovolcano       Holocene
+13.42     -88.47  USULUTÁN                      El_Salvador         Stratovolcano       Holocene
 13.48     -88.32  CHINAMECA                     El_Salvador         Stratovolcano       Fumarolic
 13.431    -88.272 SAN_MIGUEL                    El_Salvador         Stratovolcano       Historical
-13.277    -87.853 CONCHAGUA                     El_Salvador         Stratovolcano       Uncertain
-13.22     -87.765 CONCHAGUITA                   El_Salvador         Stratovolcano       Historical
-13.27     -87.63  TIGRE,_ISLA_EL                Honduras            Stratovolcano       Holocene
-13.33     -87.63  ZACATE_GRANDE,_ISLA           Honduras            Stratovolcano       Holocene
-14.98     -87.98  YOJOA,_LAKE                   Honduras            Volcanic_field      Holocene
+13.428	  -88.105 LAGUNA_ARAMUACA		El_Salvador         Maar	        Holocene
+13.275    -87.845 CONCHAGUA                     El_Salvador         Stratovolcano       Uncertain
+13.229    -87.767 CONCHAGÜITA                   El_Salvador         Stratovolcano       Historical
+13.27     -87.63  ISLA_EL_TIGRE                 Honduras            Stratovolcano       Holocene
+13.33     -87.63  ISLA_ZACATE_GRANDE            Honduras            Stratovolcano       Holocene
+14.98     -87.98  LAKE_YOJOA                    Honduras            Volcanic_field      Holocene
 16.10     -86.90  UTILA_ISLAND                  Honduras            Pyroclastic_cones   Holocene
-12.98     -87.57  COSIGUINA                     Nicaragua           Stratovolcano       Historical
-12.702    -87.004 SAN_CRISTOBAL                 Nicaragua           Stratovolcano       Historical
+12.98     -87.57  COSIGüINA                     Nicaragua           Stratovolcano       Historical
+12.702    -87.004 SAN_CRISTOBÁL                 Nicaragua           Stratovolcano       Historical
 12.603    -86.845 TELICA                        Nicaragua           Stratovolcanoes     Historical
 12.55     -86.75  ROTA                          Nicaragua           Shield_volcano      Holocene
-12.506    -86.702 NEGRO,_CERRO                  Nicaragua           Cinder_cones        Historical
-12.495    -86.688 PILAS,_LAS                    Nicaragua           Complex_volcano     Historical
+12.506    -86.702 CERRO_NEGRO                   Nicaragua           Cinder_cones        Historical
+12.495    -86.688 LAS_PILÁS                     Nicaragua           Complex_volcano     Historical
 12.423    -86.54  MOMOTOMBO                     Nicaragua           Stratovolcano       Historical
 12.242    -86.342 APOYEQUE                      Nicaragua           Stratovolcano       Anthropology
-12.12     -86.32  NEJAPA-TICOMO                 Nicaragua           Fissure_vent        Holocene
+12.12     -86.32  NEJAPA-MIRAFLORES             Nicaragua           Fissure_vent        Holocene
 11.984    -86.161 MASAYA                        Nicaragua           Caldera             Historical
 11.92     -86.03  APOYO                         Nicaragua           Caldera             Uncertain
+11.92	  -85.98  GRANADA			Nicaragua           Fissure_vents       Holocene
 11.826    -85.968 MOMBACHO                      Nicaragua           Stratovolcano       Fumarolic
-11.73     -85.82  ZAPATERA_ISLAND               Nicaragua           Stratovolcano       Holocene
-11.538    -85.623 CONCEPCION                    Nicaragua           Stratovolcano       Historical
-11.446    -85.515 MADERA,_LA                    Nicaragua           Stratovolcano       Holocene?
-12.68     -83.92  BLUE,_VOLCAN                  Nicaragua           Cinder_cones        Holocene
+11.73     -85.82  ZAPATERA	                Nicaragua           Stratovolcano       Holocene
+11.538    -85.623 CONCEPCIÓN                    Nicaragua           Stratovolcano       Historical
+11.446    -85.515 MADERAS                       Nicaragua           Stratovolcano       Holocene
+12.68     -83.92  VOLCÁN_AZUL                   Nicaragua           Cinder_cones        Holocene
 10.98     -85.473 OROSI                         Costa_Rica          Stratovolcanoes     Uncertain
 10.83     -85.324 RINCON_DE_LA_VIEJA            Costa_Rica          Complex_volcano     Historical
 10.748    -85.153 MIRAVALLES                    Costa_Rica          Stratovolcano       Historical
-10.673    -85.015 TENORIO_GROUP                 Costa_Rica          Stratovolcanoes     Holocene
-10.472    -85.07  ANUNCIACION,_CERRO            Costa_Rica          Pyroclastic_cone    Holocene?
+10.673    -85.015 TENORIO	                Costa_Rica          Stratovolcanoes     Holocene
+10.472    -85.07  CERRO_ANUNCIACION             Costa_Rica          Pyroclastic_cone    Holocene?
 10.463    -84.703 ARENAL                        Costa_Rica          Stratovolcano       Historical
-10.32     -84.66  POCO_SOL,_LAGUNA              Costa_Rica          Explosion_crater_?  Uncertain
-10.42     -84.31  AGUAS_ZARCAS_GROUP            Costa_Rica          Pyroclastic_cones   Holocene
-10.30     -84.366 PLATANAR,_CERRO               Costa_Rica          Stratovolcanoes     Holocene
-10.20     -84.233 POAS                          Costa_Rica          Stratovolcano       Historical
+10.30     -84.366 PLATANAR  	                Costa_Rica          Stratovolcanoes     Holocene
+10.20     -84.233 POÁS                          Costa_Rica          Stratovolcano       Historical
 10.135    -84.10  BARVA                         Costa_Rica          Complex_volcano     Tephrochronology
- 9.979    -83.853 IRAZU                         Costa_Rica          Stratovolcano       Historical
+ 9.979    -83.853 IRAZÚ                         Costa_Rica          Stratovolcano       Historical
 10.03     -83.77  TURRIALBA                     Costa_Rica          Stratovolcano       Historical
  8.80     -82.558 BARU                          Panama              Complex_volcano     Historical
- 8.523    -80.91  YEGUADA,_LA                   Panama              Stratovolcano       Radiocarbon
- 5.092    -75.30  BRAVO,_CERRO                  Colombia            Stratovolcano       Radiocarbon
- 4.895    -75.323 RUIZ                          Colombia            Stratovolcano       Historical
+ 8.47     -80.82  LA_YEGUADA                    Panama              Stratovolcano       Pleistocene-Fumarolic
+ 5.206    -75.364 ROMERAL                       Colombia            Stratovolcano       Radiocarbon
+ 5.092    -75.30  CERRO_BRAVO                   Colombia            Stratovolcano       Radiocarbon
+ 4.895    -75.323 NEVADO_DEL_RUIZ               Colombia            Stratovolcano       Historical
  4.82     -75.37  SANTA_ISABEL                  Colombia            Shield_volcano      Radiocarbon
- 4.67     -75.33  TOLIMA                        Colombia            Stratovolcano       Historical
- 4.48     -75.40  MACHIN,_CERRO                 Colombia            Stratovolcano       Tephrochronology
- 2.92     -76.05  HUILA                         Colombia            Stratovolcano       Historical
- 2.32     -76.40  PURACE                        Colombia            Stratovolcanoes     Historical
- 2.12     -76.58  SOTARA                        Colombia            Stratovolcano_?     Holocene
+ 4.67     -75.33  NEVADO_DEL_TOLIMA             Colombia            Stratovolcano       Historical
+ 4.48     -75.40  MACHIN	                Colombia            Stratovolcano       Tephrochronology
+ 2.92     -76.05  NEVADO_DEL_HUILA              Colombia            Stratovolcano       Historical
+ 2.32     -76.40  PURACÉ                        Colombia            Stratovolcanoes     Historical
+ 2.12     -76.58  SOTARÁ                        Colombia            Stratovolcano_?     Holocene
  1.57     -76.78  PETACAS                       Colombia            Lava_dome           Holocene?
- 1.47     -76.92  DONA_JUANA                    Colombia            Stratovolcano       Historical
+ 1.47     -76.92  DOÑA_JUANA                    Colombia            Stratovolcano       Historical
  1.22     -77.37  GALERAS                       Colombia            Complex_volcano     Historical
- 1.08     -77.68  AZUFRAL,_VOLCAN               Colombia            Stratovolcano       Radiocarbon
+ 1.08     -77.68  AZUFRAL	                Colombia            Stratovolcano       Radiocarbon
  0.98     -77.88  CUMBAL                        Colombia            Stratovolcano       Historical
- 0.828    -77.964 NEGRO_DE_MAYASQUER,_CERRO     Colombia            Stratovolcano       Holocene?
+ 0.828    -77.964 CERRO_NEGRO_DE_MAYASQUER      Colombia            Stratovolcano       Holocene?
  0.552    -77.58  SOCHE                         Ecuador             Stratovolcano       Radiocarbon
+ 0.13     -78.27  CHACHIMBIRO                   Ecuador             Stratovolcano       Radiocarbon
  0.308    -78.364 CUICOCHA                      Ecuador             Caldera             Radiocarbon
  0.13     -78.27  MOJANDA                       Ecuador             Stratovolcano       Radiocarbon
+ 0.258    -78.183 IMBABURA                      Ecuador             Compound_volcano    Holocene
  0.029    -77.986 CAYAMBE                       Ecuador             Compound_volcano    Holocene
  -0.078   -77.656 REVENTADOR                    Ecuador             Stratovolcano       Historical
  0.038    -78.463 PULULAGUA                     Ecuador             Caldera             Radiocarbon
@@ -1216,254 +1314,284 @@
  -0.375   -78.25  CHACANA                       Ecuador             Caldera             Historical
  -0.481   -78.141 ANTISANA                      Ecuador             Stratovolcano       Historical
  -0.43    -77.72  PAN_DE_AZUCAR                 Ecuador             Stratovolcano       Holocene
+ -0.53	  -78.00  ALISO				Ecuador             Stratovolcano       Radiocarbon
  -0.538   -77.626 SUMACO                        Ecuador             Stratovolcano       Historical
  -0.659   -78.714 ILINIZA                       Ecuador             Stratovolcano       Holocene
  -0.677   -78.436 COTOPAXI                      Ecuador             Stratovolcano       Historical
  -0.85    -78.90  QUILOTOA                      Ecuador             Caldera             Radiocarbon
+ -1.464   -78.815 CHIMBORAZO			Ecuador             Stratovolcano       Radiocarbon
  -1.467   -78.442 TUNGURAHUA                    Ecuador             Stratovolcano       Historical
- -1.78    -78.613 TULABUG                       Ecuador             Scoria_cones        Holocene
+ -1.78    -78.613 LICTO                         Ecuador             Scoria_cones        Holocene?
  -2.03    -78.33  SANGAY                        Ecuador             Stratovolcano       Historical
  -0.37    -91.55  FERNANDINA                    Galapagos           Shield_volcano      Historical
- -0.02    -91.546 ECUADOR,_VOLCAN               Galapagos           Shield_volcano      Holocene
- 0.02     -91.35  WOLF,_VOLCAN                  Galapagos           Shield_volcano      Historical
- -0.18    -91.28  DARWIN,_VOLCAN                Galapagos           Shield_volcano      Holocene
- -0.43    -91.12  ALCEDO,_VOLCAN                Galapagos           Shield_volcano      Historical
- -0.83    -91.17  NEGRA,_SIERRA                 Galapagos           Shield_volcano      Historical
- -0.90    -91.42  AZUL,_CERRO                   Galapagos           Shield_volcano      Historical
+ -0.02    -91.546 ECUADOR	                Galapagos           Shield_volcano      Holocene
+ 0.02     -91.35  WOLF		                Galapagos           Shield_volcano      Historical
+ -0.18    -91.28  DARWIN	                Galapagos           Shield_volcano      Holocene
+ -0.43    -91.12  ALCEDO	                Galapagos           Shield_volcano      Historical
+ -0.83    -91.17  SIERRA_NEGRA                  Galapagos           Shield_volcano      Historical
+ -0.90    -91.42  CERRO_AZUL                    Galapagos           Shield_volcano      Historical
  0.58     -90.75  PINTA                         Galapagos           Shield_volcano      Historical
  0.33     -90.47  MARCHENA                      Galapagos           Shield_volcano      Historical
  0.32     -89.958 GENOVESA                      Galapagos           Shield_volcano      Holocene
  -0.22    -90.77  SANTIAGO                      Galapagos           Shield_volcano      Historical
  -0.62    -90.33  SANTA_CRUZ                    Galapagos           Shield_volcano      Holocene
- -1.30    -90.45  FLOREANA                      Galapagos           Shield_volcano      Holocene
- -0.88    -89.50  SAN_CRISTOBAL                 Galapagos           Shield_volcano      Holocene
--15.23    -72.63  FIRURA,_NEVADOS               Peru                Stratovolcanoes     Holocene
--15.52    -72.65  COROPUNA                      Peru                Stratovolcano       Holocene
--15.42    -72.33  ANDAHUA_VALLEY                Peru                Cinder_cones        Holocene
--15.78    -71.85  SABANCAYA                     Peru                Stratovolcanoes     Historical
+ -1.30    -90.45  FLOREANA                      Galapagos           Shield_volcano      Holocene?
+ -0.88    -89.50  SAN_CRISTÓBAL                 Galapagos           Shield_volcano      Holocene
 -14.37    -71.17  QUIMSACHATA                   Peru                Lava_dome           Holocene
--16.191   -71.53  CHACHANI,_NEVADO              Peru                Stratovolcano       Holocene
--16.294   -71.409 MISTI,_EL                     Peru                Stratovolcano       Historical
+-15.23    -72.63  NEVADOS_FIRURAS               Peru                Stratovolcanoes     Holocene?
+-15.33    -73.45  SARA_SARA			Peru                Stratovolcano       Holocene
+-15.52    -72.65  COROPUNA                      Peru                Stratovolcano       Holocene
+-15.42    -72.33  ANDAHUA-ORCOPAMPA             Peru                Cinder_cones        Holocene
+-15.83    -72.13  HUAMBO                        Peru                Volcanic_field      Radiocarbon
+-15.78    -71.85  SABANCAYA                     Peru                Stratovolcanoes     Historical
+-16.191   -71.53  NEVADO_CHACHANI               Peru                Stratovolcanoes     Historical
+-16.258   -71.753 CERRO_NICHOLSON               Peru                Cinder_cone         Holocene
+-16.294   -71.409 EL_MISTI                      Peru                Stratovolcano       Historical
 -16.355   -70.903 UBINAS                        Peru                Stratovolcano       Historical
 -16.608   -70.85  HUAYNAPUTINA                  Peru                Stratovolcano_?     Historical
 -16.755   -70.595 TICSANI                       Peru                Stratovolcano       Holocene
 -17.025   -70.358 TUTUPACA                      Peru                Stratovolcano       Historical
 -17.18    -70.20  YUCAMANE                      Peru                Stratovolcano       Historical
--17.47    -69.82  CASIRI,_NEVADOS               Peru                Stratovolcano       Holocene
+-17.47    -69.82  NEVADOS_CASIRI                Peru                Stratovolcano       Holocene
 -17.72    -69.77  TACORA                        Chile-N             Stratovolcano       Fumarolic
+-18.10	  -69.50  TAAPACA                       Chile-N             Complex_volcano     Radiocarbon
 -17.87    -69.48  LEXONE                        Chile-N             Lava_domes          Holocene
 -18.05    -69.03  PATILLA_PATA                  Bolivia             Stratovolcano       Holocene?
--17.92    -68.92  ANALLAJSI,_NEVADO             Bolivia             Stratovolcano       Holocene?
+-17.92    -68.92  NEVADO_ANALLAJSI              Bolivia             Stratovolcano       Holocene?
 -18.25    -68.53  MACIZO_DE_LARANCAGUA          Bolivia             Stratovolcano       Holocene?
 -18.32    -68.80  MACIZO_DE_PACUNI              Bolivia             Stratovolcano       Holocene?
 -18.17    -69.15  PARINACOTA                    Chile-N             Stratovolcano       Holocene
 -18.37    -69.05  ACOTANGO                      Chile-N             Stratovolcanoes     Holocene
 -18.42    -69.17  GUALLATIRI                    Chile-N             Stratovolcano       Historical
--18.50    -68.07  COLLUMA,_CERRO                Bolivia             Maar                Holocene?
--18.62    -68.75  SACABAYA,_VOLCAN_DE           Bolivia             Cinder_cone         Holocene
--18.73    -69.05  ARINTICA,_VOLCAN              Chile-N             Stratovolcano       Holocene
--19.13    -68.53  TATA_SABAYA                   Bolivia             Stratovolcano       Holocene
+-18.62    -68.75  TAMBO_QUEMADO			Bolivia             Pyroclastic_shield  Holocene
+-18.50    -68.07  CERRO_COLLUMA                 Bolivia             Maar                Holocene?
+-18.73    -69.05  ARINTICA		        Chile-N             Stratovolcano       Holocene
 -19.15    -68.83  ISLUGA                        Chile-N             Stratovolcano       Historical
+-19.13    -68.53  TATA_SABAYA                   Bolivia             Stratovolcano       Holocene
 -19.42    -68.97  PUCHULDIZA                    Chile-N             Hydrothermal_field  Pleistocene-Geysers
--19.492   -68.65  PINA,_CERRO                   Chile-N             Unknown             Holocene?
+-19.45	  -67.42  LAGUNA_JAYU_KHOTA             Bolivia             Maars       	Holocene
+-19.492   -68.65  CERRO_PINA                    Chile-N             Unknown             Holocene?
 -19.78    -66.48  NUEVO_MUNDO                   Bolivia             Lava_domes          Holocene
--20.73    -68.55  IRRUPUTUNCU                   Chile-N             Stratovolcano       Holocene
+-20.73    -68.55  IRRUPUTUNCU                   Chile-N             Stratovolcano       Historical
 -20.83    -68.63  UNNAMED                       Chile-N             Pumice_cone         Holocene?
--20.85    -68.20  PAMPA_LUXSAR                  Bolivia             Volcanic_field      Holocene
+-20.85    -68.20  PAMPA_LUXSAR                  Bolivia             Volcanic_field      Holocene?
 -20.93    -68.48  OLCA-PARUMA                   Chile-N             Stratovolcanoes     Historical
--21.22    -68.47  AUCANQUILCHA,_CERRO           Chile-N             Stratovolcano       Holocene
--21.25    -67.75  SAN_AGUSTIN,_CERRO            Bolivia             Stratovolcano       Holocene?
--21.30    -68.18  OLLAGUE                       Chile-N             Stratovolcano       Holocene
--21.50    -67.50  YUMIA,_CERRO                  Bolivia             Cone                Holocene?
--21.60    -66.88  ESCALA                        Bolivia             Lava_dome           Holocene
--21.67    -66.50  SANTA_ISABEL,_CERRO           Bolivia             Stratovolcano       Holocene?
--21.68    -67.47  MOIRO,_CERRO                  Bolivia             Scoria_cone         Holocene?
--21.78    -68.23  AZUFRE,_CERRO_DEL             Chile-N             Stratovolcano       Holocene
+-21.22    -68.47  AUCANQUILCHA			Chile-N             Stratovolcano       Pleistocene-Fumarolic
+-21.25    -67.75  SAN_AGUSTIN		        Bolivia             Stratovolcano       Holocene?
+-21.30    -68.18  OLLAGUE                       Chile-N             Stratovolcano       Holocene?
+-21.50    -67.50  CERRO_YUMIA                   Bolivia             Cone                Holocene?
+-21.60    -66.88  ESCALA                        Bolivia             Lava_dome           Holocene?
+-21.67    -66.50  CERRO_SANTA_ISABELO           Bolivia             Stratovolcano       Holocene?
+-21.68    -67.47  CERRO_MOIRO                   Bolivia             Scoria_cone         Holocene?
+-21.78    -68.23  CERRO_DEL_AZUFRE              Chile-N             Stratovolcano       Holocene?
 -21.88    -68.40  SAN_PEDRO                     Chile-N             Stratovolcanoes     Historical
--21.88    -67.90  CHASCON,_CERRO                Bolivia             Lava_dome           Holocene
--22.12    -68.15  CHAO                          Chile-N             Lava_dome           Holocene
--22.20    -68.10  TOCONCE,_CERRO                Chile-N             Stratovolcano       Holocene
+-21.88    -67.90  CERRO_CHASCON                 Bolivia             Lava_dome           Holocene?
+-22.12    -68.15  CHAO                          Chile-N             Lava_dome           Holocene?
+-22.20    -68.10  CERRO_TOCONCE                 Chile-N             Stratovolcano       Holocene?
 -22.25    -67.42  QUETENA                       Bolivia             Fissure_vent        Holocene?
 -22.27    -67.22  UTURUNCO                      Bolivia             Stratovolcano       Holocene
 -22.35    -68.03  TATIO                         Chile-N             Hydrothermal_field  Pleistocene-Geysers
--22.43    -67.90  TOCORPURI,_CERROS_DE          Chile-N             Stratovolcano       Holocene
+-22.43    -67.90  CERROS_DE_TOCORPURIE          Chile-N             Stratovolcano       Holocene
 -22.57    -67.87  PUTANA                        Chile-N             Stratovolcano       Historical
 -22.73    -67.88  SAIRECABUR                    Chile-N             Stratovolcanoes     Holocene
 -22.83    -67.88  LICANCABUR                    Chile-N             Stratovolcano       Holocene
 -22.88    -67.58  GUAYAQUES                     Chile-N             Lava_domes          Holocene
 -23.00    -67.75  PURICO_COMPLEX                Chile-N             Stratovolcanoes     Holocene
 -23.23    -67.65  COLACHI                       Chile-N             Stratovolcano       Holocene
--23.30    -67.62  ACAMARCHI                     Chile-N             Stratovolcano       Holocene?
--23.35    -67.67  OVERO,_CERRO                  Chile-N             Maar                Holocene
--23.37    -67.73  LASCAR                        Chile-N             Stratovolcanoes     Historical
+-23.30    -67.62  ACAMARCHI                     Chile-N             Stratovolcano       Holocene
+-23.52    -67.67  CERRO_OVERO                   Chile-N             Maar                Holocene?
+-23.37    -67.73  LASCÁR                        Chile-N             Stratovolcanoes     Historical
 -23.58    -67.70  CHILIQUES                     Chile-N             Stratovolcano       Holocene
--23.75    -67.53  CORDON_DE_PUNTAS_NEGRAS       Chile-N             Stratovolcanoes     Holocene
--23.85    -67.62  CORDON_CHALVIRI               Chile-N             Stratovolcanoes     Holocene
--23.83    -67.95  TUJLE,_CERRO                  Chile-N             Maar                Holocene
+-23.75    -67.53  CORDÓN_DE_PUNTAS_NEGRAS       Chile-N             Stratovolcanoes     Holocene
+-23.85    -67.62  CORDÓN_CHALVIRI               Chile-N             Stratovolcanoes     Holocene
+-23.83    -67.95  CERRO_TUJLE                   Chile-N             Maar                Holocene
 -24.18    -68.05  PULAR                         Chile-N             Stratovolcanoes     Holocene
--24.18    -68.25  NEGRILLAR,_EL                 Chile-N             Pyroclastic_cones   Holocene?
--24.27    -67.77  ARACAR                        Argentina           Stratovolcano       Historical
+-24.18    -68.25  EL_NEGRILLAR                  Chile-N             Pyroclastic_cones   Holocene?
+-24.27    -67.77  ARACAR                        Argentina           Stratovolcano       Uncertain
 -24.40    -68.25  SOCOMPA                       Chile-N             Stratovolcano       Radiocarbon
--24.28    -68.60  NEGRILLAR,_LA                 Chile-N             Pyroclastic_cones   Holocene?
+-24.28    -68.60  LA_NEGRILLAR                  Chile-N             Pyroclastic_cones   Holocene?
 -24.72    -68.53  LLULLAILLACO                  Chile-N             Stratovolcano       Historical
--24.05    -66.48  TUZGLE,_CERRO                 Argentina           Stratovolcano       Holocene?
--25.08    -68.37  ESCORIAL,_CERRO               Chile-N             Stratovolcano       Holocene
+-24.05    -66.48  CERRO_TUZGLE                  Argentina           Stratovolcano       Holocene?
+-25.08    -68.37  CERRO_ESCORIAL                Chile-N             Stratovolcano       Holocene?
 -25.17    -68.50  LASTARRIA                     Chile-N             Stratovolcano       Holocene
--25.33    -68.52  CORDON_DEL_AZUFRE             Chile-N             Complex_volcano     Holocene
--25.42    -68.58  BAYO,_CERRO                   Chile-N             Complex_volcano     Holocene
--25.53    -68.00  ANTOFALLA,_VOLCAN             Argentina           Stratovolcano       Fumarolic
+-25.33    -68.52  CORDÓN_DEL_AZUFRE             Chile-N             Complex_volcano     Holocene
+-25.42    -68.58  CERRO_BAYO                    Chile-N             Complex_volcano     Holocene
+-25.53    -68.00  ANTOFALLA			Argentina           Stratovolcano       Fumarolic
+-26.48    -68.58  SIERRA_NEVADA                 Chile               Complex_volcano     Holocene
+-27.12    -68.53  NEVADOS_OJOS_DEL_SALADO       Chile-N             Stratovolcano       Holocene
+-27.108   -68.72  EL_SOLO			Chile/Argentina     Stratovolcano       Holocene
 -26.08    -67.50  ANTOFAGASTA_DE_LA_SIERRA      Argentina           Scoria_cones        Holocene
--26.48    -68.58  NEVADA,_SIERRA                Chile               Volcanic_field      Holocene
--26.62    -68.35  CONDOR,_CERRO_EL              Argentina           Stratovolcano       Holocene
+-26.62    -68.35  CERRO_EL_CONDOR               Argentina           Stratovolcano       Holocene?
 -26.62    -68.15  PEINADO                       Argentina           Stratovolcano       Holocene
 -26.77    -67.72  ROBLEDO                       Argentina           Caldera             Holocene
--26.80    -68.37  FALSO_AZUFRE                  Chile-N             Complex_volcano     Holocene
--27.12    -68.53  OJOS_DEL_SALADO,_NEVADOS      Chile-N             Stratovolcano       Holocene
+-26.80    -68.37  FALSO_AZUFRE                  Chile-N             Complex_volcano     Holocene?
 -27.20    -68.55  TIPAS                         Argentina           Complex_volcano     Holocene
 -27.30    -69.13  COPIAPO                       Chile-N             Stratovolcano       Uncertain
--26.27    -80.12  SAN_FELIX                     Chile-Is            Shield_volcano      Holocene
+-26.27    -80.12  SAN_FÉLIX                     Chile-Is            Shield_volcano      Holocene
+-27.15	  -109.38 EASTER_ISLAND			Chile-Is            Shield_volcanoes    Holocene
 -33.658   -78.85  ROBINSON_CRUSOE               Chile-Is            Shield_volcanoes    Historical
 -33.62    -76.83  UNNAMED                       Chile-Is            Submarine_volcano   Uncertain
 -33.40    -69.80  TUPUNGATITO                   Chile-C             Stratovolcano       Historical
 -33.782   -69.897 SAN_JOSE                      Chile-C             Stratovolcano       Historical
 -34.161   -69.833 MAIPO                         Chile-C             Caldera             Historical
 -34.608   -70.295 PALOMO                        Chile-C             Stratovolcano       Holocene
+-34.65	  -70.05  CALDERA_DEL_ATUEL		Argentina	    Caldera		Holocene
 -34.814   -70.352 TINGUIRIRICA                  Chile-C             Stratovolcano       Historical
--35.24    -70.57  PLANCHON-PETEROA              Chile-C             Calderas            Historical
--35.464   -70.80  MONDACA                       Chile-C             Lava_dome           Holocene
+-35.24    -70.57  PLANCHÓN-PETEROA              Chile-C             Calderas            Historical
+-35.142	  -69.83  INFIERNILLO			Argentina	    Volcanic_field	Radiocarbon
+-35.464   -70.80  MONDACA                       Chile-C             Lava_dome           Holocene?
 -35.558   -70.496 CALABOZOS                     Chile-C             Caldera             Holocene
 -35.58    -70.75  DESCABEZADO_GRANDE            Chile-C             Stratovolcano       Historical
--35.653   -70.761 AZUL,_CERRO_[QUIZAPU]         Chile-C             Stratovolcano       Historical
--35.725   -70.808 HORNITOS,_LOS                 Chile-C             Cinder_cones        Holocene
--36.02    -70.58  MAULE,_LAGUNA_DEL             Chile-C             Stratovolcanoes     Holocene
+-35.653   -70.761 CERRO_AZUL		        Chile-C             Stratovolcano       Historical
+-35.725   -70.808 LOS_HORNITOS                  Chile-C             Cinder_cones        Holocene?
+-36.02    -70.58  LAGUNA_DEL_MAULE              Chile-C             Stratovolcanoes     Holocene
 -35.989   -70.849 SAN_PEDRO-PELLADO             Chile-C             Stratovolcanoes     Holocene
--36.193   -71.161 LONGAVI,_NEVADO_DE            Chile-C             Stratovolcano       Holocene
--36.286   -71.009 BLANCA,_LOMA                  Chile-C             Stratovolcano       Holocene
--36.45    -70.92  RESAGO,_VOLCAN                Chile-C             Cinder_cone         Holocene
--36.42    -69.20  PAYUN_MATRU,_CERRO            Argentina           Shield_volcano      Holocene
+-36.193   -71.161 NEVADO_DE_LONGAVI             Chile-C             Stratovolcano       Holocene
+-36.286   -71.009 LOMAS_BLANCAS                 Chile-C             Stratovolcano       Holocene
+-36.45    -70.92  RESAGO	                Chile-C             Cinder_cone         Holocene
+-36.42    -69.20  PAYÚN_MATRU		        Argentina           Shield_volcano      Holocene
 -36.63    -70.42  DOMUYO,_VOLCAN                Argentina           Stratovolcano       Holocene?
--36.863   -71.377 CHILLAN,_NEVADOS_DE           Chile-C             Stratovolcano       Historical
+-36.863   -71.377 NEVADOS_DE_CHILLÁN            Chile-C             Stratovolcano       Historical
+-36.77	  -69.82  COCHIQUITO_VOLC_GROUP		Argentina           Shield_volcanoes    Holocene
 -37.142   -70.03  TROMEN                        Argentina           Stratovolcano       Holocene
 -37.55    -69.62  PUESTO_CORTADERAS             Argentina           Pyroclastic_cone    Holocene
 -37.406   -71.349 ANTUCO                        Chile-C             Stratovolcano       Historical
 -37.85    -71.17  COPAHUE                       Chile-C             Stratovolcano       Historical
 -37.92    -71.45  CALLAQUI                      Chile-C             Stratovolcano       Historical
+-38.27	  -71.10  LAGUNA_MARIÑAQUI		Chile-C             Cinder_cones        Holocene
 -38.31    -71.645 TOLGUACA                      Chile-C             Stratovolcano       Holocene
 -38.377   -71.58  LONQUIMAY                     Chile-C             Stratovolcano       Historical
--38.37    -71.08  CHAPULUL,_CERRO               Chile-C             Cinder_cone         Holocene
+-38.37    -71.08  CERRO_CHAPULUL                Chile-C             Cinder_cone         Holocene?
+-38.52    -70.90  TRALIHUE                      Argentina           Stratovolcano       Holocene
+-39.02	  -70.37  LAGUNA_BLANCA			Chile-C/Argentina   Volcanic_field	Historical
 -38.692   -71.729 LLAIMA                        Chile-C             Stratovolcano       Historical
 -38.97    -71.52  SOLLIPULLI                    Chile-C             Caldera             Radiocarbon
--39.20    -71.83  CABURGUA                      Chile-C             Cinder_cones        Tephrochronology
--39.27    -71.70  REDONDO,_CERRO                Chile-C             Cinder_cones        Tephrochronology
--39.30    -71.82  HUELEMOLLE                    Chile-C             Cinder_cones        Tephrochronology
+-39.20    -71.83  CABURGUA-HUELEMOLLE           Chile-C             Cinder_cones        Tephrochronology
+-39.27    -71.70  CERRO-REDONDO                 Chile-C             Cinder_cones        Tephrochronology
 -39.42    -71.93  VILLARRICA                    Chile-C             Stratovolcano       Historical
 -39.50    -71.70  QUETRUPILLAN                  Chile-C             Caldera             Historical
--39.633   -71.50  LANIN                         Chile-C             Stratovolcano       Holocene
+-39.633   -71.50  LANÍN                         Chile-C             Stratovolcano       Holocene
 -39.87    -71.55  HUANQUIHUE_GROUP              Argentina           Pyroclastic_cone    Holocene
 -39.928   -72.027 MOCHO-CHOSHUENCO              Chile-C             Stratovolcano       Historical
--40.35    -72.07  CARRAN-LOS_VENADOS            Chile-C             Pyroclastic_cones   Historical
--40.52    -72.20  CORDON_CAULLE                 Chile-C             Fissure_vents       Historical
--40.59    -72.117 PUYEHUE                       Chile-C             Stratovolcano       Holocene
--40.534   -72.038 MENCHECA                      Chile-C             Stratovolcano       Holocene
--40.77    -71.95  PANTOJA,_CERRO                Chile-C             Stratovolcano       Holocene
+-40.35    -72.07  CARRÁN-LOS_VENADOS            Chile-C             Pyroclastic_cones   Historical
+-40.52    -72.20  CORDÓN_CAULLE                 Chile-C             Fissure_vents       Historical
+-40.59    -72.117 PUYEHUE-CORDÓN_CAULLE         Chile-C             Stratovolcano       Holocene
+-40.534   -72.038 MENCHECA                      Chile-C             Stratovolcano       Holocene?
+-40.77    -71.95  CERRO_PANTOJA                 Chile-C             Stratovolcano       Holocene
 -40.771   -72.153 ANTILLANCA_GROUP              Chile-C             Stratovolcanoes     Holocene
--40.969   -72.264 PUNTIGUIDO-CORDON_CENIZOS     Chile-C             Stratovolcano       Historical
+-40.969   -72.264 PUNTIGUIDO-CORDÓN_CENIZOS     Chile-C             Stratovolcano       Historical
 -41.10    -72.493 OSORNO                        Chile-S             Stratovolcano       Historical
+-41.25    -72.27  CAYUTÉ-LA_VIGUERÍA            Chile-S             Pyroclastic_cones   Holocene
 -41.326   -72.614 CALBUCO                       Chile-S             Stratovolcano       Historical
--41.25    -72.27  CAYUTE-LA_VIGUERIA            Chile-S             Pyroclastic_cones   Holocene
--41.755   -72.396 YATE,_MT.                     Chile-S             Stratovolcano       Holocene
--41.874   -72.431 HORNOPIREN,_VOLCAN            Chile-S             Stratovolcano       Holocene?
--42.07    -71.65  VOLCANICO,_CERRO              Argentina           Cinder_cone         Holocene
+-41.40    -72.00  CUERNOS_DEL_DIABLO            Chile-S             Stratovolcano       Holocene
+-41.755   -72.396 YATE                          Chile-S             Stratovolcano       Holocene
+-41.874   -72.431 HORNOPIRÉN		        Chile-S             Stratovolcano       Holocene
+-41.88	  -72.58  APAGADO			Chile-S             Pyroclastic_cone    Holocene
+-42.02    -70.18  CRATER_BASALT_VOLC_FIELD	Argentina           Cinder_cones        Holocene
+-42.07    -71.65  CERRO_VOLCANICO               Argentina           Cinder_cone         Holocene
 -42.377   -72.578 HUEQUI                        Chile-S             Stratovolcano       Historical
--42.78    -72.43  MINCHINMAVIDA                 Chile-S             Stratovolcano       Historical
+-42.78    -72.43  MINCHINMÁVIDA                 Chile-S             Stratovolcano       Historical
 -42.833   -72.646 CHAITEN                       Chile-S             Caldera             Holocene
 -43.18    -72.80  CORCOVADO                     Chile-S             Stratovolcano       Historical
--43.42    -72.83  YANTELES,_CERRO               Chile-S             Stratovolcano       Historical
+-43.42    -72.83  YANTELES                      Chile-S             Stratovolcano       Historical
 -43.68    -72.50  PALENA_VOLC_GROUP             Chile-S             Cinder_cones        Holocene
 -44.08    -72.88  MELIMOYU                      Chile-S             Stratovolcano       Holocene
 -44.30    -72.53  PUYUHUAPI                     Chile-S             Cinder_cones        Holocene
 -44.67    -73.08  MENTOLAT                      Chile-S             Stratovolcano       Holocene?
 -45.10    -73.20  MACA                          Chile-S             Stratovolcano       Holocene
--45.90    -72.97  HUDSON,_CERRO                 Chile-S             Stratovolcano       Historical
--49.02    -73.55  LAUTARO                       Chile-S             Stratovolcano_?     Historical
--49.358   -73.28  VIEDMA,_VOLCAN                Argentina           Subglacial_volcano  Historical
--50.17    -73.83  AGUILERA                      Chile-S             Stratovolcano_?     Radiocarbon
--50.98    -73.70  RECLUS                        Chile-S             Stratovolcano_?     Radiocarbon
--52.33    -73.40  BURNEY,_MONTE                 Chile-S             Stratovolcano       Historical
+-45.90    -72.97  CERRO_HUDSON                  Chile-S             Stratovolcano       Historical
+-47.20    -73.48  ARENALES			Chile-S             Stratovolcano       Historical
+-49.02    -73.55  LAUTARO                       Chile-S             Stratovolcano       Historical
+-49.358   -73.28  VIEDMA	                Argentina           Subglacial_volcano  Historical
+-50.17    -73.83  AGUILERA                      Chile-S             Stratovolcano       Radiocarbon
+-50.98    -73.70  RECLUS                        Chile-S             Stratovolcano       Radiocarbon
+-52.33    -73.40  MONTE_BURNEY                  Chile-S             Stratovolcano       Historical
 -52.00    -70.00  PALEI-AIKE_VOLC_FIELD         Chile-S             Cinder_cones        Anthropology
--54.95    -70.27  COOK,_ISLA                    Chile-S             Lava_domes          Holocene
+-54.95    -70.25  FUEGUINO                      Chile-S             Lava_domes          Holocene
 17.63     -63.23  SABA                          W_Indies            Stratovolcano       Historical
-17.48     -62.95  QUILL,_THE                    W_Indies            Stratovolcano       Radiocarbon
+17.48     -62.95  THE_QUILL                     W_Indies            Stratovolcano       Radiocarbon
 17.37     -62.80  LIAMUIGA                      W_Indies            Stratovolcano       Radiocarbon
-17.15     -62.58  NEVIS_PEAK                    W_Indies            Stratovolcano       Holocene
-16.72     -62.18  SOUFRIERE_HILLS               W_Indies            Stratovolcano       Historical
-16.05     -61.67  SOUFRIERE_GUADELOUPE          W_Indies            Stratovolcano       Historical
-15.62     -61.45  DIABLE,_MORNE_AU              W_Indies            Stratovolcano       Fumarolic
-15.50     -61.42  DIABLOTINS,_MORNE             W_Indies            Stratovolcano       Fumarolic
+17.15     -62.58  NEVIS_PEAK                    W_Indies            Stratovolcano       Holocene?
+16.72     -62.18  SOUFRIÈRE_HILLS               W_Indies            Stratovolcano       Historical
+16.05     -61.67  SOUFRIÈRE_GUADELOUPE          W_Indies            Stratovolcano       Historical
+15.62     -61.45  MORNE_AUX_DIABLES             W_Indies            Stratovolcano       Holocene
+15.50     -61.42  MORNE_DIABLOTINS              W_Indies            Stratovolcano       Holocene?
+15.37     -61.33  MORNE_TROIS_PITONS            W_Indies            Complex_volcano     Radiocarbon
 15.33     -61.33  MICOTRIN                      W_Indies            Lava_domes          Historical
-15.22     -61.37  PATATES,_MORNE                W_Indies            Stratovolcano       Radiocarbon
-14.82     -61.17  PELEE                         W_Indies            Stratovolcano       Historical
+15.307    -61.305 MORNE_WATT                    W_Indies            Stratovolcano       Radiocarbon
+15.255    -61.341 MORNE_PLAT_PAYS               W_Indies            Stratovolcano       Radiocarbon
+14.82     -61.17  PELÉE                         W_Indies            Stratovolcano       Historical
 13.83     -61.05  QUALIBOU                      W_Indies            Caldera             Historical
 13.33     -61.18  SOUFRIERE_ST._VINCENT         W_Indies            Stratovolcano       Historical
 12.30     -61.63  KICK-'EM-JENNY                W_Indies            Submarine_volcano   Historical
 12.15     -61.67  ST._CATHERINE                 W_Indies            Stratovolcano       Holocene
-64.80     -23.78  SNAEFELLSJOKULL               Iceland-W           Stratovolcano       Radiocarbon
-64.87     -23.25  LYSUHOLL                      Iceland-W           Pyroclastic_cones   Holocene
-64.87     -22.23  LJOSUFJOLL                    Iceland-W           Fissure_vents       Anthropology
+64.80     -23.78  SNAEFELLSJÖKULL               Iceland-W           Stratovolcano       Radiocarbon
+64.87     -23.25  HELGRINDUR                    Iceland-W           Pyroclastic_cones   Holocene
+64.87     -22.23  LJÓSUFJÖLL                    Iceland-W           Fissure_vents       Anthropology
 63.67     -23.33  REYKJANESHRYGGUR              Iceland-SW          Submarine_volcanoes Historical
 63.88     -22.50  REYKJANES                     Iceland-SW          Crater_rows         Historical
 63.93     -22.10  KRISUVIK                      Iceland-SW          Crater_rows         Historical
-63.92     -21.83  BRENNISTEINSFJOLL             Iceland-SW          Crater_rows         Historical
+63.92     -21.83  BRENNISTEINSFJÖLL             Iceland-SW          Crater_rows         Historical
 64.18     -21.33  HENGILL                       Iceland-SW          Crater_rows         Radiocarbon
 64.03     -20.87  GRIMSNES                      Iceland-SW          Crater_rows         Tephrochronology
 64.60     -20.58  PRESTAHNUKUR                  Iceland-SW          Subglacial_volcano  Radiocarbon
-64.75     -19.98  LANGJOKULL                    Iceland-SW          Stratovolcano       Radiocarbon
-64.78     -18.92  HOFSJOKULL                    Iceland-SW          Subglacial_volcano  Holocene
+64.75     -19.98  HVERAVELLIR                   Iceland-SW          Stratovolcano       Radiocarbon
+64.78     -18.92  HOFSJÖKULL                    Iceland-SW          Subglacial_volcano  Holocene
 64.63     -19.32  KERLINGARFJOLL                Iceland-SW          Stratovolcano       Holocene
 63.43     -20.28  VESTMANNAEYJAR                Iceland-S           Submarine_volcano   Historical
-63.63     -19.62  EYJAFJOLL                     Iceland-S           Stratovolcano       Historical
+63.63     -19.62  EYJAFJALLAJÖKULL              Iceland-S           Stratovolcano       Historical
 63.63     -19.05  KATLA                         Iceland-S           Subglacial_volcano  Historical
-63.78     -19.57  TINDFJALLAJOKULL              Iceland-S           Stratovolcano       Holocene
-63.92     -19.17  TORFAJOKULL                   Iceland-S           Stratovolcano       Historical
-63.92     -19.67  VATNAFJOLL                    Iceland-S           Fissure_vents       Tephrochronology
+63.78     -19.57  TINDFJALLAJÖKULL              Iceland-S           Stratovolcano       Holocene?
+63.92     -19.17  TORFAJÖKULL                   Iceland-S           Stratovolcano       Historical
+63.92     -19.67  VATNAFJÖLL                    Iceland-S           Fissure_vents       Tephrochronology
 63.98     -19.70  HEKLA                         Iceland-S           Stratovolcano       Historical
-64.42     -17.33  GRIMSVOTN                     Iceland-NE          Caldera             Historical
-64.48     -17.80  LOKI-FOGRUFJOLL               Iceland-NE          Subglacial_volcano  Historical
-64.63     -17.53  BARDARBUNGA                   Iceland-NE          Stratovolcano       Historical
-64.73     -17.92  TUNGNAFELLSJOKULL             Iceland-NE          Stratovolcano       Holocene
-64.65     -16.72  KVERKFJOLL                    Iceland-NE          Stratovolcano       Historical
+64.42     -17.33  GRIMSVÖTN                     Iceland-NE          Caldera             Historical
+64.48     -17.80  LOKI-FOGRUFJÖLL               Iceland-NE          Subglacial_volcano  Historical
+64.63     -17.53  BÁRDARBUNGA                   Iceland-NE          Stratovolcano       Historical
+64.73     -17.92  TUNGNAFELLSJÖKULL             Iceland-NE          Stratovolcano       Holocene
+64.65     -16.72  KVERKFJÖLL                    Iceland-NE          Stratovolcano       Historical
 65.03     -16.75  ASKJA                         Iceland-NE          Stratovolcano       Historical
 65.43     -16.65  FREMRINAMUR                   Iceland-NE          Stratovolcano       Tephrochronology
 65.73     -16.78  KRAFLA                        Iceland-NE          Caldera             Historical
 65.88     -16.83  THEISTAREYKJARBUNGA           Iceland             Shield_volcano      Tephrochronology
-66.30     -17.10  TJORNES_FRACTURE_ZONE         Iceland-N_of        Submarine_volcano   Historical
-64.00     -16.65  ORAEFAJOKULL                  Iceland-SE          Stratovolcano       Historical
-64.27     -16.65  ESJUFJOLL                     Iceland-SE          Stratovolcano       Historical
+66.30     -17.10  TJÖRNES_FRACTURE_ZONE         Iceland-N_of        Submarine_volcano   Historical
+64.00     -16.65  ÖRAEFAJÖKULL                  Iceland-SE          Stratovolcano       Historical
+64.27     -16.65  ESJUFJÖLL                     Iceland-SE          Stratovolcano       Historical
 66.67     -18.50  KOLBEINSEY_RIDGE              Iceland-N_of        Submarine_volcano   Historical
 71.08      -8.17  JAN_MAYEN                     Atl-N-Jan_Mayen     Stratovolcano       Historical
-88.27     -65.60  UNNAMED                       Arctic_Ocean        Submarine_volcano   Historical
+88.27     -65.60  UNNAMED                       Arctic_Ocean        Submarine_volcano_? Uncertain
+85.58      85.00  UNNAMED                       Arctic_Ocean        Submarine_volcano   Holocene
 49.00     -34.50  UNNAMED                       Atlantic-N          Submarine_volcano   Historical
 39.95     -25.83  UNNAMED                       Atlantic-N          Submarine_volcano   Uncertain
 38.75     -38.08  UNNAMED                       Atlantic-N          Submarine_volcano   Historical
-39.40     -31.17  FLORES                        Azores              Stratovolcano       Radiocarbon
-38.585    -28.716 FAIAL                         Azores              Stratovolcano       Historical
+39.711    -31.110 CORVO				Azores		    Stratovolcano       Historical
+39.427    -31.212 FLORES                        Azores              Fissure_vent        Radiocarbon
 38.593    -28.797 CAPELINHOS                    Azores              Stratovolcano       1958
-38.47     -28.40  PICO                          Azores              Stratovolcano       Historical
-38.41     -28.280 PICO                          Azores              Stratovolcano       1720
-38.65     -28.08  SAO_JORGE                     Azores              Fissure_vent        1808
-39.02     -27.97  GRACIOSA                      Azores              Stratovolcano       Holocene
-38.73     -27.32  TERCEIRA                      Azores              Stratovolcanoes     Historical
-38.788    -27.461 SERRETA                       Azores              Submarine_volcano   1999
+38.583    -28.717 FAIAL                         Azores              Stratovolcano       Historical
+38.592    -28.492 CACHORRO			Azores	 	    Submarine_volcano	Uncertain
+38.468    -28.399 PICO                          Azores              Stratovolcano       1718
+38.482    -28.259 PICO_FISSURE_VENT             Azores              Fissure_vent        1720
+38.708    -28.256 VELAS				Azores	 	    Submarine_volcano	Uncertain
+38.650    -28.075 SÃO_JORGE                     Azores              Fissure_vent        1907
+38.074    -28.033 VITÓRIA                       Azores              Cinder_cones        Historical
+39.026    -27.973 GRACIOSA                      Azores              Stratovolcano       Holocene
+38.789    -27.458 SERRETA                       Azores              Submarine_volcano   2000
+38.740    -27.316 TERCEIRA                      Azores              Stratovolcano       1761
+38.740    -27.316 TERCEIRA_FISSURE_VENT         Azores              Fissure_vent        1761
+38.756    -27.224 PICO_ALTO                     Azores              Stratovolcano       Historical
 38.41     -27.379 UNNAMED                       Azores              Submarine_volcano   1800
 38.48     -27.54  UNNAMED                       Azores              Submarine_volcano   1902
-38.216    -26.597 DON_JOAO_DE_CASTRO_BANK       Azores              Submarine_volcano   1720
+38.217    -26.583 DOM_JOÃO_DE_CASTRO_BANK       Azores              Submarine_volcano   1720
+38.167	  -26.050 JOÃO_VALADÃO                  Azores              Submarine_volcano   Uncertain
 37.857    -25.865 SABRINA                       Azores              Submarine_volcano   1811
 38.14     -26.084 ROASTED_FISH                  Azores              Submarine_volcano   1682
-37.87     -25.78  SETE_CIDADES                  Azores              Stratovolcano       Historical
-37.78     -25.67  UNNAMED                       Azores              Pyroclastic_cones   Historical
-37.77     -25.47  AGUA_DE_PAU                   Azores              Stratovolcano       Historical
-37.77     -25.32  FURNAS                        Azores              Stratovolcano       Historical
-37.60     -25.88  MONACO_BANK                   Azores              Submarine_volcano   Historical
+37.855    -25.786 SETE_CIDADES                  Azores              Stratovolcano       1880
+37.786    -25.473 PICOS_VOLC_SYSTEM             Azores              Pyroclastic_cones   1652
+37.763    -25.474 ÁGUA_DE_PAU                   Azores              Stratovolcano       1564
+37.756    -25.407 CONGRO			Azores		    Fissure_vent	Historical
+37.764    -25.321 FURNAS                        Azores              Stratovolcano       1630
+37.600    -25.866 MONACO_BANK                   Azores              Submarine_volcano   1911
+32.73	  -16.97  MADEIRA			Azores		    Shield_volcano      Radiocarbon
 28.58     -17.83  LA_PALMA                      Canary_Is           Stratovolcano       Historical
 27.73     -18.03  HIERRO                        Canary_Is           Shield_volcano      Historical
 28.271    -16.641 TENERIFE                      Canary_Is           Stratovolcano       Historical
@@ -1472,15 +1600,16 @@
 29.03     -13.63  LANZAROTE                     Canary_Is           Fissure_vents       Historical
 14.95     -24.35  FOGO                          Cape_Verde_Is       Stratovolcano       Historical
 14.85     -24.72  BRAVA                         Cape_Verde_Is       Stratovolcano       Holocene
-17.07     -25.17  SANTO_ANTAO                   Cape_Verde_Is       Stratovolcano       Holocene
-16.85     -24.97  SAN_VICENTE                   Cape_Verde_Is       Stratovolcano       Holocene
+17.07     -25.17  SANTO_ANTÃO                   Cape_Verde_Is       Stratovolcano       Holocene
+16.85     -24.97  SÃO_VICENTE                   Cape_Verde_Is       Stratovolcano       Holocene
  7.00     -21.83  UNNAMED                       Atlantic-C          Submarine_volcano   Uncertain
  4.20     -21.45  UNNAMED                       Atlantic-C          Submarine_volcano   Uncertain
 -0.58    -15.83   UNNAMED                       Atlantic-C          Submarine_volcano   Historical
 -3.50    -24.50   UNNAMED                       Atlantic-C          Submarine_volcano   Uncertain
 -7.95    -14.37   ASCENSION                     Atlantic-S          Stratovolcano       Holocene
 -20.514  -29.331  TRINDADE                      Atlantic-S          Stratovolcano       Holocene
--37.092  -12.28   TRISTAO_DA_CUNHA              Atlantic-S          Stratovolcano       Historical
+-37.092  -12.28   TRISTÃO_DA_CUNHA              Atlantic-S          Stratovolcano       Historical
+-37.42	 -12.48	  NIGHTINGALE_ISLAND		UK	            Stratovolcano       Historical
 -54.42     3.35   BOUVET                        Atlantic-S          Shield_volcano      Magnetism
 -53.93     5.50   THOMPSON_ISLAND               Atlantic-S          Submarine_volcano_? Uncertain
 -66.80   163.25   BUCKLE_ISLAND                 Antarctica          Stratovolcano       Historical
@@ -1508,6 +1637,7 @@
 -56.25    -72.17  UNNAMED                       Antarctica          Submarine_volcano_? Uncertain
 -59.45    -27.37  THULE_ISLANDS                 Antarctica          Stratovolcanoes     Holocene
 -59.03    -26.58  BRISTOL_ISLAND                Antarctica          Stratovolcano       Historical
+-58.42	  -26.33  MONTAGU_ISLAND		S_Sandwich_Is       Shield_volcano 	Historical
 -57.78    -26.45  MICHAEL                       Antarctica          Stratovolcano       Historical
 -57.08    -26.72  CANDLEMAS_ISLAND              Antarctica          Stratovolcano       Historical
 -56.70    -27.15  HODSON                        Antarctica          Stratovolcano       Holocene
