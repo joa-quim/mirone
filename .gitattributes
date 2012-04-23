@@ -780,6 +780,7 @@ utils/writekml.m -text
 utils/zoom_j.p -text
 /wget.exe -text
 /xdr_w32.dll -text
+/xdrbsd_w32.dll -text
 /xerces-c_3_1_w32.dll -text
 /zlib1_mir32.dll -text
 /zlib1_w32.dll -text
