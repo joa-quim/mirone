@@ -256,9 +256,6 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	}
 	else if (is_single) {
 		if (!got_limits) {
-#if HAVE_OPENMP
-#pragma omp parallel for private(i)
-#endif
 			for (i = 0; i < nx*ny; i++) {
 				if (ISNAN_F(z_4[i])) continue;
 				min = MIN(min,z_4[i]);
