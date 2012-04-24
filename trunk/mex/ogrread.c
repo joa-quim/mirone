@@ -1,5 +1,5 @@
 /*--------------------------------------------------------------------
- *	$Id:$
+ *	$Id$
  *
  *	Copyright (c) 2004-2012 by J. Luis
  *
@@ -36,7 +36,7 @@
  *	Islands:	2 columns matrix with start and ending indexes of the main Ring and its islands (if any).
  *			This only applies to Polygon geometries that have interior rings (islands).
  *	BB_geom:	Not currently assigned (would be the BoundingBox of each individual geometry)
- *	Att_number:	Number of attribures of a Feature
+ *	Att_number:	Number of attributes of a Feature
  *	Att_names:	Names of the attributes of a Feature
  *	Att_values:	Values of the attributes of a Feature as strings
  *	Att_types:	Because "Att_values" came as strings, this is a vector with the codes allowing
@@ -59,7 +59,7 @@
  * Each Gij element of the matrix is a "s" structure as describe above. The F1 .. FM are the features collection
  * in the Layer. Because one Feature can have one or many Geometries the array is defined as having as many columns
  * as the maximum number of Geometries in all Features. There are as many rows as Features in the Layer. However,
- * not all fields of the individual Gij are filled. Only those that contain real data. Also, to not waist space
+ * not all fields of the individual Gij are filled. Only those that contain real data. Also, to not waste space
  * and given that the Attributes of all Geometries of a Feature are equal, only the first column Gm1 elements
  * have assigned the "Att_names|values|types". That is, the others are defined but not filled. The same applies
  * to all other matrix elements represented as []. Again, they are defined (they have to be because the matrix
@@ -67,7 +67,7 @@
  *
  * One final note regarding the "Islands" struct element. Because we want to keep trace on paternity of interior
  * rings (islands) of a polygon, each one of those interior polygons is appended to the main polygon but separated
- * with one row of NaNs (2 or 3 NaNs dependinf if vector is 2d or 3D). The "Islands" element contains thus a Nx2
+ * with one row of NaNs (2 or 3 NaNs depending if vector is 2d or 3D). The "Islands" element contains thus a Nx2
  * matrix with the indexes of the starting and ending positions of the N polygons that were once the Polygon and
  * its interior rings in the OGR model. For Polygons with no islands, "Islands" is an empty ([]) variable. 
  *
