@@ -1,5 +1,5 @@
 /*--------------------------------------------------------------------
- *	$Id:$
+ *	$Id$
  *
  *	Copyright (c) 2004-2012 by J. Luis
  *
@@ -95,65 +95,65 @@
 #define irint(x) ((int)rint(x))
 #endif
 
-struct  DATA    {
-        double  x;
-        double  y;
-}       *data;
+struct DATA {
+	double  x;
+	double  y;
+} *data;
 
 struct  BODY_DESC {
 	int n_f;
 	int *n_v;
 	int *ind;
-}       bd_desc;
+} bd_desc;
 
-struct  LOC_OR    {
-        double  x;
-        double  y;
-        double  z;
-}       *loc_or;
+struct LOC_OR {
+	double  x;
+	double  y;
+	double  z;
+} *loc_or;
 
-struct  TRIANG    {
-        double  x;
-        double  y;
-        double  z;
-}       *triang;
+struct TRIANG {
+	double  x;
+	double  y;
+	double  z;
+} *triang;
 
-struct  VERT    {
-        int  a;
-        int  b;
-        int  c;
-}       *vert;
+struct VERT {
+	int  a;
+	int  b;
+	int  c;
+} *vert;
 
 struct  TRI_CENTER {
-        double  x;
-        double  y;
-        double  z;
-}       *t_center;
+	double  x;
+	double  y;
+	double  z;
+} *t_center;
 
-struct  RAW    {
-        double  t1[3];
-        double  t2[3];
-        double  t3[3];
-}       *raw_mesh;
+struct RAW {
+	double  t1[3];
+	double  t2[3];
+	double  t3[3];
+} *raw_mesh;
 
 struct MAG_PARAM {
 	double	rim[3];
-}	*mag_param;
+} *mag_param;
 
 struct MAG_VAR {		/* Used when only the modulus of magnetization varies */
 	double	rk[3];
-}	*mag_var;
+} *mag_var;
 
 struct MAG_VAR2 {
 	double	m;
 	double	m_dip;
-}	*mag_var2;
+} *mag_var2;
 
 struct MAG_VAR3 {
 	double	m;
 	double	m_dec;
 	double	m_dip;
-}	*mag_var3;
+} *mag_var3;
 
 struct MAG_VAR4 {
 	double	t_dec;
@@ -161,7 +161,7 @@ struct MAG_VAR4 {
 	double	m;
 	double	m_dec;
 	double	m_dip;
-}	*mag_var4;
+} *mag_var4;
 
 
 /* Old habits. Need to get rid of these globals */
@@ -937,7 +937,9 @@ int facet_raw (int i, int geo) {
 	if (geo) {
 		cos_a = cos(y_a*D2R);	cos_b = cos(y_b*D2R);	cos_c = cos(y_c*D2R);
 	}
-	else {cos_a = cos_b = cos_c = 1.;}
+	else {
+		cos_a = cos_b = cos_c = 1.;
+	}
 	xx[0] = x_a*d_to_m*cos_a;	yy[0] = y_a*d_to_m;
 	xx[1] = x_b*d_to_m*cos_b;	yy[1] = y_b*d_to_m;
 	xx[2] = x_c*d_to_m*cos_c;	yy[2] = y_c*d_to_m;
@@ -1002,8 +1004,6 @@ double okabe (double rho, double x_o, double y_o, double z_o, struct BODY_DESC b
 
 	for (i = 0; i < bd_desc.n_f; i++) {	/* Loop over facets */
 		n_vert = bd_desc.n_v[i];	/* Number of vertices of each face */
-		if (n_vert < 3) 
-			fprintf (stderr, "Warning: facet with less than 3 vertex\n");
 		for (l = 0; l < n_vert; l++) {
 			k = bd_desc.ind[l+cnt_v];
 			loc_or[l].x = xx[k] - x_o;
@@ -1021,7 +1021,7 @@ double okabe (double rho, double x_o, double y_o, double z_o, struct BODY_DESC b
 /* ---------------------------------------------------------------------- */
 void rot_17 (int n_vert, int top, struct LOC_OR *loc_or) {
 	/* Rotates coordinates by teta and phi acording to equation (17) of Okabe */
-	/* store the result in external structure loc_or and angles c_tet s_tet c_phi s_phi */
+	/* store the result in structure loc_or and angles c_tet s_tet c_phi s_phi */
 	double xi, xj, xk, yi, yj, yk, zi, zj, zk, v, x, y, z;
 	double r, r2, r_3d, Sxy, Szx, Syz;
 	int i = 0, j, k, l;
@@ -1037,14 +1037,19 @@ void rot_17 (int n_vert, int top, struct LOC_OR *loc_or) {
 		Sxy = xi * (yj - yk) + xj * (yk - yi) + xk * (yi - yj);
 		Syz = yi * (zj - zk) + yj * (zk - zi) + yk * (zi - zj);
 		Szx = zi * (xj - xk) + zj * (xk - xi) + zk * (xi - xj);
-		r2 = Syz * Syz + Szx * Szx;	r = sqrt(r2);
+		r2 = Syz * Syz + Szx * Szx;
+		r = sqrt(r2);
 		r_3d = sqrt(r2 + Sxy * Sxy);
 		c_phi = - Sxy / r_3d;
 		s_phi = r / r_3d;
 
-		if (Szx == 0.0 && Syz == 0.0) { c_tet = 1.0;	s_tet = 0.0;}
-		else { c_tet = - Syz / r;	s_tet = - Szx / r;}
+		if (Szx == 0.0 && Syz == 0.0) {
+			c_tet = 1.0;	s_tet = 0.0;
 		}
+		else {
+			c_tet = -Syz / r;	s_tet = -Szx / r;
+		}
+	}
 	else { /* Don't need to recompute angles, only do this */
 		c_tet *= -1;	s_tet *= -1;	c_phi *= -1;
 	}
@@ -1060,26 +1065,25 @@ void rot_17 (int n_vert, int top, struct LOC_OR *loc_or) {
 
 /* ---------------------------------------------------------------------- */
 double okb_grv (int n_vert, struct LOC_OR *loc_or) {
-/*  Computes the gravity anomaly due to a facet. */
+	/*  Computes the gravity anomaly due to a facet. */
  
-	double x1, x2, y1, y2, z2, z1, dx, dy, r, r_1, c_psi, s_psi;
-	double grv = 0.0, grv_p;
 	int l;
+	double x1, x2, y1, y2, dx, dy, r, c_psi, s_psi, grv = 0, grv_p;
 
 	if (fabs(c_phi) < FLT_EPSILON) return 0.0;
 	for (l = 0; l < n_vert; l++) {
 		x1 = loc_or[l].x;	x2 = loc_or[l+1].x;
 		y1 = loc_or[l].y;	y2 = loc_or[l+1].y;
-		dx = x2 - x1;	dy = y2 - y1;
+		dx = x2 - x1;		dy = y2 - y1;
 		r = sqrt(dx*dx + dy*dy);
-		r_1 = 1. / r;
 		if (r > FLT_EPSILON) {
-			c_psi = dx * r_1;	s_psi = dy * r_1;
-			z2 = loc_or[l+1].z;	z1 = loc_or[l].z;
-			grv_p = eq_30(c_psi, s_psi, x2, y2, z2) - eq_30(c_psi, s_psi, x1, y1, z1);
+			c_psi = dx / r;
+			s_psi = dy / r;
+			grv_p = eq_30(c_psi, s_psi, x2, y2, loc_or[l+1].z) - eq_30(c_psi, s_psi, x1, y1, z1 = loc_or[l].z);
 		}
 		else
 			grv_p = 0.0;
+
 		grv += grv_p;
 	}
 	return (grv * c_phi);
@@ -1087,7 +1091,7 @@ double okb_grv (int n_vert, struct LOC_OR *loc_or) {
 
 /* ---------------------------------------------------------------------- */
 double eq_30 (double c, double s, double x, double y, double z) {
-	double r, Ji = 0.0, log_arg;
+	double r, Ji = 0, log_arg;
 
 	r = sqrt(x * x + y * y + z * z);
 	if (r > FLT_EPSILON) {
