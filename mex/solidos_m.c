@@ -1,5 +1,5 @@
 /*--------------------------------------------------------------------
- *	$Id:$
+ *	$Id$
  *
  *	Copyright (c) 2004-2012 by J. Luis
  *
@@ -26,32 +26,31 @@
  * Revision	03-02-01 Bug na opcao piramide
  */
 
-
 #include "mex.h"
 #include "mwsize.h"
 #include <float.h>
 #include <string.h>
 
-#define	CHUNK 		2000
-#define	FALSE		0
-#define	TRUE		1
-#define M_PI          3.14159265358979323846
+#define	CHUNK	2000
+#define	FALSE	0
+#define	TRUE	1
+#define M_PI	3.14159265358979323846
 #define D2R (M_PI / 180.0)
 #define DPI (2 * M_PI)
 #define PI2 (M_PI /2.)
 #define R2D (180.0 / M_PI)
 //#define ln(x)  (((x) <= 0.0) ? 0.0 : (double) log((double)x))
 
-struct  CIRC    {
-        double  x;
-        double  y;
-}       *circ;
+struct CIRC {
+	double  x;
+	double  y;
+} *circ;
 
-struct  TRIANG    {
-        double  x[3];
-        double  y[3];
-        double  z[3];
-}       *tri;
+struct TRIANG {
+	double  x[3];
+	double  y[3];
+	double  z[3];
+} *tri;
 
 int cilindro (double rad_c, double height_c, double z_c, double x0, double y0, int n_pts);
 int paralelo (double a, double b, double c, double z_c, double x0, double y0);
