@@ -49,6 +49,10 @@ REM If set some MEXs will print the execution time (in CPU ticks)
 SET TIMEIT=-DMIR_TIMEIT
 SET TIMEIT=
 
+REM To buils with OpenMP support (very few)
+SET OMP=
+SET OMP=-DHAVE_OPENMP 
+
 REM
 REM Set to "yes" if you want to build a debug version
 SET DEBUG="no"
@@ -93,6 +97,7 @@ SET CVCALIB_LIB=C:\programs\OpenCV_SVN\compileds\VC10_64\lib\opencv_calib3d211.l
 SET   CVOBJ_LIB=C:\programs\OpenCV_SVN\compileds\VC10_64\lib\opencv_objdetect211.lib
 SET CVVIDEO_LIB=C:\programs\OpenCV_SVN\compileds\VC10_64\lib\opencv_video211.lib
 SET     LAS_LIB=C:\programs\compa_libs\liblas-src-1.2.1\lib\VC10_64\liblas_i.lib
+SET  GEOLIB_LIB=C:\programs\compa_libs\GeographicLib-1.16\compileds\VC10_64\lib\Geographic.lib
 
 ) ELSE (
 
@@ -107,6 +112,7 @@ SET CVCALIB_LIB=C:\programs\OpenCV_SVN\compileds\VC10_32\lib\opencv_calib3d211.l
 SET   CVOBJ_LIB=C:\programs\OpenCV_SVN\compileds\VC10_32\lib\opencv_objdetect211.lib
 SET CVVIDEO_LIB=C:\programs\OpenCV_SVN\compileds\VC10_32\lib\opencv_video211.lib
 SET     LAS_LIB=C:\programs\compa_libs\liblas-src-1.2.1\lib\Intel11_32\liblas_i.lib
+SET  GEOLIB_LIB=C:\programs\compa_libs\GeographicLib-1.16\compileds\VC10_32\lib\Geographic.lib
 
 )
 
@@ -117,6 +123,7 @@ SET    GMT_INC2=C:\progs_cygw\GMTdev\GMT5\src\mex
 SET    GDAL_INC=c:\programs\GDALtrunk\gdal\compileds\VC10_32\include
 SET      CV_INC=C:\programs\OpenCV_SVN\include\opencv
 SET       CVInc=C:\programs\OpenCV_SVN\modules 
+SET  GEOLIB_INC=C:\programs\compa_libs\GeographicLib-1.16\compileds\VC10_64\include
 SET       INCAS=%INCLUDE%
 SET     INCLUDE=%INCLUDE%;%CVInc%\core\include;%CVInc%\imgproc\include;%CVInc%\features2d\include;%CVInc%\calib3d\include;%CVInc%\objdetect\include;%CVInc%\video\include;%CVInc%\flann\include;%CVInc%\legacy\include
 SET     LAS_INC=-IC:\programs\compa_libs\liblas-src-1.2.1\bin\include\liblas\capi -IC:\programs\compa_libs\liblas-src-1.2.1\bin\include\liblas
@@ -135,8 +142,8 @@ IF %WIN64%=="yes" SET arc=X64
 IF %WIN64%=="no" SET arc=X86
 SET LINKFLAGS=/dll /export:mexFunction /LIBPATH:%MATLIB% libmx.lib libmex.lib libmat.lib /MACHINE:%arc% kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib Vfw32.lib /nologo /incremental:NO %LDEBUG% 
 
-%CC% -DWIN32 %COMPFLAGS% -I%MATINC% -I%NETCDF_INC% -I%GMT_INC% -I%GDAL_INC% -I%CV_INC% %LAS_INC% %OPTIMFLAGS% %_MX_COMPAT% %TIMEIT% -DDLL_GMT %1.c
-link  /out:"%1.%MEX_EXT%" %LINKFLAGS% %NETCDF_LIB% %GMT_LIB% %GDAL_LIB% %LAS_LIB% /implib:templib.x %1.obj
+%CC% -DWIN32 %COMPFLAGS% -I%MATINC% -I%NETCDF_INC% -I%GMT_INC% -I%GDAL_INC% -I%CV_INC% %LAS_INC% -I%GEOLIB_INC% %OPTIMFLAGS% %_MX_COMPAT% %TIMEIT% -DDLL_GMT %OMP% %1.c
+link  /out:"%1.%MEX_EXT%" %LINKFLAGS% %NETCDF_LIB% %GMT_LIB% %GDAL_LIB% %LAS_LIB% %GEOLIB_LIB% /implib:templib.x %1.obj
 
 SET INCLUDE=%INCAS%
 del *.obj *.exp templib.x
