@@ -102,21 +102,21 @@ function DatasetsVolcanoes(handles)
 function DatasetsHydrotermal(handles)
 % Read HydroVents.mat which has 7 columns (lat lon name diameter age exposed type)
 	if (aux_funs('msg_dlg',50,handles)),		return,		end			% If no_file create one. Else test unknown proj
-	load([handles.path_data 'HydroVents.mat']);
-    [tmp, msg] = geog2projected_pts(handles,pos);	% If map in geogs, tmp is just a copy of input
+	s = load([handles.path_data 'HydroVents.mat']);
+    [tmp, msg] = geog2projected_pts(handles,s.pos);	% If map in geogs, tmp is just a copy of input
 	if (~strncmp(msg,'0',1))        % Coords were projected
-		pos = tmp;
+		s.pos = tmp;
 	end
 
 	% Get rid of Vents that are outside the map limits
-	[x,y,indx,indy] = aux_funs('in_map_region',handles,pos(:,1), pos(:,2), 0, []);
-	desc(indx,:) = [];			desc(indy,:) = [];
+	[x,y,indx,indy] = aux_funs('in_map_region',handles,s.pos(:,1), s.pos(:,2), 0, []);
+	s.desc(indx,:) = [];		s.desc(indy,:) = [];
 	n_hydro = numel(x);			h = zeros(1,n_hydro);
 	for (i = 1:n_hydro)
 		h(i) = line(x(i),y(i),'Marker','h','MarkerFaceColor','r',...
 			'MarkerEdgeColor','k','MarkerSize',10,'Tag','hydro','Userdata',i);
 	end
-	draw_funs(h,'Hydro',desc)
+	draw_funs(h,'Hydro',s.desc)
 
 % --------------------------------------------------------------------
 function DatasetsITRF(handles)
