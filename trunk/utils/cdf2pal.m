@@ -57,7 +57,7 @@ function cdf = cdf_cpt(z_min,z_max,z_mean,z_std,n)
 % Compute the normalized CDF (cumulative distribution function)
 step = 1 / n;
 x = linspace(-3,3,2000)';
-p = 0.5 * erfcore(-x ./ sqrt(2),1);
+p = 0.5 * erfc(-x ./ sqrt(2));
 pp = (step:step:1-step)';
 p_int = interp1(p,x,pp);
 
