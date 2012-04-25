@@ -5,7 +5,6 @@ function varargout = mirone(varargin)
 %
 %	mirone('CALLBACK',handles,...) calls the local function named CALLBACK with the given input arguments.
 
-% $Id: $
 %	Copyright (c) 2004-2012 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
@@ -20,6 +19,8 @@ function varargout = mirone(varargin)
 %
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
+
+% $Id$
 
 	if (nargin > 1 && ischar(varargin{1}))
 		if ( ~isempty(strfind(varargin{1},':')) || ~isempty(strfind(varargin{1},filesep)) )
@@ -4132,7 +4133,7 @@ function TransferB_CB(handles, opt)
 		end
 		fid = fopen(dest_fiche,'rt');
 		todos = fread(fid,'*char');		fclose(fid);
-		[nomes MD5] = strread(todos,'%s %s');
+		[nomes MD5 V.Vstr] = strread(todos,'%s %s %s');	% In future we will have a use for the version string
 		builtin('delete',dest_fiche);	n = 1;		% Remove this one right away
 		namedl = cell(1);							% Mostly to shutup MLint
 		ind_all = false(numel(nomes),1);			% To flag the ones truely to be updated later
