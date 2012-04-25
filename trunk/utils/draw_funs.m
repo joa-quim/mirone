@@ -2505,8 +2505,8 @@ function meteor_info(obj,eventdata,h, name, diameter, dating, exposed, btype)
 % -----------------------------------------------------------------------------------------
 function hydro_info(obj,eventdata, h, desc)
 	i = get(gco,'Userdata');
-	str = sprintf('Vent name:   %s\nDepth (m):   %s\nActivity:   %s\nDeposit Type: %s\nBiology:  %s', ...
-		desc{i,1}, desc{i,2}, desc{i,3}, desc{i,4}, desc{i,5});
+	str = sprintf('Vent name:   %s\nDepth (m):   %s\nActivity:   %s', ...
+		desc{i,1}, desc{i,2}, desc{i,3});
 	msgbox( sprintf(str),'Hydrothermal info')
 
 % -----------------------------------------------------------------------------------------
