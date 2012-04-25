@@ -23,13 +23,13 @@ REM Author: Joaquim Luis, 09-MAY-2010
 REM --------------------------------------------------------------------------------------
 
 REM ------------- Set the compiler (set to 'icl' to use the Intel compiler) --------------
-SET CC=cl
+SET CC=icl
 
 REM If set to "yes", linkage is done againsts ML6.5 Libs (needed in compiled version)
-SET R13="yes"
+SET R13="no"
 
 REM Set it to "yes" or "no" to build under 64-bits or 32-bits respectively.
-SET WIN64="no"
+SET WIN64="yes"
 
 REM Set to "yes" if you want to build a debug version
 SET DEBUG="no"
@@ -40,6 +40,10 @@ REM ----------------------------------------------------------------------------
 REM If set some MEXs will print the execution time (in CPU ticks)
 REM SET TIMEIT=-DMIR_TIMEIT
 SET TIMEIT=
+
+REM To buils with OpenMP support (very few)
+SET OMP=
+SET OMP=-DHAVE_OPENMP 
 
 IF %R13%=="yes" SET WIN64="no"
 
@@ -77,7 +81,7 @@ IF %WIN64%=="yes" (
 SET  NETCDF_LIB=C:\programs\compa_libs\netcdf-4.1.2b\compileds\VC10_64\lib\libnetcdf.lib
 SET     GMT_LIB=c:\progs_cygw\GMTdev\gmt4\WIN64\lib\gmt.lib
 SET GMT_MGG_LIB=c:\progs_cygw\GMTdev\gmt4\WIN64\lib\gmt_mgg.lib
-SET    GDAL_LIB=c:\programs\GDALtrunk\gdal\compileds\VC10_64\lib\gdal_i.lib
+SET    GDAL_LIB=c:\programs\GDALtrunk\gdal\compileds\VC10_64\lib4mex\gdal_i.lib
 SET      CV_LIB=
 SET  CXCORE_LIB=C:\programs\OpenCV_SVN\compileds\VC10_64\lib\opencv_core211.lib
 SET   CVIMG_LIB=C:\programs\OpenCV_SVN\compileds\VC10_64\lib\opencv_imgproc211.lib
@@ -92,7 +96,7 @@ IF %MSVC_VER%=="1600" (
 SET  NETCDF_LIB=C:\programs\compa_libs\netcdf-4.1.2b\compileds\VC10_32\lib\libnetcdf.lib
 SET     GMT_LIB=c:\progs_cygw\GMTdev\gmt4\WIN32\lib\gmt.lib
 SET GMT_MGG_LIB=c:\progs_cygw\GMTdev\gmt4\WIN32\lib\gmt_mgg.lib
-SET    GDAL_LIB=c:\programs\GDALtrunk\gdal\compileds\VC10_32\lib\gdal_i.lib
+SET    GDAL_LIB=c:\programs\GDALtrunk\gdal\compileds\VC10_32\lib4mex\gdal_i.lib
 SET      CV_LIB=
 SET  CXCORE_LIB=C:\programs\OpenCV_SVN\compileds\VC10_32\lib\opencv_core211.lib
 SET   CVIMG_LIB=C:\programs\OpenCV_SVN\compileds\VC10_32\lib\opencv_imgproc211.lib
@@ -106,7 +110,7 @@ SET     LAS_LIB=C:\programs\compa_libs\liblas-src-1.2.1\lib\VC10_32\liblas_i.lib
 SET  NETCDF_LIB=C:\progs_cygw\netcdf-3.6.3\lib\libnetcdf_w32.lib
 SET     GMT_LIB=c:\progs_cygw\GMTdev\gmt4\WIN32\lib\gmt.lib
 SET GMT_MGG_LIB=c:\progs_cygw\GMTdev\gmt4\WIN32\lib\gmt_mgg.lib
-SET    GDAL_LIB=c:\programs\GDALtrunk\gdal\lib\gdal_i.lib
+SET    GDAL_LIB=c:\programs\GDALtrunk\gdal\lib4mex\gdal_i.lib
 REM I haven't build yet (and maybe I won't) 2.1 libs with VC7.1
 SET      CV_LIB=C:\programs\OpenCV_SVN\lib\cv200.lib
 SET  CXCORE_LIB=C:\programs\OpenCV_SVN\lib\cxcore200.lib
@@ -135,7 +139,7 @@ REM ___________________ STOP EDITING HERE ______________________________________
 SET LDEBUG=
 IF %DEBUG%=="yes" SET LDEBUG=/debug
 
-SET COMPFLAGS=/c /Zp8 /GR /EHs /D_CRT_SECURE_NO_DEPRECATE /D_SCL_SECURE_NO_DEPRECATE /D_SECURE_SCL=0 /DMATLAB_MEX_FILE /nologo /MD 
+SET COMPFLAGS=/c /Zp8 /GR /EHs /D_CRT_SECURE_NO_DEPRECATE /D_SCL_SECURE_NO_DEPRECATE /D_SECURE_SCL=0 /DMATLAB_MEX_FILE /nologo /MD /Qopenmp
 IF %DEBUG%=="no" SET OPTIMFLAGS=/Ox /DNDEBUG
 IF %DEBUG%=="yes" SET OPTIMFLAGS=/Z7
 
@@ -159,17 +163,17 @@ for %%G in (test_gmt igrf_m scaleto8 tsun2 wave_travel_time mansinha_m telha_m r
 	mex_illuminate grdutils read_isf alloc_mex susan set_gmt mxgridtrimesh trend1d_m gmtmbgrid_m 
 	grdgradient_m grdtrack_m spa_mex mirblock write_mex xyzokb_m distmin CalcMD5 WindowAPI) do ( 
 
-%CC% -DWIN32 %COMPFLAGS% -I%MATINC% %OPTIMFLAGS% %_MX_COMPAT% %TIMEIT% %%G.c
+%CC% -DWIN32 %COMPFLAGS% -I%MATINC% %OPTIMFLAGS% %_MX_COMPAT% %TIMEIT% %OMP% %%G.c
 link  /out:"%%G.%MEX_EXT%" %LINKFLAGS% /implib:templib.x %%G.obj
 )
 
-%CC% -DWIN32 %COMPFLAGS% -I%MATINC% %OPTIMFLAGS% %_MX_COMPAT% %TIMEIT% PolygonClip.c gpc.c  
+%CC% -DWIN32 %COMPFLAGS% -I%MATINC% %OPTIMFLAGS% %_MX_COMPAT% %TIMEIT% %OMP% PolygonClip.c gpc.c  
 link  /out:"PolygonClip.%MEX_EXT%" %LINKFLAGS% /implib:templib.x PolygonClip.obj gpc.obj
 
 REM --------------------- CPPs --------------------------------------------------
 for %%G in (clipbd_mex akimaspline) do (
 
-%CC% -DWIN32 %COMPFLAGS% -I%MATINC% %OPTIMFLAGS% %_MX_COMPAT% %TIMEIT% %%G.cpp
+%CC% -DWIN32 %COMPFLAGS% -I%MATINC% %OPTIMFLAGS% %_MX_COMPAT% %TIMEIT% %OMP% %%G.cpp
 link  /out:"%%G.%MEX_EXT%" %LINKFLAGS% /implib:templib.x %%G.obj 
 )
 
@@ -181,11 +185,11 @@ REM ---------------------- GMTs ------------------------------------------------
 for %%G in (grdinfo_m grdproject_m grdread_m grdsample_m grdtrend_m grdwrite_m mapproject_m shoredump 
 	surface_m nearneighbor_m grdfilter_m cpt2cmap grdlandmask_m grdppa_m shake_mex) do (
 
-%CC% -DWIN32 %COMPFLAGS% -I%MATINC% -I%NETCDF_INC% -I%GMT_INC% %OPTIMFLAGS% %_MX_COMPAT% %TIMEIT% -DDLL_GMT %%G.c
+%CC% -DWIN32 %COMPFLAGS% -I%MATINC% -I%NETCDF_INC% -I%GMT_INC% %OPTIMFLAGS% %_MX_COMPAT% %TIMEIT% %OMP% -DDLL_GMT %%G.c
 link  /out:"%%G.%MEX_EXT%" %LINKFLAGS% %NETCDF_LIB% %GMT_LIB% /implib:templib.x %%G.obj 
 )
 
-%CC% -DWIN32 %COMPFLAGS% -I%MATINC% -I%NETCDF_INC% -I%GMT_INC% %OPTIMFLAGS% %_MX_COMPAT% %TIMEIT% -DDLL_GMT gmtlist_m.c
+%CC% -DWIN32 %COMPFLAGS% -I%MATINC% -I%NETCDF_INC% -I%GMT_INC% %OPTIMFLAGS% %_MX_COMPAT% %TIMEIT% %OMP% -DDLL_GMT gmtlist_m.c
 link  /out:"gmtlist_m.%MEX_EXT%" %LINKFLAGS% %NETCDF_LIB% %GMT_LIB% %GMT_MGG_LIB% /implib:templib.x gmtlist_m.obj 
 IF "%1"=="GMT" GOTO END
 REM ---------------------- END "GMTs" ----------------------------------------------
@@ -207,7 +211,7 @@ REM ---------------------- END "GDALs" -----------------------------------------
 
 REM ---------------------- OpenCV ---------------------------------------------------
 :OCV
-%CC% -DWIN32 %COMPFLAGS% -I%MATINC% -I%CV_INC% %CVI_1% %CVI_2% %CVI_3% %CVI_4% %CVI_5% %CVI_6% %CVI_7% %CVI_8% %OPTIMFLAGS% %_MX_COMPAT% cvlib_mex.c sift\sift.c sift\imgfeatures.c sift\kdtree.c sift\minpq.c 
+%CC% -DWIN32 %COMPFLAGS% -I%MATINC% -I%CV_INC% %CVI_1% %CVI_2% %CVI_3% %CVI_4% %CVI_5% %CVI_6% %CVI_7% %CVI_8% %OPTIMFLAGS% %_MX_COMPAT% cvlib_mex.cpp sift\sift.c sift\imgfeatures.c sift\kdtree.c sift\minpq.c 
 link  /out:"cvlib_mex.%MEX_EXT%" %LINKFLAGS% %CV_LIB% %CXCORE_LIB% %CVIMG_LIB% %CVCALIB_LIB% %CVOBJ_LIB% %CVVIDEO_LIB% /implib:templib.x cvlib_mex.obj sift.obj imgfeatures.obj kdtree.obj minpq.obj 
 IF "%1"=="OCV" GOTO END
 
@@ -215,7 +219,7 @@ IF "%1"=="OCV" GOTO END
 REM ---------------------- with netCDF ----------------------------------------------
 :swan
 for %%G in (swan swan_sem_wbar) do (
-%CC% -DWIN32 %COMPFLAGS% -I%MATINC% -I%NETCDF_INC% %OPTIMFLAGS% %_MX_COMPAT% %TIMEIT% %%G.c
+%CC% -DWIN32 %COMPFLAGS% -I%MATINC% -I%NETCDF_INC% %OPTIMFLAGS% %_MX_COMPAT% %TIMEIT% %OMP% %%G.c
 link  /out:"%%G.%MEX_EXT%" %LINKFLAGS% %NETCDF_LIB% /implib:templib.x %%G.obj 
 )
 IF "%1"=="swan" GOTO END
