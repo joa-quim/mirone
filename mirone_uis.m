@@ -1,7 +1,6 @@
 function [H1,handles,home_dir] = mirone_uis(home_dir)
 % Creates and returns a handle to the GUI MIRONE figure.
-%
-% $Id$
+
 %	Copyright (c) 2004-2012 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
@@ -16,6 +15,8 @@ function [H1,handles,home_dir] = mirone_uis(home_dir)
 %
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
+
+% $Id$
 
 %#function pan igrf_options rally_plater plate_calculator ecran snapshot
 %#function about_box parker_stuff euler_stuff grid_calculator tableGUI
@@ -69,7 +70,7 @@ H1 = figure('PaperUnits','centimeters',...
 'IntegerHandle','off',...
 'MenuBar','none',...
 'Toolbar', 'none',...
-'Name','Mirone 2.3.0dev',...
+'Name','Mirone 2.3.0',...
 'NumberTitle','off',...
 'PaperPositionMode','auto',...
 'PaperSize',[20.98404194812 29.67743169791],...
@@ -730,7 +731,7 @@ if (IamCompiled)
 end
 uimenu('Parent',h, 'Call',['mirone(''FileOpenWebImage_CB'',guidata(gcbo),',...
 	' ''http://www2.clustrmaps.com/stats/maps-clusters/w3.ualg.pt-~jluis-mirone-world.jpg'',''nikles'');'],'Label','See visitors map','Sep','on');
-uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 18 Apr 2012'',''2.3.0dev'')','Label','About','Sep','on');
+uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 25 Apr 2012'',''2.3.0'')','Label','About','Sep','on');
 
 %% --------------------------- Build HANDLES and finish things here
 	handles = guihandles(H1);
