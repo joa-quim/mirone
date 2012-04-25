@@ -10,7 +10,6 @@ function varargout = draw_funs(hand, varargin)
 %	the data from an object handle, call with HAND = []. E.g (in load_xyz)
 %	draw_funs([], 'doSave_formated', x, y, z)
 
-% $Id$
 %	Copyright (c) 2004-2012 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
@@ -25,6 +24,8 @@ function varargout = draw_funs(hand, varargin)
 %
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
+
+% $Id$
 
 % A bit of strange tests but they are necessary for the cases when we use the new feval(fun,varargin{:}) 
 opt = varargin{1};		% function name to evaluate (new) or keyword to select one (old form)
@@ -99,6 +100,13 @@ function Ctrl_v(h)
 	if (strcmp(get(hLine,'type'), 'line'))
 		h = line('xdata',x, 'ydata',y, 'Parent', hAx, 'LineWidth', get(hLine,'LineWidth'), ...
 			'LineStyle',get(hLine,'LineStyle'), 'Color',get(hLine,'Color'), 'Tag',get(hLine,'Tag') );
+		marker = get(hLine, 'Marker');				markSize = get(hLine,'MarkerSize');
+		markFC = get(hLine,'MarkerFaceColor');		markEC = get(hLine,'MarkerEdgeColor');
+		% Set the markers only if they are different from the red square markers used for edition
+		% However, this is a risky test because if one of them is ever changed the test will fail.
+		if ( ~( strcmp(marker, 'square') && strcmp(markFC, 'none') && markSize == 5 && isequal(markEC,[1 0 0]) ) )
+			set(h, 'Marker', marker, 'MarkerSize',markSize, 'MarkerEdgeColor',markEC, 'MarkerFaceColor',markFC)
+		end
 	else
 		h = patch('xdata',x, 'ydata',y, 'Parent', hAx, 'LineWidth', get(hLine,'LineWidth'), ...
 			'LineStyle',get(hLine,'LineStyle'), 'EdgeColor',get(hLine,'EdgeColor'), 'FaceColor',get(hLine,'FaceColor'), ...
