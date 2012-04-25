@@ -68,6 +68,7 @@ data/DEOS2K_poles.dat -text
 data/DSDP_ODP.dat -text
 data/GMT_patterns.jpg -text
 data/HydroVents.mat -text
+data/Impact_database_2010.kmz -text
 data/MIRONE.GIF -text
 data/MIRONE.tif -text
 data/MORVEL_poles.dat -text
