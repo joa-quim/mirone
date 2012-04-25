@@ -213,6 +213,13 @@ function writekml(handles,Z,fname)
 			fprintf(fid,'\t%s\n','</NetworkLink>');
 			ALLlineHand = setxor(ALLlineHand, hDB);
 		end
+		hDB = findobj(ALLlineHand,'Tag','meteor');
+		if (~isempty(hDB))									% GOTO http://impacts.rajmon.cz/IDdata.html FILE
+			fprintf(fid,'\t%s\n','<NetworkLink>');
+			fprintf(fid,'\t\t%s%s%s\n','<Url><href>',[handles.path_data 'Impact_database_2010.kmz'],'</href></Url>');
+			fprintf(fid,'\t%s\n','</NetworkLink>');
+			ALLlineHand = setxor(ALLlineHand, hDB);
+		end
 		hDB = findobj(ALLlineHand,'Tag','hotspot');			% FOGSPOTS
 		if (~isempty(hDB))
 			% Read the whole list. No point in ploting only the visible ones in Mirone window
