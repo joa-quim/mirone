@@ -996,13 +996,13 @@ function call_gmtedit(obj, evt, h, opt)
 		mag_synthetic(hFig, h, hGL, guidelineAzim)
 		return
 	end
-	pt = get(gca, 'CurrentPoint');
+	pt = get(get(h,'Parent'), 'CurrentPoint');
 	vars = getappdata(h,'VarsName');		opt_V = '  ';	% To be ignored opt_V needs to have at least 2 chars
 	if (~isempty(vars))
 		opt_V = ['-V' vars{1} ','  vars{2} ',' vars{3}];	% Need to encode the Vars info in a single string
 		if (strcmp(opt_V,'-V,,')),		opt_V = '  ';	end	% When vars is actually a 3 empties cell
 	end
-	gmtedit(getappdata(h,'FullName'), sprintf('-P%.6f/%.6f',pt(1,1:2)), opt_V );
+	gmtedit(getappdata(h,'FullName'), sprintf('-P%.6f/%.6f',pt(1,1:2)), opt_V, get(h,'Parent'));
 
 % -----------------------------------------------------------------------------------------
 function cb = uictx_setMarker(h,prop)
