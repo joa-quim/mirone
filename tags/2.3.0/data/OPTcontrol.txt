@@ -1,0 +1,60 @@
+# File to provide fine control on some Mirone modules.
+# Control options are indicated by the MIR_XXX keyword.
+# Specific options follow on the rest of the line. Comment (#) each that you don't want to use
+
+# For gmtedit the general usage is:
+# -Vvar1,var2,var3:varI+slotI[/varI+slotI[/varI+slotI]] 
+# Where var1,var2,var3 is the name of any of the variables in the .nc file PLUS 'vel' for velocity
+# The varI+slotI form will plot (add) the varI (again, one of the .nc vars) to the slot I (1:3) axes 
+# Next will put Total field on first axes, CM4 anomaly on second and bathymetry on third
+#MIR_GMTEDIT -Vmtf1,anom_cm4,depth
+#MIR_GMTEDIT -Vvel,mtf1,depth
+#MIR_GMTEDIT -Vlon,lat,vel
+#MIR_GMTEDIT -Vvel,mtf1,anom_cm4:mag+3
+
+# Activate MGG (.nc) tracks fishing inside rectangles (comment (#) if not wanted)
+MIR_MGG
+
+# Activate ROI Microleveling
+MIR_MICROLEV
+
+# Activate the option to display COEs as circles with uicontexts
+MIR_COEs C:\a1\mgd77\coes.dat anom_cm4
+
+# Mag synthetic profiles params
+MIR_MAGPROF DEC 0.0
+MIR_MAGPROF INC 90.0
+MIR_MAGPROF SPEED 2.3
+MIR_MAGPROF SPREADIR 97.0
+MIR_MAGPROF CONTAMIN 1.0
+#MIR_MAGPROF BAT C:\j\cd_grids\w_bat_atl.grd
+# Third column holds anomaly age at its center (1.85), window half-width (1.1) and pecentage of stretch/shrink (15)
+MIR_MAGPROF ISOC 1.85_1.1_15
+MIR_MAGPROF ISOC 3.04_1.4_15
+MIR_MAGPROF ISOC 4.66_1.4_15
+MIR_MAGPROF ISOC 6.17_1.0_15
+MIR_MAGPROF ISOC 7.54_1.0_15
+MIR_MAGPROF ISOC 8.85_0.8_15
+MIR_MAGPROF ISOC 10.33_1.4_15
+
+# Custom CPT files that will show up in 'Thematic' of the Color Palettes tool
+# The syntax is MIR_CPT 'palete_name' full_file_path
+MIR_CPT zzz C:\a1\pathfinder\zzz.cpt
+
+# Outward displacement (for Euler poles computation). If commented OD is not applied.
+#MIR_OD C:\SVN\mironeWC\continents\OD_simples.dat
+#MIR_OD C:\SVN\mironeWC\continents\out_displacement.dat
+
+# File with case selection and the EXACT arguments to run one of the main functions in aquaPlugin
+MIR_AQUAPLUG C:\SVN\mironeWC\data\example_data\aquaplug_CASE4_sc.txt 
+
+# Variables used in converting L2 satellite images from sensor to geographical coordinates.
+# First one contains parameters of interpolation (-C is gmtmbgrid only) and second are quality flags for SeaWiffs
+#MIR_EMPILHADOR -R-12/-7/35/38 -I0.01 -C3
+#MIR_EMPILHADOR_F  ATMFAIL,LAND,HIGLINT,HILT,HISATZEN,STRAYLIGHT,CLDICE,COCCOLITH,HISOLZEN,LOWLW,CHLFAIL,NAVWARN,MAXAERITER,CHLWARN,ATMWARN,NAVFAIL,FILTER
+#MIR_EMPILHADOR_F LAND,SSTWARN,SSTFAIL
+# Uncomment to despike the MODIS L2 SST noise that it displays every other 10 rows 
+#MIR_EMPILHADOR_C AVG
+
+# Activate the option to display the GMT database polygons ID inside a ROI rectangle
+MIR_GMT_DB_IDS

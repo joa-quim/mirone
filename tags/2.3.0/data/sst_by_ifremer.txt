@@ -1,0 +1,11 @@
+# IFREMER hosted satellite data like that at
+# ftp://ftp.ifremer.fr/pub/ifremer/cersat/SAFOSI/Products/NARSST/netcdf/cana/2009/
+# can be directly swallowed by Mirone. Since those files have no coordinates (despite
+# the claim that they are COARDS compliant), you can provide the name of the netCDF
+# file containing the coordinates of the tille being read.
+# For that OBEY to the syntax bellow, where first word is a keyword and second the file name
+# Giving more than one file allows the code to search which one contains the right
+# coordinates (if a any) for the data that is being loaded
+
+sst_by_ifremer_coords C:\a1\grid_cana.nc
+sst_by_ifremer_coords C:\a1\grid_mocc.nc
