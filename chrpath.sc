@@ -2,7 +2,7 @@
 #
 # Script to rip the crazy dynamic linking dependencies created by default on MacOS 
 # This is in the hope that it could do any good to the mystery of why MacMirone has
-# so many problems in running on other machines than the one it was compiled.
+# so many problems in running on other machines than the one it was compiled. 
 #
 # Not all dependencies of OpenCV are treated here as I think some they are never called.
 # If I'm wrong, complains will raise up.
