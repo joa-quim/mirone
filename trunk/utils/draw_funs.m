@@ -2004,140 +2004,149 @@ function set_symbol_uicontext(h,data)
 % Set uicontexts for the symbols. h is the handle to the marker (line in fact) object
 % This funtion is a bit messy because it serves for setting uicontexes of individual
 % symbols, points and of "volcano", "hotspot" & "ODP" class symbols. 
-if (isempty(h)),	return,		end
-tag = get(h,'Tag');
-if (isa(tag, 'cell'))	tag = tag{1};	end
-if (numel(h) == 1 && length(get(h,'XData')) > 1)
-	more_than_one = 1;		% Flags that h points to a multi-vertice object
-else
-	more_than_one = 0;
-end
-
-handles = guidata(h(1));
-cmenuHand = uicontextmenu('Parent',handles.figure1);	set(h, 'UIContextMenu', cmenuHand);
-separator = 0;
-this_not = 1;       % for class symbols "this_not = 1". Used for not seting some options inapropriate to class symbols
-seismicity_options = 0;
-tide_options = 0;
-
-if strcmp(tag,'hotspot')		% DATA must be a structure containing name & age fields
-	uimenu(cmenuHand, 'Label', 'Hotspot info', 'Call', {@hotspot_info,h,data.name,data.age,[]});
-	uimenu(cmenuHand, 'Label', 'Plot name', 'Call', {@hotspot_info,h,data.name,data.age,'text'});
-	separator = 1;
-elseif strcmp(tag,'volcano')    % DATA must be a structure containing name, description & dating fields
-	uimenu(cmenuHand, 'Label', 'Volcano info', 'Call', {@volcano_info,h,data.name,data.desc,data.dating});
-	separator = 1;
-elseif strcmp(tag,'meteor')		% DATA must be a structure containing name, diameter & dating fields
-	uimenu(cmenuHand, 'Label', 'Impact info', 'Call', {@meteor_info,h,data.name,data.diameter,data.dating,data.exposed,data.btype});
-	separator = 1;
-elseif strcmp(tag,'mar_online')	% DATA must be a structure containing name, code station & country fields
-	uimenu(cmenuHand, 'Label', 'Download Mareg (2 days)', 'Call', {@mareg_online,h,data});
-	uimenu(cmenuHand, 'Label', 'Download Mareg (Calendar)', 'Call', {@mareg_online,h,data,'cal'});
-	separator = 1;
-elseif strcmp(tag,'hydro')		% DATA must be a cell array with 5 cols contining description of each Vent
-	uimenu(cmenuHand, 'Label', 'Hydrotermal info', 'Call', {@hydro_info,h,data});
-	separator = 1;	
-elseif ( strcmp(tag,'DSDP') || strcmp(tag,'ODP') || strcmp(tag,'IODP') )	% DATA is a struct with leg, site, z & penetration fields
-	uimenu(cmenuHand, 'Label', [tag ' info'], 'Call', {@ODP_info,h,data.leg,data.site,data.z,data.penetration});
-	separator = 1;
-elseif strcmp(tag,'City_major') || strcmp(tag,'City_other')
-	this_not = 1;
-elseif strcmp(tag,'Earthquakes')	% DATA is empty because I didn't store any info (they are too many)
-	seismicity_options = isappdata(h,'SeismicityTime');
-elseif strcmp(tag,'Pointpolyline')	% DATA is empty because it doesn't have any associated info
-	this_not = 0;
-elseif strcmp(tag,'TTT')			% DATA is empty
-	this_not = 0;
-elseif strcmp(tag,'TideStation')	% DATA is empty
-	tide_options = 1;
-	separator = 0;
-else
-	this_not = 0;
-end
-
-if (~this_not)   % non class symbols can be moved
-	ui_edit_polygon(h)    % Set edition functions
-	uimenu(cmenuHand, 'Label', 'Move (precise)', 'Call', {@change_SymbPos,h});
-end
-
-if separator
-	if (~more_than_one)         % Single symbol
-		uimenu(cmenuHand, 'Label', 'Remove', 'Call', 'delete(gco)', 'Sep','on');
-	else                        % Multiple symbols
-		uimenu(cmenuHand, 'Label', 'Remove this', 'Call', {@remove_one_from_many,h}, 'Sep','on');
+	if (isempty(h)),	return,		end
+	tag = get(h,'Tag');
+	if (isa(tag, 'cell')),	tag = tag{1};	end
+	if (numel(h) == 1 && length(get(h,'XData')) > 1)
+		more_than_one = true;		% Flags that h points to a multi-vertice object
+	else
+		more_than_one = false;
 	end
-else
-	if (~more_than_one)         % Single symbol
-		uimenu(cmenuHand, 'Label', 'Remove', 'Call', 'delete(gco)');
-	else                        % Multiple symbols
-		uimenu(cmenuHand, 'Label', 'Remove this', 'Call', {@remove_one_from_many,h});
+
+	handles = guidata(h(1));
+	cmenuHand = uicontextmenu('Parent',handles.figure1);	set(h, 'UIContextMenu', cmenuHand);
+	separator = false;
+	this_not = true;		% for class symbols "this_not = 1". Used for not seting some options inapropriate to class symbols
+	seismicity_options = false;
+	tide_options = false;
+
+	if strcmp(tag,'hotspot')		% DATA must be a structure containing name & age fields
+		uimenu(cmenuHand, 'Label', 'Hotspot info', 'Call', {@hotspot_info,h,data.name,data.age,[]});
+		uimenu(cmenuHand, 'Label', 'Plot name', 'Call', {@hotspot_info,h,data.name,data.age,'text'});
+		separator = true;
+	elseif strcmp(tag,'volcano')    % DATA must be a structure containing name, description & dating fields
+		uimenu(cmenuHand, 'Label', 'Volcano info', 'Call', {@volcano_info,h,data.name,data.desc,data.dating});
+		separator = true;
+	elseif strcmp(tag,'meteor')		% DATA must be a structure containing name, diameter & dating fields
+		uimenu(cmenuHand, 'Label', 'Impact info', 'Call', {@meteor_info,h,data.name,data.diameter,data.dating,data.exposed,data.btype});
+		separator = true;
+	elseif strcmp(tag,'mar_online')	% DATA must be a structure containing name, code station & country fields
+		uimenu(cmenuHand, 'Label', 'Download Mareg (2 days)', 'Call', {@mareg_online,h,data});
+		uimenu(cmenuHand, 'Label', 'Download Mareg (Calendar)', 'Call', {@mareg_online,h,data,'cal'});
+		separator = true;
+	elseif strcmp(tag,'hydro')		% DATA must be a cell array with 5 cols contining description of each Vent
+		uimenu(cmenuHand, 'Label', 'Hydrotermal info', 'Call', {@hydro_info,h,data});
+		separator = true;	
+	elseif ( strcmp(tag,'DSDP') || strcmp(tag,'ODP') || strcmp(tag,'IODP') )	% DATA is a struct with leg, site, z & penetration fields
+		uimenu(cmenuHand, 'Label', [tag ' info'], 'Call', {@ODP_info,h,data.leg,data.site,data.z,data.penetration});
+		separator = true;
+	elseif strcmp(tag,'City_major') || strcmp(tag,'City_other')
+		this_not = true;
+	elseif strcmp(tag,'Earthquakes')	% DATA is empty because I didn't store any info (they are too many)
+		seismicity_options = isappdata(h,'SeismicityTime');
+	elseif strcmp(tag,'Pointpolyline')	% DATA is empty because it doesn't have any associated info
+		this_not = false;
+	elseif strcmp(tag,'TTT')			% DATA is empty
+		this_not = false;
+	elseif strcmp(tag,'TideStation')	% DATA is empty
+		tide_options = true;
+		separator = false;
+	else
+		this_not = false;
 	end
-end
-if (this_not)           % individual symbols don't belong to a class
-    uimenu(cmenuHand, 'Label', 'Remove class', 'Call', {@remove_symbolClass,h});
-end
-if (~this_not)          % class symbols don't export
-    uimenu(cmenuHand, 'Label', 'Export', 'Call', {@export_symbol,h});
-    if (strcmp(tag,'Pointpolyline'))    % Allow pure grdtrack interpolation
-        cbTrack = 'setappdata(gcf,''TrackThisLine'',gco); mirone(''ExtractProfile_CB'',guidata(gcbo),''point'')';
-        uimenu(cmenuHand, 'Label', 'Point interpolation', 'Call', cbTrack, 'Sep','on');
-    end
-end
-if (seismicity_options)
-	uimenu(cmenuHand, 'Label', 'Save events', 'Call', 'save_seismicity(gcf,gco)', 'Sep','on');
-	uimenu(cmenuHand, 'Label', 'Seismicity movie', 'Call', 'animate_seismicity(gcf,gco)');
-	uimenu(cmenuHand, 'Label', 'Draw polygon', 'Call', ...
-		'mirone(''DrawClosedPolygon_CB'',guidata(gcbo),''SeismicPolyg'')');
-	uimenu(cmenuHand, 'Label', 'Draw seismic line', 'Call', ...
-		'mirone(''DrawLine_CB'',guidata(gcbo),''SeismicLine'')');
-	itemHist = uimenu(cmenuHand, 'Label','Histograms');
-	uimenu(itemHist, 'Label', 'Guttenberg & Richter', 'Call', 'histos_seis(gco,''GR'')');
-	uimenu(itemHist, 'Label', 'Cumulative number', 'Call', 'histos_seis(gco,''CH'')');
-	uimenu(itemHist, 'Label', 'Cumulative moment', 'Call', 'histos_seis(gco,''CM'')');
-	uimenu(itemHist, 'Label', 'Magnitude', 'Call', 'histos_seis(gco,''MH'')');
-	uimenu(itemHist, 'Label', 'Time', 'Call', 'histos_seis(gco,''TH'')');
-	uimenu(itemHist, 'Label', 'Display in Table', 'Call', 'histos_seis(gcf,''HT'')','Sep','on');
-	%uimenu(itemHist, 'Label', 'Hour of day', 'Call', 'histos_seis(gco,''HM'')');
-	itemTime = uimenu(cmenuHand, 'Label','Time series');
-	uimenu(itemTime, 'Label', 'Time magnitude', 'Call', 'histos_seis(gco,''TM'')');
-	uimenu(itemTime, 'Label', 'Time depth', 'Call', 'histos_seis(gco,''TD'')');
-	uimenu(cmenuHand, 'Label', 'Mc and b estimate', 'Call', 'histos_seis(gcf,''BV'')');
-	uimenu(cmenuHand, 'Label', 'Fit Omori law', 'Call', 'histos_seis(gcf,''OL'')');
-end
 
-if (tide_options)
-	uimenu(cmenuHand, 'Label', 'Plot tides', 'Call', {@tidesStuff,h,'plot'}, 'Sep','on');
-	uimenu(cmenuHand, 'Label', 'Station Info', 'Call', {@tidesStuff,h,'info'});
-	%uimenu(cmenuHand, 'Label', 'Tide Calendar', 'Call', {@tidesStuff,h,'calendar'});
-end
+	if (~this_not)					% non class symbols can be moved
+		ui_edit_polygon(h)			% Set edition functions
+		uimenu(cmenuHand, 'Label', 'Move (precise)', 'Call', {@change_SymbPos,h});
+	end
 
-itemSymb = uimenu(cmenuHand, 'Label', 'Symbol', 'Sep','on');
-cb_mark = uictx_setMarker(h,'Marker');              % there are 13 uictx_setMarker outputs
-uimenu(itemSymb, 'Label', 'plus sign', 'Call', cb_mark{1});
-uimenu(itemSymb, 'Label', 'circle', 'Call', cb_mark{2});
-uimenu(itemSymb, 'Label', 'asterisk', 'Call', cb_mark{3});
-uimenu(itemSymb, 'Label', 'point', 'Call', cb_mark{4});
-uimenu(itemSymb, 'Label', 'cross', 'Call', cb_mark{5});
-uimenu(itemSymb, 'Label', 'square', 'Call', cb_mark{6});
-uimenu(itemSymb, 'Label', 'diamond', 'Call', cb_mark{7});
-uimenu(itemSymb, 'Label', 'upward triangle', 'Call', cb_mark{8});
-uimenu(itemSymb, 'Label', 'downward triangle', 'Call', cb_mark{9});
-uimenu(itemSymb, 'Label', 'right triangle', 'Call', cb_mark{10});
-uimenu(itemSymb, 'Label', 'left triangle', 'Call', cb_mark{11});
-uimenu(itemSymb, 'Label', 'five-point star', 'Call', cb_mark{12});
-uimenu(itemSymb, 'Label', 'six-point star', 'Call', cb_mark{13});
-itemSize = uimenu(cmenuHand, 'Label', 'Size');
-cb_markSize = uictx_setMarker(h,'MarkerSize');              % there are 8 uictx_setMarker outputs
-uimenu(itemSize, 'Label', '7       pt', 'Call', cb_markSize{1});
-uimenu(itemSize, 'Label', '8       pt', 'Call', cb_markSize{2});
-uimenu(itemSize, 'Label', '9       pt', 'Call', cb_markSize{3});
-uimenu(itemSize, 'Label', '10     pt', 'Call', cb_markSize{4});
-uimenu(itemSize, 'Label', '12     pt', 'Call', cb_markSize{5});
-uimenu(itemSize, 'Label', '14     pt', 'Call', cb_markSize{6});
-uimenu(itemSize, 'Label', '16     pt', 'Call', cb_markSize{7});
-uimenu(itemSize, 'Label', 'other...', 'Call', cb_markSize{8});
-setLineColor(uimenu(cmenuHand, 'Label', 'Fill Color'), uictx_Class_LineColor(h,'MarkerFaceColor'))
-setLineColor(uimenu(cmenuHand, 'Label', 'Edge Color'), uictx_Class_LineColor(h,'MarkerEdgeColor'))
+	if separator
+		if (~more_than_one)         % Single symbol
+			uimenu(cmenuHand, 'Label', 'Remove', 'Call', 'delete(gco)', 'Sep','on');
+		else                        % Multiple symbols
+			uimenu(cmenuHand, 'Label', 'Remove this', 'Call', {@remove_one_from_many,h}, 'Sep','on');
+		end
+	else
+		if (~more_than_one)         % Single symbol
+			uimenu(cmenuHand, 'Label', 'Remove', 'Call', 'delete(gco)');
+		else                        % Multiple symbols
+			uimenu(cmenuHand, 'Label', 'Remove this', 'Call', {@remove_one_from_many,h});
+		end
+	end
+
+	if (this_not)					% individual symbols don't belong to a class
+		uimenu(cmenuHand, 'Label', 'Remove class', 'Call', {@remove_symbolClass,h});
+	end
+
+	if strcmp(tag,'LinkedSymb')		% Symbols plotted by the "Linked" option in either 'ecran' or 'gmtedit'
+		uimenu(cmenuHand, 'Label', 'Remove class', 'Call', {@remove_symbolClass,h});
+		uimenu(cmenuHand, 'Label', 'Save all linked pts', 'Call', {@save_line,h});
+		this_not = true;			% Set this to avoid going inside next IF-test
+	end
+
+	if (~this_not)					% class symbols don't export
+		uimenu(cmenuHand, 'Label', 'Save', 'Call', {@export_symbol,h});
+		if (strcmp(tag,'Pointpolyline'))	% Allow pure grdtrack interpolation
+			cbTrack = 'setappdata(gcf,''TrackThisLine'',gco); mirone(''ExtractProfile_CB'',guidata(gcbo),''point'')';
+			uimenu(cmenuHand, 'Label', 'Point interpolation', 'Call', cbTrack, 'Sep','on');
+		end
+	end
+
+	if (seismicity_options)
+		uimenu(cmenuHand, 'Label', 'Save events', 'Call', 'save_seismicity(gcf,gco)', 'Sep','on');
+		uimenu(cmenuHand, 'Label', 'Seismicity movie', 'Call', 'animate_seismicity(gcf,gco)');
+		uimenu(cmenuHand, 'Label', 'Draw polygon', 'Call', ...
+			'mirone(''DrawClosedPolygon_CB'',guidata(gcbo),''SeismicPolyg'')');
+		uimenu(cmenuHand, 'Label', 'Draw seismic line', 'Call', ...
+			'mirone(''DrawLine_CB'',guidata(gcbo),''SeismicLine'')');
+		itemHist = uimenu(cmenuHand, 'Label','Histograms');
+		uimenu(itemHist, 'Label', 'Guttenberg & Richter', 'Call', 'histos_seis(gco,''GR'')');
+		uimenu(itemHist, 'Label', 'Cumulative number', 'Call', 'histos_seis(gco,''CH'')');
+		uimenu(itemHist, 'Label', 'Cumulative moment', 'Call', 'histos_seis(gco,''CM'')');
+		uimenu(itemHist, 'Label', 'Magnitude', 'Call', 'histos_seis(gco,''MH'')');
+		uimenu(itemHist, 'Label', 'Time', 'Call', 'histos_seis(gco,''TH'')');
+		uimenu(itemHist, 'Label', 'Display in Table', 'Call', 'histos_seis(gcf,''HT'')','Sep','on');
+		%uimenu(itemHist, 'Label', 'Hour of day', 'Call', 'histos_seis(gco,''HM'')');
+		itemTime = uimenu(cmenuHand, 'Label','Time series');
+		uimenu(itemTime, 'Label', 'Time magnitude', 'Call', 'histos_seis(gco,''TM'')');
+		uimenu(itemTime, 'Label', 'Time depth', 'Call', 'histos_seis(gco,''TD'')');
+		uimenu(cmenuHand, 'Label', 'Mc and b estimate', 'Call', 'histos_seis(gcf,''BV'')');
+		uimenu(cmenuHand, 'Label', 'Fit Omori law', 'Call', 'histos_seis(gcf,''OL'')');
+	end
+
+	if (tide_options)
+		uimenu(cmenuHand, 'Label', 'Plot tides', 'Call', {@tidesStuff,h,'plot'}, 'Sep','on');
+		uimenu(cmenuHand, 'Label', 'Station Info', 'Call', {@tidesStuff,h,'info'});
+		%uimenu(cmenuHand, 'Label', 'Tide Calendar', 'Call', {@tidesStuff,h,'calendar'});
+	end
+
+	itemSymb = uimenu(cmenuHand, 'Label', 'Symbol', 'Sep','on');
+	cb_mark = uictx_setMarker(h,'Marker');              % there are 13 uictx_setMarker outputs
+	uimenu(itemSymb, 'Label', 'plus sign', 'Call', cb_mark{1});
+	uimenu(itemSymb, 'Label', 'circle', 'Call', cb_mark{2});
+	uimenu(itemSymb, 'Label', 'asterisk', 'Call', cb_mark{3});
+	uimenu(itemSymb, 'Label', 'point', 'Call', cb_mark{4});
+	uimenu(itemSymb, 'Label', 'cross', 'Call', cb_mark{5});
+	uimenu(itemSymb, 'Label', 'square', 'Call', cb_mark{6});
+	uimenu(itemSymb, 'Label', 'diamond', 'Call', cb_mark{7});
+	uimenu(itemSymb, 'Label', 'upward triangle', 'Call', cb_mark{8});
+	uimenu(itemSymb, 'Label', 'downward triangle', 'Call', cb_mark{9});
+	uimenu(itemSymb, 'Label', 'right triangle', 'Call', cb_mark{10});
+	uimenu(itemSymb, 'Label', 'left triangle', 'Call', cb_mark{11});
+	uimenu(itemSymb, 'Label', 'five-point star', 'Call', cb_mark{12});
+	uimenu(itemSymb, 'Label', 'six-point star', 'Call', cb_mark{13});
+	itemSize = uimenu(cmenuHand, 'Label', 'Size');
+	cb_markSize = uictx_setMarker(h,'MarkerSize');              % there are 8 uictx_setMarker outputs
+	uimenu(itemSize, 'Label', '7       pt', 'Call', cb_markSize{1});
+	uimenu(itemSize, 'Label', '8       pt', 'Call', cb_markSize{2});
+	uimenu(itemSize, 'Label', '9       pt', 'Call', cb_markSize{3});
+	uimenu(itemSize, 'Label', '10     pt', 'Call', cb_markSize{4});
+	uimenu(itemSize, 'Label', '12     pt', 'Call', cb_markSize{5});
+	uimenu(itemSize, 'Label', '14     pt', 'Call', cb_markSize{6});
+	uimenu(itemSize, 'Label', '16     pt', 'Call', cb_markSize{7});
+	uimenu(itemSize, 'Label', 'other...', 'Call', cb_markSize{8});
+	setLineColor(uimenu(cmenuHand, 'Label', 'Fill Color'), uictx_Class_LineColor(h,'MarkerFaceColor'))
+	setLineColor(uimenu(cmenuHand, 'Label', 'Edge Color'), uictx_Class_LineColor(h,'MarkerEdgeColor'))
 
 % -----------------------------------------------------------------------------------------
 function change_SymbPos(obj,eventdata,h)
@@ -2296,12 +2305,23 @@ function save_line(obj, evt, h)
 	
 	fid = fopen(fname, 'w');
 	if (fid < 0),	errordlg(['Can''t open file:  ' fname],'Error'),	return,		end
-	if (~iscell(x))
-		fprintf(fid,'%.5f\t%.5f\n',[x(:)'; y(:)']);
+
+	if (strcmp(get(h, 'Tag'),'LinkedSymb'))		% Though those are rare cases, we need to check it first
+		hAll = findobj(handles.axes1,'-depth',1,'type','line','Tag','LinkedSymb');
+		for (k = 1:numel(hAll))
+			x = get(hAll(k),'XData');		y = get(hAll(k),'YData');	str = getappdata(hAll(k),'box');
+			if (isempty(str))
+				fprintf(fid,'%.6f\t%.6f\n',[x(:)'; y(:)']);
+			else
+				fprintf(fid,'%.6f\t%.6f\t%s\n',[x(:)'; y(:)'], str);
+			end
+		end
+	elseif (~iscell(x))
+		fprintf(fid,'%.6f\t%.6f\n',[x(:)'; y(:)']);
 	else
 		for (i = 1:numel(h))
 			fprintf(fid,'%s\n','>');
-			fprintf(fid,'%.5f\t%.5f\n',[x{i}(:)'; y{i}(:)']);
+			fprintf(fid,'%.6f\t%.6f\n',[x{i}(:)'; y{i}(:)']);
 		end
 	end
 	fclose(fid);
