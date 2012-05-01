@@ -934,6 +934,8 @@ function hand = FileNewBgFrame_CB(handles, region, imSize, figTitle)
 % TODEF	Logical that if true is used to add a new uimenu to call the write def symbol code
 % IMSIZE may either be the image size or the Figure title
 % HAND	Optional, updated version of HANDLES
+	if (nargout),	hand = handles;		end		% In case of a forced 'return' bellow do not error
+
 	if (nargin == 1)
 		region = bg_region;		% region contains [x_min x_max y_min y_max is_geog toDef]
 		if isempty(region),		return,		end		% User gave up
