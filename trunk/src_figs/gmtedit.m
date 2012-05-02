@@ -135,7 +135,7 @@ function out = gmtedit(varargin)
 
 	% Load some icons from mirone_icons.mat
 	s = load([handles.home_dir filesep 'data' filesep 'mirone_icons.mat'],'rectang_ico','info_ico','trincha_ico');
-	link_ico = make_link_ico();
+	link_ico = make_link_ico;
 
 	h_toolbar = uitoolbar('parent',hf,'Clipping', 'on', 'BusyAction','queue','HandleVisibility','on',...
 		'Interruptible','on','Tag','FigureToolBar','Visible','on');
