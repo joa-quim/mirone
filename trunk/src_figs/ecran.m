@@ -381,11 +381,19 @@ function recompSI(obj,event, h, xFact, SpectorGrant)
 		slp = abs(m / (4*pi) * xFact);
 		set( child(K), 'Label', sprintf('Depth to sources (m) =  %.3f', slp) );		K = K + 1;
 		set(child(K), 'Label', sprintf('%.2f   %.9g', m / (2*pi), b))		% Slope Intercept
+		fstr = 'Dist=%g\t  Depth=%.3f';
 	else
 		slp = atan(m / xFact)*180/pi;			% Get the slope in (maybe) degrees
 		set(child(K), 'Label', sprintf('%.2f   %.9g', slp, b))		% Slope(deg?) Intercept
+		fstr = 'Dist=%g\t  Slope=%.2f';
 	end
+
 	set(h, 'UserData', [m b slp]);
+	handles = guidata(h);						% Update also the legend
+	hTxt = findobj(handles.axes2,'type','text','tag','DS');
+	set(hTxt,'Str',sprintf(fstr,(x(end) - x(1)),slp))
+	hULine = findobj(handles.axes2,'type','Line','Tag','UnderLine');
+	set(hULine,'XData', [x(1) x(end)])
 
 function do_bandFilter(obj,event, h, xFact)
 % Hub function to manage the bandpass filtering
