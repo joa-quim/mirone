@@ -32,6 +32,8 @@ function out = gmtedit(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
+% $Id$
+
 	f_name = '';
 	got_inFile = 0;
 	def_width_km = 200;         % Default width in km (approximatly 1/2 of a day at 10 knots)
@@ -43,6 +45,7 @@ function out = gmtedit(varargin)
 	xISdist = true;				% Default absicssae to distance in km
 	is_gmt = false;
 	is_mgd77 = false;
+	hMirAxes = [];				% To hold the Mirone axes handle (case exists)
 	MIRONE_DIRS = getappdata(0,'MIRONE_DIRS');
 
 	if (nargin > 0)
@@ -67,6 +70,11 @@ function out = gmtedit(varargin)
 
 		if (is_mgd77)
 			[vars, multi_plot, xISdist] = parse_optV(MIRONE_DIRS.home_dir);
+		end
+
+		if ( ishandle(varargin{end}) && strcmp(get(varargin{end},'type'),'axes') )
+			hMirAxes = varargin{end};
+			varargin(end) = [];				% Remove it to not complicate switch case below
 		end
 
 		for (k = 1:numel(varargin))
@@ -122,26 +130,33 @@ function out = gmtedit(varargin)
 		handles.last_dir = cd;
 		handles.work_dir = handles.last_dir;
 	end
+
 	if (got_inFile),		handles.last_dir = PATH;	end
 
 	% Load some icons from mirone_icons.mat
-	load([handles.home_dir filesep 'data' filesep 'mirone_icons.mat'],'rectang_ico','info_ico','trincha_ico');
+	s = load([handles.home_dir filesep 'data' filesep 'mirone_icons.mat'],'rectang_ico','info_ico','trincha_ico');
+	link_ico = make_link_ico();
 
 	h_toolbar = uitoolbar('parent',hf,'Clipping', 'on', 'BusyAction','queue','HandleVisibility','on',...
 		'Interruptible','on','Tag','FigureToolBar','Visible','on');
 	uipushtool('parent',h_toolbar,'Click',{@import_clickedCB,f_name},'Tag','import',...
 		'cdata',openFile_img,'Tooltip','Open gmt file');
 	uipushtool('parent',h_toolbar,'Click',@save_clickedCB,'Tag','save', 'cdata',saveFile_img,'Tooltip','Save gmt file');
-	uipushtool('parent',h_toolbar,'Click',@info_clickedCB,'Tag','info','cdata',info_ico, 'Tooltip','Cruise Info');
-	uipushtool('parent',h_toolbar,'Click',@rectang_clickedCB,'Tag','rectang','cdata',rectang_ico,...
+	uipushtool('parent',h_toolbar,'Click',@info_clickedCB,'Tag','info','cdata',s.info_ico, 'Tooltip','Cruise Info');
+	uipushtool('parent',h_toolbar,'Click',@rectang_clickedCB,'Tag','rectang', 'cdata',s.rectang_ico, ...
 		'Tooltip','Rectangular region','Sep','on');
-	rectang_ico(7:10,8,:) = 0;
-	uipushtool('parent',h_toolbar,'Click',@rectangMove_clickedCB,'cdata',rectang_ico,'Tooltip','Select for moving');
+	s.rectang_ico(7:10,8,:) = 0;
+	uipushtool('parent',h_toolbar,'Click',@rectangMove_clickedCB,'cdata',s.rectang_ico,'Tooltip','Select for moving');
 	uipushtool('parent',h_toolbar,'Click',{@changeScale_clickedCB,'inc'}, 'cdata',zoomIn_img,'Tooltip','Increase scale','Sep','on');
 	uipushtool('parent',h_toolbar,'Click',{@changeScale_clickedCB,'dec'}, 'cdata',zoomOut_img,'Tooltip','Decrease scale');
-	uipushtool('parent',h_toolbar,'Click',@outliers_clickedCB, 'cdata',trincha_ico,'Tooltip','Outliers detector','Sep','on');
-	if (~is_gmt)	
-		uipushtool('parent',h_toolbar,'Click',{@NavFilters_ClickedCB,f_name}, 'cdata',flipdim(trincha_ico,1),'Tooltip','Find Nav/Grad troubles','Sep','on');
+	uipushtool('parent',h_toolbar,'Click',@outliers_clickedCB, 'cdata',s.trincha_ico,'Tooltip','Outliers detector','Sep','on');
+	if (~is_gmt)				% Not an old .gmt file
+		uipushtool('parent',h_toolbar,'Click',{@NavFilters_ClickedCB,f_name}, ...
+			'cdata',flipdim(s.trincha_ico,1),'Tooltip','Find Nav/Grad troubles','Sep','on');
+	end
+	if (~isempty(hMirAxes))
+		uitoggletool('parent',h_toolbar,'Click',@ptcoords_clickedCB, 'cdata',link_ico, ...
+			'Tooltip','Pick data point in curve and plot it the mirone figure','Sep','on');
 	end
 
 	pos = [marg_l fig_height-ax_height-marg_tb ax_width ax_height];
@@ -192,6 +207,7 @@ function out = gmtedit(varargin)
 	handles.force_gmt = false;		% If TRUE save in old .gmt format
 	handles.got_vel = 0;			% To tell if we have a Vel channel and where.
 	handles.adjustedVel = false;	% Will be set to true if any velocity (coords) is recalculated
+	handles.hMirAxes = hMirAxes;	% Non-empty when called from draw_funs
 
 	guidata(hf, handles);
 
@@ -269,6 +285,27 @@ function [vars, multi_plot, xISdist] = parse_optV(home_dir)
 			end
 		end
 	end
+
+% -----------------------------------------------------------------------------
+function ico = make_link_ico()
+% construct the link icon (not yet in mirone_icons.mat)
+	ico	= uint8([	226  239  238  238  238  238  238  238  238  238  238  238  238  238  240  221; ...
+					240  254  253  253  253  253  253  253  253  255  255  255  253  253  254  236; ...
+					236  251  250  250  250  250  250  250  253  244  156  183  255  250  251  233; ...
+					235  247  247  247  247  247  247  250  245  132  145  124  167  254  248  232; ...
+					234  244  244  244  244  244  245  240  127  147  250  224  119  176  251  231; ...
+					232  240  239  239  239  239  248  148  145  189  243  255  141  144  248  230; ...
+					232  238  238  238  239  244  247  198  151  107  189  149  113  223  241  228; ...
+					229  232  232  233  236  137  187  154  107  139  137  107  217  236  232  227; ...
+					225  221  223  228  110  124  139  100  131  188  129  207  226  221  221  223; ...
+					226  223  227  106  114  199   84  129  174  233  231  224  222  222  222  224; ...
+					227  233  135  105  230  238  201  116  121  233  225  225  225  225  225  225; ...
+					228  233  154   81  206  244  116   88  219  227  225  225  225  225  225  226; ...
+					227  227  246  126   77  103   85  223  231  228  228  228  228  228  228  225; ...
+					228  230  229  247  149  119  221  233  230  230  230  230  230  230  230  226; ...
+					230  232  232  232  239  241  234  232  232  232  232  232  232  232  232  228; ...
+					218  229  228  228  228  228  228  228  228  228  228  228  228  228  229  216]);
+	  ico = repmat(ico,[1 1 3]);
 
 % -----------------------------------------------------------------------------
 function fig_CloseRequestFcn(hObj, event)
@@ -441,13 +478,14 @@ function [handles, track] = read_mgd77_plus(handles, fname)
 		track.topography = nc_funs('varget', fname, 'depth');
 	else
 		try
-			ind_v = strmatch('vel', handles.vars);		% Was velocity asked for?
+			ind_v = strncmp('vel', handles.vars, 3);		% Was velocity asked for?
 			if ( any(ind_v) )		% A bit boring below because 'vel' is not a MGD77+ Variable. So we need to avoid error
+				ind_v = find(ind_v);
 				tempo = nc_funs('varget', fname, 'time');
-				if (ind_v(1) == 1)
+				if (ind_v == 1)
 					track.magnetics  = nc_funs('varget', fname, handles.vars{2});
 					track.topography = nc_funs('varget', fname, handles.vars{3});
-				elseif (ind_v(1) == 2)
+				elseif (ind_v == 2)
 					track.gravity  = nc_funs('varget', fname, handles.vars{1});
 					track.topography = nc_funs('varget', fname, handles.vars{3});
 				else
@@ -484,11 +522,11 @@ function [handles, track] = read_mgd77_plus(handles, fname)
 
 	if (~isempty(tempo))				% Compute velocity and find where to store it
 		vel = [diff(dist(1:2)) ./ diff(tempo(1:2)); diff(dist) ./ diff(tempo)] * 1e3 / 1852 * 3600;		% Speed in knots
-		if (ind_v(1) == 1),			track.gravity = vel;		% Remember that grav, mag, topo are default field names 
-		elseif (ind_v(1) == 2),		track.magnetics = vel;
+		if (ind_v == 1),			track.gravity = vel;		% Remember that grav, mag, topo are default field names 
+		elseif (ind_v == 2),		track.magnetics = vel;
 		else						track.topography = vel;
 		end
-		handles.got_vel = ind_v(1);		% Store in which axes we have the velocity
+		handles.got_vel = ind_v;		% Store in which axes we have the velocity
 	end
 	if (handles.xISdist)				% Plot against accumulated distance
 		track.distance = dist;
@@ -671,11 +709,19 @@ function save_clickedCB(hObject, evt)
 	set(handles.figure1,'Pointer','arrow')
 
 % --------------------------------------------------------------------
-function add_MarkColor(hObject, evt)
+function out = add_MarkColor(hObject, evt)
 % Add a red Marker over the closest (well, near closest) clicked point.
+% When used with an output arg, interpret as "Get index of clicked point only"
+% and that index is returned in OUT
+
 	handles = guidata(hObject);     % get handles
 
-	do_despika = false;
+	do_despika   = false;			% For spike detection/killing
+	only_find_pt = false;			% To just find the index of closes clicked pt
+
+	if (nargout)
+		only_find_pt = true;	out = [];
+	end
 	button = get(handles.figure1, 'SelectionType');
 	if (strcmp(button,'extend'))		% Shift-click to despike a point
 		do_despika = true;
@@ -690,7 +736,7 @@ function add_MarkColor(hObject, evt)
 		in_grav = 1;		opt = 'GravNull';		currHline = handles.h_gm;
 	elseif (strcmp(get(hAx,'Tag'),'axes2'))
 		in_mag = 1;			opt = 'MagNull';		currHline = handles.h_mm;
-	else
+	elseif (strcmp(get(hAx,'Tag'),'axes3'))
 		in_topo = 1;		opt = 'TopNull';		currHline = handles.h_tm;
 	end
 	if ((in_grav + in_mag + in_topo) == 0),		return,		end		% Click was outside axes
@@ -702,7 +748,7 @@ function add_MarkColor(hObject, evt)
 	dx = diff(x_lim) / 20;			% Search only betweem +/- 1/10 of x_lim
 	dx = max(dx, 10);
 	id = (x < (pt(1,1)-dx) | x > (pt(1,1)+dx));
-	if (do_despika)
+	if (do_despika || only_find_pt)
 		fids = find(~id);		% W'll need this info to reconstruct the true fid of the clicked point 
 	end
 	x(id) = [];					y(id) = [];	% Clear outside-2*dx points to speed up the search code
@@ -719,6 +765,9 @@ function add_MarkColor(hObject, evt)
 		else
 			despika(hAx, currHline, (fids(1) + i - 1))
 		end
+		return
+	elseif (only_find_pt)		% We are done here.
+		out = fids(1) + i - 1;
 		return
 	end
 
@@ -957,8 +1006,38 @@ function outliers_clickedCB(obj,evt,opt)
 	h = gmtedit_outliersdetect(handles.figure1, handles.axes1, handles.axes2, handles.axes3, ...
 		[handles.h_gm handles.h_mm handles.h_tm]);
 	filhas = getappdata(handles.figure1,'Filhas');
-	setappdata(handles.figure1,'Filhas',[filhas(:); h])	
+	setappdata(handles.figure1,'Filhas',[filhas(:); h])
 
+% --------------------------------------------------------------------------------------------------
+function ptcoords_clickedCB(obj,evt,opt)
+% Get geog coordinates of nearest clicked point.
+	handles = guidata(obj);					% get handles
+	h = findobj(handles.figure1, 'type','line');
+	if ( strcmp(get(obj,'State'),'on') )	% 
+		set(handles.figure1,'WindowButtonDownFcn','', 'pointer','crosshair')
+		set(h,'ButtonDownFcn', @bdn_ptcoords)
+	else
+		set(handles.figure1,'WindowButtonDownFcn',@add_MarkColor, 'pointer','arrow')
+		set(h,'ButtonDownFcn', '')
+	end
+
+function bdn_ptcoords(obj, evt)
+	handles = guidata(obj);					% get handles
+	if (~ishandle(handles.hMirAxes))
+		% User f up by killing the Mirone fig. Limit the damages
+		set(handles.figure1,'WindowButtonDownFcn',@add_MarkColor,  'pointer','arrow')
+		set(findobj(handles.figure1, 'type','line'),'ButtonDownFcn', '')
+		% falta resetar o togglebutao
+		return
+	end
+	ind = add_MarkColor(obj);				% Use this function to get the index of clicked pt
+	if (isempty(ind)),	return,		end		% A bad click
+	h = line(handles.lon(ind), handles.lat(ind),'Parent',handles.hMirAxes,'Marker','o', ...
+		'MarkerFaceColor','k', 'MarkerSize',6,'LineStyle','none', 'Tag','LinkedSymb');
+	setappdata(h,'box',handles.f_name)		% Used by draw_funs to append this file name to x,y when saving pts
+	draw_funs(h,'DrawSymbol')				% Set uicontexts
+% --------------------------------------------------------------------------------------------------
+	
 % --------------------------------------------------------------------
 function scroll_plots(width, x)
 %   This function uses the idea of the scrollplotdemo from Steven Lord (http://www.mathworks.com/matlabcentral)
