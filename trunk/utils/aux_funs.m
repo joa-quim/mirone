@@ -526,17 +526,19 @@ function clean_GRDappdata(handles)
 function [track, names, names_ui, vars, x_min, x_max, y_min, y_max] = get_mgg(names, PathName, varargin)
 % Get tracks from either the old style .gmt format or new MGD77+ netCDF format
 	
-	ONLY_IF_MAGNETICS = true;			% We only care to plot tracks if they contain magnetic data
+	what2plot = seek_OPTcontrol('MIR_MGG');		% See if OPTcontrol has a request other than the default (MAG)
 	n_column = 1;
 	[t,r] = strtok(names{1});
 	if (~isempty(r)),	n_column = 2;	end
 
 	m = numel(names);		c = false(m,1);
-	if (n_column > 1)					% When 2nd column holds the variable to plot info
+	if (n_column > 1)							% When 2nd column holds the variable to plot info
 		lixo = cell(m,1);
 		for (k = 1:m)
 			[t,r] = strtok(names{k});
-			if (t(1) == '#' || isempty(t)),  	c(k) = true;	continue,	end		% Jump empty and comment lines
+			if (t(1) == '#' || isempty(t))		% Jump empty and comment lines
+				c(k) = true;	continue
+			end
 			names{k} = t;
 			r = ddewhite(r);
 			lixo{k} = r;
@@ -545,7 +547,9 @@ function [track, names, names_ui, vars, x_min, x_max, y_min, y_max] = get_mgg(na
 	else								% Only one column with fnames
 		lixo = [];
 		for (k = 1:m)
-			if ( isempty(names{k}) || names{k}(1) == '#'),	c(k) = true;		continue,	end
+			if ( isempty(names{k}) || names{k}(1) == '#')
+				c(k) = true;		continue
+			end
 		end
 		if (any(c)),	names(c) = [];	end		% Remove eventual comment lines
 	end
@@ -591,7 +595,9 @@ function [track, names, names_ui, vars, x_min, x_max, y_min, y_max] = get_mgg(na
 			names{1} = [names{1} EXT];
  			track.longitude = double(nc_funs('varget', names{1}, 'lon'));
  			track.latitude  = double(nc_funs('varget', names{1}, 'lat'));
- 			track.magnetics = nc_funs('varget', names{1}, 'mtf1');
+			if (what2plot.mag),		track.magnetics  = nc_funs('varget', names{1}, 'mtf1');		end
+			if (what2plot.grav),	track.gravity    = nc_funs('varget', names{1}, 'faa');		end
+			if (what2plot.topo),	track.topography = nc_funs('varget', names{1}, 'depth');	end
 			track.info = names{1};
 		else						% Since the poor lousy HG gets stupidly slow, plot only one every other 5th point
 			for (k = 1:numel(names))
@@ -607,16 +613,18 @@ function [track, names, names_ui, vars, x_min, x_max, y_min, y_max] = get_mgg(na
 		end
 	end
 
-	if (ONLY_IF_MAGNETICS)
-		for (k = 1:length(track))
-			try
-				ind = isnan(track(k).magnetics);
-				track(k).longitude(ind) = NaN;
-				track(k).latitude(ind) = NaN;
-				if (numel(ind) == 1)				% When there is no magnetic data
-					track(k).longitude = NaN;		track(k).latitude = NaN;
-				end
-			end
+	for (k = 1:length(track))
+		ind = false(numel(track(k).longitude),1);
+		if (what2plot.mag),		ind = (~isnan(track(k).magnetics) | ind);	end
+		if (what2plot.grav),	ind = (~isnan(track(k).gravity) | ind);		end
+		if (what2plot.topo),	ind = (~isnan(track(k).topography) | ind);	end
+
+		if (~any(ind))						% When there is any data to plot
+			track(k).longitude = NaN;		track(k).latitude = NaN;
+		else
+			ind = ~ind;
+			track(k).longitude(ind) = NaN;
+			track(k).latitude(ind)  = NaN;
 		end
 	end
 
@@ -629,7 +637,7 @@ function [track, names, names_ui, vars, x_min, x_max, y_min, y_max] = get_mgg(na
 		x_min = min(x_min);		x_max = max(x_max);
 		y_min = min(y_min);		y_max = max(y_max);
 		if (isnan(x_min))
-			warndlg('This file had all magnetic records set to NaN. An error further down the road will likely occur','Warning')
+			warndlg('This file had all requested records set to NaN. An error further down the road will likely occur','Warning')
 		end
 	end
 
@@ -654,6 +662,39 @@ function [data, agency] = mgd77info(fname)
 	ind = strcmp({s.Attribute.Name}, 'Survey_Arrival_Month');		data(13) = str2double(s.Attribute(ind).Value);
 	ind = strcmp({s.Attribute.Name}, 'Survey_Arrival_Day');			data(14) = str2double(s.Attribute(ind).Value);
 	ind = strcmp({s.Attribute.Name}, 'Source_Institution');			agency = s.Attribute(ind).Value;
+
+% --------------------------------------------------------------------------------
+function out = seek_OPTcontrol(KEY)
+% Check if there are rquirements about what to plot in the OPTcontrol.txt file.
+% If not, default to 'Magnetics'
+
+	out.mag = true;			% This is the default
+
+	mir_dirs = getappdata(0,'MIRONE_DIRS');
+	if (~isempty(mir_dirs))
+		opt_file = [mir_dirs.home_dir '/data/OPTcontrol.txt'];
+	else
+		return				% Since we cannot find the OPTcontrol file
+	end
+	if (~(exist(opt_file, 'file') == 2)),		return,		end		% Nickles
+	
+	fid = fopen(opt_file, 'r');
+	c = (fread(fid,'*char'))';      fclose(fid);
+	lines = strread(c,'%s','delimiter','\n');   clear c fid;
+	m = numel(lines);
+	for (k = 1:m)
+		if (~strncmp(lines{k}, KEY, numel(KEY))),	continue,	end
+		% If we reach here that's becasuse the KEY line wsa found
+		[t,opt] = strtok(lines{k});
+		if (isempty(opt))
+			opt = 'M';			% Default to good old Magnetics
+		end
+		opt = ddewhite(opt);
+		out.grav = strcmp(opt,'G');
+		out.mag  = strcmp(opt,'M');
+		out.topo = strcmp(opt,'T');
+		break
+	end
 
 % --------------------------------------------------------------------------------
 function [latcells,loncells,Zcells] = localPolysplit(lat,lon, Z)
