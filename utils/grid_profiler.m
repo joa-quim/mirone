@@ -21,7 +21,7 @@ function [xx, yy, zz] = grid_profiler(hFig, xp, yp, point_int, do_dynamic, do_st
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: $
+% $Id$
 
 	handles = guidata(hFig);
 	if (nargin == 2 && ishandle(xp))	% Normally, a call from "Radial Average"
