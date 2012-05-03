@@ -1,6 +1,13 @@
 function varargout = ecran(varargin)
 % A specialized plot(x,y) function
 %
+% ecran(handlesMir, x, y)
+% ecran(handlesMir, x, y, 'title')
+% ecran(handlesMir, x, y, z, 'title')
+% ecran('reuse', x, y, ...)
+% ecran('Image', x, y, z, ...)
+% ecran(hMirFig, x, y, ...)
+% ecran(x, y, ...)
 
 % WARNING: WHEN COMPILING NEEDS TO INCLUDE filter_butter.m
 %
@@ -18,6 +25,8 @@ function varargout = ecran(varargin)
 %
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
+
+% $Id$
 
 	hObject = figure('Vis','off');
 
@@ -37,8 +46,8 @@ function varargout = ecran(varargin)
 	handles.hMirFig = [];
 
 	handles.d_path = [handles.home_dir filesep 'data' filesep];
-	load([handles.d_path 'mirone_pref.mat']);
-	try			handles.last_dir = directory_list{1}; 	end
+	s = load([handles.d_path 'mirone_pref.mat'],'directory_list');
+	try			handles.last_dir = s.directory_list{1}; 	end
 
 	% ---- OK, the interface for this function is a mess. In part due to backward compatibility issues
 	n_in = nargin;
@@ -92,24 +101,24 @@ function varargout = ecran(varargin)
 	end
 
 	% ------------- Load some icons from mirone_icons.mat -------------------------------------
-	load([handles.d_path 'mirone_icons.mat'],'zoom_ico','zoomx_ico', 'clipcopy_ico', 'Mline_ico', 'rectang_ico', 'bar_ico');
-	link_ico = imread([handles.d_path 'link.png']);
+	s = load([handles.d_path 'mirone_icons.mat'],'zoom_ico','zoomx_ico', 'clipcopy_ico', 'Mline_ico', 'rectang_ico', 'bar_ico');
+	link_ico = make_link_ico;
 
 	hTB = uitoolbar('parent',hObject,'Clipping', 'on', 'BusyAction','queue','HandleVisibility','on',...
 		'Interruptible','on','Tag','FigureToolBar','Visible','on');
-	uitoggletool('parent',hTB,'Click',{@zoom_CB,''}, 'cdata',zoom_ico,'Tooltip','Zoom');
-	uitoggletool('parent',hTB,'Click',{@zoom_CB,'x'}, 'cdata',zoomx_ico,'Tooltip','Zoom X');
+	uitoggletool('parent',hTB,'Click',{@zoom_CB,''}, 'cdata',s.zoom_ico,'Tooltip','Zoom');
+	uitoggletool('parent',hTB,'Click',{@zoom_CB,'x'}, 'cdata',s.zoomx_ico,'Tooltip','Zoom X');
 	if (strncmp(computer,'PC',2))
-		uipushtool('parent',hTB,'Click',@copyclipbd_CB, 'cdata',clipcopy_ico,'Tooltip', 'Copy to clipboard ','Sep','on');
+		uipushtool('parent',hTB,'Click',@copyclipbd_CB, 'cdata',s.clipcopy_ico,'Tooltip', 'Copy to clipboard ','Sep','on');
 	end
 	if (~isempty(handles.handMir))
 		uitoggletool('parent',hTB,'Click',@pick_CB, 'cdata',link_ico,'Tooltip', ...
 			'Pick data point in curve and plot it the mirone figure','Sep','on');
 	end
-	uitoggletool('parent',hTB,'Click',@dynSlope_CB, 'cdata', Mline_ico,'Tooltip','Compute slope dynamically', 'Tag', 'DynSlope');
-	uipushtool('parent',hTB,'Click',@rectang_clicked_CB,'cdata',rectang_ico,...
+	uitoggletool('parent',hTB,'Click',@dynSlope_CB, 'cdata', s.Mline_ico,'Tooltip','Compute slope dynamically', 'Tag', 'DynSlope');
+	uipushtool('parent',hTB,'Click',@rectang_clicked_CB,'cdata',s.rectang_ico,...
 		'Tooltip','Restrict analysis to X region');
-	uitoggletool('parent',hTB,'Click',@isocs_CB, 'cdata', bar_ico,'Tooltip','Enter ages & plot a geomagnetic barcode','Sep','on');
+	uitoggletool('parent',hTB,'Click',@isocs_CB, 'cdata', s.bar_ico,'Tooltip','Enter ages & plot a geomagnetic barcode','Sep','on');
 	% -------------------------------------------------------------------------------------------
 
 	handles.n_plot = 0;         % Counter of the number of lines. Used for line color painting
@@ -186,9 +195,30 @@ function varargout = ecran(varargin)
 	set(hObject,'Vis','on');
 	if (nargout),	varargout{1} = hObject;		end
 
+% -----------------------------------------------------------------------------
+function ico = make_link_ico()
+% construct the link icon (not yet in mirone_icons.mat)
+	ico	= uint8([	226  239  238  238  238  238  238  238  238  238  238  238  238  238  240  221; ...
+					240  254  253  253  253  253  253  253  253  255  255  255  253  253  254  236; ...
+					236  251  250  250  250  250  250  250  253  244  156  183  255  250  251  233; ...
+					235  247  247  247  247  247  247  250  245  132  145  124  167  254  248  232; ...
+					234  244  244  244  244  244  245  240  127  147  250  224  119  176  251  231; ...
+					232  240  239  239  239  239  248  148  145  189  243  255  141  144  248  230; ...
+					232  238  238  238  239  244  247  198  151  107  189  149  113  223  241  228; ...
+					229  232  232  233  236  137  187  154  107  139  137  107  217  236  232  227; ...
+					225  221  223  228  110  124  139  100  131  188  129  207  226  221  221  223; ...
+					226  223  227  106  114  199   84  129  174  233  231  224  222  222  222  224; ...
+					227  233  135  105  230  238  201  116  121  233  225  225  225  225  225  225; ...
+					228  233  154   81  206  244  116   88  219  227  225  225  225  225  225  226; ...
+					227  227  246  126   77  103   85  223  231  228  228  228  228  228  228  225; ...
+					228  230  229  247  149  119  221  233  230  230  230  230  230  230  230  226; ...
+					230  232  232  232  239  241  234  232  232  232  232  232  232  232  232  228; ...
+					218  229  228  228  228  228  228  228  228  228  228  228  228  228  229  216]);
+	  ico = repmat(ico,[1 1 3]);
+
 % --------------------------------------------------------------------------------------------------
 function hide_uimenu(obj,evt, hFig)
-% This function serves only to not show the annoying uicontextmenu when we right-click on the plottin area.
+% This function serves only to not show the annoying uicontextmenu when we right-click on the plotting area.
 % I don't know what happens in this program, but this was the only way I found to do it, and I tryied.
 % The problem will be we need the 'ButtonDownFcn' for something else
 	st = get(hFig,'SelectionType');
@@ -467,8 +497,8 @@ function add_MarkColor(obj, evt, h)
 			% Get the X,Y coordinates to plot this point in the Mirone figure
 			% We need to add x_off since "i" counts only inside the +/- 1/10 of x_lim centered on current point
 			mir_pt_x = handles.data(i+x_off-1,1);	mir_pt_y = handles.data(i+x_off-1,2);
-			h = line(mir_pt_x, mir_pt_y,'Parent',handles.handMir.axes1,'Marker','o','MarkerFaceColor','k', ...
-				'MarkerSize',6,'LineStyle','none', 'Tag','Symbol');
+			h = line(mir_pt_x, mir_pt_y,'Parent',handles.handMir.axes1,'Marker','o','MarkerFaceColor',get(handles.hLine,'Color'), ...
+				'MarkerEdgeColor','k', 'MarkerSize',6,'LineStyle','none', 'Tag','LinkedSymb');
 			draw_funs(h,'DrawSymbol')		% Set uicontexts
 		end
 
@@ -545,7 +575,8 @@ function popup_selectPlot_CB(hObject, handles)
 			units = 'nm';
 	end
 	rd = get_distances(handles.data(:,1), handles.data(:,2), geog, units, handles.ellipsoide);
-	set(handles.hLine,'XData',rd);			axis tight;
+	set(handles.hLine,'XData',rd);
+	axis(handles.axes1,'tight');
 	guidata(hObject, handles);
 
 % ---------------------------------------------------------------------------------
@@ -643,7 +674,7 @@ function FileOpen_CB(hObject, handles)
 	fid = fopen(fname);
 	H1 = fgetl(fid);
 	if (~isempty(H1) && H1(1) == '#')
-		ind = findstr(H1, '# DATENUM');
+		ind = strfind(H1, '# DATENUM');
 		if (~isempty(ind))
 			todos = fread(fid,'*char');
 			fclose(fid);
@@ -1608,7 +1639,7 @@ function [anoma, age_line] = magmodel(dxypa, chtdec, chtinc, speed, dir_spread, 
 
 	fid = fopen(chron_file,'r');
 	todos = fread(fid,'*char');
-	[chron age_start age_end age_txt] = strread(todos,'%s %f %f %s');
+	[chron age_start age_end s.age_txt] = strread(todos,'%s %f %f %s');
 	fclose(fid);    clear todos
 	BA = zeros(numel(age_start)*2,2);
 	BA(1:2:end-1,1) = age_start;	BA(2:2:end,1) = age_end;
