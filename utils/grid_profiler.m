@@ -3,6 +3,8 @@ function [xx, yy, zz] = grid_profiler(hFig, xp, yp, point_int, do_dynamic, do_st
 %
 % POINT_INT  true|false		If true interpolate only on [xp, yp] vertex
 % DO_DYNAMIC true|false 	If true do dynamic profiling
+%
+% When profiling an RGB image the output variable ZZ is a cell array.
 
 %	Copyright (c) 2004-2012 by J. Luis
 %
@@ -18,6 +20,8 @@ function [xx, yy, zz] = grid_profiler(hFig, xp, yp, point_int, do_dynamic, do_st
 %
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
+
+% $Id: $
 
 	handles = guidata(hFig);
 	if (nargin == 2 && ishandle(xp))	% Normally, a call from "Radial Average"
@@ -50,7 +54,7 @@ function [xx, yy, zz] = grid_profiler(hFig, xp, yp, point_int, do_dynamic, do_st
 	
 	if (~point_int)         % Profile interp
 		[xx, yy] = make_track(xp, yp, handles.head(8), handles.head(9), do_stack);
-	else					% Interpolation at line vertex
+	else					% Interpolation at line vertex (cannot be stacked)
 		xx = xp;    yy = yp;
 	end
 
@@ -67,7 +71,7 @@ function [xx, yy, zz] = grid_profiler(hFig, xp, yp, point_int, do_dynamic, do_st
 				zz = zz / size(xx,1);
 			end
 			xx = xx(round(size(xx,1)/2),:);		yy = yy(round(size(xx,1)/2),:);		% Mid track coordinates
-		else												% NEARNEIGBOR mode
+		else												% NEARNEIGBOR mode (non stackable)
 			[rows,cols] = size(Z);
 			rp = getPixel_coords(rows, get(handles.hImg,'YData'),yy);
 			cp = getPixel_coords(cols, get(handles.hImg,'XData'),xx);
@@ -75,21 +79,29 @@ function [xx, yy, zz] = grid_profiler(hFig, xp, yp, point_int, do_dynamic, do_st
 			rc = (c - 1) * rows + r;
 			zz = double(Z(rc));
         end
-	elseif (isempty(Z) && ndims(get(handles.hImg,'CData')) == 2)	% Gray image inperp (linear)
+	elseif (~handles.validGrid)								% An image, interp linear
 		Z = get(handles.hImg,'CData');
 		img_lims = getappdata(handles.axes1,'ThisImageLims');	% Get limits and correct them for the pix reg problem
 		x_inc = (img_lims(2)-img_lims(1)) / size(Z,2);		y_inc = (img_lims(4)-img_lims(3)) / size(Z,1);
 		img_lims = img_lims + [x_inc -x_inc y_inc -y_inc]/2;	% Remember that the Image is ALWAYS pix reg
 		X = linspace(img_lims(1),img_lims(2),size(Z,2));	Y = linspace(img_lims(3),img_lims(4),size(Z,1));
-		zz = bi_linear(X,Y,Z,xx,yy);
-		if ((size(zz,1) ~= 1) && (size(zz,2) ~= 1))		% A thickned line
-			z = 0;
-			for (k = 1:size(zz,1))
-				z = z + zz(k,:);
+
+		if (ndims(Z) == 2)
+			zz = bi_linear(X,Y,Z,xx,yy);
+			if ((size(zz,1) ~= 1) && (size(zz,2) ~= 1))		% A thickned line
+				zz = stack_it(zz);
 			end
-			zz = z / size(zz,1);
-			xx = xx(round(size(xx,1)/2),:);		yy = yy(round(size(xx,1)/2),:);		% Mid track coordinates
+		else
+			zz{1} = bi_linear(X,Y,Z(:,:,1),xx,yy);
+			zz{2} = bi_linear(X,Y,Z(:,:,2),xx,yy);
+			zz{3} = bi_linear(X,Y,Z(:,:,3),xx,yy);
+			if ((size(zz{1},1) ~= 1) && (size(zz{1},2) ~= 1))	% A thickned line
+				zz{1} = stack_it(zz{1});
+				zz{2} = stack_it(zz{2});
+				zz{3} = stack_it(zz{3});
+			end
 		end
+
 	else								% grid was loaded here (big according to preferences), so interp linearly
 		zz = bi_linear(X,Y,Z,xx,yy);
 	end
@@ -130,6 +142,15 @@ function [xx, yy, zz] = grid_profiler(hFig, xp, yp, point_int, do_dynamic, do_st
 			set(hDynProfAx,'xlim', [0 r_max])
 		end
 	end
+
+% -------------------------------------------------------------------------------------
+function z = stack_it(z)
+% Stack a set of profiles contained in the matriz z = [n_profiles x n_pts]
+	zz = 0;
+	for (k = 1:size(z,1))
+		zz = zz + z(k,:);
+	end
+	z = zz / size(z,1);
 
 % -------------------------------------------------------------------------------------
 function profile = do_radialAverage(hFig, clon, clat, rad_in, rad_out, geog)
