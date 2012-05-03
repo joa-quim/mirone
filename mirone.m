@@ -1097,23 +1097,19 @@ function FileSaveENCOMgrid_CB(handles)
 % --------------------------------------------------------------------
 function ExtractProfile_CB(handles, opt)
 % OPT == 'point' or 'dynamic'. POINT, interpolates at the line vertex only
+
 	if (handles.no_file),	return,		end
 	if (nargin == 1),	opt = '';		end
-	point_int = false;					% Default to "profile" interpolation
+	point_int = false;										% Default to "profile" interpolation
 	if (strcmp(opt,'point')),	point_int = true;	end
 	track_is_done = false;		do_stack = false;
 
 	[X,Y,Z] = load_grd(handles,'silent');
-	if (isempty(Z) && handles.validGrid)			% Grid not in memory error
+	if (isempty(Z) && handles.validGrid)					% Grid not in memory error
+		warndlg('Grid is not in memory (too big). Bye','Warning'),	return
+	elseif (~handles.validGrid && strcmp(opt,'dynamic') && (ndims(get(handles.hImg,'CData')) == 3) )
+		errordlg('Extracting a dynamic profile of a RGB image is not suported.','ERROR')
 		return
-	elseif (isempty(Z) && ndims(get(handles.hImg,'CData')) == 2)
-		%Z = get(handles.hImg,'CData');
-		%img_lims = getappdata(handles.axes1,'ThisImageLims');	% Get limits and correct them for the pix reg problem
-		%x_inc = (img_lims(2)-img_lims(1)) / size(Z,2);		y_inc = (img_lims(4)-img_lims(3)) / size(Z,1);
-		%img_lims = img_lims + [x_inc -x_inc y_inc -y_inc]/2;	% Remember that the Image is ALWAYS pix reg
-		%X = linspace(img_lims(1),img_lims(2),size(Z,2));	Y = linspace(img_lims(3),img_lims(4),size(Z,1));
-	elseif (isempty(Z))
-		errordlg('Extracting profile of a RGB image is not suported.','ERROR'),		return
 	end
 
 	zoom_state(handles,'maybe_off')
@@ -1128,7 +1124,7 @@ function ExtractProfile_CB(handles, opt)
 	else
 		if (strcmp(opt,'dynamic'))
 			getline_j(handles.figure1,'dynamic');
-			hDynProfAx = getappdata(handles.axes1,'dynProfile');		% Get the handle of the dynamic profile Axes
+			hDynProfAx = getappdata(handles.axes1,'dynProfile');	% Get the handle of the dynamic profile Axes
 			hLine = getappdata(hDynProfAx,'theLine');
 			ud = get(hLine, 'UserData');
 			xx = ud(:,1);			yy = ud(:,2);		zz = get(hLine,'YData');
@@ -1148,8 +1144,26 @@ function ExtractProfile_CB(handles, opt)
 	zoom_state(handles,'maybe_on')
 	if (~strcmp(opt,'point'))			% Disply profile in ecran
 		[pato,name,ext] = fileparts(get(handles.figure1,'Name'));
-		ext = strtok(ext);		% Remove the "@ ??%" part
-		ecran(handles,xx,yy,zz,['Track from ' name ext])
+		if (~isempty(ext))
+			ext = strtok(ext);			% Remove the "@ ??%" part
+		else
+			ind = strfind(name, ' @');
+			name = name(1:ind(1)-1);	%		"
+		end
+		if (~isa(zz,'cell'))
+			ecran(handles,xx,yy,zz,['Track from ' name ext])
+		else
+			% Make 3 call, one for each channel. This is a bit ugly but plotting the 3 curves 
+			% on same 'ecran' window would probably open the door to several problems. We'll see.
+			cor = {'r' 'g' 'b'};
+			for (k = 1:3)
+				hFig = ecran(handles,xx,yy,zz{k},['Track from ' name ext ' (' upper(cor{k}) ')']);
+				h = findobj(hFig,'type','line');		set(h,'color',cor{k});		% Set color by band
+				if (k > 1)				% Cascade the 3 figures so that the user get immediately aware
+					pos = get(hFig, 'Pos');		pos(2) = pos(2) - (k-1)*30;		set(hFig, 'Pos', pos);
+				end
+			end
+		end
 	else						% Save result on file
 		draw_funs([],'save_xyz',[xx(:) yy(:) zz(:)])
 	end
