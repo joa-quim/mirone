@@ -264,9 +264,11 @@ function set_line_uicontext(h, opt)
 		uimenu(cmenuHand, 'Label', 'Create Mask', 'Call', 'poly2mask_fig(guidata(gcbo),gco)');
 	end
 
-	if ( ~LINE_ISCLOSED && strcmp(opt,'line') && (ndims(get(handles.hImg,'CData')) == 2 || handles.validGrid) )
-		cbTrack = 'setappdata(gcf,''TrackThisLine'',gco); mirone(''ExtractProfile_CB'',guidata(gcbo),''point'')';
-		uimenu(cmenuHand, 'Label', 'Point interpolation', 'Call', cbTrack);
+	if ( ~LINE_ISCLOSED && strcmp(opt,'line') )
+		if ( (ndims(get(handles.hImg,'CData')) == 2) || (handles.validGrid) )	% Because Track of RGB doesn't know how to save
+			cbTrack = 'setappdata(gcf,''TrackThisLine'',gco); mirone(''ExtractProfile_CB'',guidata(gcbo),''point'')';
+			uimenu(cmenuHand, 'Label', 'Point interpolation', 'Call', cbTrack);
+		end
 		cbTrack = 'setappdata(gcf,''TrackThisLine'',gco); mirone(''ExtractProfile_CB'',guidata(gcbo))';
 		uimenu(cmenuHand, 'Label', 'Extract profile', 'Call', cbTrack);
 	end
