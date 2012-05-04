@@ -178,6 +178,7 @@ function ui_edit_polygon(varargin)
 
 %--------------------------------------------------
 function polygonui(varargin)
+% Set/unset red squares markers on polyline vertex that are used for edition
 
 	if (~ishandle(varargin{1})),		return,		end
 	s = getappdata(varargin{1},'polygon_data');
@@ -200,6 +201,7 @@ function polygonui(varargin)
 			set(s.h_fig,'KeyPressFcn',s.KeyPress_orig)
 			setappdata(s.h_pol,'polygon_data',s)
 			setappdata(s.h_fig,'epActivHand',0)
+			refresh(s.h_fig)		% Because of old R13 bugs
 
 		case 'off'					% We are entering in the edit mode
 			% Make sure that only one polygon is edited at a time
@@ -217,6 +219,7 @@ function polygonui(varargin)
 			end
 			set(s.h_fig,'KeyPressFcn',{@KeyPress_local, s.h_pol})
 			setappdata(s.h_pol,'polygon_data',s)
+			refresh(s.h_fig)		% Because of old R13 bugs
 	end
 
 %--------------------------------------------------
