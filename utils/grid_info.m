@@ -16,6 +16,8 @@ function grid_info(handles,X,Y,hdr)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
+% $Id$
+
 	if (nargin == 3 && strcmp(Y,'gdal'))			% Just extract the relevant info from the attribute struct
 		att2Hdr(handles,X);			return
 	elseif (nargin == 3 && strcmp(Y,'iminfo'))
@@ -38,6 +40,7 @@ function grid_info(handles,X,Y,hdr)
 		try
 			if (~handles.computed_grid)
 				info1 = grdinfo_m(handles.grdname,'hdr_struct');    % info1 is a struct with the GMT grdinfo style
+				info_from_GMT_limits = [info1.X_info(1:2) info1.Y_info(1:2)];
 			end
 			erro = false;
 		catch
@@ -49,34 +52,42 @@ function grid_info(handles,X,Y,hdr)
 			info1.X_info(4) = nx;		info1.Y_info(4) = ny;
 			info1.Scale = [1 0 -1];
 			info1.Registration = 'Registration:  grid (guessed)';
+			info_from_GMT_limits = [];
 		end
 
 		info2 = grdutils(Z,'-H');				% info2 is a vector with [z_min z_max i_zmin i_zmax n_nans mean std]
 		info2(3:4) = info2(3:4) + 1;			% Info from grdutils is zero based
+
+		% In case grid is Pix reg the handles.head no longer holds that info, so check against info1
+		head = handles.head;
+		if ( (abs(head(1) - info_from_GMT_limits(1)) > head(8)/4) && strncmp(info1.Registration,'Pixel',5) )
+			head(1:4) = info_from_GMT_limits;
+			head(7) = 1;
+		end
 
 		w{1} = ['Title: ' info1.Title];
 		w{2} = ['Command: ' info1.Command];
 		w{3} = ['Remark: ' info1.Remark];
 		w{4} = info1.Registration;
 		w{5} = ['grdfile format: #' sprintf('%d',info1.Scale(3))];
-		txt1 = sprintf('%.8g',handles.head(1));		% x_min
-		txt2 = sprintf('%.8g',handles.head(2));		% x_max
-		txt3 = sprintf('%.8g',handles.head(8));		% x_inc
+		txt1 = sprintf('%.8g',head(1));			% x_min
+		txt2 = sprintf('%.8g',head(2));			% x_max
+		txt3 = sprintf('%.8g',head(8));			% x_inc
 		w{6} = ['x_min: ' txt1 '  x_max: ' txt2 '  x_inc: ' txt3 '  nx: ' sprintf('%d',info1.X_info(4))];
-		txt1 = sprintf('%.8g',handles.head(3));		% y_min
-		txt2 = sprintf('%.8g',handles.head(4));		% y_max
-		txt3 = sprintf('%.8g',handles.head(9));		% y_inc
+		txt1 = sprintf('%.8g',head(3));			% y_min
+		txt2 = sprintf('%.8g',head(4));			% y_max
+		txt3 = sprintf('%.8g',head(9));			% y_inc
 		w{7} = ['y_min: ' txt1 '  y_max: ' txt2 '  y_inc: ' txt3 '  ny: ' sprintf('%d',info1.Y_info(4))];
-		txt1 = sprintf('%.8g',info2(1));			% z_min
-		txt2 = sprintf('%.8g',info2(2));			% z_max
+		txt1 = sprintf('%.8g',info2(1));		% z_min
+		txt2 = sprintf('%.8g',info2(2));		% z_max
 
-		if (handles.head(7))	half = 0.5;
-		else					half = 0;
+		if (head(7)),	half = 0.5;
+		else			half = 0;
 		end
-		xx_min = handles.head(1) + (fix(info2(3) / ny) + half) * handles.head(8);    % x of z_min
-		xx_max = handles.head(1) + (fix(info2(4) / ny) + half) * handles.head(8);    % x of z_max
-		yy_min = handles.head(3) + (rem(info2(3)-1, ny) + half) * handles.head(9);   % y of z_min
-		yy_max = handles.head(3) + (rem(info2(4)-1, ny) + half) * handles.head(9);   % y of z_max
+		xx_min = head(1) + (fix((info2(3)-1) / ny) + half) * head(8);	% x of z_min
+		xx_max = head(1) + (fix((info2(4)-1) / ny) + half) * head(8);	% x of z_max
+		yy_min = head(3) + (rem(info2(3)-1, ny) + half) * head(9);		% y of z_min
+		yy_max = head(3) + (rem(info2(4)-1, ny) + half) * head(9);		% y of z_max
 		txt_x1 = sprintf('%.8g',xx_min);
 		txt_x2 = sprintf('%.8g',xx_max);
 		txt_y1 = sprintf('%.8g',yy_min);
