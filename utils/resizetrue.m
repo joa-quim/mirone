@@ -19,6 +19,8 @@ function varargout = resizetrue(handles, opt, axis_t)
 %
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
+	
+% $Id$
 
 	% If we already have a colorbar, remove it
 	if (strcmp(get(handles.PalIn,'Check'),'on'))
@@ -317,15 +319,20 @@ function resize(hAxes, hImg, imSize, opt, withSliders, firstFigSize)
 	set(hFig, 'Position', figPos);
 	set(hAxes, 'Position', axPos);
 
+	hFanim = [];		% To play safe while I don't settle the 'sCapture' issue once and for all
 	if ~strncmp(opt,'sCap',4)		% sCapture. I'm not sure this is used anymore
         %-------------- This section simulates a box at the bottom of the figure
         sbPos(1) = 1;               sbPos(2) = 1;
         sbPos(3) = figPos(3)-2;     sbPos(4) = H-1;
+		hFanim = findobj(hFig,'-depth',1,'Style', 'frame', 'tag','cinanima');	% This guy exists only whith animations
+		if (~isempty(hFanim))
+			pos = get(hFanim, 'Pos');	sbPos(3) = pos(1)-1;		% Make the sbAxes shorter to not overlap with the frame
+		end
         h = axes('Parent',hFig,'Box','off','Visible','off','Tag','sbAxes','Units','Pixels',...
 			'Position',sbPos,'XLim',[0 sbPos(3)],'YLim',[0 H-1]);
         tenXMargin = 1;
         if (tenSizeX),     tenXMargin = 30;     end
-        hFieldFrame = createframe(h, [1 (figPos(3) - tenXMargin)], H);
+        hFieldFrame = createframe(h, [1 (sbPos(3) + 2 - tenXMargin)], H);
         setappdata(hFig,'CoordsStBar',[h hFieldFrame]);  % Save it for use in ...
         set(hFieldFrame,'Visible','on')
         set(h,'HandleVisibility','off')
@@ -339,6 +346,9 @@ function resize(hAxes, hImg, imSize, opt, withSliders, firstFigSize)
 	set(0, 'Units', rootUnits);
 	
 	if ~strcmp(opt,'sCapture'),   pixval_stsbar(hFig);  end
+	if(~isempty(hFanim))
+		set(getappdata(hFanim,'AnimaFamily'), 'units', 'normalized')	% So that they remain in their corner uppon resinzing
+	end
 
 %--------------------------------------------------------------------------
 function hFrame = createframe(ah, fieldPos, H)
