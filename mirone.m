@@ -1254,16 +1254,16 @@ function FileOpenNewImage_CB(handles, opt)
 		FileOpenGDALmultiBand_CB(handles, 'RAW', handles.fileName)
 		return		% We are done here. Bye Bye.
 	else
-		info_img = imfinfo(handles.fileName);
-		if ( any(strcmpi(EXT,{'.tif' '.tiff'})) && strcmp(info_img.Compression,'LZW'))
-			% If Tiffs are LZW, imread R13 is not able to read them 
-			I = gdalread(handles.fileName);
-		elseif (strcmpi(EXT,'.gif') && handles.IamCompiled)		% Try with GDAL because, ML uses f... java
-			I = gdalread(handles.fileName);
-		else
-			try			I = imread(handles.fileName);
-			catch,		errordlg(lasterr,'Error'),		return	% It realy may happen
-			end
+		info_img = imfinfo(handles.fileName);		% This and att are repeated but not 100%
+		[I, att] = gdalread(handles.fileName);
+		if (att.RasterCount > 4)
+			% Animatted images.	BUT WORK ONLY WITH INDEXED IMAGES, OTHERWISE ... DON'T KNOW WHAT ERROR
+			handles.cinemaImgs = I;
+			I(:,:,2:end) = [];
+			handles.hUIcinanim = cine_animations(handles);
+			guidata(handles.figure1,handles)
+			ud(3) = att.RasterCount;		ud(2) = 1;		ud(1) = 1;
+			set(handles.hUIcinanim(1), 'UserData', ud)
 		end
 		[head_fw,err_msg] = tfw_funs('inquire',[size(I,1) size(I,2)],PATH,FNAME,EXT);	% See if we have .*fw file
 		if (~isempty(err_msg))
