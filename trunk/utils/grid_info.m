@@ -60,7 +60,7 @@ function grid_info(handles,X,Y,hdr)
 
 		% In case grid is Pix reg the handles.head no longer holds that info, so check against info1
 		head = handles.head;
-		if ( (abs(head(1) - info_from_GMT_limits(1)) > head(8)/4) && strncmp(info1.Registration,'Pixel',5) )
+		if ( ~isempty(info_from_GMT_limits) && (abs(head(1) - info_from_GMT_limits(1)) > head(8)/4) && strncmp(info1.Registration,'Pixel',5) )
 			head(1:4) = info_from_GMT_limits;
 			head(7) = 1;
 		end
