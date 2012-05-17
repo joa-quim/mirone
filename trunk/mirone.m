@@ -887,10 +887,10 @@ function PanZoom_CB(handles, hObject, opt)
 
 	if (strcmp(opt,'zoom'))
 		if ( strcmp(get(hObject,'State'),'on') )
-			zoom_j(handles.figure1, 'on');
 			if (strcmp(get(handles.Mao,'State'),'on'))
 				set(handles.Mao,'State','off'),		pan(handles.figure1, 'off');
 			end
+			zoom_j(handles.figure1, 'on');
 		else
 			zoom_j(handles.figure1, 'off');
 		end
@@ -902,10 +902,10 @@ function PanZoom_CB(handles, hObject, opt)
 				set(hObject,'State','off')		% If we are in no zoom state there is nothing to pan
 				return
 			end
-			pan(handles.figure1, 'on');
 			if (strcmp(get(handles.Zoom,'State'),'on'))
 				set(handles.Zoom,'State','off'),	zoom_j(handles.figure1, 'off');
 			end
+			pan(handles.figure1, 'on');
 		else
 			pan(handles.figure1, 'off');
 		end
@@ -2316,7 +2316,6 @@ function DrawLine_CB(handles, opt)
 	% First one is from the user that double-clicked on the line icon
 	% Second is from Matlab that doesn't let us test a double-click on a uipushtool
 	if ( ~isempty(getappdata(handles.figure1, 'fromGL')) ),		return,		end
-	zoom_state(handles,'maybe_off');
 
 	if (strncmp(opt,'free',4)),				[xp,yp] = getline_j(handles.figure1,'freehand');
 	elseif (strcmp(opt,'GCPmemory')),		xp = [0 0];			% Jump the manual drawing
@@ -2363,13 +2362,11 @@ function DrawLine_CB(handles, opt)
 		end
 	end
 	draw_funs(h,'line_uicontext')		% Set lines's uicontextmenu
-	zoom_state(handles,'maybe_on')
 
 % --------------------------------------------------------------------
 function hand = Draw_CB(handles, tipo, smb)
 % Draw text, arrows & symbols
 	if (handles.no_file),	return,		end
-	zoom_state(handles,'maybe_off');
 	if (strcmp(tipo, 'Vector'))
 		draw_funs([],'DrawVector')		% Vectors are ploted there
 	else
@@ -2386,7 +2383,6 @@ function hand = Draw_CB(handles, tipo, smb)
 		draw_funs(h,['Draw' tipo])		% Set uicontextmenu
 		if (nargout),	hand = h;	end
 	end
-	zoom_state(handles,'maybe_on');
 
 % --------------------------------------------------------------------
 function DrawClosedPolygon_CB(handles, opt)
