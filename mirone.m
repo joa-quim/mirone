@@ -3678,70 +3678,70 @@ function GridToolsSDG_CB(handles, opt)
 	% seams to produce a reasonable result for high p's, but not allways perfect.
 
 	set(handles.figure1,'pointer','watch')
-	Lim = handles.grdMaxSize * .5;
-	nl0 = round(Lim/(n*16*8) / 6);			% Devide by 6 because of the auxiliary variables
+	Lim = handles.grdMaxSize * 0.5;
+	nl0 = round(Lim/(n*16*8) / 6);			% Divide by 6 because of the auxiliary variables
 	if (rem(nl0,2) ~= 0),	nl0 = nl0 + 1;	end		% Don't know why, but I rather have it as a even number
-	nl = round(nl0*.8);
+	nl = round(nl0 * 0.8);
 	if (rem(nl,2) ~= 0),	nl = nl + 1;	end
 	skirt = ceil(nl0 - nl) - 2;
 
-[ind_s,ind] = tile(m,nl,skirt);				% Get indexes for tiling.
-if (size(ind_s,1) > 1),						% There is still a very strange thing that I don't understand.
-	R = [];
-	for k = 1:size(ind_s,1)
-		tmp1 = (ind_s(k,1):ind_s(k,2));		% Indexes with overlapping zone
-		tmp2 = ind(k,1):ind(k,2);			% Indexes of chunks without the overlaping zone
-		pp = spl_fun('csaps',{Y(tmp1),X},Z(tmp1, 1:end),str2double(resp{1}));
+	[ind_s,ind] = tile(m,nl,skirt);				% Get indexes for tiling.
+	if (size(ind_s,1) > 1),						% There is still a very strange thing that I don't understand.
+		R = [];
+		for k = 1:size(ind_s,1)
+			tmp1 = (ind_s(k,1):ind_s(k,2));		% Indexes with overlapping zone
+			tmp2 = ind(k,1):ind(k,2);			% Indexes of chunks without the overlaping zone
+			pp = spl_fun('csaps',{Y(tmp1),X},Z(tmp1, 1:end),str2double(resp{1}));
+			DfDX = spl_fun('fnder',pp, [1 0]);			% df / dx
+			vx = spl_fun('fnval',DfDX,{Y(tmp1),X});		clear DfDX;
+			DfDY = spl_fun('fnder',pp, [0 1]);			% df / dy
+			vy = spl_fun('fnval',DfDY,{Y(tmp1),X});		clear DfDY;
+			D2fDX2 = spl_fun('fnder',pp, [2 0]);		% d^2f / dx^2
+			Hxx = spl_fun('fnval',D2fDX2,{Y(tmp1),X});	clear D2fDX2;
+			D2fDY2 = spl_fun('fnder',pp, [0 2]);		% d^2f / dy^2
+			Hyy = spl_fun('fnval',D2fDY2,{Y(tmp1),X});	clear D2fDY2;
+			D2fDXDY = spl_fun('fnder',pp, [1 1]);		clear pp;	% d^2f / (dx dy)
+			Hxy = spl_fun('fnval',D2fDXDY,{Y(tmp1),X});	clear D2fDXDY;
+			tmp = zeros(ind(k,2),n);
+			for j=1:n
+				for i = tmp2
+					v = [vx(i,j) vy(i,j)] / norm([vx(i,j) vy(i,j)]);		% eq(2)
+					tmp(i,j) = (v * [Hxx(i,j) Hxy(i,j); Hxy(i,j) Hyy(i,j)] * v') / (v*v');
+				end
+			end
+			R = [R; tmp(tmp2, 1:end)];
+		end
+	else
+		pp = spl_fun('csaps',{Y,X},Z,str2double(resp{1}));		clear Z;
 		DfDX = spl_fun('fnder',pp, [1 0]);			% df / dx
-		vx = spl_fun('fnval',DfDX,{Y(tmp1),X});		clear DfDX;
+		vx = spl_fun('fnval',DfDX,{Y,X});			clear DfDX;
 		DfDY = spl_fun('fnder',pp, [0 1]);			% df / dy
-		vy = spl_fun('fnval',DfDY,{Y(tmp1),X});		clear DfDY;
+		vy = spl_fun('fnval',DfDY,{Y,X});			clear DfDY;
 		D2fDX2 = spl_fun('fnder',pp, [2 0]);		% d^2f / dx^2
-		Hxx = spl_fun('fnval',D2fDX2,{Y(tmp1),X});	clear D2fDX2;
+		Hxx = spl_fun('fnval',D2fDX2,{Y,X});		clear D2fDX2;
 		D2fDY2 = spl_fun('fnder',pp, [0 2]);		% d^2f / dy^2
-		Hyy = spl_fun('fnval',D2fDY2,{Y(tmp1),X});	clear D2fDY2;
+		Hyy = spl_fun('fnval',D2fDY2,{Y,X});		clear D2fDY2;
 		D2fDXDY = spl_fun('fnder',pp, [1 1]);		clear pp;	% d^2f / (dx dy)
-		Hxy = spl_fun('fnval',D2fDXDY,{Y(tmp1),X});	clear D2fDXDY;
-		tmp = zeros(ind(k,2),n);
-		for j=1:n
-			for i = tmp2
+		Hxy = spl_fun('fnval',D2fDXDY,{Y,X});		clear D2fDXDY;
+	% 	Z = spl_fun('fnval',pp,{Y,X});
+	% 	[vy vx] = gradient_geo(Y,X,Z,'grad');
+	% 	Hyy = gradient_geo(Y,X,vy,'gradN');			% d2f/dy2
+	% 	Hxx = gradient_geo(Y,X,vx,'gradE');			% d2f/dx2
+	% 	Hxy = 2*gradient_geo(Y,X,vx,'gradN');		% d2f/dxdy
+		R = zeros(m,n);
+		for j = 1:n
+			for i=1:m
 				v = [vx(i,j) vy(i,j)] / norm([vx(i,j) vy(i,j)]);		% eq(2)
-				tmp(i,j) = (v * [Hxx(i,j) Hxy(i,j); Hxy(i,j) Hyy(i,j)] * v') / (v*v');
+				R(i,j) = (v * [Hxx(i,j) Hxy(i,j); Hxy(i,j) Hyy(i,j)] * v') / (v*v');
 			end
 		end
-		R = [R; tmp(tmp2, 1:end)];
-	end
-else
-	pp = spl_fun('csaps',{Y,X},Z,str2double(resp{1}));		clear Z;
-	DfDX = spl_fun('fnder',pp, [1 0]);			% df / dx
-	vx = spl_fun('fnval',DfDX,{Y,X});			clear DfDX;
-	DfDY = spl_fun('fnder',pp, [0 1]);			% df / dy
-	vy = spl_fun('fnval',DfDY,{Y,X});			clear DfDY;
-	D2fDX2 = spl_fun('fnder',pp, [2 0]);		% d^2f / dx^2
-	Hxx = spl_fun('fnval',D2fDX2,{Y,X});		clear D2fDX2;
-	D2fDY2 = spl_fun('fnder',pp, [0 2]);		% d^2f / dy^2
-	Hyy = spl_fun('fnval',D2fDY2,{Y,X});		clear D2fDY2;
-	D2fDXDY = spl_fun('fnder',pp, [1 1]);		clear pp;	% d^2f / (dx dy)
-	Hxy = spl_fun('fnval',D2fDXDY,{Y,X});		clear D2fDXDY;
-% 	Z = spl_fun('fnval',pp,{Y,X});
-% 	[vy vx] = gradient_geo(Y,X,Z,'grad');
-% 	Hyy = gradient_geo(Y,X,vy,'gradN');			% d2f/dy2
-% 	Hxx = gradient_geo(Y,X,vx,'gradE');			% d2f/dx2
-% 	Hxy = 2*gradient_geo(Y,X,vx,'gradN');		% d2f/dxdy
-	R = zeros(m,n);
-	for j = 1:n
-		for i=1:m
-			v = [vx(i,j) vy(i,j)] / norm([vx(i,j) vy(i,j)]);		% eq(2)
-			R(i,j) = (v * [Hxx(i,j) Hxy(i,j); Hxy(i,j) Hyy(i,j)] * v') / (v*v');
-		end
-	end
-	clear Hxx Hxy Hyy vx vy;
-end		% end of Tiling
+		clear Hxx Hxy Hyy vx vy;
+	end		% end of Tiling
 
-if strcmp(opt,'negative'),		R(R > 0) = 0;
-elseif strcmp(opt,'positive'),	R(R < 0) = 0;
-end
-GRDdisplay(handles,X,Y,R,head,'SDG field','SDG field');
+	if strcmp(opt,'negative'),		R(R > 0) = 0;
+	elseif strcmp(opt,'positive'),	R(R < 0) = 0;
+	end
+	GRDdisplay(handles,X,Y,R,head,'SDG field','SDG field');
 
 % --------------------------------------------------------------------
 function [X,Y,slope,head] = GridToolsSlope_CB(handles, opt)
