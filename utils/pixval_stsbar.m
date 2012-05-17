@@ -1,7 +1,9 @@
 function pixval_stsbar(arg1)
-%   This is based on the defunct pixval, but heavily hacked in several ways.
+% This is based on the defunct pixval, but heavily hacked in several ways.
 
 % Coffeeright J. Luis 2004-2012
+
+% $Id$
 
 if (nargin == 0),	arg1 = [];		end
 
@@ -22,9 +24,8 @@ else
 	end
 	dbud.figHandle = figHandle;
 	dbud.displayMode = 'normal';
-	% Save the interactive state of the figure. It calls SCRIBECLEARMODE to take care of SCRIBE.
-	% We WILL be restoring the state - this is a change.  UICLEARMODE also registers a way to disable pixval_stsbar
-	dbud.oldFigureUIState = uiclearmode_j(figHandle,'pixval_stsbar');
+	% Save the interactive state of the figure. 
+	dbud.oldFigureUIState = uisuspend_j(figHandle, true);
 	% Create position vectors for Text
 	handsBar = getappdata(figHandle,'CoordsStBar');
 	tmp1 = get(handsBar(3),'YData');
