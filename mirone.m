@@ -887,21 +887,27 @@ function PanZoom_CB(handles, hObject, opt)
 
 	if (strcmp(opt,'zoom'))
 		if ( strcmp(get(hObject,'State'),'on') )
-			zoom_j('on');
+			zoom_j(handles.figure1, 'on');
 			if (strcmp(get(handles.Mao,'State'),'on'))
-				set(handles.Mao,'State','off'),		pan('off');
+				set(handles.Mao,'State','off'),		pan(handles.figure1, 'off');
 			end
 		else
-			zoom_j('off');
+			zoom_j(handles.figure1, 'off');
 		end
 	else		% Pan case
 		if ( strcmp(get(hObject,'State'),'on') )
-			pan('on');
+			lims1 = getappdata(handles.axes1,'ThisImageLims');
+			lims2 = [get(handles.axes1,'xlim') get(handles.axes1,'ylim')];
+			if (isequal(lims1, lims2))
+				set(hObject,'State','off')		% If we are in no zoom state there is nothing to pan
+				return
+			end
+			pan(handles.figure1, 'on');
 			if (strcmp(get(handles.Zoom,'State'),'on'))
-				set(handles.Zoom,'State','off'),	zoom_j('off');
+				set(handles.Zoom,'State','off'),	zoom_j(handles.figure1, 'off');
 			end
 		else
-			pan('off');
+			pan(handles.figure1, 'off');
 		end
 	end
 
@@ -911,11 +917,11 @@ function zoom_state(handles, state)
 	%if (handles.IAmOctave),		guidata(handles.figure1,handles),	return,		end
 	switch state
 		case 'off_yes'			% Set zoom permanently off
-			if (~handles.no_file),	zoom_j('off');		end		% No need to check when first file in
+			if (~handles.no_file),	zoom_j(handles.figure1,'off');		end		% No need to check when first file in
 			set(handles.Zoom,'State','off');
 			handles.zoom_state = 0;		guidata(handles.figure1,handles)
 		case 'maybe_off'		% If zoom was active, keep trace of it
-			zoom_j('off');		h = findobj(handles.figure1,'Tag','Zoom');
+			zoom_j(handles.figure1,'off');		h = handles.Zoom;
 			if (strcmp(get(h,'State'),'on')),	handles.zoom_state = 1;
 			else								handles.zoom_state = 0;
 			end
@@ -923,7 +929,7 @@ function zoom_state(handles, state)
 		case 'maybe_on'			% Check if zoom has to be re-activated
 			handles = guidata(handles.figure1);		% Need to get the updated handles
 			if (handles.zoom_state)
-				zoom_j('on');		set(findobj(handles.figure1,'Tag','Zoom'),'State','on');
+				zoom_j(handles.figure1,'on');	set(handles.Zoom,'State','on');
 			end
 	end
 
