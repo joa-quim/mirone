@@ -3631,31 +3631,33 @@ function GridToolsSmooth_CB(handles)
 	if (isnan(resp)),	return,		end
 
 	set(handles.figure1,'pointer','watch')
-	Lim = handles.grdMaxSize*.6;
+	Lim = handles.grdMaxSize * 0.06;
 	nl0 = round(Lim/(n*16*8) / 2);
 	if (rem(nl0,2) ~= 0),	nl0 = nl0 + 1;  end % Don't know why, but I rather have it as a even number
-	nl = round(nl0*.8);
+	nl = round(nl0 * 0.8);
 	if (rem(nl,2) ~= 0),	nl = nl + 1;	end
 	skirt = ceil(nl0 - nl) - 2;
 
 	[ind_s,ind] = tile(m,nl,skirt);				% Get indexes for tiling.
-	if (size(ind_s,1) > 1),						% There is still a very strange thing that I don't understand.
-		Zs = [];
+	if (size(ind_s,1) > 1)
+		last_row = 1;
 		for k = 1:size(ind_s,1)
 			tmp1 = (ind_s(k,1):ind_s(k,2));		% Indexes with overlapping zone
 			tmp2 = ind(k,1):ind(k,2);			% Indexes of chunks without the overlaping zone
 			pp = spl_fun('csaps',{Y(tmp1),X},Z(tmp1, 1:end),resp);
 			tmp = spl_fun('fnval',pp,{Y(tmp1),X});
-			Zs = [Zs; tmp(tmp2, 1:end)];
+			tmp = tmp(tmp2, 1:end);
+			Z(last_row : (last_row + size(tmp,1) - 1), :) = tmp;	% Z is already a copy (is f double)
+			last_row = last_row + size(tmp,1) - 1;
 		end
 		clear pp tmp;
-		Z = Zs;
 	else
 		pp = spl_fun('csaps',{Y,X},Z, resp);
 		Z = spl_fun('fnval',pp,{Y,X});		clear pp;
 	end
+	Z = single(Z);
 
-	tit = ['Spline smoothed grid. p parameter used = ' sprintf(resp,'%f')];
+	tit = ['Spline smoothed grid. p parameter used = ' sprintf('%.12f', resp)];
 	GRDdisplay(handles,X,Y,Z,head,tit,'Spline smoothed grid');
 
 % --------------------------------------------------------------------
@@ -3673,21 +3675,48 @@ function GridToolsSDG_CB(handles, opt)
 	% be able to find out a chunk height that fits to the above relation. However, 'Lim'
 	% should be of the order of handles.grdMaxSize because the tiling is meant to be used only
 	% for large grids (relative to the available ram). Also, I don't understand why contiguous
-	% chunks don't patch perfectly (very easealy seen with the Lambertian illumination). From
-	% what I could find, it depends havely on the p parameter. A skirt 20% of the chunk height
-	% seams to produce a reasonable result for high p's, but not allways perfect.
+	% chunks don't patch perfectly . From what I could find, it depends heavily on the p parameter.
+	% A skirt 20% of chunk's height seams to produce a reasonable result for high p's, but not always perfect.
 
 	set(handles.figure1,'pointer','watch')
-	Lim = handles.grdMaxSize * 0.5;
-	nl0 = round(Lim/(n*16*8) / 6);			% Divide by 6 because of the auxiliary variables
-	if (rem(nl0,2) ~= 0),	nl0 = nl0 + 1;	end		% Don't know why, but I rather have it as a even number
+	Lim = handles.grdMaxSize * 0.6;
+	nl0 = round(Lim / (n*16*8) / 3);			% Divide by 3 because of the auxiliary variables
+	if (rem(nl0,2) ~= 0),	nl0 = nl0 + 1;	end	% Don't know why, but I rather have it as a even number
 	nl = round(nl0 * 0.8);
 	if (rem(nl,2) ~= 0),	nl = nl + 1;	end
 	skirt = ceil(nl0 - nl) - 2;
 
+	if (handles.have_nans)
+		% Although the SPL toolbox says NaNs and Infs are ignored, the fact is that their presence
+		% (well, their removal) makes a hell out of the result with lots of propagation effects. So,
+		% we fill the gaps with the minimum curvature interpolator, compute the SDG and reset the
+		% NaNs at the end. No tilling needs to be done here since Z is already a copy (double) and
+		% and the filling gaps are actually done in-place.
+		holes = GridToolsFindHoles_CB(handles);
+		head = handles.head;
+		indNaNs = isnan(Z);				% We need to sore this to reset the NaNs at the end
+		for (k = 1:numel(holes))
+			rect = [holes{k}(1,1) holes{k}(1,2) (holes{k}(3,1) - holes{k}(2,1)) (holes{k}(2,2) - holes{k}(1,2))]; 
+			[Z_rect,r_c] = cropimg(head(1:2), head(3:4), Z, rect, 'out_grid');
+			XX = linspace( head(1) + (r_c(3)-1)*head(8), head(1) + (r_c(4)-1)*head(8), r_c(4) - r_c(3) + 1 );
+			YY = linspace( head(3) + (r_c(1)-1)*head(9), head(3) + (r_c(2)-1)*head(9), r_c(2) - r_c(1) + 1 );
+			opt_R = sprintf('-R%.10f/%.10f/%.10f/%.10f', XX(1), XX(end), YY(1), YY(end));
+			opt_I = sprintf('-I%.10f/%.10f',head(8),head(9));
+			Z_rect = Z_rect(:);			% 
+			ind = ~isnan(Z_rect);		% Finding NaNs in singles should be a little cheaper
+			Z_rect = double(Z_rect);	% It has to be
+			Z_rect = Z_rect(ind);
+			[XX,YY] = meshgrid(XX,YY);
+			XX = XX(ind);		YY = YY(ind);
+			Z_rect = gmtmbgrid_m(XX, YY, Z_rect, opt_R, opt_I, '-Mz');
+			Z(r_c(1):r_c(2),r_c(3):r_c(4)) = single(Z_rect);
+		end
+	end
+
 	[ind_s,ind] = tile(m,nl,skirt);				% Get indexes for tiling.
+	R = zeros(m,n);
 	if (size(ind_s,1) > 1),						% There is still a very strange thing that I don't understand.
-		R = [];
+		last_row = 1;
 		for k = 1:size(ind_s,1)
 			tmp1 = (ind_s(k,1):ind_s(k,2));		% Indexes with overlapping zone
 			tmp2 = ind(k,1):ind(k,2);			% Indexes of chunks without the overlaping zone
@@ -3703,16 +3732,18 @@ function GridToolsSDG_CB(handles, opt)
 			D2fDXDY = spl_fun('fnder',pp, [1 1]);		clear pp;	% d^2f / (dx dy)
 			Hxy = spl_fun('fnval',D2fDXDY,{Y(tmp1),X});	clear D2fDXDY;
 			tmp = zeros(ind(k,2),n);
-			for j=1:n
-				for i = tmp2
+			for (j = 1:n)
+				for (i = tmp2)
 					v = [vx(i,j) vy(i,j)] / norm([vx(i,j) vy(i,j)]);		% eq(2)
 					tmp(i,j) = (v * [Hxx(i,j) Hxy(i,j); Hxy(i,j) Hyy(i,j)] * v') / (v*v');
 				end
 			end
-			R = [R; tmp(tmp2, 1:end)];
+			tmp = tmp(tmp2, 1:end);
+			R(last_row : (last_row + size(tmp,1) - 1), :) = tmp;
+			last_row = last_row + size(tmp,1) - 1;
 		end
 	else
-		pp = spl_fun('csaps',{Y,X},Z,str2double(resp{1}));		clear Z;
+		pp = spl_fun('csaps',{Y,X},Z,str2double(resp{1}));
 		DfDX = spl_fun('fnder',pp, [1 0]);			% df / dx
 		vx = spl_fun('fnval',DfDX,{Y,X});			clear DfDX;
 		DfDY = spl_fun('fnder',pp, [0 1]);			% df / dy
@@ -3728,9 +3759,8 @@ function GridToolsSDG_CB(handles, opt)
 	% 	Hyy = gradient_geo(Y,X,vy,'gradN');			% d2f/dy2
 	% 	Hxx = gradient_geo(Y,X,vx,'gradE');			% d2f/dx2
 	% 	Hxy = 2*gradient_geo(Y,X,vx,'gradN');		% d2f/dxdy
-		R = zeros(m,n);
-		for j = 1:n
-			for i=1:m
+		for (j = 1:n)
+			for (i = 1:m)
 				v = [vx(i,j) vy(i,j)] / norm([vx(i,j) vy(i,j)]);		% eq(2)
 				R(i,j) = (v * [Hxx(i,j) Hxy(i,j); Hxy(i,j) Hyy(i,j)] * v') / (v*v');
 			end
@@ -3738,9 +3768,11 @@ function GridToolsSDG_CB(handles, opt)
 		clear Hxx Hxy Hyy vx vy;
 	end		% end of Tiling
 
+	R = single(R);
 	if strcmp(opt,'negative'),		R(R > 0) = 0;
 	elseif strcmp(opt,'positive'),	R(R < 0) = 0;
 	end
+	if (handles.have_nans),			R(indNaNs) = NaN;		end		% Obey the law of NaN conservation
 	GRDdisplay(handles,X,Y,R,head,'SDG field','SDG field');
 
 % --------------------------------------------------------------------
@@ -3801,26 +3833,34 @@ function GridToolsDirDerive_CB(handles, opt)
 	GRDdisplay(handles,X,Y,Z,head,str,str);
 
 % --------------------------------------------------------------------
-function GridToolsFindHoles_CB(handles)
+function out = GridToolsFindHoles_CB(handles)
 % Find holes in double arrays and draw rectangles arround them
+% If an output is required, don't plot and send out the result as a cell array
+% where each element is a 5x2 matrix with x y coords starting at LL corner and runing CW
+
 	if (aux_funs('msg_dlg',14,handles)),	return,		end  
 	if (~handles.have_nans),	warndlg('This grid has no holes','Warning'),	return,	end
 	[X,Y,Z,head,m,n] = load_grd(handles);
 	if isempty(Z),		return,		end		% An error message was already issued
 
-	set(handles.figure1,'pointer','watch')
+	set(handles.figure1,'pointer','watch'),		go_out = false;
 	B = img_fun('find_holes',isnan(Z));
-	% Draw rectangles arround each hole
-	for i=1:length(B)
+	if (nargout),	out = cell(numel(B),1);		go_out = true;		end
+	for (i = 1:length(B))
 		x_min = min(B{i}(:,2));		x_max = max(B{i}(:,2));
 		y_min = min(B{i}(:,1));		y_max = max(B{i}(:,1));
 		x_min = max(1,x_min-5);		x_max = min(x_max+5,n);
 		y_min = max(1,y_min-5);		y_max = min(y_max+5,m);
 		x_min = head(1) + (x_min-1)*head(8);	x_max = head(1) + (x_max-1)*head(8);
 		y_min = head(3) + (y_min-1)*head(9);	y_max = head(3) + (y_max-1)*head(9);
-		h = line('XData',[x_min x_min x_max x_max x_min], 'YData',[y_min y_max y_max y_min y_min], ...
-			'Parent',handles.axes1,'Color',handles.DefLineColor,'LineWidth',1);
-		draw_funs(h,'SRTMrect')		% Set uicontexts
+		if (go_out)
+			out{i} = [x_min y_min; x_min y_max; x_max y_max; x_max y_min; x_min y_min];
+		else
+			% Draw rectangles arround each hole
+			h = line('XData',[x_min x_min x_max x_max x_min], 'YData',[y_min y_max y_max y_min y_min], ...
+				'Parent',handles.axes1,'Color',handles.DefLineColor,'LineWidth',1);
+			draw_funs(h,'SRTMrect')		% Set uicontexts
+		end
 	end
 	set(handles.figure1,'pointer','arrow');
 
