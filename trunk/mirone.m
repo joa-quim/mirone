@@ -3625,16 +3625,27 @@ function GridToolsSectrum_CB(handles, opt1, opt2)
 	if (quick),		set(handles.figure1,'pointer','arrow');		end
 
 % --------------------------------------------------------------------
-function GridToolsSmooth_CB(handles)
+function Zsmoothed = GridToolsSmooth_CB(handles, opt)
+% Smooth out a grid using B-splines
+%
+% Because the smoothing factor is choose interactively, OPT is to contain a multiplicative factor to
+% be applied to the automatically estimated 'p' factor. This gives a mechanism to call this
+% function from another one and send back the final result without stopping due to any questions.
+
 	if (aux_funs('msg_dlg',14,handles)),		return,		end
 	[X,Y,Z,head,m,n] = load_grd(handles,'double');
 	if isempty(Z),		return,		end				% An error message was already issued
-	
+
 	[pp p_guess] = spl_fun('csaps',{Y(1:5),X(1:5)},Z(1:5,1:5));		% Get a good estimate of p
-	prompt = {'Enter smoothing p paramer'};		dlg_title = 'Smoothing parameter input';
-	defAns = {sprintf('%.12f',p_guess{1})};		resp  = inputdlg(prompt,dlg_title,[1 38],defAns);	pause(0.01)
-	resp = abs( str2double(resp{1}) );
-	if (isnan(resp)),	return,		end
+	if (nargin == 1)
+		prompt = {'Enter smoothing p paramer'};		dlg_title = 'Smoothing parameter input';
+		defAns = {sprintf('%.12f',p_guess{1})};		resp  = inputdlg(prompt,dlg_title,[1 38],defAns);	pause(0.01)
+		resp = abs( str2double(resp{1}) );
+		if (isnan(resp)),	return,		end
+		p_to_use = resp;
+	else
+		p_to_use = p_guess * opt;
+	end
 
 	set(handles.figure1,'pointer','watch')
 	Lim = handles.grdMaxSize * 0.06;
@@ -3644,13 +3655,17 @@ function GridToolsSmooth_CB(handles)
 	if (rem(nl,2) ~= 0),	nl = nl + 1;	end
 	skirt = ceil(nl0 - nl) - 2;
 
+	if (handles.have_nans)
+		[Z, indNaNs] = fillGridGaps(handles, Z);	% Fill the gaps with the minimum curvature interpolator
+	end
+
 	[ind_s,ind] = tile(m,nl,skirt);				% Get indexes for tiling.
 	if (size(ind_s,1) > 1)
 		last_row = 1;
 		for k = 1:size(ind_s,1)
 			tmp1 = (ind_s(k,1):ind_s(k,2));		% Indexes with overlapping zone
 			tmp2 = ind(k,1):ind(k,2);			% Indexes of chunks without the overlaping zone
-			pp = spl_fun('csaps',{Y(tmp1),X},Z(tmp1, 1:end),resp);
+			pp = spl_fun('csaps',{Y(tmp1),X},Z(tmp1, 1:end), p_to_use);
 			tmp = spl_fun('fnval',pp,{Y(tmp1),X});
 			tmp = tmp(tmp2, 1:end);
 			Z(last_row : (last_row + size(tmp,1) - 1), :) = tmp;	% Z is already a copy (is f double)
@@ -3658,23 +3673,42 @@ function GridToolsSmooth_CB(handles)
 		end
 		clear pp tmp;
 	else
-		pp = spl_fun('csaps',{Y,X},Z, resp);
+		pp = spl_fun('csaps',{Y,X},Z, p_to_use);
 		Z = spl_fun('fnval',pp,{Y,X});		clear pp;
 	end
 	Z = single(Z);
+	if (handles.have_nans),			Z(indNaNs) = NaN;		end		% Obey the law of NaN conservation
 
-	tit = ['Spline smoothed grid. p parameter used = ' sprintf('%.12f', resp)];
-	GRDdisplay(handles,X,Y,Z,head,tit,'Spline smoothed grid');
+	if (nargout)
+		Zsmoothed = Z;		% No worries, it's not a real copy
+	else
+		tit = ['Spline smoothed grid. p parameter used = ' sprintf('%.12f', p_to_use)];
+		GRDdisplay(handles,X,Y,Z,head,tit,'Spline smoothed grid');
+	end
 
 % --------------------------------------------------------------------
-function GridToolsSDG_CB(handles, opt)
+function sdgGrid = GridToolsSDG_CB(handles, opt, opt2)
+% Compute the Second Derivative in direction of Gradient, which was initially the
+% recommended method to determine the FOS (foot of continental slope) for purposes
+% of continental shelf extension of maritime states from article 76 of LOS (law of the sea)
+%
+% Because one normally need to smooth up the grid before computing the derivatives and the
+% smoothing factor is choose interactively, OPT2 is to contain a multiplicative factor to
+% be applied to the automatically estimated 'p' factor. This gives a mechanism to call this
+% function from another one and send back the final result without stopping due to any questions.
+
 	if (aux_funs('msg_dlg',14,handles)),		return,		end
 	[X,Y,Z,head,m,n] = load_grd(handles,'double');
 	if isempty(Z),		return,		end
 	[pp p_guess] = spl_fun('csaps',{Y(1:5),X(1:5)},Z(1:5,1:5));	% Get a good estimate of p
-	prompt = {'Enter smoothing p paramer'};		dlg_title = 'Smoothing parameter input';
-	defAns = {sprintf('%.12f',p_guess{1})};		resp  = inputdlg(prompt,dlg_title,[1 38],defAns);	pause(0.01)
-	if isempty(resp),	return,		end
+	if (nargin == 2)
+		prompt = {'Enter smoothing p paramer'};		dlg_title = 'Smoothing parameter input';
+		defAns = {sprintf('%.12f',p_guess{1})};		resp  = inputdlg(prompt,dlg_title,[1 38],defAns);	pause(0.05)
+		if isempty(resp),	return,		end
+		p_to_use = str2double(resp{1});
+	else
+		p_to_use = p_guess * opt2;
+	end
 
 	% Apparently the biggest memory monster (pp) obeys roughly to the following relation:
 	% n_row x 4 x n_column x 4 * 8. So if I impose a limit "Lim" to this monster, I should
@@ -3698,25 +3732,7 @@ function GridToolsSDG_CB(handles, opt)
 		% we fill the gaps with the minimum curvature interpolator, compute the SDG and reset the
 		% NaNs at the end. No tilling needs to be done here since Z is already a copy (double) and
 		% and the filling gaps are actually done in-place.
-		holes = GridToolsFindHoles_CB(handles);
-		head = handles.head;
-		indNaNs = isnan(Z);				% We need to sore this to reset the NaNs at the end
-		for (k = 1:numel(holes))
-			rect = [holes{k}(1,1) holes{k}(1,2) (holes{k}(3,1) - holes{k}(2,1)) (holes{k}(2,2) - holes{k}(1,2))]; 
-			[Z_rect,r_c] = cropimg(head(1:2), head(3:4), Z, rect, 'out_grid');
-			XX = linspace( head(1) + (r_c(3)-1)*head(8), head(1) + (r_c(4)-1)*head(8), r_c(4) - r_c(3) + 1 );
-			YY = linspace( head(3) + (r_c(1)-1)*head(9), head(3) + (r_c(2)-1)*head(9), r_c(2) - r_c(1) + 1 );
-			opt_R = sprintf('-R%.10f/%.10f/%.10f/%.10f', XX(1), XX(end), YY(1), YY(end));
-			opt_I = sprintf('-I%.10f/%.10f',head(8),head(9));
-			Z_rect = Z_rect(:);			% 
-			ind = ~isnan(Z_rect);		% Finding NaNs in singles should be a little cheaper
-			Z_rect = double(Z_rect);	% It has to be
-			Z_rect = Z_rect(ind);
-			[XX,YY] = meshgrid(XX,YY);
-			XX = XX(ind);		YY = YY(ind);
-			Z_rect = gmtmbgrid_m(XX, YY, Z_rect, opt_R, opt_I, '-Mz');
-			Z(r_c(1):r_c(2),r_c(3):r_c(4)) = single(Z_rect);
-		end
+		[Z, indNaNs] = fillGridGaps(handles, Z);
 	end
 
 	[ind_s,ind] = tile(m,nl,skirt);				% Get indexes for tiling.
@@ -3726,7 +3742,7 @@ function GridToolsSDG_CB(handles, opt)
 		for k = 1:size(ind_s,1)
 			tmp1 = (ind_s(k,1):ind_s(k,2));		% Indexes with overlapping zone
 			tmp2 = ind(k,1):ind(k,2);			% Indexes of chunks without the overlaping zone
-			pp = spl_fun('csaps',{Y(tmp1),X},Z(tmp1, 1:end),str2double(resp{1}));
+			pp = spl_fun('csaps',{Y(tmp1),X},Z(tmp1, 1:end), p_to_use);
 			DfDX = spl_fun('fnder',pp, [1 0]);			% df / dx
 			vx = spl_fun('fnval',DfDX,{Y(tmp1),X});		clear DfDX;
 			DfDY = spl_fun('fnder',pp, [0 1]);			% df / dy
@@ -3749,7 +3765,7 @@ function GridToolsSDG_CB(handles, opt)
 			last_row = last_row + size(tmp,1);
 		end
 	else
-		pp = spl_fun('csaps',{Y,X},Z,str2double(resp{1}));
+		pp = spl_fun('csaps',{Y,X},Z, p_to_use);
 		DfDX = spl_fun('fnder',pp, [1 0]);			% df / dx
 		vx = spl_fun('fnval',DfDX,{Y,X});			clear DfDX;
 		DfDY = spl_fun('fnder',pp, [0 1]);			% df / dy
@@ -3779,7 +3795,11 @@ function GridToolsSDG_CB(handles, opt)
 	elseif strcmp(opt,'positive'),	R(R < 0) = 0;
 	end
 	if (handles.have_nans),			R(indNaNs) = NaN;		end		% Obey the law of NaN conservation
-	GRDdisplay(handles,X,Y,R,head,'SDG field','SDG field');
+	if (nargout)
+		sdgGrid = R;			% No worries, it's not a real copy
+	else
+		GRDdisplay(handles,X,Y,R,head,'SDG field','SDG field');
+	end
 
 % --------------------------------------------------------------------
 function [X,Y,slope,head] = GridToolsSlope_CB(handles, opt)
@@ -4119,6 +4139,32 @@ function RotateTool_CB(handles, opt)
 		[ny,nx] = size(newZ);
 		X = linspace(hdr(1),hdr(2),nx);		Y = linspace(hdr(3),hdr(4),ny);
 		GRDdisplay(handles,X,Y,newZ,hdr,'Rotated grid','Rotated grid')
+	end
+
+% --------------------------------------------------------------------
+function [Z, indNaNs] = fillGridGaps(handles, Z)
+% Inspects the array Z for blobs of NaNs and fill them with minimum curvature interpolation.
+
+	holes = GridToolsFindHoles_CB(handles);
+	head = handles.head;
+	if (nargout == 2)
+		indNaNs = isnan(Z);			% Usefull for restore the NaNs at a later stage
+	end
+	for (k = 1:numel(holes))
+		rect = [holes{k}(1,1) holes{k}(1,2) (holes{k}(3,1) - holes{k}(2,1)) (holes{k}(2,2) - holes{k}(1,2))]; 
+		[Z_rect,r_c] = cropimg(head(1:2), head(3:4), Z, rect, 'out_grid');
+		XX = linspace( head(1) + (r_c(3)-1)*head(8), head(1) + (r_c(4)-1)*head(8), r_c(4) - r_c(3) + 1 );
+		YY = linspace( head(3) + (r_c(1)-1)*head(9), head(3) + (r_c(2)-1)*head(9), r_c(2) - r_c(1) + 1 );
+		opt_R = sprintf('-R%.10f/%.10f/%.10f/%.10f', XX(1), XX(end), YY(1), YY(end));
+		opt_I = sprintf('-I%.10f/%.10f',head(8),head(9));
+		Z_rect = Z_rect(:);			% 
+		ind = ~isnan(Z_rect);		% Finding NaNs in singles should be a little cheaper
+		Z_rect = double(Z_rect);	% It has to be
+		Z_rect = Z_rect(ind);
+		[XX,YY] = meshgrid(XX,YY);
+		XX = XX(ind);		YY = YY(ind);
+		Z_rect = gmtmbgrid_m(XX, YY, Z_rect, opt_R, opt_I, '-Mz');
+		Z(r_c(1):r_c(2),r_c(3):r_c(4)) = single(Z_rect);
 	end
 
 % --------------------------------------------------------------------
