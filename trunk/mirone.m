@@ -1909,7 +1909,7 @@ function Reft = ImageIllumLambert(luz, handles, opt)
 function ImageIllumGray(luz, handles, color)
 % Illuminate a DEM file and turn it into a RGB or gray scale image.	For multiple tryies see note above. 
 	
-	[X,Y,Z,head,m] = load_grd(handles);
+	[X,Y,Z,head,m,n] = load_grd(handles);
 	if isempty(Z),		return,		end		% An error message was already issued
 	D2R = pi/180;
 	set(handles.figure1,'pointer','watch')
@@ -1917,12 +1917,15 @@ function ImageIllumGray(luz, handles, color)
 	% Tiling
 	[ind_s,ind] = tile(m,400,4);		% shade_manip_raster "only consumes" 3 times Z grid size
 	if size(ind_s,1) > 1
-		img = [];
+		img(m,n) = 0;					% pre-allocation
+		last_row = 1;
 		for i = 1:size(ind_s,1)
 			tmp1 = (ind_s(i,1):ind_s(i,2));		% Indexes with overlapping zone
 			tmp2 = ind(i,1):ind(i,2);			% Indexes of chunks without the overlaping zone
 			tmp = shade_manip_raster((luz.azim-90)*D2R,luz.elev*D2R,Z(tmp1,1:end));
-			img = [img; tmp(tmp2,1:end)];
+			tmp = tmp(tmp2, 1:end);
+			img(last_row : (last_row + size(tmp,1) - 1), :) = tmp;
+			last_row = last_row + size(tmp,1);
 		end
 	else
 		img = shade_manip_raster((luz.azim-90)*D2R,luz.elev*D2R,Z);		% [0-1] matrix (reflectance)
@@ -1996,7 +1999,7 @@ function ImageIllumFalseColor(luz, handles)
 % --------------------------------------------------------------------
 function ImageAnaglyph_CB(handles)
 	if (aux_funs('msg_dlg',14,handles)),	return,		end
-	[X,Y,Z,head] = load_grd(handles);
+	[X,Y,Z,head,m,n] = load_grd(handles);
 	if isempty(Z),	return,		end		% An error message was already issued
 
 	set(handles.figure1,'pointer','watch')
@@ -2013,15 +2016,18 @@ function ImageAnaglyph_CB(handles)
 	azimuth	= -90 * D2R;	elevation = 20 * D2R;
 
 	% Tiling
-	m = size(Z,1);
-	[ind_s,ind] = tile(m,600,4);	% shade_manip_raster "only consumes" 3 times Z grid size
+	[ind_s,ind] = tile(m,400,4);	% shade_manip_raster "only consumes" 3 times Z grid size
 	if (size(ind_s,1) > 1)
 		sh = [];
+		sh(m,n) = 0;				% pre-allocation
+		last_row = 1;
 		for i = 1:size(ind_s,1)
 			tmp1 = (ind_s(i,1):ind_s(i,2));		% Indexes with overlapping zone
 			tmp2 = ind(i,1):ind(i,2);			% Indexes of chunks without the overlaping zone
 			tmp = shade_manip_raster(azimuth,elevation,Z(tmp1,1:end));
-			sh = [sh; tmp(tmp2,1:end)];
+			tmp = tmp(tmp2, 1:end);
+			sh(last_row : (last_row + size(tmp,1) - 1), :) = tmp;
+			last_row = last_row + size(tmp,1);
 		end
 	else
 		sh = shade_manip_raster(azimuth,elevation,Z);
@@ -3648,7 +3654,7 @@ function GridToolsSmooth_CB(handles)
 			tmp = spl_fun('fnval',pp,{Y(tmp1),X});
 			tmp = tmp(tmp2, 1:end);
 			Z(last_row : (last_row + size(tmp,1) - 1), :) = tmp;	% Z is already a copy (is f double)
-			last_row = last_row + size(tmp,1) - 1;
+			last_row = last_row + size(tmp,1);
 		end
 		clear pp tmp;
 	else
@@ -3740,7 +3746,7 @@ function GridToolsSDG_CB(handles, opt)
 			end
 			tmp = tmp(tmp2, 1:end);
 			R(last_row : (last_row + size(tmp,1) - 1), :) = tmp;
-			last_row = last_row + size(tmp,1) - 1;
+			last_row = last_row + size(tmp,1);
 		end
 	else
 		pp = spl_fun('csaps',{Y,X},Z,str2double(resp{1}));
