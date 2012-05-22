@@ -600,13 +600,20 @@ function [track, names, names_ui, vars, x_min, x_max, y_min, y_max] = get_mgg(na
 			if (what2plot.topo),	track.topography = nc_funs('varget', names{1}, 'depth');	end
 			track.info = names{1};
 		else						% Since the poor lousy HG gets stupidly slow, plot only one every other 5th point
+			track(numel(names)).longitude = [];		% To shut up MLint
+			track(numel(names)).latitude = [];
 			for (k = 1:numel(names))
 				names{k} = [names{k} EXT];
 				x = double(nc_funs('varget', names{k}, 'lon'));		track(k).longitude = x(1:5:end);
 				x = double(nc_funs('varget', names{k}, 'lat'));		track(k).latitude = x(1:5:end);
-				x = nc_funs('varget', names{k}, 'mtf1');
-				if (numel(x) > 1),			track(k).magnetics = x(1:5:end);
-				else						track(k).magnetics = x;
+				if (what2plot.mag)
+					x = nc_funs('varget', names{k}, 'mtf1');		track(k).magnetics  = x(1:5:end);
+				end
+				if (what2plot.grav)
+					x = nc_funs('varget', names{k}, 'faa');			track(k).gravity  = x(1:5:end);
+				end
+				if (what2plot.topo)
+					x = nc_funs('varget', names{k}, 'depth');		track(k).topography  = x(1:5:end);
 				end
 				track(k).info = names{k};
 			end
