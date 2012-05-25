@@ -1833,8 +1833,8 @@ function varargout = ImageIllumModel_CB(handles, opt)
 	elseif (luz.illum_model == 2),	[varargout{1:nargout}] = ImageIllumLambert(luz, handles, 'grdgrad_lamb');	% GMT grdgradient Lambertian
 	elseif (luz.illum_model == 3),	[varargout{1:nargout}] = ImageIllumLambert(luz, handles, 'grdgrad_peuck');	% GMT grdgradient Peucker
 	elseif (luz.illum_model == 4),	[varargout{1:nargout}] = ImageIllumLambert(luz, handles, 'lambertian');		% GMT Lambertian
-	elseif (luz.illum_model == 5),	ImageIllumGray(luz, handles, 'color')			% ManipRaster color algo
-	elseif (luz.illum_model == 6),	ImageIllumGray(luz, handles, 'gray')			% ManipRaster gray  algo
+	elseif (luz.illum_model == 5),	ImageIllumOther(luz, handles, 'manip')			% ManipRaster color algo
+	elseif (luz.illum_model == 6),	ImageIllumOther(luz, handles, 'hill')			% ESRI's hillshade  algo
 	else							ImageIllumFalseColor(luz, handles)				% False color
 	end
 	if (luz.illum_model > 4 && nargout)		varargout{1} = [];		end				% No reflectances here
@@ -1906,143 +1906,88 @@ function Reft = ImageIllumLambert(luz, handles, opt)
 	guidata(handles.figure1, handles);			set(handles.figure1,'pointer','arrow')
 
 % --------------------------------------------------------------------
-function ImageIllumGray(luz, handles, color)
-% Illuminate a DEM file and turn it into a RGB or gray scale image.	For multiple tryies see note above. 
-	
-	[X,Y,Z,head,m,n] = load_grd(handles);
+function ImageIllumOther(luz, handles, color)
+% Illuminate a DEM file and turn it into a RGB image.	For multiple tries see note above. 
+
+	[X,Y,Z,head] = load_grd(handles);
 	if isempty(Z),		return,		end		% An error message was already issued
-	D2R = pi/180;
-	set(handles.figure1,'pointer','watch')
-	
-	% Tiling
-	[ind_s,ind] = tile(m,400,4);		% shade_manip_raster "only consumes" 3 times Z grid size
-	if size(ind_s,1) > 1
-		img(m,n) = 0;					% pre-allocation
-		last_row = 1;
-		for i = 1:size(ind_s,1)
-			tmp1 = (ind_s(i,1):ind_s(i,2));		% Indexes with overlapping zone
-			tmp2 = ind(i,1):ind(i,2);			% Indexes of chunks without the overlaping zone
-			tmp = shade_manip_raster((luz.azim-90)*D2R,luz.elev*D2R,Z(tmp1,1:end));
-			tmp = tmp(tmp2, 1:end);
-			img(last_row : (last_row + size(tmp,1) - 1), :) = tmp;
-			last_row = last_row + size(tmp,1);
-		end
-	else
-		img = shade_manip_raster((luz.azim-90)*D2R,luz.elev*D2R,Z);		% [0-1] matrix (reflectance)
+
+	if (strcmp(color,'manip'))
+		img = grdgradient_m(Z, head, sprintf('-Em%.2f/%.2f', luz.azim, luz.elev));
+	else			% ESRI's hillshade
+		img = grdgradient_m(Z, head, sprintf('-Eh%.2f/%.2f', luz.azim, luz.elev));
 	end
 
-	if (strcmp(color,'color'))
-		if (handles.firstIllum),	img1 = get(handles.hImg,'CData');	handles.firstIllum = 0;
-		else						img1 = handles.origFig;
-		end
-		if (isempty(img1)),			img1 = get(handles.hImg,'CData');	end				% No copy in memory
-		if (ndims(img1) == 2),		img1 = ind2rgb8(img1,get(handles.figure1,'Colormap'));	end		% Image is 2D
-		img = shading_mat(img1,img);
-		aux_funs('togCheck',handles.ImModRGB, [handles.ImMod8cor handles.ImMod8gray handles.ImModBW])
-	else
-		img = uint8((254 * img) + 1);	% Need to convert the reflectance matrix into a gray indexed image
-		set(handles.figure1,'Colormap',gray(256))
-		aux_funs('togCheck',handles.ImMod8gray, [handles.ImMod8cor handles.ImModRGB handles.ImModBW])
+	if (handles.firstIllum),	img1 = get(handles.hImg,'CData');	handles.firstIllum = 0;
+	else						img1 = handles.origFig;
 	end
+	if (isempty(img1)),			img1 = get(handles.hImg,'CData');	end				% No copy in memory
+	if (ndims(img1) == 2),		img1 = ind2rgb8(img1,get(handles.figure1,'Colormap'));	end		% Image is 2D
+	img = shading_mat(img1,img,'noscale');
+	aux_funs('togCheck',handles.ImModRGB, [handles.ImMod8cor handles.ImMod8gray handles.ImModBW])
 	
 	if (isappdata(handles.figure1,'illumComm')),	rmappdata(handles.figure1,'illumComm'),		end
 	set(handles.hImg,'CData',img);					handles.Illumin_type = 5;
-	set(handles.figure1,'pointer','arrow');			guidata(handles.figure1, handles);
+	guidata(handles.figure1, handles);
 
 % --------------------------------------------------------------------
 function ImageIllumFalseColor(luz, handles)
 % Illuminate a grid from 3 different directions and turn it into a RGB image
 
-	[X,Y,Z,head,m] = load_grd(handles);
+	[X,Y,Z,head] = load_grd(handles);
 	if isempty(Z),		return,		end		% An error message was already issued
-	set(handles.figure1,'pointer','watch')
 	D2R = pi/180;
 
 	if (luz.mercedes_type == 1)
-		tmp = grdgradient_m(Z,head, '-A0',  '-M', '-Nt');		tmp(tmp < 0) = 0;
+		opt_M = ' ';	opt_N = '-Nt';
+		if (handles.geog),		opt_M = '-M';		end
+		tmp = grdgradient_m(Z,head, sprintf('-A%f',luz.azim(1)), opt_M, opt_N);		%tmp(tmp < 0) = 0;
 		zz(:,:,1) = uint8(cvlib_mex('CvtScale', tmp, 254, 1));
-		tmp = grdgradient_m(Z,head, '-A120','-M', '-Nt');		tmp(tmp < 0) = 0;
+		tmp = grdgradient_m(Z,head, sprintf('-A%f',luz.azim(2)), opt_M, opt_N);		%tmp(tmp < 0) = 0;
 		zz(:,:,2) = uint8(cvlib_mex('CvtScale', tmp, 254, 1));
-		tmp = grdgradient_m(Z,head, '-A240','-M', '-Nt');		tmp(tmp < 0) = 0;
+		tmp = grdgradient_m(Z,head, sprintf('-A%f',luz.azim(3)), opt_M, opt_N);		%tmp(tmp < 0) = 0;
 		zz(:,:,3) = uint8(cvlib_mex('CvtScale', tmp, 254, 1));
 	else
+		% For compatibilty reasons. But should be possible to do it with a call to grdgradient_m
 		size_amp = luz.ampFactor;
-		% Tiling
-		[ind_s,ind] = tile(m,600,4);		% shade_manip_raster "only consumes" 3 times Z grid size
-		if size(ind_s,1) > 1
-			zz1 = uint8([]);		zz2 = uint8([]);	zz3 = uint8([]);
-			for i = 1:size(ind_s,1)
-				tmp1 = (ind_s(i,1):ind_s(i,2));		% Indexes with overlapping zone
-				tmp2 = ind(i,1):ind(i,2);			% Indexes of chunks without the overlaping zone
-				tmp_1 = shade_manip_raster((luz.azim(1)-90)*D2R, luz.elev*D2R, Z(tmp1,1:end), size_amp);
-				tmp_1 = uint8((254 * tmp_1) + 1);
-				tmp_2 = shade_manip_raster((luz.azim(2)-90)*D2R, luz.elev*D2R, Z(tmp1,1:end), size_amp);
-				tmp_2 = uint8((254 * tmp_2) + 1);
-				tmp_3 = shade_manip_raster((luz.azim(3)-90)*D2R, luz.elev*D2R, Z(tmp1,1:end), size_amp);
-				tmp_3 = uint8((254 * tmp_3) + 1);
-				zz1 = [zz1; tmp_1(tmp2,1:end)];		zz2 = [zz2; tmp_2(tmp2,1:end)];		zz3 = [zz3; tmp_3(tmp2,1:end)];
-			end
-			zz(:,:,1) = zz1;	zz(:,:,2) = zz2;	zz(:,:,3) = zz3;
-		else
-			zz(:,:,1) = shade_manip_raster((luz.azim(1)-90)*D2R, luz.elev*D2R, Z, size_amp);
-			zz(:,:,2) = shade_manip_raster((luz.azim(2)-90)*D2R, luz.elev*D2R, Z, size_amp);
-			zz(:,:,3) = shade_manip_raster((luz.azim(3)-90)*D2R, luz.elev*D2R, Z, size_amp);
-			zz = uint8((254 * zz) + 1);
-		end
+		zz(:,:,1) = shade_manip_raster((luz.azim(1)-90)*D2R, luz.elev*D2R, Z, size_amp);
+		zz(:,:,2) = shade_manip_raster((luz.azim(2)-90)*D2R, luz.elev*D2R, Z, size_amp);
+		zz(:,:,3) = shade_manip_raster((luz.azim(3)-90)*D2R, luz.elev*D2R, Z, size_amp);
+		zz = uint8((254 * zz) + 1);
 	end
 
 	if (isappdata(handles.figure1,'illumComm')),	rmappdata(handles.figure1,'illumComm'),		end
 	set(handles.hImg,'CData',zz);					handles.Illumin_type = 7;
 	aux_funs('togCheck',handles.ImModRGB, [handles.ImMod8cor handles.ImMod8gray handles.ImModBW])
-	set(handles.figure1,'pointer','arrow');			guidata(handles.figure1, handles);
+	guidata(handles.figure1, handles);
 
 % --------------------------------------------------------------------
 function ImageAnaglyph_CB(handles)
 	if (aux_funs('msg_dlg',14,handles)),	return,		end
-	[X,Y,Z,head,m,n] = load_grd(handles);
+	[X,Y,Z,head] = load_grd(handles);
 	if isempty(Z),	return,		end		% An error message was already issued
 
-	set(handles.figure1,'pointer','watch')
+	set(handles.figure1,'pointer','watch'),			pause(0.05)
 	[ny,nx] = size(Z);		D2R = pi/180;			deg2m = 111194.9;
-	x_min = head(1);		y_min = head(3);		x_max = head(2);	y_max = head(4);
-	z_min = head(5);		z_max = head(6) + 1;	x_inc = head(8);	y_inc = head(9);
+	z_min = head(5);		z_max = head(6) + 1;
 
 	if (handles.geog)
-		p_size = sqrt((x_inc * deg2m) * (y_inc * deg2m * cos ((y_max + y_min)*0.5 * D2R))); 
+		p_size = sqrt((head(8) * deg2m) * (head(9) * deg2m * cos ((head(4) + head(3))*0.5 * D2R))); 
 	else
-		p_size = x_inc * y_inc;
+		p_size = head(8) * head(9);
 	end
 
-	azimuth	= -90 * D2R;	elevation = 20 * D2R;
-
-	% Tiling
-	[ind_s,ind] = tile(m,400,4);	% shade_manip_raster "only consumes" 3 times Z grid size
-	if (size(ind_s,1) > 1)
-		sh = [];
-		sh(m,n) = 0;				% pre-allocation
-		last_row = 1;
-		for i = 1:size(ind_s,1)
-			tmp1 = (ind_s(i,1):ind_s(i,2));		% Indexes with overlapping zone
-			tmp2 = ind(i,1):ind(i,2);			% Indexes of chunks without the overlaping zone
-			tmp = shade_manip_raster(azimuth,elevation,Z(tmp1,1:end));
-			tmp = tmp(tmp2, 1:end);
-			sh(last_row : (last_row + size(tmp,1) - 1), :) = tmp;
-			last_row = last_row + size(tmp,1);
-		end
-	else
-		sh = shade_manip_raster(azimuth,elevation,Z);
-	end
-	sh = uint8((254 * sh) + 1);
+	sh = grdgradient_m(Z, head, sprintf('-Em%.2f/%.2f', 0, 20));
+	sh = uint8(cvlib_mex('CvtScale', sh, 254, 1));
 
 	str_amp = 2;
 	alpha = tan(25 * D2R) * str_amp / p_size;
-	decal = 1 + fix(2 * alpha * (z_max - z_min));
-	ana_header.nx = nx + decal;
-	ana_header.x_min = x_min - x_inc * (decal / 2);
-	ana_header.x_max = x_max + x_inc * (decal / 2);
+	decal = fix(2 * alpha * (z_max - z_min));
+	decal = max(8, decal + rem(decal,2));			% Make it always even and with a minimum of 8
 
-	left = repmat(uint8(255), 1, ana_header.nx);	right = left;
-	ar = repmat(uint8(0), ny, ana_header.nx);		ag = ar;	l = 0;	r = l;
+	left = repmat(uint8(255), 1, nx + decal);	right = left;
+	ar = repmat(uint8(0), ny, nx);				ag = ar;	l = 0;	r = l;
+	inner_ind = (decal / 2) + 1 : nx + (decal / 2);	% Inner indices that trow away the left-right expansion
 	for (i = 1:ny)
 		for (j = 1:nx)
 			iz = fix(alpha * (double(Z(i,j)) - z_min));
@@ -2050,25 +1995,27 @@ function ImageAnaglyph_CB(handles)
 				left(j+iz) = sh(i,j);
 				right(decal+j-iz) = sh(i,j);
 			else
-				for (k=r:decal + j - iz),	right(k) = sh(i,j);		end
-				for (k=l:j + iz),			left(k)  = sh(i,j);		end
+				for (k = r:decal + j - iz),	right(k) = sh(i,j);		end		% Much faster than vectorized code
+				for (k = l:j + iz),			left(k)  = sh(i,j);		end
 			end
 			l = j + iz;			r = decal + j-iz;
 		end
-		ar(i,1:end) = left;		ag(i,1:end) = right;
-		left(:) = uint8(0);		right(:) = uint8(0);
+		ar(i,1:end) = left(inner_ind);		ag(i,1:end) = right(inner_ind);
+		left(:) = uint8(0);					right(:) = uint8(0);
 	end
-	zz(:,:,1) = ar;		zz(:,:,2) = ag;		zz(:,:,3) = ag; 
-	show_image(handles,'Anaglyph',X,Y,zz,1,'xy',0);
+	zz = cat(3,ar,ag,ag);
+	set(handles.figure1,'pointer','arrow')
+	tmp.head = head;		tmp.geog = handles.geog;	tmp.name = 'Anaglyph';
+	tmp.X = head(1:2);		tmp.Y = head(3:4);
+	mirone(zz,tmp);
 
 % --------------------------------------------------------------------
 function img = shade_manip_raster(azimuth, elevation, Z, size_amp)
-	if (nargin == 3)
-		size_amp = 125;
-	end
+% Almost deprecated function.
+	if (nargin == 3),	size_amp = 125;		end
 
 	u1 = sin(azimuth) * cos(elevation);		u2 = -cos(azimuth) * cos(elevation);
-	u3 = -sin(elevation);
+	u3 = sin(elevation);
 	if (~isa(Z,'double')),	Z = double(Z);	end		% Make sure Z is of double type
 
 	% Derivatives of function with respect to rows and columns
@@ -2083,7 +2030,7 @@ function img = shade_manip_raster(azimuth, elevation, Z, size_amp)
 	% Take centered differences on interior points
 	dZdr(2:end-1,1:end) = (Z(3:end,1:end)-Z(1:end-2,1:end)) / size_amp;
 	dZdc(:,2:end-1)     = (Z(:,3:end)-Z(:,1:end-2)) / size_amp;
-	img = (dZdr*u1 + dZdc*u2 - 2*u3) ./ (sqrt(dZdr .^ 2 + dZdc .^ 2 + 4));
+	img = (dZdr*u1 + dZdc*u2 + 2*u3) ./ (sqrt(dZdr .^ 2 + dZdc .^ 2 + 4));
 	img(img < 0) = 0;	img(img > 1) = 1;
 
 % --------------------------------------------------------------------
