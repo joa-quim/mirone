@@ -16,6 +16,8 @@ function varargout = shading_params(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
+% $Id$
+
 	if (isempty(varargin))
 		errordlg('Unknown Illumination option','Error'),	return
 	end
@@ -49,8 +51,8 @@ function varargout = shading_params(varargin)
 			'Tooltip','Lambertian with lighting', 'CData',quatro_ico);
 		handles.ui_color = uitoggletool('parent',h_toolbar,'Click',{@show_needed,'color'},...
 			'Tooltip','Color (Manip-Raster)', 'CData',cinco_ico);
-		handles.ui_gray = uitoggletool('parent',h_toolbar,'Click',{@show_needed,'gray'},...
-			'Tooltip','Gray (Manip-Raster)', 'CData',seis_ico);
+		handles.ui_hillShade = uitoggletool('parent',h_toolbar,'Click',{@show_needed,'hillShade'},...
+			'Tooltip','Hillshade (ESRI)', 'CData',seis_ico);
 		handles.ui_falseColor = uitoggletool('parent',h_toolbar,'Click',{@show_needed,'mercedes'},...
 			'Tooltip','False color', 'CData',sete_ico);
 
@@ -60,7 +62,7 @@ function varargout = shading_params(varargin)
 		% numbers, but in other places its preferable to have names. So we have a
 		% duplicate. Attention, the order in .ui_tools must reproduce its declarations
 		handles.ui_tools = [handles.ui_grdgrad_A handles.ui_grdgrad_E1 handles.ui_grdgrad_E2 ...
-			handles.ui_lambert handles.ui_color handles.ui_gray handles.ui_falseColor];
+			handles.ui_lambert handles.ui_color handles.ui_hillShade handles.ui_falseColor];
 	else
 		% With this option the better is realy not to show the rest of the window elements
 		pos_f = get(hObject,'Position');			% Original Fig size
@@ -81,22 +83,26 @@ function varargout = shading_params(varargin)
 	image(astrolabio,'parent',handles.axes1);
 
 	pos = get(handles.axes1,'Position');
-	set(handles.axes1,'Vis','off')
+	set(handles.axes1,'Vis','off','Tag','axes1')
 
 	% Draw everything that may be needed for all options. Later, depending on the
 	% option selected, only the allowed features will be made visible
 	x0 = pos(3)/2;      y0 = pos(4)/2;      radius = pos(3)/2;
-	h_line(1) = line('parent',handles.axes1,'XData',[x0 x0],'YData',[y0 0],'Color','r','Tag','red','LineWidth',3,'Userdata',radius);
+	h_line(1) = line('parent',handles.axes1,'XData',[x0 x0],'YData',[y0 0], ...
+		'Color','r','Tag','red','LineWidth',3,'Userdata',radius);
 	if (handles.dirDerivative == 0)         % Otherwise there is no point in creating those
 		x1 = x0 + radius * cos(30*pi/180);      y1 = y0 + radius * sin(30*pi/180);
-		h_line(2) = line('parent',handles.axes1,'XData',[x0 x1],'YData',[y0 y1],'Color','g','Tag','green','LineWidth',3,'Vis','off');
+		h_line(2) = line('parent',handles.axes1,'XData',[x0 x1],'YData',[y0 y1], ...		% Mercedes ...
+			'Color','g','Tag','green','LineWidth',3,'Vis','off');
 		x1 = x0 + radius * cos(150*pi/180);     y1 = y0 + radius * sin(150*pi/180);
-		h_line(3) = line('parent',handles.axes1,'XData',[x0 x1],'YData',[y0 y1],'Color','b','Tag','blue','LineWidth',3,'Vis','off');
+		h_line(3) = line('parent',handles.axes1,'XData',[x0 x1],'YData',[y0 y1], ...
+			'Color','b','Tag','blue','LineWidth',3,'Vis','off');
 		set(h_line,'Userdata',radius)        % save radius of circumscribed circle (image is square)
 		% Now draw, on axes2, a quarter of circle and a line
 		t = 0:0.02:pi/2;    x = [0 cos(t) 0];     y = [0 sin(t) 0];
 		line('parent',handles.axes2,'XData',x,'YData',y,'HitTest','off','Color','k','LineWidth',1);
-		h_line(4) = line('parent',handles.axes2,'XData',[0 cos(30*pi/180)],'YData',[0 sin(30*pi/180)],'Color','k','LineWidth',3,'Vis','off');
+		h_line(4) = line('parent',handles.axes2,'XData',[0 cos(30*pi/180)],'YData',[0 sin(30*pi/180)], ...
+			'Color','k','LineWidth',3,'Vis','off');
 		set(h_line(4),'Tag','Elev','Userdata',1)        % save radius of circumscribed circle
 	end
 
@@ -110,9 +116,9 @@ function varargout = shading_params(varargin)
 	end
 
 	handles.h_line = h_line;
-	guidata(hObject, handles);
+	guidata(handles.figure1, handles);
 	show_needed(hObject,[],varargin{1})
-	set(hObject,'WindowButtonDownFcn',{@ButtonDown,h_line,handles});
+	set(hObject,'WindowButtonDownFcn',{@ButtonDown,h_line});
 
 	% Choose default command line output for shading_params_export
 	handles.output = hObject;
@@ -123,7 +129,7 @@ function varargout = shading_params(varargin)
 	uiwait(handles.figure1);
 
 	handles = guidata(hObject);
-	varargout{1} = handles.output;
+	if (nargout),	varargout{1} = handles.output;		end
 	delete(handles.figure1);
 	drawnow		% Force killing to happen before Mirone takes over and Matlab decides to do what it pleases.
 
@@ -151,7 +157,7 @@ function show_needed(obj,eventdata,opt)
 			set(h_all(1:4),'Vis','off');			toggle_uis(handles,3);
 			set(handles.figure1,'Name','GMT grdgradient - Peucker')
 		end
-	elseif (strcmp(opt,'color') || strcmp(opt,'gray'))
+	elseif (strcmp(opt,'color') || strcmp(opt,'hillShade'))
 		set(handles.edit_elev,'Enable','on');		set(handles.edit_azim,'Vis','on')
 		set(handles.edit_azimR,'Vis','off');		set(handles.edit_azimG,'Vis','off')
 		set(handles.edit_azimB,'Vis','off');
@@ -162,7 +168,7 @@ function show_needed(obj,eventdata,opt)
 		if (strcmp(opt,'color'))
 			toggle_uis(handles,5);					set(handles.figure1,'Name','Color')
 		else
-			toggle_uis(handles,6);					set(handles.figure1,'Name','Gray')
+			toggle_uis(handles,6);					set(handles.figure1,'Name','Hillshade')
 		end
 	elseif (strcmp(opt,'lambertian'))
 		set(handles.edit_elev,'Enable','on');		set(handles.edit_azim,'Vis','on')
@@ -217,34 +223,38 @@ function toggle_uis(handles,ui)
 	guidata(handles.figure1, handles)
 
 % -----------------------------------------------------------------------------------------
-function ButtonDown(obj,eventdata,h_all,handles)
+function ButtonDown(obj, evt, h_all)
 % It could be cleverer.
-	pt = get(gca, 'CurrentPoint');
-	x_lim = get(gca,'xlim');      y_lim = get(gca,'ylim');
-	% check if x,y is inside of axis
-	if ~((pt(1,1)>=x_lim(1)) && (pt(1,1)<=x_lim(2)) && (pt(1,2)>=y_lim(1)) && (pt(1,2)<=y_lim(2)))    % outside axis limits
-		return
+	handles = guidata(obj);
+	hAx = gca;
+	pt = get(hAx, 'CurrentPoint');
+	x_lim = get(hAx,'xlim');      y_lim = get(hAx,'ylim');
+	% check if x,y is inside one of the axes
+	if ~((pt(1,1)>=x_lim(1)) && (pt(1,1)<=x_lim(2)) && (pt(1,2)>=y_lim(1)) && (pt(1,2)<=y_lim(2)))
+		return						% outside axes limits
 	end
 	if any(h_all == gco)
 		h = h_all(h_all == gco);    % When more than one line handle exists, find only the selected one
-		set(gcf,'WindowButtonMotionFcn',{@ButtonMotion,h,handles},'WindowButtonUpFcn',{@ButtonUp,h_all,handles},...
+		set(handles.figure1,'WindowButtonMotionFcn',{@ButtonMotion,h,handles},'WindowButtonUpFcn',{@ButtonUp,h_all,handles},...
 			'Pointer', 'crosshair');
-	else
-		return
+	elseif ( strcmp(get(hAx,'Tag'),'axes1') && strcmp(get(h_all(2),'Vis'),'off') )	% Don't go if Mercedes
+		ButtonMotion(obj,evt,h_all(1),handles)
+	elseif (strcmp(get(hAx,'Tag'),'axes2'))				% Elevation
+		ButtonMotion(obj,evt,h_all(4),handles)
 	end
 
 % -----------------------------------------------------------------------------------------
-function ButtonMotion(obj,eventdata,h,handles)
-	selectionType = get(gcf, 'SelectionType');
+function ButtonMotion(obj,evt,h,handles)
+	selectionType = get(handles.figure1, 'SelectionType');
 	pt = get(gca, 'CurrentPoint');
 	if strcmp(selectionType, 'normal')      % right-cick
 		xx = get(h,'XData');    yy = get(h,'YData');
-		theta = cart2pol(pt(1,1)-xx(1),pt(1,2)-yy(1));
+		theta = atan2(pt(1,2)-yy(1), pt(1,1)-xx(1));
 		radius = get(h,'Userdata');
 		x2 = xx(1) + radius * cos(theta);      y2 = yy(1) + radius * sin(theta);
 		if strcmp(get(h,'Tag'),'Elev') && (theta >= 0 && theta <= pi/2)   % Elevation line
 			set(h,'XData',[xx(1) x2],'YData',[yy(1) y2]);
-			set(handles.edit_elev,'String',num2str(fix(theta *180/pi)) )
+			set(handles.edit_elev,'String', sprintf('%.0f', theta *180/pi) )
 		elseif ~strcmp(get(h,'Tag'),'Elev')     % Azimuth line(s)
 			set(h,'XData',[xx(1) x2],'YData',[yy(1) y2]);
 
@@ -257,24 +267,24 @@ function ButtonMotion(obj,eventdata,h,handles)
 			epsilon = -1e-7;        %  Allow points near zero to remain there
 			indx = find(ang_2pi < epsilon);
 			%  Shift the points in the [-pi 0] range to [pi 2pi] range
-			if ~isempty(indx);  ang_2pi(indx) = ang_2pi(indx) + 2*pi;  end;
+			if (~isempty(indx)),	ang_2pi(indx) = ang_2pi(indx) + 2* pi;		end;
 			if strcmp(get(h,'Tag'),'red')
 				if (~handles.mercedes)
-					set(handles.edit_azim,'String',num2str(fix(ang_2pi *180/pi)) )
+					set(handles.edit_azim,'String', sprintf('%.0f', ang_2pi * 180/pi) )
 				else
-					set(handles.edit_azimR,'String',num2str(fix(ang_2pi *180/pi)) )
+					set(handles.edit_azimR,'String',sprintf('%.0f', ang_2pi * 180/pi) )
 				end
 			elseif strcmp(get(h,'Tag'),'green')
-				set(handles.edit_azimG,'String',num2str(fix(ang_2pi *180/pi)) )
+				set(handles.edit_azimG,'String',sprintf('%.0f', ang_2pi * 180/pi) )
 			elseif strcmp(get(h,'Tag'),'blue')
-				set(handles.edit_azimB,'String',num2str(fix(ang_2pi *180/pi)) )
+				set(handles.edit_azimB,'String',sprintf('%.0f', ang_2pi * 180/pi) )
 			end
 		end
 	end
 
 % -----------------------------------------------------------------------------------------
 function ButtonUp(obj,eventdata,h,handles)
-	set(handles.figure1,'WindowButtonMotionFcn','','WindowButtonDownFcn',{@ButtonDown,h,handles},'WindowButtonUpFcn','');
+	set(handles.figure1,'WindowButtonMotionFcn','','WindowButtonDownFcn',{@ButtonDown,h},'WindowButtonUpFcn','');
 	set(handles.figure1,'Pointer', 'arrow')
 
 % ---------------------------------------------------------------------
@@ -319,7 +329,7 @@ function push_OK_CB(hObject, handles)
 			out.illum_model = 4;
 		elseif (strcmp(get(handles.ui_color,'State'),'on'))
 			out.illum_model = 5;
-		elseif (strcmp(get(handles.ui_gray,'State'),'on'))
+		elseif (strcmp(get(handles.ui_hillShade,'State'),'on'))
 			out.illum_model = 6;
 		elseif (strcmp(get(handles.ui_falseColor,'State'),'on'))
 			out.illum_model = 7;
@@ -470,12 +480,7 @@ uicontrol('Parent',h1,...
 'Tag','text_elev');
 
 axes('Parent',h1,'Units','pixels','Position',[16 29 91 91],'Tag','axes1','Vis','off');
-
-axes('Parent',h1,...
-'Units','pixels',...
-'Position',[126 49 51 51],...
-'Tag','axes2',...
-'Vis','off');
+axes('Parent',h1,'Units','pixels','Position',[126 49 51 51],'Tag','axes2','Vis','off');
 
 uicontrol('Parent',h1,...
 'BackgroundColor',[1 0 0],...
