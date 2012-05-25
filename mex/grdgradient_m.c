@@ -1,5 +1,5 @@
 /*--------------------------------------------------------------------
- *	$Id: grdgradient.c,v 1.9 2004/01/02 22:45:13 pwessel Exp $
+ *	$Id$
  *
  *	Copyright (c) 1991-2004 by P. Wessel and W. H. F. Smith
  *	See COPYING file for copying and redistribution conditions.
