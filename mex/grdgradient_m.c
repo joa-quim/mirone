@@ -80,6 +80,9 @@
  *
  *		25/02/12 J Luis, A side effect of the change to column major order was that eastward illuminations
  *		                 and vice-versa. Making the change ang = 360 - ang; solves the issue.
+ *
+ *		25/02/12 J Luis, Revert previous ang change because true origin was an error in dzdx computation.
+ *		                 Added 2 more illumination algorithms.
  */
  
 #include "mex.h"
@@ -177,7 +180,8 @@ void GMT_boundcond_init (struct GMT_EDGEINFO *edgeinfo);
 int GMT_boundcond_set (struct GRD_HEADER *h, struct GMT_EDGEINFO *edgeinfo, int *pad, float *a);
 int GMT_boundcond_param_prep (struct GRD_HEADER *h, struct GMT_EDGEINFO *edgeinfo);
 int GMT_boundcond_parse (struct GMT_EDGEINFO *edgeinfo, char *edgestring);
-void angreloc(double *a);
+void hillshade(struct GRD_HEADER *header, float *data, double azim, double elev, double *x_factor__, 
+			double x_factor, double y_factor, int map_units, int check_nans);
 
 /* --------------------------------------------------------------------------- */
 /* Matlab Gateway routine */
@@ -196,6 +200,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	int slope_percent = FALSE, slope_deg = FALSE, add_ninety = FALSE, do_change_Zsign = FALSE;
 	int	lambertian_s = FALSE, peucker = FALSE, lambertian = FALSE, unknown_nans = TRUE, check_nans = FALSE;
 	int	sigma_set = FALSE, offset_set = FALSE, exp_trans = FALSE, two_azims = FALSE;
+	int algo_manipRaster = FALSE, algo_hillshade = FALSE;
 	int	is_double = FALSE, is_single = FALSE, is_int32 = FALSE, is_int16 = FALSE;
 	int	is_uint16 = FALSE, is_uint8 = FALSE;
 	clock_t tic;
@@ -250,8 +255,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 					do_direct_deriv = TRUE;
 					j = sscanf(&argv[i][2], "%lf/%lf", &azim, &azim2);
 					two_azims = (j == 2);
-					angreloc(&azim);		/* Adjust because of change to column major order */
-					if (two_azims) angreloc(&azim2);
 					break;
 				case 'D':
 					find_directions = TRUE;
@@ -290,10 +293,43 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 							mexPrintf("GRDGRADIENT SYNTAX ERROR -Es option: Must give azim & elevation\t=%d\n", j);
 							return;
 						}
-						angreloc(&azim);
 						p0 = cos((90 - azim)*D2R) * tan((90 - elev)*D2R);
 						q0 = sin((90 - azim)*D2R) * tan((90 - elev)*D2R);
 						p0q0_cte = sqrt(1 + p0*p0 + q0*q0);
+						break;
+					}
+					else if (argv[i][2] == 'm') {	/* ManipRaster way */
+						algo_manipRaster = TRUE;
+						j = sscanf(&argv[i][3], "%lf/%lf", &azim, &elev);
+						if (j == 0) {				/* Use default values */
+							azim = 360 - 45;
+							elev = 45;
+						}
+						else if (j == 1)
+							elev = 45;
+
+						azim = 90 - azim;
+						while (azim < 0) azim += 360;
+						while (azim > 360) azim -= 360;
+						s[0] = sin(azim*D2R) * cos(elev*D2R);
+						s[1] = cos(azim*D2R) * cos(elev*D2R);
+						s[2] = sin(elev*D2R);
+						break;
+					}
+					else if (argv[i][2] == 'h') {	/* ESRI hillshade */
+						algo_hillshade = TRUE;
+						j = sscanf(&argv[i][3], "%lf/%lf", &azim, &elev);
+						if (j == 0) {				/* Use default values */
+							azim = 360 - 45;
+							elev = 45;
+						}
+						else if (j == 1)
+							elev = 45;
+
+						elev = 90 - elev;
+						azim = 90 - azim;
+						while (azim < 0) azim += 360;
+						while (azim > 360) azim -= 360;
 						break;
 					}
 					lambertian = TRUE;	/* "full" Lambertian case */
@@ -302,13 +338,12 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 						mexPrintf("GRDGRADIENT: SYNTAX ERROR -E option: Must give at least azim & elevation\t=%d\n", j);
 						return;
 					}
-					angreloc(&azim);	/* Adjust because of change to column major order */
 					while (azim < 0) azim += 360;
 					while (azim > 360) azim -= 360;
 					elev = 90 - elev;
 					s[0] = sin(azim*D2R) * cos(elev*D2R);
 					s[1] = cos(azim*D2R) * cos(elev*D2R);
-					s[2] =  sin(elev*D2R);
+					s[2] = sin(elev*D2R);
 					strcpy (input, &argv[i][2]);
 					ptr = (char *)strtok (input, "/");
 					entry = 0;
@@ -382,8 +417,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 
 	if (argc == 1 || error) {
 		mexPrintf ("grdgradient - Compute directional gradients from grdfiles\n\n");
-		mexPrintf ( "usage: R = grdgradient_m(infile,head,'[-A<azim>[/<azim2>]]', '[-D[a][o][n]]', '[-L<flag>]',\n");
-		mexPrintf ( "'[-M]', '[-N[t_or_e][<amp>[/<sigma>[/<offset>]]]]', '[-S<p|d>]', '[-a<nan_val>]')\n\n");
+		mexPrintf ( "usage: R = grdgradient_m(infile,head,'[-A<azim>[/<azim2>]]', '[-D[a][o][n]]',\n");
+		mexPrintf ( "\t'[-L<flag>]', '[-E[s|p|m|h)]/<azim>/<elev>', [-M]',\n");
+		mexPrintf ( "\t''[-N[t_or_e][<amp>[/<sigma>[/<offset>]]]]', '[-S<p|d>]', '[-a<nan_val>]')\n\n");
 		mexPrintf ("\t<infile> is name of input array\n");
 		mexPrintf ("\t<head> is array header descriptor of the form\n");
 		mexPrintf ("\t [x_min x_max y_min y_max z_min zmax 0 x_inc y_inc]\n");
@@ -405,6 +441,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		mexPrintf ( "\t   Append p to use the Peucker picewise linear aproximation (simpler but faster algorithm)\n");
 		mexPrintf ( "\t   Note that in this case the azimuth and elevation are hardwired to 315 and 45 degrees.\n");
 		mexPrintf ( "\t   This means that even if you provide other values they will be ignored.\n");
+		mexPrintf ( "\t   Append m to use the ManipRaster illumination algorithm.\n");
+		mexPrintf ( "\t   Append h to use the ESRI's illumination algorithm (slower than 'm').\n");
 		mexPrintf ( "\t-L sets boundary conditions.  <flag> can be either\n");
 		mexPrintf ( "\t   g for geographic boundary conditions\n");
 		mexPrintf ( "\t   or one or both of\n");
@@ -425,8 +463,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		return;
 	}
 
-	if (!(do_direct_deriv || find_directions || lambertian_s || lambertian || peucker)) {
-		mexPrintf ("GMT SYNTAX ERROR:  Must specify -A or -D\n");
+	if (!(do_direct_deriv || find_directions || lambertian_s || lambertian || peucker ||
+		  algo_manipRaster || algo_hillshade)) {
+		mexPrintf ("GMT SYNTAX ERROR:  Must specify -A , -E or -D\n");
 		error++;
 	}
 	if (do_direct_deriv && (azim < 0.0 || azim >= 360.0)) {
@@ -449,7 +488,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		mexPrintf ("GRDGRADIENT_M GMT SYNTAX ERROR -E option:  Use 0-360 degree range for azimuth\n");
 		error++;
 	}
-	if ((lambertian || lambertian_s) && (elev < 0.0 || elev > 90.0)) {
+	if ((lambertian || lambertian_s || algo_manipRaster) && (elev < 0.0 || elev > 90.0)) {
 		mexPrintf ("GRDGRADIENT_M GMT SYNTAX ERROR -E option:  Use 0-90 degree range for elevation\n");
 		error++;
 	}
@@ -516,7 +555,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	my = ny + 4;
 	nm = header.nx * header.ny;
 
-	data = (float *)mxMalloc ((nx+4)*(ny+4) * sizeof (float));
+	data = (float *)mxMalloc (mx * my * sizeof (float));
 
 	/* Transpose from Matlab orientation to gmt grd orientation */
 	if (is_double) {
@@ -651,6 +690,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		y_factor = -dx_grid / (2 * lim_z);
 	}
 
+	if (algo_hillshade)		/* The horror, a GOTO */
+		goto Lhill;
+
 	for (i = k = 0; i < header.nx; i++) {
 		ij = (i + 2) * my + 2;
 		for (j = 0; j < header.ny; j++, k++, ij++) {
@@ -671,11 +713,10 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 			}
 
 			dzdy = (data[ij+1] - data[ij-1]) * y_factor;
-			if (azim)		/* Otherwise x_factor is zero and dzdx was initialized to zero */
-				dzdx = (data[ij-my] - data[ij+my]) * x_factor;
+			dzdx = (data[ij+my] - data[ij-my]) * x_factor;
 			if (two_azims) {
 				dzdy2 = (data[ij+1] - data[ij-1]) * y_factor2;
-				dzdx2 = (data[ij-my] - data[ij+my]) * x_factor2;
+				dzdx2 = (data[ij+my] - data[ij-my]) * x_factor2;
 			}
 
 			/* Write output to unused NW corner */
@@ -705,7 +746,10 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 					data[k] = (float)hypot (dzdx, dzdy);
 			}
 			else {
-				if (lambertian) {
+				if (algo_manipRaster) {
+					data[k] = (float)( (dzdy*s[0] + dzdx*s[1] + 2*s[2]) / (sqrt(dzdy * dzdy + dzdx * dzdx + 4)) );
+				}
+				else if (lambertian) {
 					norm_z = dx_grid * dy_grid;
 					mag = d_sqrt(dzdx*dzdx + dzdy*dzdy + norm_z*norm_z);
 					dzdx /= mag;	dzdy /= mag;	norm_z /= mag;
@@ -723,6 +767,11 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 			}
 			n_used++;
 		}
+	}
+
+Lhill:
+	if (algo_hillshade) {
+		hillshade(&header, data, azim, elev, x_factor__, x_factor, y_factor, map_units, check_nans);
 	}
 
 	if (slope_percent) {
@@ -903,12 +952,81 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 
 }
 
-void angreloc(double *a) {
-	/* Adjustment because of change to column major order.
-	   Without this eastward illuminations became westwards and vice-versa. */
+void hillshade(struct GRD_HEADER *header, float *data, double azim, double elev, double *x_factor__, 
+			double x_factor, double y_factor, int map_units, int check_nans) {
+	/* edndoc.esri.com/arcobjects/9.2/net/shared/geoprocessing/spatial_analyst_tools/how_hillshade_works.htm */
+	int i, j, k, n, ij, my, bad;
+	float work[9];
+	float nan = mxGetNaN();
+	double slope, aspect, cos_elev, sin_elev, z_factor, dzdx, dzdy;
 
-	if (*a != 0)
-		*a = 360 - *a;
+	my = header->ny + 4;
+	elev *= D2R;
+	azim *= D2R;
+	cos_elev = cos(elev);
+	sin_elev = sin(elev);
+	y_factor /= 2;                  /* Formula for z_fac is 1 /(8 * cellsize). Since each ?_fact already */
+	z_factor = x_factor * y_factor; /* has a 1/2, by multiplying by 1/2 we obtain the 1/8 */
+
+	/* Make a 3x3 copy centered in current cell so that we will access data via 'work'
+	   that since it's very small it will remain in cache and hence very fast to access.
+	   We start with an initialization sitting two rows below but it will be updated right away. */
+
+	work[0] = data[my  +0];		work[1] = data[my  +1];		work[2] = data[my  +1];
+	work[3] = data[2*my+0];		work[4] = data[2*my+1];		work[5] = data[2*my+2];
+	work[6] = data[3*my+0];		work[7] = data[3*my+1];		work[8] = data[3*my+2];
+
+	for (i = k = 0; i < header->nx; i++) {
+		ij = (i + 2) * my + 2;
+		for (j = 0; j < header->ny; j++, k++, ij++) {
+
+			/*	Since we are working by columns, at each iteration we'll only neead to fetch
+			    and new row to the 'work' array and shuffle the 'older' elements one row up.
+				0  3  6			1  4  7
+				1  4  7		==>	2  5  8
+				2  5  8 		?  ?  ?
+			*/
+			work[0] = work[1];		work[1] = work[2];		work[3] = work[4];
+			work[4] = work[5];		work[6] = work[7];		work[7] = work[8];
+			work[2] = data[ij+1-my];
+			work[5] = data[ij+1];
+			work[8] = data[ij+1+my];
+
+			if (check_nans) {
+				for (n = 0, bad = FALSE; !bad && n < 9; n++) 
+					if (ISNAN_F(work[n])) bad = TRUE;
+				if (bad) {	/* One of cells = NaN, skip */
+					data[k] = nan;
+					continue;
+				}
+			}
+
+			dzdx = (work[6] + 2*work[7] + work[8]) - (work[0] + 2*work[1] + work[2]);
+			dzdy = (work[2] + 2*work[5] + work[8]) - (work[0] + 2*work[3] + work[6]);
+
+			if (map_units)
+				z_factor = x_factor__[j] * y_factor;
+
+			slope  = atan(z_factor * sqrt(dzdx*dzdx + dzdy*dzdy));
+			if (dzdx == 0) {
+				if (dzdy > 0)
+					aspect = M_PI / 2;
+				else if (dzdy < 0)
+					aspect = -M_PI / 2;
+				else
+					aspect = 0;
+			}
+			else
+				/* This is different from the ref web page that has atan2(dzdy,-dzdx). I multiply
+				    by -1 for the same reason as mentioned on top of this program. Furthermore, I
+				    don't do either 'if (aspect < 0) aspect += 360;   What for? */
+				aspect = atan2(-dzdy, -dzdx);
+
+			/* Also here I don't do as in page where 'if (data[k] < 0) data[k] = 0'. On what ground
+			   are the negative values cipped off? */
+			data[k] = (float)(cos(elev) * cos(slope) + sin(elev) * sin(slope) * cos(azim - aspect));
+		}
+	}
 }
 
 double specular(double nx, double ny, double nz, double *s) {
