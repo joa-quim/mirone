@@ -10,9 +10,13 @@ function [Z, X, Y, srsWKT, handles, att] = read_grid(handles, fullname, tipo, op
 %			   'MOLA_lbl' To read Mars MOLA .img with a .lbl header file (cannot be compressed)
 %			   'MOLA' To read Mars MOLA .img with a .lbl header file *OR* a V3 PDS .img
 %			   'OVR' Used only by the overview tool together with -P option
+%			   'IN' Used to send in an internally computed grid, transmitted in OPT
 %			-> 'whatever'	Let GDAL guess what to do (it means, any string)
 % OPT		-> -R<...> or -P<...> options of gdalread OR the "att" attributes structure
-%				got from att = gdalread(fname,'-M',...). This argument is optional
+%				got from att = gdalread(fname,'-M',...).
+%			-> It can also hold a structure with fields 'X','Y','Z','head' & 'name' (optional).
+%				We use this construct to take advantage to all testing/setting machinery of this function.
+%				With all of that still note that OPT is optional
 
 %	Copyright (c) 2004-2012 by J. Luis
 %
@@ -28,6 +32,8 @@ function [Z, X, Y, srsWKT, handles, att] = read_grid(handles, fullname, tipo, op
 %
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
+
+% $Id$
 
 	if (nargin == 3)	opt = ' ';	end
 	opt_I = ' ';	srsWKT = [];	att = [];	attVRT = [];	Z = [];		X = [];		Y = [];
@@ -51,6 +57,14 @@ function [Z, X, Y, srsWKT, handles, att] = read_grid(handles, fullname, tipo, op
 		if (isempty(X))		return,		end
 		if (isfield(misc,'z_dim') && numel(misc.z_dim) == 3),	handles.nLayers = misc.z_dim(3);	end
 		if (~isempty(misc) && ~isempty(misc.srsWKT) ),			srsWKT = misc.srsWKT;	end
+	elseif (strncmpi(tipo,'IN',2))
+		Z = opt.Z;
+		X = opt.X;
+		Y = opt.Y;
+		head = opt.head;
+		if (isfield(opt,'name'))
+			fname = opt.name;
+		end
 	else
 		grdMaxSize = handles.grdMaxSize;
 		if (nargin >= 4 && isa(opt,'struct'))		% From FileOpenGeoTIFF_CB
@@ -113,7 +127,7 @@ function [Z, X, Y, srsWKT, handles, att] = read_grid(handles, fullname, tipo, op
 
 	if (~isa(Z,'single')),		Z = single(Z);		end
 
-	if (~strncmp(tipo,'GMT',3))
+	if ( ~strncmp(tipo,'GMT',3) && ~strncmpi(tipo,'IN',2) )
 		if ( ~isempty(att.Band(1).NoDataValue) && ~isnan(att.Band(1).NoDataValue) && att.Band(1).NoDataValue ~= 0 )
 			% Do this because some formats (e.g MOLA PDS v3) are so dumb that they declare a NoDataValue
 			% and than don't use it !!!!!!
