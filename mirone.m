@@ -4178,7 +4178,13 @@ function TransferB_CB(handles, opt)
 		msgbox(sprintf('Last error message in stack is:\n\n%s\n%s\n',lstErr.message, lstErr.identifier),'Debug message')
 
  	elseif (strcmp(opt,'fract'))				% Fractal surf. Have to do it here due to dumb compiler limitations
-		gen_UMF2d;
+		if (handles.no_file)					% When called from a virgin figure, use it
+			[Z, hdrStruct] = gen_UMF2d;
+			hdrStruct.Z = Z;
+			loadGRID(handles,'','IN',hdrStruct)
+		else									% For non-virgin fig, create a new one with the result.
+			gen_UMF2d;
+		end
 
  	elseif (strcmp(opt,'update'))				% Update via Web the stand-alone version
 		dest_fiche = [handles.path_tmp 'apudeita.txt'];		url = 'w3.ualg.pt/~jluis/mirone/updates/';
