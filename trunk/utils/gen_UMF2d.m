@@ -1,4 +1,4 @@
-function fractfield = gen_UMF2d(alpha, C1, H, dim)
+function [fractfield, hdrStruct] = gen_UMF2d(alpha, C1, H, dim)
 % Generation of a stocastic 2D multi-fractal random field
 % Can be used to simulate DEM, turbulent fields (clouds etc)
 %
@@ -46,6 +46,8 @@ function fractfield = gen_UMF2d(alpha, C1, H, dim)
 
 % Cleaned a lot of the unfortunatelly usual memory absurdity use
 
+% $Id: $
+
 	if nargin == 0
 		alpha = 1.8;	C1 = 0.05;		H = 0.9;	dim = 512;
 	end
@@ -87,13 +89,15 @@ function fractfield = gen_UMF2d(alpha, C1, H, dim)
 	FILTER(1,1) = dim^(H);	%/8;
 	fract  = single(real(ifft2(FIELD.*FILTER)));
 
+	tmp.X = linspace(w,e,dim);
+	tmp.Y = linspace(s,n,dim);
+	tmp.head = [w e s n min(fract(:)) max(fract(:)) 0 (e-w)/(dim-1) (n-s)/(dim-1)];
+	tmp.name = 'Fractal Surface';
+
 	if (nargout == 0)
-		hdrStruct.X = linspace(w,e,dim);
-		hdrStruct.Y = linspace(s,n,dim);
-		hdrStruct.head = [w e s n min(fract(:)) max(fract(:)) 0 (e-w)/(dim-1) (n-s)/(dim-1)];
-		hdrStruct.name = 'Fractal Surface';
-		mirone(fract, hdrStruct)
+		mirone(fract, tmp)
 	else
+		hdrStruct = tmp;
 		fractfield = fract;
 	end
 
