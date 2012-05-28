@@ -1829,18 +1829,18 @@ function varargout = ImageIllumModel_CB(handles, opt)
 		return
 	end
 
-	if (luz.illum_model == 1),		[varargout{1:nargout}] = ImageIllumLambert(luz, handles, 'grdgrad_class');	% GMT grdgradient classic
-	elseif (luz.illum_model == 2),	[varargout{1:nargout}] = ImageIllumLambert(luz, handles, 'grdgrad_lamb');	% GMT grdgradient Lambertian
-	elseif (luz.illum_model == 3),	[varargout{1:nargout}] = ImageIllumLambert(luz, handles, 'grdgrad_peuck');	% GMT grdgradient Peucker
-	elseif (luz.illum_model == 4),	[varargout{1:nargout}] = ImageIllumLambert(luz, handles, 'lambertian');		% GMT Lambertian
-	elseif (luz.illum_model == 5),	ImageIllumOther(luz, handles, 'manip')			% ManipRaster color algo
-	elseif (luz.illum_model == 6),	ImageIllumOther(luz, handles, 'hill')			% ESRI's hillshade  algo
+	if (luz.illum_model == 1),		[varargout{1:nargout}] = ImageIllum(luz, handles, 'grdgrad_class');	% GMT grdgradient classic
+	elseif (luz.illum_model == 2),	[varargout{1:nargout}] = ImageIllum(luz, handles, 'grdgrad_lamb');	% GMT grdgradient Lambertian
+	elseif (luz.illum_model == 3),	[varargout{1:nargout}] = ImageIllum(luz, handles, 'grdgrad_peuck');	% GMT grdgradient Peucker
+	elseif (luz.illum_model == 4),	[varargout{1:nargout}] = ImageIllum(luz, handles, 'lambertian');	% GMT Lambertian
+	elseif (luz.illum_model == 5),	[varargout{1:nargout}] = ImageIllum(luz, handles, 'manip');		% ManipRaster
+	elseif (luz.illum_model == 6),	[varargout{1:nargout}] = ImageIllum(luz, handles, 'hill');		% ESRI's hillshade
 	else							ImageIllumFalseColor(luz, handles)				% False color
 	end
-	if (luz.illum_model > 4 && nargout)		varargout{1} = [];		end				% No reflectances here
+	if (luz.illum_model > 6 && nargout)		varargout{1} = [];		end				% No reflectances here
 
 % --------------------------------------------------------------------
-function Reft = ImageIllumLambert(luz, handles, opt)
+function Reft = ImageIllum(luz, handles, opt)
 % OPT ->  Select which of the GMT grdgradient illumination algorithms to use
 % Illuminate a DEM file and turn it into a RGB image
 % For multiple tries I need to use the original image. Otherwise each attempt would illuminate
@@ -1878,6 +1878,14 @@ function Reft = ImageIllumLambert(luz, handles, opt)
 		illumComm = sprintf('-E%g/%g/%g/%g/%g/%g',luz.azim,luz.elev,luz.ambient,luz.diffuse,luz.specular,luz.shine);
 		R = grdgradient_m(Z,head,illumComm, OPT_a);
 		handles.Illumin_type = 4;
+	elseif (strcmp(opt,'manip'))			% GMT5 has this one
+		illumComm = sprintf('-Em%.2f/%.2f', luz.azim, luz.elev);
+		R = grdgradient_m(Z,head,illumComm, OPT_a);
+		handles.Illumin_type = 5;
+	else			% ESRI's hillshade
+		illumComm = sprintf('-Eh%.2f/%.2f', luz.azim, luz.elev);
+		R = grdgradient_m(Z,head,illumComm, OPT_a);
+		handles.Illumin_type = 6;
 	end
 	setappdata(handles.figure1,'illumComm',illumComm);		% Save these for ROI op & write_gmt_script
 	setappdata(handles.figure1,'Luz',luz);					% Save these for ROI operations
@@ -1888,7 +1896,18 @@ function Reft = ImageIllumLambert(luz, handles, opt)
 		return
 	end
 
-	if (handles.firstIllum),	img = get(handles.hImg,'CData');	handles.firstIllum = 0;
+	if (~handles.firstIllum && handles.is_draped)
+		drapInfo = getappdata(handles.hImg, 'drapInfo');
+		if (ishandle(drapInfo.hFig))
+			handlesSon = guidata(drapInfo.hFig);
+			ImageDrape_CB(handlesSon, drapInfo.alpha)
+		else
+			warndlg('You killed the drapping window (happy?), therefore I cannot continue this game.','Warning')
+			set(handles.hImg,'CData',handles.origFig);		% Restore original image
+			handles.is_draped = false;
+		end
+		img = get(handles.hImg,'CData');
+	elseif (handles.firstIllum),img = get(handles.hImg,'CData');	handles.firstIllum = 0;
 	else						img = handles.origFig;
 	end
 	if (ndims(img) == 2),		img = ind2rgb8(img,get(handles.figure1,'Colormap'));	end
@@ -1901,34 +1920,9 @@ function Reft = ImageIllumLambert(luz, handles, opt)
 		tmp = img(:,:,3);		tmp(ind) = bg_color(3);		img(:,:,3) = tmp;
 	end
 	
-	set(handles.hImg,'CData',img)
+	set(handles.hImg,'CData',img),		refresh(handles.figure1)		% Crazzy beast does not always update the image !!!!!!!!!
 	aux_funs('togCheck',handles.ImModRGB, [handles.ImMod8cor handles.ImMod8gray handles.ImModBW])
 	guidata(handles.figure1, handles);			set(handles.figure1,'pointer','arrow')
-
-% --------------------------------------------------------------------
-function ImageIllumOther(luz, handles, color)
-% Illuminate a DEM file and turn it into a RGB image.	For multiple tries see note above. 
-
-	[X,Y,Z,head] = load_grd(handles);
-	if isempty(Z),		return,		end		% An error message was already issued
-
-	if (strcmp(color,'manip'))
-		img = grdgradient_m(Z, head, sprintf('-Em%.2f/%.2f', luz.azim, luz.elev));
-	else			% ESRI's hillshade
-		img = grdgradient_m(Z, head, sprintf('-Eh%.2f/%.2f', luz.azim, luz.elev));
-	end
-
-	if (handles.firstIllum),	img1 = get(handles.hImg,'CData');	handles.firstIllum = 0;
-	else						img1 = handles.origFig;
-	end
-	if (isempty(img1)),			img1 = get(handles.hImg,'CData');	end				% No copy in memory
-	if (ndims(img1) == 2),		img1 = ind2rgb8(img1,get(handles.figure1,'Colormap'));	end		% Image is 2D
-	img = shading_mat(img1,img,'noscale');
-	aux_funs('togCheck',handles.ImModRGB, [handles.ImMod8cor handles.ImMod8gray handles.ImModBW])
-	
-	if (isappdata(handles.figure1,'illumComm')),	rmappdata(handles.figure1,'illumComm'),		end
-	set(handles.hImg,'CData',img);					handles.Illumin_type = 5;
-	guidata(handles.figure1, handles);
 
 % --------------------------------------------------------------------
 function ImageIllumFalseColor(luz, handles)
@@ -2095,8 +2089,9 @@ function ImageRetroShade_CB(handles)
 	set(handles.figure1,'pointer','arrow')
 
 % --------------------------------------------------------------------
-function ImageDrape_CB(handles)
+function ImageDrape_CB(handles, alfa)
 	if (handles.no_file),	return,		end
+	if (nargin == 1),	alfa = [];		end				% Transparency will be asked later
 	son_img = get(handles.hImg,'CData');				% Get "son" image
 	h_f = getappdata(handles.figure1,'hFigParent');		% Get the parent figure handle
 	if (~ishandle(h_f))
@@ -2117,9 +2112,11 @@ function ImageDrape_CB(handles)
 	end
 
 	% See about transparency
-	dlg_title = 'Draping Transparency';		num_lines= [1 38];	defAns = {'0'};
-	resp = inputdlg('Use Transparency (0-1)?',dlg_title,num_lines,defAns);		pause(0.01);
-	alfa = sscanf(resp{1},'%f');
+	if (isempty(alfa))			% transparency was NOT transmitted as argument to this function
+		dlg_title = 'Draping Transparency';		num_lines= [1 38];	defAns = {'0'};
+		resp = inputdlg('Use Transparency (0-1)?',dlg_title,num_lines,defAns);		pause(0.01);
+		alfa = sscanf(resp{1},'%f');
+	end
 	if (isempty(alfa) || alfa > 1),		alfa = 1;	end
 	if (alfa < 0.01 || isnan(alfa)),	alfa = 0;	end
 
@@ -2207,6 +2204,9 @@ function ImageDrape_CB(handles)
 	if (~isempty(son_cm) && (alfa > 0)),	set(h_f,'Colormap',son_cm);		end		% Set "son" colormap to "parent" figure
 	% Signal in the parent image handles that it has a draped image
 	handParent.is_draped = true;		handParent.Illumin_type = 0;	guidata(h_f,handParent)
+
+	% Store in Parent image the info about this (son) fig handle and transparency. For use in illuminations.
+	setappdata(handParent.hImg,'drapInfo',struct('hFig',handles.figure1,'alpha',alfa))
 
 % --------------------------------------------------------------------
 function ToolsMeasure_CB(handles, opt)
@@ -4180,9 +4180,10 @@ function TransferB_CB(handles, opt)
  	elseif (strcmp(opt,'fract'))				% Fractal surf. Have to do it here due to dumb compiler limitations
 		if (handles.no_file)					% When called from a virgin figure, use it
 			[Z, hdrStruct] = gen_UMF2d;
+			handles.computed_grid = 1;
 			hdrStruct.Z = Z;
 			loadGRID(handles,'','IN',hdrStruct)
-		else									% For non-virgin fig, create a new one with the result.
+		else									% For non-virgin figs, create a new one with the result.
 			gen_UMF2d;
 		end
 
