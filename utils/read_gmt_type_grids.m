@@ -2,10 +2,12 @@ function [handles, X, Y, Z, head, misc] = read_gmt_type_grids(handles,fullname,o
 % OPT indicates that only the grid info is outputed.
 % MISC - which exists only when nc_io was used - is a struct with:
 %		'desc', 'title', 'history', 'srsWKT', 'strPROJ4' fields
-% If it is OPT = 'hdr' outputs info in the struct format, else outputs in the head format
+% If OPT == 'hdr' outputs info in the struct format, else outputs in the head format
 %
 % The HANDLES fields 'grdname', 'image_type', 'have_nans' and 'computed_grid' are reset
 % and 'was_int16' may or not
+%
+% When used to read netCDF grids HANDLES can be []. Useful to use this function as a standalone
 
 %	Copyright (c) 2004-2012 by J. Luis
 %
@@ -21,6 +23,8 @@ function [handles, X, Y, Z, head, misc] = read_gmt_type_grids(handles,fullname,o
 %
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
+
+% $Id$
 
     infoOnly = 0;
     if (nargin == 3),   infoOnly = 1;    end
@@ -77,8 +81,8 @@ function [handles, X, Y, Z, head, misc] = read_gmt_type_grids(handles,fullname,o
 function [handles, X, Y, Z, head, misc] = read_grid(handles,fullname,tipo)
 
 	X = [];     Y = [];     Z = [];     head = [];		opt_I = ' ';	misc = [];		% MISC is used only by nc_io
-	if (isfield(handles,'ForceInsitu'))        % Other GUI windows may not know about 'ForceInsitu'
-		if (handles.ForceInsitu),   opt_I = 'insitu';		end    % Use only in desperate cases.
+	if (~isempty(handles) && isfield(handles,'ForceInsitu'))		% Other GUI windows may not know about 'ForceInsitu'
+		if (handles.ForceInsitu),   opt_I = 'insitu';		end		% Use only in desperate cases.
 	end
 
 	if (~strcmp(tipo,'CDF'))        % GMT files are open by the GMT machinerie
