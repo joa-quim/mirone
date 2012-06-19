@@ -25,23 +25,44 @@ function varargout = mirone_pref(varargin)
     handles.handMir = handMir;
 	move2side(handMir.figure1, hObject, 'left');
 
-	directory_list = [];
-	load([handMir.path_data 'mirone_pref.mat']);
-	handles.geog = geog;		% Just to not be empty.
-	handles.ForceInsitu = 0;	% 		"
-	handles.moveDoubleClick = 1;% 		"
-	handles.flederPlanar = 1;	%		"
-	handles.flederBurn = 1;
-	handles.whichFleder = 1;
-	handles.bg_color = [1 1 1];		% Default is white, but should be update by mirone_pref contents
+	% Use a try/catch mechanism to allow also recovering from the now SAD (f...) frequent screw ups
+	% of the mirone_pref.mat from recent ML versions (will TMW ever stop bugging the past?)
+	try
+		prf = load([handMir.path_data 'mirone_pref.mat']);
+		handles.geog = prf.geog;		% Just to not be empty.
+		handles.flederPlanar = prf.flederPlanar;
+		handles.flederBurn = prf.flederBurn;
+		handles.whichFleder = prf.whichFleder;	% whichFleder = 1 for the free iview3d or 0 for the true thing (fledermaus)
+		handles.moveDoubleClick = prf.moveDoubleClick;
+		directory_list = prf.directory_list;
+		DefineEllipsoide = prf.DefineEllipsoide;
+		try
+			handles.bg_color = prf.nanColor;	% Wrap it into a try while in probation period
+		catch
+			handles.bg_color = [1 1 1];
+		end
+	catch
+		handles.moveDoubleClick = 1;% 		"
+		handles.flederPlanar = 1;	%		"
+		handles.flederBurn = 1;
+		handles.whichFleder = 1;
+		directory_list = [];
+		DefineEllipsoide = [];
+		handles.bg_color = [1 1 1];		% Default is white, but should be update by mirone_pref contents
+		% We need also to create an empty pref file that will be updated by push_OK_CB
+		version7 = version;
+		V7 = (sscanf(version7(1),'%f') > 6);
+		if (~V7),		save([handMir.path_data 'mirone_pref.mat'])			% R <= 13
+		else			save([handMir.path_data 'mirone_pref.mat'],'-v6')
+		end
+	end
+
 	handles.proxyAddress = [];
 	handles.proxyPort = [];
 	handles.proxyAddressPort = [];
 
-	handles.flederPlanar = flederPlanar;
 	set(handles.radio_planar,'Val',handles.flederPlanar)
 	set(handles.radio_spherical,'Val',~handles.flederPlanar)
-	handles.flederBurn = flederBurn;
 	if (handles.flederBurn == 0)
 		set(handles.radio_noBurnAtAll,'Val',1);		set(handles.radio_coastsOnly,'Val',0)
 	elseif (handles.flederBurn == 1)
@@ -49,14 +70,8 @@ function varargout = mirone_pref(varargin)
 	else
 		set(handles.radio_burnAll,'Val',1);			set(handles.radio_coastsOnly,'Val',0)
 	end
-	handles.whichFleder = whichFleder;	% whichFleder = 1 for the free iview3d or 0 for the true thing (fledermaus)
-	if (~whichFleder)
-		set(handles.radio_fleder,'Val',1),		set(handles.radio_iview,'Val',0)
-	end
-	handles.moveDoubleClick = moveDoubleClick;
-
-	try
-		handles.bg_color = nanColor;		% Wrap it into a try while in probation period
+	if (~handles.whichFleder)
+		set(handles.radio_fleder,'Val',1),			set(handles.radio_iview,'Val',0)
 	end
 
 	if iscell(directory_list)							% When exists a dir list in mirone_pref		
@@ -99,11 +114,11 @@ function varargout = mirone_pref(varargin)
 	% with what is working. Wrap in a try-catch because the first time the variables are not
 	% yet in mirone_pref.mat
 	try     % Goes here all other times
-        set(handles.popup_DefLineThickness,'String',DefLineThick)
-        set(handles.popup_DefLineColor,'String',DefLineColor)
-        set(handles.popup_MeasureUnites,'String',DefineMeasureUnit)
-        set(handles.popup_ellipsoide,'String',DefineEllipsoide)
-        set(handles.checkbox_meanLat,'Value',scale2meanLat)
+        set(handles.popup_DefLineThickness,'String',prf.DefLineThick)
+        set(handles.popup_DefLineColor,'String',prf.DefLineColor)
+        set(handles.popup_MeasureUnites,'String',prf.DefineMeasureUnit)
+        set(handles.popup_ellipsoide,'String',prf.DefineEllipsoide)
+        set(handles.checkbox_meanLat,'Value',prf.scale2meanLat)
 	catch       % Comes here in first call before variables are stored in mirone_pref.mat
         DefLineThick = {'2 pt'; '1 pt'; '3 pt'; '4 pt'};
         DefLineColor = {'White'; 'Black'; 'Red'; 'Green'; 'Blue'; 'Cyan'; 'Yellow'; 'Magenta'};
