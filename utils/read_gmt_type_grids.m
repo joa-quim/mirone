@@ -76,6 +76,12 @@ function [handles, X, Y, Z, head, misc] = read_gmt_type_grids(handles,fullname,o
 		return
 	end
 
+	if ( (abs(head(5)) < 1e-12) && (abs(head(6)) < 1e-12) )		% Badly behaved grid. No min/max info
+		if (handles.have_nans),		zz = grdutils(Z,'-L');
+		else						zz = [min(Z(:)) max(Z(:))];
+		end
+		head(5:6) = double(zz(1:2));
+	end
 % _________________________________________________________________________________________________	
 % -*-*-*-*-*-*-$-$-$-$-$-$-#-#-#-#-#-#-%-%-%-%-%-%-@-@-@-@-@-@-(-)-(-)-(-)-&-&-&-&-&-&-{-}-{-}-{-}-
 function [handles, X, Y, Z, head, misc] = read_grid(handles,fullname,tipo)
