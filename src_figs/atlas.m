@@ -15,7 +15,9 @@ function varargout = atlas(varargin)
 %
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
- 
+
+% $Id$
+
 	if (isempty(varargin))		return,		end
 
 	hObject = figure('Vis','off');
