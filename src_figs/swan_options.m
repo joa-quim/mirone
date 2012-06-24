@@ -38,7 +38,9 @@ function varargout = swan_options(varargin)
 %
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
- 
+
+% $Id: $
+
 	if (isempty(varargin))
 		errordlg('Bad call to swan_option. Please warn me (the author)','Error')
 		return
