@@ -154,7 +154,7 @@ function varargout = swan_options(varargin)
 		set(handles.radio_cartesian,'Value', ~geog)
 		set(handles.radio_geog,'Value', geog)
 		% Guess a valid dt
-		dx = handles.head_bat(9);
+		dx = min(handles.head_bat(8), handles.head_bat(9));		% Grid cells may not be squares
 		if (geog)
 			dx = dx * 111000;
 			handles.polar = 1;			% Southern hemisphere -1
