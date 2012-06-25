@@ -15,7 +15,9 @@ function varargout = mirone_pref(varargin)
 %
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
- 
+
+% $Id$
+
 	hObject = figure('Vis','off');
 	mirone_pref_LayoutFcn(hObject);
 	handles = guihandles(hObject);
