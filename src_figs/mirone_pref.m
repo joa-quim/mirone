@@ -46,9 +46,10 @@ function varargout = mirone_pref(varargin)
 		handles.flederPlanar = 1;	%		"
 		handles.flederBurn = 1;
 		handles.whichFleder = 1;
+		handMir.grdMaxSize = 524288000;		% 500 Mb
 		directory_list = [];
 		DefineEllipsoide = [];
-		handles.bg_color = [1 1 1];		% Default is white, but should be update by mirone_pref contents
+		handles.bg_color = [1 1 1];			% Default is white, but should be update by mirone_pref contents
 		% We need also to create an empty pref file that will be updated by push_OK_CB
 		version7 = version;
 		V7 = (sscanf(version7(1),'%f') > 6);
@@ -308,7 +309,7 @@ function radio_cart_CB(hObject, handles)
 function edit_GridMaxSize_CB(hObject, handles)
 	xx = get(hObject,'String');
 	if isnan(str2double(xx)) || isempty(xx)    % Just a stupid user error
-        set(hObject, 'String', '50')
+        set(hObject, 'String', '500')
 	else
         if (str2double(xx) >= 10)   % Numbers bigger than 10 Mb don't need decimal places
             set(hObject,'String',sprintf('%d',fix(str2double(xx))))
