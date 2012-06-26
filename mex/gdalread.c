@@ -1,5 +1,5 @@
 /*--------------------------------------------------------------------
- *	$Id:$
+ *	$Id$
  *
  *	Copyright (c) 2004-2012 by J. Luis
  *
@@ -20,6 +20,7 @@
  * Purpose:	matlab callable routine to read files supported by gdal
  * 		and dumping all band data of that dataset.
  *
+ * Revision 23 27/06/2012 First cut on reading Complex Float32 and Int16
  * Revision 22 12/11/2011 Added option -s to force output as float. Force error when fail to open file
  * Revision 21 23/02/2010 nedCDF bug is perhaps fixed. Limit previous solution to to pre 1.7 version
  * Revision 20 17/02/2009 Added -L option to deal with MODIS L2 left-right flipping
@@ -397,6 +398,12 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 				outI16 = mxGetData(plhs[0]);
 				insitu = FALSE;		/* Just to be sure */
 				break;
+			case GDT_CInt16:
+				ndims = 3;	dims[2] *= 2;		/* Complex is as if we have the double of Bands */
+				plhs[0] = mxCreateNumericArray (ndims,dims,mxINT16_CLASS, mxREAL);
+				outI16 = mxGetData(plhs[0]);
+				insitu = FALSE;		/* Just to be sure */
+				break;
 			case GDT_UInt16:
 				plhs[0] = mxCreateNumericArray (ndims,dims,mxUINT16_CLASS, mxREAL);
 				outUI16 = mxGetData(plhs[0]);
@@ -411,6 +418,11 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 				outUI32 = mxGetData(plhs[0]);
 				break;
 			case GDT_Float32:
+				plhs[0] = mxCreateNumericArray (ndims,dims,mxSINGLE_CLASS, mxREAL);
+				outF32 = mxGetData(plhs[0]);
+				break;
+			case GDT_CFloat32:
+				ndims = 3;	dims[2] *= 2;		/* Complex is as if we have the double of Bands */
 				plhs[0] = mxCreateNumericArray (ndims,dims,mxSINGLE_CLASS, mxREAL);
 				outF32 = mxGetData(plhs[0]);
 				break;
@@ -435,6 +447,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		nX = nXSize;
 		nY = nYSize;
 	}
+
 	nVector = mxCalloc(nX, sizeof(int));
 	mVector = mxCalloc(nY, sizeof(int));
 	for (m = 0; m < nY; m++) mVector[m] = m*nX;
@@ -475,10 +488,10 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		if (jump) {
 			nXSize = nBufXSize;
 			nYSize = nBufYSize;
-			i_x_nXYSize = i*nXSize*nYSize;		/* We don't need to recompute this everytime */
+			i_x_nXYSize = i * nXSize * nYSize;		/* We don't need to recompute this everytime */
 		}
 		else
-			i_x_nXYSize = i*nXYSize;
+			i_x_nXYSize = i * nXYSize;
 
 		switch (dataType) {
 			case GDT_Byte:
@@ -538,6 +551,25 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 						else		nn = nVector[n]+m + i_x_nXYSize;
 						outI16[nn] = tmpI16[mVector[m]+n];
 					}
+				}
+				break;
+			case GDT_CInt16:
+				if (scale_range) {	 /* Scale data into the [0 255] range */
+					mexErrMsgTxt("One day maybe, but for now no scaling of Complex data");
+				}
+				tmpI16 = (GInt16 *) tmp;
+				/* First get the real component */
+				for (m = 0; m < nYSize; m++) for (n = 0; n < nXSize; n++) {
+					if (flipud)	nn = nVector[n]-m + i_x_nXYSize;
+					else		nn = nVector[n]+m + i_x_nXYSize;
+					outI16[nn] = tmpI16[(mVector[m]+n)*2];
+				}
+				/* and the imaginary */
+				outI16 += nXYSize;
+				for (m = 1; m < nYSize; m++) for (n = 1; n < nXSize; n++) {
+					if (flipud)	nn = nVector[n]-m + i_x_nXYSize;
+					else		nn = nVector[n]+m + i_x_nXYSize;
+					outI16[nn] = tmpI16[(mVector[m]+n)*2 + 1];
 				}
 				break;
 			case GDT_UInt16:
@@ -644,6 +676,25 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 				}
 				else 	/* No scaling */
 					to_col_majorF32(tmpF32, outF32, nXSize, nYSize, flipud, insitu, nVector, mVector, i_x_nXYSize);
+				break;
+			case GDT_CFloat32:
+				if (scale_range) {	 /* Scale data into the [0 255] range */
+					mexErrMsgTxt("One day maybe, but for now no scaling of Complex data");
+				}
+				tmpF32 = (float *)tmp;
+				/* First get the real component */
+				for (m = 0; m < nYSize; m++) for (n = 0; n < nXSize; n++) {
+					if (flipud)	nn = nVector[n]-m + i_x_nXYSize;
+					else		nn = nVector[n]+m + i_x_nXYSize;
+					outF32[nn] = tmpF32[(mVector[m]+n)*2];
+				}
+				/* and the imaginary */
+				outF32 += nXYSize;
+				for (m = 1; m < nYSize; m++) for (n = 1; n < nXSize; n++) {
+					if (flipud)	nn = nVector[n]-m + i_x_nXYSize;
+					else		nn = nVector[n]+m + i_x_nXYSize;
+					outF32[nn] = tmpF32[(mVector[m]+n)*2 + 1];
+				}
 				break;
 			default:
 				CPLAssert( FALSE );
