@@ -75,6 +75,7 @@ function hObject = mirone_OpeningFcn(varargin)
 			addpath([home_dir fsep 'lib_mex']);
 		end
 	end
+
 	[hObject,handles,home_dir] = mirone_uis(home_dir);
 
 	handles.home_dir = home_dir;
@@ -150,7 +151,7 @@ function hObject = mirone_OpeningFcn(varargin)
 		end
 		handles.bg_color = prf.nanColor;
 	end
-	
+
 	j = false(1,numel(handles.last_directories));			% vector for eventual cleaning non-existing dirs
 	for (i = 1:numel(handles.last_directories))				% Check that all dirs in last_directories exist
 		j(i) = (exist(handles.last_directories{i},'dir') ~= 7);
@@ -165,7 +166,8 @@ function hObject = mirone_OpeningFcn(varargin)
 		if (handles.version7),		save([handles.path_data 'mirone_pref.mat'],'directory_list', '-append', '-v6')
 		else						save([handles.path_data 'mirone_pref.mat'],'directory_list', '-append')
 		end
-	end	
+	end
+
 	handles.work_dir = handles.last_directories{1};
 	if (handles.work_dir ~= fsep),		handles.work_dir = [handles.work_dir fsep];		end
 	handles.last_dir = handles.last_directories{1};			% Initialize last_dir to work_dir
@@ -1483,6 +1485,10 @@ function erro = FileOpenGeoTIFF_CB(handles, tipo, opt)
 		FileOpenGDALmultiBand_CB(handles,'AVHRR',handles.fileName);		return
 	end
 
+	if (att.RasterCount == 2 && strcmp(att.Band(1).DataType,'Int16'))	% Good chances that it's a Radarsat-2 file
+		loadRADARSAT(handles, att),		return
+	end
+
 	if (~strcmp(att.Band(1).DataType,'Byte'))			% JPK2, for example, may contain DTMs
 		loadGRID(handles,handles.fileName,'guess', att);		return
 	end
@@ -1617,10 +1623,54 @@ function loadGRID(handles,fullname,tipo,opt)
 		aquamoto(handles, fullname)
 	end
 
+% -------------------------------------------------------------------------------------------------
+function loadRADARSAT(handles, att)
+% Take a geotiff with 2 bands of 2 bytes each and read the real & imaginary components of a RADARSAT-2
+
+	Z = single(gdalread(handles.fileName, '-B1'));
+	showRADARSAT(handles, att, 'RADARSAT-Real-component', Z)
+	Z = single(gdalread(handles.fileName, '-B2'));
+	fname = handles.fileName;		% Make a copy
+	h = mirone;		handles = guidata(h);		handles.fileName = fname;
+	showRADARSAT(handles, att, 'RADARSAT-Imag-component', Z)
+
+function showRADARSAT(handles, att, fname, Z)
+% Plot a RADARSAT-2 band. Unfortunately we still do not allow storing Z as a 16 bits array.
+
+	if (isempty(att.ProjectionRef))								% No georeferenced image
+		X = 1:att.RasterXSize;		Y = 1:att.RasterYSize;
+		ax_dir = 'xy';				handles.image_type = 1;
+		att.GMT_hdr(1:4) = [X(1) X(end) Y(1) Y(end)];			% Make them grid reg
+	else
+		error('FDeu-se')
+	end
+	handles.head = att.GMT_hdr;
+	handles.geog = true;
+	if (~isempty(att.GCPvalues))	% Save GCPs so that we can plot them and warp the image
+		setappdata(handles.figure1,'GCPregImage',att.GCPvalues)
+		setappdata(handles.figure1,'fnameGCP', fname)			% Save this to know when GCPs are to be removed
+	end															% from appdata. That is donne in show_image()
+	if (~isempty(att.GCPprojection))
+		aux_funs('appP', handles, att.GCPprojection)			% If we have a WKT proj, store it
+	end
+
+	zz = grdutils(Z,'-L');
+	handles.head(5:6) = [zz(1) zz(2)];
+	aux_funs('StoreZ',handles,X,Y,Z)				% If grid size is not to big we'll store it
+	aux_funs('colormap_bg',handles,Z,gray(256));
+	img = scaleto8(Z, 8, handles.head(5:6));
+	handles = show_image(handles, fname, X, Y, img, 1, 'xy', false);
+
+	grid_info(handles,att,'gdal');			% Construct a info message and save proj (if ...)
+	setAxesDefCoordIn(handles,1);			% Sets a value on the axes uicontextmenu
+
 % _________________________________________________________________________________________________
 % -*-*-*-*-*-*-$-$-$-$-$-$-#-#-#-#-#-#-%-%-%-%-%-%-@-@-@-@-@-@-(-)-(-)-(-)-&-&-&-&-&-&-{-}-{-}-{-}-
 function handles = show_image(handles, fname, X, Y, I, validGrid, axis_t, adjust, imSize)
 % Show image and set other parameters
+% AXIS_T	'xy' or 'off'
+% IMSIZE	Optional arg. Use when dx ~= dy
+
 	if (adjust)				% Convert the image limits from pixel reg to grid reg
 		[X,Y] = aux_funs('adjust_lims', X, Y, size(I,1), size(I,2));
 	end
