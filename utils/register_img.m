@@ -1,4 +1,6 @@
 function register_img(handles,h,GCPs)
+% Register image/grid using internal or loaded GCPs
+
 % HANDLES should be a guidata(hFig) but if it's not (that is, if it's empty) the fig and
 % axes handles are fished from H
 % H is the handle of a line or patch object
@@ -19,86 +21,88 @@ function register_img(handles,h,GCPs)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-if (nargin < 2)
-    errordlg('REGISTER_IMG: wrong number of arguments (must be at least two)','ERROR')
-    return
-end
-if ( ~ishandle(h) || ~(strcmp(get(h,'Type'),'line') || strcmp(get(h,'Type'),'patch')) )
-    errordlg('REGISTER_IMG: Second argument must be a handle to a line or patch object','ERROR')
-    return
-end
-if (isempty(handles))
-	handles.axes1 = get(h,'Parent');
-	handles.figure1 = get(handles.axes1,'Parent');
-	hImg = findobj(handles.axes1,'Type','image');
-else
-	hImg = handles.hImg;
-end
+% $Id: $
 
-if (isempty(hImg))
-    errordlg('REGISTER_IMG: No image in this axes. So what do you want to register?','ERROR')
-    return
-end
-
-% Make the warping tooltips
-trfToolTips{1} = sprintf(['Use this transformation when shapes\n'...
-		'in the input image exhibit shearing.\n'...
-		'Straight lines remain straight,\n'...
-		'and parallel lines remain parallel,\n'...
-		'but rectangles become parallelograms.']);
-trfToolTips{2} = sprintf(['Use this transformation when shapes\n'...
-		'in the input image are unchanged,\n'...
-		'but the image is distorted by some\n'...
-		'combination of translation, rotation,\n'...
-		'and scaling. Straight lines remain straight,\n'...
-		'and parallel lines are still parallel.']);
-trfToolTips{3} = sprintf(['Use this transformation when the scene\n'...
-		'appears tilted. Straight lines remain\n'...
-		'straight, but parallel lines converge\n'...
-		'toward vanishing points that might or\n'...
-		'might not fall within the image.']);
-trfToolTips{4} = sprintf(['Use this transformation when objects\n'...
-		'in the image are curved. The higher the\n'...
-		'order of the polynomial, the better the\n'...
-		'fit, but the result can contain more\n'...
-		'curves than the base image.']);
-trfToolTips{5} = trfToolTips{4};
-trfToolTips{6} = trfToolTips{4};
-trfToolTips{7} = sprintf(['Use this transformation when parts of\n'...
-		'the image appear distorted differently.']);
-trfToolTips{8} = sprintf(['Use this transformation (local weighted mean),\n'...
-		'when the distortion varies locally and\n'...
-		'piecewise linear is not sufficient.']);
-trfToolTips{9} = 'GDAL warping with a polynomial of degree 1';
-trfToolTips{10} = 'GDAL warping with a polynomial of degree 2';
-trfToolTips{11} = 'GDAL warping with a polynomial of degree 3';
-trfToolTips{12} = 'GDAL warping with a thin plate spline';
-handles.trfToolTips = trfToolTips;              % Since handles is not saved this field exists only here
-
-ui_edit_polygon(h)    % Set edition functions
-cmenuHand = uicontextmenu;
-set(h, 'UIContextMenu', cmenuHand);
-
-if (nargin == 2),   label = 'Set reference Points';
-else                label = 'Show GCPs';
-end
-uimenu(cmenuHand, 'Label', label, 'Callback', {@regOptions,handles,'set'});
-uimenu(cmenuHand, 'Label', 'Show GCPs residuals', 'Callback', {@regOptions,handles,'residue'});
-uimenu(cmenuHand, 'Label', 'Register Image', 'Callback', {@regOptions,handles,'reg'});
-uimenu(cmenuHand, 'Label', 'Change registration method', 'Callback', {@regOptions,handles,'change'});
-uimenu(cmenuHand, 'Label', 'Delete GCPs', 'Callback', 'delete(gco)','Separator','on');
-uimenu(cmenuHand, 'Label', 'Show GCP numbers', 'Callback', {@showGCPnumbers,handles},'Tag','GCPlab');
-uimenu(cmenuHand, 'Label', 'Hide connecting line', 'Callback', 'set(gco,''LineStyle'',''none'')');
-uimenu(cmenuHand, 'Label', 'Show connecting line', 'Callback', 'set(gco,''LineStyle'','':'')');
-
-setappdata(handles.figure1,'RegistMethod',{'affine' 'bilinear'})     % Default tranfs type & interp method
-
-if (nargin == 3)
-	setappdata(handles.figure1,'GCPregImage',GCPs)
-	if (size(GCPs,1) > 10)      % This is likely a mutch better choice
-		setappdata(handles.figure1,'RegistMethod',{'polynomial (6 pts)' 'bilinear'})
+	if (nargin < 2)
+		errordlg('REGISTER_IMG: wrong number of arguments (must be at least two)','ERROR')
+		return
 	end
-end
+	if ( ~ishandle(h) || ~(strcmp(get(h,'Type'),'line') || strcmp(get(h,'Type'),'patch')) )
+		errordlg('REGISTER_IMG: Second argument must be a handle to a line or patch object','ERROR')
+		return
+	end
+	if (isempty(handles))
+		handles.axes1 = get(h,'Parent');
+		handles.figure1 = get(handles.axes1,'Parent');
+		hImg = findobj(handles.axes1,'Type','image');
+	else
+		hImg = handles.hImg;
+	end
+
+	if (isempty(hImg))
+		errordlg('REGISTER_IMG: No image in this axes. So what do you want to register?','ERROR')
+		return
+	end
+
+	% Make the warping tooltips
+	trfToolTips{1} = sprintf(['Use this transformation when shapes\n'...
+			'in the input image exhibit shearing.\n'...
+			'Straight lines remain straight,\n'...
+			'and parallel lines remain parallel,\n'...
+			'but rectangles become parallelograms.']);
+	trfToolTips{2} = sprintf(['Use this transformation when shapes\n'...
+			'in the input image are unchanged,\n'...
+			'but the image is distorted by some\n'...
+			'combination of translation, rotation,\n'...
+			'and scaling. Straight lines remain straight,\n'...
+			'and parallel lines are still parallel.']);
+	trfToolTips{3} = sprintf(['Use this transformation when the scene\n'...
+			'appears tilted. Straight lines remain\n'...
+			'straight, but parallel lines converge\n'...
+			'toward vanishing points that might or\n'...
+			'might not fall within the image.']);
+	trfToolTips{4} = sprintf(['Use this transformation when objects\n'...
+			'in the image are curved. The higher the\n'...
+			'order of the polynomial, the better the\n'...
+			'fit, but the result can contain more\n'...
+			'curves than the base image.']);
+	trfToolTips{5} = trfToolTips{4};
+	trfToolTips{6} = trfToolTips{4};
+	trfToolTips{7} = sprintf(['Use this transformation when parts of\n'...
+			'the image appear distorted differently.']);
+	trfToolTips{8} = sprintf(['Use this transformation (local weighted mean),\n'...
+			'when the distortion varies locally and\n'...
+			'piecewise linear is not sufficient.']);
+	trfToolTips{9} = 'GDAL warping with a polynomial of degree 1';
+	trfToolTips{10} = 'GDAL warping with a polynomial of degree 2';
+	trfToolTips{11} = 'GDAL warping with a polynomial of degree 3';
+	trfToolTips{12} = 'GDAL warping with a thin plate spline';
+	handles.trfToolTips = trfToolTips;              % Since handles is not saved this field exists only here
+
+	ui_edit_polygon(h)    % Set edition functions
+	cmenuHand = uicontextmenu;
+	set(h, 'UIContextMenu', cmenuHand);
+
+	if (nargin == 2),   label = 'Set reference Points';
+	else                label = 'Show GCPs';
+	end
+	uimenu(cmenuHand, 'Label', label, 'Callback', {@regOptions,handles,'set'});
+	uimenu(cmenuHand, 'Label', 'Show GCPs residuals', 'Callback', {@regOptions,handles,'residue'});
+	uimenu(cmenuHand, 'Label', 'Register Image', 'Callback', {@regOptions,handles,'reg'});
+	uimenu(cmenuHand, 'Label', 'Change registration method', 'Callback', {@regOptions,handles,'change'});
+	uimenu(cmenuHand, 'Label', 'Delete GCPs', 'Callback', 'delete(gco)','Separator','on');
+	uimenu(cmenuHand, 'Label', 'Show GCP numbers', 'Callback', {@showGCPnumbers,handles},'Tag','GCPlab');
+	uimenu(cmenuHand, 'Label', 'Hide connecting line', 'Callback', 'set(gco,''LineStyle'',''none'')');
+	uimenu(cmenuHand, 'Label', 'Show connecting line', 'Callback', 'set(gco,''LineStyle'','':'')');
+
+	setappdata(handles.figure1,'RegistMethod',{'affine' 'bilinear'})     % Default tranfs type & interp method
+
+	if (nargin == 3)
+		setappdata(handles.figure1,'GCPregImage',GCPs)
+		if (size(GCPs,1) > 10)      % This is likely a mutch better choice
+			setappdata(handles.figure1,'RegistMethod',{'polynomial (6 pts)' 'bilinear'})
+		end
+	end
 
 % ----------------------------------------------------------------------------------
 function regOptions(obj,event,handles,opt)
@@ -205,9 +209,17 @@ function do_register(handles,input,base)
 	interpola   = RegistMethod{2};
 	type = checkTransform(trfType,size(input,1));	% Test that n pts and tranfs type are compatible
 	if (isempty(type)),		return,		end			% Error message already issued
-	img         = get(handles.hImg,'CData');
 
-	if (strncmp(trfType,'gdal',4))		% 
+	if (handles.validGrid)
+		[X,Y,Z] = load_grd(handles);
+		tmp.X = X;		tmp.Y = Y;			% We'll need these at the end
+		toTit = ' Grid';
+	else
+		Z = get(handles.hImg,'CData');
+		toTit = ' Image';
+	end
+
+	if (strncmp(trfType,'gdal',4))			% Use gdalwarp
 		if (trfType(end) == 's'),	hdr.order = -1;
 		else						hdr.order = str2double(trfType(end));
 		end
@@ -216,130 +228,141 @@ function do_register(handles,input,base)
 		hdr.Xinc = 1;		hdr.Yinc = 1;
 		hdr.ResampleAlg = interpola;
 		try
-			[img,att] = gdalwarp_mex(flipdim(img,1),hdr);
+			if (handles.validGrid)
+				[Z, att] = gdalwarp_mex(Z, hdr);
+				tmp.X = linspace(att.GMT_hdr(1),att.GMT_hdr(2), size(Z,2));
+				tmp.Y = linspace(att.GMT_hdr(3),att.GMT_hdr(4), size(Z,1));
+			else
+				[Z,att] = gdalwarp_mex(flipdim(Z,1),hdr);
+				tmp.X = tmp.head(1:2);		tmp.Y = tmp.head(3:4);
+			end
 		catch
 		    errordlg(lasterr,'Error'),	return
 		end
 		tmp.head  = att.GMT_hdr;
-		tmp.X = tmp.head(1:2);		tmp.Y = tmp.head(3:4);
 	else
 		trf = transform_fun('cp2tform',input,base,type{:});
-		[img,new_xlim,new_ylim] = transform_fun('imtransform',img,trf,interpola,'size',size(img));
-		%[img,new_xlim,new_ylim] = transform_fun('imtransform',img,trf,'XData',[1 size(img,2)],'YData',[1 size(img,1)]);
+		[Z,new_xlim,new_ylim] = transform_fun('imtransform',Z,trf,interpola,'size',size(Z));
 
 		tmp.head(1:7) = [new_xlim new_ylim 0 255 1];
-		tmp.head(8) = diff(new_xlim) / (size(img,2) - 1);
-		tmp.head(9) = diff(new_ylim) / (size(img,1) - 1);
-		tmp.X = new_xlim;
-		tmp.Y = new_ylim;
+		tmp.head(8) = diff(new_xlim) / (size(Z,2) - 1);
+		tmp.head(9) = diff(new_ylim) / (size(Z,1) - 1);
+		if (handles.validGrid)
+			tmp.X = linspace(tmp.head(1),tmp.head(2), size(Z,2));
+			tmp.Y = linspace(tmp.head(3),tmp.head(4), size(Z,1));
+			zz = grdutils(Z,'-L');
+			tmp.head(5:6) = [zz(1) zz(2)];
+		else
+			tmp.X = new_xlim;		tmp.Y = new_ylim;
+		end
 	end
-	tmp.name = ['Registered (' trfType ') Image'];
-	if (ndims(img) == 2)
+	tmp.name = ['Registered (' trfType ')' toTit];
+	if (ndims(Z) == 2)
 		tmp.cmap = get(handles.figure1,'ColorMap');
 	end
-	mirone(img,tmp);
+	mirone(Z,tmp);
 
 % ---------------------------------------------------------------------------
 function type = checkTransform(type,n_cps)
 % Check that the number of points is enough for the selected transform
 
-switch type
-	case 'affine',				transf = 1;
-	case 'linear conformal',	transf = 2;
-	case 'projective',			transf = 3;
-	case 'polynomial (6 pts)',	transf = 4;
-	case 'polynomial (10 pts)',	transf = 5;
-	case 'polynomial (16 pts)',	transf = 6;
-	case 'piecewise linear',	transf = 7;
-	case 'lwm',					transf = 8;
-	case 'gdal order 1',		transf = 9;
-	case 'gdal order 2',		transf = 10;
-	case 'gdal order 3',		transf = 11;
-	case 'gdal splines',		transf = 12;
-end
+	switch type
+		case 'affine',				transf = 1;
+		case 'linear conformal',	transf = 2;
+		case 'projective',			transf = 3;
+		case 'polynomial (6 pts)',	transf = 4;
+		case 'polynomial (10 pts)',	transf = 5;
+		case 'polynomial (16 pts)',	transf = 6;
+		case 'piecewise linear',	transf = 7;
+		case 'lwm',					transf = 8;
+		case 'gdal order 1',		transf = 9;
+		case 'gdal order 2',		transf = 10;
+		case 'gdal order 3',		transf = 11;
+		case 'gdal splines',		transf = 12;
+	end
 
-msg = '';
-if (transf == 1 && n_cps < 3)
-	msg = 'Minimum Control points for affine transform is 3.';
-elseif (transf == 2 && n_cps < 2)
-	msg = 'Minimum Control points for Linear conformal transform is 2.';
-elseif (transf == 3 && n_cps < 4)
-	msg = 'Minimum Control points for projective transform is 4.';
-elseif (transf == 4 && n_cps < 6)
-	msg = 'Minimum Control points for polynomial order 2 transform is 6.';
-elseif (transf == 5 && n_cps < 6)
-	msg = 'Minimum Control points for polynomial order 3 transform is 10.';
-elseif (transf == 6 && n_cps < 6)
-	msg = 'Minimum Control points for polynomial order 2 transform is 16.';
-elseif (transf == 7 && n_cps < 4)
-	msg = 'Minimum Control points for piecewise linear transform is 4.';
-elseif (transf == 8 && n_cps < 6)
-	msg = 'Minimum Control points for Local weighted mean transform is 6.';
-elseif (transf == 9 && n_cps < 3)
-	msg = 'Minimum Control points for GDAL order 1 is 3.';
-elseif (transf == 10 && n_cps < 6)
-	msg = 'Minimum Control points for GDAL order 2 is 6.';
-elseif (transf == 11 && n_cps < 10)
-	msg = 'Minimum Control points for GDAL order 3 is 10.';
-end
+	msg = '';
+	if (transf == 1 && n_cps < 3)
+		msg = 'Minimum Control points for affine transform is 3.';
+	elseif (transf == 2 && n_cps < 2)
+		msg = 'Minimum Control points for Linear conformal transform is 2.';
+	elseif (transf == 3 && n_cps < 4)
+		msg = 'Minimum Control points for projective transform is 4.';
+	elseif (transf == 4 && n_cps < 6)
+		msg = 'Minimum Control points for polynomial order 2 transform is 6.';
+	elseif (transf == 5 && n_cps < 6)
+		msg = 'Minimum Control points for polynomial order 3 transform is 10.';
+	elseif (transf == 6 && n_cps < 6)
+		msg = 'Minimum Control points for polynomial order 2 transform is 16.';
+	elseif (transf == 7 && n_cps < 4)
+		msg = 'Minimum Control points for piecewise linear transform is 4.';
+	elseif (transf == 8 && n_cps < 6)
+		msg = 'Minimum Control points for Local weighted mean transform is 6.';
+	elseif (transf == 9 && n_cps < 3)
+		msg = 'Minimum Control points for GDAL order 1 is 3.';
+	elseif (transf == 10 && n_cps < 6)
+		msg = 'Minimum Control points for GDAL order 2 is 6.';
+	elseif (transf == 11 && n_cps < 10)
+		msg = 'Minimum Control points for GDAL order 3 is 10.';
+	end
 
-if (strncmp(type,'poly',4))
-    % 'Polynomial (6 pts)', 'Polynomial (10 pts)'; 'Polynomial (16 pts)'
-    polPts = str2double(type(13:14));      % See above why
-    switch polPts
-        case 6,     type = {'polynomial' 2};
-        case 10,    type = {'polynomial' 3};
-        case 16,    type = {'polynomial' 4};
-    end
-else
-	type = {type};
-end
+	if (strncmp(type,'poly',4))
+		% 'Polynomial (6 pts)', 'Polynomial (10 pts)'; 'Polynomial (16 pts)'
+		polPts = str2double(type(13:14));      % See above why
+		switch polPts
+			case 6,     type = {'polynomial' 2};
+			case 10,    type = {'polynomial' 3};
+			case 16,    type = {'polynomial' 4};
+		end
+	else
+		type = {type};
+	end
 
-if (~isempty(msg))
-    errordlg([msg ' Either select more CPs or choose another trasform type'],'Error');
-    type = [];
-end
+	if (~isempty(msg))
+		errordlg([msg ' Either select more CPs or choose another trasform type'],'Error');
+		type = [];
+	end
 
 % -----------------------------------------------------------------------------------------
 function fig_RegMethod(handles)
 % Ctreate or bring to front a small figure with two popups containing the registration options
 
-hFig = handles.figure1;
-h_old = findobj(0,'Type','figure','Tag','fig_RegMethod');
+	hFig = handles.figure1;
+	h_old = findobj(0,'Type','figure','Tag','fig_RegMethod');
 
-if (isempty(h_old))
-    ecran = get(0,'ScreenSize');
-	h = figure('MenuBar','none', 'Name','Registration Method', 'NumberTitle','off','Resize','off',...
- 	'Position',[ecran(3)/2 ecran(4)/2 270 23], 'Tag','RegistMethod', 'Visible','off');
-		
-	% ---------------- Create the popups
-    str1 = {'Affine'; 'Linear conformal'; 'Projective'; 'Polynomial (6 pts)';...
-            'Polynomial (10 pts)'; 'Polynomial (16 pts)'; 'Piecewise linear'; 'Loc weighted mean'; ...
-			'GDAL order 1'; 'GDAL order 2'; 'GDAL order 3'; 'GDAL splines'; };
-	hTrf = uicontrol('Units','Pixels','TooltipString','Type of transformation',...
-        'String', str1, 'Pos',[10 2 130 22],'Style','popupmenu', 'BackgroundColor','w','Tag','Trf');
-    set(hTrf,'Callback',{@cb_trf, hFig, hTrf})
-	
-    str2 = {'bilinear'; 'bicubic'; 'nearest';};
-	hInterp = uicontrol('Units','Pixels','TooltipString','Specifies the form of interpolation to use.',...
-        'String',str2, 'BackgroundColor','w', 'Pos',[160 2 90 22],'Style','popupmenu','Tag','Interp');
-    set(hInterp,'Callback',{@cb_interp, hFig, hInterp})
-    
-    % Start with the last selected value
-    RegistMethod = getappdata(hFig,'RegistMethod');
-	idW = strmatch(RegistMethod{1},lower(str1));
-    if (isempty(idW)),   idW = 8;     end     % Last one is 'lwm' but its text is 'Loc weighted mean'
-    set(hTrf,'Value',idW)
-	id = strmatch(RegistMethod{2},str2);
-    set(hInterp,'Value',id)
-    
-    set(hTrf,'TooltipString',handles.trfToolTips{idW})  % Set the tooltip for the selected method
-    setappdata(hFig,'trfToolTips',handles.trfToolTips)  % Save it in appdata so that it's accessible in the callback
-    
-	set(h,'Visible','on')
-else
-    figure(h_old)
-end
+	if (isempty(h_old))
+		ecran = get(0,'ScreenSize');
+		h = figure('MenuBar','none', 'Name','Registration Method', 'NumberTitle','off','Resize','off',...
+		'Position',[ecran(3)/2 ecran(4)/2 270 23], 'Tag','RegistMethod', 'Visible','off');
+
+		% ---------------- Create the popups
+		str1 = {'Affine'; 'Linear conformal'; 'Projective'; 'Polynomial (6 pts)';...
+				'Polynomial (10 pts)'; 'Polynomial (16 pts)'; 'Piecewise linear'; 'Loc weighted mean'; ...
+				'GDAL order 1'; 'GDAL order 2'; 'GDAL order 3'; 'GDAL splines'; };
+		hTrf = uicontrol('Units','Pixels','TooltipString','Type of transformation',...
+			'String', str1, 'Pos',[10 2 130 22],'Style','popupmenu', 'BackgroundColor','w','Tag','Trf');
+		set(hTrf,'Callback',{@cb_trf, hFig, hTrf})
+
+		str2 = {'bilinear'; 'bicubic'; 'nearest';};
+		hInterp = uicontrol('Units','Pixels','TooltipString','Specifies the form of interpolation to use.',...
+			'String',str2, 'BackgroundColor','w', 'Pos',[160 2 90 22],'Style','popupmenu','Tag','Interp');
+		set(hInterp,'Callback',{@cb_interp, hFig, hInterp})
+
+		% Start with the last selected value
+		RegistMethod = getappdata(hFig,'RegistMethod');
+		idW = strmatch(RegistMethod{1},lower(str1));
+		if (isempty(idW)),   idW = 8;     end     % Last one is 'lwm' but its text is 'Loc weighted mean'
+		set(hTrf,'Value',idW)
+		id = strmatch(RegistMethod{2},str2);
+		set(hInterp,'Value',id)
+
+		set(hTrf,'TooltipString',handles.trfToolTips{idW})  % Set the tooltip for the selected method
+		setappdata(hFig,'trfToolTips',handles.trfToolTips)  % Save it in appdata so that it's accessible in the callback
+
+		set(h,'Visible','on')
+	else
+		figure(h_old)
+	end
 
 %-----------------------------------------------------------------------------------
 function cb_trf(obj,event,hFig,h)
@@ -376,38 +399,38 @@ function cb_interp(obj,event,hFig,h)
 function showGCPnumbers(obj,event,handles)
 % Plot/desplot the GCPs numbers
 
-if (strcmp(get(obj,'Label'),'Show GCP numbers'))
-    
-	hPts = findobj(handles.axes1,'Tag','GCPpolyline');     % Fish them because they might have been edited
-	xSlaves = get(hPts,'Xdata');        ySlaves = get(hPts,'Ydata');
+	if (strcmp(get(obj,'Label'),'Show GCP numbers'))
 
-	% Estimate the text position shift in order that it doesn't fall over the symbols
-	dpis = get(0,'ScreenPixelsPerInch') ;   % screen DPI
-	symb_size = 7 / 72 * 2.54;              % Symbol size in cm (circles size is 7 points)
-	n_texts = numel(xSlaves);
+		hPts = findobj(handles.axes1,'Tag','GCPpolyline');     % Fish them because they might have been edited
+		xSlaves = get(hPts,'Xdata');        ySlaves = get(hPts,'Ydata');
 
-	axUnit = get(handles.axes1,'Units');	set(handles.axes1,'Units','pixels')
-	pos = get(handles.axes1,'Position');    ylim = get(handles.axes1,'Ylim');
-	set(handles.axes1,'Units',axUnit)
-	escala = diff(ylim)/(pos(4)*2.54/dpis); % Image units / cm
-	dy = symb_size * escala;
+		% Estimate the text position shift in order that it doesn't fall over the symbols
+		dpis = get(0,'ScreenPixelsPerInch') ;   % screen DPI
+		symb_size = 7 / 72 * 2.54;              % Symbol size in cm (circles size is 7 points)
+		n_texts = numel(xSlaves);
 
-	for i = 1:n_texts
-		text(xSlaves(i),ySlaves(i)+dy,0,num2str(i),'Fontsize',8,'Tag','GCPnumbers', ...
-			'BackgroundColor','w', 'Margin',0.1, 'VerticalAlignment','cap','Parent',handles.axes1);
+		axUnit = get(handles.axes1,'Units');	set(handles.axes1,'Units','pixels')
+		pos = get(handles.axes1,'Position');    ylim = get(handles.axes1,'Ylim');
+		set(handles.axes1,'Units',axUnit)
+		escala = diff(ylim)/(pos(4)*2.54/dpis); % Image units / cm
+		dy = symb_size * escala;
+
+		for i = 1:n_texts
+			text(xSlaves(i),ySlaves(i)+dy,0,num2str(i),'Fontsize',8,'Tag','GCPnumbers', ...
+				'BackgroundColor','w', 'Margin',0.1, 'VerticalAlignment','cap','Parent',handles.axes1);
+		end
+
+		% Change the uimenus label to "Hide"
+		hS = get(hPts,'uicontextmenu');
+		set(findobj(hS,'Tag','GCPlab'),'Label','Hide GCP numbers')
+	else
+		delete(findobj(handles.axes1,'Type','text','Tag','GCPnumbers'))
+		hPts = findobj(handles.axes1,'Type','line','Tag','GCPpolyline');
+
+		% Change the uimenus labels to "Hide"
+		hS = get(hPts,'uicontextmenu');
+		set(findobj(hS,'Tag','GCPlab'),'Label','Show GCP numbers')
 	end
-
-	% Change the uimenus label to "Hide"
-	hS = get(hPts,'uicontextmenu');
-	set(findobj(hS,'Tag','GCPlab'),'Label','Hide GCP numbers')
-else
-	delete(findobj(handles.axes1,'Type','text','Tag','GCPnumbers'))
-	hPts = findobj(handles.axes1,'Type','line','Tag','GCPpolyline');
-
-	% Change the uimenus labels to "Hide"
-	hS = get(hPts,'uicontextmenu');
-	set(findobj(hS,'Tag','GCPlab'),'Label','Show GCP numbers')
-end
 
 % -------------------------------------------------------------------------------------
 function pix_coords = getPixel_coords(img_length, XData, axes_coord)
