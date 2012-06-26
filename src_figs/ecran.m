@@ -788,8 +788,9 @@ function FileSaveRedMark_CB(hObject, handles)
 		y = handles.data(ind,2);
 		z = handles.data(ind,3);
 		r0 = get_distances([handles.data(1,1) x(1)], [handles.data(1,2) y(1)], handles.geog, handles.measureUnit, handles.ellipsoide);
-		r = get_distances(x, y, handles.geog, handles.measureUnit, handles.ellipsoide);	% This starts conting dist at x(1)
-		double2ascii([PathName FileName],[x(:) y(:) r(:)+r0(2), z(:)],'%f\t%f\t%f\t%f');% add r0 so distances are from start of profile
+		r = get_distances(x, y, handles.geog, handles.measureUnit, handles.ellipsoide);	% This starts counting dist at x(1)
+		% add r0 so distances are from start of profile
+		double2ascii([PathName FileName],[x(:) y(:) r(:)+r0(2), z(:), ind(:)],'%f\t%f\t%f\t%f\t%d');
 	end
 
 % --------------------------------------------------------------------
