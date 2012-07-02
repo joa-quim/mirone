@@ -399,7 +399,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 				insitu = FALSE;		/* Just to be sure */
 				break;
 			case GDT_CInt16:
-				ndims = 3;	dims[2] *= 2;		/* Complex is as if we have the double of Bands */
+				ndims = 3;	dims[2] = 2*nBands;  /* Complex is as if we have the double of Bands */
 				plhs[0] = mxCreateNumericArray (ndims,dims,mxINT16_CLASS, mxREAL);
 				outI16 = mxGetData(plhs[0]);
 				insitu = FALSE;		/* Just to be sure */
@@ -422,7 +422,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 				outF32 = mxGetData(plhs[0]);
 				break;
 			case GDT_CFloat32:
-				ndims = 3;	dims[2] *= 2;		/* Complex is as if we have the double of Bands */
+				ndims = 3;	dims[2] = 2*nBands;  /* Complex is as if we have the double of Bands */
 				plhs[0] = mxCreateNumericArray (ndims,dims,mxSINGLE_CLASS, mxREAL);
 				outF32 = mxGetData(plhs[0]);
 				break;
