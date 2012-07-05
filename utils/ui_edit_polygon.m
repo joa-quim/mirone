@@ -237,11 +237,11 @@ function edit_polygon(obj,evt,h)
 	current_pt = get(s.h_ax, 'CurrentPoint');
 
 	% Find out which vertice is beeing edited. Do that by finding if 'CurrentPoint' is
-	% located inside the square marker region in MAP COORDINATES.
+	% located inside the square marker region in   >>>> MAP COORDINATES <<<<
 	x = get(s.h_pol,'XData');		y = get(s.h_pol,'YData');
 
-	dx = 0.5 *  diff(x_lim) * s.scaleX;
-	dy = 0.5 *  diff(y_lim) * s.scaleY;
+	dx = 0.6 *  diff(x_lim) * s.scaleX;
+	dy = 0.6 *  diff(y_lim) * s.scaleY;
 	x0 = current_pt(1,1) - dx;		x1 = current_pt(1,1) + dx;
 	y0 = current_pt(1,2) - dy;		y1 = current_pt(1,2) + dy;
 	ind = ( x > x0 & x < x1 & y > y0 & y < y1);
