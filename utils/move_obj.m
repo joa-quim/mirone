@@ -1,5 +1,6 @@
 function move_obj(arg)
-% callback function for draggable objects
+% callback function for draggable objects by a left-click
+%
 % Any object can be made draggable via
 %   set(obj, 'ButtonDownFcn', 'move_obj(1)');
 % using deltas allows us to drag big objects
@@ -21,6 +22,8 @@ function move_obj(arg)
 %
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
+
+% $Id$
 
 this_obj = gco;
 last_pos = getappdata(this_obj,'pos');
@@ -57,10 +60,12 @@ switch arg
 				set(this_obj, 'xdata', new_pos(1,:), 'ydata', new_pos(2,:));
 		end
 		setappdata(this_obj,'pos', pos);
-	case 1    % buttondown
-		% start moving
-		% dragging looks better with double buffering on
+
+	case 1    % buttondown, start moving
 		hFig = gcf;
+		if (~strcmp(get(hFig,'selectiontype'), 'normal'))	% Only drag when left-click
+			return
+		end
 		set(hFig, 'DoubleBuffer', 'on');
 		last_pos = get(gca,'CurrentPoint');
 		setappdata(this_obj,'pos', last_pos(1,:));
