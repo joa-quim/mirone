@@ -470,7 +470,7 @@ function seismic_line(obj,evt,hL,opt)
 	end
 
 % -----------------------------------------------------------------------------------------
-function copy_line_object(obj,evt,hFig,hAxes)
+function copy_line_object(obj, evt, hFig, hAxes)
     oldH = gco(hFig);
 	newH = copyobj(oldH,hAxes);
     h = findobj(get(newH,'uicontextmenu'),'label','Save line');
@@ -1133,6 +1133,8 @@ function set_circleGeo_uicontext(h)
 		uimenu(cmenuHand, 'Label', 'Region-Of-Interest', 'Sep','on', 'Call', cb_roi)
 	else
 		uimenu(cmenuHand, 'Label', 'Compute velocity', 'Sep','on', 'Call', {@report_EulerVel,h})
+		uimenu(cmenuHand, 'Label', 'Plot tangent arrow', 'Call', {@report_EulerVel, h, 'tg'})
+		uimenu(cmenuHand, 'Label', 'Plot normal arrow',  'Call', {@report_EulerVel, h, 'no'})
 	end
 	setLineWidth(uimenu(cmenuHand, 'Label', 'Line Width', 'Sep','on'), uictx_LineWidth(h))
 	setLineStyle(uimenu(cmenuHand, 'Label', 'Line Style'), {cb_solid cb_dashed cb_dotted cb_dash_dotted})
@@ -1192,22 +1194,49 @@ function set_circleCart_uicontext(h)
 	setLineColor(uimenu(cmenuHand, 'Label', 'Line Color'), uictx_color(h))
 
 % -----------------------------------------------------------------------------------------
-function report_EulerVel(obj,eventdata,h)
-% Report the volocity and azimuth of a movement around an Euler Pole
+function report_EulerVel(obj, evt, h, opt)
+% 1- Report the volocity and azimuth of a movement around an Euler Pole
+% 2- If OPT is used it must be a string with either 'tg' or 'no' that stands
+%	 for plotting a tangent or normal arror to the circle at the click point.
 
 	s = get(h,'Userdata');
-	[vel, azim] = compute_EulerVel(s.rlat,s.rlon,s.clat,s.clon,s.omega);
+	hAxes = get(h, 'Parent');
+	pt = get(hAxes, 'CurrentPoint');
+	[vel, azim] = compute_EulerVel(pt(1,2),pt(1,1),s.clat,s.clon,s.omega);
 
-	msg = ['Pole name:  ', s.plates, sprintf('\n'), ...
-			'Pole lon = ', sprintf('%3.3f',s.clon), sprintf('\n'), ...
-			'Pole lat = ', sprintf('%2.3f',s.clat), sprintf('\n'), ...
-			'Pole rate = ', sprintf('%.3f',s.omega), sprintf('\n'), ...
-			'At point: ',sprintf('\n'), ...
-			'Lon = ', sprintf('%3.3f',s.rlon), sprintf('\n'), ...
-			'Lat = ', sprintf('%2.3f',s.rlat), sprintf('\n'), ...
-			'Speed (cm/yr) =   ', sprintf('%2.2f',vel), sprintf('\n'), ...
-			'Azimuth (degrees cw from North) = ', sprintf('%3.1f',azim)];
-	msgbox(msg,'Euler velocity')
+	if (nargin == 3)
+		msg = [ sprintf('Pole name:  %s\n', s.plates), ...
+				sprintf('Pole lon  = %3.3f\n',s.clon), ...
+				sprintf('Pole lat   = %2.3f\n',s.clat), ...
+				sprintf('Pole rate = %.3f\n',s.omega), ...
+				sprintf('At point: \n'), ...
+				sprintf('Lon = %3.3f\n',pt(1,1)), ...
+				sprintf('Lat  = %2.3f\n',pt(1,2)), ...
+				sprintf('Speed (cm/yr) =   %2.2f\n',vel), ...
+				sprintf('Azimuth (CW from North) = %3.1f',azim)];
+		msgbox(msg,'Euler velocity')
+	else
+		resp = inputdlg({'Enter scale in points per speed (cm/yr). Default 30 pt = 1 cm/yr'}, ...
+			'Scale pt/velocity', [1 50], {'30'});
+		resp = sscanf(resp{1},'%f');
+		if isnan(resp),		return,		end
+		
+		hFig = get(hAxes, 'Parent');		handles = guidata(hFig);
+		[hscale, vscale] = vectorFirstButtonDown(hFig, handles.axes1);
+		if (~strcmp(opt,'tg')),		azim = azim + 90;		end
+		mag = resp * ((hscale + vscale) / 2) * 111110;		% Length in meters, which is what vreckon wants
+		[lat2,lon2] = vreckon(pt(1,2), pt(1,1), mag, [azim azim], 1);
+		[xt, yt] = make_arrow([pt(1,1) lon2; pt(1,2) lat2] , hscale, vscale, 10);
+	
+		hVec = patch('XData',xt, 'YData', yt,'FaceColor',handles.DefLineColor,'EdgeColor', ...
+			handles.DefLineColor,'LineWidth',handles.DefLineThick,'Tag','Arrow');
+		ud.arrow_xy = [xt; yt];		ud.vFac = 1.3;		ud.headHeight = 10;
+		ud.hscale = hscale;			ud.vscale = vscale;
+		ud.mag = vel;				ud.azim = azim;		% 'mag' is vector magnitude in orig coords (eventual GMT usage)
+		ll = show_LineLength([], evt, hVec);		ud.length = ll.len;
+		set(hVec, 'UserData', ud)
+		set_vector_uicontext(hVec)
+	end
 
 % -----------------------------------------------------------------------------------------
 function [vel, azim] = compute_EulerVel(alat,alon,plat,plon,omega, opt)
@@ -1245,24 +1274,43 @@ function set_vector_uicontext(h)
 	handles = guidata(h);	cmenuHand = uicontextmenu('Parent',handles.figure1);
 	set(h, 'UIContextMenu', cmenuHand);
 	uimenu(cmenuHand, 'Label', 'Delete', 'Call', 'delete(gco)');
-	uimenu(cmenuHand, 'Label', 'Save line', 'Call', {@save_formated,h});
-	uimenu(cmenuHand, 'Label', 'Copy', 'Call', {@copy_line_object,handles.figure1, handles.axes1});
+	uimenu(cmenuHand, 'Label', 'Save line', 'Call', {@save_formated, h});
+	uimenu(cmenuHand, 'Label', 'Copy', 'Call', {@copy_line_object, handles.figure1, handles.axes1});
+	if (handles.geog)		% No solution yet for cartesian arrows
+		uimenu(cmenuHand, 'Label', 'Copy (mirror)', 'Call', {@mirror_arrow, h});
+	end
 	setLineColor(uimenu(cmenuHand, 'Label', 'Line Color','Sep','on'), uictx_color(h,'EdgeColor'))
 	item2 = uimenu(cmenuHand, 'Label','Fill Color');
 	setLineColor( item2, uictx_color(h, 'facecolor') )
 	uimenu(item2, 'Label', 'None', 'Sep','on', 'Call', 'set(gco, ''FaceColor'', ''none'');refresh');
 	uimenu(cmenuHand, 'Label', 'Transparency', 'Call', @set_transparency);
+	ui_edit_polygon(h)
 
 % -----------------------------------------------------------------------------------------
-function fill_Polygon(obj,eventdata,h)
+function mirror_arrow(obj, evt, h)
+% Make a copy of the arrow whose handle is H, but mirrored. That is pointing in the oposite sense
+	handles = guidata(h);
+	ud = get(h, 'UserData');
+	x1 = (ud.arrow_xy(1,end-2) + ud.arrow_xy(1,end-1)) / 2;
+	y1 = (ud.arrow_xy(2,end-2) + ud.arrow_xy(2,end-1)) / 2;
+	[y2, x2] = vreckon(y1, x1, ud.length, [ud.azim ud.azim]+180, 1);
+	[xt, yt] = make_arrow([x1 x2; y1 y2], ud.hscale, ud.vscale, ud.headHeight, ud.vFac);
+	hVec = patch('XData',xt, 'YData', yt,'FaceColor',handles.DefLineColor,'EdgeColor', ...
+		handles.DefLineColor,'LineWidth',handles.DefLineThick,'Tag','Arrow');
+	ud.arrow_xy = [xt; yt];		ud.azim = rem(ud.azim + 180, 360);	% Other ud fields don't need updating
+	set(hVec, 'UserData', ud)
+	set_vector_uicontext(hVec)
+
+% -----------------------------------------------------------------------------------------
+function fill_Polygon(obj, evt, h)
 % Turn a closed polygon into a patch and fill it in light gray by default
 % EXPERIMENTAL CODE. NOT IN USE.
 	x = get(h,'XData');      y = get(h,'YData');
 	patch(x,y,0,'FaceColor',[.7 .7 .7], 'EdgeColor','k');
 
 % -----------------------------------------------------------------------------------------
-function show_swhatRatio(obj,eventdata,h)
-    msgbox(['Swath Ratio for this track is: ' sprintf('%g',getappdata(h,'swathRatio'))],'')
+function show_swhatRatio(obj,evt,h)
+    msgbox(sprintf('Swath Ratio for this track is: %g',getappdata(h,'swathRatio')),'')
 
 % -----------------------------------------------------------------------------------------
 function show_Area(obj,eventdata,h)
@@ -1311,7 +1359,7 @@ function show_Area(obj,eventdata,h)
 	end
 
 % -----------------------------------------------------------------------------------------
-function ll = show_LineLength(obj, eventdata, h, opt)
+function ll = show_LineLength(obj, evt, h, opt)
 % Line length (perimeter if it is a closed polyline). If output argument, return a structure
 % ll.len and ll.type, where "len" is line length and "type" is either 'geog' or 'cart'.
 % For polylines ll.len contains only the total length.
@@ -1411,7 +1459,7 @@ function show_AllTrackLength(obj,eventdata)
 	end
 
 % -----------------------------------------------------------------------------------------
-function azim = show_lineAzims(obj,eventdata,h)
+function azim = show_lineAzims(obj, evt, h)
 % Works either in geog or cart coordinates. Otherwise the result is a non-sense
 % If output argument, return a structure % azim.az and azim.type, where "len" is line
 % azimuth and "type" is either 'geog' or 'cart'.
@@ -1548,35 +1596,45 @@ function hVec = DrawVector
         set(hFig,'Pointer', 'arrow');    hVec = [];
 	end
 
-function vectorFirstButtonDown(hFig,hAxes,h,state)
+function [hs, vs] = vectorFirstButtonDown(hFig,hAxes,h,state)
+% Outputs are used by the report_EulerVel (when PLOTing) function
+
 	pt = get(hAxes, 'CurrentPoint');
  	axLims = getappdata(hAxes,'ThisImageLims');
 	% create a conversion from data to points for the current axis
 	oldUnits = get(hAxes,'Units');			set(hAxes,'Units','points');
 	Pos = get(hAxes,'Position');			set(hAxes,'Units',oldUnits);
-	vscale = 1/Pos(4) * diff(axLims(1:2));	hscale = 1/Pos(3) * diff(axLims(3:4));
+	vscale = 1/Pos(4) * diff(axLims(3:4));	hscale = 1/Pos(3) * diff(axLims(1:2));
 	vscale = (vscale + hscale) / 2;			hscale = vscale;	% For not having a head direction dependency
 	DAR = get(hAxes, 'DataAspectRatio');
 	if (DAR(1) == 1 && DAR(1) ~= DAR(2))	% To account for the "Scale geog images at mean lat" effect
 		vscale = vscale * DAR(2);		hscale = hscale * DAR(1);
 	end
-	set(hFig,'WindowButtonMotionFcn',{@wbm_vector,[pt(1,1) pt(1,2)],h,hAxes,hscale,vscale},'WindowButtonDownFcn',{@wbd_vector,h,state});
+	if (~nargout)
+		set(hFig,'WindowButtonMotionFcn',{@wbm_vector,[pt(1,1) pt(1,2)],h,hAxes,hscale,vscale}, ...
+			'WindowButtonDownFcn',{@wbd_vector, h, state, hscale, vscale});
+	else
+		hs = hscale;	vs = vscale;
+	end
 
-function wbm_vector(obj,eventdata,origin,h,hAxes, hscale, vscale)
+function wbm_vector(obj, evt, origin, h, hAxes, hscale, vscale)
 	pt = get(hAxes, 'CurrentPoint');
 	x  = [origin(1) pt(1,1)];   y = [origin(2) pt(1,2)];
  	set(h(2),'XData',x, 'YData',y)
 	[xt, yt] = make_arrow(h(2) , hscale, vscale);
  	set(h(1),'XData',xt, 'YData',yt);
 
-function wbd_vector(obj,eventdata,h,state)
-	uirestore_j(state, 'nochildren');	% Restore the figure's initial state
+function wbd_vector(obj, evt, h, state, hscale, vscale)
+	uirestore_j(state, 'nochildren');		% Restore the figure's initial state
 	x = get(h(2), 'XData');		y = get(h(2), 'YData');
-	ud.tail = [x; y];		ud.vFac = 1.3;		ud.headHeight = 12;
+	ud.arrow_xy = [x; y];		ud.vFac = 1.3;		ud.headHeight = 12;
+	ud.hscale = hscale;			ud.vscale = vscale;	ud.mag = [];	%'mag' is for vector magnitude in orig coords cases
+	ud.azim = show_lineAzims([], evt, h);	% Compute azimuth (geog or cartesian)
+	ll = show_LineLength([], evt, h);
+	ud.length = ll.len;
 	set(h(1), 'UserData', ud)
-	delete(h(2));						% We don't need this (support) line anymore
+	delete(h(2));							% We don't need this (support) line anymore
 	set_vector_uicontext(h(1))
-    ui_edit_polygon(h(1))
 % -----------------------------------------------------------------
 
 % -----------------------------------------------------------------------------------------
