@@ -15,57 +15,73 @@ function [xt, yt] = make_arrow(lh , hscale, vscale, ah, vFac, full)
 % FULL = 'yes' (default) returns the coord of the full arrow. Otherwise only
 % the coords of the arrow head are returned
 %
-% Reworked version of the ML buildArrow, which leaves inside 
-% ..\toolbox\matlab\graph2d\@arrowline\private\makearrow.m
+% Reworked version of the ML buildArrow
+
 % Joaquim Luis	27-Aug-2008
 
-n_args = nargin;
-if (n_args == 2)
-	vscale = hscale;		ah = 12;	vFac = 1.3;		full = 'yes';
-elseif (n_args == 3)
-	ah = 12;	vFac = 1.3;		full = 'yes';
-elseif (n_args == 4)
-	vFac = 1.3;		full = 'yes';
-elseif (n_args == 5)
-	full = 'yes';
-else
-	error('MAKE_ARROW: Wrong number of arguments')
-end
+% $Id$
 
-if (ishandle(lh))		% get the line width
-	try			lw = get(lh, 'LineWidth');		lw_2 = lw / 2;
-	catch		error('MAKE_ARROW: First argument was a valid line handle')
+	n_args = nargin;
+	if (n_args == 2)
+		vscale = hscale;		ah = 12;	vFac = 1.3;		full = 'yes';
+	elseif (n_args == 3)
+		ah = 12;	vFac = 1.3;		full = 'yes';
+	elseif (n_args == 4)
+		vFac = 1.3;		full = 'yes';
+	elseif (n_args == 5)
+		full = 'yes';
+	elseif (n_args == 0 || n_args > 6)
+		error('MAKE_ARROW: Wrong number of arguments')
 	end
-	X = get(lh, 'XData');	Y = get(lh, 'YData');
-else
-	lw = 1;					lw_2 = lw / 2;		% pretend the line width is 1 pt
-	X = lh(1,:);			Y = lh(2,:);
-end
 
-% calculate the x, and y lengths (in points/map units)
-dx = (X(end) - X(end - 1)) / hscale;
-dy = (Y(end) - Y(end - 1)) / vscale;
+	if (ishandle(lh))		% get the line width
+		try
+			lw = get(lh, 'LineWidth');		lw_2 = lw / 2;
+		catch
+			error('MAKE_ARROW: First argument was a valid line handle')
+		end
+		X = get(lh, 'XData');	Y = get(lh, 'YData');
+	else
+		lw = 1;					lw_2 = lw / 2;		% pretend the line width is 1 pt
+		X = lh(1,:);			Y = lh(2,:);
+	end
 
-% calculate the cosine and sine
-hy = (dx^2 + dy^2)^.5;
-co =  dx / hy;		si =  dy / hy;
+	% calculate the x, and y lengths (in points/map units)
+	dx = (X(end) - X(end - 1)) / hscale;
+	dy = (Y(end) - Y(end - 1)) / vscale;
 
-aw = ah * .66 + lw_2;	% 3 : 2 aspect ratio
-ahV = ah * vFac;		% Sets V shape factor on arrow head
+	% calculate the cosine and sine
+	hy = (dx^2 + dy^2)^.5;
+	co =  dx / hy;		si =  dy / hy;
 
-% determine arrowhead style
-xt = [ -ah,  -ahV,  0,  -ahV, -ah ];
-yt = [ lw_2,  aw/2, 0, -aw/2, -lw_2 ];
+	aw = ah * .66 + lw_2;	% 3 : 2 aspect ratio
+	ahV = ah * vFac;		% Sets V shape factor on arrow head
 
-% rotate the head based on the slope of the last line
-foo = [co -si; si  co] * [xt; yt];
+	% determine arrowhead style
+	xt = [ -ah,  -ahV,  0,  -ahV, -ah ];
+	yt = [ lw_2,  aw/2, 0, -aw/2, -lw_2 ];
 
-% convert points back to to data units and add in the offset
-xt = foo(1,:) * hscale + X(end);
-yt = foo(2,:) * vscale + Y(end);
+	% Offset of the size of arrow head to avoid increasing the total length of that extra size
+	xt_off = [ ah ah ];
+	yt_off = [ 0  0 ];
 
-if (full(1) == 'y')		% Join the line coords as the tail of the full arrow
-	foot_x = [foo(1,end) foo(1,1)] * hscale + X(end-1);
-	foot_y = [foo(2,end) foo(2,1)] * vscale + Y(end-1);
-	xt = [xt foot_x xt(1)];		yt = [yt foot_y yt(1)];
-end
+	% rotate the head based on the slope of the last line
+	foo = [co -si; si  co] * [xt; yt];
+
+	% Rotate the offset
+	foo_off = [co -si; si  co] * [xt_off; yt_off];
+
+	% convert points back to to data units and add in the offset
+	xt = foo(1,:) * hscale + X(end);
+	yt = foo(2,:) * vscale + Y(end);
+
+	if (full(1) == 'y')		% Join the line coords as the tail of the full arrow
+		foot_x = ([foo(1,end) foo(1,1)] + foo_off(1,:)) * hscale + X(end-1);
+		foot_y = ([foo(2,end) foo(2,1)] + foo_off(2,:)) * vscale + Y(end-1);
+		xt = [xt foot_x xt(1)];		yt = [yt foot_y yt(1)];
+
+		if ( hy < ah )		% When head is still longer than dist from initial to final pt draw the header only
+			xt(end-1) = xt(end);		xt(end-2) = xt(end-3);
+			yt(end-1) = yt(end);		yt(end-2) = yt(end-3);
+		end
+	end
