@@ -1229,7 +1229,7 @@ function report_EulerVel(obj, evt, h, opt)
 		[xt, yt] = make_arrow([pt(1,1) lon2; pt(1,2) lat2] , hscale, vscale, 10);
 	
 		hVec = patch('XData',xt, 'YData', yt,'FaceColor',handles.DefLineColor,'EdgeColor', ...
-			handles.DefLineColor,'LineWidth',handles.DefLineThick,'Tag','Arrow');
+			handles.DefLineColor,'LineWidth',0.5,'Tag','Arrow');
 		ud.arrow_xy = [xt; yt];		ud.vFac = 1.3;		ud.headHeight = 10;
 		ud.hscale = hscale;			ud.vscale = vscale;
 		ud.mag = vel;				ud.azim = azim;		% 'mag' is vector magnitude in orig coords (eventual GMT usage)
@@ -1296,7 +1296,7 @@ function mirror_arrow(obj, evt, h)
 	[y2, x2] = vreckon(y1, x1, ud.length, [ud.azim ud.azim]+180, 1);
 	[xt, yt] = make_arrow([x1 x2; y1 y2], ud.hscale, ud.vscale, ud.headHeight, ud.vFac);
 	hVec = patch('XData',xt, 'YData', yt,'FaceColor',handles.DefLineColor,'EdgeColor', ...
-		handles.DefLineColor,'LineWidth',handles.DefLineThick,'Tag','Arrow');
+		handles.DefLineColor,'LineWidth',0.5,'Tag','Arrow');
 	ud.arrow_xy = [xt; yt];		ud.azim = rem(ud.azim + 180, 360);	% Other ud fields don't need updating
 	set(hVec, 'UserData', ud)
 	set_vector_uicontext(hVec)
@@ -1585,8 +1585,9 @@ function other_LineWidth(obj,eventdata,h)
 % -----------------------------------------------------------------------------------------
 function hVec = DrawVector
     hFig = get(0,'CurrentFigure');          handles = guidata(hFig);
-	hVec(1) = patch('XData',[], 'YData', [],'FaceColor',handles.DefLineColor,'EdgeColor',handles.DefLineColor,'LineWidth',handles.DefLineThick,'Tag','Arrow');
-	hVec(2) = line('XData', [], 'YData', [],'Color',handles.DefLineColor,'LineWidth',handles.DefLineThick,'Tag','Arrow');
+	hVec(1) = patch('XData',[], 'YData', [],'FaceColor',handles.DefLineColor,'EdgeColor', ...
+		handles.DefLineColor,'LineWidth',0.5,'Tag','Arrow');
+	hVec(2) = line('XData', [], 'YData', [],'Color',handles.DefLineColor,'LineWidth',0.5,'Tag','Arrow');
 	state = uisuspend_j(hFig);        % Remember initial figure state
 	set(hFig,'Pointer', 'crosshair');
 	w = waitforbuttonpress;
