@@ -731,7 +731,7 @@ if (IamCompiled)
 end
 uimenu('Parent',h, 'Call',['mirone(''FileOpenWebImage_CB'',guidata(gcbo),',...
 	' ''http://www2.clustrmaps.com/stats/maps-clusters/w3.ualg.pt-~jluis-mirone-world.jpg'',''nikles'');'],'Label','See visitors map','Sep','on');
-uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 20 Jun 2012'',''2.4.0dev'')','Label','About','Sep','on');
+uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 10 Jul 2012'',''2.4.0dev'')','Label','About','Sep','on');
 
 %% --------------------------- Build HANDLES and finish things here
 	handles = guihandles(H1);
@@ -748,14 +748,14 @@ uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 20 
 
 % --------------------------------------------------------------------------------------------------
 % We need this function also when the pixval_stsbar get stucked
-function refresca(obj,eventdata)
+function refresca(obj, evt)
 	hFig = get(0,'CurrentFigure');
     set(hFig,'Pointer','arrow');
 	%set(hFig,'Renderer','painters', 'RendererMode','auto')
 	refresh(hFig)
 
 % --------------------------------------------------------------------------------------------------
-function showGDALdrivers(hObj,event)
+function showGDALdrivers(hObj, evt)
 	att   = gdalread('','-M');
 	long  = {att.Driver.DriverLongName}';
 	short = {att.Driver.DriverShortName}';
