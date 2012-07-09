@@ -735,7 +735,7 @@ function push_OK_CB(hObject, handles)
 	if (~strcmp(handles.opt_J_no_scale(1:3),'-JX'))
 		opt_J = [handles.opt_J_no_scale '/' handles.scale handles.which_unit(1)];
 	else        % Linear projection
-		opt_J = [handles.opt_J_no_scale handles.scale handles.which_unit(1)];
+		opt_J = [handles.opt_J_no_scale(1:3) handles.scale handles.which_unit(1)];
 	end
 	val = get(handles.popup_PaperSize,'Value');
 	list = get(handles.popup_PaperSize,'String');
@@ -755,21 +755,21 @@ function push_OK_CB(hObject, handles)
 	end
 
     % Before calling the write script routine we have to find if we have any pscoast stuff
-    if (isempty(handles.opt_psc))       % Means that the pscoast_options was not used
+	if (isempty(handles.opt_psc))       % Means that the pscoast_options was not used
 		if (~isempty(handles.psc_res))  % Means that we have coastlines and will use the Mirone settings
 			handles.opt_psc = [handles.psc_res ' ' handles.psc_opt_W ' ' handles.psc_type_p ' ' handles.psc_type_r];
 		end
-    end
-    if (get(handles.radio_P,'Value')),    opt_P = ' -P';
-    else                                        opt_P = '';
-    end
-    out_msg = build_write_script(handles, opt_J, d_dir, prefix, paper, X0, Y0, opt_P, opt_deg);
-    msg{1} = ['File ' prefix '_mir.' handles.script_type ' successufuly created in:  ' d_dir];
-    if (out_msg)
+	end
+	if (get(handles.radio_P,'Value')),		opt_P = ' -P';
+	else									opt_P = '';
+	end
+	out_msg = build_write_script(handles, opt_J, d_dir, prefix, paper, X0, Y0, opt_P, opt_deg);
+	msg{1} = ['File ' prefix '_mir.' handles.script_type ' successufuly created in:  ' d_dir];
+	if (out_msg)
 		msg{2} = [];   
 		msg{3} = 'WARNING: Read the important message on the header of the script';
-    end
-    msgbox(msg);
+	end
+	msgbox(msg);
 
 %-------------------------------------------------------------------------------------
 function [handles,out] = check_coord_system(handles,coord_system,side)
@@ -1033,7 +1033,7 @@ function out_msg = build_write_script(handles, opt_J, dest_dir, prefix, paper, X
 	end
 	grd_name = handMir.grdname;
 
-%% -------------------- Build -B string ------------------------------------------------
+% --------------------- Build -B string ------------------------------------------------
 	Bx = get(handMir.axes1,'XTick');      d_Bx = diff(Bx);
 	By = get(handMir.axes1,'YTick');      d_By = diff(By);
 	opt_B = ['-B' num2str(d_Bx(1)) '/' num2str(d_By(1)) 'WSen'];
@@ -1105,7 +1105,7 @@ else											% Write a dos batch
 	end
 end
 
-% ------------ Start writing GMT commands --------------------------------
+% ------------- Start writing GMT commands --------------------------------
 script{l} = ' ';            l=l+1;
 script{l} = [comm '-------- Start by creating the basemap frame'];  l=l+1;
 if (~strcmp(sc,'bat'))		% In Unix like sys let the annot_font_size param be controled by the .gmtdefaults
@@ -1209,7 +1209,7 @@ end
 		script(id_cpt) = [];    l=l-1;
 	end
 
-%% ------------- Coastlines section -----------------------------------
+% -------------- Coastlines section -----------------------------------
 	if (have_psc)       % We have pscoast commands
 		script{l} = ' ';                        l=l+1;
 		script{l} = [comm 'Plot coastlines'];   l=l+1;
@@ -1218,7 +1218,7 @@ end
 		script{l} = ['psbasemap ' opt_L ' -R -J -O -K >> ' pb 'ps' pf];    l=l+1;
 	end
 
-%% ------------- Search for contour lines --------------------------------------------------
+% -------------- Search for contour lines --------------------------------------------------
 ALLtextHand = findobj(get(handMir.axes1,'Child'),'Type','text');
 % % If we have focal mecanisms with labels, remove their handles right away
 % h = findobj(ALLtextHand,'Tag','TextMeca');						% I'M NOT SURE ON THIS ONE
@@ -1262,7 +1262,7 @@ if (~isempty(tag) && ~isempty(handMir.grdname))
     end
 end
 
-%% ------------- Search for symbols --------------------------------------------------------
+% -------------- Search for symbols --------------------------------------------------------
 	tag = get(ALLlineHand,'Tag');
 	if (~isempty(tag))
 		h = findobj(ALLlineHand,'Tag','Symbol');
@@ -1276,7 +1276,7 @@ end
 
 		% Search for points as Markers (that is, line with no line - just symbols on vertices)
 		h_shit = get(ALLlineHand,'LineStyle');
-		h_num_shit = strmatch('none',h_shit);
+		h_num_shit = find(strcmp('none', h_shit));
 		if (h_num_shit)
 			id = ismember(h, ALLlineHand(h_num_shit));		% Many, if not all, can be repeated
 			h(id) = [];										% This will remove repeted elements
@@ -1355,7 +1355,7 @@ end
 	end
 % ------------------------------------------------------------------------------------------------
 
-%% ------------- Search for focal mecanisms ----------------------------
+% -------------- Search for focal mecanisms ----------------------------
 ALLpatchHand = findobj(get(handMir.axes1,'Child'),'Type','patch');
 if (~isempty(ALLpatchHand))
 	focHand = findobj(ALLpatchHand,'Tag','FocalMeca');
@@ -1419,7 +1419,7 @@ if (~isempty(ALLpatchHand))
 end
 % -------------------------------------------------------------------------------------------------------
 
-%% ------------- Search for "telhas" ---------------------------------
+% -------------- Search for "telhas" ---------------------------------
 if (~isempty(ALLpatchHand))
 	TelhasHand = findobj(ALLpatchHand,'Tag','tapete');
 	if (~isempty(TelhasHand))
@@ -1439,7 +1439,6 @@ if (~isempty(ALLpatchHand))
 			    script{l} = ['telha ' name_sc ' ' saved.opt_E ' ' saved.opt_I ' ',...
                     saved.opt_N ' ' saved.opt_T ' -Blixo.dat'];     l=l+1;
                 script{l} = ['psxy lixo.dat ' ellips ' -R -J -m -L -O -K >> ' pb 'ps' pf];    l=l+1;
-                %fclose(fid);
             end
         end
         ALLpatchHand = setxor(ALLpatchHand, TelhasHand);       % TelhasHand is processed, so remove it from handles list
@@ -1448,40 +1447,81 @@ if (~isempty(ALLpatchHand))
 end
 % -------------------------------------------------------------------------------------------------------
 
-%% ------------------------------------- Search for countries ----------------------------
+% ------------------------------------- Search for countries -----------------------------
 if (~isempty(ALLpatchHand))
 	% First see about these still remaining patch transparency
 	[ALLpatchHand, hAlfaPatch] = findTransparents(ALLpatchHand);
 	if (isempty(hAlfaPatch)),		haveAlfa = 0;		end			% An extra test
-	
-    AtlasHand = findobj(ALLpatchHand,'Tag','Atlas');
-    if (~isempty(AtlasHand))
-        used_countries = 1;     need_path = 1;
-        n_cts = length(AtlasHand);
-        if (n_cts > 1)                  % We have multiple countries
-            ct_names = cell(n_cts,1);   % To hold the country names
-            for (k=1:n_cts)             % Loop over all countries found and store theyr names
-                ct_names{k} = get(AtlasHand(k),'UserData');
-            end
-        else                            % We have only one country
-            ct_names = {get(AtlasHand(k),'UserData')};
-        end
-        ct_names = unique(ct_names);    % Many countries have several polygons (e.g. islands).
-        name = [prefix_ddir '_country_names.txt'];
-        fid = fopen(name,'wt');
-        fprintf(fid,'%s\n',ct_names{:});        fclose(fid);
+
+	AtlasHand = findobj(ALLpatchHand,'Tag','Atlas');
+	if (~isempty(AtlasHand))
+		used_countries = 1;     need_path = 1;
+		n_cts = length(AtlasHand);
+		if (n_cts > 1)                  % We have multiple countries
+			ct_names = cell(n_cts,1);   % To hold the country names
+			for (k=1:n_cts)             % Loop over all countries found and store theyr names
+				ct_names{k} = get(AtlasHand(k),'UserData');
+			end
+		else                            % We have only one country
+			ct_names = {get(AtlasHand(k),'UserData')};
+		end
+		ct_names = unique(ct_names);    % Many countries have several polygons (e.g. islands).
+		name = [prefix_ddir '_country_names.txt'];
+		fid = fopen(name,'wt');
+		fprintf(fid,'%s\n',ct_names{:});        fclose(fid);
 		script{l} = ' ';				l=l+1;
-        script{l} = [comm ' ---- Plot countries. NOTE: THIS IS NOT A GMT PROGRAM'];   l=l+1;
-        ct_with_pato = getappdata(handMir.figure1,'AtlasResolution');
+		script{l} = [comm ' ---- Plot countries. NOTE: THIS IS NOT A GMT PROGRAM'];   l=l+1;
+		ct_with_pato = getappdata(handMir.figure1,'AtlasResolution');
 		script{l} = [cd filesep 'country_extract -P' name ' ' ct_with_pato ' -C | ',...
-                'psxy ' ellips ' -R -J -W0.5p -m -O -K >> ' pb 'ps' pf];    l=l+1;
-        ALLpatchHand = setxor(ALLpatchHand, AtlasHand);       % AtlasHand is processed, so remove it from handles list
-        clear AtlasHand name n_cts ct_with_pato
-    end
+				'psxy ' ellips ' -R -J -W0.5p -m -O -K >> ' pb 'ps' pf];    l=l+1;
+		ALLpatchHand = setxor(ALLpatchHand, AtlasHand);       % AtlasHand is processed, so remove it from handles list
+		clear AtlasHand name n_cts ct_with_pato
+	end
 end
 % -------------------------------------------------------------------------------------------------------
 
-%% ------------- Search for closed polygons ----------------------------
+% -------------- Search for "Arrows" ---------------------------------
+if (~isempty(ALLpatchHand))
+	thisHand = findobj(ALLpatchHand,'Tag','Arrow');
+	if (~isempty(thisHand))
+		name = [prefix_ddir '_vector.dat'];
+		name_sc = [prefix '_vector.dat'];
+		fid = fopen(name,'wt');
+		n_vectors = length(thisHand);
+		for (i = 1:n_vectors)
+			ud = get(thisHand(i),'UserData');
+			x = (ud.arrow_xy(end-2,1) + ud.arrow_xy(end-1,1)) / 2;		% Base point
+			y = (ud.arrow_xy(end-2,2) + ud.arrow_xy(end-1,2)) / 2;
+
+			% But now we have to check if this arrow has not been displaced
+			x_actual = get(thisHand(i), 'XData');
+			if (x_actual(1) ~= ud.arrow_xy(1))					% Yes, it was
+				x_off = x_actual(1) - ud.arrow_xy(1,1);
+				y_actual = get(thisHand(i), 'YData');
+				y_off = y_actual(1) - ud.arrow_xy(1,2);
+				ud.arrow_xy(:,1) = ud.arrow_xy(:,1) + x_off; 
+				ud.arrow_xy(:,2) = ud.arrow_xy(:,2) + y_off;
+				set(thisHand(i),'UserData',ud)					% Well, take this oportunity to update info
+			end
+
+			FillColor = get(thisHand(i),'FaceColor');
+			opt_G = '';
+			if (~strcmp(FillColor, 'none')),	opt_G = sprintf('-G%d/%d/%d',FillColor*255);	end
+			fprintf(fid,sprintf('> %s\n', opt_G));
+			mag = ud.mag / (((ud.hscale + ud.vscale) / 2) * 111110);	% Reverse of what's in draw_funs->report_EulerVel()
+			fprintf(fid,'%f\t%f\t%.2f\t%.3f\tV0.07c/%.1fp/%.1fp\n',x,y,ud.azim,mag,ud.headHeight*ud.vFac,ud.headHeight/2);
+		end
+		fclose(fid);
+		script{l} = ' ';              l=l+1;
+		script{l} = [comm ' ---- Plot Vectors. --- '];   l=l+1;
+		script{l} = ['psxy ' name_sc ellips ' -S -R -J --MEASURE_UNIT=point --VECTOR_SHAPE=0.77 -m -O -K >> ' pb 'ps' pf];    l=l+1;
+		ALLpatchHand = setxor(ALLpatchHand, thisHand);       % thisHand is processed, so remove it from handles list
+		clear thisHand name name_sc n_vectors 
+	end
+end
+% -------------------------------------------------------------------------------------------------------
+
+% -------------- Search for closed polygons ----------------------------
 	if (~isempty(ALLpatchHand))
 		xx = get(ALLpatchHand,'XData');     yy = get(ALLpatchHand,'YData');
 		n_patch = length(ALLpatchHand);
@@ -1492,8 +1532,8 @@ end
 		if (iscell(EdgeColor)),     EdgeColor = cat(1,EdgeColor{:});     end
 		FillColor = get(ALLpatchHand,'FaceColor');
 		if (iscell(FillColor))
-			resp = strmatch('none',char(FillColor{:}));
-			if (isempty(resp))
+			resp = strcmp('none',FillColor);
+			if (~any(resp))
 				FillColor = cat(1,FillColor{:});
 			else
 				for (i=1:length(resp))					% Signal down that this is a non colored polygon
@@ -1503,8 +1543,8 @@ end
 			end
 		else				% We have only one patch
 			xx = num2cell(xx,1);   yy = num2cell(yy,1);   % Make it a cell for reducing the head-hakes
-			resp = strmatch('none',FillColor);
-			if (~isempty(resp))
+			resp = strcmp('none',FillColor);
+			if (resp)
 				FillColor = [-1 -1 -1];                 % Signal down that this is a non colored polygon
 			end
 		end
@@ -1537,7 +1577,7 @@ end
 		clear ALLpatchHand name name_sc n_patch xx yy LineWidth EdgeColor FillColor cor_edge cor_fill resp
 	end
 
-%% ------------- Search for lines or polylines ----------------------------
+% -------------- Search for lines or polylines ----------------------------
 	if (~isempty(ALLlineHand))      % OK, now the only left line handles must be, plines, mb-tracks, etc
 		xx = get(ALLlineHand,'XData');     yy = get(ALLlineHand,'YData');
 		if (~iscell(xx))            % We have only one line
@@ -1588,7 +1628,7 @@ end
 		clear xx yy cor fid m name name_sc LineStyle LineWidth LineColor
 	end
 
-%% ------------- Search for text strings ---------------------------------------------
+% -------------- Search for text strings ---------------------------------------------
 	if (~isempty(ALLtextHand))      % ALLtextHand was found above in the search for contours -- We (still) have text fields
 		pos = get(ALLtextHand,'Position');      %font = get(ALLtextHand,'FontName');
 		fsize = get(ALLtextHand,'FontSize');    fcolor = get(ALLtextHand,'Color');
@@ -1674,7 +1714,7 @@ end
         end
 	end
 
-%% ------------- Search for colorbar -------------------------------------------
+% -------------- Search for colorbar -------------------------------------------
 	if (strcmp(get(handMir.PalAt,'Check'),'on') || strcmp(get(handMir.PalIn,'Check'),'on'))
 		if (strcmp(get(handMir.PalAt,'Check'),'on')),	axHandle = get(handMir.PalAt,'UserData');
 		else											axHandle = get(handMir.PalIn,'UserData');
@@ -1706,7 +1746,7 @@ end
 	end
 
 % --------------------------------------------------------------------------------------
-%% ------------- See if we have to do a screen capture to 3 RGB grids-------------------
+% -------------- See if we have to do a screen capture to 3 RGB grids-------------------
 	if (~isempty(nameRGB) && ~haveAlfa)
         mirone('File_img2GMT_RGBgrids_CB', handMir, 'image', nameRGB)
 	elseif (~isempty(nameRGB) && haveAlfa)
@@ -1729,7 +1769,7 @@ end
 	end
 
 % ----------------------------------------------------------------------------------------------
-%% ------------------------------------ Write the script ---------------------------------------
+% ------------------------------------- Write the script ---------------------------------------
 	% First do some eventual cleaning
 	if (~isempty(handMir.grdname) && ~used_grd),         script(id_grd) = [];        end;
 	if (strncmp(computer,'PC',2) && (used_grd || used_countries) && need_path && ~strcmp(sc,'bat'))
