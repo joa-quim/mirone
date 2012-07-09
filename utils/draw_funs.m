@@ -1225,15 +1225,16 @@ function report_EulerVel(obj, evt, h, opt)
 		[hscale, vscale] = vectorFirstButtonDown(hFig, handles.axes1);
 		if (~strcmp(opt,'tg')),		azim = azim + 90;		end
 		mag = resp * ((hscale + vscale) / 2) * 111110;		% Length in meters, which is what vreckon wants
-		[lat2,lon2] = vreckon(pt(1,2), pt(1,1), mag, [azim azim], 1);
+
+		[lat2,lon2] = vreckon(pt(1,2), pt(1,1), mag, [azim azim], 1);		% Get arrow tip point
 		[xt, yt] = make_arrow([pt(1,1) lon2; pt(1,2) lat2] , hscale, vscale, 10);
 	
-		hVec = patch('XData',xt, 'YData', yt,'FaceColor',handles.DefLineColor,'EdgeColor', ...
+		hVec = patch('XData',xt, 'YData', yt, 'FaceColor',handles.DefLineColor,'EdgeColor', ...
 			handles.DefLineColor,'LineWidth',0.5,'Tag','Arrow');
-		ud.arrow_xy = [xt; yt];		ud.vFac = 1.3;		ud.headHeight = 10;
+		ud.arrow_xy = [xt(:) yt(:)];		ud.vFac = 1.3;		ud.headHeight = 10;
 		ud.hscale = hscale;			ud.vscale = vscale;
-		ud.mag = vel;				ud.azim = azim;		% 'mag' is vector magnitude in orig coords (eventual GMT usage)
-		ll = show_LineLength([], evt, hVec);		ud.length = ll.len;
+		ud.mag = mag;				ud.azim = azim;
+		ud.length = mag;
 		set(hVec, 'UserData', ud)
 		set_vector_uicontext(hVec)
 	end
@@ -1291,13 +1292,13 @@ function mirror_arrow(obj, evt, h)
 % Make a copy of the arrow whose handle is H, but mirrored. That is pointing in the oposite sense
 	handles = guidata(h);
 	ud = get(h, 'UserData');
-	x1 = (ud.arrow_xy(1,end-2) + ud.arrow_xy(1,end-1)) / 2;
-	y1 = (ud.arrow_xy(2,end-2) + ud.arrow_xy(2,end-1)) / 2;
-	[y2, x2] = vreckon(y1, x1, ud.length, [ud.azim ud.azim]+180, 1);
+	x1 = (ud.arrow_xy(end-2,1) + ud.arrow_xy(end-1,1)) / 2;
+	y1 = (ud.arrow_xy(end-2,2) + ud.arrow_xy(end-1,2)) / 2;
+	[y2, x2] = vreckon(y1, x1, ud.mag, [ud.azim ud.azim]+180, 1);
 	[xt, yt] = make_arrow([x1 x2; y1 y2], ud.hscale, ud.vscale, ud.headHeight, ud.vFac);
 	hVec = patch('XData',xt, 'YData', yt,'FaceColor',handles.DefLineColor,'EdgeColor', ...
 		handles.DefLineColor,'LineWidth',0.5,'Tag','Arrow');
-	ud.arrow_xy = [xt; yt];		ud.azim = rem(ud.azim + 180, 360);	% Other ud fields don't need updating
+	ud.arrow_xy = [xt(:) yt(:)];		ud.azim = rem(ud.azim + 180, 360);	% Other ud fields don't need updating
 	set(hVec, 'UserData', ud)
 	set_vector_uicontext(hVec)
 
@@ -1364,37 +1365,48 @@ function ll = show_LineLength(obj, evt, h, opt)
 % ll.len and ll.type, where "len" is line length and "type" is either 'geog' or 'cart'.
 % For polylines ll.len contains only the total length.
 % 22-09-04  Added OPT option. If it exists, report only total length (for nargout == 0)
+%	2012	OPT can also be used to transmit the coordinates type in which report the result.
 % 22-10-05  H is now only to be used if we whant to specificaly use that handle. Otherwise use []
 % to fish it with gco (MUST use this form to work with copied objects)
 % 16-08-07  H can contain a Mx2 column vector with the line vertices.
 
 	n_args = nargin;
-	if (n_args <= 3),   opt = [];   end
 	if (n_args == 2 || isempty(h)),		h = gco;	end
-	if (n_args == 3)
-        if (size(h,1) >= 2 && size(h,2) == 2)
-            x = h(:,1);     y = h(:,2);
+	if (n_args <= 3)
+		opt = [];
+	elseif (numel(opt) == 1 && isa(opt, 'char'))
+		measureUnit = opt;
+	end
+	if (n_args == 3 || ( numel(h) > 1 && ~any(ishandle(h(:))) ) )
+		if (size(h,1) >= 2 && size(h,2) == 2)
+			x = h(:,1);     y = h(:,2);
 			handles = guidata(get(0,'CurrentFigure'));
-        elseif (ishandle(h))
-            x = get(h,'XData');    y = get(h,'YData');
+		elseif (ishandle(h))
+			x = get(h,'XData');    y = get(h,'YData');
 			handles = guidata(h);
-        end
-	elseif (n_args == 2 || n_args == 4 || length(h) > 1)
+		end
+
+	elseif ( (n_args == 2 || n_args == 4 || length(h) > 1) && ishandle(h) )
         x = get(h,'XData');    y = get(h,'YData');
 		handles = guidata(h);
+
 	else
 		errordlg('Unknown case in show_LineLength()','error'),	return
+	end
+
+	if (isempty(opt))
+		measureUnit = handles.DefineMeasureUnit(1);
 	end
 
 	% Contour lines for example have NaNs and not at the same x,y positions (???)
 	ix = isnan(x);      x(ix) = [];     y(ix) = [];
 	iy = isnan(y);      x(iy) = [];     y(iy) = [];
-	if (handles.geog && handles.DefineMeasureUnit(1) ~= 'u')
+	if (handles.geog && measureUnit ~= 'u')
 		lat_i = y(1:end-1);   lat_f = y(2:end);     clear y;
 		lon_i = x(1:end-1);   lon_f = x(2:end);     clear x;
 		tmp = vdist(lat_i,lon_i,lat_f,lon_f,handles.DefineEllipsoide([1 3]));
 
-		switch handles.DefineMeasureUnit
+		switch measureUnit
 			case 'n'        % Nautical miles
 				scale = 1852;   str_unit = ' NM';
 			case 'k'        % Kilometers
@@ -1421,7 +1433,7 @@ function ll = show_LineLength(obj, evt, h, opt)
 			ll.len = total_len;   ll.type = 'geog';
 		end
 	else
-		dx = diff(x);   dy = diff(y);
+		dx = diff(x);		dy = diff(y);
 		total_len = sum(sqrt(dx.*dx + dy.*dy));
 		if (nargout == 0 && isempty(opt))
 			len_i = sqrt(dx.^2 + dy.^2);
@@ -1628,11 +1640,14 @@ function wbm_vector(obj, evt, origin, h, hAxes, hscale, vscale)
 function wbd_vector(obj, evt, h, state, hscale, vscale)
 	uirestore_j(state, 'nochildren');		% Restore the figure's initial state
 	x = get(h(2), 'XData');		y = get(h(2), 'YData');
-	ud.arrow_xy = [x; y];		ud.vFac = 1.3;		ud.headHeight = 12;
+	xx = get(h(1), 'XData');	yy = get(h(1), 'YData');
+	ud.arrow_xy = [xx(:) yy(:)];		
+	ud.vFac = 1.3;		ud.headHeight = 12;
 	ud.hscale = hscale;			ud.vscale = vscale;	ud.mag = [];	%'mag' is for vector magnitude in orig coords cases
-	ud.azim = show_lineAzims([], evt, h);	% Compute azimuth (geog or cartesian)
-	ll = show_LineLength([], evt, h);
-	ud.length = ll.len;
+	ll = show_lineAzims([], evt, h(1));		% Compute azimuth (geog or cartesian)
+	ud.azim = ll.az(end);
+	ll = show_LineLength([], evt, [x(:) y(:)], 'm');
+	ud.mag = ll.len;
 	set(h(1), 'UserData', ud)
 	delete(h(2));							% We don't need this (support) line anymore
 	set_vector_uicontext(h(1))
