@@ -150,6 +150,11 @@ function hObject = mirone_OpeningFcn(varargin)
 			setappdata(handles.axes1,'MovPolyg','extend')	% Move lines with a Shift-click drag-n-drop
 		end
 		handles.bg_color = prf.nanColor;
+	catch
+		% We need also to create an empty pref file to not error in CloseRequestFcn if not truly updated first
+		if (~handles.version7),		save([handles.path_data 'mirone_pref.mat'],'fsep')			% R <= 13
+		else						save([handles.path_data 'mirone_pref.mat'],'fsep', '-v6')
+		end		
 	end
 
 	j = false(1,numel(handles.last_directories));			% vector for eventual cleaning non-existing dirs
@@ -1639,7 +1644,7 @@ function showRADARSAT(handles, att, fname, Z)
 
 	if (isempty(att.ProjectionRef))								% No georeferenced image
 		X = 1:att.RasterXSize;		Y = 1:att.RasterYSize;
-		ax_dir = 'xy';				handles.image_type = 1;
+		handles.image_type = 1;
 		att.GMT_hdr(1:4) = [X(1) X(end) Y(1) Y(end)];			% Make them grid reg
 	else
 		error('FDeu-se')
@@ -2960,34 +2965,35 @@ function FileOpenSession_CB(handles, fname)
 	end
 
 	set(handles.figure1,'pointer','watch')
-	load([PathName FileName])
-	if (strcmpi(grd_name(max(numel(grd_name)-3,1):end),'.mat')),	grd_name = [];		end		% Otherwise infinite loop below
+	s = load([PathName FileName]);
+	if (strcmpi(s.grd_name(max(numel(s.grd_name)-3,1):end),'.mat')),	s.grd_name = [];		end		% Otherwise infinite loop below
 
-	tala = (~isempty(grd_name) && exist(grd_name,'file') == 2);		flagIllum = true;	% Illuminate (if it is the case)
-	if (~tala && ~isempty(grd_name))						% Give user a 2nd chance to tell where the grid is
-		[PathName FileName EXT] = fileparts(grd_name);
+	tala = (~isempty(s.grd_name) && exist(s.grd_name,'file') == 2);		flagIllum = true;	% Illuminate (if it is the case)
+	if (~tala && ~isempty(s.grd_name))						% Give user a 2nd chance to tell where the grid is
+		[PathName FileName EXT] = fileparts(s.grd_name);
 		resp = inputdlg({'Full name (with path) of missing grid:'},'Where is the grid?',[1 60],{['.....' filesep FileName EXT]});
 		if (~isempty(resp))
-			grd_name = resp{1};
-			tala = exist(grd_name,'file');
+			s.grd_name = resp{1};
+			tala = exist(s.grd_name,'file');
 			if (~tala)
 				warndlg('The name provided doesn''t exist either. Give up trying to help you.','Warning')
-				grd_name = [];		% In this case we need this as empty
+				s.grd_name = [];		% In this case we need this as empty
 			end
 		else
-			grd_name = [];			% In this case we need this as empty
+			s.grd_name = [];			% In this case we need this as empty
 		end
 	end
-	if (isempty(grd_name) || tala == 0)
+	if (isempty(s.grd_name) || tala == 0)
 		scrsz = get(0,'ScreenSize');			% Get screen size
-		dx = map_limits(2) - map_limits(1);		dy = map_limits(4) - map_limits(3);
+		dx = s.map_limits(2) - s.map_limits(1);
+		dy = s.map_limits(4) - s.map_limits(3);
 		aspect = dy / dx;
 		nx = round(scrsz(3)*.75);		ny = round(nx * aspect);
 		if (ny > scrsz(4) - 30)
 			ny = scrsz(4) - 30;			nx = round(ny / aspect);
 		end
 		Z = repmat(uint8(255),ny,nx);			% Create a white image
-		X = [map_limits(1) map_limits(2)];		Y = [map_limits(3) map_limits(4)];
+		X = [s.map_limits(1) s.map_limits(2)];	Y = [s.map_limits(3) s.map_limits(4)];
 		x_inc = diff(X) / nx;					y_inc = diff(Y) / ny;
 		dx2 = x_inc / 2;						dy2 = y_inc / 2;
 		X = X + [dx2 -dx2];						Y = Y + [dy2 -dy2];		% Make it such that the pix-reg info = region
@@ -2995,153 +3001,157 @@ function FileOpenSession_CB(handles, fname)
 		handles.image_type = 20;
 		set(handles.figure1,'Colormap', ones( size(get(handles.figure1,'Colormap'),1), 3))
 		handles = show_image(handles,'Mirone Base Map',X,Y,Z,0,'xy',1);
-		if ( isequal(map_limits, [-0.5 0.5 -0.5 0.5]) )				% Special region to draw GMT symbols
+		if ( isequal(s.map_limits, [-0.5 0.5 -0.5 0.5]) )				% Special region to draw GMT symbols
 			aux_funs('addUI', handles)
 		end
 	else
-		drv = aux_funs('findFileType',grd_name);
-		erro = gateLoadFile(handles,drv,grd_name);		% It loads the file (or dies)
+		drv = aux_funs('findFileType', s.grd_name);
+		erro = gateLoadFile(handles, drv, s.grd_name);		% It loads the file (or dies)
 		if (erro),		set(handles.figure1,'pointer','arrow'),		return,		end		% Error message already issued
-		set(handles.figure1,'Colormap',img_pal);
+		set(handles.figure1,'Colormap',s.img_pal);
 		handles = guidata(handles.figure1);				% Get the updated version
-		handles.origCmap = img_pal;
+		handles.origCmap = s.img_pal;
 	end
 
 	% Have to use a try-catch because of the f. compiler bugs ("exist" won't work)
-	try,		illumComm;
-	catch,		illumComm = '';		flagIllum = false;
+	try,		s.illumComm;
+	catch,		s.illumComm = '';		flagIllum = false;
 	end
-	try,		illumType;
+	try,		s.illumType;
 	catch
-		if ( numel(strfind(illumComm,'/')) == 5 ),		illumType = 4;		end		% Lambertian
-		illumType = 1;		% Test only one case where this might be otherwise
+		if ( numel(strfind(s.illumComm,'/')) == 5 ),		s.illumType = 4;		end		% Lambertian
+		s.illumType = 1;		% Test only one case where this might be otherwise
 	end
 
-	if (~isempty(grd_name) && ~isempty(illumComm) && flagIllum)
+	if (~isempty(s.grd_name) && ~isempty(s.illumComm) && flagIllum)
 		[X,Y,Z,head] = load_grd(handles,'silent');
-		handles.Illumin_type = illumType;
+		handles.Illumin_type = s.illumType;
 		if (handles.Illumin_type == 1)
-			if (handles.geog),	R = grdgradient_m(Z,head,'-M',illumComm,'-Nt');
-			else				R = grdgradient_m(Z,head,illumComm,'-Nt');
+			if (handles.geog),	R = grdgradient_m(Z,head,'-M', s.illumComm,'-Nt');
+			else				R = grdgradient_m(Z,head, s.illumComm,'-Nt');
 			end
 		else
-			R = grdgradient_m(Z,head,illumComm,'-a1');
+			R = grdgradient_m(Z,head, s.illumComm,'-a1');
 		end
 		zz = ind2rgb8(get(handles.hImg,'CData'),get(handles.figure1,'ColorMap'));
 		zz = shading_mat(zz,R,'no_scale');		set(handles.hImg,'CData',zz)		% and now it is illuminated
-		setappdata(handles.figure1,'illumComm',illumComm)		% Save the 'illumComm' in this new fig
+		setappdata(handles.figure1,'illumComm', s.illumComm)		% Save the 'illumComm' in this new fig
 	end
 
-	if (haveMBtrack)				% case of MB tracks
-		for (i = 1:length(MBtrack))
-			h_line = line('Xdata',MBtrack(i).x,'Ydata',MBtrack(i).y,'Parent',handles.axes1,'LineWidth',MBtrack(i).LineWidth,...
-				'color',MBtrack(i).color,'Tag',MBtrack(i).tag, 'LineStyle',MBtrack(i).LineStyle);
-			setappdata(h_line,'swathRatio',MBtrack(i).swathRatio)
+	if (s.haveMBtrack)				% case of MB tracks
+		for (i = 1:length(s.MBtrack))
+			h_line = line('Xdata',s.MBtrack(i).x,'Ydata',s.MBtrack(i).y,'Parent',handles.axes1, ...
+				'LineWidth',s.MBtrack(i).LineWidth, 'color',s.MBtrack(i).color,'Tag', s.MBtrack(i).tag, ...
+				'LineStyle', s.MBtrack(i).LineStyle);
+			setappdata(h_line,'swathRatio',s.MBtrack(i).swathRatio)
 			draw_funs(h_line,'MBtrackUictx')		% Set track's uicontextmenu
 		end
-		for (i = 1:length(MBbar))	% now their's bars
-			h_bar = line('Xdata',MBbar(i).x,'Ydata',MBbar(i).y,'Parent',handles.axes1,'LineWidth',MBbar(i).LineWidth,...
-				'color',MBbar(i).color,'Tag',MBbar(i).tag,'UserData',MBbar(i).n_vert, 'LineStyle',MBbar(i).LineStyle);
+		for (i = 1:length(s.MBbar))	% now their's bars
+			h_bar = line('Xdata',s.MBbar(i).x,'Ydata',s.MBbar(i).y,'Parent',handles.axes1,'LineWidth',s.MBbar(i).LineWidth,...
+				'color',s.MBbar(i).color,'Tag',s.MBbar(i).tag,'UserData',s.MBbar(i).n_vert, 'LineStyle',s.MBbar(i).LineStyle);
 			draw_funs(h_bar,'MBbarUictx')			% Set track bar's uicontextmenu
 		end
 		handles.hMBplot = h_line;
 	end
-	if (haveCircleGeo)				% case of Geographic circles
-		for (i = 1:length(CircleGeo))
-			h_circ = line('Xdata',CircleGeo(i).x,'Ydata',CircleGeo(i).y,'Parent',handles.axes1,'LineWidth',CircleGeo(i).LineWidth,...
-				'color',CircleGeo(i).color,'Tag',CircleGeo(i).tag, 'LineStyle',CircleGeo(i).LineStyle);
-			setappdata(h_circ,'LonLatRad',CircleGeo(i).lon_lat_rad);
-			CircleGeo(i).ud.hcirc = h_circ;					CircleGeo(i).ud.parent = handles.axes1;
-			CircleGeo(i).ud.h_fig = handles.figure1;		CircleGeo(i).ud.h_axes = handles.axes1;
-			set(h_circ,'UserData',CircleGeo(i).ud,'buttondownfcn','uicirclegeo(''circlemousedown'')')
+	if (s.haveCircleGeo)				% case of Geographic circles
+		for (i = 1:length(s.CircleGeo))
+			h_circ = line('Xdata',s.CircleGeo(i).x,'Ydata',s.CircleGeo(i).y,'Parent',handles.axes1, ...
+				'LineWidth',s.CircleGeo(i).LineWidth, 'color',s.CircleGeo(i).color,'Tag',s.CircleGeo(i).tag, ...
+				'LineStyle',s.CircleGeo(i).LineStyle);
+			setappdata(h_circ,'LonLatRad',s.CircleGeo(i).lon_lat_rad);
+			s.CircleGeo(i).ud.hcirc = h_circ;				s.CircleGeo(i).ud.parent = handles.axes1;
+			s.CircleGeo(i).ud.h_fig = handles.figure1;		s.CircleGeo(i).ud.h_axes = handles.axes1;
+			set(h_circ,'UserData',s.CircleGeo(i).ud,'buttondownfcn','uicirclegeo(''circlemousedown'')')
 			draw_funs(h_circ,'SessionRestoreCircle')		% Set circle's uicontextmenu
 		end
 	end
-	if (haveCircleCart)				% case of Cartesian circles
-		for (i = 1:length(CircleCart))
-			h_circ = line('Xdata',CircleCart(i).x,'Ydata',CircleCart(i).y,'Parent',handles.axes1,'LineWidth',CircleCart(i).LineWidth,...
-				'color',CircleCart(i).color,'Tag',CircleCart(i).tag, 'LineStyle',CircleCart(i).LineStyle);
-			setappdata(h_circ,'LonLatRad',CircleCart(i).lon_lat_rad);
+	if (s.haveCircleCart)				% case of Cartesian circles
+		for (i = 1:length(s.CircleCart))
+			h_circ = line('Xdata',s.CircleCart(i).x,'Ydata',s.CircleCart(i).y,'Parent',handles.axes1, ...
+				'LineWidth',s.CircleCart(i).LineWidth, 'color', s.CircleCart(i).color, 'Tag',s.CircleCart(i).tag, ...
+				'LineStyle',s.CircleCart(i).LineStyle);
+			setappdata(h_circ,'LonLatRad',s.CircleCart(i).lon_lat_rad);
 			x = linspace(-pi,pi,360);
 			setappdata(h_circ,'X',cos(x));		setappdata(h_circ,'Y',sin(x))	% Save unit circle coords
-			CircleCart(i).ud.hcirc = h_circ;
-			CircleCart(i).ud.parent = handles.axes1;
+			s.CircleCart(i).ud.hcirc = h_circ;
+			s.CircleCart(i).ud.parent = handles.axes1;
 			draw_funs(h_circ,'SessionRestoreCircleCart')		% Set circle's uicontextmenu
 		end
 	end
-	if (havePline)					% case of polylines
-		for (i = 1:length(Pline))
-			h_line = line('Xdata',Pline(i).x,'Ydata',Pline(i).y,'Parent',handles.axes1,'LineWidth',Pline(i).LineWidth,...
-				'color',Pline(i).color,'Tag',Pline(i).tag, 'LineStyle',Pline(i).LineStyle);
-			if (isfield(Pline(i),'Marker'))				% New in 21-9-2011
-				set(h_line, 'Marker', Pline(i).Marker, 'MarkerSize',Pline(i).Size, ...
-					'MarkerFaceColor',Pline(i).FillColor, 'MarkerEdgeColor',Pline(i).EdgeColor)
+	if (s.havePline)					% case of polylines
+		for (i = 1:length(s.Pline))
+			h_line = line('Xdata',s.Pline(i).x,'Ydata',s.Pline(i).y,'Parent',handles.axes1,'LineWidth',s.Pline(i).LineWidth,...
+				'color',s.Pline(i).color,'Tag',s.Pline(i).tag, 'LineStyle',s.Pline(i).LineStyle);
+			if (isfield(s.Pline(i),'Marker'))					% New in 21-9-2011
+				set(h_line, 'Marker', s.Pline(i).Marker, 'MarkerSize',s.Pline(i).Size, ...
+					'MarkerFaceColor',s.Pline(i).FillColor, 'MarkerEdgeColor',s.Pline(i).EdgeColor)
 			end
-			if (isfield(Pline(i),'LineInfo') && ~isempty(Pline(i).LineInfo))
-				setappdata(h_line,'LineInfo',Pline(i).LineInfo)
+			if (isfield(s.Pline(i),'LineInfo') && ~isempty(s.Pline(i).LineInfo))
+				setappdata(h_line,'LineInfo',s.Pline(i).LineInfo)
 				set(h_line,'UserData',1)
-				draw_funs(h_line,'isochron',{Pline(i).LineInfo})
-			elseif (isfield(Pline(i),'cont_label') && ~isempty(Pline(i).cont_label))
-				setappdata(h_line,'cont_label',Pline(i).cont_label)		% Used in write_script
-				set(h_line,'UserData',Pline(i).cont_label)				% Not sure if realy worth save this in UD
+				draw_funs(h_line,'isochron',{s.Pline(i).LineInfo})
+			elseif (isfield(s.Pline(i),'cont_label') && ~isempty(s.Pline(i).cont_label))
+				setappdata(h_line,'cont_label',s.Pline(i).cont_label)		% Used in write_script
+				set(h_line,'UserData',s.Pline(i).cont_label)				% Not sure if realy worth save this in UD
 				draw_funs(h_line,'ContourLines','')		% The empty ('') is h_lable in DrawContours.
 			else
 				draw_funs(h_line,'line_uicontext')		% Set lines's uicontextmenu
 			end
 		end
 	end
-	if (havePlineAsPoints)			% case of polylines as points (markers) only
-		for i=1:length(PlineAsPoints)
-			h_line_pt = line('Xdata',PlineAsPoints(i).x, 'Ydata',PlineAsPoints(i).y,'Parent',handles.axes1, 'LineStyle','none', ...
-				'Marker',PlineAsPoints(i).Marker, 'MarkerSize',PlineAsPoints(i).Size, ...
-				'MarkerFaceColor',PlineAsPoints(i).FillColor, ...
-				'MarkerEdgeColor',PlineAsPoints(i).EdgeColor, 'Tag',PlineAsPoints(i).tag);
+	if (s.havePlineAsPoints)			% case of polylines as points (markers) only
+		for (i = 1:length(s.PlineAsPoints))
+			h_line_pt = line('Xdata',s.PlineAsPoints(i).x, 'Ydata',s.PlineAsPoints(i).y,'Parent',handles.axes1, ...
+				'LineStyle','none', 'Marker',s.PlineAsPoints(i).Marker, 'MarkerSize',s.PlineAsPoints(i).Size, ...
+				'MarkerFaceColor',s.PlineAsPoints(i).FillColor, 'MarkerEdgeColor',s.PlineAsPoints(i).EdgeColor, ...
+				'Tag',s.PlineAsPoints(i).tag);
 			draw_funs(h_line_pt,'DrawSymbol')		% Set marker's uicontextmenu (tag is very important)
 		end
 	end
-	if (haveSymbol)					% case of Symbols (line Markers)
-		for i=1:length(Symbol)
-			h_symb = line('Xdata',Symbol(i).x,'Ydata',Symbol(i).y,'Parent',handles.axes1,'Marker',Symbol(i).Marker,'MarkerSize',...
-				Symbol(i).Size,'MarkerFaceColor',Symbol(i).FillColor, 'MarkerEdgeColor',Symbol(i).EdgeColor, 'Tag',Symbol(i).tag);
+	if (s.haveSymbol)					% case of Symbols (line Markers)
+		for (i = 1:length(s.Symbol))
+			h_symb = line('Xdata',s.Symbol(i).x, 'Ydata',s.Symbol(i).y, 'Parent',handles.axes1,'Marker', ...
+				s.Symbol(i).Marker,'MarkerSize', s.Symbol(i).Size,'MarkerFaceColor', s.Symbol(i).FillColor, ...
+				'MarkerEdgeColor', s.Symbol(i).EdgeColor, 'Tag',s.Symbol(i).tag);
 			draw_funs(h_symb,'DrawSymbol')			% Set symbol's uicontextmenu
 		end
 	end
-	if (haveText)					% case of text strings
-		try,	Texto;				% Compatibility issue (Use a try because of compiler bugs)
+	if (s.haveText)					% case of text strings
+		try,	s.Texto;			% Compatibility issue (Use a try because of compiler bugs)
 		catch
 			% Do it this way because compiled version canot tel 'Text' from 'text'
 			t = load([PathName FileName],'Text');	Texto = t.Text;
 		end
-		for (i = 1:length(Texto))
-			if (isempty(Texto(i).str)),		continue,	end
-			h_text = text(Texto(i).pos(1),Texto(i).pos(2),Texto(i).pos(3), Texto(i).str,...
-				'Parent',handles.axes1, 'Rotation',Texto(i).angle,...
-				'FontAngle',Texto(i).FontAngle, 'Tag',Texto(i).Tag, 'FontWeight',Texto(i).FontWeight,...
-				'color',Texto(i).color, 'FontName',Texto(i).FontName, 'FontSize',Texto(i).FontSize);
-			if (isfield(Texto(i),'VerticalAlignment')),		set(h_text,'VerticalAlignment',Texto(i).VerticalAlignment),			end
-			if (isfield(Texto(i),'HorizontalAlignment')),	set(h_text,'HorizontalAlignment',Texto(i).HorizontalAlignment),		end
+		for (i = 1:length(s.Texto))
+			if (isempty(s.Texto(i).str)),		continue,	end
+			h_text = text(s.Texto(i).pos(1), s.Texto(i).pos(2), s.Texto(i).pos(3), s.Texto(i).str,...
+				'Parent',handles.axes1, 'Rotation',s.Texto(i).angle,...
+				'FontAngle',s.Texto(i).FontAngle, 'Tag',s.Texto(i).Tag, 'FontWeight',s.Texto(i).FontWeight,...
+				'color',s.Texto(i).color, 'FontName',s.Texto(i).FontName, 'FontSize',s.Texto(i).FontSize);
+			if (isfield(s.Texto(i),'VerticalAlignment')),	set(h_text,'VerticalAlignment',s.Texto(i).VerticalAlignment),			end
+			if (isfield(s.Texto(i),'HorizontalAlignment')),	set(h_text,'HorizontalAlignment',s.Texto(i).HorizontalAlignment),		end
 			draw_funs(h_text,'DrawText')		% Set texts's uicontextmenu
 		end
 	end
-	try,	havePatches;		% 'Try' because compiler BUGs
-	catch,	havePatches = false;
+	try,	s.havePatches;		% 'Try' because compiler BUGs
+	catch,	s.havePatches = false;
 	end
-	if (havePatches)			% case of patchs - NOTE, the Tags are currently lost 
-		for (i = 1:numel(Patches))
+	if (s.havePatches)			% case of patchs - NOTE, the Tags are currently lost 
+		for (i = 1:numel(s.Patches))
 			is_telha = false;
-			if (strcmp(Patches(i).tag,'tapete_R') || strcmp(Patches(i).tag,'tapete'))
-				Patches(i).x = reshape(Patches(i).x,4,numel(Patches(i).x)/4);
-				Patches(i).y = reshape(Patches(i).y,4,numel(Patches(i).y)/4);
+			if (strcmp(s.Patches(i).tag,'tapete_R') || strcmp(s.Patches(i).tag,'tapete'))
+				s.Patches(i).x = reshape(s.Patches(i).x,4,numel(s.Patches(i).x)/4);
+				s.Patches(i).y = reshape(s.Patches(i).y,4,numel(s.Patches(i).y)/4);
 				is_telha = true;
 			end
-			h_patch = patch('XData',Patches(i).x, 'YData',Patches(i).y, 'Parent',handles.axes1,'LineWidth',Patches(i).LineWidth,...
-				'EdgeColor',Patches(i).EdgeColor, 'FaceColor',Patches(i).FaceColor,...
-				'LineStyle',Patches(i).LineStyle, 'Tag', Patches(i).tag);
-			set(h_patch,'UserData',Patches(i).ud)
-			if (isfield(Patches(i),'appd') && ~isempty(Patches(i).appd))	% Need the isfield test for backward compat
-				fdnames = fieldnames(Patches(i).appd);
+			h_patch = patch('XData',s.Patches(i).x, 'YData',s.Patches(i).y, 'Parent',handles.axes1, ...
+				'LineWidth',s.Patches(i).LineWidth, 'EdgeColor',s.Patches(i).EdgeColor, 'FaceColor',s.Patches(i).FaceColor,...
+				'LineStyle',s.Patches(i).LineStyle, 'Tag', s.Patches(i).tag);
+			set(h_patch,'UserData',s.Patches(i).ud)
+			if (isfield(s.Patches(i),'appd') && ~isempty(s.Patches(i).appd))	% Need the isfield test for backward compat
+				fdnames = fieldnames(s.Patches(i).appd);
 				for (fd = 1:numel(fdnames))
-					setappdata(h_patch, fdnames{fd}, Patches(i).appd.(fdnames{fd}))
+					setappdata(h_patch, fdnames{fd}, s.Patches(i).appd.(fdnames{fd}))
 				end
 			end
 			if (is_telha)
@@ -3151,26 +3161,26 @@ function FileOpenSession_CB(handles, fname)
 			end
 		end
 		try				% 'MecaMag5' is new (20-9-2011), so we must use a try
-			if (~isempty(MecaMag5)),	setappdata(handles.figure1, 'MecaMag5', MecaMag5),	end
+			if (~isempty(s.MecaMag5)),	setappdata(handles.figure1, 'MecaMag5', s.MecaMag5),	end
 		end
 	end
 	try
-		if (haveCoasts),	datasets_funs('CoastLines', handles,coastUD);  end
-		if (havePolitic)
-			if (iscell(politicUD)),		politicUD = politicUD{1};	end
-			datasets_funs('Political',handles,politicUD(2),politicUD(1));
+		if (s.haveCoasts),	datasets_funs('CoastLines', handles, s.coastUD);  end
+		if (s.havePolitic)
+			if (iscell(s.politicUD)),		s.politicUD = s.politicUD{1};	end
+			datasets_funs('Political',handles, s.politicUD(2), s.politicUD(1));
 		end
-		if (haveRivers)
-			if (iscell(riversUD)),		riversUD = riversUD{1};		end
-			datasets_funs('Rivers', handles,riversUD(2),riversUD(1));
+		if (s.haveRivers)
+			if (iscell(s.riversUD)),		s.riversUD = s.riversUD{1};		end
+			datasets_funs('Rivers', handles, s.riversUD(2), s.riversUD(1));
 		end
 	end
 	guidata(handles.figure1, handles);
 	handles.fileName = [PathName FileName];		% TRICK. To be used only in the next call to recentFiles()
 	handles = recentFiles(handles);				% Insert session into "Recent Files" & NOT NOT NOT save handles
 	set(handles.figure1,'pointer','arrow','Name',[PathName FileName])
-	if (tala == 0 && ~isempty(grd_name))		% Only now to not mess with the "current figure"
-		warndlg(['The file ' grd_name ' doesn''t exists on the directory it was when the session was saved. Put it back there.'],'Warning')
+	if (tala == 0 && ~isempty(s.grd_name))		% Only now to not mess with the "current figure"
+		warndlg(['The file ' s.grd_name ' doesn''t exists on the directory it was when the session was saved. Put it back there.'],'Warning')
 	end
 
 % ------------------------------------------------------------------------------------------------
