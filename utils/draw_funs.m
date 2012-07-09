@@ -1285,7 +1285,7 @@ function set_vector_uicontext(h)
 	setLineColor( item2, uictx_color(h, 'facecolor') )
 	uimenu(item2, 'Label', 'None', 'Sep','on', 'Call', 'set(gco, ''FaceColor'', ''none'');refresh');
 	uimenu(cmenuHand, 'Label', 'Transparency', 'Call', @set_transparency);
-	ui_edit_polygon(h)
+	set(h, 'ButtonDownFcn', 'move_obj(1)')
 
 % -----------------------------------------------------------------------------------------
 function mirror_arrow(obj, evt, h)
@@ -1596,17 +1596,17 @@ function other_LineWidth(obj,eventdata,h)
 
 % -----------------------------------------------------------------------------------------
 function hVec = DrawVector
-    hFig = get(0,'CurrentFigure');          handles = guidata(hFig);
+    hFig = get(0,'CurrentFigure');		handles = guidata(hFig);
 	hVec(1) = patch('XData',[], 'YData', [],'FaceColor',handles.DefLineColor,'EdgeColor', ...
 		handles.DefLineColor,'LineWidth',0.5,'Tag','Arrow');
 	hVec(2) = line('XData', [], 'YData', [],'Color',handles.DefLineColor,'LineWidth',0.5,'Tag','Arrow');
-	state = uisuspend_j(hFig);        % Remember initial figure state
+	state = uisuspend_j(hFig);			% Remember initial figure state
 	set(hFig,'Pointer', 'crosshair');
 	w = waitforbuttonpress;
-	if w == 0       % A mouse click
+	if (w == 0)							% A mouse click
         vectorFirstButtonDown(hFig,handles.axes1,hVec,state)
 	else
-        set(hFig,'Pointer', 'arrow');    hVec = [];
+        set(hFig,'Pointer', 'arrow');	hVec = [];
 	end
 
 function [hs, vs] = vectorFirstButtonDown(hFig,hAxes,h,state)
