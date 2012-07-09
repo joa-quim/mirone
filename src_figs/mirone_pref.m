@@ -55,8 +55,8 @@ function varargout = mirone_pref(varargin)
 		% We need also to create an empty pref file that will be updated by push_OK_CB
 		version7 = version;
 		V7 = (sscanf(version7(1),'%f') > 6);
-		if (~V7),		save([handMir.path_data 'mirone_pref.mat'])			% R <= 13
-		else			save([handMir.path_data 'mirone_pref.mat'],'-v6')
+		if (~V7),		save([handMir.path_data 'mirone_pref.mat'],'V7')			% R <= 13
+		else			save([handMir.path_data 'mirone_pref.mat'],'V7','-v6')
 		end
 	end
 
