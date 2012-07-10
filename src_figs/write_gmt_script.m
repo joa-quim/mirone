@@ -1707,7 +1707,7 @@ end
 				ext = get(ALLtextHand(i), 'Extent');
 				for (k = 2:this_nLines)
 					yPos = pos{i}(2) - (k - 1) * (ext(4) / this_nLines);
-					script{l} = sprintf(frmt, pos{i}(1), yPos, fsize{i}, angle{i}, str{i}(k,:), ellips, texto, pb, pf);
+					script{l} = sprintf(frmt, pos{i}(1), yPos, fsize{i}, angle{i}, HV(i,:), str{i}(k,:), ellips, texto, pb, pf);
 					l = l + 1;
 				end
 			end
