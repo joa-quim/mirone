@@ -3120,7 +3120,7 @@ function FileOpenSession_CB(handles, fname)
 		try,	s.Texto;			% Compatibility issue (Use a try because of compiler bugs)
 		catch
 			% Do it this way because compiled version canot tel 'Text' from 'text'
-			t = load([PathName FileName],'Text');	Texto = t.Text;
+			t = load([PathName FileName],'Text');	s.Texto = t.Text;
 		end
 		for (i = 1:length(s.Texto))
 			if (isempty(s.Texto(i).str)),		continue,	end
@@ -3360,7 +3360,7 @@ function FileSaveSession_CB(handles)
 		Patches(i).ud   = get(ALLpatchHand(i),'UserData');
 		Patches(i).tag  = get(ALLpatchHand(i),'Tag');
 		app = getappdata(ALLpatchHand(i));
-		if (~isempty(app)),		Patches(i).appd = app;	end
+		if (~isempty(fieldnames(app))),		Patches(i).appd = app;	end
 		havePatches = 1;
 	end
 
