@@ -1496,12 +1496,11 @@ if (~isempty(ALLpatchHand))
 			% But now we have to check if this arrow has not been displaced
 			x_actual = get(thisHand(i), 'XData');
 			if (x_actual(1) ~= ud.arrow_xy(1))					% Yes, it was
-				x_off = x_actual(1) - ud.arrow_xy(1,1);
 				y_actual = get(thisHand(i), 'YData');
-				y_off = y_actual(1) - ud.arrow_xy(1,2);
-				ud.arrow_xy(:,1) = ud.arrow_xy(:,1) + x_off; 
-				ud.arrow_xy(:,2) = ud.arrow_xy(:,2) + y_off;
-				set(thisHand(i),'UserData',ud)					% Well, take this oportunity to update info
+				ud.arrow_xy = [x_actual(:) y_actual(:)];
+				x = (ud.arrow_xy(end-2,1) + ud.arrow_xy(end-1,1)) / 2;		% Base point
+				y = (ud.arrow_xy(end-2,2) + ud.arrow_xy(end-1,2)) / 2;
+				set(thisHand(i),'UserData',ud)					% Update info in case it will be needed later
 			end
 
 			FillColor = get(thisHand(i),'FaceColor');
