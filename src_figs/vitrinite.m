@@ -16,6 +16,8 @@ function varargout = vitrinite(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
+% $Id$
+
 	hObject = figure('Tag','figure1','Visible','off');
 	vitrinite_LayoutFcn(hObject);
 	handles = guihandles(hObject);
@@ -69,70 +71,70 @@ function clicked_loadMarkersImg_CB(hObject, eventdata)
 	[FileName,PathName, handles] = put_or_get_file(handles,str,'Select image','get');
 	if isequal(FileName,0),		return,		end
 
-    fname = [PathName FileName];
+	fname = [PathName FileName];
 	try             % Use a try because if the name was given via edit box it may be wrong
-        [img,cmap] = imread(fname);
-        handles.ImgMarker{handles.countMark+1} = img;    % Make a copy
-        handles.countMark = handles.countMark + 1;
+		[img,cmap] = imread(fname);
+		handles.ImgMarker{handles.countMark+1} = img;    % Make a copy
+		handles.countMark = handles.countMark + 1;
 	catch
-        errordlg(['Error: -> ' fname ' does not exist or is not a valid image file'],'Error')
-        return
+		errordlg(['Error: -> ' fname ' does not exist or is not a valid image file'],'Error')
+		return
 	end
 	handles.head = [1 size(img,2) 1 size(img,1) 0 255 0 1 1];	% Fake a grid reg GMT header
 
-    if (ndims(img) == 3)
-        errordlg('Error: True color images are not allowed.','Error');        return
-    end
+	if (ndims(img) == 3)
+		errordlg('Error: True color images are not allowed.','Error');        return
+	end
 	[m,n] = size(img);
 	if (isempty(cmap))
-        set(handles.figure1,'Colormap', gray(256));
+		set(handles.figure1,'Colormap', gray(256));
 	elseif (~isempty(cmap))
-        set(handles.figure1,'Colormap', cmap);
+		set(handles.figure1,'Colormap', cmap);
 	end
-	
+
 	% Compute image aspect ratio and set axes 'PlotBoxAspectRatio' to it
 	aspect = m / n;
 	handles.hImgMarker = image(img,'Parent',handles.axes2);
-    handles.imgAspect{handles.countMark} = [1 aspect 1];    % Store image aspect ratio
+	handles.imgAspect{handles.countMark} = [1 aspect 1];    % Store image aspect ratio
 	set(handles.axes2,'PlotBoxAspectRatio',[1 aspect 1],'Visible','off')
-    
-    % Update the Image Markers popup
-    [PATH,FNAME,EXT] = fileparts(fname);
-    if (handles.countMark == 1)
-        set(handles.popup_markersImgs,'String',[FNAME EXT])
-    else
-        str = get(handles.popup_markersImgs,'String');
-        if (iscell(str))
-            str{end+1} = [FNAME EXT];
-        else
-            str = {str; [FNAME EXT]};
-        end
-        set(handles.popup_markersImgs,'String',str,'Value',handles.countMark)    % Set it the visible one
-    end
-    
-    % Try to fish the reflectance factor from image name
-    sep = findstr(FNAME,'_');
-    if (~isempty(sep))
-        reflectance = str2double(FNAME(sep(end)+1:end));
-        if (~isnan(reflectance) && reflectance > 0.1 && reflectance < 10)
-            handles.reflectance{handles.countMark} = reflectance;               % Yes, we got it
-        else
-            handles.reflectance{handles.countMark} = [];
-        end
-    else
-        handles.reflectance{handles.countMark} = [];
-    end
-    
-    % If we got a reflectance put it right away in the the editbox
-    if (~isempty(handles.reflectance{handles.countMark}))
-        set(handles.edit_reflectance,'String',reflectance)
-    end
-	
+
+	% Update the Image Markers popup
+	[PATH,FNAME,EXT] = fileparts(fname);
+	if (handles.countMark == 1)
+		set(handles.popup_markersImgs,'String',[FNAME EXT])
+	else
+		str = get(handles.popup_markersImgs,'String');
+		if (iscell(str))
+			str{end+1} = [FNAME EXT];
+		else
+			str = {str; [FNAME EXT]};
+		end
+		set(handles.popup_markersImgs,'String',str,'Value',handles.countMark)	% Set it the visible one
+	end
+
+	% Try to fish the reflectance factor from image name
+	sep = strfind(FNAME,'_');
+	if (~isempty(sep))
+		reflectance = str2double(FNAME(sep(end)+1:end));
+		if (~isnan(reflectance) && reflectance > 0.1 && reflectance < 10)
+			handles.reflectance{handles.countMark} = reflectance;				% Yes, we got it
+		else
+			handles.reflectance{handles.countMark} = [];
+		end
+	else
+		handles.reflectance{handles.countMark} = [];
+	end
+
+	% If we got a reflectance put it right away in the the editbox
+	if (~isempty(handles.reflectance{handles.countMark}))
+		set(handles.edit_reflectance,'String',reflectance)
+	end
+
 	handles.is_projected = 0;
 	if (handles.countMark >= 1 && ~isempty(handles.hImgSample))
-        if (~handles.haveStatusBar)
-            createStatusBar(handles);            handles.haveStatusBar = 1;
-        end
+		if (~handles.haveStatusBar)
+			createStatusBar(handles);            handles.haveStatusBar = 1;
+		end
 	end
 	guidata(handles.figure1,handles)
 
@@ -197,7 +199,7 @@ function popup_markersImgs_CB(hObject, handles)
 
 % --------------------------------------------------------------------
 function resetImg(handles, number)
-% Update image merker accordingly to what was selected in the popup
+% Update image marker accordingly to what was selected in the popup
 	set(handles.hImgMarker,'CData',handles.ImgMarker{number})
 	set(handles.axes2,'PlotBoxAspectRatio',handles.imgAspect{number})    
 
@@ -260,9 +262,19 @@ function push_getTiePoint_CB(hObject, handles)
 	% TESTAR SE TENHO REFLECTANCE PARA ESTE PONTO
 	tiePoint = round(mean2(img(mask)));
 	whichMarker = get(handles.popup_markersImgs,'Value');	% We need to know which tie point is this
-	handles.tiePoints{whichMarker} = tiePoint;
+	if (numel(handles.tiePoints) < whichMarker)
+		handles.tiePoints{whichMarker} = tiePoint;
+		handles.countTiePoints = handles.countTiePoints + 1;
+	else
+		if (isempty(handles.tiePoints{whichMarker}))
+			handles.tiePoints{whichMarker} = tiePoint;
+			handles.countTiePoints = handles.countTiePoints + 1;
+		else
+			% New value for an already existing tiePoint. Do not increment countTiePoints
+			handles.tiePoints{whichMarker} = tiePoint;
+		end
+	end
 	%	handles.sigma{whichMarker} = std(double(img(mask)));
-	handles.countTiePoints = handles.countTiePoints + 1;
 	guidata(handles.figure1,handles)
 
 %--------------------------------------------------------------------------
@@ -294,6 +306,13 @@ function push_getAvgReflec_CB(hObject, handles)
 %--------------------------------------------------------------------------
 function edit_reflectance_CB(hObject, handles)
 % Will have code when we let enter the reflectance value here
+	xx = str2double(get(hObject,'String'));
+	if (isnan(xx) || xx < 0.1 || xx > 10)
+		set(hObject, ''),		return
+	end
+	whichMarker = get(handles.popup_markersImgs,'Value');	% Need to know which tie point this refers to
+	handles.reflectance{whichMarker} = xx;
+	guidata(handles.figure1, handles)
 
 %--------------------------------------------------------------------------
 function createStatusBar(handles)
