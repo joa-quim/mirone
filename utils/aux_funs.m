@@ -61,7 +61,7 @@ switch opt(1:4)
 	case 'stri'		% 'strip_bg_color'
 		varargout{1} = strip_bg_color(varargin{:});
 	case 'help'
-		str = [varargin{1}.home_dir filesep 'doc' filesep 'MironeMan.chm'];
+		str = [varargin{1}.home_dir filesep 'doc' filesep 'MironeMan.chm &'];
 		if (ispc),      dos(str);
 		else            unix(str);
 		end
