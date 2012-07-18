@@ -756,6 +756,7 @@ utils/ui_edit_polygon.m -text
 utils/uicirclegeo.m -text
 utils/uiclearmode_j.p -text
 utils/uirestore_j.p -text
+utils/uistack_j.m -text
 utils/uistack_j.p -text
 utils/uisuspend_j.p -text
 utils/url2image.m -text
