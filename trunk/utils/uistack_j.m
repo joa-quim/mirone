@@ -8,8 +8,10 @@ function uistack_j(hand, opt, step)
 %   Image and Surface objects (e.g. NO UICONTROLS).
 %   It also fixes a bug on the ML R13 function that doesn't allow
 %   restacking between different object types.
+  
+%   Coffeeright J. Luis 2004-2012
 
-% $Id: $
+% $Id$
 
 	if (~all(ishandle(hand)))
 		error('UISTACK_JUISTACK_J: invalid handle in input.');
