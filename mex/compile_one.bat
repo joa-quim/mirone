@@ -32,10 +32,10 @@ SET CC=icl
 REM --------------------------------------------------------------------------------------
 
 REM If set to "yes", linkage is done againsts ML6.5 Libs (needed in compiled version)
-SET R13="yes"
+SET R13="no"
 
 REM Set it to "yes" or "no" to build under 64-bits or 32-bits respectively.
-SET WIN64="no"
+SET WIN64="yes"
 
 IF %R13%=="yes" SET WIN64="no"
 
@@ -46,8 +46,8 @@ REM Options are "dll", "mexw32" (recent ML version scream when they find .dll) o
 SET MEX_EXT="mexw32"
 
 REM If set some MEXs will print the execution time (in CPU ticks)
-SET TIMEIT=-DMIR_TIMEIT
 SET TIMEIT=
+SET TIMEIT=-DMIR_TIMEIT
 
 REM To buils with OpenMP support (very few)
 SET OMP=
@@ -86,7 +86,7 @@ SET _MX_COMPAT=-DMX_COMPAT_32
 REM -------------- Set up libraries here -------------------------------------------------
 IF %WIN64%=="yes" (
 
-SET  NETCDF_LIB=C:\progs_cygw\netcdf-3.6.3\compileds\VC10_64\lib\libnetcdf.lib
+SET  NETCDF_LIB=C:\programs\compa_libs\netcdf-4.1.3\compileds\VC10_64\lib\netcdf.lib
 SET     GMT_LIB=c:\progs_cygw\GMTdev\gmt4\WIN64\lib\gmt.lib
 SET GMT_MGG_LIB=c:\progs_cygw\GMTdev\gmt4\WIN64\lib\gmt_mgg.lib
 SET    GDAL_LIB=c:\programs\GDALtrunk\gdal\compileds\VC10_64\lib\gdal_i.lib
@@ -101,7 +101,7 @@ SET  GEOLIB_LIB=C:\programs\compa_libs\GeographicLib-1.16\compileds\VC10_64\lib\
 
 ) ELSE (
 
-SET  NETCDF_LIB=C:\progs_cygw\netcdf-3.6.3\compileds\VC10_32\lib\libnetcdf.lib
+SET  NETCDF_LIB=C:\programs\compa_libs\netcdf-4.1.3\compileds\VC10_32\lib\netcdf.lib
 SET     GMT_LIB=c:\progs_cygw\GMTdev\gmt4\WIN32\lib\gmt.lib
 SET GMT_MGG_LIB=c:\progs_cygw\GMTdev\gmt4\WIN32\lib\gmt_mgg.lib
 SET    GDAL_LIB=c:\programs\GDALtrunk\gdal\compileds\VC10_32\lib\gdal_i.lib
@@ -116,7 +116,7 @@ SET  GEOLIB_LIB=C:\programs\compa_libs\GeographicLib-1.16\compileds\VC10_32\lib\
 
 )
 
-SET  NETCDF_INC=C:\progs_cygw\netcdf-3.6.3\include
+SET  NETCDF_INC=C:\programs\compa_libs\netcdf-4.1.3\compileds\VC10_32\include
 SET     GMT_INC=c:\progs_cygw\GMTdev\GMT4\include
 REM SET GMT_INC=c:\progs_cygw\GMTdev\GMT5\include
 SET    GMT_INC2=C:\progs_cygw\GMTdev\GMT5\src\mex
@@ -142,8 +142,9 @@ IF %WIN64%=="yes" SET arc=X64
 IF %WIN64%=="no" SET arc=X86
 SET LINKFLAGS=/dll /export:mexFunction /LIBPATH:%MATLIB% libmx.lib libmex.lib libmat.lib /MACHINE:%arc% kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib Vfw32.lib /nologo /incremental:NO %LDEBUG% 
 
-%CC% -DWIN32 %COMPFLAGS% -I%MATINC% -I%NETCDF_INC% -I%GMT_INC% -I%GDAL_INC% -I%CV_INC% %LAS_INC% -I%GEOLIB_INC% %OPTIMFLAGS% %_MX_COMPAT% %TIMEIT% -DDLL_GMT %OMP% %1.c
-link  /out:"%1.%MEX_EXT%" %LINKFLAGS% %NETCDF_LIB% %GMT_LIB% %GDAL_LIB% %LAS_LIB% %GEOLIB_LIB% /implib:templib.x %1.obj
+%CC% -DWIN32 %COMPFLAGS% -I%MATINC% -I%NETCDF_INC% -I%GMT_INC% -I%GDAL_INC% -I%CV_INC% %LAS_INC% -I%GEOLIB_INC% %OPTIMFLAGS% %_MX_COMPAT% %TIMEIT% -DDLL_GMT %OMP% %1
+link  /out:"%~n1.%MEX_EXT%" %LINKFLAGS% %NETCDF_LIB% %GMT_LIB% %GDAL_LIB% %LAS_LIB% %GEOLIB_LIB% /implib:templib.x %~n1.obj
+rem link  /out:"%1.%MEX_EXT%" %LINKFLAGS% %NETCDF_LIB% %GMT_LIB% %GDAL_LIB% %LAS_LIB% %GEOLIB_LIB% /implib:templib.x %1.obj
 
 SET INCLUDE=%INCAS%
 del *.obj *.exp templib.x
