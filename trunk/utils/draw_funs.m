@@ -1277,6 +1277,7 @@ function set_vector_uicontext(h)
 	uimenu(cmenuHand, 'Label', 'Delete', 'Call', 'delete(gco)');
 	uimenu(cmenuHand, 'Label', 'Save line', 'Call', {@save_formated, h});
 	uimenu(cmenuHand, 'Label', 'Copy', 'Call', {@copy_line_object, handles.figure1, handles.axes1});
+ 	uimenu(cmenuHand, 'Label', 'Edit (redraw)', 'Call', {@arrowRedraw, h});
 	if (handles.geog)		% No solution yet for cartesian arrows
 		uimenu(cmenuHand, 'Label', 'Copy (mirror)', 'Call', {@mirror_arrow, h});
 	end
@@ -1286,6 +1287,16 @@ function set_vector_uicontext(h)
 	uimenu(item2, 'Label', 'None', 'Sep','on', 'Call', 'set(gco, ''FaceColor'', ''none'');refresh');
 	uimenu(cmenuHand, 'Label', 'Transparency', 'Call', @set_transparency);
 	set(h, 'ButtonDownFcn', 'move_obj(1)')
+
+% -----------------------------------------------------------------------------------------
+function arrowRedraw(obj, evt, hVec)
+% Edit a previously existing arrow
+	hAxes = get(hVec,'parent');
+	hFig = get(hAxes,'parent');
+	state = uisuspend_j(hFig);		% Remember initial figure state
+	set(hFig,'Pointer', 'crosshair');
+	hVec(2) = line('XData', [], 'YData', [],'LineWidth',0.5,'Tag','Arrow');
+	vectorFirstButtonDown(hFig, hAxes, hVec, state, getappdata(hVec(1),'anchor'))
 
 % -----------------------------------------------------------------------------------------
 function mirror_arrow(obj, evt, h)
@@ -1301,13 +1312,6 @@ function mirror_arrow(obj, evt, h)
 	ud.arrow_xy = [xt(:) yt(:)];		ud.azim = rem(ud.azim + 180, 360);	% Other ud fields don't need updating
 	set(hVec, 'UserData', ud)
 	set_vector_uicontext(hVec)
-
-% -----------------------------------------------------------------------------------------
-function fill_Polygon(obj, evt, h)
-% Turn a closed polygon into a patch and fill it in light gray by default
-% EXPERIMENTAL CODE. NOT IN USE.
-	x = get(h,'XData');      y = get(h,'YData');
-	patch(x,y,0,'FaceColor',[.7 .7 .7], 'EdgeColor','k');
 
 % -----------------------------------------------------------------------------------------
 function show_swhatRatio(obj,evt,h)
@@ -1609,10 +1613,13 @@ function hVec = DrawVector
         set(hFig,'Pointer', 'arrow');	hVec = [];
 	end
 
-function [hs, vs] = vectorFirstButtonDown(hFig,hAxes,h,state)
+function [hs, vs] = vectorFirstButtonDown(hFig, hAxes, h, state, opt)
 % Outputs are used by the report_EulerVel (when PLOTing) function
+% OPT, if used, contains the arrow anchor point coords (used by the edit mode)
 
-	pt = get(hAxes, 'CurrentPoint');
+	if (nargin == 5),		pt = opt;
+	else					pt = get(hAxes, 'CurrentPoint');
+	end
  	axLims = getappdata(hAxes,'ThisImageLims');
 	% create a conversion from data to points for the current axis
 	oldUnits = get(hAxes,'Units');			set(hAxes,'Units','points');
@@ -1624,6 +1631,7 @@ function [hs, vs] = vectorFirstButtonDown(hFig,hAxes,h,state)
 		vscale = vscale * DAR(2);		hscale = hscale * DAR(1);
 	end
 	if (~nargout)
+		setappdata(h(1),'anchor', [pt(1,1) pt(1,2)])	% To eventual use in/if edit mode
 		set(hFig,'WindowButtonMotionFcn',{@wbm_vector,[pt(1,1) pt(1,2)],h,hAxes,hscale,vscale}, ...
 			'WindowButtonDownFcn',{@wbd_vector, h, state, hscale, vscale});
 	else
@@ -1638,6 +1646,7 @@ function wbm_vector(obj, evt, origin, h, hAxes, hscale, vscale)
  	set(h(1),'XData',xt, 'YData',yt);
 
 function wbd_vector(obj, evt, h, state, hscale, vscale)
+% End interactive edition
 	uirestore_j(state, 'nochildren');		% Restore the figure's initial state
 	x = get(h(2), 'XData');		y = get(h(2), 'YData');
 	xx = get(h(1), 'XData');	yy = get(h(1), 'YData');
