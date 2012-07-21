@@ -749,7 +749,6 @@ utils/tfw_funs.m -text
 utils/tile.m -text
 utils/tooltipwrap.m -text
 utils/transform_fun.p -text
-utils/trimpatch.p -text
 utils/tsu_funs.m -text
 utils/ui_edit_patch_special.m -text
 utils/ui_edit_polygon.m -text
