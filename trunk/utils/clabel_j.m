@@ -23,7 +23,7 @@ function hh = clabel_j(cs,varargin)
 %
 %   Coffeeright J. Luis 2004-2012
 
-% $Id: $
+% $Id$
 
 	if nargin == 0
 		error('Not enough input arguments.')
