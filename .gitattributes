@@ -693,7 +693,6 @@ utils/info_m.m -text
 utils/inv3d.m -text
 utils/ivan_the_terrible.m -text
 utils/jd2date.m -text
-utils/limpa.p -text
 utils/load_grd.m -text
 utils/load_xyz.m -text
 utils/make_arrow.m -text
