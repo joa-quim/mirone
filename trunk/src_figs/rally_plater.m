@@ -16,6 +16,8 @@ function varargout = rally_plater(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
+% $Id$
+
 	hObject = figure('Tag','figure1','Visible','off');
 	rally_plater_LayoutFcn(hObject);
 	handles = guihandles(hObject);
@@ -494,7 +496,7 @@ for (k = 1:nPlates)					% Loop over number of plates with associated poles
         [x,y] = orthographic(out{k}(:,1), out{k}(:,2), orig);
         out{k} = [x y];
     else
-        [out{k}(:,2),out{k}(:,1)] = trimpatch(out{k}(:,2), [-Inf 89], noJumpLong(out{k}(:,1)), [-180 180]);
+        [out{k}(:,2),out{k}(:,1)] = map_funs('trimpatch', out{k}(:,2), [-Inf 89], noJumpLong(out{k}(:,1)), [-180 180]);
     end
     
     handles.moved_body(k) = k;				% Keep track of which body was moved
@@ -800,7 +802,7 @@ for (k = 1:nPlates)				% Loop over number of plates with associated poles
         [x,y] = orthographic(out{k}(:,1), out{k}(:,2), orig);
         out{k} = [x y];
     else
-        [out{k}(:,2),out{k}(:,1)] = trimpatch(out{k}(:,2), [-Inf 89], noJumpLong(out{k}(:,1)), [-180 180]);
+        [out{k}(:,2),out{k}(:,1)] = map_funs('trimpatch', out{k}(:,2), [-Inf 89], noJumpLong(out{k}(:,1)), [-180 180]);
     end
     
     if (n_seg(k) == 1)						% This is because telha outputs an extra line with (0,0)
@@ -878,7 +880,7 @@ azim  = azimuth_geo(orig0, orig0, lat, lon,'radians');
 rng = acos(cos(lat).*cos(lon));         % NOTE: the formula simplifies because we are computing from a [0 0] origin
 
 %  Trim data exceeding the visible part of the sphere
-[rng,azim] = trimpatch(rng, [-Inf 89]*D2R, azim, [-inf inf]);
+[rng,azim] = map_funs('trimpatch', rng, [-Inf 89]*D2R, azim, [-inf inf]);
 
 x = sin(rng) .* sin(azim);
 y = sin(rng) .* cos(azim);
