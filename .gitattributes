@@ -638,7 +638,6 @@ utils/cdf2pal.m -text
 utils/cine_animations.m -text
 utils/circ_geo.m -text
 utils/clabel_j.m -text
-utils/clabel_j.p -text
 utils/click_e_point.m -text
 utils/conv2anugapts.m -text
 utils/cropimg.p -text
