@@ -16,6 +16,8 @@ function varargout = floodfill(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
+% $Id$
+
 	if (isempty(varargin))
 		errordlg('FLOODFILL: wrong number of arguments.','Error'),	return
 	end
@@ -108,39 +110,18 @@ function varargout = floodfill(varargin)
 	set(handles.listbox_lineWidth,'String',1:99,'Val',2)
 	set(handles.slider_tolerance,'Value',handles.tol)
 
-	%--------------- Give a Pro look (3D) to the frame boxes -------------------------
-	bgcolor = get(0,'DefaultUicontrolBackgroundColor');
-	framecolor = max(min(0.65*bgcolor,[1 1 1]),[0 0 0]);
-	h_f = findobj(hObject,'Style','Frame');
-	for i=1:length(h_f)
-		frame_size = get(h_f(i),'Position');
-		f_bgc = get(h_f(i),'BackgroundColor');
-		usr_d = get(h_f(i),'UserData');
-		if abs(f_bgc(1)-bgcolor(1)) > 0.01           % When the frame's background color is not the default's
-			frame3D(hObject,frame_size,framecolor,f_bgc,usr_d)
-		else
-			frame3D(hObject,frame_size,framecolor,'',usr_d)
-			delete(h_f(i))
-		end
-	end
-
-	% Recopy the text fields on top of previously created frames (uistack is to damn slow)
-	h_t = [handles.text_Paint handles.text_DS];
-	for i=1:length(h_t)
-		usr_d = get(h_t(i),'UserData');
-		t_size = get(h_t(i),'Position');   t_str = get(h_t(i),'String');    fw = get(h_t(i),'FontWeight');
-		bgc = get (h_t(i),'BackgroundColor');   fgc = get (h_t(i),'ForegroundColor');
-		t_just = get(h_t(i),'HorizontalAlignment');     t_tag = get(h_t(i),'Tag');
-		uicontrol('Parent',hObject, 'Style','text', 'Position',t_size,'String',t_str,'Tag',t_tag, ...
-			'BackgroundColor',bgc,'ForegroundColor',fgc,'FontWeight',fw,...
-			'UserData',usr_d,'HorizontalAlignment',t_just);
-	end
-	delete(h_t)
-	%------------------- END Pro look (3D) ----------------------------------------------------------
+	%------------ Give a Pro look (3D) to the frame boxes  -------------------------------
+	new_frame3D(hObject, [handles.text_Paint handles.text_DS])
+	%------------- END Pro look (3D) -----------------------------------------------------
 
 	guidata(hObject, handles);
 	if (nargout),	varargout{1} = hObject;		end
 	set(hObject,'Visible','on');
+
+	% Add this figure handle to the carraças list
+	plugedWin = getappdata(handMir.figure1,'dependentFigs');
+	plugedWin = [plugedWin hObject];
+	setappdata(handMir.figure1,'dependentFigs',plugedWin);
 
 % --------------------------------------------------------------------
 function line_clickedcallback(hObject, eventdata, opt)
