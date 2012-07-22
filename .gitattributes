@@ -753,10 +753,8 @@ utils/ui_edit_patch_special.m -text
 utils/ui_edit_polygon.m -text
 utils/uicirclegeo.m -text
 utils/uirestore_j.m -text
-utils/uirestore_j.p -text
 utils/uistack_j.m -text
 utils/uisuspend_j.m -text
-utils/uisuspend_j.p -text
 utils/url2image.m -text
 utils/vdist.m -text
 utils/vreckon.m -text
