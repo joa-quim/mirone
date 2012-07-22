@@ -23,11 +23,16 @@ function uistack_j(hand, opt, step)
 	end
 
 	Parent = get(hand,{'Parent'});
-	Parent = [Parent{:}];
+	Parent = unique([Parent{:}]);
 	bigOnBack = false;
 
 	children = allchild(Parent);
-	handPos = find(children == hand);
+	if (numel(hand) == 1)
+		handPos = find(children == hand);
+	else
+		if (size(hand,2) ~= 1),		hand = hand(:);		end			% It has to be a column vector
+		handPos = find(ismember(children, hand));
+	end
 
 	if (opt(1) == 'u')			% 'up'
 		restacked = [-ones(step,1); children];
