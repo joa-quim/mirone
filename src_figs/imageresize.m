@@ -15,7 +15,9 @@ function varargout = imageresize(varargin)
 %
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
-	
+
+% $Id: $
+
 	if (isempty(varargin)),		return,		end
 
 	hObject = figure('Vis','off');
@@ -62,8 +64,7 @@ function varargout = imageresize(varargin)
 	handles = pix2size(handles,'h');
 
 	%------------ Give a Pro look (3D) to the frame boxes  --------
-	h = new_frame3D(hObject, [handles.text_docSize handles.text_pixDim]);
-	handles.text_pixDim = h(2);		% We only need this one
+	new_frame3D(hObject, [handles.text_docSize handles.text_pixDim]);
 	%------------- END Pro look (3D) ------------------------------
 
 	% Add this figure handle to the carraças list
