@@ -24,6 +24,7 @@ function uistack_j(hand, opt, step)
 
 	Parent = get(hand,{'Parent'});
 	Parent = [Parent{:}];
+	bigOnBack = false;
 
 	children = allchild(Parent);
 	handPos = find(children == hand);
@@ -44,10 +45,12 @@ function uistack_j(hand, opt, step)
 			restacked = restacked(ind);
 		end
 		restacked(restacked == -1) = [];
+		bigOnBack = true;
 
 	elseif (opt(1) == 'b')		% 'bottom'
 		children(handPos) = [];
 		restacked = [children; hand];
+		bigOnBack = true;
 
 	elseif (opt(1) == 't')		% 'top'
 		children(handPos) = [];
@@ -57,14 +60,15 @@ function uistack_j(hand, opt, step)
 		error('UISTACK_J: invalid stack option');      
 	end
 
-	% If image, light, or surface object exists, put them at the bottom of the stack
-	hImg = findobj(Parent,'type','image');
-	hLight = findobj(Parent,'type','light');
-	hSurf = findobj(Parent,'type','surface');
-	hAx_bot = [hImg; hLight; hSurf];
-	if (~isempty(hAx_bot))
-		restacked(restacked == hAx_bot) = [];
-		restacked = [restacked; hAx_bot];
+	if (bigOnBack)			% If image, light, or surface object exists, put them at the bottom of the stack
+		hImg = findobj(Parent,'type','image');
+		hLight = findobj(Parent,'type','light');
+		hSurf = findobj(Parent,'type','surface');
+		hAx_bot = [hImg; hLight; hSurf];
+		if (~isempty(hAx_bot))
+			restacked(restacked == hAx_bot) = [];
+			restacked = [restacked; hAx_bot];
+		end
 	end
 
 	set(Parent,'children',restacked);
