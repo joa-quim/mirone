@@ -21,6 +21,8 @@ function varargout = aquamoto(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
+% $Id$
+
 % For compiling one need to include the aqua_suppfuns.m aquaPlugin.m files.
 
 	hObject = figure('Tag','figure1','Visible','off');
@@ -126,26 +128,10 @@ function varargout = aquamoto(varargin)
 	handles.elevRange = [];
 
 	%------------ Give a Pro look (3D) to the frame boxes  -------------------------------
-	bgcolor = get(0,'DefaultUicontrolBackgroundColor');
-	framecolor = max(min(0.65*bgcolor,[1 1 1]),[0 0 0]);
-	frames = [handles.frame1 handles.frame2 handles.frame3 handles.frame4 handles.frame5 handles.frame6 handles.frame7 handles.frame8];
-	for (k = 1:numel(frames))
-    	frame_size = get(frames(k),'Position');
-		frame3D(hObject,frame_size,framecolor,'',get(frames(k),'UserData'))
-		delete(frames(k))
-	end
-
-	% Recopy the text fields on top of previously created frames
-	h_t = [handles.text_Pq; handles.text_GLG; handles.text_MovType; handles.text_MovSize; handles.text_testFile; handles.text_globalMM; handles.text_montage];
-	% This is a destilled minimalist uistack(H,'top')
-	Children = findobj(allchild(hObject), 'flat', 'type', 'uicontrol');
-	HandleLoc = ismember(Children,h_t);
-	Children(HandleLoc) = [];  
-	NewOrder = [h_t; Children];		% 'top'
-	AllChildren = allchild(hObject);
-	AllChildren(ismember(AllChildren,NewOrder)) = NewOrder;
-	set(hObject,'Children',AllChildren);
-	%------------- END Pro look (3D) -------------------------------------------------------
+ 	frames = [handles.frame1 handles.frame2 handles.frame3 handles.frame4 handles.frame5 handles.frame6 handles.frame7 handles.frame8];
+	h_t = [handles.text_Pq handles.text_GLG handles.text_MovType handles.text_MovSize handles.text_testFile handles.text_globalMM handles.text_montage];
+	new_frame3D(hObject, h_t, frames)
+	%------------- END Pro look (3D) -----------------------------------------------------
 
 	%------------- Resize the Figure to its final dimensions -------------------------------
 	figPos = get(hObject, 'Pos');
@@ -1354,7 +1340,7 @@ function push_movieName_CB(hObject, eventdata, handles, opt)
 		fname = opt;
 		if (~isempty(PathName)),	PathName = [PathName filesep];	end		% To be coherent with the 'if' branch
 	end
-	if (~strmatch(lower(EXT),{'.gif' '.avi' '.mpg' '.mpeg'}))
+	if ( ~any(strcmpi(EXT,{'.gif' '.avi' '.mpg' '.mpeg'})) )
 		errordlg('Ghrrrrrrrr! Don''t be smart. Only ''.gif'', ''.avi'', ''.mpg'' or ''mpeg'' extensions are acepted.', ...
             'Chico Clever');
 		return
@@ -2478,7 +2464,7 @@ uicontrol('Parent',h1, 'Position',[10 10 371 391],...
 uicontrol('Parent',h1, 'Position',[420 173 181 41],'Style','frame','Tag','frame5','UserData','cinema');
 uicontrol('Parent',h1, 'Position',[690 190 221 41],'Style','frame','Tag','frame6','UserData','t_grids');
 uicontrol('Parent',h1, 'Position',[420 238 181 58],'Style','frame','Tag','frame4','UserData','cinema');
-uicontrol('Parent',h1, 'Position',[610 238 71 58],'Style','frame','Tag','frame8','UserData','cinema');
+uicontrol('Parent',h1, 'Position',[610 238 71 58], 'Style','frame','Tag','frame8','UserData','cinema');
 
 uicontrol('Parent',h1, 'Position',[690 455 311 21],...
 'BackgroundColor',[1 1 1],...
@@ -2915,23 +2901,11 @@ uicontrol('Parent',h1, 'Position',[518 184 30 15],...
 'Tag','text39',...
 'UserData','cinema');
 
-uicontrol('Parent',h1, 'Position',[370 401 331 2],...
-'ForegroundColor',[0 0.501961 0],...
-'Style','frame',...
-'Tag','frame_h1',...
-'UserData','shade');
+uicontrol('Parent',h1, 'Position',[370 401 331 2], 'ForegroundColor',[0 0.501961 0],...
+'Style','frame', 'Tag','frame_h1', 'UserData','shade');
 
-uicontrol('Parent',h1, 'Position',[30 271 331 38],...
-'Enable','inactive',...
-'Style','frame',...
-'Tag','frame2',...
-'UserData','anuga');
-
-uicontrol('Parent',h1, 'Position',[30 309 331 35],...
-'Enable','inactive',...
-'Style','frame',...
-'Tag','frame1',...
-'UserData','anuga');
+uicontrol('Parent',h1, 'Position',[30 271 331 38], 'Style','frame', 'Tag','frame2', 'UserData','anuga');
+uicontrol('Parent',h1, 'Position',[30 309 331 35], 'Style','frame', 'Tag','frame1', 'UserData','anuga');
 
 uicontrol('Parent',h1,...
 'HorizontalAlignment','left',...
@@ -2979,12 +2953,7 @@ uicontrol('Parent',h1,...
 'Tag','text2',...
 'UserData','anuga');
 
-uicontrol('Parent',h1,...
-'Enable','inactive',...
-'Position',[30 108 331 97],...
-'Style','frame',...
-'Tag','frame3',...
-'UserData','anuga');
+uicontrol('Parent',h1, 'Position',[30 108 331 97], 'Style','frame', 'Tag','frame3', 'UserData','anuga');
 
 uicontrol('Parent',h1,...
 'Enable','inactive',...
