@@ -20,6 +20,8 @@ function varargout = geog_calculator(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
+% $Id$
+
 	hObject = figure('Tag','figure1','Visible','off');
 	geog_calculator_LayoutFcn(hObject);
 	handles = guihandles(hObject);
@@ -119,10 +121,7 @@ function varargout = geog_calculator(varargin)
 	handles.all_datums = load_datums;
 
 	%------------ Give a Pro look (3D) to the frame boxes  -------------------------------
-	%h_t = [handles.text_CSleft handles.hTxt_in handles.hTxt_out handles.text_CSright];
-	h_t = new_frame3D(hObject, [handles.text_CSleft handles.hTxt_in handles.hTxt_out handles.text_CSright]);
-	handles.hTxt_in = h_t(2);		% We need to ressurect these two
-	handles.hTxt_out = h_t(3);
+	new_frame3D(hObject, [handles.text_CSleft handles.hTxt_in handles.hTxt_out handles.text_CSright]);
 	%------------- END Pro look (3D) -----------------------------------------------------
 
 	%----------- Recall previous settings stored in mirone_pref -------------------
