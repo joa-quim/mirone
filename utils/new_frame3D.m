@@ -1,4 +1,4 @@
-function out = new_frame3D(hFig, hText, hFrame)
+function new_frame3D(hFig, hText, hFrame)
 % Give a 3D Pro Look to the miserable looking frame uis
 %
 % HTEXT eventualy contains handles to texts that need to be recreated
@@ -6,8 +6,6 @@ function out = new_frame3D(hFig, hText, hFrame)
 %	If HTEXT = NaN, ignore texts and deal only with frames
 %
 %	new_frame3D(hFig, hText)	fish all frames in Fig
-%
-%	out = new_frame3D(...)	returns the new handles of the recreated text uis
 
 %	Copyright (c) 2004-2012 by J. Luis
 %
@@ -23,6 +21,8 @@ function out = new_frame3D(hFig, hText, hFrame)
 %
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
+
+% $Id$
 
 	% Give a Pro look (3D) to the frame boxes 
 	bgcolor = get(0,'DefaultUicontrolBackgroundColor');
@@ -42,26 +42,10 @@ function out = new_frame3D(hFig, hText, hFrame)
 	if (isempty(hText))
 		hText = findobj(hFig,'Style','Text');
 	end
-	if (isnan(hText)),		hText = [];		end		% So that next loop is not executed
-	hText_new = zeros(1,numel(hText));
-	for (i = 1:numel(hText))
-        usr_d = get(hText(i),'UserData');
-        t_size = get(hText(i),'Position');
-		t_str = get(hText(i),'String');
-		t_just = get(hText(i),'HorizontalAlignment');
-		t_tag = get (hText(i),'Tag');
-		fs = get(hText(i),'FontSize');
-		fa = get(hText(i),'FontAngle');
-		fw = get(hText(i),'FontWeight');
-        fn = get(hText(i),'FontName');
-		bgc = get (hText(i),'BackgroundColor');
-		fgc = get (hText(i),'ForegroundColor');
-        hText_new(i) = uicontrol('Parent',hFig, 'Style','text', 'Position',t_size,'String',t_str, ...
-			'BackgroundColor',bgc, 'ForegroundColor',fgc, 'FontSize',fs, 'FontAngle',fa, 'FontWeight',fw, ...
-			'FontName',fn, 'HorizontalAlignment',t_just, 'Tag',t_tag, 'UserData',usr_d);
+
+	if ~((numel(hText) == 1) && isnan(hText))
+		uistack_j(hText, 'top')
 	end
-	delete(hText)
-	if (nargout)	out = hText_new;	end
 
 % ----------------------------------------------------------------------	
 function frame3D(hFig,pos,color,bg_color,usr_dat)
@@ -69,38 +53,38 @@ function frame3D(hFig,pos,color,bg_color,usr_dat)
 % frame3D.  Define a frame with a 3D effect.
 %=======================================================================
 % 
-% Build the rectangle's left vertical side
-x1 = [pos(1) pos(2) 1 pos(4)];
-uicontrol('Parent',hFig, 'Style','frame', 'Position',x1, 'ForegroundColor',color,'BackgroundColor',bg_color,'UserData',usr_dat);
-x2 = [pos(1)+1 pos(2)+1 1 pos(4)-2];
-uicontrol('Parent',hFig, 'Style','frame', 'Position',x2, 'ForegroundColor',[1 1 1],'BackgroundColor',bg_color,'UserData',usr_dat);
+	% Build the rectangle's left vertical side
+	x1 = [pos(1) pos(2) 1 pos(4)];
+	uicontrol('Parent',hFig, 'Style','frame', 'Position',x1, 'ForegroundColor',color,'BackgroundColor',bg_color,'UserData',usr_dat);
+	x2 = [pos(1)+1 pos(2)+1 1 pos(4)-2];
+	uicontrol('Parent',hFig, 'Style','frame', 'Position',x2, 'ForegroundColor',[1 1 1],'BackgroundColor',bg_color,'UserData',usr_dat);
 
-% Build the rectangle's right vertical side
-x1 = [pos(1)+pos(3)-1 pos(2) 1 pos(4)];
-uicontrol('Parent',hFig, 'Style','frame', 'Position',x1, 'ForegroundColor',color,'BackgroundColor',bg_color,'UserData',usr_dat);
-x2 = [pos(1)+pos(3) pos(2)-1 1 pos(4)+1];
-uicontrol('Parent',hFig, 'Style','frame', 'Position',x2, 'ForegroundColor',[1 1 1],'BackgroundColor',bg_color,'UserData',usr_dat);
+	% Build the rectangle's right vertical side
+	x1 = [pos(1)+pos(3)-1 pos(2) 1 pos(4)];
+	uicontrol('Parent',hFig, 'Style','frame', 'Position',x1, 'ForegroundColor',color,'BackgroundColor',bg_color,'UserData',usr_dat);
+	x2 = [pos(1)+pos(3) pos(2)-1 1 pos(4)+1];
+	uicontrol('Parent',hFig, 'Style','frame', 'Position',x2, 'ForegroundColor',[1 1 1],'BackgroundColor',bg_color,'UserData',usr_dat);
 
-% Build the rectangle's bottom side
-x1 = [pos(1) pos(2) pos(3) 1];
-uicontrol('Parent',hFig, 'Style','frame', 'Position',x1, 'ForegroundColor',color,'BackgroundColor',bg_color,'UserData',usr_dat,'Tag','B');
-x2 = [pos(1) pos(2)-1 pos(3)+1 1];
-uicontrol('Parent',hFig, 'Style','frame', 'Position',x2, 'ForegroundColor',[1 1 1],'BackgroundColor',bg_color,'UserData',usr_dat,'Tag','BB');
+	% Build the rectangle's bottom side
+	x1 = [pos(1) pos(2) pos(3) 1];
+	uicontrol('Parent',hFig, 'Style','frame', 'Position',x1, 'ForegroundColor',color,'BackgroundColor',bg_color,'UserData',usr_dat,'Tag','B');
+	x2 = [pos(1) pos(2)-1 pos(3)+1 1];
+	uicontrol('Parent',hFig, 'Style','frame', 'Position',x2, 'ForegroundColor',[1 1 1],'BackgroundColor',bg_color,'UserData',usr_dat,'Tag','BB');
 
-% Build the rectangle's top side
-x1 = [pos(1) pos(2)+pos(4)-1 pos(3) 1];
-uicontrol('Parent',hFig, 'Style','frame', 'Position',x1, 'ForegroundColor',color,'BackgroundColor',bg_color,'UserData',usr_dat,'Tag','TT');
-x2 = [pos(1)+1 pos(2)+pos(4)-2 pos(3)-2 1];
-uicontrol('Parent',hFig, 'Style','frame', 'Position',x2, 'ForegroundColor',[1 1 1],'BackgroundColor',bg_color,'UserData',usr_dat,'Tag','T');
+	% Build the rectangle's top side
+	x1 = [pos(1) pos(2)+pos(4)-1 pos(3) 1];
+	uicontrol('Parent',hFig, 'Style','frame', 'Position',x1, 'ForegroundColor',color,'BackgroundColor',bg_color,'UserData',usr_dat,'Tag','TT');
+	x2 = [pos(1)+1 pos(2)+pos(4)-2 pos(3)-2 1];
+	uicontrol('Parent',hFig, 'Style','frame', 'Position',x2, 'ForegroundColor',[1 1 1],'BackgroundColor',bg_color,'UserData',usr_dat,'Tag','T');
 
-%h1=uicontrol('Parent',hFig, 'Style','frame', 'Position',position+[0 -1 1 1], 'ForegroundColor',[1 1 1]);
-%h2=uicontrol('Parent',hFig, 'Style','frame', 'Position',position, 'ForegroundColor',color);
-%h3=uicontrol('Parent',hFig, 'Style','frame', 'Position',position+[1 1 1-position(3) -2],'ForegroundColor',[1 1 1]);
-%h4=uicontrol('Parent',hFig, 'Style','frame', 'Position',position+[1 position(4)-2 -2 1-position(4)],...
-%          'ForegroundColor',[1 1 1]);
-%uistack(h4, 'bottom');  uistack(h3, 'bottom');  uistack(h2, 'bottom');  uistack(h1, 'bottom');
+	%h1=uicontrol('Parent',hFig, 'Style','frame', 'Position',position+[0 -1 1 1], 'ForegroundColor',[1 1 1]);
+	%h2=uicontrol('Parent',hFig, 'Style','frame', 'Position',position, 'ForegroundColor',color);
+	%h3=uicontrol('Parent',hFig, 'Style','frame', 'Position',position+[1 1 1-position(3) -2],'ForegroundColor',[1 1 1]);
+	%h4=uicontrol('Parent',hFig, 'Style','frame', 'Position',position+[1 position(4)-2 -2 1-position(4)],...
+	%          'ForegroundColor',[1 1 1]);
+	%uistack(h4, 'bottom');  uistack(h3, 'bottom');  uistack(h2, 'bottom');  uistack(h1, 'bottom');
 
-%if ~isempty(bg_color)
-%    set(h2,'BackgroundColor',bg_color)    
-%end
-	
+	%if ~isempty(bg_color)
+	%    set(h2,'BackgroundColor',bg_color)    
+	%end
+
