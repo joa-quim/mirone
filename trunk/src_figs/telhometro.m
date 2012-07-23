@@ -16,6 +16,8 @@ function varargout = telhometro(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
+% $Id$
+
 	if isempty(varargin)
         errordlg('TELHOMETRO: wrong number of input arguments.','Error'),	return
 	end
@@ -207,7 +209,7 @@ function push_polesList_CB(hObject, handles)
 	[s,v] = choosebox('Name','One Euler list',...
                         'PromptString','List of poles:',...
                         'SelectString','Selected poles:',...
-                        'ListSize',[380 300],...
+                        'ListSize',[450 300],...
                         'ListString',s);
 
 	if (v == 1)         % Finite pole
