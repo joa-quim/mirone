@@ -16,6 +16,8 @@ function varargout = demets_od(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
+% $Id$
+
 	if (isempty(varargin))
 		errordlg('DEMETS_OD called with empty arguments','Error'),	return
 	end
@@ -85,7 +87,7 @@ function push_polesList_CB(hObject, handles)
 	[s,v] = choosebox('Name','One Euler list',...
 						'PromptString','List of poles:',...
 						'SelectString','Selected poles:',...
-						'ListSize',[380 300],'ListString',s);
+						'ListSize',[450 300],'ListString',s);
 
 	if (v == 1)         % Finite pole
 		handles.pLon_ini = s(1);
