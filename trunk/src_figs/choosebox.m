@@ -67,7 +67,7 @@ function [selection,value] = choosebox(varargin)
 %     return
 % end
 
-% $Id: $
+% $Id$
 
 	mir_dirs = getappdata(0,'MIRONE_DIRS');
 	if (~isempty(mir_dirs))
