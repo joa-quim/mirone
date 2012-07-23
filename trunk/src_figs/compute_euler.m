@@ -16,6 +16,8 @@ function varargout = compute_euler(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
+% $Id$
+
 	if ( numel(varargin) < 1 || (numel(varargin) >= 2 && numel(varargin) <= 4) )
         errordlg('COMPUTE EULER: wrong number of input arguments.','Error'),	return
 	elseif (ishandle(varargin{1}))
@@ -183,7 +185,7 @@ s = strread(c,'%s','delimiter','\n');
 [s,v] = choosebox('Name','One Euler list',...
                     'PromptString','List of poles:',...
                     'SelectString','Selected poles:',...
-                    'ListSize',[380 300],'ListString',s);
+                    'ListSize',[450 300],'ListString',s);
 
 if (v == 1)         % Finite pole
     handles.pLon_ini = s(1);
