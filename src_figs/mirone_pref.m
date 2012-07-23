@@ -186,6 +186,15 @@ function varargout = mirone_pref(varargin)
 		set(handles.popup_MeasureUnites,'String',{'nautic miles'; 'kilometers'; 'meters'; 'user'})
 	end
 
+	% =====================================================================
+	% Execute this chunk when the mirone_pref.mat was f... up again by ML
+	% and mirone.m called mirone_pref under the hood. Save default and exit
+	if (numel(varargin) > 1)
+		push_OK_CB(handles.push_OK, handles)
+		return
+	end
+	% ======================================================================
+
 	% Create the "ForceInsitu" Tooltip
 	str = sprintf(['Importing grids implies a conversion that uses\n'...
 		'matrix transposition. This operations is fast if\n'...
