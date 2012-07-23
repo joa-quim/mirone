@@ -50,8 +50,8 @@ function hObject = mirone_OpeningFcn(varargin)
 %#function imreconstructmex applylutc bwboundariesmex bwlabel1 bwlabel2 ditherc bwlabelnmex
 %----- These are in utils
 %#function tabpanelfcn degree2dms dms2degree dec2deg dec_year ivan_the_terrible ddewhite string_token
-%#function test_dms text_read double2ascii save_seismicity jd2date trimpatch
-%#function guess_file shading_mat getline_j frame3D new_frame3D histos_seis
+%#function test_dms text_read double2ascii save_seismicity jd2date guess_file shading_mat 
+%#function getline_j new_frame3D histos_seis uirestore_j uisuspend_j
 %----- These is for write_gmt_script
 %#function draw_scale time_stamp pscoast_options_Mir paint_option w_option
 %----- Those are ..., the hell with explanations for what I don't realy understand. They are needed, that's all.
@@ -91,7 +91,7 @@ function hObject = mirone_OpeningFcn(varargin)
 	handles.no_file = 1;		% 0 means a grid is loaded and 1 that it is not (to test when icons can be pushed)
 	handles.geog = 1;			% By default grids are assumed to be in geographical coordinates
 	handles.swathRatio = 3;		% Default swath width / water depth ratio for multibeam planing
-	handles.grdMaxSize = 52428800;	% I use this for limiting the grid size that is stored in RAM (50 Mb)
+	handles.grdMaxSize = 524288000;	% I use this for limiting the grid size that is stored in RAM (50 Mb)
 	handles.firstMBtrack = 1;	% Used for knowing whether to display or not the MB planing info message in "start planing"
 	handles.EarthRad = 6371.005076;	% Authalic radius
 	handles.maregraphs_count = 0; % Counter of maregraphs (tsunami modeling)
@@ -151,10 +151,9 @@ function hObject = mirone_OpeningFcn(varargin)
 		end
 		handles.bg_color = prf.nanColor;
 	catch
-		% We need also to create an empty pref file to not error in CloseRequestFcn if not truly updated first
-		if (~handles.version7),		save([handles.path_data 'mirone_pref.mat'],'fsep')			% R <= 13
-		else						save([handles.path_data 'mirone_pref.mat'],'fsep', '-v6')
-		end		
+		% Tell mirone_pref to write up the defaults.
+		mirone_pref(handles,'nikles')
+		handles = guidata(handles.figure1);					% And need also the updated handles
 	end
 
 	j = false(1,numel(handles.last_directories));			% vector for eventual cleaning non-existing dirs
