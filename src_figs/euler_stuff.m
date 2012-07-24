@@ -32,15 +32,16 @@ function varargout = euler_stuff(varargin)
 	handles.p_lon = [];
 	handles.p_lat = [];
 	handles.p_omega = [];
-	handles.edit_pole1Lon = [];
-	handles.edit_pole1Lat = [];
-	handles.edit_pole1Ang = [];
-	handles.edit_pole2Lon = [];
-	handles.edit_pole2Lat = [];
-	handles.edit_pole2Ang = [];
+	handles.pole1Lon = [];
+	handles.pole1Lat = [];
+	handles.pole1Ang = [];
+	handles.pole2Lon = [];
+	handles.pole2Lat = [];
+	handles.pole2Ang = [];
 	handles.ages = [];
 	handles.do_interp = 0;          % Used to decide which 'compute' function to use
 	handles.finite_poles = [];      % Used to store a collection of finite poles (issued by choosebox)
+	handles.activeTab = 1;			% Active tab. To the "Poles selector" button know how to behave
 
 	handles.hCallingFig = varargin{1};
 	handles.mironeAxes = get(varargin{1},'CurrentAxes');
@@ -80,28 +81,28 @@ function varargout = euler_stuff(varargin)
 	handles.work_dir = handlesMir.work_dir;
 	handles.home_dir = handlesMir.home_dir;
 
-% This is the tag that all tab push buttons share.  If you have multiple
-% sets of tab push buttons, each group should have unique tag.
-group_name = 'tab_group';
+	% This is the tag that all tab push buttons share.  If you have multiple
+	% sets of tab push buttons, each group should have unique tag.
+	group_name = 'tab_group';
 
-% This is a list of the UserData values used to link tab push buttons and
-% the components on their linked panels.  To add a new tab panel to the group
-%  Add the button using GUIDE
-%  Assign the Tag based on the group name - in this case tab_group
-%  Give the UserData a unique name - e.g. another_tab_panel
-%  Add components to GUIDE for the new panel
-%  Give the new components the same UserData as teh tab button
-%  Add the new UserData name to the below cell array
-panel_names = {'DoRotations','AddPoles','InterpPoles'};
+	% This is a list of the UserData values used to link tab push buttons and
+	% the components on their linked panels.  To add a new tab panel to the group
+	%  Add the button using GUIDE
+	%  Assign the Tag based on the group name - in this case tab_group
+	%  Give the UserData a unique name - e.g. another_tab_panel
+	%  Add components to GUIDE for the new panel
+	%  Give the new components the same UserData as teh tab button
+	%  Add the new UserData name to the below cell array
+	panel_names = {'DoRotations','AddPoles','InterpPoles'};
 
-% tabpanelfcn('makegroups',...) adds new fields to the handles structure,
-% one for each panel name and another called 'group_name_all'.  These fields
-% are used by the tabpanefcn when tab_group_handler is called.
-handles = tabpanelfcn('make_groups',group_name, panel_names, handles, 1);
+	% tabpanelfcn('makegroups',...) adds new fields to the handles structure,
+	% one for each panel name and another called 'group_name_all'.  These fields
+	% are used by the tabpanefcn when tab_group_handler is called.
+	handles = tabpanelfcn('make_groups',group_name, panel_names, handles, 1);
 
-guidata(hObject, handles);
-set(hObject,'Visible','on');
-if (nargout),	varargout{1} = hObject;		end
+	guidata(hObject, handles);
+	set(hObject,'Visible','on');
+	if (nargout),	varargout{1} = hObject;		end
 
 % -------------------------------------------------------------------------------------
 % --- If Enable == 'on', executes on mouse press in 5 pixel border.
@@ -111,24 +112,34 @@ function tab_group_ButtonDownFcn(hObject, handles)
 % hide the components from the previous tab and show components on this tab.
 % This also updates the last_tab field in the handles structure to keep track
 % of which panel was hidden.
-handles = tabpanelfcn('tab_group_handler',hObject, handles, get(hObject, 'Tag'));
-% Since this tab uses mostly existing uis, just make the visible here
-if (strcmp(get(hObject,'UserData'),'InterpPoles'))
-	set(handles.h_Stg_txt,'Visible','on','String','Finite rotation poles file')
-	set(handles.edit_polesFile,'Visible','on')
-	set(handles.push_readPolesFile,'Visible','on')
-	set(handles.txt_AgeF,'Visible','on')
-	set(handles.edit_agesFile,'Visible','on')
-	set(handles.push_ReadAgesFile,'Visible','on')
-	set(handles.listbox_ages,'Visible','on')
-	set(handles.push_polesList,'Visible','on')
-	set(handles.push_compute,'Visible','on')
-	handles.do_interp = 1;			% Redirect the 'compute' function
-else
-	handles.do_interp = 0;
-	set(handles.h_Stg_txt,'String','Stage poles file')
-end
-guidata(hObject, handles);
+	handles = tabpanelfcn('tab_group_handler',hObject, handles, get(hObject, 'Tag'));
+	% Since this tab uses mostly existing uis, just make the visible here
+	if (strcmp(get(hObject,'UserData'),'InterpPoles'))
+		set(handles.h_Stg_txt,'Visible','on','String','Finite rotation poles file')
+		set(handles.edit_polesFile,'Visible','on')
+		set(handles.push_readPolesFile,'Visible','on')
+		set(handles.txt_AgeF,'Visible','on')
+		set(handles.edit_agesFile,'Visible','on')
+		set(handles.push_ReadAgesFile,'Visible','on')
+		set(handles.listbox_ages,'Visible','on')
+		%set(handles.push_polesList,'Visible','on')
+		set(handles.push_compute,'Visible','on')
+		handles.do_interp = 1;			% Redirect the 'compute' function
+		set(handles.push_polesList,'Pos',[280 159 131 21])		% May have been repositioned by AddPoles
+		handles.activeTab = 1;			% By the order of appearence
+	else
+		handles.do_interp = 0;
+		set(handles.h_Stg_txt,'String','Stage poles file')
+		if (strcmp(get(hObject,'UserData'),'AddPoles'))
+			pos = get(handles.push_polesList,'Pos');	pos(1:2) = [190 50];
+			set(handles.push_polesList,'Pos',pos)
+			handles.activeTab = 2;		% By the order of appearence
+		else
+			set(handles.push_polesList,'Pos',[270 159 131 21])
+			handles.activeTab = 3;		% By the order of appearence
+		end
+	end
+	guidata(hObject, handles);
 
 % -------------------------------------------------------------------------------------
 function edit_polesFile_CB(hObject, handles)
@@ -463,8 +474,9 @@ function push_polesList_CB(hObject, handles)
 	s = strread(c,'%s','delimiter','\n');
 
 	multiple_str = 'multiple_finite';
-	if (handles.do_interp)      multiple_val = 1;
-	else                        multiple_val = 0;
+	multiple_val = 0;
+	if (handles.activeTab == 2 || handles.activeTab == 3)
+		multiple_val = 1;
 	end
 
 	[s,v] = choosebox('Name','One Euler list',...
@@ -472,7 +484,13 @@ function push_polesList_CB(hObject, handles)
 						'SelectString','Selected poles:',...
 						'ListSize',[450 300],...
 						multiple_str,multiple_val,...
+						'addpoles',1,...
 						'ListString',s);
+
+	if (~isempty(s) && handles.activeTab == 2 && size(s,1) ~= 2)
+		errordlg('I should tease you but maybe you just don''t know what you are doing.','Error')
+		return
+	end
 
 	if (v == 1)         % Finite pole (one only)
 		handles.p_lon = s(1);
@@ -485,8 +503,25 @@ function push_polesList_CB(hObject, handles)
 	elseif (v == 2)     % Stage poles
 		set(handles.edit_polesFile,'String',s)
 	elseif (v == 3)     % Multiple finite poles (with ages)
-		set(handles.edit_polesFile,'String','In memory poles')
-		handles.finite_poles = s;
+		if (handles.activeTab == 2)
+			set(handles.edit_pole1Lon, 'String', num2str(s(1,1)))
+			set(handles.edit_pole1Lat, 'String', num2str(s(1,2)))
+			set(handles.edit_pole1Ang, 'String', num2str(s(1,3)))
+			set(handles.edit_pole2Lon, 'String', num2str(s(2,1)))
+			set(handles.edit_pole2Lat, 'String', num2str(s(2,2)))
+			set(handles.edit_pole2Ang, 'String', num2str(s(2,3)))
+			[lon_s,lat_s,ang_s] = add_poles(s(1,1), s(1,2), s(1,3), s(2,1), s(2,2), s(2,3));
+			set(handles.edit_pole3Lon,'String', sprintf('%.2f', lon_s))
+			set(handles.edit_pole3Lat,'String', sprintf('%.2f', lat_s))
+			set(handles.edit_pole3Ang,'String', sprintf('%.4f', ang_s))
+			handles.pole1Lon = s(1,1);			handles.pole1Lat = s(1,2);
+			handles.pole1Ang = s(1,3);
+			handles.pole2Lon = s(2,1);			handles.pole2Lat = s(2,2);
+			handles.pole2Ang = s(2,3);
+		else
+			set(handles.edit_polesFile,'String','In memory poles')
+			handles.finite_poles = s;
+		end
 		guidata(hObject,handles)
 	end
 
@@ -570,72 +605,72 @@ function push_rectSelect_CB(hObject, handles)
 
 % -----------------------------------------------------------------------------------
 function edit_pole1Lon_CB(hObject, handles)
-	handles.edit_pole1Lon = str2double(get(hObject,'String'));
-	if (isnan(handles.edit_pole1Lon))   set(hObject,'String','');   return;     end
+	handles.pole1Lon = str2double(get(hObject,'String'));
+	if (isnan(handles.pole1Lon)),		set(hObject,'String',''),	return,		end
 	guidata(hObject, handles);
 	if (~got_them_all(handles))     return;     end     % Not yet all parameters of the 2 poles
-	[lon_s,lat_s,ang_s] = add_poles(handles.edit_pole1Lon,handles.edit_pole1Lat,handles.edit_pole1Ang,...
-		handles.edit_pole2Lon,handles.edit_pole2Lat,handles.edit_pole2Ang);
+	[lon_s,lat_s,ang_s] = add_poles(handles.pole1Lon,handles.pole1Lat,handles.pole1Ang,...
+		handles.pole2Lon,handles.pole2Lat,handles.pole2Ang);
 	set(handles.edit_pole3Lon,'String',num2str(lon_s,'%.4f'))
 	set(handles.edit_pole3Lat,'String',num2str(lat_s,'%.4f'))
 	set(handles.edit_pole3Ang,'String',num2str(ang_s,'%.4f'))
 
 % -----------------------------------------------------------------------------------
 function edit_pole1Lat_CB(hObject, handles)
-	handles.edit_pole1Lat = str2double(get(hObject,'String'));
-	if (isnan(handles.edit_pole1Lat))   set(hObject,'String','');   return;     end
+	handles.pole1Lat = str2double(get(hObject,'String'));
+	if (isnan(handles.pole1Lat)),		set(hObject,'String',''),	return,		end
 	guidata(hObject, handles);
 	if (~got_them_all(handles))     return;     end     % Not yet all parameters of the 2 poles
-	[lon_s,lat_s,ang_s] = add_poles(handles.edit_pole1Lon,handles.edit_pole1Lat,handles.edit_pole1Ang,...
-		handles.edit_pole2Lon,handles.edit_pole2Lat,handles.edit_pole2Ang);
+	[lon_s,lat_s,ang_s] = add_poles(handles.pole1Lon,handles.pole1Lat,handles.pole1Ang,...
+		handles.pole2Lon,handles.pole2Lat,handles.pole2Ang);
 	set(handles.edit_pole3Lon,'String',num2str(lon_s,'%.4f'))
 	set(handles.edit_pole3Lat,'String',num2str(lat_s,'%.4f'))
 	set(handles.edit_pole3Ang,'String',num2str(ang_s,'%.4f'))
 
 % -----------------------------------------------------------------------------------
 function edit_pole1Ang_CB(hObject, handles)
-	handles.edit_pole1Ang = str2double(get(hObject,'String'));
-	if (isnan(handles.edit_pole1Ang))   set(hObject,'String','');   return;     end
+	handles.pole1Ang = str2double(get(hObject,'String'));
+	if (isnan(handles.pole1Ang)),		set(hObject,'String',''),	return,		end
 	guidata(hObject, handles);
 	if (~got_them_all(handles))     return;     end     % Not yet all parameters of the 2 poles
-	[lon_s,lat_s,ang_s] = add_poles(handles.edit_pole1Lon,handles.edit_pole1Lat,handles.edit_pole1Ang,...
-		handles.edit_pole2Lon,handles.edit_pole2Lat,handles.edit_pole2Ang);
+	[lon_s,lat_s,ang_s] = add_poles(handles.pole1Lon,handles.pole1Lat,handles.pole1Ang,...
+		handles.pole2Lon,handles.pole2Lat,handles.pole2Ang);
 	set(handles.edit_pole3Lon,'String',num2str(lon_s,'%.4f'))
 	set(handles.edit_pole3Lat,'String',num2str(lat_s,'%.4f'))
 	set(handles.edit_pole3Ang,'String',num2str(ang_s,'%.4f'))
 
 % -----------------------------------------------------------------------------------
 function edit_pole2Lon_CB(hObject, handles)
-	handles.edit_pole2Lon = str2double(get(hObject,'String'));
-	if (isnan(handles.edit_pole2Lon))   set(hObject,'String','');   return;     end
+	handles.pole2Lon = str2double(get(hObject,'String'));
+	if (isnan(handles.pole2Lon)),		set(hObject,'String',''),	return,		end
 	guidata(hObject, handles);
 	if (~got_them_all(handles)),	return;     end     % Not yet all parameters of the 2 poles
-	[lon_s,lat_s,ang_s] = add_poles(handles.edit_pole1Lon,handles.edit_pole1Lat,handles.edit_pole1Ang,...
-		handles.edit_pole2Lon,handles.edit_pole2Lat,handles.edit_pole2Ang);
+	[lon_s,lat_s,ang_s] = add_poles(handles.pole1Lon,handles.pole1Lat,handles.pole1Ang,...
+		handles.pole2Lon,handles.pole2Lat,handles.pole2Ang);
 	set(handles.edit_pole3Lon,'String',num2str(lon_s,'%.4f'))
 	set(handles.edit_pole3Lat,'String',num2str(lat_s,'%.4f'))
 	set(handles.edit_pole3Ang,'String',num2str(ang_s,'%.4f'))
 
 % -----------------------------------------------------------------------------------
 function edit_pole2Lat_CB(hObject, handles)
-	handles.edit_pole2Lat = str2double(get(hObject,'String'));
-	if (isnan(handles.edit_pole2Lat)),	set(hObject,'String','');   return;     end
+	handles.pole2Lat = str2double(get(hObject,'String'));
+	if (isnan(handles.pole2Lat)),		set(hObject,'String',''),	return,		end
 	guidata(hObject, handles);
 	if (~got_them_all(handles)),	return;     end     % Not yet all parameters of the 2 poles
-	[lon_s,lat_s,ang_s] = add_poles(handles.edit_pole1Lon,handles.edit_pole1Lat,handles.edit_pole1Ang,...
-		handles.edit_pole2Lon,handles.edit_pole2Lat,handles.edit_pole2Ang);
+	[lon_s,lat_s,ang_s] = add_poles(handles.pole1Lon,handles.pole1Lat,handles.pole1Ang,...
+		handles.pole2Lon,handles.pole2Lat,handles.pole2Ang);
 	set(handles.edit_pole3Lon,'String',num2str(lon_s,'%.4f'))
 	set(handles.edit_pole3Lat,'String',num2str(lat_s,'%.4f'))
 	set(handles.edit_pole3Ang,'String',num2str(ang_s,'%.4f'))
 
 % -----------------------------------------------------------------------------------
 function edit_pole2Ang_CB(hObject, handles)
-	handles.edit_pole2Ang = str2double(get(hObject,'String'));
-	if (isnan(handles.edit_pole2Ang)),	set(hObject,'String','');   return;     end
+	handles.pole2Ang = str2double(get(hObject,'String'));
+	if (isnan(handles.pole2Ang)),		set(hObject,'String',''),	return,		end
 	guidata(hObject, handles);
 	if (~got_them_all(handles)),	return;     end     % Not yet all parameters of the 2 poles
-	[lon_s,lat_s,ang_s] = add_poles(handles.edit_pole1Lon,handles.edit_pole1Lat,handles.edit_pole1Ang,...
-		handles.edit_pole2Lon,handles.edit_pole2Lat,handles.edit_pole2Ang);
+	[lon_s,lat_s,ang_s] = add_poles(handles.pole1Lon,handles.pole1Lat,handles.pole1Ang,...
+		handles.pole2Lon,handles.pole2Lat,handles.pole2Ang);
 	set(handles.edit_pole3Lon,'String',num2str(lon_s,'%.4f'))
 	set(handles.edit_pole3Lat,'String',num2str(lat_s,'%.4f'))
 	set(handles.edit_pole3Ang,'String',num2str(ang_s,'%.4f'))
@@ -645,10 +680,10 @@ function yeap = got_them_all(handles)
 % Check if we have all the 6 parameters (2 poles x 3 params each)
 % If at least one of them is empty returns YEAP = 0;
 
-	yeap = 1;
-	if ( isempty(handles.edit_pole1Lon) || isempty(handles.edit_pole1Lat) || isempty(handles.edit_pole1Ang) || ...
-			isempty(handles.edit_pole2Lon) || isempty(handles.edit_pole2Lat) || isempty(handles.edit_pole2Ang) )
-		yeap = 0;
+	yeap = true;
+	if ( isempty(handles.pole1Lon) || isempty(handles.pole1Lat) || isempty(handles.pole1Ang) || ...
+			isempty(handles.pole2Lon) || isempty(handles.pole2Lat) || isempty(handles.pole2Ang) )
+		yeap = false;
 	end
 
 % -----------------------------------------------------------------------------------------
@@ -973,8 +1008,7 @@ uicontrol('Parent',h1,...
 'Callback',{@euler_stuff_uiCB,h1,'push_polesList_CB'},...
 'Position',[280 159 131 21],...
 'String','Poles selector',...
-'Tag','push_polesList',...
-'UserData','DoRotations');
+'Tag','push_polesList');
 
 uicontrol('Parent',h1,...
 'Callback',{@euler_stuff_uiCB,h1,'push_pickLine_CB'},...
