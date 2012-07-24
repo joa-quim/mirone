@@ -38,6 +38,12 @@ function [selection,value] = choosebox(varargin)
 %                   as text above the base list box.  Defaults to {}.
 %   'SelectString'  string matrix or cell array of strings which appears
 %                   as text above the selection list box. Defaults to {}.
+%	'multiple_finite'
+%					a scalar with 0 meaning return only one pole (first selected) [DEFAULT]
+%					any other value means return all selected poles.
+%
+%	'addpoles'		'whatever', show only one confirmation button. Used to select TWO poles only
+%
 %   'uh'            uicontrol button height, in pixels; default = 18.
 %   'fus'           frame/uicontrol spacing, in pixels; default = 8.
 %   'ffs'           frame/figure spacing, in pixels; default = 8.
@@ -59,8 +65,6 @@ function [selection,value] = choosebox(varargin)
 %   Test:  d = dir;[s,v] = choosebox('Name','File deletion','PromptString','Files remaining in this directory:','SelectString','Files to delete:','ListString',{d.name});
 
 %   As usual, hacked in many several ways to be used by Mirone. Joaquim Luis
-
-%error(nargchk(1,inf,nargin))
 
 % if (~length(varargin) == 2 & strcmp(varargin{1},'writeStages'))
 %     doWriteStages(varargin{2})          % Poles were computes. Just write them and exit
@@ -106,6 +110,7 @@ selectstring = {};
 liststring = [];
 listsize = [160 300];
 initialvalue = [];
+addpoles = false;
 cancelstring = 'Cancel';
 fus = 8;
 ffs = 8;
@@ -149,6 +154,8 @@ for (i = 1:2:numel(varargin))
             cancelstring = varargin{i+1};
         case 'multiple_finite'
             multiple_finite = varargin{i+1};
+		case 'addpoles'
+			addpoles = true;
         otherwise
             error(['Unknown parameter name passed to LISTDLG.  Name was ' varargin{i}])
 	end
@@ -253,11 +260,6 @@ uicontrol('style','pushbutton',...
 		'callback',{@doCancel});
 
 uicontrol('style','pushbutton',...
-		'string','Finite Pole',...
-		'position',[ffs+3*fus+btn_wid+50 ffs+fus btn_wid2 uh],...
-		'callback',{@doFinite});
-
-uicontrol('style','pushbutton',...
 		'position',[ffs+2*fus+10+listsize(1) ffs+uh+4*fus+(smode==2)*(fus+uh)+listsize(2)/2-25 30 30],...
 		'cdata',rarrow,'callback',{@doRight});
 
@@ -265,10 +267,19 @@ uicontrol('style','pushbutton',...
 		'position',[ffs+2*fus+10+listsize(1) ffs+uh+4*fus+(smode==2)*(fus+uh)+listsize(2)/2+25 30 30],...
 		'cdata',larrow,'callback',{@doLeft});
 
-uicontrol('style','pushbutton',...
-		'string','Compute Stage Poles',...
-		'position',[ffs+3*fus+3*btn_wid2+50 ffs+fus btn_wid2 uh],...
-		'callback',{@doStagePoles});
+if (~addpoles)
+	uicontrol('style','pushbutton', 'string','Finite Pole',...
+			'position',[ffs+3*fus+btn_wid+50 ffs+fus btn_wid2 uh],...
+			'callback',{@doFinite});
+
+	uicontrol('style','pushbutton', 'string','Compute Stage Poles',...
+			'position',[ffs+3*fus+3*btn_wid2+50 ffs+fus btn_wid2 uh],...
+			'callback',{@doStagePoles});
+else
+	uicontrol('style','pushbutton', 'string','Two poles to Add',...
+			'position',[ffs+3*fus+btn_wid+50 ffs+fus btn_wid2*2 uh],...
+			'callback',{@doFinite});
+end
 
 	%------------ Give a Pro look (3D) to the frame boxes  --------
 	new_frame3D(fig, NaN)
