@@ -1,12 +1,12 @@
   0.0    0.0     0.0     0.0  !NAM<-Eurasia
-142.35  44.5    -0.39    1.82 !NAM<-Eurasia  An2   Em movimento
-139.25  56.75   -0.625   3.06 !NAM<-Eurasia  An2A  Em movimento
+145.60  47.0    -0.39    1.82 !NAM<-Eurasia  An2   Em movimento
+142.70  47.5    -0.62    3.06 !NAM<-Eurasia  An2A  Em movimento
 138.10  59.1    -1.03    4.72 !NAM<-Eurasia  An3   Em movimento
 139.90  55.9    -1.29    6.20 !NAM<-Eurasia  An3A  Em movimento
 140.10  56.8    -1.62    7.54 !NAM<-Eurasia  An4   Em movimento
 138.80  60.3    -1.95    8.88 !NAM<-Eurasia  An4A  Em movimento
 141.90  59.1    -2.31   10.30 !NAM<-Eurasia  An5   Em movimento
-140.00  62.0    -4.58   10.30 !NAM<-Eurasia  An5   Em movimento
+140.00  62.0    -4.58   21.00 !NAM<-Eurasia  An6   Em movimento
 
   0.0    0.0     0.0     0.0  !ACO-NAM Iberia-North America
 -37.50   7.0    -1.59    3.85 !ACO-NAM An3  J. Luis et al. 1984
@@ -80,7 +80,7 @@
  45.60  79.60   -1.80    7.54 !NAM<-Nubia  An4   Em movimento
  40.20  79.60   -2.14    8.88 !NAM<-Nubia  An4A  Em movimento
  41.20  79.90   -2.57   10.30 !NAM<-Nubia  An5   Em movimento
- 39.74  80.37   -5.29   10.30 !NAM<-Nubia  An5   Em movimento
+ 39.74  80.37   -5.29   21.00 !NAM<-Nubia  An6   Em movimento
 
   0.0    0.00    0.0     0.0  !Afr<-IBE Iberia-Africa (Afr fixed)
 -20.61  21.03    0.0     0.0  !Afr<-IBE An0 Nuvel
