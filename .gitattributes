@@ -510,6 +510,7 @@ netcdf3.6.3/lib/libnetcdf_w32.lib -text
 src_figs/about_box.m -text
 src_figs/animate_seismicity.m -text
 src_figs/aquamoto.m -text
+src_figs/arrow_shape.m -text
 src_figs/atlas.m -text
 src_figs/bands_list.m -text
 src_figs/bg_map.m -text
