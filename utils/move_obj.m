@@ -37,9 +37,13 @@ switch arg
 	
 		switch get(this_obj, 'type')
 			case 'text',	obj_pos = get(this_obj, 'Pos')';
-			case {'line' 'patch'}, 
-				obj_pos(1,:) = get(this_obj,'xdata');
-				obj_pos(2,:) = get(this_obj,'ydata');
+			case {'line' 'patch'},
+				x = get(this_obj,'xdata');
+				if (size(x,1) > 1),		x = x';		end			% SAD R13 limitation
+				y = get(this_obj,'ydata');
+				if (size(y,1) > 1),		y = y';		end
+				obj_pos(1,:) = x;
+				obj_pos(2,:) = y;
 			otherwise error(['cannot handle type ' get(this_obj,'type')])
 		end
 	
