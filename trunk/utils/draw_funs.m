@@ -478,9 +478,11 @@ function copy_line_object(obj, evt, hFig, hAxes)
         hFun = get(h,'Call');
         hFun{2} = newH;
         set(h,'Call',hFun)
-    end
-	rmappdata(newH,'polygon_data')          % Remove the parent's ui_edit_polygon appdata
-	state = uisuspend_j(hFig);            % Remember initial figure state
+	end
+	if (isappdata(newH,'polygon_data'))
+		rmappdata(newH,'polygon_data')		% Remove the parent's ui_edit_polygon appdata
+	end
+	state = uisuspend_j(hFig);				% Remember initial figure state
 	x_lim = get(hAxes,'xlim');        y_lim = get(hAxes,'ylim');
 	current_pt = get(hAxes, 'CurrentPoint');
 	setappdata(newH,'old_pt',[current_pt(1,1) current_pt(1,2)])
@@ -1231,10 +1233,11 @@ function report_EulerVel(obj, evt, h, opt)
 	
 		hVec = patch('XData',xt, 'YData', yt, 'FaceColor',handles.DefLineColor,'EdgeColor', ...
 			handles.DefLineColor,'LineWidth',0.5,'Tag','Arrow');
-		ud.arrow_xy = [xt(:) yt(:)];		ud.vFac = 1.3;		ud.headHeight = 10;
-		ud.hscale = hscale;			ud.vscale = vscale;
-		ud.mag = mag;				ud.azim = azim;
-		ud.length = mag;
+		ud.arrow_xy = [xt(:) yt(:)];		
+		ud.vFac = 1.3;			ud.headLength = 10;
+		ud.aspectRatio = 3/2;	ud.length = mag;
+		ud.hscale = hscale;		ud.vscale = vscale;
+		ud.mag = mag;			ud.azim = azim;
 		set(hVec, 'UserData', ud)
 		set_vector_uicontext(hVec)
 	end
@@ -1278,6 +1281,7 @@ function set_vector_uicontext(h)
 	uimenu(cmenuHand, 'Label', 'Save line', 'Call', {@save_formated, h});
 	uimenu(cmenuHand, 'Label', 'Copy', 'Call', {@copy_line_object, handles.figure1, handles.axes1});
  	uimenu(cmenuHand, 'Label', 'Edit (redraw)', 'Call', {@arrowRedraw, h});
+	uimenu(cmenuHand, 'Label', 'Reshape (head)', 'Call', {@arrow_shape,h});
 	if (handles.geog)		% No solution yet for cartesian arrows
 		uimenu(cmenuHand, 'Label', 'Copy (mirror)', 'Call', {@mirror_arrow, h});
 	end
@@ -1296,7 +1300,9 @@ function arrowRedraw(obj, evt, hVec)
 	state = uisuspend_j(hFig);		% Remember initial figure state
 	set(hFig,'Pointer', 'crosshair');
 	hVec(2) = line('XData', [], 'YData', [],'LineWidth',0.5,'Tag','Arrow');
-	vectorFirstButtonDown(hFig, hAxes, hVec, state, getappdata(hVec(1),'anchor'))
+	ud = get(hVec(1),'UserData');
+	vectorFirstButtonDown(hFig, hAxes, hVec, state, getappdata(hVec(1),'anchor'), ...
+		ud.headLength, ud.vFac, ud.aspectRatio)
 
 % -----------------------------------------------------------------------------------------
 function mirror_arrow(obj, evt, h)
@@ -1306,7 +1312,7 @@ function mirror_arrow(obj, evt, h)
 	x1 = (ud.arrow_xy(end-2,1) + ud.arrow_xy(end-1,1)) / 2;
 	y1 = (ud.arrow_xy(end-2,2) + ud.arrow_xy(end-1,2)) / 2;
 	[y2, x2] = vreckon(y1, x1, ud.mag, [ud.azim ud.azim]+180, 1);
-	[xt, yt] = make_arrow([x1 x2; y1 y2], ud.hscale, ud.vscale, ud.headHeight, ud.vFac);
+	[xt, yt] = make_arrow([x1 x2; y1 y2], ud.hscale, ud.vscale, ud.headLength, ud.vFac);
 	hVec = patch('XData',xt, 'YData', yt,'FaceColor',handles.DefLineColor,'EdgeColor', ...
 		handles.DefLineColor,'LineWidth',0.5,'Tag','Arrow');
 	ud.arrow_xy = [xt(:) yt(:)];		ud.azim = rem(ud.azim + 180, 360);	% Other ud fields don't need updating
@@ -1613,12 +1619,15 @@ function hVec = DrawVector
         set(hFig,'Pointer', 'arrow');	hVec = [];
 	end
 
-function [hs, vs] = vectorFirstButtonDown(hFig, hAxes, h, state, opt)
+function [hs, vs] = vectorFirstButtonDown(hFig, hAxes, h, state, anchor, ah, vFac, aspect)
 % Outputs are used by the report_EulerVel (when PLOTing) function
-% OPT, if used, contains the arrow anchor point coords (used by the edit mode)
+% ANCHOR, if used, contains the arrow anchor point coords (used by the edit mode)
 
-	if (nargin == 5),		pt = opt;
+	if (nargin >= 5),		pt = anchor;
 	else					pt = get(hAxes, 'CurrentPoint');
+	end
+	if (nargin ~= 8)
+		ah = 12;	vFac = 1.3;		aspect = 3/2;
 	end
  	axLims = getappdata(hAxes,'ThisImageLims');
 	% create a conversion from data to points for the current axis
@@ -1632,17 +1641,17 @@ function [hs, vs] = vectorFirstButtonDown(hFig, hAxes, h, state, opt)
 	end
 	if (~nargout)
 		setappdata(h(1),'anchor', [pt(1,1) pt(1,2)])	% To eventual use in/if edit mode
-		set(hFig,'WindowButtonMotionFcn',{@wbm_vector,[pt(1,1) pt(1,2)],h,hAxes,hscale,vscale}, ...
+		set(hFig,'WindowButtonMotionFcn',{@wbm_vector,[pt(1,1) pt(1,2)],h,hAxes,hscale,vscale, ah, vFac, aspect}, ...
 			'WindowButtonDownFcn',{@wbd_vector, h, state, hscale, vscale});
 	else
 		hs = hscale;	vs = vscale;
 	end
 
-function wbm_vector(obj, evt, origin, h, hAxes, hscale, vscale)
+function wbm_vector(obj, evt, origin, h, hAxes, hscale, vscale, ah, vFac, aspect)
 	pt = get(hAxes, 'CurrentPoint');
 	x  = [origin(1) pt(1,1)];   y = [origin(2) pt(1,2)];
  	set(h(2),'XData',x, 'YData',y)
-	[xt, yt] = make_arrow(h(2) , hscale, vscale);
+	[xt, yt] = make_arrow(h(2) , hscale, vscale, ah, vFac, aspect);
  	set(h(1),'XData',xt, 'YData',yt);
 
 function wbd_vector(obj, evt, h, state, hscale, vscale)
@@ -1650,17 +1659,25 @@ function wbd_vector(obj, evt, h, state, hscale, vscale)
 	uirestore_j(state, 'nochildren');		% Restore the figure's initial state
 	x = get(h(2), 'XData');		y = get(h(2), 'YData');
 	xx = get(h(1), 'XData');	yy = get(h(1), 'YData');
-	ud.arrow_xy = [xx(:) yy(:)];		
-	ud.vFac = 1.3;		ud.headHeight = 12;
-	ud.hscale = hscale;			ud.vscale = vscale;	ud.mag = [];	%'mag' is for vector magnitude in orig coords cases
+	ud_old = get(h(1), 'UserData');
+	ud.arrow_xy = [xx(:) yy(:)];
+	ud.anchors = [x(:) y(:)];				% Extremities, usefull for arrow reconstruction
+	ud.hscale = hscale;			ud.vscale = vscale;
 	ll = show_lineAzims([], evt, h(1));		% Compute azimuth (geog or cartesian)
 	ud.azim = ll.az(end);
 	ll = show_LineLength([], evt, [x(:) y(:)], 'm');
 	ud.mag = ll.len;
+	if (isempty(ud_old))					% First time usage. Need to add these to UD
+		ud.vFac = 1.3;				ud.headLength = 12;
+		ud.aspectRatio = 3/2;				% Header lenght/width aspect ratio
+	else
+		ud.vFac = ud_old.vFac;		ud.headLength = ud_old.headLength;
+		ud.aspectRatio = ud_old.aspectRatio;
+	end
 	set(h(1), 'UserData', ud)
 	delete(h(2));							% We don't need this (support) line anymore
 	set_vector_uicontext(h(1))
-% -----------------------------------------------------------------
+% -----------------------------------------------------------------------------------------
 
 % -----------------------------------------------------------------------------------------
 function h_gcirc = DrawGreatCircle
