@@ -1,4 +1,4 @@
-function [xt, yt] = make_arrow(lh , hscale, vscale, ah, vFac, full)
+function [xt, yt] = make_arrow(lh , hscale, vscale, ah, vFac, aspect, full)
 % returns x and y coord vectors for an arrow or just of the arrow head
 %
 % LH is either a line handle or a [x1 x2; y1 y2] matrix with the arrow tail coordinates
@@ -10,8 +10,9 @@ function [xt, yt] = make_arrow(lh , hscale, vscale, ah, vFac, full)
 % 	vscale = 1/Pos(4) * diff(axLims(1:2));	hscale = 1/Pos(3) * diff(axLims(3:4));
 % 	vscale = (vscale + hscale) / 2;			hscale = vscale;	% For not having a head direction dependency
 % 
-% AH is the arrow head height in points
-% VFAC represents the arrow's head V shape factor. VFAC = 1 makes a triangular head. Default is 1.3
+% AH		is the arrow head length in points
+% VFAC		represents the arrow's head V shape factor. VFAC = 1 makes a triangular head. Default is 1.3
+% ASPECT	Header length/width aspect ratio. Default is 3/2
 % FULL = 'yes' (default) returns the coord of the full arrow. Otherwise only
 % the coords of the arrow head are returned
 %
@@ -23,14 +24,16 @@ function [xt, yt] = make_arrow(lh , hscale, vscale, ah, vFac, full)
 
 	n_args = nargin;
 	if (n_args == 2)
-		vscale = hscale;		ah = 12;	vFac = 1.3;		full = 'yes';
+		vscale = hscale;	ah = 12;		vFac = 1.3;		aspect = 3/2;	full = 'yes';
 	elseif (n_args == 3)
-		ah = 12;	vFac = 1.3;		full = 'yes';
+		ah = 12;			vFac = 1.3;		aspect = 3/2;	full = 'yes';
 	elseif (n_args == 4)
-		vFac = 1.3;		full = 'yes';
+		vFac = 1.3;			aspect = 3/2;	full = 'yes';
 	elseif (n_args == 5)
+		aspect = 3/2;		full = 'yes';
+	elseif (n_args == 6)
 		full = 'yes';
-	elseif (n_args == 0 || n_args > 6)
+	elseif (n_args == 0 || n_args > 7)
 		error('MAKE_ARROW: Wrong number of arguments')
 	end
 
@@ -54,8 +57,8 @@ function [xt, yt] = make_arrow(lh , hscale, vscale, ah, vFac, full)
 	hy = (dx^2 + dy^2)^.5;
 	co =  dx / hy;		si =  dy / hy;
 
-	aw = ah * .66 + lw_2;	% 3 : 2 aspect ratio
-	ahV = ah * vFac;		% Sets V shape factor on arrow head
+	aw = ah / aspect + lw_2;	% Default, set 3 : 2 aspect ratio
+	ahV = ah * vFac;			% Sets V shape factor on arrow head
 
 	% determine arrowhead style
 	xt = [ -ah,  -ahV,  0,  -ahV, -ah ];
