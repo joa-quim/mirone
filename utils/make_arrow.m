@@ -34,7 +34,7 @@ function [xt, yt] = make_arrow(lh , hscale, vscale, ah, vFac, full)
 		error('MAKE_ARROW: Wrong number of arguments')
 	end
 
-	if (ishandle(lh))		% get the line width
+	if (numel(lh) == 1 && ishandle(lh))		% get the line width
 		try
 			lw = get(lh, 'LineWidth');		lw_2 = lw / 2;
 		catch
