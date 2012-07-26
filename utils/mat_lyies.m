@@ -47,12 +47,12 @@ end
 fid = fopen('text_stderr');
 while 1
     tline = fgetl(fid);
-    if ~ischar(tline), break, end
-    if findstr(tline,'is not recognized')    % case windows error
+    if ~ischar(tline),	break,	end
+    if strfind(tline,'is not recognized')			% case windows error
         s = 1;        w = [str '. Command not found'];
-    elseif findstr(tline,'command not found')    % case unix (or cygwin) error
+    elseif strfind(tline,'command not found')		% case unix (or cygwin) error
         s = 1;        w = [str '. Command not found'];
-    elseif findstr(tline,'ERROR')
+    elseif strfind(tline,'ERROR')
         s = 1;        w = tline;
     elseif ~isempty(tline)          % Gave up. I cannot guess all error messages, so if any report it
         s = 1;        w = tline;
@@ -60,9 +60,9 @@ while 1
 end
 fclose(fid);
 
-if s == 1,   return; end
+if (s == 1),	return,		end
 
-fid=fopen(text_stdout);
+fid = fopen(text_stdout);
 while 1
     tline = fgetl(fid);
     if ~ischar(tline), break, end
