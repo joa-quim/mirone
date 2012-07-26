@@ -471,13 +471,13 @@ function seismic_line(obj,evt,hL,opt)
 
 % -----------------------------------------------------------------------------------------
 function copy_line_object(obj, evt, hFig, hAxes)
-    oldH = gco(hFig);
+	oldH = gco(hFig);
 	newH = copyobj(oldH,hAxes);
-    h = findobj(get(newH,'uicontextmenu'),'label','Save line');
-    if (~isempty(h))        % Replace the old line handle in the 'Save line' Callback by the just created one
-        hFun = get(h,'Call');
-        hFun{2} = newH;
-        set(h,'Call',hFun)
+	h = findobj(get(newH,'uicontextmenu'),'label','Save line');
+	if (~isempty(h))        % Replace the old line handle in the 'Save line' Callback by the just created one
+		hFun = get(h,'Call');
+		hFun{2} = newH;
+		set(h,'Call',hFun)
 	end
 	if (isappdata(newH,'polygon_data'))
 		rmappdata(newH,'polygon_data')		% Remove the parent's ui_edit_polygon appdata
@@ -486,9 +486,9 @@ function copy_line_object(obj, evt, hFig, hAxes)
 	x_lim = get(hAxes,'xlim');        y_lim = get(hAxes,'ylim');
 	current_pt = get(hAxes, 'CurrentPoint');
 	setappdata(newH,'old_pt',[current_pt(1,1) current_pt(1,2)])
-	
+
 	set(hFig,'WindowButtonMotionFcn',{@wbm_MovePolygon,newH,[x_lim y_lim],hAxes},...
-        'WindowButtonDownFcn',{@wbd_MovePolygon,newH,state}, 'Pointer','fleur');
+		'WindowButtonDownFcn',{@wbd_MovePolygon,newH,state}, 'Pointer','fleur');
 
 % ---------
 function wbm_MovePolygon(obj,evt,h,lim,hAxes)
@@ -1229,7 +1229,7 @@ function report_EulerVel(obj, evt, h, opt)
 		mag = resp * ((hscale + vscale) / 2) * 111110;		% Length in meters, which is what vreckon wants
 
 		[lat2,lon2] = vreckon(pt(1,2), pt(1,1), mag, [azim azim], 1);		% Get arrow tip point
-		[xt, yt] = make_arrow([pt(1,1) lon2; pt(1,2) lat2] , hscale, vscale, 10);
+		[xt, yt] = make_arrow([pt(1,1) lon2; pt(1,2) lat2], hscale, vscale, 10);
 	
 		hVec = patch('XData',xt, 'YData', yt, 'FaceColor',handles.DefLineColor,'EdgeColor', ...
 			handles.DefLineColor,'LineWidth',0.5,'Tag','Arrow');
@@ -1237,6 +1237,7 @@ function report_EulerVel(obj, evt, h, opt)
 		ud.vFac = 1.3;			ud.headLength = 10;
 		ud.aspectRatio = 3/2;	ud.length = mag;
 		ud.hscale = hscale;		ud.vscale = vscale;
+		ud.anchors = [pt(1,1) lon2; pt(1,2) lat2]';		% Transpose because we store by columns
 		ud.mag = mag;			ud.azim = azim;
 		set(hVec, 'UserData', ud)
 		set_vector_uicontext(hVec)
@@ -1315,7 +1316,8 @@ function mirror_arrow(obj, evt, h)
 	[xt, yt] = make_arrow([x1 x2; y1 y2], ud.hscale, ud.vscale, ud.headLength, ud.vFac);
 	hVec = patch('XData',xt, 'YData', yt,'FaceColor',handles.DefLineColor,'EdgeColor', ...
 		handles.DefLineColor,'LineWidth',0.5,'Tag','Arrow');
-	ud.arrow_xy = [xt(:) yt(:)];		ud.azim = rem(ud.azim + 180, 360);	% Other ud fields don't need updating
+	ud.arrow_xy = [xt(:) yt(:)];		ud.azim = rem(ud.azim + 180, 360);
+	ud.anchor = ud.anchor(end:-1:1,:);	% Other ud fields don't need updating
 	set(hVec, 'UserData', ud)
 	set_vector_uicontext(hVec)
 
@@ -1606,7 +1608,7 @@ function other_LineWidth(obj,eventdata,h)
 
 % -----------------------------------------------------------------------------------------
 function hVec = DrawVector
-    hFig = get(0,'CurrentFigure');		handles = guidata(hFig);
+	hFig = get(0,'CurrentFigure');		handles = guidata(hFig);
 	hVec(1) = patch('XData',[], 'YData', [],'FaceColor',handles.DefLineColor,'EdgeColor', ...
 		handles.DefLineColor,'LineWidth',0.5,'Tag','Arrow');
 	hVec(2) = line('XData', [], 'YData', [],'Color',handles.DefLineColor,'LineWidth',0.5,'Tag','Arrow');
@@ -1614,9 +1616,9 @@ function hVec = DrawVector
 	set(hFig,'Pointer', 'crosshair');
 	w = waitforbuttonpress;
 	if (w == 0)							% A mouse click
-        vectorFirstButtonDown(hFig,handles.axes1,hVec,state)
+		vectorFirstButtonDown(hFig, handles.axes1, hVec, state)
 	else
-        set(hFig,'Pointer', 'arrow');	hVec = [];
+		set(hFig,'Pointer', 'arrow');	hVec = [];
 	end
 
 function [hs, vs] = vectorFirstButtonDown(hFig, hAxes, h, state, anchor, ah, vFac, aspect)
