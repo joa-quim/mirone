@@ -42,7 +42,7 @@ function [selection,value] = choosebox(varargin)
 %					a scalar with 0 meaning return only one pole (first selected) [DEFAULT]
 %					any other value means return all selected poles.
 %
-%	'addpoles'		'whatever', show only one confirmation button. Used to select TWO poles only
+%	'addpoles'		any value ~= 0, show only one confirmation button. Used to select TWO poles only
 %
 %   'uh'            uicontrol button height, in pixels; default = 18.
 %   'fus'           frame/uicontrol spacing, in pixels; default = 8.
@@ -155,7 +155,7 @@ for (i = 1:2:numel(varargin))
         case 'multiple_finite'
             multiple_finite = varargin{i+1};
 		case 'addpoles'
-			addpoles = true;
+			addpoles = (varargin{i+1} ~= 0);
         otherwise
             error(['Unknown parameter name passed to LISTDLG.  Name was ' varargin{i}])
 	end
