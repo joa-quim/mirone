@@ -2380,7 +2380,7 @@ function remove_symbolClass(obj,eventdata,h)
 
 % -----------------------------------------------------------------------------------------
 function remove_singleContour(obj, evt, h)
-	% Delete an individual contour and its eventual label(s)
+% Delete an individual contour and its eventual label(s)
 	labHand = getappdata(h,'LabelHands');
 	if (~isempty(labHand))
 		try     delete(labHand);   end
@@ -2421,10 +2421,18 @@ function save_line(obj, evt, h)
 			end
 		end
 	elseif (~iscell(x))
+		LineInfo = getappdata(h,'LineInfo');
+		if (~isempty(LineInfo)),	fprintf(fid,'> %s\n',LineInfo);	end
 		fprintf(fid,'%.6f\t%.6f\n',[x(:)'; y(:)']);
 	else
 		for (i = 1:numel(h))
-			fprintf(fid,'%s\n','>');
+			LineInfo = getappdata(h(i),'PLineInfo');
+			if (~isempty(LineInfo))
+				str = ['> ' LineInfo];
+			else
+				str = '>';
+			end
+			fprintf(fid,'%s\n',str);
 			fprintf(fid,'%.6f\t%.6f\n',[x{i}(:)'; y{i}(:)']);
 		end
 	end
@@ -2656,11 +2664,13 @@ function ODP_info(obj,eventdata,h,leg,site,z,penetration)
 			double(leg(i)), double(z(i)), double(penetration(i)) ),'ODP info')
 
 % -----------------------------------------------------------------------------------------
-function Isochrons_Info(obj, evt, data)
+function str = Isochrons_Info(obj, evt, data)
 	i = get(gco,'Userdata');
 	if (isstruct(i))    % This happens when h is ui_edit_polygon(ed)
 		i = i.old_ud;
 	end
+	if (nargout),	str = data{i};	return,		end
+
 	if (~isempty(i))
 		msgbox( sprintf(data{i}),'This line info')
 	else
