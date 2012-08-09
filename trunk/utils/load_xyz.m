@@ -456,6 +456,7 @@ function varargout = load_xyz(handles, opt, opt2)
 						case {'AsLine' 'Isochrons'}
 							hLine(i) = line('XData',tmpx,'YData',tmpy,'Parent',handles.axes1,'Linewidth',lThick,...
 									'Color',cor,'Tag',tag,'Userdata',n_isoc);
+							setappdata(hLine(i),'LineInfo',multi_segs_str{i});
 						case 'AsPoint'
 							Fcor = parseG(multi_segs_str{i});			% See if user wants colored pts
 							if (isempty(Fcor)),		Fcor = 'k';		end
