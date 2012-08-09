@@ -278,6 +278,7 @@ function push_compute_CB(hObject, handles)
 				set(handles.h_line_orig(i),'XData',rlon,'YData',rlat,'Linewidth',lt,'Color',lc,'Tag','Rotated Line','Userdata',1);
 			end
 			line_info = {['Ang = ' num2str(handles.p_omega)]};
+			setappdata(handles.h_line_orig(i),'LineInfo',line_info);
 			draw_funs(handles.h_line_orig(i),'isochron',line_info)
 		end
 		figure(handles.hCallingFig)		% Bring the Mirone figure forward
@@ -303,7 +304,7 @@ function push_compute_CB(hObject, handles)
 		opt_I = '-I';
 	end
 
-	for (i=1:numel(handles.h_line_orig))
+	for (i = 1:numel(handles.h_line_orig))
 		x = get(handles.h_line_orig(i),'XData');       y = get(handles.h_line_orig(i),'YData');
 		linha = [x(:) y(:)];
 		[out,n_data,n_seg,n_flow] = telha_m(linha, handles.ages, '-P', opt_E, opt_I);
@@ -316,13 +317,15 @@ function push_compute_CB(hObject, handles)
 			stg = get(handles.edit_polesFile,'String');
 			[PATH,FNAME,EXT] = fileparts(stg);
 			line_info = {['Stage file: ' FNAME EXT]};
+			setappdata(h_line,'LineInfo',line_info);
 		else
+			line_info = get(handles.listbox_ages,'String');
 			h_line = zeros(n_flow,1);
 			for (k=1:n_flow)              % For each time increment
 				[x,y] = get_time_slice(out,n_data,n_seg,k);
 				h_line(k) = line('XData',x,'YData',y,'Linewidth',lt,'Color',lc,'Tag','Rotated Line','Userdata',k);
+				setappdata(h_line(k),'LineInfo',line_info{k});
 			end
-			line_info = get(handles.listbox_ages,'String');
 		end
 		draw_funs(h_line,'isochron',line_info)
 	end

@@ -421,8 +421,9 @@ function push_compute_CB(hObject, handles)
 		set(handles.edit_pAng_fim,'String',pAng)
 		if (handles.do_graphic)     % Create a empty line handle
 			[rlon,rlat] = rot_euler(handles.isoca1(:,1),handles.isoca1(:,2),pLon, pLat, pAng,-1);
-			h_line = line('parent',get(handles.hCallingFig,'CurrentAxes'),'XData',rlon,'YData',rlat, ...
+			hLine = line('parent',get(handles.hCallingFig,'CurrentAxes'),'XData',rlon,'YData',rlat, ...
 			'LineStyle','-.','LineWidth',2,'Tag','Fitted Line','Userdata',1);
+			setappdata(hLine,'LineInfo','Fitted Line');
 			draw_funs(h_line,'isochron',{'Fitted Line'})
 		end
 	end
@@ -555,7 +556,10 @@ function [polLon, polLat, polAng, area_f] = calca_pEuler(handles, do_weighted, i
 	[polLon, polLat, polAng, area_f, resid] = ...
 		fit_pEuler(handles, isoca1, isoca2, p_lon, p_lat, p_omeg, area0, h_line, lenRot1, lenRot2, do_weighted, isGUI);
 
-	if (handles.do_graphic),	draw_funs(h_line,'isochron',{'Fitted Line'}),	end
+	if (handles.do_graphic)
+		setappdata(h_line,'LineInfo','Fitted Line');
+		draw_funs(h_line,'isochron',{'Fitted Line'})
+	end
 
 	if (~isempty(resid) && isGUI)
 		if (get(handles.radio_netcdf,'Val'))

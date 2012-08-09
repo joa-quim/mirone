@@ -203,8 +203,10 @@ function apply_OD(handles)
 	[isoca1(:,1),isoca1(:,2)] = rot_euler(rlon1, rlat1, handles.pLon_ini*D2R,handles.pLat_ini*D2R,-handles.pAng_ini*D2R,'rad',-1);
 	[isoca2(:,1),isoca2(:,2)] = rot_euler(rlon2, rlat2, handles.pLon_ini*D2R,handles.pLat_ini*D2R,handles.pAng_ini*D2R,'rad',-1);
 
-	h1=line('parent',get(handles.hCallingFig,'CurrentAxes'),'XData',isoca1(:,1)/D2R,'YData',isoca1(:,2)/D2R,'Color','r');
-	h2=line('parent',get(handles.hCallingFig,'CurrentAxes'),'XData',isoca2(:,1)/D2R,'YData',isoca2(:,2)/D2R,'Color','y');
+	h1 = line('parent',get(handles.hCallingFig,'CurrentAxes'),'XData',isoca1(:,1)/D2R,'YData',isoca1(:,2)/D2R,'Color','r');
+	h2 = line('parent',get(handles.hCallingFig,'CurrentAxes'),'XData',isoca2(:,1)/D2R,'YData',isoca2(:,2)/D2R,'Color','y');
+	setappdata(h1,'LineInfo','OD adjusted Line');
+	setappdata(h2,'LineInfo','OD adjusted Line');
 	draw_funs(h1,'isochron',{'OD adjusted Line'},'Userdata',1)
 	draw_funs(h2,'isochron',{'OD adjusted Line'},'Userdata',1)
 
