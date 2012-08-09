@@ -424,7 +424,7 @@ function push_compute_CB(hObject, handles)
 			hLine = line('parent',get(handles.hCallingFig,'CurrentAxes'),'XData',rlon,'YData',rlat, ...
 			'LineStyle','-.','LineWidth',2,'Tag','Fitted Line','Userdata',1);
 			setappdata(hLine,'LineInfo','Fitted Line');
-			draw_funs(h_line,'isochron',{'Fitted Line'})
+			draw_funs(hLine,'isochron',{'Fitted Line'})
 		end
 	end
 
