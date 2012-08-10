@@ -73,8 +73,8 @@ paper_in = [33.06 46.78; 23.39 33.06; 16.53 23.39; 11.69 16.53; 8.26 11.69; 5.85
 	handles.opt_psc = [];			% To eventualy hold several of the pscoast options
 	handles.scale_set = 0;			% To signal that user changed scale
 
-	mirone_handles = varargin{1};
-	if (mirone_handles.no_file)     % Stupid call with nothing loaded on the Mirone window
+	handMir = varargin{1};
+	if (handMir.no_file)     % Stupid call with nothing loaded on the Mirone window
 		delete(hObject);    return
 	end
 	handles.script_type = varargin{2};
@@ -85,18 +85,39 @@ paper_in = [33.06 46.78; 23.39 33.06; 16.53 23.39; 11.69 16.53; 8.26 11.69; 5.85
 		set(hObject,'Name','Write GMT script')
 	end
 
-	% Add this figure handle to the carraças list
-	plugedWin = getappdata(mirone_handles.figure1,'dependentFigs');
-	plugedWin = [plugedWin hObject];
-	setappdata(mirone_handles.figure1,'dependentFigs',plugedWin);
+	% ---------------- See if the caller is 'ecran' ---------------------------------
+	% If yes, we must set several fake handles struct members that exist in Mirone
+	if (strcmp(get(handMir.axes1,'UserData'), 'XY'))
+		handMir.image_type = 20;
+		handMir.geog = 0;
+		handMir.head = [];
+		handMir.PalAt = [];
+		handMir.PalIn = [];
+		handMir.grdname = [];
+		handMir.path_data = handMir.d_path;		% Idiot name confusion
+		handMir.IamXY = true;
+	else
+		handMir.IamXY = false;
+	end
+	% -------------------------------------------------------------------------------
 
-	imgXlim = get(mirone_handles.axes1,'XLim');    imgYlim = get(mirone_handles.axes1,'YLim');
-	if (mirone_handles.image_type == 2 || mirone_handles.image_type == 20)     % "trivial" images
-		[ny,nx,nz] = size(get(mirone_handles.hImg,'CData'));
+	% ---------------- Add this figure handle to the carraças list ------------------
+	plugedWin = getappdata(handMir.figure1,'dependentFigs');
+	plugedWin = [plugedWin hObject];
+	setappdata(handMir.figure1,'dependentFigs',plugedWin);
+	% -------------------------------------------------------------------------------
+
+	imgXlim = get(handMir.axes1,'XLim');    imgYlim = get(handMir.axes1,'YLim');
+	if (handMir.image_type == 2 || handMir.image_type == 20)     % "trivial" images
+		if (~handMir.IamXY)
+			[ny,nx,nz] = size(get(handMir.hImg,'CData'));
+		else
+			nx = 300;	ny = 200;		% Pure INVENTION
+		end
 		handles.x_min = imgXlim(1);     handles.x_max = imgXlim(2);
 		handles.y_min = imgYlim(1);     handles.y_max = imgYlim(2);
 	else
-		head = mirone_handles.head;
+		head = handMir.head;
 		if ( diff(imgXlim) < diff(head(1:2))*0.9 )		% Figure is zoomed
 			handles.x_min = imgXlim(1) + head(8)/2;		handles.x_max = imgXlim(2) - head(8)/2;
 			handles.y_min = imgYlim(1) + head(9)/2;		handles.y_max = imgYlim(2) - head(9)/2;
@@ -119,11 +140,11 @@ paper_in = [33.06 46.78; 23.39 33.06; 16.53 23.39; 11.69 16.53; 8.26 11.69; 5.85
 
 	handles.opt_R = sprintf('-R%.12g/%.12g/%.12g/%.12g', handles.x_min, handles.x_max, handles.y_min, handles.y_max);
 
-	handles.mirone_handles = mirone_handles;
+	handles.handMir = handMir;
 	handles.width_or = width;  handles.height_or = height;
 	handles.scale = width;
 	handles.which_unit = 'cm';
-	handles.d_path = mirone_handles.path_data;
+	handles.d_path = handMir.path_data;
 
 	% Compute image aspect ratio and set axes 'PlotBoxAspectRatio' to it
 	handles.paper = [paper_cm(5,1) paper_cm(5,2)];         % Set to A4 (x,y)
@@ -159,7 +180,7 @@ paper_in = [33.06 46.78; 23.39 33.06; 16.53 23.39; 11.69 16.53; 8.26 11.69; 5.85
 	%----------- Recall previous settings stored in mirone_pref -------------------
 	handles.h_txt_info = findobj(hObject,'Tag','text_ProjDescription');
 	handles.txt_info_pos = get(handles.h_txt_info,'Position');
-	if (~mirone_handles.geog && iscell(handles.proj_info_txt_script))     % Need to do this because grid is not geog
+	if (~handMir.geog && iscell(handles.proj_info_txt_script))     % Need to do this because grid is not geog
 		if (length(handles.proj_info_txt_script) == 5),     handles.proj_info_txt_script(3) = [];   end
 		k = strfind(handles.proj_info_txt_script{1},'->');
 		handles.proj_info_txt_script{1} = handles.proj_info_txt_script{1}(1:k+1);
@@ -218,13 +239,13 @@ paper_in = [33.06 46.78; 23.39 33.06; 16.53 23.39; 11.69 16.53; 8.26 11.69; 5.85
 	prefix = ['mir' sprintf('%d',prefix(3)) '-' sprintf('%d',prefix(2))];
 	set(handles.edit_prefix,'String',prefix)
 
-	if (~mirone_handles.geog)   % Non geogs don't use scale bars
+	if (~handMir.geog)   % Non geogs don't use scale bars
 		set(handles.toggle_Option_L,'Visible','off')
 		set(findobj(hObject,'Style','text','Tag','text_MapScale'), 'Visible','off');
 	end
 
 	% ---------- See if we have pscoast stuff
-	ALLlineHand = findobj(get(mirone_handles.axes1,'Child'),'Type','line');
+	ALLlineHand = findobj(get(handMir.axes1,'Child'),'Type','line');
 	handles.psc_res = [];   handles.psc_opt_W = [];     handles.psc_type_p = [];    handles.psc_type_r  = [];
 	if (~isempty(findobj(ALLlineHand,'Tag','CoastLineNetCDF')) || ~isempty(findobj(ALLlineHand,'Tag','Rivers')) ...
 			|| ~isempty(findobj(ALLlineHand,'Tag','PoliticalBoundaries')) )
@@ -240,10 +261,19 @@ paper_in = [33.06 46.78; 23.39 33.06; 16.53 23.39; 11.69 16.53; 8.26 11.69; 5.85
 	new_frame3D(hObject, NaN)
 	%------------- END Pro look (3D) -----------------------------------------------------
 
-	% ------------ Apply inherited projection
+	% ------------ Apply inherited projection --------------------------------------------
 	guidata(hObject, handles);
 	push_uppdate_CB(handles.push_uppdate, handles)
 	handles = guidata(hObject);     % Recover in "this handles" the changes donne in push_uppdate
+
+	% ------------ See if GMT5 is around ------------------------------------------------
+	handles.GMT5bin_path = '';
+% 	[s,w] =  mat_lyies('gmt --show-bindir');
+% 	if (s == 0)
+% 		set(handles.check_GMT5, 'Vis', 'on')
+% 		handles.GMT5bin_path = w;
+% 	end
+	% ------------------------------------------------------------------------------------
 
 	guidata(hObject, handles);
 	set(hObject,'Visible','on');
@@ -412,47 +442,49 @@ function radio_0_360_CB(hObject, handles)
 
 % -----------------------------------------------------------------------------------
 function push_uppdate_CB(hObject, handles)
-xx = get(handles.hand_rect,'XData');
-yy = get(handles.hand_rect,'YData');
-set(handles.edit_X0,'String',num2str(xx(1),'%.1f'));
-set(handles.edit_Y0,'String',num2str(yy(1),'%.1f'));
+	xx = get(handles.hand_rect,'XData');
+	yy = get(handles.hand_rect,'YData');
+	set(handles.edit_X0,'String',num2str(xx(1),'%.2f'));
+	set(handles.edit_Y0,'String',num2str(yy(1),'%.2f'));
 
-if (strcmp(handles.opt_J_no_scale(1:3),'-JX'))      % Linear proj has a different treatment
-	scale_x = (xx(3) - xx(2)) / handles.width_or;
-	scale_y = (yy(2) - yy(1)) / handles.height_or;
-	new_y = handles.height_or * scale_x;
-	new_x = handles.width_or * scale_y;
-	if (get(handles.radio_setWidth,'Value'))
-        yy(2) = new_y + yy(1);      yy(3) = new_y + yy(1);
-	elseif (get(handles.radio_setHeight,'Value'))
-        xx(3) = new_x + xx(2);      xx(4) = new_x + xx(1);
-	else
-        yy(2) = new_y + yy(1);      yy(3) = new_y + yy(1);  % It will become "True" scale
+	if (strcmp(handles.opt_J_no_scale(1:3),'-JX'))      % Linear proj has a different treatment
+		if (~handles.handMir.IamXY)						% Only rescale if image, not XY plot
+			scale_x = (xx(3) - xx(2)) / handles.width_or;
+			scale_y = (yy(2) - yy(1)) / handles.height_or;
+			new_y = handles.height_or * scale_x;
+			new_x = handles.width_or * scale_y;
+			if (get(handles.radio_setWidth,'Value'))
+				yy(2) = new_y + yy(1);      yy(3) = new_y + yy(1);
+			elseif (get(handles.radio_setHeight,'Value'))
+				xx(3) = new_x + xx(2);      xx(4) = new_x + xx(1);
+			else
+				yy(2) = new_y + yy(1);      yy(3) = new_y + yy(1);  % It will become "True" scale
+			end
+			set(handles.hand_rect, 'XData', xx, 'YData', yy);
+		end
+		set(handles.edit_mapWidth,'String',num2str((xx(3) - xx(2)),'%.2f'));    % Uppdate map width
+		set(handles.edit_mapHeight,'String',num2str((yy(2) - yy(1)),'%.2f'));   % Uppdate map height
+		set(handles.edit_scale,'String','1:1')
+		% Also update the projection info text
+		str = get(handles.h_txt_info,'String');
+		try
+			new_w = get(handles.edit_mapWidth,'String');
+			str{end} = ['J<options> ->  -JX' new_w handles.which_unit(1)];
+			set(handles.h_txt_info,'String',str)
+		end
+		return      % We are donne
 	end
-	set(handles.hand_rect, 'XData', xx, 'YData', yy);
-	set(handles.edit_mapWidth,'String',num2str((xx(3) - xx(2)),'%.2f'));    % Uppdate map width
-	set(handles.edit_mapHeight,'String',num2str((yy(2) - yy(1)),'%.2f'));   % Uppdate map height
-    set(handles.edit_scale,'String','1:1')
-    % Also update the projection info text
-    str = get(handles.h_txt_info,'String');
-    try
-        new_w = get(handles.edit_mapWidth,'String');
-        str{end} = ['J<options> ->  -JX' new_w handles.which_unit(1)];
-        set(handles.h_txt_info,'String',str)
-    end
-    return      % We are donne
-end
 
-new_w = num2str((xx(3) - xx(2)),'%.2f');
-set(handles.edit_mapWidth,'String',new_w);
-opt_J = [handles.opt_J_no_scale '/' new_w handles.which_unit(1)];
-in = [handles.x_min handles.y_min; handles.x_min handles.y_max; handles.x_max handles.y_max; handles.x_max handles.y_min];
-try
-	opt_R = sprintf('-R%.12g/%.12g/%.12g/%.12g', handles.x_min, handles.x_max, handles.y_min, handles.y_max);
-    out = mapproject_m(in,opt_R,opt_J,['-D' handles.which_unit(1)]);
-catch
-    return
-end
+	new_w = num2str((xx(3) - xx(2)),'%.2f');
+	set(handles.edit_mapWidth,'String',new_w);
+	opt_J = [handles.opt_J_no_scale '/' new_w handles.which_unit(1)];
+	in = [handles.x_min handles.y_min; handles.x_min handles.y_max; handles.x_max handles.y_max; handles.x_max handles.y_min];
+	try
+		opt_R = sprintf('-R%.12g/%.12g/%.12g/%.12g', handles.x_min, handles.x_max, handles.y_min, handles.y_max);
+		out = mapproject_m(in,opt_R,opt_J,['-D' handles.which_unit(1)]);
+	catch
+		return
+	end
 
 % scale_prj = abs(out(2,2) - out(1,2)) / abs(out(4,1) - out(1,1));    % = dy / dx     NA TA SEMPRE CERTO
 % scale_x = (xx(3) - xx(2)) / handles.width_or;
@@ -533,7 +565,7 @@ try
 	end
     set(handles.h_txt_info,'String',str)
 end
-%zoom on
+
 guidata(hObject,handles)
 
 % -----------------------------------------------------------------------------------
@@ -626,7 +658,7 @@ function edit_scale_CB(hObject, handles)
 
 % -----------------------------------------------------------------------------------
 function push_mapProjections_CB(hObject, handles)
-	if (~handles.mirone_handles.geog)
+	if (~handles.handMir.geog)
 		msg = ['I will tell you a secret. A map projection is an operation where GEOGRAPHIC ' ...
 				'coordinates (representing a nearly spherical surface) are transformed into ' ...
 				'planar (flat) coordinates. You got the message?'];
@@ -675,60 +707,60 @@ function push_mapProjections_CB(hObject, handles)
 
 % ----------------------------------------------------------------------------------------
 function toggle_Option_L_CB(hObject, handles)
-if (get(hObject,'Value'))
-    xx = draw_scale;
-    if (~isempty(xx))
-        set(handles.check_removeOptionL,'Visible','on','Value',0)
-        handles.opt_L = [' ' xx];
-    else
-        set(hObject,'Value',0)
-    end
-else
-    handles.opt_L = [];
-    set(handles.check_removeOptionL,'Visible','off')
-end
-guidata(hObject, handles);
+	if (get(hObject,'Value'))
+		xx = draw_scale;
+		if (~isempty(xx))
+			set(handles.check_removeOptionL,'Visible','on','Value',0)
+			handles.opt_L = [' ' xx];
+		else
+			set(hObject,'Value',0)
+		end
+	else
+		handles.opt_L = [];
+		set(handles.check_removeOptionL,'Visible','off')
+	end
+	guidata(hObject, handles);
 
 % ----------------------------------------------------------------------------------------
 function toggle_Option_U_CB(hObject, handles)
-if (get(hObject,'Value'))
-    xx = time_stamp;
-    if (~isempty(xx))
-        set(handles.check_removeOptionU,'Visible','on','Value',0)
-        handles.opt_U = [' ' xx];
-    else
-        set(hObject,'Value',0)
-    end
-else
-    handles.opt_U = [];
-    set(handles.check_removeOptionU,'Visible','off')
-end
-guidata(hObject, handles);
+	if (get(hObject,'Value'))
+		xx = time_stamp;
+		if (~isempty(xx))
+			set(handles.check_removeOptionU,'Visible','on','Value',0)
+			handles.opt_U = [' ' xx];
+		else
+			set(hObject,'Value',0)
+		end
+	else
+		handles.opt_U = [];
+		set(handles.check_removeOptionU,'Visible','off')
+	end
+	guidata(hObject, handles);
 
 % ----------------------------------------------------------------------------------------
 function check_removeOptionL_CB(hObject, handles)
-if (get(hObject,'Value'))
-    set(handles.toggle_Option_L,'Value',0)    % Reset the associated togglebutton to off
-    set(hObject,'Visible','off')                    % Hide this button
-    handles.opt_L = [];
-    guidata(hObject, handles);
-end
+	if (get(hObject,'Value'))
+		set(handles.toggle_Option_L,'Value',0)    % Reset the associated togglebutton to off
+		set(hObject,'Visible','off')                    % Hide this button
+		handles.opt_L = [];
+		guidata(hObject, handles);
+	end
 
 % -----------------------------------------------------------------------------------------
 function check_removeOptionU_CB(hObject, handles)
-if (get(hObject,'Value'))
-    set(handles.toggle_Option_U,'Value',0)    % Reset the associated togglebutton to off
-    set(hObject,'Visible','off')                    % Hide this button
-    handles.opt_U = [];
-    guidata(hObject, handles);
-end
+	if (get(hObject,'Value'))
+		set(handles.toggle_Option_U,'Value',0)    % Reset the associated togglebutton to off
+		set(hObject,'Visible','off')                    % Hide this button
+		handles.opt_U = [];
+		guidata(hObject, handles);
+	end
 
 % -----------------------------------------------------------------------------------
 function push_coastLines_CB(hObject, handles)
-handles.opt_psc = pscoast_options_Mir(handles.mirone_handles, handles.psc_res, handles.psc_opt_W, ...
-    handles.psc_type_p, handles.psc_type_r);
-    % Testar se ha -N e -I repetidas
-guidata(hObject, handles);
+	handles.opt_psc = pscoast_options_Mir(handles.handMir, handles.psc_res, handles.psc_opt_W, ...
+		handles.psc_type_p, handles.psc_type_r);
+		% Testar se ha -N e -I repetidas
+	guidata(hObject, handles);
 
 %-------------------------------------------------------------------------------------
 function push_OK_CB(hObject, handles)
@@ -736,7 +768,12 @@ function push_OK_CB(hObject, handles)
 	if (~strcmp(handles.opt_J_no_scale(1:3),'-JX'))
 		opt_J = [handles.opt_J_no_scale '/' handles.scale handles.which_unit(1)];
 	else        % Linear projection
-		opt_J = [handles.opt_J_no_scale(1:3) handles.scale handles.which_unit(1)];
+		if (~handles.handMir.IamXY)			% A Mirone figure
+			opt_J = [handles.opt_J_no_scale(1:3) handles.scale handles.which_unit(1)];
+		else
+			opt_J = sprintf('-JX%s%s/%s%s', get(handles.edit_mapWidth,'Str'), handles.which_unit(1), ...
+				get(handles.edit_mapHeight,'Str'), handles.which_unit(1));
+		end
 	end
 	val = get(handles.popup_PaperSize,'Value');
 	list = get(handles.popup_PaperSize,'String');
@@ -749,15 +786,15 @@ function push_OK_CB(hObject, handles)
 	X0 = get(handles.edit_X0,'String');     Y0 = get(handles.edit_Y0,'String');
 	X0 = ['-X' X0 handles.which_unit(1)];   Y0 = ['-Y' Y0 handles.which_unit(1)];
 
-	if (get(handles.radio_180_180,'Value'))   % [-180;180] range
+	if (get(handles.radio_180_180,'Value'))		% [-180;180] range
 		opt_deg = '--PLOT_DEGREE_FORMAT=ddd:mm:ss';
-	else                                            % [0;360] range
+	else										% [0;360] range
 		opt_deg = '--PLOT_DEGREE_FORMAT=+ddd:mm:ss';
 	end
 
     % Before calling the write script routine we have to find if we have any pscoast stuff
-	if (isempty(handles.opt_psc))       % Means that the pscoast_options was not used
-		if (~isempty(handles.psc_res))  % Means that we have coastlines and will use the Mirone settings
+	if (isempty(handles.opt_psc))		% Means that the pscoast_options was not used
+		if (~isempty(handles.psc_res))	% Means that we have coastlines and will use the Mirone settings
 			handles.opt_psc = [handles.psc_res ' ' handles.psc_opt_W ' ' handles.psc_type_p ' ' handles.psc_type_r];
 		end
 	end
@@ -989,10 +1026,10 @@ end
 
 % --------------------------------------------------------------------------------------------------------
 function out_msg = build_write_script(handles, opt_J, dest_dir, prefix, paper, X0, Y0, opt_P, opt_deg)
-% This function do most of the hard work in finding the script components. The pscoast stuff is
-% worked out by the "find_psc_stuff" function.
+% This function do most of the hard work in finding the script components.
+% The pscoast stuff is worked out by the "find_psc_stuff" function.
 
-	handMir = handles.mirone_handles;
+	handMir = handles.handMir;
 	ALLlineHand = handles.ALLlineHand;
 	opt_R = handles.opt_R;		opt_L = handles.opt_L;		opt_U = handles.opt_U;
 	sc = handles.script_type;	ellips = handles.curr_datum;
@@ -1019,11 +1056,15 @@ function out_msg = build_write_script(handles, opt_J, dest_dir, prefix, paper, X
 	end
 
 	opt_annotsize = '--ANNOT_FONT_SIZE_PRIMARY=10p';
+	frmPen = [];
+	if (handMir.IamXY)
+		frmPen = '--FRAME_PEN=1.25p';
+	end
 
 % ------------ Some (maybe) needed vars ------------------------------------------------------------------
 	haveSymbol = 0;     used_grd = 0;  out_msg = 0;
 	need_path = 0;      used_countries = 0;
-	script = cell(16,1);
+	script = cell(22,1);
 	if (~isempty(handMir.grdname))
 		[PATH,FNAME,EXT] = fileparts(handMir.grdname);
 		just_grd_name = [FNAME EXT];
@@ -1047,6 +1088,11 @@ if (~strcmp(sc,'bat'))							% Write a csh script
 	script{l} = comm;							l=l+1;
 	script{l} = [comm 'Coffeeright Mirone Tec'];l=l+1;
 	script{l} = comm;							l=l+1;
+	if (~isempty(handles.GMT5bin_path))
+		script{l} = [comm ' ---- Prepend GMT5 bin path to PATH so that GMT5 is used (DON''T remove to use GMT4) ----'];    l=l+1;
+		script{l} = ['set PATH = ' handles.GMT5bin_path ';$PATH'];    l=l+1;
+		script{l} = comm;						l=l+1;
+	end
 	script{l} = [comm ' ---- Projection. You may change it if you know how to'];    l=l+1;
 	script{l} = ['set proj = ' opt_J];			l=l+1;      % Map scale
 	script{l} = [comm ' ---- Frame annotations. You may change it if you know how to'];    l=l+1;
@@ -1066,20 +1112,25 @@ if (~strcmp(sc,'bat'))							% Write a csh script
 		end
 	end
     script{l} = ['set cpt = ' prefix '.cpt']; id_cpt = l;   l=l+1;
-	script{l} = ['set ps = ' prefix '.ps'];     l=l+1;
+	script{l} = ['set ps = ' prefix '.ps'];		l=l+1;
     if (~isempty(paper_media))
     	script{l} = [comm ' We are not using A4'];  l=l+1;
         script{l} = ['gmtset PAPER_MEDIA=' paper_media]; l=l+1;
-    	script{l} = comm;                       l=l+1;        
+    	script{l} = comm;						l=l+1;        
     end
 else											% Write a dos batch    
 	script{l} = '@echo OFF';					l=l+1;
 	script{l} = [comm 'Coffeewrite Mirone Tec'];l=l+1;
-	script{l} = comm;                           l=l+1;
+	script{l} = comm;							l=l+1;
+	if (~isempty(handles.GMT5bin_path))
+		script{l} = [comm ' ---- Prepend GMT5 bin path to PATH so that GMT5 is used (DON''T remove to use GMT4) ----'];    l=l+1;
+		script{l} = ['set path=' handles.GMT5bin_path ';%path%'];    l=l+1;
+		script{l} = comm;						l=l+1;
+	end
 	script{l} = [comm ' ---- Projection. You may change it if you know how to'];    l=l+1;
-	script{l} = ['set proj=' opt_J];            l=l+1;      % Map scale
+	script{l} = ['set proj=' opt_J];			l=l+1;      % Map scale
 	script{l} = [comm ' ---- Frame annotations. You may change it if you know how to'];    l=l+1;
-	script{l} = ['set frm=' opt_B];             l=l+1;      saveBind = l-1;
+	script{l} = ['set frm=' opt_B];				l=l+1;      saveBind = l-1;
 	script{l} = [comm ' ---- Map limits. You may change it if you know how to'];    l=l+1;
 	script{l} = ['set lim=' opt_R];				l=l+1;
 	script{l} = comm;							l=l+1;
@@ -1088,6 +1139,11 @@ else											% Write a dos batch
 	script{l} = '';								l=l+1;
 	script{l} = [comm ' ---- Annotation font size in points'];    l=l+1;
 	script{l} = ['set annot_size=' opt_annotsize];      l=l+1;
+	if (handMir.IamXY)
+		script{l} = '';							l=l+1;
+		script{l} = [comm ' ---- Map frame thickness in points'];    l=l+1;
+		script{l} = ['set framePen=' frmPen];	l=l+1;
+	end
 	script{l} = '';                             l=l+1;
     prefix_ddir = [dest_dir filesep prefix];    % Add destination dir to the name prefix
 	if (~isempty(grd_name))
@@ -1107,69 +1163,71 @@ else											% Write a dos batch
 end
 
 % ------------- Start writing GMT commands --------------------------------
-script{l} = ' ';            l=l+1;
-script{l} = [comm '-------- Start by creating the basemap frame'];  l=l+1;
-if (~strcmp(sc,'bat'))		% In Unix like sys let the annot_font_size param be controled by the .gmtdefaults
-	script{l} = ['psbasemap ' pb 'lim' pf ' ' pb 'proj' pf ' ' pb 'frm' pf ' ' X0 ' ' Y0 opt_U opt_P ' ' pb 'deg_form' pf ' -K > ' pb 'ps' pf];
-else
-	script{l} = ['psbasemap ' pb 'lim' pf ' ' pb 'proj' pf ' ' pb 'frm' pf ' ' X0 ' ' Y0 opt_U opt_P ' ' pb 'deg_form' pf ' ' pb 'annot_size' pf ' -K > ' pb 'ps' pf];
-end
-l=l+1;
-if (~isempty(grd_name))
-	% If renderer == OpenGL, that is interpreted as a transparency request. In that case we need a screen capture
-	if (strcmp(get(handMir.figure1,'Renderer'), 'OpenGL'))
-		if ( ~isempty(findobj(get(handMir.axes1,'Child'),'Type','patch')) )		% Extra test
-			handMir.Illumin_type = 10;		% Dumb fake value just to force screen capture
-			haveAlfa = 1;
-		end
+	script{l} = ' ';            l=l+1;
+	script{l} = [comm '-------- Start by creating the basemap frame'];  l=l+1;
+	if (~strcmp(sc,'bat'))		% In Unix like sys let the annot_font_size param be controled by the .gmtdefaults
+		script{l} = ['psbasemap ' pb 'lim' pf ' ' pb 'proj' pf ' ' pb 'frm' pf ' ' X0 ' ' Y0 opt_U opt_P ' ' pb 'deg_form' pf ' -K > ' pb 'ps' pf];
+	else
+		script{l} = ['psbasemap ' pb 'lim' pf ' ' pb 'proj' pf ' ' pb 'frm' pf ' ' X0 ' ' Y0 opt_U opt_P ...
+			' ' pb 'deg_form' pf ' ' pb 'annot_size' pf ' ' pb 'framePen' pf ' -K > ' pb 'ps' pf];
 	end
-    if ( handMir.Illumin_type > 0 && handMir.Illumin_type <= 4 )
-        % We have a image illuminated with grdgradient. Rebuild de illumination
-        illumComm = getappdata(handMir.figure1,'illumComm');
-        opt_M = '';
-        if (handMir.Illumin_type == 1 && handMir.geog),   opt_M = ' -M';     end
-        opt_N = '';
-        if (handMir.Illumin_type == 1),      opt_N = ' -Nt';     end
-        name_illum = [prefix '_intens.grd=cf'];
-        script{l} = '';                      l=l+1;
-        script{l} = [comm '-------- Compute the illumination grid'];    l=l+1;
-        script{l} = ['grdgradient ' pb 'grd' pf opt_M ' ' illumComm opt_N ' -G' name_illum ellips];    l=l+1;
-        have_gmt_illum = 1;     used_grd = 1;
-        illum = [' -I' name_illum];
-    elseif ( handMir.Illumin_type > 4 || handMir.is_draped )
-        % We have a Manip or draping illumination. Here we have to use the R,G,B trick
-        nameRGB = [prefix_ddir '_channel'];    name_sc = [prefix '_channel'];
-        illum = [nameRGB '_r.grd ' nameRGB '_g.grd ' nameRGB '_b.grd']; % ????
-        have_gmt_illum = 0;
-    else        % We don't have any illumination
-        have_gmt_illum = 0;
-        used_grd = 1;
-    end
-    script{l} = ' ';		l=l+1;
-    if (have_gmt_illum)                     % grdimage with illumination
-        script{l} = [comm '-------- Plot the the base image using grdimage & illumination'];    l=l+1;
-        script{l} = ['grdimage ' pb 'grd' pf ' -R -J -C' pb 'cpt' pf illum ellips ' -O -K >> ' pb 'ps' pf];
-        l=l+1;
-        used_grd = 1;
-    elseif (used_grd && ~have_gmt_illum)     % Simple grdimage call
-        script{l} = [comm '-------- Plot the the base image using grdimage'];    l=l+1;
-        script{l} = ['grdimage ' pb 'grd' pf ' -R -J -C' pb 'cpt' pf ellips ' -O -K >> ' pb 'ps' pf];   l=l+1;
-        used_grd = 1;
-    else                                    % No grd used, use the R,G,B channels
-        script{l} = [comm '-------- Plot the 3 RGB base images using grdimage'];    l=l+1;
-        script{l} = ['grdimage ' name_sc '_r.grd ' name_sc '_g.grd ' name_sc '_b.grd' ellips ' -R -J -O -K >> ' pb 'ps' pf];
-        l=l+1;    
-    end
-    clear grd_name have_gmt_illum illum;
-elseif (handMir.image_type == 20)
-    % Do nothing regarding the basemap image (in fact we don't have any image)
-else    % We don't have a grid, so we need to fish the image and save it as R,G,B triplet
-	nameRGB = [prefix_ddir '_channel'];    name_sc = [prefix '_channel'];
-	script{l} = ' ';
-	script{l} = [comm '-------- Plot the 3 RGB base images using grdimage'];    l=l+1;
-	script{l} = ['grdimage ' name_sc '_r.grd ' name_sc '_g.grd ' name_sc '_b.grd' ellips ' -R -J -O -K >> ' pb 'ps' pf];
-	l=l+1;    
-end
+	l=l+1;
+
+	if (~isempty(grd_name))
+		% If renderer == OpenGL, that is interpreted as a transparency request. In that case we need a screen capture
+		if (strcmp(get(handMir.figure1,'Renderer'), 'OpenGL'))
+			if ( ~isempty(findobj(get(handMir.axes1,'Child'),'Type','patch')) )		% Extra test
+				handMir.Illumin_type = 10;		% Dumb fake value just to force screen capture
+				haveAlfa = 1;
+			end
+		end
+		if ( handMir.Illumin_type > 0 && handMir.Illumin_type <= 4 )
+			% We have a image illuminated with grdgradient. Rebuild de illumination
+			illumComm = getappdata(handMir.figure1,'illumComm');
+			opt_M = '';
+			if (handMir.Illumin_type == 1 && handMir.geog),   opt_M = ' -M';     end
+			opt_N = '';
+			if (handMir.Illumin_type == 1),      opt_N = ' -Nt';     end
+			name_illum = [prefix '_intens.grd=cf'];
+			script{l} = '';                      l=l+1;
+			script{l} = [comm '-------- Compute the illumination grid'];    l=l+1;
+			script{l} = ['grdgradient ' pb 'grd' pf opt_M ' ' illumComm opt_N ' -G' name_illum ellips];    l=l+1;
+			have_gmt_illum = 1;     used_grd = 1;
+			illum = [' -I' name_illum];
+		elseif ( handMir.Illumin_type > 4 || handMir.is_draped )
+			% We have a Manip or draping illumination. Here we have to use the R,G,B trick
+			nameRGB = [prefix_ddir '_channel'];    name_sc = [prefix '_channel'];
+			illum = [nameRGB '_r.grd ' nameRGB '_g.grd ' nameRGB '_b.grd']; % ????
+			have_gmt_illum = 0;
+		else        % We don't have any illumination
+			have_gmt_illum = 0;
+			used_grd = 1;
+		end
+		script{l} = ' ';		l=l+1;
+		if (have_gmt_illum)                     % grdimage with illumination
+			script{l} = [comm '-------- Plot the the base image using grdimage & illumination'];    l=l+1;
+			script{l} = ['grdimage ' pb 'grd' pf ' -R -J -C' pb 'cpt' pf illum ellips ' -O -K >> ' pb 'ps' pf];
+			l=l+1;
+			used_grd = 1;
+		elseif (used_grd && ~have_gmt_illum)     % Simple grdimage call
+			script{l} = [comm '-------- Plot the the base image using grdimage'];    l=l+1;
+			script{l} = ['grdimage ' pb 'grd' pf ' -R -J -C' pb 'cpt' pf ellips ' -O -K >> ' pb 'ps' pf];   l=l+1;
+			used_grd = 1;
+		else                                    % No grd used, use the R,G,B channels
+			script{l} = [comm '-------- Plot the 3 RGB base images using grdimage'];    l=l+1;
+			script{l} = ['grdimage ' name_sc '_r.grd ' name_sc '_g.grd ' name_sc '_b.grd' ellips ' -R -J -O -K >> ' pb 'ps' pf];
+			l=l+1;    
+		end
+		clear grd_name have_gmt_illum illum;
+	elseif (handMir.image_type == 20)
+		% Do nothing regarding the basemap image (in fact we don't have any image)
+	else    % We don't have a grid, so we need to fish the image and save it as R,G,B triplet
+		nameRGB = [prefix_ddir '_channel'];    name_sc = [prefix '_channel'];
+		script{l} = ' ';
+		script{l} = [comm '-------- Plot the 3 RGB base images using grdimage'];    l=l+1;
+		script{l} = ['grdimage ' name_sc '_r.grd ' name_sc '_g.grd ' name_sc '_b.grd' ellips ' -R -J -O -K >> ' pb 'ps' pf];
+		l=l+1;    
+	end
 
 % ------------ If we have used a GMT grid file build the GMT palette -----------------------
 	if (used_grd || strcmp(get(handMir.PalAt,'Check'),'on') || strcmp(get(handMir.PalIn,'Check'),'on') )
@@ -1220,48 +1278,48 @@ end
 	end
 
 % -------------- Search for contour lines --------------------------------------------------
-ALLtextHand = findobj(get(handMir.axes1,'Child'),'Type','text');
-% % If we have focal mecanisms with labels, remove their handles right away
-% h = findobj(ALLtextHand,'Tag','TextMeca');						% I'M NOT SURE ON THIS ONE
-% if (~isempty(h))    ALLtextHand = setxor(ALLtextHand, h);   end
+	ALLtextHand = findobj(get(handMir.axes1,'Child'),'Type','text');
+	% % If we have focal mecanisms with labels, remove their handles right away
+	% h = findobj(ALLtextHand,'Tag','TextMeca');						% I'M NOT SURE ON THIS ONE
+	% if (~isempty(h))    ALLtextHand = setxor(ALLtextHand, h);   end
 
-tag = get(ALLlineHand,'Tag');
-if (~isempty(tag) && ~isempty(handMir.grdname))
-    h = findobj(ALLlineHand,'Tag','contour');
-    if (~isempty(h))
-        h_label = findobj(ALLtextHand,'Tag','contour');   % Search for contour labels
-        if (~isempty(h_label))
-            lab = get(h_label,'UserData');
-            if (iscell(lab)),   lab = unique(cat(1,lab{:}));    end
-        else
-            lab = [];
-        end
-        conts = zeros(length(h),1);
-        for (i = 1:length(h))
-            conts(i) = getappdata(h(i),'cont_label');
-        end
-        conts = unique(conts);
-        no_anot = setxor(conts,lab);    % Contour levels that are not annotated
-        name = [prefix_ddir '_cont.dat'];
-        fid = fopen(name,'wt');
-        if (isempty(no_anot))           % Annotate all contours
-            fprintf(fid,'%.5f\tA\n',conts);
-        else                            % Annotate only some contours
-            conts = [[lab; no_anot] [ones(length(lab),1)*double('A'); ones(length(no_anot),1)*double('C')]];
-            conts = sortrows(conts);
-            fprintf(fid,'%.5f\t%c\n',conts');
-        end
-        fclose(fid);
-        script{l} = ' ';                            l=l+1;
-        script{l} = [comm ' ---- Plot contours'];	l=l+1;
-        script{l} = ['grdcontour ' pb 'grd' pf ' -R -J -C' [prefix '_cont.dat'] ellips ' -O -K >> ' pb 'ps' pf];
-        l=l+1;
-        used_grd = 1;
-        ALLlineHand = setxor(ALLlineHand, h);       % h is processed, so remove it from handles list
-        ALLtextHand = setxor(ALLtextHand, h_label); % same for contour label strings
-        clear h conts fid name no_anot lab;
-    end
-end
+	tag = get(ALLlineHand,'Tag');
+	if (~isempty(tag) && ~isempty(handMir.grdname))
+		h = findobj(ALLlineHand,'Tag','contour');
+		if (~isempty(h))
+			h_label = findobj(ALLtextHand,'Tag','contour');   % Search for contour labels
+			if (~isempty(h_label))
+				lab = get(h_label,'UserData');
+				if (iscell(lab)),   lab = unique(cat(1,lab{:}));    end
+			else
+				lab = [];
+			end
+			conts = zeros(length(h),1);
+			for (i = 1:length(h))
+				conts(i) = getappdata(h(i),'cont_label');
+			end
+			conts = unique(conts);
+			no_anot = setxor(conts,lab);    % Contour levels that are not annotated
+			name = [prefix_ddir '_cont.dat'];
+			fid = fopen(name,'wt');
+			if (isempty(no_anot))           % Annotate all contours
+				fprintf(fid,'%.5f\tA\n',conts);
+			else                            % Annotate only some contours
+				conts = [[lab; no_anot] [ones(length(lab),1)*double('A'); ones(length(no_anot),1)*double('C')]];
+				conts = sortrows(conts);
+				fprintf(fid,'%.5f\t%c\n',conts');
+			end
+			fclose(fid);
+			script{l} = ' ';                            l=l+1;
+			script{l} = [comm ' ---- Plot contours'];	l=l+1;
+			script{l} = ['grdcontour ' pb 'grd' pf ' -R -J -C' [prefix '_cont.dat'] ellips ' -O -K >> ' pb 'ps' pf];
+			l=l+1;
+			used_grd = 1;
+			ALLlineHand = setxor(ALLlineHand, h);       % h is processed, so remove it from handles list
+			ALLtextHand = setxor(ALLtextHand, h_label); % same for contour label strings
+			clear h conts fid name no_anot lab;
+		end
+	end
 
 % -------------- Search for symbols --------------------------------------------------------
 	tag = get(ALLlineHand,'Tag');
@@ -1357,168 +1415,168 @@ end
 % ------------------------------------------------------------------------------------------------
 
 % -------------- Search for focal mecanisms ----------------------------
-ALLpatchHand = findobj(get(handMir.axes1,'Child'),'Type','patch');
-if (~isempty(ALLpatchHand))
-	focHand = findobj(ALLpatchHand,'Tag','FocalMeca');
-	if (~isempty(focHand))
-		% First deal with the 'line anchors'
-		focHandAnchor = findobj(ALLlineHand,'Tag','FocalMecaAnchor');   % Handles of the line anchors
-		x = get(focHandAnchor,'XData');			y = get(focHandAnchor,'YData');
-		if (iscell(x)),		x = cell2mat(x);	y = cell2mat(y);    end
-		id_anch = find(diff(x,1,2));
-		if (isempty(id_anch)),		id_anch = find(diff(y,1,2));	end		% Rare cases were movement was vertical
+	ALLpatchHand = findobj(get(handMir.axes1,'Child'),'Type','patch');
+	if (~isempty(ALLpatchHand))
+		focHand = findobj(ALLpatchHand,'Tag','FocalMeca');
+		if (~isempty(focHand))
+			% First deal with the 'line anchors'
+			focHandAnchor = findobj(ALLlineHand,'Tag','FocalMecaAnchor');   % Handles of the line anchors
+			x = get(focHandAnchor,'XData');			y = get(focHandAnchor,'YData');
+			if (iscell(x)),		x = cell2mat(x);	y = cell2mat(y);    end
+			id_anch = find(diff(x,1,2));
+			if (isempty(id_anch)),		id_anch = find(diff(y,1,2));	end		% Rare cases were movement was vertical
 
-		psmeca_line = cell(numel(focHand),1);
-		for (k = 1:numel(focHand)),		psmeca_line{k} = getappdata(focHand(k),'psmeca_com');	end
-		psmeca_line = cat(1,psmeca_line{:});    % This also get us rid of empty cell fields.
+			psmeca_line = cell(numel(focHand),1);
+			for (k = 1:numel(focHand)),		psmeca_line{k} = getappdata(focHand(k),'psmeca_com');	end
+			psmeca_line = cat(1,psmeca_line{:});    % This also get us rid of empty cell fields.
 
-		if (isequal(psmeca_line(1,1:2), [x(end,1) y(end,1)]))	% Don't know why but both vars have reverse order
-			x = x(end:-1:1, :);		y = y(end:-1:1, :);
-		end
-		n_cols = size(psmeca_line,2);
-		if (n_cols == 10 || n_cols == 14),		with_label = 1;
-		else									with_label = 0;
-		end
-		name = [prefix_ddir '_meca.dat'];   name_sc = [prefix '_meca.dat'];     opt_C = '';
-		fid = fopen(name,'wt');
-		if (n_cols == 9 || n_cols == 10)		% Aki & Richard convention
-            % If beach-bals are not ploted at their origin update the ploting coords columns
-            if (~isempty(id_anch))
-				psmeca_line(:,8) = x(:,2);		psmeca_line(:,9) = y(:,2);     opt_C = ' -C';
-            end
-			opt_S = ['-Sa' getappdata(handMir.figure1,'MecaMag5') 'c'];
-			format = '%.4f\t%.4f\t%.1f\t%.0f\t%.0f\t%.0f\t%.1f\t%.4f\t%.4f';
-			for (k=1:size(psmeca_line,1))
-				fprintf(fid,format,psmeca_line(k,1:9));
-				if (with_label),	fprintf(fid,'\t%s\n',num2str(psmeca_line(k,10)));
-				else				fprintf(fid,'\n');
+			if (isequal(psmeca_line(1,1:2), [x(end,1) y(end,1)]))	% Don't know why but both vars have reverse order
+				x = x(end:-1:1, :);		y = y(end:-1:1, :);
+			end
+			n_cols = size(psmeca_line,2);
+			if (n_cols == 10 || n_cols == 14),		with_label = 1;
+			else									with_label = 0;
+			end
+			name = [prefix_ddir '_meca.dat'];   name_sc = [prefix '_meca.dat'];     opt_C = '';
+			fid = fopen(name,'wt');
+			if (n_cols == 9 || n_cols == 10)		% Aki & Richard convention
+				% If beach-bals are not ploted at their origin update the ploting coords columns
+				if (~isempty(id_anch))
+					psmeca_line(:,8) = x(:,2);		psmeca_line(:,9) = y(:,2);     opt_C = ' -C';
+				end
+				opt_S = ['-Sa' getappdata(handMir.figure1,'MecaMag5') 'c'];
+				format = '%.4f\t%.4f\t%.1f\t%.0f\t%.0f\t%.0f\t%.1f\t%.4f\t%.4f';
+				for (k=1:size(psmeca_line,1))
+					fprintf(fid,format,psmeca_line(k,1:9));
+					if (with_label),	fprintf(fid,'\t%s\n',num2str(psmeca_line(k,10)));
+					else				fprintf(fid,'\n');
+					end
+				end
+			elseif (n_cols == 13 || n_cols == 14)	% CMT convention
+				% If beach-bals are not ploted at their origin update the ploting coords columns
+				if (~isempty(id_anch))
+					psmeca_line(:,12) = x(:,2);		psmeca_line(:,13) = y(:,2);     opt_C = ' -C';
+				end
+				psmeca_line(:,11) = psmeca_line(:,11) + 7;		% psmeca uses Moment in Dyn-cm
+				opt_S = ['-Sc' getappdata(handMir.figure1,'MecaMag5') 'c'];
+				format = '%.4f\t%.4f\t%.1f\t%.0f\t%.0f\t%.0f\t%.0f\t%.0f\t%.0f\t%.2f\t%d\t%.4f\t%.4f';           
+				for (k=1:size(psmeca_line,1))
+					fprintf(fid,format,psmeca_line(k,1:13));
+					if (with_label),	fprintf(fid,'\t%s\n',num2str(psmeca_line(k,14)));
+					else				fprintf(fid,'\n');
+					end
 				end
 			end
-        elseif (n_cols == 13 || n_cols == 14)	% CMT convention
-            % If beach-bals are not ploted at their origin update the ploting coords columns
-            if (~isempty(id_anch))
-                psmeca_line(:,12) = x(:,2);		psmeca_line(:,13) = y(:,2);     opt_C = ' -C';
-            end
-            psmeca_line(:,11) = psmeca_line(:,11) + 7;		% psmeca uses Moment in Dyn-cm
-            opt_S = ['-Sc' getappdata(handMir.figure1,'MecaMag5') 'c'];
-            format = '%.4f\t%.4f\t%.1f\t%.0f\t%.0f\t%.0f\t%.0f\t%.0f\t%.0f\t%.2f\t%d\t%.4f\t%.4f';           
-			for (k=1:size(psmeca_line,1))
-                fprintf(fid,format,psmeca_line(k,1:13));
-                if (with_label),	fprintf(fid,'\t%s\n',num2str(psmeca_line(k,14)));
-                else				fprintf(fid,'\n');
-                end
-			end
+			fclose(fid);
+			script{l} = ' ';			l=l+1;
+			script{l} = [comm ' ---- Plot Focal Mechanisms'];   l=l+1;
+			script{l} = ['psmeca ' opt_S opt_C ' ' name_sc ellips ' -R -J -O -K >> ' pb 'ps' pf];    l=l+1;
+			ALLpatchHand = setxor(ALLpatchHand, focHand);		% focHand is processed, so remove it from handles list
+			ALLlineHand  = setxor(ALLlineHand, focHandAnchor);	%       iden
+			clear focHand name name_sc psmeca_line with_label n_cols id_anch opt_S opt_C
 		end
-        fclose(fid);
-    	script{l} = ' ';			l=l+1;
-        script{l} = [comm ' ---- Plot Focal Mechanisms'];   l=l+1;
-        script{l} = ['psmeca ' opt_S opt_C ' ' name_sc ellips ' -R -J -O -K >> ' pb 'ps' pf];    l=l+1;
-        ALLpatchHand = setxor(ALLpatchHand, focHand);		% focHand is processed, so remove it from handles list
-        ALLlineHand  = setxor(ALLlineHand, focHandAnchor);	%       iden
-        clear focHand name name_sc psmeca_line with_label n_cols id_anch opt_S opt_C
 	end
-end
 % -------------------------------------------------------------------------------------------------------
 
-% -------------- Search for "telhas" ---------------------------------
-if (~isempty(ALLpatchHand))
-	TelhasHand = findobj(ALLpatchHand,'Tag','tapete');
-	if (~isempty(TelhasHand))
-        tmp = findobj(ALLpatchHand,'Tag','tapete_R');
-        ALLpatchHand = setxor(ALLpatchHand, tmp);       % Remove the reverse "telhas" 
-        n_tapetes = length(TelhasHand);
-        for (i=1:n_tapetes)
-            saved = get(TelhasHand(i),'UserData');
-            name = [prefix_ddir sprintf('_telha_%d.dat',i)];
-            name_sc = [prefix sprintf('_telha_%d.dat',i)];
-            if (~isempty(saved))
-                fid = fopen(name,'wt');
-                fprintf(fid,'%.5f\t%.5f\n',saved.line');
-                fclose(fid);
-			    script{l} = ' ';              l=l+1;
-                script{l} = [comm ' ---- Plot telhas. NOTE: THIS IS NOT A GMT PROGRAM'];   l=l+1;
-			    script{l} = ['telha ' name_sc ' ' saved.opt_E ' ' saved.opt_I ' ',...
-                    saved.opt_N ' ' saved.opt_T ' -Blixo.dat'];     l=l+1;
-                script{l} = ['psxy lixo.dat ' ellips ' -R -J -m -L -O -K >> ' pb 'ps' pf];    l=l+1;
-            end
-        end
-        ALLpatchHand = setxor(ALLpatchHand, TelhasHand);       % TelhasHand is processed, so remove it from handles list
-        clear TelhasHand name name_sc n_tapetes tmp 
-	end
-end
-% -------------------------------------------------------------------------------------------------------
-
-% ------------------------------------- Search for countries -----------------------------
-if (~isempty(ALLpatchHand))
-	% First see about these still remaining patch transparency
-	[ALLpatchHand, hAlfaPatch] = findTransparents(ALLpatchHand);
-	if (isempty(hAlfaPatch)),		haveAlfa = 0;		end			% An extra test
-
-	AtlasHand = findobj(ALLpatchHand,'Tag','Atlas');
-	if (~isempty(AtlasHand))
-		used_countries = 1;     need_path = 1;
-		n_cts = length(AtlasHand);
-		if (n_cts > 1)                  % We have multiple countries
-			ct_names = cell(n_cts,1);   % To hold the country names
-			for (k=1:n_cts)             % Loop over all countries found and store theyr names
-				ct_names{k} = get(AtlasHand(k),'UserData');
+% ---------------------------------- Search for "telhas" ---------------------------------
+	if (~isempty(ALLpatchHand))
+		TelhasHand = findobj(ALLpatchHand,'Tag','tapete');
+		if (~isempty(TelhasHand))
+			tmp = findobj(ALLpatchHand,'Tag','tapete_R');
+			ALLpatchHand = setxor(ALLpatchHand, tmp);       % Remove the reverse "telhas" 
+			n_tapetes = length(TelhasHand);
+			for (i=1:n_tapetes)
+				saved = get(TelhasHand(i),'UserData');
+				name = [prefix_ddir sprintf('_telha_%d.dat',i)];
+				name_sc = [prefix sprintf('_telha_%d.dat',i)];
+				if (~isempty(saved))
+					fid = fopen(name,'wt');
+					fprintf(fid,'%.5f\t%.5f\n',saved.line');
+					fclose(fid);
+					script{l} = ' ';              l=l+1;
+					script{l} = [comm ' ---- Plot telhas. NOTE: THIS IS NOT A GMT PROGRAM'];   l=l+1;
+					script{l} = ['telha ' name_sc ' ' saved.opt_E ' ' saved.opt_I ' ',...
+						saved.opt_N ' ' saved.opt_T ' -Blixo.dat'];     l=l+1;
+					script{l} = ['psxy lixo.dat ' ellips ' -R -J -m -L -O -K >> ' pb 'ps' pf];    l=l+1;
+				end
 			end
-		else                            % We have only one country
-			ct_names = {get(AtlasHand(k),'UserData')};
+			ALLpatchHand = setxor(ALLpatchHand, TelhasHand);       % TelhasHand is processed, so remove it from handles list
+			clear TelhasHand name name_sc n_tapetes tmp 
 		end
-		ct_names = unique(ct_names);    % Many countries have several polygons (e.g. islands).
-		name = [prefix_ddir '_country_names.txt'];
-		fid = fopen(name,'wt');
-		fprintf(fid,'%s\n',ct_names{:});        fclose(fid);
-		script{l} = ' ';				l=l+1;
-		script{l} = [comm ' ---- Plot countries. NOTE: THIS IS NOT A GMT PROGRAM'];   l=l+1;
-		ct_with_pato = getappdata(handMir.figure1,'AtlasResolution');
-		script{l} = [cd filesep 'country_extract -P' name ' ' ct_with_pato ' -C | ',...
-				'psxy ' ellips ' -R -J -W0.5p -m -O -K >> ' pb 'ps' pf];    l=l+1;
-		ALLpatchHand = setxor(ALLpatchHand, AtlasHand);       % AtlasHand is processed, so remove it from handles list
-		clear AtlasHand name n_cts ct_with_pato
 	end
-end
 % -------------------------------------------------------------------------------------------------------
 
-% -------------- Search for "Arrows" ---------------------------------
-if (~isempty(ALLpatchHand))
-	thisHand = findobj(ALLpatchHand,'Tag','Arrow');
-	if (~isempty(thisHand))
-		name = [prefix_ddir '_vector.dat'];
-		name_sc = [prefix '_vector.dat'];
-		fid = fopen(name,'wt');
-		n_vectors = length(thisHand);
-		for (i = 1:n_vectors)
-			ud = get(thisHand(i),'UserData');
-			x = (ud.arrow_xy(end-2,1) + ud.arrow_xy(end-1,1)) / 2;		% Base point
-			y = (ud.arrow_xy(end-2,2) + ud.arrow_xy(end-1,2)) / 2;
+% ------------------------------------- Search for countries --------------------------------------
+	if (~isempty(ALLpatchHand))
+		% First see about these still remaining patch transparency
+		[ALLpatchHand, hAlfaPatch] = findTransparents(ALLpatchHand);
+		if (isempty(hAlfaPatch)),		haveAlfa = 0;		end			% An extra test
 
-			% But now we have to check if this arrow has not been displaced
-			x_actual = get(thisHand(i), 'XData');
-			if (x_actual(1) ~= ud.arrow_xy(1))					% Yes, it was
-				y_actual = get(thisHand(i), 'YData');
-				ud.arrow_xy = [x_actual(:) y_actual(:)];
+		AtlasHand = findobj(ALLpatchHand,'Tag','Atlas');
+		if (~isempty(AtlasHand))
+			used_countries = 1;     need_path = 1;
+			n_cts = length(AtlasHand);
+			if (n_cts > 1)                  % We have multiple countries
+				ct_names = cell(n_cts,1);   % To hold the country names
+				for (k=1:n_cts)             % Loop over all countries found and store theyr names
+					ct_names{k} = get(AtlasHand(k),'UserData');
+				end
+			else                            % We have only one country
+				ct_names = {get(AtlasHand(k),'UserData')};
+			end
+			ct_names = unique(ct_names);    % Many countries have several polygons (e.g. islands).
+			name = [prefix_ddir '_country_names.txt'];
+			fid = fopen(name,'wt');
+			fprintf(fid,'%s\n',ct_names{:});        fclose(fid);
+			script{l} = ' ';				l=l+1;
+			script{l} = [comm ' ---- Plot countries. NOTE: THIS IS NOT A GMT PROGRAM'];   l=l+1;
+			ct_with_pato = getappdata(handMir.figure1,'AtlasResolution');
+			script{l} = [cd filesep 'country_extract -P' name ' ' ct_with_pato ' -C | ',...
+					'psxy ' ellips ' -R -J -W0.5p -m -O -K >> ' pb 'ps' pf];    l=l+1;
+			ALLpatchHand = setxor(ALLpatchHand, AtlasHand);       % AtlasHand is processed, so remove it from handles list
+			clear AtlasHand name n_cts ct_with_pato
+		end
+	end
+% -------------------------------------------------------------------------------------------------------
+
+% ------------------------------ Search for "Arrows" ---------------------------------
+	if (~isempty(ALLpatchHand))
+		thisHand = findobj(ALLpatchHand,'Tag','Arrow');
+		if (~isempty(thisHand))
+			name = [prefix_ddir '_vector.dat'];
+			name_sc = [prefix '_vector.dat'];
+			fid = fopen(name,'wt');
+			n_vectors = length(thisHand);
+			for (i = 1:n_vectors)
+				ud = get(thisHand(i),'UserData');
 				x = (ud.arrow_xy(end-2,1) + ud.arrow_xy(end-1,1)) / 2;		% Base point
 				y = (ud.arrow_xy(end-2,2) + ud.arrow_xy(end-1,2)) / 2;
-				set(thisHand(i),'UserData',ud)					% Update info in case it will be needed later
-			end
 
-			FillColor = get(thisHand(i),'FaceColor');
-			opt_G = '';
-			if (~strcmp(FillColor, 'none')),	opt_G = sprintf('-G%d/%d/%d',FillColor*255);	end
-			fprintf(fid,sprintf('> %s\n', opt_G));
-			mag = ud.mag / (((ud.hscale + ud.vscale) / 2) * 111110);	% Reverse of what's in draw_funs->report_EulerVel()
-			fprintf(fid,'%f\t%f\t%.2f\t%.3f\tV0.07c/%.1fp/%.1fp\n',x,y,ud.azim,mag,ud.headHeight*ud.vFac,ud.headHeight/2);
+				% But now we have to check if this arrow has not been displaced
+				x_actual = get(thisHand(i), 'XData');
+				if (x_actual(1) ~= ud.arrow_xy(1))					% Yes, it was
+					y_actual = get(thisHand(i), 'YData');
+					ud.arrow_xy = [x_actual(:) y_actual(:)];
+					x = (ud.arrow_xy(end-2,1) + ud.arrow_xy(end-1,1)) / 2;		% Base point
+					y = (ud.arrow_xy(end-2,2) + ud.arrow_xy(end-1,2)) / 2;
+					set(thisHand(i),'UserData',ud)					% Update info in case it will be needed later
+				end
+
+				FillColor = get(thisHand(i),'FaceColor');
+				opt_G = '';
+				if (~strcmp(FillColor, 'none')),	opt_G = sprintf('-G%d/%d/%d',FillColor*255);	end
+				fprintf(fid,sprintf('> %s\n', opt_G));
+				mag = ud.mag / (((ud.hscale + ud.vscale) / 2) * 111110);	% Reverse of what's in draw_funs->report_EulerVel()
+				fprintf(fid,'%f\t%f\t%.2f\t%.3f\tV0.07c/%.1fp/%.1fp\n',x,y,ud.azim,mag,ud.headLength*ud.vFac,ud.headLength/2);
+			end
+			fclose(fid);
+			script{l} = ' ';              l=l+1;
+			script{l} = [comm ' ---- Plot Vectors. --- '];   l=l+1;
+			script{l} = ['psxy ' name_sc ellips ' -S -R -J --MEASURE_UNIT=point --VECTOR_SHAPE=0.77 -m -O -K >> ' pb 'ps' pf];    l=l+1;
+			ALLpatchHand = setxor(ALLpatchHand, thisHand);       % thisHand is processed, so remove it from handles list
+			clear thisHand name name_sc n_vectors 
 		end
-		fclose(fid);
-		script{l} = ' ';              l=l+1;
-		script{l} = [comm ' ---- Plot Vectors. --- '];   l=l+1;
-		script{l} = ['psxy ' name_sc ellips ' -S -R -J --MEASURE_UNIT=point --VECTOR_SHAPE=0.77 -m -O -K >> ' pb 'ps' pf];    l=l+1;
-		ALLpatchHand = setxor(ALLpatchHand, thisHand);       % thisHand is processed, so remove it from handles list
-		clear thisHand name name_sc n_vectors 
 	end
-end
 % -------------------------------------------------------------------------------------------------------
 
 % -------------- Search for closed polygons ----------------------------
@@ -1768,15 +1826,44 @@ end
 		set(ALLlineHand, 'Vis', 'on');		set(ALLpatchHand, 'Vis', 'on');	set(ALLtextHand, 'Vis', 'on')
 	end
 
+% =============================== Search for "MagBars" (XY only) ===============================
+	if ( handMir.IamXY && strcmp(get(handMir.axes2, 'Vis'), 'on') )
+ 		hMagBar = findobj(handMir.axes2, 'type', 'patch');
+		if (~isempty(hMagBar))
+			name = sprintf('%s_magbar.dat', prefix_ddir);
+			name_sc = sprintf('%s_magbar.dat',prefix);
+			xx = get(hMagBar,'XData');     yy = get(hMagBar,'YData');
+			cor = get(hMagBar, 'FaceVertexCData');
+			fid = fopen(name,'wt');
+			for (i = 1:size(xx,2))
+				if (cor(i,1) == 0)
+					fprintf(fid,'> -G0\n');
+					fprintf(fid,'%.5f\t%.1f\n',[xx(:,i) yy(:,i)]');
+				end
+			end
+			fclose(fid);
+		end
+		opt_R = sprintf(' -R%.12g/%.12g/0/1', get(handMir.axes2,'xlim'));	% We need new limits here (different axes)
+		i = strfind(opt_J, '/');
+		Y0 = sprintf(' -Y%.12gc', str2double(opt_J(i+1:end-1))+0.1);	% Vertical offset equal to frame height + 0.1 cm
+		opt_J = sprintf(' %s0.6c', opt_J(1:i));
+		if (strcmpi(script{saveBind}(end), 'n')),	script{saveBind}(end) = [];		end		% Don't want top frame line
+		l=l+1;
+		script{l} = ' ';              l=l+1;
+		script{l} = [comm ' ---- Plot the magnetic reversals bars (positives only)'];   l=l+1;
+		script{l} = ['psxy ' name_sc opt_R opt_J Y0 ' -m -O -K >> ' pb 'ps' pf];
+	end
+% ==============================================================================================
+
 % ----------------------------------------------------------------------------------------------
-% ------------------------------------- Write the script ---------------------------------------
+% ------------------------------------- WRITE THE SCRIPT ---------------------------------------
 	% First do some eventual cleaning
 	if (~isempty(handMir.grdname) && ~used_grd),         script(id_grd) = [];        end;
 	if (strncmp(computer,'PC',2) && (used_grd || used_countries) && need_path && ~strcmp(sc,'bat'))
 		tmp = cell(7,1);
 		tmp{1} = [comm 'If you see this message is because you choosed to generate a c-shell'];
 		tmp{2} = [comm 'script in a windows running machine. Notice that I have no means to'];
-		tmp{3} = [comm 'guess on what imullation schema (e.g. SFU, cygwin, etc..) you intend'];
+		tmp{3} = [comm 'guess on what imullation schema (e.g. SFU, MinGW, cygwin, etc..) you intend'];
 		tmp{4} = [comm 'to run this script. The point is that they use different file names'];
 		tmp{5} = [comm 'mapping. While cygwin accepts the c:\somewhere\somefile, SFU wants'];
 		tmp{6} = [comm '/dev/fs/C/somewhere/somefile. So it''s your responsability to set'];
@@ -1921,6 +2008,17 @@ set(h1,...
 'Resize','off',...
 'HandleVisibility','Call',...
 'Tag','figure1');
+
+uicontrol('Parent',h1,...
+'Position',[340 430 100 20],...
+'Style','checkbox',...
+'Value',1,...
+'FontSize',12,...
+'ForegroundColor',[0.8 0 0],...
+'String','Use GMT5',...
+'Tooltip','Write the script to be used by GMT5',...
+'Visible','off',...
+'Tag','check_GMT5');
 
 uicontrol('Parent',h1,'Position',[30 9 205 121],'Style','frame');
 
