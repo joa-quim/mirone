@@ -531,12 +531,20 @@ function add_MarkColor(obj, evt, h)
 % --------------------------------------------------------------------------------------------------
 function isocs_CB(obj, evt)
 	handles = guidata(obj);
-	if (strcmp(get(obj,'State'),'on'))
+	if (strcmp(get(obj,'State'),'on'))	% Show magnetic UIs at the base and hide the distance/coords ones
 		set([handles.check_geog handles.popup_selectPlot handles.popup_selectSave], 'Vis','off')
 		set([handles.edit_startAge handles.edit_ageEnd handles.push_magBar handles.text_startAge ...
 			handles.text_endAge], 'Vis','on')
 		if (~isempty(handles.hPatchMagBar))
 			set([handles.hTxtChrons(:); handles.hPatchMagBar; handles.push_syntheticRTP], 'Vis', 'on')
+			if (~isempty(handles.hSynthetic))
+				set([handles.push_ageFit handles.slider_filter], 'Vis','on')
+				if (~isempty(handles.syntPar))		% Values were transmitted via OPTcontrol
+					set(handles.popup_ageFit, 'Vis','on')
+				else
+					set(handles.edit_ageFit, 'Vis','on')
+				end
+			end
 		end
 	else
 		if (handles.show_popups)		% Make next fellows visible only when apropriate
@@ -544,6 +552,7 @@ function isocs_CB(obj, evt)
 		end
 		set([handles.edit_startAge handles.edit_ageEnd handles.push_magBar handles.text_startAge ...
 			handles.check_zeroAge handles.text_endAge handles.push_syntheticRTP], 'Vis','off')
+		set([handles.push_ageFit handles.slider_filter handles.popup_ageFit handles.edit_ageFit], 'Vis','off')
 		if (~isempty(handles.hPatchMagBar))
 			set([handles.hTxtChrons(:); handles.hPatchMagBar; handles.push_syntheticRTP], 'Vis', 'off')
 		end
@@ -1012,10 +1021,20 @@ function push_magBar_CB(hObject, handles)
 % ---------------------------------------------------------------------
 function push_syntheticRTP_CB(hObject, handles)
 % Compute a synthetic profile RTPed
-	speed =  handles.dist(end) / (handles.ageEnd - handles.ageStart) / 10000 * 2;	% Full rate in cm / yr
+
+	switch handles.measureUnit(1)
+		% scale_x is the scale factor that always give distances in km
+		case 'n',		distSpeedFact = 1.852*1e-1;		scale_x = 1.852;	% Nautical miles
+		case 'k',		distSpeedFact = 1e-1;			scale_x = 1;		% Kilometers
+		case 'm',		distSpeedFact = 1e-4;			scale_x = 1e-3;		% Meters
+	end
+	speed =  2 * handles.dist(end) / (handles.ageEnd - handles.ageStart) * distSpeedFact;	% Full rate in cm / yr
+
+	fdec = 0;		finc = 90;		spreaddir = [];
 	dir_profile = azimuth_geo(handles.data(1,2), handles.data(1,1), handles.data(end,2), handles.data(end,1));
 	batFile = [];		dxypa = [];		contamin = 1;		syntPar = handles.syntPar;
 	handles.syntPar.ageStretch = 0;		% If needed, tt will expanded further down
+	handles.syntPar.agePad = 1.5;		% Is overwriten by value in OPTcontrol. Probably too short for older isochrons
 
 	% See if the  case the OPTcontrol.txt file has relevant info for this run
 	opt_file = [handles.home_dir filesep 'data' filesep 'OPTcontrol.txt'];
@@ -1029,10 +1048,10 @@ function push_syntheticRTP_CB(hObject, handles)
 			if (numel(lines{k}) <= 14),	continue,	end		% The minimum it takes to have a -? switch
 			[t, r] = strtok(lines{k}(13:end));
 			switch t
-				case 'DEC',			handles.syntPar.dec = str2double(r);
-				case 'INC',			handles.syntPar.inc = str2double(r);
-				case 'SPEED',		handles.syntPar.speed = str2double(r);
-				case 'SPREADIR',	handles.syntPar.dir_spread = str2double(r);
+				case 'DEC',			fdec = str2double(r);
+				case 'INC',			finc = str2double(r);
+				case 'SPEED',		speed = str2double(r);
+				case 'SPREADIR',	spreaddir = str2double(r);
 				case 'CONTAMIN',	contamin = str2double(r);
 				case 'BAT'			% Get file name of a grid with bathymetry that will be interpolated at track pos
 					batFile = ddewhite(r);
@@ -1059,7 +1078,6 @@ function push_syntheticRTP_CB(hObject, handles)
 					kk = kk + 1;
 			end
 		end
-		handles.syntPar.dir_profile = dir_profile;
 		set( handles.popup_ageFit,'Vis','on','Str',handles.syntPar.ageMarkers )
 		set( handles.edit_ageFit, 'Vis', 'off')		% We don't use this in this case.
 		if (contamin <= 1 && contamin >= 0.5)
@@ -1073,36 +1091,35 @@ function push_syntheticRTP_CB(hObject, handles)
 		syntPar = true;					% Signal that got Params from file
 	end
 
-	if (isempty(syntPar))				% First time use in this session and no OPTcontrol.txt info
-		handles.syntPar.dec = 0;				handles.syntPar.inc = 90;
-		handles.syntPar.speed = speed;
+	handles.syntPar.dec = fdec;
+	handles.syntPar.inc = finc;
+	handles.syntPar.speed = speed;
+	handles.syntPar.dir_profile = dir_profile;
+	if (~isempty(spreaddir))
+		handles.syntPar.dir_spread = spreaddir;
+	else
 		handles.syntPar.dir_spread = dir_profile;
-		handles.syntPar.dir_profile = dir_profile;
-		handles.syntPar.agePad = 1.5;		% Probably too short for older isochrons
+	end
+	
+	if (isempty(syntPar))				% First time use in this session and no OPTcontrol.txt info
 		set(handles.edit_ageFit, 'Vis','on')
 	end
 	set([handles.push_ageFit handles.slider_filter], 'Vis','on')
-
-	switch handles.measureUnit(1)			% Compute scale factor that always give distances in km
-		case 'n',		scale_x = 1852;		% Nautical miles
-		case 'k',		scale_x = 1;		% Kilometers
-		case 'm',		scale_x = 1000;		% Meters
-	end
 
 	if (~isempty(batFile))				% Try to extract the bathym profile by grid interpolation
 		if (isempty(handles.batTrack))	% Do grid interpolation only once
 			[handles, X, Y, Z, head] = read_gmt_type_grids(handles, batFile);
 			if (~isempty(Z))
 				Z = abs( grdtrack_m(Z,head,handles.data(:,1:2),'-Z') ) / 1000;	% Need Z in km
-				dxypa = [handles.dist/scale_x handles.data(:,1:2) Z(:) handles.data(:,3)];
+				dxypa = [handles.dist * scale_x handles.data(:,1:2) Z(:) handles.data(:,3)];
 				handles.batTrack = Z;
 			end
 		end
 	end
 	if (isempty(dxypa) && isempty(handles.batTrack))
-		dxypa = [handles.dist/scale_x handles.data(:,1:2) ones(size(handles.data,1),1)*2.5 handles.data(:,3)];
+		dxypa = [handles.dist * scale_x handles.data(:,1:2) ones(size(handles.data,1),1)*2.5 handles.data(:,3)];
 	elseif (isempty(dxypa) && ~isempty(handles.batTrack))
-		dxypa = [handles.dist/scale_x handles.data(:,1:2) handles.batTrack(:) handles.data(:,3)];
+		dxypa = [handles.dist * scale_x handles.data(:,1:2) handles.batTrack(:) handles.data(:,3)];
 	end
 
 	[anom handles.age_line] = magmodel(dxypa, handles.syntPar.dec, handles.syntPar.inc, ...
@@ -1128,7 +1145,19 @@ function push_syntheticRTP_CB(hObject, handles)
 function slider_filter_CB(hObject, handles)
 % Filter the synthetic mag profile by using the conatmination factor
 	contamin = get(hObject, 'Val');
-	anom = magmodel([handles.dist/1000 handles.data], handles.syntPar.dec, handles.syntPar.inc, ...
+	% Compute distance scale factor (magmodel wants dist in km)
+	switch handles.measureUnit(1)
+		case 'n',		scale_x = 1.852;	% Nautical miles
+		case 'k',		scale_x = 1;		% Kilometers
+		case 'm',		scale_x = 1e-3;		% Meters
+	end
+
+	if (~isempty(handles.batTrack))
+		dxypa = [handles.dist * scale_x handles.data(:,1:2) handles.batTrack(:) handles.data(:,3)];
+	else
+		dxypa = [handles.dist * scale_x handles.data];
+	end
+	anom = magmodel(dxypa, handles.syntPar.dec, handles.syntPar.inc, ...
 		handles.syntPar.speed, handles.syntPar.dir_spread, handles.syntPar.dir_profile, contamin);
 	set(handles.hSynthetic, 'YData', anom);
 
@@ -1626,10 +1655,10 @@ function rd = get_distances(x, y, geog, units, ellipsoide)
 function [anoma, age_line] = magmodel(dxypa, chtdec, chtinc, speed, dir_spread, dir_profil, contam)
 % This function is in large part taken from the MAGMOD program
 % Intention is to clean it more or eventually re-write it (for example it doesn't account
-% for possibly different Remanent & Inducted maags).
+% for possibly different Remanent & Inducted mags).
 
 	if (nargin == 6),	contam = 1;		end
-	if (size(dxypa,2) == 4)		% If depth not provided, default to const = 2.5 km
+	if (size(dxypa,2) == 4)		% If depth is not provided, default to const = 2.5 km
 		dxypa = [dxypa(:,1:3) ones(size(dxypa,1),1)*2.5 dxypa(:,4)];
 	end
 
@@ -1736,7 +1765,7 @@ function [anoma, age_line] = magmodel(dxypa, chtdec, chtinc, speed, dir_spread, 
 		polygon_z(2,:) = profond + cosubsi*sqrt(abs(blocag(:,2)'));
 		polygon_z(3,:) = polygon_z(2,:) + thickness;
 		polygon_z(4,:) = polygon_z(1,:) + thickness;
-		if cosubsi ~= 0.0
+		if (cosubsi ~= 0.0)
 			indbmil = polygon_x(1,:) < 0 & polygon_x(2,:) > 0;
 			shift = profond - polygon_z(1,indbmil);
 			polygon_z(:,:) = polygon_z(:,:) + shift;
@@ -1808,15 +1837,15 @@ function [anoma, age_line] = magmodel(dxypa, chtdec, chtinc, speed, dir_spread, 
 	PolXX = cell(1,nb_struct);
     PolZZ = cell(1,nb_struct);
 
-	for i=1:nb_struct
+	for i = 1:nb_struct
 		PolX(1,i)  = {polygon_x(:,i)};
 		PolXX(1,i) = {[polygon_x(:,i);polygon_x(1,i)]};
 		PolZ(1,i)  = {polygon_z(:,i)};
 		PolZZ(1,i) = {[polygon_z(:,i);polygon_z(1,i)]};
 	end
-	if profond==0
-		for i=maxlignm12+1:minlignm21-1
-			ptdist=find(distfic > polygon_x(1,i)+0.00001 & distfic < polygon_x(2,i)-0.00001);
+	if (profond == 0)
+		for i = maxlignm12+1:minlignm21-1
+			ptdist = find(distfic > polygon_x(1,i)+0.00001 & distfic < polygon_x(2,i)-0.00001);
 			if ~isempty(ptdist)
 				tempox1 = distfic(ptdist(:),1);
 				tempoz1 = proffic(ptdist(:),1);
