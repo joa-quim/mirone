@@ -957,25 +957,28 @@ function push_magBar_CB(hObject, handles)
 		set(handles.axes2,'XDir','reverse')
 	end
 
-	chron_file = [handles.d_path 'Cande_Kent_95.dat'];
-	fid = fopen(chron_file,'r');
+	fid = fopen([handles.d_path 'Cande_Kent_95.dat'],'r');
 	todos = fread(fid,'*char');     [chron age_start age_end age_txt] = strread(todos,'%s %f %f %s');
 	fclose(fid);    clear todos
 
 	id_ini = (age_start >= handles.ageStart);		id_ini = find(id_ini);		id_ini = id_ini(1);
 	id_fim = (age_start <= handles.ageEnd);			id_fim = find(~id_fim);		id_fim = id_fim(1) - 1;
+	if (id_ini > 1),	agesLeftBak = [age_start(id_ini-1) age_end(id_ini-1)];	% We may need this to build a left clipped brick
+	else				agesLeftBak = [age_start(1) age_end(1)];	% To not error out further down
+	end
 	age_start = age_start(id_ini:id_fim);
 	age_end = age_end(id_ini:id_fim);
 	age_txt = age_txt(id_ini:id_fim);
 
-	% Take care of end ages which certainly do not cuincide with what was asked
-	if (age_start(1) > handles.ageStart)
-		age_start = [handles.ageStart; age_start];	age_end = [handles.ageStart; age_end];
+	% Take care of end ages which certainly do not coincide with what was asked
+	if (age_start(1) > handles.ageStart && handles.ageStart < agesLeftBak(2))	% We must create a clipped first brick
+		age_start = [handles.ageStart; age_start];
+		age_end = [agesLeftBak(2); age_end];
 		age_txt = cat(1,{'a'}, age_txt(:));
 	end
-	if (age_end(end) < handles.ageEnd)
-		age_start(end+1) = handles.ageEnd;		age_end(end+1) = handles.ageEnd;		age_txt{end+1} = 'a';
-	end
+ 	if (age_end(end) > handles.ageEnd)			% Clip the last brick
+		age_end(end) = handles.ageEnd;
+ 	end
 
 	x = [age_start'; age_end'];
 	x = x(:);
@@ -989,8 +992,12 @@ function push_magBar_CB(hObject, handles)
 	faces = [c1 c2 c3 c4];
 
 	cor = repmat([0 0 0; 1 1 1],n_ages-1,1);    cor = [cor; [0 0 0]];
-	set(handles.axes2, 'xlim', [age_start(1) age_end(end)])
-	handles.hPatchMagBar = patch('Parent',handles.axes2,'Faces',faces,'Vertices',[x y],'FaceVertexCData',cor,'FaceColor','flat');
+	set(handles.axes2, 'xlim', [handles.ageStart handles.ageEnd])
+	if (isempty(handles.hPatchMagBar))
+		handles.hPatchMagBar = patch('Parent',handles.axes2,'Faces',faces,'Vertices',[x y],'FaceVertexCData',cor,'FaceColor','flat');
+	else
+		set(handles.hPatchMagBar,'Faces',faces,'Vertices',[x y],'FaceVertexCData',cor)
+	end
 	set(handles.figure1,'renderer','Zbuffer')	% The patch command above set it to OpenGL, which is f... bugged
 
 	% Get the index of anomalies that have names. We'll use them to plot those anomaly names
@@ -1001,18 +1008,22 @@ function push_magBar_CB(hObject, handles)
 	ages = age_start(ind);
 
 	set(handles.figure1,'currentaxes',handles.axes1)	% Put it back as current axes
-	% Since the two axes are touching, axes1 would hide the XTickLabels of axes2.
+	% Since the two axes are touching, axes1 hides the XTickLabels of axes2.
 	% So the trick is to plot what would have been axes2 XTickLabels as a text in axes1
 	DX1 = diff(get(handles.axes1,'xlim'));
 	y_lim = get(handles.axes1,'ylim');
-	DX2 = age_end(end) - age_start(1);
-	x_pos = (ages - x(1)) * DX1 / DX2;
+	DX2 = handles.ageEnd - handles.ageStart;
+	x_pos = (ages - handles.ageStart) * DX1 / DX2;
 	ha = 'Left';
 	if (reverse_XDir)
-		x_pos = (age_end(end) - x(1)) * DX1 / DX2 - x_pos;		ha = 'Right';
+		x_pos = (age_end(end) - x(1)) * DX1 / DX2 - x_pos;
+		ha = 'Right';
+	end
+	if (~isempty(handles.hTxtChrons))
+		delete(handles.hTxtChrons)
 	end
 	handles.hTxtChrons = text(x_pos,repmat(y_lim(2),numel(x_pos),1),age_txt(ind),'Parent',handles.axes1, ...
-		'VerticalAlignment','top', 'HorizontalAlignment', ha, 'Tag','chroneName');
+			'VerticalAlignment','top', 'HorizontalAlignment', ha, 'Tag','chroneName');
 	set(handles.axes2, 'XTick',[],'UserData',ages)		% We may want to use these from other places
 	
 	set(handles.push_syntheticRTP, 'Vis','on')			% Now this may be set to visible
@@ -1032,7 +1043,7 @@ function push_syntheticRTP_CB(hObject, handles)
 
 	fdec = 0;		finc = 90;		spreaddir = [];
 	dir_profile = azimuth_geo(handles.data(1,2), handles.data(1,1), handles.data(end,2), handles.data(end,1));
-	batFile = [];		dxypa = [];		contamin = 1;		syntPar = handles.syntPar;
+	batFile = [];		dxyp = [];		contamin = 1;		syntPar = handles.syntPar;
 	handles.syntPar.ageStretch = 0;		% If needed, tt will expanded further down
 	handles.syntPar.agePad = 1.5;		% Is overwriten by value in OPTcontrol. Probably too short for older isochrons
 
@@ -1111,18 +1122,18 @@ function push_syntheticRTP_CB(hObject, handles)
 			[handles, X, Y, Z, head] = read_gmt_type_grids(handles, batFile);
 			if (~isempty(Z))
 				Z = abs( grdtrack_m(Z,head,handles.data(:,1:2),'-Z') ) / 1000;	% Need Z in km
-				dxypa = [handles.dist * scale_x handles.data(:,1:2) Z(:) handles.data(:,3)];
+				dxyp = [handles.dist * scale_x handles.data(:,1:2) Z(:)];
 				handles.batTrack = Z;
 			end
 		end
 	end
-	if (isempty(dxypa) && isempty(handles.batTrack))
-		dxypa = [handles.dist * scale_x handles.data(:,1:2) ones(size(handles.data,1),1)*2.5 handles.data(:,3)];
-	elseif (isempty(dxypa) && ~isempty(handles.batTrack))
-		dxypa = [handles.dist * scale_x handles.data(:,1:2) handles.batTrack(:) handles.data(:,3)];
+	if (isempty(dxyp) && isempty(handles.batTrack))
+		dxyp = [handles.dist * scale_x handles.data(:,1:2) ones(size(handles.data,1),1)*2.5];
+	elseif (isempty(dxyp) && ~isempty(handles.batTrack))
+		dxyp = [handles.dist * scale_x handles.data(:,1:2) handles.batTrack(:)];
 	end
 
-	[anom handles.age_line] = magmodel(dxypa, handles.syntPar.dec, handles.syntPar.inc, ...
+	[anom handles.age_line] = magmodel(handles, dxyp, handles.syntPar.dec, handles.syntPar.inc, ...
 			handles.syntPar.speed, handles.syntPar.dir_spread, handles.syntPar.dir_profile, contamin);
 
 	if (isempty(handles.hSynthetic))
@@ -1153,11 +1164,11 @@ function slider_filter_CB(hObject, handles)
 	end
 
 	if (~isempty(handles.batTrack))
-		dxypa = [handles.dist * scale_x handles.data(:,1:2) handles.batTrack(:) handles.data(:,3)];
+		dxyp = [handles.dist * scale_x handles.data(:,1:2) handles.batTrack(:)];
 	else
-		dxypa = [handles.dist * scale_x handles.data];
+		dxyp = [handles.dist * scale_x handles.data(:,1:2)];
 	end
-	anom = magmodel(dxypa, handles.syntPar.dec, handles.syntPar.inc, ...
+	anom = magmodel(handles, dxyp, handles.syntPar.dec, handles.syntPar.inc, ...
 		handles.syntPar.speed, handles.syntPar.dir_spread, handles.syntPar.dir_profile, contamin);
 	set(handles.hSynthetic, 'YData', anom);
 
@@ -1652,32 +1663,24 @@ function rd = get_distances(x, y, geog, units, ellipsoide)
 	end
 
 % ------------------------------------------------------------------------------
-function [anoma, age_line] = magmodel(dxypa, chtdec, chtinc, speed, dir_spread, dir_profil, contam)
-% This function is in large part taken from the MAGMOD program
+function [anoma, age_line] = magmodel(handles, dxyp, fDec, fInc, speed, dir_spread, dir_profil, contam)
+% This function was adapted from the MAGMOD program
+% "MODMAG, a MATLAB program to model marine magnetic anomalies."
+% Véronique Mendel, Marc Munschy and Daniel Sauter. Computers & Geosciences 31 (2005) 589–597
 % Intention is to clean it more or eventually re-write it (for example it doesn't account
 % for possibly different Remanent & Inducted mags).
 
 	if (nargin == 6),	contam = 1;		end
-	if (size(dxypa,2) == 4)		% If depth is not provided, default to const = 2.5 km
-		dxypa = [dxypa(:,1:3) ones(size(dxypa,1),1)*2.5 dxypa(:,4)];
+	if (size(dxyp,2) == 3)		% If depth is not provided, default to const = 2.5 km
+		dxyp = [dxyp(:,1:3) ones(size(dxyp,1),1)*2.5];
 	end
 
-	levelobs = 0;	aimaaxe = 18;		aimanta = 4;
-	psubsi = 0.35;		% Coefficient of thermal subsidence equation
-	subsi = 1;			% PORQUÊ????
-	profond = 0;		% PORQUÊ????
+	zObs = 0;		magAtAxe = 18;		magFlatOfEachBlock = 4;
+	psubsi = 0.35;			% Coefficient of thermal subsidence equation
 	thickness = 0.5;
-	stat_x = dxypa(:,1);
-	txouv = speed * 10;		% From full rate in cm/year to rate in km/Ma 
+	speed = speed * 10;		% From full rate in cm/year to rate in km/Ma 
 
-	mir_dirs = getappdata(0,'MIRONE_DIRS');
-	if (~isempty(mir_dirs))
-		chron_file = [mir_dirs.home_dir filesep 'data' filesep 'Cande_Kent_95.dat'];
-	else
-		chron_file = [cd filesep 'data' filesep 'Cande_Kent_95.dat'];
-	end
-
-	fid = fopen(chron_file,'r');
+	fid = fopen([handles.d_path 'Cande_Kent_95.dat'],'r');
 	todos = fread(fid,'*char');
 	[chron age_start age_end s.age_txt] = strread(todos,'%s %f %f %s');
 	fclose(fid);    clear todos
@@ -1686,57 +1689,39 @@ function [anoma, age_line] = magmodel(dxypa, chtdec, chtinc, speed, dir_spread, 
 	BA(1:2:end-1,2) = age_end;
 	BA(2:2:end-2,2) = age_start(2:end);
 	BA(end,:) = [];
-	
-	debut_bloc = 1;
-	fin_bloc = size(BA,1);
 
-	if (nargin == 0)
-		Ficp = fopen ('C:\j\artigos\review\cg_modmag\publicado\swir.dxypa');
-		MX = (fscanf(Ficp,'%f',[5,inf]))';
-		fclose(Ficp);
-		MXS = sortrows(MX,1);
-	else
-		MXS = dxypa;
-	end
-	distfic = MXS(:,1);
-	proffic = MXS(:,4);
-	ind = isnan(proffic);
+	distAlongProfile = dxyp(:,1);
+	profileDepth = dxyp(:,4);
+	ind = isnan(profileDepth);
 	if ( any(ind) )			% Many files have gaps in bathymetry. Reinvent it
-		proffic(ind) = interp1(distfic(~ind),proffic(~ind),distfic(ind));
+		profileDepth(ind) = interp1(distAlongProfile(~ind), profileDepth(~ind), distAlongProfile(ind));
 	end
-	Nficprof = numel(distfic);
 	
-	% Number of points
-	nb_stat_mod = numel(stat_x);
-
-	% Depth of the points where the magnetic anomaly will be compute
-	stat_z = zeros(nb_stat_mod,1)+levelobs;
-
-	% Calculation of the position of the magnetized bodies
+	nBlocks = size(BA,1);
+	nPts = numel(distAlongProfile);		% Number of points
+	stat_z = zeros(nPts,1) + zObs;		% Depth of the points where the magnetic anomaly will be compute
 
 	% Determination of the age limits of normal and inverse polarity bodies and
 	% of their respecting magnetization
 
-	nb_struct = (fin_bloc*2)-1;
+	twiceNBlocks = (nBlocks*2) - 1;
 
-	blocag = zeros(nb_struct,2);
-	aimbloc = zeros(nb_struct,1);
-	blocag(debut_bloc:fin_bloc-1,1) = -BA(fin_bloc:-1:debut_bloc+1,2);
-	blocag(debut_bloc:fin_bloc-1,2) = -BA(fin_bloc:-1:debut_bloc+1,1);
-	blocag(fin_bloc,:) = [-BA(1,2) BA(1,2)];
-	blocag(fin_bloc+1:nb_struct,:) = BA(debut_bloc+1:fin_bloc,:);
-	aimbloc(fin_bloc,1) = aimaaxe;
-	aimbloc(fin_bloc-2:-2:1,1) = aimanta;
-	aimbloc(fin_bloc+2:2:nb_struct,1) = aimanta;
-	aimbloc(fin_bloc-1:-2:1,1) = aimanta*(-1.);
-	aimbloc(fin_bloc+1:2:nb_struct,1) = aimanta*(-1.);
-
-	% Initialisation of magnetized bodies position in km
-	polygon_x = zeros(4,nb_struct);
+	blockAge = zeros(twiceNBlocks,2);
+	blockMag = zeros(twiceNBlocks,1);
+	blockAge(1:nBlocks-1,1) = -BA(nBlocks:-1:1+1,2);
+	blockAge(1:nBlocks-1,2) = -BA(nBlocks:-1:1+1,1);
+	blockAge(nBlocks,:) = [-BA(1,2) BA(1,2)];
+	blockAge(nBlocks+1:twiceNBlocks,:) = BA(1+1:nBlocks,:);
+	blockMag(nBlocks) = magAtAxe;
+	blockMag(nBlocks-2:-2:1) = magFlatOfEachBlock;
+	blockMag(nBlocks+2:2:twiceNBlocks) = magFlatOfEachBlock;
+	blockMag(nBlocks-1:-2:1) = -magFlatOfEachBlock;
+	blockMag(nBlocks+1:2:twiceNBlocks) = -magFlatOfEachBlock;
 
 	% Calculation of magnetized bodies position in km
-	polygon_x(1,:) = blocag(:,1)' * txouv(1) / 2;
-	polygon_x(2,:) = blocag(:,2)' * txouv(1) / 2;
+	polygon_x = zeros(4,twiceNBlocks);
+	polygon_x(1,:) = blockAge(:,1)' * speed / 2;
+	polygon_x(2,:) = blockAge(:,2)' * speed / 2;
 	polygon_x(3,:) = polygon_x(2,:);
 	polygon_x(4,:) = polygon_x(1,:);
 
@@ -1744,7 +1729,6 @@ function [anoma, age_line] = magmodel(dxypa, chtdec, chtinc, speed, dir_spread, 
 	% to be less than 90° away from the profile direction in order to be plot
 	% in the right sense of distance. To do this we first calculate the obliquity
 	% between the direction of the profile and the spreading direction.
-
 	obliquity = dir_profil - dir_spread;
 	if (abs(obliquity) > 90)
 		temp1 = mod(obliquity,90);
@@ -1754,151 +1738,138 @@ function [anoma, age_line] = magmodel(dxypa, chtdec, chtinc, speed, dir_spread, 
 		end
 		dir_spread = dir_profil - obliquity;
 	end
+	if (obliquity ~= 0)
+		polygon_x = polygon_x / cos (obliquity * pi / 180);
+	end
+
+	hMagBar = findobj(handles.axes2, 'type', 'patch');
+	xx = get(hMagBar,'XData');
+	ind = find((xx(1) - blockAge(:,1)) > 0);	% Find index of closest block start of displyed bricks and those from file
+	ind = ind(end);								% The last one is closest from the left (starting) side
+	f = (xx(1) - blockAge(ind,1)) / (blockAge(ind,2) - blockAge(ind,1));
+	distAlongProfile = distAlongProfile + polygon_x(1,ind) + f * (polygon_x(2,ind) - polygon_x(1,ind));
 
 	% Calculation of the magnetized bodies depth
-	if (subsi == 1),	cosubsi = psubsi;
-	else				cosubsi = 0.0;
-	end
-	polygon_z = zeros(4,nb_struct);
-	if profond ~= 0.0
-		polygon_z(1,:) = profond + cosubsi*sqrt(abs(blocag(:,1)'));
-		polygon_z(2,:) = profond + cosubsi*sqrt(abs(blocag(:,2)'));
-		polygon_z(3,:) = polygon_z(2,:) + thickness;
-		polygon_z(4,:) = polygon_z(1,:) + thickness;
-		if (cosubsi ~= 0.0)
-			indbmil = polygon_x(1,:) < 0 & polygon_x(2,:) > 0;
-			shift = profond - polygon_z(1,indbmil);
-			polygon_z(:,:) = polygon_z(:,:) + shift;
+	polygon_z = zeros(4,twiceNBlocks);
+
+	ind = find(polygon_x(1,:) < distAlongProfile(1));	% Find start block limits to the left of profile start
+	if ~isempty(ind)
+		maxlignm11 = max(ind);
+		if (polygon_x(1,maxlignm11) < 0)
+			polygon_z(1,ind) = profileDepth(1) + psubsi*sqrt(blockAge(maxlignm11,1)-blockAge(ind,1)');
+		else
+			polygon_z(1,ind) = profileDepth(1);
 		end
+		polygon_z(4,ind) = polygon_z(1,ind) + thickness;
+	end
+
+	ind = find(polygon_x(2,:) < distAlongProfile(1));	% Find end block limits to the left of profile start
+	if ~isempty(ind)
+		maxlignm12 = max(ind);
+		if polygon_x(2,maxlignm12) < 0
+			polygon_z(2,ind) = profileDepth(1) + psubsi*sqrt(blockAge(maxlignm12,2) - blockAge(ind,2)');
+		else
+			polygon_z(2,ind) = profileDepth(1);
+		end
+		polygon_z(3,ind) = polygon_z(2,ind) + thickness;
 	else
-		PolX = cell(1,nb_struct);
-		PolZ = cell(1,nb_struct);
-		if  (obliquity ~= 0)
-			polygon_x = polygon_x / cos (obliquity * pi / 180);
-		end
-		lignm11 = find(polygon_x(1,:) < distfic(1));
-		if ~isempty(lignm11)
-			maxlignm11 = max(lignm11);
-			if polygon_x(1,maxlignm11) < 0
-				polygon_z(1,lignm11(:)) = proffic(1) + cosubsi*sqrt(blocag(maxlignm11,1)-blocag(lignm11(:),1)');
-			else
-				polygon_z(1,lignm11(:)) = proffic(1);
-			end
-			polygon_z(4,lignm11(:)) = polygon_z(1,lignm11(:)) + thickness;
-		end
-		lignm12 = find(polygon_x(2,:) < distfic(1));
-		if ~isempty(lignm12)
-			maxlignm12 = max(lignm12);
-			if polygon_x(2,maxlignm12) < 0
-				polygon_z(2,lignm12(:)) = proffic(1) + cosubsi*sqrt(blocag(maxlignm12,2)-blocag(lignm12(:),2)');
-			else
-				polygon_z(2,lignm12(:)) = proffic(1);
-			end
-			polygon_z(3,lignm12(:)) = polygon_z(2,lignm12(:)) + thickness;
-		else
-			maxlignm12=0;
-		end
-
-		lignm21 = find(polygon_x(1,:) >= distfic(Nficprof));
-		if ~isempty(lignm21)
-			minlignm21 = min(lignm21);
-			if (polygon_x(1,minlignm21) > 0)
-				polygon_z(1,lignm21(:)) = proffic(Nficprof) + cosubsi*sqrt(blocag(lignm21(:),1)' - blocag(minlignm21,1));	
-			else
-				polygon_z(1,lignm21(:)) = proffic(Nficprof);
-			end
-			polygon_z(4,lignm21(:)) = polygon_z(1,lignm21(:)) + thickness;
-		else
-			minlignm21=nb_struct+1;
-		end
-		lignm22 = find(polygon_x(2,:) >= distfic(Nficprof));
-		if ~isempty(lignm22)
-			minlignm22 = min(lignm22);
-			if polygon_x(2,minlignm22) > 0
-				polygon_z(2,lignm22(:)) = proffic(Nficprof) + cosubsi*sqrt(blocag(lignm22(:),2)' - blocag(minlignm22,2));	
-			else
-				polygon_z(2,lignm22(:)) = proffic(Nficprof);
-			end
-			polygon_z(3,lignm22(:)) = polygon_z(2,lignm22(:)) + thickness;
-		end
-
-		lignm31  = find(polygon_x(1,:) >= distfic(1) & polygon_x(1,:) < distfic(Nficprof));
-		if ~isempty(lignm31)
-			polygon_z(1,lignm31(:)) = interp1(distfic,proffic,polygon_x(1,lignm31(:)));
-			polygon_z(4,lignm31(:)) = polygon_z(1,lignm31(:)) + thickness;
-		end
-		lignm32  = find(polygon_x(2,:) >= distfic(1) & polygon_x(2,:) < distfic(Nficprof));
-		if ~isempty(lignm32)
-			polygon_z(2,lignm32(:)) = interp1(distfic,proffic,polygon_x(2,lignm32(:)));
-			polygon_z(3,lignm32(:)) = polygon_z(2,lignm32(:)) + thickness;
-		end
+		maxlignm12 = 0;
 	end
 
-	PolXX = cell(1,nb_struct);
-    PolZZ = cell(1,nb_struct);
-
-	for i = 1:nb_struct
-		PolX(1,i)  = {polygon_x(:,i)};
-		PolXX(1,i) = {[polygon_x(:,i);polygon_x(1,i)]};
-		PolZ(1,i)  = {polygon_z(:,i)};
-		PolZZ(1,i) = {[polygon_z(:,i);polygon_z(1,i)]};
+	ind = find(polygon_x(1,:) >= distAlongProfile(end));	% Find start block limits to the right of profile end
+	if ~isempty(ind)
+		minlignm21 = min(ind);
+		if (polygon_x(1,minlignm21) > 0)
+			polygon_z(1,ind) = profileDepth(end) + psubsi*sqrt(blockAge(ind,1)' - blockAge(minlignm21,1));	
+		else
+			polygon_z(1,ind) = profileDepth(end);
+		end
+		polygon_z(4,ind) = polygon_z(1,ind) + thickness;
+	else
+		minlignm21 = twiceNBlocks + 1;
 	end
-	if (profond == 0)
-		for i = maxlignm12+1:minlignm21-1
-			ptdist = find(distfic > polygon_x(1,i)+0.00001 & distfic < polygon_x(2,i)-0.00001);
-			if ~isempty(ptdist)
-				tempox1 = distfic(ptdist(:),1);
-				tempoz1 = proffic(ptdist(:),1);
-				tempox2 = flipud(tempox1);
-				tempoz2 = flipud(tempoz1+thickness);
-				tempox3 = [polygon_x(1,i);tempox1;polygon_x(2,i);polygon_x(3,i);tempox2;polygon_x(4,i)];
-				tempoz3 = [polygon_z(1,i);tempoz1;polygon_z(2,i);polygon_z(3,i);tempoz2;polygon_z(4,i)];
-				PolX(1,i)={tempox3};
-				PolXX(1,i)={[tempox3;polygon_x(1,i)]};
-				PolZ(1,i)={tempoz3};
-				PolZZ(1,i)={[tempoz3;polygon_z(1,i)]};
-			end
+
+	ind = find(polygon_x(2,:) >= distAlongProfile(end));	% Find end block limits to the right of profile end
+	if ~isempty(ind)
+		minlignm22 = min(ind);
+		if polygon_x(2,minlignm22) > 0
+			polygon_z(2,ind) = profileDepth(end) + psubsi*sqrt(blockAge(ind(:),2)' - blockAge(minlignm22,2));	
+		else
+			polygon_z(2,ind) = profileDepth(end);
+		end
+		polygon_z(3,ind) = polygon_z(2,ind) + thickness;
+	end
+
+	% Now find the block limits that are contained inside the profile
+	ind = find(polygon_x(1,:) >= distAlongProfile(1) & polygon_x(1,:) < distAlongProfile(end));
+	if ~isempty(ind)
+		polygon_z(1,ind) = interp1(distAlongProfile, profileDepth, polygon_x(1,ind));
+		polygon_z(4,ind) = polygon_z(1,ind) + thickness;
+	end
+	ind = find(polygon_x(2,:) >= distAlongProfile(1) & polygon_x(2,:) < distAlongProfile(end));
+	if ~isempty(ind)
+		polygon_z(2,ind) = interp1(distAlongProfile, profileDepth, polygon_x(2,ind));
+		polygon_z(3,ind) = polygon_z(2,ind) + thickness;
+	end
+
+	PolXX = cell(1,twiceNBlocks);
+    PolZZ = cell(1,twiceNBlocks);
+
+	for i = 1:twiceNBlocks
+		PolXX(1,i) = {[polygon_x(:,i); polygon_x(1,i)]};
+		PolZZ(1,i) = {[polygon_z(:,i); polygon_z(1,i)]};
+	end
+
+	for i = maxlignm12+1:minlignm21-1
+		ptdist = find(distAlongProfile > polygon_x(1,i)+0.00001 & distAlongProfile < polygon_x(2,i)-0.00001);
+		if ~isempty(ptdist)
+			tempox1 = distAlongProfile(ptdist);
+			tempoz1 = profileDepth(ptdist);
+			tempox2 = flipud(tempox1);
+			tempoz2 = flipud(tempoz1+thickness);
+			tempox3 = [polygon_x(1,i);tempox1;polygon_x(2,i);polygon_x(3,i);tempox2;polygon_x(4,i)];
+			tempoz3 = [polygon_z(1,i);tempoz1;polygon_z(2,i);polygon_z(3,i);tempoz2;polygon_z(4,i)];
+			PolXX(1,i)={[tempox3; polygon_x(1,i)]};
+			PolZZ(1,i)={[tempoz3; polygon_z(1,i)]};
 		end
 	end
 
 	% Re-positionning of the magnetized bodies if the contamination coefficient is different from 1
-
-	if contam ~= 1
-		for i=1:nb_struct
-			PolXX{1,i}=PolXX{1,i} * contam;
+	if (contam ~= 1)
+		for (i = 1:twiceNBlocks)
+			PolXX{1,i} = PolXX{1,i} * contam;
 		end
-		stat_x(:,1) = stat_x(:,1) * contam;
+		distAlongProfile = distAlongProfile * contam;
 	end
 
 	% Calculation of the magnetic anomaly created by the magnetized bodies
+	anoma = calcmag(twiceNBlocks,fInc,fDec,dir_spread,blockMag,distAlongProfile,stat_z,nPts,PolXX,PolZZ);
 
-	anoma = calcmag(nb_struct,chtinc,chtdec,dir_spread,aimbloc,stat_x,stat_z,nb_stat_mod,PolXX,PolZZ);
-
-	if (nargout == 2)						% Calculate the ages. Note that this will be RELATIVE
-		age_line = distfic / txouv * 2;		% to the age of ofirst point in ptofile (r = 0)
+	if (nargout == 2)						% Calculate the ages. 
+		age_line = distAlongProfile / speed * 2;
 	end
 
 % ---------------------------------------------------------------------
-function anoma = calcmag(nb_struct,chtinc,chtdec,dir_spread,aimbloc,stat_x,stat_z,nb_stat_mod,PolXX,PolZZ)
+function anoma = calcmag(nb_struct,fInc,fDec,dir_spread,blockMag,stat_x,stat_z,nPts,PolXX,PolZZ)
 % Calculation of the magnetic anomaly created by magnetized bodies
 
 	D2R = pi / 180;
-	aiminc(1:nb_struct,1) = chtinc;
-	aimdir(1:nb_struct,1) = chtdec;
-    dir_anomag = dir_spread+90;
+	magInc(1:nb_struct,1) = fInc;
+	magDec(1:nb_struct,1) = fDec;
+    dir_anomag = dir_spread + 90;
 
-	c1 = sin(chtinc*D2R);    
-	c2 = cos(chtinc*D2R)*cos(dir_spread*D2R - chtdec*D2R);
+	c1 = sin(fInc*D2R);    
+	c2 = cos(fInc*D2R) * cos(dir_spread*D2R - fDec*D2R);
 
-	d1 = sin(aiminc*D2R);
-	d2 = cos(aiminc*D2R).*cos((dir_anomag-90)*D2R - aimdir*D2R);
-	d3 = 200.*aimbloc;
+	d1 = sin(magInc*D2R);
+	d2 = cos(magInc*D2R).*cos((dir_anomag-90)*D2R - magDec*D2R);
+	d3 = 200 * blockMag;
 
 	anomax = 0;		anomaz = 0;
 
 	for ik = 1:nb_struct
 		nbpoints = length(PolXX{1,ik});
-		[amx,amz] = fcalcmagpt(nbpoints,stat_x,stat_z,nb_stat_mod,PolXX{1,ik},PolZZ{1,ik},d1(ik),d2(ik),d3(ik));
+		[amx,amz] = fcalcmagpt(nbpoints,stat_x,stat_z,nPts,PolXX{1,ik},PolZZ{1,ik},d1(ik),d2(ik),d3(ik));
 		anomax = anomax + amx;
 		anomaz = anomaz + amz;
 	end
@@ -1932,10 +1903,10 @@ function [amxx,amzz] = fcalcmagpt(nbps,stax,staz,nbsta,polxxm,polzzm,dd1,dd2,dd3
 	th1 = atan2(z1,x1);
 	th2 = atan2(z2,x2);
 	t12 = th1-th2;
-	z21=z2-z1;
-	x21=x2-x1;
-	xz12=x1.*z2-x2.*z1;
-	r21s=x21.*x21+z21.*z21;
+	z21 = z2-z1;
+	x21 = x2-x1;
+	xz12= x1.*z2-x2.*z1;
+	r21s= x21.*x21+z21.*z21;
 	r1s = x1.^2+z1.^2;
 	r2s = x2.^2+z2.^2;
 	rln = 0.5*log(r2s./r1s);
