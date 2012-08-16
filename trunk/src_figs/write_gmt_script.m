@@ -1061,10 +1061,10 @@ function out_msg = build_write_script(handles, opt_J, dest_dir, prefix, paper, X
 		frmPen = '--FRAME_PEN=1.25p';
 	end
 
-% ------------ Some (maybe) needed vars ------------------------------------------------------------------
+% ------------ Some (maybe) needed vars -----------------------------------------------
 	haveSymbol = 0;     used_grd = 0;  out_msg = 0;
 	need_path = 0;      used_countries = 0;
-	script = cell(22,1);
+	script = cell(25,1);
 	if (~isempty(handMir.grdname))
 		[PATH,FNAME,EXT] = fileparts(handMir.grdname);
 		just_grd_name = [FNAME EXT];
@@ -1074,6 +1074,15 @@ function out_msg = build_write_script(handles, opt_J, dest_dir, prefix, paper, X
 		clear PATH FNAME EXT;
 	end
 	grd_name = handMir.grdname;
+
+% ------------ Get size of Rectangle to use as info on the image size ------------------
+	units = 'cm';
+	if (get(handles.radio_in,'Val')),		units = 'inch';
+	elseif (get(handles.radio_pt,'Val')),	units = 'poits';
+	end
+	imgDimsInfo = sprintf(' --- The image area has exactly %s x %s %s (unless you change -R or -J) ---', ...
+		get(handles.edit_mapWidth,'Str'), get(handles.edit_mapHeight,'Str'), units);
+% --------------------------------------------------------------------------------------
 
 % --------------------- Build -B string ------------------------------------------------
 	Bx = get(handMir.axes1,'XTick');      d_Bx = diff(Bx);
@@ -1097,6 +1106,7 @@ if (~strcmp(sc,'bat'))							% Write a csh script
 	script{l} = ['set proj = ' opt_J];			l=l+1;      % Map scale
 	script{l} = [comm ' ---- Frame annotations. You may change it if you know how to'];    l=l+1;
 	script{l} = ['set frm = ' opt_B];			l=l+1;      saveBind = l-1;
+	script{l} = [comm imgDimsInfo];				l=l+1;
 	script{l} = [comm ' ---- Map limits. You may change it if you know how to'];    l=l+1;
 	script{l} = ['set lim = ' opt_R];			l=l+1;
 	script{l} = comm;							l=l+1;
@@ -1127,14 +1137,15 @@ else											% Write a dos batch
 		script{l} = ['set path=' handles.GMT5bin_path ';%path%'];    l=l+1;
 		script{l} = comm;						l=l+1;
 	end
-	script{l} = [comm ' ---- Projection. You may change it if you know how to'];    l=l+1;
+	script{l} = [comm ' ---- Projection. You may change it if you know how to'];		l=l+1;
 	script{l} = ['set proj=' opt_J];			l=l+1;      % Map scale
-	script{l} = [comm ' ---- Frame annotations. You may change it if you know how to'];    l=l+1;
+	script{l} = [comm ' ---- Frame annotations. You may change it if you know how to'];	l=l+1;
 	script{l} = ['set frm=' opt_B];				l=l+1;      saveBind = l-1;
-	script{l} = [comm ' ---- Map limits. You may change it if you know how to'];    l=l+1;
+	script{l} = [comm imgDimsInfo];				l=l+1;
+	script{l} = [comm ' ---- Map limits. You may change it if you know how to'];		l=l+1;
 	script{l} = ['set lim=' opt_R];				l=l+1;
 	script{l} = comm;							l=l+1;
-	script{l} = [comm ' ---- Longitude annotation style. The +ddd:mm:ss form => [0;360] range '];    l=l+1;
+	script{l} = [comm ' ---- Longitude annotation style. The +ddd:mm:ss form => [0;360] range '];	l=l+1;
 	script{l} = ['set deg_form=' opt_deg];		l=l+1;
 	script{l} = '';								l=l+1;
 	script{l} = [comm ' ---- Annotation font size in points'];    l=l+1;
