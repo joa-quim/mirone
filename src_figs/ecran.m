@@ -1816,8 +1816,8 @@ function [anoma, age_line] = magmodel(handles, dxyp, fDec, fInc, speed, dir_spre
     PolZZ = cell(1,twiceNBlocks);
 
 	for i = 1:twiceNBlocks
-		PolXX(1,i) = {[polygon_x(:,i); polygon_x(1,i)]};
-		PolZZ(1,i) = {[polygon_z(:,i); polygon_z(1,i)]};
+		PolXX{i} = [polygon_x(:,i); polygon_x(1,i)];
+		PolZZ{i} = [polygon_z(:,i); polygon_z(1,i)];
 	end
 
 	for i = maxlignm12+1:minlignm21-1
@@ -1829,15 +1829,15 @@ function [anoma, age_line] = magmodel(handles, dxyp, fDec, fInc, speed, dir_spre
 			tempoz2 = flipud(tempoz1+thickness);
 			tempox3 = [polygon_x(1,i);tempox1;polygon_x(2,i);polygon_x(3,i);tempox2;polygon_x(4,i)];
 			tempoz3 = [polygon_z(1,i);tempoz1;polygon_z(2,i);polygon_z(3,i);tempoz2;polygon_z(4,i)];
-			PolXX(1,i)={[tempox3; polygon_x(1,i)]};
-			PolZZ(1,i)={[tempoz3; polygon_z(1,i)]};
+			PolXX{i}= [tempox3; polygon_x(1,i)];
+			PolZZ{i}= [tempoz3; polygon_z(1,i)];
 		end
 	end
 
 	% Re-positionning of the magnetized bodies if the contamination coefficient is different from 1
 	if (contam ~= 1)
 		for (i = 1:twiceNBlocks)
-			PolXX{1,i} = PolXX{1,i} * contam;
+			PolXX{i} = PolXX{i} * contam;
 		end
 		distAlongProfile = distAlongProfile * contam;
 	end
@@ -1867,9 +1867,9 @@ function anoma = calcmag(nb_struct,fInc,fDec,dir_spread,blockMag,stat_x,stat_z,n
 
 	anomax = 0;		anomaz = 0;
 
-	for ik = 1:nb_struct
-		nbpoints = length(PolXX{1,ik});
-		[amx,amz] = fcalcmagpt(nbpoints,stat_x,stat_z,nPts,PolXX{1,ik},PolZZ{1,ik},d1(ik),d2(ik),d3(ik));
+	for (k = 1:nb_struct)
+		n = numel(PolXX{k});
+		[amx,amz] = fcalcmagpt(n,stat_x,stat_z,nPts,PolXX{k},PolZZ{k},d1(k),d2(k),d3(k));
 		anomax = anomax + amx;
 		anomaz = anomaz + amz;
 	end
