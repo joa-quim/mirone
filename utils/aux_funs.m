@@ -267,19 +267,19 @@ function out = findFileType(fname)
 		try,	write_esri_hdr(fname,'SRTM30');	end
 		out = 'dono';				% aka GDAL
 	else
-		% OK, here we'll send ASCII files to load_xyz and binary to GDAL ... and see what happens.
+		% OK, here we'll send ASCII files to load_xyz (after one more test) and binary to GDAL ... and see what happens.
 		bin = guess_file(fname);
 		if (isempty(bin))			% Should be a "ERROR READING FILE"
 			out = 'boom';			% Unknow from caller, but it will trigger the error message
-		elseif (isa(bin,'struct'))
+		elseif (isa(bin,'struct') || bin == 0)
 			try						% Do a silent test trying GDAL first and if fails send to load_xyz
 				a.att = gdalread(fname,'-M');
 				out = 'dono';		% It will go try luck with GDAL
 			catch
-				out = 'dat';		% Binary, send it to try luck with load_xyz (SHOULD WE TRY OGRREAD FIRST?)
+				% Here in either case (BIN or ASCII) we send it to try luck with load_xyz
+				% but in future I should try what OGRREAD has to say on this matter.
+				out = 'dat';
 			end
-		elseif (bin == 0)
-			out = 'dat';			% ASCII, send it to try luck with load_xyz
 		else
 			out = 'dono';			% It will go try luck with GDAL
 		end
