@@ -525,7 +525,7 @@ function clean_GRDappdata(handles)
 % --------------------------------------------------------------------------------
 function [track, names, names_ui, vars, x_min, x_max, y_min, y_max] = get_mgg(names, PathName, varargin)
 % Get tracks from either the old style .gmt format or new MGD77+ netCDF format
-	
+
 	what2plot = seek_OPTcontrol('MIR_MGG');		% See if OPTcontrol has a request other than the default (MAG)
 	n_column = 1;
 	[t,r] = strtok(names{1});
@@ -621,12 +621,18 @@ function [track, names, names_ui, vars, x_min, x_max, y_min, y_max] = get_mgg(na
 	end
 
 	for (k = 1:length(track))
-		ind = false(numel(track(k).longitude),1);
-		if (what2plot.mag),		ind = (~isnan(track(k).magnetics) | ind);	end
-		if (what2plot.grav),	ind = (~isnan(track(k).gravity) | ind);		end
-		if (what2plot.topo),	ind = (~isnan(track(k).topography) | ind);	end
+		ind = false(1, numel(track(k).longitude));
+		if (what2plot.mag && ~isempty(track(k).magnetics)),		ind = (~isnan(track(k).magnetics) | ind);	end
+		if (what2plot.grav && ~isempty(track(k).gravity)),		ind = (~isnan(track(k).gravity) | ind);		end
+		if (what2plot.topo && ~isempty(track(k).topography)),	ind = (~isnan(track(k).topography) | ind);	end
 
-		if (~any(ind))						% When there is any data to plot
+		extra_str = '';
+		if (~any(ind))						% When there isn't any data to plot
+			if ((~what2plot.mag && ~isempty(track(k).magnetics)) || ...		% See if it's empty due to a forgotten selection
+				(~what2plot.gravity && ~isempty(track(k).gravity)) || ...
+				(~what2plot.topography && ~isempty(track(k).topography)) )
+				extra_str = sprintf('\n\nBut actually the problem is that OPTcontrol selects an empty field of this file');
+			end
 			track(k).longitude = NaN;		track(k).latitude = NaN;
 		else
 			ind = ~ind;
@@ -644,7 +650,8 @@ function [track, names, names_ui, vars, x_min, x_max, y_min, y_max] = get_mgg(na
 		x_min = min(x_min);		x_max = max(x_max);
 		y_min = min(y_min);		y_max = max(y_max);
 		if (isnan(x_min))
-			warndlg('This file had all requested records set to NaN. An error further down the road will likely occur','Warning')
+			warndlg(['This file had all requested records set to NaN. An error further down the road will likely occur' ...
+				extra_str],'Warning')
 		end
 	end
 
