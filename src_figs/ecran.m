@@ -741,18 +741,12 @@ function FileOpen_CB(hObject, handles)
 			return
 		end
 
-		% If msgbox exist we have to move it from behind the main window. So get it's handle
-		hMsgFig = gcf;
-		if (handles.figure1 ~= hMsgFig)
-			figure(hMsgFig);		% If error msgbox exists, bring it forward
-			% Here we have a stupid problem. If don't kill the message window before the
-			% select_cols is called this later wont work. FDS I have no more patiente for this.
-			pause(0.5)
-			try		delete(hMsgFig),		end
+		if (size(data,2) > 2)		% If file has more than 2 cols, call the col selection tool
+			out = select_cols(data,'xy',fname,1000);
+			if (isempty(out)),		return,		end
+		else
+			out = [1 2];
 		end
-
-		out = select_cols(data,'xy',fname,1000);
-		if (isempty(out)),		return,		end
 	end
 
 	if (numel(out) == 4)			% Not yet in use
