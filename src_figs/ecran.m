@@ -1929,6 +1929,7 @@ function figure1_KeyPressFcn(hObject, eventdata)
 
 % -----------------------------------------------------------------------------
 function figure1_CloseRequestFcn(hObject, eventdata)
+	set(hObject, 'vis', 'off'),		pause(0.05)		% To avoid ugly noticeable resizing before death
 	handles = guidata(hObject);
 	if (isempty(handles)),		delete(gcf),	return,		end
 	if (~isempty(handles.polyFig))
