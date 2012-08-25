@@ -15,12 +15,14 @@ function [numeric_data,date,headerlines,str_col,out] = text_read(varargin)
 % HEADERLINES   Number of header lines in file
 % STR_COL       If a column in file is of string type, return that column number
 %               In case nargout == 4, it contains the header text lines
-% OUT           A structure with NUMERIC_DATA, Header text and ... I think its idiot and gives nothing new
+% OUT           A structure with NUMERIC_DATA, Header text and Text Data (column text???)
 %
 %	NOTE: When multi-segments it is better to not take a risk and ask only one or two outputs
 %
 % This function uses some sub-functions of IMPORTDATA
 % Coffeeright Joaquim Luis
+
+% $Id$
 
 	filename = varargin{1};     headerlines = 0;
 	requestedDelimiter = NaN;	requestedHeaderLines = NaN;		requestedMultiSeg = NaN;
@@ -52,7 +54,6 @@ function [numeric_data,date,headerlines,str_col,out] = text_read(varargin)
 	if fid == (-1)
 		errordlg(['Could not open file ', filename ,'.'],'Error');		return
 	end
-	%string = char(fread(fid)');
 	string = fread(fid,'*char').';
 	fclose(fid);
 
@@ -112,7 +113,6 @@ function [numeric_data,date,headerlines,str_col,out] = text_read(varargin)
 	if (~isnan(requestedHeaderLines))   % Force to beleave in the requested number of HeaderLines
 		out.headers = out.textdata(1:headerlines);          % Return also the headers
 		out.textdata = out.textdata(requestedHeaderLines+1:end,:);
-		headerlines = 0;        % Jump the guessed number of headers
 	end
 
 	% If a column in file is of string type assume that it's a date string and convert it to dec years
@@ -131,17 +131,6 @@ function [numeric_data,date,headerlines,str_col,out] = text_read(varargin)
 		med = median(numDelims);
 		tmp = find(numDelims ~= med);
 		headerlines = length(tmp);
-	end
-
-	if (~isnan(requestedHeaderLines) && headerlines > 0)     % Very likely the # of requestedHeaderLines was wrong
-		warndlg('I have strong reasons to beleave that the number of header lines provided was false. Expect errors.','Wrning')
-	end
-
-	if (headerlines)
-		out.headers = out.textdata(1:headerlines);          % Return also the headers
-		out.textdata = out.textdata(headerlines+1:end,:);
-	else
-		out.headers = [];
 	end
 
 	[numeric_data,date,str_col] = col_str2dec(out,delimiter);
