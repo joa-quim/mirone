@@ -137,6 +137,7 @@ function varargout = ecran(varargin)
 	handles.hPatchMagBar = [];	% Handles of the Mag Bars
 	handles.hTxtChrons = [];	% Handles of isochrons names (when used)
 	handles.no_file = false;	% Will need to be updated latter to true case (used in write_gmt_script)
+	handles.hMarkerToRef = [];	% To hold the handles of an eventual markers 'to reference type line'
 
 	% Choose the default ploting mode
 	if isempty(varargin{1})          % When the file will be read latter
@@ -193,6 +194,8 @@ function varargout = ecran(varargin)
 	set(handles.axes1, 'UIContextMenu', handles.cmenu_axes);
   	set(handles.axes1, 'ButtonDownFcn', {@hide_uimenu,handles.figure1});
 	handles.uimenuGrid = uimenu(handles.cmenu_axes, 'Label', 'Grid on/off', 'Call', 'grid');
+
+	if (~isempty(handles.hLine)),	handles.n_plot = 1;		end		% Always true in cases where varargin{1} ~= []
 
 	guidata(hObject, handles);
 	set(hObject,'Vis','on');
@@ -453,8 +456,111 @@ function do_bandFilter(obj,event, h, xFact)
 	fft_stuff(in)
 % --------------------------------------------------------------------------------------------------
 
+% ------------------------------------------------------------------------------------------
+function pick_onLines2reference(obj, evt)
+% Entry function for setting GCP type markers on the two lines, of which one will later be
+% pice-wise 'referenced' to the other.
+
+	handles = guidata(obj);
+	hLines = findobj(handles.axes1,'type','line');		% Fish handles of the two working curves
+	if (isempty(handles.hMarkerToRef))
+		handles.hMarkerToRef(1) = line('Parent',handles.axes1,'XData',[], 'YData',[], 'Marker','o', 'MarkerSize',7,'LineStyle','none');
+		handles.hMarkerToRef(2) = line('Parent',handles.axes1,'XData',[], 'YData',[], 'Marker','o', 'MarkerSize',7,'LineStyle','none');
+		handles.lastMarkedLine = 0;			% Flag to store info on which line was inserted the last marker
+		handles.toRefCount = zeros(2,1);
+		guidata(handles.figure1,handles)
+	else
+		% Here 'hLines' contains also the Marker handles, which we don't want
+		ind1 = (hLines == handles.hMarkerToRef(1));
+		ind2 = (hLines == handles.hMarkerToRef(2));
+		hLines(ind1 | ind2) = [];			% There should be only 2 now
+	end
+	if (numel(hLines) ~= 2)
+		errordlg(sprintf('Error in function pick_onLines2reference. Number of lines = %d\n', numel(nLines)),'ERROR')
+	end
+
+	if (strcmp(get(obj,'State'),'on'))
+		handles.state = uisuspend_j(handles.figure1);			% Remember initial figure state
+		guidata(handles.figure1,handles)
+		set(handles.figure1,'WindowButtonDownFcn',{@add_refMarkers, obj, hLines}, 'pointer','crosshair')
+	else
+	    uirestore_j(handles.state, 'nochildren');				% Restore the figure's initial state
+	end
+
+function add_refMarkers(obj, evt, hToggle, hLines)
+% Add makers to the pair of lines, 'Master & Slave' -- in the GCP terminology
+
+	handles = guidata(obj);
+	button = get(handles.figure1, 'SelectionType');
+	if (strcmp(button,'alt')) || (strcmp(button,'extend')) || (strcmp(button,'open'))
+		set(hToggle, 'State', 'off')
+	    uirestore_j(handles.state, 'nochildren');				% Restore the figure's initial state
+		% We still need to find which of the line Markers is attached to 'hLineToRef'
+		% We'll do it by relying on the minimum distance along Y of first pt of both markers to that line
+		yRef = get(handles.hLineToRef,'YData');
+		y1 = get(handles.hMarkerToRef(1),'YData');		y2 = get(handles.hMarkerToRef(2),'YData');
+		min1 = min(abs(yRef - y1(1)));					min2 = min(abs(yRef - y2(1)));
+		[lix, ind] = min([min1 min2]);		% Pick the one with smallest minimum
+		cmenuHand = uicontextmenu('Parent',handles.figure1);
+		set(handles.hMarkerToRef(ind),'UIContextMenu', cmenuHand);
+		uimenu(cmenuHand, 'Label', 'Reference me', 'Call', {@do_reference, ind});
+		return
+	end
+
+	% Get the two candidates clicked pts
+	[pt_x(1), pt_y(1), x_off(1), minDist(1)] = get_pointOnLine(handles.axes1, hLines(1));
+	[pt_x(2), pt_y(2), x_off(2), minDist(2)] = get_pointOnLine(handles.axes1, hLines(2));
+
+	[lix, ind] = min(minDist);		% Pick the one with shortest minDist
+
+	x = get(handles.hMarkerToRef(ind),'XData');		y = get(handles.hMarkerToRef(ind),'YData');
+	ud = get(handles.hMarkerToRef(ind),'UserData');
+	dp = abs(diff(handles.toRefCount));
+	if ((dp == 0 || dp < 2) && (ind ~= handles.lastMarkedLine) )	% Add one marker
+		x = [x pt_x(ind)];		y = [y pt_y(ind)];
+		ud = [ud x_off(ind)];
+		handles.toRefCount(ind) = handles.toRefCount(ind) + 1;
+	else							% Replace last marker 
+		n = numel(x);
+		if (n == 0),		handles.toRefCount(ind) = handles.toRefCount(ind) + 1;		end
+		n = max(n, 1);				% So the logic applies also to first pt, when x = []
+		x(n) = pt_x(ind);	y(n) = pt_y(ind);	ud(n) = x_off(ind);
+	end
+	handles.lastMarkedLine = ind;	% Save this info for usage in next clicking-round
+
+	cor = [200 0 0; 0 200 0] / 255;		% Colors of symbols on each line
+	set(handles.hMarkerToRef(ind),'XData',x, 'YData',y, 'MarkerFaceColor', cor(ind,:), 'UserData', ud)
+	
+	guidata(handles.figure1,handles)
+
+function do_reference(obj, evt, ind)
+% Do a piecewise stretching of the line-to-reference (handles.hLineToRef)
+% IND is the index (1 or 2) of Markers line (hMarkerToRef) attached to the to-be-referenced line
+
+	handles = guidata(obj);
+	x = get(handles.hLineToRef,'XData');		y = get(handles.hLineToRef,'YData');	
+	offset_2ref  = get(handles.hMarkerToRef(ind),'UserData');
+
+	if (ind == 1)
+		xMarker_ref = get(handles.hMarkerToRef(2),'XData');
+		offset_ref  = get(handles.hMarkerToRef(2),'UserData');
+	else
+		xMarker_ref = get(handles.hMarkerToRef(1),'XData');
+		offset_ref = get(handles.hMarkerToRef(1),'UserData');
+	end
+	
+	for (k = 1:numel(xMarker_ref)-1)
+		dx = xMarker_ref(k+1) - x(offset_2ref(k+1));	% Distance between the 2 end points of this segment on ref & to-ref Markers
+		f = (xMarker_ref(k+1) - xMarker_ref(k)) / (x(offset_2ref(k+1)) - x(offset_2ref(k)));	% Piecewise factor
+		x(offset_2ref(k):offset_2ref(k+1)) = (x(offset_2ref(k):offset_2ref(k+1)) - x(offset_2ref(k))) * f + xMarker_ref(k);
+		x(offset_2ref(k+1)+1:end) = x(offset_2ref(k+1)+1:end) + dx;		% Shift all remaining points of DX distance
+	end
+
+	ecran('reuse',x,y,[],'Referenced')	
 % --------------------------------------------------------------------------------------------------
-function pick_CB(obj, eventdata)
+
+% --------------------------------------------------------------------------------------------------
+function pick_CB(obj, evt)
 	handles = guidata(obj);
 	o = findobj('Type','uitoggletool', 'Tag', 'DynSlope');
 	if (strcmp(get(o,'State'),'on'))		% If DynSlope is 'on' turn it off
@@ -466,40 +572,29 @@ function pick_CB(obj, eventdata)
 		set(handles.figure1,'WindowButtonDownFcn','','pointer','arrow')	
 	end
 
-% --------------------------------------------------------------------
+% --------------------------------------------------------------------------------------------------
 function add_MarkColor(obj, evt, h)
 % Add a red Marker over the closest (well, near closest) clicked point.
+% H is the handler to the uitogglebutton
 
-	handles = guidata(obj);			% get handles
+	handles = guidata(obj);				% get handles
 	button = get(handles.figure1, 'SelectionType');
 	if (~strcmp(button,'normal'))		% If not left-click, stop.
 		set(h, 'State', 'off')
 		set(handles.figure1,'WindowButtonDownFcn','','pointer','arrow')
 		return
 	end
+	
+  	[pt_x, pt_y, x_off] = get_pointOnLine(handles.axes1, handeles.hLine, handles.data(:,3));
 
-	pt = get(handles.axes1, 'CurrentPoint');
-    hM = findobj(handles.figure1,'Type','Line','tag','marker');
-	x = get(handles.hLine,'XData')';		y = handles.data(:,3);
-
-	x_lim = get(handles.axes1,'XLim');		y_lim = get(handles.axes1,'YLim');
-	dx = diff(x_lim) / 20;					% Search only betweem +/- 1/10 of x_lim
-	id = (x < (pt(1,1)-dx) | x > (pt(1,1)+dx));
-	x(id) = [];				y(id) = [];		% Clear outside-2*dx points to speed up the search code
-	x_off = find(~id);		x_off = x_off(1);	% Get the index of the first non killed x element
-	XScale = diff(x_lim);	YScale = diff(y_lim);
-
-	r = sqrt(((pt(1,1)-x) ./ XScale).^2 + ((pt(1,2)-y) ./ YScale).^2);
-	[temp,i] = min(r);
-	pt_x = x(i);				pt_y = y(i);
-
+	hM = findobj(handles.figure1,'Type','Line','tag','marker');
 	xr = get(hM,'XData');		yr = get(hM,'YData');
 	id = find(xr == pt_x);
 	if (isempty(id))            % New Marker
 		if (~isempty(handles.handMir))
 			% Get the X,Y coordinates to plot this point in the Mirone figure
 			% We need to add x_off since "i" counts only inside the +/- 1/10 of x_lim centered on current point
-			mir_pt_x = handles.data(i+x_off-1,1);	mir_pt_y = handles.data(i+x_off-1,2);
+			mir_pt_x = handles.data(x_off,1);		mir_pt_y = handles.data(x_off,2);
 			h = line(mir_pt_x, mir_pt_y,'Parent',handles.handMir.axes1,'Marker','o','MarkerFaceColor',get(handles.hLine,'Color'), ...
 				'MarkerEdgeColor','k', 'MarkerSize',6,'LineStyle','none', 'Tag','LinkedSymb');
 			draw_funs(h,'DrawSymbol')		% Set uicontexts
@@ -527,6 +622,31 @@ function add_MarkColor(obj, evt, h)
 			set(handles.FileSaveRedMark,'Vis','off')
 		end
 	end
+
+% --------------------------------------------------------------------------------------------------
+function [pt_x, pt_y, x_off, minDist] = get_pointOnLine(hAxes, hLine, y)
+% Find the coordinates of the closest point on line to the clicked pt
+% Y ... don't remember anymore why originaly it was fetch from handles.data(:,3)
+%		Anyway, if not transmitted, we fish it from the line handle.
+%
+% X_OFF		holds the index of that point on the line array
+% MINDIST	The minimum distance between the clickage and the picked point on line
+
+	if (nargin == 2),		y = get(hLine,'YData')';	end
+	x = get(hLine,'XData')';
+	pt = get(hAxes, 'CurrentPoint');
+
+	x_lim = get(hAxes,'XLim');			y_lim = get(hAxes,'YLim');
+	dx = diff(x_lim) / 20;					% Search only betweem +/- 1/10 of x_lim
+	id = (x < (pt(1,1)-dx) | x > (pt(1,1)+dx));
+	x(id) = [];				y(id) = [];		% Clear outside-2*dx points to speed up the search code
+	XScale = diff(x_lim);	YScale = diff(y_lim);
+
+	r = sqrt(((pt(1,1)-x) ./ XScale).^2 + ((pt(1,2)-y) ./ YScale).^2);
+	[minDist, i] = min(r);
+	pt_x = x(i);				pt_y = y(i);
+	x_off = find(~id);
+	x_off = x_off(1) + i - 1;	% Get the index of the first non killed x element
 
 % --------------------------------------------------------------------------------------------------
 function isocs_CB(obj, evt)
@@ -688,7 +808,7 @@ function FileOpen_CB(hObject, handles)
 	if isequal(FileName,0),		return,		end	
 	fname = [PathName FileName];
 
-	isDateNum = false;
+	isDateNum = false;		got_toReference = false;
 	fid = fopen(fname);
 	H1 = fgetl(fid);
 	if (~isempty(H1) && H1(1) == '#')
@@ -735,11 +855,47 @@ function FileOpen_CB(hObject, handles)
 	end
 
 	if (~isDateNum)				% Means data was not yet read
-		data = text_read(fname,NaN);
+		[data, lix, lix, lix, out] = text_read(fname);
 		if (isempty(data) || size(data,2) == 1)
 			errordlg('File doesn''t have any recognized nymeric data (Quiting) or one column only.','Error');
 			return
 		end
+
+		% Check if it exists a comment line of the type # TO_REFERENCE OFFSET=XX SCALE=XX
+		% If yes, scale X coords as (X - X(1)) * scale + offset
+		% Use this, for example, when importing data where X is distance (e.g. cm) and want to convert to time
+		if (~isempty(out.headers))
+			got_it_at_row = 0;
+			for (k = 1:numel(out.headers))
+				ind = strfind(out.headers{k}, 'TO_REFERENCE');
+				if (~isempty(ind))
+					got_it_at_row = k;
+					break
+				end
+			end
+			if (got_it_at_row)				% YES, we got one of those files
+				[t, r] = strtok(out.headers{got_it_at_row}(ind(1)+13:end));
+				ind1 = strfind(t,'SCALE=');		ind2 = strfind(r,'OFFSET=');
+				if (isempty(ind1) && isempty(ind2))		% Allow also the OFFSET=XX SCALE=XX combination
+					ind1 = strfind(r,'SCALE=');		ind2 = strfind(t,'OFFSET=');
+					tmp  = t;	t = r;		r = tmp;	% Bubble sort the token/remainder
+				end
+				
+				scale = NaN;	offset = NaN;
+				if (~isempty(ind1) && ~isempty(ind2))
+					scale  = sscanf(t(ind1(1)+6), '%f');
+					offset = sscanf(r(ind2(1)+7), '%f');
+				end
+				if ( any(isnan([scale offset])) )
+					warndlg('Badly formated line to instruct the scaling/offset of imported file.','WarnError')
+				else
+					% SCALE X distance from first to last point and add OFFSET
+					data(:,1) = (data(:,1) - data(1,1)) * scale + offset;
+					got_toReference = true;		% Use later to signal that this is a particular type of line
+				end
+			end
+		end
+		% -----------------------------------------------------------------------------------------------------
 
 		if (size(data,2) > 2)		% If file has more than 2 cols, call the col selection tool
 			out = select_cols(data,'xy',fname,1000);
@@ -766,6 +922,16 @@ function FileOpen_CB(hObject, handles)
 		cor = c_order(nc,:);
 		set(handles.hLine,'Color',cor)
 	end
+
+	% ...
+	if (got_toReference)				% Make a copy of the toRef line handle
+		handles.hLineToRef = handles.hLine;
+	end
+	if ( ~isempty(handles.hLineToRef) && (handles.n_plot > 1) )
+		h = findobj(handles.figure1, 'type', 'uitoggletool', 'Tag', 'DynSlope');
+		set(h, 'Click',@pick_onLines2reference, 'Tooltip','Pick points alternately on the two lines to later reference')
+	end
+
 	handles.data = [data(:,out(1)) data(:,out(2))];     % NOTE, if handles.n_plot > 1 only last data is saved
 	guidata(hObject, handles);
 	if (isDateNum)
