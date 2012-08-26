@@ -802,6 +802,10 @@ function FileOpen_CB(hObject, handles)
 %
 % The special case # DATENUM YYYY.MM is also handled (for data output from Aquamoto)
 % but in this case the file must have only 2 columns - (time, data)
+%
+% Another special case is provided when a comment line is # TO_REFERENCE OFFSET=XX SCALE=XX
+% This will scale X coords as (X - X(1)) * scale + offset and also activate an option to
+% register this line with respect to a reference line.
 
 	str1 = {'*.dat;*.DAT;', 'Data files (*.dat,*.DAT)';'*.*', 'All Files (*.*)'};
 	[FileName, PathName, handles] = put_or_get_file(handles,str1,'Select input data','get');
