@@ -543,10 +543,8 @@ function do_reference(obj, evt, ind)
 
 	if (ind == 1)
 		xMarker_ref = get(handles.hMarkerToRef(2),'XData');
-		offset_ref  = get(handles.hMarkerToRef(2),'UserData');
 	else
 		xMarker_ref = get(handles.hMarkerToRef(1),'XData');
-		offset_ref = get(handles.hMarkerToRef(1),'UserData');
 	end
 	
 	for (k = 1:numel(xMarker_ref)-1)
