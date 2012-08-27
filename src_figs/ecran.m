@@ -551,7 +551,12 @@ function do_reference(obj, evt, ind)
 		dx = xMarker_ref(k+1) - x(offset_2ref(k+1));	% Distance between the 2 end points of this segment on ref & to-ref Markers
 		f = (xMarker_ref(k+1) - xMarker_ref(k)) / (x(offset_2ref(k+1)) - x(offset_2ref(k)));	% Piecewise factor
 		x(offset_2ref(k):offset_2ref(k+1)) = (x(offset_2ref(k):offset_2ref(k+1)) - x(offset_2ref(k))) * f + xMarker_ref(k);
-		x(offset_2ref(k+1)+1:end) = x(offset_2ref(k+1)+1:end) + dx;		% Shift all remaining points of DX distance
+		if (offset_2ref(k+1) < numel(x))
+			x(offset_2ref(k+1)+1:end) = x(offset_2ref(k+1)+1:end) + dx;		% Shift all remaining points of DX distance
+		end
+	end
+	if (offset_2ref(1) > 1)		% We have still to move the chunk x(1,offset_2ref(1)-1)
+		x(1,offset_2ref(1)-1) = x(1,offset_2ref(1)-1) + xMarker_ref(1) - x(offset_2ref(1));
 	end
 
 	ecran('reuse',x,y,[],'Referenced')	
