@@ -307,7 +307,7 @@ end
 function edit_err_file_CB(hObject, handles)
 	fname = get(hObject,'String');
 	if isempty(fname)
-		set([handles.radio_netcd handles.radio_VTK],'Val',0)
+		set([handles.radio_netcdf handles.radio_VTK],'Val',0)
 		handles.residGrdName = [];
 		guidata(handles.figure1, handles);
 		return
