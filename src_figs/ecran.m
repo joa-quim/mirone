@@ -476,7 +476,7 @@ function pick_onLines2reference(obj, evt)
 		hLines(ind1 | ind2) = [];			% There should be only 2 now
 	end
 	if (numel(hLines) ~= 2)
-		errordlg(sprintf('Error in function pick_onLines2reference. Number of lines = %d\n', numel(nLines)),'ERROR')
+		errordlg(sprintf('Error in function pick_onLines2reference. Number of lines = %d\n', numel(hLines)),'ERROR')
 	end
 
 	if (strcmp(get(obj,'State'),'on'))
@@ -588,7 +588,7 @@ function add_MarkColor(obj, evt, h)
 		return
 	end
 	
-  	[pt_x, pt_y, x_off] = get_pointOnLine(handles.axes1, handeles.hLine, handles.data(:,3));
+  	[pt_x, pt_y, x_off] = get_pointOnLine(handles.axes1, handles.hLine, handles.data(:,3));
 
 	hM = findobj(handles.figure1,'Type','Line','tag','marker');
 	xr = get(hM,'XData');		yr = get(hM,'YData');
