@@ -628,9 +628,9 @@ function [track, names, names_ui, vars, x_min, x_max, y_min, y_max] = get_mgg(na
 
 		extra_str = '';
 		if (~any(ind))						% When there isn't any data to plot
-			if ((~what2plot.mag && ~isempty(track(k).magnetics)) || ...		% See if it's empty due to a forgotten selection
-				(~what2plot.gravity && ~isempty(track(k).gravity)) || ...
-				(~what2plot.topography && ~isempty(track(k).topography)) )
+			if ((isfield(track(k),'magnetics') && ~what2plot.mag && ~isempty(track(k).magnetics)) || ...	% See if it's empty due to a forgotten selection
+				(isfield(track(k),'gravity') && ~what2plot.gravity && ~isempty(track(k).gravity)) || ...
+				(isfield(track(k),'topography') && ~what2plot.topography && ~isempty(track(k).topography)) )
 				extra_str = sprintf('\n\nBut actually the problem is that OPTcontrol selects an empty field of this file');
 			end
 			track(k).longitude = NaN;		track(k).latitude = NaN;
