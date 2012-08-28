@@ -621,7 +621,7 @@ function [track, names, names_ui, vars, x_min, x_max, y_min, y_max] = get_mgg(na
 	end
 
 	for (k = 1:length(track))
-		ind = false(1, numel(track(k).longitude));
+		ind = false( size((track(k).longitude)) );
 		if (what2plot.mag && ~isempty(track(k).magnetics)),		ind = (~isnan(track(k).magnetics) | ind);	end
 		if (what2plot.grav && ~isempty(track(k).gravity)),		ind = (~isnan(track(k).gravity) | ind);		end
 		if (what2plot.topo && ~isempty(track(k).topography)),	ind = (~isnan(track(k).topography) | ind);	end
