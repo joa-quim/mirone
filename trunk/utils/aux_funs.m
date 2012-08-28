@@ -626,14 +626,8 @@ function [track, names, names_ui, vars, x_min, x_max, y_min, y_max] = get_mgg(na
 		if (what2plot.grav && ~isempty(track(k).gravity)),		ind = (~isnan(track(k).gravity) | ind);		end
 		if (what2plot.topo && ~isempty(track(k).topography)),	ind = (~isnan(track(k).topography) | ind);	end
 
-		extra_str = '';
 		if (~any(ind))						% When there isn't any data to plot
-			if ((isfield(track(k),'magnetics') && ~what2plot.mag && ~isempty(track(k).magnetics)) || ...	% See if it's empty due to a forgotten selection
-				(isfield(track(k),'gravity') && ~what2plot.gravity && ~isempty(track(k).gravity)) || ...
-				(isfield(track(k),'topography') && ~what2plot.topography && ~isempty(track(k).topography)) )
-				extra_str = sprintf('\n\nBut actually the problem is that OPTcontrol selects an empty field of this file');
-			end
-			track(k).longitude = NaN;		track(k).latitude = NaN;
+			warndlg('The selected field is empty in this file, but I will plot the track anyway.','Warning')
 		else
 			ind = ~ind;
 			track(k).longitude(ind) = NaN;
@@ -650,8 +644,7 @@ function [track, names, names_ui, vars, x_min, x_max, y_min, y_max] = get_mgg(na
 		x_min = min(x_min);		x_max = max(x_max);
 		y_min = min(y_min);		y_max = max(y_max);
 		if (isnan(x_min))
-			warndlg(['This file had all requested records set to NaN. An error further down the road will likely occur' ...
-				extra_str],'Warning')
+			warndlg('This file had all requested records set to NaN. An error further down the road will likely occur','Warning')
 		end
 	end
 
