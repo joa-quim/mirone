@@ -323,7 +323,7 @@ function wbm_EditPolygon(obj,eventdata,h,lim,hFig)
 function wbu_EditPolygon(obj,evt,h,state)
 	s = getappdata(h,'polygon_data');
 	if (s.duplicate)
-		uistack(s.h_vert,'top')			% Need to do this because the black marker has no ButtonDown and was on top
+		uistack_j(s.h_vert,'top')			% Need to do this because the black marker has no ButtonDown and was on top
 	end
 	setappdata(h,'edited',true)
 	uirestore_j(state, 'nochildren');	% Restore the figure's initial state
@@ -385,7 +385,7 @@ function wbm_MovePolygon(obj,evt,h,lim)
 function wbu_MovePolygon(obj,evt,h,state)
 	s = getappdata(h,'polygon_data');
 	if (s.duplicate)
-		uistack(s.h_vert,'top')			% Need to do this because the black marker has no ButtonDown and was on top
+		uistack_j(s.h_vert,'top')			% Need to do this because the black marker has no ButtonDown and was on top
 	end
 	setappdata(h,'edited',true)
 	uirestore_j(state, 'nochildren');		% Restore the figure's initial state
