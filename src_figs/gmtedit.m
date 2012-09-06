@@ -627,6 +627,7 @@ function save_clickedCB(hObject, evt)
 		[x_m,id] = sort([x_m x_broken]);
 		y_m = [y_m y_broken];
 		y_m = y_m(id);						% Otherwise the y's would be out of order
+		saveMAG = true;
 		if (isempty(y_mn)),		y_mn = 0;	end	% It can't be empty on the test to update the .nc file
 	end
 
