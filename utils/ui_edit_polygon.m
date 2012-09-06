@@ -111,11 +111,7 @@ function ui_edit_polygon(varargin)
 			s = getappdata(varargin{i},'polygon_data');
 			if strcmpi(s.controls,'on')
 				set(s.h_fig,'selectiontype','open');
-				if (s.duplicate)			% Old style wich implies creating a line copy
-					polygonui(s.h_pol)
-				else
-					polygonui(s.h_pol)		% Faster routines that only switch markers on/off
-				end
+				polygonui(s.h_pol)
 			end
 
 		else
@@ -167,11 +163,7 @@ function ui_edit_polygon(varargin)
 
 			s.what_move = move_choice;
 
-			if (~s.duplicate)
-				set(s.h_pol,'buttondownfcn',@polygonui);		% Faster routines that only switch markers on/off
-			else
-				set(s.h_pol,'buttondownfcn',@polygonui);	% Old style wich implies creating a line copy
-			end
+			set(s.h_pol,'buttondownfcn',@polygonui);
 			setappdata(s.h_pol,'polygon_data',s)
 		end
 	end
@@ -215,7 +207,9 @@ function polygonui(varargin)
 			else
 				s.h_vert = line('xdata',get(s.h_pol,'XData'),'ydata',get(s.h_pol,'YData'), ...
 						'Parent',s.h_ax, 'Marker','s','color','r', 'MarkerFaceColor','none', ...
-						'linestyle','none','MarkerSize',5,'buttondownfcn',{@edit_polygon,s.h_pol});
+						'MarkerSize',5,'buttondownfcn',{@edit_polygon,s.h_pol});
+				% Now we also need to set the line style to be equal to original so that we can drag it
+				set(s.h_vert, 'linestyle',get(s.h_pol,'linestyle'), 'LineWidth',get(s.h_pol,'LineWidth'))
 			end
 			set(s.h_fig,'KeyPressFcn',{@KeyPress_local, s.h_pol})
 			setappdata(s.h_pol,'polygon_data',s)
@@ -330,7 +324,9 @@ function wbu_EditPolygon(obj,evt,h,state)
 
 %--------------------------------------------------
 function move_polygon(h)
-% Move the polygon whose handle is h
+% Move the polygon whose handle is h.
+% Conditionally called by edit_polygon()
+
 	s = getappdata(h,'polygon_data');
 	stype = get(s.h_fig,'selectiontype');
 
@@ -379,6 +375,17 @@ function wbm_MovePolygon(obj,evt,h,lim)
 			x = x + dx;
 		end
 		set(s.hCurrentMarker,'XData',x,'YData',y)
+	end
+
+	% When we have a duplicated line (originally a line with Markers), we have to move it too
+	if (s.duplicate)
+		if ( isempty(s.what_move) || s.what_move(1) == 'a' )
+			set(s.h_vert, 'XData',xx, 'YData',yy);
+		elseif ( ~isempty(s.what_move) && s.what_move(1) == 'y' )
+			set(s.h_vert, 'YData',yy);
+		else
+			set(s.h_vert, 'YData',xx);
+		end
 	end
 
 %--------------------------------------------------
