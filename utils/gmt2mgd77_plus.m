@@ -72,16 +72,19 @@ function gmt2mgd77_plus(fname, varargin)
 	att.survey_id = '00000000';
 	att.DC_file_number = '00000000';
 	if (~isempty(meta))		% get meta data
-		if (isfield(meta, 'country')),		att.country = meta.country;		end
-		if (isfield(meta, 'funding')),		att.funding = meta.funding;		end
-		if (isfield(meta, 'chief')),		att.chief = meta.chief;			end
-		if (isfield(meta, 'ship')),			att.ship = meta.ship;			end
-		if (isfield(meta, 'leg')),			att.leg = meta.leg;				end
-		if (isfield(meta, 'tow_dist')),		att.tow_dist = meta.tow_dist;	end
-		if (isfield(meta, 'survey_id')),	att.survey_id = meta.survey_id;	end
+		if (isfield(meta, 'country')),			att.country = meta.country;		end
+		if (isfield(meta, 'funding')),			att.funding = meta.funding;		end
+		if (isfield(meta, 'chief')),			att.chief = meta.chief;			end
+		if (isfield(meta, 'ship')),				att.ship = meta.ship;			end
+		if (isfield(meta, 'leg')),				att.leg = meta.leg;				end
+		if (isfield(meta, 'tow_dist')),			att.tow_dist = meta.tow_dist;	end
+		if (isfield(meta, 'survey_id')),		att.survey_id = meta.survey_id;	end
 		if (isfield(meta, 'port_departure')),	att.port_departure = meta.port_departure;	end
 		if (isfield(meta, 'port_arrival')),		att.port_arrival = meta.port_arrival;		end
 		if (isfield(meta, 'DC_file_number')),	att.DC_file_number = meta.DC_file_number;	end
+	end
+	if (~isa(meta.tow_dist,'char'))			% I made this mistake once already
+		att.tow_dist = sprintf('%d', att.tow_dist);
 	end
 	% ------------------------------------------------------------
 % 	att.country = 'Portugal';
@@ -131,8 +134,8 @@ function gmt2mgd77_plus(fname, varargin)
 	% ----------------------------------------------------------------
 
 	% -------------------------- Globals --------------------------	
-	max_lat = track.info(6);		min_lat = track.info(5);		% Lon / Lat min/max
-	max_lon = track.info(8);		min_lon = track.info(7);
+	min_lon = track.info(5);		max_lon = track.info(6);		% Lon / Lat min/max
+	min_lat = track.info(7);		max_lat = track.info(8);
 
 	nc_global = -1;
 	nc_funs('attput', fname, nc_global, 'Conventions', 'CF-1.0' );
