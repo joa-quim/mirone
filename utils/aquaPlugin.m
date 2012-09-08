@@ -55,9 +55,10 @@ function aquaPlugin(handles, auto)
 			'do_math' ...			% 8 - Perform some basic agebraic operations with the 3D planes
 			'conv2vtk' ...			% 9 - Convert a 3D netCDF file into a VTK format
 			'L2_periods' ...		% 10 - Calculate composites of L2 products over fixed periods
+			'corrcoef' ...			% 11 - Calculate correlation coefficients between 2 3D arrays
 			};
 
-	qual = casos{10};			% <== Active by MANUAL selection. May be override by next section
+	qual = casos{11};			% <== Active by MANUAL selection. May be override by next section
 
 	n_args = nargin;
 	if (get(handles.check_plugFun, 'Val'))	% This way, the stand alone version can work too
@@ -167,6 +168,13 @@ function aquaPlugin(handles, auto)
 				calc_L2_periods(handles, period, tipoStat, regMinMax, grd_out)
 			else
 				calc_L2_periods(handles, out{2:end})
+			end
+		case 'corrcoef'				% CASE 11
+			secondArray = 'C:\a1\pathfinder\lixoCloros.nc';
+			grd_out = 'C:\SVN\mironeWC\tmp\lixoR.nc';
+			sub_set = [0 0];		% [jump_start stop_before_end], make it [] or [0 0] to be ignored
+			if (internal_master),	calc_corrcoef(handles, secondArray, sub_set, false, grd_out)
+			else					calc_corrcoef(handles, out{2:end})
 			end
 	end
 
@@ -975,6 +983,124 @@ function out = doM_or_M_or_M(ZtoSpline, first_wanted_month, last_wanted_month, r
 		out = min( ZtoSpline(:,:,first_wanted_month:last_wanted_month),[],3);
 	else						% Maximum
 		out = max( ZtoSpline(:,:,first_wanted_month:last_wanted_month),[],3);
+	end
+
+% ----------------------------------------------------------------------
+function calc_corrcoef(handles, secondArray, sub_set, splina, grd_out)
+% Compute the correlation coefficien between loaded array and 'secondArray'
+% 
+%
+% NOTE: THIS IS A HIGHLY MEMORY CONSUMPTION ROUTINE AS ALL DATA IS LOADED IN MEMORY
+%
+% SECONDARRAY	name of the other netCDF file whose correlation with loaded array will be estimated.
+% 			Obviously this file must be of the same size as the series under analysis.
+%
+% OPTIONS:
+% SUB_SET -> A two columns row vec with number of the offset of years where analysis start and stop.
+%			For example [3 1] Starts analysis on forth year and stops on the before last year.
+%			[0 0] Means using the all dataset.
+%
+% SPLINA	Logical that if true instruct to spline interpolate the missing monthly values
+%			before computing the rate of change. 
+%			NOT NOT NOT IMPLEMENTED YET. No splining
+%
+% GRD_OUT	Name of the netCDF file where to store the result. If not provided, open Mirone Fig.
+
+	splina = false;
+	n_anos = handles.number_of_timesteps;
+	[z_idA, sA, rows, cols] = get_ncInfos(handles);
+	if (nargin < 5),	grd_out = [];	end
+
+	if (nargin >= 3 && (numel(sub_set) == 2))
+		jump_anos = sub_set(1);		stop_before_end_anos = sub_set(2);
+	else
+		jump_anos = 0;				stop_before_end_anos = 0;
+	end
+
+	n_anos = n_anos - (jump_anos + stop_before_end_anos);	% Number of layers to be used in this run
+
+	[sB, z_idB, msg] = checkFlags_compat(secondArray, handles.number_of_timesteps, rows, cols);
+	if (~isempty(msg))	errordlg(msg, 'Error'),		return,		end
+	
+	arrayB = alloc_mex(rows, cols, n_anos, 'single');
+	arrayA = alloc_mex(rows, cols, n_anos, 'single');
+	for (m = 1:n_anos)
+ 		arrayA(:,:,m) = nc_funs('varget', handles.fname, sA.Dataset(z_idA).Name, [(m - 1 + jump_anos) 0 0], [1 rows cols]);
+		arrayB(:,:,m) = nc_funs('varget', secondArray, sB.Dataset(z_idB).Name, [(m - 1 + jump_anos) 0 0], [1 rows cols]);
+	end
+
+	aguentabar(0,'title','Computing correlation coefficients','CreateCancelBtn')
+
+	Rgrid = alloc_mex(rows, cols, 'single', NaN);	% Works on R13 as well
+	x = (0:n_anos-1)';
+	if (splina),	yy = (0:n_anos-1)';		end
+	for (m = 1:rows)
+		for (n = 1:cols)
+			Var1 = double( squeeze(arrayA(m,n,:)) );
+			Var2 = double( squeeze(arrayB(m,n,:)) );
+			ind = isnan(Var1);
+			%Var1(ind) = [];
+			% Completely ad-hoc test (it also jumps land cells)
+			if ( (numel(Var1) < n_anos*0.66) || (numel(Var1) < n_anos*0.66) ),		continue,	end
+
+			if (splina)
+				if ( ~all(ind) )		% Otherwise we have them all and so nothing to interp
+					akimaspline(x(~ind), Var1, x, yy);
+					Var1 = yy;
+					if (ind(1) || ind(end))				% Cases when where we would have extrapolations
+						if (ind(1))
+							ki = 1;
+							while (ind(ki)),	ki = ki + 1;	end
+							Var1(1:ki) = NaN;				% Reset extraped values to NaN
+						end
+						if (ind(end))
+							kf = numel(ind);
+							while (ind(kf)),	kf = kf - 1;	end
+							Var1(kf:numel(ind)) = NaN;		% Reset extraped values to NaN
+						end
+						ind = isnan(Var1);					% Get new nan indices again
+						Var1(ind) = [];
+					else
+						ind = false(n_anos,1);				% Pretend no NaNs for the rest of the code below
+					end
+				end
+			end
+
+ 			%R = corrcoef([Var1 Var2]);	%
+			thisN = numel(Var1);
+			VarAB = double([Var1 Var2]);
+			R = (VarAB' * VarAB) / (thisN - 1);		% Covariance matrix
+			d = sqrt(diag(R));		% sqrt first to avoid under/overflow
+			R = R ./ (d*d');		% Correlation matrix
+
+			% To compute p, but tpvalue() looks expensive. Probably needs mex
+			%-% Tstat = +/-Inf and p = 0 if abs(r) == 1, NaN if r == NaN.
+			%Tstat = R(2) .* sqrt((thisN-2) ./ (1 - R(2).^2));
+			%p = zeros(2);
+			%p(2) = 2*tpvalue(-abs(Tstat), thisN-2);
+			%p = p + p' + diag(diag(R)); % Preserve NaNs on diag.
+
+			Rgrid(m,n) = single(R(2));
+		end
+		h = aguentabar(m/rows);
+		if (isnan(h)),	break,	end
+	end
+	if (isnan(h)),	return,		end
+
+	clear arrayA arrayB
+
+	zz = grdutils(Rgrid,'-L');  handles.head(5:6) = [zz(1) zz(2)];
+	tmp.head = handles.head;
+	if (isempty(grd_out))	% Show result in a Mirone figure
+		tmp.X = linspace(tmp.head(1),tmp.head(2),cols);
+		tmp.Y = linspace(tmp.head(3),tmp.head(4),rows);
+		tmp.name = 'Correlation';
+		mirone(Rgrid, tmp)
+	else					% Got output name from input arg
+		handles.was_int16 = false;
+		handles.computed_grid = true;
+		handles.geog = 1;
+		nc_io(grd_out, 'w', handles, Rgrid)
 	end
 
 % ----------------------------------------------------------------------
