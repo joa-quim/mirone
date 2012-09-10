@@ -26,6 +26,8 @@ function out = deal_opts(opt, opt2, varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
+% $Id$
+
 	if (nargin >= 2 && ischar(opt2))
 		out = feval(opt2, varargin{:});
 		return
@@ -74,13 +76,19 @@ function out = deal_opts(opt, opt2, varargin)
 						break
 					end
 
-				case 'mgg_coe'		% To ...
+				case 'mgg_coe'		% To plot Cross Over Errors of MGG data
 					if (strncmp(lines{k}(5:end),'COEs',4))
 						out = lines{k}(10:end);
 						coeVar = 'mag';			% Default
 						[t, r] = strtok(out);
 						if (~isempty(r))		coeVar = ddewhite(r);	end
-						uimenu(opt2, 'Label', 'Show COEs', 'Call', {@get_COEs, t, coeVar},'Sep','on');
+						item = uimenu(opt2, 'Label', 'Show Cross Over Errors', 'Sep','on');
+						uimenu(item, 'Label', 'All', 'Call', {@get_COEs, t, coeVar, 'all'});
+						uimenu(item, 'Label', 'External only', 'Call', {@get_COEs, t, coeVar, 'ext'});
+						uimenu(item, 'Label', 'Internal only', 'Call', {@get_COEs, t, coeVar, 'int'});
+						uimenu(item, 'Label', 'Plot histogram (all)', 'Call', {@get_COEs, t, coeVar, 'hstA'},'Sep','on');
+						uimenu(item, 'Label', 'Plot histogram (internal)', 'Call', {@get_COEs, t, coeVar, 'hstI'});
+						%uimenu(opt2, 'Label', 'Show COEs', 'Call', {@get_COEs, t, coeVar},'Sep','on');
 						break
 					end
 
@@ -106,39 +114,69 @@ function out = deal_opts(opt, opt2, varargin)
 	end
 
 % -----------------------------------------------------------------------------------------
-function get_COEs(obj, event, coeFile, coeVar)
+function get_COEs(obj, event, coeFile, coeVar, opt)
 % Get a list of MGG COEs involving gco and plot them with uicontexts
+% 'coeVar'	is name of variable to process
+% 'opt'		is a char option informing which COEs to plot. Valid options are 'all', 'ext', 'int'
 
 	h = gco;		handles = guidata(h);
 
 	lims = getappdata(handles.axes1, 'ThisImageLims');
-	opt_R = sprintf('-R%.4f/%.4f/%.4f/%.4f',lims(1:4));
+	opt_R = sprintf(' -R%.4f/%.4f/%.4f/%.4f',lims(1:4));
 	MIRONE_DIRS = getappdata(0,'MIRONE_DIRS');
 	tmp_file = [MIRONE_DIRS.home_dir filesep 'tmp' filesep 'MGGtmp.txt'];
 	fname = getappdata(h, 'FullName');
 	[pato, fname] = fileparts(fname);
 
-	if (ispc)
-		dos( ['x2sys_list ' coeFile ' -TMGD77+ -Fnxyc -C' coeVar ' -S' fname ' ' opt_R ' > ' tmp_file]);
-	else
-		unix(['x2sys_list ' coeFile ' -TMGD77+ -Fnxyc -C' coeVar ' -S' fname ' ' opt_R ' > ' tmp_file]);
+	% Decide what kind of COEs to plot or histogramize
+	doHistogram = false;
+	if ((nargin == 4) || strncmp(opt,'all',3))
+		opt_Q = '';
+	elseif (strncmp(opt,'ext',3))
+		opt_Q = ' -Qe';
+	elseif (strncmp(opt,'int',3))
+		opt_Q = ' -Qi';
+	elseif (strncmp(opt,'hst',3))
+		if (opt(end) == 'A'),	opt_Q = '';			% All COES
+		else					opt_Q = ' -Qi';		% Internal COEs only
+		end
+		opt_R = '';
+		doHistogram = true;
 	end
-	
-	d = dir(tmp_file);
-	if (d.bytes < 5)
-		warndlg('This cruise doesn''t have any COEs in the crossings data base file.')
-		delete(tmp_file);		return
+
+	if (ispc)
+		dos( ['x2sys_list ' coeFile ' -TMGD77+ -Fnxyc -C' coeVar ' -S' fname opt_Q opt_R ' > ' tmp_file]);
+	else
+		unix(['x2sys_list ' coeFile ' -TMGD77+ -Fnxyc -C' coeVar ' -S' fname opt_Q opt_R ' > ' tmp_file]);
 	end
 
 	fid = fopen(tmp_file);
 	fgetl(fid);		fgetl(fid);		fgetl(fid);		% Jum the 3 header lines
 	c = fread(fid,inf,'*char');		fclose(fid);
 	[names,x,y,COEs] = strread(c,'%s\t%f\t%f\t%f');
-	if (~isa(names, 'cell'))	names = {names};	end
 	delete(tmp_file);
 
+	if (isempty(COEs))
+		warndlg('This cruise doesn''t have the requested COEs in the crossings data base file.')
+		return
+	end
+	if (~isa(names, 'cell'))	names = {names};	end
+
 	Zmin = min(COEs);		Zmax = max(COEs);
-	dZ = Zmax - Zmin; 
+	dZ = Zmax - Zmin;
+
+	if (doHistogram)
+		% Try to pick a resonable bin size
+		if (abs(dZ) <= 20),		N = 20;		% bimW = 1
+		elseif (abs(dZ) <= 50)	N = 25;		% binW = 2
+		elseif (abs(dZ) <= 100)	N = 20;		% binW = 5
+		elseif (abs(dZ) <= 500)	N = 50;		% binW = 10
+		else					N = 100;	% Whatever
+		end
+		figure,histo_m('hist', COEs, N);
+		return
+	end
+	
 	cmap = jet(32);
 	if (dZ == 0)			% Cte color
 		zC = repmat(cmap(round(size(cmap,1)/2),:),numel(x),1);      % Midle color
