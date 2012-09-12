@@ -84,7 +84,7 @@
  *		25/02/12 J Luis, Revert previous ang change because true origin was an error in dzdx computation.
  *		                 Added 2 more illumination algorithms.
  */
- 
+
 #include "mex.h"
 #include <math.h>
 #include <string.h>
@@ -181,7 +181,7 @@ int GMT_boundcond_set (struct GRD_HEADER *h, struct GMT_EDGEINFO *edgeinfo, int 
 int GMT_boundcond_param_prep (struct GRD_HEADER *h, struct GMT_EDGEINFO *edgeinfo);
 int GMT_boundcond_parse (struct GMT_EDGEINFO *edgeinfo, char *edgestring);
 void hillshade(struct GRD_HEADER *header, float *data, double azim, double elev, double *x_factor__, 
-			double x_factor, double y_factor, int map_units, int check_nans);
+			double x_factor, double y_factor, int map_units, int check_nansi, float nan);
 
 /* --------------------------------------------------------------------------- */
 /* Matlab Gateway routine */
@@ -555,7 +555,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	my = ny + 4;
 	nm = header.nx * header.ny;
 
-	data = (float *)mxMalloc (mx * my * sizeof (float));
+	if ( (data = (float *)mxMalloc (mx * my * sizeof (float)) ) == NULL)
+		mexPrintf ("Fatal Error: grdgradient could not allocate memory, n = %d\n", mx * my * sizeof (float));
 
 	/* Transpose from Matlab orientation to gmt grd orientation */
 	if (is_double) {
@@ -771,7 +772,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 
 Lhill:
 	if (algo_hillshade) {
-		hillshade(&header, data, azim, elev, x_factor__, x_factor, y_factor, map_units, check_nans);
+		hillshade(&header, data, azim, elev, x_factor__, x_factor, y_factor, map_units, check_nans, nan);
 	}
 
 	if (slope_percent) {
@@ -953,11 +954,10 @@ Lhill:
 }
 
 void hillshade(struct GRD_HEADER *header, float *data, double azim, double elev, double *x_factor__, 
-			double x_factor, double y_factor, int map_units, int check_nans) {
+			double x_factor, double y_factor, int map_units, int check_nans, float nan) {
 	/* edndoc.esri.com/arcobjects/9.2/net/shared/geoprocessing/spatial_analyst_tools/how_hillshade_works.htm */
 	int i, j, k, n, ij, my, bad;
 	float work[9];
-	float nan = mxGetNaN();
 	double slope, aspect, cos_elev, sin_elev, z_factor, dzdx, dzdy;
 
 	my = header->ny + 4;
