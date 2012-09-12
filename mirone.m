@@ -2209,12 +2209,11 @@ function ImageDrape_CB(handles, alfa)
 
 		if (~isempty(transp))		% Have NaNs, make them transparent but some complications arise from interpolation
 			[I,P1.hole] = cropimg(handles.head(1:2), handles.head(3:4), transp, rect_crop, 'out_grid');
-			transp = cvlib_mex('resize',I,[diff(r_c(1:2)) diff(r_c(3:4))]+1,'bicubic');
+			transp = cvlib_mex('resize',I,[diff(r_c(1:2)) diff(r_c(3:4))]+1,'bilinear');
 			if (ndims(son_img) == 2)
 				transp = transp | (son_img == 0);		% Combine color & isnan() interpolations, which are not equal (???)
 			else
-				transp = transp | (son_img(:,:,1) == 255);
-				transp = transp | ((son_img(:,:,2) == 255) & (son_img(:,:,3) == 255));
+				transp = transp | ((son_img(:,:,1) == 255) & (son_img(:,:,2) == 255) & (son_img(:,:,3) == 255)); % Not sure why I do this
 			end
 		end
 
