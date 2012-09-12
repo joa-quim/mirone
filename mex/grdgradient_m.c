@@ -83,6 +83,9 @@
  *
  *		25/02/12 J Luis, Revert previous ang change because true origin was an error in dzdx computation.
  *		                 Added 2 more illumination algorithms.
+ *
+ *		10/10/12 J Luis, Hope that finally fixed the -a option issues.
+ *		                 TODO. Implement a "known nans?" option
  */
 
 #include "mex.h"
@@ -181,7 +184,7 @@ int GMT_boundcond_set (struct GRD_HEADER *h, struct GMT_EDGEINFO *edgeinfo, int 
 int GMT_boundcond_param_prep (struct GRD_HEADER *h, struct GMT_EDGEINFO *edgeinfo);
 int GMT_boundcond_parse (struct GMT_EDGEINFO *edgeinfo, char *edgestring);
 void hillshade(struct GRD_HEADER *header, float *data, double azim, double elev, double *x_factor__, 
-			double x_factor, double y_factor, int map_units, int check_nansi, float nan);
+			double x_factor, double y_factor, int map_units, int check_nans);
 
 /* --------------------------------------------------------------------------- */
 /* Matlab Gateway routine */
@@ -206,7 +209,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	clock_t tic;
 	
 	float	*data, *z_4, *pdata_s;
-	float	nan = mxGetNaN();
+	float	NaN = mxGetNaN(), nan = -999;
 	double	dzdx = 0.0, dzdy = 0.0, ave_gradient = 0., norm_val = 1.0, sigma = 0.0;
 	double	azim = 0.0, denom, max_gradient = 0.0, min_gradient = 0.0, rpi, m_pr_degree, lat, azim2;
 	double	x_factor2, y_factor2, dzdx2, dzdy2, dzds1, dzds2, offset;
@@ -701,7 +704,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 				for (n = 0, bad = FALSE; !bad && n < 4; n++) 
 					if (ISNAN_F(data[ij+p[n]])) bad = TRUE;
 				if (bad) {	/* One of corners = NaN, skip */
-					data[k] = nan;
+					data[k] = NaN;
 					continue;
 				}
 			}
@@ -772,7 +775,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 
 Lhill:
 	if (algo_hillshade) {
-		hillshade(&header, data, azim, elev, x_factor__, x_factor, y_factor, map_units, check_nans, nan);
+		hillshade(&header, data, azim, elev, x_factor__, x_factor, y_factor, map_units, check_nans);
 	}
 
 	if (slope_percent) {
@@ -889,6 +892,12 @@ Lhill:
 		}
 	}
 
+	if (check_nans && nan != -999) {
+		for (ij = 0; ij < header.nx * header.ny; ij++) {
+			if (ISNAN_F(data[ij])) data[ij] = nan;
+		}
+	}
+
 	/* Transpose from gmt grd orientation to Matlab orientation */
 	/* Because we need to do the transposition and also a type conversion, we need a extra array */
 	nx = header.nx;		ny = header.ny;
@@ -954,10 +963,11 @@ Lhill:
 }
 
 void hillshade(struct GRD_HEADER *header, float *data, double azim, double elev, double *x_factor__, 
-			double x_factor, double y_factor, int map_units, int check_nans, float nan) {
+			double x_factor, double y_factor, int map_units, int check_nans) {
 	/* edndoc.esri.com/arcobjects/9.2/net/shared/geoprocessing/spatial_analyst_tools/how_hillshade_works.htm */
 	int i, j, k, n, ij, my, bad;
 	float work[9];
+	float	NaN = mxGetNaN();
 	double slope, aspect, cos_elev, sin_elev, z_factor, dzdx, dzdy;
 
 	my = header->ny + 4;
@@ -996,7 +1006,7 @@ void hillshade(struct GRD_HEADER *header, float *data, double azim, double elev,
 				for (n = 0, bad = FALSE; !bad && n < 9; n++) 
 					if (ISNAN_F(work[n])) bad = TRUE;
 				if (bad) {	/* One of cells = NaN, skip */
-					data[k] = nan;
+					data[k] = NaN;
 					continue;
 				}
 			}
