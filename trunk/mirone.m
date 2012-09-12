@@ -1910,11 +1910,8 @@ function Reft = ImageIllum(luz, handles, opt)
 
 	if (strcmp(opt,'grdgrad_class'))		% GMT grdgradient classic illumination
 		illumComm = sprintf('-A%.2f',luz.azim);
-		if (handles.geog),	[R,offset,sigma] = grdgradient_m(Z,head,'-M',illumComm,'-Nt');
-		else				[R,offset,sigma] = grdgradient_m(Z,head,illumComm,'-Nt');
-		end
-		if (handles.have_nans && ~isequal(handles.bg_color, [0 0 0]))	% If we want NaNs painter other than black
-			R(isnan(R)) = 1;
+		if (handles.geog),	[R,offset,sigma] = grdgradient_m(Z,head,'-M',illumComm,'-Nt',OPT_a);
+		else				[R,offset,sigma] = grdgradient_m(Z,head,illumComm,'-Nt',OPT_a);
 		end
 		handles.Illumin_type = 1;
 		if (sigma < 1e-6),		sigma = 1e-6;	end		% We cannot let them be zero on sprintf('%.6f',..) somewhere else
@@ -1966,6 +1963,7 @@ function Reft = ImageIllum(luz, handles, opt)
 	end
 	if (ndims(img) == 2),		img = ind2rgb8(img,get(handles.figure1,'Colormap'));	end
 	mex_illuminate(img,R)		% New. It can now operate insitu too
+	clear R
 	
 	if ( handles.have_nans && ~isequal(handles.bg_color, [1 1 1]) && ~strcmp(OPT_a,' ') )	% Non-white or black NaN color requested
 		ind = isnan(Z);			bg_color = uint8(handles.bg_color * 255);
