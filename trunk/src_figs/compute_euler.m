@@ -1003,9 +1003,9 @@ set(h1, 'Pos',[520 379 520 421],...
 'Resize','off',...
 'Tag','figure1')
 
-uicontrol('Parent',h1,'Pos',[10 50 501 157],'String',{''},'Style','frame')
-uicontrol('Parent',h1,'Pos',[10 230 501 64],'String',{''},'Style','frame');
-uicontrol('Parent',h1,'Pos',[10 313 501 101],'String',{''},'Style','frame');
+uicontrol('Parent',h1,'Pos',[10 50  501 157],'Style','frame')
+uicontrol('Parent',h1,'Pos',[10 230 501  64],'Style','frame');
+uicontrol('Parent',h1,'Pos',[10 313 501 101],'Style','frame');
 
 uicontrol('Parent',h1, 'Pos',[20 363 211 21],...
 'BackgroundColor',[1 1 1],...
@@ -1120,9 +1120,9 @@ uicontrol('Parent',h1, 'Pos',[171 110 35 21],...
 'Tag','edit_nInt');
 
 uicontrol('Parent',h1,'Pos',[20  114 72  15],'HorizontalAlignment','left','Str','Angular Range','Style','text');
-uicontrol('Parent',h1,'Pos',[136 329 41  16],'FontSize',10,'FontWeight','bold','String','OR','Style','text');
-uicontrol('Parent',h1,'Pos',[97  386 81  16],'FontSize',10,'String','First Line','Style','text');
-uicontrol('Parent',h1,'Pos',[348 386 81  16],'FontSize',10,'String','Second Line','Style','text');
+uicontrol('Parent',h1,'Pos',[136 329 41  16],'FontSize',10,'FontWeight','bold','String','OR','Style','text','Tag','txtOR');
+uicontrol('Parent',h1,'Pos',[97  386 81  16],'FontSize',10,'String','First Line','Style','text','Tag','txtFirstLine');
+uicontrol('Parent',h1,'Pos',[348 386 81  16],'FontSize',10,'String','Second Line','Style','text','Tag','txtSecondLine');
 uicontrol('Parent',h1,'Pos',[248 286 154 16],'FontSize',10,'String','Starting Pole Section','Style','text','Tag','txtSP');
 uicontrol('Parent',h1,'Pos',[247 405 113 16],'FontSize',10,'String','Data Section','Style','text','Tag','txtDS');
 uicontrol('Parent',h1,'Pos',[24  273 51  15],'String','Longitude','Style','text');
