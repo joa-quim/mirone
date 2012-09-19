@@ -100,7 +100,7 @@ function varargout = ecran(varargin)
 		delete(hObject),		return
 	end
 
-	% ------------- Load some icons from mirone_icons.mat -------------------------------------
+	% ------------------ Set the UITOOLBAR nad its buttons -------------------------------------
 	s = load([handles.d_path 'mirone_icons.mat'],'zoom_ico','zoomx_ico', 'clipcopy_ico', 'Mline_ico', 'rectang_ico', 'bar_ico');
 	link_ico = make_link_ico;
 
@@ -588,7 +588,7 @@ function add_MarkColor(obj, evt, h)
 		return
 	end
 	
-  	[pt_x, pt_y, x_off] = get_pointOnLine(handles.axes1, handles.hLine, handles.data(:,3));
+  	[pt_x, pt_y, x_off] = get_pointOnLine(handles.axes1, handles.hLine);
 
 	hM = findobj(handles.figure1,'Type','Line','tag','marker');
 	xr = get(hM,'XData');		yr = get(hM,'YData');
@@ -653,8 +653,9 @@ function [pt_x, pt_y, x_off, minDist] = get_pointOnLine(hAxes, hLine, y)
 
 % --------------------------------------------------------------------------------------------------
 function isocs_CB(obj, evt)
+% 'Click' callback function to deal with the Mag Bar code
 	handles = guidata(obj);
-	if (strcmp(get(obj,'State'),'on'))	% Show magnetic UIs at the base and hide the distance/coords ones
+	if (strcmp(get(obj,'State'),'on'))		% Show magnetic UIs at the base and hide the distance/coords ones
 		set([handles.check_geog handles.popup_selectPlot handles.popup_selectSave], 'Vis','off')
 		set([handles.edit_startAge handles.edit_ageEnd handles.push_magBar handles.text_startAge ...
 			handles.text_endAge], 'Vis','on')
@@ -670,7 +671,7 @@ function isocs_CB(obj, evt)
 			end
 		end
 	else
-		if (handles.show_popups)		% Make next fellows visible only when apropriate
+		if (handles.show_popups)			% Make next fellows visible only when apropriate
 			set([handles.check_geog handles.popup_selectPlot handles.popup_selectSave], 'Vis','on')
 		end
 		set([handles.edit_startAge handles.edit_ageEnd handles.push_magBar handles.text_startAge ...
@@ -1111,6 +1112,11 @@ function edit_ageEnd_CB(hObject, handles)
 
 % --------------------------------------------------------------------
 function push_magBar_CB(hObject, handles)
+% Create the Mag Bar in axes2.
+% If HANDLES has the optional field 'stretchMagBar', the bars position will be
+% stretch/shrunk (depending whether the factor is > or < than 1) to simulate the
+% effect of oblique profile and/or oblique spreading
+
 	if (isnan(handles.ageStart) || isnan(handles.ageEnd))
 		errordlg('Take a second look to what you are asking for. Wrong ages','Error'),		return
 	end
@@ -1145,7 +1151,13 @@ function push_magBar_CB(hObject, handles)
 	end
  	if (age_end(end) > handles.ageEnd)			% Clip the last brick
 		age_end(end) = handles.ageEnd;
- 	end
+	end
+
+	if (isfield(handles, 'stretchMagBar') && handles.stretchMagBar ~= 1)		
+		% Need to stretch/shrink due to oblique profile and/or oblique spreading
+		age_start = age_start * handles.stretchMagBar;
+		age_end = age_end * handles.stretchMagBar;
+	end
 
 	x = [age_start'; age_end'];
 	x = x(:);
@@ -1288,9 +1300,13 @@ function push_syntheticRTP_CB(hObject, handles)
 		if (isempty(handles.batTrack))	% Do grid interpolation only once
 			[handles, X, Y, Z, head] = read_gmt_type_grids(handles, batFile);
 			if (~isempty(Z))
-				Z = abs( grdtrack_m(Z,head,handles.data(:,1:2),'-Z') ) / 1000;	% Need Z in km
-				dxyp = [handles.dist * scale_x handles.data(:,1:2) Z(:)];
-				handles.batTrack = Z;
+				zz = abs( grdtrack_m(Z,head,handles.data(:,1:2),'-Z') ) / 1000;	% Need Z in km
+				if (all(zz == 0))
+					warndlg('Bat grid used but profile is probably out of its limits. Ignoring bat grid track.','Warning')
+				else
+					dxyp = [handles.dist * scale_x handles.data(:,1:2) zz(:)];
+					handles.batTrack = zz;
+				end
 			end
 		end
 	end
@@ -1300,8 +1316,8 @@ function push_syntheticRTP_CB(hObject, handles)
 		dxyp = [handles.dist * scale_x handles.data(:,1:2) handles.batTrack(:)];
 	end
 
-	[anom handles.age_line] = magmodel(handles, dxyp, handles.syntPar.dec, handles.syntPar.inc, ...
-			handles.syntPar.speed, handles.syntPar.dir_spread, handles.syntPar.dir_profile, contamin);
+	[anom handles.age_line] = magmodel(handles.axes2, [handles.d_path 'Cande_Kent_95.dat'], dxyp, handles.syntPar.dec, ...
+			handles.syntPar.inc, handles.syntPar.speed, handles.syntPar.dir_spread, handles.syntPar.dir_profile, 0, contamin);
 
 	if (isempty(handles.hSynthetic))
 		if ( strncmp(get(handles.axes2,'XDir'),'normal', 3) )
@@ -1335,8 +1351,8 @@ function slider_filter_CB(hObject, handles)
 	else
 		dxyp = [handles.dist * scale_x handles.data(:,1:2)];
 	end
-	anom = magmodel(handles, dxyp, handles.syntPar.dec, handles.syntPar.inc, ...
-		handles.syntPar.speed, handles.syntPar.dir_spread, handles.syntPar.dir_profile, contamin);
+	anom = magmodel(handles.axes2, [handles.d_path 'Cande_Kent_95.dat'], dxyp, handles.syntPar.dec, handles.syntPar.inc, ...
+		handles.syntPar.speed, handles.syntPar.dir_spread, handles.syntPar.dir_profile, 0, contamin);
 	set(handles.hSynthetic, 'YData', anom);
 
 % ---------------------------------------------------------------------
@@ -1393,11 +1409,11 @@ function push_ageFit_CB(hObject, handles)
 			errordlg('Pelease, fit what? Your anniversary? How many Ma?', 'error'),		return
 		end
 		agePad = handles.syntPar.agePad;
-		ageStretch = 0;								% No OPTcontrol.txt info, no stretch.
+		ageStretch = 15;							% Default to use this stretch (15%).
 	end
 
 	x = get(handles.hSynthetic, 'XData')';			y = get(handles.hSynthetic, 'YData')';
-	y_ano = handles.data(:,3);
+	y_ano = get(handles.hLine,'YData');				y_ano = y_ano(:);
 	if ( strncmp(get(handles.axes2,'XDir'),'normal', 3) )
 		age_line = handles.age_line;
 	else
@@ -1415,12 +1431,20 @@ function push_ageFit_CB(hObject, handles)
 	end
 	y = y(ind_a:ind_b);
 	y_ano = y_ano(ind_a:ind_b);					% Get the corresponding chunk of the measured anomaly
+	
+	indNan = isnan(y_ano);
+	if (any(indNan))				% Shit. Not good
+		xx = x(ind_a:ind_b);
+		y_ano(indNan) = interp1(xx(~indNan), y_ano(~indNan), xx(indNan), 'linear', 'extrap');
+	end
 
 	% Normalize and remove mean
 	y_ano = (y_ano-min(y_ano)) / (max(y_ano)-min(y_ano));	y_ano = y_ano(:) - mean(y_ano);
-	yn = (y - min(y)) / (max(y)-min(y));		yn = yn(:) - mean(yn);		% Synthetic
-	shift = sanitize_shift(yn, y_ano, ageStretch);
-	if (ind_a+shift < 1)
+	yn    = (y - min(y)) / (max(y)-min(y));					yn = yn(:) - mean(yn);		% Synthetic
+
+	shift = sanitize_shift(yn, y_ano, ageStretch);		% <===== DO THE HEAVY BRILIANT WORK
+
+	if ( (ind_a+shift < 1) || (ind_b+shift > numel(x)) )
 		warndlg('Guess work by convolution failed (index out of bounds). Try increase the isochron pad limits','Warning')
 		return
 	end
@@ -1460,10 +1484,9 @@ function shift = sanitize_shift(y_synt, y_ano, percent)
 % SHIFT		Index of Y_SYNT at which we obtain the maximum correlation beteen Y_SYNT & Y_ANO
 
 	if (percent == 0),		percent = 1;	end
-	%percent = 40;
 	y_synt = y_synt(end:-1:1);		% Revert because we want CORR, not CONV, in the call to conv2
 	n_pts = numel(y_synt);
-	if (rem(n_pts, 2))			% n_pts is Odd
+	if (rem(n_pts, 2))				% n_pts is Odd
 		x_half = ceil(n_pts / 2);		x = -(x_half-1):(x_half-1);
 	else
 		x_half = n_pts / 2;				x = -(x_half-1):x_half;
@@ -1830,14 +1853,21 @@ function rd = get_distances(x, y, geog, units, ellipsoide)
 	end
 
 % ------------------------------------------------------------------------------
-function [anoma, age_line] = magmodel(handles, dxyp, fDec, fInc, speed, dir_spread, dir_profil, contam)
+function [anoma, age_line, obliquity] = magmodel(hAxesMagBar, reversalsFile, dxyp, fDec, fInc, speed, ...
+	dir_spread, dir_profil, spreadObliqDir, contam)
+% hAxesMagBar	Must contain the handle of axes where to plot the Mag Bars (axes2 of the 'Ecran' fig)
+% spreadObliqDir	Is the spreaging obliquity (often, but not always, is zero)
+% contam		The Tissot & Patriat's contamination factor
+%
+% NOTE: dir_spread can be set via OPTcontrol.txt, if it was not than it defaults to equal dir_profil
+%
 % This function was adapted from the MAGMOD program
 % "MODMAG, a MATLAB program to model marine magnetic anomalies."
 % Véronique Mendel, Marc Munschy and Daniel Sauter. Computers & Geosciences 31 (2005) 589–597
 % Intention is to clean it more or eventually re-write it (for example it doesn't account
 % for possibly different Remanent & Inducted mags).
 
-	if (nargin == 6),	contam = 1;		end
+	if (nargin < 10),	contam = 1;		end
 	if (size(dxyp,2) == 3)		% If depth is not provided, default to const = 2.5 km
 		dxyp = [dxyp(:,1:3) ones(size(dxyp,1),1)*2.5];
 	end
@@ -1847,7 +1877,7 @@ function [anoma, age_line] = magmodel(handles, dxyp, fDec, fInc, speed, dir_spre
 	thickness = 0.5;
 	speed = speed * 10;		% From full rate in cm/year to rate in km/Ma 
 
-	fid = fopen([handles.d_path 'Cande_Kent_95.dat'],'r');
+	fid = fopen(reversalsFile,'r');
 	todos = fread(fid,'*char');
 	[chron age_start age_end s.age_txt] = strread(todos,'%s %f %f %s');
 	fclose(fid);    clear todos
@@ -1896,20 +1926,17 @@ function [anoma, age_line] = magmodel(handles, dxyp, fDec, fInc, speed, dir_spre
 	% to be less than 90° away from the profile direction in order to be plot
 	% in the right sense of distance. To do this we first calculate the obliquity
 	% between the direction of the profile and the spreading direction.
-	obliquity = dir_profil - dir_spread;
-	if (abs(obliquity) > 90)
-		temp1 = mod(obliquity,90);
-		temp2 = mod(obliquity,-90);
-		if (abs(temp1) <= abs(temp2)),		obliquity = temp1;
-		else								obliquity = temp2;
-		end
-		dir_spread = dir_profil - obliquity;
-	end
+	[dir_spread, obliquity] = obliquity_care(dir_spread, dir_profil, spreadObliqDir);
 	if (obliquity ~= 0)
-		polygon_x = polygon_x / cos (obliquity * pi / 180);
+		if (obliquity > 0)
+			polygon_x = polygon_x / cos (obliquity * pi / 180);
+		else
+			% Rarer cases where ridge spreading is oblique and the profile lies inside the obliquity cone
+			polygon_x = polygon_x * cos (obliquity * pi / 180);
+		end
 	end
 
-	hMagBar = findobj(handles.axes2, 'type', 'patch');
+	hMagBar = findobj(hAxesMagBar, 'type', 'patch');
 	xx = get(hMagBar,'XData');
 	ind = find((xx(1) - blockAge(:,1)) > 0);	% Find index of closest block start of displyed bricks and those from file
 	ind = ind(end);								% The last one is closest from the left (starting) side
@@ -2012,8 +2039,48 @@ function [anoma, age_line] = magmodel(handles, dxyp, fDec, fInc, speed, dir_spre
 	% Calculation of the magnetic anomaly created by the magnetized bodies
 	anoma = calcmag(twiceNBlocks,fInc,fDec,dir_spread,blockMag,distAlongProfile,stat_z,nPts,PolXX,PolZZ);
 
-	if (nargout == 2)						% Calculate the ages. 
+	if (nargout >= 2)						% Calculate the ages. 
 		age_line = distAlongProfile / speed * 2;
+	end
+
+% ---------------------------------------------------------------------------------------
+function [dir_spread, obliquity] = obliquity_care(dir_spread, dir_profil, ridgeObliquity)
+% Compute the obliquity between the direction of the profile and the opening direction
+% but taking into account that the Ridge my open aslant as well.
+% OBLIQUITY Is positive when DIR_PROFIL is outside the obliquity cone and negative otherwise.
+% The 'obliquity cone' exists only for oblique spreading (ridgeObliquity ~= 0) and is deffined
+% (by Me) as having an angle twice that of the spreading direction and the Ridge normal. That
+% is, the 'ridgeObliquity', and whose axial line is the ridge normal.
+
+	if (nargin < 3),	ridgeObliquity = 0;		end
+
+	% First bring the profile and spreading directions to the same side of the 180 deg barrier.
+	obliquity = dir_profil - dir_spread;
+	if (abs(obliquity) > 90)
+		temp1 = mod(obliquity,90);
+		temp2 = mod(obliquity,-90);
+		if (abs(temp1) <= abs(temp2)),		obliquity = temp1;
+		else								obliquity = temp2;
+		end
+		dir_spread = dir_profil - obliquity;
+	end
+	obliquity = abs(obliquity);				% Remember, signal counts. Positive ==> 'outer' obliquity
+
+	% End of the story?
+	if (~ridgeObliquity),		return,		end		% We are done, bye
+
+	if (dir_spread > 180)		% Let's call it the left side branch
+		if ( (dir_profil <= dir_spread) || (dir_profil >= dir_spread + 2*ridgeObliquity) )
+			obliquity = abs(dir_profil - dir_spread);	% Simpler case.
+		else
+			obliquity = -abs(ridgeObliquity - mod(dir_profil - dir_spread, ridgeObliquity));
+		end
+	else						% The right side branch
+		if ( (dir_profil >= dir_spread + 2*ridgeObliquity) || (dir_profil <= dir_spread) )
+			obliquity = abs(dir_profil - dir_spread);	% Simpler case.
+		else
+			obliquity = -abs(ridgeObliquity - mod(dir_profil - dir_spread, ridgeObliquity));
+		end
 	end
 
 % ---------------------------------------------------------------------
@@ -2290,7 +2357,7 @@ uicontrol('Parent',h1, 'Position',[729 8 51 22],...
 'Tag','edit_ageFit',...
 'Vis','off');
 
-uicontrol('Parent',h1, 'Position',[780 8 23 21],...
+uicontrol('Parent',h1, 'Position',[780 8 26 21],...
 'Call',@ecran_uiCB,...
 'String','Fit',...
 'Tag','push_ageFit',...
