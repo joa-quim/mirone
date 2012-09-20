@@ -1491,16 +1491,20 @@ function shift = sanitize_shift(y_synt, y_ano, percent)
 	else
 		x_half = n_pts / 2;				x = -(x_half-1):x_half;
 	end
+	
+	c = round(n_pts * 0.15);			% Find how many points are 10% of the profile full length
+	bond = n_pts-c:n_pts+c;			% Vector about Tau = 0 where correlation will taken into account
+									% That is, bond = Tau +- 10% of all possible lags
 
 	mimi = zeros(1, percent);		ind_ = zeros(1, percent);		x = x(:);
 	for (k = 1:percent)				% Expand the synthetic curve up to PERC percent
 		xi = x * (1 - (k-1)*1e-2);
 		yi = interp1(x, y_synt, xi);
-		w = conv2(yi, y_ano, 'full');
-		[mimi(k),ind_(k)] = max(w);
+		w = conv2(yi, y_ano, 'full');	% We use conv2 instead of conv ... because that's what conv does
+		[mimi(k),ind_(k)] = max(w(bond));
 	end
 	[max_expand, ind] = max(mimi);
-	bak = ind_(ind);
+	bak = ind_(ind) + bond(1) - 1;	% Need to add bound(1) because the 'ind' repects the shorter 'bond' vector
 
 	for (k = 1:percent)				% Now Shrink
 		xi = x * (1 + (k-1)*1e-2);
@@ -1510,13 +1514,13 @@ function shift = sanitize_shift(y_synt, y_ano, percent)
 		n = numel(yi);
 		while (yi(n) == 0),		yi(n) = y_synt(end);	n = n - 1;	end		% Replace zeros by last val
 		w = conv2(yi, y_ano, 'full');
-		[mimi(k),ind_(k)] = max(w);
+		[mimi(k),ind_(k)] = max(w(bond));
 	end
 	[max_shrink, ind] = max(mimi);
 
 	% Pick the maximum of the correlations and its index between expanding and shrinking
 	if (max_expand > max_shrink),	lag = bak;
-	else							lag = ind_(ind);
+	else							lag = ind_(ind) + bond(1) - 1;
 	end
 
 	shift = (lag - n_pts);
