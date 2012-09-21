@@ -1357,50 +1357,100 @@ function slider_filter_CB(hObject, handles)
 
 % ---------------------------------------------------------------------
 function popup_ageFit_CB(hObject, handles)
-% ...
+% Put/update a marker on the synthetic line corresponding to age of the slected popup value
+
 	str = get(hObject,'str');		val = get(hObject,'Val');
 	if (val == 1),		return,		end			% First entry is empty
 	xx = str2double( str{val} );
 
+	if (~isfield(handles,'hMarkerToGuess'))		% First time here. Start with an empty handle
+		handles.hMarkerToGuess = [];
+	elseif (~isempty(handles.hMarkerToGuess))	% A previous one exist. Delete it and reset to empty
+		delete(handles.hMarkerToGuess);		handles.hMarkerToGuess = [];
+	end
+
 	[mimi,ind] = min(abs(handles.age_line - xx));
 	x = get(handles.hSynthetic, 'XData');		y = get(handles.hSynthetic, 'YData');
 	y_age_on_line = y(ind);						x_age_on_line = x(ind);
 	if (isempty(handles.hAgeMarker))
 		handles.hAgeMarker = line('XData',x_age_on_line, 'YData',y_age_on_line, 'Parent',handles.axes1, ...
 			'Marker','p','MarkerFaceColor','r','MarkerEdgeColor','k','MarkerSize',11);
-		guidata(handles.figure1, handles)
+
+		% Create a uimenu to allow users to point into an aproximate position of seeked correlation maximum
+		cmenuHand = uicontextmenu('Parent',handles.figure1);
+		set(handles.hAgeMarker, 'UIContextMenu', cmenuHand)
+		uimenu(cmenuHand, 'Label', 'Guide me', 'Call', @setFirstGuessForCorrelation);
 	else
 		set(handles.hAgeMarker, 'XData',x_age_on_line, 'YData',y_age_on_line)
 	end
 	set(handles.hAgeMarker,'UserData', ind)		% Store this index for later reference
+	guidata(handles.figure1, handles)			% Sometimes this is not needed, but won't hurt either
 
 % ---------------------------------------------------------------------
 function edit_ageFit_CB(hObject, handles)
-% Put/update a marker on the synthetic line corresponding to age enered here
+% Put/update a marker on the synthetic line corresponding to age entered here
 
 	xx = abs(str2double(get(handles.edit_ageFit,'String')));
 	if (isnan(xx)),		set(hObject,'Str',''),	return,		end
 
+	if (~isfield(handles,'hMarkerToGuess'))		% First time here. Start with an empty handle
+		handles.hMarkerToGuess = [];
+	elseif (~isempty(handles.hMarkerToGuess))	% A previous one exist. Delete it and reset to empty
+		delete(handles.hMarkerToGuess);		handles.hMarkerToGuess = [];
+	end
+
 	[mimi,ind] = min(abs(handles.age_line - xx));
 	x = get(handles.hSynthetic, 'XData');		y = get(handles.hSynthetic, 'YData');
 	y_age_on_line = y(ind);						x_age_on_line = x(ind);
 	if (isempty(handles.hAgeMarker))
 		handles.hAgeMarker = line('XData',x_age_on_line, 'YData',y_age_on_line, 'Parent',handles.axes1, ...
 			'Marker','p','MarkerFaceColor','r','MarkerEdgeColor','k','MarkerSize',11);
-		guidata(handles.figure1, handles)
+		set(handles.hAgeMarker, 'UserData', ind)% Save the index of the point where the star lies.
+
+		% Create a uimenu to allow users to point into an aproximate position of seeked correlation maximum
+		cmenuHand = uicontextmenu('Parent',handles.figure1);
+		set(handles.hAgeMarker, 'UIContextMenu', cmenuHand)
+		uimenu(cmenuHand, 'Label', 'Guide me', 'Call', @setFirstGuessForCorrelation);
 	else
 		set(handles.hAgeMarker, 'XData',x_age_on_line, 'YData',y_age_on_line)
 	end
 	set(handles.hAgeMarker,'UserData', ind)		% Store this index for later reference
+	guidata(handles.figure1, handles)			% Sometimes this is not needed, but won't hurt either
+
+% ---------------------------------------------------------------------
+function setFirstGuessForCorrelation(obj, evt)
+% First step in adding a marker on the mag anom line to guide the correlation with synthetic profile
+	handles = guidata(obj);
+	handles.state = uisuspend_j(handles.figure1);			% Remember initial figure state
+	set(handles.figure1,'WindowButtonDownFcn',@add_firstGuesssMarker, 'pointer','crosshair')
+	guidata(handles.figure1,handles)
+
+function add_firstGuesssMarker(obj, evt)
+% Do the actual work of adding the marker that will act as the first guess of the max corr position
+	handles = guidata(obj);
+	button = get(handles.figure1, 'SelectionType');
+	if (strcmp(button,'normal'))		% Left click only
+		% Get the clicked pt
+		[pt_x, pt_y, x_off] = get_pointOnLine(handles.axes1, handles.hLine);
+		if (isempty(handles.hMarkerToGuess))
+			handles.hMarkerToGuess = line('Parent',handles.axes1, 'XData',pt_x, 'YData',pt_y, 'Marker','o', ...
+				'MarkerFaceColor',[0 .6 0], 'MarkerEdgeColor','k','MarkerSize',7, 'Tag','GuessMarker', 'UserData',x_off);
+			guidata(handles.figure1, handles)
+		else
+			set(handles.hMarkerToGuess,'XData',pt_x, 'YData',pt_y)
+		end
+	end
+	uirestore_j(handles.state, 'nochildren');				% Restore the figure's initial state
+% ---------------------------------------------------------------------
 
 % ---------------------------------------------------------------------
 function push_ageFit_CB(hObject, handles)
 % Take the age entered in edit_ageFit, find that point in synthetic and
 % find its best fit on the measured profile by correlation.
-	if (strcmp(get(handles.popup_ageFit,'Vis'), 'on'))		% We have a group of ages (isocs) to fit
+	if (strcmp(get(handles.popup_ageFit,'Vis'), 'on'))		% We have a group of ages (isocs) to choose (via OPTcontrol)
 		str = get(handles.popup_ageFit,'str');		val = get(handles.popup_ageFit,'Val');
 		if (val == 1),		return,		end			% First entry is empty
-		xx = str2double( str{val} );
+		xx = str2double(str{val});
 		agePad = handles.syntPar.agePad(val);
 		ageStretch = handles.syntPar.ageStretch(val);
 	else											% Fit only one isoc whose age was set by the edit box
@@ -1414,7 +1464,7 @@ function push_ageFit_CB(hObject, handles)
 
 	x = get(handles.hSynthetic, 'XData')';			y = get(handles.hSynthetic, 'YData')';
 	y_ano = get(handles.hLine,'YData');				y_ano = y_ano(:);
-	if ( strncmp(get(handles.axes2,'XDir'),'normal', 3) )
+	if (strcmp(get(handles.axes2,'XDir'),'normal'))
 		age_line = handles.age_line;
 	else
 		age_line = handles.age_line(end:-1:1);		% When profile was drawn from Old to New some of the vectors
@@ -1430,8 +1480,23 @@ function push_ageFit_CB(hObject, handles)
 		t = ind_a;	ind_a = ind_b;	ind_b = t;
 	end
 	y = y(ind_a:ind_b);
+
+	% --------------- See if we have a user help in the form of a first aproximate solution ------------------
+	hGuess = findobj(handles.axes1, 'type', 'line', 'Tag','GuessMarker');
+	if (~isempty(hGuess))
+		xGuess_ind = get(hGuess, 'UserData');		% Get the index of the Star (selected age) and circle (first guess)
+		xStar_ind  = get(handles.hAgeMarker, 'UserData');
+		ind_a = ind_a + (xGuess_ind - xStar_ind);	% Move the fetching widow to the interval centered on 'FirstGuess'
+		ind_b = ind_b + (xGuess_ind - xStar_ind);
+		if (ind_a(1) < 1 || ind_b(end) > numel(x))
+			errordlg('Can''t continue. Guess solution implies a data shortage of points at one of the limits.','Error')
+			return
+		end
+	end
+	% --------------------------------------------------------------------------------------------------------
+
 	y_ano = y_ano(ind_a:ind_b);					% Get the corresponding chunk of the measured anomaly
-	
+
 	indNan = isnan(y_ano);
 	if (any(indNan))				% Shit. Not good
 		xx = x(ind_a:ind_b);
