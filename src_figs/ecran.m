@@ -1325,6 +1325,7 @@ function push_syntheticRTP_CB(hObject, handles)
 		else
 			handles.hSynthetic = line('XData', handles.dist(end:-1:1), 'YData', anom, 'Parent', handles.axes1, 'Color', 'r');
 		end
+		uistack_j(handles.hSynthetic, 'bottom')		% It's preferable to have it lower on stack than data profile
 	else
 		if ( strncmp(get(handles.axes2,'XDir'),'normal', 3) )
 			set(handles.hSynthetic, 'XData', handles.dist, 'YData', anom)
@@ -1361,7 +1362,7 @@ function popup_ageFit_CB(hObject, handles)
 
 	str = get(hObject,'str');		val = get(hObject,'Val');
 	if (val == 1),		return,		end			% First entry is empty
-	xx = str2double( str{val} );
+	xx = str2double(str{val});					% The Isochron age at its center (or not, if user wants to invent)
 
 	if (~isfield(handles,'hMarkerToGuess'))		% First time here. Start with an empty handle
 		handles.hMarkerToGuess = [];
@@ -1372,7 +1373,7 @@ function popup_ageFit_CB(hObject, handles)
 	[mimi,ind] = min(abs(handles.age_line - xx));
 	x = get(handles.hSynthetic, 'XData');		y = get(handles.hSynthetic, 'YData');
 	y_age_on_line = y(ind);						x_age_on_line = x(ind);
-	if (isempty(handles.hAgeMarker))
+	if (isempty(handles.hAgeMarker))			% The Red Star
 		handles.hAgeMarker = line('XData',x_age_on_line, 'YData',y_age_on_line, 'Parent',handles.axes1, ...
 			'Marker','p','MarkerFaceColor','r','MarkerEdgeColor','k','MarkerSize',11);
 
@@ -1383,7 +1384,7 @@ function popup_ageFit_CB(hObject, handles)
 	else
 		set(handles.hAgeMarker, 'XData',x_age_on_line, 'YData',y_age_on_line)
 	end
-	set(handles.hAgeMarker,'UserData', ind)		% Store this index for later reference
+	set(handles.hAgeMarker,'UserData', ind)		% Store the index of the red star for later reference
 	guidata(handles.figure1, handles)			% Sometimes this is not needed, but won't hurt either
 
 % ---------------------------------------------------------------------
@@ -1437,7 +1438,7 @@ function add_firstGuesssMarker(obj, evt)
 				'MarkerFaceColor',[0 .6 0], 'MarkerEdgeColor','k','MarkerSize',7, 'Tag','GuessMarker', 'UserData',x_off);
 			guidata(handles.figure1, handles)
 		else
-			set(handles.hMarkerToGuess,'XData',pt_x, 'YData',pt_y)
+			set(handles.hMarkerToGuess,'XData',pt_x, 'YData',pt_y, 'UserData',x_off)
 		end
 	end
 	uirestore_j(handles.state, 'nochildren');				% Restore the figure's initial state
@@ -1482,13 +1483,15 @@ function push_ageFit_CB(hObject, handles)
 	y = y(ind_a:ind_b);
 
 	% --------------- See if we have a user help in the form of a first aproximate solution ------------------
+	guess_shift = 0;
 	hGuess = findobj(handles.axes1, 'type', 'line', 'Tag','GuessMarker');
 	if (~isempty(hGuess))
 		xGuess_ind = get(hGuess, 'UserData');		% Get the index of the Star (selected age) and circle (first guess)
 		xStar_ind  = get(handles.hAgeMarker, 'UserData');
-		ind_a = ind_a + (xGuess_ind - xStar_ind);	% Move the fetching widow to the interval centered on 'FirstGuess'
-		ind_b = ind_b + (xGuess_ind - xStar_ind);
-		if (ind_a(1) < 1 || ind_b(end) > numel(x))
+		guess_shift = xGuess_ind - xStar_ind;		% Distance shift introduced by the 'Guessed point'
+		ind_a = ind_a + guess_shift;				% Move the fetching widow to the interval centered on 'FirstGuess'
+		ind_b = ind_b + guess_shift;
+		if (ind_a < 1 || ind_b > numel(x))
 			errordlg('Can''t continue. Guess solution implies a data shortage of points at one of the limits.','Error')
 			return
 		end
@@ -1522,8 +1525,8 @@ function push_ageFit_CB(hObject, handles)
 		set(handles.hLineChunk_fit, 'XData',x, 'YData',y)
 	end
 
-	% Create or move the age marker as well
-	ind_ageMarker = get(handles.hAgeMarker,'UserData');
+	% Create or move the age marker as well (the vertical dashed line)
+	ind_ageMarker = get(handles.hAgeMarker,'UserData') + guess_shift;
 	if ( ~strncmp(get(handles.axes2,'XDir'),'normal', 3) )	% The time axis is reversed (grows from right to left)
 		ind_ageMarker = numel(age_line) - ind_ageMarker + 1;
 	end
@@ -1534,6 +1537,7 @@ function push_ageFit_CB(hObject, handles)
 		cmenuHand = uicontextmenu('Parent',handles.figure1);
 		set(handles.hAgeLine_fit, 'UIContextMenu', cmenuHand)
 		uimenu(cmenuHand, 'Label', 'Pin-point me', 'Call', {@pinpointLine, handles.hAgeLine_fit});
+		uistack_j(handles.hAgeLine_fit, 'bottom')	% To not partially hide the red star
 	else
 		set(handles.hAgeLine_fit, 'XData',xx, 'YData',yy)
 	end
@@ -1542,6 +1546,9 @@ function push_ageFit_CB(hObject, handles)
 % --------------------------------------------------------------------------------------------------
 function shift = sanitize_shift(y_synt, y_ano, percent)
 % Find index of maximum correlation between the Y_SYNT & Y_ANO series
+% That maximum is searched around +- 20% of Tau = 0. That is, only 40% of the
+% possible lag space is scanned. We do this to avoid 'outlier maximums'
+%
 % Y_SYNT	Synthetic anomaly
 % Y_ANO		Measured anomaly (same size as Y_SYNT)
 % PERCENT	Percentage of expand/shrink. This value is applied from 1:PERCENT to deform
@@ -1557,9 +1564,9 @@ function shift = sanitize_shift(y_synt, y_ano, percent)
 		x_half = n_pts / 2;				x = -(x_half-1):x_half;
 	end
 	
-	c = round(n_pts * 0.15);			% Find how many points are 10% of the profile full length
+	c = round(n_pts * 0.20);		% Find how many points are 20% of the profile full length
 	bond = n_pts-c:n_pts+c;			% Vector about Tau = 0 where correlation will taken into account
-									% That is, bond = Tau +- 10% of all possible lags
+									% That is, bond = Tau +- 20% of all possible lags
 
 	mimi = zeros(1, percent);		ind_ = zeros(1, percent);		x = x(:);
 	for (k = 1:percent)				% Expand the synthetic curve up to PERC percent
