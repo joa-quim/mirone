@@ -928,10 +928,13 @@ function FileOpen_CB(hObject, handles)
 		else							nc = rem(handles.n_plot,7);     % recycle through the default colors
 		end
 		cor = c_order(nc,:);
-		set(handles.hLine,'Color',cor)
+	else
+		cor = [0 0 1];					% The default blue
 	end
+	set(handles.hLine,'Color',cor)
 
 	% ...
+	handles.hLineToRef = [];			% Initialize it
 	if (got_toReference)				% Make a copy of the toRef line handle
 		handles.hLineToRef = handles.hLine;
 	end
