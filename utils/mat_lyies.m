@@ -54,6 +54,9 @@ while 1
         s = 1;        w = [str '. Command not found'];
     elseif strfind(tline,'ERROR')
         s = 1;        w = tline;
+    elseif strfind(tline,'keyword SI')
+		% This is the gmt.conf issue that I have to solve for GMT5
+		break
     elseif ~isempty(tline)          % Gave up. I cannot guess all error messages, so if any report it
         s = 1;        w = tline;
     end
