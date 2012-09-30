@@ -51,12 +51,15 @@ function [handles, X, Y, Z, head, misc] = read_gmt_type_grids(handles,fullname,o
 			ID = 'CDF';			% Again the dirty trick
 			tipo = 'GSOFT';
 	end
+	if (strcmp(ID(2:3),'HD'))
+		tipo = 'CDF';	ID = 'CDF';		% And the trick again
+	end
 
 	% See if the grid is on one of the OTHER (non netCDF & non Surfer) formats that GMT recognizes
 	if (~strcmp(ID(1:3),'CDF') && ~(tipo(1) == 'S' || tipo(1) == 'E' || tipo(1) == 'M') )
 		str = ['grdinfo ' fullname];
 		[PATH,FNAME,EXT] = fileparts(fullname);
-		s = mat_lyies(str,[handles.path_tmp FNAME '.' EXT '.info']);
+		s = mat_lyies(str,[handles.path_tmp FNAME EXT '.info']);
 		if ~(isequal(s,0))          % File could not be read
 			errordlg([fullname ' : Is not a grid that GMT can read!'],'ERROR');
 			return
