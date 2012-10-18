@@ -2869,7 +2869,7 @@ function GeophysicsImportGmtFile_CB(handles, opt)
 		setappdata(h,'FullName',names{k})	% Store file name in case the uicontext wants to open it with gmtedit
 		setappdata(h,'VarsName',vars(k,:))	% Store field name in case the uicontext wants to open it with gmtedit
 		draw_funs(h,'gmtfile',track(k).info)
-		%ui_edit_polygon(h)
+		ui_edit_polygon(h)
 		%if (use_aguenta),	h = aguentabar(k/numel(track));		end
 	end
 	set(handles.figure1,'Pointer','arrow');
