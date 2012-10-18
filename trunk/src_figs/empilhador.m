@@ -3,7 +3,7 @@ function varargout = empilhador(varargin)
 %
 % WARNING: FOR COMPILING THIS WE NEED TO INCLUDE THE HDF_FUNS.M SRC
 %
-% NOTE: The gotFromMETA and getZ functions are called directly by mirone
+% NOTE: The gotFromMETA and getZ functions are callable directly by mirone
 
 %	Copyright (c) 2004-2012 by J. Luis
 %
@@ -525,17 +525,23 @@ function cut2cdf(handles, got_R, west, east, south, north)
 			handles = guidata(handles.figure1);		% The get_att() function may have changed handles
 		end
 
+		curr_fname = handles.nameList{k};
+		if (~isempty(handles.uncomp_name))
+			curr_fname = handles.uncomp_name;		% File was compressed, so we have to use the uncompressed version
+		end
+
 		% In the following, if any of slope, intercept or base changes from file to file ... f
 		NoDataValue = att.Band(1).NoDataValue;		% Backup it because it might be changed for other (now unknow) reasons.
 		[Z, handles.have_nans, att] = ...
-			getZ(handles.nameList{k}, att, is_modis, is_linear, is_log, slope, intercept, base, opt_R, handles);
+			getZ(curr_fname, att, is_modis, is_linear, is_log, slope, intercept, base, opt_R, handles);
 		att.Band(1).NoDataValue = NoDataValue;
 
 		% Check if all grids have the same size
 		if (k == 1)
 			n_rows = size(Z,1);		n_cols = size(Z,2);
 		elseif (~isequal([n_rows n_cols],[size(Z,1) size(Z,2)]))
-			warndlg(['The grid ' handles.nameList{k} ' has different size than precedents. Jumping it.'],'Warning')
+			warndlg(['The grid ' curr_fname ' has different size than precedents. Jumping it.'],'Warning')
+			if (~isempty(handles.uncomp_name)),		try, delete(handles.uncomp_name);	end,	end
 			continue
 		end
 
@@ -545,6 +551,7 @@ function cut2cdf(handles, got_R, west, east, south, north)
 
 		if (get(handles.radio_conv2vtk,'Val'))				% Write this layer of the VTK file and continue
 			write_vtk(fid, grd_out, Z);
+			if (~isempty(handles.uncomp_name)),		try, delete(handles.uncomp_name);	end,	end
 			continue
 		end
 		
@@ -579,6 +586,8 @@ function cut2cdf(handles, got_R, west, east, south, north)
 				nc_io(grd_out, sprintf('w%d', kk), handles, Z)
 			end
 		end
+
+		if (~isempty(handles.uncomp_name)),		try, delete(handles.uncomp_name);	end,	end
 	end
 
 	if (get(handles.radio_conv2vtk,'Val')),		fclose(fid);	end
@@ -587,17 +596,20 @@ function cut2cdf(handles, got_R, west, east, south, north)
 % -----------------------------------------------------------------------------------------
 function [head, opt_R, slope, intercept, base, is_modis, is_linear, is_log, att, do_SDS] = ...
 			get_headerInfo(handles, name, got_R, west, east, south, north)
-% Get several direct and inderect (computed) informations about the file NAME or one of its subdatasets.
+% Get several direct and indirect (computed) informations about the file NAME or one of its subdatasets.
 % The [att, do_SDS] = get_headerInfo(...) form is also supported and used when processing L2 files.
 
-	[att, do_SDS] = get_att(handles, name);
+	[att, do_SDS, uncomp_name] = get_att(handles, name);
 
 	% GDAL wrongly reports the corners as [0 nx] [0 ny] when no SRS
 	if ( isequal((att.Corners.LR - att.Corners.UL), [att.RasterXSize att.RasterYSize]) && ~all(att.Corners.UL) )
 		att.GMT_hdr(1:4) = [1 att.RasterXSize 1 att.RasterYSize];
 	end
-	
-	att.fname = name;			% This case needs it
+
+	% This case needs it
+	if (~isempty(uncomp_name)),		att.fname = uncomp_name;
+	else							att.fname = name;
+	end
 	[head , slope, intercept, base, is_modis, is_linear, is_log, att, opt_R] = ...
 		getFromMETA(att, got_R, handles, west, east, south, north);
 	
@@ -607,11 +619,12 @@ function [head, opt_R, slope, intercept, base, is_modis, is_linear, is_log, att,
 	end
 
 % -----------------------------------------------------------------------------------------
-function [att, indSDS] = get_att(handles, name)
+function [att, indSDS, uncomp_name] = get_att(handles, name)
 % Get the attributes of the root file or, in case we have one, of the requested subdataset
+% This is a 'private' function that is called only by get_headerInfo()
 
 	indSDS = 0;
-	att = get_baseNameAttribs(name);
+	[att, uncomp_name] = get_baseNameAttribs(name);		% It calls deal_with_compressed()
 
 	if ( att.RasterCount == 0 && ~isempty(att.Subdatasets) )	
 		indSDS = 1;
@@ -623,7 +636,6 @@ function [att, indSDS] = get_att(handles, name)
 					error('The provided name of the Subdataset does not exist in file.')
 				end
 				handles.SDSthis = (ind + 1) / 2;		% Do this calc because we need here the SDS number from top of file
-				guidata(handles.figure1, handles)
 			end
 			ind = strfind(att.Subdatasets{handles.SDSthis * 2 - 1}, '=');
 			indSDS = handles.SDSthis * 2 - 1;
@@ -635,9 +647,14 @@ function [att, indSDS] = get_att(handles, name)
 		end
 		AllSubdatasets = att.Subdatasets;				% Copy this for keeping it as a subdataset field too
 		FileName = att.Subdatasets{indSDS}(ind+1:end);	% First "ind" chars are of the form SUBDATASET_1_NAME=
-		att = gdalread(FileName,'-M','-C');				% Try again (it will probably fail on ziped files)
+		att = gdalread(FileName,'-M','-C');				% Try again
 		att.AllSubdatasets = AllSubdatasets;			% A non-standard that is also in some cases set in Mirone
 	end
+
+	if (~isempty(uncomp_name))
+		handles.uncomp_name = uncomp_name;				% To know whether to use the uncompressed name
+	end
+	guidata(handles.figure1, handles)
 
 % -----------------------------------------------------------------------------------------
 function [head , slope, intercept, base, is_modis, is_linear, is_log, att, opt_R] = ...
@@ -888,7 +905,7 @@ function [Z, have_nans, att] = getZ(fname, att, is_modis, is_linear, is_log, slo
 % ATT may be still unknown (empty). In that case it will be returned by read_gdal()
 % HANDLES, is transmitted only within internal calls of this function (that is, not from outside calls)
 
-	str_d = [];			IamInteractive = true;
+	uncomp_name = [];			IamInteractive = true;
 	if (nargin < 9),	opt_R = ' ';	end
 	if (nargin == 10 && ~handles.Interactive),	IamInteractive = false;		end		% External calls may be interactive
 
@@ -901,9 +918,9 @@ function [Z, have_nans, att] = getZ(fname, att, is_modis, is_linear, is_log, slo
 			ind = strfind(att.AllSubdatasets{handles.SDSthis * 2 - 1}, '=');
 			fname = att.AllSubdatasets{handles.SDSthis * 2 - 1}(ind+1:end);
 		else		% isempty(att) = true
-			[fname, str_d] = deal_with_compressed(fname);		% MUST GET RID OF THIS (read compressed directly)
+			[fname, uncomp_name] = deal_with_compressed(fname);		% MUST GET RID OF THIS (read compressed directly)
 			att = gdalread(fname, '-M');	clear_att = true;
-			if (~isempty(str_d)),	str_d = fname;		end
+			if (~isempty(uncomp_name)),		uncomp_name = fname;	end
 		end
 		if (clear_att),		att = [];	end
 		IamCompiled = handles.IamCompiled;
@@ -938,7 +955,7 @@ function [Z, have_nans, att] = getZ(fname, att, is_modis, is_linear, is_log, slo
 		end
 	end
 
-	if (~isempty(str_d)),	delete(str_d);		end		% Delete uncompressed file.
+	if (~isempty(uncomp_name)),		delete(uncomp_name);		end		% Delete uncompressed file.
 
 	if ( is_modis && ~isempty(att.Band(1).NoDataValue) && saveNoData)	% att.Band... is isempty when all work has been done before
 		att.Band(1).NoDataValue = NoDataValue;		% Shity format doesn't inform on the no-data.
@@ -1008,11 +1025,13 @@ function [Z, att, known_coords, have_nans] = read_gdal(full_name, att, IamCompil
 %
 % KNOWN_COORDS	Is a logical that whn true the informs the caller that we already know the coordinates for sure
 %				and no attempt should be made to fish them from the matadata info.
+%
+% This function is called only by getZ()
 
 	have_nans = [];			% Will only become ~[] when input is a L2 product to be interpolated and referenced
 	NoDataValue = [];		% Some defaults
 	known_coords = false;	% If we know for sure the coords (as for georefed L2 products) tell that to caller
-	[full_name, str_d, uncomp_name] = deal_with_compressed(full_name);
+	[full_name, uncomp_name] = deal_with_compressed(full_name);
 
 	opt_e = '';
 	if (IamCompiled),	opt_e = '-e';	end		% Use aguentabar.dll
@@ -1195,8 +1214,8 @@ function [Z, att, known_coords, have_nans] = read_gdal(full_name, att, IamCompil
 		end
 	end
 
-	if (~isempty(fname)),	att.fname = fname;		end		% Needed in some HDF cases
-	if (~isempty(str_d)),	delete(uncomp_name);	end		% Delete uncompressed file
+	if (~isempty(fname)),		att.fname = fname;		end		% Needed in some HDF cases
+	if (~isempty(uncomp_name)),	delete(uncomp_name);	end		% Delete uncompressed file
 
 % -----------------------------------------------------------------------------------------
 function Z = clipMySpikes(Z)
@@ -1215,11 +1234,10 @@ function Z = clipMySpikes(Z)
 	end
 
 % -----------------------------------------------------------------------------------------
-function att = get_baseNameAttribs(full_name)
+function [att, uncomp_name] = get_baseNameAttribs(full_name)
 % Get the file's metadata and also tests if an SDS was required but does not exist
-	[full_name, str_d, uncomp_name] = deal_with_compressed(full_name);
+	[full_name, uncomp_name] = deal_with_compressed(full_name);
 	att = gdalread(full_name, '-M');
-	if (~isempty(str_d)),	delete(uncomp_name);	end		% Delete uncompressed file
 	if (att.RasterCount > 0)
 		handles = guidata(gcf);
 		if (~isempty(handles.SDSinfo) && handles.SDSthis > 1 && ~handles.testedDS)
@@ -1334,19 +1352,19 @@ function ID = find_in_subdatasets(AllSubdatasets, name, ncmp)
 	if (got_it),	ID = k - 1;		end		% -1 because the subdataset name is one position before
 
 % -----------------------------------------------------------------------------------------
-function [full_name, str_d, uncompressed_name] = deal_with_compressed(full_name)
+function [full_name, uncomp_name] = deal_with_compressed(full_name)
 % Check if FULL_NAME is a compressed file. If it is, uncompress it and return the uncompressed
 % name as FULL_NAME.
-% STR_D informs if decompressing was done. If it is not empty, it means file was decompressed.
+% UNCOMP_NAME informs if decompressing was done. If it is not empty, it means file was decompressed.
 % Use this info to eventualy remove the FULL_NAME (note that in this case this not the original file name)
 
 	str_d = [];		do_warn = true;		cext = [];
 	[PATH,fname,EXT] = fileparts(full_name);
-	uncompressed_name = [PATH filesep fname];		% Only used if file is compressed
+	uncomp_name = [PATH filesep fname];			% Only used if file is compressed
 	if (strcmpi(EXT,'.bz2'))
-		str_d = ['bzip2 -d -q -f -c ' full_name ' > ' uncompressed_name];		cext = EXT;
+		str_d = ['bzip2 -d -q -f -c ' full_name ' > ' uncomp_name];		cext = EXT;
 	elseif (strcmpi(EXT,'.zip') || strcmpi(EXT,'.gz'))
-		str_d = ['gunzip -q -N -f -c ' full_name ' > ' uncompressed_name];		cext = EXT;
+		str_d = ['gunzip -q -N -f -c ' full_name ' > ' uncomp_name];		cext = EXT;
 	end
 
 	if (~isempty(str_d))     % File is compressed.
@@ -1357,13 +1375,15 @@ function [full_name, str_d, uncompressed_name] = deal_with_compressed(full_name)
 		elseif ispc,	s = dos(str_d);
 		else			errordlg('Unknown platform.','Error');	error('Unknown platform.')
 		end
-		if ~(isequal(s,0))                  % An error as occured
+		if ~(isequal(s,0))						% An error as occured
 			errordlg(['Error decompressing file ' full_name],'Error');
 			if (do_warn),   aguentabar(1,'title','By'),		end
 			error(['Error decompressing file ' full_name])
 		end
 		if (do_warn),	aguentabar(1,'title','Donne'),		end
-		full_name = uncompressed_name;				% The uncompressed file name
+		full_name = uncomp_name;				% The uncompressed file name
+	else
+		uncomp_name = [];						% So that calling function knows file was not compressed
 	end
 
 % -----------------------------------------------------------------------------------------
