@@ -1551,10 +1551,10 @@ end
 num_dims = length(varstruct.Dimension);
 dimids = zeros(num_dims,1);
 for j = 1:num_dims
-	[dimids(j), status] = mexnc ( 'dimid', ncid, varstruct.Dimension{j} );
+	[dimids(j), status] = mexnc ( 'inq_dimid', ncid, varstruct.Dimension{j} );
 	if ( status ~= 0 )
 		mexnc ( 'close', ncid );
-		snc_error ( 'NC_FUNS:NC_ADDVAR:MEXNC:DIMID', mexnc('STRERROR', status) );
+		snc_error ( 'NC_FUNS:NC_ADDVAR:MEXNC:INQ_DIMID', mexnc('STRERROR', status) );
 	end
 end
 
