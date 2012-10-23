@@ -842,7 +842,7 @@ end
 if (num_atts > 0)
 	str = sprintf('//global attributes:\n' );
 	if (nargin == 2),	dump = [dump str];
-	else				fprintf(1, str)
+	else				fprintf(1, str);
 	end
 end
 
