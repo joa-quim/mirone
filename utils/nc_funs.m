@@ -389,7 +389,7 @@ switch funcstr_family
 	case 'get_vara',	[values, status] = mexnc( funcstr, ncid, varid, start, count );
 	case 'get_vars',	[values, status] = mexnc( funcstr, ncid, varid, start, count, stride );
 	otherwise
-        error('NC_FUNS:NC_VARGET:unhandledType', sprintf ('Unhandled function string type ''%s''\n', funcstr_family) );
+        snc_error('NC_FUNS:NC_VARGET:unhandledType', sprintf ('Unhandled function string type ''%s''\n', funcstr_family) );
 end
 
 if ( status ~= 0 )
@@ -485,7 +485,7 @@ switch ( var_type )
 	case nc_char,		funcstr = [prefix '_text'];
 	case nc_byte,		funcstr = [prefix '_schar'];
 	otherwise
-		error ( 'NC_FUNS:NC_VARGET:badDatatype', sprintf('Unhandled datatype %d.', var_type) );
+		snc_error ( 'NC_FUNS:NC_VARGET:badDatatype', sprintf('Unhandled datatype %d.', var_type) );
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -538,7 +538,7 @@ if ( status == 0 )
 			end
         otherwise
 			mexnc('close',ncid);
-			error ( sprintf('unhandled datatype %d\n', var_type) );
+			snc_error ( 'NC_FUNS:fill_value_mex',  sprintf('unhandled datatype %d\n', var_type) );
     end
 
     if ( status ~= 0 )
@@ -578,7 +578,7 @@ if ( status == 0 )
 			end
         otherwise
 			mexnc('close',ncid);
-			error ( sprintf('unhandled datatype %d\n', mfilename, var_type) );
+			snc_error ( 'NC_FUNS:mex_missing_value', sprintf('unhandled datatype %d\n', mfilename, var_type) );
     end
 
     if ( status ~= 0 )
@@ -889,13 +889,13 @@ attribute.Value = NaN;       % In case the routine fails?
 
 [attname, status] = mexnc('INQ_ATTNAME', cdfid, varid, attnum);
 if status < 0 
-	error ( sprintf('%s:  mexnc:inq_attname failed on varid %d.\n', mfilename, varid) );
+	snc_error ( 'NC_FUNS:nc_get_attribute_struct:INQ_ATTNAME', sprintf('%s:  mexnc:inq_attname failed on varid %d.\n', mfilename, varid) );
 end
 attribute.Name = attname;
 
 [att_datatype, status] = mexnc('INQ_ATTTYPE', cdfid, varid, attname);
 if status < 0 
-	error ( sprintf('%s:  mexnc:inq_att failed on varid %d, attribute %s.\n', mfilename, varid, attname) );
+	snc_error ( 'NC_FUNS:nc_get_attribute_struct:INQ_ATTTYPE', sprintf('%s:  mexnc:inq_att failed on varid %d, attribute %s.\n', mfilename, varid, attname) );
 end
 attribute.Nctype = att_datatype;
 
@@ -907,10 +907,10 @@ switch att_datatype
 	case { nc_double, nc_float, nc_int, nc_short, nc_byte }
 		[attval, status] = mexnc('get_att_double',cdfid,varid,attname);
 	otherwise
-		error ( sprintf('att_datatype is %d.\n', att_datatype) );
+		snc_error ( 'NC_FUNS:nc_get_attribute_struct', sprintf('att_datatype is %d.\n', att_datatype) );
 end
 if status < 0 
-	error ( sprintf('%s:  mexnc:attget failed on varid %d, attribute %s.\n', mfilename, varid, attname) );
+	snc_error ( 'NC_FUNS:nc_get_attribute_struct', sprintf('%s:  mexnc:attget failed on varid %d, attribute %s.\n', mfilename, varid, attname) );
 end
 
 % this puts the attribute into the variable structure
@@ -1108,7 +1108,7 @@ elseif n_in == 5
 elseif n_in == 6
     write_op = 'put_vars';
 else
-    error ( 'unhandled write op.  How did we come to this??\n' );
+    snc_error ( 'NC_FUNS:NC_VARPUT', 'unhandled write op.  How did we come to this??\n' );
 end
 
 validate_input_size_vs_netcdf_size(ncid,data,nc_count,count,write_op);
@@ -1360,7 +1360,7 @@ if ( status == 0 )
         case 'char',		funcstr = 'get_att_text';
         otherwise
 			mexnc ( 'close', ncid );
-			error ('NC_FUNS:NC_VARPUT:unhandledDatatype', sprintf('Unhandled datatype for fill value, ''%s''.', class(data)) );
+			snc_error ('NC_FUNS:NC_VARPUT:unhandledDatatype', sprintf('Unhandled datatype for fill value, ''%s''.', class(data)) );
     end
 
     [fill_value, status] = mexnc(funcstr,ncid,varid,'_FillValue' );
@@ -1491,8 +1491,8 @@ switch ( write_op )
 end
 
 if ( status ~= 0 )
-    mexnc ( 'close', ncid );
-    error ( sprintf('write operation ''%s'' failed with error ''%s''.\n', write_op, mexnc('STRERROR', status) ) );
+	mexnc ( 'close', ncid );
+	snc_error ('NC_FUNS:NC_VARPUT:unhandledMatlabType', sprintf('write operation ''%s'' failed with error ''%s''.\n', write_op, mexnc('STRERROR', status) ) );
 end
 
 % ------------------------------------------------------------------------------------------
@@ -1901,13 +1901,13 @@ snc_nargoutchk(0,0,nargout);
 % At the end of this process, the list of netcdf files to be 
 % concatenated is in a cell array.
 if ischar(input_ncfiles) && exist(input_ncfiles,'file')
-	error('NC_FUNS:NC_CAT','Input files by file was not implemented')
+	snc_error('NC_FUNS:NC_CAT','Input files by file was not implemented')
 % 	afid = fopen ( input_ncfiles, 'r' );
 % 	input_ncfiles = textscan ( afid, '%s' );
 elseif iscell ( input_ncfiles )
 	% Do nothing
 else
-	error ( 'first input must be either a text file or a cell array\n' );
+	snc_error ('NC_FUNS:NC_CAT', 'first input must be either a text file or a cell array\n' );
 end
 
 num_input_files = length(input_ncfiles);
@@ -2607,7 +2607,7 @@ end
 
 retrievable_datasets = find(1 - skip_it);
 if ~any(retrievable_datasets)
-	error ( 'No datasets found.\n' );
+	snc_error ( 'NC_FUNS:skip_list',  'No datasets found.\n' );
 end
 
 % -------------------------------------------------------------------
@@ -2678,7 +2678,6 @@ nb = nc_getbuffer ( ncfile, {var}, -1, num_datums );
 values = nb.(var);
 
 
-
 % --------------------------------------------------------------------
 function snc_error ( error_id, error_msg )
 	disp ( [error_id ' ' error_msg] );			% On compiled version that's the only message we'll get
@@ -2703,21 +2702,21 @@ function check_index_vectors(start,count,stride,nvdims,ncid,varname)
 %    parsing the input arguments since we need the number of dimensions 
 %    corresponding to the input variable.
 
-if ~isempty(start) && (length(start) ~= nvdims)
-    mexnc('close',ncid);
-    fmt = 'length of the start index vector (%d) does not equal the number of dimensions (%d) for %s';
-    snc_error ( 'NC_FUNS:NC_VARGET:badStartIndex', sprintf(fmt, length(start), nvdims, varname) );
-end
-if ~isempty(count) && (length(count) ~= nvdims)
-    mexnc('close',ncid);
-    fmt = 'length of the count index vector (%d) does not equal the number of dimensions (%d) for %s';
-    error ( 'NC_FUNS:NC_VARGET:badCountIndex', sprintf ( fmt, length(count), nvdims, varname ) );
-end
-if ~isempty(stride) && (length(stride) ~= nvdims)
-    mexnc('close',ncid);
-    fmt = 'length of the stride index vector (%d) does not equal the number of dimensions (%d) for %s';
-    error ( 'NC_FUNS:NC_VARGET:badStrideIndex', sprintf ( fmt, length(count), nvdims, varname ) );
-end
+	if ~isempty(start) && (length(start) ~= nvdims)
+		mexnc('close',ncid);
+		fmt = 'length of the start index vector (%d) does not equal the number of dimensions (%d) for %s';
+		snc_error ( 'NC_FUNS:NC_VARGET:badStartIndex', sprintf(fmt, length(start), nvdims, varname) );
+	end
+	if ~isempty(count) && (length(count) ~= nvdims)
+		mexnc('close',ncid);
+		fmt = 'length of the count index vector (%d) does not equal the number of dimensions (%d) for %s';
+		snc_error ( 'NC_FUNS:NC_VARGET:badCountIndex', sprintf ( fmt, length(count), nvdims, varname ) );
+	end
+	if ~isempty(stride) && (length(stride) ~= nvdims)
+		mexnc('close',ncid);
+		fmt = 'length of the stride index vector (%d) does not equal the number of dimensions (%d) for %s';
+		snc_error ( 'NC_FUNS:NC_VARGET:badStrideIndex', sprintf ( fmt, length(count), nvdims, varname ) );
+	end
 
 % --------------------------------------------------------------------
 function the_var_size = determine_varsize_mex ( ncid, dimids, nvdims )
@@ -2735,7 +2734,7 @@ else
         [dim_size,status]=mexnc('inq_dimlen', ncid, dimid);
         if ( status ~= 0 )
 			mexnc('close',ncid);
-            error ( 'NC_FUNS:NC_VARGET:MEXNC:INQ_DIM_LEN', mexnc('strerror', status) );
+            snc_error ( 'NC_FUNS:NC_VARGET:MEXNC:INQ_DIM_LEN', mexnc('strerror', status) );
         end
         the_var_size(j)=dim_size;
     end
