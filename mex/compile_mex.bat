@@ -93,7 +93,6 @@ SET  GEOLIB_LIB=C:\programs\compa_libs\GeographicLib-1.16\compileds\VC10_64\lib\
 
 ) ELSE (
 
-IF %MSVC_VER%=="1600" (
 SET  NETCDF_LIB=C:\programs\compa_libs\netcdf-4.1.3\compileds\VC10_32\lib\netcdf.lib
 SET     GMT_LIB=c:\progs_cygw\GMTdev\gmt4\WIN32\lib\gmt.lib
 SET GMT_MGG_LIB=c:\progs_cygw\GMTdev\gmt4\WIN32\lib\gmt_mgg.lib
@@ -107,17 +106,7 @@ SET CVVIDEO_LIB=C:\programs\OpenCV_SVN\compileds\VC10_32\lib\opencv_video211.lib
 SET     LAS_LIB=C:\programs\compa_libs\liblas-src-1.2.1\lib\VC10_32\liblas_i.lib
 SET  GEOLIB_LIB=C:\programs\compa_libs\GeographicLib-1.16\compileds\VC10_32\lib\Geographic.lib
 
-) ELSE (
-
-SET  NETCDF_LIB=C:\progs_cygw\netcdf-3.6.3\lib\libnetcdf_w32.lib
-SET     GMT_LIB=c:\progs_cygw\GMTdev\gmt4\WIN32\lib\gmt.lib
-SET GMT_MGG_LIB=c:\progs_cygw\GMTdev\gmt4\WIN32\lib\gmt_mgg.lib
-SET    GDAL_LIB=c:\programs\GDALtrunk\gdal\lib4mex\gdal_i.lib
-REM I haven't build yet (and maybe I won't) 2.1 libs with VC7.1
-SET      CV_LIB=C:\programs\OpenCV_SVN\lib\cv200.lib
-SET  CXCORE_LIB=C:\programs\OpenCV_SVN\lib\cxcore200.lib
-SET     LAS_LIB=C:\programs\compa_libs\liblas-src-1.2.1\lib\VC10_32\liblas_i.lib
-) )
+)
 
 SET  NETCDF_INC=C:\programs\compa_libs\netcdf-4.1.3\compileds\VC10_32\include
 SET     GMT_INC=c:\progs_cygw\GMTdev\gmt4\include
@@ -232,11 +221,11 @@ REM ---------------------- MEXNC4 ----------------------------------------------
 :MEXNC4
 %CC% -DWIN32 %COMPFLAGS% -I%MATINC% -I%NETCDF_INC% %OPTIMFLAGS% %_MX_COMPAT% %TIMEIT% -DDLL_NETCDF -DNC4_V2_COMPAT mexnc4\mexgateway.c mexnc4\netcdf3.c mexnc4\netcdf4.c mexnc4\common.c
 link  /out:"mexnc.%MEX_EXT%" %LINKFLAGS% %NETCDF_LIB% /implib:templib.x mexgateway.obj netcdf3.obj netcdf4.obj common.obj
-IF "%1"=="MEXNC" GOTO END
+IF "%1"=="MEXNC4" GOTO END
 
 REM ---------------------- MEXNC ----------------------------------------------------
 :MEXNC
-%CC% -DWIN32 %COMPFLAGS% -I%MATINC% -I%NETCDF_INC% %OPTIMFLAGS% %_MX_COMPAT% %TIMEIT% -DDLL_NETCDF -DNC4_V2_COMPAT mexnc\mexgateway.c mexnc\netcdf2.c mexnc\netcdf3.c mexnc\common.c
+%CC% -DWIN32 %COMPFLAGS% -DUSE_API_2 -I%MATINC% -I%NETCDF_INC% %OPTIMFLAGS% %_MX_COMPAT% %TIMEIT% -DDLL_NETCDF -DNC4_V2_COMPAT mexnc\mexgateway.c mexnc\netcdf2.c mexnc\netcdf3.c mexnc\common.c
 link  /out:"mexnc.%MEX_EXT%" %LINKFLAGS% %NETCDF_LIB% /implib:templib.x mexgateway.obj netcdf2.obj netcdf3.obj common.obj
 IF "%1"=="MEXNC" GOTO END
 
