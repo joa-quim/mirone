@@ -29,7 +29,6 @@
 static char    error_message[1000];
 
 
-
 /*
  * DETERMINE_VARM_OUTPUT_SIZE
  *
@@ -74,17 +73,13 @@ void     determine_varm_output_size (
      * Loop index
      * */
     int j, k;
-
-
     char    error_message[1000];
-
 
     /*
      * If an element in this array is flagged, it means that we 
      * have already figured its contribution.
      * */
     int still_unused[MAX_NC_DIMS];
-
 
     /*
      * Keeps track of the largest remaining imap coordinate for
@@ -93,23 +88,14 @@ void     determine_varm_output_size (
     ptrdiff_t max_imap_element_size;
     ptrdiff_t max_imap_element_index;
 
-
-    /*
-     * Initialize the flag array.
-     * */
-    for ( j = 0; j < MAX_NC_DIMS; ++j ) {
+    /* Initialize the flag array. * */
+    for ( j = 0; j < MAX_NC_DIMS; ++j )
         still_unused[j] = 1;
-    }
 
-
-    /*
-     * For each dimension, figure the contribution.
-     * */
+    /* For each dimension, figure the contribution. */
     for ( j = 0; j < ndims; ++j ) {
 
-        /*
-         * Find the largest remaining imap element.
-         * */
+        /* Find the largest remaining imap element. */
         max_imap_element_size = -1; 
         for ( k = 0; k < ndims; ++k ) { 
             if ( (nc_imap_coord[k] > max_imap_element_size) && ( still_unused[k] ) ) {
@@ -118,7 +104,6 @@ void     determine_varm_output_size (
             }
         }
 
-
         /*
          * Figure the contribution for this dimension.
          * Remember to reverse the order, otherwise the row-major order
@@ -126,19 +111,12 @@ void     determine_varm_output_size (
          * */
         result_size[j] = num_requested_elements / nc_imap_coord [ max_imap_element_index ];
 
-        /*
-         * Reduce the dimensionality.
-         * */
+        /* Reduce the dimensionality. */
         num_requested_elements = nc_imap_coord [ max_imap_element_index ];
 
-
-        /*
-         * We are done with this imap coordinate.  Mark it as used.
-         * */
+        /* We are done with this imap coordinate.  Mark it as used. */
         still_unused[max_imap_element_index] = 0;
-
     }
-
 
     /*
      * Check that no elements in result_size are non-positive.
@@ -180,15 +158,7 @@ void     determine_varm_output_size (
 
         }
     }
-
-
 }
-
-
-
-
-
-
 
 /***********************************************************************
  *
@@ -222,12 +192,10 @@ void handle_nc_abort
 ) 
 {
 
-
     /*
      * Pointer shortcut to matrix data.
      * */
     double *pr;
-
 
     /*
      * file and variable IDs used in nc_copy_att
@@ -238,8 +206,6 @@ void handle_nc_abort
      * Return status from netcdf operation.  
      * */
     int      status;
-
-
 
     /*
      * Make sure that the inputs are the right type.
@@ -257,15 +223,6 @@ void handle_nc_abort
     return;
 
 }
-
-
-
-
-
-
-
-
-
 
 /***********************************************************************
  *
@@ -298,7 +255,6 @@ void handle_nc_close
     op            *nc_op 
 ) 
 {
-
 
     /*
      * Pointer shortcut to matrix data.
@@ -428,13 +384,6 @@ void handle_nc_copy_att
     return;
 
 }
-
-
-
-
-
-
-
             
 /***********************************************************************
  *
@@ -476,12 +425,10 @@ void handle_nc__create
 ) 
 {
 
-
     /*
      * Pointer shortcut to matrix data.
      * */
     double *pr;
-
 
     /*
      * file and variable IDs used in nc_copy_att
@@ -538,14 +485,7 @@ void handle_nc__create
     plhs[2] = mexncCreateDoubleScalar ( status );
             
     return;
-
 }
-
-
-
-
-
-
 
 /***********************************************************************
  *
@@ -2807,19 +2747,6 @@ void handle_nc_put_var_x (
     return;
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
 /***********************************************************************
  *
  * HANDLE_NC_PUT_VARM_X
@@ -2993,21 +2920,6 @@ void handle_nc_put_varm_x (
     return;
 
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 /***********************************************************************
  *

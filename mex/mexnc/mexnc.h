@@ -5,8 +5,6 @@
 # if !defined	MEXNC_H
 # define		MEXNC_H
 
-
-
 /*	
  *	NetCDF Operations.	
  *
@@ -200,10 +198,6 @@ typedef struct s_parm	{
 	int      len;		/*	Minimal unique length.	*/
 } parm;
 	
-
-
-
-
 void          handle_netcdf2_api ( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[], op *nc_op );	
 void          handle_netcdf3_api ( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[], op *nc_op );	
 size_t       *Mat2Size_t ( const mxArray *mat );
@@ -215,7 +209,6 @@ void          check_mode_argument_type    ( const mxArray *mx[], char *opname, i
 void          check_mode_argument_type    ( const mxArray *mx[], char *opname, int idx ); 
 void          check_numeric_argument_type ( const mxArray *mx[], char *opname, int idx );
 void          check_char_or_numeric_argument_type ( const mxArray *mx[], char *opname, int idx );
-
 void          check_other_args_for_empty_set ( op *nc_op, const mxArray *prhs[], int nrhs );
 
 int           interpret_char_parameter ( const mxArray *mx );
@@ -241,14 +234,11 @@ int           unpack_char_file_mode ( char *input_string_mode );
 
 void          varm_coord_sanity_check ( const mxArray *prhs[], int ndims );
 
-
 /*
  * Need this to get a successful compile on win32
 #ifdef DLL_NETCDF
 #define snprintf sprintf_s
 #endif
  * */
-
-
 
 # endif
