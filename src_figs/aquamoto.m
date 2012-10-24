@@ -43,6 +43,7 @@ function varargout = aquamoto(varargin)
 		handles.work_dir = handMir.work_dir;
 		handles.DefineEllipsoide = handMir.DefineEllipsoide;	% Potentially need in aquaPlugin
 		handles.DefineMeasureUnit = handMir.DefineMeasureUnit;	%				"
+		handles.IamCompiled = handMir.IamCompiled;
         d_path = handMir.path_data;
 	else
 		if (numel(varargin) >= 1)		% File name in input
@@ -62,7 +63,11 @@ function varargout = aquamoto(varargin)
 		handles.work_dir = handles.home_dir;
 		handles.DefineEllipsoide = [6378137, 0, 1/298.2572235630];	% Defaults to WGS-84
  		handles.DefineMeasureUnit = 'u';							% Defaults to 'user' units
-       d_path = [handles.home_dir filesep 'data' filesep];
+		d_path = [handles.home_dir filesep 'data' filesep];
+		% Need to know if "IamCompiled". Since that info is in Mirone handles, we need to find it out here
+		try			which('mirone');			handles.IamCompiled = false;
+		catch,		handles.IamCompiled = true;
+		end
 	end
 
 	% -------------- Import/set icons --------------------------------------------
