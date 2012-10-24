@@ -940,6 +940,8 @@ function calc_L2_periods(handles, period, tipoStat, regMinMax, grd_out)
 			end
 			tmp = doM_or_M_or_M(Z, 1, size(Z,3), regionalMIN, regionalMAX, tipoStat);
 			tmp(tmp == 0) = NaN;		% Reset the NaNs
+			zzz = grdutils(tmp,'-L');
+			handles.head(5) = min(handles.head(5), zzz(1));		handles.head(6) = max(handles.head(6), zzz(2));
 		else
 			tmp = alloc_mex(rows, cols, 1, 'single', NaN);
 		end
@@ -947,9 +949,19 @@ function calc_L2_periods(handles, period, tipoStat, regMinMax, grd_out)
 		% Compute the mean time of this bin and use it to name the layer
 		thisLevel = periods(m) + half_period(m);
 
-		% Write this layer to file
-		if (m == 1),		nc_io(grd_out, sprintf('w%f/time',-thisLevel), handles, reshape(tmp,[1 size(tmp)]))
-		else				nc_io(grd_out, sprintf('w%d\\%f', m-1, thisLevel), handles, tmp)
+		% Write this layer to file, but must treate compiled version differently since
+		% it is not able to write UNLIMITED files
+		if (~handles.IamCompiled)
+			if (m == 1),		nc_io(grd_out, sprintf('w-%f/time',thisLevel), handles, reshape(tmp,[1 size(tmp)]))
+			else				nc_io(grd_out, sprintf('w%d\\%f', m-1, thisLevel), handles, tmp)
+			end
+		else
+			if (m == 1)
+				handles.levelVec = periods + half_period;
+     			nc_io(grd_out,sprintf('w%d/time',n_periods), handles, reshape(tmp,[1 size(tmp)]))
+			else
+				nc_io(grd_out, sprintf('w%d', m-1), handles, tmp)
+			end
 		end
 
 		h = aguentabar(m/n_periods,'title','Computing period means.');	drawnow
