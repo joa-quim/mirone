@@ -31,14 +31,10 @@
 # include <math.h>
 # include <limits.h>
 # include <assert.h>
-
 # include "netcdf.h"
-
 # include "mex.h"
-
 # include "mexnc.h"
 # include "netcdf2.h"
-
 
 static int     Convert             (OPCODE, nc_type, int, VOIDP, DOUBLE, DOUBLE, DOUBLE *);
 static int     Count               (const Matrix *mat);
@@ -54,17 +50,12 @@ static long    Scalar2Long         (const Matrix *);
 static Matrix *SetNum              (const Matrix *);
 static Matrix *SetStr              (const Matrix *);
 static Matrix *Str2Mat (char *);
-
 static	Matrix  *Long2Scalar       (long);
 static	DOUBLE   Scale_Factor      (int, int);
 static	DOUBLE   Add_Offset        (int, int);
-
 long m53_round(double x);
 
-
 static parm parms[] =	{
-
-
 	{ MAX_NC_NAME, "MAX_NC_NAME", 8 },
 	{ MAX_NC_DIMS, "MAX_NC_DIMS", 8 },
 	{ MAX_NC_VARS, "MAX_NC_VARS", 8 },
@@ -93,27 +84,12 @@ static parm parms[] =	{
 
 };
 
-
-
-
 /*	MexFunction(): Mex-file entry point.	*/
 
-void
-handle_netcdf2_api	(
-	int			nlhs,
-	Matrix	*	plhs[],
-	int			nrhs,
-	const Matrix	*	prhs[],
-	op              *nc_op
-	/*
-	OPCODE          opcode
-	*/
-	)
-
-{
+void handle_netcdf2_api	(int nlhs, Matrix *plhs[], int nrhs, const Matrix *prhs[], op *nc_op) {
+	/* OPCODE          opcode */
 	
 	Matrix		*	mat;
-	
 	int				status;
 	char		*	path;
 	int				cmode;
@@ -150,15 +126,11 @@ handle_netcdf2_api	(
 	char		*	attname;
 	char		*	newname;
 	int				fillmode;
-	
 	int				i;
-
 	/*
 	 * m and n are the number of rows and columns of a matrix.
 	 * */
 	int				m, n;
-
-
 	char		*	p;
 	char			buffer[MAX_BUFFER];
 	char			error_message[MAX_BUFFER];
@@ -167,32 +139,21 @@ handle_netcdf2_api	(
 	DOUBLE			addoffset;
 	DOUBLE			scalefactor;
 	int		 autoscale;		/* do auto-scaling if this flag is non-zero. */
-
 	char	error_buffer[1000];
-
-	
 	int		 nclen;			/* result of call to nctypelen */
 						/* It's the number of bytes that the datatype takes up. */
-
-
 	OPCODE		 opcode = nc_op->opcode;
-
 	/*
 	 * Type of input data
 	 * */
 	mxClassID    class_id;
-
-
 	/*
 	 * These are error message templates.
 	 * */
-	char		*ncid_error_fmt = "ncid argument must be of type matlab native double precision, operation \"%s\", line %d file \"%s\"\n"; 
-	char		*dimid_error_fmt = "dimid argument must be matlab native double precision (<== that one, please) or character, operation \"%s\", line %d file \"%s\"\n"; 
-	char		*varid_error_fmt = "varid argument must be matlab native double precision (<== that one, please) or character, operation \"%s\", line %d file \"%s\"\n"; 
-	char		*attname_error_fmt = "attribute argument must be matlab native double precision or character, operation \"%s\", line %d file \"%s\"\n"; 
-
-
-
+	char *ncid_error_fmt = "ncid argument must be of type matlab native double precision, operation \"%s\", line %d file \"%s\"\n"; 
+	char *dimid_error_fmt = "dimid argument must be matlab native double precision (<== that one, please) or character, operation \"%s\", line %d file \"%s\"\n"; 
+	char *varid_error_fmt = "varid argument must be matlab native double precision (<== that one, please) or character, operation \"%s\", line %d file \"%s\"\n"; 
+	char *attname_error_fmt = "attribute argument must be matlab native double precision or character, operation \"%s\", line %d file \"%s\"\n"; 
 
 	/*	Extract the cdfid by number.	*/
 	
@@ -215,15 +176,10 @@ handle_netcdf2_api	(
 		        return;
 		}
 
-	
-
 		cdfid = Scalar2Int(prhs[1]);
-	
 		break;
 	}
 
-
-	
 	/*	Extract the dimid by number or name.	*/
 	
 	switch (opcode)	{
@@ -245,12 +201,6 @@ handle_netcdf2_api	(
 			Free((VOIDPP) & name);
 		}
 		break;
-
-
-
-
-
-
 	
 	default:
 	
@@ -277,7 +227,6 @@ handle_netcdf2_api	(
 	case ATTNAME:
 	case ATTRENAME:
 	case ATTDEL:
-	
 		if ( !((mxIsChar(prhs[2]) == true) || (mxIsDouble(prhs[2]) == true )) ) {
 		        sprintf ( error_message, varid_error_fmt, nc_op->opname, __LINE__, __FILE__ );
 		        mexErrMsgTxt ( error_message );
@@ -291,13 +240,8 @@ handle_netcdf2_api	(
 		}
 	
 	default:
-	
 		break;
 	}
-	
-
-
-
 
 	/*	Extract the attname by name or number.	*/
 	
@@ -309,7 +253,6 @@ handle_netcdf2_api	(
 	case ATTCOPY:
 	case ATTRENAME:
 	case ATTDEL:
-	
 		if ( !((mxIsChar(prhs[3]) == true) || (mxIsDouble(prhs[3]) == true )) ) {
 		        sprintf ( error_message, attname_error_fmt, nc_op->opname, __LINE__, __FILE__ );
 		        mexErrMsgTxt ( error_message );
@@ -326,14 +269,8 @@ handle_netcdf2_api	(
 		break;
 	
 	default:
-	
 		break;
 	}
-
-
-
-
-
 	
 	/*	Extract the "add_offset" and "scale_factor" attributes.	*/
 	
@@ -345,24 +282,20 @@ handle_netcdf2_api	(
 	case VARGET:
 	case VARPUTG:
 	case VARGETG:
-
 		addoffset = Add_Offset(cdfid, varid);
 		scalefactor = Scale_Factor(cdfid, varid);
-		if (scalefactor == 0.0)	{
+		if (scalefactor == 0.0)
 			scalefactor = 1.0;
-		}
 		
 		break;
 	
 	default:
-	
 		break;
 	}
 	
 	/*	Perform the NetCDF operation.	*/
 	
 	switch (opcode)	{
-		
 	
 	case CREATE:
 		
@@ -376,12 +309,9 @@ handle_netcdf2_api	(
 		}
 		
 		cdfid = nccreate(path, cmode);
-		
 		plhs[0] = Int2Scalar(cdfid);
 		plhs[1] = Int2Scalar((cdfid >= 0) ? 0 : -1);
-		
 		Free((VOIDPP) & path);
-		
 		break;
 		
 	case OPEN:
@@ -396,36 +326,24 @@ handle_netcdf2_api	(
 		}
 		
 		cdfid = ncopen(path, mode);
-		
 		plhs[0] = Int2Scalar(cdfid);
 		plhs[1] = Int2Scalar((cdfid >= 0) ? 0 : -1);
-		
 		Free((VOIDPP) & path);
-		
 		break;
 		
 	case REDEF:
-		
 		status = ncredef(cdfid);
-		
 		plhs[0] = Int2Scalar(status);
-		
 		break;
 		
 	case ENDEF:
-		
 		status = ncendef(cdfid);
-		
 		plhs[0] = Int2Scalar(status);
-		
 		break;
 		
 	case CLOSE:
-		
 		status = ncclose(cdfid);
-		
 		plhs[0] = Int2Scalar(status);
-		
 		break;
 		
 	case INQUIRE:
@@ -456,45 +374,32 @@ handle_netcdf2_api	(
 	case SYNC:
 	
 		status = ncsync(cdfid);
-		
 		plhs[0] = Int2Scalar(status);
-		
 		break;
 		
 	case ABORT:
 	
 		status = ncabort(cdfid);
-		
 		plhs[0] = Int2Scalar(status);
-		
 		break;
 		
 	case DIMDEF:
 	
 		name = Mat2Str(prhs[2]);
-
 		length = Parameter(prhs[3]);
-		
 		dimid = ncdimdef(cdfid, name, length);
-		
 		plhs[0] = Int2Scalar(dimid);
 		plhs[1] = Int2Scalar((dimid >= 0) ? 0 : dimid);
-		
 		Free((VOIDPP) & name);
-		
 		break;
 		
 	case DIMID:
 	
 		name = Mat2Str(prhs[2]);
-		
 		dimid = ncdimid(cdfid, name);
-		
 		plhs[0] = Int2Scalar(dimid);
 		plhs[1] = Int2Scalar((dimid >= 0) ? 0 : dimid);
-		
 		Free((VOIDPP) & name);
-		
 		break;
 		
 	case DIMINQ:
@@ -523,7 +428,6 @@ handle_netcdf2_api	(
 		if (ndims == -1)	{
 			ndims = Count(prhs[5]);
 		}
-
 
 		/*
 		 * Check against the case where [] was passed in as the list of 
@@ -752,7 +656,6 @@ handle_netcdf2_api	(
 			}
 		}
 		
-
 		/*
 		 * The return value of EVERY function call should be checked.
 		 */
@@ -762,7 +665,6 @@ handle_netcdf2_api	(
 			break;
 		}
 
-		
 		value = (VOIDP) mxCalloc(len, nclen);
 		status = Convert(opcode, datatype, len, value, scalefactor, addoffset, pr);
 		status = ncvarput(cdfid, varid, start, count, value);
@@ -797,7 +699,6 @@ handle_netcdf2_api	(
 			plhs[1] = Int2Scalar(status);
 			return;
 		}
-		
 		
 		for (i = 0; i < ndims; i++)	{
 			if (count[i] == -1)	{
@@ -2240,7 +2141,8 @@ mxArray *Int2Mat ( int *pint, int m, int n) {
 #ifdef NC4_V2_COMPAT
 
 #include <stdarg.h>
-#pragma warning( disable : 1740 )	/* warning #1740: dllexport/dllimport conflict ... dllexport assumed */
+#pragma warning( disable : 1740 )	/* Intel warning code */
+#pragma warning( disable : 4273 )	/* warning #4273: inconsistent dll linkage */
 
 #if SIZEOF_LONG == SIZEOF_SIZE_T
 /*
@@ -2253,7 +2155,6 @@ mxArray *Int2Mat ( int *pint, int m, int n) {
 	const type *const name = ((const type *)(rhs))
 
 # define A_FREE(name)
-
 # define A_INIT(lhs, type, ndims, rhs)
 	
 #else 
@@ -2299,7 +2200,6 @@ nvdims(int ncid, int varid)
 	}
 #endif
 
-
 void nc_advise(const char *routine_name, int err, const char *fmt,...) {
 	va_list args;
 
@@ -2314,15 +2214,14 @@ void nc_advise(const char *routine_name, int err, const char *fmt,...) {
 		(void) vfprintf(stderr,fmt,args);
 		va_end(args);
 		if(err != NC_NOERR) {
-			(void) fprintf(stderr,": %s",
-				nc_strerror(err));
+			(void) fprintf(stderr,": %s", nc_strerror(err));
 		}
 		(void) fputc('\n',stderr);
 		(void) fflush(stderr);	/* to ensure log files are current */
 	}
 
-	if( (ncopts & NC_FATAL) && err != NC_NOERR )
-		exit(ncopts);
+	/*if( (ncopts & NC_FATAL) && err != NC_NOERR )
+		exit(ncopts);*/
 }
 
 int ncattname(int ncid, int	varid, int attnum, char *name ) {
@@ -2601,20 +2500,9 @@ int ncvarid(int ncid, const char *name) {
 	return varid;
 }
 
-int
-ncvarinq(
-    int		ncid,
-    int		varid,
-    char*	name,
-    nc_type*	datatype,
-    int*	ndims,
-    int*	dim,
-    int*	natts
-)
-{
+int ncvarinq(int ncid, int varid, char *name, nc_type *datatype, int *ndims, int *dim, int *natts ) {
 	int nd, na;
-	const int status = nc_inq_var(ncid, varid, name, datatype,
-		 &nd, dim, &na);
+	const int status = nc_inq_var(ncid, varid, name, datatype, &nd, dim, &na);
 
 	if(status != NC_NOERR) {
 		nc_advise("ncvarinq", status, "ncid %d", ncid);
@@ -2631,16 +2519,9 @@ ncvarinq(
 	return varid;
 }
 
-int
-ncvarrename(
-    int		ncid,
-    int		varid,
-    const char*	name
-)
-{
+int ncvarrename(int	 ncid, int varid, const char *name ) {
 	const int status = nc_rename_var(ncid, varid, name);
-	if(status != NC_NOERR)
-	{
+	if(status != NC_NOERR) {
 		nc_advise("ncvarrename", status, "ncid %d", ncid);
 		return -1;
 	}
