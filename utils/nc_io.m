@@ -13,7 +13,8 @@ function varargout = nc_io(fname, mode, handles, data, misc)
 %			MODE == 'w' and DATA the 2D array to be saved
 %			MISC is optional and if provided it must contain the fields as declared below.
 %
-%	Special case of multi-Layer writing:
+%	Special case of multi-Layer writing:	PAY ATTENTION TO THE SLASHES
+%
 %			MODE == 'wN/levelsName' initialize the netCDF file for writing a 3D file.
 %					Where 'N' is the number of levels and 'levelsName' the name of thirth
 %					dimension variable.
@@ -26,8 +27,14 @@ function varargout = nc_io(fname, mode, handles, data, misc)
 %					ATTENTION: K is zero based
 %
 %				In case of a LIMITED var the levels vector may be transmitted via the handles structure.
-%				If absent, a default one with (1:N) is created. This information may be transmited 
-%				only on the last call	(for the cases of only than all values of that vector are known)
+%				This is done by setting the the calling function
+%					handles.levelVec = levelVec;
+%				If absent, a default one with (1:N) is created. This information may be transmitted 
+%				only on the last call (for the cases of only than all values of that vector are known)
+%
+%				The above is extremely important for the standalone version. For an highly mysterious
+%				reason the mexnc call in nc_funs/write_the_data() errors when writing UNLIMITED variables
+%				so the only way out is to send in the levelVec (vector of times, most of times)
 
 %	Copyright (c) 2004-2012 by J. Luis
 %
@@ -248,7 +255,9 @@ function write_nc(fname, handles, data, misc, page)
 	% ------- Put the coords vectors ---
 	nc_funs('varput', fname, x_var, X );
 	nc_funs('varput', fname, y_var, Y );
-	if (is3D && ~is_unlimited),	nc_funs('varput', fname, levelName, levelVec );		end		% not UNLIMITED
+	if (is3D && ~is_unlimited)				% For LIMITED files, save the vector of times
+		nc_funs('varput', fname, levelName, levelVec );
+	end
 
 	nc_funs('attput', fname, x_var, 'long_name', x_var );
 	nc_funs('attput', fname, x_var, 'units', x_units);
@@ -277,7 +286,7 @@ function write_nc(fname, handles, data, misc, page)
 		end
 	end
 
-	if (is3D && is_unlimited),	nc_funs('varput', fname, levelName, levelVec(1), 0, 1 );		end		% The UNLIMITED var value
+	if (is3D && is_unlimited),	nc_funs('varput', fname, levelName, levelVec(1), 0, 1 );	end		% The UNLIMITED var value
 	if (ndims(data) == 2)
 		nc_funs('varput', fname, z_name, data, [0 0], [ny nx] );
 	elseif (ndims(data) == 3)
