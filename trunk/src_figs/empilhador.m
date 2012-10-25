@@ -1293,7 +1293,7 @@ function [opt_R, opt_I, opt_C, bitflags, flagsID, despike] = sniff_in_OPTcontrol
 	% the user can choose to use my default values that were written in .../tmp/L2config.txt by
 	% push_compute_CB, or alternatively by redirecting the reading to the .../data/L2config.txt
 	% For the time being, if any of the above is not used we still look inside OPTcontrol.txt
-	handles = fish_handles();
+	handles = fish_handles;
 	if (get(handles.check_L2, 'Val'))					% This should now be the main branch
 		if (get(handles.check_L2conf, 'Val'))
 			opt_file = [handles.path_data 'L2config.txt'];		% Use User edited config file
