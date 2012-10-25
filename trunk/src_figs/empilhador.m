@@ -102,11 +102,11 @@ function push_namesList_CB(hObject, handles, opt)
 %		NEWs: It is now possible to provide the SDS name instead of the 'sdsN' described above.
 %		But to distinguish both mechanisms the SDS name must be prepended with a '-', as in -sst4
 
-    if (nargin == 2)        % Direct call
+    if (nargin == 2)		% Direct call
     	str1 = {'*.dat;*.DAT;*.txt;*.TXT', 'Data files (*.dat,*.DAT,*.txt,*.TXT)';'*.*', 'All Files (*.*)'};
         [FileName,PathName,handles] = put_or_get_file(handles, str1,'File with grids list','get');
 	    if isequal(FileName,0),		return,		end
-    else        % File name on input
+	else					% File name on input
 		opt = check_wildcard_fname(opt);	% Check if a lazy 'path/*.xxx X X' request
         [PathName,FNAME,EXT] = fileparts(opt);
         PathName = [PathName filesep];      % To be coherent with the 'if' branch
@@ -314,6 +314,17 @@ function radio_multiBand_CB(hObject, handles)
 	set([handles.radio_conv2netcdf handles.radio_conv2vtk],'Val',0)
 
 % -----------------------------------------------------------------------------------------
+function check_L2_CB(hObject, handles)
+% To deal with MODIS L2 products
+	if (get(hObject,'Val'))
+		set(handles.check_L2conf ,'Vis','on')			% Make the config file option visible
+		set(handles.check_region,'Val',1)				% Do this for the user 
+		check_region_CB(handles.check_region, handles)	% Simulate that it has been checked
+	else
+		set(handles.check_L2conf ,'Vis','off')
+	end
+
+% -----------------------------------------------------------------------------------------
 function check_region_CB(hObject, handles)
 	if (get(hObject,'Val'))
 		set([handles.edit_north handles.edit_south handles.edit_west handles.edit_east],'Enable','on')
@@ -380,7 +391,7 @@ function edit_stripeWidth_CB(hObject, handles)
 
 % -----------------------------------------------------------------------------------------
 function push_compute_CB(hObject, handles)
-% ...
+% Test for obvious errors and start computation
 
 	if (~isempty(handles.OneByOneNameList) && handles.OneByOneFirst)	% Files we entered one by one. Must trick to reuse code
 		lixoName = [handles.path_tmp 'listName_lixo.txt'];
@@ -402,8 +413,8 @@ function push_compute_CB(hObject, handles)
 		return
 	end
 
-	got_R = false;	west = [];			east = [];		south = [];		north = [];
-	if (get(handles.check_region,'Val'))
+	got_R = false;		west = [];			east = [];		south = [];		north = [];
+	if (get(handles.check_region, 'Val'))
 		north = str2double(get(handles.edit_north,'String')); 
 		west = str2double(get(handles.edit_west,'String')); 
 		east = str2double(get(handles.edit_east,'String')); 
@@ -412,6 +423,20 @@ function push_compute_CB(hObject, handles)
 			errordlg('One of the region limits was not provided','Error'),	return
 		end
 		got_R = true;
+		% See if we have an L2 request and if user wants to use our default settings for that
+		if ( get(handles.check_L2, 'Val') && ~get(handles.check_L2conf, 'Val') )
+			if ( get(handles.radio_multiBand, 'Val') )
+				errordlg('No, creating multi-band file is not possible with L2 MODIS files','Error'),	return
+			end
+			fid = fopen([handles.path_tmp 'L2config.txt'], 'w');
+			fprintf(fid,'# Config file created by Empilhador with default settings for L2 MODIS files\n\n');
+			fprintf(fid,'# Variables used in converting L2 satellite images from sensor to geographical coordinates.\n');
+			fprintf(fid,'# First one contains parameters of interpolation (-C is gmtmbgrid only) and second are quality flags\n');
+			fprintf(fid,'MIR_EMPILHADOR -I0.01 -C3 -R%.12g/%.12g/%.12g/%.12g\n', west,east,south,north);
+			fprintf(fid,['MIR_EMPILHADOR_F  ATMFAIL,LAND,HIGLINT,HILT,HISATZEN,STRAYLIGHT,CLDICE,' ...
+				'COCCOLITH,HISOLZEN,LOWLW,CHLFAIL,NAVWARN,MAXAERITER,CHLWARN,ATMWARN,NAVFAIL,FILTER\n']);
+			fclose(fid);
+		end
 	end
 
 	cut2cdf(handles, got_R, west, east, south, north)
@@ -473,7 +498,7 @@ function cut2tif(handles, got_R, west, east, south, north, FileName)
 
 % -----------------------------------------------------------------------------------------
 function cut2cdf(handles, got_R, west, east, south, north)
-% Save into a multi-layer netCDF file
+% Saveas as a multi-layer netCDF file
 
 	if (get(handles.radio_conv2netcdf,'Val'))		% netCDF format
 		this_ext = '.nc';							txt0 = '*.nc;*.grd';
@@ -511,7 +536,7 @@ function cut2cdf(handles, got_R, west, east, south, north)
 	for (k = 1:nSlices)
 		set(handles.listbox_list,'Val',k),		pause(0.01)			% Show advance
 
-		if (handles.caracol(k))				% Ai, we need to change CD
+		if (handles.caracol(k))						% Ai, we need to change CD
 			msg = handles.changeCD_msg{n_cd};
 			resp = yes_or_no('string',['OK, this one is over. ' msg '  ... and Click "Yes" to continue']);
 			n_cd = n_cd + 1;
@@ -565,8 +590,8 @@ function cut2cdf(handles, got_R, west, east, south, north)
 			handles.head(5:6) = [double(min(Z(:))) double(max(Z(:)))];
 		end
 
-		% Must treate compiled version differently since, biggest of misteries, nc_funs
-		% than hangs when writting unlimited variables
+		% Must treat compiled version differently since, biggest of mysteries, nc_funs
+		% than hangs when writing unlimited variables
 		if (~handles.IamCompiled)
 			if (~isempty(handles.strTimes)),		t_val = handles.strTimes{k};
 			else									t_val = sprintf('%d',k - 1);
@@ -1040,7 +1065,7 @@ function [Z, att, known_coords, have_nans] = read_gdal(full_name, att, IamCompil
 		att = get_baseNameAttribs(full_name);
 	end
 
-	if (att.RasterCount == 0 && ~isempty(att.Subdatasets) && strncmp(att.DriverShortName, 'HDF4', 4))		% Some MODIS files
+	if (att.RasterCount == 0 && ~isempty(att.Subdatasets) && strncmp(att.DriverShortName, 'HDF4', 4))	% Some MODIS files
 		sds_num = 1;
 		handles = guidata(gcf);
 		if (~isempty(handles.SDSinfo))		sds_num = handles.SDSthis * 2 - 1;		end		% We have a SubDataset request
@@ -1251,7 +1276,8 @@ function [att, uncomp_name] = get_baseNameAttribs(full_name)
 % -----------------------------------------------------------------------------------------
 function [opt_R, opt_I, opt_C, bitflags, flagsID, despike] = sniff_in_OPTcontrol(old_R, att)
 % Check the OPTcontrol file for particular requests in terms of -R, -I or quality flags
-% OPT_R is what the OPTcontrol has in
+% OPT_R is what the OPTcontrol has in (but now deprecated, see below)
+%
 % BITFLAGS is a vector with the bit number corresponding to the flgs keys in OPTcontrol.
 %			Returns [] when no bitflags keywords are found.
 % FLAGSID is the subdatset number adress of the flags array (l2_flags)
@@ -1262,11 +1288,29 @@ function [opt_R, opt_I, opt_C, bitflags, flagsID, despike] = sniff_in_OPTcontrol
 	got_flags = false;		bitflags = [];		flagsID = 0;	despike = false;
 	opt_I = [];				opt_C = [];
 	opt_R = old_R;			% In case we return without finding a new -R
-	mir_dirs = getappdata(0,'MIRONE_DIRS');
-	if (~isempty(mir_dirs))
-		opt_file = [mir_dirs.home_dir '/data/OPTcontrol.txt'];
+
+	% OK, this is a transitional code. Before we used to seek the info in OPTcontrol.txt but now
+	% the user can choose to use my default values that were written in .../tmp/L2config.txt by
+	% push_compute_CB, or alternatively by redirecting the reading to the .../data/L2config.txt
+	% For the time being, if any of the above is not used we still look inside OPTcontrol.txt
+	handles = fish_handles();
+	if (get(handles.check_L2, 'Val'))					% This should now be the main branch
+		if (get(handles.check_L2conf, 'Val'))
+			opt_file = [handles.path_data 'L2config.txt'];		% Use User edited config file
+			if (~(exist(opt_file, 'file') == 2))
+				errordlg(['GHrrrr. You told me read ' opt_file ' but that file does not exist'],'Error')
+				error('EMPILHADOR:Sniff_in_Config', 'Oh, were is your head?')
+			end
+		else
+			opt_file = [handles.path_tmp 'L2config.txt'];		% Use our automatically generated file
+		end
 	else
-		return				% Since we cannot find the OPTcontrol file
+		mir_dirs = getappdata(0,'MIRONE_DIRS');	% This will go away because now we have that info in handles
+		if (~isempty(mir_dirs))
+			opt_file = [mir_dirs.home_dir '/data/OPTcontrol.txt'];
+		else
+			return				% Since we cannot find the OPTcontrol file
+		end
 	end
 	if (~(exist(opt_file, 'file') == 2)),		return,		end		% Nickles
 	
@@ -1288,7 +1332,7 @@ function [opt_R, opt_I, opt_C, bitflags, flagsID, despike] = sniff_in_OPTcontrol
 		end
 		if (got_one),	continue,	end		% Done with this line
 		if (strcmp(lines{k}(15:16),'_F'))	% We have a bitflags request
-			got_flags = true;			% If it comes here means that we have a flags request
+			got_flags = true;				% If it comes here means that we have a flags request
 			flaglist = opt;
 		elseif (strcmp(lines{k}(15:16),'_C'))	% Despike MODIS SST
 			% The key MIR_EMPILHADOR_C has currently one argument only, 'AVG', but this may change
@@ -1334,6 +1378,12 @@ function [opt_R, opt_I, opt_C, bitflags, flagsID, despike] = sniff_in_OPTcontrol
 		end
 		bitflags = [fmap{c,2}];
 	end
+
+% -----------------------------------------------------------------------------------------
+function handles = fish_handles()
+% Secure function to get the handles structure. GCF is just too risky
+	[hObj, hFig] = gcbo;
+	handles = guidata(hFig);
 
 % -----------------------------------------------------------------------------------------
 function ID = find_in_subdatasets(AllSubdatasets, name, ncmp)
@@ -1454,7 +1504,7 @@ uicontrol('Parent',h1,'Position',[6 254 401 21],...
 'Tooltip','Name of an ascii file with the grids list. One grid name per row',...
 'Tag','edit_namesList');
 
-uicontrol('Parent',h1,'Position',[407 252 23 23],...
+uicontrol('Parent',h1,'Position',[407 253 23 23],...
 'Call','empilhador(''push_namesList_CB'',gcbo,guidata(gcbo))',...
 'Tooltip','Browse for a grids list file',...
 'Tag','push_namesList');
@@ -1479,10 +1529,24 @@ uicontrol('Parent',h1, 'Position',[244 195 140 15],...
 'Call','empilhador(''radio_multiBand_CB'',gcbo,guidata(gcbo))',...
 'String','Make multi-band image',...
 'Style','radiobutton',...
-'Tooltip','Take a list of files and compute a zonal average file',...
+'Tooltip','Take a list of image files and create a single multi-band image',...
 'Tag','radio_multiBand');
 
-uicontrol('Parent',h1,'Position',[250 133 115 15],...
+uicontrol('Parent',h1,'Position',[245 167 85 15],...
+'Call','empilhador(''check_L2_CB'',gcbo,guidata(gcbo))',...
+'String','L2 magic',...
+'Style','checkbox',...
+'Tooltip','Do all hard work to process and reference MODIS L2 products',...
+'Tag','check_L2');
+
+uicontrol('Parent',h1,'Position',[330 167 155 15],...
+'String','Use config file',...
+'Style','checkbox',...
+'Vis','off',...
+'Tooltip','Fetch fine control from (MironeRoot)/data/L2config.txt file',...
+'Tag','check_L2conf');
+
+uicontrol('Parent',h1,'Position',[250 133 110 15],...
 'Call','empilhador(''check_region_CB'',gcbo,guidata(gcbo))',...
 'String','Use sub-region?',...
 'Style','checkbox',...
