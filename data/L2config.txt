@@ -1,0 +1,10 @@
+# Variables used in converting L2 satellite images from sensor to geographical coordinates.
+# First one contains parameters of interpolation (-C is gmtmbgrid only) and second are quality flags for SeaWiffs
+#
+# Lines that start with the hash # symbol are comment lines
+#
+MIR_EMPILHADOR -R-12/-7/35/38 -I0.01 -C3
+MIR_EMPILHADOR_F  ATMFAIL,LAND,HIGLINT,HILT,HISATZEN,STRAYLIGHT,CLDICE,COCCOLITH,HISOLZEN,LOWLW,CHLFAIL,NAVWARN,MAXAERITER,CHLWARN,ATMWARN,NAVFAIL,FILTER
+#MIR_EMPILHADOR_F LAND,SSTWARN,SSTFAIL
+# Uncomment to despike the MODIS L2 SST noise that it displays every other 10 rows 
+#MIR_EMPILHADOR_C AVG
