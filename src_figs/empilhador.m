@@ -1208,7 +1208,11 @@ function [Z, att, known_coords, have_nans] = read_gdal(full_name, att, IamCompil
 				if (isempty(opt_C)),	opt_C = '-C3';		end		% For gmtmbgrid only
 
 				if (isempty(Z))			% Instead of aborting we let it go with fully NaNified array
-					disp(['As a result of applying (probably wrongly) quality flags, no data was left in: ' full_name])
+					if (IamCompiled)
+						warndlg(['As a result of applying (probably wrong) quality flags, no data was left in: ' full_name],'Warning')
+					else
+						disp(['As a result of applying (probably wrong) quality flags, no data was left in: ' full_name])
+					end
 					[Z, head] = nearneighbor_m(single(1e3), single(1e3), single(0), opt_R, opt_e, '-N1', opt_I, '-S0.02');
 				else
 					if (what.nearneighbor)
@@ -1294,7 +1298,7 @@ function [opt_R, opt_I, opt_C, bitflags, flagsID, despike] = sniff_in_OPTcontrol
 	% push_compute_CB, or alternatively by redirecting the reading to the .../data/L2config.txt
 	% For the time being, if any of the above is not used we still look inside OPTcontrol.txt
 	handles = fish_handles;
-	if (get(handles.check_L2, 'Val'))					% This should now be the main branch
+	if (~isempty(handles) && get(handles.check_L2, 'Val'))		% This should now be the main branch
 		if (get(handles.check_L2conf, 'Val'))
 			opt_file = [handles.path_data 'L2config.txt'];		% Use User edited config file
 			if (~(exist(opt_file, 'file') == 2))
@@ -1305,7 +1309,7 @@ function [opt_R, opt_I, opt_C, bitflags, flagsID, despike] = sniff_in_OPTcontrol
 			opt_file = [handles.path_tmp 'L2config.txt'];		% Use our automatically generated file
 		end
 	else
-		mir_dirs = getappdata(0,'MIRONE_DIRS');	% This will go away because now we have that info in handles
+		mir_dirs = getappdata(0,'MIRONE_DIRS');
 		if (~isempty(mir_dirs))
 			opt_file = [mir_dirs.home_dir '/data/OPTcontrol.txt'];
 		else
@@ -1382,8 +1386,11 @@ function [opt_R, opt_I, opt_C, bitflags, flagsID, despike] = sniff_in_OPTcontrol
 % -----------------------------------------------------------------------------------------
 function handles = fish_handles()
 % Secure function to get the handles structure. GCF is just too risky
+	handles = [];
 	[hObj, hFig] = gcbo;
-	handles = guidata(hFig);
+	if (~isempty(hFig))					% It will be empty when calling Empilhador fucntions directly.
+		handles = guidata(hFig);		% That is, when the Empilhador figure was never created
+	end
 
 % -----------------------------------------------------------------------------------------
 function ID = find_in_subdatasets(AllSubdatasets, name, ncmp)
