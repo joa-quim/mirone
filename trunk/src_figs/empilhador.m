@@ -433,7 +433,7 @@ function push_compute_CB(hObject, handles)
 			fprintf(fid,'# Variables used in converting L2 satellite images from sensor to geographical coordinates.\n');
 			fprintf(fid,'# First one contains parameters of interpolation (-C is gmtmbgrid only) and second are quality flags\n');
 			fprintf(fid,'MIR_EMPILHADOR -I0.01 -C3 -R%.12g/%.12g/%.12g/%.12g\n', west,east,south,north);
-			fprintf(fid,['MIR_EMPILHADOR_F  ATMFAIL,LAND,HIGLINT,HILT,HISATZEN,STRAYLIGHT,CLDICE,' ...
+			fprintf(fid,['#MIR_EMPILHADOR_F  ATMFAIL,LAND,HIGLINT,HILT,HISATZEN,STRAYLIGHT,CLDICE,' ...
 				'COCCOLITH,HISOLZEN,LOWLW,CHLFAIL,NAVWARN,MAXAERITER,CHLWARN,ATMWARN,NAVFAIL,FILTER\n']);
 			fclose(fid);
 		end
@@ -570,7 +570,7 @@ function cut2cdf(handles, got_R, west, east, south, north)
 			continue
 		end
 
-		if (isfield(att, 'hdrModisL2_NEED2READ') && ~isempty(att.hdrModisL2_NEED2READ))	% Grid was likely reinterpolated. Update header
+		if (isfield(att, 'hdrModisL2_NEED2READ'))			% Grid was likely reinterpolated. Update header
 			handles.head = att.GMT_hdr;
 		end
 
