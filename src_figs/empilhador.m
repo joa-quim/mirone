@@ -570,7 +570,7 @@ function cut2cdf(handles, got_R, west, east, south, north)
 			continue
 		end
 
-		if (isfield(att, 'hdrModisL2') && ~isempty(att.hdrModisL2))	% Grid was very likely reinterpolated. Update header
+		if (isfield(att, 'hdrModisL2_NEED2READ') && ~isempty(att.hdrModisL2_NEED2READ))	% Grid was likely reinterpolated. Update header
 			handles.head = att.GMT_hdr;
 		end
 
@@ -728,7 +728,10 @@ function [head , slope, intercept, base, is_modis, is_linear, is_log, att, opt_R
 			if (~isempty(NoDataValue)),		att.Band(1).NoDataValue = NoDataValue;		end
 		end
 		is_modis = true;					% We'll use this knowledge to 'avoid' Land pixels = -32767  
-		att.hdrModisL2 = hdf_funs('hdfinfo', att.fname);
+		% Compressed HDF crash R13 hdf_funs() and we probably only need it in rare ocasions.
+		% So signal it to the extreme cases where we still have to call it to do it then.
+		% Perhaps it will still crash, but at least it won't on all other cases where we don't need hdf_funs().
+		att.hdrModisL2_NEED2READ = att.fname;
 		if (got_R)			% For L2 files we cannot find -R here (before sensor to geog coords conversion)
 							% So we store the croping info in 'att' to use later after reinterpolation
 			att.crop_info.opt_R = sprintf('-R%.12g/%.12g/%.12g/%.12g',west,east,south,north);
@@ -951,7 +954,7 @@ function [Z, have_nans, att] = getZ(fname, att, is_modis, is_linear, is_log, slo
 		IamCompiled = handles.IamCompiled;
 	else
 		% Need to know if "IamCompiled". Since that info is in handles, we need to find it out here
-		try			dumb = which('mirone');			IamCompiled = false;
+		try			which('mirone');			IamCompiled = false;
 		catch,		IamCompiled = true;
 		end
 	end
@@ -1076,7 +1079,7 @@ function [Z, att, known_coords, have_nans] = read_gdal(full_name, att, IamCompil
 		NoDataValue = guess_nodataval(subDsName);
 	end
 
-	% att.hdrInfo and att.hdrModisL2 are not default fields of the ATT struct
+	% att.hdrInfo and att.hdrModisL2_NEED2READ are not default fields of the ATT struct
 	try		fname = att.fname;
 	catch,	fname = [];
 	end
@@ -1086,7 +1089,7 @@ function [Z, att, known_coords, have_nans] = read_gdal(full_name, att, IamCompil
 		Z = flipud(Z);
 	else
 		opt_L = ' ';	GCPvalues = [];
-		if (isfield(att, 'hdrModisL2') && ~isempty(att.hdrModisL2))
+		if (isfield(att, 'hdrModisL2_NEED2READ') && ~isempty(att.hdrModisL2_NEED2READ))
 			% First check if lon, lat are of the same size of Z. If yes, than there is no need to reinterpolate
 			% the location grids ... to their same positions. This has the further advantage that all readings are
 			% done with GDAL and so will work also with the stand-alone version.
@@ -1099,6 +1102,7 @@ function [Z, att, known_coords, have_nans] = read_gdal(full_name, att, IamCompil
 				lat_full = gdalread(att.AllSubdatasets{latID}(ind+1:end), '-L');
 
 			else			% Bad luck. We need to go through the hdfread way.
+				att.hdrModisL2 = hdf_funs('hdfinfo', att.hdrModisL2_NEED2READ);		% MAY CRASH R13 when hdf files are compressed.
 				% These boys think they are very funy. Oh it's so cute to write the file from right-to-left !!!
 				Vg_index = numel(att.hdrModisL2.Vgroup);	% The uncomprehensible MESS never ends. Assume last has things of interst
 				lon = fliplr( hdf_funs('hdfread', att.fname, att.hdrModisL2.Vgroup(Vg_index).SDS(1).Name, 'index', {[],[], []}) );
