@@ -44,14 +44,14 @@ function hObject = empilhador_OpeningFcn(varargin)
 		handles.work_dir = handMir.work_dir;
 		handles.IamCompiled = handMir.IamCompiled;		% Need to know due to crazy issue of nc_funs
         handles.path_tmp = handMir.path_tmp;
-        d_path = handMir.path_data;
+		handles.path_data = handMir.path_data;
 	else
 		handles.home_dir = cd;
 		handles.last_dir = handles.home_dir;
 		handles.work_dir = handles.home_dir;
 		handles.IamCompiled = false;
         handles.path_tmp = [pwd filesep 'tmp' filesep];
-        d_path = [pwd filesep 'data' filesep];
+		handles.path_data = [pwd filesep 'data' filesep];
 	end
 	handles.nameList = [];
 	handles.OneByOneNameList = [];	% For when files are loaded one by one (risky)
@@ -61,7 +61,7 @@ function hObject = empilhador_OpeningFcn(varargin)
 									% call the helper window that asks questions (use default ans)
 
 	% -------------- Import/set icons --------------------------------------------
-	load([d_path 'mirone_icons.mat'],'Mfopen_ico');
+	load([handles.path_data 'mirone_icons.mat'],'Mfopen_ico');
 	set(handles.push_namesList, 'CData',Mfopen_ico)
 
 	%------------ Give a Pro look (3D) to the frame box -----------
@@ -419,8 +419,8 @@ function push_compute_CB(hObject, handles)
 		west = str2double(get(handles.edit_west,'String')); 
 		east = str2double(get(handles.edit_east,'String')); 
 		south = str2double(get(handles.edit_south,'String')); 
-		if ( any(isempty([west east south north])) )
-			errordlg('One of the region limits was not provided','Error'),	return
+		if ( any(isnan([west east south north])) )
+			errordlg('One or more of the region limits was not provided','Error'),	return
 		end
 		got_R = true;
 		% See if we have an L2 request and if user wants to use our default settings for that
@@ -551,7 +551,7 @@ function cut2cdf(handles, got_R, west, east, south, north)
 		end
 
 		curr_fname = handles.nameList{k};
-		if (~isempty(handles.uncomp_name))
+		if (isfield(handles, 'uncomp_name') && ~isempty(handles.uncomp_name))
 			curr_fname = handles.uncomp_name;		% File was compressed, so we have to use the uncompressed version
 		end
 
@@ -612,7 +612,9 @@ function cut2cdf(handles, got_R, west, east, south, north)
 			end
 		end
 
-		if (~isempty(handles.uncomp_name)),		try, delete(handles.uncomp_name);	end,	end
+		if (isfield(handles, 'uncomp_name') && ~isempty(handles.uncomp_name))
+			try, delete(handles.uncomp_name);	end
+		end
 	end
 
 	if (get(handles.radio_conv2vtk,'Val')),		fclose(fid);	end
