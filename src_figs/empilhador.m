@@ -1208,16 +1208,14 @@ function [Z, att, known_coords, have_nans] = read_gdal(full_name, att, IamCompil
 					clear c
 				end
 				ind = (Z == (att.Band(1).NoDataValue));
-				Z(ind) = [];		lon_full(ind) = [];		lat_full(ind) = [];
+				Z(ind) = [];		lon_full(ind) = [];		lat_full(ind) = [];		hWarn = [];
 
 				if (isempty(opt_I)),	opt_I = '-I0.01';	end
 				if (isempty(opt_C)),	opt_C = '-C3';		end		% For gmtmbgrid only
 
 				if (isempty(Z))			% Instead of aborting we let it go with fully NaNified array
-					if (IamCompiled)
-						warndlg(['As a result of applying (probably wrong) quality flags, no data was left in: ' full_name],'Warning')
-					else
-						disp(['As a result of applying (probably wrong) quality flags, no data was left in: ' full_name])
+					if (~isempty(bitflags))
+						hWarn = warndlg(['As a result of applying (probably wrong) quality flags, no data was left in: ' full_name],'Warning');
 					end
 					[Z, head] = nearneighbor_m(single(1e3), single(1e3), single(0), opt_R, opt_e, '-N1', opt_I, '-S0.02');
 				else
@@ -1241,6 +1239,9 @@ function [Z, att, known_coords, have_nans] = read_gdal(full_name, att, IamCompil
 				att.Band(1).NoDataValue = [];		% Don't waist time later trying to NaNify again
 				x_min = head(1) - head(8)/2;		x_max = head(2) + head(8)/2;		% Goto pixel registration
 				y_min = head(3) - head(9)/2;		y_max = head(4) + head(9)/2;		% But not for att.GMT_hdr(7)
+				if (~isempty(hWarn))				% Kill them so that they don't potentially accumulate
+					pause(0.5);		delete(hWarn)
+				end
 			end
 			att.RasterXSize = size(Z,2);		att.RasterYSize = size(Z,1);
 			att.Band.XSize = size(Z,2);			att.Band.YSize = size(Z,1);
