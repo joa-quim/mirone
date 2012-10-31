@@ -1146,7 +1146,7 @@ function [Z, att, known_coords, have_nans] = read_gdal(full_name, att, IamCompil
 		end
 
 		if (nargout == 2)
-			[Z, att] = gdalread(full_name, varargin{:}, opt_L);	% This ATT may be of a subdataset
+			[Z, att] = gdalread(full_name, varargin{:}, opt_L);		% This ATT may be of a subdataset
 		else
 			Z = gdalread(full_name, varargin{:}, opt_L);
 		end
@@ -1170,7 +1170,7 @@ function [Z, att, known_coords, have_nans] = read_gdal(full_name, att, IamCompil
 				what = struct('georeference',1,'nearneighbor',0,'mask',0,'coastRes',0,'quality','');	% sensor coords
 				ID = find_in_subdatasets(AllSubdatasets, 'qual_sst', 8);	% Check if we have a quality flags array
 				if (ID)
-					ind = strfind(AllSubdatasets{ID}, '=');			% Yes we have. Use it if not overruled by info in OPTcontrol
+					ind = strfind(AllSubdatasets{ID}, '=');			% Yes we have. Use it if not overruled by info in L2config
 					what.qualSDS = AllSubdatasets{ID}(ind+1:end);
 					what.quality = 0;
 				end
@@ -1179,7 +1179,7 @@ function [Z, att, known_coords, have_nans] = read_gdal(full_name, att, IamCompil
 				end
 			end
 
-			% Go check if -R or quality flags request exists in OPTcontrol.txt file
+			% Go check if -R or quality flags request exists in L2config.txt file
 			[opt_R, opt_I, opt_C, bitflags, flagsID, despike] = sniff_in_OPTcontrol(opt_R, att);	% Output opt_R gets preference
 
 			if (isempty(what))							% User killed the window, but it's too late to stop so pretend ...
@@ -1195,6 +1195,10 @@ function [Z, att, known_coords, have_nans] = read_gdal(full_name, att, IamCompil
 			end
 
 			if (~isempty(what) && what.georeference)	% OK, let's interpolate it into a regular geog grid
+
+				if (isempty(opt_I)),	opt_I = '-I0.01';	end
+				if (isempty(opt_C)),	opt_C = '-C3';		end		% For gmtmbgrid only
+
 				if (~isempty(bitflags))
 					ind = strfind(att.AllSubdatasets{flagsID},'=');	% Still must rip the 'SUBDATASET_XX_NAME='
 					Zf = gdalread(att.AllSubdatasets{flagsID}(ind+1:end), varargin{:}, opt_L);
@@ -1204,14 +1208,16 @@ function [Z, att, known_coords, have_nans] = read_gdal(full_name, att, IamCompil
 						if ( any(bitget(Zf(k),bitflags)) ),	c(k) = true;	end
 					end
 					clear Zf
-					Z(c) = [];		lon_full(c) = [];		lat_full(c) = [];
+					if (~strcmp(att.subDsName, 'l2_flags'))		% 'Normal' cases 
+						Z(c) = [];		lon_full(c) = [];		lat_full(c) = [];	% Remove the flagged values
+					else										% Make a grid of the flagged vales themselfs
+						Z = c;
+						opt_C = '-C1';	% Retain in cell values only
+					end
 					clear c
 				end
 				ind = (Z == (att.Band(1).NoDataValue));
 				Z(ind) = [];		lon_full(ind) = [];		lat_full(ind) = [];		hWarn = [];
-
-				if (isempty(opt_I)),	opt_I = '-I0.01';	end
-				if (isempty(opt_C)),	opt_C = '-C3';		end		% For gmtmbgrid only
 
 				if (isempty(Z))			% Instead of aborting we let it go with fully NaNified array
 					if (~isempty(bitflags))
@@ -1286,10 +1292,10 @@ function [att, uncomp_name] = get_baseNameAttribs(full_name)
 
 % -----------------------------------------------------------------------------------------
 function [opt_R, opt_I, opt_C, bitflags, flagsID, despike] = sniff_in_OPTcontrol(old_R, att)
-% Check the OPTcontrol file for particular requests in terms of -R, -I or quality flags
-% OPT_R is what the OPTcontrol has in (but now deprecated, see below)
+% Check the L2config file for particular requests in terms of -R, -I or quality flags
+% OPT_R is what the L2config has in
 %
-% BITFLAGS is a vector with the bit number corresponding to the flgs keys in OPTcontrol.
+% BITFLAGS is a vector with the bit number corresponding to the flgs keys in L2config.txt.
 %			Returns [] when no bitflags keywords are found.
 % FLAGSID is the subdatset number adress of the flags array (l2_flags)
 %			Return 0 when no l2_flags array is found.
@@ -1303,7 +1309,6 @@ function [opt_R, opt_I, opt_C, bitflags, flagsID, despike] = sniff_in_OPTcontrol
 	% OK, this is a transitional code. Before we used to seek the info in OPTcontrol.txt but now
 	% the user can choose to use my default values that were written in .../tmp/L2config.txt by
 	% push_compute_CB, or alternatively by redirecting the reading to the .../data/L2config.txt
-	% For the time being, if any of the above is not used we still look inside OPTcontrol.txt
 	handles = fish_handles;
 	if (~isempty(handles) && get(handles.check_L2, 'Val'))		% This should now be the main branch
 		if (get(handles.check_L2conf, 'Val'))
@@ -1341,9 +1346,9 @@ function [opt_R, opt_I, opt_C, bitflags, flagsID, despike] = sniff_in_OPTcontrol
 			end
 			[t,r] = strtok(ddewhite(r));
 		end
-		if (got_one),	continue,	end		% Done with this line
-		if (strcmp(lines{k}(15:16),'_F'))	% We have a bitflags request
-			got_flags = true;				% If it comes here means that we have a flags request
+		if (got_one),	continue,	end			% Done with this line
+		if (strcmp(lines{k}(15:16),'_F'))		% We have a bitflags request
+			got_flags = true;					% If it comes here means that we have a flags request
 			flaglist = opt;
 		elseif (strcmp(lines{k}(15:16),'_C'))	% Despike MODIS SST
 			% The key MIR_EMPILHADOR_C has currently one argument only, 'AVG', but this may change
@@ -1355,7 +1360,7 @@ function [opt_R, opt_I, opt_C, bitflags, flagsID, despike] = sniff_in_OPTcontrol
 		% Before anything else find the 'fl_flags' array ID. If not found go away right away
 		flagsID = find_in_subdatasets(att.AllSubdatasets, 'l2_flags');
 		if (~flagsID)
-			warndlg('You requested for a FLAGS masking (via OPTcontrol.txt) but this file does not have one "l2_flags" array','Warning')
+			warndlg('You requested for a FLAGS masking (via L2config.txt) but this file does not have one "l2_flags" array','Warning')
 			return
 		end
 
