@@ -1318,7 +1318,7 @@ function [opt_R, opt_I, opt_C, bitflags, flagsID, despike] = sniff_in_OPTcontrol
 	else
 		mir_dirs = getappdata(0,'MIRONE_DIRS');
 		if (~isempty(mir_dirs))
-			opt_file = [mir_dirs.home_dir '/data/OPTcontrol.txt'];
+			opt_file = [mir_dirs.home_dir '/data/L2config.txt'];
 		else
 			return				% Since we cannot find the OPTcontrol file
 		end
