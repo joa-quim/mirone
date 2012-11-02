@@ -1,7 +1,6 @@
 function varargout = line_operations(varargin)
 % Wraper figure to perform vectorial operations on line/patch objects
 
-% $Id$
 %	Copyright (c) 2004-2012 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
@@ -16,7 +15,9 @@ function varargout = line_operations(varargin)
 %
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
-	
+
+% $Id$
+
 	if (isempty(varargin)),		return,		end
 	if (~isfield(varargin{1}, 'head')),		return,		end		% Call from an empty fig
 
@@ -81,10 +82,10 @@ function varargout = line_operations(varargin)
 	handles.isPC = isPC;
 	IamCompiled = varargin{1}.IamCompiled;
 
-	handles.known_ops = {'bezier'; 'buffer'; 'bspline'; 'cspline'; 'group'; 'line2patch'; 'polysimplify'; 'polyunion'; ...
+	handles.known_ops = {'bezier'; 'buffer'; 'bspline'; 'closing'; 'cspline'; 'group'; 'line2patch'; 'polysimplify'; 'polyunion'; ...
 			'polyintersect'; 'polyxor'; 'polyminus'; 'pline'; 'scale'; 'stitch'; 'thicken'; 'toRidge'};
 	handles.hLine = [];
-	popup_cmds = {'Possible commands'; 'bezier N'; 'buffer DIST'; 'bspline'; 'cspline N RES'; ...
+	popup_cmds = {'Possible commands'; 'bezier N'; 'buffer DIST'; 'bspline'; 'closing DIST'; 'cspline N RES'; ...
 			'group lines'; 'line2patch'; 'polysimplify TOL'; 'polyunion'; 'polyintersect'; 'polyxor'; 'polyminus'; ...
 			'pline [x1 ..xn; y1 .. yn]'; 'scale to [-0.5 0.5]'; 'stitch TOL'; 'thicken N'; 'toRidge 5'};
 
@@ -130,7 +131,11 @@ function varargout = line_operations(varargin)
 	handles.ttips{4} = sprintf(['Smooth line with a B-form spline\n' ...
 								'It will open a help control window to\n' ...
 								'help with selection of nice parameters']);
-	handles.ttips{5} = sprintf(['Smooth line with a cardinal spline.\n' ...
+	handles.ttips{5} = sprintf(['Compute the equivalent of the image processing ''Closing'' operation\n' ...
+								'tha consist in buffer out followed by buffer in by the same amount.\n' ...
+								'Replace DIST by the width of the buffer zone.\n' ...
+								'For further options to provide finer control, see help of the buffer operation.']);							
+	handles.ttips{6} = sprintf(['Smooth line with a cardinal spline.\n' ...
 								'Replace N by the downsampling rate. For example a N of 10\n' ...
 								'will take one every other 10 vertices of the polyline.\n' ...
 								'The optional RES argument represents the number subdivisions\n' ...
@@ -138,37 +143,37 @@ function varargout = line_operations(varargin)
 								'split the downsampled interval in 10 sub-intervald, thus reseting\n' ...
 								'the original number of point, excetp at the end of the line.\n' ...
 								'If omited RES defaults to 10.']);
-	handles.ttips{6} = sprintf(['Group lines that have exactly the same characteristics.\n' ...
+	handles.ttips{7} = sprintf(['Group lines that have exactly the same characteristics.\n' ...
 								'Unfortunately Matlab has a very bad memory management and it\n' ...
 								'very slow when there are many different lines plotted.\n' ...
 								'This option groups same type lines into one single multi-segment\n' ...
 								'line. Visually it will look the same but performance jumps.']);
-	handles.ttips{7} = 'Convert line objects into patch. Patches, for example, accept fill color.';
-	handles.ttips{8} = sprintf(['Approximates polygonal curve with desired precision\n' ...
+	handles.ttips{8} = 'Convert line objects into patch. Patches, for example, accept fill color.';
+	handles.ttips{9} = sprintf(['Approximates polygonal curve with desired precision\n' ...
 								'using the Douglas-Peucker algorithm.\n' ...
 								'Replace TOL by the desired approximation accuracy.\n' ...
 								'When data is in geogs, TOL is the tolerance in km.']);
-	handles.ttips{9}  = 'Performs the boolean operation of Union to the selected polygons.';
-	handles.ttips{10} = 'Performs the boolean operation of Intersection to the selected polygons.';
-	handles.ttips{11} = 'Performs the boolean operation of exclusive OR to the selected polygons.';
-	handles.ttips{12} = 'Performs the boolean operation of subtraction to the selected polygons.';
-	handles.ttips{13} = sprintf(['Dray a polyline with vertices defined by coords [x1 xn; y1 yn].\n' ...
+	handles.ttips{10}  = 'Performs the boolean operation of Union to the selected polygons.';
+	handles.ttips{11} = 'Performs the boolean operation of Intersection to the selected polygons.';
+	handles.ttips{12} = 'Performs the boolean operation of exclusive OR to the selected polygons.';
+	handles.ttips{13} = 'Performs the boolean operation of subtraction to the selected polygons.';
+	handles.ttips{14} = sprintf(['Dray a polyline with vertices defined by coords [x1 xn; y1 yn].\n' ...
 								'Note: you must use the brackets and semi-comma notation as above.\n' ...
 								'Example vector: [1 1.5 3.1; 2 4 8.4]']);
-	handles.ttips{14} = 'Scale to the [-0.5 0.5] interval.';
-	handles.ttips{15} = sprintf(['Stitch in cascade the lines that are closer than TOL to selected line.\n' ...
+	handles.ttips{15} = 'Scale to the [-0.5 0.5] interval.';
+	handles.ttips{16} = sprintf(['Stitch in cascade the lines that are closer than TOL to selected line.\n' ...
 								'Replace TOL by the desired maximum distance for lines still be stitched.\n' ...
 								'If removed or left as the string "TOL" (no quotes) it defaults to Inf.']);
-	handles.ttips{16} = sprintf(['Thicken line object to a thickness corresponding to N grid cells.\n' ...
+	handles.ttips{17} = sprintf(['Thicken line object to a thickness corresponding to N grid cells.\n' ...
 								'The interest of this comes when used trough the "Extract profile"\n' ...
 								'option. Since the thickned line stored in its pocked N + 1 parallel\n' ...
 								'lines, roughly separate by 1 grid cell size, the profile interpolation\n' ...
 								'is carried on those N + 1 lines, which are averaged (stacked) in the end.']);
-	handles.ttips{17} = sprintf(['Calculate a new line with vertex siting on top of nearby ridges.\n' ...
+	handles.ttips{18} = sprintf(['Calculate a new line with vertex siting on top of nearby ridges.\n' ...
 								'The parameter N is used to search for ridges only inside a sub-region\n' ...
 								'2Nx2N centered on current vertex. Default is 5, but you can change it.']);
 
-	n = 17;			% NEED TO BE EQUAL TO LAST EXPLICITLY ttips{n} above
+	n = 18;			% NEED TO BE EQUAL TO LAST EXPLICITLY ttips{n} above
 	if (~IamCompiled)
 		n = n + 1;
 		handles.ttips{n} = sprintf(['Send the selected object handles to the Matlab workspace.\n' ...
@@ -301,8 +306,8 @@ function push_apply_CB(hObject, handles)
 				ind = find(isnan(x));
 				if (isempty(ind))				% One only, so no doubts
 					h = patch('XData',x, 'YData',y, 'Parent',handles.hMirAxes, 'EdgeColor',handles.lc, ...
-						'FaceColor','none', 'LineWidth',handles.lt, 'Tag','polybuffer');
-					uistack_j(h,'bottom'),		draw_funs(h,'line_uicontext')
+						'FaceColor','none', 'LineWidth',handles.lt*2, 'Tag','polybuffer');
+					draw_funs(h,'line_uicontext')
 				else
 					% Get the length of the segments by ascending order and plot them in that order.
 					% Since the uistack will send the last ploted one to the bottom, that will be the larger polygon
@@ -310,12 +315,13 @@ function push_apply_CB(hObject, handles)
 					[s, i] = sort(diff(ind));		h = zeros(numel(i),1);
 					for (m = 1:numel(i))
 						h(m) = patch('XData',x(ind(i(m))+1:ind(i(m)+1)-1), 'YData',y(ind(i(m))+1:ind(i(m)+1)-1), 'Parent',handles.hMirAxes, ...
-							 'EdgeColor',handles.lc, 'FaceColor','none', 'LineWidth',handles.lt, 'Tag','polybuffer');
+							 'EdgeColor',handles.lc, 'FaceColor','none', 'LineWidth',handles.lt*2, 'Tag','polybuffer');
 					end
 					% Do this after so that when it takes time (uistack may be slow) the user won't notice it
 					for (m = 1:numel(i))
 						uistack_j(h(m),'bottom'),		draw_funs(h(m),'line_uicontext')
 					end
+					uistack_j(handles.hLine(k),'bottom')	% But keep the processing line at the very bottom
 				end
 			end
 
@@ -326,6 +332,60 @@ function push_apply_CB(hObject, handles)
 			h = line('XData', x, 'YData', y, 'Parent',handles.hMirAxes, 'Color',handles.lc, 'LineWidth',handles.lt, 'Tag','polyline');
 			draw_funs(h,'line_uicontext')
 			smoothing_param(p, [x(1) x(2)-x(1) x(end)], handles.hMirFig, handles.hMirAxes, handles.hLine, h);
+
+		case 'closing'
+			% This shares A LOT of code with 'buffer' and should be merged or something of that kind
+			[out, msg] = validate_args(handles.known_ops{ind}, r, handles.geog);
+			if (~isempty(msg)),		errordlg(msg,'ERROR'),		return,		end
+
+			direction = 'out';		npts = 13;		% Defaults (+ next line)
+			geodetic = handles.geog;		% 1 uses spherical aproximation -- OR -- 0 do cartesian calculation
+			dist = out.dist;
+			if (out.npts),		npts = out.npts;		end
+			if (out.ab),		geodetic = out.ab;		% Custom ellipsoid
+			elseif (out.geod)	geodetic = out.geod;	% WGS84
+			end
+
+			if (out.toDegFac)		% Convert to degrees using the simple s = R*theta relation
+				dist = (dist * out.toDegFac) / 6371005.076 * 180 / pi;		% Use the Authalic radius
+			end
+			% Now we will test if user got confused and sent in wrong DIST unites (for geog only)
+			if (geodetic)
+				lims = getappdata(handles.hMirAxes,'ThisImageLims');
+				if ( dist > sqrt( diff(lims(1:2))^2 + diff(lims(3:4))^2)/2 )	% Almost sure a mistake
+					msg = sprintf('You probably gave a bad buffer width (DIST) as the buffer line will be out of map.\nShell I stop?');
+					r = yes_or_no('string',msg,'title','Warning');
+					if (r(1) == 'N'),	return,		end
+				end
+			end
+
+			for (k = 1:numel(handles.hLine))
+				x = get(handles.hLine(k), 'xdata');		y = get(handles.hLine(k), 'ydata');
+ 				[y, x] = buffer_j(y, x, dist, direction, npts, geodetic);
+				direction = 'in';				% Now revert the sense of the buffering op
+ 				[y, x] = buffer_j(y, x, dist, direction, npts, geodetic);
+				if (isempty(x)),	return,		end
+				ind = find(isnan(x));
+				if (isempty(ind))				% One only, so no doubts
+					h = patch('XData',x, 'YData',y, 'Parent',handles.hMirAxes, 'EdgeColor',handles.lc, ...
+						'FaceColor','none', 'LineWidth',handles.lt*2, 'Tag','polybuffer');
+					draw_funs(h,'line_uicontext')
+				else
+					% Get the length of the segments by ascending order and plot them in that order.
+					% Since the uistack will send the last ploted one to the bottom, that will be the larger polygon
+					ind = [0 ind(:)' numel(x)];
+					[s, i] = sort(diff(ind));		h = zeros(numel(i),1);
+					for (m = 1:numel(i))
+						h(m) = patch('XData',x(ind(i(m))+1:ind(i(m)+1)-1), 'YData',y(ind(i(m))+1:ind(i(m)+1)-1), 'Parent',handles.hMirAxes, ...
+							 'EdgeColor',handles.lc, 'FaceColor','none', 'LineWidth',handles.lt*2, 'Tag','polybuffer');
+					end
+					% Do this after so that when it takes time (uistack may be slow) the user won't notice it
+					for (m = 1:numel(i))
+						uistack_j(h(m),'bottom'),		draw_funs(h(m),'line_uicontext')
+					end
+					uistack_j(handles.hLine(k),'bottom')	% But keep the processing line at the very bottom
+				end
+			end
 
 		case 'cspline'
 			for (k = 1:numel(handles.hLine))
@@ -751,7 +811,7 @@ function [out, msg] = validate_args(qual, str, np)
 % WARN: the NP arg has not always the same meaning. For 'buffer' it holds the handles.geog
 	msg = [];	out = [];
 	switch qual
-		case 'buffer'
+		case {'buffer' 'closing'}
 			out.dir = false;	out.npts = false;		out.ab = false;		out.geod = false;
 			convFrom = false;	out.toDegFac = false;	% If we are to convert meters, kilometers or nmiles to degrees
 			[t, str] = strtok(str);
