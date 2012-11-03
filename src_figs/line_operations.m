@@ -163,7 +163,9 @@ function varargout = line_operations(varargin)
 	handles.ttips{15} = 'Scale to the [-0.5 0.5] interval.';
 	handles.ttips{16} = sprintf(['Stitch in cascade the lines that are closer than TOL to selected line.\n' ...
 								'Replace TOL by the desired maximum distance for lines still be stitched.\n' ...
-								'If removed or left as the string "TOL" (no quotes) it defaults to Inf.']);
+								'If removed or left as the string "TOL" (no quotes) it defaults to Inf.\n' ...
+								'Optionaly if map is in geogs apend M, K or N to TOL to indicate\n' ...
+								'Meters, Kilometers or NMiles (e.g. 10M)\n\n']);
 	handles.ttips{17} = sprintf(['Thicken line object to a thickness corresponding to N grid cells.\n' ...
 								'The interest of this comes when used trough the "Extract profile"\n' ...
 								'option. Since the thickned line stored in its pocked N + 1 parallel\n' ...
@@ -509,20 +511,62 @@ function push_apply_CB(hObject, handles)
 			end
 
 		case 'stitch'
-			tol = validate_args(handles.known_ops{ind}, r);
+			out = validate_args(handles.known_ops{ind}, r);
+			tol = out.val;
+			if (out.toDegFac)		% Convert to degrees using the simple s = R*theta relation
+				tol = (out.val * out.toDegFac) / 6371005.076 * 180 / pi;		% Use the Authalic radius
+			end
 
-			hCurrLine = handles.hLine;
+			hCurrLine = handles.hLine;		xcell = [];
 			hLines = findobj(handles.hMirAxes, 'Type', 'line');
-			if (numel(hLines) == 1)				% Only one line in the whole plot. Insult and exit
-				warndlg('There is only one line in Town. So stitch where?','Chico Clever'),		return
+			if (numel(hLines) == 1)				% Only one line in the whole plot. Check if it's a multi-segment
+				[xcell, ycell] = polysplit(get(hCurrLine,'XData'), get(hCurrLine,'YData'));
+				if (isempty(ycell))
+					warndlg('There is only one line in Town and with no NaNs breaking. So stitch where?','Warning'),	return
+				end
 			end
 			hLines = setxor(hLines, hCurrLine);
 			nLines = numel(hLines);				doAguenta = false;	hAguenta = [];	x = [];		y = [];
+			if (nLines == 0)					% When one single hLine holding a multi-segment pline
+				nLines = numel(xcell);
+			end
+
 			if (nLines > 100 )					% greater than 100?
 				hAguenta = aguentabar(0,'title',['Stitching ' sprintf('%d', nLines) ' lines']);
 				doAguenta = true;
 			end
-			for (k = 1:numel(hLines))
+
+			% If we have a multi-segment situation, deal with it right away and at the end short-circuit the line handles case
+			if (~isempty(xcell))
+				nCycles = numel(xcell)-1;		% -1 because the first is used in first arg to find_closestline()
+				for (k = 1:nCycles)
+					hLines = {xcell(2:end) ycell(2:end)};
+					[hLineClosest, endType, indOfFound] = find_closestline({xcell(1) ycell(1)}, hLines, tol);
+					if (~indOfFound)
+						continue
+					else
+						indOfFound = indOfFound + 1;	% Because we started at second segment
+					end
+					x1 = xcell{1};				y1 = ycell{1};
+					x2 = xcell{indOfFound};		y2 = ycell{indOfFound};
+					if (endType == 1)			% Lines grow in oposite directions from a "mid point"
+						x = [x2(end:-1:1) x1];	y = [y2(end:-1:1) y1];
+					elseif (endType == 2)		% Line 2 ends near the begining of line 1 
+						x = [x2 x1];			y = [y2 y1];
+					elseif (endType == 3)		% Line 1 ends near the begining of line 2
+						x = [x1 x2];			y = [y1 y2];
+					else						% Lines grow from the extremeties twards the "mid point"
+						x = [x1 x2(end:-1:1)];	y = [y1 y2(end:-1:1)];
+					end
+					xcell{1} = x;				ycell{1} = y;	% Equivallent of the below set(hCurrLine, 'XData',x, 'YData',y)
+					xcell{indOfFound} = [];		ycell{indOfFound} = [];		% Do not process the same segment again.
+					if (doAguenta && rem(k,10)),hAguenta = aguentabar(k/nLines);		end
+				end
+				set(hCurrLine, 'XData',x, 'YData',y)
+				nLines = 0;		% TO PREVENT EXECUTING ALSO THE NEXT LOOP
+			end
+
+			for (k = 1:nLines)					% Loop over all others but selected line. FOR NON MULTI-SEGMENT CASES
 				[hLineClosest, endType, indOfFound] = find_closestline(hCurrLine, hLines, tol);
 				if (isempty(hLineClosest))		% Either we found and finished or found nothing
 					break
@@ -543,6 +587,7 @@ function push_apply_CB(hObject, handles)
 				hLines(indOfFound) = [];		% Do not process the same line again.
 				if (doAguenta && rem(k,10)),	hAguenta = aguentabar(k/nLines);		end
 			end
+
 			% Now search for repeated points along the stitched line (nothing uncommon)
 			ind_x = (diff(x) ~= 0);		ind_y = (diff(y) ~= 0);
 			unicos = (ind_x | ind_y);
@@ -768,18 +813,36 @@ function [hLineClosest, endType, indOfFound] = find_closestline(hMe, hLines, TOL
 %				3	Line 1 (HME) ends near the begining of line 2 (HLINECLOSEST)
 %				4	Lines grow from the extremeties twards the "mid point"
 % INDOFFOUND	Index of HLINECLOSEST in original HLINES vector. That index of closest line.
+%
+% Alternativelly, HME and HLINES can be a 1x2 cell array of cells, where each cell of the
+% outer cell container holds the xx and yy coordinates of each segment. Example:
+% hMe={{1 1} {2 1}};	hLines = {{get(line(1),'XData'), get(line(2),'XData')} { "Same for Y here" }}
+% The contents of hLines in cell form is normally created from the output of polysplit()
 
 	if (nargin == 2),	TOL = inf;		end
-	x1 = get(hMe,'XData');				y1 = get(hMe,'YData');
+	if (ishandle(hMe))
+		x1 = get(hMe,'XData');		y1 = get(hMe,'YData');
+		nLines = numel(hLines);
+	else			% Not tested but it must be a cell array ... of cells
+		x1 = hMe{1}{1};				y1 = hMe{2}{1};
+		nLines = numel(hLines{1});
+	end
 
 	hLineClosest = [];		endType = 0;	indOfFound = 0;
 	minDist = TOL * TOL;	% We do the test with square distances to save calls to sqrt 
 
-	for (k = 1:numel(hLines))
-		x2 = get(hLines(k),'XData');		% These calls are horribly expensive, so ...
+	for (k = 1:nLines)
+		if (ishandle(hLines(1)))
+			x2 = get(hLines(k),'XData');		% These calls are horribly expensive, so ... (what?)
+		else
+			x2 = hLines{1}{k};
+			if (isempty(x2)),	continue,	end	% It's ok, we accept empty cells
+		end
 		dif_x2 = ([(x1(1) - x2(1)); (x1(1) - x2(end)); (x1(end) - x2(1)); (x1(end) - x2(end))]).^2;
 		if (min(dif_x2) > minDist),		continue,	end		% we know enough to drop this line.
-		y2 = get(hLines(k),'YData');
+		if (ishandle(hLines(1))),		y2 = get(hLines(k),'YData');
+		else							y2 = hLines{2}{k};
+		end
 		if ( (x2(1) == x2(end)) && (y2(1) == y2(end)) )		% Ignore closed polygons
 			continue
 		end
@@ -790,7 +853,9 @@ function [hLineClosest, endType, indOfFound] = find_closestline(hMe, hLines, TOL
 		if ( mimi <= minDist )
 			indOfFound = k;
 			endType = I;
-			hLineClosest = hLines(k);
+			if (ishandle(hLines(1))),		hLineClosest = hLines(k);
+			else							hLineClosest = k;
+			end
 			if (mimi < 1e-8),	break,	end		% This is so small that we can assume to have found the closest
 		end
 	end
@@ -803,6 +868,41 @@ function res = local_nchoosek(n ,k)   % A faster stripped alternative of nchoose
 	n_k = n - k;
 	for (i = 1:k)
 		res = res * ((n_k + i)/i);
+	end
+
+% ------------------------------------------------------------------------------------------
+function [xcell, ycell] = polysplit(x, y)
+% Return the NaN-delimited segments of the vectors X and Y as cell arrays.
+% Each element of the cell array contains one segment.
+
+	%  Make sure no NaNs at begining or end.
+	% Hopefully well behaved data won't have them and so no memory waist (no local copy)
+	while ( isnan(x(1)) || isnan(y(1)) )
+		x(1) = [];		y(1) = [];
+	end
+	while ( isnan(x(end)) || isnan(y(end)) )
+		x(end) = [];	y(end) = [];
+	end
+
+	indx = find(isnan(x));			% Find were are the NaNs 
+	if ( ~isequal(indx, find(isnan(y))) )
+		error('X and Y vectors do not have the NaNs in same places')
+	end
+
+	ind = false(1, numel(indx)+1);
+	xcell = cell(1,numel(indx)+1);		ycell = cell(1,numel(indx)+1);
+	xcell{1} = x(1:indx(1)-1);			ycell{1} = y(1:indx(1)-1);
+	for (i = 2:numel(indx))				% Do midle chunks (if any)
+		xcell{i} = x(indx(i-1)+1:indx(i)-1);
+		ycell{i} = y(indx(i-1)+1:indx(i)-1);
+		if (isempty(xcell{i})),		ind(i) = true;		end		% They may be empty if consecutive NaNs
+	end
+	if (numel(indx) > 1)				% Now, if there is one, do the last chunk
+		xcell{end} = x(indx(end)+1:end);		ycell{end} = y(indx(end)+1:end);
+	end
+	
+	if (any(ind))						% Remove eventual empty ones
+		ycell(ind) = [];		xcell(ind) = [];
 	end
 
 % --------------------------------------------------------------------------------------------------
@@ -819,7 +919,7 @@ function [out, msg] = validate_args(qual, str, np)
 				msg = 'The argument "DIST" must be replaced by a numeric value representing the width of the buffer zone';	return
 			end
 			if (np)		% Here 'np' is actually the handles.geog
-				if ( strcmpi(t(end), 'm') || strcmpi(t(end), 'k') || strcmpi(t(end), '') )	% Convert any of those to degrees
+				if ( strcmpi(t(end), 'm') || strcmpi(t(end), 'k') || strcmpi(t(end), 'n') )	% Convert any of those to degrees
 					convFrom = lower(t(end));		t(end) = [];
 				end
 			end
@@ -966,10 +1066,20 @@ function [out, msg] = validate_args(qual, str, np)
 			end
 
 		case 'stitch'
+			out.toDegFac = 0;		% Means no conversion from cartesian to degrees
 			if ( isempty(str) || strcmpi(str, 'TOL') )
-				out = Inf;
+				out.val = Inf;
 			else
-				out = abs(str2double(str));
+				if ( strcmpi(str(end), 'm') || strcmpi(str(end), 'k') || strcmpi(str(end), 'n') )	% Convert any of those to degrees
+					convFrom = lower(str(end));		str(end) = [];
+					% Right. We must convert the DIST distance given in cartesians to degrees
+					% But the problem is that here we don't know the lat so we can't finish the conversion. So, send back the collected info
+					if (convFrom == 'm'),		out.toDegFac = 1;
+					elseif (convFrom == 'k'),	out.toDegFac = 1000;
+					else						out.toDegFac = 1852;
+					end
+				end
+				out.val = abs(str2double(str));
 			end
 	end
 
