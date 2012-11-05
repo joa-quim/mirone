@@ -935,7 +935,7 @@ function calc_L2_periods(handles, period, tipoStat, regMinMax, grd_out)
 		if (N(m) ~= 0)
 			Z = alloc_mex(rows, cols, N(m), 'single', NaN);
 			for (n = 1:N(m))		% Loop over the days in current period
-				Z(:,:,c) = nc_funs('varget', handles.fname, s.Dataset(z_id).Name, [c-1 0 0], [1 rows cols]);
+				Z(:,:,n) = nc_funs('varget', handles.fname, s.Dataset(z_id).Name, [c-1 0 0], [1 rows cols]);
 				c = c + 1;
 			end
 			tmp = doM_or_M_or_M(Z, 1, size(Z,3), regionalMIN, regionalMAX, tipoStat);
