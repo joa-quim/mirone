@@ -22,7 +22,9 @@ function varargout = cartas_militares(varargin)
 %
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
- 
+
+% $Id$
+
 	hObject = figure('Visible','off');
 	cartas_militares_LayoutFcn(hObject);
 	handles = guihandles(hObject);
@@ -177,6 +179,9 @@ function bdnTile(obj,event,hFig)
 		if (pato(end) ~= filesep),		pato = [pato filesep];		end
 		fname = [pato tile_name '.gif'];
 		if (exist(fname,'file') ~= 2)
+			fname = [pato tile_name '.sid'];		% Try in Mr. Sid format (MUST ADD A TEST IF MRSID DRIVER EXISTS)
+		end
+		if (exist(fname,'file') ~= 2)
 			h = text(100000,50000, ['FILE  ' tile_name '.GIF  NOT FOUND IN THERE'], 'HorizontalAlignment','left', 'FontSize',25, 'Rotation', 65, 'Color','r');
 			pause(2),	delete(h)
 			return
@@ -190,7 +195,7 @@ function bdnTile(obj,event,hFig)
 		fnameRef = [];			% We need to find a way to fetch the corresponding .map file
 	end
 		
-	set(handles.figure1,'pointer','watch')
+	set(handles.figure1,'pointer','watch'),		pause(0.1)
 	[img,att] = gdalread(fname, '-U');
 	if (isempty(img))
 		errordlg('There was an error reading the image. We got nothing.','Error')
@@ -226,7 +231,9 @@ function bdnTile(obj,event,hFig)
 	tmp.head = [tmp.X tmp.Y att.GMT_hdr(5:6) 0 x_inc y_inc];
 	
 	try
-		tmp.cmap = att.Band.ColorMap.CMap(:,1:3);
+		if (ndims(img) ~= 3)	% The Sided version are rgb
+			tmp.cmap = att.Band.ColorMap.CMap(:,1:3);
+		end
 	catch
 		errordlg(['Bad colormap in file ' fname],'ERROR')
 		set(handles.figure1,'pointer','arrow')
@@ -241,7 +248,7 @@ function bdnTile(obj,event,hFig)
 % ----------------------------------------------------------------------------
 function popup_directory_list_CB(hObject, handles, opt)
 % OPT is used by push_change_dir (just to save code)
-	if (nargin == 3),	opt = [];   end
+	if (nargin == 2),	opt = [];   end
 	if isempty(opt)
 		val = get(hObject,'Value');     str = get(hObject, 'String');
 		% Put the selected field on top of the String list. This is necessary because the "OK" button will
