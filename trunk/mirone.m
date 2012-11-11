@@ -653,9 +653,16 @@ elseif ( strncmp(opt2(1:min(length(opt2),9)),'CropaGrid',9) )		% Do the operatio
 		X = linspace( head(1) + (r_c(3)-1)*head(8), head(1) + (r_c(4)-1)*head(8), r_c(4) - r_c(3) + 1 );
 		Y = linspace( head(3) + (r_c(1)-1)*head(9), head(3) + (r_c(2)-1)*head(9), r_c(2) - r_c(1) + 1 );
 		head(1) = X(1);		head(2) = X(end);		head(3) = Y(1);		head(4) = Y(end);
+		srsWKT = [];
+		if (~handles.geog)
+			prjInfoStruc = aux_funs('getFigProjInfo',handles);
+			if (~isempty(prjInfoStruc.projWKT))	% TODO. Otherwise check if prjInfoStruc.proj4 and convert it to WKT
+				srsWKT = prjInfoStruc.projWKT;
+			end
+		end
 		if (~nargout)						% Create a new Fig
 			tit = 'Grid cuted by Mirone';	% Have to change this to reflect the old title
-			GRDdisplay(handles,X,Y,Z_rect,head,tit,'Cropped grid')
+			GRDdisplay(handles,X,Y,Z_rect,head,tit,'Cropped grid',srsWKT)
 		else								% Send back the cropped grid to whom asked for it. 
 			varargout = {X,Y,Z_rect,head};	% Is not going to be easy to document this
 		end
