@@ -15,7 +15,9 @@ function varargout = tiles_tool(varargin)
 %
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
- 
+
+% $Id$
+
 	hObject = figure('Vis','off');
 	tiles_tool_LayoutFcn(hObject);
 	handles = guihandles(hObject);
