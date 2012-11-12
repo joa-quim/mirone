@@ -71,7 +71,15 @@ function uistack_j(hand, opt, step)
 		hSurf = findobj(Parent,'type','surface');
 		hAx_bot = [hImg; hLight; hSurf];
 		if (~isempty(hAx_bot))
-			restacked(restacked == hAx_bot) = [];
+			if (numel(hAx_bot) == 1)	% Large majority of cases (a background image)
+				restacked(restacked == hAx_bot) = [];
+			else						% For example the "Tiles Tool" may have 2 images. Must deal with each separately.
+				c = false(1,numel(restacked));
+				for (k = 1:numel(hAx_bot))
+					c(restacked == hAx_bot(k)) = true;
+				end
+				restacked(c) = [];
+			end
 			restacked = [restacked; hAx_bot];
 		end
 	end
