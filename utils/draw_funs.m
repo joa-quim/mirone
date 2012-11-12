@@ -2300,7 +2300,7 @@ if (~isempty(labelType))
 			xx = sprintf('%.9g',xx);		yy = sprintf('%.9g',yy);
 	end
 else   
-	xx = sprintf('%.9g',xx);		sprintf('%.9g',yy);
+	xx = sprintf('%.9g',xx);		yy = sprintf('%.9g',yy);
 end
 
 prompt = {'Enter new lon (or x)' ,'Enter new lat (or y)'};
