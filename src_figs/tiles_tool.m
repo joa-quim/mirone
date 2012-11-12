@@ -215,10 +215,7 @@ function click_anchor_CB(hObject, event)
 	else
 		set(hAnchor,'XData',pt(1,1) ,'YData',pt(1,2))
 	end
-	ui_edit_polygon(hAnchor)
-	cmenuHand = uicontextmenu('Parent',handles.figure1);
-	set(hAnchor, 'UIContextMenu', cmenuHand);   
-	uimenu(cmenuHand, 'Label', 'Delete', 'Call', 'delete(gco)');
+	draw_funs(hAnchor,'DrawSymbol')
 
 % -----------------------------------------------------------------------------------------
 function click_MOSAIC_e_GO_CB(hObject, event)
