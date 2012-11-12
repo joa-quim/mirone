@@ -21,7 +21,7 @@ function varargout = floodfill(varargin)
 	if (isempty(varargin))
 		errordlg('FLOODFILL: wrong number of arguments.','Error'),	return
 	end
-     
+
 	hObject = figure('Tag','figure1','Visible','off');
 	floodfill_LayoutFcn(hObject);
 	handles = guihandles(hObject);
@@ -76,14 +76,13 @@ function varargout = floodfill(varargin)
 	if (~isempty(handles.IAmAMirone))
 		handlesMir = guidata(handles.hCallingFig);
 		handles.head = handlesMir.head;
-		%handles.origFig = handlesMir.origFig;
 		handles.DefLineThick = handlesMir.DefLineThick;
 		handles.DefLineColor = handlesMir.DefLineColor;
-		handles.image_type = handlesMir.image_type;
+		handles.image_type   = handlesMir.image_type;
 	else
 		handles.IAmAMirone = 0;
 		% Build a GMT type header info
-		handles.head = [get(handles.hCallingAxes,'xlim') get(handles.hCallingAxes,'ylim') 0 0 1];
+		handles.head    = [get(handles.hCallingAxes,'xlim') get(handles.hCallingAxes,'ylim') 0 0 1];
 		handles.head(8) = (handles.head(2)-handles.head(1)) / size(img,2);
 		handles.head(9) = (handles.head(4)-handles.head(3)) / size(img,1);
 
@@ -535,12 +534,22 @@ function digitize(handles,img)
 
 	x_inc = handles.head(8);    y_inc = handles.head(9);
 	x_min = handles.head(1);    y_min = handles.head(3);
-	if (handles.head(7))            % Work in grid registration
+	if (handles.head(7))							% Work in grid registration
 		x_min = x_min + x_inc/2;
 		y_min = y_min + y_inc/2;
 	end
 
-	if (handles.single_poly)                    % Draw a single polygon
+	% Renew the catch of line thickness/color because they may have been reset meanwhile.
+	if (~isempty(handles.IAmAMirone))
+		handMir = guidata(handles.hCallingFig);
+		lineThickness = handMir.DefLineThick;
+		lineColor = handMir.DefLineColor;
+	else
+		lineThickness = handles.DefLineThick;
+		lineColor = handles.DefLineColor;
+	end
+
+	if (handles.single_poly)						% Draw a single polygon
 		% Add NaNs to the end of each polygon
 		nElem = zeros(length(B)+1,1);
 		for k = 1:length(B)
@@ -555,19 +564,17 @@ function digitize(handles,img)
 			x(soma(k)+1:soma(k+1)) = (B{k}(:,2)-1) * x_inc + x_min;
 		end
 
-		h_edge = line(x, y,'Linewidth',handles.DefLineThick,'Color',handles.DefLineColor, ...
+		h_edge = line(x, y, 'Linewidth',lineThickness, 'Color',lineColor, ...
 				'Tag','shape_detected','Userdata',handles.udCount);
 
 		multi_segs_str = cell(length(h_edge),1);	% Just create a set of empty info strings
 		draw_funs(h_edge,'isochron',multi_segs_str);
 		handles.udCount = handles.udCount + 1;
 	else											% Draw separate polygons
-		for k = 1:length(B)
+		for k = 1:numel(B)
 			x = (B{k}(:,2)-1) * x_inc + x_min;
 			y = (B{k}(:,1)-1) * y_inc + y_min;
-
-			h_edge = line(x, y,'Linewidth',handles.DefLineThick,'Color',handles.DefLineColor, ...
-					'Tag','shape_detected');
+			h_edge = line(x, y, 'Linewidth',lineThickness, 'Color',lineColor, 'Tag','shape_detected');
 			draw_funs(h_edge,'line_uicontext')		% Set lines's uicontextmenu
 		end
 	end
@@ -605,9 +612,9 @@ function push_pickMultiple_CB(hObject, eventdata, handles)
 		for count = 1:nColors
 			cm(count,1) = mean2(a(mask(:,:,count)));
 			cm(count,1:2) = [max(cm(count,1) - handles.tol, 0) min(cm(count,1) + handles.tol, 255)];
-			cm(count,3) = mean2(b(mask(:,:,count)));
+			cm(count,3)   = mean2(b(mask(:,:,count)));
 			cm(count,3:4) = [max(cm(count,3) - handles.tol, 0) min(cm(count,3) + handles.tol, 255)];
-			cm(count,5) = mean2(c(mask(:,:,count)));
+			cm(count,5)   = mean2(c(mask(:,:,count)));
 			cm(count,5:6) = [max(cm(count,5) - handles.tol, 0) min(cm(count,5) + handles.tol, 255)];
 			tmp = (a >= cm(count,1) & a <= cm(count,2) & b >= cm(count,3) & b <= cm(count,4) & ...
 				c >= cm(count,5) & c <= cm(count,6));
