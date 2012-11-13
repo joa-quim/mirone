@@ -2936,7 +2936,8 @@ function DrawContours_CB(handles, opt)
 		nexti = i+npoints+1;
 		xdata = c(1,i+1:i+npoints);		ydata = c(2,i+1:i+npoints);
 		% Create the lines
-		cu = line('XData',xdata,'YData',ydata,'LineWidth',1,'Color','k', 'Parent',handles.axes1,'userdata',z_level,'Tag','contour');
+		cu = line('XData',xdata, 'YData',ydata, 'Parent',handles.axes1, 'LineWidth',handles.DefLineThick, ...
+			'Color',handles.DefLineColor, 'userdata',z_level,'Tag','contour');
 		h_cont = [h_cont; cu(:)];
 		cont = [cont; z_level];
 		i = nexti;
