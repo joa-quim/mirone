@@ -253,6 +253,7 @@ gmt_userdir/us.d -text
 /hdf4_w32.dll -text
 /hdf5_hl_w32.dll -text
 /hdf5_w32.dll -text
+/laslib_w32.dll -text
 lib_mex/CalcMD5.dll -text
 lib_mex/PolygonClip.dll -text
 lib_mex/WindowAPI.dll -text
