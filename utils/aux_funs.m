@@ -253,7 +253,7 @@ function out = findFileType(fname)
 		out = 'dat';
 	elseif ( strcmpi(EXT,'.shp') )
 		out = 'shp';
-	elseif ( strcmpi(EXT,'.las') )
+	elseif ( any(strcmpi(EXT,{'.las' '.laz'})) )
 		out = 'las';
 	elseif ( strcmpi(EXT,'.gmt') )
 		fid = fopen(fname,'rt');
