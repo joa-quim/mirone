@@ -15,7 +15,7 @@ REM
 REM Usage: open the command window set up by the compiler of interest (were all vars are already set)
 REM	   and run this from there.
 REM	   You cannot build one program individualy but you can build one of the following groups:
-REM		simple, swan, edison, GMT, GDAL, OCV, MEXNC, lasreader_mex
+REM		simple, swan, edison, GMT, GDAL, OCV, MEXNC, laszreader
 REM	   To do it, give the group name as argument to this batch. E.G. compile_mex GMT
 REM
 REM
@@ -23,13 +23,13 @@ REM Author: Joaquim Luis, 09-MAY-2010
 REM --------------------------------------------------------------------------------------
 
 REM ------------- Set the compiler (set to 'icl' to use the Intel compiler) --------------
-SET CC=icl
+SET CC=cl
 
 REM If set to "yes", linkage is done againsts ML6.5 Libs (needed in compiled version)
 SET R13="no"
 
 REM Set it to "yes" or "no" to build under 64-bits or 32-bits respectively.
-SET WIN64="no"
+SET WIN64="yes"
 
 REM Set to "yes" if you want to build a debug version
 SET DEBUG="no"
@@ -90,6 +90,7 @@ SET   CVOBJ_LIB=C:\programs\OpenCV_SVN\compileds\VC10_64\lib\opencv_objdetect211
 SET CVVIDEO_LIB=C:\programs\OpenCV_SVN\compileds\VC10_64\lib\opencv_video211.lib
 SET     LAS_LIB=C:\programs\compa_libs\liblas-src-1.2.1\lib\VC10_64\liblas_i.lib
 SET  GEOLIB_LIB=C:\programs\compa_libs\GeographicLib-1.16\compileds\VC10_64\lib\Geographic.lib
+SET LASZLIB_LIB=C:\programs\compa_libs\lastools\compileds\VC10_64\lib\laslib_i.lib 
 
 ) ELSE (
 
@@ -105,6 +106,7 @@ SET   CVOBJ_LIB=C:\programs\OpenCV_SVN\compileds\VC10_32\lib\opencv_objdetect211
 SET CVVIDEO_LIB=C:\programs\OpenCV_SVN\compileds\VC10_32\lib\opencv_video211.lib
 SET     LAS_LIB=C:\programs\compa_libs\liblas-src-1.2.1\lib\VC10_32\liblas_i.lib
 SET  GEOLIB_LIB=C:\programs\compa_libs\GeographicLib-1.16\compileds\VC10_32\lib\Geographic.lib
+SET LASZLIB_LIB=C:\programs\compa_libs\lastools\compileds\VC10_32\lib\laslib_i.lib 
 
 )
 
@@ -113,6 +115,7 @@ SET     GMT_INC=c:\progs_cygw\GMTdev\gmt4\include
 SET    GDAL_INC=c:\programs\GDALtrunk\gdal\compileds\VC10_32\include
 SET      CV_INC=C:\programs\OpenCV_SVN\include\opencv
 SET  GEOLIB_INC=C:\programs\compa_libs\GeographicLib-1.16\compileds\VC10_64\include
+SET LASZLIB_INC=C:\programs\compa_libs\lastools\compileds\VC10_32\include
 SET     LAS_INC=-IC:\programs\compa_libs\liblas-src-1.2.1\bin\include\liblas\capi -IC:\programs\compa_libs\liblas-src-1.2.1\bin\include\liblas
 
 SET CVI_1=-IC:\programs\OpenCV_SVN\modules\core\include
@@ -148,6 +151,7 @@ IF %1==MEXNC4  GOTO MEXNC4
 IF %1==swan   GOTO swan
 IF %1==edison GOTO edison
 IF %1==lasreader GOTO lasreader
+IF %1==laszreader GOTO laszreader
 
 :todos
 REM ------------------ "simple" (no external Libs dependency) ------------------
@@ -235,6 +239,13 @@ REM ---------------------- Edison_wrapper --------------------------------------
 %CC% -DWIN32 %COMPFLAGS% -I%MATINC% -I%NETCDF_INC% %OPTIMFLAGS% %_MX_COMPAT% edison/edison_wrapper_mex.cpp edison/segm/ms.cpp edison/segm/msImageProcessor.cpp edison/segm/msSysPrompt.cpp edison/segm/RAList.cpp edison/segm/rlist.cpp edison/edge/BgEdge.cpp edison/edge/BgImage.cpp edison/edge/BgGlobalFc.cpp edison/edge/BgEdgeList.cpp edison/edge/BgEdgeDetect.cpp
 link  /out:"edison_wrapper_mex.%MEX_EXT%" %LINKFLAGS% %NETCDF_LIB% /implib:templib.x edison_wrapper_mex.obj Bg*.obj ms*.obj rlist.obj RAList.obj
 IF "%1"=="edison" GOTO END
+
+
+REM ---------------------- LASlib (laszreader) ----------------------------------------
+:laszreader
+%CC% -DWIN32 %COMPFLAGS% -I%MATINC% -I%LASZLIB_INC% %OPTIMFLAGS% %_MX_COMPAT% %TIMEIT% laszreader_mex.cpp
+link  /out:"laszreader_mex.%MEX_EXT%" %LINKFLAGS% %LASZLIB_LIB% /implib:templib.x laszreader_mex.obj
+IF "%1"=="laszreader" GOTO END
 
 
 REM ---------------------- libLAS (lasreader) ----------------------------------------
