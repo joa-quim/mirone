@@ -16,6 +16,13 @@ function varargout = read_las(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
+% We are now using the LASlib library instead of the older libLAS
+% The mex readers, for the time being, have the same syntax so we
+% can swapp the readers by simply toggling (search-replace) the mexs
+%	laszreader_mex <-> lasreader_mex
+
+% $Id: $
+
 	hObject = figure('Vis','off');
 	read_las_LayoutFcn(hObject);
 	handles = guihandles(hObject);
@@ -43,7 +50,7 @@ function varargout = read_las(varargin)
 			handles.fname = varargin{2};
 			set(handles.edit_LASfile,'String',handles.fname)
 			try			% Wrap it in a try because we are not sure file exists
-				bbox = lasreader_mex(handles.fname,'-B');
+				bbox = laszreader_mex(handles.fname,'-B');
 				set(handles.edit_x_min,'Str',sprintf('%.12g',bbox(1)))
 				set(handles.edit_x_max,'Str',sprintf('%.12g',bbox(2)))
 				set(handles.edit_y_min,'Str',sprintf('%.12g',bbox(3)))
@@ -96,7 +103,7 @@ function varargout = read_las(varargin)
 % -------------------------------------------------------------------------------------------------
 function push_LASfile_CB(hObject, handles)
 	[FileName,PathName] = put_or_get_file(handles, ...
-		{'*.las;*.LAS', 'LIDAR file (*.las,*.LAS)';'*.*', 'All Files (*.*)'},'Select LAS file','get');
+		{'*.las;*.LAS;*.laz;*.LAZ', 'LIDAR file (*.las,*.LAS,*.laz,*.LAZ)';'*.*', 'All Files (*.*)'},'Select LAS file','get');
 	if isequal(FileName,0),		return,		end
 	% Let the edit_LASfile do the rest of the work;
 	edit_LASfile_CB(handles.edit_LASfile, handles, [PathName FileName])
@@ -117,7 +124,7 @@ function edit_LASfile_CB(hObject, handles, fname)
 		handles.fname = [];
 	end
 	if (isempty(handles.bbox) && ~isempty(handles.fname))
-		bbox = lasreader_mex(handles.fname,'-B');
+		bbox = laszreader_mex(handles.fname,'-B');
 		set(handles.edit_x_min,'Str',sprintf('%.12g',bbox(1))),	set(handles.edit_x_max,'Str',sprintf('%.12g',bbox(2)))
 		set(handles.edit_y_min,'Str',sprintf('%.12g',bbox(3))),	set(handles.edit_y_max,'Str',sprintf('%.12g',bbox(4)))
 		set(handles.edit_z_min,'Str',sprintf('%.9g',bbox(5))),	set(handles.edit_z_max,'Str',sprintf('%.9g',bbox(6)))
@@ -129,7 +136,7 @@ function edit_LASfile_CB(hObject, handles, fname)
 function push_getClass_CB(hObject, handles)
 	if (isempty(handles.classes) && ~isempty(handles.fname))
 		semaforo_toggle(handles, 'red')
-		handles.classes = lasreader_mex(handles.fname,'-S');
+		handles.classes = laszreader_mex(handles.fname,'-S');
 		set(handles.listbox1, 'Str', handles.classTypes(handles.classes))		% Info
 		set(handles.popup_class, 'Str', handles.classes)		% For the case they will be wanted later
 		guidata(handles.figure1, handles);
@@ -152,7 +159,7 @@ function radio_colorClass_CB(hObject, handles)
 	set([handles.radio_colorDepth handles.radio_colorIntens handles.radio_colorReturn handles.radio_colorID],'Val',0)
 	if (isempty(handles.classes) && ~isempty(handles.fname))	% We will need this info later
 		semaforo_toggle(handles, 'red')
-		handles.classes = lasreader_mex(handles.fname,'-S');
+		handles.classes = laszreader_mex(handles.fname,'-S');
 		set(handles.listbox1, 'Str', handles.classTypes(handles.classes))		% Info
 		set(handles.popup_class, 'Str', handles.classes)		% For the case they will be wanted later
 		guidata(handles.figure1, handles);
@@ -170,7 +177,7 @@ function radio_colorID_CB(hObject, handles)
 	set([handles.radio_colorDepth handles.radio_colorIntens handles.radio_colorClass handles.radio_colorReturn],'Val',0)
 	if (isempty(handles.IDs) && ~isempty(handles.fname))	% We will need this info later
 		semaforo_toggle(handles, 'red')
-		handles.IDs = lasreader_mex(handles.fname,'-D');
+		handles.IDs = laszreader_mex(handles.fname,'-D');
 		guidata(handles.figure1, handles);
 		semaforo_toggle(handles, 'green')
 	end
@@ -181,7 +188,7 @@ function check_clipClass_CB(hObject, handles)
 		if (isempty(handles.fname))		set(hObject,'Val',0),	return,		end		% No file yet
 		if (isempty(handles.classes))	% Don't know them yet, time to do it
 			semaforo_toggle(handles, 'red')
-			handles.classes = lasreader_mex(handles.fname,'-S');
+			handles.classes = laszreader_mex(handles.fname,'-S');
 			set(handles.listbox1, 'Str', handles.classtypes(handles.classes))		% Info
 			guidata(handles.figure1, handles);
 			semaforo_toggle(handles, 'green')
@@ -366,8 +373,8 @@ function xyz = get_data(handles)
 
 	[out, colorBy] = parse_before_go(handles);
 	if (~colorBy.do)			% Simpler case. No data spliting
-		if (~isempty(out))		xyz = lasreader_mex(handles.fname, out{:});
-		else					xyz = lasreader_mex(handles.fname);
+		if (~isempty(out))		xyz = laszreader_mex(handles.fname, out{:});
+		else					xyz = laszreader_mex(handles.fname);
 		end
 	elseif (colorBy.do && colorBy.split)
 		% Here we have to deal with a convoluted logic as we'll allow Clip options as well
@@ -379,9 +386,9 @@ function xyz = get_data(handles)
 					out(1) = [];
 				end
 				if (~isempty(out))							% Case with Clippings too
-					xyz{k} = lasreader_mex(handles.fname, opt_C, out{:});
+					xyz{k} = laszreader_mex(handles.fname, opt_C, out{:});
 				else
-					xyz{k} = lasreader_mex(handles.fname, opt_C);
+					xyz{k} = laszreader_mex(handles.fname, opt_C);
 				end
 			end
 		elseif (colorBy.ID)
@@ -392,9 +399,9 @@ function xyz = get_data(handles)
 					out(end) = [];
 				end
 				if (~isempty(out))							% Case with Clippings too
-					xyz{k} = lasreader_mex(handles.fname, opt_D, out{:});
+					xyz{k} = laszreader_mex(handles.fname, opt_D, out{:});
 				else
-					xyz{k} = lasreader_mex(handles.fname, opt_D);
+					xyz{k} = laszreader_mex(handles.fname, opt_D);
 				end
 			end
 		end
