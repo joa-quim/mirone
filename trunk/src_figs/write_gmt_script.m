@@ -1605,16 +1605,18 @@ end
 			if (~any(resp))
 				FillColor = cat(1,FillColor{:});
 			else
-				for (i=1:length(resp))					% Signal down that this is a non colored polygon
-					FillColor{resp(i)} = [-1 -1 -1];	% FDS it worked. I wonder why FillColor{resp} = repmat([-1 -1 -1],length(resp),1); DOESN'T
+				for (i = 1:numel(resp))					% Signal down if this is a non colored polygon
+					if (resp(i))
+						FillColor{i} = [-1 -1 -1];		% This is a non-colored one
+					end
 				end
 				FillColor = cat(1,FillColor{:});
 			end
 		else				% We have only one patch
-			xx = num2cell(xx,1);   yy = num2cell(yy,1);   % Make it a cell for reducing the head-hakes
+			xx = num2cell(xx,1);   yy = num2cell(yy,1);	% Make it a cell for reducing the head-hakes
 			resp = strcmp('none',FillColor);
 			if (resp)
-				FillColor = [-1 -1 -1];                 % Signal down that this is a non colored polygon
+				FillColor = [-1 -1 -1];					% Signal down that this is a non colored polygon
 			end
 		end
 		name = [prefix_ddir '_patch.dat'];    name_sc = [prefix '_patch.dat'];
