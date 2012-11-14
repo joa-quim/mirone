@@ -21,7 +21,7 @@ function varargout = read_las(varargin)
 % can swapp the readers by simply toggling (search-replace) the mexs
 %	laszreader_mex <-> lasreader_mex
 
-% $Id: $
+% $Id$
 
 	hObject = figure('Vis','off');
 	read_las_LayoutFcn(hObject);
