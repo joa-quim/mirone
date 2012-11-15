@@ -53,7 +53,7 @@ function [bin,n_column,multi_seg,n_headers] = guess_file(fiche, opt1, opt2)
 	str = str';
 	
 	A = double(str);
-	if (any(A > 126 & A < 192))    % Binary files have bytes with values greater than 126 (but so is the ç char)
+	if (any(A > 126 & A < 192))		% Binary files have bytes with values greater than 126 (but so is the ç char)
 		bin = guess_in_bin(fiche);
         %bin = 1;
         return
@@ -61,7 +61,8 @@ function [bin,n_column,multi_seg,n_headers] = guess_file(fiche, opt1, opt2)
 	clear A;
 
 	str = strread(str,'%s','delimiter','\n');
-	if (count == MAXCHARS)      % In these cases last line is normally incomplete
+	if (isempty(str)),		bin = [];	return,		end		% Will trigger a 'Don't know' message
+	if (count == MAXCHARS)			% In these cases last line is normally incomplete
         str(end) = [];
 	end
 	
