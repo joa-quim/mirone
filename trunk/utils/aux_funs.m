@@ -271,6 +271,10 @@ function out = findFileType(fname)
 		bin = guess_file(fname);
 		if (isempty(bin))			% Should be a "ERROR READING FILE"
 			out = 'boom';			% Unknow from caller, but it will trigger the error message
+			try						% Do a silent test trying GDAL first and if fails send to BOOM
+				a.att = gdalread(fname,'-M');
+				out = 'dono';		% It will go try luck with GDAL
+			end
 		elseif (isa(bin,'struct') || bin == 0)
 			try						% Do a silent test trying GDAL first and if fails send to load_xyz
 				a.att = gdalread(fname,'-M');
