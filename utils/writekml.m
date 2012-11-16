@@ -43,17 +43,17 @@ function writekml(handles,Z,fname)
 	end
 
 	% Control transparency
-	if (handles.have_nans)                  % We need transparency here. Note that NaNs imply that image derives from grid
-		fname_img = [fname_img '.png'];     % And we'll use png
+	if (handles.have_nans)					% We need transparency here. Note that NaNs imply that image derives from grid
+		fname_img = [fname_img '.png'];		% And we'll use png
 		cmap = get(handles.figure1,'Colormap');
-		if (ndims(img) == 2)                % Indexed image
+		if (ndims(img) == 2)				% Indexed image
 			imwrite(img,cmap,fname_img,'Transparency',0)
-		else                                % Truecolor
-			m = size(Z,1);      n = size(Z,2);
+		else								% Truecolor
+			m = size(Z,1);		n = size(Z,2);
 			ind = isnan(Z);
 			alfa = alloc_mex(m,n,'uint8');
 			alfa(~ind) = 255;       clear ind;
-			if (flipa)      alfa = flipdim(alfa,1);     end
+			if (flipa),			alfa = flipdim(alfa,1);     end
 			imwrite(img,fname_img,'Alpha',alfa);
 		end
 	elseif (handles.image_type ~= 20)       % Eventual original image transparency was already lost
@@ -61,8 +61,15 @@ function writekml(handles,Z,fname)
 			fname_img = [fname_img '.png']; % And we still use png because img is indexed
 			imwrite(img,get(handles.figure1,'Colormap'),fname_img);
 		else
-			fname_img = [fname_img '.jpg']; % Now use jpeg because it allows compression
-			imwrite(img,fname_img,'Quality',100);
+			alfa = get(handles.hImg,'AlphaData');
+			if (size(alfa,1) == size(img,1))
+				fname_img = [fname_img '.png'];
+				if (flipa),		alfa = flipdim(alfa,1);     end
+				imwrite(img,fname_img,'Alpha',alfa);
+			else
+				fname_img = [fname_img '.jpg']; % Now use jpeg because it allows compression
+				imwrite(img,fname_img,'Quality',100);
+			end
 		end
 	end
   
