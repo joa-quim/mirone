@@ -542,6 +542,9 @@ if ~isempty(opt)				% OPT must be a rectangle/polygon handle (the rect may serve
 				for (k = 1:3)		% Sorry for the clutereness
 					tmp = I(:,:,k);		tmp(mask) = 255;	I(:,:,k) = tmp;
 				end
+				mask = uint8(~mask);	cvlib_mex('CvtScale',mask,255,0);	% NEW. 1st transparency attempt
+				I(:,:,4) = mask;
+				clear tmp mask
 			end
 		end
 		[m,n] = size(I);
@@ -555,7 +558,9 @@ if ~isempty(opt)				% OPT must be a rectangle/polygon handle (the rect may serve
 				for (k = 1:3)
 					tmp = I(:,:,k);		tmp(mask) = 255;	I(:,:,k) = tmp;
 				end
-				clear tmp
+				mask = uint8(~mask);	cvlib_mex('CvtScale',mask,255,0);	% NEW. 1st transparency attempt
+				I(:,:,4) = mask;
+				clear tmp mask
 			end
 		end
 		[m,n] = size(I);
@@ -1703,11 +1708,16 @@ function handles = show_image(handles, fname, X, Y, I, validGrid, axis_t, adjust
 	end
 
 	if (~validGrid && handles.validGrid),		aux_funs('cleanGRDappdata',handles);	end
-	if (size(I,3) > 3),			I(:,:,4:end) = [];		% Make sure I is only MxN or MxNx3
+	alpha = 1;
+	%if (size(I,3) == 4),		alpha = I(:,:,4);end
+	if (size(I,3) > 3)
+		alpha = I(:,:,4);
+		I(:,:,4:end) = [];		% Make sure I is only MxN or MxNx3
 	elseif (size(I,3) == 2),	I(:,:,2) = [];			% (could be otherwise when input from multiband)
 	end
 
-	handles.hImg = image(X,Y,I,'Parent',handles.axes1);
+	handles.hImg = image(X,Y,I,'Parent',handles.axes1,'AlphaData',alpha);
+	%set(handles.hImg,'AlphaData',alpha)
 	zoom_state(handles,'off_yes')
 	if (islogical(I))
 		set(handles.hImg,'CDataMapping','scaled');		set(handles.figure1,'ColorMap',gray(16));
