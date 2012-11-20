@@ -23,6 +23,8 @@ function handFig = message_win(option, texto, varargin)
 %							Example:
 %								ud.hAxe = handles.axes1;	ud.p1 = [xx_min yy_min];	
 %								ud.p2 = [xx_max yy_max];	set(hMsg, 'UserData', ud)
+%
+%				'edit'			'yes' Writes the TEXTO into a editbox --- EXPERIMENTAL ----
 
 %	Copyright (c) 2004-2012 by J. Luis
 %
@@ -39,6 +41,8 @@ function handFig = message_win(option, texto, varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
+% $Id$
+
 tagFig = 'Wdmsgfig';
 tagTxt = 'textTag';
 
@@ -54,7 +58,7 @@ if (~isa(texto,'cell')),		texto = cellstr(texto);	end
 
 switch option
 	case 'create'
-		[figpos, figName, posTxt, movepos, bgcolor, fwcolor, Font, addButt, winMaxH, modal] = ...
+		[figpos, figName, posTxt, movepos, bgcolor, fwcolor, Font, addButt, winMaxH, modal, editBox] = ...
 			parse_inputs(texto, varargin{:});
 		if (isempty(movepos))			% Reposition figure on screen
 			figpos = getnicelocation(figpos, 'pixels');
@@ -62,23 +66,35 @@ switch option
 		hFig = figure('MenuBar','none', 'Name',figName, 'HandleVisibility', 'off', ...
 				'Vis','off', 'Unit','pix', 'Pos',figpos,...
 				'Color',bgcolor, 'NumberTitle','off', 'DoubleBuffer','on', 'Tag',tagFig);
-		hTxt = uicontrol('Parent',hFig, 'Style','text', ...
-				'Unit','pix', 'Pos', posTxt, ...
-				'HorizontalAlignment','left',...
-				'FontWeight',Font.Weight, 'FontSize',Font.Size, 'FontName',Font.Name,...
-				'BackgroundColor',bgcolor, 'ForegroundColor',fwcolor, ...
-				'Tag',tagTxt);
-		posBut = [figpos(3)-44 4 40 21];
-		hBut = uicontrol('Parent',hFig, 'Style','pushbutton', ...
-				'Unit','pix', 'Position', posBut, ...
-				'Str', 'OK', ...
-				'Call', 'delete(gcbf)');
-		if (addButt)
-			uicontrol('Parent',hFig, 'Style','pushbutton', ...
-				'Unit','pix', 'Position', [4 4 80 21], ...
-				'Str', 'Plot min/max', ...
-				'Call', @plotMiMa, ...
-				'Tag','plotaMiMa');
+
+		if (~editBox)
+			hTxt = uicontrol('Parent',hFig, 'Style','text', ...
+					'Unit','pix', 'Pos', posTxt, ...
+					'HorizontalAlignment','left',...
+					'FontWeight',Font.Weight, 'FontSize',Font.Size, 'FontName',Font.Name,...
+					'BackgroundColor',bgcolor, 'ForegroundColor',fwcolor, ...
+					'Tag',tagTxt);
+			posBut = [figpos(3)-44 4 40 21];
+			hBut = uicontrol('Parent',hFig, 'Style','pushbutton', ...
+					'Unit','pix', 'Position', posBut, ...
+					'Str', 'OK', ...
+					'Call', 'delete(gcbf)');
+			if (addButt)
+				uicontrol('Parent',hFig, 'Style','pushbutton', ...
+					'Unit','pix', 'Position', [4 4 80 21], ...
+					'Str', 'Plot min/max', ...
+					'Call', @plotMiMa, ...
+					'Tag','plotaMiMa');
+			end
+		else
+			fpos = figpos;				% Make a copy and use a fixed size ... for the time being.
+			fpos(3:4) = [400 numel(texto)*20+45];
+			set(hFig, 'Pos', fpos)
+			hTxtContainer = uicontrol('Parent',hFig, 'Style','edit', 'Unit','pix', 'BackgroundColor',[1 1 1], ...
+				'HorizontalAlignment','left', 'Max',numel(texto), 'Str', texto, 'Pos', [2 25 fpos(3) fpos(4)-25], ...
+				'Tag','editBox');
+			uicontrol('Parent',hFig, 'Style','pushbutton', 'Unit','pix', 'Position', [fpos(3)-93 2 80 21], ...
+				'Str', 'Save', 'Call', @saveFila);
 		end
 
 		if (modal)		% Make the Fig modal
@@ -87,10 +103,15 @@ switch option
 		if (~isempty(movepos))			% Reposition figure on screen
 			move2side(hFig, movepos)
 		end
-		set([hFig,hTxt],'units','norm');
-		set(hTxt, 'String',texto)
-		extent = get(hTxt,'Extent');
-		if (isempty(extent)),	extent = zeros(1,4);	end		% Protection against empty texts
+		if (~editBox)
+			set([hFig,hTxt],'units','norm');
+			set(hTxt, 'String',texto)
+			extent = get(hTxt,'Extent');
+			if (isempty(extent)),	extent = zeros(1,4);	end		% Protection against empty texts
+		else
+			set([hFig,hTxtContainer],'units','norm');
+			extent = [0 0 1 0];		% TMP. Just to cheat the IF test below
+		end
 
 		% See if we should shrink the figure horizontally
 		if ( extent(3) < 1 )					% Yes
@@ -134,7 +155,7 @@ switch option
 		set(hTxt, 'String',[Txt; texto])
 		posTxt = get(hTxt,'Position');
 		extent = get(hTxt,'Extent');
-		
+
 		if (extent(4) > 1 && isempty(hSlider))		% Text to big to fit. Add a slider to the figure
 			old_u = get(hFig,'Units');		set(hFig,'Units','pixel')
 			set_slider(hFig, hTxt, posTxt, (extent(4)))
@@ -157,7 +178,8 @@ switch option
 end
 
 % ------------------------------------------------------------------------------------	
-function [figpos, figName, posTxt, movepos, bgcolor, fwcolor, Font, addButt, winMaxH, modal] = parse_inputs(texto, varargin)
+function [figpos, figName, posTxt, movepos, bgcolor, fwcolor, Font, addButt, winMaxH, modal, editBox] = ...
+	parse_inputs(texto, varargin)
 % Parse inputs and compute also fig and text sizes
 
 	if ( rem(numel(varargin), 2) )
@@ -165,7 +187,7 @@ function [figpos, figName, posTxt, movepos, bgcolor, fwcolor, Font, addButt, win
 	end
 	% Assign defaults
 	win_width = 0;		win_height = 0;		movepos = [];	fwcolor = 'k';	bgcolor = [.95 .95 .95];
-	addButt = false;	modal = false;
+	addButt = false;	modal = false;		editBox = false;
 	figName = 'Message window';
 	Font.Size = 9;
 	Font.Weight = 'demi';
@@ -185,6 +207,7 @@ function [figpos, figName, posTxt, movepos, bgcolor, fwcolor, Font, addButt, win
 				case 'fontname',	Font.Name = varargin{k+1};
 				case 'button',		addButt = true;
 				case 'modal',		modal = true;
+				case 'edit',		editBox = true;
 			end
 		end
 	end
@@ -290,3 +313,21 @@ function plotMiMa(obj,evt)
 
 	draw_funs(h1,'DrawSymbol')
 	draw_funs(h2,'DrawSymbol')
+
+% --------------------------------------------------------------------
+function saveFila(obj, evt)
+	h = findobj(get(obj,'Parent'),'Tag','editBox');
+	str = get(h,'String');
+	str1 = {'*.dat;*.DAT', 'Data file (*.dat,*.DAT)';'*.*', 'All Files (*.*)'};
+	[FileName,PathName] = uiputfile(str1,'Select output file name');
+	if isequal(FileName,0),		return,		end
+	fid = fopen([PathName FileName],'w');
+	if (isa(str,'cell'))
+		for (k = 1:numel(str))
+			fprintf(fid, '%s\n', str{k});
+		end
+	else
+		fprintf(fid, '%s', str);
+	end
+	fclose(fid);
+
