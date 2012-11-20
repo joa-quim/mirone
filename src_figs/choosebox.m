@@ -492,20 +492,23 @@ function doStagePoles(varargin)
 	finite(:,2) = atan2( (1-ecc^2)*sin(finite(:,2)*D2R), cos(finite(:,2)*D2R) ) / D2R;
 
 	stages = finite2stages(finite,half,side);	% Compute the Stage poles
-	str1 = {'*.dat;*.stg', 'Data file (*.dat,*.stg)';'*.*', 'All Files (*.*)'};
-	[FileName,PathName] = uiputfile(str1,'Stage poles file name');
-	if isequal(FileName,0)		return,		end
-	% Open and write to ASCII file
-	if (ispc)			fid = fopen([PathName FileName],'wt');
-	elseif (isunix)		fid = fopen([PathName FileName],'w');
-	else				errordlg('Unknown platform.','Error');
-	end
-	fprintf(fid,'#longitude\tlatitude\ttstart(Ma)\ttend(Ma)\tangle(deg)\n');
-	fprintf(fid,'%9.5f\t%9.5f\t%8.4f\t%8.4f\t%7.4f\n', stages');
-	fclose(fid);
-	ad.value = 2;
-	%ad.pos_right = [PathName FileName];
-	setappdata(0,'ListDialogAppData',ad)
+	o{1} = sprintf('#longitude\tlatitude\ttstart(Ma)\ttend(Ma)\tangle(deg)');
+	o{2} = sprintf('%9.5f\t%9.5f\t%8.4f\t%8.4f\t%7.4f\n', stages');
+	message_win('create',o,'figname','Stage Poles','edit','sim')
+
+% 	str1 = {'*.dat;*.stg', 'Data file (*.dat,*.stg)';'*.*', 'All Files (*.*)'};
+% 	[FileName,PathName] = uiputfile(str1,'Stage poles file name');
+% 	if isequal(FileName,0)		return,		end
+% 	% Open and write to ASCII file
+% 	if (ispc)			fid = fopen([PathName FileName],'wt');
+% 	elseif (isunix)		fid = fopen([PathName FileName],'w');
+% 	else				errordlg('Unknown platform.','Error');
+% 	end
+% 	fprintf(fid,'#longitude\tlatitude\ttstart(Ma)\ttend(Ma)\tangle(deg)\n');
+% 	fprintf(fid,'%9.5f\t%9.5f\t%8.4f\t%8.4f\t%7.4f\n', stages');
+% 	fclose(fid);
+% 	ad.value = 2;
+% 	setappdata(0,'ListDialogAppData',ad)
 
 %-----------------------------------------------------------------------------------
 function doWriteStages(stages)
