@@ -874,7 +874,7 @@ for i = 1:7     % Loop over all Plate Boundaries Types
 end
 
 % -----------------------------------------------------------------------------------------
-function set_isochrons_uicontext(h,data)
+function set_isochrons_uicontext(h, data)
 % h are handles to the lines of isochrons (or other lines with a info)
 	if (isempty(h)),	return,		end
 	tag = get(h,'Tag');
@@ -2426,7 +2426,7 @@ function save_line(obj, evt, h)
 		fprintf(fid,'%.6f\t%.6f\n',[x(:)'; y(:)']);
 	else
 		for (i = 1:numel(h))
-			LineInfo = getappdata(h(i),'PLineInfo');
+			LineInfo = getappdata(h(i),'LineInfo');
 			if (~isempty(LineInfo))
 				str = ['> ' LineInfo];
 			else
