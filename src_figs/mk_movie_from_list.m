@@ -88,7 +88,8 @@ function push_namesList_CB(hObject, handles, opt)
 	end
 
 	fid = fopen(fname);
-	c = char(fread(fid))';      fclose(fid);
+	c = char(fread(fid))';
+	fclose(fid);
 	names = strread(c,'%s','delimiter','\n');   clear c fid;
 	m = length(names);
 	while (isempty(names{m}) && m > 0)
@@ -196,7 +197,7 @@ function edit_movieName_CB(hObject, handles)
 
 % -----------------------------------------------------------------------------------------
 function push_movieName_CB(hObject, handles, opt)
-	if (nargin == 2)        % Direct call
+	if (nargin == 2)		% Direct call
 		if (~isempty(handles.hMirFig) && ishandle(handles.hMirFig))
 			hand = guidata(handles.hMirFig);
 		else
@@ -206,11 +207,17 @@ function push_movieName_CB(hObject, handles, opt)
 			{'*.gif;*.avi', 'Grid files (*.gif,*.avi)'},'Select Movie name','put');
 		if isequal(FileName,0),		return,		end
 		[dumb,FNAME,EXT]= fileparts(FileName);
-	else        % File name on input
+	else					% File name on input
 		[PathName,FNAME,EXT] = fileparts(opt);
-		PathName = [PathName filesep];      % To be coherent with the 'if' branch
+		if (isempty(PathName))	% If no pato, get the one from the list file
+			s = get(handles.edit_namesList,'Str');
+			PathName = fileparts(s);
+		end
+		if (~isempty(PathName))
+			PathName = [PathName filesep];		% To be coherent with the 'if' branch
+		end
 	end
-	if (~strmatch(lower(EXT),{'.gif' '.avi' '.mpg' '.mpeg'}))
+	if ( ~isempty(EXT) && ~any(strcmpi(EXT,{'.gif' '.avi' '.mpg' '.mpeg'})) )
 		errordlg('Ghrrrrrrrr! Don''t be smart. Only ''.gif'', ''.avi'', ''.mpg'' or ''mpeg'' extensions are acepted.', ...
 			'Chico Clever');
 		return
@@ -224,9 +231,17 @@ function push_movieName_CB(hObject, handles, opt)
 	elseif (strcmpi(EXT,'.avi'))
 		set(handles.radio_avi,'Value',1)
 		radio_avi_CB(handles.radio_avi, handles)
-	else
+	elseif (strcmpi(EXT,'.mpg') || strcmpi(EXT,'.mpeg'))
 		set(handles.radio_mpg,'Value',1)
 		radio_mpg_CB(handles.radio_mpg, handles)
+	else
+		if (get(handles.radio_gif,'Val'))
+			radio_gif_CB(handles.radio_gif, handles)
+		elseif (get(handles.radio_avi,'Val'))
+			radio_avi_CB(handles.radio_avi, handles)
+		else
+			radio_mpg_CB(handles.radio_mpg, handles)
+		end
 	end
 	guidata(handles.figure1,handles)
 	
@@ -246,13 +261,11 @@ function push_OK_CB(hObject, handles)
 
 	nFrames = numel(handles.nameList);
 	for (k = 1:nFrames)
-
 		img = imread(handles.nameList{k});
 
 		if (is_gif || is_mpg)
-			[img,map] = img_fun('rgb2ind',img,256,handles.dither);
+			[img, map] = img_fun('rgb2ind',img,256,handles.dither);
 		end
-		%img = flipdim(img,1);     % The stupid UL origin
 
 		if (is_gif)
 			mname = [handles.moviePato handles.movieName '.gif'];
@@ -270,7 +283,6 @@ function push_OK_CB(hObject, handles)
 		% Show visualy the processing advance
 		set(handles.frame2,'BackgroundColor',[1 0 0],'Pos', [handles.barPos(1:2) k*handles.barPos(3)/nFrames handles.barPos(4)]);
 		pause(0.05)			% Otherwise it won't update
-
 	end
 
 	if (is_avi)
