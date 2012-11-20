@@ -26,8 +26,8 @@ function [handles, X, Y, Z, head, misc] = read_gmt_type_grids(handles,fullname,o
 
 % $Id$
 
-    infoOnly = 0;
-    if (nargin == 3),   infoOnly = 1;    end
+    infoOnly = false;
+    if (nargin == 3),   infoOnly = true;    end
     
 	X = [];		Y = [];		Z = [];		head = [];		misc = [];
 	[fid, msg] = fopen(fullname, 'r');
@@ -69,10 +69,12 @@ function [handles, X, Y, Z, head, misc] = read_gmt_type_grids(handles,fullname,o
 	if (~infoOnly)
 		[handles, X, Y, Z, head, misc] = read_grid(handles,fullname,tipo);
 	elseif ( any(strcmp(tipo,{'CDF' 'SRF6' 'SRF7'})) )
-		if (opt(1) == 's')          % Get the info on the struct form
-			X = grdinfo_m(fullname,'hdr_struct');       % Output goes in the second arg
-		else                        % Get the info on the vector form
-			X = grdinfo_m(fullname,'silent');
+		if (opt(1) == 's')			% Get the info on the struct form
+			X = grdinfo_m(fullname, 'hdr_struct');		% Output goes in the second arg
+			head = [X.X_info(1:2) X.Y_info(1:2) X.Z_info(1:2)];
+		else						% Get the info on the vector form
+			X = grdinfo_m(fullname, 'silent');
+			head = X;				% To not error at next IF test
 		end
 	else
 		errordlg([fullname ' : Is not a GMT or binary Surfer grid!'],'ERROR');
