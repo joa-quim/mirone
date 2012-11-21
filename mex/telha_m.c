@@ -111,13 +111,12 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	/* get the length of the input string */
 	argv=(char **)mxCalloc(argc, sizeof(char *));
 	argv[0] = "telha";
-	for (i = 1; i < argc; i++) {
+	for (i = 1; i < argc; i++)
 		argv[i] = (char *)mxArrayToString(prhs[i+n_arg_no_char-1]);
-	}
 
-        for (i = 1; i < argc; i++) {
-                if (argv[i][0] == '-') {
-                        switch (argv[i][1]) {
+	for (i = 1; i < argc; i++) {
+		if (argv[i][0] == '-') {
+			switch (argv[i][1]) {
  		
 				/* Common parameters */
 			
@@ -159,46 +158,46 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 					filter_width = atof (&argv[i][2]);
 					break;
 				case 'G':
-                                        multi_flow = TRUE;
+					multi_flow = TRUE;
 					break;
 				case 'I':
-                                        invert_rot = TRUE;
+					invert_rot = TRUE;
 					break;
 				case 'L':
 					sscanf (&argv[i][2], "%lf/%lf/%lf", &age_lin_start, &age_lin_stop, &age_lin_inc);
-                                        linear_age = TRUE;
+					linear_age = TRUE;
 					break;
 				case 'N':	/* Extend oldest stage back to this time [no extension] */
 					upper_age = atof (&argv[i][2]);
 					break;
 				case 'O':
 					age_shift = fabs(atof (&argv[i][2]));
-                                        fake_origin = TRUE;
-                                        break;
+					fake_origin = TRUE;
+					break;
 				case 'P':
-                                        ages_given = TRUE;
-                                        break;
+					ages_given = TRUE;
+					break;
 				case 'S':
 					dl = atof (&argv[i][2]);
-                                        int_seg = TRUE;
+					int_seg = TRUE;
 					break;
 				case 'T':	/* Current age [0 Ma] */
 					t_zero = atof (&argv[i][2]);
 					break;
-                                default:
-                                        error = TRUE;
-                                        break;
-                        }
-                }
-                else {
+				default:
+					error = TRUE;
+					break;
+			}
+		}
+		else {
 			if (!data_in_input && argv[i][0] != ' ') {
-                        	if ((fp = fopen(argv[i], "r")) == NULL) {
-                                	mexPrintf("%s:  Cannot open %s\n", "telha", argv[i]);
-                                	error = TRUE;
-                        	}
-                        }
-                }
-        }
+				if ((fp = fopen(argv[i], "r")) == NULL) {
+					mexPrintf("%s:  Cannot open %s\n", "telha", argv[i]);
+					error = TRUE;
+				}
+			}
+		}
+	}
 
 	if (argc == 1) {	/* Display usage */
  		mexPrintf ("Telha - 3D magnetic modeling program\n");
@@ -308,7 +307,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	}
 
 
-        n_alloc = CHUNK;
+	n_alloc = CHUNK;
 	ndata = 0;	n_seg = 0;	np_in_seg = 0;
 
 	if (data_in_input) {	/* Data was transmited as arguments. */
