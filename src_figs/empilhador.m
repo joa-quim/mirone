@@ -1185,9 +1185,12 @@ function [Z, att, known_coords, have_nans] = read_gdal(full_name, att, IamCompil
 			if (isempty(what))							% User killed the window, but it's too late to stop so pretend ...
 				what =  struct('georeference',1,'nearneighbor',1,'mask',0,'coastRes',0,'quality','');	% sensor coords
 			end
-			if ( isempty(bitflags) && ~isempty(what.quality) && what.quality < 2 )		% We have a GUI quality request
+			if (isempty(bitflags) && ~isempty(what.quality) && what.quality < 2)	% We have a GUI quality request
 				qual = gdalread(what.qualSDS, opt_L);
-				Z(qual > what.quality) = NoDataValue;
+				if (isequal(size(qual),size(Z)))		% Because we don't want to apply 'qual' to either lon or lat arrays
+					Z(qual > what.quality) = NoDataValue;
+				end
+				clear qual
 			end
 
 			if (despike)					% MODIS SST are horribly spiked every other 10 vertical positions in
