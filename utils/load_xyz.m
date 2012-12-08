@@ -445,9 +445,9 @@ function varargout = load_xyz(handles, opt, opt2)
 			else					% Line plottings
 				% See if we need to wrap arround the earth roundness discontinuity. Using 0.5 degrees from border. 
 				if (handles.geog == 1 && ~do_project && (XMin < -179.5 || XMax > 179.5) )
-						[tmpy, tmpx, tmpz] = map_funs('trimwrap', tmpy, tmpx, [-90 90], [XMin XMax], tmpz, 'wrap');
+					[tmpy, tmpx, tmpz] = map_funs('trimwrap', tmpy, tmpx, [-90 90], [XMin XMax], tmpz, 'wrap');
 				elseif (handles.geog == 2 && ~do_project && (XMin < 0.5 || XMax > 359.5) )
-						[tmpy, tmpx, tmpz] = map_funs('trimwrap', tmpy, tmpx, [-90 90], [XMin XMax], tmpz, 'wrap');
+					[tmpy, tmpx, tmpz] = map_funs('trimwrap', tmpy, tmpx, [-90 90], [XMin XMax], tmpz, 'wrap');
 				end
 
 				n_isoc = n_isoc + 1;
