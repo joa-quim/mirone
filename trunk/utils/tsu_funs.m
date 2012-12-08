@@ -31,11 +31,15 @@ function tsu_funs(opt,varargin)
 function TTT(handles,opt)
 	if (aux_funs('msg_dlg',14,handles)),	return,		end
 	if (nargin == 1),   opt = [];   end
-	if isempty(opt)							% Plot the source
+	if isempty(opt)							% Plot a point source
 		pt = click_e_point(1,'crosshair');
 		h = line('XData',pt(1,1),'YData',pt(1,2), 'Parent',handles.axes1,'Marker','o', ...
 			'MarkerFaceColor','y','MarkerEdgeColor','k','MarkerSize',10,'Tag','TTT');
 		draw_funs(h,'DrawSymbol')			% Set symbol's uicontextmenu
+	elseif (strcmp(opt,'line'))				% Draw a 'Fault source'. Each vertex will be a punctual source.
+		[xp,yp] = getline_j(handles.figure1);
+		h = line('XData', xp, 'YData', yp,'Color',handles.DefLineColor,'LineWidth',handles.DefLineThick,'Tag','TTT');
+		draw_funs(h,'line_uicontext')
 	elseif (strcmp(opt,'load'))
 		str1 = {'*.dat;*.DAT', 'Data files (*.dat,*.DAT)'};
 		[FileName,PathName] = put_or_get_file(handles,str1,'Select input xy_time file name','get');
@@ -58,17 +62,24 @@ function TTT(handles,opt)
 		if (isempty(xy_t)),		single_src = 1;			% Single source mode
 		else					single_src = 0;			% Ray tracing mode
 		end
+
 		[X,Y,Z,head] = load_grd(handles);
 		if isempty(Z),   return,	end					% An error message was already issued
 		if (handles.have_nans),     errordlg('Bathymetry grid cannot have NaNs','Error');   return;    end
 		h_info = [head(1:4) head(8:9)];
 		set(handles.figure1,'pointer','watch');
-		if (single_src)         % Single source mode
+		aguentabar('title','Hold on your camels: computing solution')
+		if (single_src)			% Single source mode
 			xx = get(h_src,'XData');    yy = get(h_src,'YData');
-			tt = wave_travel_time(Z,h_info,[xx yy],handles.geog);
+			tt = wave_travel_time(Z,h_info,[xx(1) yy(1)],handles.geog);
+			for (k = 2:numel(xx))
+				aguentabar((k-1)/numel(xx))
+				tt_ = wave_travel_time(Z,h_info,[xx(k) yy(k)],handles.geog);
+				tt  = min(tt, tt_);
+			end
+			aguentabar(1)
 			tit = 'Tsunami Travel Times';
-		else                    % Find ray tracing solution
-			aguentabar('title','Hold on your camels: computing solution')
+		else					% Find ray tracing solution
 			xx = get(h_src,'XData');
 			yy = get(h_src,'YData');
 			tempo = get(h_src,'UserData');
@@ -420,6 +431,7 @@ function Tsun2Compute(handles, opt)
 		h_mareg = findobj(handles.axes1,'Type','line','Tag','Maregraph');
 		side = [];
 		if (~isempty(h_mareg))
+			side = zeros(1, numel(h_mareg));	ind = side;
 			for (i = 1:numel(h_mareg))
 				side(i) = getappdata(h_mareg(i),'Side');
 				ind(i) = get(h_mareg(i),'UserData');
