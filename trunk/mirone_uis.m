@@ -226,6 +226,7 @@ uimenu('Parent',h,'Call','mirone(''FileSaveImgGrdGdal_CB'',guidata(gcbo),''Erdas
 uimenu('Parent',h,'Call','mirone(''FileSaveImgGrdGdal_CB'',guidata(gcbo),''Envi'',''img'')', 'Label','Envi .hdr Labeled');
 uimenu('Parent',h,'Call','mirone(''FileSaveImgGrdGdal_CB'',guidata(gcbo),''ESRI'',''img'')', 'Label','ESRI .hdr Labeled');
 uimenu('Parent',h,'Call','mirone(''FileSaveImgGrdGdal_CB'',guidata(gcbo),''JP2K'',''img'')', 'Label','JPEG2000');
+%uimenu('Parent',h,'Call','mirone(''FileSaveImgGrdGdal_CB'',guidata(gcbo),''PDF'',''img'')', 'Label','GeoPDF');
 uimenu('Parent',h,'Call','tfw_funs(''write'',guidata(gcbo))', 'Label','Save .tfw file','Tag','saveTFW','Sep','on');
 uimenu('Parent',hFL,'Call','snapshot(gcf,''frame'')', 'Label','Export ...','Tag','noAxes');
 
@@ -612,7 +613,8 @@ uimenu('Parent',h,'Call','fault_models(guidata(gcbo))', 'Label','Import Model Sl
 hT = uimenu('Parent',H1,'Label','Tsunamis','Tag','Tsunamis');		hVG(kv) = hT;		kv = kv + 1;
 
 h = uimenu('Parent',hT,'Label','Tsunami Travel Time','Sep','on');
-uimenu('Parent',h,'Call','tsu_funs(''TTT'',guidata(gcbo))','Label','Plot source');
+uimenu('Parent',h,'Call','tsu_funs(''TTT'',guidata(gcbo))','Label','Plot point source');
+uimenu('Parent',h,'Call','tsu_funs(''TTT'',guidata(gcbo),''line'')','Label','Draw Fault source');
 uimenu('Parent',h,'Call','tsu_funs(''TTT'',guidata(gcbo),''load'')','Label','Import maregrphs and time');
 uimenu('Parent',h,'Call','tsu_funs(''TTT'',guidata(gcbo),''compute'')','Label','Compute','Sep','on');
 
@@ -731,7 +733,7 @@ if (IamCompiled)
 end
 uimenu('Parent',h, 'Call',['mirone(''FileOpenWebImage_CB'',guidata(gcbo),',...
 	' ''http://www2.clustrmaps.com/stats/maps-clusters/w3.ualg.pt-~jluis-mirone-world.jpg'',''nikles'');'],'Label','See visitors map','Sep','on');
-uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 15 Nov 2012'',''2.4.0dev'')','Label','About','Sep','on');
+uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 8 Dez 2012'',''2.4.0dev'')','Label','About','Sep','on');
 
 %% --------------------------- Build HANDLES and finish things here
 	handles = guihandles(H1);
