@@ -719,6 +719,7 @@ elseif (strcmp(opt2,'SplineSmooth'))
 	[pp p_guess] = spl_fun('csaps',{Y(1:min(m,10)),X(1:min(n,10))},Z_rect(1:min(m,10),1:min(n,10)));% Get a good estimate of p
 	prompt = {'Enter smoothing p paramer'};		dlg_title = 'Smoothing parameter input';
 	defAns = {sprintf('%.12f',p_guess{1})};		resp = inputdlg(prompt,dlg_title,[1 38],defAns);
+	if (isempty(resp)),		set(handles.figure1,'pointer','arrow'),		return,		end
 	resp = str2double(resp{1});
 	if (isnan(resp)),		set(handles.figure1,'pointer','arrow'),		return,		end
 	pp = spl_fun('csaps',{Y,X},Z_rect,resp);
@@ -3492,6 +3493,7 @@ function FileSaveImgGrdGdal_CB(handles, opt1, opt2)
 		case 'Envi',		str1 = {'*.img;*.IMG', 'Envi (*.img;*.IMG)'};			driver = 'ENVI';
 		case 'ESRI',		str1 = {'*.bil;*.BIL', 'Esri (*.bil;*.BIL)'};			driver = 'EHdr';
 		case 'JP2K',		str1 = {'*.jp2;*.JP2', 'Jpeg2000 (*.jp2;*.JP2)'};		driver = 'JP2ECW';
+		case 'PDF',			str1 = {'*.pdf;*.PDF', 'GeoPDF (*.pdf;*.PDF)'};			driver = 'GeoPDF';
 	end
 	[FileName,PathName] = put_or_get_file(handles,str1,['Select ' opt1 ' file name'],'put', str1{1}(2:5));
 	if isequal(FileName,0),		return,		end
