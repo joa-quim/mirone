@@ -327,13 +327,9 @@ all_names = handles.all_names;
 
 if isa(struct_val,'struct')
     fields =  fieldnames(struct_val);
-    %names = cell(1,length(fields));
-    for i = 1:length(fields)
-        %idx = strmatch(fields{i},all_names(:,1),'exact');
-        %names{i} = all_names{idx,2};
-        if isstruct(getfield(struct_val(1), fields{i}))
+    for i = 1:numel(fields)
+        if isstruct(struct_val(1).(fields{i}))
             fields{i} = ['+ ' fields{i}];
-            %names{i} = ['+ ' names{i}];            
         end
     end
 end
@@ -341,7 +337,8 @@ end
 % Display info
 name_clean = ddewhite(struct_names{index_struct});
 if (name_clean(1) == '+' || name_clean(1) == '-'),       name_clean = name_clean(3:end);     end
-idx = strmatch(name_clean,all_names(:,1),'exact');
+%idx = strmatch(name_clean,all_names(:,1),'exact');
+idx = find( strcmp(name_clean,all_names(:,1)) );
 %handles.tree_indice = idx;
 set(handles.edit_dimsDesc,'String',handles.band_desc{idx,1})
 
@@ -350,7 +347,7 @@ if (isnumeric(struct_val))
 end
 
 % If double-click, and is struct, expand structure, and show fields
-if (strcmp(get(handles.figure1, 'SelectionType'), 'open')) % if double click
+if (strcmp(get(handles.figure1, 'SelectionType'), 'open'))		% if double click
 	idxP = strfind(struct_names{index_struct}, '+');
 	idxM = strfind(struct_names{index_struct}, '-');
 	if ~isempty(idxP)
@@ -367,11 +364,11 @@ if (strcmp(get(handles.figure1, 'SelectionType'), 'open')) % if double click
 		return
 	end
 	names = cell(length(struct_names),1);
-	for (i = 1:length(struct_names))
+	for (i = 1:numel(struct_names))
 		name_clean = ddewhite(struct_names{i});
 		if (name_clean(1) == '+' || name_clean(1) == '-'),       name_clean = name_clean(3:end);     end
-		id1 = strmatch(name_clean,all_names(:,1),'exact');    % Find index to pretended name
-		id2 = findstr(name_clean,struct_names{i});              % Find index of starting text (after the blanks)
+		id1 = strcmp(name_clean,all_names(:,1)) ;				% Find index to pretended name
+		id2 = findstr(name_clean,struct_names{i});				% Find index of starting text (after the blanks)
 		names{i} = [struct_names{i}(1:id2-1) all_names{id1,2}];        
 	end
 	set(handles.listbox1,'String',names);
@@ -405,7 +402,7 @@ if N == 1           % if the structure is of size 1 x 1
         if (fields{i}(1) == '+' || fields{i}(1) == '-')
             fields{i} = fields{i}(3:end);
         end
-        values_app{i} = getfield(struct_values{idx}, fields{i});
+        values_app{i} = struct_values{idx}.(fields{i});
     end
     struct_names = [names_be; names_app; names_af];
     struct_values = [values_be; values_app'; values_af];
@@ -536,14 +533,14 @@ end
 
 X = imstack2vectors(X);
 
-[K, n] = size(X);		was_double = true;
+K = size(X, 1);			was_double = true;
 if (~isa(X,'double'))
 	X = double(X);		was_double = false;
 end
 
 % Obtain the mean vector and covariance matrix of the vectors in X.
 [P.Cx, P.mx] = covmatrix(X);
-P.mx = P.mx'; % Convert mean vector to a row vector.
+P.mx = P.mx';		% Convert mean vector to a row vector.
 
 % Obtain the eigenvectors and corresponding eigenvalues of Cx.  The
 % eigenvectors are the columns of n-by-n matrix V.  D is an n-by-n
@@ -564,8 +561,8 @@ P.A = V(:, 1:q)';
 
 % Compute the principal component vectors.
 Mx = repmat(P.mx, K, 1);	% M-by-n matrix.  Each row = P.mx.
-%P.Y = P.A*(X - Mx)';		% q-by-K matrix.
-P.Y = P.A*( cvlib_mex('sub', X, Mx) )';		% q-by-K matrix.
+P.Y = P.A*(X - Mx)';		% q-by-K matrix.
+%P.Y = P.A*( cvlib_mex('sub', X, Mx) )';		% q-by-K matrix.
 
 if (~smaller)		% Obtain the reconstructed vectors.
 	P.X = (P.A'*P.Y)' + Mx;
@@ -576,6 +573,7 @@ if (~was_double),	clear X,	end		% The X was a local variable
 clear Mx
 
 % Convert P.Y to K-by-q array and P.mx to n-by-1 vector.
+P.Y = single(P.Y);		% <== IT WON'T BE USED ANYMORE EXCEPT IN A CALL TO SCALETO8
 P.Y = P.Y';
 P.mx = P.mx';
 
@@ -600,7 +598,7 @@ function [C, m] = covmatrix(X)
 %   $Revision: 1.4 $  $Date: 2003/05/19 12:09:06 $
 
 [K, n] = size(X);
-X = double(X);
+if (~isa(X,'double')),	X = double(X);	end
 if n == 1		% Handle special case.
 	C = 0; 
 	m = X;
