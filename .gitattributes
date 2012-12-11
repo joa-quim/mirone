@@ -245,10 +245,7 @@ gmt_userdir/Standard.ps -text
 gmt_userdir/coastline.conf -text
 gmt_userdir/gmt.conf -text
 gmt_userdir/us.d -text
-lib_mex/CalcMD5.dll -text
-lib_mex/mosaicer.dll -text
 lib_mex/octave/Makefile -text
-lib_mex/ogrread.dll -text
 /libiomp5md.dll -text
 /libmmd.dll -text
 mex/CalcMD5.c -text
