@@ -358,6 +358,7 @@ mex/cpt2cmap.c -text
 mex/cubicspline.cpp -text
 mex/cvcolor_mex.c -text
 mex/cvlib_mex.c -text
+mex/cvlib_mex.cpp -text
 mex/distmin.c -text
 mex/edison/compile_edison_wrapper.m -text
 mex/edison/edge/BgDefaults.h -text
