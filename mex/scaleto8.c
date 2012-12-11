@@ -71,7 +71,7 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	float	range = 1, min = FLT_MAX, max = -FLT_MAX, *z_4, new_range, nodata;
 	int     nx, ny, i, is_double = 0, is_single = 0, is_int32 = 0, is_int16 = 0;
 	int     is_uint16 = 0, is_int8 = 0, scale_range = 1, *i_4, scale8 = 1, scale16 = 0;
-	int	n_row, n_col, got_nodata = 0, got_limits = 0, add_off = 1;
+	int     n_row, n_col, got_nodata = 0, got_limits = 0, add_off = 1;
 	char	*i_1;
 	short int *i_2;
 	unsigned short int *ui_2, *out16;
@@ -93,14 +93,44 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 #ifdef MIR_TIMEIT
 	tic = clock();
 #endif
-  
+
+	/* Find out in which data type was given the input array */
+	if (mxIsDouble(prhs[0])) {
+		z_8 = mxGetPr(prhs[0]);
+		is_double = 1;
+	}
+	else if (mxIsSingle(prhs[0])) {
+		z_4 = (float *)mxGetData(prhs[0]);
+		is_single = 1;
+	}
+	else if (mxIsInt32(prhs[0])) {
+		i_4 = (int *)mxGetData(prhs[0]);
+		is_int32 = 1;
+	}
+	else if (mxIsInt16(prhs[0])) {
+		i_2 = (short int *)mxGetData(prhs[0]);
+		is_int16 = 1;
+	}
+	else if (mxIsUint16(prhs[0])) {
+		ui_2 = (unsigned short int *)mxGetData(prhs[0]);
+		is_uint16 = 1;
+	}
+	else if (mxIsInt8(prhs[0])) {
+		i_1 = (char *)mxGetData(prhs[0]);
+		is_int8 = 1;
+	}
+	else {
+		mexPrintf("SCALETO8 ERROR: Unknown input data type.\n");
+		mexErrMsgTxt("Valid types are:double, single, Int32, Int16, UInt16 and Int8.\n");
+	}
+
 	/*  get the dimensions of the matrix input */
 	ny = mxGetM(prhs[0]);
 	nx = mxGetN(prhs[0]);
-	if(nx * ny == 1)
+	if (nx * ny == 1)
 		mexErrMsgTxt("SCALETO8 ERROR: First input must be a matrix.");
  
-	if(nrhs == 1) {
+	if (nrhs == 1) {
 		new_range = 254;		/* scale to uint8 */
 		scale8 = 1;	scale16 = 0;
 	}
@@ -141,7 +171,8 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 			}
 			else if (n_row == 1 && n_col == 2) {	/* Third arg is a [Lmin Lmax] vector */
 				pLimits = (double *)mxGetData(prhs[2]);
-				min = (float)pLimits[0];	max = (float)pLimits[1];
+				min8 = pLimits[0];		max8 = pLimits[1];
+				if (!is_double) {min = (float)min8;		max = (float)max8;}
 				got_limits = 1;
 				mxUnshareArray(prhs[0]);	/* Only matters if prhs[0] is a copy */
 			}
@@ -150,7 +181,8 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 			
 			if (nrhs == 4) {
 				pLimits = (double *)mxGetData(prhs[3]);
-				min = (float)pLimits[0];	max = (float)pLimits[1];
+				min8 = pLimits[0];		max8 = pLimits[1];
+				if (!is_double) {min = (float)min8;		max = (float)max8;}
 				got_limits = 1;
 				mxUnshareArray(prhs[0]);	/* Only matters if prhs[0] is a copy */
 			}
@@ -166,35 +198,6 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		scale_range = 0;	/* Output min/max */
 	}
 
-	/* Find out in which data type was given the input array */
-	if (mxIsDouble(prhs[0])) {
-		z_8 = mxGetPr(prhs[0]);
-		is_double = 1;
-	}
-	else if (mxIsSingle(prhs[0])) {
-		z_4 = (float *)mxGetData(prhs[0]);
-		is_single = 1;
-	}
-	else if (mxIsInt32(prhs[0])) {
-		i_4 = (int *)mxGetData(prhs[0]);
-		is_int32 = 1;
-	}
-	else if (mxIsInt16(prhs[0])) {
-		i_2 = (short int *)mxGetData(prhs[0]);
-		is_int16 = 1;
-	}
-	else if (mxIsUint16(prhs[0])) {
-		ui_2 = (unsigned short int *)mxGetData(prhs[0]);
-		is_uint16 = 1;
-	}
-	else if (mxIsInt8(prhs[0])) {
-		i_1 = (char *)mxGetData(prhs[0]);
-		is_int8 = 1;
-	}
-	else {
-		mexPrintf("SCALETO8 ERROR: Unknown input data type.\n");
-		mexErrMsgTxt("Valid types are:double, single, Int32, Int16, UInt16 and Int8.\n");
-	}
 
 	/*  set the output pointer to the output matrix */
 	if (scale_range) {	/* If scale the output into new_range */
@@ -227,23 +230,32 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 			}
 		}
 		else {			/* Replace outside limits values by min | max */
+#if HAVE_OPENMP
+#pragma omp parallel for private(i)
+#endif
 			for (i = 0; i < nx*ny; i++) {
 				if (mxIsNaN(z_8[i])) continue;
-				if (z_8[i] < min) z_8[i] = min;
-				else if (z_8[i] > max) z_8[i] = max;
+				if (z_8[i] < min8) z_8[i] = min8;
+				else if (z_8[i] > max8) z_8[i] = max8;
 			}
 		}
 		if (scale_range) {	/* Scale data into the new_range ([0 255] or [0 65535]) */ 
-			if (max != min)
-				range8 = new_range / (max - min);
+			if (max8 != min8)
+				range8 = new_range / (max8 - min8);
 
 			if (scale8) {	/* Scale to uint8 */
+#if HAVE_OPENMP
+#pragma omp parallel for private(i)
+#endif
 				for (i = 0; i < nx*ny; i++) { 	/* if z == NaN, out will be = 0 */
 					if (mxIsNaN(z_8[i])) continue;
 					out8[i] = (char)((z_8[i] - min8) * range8) + add_off;
 				}
 			} 
 			else if (scale16) {	/* Scale to uint16 */
+#if HAVE_OPENMP
+#pragma omp parallel for private(i)
+#endif
 				for (i = 0; i < nx*ny; i++) {
 					if (mxIsNaN(z_8[i])) continue;
 					out16[i] = (unsigned short int)((z_8[i] - min8) * range8) + add_off;
