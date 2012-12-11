@@ -491,11 +491,6 @@ mex/xyzokb_m.c -text
 /msvcr100.dll -text
 /msvcr71.dll -text
 /netcdf4_w32.dll -text
-/opencv_calib3d211.dll -text
-/opencv_core211.dll -text
-/opencv_imgproc211.dll -text
-/opencv_objdetect211.dll -text
-/opencv_video211.dll -text
 /openjpeg_w32.dll -text
 /proj_w32.dll -text
 /psl.dll -text
