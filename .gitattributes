@@ -215,8 +215,6 @@ data/volcanoes.dat -text
 data/wcity.dat -text
 data/wcity_major.dat -text
 doc/MironeMan.chm -text
-/gmt.dll -text
-/gmt_mgg.dll -text
 gmt_userdir/.gmtdefaults_SI -text
 gmt_userdir/.gmtdefaults_US -text
 gmt_userdir/CUSTOM_font_info.d -text
@@ -246,8 +244,6 @@ gmt_userdir/coastline.conf -text
 gmt_userdir/gmt.conf -text
 gmt_userdir/us.d -text
 lib_mex/octave/Makefile -text
-/libiomp5md.dll -text
-/libmmd.dll -text
 mex/CalcMD5.c -text
 mex/PolygonClip.c -text
 mex/WindowAPI.c -text
@@ -378,7 +374,6 @@ mex/x_system.h -text
 mex/xyzokb_m.c -text
 /mirone.m -text
 /mirone_uis.m -text
-/psl.dll -text
 /ripa_in_Mac.sc -text
 src_figs/about_box.m -text
 src_figs/animate_seismicity.m -text
