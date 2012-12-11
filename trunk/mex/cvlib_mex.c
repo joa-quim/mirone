@@ -57,11 +57,8 @@
 
 #include <math.h>
 #include "mex.h"
-#if defined(WIN32) || defined(_WIN64)	/* The intention is to know whether we are on Windows or not */
 #include <cv.h>
-#else
-#include <opencv/cv.h>
-#endif
+#include "opencv2/photo/photo.hpp"
 
 #define USE_SIFT	/* Comment this line if you do not want to build with external sift support */
 
