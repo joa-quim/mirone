@@ -16,6 +16,8 @@ function varargout = bands_list(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
+% $Id$
+
 	if (numel(varargin) == 0),		return,		end
  
 	hObject = figure('Vis','off');
