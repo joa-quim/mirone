@@ -15,7 +15,7 @@ REM
 REM Usage: open the command window set up by the compiler of interest (were all vars are already set)
 REM	   and run this from there.
 REM	   You cannot build one program individualy but you can build one of the following groups:
-REM		simple, swan, edison, GMT, GDAL, OCV, MEXNC, laszreader
+REM		simple, swan, edison, GMT, GDAL, OCV, MEXNC, laszreader, mpgwrite
 REM	   To do it, give the group name as argument to this batch. E.G. compile_mex GMT
 REM
 REM
@@ -29,7 +29,7 @@ REM If set to "yes", linkage is done againsts ML6.5 Libs (needed in compiled ver
 SET R13="no"
 
 REM Set it to 32 or 64 to build under 64-bits or 32-bits respectively.
-SET BITS=64
+SET BITS=32
 
 REM Set to "yes" if you want to build a debug version
 SET DEBUG="no"
@@ -144,6 +144,7 @@ IF %1==swan   GOTO swan
 IF %1==edison GOTO edison
 IF %1==lasreader GOTO lasreader
 IF %1==laszreader GOTO laszreader
+IF %1==mpgwrite GOTO mpgwrite
 
 :todos
 REM ------------------ "simple" (no external Libs dependency) ------------------
@@ -245,6 +246,13 @@ REM ---------------------- libLAS (lasreader) ----------------------------------
 %CC% -DWIN32 %COMPFLAGS% -I%MATINC% %LAS_INC% %OPTIMFLAGS% %_MX_COMPAT% %TIMEIT% lasreader_mex.c
 link  /out:"lasreader_mex.%MEX_EXT%" %LINKFLAGS% %LAS_LIB% /implib:templib.x lasreader_mex.obj
 IF "%1"=="lasreader" GOTO END
+
+REM ---------------------- MPEG (mpgwrite) -------------------------------------------
+:mpgwrite
+set P=mpgwrite\
+%CC% -DWIN32 %COMPFLAGS% -I%MATINC% %OPTIMFLAGS% %_MX_COMPAT% %TIMEIT% %P%mpgwrite.c %P%mfwddct.c %P%postdct.c %P%huff.c %P%bitio.c %P%mheaders.c %P%iframe.c %P%pframe.c %P%bframe.c %P%psearch.c %P%bsearch.c %P%block.c %P%mpeg.c %P%subsampl.c %P%jrevdct.c %P%frame.c %P%fsize.c
+link  /out:"mpgwrite.%MEX_EXT%" %LINKFLAGS% /implib:templib.x mpgwrite.obj mfwddct.obj postdct.obj huff.obj bitio.obj mheaders.obj iframe.obj pframe.obj bframe.obj psearch.obj bsearch.obj block.obj mpeg.obj subsampl.obj jrevdct.obj frame.obj fsize.obj 
+IF "%1"=="mpgwrite" GOTO END
 
 
 :END
