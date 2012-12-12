@@ -32,7 +32,7 @@ function [H1,handles,home_dir] = mirone_uis(home_dir)
 
 	% The following test will tell us if we are using the compiled or the ML version
 	try
-		which('mirone');
+		s.s = which('mirone');	% Structs don't showt as unused vars in MLint
 		figW = 671;
 		IamCompiled = false;
 	catch
@@ -41,10 +41,10 @@ function [H1,handles,home_dir] = mirone_uis(home_dir)
 	end
 
 	IAmAMac = strncmp(computer,'MAC',3);
-	if (IAmAMac)	figW = 800;		end		% On Macs buttons have different sizes
-	
+	if (IAmAMac),	figW = 800;		end		% On Macs buttons have different sizes
+
 	IAmOctave = (exist('OCTAVE_VERSION','builtin') ~= 0);	% To know if we are running under Octave
-	if (IAmOctave)	figW = 750;		end		% QtHandles has different padding size
+	if (IAmOctave),	figW = 750;		end		% QtHandles has different padding size
 
 	% Import icons and fetch home_dir if compiled and called by extension association
 	% Here is what will happen. When called by windows extension association the 'home_dir'
@@ -733,7 +733,7 @@ if (IamCompiled)
 end
 uimenu('Parent',h, 'Call',['mirone(''FileOpenWebImage_CB'',guidata(gcbo),',...
 	' ''http://www2.clustrmaps.com/stats/maps-clusters/w3.ualg.pt-~jluis-mirone-world.jpg'',''nikles'');'],'Label','See visitors map','Sep','on');
-uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 8 Dez 2012'',''2.4.0dev'')','Label','About','Sep','on');
+uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 12 Dez 2012'',''2.4.0dev'')','Label','About','Sep','on');
 
 %% --------------------------- Build HANDLES and finish things here
 	handles = guihandles(H1);
