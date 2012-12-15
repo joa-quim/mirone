@@ -107,8 +107,6 @@ hVG(1) = uipushtool('parent',hTB,'Click','mirone(''FileSaveGMTgrid_CB'',guidata(
 	'Tag','SaveGMTgrid','cdata',Mfsave_ico,'Tooltip','Save netCDF GMT grid');
 uipushtool('parent',hTB,'Click','mirone_pref(guidata(gcbo))', ...
 	'Tag','Preferences','cdata',tools_ico,'Tooltip','Preferences');
-uipushtool('parent',hTB,'Click','mirone(''Transfer_CB'',guidata(gcbo),''print'')', ...
-	'Tag','Print','cdata',Mprint_ico,'Tooltip','Print image');
 uipushtool('parent',hTB,'Click','mirone(''Draw_CB'',guidata(gcbo),''Text'')', ...
 	'Tag','DrawText','cdata',text_ico,'Tooltip','Insert Text','Sep','on');
 uipushtool('parent',hTB,'Click','mirone(''DrawGeogCircle_CB'',guidata(gcbo))', ...
@@ -733,7 +731,7 @@ if (IamCompiled)
 end
 uimenu('Parent',h, 'Call',['mirone(''FileOpenWebImage_CB'',guidata(gcbo),',...
 	' ''http://www2.clustrmaps.com/stats/maps-clusters/w3.ualg.pt-~jluis-mirone-world.jpg'',''nikles'');'],'Label','See visitors map','Sep','on');
-uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 12 Dez 2012'',''2.4.0dev'')','Label','About','Sep','on');
+uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 15 Dez 2012'',''2.4.0dev'')','Label','About','Sep','on');
 
 %% --------------------------- Build HANDLES and finish things here
 	handles = guihandles(H1);
