@@ -139,7 +139,8 @@ function varargout = cartas_militares(varargin)
 	% -------------------------------------------------------------------------------------------------------------
 	
 	% Tooltip
-	msg = sprintf('When you want to get the files directly from Web\n\nAs for example at:\nwww.ml-datos.com/4/ficheros/mapas/portugal/IGN%%2025000/');
+	msg = sprintf(['When you want to get the files directly from Web\n\n' ...
+		'As for example at:\nhttp://www.civil.ist.utl.pt/~ruif/HRF/cartas/Cartas%%20Militares%%20GIF_25000/']);
 	set(handles.radio_inWeb,'Tooltip',msg)
 
 	% Load the directory list stored in mirone_pref
@@ -148,8 +149,8 @@ function varargout = cartas_militares(varargin)
 	handles.last_directories = directory_list;
 	handles.files_dir = handles.last_directories{1};
 
-	% Initiliaze with www.mi4x4.com site. This also means that it doesn't recall changes between usage sessions
-	set(handles.edit_forWeb,'String', 'www.ml-datos.com/4/ficheros/mapas/portugal/IGN%2025000/')
+	% Initiliaze with this site. This also means that it doesn't recall changes between usage sessions
+	set(handles.edit_forWeb,'String', 'http://www.civil.ist.utl.pt/~ruif/HRF/cartas/Cartas%20Militares%20GIF_25000/')
 
 	guidata(hObject, handles);
 	if (nargout),	varargout{1} = hObject;		end
