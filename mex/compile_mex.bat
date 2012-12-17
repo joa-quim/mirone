@@ -29,7 +29,7 @@ REM If set to "yes", linkage is done againsts ML6.5 Libs (needed in compiled ver
 SET R13="no"
 
 REM Set it to 32 or 64 to build under 64-bits or 32-bits respectively.
-SET BITS=32
+SET BITS=64
 
 REM Set to "yes" if you want to build a debug version
 SET DEBUG="no"
@@ -82,12 +82,12 @@ IF %BITS%==64 (
 SET  NETCDF_LIB=C:\programs\compa_libs\netcdf-4.1.3\compileds\VC10_64\lib\netcdf.lib
 SET     GMT_LIB=c:\progs_cygw\GMTdev\gmt4\WIN64\lib\gmt.lib
 SET GMT_MGG_LIB=c:\progs_cygw\GMTdev\gmt4\WIN64\lib\gmt_mgg.lib
-SET    GDAL_LIB=c:\programs\GDALtrunk\gdal\compileds\VC10_64\lib4mex\gdal_i.lib
-SET  CXCORE_LIB=C:\programs\OpenCV_SVN\compileds\VC10_64\lib\opencv_core211.lib
-SET   CVIMG_LIB=C:\programs\OpenCV_SVN\compileds\VC10_64\lib\opencv_imgproc211.lib
-SET CVCALIB_LIB=C:\programs\OpenCV_SVN\compileds\VC10_64\lib\opencv_calib3d211.lib
-SET   CVOBJ_LIB=C:\programs\OpenCV_SVN\compileds\VC10_64\lib\opencv_objdetect211.lib
-SET CVVIDEO_LIB=C:\programs\OpenCV_SVN\compileds\VC10_64\lib\opencv_video211.lib
+SET  CXCORE_LIB=C:\programs\compa_libs\opencv\compileds\VC10_64\lib\opencv_core.lib
+SET   CVIMG_LIB=C:\programs\compa_libs\opencv\compileds\VC10_64\lib\opencv_imgproc.lib
+SET CVCALIB_LIB=C:\programs\compa_libs\opencv\compileds\VC10_64\lib\opencv_calib3d.lib
+SET   CVOBJ_LIB=C:\programs\compa_libs\opencv\compileds\VC10_64\lib\opencv_objdetect.lib
+SET CVVIDEO_LIB=C:\programs\compa_libs\opencv\compileds\VC10_64\lib\opencv_video.lib
+SET CVPHOTO_LIB=C:\programs\compa_libs\opencv\compileds\VC10_64\lib\opencv_photo.lib
 SET     LAS_LIB=C:\programs\compa_libs\liblas-src-1.2.1\lib\VC10_64\liblas_i.lib
 SET  GEOLIB_LIB=C:\programs\compa_libs\GeographicLib-1.16\compileds\VC10_64\lib\Geographic.lib
 SET LASZLIB_LIB=C:\programs\compa_libs\lastools\compileds\VC10_64\lib\laslib_i.lib 
