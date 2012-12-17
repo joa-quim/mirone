@@ -132,7 +132,7 @@ function writekml(handles,Z,fname)
 		end
 	end
 
-	% FISH ON THE LINES FAMILY (MANY P. DE CRIANCINHAS)
+	% FISH THE LINES FAMILY (MANY P. DE CRIANCINHAS)
 	ALLlineHand = findobj(handles.axes1,'Type','line');
 	if (~isempty(ALLlineHand))
 
@@ -323,6 +323,14 @@ function writekml(handles,Z,fname)
 		end
 	end
 
+	% FISH THE TEXT FAMILY
+	ALLtextHand = findobj(handles.axes1,'Type','text');
+	if (~isempty(ALLtextHand))
+		fprintf(fid,'\t%s\n','<Folder>');
+		writeText(fid,1,ALLtextHand,'Texts')
+		fprintf(fid,'\t%s\n','</Folder>');
+	end
+
 	fprintf(fid,'%s\n','</Document>');
 	fprintf(fid,'%s','</kml>');
 	fclose(fid);
@@ -499,8 +507,8 @@ function writeSymbols(fid,nTab,x,y,scale,nameGroup,names)
 	Pname = false;      % To use when we have Placemark names
 	if (nargin == 7 && iscell(names)),      Pname = true;   end
 	fprintf(fid,[sTab_p1 '%s%s%s\n'],'<name>',nameGroup,'</name>');
-	% OK, now loop ever number of points ('grou symbols' have several points)
-	for (k=1:numel(x))
+	% OK, now loop over number of points ('grou symbols' have several points)
+	for (k = 1:numel(x))
 		fprintf(fid,[sTab_p1 '%s\n'],'<Placemark>');
 		if (Pname)
 			fprintf(fid,[sTab_p1 '%s%s%s\n'],'<name>',names{k},'</name>');
@@ -513,6 +521,49 @@ function writeSymbols(fid,nTab,x,y,scale,nameGroup,names)
 		fprintf(fid,[sTab_p2 '%s\n'],'</Style>');
 		fprintf(fid,[sTab_p2 '%s\n'],'<Point>');
 		fprintf(fid,[sTab_p3 '%s%.4f,%.4f%s\n'],'<coordinates>',x(k),y(k),',0</coordinates>');
+		fprintf(fid,[sTab_p2 '%s\n'],'</Point>');
+		fprintf(fid,[sTab_p1 '%s\n'],'</Placemark>');        
+	end
+
+% ------------------------------------------------------------------------------------
+function writeText(fid,nTab,h,nameGroup)
+% Write text strings. Here we better extract position and String info directly from the text handles H
+% This function needs improvement as the color and scale are hardwired instead of variable controlled
+
+	sTab_p1 = repmat('\t',1,(nTab+1));		sTab_p2 = repmat('\t',1,(nTab+2));
+	sTab_p3 = repmat('\t',1,(nTab+3));
+
+	% Create a style block that doesn't print any marker (but needs improvement)
+	fprintf(fid,[sTab_p1 '%s\n'],'<Style id="Mir-1">');
+	fprintf(fid,[sTab_p2 '<IconStyle><Icon></Icon></IconStyle>\n']);
+	fprintf(fid,[sTab_p2 '%s\n'],'<LineStyle>');
+	fprintf(fid,[sTab_p3 '<color>ff000000</color>\n']);
+	fprintf(fid,[sTab_p3 '<width>1</width>\n']);
+	fprintf(fid,[sTab_p2 '%s\n'],'</LineStyle>');
+	fprintf(fid,[sTab_p2 '%s\n'],'<PolyStyle>');
+	fprintf(fid,[sTab_p3 '<color>ff80c0ff</color>\n']);
+	fprintf(fid,[sTab_p3 '<fill>1</fill>\n']);
+	fprintf(fid,[sTab_p3 '<outline>1</outline>\n']);
+	fprintf(fid,[sTab_p2 '%s\n'],'</PolyStyle>');
+	fprintf(fid,[sTab_p2 '%s\n'],'<LabelStyle>');
+	fprintf(fid,[sTab_p3 '%s\n'],'<scale>1</scale>');
+	fprintf(fid,[sTab_p3 '<color>bfffffff</color>\n']);
+	fprintf(fid,[sTab_p2 '%s\n'],'</LabelStyle>');
+	fprintf(fid,[sTab_p1 '%s\n'],'</Style>');
+
+	str = get(h,'String');		pos = get(h,'Position');
+	if (~isa(str,'cell'))		% We need to access them as cell arrays
+		str = {str};			pos = {pos};
+	end
+
+	fprintf(fid,[sTab_p1 '%s%s%s\n'],'<name>',nameGroup,'</name>');
+	% OK, now loop ever number of points ('grou symbols' have several points)
+	for (k = 1:numel(h))
+		fprintf(fid,[sTab_p1 '%s\n'],'<Placemark>');
+		fprintf(fid,[sTab_p1 '%s%s%s\n'],'<name>',str{k},'</name>');
+		fprintf(fid,[sTab_p2 '%s%s%s\n'],'<styleUrl>','#Mir-1','</styleUrl>');
+		fprintf(fid,[sTab_p2 '%s\n'],'<Point>');
+		fprintf(fid,[sTab_p3 '%s%.4f,%.4f%s\n'],'<coordinates>',pos{k}(1),pos{k}(2),',0</coordinates>');
 		fprintf(fid,[sTab_p2 '%s\n'],'</Point>');
 		fprintf(fid,[sTab_p1 '%s\n'],'</Placemark>');        
 	end
