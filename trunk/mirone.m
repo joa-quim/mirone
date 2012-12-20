@@ -1174,7 +1174,9 @@ function ExtractProfile_CB(handles, opt)
 			ext = strtok(ext);			% Remove the "@ ??%" part
 		else
 			ind = strfind(name, ' @');
-			name = name(1:ind(1)-1);	%		"
+			if (~isempty(ind))
+				name = name(1:ind(1)-1);	%		"
+			end
 		end
 		if (~isa(zz,'cell'))
 			ecran(handles,xx,yy,zz,['Track from ' name ext])
