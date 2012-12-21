@@ -1,7 +1,7 @@
 function varargout = parker_stuff(varargin)
 % Helper window to do Parker inversions and Reduce To the Pole 
 
-%	Copyright (c) 2004-2012 by J. Luis
+%	Copyright (c) 2004-2013 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -15,6 +15,8 @@ function varargout = parker_stuff(varargin)
 %
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
+
+% $Id$
 
 	hObject = figure('Vis','off');
 	parker_stuff_LayoutFcn(hObject);
@@ -160,6 +162,11 @@ function push_BatGrid_CB(hObject, handles, opt)
 	end
 
 	[handles, X, Y, handles.Z_bat, handles.head_bat] = read_gmt_type_grids(handles,fname);
+	if (handles.have_nans)
+		errordlg('Bathymetry grid error: Mr. Fourier (FFT) really does not stand the presence of NaNs. Did you know that?', 'Error')
+		return
+	end
+
 	if (numel(handles.head_bat) > 9)		% May happen when grids are read by "grdread_m"
 		handles.head_src = handles.head_bat(1:9);
 	end
@@ -187,7 +194,7 @@ function edit_SourceGrid_CB(hObject, handles)
 	fname = get(hObject,'String');
 	if isempty(fname)
 		handles.Z_src = [];		guidata(handles.figure1,handles)
-		return;
+		return
 	end
 	% Let the push_SourceGrid_CB do all the work
 	push_SourceGrid_CB(handles.push_SourceGrid, handles, fname)
@@ -211,7 +218,12 @@ function push_SourceGrid_CB(hObject, handles, opt)
 			handles.head_src = handles.head_src(1:9);
 		end
 	end
-	
+
+	if (handles.have_nans)
+		errordlg('Magnetic grid error: Mr. Fourier (FFT) really does not stand the presence of NaNs. Did you know that?', 'Error')
+		return
+	end
+
 	% See if Bat grid is already loaded and, if yes, if both grids are compatible
 	if (~isempty(get(handles.edit_BatGrid,'String')))
 		difa_hdrs = abs( diff([handles.head_bat; handles.head_src]) );
