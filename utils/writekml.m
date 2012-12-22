@@ -18,9 +18,33 @@ function writekml(handles,Z,fname)
 
 % $Id$
 
+	n_argin = nargin;
+	noFig = true;
+
+	% Check for the case where the input is NOT a handles structure but one with the data
+	if ((n_argin == 1) && isfield(handles, 'nofig'))
+		handles.no_file = false;	handles.have_nans = false;
+		handles.axes1 = [];			handles.hImg = [];
+		handles.image_type = 20;
+		if (isfield(handles, 'fname'))		% Write the kml on file but NOT call GE
+			fname = handles.fname;
+			n_argin = 3;					% Dirty trick to force the flow into "write file and stop"
+		elseif (isfield(handles, 'tmpdir'))
+			handles.path_tmp = handles.tmpdir;
+		else
+			mir_dirs = getappdata(0,'MIRONE_DIRS');
+			if (~isempty(mir_dirs))
+				handles.path_tmp = [mir_dirs.home_dir filesep 'tmp' filesep];
+			else
+				error('writekml:directinput', 'Don''t know the adress of Mirone tmp directory')
+			end
+		end
+		noFig = true;
+	end
+
 	if (handles.no_file)	return,		end
-	if (nargin <= 2)
-		if (nargin == 1)					% Only HANDLES was transmited (called via clicked callback)
+	if (n_argin <= 2)
+		if (n_argin == 1)					% Only HANDLES was transmited (called via clicked callback)
 			Z = [];							% Z will be of use to know if need transparency
 			if (handles.have_nans)
 				[X,Y,Z] = load_grd(handles,'silent');
@@ -169,7 +193,7 @@ function writekml(handles,Z,fname)
 		h = findobj(ALLlineHand,'Tag','scatter_symbs');
 		if (~isempty(h))
 			dpis = get(0,'ScreenPixelsPerInch') ;		% screen DPI
-			pos = get(handles.axes1,'Position');    ylim = get(handles.axes1,'Ylim');
+			pos = get(handles.axes1,'Position');		ylim = get(handles.axes1,'Ylim');
 			escala = diff(ylim)/(pos(4)*2.54/dpis);		% Image units / cm
 
 			fprintf(fid,'\t%s\n','<Folder>');
@@ -331,11 +355,42 @@ function writekml(handles,Z,fname)
 		fprintf(fid,'\t%s\n','</Folder>');
 	end
 
+	% OK, Now check if we got any direct data sent as function arguments
+	if (noFig)
+		try
+			% Do we have lines?
+			if (isfield(handles, 'line'))
+				x = handles.line.x;					y = handles.line.y;
+				if (isfield(handles.line, 'z')),	z = handles.line.z;
+				else		z = zeros(size(x));
+				end
+				line_width = 1;
+				if (isfield(handles.line, 'width')),	line_width = handles.line.width;	end
+				line_color = [255 0 0 0];
+				if (isfield(handles.line, 'color')),	line_color = handles.line.color;	end
+				writePolyLine(fid,x,y,z,line_color,line_width)
+			end
+
+			% Do we have points?
+			if (isfield(handles, 'pt'))
+				x = handles.pt.x;				y = handles.pt.y;
+				symbSize = 0.5;		% Default symbol size in cm (probably to big)
+				if (isfield(handles.pt, 'size')),	symbSize = handles.pt.size;		end
+				names = '';
+				if (isfield(handles.pt, 'str')),	names = handles.pt.str;		end
+				writeSymbols(fid,1,x,y,symbSize,'Tralala',names)
+			end
+		catch
+			fclose(fid);
+			error('writekml:directinput', lasterr)
+		end
+	end
+
 	fprintf(fid,'%s\n','</Document>');
 	fprintf(fid,'%s','</kml>');
 	fclose(fid);
 
-	if (nargin == 1)
+	if (n_argin == 1)
 		try
 			if (ispc),		dos([fname_kml ' &']);
 			else			unix(fname_kml);
