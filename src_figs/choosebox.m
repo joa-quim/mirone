@@ -187,7 +187,7 @@ ad.multiple_finite = multiple_finite;
 setappdata(0,'ListDialogAppData',ad)
 
 load([ad.home_dir filesep 'data' filesep 'mirone_icons.mat'],'Mfopen_ico','um_ico','dois_ico','help_ico',...
-	'refrescaBA_ico','refrescaAB_ico','earthNorth_ico','earthSouth_ico','mais_ico');
+	'refrescaBA_ico','refrescaAB_ico','earthNorth_ico','earthSouth_ico','mais_ico','GE_ico');
 
 h_toolbar = uitoolbar('parent',fig, 'BusyAction','queue','HandleVisibility','on',...
 	'Interruptible','on','Tag','FigureToolBar','Visible','on');
@@ -207,7 +207,8 @@ uitoggletool('parent',h_toolbar,'cdata',earthNorth_ico,'Tag','earthNorth','Click
 	'Tooltip','Place all output poles in the northern hemisphere');
 uitoggletool('parent',h_toolbar,'cdata',earthSouth_ico,'Tag','earthSouth','Click',{@toggle_clickedcallback3,h_toolbar},...
 	'Tooltip','Place all output poles in the southern hemisphere');
-uipushtool('parent',h_toolbar,'Click',@help_clickedcallback,'Tag','help','Tooltip','Help', 'cdata',help_ico,'Sep','on');
+uipushtool('parent',h_toolbar,'cdata',GE_ico,'Click',@GE_clicked_CB,'Tooltip','Plot selected poles in GoogleEarth','Sep','on');
+uipushtool('parent',h_toolbar,'Click',@help_clicked_CB,'Tag','help','Tooltip','Help', 'cdata',help_ico,'Sep','on');
 
 uicontrol('style','frame', 'position',[ffs ffs 2*fus+listsize(1) 2*fus+uh])
 uicontrol('style','frame', 'position',[ffs+2*fus+50+listsize(1) ffs 2*fus+listsize(1) 2*fus+uh])
@@ -391,7 +392,7 @@ function toggle_clickedcallback3(obj, eventdata, h_toolbar)
 	end
 
 % --------------------------------------------------------------------------------------------------
-function help_clickedcallback(obj,eventdata)
+function help_clicked_CB(obj,eventdata)
 str = sprintf(['This tool allows you to compute stage poles from a list of finite rotation\n'...
 		'poles. Alternatively, you can select only one finite pole from the list\n\n'...
 		'By default an example list of finite rotations is loaded, but you can load\n'...
@@ -407,6 +408,34 @@ str = sprintf(['This tool allows you to compute stage poles from a list of finit
 		'Single or multiple poles can be transferred from a base list to the\n'...
 		'selection list using an arrow-button. Single poles also can be transferred by double-clicking']);
 helpdlg(str,'Help')
+
+% --------------------------------------------------------------------------------------------------
+function GE_clicked_CB(obj,evt)
+	ad = getappdata(0,'ListDialogAppData');
+	rightbox = findobj(ad.hFig,'Tag','rightbox');
+	selection = get(rightbox,'String');
+
+	if (isempty(selection)),		return,		end
+
+	n = numel(selection);
+	finite = zeros(n,4);	names = cell(n,1);
+	for (k=1:n)					% Extract pole parameters from the cell array
+		[tok,rem] = strtok(selection{k});		finite(k,1) = str2double(tok);
+		[tok,rem] = strtok(rem);				finite(k,2) = str2double(tok);
+		[tok,rem] = strtok(rem);				finite(k,3) = str2double(tok);
+		[tok,rem] = strtok(rem);				finite(k,4) = str2double(tok);
+		[tok,rem] = strtok(rem);
+		tok = strtok(rem);
+		names{k} = tok;
+	end
+	finite = sortrows(finite,4);				% To make sure they go from youngest to oldest
+	
+	% Fill the input structure for writekml
+	tokml.nofig = true;
+	tokml.line.x = finite(:,1);		tokml.line.y = finite(:,2);
+	tokml.pt.x   = finite(:,1);		tokml.pt.y   = finite(:,2);
+	tokml.pt.str = names;
+	writekml(tokml)
 
 %-----------------------------------------------------------------------------------
 function doOK(varargin)
