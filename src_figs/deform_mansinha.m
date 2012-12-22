@@ -16,6 +16,8 @@ function varargout = deform_mansinha(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
+% $Id$
+
 	if isempty(varargin)
 		errordlg('DEFORM MANSINHA: Wrong number of input args','Error');    return
 	end
