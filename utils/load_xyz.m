@@ -17,6 +17,7 @@ function varargout = load_xyz(handles, opt, opt2)
 %			'AsMaregraph'	plots yellow dots used in the Tsunami modeling tools
 %			'FaultTrace'	plots lines/polylines used by the elastic deformation tools
 %			'Isochron'		plots a isochrons polyline from the internal db.
+%			'FZ'			plots a Fracture Zones polyline from the internal db.
 %							Attention, this option needs that OPT is not empty
 %			'ncshape'		Input file is a netCDF ncshape
 %			If not given defaults to 'AsLine'
@@ -28,7 +29,6 @@ function varargout = load_xyz(handles, opt, opt2)
 %		'>-:'		swap 1st and 2nd columns (assumed as (y,x) -> (x,y))
 %		'>CLOSE'	plot patches instead of lines (idependently of pline being closed or not)
 
-% $Id: $
 %	Copyright (c) 2004-2012 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
@@ -43,6 +43,8 @@ function varargout = load_xyz(handles, opt, opt2)
 %
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
+
+% $Id$
 
 %	EXAMPLE CODE OF HOW TO CREATE A TEMPLATE FOR UICTX WHEN THESE ARE TOO MANY
 % 	cmenuHand = get(h, 'UIContextMenu');
@@ -60,7 +62,7 @@ function varargout = load_xyz(handles, opt, opt2)
 	tol = 0.5;
 	do_project = false;         % We'll estimate below if this holds true
 	got_arrow = false;
-	got_isoc  = false;
+	got_internal_file = false;
 	got_nc = false;				% Flag to signal if a shapenc type file comes in
 	orig_no_mseg = false;		% Flag to know if original file had multiseg strings to store
 	line_type = 'AsLine';
@@ -94,9 +96,14 @@ function varargout = load_xyz(handles, opt, opt2)
 		elseif (strcmp(opt2, 'ncshape'))	got_nc = true;			%
 		else								line_type = opt2;
 		end
-		if (strncmpi(line_type,'isochron',4))
-			tag = 'isochron';		fname = [handles.path_data 'isochrons.dat'];
-			got_isoc  = true;		PathName = handles.path_data;
+		if (strncmpi(line_type,'isochron',4) || strcmpi(line_type,'FZ'))
+			if (strncmpi(line_type,'isochron',4))
+				tag = 'isochron';		fname = [handles.path_data 'isochrons.dat'];
+			else
+				tag = 'FZ';				fname = [handles.path_data 'fracture_zones.dat'];
+			end
+			got_internal_file = true;	PathName = handles.path_data;
+			line_type = 'i_file';
 		end
 	end
 	% ---------------------------------------------------------------------
@@ -234,7 +241,7 @@ function varargout = load_xyz(handles, opt, opt2)
 		region = [xx yy];
 		handles.geog = aux_funs('guessGeog',region);
 
-		if (got_isoc)				% We know it's geog (Global Isochrons)
+		if (got_internal_file)				% We know it's geog (Global Isochrons or FZs)
 			xx = [-180 180];		yy = [-90 90];
 			if (~handles.geog)				handles.geog = 1;
 			elseif (handles.geog == 2)		xx = [0 360];
@@ -247,7 +254,7 @@ function varargout = load_xyz(handles, opt, opt2)
 	elseif (~nargout)				% Reading over an established region
 		XYlim = getappdata(handles.axes1,'ThisImageLims');
 		xx = XYlim(1:2);			yy = XYlim(3:4);
-		if (handles.is_projected && (got_isoc || handles.defCoordsIn > 0) )
+		if (handles.is_projected && (got_internal_file || handles.defCoordsIn > 0) )
 			do_project = true;
 		end
 		XMin = XYlim(1);			XMax = XYlim(2);		% In case we need this names below for line trimming
@@ -453,7 +460,7 @@ function varargout = load_xyz(handles, opt, opt2)
 				n_isoc = n_isoc + 1;
 				if (~got_arrow)
 					switch line_type
-						case {'AsLine' 'Isochrons'}
+						case {'AsLine' 'i_file'}		% 'i_file' means internal file (Isochrons or FZs)
 							hLine(i) = line('XData',tmpx,'YData',tmpy,'Parent',handles.axes1,'Linewidth',lThick,...
 									'Color',cor,'Tag',tag,'Userdata',n_isoc);
 							setappdata(hLine(i),'LineInfo',multi_segs_str{i});
@@ -507,7 +514,7 @@ function varargout = load_xyz(handles, opt, opt2)
 
 		% In case of Lines (and Isocs) uicontexts have not been set yet. Do it now.
 		ind = isnan(hLine);    hLine(ind) = [];      % Clear unused rows in hLine (due to over-dimensioning)
-		if ( ~isempty(hLine) && (strcmp(line_type, 'AsLine') || strcmp(line_type, 'Isochrons') || got_arrow) )
+		if ( ~isempty(hLine) && (strcmp(line_type, 'AsLine') || strcmp(line_type, 'i_file') || got_arrow) )
 			if (orig_no_mseg)
 				draw_funs(hLine,'line_uicontext')		% Here hLine is actually only a scalar
 			else
