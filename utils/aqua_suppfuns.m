@@ -16,6 +16,8 @@ function varargout = aqua_suppfuns(opt, varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
+% $Id$
+
 	switch opt
 		case 'coards_hdr',		[varargout{1:nargout}] = init_header_params(varargin{:});
 		case 'coards_slice',	coards_sliceShow(varargin{:})
