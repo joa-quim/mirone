@@ -1,4 +1,4 @@
-function aqua_suppfuns(opt, varargin)
+function varargout = aqua_suppfuns(opt, varargin)
 % Supplement functions to allow using Aquamoto with plain netCDF coards grids
 
 %	Copyright (c) 2004-2012 by J. Luis
@@ -17,30 +17,29 @@ function aqua_suppfuns(opt, varargin)
 % --------------------------------------------------------------------
 
 	switch opt
-		case 'coards_hdr',		init_header_params(varargin{:})
+		case 'coards_hdr',		[varargout{1:nargout}] = init_header_params(varargin{:});
 		case 'coards_slice',	coards_sliceShow(varargin{:})
-		case 'forGDAL_hdr',		init_header_gdal(varargin{:})
+		case 'forGDAL_hdr',		[varargout{1:nargout}] = init_header_gdal(varargin{:});
 		case 'forGDAL_slice',	gdal_sliceShow(varargin{:})
 	end
 
 % --------------------------------------------------------------------------
-function init_header_params(handles,X,Y,head,misc)
-% 
+function out = init_header_params(handles,X,Y,head,misc)
+% Use the OUT option when using this function to get several usefull info 
+% about the netCDF file but NOT using a GUI
+
 	handles.x = X;			handles.y = Y;
 	handles.time = [];
 	handles.number_of_timesteps = misc.z_dim(1);		% ... NEEDS THINKING
 	
 	handles.x_min = head(1);			handles.x_max = head(2);
 	handles.y_min = head(3);			handles.y_max = head(4);
-	
-	set( handles.edit_Ncols,'String',sprintf('%d',misc.z_dim(end)) )
-	set( handles.edit_Nrows,'String',sprintf('%d',misc.z_dim(end-1)) )
 
 	% ------------- Finish slider configurations -------------
 	s = handles.nc_info;
 	if (handles.number_of_timesteps > 1)
 		st = [1 10] / (handles.number_of_timesteps - 1);
-		id = strmatch('time',{s.Dataset.Name});				% ONLY WHEN 3RTH DIM IS CALLED time
+		id = find(strcmp('time',{s.Dataset.Name}));				% ONLY WHEN 3RTH DIM IS CALLED time
 		if (~isempty(id))
 			handles.time = double(nc_funs('varget', handles.fname, s.Dataset(id).Name));
 		else
@@ -50,7 +49,6 @@ function init_header_params(handles,X,Y,head,misc)
 	else
 		slMax = 1+eps;	st = [1 1];		handles.time = 1;		% Defaults for no crashing
 	end
-	set(handles.slider_layer,'Min',1,'Max',slMax,'Val',1,'SliderStep',st) 	
 
 	% ------ Compute individual and global min/maxs ----------------------------------
 	handles.zMinMaxs = zeros(handles.number_of_timesteps,2);
@@ -66,8 +64,6 @@ function init_header_params(handles,X,Y,head,misc)
 		aguentabar(k/handles.number_of_timesteps);
 	end
 	handles.zMinMaxsGlobal = [min(handles.zMinMaxs(:,1)) max(handles.zMinMaxs(:,2))];
-	set(handles.edit_globalWaterMin,'String',handles.zMinMaxsGlobal(1))
-	set(handles.edit_globalWaterMax,'String',handles.zMinMaxsGlobal(2))
 	handles.minWater = handles.zMinMaxsGlobal(1);
 	handles.maxWater = handles.zMinMaxsGlobal(2);
 	head(5:6) = handles.zMinMaxs(1,:);				% Take the first slice min/max
@@ -75,13 +71,11 @@ function init_header_params(handles,X,Y,head,misc)
 	% ---------------------------------------------------------------------------------
 
 	handles.cmapLand = jet(256);			% Reset the default colormap (default's Aquamoto is a specific one)
-
 	handles.head = head;
 	handles.illumComm = [];					% New file. Reset illum state.
 	handles.imgBat = [];
 	handles.netcdf_z_id = misc.z_id;
 	handles.is_coards = true;
-	set(handles.hTabAnuga,'String','netCDF')
 	
 	% -------------------- See if we have a projection ----------------------------------
 	if (~isempty(misc.strPROJ4)),	handles.strPROJ4 = misc.strPROJ4;
@@ -91,11 +85,21 @@ function init_header_params(handles,X,Y,head,misc)
 	else							handles.srsWKT = [];
 	end
 
-	set_common(handles, handles.head)
-	guidata(handles.figure1,handles)
+	if (nargout)
+		out = handles;
+	else
+		set( handles.edit_Ncols,'String',sprintf('%d',misc.z_dim(end)) )
+		set( handles.edit_Nrows,'String',sprintf('%d',misc.z_dim(end-1)) )
+		set(handles.slider_layer,'Min',1,'Max',slMax,'Val',1,'SliderStep',st) 	
+		set(handles.edit_globalWaterMin,'String',handles.zMinMaxsGlobal(1))
+		set(handles.edit_globalWaterMax,'String',handles.zMinMaxsGlobal(2))
+		set(handles.hTabAnuga,'String','netCDF')
+		set_common(handles, handles.head)
+		guidata(handles.figure1,handles)
+	end
 
 % --------------------------------------------------------------------------
-function init_header_gdal(handles)
+function out = init_header_gdal(handles)
 % Read a multiband file with gdal and fill the header parameters
 
 	handles.illumComm = [];					% New file. Reset illum state.
@@ -114,26 +118,17 @@ function init_header_gdal(handles)
 	if (isempty(att.GeoTransform)),		handles.flip_on_read = false;	end
 
 	st = [1 10] / (att.RasterCount - 1);
-	set(handles.slider_layer,'Min',1,'Max',att.RasterCount,'Val',1,'SliderStep',st) 	
-
-	set( handles.edit_Ncols,'String',sprintf('%d',att.RasterXSize) )
-	set( handles.edit_Nrows,'String',sprintf('%d',att.RasterYSize) )
-	set( handles.check_splitDryWet,'Enable', 'off' )
-	set( handles.push_runIn,'Enable', 'off' )
-	set( handles.slider_transparency,'Enable', 'off' )
 
 	% ------ Compute individual and global min/maxs ------------------------
 	handles.zMinMaxs = zeros(att.RasterCount, 2);
 	for (k = 1:att.RasterCount)
 		if ( isnan(att.Band(1).MinMax(1)) )		% Shit, nothing usable here
-			set(handles.check_globalMinMax,'Enable', 'off' )
+			if (~nargout),	set(handles.check_globalMinMax,'Enable', 'off'),	end
 			break
 		end
 		handles.zMinMaxs(k,:) = att.Band(k).MinMax(:);
 	end
 	handles.zMinMaxsGlobal = [min(handles.zMinMaxs(:,1)) max(handles.zMinMaxs(:,2))];
-	set(handles.edit_globalWaterMin,'String',handles.zMinMaxsGlobal(1))
-	set(handles.edit_globalWaterMax,'String',handles.zMinMaxsGlobal(2))
 	handles.minWater = handles.zMinMaxsGlobal(1);
 	handles.maxWater = handles.zMinMaxsGlobal(2);
 	handles.geog = aux_funs('guessGeog',att.GMT_hdr(1:4));
@@ -141,16 +136,27 @@ function init_header_gdal(handles)
 
 	handles.cmapLand = jet(256);			% Reset the default colormap (default's Aquamoto is a specific one)
 
-	set(handles.hTabAnuga,'String','GDALish')
-
 	% -------------------- See if we have a projection ----------------------------------
 	if (~isempty(att.ProjectionRef)),	handles.srsWKT = att.ProjectionRef;
 	else								handles.srsWKT = [];
 	end
 	handles.strPROJ4 = [];
 
-	set_common(handles, handles.head)
-	guidata(handles.figure1,handles)
+	if (nargout)
+		out = handles;
+	else
+		set(handles.slider_layer,'Min',1,'Max',att.RasterCount,'Val',1,'SliderStep',st)
+		set( handles.edit_Ncols,'String',sprintf('%d',att.RasterXSize) )
+		set( handles.edit_Nrows,'String',sprintf('%d',att.RasterYSize) )
+		set( handles.check_splitDryWet,'Enable', 'off' )
+		set( handles.push_runIn,'Enable', 'off' )
+		set( handles.slider_transparency,'Enable', 'off' )
+		set(handles.edit_globalWaterMin,'String',handles.zMinMaxsGlobal(1))
+		set(handles.edit_globalWaterMax,'String',handles.zMinMaxsGlobal(2))
+		set(handles.hTabAnuga,'String','GDALish')
+		set_common(handles, handles.head)
+		guidata(handles.figure1,handles)
+	end
 
 % --------------------------------------------------------------------------------------------
 function gdal_sliceShow(handles, att)
