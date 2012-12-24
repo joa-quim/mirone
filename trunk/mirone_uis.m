@@ -545,6 +545,7 @@ uimenu('Parent',hDS,'Call','datasets_funs(''Meteorite'',guidata(gcbo))','Label',
 uimenu('Parent',hDS,'Call','datasets_funs(''Hydrothermal'',guidata(gcbo))','Label','Hydrothermal sites');
 uimenu('Parent',hDS,'Call','datasets_funs(''Tides'',guidata(gcbo))','Label','Tide Stations');
 uimenu('Parent',hDS,'Call','datasets_funs(''Maregs'',guidata(gcbo))','Label','Tides (download)');
+uimenu('Parent',hDS,'Call','load_xyz(guidata(gcbo), ''nikles'', ''FZ'')','Label','Fracture Zones');
 uimenu('Parent',hDS,'Call','datasets_funs(''Plate'',guidata(gcbo))','Label','Plate boundaries');
 
 h = uimenu('Parent',hDS,'Label','Cities');
@@ -731,7 +732,7 @@ if (IamCompiled)
 end
 uimenu('Parent',h, 'Call',['mirone(''FileOpenWebImage_CB'',guidata(gcbo),',...
 	' ''http://www2.clustrmaps.com/stats/maps-clusters/w3.ualg.pt-~jluis-mirone-world.jpg'',''nikles'');'],'Label','See visitors map','Sep','on');
-uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 15 Dez 2012'',''2.4.0dev'')','Label','About','Sep','on');
+uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 24 Dez 2012'',''2.4.0dev'')','Label','About','Sep','on');
 
 %% --------------------------- Build HANDLES and finish things here
 	handles = guihandles(H1);
