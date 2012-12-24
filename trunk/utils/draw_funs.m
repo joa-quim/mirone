@@ -896,6 +896,7 @@ function set_isochrons_uicontext(h, data)
 	uimenu(cmenuHand, 'Label', ['Delete all ' tag ' lines'], 'Call', {@remove_symbolClass,h});
 	uimenu(cmenuHand, 'Label', ['Save this '  tag ' line'],  'Call', @save_line);
 	uimenu(cmenuHand, 'Label', ['Save all '   tag ' lines'], 'Call', {@save_line,h});
+	uimenu(cmenuHand, 'Label', 'Join lines', 'Call', {@join_lines,handles.figure1});
 	uimenu(cmenuHand, 'Label', 'Line azimuths', 'Call', @show_lineAzims);
 	uimenu(cmenuHand, 'Label', 'Line length', 'Call', {@show_LineLength,[],'nikles'});
 	LINE_ISCLOSED = 0;
@@ -929,6 +930,7 @@ function set_isochrons_uicontext(h, data)
 	cb_ClassLineStyle = uictx_Class_LineStyle(h);    % there are 4 cb_ClassLineStyle outputs
 	item_Class_lt = uimenu(cmenuHand, 'Label', ['All ' tag ' Line Style']);
 	setLineStyle(item_Class_lt,{cb_ClassLineStyle{1} cb_ClassLineStyle{2} cb_ClassLineStyle{3} cb_ClassLineStyle{4}})
+	%uimenu(cmenuHand, 'Label', 'Make Age-script', 'Sep','on', 'Call', @make_age_script);
 	uimenu(cmenuHand, 'Label', 'Euler rotation', 'Sep','on', 'Call', 'euler_stuff(gcf,gco)');
 	for (i=1:length(h)),		ui_edit_polygon(h(i)),		end		% Set edition functions
 
@@ -1353,22 +1355,22 @@ function show_Area(obj,eventdata,h)
 	iy = isnan(y);
 	x(iy) = [];				y(iy) = [];
 	if ~( (x(1) == x(end)) && (y(1) == y(end)) )
-        msg{1} = 'This is not a closed line. Therefore the result is probably ...';
+		msg{1} = 'This is not a closed line. Therefore the result is probably ...';
 	else
-        msg{1} = '';
+		msg{1} = '';
 	end
 	if (handles.geog)
-        area = area_geo(y,x,handles.DefineEllipsoide);    % Area is reported on the default ellipsoide
+		area = area_geo(y,x,handles.DefineEllipsoide);    % Area is reported on the default ellipsoide
 		str_units = 'm^2';		frmt = '%.2f';
-		if (handles.DefineMeasureUnit(1) == 'k')
+		if (handles.DefineMeasureUnit(1) == 'k' && area > 1e4)
 			area = area * 1e-6;		str_units = 'km^2';		frmt = '%.3f';
 		end
-        msg{2} = sprintf(['Area = ' frmt ' ' str_units], area);
-        msgbox(msg,'Area')
+		msg{2} = sprintf(['Area = ' frmt ' ' str_units], area);
+		msgbox(msg,'Area')
 	else
-        area = polyarea(x,y);   % Area is reported in map user unites
-        msg{2} = ['Area = ' sprintf('%g',area) ' map units ^2'];
-        msgbox(msg,'Area')
+		area = polyarea(x,y);   % Area is reported in map user unites
+		msg{2} = ['Area = ' sprintf('%g',area) ' map units ^2'];
+		msgbox(msg,'Area')
 	end
 
 % -----------------------------------------------------------------------------------------
@@ -2377,6 +2379,52 @@ function remove_symbolClass(obj,eventdata,h)
 		h_all = findobj(gca,'Tag',tag);
 	end
 	delete(h_all)
+
+% -----------------------------------------------------------------------------------------
+function make_age_script(obj, evt)
+% ...
+	pato = 'C:\a1\mgd77\AGU12\';
+	hAllIsocs = findobj('Tag', get(gco,'Tag'));
+	fidJob = fopen([pato 'generate_age_pts.bat'],'wt');			% The batch file
+	fprintf(fidJob, '@echo off\n\nset fname=ages_stages.dat\n');
+	fprintf(fidJob, 'set opt_D=-D0.03\n');
+	fprintf(fidJob, 'set opt_S=-S0.03\n');
+	fprintf(fidJob, 'set opt_P=-P60\n\n');
+	fprintf(fidJob, 'del /Q %%fname%%\n');
+	for (i = 1:numel(hAllIsocs))
+		LineInfo = getappdata(hAllIsocs(i),'LineInfo');
+		if (~isempty(LineInfo))
+			ind = strfind(LineInfo, 'STG');
+			if (~isempty(ind))
+				%strfind(LineInfo(1:6),' '
+				isoc_name = strtok(LineInfo);
+				pole_name = sprintf('%spolo_%d.stg', pato, i);
+				A = sscanf(LineInfo(ind+4:end), '%f %f %f %f %f');
+				stg = sprintf('%.9g %.9g %.9g %.9g %.9g', A(1),A(2),A(3)-A(4),0,A(5));
+				fid = fopen(pole_name,'wt');					%  The stage pole file
+				fprintf(fid, '%s\n', stg);
+				fclose(fid);
+				x = get(hAllIsocs(i), 'XData');		y = get(hAllIsocs(i), 'YData');
+				isoc_name = sprintf('%sisoca_%d_%s.dat', pato, i, isoc_name);	% reuse the variable 'isoc_name'
+				fid = fopen(isoc_name,'wt');					%  The isochrone file
+				fprintf(fid, '> %s\n', LineInfo(1:ind-1));
+				fprintf(fid, '%.4f\t%.4f\n', [x(:)'; y(:)']);
+				fclose(fid);
+				fprintf(fidJob, 'telha %s -E%s -A %%opt_D%% %%opt_S%% -O%g %%opt_P%% >> %%fname%%\n', isoc_name, pole_name, A(4));
+
+				% The Ridge is a special case because it's not duplicated and has two stage poles.
+				if (strcmp(LineInfo(1:3), ' 0 '))				% Found the Ridge
+					pole_name = sprintf('%spolo__%d.stg', pato, i);
+					fid = fopen(pole_name,'wt');				%  The stage pole file
+					stg = sprintf('%.9g %.9g %.9g %.9g %.9g', A(1),A(2),A(3)-A(4),0,-A(5));
+					fprintf(fid, '%s\n', stg);
+					fclose(fid);
+					fprintf(fidJob, 'telha %s -E%s -A %%opt_D%% %%opt_S%% -O%g %%opt_P%% >> %%fname%%\n', isoc_name, pole_name, A(4));
+				end
+			end
+		end
+	end
+	fclose(fidJob);
 
 % -----------------------------------------------------------------------------------------
 function remove_singleContour(obj, evt, h)
