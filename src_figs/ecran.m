@@ -28,26 +28,51 @@ function varargout = ecran(varargin)
 
 % $Id$
 
-	hObject = figure('Vis','off');
+	% This before-start test is to allow updating magnetic tracks that are used to pick the isochrons
+	% using the convolution method. If no synthetic plot is found, the whole updating issue is simply ignored.
+	showBak = get(0,'ShowHiddenHandles');
+	set(0,'ShowHiddenHandles','on');
+	hObject = findobj(get(0,'Children'),'flat', 'FileName', 'plotxy');		% Find a copy of myself
+	set(0,'ShowHiddenHandles',showBak);
+	freshFig = true;
 
-	ecran_LayoutFcn(hObject);
-	handles = guihandles(hObject);
-	set(hObject,'RendererMode','auto')
-	move2side(hObject,'right');
-
-	mir_dirs = getappdata(0,'MIRONE_DIRS');
-	if (~isempty(mir_dirs))
-		handles.home_dir = mir_dirs.home_dir;		% Start in values
-		handles.work_dir = mir_dirs.work_dir;
-		handles.last_dir = mir_dirs.last_dir;
-	else
-		handles.home_dir = cd;		handles.work_dir = cd;		handles.last_dir = cd;
+	if (~isempty(hObject))		% A previous 'Ecran' figure exists. See if it has a mag synthetic plot
+		handles = guidata(hObject);
+		if (~isempty(handles.hSynthetic)),	freshFig = false;	end
+		% Delete eventual existing vertical dashed line and the red square markers
+		if (ishandle(handles.hAgeLine_fit))
+			delete(handles.hAgeLine_fit),		handles.hAgeLine_fit = [];
+		end
+		if (ishandle(handles.hLineChunk_fit))
+			delete(handles.hLineChunk_fit),		handles.hLineChunk_fit = [];
+		end
+		hM = findobj(handles.figure1,'Type','Line','tag','marker');
+		if (~isempty(hM))
+			delete(hM),		set(handles.FileSaveRedMark,'Vis','off')
+		end
 	end
-	handles.hMirFig = [];
 
-	handles.d_path = [handles.home_dir filesep 'data' filesep];
-	s = load([handles.d_path 'mirone_pref.mat'],'directory_list');
-	try			handles.last_dir = s.directory_list{1}; 	end
+	if (freshFig)				% Almost always true
+		hObject = figure('Vis','off');
+		ecran_LayoutFcn(hObject);
+		handles = guihandles(hObject);
+		set(hObject,'RendererMode','auto')
+		move2side(hObject,'right');
+
+		mir_dirs = getappdata(0,'MIRONE_DIRS');
+		if (~isempty(mir_dirs))
+			handles.home_dir = mir_dirs.home_dir;		% Start in values
+			handles.work_dir = mir_dirs.work_dir;
+			handles.last_dir = mir_dirs.last_dir;
+		else
+			handles.home_dir = cd;		handles.work_dir = cd;		handles.last_dir = cd;
+		end
+		handles.hMirFig = [];
+
+		handles.d_path = [handles.home_dir filesep 'data' filesep];
+		s = load([handles.d_path 'mirone_pref.mat'],'directory_list');
+		try			handles.last_dir = s.directory_list{1}; 	end
+	end
 
 	% ---- OK, the interface for this function is a mess. In part due to backward compatibility issues
 	n_in = nargin;
@@ -100,44 +125,50 @@ function varargout = ecran(varargin)
 		delete(hObject),		return
 	end
 
-	% ------------------ Set the UITOOLBAR nad its buttons -------------------------------------
-	s = load([handles.d_path 'mirone_icons.mat'],'zoom_ico','zoomx_ico', 'clipcopy_ico', 'Mline_ico', 'rectang_ico', 'bar_ico');
-	link_ico = make_link_ico;
+	if (freshFig)
+		% ------------------ Set the UITOOLBAR and its buttons -------------------------------------
+		s = load([handles.d_path 'mirone_icons.mat'],'zoom_ico','zoomx_ico', 'clipcopy_ico',...
+			'Mline_ico', 'rectang_ico', 'bar_ico');
+		link_ico = make_link_ico;
 
-	hTB = uitoolbar('parent',hObject,'Clipping', 'on', 'BusyAction','queue','HandleVisibility','on',...
-		'Interruptible','on','Tag','FigureToolBar','Visible','on');
-	uitoggletool('parent',hTB,'Click',{@zoom_CB,''}, 'cdata',s.zoom_ico,'Tooltip','Zoom');
-	uitoggletool('parent',hTB,'Click',{@zoom_CB,'x'}, 'cdata',s.zoomx_ico,'Tooltip','Zoom X');
-	if (strncmp(computer,'PC',2))
-		uipushtool('parent',hTB,'Click',@copyclipbd_CB, 'cdata',s.clipcopy_ico,'Tooltip', 'Copy to clipboard ','Sep','on');
-	end
-	if (~isempty(handles.handMir))
-		uitoggletool('parent',hTB,'Click',@pick_CB, 'cdata',link_ico,'Tooltip', ...
-			'Pick data point in curve and plot it the mirone figure','Sep','on');
-	end
-	uitoggletool('parent',hTB,'Click',@dynSlope_CB, 'cdata', s.Mline_ico,'Tooltip','Compute slope dynamically', 'Tag', 'DynSlope');
-	uipushtool('parent',hTB,'Click',@rectang_clicked_CB,'cdata',s.rectang_ico,...
-		'Tooltip','Restrict analysis to X region');
-	uitoggletool('parent',hTB,'Click',@isocs_CB, 'cdata', s.bar_ico,'Tooltip','Enter ages & plot a geomagnetic barcode','Sep','on');
-	% -------------------------------------------------------------------------------------------
+		hTB = uitoolbar('parent',hObject,'Clipping', 'on', 'BusyAction','queue','HandleVisibility','on',...
+			'Interruptible','on','Tag','FigureToolBar','Visible','on');
+		uitoggletool('parent',hTB,'Click',{@zoom_CB,''}, 'cdata',s.zoom_ico,'Tooltip','Zoom');
+		uitoggletool('parent',hTB,'Click',{@zoom_CB,'x'}, 'cdata',s.zoomx_ico,'Tooltip','Zoom X');
+		if (strncmp(computer,'PC',2))
+			uipushtool('parent',hTB,'Click',@copyclipbd_CB, 'cdata',s.clipcopy_ico,...
+				'Tooltip','Copy to clipboard ','Sep','on');
+		end
+		if (~isempty(handles.handMir))
+			uitoggletool('parent',hTB,'Click',@pick_CB, 'cdata',link_ico,'Tooltip', ...
+				'Pick data point in curve and plot it the mirone figure','Sep','on');
+		end
+		uitoggletool('parent',hTB,'Click',@dynSlope_CB, 'cdata', s.Mline_ico,...
+			'Tooltip','Compute slope dynamically', 'Tag', 'DynSlope');
+		uipushtool('parent',hTB,'Click',@rectang_clicked_CB,'cdata',s.rectang_ico,...
+			'Tooltip','Restrict analysis to X region');
+		uitoggletool('parent',hTB,'Click',@isocs_CB, 'cdata', s.bar_ico,...
+			'Tooltip','Enter ages & plot a geomagnetic barcode','Sep','on');
+		% -------------------------------------------------------------------------------------------
 
-	handles.n_plot = 0;         % Counter of the number of lines. Used for line color painting
-	handles.dist = [];			% It will contain cumulated distance if input is (x,y,z)
-	handles.hLine = [];			% Handles to the ploted line
-	handles.polyFig = [];		% Handles to the (eventual) figure for trend1d polyfit
-	handles.hRect = [];			% Handles to a XLim analysis limiting rectangle
-	handles.ageStart = 0;		handles.ageEnd = nan;
-	handles.syntPar = [];		% To hold synthetic mag profile creation parameters
-	handles.hAgeMarker = [];	% Isochron anchor point
-	handles.hAgeLine_fit = [];	% Float chunk line used to CORR fit to find ideal isochron pick
-	handles.hLineChunk_fit = [];% Anchor point, now a vert line, moved to new fit pos
-	handles.batTrack = [];		% To hold the bat interpolated profile
-	handles.hSynthetic = [];	% To hold the mag synthetic profile
-	handles.pinned = [];		% To hold coords of guessed magnetic isochrons
-	handles.hPatchMagBar = [];	% Handles of the Mag Bars
-	handles.hTxtChrons = [];	% Handles of isochrons names (when used)
-	handles.no_file = false;	% Will need to be updated latter to true case (used in write_gmt_script)
-	handles.hMarkerToRef = [];	% To hold the handles of an eventual markers 'to reference type line'
+		handles.hLine = [];			% Handles to the ploted line
+		handles.syntPar = [];		% To hold synthetic mag profile creation parameters
+		handles.hSynthetic = [];	% To hold the mag synthetic profile
+		handles.n_plot = 0;         % Counter of the number of lines. Used for line color painting
+		handles.dist = [];			% It will contain cumulated distance if input is (x,y,z)
+		handles.polyFig = [];		% Handles to the (eventual) figure for trend1d polyfit
+		handles.hRect = [];			% Handles to a XLim analysis limiting rectangle
+		handles.ageStart = 0;		handles.ageEnd = nan;
+		handles.hAgeMarker = [];	% Isochron anchor point
+		handles.hAgeLine_fit = [];	% Float chunk line used to CORR fit to find ideal isochron pick
+		handles.hLineChunk_fit = [];% Anchor point, now a vert line, moved to new fit pos
+		handles.batTrack = [];		% To hold the bat interpolated profile
+		handles.pinned = [];		% To hold coords of guessed magnetic isochrons
+		handles.hPatchMagBar = [];	% Handles of the Mag Bars
+		handles.hTxtChrons = [];	% Handles of isochrons names (when used)
+		handles.no_file = false;	% Will need to be updated latter to true case (used in write_gmt_script)
+		handles.hMarkerToRef = [];	% To hold the handles of an eventual markers 'to reference type line'
+	end
 
 	% Choose the default ploting mode
 	if isempty(varargin{1})          % When the file will be read latter
@@ -145,14 +176,28 @@ function varargout = ecran(varargin)
 		handles.show_popups = false;
 
 	elseif strcmp(varargin{1},'Image')
-		handles.data(:,1) = varargin{2};    handles.data(:,2) = varargin{3};    handles.data(:,3) = varargin{4};
+		handles.data = [varargin{2}(:) varargin{3}(:) varargin{4}(:)];
 		set(handles.popup_selectSave,'String',{'Save Profile on disk';'Distance,Z (data units -> ascii)';
 			'Distance,Z (data units -> binary)';'X,Y,Z (data units -> ascii)';'X,Y,Z (data units -> binary)';
 			'Distance,Z (data units -> mat file)'});
 		rd = get_distances(handles.data(:,1), handles.data(:,2), handles.geog, handles.measureUnit, handles.ellipsoide);
-		handles.dist = rd;				% This one is by default, so save it in case user wants to save it to file
-		handles.hLine = line('XData',rd,'YData',handles.data(:,3), 'Parent', handles.axes1, 'Color','b');
-		axis(handles.axes1,'tight');
+		handles.dist = rd;			% This one is by default, so save it in case user wants to save to file
+
+		if (freshFig)				% First time here. Create the line handle
+			handles.hLine = line('XData',rd,'YData',handles.data(:,3), 'Parent', handles.axes1, 'Color','b');
+			set(handles.axes1,'xlim',[rd(1) rd(end)], 'ylim',[min(handles.data(:,3)) max(handles.data(:,3))])
+		else
+			% Update the track line, but need to reposition also the isochrons texts (names) AND update sythetic
+			set(handles.hLine,'XData',rd, 'YData',handles.data(:,3))
+			set(handles.axes1,'xlim',[rd(1) rd(end)], 'ylim',[min(handles.data(:,3)) max(handles.data(:,3))])
+			push_magBar_CB(handles.push_magBar, handles)
+			handles = guidata(handles.figure1);		% Get the updated version (changed in the previous call)
+			handles.batTrack = [];	% Force recomputing (if used, ofc)
+			push_syntheticRTP_CB(handles.push_syntheticRTP, handles)
+			handles = guidata(handles.figure1);
+			popup_ageFit_CB(handles.popup_ageFit, handles)
+		end
+
 		if (handles.geog)				% Update uicontrol values too
 			set(handles.check_geog,'Val',1)
 			check_geog_CB(handles.check_geog, handles)
@@ -1361,7 +1406,7 @@ function slider_filter_CB(hObject, handles)
 
 % ---------------------------------------------------------------------
 function popup_ageFit_CB(hObject, handles)
-% Put/update a marker on the synthetic line corresponding to age of the slected popup value
+% Put/update a marker on the synthetic line corresponding to the age of the slected popup value
 
 	str = get(hObject,'str');		val = get(hObject,'Val');
 	if (val == 1),		return,		end			% First entry is empty
@@ -2283,6 +2328,7 @@ set(h1, 'Position',[500 400 814 389],...
 'PaperPosition',[0.0119243429653489 0.0842781102631165 0.381578974891164 0.20226746463148],...
 'PaperPositionMode', 'auto', ...
 'RendererMode','manual',...
+'FileName','plotxy',...
 'Tag','figure1');
 
 axes('Parent',h1, 'Units','pixels', 'Position',[40 369 771 21], 'Vis','off', 'Tag','axes2');
