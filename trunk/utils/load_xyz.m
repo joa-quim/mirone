@@ -344,8 +344,8 @@ function varargout = load_xyz(handles, opt, opt2)
 			end
 			struc_vimage = struct('z_min', z_Vmin, 'z_max', z_Vmax, 'vimage', vimage);
 
-		elseif (strncmp(multi_segs_str{1}, '>-:', 3))					% File has y,x instead of x,y
-			multi_segs_str{1}(2:3) = [];								% Rip the swap -: identifier
+		elseif (strncmp(multi_segs_str{1}, '>-:', 3))				% File has y,x instead of x,y
+			multi_segs_str{1}(2:3) = [];							% Rip the swap -: identifier
 			for (i = 1:n_segments)				% Swapp 1st and 2th columns. Do differently would be very complex
 				tmp = numeric_data{i}(:,1);
 				numeric_data{i}(:,1) = numeric_data{i}(:,2);
@@ -353,34 +353,37 @@ function varargout = load_xyz(handles, opt, opt2)
 			end
 			clear tmp
 
-		elseif (strncmp(multi_segs_str{1}, '>CLOSE', 6))				% Closed or not, plot a patch
-			multi_segs_str{1}(2:6) = [];								% Rip the CLOSE identifier
+		elseif (strncmp(multi_segs_str{1}, '>CLOSE', 6))			% Closed or not, plot a patch
+			multi_segs_str{1}(2:6) = [];							% Rip the CLOSE identifier
 			do_patch = true;
 
-		elseif (strncmpi(multi_segs_str{1}, '>HAVE_INCLUDES', 7))		% This file includs other files
-			if (numel(multi_segs_str) - numel(numeric_data) >= 2)		% Test if first segment has a true header
-				multi_segs_str(1) = [];									% (Yes, it has). This header was now in excess.
+		elseif (strncmpi(multi_segs_str{1}, '>HAVE_INCLUDES', 7))	% This file includs other files
+			if (numel(multi_segs_str) - numel(numeric_data) >= 2)	% Test if first segment has a true header
+				multi_segs_str(1) = [];								% (Yes, it has). This header was now in excess.
 			else
-				multi_segs_str{1} = '> Nikles ';						% We need a first header that didn't exist
+				multi_segs_str{1} = '> Nikles ';					% We need a first header that didn't exist
 			end
+			heads_to_del = false(numel(multi_segs_str),1);
 			for (i = 1:numel(multi_segs_str))
 				ind = strfind(multi_segs_str{i},'INCLUDE');
 				if (~isempty(ind))
 					tok = multi_segs_str{i}(ind(1):end);
-					inc_fname = tok(min(numel(tok),9):end);				% Securely try to get the include file name
+					inc_fname = tok(min(numel(tok),9):end);			% Securely try to get the include file name
+					heads_to_del(i) = true;							% This is not a true header, so flag it to deletion
 					if (~exist(inc_fname,'file')),		continue,	end	% File does not exist or bad file name
 					[out_data, out_str] = load_xyz([], inc_fname);
 					imp_n_segments = 1;
 					if (iscell(out_data)),	imp_n_segments = numel(out_data);	end
-					for (imp_i = 1:imp_n_segments)						% Loop over number of segments of this imported file					
-						if (iscell(out_data)),	numeric_data{end+1} = out_data{i};
+					for (imp_i = 1:imp_n_segments)					% Loop over number of segments of this imported file					
+						if (iscell(out_data)),	numeric_data{end+1} = out_data{imp_i};
 						else					numeric_data{end+1} = out_data;
 						end
 						n_segments = n_segments + 1;
-						multi_segs_str{end+imp_i-1} = out_str{imp_i};	% Import also eventual included headers
+						multi_segs_str{end+1} = out_str{imp_i};% Import also eventual included headers
 					end
 				end
 			end
+			multi_segs_str(heads_to_del) = [];
 
 		elseif (line_type(3) ~= 'P' && ~isempty(strfind(multi_segs_str{1},'-G')) && isempty(strfind(multi_segs_str{1},'-S')) )
 			% -G (paint) alone is enough to make it a patch (if ~point)
