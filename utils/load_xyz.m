@@ -18,7 +18,7 @@ function varargout = load_xyz(handles, opt, opt2)
 %			'FaultTrace'	plots lines/polylines used by the elastic deformation tools
 %			'Isochron'		plots a isochrons polyline from the internal db.
 %			'FZ'			plots a Fracture Zones polyline from the internal db.
-%							Attention, this option needs that OPT is not empty
+%							Attention, this option needs a non-empty OPT argument
 %			'ncshape'		Input file is a netCDF ncshape
 %			If not given defaults to 'AsLine'
 %
@@ -28,8 +28,16 @@ function varargout = load_xyz(handles, opt, opt2)
 %		'>VIMAGE'	tell Fleder to plot a scene with a VIMAGE
 %		'>-:'		swap 1st and 2nd columns (assumed as (y,x) -> (x,y))
 %		'>CLOSE'	plot patches instead of lines (idependently of pline being closed or not)
+%		'>HAVE_INCLUDES'	Signal that this file has multi-segment headers with the form:
+%					'> INCLUDE=FULL_PATH_TO_FILE'
+%					that will result in inclusion of an external file at the end of the main one.
+%					These included files may be multi-segment files as well but need to have the
+%					same number of columns as the master file (no test for this though).
+%					When used from an empty figure these included files won't be taken into account
+%					to determine data BB because the parsing of this option is done afterwards.
+%					If the indicated file(s) do not exist this option is silently ignored.
 
-%	Copyright (c) 2004-2012 by J. Luis
+%	Copyright (c) 2004-2013 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -58,7 +66,7 @@ function varargout = load_xyz(handles, opt, opt2)
 % 	cmenuHand = getappdata(hAxes, 'cmenuHand');
 % 	set(h, 'UIContextMenu', cmenuHand)
 
-	% ------------------- Some defaults -----------------------------------
+	% ------------------- Some defaults ---------------------------------------------
 	tol = 0.5;
 	do_project = false;         % We'll estimate below if this holds true
 	got_arrow = false;
@@ -71,9 +79,9 @@ function varargout = load_xyz(handles, opt, opt2)
 	is_bin = false;				% To flag binary files
 	BB = [];					% To eventually hold a BoundingBox
 	is_GMT_DB = false;			% To flag the special cases when we are dealing with the GMT database polygons
-	% ---------------------------------------------------------------------
+	% -------------------------------------------------------------------------------
 
-	% ------------------- Parse inputs ------------------------------------
+	% ------------------- PARSE INPUTS ----------------------------------------------
 	if (nargout && isempty(handles))		% When this function is used to just read a file and return its contents
 		handles.no_file = false;
 	end
@@ -106,7 +114,7 @@ function varargout = load_xyz(handles, opt, opt2)
 			line_type = 'i_file';
 		end
 	end
-	% ---------------------------------------------------------------------
+	% ------------------- END PARSE INPUTS------------------------------------------------
 
 	if (~got_nc)			% Most common cases
 
@@ -348,6 +356,31 @@ function varargout = load_xyz(handles, opt, opt2)
 		elseif (strncmp(multi_segs_str{1}, '>CLOSE', 6))				% Closed or not, plot a patch
 			multi_segs_str{1}(2:6) = [];								% Rip the CLOSE identifier
 			do_patch = true;
+
+		elseif (strncmpi(multi_segs_str{1}, '>HAVE_INCLUDES', 7))		% This file includs other files
+			if (numel(multi_segs_str) - numel(numeric_data) >= 2)		% Test if first segment has a true header
+				multi_segs_str(1) = [];									% (Yes, it has). This header was now in excess.
+			else
+				multi_segs_str{1} = '> Nikles ';						% We need a first header that didn't exist
+			end
+			for (i = 1:numel(multi_segs_str))
+				ind = strfind(multi_segs_str{i},'INCLUDE');
+				if (~isempty(ind))
+					tok = multi_segs_str{i}(ind(1):end);
+					inc_fname = tok(min(numel(tok),9):end);				% Securely try to get the include file name
+					if (~exist(inc_fname,'file')),		continue,	end	% File does not exist or bad file name
+					[out_data, out_str] = load_xyz([], inc_fname);
+					imp_n_segments = 1;
+					if (iscell(out_data)),	imp_n_segments = numel(out_data);	end
+					for (imp_i = 1:imp_n_segments)						% Loop over number of segments of this imported file					
+						if (iscell(out_data)),	numeric_data{end+1} = out_data{i};
+						else					numeric_data{end+1} = out_data;
+						end
+						n_segments = n_segments + 1;
+						multi_segs_str{end+imp_i-1} = out_str{imp_i};	% Import also eventual included headers
+					end
+				end
+			end
 
 		elseif (line_type(3) ~= 'P' && ~isempty(strfind(multi_segs_str{1},'-G')) && isempty(strfind(multi_segs_str{1},'-S')) )
 			% -G (paint) alone is enough to make it a patch (if ~point)
