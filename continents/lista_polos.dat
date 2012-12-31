@@ -1,12 +1,12 @@
-  0.0    0.0     0.0     0.0  !NAM<-Eurasia
-145.60  47.0    -0.39    1.82 !NAM<-Eurasia  An2   Em movimento
-142.70  47.5    -0.62    3.06 !NAM<-Eurasia  An2A  Em movimento
-138.10  59.1    -1.03    4.72 !NAM<-Eurasia  An3   Em movimento
-139.90  55.9    -1.29    6.20 !NAM<-Eurasia  An3A  Em movimento
-140.10  56.8    -1.62    7.54 !NAM<-Eurasia  An4   Em movimento
-138.80  60.3    -1.95    8.88 !NAM<-Eurasia  An4A  Em movimento
-141.90  59.1    -2.31   10.30 !NAM<-Eurasia  An5   Em movimento
-140.00  62.0    -4.58   21.00 !NAM<-Eurasia  An6   Em movimento
+139.60  61.8    -0.21    0.0  !NAM<-Eurasia  MORVEL (deg/Ma)
+143.90  44.9    -0.39    1.82 !NAM<-Eurasia  An2   Em Mov (res = 1.15)
+140.90  49.8    -0.63    3.06 !NAM<-Eurasia  An2A  Em Mov (res = 1.86)
+138.00  61.0    -1.03    4.72 !NAM<-Eurasia  An3   Em Mov (res = 2.36)
+139.40  55.6    -1.29    6.20 !NAM<-Eurasia  An3A  Em Mov (res = 1.97)
+140.40  56.5    -1.62    7.74 !NAM<-Eurasia  An4   Em Mov (res = 1.74)
+139.20  59.7    -1.94    8.88 !NAM<-Eurasia  An4A  Em Mov (res = 1.77)
+139.00  60.3    -2.32   10.30 !NAM<-Eurasia  An5   Em Mov (res = 2.55)
+139.50  62.0    -4.58   19.60 !NAM<-Eurasia  An6   Em Mov (res = 3.94)
 
   0.0    0.0     0.0     0.0  !ACO-NAM Iberia-North America
 -37.50   7.0    -1.59    3.85 !ACO-NAM An3  J. Luis et al. 1984
@@ -14,8 +14,8 @@
 -35.10  17.8    -3.79    7.01 !ACO-NAM An4  J. Luis et al. 1984
 -32.20  21.7    -6.20    8.69 !ACO-NAM An4A J. Luis et al. 1984
 -37.00   2.2    -3.79   10.10 !ACO-NAM An5  J. Luis et al. 1984
-135.8   62.4     0.0     0.0  !NAM<-IBE North America-Iberia (NAm fixed)
 
+135.8   62.4     0.0     0.0  !NAM<-IBE North America-Iberia (NAm fixed)
 139.87  62.78   -2.34   10.33 !NAM<-EUR An5  J. Luis & Miranda Global
 140.52  53.03   -2.26   10.33 !NAM<-EUR An5  J. Luis & Miranda Sul da CG
 140.04  61.88   -4.56   19.55 !NAM<-IBE An6  J. Luis & Miranda Global
@@ -36,6 +36,17 @@
 132.63  77.31  -18.48   72.25 !NAM<-IBE An32 J. Luis & Miranda
 118.50  85.33  -22.05   78.00 !NAM<-IBE An33 J. Luis & Miranda
 119.98  85.92  -23.22   81.00 !NAM<-IBE An33r J. Luis & Miranda
+
+142.12  57.88   -8.78   39.13 !NAM<-EUR An18 Norte CG
+130.87  35.97   -9.12   49.37 !NAM<-EUR An22 Norte CG (Sem Rockall)
+
+  0.0    0.0     0.0     0.0  !NAM<-POP North America-Porcupine (NAm fixed)
+143.82  64.28   -8.53   39.13 !NAM<-POC An18 Em Mov.
+145.92  62.18   -9.20   43.14 !NAM<-POC An20 Em Mov.
+146.58  72.43  -13.06   52.79 !NAM<-POC An24 Em Mov. (fracote)
+155.98  66.50  -14.65   57.70 !NAM<-POC An26 Em Mov. (fracote)
+145.95  56.80  -16.21   67.02 !NAM<-POC An30 Em Mov. (bom)
+147.95  59.60  -18.46   81.00 !NAM<-POC An33r Em Mov. (bom)
 
   0.0    0.0     0.0     0.0  !NAM<-IBE North America-Iberia (NAm fixed)
 133.84  64.57   -2.39    9.8  !NAM<-IBE An5 Klitgord & Schouten 1986
@@ -64,7 +75,7 @@
 110.28  85.49  -22.41   79.1  !NAM<-IBE An33o Srivastava et al. 1990
  57.43  87.18  -24.67   83.0  !NAM<-IBE An34 Srivastava et al. 1990
 -15.00  68.88  -50.62  118.0  !NAM<-IBE AnM0 Srivastava et al. 1990
--18.94  64.71  -58.11  118.0  !NAM<-IBE AnM0 Srivastava et al. 2000
+-18.94  64.71  -58.11  127.5  !NAM<-IBE AnM0 Srivastava et al. 2000
 -13.11  68.57  -53.64  131.3  !NAM<-IBE AnM10 Srivastava et al. 1990
 -12.93  66.90  -60.45  154.4  !NAM<-IBE AnM25 Srivastava et al. 1990
 -12.82  65.72  -66.32  175.0  !NAM<-IBE Srivastava & Verhoef 1992
@@ -72,20 +83,39 @@
 171.49 -73.59   52.57  150.0  !NAM<-IBE Rowley & Lottes 1988
 171.49 -73.59   52.57  200.0  !NAM<-IBE Rowley & Lottes 1988
 
-  0.0    0.0     0.0     0.0  !NAM<-Nubia
- 44.15  74.00   -0.425   1.82 !NAM<-Nubia  An2   Em movimento
- 25.70  77.60   -0.72    3.06 !NAM<-Nubia  An2A  Em movimento
- 29.50  78.50   -1.14    4.72 !NAM<-Nubia  An3   Em movimento
- 36.50  79.50   -1.47    6.20 !NAM<-Nubia  An3A  Em movimento
- 45.60  79.60   -1.80    7.54 !NAM<-Nubia  An4   Em movimento
- 40.20  79.60   -2.14    8.88 !NAM<-Nubia  An4A  Em movimento
- 41.20  79.90   -2.57   10.30 !NAM<-Nubia  An5   Em movimento
- 39.74  80.37   -5.29   21.00 !NAM<-Nubia  An6   Em movimento
+ 40.2   79.2    -0.233   0.0  !NAM<-Nubia  MORVEL (deg/Ma)
+ 39.40  79.10   -0.43    1.82 !NAM<-Nubia  An2   Em movimento
+ 31.60  78.00   -0.73    3.06 !NAM<-Nubia  An2A  Em movimento
+ 33.90  78.80   -1.13    4.72 !NAM<-Nubia  An3   Em movimento
+ 46.50  79.30   -1.45    6.20 !NAM<-Nubia  An3A  Em movimento
+ 50.80  79.60   -1.79    7.74 !NAM<-Nubia  An4   Em movimento
+ 43.20  79.60   -2.13    8.88 !NAM<-Nubia  An4A  Em movimento
+ 51.50  79.90   -2.54   10.30 !NAM<-Nubia  An5   Em movimento
+ 46.40  80.50   -5.24   21.00 !NAM<-Nubia  An6   Em movimento
+  7.60  83.16  -20.66   66.95 !NAM<-Nubia  An30  Em movimento
+-22.85  76.30  -29.61   81.00 !NAM<-Nubia  An33r Em movimento
+-20.34  66.09  -54.50  127.48 !NAM<-Nubia  AnM0  Em movimento
+-19.34  66.59  -54.90  123.39 !NAM<-Nubia  AnM2  Idade Cox
+-19.44  66.89  -56.62  126.96 !NAM<-Nubia  AnM4  Idade Cox
+-18.30  66.05  -57.55  134.49 !NAM<-Nubia  AnM10 Em movimento
+-18.40  66.00  -59.54  143.20 !NAM<-Nubia  AnM16 Em movimento
+-18.10  66.40  -62.42  152.03 !NAM<-Nubia  AnM22 Em movimento
+-14.60  66.75  -64.60  156.17 !NAM<-Nubia  AnM25 Em movimento
+
+  0.0    0.00    0.0     0.0  !Nubia<-IBE Eurasia-Nubia (Nubia fixed)
+-20.40  21.60    0.131   0.0  !Nubia<-IBE MORVEL (deg/Ma)
+-20.61  21.03    0.0     0.0  !Nubia<-IBE An0 Nuvel
+-22.19  25.05    0.33    1.82 !Nubia<-IBE An2 Closure
+-20.77  25.25    0.51    3.06 !Nubia<-IBE An2a Closure
+-20.08  20.56    0.66    4.72 !Nubia<-IBE An3 Closure
+-20.08  24.33    0.86    6.20 !Nubia<-IBE An3a Closure
+-18.43  23.18    1.04    7.74 !Nubia<-IBE An4 Closure
+-18.64  20.98    1.19    8.88 !Nubia<-IBE An4a Closure
+-17.41  21.46    1.31   10.30 !Nubia<-IBE An5 Closure
+-16.55  25.07    2.61   21.00 !Nubia<-IBE An6 Closure
 
   0.0    0.00    0.0     0.0  !Afr<-IBE Iberia-Africa (Afr fixed)
 -20.61  21.03    0.0     0.0  !Afr<-IBE An0 Nuvel
--17.78  21.10    1.11   10.10 !Afr<-IBE An5 Fecho
--18.84  27.56    3.28   19.55 !Afr<-IBE An6 Fecho
 -20.17  30.02    4.74   33.25 !Afr<-IBE An13 Fecho
 -20.81  30.04    5.05   39.13 !Afr<-IBE An18 Fecho
 -20.53  32.12    7.10   47.06 !Afr<-IBE An21 Fecho
@@ -185,6 +215,7 @@
 -20.18  66.09  -54.45  118.0  !NAM<-NWA AnM0 Srivastava et al. 1990
 -15.85  66.70  -64.90  154.4  !NAM<-NWA AnM25 Srivastava et al. 1990
 -12.76  65.97  -76.44  175.0  !NAM<-NWA ECMA Srivastava et al. 1990
+
   0.00   0.00    0.00    0.0  !NAM<-EUR North America-Eurasia (NAm fixed)
 129.47  65.41   -2.48    9.8  !NAM<-EUR An5 Skogseid 1993
 136.83  68.89   -4.90   19.7  !NAM<-EUR An6 Skogseid 1993
@@ -220,6 +251,7 @@
 156.7   69.1   -23.64  250.0  !NAM<-EUR
 146.60  84.40  -29.20   92.0  !NAM<-EUR Sclater et al 1977
 146.60  84.40  -29.20  245.0  !NAM<-EUR Sclater et al 1977
+
   0.00   0.00    0.00    0.0  !NAM<-EUR North America-Eurasia (NAm fixed)
 137.88  60.79   -2.32   10.33 !NAM<-EUR An5  J. Luis  BF +/- bem a toda a 5
 145.61  19.07  -12.57   52.79 !NAM<-EUR An24 J. Luis  BF
