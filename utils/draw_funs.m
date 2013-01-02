@@ -353,7 +353,7 @@ function set_line_uicontext(h, opt)
 	setLineStyle(uimenu(cmenuHand, 'Label', 'Line Style'), {cb_solid cb_dashed cb_dotted cb_dashdot})
 	if (IS_PATCH),		cb_color = uictx_color(h,'EdgeColor');	end      % there are 9 cb_color outputs
 	setLineColor(uimenu(cmenuHand, 'Label', 'Line Color'), cb_color)
-	set_stack_order(cmenuHand)      % Change order in the stackpot
+	set_stack_order(cmenuHand)      % Set options to change order in the stackpot
 
 	if (strcmp(get(h,'Tag'),'FaultTrace'))      % For Okada modeling
 		uimenu(cmenuHand, 'Label', 'Okada', 'Sep','on', 'Call', {@okada_model,h,'okada'});    
@@ -917,6 +917,7 @@ function set_isochrons_uicontext(h, data)
 	setLineWidth(uimenu(cmenuHand, 'Label', 'Line Width', 'Sep','on'), cb_LineWidth)
 	setLineStyle(uimenu(cmenuHand, 'Label', 'Line Style'), {cbls1 cbls2 cbls3 cbls4})
 	setLineColor(uimenu(cmenuHand, 'Label', 'Color'), cb_color)
+	set_stack_order(cmenuHand)		% Set options to change order in the stackpot	
 	% --------- Now set the class properties
 	cb_ClassColor = uictx_Class_LineColor(h);        % there are 9 cb_color outputs
 	setLineColor(uimenu(cmenuHand, 'Label', ['All ' tag ' Color'], 'Sep','on'), cb_ClassColor)
