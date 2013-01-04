@@ -232,76 +232,76 @@ function edit_AngRange_CB(hObject, handles)
 
 % -------------------------------------------------------------------------------------
 function toggle_pickLines_CB(hObject, handles)
-if (get(hObject,'Value'))
-    % Test if we have potential target lines and their type
-    h_mir_lines = findobj(handles.hCallingFig,'Type','line');     % Fish all objects of type line in Mirone figure
-    if (isempty(h_mir_lines))                                       % We don't have any lines
-        str = ['If you hited this button on purpose, than you deserve the following insult.',...
-                'You #!|"*!%!?~^)--$&.',... 
-                'THERE ARE NO LINES IN THAT FIGURE.'];
-        errordlg(str,'Chico Clever');   set(hObject,'Value',0);     return;
-    end
-    if (length(h_mir_lines) == 1)                                    % We don't have at least two lines
-        str = ['If you hited this button on purpose, than you deserve the following insult.',...
-                'You -$&#!*!%!?~^)-.|"/',... 
-                'THERE IS ONLY ONE LINE IN THAT FIGURE.'];
-        errordlg(str,'Chico Clever');   set(hObject,'Value',0);     return;
-    end
-    
-    % The above test is not enough. For exemple, coastlines are not eligible neither,
-    % but is very cumbersome to test all the possibilities of pure non-eligible lines.
-    set(handles.hCallingFig,'pointer','crosshair')
-    h_line = get_polygon(handles.hCallingFig);		% Get first line handle
-    if (~isempty(h_line))
-        x = get(h_line,'XData');		y = get(h_line,'YData');
-        %y = geog2auth(y);							% Convert to authalic latitudes
-        handles.isoca1 = [x(:) y(:)];
-        set(handles.edit_first_file,'String','Got left line','FontAngle','italic')
-    else
-        handles.isoca1 = [];
-        set(handles.edit_first_file,'String','')
-    end
-    h_line = get_polygon(handles.hCallingFig);		% Get second line handle
-    if (~isempty(h_line))
-        x = get(h_line,'XData');		y = get(h_line,'YData');
-        %y = geog2auth(y);							% Convert to authalic latitudes
-        handles.isoca2 = [x(:) y(:)];
-        set(handles.edit_second_file,'String','Got right line','FontAngle','italic')
-    else
-        handles.isoca2 = [];
-        set(handles.edit_second_file,'String','')
-    end
-    set(handles.hCallingFig,'pointer','arrow')
-    if (isempty(handles.isoca1) || isempty(handles.isoca2))
-        set(hObject,'Value',0)
-        handles.do_graphic = false;
-    else
-        handles.do_graphic = true;
-    end
-    set(hObject,'Value',0)
-    figure(handles.figure1)         % Bring this figure to front again
-else        % What should I do?
-    %handles.do_graphic = 0;
-end
-guidata(hObject, handles);
+	if (get(hObject,'Value'))
+		% Test if we have potential target lines and their type
+		h_mir_lines = findobj(handles.hCallingFig,'Type','line');	% Fish all objects of type line in Mirone figure
+		if (isempty(h_mir_lines))									% We don't have any lines
+			str = ['If you hited this button on purpose, than you deserve the following insult.',...
+					'You #!|"*!%!?~^)--$&.',... 
+					'THERE ARE NO LINES IN THAT FIGURE.'];
+			errordlg(str,'Chico Clever');   set(hObject,'Value',0);     return;
+		end
+		if (length(h_mir_lines) == 1)								% We don't have at least two lines
+			str = ['If you hited this button on purpose, than you deserve the following insult.',...
+					'You -$&#!*!%!?~^)-.|"/',... 
+					'THERE IS ONLY ONE LINE IN THAT FIGURE.'];
+			errordlg(str,'Chico Clever');   set(hObject,'Value',0);     return;
+		end
+
+		% The above test is not enough. For exemple, coastlines are not eligible neither,
+		% but is very cumbersome to test all the possibilities of pure non-eligible lines.
+		set(handles.hCallingFig,'pointer','crosshair')
+		h_line1 = get_polygon(handles.hCallingFig);		% Get first line handle
+		if (~isempty(h_line1))
+			x = get(h_line1,'XData');		y = get(h_line1,'YData');
+			handles.isoca1 = [x(:) y(:)];
+			set(handles.edit_first_file,'String','Got left line','FontAngle','italic')
+		else
+			handles.isoca1 = [];
+			set(handles.edit_first_file,'String','')
+		end
+		h_line2 = get_polygon(handles.hCallingFig);		% Get second line handle
+		if (~isempty(h_line2))
+			x = get(h_line2,'XData');		y = get(h_line2,'YData');
+			handles.isoca2 = [x(:) y(:)];
+			set(handles.edit_second_file,'String','Got right line','FontAngle','italic')
+		else
+			handles.isoca2 = [];
+			set(handles.edit_second_file,'String','')
+		end
+		set(handles.hCallingFig,'pointer','arrow')
+		if (isempty(handles.isoca1) || isempty(handles.isoca2))
+			set(hObject,'Value',0)
+			handles.do_graphic = false;
+			handles.hLines = [NaN NaN];
+		else
+			handles.hLines = [h_line1 h_line2];
+			handles.do_graphic = true;
+		end
+		set(hObject,'Value',0)
+		figure(handles.figure1)			% Bring this figure to front again
+	else        % What should I do?
+		%handles.do_graphic = 0;
+	end
+	guidata(hObject, handles);
 
 % -----------------------------------------------------------------------------
 function check_hellinger_CB(hObject, handles)
-if (get(hObject,'Value'))
-	set([handles.edit_LonRange handles.edit_LatRange handles.edit_AngRange],'Enable','off')
-	set([handles.edit_nInt_lat handles.edit_nInt_ang],'Vis','off')
-	set(handles.edit_nInt_lon,'String', handles.DP_tol)
-	set(handles.textNint,'String','DP tolerance')
-	set(handles.edit_nInt_lon,'Tooltip', sprintf(['Tolerance used to break up the isochron into\n' ...
-			'linear chunks (the Heillinger segments).\n' ...
-			'The units of the tolerance are degrees\n', ...
-			'of arc on the surface of a sphere']))
-else
-	set([handles.edit_LonRange handles.edit_LatRange handles.edit_AngRange],'Enable','on')
-	set([handles.edit_nInt_lat handles.edit_nInt_ang],'Vis','on')
-	set(handles.textNint,'String','N Intervals')
-	set(handles.edit_nInt_lon,'Str', handles.nInt_lon,'Tooltip','The range parameters are divided into this number of intervals steps')
-end
+	if (get(hObject,'Value'))
+		set([handles.edit_LonRange handles.edit_LatRange handles.edit_AngRange],'Enable','off')
+		set([handles.edit_nInt_lat handles.edit_nInt_ang],'Vis','off')
+		set(handles.edit_nInt_lon,'String', handles.DP_tol)
+		set(handles.textNint,'String','DP tolerance')
+		set(handles.edit_nInt_lon,'Tooltip', sprintf(['Tolerance used to break up the isochron into\n' ...
+				'linear chunks (the Heillinger segments).\n' ...
+				'The units of the tolerance are degrees\n', ...
+				'of arc on the surface of a sphere']))
+	else
+		set([handles.edit_LonRange handles.edit_LatRange handles.edit_AngRange],'Enable','on')
+		set([handles.edit_nInt_lat handles.edit_nInt_ang],'Vis','on')
+		set(handles.textNint,'String','N Intervals')
+		set(handles.edit_nInt_lon,'Str', handles.nInt_lon,'Tooltip','The range parameters are divided into this number of intervals steps')
+	end
 
 % -----------------------------------------------------------------------------
 function edit_err_file_CB(hObject, handles)
@@ -394,6 +394,12 @@ function push_compute_CB(hObject, handles)
 	if (isempty(handles.isoca1) || isempty(handles.isoca2))
 		errordlg('Compute Euler pole with what? It would help if you provide me TWO lines.','Chico Clever')
 		return
+	else
+		% Fish the polyline coordinates again so that eventual line edits are taken into account right away
+		x = get(handles.hLines(1),'XData');		y = get(handles.hLines(1),'YData');
+		handles.isoca1 = [x(:) y(:)];
+		x = get(handles.hLines(2),'XData');		y = get(handles.hLines(2),'YData');
+		handles.isoca2 = [x(:) y(:)];		
 	end
 	if (isempty(handles.pLon_ini) || isempty(handles.pLat_ini) || isempty(handles.pAng_ini))
 		errordlg(['I need a first guess of the Euler pole you are seeking for.' ...
@@ -640,7 +646,7 @@ function [lon_bf, lat_bf, omega_bf, area_f, resid] = ...
 				if (any(ind)),		rlon(ind) = rlon(ind) - 2*pi;	end
 
 				if (handles.is_spheric)
-				 	area = distmin(isoca2(:,1), isoca2(:,2), lenRot2, rlon, rlat, lenRot1);
+				 	[area, lix, dists, weights] = distmin(isoca2(:,1), isoca2(:,2), lenRot2, rlon, rlat, lenRot1);
 					%[dist1, segLen1, sum1] = distmin_o(isoca2(:,1), isoca2(:,2), rlon, rlat, lenRot1, do_weighted, 1e20);
 					%[dist2, segLen2, sum2] = distmin_o(rlon, rlat, isoca2(:,1), isoca2(:,2), lenRot2, do_weighted, 1e20);
 					%area = (sum1 + sum2) / 2;
@@ -655,7 +661,7 @@ function [lon_bf, lat_bf, omega_bf, area_f, resid] = ...
 					area0 = area;
 					i_m = i;	j_m = j;	k_m = k;
 					if (handles.do_graphic)
-						rlat = atan2( sin(rlat), (1-ecc^2)*cos(rlat) );		% Convert back to geodetic latitudes
+						rlat = atan2(sin(rlat), (1-ecc^2)*cos(rlat));		% Convert back to geodetic latitudes
 						set(h_line,'XData',rlon/D2R,'YData',rlat/D2R)
 						pause(0.01)
 					end
@@ -664,9 +670,13 @@ function [lon_bf, lat_bf, omega_bf, area_f, resid] = ...
 						set(handles.edit_pLat_fim,'String',sprintf('%.3f', p_lat(j) / D2R))
 						set(handles.edit_pAng_fim,'String',sprintf('%.3f', p_omeg(k) / D2R))
 						set(handles.edit_BFresidue,'String',sprintf('%.4f', area))
+						% Compute also the Weighted Standard Deviation
+						n_non_zero = numel(find(weights));
+						wstd = sqrt(sum((weights .* (dists - area)).^2) / (sum(weights) * (n_non_zero - 1) / n_non_zero));
+						set(handles.edit_BFresidue,'Tooltip',sprintf('Average residue in km\nWeighted STD = %.3f',wstd))
 					end
 				end
-				
+
 				if (save_resid),	resid(j, i, k) = area;		end
 
 			end
