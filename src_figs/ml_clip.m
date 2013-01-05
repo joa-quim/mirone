@@ -1,7 +1,7 @@
 function varargout = ml_clip(varargin)
 % Do grid cippling based on user selected values.
 
-%	Copyright (c) 2004-2012 by J. Luis
+%	Copyright (c) 2004-2013 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -15,13 +15,15 @@ function varargout = ml_clip(varargin)
 %
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
- 	
+
+% $Id$
+
 	if isempty(varargin)
 		errordlg('GRDCLIP: wrong number of arguments.','Error'),	return
 	end
-	
+
 	handMir = varargin{1};
-	
+
 	if (handMir.no_file)
 		errordlg('GRDCLIP: You didn''t even load a file. What are you expecting then?','ERROR')
 		return
@@ -35,16 +37,18 @@ function varargout = ml_clip(varargin)
 	ml_clip_LayoutFcn(hObject);
 	handles = guihandles(hObject);
 	move2side(handMir.figure1, hObject)
- 
+
 	handles.Z = getappdata(handMir.figure1,'dem_z');
 	handles.have_nans = handMir.have_nans;
-    
+
 	if (isempty(handles.Z))
         errordlg('GRDCLIP: Grid was not saved in memory. Increase "Grid max size" and start over.','ERROR')
         delete(hObject);    return
 	end
 
     handles.hMirFig = handMir.figure1;
+	handles.version6 = ~handMir.version7;
+	handles.have_nans = handMir.have_nans;
 	handles.head = handMir.head;
 	handles.above_val = [];
 	handles.below_val = [];
@@ -97,14 +101,20 @@ function edit_Bl_val_CB(hObject, handles)
 
 % -------------------------------------------------------------------------------------
 function push_OK_CB(hObject, handles)
-    
+% Do the actual work
+
+	% The following is due to unbelievable BUG in R14 that does not know how to deal correctly with single(NaNs)
+	if (handles.version6 && handles.have_nans)
+		indNaN = isnan(handles.Z);
+	end
+
 	if ( ~isempty(handles.above_val) && ~isempty(handles.below_val) && ...
 			(handles.above_val < handles.below) | (handles.below_val > handles.above) ) %#ok (NEED that |)
 		% Need special care to not clip the already clipped values
 		ind1 = handles.Z > handles.above;
 		ind2 = handles.Z < handles.below;
 		handles.Z(ind1) = handles.above_val;	clear ind1
-		handles.Z(ind2) = handles.below_val;
+		handles.Z(ind2) = handles.below_val;	clear ind2
 	else
 		if ~isempty(handles.above_val)		% Clip above
 			handles.Z(handles.Z > handles.above) = handles.above_val;
@@ -112,6 +122,10 @@ function push_OK_CB(hObject, handles)
 		if ~isempty(handles.below_val)		% Clip below
 			handles.Z(handles.Z < handles.below) = handles.below_val;
 		end
+	end
+
+	if (handles.version6 && handles.have_nans)	% Shame on you TMW
+		handles.Z(indNaN) = single(NaN);		clear indNaN
 	end
 
 	zz = grdutils(handles.Z,'-L');       handles.head(5:6) = zz(1:2);
