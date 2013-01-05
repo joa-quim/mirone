@@ -109,6 +109,7 @@ data/example_data/s1992LANDERwald.fsp -text
 data/example_data/s1995KOBEJ1seki.fsp -text
 data/example_data/s2004SUMATRjich.fsp -text
 data/example_data/static_out.dat -text
+data/fracture_zones.dat -text
 data/gdal_data/GDALLogoBW.svg -text
 data/gdal_data/GDALLogoColor.svg -text
 data/gdal_data/GDALLogoGS.svg -text
