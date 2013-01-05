@@ -1,7 +1,7 @@
 function varargout = contouring(varargin)
 % Front end to contour selection
 
-%	Copyright (c) 2004-2012 by J. Luis
+%	Copyright (c) 2004-2013 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -16,7 +16,9 @@ function varargout = contouring(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-	if isempty(varargin)		return,		end
+% $Id$
+
+	if isempty(varargin),	return,		end
 
 	hObject = figure('Vis','off');
 	contouring_LayoutFcn(hObject);
@@ -142,7 +144,7 @@ function push_DeleteSelected_CB(hObject, handles)
 	if (isempty(handles.selected_val)),		return,		end
 	list = get(handles.listbox_ElevValues,'String');
 	if (isempty(list)),		return,		end
-	this_cont = str2double(list{handles.selected_val});
+	this_cont = str2double(list(handles.selected_val));
 	list(handles.selected_val) = [];
 	set(handles.listbox_ElevValues,'String',list,'Value',1)
 	handles.selected_val = [];
@@ -150,17 +152,22 @@ function push_DeleteSelected_CB(hObject, handles)
 
 	% Remove this contout from the Mirone figure and update the handMir.which_cont list
 	handMir = guidata(handles.hCallingFig);
-	h = findobj(handMir.axes1, 'type','line','tag','contour', 'userdata', this_cont);
-	if (~isempty(h))
-		labHand = getappdata(h,'LabelHands');
-		try		delete(labHand),	end
-		delete(h)
-		id = find(handMir.which_cont == h);
-		if (~isempty(id))		% It should not be empty
-			handMir.which_cont(id) = [];
-			guidata(handMir.figure1, handMir)
+	for (k = 1:numel(this_cont))
+		h = findobj(handMir.axes1, 'type','line','tag','contour', 'userdata', this_cont(k));
+		if (~isempty(h))
+			for (k2 = 1:numel(h))	% We often have several independent lines per contour value
+				labHand = getappdata(h(k2),'LabelHands');
+				if (~isempty(labHand)),		delete(labHand),	end
+				%try		delete(labHand),	end
+				delete(h(k2))
+				id = find(handMir.which_cont == h(k2));
+				if (~isempty(id))		% It should not be empty
+					handMir.which_cont(id) = [];
+				end
+			end
 		end
 	end
+	guidata(handMir.figure1, handMir)
 
 %-------------------------------------------------------------------------------
 function push_DeleteAll_CB(hObject, handles)
