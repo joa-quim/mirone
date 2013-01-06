@@ -1,5 +1,13 @@
 function varargout = ml_clip(varargin)
 % Do grid cippling based on user selected values.
+%
+% ml_clip(handles) 
+%		where handles is the Mirone handles do the clipping and display it on a separate figure
+%
+% [Zout, head] = ml_clip(handles, Z)
+%		Apply the cipping on the array Z and assume that handles.head holds the array's header
+%		On output the head(5:6) is updated to new ZOUT min/max
+%		Figure is set to 'modal' when this option is used.
 
 %	Copyright (c) 2004-2013 by J. Luis
 %
@@ -38,7 +46,11 @@ function varargout = ml_clip(varargin)
 	handles = guihandles(hObject);
 	move2side(handMir.figure1, hObject)
 
-	handles.Z = getappdata(handMir.figure1,'dem_z');
+	if (nargin == 1)
+		handles.Z = getappdata(handMir.figure1,'dem_z');
+	else
+		handles.Z = varargin{2};		% Operate on a given array
+	end
 	handles.have_nans = handMir.have_nans;
 
 	if (isempty(handles.Z))
@@ -71,7 +83,20 @@ function varargout = ml_clip(varargin)
 
 	guidata(hObject, handles);
 	set(hObject,'Visible','on');
-	if (nargout),   varargout{1} = hObject;     end
+	
+	if (nargin == 2)
+		set(hObject,'WindowStyle','modal')
+		uiwait(hObject);			% Waita aí
+		handles = guidata(hObject);
+		if (~isempty(handles.head))
+			varargout{1} = handles.Z;		varargout{2} = handles.head;
+		else
+			[varargout{1:nargout}] = deal([]);
+		end
+		delete(hObject)
+	elseif (nargout)
+		varargout{1} = hObject;
+	end
 
 % -------------------------------------------------------------------------------------
 function edit_above_CB(hObject, handles)
@@ -116,19 +141,25 @@ function push_OK_CB(hObject, handles)
 		handles.Z(ind1) = handles.above_val;	clear ind1
 		handles.Z(ind2) = handles.below_val;	clear ind2
 	else
-		if ~isempty(handles.above_val)		% Clip above
+		if ~isempty(handles.above_val)				% Clip above
 			handles.Z(handles.Z > handles.above) = handles.above_val;
 		end
-		if ~isempty(handles.below_val)		% Clip below
+		if ~isempty(handles.below_val)				% Clip below
 			handles.Z(handles.Z < handles.below) = handles.below_val;
 		end
 	end
 
-	if (handles.version6 && handles.have_nans)	% Shame on you TMW
+	if (handles.version6 && handles.have_nans)			% Shame on you TMW
 		handles.Z(indNaN) = single(NaN);		clear indNaN
 	end
-
 	zz = grdutils(handles.Z,'-L');       handles.head(5:6) = zz(1:2);
+
+	if (strcmp(get(handles.figure1,'WindowStyle'),'modal'))		% In this mode we just return the clipped array (in handles)
+		guidata(handles.figure1, handles)
+		uiresume(handles.figure1)
+		return
+	end
+
     tmp.X = linspace(handles.head(1),handles.head(2),size(handles.Z,2));
     tmp.Y = linspace(handles.head(3),handles.head(4),size(handles.Z,1));
     tmp.head = handles.head;
@@ -231,11 +262,21 @@ function figure1_KeyPressFcn(hObject, eventdata)
 	end
 
 % -------------------------------------------------------------------------------------
+function figure1_CloseRequestFcn(hObject, eventdata)
+	if (strcmp(get(hObject,'WindowStyle'),'modal'))
+		handles = guidata(hObject);
+		handles.head = [];			% Secret signal that user aborted
+		guidata(handles.figure1, handles)
+		uiresume(handles.figure1)
+	end
+
+% -------------------------------------------------------------------------------------
 % --- Creates and returns a handle to the GUI figure. 
 function ml_clip_LayoutFcn(h1)
 set(h1, 'Position',[520 612 285 185],...
 'Color',get(0,'factoryUicontrolBackgroundColor'),...
 'KeyPressFcn',@figure1_KeyPressFcn,...
+'CloseRequestFcn',@figure1_CloseRequestFcn,...
 'MenuBar','none',...
 'Name','Clipp Grid',...
 'NumberTitle','off',...
