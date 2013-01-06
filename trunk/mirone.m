@@ -511,6 +511,7 @@ if ~isempty(opt)				% OPT must be a rectangle/polygon handle (the rect may serve
 		else					x = opt(:,1)';		y = opt(:,2)';		% Were col vectors, make them row for consistency
 		end
 	end
+
 	if ~( (x(1) == x(end)) && (y(1) == y(end)) && numel(x) == 5 && ...
 			(x(1) == x(2)) && (x(3) == x(4)) && (y(1) == y(4)) && (y(2) == y(3)) )
 		xp(1) = min(x);		xp(2) = max(x);
@@ -531,6 +532,7 @@ if ~isempty(opt)				% OPT must be a rectangle/polygon handle (the rect may serve
 	else
 		rect_crop = [x(1) y(1) (x(3)-x(2)) (y(2)-y(1))];
 	end
+
 	if isempty(opt2)				% Just pure Image croping
 		Z_rect = get(handles.hImg,'CData');
 		limits = getappdata(handles.axes1,'ThisImageLims');
@@ -594,8 +596,10 @@ if ~isempty(opt)				% OPT must be a rectangle/polygon handle (the rect may serve
 				wasROI = true;			% Signal the SplineSmooth code below that we need to mask result
 			elseif (strcmp(opt2,'CropaGrid_histo'))
 				Z_rect(~mask) = single(NaN);
+			elseif (strcmp(opt2,'ROI_Clip'))
+				opt2 = 'Clip';			% Now that we have the mask, make this case == to rectangle clip
 			else
-				warndlg('Unknown case in ImageCrop','Warning'),		return
+				warndlg('Unknown case in ImageCrop','Warning'),		set(handles.figure1,'pointer','arrow'),	return
 			end
 		end
 		[m,n] = size(Z_rect);
@@ -620,7 +624,7 @@ else					% Interactive croping (either Grid or Image)
 end
 
 if (isempty(opt2) || strcmp(opt2,'CropaWithCoords'))	% Just pure Image croping
-	if (m < 2 || n < 2),	set(handles.figure1,'pointer','arrow'),	return,	end		% Image too small. Probably a user bad mouse control
+	if (m < 2 || n < 2),	set(handles.figure1,'pointer','arrow'),	return,	end		% Image too small.
 	if (strcmp(get(handles.axes1,'Ydir'),'normal')),	I = flipdim(I,1);	end
 	if (ndims(I) == 2)
 		pal = get(handles.figure1, 'Colormap');
@@ -629,8 +633,10 @@ if (isempty(opt2) || strcmp(opt2,'CropaWithCoords'))	% Just pure Image croping
 	end
 	set(handles.figure1,'pointer','arrow');
 	if (~isempty(opt2))
-		head(2) = handles.head(1) + (r_c(4)-1)*handles.head(8);		head(1) = handles.head(1) + (r_c(3)-1)*handles.head(8);
-		head(4) = handles.head(3) + (r_c(2)-1)*handles.head(9);		head(3) = handles.head(3) + (r_c(1)-1)*handles.head(9);
+		head(2) = handles.head(1) + (r_c(4)-1)*handles.head(8);
+		head(1) = handles.head(1) + (r_c(3)-1)*handles.head(8);
+		head(4) = handles.head(3) + (r_c(2)-1)*handles.head(9);
+		head(3) = handles.head(3) + (r_c(1)-1)*handles.head(9);
 		head(5:9) = [0 255 0 handles.head(8:9)];	tmp.name = 'Cropped Image';
 		tmp.head = head;		tmp.geog = handles.geog;			tmp.X = head(1:2);		tmp.Y = head(3:4);
 		if (~isempty(pal)),		tmp.cmap = pal;		end
@@ -645,7 +651,7 @@ if (isempty(opt2) || strcmp(opt2,'CropaWithCoords'))	% Just pure Image croping
 	end
 	done = true;				% We are done. BYE BYE.
 
-elseif ( strncmp(opt2(1:min(length(opt2),9)),'CropaGrid',9) )		% Do the operatio indicated in opt2(11:end) & return
+elseif ( strncmp(opt2(1:min(length(opt2),9)),'CropaGrid',9) )		% Do the operation indicated in opt2(11:end) & return
 	curr_opt = opt2(11:end);
 	if (~strcmp(curr_opt,'pure'))			% We will need those for all other options
 		head(2) = head(1) + (r_c(4)-1)*head(8);			head(1) = head(1) + (r_c(3)-1)*head(8);
@@ -685,7 +691,8 @@ elseif ( strncmp(opt2(1:min(length(opt2),9)),'CropaGrid',9) )		% Do the operatio
 
 elseif (strcmp(opt2,'FillGaps'))
 	if ~any(isnan(Z_rect(:)))	% No gaps
-		set(handles.figure1,'pointer','arrow'),		warndlg('Selected area does not have any voids (NaNs)','Warning'),	 return
+		set(handles.figure1,'pointer','arrow')
+		warndlg('Selected area does not have any voids (NaNs)','Warning'),	 return
 	else
 		X = linspace( head(1) + (r_c(3)-1)*head(8), head(1) + (r_c(4)-1)*head(8), r_c(4) - r_c(3) + 1 );
 		Y = linspace( head(3) + (r_c(1)-1)*head(9), head(3) + (r_c(2)-1)*head(9), r_c(2) - r_c(1) + 1 );
@@ -732,16 +739,26 @@ elseif (strcmp(opt2,'SplineSmooth'))
 elseif (strcmp(opt2,'MedianFilter'))
 	[Z,Z_rect,handles] = roi_filtering(handles, Z, head, Z_rect, r_c, 'rect', 'no');
 
+elseif (strcmp(opt2,'Clip'))
+	handles.Z_back = Z(r_c(1):r_c(2),r_c(3):r_c(4));	handles.r_c = r_c;			% For the Undo op
+	[Z_rect,head] = ml_clip(handles, handles.Z_back);
+	if (isempty(Z_rect)),	set(handles.figure1,'pointer','arrow'),		return,		end
+	handles.head(5:6) = head(5:6);
+	if (crop_pol)			% Means, if ROI_Clip
+		Z_rect(~mask) = handles.Z_back(~mask);
+		zz = grdutils(Z_rect,'-L');		handles.head(5:6) = [min(zz(1),handles.head(5)) max(zz(2),handles.head(6))];
+	end
+
 elseif (strcmp(opt2,'SetConst'))		% Replace grid values inside rect by a cte value
 	resp = inputdlg({'Enter new grid value'},'Replace with cte value',[1 30]);	pause(0.01)
 	if (isempty(resp)),		set(handles.figure1,'pointer','arrow'),		return,		end
 	resp = str2double(resp);
 	if (~isreal(resp)),		resp = NaN;		end				% A 'i' or a 'j' in resp would have caused this
-	Z_rect = repmat(single(resp),m,n);
+	Z_rect = single(resp);
 	handles.Z_back = Z(r_c(1):r_c(2),r_c(3):r_c(4));	handles.r_c = r_c;			% For the Undo op
-	if (~handles.have_nans && isnan(str2double(resp)))		% See if we have new NaNs
+	if (~handles.have_nans && isnan(resp))				% See if we have new NaNs
 		handles.have_nans = 1;		first_nans = 1;
-	elseif (handles.have_nans && ~isnan(str2double(resp)))	% Check that old NaNs had not been erased
+	elseif (handles.have_nans && ~isnan(resp))			% Check that old NaNs had not been erased
 		handles.have_nans = grdutils(Z_rect,'-N');
 	end
 end
@@ -2453,6 +2470,10 @@ function DrawClosedPolygon_CB(handles, opt)
 	elseif (strcmp(opt,'rectangle'))
 		zoom_state(handles,'maybe_off');
 		[p1,p2,hl] = rubberbandbox(handles.axes1);
+		difa = abs(p2 - p1);
+		if ( (difa(1) < handles.head(7)/4) || (difa(2) < handles.head(8)/4) )
+			delete(hl),		return			% Don't draw ultra small rectangles
+		end
 		set(hl,'Color',handles.DefLineColor,'LineWidth',handles.DefLineThick)	% Use defaults LineThick and DefLineColor
 		draw_funs(hl,'line_uicontext')		% Set lines's uicontextmenu
 		zoom_state(handles,'maybe_on');
