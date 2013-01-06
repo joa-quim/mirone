@@ -32,7 +32,7 @@ function [H1,handles,home_dir] = mirone_uis(home_dir)
 
 	% The following test will tell us if we are using the compiled or the ML version
 	try
-		s.s = which('mirone');	% Structs don't showt as unused vars in MLint
+		s.s = which('mirone');	% Structs don't shout as unused vars in MLint
 		figW = 671;
 		IamCompiled = false;
 	catch
@@ -80,13 +80,13 @@ H1 = figure('PaperUnits','centimeters',...
 'Tag','figure1',...
 'Vis','off');
 
-setappdata(H1,'IAmAMirone',1)           % Use this appdata to identify Mirone figures
-setappdata(H1,'PixelMode',0)            % Default
+setappdata(H1,'IAmAMirone',true)		% Use this appdata to identify Mirone figures
+setappdata(H1,'PixelMode',0)			% Default
 
 % Detect which matlab version is beeing used. For the moment I'm only interested to know if R13 or >= R14
 version7 = version;
-if (double(version7(1)) > 54),      version7 = true;
-else                                version7 = false;
+if (double(version7(1)) > 54),		version7 = true;
+else								version7 = false;
 end
 
 if (version7)
@@ -732,7 +732,7 @@ if (IamCompiled)
 end
 uimenu('Parent',h, 'Call',['mirone(''FileOpenWebImage_CB'',guidata(gcbo),',...
 	' ''http://www2.clustrmaps.com/stats/maps-clusters/w3.ualg.pt-~jluis-mirone-world.jpg'',''nikles'');'],'Label','See visitors map','Sep','on');
-uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 5 Jan 2013'',''2.4.0dev'')','Label','About','Sep','on');
+uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 6 Jan 2013'',''2.4.0dev'')','Label','About','Sep','on');
 
 %% --------------------------- Build HANDLES and finish things here
 	handles = guihandles(H1);
@@ -804,7 +804,7 @@ function figure1_ResizeFcn(hObj, event)
 		hSliders = getappdata(handles.axes1,'SliderAxes');
 		if (~isempty(hSliders))		% Reposition the vertical slider so that its always out of image
 			oldUnit = get(handles.axes1, 'Units');	set(handles.axes1, 'Units', 'pixels');
-			axPos = get(handles.axes1,'Pos');		sldT = 7;		% from sldT in resizetrue
+			axPos = get(handles.axes1,'Pos');		sldT = 9;		% from sldT in resizetrue
 			set(hSliders(2), 'Pos',[axPos(1)+axPos(3)+1 axPos(2) sldT axPos(4)+1])
 			set(handles.axes1, 'Units', oldUnit);
 		end
