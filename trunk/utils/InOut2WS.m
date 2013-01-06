@@ -31,7 +31,7 @@ try     % So many thing may go wrong
 		[X,Y,Z,head] = load_grd(handles);
 		if isempty(Z),		return,		end			% An error message was already issued
 		assignin('base','X',X);			assignin('base','Y',Y);
-		assignin('base','Z',double(Z)); assignin('base','head',head);
+		assignin('base','Z',Z);			assignin('base','head',head);
 		assignin('base','img',get(handles.hImg,'CData'));
 		assignin('base','FigHand',handles.figure1);
 		assignin('base','is_grid',is_grid);			% Tell base WS if we have a grid or a image
@@ -56,7 +56,7 @@ try     % So many thing may go wrong
 			errordlg('You screw up either the Z or head arrays. Restart or give up.','Error');  return
 		end
 		Zb = single(evalin('base','Z'));    head_b = evalin('base','head');
-		if (size(Zb,1) ~= length(Yb) || size(Zb,2) ~= length(Xb))
+		if (size(Zb,1) ~= numel(Yb) || size(Zb,2) ~= numel(Xb))
 			errordlg('Z array size is not compatible with the X & Y vectors. Restart or give up.','Error'),	return
 		elseif (length(head_b) < 9)
 			errordlg('You screw up the header variable. Rebuild it or give up.','Error'),	return
@@ -81,7 +81,7 @@ try     % So many thing may go wrong
 			end
 			head = evalin('base','head');
 			tmp.X = head(1:2);		tmp.Y = head(3:4);		tmp.head = head;
-			if (~isa(I,'logical') && ndims(I) == 2),	tmp.cmap = get(handles.figure1,'Colormap'),		end
+			if (~isa(I,'logical') && ndims(I) == 2),	tmp.cmap = get(handles.figure1,'Colormap');		end
 			tmp.name = 'ML imported img';
 			mirone(I,tmp);
 		end
