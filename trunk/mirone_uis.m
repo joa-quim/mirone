@@ -46,6 +46,13 @@ function [H1,handles,home_dir] = mirone_uis(home_dir)
 	IAmOctave = (exist('OCTAVE_VERSION','builtin') ~= 0);	% To know if we are running under Octave
 	if (IAmOctave),	figW = 750;		end		% QtHandles has different padding size
 
+	% Attempt to deal with the new stupid high-resolution screens that turn Mirone main fig into a dwarf.
+	dpis = get(0,'ScreenPixelsPerInch');	% screen DPI
+	figW_cm = figW / dpis * 2.54;
+	if (figW_cm < 17)						% Both the 17 and 20 (cm) are guessings
+		figW = 20 * dpis / 2.54;
+	end
+
 	% Import icons and fetch home_dir if compiled and called by extension association
 	% Here is what will happen. When called by windows extension association the 'home_dir'
 	% will contain the path of the file and not of the Mirone installation, and it will fail.
@@ -732,7 +739,7 @@ if (IamCompiled)
 end
 uimenu('Parent',h, 'Call',['mirone(''FileOpenWebImage_CB'',guidata(gcbo),',...
 	' ''http://www2.clustrmaps.com/stats/maps-clusters/w3.ualg.pt-~jluis-mirone-world.jpg'',''nikles'');'],'Label','See visitors map','Sep','on');
-uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 6 Jan 2013'',''2.4.0dev'')','Label','About','Sep','on');
+uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 7 Jan 2013'',''2.4.0dev'')','Label','About','Sep','on');
 
 %% --------------------------- Build HANDLES and finish things here
 	handles = guihandles(H1);
