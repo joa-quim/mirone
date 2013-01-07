@@ -401,6 +401,7 @@ src_figs/earthquakes.m -text
 src_figs/ecran.m -text
 src_figs/empilhador.m -text
 src_figs/escadeirar.m -text
+src_figs/escorrega.m -text
 src_figs/euler_poles_selector.m -text
 src_figs/euler_stuff.m -text
 src_figs/fault_models.m -text
