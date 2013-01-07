@@ -295,19 +295,23 @@ function hObject = mirone_OpeningFcn(varargin)
 			setappdata(0,'have_DYLD',true)			% Signal to do this only once
 		end
 		% F. TMW just cannot make things work decently on Macs. Labels are bigger than reserved space
-		set(handles.File,  'Label', ['<HTML><FONT size="3">' get(handles.File, 'Label') '</Font></html>'])
-		set(handles.Image, 'Label', ['<HTML><FONT size="3">' get(handles.Image, 'Label') '</Font></html>'])
-		set(handles.Tools, 'Label', ['<HTML><FONT size="3">' get(handles.Tools, 'Label') '</Font></html>'])
-		set(handles.Draw,  'Label', ['<HTML><FONT size="3">' get(handles.Draw, 'Label') '</Font></html>'])
-		set(handles.Geography, 'Label', ['<HTML><FONT size="3">' get(handles.Geography, 'Label') '</Font></html>'])
-		set(handles.Plates,'Label', ['<HTML><FONT size="3">' get(handles.Plates, 'Label') '</Font></html>'])
-		set(handles.MagGrav,  'Label', ['<HTML><FONT size="3">' get(handles.MagGrav, 'Label') '</Font></html>'])
-		set(handles.Seismology, 'Label', ['<HTML><FONT size="3">' get(handles.Seismology, 'Label') '</Font></html>'])
-		set(handles.Tsunamis, 'Label', ['<HTML><FONT size="3">' get(handles.Tsunamis, 'Label') '</Font></html>'])
-		set(handles.GMT, 'Label', ['<HTML><FONT size="3">' get(handles.GMT, 'Label') '</Font></html>'])
-		set(handles.GridTools, 'Label', ['<HTML><FONT size="3">' get(handles.GridTools, 'Label') '</Font></html>'])
-		set(handles.Projections, 'Label', ['<HTML><FONT size="3">' get(handles.Projections, 'Label') '</Font></html>'])
-		set(handles.Help, 'Label', ['<HTML><FONT size="3">' get(handles.Help, 'Label') '</Font></html>'])
+		% And now they screw it even more. The following simply f... on 2012 (and maybe earlier(
+		v = version('-release');
+		if (str2double(v(1:4)) < 2012)
+			set(handles.File,  'Label', ['<HTML><FONT size="3">' get(handles.File, 'Label') '</Font></html>'])
+			set(handles.Image, 'Label', ['<HTML><FONT size="3">' get(handles.Image, 'Label') '</Font></html>'])
+			set(handles.Tools, 'Label', ['<HTML><FONT size="3">' get(handles.Tools, 'Label') '</Font></html>'])
+			set(handles.Draw,  'Label', ['<HTML><FONT size="3">' get(handles.Draw, 'Label') '</Font></html>'])
+			set(handles.Geography, 'Label', ['<HTML><FONT size="3">' get(handles.Geography, 'Label') '</Font></html>'])
+			set(handles.Plates,'Label', ['<HTML><FONT size="3">' get(handles.Plates, 'Label') '</Font></html>'])
+			set(handles.MagGrav,  'Label', ['<HTML><FONT size="3">' get(handles.MagGrav, 'Label') '</Font></html>'])
+			set(handles.Seismology, 'Label', ['<HTML><FONT size="3">' get(handles.Seismology, 'Label') '</Font></html>'])
+			set(handles.Tsunamis, 'Label', ['<HTML><FONT size="3">' get(handles.Tsunamis, 'Label') '</Font></html>'])
+			set(handles.GMT, 'Label', ['<HTML><FONT size="3">' get(handles.GMT, 'Label') '</Font></html>'])
+			set(handles.GridTools, 'Label', ['<HTML><FONT size="3">' get(handles.GridTools, 'Label') '</Font></html>'])
+			set(handles.Projections, 'Label', ['<HTML><FONT size="3">' get(handles.Projections, 'Label') '</Font></html>'])
+			set(handles.Help, 'Label', ['<HTML><FONT size="3">' get(handles.Help, 'Label') '</Font></html>'])
+		end
 		set(hObject,'DockControls','off')
 	end
 
