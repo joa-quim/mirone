@@ -88,8 +88,10 @@ PROG_MEXNC	= mex_nc
 PROG_OCV	= cvlib_mex
 PROG_SHAPE	= mex_shape
 PROG_EDISON	= edison_
+PROG_MPGWRITE	= mpgwrite
 
-all:		$(PROG_GMT) $(PROG_GDAL) $(PROG_SIMPLE) $(PROG_withCDF) $(PROG_OCV) $(PROG_SHAPE) $(PROG_MEXNC) $(PROG_EDISON)
+all:		$(PROG_GMT) $(PROG_GDAL) $(PROG_SIMPLE) $(PROG_withCDF) $(PROG_OCV) $(PROG_SHAPE) $(PROG_MEXNC) $(PROG_EDISON) \
+		$(PROG_MPGWRITE) 
 gmt:		$(PROG_GMT)
 gdal:		$(PROG_GDAL)
 mexnc:		$(PROG_MEXNC)
@@ -98,6 +100,7 @@ shape:		$(PROG_SHAPE)
 simple:		$(PROG_SIMPLE)
 withCDF:	$(PROG_withCDF)
 edison:		$(PROG_EDISON)
+mpgwrite:	$(PROG_MPGWRITE)
 
 install:
 		for f in *.$(MEX_EXT); do \
@@ -226,6 +229,13 @@ edison_:
 		$(MEX) edison/edison_wrapper_mex.cpp edison/segm/ms.cpp  edison/segm/msImageProcessor.cpp \
 		edison/segm/msSysPrompt.cpp edison/segm/RAList.cpp edison/segm/rlist.cpp edison/edge/BgEdge.cpp \
 		edison/edge/BgImage.cpp edison/edge/BgGlobalFc.cpp edison/edge/BgEdgeList.cpp edison/edge/BgEdgeDetect.cpp $(MEXLIB)
+
+# ------------------------- MPGWRITE prog ----------------------------------
+mpgwrite:
+		$(MEX) mpgwrite/mpgwrite.c mpgwrite/mfwddct.c mpgwrite/postdct.c mpgwrite/huff.c mpgwrite/bitio.c \
+		mpgwrite/mheaders.c mpgwrite/iframe.c mpgwrite/pframe.c mpgwrite/bframe.c mpgwrite/psearch.c mpgwrite/bsearch.c \
+		mpgwrite/block.c mpgwrite/mpeg.c mpgwrite/subsampl.c mpgwrite/jrevdct.c mpgwrite/frame.c mpgwrite/fsize.c $(MEXLIB)
+
 
 spotless:	clean
 		\rm -f makefile config.cache config.log config.status
