@@ -11,7 +11,7 @@ function varargout = ecran(varargin)
 
 % WARNING: WHEN COMPILING NEEDS TO INCLUDE filter_butter.m
 %
-%	Copyright (c) 2004-2012 by J. Luis
+%	Copyright (c) 2004-2013 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -2302,7 +2302,7 @@ function figure1_CloseRequestFcn(hObject, eventdata)
 	delete(handles.figure1)
 
 % --------------------------------------------------------------------
-function figure1_ResizeFcn(hObj, event)
+function figure1_ResizeFcn(hObj, evt)
 % Something I did sometime, somewhere screwed the automatic rescaling while resizing
 % Make it work again.
 	handles = guidata(hObj);
@@ -2376,7 +2376,7 @@ uimenu('Parent',hSc, 'Call','write_gmt_script(guidata(gcbo),''bat'')','Label','d
 uimenu('Parent',hSc, 'Call','write_gmt_script(guidata(gcbo),''csh'')','Label','csh script');
 
 uimenu('Parent',h10, 'Call','ecran','Label','New','Separator','on');
-uimenu('Parent',h10, 'Call',@ecran_uiCB, 'Label','Export...', 'Tag','FileExport', 'Separator','on');
+uimenu('Parent',h10, 'Call',@ecran_uiCB, 'Label','Export...', 'Tag','FileExport', 'Sep','on');
 uimenu('Parent',h10, 'Call','print -dsetup', 'Label','Print Setup', 'Separator','on');
 uimenu('Parent',h10, 'Call',@ecran_uiCB, 'Label','Print...', 'Tag','FilePrint');
 
@@ -2392,9 +2392,11 @@ uimenu('Parent',h20, 'Call',@ecran_uiCB, 'Label','Power Spectrum Density', 'Tag'
 uimenu('Parent',h20, 'Call',@ecran_uiCB, 'Label','PSD (Welch method)', 'Tag','AnalysisFFT_PSD');
 
 uimenu('Parent',h17, 'Call',@ecran_uiCB, 'Label','Autocorrelation', 'Tag','AnalysisAutocorr');
-uimenu('Parent',h17, 'Call',@ecran_uiCB, 'Label','Smoothing Spline', 'Tag','AnalysisSmoothSpline', 'Separator','on');
+uimenu('Parent',h17, 'Call',@ecran_uiCB, 'Label','Smoothing Spline', 'Tag','AnalysisSmoothSpline', 'Sep','on');
 uimenu('Parent',h17, 'Call',@ecran_uiCB, 'Label','1 st derivative', 'Tag','Analysis1derivative');
 uimenu('Parent',h17, 'Call',@ecran_uiCB, 'Label','2 nd derivative', 'Tag','Analysis2derivative');
+
+uimenu('Parent',h17, 'Call','escorrega(''vert'',gcf)', 'Label','Show Vertical Exageration', 'Sep','on');
 
 % Here we provide a hiden entry to activate functions of interest to tide analysis
 uimenu('Parent',h17,'Call',@ecran_uiCB,'Vis','off','Tag','add_uictx');
