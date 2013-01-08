@@ -131,7 +131,7 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray*prhs[] ) {
 		case SHPT_MULTIPOINT:		/* JL */
 			break;
 		default:
-			sprintf ( error_buffer, "Unhandled shape code %d (%s)\0", nShapeType, SHPTypeName ( nShapeType ) );
+			sprintf ( error_buffer, "Unhandled shape code %d (%s)", nShapeType, SHPTypeName ( nShapeType ) );
 	        	mexErrMsgTxt( error_buffer ); 
 	}
     

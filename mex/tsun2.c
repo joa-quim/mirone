@@ -894,7 +894,7 @@ int write_grd_bin (int kk, double x_min, double y_min, double dx, int nx, int ny
 	FILE *fp;
 
 	if (stem[0] == 0)
-		sprintf (name,"%d%s\0", kk,".grd");
+		sprintf (name,"%d%s", kk,".grd");
 	else
 		sprintf (name, "%s%d%s", stem, kk,".grd");
 
