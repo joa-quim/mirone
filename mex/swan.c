@@ -303,7 +303,7 @@ void mexFunction(mwSize nlhs, mxArray *plhs[], mwSize nrhs, const mxArray *prhs[
 					strcpy (stem, &argv[i][2]);
 					break;
 				case 'J':
-					sscanf (&argv[i][2], "%f", &time_jump);
+					sscanf (&argv[i][2], "%lf", &time_jump);
 					break;
 				case 'L':	/* Output land nodes in SWW file */ 
 					with_land = TRUE;
@@ -716,14 +716,14 @@ void mexFunction(mwSize nlhs, mxArray *plhs[], mwSize nrhs, const mxArray *prhs[
 			}
 			if (write_grids) {
 				if (stem[0] == 0)
-					sprintf (prenome,"%.5d.grd\0", irint(time_h) );
+					sprintf (prenome,"%.5d.grd", irint(time_h) );
 				else
 					sprintf (prenome, "%s%.5d.grd", stem, irint(time_h) );
 				write_grd_bin( prenome, xMinOut, yMinOut, dtx, dty, i_start, j_start, i_end, j_end, ip2, work);
 			}
 			if (out_velocity) {
 				if (stem[0] == 0)
-					sprintf (prenome,"%.5d\0", irint(time_h) );
+					sprintf (prenome,"%.5d", irint(time_h) );
 				else
 					sprintf (prenome, "%s%.5d", stem, irint(time_h) );
 				for (i = 0; i < ncl; i++) work[i] = (float) u[i];
@@ -736,7 +736,7 @@ void mexFunction(mwSize nlhs, mxArray *plhs[], mwSize nrhs, const mxArray *prhs[
 			}
 			if (out_momentum) {
 				if (stem[0] == 0)
-					sprintf (prenome,"%.5d\0", irint(time_h) );
+					sprintf (prenome,"%.5d", irint(time_h) );
 				else
 					sprintf (prenome, "%s%.5d", stem, irint(time_h) );
 
@@ -1209,7 +1209,7 @@ int read_grd_info_ascii (char *file, struct srf_header *hdr) {
 	}
 
 	fgets (line, 512, fp);
-	sscanf (line, "%s", &hdr->id);
+	sscanf (line, "%s", hdr->id);
 	fgets (line, 512, fp);
 	sscanf (line, "%d %d", &hdr->nx, &hdr->ny);
 	fgets (line, 512, fp);
@@ -1246,7 +1246,7 @@ int read_grd_ascii (char *file, struct srf_header *hdr, double *work) {
 	}
 
 	fgets (line, 512, fp);
-	sscanf (line, "%s", &hdr->id);
+	sscanf (line, "%s", hdr->id);
 	fgets (line, 512, fp);
 	sscanf (line, "%d %d", &hdr->nx, &hdr->ny);
 	fgets (line, 512, fp);
@@ -1417,7 +1417,7 @@ int read_maregs(char *file) {
 
 	while (fgets (line, 512, fp) != NULL) {
 		if (line[0] == '#') continue;	/* Jump comment lines */
-		sscanf (line, "%f %f", &x, &y);
+		sscanf (line, "%lf %lf", &x, &y);
 		ix = irint((x - hdr_b.x_min) / dx);
 		jy = irint((y - hdr_b.y_min) / dy); 
 		lcum_p[i] = jy * ip2 + ix; 
