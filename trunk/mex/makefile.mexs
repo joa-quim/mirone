@@ -20,21 +20,22 @@ mirone_mex_dir	= /Users/j/programs/mironeTrunk/lib_mex
 #----------------------------------------------------------------------------
 
 # ------------------- Which and where is OpenCV? ----------------------------
-# Set to blank to use code pre-reorganization version. That is ocv22 = 
-ocv22 = yes	
+# Set to 'yes' to use a local build version. That is ocvLocal = yes
+ocvLocal =
 
 # Depending on the above setting, revise one of the 2 following if cases
-ifdef ocv22
-pato_cv = /Users/j/programs/opencv2/trunk/opencv
-pato_cv_lib = /Users/j/programs/opencv2/trunk/opencv/build/lib
-else
+ifndef ocvLocal
 pato_cv = /usr/local
 pato_cv_lib = /usr/local/lib
+CV_INC = /usr/local/include
+else
+pato_cv = /Users/j/programs/opencv2/trunk/opencv
+pato_cv_lib = /Users/j/programs/opencv2/trunk/opencv/build/lib
 endif
 #----------------------------------------------------------------------------
 
 # On Mac (but need to addapt to 32 or 64)
-MATLAB		= /Applications/MATLAB_R2010b.app
+MATLAB		= /Applications/MATLAB_R2012a.app
 MATLAB_MEX	= maci64
 MEX_EXT	= mexmaci64
 
@@ -63,14 +64,18 @@ MEXNC_FLAGS = $(NETCDF_INC) -I$(MATLAB)/extern/include
 #	STOP EDITS HERE. The rest should should be ok.
 #----------------------------------------------------------------------------
 
-ifdef ocv22
+ifndef ocvLocal
+
+OCV_LIB   = -L$(pato_cv_lib) -lopencv_core -lopencv_imgproc -lopencv_calib3d -lopencv_objdetect -lopencv_video -lopencv_photo
+OCV_FLAGS = -I$(CV_INC)/opencv -I$(CV_INC) -I$(MATLAB)/extern/include
+
+else
+
 OCV_FLAGS = -I$(pato_cv)/include/opencv -I$(pato_cv)/modules/core/include -I$(pato_cv)/modules/imgproc/include \
 	-I$(pato_cv)/modules/features2d/include -I$(pato_cv)/modules/calib3d/include -I$(pato_cv)/modules/objdetect/include \
 	-I$(pato_cv)/modules/video/include -I$(pato_cv)/modules/legacy/include -I$(pato_cv)/modules/flann/include 
-OCV_LIB   = -L$(pato_cv_lib) -lopencv_core -lopencv_imgproc -lopencv_calib3d -lopencv_objdetect -lopencv_video
-else
-OCV_LIB   = -L$(pato_cv_lib) -lcv -lcxcore		#-lcvhaartraining      # used on v1.0
-OCV_FLAGS = -I$(pato_cv)/include/opencv -I$(MATLAB)/extern/include
+OCV_LIB   = -L$(pato_cv_lib) -lopencv_core -lopencv_imgproc -lopencv_calib3d -lopencv_objdetect -lopencv_video -lopencv_photo
+
 endif
 
 PROG_GMT	= grdinfo_m grdproject_m grdread_m grdsample_m grdtrend_m grdwrite_m mapproject_m shoredump \
@@ -88,10 +93,9 @@ PROG_MEXNC	= mex_nc
 PROG_OCV	= cvlib_mex
 PROG_SHAPE	= mex_shape
 PROG_EDISON	= edison_
-PROG_MPGWRITE	= mpgwrite
+PROG_MPGWRITE = mpgwrite_
 
-all:		$(PROG_GMT) $(PROG_GDAL) $(PROG_SIMPLE) $(PROG_withCDF) $(PROG_OCV) $(PROG_SHAPE) $(PROG_MEXNC) $(PROG_EDISON) \
-		$(PROG_MPGWRITE) 
+all:		$(PROG_GMT) $(PROG_GDAL) $(PROG_SIMPLE) $(PROG_withCDF) $(PROG_OCV) $(PROG_SHAPE) $(PROG_MEXNC) $(PROG_EDISON)
 gmt:		$(PROG_GMT)
 gdal:		$(PROG_GDAL)
 mexnc:		$(PROG_MEXNC)
@@ -156,7 +160,7 @@ tsun2:
 		$(MEX) -I$(MATLAB)/extern/include tsun2.c $(MEXLIB)
 wave_travel_time:	
 		$(MEX) -I$(MATLAB)/extern/include wave_travel_time.c $(MEXLIB)
-mansinha_m:	
+mansinha_m:
 		$(MEX) -I$(MATLAB)/extern/include mansinha_m.c $(MEXLIB)
 telha_m:	
 		$(MEX) -I$(MATLAB)/extern/include telha_m.c $(MEXLIB)
@@ -230,12 +234,11 @@ edison_:
 		edison/segm/msSysPrompt.cpp edison/segm/RAList.cpp edison/segm/rlist.cpp edison/edge/BgEdge.cpp \
 		edison/edge/BgImage.cpp edison/edge/BgGlobalFc.cpp edison/edge/BgEdgeList.cpp edison/edge/BgEdgeDetect.cpp $(MEXLIB)
 
-# ------------------------- MPGWRITE prog ----------------------------------
-mpgwrite:
-		$(MEX) mpgwrite/mpgwrite.c mpgwrite/mfwddct.c mpgwrite/postdct.c mpgwrite/huff.c mpgwrite/bitio.c \
-		mpgwrite/mheaders.c mpgwrite/iframe.c mpgwrite/pframe.c mpgwrite/bframe.c mpgwrite/psearch.c mpgwrite/bsearch.c \
-		mpgwrite/block.c mpgwrite/mpeg.c mpgwrite/subsampl.c mpgwrite/jrevdct.c mpgwrite/frame.c mpgwrite/fsize.c $(MEXLIB)
-
+mpgwrite_:
+		$(MEX) mpgwrite/mpgwrite.c mpgwrite/mfwddct.c mpgwrite/postdct.c mpgwrite/huff.c \
+		mpgwrite/bitio.c mpgwrite/mheaders.c mpgwrite/iframe.c mpgwrite/pframe.c mpgwrite/bframe.c \
+		mpgwrite/psearch.c mpgwrite/bsearch.c mpgwrite/block.c mpgwrite/mpeg.c mpgwrite/subsampl.c \
+		mpgwrite/jrevdct.c mpgwrite/frame.c mpgwrite/fsize.c
 
 spotless:	clean
 		\rm -f makefile config.cache config.log config.status
