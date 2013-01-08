@@ -6,7 +6,7 @@
 # It should only be needed if we want to create a distributable package
 
 lib_loc=/usr/local/lib
-gmt_loc=/Users/j/programs/GMTdev/GMT4/lib
+gmt_loc=/Users/j/programs/GMT/lib
 
 # On Mac set it like this
 mac_sufix=.dylib
@@ -16,29 +16,32 @@ linus_sufix=
 #linus_sufix=.so
 
 # ---------- OpenCV libs -------------------------
-cp -f ${lib_loc}/libopencv_calib3d${linus_sufix}.2.2.0${mac_sufix} .
-ln -s -f libopencv_calib3d${linus_sufix}.2.2.0${mac_sufix} libopencv_calib3d${linus_sufix}${mac_sufix}
+cp -f ${lib_loc}/libopencv_calib3d${linus_sufix}.2.4.3${mac_sufix} .
+ln -s -f libopencv_calib3d${linus_sufix}.2.4.3${mac_sufix} libopencv_calib3d${linus_sufix}${mac_sufix}
 
-cp -f ${lib_loc}/libopencv_core${linus_sufix}.2.2.0${mac_sufix} .
-ln -s -f libopencv_core${linus_sufix}.2.2.0${mac_sufix} libopencv_core${linus_sufix}${mac_sufix}
+cp -f ${lib_loc}/libopencv_core${linus_sufix}.2.4.3${mac_sufix} .
+ln -s -f libopencv_core${linus_sufix}.2.4.3${mac_sufix} libopencv_core${linus_sufix}${mac_sufix}
 
-cp -f ${lib_loc}/libopencv_imgproc${linus_sufix}.2.2.0${mac_sufix} .
-ln -s -f libopencv_imgproc${linus_sufix}.2.2.0${mac_sufix} libopencv_imgproc${linus_sufix}${mac_sufix} 
+cp -f ${lib_loc}/libopencv_imgproc${linus_sufix}.2.4.3${mac_sufix} .
+ln -s -f libopencv_imgproc${linus_sufix}.2.4.3${mac_sufix} libopencv_imgproc${linus_sufix}${mac_sufix} 
 
-cp -f ${lib_loc}/libopencv_objdetect${linus_sufix}.2.2.0${mac_sufix} .
-ln -s -f libopencv_objdetect${linus_sufix}.2.2.0${mac_sufix} libopencv_objdetect${linus_sufix}${mac_sufix} 
+cp -f ${lib_loc}/libopencv_objdetect${linus_sufix}.2.4.3${mac_sufix} .
+ln -s -f libopencv_objdetect${linus_sufix}.2.4.3${mac_sufix} libopencv_objdetect${linus_sufix}${mac_sufix} 
 
-cp -f ${lib_loc}/libopencv_video${linus_sufix}.2.2.0${mac_sufix} .
-ln -s -f libopencv_video${linus_sufix}.2.2.0${mac_sufix} libopencv_video${linus_sufix}${mac_sufix}
+cp -f ${lib_loc}/libopencv_video${linus_sufix}.2.4.3${mac_sufix} .
+ln -s -f libopencv_video${linus_sufix}.2.4.3${mac_sufix} libopencv_video${linus_sufix}${mac_sufix}
 
-cp -f ${lib_loc}/libopencv_highgui${linus_sufix}.2.2.0${mac_sufix} .
-ln -s -f libopencv_highgui${linus_sufix}.2.2.0${mac_sufix} libopencv_highgui${linus_sufix}${mac_sufix}
+cp -f ${lib_loc}/libopencv_photo${linus_sufix}.2.4.3${mac_sufix} .
+ln -s -f libopencv_photo${linus_sufix}.2.4.3${mac_sufix} libopencv_photo${linus_sufix}${mac_sufix}
 
-cp -f ${lib_loc}/libopencv_features2d${linus_sufix}.2.2.0${mac_sufix} .
-ln -s -f libopencv_features2d${linus_sufix}.2.2.0${mac_sufix} libopencv_features2d${linus_sufix}${mac_sufix}
+cp -f ${lib_loc}/libopencv_highgui${linus_sufix}.2.4.3${mac_sufix} .
+ln -s -f libopencv_highgui${linus_sufix}.2.4.3${mac_sufix} libopencv_highgui${linus_sufix}${mac_sufix}
 
-cp -f ${lib_loc}/libopencv_flann${linus_sufix}.2.2.0${mac_sufix} .
-ln -s -f libopencv_flann${linus_sufix}.2.2.0${mac_sufix} libopencv_flann${linus_sufix}${mac_sufix}
+cp -f ${lib_loc}/libopencv_features2d${linus_sufix}.2.4.3${mac_sufix} .
+ln -s -f libopencv_features2d${linus_sufix}.2.4.3${mac_sufix} libopencv_features2d${linus_sufix}${mac_sufix}
+
+cp -f ${lib_loc}/libopencv_flann${linus_sufix}.2.4.3${mac_sufix} .
+ln -s -f libopencv_flann${linus_sufix}.2.4.3${mac_sufix} libopencv_flann${linus_sufix}${mac_sufix}
 
 # ---------- ?? libs ------------------------------
 #cp -f /usr/lib/libexpat${linus_sufix}.1.5.2${mac_sufix} .
