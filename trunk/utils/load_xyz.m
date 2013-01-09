@@ -797,6 +797,8 @@ function out = read_shapenc(fname)
 			end
 		end
 		out.PolyIndex = ind;		% With this we know that Z = ind - 2; lat = ind - 3 and lon = ind - 4
+	else
+		out.Poly.OUT.desc = '';		% We need this because it's accessed in main function (but not a perfect idea) 
 	end
 
 	% Find the inner polygons (if any)
