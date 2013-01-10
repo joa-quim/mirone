@@ -104,9 +104,9 @@ function [handles, X, Y, Z, head, misc] = read_grid(handles,fullname,tipo)
 if (strcmp(tipo,'CDF'))
 	try				% Use the new nc_io()
 		[X, Y, Z, head, misc] = nc_io(fullname, 'r');
+		if (isa(Z,'double')),		Z = single(Z);		end		% The HORRRRRRRRROOOOOOOOOORRRRR
 		if (isa(Z,'int16')),		handles.was_int16 = 1;
 		elseif (isa(Z,'single')),	handles.have_nans = grdutils(Z,'-N');
-		elseif (isa(Z,'double')),	Z = single(Z);		% The HORRRRRRRRROOOOOOOOOORRRRR
 		end
 	catch			% If it have failed try GMT
 		str = sprintf(['First attempt to load netCDF file failed because ... \n\n\n %s\n\n\n       Trying now with GMT mex ...' ...
