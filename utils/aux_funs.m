@@ -91,7 +91,7 @@ function addUI(handles)
 function StoreZ(handles,X,Y,Z)
 % If grid size is not to big I'll store it
 	if (numel(Z)*4 > handles.grdMaxSize),		return,		end
-	if (~isa(Z,'single')),	setappdata(handles.figure1,'dem_z',single(Z));
+	if (~handles.IamCompiled && ~isa(Z,'single')),	setappdata(handles.figure1,'dem_z',single(Z));	% TMP
 	else					setappdata(handles.figure1,'dem_z',Z);
 	end
 	setappdata(handles.figure1,'dem_x',X);  setappdata(handles.figure1,'dem_y',Y);
