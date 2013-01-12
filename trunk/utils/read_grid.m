@@ -125,7 +125,12 @@ function [Z, X, Y, srsWKT, handles, att] = read_grid(handles, fullname, tipo, op
 	end
 	handles.fileName = fname;
 
-	if (~isa(Z,'single')),		Z = single(Z);		end
+	% Given the Z = single(Z); is horribly memory consuming in R13, we are going to experimentally let the
+	% (u)int16 arrays go without type casting to single. If it works well, we'll do it for all sizes & releases
+	if (handles.IamCompiled && numel(Z) > 157286400)	% Don't type cast. 157286400 +/- = 300 Mb of a int16 array
+	elseif (~isa(Z,'single'))
+		Z = single(Z);
+	end
 
 	if ( ~strncmp(tipo,'GMT',3) && ~strncmpi(tipo,'IN',2) )
 		if ( ~isempty(att.Band(1).NoDataValue) && ~isnan(att.Band(1).NoDataValue) && att.Band(1).NoDataValue ~= 0 )
