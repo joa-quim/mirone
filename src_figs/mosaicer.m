@@ -1,7 +1,7 @@
 function varargout = mosaicer(varargin)
 % Helper window to paste SRTM grid tiles or Wem image tiles from Bing and others
 
-%	Copyright (c) 2004-2012 by J. Luis
+%	Copyright (c) 2004-2013 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -15,6 +15,8 @@ function varargout = mosaicer(varargin)
 %
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
+
+% $Id$
 
 	hObject = figure('Vis','off');
 	mosaicer_LayoutFcn(hObject);
@@ -289,7 +291,7 @@ function check_web_CB(hObject, handles)
 		if (get(handles.radio_srtm,'Val'))
 			url = 'http://dds.cr.usgs.gov/srtm/version2_1/SRTM3/Eurasia/';
 		elseif (get(handles.radio_srtm30,'Val'))
-			url = 'ftp://topex.ucsd.edu/pub/srtm30_plus/srtm30/data/';
+			url = 'ftp://topex.ucsd.edu/pub/srtm30_plus/srtm30/erm/';
 		end
 	else
 		set([handles.popup_grd_dir handles.push_grd_dir],'Enable', 'on')
@@ -727,7 +729,17 @@ function n_tiles = mosaic_srtm(handles)
 				full_name = ['/vsizip/vsicurl/' get(handles.edit_url,'Str') '/' cur_file '.zip'];
 			end
 
-			Z = gdalread(full_name, '-U', '-s');
+			% -------- Read the file ... or fail graciously --------------------------------------
+			if (isempty(full_name))
+				warndlg(['Error finding file ' cur_file]),		continue
+			end
+			try
+				Z = gdalread(full_name, '-U', '-s');
+			catch
+				warndlg(['WARNERROR: GDAL failed to read file: ' full_name],'Error'),	continue
+			end
+			% ------------------------------------------------------------------------------------
+
 			if (i == 1 && j == 1 && size(Z,1) == 3601)
 				RC = 3601;
 				Z_tot = repmat(single(NaN), m*RC, n*RC);	% We must resize the whole thing
@@ -819,8 +831,9 @@ function n_tiles = mosaic_srtm30(handles)
 	m = 1;		n = 1;		% If one tile only
 	if iscell(fnames),		[m,n] = size(fnames);	end
 	RC = [6000 4800];
-% 	from_web = get(handles.check_web,'Val');
-	from_web = false;
+ 	from_web = get(handles.check_web,'Val');
+% 	from_web = false;
+	att = '';
 
 	z_min = 1e100;     z_max = -z_min;	%x_min = 1e10;	x_max = -x_min;	y_min = 1e10;	y_max = -y_min;
 	if (m * n > 1)
@@ -839,6 +852,7 @@ function n_tiles = mosaic_srtm30(handles)
 					name_hdr = write_esri_hdr(full_name,'SRTM30');
 				else				% Try with a compressed version ---------- NOT IMPLEMENTED YET --------
 					ii = strcmp(cur_file, handles.srtm30_compfiles);
+					full_name = '';
 					if any(ii)		% Got a compressed file.
 						if (strcmpi(handles.srtm30_ext{ii},'.zip'))
 							full_name = ['/vsizip/' handles.srtm30_pato_comp{ii} handles.srtm30_compfiles{ii} handles.srtm30_ext{ii}];
@@ -853,7 +867,17 @@ function n_tiles = mosaic_srtm30(handles)
 				full_name = ['/vsicurl/' get(handles.edit_url,'Str') '/' cur_file];
 			end
 
-			[Z, att] = gdalread(full_name, '-U', '-s');
+			% -------- Read the file ... or fail graciously --------------------------------------
+			if (isempty(full_name))
+				warndlg(['Error finding file ' cur_file]),		continue
+			end
+			try
+				Z = gdalread(full_name, '-U', '-s');
+			catch
+				warndlg(['WARNERROR: GDAL failed to read file: ' full_name],'Error'),	continue
+			end
+			% ------------------------------------------------------------------------------------
+
 			Z(Z == att.Band(1).NoDataValue) = NaN;
 			z_min = min(z_min,att.GMT_hdr(5));		z_max = max(z_max,att.GMT_hdr(6));
 			i_r = (1+(i-1)*RC(1)):i*RC(1);
@@ -867,6 +891,10 @@ function n_tiles = mosaic_srtm30(handles)
 	end
 	n_tiles = m * n;
 
+	if (isempty(att))
+		errordlg('Errors & more errors. Nothing was read','Error')
+		aguentabar(1),		return
+	end
 	limits = limits + [att.GMT_hdr(8) -att.GMT_hdr(8) att.GMT_hdr(9) -att.GMT_hdr(9)]/2;	%SRTM30 are pix reg
 	tmp.head = [limits z_min z_max 0 att.GMT_hdr(8:9)];
 	tmp.X = linspace(limits(1), limits(2), size(Z_tot,2));
