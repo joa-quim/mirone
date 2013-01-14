@@ -1,7 +1,7 @@
 function tsu_funs(opt,varargin)
 % Helper function to do Tsunami related computations
 
-%	Copyright (c) 2004-2012 by J. Luis
+%	Copyright (c) 2004-2013 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -15,6 +15,8 @@ function tsu_funs(opt,varargin)
 %
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
+
+% $Id$
 
 	switch opt
 		case 'SwanCompute'
@@ -45,6 +47,7 @@ function TTT(handles,opt)
 		[FileName,PathName] = put_or_get_file(handles,str1,'Select input xy_time file name','get');
 		if isequal(FileName,0),		return,		end
 		out = load_xyz(handles,[PathName FileName]);
+		if (isempty(out)),		return,		end
 		if (size(out,2) ~= 3)
 			errordlg('Wrong choice. For using this option the file MUST have 3 columns (position and time).','Error'); return
 		end
@@ -94,6 +97,7 @@ function TTT(handles,opt)
 				aguentabar(i/numel(xx))
 			end
 			tt = sqrt(tmp/size(xy_t,1));	tit = 'Ray tracing solution';	clear tmp;
+			tt = single(tt);
 		end
 		zz = grdutils(tt,'-L');
 		head(5:6) = double(zz(1:2));
