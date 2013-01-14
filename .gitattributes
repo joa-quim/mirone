@@ -633,4 +633,5 @@ utils/write_gmt_symb.m -text
 utils/write_vrt.m -text
 utils/writegif.p -text
 utils/writekml.m -text
+utils/zoom_j.m -text
 utils/zoom_j.p -text
