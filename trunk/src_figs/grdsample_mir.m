@@ -1,7 +1,7 @@
 function varargout = grdsample_mir(varargin)
 % Helper window to interface with grdsample MEX 
 
-%	Copyright (c) 2004-2012 by J. Luis
+%	Copyright (c) 2004-2013 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -15,6 +15,8 @@ function varargout = grdsample_mir(varargin)
 %
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
+
+% $Id$
 
 	if isempty(varargin)
 		errordlg('GRDSAMPLE: wrong number of input arguments.','Error'),	return
@@ -84,6 +86,9 @@ function varargout = grdsample_mir(varargin)
 	guidata(hObject, handles);
 
 	set(hObject,'Visible','on');
+	if (strncmp(computer,'PC',2))
+		WindowAPI(hObject, 'TopMost')
+	end
 	if (nargout),   varargout{1} = hObject;     end
 
 % --------------------------------------------------------------------
