@@ -37,7 +37,7 @@ function varargout = ecran(varargin)
 	freshFig = true;
 
 	if (~isempty(hObject))		% A previous 'Ecran' figure exists. See if it has a mag synthetic plot
-		handles = guidata(hObject);
+		handles = guidata(hObject(end));
 		if (~isempty(handles.hSynthetic)),	freshFig = false;	end
 		% Delete eventual existing vertical dashed line and the red square markers
 		if (ishandle(handles.hAgeLine_fit))
@@ -865,8 +865,12 @@ function FileOpen_CB(hObject, handles)
 	fid = fopen(fname);
 	H1 = fgetl(fid);
 	if (~isempty(H1) && H1(1) == '#')
-		ind = strfind(H1, '# DATENUM');
-		if (~isempty(ind))
+		ind = strfind(H1, '# DATENUM');		ind_mareg = strfind(H1, '# MAREG');
+
+		if (isempty(ind) && isempty(ind_mareg))		% Just a ignorant comment line
+			fclose(fid);
+		else
+			% In either case we need to execute this chunk of common code
 			todos = fread(fid,'*char');
 			fclose(fid);
 			[bin,n_cols,multi_seg,n_headers] = guess_file(fname);
@@ -874,6 +878,9 @@ function FileOpen_CB(hObject, handles)
 				id = strfind(todos(1:(n_headers - 1)*120)',sprintf('\n'));
 				todos = todos(id(n_headers)+1:end);		% Jump the header lines
 			end
+		end
+
+		if (~isempty(ind))				% The DATENUM case
 			if (n_cols == 3)
 				[yymmdd hhmm sl] = strread(todos,'%s %s %f');
 				yymmdd = strcat(yymmdd, repmat({char(32)}, size(yymmdd,1),1), hhmm);	%BUG {char(' ')} is ignored
@@ -900,10 +907,25 @@ function FileOpen_CB(hObject, handles)
 				errordlg(lasterr,'Error'),		return
 			end
 			data = [serial_date sl];
-			out = [1 2];					% To simulate the output of select_cols
+			out = [1 2];						% To simulate the output of select_cols
 			isDateNum = true;
-		else
-			fclose(fid);
+
+		elseif (~isempty(ind_mareg))			% The MAREG case
+			[serial_date sl] = strread(todos,'%f %f', 'delimiter', '\t');	% What if n_cols ~= 2?
+			difa = diff(serial_date);
+			difa2 = abs(diff(difa));
+			if (max(difa2) > 0.001)				% Need to reinterpolate. 1e-3 of a day is close to 1.5 min
+				if (min(difa) <= 0)
+					errordlg('Error: Ai Ai. Time is not monotonically increasing','Error'),		return
+				end
+				min_step = median(difa);
+				X = (serial_date(1):min_step:serial_date(end))';
+				sl = interp1(serial_date,sl,X);
+				serial_date = X;
+			end
+			data = [serial_date sl];
+			out = [1 2];						% To simulate the output of select_cols
+			isDateNum = true;
 		end
 	end
 
@@ -1685,21 +1707,23 @@ function rectang_clicked_CB(obj,evt)
 function add_uictx_CB(hObject, handles)
 % Tricky function either called externally from ecran or activated when loading a file with DATENUM info
 	h = findobj(handles.figure1,'Label','Analysis');
+	xx = get_inside_rect(handles);
 	uimenu('Parent',h, 'Call',@ecran_uiCB,...
 			'Label','Filter (Butterworth)', 'Tag','filterButt', 'Sep', 'on');
 	% Save original X label in appdata for easear access when we want to change it
 	setappdata(handles.axes1,'XTickOrig',get(handles.axes1,'XTickLabel'))
 	setappdata(handles.axes1,'xIsDatenum',true)		% For FFTs to know how to compute frequency
 
-	datetick('x','keeplimits')		% Make it auto right away
-
-	uimenu(handles.cmenu_axes, 'Label', 'Date Format -> auto', 'Call', {@SetAxesDate,'x'}, 'Sep','on');
-	uimenu(handles.cmenu_axes, 'Label', 'Date Format -> dd-mmm-yyyy', 'Call', {@SetAxesDate,1});
-	uimenu(handles.cmenu_axes, 'Label', 'Date Format -> mm/dd/yy', 'Call', {@SetAxesDate,2});
-	uimenu(handles.cmenu_axes, 'Label', 'Date Format -> mm/dd', 'Call', {@SetAxesDate,6});
-	uimenu(handles.cmenu_axes, 'Label', 'Date Format -> HH:MM', 'Call', {@SetAxesDate,15});
-	uimenu(handles.cmenu_axes, 'Label', 'Date Format -> HH:MM:SS', 'Call', {@SetAxesDate,13});
-	uimenu(handles.cmenu_axes, 'Label', 'Date Format -> dd.xxx', 'Call', @SetAxesDate);
+	if (xx(end) > 365)			% Assume days of the year. No datenum
+		datetick('x','keeplimits')		% Make it auto right away
+		uimenu(handles.cmenu_axes, 'Label', 'Date Format -> auto', 'Call', {@SetAxesDate,'x'}, 'Sep','on');
+		uimenu(handles.cmenu_axes, 'Label', 'Date Format -> dd-mmm-yyyy', 'Call', {@SetAxesDate,1});
+		uimenu(handles.cmenu_axes, 'Label', 'Date Format -> mm/dd/yy', 'Call', {@SetAxesDate,2});
+		uimenu(handles.cmenu_axes, 'Label', 'Date Format -> mm/dd', 'Call', {@SetAxesDate,6});
+		uimenu(handles.cmenu_axes, 'Label', 'Date Format -> HH:MM', 'Call', {@SetAxesDate,15});
+		uimenu(handles.cmenu_axes, 'Label', 'Date Format -> HH:MM:SS', 'Call', {@SetAxesDate,13});
+		uimenu(handles.cmenu_axes, 'Label', 'Date Format -> dd.xxx', 'Call', @SetAxesDate);
+	end
 
 % --------------------------------------------------------------------
 function filterButt_CB(hObject, handles)
@@ -1713,18 +1737,19 @@ function filterButt_CB(hObject, handles)
 	setappdata(handNew.axes1,'XTickOrig',get(handNew.axes1,'XTickLabel'))
 	setappdata(handNew.axes1,'xIsDatenum',true)		% For FFTs to know how to compute frequency
 
-	datetick('x','keeplimits')		% Make it auto right away
-
-	uimenu(handles.cmenu_axes, 'Label', 'Date Format -> auto', 'Call', {@SetAxesDate,'x'}, 'Sep','on');
-	uimenu(handles.cmenu_axes, 'Label', 'Date Format -> dd-mmm-yyyy', 'Call', {@SetAxesDate,1});
-	uimenu(handles.cmenu_axes, 'Label', 'Date Format -> mm/dd/yy', 'Call', {@SetAxesDate,2});
-	uimenu(handles.cmenu_axes, 'Label', 'Date Format -> mm/dd', 'Call', {@SetAxesDate,6});
-	uimenu(handles.cmenu_axes, 'Label', 'Date Format -> HH:MM', 'Call', {@SetAxesDate,15});
-	uimenu(handles.cmenu_axes, 'Label', 'Date Format -> HH:MM:SS', 'Call', {@SetAxesDate,13});
-	uimenu(handles.cmenu_axes, 'Label', 'Date Format -> dd.xxx', 'Call', @SetAxesDate);
+	if (xx(end) > 365)			% Assume days of the year. No datenum
+		datetick('x','keeplimits')		% Make it auto right away
+		uimenu(handNew.cmenu_axes, 'Label', 'Date Format -> auto', 'Call', {@SetAxesDate,'x'}, 'Sep','on');
+		uimenu(handNew.cmenu_axes, 'Label', 'Date Format -> dd-mmm-yyyy', 'Call', {@SetAxesDate,1});
+		uimenu(handNew.cmenu_axes, 'Label', 'Date Format -> mm/dd/yy', 'Call', {@SetAxesDate,2});
+		uimenu(handNew.cmenu_axes, 'Label', 'Date Format -> mm/dd', 'Call', {@SetAxesDate,6});
+		uimenu(handNew.cmenu_axes, 'Label', 'Date Format -> HH:MM', 'Call', {@SetAxesDate,15});
+		uimenu(handNew.cmenu_axes, 'Label', 'Date Format -> HH:MM:SS', 'Call', {@SetAxesDate,13});
+		uimenu(handNew.cmenu_axes, 'Label', 'Date Format -> dd.xxx', 'Call', @SetAxesDate);
+	end
 
 % --------------------------------------------------------------------------------------------------
-function handles = SetAxesDate(hObject,event,opt)
+function handles = SetAxesDate(hObject,evt,opt)
 % Set X axes labels when we know for sure X units are datenum days
 	if (nargin == 2)		% Sow the original dd.xxxxx
 		handles = guidata(hObject);
