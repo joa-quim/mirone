@@ -185,6 +185,13 @@ function setSHPuictx(h,opt)
 function set_line_uicontext(h, opt)
 % h is a handle to a line object (that can be closed)
 	if (isempty(h)),	return,		end
+	
+	if (numel(h) > 1)			% Many, make recursive and hope it doesn't choke the fragile beast
+		for (k = 1:numel(h))
+			set_line_uicontext(h(k), opt)
+		end
+		return
+	end
 
 	IS_SEISPOLYG = false;		% Seismicity Polygons have special options
 	IS_SEISMICLINE = false;		% Seismicity Lines have special options
@@ -1309,7 +1316,7 @@ function arrowRedraw(obj, evt, hVec)
 	set(hFig,'Pointer', 'crosshair');
 	hVec(2) = line('XData', [], 'YData', [],'LineWidth',0.5,'Tag','Arrow');
 	ud = get(hVec(1),'UserData');
-	vectorFirstButtonDown(hFig, hAxes, hVec, state, getappdata(hVec(1),'anchor'), ...
+	vectorFirstButtonDown(hFig, hAxes, hVec, state, ud.anchors, ...
 		ud.headLength, ud.vFac, ud.aspectRatio)
 
 % -----------------------------------------------------------------------------------------
