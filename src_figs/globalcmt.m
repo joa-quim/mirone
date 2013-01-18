@@ -1,7 +1,7 @@
 function varargout = globalcmt(varargin)
 % Helper window to download focal mechanisms data from www.globalcmt.org
 
-%	Copyright (c) 2004-2012 by J. Luis
+%	Copyright (c) 2004-2013 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -15,6 +15,8 @@ function varargout = globalcmt(varargin)
 %
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
+
+% $Id$
 
 	if (isempty(varargin))
 		errordlg('GlobalCMT: wrong number of input arguments.','Error'),	return
@@ -284,8 +286,12 @@ function push_OK_CB(hObject, handles)
 			set(handles.figure1,'pointer','arrow'),		return
 		end
 
-		ind = strfind(todos', '<hr>');				% Find first occurrence of one 'hline' and break it there
+		ind = strfind(todos', '<hr>');			% Find first occurrence of one 'hline' and break it there
 		todos(ind(1):end) = [];
+		ind = strfind(todos', '</pre>');		% Now they invented plus this one
+		if (~isempty(ind))
+			todos(ind(1):end) = [];
+		end
 
 		if (n == 1)
 			[lix lat lon depth lix lix mag lix lix lix lix lix lix lix] = ...
