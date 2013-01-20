@@ -576,7 +576,7 @@ function push_compute_CB(hObject, handles)
 		U = mansinha_m(opt_R, opt_I, opt_A{1}, opt_F{1}, opt_E{1}, opt_M);
 	end
 
-	z_max = max(U(:));		z_min = min(U(:));
+	z_max = double(max(U(:)));		z_min = double(min(U(:)));
 	dx = str2double(get(handles.edit_x_inc,'String'));
 	dy = str2double(get(handles.edit_y_inc,'String'));
     
