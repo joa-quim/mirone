@@ -580,6 +580,7 @@ utils/movie2avi_j.p -text
 utils/multibandread_j.p -text
 utils/nc_funs.m -text
 utils/nc_io.m -text
+utils/nesting_sizes.m -text
 utils/new_frame3D.m -text
 utils/pan.p -text
 utils/patch_meca.m -text
