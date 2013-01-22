@@ -88,11 +88,11 @@ switch option
 			end
 		else
 			fpos = figpos;				% Make a copy and use a fixed size ... for the time being.
-			fpos(3:4) = [400 numel(texto)*20+45];
+			fpos(3:4) = [400 numel(texto)*20+90];
 			set(hFig, 'Pos', fpos)
 			hTxtContainer = uicontrol('Parent',hFig, 'Style','edit', 'Unit','pix', 'BackgroundColor',[1 1 1], ...
 				'HorizontalAlignment','left', 'Max',numel(texto), 'Str', texto, 'Pos', [2 25 fpos(3) fpos(4)-25], ...
-				'Tag','editBox');
+				'Max',2, 'Tag','editBox');
 			uicontrol('Parent',hFig, 'Style','pushbutton', 'Unit','pix', 'Position', [fpos(3)-93 2 80 21], ...
 				'Str', 'Save', 'Call', @saveFila);
 		end
