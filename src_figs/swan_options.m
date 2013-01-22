@@ -19,12 +19,11 @@ function varargout = swan_options(varargin)
 %   output.opt_J = '-J<time_jump>';
 %   output.opt_M = '-M';
 %   output.opt_N
-%   output.opt_m = '-m' (movie)
 %   output.opt_S = '-S' (swan only - write momentums)
 %   output.opt_s = '-s' (swan only - write velocities)
 %   --- Or empty if user gave up
 
-%	Copyright (c) 2004-2012 by J. Luis
+%	Copyright (c) 2004-2013 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -550,8 +549,6 @@ if (handles.is_tsun2 == 1)    % Tests for the case of tsun2 (and return)
 	
     % Do we want a collection of intermediary tsunami grid steps?
     if (get(handles.radio_outGrids,'Value')),	handles.output.opt_G = ['-G' get(handles.edit_gridNameStem,'String')];	end
-    % Want a movie? 
-    if (get(handles.check_makeMovie,'Value')),	handles.output.opt_m = '-m';	end
     % Get number of cycles
     handles.output.opt_N = ['-N' get(handles.edit_Number_of_cycles,'String')];
     % Get the friction coefficient
@@ -630,9 +627,6 @@ end
 % Want to Jump initial time on output grids/netCDFs?
 if ( handles.n_jump ),	handles.output.opt_J = sprintf('-J%.3f', handles.n_jump);	end
 
-% Want a movie? 
-if (get(handles.check_makeMovie,'Value')),		handles.output.opt_m = '-m';	end    
-
 % Get number of cycles
 handles.output.opt_N = ['-N' get(handles.edit_Number_of_cycles,'String')];
 guidata(handles.figure1,handles)
@@ -665,8 +659,8 @@ if (handles.BatGridInMemory == 1)     %
 end    
 
 % Cheeck that at lest one operation was selected
-if ( ~(get(handles.check_wantMaregs,'Val') || get(handles.check_makeMovie,'Val') || ...
-        get(handles.radio_outGrids,'Val') || get(handles.radio_anuga,'Val') || get(handles.radio_most,'Val')) )
+if ( ~(get(handles.check_wantMaregs,'Val') || get(handles.radio_outGrids,'Val') || ...
+        get(handles.radio_anuga,'Val') || get(handles.radio_most,'Val')) )
     errordlg('You need to select at least one thing to do','Error')
     error = 1;
 end
@@ -723,9 +717,8 @@ function error = check_errors_tsun2(handles)
 	end
 
 	% Cheeck that at lest one operation was selected
-	if (~get(handles.check_makeMovie,'Value') && ~get(handles.radio_outGrids,'Value') ...
-			&& isempty(handles.outTsu_maregs))
-		errordlg('You need to select at least one the three operation: grids, maregs out or movie','Error')
+	if (~get(handles.radio_outGrids,'Value') && isempty(handles.outTsu_maregs))
+		errordlg('You need to select at least one the operation: grids or maregs','Error')
 		error = 1;
 	end
 
@@ -1102,12 +1095,6 @@ uicontrol('Parent',h1,...
 'UserData','parameter');
 
 uicontrol('Parent',h1,...
-'Position',[10 51 100 15],...
-'String','Make a movie',...
-'Style','checkbox',...
-'Tag','check_makeMovie');
-
-uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
 'Call',{@swan_options_uiCB,h1,'edit_jumpInitial_CB'},...
 'CData',[],...
@@ -1119,8 +1106,8 @@ uicontrol('Parent',h1,...
 
 uicontrol('Parent',h1,...
 'HorizontalAlignment','right',...
-'Position',[250 49 55 15],...
-'String','Jump initial',...
+'Position',[247 49 60 15],...
+'String','Jump initial ',...
 'Style','text');
 
 uicontrol('Parent',h1,...
