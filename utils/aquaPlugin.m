@@ -1,28 +1,27 @@
 function aquaPlugin(handles, auto)
 % Plugin function that is called by Aquamoto. Use this function to write custom code
 % to solve particular problems taking advantage from the fact that a LOT of information
-% about the netCDF files is accessible here. There are no instructions/manual but you
-% can learn by studing the functions on aquamoto.m file or the (not so clean) working
-% examples below.
+% about the netCDF files is stored in HANDLES.
 %
 % OPTIONS
 %
-% AUTO	If logical and TRUE search the OPTcontrol.txt file for the MIR_AQUAPLUG key that
-%		should point into a file name of a control script.
-%		If it is a string, that it is interpreted as the name of the control script.
+% AUTO	- If logical and TRUE, search the OPTcontrol.txt file for the MIR_AQUAPLUG key that
+%		  should point into a file name of a control script.
+%		- If it is a string, than that is interpreted as the name of the control script.
+%
 %		A "control script" is a file with the EXACT arguments to select and run one of
 %		main functions here as pointed by the CASOS cell array below.
 %
 %		One way of executing this functionality is to check the "Seek OPTcontrol.txt" checkbox
 %		In which case the OPTcontrol.txt will be scanned for the name of the control script.
-%		This works both for the ML and standalone version.
+%		This works both for the ML and the standalone version.
 %		The other way, restricted to the ML version, is to run in the Matlab command line:
 %				aquamoto file.nc 'file_name_of_control_script'
 %		OR
 %				aquamoto('file.nc', 0)
 %		In the later case the control script name is searched in the OPTcontrol.txt file
 
-%	Copyright (c) 2004-2012 by J. Luis
+%	Copyright (c) 2004-2013 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -39,7 +38,7 @@ function aquaPlugin(handles, auto)
 
 % $Id$
 
-	if ( isempty(handles.fname) )
+	if (isempty(handles.fname))
 		errordlg('Fast trigger, you probably killed my previous encarnation. Now you have to start again. Bye.','Error')
 		return
 	end
@@ -97,7 +96,7 @@ function aquaPlugin(handles, auto)
 			fname  = 'C:\a1\pathfinder\qual_82_09.nc';	% If not empty check againts this file (For monthly data)
 			quality = 6;			% Retain only values of quality >= this (or <= abs(this) when MODIS). Ingored if fname = []
 			splina = false;			% Fill missing monthly data by a spline interpolation. Ignored if fname = [].
-			scale = 12;				% Scale rate of change by this value (useful when input data has monthly values).
+			scale = 12;				% Scale rate of change by this value (useful when input data has monthly data).
 			if (internal_master)
 				calcGrad(handles, slope, sub_set, fname, quality, splina, scale)
 			else
@@ -151,9 +150,8 @@ function aquaPlugin(handles, auto)
 			end
 		case 'do_math'				% CASE 8
 			opt = 'diffstd';		% Sum all layers
-			%do_math(handles, opt, 'C:\a1\MODIS\mediaAnual_AQUA_NSST_Interp200_Q0.nc', [0 0], [0 0])
 			if (internal_master)
-				do_math(handles, opt, 'C:\a1\MODIS\mediaAnual_TERRA_NSST_Interp200_Q0.nc', [19 0], [1 1])
+				do_math(handles, opt, [19 0], 'C:\a1\MODIS\mediaAnual_TERRA_NSST_Interp200_Q0.nc', [1 1])
 			else
 				do_math(handles, out{2:end})
 			end
@@ -183,11 +181,11 @@ function out = zonal(handles, dlat, integ_lon, do_trends, sub_set, fnamePoly1, f
 % Compute zonal means from a multi-layer file
 %
 % DLAT 			width of the box in the direction orthogonal to INTEG_LON
-% INTEG_LON 	If true, integration is done along longitude
-% DO_TRENDS		If false compute zonal integrations. Otherwise compute trends of the zonal integrations (per DLAT)
-%				Note that X coords are different in the above two cases. They represent the layer number
-%				for the zonal integration case and is up tp the user to make it correspond to a date, but they the
-%				spatial coordinate orthogonal to the integration direction for the DO_TRENDS == TRUE case
+% INTEG_LON 	(LOGICAL) If true, integration is done along longitude
+% DO_TRENDS		(LOGICAL) If false compute zonal integrations, otherwise compute trends of the zonal integrations (per DLAT)
+%				Note that X coords represent different things in the above two cases:
+%				- Layer number for the zonal integration case and is up tp the user to make it correspond to a date.
+%				- Spatial coordinate orthogonal to the integration direction for the DO_TRENDS == TRUE case
 %
 % OPTIONS: Since the number of options is variable some make mandatory that prev args exist. In that case use [] if needed
 %
@@ -351,7 +349,7 @@ function out = zonal(handles, dlat, integ_lon, do_trends, sub_set, fnamePoly1, f
 				p = polyfit(tmp.X, double(allSeries(k,:)), 1);
 				trend(k) = p(1);
 			end
-			ind = find(~isnan(trend));			% Remove any eventual leading or trailing NsNs
+			ind = find(~isnan(trend));			% Remove any eventual leading or trailing NaNs
 			trend = trend(ind(1):ind(end) );
 			tmp.Y = tmp.Y(ind(1):ind(end) );
  			ecran(handles, tmp.Y, trend, 'Slope of line fit')
@@ -362,8 +360,8 @@ function out = zonal(handles, dlat, integ_lon, do_trends, sub_set, fnamePoly1, f
 	
 % ----------------------------------------------------------------------
 function calcGrad(handles, slope, sub_set, fnameFlag, quality, splina, scale, grd_out)
-% Compute the rate of change of a file by fitting a LS straight line. The file can be the one of
-% already computed yearly means, in which case last three input arguments do not apply.
+% Compute the rate of change of a file by fitting a LS straight line. The file can be one of the
+% already computed yearly means, in which case last three input arguments do not apply,
 % OR the full time series. In this case optional checking against quality flags and spline
 % interpolation can be done using info transmitted via the last three args.
 %
@@ -597,10 +595,12 @@ function calcGrad(handles, slope, sub_set, fnameFlag, quality, splina, scale, gr
 
 % ------------------------------------------------------------------------------
 function calc_yearMean(handles, months, fname2, flag, nCells, fname3, splina, tipoStat, chkPts_file, grd_out)
-% Calcula media anuais a partir de dados mensais
-% MONTHS 	is a vector with the months uppon which the mean is to be computed
+% Compute anual means from monthly data.
+%
+% MONTHS 	a vector with the months uppon which the mean is to be computed
 %		example: 	months = 1:12		==> Computes yearly mean
 %					months = 6:8		==> Computes June-July-August seazonal means
+%			Default (if months = []) 1:12
 %
 % OPTIONS:
 % FNAME2 	name of a netCDF file with quality flags. Obviously this file must be of
@@ -616,7 +616,7 @@ function calc_yearMean(handles, months, fname2, flag, nCells, fname3, splina, ti
 %			and the others retain their FNAME2 value. This corresponds to the promotion
 %			of interpolated nodes to quality FLAG.
 %
-% SPLINA	Logical that if true instruct to spline interpolate the missing monthly values
+% SPLINA	Logical that if true instructs to spline interpolate the missing monthly values
 %			before computing the yearly mean. Optionaly, it may be a 2 elements vector with
 %			the MIN and MAX values allowed on the Z function (default [0 32])
 %
@@ -633,6 +633,8 @@ function calc_yearMean(handles, months, fname2, flag, nCells, fname3, splina, ti
 
 	do_flags = false;		track_filled = false;		do_saveSeries = false;
 	[z_id, s, rows, cols] = get_ncInfos(handles);
+
+	if (isempty(months)),	months = 1:12;		end
 
 	if (nargin >= 6 && ~isempty(fname3)),		track_filled = true;	end		% Keep track of interpolated nodes
 
@@ -1001,7 +1003,6 @@ function out = doM_or_M_or_M(ZtoSpline, first_wanted_month, last_wanted_month, r
 function calc_corrcoef(handles, secondArray, sub_set, splina, grd_out)
 % Compute the correlation coefficien between loaded array and 'secondArray'
 % 
-%
 % NOTE: THIS IS A HIGHLY MEMORY CONSUMPTION ROUTINE AS ALL DATA IS LOADED IN MEMORY
 %
 % SECONDARRAY	name of the other netCDF file whose correlation with loaded array will be estimated.
@@ -1184,7 +1185,6 @@ function pass_by_count(handles, count, fname2)
 
 	n_layers = handles.number_of_timesteps;
 	for (m = 1:n_layers)
-
 		Z = nc_funs('varget', handles.fname, s.Dataset(z_id).Name, [m-1 0 0], [1 rows cols]);
 		Z_flags = nc_funs('varget', fname2, s_flags.Dataset(z_id_flags).Name, [m-1 0 0], [1 rows cols]);
 		Z(Z_flags < count) = NaN;
@@ -1195,7 +1195,6 @@ function pass_by_count(handles, count, fname2)
 
 		h = aguentabar(m/n_layers);
 		if (isnan(h)),	break,	end
-		
 	end
 
 % ----------------------------------------------------------------------
@@ -1541,7 +1540,6 @@ function calc_flagsStats(handles, months, flag, opt)
 		end
 
 	else			% Make the counting on a per month basis
-
 		for (n = months)
 			contanoes = zeros(rows, cols);
 			for (m = 1:n_anos)
@@ -1566,10 +1564,21 @@ function calc_flagsStats(handles, months, flag, opt)
 	end
 
 % ----------------------------------------------------------------------
-function do_math(handles, opt, fname2, subSet1, subSet2)
-% Perform some basic agebraic operations on 3D planes
+function do_math(handles, opt, subSet1, fname2, subSet2)
+% Perform some basic algebraic operations on 3D planes
 %
-% OPT = 'sum'	=> add all layers
+% OPT can be one of:
+% 'sum'       => add all layers
+% 'diffstd'   => Compute mean and sdt of A - B (inmemory - fname2)
+%                The array read from FNAME2 does not need to be exactly comptible with A.
+%                When it is not a call to grdsample_m will take care of compatibilization.
+%
+% SUBSET1 & SUBSET2 are (optional) two columns row vec with number of the offset layers
+% where analysis starts and stop.
+% For example [3 1] Starts analysis on forth layer and stops on the before last year.
+% [0 0] Means using the all dataset (the default)
+%
+%	NOT FINISHED, NEED INPUT PARSING
 
 	grid1 = [];		grid2 = [];
 	s1 = handles.nc_info;				% Retrieve the .nc info struct
@@ -1580,6 +1589,7 @@ function do_math(handles, opt, fname2, subSet1, subSet2)
 	handles.geog = 1;		handles.was_int16 = 0;		handles.computed_grid = 0;
 
 	if (strcmp(opt, 'sum'))
+		% WARNING: SUBSET1 not implemented
 		grid1 = nc_funs('varget', handles.fname, s1.Dataset(handles.netcdf_z_id).Name, [0 0 0], [1 rows1 cols1]);
 		is_int8 = isa(grid1, 'int8');		is_uint8 = isa(grid1, 'uint8');
 		if (is_int8 || is_uint8),			grid1 = int16(grid1);		end		% To avoid ovelflows
@@ -1590,6 +1600,7 @@ function do_math(handles, opt, fname2, subSet1, subSet2)
 		end
 		figName1 = 'Stack Sum';
 	elseif (strcmpi(opt, 'diffstd'))
+		if (nargin == 4),	subSet2 = [0 0];		end
 		s2 = nc_funs('info', fname2);
 		[X1,Y1,Z,head1] = nc_io(handles.fname, 'R');
 		[X2,Y2,Z,head2,misc2] = nc_io(fname2,'R');
@@ -1720,10 +1731,10 @@ function [s_flags, z_id_flags, msg] = checkFlags_compat(fname, number_of_timeste
 
 % -------------------------------------------------------------------------------
 function out = script_control(handles, auto)
-% See if the OPTcontrol.txt file has an entry pointing to a file with parameters to run the aquaPlugin
-% If it has, read and parse that file.
+% See if the OPTcontrol.txt file has an entry pointing to a file with parameters
+% to run the aquaPlugin. If it has, read and parse that file.
 %
-% AUTO	If it's a char, than interpret it as the control script file name directly
+% AUTO	If it's a char, than interpret it as the control script name directly
 %		Any other type tells the program to search the name in OPTcontrol.txt
 
 	if (~ischar(auto))
