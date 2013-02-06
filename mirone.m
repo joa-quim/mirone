@@ -374,7 +374,8 @@ function erro = gateLoadFile(handles,drv,fname)
 		case 'shp',			DrawImportShape_CB(handles, fname);
 		case 'ogr',			DrawImportOGR_CB(handles, fname);
 		case 'las',			read_las(handles, fname);
-		case 'mgg_gmt',		GeophysicsImportGmtFile_CB(handles,fname);
+		case 'mgg_gmt',		GeophysicsImportGmtFile_CB(handles, fname);
+		case 'sww',			aquamoto(fname);
 		case 'dono',		erro = FileOpenGeoTIFF_CB(handles,'dono',fname);		% It means "I don't know"
 		otherwise,			erro = 1;
 	end
@@ -1502,7 +1503,7 @@ function erro = FileOpenGeoTIFF_CB(handles, tipo, opt)
 		if (~all(c) && any(c)),		str(c) = [];	end	% Remove non-interesting arrays from sight
 
 		[s,ok] = listdlg('PromptString',{'This file has subdatasets' 'you have to select one:'}, 'ListSize', ...
-				[min(numel(str{1})*7,640) min((size(str,1)*20 + 50), 200)], ...
+				[min(numel(str{1})*8,640) min((size(str,1)*20 + 50), 200)], ...
 				'Name','DATASET Selection', 'SelectionMode','single', 'ListString',str);	pause(0.01)
 		if (~ok),	return,		end						% Uset hit "Cancel"
 		if (rem(s,2) == 0),		s = s - 1;		end		% Selection was done over "description" and not the "name" 
@@ -3854,9 +3855,9 @@ function sdgGrid = GridToolsSDG_CB(handles, opt, opt2)
 
 % --------------------------------------------------------------------
 function [X,Y,slope,head] = GridToolsSlope_CB(handles, opt)
-% OPT == 'degrees'	Compute a DEM slope in degrees
-% OPT == 'percent'	Compute a DEM slope in percentage
-% OPT == 'aspect'	Compute a DEM aspect in degrees
+% OPT == 'degrees'	Compute slope in degrees
+% OPT == 'percent'	Compute slope in percentage
+% OPT == 'aspect'	Compute aspect in degrees
 	if (aux_funs('msg_dlg',14,handles)),	return,		end
 	[X,Y,Z,head] = load_grd(handles,'double');
 	if isempty(Z),		return,		end
