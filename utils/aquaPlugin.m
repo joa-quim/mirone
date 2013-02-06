@@ -46,7 +46,7 @@ function aquaPlugin(handles, auto)
 
 	casos = {'zonal' ...			% 1 - Compute zonal means
 			'tvar' ...				% 2 - Compute the Temp time rate of a file with annual means by fit of a straight line (Load entire file in memory)
-			'yearMean' ...			% 3 - Compute yearly averages from monthly data
+			'applyFlags' ...		% 3 - Check against its 3D flags companion and replace values < FLAG to NaN
 			'yearMeanFlag' ...		% 4 - Compute yearly averages from monthly data but checked against a quality flag file
 			'polygAVG' ...			% 5 - Compute averages of whatever inside polygons (if any)
 			'flagsStats' ...		% 6 - Compute per/pixel annual or month counts of pixel values with a quality >= flag
@@ -102,10 +102,11 @@ function aquaPlugin(handles, auto)
 			else
 				calcGrad(handles, out{2:end})
 			end
-		case 'yearMean'				% CASE 3
-			ano = 1:12;				% Compute yearly means
-			if (internal_master),	calc_yearMean(handles, ano)
-			else					calc_yearMean(handles, out{2:end})
+		case 'applyFlags'			% CASE 3
+			fnameFlag  = 'C:\a1\pathfinder\qual_82_09.nc';
+			flag = 6;				% Compute yearly means
+			if (internal_master),	applyFlags(handles, fnameFlag, flag, 200)
+			else					applyFlags(handles, out{2:end})
 			end
 		case 'yearMeanFlag'			% CASE 4
 			ano = 1:12;				% Compute yearly (ano = 1:12) or seasonal means (ano = start_month:end_month)
@@ -591,6 +592,76 @@ function calcGrad(handles, slope, sub_set, fnameFlag, quality, splina, scale, gr
 		handles.computed_grid = true;
 		handles.geog = 1;
 		nc_io(grd_out, 'w', handles, Tvar)
+	end
+
+% ------------------------------------------------------------------------------
+function applyFlags(handles, fname, flag, nCells, grd_out)
+% Check a 3D file against its 3D flags companion and replace values < FLAG to NaN.
+% Optionaly interpolate to fill gaps smaller than NCELLS.
+%
+% FNAME 	name of a netCDF file with quality flags. Obviously this file must be of
+% 			the same size as the series under analysis.
+%
+% FLAG		Threshold quality value. Only values of quality >= FLAG will be taken into account
+%			NOTE: For MODIS use negative FLAG. Than, values are retained if quality <= abs(FLAG)
+%
+% OPTIONS:
+% NCELLS	Holes (bad data) groups smaller than this are filled by interpolation (default = 0). 
+%			For example if NCELL = 200 groups of equal or less than a total of 200 will be filled.
+%
+% GRD_OUT	Name of the netCDF file where to store the result. If not provided, it will be asked here.
+
+	if (nargin < 3),	error('calc_yearMean:Not enough input arguments'),	end
+
+	[z_id, s, rows, cols] = get_ncInfos(handles);
+
+	[s_flags, z_id_flags, msg] = checkFlags_compat(fname, handles.number_of_timesteps, rows, cols);
+	if (~isempty(msg))	errordlg(msg, 'Error'),		return,		end
+	if (nargin == 3),	nCells = 0;		end			% If not provided, defaults to no gaps fill
+
+	if (nargin < 5)
+		txt1 = 'netCDF grid format (*.nc,*.grd)';	txt2 = 'Select output netCDF grid';
+		[FileName,PathName] = put_or_get_file(handles,{'*.nc;*.grd',txt1; '*.*', 'All Files (*.*)'},txt2,'put','.nc');
+		if isequal(FileName,0),		return,		end
+		grd_out = [PathName FileName];
+	end
+
+	% -------------------------------------- END PARSING SECTION --------------------------------------------
+
+	if (flag > 0),		growing_flag = true;				% Pathfinder style (higher the best) quality flag
+	else				growing_flag = false;	flag = -flag;	% MODIS style (lower the best) quality flag
+	end
+	pintAnoes = (nCells > 0);
+
+	handles.geog = 1;		handles.was_int16 = 0;		handles.computed_grid = 0;
+	n_layers = handles.number_of_timesteps;
+
+	aguentabar(0,'title','Applying flags.','CreateCancelBtn');
+
+	for (m = 1:n_layers)
+		if (m == 1)						% First layer
+			Z = nc_funs('varget', handles.fname, s.Dataset(z_id).Name, [m-1 0 0], [1 rows cols]);
+		else
+			Z = nc_funs('varget', handles.fname, s.Dataset(z_id).Name, [m-1 0 0], [1 rows cols]);
+		end
+
+		Z_flags = nc_funs('varget', fname, s_flags.Dataset(z_id_flags).Name, [m-1 0 0], [1 rows cols]);
+		if (growing_flag),		Z(Z_flags < flag) = NaN;	% Pathfinder style (higher the best) quality flag
+		else					Z(Z_flags > flag) = NaN;	% MODIS style (lower the best) quality flag
+		end
+
+		ind = isnan(Z);
+		if (pintAnoes && any(ind(:)))		% If fill spatial holes is requested
+			Z = inpaint_nans(handles, Z, ind, nCells);			% Select interp method inside inpaint_nans()
+		end
+
+		% Write this layer to file
+		if (m == 1),		nc_io(grd_out, sprintf('w%d/time',n_layers), handles, reshape(Z,[1 size(Z)]))
+		else				nc_io(grd_out, sprintf('w%d', m-1), handles, Z)
+		end
+
+		h = aguentabar(m/n_layers,'title','Applying flags.');	drawnow
+		if (isnan(h)),	break,	end
 	end
 
 % ------------------------------------------------------------------------------
