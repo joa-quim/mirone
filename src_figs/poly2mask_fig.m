@@ -1,7 +1,7 @@
 function varargout = poly2mask_fig(varargin)
 % Helper figure to create a mask image from lines or polygons in the calling fig 
 
-%	Copyright (c) 2004-2012 by J. Luis
+%	Copyright (c) 2004-2013 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -15,6 +15,8 @@ function varargout = poly2mask_fig(varargin)
 %
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
+
+% $Id$
 
 	if (numel(varargin) < 2)
 		errordlg('POLY2MASK: wrong number of input arguments.','Error')
@@ -127,8 +129,11 @@ function push_ok_CB(hObject, handles)
 
 	if (~handles.inputIsLine)
 
-		if (get(handles.check_allPolygs,'Val'))			% We have more than one closed poly
+		if (get(handles.check_allPolygs,'Val'))		% We have more than one closed poly
 			hLine = handles.hPoly;
+			hLine = hLine(ishandle(hLine));			% Some might have been killed meanwhile
+			handles.hPoly = hLine;
+			guidata(handles.figure1, handles);
 		else
 			hLine = handles.hPoly_current;
 		end
