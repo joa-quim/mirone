@@ -3,8 +3,7 @@ function  varargout = aux_funs(opt,varargin)
 % of the Mirone's callback functions. I puted them here to release somehow
 % the burden of the non-stop groing length of the Mirone code.
 
-% $Id$
-%	Copyright (c) 2004-2012 by J. Luis
+%	Copyright (c) 2004-2013 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -18,6 +17,8 @@ function  varargout = aux_funs(opt,varargin)
 %
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
+
+% $Id$
 
 switch opt(1:4)
 	case 'Stor'		% 'StoreZ'
@@ -247,15 +248,15 @@ function out = findFileType(fname)
 		else
 			out = 'envherd';
 		end
-	elseif ( strcmpi(EXT,'.cpt') )
+	elseif (strcmpi(EXT,'.cpt'))
 		out = 'cpt';
-	elseif ( any(strcmpi(EXT,{'.dat' '.xy' '.b' '.txt'})))
+	elseif ( any(strcmpi(EXT,{'.dat' '.xy' '.b' '.txt'})) )
 		out = 'dat';
-	elseif ( strcmpi(EXT,'.shp') )
+	elseif (strcmpi(EXT,'.shp'))
 		out = 'shp';
 	elseif ( any(strcmpi(EXT,{'.las' '.laz'})) )
 		out = 'las';
-	elseif ( strcmpi(EXT,'.gmt') )
+	elseif (strcmpi(EXT,'.gmt'))
 		fid = fopen(fname,'rt');
 		ID = fread(fid,7,'*char');      ID = ID';      fclose(fid);
 		if (strncmp(ID,'# @VGMT', 7)),	out = 'ogr';
@@ -263,9 +264,18 @@ function out = findFileType(fname)
 		end
 	elseif ( any(strcmpi(EXT,{'.kml' '.gml' '.dxf' '.gpx' '.dgn' '.csv' '.s57' '.svg'})) )
 		out = 'ogr';
-	elseif ( strcmpi(EXT,'.srtm') )	% While we don't use GMT5, create a header write away & send to GDAL
+	elseif (strcmpi(EXT,'.srtm'))	% While we don't use GMT5, create a header write away & send to GDAL
 		try,	write_esri_hdr(fname,'SRTM30');	end
 		out = 'dono';				% aka GDAL
+	elseif (strcmpi(EXT,'.sww'))	% Might be an ANUGA netCDF. Confirm it
+		fid = fopen(fname,'r');
+		ID = fread(fid,3,'*char');      ID = ID';      fclose(fid);
+		out = 'dono';
+		if (strcmpi(ID,'CDF') || strcmpi(ID,'HDF'))
+			s = nc_funs('info',fname);
+			ind = strcmp({s.Dimension.Name},'number_of_volumes');
+			if (any(ind)),		out = 'sww';	end		% Yes, it's ANUGA file.
+		end
 	else
 		% OK, here we'll send ASCII files to load_xyz (after one more test) and binary to GDAL ... and see what happens.
 		bin = guess_file(fname);
