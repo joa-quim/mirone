@@ -621,7 +621,7 @@ hT = uimenu('Parent',H1,'Label','Tsunamis','Tag','Tsunamis');		hVG(kv) = hT;		kv
 h = uimenu('Parent',hT,'Label','Tsunami Travel Time','Sep','on');
 uimenu('Parent',h,'Call','tsu_funs(''TTT'',guidata(gcbo))','Label','Plot point source');
 uimenu('Parent',h,'Call','tsu_funs(''TTT'',guidata(gcbo),''line'')','Label','Draw Fault source');
-uimenu('Parent',h,'Call','tsu_funs(''TTT'',guidata(gcbo),''load'')','Label','Import maregrphs and time');
+uimenu('Parent',h,'Call','tsu_funs(''TTT'',guidata(gcbo),''load'')','Label','Import maregraphs and time');
 uimenu('Parent',h,'Call','tsu_funs(''TTT'',guidata(gcbo),''compute'')','Label','Compute','Sep','on');
 
 h = uimenu('Parent',hT,'Label','Swan');
@@ -739,7 +739,7 @@ if (IamCompiled)
 end
 uimenu('Parent',h, 'Call',['mirone(''FileOpenWebImage_CB'',guidata(gcbo),',...
 	' ''http://www2.clustrmaps.com/stats/maps-clusters/w3.ualg.pt-~jluis-mirone-world.jpg'',''nikles'');'],'Label','See visitors map','Sep','on');
-uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 7 Jan 2013'',''2.4.0dev'')','Label','About','Sep','on');
+uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 6 Feb 2013'',''2.4.0dev'')','Label','About','Sep','on');
 
 %% --------------------------- Build HANDLES and finish things here
 	handles = guihandles(H1);
