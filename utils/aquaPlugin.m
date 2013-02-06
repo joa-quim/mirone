@@ -60,7 +60,7 @@ function aquaPlugin(handles, auto)
 	qual = casos{11};			% <== Active by MANUAL selection. May be override by next section
 
 	n_args = nargin;
-	if (get(handles.check_plugFun, 'Val'))	% This way, the stand alone version can work too
+	if (ismember(handles,'check_plugFun') && get(handles.check_plugFun, 'Val'))	% This way, the stand alone version can work too
 		n_args = 2;		auto = true;
 	end
 
