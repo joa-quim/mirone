@@ -424,7 +424,7 @@ function edit_periods_CB(hObject, handles)
 	str = ddewhite(str);					% Make sure no blanks at extremities
 	ind = strfind(str, ' ');
 	if (~isempty(ind))
-		errodlg('There is one or more empty spaces in the Periods string. That is intolerable.','Error')
+		errordlg('There is one or more empty spaces in the Periods string. That is intolerable.','Error')
 		set(hObject, 'Str', ''),	return
 	end
 	str = strrep(str,':',' ');		str = strrep(str,'/',' ');	% Replace ':' '/' by spaces
@@ -438,7 +438,7 @@ function edit_periods_CB(hObject, handles)
 	end
 	if (n == 0 || n > 3),		erro = true;	end
 	if (erro)
-		errodlg('There is an error in the Periods string. It is up to you to find it.','Error')
+		errordlg('There is an error in the Periods string. It is up to you to find it.','Error')
 		set(hObject, 'Str', '')
 	end
 
