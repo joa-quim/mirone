@@ -418,7 +418,7 @@ function edit_periods_CB(hObject, handles)
 % Hard to test if user screws. We will check that the string has only numbers, ':' and '/'
 	str = get(hObject, 'Str');
 	if (isempty(str))
-		errodlg('The Periods string is empty. If it resulted from a previous error, please do not insist.','Error')
+		errordlg('The Periods string is empty. If it resulted from a previous error, please do not insist.','Error')
 		return
 	end
 	str = ddewhite(str);					% Make sure no blanks at extremities
@@ -695,6 +695,10 @@ function fname = helper_getFile(handles, fname, n)
 		errordlg(['File: ' fname ' does not exist.'],'Error')
 		fname = [];
 	end
+
+% ----- Insert those other guys here --------------
+
+%--------------------------------------------------
 
 % -------------------------------------------------------------------------------------
 % ------------------- The GUI figure. 
