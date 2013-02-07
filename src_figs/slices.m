@@ -28,7 +28,7 @@ function varargout = slices(varargin)
 	if ( numel(varargin) > 0 && ~ischar(varargin{1}) )	% Expects Mirone handles as first arg
 		handMir = varargin{1};
 		if (numel(varargin) == 2)
-			if ( exist(varargin{2}, 'file') == 2 )		% Optional file with an aquaPlugin control script
+			if ( exist(varargin{2}, 'file') == 2 )		% An input file name
 				got_a_file_to_start = varargin{2};
 				handles.hMirFig = handMir.hMirFig;		% This fig already has first layer
 			end
