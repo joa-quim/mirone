@@ -394,6 +394,7 @@ uimenu('Parent',h,'Call','mirone(''ToolsMBplaningImport_CB'',guidata(gcbo))','La
 uimenu('Parent',hTL,'Call','ecran','Label','X,Y grapher','Sep','on');
 uimenu('Parent',hTL,'Call','aquamoto(guidata(gcbo))','Label','Aquamoto Viewer','Sep','on');
 uimenu('Parent',hTL,'Call','empilhador(guidata(gcbo))','Label','Empilhador');
+uimenu('Parent',hTL,'Call','slices(guidata(gcbo))','Label','Slices');
 uimenu('Parent',hTL,'Call','tiles_tool(guidata(gcbo))','Label','Tiling Tool','Sep','on');
 hVG(kv) = uimenu('Parent',hTL,'Call','diluvio(guidata(gcbo))','Label','Noe Diluge','Sep','on');		kv = kv + 1;
 uimenu('Parent',hTL,'Call','world_is_not_round_enough(guidata(gcbo))','Label','World is not (round) enough','Sep','on');
