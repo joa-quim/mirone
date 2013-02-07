@@ -238,6 +238,7 @@ function push_inputName_CB(hObject, handles, opt)
 		guidata(handles.figure1, handles)
 		set([handles.edit_sliceNumber handles.slider_layer],'Enable','on')
 		slider_layer_CB(handles.slider_layer, handles)	% Indirect way of saying to display first layer.
+		set(handles.text_Info,'String',sprintf('Time steps = %d',handles.number_of_timesteps))
 	end
 
 % -------------------------------------------------------------------------------------
