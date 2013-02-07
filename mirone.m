@@ -1661,8 +1661,8 @@ function loadGRID(handles,fullname,tipo,opt)
 	handles = aux_funs('isProj',handles);		% Check about coordinates type
 	recentFiles(handles);						% Insert fileName into "Recent Files" & save handles
 	if (handles.nLayers > 1)
-		handles.hMirFig = handles.figure1;		% Informs aquamoto of current fig handle but do not save it
-		aquamoto(handles, fullname)
+		handles.hMirFig = handles.figure1;		% Informs slices of current fig handle but do not save it
+		slices(handles, fullname)
 	end
 
 % -------------------------------------------------------------------------------------------------
