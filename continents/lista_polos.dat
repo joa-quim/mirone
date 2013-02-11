@@ -84,14 +84,14 @@
 171.49 -73.59   52.57  200.0  !NAM<-IBE Rowley & Lottes 1988
 
  40.2   79.2    -0.233   0.0  !NAM<-Nubia  MORVEL (deg/Ma)
- 41.30  76.90   -0.42    1.82 !NAM<-Nubia  An2   Em Mov (res = 2.05)
- 32.00  78.20   -0.73    3.06 !NAM<-Nubia  An2A  Em Mov (res = 1.92)
- 37.40  79.60   -1.12    4.72 !NAM<-Nubia  An3   Em Mov (res = 2.14)
- 41.50  79.10   -1.46    6.20 !NAM<-Nubia  An3A  Em Mov (res = 2.41)
- 52.50  80.00   -1.79    7.74 !NAM<-Nubia  An4   Em Mov (res = 2.21)
- 39.10  79.40   -2.14    8.88 !NAM<-Nubia  An4A  Em Mov (res = 2.31)
- 46.50  80.10   -2.56   10.30 !NAM<-Nubia  An5   Em Mov (res = 3.48)
- 34.10  80.60   -5.35   19.60 !NAM<-Nubia  An6   Em Mov (res = 4.33)
+ 38.20  76.00   -0.42    1.82 !NAM<-Nubia  An2   Em Mov (res = 2.06)
+ 40.80  77.60   -0.71    3.06 !NAM<-Nubia  An2A  Em Mov (res = 1.63)
+ 34.70  78.60   -1.12    4.72 !NAM<-Nubia  An3   Em Mov (res = 2.19)
+ 41.00  79.00   -1.46    6.20 !NAM<-Nubia  An3A  Em Mov (res = 1.84)
+ 51.10  79.60   -1.79    7.74 !NAM<-Nubia  An4   Em Mov (res = 1.72)
+ 48.90  79.20   -2.10    8.88 !NAM<-Nubia  An4A  Em Mov (res = 1.54)
+ 55.00  79.60   -2.51   10.30 !NAM<-Nubia  An5   Em Mov (res = 2.67)
+ 38.50  80.50   -5.29   19.60 !NAM<-Nubia  An6   Em Mov (res = 4.42)
   7.60  83.16  -20.66   66.95 !NAM<-Nubia  An30  Em movimento
 -22.85  76.30  -29.61   81.00 !NAM<-Nubia  An33r Em movimento
 -20.34  66.09  -54.50  127.48 !NAM<-Nubia  AnM0  Em movimento
