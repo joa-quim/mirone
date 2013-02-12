@@ -63,7 +63,7 @@ function ui_edit_polygon(varargin)
 %	JL	08-Feb-2010 Added 'y' or 'x' to the move_choice option
 %	JL	21-apr-2012 Significant re-write with a large boost in efficiency by not needing to duplicate line
 
-%	Copyright (c) 2004-2012 by J. Luis
+%	Copyright (c) 2004-2013 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -468,10 +468,13 @@ switch key
 		if (~isempty(lT)),		set(tmp, 'Tag', lT),	end
 		set(tmp,'uicontextmenu',get(s.h_pol,'uicontextmenu'))   % Copy the uicontextmenu
 		ui_edit_polygon(tmp)
-		s.is_closed = false;		% Its not closed anymore
-		uistack_j(tmp,'bottom')      % I'm not yet ready to accept this bloated op
+		s.is_closed = false;		% It's not closed anymore
+		uistack_j(tmp,'bottom')		% I'm not yet ready to accept this bloated op
 		setappdata(h,'edited',true)
 		setappdata(tmp,'edited',true)
+		s2 = getappdata(tmp,'polygon_data');		% Here we need to (re)set the correct KeyPress_orig
+		s2.KeyPress_orig = s.KeyPress_orig;
+		setappdata(s2.h_pol,'polygon_data',s2)
 
 	case {'c', 'C'}					% close line
 		if (s.is_patch || s.is_closed),		return,		end		% Don't close what is already closed
