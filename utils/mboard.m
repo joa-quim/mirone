@@ -1,5 +1,6 @@
 function [w, to_restore] = mboard(w,nx,ny,nnx,nny,mode)
 % Pad a matrix in a civilized way (not just by adding zeros like Matlab funcs do) before FFTit
+%
 % W = MBOARD(W,NX,NY) mirror the matrix about last row and column
 % [W,TO_RESTORE] = MBOARD(W,NX,NY,NNX,NNY) taper the matrix with a NNX, NNY hanning window.
 % That means the matrix will be added NNY/2 rows on top; NNY/2 rows at bottom;
@@ -11,7 +12,7 @@ function [w, to_restore] = mboard(w,nx,ny,nnx,nny,mode)
 % IF MBOARD([],NX,NY,0,0) compute only the good NNX = NX * 1.2 & NNY = NY * 1.2 and return
 % them in W. TO_RESTORE will contain "nlist". Note that there are no error testing. 
 
-%	Copyright (c) 2004-2012 by J. Luis
+%	Copyright (c) 2004-2013 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -25,6 +26,8 @@ function [w, to_restore] = mboard(w,nx,ny,nnx,nny,mode)
 %
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
+
+% $Id$
 
 if (nargin == 5),    mode = 'taper';     end
 if (nargin == 3),    mode = 'mirror';     end
