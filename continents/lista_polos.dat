@@ -84,14 +84,22 @@
 171.49 -73.59   52.57  200.0  !NAM<-IBE Rowley & Lottes 1988
 
  40.2   79.2    -0.233   0.0  !NAM<-Nubia  MORVEL (deg/Ma)
- 38.20  76.00   -0.42    1.82 !NAM<-Nubia  An2   Em Mov (res = 2.06)
- 40.80  77.60   -0.71    3.06 !NAM<-Nubia  An2A  Em Mov (res = 1.63)
- 34.70  78.60   -1.12    4.72 !NAM<-Nubia  An3   Em Mov (res = 2.19)
- 41.00  79.00   -1.46    6.20 !NAM<-Nubia  An3A  Em Mov (res = 1.84)
- 51.10  79.60   -1.79    7.74 !NAM<-Nubia  An4   Em Mov (res = 1.72)
- 48.90  79.20   -2.10    8.88 !NAM<-Nubia  An4A  Em Mov (res = 1.54)
- 55.00  79.60   -2.51   10.30 !NAM<-Nubia  An5   Em Mov (res = 2.67)
- 38.50  80.50   -5.29   19.60 !NAM<-Nubia  An6   Em Mov (res = 4.42)
+ 41.10  79.20   -0.42    1.82 !NAM<-Nubia  An2   Em Mov (res = 2.05)
+ 41.10  79.20   -0.42    1.82 !NAM<-Nubia  An2   Em Mov (res = 2.03) Sem ZF24
+ 42.60  78.50   -0.71    3.06 !NAM<-Nubia  An2A  Em Mov (res = 1.78)
+ 41.80  78.00   -0.71    3.06 !NAM<-Nubia  An2A  Em Mov (res = 1.65) Sem ZF24
+ 38.70  78.90   -1.11    4.72 !NAM<-Nubia  An3   Em Mov (res = 2.31)
+ 34.70  78.60   -1.12    4.72 !NAM<-Nubia  An3   Em Mov (res = 2.05) Sem ZF24
+ 44.90  79.20   -1.45    6.20 !NAM<-Nubia  An3A  Em Mov (res = 2.04)
+ 41.00  79.00   -1.46    6.20 !NAM<-Nubia  An3A  Em Mov (res = 1.82) Sem ZF24
+ 54.40  79.50   -1.78    7.74 !NAM<-Nubia  An4   Em Mov (res = 2.13)
+ 50.40  79.40   -1.79    7.74 !NAM<-Nubia  An4   Em Mov (res = 1.73) Sem ZF24
+ 50.10  79.40   -2.10    8.88 !NAM<-Nubia  An4A  Em Mov (res = 2.12)
+ 49.30  79.30   -2.10    8.88 !NAM<-Nubia  An4A  Em Mov (res = 1.54) Sem ZF24
+ 54.80  79.70   -2.51   10.30 !NAM<-Nubia  An5   Em Mov (res = 3.01)
+ 55.00  79.60   -2.51   10.30 !NAM<-Nubia  An5   Em Mov (res = 2.67) Sem ZF24
+ 46.50  80.60   -5.21   19.60 !NAM<-Nubia  An6   Em Mov (res = 4.48)
+ 43.10  80.50   -5.24   19.60 !NAM<-Nubia  An6   Em Mov (res = 4.30) Sem ZF24
   7.60  83.16  -20.66   66.95 !NAM<-Nubia  An30  Em movimento
 -22.85  76.30  -29.61   81.00 !NAM<-Nubia  An33r Em movimento
 -20.34  66.09  -54.50  127.48 !NAM<-Nubia  AnM0  Em movimento
