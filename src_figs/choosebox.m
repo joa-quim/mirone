@@ -438,13 +438,6 @@ function GE_clicked_CB(obj,evt)
 	writekml(tokml)
 
 %-----------------------------------------------------------------------------------
-function doOK(varargin)
-	ad = getappdata(0,'ListDialogAppData');
-	ad.value = 1;
-	setappdata(0,'ListDialogAppData',ad)
-	delete(gcbf);
-
-%-----------------------------------------------------------------------------------
 function doCancel(varargin)
 	ad.value = 0;
 	ad.pos_right = [];
@@ -557,12 +550,12 @@ function doWriteStages(stages)
 
 %-----------------------------------------------------------------------------------
 function doFromboxClick(varargin)
-% if this is a doubleclick, doOK
+% if this is a doubleclick, doRight
 	if strcmp(get(gcbf,'SelectionType'),'open')    doRight;		end
 
 %-----------------------------------------------------------------------------------
 function doToboxClick(varargin)
-% if this is a doubleclick, doOK
+% if this is a doubleclick, doLeft
 	if strcmp(get(gcbf,'SelectionType'),'open')		doLeft;		end
 
 %-----------------------------------------------------------------------------------
