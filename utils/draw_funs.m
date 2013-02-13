@@ -526,6 +526,7 @@ function join_lines(obj,evt,hFig)
 	hLines = setxor(hLines, hCurrLine);
 	if (numel(hLines) == 0),	return,		end		% Nothing to join
 	for (k = 1:numel(hLines))
+		if (hCurrLine == hLines(k)),	continue,	end	% Must find a clever solution
 		if (strcmp(get(hLines(k),'Type'),'patch')),		continue,	end
 		[x, y, was_closed] = join2lines([hCurrLine hLines(k)]);
 		if (~was_closed),	delete(hLines(k)),	end		% Closed polygons are ignored 
