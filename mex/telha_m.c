@@ -1,7 +1,7 @@
 /*--------------------------------------------------------------------
- *	$Id:$
+ *	$Id$
  *
- *	Copyright (c) 2004-2012 by J. Luis
+ *	Copyright (c) 2004-2013 by J. Luis
  *
  * 	This program is part of Mirone and is free software; you can redistribute
  * 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -340,10 +340,10 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 			if (ns = strncmp(newseg, line, 1)) { /* Multisegment file */
 				if (sscanf (line, "%lg %lg", &in[0], &in[1]) < 2)
 					mexPrintf ("ERROR deciphering line %d\n",ndata+1);
-                		if (ndata == n_alloc) {
-                        		n_alloc += CHUNK;
+				if (ndata == n_alloc) {
+					n_alloc += CHUNK;
 					data = (struct DATA *) mxRealloc ((void *)data, (size_t)(n_alloc * sizeof(struct DATA)));
-                		}
+				}
 				data[ndata].x = in[ix];
 				data[ndata].y = in[iy];
 				ndata++;
@@ -388,14 +388,14 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		while (isoc_scale[i_min].age < t_zero) i_min++;
 
 
-	if (linear_age || ages_given) {
+	if (linear_age || ages_given) {		/* The -B (brick) option should not pass here */
 		n_flow = 0;	l = 0;
 		/* Count number of rotations for each point in segment */
 		for (jj = 0; jj < n_isoc && isoc_scale[jj].age <= upper_age; jj++) n_flow++;
 		n_flow -= i_min;
 		np_out = np_in * n_flow + n_flow;
 		plhs[0] = mxCreateDoubleMatrix (np_out, 2, mxREAL); 
-		out = mxGetPr(plhs[0]); 
+		out = mxGetPr(plhs[0]);
 		for (j = i_min; j < n_flow + i_min; j++) {	/* Loop over number of rotations*/
 			age = isoc_scale[j].age;
 			m = 0;
@@ -424,6 +424,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		}
 		if (!data_in_input) mxFree ((void *)data);
 	}
+
 	if (nlhs > 1) {
 		plhs[1] = mxCreateDoubleMatrix (1, 1, mxREAL); 
 		out_n_data = mxGetPr(plhs[1]);	out_n_data[0] = ndata; 
@@ -437,9 +438,18 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		out_n_flow = mxGetPr(plhs[3]);	out_n_flow[0] = n_flow; 
 	}
 
-	if (!brick)		/* Not very clean code, but we are done here */
+	if (!brick)	{	/* Not very clean code, but we are done here */
+		for (k = 0; k < np_out; k++) {
+			lat = out[k+np_out];
+			if (mxIsNaN(lat))
+				continue;
+			else
+				lat *= D2R;
+			lat = atan2( sin(lat), ecc2_1 * cos(lat) ) * R2D;	/* Convert back to geodetics */
+			out[k+np_out] = lat;
+		}
 		return;
-
+	}
 
 	n_flow = 0;
 	/* Count number of rotations for each point in segment */
@@ -478,7 +488,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 			}
 			m++;
 		}
-		if (brick) {
+		if (brick) {	/* Always true because otherwise it has already returned further up (shity code) */
 			i = 0;
 			if (first_seg) {
 				plhs[0] = mxCreateDoubleMatrix (np_in * 2, n_flow, mxREAL); 
