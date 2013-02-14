@@ -222,7 +222,8 @@ function check_toDef_CB(hObject, handles)
 % --------------------------------------------------------------------------------------------------
 function push_showR_CB(hObject, handles)
 	if (VerifyCommand(handles)),	return,		end		% An error occurred
-	str = sprintf('-R%.12g/%.12g/%.12g/%.12g', handles.x_min, handles.x_max, handles.y_min, handles.y_max);
+	str = sprintf('-R%s/%s/%s/%s', get(handles.edit_Xmin,'Str'), get(handles.edit_Xmax,'Str'), ...
+		get(handles.edit_Ymin,'Str'), get(handles.edit_Ymax,'Str'));
 	message_win('create',str,'figname','The -R string','edit','sim')
 
 % --------------------------------------------------------------------------------------------------
