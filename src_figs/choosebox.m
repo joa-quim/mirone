@@ -80,42 +80,42 @@ function [selection,value] = choosebox(varargin)
 		ad.home_dir = cd;
 	end
 
-arrow = [...
-	 0     0     0     0     0     0     0     0     0     0     0     0     0     0     0     0     0
-	 0     1     1     1     1     1     1     1     1     1     1     1     1     1     1     1     0
-	 0     1     1     1     1     1     1     0     1     1     1     1     1     1     1     1     0
-	 0     1     1     1     1     1     1     0     0     1     1     1     1     1     1     1     0
-	 0     1     1     1     1     1     1     0     0     0     1     1     1     1     1     1     0
-	 0     1     1     1     1     1     1     0     0     0     0     1     1     1     1     1     0
-	 0     1     1     0     0     0     0     0     0     0     0     0     1     1     1     1     0
-	 0     1     1     0     0     0     0     0     0     0     0     0     0     1     1     1     0
-	 0     1     1     0     0     0     0     0     0     0     0     0     0     0     1     1     0
-	 0     1     1     0     0     0     0     0     0     0     0     0     0     1     1     1     0
-	 0     1     1     0     0     0     0     0     0     0     0     0     1     1     1     1     0
-	 0     1     1     1     1     1     1     0     0     0     0     1     1     1     1     1     0
-	 0     1     1     1     1     1     1     0     0     0     1     1     1     1     1     1     0
-	 0     1     1     1     1     1     1     0     0     1     1     1     1     1     1     1     0
-	 0     1     1     1     1     1     1     0     1     1     1     1     1     1     1     1     0
-	 0     1     1     1     1     1     1     1     1     1     1     1     1     1     1     1     0
-	 0     0     0     0     0     0     0     0     0     0     0     0     0     0     0     0     0];
+	arrow = [...
+	0     0     0     0     0     0     0     0     0     0     0     0     0     0     0     0     0
+	0     1     1     1     1     1     1     1     1     1     1     1     1     1     1     1     0
+	0     1     1     1     1     1     1     0     1     1     1     1     1     1     1     1     0
+	0     1     1     1     1     1     1     0     0     1     1     1     1     1     1     1     0
+	0     1     1     1     1     1     1     0     0     0     1     1     1     1     1     1     0
+	0     1     1     1     1     1     1     0     0     0     0     1     1     1     1     1     0
+	0     1     1     0     0     0     0     0     0     0     0     0     1     1     1     1     0
+	0     1     1     0     0     0     0     0     0     0     0     0     0     1     1     1     0
+	0     1     1     0     0     0     0     0     0     0     0     0     0     0     1     1     0
+	0     1     1     0     0     0     0     0     0     0     0     0     0     1     1     1     0
+	0     1     1     0     0     0     0     0     0     0     0     0     1     1     1     1     0
+	0     1     1     1     1     1     1     0     0     0     0     1     1     1     1     1     0
+	0     1     1     1     1     1     1     0     0     0     1     1     1     1     1     1     0
+	0     1     1     1     1     1     1     0     0     1     1     1     1     1     1     1     0
+	0     1     1     1     1     1     1     0     1     1     1     1     1     1     1     1     0
+	0     1     1     1     1     1     1     1     1     1     1     1     1     1     1     1     0
+	0     0     0     0     0     0     0     0     0     0     0     0     0     0     0     0     0];
 
-rarrow = repmat(arrow, [1 1 3]);
-larrow = repmat(fliplr(arrow), [1 1 3]);
+	rarrow = repmat(arrow, [1 1 3]);
+	larrow = repmat(fliplr(arrow), [1 1 3]);
 
-figname = '';
-smode = 2;   % (multiple)
-cmode = 1;   % remove from left hand side
-promptstring = {};
-selectstring = {};
-liststring = [];
-listsize = [160 300];
-initialvalue = [];
-addpoles = false;
-cancelstring = 'Cancel';
-fus = 8;
-ffs = 3;
-uh = 18;
-multiple_finite = 0;
+	figname = '';
+	smode = 2;   % (multiple)
+	cmode = 1;   % remove from left hand side
+	promptstring = {};
+	selectstring = {};
+	liststring = [];
+	listsize = [160 300];
+	initialvalue = [];
+	addpoles = false;
+	cancelstring = 'Cancel';
+	fus = 8;
+	ffs = 3;
+	uh = 18;
+	multiple_finite = 0;
 
 if (mod(length(varargin),2) ~= 0)	% input args have not com in pairs
     error('Arguments to LISTDLG must come param/value in pairs.')
@@ -161,10 +161,10 @@ for (i = 1:2:numel(varargin))
 	end
 end
 
-if ischar(promptstring)		promptstring = cellstr(promptstring);	end
-if ischar(selectstring)		selectstring = cellstr(selectstring);	end
-if isempty(initialvalue)	initialvalue = 1;						end
-if isempty(liststring)		error('ListString parameter is required.'),	end
+if ischar(promptstring),	promptstring = cellstr(promptstring);	end
+if ischar(selectstring),	selectstring = cellstr(selectstring);	end
+if isempty(initialvalue),	initialvalue = 1;						end
+if isempty(liststring),		error('ListString parameter is required.'),	end
 
 ex = get(0,'defaultuicontrolfontsize')*1.7;		% height extent per line of uicontrol text (approx)
 
@@ -191,21 +191,21 @@ load([ad.home_dir filesep 'data' filesep 'mirone_icons.mat'],'Mfopen_ico','um_ic
 
 h_toolbar = uitoolbar('parent',fig, 'BusyAction','queue','HandleVisibility','on',...
 	'Interruptible','on','Tag','FigureToolBar','Visible','on');
-uipushtool('parent',h_toolbar,'Click',@import_clickedcallback,'Tag','import',...
+uipushtool('parent',h_toolbar,'Click',@toggle_clicked_CB,'Tag','import',...
 	'cdata',Mfopen_ico,'TooltipString','Open finite poles file');
-uitoggletool('parent',h_toolbar,'cdata',dois_ico,'Tag','HalfAngle','Click',{@toggle_clickedcallback1,h_toolbar},...
+uitoggletool('parent',h_toolbar,'cdata',dois_ico,'Tag','HalfAngle','Click',{@toggle_clicked_CB1,h_toolbar},...
 	'Tooltip','Compute half angle stage poles','State','on');
-uitoggletool('parent',h_toolbar,'cdata',um_ico,'Tag','FullAngle','Click',{@toggle_clickedcallback1,h_toolbar},...
+uitoggletool('parent',h_toolbar,'cdata',um_ico,'Tag','FullAngle','Click',{@toggle_clicked_CB1,h_toolbar},...
 	'Tooltip','Compute full angle stage poles');
-uitoggletool('parent',h_toolbar,'cdata',refrescaBA_ico,'Tag','directStages','Click',{@toggle_clickedcallback2,h_toolbar},...
+uitoggletool('parent',h_toolbar,'cdata',refrescaBA_ico,'Tag','directStages','Click',{@toggle_clicked_CB2,h_toolbar},...
 	'Tooltip','b_ROT_a (rotations are with respect to the fixed plate B)','State','on','Sep','on');
-uitoggletool('parent',h_toolbar,'cdata',refrescaAB_ico,'Tag','inverseStages','Click',{@toggle_clickedcallback2,h_toolbar},...
+uitoggletool('parent',h_toolbar,'cdata',refrescaAB_ico,'Tag','inverseStages','Click',{@toggle_clicked_CB2,h_toolbar},...
 	'Tooltip','a_ROT_b (rotations are with respect to the fixed plate A)');
-uitoggletool('parent',h_toolbar,'cdata',mais_ico,'Tag','positive','Click',{@toggle_clickedcallback3,h_toolbar},...
+uitoggletool('parent',h_toolbar,'cdata',mais_ico,'Tag','positive','Click',{@toggle_clicked_CB3,h_toolbar},...
 	'Tooltip','Reports positive rotation angles','State','on','Sep','on');
-uitoggletool('parent',h_toolbar,'cdata',earthNorth_ico,'Tag','earthNorth','Click',{@toggle_clickedcallback3,h_toolbar},...
+uitoggletool('parent',h_toolbar,'cdata',earthNorth_ico,'Tag','earthNorth','Click',{@toggle_clicked_CB3,h_toolbar},...
 	'Tooltip','Place all output poles in the northern hemisphere');
-uitoggletool('parent',h_toolbar,'cdata',earthSouth_ico,'Tag','earthSouth','Click',{@toggle_clickedcallback3,h_toolbar},...
+uitoggletool('parent',h_toolbar,'cdata',earthSouth_ico,'Tag','earthSouth','Click',{@toggle_clicked_CB3,h_toolbar},...
 	'Tooltip','Place all output poles in the southern hemisphere');
 uipushtool('parent',h_toolbar,'cdata',GE_ico,'Click',@GE_clicked_CB,'Tooltip','Plot selected poles in GoogleEarth','Sep','on');
 uipushtool('parent',h_toolbar,'Click',@help_clicked_CB,'Tag','help','Tooltip','Help', 'cdata',help_ico,'Sep','on');
@@ -286,35 +286,35 @@ end
 	new_frame3D(fig, NaN)
 	%------------- END Pro look (3D) ------------------------------
 
-try
-	set(fig, 'visible','on');
-	uiwait(fig);
-catch
-	if ishandle(fig)	delete(fig),	end
-end
+	try
+		set(fig, 'visible','on');
+		uiwait(fig);
+	catch
+		if ishandle(fig)	delete(fig),	end
+	end
 
-if (isappdata(0,'ListDialogAppData') == 1)		% Selected Finite pole
-    ad = getappdata(0,'ListDialogAppData');
-    switch ad.value
-        case 0
-            selection = [];
-        case 1
-            selection = ad.pos_right;		% In fact it contains the finite pole [lon lat omega]
-        case 2
-            selection = ad.pos_right;		% In fact it contains the stage poles name
-        case 3
-            selection = ad.pos_right;		% In fact it contains finite poles (with ages)
-    end
-    value = ad.value;
-    rmappdata(0,'ListDialogAppData')
-else
-	% figure was deleted
-	selection = [];
-	value = 0;
-end
+	if (isappdata(0,'ListDialogAppData') == 1)		% Selected Finite pole
+		ad = getappdata(0,'ListDialogAppData');
+		switch ad.value
+			case 0
+				selection = [];
+			case 1
+				selection = ad.pos_right;		% In fact it contains the finite pole [lon lat omega]
+			case 2
+				selection = ad.pos_right;		% In fact it contains the stage poles name
+			case 3
+				selection = ad.pos_right;		% In fact it contains finite poles (with ages)
+		end
+		value = ad.value;
+		rmappdata(0,'ListDialogAppData')
+	else
+		% figure was deleted
+		selection = [];
+		value = 0;
+	end
 
 % --------------------------------------------------------------------
-function import_clickedcallback(hObject, eventdata)
+function toggle_clicked_CB(hObject, eventdata)
 	ad = getappdata(0,'ListDialogAppData');
 	aqui = cd;
 	try		cd([ad.home_dir filesep 'continents']),		end
@@ -337,7 +337,7 @@ function import_clickedcallback(hObject, eventdata)
 	setappdata(0,'ListDialogAppData',ad)
 
 % --------------------------------------------------------------------
-function toggle_clickedcallback1(obj, eventdata, h_toolbar)
+function toggle_clicked_CB1(obj, eventdata, h_toolbar)
 % Make sure that when one of the two uitoggletools is 'on' the other is 'off'
 % First fish the two uitoggletool handles
 	h2 = findobj(h_toolbar,'Tag','HalfAngle');
@@ -353,7 +353,7 @@ function toggle_clickedcallback1(obj, eventdata, h_toolbar)
 	end
 
 % --------------------------------------------------------------------
-function toggle_clickedcallback2(obj, eventdata, h_toolbar)
+function toggle_clicked_CB2(obj, eventdata, h_toolbar)
 % Make sure that when one of the two uitoggletools is 'on' the other is 'off'
 % First fish the two uitoggletool handles
 	h1 = findobj(h_toolbar,'Tag','directStages');
@@ -369,7 +369,7 @@ function toggle_clickedcallback2(obj, eventdata, h_toolbar)
 	end
 
 % --------------------------------------------------------------------
-function toggle_clickedcallback3(obj, eventdata, h_toolbar)
+function toggle_clicked_CB3(obj, eventdata, h_toolbar)
 % Make sure that when one of the three uitoggletools is 'on' the others are 'off'
 % First fish the two uitoggletool handles
 	h1 = findobj(h_toolbar,'Tag','earthNorth');
@@ -411,6 +411,16 @@ helpdlg(str,'Help')
 
 % --------------------------------------------------------------------------------------------------
 function GE_clicked_CB(obj,evt)
+	writekml(prepare_poles_struct('kml'))
+	%writeGMTscript(prepare_poles_struct('gmt'))
+
+% --------------------------------------------------------------------------------------------------
+function out = prepare_poles_struct(opt)
+% Fetch the data and fill it in a structure. The structure members are different
+% according to the OPT argument.
+% OPT - 'kml' generates data expected by the writekml function
+% OPT - 'gmt' puts the data in a way suitable for generating a GMT script
+
 	ad = getappdata(0,'ListDialogAppData');
 	rightbox = findobj(ad.hFig,'Tag','rightbox');
 	selection = get(rightbox,'String');
@@ -419,7 +429,7 @@ function GE_clicked_CB(obj,evt)
 
 	n = numel(selection);
 	finite = zeros(n,4);	names = cell(n,1);
-	for (k=1:n)					% Extract pole parameters from the cell array
+	for (k = 1:n)					% Extract pole parameters from the cell array
 		[tok,rem] = strtok(selection{k});		finite(k,1) = str2double(tok);
 		[tok,rem] = strtok(rem);				finite(k,2) = str2double(tok);
 		[tok,rem] = strtok(rem);				finite(k,3) = str2double(tok);
@@ -430,12 +440,42 @@ function GE_clicked_CB(obj,evt)
 	end
 	finite = sortrows(finite,4);				% To make sure they go from youngest to oldest
 	
-	% Fill the input structure for writekml
-	tokml.nofig = true;
-	tokml.line.x = finite(:,1);		tokml.line.y = finite(:,2);
-	tokml.pt.x   = finite(:,1);		tokml.pt.y   = finite(:,2);
-	tokml.pt.str = names;
-	writekml(tokml)
+	% Fill the structure for either writekml or writeGMTscript
+	if (strcmp(opt, 'kml'))
+		out.nofig  = true;
+		out.line.x = finite(:,1);		out.line.y = finite(:,2);
+		out.pt.x   = finite(:,1);		out.pt.y   = finite(:,2);
+		out.pt.str = names;
+	else
+		out.x   = finite(:,1);		out.y = finite(:,2);
+		out.str = names;		
+	end
+
+% --------------------------------------------------------------------------------------------------
+function writeGMTscript(in)
+% Write a GMT script in $MIRONEROOT/tmp to plot the poles in an Orthographic projection
+	x_min = min(in.x);			x_max = max(in.x);
+	y_min = min(in.y);			y_max = max(in.y);
+	x_range = x_max - x_min;	y_range = y_max - y_min;
+	x_c = (x_min + x_max) / 2;	y_c = (y_min + y_max) / 2;
+	if (x_c > 360),		x_c = x_c - 360;	end
+	horizon = round((max(x_range, y_range)/2 + 2.5) / 10) * 10;	% Round to next 5
+	horizon = max(min(horizon, 90), 10);	% Not > 90 nor < 10
+
+	ad = getappdata(0,'ListDialogAppData');
+	fiche_dat  = [ad.home_dir '/tmp/poles_data.dat'];
+	fiche_bat  = [ad.home_dir '/tmp/plot_poles.bat'];
+	fid = fopen(fiche_dat,'wt');
+	for (k = 1:numel(in.str))
+		fprintf(fid,'%.2f\t%.2f\t12\t0\t5\tLB\t%s\n', in.x(k), in.y(k), in.str{k});
+	end
+	fclose(fid);
+	fid = fopen(fiche_bat,'wt');
+	fprintf(fid,'@echo off\nREM Plot poles in Orthographic projection\nREM Mirone Tech automatic batch\n\n');
+	fprintf(fid,'pscoast -Rg -JG%.1f/%.1f/%.0f/13c -Di -A5000 -G200 -W0.5p -Bg15 -K -P > poles.ps\n', x_c, y_c, horizon);
+	fprintf(fid,'psxy %s -R -JG -Sa0.2c -Gblack -fg -O -K >> poles.ps\n', fiche_dat);
+	fprintf(fid,'pstext %s -R -JG -fg -Dj0.1 -O >> poles.ps', fiche_dat);
+	fclose(fid);
 
 %-----------------------------------------------------------------------------------
 function doCancel(varargin)
