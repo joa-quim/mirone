@@ -6,7 +6,7 @@ function varargout = aquamoto(varargin)
 %	To read a file and tell aquaPlugin to search the control script name in the OPTcontrol.txt file:
 %		aquamoto('file.nc', 0)
 
-%	Copyright (c) 2004-2012 by J. Luis
+%	Copyright (c) 2004-2013 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -427,7 +427,7 @@ function push_swwName_CB(hObject, eventdata, handles, opt)
 	handles.time = nc_funs('varget', handles.fname, 'time');
 	handles.volumes = nc_funs('varget', handles.fname, 'volumes');
 	if (~isa(handles.volumes, 'int32')),	handles.volumes = int32(handles.volumes);	end
-	set(handles.figure1,'pointer','arrow')
+	%set(handles.figure1,'pointer','arrow')
 
 	head = [min(handles.x) max(handles.x) min(handles.y) max(handles.y) 0 1 0];
 	set( handles.edit_x_min,'String',sprintf('%.8g',head(1)) )
@@ -473,6 +473,11 @@ function push_swwName_CB(hObject, eventdata, handles, opt)
 		handles.ranges{15} = D .* (1 + handles.ranges{4} .^ 2);			% D(1+V^2) -- hazard_rvd_Range
 		handles.ranges{16} = D .* (handles.ranges{4} .^ 2);				% DV^2 -- hazard2_rvd_Range
 	end
+
+	% --- Find if elevation is single or multi-layer
+	ind = strcmp(varNames,'elevation');
+	num_elev = s.Dataset(ind).Size;
+	handles.n_elevations = num_elev(1);
 
 	% --------------- Estimate a "reasonable" proposition for grid dimensions------------------
 	n = round( sqrt(double(handles.number_of_volumes)) );
@@ -567,7 +572,7 @@ function push_showSlice_CB(hObject, eventdata, handles)
 
 	if ( splitDryWet )
 		indLand = get_landInd(handles, x, y, indWater);		% Compute Dry/Wet indexes - have to recompute, ... since water ... moves
-		if ( indVar == 8 )										% Max Water option. Calculate once the Water delimiting polygon
+		if (indVar == 8)									% Max Water option. Calculate once the Water delimiting polygon
 			handles.indMaxWater = ~indLand;
 		end
 
@@ -625,12 +630,12 @@ function push_showSlice_CB(hObject, eventdata, handles)
 			handles.imgBat = do_imgBat(handles, indVar, x, y);
 			handles.illumComm = handles.landIllumComm;		% save illum command for future comparison
 
-		elseif ( ~splitDryWet )								% No Land/Water spliting
+		elseif (~splitDryWet)								% No Land/Water spliting
 			if ( ~get(handles.check_globalMinMax, 'Val') ),		minmax = [];		% Use Slice's min/max
 			else				minmax = [handles.minWater handles.maxWater];
 			end
 			
-			if ( ~isempty(minmax) ),		img = scaleto8(Z, 8, minmax);
+			if (~isempty(minmax)),			img = scaleto8(Z, 8, minmax);
 			else							img = scaleto8(Z);
 			end
 
@@ -805,7 +810,10 @@ function [theVar, U, V, indVar, indWater, qual] = get_derivedVar(handles)
 			indVar = 5;
 
 		case 'Elevation'			% Elevation
-			theVar = nc_funs('varget', handles.fname, 'elevation')';
+			theVar = get_elevation(handles);
+			if (handles.n_elevations > 1 && handles.sliceNumber > 0)
+				set(handles.check_splitDryWet,'Val',0)		% Otherwise we won't see the entire elevation
+			end
 			indVar = 7;
 
 		case 'Water Depth'			% Water Depth
@@ -817,7 +825,7 @@ function [theVar, U, V, indVar, indWater, qual] = get_derivedVar(handles)
 		case 'Max Water'			% Maximum water height (we need to compute it)
 			aguentabar(0, 'title','Computing max water height ...', 'CreateCancelBtn');
 			theVar = zeros(1, handles.number_of_points);
-			stage = nc_funs('varget', handles.fname, 'elevation')';
+			stage = get_elevation(handles);
 			indWater = (stage < 0);	% Still water indices 
 			for (k = 0:handles.number_of_timesteps - 1)
 				stage = nc_funs('varget', handles.fname, 'stage', [k 0], [1 handles.number_of_points]);
@@ -826,14 +834,14 @@ function [theVar, U, V, indVar, indWater, qual] = get_derivedVar(handles)
 				% Compute maximum inundation (runin). Do not use k = 0 because than all IND == 1, since theVar was still == 0
 				if (k > 0),		indWater(ind) = 1;		end
 				h = aguentabar((k+1) / handles.number_of_timesteps);
-				if ( isnan(h) ),	break,	end
+				if (isnan(h)),	break,	end
 			end
 			indVar = 8;
 
 		case 'Max Depth'			% Maximum water depth (we need to compute it)
 			aguentabar(0, 'title','Computing max water depth ...', 'CreateCancelBtn');
 			theVar = zeros(1, handles.number_of_points);
-			elevation = nc_funs('varget', handles.fname, 'elevation')';
+			elevation = get_elevation(handles);
 			indWater = (elevation < 0);			% Still water indices 
 			for (k = 0:handles.number_of_timesteps - 1)
 				stage = nc_funs('varget', handles.fname, 'stage', [k 0], [1 handles.number_of_points]);
@@ -854,7 +862,7 @@ function [theVar, U, V, indVar, indWater, qual] = get_derivedVar(handles)
 			if (~isa(x, 'double')),		x = double(x);		y = double(y);		end
 			theVar = (x.^2 + y.^2);		% = D^2 * V^2 = (DV)^2
 			x = nc_funs('varget', handles.fname, 'stage', [handles.sliceNumber 0], [1 handles.number_of_points]);
-			y = nc_funs('varget', handles.fname, 'elevation')';
+			y = get_elevation(handles);
 			if (~isa(x, 'double')),		x = double(x);		y = double(y);		end
 			D = (x - y + 1e-10);
 			clear y;
@@ -887,13 +895,25 @@ function [theVar, U, V, indVar, indWater, qual] = get_derivedVar(handles)
 
 		case 'Bed Shear'						% (ro*g*h*EN_slope).
 			theVar = nc_funs('varget', handles.fname, 'stage', [handles.sliceNumber 0], [1 handles.number_of_points]);
-			elevation = nc_funs('varget', handles.fname, 'elevation')';
+			elevation = get_elevation(handles);
 			cvlib_mex('sub',theVar, elevation);
 			% It finish in push_showSlice_CB because we need a regular array for slope
 			indVar = 17;
 			
 		case 'Shear Stress'						% ....
 			
+	end
+
+% -----------------------------------------------------------------------------------------
+function elev = get_elevation(handles, opt)
+% Since elevation started to be a multi-layered var we have this chunk of code repeatedly
+	if (nargin == 1),	sliceNumber = handles.sliceNumber;
+	else				sliceNumber = opt;
+	end
+	if (handles.n_elevations == 1)
+		elev = nc_funs('varget', handles.fname, 'elevation')';
+	else
+		elev = nc_funs('varget', handles.fname, 'elevation', [sliceNumber 0], [1 handles.number_of_points]);
 	end
 
 % -----------------------------------------------------------------------------------------
@@ -936,7 +956,7 @@ function imgBat = do_imgBat(handles, indVar, x, y)
 %
 %	Output IMGBAT is always RGB
 
-	bat = nc_funs('varget', handles.fname, 'elevation')';
+	bat = get_elevation(handles);
 	if (~isa(bat,'double') ),		bat = double(bat);	end
 	bat = mxgridtrimesh(handles.volumes, [handles.x(:) handles.y(:) bat(:)], x, y);
 
@@ -979,7 +999,7 @@ function ind = get_landInd(handles, x, y, indWater)
 	if (nargin == 3),	indWater = [];		end
 	if ( isempty(indWater) )		% Compute Dry/Wet indices for a specific time slice
 		stage = nc_funs('varget', handles.fname, 'stage', [handles.sliceNumber 0], [1 handles.number_of_points]);
-		elevation = nc_funs('varget', handles.fname, 'elevation')';
+		elevation = get_elevation(handles);
 		dife = cvlib_mex('absDiff',stage,elevation);
 		if (~isa(dife,'double') ),		dife = double(dife);	end
 		dife = mxgridtrimesh(handles.volumes, [handles.x(:) handles.y(:) dife(:)],x,y);
@@ -2160,7 +2180,7 @@ function push_interpolate_CB(hObject, eventdata, handles)
 	n_layers = numel(layerInc);
 	ncols = size(handles.xyData,1);		% Each point will be a column in output file, so number of cols is = npoints
 
-	Z = single( zeros(n_layers, ncols) );
+	Z = single(zeros(n_layers, ncols));
 	if (handles.is_coards)
 		z_id = handles.netcdf_z_id;
 		s = handles.nc_info;			% Retrieve the .nc info struct
