@@ -7,7 +7,7 @@ function [bin,n_column,multi_seg,n_headers] = guess_file(fiche, opt1, opt2)
 % OPT1, if given, will be MAXCHARS
 % OPT2, if given, will be nl_max
 
-%	Copyright (c) 2004-2012 by J. Luis
+%	Copyright (c) 2004-2013 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -21,6 +21,8 @@ function [bin,n_column,multi_seg,n_headers] = guess_file(fiche, opt1, opt2)
 %
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
+
+% $Id$
 
 	% Error testing
 	bin = 0;    multi_seg = 0;  n_headers = 0;  n_column = 0;
@@ -55,7 +57,6 @@ function [bin,n_column,multi_seg,n_headers] = guess_file(fiche, opt1, opt2)
 	A = double(str);
 	if (any(A > 126 & A < 192))		% Binary files have bytes with values greater than 126 (but so is the ç char)
 		bin = guess_in_bin(fiche);
-        %bin = 1;
         return
 	end
 	clear A;
@@ -70,6 +71,7 @@ function [bin,n_column,multi_seg,n_headers] = guess_file(fiche, opt1, opt2)
 	if (nl_max == 0),	bin = [];	return,		end
 
     % Make a crude test to find number of columns and number of headers
+	delimiters = [9:13 32 44];	% White space characters plus comma
     n_col(1:nl_max) = 0;    n_multi = 0;
     idM = false(1,nl_max);
     for (i =1:nl_max)
@@ -81,10 +83,10 @@ function [bin,n_column,multi_seg,n_headers] = guess_file(fiche, opt1, opt2)
             continue
         end
         str{i} = deblank(str{i});          % Blanks make a mess to the guessing code
-        [tok,rem]=strtok(str{i});
+        [tok,rem] = strtok(str{i}, delimiters);
         if ~isempty(rem);   n_col(i) = n_col(i) + 1;    end     % count first column
         while ~isempty(rem)
-            [tok,rem]=strtok(rem);
+            [tok,rem]=strtok(rem, delimiters);
             n_col(i) = n_col(i) + 1;
         end
     end
