@@ -987,6 +987,7 @@ function FileOpen_CB(hObject, handles)
 	else
 		handles.hLine = line('Parent',handles.axes1,'XData',data(:,out(1)),'YData',data(:,out(2)));
 	end
+	set(handles.figure1,'Name',fname)
 	axis(handles.axes1,'tight');
 	handles.n_plot = handles.n_plot + 1;
 	if (handles.n_plot > 1)
