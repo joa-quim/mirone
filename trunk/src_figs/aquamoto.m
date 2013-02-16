@@ -2130,6 +2130,7 @@ function edit_maregs_CB(hObject, eventdata, handles)
 
 % -----------------------------------------------------------------------------------------
 function push_maregs_CB(hObject, eventdata, handles, opt)
+% Read an ascii file with locations where to interpolate the D array
 
     if (nargin == 3)        % Direct call
 		[FileName,PathName] = put_or_get_file(handles, ...
@@ -2214,11 +2215,12 @@ function push_interpolate_CB(hObject, eventdata, handles)
 	
 	%Open and write to ASCII file
 	if (ispc),		fid = fopen(fname,'wt');
-	elseif (isunix),fid = fopen(fname,'w');
-	else			error('aquamoto: Unknown platform.');
+	else			fid = fopen(fname,'w');
 	end
- 	if ( get(handles.check_miscWriteHeader, 'Val') )		% Write an header
-		fprintf(fid,'%s\n', ['# Variable: ' theVarName ]);
+ 	if (get(handles.check_miscWriteHeader, 'Val'))		% Write an header
+		fprintf(fid,'%s\n', ['# Interpolated file: ' handles.fname]);
+		fprintf(fid,'%s\n', ['# At locations from: ' get(handles.edit_maregs_CB,'Str')]);
+		fprintf(fid,'%s\n', ['# Variable: ' theVarName]);
 		fprintf(fid, ['#  \t', repmat('%g(X)\t', [1,ncols]) '\n'], handles.xyData(:,1));
 		fprintf(fid, ['# T\t', repmat('%g(Y)\t', [1,ncols]) '\n'], handles.xyData(:,2));
 	end
