@@ -476,8 +476,7 @@ function push_swwName_CB(hObject, eventdata, handles, opt)
 
 	% --- Find if elevation is single or multi-layer
 	ind = strcmp(varNames,'elevation');
-	num_elev = s.Dataset(ind).Size;
-	handles.n_elevations = num_elev(1);
+	handles.n_elevations = numel(s.Dataset(ind).Size);
 
 	% --------------- Estimate a "reasonable" proposition for grid dimensions------------------
 	n = round( sqrt(double(handles.number_of_volumes)) );
