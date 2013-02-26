@@ -138,13 +138,11 @@ function push_OK_CB(hObject, handles)
 % Do the actual work
 
 	if (get(handles.check_inBetween, 'val'))
-		if (isempty(handles.below_val))
-			%show_manguito()
-			return
-		end
+		if (isempty(handles.below_val)),	show_manguito,		return,		end
 		ind = ((handles.Z >= handles.below) & (handles.Z <= handles.above));
 		handles.Z(ind) = handles.below_val;		clear ind		% No mistake, below_val is actually in_between
 	else
+		if (isempty(handles.below_val) && isempty(handles.above_val)),	show_manguito,		return,		end
 		if ( ~isempty(handles.above_val) && ~isempty(handles.below_val) && ...
 				(handles.above_val < handles.below) | (handles.below_val > handles.above) ) %#ok (NEED that |)
 			% Need special care to not clip the already clipped values
@@ -153,10 +151,10 @@ function push_OK_CB(hObject, handles)
 			handles.Z(ind1) = handles.above_val;	clear ind1
 			handles.Z(ind2) = handles.below_val;	clear ind2
 		else
-			if ~isempty(handles.above_val)				% Clip above
+			if ~isempty(handles.above_val)			% Clip above
 				handles.Z(handles.Z > handles.above) = handles.above_val;
 			end
-			if ~isempty(handles.below_val)				% Clip below
+			if ~isempty(handles.below_val)			% Clip below
 				handles.Z(handles.Z < handles.below) = handles.below_val;
 			end
 		end
