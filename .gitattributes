@@ -462,6 +462,7 @@ src_figs/run_cmd.m -text
 src_figs/scatter_plot.m -text
 src_figs/select_cols.m -text
 src_figs/shading_params.m -text
+src_figs/show_manguito.m -text
 src_figs/show_palette.m -text
 src_figs/slices.m -text
 src_figs/smoothing_param.m -text
