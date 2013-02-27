@@ -1,11 +1,18 @@
-function varargout = resizetrue(handles, opt, axis_t)
+function varargout = resizetrue(handles, opt, axis_t, opt_pad)
 %   RESIZETRUE Adjust display size of image.
-%   This results in the display having one screen pixel for each image pixel.
+%   This results in the display having one screen pixel for each image pixel (if not zoomed).
+%
+%	OPT      A empty var or: a 1x2 vector with the desired image size OR a scalar with dx/dy anisotropy
+%
+%	AXIS_T   A string with either 'xy' (sets 'YDir','normal') or 'off' (sets axes invisible)
+%
+%	OPT_PAD  Optional arg with the width in pixels of a zone to be left clear on the
+%            left side of the image. Ignored if == 0. Antecipate future use in TINTOL
 %
 %   This function is distantly rooted on TRUESIZE, but havily hacked to take into account
 %   the left and bottom margins containing (if they exist) Xlabel & Ylabel, etc...
 
-%	Copyright (c) 2004-2012 by J. Luis
+%	Copyright (c) 2004-2013 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -22,6 +29,8 @@ function varargout = resizetrue(handles, opt, axis_t)
 	
 % $Id$
 
+	if (nargin < 4),	opt_pad = 0;	end
+
 	% If we already have a colorbar, remove it
 	if (strcmp(get(handles.PalIn,'Check'),'on'))
 		delete(get(handles.PalIn,'Userdata'))
@@ -34,12 +43,12 @@ function varargout = resizetrue(handles, opt, axis_t)
 
 	if (strcmp(axis_t,'xy')),			set(handles.axes1,'YDir','normal')
 	elseif (strcmp(axis_t,'off')),		set(handles.axes1,'Visible','off')
-	else    warndlg('Warning: Unknown axes setting in show_image','Warning')
+	else    warndlg('Warning: Unknown axes setting in RESIZETRUE','Warning')
 	end
 
 	hFig = handles.figure1;
 	[hAxes, hImg, msg] = ParseInputs(hFig);
-	if (~isempty(msg));    errordlg(msg,'Error');  return;      end
+	if (~isempty(msg)),		errordlg(msg,'Error'),	return,		end
 
 	% When we open a new image to replace a previous existing one, the new image size may
 	% very well be different and the status bar must be relocated. It is easier to just
@@ -57,18 +66,16 @@ function varargout = resizetrue(handles, opt, axis_t)
 	end
 
 	DAR = [1 1 1];      imSize = [];
-	if (nargin == 1)
-		opt = [];
-	elseif (~ischar(opt) && numel(opt) == 2)            % imSize was transmited in input (e.g. histograms)
+	if (~ischar(opt) && numel(opt) == 2)                % imSize was transmited in input (e.g. histograms)
 		imSize = opt;
 		opt = 'fixed_size';
 	elseif (~ischar(opt) && numel(opt) == 1)            % Case of anysotropic dx/dy
 		DAR(2) = xfac;
-		opt = ['adjust_size_' sprintf('%.12f', opt * xfac)];
+		opt = sprintf('adjust_size_%.12f', opt * xfac);
 	end
 	if (isempty(opt) && xfac ~= 1)                      % Case of isotropic geog grid rescaled to mean lat
 		DAR(2) = xfac;
-		opt = ['adjust_size_' sprintf('%.12f', xfac)]; 
+		opt = sprintf('adjust_size_%.12f', xfac); 
 	end
 
 	if strcmp(opt,'sCapture')
@@ -79,7 +86,7 @@ function varargout = resizetrue(handles, opt, axis_t)
 		set(hAxes,'Visible','on');
 	end
 
-	resize(hAxes, hImg, imSize, opt, handles.withSliders, handles.oldSize(2,:));
+	resize(hAxes, hImg, imSize, opt, handles.withSliders, handles.oldSize(2,:), opt_pad);
 	set(hAxes, 'DataAspectRatio', DAR);		% Need to set it explicitly because of compiler bugginess
 
 	if (nargout)        % Compute magnification ratio
@@ -123,8 +130,13 @@ function [hAxes,hImg,msg] = ParseInputs(varargin)
 	end
 
 %--------------------------------------------
-function resize(hAxes, hImg, imSize, opt, withSliders, firstFigSize)
+function resize(hAxes, hImg, imSize, opt, withSliders, firstFigSize, pad_left)
 % Resize figure containing a single axes object with a single image.
+%
+% PAD_LEFT   Optional arg with the width in pixels of a zone to be left clear on the
+%            left side of the image. Ignored if == 0.
+
+	if (nargin < 7),	pad_left = 0;		end
 
 	hFig = get(hAxes, 'Parent');
 	set(hAxes,'Units','normalized','Position',[0 0 1 1]) % Don't realy understand why, but I need this
@@ -146,13 +158,18 @@ function resize(hAxes, hImg, imSize, opt, withSliders, firstFigSize)
 			imgHeight = imgHeight / aniso;
 		end
 	end
-	
+
 	% Screen dimensions
 	rootUnits = get(0, 'Units');			set(0, 'Units', 'pixels');
 	screenSize = get(0, 'ScreenSize');      screenWidth = screenSize(3)-4;    screenHeight = screenSize(4);
-	
-	minFigWidth = max(firstFigSize(3), 581);	minFigHeight = 128;      % don't try to display a figure smaller than this.
-	
+
+	% Use a trick to simplify the case when a padding zone was required on the left side.
+	% Just pretend the screen is narrower to not let the extend fig size 'overflow' the true
+	% screen width and at the end we are safe to resize the fig to the account for the required extension
+	if (pad_left),		screenWidth = screenWidth - pad_left;	end
+
+	minFigWidth = max(firstFigSize(3), 581);	minFigHeight = 128;      % don't try to make the display image smaller than this.
+
 	% For small images, compute the minimum side as 60% of largest of the screen dimensions
 	% Except in the case of croped images, where 512 is enough for the pushbuttons (if the croped
 	% image aspect ratio permits so)
@@ -161,11 +178,12 @@ function resize(hAxes, hImg, imSize, opt, withSliders, firstFigSize)
         LeastImageWidth = 512;    rmappdata(hFig,'Croped');
 	end
 	%LeastImageSide = fix(max([screenWidth screenHeight] * 0.6));
-	
+
 	% Mind change. For a while I'll try this way.
 	LeastImageSide = 512;
 
-	if (imgWidth < LeastImageSide && imgHeight < LeastImageSide && ~strcmp(opt,'fixed_size'))   % Augment very small images
+	% Check that small images are grown till one of its dimensions >= LeastImageSide
+	if (imgWidth < LeastImageSide && imgHeight < LeastImageSide && ~strcmp(opt,'fixed_size'))
         if ~isempty(croped)     % Croped image
             while (imgWidth < LeastImageWidth)  % Here is enough to have 1 side
                 imgWidth = imgWidth*1.05;  imgHeight = imgHeight*1.05;
@@ -230,9 +248,8 @@ function resize(hAxes, hImg, imSize, opt, withSliders, firstFigSize)
 
 	% What are the gutter sizes?
 	gutterLeft = max(axPos(1) - 1, 0);
-	nonzeroGutters = (gutterLeft > 0);
 
-	if (nonzeroGutters)
+	if (gutterLeft > 0)
         defAxesPos = get(0,'DefaultAxesPosition');
         gutterWidth  = round((1 - defAxesPos(3)) * imgWidth / defAxesPos(3));
         gutterHeight = round((1 - defAxesPos(4)) * imgHeight / defAxesPos(4));
@@ -279,7 +296,6 @@ function resize(hAxes, hImg, imSize, opt, withSliders, firstFigSize)
 
 	newFigWidth  = max(newFigWidth + x_margin, minFigWidth);
 	if (newFigWidth >= screenWidth)     % Larger than screen. The == isn't allowed either due to the 'elastic' thing
-		%x_margin = x_margin - (newFigWidth-screenWidth) - 2;    % 'Discount' the difference on x_margin
 		newFigWidth = screenWidth - 0;
 		imgWidth = screenWidth - x_margin;
 	end
@@ -314,6 +330,19 @@ function resize(hAxes, hImg, imSize, opt, withSliders, firstFigSize)
 		end
 	end
 
+	shift_frame_x = 0;	% Amount used to shift the status bar axes when pad_left != 0
+	if (pad_left)
+		dx = round(gutterWidth / 2 - x_margin - (sldT + 2));		% Slider thicknes + 2
+		if (dx > 0)		% We have unused space left on the right side. Use it
+			axPos(1)  = axPos(1) + pad_left;
+			figPos(3) = figPos(3) + pad_left - dx;
+			shift_frame_x = pad_left + dx;
+		else
+			axPos(1) = axPos(1) + pad_left;
+			figPos(3) = figPos(3) + pad_left;
+		end
+	end
+
 	% Force the window to be in the "north" position. 73 is the height of the blue Bar + ...
 	figPos(2) = screenHeight - figPos(4) - 73;
 	set(hFig, 'Position', figPos);
@@ -322,8 +351,8 @@ function resize(hAxes, hImg, imSize, opt, withSliders, firstFigSize)
 	hFanim = [];		% To play safe while I don't settle the 'sCapture' issue once and for all
 	if ~strncmp(opt,'sCap',4)		% sCapture. I'm not sure this is used anymore
         %-------------- This section simulates a box at the bottom of the figure
-        sbPos(1) = 1;               sbPos(2) = 1;
-        sbPos(3) = figPos(3)-2;     sbPos(4) = H-1;
+        sbPos(1) = 1 + shift_frame_x;               sbPos(2) = 1;
+        sbPos(3) = figPos(3) -2 - shift_frame_x;    sbPos(4) = H-1;
 		hFanim = findobj(hFig,'-depth',1,'Style', 'frame', 'tag','cinanima');	% This guy exists only whith animations
 		if (~isempty(hFanim))
 			pos = get(hFanim, 'Pos');	sbPos(3) = pos(1)-1;		% Make the sbAxes shorter to not overlap with the frame
@@ -339,12 +368,12 @@ function resize(hAxes, hImg, imSize, opt, withSliders, firstFigSize)
         if (withSliders),        setSliders(hFig, hAxes, figPos, axPos, sldT, H);    end   
 	end
 	%------------------------------------
-	  
+
 	% Restore the units
 	set(hFig, 'Units', figUnits);
 	set(hAxes, 'Units', 'normalized');   % So that resizing the Fig also resizes the image
 	set(0, 'Units', rootUnits);
-	
+
 	if ~strcmp(opt,'sCapture'),   pixval_stsbar(hFig);  end
 	if(~isempty(hFanim))
 		set(getappdata(hFanim,'AnimaFamily'), 'units', 'normalized')	% So that they remain in their corner uppon resinzing
@@ -353,7 +382,7 @@ function resize(hAxes, hImg, imSize, opt, withSliders, firstFigSize)
 %--------------------------------------------------------------------------
 function hFrame = createframe(ah, fieldPos, H)
 % Creates a virtual panel surrounding the field starting at fieldPos(1) and
-% ending end fieldPos(2) pixels. ah is the sb's handle (axes).
+% ending end fieldPos(2) pixels. AH is the sb's handle (axes).
 % It returns a handle array designating the frame.
 	
 	from = fieldPos(1);     to = fieldPos(2);
