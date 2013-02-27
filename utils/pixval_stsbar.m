@@ -1,7 +1,7 @@
 function pixval_stsbar(arg1)
 % This is based on the defunct pixval, but heavily hacked in several ways.
 
-% Coffeeright J. Luis 2004-2012
+% Coffeeright J. Luis 2004-2013
 
 % $Id$
 
@@ -30,7 +30,8 @@ function pixval_stsbar(arg1)
 		handsBar = getappdata(figHandle,'CoordsStBar');
 		tmp1 = get(handsBar(3),'YData');
 		tmp2 = get(handsBar(2),'XData');
-		pos = [5 tmp1(1)+2 tmp2(2)-5 abs(tmp1(2)-tmp1(1))-4];
+		p = get(handsBar(1),'Pos');		% Assumes units are pixels.
+		pos = [p(1) tmp1(1) tmp2(2) abs(tmp1(2)-tmp1(1))] + [4 2 -5 -4];
 
 		% Create the display bar
 		dbud.buttonDownImage = 0;  % Image 0 never exists      
