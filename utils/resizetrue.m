@@ -141,6 +141,11 @@ function resize(hAxes, hImg, imSize, opt, withSliders, firstFigSize, pad_left)
 	hFig = get(hAxes, 'Parent');
 	set(hAxes,'Units','normalized','Position',[0 0 1 1]) % Don't realy understand why, but I need this
 
+	if (~pad_left)			% Check if this figure in padded already
+		am_I_padded = getappdata(hFig,'SidePadded');
+		if (~isempty(am_I_padded)),		pad_left = am_I_padded;		end
+	end
+
 	if (isempty(imSize))    % Get image's dimensions
 		imgWidth  = size(get(hImg, 'CData'), 2);
 		imgHeight = size(get(hImg, 'CData'), 1);
@@ -151,7 +156,7 @@ function resize(hAxes, hImg, imSize, opt, withSliders, firstFigSize, pad_left)
 
 	if (strncmp(opt,'adjust_size_',12))			% We have an anisotropic dx/dy. OPT is of the form adjust_size_[aniso]
 		aniso = sscanf(opt(13:end),'%f');
-		if (aniso == 0),	aniso = 1;		end				% Troublematic SeaWiFS files had made this happen
+		if (aniso == 0),	aniso = 1;		end			% Troublematic SeaWiFS files had made this happen
 		if (aniso > 1)
 			imgWidth  = imgWidth * aniso;
 		else
@@ -161,7 +166,7 @@ function resize(hAxes, hImg, imSize, opt, withSliders, firstFigSize, pad_left)
 
 	% Screen dimensions
 	rootUnits = get(0, 'Units');			set(0, 'Units', 'pixels');
-	screenSize = get(0, 'ScreenSize');      screenWidth = screenSize(3)-4;    screenHeight = screenSize(4);
+	screenSize = get(0, 'ScreenSize');      screenWidth = screenSize(3)-8;    screenHeight = screenSize(4);
 
 	% Use a trick to simplify the case when a padding zone was required on the left side.
 	% Just pretend the screen is narrower to not let the extend fig size 'overflow' the true
@@ -330,9 +335,10 @@ function resize(hAxes, hImg, imSize, opt, withSliders, firstFigSize, pad_left)
 		end
 	end
 
+	% --------- See if we need to apply further resizings bcause of left padding -----------------
 	shift_frame_x = 0;	% Amount used to shift the status bar axes when pad_left != 0
 	if (pad_left)
-		dx = round(gutterWidth / 2 - x_margin - (sldT + 2));		% Slider thicknes + 2
+		dx = round(gutterWidth / 2 - x_margin - (sldT + 2));		% Slider thickness + 2
 		if (dx > 0)		% We have unused space left on the right side. Use it
 			axPos(1)  = axPos(1) + pad_left;
 			figPos(3) = figPos(3) + pad_left - dx;
@@ -341,10 +347,15 @@ function resize(hAxes, hImg, imSize, opt, withSliders, firstFigSize, pad_left)
 			axPos(1) = axPos(1) + pad_left;
 			figPos(3) = figPos(3) + pad_left;
 		end
+		if ((figPos(1) + figPos(3)) > screenSize(3))	% Fig is partially out on the right side
+			figPos(1) = screenSize(3) - figPos(3);
+		end
+		setappdata(hFig,'SidePadded',pad_left)
 	end
+	% ----------------------------------------------------------------------------------------------
 
-	% Force the window to be in the "north" position. 73 is the height of the blue Bar + ...
-	figPos(2) = screenHeight - figPos(4) - 73;
+	% Force the window to be in the "north" position. 78 is the height of the blue Bar + ...
+	figPos(2) = screenHeight - figPos(4) - 78;
 	set(hFig, 'Position', figPos);
 	set(hAxes, 'Position', axPos);
 
