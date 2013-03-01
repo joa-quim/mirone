@@ -422,7 +422,7 @@ function check_wantMaregs_CB(hObject, handles)
 function edit_MaregraphPosFile_CB(hObject, handles)
 	fname = get(hObject,'String');
 	if isempty(fname),  return,		end
-	push_MaregraphPosFile_CB(handles.push_MaregraphPosFile, [], handles, fname)
+	push_MaregraphPosFile_CB(handles.push_MaregraphPosFile, handles, fname)
 	
 % -----------------------------------------------------------------------------------------
 function push_MaregraphPosFile_CB(hObject, handles, opt)
@@ -483,7 +483,7 @@ function edit_MaregraphDataFile_CB(hObject, handles)
 	if (handles.is_tsun2)
 		fname = get(hObject,'String');
 		if isempty(fname),  return,		end
-		push_MaregraphDataFile_CB(handles.push_MaregraphDataFile, [], handles, fname)
+		push_MaregraphDataFile_CB(handles.push_MaregraphDataFile, handles, fname)
 	end
 
 % -----------------------------------------------------------------------------------------
