@@ -317,10 +317,16 @@ function wbm_EditPolygon(obj,eventdata,h,lim,hFig)
 function wbu_EditPolygon(obj,evt,h,state)
 	s = getappdata(h,'polygon_data');
 	if (s.duplicate)
-		uistack_j(s.h_vert,'top')			% Need to do this because the black marker has no ButtonDown and was on top
+		uistack_j(s.h_vert,'top')		% Need to do this because the black marker has no ButtonDown and was on top
 	end
 	setappdata(h,'edited',true)
 	uirestore_j(state, 'nochildren');	% Restore the figure's initial state
+	RunCB = getappdata(h,'RunCB');		% See if we have a callback function to run after polygon edition
+	if (~isempty(RunCB))
+		if (numel(RunCB) == 1),		feval(RunCB{1})
+		else						feval(RunCB{1},RunCB{2:end})
+		end
+	end
 
 %--------------------------------------------------
 function move_polygon(h)
@@ -396,6 +402,12 @@ function wbu_MovePolygon(obj,evt,h,state)
 	end
 	setappdata(h,'edited',true)
 	uirestore_j(state, 'nochildren');		% Restore the figure's initial state
+	RunCB = getappdata(h,'RunCB');			% See if we have a callback function to run after polygon edition
+	if (~isempty(RunCB))
+		if (numel(RunCB) == 1),		feval(RunCB{1})
+		else						feval(RunCB{1},RunCB{2:end})
+		end
+	end
 
 %--------------------------------------------------
 function KeyPress_local(obj,evt,h)
@@ -485,6 +497,8 @@ switch key
 		if (~isempty(z)),	setappdata(s.h_pol,'ZData',[z z(1)]),		end
 		s.is_closed = true;
 		setappdata(h,'edited',true)
+		cmenuHand = get(h, 'UIContextMenu');
+		uimenu(cmenuHand, 'Label', 'Create Mask', 'Call', 'poly2mask_fig(guidata(gcbo),gco)');
 
 	case {'e', 'E'}					% edit (extend) line with getline_j
 		if (s.duplicate),	delete(s.h_vert);		s.h_vert = [];		end
