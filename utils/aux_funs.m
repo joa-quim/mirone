@@ -737,12 +737,12 @@ function [latcells,loncells,Zcells] = localPolysplit(lat,lon, Z)
 		[lat, lon, Z] = localRemoveExtraNanSeps(lat, lon, Z);
 	end
 	indx = find(isnan(lat(:)));         % Find NaN locations.
-	
+
 	% Simulate the trailing NaN if it's missing.
 	if ~isempty(lat) && ~isnan(lat(end))
-        indx(end+1,1) = numel(lat) + 1;
+		indx(end+1,1) = numel(lat) + 1;
 	end
-	
+
 	%  Extract each segment into pre-allocated N-by-1 cell arrays, where N is
 	%  the number of polygon segments.  (Add a leading zero to the indx array
 	%  to make indexing work for the first segment.)
@@ -753,10 +753,10 @@ function [latcells,loncells,Zcells] = localPolysplit(lat,lon, Z)
 	end
 	indx = [0; indx];
 	for k = 1:N
-        iStart = indx(k)   + 1;
-        iEnd   = indx(k+1) - 1;
-        latcells{k} = lat(iStart:iEnd);
-        loncells{k} = lon(iStart:iEnd);
+		iStart = indx(k)   + 1;
+		iEnd   = indx(k+1) - 1;
+		latcells{k} = lat(iStart:iEnd);
+		loncells{k} = lon(iStart:iEnd);
 		if (n_arg == 3),	Zcells{k} = Z(iStart:iEnd);		end
 	end
 
@@ -787,44 +787,44 @@ function [xdata, ydata, zdata] = localRemoveExtraNanSeps(xdata, ydata, zdata)
 % -*-*-*-*-*-*-$-$-$-$-$-$-#-#-#-#-#-#-%-%-%-%-%-%-@-@-@-@-@-@-(-)-(-)-(-)-&-&-&-&-&-&-{-}-{-}-{-}-
 function appProjectionRef(handles, strWKT)
 % If we have a WKT proj store it, otherwise clean eventual predecessors
-    if (~isempty(strWKT))					% If we have a WKT projection, store it
+	if (~isempty(strWKT))					% If we have a WKT projection, store it
 		if (strWKT(1) == '+')				% Well, it is a proj4 string, convert it to WKT
 			strWKT = ogrproj(strWKT);
 		end
 		setappdata(handles.figure1,'ProjWKT',strWKT)
-        out = decodeProjectionRef(strWKT);				% Decode Proj reference string
+		out = decodeProjectionRef(strWKT);				% Decode Proj reference string
 		if ( ~isempty(out.datum) || ~isempty(out.ellipsoid) || ~isempty(out.projection) )
 			setappdata(handles.axes1,'DatumProjInfo',out)
 		end
-    else							% Otherwise remove eventual previous one
-        if (isappdata(handles.figure1,'ProjWKT')),    rmappdata(handles.figure1,'ProjWKT'),		end
-    end
+	else							% Otherwise remove eventual previous one
+		if (isappdata(handles.figure1,'ProjWKT')),    rmappdata(handles.figure1,'ProjWKT'),		end
+	end
 
 % -*-*-*-*-*-*-$-$-$-$-$-$-#-#-#-#-#-#-%-%-%-%-%-%-@-@-@-@-@-@-(-)-(-)-(-)-&-&-&-&-&-&-{-}-{-}-{-}-
 function out = decodeProjectionRef(strProj)
-    ind = strfind(strProj,char(10));
-    out.datum = [];     out.ellipsoid = [];     out.projection = [];
-    if (numel(ind) <= 1),   return;    end
-    
-    ind = [0 ind length(strProj)-1];
-    for (i=1:numel(ind)-1)
-        str = strProj(ind(i)+1:ind(i+1)-1);
-        if ~isempty(strfind(str,'GEOGCS'))      % Get datum
-            xx = strfind(str,'"');
-            if (numel(xx) < 2),     continue;   end
-            out.datum = str(xx(1)+1:xx(2)-1);
-        end
-        if ~isempty(strfind(str,'SPHEROID'))      % Get ellipsoid
-            if (numel(xx) < 2),     continue;   end
-            xx = strfind(str,'"');
-            out.ellipsoid = str(xx(1)+1:xx(2)-1);
-        end
-        if ~isempty(strfind(str,'PROJECTION'))      % Get ellipsoid
-            if (numel(xx) < 2),     continue;   end
-            xx = strfind(str,'"');
-            out.projection = str(xx(1)+1:xx(2)-1);
-        end
-    end
+	ind = strfind(strProj,char(10));
+	out.datum = [];     out.ellipsoid = [];     out.projection = [];
+	if (numel(ind) <= 1),   return;    end
+
+	ind = [0 ind length(strProj)-1];
+	for (i=1:numel(ind)-1)
+		str = strProj(ind(i)+1:ind(i+1)-1);
+		if ~isempty(strfind(str,'GEOGCS'))      % Get datum
+			xx = strfind(str,'"');
+			if (numel(xx) < 2),     continue;   end
+			out.datum = str(xx(1)+1:xx(2)-1);
+		end
+		if ~isempty(strfind(str,'SPHEROID'))      % Get ellipsoid
+			if (numel(xx) < 2),     continue;   end
+			xx = strfind(str,'"');
+			out.ellipsoid = str(xx(1)+1:xx(2)-1);
+		end
+		if ~isempty(strfind(str,'PROJECTION'))      % Get ellipsoid
+			if (numel(xx) < 2),     continue;   end
+			xx = strfind(str,'"');
+			out.projection = str(xx(1)+1:xx(2)-1);
+		end
+	end
 
 % ----------------------------------------------------------------
 function [img, pal] = semaforo_green()
