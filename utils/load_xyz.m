@@ -581,39 +581,9 @@ function varargout = load_xyz(handles, opt, opt2)
 		set_extra_uicb_options(handles, hLine, out_nc)	% Reset two Callbacks in UIContextMenu to offer plot/save
 	end
 	if (do_nesting)
-		set_nest_uicb_options(handles, hLine)			% Do some cleaning of unwanted CBs and set the working one.
+		draw_funs([],'set_recTsu_uicontext', hLine)	% Set uicontextmenus appropriate for grid nesting
 	end
 	guidata(handles.figure1,handles)
-
-% --------------------------------------------------------------------
-function set_nest_uicb_options(handles, hLine)
-% Set options particular to the NESTING nature of these rectangles.
-% Cleaner solution than to create another set of conditionals in draw_funs
-	for (k = 1:numel(hLine))
-		h = get(get(hLine(k),'UIContextMenu'),'Children');
-		h2 = findobj(h,'-depth',0, 'Label','Delete me');		% To be reused
-		set(h2,'Label','Adjust nesting dimensions', 'Call','nesting_sizes(gcbo)')
-		hC = findobj(h,'-depth',0, 'Label','Delete inside rect');
-		if (k > 1)
-			set(hC, 'Label', 'Show nesting info','Call','nesting_sizes(gcbo,''Info'')')
-		else
-			delete(hC),			h = h(ishandle(h));
-		end
-		delete(findobj(h,'-depth',0, 'Label','Area under polygon')),		h = h(ishandle(h));
-		delete(findobj(h,'-depth',0, 'Label','Register Image')),			h = h(ishandle(h));
-		delete(findobj(h,'-depth',0, 'Label','Transplant Image here')),		h = h(ishandle(h));
-		delete(findobj(h,'-depth',0, 'Label','Get image from Web Map Server')),		h = h(ishandle(h));
-		delete(findobj(h,'-depth',0, 'Label','CMT catalog (Web download)')),		h = h(ishandle(h));
-		delete(findobj(h,'-depth',0, 'Label','Custom')),		h = h(ishandle(h));
-		delete(findobj(h,'-depth',0, 'Label','Create Mask')),	h = h(ishandle(h));
-		hC = findobj(h,'-depth',0, 'Label','Copy');
-		if (k < numel(hLine))
-			delete(hC)
-		else
-			set(hC, 'Label', 'New nested grid','Call', 'nesting_sizes(gcbo,''New'')');
-		end
-		set(hLine(k),'Tag','NEST','UserData',k)
-	end
 
 % --------------------------------------------------------------------
 function set_extra_uicb_options(handles, hLine, out_nc)
