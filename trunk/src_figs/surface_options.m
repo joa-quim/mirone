@@ -1,7 +1,7 @@
 function varargout = surface_options(varargin)
 % Helper window to surface options
 
-%	Copyright (c) 2004-2012 by J. Luis
+%	Copyright (c) 2004-2013 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -15,7 +15,9 @@ function varargout = surface_options(varargin)
 %
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
- 
+
+% $Id$
+
 hObject = figure('Tag','figure1','Visible','off');
 surface_options_LayoutFcn(hObject);
 handles = guihandles(hObject);
@@ -140,9 +142,9 @@ helpdlg(message,'Help -N option');
 function checkbox_SuggestGridDim_CB(hObject, handles)
 tmp = get(hObject,'Value');
 if tmp
-    handles.command{15} = [' -Q'];
+    handles.command{15} = ' -Q';
 else
-    handles.command{15} = [''];
+    handles.command{15} = '';
 end
 set(handles.edit_ShowCommand, 'String', [handles.command{5:end}]);
 guidata(hObject, handles);
@@ -170,15 +172,15 @@ helpdlg(message,'Help -S option');
 function edit_InternalTension_CB(hObject, handles)
 xx = get(hObject,'String');
 if isnan(str2double(xx))        % If nonsense
-    set(hObject,'String','0');  handles.command{19} = [''];
+    set(hObject,'String','0');  handles.command{19} = '';
     set(handles.edit_ShowCommand, 'String', [handles.command{5:end}]);
     guidata(hObject, handles);
     return
 end
 if str2double(xx) < 0
-    handles.command{19} = [''];    set(hObject,'String','0')
+    handles.command{19} = '';    set(hObject,'String','0')
 elseif str2double(xx) > 1
-    handles.command{19} = [' -T1i'];    set(hObject,'String','1')
+    handles.command{19} = ' -T1i';    set(hObject,'String','1')
 else
     handles.command{19} = [' -T' get(hObject,'String') 'i'];
 end
@@ -188,15 +190,15 @@ guidata(hObject, handles);
 function edit_BoundTension_CB(hObject, handles)
 xx = get(hObject,'String');
 if isnan(str2double(xx))        % If nonsense
-    set(hObject,'String','0');  handles.command{21} = [''];
+    set(hObject,'String','0');  handles.command{21} = '';
     set(handles.edit_ShowCommand, 'String', [handles.command{5:end}]);
     guidata(hObject, handles);
     return
 end
 if str2double(xx) < 0
-    handles.command{21} = [''];    set(hObject,'String','0')
+    handles.command{21} = '';    set(hObject,'String','0')
 elseif str2double(xx) > 1
-    handles.command{21} = [' -T1b'];    set(hObject,'String','1')
+    handles.command{21} = ' -T1b';    set(hObject,'String','1')
 else
     handles.command{21} = [' -T' get(hObject,'String') 'b'];
 end
@@ -231,14 +233,14 @@ message = {'Over-relaxation factor. This parameter is used to accelerate the'
 helpdlg(message,'Help -Z option');
 
 function push_Cancel_CB(hObject, handles)
-handles.output = '';        % User gave up, return nothing
-guidata(hObject, handles);
-uiresume(handles.figure1);
+	handles.output = '';        % User gave up, return nothing
+	guidata(hObject, handles);
+	uiresume(handles.figure1);
 
 function push_OK_CB(hObject, handles)
-handles.output = get(handles.edit_ShowCommand, 'String');
-guidata(hObject,handles)
-uiresume(handles.figure1);
+	handles.output = get(handles.edit_ShowCommand, 'String');
+	guidata(hObject,handles)
+	uiresume(handles.figure1);
 
 % --- Executes when user attempts to close figure1.
 function figure1_CloseRequestFcn(hObject, evt)
