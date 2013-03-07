@@ -4,7 +4,7 @@ function varargout = draw_funs(hand, varargin)
 %   There are no error checking.
 %   HAND    contains the handle to the graphical object (or eventually empty for direct access)
 %   OPT     is a string for choosing what action to perform
-%   DATA    contains data currently used in the volcanoes, fogspots and some other option
+%   DATA    contains data currently used in the volcanoes, fogspots and some other options
 %
 %	To use the direct access mode to any of the local functions that don't need to fish
 %	the data from an object handle, call with HAND = []. E.g (in load_xyz)
@@ -164,10 +164,10 @@ function setSHPuictx(h,opt)
 		uimenu(cmenuHand, 'Label', 'Delete this line', 'Call', {@del_line,h(i)});
 		uimenu(cmenuHand, 'Label', 'Delete class', 'Call', 'delete(findobj(''Tag'',''SHPpolyline''))');
 
-		cb_solid	= 'set(gco, ''LineStyle'', ''-''); refresh';
-		cb_dashed	= 'set(gco, ''LineStyle'', ''--''); refresh';
-		cb_dotted	= 'set(gco, ''LineStyle'', '':''); refresh';
-		cb_dashdot	= 'set(gco, ''LineStyle'', ''-.''); refresh';
+		cb_solid   = 'set(gco, ''LineStyle'', ''-''); refresh';
+		cb_dashed  = 'set(gco, ''LineStyle'', ''--''); refresh';
+		cb_dotted  = 'set(gco, ''LineStyle'', '':''); refresh';
+		cb_dashdot = 'set(gco, ''LineStyle'', ''-.''); refresh';
 
 		item = uimenu(cmenuHand, 'Label', 'Line Width', 'Sep','on');
 		uimenu(item, 'Label', 'Other...', 'Call', {@other_LineWidth,h(i)});
@@ -391,6 +391,49 @@ function set_line_uicontext(h, opt)
 		uimenu(cmenuHand, 'Label', 'Set buffer zone', 'Call', {@seismic_line,h,'buf'}, 'Sep','on');
 		uimenu(cmenuHand, 'Label', 'Project seismicity', 'Call', {@seismic_line,h,'proj'}, 'Enable','off');
 	end
+
+% -----------------------------------------------------------------------------------------
+function set_recTsu_uicontext(h)
+% Set options particular to the NESTING nature of rectangles for TSUNAMI grid construction.
+
+	handles = guidata(h(1));
+	for (k = 1:numel(h))
+		cmenuHand = uicontextmenu('Parent',handles.figure1);
+		set(h(k), 'UIContextMenu', cmenuHand);
+
+		uimenu(cmenuHand, 'Label', 'Adjust nesting dimensions', 'Call', 'nesting_sizes(gcbo)');
+		ud = get(h(k), 'Userdata');
+		if (isempty(ud))		% Root rectangle, set its Userdata to 1 to flag that fact
+			ud = 1;		set(h(k),'UserData',ud)
+		end
+		if (ud > 1)
+			uimenu(cmenuHand, 'Label', 'Show nesting info', 'Call', 'nesting_sizes(gcbo,''Info'')');
+		end
+		if (k == numel(h))
+			uimenu(cmenuHand, 'Label', 'New nested grid', 'Call', 'nesting_sizes(gcbo,''New'')');
+		end
+
+		set_common_lineProps(h(k), cmenuHand, false)
+		set(h(k),'Tag','NEST')
+		setappdata(h(k),'RunCB',{'nesting_sizes', h(k)})	% Run this everytime rectangle is editted
+		ui_edit_polygon(h(k))
+	end
+
+% -----------------------------------------------------------------------------------------
+function set_common_lineProps(h, cmenuHand, IS_PATCH)
+% Common line properties set by some other functions
+
+	cb_LineWidth = uictx_LineWidth(h);      % there are 5 cb_LineWidth outputs
+	cb_solid = 'set(gco, ''LineStyle'', ''-''); refresh';
+	cb_dashed = 'set(gco, ''LineStyle'', ''--''); refresh';
+	cb_dotted = 'set(gco, ''LineStyle'', '':''); refresh';
+	cb_dashdot = 'set(gco, ''LineStyle'', ''-.''); refresh';
+	if (IS_PATCH),	cb_color = uictx_color(h,'EdgeColor');      % there are 9 cb_color outputs
+	else			cb_color = uictx_color(h);
+	end
+	setLineWidth(uimenu(cmenuHand, 'Label', 'Line Width', 'Sep','on'), cb_LineWidth)
+	setLineStyle(uimenu(cmenuHand, 'Label', 'Line Style'), {cb_solid cb_dashed cb_dotted cb_dashdot})
+	setLineColor(uimenu(cmenuHand, 'Label', 'Line Color'), cb_color)
 
 % -----------------------------------------------------------------------------------------
 function seismic_line(obj,evt,hL,opt)
