@@ -2467,7 +2467,7 @@ function DrawClosedPolygon_CB(handles, opt)
 		draw_funs(h,'line_uicontext')		% Set lines's uicontextmenu
 		% We are done in this mode (just draw a closed polygon)
 		if (isempty(opt) || any(strcmp(tag,{'EulerTrapezium' 'SeismicPolyg'}))),	return,		end
-		% If we come here it's because ROI operations were chosen
+		% Come here when ROI operations were chosen
 		roi_image_operations(handles.axes1,[xp(:),yp(:)])
 	elseif (strcmp(opt,'from_uicontext'))
 		xp = get(h_line,'XData');	yp = get(h_line,'YData');
@@ -2475,19 +2475,24 @@ function DrawClosedPolygon_CB(handles, opt)
 	elseif (strcmp(opt,'rectangle'))
 		zoom_state(handles,'maybe_off');
 		[p1,p2,hl] = rubberbandbox(handles.axes1);
+		zoom_state(handles,'maybe_on');
 		difa = abs(p2 - p1);
 		if ( (difa(1) < handles.head(7)/4) || (difa(2) < handles.head(8)/4) )
 			delete(hl),		return			% Don't draw ultra small rectangles
 		end
 		set(hl,'Color',handles.DefLineColor,'LineWidth',handles.DefLineThick)	% Use defaults LineThick and DefLineColor
-		draw_funs(hl,'line_uicontext')		% Set lines's uicontextmenu
-		zoom_state(handles,'maybe_on');
+		am_I_padded = getappdata(handles.figure1,'SidePadded');
+		if (~isempty(am_I_padded))			% TINTOL mode
+			draw_funs([],'set_recTsu_uicontext', hl)	% Set uicontextmenus appropriate for grid nesting
+		else
+			draw_funs(hl,'line_uicontext')	% Set lines's uicontextmenu
+		end
 	end
 
 % --------------------------------------------------------------------
 function DrawEulerPoleCircle_CB(handles)
 	if (aux_funs('msg_dlg',1,handles)),		return,		end		% Test geog & no_file
-	if ( strcmp(get(handles.figure1,'Pointer'), 'crosshair') ),		return,		end		% Already drawing something else
+	if (strcmp(get(handles.figure1,'Pointer'), 'crosshair')),	return,		end		% Already drawing something else
 	zoom_state(handles,'maybe_off');
 	
 	out = euler_poles_selector(handles.home_dir);			% The output is a struct with fields: lon lat omega plates model
