@@ -1,7 +1,7 @@
 function varargout = read_las(varargin)
 % Helper window to read, filter and save or display LIDAR data read with libLAS
 
-%	Copyright (c) 2004-2012 by J. Luis
+%	Copyright (c) 2004-2013 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -45,6 +45,8 @@ function varargout = read_las(varargin)
 	if (~isempty(varargin))         % When called from a Mirone window
 		if (ishandle(varargin{1}))
 			handles.hMirFig = varargin{1};
+		elseif (isa(varargin{1}, 'struct'))		% A Mirone handles
+			handles.hMirFig = varargin{1}.figure1;
 		end
 		if (numel(varargin) == 2)
 			handles.fname = varargin{2};
@@ -368,6 +370,16 @@ function push_goFleder_CB(hObject, handles)
 	builtin('delete',fname);
 
 % -------------------------------------------------------------------------------------------------
+function push_goGrid_CB(hObject, handles)
+% Send data to griding_mir for interpolation
+
+	xyz = get_data(handles);
+	if (isempty(xyz))
+		warndlg('No data points with current selection','Warning'),		return
+	end
+	griding_mir(handles.hMirFig, 'gmtmbgrid', handles.bbox, xyz)
+
+% -------------------------------------------------------------------------------------------------
 function xyz = get_data(handles)
 % Get the data points from file taking into account possible filter settings
 
@@ -481,8 +493,7 @@ set(h1, 'Color',get(0,'factoryUicontrolBackgroundColor'),...
 'Position',[520 396 421 405],...
 'Resize','off',...
 'HandleVisibility','callback',...
-'Tag','figure1',...
-'Visible','on');
+'Tag','figure1');
 
 uicontrol('Parent',h1, 'Position',[10 124 401 122],'Style','frame');
 uicontrol('Parent',h1, 'Position',[270 258 141 111],'Style','frame');
@@ -750,7 +761,13 @@ uicontrol('Parent',h1, 'Position',[10 4 110 21],...
 'Tag','push_grdTool',...
 'Visible','off');
 
-uicontrol('Parent',h1, 'Position',[230 4 181 21],...
+uicontrol('Parent',h1, 'Position',[10 4 101 21],...
+'Call',@read_las_uiCB,...
+'String','Grid it',...
+'Tooltip','Interpolate into a grid',...
+'Tag','push_goGrid');
+
+uicontrol('Parent',h1, 'Position',[250 4 161 21],...
 'Call',@read_las_uiCB,...
 'String','View in Fledermaus',...
 'Tooltip','Visualize LAS data with Fledermaus',...
