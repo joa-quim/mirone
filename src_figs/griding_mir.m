@@ -1,7 +1,7 @@
 function varargout = griding_mir(varargin)
 % Wrapper figure to call apropriate interpolation MEX
 
-%	Copyright (c) 2004-2012 by J. Luis
+%	Copyright (c) 2004-2013 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -15,7 +15,9 @@ function varargout = griding_mir(varargin)
 %
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
- 
+
+% $Id$
+
 	hObject = figure('Vis','off');
 	griding_mir_LayoutFcn(hObject);
 	handles = guihandles(hObject);
@@ -58,10 +60,27 @@ function varargout = griding_mir(varargin)
 
 	% When called by Mirone varargin must contain: mirone fig handle, "type"
 	if ~isempty(varargin)
-		if ( length(varargin) == 2 && ishandle(varargin{1}) && ischar(varargin{2}) )
+		if ( numel(varargin) >= 2 && ishandle(varargin{1}) && ischar(varargin{2}) )
 			handles.hMirFig = varargin{1};
 			type = varargin{2};
-			%handles.IamCompiled = handMir.IamCompiled;
+			if (numel(varargin) >= 4)
+				handles.x_min = varargin{3}(1);		handles.x_max = varargin{3}(2);
+				handles.y_min = varargin{3}(3);		handles.y_max = varargin{3}(4);
+				handles.xyz = varargin{4};
+				% Until something more inteligent is devised (like using some kind of estatistics to estimate
+				% default's Nrow & Ncol) the default value of Nrow = Ncol = 100 will be used.
+				handles.x_inc = ivan_the_terrible((handles.x_max - handles.x_min),100,1);
+				handles.y_inc = ivan_the_terrible((handles.y_max - handles.y_min),100,1);
+				set(handles.edit_x_min,'Str',sprintf('%.12g',handles.x_min));
+				set(handles.edit_x_max,'Str',sprintf('%.12g',handles.x_max));
+				set(handles.edit_y_min,'Str',sprintf('%.12g',handles.y_min));
+				set(handles.edit_y_max,'Str',sprintf('%.12g',handles.y_max));
+				set(handles.edit_x_inc,'Str',sprintf('%.12g',handles.x_inc));
+				set(handles.edit_y_inc,'Str',sprintf('%.12g',handles.y_inc));
+				set(handles.edit_Ncols,'Str','100');	set(handles.edit_Nrows,'Str','100');
+				set([handles.edit_InputFile handles.push_InputFile handles.popup_GridMethod], 'Enable', 'off')
+				type = 'gmtmbgrid';		% hardwire - not so nice
+			end
 		else
 			type = 'surface';		% Default to surface
 		end
@@ -199,15 +218,15 @@ guidata(hObject,handles)
 
 %----------------------------------------------------------------------------------------------
 function edit_binary_ncolumnIn_CB(hObject, handles)
-xx = get(hObject,'String');
-if ~isempty(xx) && str2double(xx) > 3
-    handles.command{39} = xx;
-    set(hObject,'String',num2str(fix(str2double(xx))))  % in case user tries to joke
-else
-    handles.command{39} = '';
-    set(hObject,'String','3')
-end
-guidata(hObject,handles)
+	xx = get(hObject,'String');
+	if ~isempty(xx) && str2double(xx) > 3
+		handles.command{39} = xx;
+		set(hObject,'String',num2str(fix(str2double(xx))))  % in case user tries to joke
+	else
+		handles.command{39} = '';
+		set(hObject,'String','3')
+	end
+	guidata(hObject,handles)
 
 %----------------------------------------------------------------------------------------------
 function push_Help_H_CB(hObject, handles)
@@ -222,79 +241,78 @@ message_win('create',message,'figname','Help on input data');
 
 %----------------------------------------------------------------------------------------------
 function edit_InputFile_CB(hObject, handles, opt)
-if (nargin == 3 && ischar(opt))   % OPT is a file name transmited by push_InputFile_CB
-    xx = opt;
-    hObject = handles.edit_InputFile;    % hObject contained the handle to push_InputFile_CB
-else
-    xx = get(hObject,'String');
-end
-if ~isempty(xx)
-    handles.command{3} = xx;
-    str = ['minmax -C ' xx];
-    [s,w] = mat_lyies(str);
-    if ~(isequal(s,0))                  % An error as occured
-        errordlg(w,'GMT Error');        return
-    else
-        val = string_token(w);      % Decompose the string output from minmax
-        if length(val) < 6
-            errordlg('File error. Your file doesn''t have at least 3 columns','Error')
-            handles.command{3} = '';        set(hObject,'String','')
-            guidata(hObject, handles);
-            return
-        end
-        handles.command{6} = val{1};    handles.command{7} = '/';
-        handles.command{8} = val{2};    handles.command{9} = '/';
-        handles.command{10} = val{3};   handles.command{11} = '/';
-        handles.command{12} = val{4};   handles.command{5} = ' -R';
-        % compute also handles.x_min, handles.x_max, ...
-        xx = test_dms(val{1});      x_min = 0;
-        if str2double(xx{1}) > 0
-            for i = 1:length(xx)   x_min = x_min + str2double(xx{i}) / (60^(i-1));    end
-        else
-            for i = 1:length(xx)   x_min = x_min - abs(str2double(xx{i})) / (60^(i-1));   end
-        end
-        xx = test_dms(val{2});      x_max = 0;
-        if str2double(xx{1}) > 0
-            for i = 1:length(xx)   x_max = x_max + str2double(xx{i}) / (60^(i-1));    end
-        else
-            for i = 1:length(xx)   x_max = x_max - abs(str2double(xx{i})) / (60^(i-1));   end
-        end
-        xx = test_dms(val{3});      y_min = 0;
-        if str2double(xx{1}) > 0
-            for i = 1:length(xx)   y_min = y_min + str2double(xx{i}) / (60^(i-1));    end
-        else
-            for i = 1:length(xx)   y_min = y_min - abs(str2double(xx{i})) / (60^(i-1));   end
-        end
-        xx = test_dms(val{4});      y_max = 0;
-        if str2double(xx{1}) > 0
-            for i = 1:length(xx)   y_max = y_max + str2double(xx{i}) / (60^(i-1));    end
-        else
-            for i = 1:length(xx)   y_max = y_max - abs(str2double(xx{i})) / (60^(i-1));   end
-        end
-        handles.x_min = x_min;  handles.x_max = x_max;  handles.y_min = y_min;  handles.y_max = y_max;
-        set(handles.edit_x_min,'String',val{1});     set(handles.edit_x_max,'String',val{2});
-        set(handles.edit_y_min,'String',val{3});     set(handles.edit_y_max,'String',val{4});
-        % Until something more inteligent is devised (like using some kind of estatistics to estimate
-        % default's Nrow & Ncol) the default value of Nrow = Ncol = 100 will be used.
-        x_inc = ivan_the_terrible((x_max - x_min),100,1);			% This will be recomputed in dim_funs()
-        y_inc = ivan_the_terrible((y_max - y_min),100,1);
-        handles.command{14} = ' -I';    handles.command{16} = '/';
-        handles.command{15} = num2str(x_inc,8);   handles.command{17} = num2str(y_inc,8);
-        set(handles.edit_x_inc,'String',num2str(x_inc,8));     set(handles.edit_y_inc,'String',num2str(y_inc,8));
-        set(handles.edit_Ncols,'String','100');     set(handles.edit_Nrows,'String','100');
-    end
-else
-    % Reset everything to initial state (falta a parte do nearneigh)
-    set(handles.edit_x_min,'String','');     set(handles.edit_x_max,'String','');
-    set(handles.edit_y_min,'String','');     set(handles.edit_y_max,'String','');
-    set(handles.edit_x_inc,'String','');     set(handles.edit_y_inc,'String','');
-    set(handles.edit_Ncols,'String','');    set(handles.edit_Nrows,'String','');
-    set(handles.check_ToggleXY,'Value',0);
-    %set(handles.popup_binInput,'Value',1);
-    %set(handles.edit_binary_ncolumnIn,'String','3');
-    for i = 3:length(handles.command)   handles.command{i} = '';  end
-end 
-guidata(handles.figure1, handles)
+	if (nargin == 3 && ischar(opt))   % OPT is a file name transmited by push_InputFile_CB
+		xx = opt;
+	else
+		xx = get(hObject,'String');
+	end
+	if ~isempty(xx)
+		handles.command{3} = xx;
+		str = ['minmax -C ' xx];
+		[s,w] = mat_lyies(str);
+		if ~(isequal(s,0))                  % An error as occured
+			errordlg(w,'GMT Error');        return
+		else
+			val = string_token(w);      % Decompose the string output from minmax
+			if length(val) < 6
+				errordlg('File error. Your file doesn''t have at least 3 columns','Error')
+				handles.command{3} = '';        set(hObject,'String','')
+				guidata(hObject, handles);
+				return
+			end
+			handles.command{6} = val{1};    handles.command{7} = '/';
+			handles.command{8} = val{2};    handles.command{9} = '/';
+			handles.command{10} = val{3};   handles.command{11} = '/';
+			handles.command{12} = val{4};   handles.command{5} = ' -R';
+			% compute also handles.x_min, handles.x_max, ...
+			xx = test_dms(val{1});		x_min = 0;
+			if str2double(xx{1}) > 0
+				for (i = 1:numel(xx)),	x_min = x_min + str2double(xx{i}) / (60^(i-1));    end
+			else
+				for (i = 1:numel(xx)),	x_min = x_min - abs(str2double(xx{i})) / (60^(i-1));   end
+			end
+			xx = test_dms(val{2});		x_max = 0;
+			if str2double(xx{1}) > 0
+				for (i = 1:numel(xx)),	x_max = x_max + str2double(xx{i}) / (60^(i-1));    end
+			else
+				for (i = 1:numel(xx)),	x_max = x_max - abs(str2double(xx{i})) / (60^(i-1));   end
+			end
+			xx = test_dms(val{3});		y_min = 0;
+			if str2double(xx{1}) > 0
+				for (i = 1:numel(xx)),	y_min = y_min + str2double(xx{i}) / (60^(i-1));    end
+			else
+				for (i = 1:numel(xx)),	y_min = y_min - abs(str2double(xx{i})) / (60^(i-1));   end
+			end
+			xx = test_dms(val{4});		y_max = 0;
+			if str2double(xx{1}) > 0
+				for (i = 1:numel(xx)),	y_max = y_max + str2double(xx{i}) / (60^(i-1));    end
+			else
+				for (i = 1:numel(xx)),	y_max = y_max - abs(str2double(xx{i})) / (60^(i-1));   end
+			end
+			handles.x_min = x_min;  handles.x_max = x_max;  handles.y_min = y_min;  handles.y_max = y_max;
+			set(handles.edit_x_min,'String',val{1});     set(handles.edit_x_max,'String',val{2});
+			set(handles.edit_y_min,'String',val{3});     set(handles.edit_y_max,'String',val{4});
+			% Until something more inteligent is devised (like using some kind of estatistics to estimate
+			% default's Nrow & Ncol) the default value of Nrow = Ncol = 100 will be used.
+			x_inc = ivan_the_terrible((x_max - x_min),100,1);			% This will be recomputed in dim_funs()
+			y_inc = ivan_the_terrible((y_max - y_min),100,1);
+			handles.command{14} = ' -I';    handles.command{16} = '/';
+			handles.command{15} = num2str(x_inc,8);   handles.command{17} = num2str(y_inc,8);
+			set(handles.edit_x_inc,'String',num2str(x_inc,8));     set(handles.edit_y_inc,'String',num2str(y_inc,8));
+			set(handles.edit_Ncols,'String','100');     set(handles.edit_Nrows,'String','100');
+		end
+	else
+		% Reset everything to initial state (falta a parte do nearneigh)
+		set(handles.edit_x_min,'String','');	set(handles.edit_x_max,'String','');
+		set(handles.edit_y_min,'String','');	set(handles.edit_y_max,'String','');
+		set(handles.edit_x_inc,'String','');	set(handles.edit_y_inc,'String','');
+		set(handles.edit_Ncols,'String','');	set(handles.edit_Nrows,'String','');
+		set(handles.check_ToggleXY,'Value',0);
+		%set(handles.popup_binInput,'Value',1);
+		%set(handles.edit_binary_ncolumnIn,'String','3');
+		for i = 3:length(handles.command)   handles.command{i} = '';  end
+	end 
+	guidata(handles.figure1, handles)
 
 %----------------------------------------------------------------------------------------------
 function push_InputFile_CB(hObject, handles)
@@ -312,7 +330,7 @@ function push_InputFile_CB(hObject, handles)
 	handles.command{3} = [PathName FileName];
 	set(handles.edit_InputFile, 'String',handles.command{3})
 	guidata(hObject, handles);
-	edit_InputFile_CB(hObject, handles,[PathName FileName]);
+	edit_InputFile_CB(handles.edit_InputFile, handles, [PathName FileName]);
 
 % -----------------------------------------------------------------------------------
 function edit_x_min_CB(hObject, handles)
@@ -427,10 +445,10 @@ function edit_S1_Neighbor_CB(hObject, handles)
 		return
 	end
 	if ~isempty(xx)
-		handles.command{19} = ' -S';      handles.command{20} = num2str(abs(str2double(xx)));
+		handles.command{19} = ' -S';	handles.command{20} = num2str(abs(str2double(xx)));
 		guidata(hObject, handles);
 	else
-		handles.command{19} = '';      handles.command{20} = xx;
+		handles.command{19} = '';		handles.command{20} = xx;
 		guidata(hObject, handles);
 	end
 
@@ -457,49 +475,50 @@ message_win('create',message,'figname','Help -S option');
 
 % -----------------------------------------------------------------------------------
 function popup_GridMethod_CB(hObject, handles)
-val = get(hObject,'Value');     str = get(hObject, 'String');
-switch str{val};
-    case 'Minimum Curvature'
-        set(handles.edit_S1_Neighbor,'Enable', 'off', 'Backgroundcolor',[.764,.603,.603])
-        set(handles.popup_S2_Neighbor,'Enable', 'off', 'Backgroundcolor',[.764,.603,.603])
-        set(handles.push_Help_S,'Enable', 'off')
-        set(handles.check_Option_F,'Enable', 'off')
-        handles.command{19} = '';     handles.command{20} = '';
-        handles.command{21} = '';     handles.command{30} = '';
-        handles.command{1} = 'surface ';
-        handles.type = 'surface';
-    case 'Delauny Triangulation'
-        set(handles.edit_S1_Neighbor,'Enable', 'off', 'Backgroundcolor',[.764,.603,.603])
-        set(handles.popup_S2_Neighbor,'Enable', 'off', 'Backgroundcolor',[.764,.603,.603])
-        set(handles.push_Help_S,'Enable', 'off')
-        set(handles.check_Option_F,'Enable', 'on')
-        handles.command{19} = '';     handles.command{20} = '';
-        handles.command{21} = '';     handles.command{30} = '';
-        handles.command{1} = 'triangulate ';
-        handles.type = 'triangulate';
-    case 'Near Neighbor'
-        set(handles.edit_S1_Neighbor,'Enable', 'on', 'Backgroundcolor','white')
-        set(handles.popup_S2_Neighbor,'Enable', 'on', 'Backgroundcolor','white')
-        set(handles.push_Help_S,'Enable', 'on')
-        set(handles.check_Option_F,'Enable', 'on')
-        set(handles.edit_S1_Neighbor,'String','')
-        set(handles.popup_S2_Neighbor,'Value',1)
-        handles.command{1} = 'nearneighbor ';     handles.command{30} = '';
-        handles.type = 'nearneighbor';
-end
-guidata(hObject,handles)
+	val = get(hObject,'Value');     str = get(hObject, 'String');
+	switch str{val};
+		case 'Minimum Curvature'
+			set(handles.edit_S1_Neighbor,'Enable', 'off', 'Backgroundcolor',[.764,.603,.603])
+			set(handles.popup_S2_Neighbor,'Enable', 'off', 'Backgroundcolor',[.764,.603,.603])
+			set(handles.push_Help_S,'Enable', 'off')
+			set(handles.check_Option_F,'Enable', 'off')
+			handles.command{19} = '';     handles.command{20} = '';
+			handles.command{21} = '';     handles.command{30} = '';
+			handles.command{1} = 'surface ';
+			handles.type = 'surface';
+		case 'Delauny Triangulation'
+			set(handles.edit_S1_Neighbor,'Enable', 'off', 'Backgroundcolor',[.764,.603,.603])
+			set(handles.popup_S2_Neighbor,'Enable', 'off', 'Backgroundcolor',[.764,.603,.603])
+			set(handles.push_Help_S,'Enable', 'off')
+			set(handles.check_Option_F,'Enable', 'on')
+			handles.command{19} = '';     handles.command{20} = '';
+			handles.command{21} = '';     handles.command{30} = '';
+			handles.command{1} = 'triangulate ';
+			handles.type = 'triangulate';
+		case 'Near Neighbor'
+			set(handles.edit_S1_Neighbor,'Enable', 'on', 'Backgroundcolor','white')
+			set(handles.popup_S2_Neighbor,'Enable', 'on', 'Backgroundcolor','white')
+			set(handles.push_Help_S,'Enable', 'on')
+			set(handles.check_Option_F,'Enable', 'on')
+			set(handles.edit_S1_Neighbor,'String','')
+			set(handles.popup_S2_Neighbor,'Value',1)
+			handles.command{1} = 'nearneighbor ';     handles.command{30} = '';
+			handles.type = 'nearneighbor';
+	end
+	guidata(hObject,handles)
 
 % -----------------------------------------------------------------------------------
 function push_Grid_Options_CB(hObject, handles)
-switch handles.command{1}
-    case 'surface '
-        handles.command{30} = [' ' surface_options(handles.command{30})];
-    case 'triangulate '
-        msgbox('Not yet programed')
-    case 'nearneighbor '
-        handles.command{30} = [' ' nearneighbor_options(handles.command{30})];
-end
-guidata(hObject,handles)
+	switch handles.command{1}
+		case 'surface '
+			out = surface_options(handles.command{30});
+		case 'triangulate '
+			msgbox('Not yet programed')
+		case 'nearneighbor '
+			out = nearneighbor_options(handles.command{30});
+	end
+	if (~isempty(out)),		handles.command{30} = [' ' out];	end
+	guidata(hObject,handles)
 
 % -----------------------------------------------------------------------------------
 function push_OK_CB(hObject, handles)
@@ -511,7 +530,7 @@ function push_OK_CB(hObject, handles)
 	i = 2;
 	while (rem)
 		[tok, rem] = strtok(rem);
-		out{i} = tok;        i = i + 1;
+		out{i} = tok;		i = i + 1;
 	end
 
 	if (get(handles.check_Option_V,'Value'))
@@ -535,9 +554,9 @@ function push_OK_CB(hObject, handles)
 	end
 
 	if (~get(handles.check_ToggleXY,'Val'))
-		opt_R = sprintf('-R%.10f/%.10f/%.10f/%.10f',handles.x_min, handles.x_max, handles.y_min, handles.y_max);
+		opt_R = sprintf('-R%.12g/%.12g/%.12g/%.12g',handles.x_min, handles.x_max, handles.y_min, handles.y_max);
 	else
-		opt_R = sprintf('-R%.10f/%.10f/%.10f/%.10f',handles.y_min, handles.y_max, handles.x_min, handles.x_max);
+		opt_R = sprintf('-R%.12g/%.12g/%.12g/%.12g',handles.y_min, handles.y_max, handles.x_min, handles.x_max);
 	end
 	opt_I = ['-I' get(handles.edit_x_inc,'string') '/' get(handles.edit_y_inc,'string')];
 	if (handles.IamCompiled),	opt_e = '-e';
@@ -556,6 +575,18 @@ function push_OK_CB(hObject, handles)
 			[Z,head] = nearneighbor_m(out{2:end}, opt_e);	% We don't want the last ','
 			tit = 'nearneighbor interpolation';
 			set(handles.figure1,'Name','Nearneighbor')
+		case 'gmtmbgrid'
+ 			% Data points were transmitted in input. The must-be-dubles is horrible here
+			if (size(handles.xyz,1) > 3)	% xyz is a cols array
+				[Z, head] = gmtmbgrid_m(double(handles.xyz(:,1)), double(handles.xyz(:,2)), ...
+					double(handles.xyz(:,3)), opt_I, opt_R, '-Mz', '-C3');
+			else
+				[Z, head] = gmtmbgrid_m(double(handles.xyz(1,:)), double(handles.xyz(2,:)), ...
+					double(handles.xyz(3,:)), opt_I, opt_R, '-Mz', '-C3');
+			end
+			Z = single(Z);
+			tit = 'mbgrid interpolation';
+			set(handles.figure1,'Name','gmtmbgrid')
 	end
 	if (isnan(head(5))),	head(5) = min(min(Z));		end	% It happens and needs to be investigated
 	if (isnan(head(6))),	head(6) = max(max(Z));		end
