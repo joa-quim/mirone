@@ -1,5 +1,5 @@
 function nesting_sizes(hand, opt)
-% Compute the exact limits needed to create nested grids in COMCOT and TINTOL
+% Compute the exact limits needed to create nested grids in COMCOT and NSWING
 %
 %	Initial data is fetch from the rectangles previously loaded and that are recognized
 %	by having a 'NEST' Tag.
@@ -26,40 +26,43 @@ function nesting_sizes(hand, opt)
 	handles = guidata(hand);			% The Mirone handles
 	hRects = findobj('tag','NEST');
 	ud = get(hRects,'UserData');
-	if (isa(ud, 'cell'))
-		ud = (cat(1,ud{:}));
-	end
+	if (isa(ud, 'cell')),	ud = (cat(1,ud{:}));	end
 	hRects = hRects(ud);				% Reorder them at the order they were plotted (bigger ones first)
 
+	limits = cell(numel(hRects),1);
 	for (k = 1:numel(hRects))
 		limits{k} = [min(get(hRects(k),'XData')) max(get(hRects(k),'XData')) ...
 			min(get(hRects(k),'YData')) max(get(hRects(k),'YData'))];
 		ud = getappdata(hRects(k),'LineInfo');
-		reg = '0';						% Default is grid registration
-		[x_inc,r] = strtok(ud);
-		y_inc = x_inc;					% Start by assuming this
-		if (~isempty(r))
-			if (strcmp(r,'0') || strcmp(r,'1'))		% Have X_INC and REG info (Y_INC = X_INC)
-				reg = r;
-				y_inc = x_inc;
-			else
-				[y_inc,r] = strtok(r);
-				if (~isempty(r) && (strcmp(r,'0') || strcmp(r,'1')))
+		if (isempty(ud))		% First rectangle and when it was NOT imported via load_xyz
+			limits{k}(5:7) = handles.head(7:9);
+		else
+			reg = '0';						% Default is grid registration
+			[x_inc,r] = strtok(ud);
+			y_inc = x_inc;					% Start by assuming this
+			if (~isempty(r))
+				if (strcmp(r,'0') || strcmp(r,'1'))		% Have X_INC and REG info (Y_INC = X_INC)
 					reg = r;
+					y_inc = x_inc;
+				else
+					[y_inc,r] = strtok(r);
+					if (~isempty(r) && (strcmp(r,'0') || strcmp(r,'1')))
+						reg = r;
+					end
 				end
 			end
+			limits{k}(5) = str2double(reg);
+			limits{k}(6) = str2double(x_inc);
+			limits{k}(7) = str2double(y_inc);
 		end
-		limits{k}(5) = str2double(x_inc);
-		limits{k}(6) = str2double(y_inc);
-		limits{k}(7) = str2double(reg);
 	end
 
 	if (nargin == 2)
-		if(strcmp(opt,'New'))
-			make_new_nested(handles.axes1, hRects, limits)
+		if (strcmp(opt,'New'))
+			hNew = make_new_nested(handles.axes1, hRects, limits);
+			nesting_sizes(hNew)		% Hate recursivity but it makes life easier here
 		else
-			ind = find(hRects == gco);
-			hLine = hRects(ind);
+			hLine = hRects(hRects == gco);
 			info = getappdata(hLine, 'info');
 			opt_R = sprintf('-R%.12g/%.12g/%.12g/%.12g\n', info.head(1:4));
 			inds = sprintf('x_start = %d\nx_end = %d\ny_start = %d\ny_end = %d', ...
@@ -69,35 +72,39 @@ function nesting_sizes(hand, opt)
 		return
 	end
 
-	% ..
+	resize2nesting_size(hRects, limits)
+
+% --------------------------------------------------------------------------
+function resize2nesting_size(hRects, limits)
+% Resize all inner rectangles so they abey to the nesting size rules.
+% Also store nesting info in appdata, which is available for "Show nesting info" 
+
 	for (k = 2:numel(hRects))
-	    nx = ((limits{k-1}(2) - limits{k-1}(1))/ limits{k-1}(5))+1;
-		ny = ((limits{k-1}(4) - limits{k-1}(3))/ limits{k-1}(6))+1;
+		nx = ((limits{k-1}(2) - limits{k-1}(1))/ limits{k-1}(6))+1;
+		ny = ((limits{k-1}(4) - limits{k-1}(3))/ limits{k-1}(7))+1;
 
 		%get parent grid coord vectors
 		X = linspace(limits{k-1}(1),limits{k-1}(2),nx);
 		Y = linspace(limits{k-1}(3),limits{k-1}(4),ny);
 
 		%look for closest element
-		xmin = find_nearest(X, limits{k-1}(5), limits{k}(5), limits{k}(1));
-		xmax = find_nearest(X, limits{k-1}(5), limits{k}(5), limits{k}(2));
-		ymin = find_nearest(Y, limits{k-1}(6), limits{k}(6), limits{k}(3));
-		ymax = find_nearest(Y, limits{k-1}(6), limits{k}(6), limits{k}(4));
+		xmin = find_nearest(X, limits{k-1}(6), limits{k}(6), limits{k}(1));
+		xmax = find_nearest(X, limits{k-1}(6), limits{k}(6), limits{k}(2));
+		ymin = find_nearest(Y, limits{k-1}(7), limits{k}(7), limits{k}(3));
+		ymax = find_nearest(Y, limits{k-1}(7), limits{k}(7), limits{k}(4));
 
-		this_xmin = xmin.val - (limits{k-1}(5)/2) + (limits{k}(5)/2);
-		this_xmax = xmax.val + (limits{k-1}(5)/2) - (limits{k}(5)/2);
-		this_ymin = ymin.val - (limits{k-1}(6)/2) + (limits{k}(6)/2);
-		this_ymax = ymax.val + (limits{k-1}(6)/2) - (limits{k}(6)/2);
+		this_xmin = xmin.val - (limits{k-1}(6)/2) + (limits{k}(6)/2);
+		this_xmax = xmax.val + (limits{k-1}(6)/2) - (limits{k}(6)/2);
+		this_ymin = ymin.val - (limits{k-1}(7)/2) + (limits{k}(7)/2);
+		this_ymax = ymax.val + (limits{k-1}(7)/2) - (limits{k}(7)/2);
 		h = [this_xmin this_xmax this_ymin this_ymax limits{k}(5:7)];
 
 		resp.head = h;
-		resp.idx_min = xmin.idx;
-		resp.idx_max = xmax.idx;
-		resp.idy_min = ymin.idx;
-		resp.idy_max = ymax.idx;
+		resp.idx_min = xmin.idx;	resp.idx_max = xmax.idx;
+		resp.idy_min = ymin.idx;	resp.idy_max = ymax.idx;
 
-		set(hRects(k),'XData', [this_xmin this_xmin this_xmax this_xmax this_xmin])
-		set(hRects(k),'YData', [this_ymin this_ymax this_ymax this_ymin this_ymin])
+		set(hRects(k),'XData', [this_xmin this_xmin this_xmax this_xmax this_xmin], ...
+			'YData', [this_ymin this_ymax this_ymax this_ymin this_ymin])
 		setappdata(hRects(k),'info',resp)
 	end
 
@@ -117,7 +124,7 @@ function resp = find_nearest(X, dxParent, dxChild, pt)
 	end
 
 % --------------------------------------------------------------------------
-function make_new_nested(hAx, hRects, limits)
+function hNew = make_new_nested(hAx, hRects, limits)
 % Create a new rctangle with half the width of its parent.
 	
 	resp = fix(abs(str2double(inputdlg({'Enter refinement factor'},'Refinement factor',[1 30],{'5'}))));
@@ -125,18 +132,13 @@ function make_new_nested(hAx, hRects, limits)
 	x = limits{end}(1:2);		y = limits{end}(3:4);
 	x = x + [diff(x) -diff(x)] / 4;
 	y = y + [diff(y) -diff(y)] / 4;
-	hLine = copyobj(hRects(end), hAx);
-	set(hLine, 'XData',[x(1) x(1) x(2) x(2) x(1)], 'YData',[y(1) y(2) y(2) y(1) y(1)],'Userdata',numel(limits)+1)
-	setappdata(hLine,'LineInfo',[sprintf('%d',resp), limits{end}(7)]);
-	h = findobj(get(hLine,'uicontextmenu'),'label','Save line');
-	if (~isempty(h))        % Replace the old line handle in the 'Save line' Callback by the just created one
-		hFun = get(h,'Call');
-		hFun{2} = hLine;
-		set(h,'Call',hFun)
-	end
-	if (isappdata(hLine,'polygon_data'))
-		rmappdata(hLine,'polygon_data')		% Remove the parent's ui_edit_polygon appdata
-	end
-
-	ui_edit_polygon(hLine)
+	x_inc = limits{end}(6);
+	y_inc = limits{end}(7);
 	
+	cor = get(hRects(end),'Color');
+	lThick = get(hRects(end),'Linewidth');
+	hNew = line('XData',[x(1) x(1) x(2) x(2) x(1)],'YData',[y(1) y(2) y(2) y(1) y(1)],'Parent',hAx,'Linewidth',lThick,...
+				'Color',cor,'Userdata',numel(limits)+1);
+
+	setappdata(hNew,'LineInfo',[sprintf('%.14g %.14g',x_inc, y_inc), limits{end}(5)]);
+	draw_funs([],'set_recTsu_uicontext', hNew)
