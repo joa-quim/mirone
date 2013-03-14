@@ -101,6 +101,11 @@ function varargout = compute_euler(varargin)
 	handles.path_continent = [handMir.home_dir filesep 'continents' filesep];
 	handles.IamCompiled = handMir.IamCompiled;		% Need to know due to crazy issue of nc_funs
 
+	str = sprintf(['The range interval is divided into this number of equally spaced points\n' ...
+		'Alternatively use the form N*Delta (e.g. 100*0.1) to set up both range and resolution\n' ...
+		'Actual point spacing is = 0.5']);
+	set(handles.edit_nInt, 'Tooltip', str)
+
 	%------------ Give a Pro look (3D) to the frame boxes  -------------------------------
 	new_frame3D(hObject, [handles.txtSP handles.txtDS handles.txtCS])
 	%------------- END Pro look (3D) -----------------------------------------------------
@@ -211,7 +216,7 @@ function edit_nInt_CB(hObject, handles)
 		ind = strfind(str, '*');
 		tag = get(hObject,'UserData');
 		tooltip = dataread('string',get(hObject,'Tooltip'),'%s','delimiter','\n');
-		tooltip = tooltip{1};		% Retain only first line in TooltipString as second will be updated here
+		tooltip = sprintf('%s\n%s',tooltip{1},tooltip{2});		% Retain only first 2 lines, third will be updated here
 		if (strcmp(tag,'lon')),			rang = get(handles.edit_LonRange, 'Str');
 		elseif (strcmp(tag,'lat')),		rang = get(handles.edit_LatRange, 'Str');
 		else							rang = get(handles.edit_AngRange, 'Str');
@@ -223,13 +228,12 @@ function edit_nInt_CB(hObject, handles)
 			if (rem(nInt,2)),	nInt = nInt + 1;	end		% We want an EVEN number of intervals
 			nPts = nInt + 1;		% But this one must be ODD
 			rang = sprintf('%.6g', nInt * d);
-			set(hObject,'Tooltip', sprintf('%s\nActual point spacing is = %.6g',tooltip,d))
 		else
 			nPts = abs(sscanf(str,'%d'));
 			if (~rem(nPts,2)),		nPts = nPts + 1;	end	% We want an ODD number of points
 			d = str2double(rang) / (nPts - 1);
-			set(hObject,'Tooltip', sprintf('%s\nActual point spacing is = %.6g',tooltip,d))
 		end
+		set(hObject,'Tooltip', sprintf('%s\nActual point spacing is = %.6g', tooltip, d))
 		if (strcmp(tag,'lon')),			handles.nInt_lon = nPts;	set(handles.edit_LonRange, 'Str', rang)
 		elseif (strcmp(tag,'lat')),		handles.nInt_lat = nPts;	set(handles.edit_LatRange, 'Str', rang)
 		else							handles.nInt_ang = nPts;	set(handles.edit_AngRange, 'Str', rang)
@@ -312,7 +316,7 @@ function check_hellinger_CB(hObject, handles)
 		set([handles.edit_nInt_lat handles.edit_nInt_ang],'Vis','off')
 		set(handles.edit_nInt_lon,'String', handles.DP_tol)
 		set(handles.textNint,'String','DP tolerance')
-		set(handles.edit_nInt_lon,'Tooltip', sprintf(['Tolerance used to break up the isochron into\n' ...
+		set(handles.edit_nInt,'Tooltip', sprintf(['Tolerance used to break up the isochron into\n' ...
 				'linear chunks (the Heillinger segments).\n' ...
 				'The units of the tolerance are degrees\n', ...
 				'of arc on the surface of a sphere']))
@@ -320,8 +324,9 @@ function check_hellinger_CB(hObject, handles)
 		set([handles.edit_LonRange handles.edit_LatRange handles.edit_AngRange],'Enable','on')
 		set([handles.edit_nInt_lat handles.edit_nInt_ang],'Vis','on')
 		set(handles.textNint,'String','N Intervals')
-		set(handles.edit_nInt_lon,'Str', handles.nInt_lon,'Tooltip', ...		% and so we loose the resolution info
-			'The range parameters are divided into this number of equally spaced points')
+		str = sprintf(['The range interval is divided into this number of equally spaced points\n' ...
+			'Alternatively use the form N*Delta (e.g. 100*0.1) to set up both range and resolution']);
+		set(handles.edit_nInt,'Str', handles.nInt,'Tooltip', str)		% and so we loose the resolution info
 	end
 
 % -----------------------------------------------------------------------------
@@ -1129,7 +1134,6 @@ uicontrol('Parent',h1, 'Pos',[160 165 61 21],...
 'String','61',...
 'Style','edit',...
 'UserData','lon',...
-'Tooltip',sprintf('The range interval is divided into this number of equally spaced points\nActual point spacing is = 0.5'),...
 'Tag','edit_nInt');
 
 uicontrol('Parent',h1, 'Pos',[160 138 61 21],...
@@ -1138,7 +1142,6 @@ uicontrol('Parent',h1, 'Pos',[160 138 61 21],...
 'String','41',...
 'Style','edit',...
 'UserData','lat',...
-'Tooltip',sprintf('The range interval is divided into this number of equally spaced points\nActual point spacing is = 0.5'),...
 'Tag','edit_nInt');
 
 uicontrol('Parent',h1, 'Pos',[160 110 61 21],...
@@ -1147,7 +1150,6 @@ uicontrol('Parent',h1, 'Pos',[160 110 61 21],...
 'String','21',...
 'Style','edit',...
 'UserData','ang',...
-'Tooltip',sprintf('The range interval is divided into this number of equally spaced points\nActual point spacing is = 0.05'),...
 'Tag','edit_nInt');
 
 uicontrol('Parent',h1,'Pos',[20  114 72  15],'HorizontalAlignment','left','Str','Angular Range','Style','text');
