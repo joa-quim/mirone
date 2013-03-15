@@ -647,7 +647,7 @@ function [lon_bf, lat_bf, omega_bf, area_f, resid] = ...
 			tlon = atan2(c_lat .* s_lon, p_sin_lat * cc - p_cos_lat * s_lat);
 			s_lat_ = p_sin_lat * s_lat + p_cos_lat * cc;
 			c_lat_ = sqrt(1 - s_lat_ .* s_lat_);
-			if (isGUI),		set(handles.slider_wait,'Value',i),		pause(0.01);	end	% Otherwise slider may stall
+			if (isGUI),		set(handles.slider_wait,'Value',i),		drawnow;	end	% Otherwise slider may stall
 			for k = 1:nAng	% Loop over n omega intervals
 				%[rlon,rlat] = rot_euler(isoca1(:,1),isoca1(:,2),p_lon(i),p_lat(j),p_omeg(k),'radians',-1);
 
