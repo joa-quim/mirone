@@ -1,12 +1,12 @@
 139.60  61.8    -0.21    0.0  !NAM<-Eurasia  MORVEL (deg/Ma)
-143.90  44.9    -0.39    1.82 !NAM<-Eurasia  An2   Em Mov (res = 1.15)
-140.90  49.8    -0.63    3.06 !NAM<-Eurasia  An2A  Em Mov (res = 1.86)
-138.00  61.0    -1.03    4.72 !NAM<-Eurasia  An3   Em Mov (res = 2.36)
+145.50  43.3    -0.39    1.82 !NAM<-Eurasia  An2   Em Mov (res = 1.15)
+140.20  51.1    -0.635   3.06 !NAM<-Eurasia  An2A  Em Mov (res = 1.85)
+138.50  60.1    -1.025   4.72 !NAM<-Eurasia  An3   Em Mov (res = 2.36)
 139.40  55.6    -1.29    6.20 !NAM<-Eurasia  An3A  Em Mov (res = 1.97)
 140.40  56.5    -1.62    7.74 !NAM<-Eurasia  An4   Em Mov (res = 1.74)
 139.20  59.7    -1.94    8.88 !NAM<-Eurasia  An4A  Em Mov (res = 1.77)
 139.00  60.3    -2.32   10.30 !NAM<-Eurasia  An5   Em Mov (res = 2.45)
-139.50  62.0    -4.58   19.60 !NAM<-Eurasia  An6   Em Mov (res = 3.94)
+139.30  61.8    -4.575  19.60 !NAM<-Eurasia  An6   Em Mov (res = 3.93)
 
   0.0    0.0     0.0     0.0  !ACO-NAM Iberia-North America
 -37.50   7.0    -1.59    3.85 !ACO-NAM An3  J. Luis et al. 1984
@@ -85,21 +85,21 @@
 
  40.2   79.2    -0.233   0.0  !NAM<-Nubia  MORVEL (deg/Ma)
  41.10  79.20   -0.42    1.82 !NAM<-Nubia  An2   Em Mov (res = 2.05)
- 41.10  79.20   -0.42    1.82 !NAM<-Nubia  An2   Em Mov (res = 2.03) Sem ZF24
+ 41.10  79.20   -0.42    1.82 !NAM<-Nubia  An2   Em Mov (res = 2.02) Sem ZF24
  42.60  78.50   -0.71    3.06 !NAM<-Nubia  An2A  Em Mov (res = 1.78)
- 32.20  78.40   -0.73    3.06 !NAM<-Nubia  An2A  Em Mov (res = 1.87) Sem ZF24
+ 44.70  78.00   -0.705   3.06 !NAM<-Nubia  An2A  Em Mov (res = 1.65) Sem ZF24
  38.70  78.90   -1.11    4.72 !NAM<-Nubia  An3   Em Mov (res = 2.31)
  34.70  78.60   -1.12    4.72 !NAM<-Nubia  An3   Em Mov (res = 2.05) Sem ZF24
  44.90  79.20   -1.45    6.20 !NAM<-Nubia  An3A  Em Mov (res = 2.04)
- 41.00  79.00   -1.46    6.20 !NAM<-Nubia  An3A  Em Mov (res = 1.82) Sem ZF24
+ 42.20  78.90   -1.455   6.20 !NAM<-Nubia  An3A  Em Mov (res = 1.84) Sem ZF24
  54.40  79.50   -1.78    7.74 !NAM<-Nubia  An4   Em Mov (res = 2.13)
- 50.40  79.40   -1.79    7.74 !NAM<-Nubia  An4   Em Mov (res = 1.73) Sem ZF24
+ 51.30  79.30   -1.785   7.74 !NAM<-Nubia  An4   Em Mov (res = 1.73) Sem ZF24
  50.10  79.40   -2.10    8.88 !NAM<-Nubia  An4A  Em Mov (res = 2.12)
- 49.30  79.30   -2.10    8.88 !NAM<-Nubia  An4A  Em Mov (res = 1.54) Sem ZF24
+ 50.40  79.20   -2.095   8.88 !NAM<-Nubia  An4A  Em Mov (res = 1.54) Sem ZF24
  54.80  79.70   -2.51   10.30 !NAM<-Nubia  An5   Em Mov (res = 3.01)
- 55.00  79.60   -2.51   10.30 !NAM<-Nubia  An5   Em Mov (res = 2.67) Sem ZF24
+ 55.40  79.50   -2.505  10.30 !NAM<-Nubia  An5   Em Mov (res = 2.67) Sem ZF24
  46.50  80.60   -5.21   19.60 !NAM<-Nubia  An6   Em Mov (res = 4.48)
- 43.10  80.50   -5.24   19.60 !NAM<-Nubia  An6   Em Mov (res = 4.30) Sem ZF24
+ 42.60  80.50   -5.245  19.60 !NAM<-Nubia  An6   Em Mov (res = 4.30) Sem ZF24 nem Pico
   7.60  83.16  -20.66   66.95 !NAM<-Nubia  An30  Em movimento
 -22.85  76.30  -29.61   81.00 !NAM<-Nubia  An33r Em movimento
 -20.34  66.09  -54.50  127.48 !NAM<-Nubia  AnM0  Em movimento
