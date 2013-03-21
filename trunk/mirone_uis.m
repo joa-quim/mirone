@@ -261,8 +261,8 @@ uimenu('Parent',h,'Call','mirone(''File_img2GMT_RGBgrids_CB'',guidata(gcbo))','L
 uimenu('Parent',h,'Call','mirone(''File_img2GMT_RGBgrids_CB'',guidata(gcbo),''screen'')','Label','Screen capture');
 
 h = uimenu('Parent',hFL,'Label','Save GMT script','Sep','on');
-uimenu('Parent',h,'Call','write_gmt_script(guidata(gcbo),''csh'')','Label','csh script');
 uimenu('Parent',h,'Call','write_gmt_script(guidata(gcbo),''bat'')','Label','dos batch');
+uimenu('Parent',h,'Call','write_gmt_script(guidata(gcbo),''csh'')','Label','csh script');
 
 h = uimenu('Parent',hFL,'Label','Save As Fledermaus Objects');
 hVG(kv) = uimenu('Parent',h,'Call','mirone(''FileSaveFleder_CB'',guidata(gcbo),''writeSpherical'')',...
@@ -408,6 +408,7 @@ uimenu('Parent',h,'Call','vitrinite','Label','Vitrinite','Sep','on');
 uimenu('Parent',hTL,'Call','run_cmd(guidata(gcbo))','Label','Run ML Command','Sep','on');
 uimenu('Parent',hTL,'Call','line_operations(guidata(gcbo))','Label','Vector Operations','Tag','lineOP');
 % uimenu('Parent',hTL,'Call','autofaults(guidata(gcbo))','Label','Auto falhas','Sep','on');
+uimenu('Parent',hTL,'Call','tintol(guidata(gcbo))','Label','TINTOL');
 
 %% --------------------------- DRAW ------------------------------------
 hDR = uimenu('Parent',H1,'Label','Draw','Tag','Draw');
@@ -740,7 +741,7 @@ if (IamCompiled)
 end
 uimenu('Parent',h, 'Call',['mirone(''FileOpenWebImage_CB'',guidata(gcbo),',...
 	' ''http://www2.clustrmaps.com/stats/maps-clusters/w3.ualg.pt-~jluis-mirone-world.jpg'',''nikles'');'],'Label','See visitors map','Sep','on');
-uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 26 Feb 2013'',''2.4.0dev'')','Label','About','Sep','on');
+uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 21 Mar 2013'',''2.4.0dev'')','Label','About','Sep','on');
 
 %% --------------------------- Build HANDLES and finish things here
 	handles = guihandles(H1);
