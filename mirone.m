@@ -4276,7 +4276,7 @@ function TransferB_CB(handles, opt)
 		opt_W = sprintf('-W%d', resp.size);
 		opt_N = sprintf('-N%d', handles.have_nans);
 
-		Z = mirblock(Z, handles.head, opt_A, opt_N, opt_W);
+		Z = mirblock(Z, handles.head(1:9), opt_A, opt_N, opt_W);	% MUST flexiblize mirblock to acept 10 hdr elements
 		projWKT = getappdata(handles.figure1,'ProjWKT');
 		GRDdisplay(handles,X,Y,Z,handles.head,[],resp.name, projWKT);
 
