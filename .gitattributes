@@ -65,6 +65,7 @@ data/BarCode_Cox_direct.dat -text
 data/Cande_Kent_95.dat -text
 data/DEOS2K_poles.dat -text
 data/DSDP_ODP.dat -text
+data/GEODVEL_poles.dat -text
 data/GMT_patterns.jpg -text
 data/HydroVents.mat -text
 data/Impact_database_2010.kmz -text
