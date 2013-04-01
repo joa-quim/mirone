@@ -68,6 +68,7 @@ function [handles, X, Y, Z, head, misc] = read_gmt_type_grids(handles,fullname,o
 
 	if (~infoOnly)
 		[handles, X, Y, Z, head, misc] = read_grid(handles,fullname,tipo);
+		head = head(1:9);			% SRF7 returns a 10 elements header vector
 	elseif ( any(strcmp(tipo,{'CDF' 'SRF6' 'SRF7'})) )
 		if (opt(1) == 's')			% Get the info on the struct form
 			X = grdinfo_m(fullname, 'hdr_struct');		% Output goes in the second arg
