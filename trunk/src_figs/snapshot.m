@@ -5,7 +5,7 @@ function varargout = snapshot(varargin)
 %   snapshot(H,'whatever') as above but captures image and frame.
 %
 
-%	Copyright (c) 2004-2012 by J. Luis
+%	Copyright (c) 2004-2013 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -19,6 +19,8 @@ function varargout = snapshot(varargin)
 %
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
+
+% $Id: $
 
 	if (isempty(varargin))
 	    errordlg('SNAPSHOT: wrong number of input arguments.','Error'),		return
@@ -274,9 +276,9 @@ function slider_mag_CB(hObject, handles)
 	mag = get(hObject,'Value');
 	set(handles.edit_mag,'String',mag);
 	if (~handles.vecGraph)
-		if (handles.imgOnly)
+		if (handles.imgOnly)		% Image size as reinterpolated to fit inside axes
 			nRows = handles.imAxSize(1) * mag;      nCols = handles.imAxSize(2) * mag;
-		else
+		else						% handles.pp = PaperPosition
 			nRows = round(handles.pp(1) * mag);     nCols = round(handles.pp(2) * mag);
 		end
 		Megs = nRows * nCols * 3 / 1048576;
