@@ -4276,9 +4276,14 @@ function TransferB_CB(handles, opt)
 		opt_W = sprintf('-W%d', resp.size);
 		opt_N = sprintf('-N%d', handles.have_nans);
 
-		Z = mirblock(Z, handles.head(1:9), opt_A, opt_N, opt_W);	% MUST flexiblize mirblock to acept 10 hdr elements
+		Z = mirblock(Z, handles.head, opt_A, opt_N, opt_W);	% MUST flexiblize mirblock to acept 10 hdr elements
+		ind = find(isinf(Z(:)));
+		if (~isempty(ind)),	Z(ind) = NaN;	end
 		projWKT = getappdata(handles.figure1,'ProjWKT');
 		GRDdisplay(handles,X,Y,Z,handles.head,[],resp.name, projWKT);
+		if (handles.geog && (resp.method == 6 || resp.method == 7))
+			warndlg('WARNING: Sorry, computation of SLOPE or ASPECT of geographical grids is incorrect.', 'WARNERROR')
+		end
 
  	elseif (strcmp(opt,'dump'))					% Show the RAM fragmentation (Windows only)
 		dumpmemmex
