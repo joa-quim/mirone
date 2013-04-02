@@ -208,6 +208,7 @@ uitoggletool('parent',h_toolbar,'cdata',earthNorth_ico,'Tag','earthNorth','Click
 uitoggletool('parent',h_toolbar,'cdata',earthSouth_ico,'Tag','earthSouth','Click',{@toggle_clicked_CB3,h_toolbar},...
 	'Tooltip','Place all output poles in the southern hemisphere');
 uipushtool('parent',h_toolbar,'cdata',GE_ico,'Click',@GE_clicked_CB,'Tooltip','Plot selected poles in GoogleEarth','Sep','on');
+uipushtool('parent',h_toolbar,'Click',@GMT_clicked_CB,'Tooltip','Create a GMT script to plot poles');
 uipushtool('parent',h_toolbar,'Click',@help_clicked_CB,'Tag','help','Tooltip','Help', 'cdata',help_ico,'Sep','on');
 
 uicontrol('style','frame', 'position',[ffs ffs 2*fus+listsize(1) 2*fus+uh])
@@ -412,7 +413,10 @@ helpdlg(str,'Help')
 % --------------------------------------------------------------------------------------------------
 function GE_clicked_CB(obj,evt)
 	writekml(prepare_poles_struct('kml'))
-	%writeGMTscript(prepare_poles_struct('gmt'))
+
+% --------------------------------------------------------------------------------------------------
+function GMT_clicked_CB(obj,evt)
+	writeGMTscript(prepare_poles_struct('gmt'))
 
 % --------------------------------------------------------------------------------------------------
 function out = prepare_poles_struct(opt)
@@ -454,6 +458,8 @@ function out = prepare_poles_struct(opt)
 % --------------------------------------------------------------------------------------------------
 function writeGMTscript(in)
 % Write a GMT script in $MIRONEROOT/tmp to plot the poles in an Orthographic projection
+% Also display the commnads in a message window
+
 	x_min = min(in.x);			x_max = max(in.x);
 	y_min = min(in.y);			y_max = max(in.y);
 	x_range = x_max - x_min;	y_range = y_max - y_min;
@@ -465,8 +471,13 @@ function writeGMTscript(in)
 	ad = getappdata(0,'ListDialogAppData');
 	fiche_dat  = [ad.home_dir '/tmp/poles_data.dat'];
 	fiche_bat  = [ad.home_dir '/tmp/plot_poles.bat'];
+	n_poles = numel(in.str);
+	script_str = cell(n_poles*2 + 4, 1);
 	fid = fopen(fiche_dat,'wt');
-	for (k = 1:numel(in.str))
+	for (k = 1:n_poles)
+		script_str{k+4} = sprintf('echo %.2f %.2f | psxy -R -JG -Sa0.2c -Gblack -fg -O -K >> poles.ps', in.x(k), in.y(k));
+		script_str{k+4+n_poles} = sprintf('echo %.2f %.2f 12 0 5 LB %s | pstext -R -JG -fg -Dj0.1 -O >> poles.ps', ...
+			in.x(k), in.y(k), in.str{k});
 		fprintf(fid,'%.2f\t%.2f\t12\t0\t5\tLB\t%s\n', in.x(k), in.y(k), in.str{k});
 	end
 	fclose(fid);
@@ -476,6 +487,10 @@ function writeGMTscript(in)
 	fprintf(fid,'psxy %s -R -JG -Sa0.2c -Gblack -fg -O -K >> poles.ps\n', fiche_dat);
 	fprintf(fid,'pstext %s -R -JG -fg -Dj0.1 -O >> poles.ps', fiche_dat);
 	fclose(fid);
+	script_str{1} = 'Plot poles in Orthographic projection';
+	script_str{3} = sprintf('pscoast -Rg -JG%.1f/%.1f/%.0f/13c -Di -A5000 -G200 -W0.5p -Bg15 -K -P > poles.ps', ...
+		x_c, y_c, horizon);
+	message_win('create',script_str,'figname','Poles script','edit','sim')
 
 %-----------------------------------------------------------------------------------
 function doCancel(varargin)
