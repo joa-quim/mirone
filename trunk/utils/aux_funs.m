@@ -114,7 +114,12 @@ function [x,y,indx,indy,hdr_str] = in_map_region(handles, x, y, tol, map_lims, h
         x_lim(1:2) = map_lims(1:2);    y_lim(1:2) = map_lims(3:4);
 	end
 	if (handles.geog == 2 && x_lim(2) > 180)			% If basemap is in the [0 360] range
-		indx = (x < 0);		x(indx) = x(indx) + 360;	% and we may need the wrapping. Do it.
+		indx = (x < 0);									% and we may need the wrapping. Do it.
+		if (isa(x,'double'))
+			x(indx) = x(indx) + 360;
+		else
+			x(indx) = single(double(x(indx)) + 360);	% Very bad luck if they are integers
+		end
 	end
 
 	if (tol >= 0)
