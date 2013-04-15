@@ -107,6 +107,7 @@ function out = deal_opts(opt, opt2, varargin)
 							hCust = uimenu(opt2, 'Label', 'Custom','Sep','on');
 						end
 						uimenu(hCust, 'Label', 'Show GMT db polygon IDs', 'Call', @sow_GMT_DB_IDs);
+						uimenu(hCust, 'Label', 'Load GMT db polygon(s)', 'Call',  @load_GMT_DB);
 						break
 					end
 			end
@@ -313,3 +314,18 @@ function sow_GMT_DB_IDs(obj, event)
 	else
 		msgbox('Nope, nothing arround here')
 	end
+
+% -----------------------------------------------------------------------------------------
+function load_GMT_DB(obj, event)
+% Load one of the GMT DB ASCII files and trim contents such that only elements that
+% totally or partially cross the rectangle area are displayed.
+
+	hRect = gco;		handles = guidata(hRect);
+	[FileName, PathName, handles] = put_or_get_file(handles, ...
+		{'*.txt;*.TXT;*.dat;*DAT', 'Data files (*.txt,*.TXT,*.dat,*.DAT)';'*.*', 'All Files (*.*)'},'Select File','get');
+	if isequal(FileName,0),		return,		end
+	fname = [PathName FileName];
+
+	rx = get(hRect,'XData');		ry = get(hRect,'YData');
+	handles.ROI_rect = [min(rx) max(rx) min(ry) max(ry)];	% Signal load_xyz() that we want to use this ROI
+	load_xyz(handles, fname)
