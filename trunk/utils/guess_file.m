@@ -1,11 +1,20 @@
-function [bin,n_column,multi_seg,n_headers] = guess_file(fiche, opt1, opt2)
-% [bin,n_column,multi_seg,n_headers] = guess_file(fiche, opt1, opt2) trys to guess if file "fiche"
-% is ascii or binary. 
+function [bin,n_column,multi_seg,n_headers,isGSHHS] = guess_file(fiche, opt1, opt2)
+% Guess characteristics of file "fiche"
+%
+% Input:
+%	OPT1, if given, will be MAXCHARS
+%	OPT2, if given, will be nl_max
+%
+% Output
+%	BIN        0 or 1, if file is ascii or binary, or empty if error loading file.
+%	N_COLUMN   Number of columns of the data section
+%	MULTI_SEG  0 or 1 depending if file is of the GMT multi-segment type or not
+%	N_HEADERS  Number of headers in file
+%	ISGSHHS    TRUE or FALSE depending if file is a GMT "GSHHS Master File" or not
+%
 % If it detects that "fiche" is ascii this function tries to find out wether the multisegment
 % symbol (">") is present, the number of columns in the file and if it has header lines.
 % NOTE that this last tests may not always give reliable results.
-% OPT1, if given, will be MAXCHARS
-% OPT2, if given, will be nl_max
 
 %	Copyright (c) 2004-2013 by J. Luis
 %
@@ -59,7 +68,6 @@ function [bin,n_column,multi_seg,n_headers] = guess_file(fiche, opt1, opt2)
 		bin = guess_in_bin(fiche);
         return
 	end
-	clear A;
 
 	str = strread(str,'%s','delimiter','\n');
 	if (isempty(str)),		bin = [];	return,		end		% Will trigger a 'Don't know' message
@@ -74,7 +82,7 @@ function [bin,n_column,multi_seg,n_headers] = guess_file(fiche, opt1, opt2)
 	delimiters = [9:13 32 44];	% White space characters plus comma
     n_col(1:nl_max) = 0;    n_multi = 0;
     idM = false(1,nl_max);
-    for (i =1:nl_max)
+    for (i = 1:nl_max)
         if isempty(str{i});  continue,   end		% Jump blank lines
         if (str{i}(1) == '#' || str{i}(1) == '%'),		continue,   end		% Jump known comment lines
         if strfind(str{i}(1:min(2,length(str{i}))),'>')   % multisegmet line, so the rest of it is of no interest (but count them)
@@ -119,7 +127,7 @@ function [bin,n_column,multi_seg,n_headers] = guess_file(fiche, opt1, opt2)
 	if (nargout <= 3),		return,		end
 	
     % Now test if header lines are present (ascii 65:122 contain upper and lower case letters)
-	for j=1:m
+	for (j = 1:m)
         head = find((str{j} > 32 & str{j} < 43) | str{j} > 58);
         tmp = find(str{j} == 78);    % I'm searching for a NaN string (ascii 78,97,78)
         if ~isempty(tmp) && length(tmp) >= 2
@@ -159,6 +167,15 @@ function [bin,n_column,multi_seg,n_headers] = guess_file(fiche, opt1, opt2)
 				n_headers = n_headers + 1;
 				j = j + 1;
 			end
+		end
+	end
+
+	if (nargout == 5)
+		resp = strfind(str(1:n_headers), 'GSHHS Master');
+		isGSHHS = ~isempty(cat(1,resp{:}));
+		if (~isGSHHS)		% Try if WDBII
+			resp = strfind(str(1:n_headers), 'WDBII Borders');
+			isGSHHS = ~isempty(cat(1,resp{:}));
 		end
 	end
 
