@@ -78,6 +78,8 @@ function varargout = vdist(lat1,lon1,lat2,lon2,ellipsoide)
 %
 % Joaquim Luis
 
+% $Id$
+
 	% Input check:
 	if any(abs(lat1) > 90 | abs(lat2) > 90)
 		error('VIDIST: Input latitudes must be between -90 and 90 degrees, inclusive.')
