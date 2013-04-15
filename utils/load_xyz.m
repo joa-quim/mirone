@@ -85,6 +85,7 @@ function varargout = load_xyz(handles, opt, opt2)
 	BB = [];					% To eventually hold a BoundingBox
 	is_GMT_DB = false;			% To flag the special cases when we are dealing with the GMT database polygons
 	do_nesting = false;			% To flag when the imported file is 'Nesting squares'
+	isGSHHS = false;			% To flg when we are dealing with a GSHHS polygon
 	% -------------------------------------------------------------------------------
 
 	% ------------------- PARSE INPUTS ----------------------------------------------
@@ -124,7 +125,7 @@ function varargout = load_xyz(handles, opt, opt2)
 
 	if (~got_nc)			% Most common cases
 
-		[bin, n_column, multi_seg, n_headers] = guess_file(fname);
+		[bin, n_column, multi_seg, n_headers, isGSHHS] = guess_file(fname);
 		if (isempty(bin))
 			errordlg(['Error reading file (probably empty)' fname],'Error'),	return
 		end
@@ -202,7 +203,7 @@ function varargout = load_xyz(handles, opt, opt2)
 		if (ischar(handles.DefLineColor) && handles.DefLineColor(1) == 'w')
 			handles.DefLineColor = 'k';		% To not plot a white line over a white background
 		end
-		XMin = 1e50;			XMax = -1e50;    YMin = 1e50;            YMax = -1e50;
+		XMin = 1e50;		XMax = -1e50;    YMin = 1e50;	YMax = -1e50;
 
 		for (k = 1:numel(names))
 			fname = names{k};
@@ -265,6 +266,7 @@ function varargout = load_xyz(handles, opt, opt2)
 		mirone('FileNewBgFrame_CB', handles, [region handles.geog])	% Create a background
 		hMirFig = handles.figure1;
 		drawnow						% Otherwise it takes much longer to plot and other shits
+
 	elseif (~nargout)				% Reading over an established region
 		XYlim = getappdata(handles.axes1,'ThisImageLims');
 		xx = XYlim(1:2);			yy = XYlim(3:4);
@@ -289,14 +291,18 @@ function varargout = load_xyz(handles, opt, opt2)
 			if (isempty(j)),    fname = sprintf('%s%s',PathName, fname);   end		% Need to add path as well 
 			if (isempty(n_headers)),    n_headers = NaN;    end
 			if (~got_nc)			% Otherwise data was read already
-				if (multi_seg)
-					[numeric_data, multi_segs_str] = text_read(fname,NaN,n_headers,'>');
-				elseif (~is_bin)
-					numeric_data = text_read(fname,NaN,n_headers);
-				else				% Try luck with a binary file
-					fid = fopen(fname);		numeric_data = fread(fid,['*' bin.type]);		fclose(fid);
-					numeric_data = reshape(numeric_data,bin.nCols,numel(numeric_data)/bin.nCols)';
-					if (bin.twoD && (bin.nCols > 2)),	numeric_data(:,3:end) = [];		end % Retain only X,Y
+				if (isGSHHS)		% Special case of a "GSHHS Master File" that must be dealt first
+					[numeric_data, multi_segs_str] = swallow_GSHHS(handles, fname);
+				else
+					if (multi_seg)
+						[numeric_data, multi_segs_str] = text_read(fname,NaN,n_headers,'>');
+					elseif (~is_bin)
+						numeric_data = text_read(fname,NaN,n_headers);
+					else				% Try luck with a binary file
+						fid = fopen(fname);		numeric_data = fread(fid,['*' bin.type]);		fclose(fid);
+						numeric_data = reshape(numeric_data,bin.nCols,numel(numeric_data)/bin.nCols)';
+						if (bin.twoD && (bin.nCols > 2)),	numeric_data(:,3:end) = [];		end % Retain only X,Y
+					end
 				end
 			end
 		end
@@ -411,8 +417,7 @@ function varargout = load_xyz(handles, opt, opt2)
 		% -----------------------------------------------------------------------------------
 
 		% ------------------ Check if it is a GSHHS or WDBII file ---------------------------
-		if (numel(multi_segs_str{1}) > 120 && strcmp(multi_segs_str{1}(2:7),' Id = ') && ...
-				numel(strfind(multi_segs_str{1},'=')) > 10)
+		if (isGSHHS)
 			tag = 'GMT_DBpolyline';		is_GMT_DB = true;
 		end
 		% -----------------------------------------------------------------------------------
@@ -868,7 +873,49 @@ function out = read_shapenc(fname)
 	out.n_PolyOUT = n_PolyOUT;
 	out.n_PolyIN  = n_PolyIN;
 
-% ------------------------------------------------------------------
+% ---------------------------------------------------------------------
+function [numeric_data, multi_segs_str] = swallow_GSHHS(handles, fname)
+% Read GMT GSHHS DB files. Specially the GSHHS_f_Level_1.txt
+
+	if (isfield(handles,'ROI_rect'))	% As for example set by deal_opts->load_GMT_DB()
+		XYlim = handles.ROI_rect;
+	else
+		XYlim = getappdata(handles.axes1,'ThisImageLims');
+	end
+	if (XYlim(1) < 0),	XYlim(1) = XYlim(1) + 360;	end
+	if (XYlim(2) < 0),	XYlim(2) = XYlim(2) + 360;	end
+	[bin,n_column,multi_seg,n_headers] = guess_file(fname);		% Repeated op but never mind, it's a fast one
+	[hdrs, ind] = txt2mat(fname, 'NumHeaderLines',n_headers,'Format','%s','GoodLineString',{'>'},'ReadMode','cell');
+	nTot = numel(hdrs);
+	numeric_data = cell(nTot,1);
+	c = true(nTot,1);
+	P1.x = [XYlim(1) XYlim(1) XYlim(2) XYlim(2) XYlim(1)];	P1.hole = 0;
+	P1.y = [XYlim(3) XYlim(4) XYlim(4) XYlim(3) XYlim(3)];	P2.hole = 0;
+	hBar = aguentabar(0,'title','Scanning a GSHHS DB file');
+	for (k = 1:nTot)
+		idR = strfind(hdrs{k}, 'R =');		idA = strfind(hdrs{k}, 'A =');
+		lim = sscanf(hdrs{k}(idR(1)+4:idA(1)-2), '%f/%f/%f/%f');
+		% Compute the intersection of two rectangles
+		P2.x = [lim(1) lim(1) lim(2) lim(2) lim(1)];
+		P2.y = [lim(3) lim(4) lim(4) lim(3) lim(3)];
+		P3 = PolygonClip(P1, P2, 1);				% Intersection of the two rectangles
+		if (isempty(P3))
+			c(k) = false;
+			continue
+		end
+		idN = strfind(hdrs{k}, 'N =');		idG = strfind(hdrs{k}, 'G =');
+		nPts = sscanf(hdrs{k}(idN(1)+4:idG(1)-2), '%d');
+		numeric_data{k} = ...
+			txt2mat(fname,'RowRange',[1,nPts], 'FilePos',ind(k),'NumHeaderLines',1,'NumColumns',2,'Format','%f %f', 'InfoLevel',1);
+		if (rem(k,100) == 0)
+			aguentabar(k/nTot)
+		end
+	end
+	multi_segs_str = hdrs(c);
+	numeric_data(~c) = [];		% Remove unused cells
+	if (ishandle(hBar)),	aguentabar(1),	end
+	
+% ---------------------------------------------------------------------
 function [b, ndx_first, ndx_last] = local_unique(a)
 % Striped version of unique that outputs 'first' and 'last'
 	numelA = numel(a);
