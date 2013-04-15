@@ -171,11 +171,18 @@ function [bin,n_column,multi_seg,n_headers,isGSHHS] = guess_file(fiche, opt1, op
 	end
 
 	if (nargout == 5)
-		resp = strfind(str(1:n_headers), 'GSHHS Master');
-		isGSHHS = ~isempty(cat(1,resp{:}));
+		isGSHHS = false;
+		for (k = 1:n_headers)
+			if (strfind(str{k}, 'GSHHS Master'))
+				isGSHHS = true;		break
+			end
+		end
 		if (~isGSHHS)		% Try if WDBII
-			resp = strfind(str(1:n_headers), 'WDBII Borders');
-			isGSHHS = ~isempty(cat(1,resp{:}));
+			for (k = 1:n_headers)
+				if (strfind(str{k}, 'WDBII Borders'))
+					isGSHHS = true;		break
+				end
+			end
 		end
 	end
 
