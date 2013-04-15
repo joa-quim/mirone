@@ -80,7 +80,10 @@ function varargout = vdist(lat1,lon1,lat2,lon2,ellipsoide)
 
 	% Input check:
 	if any(abs(lat1) > 90 | abs(lat2) > 90)
-		error('Input latitudes must be between -90 and 90 degrees, inclusive.')
+		error('VIDIST: Input latitudes must be between -90 and 90 degrees, inclusive.')
+	end
+	if (isempty(lon1) || isempty(lat1) || isempty(lon2) || isempty(lat2))
+		error('VIDIST: at least one of the input arguments is empty.')
 	end
 	% if (all(abs(lat2-lat1) < 1e-7) && all(abs(lon2-lon1) < 1e-7))
 	% 	return
@@ -158,7 +161,7 @@ function varargout = vdist(lat1,lon1,lat2,lon2,ellipsoide)
 		itercount = itercount+1;
 		if itercount > 50
 			if ~warninggiven
-				warning('Essentially antipodal points encountered. Precision may be reduced slightly.');
+				warning('VDIST: Essentially antipodal points encountered. Precision may be reduced slightly.');
 			end
 			lambda(notdone) = pi;
 			break
@@ -184,7 +187,7 @@ function varargout = vdist(lat1,lon1,lat2,lon2,ellipsoide)
 		% correct for convergence failure in the case of essentially antipodal
 		% points
 		if any(lambda(notdone) > pi)
-			warning('Essentially antipodal points encountered. Precision may be reduced slightly.');
+			warning('VDIST: Essentially antipodal points encountered. Precision may be reduced slightly.');
 			warninggiven = true;
 			lambdaold(lambda>pi) = pi;
 			lambda(lambda>pi) = pi;
