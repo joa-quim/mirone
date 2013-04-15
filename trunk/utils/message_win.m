@@ -206,7 +206,7 @@ function [figpos, figName, posTxt, movepos, bgcolor, fwcolor, Font, addButt, win
 				case 'fontsize',	Font.Size = varargin{k+1};
 				case 'fontname',	Font.Name = varargin{k+1};
 				case 'button',		addButt = true;
-				case 'modal',		modal = true;
+				case 'modal',		modal = strcmp(varargin{k+1},'modal');
 				case 'edit',		editBox = true;
 			end
 		end
