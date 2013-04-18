@@ -2551,6 +2551,8 @@ function save_GMT_DB_asc(h, fname)
 		if ( isempty(getappdata(h(k), 'edited')) ),		continue,	end		% Skip because it was not modified
 		hdr = getappdata(h(k), 'LineInfo');
 		x = get(h(k), 'XData');			y = get(h(k), 'YData');
+		indNaN = find(isnan(x));
+		if (~isempty(indNaN)),	x(indNaN) = [];		y(indNaN) = [];		end	% We don't want NaNs in this story
 		ind1 = strfind(hdr,'N = ');		ind2 = strfind(hdr,'G = ');
 		hdr = sprintf('> %s%d %s', hdr(1:ind1+3), numel(x), hdr(ind2:end));
 		fprintf(fid,'%s\n',hdr);
