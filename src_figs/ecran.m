@@ -958,8 +958,8 @@ function FileOpen_CB(hObject, handles)
 				
 				scale = NaN;	offset = NaN;
 				if (~isempty(ind1) && ~isempty(ind2))
-					scale  = sscanf(t(ind1(1)+6), '%f');
-					offset = sscanf(r(ind2(1)+7), '%f');
+					scale  = sscanf(t(ind1(1)+6:end), '%f');
+					offset = sscanf(r(ind2(1)+7:end), '%f');
 				end
 				if ( any(isnan([scale offset])) )
 					warndlg('Badly formated line to instruct the scaling/offset of imported file.','WarnError')
