@@ -1987,12 +1987,14 @@ function rectangle_register_img(obj, event)
 
 	handles.fileName = [];							% Not loadable in session
 	if (handles.validGrid)
-		new_xlim = linspace(new_xlim(1),new_xlim(2),size(img,2));		new_ylim = linspace(new_ylim(1),new_ylim(2),size(img,1));
+		new_xlim = linspace(new_xlim(1),new_xlim(2),size(img,2));
+		new_ylim = linspace(new_ylim(1),new_ylim(2),size(img,1));
 		setappdata(handles.figure1,'dem_x',new_xlim);  	setappdata(handles.figure1,'dem_y',new_ylim);
 	end
 
 	if (handles.geog)
-		mirone('SetAxesNumericType',handles,[])		% Set axes uicontextmenus
+		set(handles.toGE,'Enable','on')
+		mirone('SetAxesNumericType',handles,[]);	% Set axes uicontextmenus
 	end
 	guidata(handles.figure1, handles);
 	for (k = 1:numel(ALLlineHand))
@@ -2435,6 +2437,24 @@ function remove_symbolClass(obj,eventdata,h)
 		h_all = findobj(gca,'Tag',tag);
 	end
 	delete(h_all)
+
+% -----------------------------------------------------------------------------------------
+function make_age_script_(obj, evt)
+% Calcula polos finitos da isoca N para a N+1
+% 	D2R = pi/180;
+% 	hLine = gco;
+% 	LineInfo = getappdata(hLine,'LineInfo');
+% 	ind = strfind(LineInfo, 'FINITE"');
+% 	[t, r] = strtok(LineInfo(ind(1)+7:end));
+% 	p_lon = sscanf(t, '%f');
+% 	[t, r] = strtok(r);			p_lat = sscanf(t, '%f');
+% 	[t, r] = strtok(r);			p_ang = sscanf(t, '%f');
+% 	[t, r] = strtok(r);			p_age = sscanf(t, '%f');
+% 	x = get(hLine,'Xdata');		y = get(hLine,'Ydata');
+% 	%vdist(p_lat, p_lon, y(1), x(1));
+% 	c = sin(p_lat*D2R)*sin(y(1)*D2R) + cos(p_lat*D2R)*cos(y(1)*D2R)*cos( (p_lon-x(1))*D2R );
+% 	rad = acos(c) / D2R;
+% 	[latc,lonc] = circ_geo(p_lat, p_lon, rad, [], 360);
 
 % -----------------------------------------------------------------------------------------
 function make_age_script(obj, evt)
