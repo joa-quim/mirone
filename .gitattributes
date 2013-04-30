@@ -477,6 +477,7 @@ src_figs/telhometro.m -text
 src_figs/thresholdit.m -text
 src_figs/tiles_tool.m -text
 src_figs/time_stamp.m -text
+src_figs/travel.m -text
 src_figs/tsunamovie.m -text
 src_figs/umDmovie.m -text
 src_figs/vector_project.m -text
