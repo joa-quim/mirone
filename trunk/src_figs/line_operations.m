@@ -739,7 +739,8 @@ function update_GMT_DB(handles, TOL)
 % It would be nice to search for the closest GMT_DB / Updater pair and not just the first
 % one that is found, but I'm not sure it worth the effort. Some day perhaps.
 
-	ds = 0.02;			% Endpoints must be closer than this to the GMD_DB polygones 
+	ds = 0.02;			% Endpoints must be closer than this to the GMD_DB polygones
+	Is = [];			% Will be used to know if nothing found/done
 	hGMT_DB = findobj(handles.hMirAxes, 'tag','GMT_DBpolyline');
 	hLines = findobj(handles.hMirAxes, 'type', 'line');
 	hLines = setxor(hGMT_DB, hLines);	% The hGMT_DB was repeated as they are also of type 'line'
@@ -764,6 +765,13 @@ function update_GMT_DB(handles, TOL)
 				y0 = y(end) - ds;		y1 = y(end) + ds;
 				ind = ( xG > x0 & xG < x1 & yG > y0 & yG < y1);
 				id = find(ind);			% Index of points inside the searching region
+				if (isempty(id))
+					x0 = xG(end) - ds;		x1 = xG(end) + ds;
+					y0 = yG(end) - ds;		y1 = yG(end) + ds;					
+					ind = ( x > x0 & x < x1 & y > y0 & y < y1);
+					id = find(ind);
+					if (isempty(id)),	Is = [];	continue;	end
+				end
 				dist = vdist(y(end), x(end), yG(id), xG(id), [6378137, 0, 1/298.2572235630]);
 				[minE, Ie] = min(dist);
 				Ie = Ie + id(1) - 1;
@@ -781,6 +789,9 @@ function update_GMT_DB(handles, TOL)
 				break
 			end
 		end
+	end
+	if (isempty(Is))
+		warndlg('Nada, Nothing, Nickles. No polygons updated','Warning')
 	end
 
 function [x, y] = check_bombordo(hLine)
