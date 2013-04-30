@@ -397,7 +397,7 @@ uimenu('Parent',hTL,'Call','empilhador(guidata(gcbo))','Label','Empilhador');
 uimenu('Parent',hTL,'Call','slices(guidata(gcbo))','Label','Slices');
 uimenu('Parent',hTL,'Call','tiles_tool(guidata(gcbo))','Label','Tiling Tool','Sep','on');
 hVG(kv) = uimenu('Parent',hTL,'Call','diluvio(guidata(gcbo))','Label','Noe Diluge','Sep','on');		kv = kv + 1;
-hVG(kv) = uimenu('Parent',hTL,'Call','travel(guidata(gcbo))','Label','Mirone Travel','Sep','on');	kv = kv + 1;
+uimenu('Parent',hTL,'Call','travel(guidata(gcbo))','Label','Mirone Travel','Sep','on');
 uimenu('Parent',hTL,'Call','world_is_not_round_enough(guidata(gcbo))','Label','World is not (round) enough','Sep','on');
 uimenu('Parent',hTL,'Call','mk_movie_from_list(guidata(gcbo))', 'Label','Make movie from image list','Sep','on');
 
