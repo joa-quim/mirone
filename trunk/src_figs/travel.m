@@ -1,7 +1,7 @@
 function varargout = travel(varargin)
 % Tool to load a figure, reference it in Geogs and send it GE
 
-%	Copyright (c) 2004-2012 by J. Luis
+%	Copyright (c) 2004-2013 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
