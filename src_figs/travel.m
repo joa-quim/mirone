@@ -41,6 +41,7 @@ function varargout = travel(varargin)
 	handles.path_tmp = [handles.home_dir filesep 'tmp' filesep];
 
 	set(hObject,'Vis','on');
+	if (nargout),       varargout{1} = hObject;    end
 	guidata(handles.figure1, handles)
 
 % ---------------------------------------------------------------------------------------
