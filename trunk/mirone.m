@@ -225,6 +225,16 @@ function hObject = mirone_OpeningFcn(varargin)
 			else					grid_info(handles,tmp.srsWKT,'referenced',varargin{1});
 			end
 			handles = aux_funs('isProj',handles);				% Check/set about coordinates type
+			
+		elseif (n_argin == 1 && isa(varargin{1},'struct') && isfield(varargin{1},'ProjectionRefPROJ4'))
+			% A GMT5 grid/image structure (image not implemented yet).
+			handles.head = [varargin{1}.range varargin{1}.MinMax varargin{1}.registration varargin{1}.inc];
+			Z = varargin{1}.data;		grd_data_in = true;
+			if (~isa(Z,'single')),		Z = single(Z);		end
+			handles.have_nans = grdutils(Z,'-N');
+			X = linspace(varargin{1}.range(1), varargin{1}.range(2), varargin{1}.n_columns);
+			Y = linspace(varargin{1}.range(3), varargin{1}.range(4), varargin{1}.n_rows);
+
 		elseif ( n_argin < 4 && ~(isa(varargin{1},'uint8') || isa(varargin{1},'int8')) )
 			% A matrix. Treat it as if it is a gmt grid. No error testing on the grid head descriptor
 			Z = varargin{1};			grd_data_in = true;
