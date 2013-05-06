@@ -223,7 +223,7 @@ function set_line_uicontext(h, opt)
 		case 'line'
 			label_save = 'Save line';   label_length = 'Line length(s)';   label_azim = 'Line azimuth(s)';
 			IS_LINE = true;		IS_MBTRACK = false;
-			if ( strcmp(get(h,'Tag'),'Seta') )		IS_ARROW = true;	end
+			if (strcmp(get(h,'Tag'),'Seta')),		IS_ARROW = true;	end
 		case 'MBtrack'
 			label_save = 'Save track';   label_length = 'Track length';   label_azim = 'Track azimuth(s)';
 			IS_LINE = false;	IS_MBTRACK = true;
@@ -565,7 +565,7 @@ function join_lines(obj,evt,hFig)
 
 	hCurrLine = gco;
 	hLines = get_polygon(hFig,'multi');		% Get the line handles
-	if (isempty(hLines))	return,		end
+	if (isempty(hLines)),	return,		end
 	hLines = setxor(hLines, hCurrLine);
 	if (numel(hLines) == 0),	return,		end		% Nothing to join
 	for (k = 1:numel(hLines))
@@ -647,10 +647,10 @@ function hh = loc_quiver(struc,varargin)
 		hQuiver = [];		spacingChanged = [];		hAx = gca;		lc = 'k';	lThick = 1;
 	else
 		hQuiver = struc.hQuiver;		spacingChanged = struc.spacingChanged;		hAx = struc.hAx;
-		if (isfield(struc, 'color'))	lc = struc.color;
+		if (isfield(struc, 'color')),	lc = struc.color;
 		else							lc = 'k';
 		end
-		if (isfield(struc, 'thick'))	lThick = struc.thick;
+		if (isfield(struc, 'thick')),	lThick = struc.thick;
 		else							lThick = 1;
 		end
 	end
@@ -986,7 +986,7 @@ function set_isochrons_uicontext(h, data)
 	cb_ClassLineStyle = uictx_Class_LineStyle(h);    % there are 4 cb_ClassLineStyle outputs
 	item_Class_lt = uimenu(cmenuHand, 'Label', ['All ' tag ' Line Style']);
 	setLineStyle(item_Class_lt,{cb_ClassLineStyle{1} cb_ClassLineStyle{2} cb_ClassLineStyle{3} cb_ClassLineStyle{4}})
-	%uimenu(cmenuHand, 'Label', 'Make Age-script', 'Sep','on', 'Call', @make_age_script);
+	%uimenu(cmenuHand, 'Label', 'Make Age-script', 'Sep','on', 'Call', @make_age_script_);
 	uimenu(cmenuHand, 'Label', 'Euler rotation', 'Sep','on', 'Call', 'euler_stuff(gcf,gco)');
 	for (i=1:length(h)),		ui_edit_polygon(h(i)),		end		% Set edition functions
 
@@ -2439,24 +2439,6 @@ function remove_symbolClass(obj,eventdata,h)
 	delete(h_all)
 
 % -----------------------------------------------------------------------------------------
-function make_age_script_(obj, evt)
-% Calcula polos finitos da isoca N para a N+1
-% 	D2R = pi/180;
-% 	hLine = gco;
-% 	LineInfo = getappdata(hLine,'LineInfo');
-% 	ind = strfind(LineInfo, 'FINITE"');
-% 	[t, r] = strtok(LineInfo(ind(1)+7:end));
-% 	p_lon = sscanf(t, '%f');
-% 	[t, r] = strtok(r);			p_lat = sscanf(t, '%f');
-% 	[t, r] = strtok(r);			p_ang = sscanf(t, '%f');
-% 	[t, r] = strtok(r);			p_age = sscanf(t, '%f');
-% 	x = get(hLine,'Xdata');		y = get(hLine,'Ydata');
-% 	%vdist(p_lat, p_lon, y(1), x(1));
-% 	c = sin(p_lat*D2R)*sin(y(1)*D2R) + cos(p_lat*D2R)*cos(y(1)*D2R)*cos( (p_lon-x(1))*D2R );
-% 	rad = acos(c) / D2R;
-% 	[latc,lonc] = circ_geo(p_lat, p_lon, rad, [], 360);
-
-% -----------------------------------------------------------------------------------------
 function make_age_script(obj, evt)
 % ...
 	pato = 'C:\a1\mgd77\AGU12\';
@@ -2469,35 +2451,32 @@ function make_age_script(obj, evt)
 	fprintf(fidJob, 'del /Q %%fname%%\n');
 	for (i = 1:numel(hAllIsocs))
 		LineInfo = getappdata(hAllIsocs(i),'LineInfo');
-		if (~isempty(LineInfo))
-			ind = strfind(LineInfo, 'STG');
-			if (~isempty(ind))
-				%strfind(LineInfo(1:6),' '
-				isoc_name = strtok(LineInfo);
-				pole_name = sprintf('%spolo_%d.stg', pato, i);
-				A = sscanf(LineInfo(ind+4:end), '%f %f %f %f %f');
-				stg = sprintf('%.9g %.9g %.9g %.9g %.9g', A(1),A(2),A(3)-A(4),0,A(5));
-				fid = fopen(pole_name,'wt');					%  The stage pole file
-				fprintf(fid, '%s\n', stg);
-				fclose(fid);
-				x = get(hAllIsocs(i), 'XData');		y = get(hAllIsocs(i), 'YData');
-				isoc_name = sprintf('%sisoca_%d_%s.dat', pato, i, isoc_name);	% reuse the variable 'isoc_name'
-				fid = fopen(isoc_name,'wt');					%  The isochrone file
-				fprintf(fid, '> %s\n', LineInfo(1:ind-1));
-				fprintf(fid, '%.4f\t%.4f\n', [x(:)'; y(:)']);
-				fclose(fid);
-				fprintf(fidJob, 'telha %s -E%s -A %%opt_D%% %%opt_S%% -O%g %%opt_P%% >> %%fname%%\n', isoc_name, pole_name, A(4));
+		if (isempty(LineInfo)),		continue,	end
+		ind = strfind(LineInfo, 'STG');
+		if (isempty(ind)),		continue,	end
+		isoc_name = strtok(LineInfo);
+		pole_name = sprintf('%spolo_%d.stg', pato, i);
+		A = sscanf(LineInfo(ind+4:end), '%f %f %f %f %f');
+		stg = sprintf('%.9g %.9g %.9g %.9g %.9g', A(1),A(2),A(3)-A(4),0,A(5));
+		fid = fopen(pole_name,'wt');					%  The stage pole file
+		fprintf(fid, '%s\n', stg);
+		fclose(fid);
+		x = get(hAllIsocs(i), 'XData');		y = get(hAllIsocs(i), 'YData');
+		isoc_name = sprintf('%sisoca_%d_%s.dat', pato, i, isoc_name);	% reuse the variable 'isoc_name'
+		fid = fopen(isoc_name,'wt');					%  The isochrone file
+		fprintf(fid, '> %s\n', LineInfo(1:ind-1));
+		fprintf(fid, '%.4f\t%.4f\n', [x(:)'; y(:)']);
+		fclose(fid);
+		fprintf(fidJob, 'telha %s -E%s -A %%opt_D%% %%opt_S%% -O%g %%opt_P%% >> %%fname%%\n', isoc_name, pole_name, A(4));
 
-				% The Ridge is a special case because it's not duplicated and has two stage poles.
-				if (strcmp(LineInfo(1:3), ' 0 '))				% Found the Ridge
-					pole_name = sprintf('%spolo__%d.stg', pato, i);
-					fid = fopen(pole_name,'wt');				%  The stage pole file
-					stg = sprintf('%.9g %.9g %.9g %.9g %.9g', A(1),A(2),A(3)-A(4),0,-A(5));
-					fprintf(fid, '%s\n', stg);
-					fclose(fid);
-					fprintf(fidJob, 'telha %s -E%s -A %%opt_D%% %%opt_S%% -O%g %%opt_P%% >> %%fname%%\n', isoc_name, pole_name, A(4));
-				end
-			end
+		% The Ridge is a special case because it's not duplicated and has two stage poles.
+		if (strcmp(LineInfo(1:3), ' 0 '))				% Found the Ridge
+			pole_name = sprintf('%spolo__%d.stg', pato, i);
+			fid = fopen(pole_name,'wt');				%  The stage pole file
+			stg = sprintf('%.9g %.9g %.9g %.9g %.9g', A(1),A(2),A(3)-A(4),0,-A(5));
+			fprintf(fid, '%s\n', stg);
+			fclose(fid);
+			fprintf(fidJob, 'telha %s -E%s -A %%opt_D%% %%opt_S%% -O%g %%opt_P%% >> %%fname%%\n', isoc_name, pole_name, A(4));
 		end
 	end
 	fclose(fidJob);
@@ -2744,7 +2723,7 @@ function mareg_online(obj,eventdata,h, data, opt)
 		return
 	end
 	todos = todos(ind(2)+1:end);		% Jump the 2 header lines
-	[yymmdd sl] = strread(todos,'%s %f', 'delimiter', '\t');
+	[yymmdd, sl] = strread(todos,'%s %f', 'delimiter', '\t');
 	fclose(fid);    clear todos
 	m = numel(yymmdd);		y = zeros(m,6);
 	for (k = 1:m)
@@ -2791,16 +2770,22 @@ function ODP_info(obj,eventdata,h,leg,site,z,penetration)
 
 % -----------------------------------------------------------------------------------------
 function str = Isochrons_Info(obj, evt, data)
-	i = get(gco,'Userdata');
-	if (isstruct(i))    % This happens when h is ui_edit_polygon(ed)
-		i = i.old_ud;
+% Display the info associated with the current object (a pline)
+	hLine = gco;
+	LineInfo = getappdata(hLine,'LineInfo');	% Try first to get the info directly fom appdata
+	if (isempty(LineInfo))						% If it fails, fall back to old mechanism
+		i = get(hLine,'Userdata');
+		if (isstruct(i))    % This happens when h is ui_edit_polygon(ed)
+			i = i.old_ud;
+		end
+		if (~isempty(i)),	LineInfo = data{i};	end
 	end
-	if (nargout),	str = data{i};	return,		end
+	if (nargout),	str = LineInfo;	return,		end
 
-	if (~isempty(i))
-		msgbox( sprintf(data{i}),'This line info')
+	if (~isempty(LineInfo))
+		msgbox(sprintf(LineInfo),'This line info')
 	else
-		msgbox( 'Could not find reference to this object','This line info')
+		msgbox('Could not find reference to this object','This line info')
 	end
 
 % -----------------------------------------------------------------------------------------
