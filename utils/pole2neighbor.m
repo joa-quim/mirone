@@ -1,6 +1,23 @@
 function pole2neighbor(obj, evt, hLine)
 % Compute finite poles from isochron N to isochron N+1 of the data/isochrons.dat file (must be loaded)
+
+%	Copyright (c) 2004-2013 by J. Luis
 %
+% 	This program is part of Mirone and is free software; you can redistribute
+% 	it and/or modify it under the terms of the GNU Lesser General Public
+% 	License as published by the Free Software Foundation; either
+% 	version 2.1 of the License, or any later version.
+% 
+% 	This program is distributed in the hope that it will be useful,
+% 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+% 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+% 	Lesser General Public License for more details.
+%
+%	Contact info: w3.ualg.pt/~jluis/mirone
+% --------------------------------------------------------------------
+
+% $Id$
+
 	if (nargin == 2),		hLine = gco;	end
 	nNext = hLine;
 	while (~isempty(nNext))
@@ -11,8 +28,6 @@ function pole2neighbor(obj, evt, hLine)
 function hNext = compute_pole2neighbor(hLine)
 % It inserts/updates the header line of current object (gco) or of HLINE
 % HNEXT is the handle of nearest older isochron line
-
-% $Id: $
 
 	if (nargin == 0),		hLine = gco;	end % blabla
 	D2R = pi/180;
