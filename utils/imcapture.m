@@ -108,114 +108,119 @@ function img = imcapture( h, opt, dpi, opt2, opt3)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-    hAxes = [];
-    if (nargin == 0 || isempty(h)),     h = get(0,'CurrentFigure');    end
-    if (~ishandle(h))
-        error('imcapture:a','First argument is not a valid handle')
-    end
-    if (strcmp(get(h,'Type'),'figure'))
-    	hAxes = findobj(h,'Type','axes');
-    elseif (strcmp(get(h,'Type'),'axes'))
-        hAxes = h;
-        h = get(h,'Parent');
-    elseif (strcmp(get(h,'Type'),'image'))
-        hAxes = get(h,'Parent');
-        h = get(hAxes,'Parent');
-    else
-        h = [];
-    end
+	hAxes = [];
+	if (nargin == 0 || isempty(h)),     h = get(0,'CurrentFigure');    end
+	if (~ishandle(h))
+		error('imcapture:a','First argument is not a valid handle')
+	end
+	if (strcmp(get(h,'Type'),'figure'))
+		hAxes = findobj(h,'Type','axes');
+	elseif (strcmp(get(h,'Type'),'axes'))
+		hAxes = h;
+		h = get(h,'Parent');
+	elseif (strcmp(get(h,'Type'),'image'))
+		hAxes = get(h,'Parent');
+		h = get(hAxes,'Parent');
+	else
+		h = [];
+	end
 	while ( ~isempty(h) && ~strcmp('figure', get(h,'type')) )
 		h = get(h,'parent');
 	end
-    if (~ishandle(h))
-        error('imcapture:a','First argument is not a valid Fig/Axes/Image handle')
-    end
-    if (nargin <= 1),   opt = [];   end
-    
-    inputargs{1} = h;
-    pause(0.01);        % Otherwise it so fast (ah ha!?) that next line returns 'none'
-    renderer = get(h, 'Renderer');
-    
-    if (nargout == 1)                   % Raster mode. We expect to return a RGB array
-        inputargs{4} = '-r150';         % Default value for the case we got none in input
-        inputargs{2} = 'lixo.jpg';      % The name doesn't really matter, but we need one.
-        if strcmp(renderer,'painters')
-            renderer = 'zbuffer';
-        end
-        inputargs{3} = ['-d' renderer];
-        if (nargin == 3)                % Use round(dpi) because decimals dpi make it blow 
-            if (isnumeric(dpi) && numel(dpi) == 1)
-                inputargs{4} = ['-r' sprintf('%d',round(dpi))];
-            elseif (isnumeric(dpi) && numel(dpi) == 2)      % New image size in [mrows ncols]
-                inputargs{4} = round(dpi);
-            elseif (ischar(dpi))
-                inputargs{4} = ['-r' sprintf('%d',round(str2double(dpi)))];
-            else
-                error('imcapture:a','third argument must be a ONE or TWO elements vector, OR a char string')
-            end
-        end
-    elseif (nargout == 0 && nargin == 2)    % Clipboard
-        if (~ispc)
-            error('imcapture:a','Copying to clipboard is only possible in windows')
-        end
-        inputargs{2} = '';
-        inputargs{3} = '-dmeta';
-        inputargs{4} = '-r300';     % I think that it realy doesn't matter in this case
-    else                            % Vector graphics mode. Returns nothing but save capture on file
-        if (nargin < 3),    error('imcapture:a','Missing output filename.');  end
-        if (~ischar(dpi)),  error('imcapture:a','Third argument must be a string with the filename');  end
-        inputargs{4} = '-r300';     % Default value for the case we got none in input
-        [pato,fname,ext] = fileparts(dpi);
-        switch lower(ext)
-            case {'.ps','.eps'},    inputargs{3} = '-depsc2';
-            case '.ai',             inputargs{3} = '-dill';
-            case '.emf',            inputargs{3} = '-dmeta';
-            otherwise
-                error('imcapture:a','Illegal extension in filename. Legal extensions are .ps, .eps, .ai or .emf')
-        end
-        inputargs{2} = dpi;
-        if (nargin >= 4)
-            if (isnumeric(opt2)),       inputargs{4} = ['-r' sprintf('%d',opt2)];
-            else                        inputargs{4} = ['-r' opt2];
-            end
-        end
-        if (nargin == 5)
-            if (~isnumeric(opt3) || numel(opt3) ~= 2)
-                error('imcapture:a','Fifth argument must be a 2 element vector with image width and height')
-            end
-            inputargs{5} = opt3;
-        end
-    end
-    
-    msg = [];
-    if (numel(hAxes) == 1 && strcmp( get(hAxes,'Visible'),'off') && (nargin == 1 || isempty(opt)) )
-        % Default to 'imgOnly' when we have only one image with invisible axes
-        opt = 'img';
-    end
+	if (~ishandle(h))
+		error('imcapture:a','First argument is not a valid Fig/Axes/Image handle')
+	end
+	if (nargin <= 1),   opt = [];   end
 
-    if (nargin > 1)
-        switch opt
-            case 'img'      % Capture the image only
-                [img,msg] = imgOnly([],hAxes,inputargs{:});
-            case 'imgAx'    % Capture an image including the Labels
-                [img,msg] = imgOnly('nikles',hAxes,inputargs{:});
-            case 'all'      % Capture everything in Figure
-                img = allInFig(inputargs{:});
-            otherwise
-                msg = 'Second argument is not a recognized option';
-        end
-    else
-        img = allInFig(inputargs{:});
-    end
-    
-    if (~isempty(msg))      % If we had an error inside imgOnly()
-        error('imcapture:a',msg);        img = [];
-    end
+	inputargs{1} = h;
+	pause(0.01);        % Otherwise it so fast (ah ha!?) that next line returns 'none'
+	renderer = get(h, 'Renderer');
 
-% ------------------------------------------------------------------    
-function [img, msg] = imgOnly(opt, hAxes, varargin)
-% Capture the image, and optionaly the frame, mantaining the original image aspect ratio.
-% We do that be messing with the Figure's 'PaperPosition' property
+	if (nargout == 1)                   % Raster mode. We expect to return a RGB array
+		inputargs{4} = '-r150';         % Default value for the case we got none in input
+		inputargs{2} = 'lixo.jpg';      % The name doesn't really matter, but we need one.
+		if strcmp(renderer,'painters')
+			renderer = 'zbuffer';
+		end
+		inputargs{3} = ['-d' renderer];
+		if (nargin == 3)                % Use round(dpi) because decimals dpi make it blow 
+			if (isnumeric(dpi) && numel(dpi) == 1)
+				inputargs{4} = ['-r' sprintf('%d',round(dpi))];
+			elseif (isnumeric(dpi) && numel(dpi) == 2)      % New image size in [mrows ncols]
+				inputargs{4} = round(dpi);
+			elseif (ischar(dpi))
+				inputargs{4} = ['-r' sprintf('%d',round(str2double(dpi)))];
+			else
+				error('imcapture:a','third argument must be a ONE or TWO elements vector, OR a char string')
+			end
+		end
+	elseif (nargout == 0 && nargin == 2)    % Clipboard
+		if (~ispc)
+			error('imcapture:a','Copying to clipboard is only possible in windows')
+		end
+		inputargs{2} = '';
+		inputargs{3} = '-dmeta';
+		inputargs{4} = '-r300';     % I think that it realy doesn't matter in this case
+	else                            % Vector graphics mode. Returns nothing but save capture on file
+		if (nargin < 3),    error('imcapture:a','Missing output filename.');  end
+		if (~ischar(dpi)),  error('imcapture:a','Third argument must be a string with the filename');  end
+		inputargs{4} = '-r300';     % Default value for the case we got none in input
+		[pato,fname,ext] = fileparts(dpi);
+		switch lower(ext)
+			case {'.ps','.eps'},    inputargs{3} = '-depsc2';
+			case '.ai',             inputargs{3} = '-dill';
+			case '.emf',            inputargs{3} = '-dmeta';
+			otherwise
+				error('imcapture:a','Illegal extension in filename. Legal extensions are .ps, .eps, .ai or .emf')
+		end
+		inputargs{2} = dpi;
+		if (nargin >= 4)
+			if (isnumeric(opt2)),       inputargs{4} = ['-r' sprintf('%d',opt2)];
+			else                        inputargs{4} = ['-r' opt2];
+			end
+		end
+		if (nargin == 5)
+			if (~isnumeric(opt3) || numel(opt3) ~= 2)
+				error('imcapture:a','Fifth argument must be a 2 element vector with image width and height')
+			end
+			inputargs{5} = opt3;
+		end
+	end
+
+	msg = [];
+	if (numel(hAxes) == 1 && strcmp( get(hAxes,'Visible'),'off') && (nargin == 1 || isempty(opt)) )
+		% Default to 'imgOnly' when we have only one image with invisible axes
+		opt = 'img';
+	end
+
+	ff = findobj(h, '-depth',1, 'Style','frame', 'Tag', 'FancyFrame');
+	if (~isempty(ff)),		fancyFrame(guidata(h),'pset');	end
+
+	if (nargin > 1)
+		switch opt
+			case 'img'      % Capture the image only
+				[img,msg] = imgOnly([],hAxes,inputargs{:});
+			case 'imgAx'    % Capture an image including the Labels
+				[img,msg] = imgOnly('nikles',hAxes,inputargs{:});
+			case 'all'      % Capture everything in Figure
+				img = allInFig(inputargs{:});
+			otherwise
+				msg = 'Second argument is not a recognized option';
+		end
+	else
+		img = allInFig(inputargs{:});
+	end
+	
+	if (~isempty(ff)),		fancyFrame(guidata(h),'punset');	end		% Remove (if) the temporary patch frame
+
+	if (~isempty(msg))      % If we had an error inside imgOnly()
+		error('imcapture:a',msg);        img = [];
+	end
+
+	% ------------------------------------------------------------------    
+	function [img, msg] = imgOnly(opt, hAxes, varargin)
+	% Capture the image, and optionaly the frame, mantaining the original image aspect ratio.
+	% We do that be messing with the Figure's 'PaperPosition' property
 	h = varargin{1};    msg = [];
 	if (isempty(hAxes) || numel(hAxes) > 1)
 		msg = 'With the selected options the figure must contain one, and one ONLY axes';
@@ -346,17 +351,17 @@ function [img, msg] = imgOnly(opt, hAxes, varargin)
 		if (~isempty(Stsb)),		set(Stsb(2:end), 'Vis', 'off'),		end
 
 		DAR = get(hAxes, 'DataAspectRatio');
-		
-% 		leave_DAR_alone = false;
-% 		if ( abs((size(im,2) / size(im,1)) - (DAR(1) / DAR(2))) < 1e-3 )	% Mirone Figs with cos(lat) active or anyso dx/dy
-% 			leave_DAR_alone = true;
-% 		end
+
+	% 		leave_DAR_alone = false;
+	% 		if ( abs((size(im,2) / size(im,1)) - (DAR(1) / DAR(2))) < 1e-3 )	% Mirone Figs with cos(lat) active or anyso dx/dy
+	% 			leave_DAR_alone = true;
+	% 		end
 		leave_DAR_alone = true;
 		if (DAR(1) == 1 && DAR(2) < 1)		% Mirone Figs with cos(lat) active
 			leave_DAR_alone = false;
 		end
 
- 		if ( ~isequal(DAR, [1 1 1]) && ~leave_DAR_alone ),	set(hAxes, 'DataAspectRatio', [1 1 1]);		end
+		if ( ~isequal(DAR, [1 1 1]) && ~leave_DAR_alone ),	set(hAxes, 'DataAspectRatio', [1 1 1]);		end
 
 		img = hardcopy( varargin{:} );      % CAPTURE -- CAPTURE -- CAPTURE -- CAPTURE -- CAPTURE
 
