@@ -211,10 +211,10 @@ function resize(hAxes, hImg, imSize, opt, withSliders, firstFigSize, pad_left)
 	figUnits = get(hFig, 'Units');				set(hFig, 'Units', 'pixels');
 
 % ----------------------------------------------
-    h_Xlabel = get(hAxes,'Xlabel');				h_Ylabel = get(hAxes,'Ylabel');
-    units_save = get(h_Xlabel,'units');
-    set(h_Xlabel,'units','pixels');				set(h_Ylabel,'units','pixels');
-    Xlabel_pos = get(h_Xlabel,'position');		Ylabel_pos = get(h_Ylabel,'Extent');
+    hXlabel = get(hAxes,'Xlabel');				hYlabel = get(hAxes,'Ylabel');
+    units_save = get(hXlabel,'units');
+    set(hXlabel,'units','pixels');				set(hYlabel,'units','pixels');
+    Xlabel_pos = get(hXlabel,'position');		Ylabel_pos = get(hYlabel,'Extent');
 
     % One more atempt to make any sense out of this non-sense
     tenSizeX = 0;       tenSizeY = 0;   % When axes labels have 10^n this will hold its ~ text height
@@ -282,14 +282,14 @@ function resize(hAxes, hImg, imSize, opt, withSliders, firstFigSize, pad_left)
 	else							stsbr_height = 20;
 	end
 
-	y_margin = abs(Xlabel_pos(2))+get(h_Xlabel,'Margin') + tenSizeY + stsbr_height;    % To hold the Xlabel height
+	y_margin = abs(Xlabel_pos(2))+get(hXlabel,'Margin') + tenSizeY + stsbr_height;    % To hold the Xlabel height
 	x_margin = max( abs(Ylabel_pos(1)),15 );			% To hold the Ylabel width
 	if (y_margin > 70)									% Play safe. LabelPos non-sense is always ready to strike 
 		y_margin = 30 + tenSizeY + stsbr_height;
 	end
 
 	topMarg = 0;
-	if (~tenSizeY),     topMarg = 5;    end					% To account for Ylabels exceeding image height
+	if (~tenSizeY),     topMarg = 7;    end					% To account for Ylabels exceeding image height
 	axVisible = strcmp(get(hAxes,'Visible'),'on');
 	if (~axVisible)				% No Labels, give only a 20 pixels margin to account for Status bar
 		x_margin = 0;   y_margin = stsbr_height;
@@ -297,7 +297,7 @@ function resize(hAxes, hImg, imSize, opt, withSliders, firstFigSize, pad_left)
 	elseif (minFigWidth - x_margin > imgWidth + x_margin)	% Image + x_margin still fits inside minFigWidth
 		x_margin = 0;
 	end
-	set(h_Xlabel,'units',units_save);     set(h_Ylabel,'units',units_save);
+	set(hXlabel,'units',units_save);     set(hYlabel,'units',units_save);
 
 	newFigWidth  = max(newFigWidth + x_margin, minFigWidth);
 	if (newFigWidth >= screenWidth)     % Larger than screen. The == isn't allowed either due to the 'elastic' thing
