@@ -165,6 +165,7 @@ uimenu(cmenu_axes, 'Label', 'Pixel mode on/off', 'Tag','PixMode');
 % --- Those ones are manipulated in setAxesDefCoordIn()
 uimenu(cmenu_axes, 'Label', 'Load in projected coords', 'Checked','on', 'Vis','off','Tag','hAxMenuLF');
 uimenu(cmenu_axes, 'Label', 'Display projected coords', 'Vis','off','Tag','hAxMenuDM');
+uimenu(cmenu_axes, 'Label', 'Show Fancy Frame', 'Tag','FancyMode', 'Sep','on');
 
 %% ------------------------ File ----------------------------------------
 hFL = uimenu('Parent',H1,'Label','File','Tag','File');
@@ -742,7 +743,7 @@ if (IamCompiled)
 end
 uimenu('Parent',h, 'Call',['mirone(''FileOpenWebImage_CB'',guidata(gcbo),',...
 	' ''http://www2.clustrmaps.com/stats/maps-clusters/w3.ualg.pt-~jluis-mirone-world.jpg'',''nikles'');'],'Label','See visitors map','Sep','on');
-uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 30 Apr 2013'',''2.4.0dev'')','Label','About','Sep','on');
+uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 9 May 2013'',''2.4.0dev'')','Label','About','Sep','on');
 
 %% --------------------------- Build HANDLES and finish things here
 	handles = guihandles(H1);
