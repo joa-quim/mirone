@@ -412,7 +412,7 @@ function handles = recentFiles(handles, opt)
 			handles.FOpenList{1} = handles.fileName;
 		end
 	end
-	if (isempty(handles.fileName))	jump = true;	end
+	if (isempty(handles.fileName)),	jump = true;	end
 	if ( ~jump && (nargin == 1 || (nargin == 2 && ~isempty(opt))) )		% Save only if it worth it
 		FOpenList = handles.FOpenList;		fname = [handles.path_data 'mirone_pref.mat'];
 		if (~handles.version7),		save(fname,'FOpenList','-append')	% Update the list for "Recent files"
@@ -451,8 +451,9 @@ function handles = SetAxesNumericType(handles,event)
 	else					set(handles.PixMode, 'Vis', 'off')
 	end
 	set(handles.RCMode, 'Call', {@PixMode_CB,handles.figure1, false})
+	set(handles.FancyMode, 'Call', {@FancyMode_CB,handles.figure1})
 
-% --------------------------------------------------------------------
+% --------------------------------------------------------------------------------------------------
 function PixMode_CB(hObject, event, hFig, opt)
 % Inside each grid cell, which is a pixel in the screen, display only the grid node value
 	handles = guidata(hFig);
@@ -472,7 +473,17 @@ function PixMode_CB(hObject, event, hFig, opt)
 		set(handles.PixMode, 'Checked','off'),		setappdata(hFig,'PixelMode',false)	% Put the PixMode to off
 	end
 
-% --------------------------------------------------------------------
+% --------------------------------------------------------------------------------------------------
+function FancyMode_CB(hObject, evt, hFig)
+% Call the function that sets or unsets the FANCY frame depending on the previous state
+	handles = guidata(hFig);
+	if (strcmp(get(hObject,'Checked'),'off'))
+		set(hObject,'Checked','on'),	fancyFrame(handles,'set')
+	else
+		set(hObject,'Checked','off'),	fancyFrame(handles,'unset')
+	end
+
+% --------------------------------------------------------------------------------------------------
 function  PlatesAgeLift_CB(handles)
 % Apply Parsons & Sclatter relation to compensate sea-bottom age sinking.
 % It assumes that bathymetry is the loaded grid (in meters Z up) and age in Ma
@@ -498,7 +509,7 @@ function  PlatesAgeLift_CB(handles)
 	miniHandles.head(7:9) = handles.head(7:9);		% min/max (5:6) will be updated in GRDdisplay
 	GRDdisplay(handles,X,Y,lift,miniHandles.head,[],'AgeLiftedBathymetry',srsWKT)
 
-% --------------------------------------------------------------------
+% --------------------------------------------------------------------------------------------------
 function varargout = ImageCrop_CB(handles, opt, opt2, opt3)
 % OPT is either a handle to a line that may be a rectangle/polygon, OR, if empty
 %	calls rubberbandbox to do a interactive croping (called by "Crop Grid")
@@ -738,7 +749,7 @@ elseif (strcmp(opt2,'SplineSmooth'))
 	X = linspace( head(1) + (r_c(3)-1)*head(8), head(1) + (r_c(4)-1)*head(8), r_c(4) - r_c(3) + 1 );
 	Y = linspace( head(3) + (r_c(1)-1)*head(9), head(3) + (r_c(2)-1)*head(9), r_c(2) - r_c(1) + 1 );
 	Z_rect = double(Z_rect);	% It has to be
-	[pp p_guess] = spl_fun('csaps',{Y(1:min(m,10)),X(1:min(n,10))},Z_rect(1:min(m,10),1:min(n,10)));% Get a good estimate of p
+	[pp, p_guess] = spl_fun('csaps',{Y(1:min(m,10)),X(1:min(n,10))},Z_rect(1:min(m,10),1:min(n,10)));% Get a good estimate of p
 	prompt = {'Enter smoothing p paramer'};		dlg_title = 'Smoothing parameter input';
 	defAns = {sprintf('%.12f',p_guess{1})};		resp = inputdlg(prompt,dlg_title,[1 38],defAns);
 	if (isempty(resp)),		set(handles.figure1,'pointer','arrow'),		return,		end
@@ -928,7 +939,7 @@ function ImageSegment_CB(handles, hObject)
 	else
 		tmp = struct('X',handles.head(1:2), 'Y',handles.head(3:4), 'name','Color segmented', 'geog',handles.geog, 'head',handles.head);
 		strWKT = getappdata(handles.figure1,'ProjWKT');
-		if (~isempty(strWKT))	tmp.srsWKT = strWKT;	end
+		if (~isempty(strWKT)),	tmp.srsWKT = strWKT;	end
 		mirone(rgbIm, tmp)
 	end
 
@@ -1642,10 +1653,10 @@ function loadGRID(handles,fullname,tipo,opt)
 %		   'whatever'	Let GDAL guess what to do (it means, any string)
 % OPT	-> the "att" attributes structure got from att = gdalread(fname,'-M',...)
  
-	if (nargin == 3)	opt = ' ';	end
+	if (nargin == 3),	opt = ' ';	end
 	set(handles.figure1,'pointer','watch')
 	[Z, X, Y, srsWKT, handles, att] = read_grid(handles, fullname, tipo, opt);
-	if (isempty(Z))		set(handles.figure1,'pointer','arrow'),		return,		end
+	if (isempty(Z)),	set(handles.figure1,'pointer','arrow'),		return,		end
 
 	if (~isempty(att) && ~isempty(att.GCPvalues))					% Save GCPs so that we can plot them and warp the image
 		setappdata(handles.figure1,'GCPregImage',att.GCPvalues)
@@ -1775,7 +1786,7 @@ function handles = show_image(handles, fname, X, Y, I, validGrid, axis_t, adjust
 	handles.oldSize(1,:) = get(handles.figure1,'Pos');		% Save fig size to prevent maximizing
 	handles.origCmap = get(handles.figure1,'ColorMap');		% Save original colormap 
 	set(handles.ImgHist,'checked','off')
-	if (handles.mirVersion(1) < 2)		set(handles.ImgHistGrd,'checked','off'),	end
+	if (handles.mirVersion(1) < 2),		set(handles.ImgHistGrd,'checked','off'),	end
 	% Make an extra copy of those to use in "restore" because they may be changed by 'bands_list()'
 	handles.validGrid_orig = validGrid;			handles.was_int16_orig = handles.was_int16;
 	handles.computed_grid_orig = handles.computed_grid;
@@ -1932,7 +1943,7 @@ function varargout = ImageIllumModel_CB(handles, opt)
 
 	luz = shading_params(opt);
 	if (isempty(luz))
-		if (nargout)	varargout{1} = [];		end
+		if (nargout),	varargout{1} = [];		end
 		return
 	end
 
@@ -1944,7 +1955,7 @@ function varargout = ImageIllumModel_CB(handles, opt)
 	elseif (luz.illum_model == 6),	[varargout{1:nargout}] = ImageIllum(luz, handles, 'hill');		% ESRI's hillshade
 	else							ImageIllumFalseColor(luz, handles)				% False color
 	end
-	if (luz.illum_model > 6 && nargout)		varargout{1} = [];		end				% No reflectances here
+	if (luz.illum_model > 6 && nargout),	varargout{1} = [];		end				% No reflectances here
 
 % --------------------------------------------------------------------
 function Reft = ImageIllum(luz, handles, opt)
@@ -2144,7 +2155,7 @@ function ImageLink_CB(handles, opt)
 		if (isempty(getappdata(hFigs(k), 'IAmAMirone'))),	IAmAMir(k) = false;		end
 	end
 	hFigs = hFigs(IAmAMir);									% Retain only the Mirone figures
-	if (isempty(hFigs))		return,		end
+	if (isempty(hFigs)),		return,		end
 	nomes = get(hFigs,'name');
 	if (~isa(nomes,'cell')),	nomes = {nomes};	end
 	for (k = 1:numel(hFigs))
@@ -2166,9 +2177,9 @@ function ImageRetroShade_CB(handles)
 	end
 	handParent = guidata(h_f);				% Get the parent handles
 	[rect, rect_crop] = aux_funs('rectangle_and', handles.head, handParent.head);	% Get the intersection zone
-	if (isempty(rect))	warndlg('The two images do not overlap.','Warning'),	return,		end
+	if (isempty(rect)),	warndlg('The two images do not overlap.','Warning'),	return,		end
 	R = ImageIllumModel_CB(handParent);	% Get parent Reflectance array
-	if (isempty(R))		warndlg('Illumination models >= 5 don''t work here.','Warning'),	return,		end
+	if (isempty(R)),	warndlg('Illumination models >= 5 don''t work here.','Warning'),	return,		end
 	[R, r_c] = cropimg(handParent.head(1:2),handParent.head(3:4),R,rect_crop,'out_grid');
 
 	% If parent image is of different resolution, resize it to fit the son_image resolution
@@ -2729,7 +2740,7 @@ function DrawImportOGR_CB(handles, fname)
 		if (do_project),	ogrproj(s(k).X, s(k).Y, projStruc);		end		% Project into basemap coords
 		if ( strncmp(s(k).Type,'Point', 5) || strncmp(s(k).Type,'Line', 4) )
 			lsty = {'LineStyle', '-'};
-			if (s(k).Type(1) == 'P')	lsty = {'LineStyle', 'none', 'Marker','o', 'MarkerSize',2, 'MarkerEdgeColor','k'};	end
+			if (s(k).Type(1) == 'P'),	lsty = {'LineStyle', 'none', 'Marker','o', 'MarkerSize',2, 'MarkerEdgeColor','k'};	end
 
 			h1(k) = line('Xdata',single(s(k).X),'Ydata',single(s(k).Y),'Parent',handles.axes1, ...
 				'Color',lc,'LineWidth',lt,'Tag','SHPpolyline',lsty{1:end});
@@ -2746,7 +2757,7 @@ function DrawImportOGR_CB(handles, fname)
 			if (is3D)								% IT'S IGNORING THE EARTH-IS-ROUND? TEST
 				set(h2(k), 'UserData', s(k).Z)		% Fleder can drape it (+ other eventual usages)
 			end
-			if (nGeoms <= nParanoia)	draw_funs(h2(k),'line_uicontext'),	end
+			if (nGeoms <= nParanoia),	draw_funs(h2(k),'line_uicontext'),	end
 		end
 	end
 
@@ -2833,8 +2844,8 @@ function DrawImportShape_CB(handles, fname)
 	imgLims = getappdata(handles.axes1,'ThisImageLims');
 	if ( strncmp(t,'Arc',3) || strncmp(t,'Point',5) )
 		is3D = false;		lsty = {'LineStyle', '-'};
-		if (t(end) == 'Z')	is3D = true;	end
-		if (t(1) == 'P')	lsty = {'LineStyle', 'none', 'Marker','o', 'MarkerSize',2, 'MarkerEdgeColor','k'};	end
+		if (t(end) == 'Z'),	is3D = true;	end
+		if (t(1) == 'P'),	lsty = {'LineStyle', 'none', 'Marker','o', 'MarkerSize',2, 'MarkerEdgeColor','k'};	end
 		for i = 1:nPolygs
 			reco = aux_funs('rectangle_and', imgLims, [s(i).BoundingBox(1,1:2) s(i).BoundingBox(2,1:2)]);
 			if (~isempty(reco))			% It means the polyg BB is at least partially inside
@@ -2864,7 +2875,7 @@ function DrawImportShape_CB(handles, fname)
 					set(h(i), 'UserData', s(i).Z(:)')		% Fleder can drape it (+ other eventual usages)
 				end
 				% With luck, your hardware won't choke to dead with this
-				if (nPolygs <= nParanoia)	draw_funs(h(i),'line_uicontext'),	end
+				if (nPolygs <= nParanoia),	draw_funs(h(i),'line_uicontext'),	end
 			end
 		end
 		h((h == 0)) = [];					% Those were jumped because thay were completely outside map limits
@@ -3029,7 +3040,7 @@ function FileOpenSession_CB(handles, fname)
 
 	tala = (~isempty(s.grd_name) && exist(s.grd_name,'file') == 2);		flagIllum = true;	% Illuminate (if it is the case)
 	if (~tala && ~isempty(s.grd_name))						% Give user a 2nd chance to tell where the grid is
-		[PathName FileName EXT] = fileparts(s.grd_name);
+		[PathName, FileName, EXT] = fileparts(s.grd_name);
 		resp = inputdlg({'Full name (with path) of missing grid:'},'Where is the grid?',[1 60],{['.....' filesep FileName EXT]});
 		if (~isempty(resp))
 			s.grd_name = resp{1};
@@ -3073,10 +3084,10 @@ function FileOpenSession_CB(handles, fname)
 	end
 
 	% Have to use a try-catch because of the f. compiler bugs ("exist" won't work)
-	try,		s.illumComm;
+	try			s.illumComm;
 	catch,		s.illumComm = '';		flagIllum = false;
 	end
-	try,		s.illumType;
+	try			s.illumType;
 	catch
 		if ( numel(strfind(s.illumComm,'/')) == 5 ),		s.illumType = 4;		end		% Lambertian
 		s.illumType = 1;		% Test only one case where this might be otherwise
@@ -3176,7 +3187,7 @@ function FileOpenSession_CB(handles, fname)
 		end
 	end
 	if (s.haveText)					% case of text strings
-		try,	s.Texto;			% Compatibility issue (Use a try because of compiler bugs)
+		try		s.Texto;			% Compatibility issue (Use a try because of compiler bugs)
 		catch
 			% Do it this way because compiled version canot tel 'Text' from 'text'
 			t = load([PathName FileName],'Text');	s.Texto = t.Text;
@@ -3192,7 +3203,7 @@ function FileOpenSession_CB(handles, fname)
 			draw_funs(h_text,'DrawText')		% Set texts's uicontextmenu
 		end
 	end
-	try,	s.havePatches;		% 'Try' because compiler BUGs
+	try		s.havePatches;		% 'Try' because compiler BUGs
 	catch,	s.havePatches = false;
 	end
 	if (s.havePatches)			% case of patchs - NOTE, the Tags are currently lost 
@@ -3472,7 +3483,7 @@ function ImageMapLimits_CB(handles, opt)
 		x_inc = diff(X) / size(img,2);			y_inc = diff(Y) / size(img,1);
 		aspect = size(img,1) / size(img,2);
 		if (aspect > 1),		X = X / aspect;		% Taller image, contract X
-		elseif (aspect < 1)		Y = Y * aspect;		% Wider image, contract Y
+		elseif (aspect < 1),	Y = Y * aspect;		% Wider image, contract Y
 		end
 		aux_funs('addUI', handles)
 	end
@@ -3703,7 +3714,7 @@ function Zsmoothed = GridToolsSmooth_CB(handles, opt)
 	[X,Y,Z,head,m,n] = load_grd(handles,'double');
 	if isempty(Z),		return,		end				% An error message was already issued
 
-	[pp p_guess] = spl_fun('csaps',{Y(1:5),X(1:5)},Z(1:5,1:5));		% Get a good estimate of p
+	[pp, p_guess] = spl_fun('csaps',{Y(1:5),X(1:5)},Z(1:5,1:5));		% Get a good estimate of p
 	if (nargin == 1)
 		prompt = {'Enter smoothing p paramer'};		dlg_title = 'Smoothing parameter input';
 		defAns = {sprintf('%.12f',p_guess{1})};		resp  = inputdlg(prompt,dlg_title,[1 38],defAns);	pause(0.01)
@@ -3767,7 +3778,7 @@ function sdgGrid = GridToolsSDG_CB(handles, opt, opt2)
 	if (aux_funs('msg_dlg',14,handles)),		return,		end
 	[X,Y,Z,head,m,n] = load_grd(handles,'double');
 	if isempty(Z),		return,		end
-	[pp p_guess] = spl_fun('csaps',{Y(1:5),X(1:5)},Z(1:5,1:5));	% Get a good estimate of p
+	[pp, p_guess] = spl_fun('csaps',{Y(1:5),X(1:5)},Z(1:5,1:5));	% Get a good estimate of p
 	if (nargin == 2)
 		prompt = {'Enter smoothing p paramer'};		dlg_title = 'Smoothing parameter input';
 		defAns = {sprintf('%.12f',p_guess{1})};		resp  = inputdlg(prompt,dlg_title,[1 38],defAns);	pause(0.05)
@@ -3913,7 +3924,7 @@ function GridToolsDirDerive_CB(handles, opt)
 	set(handles.figure1,'pointer','watch')
 	doGeog = 'geog';
 	if (~handles.geog),		doGeog = 'cart';	end
-	[gradN gradE] = gradient_geo(Y,X,Z,'grad',doGeog);				% df/dy & df/dx
+	[gradN, gradE] = gradient_geo(Y,X,Z,'grad',doGeog);				% df/dy & df/dx
 	if strcmp(opt,'first')
 		Z = gradE * cos(azim) + gradN * sin(azim);
 		str = 'First derivative';
@@ -4322,12 +4333,12 @@ function TransferB_CB(handles, opt)
 		end
 		fid = fopen(dest_fiche,'rt');
 		todos = fread(fid,'*char');		fclose(fid);
-		[nomes MD5 V.Vstr] = strread(todos,'%s %s %s');	% In future we will have a use for the version string
+		[nomes, MD5, V.Vstr] = strread(todos,'%s %s %s');	% In future we will have a use for the version string
 		builtin('delete',dest_fiche);	n = 1;		% Remove this one right away
 		namedl = cell(1);							% Mostly to shutup MLint
 		ind_all = false(numel(nomes),1);			% To flag the ones truely to be updated later
 		for (k = 1:numel(nomes))
-			[pato nome ext] = fileparts(nomes{k});
+			[pato, nome, ext] = fileparts(nomes{k});
 			if (exist(nomes{k}, 'file'))			% File exists localy and it's a potential target for update
 				localMD5 = CalcMD5(nomes{k},'file');
 				if (~strcmp(MD5{k}, localMD5))
@@ -4347,7 +4358,7 @@ function TransferB_CB(handles, opt)
 
 		ind = false(1,n-1);			msg = [];
 		for (k = 1:n-1)
-			[pato nome ext] = fileparts(namedl{k});		dest_fiche = [handles.path_tmp nome ext];
+			[pato, nome, ext] = fileparts(namedl{k});		dest_fiche = [handles.path_tmp nome ext];
 			dos(['wget "' url nome ext '" -q --tries=2 --connect-timeout=5 -O ' dest_fiche]);
 			if (~exist(dest_fiche, 'file'))			% Troubles in transmission
 				ind(k) = true;
@@ -4369,7 +4380,7 @@ function TransferB_CB(handles, opt)
 		fid = fopen([handles.path_tmp 'apudeita.bat'],'wt');	% Create the updating batch that will be run by callMir
 		fprintf(fid, '@echo off\nREM copy updated files from tmp and place into their destination\n');
 		for (k = 1:numel(namedl))
-			[pato nome ext] = fileparts(namedl{k});
+			[pato, nome, ext] = fileparts(namedl{k});
 			fprintf(fid, 'move /Y tmp\\%s\t.\\%s\n', [nome ext], nomes{k});
 		end
 		fprintf(fid, 'echo Ja ta. Finished update\n');
