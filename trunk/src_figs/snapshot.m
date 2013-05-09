@@ -20,7 +20,7 @@ function varargout = snapshot(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: $
+% $Id$
 
 	if (isempty(varargin))
 	    errordlg('SNAPSHOT: wrong number of input arguments.','Error'),		return
@@ -58,9 +58,10 @@ function varargout = snapshot(varargin)
 	ls = findobj(handles.hCallingFig,'Type','line');
 	ps = findobj(handles.hCallingFig,'Type','patch');
 	ts = findobj(handles.hCallingFig,'Type','text');
-	handles.imgIsClean = 0;
-	if (isempty(ls) && isempty(ps) && isempty(ts))
-		handles.imgIsClean = 1;		% We won't need to screen capture if resolution is one-to-one
+	fs = findobj(handles.hCallingFig, '-depth',1, 'Style','frame', 'Tag', 'FancyFrame');
+	handles.imgIsClean = false;
+	if (isempty(ls) && isempty(ps) && isempty(ts) && isempty(fs))
+		handles.imgIsClean = true;		% We won't need to screen capture if resolution is one-to-one
 	end
 
 	% -------------- Fill the format popup list
@@ -112,8 +113,7 @@ function varargout = snapshot(varargin)
 		if (origMegs < 1)
 			sizeOrigUnits = ' Kb';  origMegs = origMegs * 1024;
 		end
-		handles.txtOrigSize = ['(' sprintf('%d',handles.imSize(1)) 'x' sprintf('%d',handles.imSize(2)) ') ' ...
-				sprintf('%.1f',origMegs) sizeOrigUnits];
+		handles.txtOrigSize = sprintf('(%dx%d) %.1f%s',handles.imSize(1),handles.imSize(2),origMegs,sizeOrigUnits);
 	else
 		nRows = round(handles.pp(1) * 150);     nCols = round(handles.pp(2) * 150);
 	end
@@ -122,7 +122,7 @@ function varargout = snapshot(varargin)
 	if (Megs < 1)               % Report file size in Kbytes
 		sizeUnits = ' Kb';      Megs = Megs * 1024;
 	end
-	handles.txtThisSize = ['(' sprintf('%d',nRows) 'x' sprintf('%d',nCols) ') ' sprintf('%.1f',Megs) sizeUnits];
+	handles.txtThisSize = sprintf('(%dx%d) %.1f%s',nRows,nCols,Megs,sizeUnits);
 
 	% ---------------- Fill the edit file name with a default value
 	if (~handles.noname)
@@ -387,8 +387,8 @@ function push_save_CB(hObject, handles)
 		[nl,nc,np] = size(img);                 l = 1;      pix = repmat(uint8(0),nl*nc*3,1);
 		m = nl:-1:1;
 		if (~strcmp(get(handles.hCallingAx,'Ydir'),'normal')),    m = 1:nl;     end
-		for i=m
-			for j=1:nc
+		for (i = m)
+			for (j = 1:nc)
 				for k=1:3;  pix(l) = img(i,j,k);    l = l + 1;     end
 			end
 		end
