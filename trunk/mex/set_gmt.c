@@ -1,7 +1,7 @@
 /*--------------------------------------------------------------------
- *	$Id:$
+ *	$Id$
  *
- *	Copyright (c) 2004-2012 by J. Luis
+ *	Copyright (c) 2004-2013 by J. Luis
  *
  * 	This program is part of Mirone and is free software; you can redistribute
  * 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -133,6 +133,17 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		strcpy (GMT_SHAREDIR, this);
 		mxStr = mxCreateString("4");
 	}
+	else if ((this = getenv ("GMT5_SHAREDIR")) != CNULL) {	/* We have a 5.0 or greater version */
+		char *sdir;
+		GMT_SHAREDIR = (char *) mxCalloc ((size_t)(strlen (this) + 1), (size_t)1);
+		strcpy (GMT_SHAREDIR, this);
+		mxStr = mxCreateString("5");
+		/* Now cheat GMT4 reseting GMT_SHAREDIR with the GMT5_SHAREDIR's value */
+		sdir = (char *) mxCalloc ((size_t)(strlen (this) + 1), (size_t)1);
+		sprintf (sdir, "GMT_SHAREDIR=%s", GMT_SHAREDIR);
+		if (status = putenv(sdir))
+			mexPrintf("TEST_GMT: Failure trick to local reset the GMT_SHAREDIR env variable\n %s\n", sdir);
+	}
 	else if ((this = getenv ("GMTHOME")) != CNULL) {	/* We have a pre 4.2 version */
 		char *sdir;
 		GMT_SHAREDIR = (char *) mxCalloc ((size_t)(strlen (this) + 7), (size_t)1);
@@ -187,28 +198,28 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 
 	/* See if we have the High definition files */
 	sprintf (file, "binned_GSHHS_%c", 'h');
-       	if (shore_getpathname (file, path, GMT_USERDIR, GMT_SHAREDIR))
+	if (shore_getpathname (file, path, GMT_USERDIR, GMT_SHAREDIR))
 		mxStr = mxCreateString("y");
 	else
 		mxStr = mxCreateString("n");
 	mxSetField(info_struct, 0, fieldnames[2], mxStr);
 
 	sprintf (file, "binned_GSHHS_%c", 'i');	/* Intermediate */
-       	if (shore_getpathname (file, path, GMT_USERDIR, GMT_SHAREDIR))
+	if (shore_getpathname (file, path, GMT_USERDIR, GMT_SHAREDIR))
 		mxStr = mxCreateString("y");
 	else
 		mxStr = mxCreateString("n");
 	mxSetField(info_struct, 0, fieldnames[3], mxStr);
 
 	sprintf (file, "binned_GSHHS_%c", 'l');	/* Intermediate */
-       	if (shore_getpathname (file, path, GMT_USERDIR, GMT_SHAREDIR))
+	if (shore_getpathname (file, path, GMT_USERDIR, GMT_SHAREDIR))
 		mxStr = mxCreateString("y");
 	else
 		mxStr = mxCreateString("n");
 	mxSetField(info_struct, 0, fieldnames[4], mxStr);
 
 	sprintf (file, "binned_GSHHS_%c", 'c');	/* Intermediate */
-       	if (shore_getpathname (file, path, GMT_USERDIR, GMT_SHAREDIR))
+	if (shore_getpathname (file, path, GMT_USERDIR, GMT_SHAREDIR))
 		mxStr = mxCreateString("y");
 	else
 		mxStr = mxCreateString("n");
@@ -305,9 +316,10 @@ char *shore_getpathname (char *stem, char *path, char *GMT_USERDIR, char *GMT_SH
 		fclose (fp);
 	}
 	
-	/* 2. Then check for the named file itself */
+	/* 2. Then check for the named file itself, but now (2013) we may have both .nc or .cdf */
 
 	if (getsharepath ("coast", stem, ".cdf", path, GMT_USERDIR, GMT_SHAREDIR)) return (path);
+	if (getsharepath ("coast", stem, ".nc",  path, GMT_USERDIR, GMT_SHAREDIR)) return (path);
 
 	return (NULL);
 }
