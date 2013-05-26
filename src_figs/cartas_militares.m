@@ -45,6 +45,7 @@ function varargout = cartas_militares(varargin)
 
 	% ===== UGLY PATCH TO IMPLEMENT THE LIDAR PT MOOSAIC TOOL ====
 	if (numel(varargin) == 2)
+		handles.path_data = path_data;
 		lidarPT(handles);
 		set(handles.radio_inWeb,'Enable','off')
 		set(hObject,'Vis','on')
@@ -167,7 +168,7 @@ function varargout = cartas_militares(varargin)
 % -----------------------------------------------------------------------------------------
 function lidarPT(handles)
 % ...
-	load lidarPT.mat
+	load([handles.path_data 'lidarPT.mat'])
 	x_min = double(mosaico(1,1));	x_max = double(mosaico(1,2));
 	y_min = double(mosaico(1,3));	y_max = double(mosaico(1,4));
 	x_inc = 1600;		y_inc = 1000;
