@@ -403,6 +403,7 @@ uimenu('Parent',hTL,'Call','world_is_not_round_enough(guidata(gcbo))','Label','W
 uimenu('Parent',hTL,'Call','mk_movie_from_list(guidata(gcbo))', 'Label','Make movie from image list','Sep','on');
 
 h = uimenu('Parent',hTL,'Label','Misc Tools','Sep','on');
+uimenu('Parent',h,'Call','cartas_militares(guidata(gcbo),''nikles'')','Label','LIDAR2011 PT')
 uimenu('Parent',h,'Call','cartas_militares(guidata(gcbo))','Label','Cartas Militares')
 uimenu('Parent',h,'Call','obj_template_detect(gcf)','Label','Object detection','Sep','on');
 uimenu('Parent',h,'Call','vitrinite','Label','Vitrinite','Sep','on');
@@ -743,7 +744,7 @@ if (IamCompiled)
 end
 uimenu('Parent',h, 'Call',['mirone(''FileOpenWebImage_CB'',guidata(gcbo),',...
 	' ''http://www2.clustrmaps.com/stats/maps-clusters/w3.ualg.pt-~jluis-mirone-world.jpg'',''nikles'');'],'Label','See visitors map','Sep','on');
-uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 9 May 2013'',''2.4.0dev'')','Label','About','Sep','on');
+uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 27 May 2013'',''2.4.0dev'')','Label','About','Sep','on');
 
 %% --------------------------- Build HANDLES and finish things here
 	handles = guihandles(H1);
