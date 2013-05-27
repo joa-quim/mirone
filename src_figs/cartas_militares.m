@@ -171,6 +171,7 @@ function lidarPT(handles)
 
 	set(handles.radio_inWeb,'Enable','off')
 	set(handles.push_lidarMosaico,'Vis','on')
+	set(handles.figure1,'Name','LIDAR2011')	
 
 	load([handles.path_data 'lidarPT.mat'])
 	x_min = double(mosaico(1,1));	x_max = double(mosaico(1,2));
