@@ -47,7 +47,6 @@ function varargout = cartas_militares(varargin)
 	if (numel(varargin) == 2)
 		handles.path_data = path_data;
 		lidarPT(handles);
-		set(handles.radio_inWeb,'Enable','off')
 		set(hObject,'Vis','on')
 		guidata(hObject, handles);
 		return
@@ -167,11 +166,25 @@ function varargout = cartas_militares(varargin)
 
 % -----------------------------------------------------------------------------------------
 function lidarPT(handles)
-% ...
+% This function ends the configuration work nomaly done in main and load/display
+% a background image plus the lidar tiles matrix, created as a single patch object.
+
+	set(handles.radio_inWeb,'Enable','off')
+	set(handles.push_lidarMosaico,'Vis','on')
+
 	load([handles.path_data 'lidarPT.mat'])
 	x_min = double(mosaico(1,1));	x_max = double(mosaico(1,2));
 	y_min = double(mosaico(1,3));	y_max = double(mosaico(1,4));
 	x_inc = 1600;		y_inc = 1000;
+
+	[I, att] = gdalread([handles.path_data 'PTimg_lidar.jp2']);
+	X = att.GMT_hdr(1:2);		Y = att.GMT_hdr(3:4);
+	image(X,Y,flipdim(I,1), 'Parent',handles.axes1)
+	x_lim = [x_min x_max] + [-35 30]*x_inc;
+	y_lim = [y_min y_max] + [-2 2]*y_inc;
+	set(handles.axes1,'XLim', x_lim, 'YLim', y_lim, 'YDir','normal')
+	set(handles.axes1,'XTick',[],'YTick',[], 'DataAspectRatio', [1 1 1])
+	addHelpLegend(handles)
 
 	nColsQ = (x_max - x_min) / x_inc + 1;		% Number of cells along X in our PT
 	X = x_min:x_inc:x_max;
@@ -206,13 +219,8 @@ function lidarPT(handles)
 	end
 	faces(j:end,:) = [];
 
-	x_lim = [x_min x_max] + [-35 30]*x_inc;
-	y_lim = [y_min y_max] + [-2 2]*y_inc;
-	set(handles.axes1,'XLim', x_lim, 'YLim', y_lim)
-	set(handles.axes1,'XTick',[],'YTick',[], 'DataAspectRatio', [1 1 1])
-
 	FV.vertices = vert;		FV.faces = faces;
-	h = patch(FV,'FaceColor','none','Parent',handles.axes1, 'Tag','LidarMatrix');
+	h = patch(FV,'FaceColor','none','Parent',handles.axes1, 'EdgeColor','y', 'Tag','LidarMatrix');
 	set(h,'ButtonDownFcn',{@bdnLidar,handles.figure1},'UserData',[x_lim y_lim x_inc y_inc])
 	setappdata(h, 'infoBB', [x_min x_max y_min y_max nColsQ])
 	setappdata(h, 'infoIND', ind)
@@ -222,8 +230,23 @@ function lidarPT(handles)
 	setSliders(handles, sldT, H);
 
 % -----------------------------------------------------------------------------------------
+function addHelpLegend(handles)
+% Create another axes with the help legend
+
+	figPos = get(handles.figure1, 'pos');
+	pos = [figPos(3)/2-10 figPos(4)-198 figPos(3)/2-8 190];
+	hAx = axes('Parent',handles.figure1,...
+			'Units','pixels', 'Pos',pos, 'Tag','axes2','XTick',[],'YTick',[],'HandleVisibility','off');
+	txt = sprintf(['Seleccionar o dir dos dados\n\n',...
+		'Para zoom, use as teclas +/-\nUse as setas para deslocar\nhorizontal e verticalmente\n\n' ...
+		'Clique num quadradinho para\nseleccionar. Mais que um\nselecciona um rectângulo\n\n' ...
+		'No fim clica "Faz mosaico"']);
+	text(0.02,0.98,txt,'Parent', hAx, 'VerticalAlignment','Top')
+
+% -----------------------------------------------------------------------------------------
 function bdnLidar(obj,evt,hFig)
 % Create a red patch in the cell of tha main data matrix clicked by user
+
 	handles = guidata(hFig);
 	hQ = gcbo;
 	pt = get(handles.axes1, 'CurrentPoint');		% Current click in map coordinates
@@ -242,6 +265,7 @@ function bdnLidar(obj,evt,hFig)
 % -----------------------------------------------------------------------------------------
 function [nome, row_col] = findInnerLidarTiles(hQ, x, y)
 % Get the grid name associated to the cell where X,Y falls and its ROW,COL address in the data matrix
+
 	nome = [];	row_col = [];
 	ud = get(hQ,'UserData');						% = [x_lim y_lim x_inc y_inc]
 	infoBB = getappdata(hQ, 'infoBB');				% infoBB holds the true data limits, [x_min x_max y_min y_max nColsQ]
@@ -326,6 +350,7 @@ function push_lidarMosaico_CB(hObject, handles)
 % -----------------------------------------------------------------------------------------
 function z = readLidarTile(fname)
 % Read a LIDAR_PT tile. Check if FNAME is a LASZ file
+
 	[PATO, NAME, EXT] = fileparts(fname);
 	if (strcmpi(EXT,'.laz'))
 		xyz = laszreader_mex(fname);
@@ -432,6 +457,7 @@ function bdnTile(obj,event,hFig)
 % ----------------------------------------------------------------------------
 function popup_directory_list_CB(hObject, handles, opt)
 % OPT is used by push_change_dir (just to save code)
+
 	if (nargin == 2),	opt = [];   end
 	if isempty(opt)
 		val = get(hObject,'Value');     str = get(hObject, 'String');
@@ -631,30 +657,27 @@ axes('Parent',h1,...
 'Pos',pos,...
 'Tag','axes1');
 
-uicontrol('Parent',h1,...
+uicontrol('Parent',h1, 'Pos',[3 3 FigWidth-40 22],...
 'BackgroundColor',[1 1 1],...
 'HorizontalAlignment','left',...
-'Pos',[3 3 FigWidth-40 22],...
 'Style','edit',...
 'Tooltip','Enter web site address where we can find the image files',...
 'Tag','edit_forWeb',...
 'Visible','off');
 
-uicontrol('Parent',h1,...
+uicontrol('Parent',h1, 'Pos',[10 3 FigWidth-40 22],...
 'BackgroundColor',[1 1 1],...
 'Call',@main_uiCB,...
-'Pos',[10 3 FigWidth-40 22],...
 'Style','popupmenu',...
 'String', {' '},...
 'Tooltip','Select the directory where the image files reside',...
 'Value',1,...
 'Tag','popup_directory_list');
 
-uicontrol('Parent',h1,...
+uicontrol('Parent',h1, 'Pos',[FigWidth+10-41 3 21 23],...
 'Call',@main_uiCB,...
 'FontSize',10,...
 'FontWeight','bold',...
-'Pos',[FigWidth+10-41 3 21 23],...
 'String','...',...
 'Tooltip','Select a different directory',...
 'Tag','push_change_dir');
@@ -676,11 +699,12 @@ uicontrol('Parent',h1, 'Pos',[130 30 71 15],...
 'Tooltip','When you want to get the files from Web',...
 'Tag','radio_inWeb');
 
-uicontrol('Parent',h1, 'Position',[310 26 100 21],...
+uicontrol('Parent',h1, 'Position',[FigWidth-110 26 100 21],...
 'Call',@main_uiCB,...
 'FontSize',10,...
 'FontWeight','bold',...
 'String','Faz Mosaico',...
+'Vis','off',...
 'Tag','push_lidarMosaico');
 
 function main_uiCB(hObject, eventdata)
