@@ -666,6 +666,13 @@ if (isempty(opt2) || strcmp(opt2,'CropaWithCoords'))	% Just pure Image croping
 		head(5:9) = [0 255 0 handles.head(8:9)];	tmp.name = 'Cropped Image';
 		tmp.head = head;		tmp.geog = handles.geog;			tmp.X = head(1:2);		tmp.Y = head(3:4);
 		if (~isempty(pal)),		tmp.cmap = pal;		end
+		proj4 = getappdata(handles.figure1,'Proj4');
+		if (~isempty(proj4))
+			tmp.srsWKT = ogrproj(proj4);
+		else
+			projWKT = getappdata(handles.figure1,'ProjWKT');
+			if (~isempty(projWKT)),		tmp.srsWKT = projWKT;	end
+		end
 	end
 	if (nargout)
 		varargout{1} = I;
