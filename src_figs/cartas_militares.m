@@ -178,8 +178,10 @@ function lidarPT(handles)
 	y_min = double(mosaico(1,3));	y_max = double(mosaico(1,4));
 	x_inc = 1600;		y_inc = 1000;
 
-	[I, att] = gdalread([handles.path_data 'PTimg_lidar.jpg']);
-	X = att.GMT_hdr(1:2);		Y = att.GMT_hdr(3:4);
+	I = gdalread([handles.path_data 'PTimg_lidar.jpg']);
+	% Hard code this limits. This is very bug prone solution I know but avoids having to have a .jgw file
+	X = [-123787.423169315 92138.1835464904];
+	Y = [-303489.079090607 261783.41534662];
 	image(X,Y,flipdim(I,1), 'Parent',handles.axes1)
 	x_lim = [x_min x_max] + [-35 30]*x_inc;
 	y_lim = [y_min y_max] + [-2 2]*y_inc;
