@@ -1,5 +1,6 @@
 function varargout = cartas_militares(varargin)
 % Load GIF files with the Portuguese "Cartas Militares" and display them georeferenced in Mirone
+% Second functioning mode is to make mosaics of the LIDAR2011 PT survey
 %
 % Georeferencing is acomplished in one of 3 ways (by that order):
 % 1. A corresponding Ozi Explorer .map file is found on the same directory as the GIF file
@@ -51,6 +52,7 @@ function varargout = cartas_militares(varargin)
 		guidata(hObject, handles);
 		return
 	end
+	% ============================================================
 
     naos = cell(19,1);				% By Columns
     naos{1} = [1:19 22:58];
