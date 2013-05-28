@@ -306,7 +306,7 @@ function push_lidarMosaico_CB(hObject, handles)
 	pato = get(handles.popup_directory_list,'String');
 	pato = pato{1};
 	if (pato(end) ~= filesep),		pato = [pato filesep];		end
-	pato = 'C:\dat\LiDAR2011\laz\';
+	%pato = 'C:\dat\LiDAR2011\laz\';
 
 	% Get the decimation factor. This is used to subsample the original data to 10, 20 or 50 meters resolution
 	% Decimation factor: 1 - no decimation; 5 - one every other 5th node taken, 10 - one every other tenth, etc
