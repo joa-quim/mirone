@@ -63,7 +63,7 @@ function hObject = mirone_OpeningFcn(varargin)
 %#function move2side aguentabar gdal_project gdalwarp_mex poly2mask_fig url2image calc_bonin_euler_pole spline_interp
 %#function mat2clip buffer_j PolygonClip trend1d_m akimaspline shake_mex ground_motion wms_tool microlev
 %#function write_esri_hdr distmin mag_synthetic image_histo write_gmt_symb mkpj decompress mosaicer
-%#function lasreader_mex laszreader_mex escorrega show_manguito travel
+%#function lasreader_mex laszreader_mex escorrega show_manguito travel thresholdit
 
 %  	global home_dir;	home_dir = cd;		fsep = filesep;		% To compile uncomment this and comment next 5 lines
 	global home_dir;	fsep = filesep;
