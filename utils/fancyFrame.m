@@ -91,7 +91,13 @@ function fancyFrame(handles, opt)
 
 % -----------------------------------------------------------------------------------------
 function frame_patch(handles, opt)
-% ...
+% This is solution used by François Beauducel in his 'DEM' function (BSD) but the problem is
+% that the patches get zoomed and move with zooming, which is an unacceptable behavior for axes.
+% But my 'frame' solution does not print, so before printing I call this function to create a
+% temporary FANCY frame made of patches, which are axes children and therefore print.
+% It's still far from perfect, namely the two FANCY frames are not exactly equal meaning that
+% what we see on screen is not exactly what we get on printing (but not that different).
+% http://www.ipgp.fr/~beaudu/matlab/dem.m
 
 	if (strcmp(opt,'unset'))
 		hFrancyFrames = findobj(handles.axes1, '-depth',1, 'Type','patch', 'Tag', 'PatchFrame');
