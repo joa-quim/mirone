@@ -1,11 +1,11 @@
 function stopBar =  aguentabar(varargin)
-% AGUENTABAR Display a await bar.
+% AGUENTABAR Display a wait bar.
 %
 % Usage:
 %   STOP = AGUENTABAR(X) will set the length of the bar in the most recently
 %   created aguentabar window to the fractional length X.
 %   The handle to the aguentabar figure is returned in STOP.
-
+%
 %   X specifies what fraction (0.0 - 1.0) of the task is complete.
 %   Typically, the figure will be updated according to that value. However, if
 %   X == 0.0, a new figure is created (an existing figure would be
@@ -31,7 +31,7 @@ function stopBar =  aguentabar(varargin)
 %       pause(0.01) % Do stuff
 %       aguentabar(i/n) % Update figure
 %   end
-%
+
 %	HISTORY:
 % 		ORIGINAL VERSION: Steve Hoelzer
 % 		WORKING VERSION: m-file modified by Quan Quach on 12/12/07 (quan.quach@gmail.com)
@@ -46,7 +46,7 @@ function stopBar =  aguentabar(varargin)
 %
 % 	05-Jan-2008		Joaquim Luis (jluis@ualg.pt)
 
-%	Copyright (c) 2004-2012 by J. Luis
+%	Copyright (c) 2004-2013 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -60,6 +60,8 @@ function stopBar =  aguentabar(varargin)
 %
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
+
+% $Id$
 
 	% Parse inputs
 	n_argin = nargin;
