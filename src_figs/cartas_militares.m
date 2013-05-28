@@ -178,7 +178,7 @@ function lidarPT(handles)
 	y_min = double(mosaico(1,3));	y_max = double(mosaico(1,4));
 	x_inc = 1600;		y_inc = 1000;
 
-	[I, att] = gdalread([handles.path_data 'PTimg_lidar.jp2']);
+	[I, att] = gdalread([handles.path_data 'PTimg_lidar.jpg']);
 	X = att.GMT_hdr(1:2);		Y = att.GMT_hdr(3:4);
 	image(X,Y,flipdim(I,1), 'Parent',handles.axes1)
 	x_lim = [x_min x_max] + [-35 30]*x_inc;
