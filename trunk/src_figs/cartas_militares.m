@@ -171,6 +171,7 @@ function lidarPT(handles)
 
 	set(handles.radio_inWeb,'Enable','off')
 	set(handles.push_lidarMosaico,'Vis','on')
+	set(handles.popup_resolution,'Vis','on')
 	set(handles.figure1,'Name','LIDAR2011')	
 
 	load([handles.path_data 'lidarPT.mat'])
@@ -305,17 +306,30 @@ function push_lidarMosaico_CB(hObject, handles)
 	pato = get(handles.popup_directory_list,'String');
 	pato = pato{1};
 	if (pato(end) ~= filesep),		pato = [pato filesep];		end
-	%pato = 'C:\dat\LiDAR2011\laz\';
+	pato = 'C:\dat\LiDAR2011\laz\';
 
-	% Start filling our mosaic
-	nx = (col_max - col_min + 1) * 1600 / 2 + 1;% 2 is the grid step and + 1 because of grid registration
-	ny = (row_max - row_min + 1) * 1000 / 2 + 1;
+	% Get the decimation factor. This is used to subsample the original data to 10, 20 or 50 meters resolution
+	% Decimation factor: 1 - no decimation; 5 - one every other 5th node taken, 10 - one every other tenth, etc
+	str = get(handles.popup_resolution, 'Str');
+	factor = str2double(str{get(handles.popup_resolution, 'Val')}) / 2;
+
+	% -------------- Start filling our mosaic -------------------
+	n_col_in_tile = 1600 / 2 / factor;		% Number of column retained from the original tile (factor = 1, keep them all)
+	n_row_in_tile = 1000 / 2 / factor;		% ---"---
+	nx = (col_max - col_min + 1) * n_col_in_tile + 1;	% + 1 because of grid registration
+	ny = (row_max - row_min + 1) * n_row_in_tile + 1;
 	Z = alloc_mex(ny,nx,'single',nan);
 	X0 = infoBB(1) + (col_min - 1) * 1600;
 	Y0 = infoBB(3) + (row_min - 1) * 1000;
-	got_one = false;
+	got_one = false;		show_bar = false;
+	total_cells = (row_max - row_min + 1) * (col_max - col_min + 1);
+	if (total_cells > 9)		% With more than 9 files to read we show a aguentabar
+		hBar = aguentabar(0,'title','A ler os fiches');
+		show_bar = true;
+	end
+
 	for (m = 1:(row_max - row_min + 1))
-		y = Y0 + (m - 1) * 1000 + 100;			% The 100 is just put the point well inside this cell
+		y = Y0 + (m - 1) * 1000 + 100;			% The 100 is just to put the point well inside this cell
 		for (n = 1:(col_max - col_min + 1))
 			x = X0 + (n - 1) * 1600 + 100;
 			nome = findInnerLidarTiles(hQ, x, y);
@@ -328,11 +342,17 @@ function push_lidarMosaico_CB(hObject, handles)
 				end
 			end
 			if (exist(fname,'file') ~= 2),	continue,	end	% Should give a warning here
-			z = readLidarTile(fname);
+			z = readLidarTile(fname, factor);
 			got_one = true;
 			zzz = grdutils(z,'-L');		z_min = min(zzz(1), z_min);		z_max = max(zzz(2), z_max);
-			Z((m-1)*500+1:m*500+1, (n-1)*800+1:n*800+1) = z;
+			Z((m-1)*n_row_in_tile+1:m*n_row_in_tile+1, (n-1)*n_col_in_tile+1:n*n_col_in_tile+1) = z;
+			if (show_bar && rem(n*m,3))
+				aguentabar(m*n/total_cells);
+			end
 		end
+	end
+	if (show_bar && ishandle(hBar))		% Make sure the aguentabar goes away
+		aguentabar(1)
 	end
 
 	if (~got_one)
@@ -342,7 +362,7 @@ function push_lidarMosaico_CB(hObject, handles)
 	Y1 = infoBB(3) + row_max * 1000;
 	meta.X = linspace(X0, X1, nx);		meta.Y = linspace(Y0, Y1, ny);
 	meta.name = 'Mosaico LIDAR2011';	meta.geog = 0;
-	meta.head = [X0 X1 Y0 Y1 z_min z_max 0 2 2];
+	meta.head = [X0 X1 Y0 Y1 z_min z_max 0 2*factor 2*factor];
 	meta.srsWKT = ['PROJCS["ETRS89_Portugal_TM06",GEOGCS["GCS_ETRS89",DATUM["D_ETRS_1989",' ...
 			'SPHEROID["GRS_1980",6378137,298.257222101]],PRIMEM["Greenwich",0],UNIT["Degree",0.017453292519943295]],' ...
 			'PROJECTION["Transverse_Mercator"],PARAMETER["latitude_of_origin",39.66825833333333],' ...
@@ -351,7 +371,7 @@ function push_lidarMosaico_CB(hObject, handles)
 	mirone(Z, meta)
 
 % -----------------------------------------------------------------------------------------
-function z = readLidarTile(fname)
+function z = readLidarTile(fname, factor)
 % Read a LIDAR_PT tile. Check if FNAME is a LASZ file
 
 	[PATO, NAME, EXT] = fileparts(fname);
@@ -365,6 +385,10 @@ function z = readLidarTile(fname)
 	end
 	z(z == -999) = NaN;
 	z = flipud(z);
+	
+	if (factor ~= 1)
+		z = z(1:factor:end, 1:factor:end);
+	end
 
 % -----------------------------------------------------------------------------------------
 function bdnTile(obj,event,hFig)
@@ -701,6 +725,15 @@ uicontrol('Parent',h1, 'Pos',[130 30 71 15],...
 'Style','radiobutton',...
 'Tooltip','When you want to get the files from Web',...
 'Tag','radio_inWeb');
+
+uicontrol('Parent',h1, 'Position',[FigWidth-190 27 40 19],...
+'BackgroundColor',[1 1 1],...
+'String',{'2' '10' '20' '50'},...
+'Style','popupmenu',...
+'Tooltip','Select resolution of final DTM (in meters)',...
+'Value',1,...
+'Vis','off',...
+'Tag','popup_resolution');
 
 uicontrol('Parent',h1, 'Position',[FigWidth-110 26 100 21],...
 'Call',@main_uiCB,...
