@@ -43,6 +43,8 @@ function varargout = cartas_militares(varargin)
 	set(handles.popup_directory_list,'String', directory_list)
 	handles.last_directories = directory_list;
 	handles.files_dir = handles.last_directories{1};
+	handles.path_data = path_data;
+	handles.first_call = true;
 
 	% ===== UGLY PATCH TO IMPLEMENT THE LIDAR PT MOOSAIC TOOL ====
 	if (numel(varargin) == 2)
@@ -234,6 +236,17 @@ function lidarPT(handles)
 	sldT = 9;		% Slider thickness
 	H = 50;			% Distance from bottom of Fig
 	setSliders(handles, sldT, H);
+
+	% Finally, if user has once selected a directory for the LIDARPT data, try to recover it
+	if (handles.first_call)
+		prf = load([handles.path_data 'mirone_pref.mat']);
+		if (isfield(prf,'lidarPT_dir') && exist(prf.lidarPT_dir,'dir'))
+			handles.last_directories = [{prf.lidarPT_dir}; handles.last_directories];
+			set(handles.popup_directory_list,'String',handles.last_directories)
+		end
+		handles.first_call = false;
+		guidata(handles.figure1, handles)
+	end
 
 % -----------------------------------------------------------------------------------------
 function addHelpLegend(handles)
@@ -508,14 +521,30 @@ function popup_directory_list_CB(hObject, handles, opt)
 function push_change_dir_CB(hObject, handles)
 	if (strcmp(computer, 'PCWIN'))
 		work_dir = uigetfolder_win32('Select a directory', cd);
+		if (~work_dir),		work_dir = '';	end		% To make it compatible with the other brunch
 	else            % This guy doesn't let to be compiled
 		work_dir = uigetdir(cd, 'Select a directory');
 	end
 	if (isempty(work_dir)),		return,		end
 	handles.last_directories = [cellstr(work_dir); handles.last_directories];
 	set(handles.popup_directory_list,'String',handles.last_directories)
-	guidata(hObject, handles);
+	guidata(handles.figure1, handles);
 	popup_directory_list_CB(handles.popup_directory_list, handles, work_dir)
+
+	% In the LIDAR mode save the selected dir into preferences too (Will later extend do Militares)
+	if ( strcmp(get(handles.push_lidarMosaico,'Vis'),'on') )
+		fname = [handles.path_data 'mirone_pref.mat'];
+		lidarPT_dir = work_dir;
+		% Detect which matlab version is beeing used. For the moment I'm only interested to know if R13 or >= R14
+		version7 = version;
+		V7 = (sscanf(version7(1),'%f') > 6);
+
+		if (~V7)                  % R <= 13
+			save(fname,'lidarPT_dir', '-append')
+		else
+			save(fname,'lidarPT_dir', '-append', '-v6')
+		end
+	end
 
 % ----------------------------------------------------------------------------
 function radio_inloco_CB(hObject, handles)
