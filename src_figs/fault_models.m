@@ -1,7 +1,7 @@
 function varargout = fault_models(varargin)
 % Helper window to import fault models
 
-%	Copyright (c) 2004-2012 by J. Luis
+%	Copyright (c) 2004-2013 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -16,20 +16,22 @@ function varargout = fault_models(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
+% $Id$
+
 	if (nargin)
 		handMir = varargin{1};
-	else
-		return
 	end
 
 	[hObject, handles] = fault_models_LayoutFcn;
-	handles.handMir = handMir;
+	handles.handMir = varargin{1};
 	move2side(handMir.figure1, hObject)
 
 	load([handMir.path_data 'mirone_icons.mat'],'Mfopen_ico');
 	set(handles.push_externalFile,'CData',Mfopen_ico)
 	str = {'SUBFAULT FORMAT'; 'SRCMOD (.fsp)'};
 	set(handles.listbox_readFilter,'String',str)
+	handles.last_dir = handles.handMir.last_dir;
+	handles.work_dir = handles.handMir.work_dir;
 
 	% Add this figure handle to the carra?as list
 	plugedWin = getappdata(handMir.figure1,'dependentFigs');
@@ -53,7 +55,7 @@ function push_externalFile_CB(hObject, handles)
 	end
 
 	% Get file name
-	[FileName,PathName] = put_or_get_file(handles.handMir,str1,'Select input file name','get');
+	[FileName,PathName] = put_or_get_file(handles,str1,'Select input file name','get');
 	if isequal(FileName,0);     return,     end
 	pause(0.05);
 
@@ -234,7 +236,7 @@ function evtag(handles, localHandles, fname, cmap)
 		errordlg('This file is not in the SRCMOD .fsp format.','ERROR')
 		return
 	end
-	[numeric_data,multi_segs_str] = text_read(fname,NaN,n_headers,'%');
+	[numeric_data,multi_segs_str] = text_read(fname,NaN,0,'%');		% Used to send n_headers but that showed up as a bug!
 
 	% Search for a line like -> % Mech : STRK =  320         DIP =  11          RAKE =  92      Htop = 5.92 km
 	k = 4;
@@ -246,7 +248,7 @@ function evtag(handles, localHandles, fname, cmap)
 	avgDIP = str2double(t);
 	t = strtok(multi_segs_str{k}(ind(3)+1:end));		% t = 92;
 	avgRAKE = str2double(t);
-	
+
 	% Search for a line like -> % Invs :   Nx  =   30           Nz  =   15        Fmin = 0.01 Hz     Fmax = 0.5 Hz
 	while (~strncmp(multi_segs_str{k},'% Invs :',8)),	k = k + 1;	end
 	ind = strfind(multi_segs_str{k},'=');
@@ -324,7 +326,7 @@ function evtag(handles, localHandles, fname, cmap)
 	end
 	
 	if (nSeg > 1 && ~rake_in_7)
-		warndlg('I don''t know where those guys have put the RAKE. Using the average (bad) one.','Warning')
+		warndlg('Where is the RAKE of this file?. Using the average (bad) one.','Warning')
 	end
 	
 	% Guess if the grid is in km or meters. If the guess fails so will the 3D flederization
