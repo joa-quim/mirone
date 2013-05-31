@@ -283,6 +283,8 @@ function evtag(handles, localHandles, fname, cmap)
 		offx = Dx / 6371 / D2R;		offy = Dy / 6371 / D2R;
 		w = w - offx;		e = e + offx;
 		s = s - offy;		n = n + offy;
+		w = sscanf(sprintf('%.4f',w), '%f');	e = sscanf(sprintf('%.4f',e), '%f');	% 4 decimals are enough
+		s = sscanf(sprintf('%.4f',s), '%f');	n = sscanf(sprintf('%.4f',n), '%f');
 		mirone('FileNewBgFrame_CB', handles, [w e s n 1])	% Create a background
 		hFig = handles.figure1;
 		figName = get(hFig,'Name');
