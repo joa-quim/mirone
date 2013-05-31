@@ -155,7 +155,7 @@ function varargout = deform_mansinha(varargin)
 	%-----------
 	% Fill in the grid limits boxes (in case user wants to compute a grid)
 	nDigit = round( log10(abs(max(head(1:4)))) );		% Number of digits of the integer part
-	frmt = sprintf('%%.%dg',nDigit+8);			% it will be of the type '%.Ng'
+	frmt = sprintf('%%.%dg',nDigit+10);					% it will be of the type '%.Ng'
 	set(handles.edit_x_min,'String',sprintf(frmt,head(1)))
 	set(handles.edit_x_max,'String',sprintf(frmt,head(2)))
 	set(handles.edit_y_min,'String',sprintf(frmt,head(3)))
@@ -167,7 +167,7 @@ function varargout = deform_mansinha(varargin)
 	[m,n] = size(getappdata(handMir.figure1,'dem_z'));
 
 	% Fill in the x,y_inc and nrow,ncol boxes
-	nDigit = round( log10(abs(max(head(8:9)))) );		% Number of digits of the integer part
+	nDigit = max(0, round(log10(abs(max(head(8:9))))) );		% Number of digits of the integer part
 	frmt = sprintf('%%.%dg',nDigit+10);		% it will be of the type '%.Ng'
 	set(handles.edit_Nrows,'String',m);		set(handles.edit_Ncols,'String',n)
 	set(handles.edit_y_inc,'String',sprintf(frmt,head(9)))
