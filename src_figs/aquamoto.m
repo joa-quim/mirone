@@ -58,9 +58,16 @@ function varargout = aquamoto(varargin)
 				end
 			end
 		end
-		handles.home_dir = cd;
-		handles.last_dir = handles.home_dir;
-		handles.work_dir = handles.home_dir;
+		mir_dirs = getappdata(0,'MIRONE_DIRS');
+		if (~isempty(mir_dirs))
+			handles.home_dir = mir_dirs.home_dir;
+			handles.work_dir = mir_dirs.work_dir;
+			handles.last_dir = mir_dirs.last_dir;
+		else
+			handles.home_dir = cd;
+			handles.last_dir = handles.home_dir;
+			handles.work_dir = handles.home_dir;
+		end
 		handles.DefineEllipsoide = [6378137, 0, 1/298.2572235630];	% Defaults to WGS-84
  		handles.DefineMeasureUnit = 'u';							% Defaults to 'user' units
 		d_path = [handles.home_dir filesep 'data' filesep];
@@ -523,10 +530,7 @@ function push_showSlice_CB(hObject, eventdata, handles)
 	if ( ~get(handles.radio_multiLayer, 'Val') && ~isempty(handles.nameList) )
 		errordlg('This button is for exclusive use of ANUGA files. Not for "Time Grids" list.','Error'),	return
 	end
-	if ( isempty(handles.fname) )
-		errordlg('Hey Lou. What about a walk on the Wild Side? Maybe you''ll find a file there that you can use here!','Chico clever')
-		return
-	end
+	if ( isempty(handles.fname) ),		return,		end
 
 	nx = str2double(get(handles.edit_Ncols,'String'));
 	ny = str2double(get(handles.edit_Nrows,'String'));
@@ -1111,6 +1115,7 @@ function edit_sliceNumber_CB(hObject, eventdata, handles)
 function radio_stage_CB(hObject, eventdata, handles)
 	if (get(hObject,'Value'))
 		set([handles.radio_xmoment handles.radio_ymoment], 'Value', 0)
+		set(handles.popup_extraFields, 'val', 1)
 		handles.minWater = handles.ranges{1}(1);		handles.maxWater = handles.ranges{1}(2);
 		set(handles.edit_globalWaterMin, 'String', handles.minWater)
 		set(handles.edit_globalWaterMax, 'String', handles.maxWater)
@@ -1123,6 +1128,7 @@ function radio_stage_CB(hObject, eventdata, handles)
 function radio_xmoment_CB(hObject, eventdata, handles)
 	if (get(hObject,'Value'))
 		set([handles.radio_stage handles.radio_ymoment], 'Value', 0)
+		set(handles.popup_extraFields, 'val', 1)
 		handles.minWater = handles.ranges{2}(1);		handles.maxWater = handles.ranges{2}(2);
 		set(handles.edit_globalWaterMin, 'String', handles.minWater)
 		set(handles.edit_globalWaterMax, 'String', handles.maxWater)
@@ -1135,12 +1141,26 @@ function radio_xmoment_CB(hObject, eventdata, handles)
 function radio_ymoment_CB(hObject, eventdata, handles)
 	if (get(hObject,'Value'))
 		set([handles.radio_stage handles.radio_xmoment], 'Value', 0)
+		set(handles.popup_extraFields, 'val', 1)
 		handles.minWater = handles.ranges{3}(1);		handles.maxWater = handles.ranges{3}(2);
 		set(handles.edit_globalWaterMin, 'String', handles.minWater)
 		set(handles.edit_globalWaterMax, 'String', handles.maxWater)
 		guidata(handles.figure1, handles)
 	else
 		set(hObject,'Value', 1)
+	end
+
+% -----------------------------------------------------------------------------------------
+function popup_extraFields_CB(hObject, eventdata, handles)
+% Here we just set or unset the radio buttons depending on the popup's value
+	contents = get(hObject, 'String');
+	val = get(hObject,'Value');
+	qual = contents{val};
+	if (strcmp(qual,'elevation') || strcmp(qual,'roughness'))
+		set([handles.radio_stage handles.radio_xmoment handles.radio_ymoment], 'Value', 0)
+	else
+		set(handles.radio_stage, 'Value', 1)
+		set([handles.radio_xmoment handles.radio_ymoment], 'Value', 0)
 	end
 
 % -----------------------------------------------------------------------------------------
@@ -2269,6 +2289,15 @@ function [theVar, U, V, indVar, indWater, theVarName] = get_swwVar(handles)
 		if (get(handles.radio_stage, 'Val')),			theVarName = 'stage';		indVar = 1;
 		elseif (get(handles.radio_xmoment, 'Val')),		theVarName = 'xmomentum';	indVar = 2;
 		elseif (get(handles.radio_ymoment, 'Val')),		theVarName = 'ymomentum';	indVar = 3;
+		else
+			% Deal with the new primary variables in .SWW
+			contents = get(handles.popup_extraFields, 'String');
+			qual = contents{get(handles.popup_extraFields,'Value')};
+			if (strcmp(qual,'elevation'))
+				theVarName = 'elevation';	indVar = 40;	% Don't know yet how to deal with this new case
+			elseif strcmp(qual,'roughness')
+				theVarName = 'roughness';	indVar = 41;
+			end
 		end
 		theVar = nc_funs('varget', handles.fname, theVarName, [handles.sliceNumber 0], [1 handles.number_of_points]);
 		U = [];		V = [];
@@ -2350,27 +2379,33 @@ function hh = loc_quiver(struc_in,varargin)
 		% Estimate number of points in each direction as either the size of the
 		% input arrays or the effective square spacing if x and y are vectors.
 		if min(size(x))==1, n=sqrt(numel(x)); m=n; else [m,n]=size(x); end
+		maxlen = 0;
 		delx = diff([min(x(:)) max(x(:))])/n;
 		dely = diff([min(y(:)) max(y(:))])/m;
 		del = delx.^2 + dely.^2;
 		if (del > 0)
 			len = (u.^2 + v.^2)/del;
 			maxlen = sqrt(max(len(:)));
-		else
-			maxlen = 0;
 		end
 		
+		autoscale = autoscale * 0.9;
 		if maxlen > 0
-			autoscale = autoscale*0.9 / maxlen;
-		else
-			autoscale = autoscale*0.9;
+			autoscale = autoscale / maxlen;
 		end
-		u = u*autoscale; v = v*autoscale;
+		u = u*autoscale;	v = v*autoscale;
 	end
 
 	% Make velocity vectors
 	x = x(:).';		y = y(:).';
 	u = u(:).';		v = v(:).';
+	
+	% Do not display very small arrows (1e-3, is it good?)
+	ind = (abs(u) < 1e-3) & (abs(v) < 1e-3);
+	if (any(ind))
+		u(ind) = NaN;		v(ind) = NaN;
+		x(ind) = NaN;		y(ind) = NaN;
+	end
+
 	uu = [x; x+u; ones(size(u))*NaN];
 	vv = [y; y+v; ones(size(u))*NaN];
 	% Make arrow heads
@@ -3172,27 +3207,38 @@ uicontrol('Parent',h1,...
 
 uicontrol('Parent',h1,...
 'Call',{@aquamoto_uiCB,h1,'radio_xmoment_CB'},...
-'Position',[136 320 95 15],...
-'String','Xmomentum',...
+'Position',[116 320 95 15],...
+'String','Xmoment',...
 'Style','radiobutton',...
-'TooltipString','Plot the "xmomentum" variable',...
+'Tooltip','Plot the "xmomentum" variable',...
 'Tag','radio_xmoment',...
 'UserData','anuga');
 
 uicontrol('Parent',h1,...
 'Call',{@aquamoto_uiCB,h1,'radio_ymoment_CB'},...
-'Position',[263 320 95 15],...
-'String','Ymomentum',...
+'Position',[193 320 95 15],...
+'String','Ymoment',...
 'Style','radiobutton',...
-'TooltipString','Plot the "ymomentum" variable',...
+'Tooltip','Plot the "ymomentum" variable',...
 'Tag','radio_ymoment',...
+'UserData','anuga');
+
+uicontrol('Parent',h1, 'Position',[275 316 80 22],...
+'BackgroundColor',[1 1 1],...
+'Call',{@aquamoto_uiCB,h1,'popup_extraFields_CB'},...
+'Enable','off',...
+'String',{'Or ...'; 'Elevation';},...
+'Style','popupmenu',...
+'Value',1,...
+'Tooltip','Other variables, not always available in all .sww',...
+'Tag','popup_extraFields',...
 'UserData','anuga');
 
 uicontrol('Parent',h1, 'Position',[131 279 190 22],...
 'BackgroundColor',[1 1 1],...
 'Call',{@aquamoto_uiCB,h1,'popup_derivedVar_CB'},...
 'Enable','off',...
-'String',{  'Absolute Velocity (V)'; 'Absolute Momentum (VxD)'; 'Water Depth'; 'Topography'; 'Froude Number'; 'Velocity Head (V^2 / (2g))'; 'Shear Stress'},...
+'String',{'Absolute Velocity (V)'; 'Absolute Momentum (VxD)'; 'Water Depth'; 'Topography'; 'Froude Number'; 'Velocity Head (V^2 / (2g))'; 'Shear Stress'},...
 'Style','popupmenu',...
 'Value',1,...
 'Tag','popup_derivedVar',...
