@@ -1,8 +1,9 @@
 function varargout = load_xyz(handles, opt, opt2)
 % Read a generic ascii file that can be, or not, a multiseg file
 %
-%	Multi-segs files accept -G, -S & -W GMT type options.
+%	Multi-segs files accept -G, -S & -W GMT type options plus a proj4 string for referencing.
 %		-S<symb>[size] accepts these GMT type symbol codes <a|c|d|h|i|n|p|s|x|+>
+%		The proj4 string should be one single word e.g. +proj4=latlong or enclosed in "+proj4=latlong +datum=..."
 %
 %	It does also deal with the case of ploting the isochrons.dat
 %
@@ -695,8 +696,8 @@ function [thick, cor, str2] = parseW(str)
 % --------------------------------------------------------------------
 function [proj, str2] = parseProj(str)
 % Parse the STR string in search for a +proj4 string indicating data SRS
-% The proj4 sting should be one single word e.g. +proj4=latlong or enclose in "+proj4=latlong +datum=..."
-% In ater case the "" are sriped from the return PROJ variable
+% The proj4 string should be one single word e.g. +proj4=latlong or enclose in "+proj4=latlong +datum=..."
+% In later case the "" are sriped from the return PROJ variable
 % STR2 is the STR string less the ["]+proj4... part
 	proj = [];		str2 = str;
 	ind = strfind(str, '+proj');
