@@ -110,6 +110,9 @@ function [Z, X, Y, srsWKT, handles, att] = read_grid(handles, fullname, tipo, op
 
 		if (~strncmp(att.DriverShortName, 'HDF4', 4))
 			Z = gdalread(att.Name, '-U', opt_I, opt);
+			if (strcmp(att.DriverShortName, 'BAG'))		% Until we know how to read by layers (2 or 3)
+				Z(:,:,2:end) = [];
+			end
 		elseif (strcmp(att.Band(1).DataType,'L3Bin'))
 			[Z, handles.have_nans, att] = empilhador('getZ', fname, att, false, false, false, 1, 0, []);
 		else								% HDF files need a special care. Search for an offset and scale factor, etc...
