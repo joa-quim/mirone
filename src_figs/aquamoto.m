@@ -459,10 +459,14 @@ function push_swwName_CB(hObject, eventdata, handles, opt)
 	ind = strcmp(varNames,'xmomentum_range');
 	if (any(ind))
 		handles.ranges{2} = double(nc_funs('varget', handles.fname, 'xmomentum_range'));
+	else
+		set(handles.radio_xmoment, 'Enable', 'off')		% SHIT, new inventions in format
 	end
 	ind = strcmp(varNames,'ymomentum_range');
 	if (any(ind))
 		handles.ranges{3} = double(nc_funs('varget', handles.fname, 'ymomentum_range'));
+	else
+		set(handles.radio_ymoment, 'Enable', 'off')
 	end
 	ind = strcmp(varNames,'elevation_range');
 	if (any(ind))				% Not unlikely that some of the following are wrong. F... devided by (nearly) zero
@@ -484,6 +488,14 @@ function push_swwName_CB(hObject, eventdata, handles, opt)
 	% --- Find if elevation is single or multi-layer
 	ind = strcmp(varNames,'elevation');
 	handles.n_elevations = numel(s.Dataset(ind).Size);
+
+	% --- If elevation is multi-layered unblock the 'extraFields', but need to shuffle things around
+	if (handles.n_elevations > 1)
+		for (k = 17:-1:11),		handles.ranges{k} = handles.ranges{k-1};	end
+		for (k = 7:-1:5),		handles.ranges{k} = handles.ranges{k-1};	end
+		handles.ranges{4} = double(nc_funs('varget', handles.fname, 'elevation_range'));
+		set(handles.popup_extraFields, 'Enable', 'on')
+	end
 
 	% --------------- Estimate a "reasonable" proposition for grid dimensions------------------
 	n = round( sqrt(double(handles.number_of_volumes)) );
@@ -527,6 +539,7 @@ function push_swwName_CB(hObject, eventdata, handles, opt)
 
 % -----------------------------------------------------------------------------------------
 function push_showSlice_CB(hObject, eventdata, handles)
+% ...
 	if ( ~get(handles.radio_multiLayer, 'Val') && ~isempty(handles.nameList) )
 		errordlg('This button is for exclusive use of ANUGA files. Not for "Time Grids" list.','Error'),	return
 	end
@@ -541,6 +554,8 @@ function push_showSlice_CB(hObject, eventdata, handles)
 		aqua_suppfuns('forGDAL_slice', handles),	return
 	elseif (handles.is_sww)
 		[theVar, U, V, indVar, indWater] = get_swwVar(handles);
+		indVarShuffle = 0;
+		if (handles.n_elevations > 1),		indVarShuffle = 1;		end
 	end
 	if (~isa(theVar, 'double')),	theVar = double(theVar);	end		% While we don't f... these doubles as well
 
@@ -563,7 +578,7 @@ function push_showSlice_CB(hObject, eventdata, handles)
 	handles.head(8) = str2double(get(handles.edit_x_inc,'String'));
 	handles.head(9) = str2double(get(handles.edit_y_inc,'String'));
 
-	if (indVar == 17)		% Bed Shear (ro*g*h*EN_slope). We do it here because it needs a regular grid
+	if (indVar - indVarShuffle == 17)	% Bed Shear (ro*g*h*EN_slope). We do it here because it needs a regular grid
 		slope = grdgradient_m(Z, handles.head, '-S', '-D');
 		cvlib_mex('CvtScale', slope, 1000 * 9.8, 0);	% apply the ro * g scaling
 		cvlib_mex('mul', Z, slope);
@@ -575,7 +590,7 @@ function push_showSlice_CB(hObject, eventdata, handles)
 
 	if ( splitDryWet )
 		indLand = get_landInd(handles, x, y, indWater);		% Compute Dry/Wet indexes - have to recompute, ... since water ... moves
-		if (indVar == 8)									% Max Water option. Calculate once the Water delimiting polygon
+		if (indVar - indVarShuffle == 8)					% Max Water option. Calculate once the Water delimiting polygon
 			handles.indMaxWater = ~indLand;
 		end
 
@@ -907,6 +922,10 @@ function [theVar, U, V, indVar, indWater, qual] = get_derivedVar(handles)
 			
 	end
 
+	if (handles.n_elevations > 1)		% Need to shuffle them all by 1 since elevation is now 4
+		indVar = indVar + 1;
+	end
+
 % -----------------------------------------------------------------------------------------
 function elev = get_elevation(handles, opt)
 % Since elevation started to be a multi-layered var we have this chunk of code repeatedly
@@ -1156,8 +1175,9 @@ function popup_extraFields_CB(hObject, eventdata, handles)
 	contents = get(hObject, 'String');
 	val = get(hObject,'Value');
 	qual = contents{val};
-	if (strcmp(qual,'elevation') || strcmp(qual,'roughness'))
+	if (strcmpi(qual,'elevation') || strcmp(qual,'roughness'))
 		set([handles.radio_stage handles.radio_xmoment handles.radio_ymoment], 'Value', 0)
+		set([handles.check_derivedVar handles.check_splitDryWet],'Val',0)
 	else
 		set(handles.radio_stage, 'Value', 1)
 		set([handles.radio_xmoment handles.radio_ymoment], 'Value', 0)
@@ -1198,11 +1218,15 @@ function check_derivedVar_CB(hObject, eventdata, handles)
 			ind = ~isnan(ico(:,:,:));		ico(ind) = 0.0;
 			set(handles.push_vel,'Enable', 'on', 'CData',ico)
 		end
+		set(handles.popup_extraFields,'Enable', 'off')
 	else
 		set([handles.radio_stage handles.radio_xmoment handles.radio_ymoment], 'Enable', 'on')
 		set(handles.popup_derivedVar, 'Enable', 'off')
 		ind = ~isnan(ico(:,:,:));		ico(ind) = 0.6;
 		set(handles.push_vel,'Enable', 'off', 'CData',ico)
+		if (handles.n_elevations > 1)
+			set(handles.popup_extraFields,'Enable', 'on')
+		end
 	end
 
 % -----------------------------------------------------------------------------------------
@@ -2293,10 +2317,10 @@ function [theVar, U, V, indVar, indWater, theVarName] = get_swwVar(handles)
 			% Deal with the new primary variables in .SWW
 			contents = get(handles.popup_extraFields, 'String');
 			qual = contents{get(handles.popup_extraFields,'Value')};
-			if (strcmp(qual,'elevation'))
-				theVarName = 'elevation';	indVar = 40;	% Don't know yet how to deal with this new case
-			elseif strcmp(qual,'roughness')
-				theVarName = 'roughness';	indVar = 41;
+			if (strcmpi(qual,'elevation'))
+				theVarName = 'elevation';	indVar = 4;		% Don't know yet how to deal with this new case
+			elseif strcmpi(qual,'roughness')
+				theVarName = 'roughness';	indVar = 41;	% CASE NOT EXISTING (YET)
 			end
 		end
 		theVar = nc_funs('varget', handles.fname, theVarName, [handles.sliceNumber 0], [1 handles.number_of_points]);
