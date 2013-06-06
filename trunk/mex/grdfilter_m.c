@@ -216,7 +216,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	}
 	
 	if (argc == 1 || GMT_give_synopsis_and_exit) {
-		mexPrintf("grdfilter %s - Filter a 2-D netCDF grdfile in the Time domain\n\n", GMT_VERSION);
+		mexPrintf("grdfilter - Filter a 2-D netCDF grdfile in the Time domain\n\n");
 		mexPrintf("usage: [Zout,[head]] = grdfilter_m(Z, '-D<distance_flag>', '-F<type><filter_width>[<mode>]',\n");
 		mexPrintf("\t '[-I<xinc>[m|c][/<yinc>[m|c]]]', '[-R<west/east/south/north>]', '[-T]', '[-V]')\n");
 		

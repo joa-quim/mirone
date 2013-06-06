@@ -136,7 +136,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	}
 	
 	if (n_arg_no_char == 0 || error) {
-		mexPrintf ("grd2cdf %s - Make a linear or histogram-equalized color palette table from a grdfile\n\n", GMT_VERSION);
+		mexPrintf ("grd2cdf - Make a linear or histogram-equalized color palette table from a grdfile\n\n");
 		mexPrintf ("usage: grd2cdf(indfile, head, ['-E<nlevels>'], ['-L<min_limit>/<max_limit>'],\n");
 		mexPrintf ("\t['-Q[i|o]'], ['-S<z_start>/<z_stop>/<z_inc>'])\n");
 		

@@ -289,7 +289,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
         }
 
 	if (argc == 1 || GMT_quick) {
-		mexPrintf ("grdfft %s - Perform mathematical operations on grdfiles in the frequency domain\n\n", GMT_VERSION);
+		mexPrintf ("grdfft - Perform mathematical operations on grdfiles in the frequency domain\n\n");
 		mexPrintf ("usage: grdfft <in_grdfile> [-G<out_grdfile>] [-A<azimuth>] [-C<zlevel>]\n");
 		mexPrintf ("\t[-D[<scale>|g]] [-E[x_or_y][w]] [-F[x_or_y]<lc>/<lp>/<hp>/<hc>] [-I[<scale>|g]] [-L] [-M]\n");
 		mexPrintf ("\t[-N<stuff>] [-S<scale>] [-T<te/rl/rm/rw/ri>] [-V]\n\n");

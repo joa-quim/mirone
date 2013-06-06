@@ -172,7 +172,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	if ((d_set + e_set + n_set) == 0) n_set = set_n = TRUE;
 
 	if (argc == 1 || error) {
-		mexPrintf("grdproject %s - Project geographical grid to/from rectangular grid\n\n", GMT_VERSION);
+		mexPrintf("grdproject - Project geographical grid to/from rectangular grid\n\n");
 		mexPrintf("usage: [out,hdr] = grdproject_m(grdfile, grdhead, '-J<parameters>', '-R<west/east/south/north>'\n");
 		mexPrintf("\t'[-A[k|m|n|i|c|p]]', '[-C]', '[-D<dx[m|c]>[/dy[m|c]]]', '[-E<dpi>]', '[-F]', '[-I]',\n");
 		mexPrintf("\t'[-Mc|i|m]', '[-N<nx/ny>]',)\n\n");

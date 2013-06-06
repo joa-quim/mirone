@@ -111,7 +111,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	}
 	
 	if ((argc == 1 && n_arg_no_char == 0) || error) {
-		mexPrintf("shake_mex %s - Compute Peak Ground Acceleration/Velocity and Intensity.\n\n", GMT_VERSION);
+		mexPrintf("shake_mex - Compute Peak Ground Acceleration/Velocity and Intensity.\n\n");
 		mexPrintf("usage: out = shake_mex(vs30, head, line, [-F<mecatype>], ['-M<mag>'], ['-O<avi>']);\n");
 
 		mexPrintf("\tout  One to three arrays (see -O) with results (e.g. [int,pga = ...].\n");
