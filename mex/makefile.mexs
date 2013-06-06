@@ -10,8 +10,9 @@
 
 # ------------------- Where is GMT source? ----------------------------------
 GMTSRCDIR = /Users/j/programs/GMT/src/
-include $(GMTSRCDIR)config.mk
-include $(GMTSRCDIR)common.mk
+#include $(GMTSRCDIR)config.mk
+#include $(GMTSRCDIR)common.mk
+srcdir		= $(GMTSRCDIR)
 #----------------------------------------------------------------------------
 
 #-------------------- Where install will place the files? -------------------
@@ -51,10 +52,13 @@ MEX_EXT	= mexmaci64
 MEX	= $(MATLAB)/bin/mex
 #MEXLIB	= -L$(MATLAB)/extern/lib/$(MATLAB_MEX) -lmat
 MEXLIB	= -L$(MATLAB)/bin/$(MATLAB_MEX) -lmat
-GMT     = -L.. -L$(libdir) -lgmt -lpsl
-GMT_MGG = -L.. -L$(libdir) -lgmt_mgg
+LDFLAGS = -L/usr/local/lib
+GMT     = -L.. $(LDFLAGS) -lgmt -lpsl
+GMT_MGG = -L.. $(LDFLAGS) -lgmt_mgg
+NETCDF_INC	= -I/usr/local/include
+NETCDF_LIB	= -L/usr/local/lib -lnetcdf
 CDF     = $(NETCDF_LIB)
-FLAGS	= -I$(srcdir) -I$(MATLAB)/extern/include $(NETCDF_INC)
+FLAGS	= -I$(srcdir) -I$(MATLAB)/extern/include $(NETCDF_INC) -I/usr/local/include
 MGG_FLAGS	= -I$(srcdir) -I$(srcdir)/mgg -I$(srcdir)/x_system -I$(MATLAB)/extern/include $(NETCDF_INC)
 GDAL_LIB    = -L/usr/local/lib/ -lgdal
 GDAL_FLAGS  = -I/usr/local/include -I$(MATLAB)/extern/include
