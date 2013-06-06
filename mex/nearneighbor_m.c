@@ -188,7 +188,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	}
 	
 	if (argc == 1 || GMT_give_synopsis_and_exit) {
-		mexPrintf ("nearneighbor %s - A \"Nearest neighbor\" gridding algorithm\n\n", GMT_VERSION);
+		mexPrintf ("nearneighbor - A \"Nearest neighbor\" gridding algorithm\n\n");
 		mexPrintf("usage: [Z, head] = nearneighbor([xyzfile(s)], -I<dx>[m|c][/<dy>[m|c]],\n");
 		mexPrintf("\t-N<sectors>, -R<west/east/south/north>, -S<radius>[m|c|k|K], [-E<empty>], [-F],\n");
 		mexPrintf("\t[-H ], [-L<flags>], [-W], [-:], [-bi[s][<n>]], [-f[i|o]<colinfo>], [-e])\n\n");

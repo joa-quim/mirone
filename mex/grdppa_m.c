@@ -113,7 +113,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
         }
 
 	if (n_arg_no_char < 2 || error) {
-		mexPrintf ("grdppa %s - automatic extraction of ridge or valley axes\n\n", GMT_VERSION);
+		mexPrintf ("grdppa - automatic extraction of ridge or valley axes\n\n");
 		mexPrintf ("usage: out = grdppa(infile, head, '[-L<npoints>]', '[-T<1|2>]', '[-Rw/e/s/n]', '[-V]')\n\n");
 		
 		mexPrintf ("\t<infile> is name of input array\n");
