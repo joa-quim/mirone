@@ -8,13 +8,6 @@
 #  ...gdal\ogr\ogrsf_frmts\shape\shapefil.h   to  ...\gdal\include 
 #
 
-# ------------------- Where is GMT source? ----------------------------------
-GMTSRCDIR = /Users/j/programs/GMT/src/
-#include $(GMTSRCDIR)config.mk
-#include $(GMTSRCDIR)common.mk
-srcdir		= $(GMTSRCDIR)
-#----------------------------------------------------------------------------
-
 #-------------------- Where install will place the files? -------------------
 # Notice that it must allways be ..../"mirone root"/lib_mex
 mirone_mex_dir	= /Users/j/programs/mironeTrunk/lib_mex
@@ -58,8 +51,8 @@ GMT_MGG = -L.. $(LDFLAGS) -lgmt_mgg
 NETCDF_INC	= -I/usr/local/include
 NETCDF_LIB	= -L/usr/local/lib -lnetcdf
 CDF     = $(NETCDF_LIB)
-FLAGS	= -I$(srcdir) -I$(MATLAB)/extern/include $(NETCDF_INC) -I/usr/local/include
-MGG_FLAGS	= -I$(srcdir) -I$(srcdir)/mgg -I$(srcdir)/x_system -I$(MATLAB)/extern/include $(NETCDF_INC)
+FLAGS	= -I$(MATLAB)/extern/include $(NETCDF_INC) -I/usr/local/include
+MGG_FLAGS	= -I$(MATLAB)/extern/include $(NETCDF_INC)
 GDAL_LIB    = -L/usr/local/lib/ -lgdal
 GDAL_FLAGS  = -I/usr/local/include -I$(MATLAB)/extern/include
 MEXNC_FLAGS = $(NETCDF_INC) -I$(MATLAB)/extern/include
@@ -112,7 +105,7 @@ mpgwrite:	$(PROG_MPGWRITE)
 
 install:
 		for f in *.$(MEX_EXT); do \
-			$(INSTALL) $$f $(mirone_mex_dir); \
+			/bin/install -c $$f $(mirone_mex_dir); \
 		done
 
 cpt2cmap:	
