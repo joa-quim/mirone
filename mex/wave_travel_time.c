@@ -241,23 +241,24 @@ void	do_travel_time (double *Z, double *TT, int i_source, int j_source, double t
 			rim[j] = rim1[j];
 		if (first) {
 			for (l = 0; l < np_rim1; l++)
-				set_travel_time (Z, TT, i0, j0, l, geo, rim1, k, ndatac);
+				set_travel_time (Z, TT, i0, j0, l, geo, rim1, k, ndatac);  /* Sets TT on the 8 source neighbors */
 		}
 		first = FALSE;
 
-		for (l = 0; l < np_rim1; l++) {			/* Circulate the rim k points */
-			n_to_ij(rim[l], &i0, &j0);			/* Make each rim k point the current point */
-			if (i0 == 0 || i0 >= h.nx-1 || j0 == 0 || j0 >= h.ny-1) continue; 
-			np_rim8 = find_rim_points (Z, i0, j0, 1);		/* find an extra rim8 arround each rim k point */
+		for (l = 0; l < np_rim1; l++) {                                 /* Circulate the rim k points */
+			n_to_ij(rim[l], &i0, &j0);                              /* Make each rim k point the current point */
+			if (i0 == 0 || i0 >= h.nx-1 || j0 == 0 || j0 >= h.ny-1) /* On the grid's edge. Can't be sources, bye bye */
+				continue; 
+			np_rim8 = find_rim_points (Z, i0, j0, 1);               /* find an extra rim8 arround each rim k point */
 			for (j = 0; j < np_rim8; j++)
-				rim8[j] = rim1[j];				/* Save rim8 vector */
-			np_rim16 = find_rim_points (Z, i0, j0, 2);		/* find a rim16 arround each rim k point */
+				rim8[j] = rim1[j];                              /* Save rim8 vector */
+			np_rim16 = find_rim_points (Z, i0, j0, 2);              /* find a rim16 arround each rim k point */
 			for (j = 0; j < np_rim16; j++)
-				rim16[j] = rim1[j];				/* Save rim16 vector */
-			for (j = 0; j < np_rim8; j++) {				/* Circulate arround the local rim8 points */
+				rim16[j] = rim1[j];                             /* Save rim16 vector */
+			for (j = 0; j < np_rim8; j++) {                         /* Circulate arround the local rim8 points */
 				set_travel_time (Z, TT, i0, j0, j, geo, rim8, k, ndatac); 
 			}
-			for (j = 0; j < np_rim16; j++) {			/* Circulate arround the local rim16 points */
+			for (j = 0; j < np_rim16; j++) {                        /* Circulate arround the local rim16 points */
 				set_travel_time (Z, TT, i0, j0, j, geo, rim16, k, ndatac); 
 			}
 		}
@@ -266,19 +267,19 @@ void	do_travel_time (double *Z, double *TT, int i_source, int j_source, double t
 }
 
 void set_travel_time (double *Z, double *TT, int i0, int j0, int cp, int geo, int *rim0, int k, int ndatac) {
-	/* Compute the travel time at one of the 16 nearneighbors from the current point
+	/* Compute the travel time at one of the N rim nearneighbors from the current point
 	   If that point has already a time estimate, choose the minimum of the two */
 	int ic, jc, ij, i0j0;
 	double tmp, v_mean, ds;
 
-	n_to_ij(rim0[cp], &ic, &jc);	/* compute (i,j) from index n of the matrix in vector form */
-	ij = ij_data(ic,jc);
-	if (Z[ij] > 0) {	/* Point is not on land */
+	n_to_ij(rim0[cp], &ic, &jc);    /* compute (i,j) from linear index n of the matrix (same as ML ind2sub) */
+	ij = ij_data(ic,jc);            /* Now I'm puzzled, isn't ij equal to rim0[cp] ??? */
+	if (Z[ij] > 0) {                /* Point is not on land */
 		i0j0 = ij_data(i0,j0);
 		if (TT[i0j0] == 1000000) return;
-		v_mean = (Z[ij] + Z[i0j0]) / 2;
-		ds = arc_dist (i0,j0,ic,jc,geo);
-		tmp = ds / v_mean;
+		v_mean = (Z[ij] + Z[i0j0]) / 2;   /* Mean speed of the current source point and the point on the rim */
+		ds = arc_dist (i0,j0,ic,jc,geo);  /* Distance between those two points */
+		tmp = ds / v_mean;                /* Travel time between those two points */
 		TT[ij] = MIN((TT[i0j0] + tmp), TT[ij]);
 	}
 }
@@ -363,7 +364,7 @@ double	arc_dist (int i0, int j0, int ic, int jc, int geo) {
 }
 
 void	n_to_ij (int n, int *i, int *j) {
-	/* compute (i,j) from index n of the matrix in vector form */
+	/* compute (i,j) from the linear index n of the matrix in vector form. Same as ML ind2sub() */
 	*j = n / h.nx;
 	*i = n - *j * h.nx;
 }
