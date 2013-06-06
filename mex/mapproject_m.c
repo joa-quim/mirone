@@ -284,7 +284,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	}
 	
 	if (argc == 1 || error) {
-		mexPrintf("mapproject %s - Forward and Inverse map transformations and geodesy\n\n", GMT_VERSION);
+		mexPrintf("mapproject - Forward and Inverse map transformations and geodesy\n\n");
 		mexPrintf("usage: mapproject <infiles> -J<parameters> -R<west/east/south/north> [-C]\n");
 		mexPrintf("\t[-Ab|B|f|F<lon0/lat0>] [-Dc|i|m|p] [d-1|0|1] [-E[<datum>]] [-F[k|m|n|i|c|p]] [-G[<lon0/lat0>/][<unit>]\n");
 		mexPrintf("\t[-H[<nrec>]] [-I] [-L<line.xy>[/<unit>] [-M[<flag>]] [-S] [-T[h]<from>[/<to>]\n");

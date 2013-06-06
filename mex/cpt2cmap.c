@@ -111,7 +111,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	}
 	
 	if (argc == 1 || error) {
-		mexPrintf ("cpt2cmap %s - Read and convert a GMT color palette to a Matlab colormap\n\n", GMT_VERSION);
+		mexPrintf ("cpt2cmap - Read and convert a GMT color palette to a Matlab colormap\n\n");
 		mexPrintf ("usage: cmap = cpt2cmap('-C<table>', ['-Q[i|o]]', ['-I'], ['-T<z_start>/<z_stop>/<z_inc>'], ['-Z'])\n");
 		mexPrintf ("\t-C Specify a colortable file name\n");
 		

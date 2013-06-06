@@ -367,7 +367,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	}
 	
 	if (argc == 1 || GMT_give_synopsis_and_exit || error) {	/* Display usage */
-		mexPrintf ("surface %s - Adjustable tension continuous curvature surface gridding\n\n", GMT_VERSION);
+		mexPrintf ("surface - Adjustable tension continuous curvature surface gridding\n\n");
 		mexPrintf ("usage: [Zout,head] = surface_m(x,y,z|<xyz-file>, '-I<xinc>[m|c][/<yinc>[m|c]]',\n");
 		mexPrintf ("\t'-R<west>/<east>/<south>/<north>', '[-A<aspect_ratio>]', '[-C<convergence_limit>]',\n");
 		mexPrintf ("\t'[-Ll<limit>]', '[-Lu<limit>]', '[-N<n_iterations>]', '[-S<search_radius>[m]]', '[-T<tension>[i][b]]',\n");
