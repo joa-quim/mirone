@@ -986,7 +986,8 @@ function set_isochrons_uicontext(h, data)
 	cb_ClassLineStyle = uictx_Class_LineStyle(h);    % there are 4 cb_ClassLineStyle outputs
 	item_Class_lt = uimenu(cmenuHand, 'Label', ['All ' tag ' Line Style']);
 	setLineStyle(item_Class_lt,{cb_ClassLineStyle{1} cb_ClassLineStyle{2} cb_ClassLineStyle{3} cb_ClassLineStyle{4}})
-	%uimenu(cmenuHand, 'Label', 'Make Age-script', 'Sep','on', 'Call', @make_age_script_);
+	%uimenu(cmenuHand, 'Label', 'Compute pole to neighbor', 'Sep','on', 'Call', @pole2neighbor);
+	%uimenu(cmenuHand, 'Label', 'Make Age-script', 'Call', @make_age_script);
 	uimenu(cmenuHand, 'Label', 'Euler rotation', 'Sep','on', 'Call', 'euler_stuff(gcf,gco)');
 	for (i=1:length(h)),		ui_edit_polygon(h(i)),		end		% Set edition functions
 
@@ -2441,22 +2442,23 @@ function remove_symbolClass(obj,eventdata,h)
 % -----------------------------------------------------------------------------------------
 function make_age_script(obj, evt)
 % ...
-	pato = 'C:\a1\mgd77\AGU12\';
+	pato = 'C:\a1\mgd77\AGU12\t\';
 	hAllIsocs = findobj('Tag', get(gco,'Tag'));
 	fidJob = fopen([pato 'generate_age_pts.bat'],'wt');			% The batch file
 	fprintf(fidJob, '@echo off\n\nset fname=ages_stages.dat\n');
 	fprintf(fidJob, 'set opt_D=-D0.03\n');
 	fprintf(fidJob, 'set opt_S=-S0.03\n');
-	fprintf(fidJob, 'set opt_P=-P60\n\n');
+	fprintf(fidJob, 'set opt_P=-P90\n\n');
 	fprintf(fidJob, 'del /Q %%fname%%\n');
 	for (i = 1:numel(hAllIsocs))
 		LineInfo = getappdata(hAllIsocs(i),'LineInfo');
 		if (isempty(LineInfo)),		continue,	end
-		ind = strfind(LineInfo, 'STG');
+		ind = strfind(LineInfo, 'STG1"');
 		if (isempty(ind)),		continue,	end
+		ind2 = strfind(LineInfo(ind+5:end),'"') + ind + 5 - 1;	% So that ind reports to the begining string too
 		isoc_name = strtok(LineInfo);
 		pole_name = sprintf('%spolo_%d.stg', pato, i);
-		A = sscanf(LineInfo(ind+4:end), '%f %f %f %f %f');
+		A = sscanf(LineInfo(ind+5:ind2(1)-1), '%f %f %f %f %f');
 		stg = sprintf('%.9g %.9g %.9g %.9g %.9g', A(1),A(2),A(3)-A(4),0,A(5));
 		fid = fopen(pole_name,'wt');					%  The stage pole file
 		fprintf(fid, '%s\n', stg);
@@ -2464,7 +2466,7 @@ function make_age_script(obj, evt)
 		x = get(hAllIsocs(i), 'XData');		y = get(hAllIsocs(i), 'YData');
 		isoc_name = sprintf('%sisoca_%d_%s.dat', pato, i, isoc_name);	% reuse the variable 'isoc_name'
 		fid = fopen(isoc_name,'wt');					%  The isochrone file
-		fprintf(fid, '> %s\n', LineInfo(1:ind-1));
+		fprintf(fid, '> %s\n', LineInfo);
 		fprintf(fid, '%.4f\t%.4f\n', [x(:)'; y(:)']);
 		fclose(fid);
 		fprintf(fidJob, 'telha %s -E%s -A %%opt_D%% %%opt_S%% -O%g %%opt_P%% >> %%fname%%\n', isoc_name, pole_name, A(4));
