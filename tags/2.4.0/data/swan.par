@@ -1,0 +1,24 @@
+#		Sumatra case. Grids at 2m spacing
+6.0		dt (time step (s) for simulations)
+50		grn (save frids at this cycle interval (it depends on dt))
+0.0		cf (Coriolis - O valor lido daqui so parece ser usado quando polar = 0)
+0.0		cc (bottom stress of de chezy)
+0.0		sfx (x wind sterss)
+0.0		sfy (y wind sterss)
+1		polar (polar=0 no polar; 1 north lat; -1 south lat; 2 Mercator) 
+1.0		rough (coefficient for FLOODING = actual height/ideal height; 1.0 no roughness)
+10		cumint (cumint * dt = time at which the virtual tide gauges are writen - only used with -T option)
+0.0		pistal
+0.0		pistbl
+0.0		pistab
+0.0		pistbb
+0.0		pistar
+0.0		pistbr
+0.0		pistat
+0.0		pistbt
+#		(ind 1 for piston, 2 for continuative, 3 for reflective in order of left,bottom,right,top of rectangle) 
+2		indl
+2		indb
+2		indr
+2		indt
+0		iopt  (0 for extrapolated continuative boundary; 1 for linear continuative boundary)

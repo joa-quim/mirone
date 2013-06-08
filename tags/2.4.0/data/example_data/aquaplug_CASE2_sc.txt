@@ -1,0 +1,24 @@
+# Control script to drive operations in the aquaPlugin function
+# First line must start with 'case N', where N is as explained in aquaPlugin
+# Character arguments, like file names, must be prefixed with the 'char' key
+# Empties, even for strings, must be set as []
+# Args for run of CASE 2
+#aquamoto C:\a1\MODIS\algas\mediaAnual_82_09_Interp200_splina_Q6.nc C:\a1\MODIS\algas\aquaplug_CASE2_sc.txt 
+
+case 2
+# The 'slope' var
+1
+# The 'sub_set' var ([0 19] -> (82 90)); ([9 9] -> (91 00)); ([19 0] -> (01 09));  
+[19 0]
+# The 'fname' var 
+#char C:\a1\MODIS\algas\Algas_qual_pathfinder_82_09.nc
+[]
+# The 'quality' var Ignored if fname = []
+6
+# The 'splina' var  Ignored if fname = []
+0
+# The 'scale' var   12 for montly data
+1
+# The 'grd_out' var (Name of output file)
+#char C:\a1\MODIS\algas\tempVar_pathfinder_01_09_Interp200_splina_Q6.grd
+char C:\a1\MODIS\algas\lixo.grd

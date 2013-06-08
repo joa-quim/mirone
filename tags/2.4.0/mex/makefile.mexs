@@ -1,0 +1,247 @@
+#		$Id: makefile.in,v 1.4 09/12/2010
+#
+#	Makefile for mirone mexs
+#	make -f makefile.mexs
+#	Use with GMT 4.5
+#
+# To compile the mex_shape whithout the shapelib but using GDAL it's necessary to copy
+#  ...gdal\ogr\ogrsf_frmts\shape\shapefil.h   to  ...\gdal\include 
+#
+
+#-------------------- Where install will place the files? -------------------
+# Notice that it must allways be ..../"mirone root"/lib_mex
+mirone_mex_dir	= /Users/j/programs/mironeTrunk/lib_mex
+#----------------------------------------------------------------------------
+
+# ------------------- Which and where is OpenCV? ----------------------------
+# Set to 'yes' to use a local build version. That is ocvLocal = yes
+ocvLocal =
+
+# Depending on the above setting, revise one of the 2 following if cases
+ifndef ocvLocal
+pato_cv = /usr/local
+pato_cv_lib = /usr/local/lib
+CV_INC = /usr/local/include
+else
+pato_cv = /Users/j/programs/opencv2/trunk/opencv
+pato_cv_lib = /Users/j/programs/opencv2/trunk/opencv/build/lib
+endif
+#----------------------------------------------------------------------------
+
+# On Mac (but need to addapt to 32 or 64)
+MATLAB		= /Applications/MATLAB_R2012a.app
+MATLAB_MEX	= maci64
+MEX_EXT	= mexmaci64
+
+# On linux
+#MATLAB		= /home/bagside/programs/matlab
+#MATLAB_MEX	= glnx86
+#MEX_EXT	= mexglx
+
+#----------------------------------------------------------------------------
+#	Revise some of these if they don't live in /usr/local/
+#----------------------------------------------------------------------------
+
+MEX	= $(MATLAB)/bin/mex
+#MEXLIB	= -L$(MATLAB)/extern/lib/$(MATLAB_MEX) -lmat
+MEXLIB	= -L$(MATLAB)/bin/$(MATLAB_MEX) -lmat
+LDFLAGS = -L/usr/local/lib
+GMT     = -L.. $(LDFLAGS) -lgmt -lpsl
+GMT_MGG = -L.. $(LDFLAGS) -lgmt_mgg
+NETCDF_INC	= -I/usr/local/include
+NETCDF_LIB	= -L/usr/local/lib -lnetcdf
+CDF     = $(NETCDF_LIB)
+FLAGS	= -I$(MATLAB)/extern/include $(NETCDF_INC) -I/usr/local/include
+MGG_FLAGS	= -I$(MATLAB)/extern/include $(NETCDF_INC)
+GDAL_LIB    = -L/usr/local/lib/ -lgdal
+GDAL_FLAGS  = -I/usr/local/include -I$(MATLAB)/extern/include
+MEXNC_FLAGS = $(NETCDF_INC) -I$(MATLAB)/extern/include
+
+#----------------------------------------------------------------------------
+#	STOP EDITS HERE. The rest should should be ok.
+#----------------------------------------------------------------------------
+
+ifndef ocvLocal
+
+OCV_LIB   = -L$(pato_cv_lib) -lopencv_core -lopencv_imgproc -lopencv_calib3d -lopencv_objdetect -lopencv_video -lopencv_photo
+OCV_FLAGS = -I$(CV_INC)/opencv -I$(CV_INC) -I$(MATLAB)/extern/include
+
+else
+
+OCV_FLAGS = -I$(pato_cv)/include/opencv -I$(pato_cv)/modules/core/include -I$(pato_cv)/modules/imgproc/include \
+	-I$(pato_cv)/modules/features2d/include -I$(pato_cv)/modules/calib3d/include -I$(pato_cv)/modules/objdetect/include \
+	-I$(pato_cv)/modules/video/include -I$(pato_cv)/modules/legacy/include -I$(pato_cv)/modules/flann/include 
+OCV_LIB   = -L$(pato_cv_lib) -lopencv_core -lopencv_imgproc -lopencv_calib3d -lopencv_objdetect -lopencv_video -lopencv_photo
+
+endif
+
+PROG_GMT	= grdinfo_m grdproject_m grdread_m grdsample_m grdtrend_m grdwrite_m mapproject_m shoredump \
+		surface_m nearneighbor_m grdfilter_m cpt2cmap grdlandmask_m grdppa_m shake_mex
+
+# Non LIB dependent mexs (besides matlab libs, of course)
+PROG_SIMPLE	= test_gmt igrf_m scaleto8 tsun2 wave_travel_time mansinha_m telha_m range_change country_select \
+		mex_illuminate grdutils read_isf alloc_mex susan set_gmt mxgridtrimesh trend1d_m \
+		PolygonClip gmtmbgrid_m grdgradient_m grdtrack_m mirblock akimaspline distmin
+
+# netCDF mexs (other than GMT ones)
+PROG_withCDF	= swan
+PROG_GDAL	= gdalread gdalwrite ogrproj gdalwarp_mex gdaltransform_mex ogrread
+PROG_MEXNC	= mex_nc
+PROG_OCV	= cvlib_mex
+PROG_SHAPE	= mex_shape
+PROG_EDISON	= edison_
+PROG_MPGWRITE = mpgwrite_
+
+all:		$(PROG_GMT) $(PROG_GDAL) $(PROG_SIMPLE) $(PROG_withCDF) $(PROG_OCV) $(PROG_SHAPE) $(PROG_MEXNC) $(PROG_EDISON)
+gmt:		$(PROG_GMT)
+gdal:		$(PROG_GDAL)
+mexnc:		$(PROG_MEXNC)
+opencv:		$(PROG_OCV)
+shape:		$(PROG_SHAPE)
+simple:		$(PROG_SIMPLE)
+withCDF:	$(PROG_withCDF)
+edison:		$(PROG_EDISON)
+mpgwrite:	$(PROG_MPGWRITE)
+
+install:
+		for f in *.$(MEX_EXT); do \
+			/bin/install -c $$f $(mirone_mex_dir); \
+		done
+
+cpt2cmap:	
+		$(MEX) $(FLAGS) cpt2cmap.c $(GMT) $(CDF) $(MEXLIB)
+grdinfo_m:	
+		$(MEX) $(FLAGS) grdinfo_m.c $(GMT) $(CDF) $(MEXLIB) 
+grdread_m:	
+		$(MEX) $(FLAGS) grdread_m.c $(GMT) $(CDF) $(MEXLIB) 
+grdwrite_m:	
+		$(MEX) $(FLAGS) grdwrite_m.c $(GMT) $(CDF) $(MEXLIB)
+grdsample_m:	
+		$(MEX) $(FLAGS) grdsample_m.c $(GMT) $(CDF) $(MEXLIB)
+grdppa_m:	
+		$(MEX) $(FLAGS) grdppa_m.c $(GMT) $(CDF) $(MEXLIB)
+grdfilter_m:	
+		$(MEX) $(FLAGS) grdfilter_m.c $(GMT) $(CDF) $(MEXLIB)
+grdlandmask_m:	
+		$(MEX) $(FLAGS) grdlandmask_m.c $(GMT) $(CDF) $(MEXLIB)
+grdproject_m:	
+		$(MEX) $(FLAGS) grdproject_m.c $(GMT) $(CDF) $(MEXLIB)
+grdtrend_m:	
+		$(MEX) $(FLAGS) grdtrend_m.c $(GMT) $(CDF) $(MEXLIB)
+mapproject_m:	
+		$(MEX) $(FLAGS) mapproject_m.c $(GMT) $(CDF) $(MEXLIB)
+nearneighbor_m:	
+		$(MEX) $(FLAGS) nearneighbor_m.c $(GMT) $(CDF) $(MEXLIB)
+shoredump:	
+		$(MEX) $(FLAGS) shoredump.c $(GMT) $(CDF) $(MEXLIB)
+surface_m:	
+		$(MEX) $(FLAGS) surface_m.c $(GMT) $(CDF) $(MEXLIB)
+shake_mex:	
+		$(MEX) $(FLAGS) shake_mex.c $(GMT) $(CDF) $(MEXLIB)
+
+# -- "PROG_withCDFs" netCDF mexs (other than GMT ones)
+
+swan:	
+		$(MEX) -I$(MATLAB)/extern/include  $(NETCDF_INC) swan.c $(CDF) $(MEXLIB)
+
+# ---------------------------------------------------------------------------------------
+# -- "Simple progs" that is, those that don't link agains nothing else than matlab itself
+
+test_gmt:	
+		$(MEX) -I$(MATLAB)/extern/include test_gmt.c $(MEXLIB)
+igrf_m:	
+		$(MEX) -I$(MATLAB)/extern/include igrf_m.c $(MEXLIB)
+scaleto8:	
+		$(MEX) -I$(MATLAB)/extern/include scaleto8.c $(MEXLIB)
+tsun2:	
+		$(MEX) -I$(MATLAB)/extern/include tsun2.c $(MEXLIB)
+wave_travel_time:	
+		$(MEX) -I$(MATLAB)/extern/include wave_travel_time.c $(MEXLIB)
+mansinha_m:
+		$(MEX) -I$(MATLAB)/extern/include mansinha_m.c $(MEXLIB)
+telha_m:	
+		$(MEX) -I$(MATLAB)/extern/include telha_m.c $(MEXLIB)
+range_change:	
+		$(MEX) -I$(MATLAB)/extern/include range_change.c $(MEXLIB)
+country_select:	
+		$(MEX) -I$(MATLAB)/extern/include country_select.c $(MEXLIB)
+mex_illuminate:	
+		$(MEX) -I$(MATLAB)/extern/include mex_illuminate.c $(MEXLIB)
+grdutils:	
+		$(MEX) -I$(MATLAB)/extern/include grdutils.c $(MEXLIB)
+read_isf:	
+		$(MEX) -I$(MATLAB)/extern/include read_isf.c $(MEXLIB)
+ind2rgb8:	
+		$(MEX) -I$(MATLAB)/extern/include ind2rgb8.c $(MEXLIB)
+alloc_mex:	
+		$(MEX) -I$(MATLAB)/extern/include alloc_mex.c $(MEXLIB)
+susan:	
+		$(MEX) -I$(MATLAB)/extern/include susan.c $(MEXLIB)
+set_gmt:	
+		$(MEX) -I$(MATLAB)/extern/include set_gmt.c $(MEXLIB)
+mxgridtrimesh:	
+		$(MEX) -I$(MATLAB)/extern/include mxgridtrimesh.c $(MEXLIB)
+grdgradient_m:
+		$(MEX) -I$(MATLAB)/extern/include grdgradient_m.c $(MEXLIB)
+grdtrack_m:
+		$(MEX) -I$(MATLAB)/extern/include grdtrack_m.c $(MEXLIB)
+gmtmbgrid_m:
+		$(MEX) -I$(MATLAB)/extern/include gmtmbgrid_m.c $(MEXLIB)
+trend1d_m:
+		$(MEX) -I$(MATLAB)/extern/include trend1d_m.c $(MEXLIB)
+PolygonClip:
+		$(MEX) -I$(MATLAB)/extern/include PolygonClip.c gpc.c $(MEXLIB)
+akimaspline:
+		$(MEX) -I$(MATLAB)/extern/include akimaspline.cpp $(MEXLIB)
+mirblock:
+		$(MEX) -I$(MATLAB)/extern/include mirblock.c $(MEXLIB)
+distmin:
+		$(MEX) -I$(MATLAB)/extern/include distmin.c $(MEXLIB)
+
+# ------------------------- GDAL progs -----------------------------------
+gdalread:
+		$(MEX) $(GDAL_FLAGS) gdalread.c $(GDAL_LIB) $(MEXLIB)
+gdalwrite:
+		$(MEX) $(GDAL_FLAGS) gdalwrite.c $(GDAL_LIB) $(MEXLIB)
+gdalwarp_mex:
+		$(MEX) $(GDAL_FLAGS) gdalwarp_mex.cpp $(GDAL_LIB) $(MEXLIB)
+ogrproj:
+		$(MEX) $(GDAL_FLAGS) ogrproj.cpp $(GDAL_LIB) $(MEXLIB)
+ogrread:
+		$(MEX) $(GDAL_FLAGS) ogrread.c $(GDAL_LIB) $(MEXLIB)
+gdaltransform_mex:
+		$(MEX) $(GDAL_FLAGS) gdaltransform_mex.cpp $(GDAL_LIB) $(MEXLIB)
+
+
+# ------------------------- MEXNC progs -----------------------------------
+mex_nc:
+		$(MEX) $(MEXNC_FLAGS) mexnc/mexgateway.c mexnc/netcdf2.c mexnc/netcdf3.c mexnc/common.c -output mexnc $(CDF) $(MEXLIB)
+
+# ------------------------- OPEN_CV progs ---------------------------------
+cvlib_mex:
+		$(MEX) $(OCV_FLAGS) cvlib_mex.c sift/sift.c sift/imgfeatures.c sift/kdtree.c sift/minpq.c  $(OCV_LIB) $(MEXLIB)
+
+# ------------------------- SHAPELIB progs ---------------------------------
+mex_shape:	
+		$(MEX) $(GDAL_FLAGS) mex_shape.c $(GDAL_LIB) $(MEXLIB)
+
+# ------------------------- EDISON prog ------------------------------------
+edison_:
+		$(MEX) edison/edison_wrapper_mex.cpp edison/segm/ms.cpp  edison/segm/msImageProcessor.cpp \
+		edison/segm/msSysPrompt.cpp edison/segm/RAList.cpp edison/segm/rlist.cpp edison/edge/BgEdge.cpp \
+		edison/edge/BgImage.cpp edison/edge/BgGlobalFc.cpp edison/edge/BgEdgeList.cpp edison/edge/BgEdgeDetect.cpp $(MEXLIB)
+
+mpgwrite_:
+		$(MEX) mpgwrite/mpgwrite.c mpgwrite/mfwddct.c mpgwrite/postdct.c mpgwrite/huff.c \
+		mpgwrite/bitio.c mpgwrite/mheaders.c mpgwrite/iframe.c mpgwrite/pframe.c mpgwrite/bframe.c \
+		mpgwrite/psearch.c mpgwrite/bsearch.c mpgwrite/block.c mpgwrite/mpeg.c mpgwrite/subsampl.c \
+		mpgwrite/jrevdct.c mpgwrite/frame.c mpgwrite/fsize.c
+
+spotless:	clean
+		\rm -f makefile config.cache config.log config.status
+
+clean:
+		\rm -f *.$(MEX_EXT) .gmt* .mexrc.sh
+		for f in $(PROG); do \
+			rm -f $$.$(MEX_EXT); \
+		done
