@@ -2035,7 +2035,7 @@ function Reft = ImageIllum(luz, handles, opt)
 	if (ndims(img) == 2),		img = ind2rgb8(img,get(handles.figure1,'Colormap'));	end
 	mex_illuminate(img,R)		% New. It can now operate insitu too
 	clear R
-	
+
 	if ( handles.have_nans && ~isequal(handles.bg_color, [1 1 1]) && ~strcmp(OPT_a,' ') )	% Non-white or black NaN color requested
 		ind = isnan(Z);			bg_color = uint8(handles.bg_color * 255);
 		tmp = img(:,:,1);		tmp(ind) = bg_color(1);		img(:,:,1) = tmp;
@@ -4331,7 +4331,7 @@ function TransferB_CB(handles, opt)
 		end
 
  	elseif (strcmp(opt,'update'))				% Update via Web the stand-alone version
-		dest_fiche = [handles.path_tmp 'apudeita.txt'];		url = 'w3.ualg.pt/~jluis/mirone/updates/';
+		dest_fiche = [handles.path_tmp 'apudeita.txt'];		url = 'w3.ualg.pt/~jluis/mirone/updates/v25';
 		dos(['wget "' url 'apudeita.txt' '" -q --tries=2 --connect-timeout=5 -O ' dest_fiche]);
 		finfo = dir(dest_fiche);
 		if (finfo.bytes == 0)
