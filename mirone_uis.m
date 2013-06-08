@@ -635,10 +635,6 @@ uimenu('Parent',h,'Call','load_xyz(guidata(gcbo), [], ''AsMaregraph'')','Label',
 uimenu('Parent',h,'Call','mirone(''GeophysicsSwanPlotStations_CB'',guidata(gcbo))','Label','Plot Stations');
 uimenu('Parent',h,'Call','tsu_funs(''SwanGridBorder'',guidata(gcbo))','Label','Stations on grid borders');
 
-h = uimenu('Parent',hT,'Label','Tsun2');
-uimenu('Parent',h,'Call','tsu_funs(''Tsun2'',guidata(gcbo),''compute'')','Label','Compute');
-uimenu('Parent',h,'Call','tsu_funs(''Tsun2'',guidata(gcbo),''write_params'')', 'Label','Write params file');
-
 uimenu('Parent',hT,'Call','aquamoto(guidata(gcbo))','Label','Aquamoto Viewer','Sep','on');
 
 %% --------------------------- GMT ----------------------------------------
@@ -744,7 +740,7 @@ if (IamCompiled)
 end
 uimenu('Parent',h, 'Call',['mirone(''FileOpenWebImage_CB'',guidata(gcbo),',...
 	' ''http://www2.clustrmaps.com/stats/maps-clusters/w3.ualg.pt-~jluis-mirone-world.jpg'',''nikles'');'],'Label','See visitors map','Sep','on');
-uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 7 Jun 2013'',''2.4.0dev'')','Label','About','Sep','on');
+uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 8 Jun 2013'',''2.4.0dev'')','Label','About','Sep','on');
 
 %% --------------------------- Build HANDLES and finish things here
 	handles = guihandles(H1);
