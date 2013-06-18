@@ -1,7 +1,7 @@
 function varargout = imageresize(varargin)
 % Helper Window to do image resizing
 
-%	Copyright (c) 2004-2012 by J. Luis
+%	Copyright (c) 2004-2013 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -16,7 +16,7 @@ function varargout = imageresize(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: $
+% $Id$
 
 	if (isempty(varargin)),		return,		end
 
@@ -55,6 +55,7 @@ function varargout = imageresize(varargin)
 	handles.constrainProp = 1;
 	handles.intepMethod = 'nearest';
 	handles.isPercent = 0;
+	handles.IamCompiled = handMir.IamCompiled;
 
 	% Fill in the necessary uicontrols
 	set(handles.edit_pixHeight,'String',handles.imgSize(1))
@@ -257,15 +258,15 @@ function popup_resampMethod_CB(hObject, handles)
 % ----------------------------------------------------------------------------------
 function push_OK_CB(hObject, handles)
 % Do the job
-	try
-		img = get(handles.hImage,'CData');
-	catch
-		errordlg('Figure no longer exists. Why did you kill it?','Error');  return
+
+	img = get(handles.hImage,'CData');
+	set(handles.figure1,'pointer','watch');
+	if (handles.IamCompiled && (strcmp(handles.intepMethod,'bicubic') || strcmp(handles.intepMethod,'bilinear')) )
+		img = img_fun('imresize',img,round([handles.pixHeight handles.pixWidth]),handles.intepMethod);
+	else
+		img = cvlib_mex('resize',img,round([handles.pixHeight handles.pixWidth]),handles.intepMethod);
 	end
-	set(handles.figure1,'pointer','watch');    set(handles.hMirFig,'pointer','watch')
-	%img = img_fun('imresize',img,round([handles.pixHeight handles.pixWidth]),handles.intepMethod);
-	img = cvlib_mex('resize',img,round([handles.pixHeight handles.pixWidth]),handles.intepMethod);
-	set(handles.figure1,'pointer','arrow');    set(handles.hMirFig,'pointer','arrow')
+	set(handles.figure1,'pointer','arrow');
 
 	if (handles.image_type == 2)
 		if (ndims(img) == 2)
