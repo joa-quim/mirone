@@ -5,7 +5,7 @@ function varargout = mirone(varargin)
 %
 %	mirone('CALLBACK',handles,...) calls the local function named CALLBACK with the given input arguments.
 
-%	Copyright (c) 2004-2012 by J. Luis
+%	Copyright (c) 2004-2013 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -4336,7 +4336,7 @@ function TransferB_CB(handles, opt)
 		finfo = dir(dest_fiche);
 		if (finfo.bytes == 0)
 			builtin('delete',dest_fiche);
-			msgbox('This Mirone version is updated to latest.','Nothing New'),	return
+			msgbox('This Mirone version is updated to latest.','Nothing New1'),	return
 		end
 		fid = fopen(dest_fiche,'rt');
 		todos = fread(fid,'*char');		fclose(fid);
@@ -4359,7 +4359,7 @@ function TransferB_CB(handles, opt)
 		end
 		if (n == 1)									% Nothing new to update
 			builtin('delete',dest_fiche);
-			msgbox('This Mirone version is updated to latest.','Nothing New'),	return
+			msgbox('This Mirone version is updated to latest.','Nothing New2'),	return
 		end
 		nomes = nomes(ind_all);						% Retain only the original names (that may include a path) to dl
 
