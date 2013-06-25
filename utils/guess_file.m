@@ -40,7 +40,7 @@
 		errordlg('function guess_file: must give an input file name','File Error')
 		return
 	elseif (n_args == 1)
-		MAXCHARS = 1024;        % Maximum characters to load from file
+		MAXCHARS = 2048;        % Maximum characters to load from file
 		nl_max = 30;            % Maximum number of file lines to use in tests
 	elseif (n_args == 2)
 		MAXCHARS = opt1;
@@ -101,6 +101,7 @@
 	multi_seg = n_multi;
 	str(idM) = [];			% idM is the index of the multisegment lines
 	n_col(idM) = [];
+	nl_max = min(nl_max,numel(str));	% Update because str may have become empty
 
 	% Now decide how many columns have the data lines. The easeast is to assume that the info is in the last line
 	% However this may fail if last line contains, for example, the multisegment symbol (">").
