@@ -108,6 +108,8 @@ function img = imcapture( h, opt, dpi, opt2, opt3)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
+% $Id$
+
 	hAxes = [];
 	if (nargin == 0 || isempty(h)),     h = get(0,'CurrentFigure');    end
 	if (~ishandle(h))
@@ -364,7 +366,7 @@ function img = imcapture( h, opt, dpi, opt2, opt3)
 			leave_DAR_alone = false;
 		end
 
-		if ( ~isequal(DAR, [1 1 1]) && ~leave_DAR_alone ),	set(hAxes, 'DataAspectRatio', [1 1 1]);		end
+% 		if ( ~isequal(DAR, [1 1 1]) && ~leave_DAR_alone ),	set(hAxes, 'DataAspectRatio', [1 1 1]);		end
 
 		img = hardcopy( varargin{:} );      % CAPTURE -- CAPTURE -- CAPTURE -- CAPTURE -- CAPTURE
 
