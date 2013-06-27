@@ -127,9 +127,10 @@ function varargout = snapshot(varargin)
 	% ---------------- Fill the edit file name with a default value
 	if (~handles.noname)
 		fname = get(handlesMir.figure1,'Name');
-		if (fname(end) == '%' && strncmp(fname, 'Cropped', 7))	% Get rid of eventual ' @ xxx%' in the name
-			ind = strfind(fname, ' @');
-			if (~isempty(ind)),		fname(ind(1):end) = [];		end
+		ind = strfind(fname, ' @ ');
+		if (fname(end) == '%' && ~isempty(ind))		% Get rid of eventual ' @ xxx%' in the name
+			fname(ind(1):end) = [];
+			while (fname(end) == ' '),	fname(end) = [];	end		% ugly but may execute only once or twice.
 		end
 		fname = strrep(fname,' ','_');
 		[pato,fname] = fileparts(fname);
@@ -349,7 +350,7 @@ function push_save_CB(hObject, handles)
 		else                            % RASTER FORMATS
 			captura = true;
 			if (handles.imgOnly)            % Image only
-				if ( handles.imgIsClean && ( get(handles.checkbox_origSize,'Val') || (handles.currMag == 1) ) )
+				if ( handles.imgIsClean && get(handles.checkbox_origSize,'Val') && (handles.currMag == 1) )
 					% Here we don't need to do any screen capture which forces img to be RGB
 					img = im;
 					captura = false;
