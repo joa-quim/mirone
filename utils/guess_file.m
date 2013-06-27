@@ -40,8 +40,8 @@
 		errordlg('function guess_file: must give an input file name','File Error')
 		return
 	elseif (n_args == 1)
-		MAXCHARS = 2048;        % Maximum characters to load from file
-		nl_max = 30;            % Maximum number of file lines to use in tests
+		MAXCHARS = 4096;		% Maximum characters to load from file
+		nl_max = 100;			% Maximum number of file lines to use in tests
 	elseif (n_args == 2)
 		MAXCHARS = opt1;
 	elseif (n_args == 3)
