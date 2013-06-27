@@ -23,14 +23,15 @@ function fancyFrame(handles, opt)
 		return
 	end
 
+	xLim = get(handles.axes1, 'XLim');		yLim = get(handles.axes1, 'YLim');
+
 	hFrancyFrames = findobj(handles.figure1, '-depth',1, 'Style','frame', 'Tag', 'FancyFrame');
 	delete(hFrancyFrames);		% For now we just delete but in future we will recicle them
 	if (strcmp(opt,'unset'))
 		set(handles.axes1,'TickDir','in', 'XLimMode','auto','XTickMode','auto', 'YLimMode','auto','YTickMode','auto')
+		set(handles.axes1, 'XLim', xLim, 'YLim', yLim);
 		return
 	end
-
-	xLim = get(handles.axes1, 'XLim');		yLim = get(handles.axes1, 'YLim');
 
 	fW = 4;		% Frame width in points
 	axLW = get(handles.axes1,'LineWidth');
