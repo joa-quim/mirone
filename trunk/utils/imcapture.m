@@ -219,7 +219,7 @@ function img = imcapture( h, opt, dpi, opt2, opt3)
 	if (~isempty(ff)),		fancyFrame(guidata(h),'punset');	end		% Remove (if) the temporary patch frame
 
 	if (~isempty(msg))      % If we had an error inside imgOnly()
-		error('imcapture:a',msg);        img = [];
+		error('imcapture:a',msg);
 	end
 
 	% ------------------------------------------------------------------    
@@ -272,8 +272,13 @@ function img = imcapture( h, opt, dpi, opt2, opt3)
 	tenSizeX = 0;       tenSizeY = 0;
 	have_frames = false;
 	axVis = get(hAxes,'Visible');
+	if (~isempty(cbAx))					% If we have one color bar we may have to deal with it too
+		cbar_pos = get(cbAx,'Pos');
+	end
+
 	if (isempty(opt))                   % Pure Image only capture. Even if axes are visible, ignore them
 		set(hAxes,'pos',[0 0 1 1],'Visible','off')
+		if (~isempty(cbAx)),	set(cbAx,'Pos', cbar_pos + [100 100 0 0]),	end		% Put it very far of sight
 	elseif (strcmp(get(hAxes,'Visible'),'on'))  % Try to capture an image that respects the data aspect ratio
 		have_frames = true;
 		h_Xlabel = get(hAxes,'Xlabel');         h_Ylabel = get(hAxes,'Ylabel');
@@ -315,7 +320,6 @@ function img = imcapture( h, opt, dpi, opt2, opt3)
 		cbWidth = cbWidth / figPos(3);      % Either 0 or the Mirone Colorbar width
 		set(hAxes,'pos',[x0 y0-tenSizeY 1-[x0+cbWidth y0]-1e-2])
 		if (~isempty(cbAx))					% If we have one color bar we must deal with it too
-			cbar_pos = get(cbAx,'Pos');
 			set(cbAx, 'Pos', [(x0 + 1 - (x0+cbWidth)) (y0-tenSizeY) cbar_pos(3) cbar_pos(4)]);
 		end
 		set(h_Xlabel,'units',units_save);     set(h_Ylabel,'units',units_save);
@@ -357,16 +361,13 @@ function img = imcapture( h, opt, dpi, opt2, opt3)
 
 		DAR = get(hAxes, 'DataAspectRatio');
 
-	% 		leave_DAR_alone = false;
-	% 		if ( abs((size(im,2) / size(im,1)) - (DAR(1) / DAR(2))) < 1e-3 )	% Mirone Figs with cos(lat) active or anyso dx/dy
-	% 			leave_DAR_alone = true;
-	% 		end
 		leave_DAR_alone = true;
 		if (DAR(1) == 1 && DAR(2) < 1)		% Mirone Figs with cos(lat) active
 			leave_DAR_alone = false;
 		end
 
-% 		if ( ~isequal(DAR, [1 1 1]) && ~leave_DAR_alone ),	set(hAxes, 'DataAspectRatio', [1 1 1]);		end
+		% NOT Pure Image only capture.
+		if (~isempty(opt) && ~isequal(DAR, [1 1 1]) && ~leave_DAR_alone ),	set(hAxes, 'DataAspectRatio', [1 1 1]);		end
 
 		img = hardcopy( varargin{:} );      % CAPTURE -- CAPTURE -- CAPTURE -- CAPTURE -- CAPTURE
 
