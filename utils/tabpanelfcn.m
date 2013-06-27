@@ -111,11 +111,13 @@ for i = 1:length(panel_names)
     % the components belonging to the panel with this UserData
     handles = setfield(handles, panel_names{i}, this_set);
     % keep a list of all panel children for access later
-    all_panel_children = [all_panel_children, this_set];
+    all_panel_children = [all_panel_children(:); this_set(:)];	% (:) to make sure we are imune to TMW permanent f changes
 end
 
 % store all panel children for later showing/hiding
-handles = setfield(handles, [group_name, '_all'], all_panel_children);
+% Transpose to maintain compatibility to older versions before TMW decided to change
+% the behavior of setdiff
+handles.([group_name, '_all']) = all_panel_children';
 
 % bring top panel to front by faking a click on top panel's toggle button
 top_panel_name = panel_names{top_panel_index};
