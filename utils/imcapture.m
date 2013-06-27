@@ -20,7 +20,7 @@ function img = imcapture( h, opt, dpi, opt2, opt3)
 %                   Note, this should be equivalent to a call to GETFRAME, but maybe it fails less in
 %                   returning EXACTLY an image of the same size of CData (R13, as usual, is better than R14).
 %   IMG = IMCAPTURE(H,'img',[MROWS NCOLS]) returns an image of the size specified by [mrows ncols]
-%                   This a 10 times faster option to the use of imresize(IMG,[mrows ncols],method)
+%                   This is a 10 times faster option to the use of imresize(IMG,[mrows ncols],method)
 %                   when method is either 'bilinear' or 'bicubic'. Not to mention the memory consumption.
 %
 %   IMCAPTURE(H,OPT,FNAME) Save the screen capture on file FNAME using EPS, AI or EMF formats
@@ -193,7 +193,10 @@ function img = imcapture( h, opt, dpi, opt2, opt3)
 		opt = 'img';
 	end
 
-	ff = findobj(h, '-depth',1, 'Style','frame', 'Tag', 'FancyFrame');
+	ff = [];
+	if (~strcmp(opt, 'img'))% For the image only case with don't want the frame, so forget about it right away.
+		ff = findobj(h, '-depth',1, 'Style','frame', 'Tag', 'FancyFrame');
+	end
 	if (~isempty(ff)),		fancyFrame(guidata(h),'pset');	end
 
 	if (nargin > 1)
