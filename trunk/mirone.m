@@ -26,8 +26,8 @@ function varargout = mirone(varargin)
 		if ( ~isempty(strfind(varargin{1},':')) || ~isempty(strfind(varargin{1},filesep)) )
 			% Very likely called with a filename with those horrendous stupid blanks
 			for (k = 1:nargin-1),	varargin{k}(end+1) = ' ';	end
-			varargin = {[varargin{:}]};
-			h = mirone_OpeningFcn(varargin{:});
+			varargin = {[varargin{:}]};			h = mirone_OpeningFcn(varargin{:});
+
 			if (nargout),	varargout{1} = h;		end
 		else
 			gui_Callback = str2func(varargin{1});
@@ -181,7 +181,7 @@ function hObject = mirone_OpeningFcn(varargin)
 	% Change the MeasureDistance label to the selected (in prefs) unites
 	set(handles.ToolsMeasureDist,'Label',['Distance in ' handles.DefineMeasureUnit])
 
-	% ------------- Find in which mode Mirone was called ----------------------------
+	% -------------------------- Find in which mode Mirone was called ----------------------------------
 	drv = [];	grd_data_in = 0;	grd_data_interfero = 0;		pal = [];	win_name = 'Mirone';
 	if ~isempty(varargin)
 		n_argin = nargin;
@@ -229,7 +229,7 @@ function hObject = mirone_OpeningFcn(varargin)
 		elseif (n_argin == 1 && isa(varargin{1},'struct') && isfield(varargin{1},'ProjectionRefPROJ4'))
 			% A GMT5 grid/image structure (image not implemented yet).
 			handles.head = [varargin{1}.range varargin{1}.MinMax varargin{1}.registration varargin{1}.inc];
-			Z = varargin{1}.data;		grd_data_in = true;
+			Z = varargin{1}.z;			grd_data_in = true;
 			if (~isa(Z,'single')),		Z = single(Z);		end
 			handles.have_nans = grdutils(Z,'-N');
 			X = linspace(varargin{1}.range(1), varargin{1}.range(2), varargin{1}.n_columns);
