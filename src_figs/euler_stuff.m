@@ -1,5 +1,5 @@
 function varargout = euler_stuff(varargin)
-% command line arguments to euler_stuff (Euler rotations)
+% Helper window to Euler rotations
 
 %	Copyright (c) 2004-2013 by J. Luis
 %
@@ -39,18 +39,18 @@ function varargout = euler_stuff(varargin)
 	handles.pole2Lat = [];
 	handles.pole2Ang = [];
 	handles.ages = [];
-	handles.do_interp = 0;          % Used to decide which 'compute' function to use
-	handles.finite_poles = [];      % Used to store a collection of finite poles (issued by choosebox)
+	handles.do_interp = 0;			% Used to decide which 'compute' function to use
+	handles.finite_poles = [];		% Used to store a collection of finite poles (issued by choosebox)
 	handles.activeTab = 1;			% Active tab. To the "Poles selector" button know how to behave
 
 	handles.hCallingFig = varargin{1};
 	handles.mironeAxes = get(varargin{1},'CurrentAxes');
-	if (length(varargin) == 2)          % Called with the line handle in argument
+	if (length(varargin) == 2)			% Called with the line handle in argument
 		c = get(varargin{2},'Color');
 		t = get(varargin{2},'LineWidth');
 		h = copyobj(varargin{2},handles.mironeAxes);
-		rmappdata(h,'polygon_data')     % Remove the parent's ui_edit_polygon appdata
-		ui_edit_polygon(h)              % And set a new one
+		rmappdata(h,'polygon_data')		% Remove the parent's ui_edit_polygon appdata
+		ui_edit_polygon(h)				% And set a new one
 		set(h,'LineWidth',t+1,'Color',1-c)
 		uistack_j(h,'bottom')
 		handles.h_line_orig = h;
@@ -212,7 +212,7 @@ function push_ReadAgesFile_CB(hObject, handles, opt)
 		handles.ages = strread(todos,'%f');
 		handles.age_label = '';
 	elseif (n_column == 2)
-		[handles.ages handles.age_label] = strread(todos,'%f %s');
+		[handles.ages, handles.age_label] = strread(todos,'%f %s');
 	else
 		errordlg('Ages file can only have one OR two columns (IF 2 column: second column contains chron name)','Error')
 		return
@@ -251,7 +251,7 @@ function push_compute_CB(hObject, handles)
 			return
 		end
 		do_geocentric = true;
-		if (get(handles.check_geodetic, 'Val'))		do_geocentric = false;		end
+		if (get(handles.check_geodetic, 'Val')),	do_geocentric = false;		end
 		for (i = 1:numel(handles.h_line_orig))
 			lon = get(handles.h_line_orig(i),'XData');
 			lat = get(handles.h_line_orig(i),'YData');
@@ -352,7 +352,7 @@ function cumpute_interp(handles)
 			errordlg('No poles file provided','Error');    return
 		end
 		poles = read_poles(poles_name);
-		if (isempty(poles))      return;     end         % Bad poles file
+		if (isempty(poles)),      return;     end         % Bad poles file
 	end
 
 	if (size(poles,2) ~= 4)
@@ -387,7 +387,7 @@ function cumpute_interp(handles)
 			%t0 = poles(id,4);        t1 = poles(id+1,4);
 			stg = finite2stages([poles(id,:); poles(id+1,:)], 1, 0);    % Compute the stage pole between t0 & t1
 			frac = (poles(id+1,4) - ages(i)) / (poles(id+1,4) - poles(id,4));
-			[pol(i,1) pol(i,2) pol(i,3)] = add_poles(poles(id+1,1),poles(id+1,2),poles(id+1,3),stg(1,1),stg(1,2), frac*stg(1,5));
+			[pol(i,1), pol(i,2), pol(i,3)] = add_poles(poles(id+1,1),poles(id+1,2),poles(id+1,3),stg(1,1),stg(1,2), frac*stg(1,5));
 			pol(i,4) = ages(i);                 % Give it its age
 		else
 			errordlg(['Error: age = ' num2str(ages(i)) ' does not fit inside poles ages interval'],'Error')
@@ -406,8 +406,8 @@ function cumpute_interp(handles)
 	if isequal(FileName,0),		return,		end
 
 	% Open and write to ASCII file
-	if (ispc)			fid = fopen([PathName FileName],'wt');
-	elseif (isunix)		fid = fopen([PathName FileName],'w');
+	if (ispc),			fid = fopen([PathName FileName],'wt');
+	elseif (isunix),	fid = fopen([PathName FileName],'w');
 	else				errordlg('Unknown platform.','Error');
 	end
 	fprintf(fid,'#longitude\tlatitude\tangle(deg)\tage(Ma)\n');
@@ -629,7 +629,7 @@ function edit_pole1Lon_CB(hObject, handles)
 	handles.pole1Lon = str2double(get(hObject,'String'));
 	if (isnan(handles.pole1Lon)),		set(hObject,'String',''),	return,		end
 	guidata(hObject, handles);
-	if (~got_them_all(handles))     return;     end     % Not yet all parameters of the 2 poles
+	if (~got_them_all(handles)),	return,		end     % Not yet all parameters of the 2 poles
 	[lon_s,lat_s,ang_s] = add_poles(handles.pole1Lon,handles.pole1Lat,handles.pole1Ang,...
 		handles.pole2Lon,handles.pole2Lat,handles.pole2Ang);
 	set(handles.edit_pole3Lon,'String',num2str(lon_s,'%.4f'))
@@ -641,7 +641,7 @@ function edit_pole1Lat_CB(hObject, handles)
 	handles.pole1Lat = str2double(get(hObject,'String'));
 	if (isnan(handles.pole1Lat)),		set(hObject,'String',''),	return,		end
 	guidata(hObject, handles);
-	if (~got_them_all(handles))     return;     end     % Not yet all parameters of the 2 poles
+	if (~got_them_all(handles)),	return,		end     % Not yet all parameters of the 2 poles
 	[lon_s,lat_s,ang_s] = add_poles(handles.pole1Lon,handles.pole1Lat,handles.pole1Ang,...
 		handles.pole2Lon,handles.pole2Lat,handles.pole2Ang);
 	set(handles.edit_pole3Lon,'String',num2str(lon_s,'%.4f'))
@@ -653,7 +653,7 @@ function edit_pole1Ang_CB(hObject, handles)
 	handles.pole1Ang = str2double(get(hObject,'String'));
 	if (isnan(handles.pole1Ang)),		set(hObject,'String',''),	return,		end
 	guidata(hObject, handles);
-	if (~got_them_all(handles))     return;     end     % Not yet all parameters of the 2 poles
+	if (~got_them_all(handles)),	return,		end     % Not yet all parameters of the 2 poles
 	[lon_s,lat_s,ang_s] = add_poles(handles.pole1Lon,handles.pole1Lat,handles.pole1Ang,...
 		handles.pole2Lon,handles.pole2Lat,handles.pole2Ang);
 	set(handles.edit_pole3Lon,'String',num2str(lon_s,'%.4f'))
@@ -775,7 +775,7 @@ for i = 1:length(lon)
     else                                                    % the stages come in the reference a_STAGE_b
         R_stage = R_young * R_old;                          % This is R_stage = R_young^t * R_old
     end
-	[elon(i) elat(i) ew(i)] = matrix_to_pole(R_stage,side); % Get rotation parameters from matrix
+	[elon(i), elat(i), ew(i)] = matrix_to_pole(R_stage,side); % Get rotation parameters from matrix
 	if (elon(i) > 180), elon(i) = elon(i) - 360;     end    % Adjust lon
     R_young = R_old';                                       % Sets R_young = transpose (R_old) for next round
 	t_stop(i) = t_old;
