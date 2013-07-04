@@ -10,7 +10,7 @@ function varargout = draw_funs(hand, varargin)
 %	the data from an object handle, call with HAND = []. E.g (in load_xyz)
 %	draw_funs([], 'doSave_formated', x, y, z)
 
-%	Copyright (c) 2004-2012 by J. Luis
+%	Copyright (c) 2004-2013 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -986,8 +986,13 @@ function set_isochrons_uicontext(h, data)
 	cb_ClassLineStyle = uictx_Class_LineStyle(h);    % there are 4 cb_ClassLineStyle outputs
 	item_Class_lt = uimenu(cmenuHand, 'Label', ['All ' tag ' Line Style']);
 	setLineStyle(item_Class_lt,{cb_ClassLineStyle{1} cb_ClassLineStyle{2} cb_ClassLineStyle{3} cb_ClassLineStyle{4}})
-	uimenu(cmenuHand, 'Label', 'Compute pole to neighbor (Bonin)', 'Sep','on', 'Call', {@pole2neighbor, [], 'Bonin'});
-	uimenu(cmenuHand, 'Label', 'Compute pole to neighbor (Best-Fit)', 'Call', {@pole2neighbor, [], 'Best'});
+	item = uimenu(cmenuHand, 'Label', 'Compute pole to neighbor', 'Sep','on');
+% 	uimenu(cmenuHand, 'Label', 'Compute pole to neighbor (Bonin)', 'Sep','on', 'Call', {@pole2neighbor, [], 'Bonin'});
+% 	uimenu(cmenuHand, 'Label', 'Compute pole to neighbor (Best-Fit)', 'Call', {@pole2neighbor, [], 'Best'});
+	uimenu(item, 'Label', 'Bonin (all in this plate)', 'Sep','on', 'Call', {@pole2neighbor, [], 'Bonin'});
+	uimenu(item, 'Label', 'Best-Fit (all in this plate)', 'Call', {@pole2neighbor, [], 'Best'});
+	uimenu(item, 'Label', 'Best-Fit (only me)', 'Call', {@pole2neighbor, [], 'Best', 1});
+	uimenu(item, 'Label', 'Best-Fit (only me -> iterate)', 'Call', {@pole2neighbor, [], 'Best', 10});
 	uimenu(cmenuHand, 'Label', 'Make Age-script', 'Call', @make_age_script);
 	uimenu(cmenuHand, 'Label', 'Euler rotation', 'Sep','on', 'Call', 'euler_stuff(gcf,gco)');
 	for (i=1:length(h)),		ui_edit_polygon(h(i)),		end		% Set edition functions
@@ -2454,12 +2459,13 @@ function make_age_script(obj, evt)
 	for (i = 1:numel(hAllIsocs))
 		LineInfo = getappdata(hAllIsocs(i),'LineInfo');
 		if (isempty(LineInfo)),		continue,	end
-		ind = strfind(LineInfo, 'STG1"');
+		%ind = strfind(LineInfo, 'STG1"');
+		ind = strfind(LineInfo, 'STG2_');
 		if (isempty(ind)),		continue,	end
-		ind2 = strfind(LineInfo(ind+5:end),'"') + ind + 5 - 1;	% So that ind reports to the begining string too
+		ind2 = strfind(LineInfo(ind:end),'"') + ind - 1;	% So that ind reports to the begining string too
 		isoc_name = strtok(LineInfo);
 		pole_name = sprintf('%spolo_%d.stg', pato, i);
-		A = sscanf(LineInfo(ind+5:ind2(1)-1), '%f %f %f %f %f');
+		A = sscanf(LineInfo(ind2(1)+1:ind2(2)-1), '%f %f %f %f %f');
 		stg = sprintf('%.9g %.9g %.9g %.9g %.9g', A(1),A(2),A(3)-A(4),0,A(5));
 		fid = fopen(pole_name,'wt');					%  The stage pole file
 		fprintf(fid, '%s\n', stg);
@@ -2502,23 +2508,9 @@ function save_line(obj, evt, h)
 	end
 	handles = guidata(gcbo);
 	name = '.dat';				% Default to this extension but if true isochron we try to construct a good name
-	if (strcmp(get(h, 'Tag'),'isochron'))
-		try
-			LineInfo = getappdata(h,'LineInfo');
-			[isoc, r] = strtok(LineInfo);
-			[plates, r] = strtok(r);		r = ddewhite(r);
-			ind = strfind(plates, '/');
-			if (strcmp(plates, 'NORTH') || strcmp(plates, 'SOUTH'))		% First word of first plate is this
-				ind = strfind(r, '/');
-				name = sprintf('c%s_%s%s_%s.dat',isoc, plates(1), r(1), r(ind+1:ind+2));
-			elseif (strcmp(plates(ind+1:end), 'NORTH') || strcmp(plates(ind+1:end), 'SOUTH'))	% Second plate is this
-				name = sprintf('c%s_%s_%s%s.dat',isoc, plates(1:2), plates(ind+1), r(1));
-			else
-				name = sprintf('c%s_%s_%s.dat',isoc, plates(1:2), plates(ind+1:ind+2));
-			end
-		catch
-			name = '.dat';
-		end
+	if (strcmp(get(h, 'Tag'),'isochron'))	% Special case
+		name = create_isoc_name(h);
+		if (isempty(name)),		name = '.dat';	end		% Something did not work well
 	end
 	str1 = {'*.dat;*.DAT', 'Line file (*.dat,*.DAT)'; '*.*', 'All Files (*.*)'};
 	[FileName,PathName] = put_or_get_file(handles,str1,'Select Line File name','put', name);
@@ -2564,6 +2556,25 @@ function save_line(obj, evt, h)
 		end
 	end
 	fclose(fid);
+
+function name = create_isoc_name(h)
+% Generate the likely name that I use to use for the isochrons
+	try
+		LineInfo = getappdata(h,'LineInfo');
+		[isoc, r] = strtok(LineInfo);
+		[plates, r] = strtok(r);		r = ddewhite(r);
+		ind = strfind(plates, '/');
+		if (strcmp(plates, 'NORTH') || strcmp(plates, 'SOUTH'))		% First word of first plate is this
+			ind = strfind(r, '/');
+			name = sprintf('c%s_%s%s_%s.dat',isoc, plates(1), r(1), r(ind+1:ind+2));
+		elseif (strcmp(plates(ind+1:end), 'NORTH') || strcmp(plates(ind+1:end), 'SOUTH'))	% Second plate is this
+			name = sprintf('c%s_%s_%s%s.dat',isoc, plates(1:2), plates(ind+1), r(1));
+		else
+			name = sprintf('c%s_%s_%s.dat',isoc, plates(1:2), plates(ind+1:ind+2));
+		end
+	catch
+		name = [];
+	end
 
 function save_GMT_DB_asc(h, fname)
 % Go through all GMT_DB polygons present in figure and save only those who have been edited
@@ -2938,9 +2949,13 @@ function del_insideRect(obj,eventdata,h)
 		hPatch = findobj(hAxes,'Type','patch');
 		hLP = [hLines(:); hPatch(:)];
 	end
+	set(h, 'HandleVis','on')    % Make the rectangle handle findable again
+
+	de_LP = false(numel(hLP),1);
 	for (i = 1:numel(hLP))		% Loop over objects to find out which cross the rectangle
 		x = get(hLP(i),'XData');        y = get(hLP(i),'YData');
 		if ( any( (x >= rx(1) & x <= rx(2)) & (y >= ry(1) & y <= ry(2)) ) )
+			de_LP(i) = true;
 			delete(hLP(i))
 		end
 	end
@@ -2954,51 +2969,103 @@ function del_insideRect(obj,eventdata,h)
 		end
 	end
 	if (found),     refresh;    end     % Bloody text bug
+
+% -------------------------------------------------------------------------------------------------------
+function [hLP, hText] = fish_inside_rect(opt)
+% Get the handles of those objects that have at least one vertex inside the rectangle
+
+	s = getappdata(h,'polygon_data');
+	if (~isempty(s))            % If the rectangle is in edit mode, force it out of edit
+		if strcmpi(s.controls,'on'),    ui_edit_polygon(h);     end
+	end
+	set(h, 'HandleVis','off')           % Make the rectangle handle invisible
+	hAxes = get(h,'Parent');
+
+	hLines = findobj(hAxes,'Type','line');     % Fish all objects of type line in Mirone figure
+	hPatch = findobj(hAxes,'Type','patch');
+	hText = findobj(hAxes,'Type','text');
+	hLP = [hLines(:); hPatch(:)];
+	rx = get(h,'XData');        ry = get(h,'YData');
+	rx = [min(rx) max(rx)];     ry = [min(ry) max(ry)];
+	found = false;
+	for (i = 1:numel(hLP))		% Loop over objects to find if any is on edit mode
+		s = getappdata(hLP(i),'polygon_data');
+		if (~isempty(s))
+			if strcmpi(s.controls,'on')     % Object is in edit mode, so this
+				ui_edit_polygon(hLP(i))     % call will force out of edit mode
+				found = true;
+			end
+		end
+	end
+	if (found)		% We have to do it again because some line handles have meanwhile desapeared
+		hLines = findobj(hAxes,'Type','line');
+		hPatch = findobj(hAxes,'Type','patch');
+		hLP = [hLines(:); hPatch(:)];
+	end
 	set(h, 'HandleVis','on')    % Make the rectangle handle findable again
+
+	f_LP = false(numel(hLP),1);
+	for (i = 1:numel(hLP))		% Loop over objects to find out which cross the rectangle
+		x = get(hLP(i),'XData');        y = get(hLP(i),'YData');
+		if ( any( (x >= rx(1) & x <= rx(2)) & (y >= ry(1) & y <= ry(2)) ) )
+			f_LP(i) = true;
+		end
+	end
+	hLP = hLP(f_LP);			% Retain only those that fulfill the condition
+
+	f_Txt = false(numel(hLP),1);
+	for (i = 1:numel(hText))	% Text objs are a bit different, so treat them separately
+		pos = get(hText(i),'Position');
+		if ( (pos(1) >= rx(1) && pos(1) <= rx(2)) && (pos(2) >= ry(1) && pos(2) <= ry(2)) )
+			f_Txt(i) = true;
+		end
+	end
+	hText = hText(f_Txt);
 
 % -------------------------------------------------------------------------------------------------------
 function changeAxesLabels(opt)
 % This function formats the axes labels strings using a geographical notation
-hFig = get(0,'CurrentFigure');      hAxes = get(hFig,'CurrentAxes');
-x_tick = getappdata(hAxes,'XTickOrig');
-y_tick = getappdata(hAxes,'YTickOrig');
-n_xtick = size(x_tick,1);                   n_ytick = size(y_tick,1);
-sep = ':';
-switch opt
-	case 'ToDegDec'
-		% This is easy because original Labels where saved in appdata
-		set(hAxes,'XTickLabel',getappdata(hAxes,'XTickOrig'));
-		set(hAxes,'YTickLabel',getappdata(hAxes,'YTickOrig'))
-		setappdata(hAxes,'LabelFormatType','DegDec')       % Save it so zoom can know the label type
-	case 'ToDegMin'
-		x_str = degree2dms(str2num( ddewhite(x_tick) ),'DDMM',0,'str');     % x_str is a structure with string fields
-		y_str = degree2dms(str2num( ddewhite(y_tick) ),'DDMM',0,'str');
-		str_x = [x_str.dd repmat(sep,n_xtick,1) x_str.mm];
-		str_y = [y_str.dd repmat(sep,n_ytick,1) y_str.mm];
-		set(hAxes,'XTickLabel',str_x);        set(hAxes,'YTickLabel',str_y)
-		setappdata(hAxes,'LabelFormatType','DegMin')        % Save it so zoom can know the label type
-	case 'ToDegMinDec'
-		x_str = degree2dms(str2num( ddewhite(x_tick) ),'DDMM.x',2,'str');    % x_str is a structure with string fields
-		y_str = degree2dms(str2num( ddewhite(y_tick) ),'DDMM.x',2,'str');
-		str_x = [x_str.dd repmat(sep,n_xtick,1) x_str.mm];
-		str_y = [y_str.dd repmat(sep,n_ytick,1) y_str.mm];
-		set(hAxes,'XTickLabel',str_x);        set(hAxes,'YTickLabel',str_y)
-		setappdata(hAxes,'LabelFormatType','DegMinDec')     % Save it so zoom can know the label type
-	case 'ToDegMinSec'
-		x_str = degree2dms(str2num( ddewhite(x_tick) ),'DDMMSS',0,'str');    % x_str is a structure with string fields
-		y_str = degree2dms(str2num( ddewhite(y_tick) ),'DDMMSS',0,'str');
-		str_x = [x_str.dd repmat(sep,n_xtick,1) x_str.mm repmat(sep,n_xtick,1) x_str.ss];
-		str_y = [y_str.dd repmat(sep,n_ytick,1) y_str.mm repmat(sep,n_ytick,1) y_str.ss];
-		set(hAxes,'XTickLabel',str_x);        set(hAxes,'YTickLabel',str_y)
-		setappdata(hAxes,'LabelFormatType','DegMinSec')      % Save it so zoom can know the label type
-	case 'ToDegMinSecDec'
-		x_str = degree2dms(str2num( ddewhite(x_tick) ),'DDMMSS.x',1,'str');   % x_str is a structure with string fields
-		y_str = degree2dms(str2num( ddewhite(y_tick) ),'DDMMSS.x',1,'str');
-		str_x = [x_str.dd repmat(sep,n_xtick,1) x_str.mm repmat(sep,n_xtick,1) x_str.ss];
-		str_y = [y_str.dd repmat(sep,n_ytick,1) y_str.mm repmat(sep,n_ytick,1) y_str.ss];
-		set(hAxes,'XTickLabel',str_x);        set(hAxes,'YTickLabel',str_y)
-		setappdata(hAxes,'LabelFormatType','DegMinSecDec')   % Save it so zoom can know the label type
-end
+
+	hFig = get(0,'CurrentFigure');      hAxes = get(hFig,'CurrentAxes');
+	x_tick = getappdata(hAxes,'XTickOrig');
+	y_tick = getappdata(hAxes,'YTickOrig');
+	n_xtick = size(x_tick,1);                   n_ytick = size(y_tick,1);
+	sep = ':';
+	switch opt
+		case 'ToDegDec'
+			% This is easy because original Labels where saved in appdata
+			set(hAxes,'XTickLabel',getappdata(hAxes,'XTickOrig'));
+			set(hAxes,'YTickLabel',getappdata(hAxes,'YTickOrig'))
+			setappdata(hAxes,'LabelFormatType','DegDec')       % Save it so zoom can know the label type
+		case 'ToDegMin'
+			x_str = degree2dms(str2num( ddewhite(x_tick) ),'DDMM',0,'str');     % x_str is a structure with string fields
+			y_str = degree2dms(str2num( ddewhite(y_tick) ),'DDMM',0,'str');
+			str_x = [x_str.dd repmat(sep,n_xtick,1) x_str.mm];
+			str_y = [y_str.dd repmat(sep,n_ytick,1) y_str.mm];
+			set(hAxes,'XTickLabel',str_x);        set(hAxes,'YTickLabel',str_y)
+			setappdata(hAxes,'LabelFormatType','DegMin')        % Save it so zoom can know the label type
+		case 'ToDegMinDec'
+			x_str = degree2dms(str2num( ddewhite(x_tick) ),'DDMM.x',2,'str');    % x_str is a structure with string fields
+			y_str = degree2dms(str2num( ddewhite(y_tick) ),'DDMM.x',2,'str');
+			str_x = [x_str.dd repmat(sep,n_xtick,1) x_str.mm];
+			str_y = [y_str.dd repmat(sep,n_ytick,1) y_str.mm];
+			set(hAxes,'XTickLabel',str_x);        set(hAxes,'YTickLabel',str_y)
+			setappdata(hAxes,'LabelFormatType','DegMinDec')     % Save it so zoom can know the label type
+		case 'ToDegMinSec'
+			x_str = degree2dms(str2num( ddewhite(x_tick) ),'DDMMSS',0,'str');    % x_str is a structure with string fields
+			y_str = degree2dms(str2num( ddewhite(y_tick) ),'DDMMSS',0,'str');
+			str_x = [x_str.dd repmat(sep,n_xtick,1) x_str.mm repmat(sep,n_xtick,1) x_str.ss];
+			str_y = [y_str.dd repmat(sep,n_ytick,1) y_str.mm repmat(sep,n_ytick,1) y_str.ss];
+			set(hAxes,'XTickLabel',str_x);        set(hAxes,'YTickLabel',str_y)
+			setappdata(hAxes,'LabelFormatType','DegMinSec')      % Save it so zoom can know the label type
+		case 'ToDegMinSecDec'
+			x_str = degree2dms(str2num( ddewhite(x_tick) ),'DDMMSS.x',1,'str');   % x_str is a structure with string fields
+			y_str = degree2dms(str2num( ddewhite(y_tick) ),'DDMMSS.x',1,'str');
+			str_x = [x_str.dd repmat(sep,n_xtick,1) x_str.mm repmat(sep,n_xtick,1) x_str.ss];
+			str_y = [y_str.dd repmat(sep,n_ytick,1) y_str.mm repmat(sep,n_ytick,1) y_str.ss];
+			set(hAxes,'XTickLabel',str_x);        set(hAxes,'YTickLabel',str_y)
+			setappdata(hAxes,'LabelFormatType','DegMinSecDec')   % Save it so zoom can know the label type
+	end
 
 % -----------------------------------------------------------------------------------------
 function sout = ddewhite(s)
