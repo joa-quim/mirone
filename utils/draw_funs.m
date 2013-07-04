@@ -2971,7 +2971,7 @@ function del_insideRect(obj,eventdata,h)
 	if (found),     refresh;    end     % Bloody text bug
 
 % -------------------------------------------------------------------------------------------------------
-function [hLP, hText] = fish_inside_rect(opt)
+function [hLP, hText] = fish_inside_rect(h, opt)
 % Get the handles of those objects that have at least one vertex inside the rectangle
 
 	s = getappdata(h,'polygon_data');
