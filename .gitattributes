@@ -565,6 +565,7 @@ utils/imcapture.m -text
 utils/img_fun.p -text
 utils/imscroll_j.m -text
 utils/info_m.m -text
+utils/intersections.m -text
 utils/inv3d.m -text
 utils/ivan_the_terrible.m -text
 utils/jd2date.m -text
