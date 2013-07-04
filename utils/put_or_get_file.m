@@ -2,7 +2,7 @@ function [FileName,PathName,handles] = put_or_get_file(handles,str1,str2,type, e
 % Use this function to select input or output filename
 % EXT if provided forces 'FileName' to output with that wished extension
 
-%	Copyright (c) 2004-2012 by J. Luis
+%	Copyright (c) 2004-2013 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -17,19 +17,31 @@ function [FileName,PathName,handles] = put_or_get_file(handles,str1,str2,type, e
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-	%return_to = handles.home_dir;		% Old behavior
+% $Id: $
+
 	return_to = cd;						% New behavior. Return to where it was.
 	if (strcmp(type,'get'))
 		cd(handles.last_dir)
 		[FileName,PathName] = uigetfile(str1,str2);
 	elseif (strcmp(type,'put'))
 		cd(handles.work_dir)
-		[FileName,PathName] = uiputfile(str1,str2);
+		done = false;
+		if (nargin == 5)				% Last arg may be just the extension, or the complete name
+			[PATH,FNAME] = fileparts(ext);
+			if (~isempty(FNAME))		% The complete name
+				[FileName,PathName] = uiputfile(str1,str2,ext);
+				done = true;			% Means do not check for the extension further down
+			else						% Just the extension. To be confirmed further down.
+				[FileName,PathName] = uiputfile(str1,str2);
+			end
+		else
+			[FileName,PathName] = uiputfile(str1,str2);
+		end
 		if (isequal(FileName,0))
 			cd(return_to)
 			return
 		end
-		if (nargin == 5)		% Check that 'FileName' goes with the desired extension
+		if (nargin == 5 && ~done)		% Check that 'FileName' goes with the desired extension
 			[PATH,FNAME,EXT] = fileparts(FileName);
 			if (ext(1) ~= '.'),		ext = ['.' ext];		end
 			if (isempty(EXT)),		FileName = [FNAME ext];	end
