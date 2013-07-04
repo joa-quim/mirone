@@ -986,8 +986,9 @@ function set_isochrons_uicontext(h, data)
 	cb_ClassLineStyle = uictx_Class_LineStyle(h);    % there are 4 cb_ClassLineStyle outputs
 	item_Class_lt = uimenu(cmenuHand, 'Label', ['All ' tag ' Line Style']);
 	setLineStyle(item_Class_lt,{cb_ClassLineStyle{1} cb_ClassLineStyle{2} cb_ClassLineStyle{3} cb_ClassLineStyle{4}})
-	%uimenu(cmenuHand, 'Label', 'Compute pole to neighbor', 'Sep','on', 'Call', @pole2neighbor);
-	%uimenu(cmenuHand, 'Label', 'Make Age-script', 'Call', @make_age_script);
+	uimenu(cmenuHand, 'Label', 'Compute pole to neighbor (Bonin)', 'Sep','on', 'Call', {@pole2neighbor, [], 'Bonin'});
+	uimenu(cmenuHand, 'Label', 'Compute pole to neighbor (Best-Fit)', 'Call', {@pole2neighbor, [], 'Best'});
+	uimenu(cmenuHand, 'Label', 'Make Age-script', 'Call', @make_age_script);
 	uimenu(cmenuHand, 'Label', 'Euler rotation', 'Sep','on', 'Call', 'euler_stuff(gcf,gco)');
 	for (i=1:length(h)),		ui_edit_polygon(h(i)),		end		% Set edition functions
 
@@ -2495,12 +2496,33 @@ function remove_singleContour(obj, evt, h)
 % -----------------------------------------------------------------------------------------
 function save_line(obj, evt, h)
 % Save either individual as well as class lines. The latter uses the ">" symbol to separate segments
-	if (nargin == 3),   h = h(ishandle(h));     end
+
+	if (nargin == 3),		h = h(ishandle(h));
+	elseif (nargin == 2),	h = gco;			% Save only one line
+	end
 	handles = guidata(gcbo);
+	name = '.dat';				% Default to this extension but if true isochron we try to construct a good name
+	if (strcmp(get(h, 'Tag'),'isochron'))
+		try
+			LineInfo = getappdata(h,'LineInfo');
+			[isoc, r] = strtok(LineInfo);
+			[plates, r] = strtok(r);		r = ddewhite(r);
+			ind = strfind(plates, '/');
+			if (strcmp(plates, 'NORTH') || strcmp(plates, 'SOUTH'))		% First word of first plate is this
+				ind = strfind(r, '/');
+				name = sprintf('c%s_%s%s_%s.dat',isoc, plates(1), r(1), r(ind+1:ind+2));
+			elseif (strcmp(plates(ind+1:end), 'NORTH') || strcmp(plates(ind+1:end), 'SOUTH'))	% Second plate is this
+				name = sprintf('c%s_%s_%s%s.dat',isoc, plates(1:2), plates(ind+1), r(1));
+			else
+				name = sprintf('c%s_%s_%s.dat',isoc, plates(1:2), plates(ind+1:ind+2));
+			end
+		catch
+			name = '.dat';
+		end
+	end
 	str1 = {'*.dat;*.DAT', 'Line file (*.dat,*.DAT)'; '*.*', 'All Files (*.*)'};
-	[FileName,PathName] = put_or_get_file(handles,str1,'Select Line File name','put','.dat');
+	[FileName,PathName] = put_or_get_file(handles,str1,'Select Line File name','put', name);
 	if isequal(FileName,0),			return,		end
-	if (nargin == 2),	h = gco;	end			% Save only one line
 	x = get(h,'XData');				y = get(h,'YData');
 
 	fname = [PathName FileName];
@@ -2511,7 +2533,7 @@ function save_line(obj, evt, h)
 		save_GMT_DB_asc(h, fname)
 		return
 	end
-	
+
 	fid = fopen(fname, 'w');
 	if (fid < 0),	errordlg(['Can''t open file:  ' fname],'Error'),	return,		end
 
@@ -2902,7 +2924,7 @@ function del_insideRect(obj,eventdata,h)
 	rx = get(h,'XData');        ry = get(h,'YData');
 	rx = [min(rx) max(rx)];     ry = [min(ry) max(ry)];
 	found = false;
-	for (i=1:numel(hLP))    % Loop over objects to find if any is on edit mode
+	for (i = 1:numel(hLP))		% Loop over objects to find if any is on edit mode
 		s = getappdata(hLP(i),'polygon_data');
 		if (~isempty(s))
 			if strcmpi(s.controls,'on')     % Object is in edit mode, so this
@@ -2911,12 +2933,12 @@ function del_insideRect(obj,eventdata,h)
 			end
 		end
 	end
-	if (found)      % We have to do it again because some line handles have meanwhile desapeared
+	if (found)		% We have to do it again because some line handles have meanwhile desapeared
 		hLines = findobj(hAxes,'Type','line');
 		hPatch = findobj(hAxes,'Type','patch');
 		hLP = [hLines(:); hPatch(:)];
 	end
-	for (i=1:numel(hLP))        % Loop over objects to find out which cross the rectangle
+	for (i = 1:numel(hLP))		% Loop over objects to find out which cross the rectangle
 		x = get(hLP(i),'XData');        y = get(hLP(i),'YData');
 		if ( any( (x >= rx(1) & x <= rx(2)) & (y >= ry(1) & y <= ry(2)) ) )
 			delete(hLP(i))
@@ -2924,7 +2946,7 @@ function del_insideRect(obj,eventdata,h)
 	end
 
 	found = false;
-	for (i=1:numel(hText))      % Text objs are a bit different, so treat them separately
+	for (i = 1:numel(hText))	% Text objs are a bit different, so treat them separately
 		pos = get(hText(i),'Position');
 		if ( (pos(1) >= rx(1) && pos(1) <= rx(2)) && (pos(2) >= ry(1) && pos(2) <= ry(2)) )
 			delete(hText(i))
