@@ -1,5 +1,12 @@
 function varargout = compute_euler(varargin)
-% Helper window to calculate Euler poles
+% Helper window to calculate Euler poles but that works also as a command line tool
+%
+% To work from the command line VARARGIN must have (and this is not a complete list)
+% (isoc1, isoc2, plon, plat, pang, [[-DLonRange/LatRange/AngRange] [-ILonInt/LatInt/AngInt or -Iint] [-Eresid_fname] [-C]])
+% 
+% Where isoc1 & isoc2 can either be a a nx2 matrix with the isochrons coordinates or files names
+% PLON, PLAT, PANG are the parameters of the initial Euler pole.
+% See function parse_noGUI for the definition of the remsining optional arguments
 
 %	Copyright (c) 2004-2013 by J. Luis
 %
@@ -18,8 +25,8 @@ function varargout = compute_euler(varargin)
 
 % $Id$
 
-	if ( numel(varargin) < 1 || (numel(varargin) >= 2 && numel(varargin) <= 4) )
-        errordlg('COMPUTE EULER: wrong number of input arguments.','Error'),	return
+	if ( numel(varargin) == 0 || (numel(varargin) >= 2 && numel(varargin) <= 5) )
+		errordlg('COMPUTE EULER: wrong number of input arguments.','Error'),	return
 	elseif (ishandle(varargin{1}))
 		isGUI = true;
 	else
@@ -972,6 +979,7 @@ function [handles, msg] = parse_noGUI(varargin)
 	handles.is_spheric = true;
 	handles.residGrdName = [];
 	handles.noise = [];
+	handles.check_plotRes = [];
 	handles.IamCompiled = false;	% Até ver
 	msg = [];	verbose = false;
 
