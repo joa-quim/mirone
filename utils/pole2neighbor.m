@@ -1,4 +1,4 @@
-function pole2neighbor(obj, evt, hLine, mode)
+function pole2neighbor(obj, evt, hLine, mode, opt)
 % Compute finite poles from isochron N to isochron N+1 of the data/isochrons.dat file (must be loaded)
 
 %	Copyright (c) 2004-2013 by J. Luis
@@ -24,13 +24,21 @@ function pole2neighbor(obj, evt, hLine, mode)
 		while (~isempty(hNext))
 			hNext = compute_pole2neighbor_Bonin(hNext);
 		end
-	else
-		nNewPoles = 0;
-		while (~isempty(hNext))
-			[hNext, is_pole_new] = compute_pole2neighbor_BruteForce(hNext);
-			nNewPoles = nNewPoles + is_pole_new;
+	else								% Best-fit (Brute-Force)
+		if (nargin == 4)				% Make one full round on all poles in same plate of the seed
+			nNewPoles = 0;
+			while (~isempty(hNext))
+				[hNext, is_pole_new] = compute_pole2neighbor_BruteForce(hNext);
+				nNewPoles = nNewPoles + is_pole_new;
+			end
+			fprintf('Computed %d new poles', nNewPoles)
+		else							% Compute the pole of the seed isoc only, iterating OPT times or not improving
+			n = 1;		is_pole_new = true;
+			while (n <= opt && is_pole_new)
+				[hNext, is_pole_new] = compute_pole2neighbor_BruteForce(hLine);
+				n = n + 1;
+			end
 		end
-		fprintf('Computed %d new poles', nNewPoles)
 	end
 
 % -----------------------------------------------------------------------------------------------------------------
@@ -44,7 +52,7 @@ function [hNext, is_pole_new] = compute_pole2neighbor_BruteForce(hLine)
 
 	% OK, brute force now it is
 	opt_D = '-D10/10/0.1';
-	opt_I = '-I51/51/11';
+	opt_I = '-I101/101/11';
 	xA = get(hLine, 'XData');	yA = get(hLine, 'YData');
 	xB = get(hNext, 'XData');	yB = get(hNext, 'YData');
 	new_pole = compute_euler([xA(:) yA(:)], [xB(:) yB(:)], pole(1), pole(2), pole(3), opt_D, opt_I);
@@ -233,10 +241,10 @@ function [new_LineInfo, is_pole_new] = set_stg_info(mode, hLine, LineInfo, plon,
 				return
 			end
 			fprintf('Anom --> %s  Res antes = %.6f  Res depois = %.6f\n',CA, old_res, residue)
-			ind2 = strfind(LineInfo(indS:end), '_') + indS - 1;		% So it refers to start of string
-			old_ver = sscanf(LineInfo(indS+3:ind2-1),'%d');	% Old 'release' number (may grow as far as it gets better)
+			%ind2 = strfind(LineInfo(indS:end), '_') + indS - 1;		% So it refers to start of string
+			%old_ver = sscanf(LineInfo(indS+3:ind2-1),'%d');	% Old 'release' number (may grow as far as it gets better)
 			str = sprintf('"%.1f %.1f %s %s %.3f %.3f"', plon, plat, ageB, ageA, omega, residue);
-			new_LineInfo = [LineInfo(1:indS+2) sprintf('%d_%s-%s',old_ver+1, CA, CB) str];
+			new_LineInfo = [LineInfo(1:indS+2) sprintf('2_%s-%s', CA, CB) str];
 		end	
 		is_pole_new = true;
 	end
