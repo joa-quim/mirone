@@ -237,7 +237,7 @@ function [new_LineInfo, is_pole_new] = set_stg_info(mode, hLine, LineInfo, plon,
 			ind2 = ind2(2) - 1;		ind1 = ind2;
 			while (LineInfo(ind1) ~= ' '),	ind1 = ind1 - 1;	end
 			old_res = str2double(LineInfo(ind1:ind2));	% Get old residue
-			if (abs(old_res - residue) < 1e-3)			% If the old one is better, don't change it
+			if ( (old_res - residue) < 1e-3 )			% Old one is better, don't change it
 				return
 			end
 			fprintf('Anom --> %s  Res antes = %.6f  Res depois = %.6f\n',CA, old_res, residue)
