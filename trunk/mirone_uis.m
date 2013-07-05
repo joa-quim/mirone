@@ -826,6 +826,7 @@ function figure1_CloseRequestFcn(hObj, event)
 	catch,	delete(gcf),	return
 	end
 	delete(handles.figure1);		delete(h(ishandle(h)))      % Delete also any eventual 'carraças'
+	if (isappdata(0, 'linkedStruct')),	rmappdata(0, 'linkedStruct'),	end		% Linked images use this container.
 	FOpenList = handles.FOpenList;	fname = [handles.path_data 'mirone_pref.mat'];
 	if (~handles.version7),			save(fname,'FOpenList','-append')   % Update the list for "Recent files"
 	else							save(fname,'FOpenList','-append', '-v6')
