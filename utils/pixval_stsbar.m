@@ -410,27 +410,42 @@ function linkDisplays(hFig)
 	if (~ishandle(linkedFig)),		return,		end			% Linked Fig was killed
 	handMir_linked  = guidata(linkedFig);					% Fish the pair of handles
 	handMir_clicked = guidata(hFig);
+
+	% This chunk is a trick to patch a f... ML bug that when it pleases stop calling the unset part
+	linked_old = getappdata(0,'linkedStruct');
+	if (~isempty(linked_old) && linked_old.toggled)
+		set(handMir_clicked.hImg,'CData', linked_old.imgClicked, ...
+			'XData',linked_old.xdataClicked, 'YData',linked_old.ydataClicked)
+		set(hFig, 'colormap', linked_old.cmapClicked)
+		linked_old.toggled = false;
+		setappdata(0, 'linkedStruct', linked_old)
+		return
+	end
+
 	imgLinked  = get(handMir_linked.hImg,'CData');
-	imgClicked = get(handMir_clicked.hImg,'CData');			% We need to backup this before it is replaced by the linked
-	cmapClicked = get(hFig,'colormap');
+	linked.imgClicked = get(handMir_clicked.hImg,'CData');			% We need to backup this before it is replaced by the linked
+	linked.cmapClicked = get(hFig,'colormap');
+	linked.xdataClicked = get(handMir_clicked.hImg, 'XData');	linked.ydataClicked = get(handMir_clicked.hImg, 'YData');
 
-% 	xlimClicked  = get(handMir_clicked.axes1,'XLim');		ylimClicked  = get(handMir_clicked.axes1,'YLim');
-% 	xlimLinked   = get(handMir_linked.axes1, 'XLim');		ylimLinked   = get(handMir_linked.axes1, 'YLim');
-	xdataClicked = get(handMir_clicked.hImg, 'XData');		ydataClicked = get(handMir_clicked.hImg, 'YData');
-	xdataLinked  = get(handMir_linked.hImg,  'XData');		ydataLinked  = get(handMir_linked.hImg,  'YData');
-
-	set(handMir_clicked.hImg,'CData', imgLinked)
+	set(handMir_clicked.hImg,'CData', get(handMir_linked.hImg,'CData'), ...
+		'XData',get(handMir_linked.hImg, 'XData'), 'YData',get(handMir_linked.hImg, 'YData'))
 	if (ndims(imgLinked) == 2)
 		set(hFig, 'colormap',get(handMir_linked.figure1,'colormap'))
 	end
-	set(handMir_clicked.hImg, 'XData',xdataLinked, 'YData',ydataLinked)
-	set(hFig, 'WindowButtonUpFcn', {@link_bu, hFig, handMir_clicked.hImg, imgClicked, cmapClicked, ...
-			xdataClicked, ydataClicked});
+
+	linked.toggled = true;
+	setappdata(0, 'linkedStruct', linked)
+
+	set(hFig, 'WindowButtonUpFcn', {@link_bu, hFig, handMir_clicked.hImg});
 
 % ---------------------------------------------------------------------------------
-function link_bu(obj, event, hFig, hImg, img_clicked, cmap_clicked, xdata, ydata)
+function link_bu(obj, event, hFig, hImg)
 % Undo the image swapping and reset the 'WindowButtonUpFcn' to ''
+
 	handMir_clicked = guidata(hFig);
-	set(handMir_clicked.hImg,'CData', img_clicked)
-	set(hFig,'colormap', cmap_clicked, 'WindowButtonUpFcn', '')
-	set(hImg, 'XData',xdata, 'YData',ydata)
+	linked = getappdata(0,'linkedStruct');
+	set(handMir_clicked.hImg,'CData', linked.imgClicked)
+	set(hFig,'colormap', linked.cmapClicked, 'WindowButtonUpFcn', '')
+	set(hImg, 'XData',linked.xdataClicked, 'YData',linked.ydataClicked)
+	linked.toggled = false;
+	setappdata(0, 'linkedStruct', linked)
