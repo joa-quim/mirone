@@ -635,7 +635,7 @@ function [lon_bf, lat_bf, omega_bf, area_f, resid] = ...
 	s_lat = sin(isoca1(:,2));			c_lat = cos(isoca1(:,2));
 
 	X = isoca2(:,1) .* cos(isoca2(:,2)) * 6371;		Y = isoca2(:,2) * 6371;
-	i_m = 1;	j_m = 1;	k_m = 1;
+	i_m = 1;	j_m = 1;	k_m = 0;
 	for i = 1:nLon			% Loop over n lon intervals
 		if (isGUI && get(handles.slider_wait,'Max') == 1)			% The STOP button was pushed. So, stop
 			set(handles.slider_wait,'Max',handles.nInt_lon)			% Reset it for the next run
@@ -725,7 +725,11 @@ function [lon_bf, lat_bf, omega_bf, area_f, resid] = ...
 	if (isGUI),		set(handles.slider_wait,'Value',0),		end      % Reset it for the next run
 	lon_bf = p_lon(i_m) / D2R;
 	lat_bf = p_lat(j_m) / D2R;
-	omega_bf = p_omeg(k_m) / D2R;
+	if (k_m > 0)
+		omega_bf = p_omeg(k_m) / D2R;
+	else			% Nothing better than initial angle was found. Return that exact value
+		omega_bf = handles.pAng_ini;
+	end
 	area_f = area0;
 
 % -------------------------------------------------------------------------------
