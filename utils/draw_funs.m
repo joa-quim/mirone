@@ -987,12 +987,11 @@ function set_isochrons_uicontext(h, data)
 	item_Class_lt = uimenu(cmenuHand, 'Label', ['All ' tag ' Line Style']);
 	setLineStyle(item_Class_lt,{cb_ClassLineStyle{1} cb_ClassLineStyle{2} cb_ClassLineStyle{3} cb_ClassLineStyle{4}})
 	item = uimenu(cmenuHand, 'Label', 'Compute pole to neighbor', 'Sep','on');
-% 	uimenu(cmenuHand, 'Label', 'Compute pole to neighbor (Bonin)', 'Sep','on', 'Call', {@pole2neighbor, [], 'Bonin'});
-% 	uimenu(cmenuHand, 'Label', 'Compute pole to neighbor (Best-Fit)', 'Call', {@pole2neighbor, [], 'Best'});
-	uimenu(item, 'Label', 'Bonin (all in this plate)', 'Sep','on', 'Call', {@pole2neighbor, [], 'Bonin'});
-	uimenu(item, 'Label', 'Best-Fit (all in this plate)', 'Call', {@pole2neighbor, [], 'Best'});
-	uimenu(item, 'Label', 'Best-Fit (only me)', 'Call', {@pole2neighbor, [], 'Best', 1});
-	uimenu(item, 'Label', 'Best-Fit (only me -> iterate)', 'Call', {@pole2neighbor, [], 'Best', 10});
+	%uimenu(item, 'Label', 'Bonin (all in this plate)', 'Sep','on', 'Call', {@pole2neighbor, [], 'Bonin'});
+	uimenu(item, 'Label', 'Best-Fit (all in this plate)', 'Call', {@pole2neighbor, [], 'anglefit'});
+	uimenu(item, 'Label', 'Best-Fit (only me)', 'Call', {@pole2neighbor, [], 'anglefit', 1});
+	uimenu(item, 'Label', 'Best-Fit (only me -> iterate)', 'Call', {@pole2neighbor, [], 'anglefit', 10});
+	uimenu(item, 'Label', 'Show Results', 'Call', {@pole2neighbor, [], 'showresults'});
 	uimenu(cmenuHand, 'Label', 'Make Age-script', 'Call', @make_age_script);
 	uimenu(cmenuHand, 'Label', 'Euler rotation', 'Sep','on', 'Call', 'euler_stuff(gcf,gco)');
 	for (i=1:length(h)),		ui_edit_polygon(h(i)),		end		% Set edition functions
