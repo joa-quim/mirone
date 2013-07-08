@@ -363,8 +363,8 @@ function [new_lineInfo, is_pole_new] = set_stg_info(mode, hLine, lineInfo, plon,
 			fprintf('Anom --> %s  Res antes = %.6f  Res depois = %.6f\n',CA, old_res, residue)
 			str = sprintf('"%.1f %.1f %s %s %.3f %.3f"', plon, plat, ageB, ageA, omega, residue);
 			new_lineInfo = [lineInfo(1:indS+3) sprintf('_%s-%s', CA, CB) str];
-			if (numel(lineInfo) > ind2(2)+2)			% +1 to compensate the above - 1 and the other for the space
-				 new_lineInfo = [new_lineInfo lineInfo(ind2(2)+2:end)];
+			if (numel(lineInfo) > ind2+2)			% +1 to compensate the above - 1 and the other for the space
+				 new_lineInfo = [new_lineInfo lineInfo(ind2+2:end)];
 			end
 		end
 		is_pole_new = true;
@@ -397,8 +397,8 @@ function [new_lineInfo, is_pole_new] = set_stg_info(mode, hLine, lineInfo, plon,
 			fprintf('Anom --> %s  Res antes = %.6f  Res depois = %.6f\n',CA, old_res, residue)
 			str = sprintf('"%.1f %.1f %s %s %.3f %.3f"', plon, plat, ageB, ageA, omega, residue);
 			new_lineInfo = [lineInfo(1:indS+2) sprintf('2_%s-%s', CA, CB) str];
-			if (numel(lineInfo) > ind2(2)+2)			% +1 to compensate the above - 1 and the other for the space
-				 new_lineInfo = [new_lineInfo lineInfo(ind2(2)+2:end)];
+			if (numel(lineInfo) > ind2+2)			% +1 to compensate the above - 1 and the other for the space
+				 new_lineInfo = [new_lineInfo lineInfo(ind2+2:end)];
 			end
 		end	
 		is_pole_new = true;
