@@ -1,4 +1,4 @@
-function pole2neighbor(obj, evt, hLine, mode, opt)
+function varargout = pole2neighbor(obj, evt, hLine, mode, opt)
 % Compute finite poles from isochron N to isochron N+1 of the data/isochrons.dat file (must be loaded)
 
 %	Copyright (c) 2004-2013 by J. Luis
@@ -41,11 +41,7 @@ function pole2neighbor(obj, evt, hLine, mode, opt)
 			end
 		end
 
-	elseif (strcmpi(mode, 'showresults'))
-		out = get_all_stgs(hLine);
-		setappdata(0, 'STGs', out)
-
-	else								% Best-fit (Brute-Force)
+	elseif (strcmpi(mode, 'best'))		% Best-fit (Brute-Force)
 		if (nargin == 4)				% Make one full round on all poles in same plate of the seed
 			nNewPoles = 0;
 			while (~isempty(hNext))
@@ -59,6 +55,20 @@ function pole2neighbor(obj, evt, hLine, mode, opt)
 				[hNext, is_pole_new] = compute_pole2neighbor_BruteForce(hLine);
 				n = n + 1;
 			end
+		end
+
+	elseif (strcmpi(mode, 'showresults'))
+		out = get_all_stgs(hLine);
+		setappdata(0, 'STGs', out)
+
+	elseif (strcmpi(mode, 'stginfo'))	% Just get and return the STG pole requested in OPT (e.g. STG0, STG2 or STG3)
+		if (strncmp(opt, 'STG', 3))
+			varargout{1} = get_stg_pole(opt, getappdata(hLine,'LineInfo'));
+		elseif (strncmp(opt, 'FIN', 3))
+			p = parse_finite_pole(getappdata(hLine,'LineInfo'));
+			varargout{1} = [p.lon p.lat p.age p.age p.ang NaN];	% Use the same output type as for the stage poles (+ residue)
+		else
+			error('Wrong OPT argument in call to pole2neighbor')
 		end
 	end
 
@@ -408,7 +418,7 @@ function stage = get_true_stg (hLineA, hLineB)
 	pA = parse_finite_pole(lineInfoA);
 	pB = parse_finite_pole(lineInfoB);
 
-	indS = strfind(lineInfoA, 'STG0"');			% See if we aready have one true (half) STG
+	indS = strfind(lineInfoA, 'STG0"');			% See if we already have one true (half) STG
 	if (isempty(indS))							% No, create one
 		stage = finite2stages([pA.lon; pB.lon], [pA.lat; pB.lat], [pA.ang; pB.ang], [pA.age; pB.age], 2, 1);
 		ind =  strfind(lineInfoA, 'FIN"');
