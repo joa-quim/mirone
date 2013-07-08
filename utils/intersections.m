@@ -108,6 +108,8 @@ function [x0,y0,iout,jout] = intersections(x1,y1,x2,y2,robust)
 % ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 % POSSIBILITY OF SUCH DAMAGE.
 
+% $Id$
+
 % Input checks.
 error(nargchk(2,5,nargin))
 
@@ -231,9 +233,8 @@ if robust
 			end
 		end
 		warning(warning_state)
-	catch err
+	catch
 		warning(warning_state)
-		rethrow(err)
 	end
 	% Find where t1 and t2 are between 0 and 1 and return the corresponding
 	% x0 and y0 values.
