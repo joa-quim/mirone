@@ -535,7 +535,7 @@ utils/fancyFrame.m -text
 utils/filter_butter.p -text
 utils/filter_funs.m -text
 utils/findcell.m -text
-utils/finite2stages.m -text
+utils/finite2stages.m eol=lf
 utils/frame3D.m -text
 utils/ft2tms.m -text
 utils/gcirc.m -text
