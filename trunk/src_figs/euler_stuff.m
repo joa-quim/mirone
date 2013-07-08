@@ -483,10 +483,37 @@ function check_singleRotation_CB(hObject, handles)
 
 % --------------------------------------------------------------------
 function push_polesList_CB(hObject, handles)
+% Create a poles list from the 'lista_poles' file plus eventual poles info stored
+% at the headers of Isochrons as loded from the 'isochrons.dat' file
+
+	str = [];
+	if ( (numel(handles.h_line_orig) == 1) && strcmpi(get(handles.h_line_orig,'Tag'), 'Isochron') )
+		stgs = pole2neighbor([], [], handles.h_line_orig, 'stginfo', 'FIN');
+		if (~isnan(stgs(1)))
+			str{1,1} = sprintf('%.2f  %.2f  %.3f  %.2f  !FINITE - From Isoc header', stgs(1), stgs(2), stgs(5), stgs(4));
+		end
+		stgs = pole2neighbor([], [], handles.h_line_orig, 'stginfo', 'STG0');
+		if (~isnan(stgs(1)))
+			str{end+1,1} = sprintf('%.2f  %.2f  %.3f  %.2f  !STG0 - True half stage pole', stgs(1), stgs(2), stgs(5), stgs(4));
+		end
+		stgs = pole2neighbor([], [], handles.h_line_orig, 'stginfo', 'STG2');
+		if (~isnan(stgs(1)))
+			str{end+1,1} = sprintf('%.2f  %.2f  %.3f  %.2f  !STG2 - Best-fit stage pole', stgs(1), stgs(2), stgs(5), stgs(4));
+		end
+		stgs = pole2neighbor([], [], handles.h_line_orig, 'stginfo', 'STG3');
+		if (~isnan(stgs(1)))
+			str{end+1,1} = sprintf('%.2f  %.2f  %.3f  %.2f  !STG3 - Angle best-fit stage pole', stgs(1), stgs(2), stgs(5), stgs(4));
+		end
+	end
+
 	fid = fopen([handles.path_continent 'lista_polos.dat'],'rt');
 	c = fread(fid,'*char').';
 	fclose(fid);
 	s = strread(c,'%s','delimiter','\n');
+
+	if (~isempty(str))		% If we have info from an Isochron header, add it to the top of poles list
+		s = [str;{''};s];
+	end
 
 	multiple_str = 'multiple_finite';
 	multiple_val = 0;
@@ -517,6 +544,9 @@ function push_polesList_CB(hObject, handles)
 		set(handles.edit_poleLat, 'String', num2str(s(2)))
 		set(handles.edit_poleAngle, 'String', num2str(s(3)))
 		guidata(hObject,handles)
+		if (~get(handles.check_singleRotation,'Val'))
+			set(handles.check_singleRotation,'Val',1)
+		end
 	elseif (v == 2)     % Stage poles
 		set(handles.edit_polesFile,'String',s)
 	elseif (v == 3)     % Multiple finite poles (with ages)
@@ -550,7 +580,7 @@ function push_pickLine_CB(hObject, handles)
 		str = ['If you hited this button on purpose, than you deserve the following insult.',...
 				'You #!|"*!%!?~^)--$&.',... 
 				'THERE ARE NO LINES IN THAT FIGURE.'];
-		errordlg(str,'Chico Clever');     return;
+		errordlg(str,'Chico Clever'),	return
 	end
 
 	set(handles.hCallingFig,'pointer','crosshair')
