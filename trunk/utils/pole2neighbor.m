@@ -70,6 +70,10 @@ function varargout = pole2neighbor(obj, evt, hLine, mode, opt)
 		else
 			error('Wrong OPT argument in call to pole2neighbor')
 		end
+
+	elseif (strcmpi(mode, 'agegrid'))
+		fill_age_grid(hLine)
+
 	end
 
 % -----------------------------------------------------------------------------------------------------------------
@@ -125,7 +129,7 @@ function out = get_all_stgs(hLine)
 
 	n = 2;
 	while (~isempty(hNext))
-		[hNext, CA, CB] = find_closest_old(hNext);
+		hNext = find_closest_old(hNext);
 		if (~isempty(hNext))	% Must do this test again here because it's a new hNext
 			out(n,1:6)   = get_stg_pole('STG0', getappdata(hNext,'LineInfo'));
 			out(n,7:12)  = get_stg_pole('STG2', getappdata(hNext,'LineInfo'));
@@ -134,6 +138,116 @@ function out = get_all_stgs(hLine)
 		end
 	end
 	out(n-1:end,:) = [];		% These were allocated in excess
+
+% -----------------------------------------------------------------------------------------------------------------
+function fill_age_grid(hLine)
+% ...
+	lon_min = -49;		lat_min = 12;
+	lon_max = -11;		lat_max = 40;
+	x_inc = 2/60;		y_inc = x_inc;
+	n_cols = round((lon_max -lon_min) / x_inc) + 1;
+	n_rows = round((lat_max -lat_min) / y_inc) + 1;
+	grd = zeros(n_rows,n_cols)*NaN;
+	hNext = hLine;
+	%profile on
+	while (~isempty(hNext))
+		%tic
+		current_seed_hand = hNext;
+		[out, hNext, p1, p2, n_pts, ind_last] = get_arc_from_a2b(hNext);
+		if (isempty(out)),	continue,	end
+		for (k = 1:numel(out.age))
+			col = fix((out.lon(k) - lon_min) / x_inc) + 1;
+			row = fix((out.lat(k) - lat_min) / y_inc) + 1;
+			grd(row,col) = out.age(k);
+		end
+		while (ind_last < n_pts)
+			[out, hNext, p1, p2, n_pts, ind_last] = get_arc_from_a2b(current_seed_hand, hNext, ind_last+1, p1, p2);
+			if (isempty(out)),	continue,	end
+			for (k = 1:numel(out.age))
+				col = fix((out.lon(k) - lon_min) / x_inc) + 1;
+				row = fix((out.lat(k) - lat_min) / y_inc) + 1;
+				grd(row,col) = out.age(k);
+			end
+		end
+		%toc
+	end
+
+	%profile viewer
+	G.z = grd;	G.n_columns = size(grd,2);	G.n_rows = size(grd,1);	G.range = [lon_min lon_max lat_min lat_max];
+	G.head = [G.range 0 165 0 x_inc y_inc];	G.ProjectionRefPROJ4 = '';
+	G.inc = [x_inc y_inc];		G.MinMax = [0 165];		G.registration = 0;
+	mirone(G)
+
+% -----------------------------------------------------------------------------------------------------------------
+function [out, hNext, p1, p2, n_pts, ind_last] = get_arc_from_a2b(hLine, hNext, k, p1, p2)
+% Compute a arcuate path ...
+
+	out = [];	ind_last = 1;	n_pts = 1;
+
+	if (nargin == 1)		% Find closest old and intersection point
+		hNext = find_closest_old(hLine);
+		if (isempty(hNext))
+			p1 = [];	p2 = [];	return
+		end
+		%p1 = parse_finite_pole(getappdata(hLine,'LineInfo'));		% Get the Euler pole parameters of this isoc
+		p1 = get_STG_pole(getappdata(hLine,'LineInfo'), 'STG3');	% Get the Euler pole parameters of this isoc
+		if (isempty(p1))
+			fprintf('This isoc has no, %s pole info in it header\n%s\n', stg, lineInfo);
+			p2 = [];				return
+		end
+% 		if (p1.lat < 0)
+% 			p1.lat = -p1.lat;		p1.lon = p1.lon + 180;
+% 			if (p1.lon > 360),		p1.lon = p1.lon - 360;  end
+% 			p1.ang = -p1.ang;
+% 		end
+		%if (p1.lon > 180),			p1.lon = p1.lon - 360;  end
+
+		%p2 = parse_finite_pole(getappdata(hNext,'LineInfo'));
+		p2 = get_STG_pole(getappdata(hNext,'LineInfo'), 'STG3');
+		if (isempty(p2)),	return,	end		% Hopefully the last one on the run (those cannot have an STG)
+% 		if (p2.lat < 0)
+% 			p2.lat = -p2.lat;		p2.lon = p2.lon + 180;
+% 			if (p2.lon > 360),		p2.lon = p2.lon - 360;  end
+% 			p2.ang = -p2.ang;
+% 		end
+		%if (p2.lon > 180),			p2.lon = p1.lon - 360;  end		% Not sure if I should do this
+		k = 1;
+	end
+
+	x  = get(hLine,'Xdata');	y  = get(hLine,'Ydata');
+	x2 = get(hNext,'XData');	y2 = get(hNext,'YData');
+	if ( sign(y(end) - y(1)) ~= sign(y2(end) - y2(1)) )		% Lines have oposite orientation. Reverse one of them.
+		x2 = x2(end:-1:1);		y2 = y2(end:-1:1);
+	end
+
+	n_pts = numel(x);
+	xc2 = [];		D2R = pi/180;
+	% Find the first point in Working isoc whose circle about his Euler pole crosses its nearest (older) neighbor
+	while (isempty(xc2))
+		if (k > n_pts)			% Shit happened
+			out = [];	ind_last = k;	return
+		end
+		c = sin(p1.lat*D2R)*sin(y(k)*D2R) + cos(p1.lat*D2R)*cos(y(k)*D2R)*cos( (p1.lon-x(k))*D2R );
+		rad = acos(c) / D2R;		% Angular distance between pole and point k along younger isoc
+		[latc,lonc] = circ_geo(p1.lat, p1.lon, rad, [], 720);
+		[mimi,ii] = max(diff(lonc));
+		lonc = [lonc(ii+1:end) lonc(1:ii)];
+		latc = [latc(ii+1:end) latc(1:ii)];
+		[xc2,yc2] = intersections(lonc,latc,x2,y2);
+		k = k + 1;
+	end
+	k = k - 1;
+	az1 = azimuth_geo(p1.lat, p1.lon, y(k), x(k));
+	az2 = azimuth_geo(p1.lat, p1.lon, yc2(1), xc2(1));		% <====== VERIFICAR ESTA MERDA
+	daz = abs(az2-az1);
+	if (daz > 180),		daz = daz - 360;	end		% Unlucky cases
+	np = round(daz / (2/60) / sin(rad*D2R) * 2);
+% 	if (np > 2000)
+% 		aiai=0;
+% 	end
+	[latc,lonc] = circ_geo(p1.lat, p1.lon, rad, sort([az1 az2]), np);
+	out.lon = lonc;		out.lat = latc;		out.age = linspace(p2.age, p1.age, numel(lonc));
+	ind_last = k;
 
 % -----------------------------------------------------------------------------------------------------------------
 function [hNext, CA, CB] = find_closest_old(hLine)
@@ -238,7 +352,7 @@ function [hNext, pole, lineInfo, p, p_closest, CA, CB] = compute_pole2neighbor_B
 
 	% ------------- OK, so here we are supposed to have found the next older isoc -------------------
 	hNext = hAllIsocs(ind_closest);
-	
+
 	if (nargout > 1)
 		[plon,plat,omega] = get_last_pole(this_lineInfo);
 		if (~isempty(plon))				% Remember, this is the case where we are going to do Brute-Force
@@ -250,15 +364,14 @@ function [hNext, pole, lineInfo, p, p_closest, CA, CB] = compute_pole2neighbor_B
 
 	closest_lineInfo = getappdata(hNext,'LineInfo');
 	disp(closest_lineInfo)
-	x = get(hLine,'Xdata');		y = get(hLine,'Ydata');
-	x2 = get(hAllIsocs(ind_closest),'XData');
-	y2 = get(hAllIsocs(ind_closest),'YData');
+	x  = get(hLine,'Xdata');	y  = get(hLine,'Ydata');
+	x2 = get(hNext,'XData');	y2 = get(hNext,'YData');
 	n_pts = numel(x);
 	inds = 1:fix(n_pts / 10):n_pts;		% Indices of one every other 10% of number of total points in working isoc
 
 	xcFirst = [];		k = 0;
 	D2R = pi/180;
-	% Find the first point in Working isoc hose circle about his Euler pole crosses its nearest (older) neighbor
+	% Find the first point in Working isoc whose circle about his Euler pole crosses its nearest (older) neighbor
 	while (isempty(xcFirst))
 		k = k + 1;
 		if (k > numel(inds))
@@ -465,7 +578,7 @@ function [plon,plat,ang] = get_last_pole(lineInfo)
 	indS = strfind(lineInfo, 'STG');
 	if (isempty(indS) || ((numel(indS) == 1) && (lineInfo(indS+3) == ' ')) )
 		% An old STG not quoted case (to be deleted some time later)
-		return
+		indS = indS(2:end);
 	end
 
 	str = lineInfo(indS(end):end);		% This now has only the STGXX_??"....." string
@@ -479,6 +592,26 @@ function [plon,plat,ang] = get_last_pole(lineInfo)
 	plon = str2double(plon);
 	plat = str2double(plat);
 	ang = str2double(ang);
+
+% -----------------------------------------------------------------------------------------------------------------
+function p = get_STG_pole(lineInfo, stg)
+% Get the finite pole parameters from the pseudo stage pole stored in STGX
+% Returns the result in a structure as parse_finite_pole, or empty if not found
+
+	p = [];
+
+	indS = strfind(lineInfo, stg);
+	if (isempty(indS))
+		fprintf('The requested pole, %s does not exist in this isochron header\n%s\n', stg, lineInfo);
+		return
+	end
+
+	ind2 = strfind(lineInfo(indS:end),'"') + indS - 1;			% It starts after the quote
+	[t, r] = strtok(lineInfo(ind2(1)+1:ind2(2)-1));				p.lon = sscanf(t, '%f');
+	[t, r] = strtok(r);			p.lat  = sscanf(t, '%f');
+	[t, r] = strtok(r);			p.ageB = sscanf(t, '%f');		% Call it ageB 
+	[t, r] = strtok(r);			p.age  = sscanf(t, '%f');		% Call it simply 'age' to go along with the FIN(ite) pole
+	p.ang = sscanf(strtok(r), '%f');
 
 % -----------------------------------------------------------------------------------------------------------------
 function p = parse_finite_pole(lineInfo)
