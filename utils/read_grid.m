@@ -121,8 +121,9 @@ function [Z, X, Y, srsWKT, handles, att] = read_grid(handles, fullname, tipo, op
 			fname = att.fname;				% We'll need better but for now this ensures that no subdataset name is taken as the whole.
 			if (~isa(Z,'int16')),		handles.was_int16 = 0;		end
 		end
-		[Z, did_scale] = handle_scaling(Z, att);	% See if we need to apply a scale/offset
+		[Z, did_scale, att, have_new_nans] = handle_scaling(Z, att);	% See if we need to apply a scale/offset
 		if (~did_scale),	handles.Nodata_int16 = att.Band(1).NoDataValue;		end
+		if (have_new_nans),	handles.have_nans = 1;	end
 		handles.image_type = 4;
 		srsWKT = att.ProjectionRef;
 	end
@@ -163,11 +164,11 @@ function [Z, X, Y, srsWKT, handles, att] = read_grid(handles, fullname, tipo, op
 	handles.head = head;
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function [data, did_scale] = handle_scaling(data, att)
+function [data, did_scale, att, have_new_nans] = handle_scaling(data, att)
 %	If there is a scale factor and/or  add_offset attribute, convert the data
 %	to single precision and apply the scaling. 
 
-	have_scale_factor = false;			have_add_offset = false;	did_scale = false;
+	have_scale_factor = false;			have_add_offset = false;	did_scale = false;	have_new_nans = false;
 	if ( att.Band(1).ScaleOffset(1) ~= 1 )
 		have_scale_factor = true;
 		scale_factor = att.Band(1).ScaleOffset(1);
@@ -181,6 +182,11 @@ function [data, did_scale] = handle_scaling(data, att)
 	if ~(have_scale_factor || have_add_offset),		return,		end
 
 	if (~isa(data,'single')),		data = single(data);	end
+	if (~isnan(att.Band(1).NoDataValue))
+		data(data == att.Band(1).NoDataValue) = NaN;
+		att.Band(1).NoDataValue = NaN;
+		have_new_nans = true;
+	end
 
 	did_scale = true;
 	if (have_scale_factor && have_add_offset)
@@ -189,6 +195,10 @@ function [data, did_scale] = handle_scaling(data, att)
 		data = cvlib_mex('CvtScale',data, scale_factor);
 	else
 		data = cvlib_mex('addS',data, add_offset);
+	end
+
+	if (have_new_nans)
+		att.GMT_hdr(5:6) = grdutils(data,'-L');
 	end
 
 % --------------------------------------------------------------------------------------
