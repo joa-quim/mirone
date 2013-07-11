@@ -1530,8 +1530,9 @@ function erro = FileOpenGeoTIFF_CB(handles, tipo, opt)
 		end
 		if (~all(c) && any(c)),		str(c) = [];	end	% Remove non-interesting arrays from sight
 
+		SS = get(0,'ScreenSize');
 		[s,ok] = listdlg('PromptString',{'This file has subdatasets' 'you have to select one:'}, 'ListSize', ...
-				[min(numel(str{1})*8,640) min((size(str,1)*20 + 50), 200)], ...
+				[min(numel(str{1})*6,SS(3)-100) min((size(str,1)*20 + 50), 200)], ...
 				'Name','DATASET Selection', 'SelectionMode','single', 'ListString',str);	pause(0.01)
 		if (~ok),	return,		end						% Uset hit "Cancel"
 		if (rem(s,2) == 0),		s = s - 1;		end		% Selection was done over "description" and not the "name" 
