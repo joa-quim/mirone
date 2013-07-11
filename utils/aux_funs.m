@@ -231,6 +231,15 @@ function out = findFileType(fname)
 		catch
 			out = 'dono';
 		end
+		if (out(1) == 'g')				% But the story is not over. We need to know if multi-2D_datasets
+			count = 0;
+			for (k = 1:numel(s.Dataset))
+				if (numel(s.Dataset(k).Size) > 1)
+					count = count + 1;
+					if (count > 1),		out = 'dono';	break,	end		% Yes, so we experimentaly send it to gdalread
+				end
+			end
+		end
 	elseif ( any(strcmpi(EXT,{'.jpg' '.png' '.bmp' '.gif' '.pcx' '.ras' '.ppm' '.pgm' '.xwd' '.shade' '.raw' '.bin'})) )
 		out = 'generic';
 	elseif ( any(strcmpi(EXT,{'.tif' '.tiff' '.sid' '.kap' '.nos'})) )
