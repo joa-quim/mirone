@@ -8,7 +8,7 @@ function [lat2,lon2,a21] = vreckon(lat1, lon1, rng, azim, npts, ellipsoid)
 % USAGE:
 % [lat2,lon2] = vreckon(lat1, lon1, rng, azim)
 % ... = vreckon(...,ellipsoid)
-%  Transmits ellipsoid deffinition (either as [a,b] or [a,f]) as fifth argument ELLIPSOIDE
+%  Transmits ellipsoid definition (either as [a,b] or [a,f]) as fifth argument ELLIPSOIDE
 %
 % VARIABLES:
 % lat1 = inital latitude (degrees)
@@ -62,6 +62,8 @@ function [lat2,lon2,a21] = vreckon(lat1, lon1, rng, azim, npts, ellipsoid)
 % It can now also compute circles or circle arcs. 
 % Also, lon2 is always converted to the [-180 180] interval
 % Joaquim Luis
+
+% $Id: $
 
 	% Input check:
 	if (abs(lat1) > 90)
