@@ -109,9 +109,10 @@ function [Z, X, Y, srsWKT, handles, att] = read_grid(handles, fullname, tipo, op
 		if (strcmp(att.Band(1).DataType,'Int16')),		handles.was_int16 = 1;	end
 
 		if (~strncmp(att.DriverShortName, 'HDF4', 4))
-			Z = gdalread(att.Name, '-U', opt_I, opt);
-			if (strcmp(att.DriverShortName, 'BAG'))		% Until we know how to read by layers (2 or 3)
-				Z(:,:,2:end) = [];
+			if (strcmp(att.DriverShortName, 'BAG'))		% Read only first band
+				Z = gdalread(att.Name, '-U', opt_I, opt, '-B1');
+			else
+				Z = gdalread(att.Name, '-U', opt_I, opt);
 			end
 		elseif (strcmp(att.Band(1).DataType,'L3Bin'))
 			[Z, handles.have_nans, att] = empilhador('getZ', fname, att, false, false, false, 1, 0, []);
