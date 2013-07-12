@@ -1,5 +1,5 @@
 /*--------------------------------------------------------------------
- *	$Id:$
+ *	$Id$
  *
  *	Copyright (c) 2004-2012 by J. Luis
  *
@@ -44,9 +44,7 @@
 int main(int argc, char **argv) {
 
 	char *path, *pato, *papato, *patoUD, *cd; 
-	int	status, size_cd;
-
-	size_cd = 128;
+	int	status, size_cd = 256;
 
 	path = getenv ("PATH");
 
