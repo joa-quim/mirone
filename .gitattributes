@@ -252,7 +252,7 @@ mex/PolygonClip.c -text
 mex/WindowAPI.c -text
 mex/akimaspline.cpp -text
 mex/alloc_mex.c -text
-mex/callMir.c -text
+mex/callMir.c eol=lf
 mex/clipbd_mex.cpp -text
 mex/cm4field_m.c -text
 mex/compile_mex.bat -text
