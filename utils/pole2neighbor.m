@@ -150,8 +150,8 @@ function fill_age_grid(hLine)
 	grd = zeros(n_rows,n_cols)*NaN;
 	hNext = hLine;
 	%profile on
+	tic
 	while (~isempty(hNext))
-		%tic
 		current_seed_hand = hNext;
 		[out, hNext, p1, p2, n_pts, ind_last] = get_arc_from_a2b(hNext);
 		if (isempty(out)),	continue,	end
@@ -162,15 +162,15 @@ function fill_age_grid(hLine)
 		end
 		while (ind_last < n_pts)
 			[out, hNext, p1, p2, n_pts, ind_last] = get_arc_from_a2b(current_seed_hand, hNext, ind_last+1, p1, p2);
-			if (isempty(out)),	continue,	end
-			for (k = 1:numel(out.age))
+			if (isempty(out) || isempty(out.lon)),	continue,	end
+			for (k = 1:numel(out.lon))
 				col = fix((out.lon(k) - lon_min) / x_inc) + 1;
 				row = fix((out.lat(k) - lat_min) / y_inc) + 1;
 				grd(row,col) = out.age(k);
 			end
 		end
-		%toc
 	end
+	toc
 
 	%profile viewer
 	G.z = grd;	G.n_columns = size(grd,2);	G.n_rows = size(grd,1);	G.range = [lon_min lon_max lat_min lat_max];
@@ -200,7 +200,6 @@ function [out, hNext, p1, p2, n_pts, ind_last] = get_arc_from_a2b(hLine, hNext, 
 % 			if (p1.lon > 360),		p1.lon = p1.lon - 360;  end
 % 			p1.ang = -p1.ang;
 % 		end
-		%if (p1.lon > 180),			p1.lon = p1.lon - 360;  end
 
 		%p2 = parse_finite_pole(getappdata(hNext,'LineInfo'));
 		p2 = get_STG_pole(getappdata(hNext,'LineInfo'), 'STG3');
@@ -210,7 +209,6 @@ function [out, hNext, p1, p2, n_pts, ind_last] = get_arc_from_a2b(hLine, hNext, 
 % 			if (p2.lon > 360),		p2.lon = p2.lon - 360;  end
 % 			p2.ang = -p2.ang;
 % 		end
-		%if (p2.lon > 180),			p2.lon = p1.lon - 360;  end		% Not sure if I should do this
 		k = 1;
 	end
 
@@ -230,9 +228,16 @@ function [out, hNext, p1, p2, n_pts, ind_last] = get_arc_from_a2b(hLine, hNext, 
 		c = sin(p1.lat*D2R)*sin(y(k)*D2R) + cos(p1.lat*D2R)*cos(y(k)*D2R)*cos( (p1.lon-x(k))*D2R );
 		rad = acos(c) / D2R;		% Angular distance between pole and point k along younger isoc
 		[latc,lonc] = circ_geo(p1.lat, p1.lon, rad, [], 720);
-		[mimi,ii] = max(diff(lonc));
-		lonc = [lonc(ii+1:end) lonc(1:ii)];
-		latc = [latc(ii+1:end) latc(1:ii)];
+		[mimi,ii] = max(diff(lonc));			% Need to reorder array to [-180 180] to avoid bad surprises
+		if (mimi > 100)
+			lonc = [lonc(ii+1:end) lonc(1:ii)];
+			latc = [latc(ii+1:end) latc(1:ii)];
+		end
+		% Clip lonc,latc to speed up and reduce the memory eatear monster in 'intersections'
+		ind = (latc > max(y2(1),y2(end)) + 2) | (latc < min(y2(1),y2(end)) - 2) | ...
+			(lonc > max(x2(1),x2(end)) + 5) | (lonc < min(x2(1),x2(end)) - 5);
+		lonc(ind) = [];		latc(ind) = [];
+		if (isempty(lonc)),	k = k + 1;	continue,	end
 		[xc2,yc2] = intersections(lonc,latc,x2,y2);
 		k = k + 1;
 	end
@@ -242,9 +247,6 @@ function [out, hNext, p1, p2, n_pts, ind_last] = get_arc_from_a2b(hLine, hNext, 
 	daz = abs(az2-az1);
 	if (daz > 180),		daz = daz - 360;	end		% Unlucky cases
 	np = round(daz / (2/60) / sin(rad*D2R) * 2);
-% 	if (np > 2000)
-% 		aiai=0;
-% 	end
 	[latc,lonc] = circ_geo(p1.lat, p1.lon, rad, sort([az1 az2]), np);
 	out.lon = lonc;		out.lat = latc;		out.age = linspace(p2.age, p1.age, numel(lonc));
 	ind_last = k;
