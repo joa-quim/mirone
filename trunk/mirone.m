@@ -1600,6 +1600,8 @@ function erro = FileOpenGeoTIFF_CB(handles, tipo, opt)
 		end
 	elseif (strcmpi(att.ColorInterp,'gray'))
 		pal = repmat( (att.GMT_hdr(5):att.GMT_hdr(6))' / att.GMT_hdr(6), 1, 3);
+	elseif (strcmpi(att.ColorInterp,'Undefined') && strcmp(att.Band.DataType, 'Byte') && att.GMT_hdr(5) ~= att.GMT_hdr(6))
+		pal = gray(diff(att.GMT_hdr(5:6))+1);
 	else
 		pal = gray(256);
 	end
