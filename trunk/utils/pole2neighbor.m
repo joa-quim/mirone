@@ -195,20 +195,10 @@ function [out, hNext, p1, p2, n_pts, ind_last] = get_arc_from_a2b(hLine, hNext, 
 			fprintf('This isoc has no, %s pole info in it header\n%s\n', stg, lineInfo);
 			p2 = [];				return
 		end
-% 		if (p1.lat < 0)
-% 			p1.lat = -p1.lat;		p1.lon = p1.lon + 180;
-% 			if (p1.lon > 360),		p1.lon = p1.lon - 360;  end
-% 			p1.ang = -p1.ang;
-% 		end
 
 		%p2 = parse_finite_pole(getappdata(hNext,'LineInfo'));
 		p2 = get_STG_pole(getappdata(hNext,'LineInfo'), 'STG3');
 		if (isempty(p2)),	return,	end		% Hopefully the last one on the run (those cannot have an STG)
-% 		if (p2.lat < 0)
-% 			p2.lat = -p2.lat;		p2.lon = p2.lon + 180;
-% 			if (p2.lon > 360),		p2.lon = p2.lon - 360;  end
-% 			p2.ang = -p2.ang;
-% 		end
 		k = 1;
 	end
 
