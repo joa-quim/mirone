@@ -32,6 +32,17 @@ function varargout = pole2neighbor(obj, evt, hLine, mode, opt)
 				[hNext, is_pole_new] = compute_pole2neighbor_newStage(hNext);
 				nNewPoles = nNewPoles + is_pole_new;
 			end
+			secondLineInfo = getappdata(hLine,'secondLineInfo');	% Only Ridge line may have this set
+			if (~isempty(secondLineInfo))
+				lineInfo = getappdata(hLine,'LineInfo');
+				setappdata(hLine,'LineInfo', secondLineInfo)
+				hNext = hLine;
+				while (~isempty(hNext))	% Make another full round on the conjugate plate
+					[hNext, is_pole_new] = compute_pole2neighbor_newStage(hNext);
+					nNewPoles = nNewPoles + is_pole_new;
+				end
+				setappdata(hLine,'LineInfo', lineInfo)		% Reset the original
+			end
 			fprintf('Computed %d new poles', nNewPoles)
 		else							% Compute the pole of the seed isoc only, iterating OPT times or not improving
 			n = 1;		is_pole_new = true;
@@ -84,7 +95,19 @@ function [hNext, is_pole_new] = compute_pole2neighbor_newStage(hLine)
 	is_pole_new = false;
 	[hNext, CA, CB] = find_closest_old(hLine);
 	if (isempty(hNext)),	return,		end
-	pole = get_true_stg (hLine, hNext);		% Get from header or compute (and insert in header) the true half-stage pole
+	if (CA == '0')
+		lineInfo = getappdata(hLine, 'LineInfo');
+		ind = strfind(lineInfo,'FIN"');
+		[t, r] = strtok(lineInfo(1:ind-1));	% t is age
+		r = ddewhite(r);
+		ind2 = strfind(r, '/');
+		new_lineInfo = ['0 ' r(ind2+1:end) '/' r(1:ind2-1) lineInfo(ind-1:end)];
+		setappdata(hLine, 'secondLineInfo', new_lineInfo)
+		p = parse_finite_pole(lineInfo);
+		pole = [p.lon p.lat 1.82 0 p.ang];		% For C0 we cannot compute a stage ... but we can set it
+	else
+		pole = get_true_stg (hLine, hNext);		% Get from header or compute (and insert in header) the true half-stage pole
+	end
 	opt_D = '-D0/0/2';
 	opt_I = '-I1/1/201';
 	xA = get(hLine, 'XData');	yA = get(hLine, 'YData');
@@ -140,28 +163,90 @@ function out = get_all_stgs(hLine)
 	out(n-1:end,:) = [];		% These were allocated in excess
 
 % -----------------------------------------------------------------------------------------------------------------
+function [x_min x_max y_min y_max, hLine0] = get_BB(hLine)
+% Find the BoundingBox of all isocrons on the plate pair where hLine belongs
+
+	hLine0 = find_ridge(hLine);					% Find the ridge of the hLine's plate pair
+	if (isempty(hLine0))
+		error('This Plate has no Ridge????????')
+	end
+	x_min = 1e3;	x_max = -1e3;
+	y_min = 1e3;	y_max = -1e3;
+	hNext = hLine0;
+	while (~isempty(hNext))
+		x = get(hNext, 'XData');	y = get(hNext, 'YData');
+		x_min = min(x_min, min(x(1),x(end)));	x_max = max(x_max, max(x(1),x(end)));
+		y_min = min(y_min, min(y(1),y(end)));	y_max = max(y_max, max(y(1),y(end)));
+		hNext = find_closest_old(hNext);
+	end
+
+	% Now run the same for the conjugate plate
+	lineInfo = getappdata(hLine0, 'LineInfo');
+	secondLineInfo = getappdata(hLine0, 'secondLineInfo');
+	if (isempty(secondLineInfo))					% See if we have poles info to run on conjugate plate
+		pole2neighbor([], [], hLine0, 'anglefit');	% This will set 'secondLineInfo'
+	end
+	setappdata(hLine0,'LineInfo', secondLineInfo)
+	hNext = hLine0;
+	while (~isempty(hNext))
+		x = get(hNext, 'XData');	y = get(hNext, 'YData');
+		x_min = min(x_min, min(x(1),x(end)));	x_max = max(x_max, max(x(1),x(end)));
+		y_min = min(y_min, min(y(1),y(end)));	y_max = max(y_max, max(y(1),y(end)));
+		hNext = find_closest_old(hNext);
+	end
+	setappdata(hLine0,'LineInfo', lineInfo)			% Reset
+
+% -----------------------------------------------------------------------------------------------------------------
 function fill_age_grid(hLine)
 % ...
-	lon_min = -49;		lat_min = 12;
-	lon_max = -11;		lat_max = 40;
+% 	lon_min = -49;		lat_min = 12;
+% 	lon_max = -11;		lat_max = 40;
+	[lon_min, lon_max, lat_min, lat_max, hLine] = get_BB(hLine);	% The returned hLine is the Ridge
+	lon_min = floor(lon_min);	lon_max = ceil(lon_max);
+	lat_min = floor(lat_min);	lat_max = ceil(lat_max);
 	x_inc = 2/60;		y_inc = x_inc;
 	n_cols = round((lon_max -lon_min) / x_inc) + 1;
 	n_rows = round((lat_max -lat_min) / y_inc) + 1;
 	grd = zeros(n_rows,n_cols)*NaN;
+
 	hNext = hLine;
+	lineInfo = getappdata(hLine, 'LineInfo');
+	first_plate = true;
 	%profile on
-	tic
+	aguentabar(0,'title','Filling age cells')
 	while (~isempty(hNext))
 		current_seed_hand = hNext;
-		[out, hNext, p1, p2, n_pts, ind_last] = get_arc_from_a2b(hNext);
+
+		x  = get(current_seed_hand,'Xdata');	y  = get(current_seed_hand,'Ydata');
+		lat_i = y(1:end-1);   lat_f = y(2:end);
+		lon_i = x(1:end-1);   lon_f = x(2:end);
+		tmp = vdist(lat_i,lon_i,lat_f,lon_f);
+		r = [0; cumsum(tmp(:))] / 1852;			% Distance along isoc in Nautical Miles (~arc minutes)
+		ind = (diff(r) == 0);
+		if (any(ind))
+			r(ind) = [];	x(ind) = [];	y(ind) = [];
+		end
+		x = interp1(r, x, [r(1):r(end) r(end)]);
+		y = interp1(r, y, [r(1):r(end) r(end)]);
+
+		[out, hNext, p1, p2, n_pts, ind_last, x2, y2] = get_arc_from_a2b(hNext, x, y);
+		if (isempty(hNext) && first_plate)		% Done with first plate. Go for its conjugate
+			secondLineInfo = getappdata(hLine, 'secondLineInfo');
+			setappdata(hLine, 'LineInfo', secondLineInfo);
+			hNext = hLine;
+			first_plate = false;
+			continue
+		end
 		if (isempty(out)),	continue,	end
+
 		for (k = 1:numel(out.age))
 			col = fix((out.lon(k) - lon_min) / x_inc) + 1;
 			row = fix((out.lat(k) - lat_min) / y_inc) + 1;
 			grd(row,col) = out.age(k);
 		end
-		while (ind_last < n_pts)
-			[out, hNext, p1, p2, n_pts, ind_last] = get_arc_from_a2b(current_seed_hand, hNext, ind_last+1, p1, p2);
+		max_age_so_far = max(out.age(1),out.age(end));
+		while (ind_last < n_pts)				% Now do the rest of the vertex of this isochron
+			[out, hNext, p1, p2, n_pts, ind_last] = get_arc_from_a2b(current_seed_hand, x, y, hNext, x2, y2, ind_last+1, p1, p2);
 			if (isempty(out) || isempty(out.lon)),	continue,	end
 			for (k = 1:numel(out.lon))
 				col = fix((out.lon(k) - lon_min) / x_inc) + 1;
@@ -169,8 +254,10 @@ function fill_age_grid(hLine)
 				grd(row,col) = out.age(k);
 			end
 		end
+		aguentabar(max_age_so_far / 160)		% Crude estimation of advancing
 	end
-	toc
+	setappdata(hLine, 'LineInfo', lineInfo);	% Reset
+	aguentabar(1)
 
 	%profile viewer
 	G.z = grd;	G.n_columns = size(grd,2);	G.n_rows = size(grd,1);	G.range = [lon_min lon_max lat_min lat_max];
@@ -179,12 +266,13 @@ function fill_age_grid(hLine)
 	mirone(G)
 
 % -----------------------------------------------------------------------------------------------------------------
-function [out, hNext, p1, p2, n_pts, ind_last] = get_arc_from_a2b(hLine, hNext, k, p1, p2)
+function [out, hNext, p1, p2, n_pts, ind_last, x2, y2] = get_arc_from_a2b(hLine, x, y, hNext, x2, y2, k, p1, p2)
 % Compute a arcuate path ...
 
 	out = [];	ind_last = 1;	n_pts = 1;
 
-	if (nargin == 1)		% Find closest old and intersection point
+	if (nargin == 3)			% Find closest old and intersection point
+		x2 = [];	y2 = [];	% In case we need a premature return
 		hNext = find_closest_old(hLine);
 		if (isempty(hNext))
 			p1 = [];	p2 = [];	return
@@ -192,7 +280,7 @@ function [out, hNext, p1, p2, n_pts, ind_last] = get_arc_from_a2b(hLine, hNext, 
 		%p1 = parse_finite_pole(getappdata(hLine,'LineInfo'));		% Get the Euler pole parameters of this isoc
 		p1 = get_STG_pole(getappdata(hLine,'LineInfo'), 'STG3');	% Get the Euler pole parameters of this isoc
 		if (isempty(p1))
-			fprintf('This isoc has no, %s pole info in it header\n%s\n', stg, lineInfo);
+			fprintf('This isoc has no STG3 pole info in it header\n%s\n', getappdata(hLine,'LineInfo'));
 			p2 = [];				return
 		end
 
@@ -200,12 +288,12 @@ function [out, hNext, p1, p2, n_pts, ind_last] = get_arc_from_a2b(hLine, hNext, 
 		p2 = get_STG_pole(getappdata(hNext,'LineInfo'), 'STG3');
 		if (isempty(p2)),	return,	end		% Hopefully the last one on the run (those cannot have an STG)
 		k = 1;
-	end
 
-	x  = get(hLine,'Xdata');	y  = get(hLine,'Ydata');
-	x2 = get(hNext,'XData');	y2 = get(hNext,'YData');
-	if ( sign(y(end) - y(1)) ~= sign(y2(end) - y2(1)) )		% Lines have oposite orientation. Reverse one of them.
-		x2 = x2(end:-1:1);		y2 = y2(end:-1:1);
+		% First time in this hNext line. Need to fetch the coords
+		x2 = get(hNext,'XData');	y2 = get(hNext,'YData');
+		if ( sign(y(end) - y(1)) ~= sign(y2(end) - y2(1)) )		% Lines have oposite orientation. Reverse one of them.
+			x2 = x2(end:-1:1);		y2 = y2(end:-1:1);
+		end
 	end
 
 	n_pts = numel(x);
@@ -242,6 +330,29 @@ function [out, hNext, p1, p2, n_pts, ind_last] = get_arc_from_a2b(hLine, hNext, 
 	ind_last = k;
 
 % -----------------------------------------------------------------------------------------------------------------
+function hLine0 = find_ridge(hLine)
+% Find the ridge (isochron 0) of the plate on which this hLine lies
+
+	hLine0 = [];
+	lineInfo = getappdata(hLine,'LineInfo');
+	[t, r] = strtok(lineInfo);
+	ind = strfind(r, 'FIN"');
+	plates = ddewhite(r(1:ind-1));		% The plate pair
+	hAllIsocs = findobj(get(hLine,'Parent'),'Tag', get(hLine,'Tag'));
+	for (i = 1:numel(hAllIsocs))
+		this_lineInfo = getappdata(hAllIsocs(i),'LineInfo');
+		[this_isoc, r] = strtok(this_lineInfo);
+		if (strcmp(this_isoc, '0'))
+			ind = strfind(r, 'FIN"');
+			this_plates = ddewhite(r(1:ind-1));		% The plate pair
+			if (strcmp(plates, this_plates))		% FOUND it
+				hLine0 = hAllIsocs(i);
+				break
+			end
+		end
+	end
+
+% -----------------------------------------------------------------------------------------------------------------
 function [hNext, CA, CB] = find_closest_old(hLine)
 % Find the closest older isochron to HLINE and return it in HNEXT or empty if not found
 % CA & CB are strings with the names of both isochrons
@@ -260,7 +371,7 @@ function [hNext, CA, CB] = find_closest_old(hLine)
 	CA = this_isoc;								% A copy as a string for eventual use in Best-Fit info data
 	this_isoc = get_isoc_numeric(this_isoc);	% Convert the isoc name into a numeric form
 
-	hAllIsocs = findobj('Tag', get(gco,'Tag'));
+	hAllIsocs = findobj(get(hLine,'Parent'),'Tag', get(hLine,'Tag'));
 	closest_so_far = 5000;			% Just a pretend-to-be oldest anomaly (must be > 1000 + oldest M)
 	ind_closest = [];
 	for (i = 1:numel(hAllIsocs))	% Loop to find the closest and older to currently active isoc
@@ -315,7 +426,7 @@ function [hNext, pole, lineInfo, p, p_closest, CA, CB] = compute_pole2neighbor_B
 		return
 	end
 
-	hAllIsocs = findobj('Tag', get(gco,'Tag'));
+	hAllIsocs = findobj(get(hLine,'Parent'),'Tag', get(hLine,'Tag'));
 	closest_so_far = 5000;			% Just a pretend-to-be oldest anomaly (must be > 1000 + oldest M)
 	ind_closest = [];
 	for (i = 1:numel(hAllIsocs))	% Loop to find the closest and older to currently active isoc
@@ -564,8 +675,6 @@ function stage = get_stg_pole(stg, lineInfo)
 function [plon,plat,ang] = get_last_pole(lineInfo)
 % Get the finite pole parameters from the pseudo stage pole stored in STGXX
 % By getting the last STG in lineInfo we are getting the most updated.
-
-	plon = [];		plat = [];		ang = [];
 
 	indS = strfind(lineInfo, 'STG');
 	if (isempty(indS) || ((numel(indS) == 1) && (lineInfo(indS+3) == ' ')) )
