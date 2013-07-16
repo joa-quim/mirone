@@ -28,20 +28,21 @@ function varargout = pole2neighbor(obj, evt, hLine, mode, opt)
 	elseif (strcmpi(mode, 'anglefit'))
 		if (nargin == 4)				% Make one full round on all poles in same plate of the seed
 			nNewPoles = 0;
+			hLine0 = find_ridge(hLine);
+			hNext = hLine0;
 			while (~isempty(hNext))
 				[hNext, is_pole_new] = compute_pole2neighbor_newStage(hNext);
 				nNewPoles = nNewPoles + is_pole_new;
 			end
-			secondLineInfo = getappdata(hLine,'secondLineInfo');	% Only Ridge line may have this set
+			secondLineInfo = getappdata(hLine0,'secondLineInfo');	% Only Ridge line may have this set
 			if (~isempty(secondLineInfo))
-				lineInfo = getappdata(hLine,'LineInfo');
-				setappdata(hLine,'LineInfo', secondLineInfo)
-				hNext = hLine;
+				swap_lineInfo(hLine0)
+				hNext = hLine0;
 				while (~isempty(hNext))	% Make another full round on the conjugate plate
 					[hNext, is_pole_new] = compute_pole2neighbor_newStage(hNext);
 					nNewPoles = nNewPoles + is_pole_new;
 				end
-				setappdata(hLine,'LineInfo', lineInfo)		% Reset the original
+				swap_lineInfo(hLine0)	% Reset the original
 			end
 			fprintf('Computed %d new poles', nNewPoles)
 		else							% Compute the pole of the seed isoc only, iterating OPT times or not improving
@@ -92,30 +93,33 @@ function [hNext, is_pole_new] = compute_pole2neighbor_newStage(hLine)
 % Compute a new pole between isochrons (hLine) and its next older neighbor
 % by brute-forcing only the angle and accepting the lon,lat.
 
-	is_pole_new = false;
+	is_pole_new = false;	is_ridge = false;
+	opt_D = '-D0/0/2';
+	opt_I = '-I1/1/201';
 	[hNext, CA, CB] = find_closest_old(hLine);
 	if (isempty(hNext)),	return,		end
-	if (CA == '0')
+	if (strcmp(CA, '0') && ~isappdata(hLine, 'secondLineInfo'))	% Do this only once
 		lineInfo = getappdata(hLine, 'LineInfo');
+		p = parse_finite_pole(lineInfo);
+		pole = [p.lon p.lat 1.82 0 p.ang];		% For C0 we cannot compute a stage ... but we can set it
+		is_ridge = true;
+	else
+		pole = get_true_stg (hLine, hNext);		% Get from header or compute (and insert in header) the true half-stage pole
+	end
+	xA = get(hLine, 'XData');	yA = get(hLine, 'YData');
+	xB = get(hNext, 'XData');	yB = get(hNext, 'YData');
+	new_pole = compute_euler([xA(:) yA(:)], [xB(:) yB(:)], pole(1,1), pole(1,2), pole(1,5), opt_D, opt_I);
+	% new_pole = [pLon, pLat, pAng, resid]
+	[lineInfo, is_pole_new] = set_stg_info('stagefit', hLine, [], new_pole(1), new_pole(2), new_pole(3), ...
+                                           pole(1,4), pole(1,3), CA, CB, new_pole(4));
+	if (is_ridge)		% Now that we have the STG3 pole we can set the secondLineInfo
 		ind = strfind(lineInfo,'FIN"');
-		[t, r] = strtok(lineInfo(1:ind-1));	% t is age
+		[t, r] = strtok(lineInfo(1:ind-1));		% t is age
 		r = ddewhite(r);
 		ind2 = strfind(r, '/');
 		new_lineInfo = ['0 ' r(ind2+1:end) '/' r(1:ind2-1) lineInfo(ind-1:end)];
 		setappdata(hLine, 'secondLineInfo', new_lineInfo)
-		p = parse_finite_pole(lineInfo);
-		pole = [p.lon p.lat 1.82 0 p.ang];		% For C0 we cannot compute a stage ... but we can set it
-	else
-		pole = get_true_stg (hLine, hNext);		% Get from header or compute (and insert in header) the true half-stage pole
 	end
-	opt_D = '-D0/0/2';
-	opt_I = '-I1/1/201';
-	xA = get(hLine, 'XData');	yA = get(hLine, 'YData');
-	xB = get(hNext, 'XData');	yB = get(hNext, 'YData');
-	new_pole = compute_euler([xA(:) yA(:)], [xB(:) yB(:)], pole(1,1), pole(1,2), pole(1,5), opt_D, opt_I);
-	% new_pole is [pLon, pLat, pAng, resid]
-	[lineInfo, is_pole_new] = set_stg_info('stagefit', hLine, [], new_pole(1), new_pole(2), new_pole(3), ...
-                                           pole(1,4), pole(1,3), CA, CB, new_pole(4));
 
 % -----------------------------------------------------------------------------------------------------------------
 function [hNext, is_pole_new] = compute_pole2neighbor_BruteForce(hLine)
@@ -181,12 +185,7 @@ function [x_min x_max y_min y_max, hLine0] = get_BB(hLine)
 	end
 
 	% Now run the same for the conjugate plate
-	lineInfo = getappdata(hLine0, 'LineInfo');
-	secondLineInfo = getappdata(hLine0, 'secondLineInfo');
-	if (isempty(secondLineInfo))					% See if we have poles info to run on conjugate plate
-		pole2neighbor([], [], hLine0, 'anglefit');	% This will set 'secondLineInfo'
-	end
-	setappdata(hLine0,'LineInfo', secondLineInfo)
+	swap_lineInfo(hLine0)
 	hNext = hLine0;
 	while (~isempty(hNext))
 		x = get(hNext, 'XData');	y = get(hNext, 'YData');
@@ -194,7 +193,20 @@ function [x_min x_max y_min y_max, hLine0] = get_BB(hLine)
 		y_min = min(y_min, min(y(1),y(end)));	y_max = max(y_max, max(y(1),y(end)));
 		hNext = find_closest_old(hNext);
 	end
-	setappdata(hLine0,'LineInfo', lineInfo)			% Reset
+	swap_lineInfo(hLine0)							% Reset
+
+% -----------------------------------------------------------------------------------------------------------------
+function swap_lineInfo(hLine)
+% Swap the two appdatas with poles info respecting the ridge hLine
+
+	lineInfo = getappdata(hLine, 'LineInfo');
+	secondLineInfo = getappdata(hLine, 'secondLineInfo');
+	if (isempty(secondLineInfo))					% See if we have poles info to run on conjugate plate
+		pole2neighbor([], [], hLine0, 'anglefit');	% This will set 'secondLineInfo'
+		secondLineInfo = getappdata(hLine, 'secondLineInfo');
+	end
+	setappdata(hLine, 'LineInfo', secondLineInfo)
+	setappdata(hLine, 'secondLineInfo', lineInfo)
 
 % -----------------------------------------------------------------------------------------------------------------
 function fill_age_grid(hLine)
@@ -210,7 +222,6 @@ function fill_age_grid(hLine)
 	grd = zeros(n_rows,n_cols)*NaN;
 
 	hNext = hLine;
-	lineInfo = getappdata(hLine, 'LineInfo');
 	first_plate = true;
 	%profile on
 	aguentabar(0,'title','Filling age cells')
@@ -231,8 +242,7 @@ function fill_age_grid(hLine)
 
 		[out, hNext, p1, p2, n_pts, ind_last, x2, y2] = get_arc_from_a2b(hNext, x, y);
 		if (isempty(hNext) && first_plate)		% Done with first plate. Go for its conjugate
-			secondLineInfo = getappdata(hLine, 'secondLineInfo');
-			setappdata(hLine, 'LineInfo', secondLineInfo);
+			swap_lineInfo(hLine)
 			hNext = hLine;
 			first_plate = false;
 			continue
@@ -256,7 +266,7 @@ function fill_age_grid(hLine)
 		end
 		aguentabar(max_age_so_far / 160)		% Crude estimation of advancing
 	end
-	setappdata(hLine, 'LineInfo', lineInfo);	% Reset
+	swap_lineInfo(hLine)						% Reset
 	aguentabar(1)
 
 	%profile viewer
@@ -345,7 +355,8 @@ function hLine0 = find_ridge(hLine)
 		if (strcmp(this_isoc, '0'))
 			ind = strfind(r, 'FIN"');
 			this_plates = ddewhite(r(1:ind-1));		% The plate pair
-			if (strcmp(plates, this_plates))		% FOUND it
+			%if (strcmp(plates, this_plates))		% FOUND it
+			if ( isequal(sort(double(this_plates)), sort(double(plates))) )
 				hLine0 = hAllIsocs(i);
 				break
 			end
