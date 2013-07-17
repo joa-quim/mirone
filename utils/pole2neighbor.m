@@ -173,7 +173,7 @@ function out = get_all_stgs(hLine)
 	out(n-1:end,:) = [];		% These were allocated in excess
 
 % -----------------------------------------------------------------------------------------------------------------
-function [x_min x_max y_min y_max, hLine0] = get_BB(hLine)
+function [x_min, x_max, y_min, y_max, hLine0] = get_BB(hLine)
 % Find the BoundingBox of all isocrons on the plate pair where hLine belongs
 
 	hLine0 = find_ridge(hLine);					% Find the ridge of the hLine's plate pair
@@ -208,7 +208,7 @@ function swap_lineInfo(hLine)
 	lineInfo = getappdata(hLine, 'LineInfo');
 	secondLineInfo = getappdata(hLine, 'secondLineInfo');
 	if (isempty(secondLineInfo))					% See if we have poles info to run on conjugate plate
-		pole2neighbor([], [], hLine0, 'anglefit');	% This will set 'secondLineInfo'
+		pole2neighbor([], [], hLine, 'anglefit');	% This will set 'secondLineInfo'
 		secondLineInfo = getappdata(hLine, 'secondLineInfo');
 	end
 	setappdata(hLine, 'LineInfo', secondLineInfo)
