@@ -385,7 +385,7 @@ function cumpute_interp(handles)
 		id = id(end);                   % We can only have one value and it's the last one that counts
 		if (~isempty(id))
 			%t0 = poles(id,4);        t1 = poles(id+1,4);
-			stg = finite2stages([poles(id,:); poles(id+1,:)], 1, 0);    % Compute the stage pole between t0 & t1
+			stg = finite2stages([poles(id,:); poles(id+1,:)], -1, 0);    % Compute the stage pole between t0 & t1
 			frac = (poles(id+1,4) - ages(i)) / (poles(id+1,4) - poles(id,4));
 			[pol(i,1), pol(i,2), pol(i,3)] = add_poles(poles(id+1,1),poles(id+1,2),poles(id+1,3),stg(1,1),stg(1,2), frac*stg(1,5));
 			pol(i,4) = ages(i);                 % Give it its age
@@ -484,24 +484,24 @@ function check_singleRotation_CB(hObject, handles)
 % --------------------------------------------------------------------
 function push_polesList_CB(hObject, handles)
 % Create a poles list from the 'lista_poles' file plus eventual poles info stored
-% at the headers of Isochrons as loded from the 'isochrons.dat' file
+% at the headers of Isochrons as loaded from the 'isochrons.dat' file
 
 	str = [];
 	if ( (numel(handles.h_line_orig) == 1) && strcmpi(get(handles.h_line_orig,'Tag'), 'Isochron') )
 		stgs = pole2neighbor([], [], handles.h_line_orig, 'stginfo', 'FIN');
-		if (~isnan(stgs(1)))
+		if (~isempty(stgs) && ~isnan(stgs(1)))
 			str{1,1} = sprintf('%.2f  %.2f  %.3f  %.2f  !FINITE - From Isoc header', stgs(1), stgs(2), stgs(5), stgs(4));
 		end
 		stgs = pole2neighbor([], [], handles.h_line_orig, 'stginfo', 'STG0');
-		if (~isnan(stgs(1)))
+		if (~isempty(stgs) && ~isnan(stgs(1)))
 			str{end+1,1} = sprintf('%.2f  %.2f  %.3f  %.2f  !STG0 - True half stage pole', stgs(1), stgs(2), stgs(5), stgs(4));
 		end
 		stgs = pole2neighbor([], [], handles.h_line_orig, 'stginfo', 'STG2');
-		if (~isnan(stgs(1)))
+		if (~isempty(stgs) && ~isnan(stgs(1)))
 			str{end+1,1} = sprintf('%.2f  %.2f  %.3f  %.2f  !STG2 - Best-fit stage pole', stgs(1), stgs(2), stgs(5), stgs(4));
 		end
 		stgs = pole2neighbor([], [], handles.h_line_orig, 'stginfo', 'STG3');
-		if (~isnan(stgs(1)))
+		if (~isempty(stgs) && ~isnan(stgs(1)))
 			str{end+1,1} = sprintf('%.2f  %.2f  %.3f  %.2f  !STG3 - Angle best-fit stage pole', stgs(1), stgs(2), stgs(5), stgs(4));
 		end
 	end
@@ -783,37 +783,37 @@ function stages = finite2stages(lon, lat, omega, t_start, half, side)
 % Translated from C code of libspotter (Paul Wessel - GMT)
 % Joaquim Luis 21-4-2005
 
-n_args = nargin;
-if (~(n_args == 1 || n_args == 3 || n_args == 6))
-	error('Wrong number of arguments')
-elseif (n_args == 1 || n_args == 3)
-    if (n_args == 3),       half = lat;     side = omega;
-    else                    half = 2;       side = 1;    % Default to half angles & North hemisphere poles
-    end
-    t_start = lon(:,4);     omega = lon(:,3);
-    lat = lon(:,2);         lon = lon(:,1);
-end
+	n_args = nargin;
+	if (~(n_args == 1 || n_args == 3 || n_args == 6))
+		error('Wrong number of arguments')
+	elseif (n_args == 1 || n_args == 3)
+		if (n_args == 3),       half = lat;     side = omega;
+		else                    half = 2;       side = 1;    % Default to half angles & North hemisphere poles
+		end
+		t_start = lon(:,4);     omega = lon(:,3);
+		lat = lon(:,2);         lon = lon(:,1);
+	end
 
-t_old = 0;
-R_young = eye(3);
-elon = zeros(1,length(lon));    elat = elon;    ew = elon;  t_stop = elon;
-for i = 1:length(lon)
-	R_old = make_rot_matrix (lon(i), lat(i), omega(i)/ abs(half));     % Get rotation matrix from pole and angle
-    if (half > 0)                                           % the stages come in the reference b_STAGE_a
-        R_stage = R_old * R_young;                          % This is R_stage = R_old * R_young^t
-        R_stage = R_stage';
-    else                                                    % the stages come in the reference a_STAGE_b
-        R_stage = R_young * R_old;                          % This is R_stage = R_young^t * R_old
-    end
-	[elon(i), elat(i), ew(i)] = matrix_to_pole(R_stage,side); % Get rotation parameters from matrix
-	if (elon(i) > 180), elon(i) = elon(i) - 360;     end    % Adjust lon
-    R_young = R_old';                                       % Sets R_young = transpose (R_old) for next round
-	t_stop(i) = t_old;
-	t_old = t_start(i);
-end
+	t_old = 0;
+	R_young = eye(3);
+	elon = zeros(1,length(lon));    elat = elon;    ew = elon;  t_stop = elon;
+	for i = 1:length(lon)
+		R_old = make_rot_matrix (lon(i), lat(i), omega(i));     % Get rotation matrix from pole and angle
+		if (half > 0)                                           % the stages come in the reference a_STAGE_b
+			R_stage = R_young * R_old;                          % This is R_stage = R_young^t * R_old
+		else                                                    % the stages come in the reference b_STAGE_a
+			R_stage = R_old * R_young;                          % This is R_stage = R_old * R_young^t
+			R_stage = R_stage';
+		end
+		[elon(i), elat(i), ew(i)] = matrix_to_pole(R_stage,side); % Get rotation parameters from matrix
+		if (elon(i) > 180), elon(i) = elon(i) - 360;     end    % Adjust lon
+		R_young = R_old';                                       % Sets R_young = transpose (R_old) for next round
+		t_stop(i) = t_old;
+		t_old = t_start(i);
+	end
 
-% Flip order since stages go from oldest to youngest
-stages = flipud([elon(:) elat(:) t_start(:) t_stop(:) ew(:)]);
+	% Flip order since stages go from oldest to youngest
+	stages = flipud([elon(:) elat(:) t_start(:) t_stop(:) ew(:) / abs(half)]);
 
 % --------------------------------------------------------
 function R = make_rot_matrix (lonp, latp, w)
