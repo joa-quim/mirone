@@ -197,10 +197,11 @@ uitoggletool('parent',h_toolbar,'cdata',dois_ico,'Tag','HalfAngle','Click',{@tog
 	'Tooltip','Compute half angle stage poles','State','on');
 uitoggletool('parent',h_toolbar,'cdata',um_ico,'Tag','FullAngle','Click',{@toggle_clicked_CB1,h_toolbar},...
 	'Tooltip','Compute full angle stage poles');
-uitoggletool('parent',h_toolbar,'cdata',refrescaBA_ico,'Tag','directStages','Click',{@toggle_clicked_CB2,h_toolbar},...
-	'Tooltip','b_ROT_a (rotations are with respect to the fixed plate B)','State','on','Sep','on');
-uitoggletool('parent',h_toolbar,'cdata',refrescaAB_ico,'Tag','inverseStages','Click',{@toggle_clicked_CB2,h_toolbar},...
-	'Tooltip','a_ROT_b (rotations are with respect to the fixed plate A)');
+uitoggletool('parent',h_toolbar,'cdata',refrescaBA_ico,'Tag','inverseStages','Click',{@toggle_clicked_CB2,h_toolbar},...
+	'Tooltip','Rotations are with respect to the fixed plate A (A moves with respect to B)','Sep','on');
+uitoggletool('parent',h_toolbar,'cdata',refrescaAB_ico,'Tag','directStages','Click',{@toggle_clicked_CB2,h_toolbar},...
+	'Tooltip',sprintf('Rotations are with respect to the fixed plate B.\nThe plate A is where the points (isochrons) lies'), ...
+	'State','on');
 uitoggletool('parent',h_toolbar,'cdata',mais_ico,'Tag','positive','Click',{@toggle_clicked_CB3,h_toolbar},...
 	'Tooltip','Reports positive rotation angles','State','on','Sep','on');
 uitoggletool('parent',h_toolbar,'cdata',earthNorth_ico,'Tag','earthNorth','Click',{@toggle_clicked_CB3,h_toolbar},...
@@ -357,8 +358,8 @@ function toggle_clicked_CB1(obj, eventdata, h_toolbar)
 function toggle_clicked_CB2(obj, eventdata, h_toolbar)
 % Make sure that when one of the two uitoggletools is 'on' the other is 'off'
 % First fish the two uitoggletool handles
-	h1 = findobj(h_toolbar,'Tag','directStages');
-	h2 = findobj(h_toolbar,'Tag','inverseStages');
+	h1 = findobj(h_toolbar,'Tag','inverseStages');
+	h2 = findobj(h_toolbar,'Tag','directStages');
 	% Now, find out which one of the above is the 'obj' (its one of them)
 	if (h1 == obj)      h_that = h2;
 	else                h_that = h1;
@@ -658,7 +659,7 @@ function doLeft(varargin)
 	set(rightbox,'String',ad.tostring,'Value',[]);
 
 % ---------------------------------------------------------------------------------------
-function stages = finite2stages(lon, lat, omega, t_start, half, side)
+function stages = finite2stages__(lon, lat, omega, t_start, half, side)
 % Convert finite rotations to backwards stage rotations for backtracking
 % LON, LAT, OMEGA & T_START are the finite rotation Euler pole parameters and age of pole
 % Alternatively LON may be a Mx4 matrix with columns LON, LAT, OMEGA & T_START
@@ -679,37 +680,37 @@ function stages = finite2stages(lon, lat, omega, t_start, half, side)
 % Translated from C code of libspotter (Paul Wessel - GMT)
 % Joaquim Luis 21-4-2005
 
-n_args = nargin;
-if (~(n_args == 1 || n_args == 3 || n_args == 6))
-    error('Wrong number of arguments')
-elseif (n_args == 1 || n_args == 3)
-    if (n_args == 3),       half = lat;     side = omega;
-    else                    half = 2;       side = 1;    % Default to half angles & North hemisphere poles
-    end
-    t_start = lon(:,4);     omega = lon(:,3);
-    lat = lon(:,2);         lon = lon(:,1);
-end
+	n_args = nargin;
+	if (~(n_args == 1 || n_args == 3 || n_args == 6))
+		error('Wrong number of arguments')
+	elseif (n_args == 1 || n_args == 3)
+		if (n_args == 3),       half = lat;     side = omega;
+		else                    half = 2;       side = 1;    % Default to half angles & North hemisphere poles
+		end
+		t_start = lon(:,4);     omega = lon(:,3);
+		lat = lon(:,2);         lon = lon(:,1);
+	end
 
-t_old = 0;
-R_young = eye(3);
-elon = zeros(1,length(lon));    elat = elon;    ew = elon;  t_stop = elon;
-for i = 1:length(lon)
-	R_old = make_rot_matrix (lon(i), lat(i), omega(i)/ abs(half));     % Get rotation matrix from pole and angle
-    if (half > 0)											% the stages come in the reference b_STAGE_a
-        R_stage = R_old * R_young;							% This is R_stage = R_old * R_young^t
-        R_stage = R_stage';
-	else													% the stages come in the reference a_STAGE_b
-        R_stage = R_young * R_old;							% This is R_stage = R_young^t * R_old
-    end
-	[elon(i) elat(i) ew(i)] = matrix_to_pole(R_stage,side);	% Get rotation parameters from matrix
-	if (elon(i) > 180), elon(i) = elon(i) - 360;     end	% Adjust lon
-    R_young = R_old';										% Sets R_young = transpose (R_old) for next round
-	t_stop(i) = t_old;
-	t_old = t_start(i);
-end
+	t_old = 0;
+	R_young = eye(3);
+	elon = zeros(1,length(lon));    elat = elon;    ew = elon;  t_stop = elon;
+	for i = 1:length(lon)
+		R_old = make_rot_matrix (lon(i), lat(i), omega(i));     % Get rotation matrix from pole and angle
+		if (half > 0)                                           % the stages come in the reference a_STAGE_b
+			R_stage = R_young * R_old;                          % This is R_stage = R_young^t * R_old
+		else                                                    % the stages come in the reference b_STAGE_a
+			R_stage = R_old * R_young;                          % This is R_stage = R_old * R_young^t
+			R_stage = R_stage';
+		end
+		[elon(i) elat(i) ew(i)] = matrix_to_pole(R_stage,side);	% Get rotation parameters from matrix
+		if (elon(i) > 180), elon(i) = elon(i) - 360;     end	% Adjust lon
+		R_young = R_old';										% Sets R_young = transpose (R_old) for next round
+		t_stop(i) = t_old;
+		t_old = t_start(i);
+	end
 
-% Flip order since stages go from oldest to youngest
-stages = flipud([elon(:) elat(:) t_start(:) t_stop(:) ew(:)]);
+	% Flip order since stages go from oldest to youngest
+	stages = flipud([elon(:) elat(:) t_start(:) t_stop(:) ew(:) / abs(half)]);
 
 % --------------------------------------------------------
 function R = make_rot_matrix (lonp, latp, w)
