@@ -42,7 +42,7 @@ function stages = finite2stages(lon, lat, omega, t_start, half, side)
 		error('Wrong number of arguments')
 	elseif (n_args == 1 || n_args == 3)
 		if (n_args == 3),       half = lat;     side = omega;
-		else                    half = 2;       side = 1;    % Default to half angles & North hemisphere poles
+		else                    half = 2;       side = 1;		% Default to half angles & North hemisphere poles
 		end
 		t_start = lon(:,4);     omega = lon(:,3);
 		lat = lon(:,2);         lon = lon(:,1);
@@ -52,12 +52,12 @@ function stages = finite2stages(lon, lat, omega, t_start, half, side)
 	R_young = eye(3);
 	elon = zeros(1,length(lon));    elat = elon;    ew = elon;  t_stop = elon;
 	for i = 1:length(lon)
-		R_old = make_rot_matrix (lon(i), lat(i), omega(i)/ abs(half));     % Get rotation matrix from pole and angle
-		if (half > 0)                                           % the stages come in the reference b_STAGE_a
+		R_old = make_rot_matrix (lon(i), lat(i), omega(i));     % Get rotation matrix from pole and angle
+		if (half > 0)                                           % the stages come in the reference a_STAGE_b
+			R_stage = R_young * R_old;                          % This is R_stage = R_young^t * R_old
+		else                                                    % the stages come in the reference b_STAGE_a
 			R_stage = R_old * R_young;                          % This is R_stage = R_old * R_young^t
 			R_stage = R_stage';
-		else                                                    % the stages come in the reference a_STAGE_b
-			R_stage = R_young * R_old;                          % This is R_stage = R_young^t * R_old
 		end
 		[elon(i), elat(i), ew(i)] = matrix_to_pole(R_stage,side); % Get rotation parameters from matrix
 		if (elon(i) > 180), elon(i) = elon(i) - 360;     end    % Adjust lon
@@ -67,7 +67,7 @@ function stages = finite2stages(lon, lat, omega, t_start, half, side)
 	end
 
 	% Flip order since stages go from oldest to youngest
-	stages = flipud([elon(:) elat(:) t_start(:) t_stop(:) ew(:)]);
+	stages = flipud([elon(:) elat(:) t_start(:) t_stop(:) ew(:) / abs(half)]);
 
 % --------------------------------------------------------
 function R = make_rot_matrix (lonp, latp, w)
@@ -103,8 +103,7 @@ function R = make_rot_matrix (lonp, latp, w)
 
 % --------------------------------------------------------
 function [plon,plat,w] = matrix_to_pole (T,side)
-	D2R = pi / 180;
-	R2D = 1 / D2R;
+	R2D = 180 / pi;
 	T13_m_T31 = T(1,3) - T(3,1);
 	T32_m_T23 = T(3,2) - T(2,3);
 	T21_m_T12 = T(2,1) - T(1,2);
