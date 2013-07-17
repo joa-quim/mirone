@@ -78,7 +78,11 @@ function varargout = pole2neighbor(obj, evt, hLine, mode, opt)
 			varargout{1} = get_stg_pole(opt, getappdata(hLine,'LineInfo'));
 		elseif (strncmp(opt, 'FIN', 3))
 			p = parse_finite_pole(getappdata(hLine,'LineInfo'));
-			varargout{1} = [p.lon p.lat p.age p.age p.ang NaN];	% Use the same output type as for the stage poles (+ residue)
+			if (isempty(p))
+				varargout{1} = [];
+			else
+				varargout{1} = [p.lon p.lat p.age p.age p.ang NaN];	% Use the same output type as for the stage poles (+ residue)
+			end
 		else
 			error('Wrong OPT argument in call to pole2neighbor')
 		end
@@ -99,9 +103,11 @@ function [hNext, is_pole_new] = compute_pole2neighbor_newStage(hLine)
 	[hNext, CA, CB] = find_closest_old(hLine);
 	if (isempty(hNext)),	return,		end
 	if (strcmp(CA, '0') && ~isappdata(hLine, 'secondLineInfo'))	% Do this only once
+		lineInfo = getappdata(hNext, 'LineInfo');
+		p2 = parse_finite_pole(lineInfo);
 		lineInfo = getappdata(hLine, 'LineInfo');
 		p = parse_finite_pole(lineInfo);
-		pole = [p.lon p.lat 1.82 0 p.ang];		% For C0 we cannot compute a stage ... but we can set it
+		pole = [p.lon p.lat p2.age 0 p.ang];		% For C0 we cannot compute a stage ... but we can set it
 		is_ridge = true;
 	else
 		pole = get_true_stg (hLine, hNext);		% Get from header or compute (and insert in header) the true half-stage pole
@@ -211,6 +217,7 @@ function swap_lineInfo(hLine)
 % -----------------------------------------------------------------------------------------------------------------
 function fill_age_grid(hLine)
 % ...
+
 % 	lon_min = -49;		lat_min = 12;
 % 	lon_max = -11;		lat_max = 40;
 	[lon_min, lon_max, lat_min, lat_max, hLine] = get_BB(hLine);	% The returned hLine is the Ridge
@@ -223,8 +230,7 @@ function fill_age_grid(hLine)
 
 	hNext = hLine;
 	first_plate = true;
-	%profile on
-	aguentabar(0,'title','Filling age cells')
+	aguentabar(0,'title','Filling age cells (First plate)')
 	while (~isempty(hNext))
 		current_seed_hand = hNext;
 
@@ -237,14 +243,15 @@ function fill_age_grid(hLine)
 		if (any(ind))
 			r(ind) = [];	x(ind) = [];	y(ind) = [];
 		end
-		x = interp1(r, x, [r(1):r(end) r(end)]);
-		y = interp1(r, y, [r(1):r(end) r(end)]);
+		x = interp1(r, x, [r(1):2:r(end) r(end)]);
+		y = interp1(r, y, [r(1):2:r(end) r(end)]);
 
 		[out, hNext, p1, p2, n_pts, ind_last, x2, y2] = get_arc_from_a2b(hNext, x, y);
 		if (isempty(hNext) && first_plate)		% Done with first plate. Go for its conjugate
 			swap_lineInfo(hLine)
 			hNext = hLine;
 			first_plate = false;
+			aguentabar(0,'title','Filling age cells (Second Plate)')
 			continue
 		end
 		if (isempty(out)),	continue,	end
@@ -269,7 +276,6 @@ function fill_age_grid(hLine)
 	swap_lineInfo(hLine)						% Reset
 	aguentabar(1)
 
-	%profile viewer
 	G.z = grd;	G.n_columns = size(grd,2);	G.n_rows = size(grd,1);	G.range = [lon_min lon_max lat_min lat_max];
 	G.head = [G.range 0 165 0 x_inc y_inc];	G.ProjectionRefPROJ4 = '';
 	G.inc = [x_inc y_inc];		G.MinMax = [0 165];		G.registration = 0;
@@ -277,7 +283,7 @@ function fill_age_grid(hLine)
 
 % -----------------------------------------------------------------------------------------------------------------
 function [out, hNext, p1, p2, n_pts, ind_last, x2, y2] = get_arc_from_a2b(hLine, x, y, hNext, x2, y2, k, p1, p2)
-% Compute a arcuate path ...
+% Compute a arcuate path along a flow-line about the pole ...
 
 	out = [];	ind_last = 1;	n_pts = 1;
 
@@ -325,7 +331,7 @@ function [out, hNext, p1, p2, n_pts, ind_last, x2, y2] = get_arc_from_a2b(hLine,
 		ind = (latc > max(y2(1),y2(end)) + 2) | (latc < min(y2(1),y2(end)) - 2) | ...
 			(lonc > max(x2(1),x2(end)) + 5) | (lonc < min(x2(1),x2(end)) - 5);
 		lonc(ind) = [];		latc(ind) = [];
-		if (isempty(lonc)),	k = k + 1;	continue,	end
+		if (numel(lonc) < 2),	k = k + 1;	continue,	end
 		[xc2,yc2] = intersections(lonc,latc,x2,y2);
 		k = k + 1;
 	end
@@ -335,8 +341,19 @@ function [out, hNext, p1, p2, n_pts, ind_last, x2, y2] = get_arc_from_a2b(hLine,
 	daz = abs(az2-az1);
 	if (daz > 180),		daz = daz - 360;	end		% Unlucky cases
 	np = round(daz / (2/60) / sin(rad*D2R) * 2);
-	[latc,lonc] = circ_geo(p1.lat, p1.lon, rad, sort([az1 az2]), np);
-	out.lon = lonc;		out.lat = latc;		out.age = linspace(p2.age, p1.age, numel(lonc));
+	reverse_age_sense = false;
+	if (az1 > az2)
+		tmp = az1;		az1 = az2;	az2 = tmp;	reverse_age_sense = true;
+	end
+	[latc,lonc] = circ_geo(p1.lat, p1.lon, rad, [az1 az2], np);
+	out.lon = lonc;		out.lat = latc;
+
+	% Make sure the age 'runs' in the same sense as that of the flowline (varies depending on pole position)
+	if(reverse_age_sense)
+		out.age = linspace(p2.age, p1.age, numel(lonc));
+	else
+		out.age = linspace(p1.age, p2.age, numel(lonc));
+	end
 	ind_last = k;
 
 % -----------------------------------------------------------------------------------------------------------------
