@@ -5,7 +5,7 @@ function varargout = empilhador(varargin)
 %
 % NOTE: The gotFromMETA and getZ functions are callable directly by mirone
 
-%	Copyright (c) 2004-2012 by J. Luis
+%	Copyright (c) 2004-2013 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -26,18 +26,18 @@ function varargout = empilhador(varargin)
 		gui_CB = str2func(varargin{1});
 		[varargout{1:nargout}] = feval(gui_CB,varargin{2:end});
 	else
-		h = empilhador_OpeningFcn(varargin{:});
+		h = empilhador_OF(varargin{:});
 		if (nargout)    varargout{1} = h;   end
 	end
 
 % ---------------------------------------------------------------------------------
-function hObject = empilhador_OpeningFcn(varargin)
+function hObject = empilhador_OF(varargin)
 	hObject = figure('Vis','off');
 	empilhador_LayoutFcn(hObject);
 	handles = guihandles(hObject);
 	move2side(hObject,'right')
 
-	if (numel(varargin) > 0)
+	if (~isempty(varargin) && isa(varargin{1},'struct'))
 		handMir = varargin{1};
 		handles.home_dir = handMir.home_dir;
 		handles.last_dir = handMir.last_dir;
@@ -46,9 +46,16 @@ function hObject = empilhador_OpeningFcn(varargin)
         handles.path_tmp = handMir.path_tmp;
 		handles.path_data = handMir.path_data;
 	else
-		handles.home_dir = cd;
-		handles.last_dir = handles.home_dir;
-		handles.work_dir = handles.home_dir;
+		mir_dirs = getappdata(0,'MIRONE_DIRS');
+		if (~isempty(mir_dirs))
+			handles.home_dir = mir_dirs.home_dir;		% Start in values
+			handles.work_dir = mir_dirs.work_dir;
+			handles.last_dir = mir_dirs.last_dir;
+		else		
+			handles.home_dir = cd;
+			handles.last_dir = handles.home_dir;
+			handles.work_dir = handles.home_dir;
+		end
 		handles.IamCompiled = false;
         handles.path_tmp = [pwd filesep 'tmp' filesep];
 		handles.path_data = [pwd filesep 'data' filesep];
@@ -57,6 +64,7 @@ function hObject = empilhador_OpeningFcn(varargin)
 	handles.OneByOneNameList = [];	% For when files are loaded one by one (risky)
 	handles.OneByOneFirst = true;	% Safety valve to deal with the load one by one case
 	handles.testedDS = false;		% To test if a Sub-Dataset request is idiot
+	handles.automatic = false;		% Set when called from command line and create a Fig
 	handles.Interactive = false;	% Used when need to reinterpolate L2 files. FALSE means do not
 									% call the helper window that asks questions (use default ans)
 
@@ -71,10 +79,16 @@ function hObject = empilhador_OpeningFcn(varargin)
 	set(hObject,'Visible','on');
 	guidata(hObject, handles);
 
+	% When calling empilhador by command line (that is, in a non-interactive way) but one that creates a Fig
+	if (~isempty(varargin) && ischar(varargin{1}))
+		handles.automatic = true;
+		push_namesList_CB(handles.push_namesList, handles, varargin{:})
+	end
+
 % -----------------------------------------------------------------------------------------
 function edit_namesList_CB(hObject, handles)
     fname = get(hObject,'String');
-    push_namesList_CB([], handles, fname)
+    push_namesList_CB(handles.push_namesList, handles, fname)
 
 % -----------------------------------------------------------------------------------------
 function push_namesList_CB(hObject, handles, opt)
@@ -84,9 +98,10 @@ function push_namesList_CB(hObject, handles, opt)
 %		case that name will be asked here.
 %		Alternatively it can contain a wildcard string that will be expanded to create the
 %		filename automatically in the same dir of the data. The contents of the wildcard should
-%		follow what is explained below, but two possible examples are provided right now (no quotes)
+%		follow what is explained below, but three possible examples are provided right now (no quotes)
 %		'C:\a1\*.L2_LAC_SST4 ? -sst4'
 %		'C:\a1\*.hdf * -qual'
+%		'C:\a1\pathfinder\2010\201*.nc ? sds1'
 %
 % First column holds the filename that can be absolute, relative or have no path info.
 %		If only one column in file the "Time" info below is computed as (1:number_of_files)
@@ -94,13 +109,36 @@ function push_namesList_CB(hObject, handles, opt)
 % Second column is normally the "Time" info. That is, a number that will be used as the 'time'
 %		in the 3D netCDF file. In case of L2 scene products one can use '?' to instruct the
 %		program to get the time from the HDF file name, which is assume to be YYYYDDDHHMMSS....
+%		The '?' mechanism has been extended to the GHRSST PATHFINDER 5.2 netCDF files that have
+%		names of the form YYYYMMDDHHMMSS-...
 %
 % Third column is used when the HDF file has many sub-datasets and we want to select one in
 %		particular. In that case use the (clumsy) construct: 'sdsN' as in sds3 where 'sds' is
-%		fix and N is the number of the subdataset as it appears when one do gdalinfo or in the
+%		fix and N is the number of the sub-dataset as it appears when one do gdalinfo or in the
 %		table window that pops up when one attempts to open the HDF file directly in Mirone.
 %		NEWs: It is now possible to provide the SDS name instead of the 'sdsN' described above.
-%		But to distinguish both mechanisms the SDS name must be prepended with a '-', as in -sst4
+%		But to distinguish both mechanisms the SDS name must be pre-pended with a '-', as in -sst4
+%
+% The list file may still have one header line (a line that starts with a '#') with any of these:
+%	-F<flagSDS_minQuality>
+%		Which is a composition of two pieces of information. The first, 'flagSDS' is the
+%		sub-dataset name of a quality flags array to be applied to the main dataset.
+%		Currently this option applies only to PATHFINDER 5.2 netCDF files.
+%	-R<region>
+%		A GMT style region selector: e.g. -R-20/-5/33/45
+%		Using this option is equivalent to fill in the "Use sub-region" boxes
+%	-G<output>
+%		Give the output file name. If no path is provided the output is written in the same
+%		directory as the data files
+%
+% The above options may be combined in a single command that can be executed from the command line.
+%	Example:
+%	empilhador('empilhador_OF','C:\a1\pathfinder\2010\201*.nc ? sds1 -R-15/-5/35/45 -Fquality_level_4 -Glixo.nc');
+%
+% Note that for this case to work we had to call it through the opening function, 'empilhador_OF',
+% because we need to create one Figure and use the handles structure.
+% When -G is used as above, the program executes automatically till the end and deletes the Fig
+
 
     if (nargin == 2)		% Direct call
     	str1 = {'*.dat;*.DAT;*.txt;*.TXT', 'Data files (*.dat,*.DAT,*.txt,*.TXT)';'*.*', 'All Files (*.*)'};
@@ -114,7 +152,7 @@ function push_namesList_CB(hObject, handles, opt)
     end
 	fname = [PathName FileName];
 
-    [bin,n_column] = guess_file(fname);
+    [bin, n_column] = guess_file(fname);
 
     if isempty(bin)					% If error in reading file
 		errordlg(['Error reading file ' fname],'Error'),	return
@@ -139,10 +177,14 @@ function push_namesList_CB(hObject, handles, opt)
 	handles.strTimes = cell(m,1);		% To hold time steps as strings
 	SDSinfo = cell(m,1);				% To hold Sub Datasets info
 	handles.SDSinfo = [];				% If above exists, it will be copied here
+	handles.SDSflag = [];				% For when we want to apply also a quality flag (GHRSST .nc)
+	handles.outname = [];				% For when -G<outname> is used in the header
 	c = false(m,1);
 	caracol = false(m,1);				% Case name list has '@' to pause for a CD change
 
-	n_msg = 1;							% Will hold the "change DV messages" counter
+	handles = parse_header(handles, names);		% Check if we have a header line with further instructions
+
+	n_msg = 1;							% Will hold the "change CD messages" counter
 	if (n_column > 1)					% When 2nd column holds the 3D numbering
 		for (k = 1:m)
 			[t,r] = strtok(names{k});
@@ -168,7 +210,7 @@ function push_namesList_CB(hObject, handles, opt)
 				t = ddewhite(t);
 				if (t(1) == '?')		% Means get the numeric label as time extracted from file name (OceanColor products)
 					t = squeeze_time_from_name(names{k});
-				elseif (r(1) == '*')	% 
+				elseif (t(1) == '*')	% 
 					t = sprintf('%d', k);
 				end
 				handles.strTimes{k} = t;
@@ -242,6 +284,57 @@ function push_namesList_CB(hObject, handles, opt)
 	set(handles.listbox_list,'String',handles.shortNameList)
 	guidata(handles.figure1,handles)
 
+	if (~isempty(handles.outname) && handles.automatic)	% Automatic + output name means start the job immediately
+		push_compute_CB(handles.push_compute, handles)
+		delete(handles.figure1)
+	end
+
+% -----------------------------------------------------------------------------------------
+function handles = parse_header(handles, names)
+% Check if we have a header line with any of -F<flags>, -R<region> or -G<output>
+
+	if (names{1}(1) ~= '#')			% No header
+		return
+	end
+
+	ind = strfind(names{1}, '-F');	% Do we have a Flag request?
+	if (~isempty(ind))
+		t = strtok(names{1}(ind+2:end));
+		ind  = strfind(t, '_');
+		handles.SDSflag = t(1:ind(end)-1);	% SDS number of the quality flags array (SubDataset)
+		handles.minQuality = round(sscanf(t(ind(end)+1:end), '%f'));
+		if (isnan(handles.minQuality))
+			warndlg('The quality value in -F quality option is obviously wrong or non-existent. Ignoring.','Warning')
+			handles.SDSflag = [];
+		end
+	end
+
+	ind = strfind(names{1}, '-R');	% Do we have a region request?
+	if (~isempty(ind))
+		t = strtok(names{1}(ind+2:end));
+		[A, count, errmsg] = sscanf(t,'%f/%f/%f/%f');
+		if (count ~= 4 || ~isempty(errmsg))
+			warndlg('Error: the -R string is badly formed. Ignoring it','WarnError')
+		else
+			if (A(1) >= A(2) || A(3) >= A(4))
+				warndlg(['Error: either West or South are > than East or North in -R option ->' t],'WarnError')
+			else
+				set(handles.edit_west, 'String', A(1)); 
+				set(handles.edit_east, 'String', A(2)); 
+				set(handles.edit_south,'String', A(3)); 
+				set(handles.edit_north,'String', A(4)); 
+				set(handles.check_region, 'Val', 1)
+				set([handles.edit_north handles.edit_south handles.edit_west handles.edit_east],'Enable','on')
+			end
+		end
+	end
+
+	ind = strfind(names{1}, '-G');	% Do we have an output filename request?
+	if (~isempty(ind))
+		t = strtok(names{1}(ind+2:end));
+		handles.outname = sscanf(t,'%s');
+	end
+
 % -----------------------------------------------------------------------------------------
 function fname = check_wildcard_fname(strin)
 % Check if user gave a 'path/*.xxx ? -sdsname' on input and if yes, create a resp file
@@ -249,6 +342,25 @@ function fname = check_wildcard_fname(strin)
 	if ( isempty(strfind(strin, '*')) )		% Normal fname input. Nothing to do here
 		fname = strin;		return
 	end
+
+	% -------------- First check if any of -F, -R or -G is also present --------------
+	opt_F = [];		opt_G = [];		opt_R = [];
+	ind = strfind(strin, '-F');
+	if (~isempty(ind))
+		[opt_F, r] = strtok(strin(ind:end));
+		strin = [strin(1:ind-2) r];		% Remove the -F<...> string from input
+	end
+	ind = strfind(strin, '-G');
+	if (~isempty(ind))
+		[opt_G, r] = strtok(strin(ind:end));
+		strin = [strin(1:ind-2) r];		% Remove the -G<...> string from input
+	end
+	ind = strfind(strin, '-R');
+	if (~isempty(ind))
+		[opt_R, r] = strtok(strin(ind:end));
+		strin = [strin(1:ind-2) r];		% Remove the -R<...> string from input
+	end
+	% --------------------------------------------------------------------------------
 
 	[t, r] = strtok(strin);
 	dirlist = dir(t);
@@ -260,17 +372,21 @@ function fname = check_wildcard_fname(strin)
 	PATO = fileparts(t);
 	fname = [PATO '/' 'automatic_list.txt'];
 	fid = fopen(fname,'w');
-	if (fid < 0),
+	if (fid < 0)
 		error('Fail to create the resp file in data directory. Permissions problem?')
 	end
+	if ( ~isempty(opt_F) || ~isempty(opt_G) || ~isempty(opt_R) )	% Insert eventual -F, -G or -R options
+		fprintf(fid, '# %s\n', [opt_F ' ' opt_G ' ' opt_R]);
+	end
+
 	% Here we assume that the OS returns a list already lexically sorted
 	[t, r] = strtok(r);
 	for (k = 1:numel(dirlist))
 		fprintf(fid, '%s/%s', PATO, dirlist(k).name);	% The file name
 		if (~isempty(t))
-			fprintf(fid, '\t%s', t);			% Normally the "Time" info
+			fprintf(fid, '\t%s', t);					% Normally the "Time" info
 			if (~isempty(r))
-				fprintf(fid, '\t%s\n', r);		% The SDS name or number
+				fprintf(fid, '\t%s\n', r);				% The SDS name or number
 			else
 				fprintf(fid, '\n');
 			end
@@ -286,17 +402,29 @@ function t = squeeze_time_from_name(name)
 % The name algo is simple YYYYDDDHHMMSS where DDD is day of the year.
 
 	% Example names: A2012024021000.L2_LAC_SST4 S1998001130607.L2_MLAC_OC.x.hdf
+	% 20100109005439-NODC-L3C_GHRSST-SSTskin-AVHRR_Pathfinder-PFV5.2_NOAA18_G_2010009_night-v02.0-fv01.0.nc
 	[PATH,FNAME,EXT] = fileparts(name);
 	indDot = strfind(FNAME,'.');
 	if (~isempty(indDot) && strcmpi(FNAME(16:17), 'L2'))	% Second case type name
 		FNAME(indDot(1):end) = [];
 	elseif (~isempty(EXT) && strcmpi(EXT(2:3), 'L2'))		% First case type name (nothing to do)
+	elseif (strcmpi(EXT,'.nc') && FNAME(15) == '-')			% A GS... 2.0 netCDF PATHFINDER file
+		FNAME(15:end) = [];
 	else
 		errordlg(sprintf('This "%s" is not a MODIS type name',name),'ERROR'),	return
 	end
-	% Compose name as YYYY.xxxxx where 'xxxxx' is the decimal day of year truncated to hour precision
-	%t = sprintf('%s.%f',FNAME(2:5),sscanf(FNAME(6:8),'%f') + sscanf(FNAME(9:10),'%f')/24); 
-	t = sprintf('%f',sscanf(FNAME(6:8),'%f') + sscanf(FNAME(9:10),'%f')/24); 
+	% Compose name as YYYY.xxxxx where 'xxxxx' is the decimal day of year truncated to hour precision (or minute)
+	if (double(FNAME(1)) >= 48 && double(FNAME(1)) <= 57)	% Numbers. See, char(48:57)
+		% Example 20100109005439 will became 2010.0090379, 2010 (year) 009 (day of year) 0.0379 (decimal part of DOY) 
+		dn = datenummx( sscanf(FNAME(1:4),'%f'), sscanf(FNAME(5:6),'%f'), sscanf(FNAME(7:8),'%f'), ...
+			sscanf(FNAME(9:10),'%f'), sscanf(FNAME(11:12),'%f'), sscanf(FNAME(13:14),'%f') ) ...
+			- datenummx( sscanf(FNAME(1:4),'%f'), 0, 0);
+		td = sprintf('%f',(dn - fix(dn)));		% Decimal part of the DateNum as a string
+		t = sprintf('%s.%03d%s', FNAME(1:4), fix(dn), td(3:6));
+	else
+		%t = sprintf('%s.%f',FNAME(2:5),sscanf(FNAME(6:8),'%f') + sscanf(FNAME(9:10),'%f')/24);
+		t = sprintf('%f',sscanf(FNAME(6:8),'%f') + sscanf(FNAME(9:10),'%f')/24);	% Decimal 'Julian day'
+	end
 
 % -----------------------------------------------------------------------------------------
 function radio_conv2netcdf_CB(hObject, handles)
@@ -510,8 +638,16 @@ function cut2cdf(handles, got_R, west, east, south, north)
 		txt0 = '*.tiff;*.tif';
 		txt1 = '(Geo)Tiff format (*.tiff)';			txt2 = 'Select output Tiff file';
 	end
-	[FileName,PathName] = put_or_get_file(handles,{txt0,txt1; '*.*', 'All Files (*.*)'},txt2,'put');
-	if isequal(FileName,0),		return,		end
+	if (isempty(handles.outname))
+		[FileName,PathName] = put_or_get_file(handles,{txt0,txt1; '*.*', 'All Files (*.*)'},txt2,'put');
+		if isequal(FileName,0),		return,		end
+	else
+		[PathName, FileName, EXT] = fileparts(handles.outname);
+		if (~isempty(EXT)),		FileName = [FileName EXT];	end		% Don't loose the eventual extension
+		if (isempty(PathName))					% If it's empty we use the path of the data files
+			PathName = [fileparts(handles.nameList{1}) filesep];
+		end
+	end
 	[pato, fname, EXT] = fileparts(FileName);
 	if (isempty(EXT)),		FileName = [fname this_ext];	end
 	grd_out = [PathName FileName];
@@ -686,12 +822,12 @@ function [att, indSDS, uncomp_name] = get_att(handles, name)
 % -----------------------------------------------------------------------------------------
 function [head , slope, intercept, base, is_modis, is_linear, is_log, att, opt_R] = ...
 	getFromMETA(att, got_R, handles, west, east, south, north)
-% Get complementary data from an att struct. This is mostly a helper function to get_headerInfo()
-% but it is detached from it because in this way it can be called by exterir code. Namelly by Mirone.
-% The cases addressed here are some ones raised by HDF files.
+% Get complementary data from the att struct. This is mostly a helper function to get_headerInfo()
+% but it is detached from it because in this way it can be called by exterior code. Namelly by Mirone.
+% The cases addressed here are some of the ones raised by HDF files.
 % WARNING: the ATT struct must have and extra field att.fname (to be eventualy used by hdfread)
-% NOTE: When called from outside (e.g Mirone) use only the [...] = getFromMETA(att) form
-% NOTE: For HDF files the ATT struct will be added the field 'hdrInfo' (returned when hdrfinfo)
+% NOTE1: When called from outside (e.g Mirone) use only the [...] = getFromMETA(att) form
+% NOTE2: For HDF files the ATT struct will be added the field 'hdrInfo' (returned when hdrfinfo)
 
 	if (nargin == 1),	got_R = false;		end
 
@@ -822,6 +958,14 @@ function [head , slope, intercept, base, is_modis, is_linear, is_log, att, opt_R
 		head(7) = 0;		% Make sure that grid reg is used
 		is_linear = true;
 		att.hdrInfo = finfo;
+
+	elseif ( ~is_HDFEOS && ~modis_or_seawifs && strcmp(att.DriverShortName, 'netCDF') )		% GHRSST -> PATHFINDER
+		if (got_R)
+			rows = att.RasterYSize;
+			x_min = head(1);	y_min = head(3);
+			dx = head(8);		dy = head(9);
+		end
+
 	elseif ( is_HDFEOS && ~is_ESA)		% This case might not be complete as yet.
 		x_min = search_scaleOffset(att.Metadata, 'WESTBOUNDINGCOORDINATE');
 		x_max = search_scaleOffset(att.Metadata, 'EASTBOUNDINGCOORDINATE');
@@ -975,6 +1119,14 @@ function [Z, have_nans, att] = getZ(fname, att, is_modis, is_linear, is_log, slo
 	end
 
 	[Z, att, known_coords, have_nans] = read_gdal(fname, att, IamCompiled, IamInteractive, '-C', opt_R, '-U');
+
+	if (~isempty(handles.SDSflag))
+		ind = strfind(fname, ':');
+		flag_fname = [fname(1:ind(end)) handles.SDSflag];
+		att_flag = gdalread(flag_fname, '-M');
+		F = read_gdal(flag_fname, att_flag, IamCompiled, IamInteractive, '-C', opt_R, '-U');
+		Z(F < handles.minQuality) = NaN;
+	end
 
 	% See if we knew the image coordinates but that knowedge is lost in new att
 	if ( ~known_coords && ~isempty(GMT_hdr) )	% For the moment we only know for sure for L2 georeferenced products
@@ -1150,6 +1302,9 @@ function [Z, att, known_coords, have_nans] = read_gdal(full_name, att, IamCompil
 		else
 			Z = gdalread(full_name, varargin{:}, opt_L);
 		end
+		if (strcmp(att.DriverShortName, 'netCDF'))					% GHRSST 2.0 PATHFINDER ??
+			[Z, did_scale, att] = handle_scaling(Z, att);			% See if we need to apply a scale/offset
+		end
 		if (isempty(att.GCPvalues) && ~isempty(GCPvalues)),		att.GCPvalues = GCPvalues;		end
 		if ( (att.Band(1).NoDataValue == -1) && (min(Z(:)) == -32767 ) )	% DIRTY PATCH to avoid previous bad nodata guessing
 			att.Band(1).NoDataValue = -32767;
@@ -1261,6 +1416,44 @@ function [Z, att, known_coords, have_nans] = read_gdal(full_name, att, IamCompil
 
 	if (~isempty(fname)),		att.fname = fname;		end		% Needed in some HDF cases
 	if (~isempty(uncomp_name)),	delete(uncomp_name);	end		% Delete uncompressed file
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function [data, did_scale, att, have_new_nans] = handle_scaling(data, att)
+%	If there is a scale factor and/or  add_offset attribute, convert the data
+%	to single precision and apply the scaling. 
+
+	have_scale_factor = false;			have_add_offset = false;	did_scale = false;	have_new_nans = false;
+	if ( att.Band(1).ScaleOffset(1) ~= 1 )
+		have_scale_factor = true;
+		scale_factor = att.Band(1).ScaleOffset(1);
+	end
+	if ( att.Band(1).ScaleOffset(2) ~= 0 )
+		have_add_offset = true;
+		add_offset = att.Band(1).ScaleOffset(2);
+	end
+
+	% Return early if we don't have either one.
+	if ~(have_scale_factor || have_add_offset),		return,		end
+
+	if (~isa(data,'single')),		data = single(data);	end
+	if (~isnan(att.Band(1).NoDataValue))
+		data(data == att.Band(1).NoDataValue) = NaN;
+		att.Band(1).NoDataValue = NaN;
+		have_new_nans = true;
+	end
+
+	did_scale = true;
+	if (have_scale_factor && have_add_offset)
+		data = cvlib_mex('CvtScale',data, scale_factor, add_offset);
+	elseif (have_scale_factor)
+		data = cvlib_mex('CvtScale',data, scale_factor);
+	else
+		data = cvlib_mex('addS',data, add_offset);
+	end
+
+	if (have_new_nans)
+		att.GMT_hdr(5:6) = grdutils(data,'-L');
+	end
 
 % -----------------------------------------------------------------------------------------
 function Z = clipMySpikes(Z)
