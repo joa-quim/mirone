@@ -1532,19 +1532,19 @@ function nc_addvar ( ncfile, varstruct )
 snc_nargchk(2,2,nargin);
 
 if  ~ischar(ncfile) 
-	snc_error ( 'NC_FUNS:NC_ADDVAR:badInput', 'file argument must be character' );
+	snc_error ('NC_FUNS:NC_ADDVAR:badInput', 'file argument must be character');
 end
 
 if ( ~isstruct(varstruct) )
-	snc_error ( 'NC_FUNS:NC_ADDVAR:badInput', '2nd argument must be a structure' );
+	snc_error ('NC_FUNS:NC_ADDVAR:badInput', '2nd argument must be a structure');
 end
 
-varstruct = validate_varstruct ( varstruct );
+varstruct = validate_varstruct (varstruct);
 
-[ncid, status] = mexnc ( 'open', ncfile, nc_write_mode );
+[ncid, status] = mexnc ('open', ncfile, nc_write_mode);
 if ( status ~= 0 )
-	msg = sprintf ( 'OPEN failed on %s, ''%s''', ncfile, mexnc('STRERROR', status) );
-	snc_error ( 'NC_FUNS:NC_ADDVAR:MEXNC:OPEN', msg );
+	msg = sprintf ('OPEN failed on %s, ''%s''', ncfile, mexnc('STRERROR', status));
+	snc_error ('NC_FUNS:NC_ADDVAR:MEXNC:OPEN', msg);
 end
 
 % determine the dimids of the named dimensions
@@ -1565,11 +1565,42 @@ if ( status ~= 0 )
 	snc_error ( 'NC_FUNS:NC_ADDVAR:MEXNC:REDEF', mexnc('strerror', status) );
 end
 
-[varid, status] = mexnc('DEF_VAR', ncid, varstruct.Name, varstruct.Nctype, num_dims, dimids );
+% We prefer to use 'Datatype' instead of 'Nctype', but we'll try to be backwards compatible.
+if isfield(varstruct,'Datatype')
+	[varid, status] = mexnc('DEF_VAR', ncid, varstruct.Name, varstruct.Datatype, num_dims, dimids );
+else
+	[varid, status] = mexnc('DEF_VAR', ncid, varstruct.Name, varstruct.Nctype, num_dims, dimids );
+end
+
+%[varid, status] = mexnc('DEF_VAR', ncid, varstruct.Name, varstruct.Nctype, num_dims, dimids );
+
 if ( status ~= 0 )
-	mexnc ( 'endef', ncid );
-	mexnc ( 'close', ncid );
-	snc_error ( 'NC_FUNS:NC_ADDVAR:MEXNC:DEF_VAR', mexnc('STRERROR', status) );
+	mexnc('enddef', ncid);
+	mexnc('close', ncid);
+	snc_error('NC_FUNS:NC_ADDVAR:MEXNC:DEF_VAR', mexnc('STRERROR', status));
+end
+
+if (varstruct.Shuffle || varstruct.Deflate)
+    status = mexnc('DEF_VAR_DEFLATE',ncid,varid, varstruct.Shuffle,varstruct.Deflate,varstruct.Deflate);
+    if ( status ~= 0 )
+        ncerr = mexnc('strerror', status);
+        mexnc('enddef', ncid);
+        mexnc('close', ncid);
+        snc_error('NC_FUNS:NC_ADDVAR:MEXNC:DEF_VAR_DEFLATE', ncerr );
+    end
+end
+
+% if (~isempty(varstruct.Attribute) && strcmp(varstruct.Attribute(1).Name, '_FillValue'))
+% 	attval = varstruct.Attribute(1).Value;
+% 	nc_attput_while_open ( ncid, varstruct.Name, '_FillValue', attval );
+% 	varstruct.Attribute(1) = [];		% Remove this and let the eventual others follow the normal nc_attput path
+% end
+
+% Now just use nc_attput to put in the attributes
+for j = 1:length(varstruct.Attribute)
+	attname = varstruct.Attribute(j).Name;
+	attval = varstruct.Attribute(j).Value;
+	nc_attput_while_open ( ncid, varstruct.Name, attname, attval );
 end
 
 status = mexnc ( 'enddef', ncid );
@@ -1583,68 +1614,143 @@ if ( status ~= 0 )
 	snc_error ( 'NC_FUNS:NC_ADDVAR:MEXNC:CLOSE', mexnc('STRERROR', status) );
 end
 
-% Now just use nc_attput to put in the attributes
-for j = 1:length(varstruct.Attribute)
-	attname = varstruct.Attribute(j).Name;
-	attval = varstruct.Attribute(j).Value;
-	nc_attput ( ncfile, varstruct.Name, attname, attval );
-end
+% % Now just use nc_attput to put in the attributes
+% for j = 1:length(varstruct.Attribute)
+% 	attname = varstruct.Attribute(j).Name;
+% 	attval = varstruct.Attribute(j).Value;
+% 	nc_attput ( ncfile, varstruct.Name, attname, attval );
+% end
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function varstruct = validate_varstruct ( varstruct )
 % Check that required fields are there.
 % Must at least have a name.
-if ~isfield ( varstruct, 'Name' )
-	snc_error( 'NC_FUNS:NC_ADDVAR:badInput', 'structure argument must have at least the ''Name'' field.' );
-end
-
-% Check that required fields are there. Default Nctype is double.
-if (~isfield ( varstruct, 'Nctype' )),	varstruct.Nctype = 'double';	end
-
-% Are there any unrecognized fields?
-fnames = fieldnames ( varstruct );
-for j = 1:length(fnames)
-	fname = fnames{j};
-	switch ( fname )
-
-	case { 'Nctype', 'Name', 'Dimension', 'Attribute' }
-		% These are used to create the variable.  They are ok.
-		
-	case { 'Unlimited', 'Size', 'Rank' }
-		% These come from the output of nc_getvarinfo.  We don't use
-		% them, but let's not give the user a warning about	them either.
-
-	otherwise
-		fprintf ( 2, '%s:  unrecognized field name ''%s''.  Ignoring it...\n', mfilename, fname );
+	if ~isfield ( varstruct, 'Name' )
+		snc_error('NC_FUNS:NC_ADDVAR:badInput', 'structure argument must have at least the ''Name'' field.');
 	end
-end
 
-% If the datatype is not a string.
-% Change suggested by Brian Powell
-if ( isa(varstruct.Nctype, 'double') && varstruct.Nctype < 7 )
-	types={ 'byte' 'char' 'short' 'int' 'float' 'double'};
-	varstruct.Nctype = char(types(varstruct.Nctype));
-end
+	% Check that required fields are there. Default Nctype is double.
+	if (~isfield ( varstruct, 'Nctype' )),	varstruct.Nctype = 'double';	end
 
-% Check that the datatype is known.
-switch ( varstruct.Nctype )
-case { 'NC_DOUBLE', 'double', ...
-	'NC_FLOAT', 'float', ...
-	'NC_INT', 'int', ...
-	'NC_SHORT', 'short', ...
-	'NC_BYTE', 'byte', ...
-	'NC_CHAR', 'char'  }
-	% Do nothing
-otherwise
-	snc_error( 'NC_FUNS:NC_ADDVAR:unknownDatatype', sprintf('unknown type ''%s''\n', mfilename, varstruct.Nctype) );
-end
+	if (~isfield(varstruct,'Datatype'))
+		if ~isfield ( varstruct, 'Nctype' ),	varstruct.Datatype = 'double';
+		else									varstruct.Datatype = varstruct.Nctype;
+		end
+	end
 
-% Check that required fields are there. Default Dimension is none.  Singleton scalar.
-if (~isfield ( varstruct, 'Dimension' )),	varstruct.Dimension = [];	end
+	% Are there any unrecognized fields?
+	fnames = fieldnames ( varstruct );
+	for j = 1:length(fnames)
+		fname = fnames{j};
+		switch (fname)
+			case { 'Datatype', 'Nctype', 'Name', 'Dimension', 'Attribute', ...
+					'FillValue', 'Storage', 'Chunking', 'Shuffle', 'Deflate', 'DeflateLevel'}
+				% These are used to create the variable.  They are ok.
 
-% Check that required fields are there. Default Attributes are none
-if (~isfield ( varstruct, 'Attribute' )),	varstruct.Attribute = [];	end
+			case { 'Unlimited', 'Size', 'Rank' }
+				% These come from the output of nc_getvarinfo.  We don't use
+				% them, but let's not give the user a warning about	them either.
+
+			otherwise
+				fprintf (2, '%s:  unrecognized field name ''%s''.  Ignoring it...\n', mfilename, fname);
+		end
+	end
+
+	% If the datatype is not a string.
+	% Change suggested by Brian Powell
+	if ( isa(varstruct.Nctype, 'double') && varstruct.Nctype < 7 )
+		types={ 'byte' 'char' 'short' 'int' 'float' 'double'};
+		varstruct.Nctype = char(types(varstruct.Nctype));
+		varstruct.Datatype = char(types(varstruct.Datatype));
+	end
+
+	% Check that the datatype is known.
+	switch ( varstruct.Nctype )
+	case { 'NC_DOUBLE', 'double', ...
+		'NC_FLOAT', 'float', ...
+		'NC_INT', 'int', ...
+		'NC_SHORT', 'short', ...
+		'NC_BYTE', 'byte', ...
+		'NC_CHAR', 'char'  }
+		% Do nothing
+		case 'single'
+			varstruct.Datatype = 'float';
+		case 'int32'
+			varstruct.Datatype = 'int';
+		case 'int16'
+			varstruct.Datatype = 'short';
+		case { 'int8','uint8' }
+			varstruct.Datatype = 'byte';
+		case { 'uint16', 'uint32', 'int64', 'uint64' }
+			snc_error('NC_FUNS:NC_ADDVAR:notClassicDatatype', ...
+				'Datatype ''%s'' is not a classic model datatype.', varstruct.Datatype); 
+	otherwise
+		snc_error( 'NC_FUNS:NC_ADDVAR:unknownDatatype', sprintf('unknown type ''%s''\n', mfilename, varstruct.Nctype) );
+	end
+
+	% Check that required fields are there. Default Dimension is none.  Singleton scalar.
+	if (~isfield ( varstruct, 'Dimension' )),	varstruct.Dimension = [];	end
+
+	% Check that required fields are there. Default Attributes are none
+	if (~isfield ( varstruct, 'Attribute' )),	varstruct.Attribute = [];	end
+
+	if (~isfield(varstruct,'Storage')),		varstruct.Storage = 'contiguous';	end
+	if (~isfield(varstruct,'Chunking')),	varstruct.Chunking = [];	end
+	if (~isfield(varstruct,'Shuffle')),		varstruct.Shuffle = 0;		end
+	if (~isfield(varstruct,'Deflate')),		varstruct.Deflate = 0;		end
+	if (~isfield(varstruct,'DeflateLevel')),	varstruct.DeflateLevel = 0;		end
+
+% ---------------------------------------------------------------------------------------------------
+function nc_attput_while_open ( ncid, varname, attribute_name, attval )
+% Same as nc_attput but works on a ncid of a file that is already open
+% We need this to workaround the netCDF bug 187 that would otherwise result in a crash
+% when adding teh _FillValue attribute
+
+	if isnumeric(varname)
+		varid = varname;
+	else
+		[varid, status] = mexnc ( 'inq_varid', ncid, varname );
+		if ( status ~= 0 )
+			mexnc ( 'close', ncid );
+			snc_error ( 'NC_FUNS:NC_ATTGET:MEXNC:INQ_VARID', mexnc('STRERROR', status) );
+		end
+	end
+
+	% Figure out which mexnc operation to perform.
+	switch class(attval)
+
+		case 'double'
+			funcstr = 'put_att_double';
+			atttype = nc_double;
+		case 'single'
+			funcstr = 'put_att_float';
+			atttype = nc_float;
+		case 'int32'
+			funcstr = 'put_att_int';
+			atttype = nc_int;
+		case 'int16'
+			funcstr = 'put_att_short';
+			atttype = nc_short;
+		case 'int8'
+			funcstr = 'put_att_schar';
+			atttype = nc_byte;
+		case 'uint8'
+			funcstr = 'put_att_uchar';
+			atttype = nc_byte;
+		case 'char'
+			funcstr = 'put_att_text';
+			atttype = nc_char;
+		otherwise
+			msg = sprintf ('attribute class %s is not handled by %s', class(attval), mfilename );
+			snc_error ( 'NC_FUNS:NC_ATTGET:unhandleDatatype', msg );
+	end
+
+	status = mexnc ( funcstr, ncid, varid, attribute_name, atttype, length(attval), attval);
+	if ( status ~= 0 )
+		mexnc ( 'close', ncid );
+		snc_error ( ['NC_FUNS:NC_ATTGET:MEXNC:' upper(funcstr)], mexnc('STRERROR', status) );
+	end
 
 % ---------------------------------------------------------------------------------------------------
 function nc_attput ( ncfile, varname, attribute_name, attval )
@@ -1661,7 +1767,7 @@ function nc_attput ( ncfile, varname, attribute_name, attval )
 snc_nargchk(4,4,nargin);
 snc_nargoutchk(0,0,nargout);
 
-[ncid, status] =mexnc( 'open', ncfile, nc_write_mode );
+[ncid, status] = mexnc( 'open', ncfile, nc_write_mode );
 if  status ~= 0 
 	snc_error ( 'NC_FUNS:NC_ATTGET:MEXNC:badFile', mexnc('STRERROR', status) );
 end
@@ -1813,33 +1919,51 @@ function nc_create_empty ( ncfile, mode )
 % NC_CREATE_EMPTY:  creates an empty netCDF file 
 %     NC_CREATE_EMPTY(NCFILE,MODE) creates the empty netCDF file NCFILE
 %     with the given MODE.  MODE is optional, defaulting to nc_clobber_mode.
+%     MODE can be one of the following strings:
+%   
+%       'clobber'         - deletes existing file, creates netcdf-3 file
+%       'noclobber'       - creates netcdf-3 file if it does not already
+%                           exist.
+%       '64bit_offset'    - creates a netcdf-3 file with 64-bit offset
+%       'netcdf4-classic' - creates a netcdf-3 file with 64-bit offset
 %
-% EXAMPLE:
-%     Suppose you wish to create a netCDF file with large file support.  
-%     This would do it.
+%   MODE can also be a numeric value that corresponds either to one of the
+%   named netcdf modes or a numeric bitwise-or of them.
 %
-%     >> my_mode = bitor ( nc_clobber_mode, nc_64bit_offset_mode );
-%     >> nc_create_empty ( 'test.nc', my_mode );
+%   EXAMPLE:  Create an empty classic netCDF file.
+%       nc_create_empty('myfile.nc');
 %
-% SEE ALSO:  
-%     nc_noclobber_mode, nc_clobber_mode, nc_64bit_offset_mode
+%   EXAMPLE:  Create an empty netCDF file with the 64-bit offset mode, but
+%   do not destroy any existing file with the same name.
+%       mode = bitor(nc_noclobber_mode,nc_64bit_offset_mode);
+%       nc_create_empty('myfile.nc',mode);
+%
+%   EXAMPLE:  Create a netCDF-4 file.  This assumes that you have a 
+%   netcdf-4 enabled mex-file.
+%       nc_create_empty('myfile.nc','netcdf4-classic');  
+%
+%   SEE ALSO:  nc_adddim, nc_addvar.
 
-snc_nargchk(1,2,nargin);
+	snc_nargchk(1,2,nargin)
 
-% Set the default mode if necessary.
-if nargin == 1
-	mode = nc_clobber_mode;
-end
+	% Set the default mode if necessary.
+	if (nargin == 1),	mode = nc_clobber_mode;		end
 
-[ncid, status] = mexnc ( 'CREATE', ncfile, mode );
-if ( status ~= 0 )
-	snc_error ( 'NC_FUNS:NC_CREATE_EMPTY:MEXNC:CREATE', mexnc('STRERROR', status) );
-end
+	switch(mode)
+		case {'clobber', 'noclobber', '64bit_offset'}		% Do nothing, this is ok
+		case 'netcdf4-classic'
+			mode = nc_netcdf4_classic;
+	end
 
-status = mexnc ( 'CLOSE', ncid );
-if ( status ~= 0 )
-	snc_error ( 'NC_FUNS:NC_CREATE:MEXNC:CLOSE', mexnc('STRERROR', status) );
-end
+	[ncid, status] = mexnc('CREATE', ncfile, mode);
+	if (status ~= 0)
+		snc_error('NC_FUNS:NC_CREATE_EMPTY:MEXNC:CREATE', mexnc('STRERROR', status));
+	end
+
+	status = mexnc('CLOSE', ncid);
+	if (status ~= 0)
+		snc_error('NC_FUNS:NC_CREATE:MEXNC:CLOSE', mexnc('STRERROR', status));
+	end
 
 % --------------------------------------------------------------------
 function nc_cat ( input_ncfiles, output_ncfile, abscissa_var )
@@ -2096,7 +2220,7 @@ function new_data = nc_addnewrecs ( ncfile, input_buffer, record_variable )
 % In case of an error, an exception is thrown.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% $Id: nc_addnewrecs.m 2178 2007-04-23 13:05:21Z johnevans007 $
+% $Id$
 % $LastChangedDate: 2007-04-23 09:05:21 -0400 (Mon, 23 Apr 2007) $
 % $LastChangedRevision: 2178 $
 % $LastChangedBy: johnevans007 $
@@ -2272,7 +2396,7 @@ function nc_add_recs ( ncfile, new_data, varargin )
 %   johnevans@acm.org
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% $Id: nc_add_recs.m 2309 2007-08-31 20:30:56Z johnevans007 $
+% $Id$
 % $LastChangedDate: 2007-08-31 16:30:56 -0400 (Fri, 31 Aug 2007) $
 % $LastChangedRevision: 2309 $
 % $LastChangedBy: johnevans007 $
@@ -2481,7 +2605,7 @@ function theBuffer = nc_getbuffer ( ncfile, varargin )
 %        Each such field contains the data for that variable.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% $Id: nc_getbuffer.m 2315 2007-09-03 16:07:33Z johnevans007 $
+% $Id$
 % $LastChangedDate: 2007-09-03 12:07:33 -0400 (Mon, 03 Sep 2007) $
 % $LastChangedRevision: 2315 $
 % $LastChangedBy: johnevans007 $
@@ -2618,7 +2742,7 @@ function varsize = nc_varsize(ncfile, varname)
 % NCVAR in the netCDF file NCFILE.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% $Id: nc_varsize.m 2315 2007-09-03 16:07:33Z johnevans007 $
+% $Id$
 % $LastChangedDate: 2007-09-03 12:07:33 -0400 (Mon, 03 Sep 2007) $
 % $LastChangedRevision: 2315 $
 % $LastChangedBy: johnevans007 $
@@ -2646,7 +2770,7 @@ function values = nc_getlast(ncfile, var, num_datums)
 % If NUM_DATUMS is not supplied, the default value is 1.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% $Id: nc_getlast.m 2315 2007-09-03 16:07:33Z johnevans007 $
+% $Id$
 % $LastChangedDate: 2007-09-03 12:07:33 -0400 (Mon, 03 Sep 2007) $
 % $LastChangedRevision: 2315 $
 % $LastChangedBy: johnevans007 $
@@ -2794,4 +2918,9 @@ function mode = nc_noclobber_mode()
 % --------------------------------------------------------------------
 function mode = nc_write_mode()
 	mode = 1;	% returns integer mnemonic for NC_WRITE
-	
+
+% --------------------------------------------------------------------
+function mode = nc_netcdf4_classic()
+% NC_NETCDF4_CLASSIC:  returns integer mnemonic for BITOR(NC_NETCDF4,NC_CLASSIC_MODEL)
+% Use this when you wish to create a netcdf-4 file with the classic model.
+	mode = 4352;
