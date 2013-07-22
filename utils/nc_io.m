@@ -1,4 +1,6 @@
 function varargout = nc_io(fname, mode, handles, data, misc)
+% Wraper function to netCDF I/O
+%
 % HANDLES, DATA & MISC only matters on writing
 % On reading -> MODE == 'r' & varargout = [X,Y,Z,head,misc] = nc_io(fname, mode);
 %	where:	X, Y, Z are the coords row vectors and the data 2D array
@@ -36,7 +38,7 @@ function varargout = nc_io(fname, mode, handles, data, misc)
 %				reason the mexnc call in nc_funs/write_the_data() errors when writing UNLIMITED variables
 %				so the only way out is to send in the levelVec (vector of times, most of times)
 
-%	Copyright (c) 2004-2012 by J. Luis
+%	Copyright (c) 2004-2013 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -50,7 +52,9 @@ function varargout = nc_io(fname, mode, handles, data, misc)
 %
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
-	
+
+% $Id$
+
 	if ( nargin == 4 && ~isempty(data) )
 		misc = struct('x_units',[],'y_units',[],'z_units',[],'z_name',[],'desc',[], ...
 			'title',[],'history',[],'srsWKT',[], 'strPROJ4',[]);
@@ -90,7 +94,7 @@ function varargout = nc_io(fname, mode, handles, data, misc)
 % -*-*-*-*-*-*-$-$-$-$-$-$-#-#-#-#-#-#-%-%-%-%-%-%-@-@-@-@-@-@-(-)-(-)-(-)-&-&-&-&-&-&-{-}-{-}-{-}-
 function write_nc(fname, handles, data, misc, page)
 
-	if (nargin > 4),	
+	if (nargin > 4)
 		persistent levelName z_name is_unlimited
 	end
 	if (nargin == 4)							% Normal, write once, mode
@@ -147,7 +151,14 @@ function write_nc(fname, handles, data, misc, page)
 		return
 	end
 
-	nc_funs('create_empty', fname)
+	% ---------------- Decide if netCDF-4 or classic based on deflation level -----------------------
+	deflation_level = get_deflation(handles);
+	if (deflation_level)
+		nc_funs('create_empty', fname, 'netcdf4-classic')	% Despite 'classic' it will be compressed
+	else
+		nc_funs('create_empty', fname)
+	end
+	% -----------------------------------------------------------------------------------------------
 
 	if (handles.geog)
 		x_var = 'longitude';		y_var = 'latitude';
@@ -208,7 +219,7 @@ function write_nc(fname, handles, data, misc, page)
 	end
 
 	varstruct.Name = z_name;
-	add_off = [];
+	add_off = [];	scale_factor = [];
 	switch ( class(data) )
 		case 'single'			% NC_FLOAT
 			if (handles.was_int16 && ~handles.computed_grid)
@@ -240,9 +251,36 @@ function write_nc(fname, handles, data, misc, page)
 		otherwise
 			error('NC_IO:write_nc', ['Unsuported data type: ' class(data)])
 	end
+
+	% -------------------- The Attributes of the 'z' variable ----------------------------
+	% We now do this here so that the attributes are written at the same time that the 'z'
+	% variable is created and thus avoid the BAD netCDF 187 bug that ends up in a crash.
+	n = 0;
+	if (~isempty(no_val))
+		varstruct.Attribute(1).Name = '_FillValue';
+		varstruct.Attribute(1).Value = no_val;
+		n = n + 1;
+	end
+	varstruct.Attribute(n+1).Name = 'long_name';		varstruct.Attribute(n+1).Value = z_name;
+	varstruct.Attribute(n+2).Name = 'actual_range';		varstruct.Attribute(n+2).Value = handles.head(5:6);
+	varstruct.Attribute(n+3).Name = 'units';			varstruct.Attribute(n+3).Value = z_units;
+	if (~isempty(add_off))
+		varstruct.Attribute(end+1).Name = 'add_offset';
+		varstruct.Attribute(end+1).Value = add_off;
+		if (isempty(scale_factor))						% We don't use the scale_factor yet in Mirone but CF
+			varstruct.Attribute(end+1).Name = 'scale_factor';	% recommends that one of scale_factor or add_offset
+			varstruct.Attribute(end+1).Value = 1;				% is present the other is set as well (with neutral value)
+		end
+	end
+	% ------------------------------------------------------------------------------------
+
+	if (deflation_level)
+		varstruct.Deflate = deflation_level;
+	end
+
 	nc_funs('addvar', fname, varstruct )
 
-	% -------------------------- Globals --------------------------
+	% ------------------------------ Globals ---------------------------------
 	nc_global = -1;
 	nc_funs('attput', fname, nc_global, 'Conventions', 'COARDS' );
 	nc_funs('attput', fname, nc_global, 'title', tit );
@@ -266,12 +304,6 @@ function write_nc(fname, handles, data, misc, page)
 	nc_funs('attput', fname, y_var, 'long_name', y_var );
 	nc_funs('attput', fname, y_var, 'units', y_units);
 	nc_funs('attput', fname, y_var, 'actual_range', [Y(1) Y(end)] );
-
-	nc_funs('attput', fname, z_name, 'long_name', z_name );
-	if (~isempty(no_val)),		nc_funs('attput', fname, z_name, '_FillValue', no_val );	end
-	if (~isempty(add_off)),		nc_funs('attput', fname, z_name, 'add_offset', add_off);	end
-	nc_funs('attput', fname, z_name, 'actual_range', handles.head(5:6) );
-	nc_funs('attput', fname, z_name, 'units', z_units);
 	
 	if ( ~isempty(misc.srsWKT) || ~isempty(misc.strPROJ4) )
 		% Create a container variable named "grid_mapping" to hold the projection info
@@ -578,4 +610,28 @@ function [X, Y, Z, head] = deal_exceptions(Z, X, Y, head, s, attribNames)
 		end
 		X = linspace(head(1), head(2), size(Z,2));
 		Y = linspace(head(3), head(4), size(Z,1));
+	end
+
+% -----------------------------------------------------------------------------------------------------
+function deflation_level = get_deflation(handles)
+% Try to fish the current deflation level from several sources
+
+	deflation_level = 0;		% We cannot trust that handles.deflation_level always exists
+	if (isfield(handles, 'deflation_level'))
+		deflation_level = handles.deflation_level;
+	elseif (isfield(handles, 'path_data'))
+		try
+			prf = load([handles.path_data 'mirone_pref.mat']);
+			if (isfield(prf, 'deflation_level')),	deflation_level = prf.deflation_level;	end
+		catch
+			mir_dirs = getappdata(0,'MIRONE_DIRS');
+			if (~isempty(mir_dirs))
+				home_dir = mir_dirs.home_dir;
+				path_data = [home_dir filesep 'data' filesep];
+				try
+					prf = load([path_data 'mirone_pref.mat']);
+					if (isfield(prf, 'deflation_level')),	deflation_level = prf.deflation_level;	end
+				end
+			end
+		end
 	end
