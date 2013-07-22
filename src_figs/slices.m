@@ -209,8 +209,8 @@ function push_inputName_CB(hObject, handles, opt)
 
 	% Check if it's a netCDF file before decide what to do
 	fid = fopen(handles.fname, 'r');
-	ID = fread(fid,3,'*char');      ID = ID';      fclose(fid);
-	if (strcmpi(ID,'CDF') || strcmpi(ID,'HDF') )
+	ID = fread(fid,4,'*char');      ID = ID';      fclose(fid);
+	if (strncmpi(ID,'CDF',3) || strncmpi(ID,'HDF',3)  || strcmpi(ID(2:4),'HDF'))
 		s = nc_funs('info',handles.fname);
 	else			% Some other format. Get it opened with gdalread in aqua_suppfuns
 		warndlg('This file is not netCDF. Expect troubles.','WarnError')
