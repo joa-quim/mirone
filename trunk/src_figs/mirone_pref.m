@@ -1,7 +1,7 @@
 function varargout = mirone_pref(varargin)
 % Helper window to select some importat defaults
 
-%	Copyright (c) 2004-2012 by J. Luis
+%	Copyright (c) 2004-2013 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -31,27 +31,29 @@ function varargout = mirone_pref(varargin)
 	% of the mirone_pref.mat from recent ML versions (will TMW ever stop bugging the past?)
 	try
 		prf = load([handMir.path_data 'mirone_pref.mat']);
-		handles.geog = prf.geog;		% Just to not be empty.
+		handles.geog = prf.geog;			% Just to not be empty.
 		handles.flederPlanar = prf.flederPlanar;
 		handles.flederBurn = prf.flederBurn;
 		handles.whichFleder = prf.whichFleder;	% whichFleder = 1 for the free iview3d or 0 for the true thing (fledermaus)
 		handles.moveDoubleClick = prf.moveDoubleClick;
 		directory_list = prf.directory_list;
 		DefineEllipsoide = prf.DefineEllipsoide;
+		handles.bg_color = prf.nanColor;
 		try
-			handles.bg_color = prf.nanColor;	% Wrap it into a try while in probation period
+			handles.deflation_level = prf.deflation_level;	% Wrap it into a try while in probation period
 		catch
-			handles.bg_color = [1 1 1];
+			handles.deflation_level = 0;
 		end
 	catch
 		handles.moveDoubleClick = 1;% 		"
 		handles.flederPlanar = 1;	%		"
 		handles.flederBurn = 1;
 		handles.whichFleder = 1;
-		handMir.grdMaxSize = 524288000;		% 500 Mb
+		handMir.grdMaxSize = 1048576000;	% 1000 Mb
 		directory_list = [];
 		DefineEllipsoide = [];
 		handles.bg_color = [1 1 1];			% Default is white, but should be update by mirone_pref contents
+		handles.deflation_level = 0;		% Default to classic netCDF
 		% We need also to create an empty pref file that will be updated by push_OK_CB
 		version7 = version;
 		V7 = (sscanf(version7(1),'%f') > 6);
@@ -111,12 +113,13 @@ function varargout = mirone_pref(varargin)
     set(handles.edit_swathRatio,'String',sprintf('%g',handMir.swathRatio))
     set(handles.checkbox_ForceInsitu,'Value',handMir.ForceInsitu)
 	set(handles.check_movePolyg,'Val',handles.moveDoubleClick)
+	set(handles.popup_deflation, 'Val', handles.deflation_level+1)		% First is 0
     handles.ForceInsitu = handMir.ForceInsitu;
 
 	% Well this is split from the above because it was written later and I don't want to mess
 	% with what is working. Wrap in a try-catch because the first time the variables are not
 	% yet in mirone_pref.mat
-	try     % Goes here all other times
+	try			% Goes here all other times
         set(handles.popup_DefLineThickness,'String',prf.DefLineThick)
         set(handles.popup_DefLineColor,'String',prf.DefLineColor)
         set(handles.popup_MeasureUnites,'String',prf.DefineMeasureUnit)
@@ -427,6 +430,8 @@ function push_OK_CB(hObject, handles)
 	handles.handMir.flederPlanar = handles.flederPlanar;		flederPlanar = handles.flederPlanar;
 	handles.handMir.flederBurn = handles.flederBurn;			flederBurn = handles.flederBurn;
 	handles.handMir.whichFleder = handles.whichFleder;			whichFleder = handles.whichFleder;
+	deflation_level = get(handles.popup_deflation, 'val') - 1;
+	handles.handMir.deflation_level = deflation_level;
 	% Decode the line thickness string into a number
 	handles.handMir.DefLineThick = str2double(DefLineThick{1}(1));
 	% Decode the line color string into the corresponding char (e.g. k,w, etc...)
@@ -482,11 +487,13 @@ function push_OK_CB(hObject, handles)
 	if (~V7)                  % R <= 13
 		save(fname,'geog','grdMaxSize','swathRatio','directory_list','DefLineThick','DefLineColor',...
 			'DefineMeasureUnit','DefineEllipsoide','DefineEllipsoide_params', 'scale2meanLat',...
-			'flederPlanar', 'flederBurn', 'whichFleder', 'moveDoubleClick', 'nanColor', '-append')
+			'flederPlanar', 'flederBurn', 'whichFleder', 'moveDoubleClick', 'nanColor', 'deflation_level', ...
+			'-append')
 	else
 		save(fname,'geog','grdMaxSize','swathRatio','directory_list','DefLineThick','DefLineColor',...
 			'DefineMeasureUnit','DefineEllipsoide','DefineEllipsoide_params', 'scale2meanLat',...
-			'flederPlanar', 'flederBurn', 'whichFleder', 'moveDoubleClick', 'nanColor', '-append', '-v6')
+			'flederPlanar', 'flederBurn', 'whichFleder', 'moveDoubleClick', 'nanColor', 'deflation_level', ...
+			'-append', '-v6')
 	end
 
 	% Save the Mirone handles, on the Mirone fig obviously
@@ -977,6 +984,22 @@ uicontrol('Parent',h1,'Position',[200 240 28 15],...
 'UserData','more',...
 'Tag','text_proxyPort');
 
+uicontrol('Parent',h1, 'Position',[214 157 44 22],...
+'BackgroundColor',[1 1 1],...
+'String',{'0'; '1'; '2'; '3'; '4'; '5'; '6'; '7'; '8'; '9'},...
+'Style','popupmenu',...
+'TooltipString','Deflation level for netCDF-4 files (0 means classic). ',...
+'Value',1,...
+'UserData','more',...
+'Tag','popup_deflation');
+
+uicontrol('Parent',h1, 'Position',[19 159 194 20],...
+'FontSize',10,...
+'HorizontalAlignment','left',...
+'String','Deflation level (forces netCDF-4)',...
+'Style','text',...
+'UserData','more',...
+'Tag','text_Deflation');
 
 function mirone_pref_uiCB(hObject, eventdata, h1, callback_name)
 % This function is executed by the callback and than the handles is allways updated.
