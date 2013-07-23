@@ -1713,7 +1713,7 @@ function nc_attput_while_open ( ncid, varname, attribute_name, attval )
 		[varid, status] = mexnc ( 'inq_varid', ncid, varname );
 		if ( status ~= 0 )
 			mexnc ( 'close', ncid );
-			snc_error ( 'NC_FUNS:NC_ATTGET:MEXNC:INQ_VARID', mexnc('STRERROR', status) );
+			snc_error ( 'NC_FUNS:NC_ATTPUT_WHILE_OPEN:MEXNC:INQ_VARID', mexnc('STRERROR', status) );
 		end
 	end
 
@@ -1743,13 +1743,13 @@ function nc_attput_while_open ( ncid, varname, attribute_name, attval )
 			atttype = nc_char;
 		otherwise
 			msg = sprintf ('attribute class %s is not handled by %s', class(attval), mfilename );
-			snc_error ( 'NC_FUNS:NC_ATTGET:unhandleDatatype', msg );
+			snc_error ( 'NC_FUNS:NC_ATTPUT_WHILE_OPEN:unhandleDatatype', msg );
 	end
 
 	status = mexnc ( funcstr, ncid, varid, attribute_name, atttype, length(attval), attval);
 	if ( status ~= 0 )
 		mexnc ( 'close', ncid );
-		snc_error ( ['NC_FUNS:NC_ATTGET:MEXNC:' upper(funcstr)], mexnc('STRERROR', status) );
+		snc_error ( ['NC_FUNS:NC_ATTPUT_WHILE_OPEN:MEXNC:' upper(funcstr)], mexnc('STRERROR', status) );
 	end
 
 % ---------------------------------------------------------------------------------------------------
@@ -1769,14 +1769,14 @@ snc_nargoutchk(0,0,nargout);
 
 [ncid, status] = mexnc( 'open', ncfile, nc_write_mode );
 if  status ~= 0 
-	snc_error ( 'NC_FUNS:NC_ATTGET:MEXNC:badFile', mexnc('STRERROR', status) );
+	snc_error ( 'NC_FUNS:NC_ATTPUT:MEXNC:badFile', mexnc('STRERROR', status) );
 end
 
 % Put into define mode.
 status = mexnc ( 'redef', ncid );
 if ( status ~= 0 )
 	mexnc ( 'close', ncid );
-	snc_error ( 'NC_FUNS:NC_ATTGET:MEXNC:REDEF', mexnc('STRERROR', status) );
+	snc_error ( 'NC_FUNS:NC_ATTPUT:MEXNC:REDEF', mexnc('STRERROR', status) );
 end
 
 if isnumeric(varname)
@@ -1785,7 +1785,7 @@ else
 	[varid, status] = mexnc ( 'inq_varid', ncid, varname );
 	if ( status ~= 0 )
 		mexnc ( 'close', ncid );
-		snc_error ( 'NC_FUNS:NC_ATTGET:MEXNC:INQ_VARID', mexnc('STRERROR', status) );
+		snc_error ( 'NC_FUNS:NC_ATTPUT:MEXNC:INQ_VARID', mexnc('STRERROR', status) );
 	end
 end
 
@@ -1815,25 +1815,25 @@ switch class(attval)
 		atttype = nc_char;
 	otherwise
 		msg = sprintf ('attribute class %s is not handled by %s', class(attval), mfilename );
-		snc_error ( 'NC_FUNS:NC_ATTGET:unhandleDatatype', msg );
+		snc_error ( 'NC_FUNS:NC_ATTPUT:unhandleDatatype', msg );
 end
 
 status = mexnc ( funcstr, ncid, varid, attribute_name, atttype, length(attval), attval);
 if ( status ~= 0 )
 	mexnc ( 'close', ncid );
-	snc_error ( ['NC_FUNS:NC_ATTGET:MEXNC:' upper(funcstr)], mexnc('STRERROR', status) );
+	snc_error ( ['NC_FUNS:NC_ATTPUT:MEXNC:' upper(funcstr)], mexnc('STRERROR', status) );
 end
 
 % End define mode.
 status = mexnc ( 'enddef', ncid );
 if ( status ~= 0 )
 	mexnc ( 'close', ncid );
-	snc_error ( 'NC_FUNS:NC_ATTGET:MEXNC:ENDDEF', mexnc('STRERROR', status) );
+	snc_error ( 'NC_FUNS:NC_ATTPUT:MEXNC:ENDDEF', mexnc('STRERROR', status) );
 end
 
 status = mexnc('close',ncid);
 if ( status ~= 0 )
-	snc_error ( 'NC_FUNS:NC_ATTGET:MEXNC:CLOSE', mexnc('STRERROR', status) );
+	snc_error ( 'NC_FUNS:NC_ATTPUT:MEXNC:CLOSE', mexnc('STRERROR', status) );
 end
 
 %--------------------------------------------------------------------------------------
