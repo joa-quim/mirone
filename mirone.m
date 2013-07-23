@@ -127,6 +127,7 @@ function hObject = mirone_OpeningFcn(varargin)
 	handles.withSliders = true; % Set Zoom sliders
 	handles.validGrid = 0;		%
 	handles.nLayers = 1;		% If > 1 after reading a netCDF file call aquamoto
+	handles.deflation_level = 0;% If > 0 will create compressed netCDF-4 files
 
 	try							% A file named mirone_pref.mat contains the preferences, read them from it
 		prf = load([handles.path_data 'mirone_pref.mat']);
@@ -151,6 +152,7 @@ function hObject = mirone_OpeningFcn(varargin)
 			setappdata(handles.axes1,'MovPolyg','extend')	% Move lines with a Shift-click drag-n-drop
 		end
 		handles.bg_color = prf.nanColor;
+		handles.deflation_level = prf.deflation_level;
 	catch
 		% Tell mirone_pref to write up the defaults.
 		mirone_pref(handles,'nikles')
