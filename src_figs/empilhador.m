@@ -170,7 +170,7 @@ function push_namesList_CB(hObject, handles, opt)
 		handles.OneByOneFirst = true;					% Repetitive but ensures that things are always updated
 		guidata(handles.figure1, handles)
 		return
-    end
+	end
 
 	fid = fopen(fname);
 	c = fread(fid,'*char')';      fclose(fid);
