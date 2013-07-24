@@ -257,6 +257,18 @@ function write_nc(fname, handles, data, misc, page)
 	% variable is created and thus avoid the BAD netCDF 187 bug that ends up in a crash.
 	n = 0;
 	if (~isempty(no_val))
+		if (isnan(no_val) && varstruct.Nctype == 5)		% The following chunk it's because TMW is so shameless that
+			try											% that for the ML compiler (the TRUE compiler)
+				IamCompiled = handles.IamCompiled;		% class(single(NaN)) = double
+			catch
+				try			s.s = which('mirone');		IamCompiled = false;
+				catch,		IamCompiled = true;
+				end
+			end
+			if (IamCompiled)	% OK here we have it all fucked because it's a double NaN, which is unaceptable
+				no_val = alloc_mex(1,1,'single',nan);
+			end
+		end
 		varstruct.Attribute(1).Name = '_FillValue';
 		varstruct.Attribute(1).Value = no_val;
 		n = n + 1;
