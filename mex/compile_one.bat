@@ -1,7 +1,7 @@
 @echo off
 REM --------------------------------------------------------------------------------------
 REM
-REM	$Id:
+REM	$Id :
 REM
 REM This is a compile batch that builds one of the MEXs whose source code is distributed in Mirone
 REM A major difficulty in using this comes from the fact that several external libraries are needed.
@@ -32,10 +32,10 @@ SET CC=cl
 REM --------------------------------------------------------------------------------------
 
 REM If set to "yes", linkage is done againsts ML6.5 Libs (needed in compiled version)
-SET R13="no"
+SET R13="yes"
 
 REM Set it to 32 or 64 to build under 64-bits or 32-bits respectively.
-SET BITS=64
+SET BITS=32
 
 IF %R13%=="yes" SET BITS=32
 
@@ -86,7 +86,7 @@ SET _MX_COMPAT=-DMX_COMPAT_32
 REM -------------- Set up libraries here -------------------------------------------------
 IF %BITS%==64 (
 
-SET  NETCDF_LIB=C:\programs\compa_libs\netcdf-4.2.1.1\compileds\VC10_64\lib\netcdf.lib
+SET  NETCDF_LIB=C:\programs\compa_libs\netcdf\compileds\VC10_64\lib\netcdf.lib
 SET     GMT_LIB=c:\progs_cygw\GMTdev\gmt4\WIN64\lib\gmt.lib
 SET GMT_MGG_LIB=c:\progs_cygw\GMTdev\gmt4\WIN64\lib\gmt_mgg.lib
 SET    GDAL_LIB=c:\programs\GDALtrunk\gdal\compileds\VC10_64\lib\gdal_i.lib
@@ -102,7 +102,7 @@ SET LASZLIB_LIB=C:\programs\compa_libs\lastools\compileds\VC10_64\lib\laslib_i.l
 
 ) ELSE (
 
-SET  NETCDF_LIB=C:\programs\compa_libs\netcdf-4.2.1.1\compileds\VC10_32\lib\netcdf.lib
+SET  NETCDF_LIB=C:\programs\compa_libs\netcdf\compileds\VC10_32\lib\netcdf.lib
 SET     GMT_LIB=c:\progs_cygw\GMTdev\gmt4\WIN32\lib\gmt.lib
 SET GMT_MGG_LIB=c:\progs_cygw\GMTdev\gmt4\WIN32\lib\gmt_mgg.lib
 SET    GDAL_LIB=c:\programs\GDALtrunk\gdal\compileds\VC10_32\lib\gdal_i.lib
@@ -118,7 +118,7 @@ SET LASZLIB_LIB=C:\programs\compa_libs\lastools\compileds\VC10_32\lib\laslib_i.l
 
 )
 
-SET  NETCDF_INC=C:\programs\compa_libs\netcdf-4.2.1.1\compileds\VC10_32\include
+SET  NETCDF_INC=C:\programs\compa_libs\netcdf\compileds\VC10_32\include
 SET     GMT_INC=c:\progs_cygw\GMTdev\GMT4\include
 REM SET GMT_INC=c:\progs_cygw\GMTdev\GMT5\include
 SET    GMT_INC2=C:\progs_cygw\GMTdev\GMT5\src\mex
