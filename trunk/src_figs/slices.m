@@ -578,19 +578,21 @@ function push_compute_CB(hObject, handles)
 		fprintf(fid,'# The ''Ncells'' variable\n%s\n',get(handles.edit_nCells,'Str'));
 		fprintf(fid,'# Not used here but need to set as empty\n[]\n');
 		fprintf(fid,'# The ''spline'' var (logical or 1x2 vector). To compute spline interpolate the missing values\n');
-		if (get(handles.check_integDim,'Var'))
+		if (get(handles.check_integDim,'Val'))
 			if (strcmp(get(handles.edit_subSetA,'Str'),'0') && strcmp(get(handles.edit_subSetB,'Str'),'0'))
 				fprintf(fid,'1\n');
 			else
 				fprintf(fid,sprintf('[%s %s]\n',get(handles.edit_subSetA,'Str'), get(handles.edit_subSetB,'Str')));
 			end
+		else
+			fprintf(fid,'0\n');
 		end
 		fprintf(fid,'# The ''What'' variable that controls what statistic to compute\n');
 		valW = get(handles.popup_what,'Val');		str = get(handles.popup_what,'Str');
 		switch (str{valW})
-			case MEAN,		fprintf(fid,'0\n');
-			case MIN,		fprintf(fid,'1\n');
-			case MAX,		fprintf(fid,'2\n');
+			case 'MEAN',	fprintf(fid,'0\n');
+			case 'MIN',		fprintf(fid,'1\n');
+			case 'MAX',		fprintf(fid,'2\n');
 			otherwise,		fprintf(fid,'0\n');
 		end
 		comm = '# Name of a file with Lon,Lat locations where to output the entire time series';
@@ -604,11 +606,11 @@ function push_compute_CB(hObject, handles)
 		fprintf(fid,'# The ''What'' variable that controls what statistic to compute\n');
 		valW = get(handles.popup_what,'Val');		str = get(handles.popup_what,'Str');
 		switch (str{valW})
-			case MEAN,		fprintf(fid,'mean\n');
-			case MEDIAN,	fprintf(fid,'median\n');
-			case MIN,		fprintf(fid,'min\n');
-			case MAX,		fprintf(fid,'max\n');
-			case STD,		fprintf(fid,'std\n');
+			case 'MEAN',	fprintf(fid,'mean\n');
+			case 'MEDIAN',	fprintf(fid,'median\n');
+			case 'MIN',		fprintf(fid,'min\n');
+			case 'MAX',		fprintf(fid,'max\n');
+			case 'STD',		fprintf(fid,'std\n');
 			otherwise,		fprintf(fid,'mean\n');
 		end
 		comm = '# The ''fnamepolys'' var - File name of a x,y polygon or a list of polygons. Empty = fish polys from fig';
@@ -623,11 +625,11 @@ function push_compute_CB(hObject, handles)
 		helper_writeFile(handles, fid, comm, 'periods')
 		valW = get(handles.popup_what,'Val');		str = get(handles.popup_what,'Str');
 		switch (str{valW})
-			case MEAN,		fprintf(fid,'0\n');
-			case MEDIAN,	fprintf(fid,'0\n');
-			case MIN,		fprintf(fid,'1\n');
-			case MAX,		fprintf(fid,'2\n');
-			case STD,		fprintf(fid,'0\n');
+			case 'MEAN',	fprintf(fid,'0\n');
+			case 'MEDIAN',	fprintf(fid,'0\n');
+			case 'MIN',		fprintf(fid,'1\n');
+			case 'MAX',		fprintf(fid,'2\n');
+			case 'STD',		fprintf(fid,'0\n');
 			otherwise,		fprintf(fid,'0\n');
 		end
 		comm = '# A 2 elements vector with the MIN and MAX values allowed on the Z function (default [0 inf])';
