@@ -32,7 +32,7 @@ REM Set it to 32 or 64 to build under 64-bits or 32-bits respectively.
 SET BITS=64
 
 REM Set to "yes" if you want to build a debug version
-SET DEBUG="no"
+SET DEBUG="0"
 
 REM --------- Most of times changes STOP here (but you may need to setup things bellow) --
 REM --------------------------------------------------------------------------------------
@@ -79,7 +79,7 @@ SET MEX_EXT="mexw32"
 REM -------------- Set up libraries here -------------------------------------------------
 IF %BITS%==64 (
 
-SET  NETCDF_LIB=C:\programs\compa_libs\netcdf-4.1.3\compileds\VC10_64\lib\netcdf.lib
+SET  NETCDF_LIB=C:\programs\compa_libs\netcdf\compileds\VC10_64\lib\netcdf.lib
 SET     GMT_LIB=c:\progs_cygw\GMTdev\gmt4\WIN64\lib\gmt.lib
 SET GMT_MGG_LIB=c:\progs_cygw\GMTdev\gmt4\WIN64\lib\gmt_mgg.lib
 SET  CXCORE_LIB=C:\programs\compa_libs\opencv\compileds\VC10_64\lib\opencv_core.lib
@@ -94,7 +94,7 @@ SET LASZLIB_LIB=C:\programs\compa_libs\lastools\compileds\VC10_64\lib\laslib_i.l
 
 ) ELSE (
 
-SET  NETCDF_LIB=C:\programs\compa_libs\netcdf-4.1.3\compileds\VC10_32\lib\netcdf.lib
+SET  NETCDF_LIB=C:\programs\compa_libs\netcdf\compileds\VC10_32\lib\netcdf.lib
 SET     GMT_LIB=c:\progs_cygw\GMTdev\gmt4\WIN32\lib\gmt.lib
 SET GMT_MGG_LIB=c:\progs_cygw\GMTdev\gmt4\WIN32\lib\gmt_mgg.lib
 SET    GDAL_LIB=c:\programs\GDALtrunk\gdal\compileds\VC10_32\lib4mex\gdal_i.lib
@@ -110,7 +110,7 @@ SET LASZLIB_LIB=C:\programs\compa_libs\lastools\compileds\VC10_32\lib\laslib_i.l
 
 )
 
-SET  NETCDF_INC=C:\programs\compa_libs\netcdf-4.1.3\compileds\VC10_32\include
+SET  NETCDF_INC=C:\programs\compa_libs\netcdf\compileds\VC10_32\include
 SET     GMT_INC=c:\progs_cygw\GMTdev\gmt4\include
 SET    GDAL_INC=c:\programs\GDALtrunk\gdal\compileds\VC10_32\include
 SET      CV_INC=C:\programs\compa_libs\opencv\compileds\VC10_32\include
