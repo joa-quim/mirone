@@ -709,7 +709,7 @@ function calc_yearMean(handles, months, fname2, flag, nCells, fname3, splina, ti
 
 	if (nargin >= 6 && ~isempty(fname3)),		track_filled = true;	end		% Keep track of interpolated nodes
 
-	if (nargin >= 3)			% We have a quality-flag ghost file to check
+	if (nargin >= 3 && ~isempty(fname2))				% We have a quality-flag ghost file to check
 		[s_flags, z_id_flags, msg] = checkFlags_compat(fname2, handles.number_of_timesteps, rows, cols);
 		if (~isempty(msg))	errordlg(msg, 'Error'),		return,		end
 		if (nargin == 3),	nCells = 0;		flag = 7;	end			% If not provided, defaults to best quality
@@ -762,7 +762,21 @@ function calc_yearMean(handles, months, fname2, flag, nCells, fname3, splina, ti
 	end
 
 	handles.geog = 1;		handles.was_int16 = 0;		handles.computed_grid = 0;
-	n_anos = handles.number_of_timesteps / 12;
+
+	if (rem(handles.number_of_timesteps, 12) == 0)
+		n_anos = handles.number_of_timesteps / 12;
+	else
+		n_anos = 1;		% TEMPORARY	FOR COMPUTING YEARLY MEANS FROM DAILY DATA --- NON SECURED AND NON DOCUMENTED
+	end
+
+	% Take care of the case when output file has no extension
+	[p,f,e] = fileparts(grd_out);
+	if (isempty(e))
+		if (n_anos == 1),	e = '.grd';
+		else				e = '.nc';
+		end
+		grd_out = [p f e];
+	end
 
 	if (splina)
 		n_pad_months = 7;		% Example: if months = 7:9 interpolation domain is 7-n_pad_months-1:9+n_pad_months
@@ -864,7 +878,7 @@ function calc_yearMean(handles, months, fname2, flag, nCells, fname3, splina, ti
 			else			first_wanted_month = n_pad_months + 1;
 			end
 			last_wanted_month = first_wanted_month + numel(months) - 1;
-			
+
 			yy = zeros(1, n_meses)';				% A kind of pre-allocation to be used by the akimaspline MEX
 
 			% ----------- Test if we are saving time series in array for later saving ----------------------
@@ -935,14 +949,25 @@ function calc_yearMean(handles, months, fname2, flag, nCells, fname3, splina, ti
 % 		tmp(difa > 0.75) = NaN;					% 0.75 is probably still too permissive
 
 		% Write this layer to file
-		if (m == 1),		nc_io(grd_out, sprintf('w%d/time',n_anos), handles, reshape(tmp,[1 size(tmp)]))
-		else				nc_io(grd_out, sprintf('w%d', m-1), handles, tmp)
+		if (m == 1)
+			if (n_anos == 1)		% If one single layer don't make it 3D
+				% Defaults and srsWKT fishing are set in nc_io
+				misc = struct('x_units',[],'y_units',[],'z_units',[],'z_name',[],'desc',[], ...
+					'title','Yearly or Seazonal average','history',[],'srsWKT',[], 'strPROJ4',[]);
+				zz = grdutils(tmp,'-L');
+				handles.head(5:6) = [double(zz(1)) double(zz(2))];
+				nc_io(grd_out, 'w', handles, tmp, misc)
+			else
+				nc_io(grd_out, sprintf('w%d/time',n_anos), handles, reshape(tmp,[1 size(tmp)]))
+			end
+		else
+			nc_io(grd_out, sprintf('w%d', m-1), handles, tmp)
 		end
 
 		h = aguentabar(m/n_anos,'title','Computing annual means.');	drawnow
 		if (isnan(h)),	break,	end
 
-		if (~splina),	cvlib_mex('mul', Tmed, 0.0);	end			% Reset it to zeros
+		if (~splina && m < n_anos),		cvlib_mex('CvtScale', Tmed, 0.0, 0.0);	end			% Reset it to zeros
 	end
 
 	if (do_saveSeries)			% Save the time series file. The name is build from that of locations file
