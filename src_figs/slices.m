@@ -19,6 +19,8 @@ function varargout = slices(varargin)
 % $Id$
 
 % For compiling one need to include the aqua_suppfuns.m aquaPlugin.m files.
+% Do not worrie acout the -- "illumByType" will produce a run-time error --
+% because the block where it occurs is a inheritage of aquamoto and is not executed
 
 	hObject = figure('Tag','figure1','Visible','off');
 	slices_LayoutFcn(hObject);
