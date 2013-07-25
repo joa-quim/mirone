@@ -763,7 +763,7 @@ function calc_yearMean(handles, months, fname2, flag, nCells, fname3, splina, ti
 
 	handles.geog = 1;		handles.was_int16 = 0;		handles.computed_grid = 0;
 
-	if (rem(handles.number_of_timesteps, 12) == 0)
+	if (rem(handles.number_of_timesteps, 12) == 0 && handles.number_of_timesteps < 336)	% SHIT
 		n_anos = handles.number_of_timesteps / 12;
 	else
 		n_anos = 1;		% TEMPORARY	FOR COMPUTING YEARLY MEANS FROM DAILY DATA --- NON SECURED AND NON DOCUMENTED
@@ -861,6 +861,10 @@ function calc_yearMean(handles, months, fname2, flag, nCells, fname3, splina, ti
 				cvlib_mex('add', Tmed, double(Z));
 			else						% Pack this year into a 3D temporary variable, to be processed later.
  				if (~already_processed),	ZtoSpline(:,:,counter) = Z;		end
+			end
+
+			if (n_anos == 1 && numel(this_months) > 12)	% For the secret daily data case
+				aguentabar(n / (numel(this_months) + 1)),		drawnow
 			end
 		end								% End loop over months
 		last_processed_month = this_months(end);
