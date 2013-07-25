@@ -455,16 +455,13 @@ function [X,Y,Z,head,misc] = read_nc(fname, opt)
 			end
 			Z = nc_funs('varget', fname, s.Dataset(z_id).Name, zeros(1,nD), [ones(1,nD-2) s.Dataset(z_id).Size(end-1:end)]);
 		end
+		if (nD == 3 && z_dim(1) == 1)
+			z_dim = z_dim(2:3);	% Remove singleton
+		end
 	else
 		misc.z_id = z_id;		% Return the z_id so that we don't have to repeat the fishing process
 	end
 	
-	if (size(Z,3) == 1 && numel(z_dim) == 3)
-		if (z_dim(1) ~= 1)
-			error('NC_IO:READ_NC', '2D array with 3 dimensions and first is not singleton')
-		end
-		z_dim = z_dim(2:3);
-	end
 	misc.z_dim = z_dim;			% Use this if calling code needs to know number of layers
 	nx = z_dim(end);		ny = z_dim(end-1);
 
