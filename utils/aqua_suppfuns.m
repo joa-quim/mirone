@@ -1,7 +1,7 @@
 function varargout = aqua_suppfuns(opt, varargin)
 % Supplement functions to allow using Aquamoto with plain netCDF coards grids
 
-%	Copyright (c) 2004-2012 by J. Luis
+%	Copyright (c) 2004-2013 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -26,11 +26,17 @@ function varargout = aqua_suppfuns(opt, varargin)
 	end
 
 % --------------------------------------------------------------------------
-function out = init_header_params(handles,X,Y,head,misc)
+function out = init_header_params(handles,X,Y,head,misc,getAllMinMax)
 % Use the OUT option when using this function to get several usefull info 
-% about the netCDF file but NOT using a GUI
+% about the netCDF file but NOT using a GUI.
+%
+% The 'getAllMinMax' when set to TRUE (or not provided) will can the entire file to
+% compute all individual layers 'actual_range'. However, this may slow quite a bit the
+% loading of big files and apparently is not very used/useful because most of the time
+% is spent loading the layer and the min/max computation is extremely fast.
 
-	handles.x = X;			handles.y = Y;
+if (nargin < 6),		getAllMinMax = true;		end
+	handles.x = X;		handles.y = Y;
 	handles.time = [];
 	handles.number_of_timesteps = misc.z_dim(1);		% ... NEEDS THINKING
 	
@@ -54,21 +60,27 @@ function out = init_header_params(handles,X,Y,head,misc)
 
 	% ------ Compute individual and global min/maxs ----------------------------------
 	handles.zMinMaxs = zeros(handles.number_of_timesteps,2);
-	aguentabar(0,'title','Computing global min/max')
-	for (k = 1:handles.number_of_timesteps)
-		Z = nc_funs('varget', handles.fname, s.Dataset(misc.z_id).Name, [(k-1) 0 0], [1 s.Dataset(misc.z_id).Size(end-1:end)]);
-		if ( isa(Z, 'single') )			% min/max are bugged when NaNs in singles
-			zz = grdutils(Z,'-L');
-			handles.zMinMaxs(k,:) = [zz(1) zz(2)];
-		else
-			handles.zMinMaxs(k,:) = [double(min(Z(:))) double(max(Z(:)))];
+	if (getAllMinMax)
+		aguentabar(0,'title','Computing global min/max')
+		for (k = 1:handles.number_of_timesteps)
+			Z = nc_funs('varget', handles.fname, s.Dataset(misc.z_id).Name, [(k-1) 0 0], [1 s.Dataset(misc.z_id).Size(end-1:end)]);
+			if ( isa(Z, 'single') )			% min/max are bugged when NaNs in singles
+				zz = grdutils(Z,'-L');
+				handles.zMinMaxs(k,:) = [zz(1) zz(2)];
+			else
+				handles.zMinMaxs(k,:) = [double(min(Z(:))) double(max(Z(:)))];
+			end
+			aguentabar(k/handles.number_of_timesteps);
 		end
-		aguentabar(k/handles.number_of_timesteps);
+		handles.zMinMaxsGlobal = [min(handles.zMinMaxs(:,1)) max(handles.zMinMaxs(:,2))];
+		head(5:6) = handles.zMinMaxs(1,:);			% Take the first slice min/max
+	else
+		ind = strcmp({s.Dataset(misc.z_id).Attribute.Name},'actual_range');
+		handles.zMinMaxsGlobal = s.Dataset(misc.z_id).Attribute(ind).Value;
+		head(5:6) = handles.zMinMaxsGlobal;
 	end
-	handles.zMinMaxsGlobal = [min(handles.zMinMaxs(:,1)) max(handles.zMinMaxs(:,2))];
 	handles.minWater = handles.zMinMaxsGlobal(1);
 	handles.maxWater = handles.zMinMaxsGlobal(2);
-	head(5:6) = handles.zMinMaxs(1,:);				% Take the first slice min/max
 	handles.geog = aux_funs('guessGeog',head(1:4));
 	% ---------------------------------------------------------------------------------
 
@@ -78,7 +90,7 @@ function out = init_header_params(handles,X,Y,head,misc)
 	handles.imgBat = [];
 	handles.netcdf_z_id = misc.z_id;
 	handles.is_coards = true;
-	
+
 	% -------------------- See if we have a projection ----------------------------------
 	if (~isempty(misc.strPROJ4)),	handles.strPROJ4 = misc.strPROJ4;
 	else							handles.strPROJ4 = [];
