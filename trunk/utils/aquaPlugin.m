@@ -736,7 +736,7 @@ function calc_yearMean(handles, months, fname2, flag, nCells, fname3, splina, ti
 			end
 		end
 	end
-	if (nargin < 10)	% Note: old and simple CASE 3 in main cannot send here the output name 
+	if (nargin < 10 || isempty(grd_out))	% Note: old and simple CASE 3 in main cannot send here the output name 
 		txt1 = 'netCDF grid format (*.nc,*.grd)';	txt2 = 'Select output netCDF grid';
 		[FileName,PathName] = put_or_get_file(handles,{'*.nc;*.grd',txt1; '*.*', 'All Files (*.*)'},txt2,'put','.nc');
 		if isequal(FileName,0),		return,		end
