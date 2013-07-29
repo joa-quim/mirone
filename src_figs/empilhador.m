@@ -1105,7 +1105,7 @@ function [Z, have_nans, att] = getZ(fname, att, is_modis, is_linear, is_log, slo
 		IamCompiled = handles.IamCompiled;
 	else
 		% Need to know if "IamCompiled". Since that info is in handles, we need to find it out here
-		if (isfield(handles, 'IamCompiled'))
+		if (nargin == 10 && isfield(handles, 'IamCompiled'))
 			IamCompiled = handles.IamCompiled;
 		else
 			try			which('mirone');			IamCompiled = false;
@@ -1129,7 +1129,7 @@ function [Z, have_nans, att] = getZ(fname, att, is_modis, is_linear, is_log, slo
 
 	[Z, att, known_coords, have_nans] = read_gdal(fname, att, IamCompiled, IamInteractive, '-C', opt_R, '-U');
 
-	if (~isempty(handles.SDSflag))
+	if (nargin == 10 && ~isempty(handles.SDSflag))
 		ind = strfind(fname, ':');
 		flag_fname = [fname(1:ind(end)) handles.SDSflag];
 		att_flag = gdalread(flag_fname, '-M');
