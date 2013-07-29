@@ -234,7 +234,7 @@ function push_inputName_CB(hObject, handles, opt)
 			return
 		end
 		handles.nc_info = s;		% Save the nc file info
-		handles = aqua_suppfuns('coards_hdr',handles,X,Y,head,misc);
+		handles = aqua_suppfuns('coards_hdr',handles,X,Y,head,misc,false);
 		st = [1 10] / (handles.number_of_timesteps - 1);
 		set(handles.slider_layer,'Min',1,'Max',handles.number_of_timesteps,'Val',1,'SliderStep',st) 
 		guidata(handles.figure1, handles)
@@ -379,7 +379,15 @@ function edit_subSetB_CB(hObject, handles)
 
 % -------------------------------------------------------------------------------------
 function edit_fname1_CB(hObject, handles)
-    fname = get(hObject,'String');
+	fname = get(hObject,'String');
+	pato = fileparts(fname);
+	if (isempty(pato))			% Than output file will be written to same dir as input data
+		name = get(handles.edit_inputName,'String');
+		pato = fileparts(name);
+		if (~isempty(pato))
+			fname = [pato filesep fname];
+		end
+	end
 	if (~isempty(fname)),	push_fname1_CB(handles.push_fname1, handles, fname),	end
 
 % -------------------------------------------------------------------------------------
@@ -392,7 +400,7 @@ function push_fname1_CB(hObject, handles, fname)
 
 % -------------------------------------------------------------------------------------
 function edit_fname2_CB(hObject, handles)
-    fname = get(hObject,'String');
+	fname = get(hObject,'String');
 	if (~isempty(fname)),	push_fname2_CB(handles.push_fname2, handles, fname),	end
 
 % -------------------------------------------------------------------------------------
@@ -405,7 +413,7 @@ function push_fname2_CB(hObject, handles, fname)
 
 % -------------------------------------------------------------------------------------
 function edit_fname3_CB(hObject, handles)
-    fname = get(hObject,'String');
+	fname = get(hObject,'String');
 	if (~isempty(fname)),	push_fname3_CB(handles.push_fname3, handles, fname),	end
 
 % -------------------------------------------------------------------------------------
