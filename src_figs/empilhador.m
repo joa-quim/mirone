@@ -27,7 +27,7 @@ function varargout = empilhador(varargin)
 		[varargout{1:nargout}] = feval(gui_CB,varargin{2:end});
 	else
 		h = empilhador_OF(varargin{:});
-		if (nargout)    varargout{1} = h;   end
+		if (nargout),	varargout{1} = h;   end
 	end
 
 % ---------------------------------------------------------------------------------
@@ -649,6 +649,8 @@ function cut2cdf(handles, got_R, west, east, south, north)
 		if (~isempty(EXT)),		FileName = [FileName EXT];	end		% Don't loose the eventual extension
 		if (isempty(PathName))					% If it's empty we use the path of the data files
 			PathName = [fileparts(handles.nameList{1}) filesep];
+		else
+			PathName = [PathName filesep];
 		end
 	end
 	[pato, fname, EXT] = fileparts(FileName);
@@ -705,7 +707,7 @@ function cut2cdf(handles, got_R, west, east, south, north)
 			n_rows = size(Z,1);		n_cols = size(Z,2);
 		elseif (~isequal([n_rows n_cols],[size(Z,1) size(Z,2)]))
 			warndlg(['The grid ' curr_fname ' has different size than precedents. Jumping it.'],'Warning')
-			if (~isempty(handles.uncomp_name)),		try, delete(handles.uncomp_name);	end,	end
+			if (~isempty(handles.uncomp_name)),		try		delete(handles.uncomp_name);	end,	end
 			continue
 		end
 
@@ -715,7 +717,7 @@ function cut2cdf(handles, got_R, west, east, south, north)
 
 		if (get(handles.radio_conv2vtk,'Val'))				% Write this layer of the VTK file and continue
 			write_vtk(fid, grd_out, Z);
-			if (~isempty(handles.uncomp_name)),		try, delete(handles.uncomp_name);	end,	end
+			if (~isempty(handles.uncomp_name)),		try		delete(handles.uncomp_name);	end,	end
 			continue
 		end
 		
@@ -752,7 +754,7 @@ function cut2cdf(handles, got_R, west, east, south, north)
 		end
 
 		if (isfield(handles, 'uncomp_name') && ~isempty(handles.uncomp_name))
-			try, delete(handles.uncomp_name);	end
+			try		delete(handles.uncomp_name);	end
 		end
 	end
 
@@ -1103,8 +1105,12 @@ function [Z, have_nans, att] = getZ(fname, att, is_modis, is_linear, is_log, slo
 		IamCompiled = handles.IamCompiled;
 	else
 		% Need to know if "IamCompiled". Since that info is in handles, we need to find it out here
-		try			which('mirone');			IamCompiled = false;
-		catch,		IamCompiled = true;
+		if (isfield(handles, 'IamCompiled'))
+			IamCompiled = handles.IamCompiled;
+		else
+			try			which('mirone');			IamCompiled = false;
+			catch,		IamCompiled = true;
+			end
 		end
 	end
 
@@ -1228,7 +1234,7 @@ function [Z, att, known_coords, have_nans] = read_gdal(full_name, att, IamCompil
 	if (att.RasterCount == 0 && ~isempty(att.Subdatasets) && strncmp(att.DriverShortName, 'HDF4', 4))	% Some MODIS files
 		sds_num = 1;
 		handles = guidata(gcf);
-		if (~isempty(handles.SDSinfo))		sds_num = handles.SDSthis * 2 - 1;		end		% We have a SubDataset request
+		if (~isempty(handles.SDSinfo)),		sds_num = handles.SDSthis * 2 - 1;		end		% We have a SubDataset request
 		ind = strfind(att.Subdatasets{sds_num}, '=');
 		full_name = att.Subdatasets{sds_num}(ind+1:end);				% First "ind" chars are of the form SUBDATASET_1_NAME=
 		ind = strfind(att.Subdatasets{sds_num+1}, ' ');					% Need to guess the no-data value
