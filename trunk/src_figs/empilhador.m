@@ -133,6 +133,9 @@ function push_namesList_CB(hObject, handles, opt)
 %	-G<output>
 %		Give the output file name. If no path is provided the output is written in the same
 %		directory as the data files
+%	-D<description> or -D"desc ription"
+%		A description string that will go into the global attribute 'description'.
+%		Use the quoted form if the description has more than one word.
 %
 % The above options may be combined in a single command that can be executed from the command line.
 %	Example:
@@ -182,6 +185,7 @@ function push_namesList_CB(hObject, handles, opt)
 	handles.SDSinfo = [];				% If above exists, it will be copied here
 	handles.SDSflag = [];				% For when we want to apply also a quality flag (GHRSST .nc)
 	handles.outname = [];				% For when -G<outname> is used in the header
+	handles.desc_attrib = '';			% For when -D"description" is used in the header
 	c = false(m,1);
 	caracol = false(m,1);				% Case name list has '@' to pause for a CD change
 
@@ -294,7 +298,8 @@ function push_namesList_CB(hObject, handles, opt)
 
 % -----------------------------------------------------------------------------------------
 function handles = parse_header(handles, names)
-% Check if we have a header line with any of -F<flags>, -R<region> or -G<output>
+% Check if we have a header line with any of -F<flags>, -R<region>, -G<output> or -D<description>
+% Note: -D"bla bla" is also valid
 
 	if (names{1}(1) ~= '#')			% No header
 		return
@@ -334,20 +339,29 @@ function handles = parse_header(handles, names)
 
 	ind = strfind(names{1}, '-G');	% Do we have an output filename request?
 	if (~isempty(ind))
-		t = strtok(names{1}(ind+2:end));
-		handles.outname = sscanf(t,'%s');
+		handles.outname = strtok(names{1}(ind+2:end));
 	end
 
-% -----------------------------------------------------------------------------------------
+	ind = strfind(names{1}, '-D');	% Do we have description string request?
+	if (~isempty(ind))
+		if (names{1}(ind+2) == '"')		% See if we have a description enclosed by quotes
+			ind2 = strfind(names{1}(ind+3:end), '"') + ind + 2;	% Seek for the other quote (")
+			handles.desc_attrib = names{1}(ind+3:ind2-1);
+		else
+			handles.desc_attrib = strtok(names{1}(ind+2:end));
+		end
+	end
+
+% -------------------------------------------------------------------------------------------
 function fname = check_wildcard_fname(strin)
-% Check if user gave a 'path/*.xxx ? -sdsname' on input and if yes, create a resp file
+% Check if user gave a 'path/*.xxx ? -sdsname [OPTs]' on input and if yes, create a resp file
 
 	if ( isempty(strfind(strin, '*')) )		% Normal fname input. Nothing to do here
 		fname = strin;		return
 	end
 
-	% -------------- First check if any of -F, -R or -G is also present --------------
-	opt_F = [];		opt_G = [];		opt_R = [];
+	% -------------- First check if any of -D, -F, -R or -G is also present --------------
+	opt_F = [];		opt_G = [];		opt_R = [];		opt_D = [];
 	ind = strfind(strin, '-F');
 	if (~isempty(ind))
 		[opt_F, r] = strtok(strin(ind:end));
@@ -362,6 +376,17 @@ function fname = check_wildcard_fname(strin)
 	if (~isempty(ind))
 		[opt_R, r] = strtok(strin(ind:end));
 		strin = [strin(1:ind-2) r];		% Remove the -R<...> string from input
+	end
+	ind = strfind(strin, '-D');
+	if (~isempty(ind))
+		if (strin(ind+2) == '"')		% See if we have a description enclosed by quotes
+			ind2 = strfind(strin(ind+3:end), '"') + ind + 2;	% Seek for the other quote (")
+			opt_D = strin(ind+3:ind2-1);
+			strin(ind:ind2) = [];			% Remove the -D"..." string from input
+		else
+			[opt_D, r] = strtok(strin(ind:end));
+			strin = [strin(1:ind-2) r];		% Remove the -D<...> string from input
+		end
 	end
 	% --------------------------------------------------------------------------------
 
@@ -378,8 +403,8 @@ function fname = check_wildcard_fname(strin)
 	if (fid < 0)
 		error('Fail to create the resp file in data directory. Permissions problem?')
 	end
-	if ( ~isempty(opt_F) || ~isempty(opt_G) || ~isempty(opt_R) )	% Insert eventual -F, -G or -R options
-		fprintf(fid, '# %s\n', [opt_F ' ' opt_G ' ' opt_R]);
+	if ( ~isempty(opt_F) || ~isempty(opt_G) || ~isempty(opt_R) || ~isempty(opt_D) )	% Insert -D, -F, -G or -R options
+		fprintf(fid, '# %s\n', [opt_F ' ' opt_G ' ' opt_R ' ' opt_D]);
 	end
 
 	% Here we assume that the OS returns a list already lexically sorted
@@ -672,6 +697,13 @@ function cut2cdf(handles, got_R, west, east, south, north)
 
 	if (get(handles.radio_conv2vtk,'Val')),		fid = write_vtk(handles, grd_out, 'hdr');	end
 
+	% The attributes
+	misc = struct('x_units',[],'y_units',[],'z_units',[],'z_name',[],'desc',[], ...
+		'title',[],'history',[],'srsWKT',[], 'strPROJ4',[]);
+	if (~isempty(handles.desc_attrib))
+		misc.desc = handles.desc_attrib;
+	end
+
 	nSlices = numel(handles.nameList);
 	n_cd = 1;
 	for (k = 1:nSlices)
@@ -738,7 +770,7 @@ function cut2cdf(handles, got_R, west, east, south, north)
 			else									t_val = sprintf('%d',k - 1);
 			end
 			if (k == 1)
-				nc_io(grd_out, ['w-' t_val '/time'], handles, reshape(Z,[1 size(Z)]))
+				nc_io(grd_out, ['w-' t_val '/time'], handles, reshape(Z,[1 size(Z)]), misc)
 			else
 				kk = k - n_cd;			% = k - 1 - (n_cd - 1)	We need this when we had "@ change CD" messages
 				nc_io(grd_out, sprintf('w%d\\%s', kk, t_val), handles, Z)
@@ -746,7 +778,7 @@ function cut2cdf(handles, got_R, west, east, south, north)
 		else
 			if (k == 1)
 				handles.levelVec = str2double(handles.strTimes);
-     			nc_io(grd_out,sprintf('w%d/time',nSlices), handles, reshape(Z,[1 size(Z)]))
+     			nc_io(grd_out,sprintf('w%d/time',nSlices), handles, reshape(Z,[1 size(Z)]), misc)
 			else
 				kk = k - n_cd;			% = k - 1 - (n_cd - 1)	We need this when we had "@ change CD" messages
 				nc_io(grd_out, sprintf('w%d', kk), handles, Z)
