@@ -309,9 +309,12 @@ function popup_cases_CB(hObject, handles)
 	end
 
 	% Exceptions
-	str1 = 'Integration in longitude';
-	if (val ~= 1),		str1 = 'Spline interpolation';		end
-	set(handles.check_integDim, 'Str', str1)
+	if (val ~= 1)
+		set(handles.check_integDim, 'Val', 0, 'Str', 'Spline interpolation')
+	else
+		set(handles.check_integDim, 'Val', 1, 'Str', 'Integration in longitude')
+	end
+
 	if (val == 4)
 		set(handles.edit_periods, 'Str', '1:12')
 		set(handles.edit_periods,'Tooltip',sprintf(['A vector with the months uppon which the mean\n' ...
@@ -485,10 +488,11 @@ function push_help_CB(hObject, handles)
 % -------------------------------------------------------------------------------------
 function push_runPlugin_CB(hObject, handles)
 % THIS IS A SPECIAL CALLBACK THAT CALLS A FUNCTION NAMED 'aquaPlugin' THAT MAY RESIDE
-% ANYWHERE IN THE PATH WORLD. IT'S UP TO THE USER TO DIFFINE ITS CONTENTS.
+% ANYWHERE IN THE PATH WORLD. IT'S UP TO THE USER TO DEFFINE ITS CONTENTS.
 %	OK, because 'aquaPlugin' checks for the state of the 'check_plugFun' checkbox to
 %	allow executing via the OPTcontrol.txt pointed script, and we don't have one with
 %	that name (it's in 'aquamoto'), we will do the next trick.
+
 	val_back = get(handles.check_integDim,'Val');		% Use this one temporarily
 	set(handles.check_integDim,'Val',1)
 	handles.check_plugFun = handles.check_integDim;
