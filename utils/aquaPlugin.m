@@ -702,8 +702,16 @@ function calc_yearMean(handles, months, fname2, flag, nCells, fname3, splina, ti
 %
 % GRD_OUT	Name of the netCDF file where to store the result. If not provided, it will be asked here.
 
-	do_flags = false;		track_filled = false;		do_saveSeries = false;
+	do_flags = false;		track_filled = false;		do_saveSeries = false;	is_PFV52 = false;
 	[z_id, s, rows, cols] = get_ncInfos(handles);
+
+	% Find if we are dealing with one Pathfinder V5.2 daily file
+	for (k = 1:numel(s.Attribute))
+		if (strcmp(s.Attribute(k).Name, 'description') && ~isempty(strfind(s.Attribute(k).Value,'Pathfinder 5.2 daily')))
+			is_PFV52 = true;
+			break
+		end
+	end
 
 	if (isempty(months)),	months = 1:12;		end
 
@@ -767,6 +775,37 @@ function calc_yearMean(handles, months, fname2, flag, nCells, fname3, splina, ti
 		n_anos = handles.number_of_timesteps / 12;
 	else
 		n_anos = 1;		% TEMPORARY	FOR COMPUTING YEARLY MEANS FROM DAILY DATA --- NON SECURED AND NON DOCUMENTED
+	end
+	if (is_PFV52)		% This relies on the fact that the apropriate 'description' global attribute has been set
+		anos = fix(handles.time);
+		%n_days_in_year = datenummx(anos+1,1,1) - datenummx(anos,1,1);
+		%tempos = (handles.time - anos) * 100;		% Decimal day of the year (wrongly aka julian day)
+		%tempos = anos + tempos / n_days_in_year;	% Now we have decimal years
+		n_anos = max(anos) - min(anos) + 1;
+		if (n_anos == 2 && anos(1) ~= anos(2))		% Crazy NOAAs have year of 2006 start a 2005.99xxx
+			n_anos = 1;
+		end
+
+		if (months(end) > n_anos && months(end) < 20)	% A crude test to detect a year-request-overflow (it may screw)
+			months = months(1):n_anos;
+			if (isempty(months))
+				errodlg('Nonsense: Requested period is not covered by the input data','Error'),		return
+			else
+				warndlg('You requested more years than the data actually has. Reseting max to max years in data.','Warning')
+			end
+		end
+		if (months(end) <= n_anos)					% Convert a period given in number of years to true years.
+			months = (anos(1) - months(1) + 1):(anos(end) - months(end) + 1);
+		end
+		if (months(1) >= anos(1) && months(end) <= anos(end))	% In this case 'months' are actually the years
+			new_months = [];
+			for (k = 1:numel(months))			% So compute the new 'months' vector
+				this_year = months(k);
+				ind = find(anos == this_year);
+				new_months = [new_months(1:end) ind(:)'];
+			end
+			months = new_months;
+		end
 	end
 
 	% Take care of the case when output file has no extension
@@ -1002,6 +1041,8 @@ function calc_L2_periods(handles, period, tipoStat, regMinMax, grd_out)
 %
 % GRD_OUT	Name of the netCDF file where to store the result. If not provided, it will be asked here.
 
+	is_PFV52 = false;
+
 	if (nargin < 5)	% Note: old and simple CASE 3 in main cannot send here the output name 
 		txt1 = 'netCDF grid format (*.nc,*.grd)';	txt2 = 'Select output netCDF grid';
 		[FileName,PathName] = put_or_get_file(handles,{'*.nc;*.grd',txt1; '*.*', 'All Files (*.*)'},txt2,'put','.nc');
@@ -1016,6 +1057,19 @@ function calc_L2_periods(handles, period, tipoStat, regMinMax, grd_out)
 
 	[z_id, s, rows, cols] = get_ncInfos(handles);
 	tempos = handles.time(:);
+
+	% Find if we are dealing with one Pathfinder V5.2 daily file
+	for (k = 1:numel(s.Attribute))
+		if (strcmp(s.Attribute(k).Name, 'description') && ~isempty(strfind(s.Attribute(k).Value,'Pathfinder 5.2 daily')))
+			anos = fix(handles.time);
+			n_days_in_year = datenummx(anos+1,1,1) - datenummx(anos,1,1);
+			tempos = (handles.time - anos) * 100;		% Decimal day of the year (wrongly aka julian day)
+			tempos = anos + tempos / n_days_in_year;	% Now we have decimal years
+			handles.time = tempos;
+			is_PFV52 = true;
+			break
+		end
+	end
 
 	if (numel(period) == 1)
 		periods = fix(tempos(1)) : period : fix(tempos(end))+period-1;	% Don't risk to loose an incomplete last interval
