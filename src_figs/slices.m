@@ -503,7 +503,7 @@ function push_runPlugin_CB(hObject, handles)
 function push_compute_CB(hObject, handles)
 %	This function checks the contents of the various uicontrols and creates a file in the
 %	'tmp' directory with the parametrs necessary to run each case. The execution itself
-%	is acomplish by a recursive call using that script name as argument.
+%	is acomplished by a recursive call using that script name as argument.
 %
 %	Because the number of cases is not equal between this function and the 'aquaPlugin'
 %	function, it's necessary to map between the two sets.
@@ -564,7 +564,7 @@ function push_compute_CB(hObject, handles)
 
 	elseif (val == 2)	% tvar
 		fprintf(fid,'# The ''slope'' var (logical) indicates if compute slope of linear fit (TRUE) or the p parameter (FALSE)\n');
-		fprintf(fid,'%d\n', get(handles.check_integDim,'Val'));
+		fprintf(fid,'%d\n', get(handles.radio_slope,'Val'));
 		comm = '# The ''Subset'' var (example: [0 19] -> (82 90)); ([9 9] -> (91 00)); ([19 0] -> (01 09))';
 		helper_writeFile(handles, fid, comm, 'subset')
 		comm = '# name of a netCDF file with quality flags. If not provided no quality check is done.';
