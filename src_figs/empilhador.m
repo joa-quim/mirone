@@ -115,7 +115,7 @@ function push_namesList_CB(hObject, handles, opt)
 %		The '?' mechanism has been extended to the GHRSST PATHFINDER 5.2 netCDF files that have
 %		names of the form YYYYMMDDHHMMSS-...
 %
-% Third column is used when the HDF file has many sub-datasets and we want to select one in
+% Third column is used when the HDF file has sub-datasets and we want to select one in
 %		particular. In that case use the (clumsy) construct: 'sdsN' as in sds3 where 'sds' is
 %		fix and N is the number of the sub-dataset as it appears when one do gdalinfo or in the
 %		table window that pops up when one attempts to open the HDF file directly in Mirone.
@@ -144,6 +144,14 @@ function push_namesList_CB(hObject, handles, opt)
 % Note that for this case to work we had to call it through the opening function, 'empilhador_OF',
 % because we need to create one Figure and use the handles structure.
 % When -G is used as above, the program executes automatically till the end and deletes the Fig
+%
+% Besides '#' header line, the list file may include other files by using the notation (one per line)
+%	>include full_path_to_the_include_file
+%
+%	In this case no testing is done in the included file and it is assumed that it has EXACTLY the same
+%	construction of the main list file or, in case there are only include directives, that they ALL
+%	share the same format in terms of number of columns. Any eventual lines starting with '#' in the
+%	included files are simply ingnored.
 
 
 	if (nargin == 2)		% Direct call
@@ -175,11 +183,9 @@ function push_namesList_CB(hObject, handles, opt)
 		return
 	end
 
-	fid = fopen(fname);
-	c = fread(fid,'*char')';      fclose(fid);
-	names = strread(c,'%s','delimiter','\n');   clear c fid;
-	m = length(names);
+	[handles, names, n_column] = parse_list_file(handles, fname, n_column);
 
+	m = length(names);
 	handles.strTimes = cell(m,1);		% To hold time steps as strings
 	SDSinfo = cell(m,1);				% To hold Sub Datasets info
 	handles.SDSinfo = [];				% If above exists, it will be copied here
@@ -189,14 +195,14 @@ function push_namesList_CB(hObject, handles, opt)
 	c = false(m,1);
 	caracol = false(m,1);				% Case name list has '@' to pause for a CD change
 
-	handles = parse_header(handles, names);		% Check if we have a header line with further instructions
-
 	n_msg = 1;							% Will hold the "change CD messages" counter
 	if (n_column > 1)					% When 2nd column holds the 3D numbering
 		for (k = 1:m)
 			[t,r] = strtok(names{k});
-			if (t(1) == '#' || numel(t) < 2),	c(k) = true;	continue,	end		% Jump empty and comment lines
-			if ( t(1) == '@')
+			if (t(1) == '#' || numel(t) < 2)	% Jump empty or comment lines
+				c(k) = true;
+				continue
+			elseif (t(1) == '@')
 				caracol(k) = true;
 				if (~isempty(t(2:end))),	handles.changeCD_msg{n_msg} = t(2:end);		% The '@' was glued with the message
 				else						handles.changeCD_msg{n_msg} = r;
@@ -294,6 +300,50 @@ function push_namesList_CB(hObject, handles, opt)
 	if (~isempty(handles.outname) && handles.automatic)	% Automatic + output name means start the job immediately
 		push_compute_CB(handles.push_compute, handles)
 		delete(handles.figure1)
+	end
+
+% -----------------------------------------------------------------------------------------
+function [handles, names, n_column] = parse_list_file(handles, fname, n_column)
+% Read a list file, call parse_header() to check for options in header line
+% Search for '>include fname' lines that instruct to include other list files
+% We need to send in the N_COLUMNS because the main list file may be made of only
+% '>include' directives, in which case we don't know yet the true columns number.
+
+	fid = fopen(fname);
+	if (fid < 0)
+		error('EMPILHADOR:PARSE_LIST_FILE', 'Error opening list file')
+	end
+	c = fread(fid,'*char')';	fclose(fid);
+	ind = strfind(c,'>');
+	names = strread(c,'%s','delimiter','\n');
+
+	handles = parse_header(handles, names);		% Check if we have a header line with further instructions
+
+	if (~isempty(ind))				% We likely have include instructions
+		% We need to do some gymnastic here to include the includes in the right order and remove the '> lines
+		names_copy = '';	inc_name = '';
+		ini = 1;
+		for (k = 1:numel(names))
+			off = 0;
+			if (strncmp(names{k},'>include',8) || strncmp(names{k},'> include',9))
+				if (strncmp(names{k},'> include',9)),	off = 1;	end		% Accept also this variant
+				inc_name = ddewhite(names{k}(9+off:end));
+				fid = fopen(inc_name);
+				if (fid < 0),		continue,	end			% Could not open file
+				c = fread(fid,'*char')';		fclose(fid);
+				names_ = strread(c,'%s','delimiter','\n');
+				names_copy = [names_copy(1:end); names(ini:k-1); names_];		% Update list but without the '>' line
+				ini = k + 1;								% Next time it will start on the line after the '>'
+			end
+		end
+		if (ini < numel(names))
+			names_copy = [names_copy; names(ini:end)];		% Add the rest after the last '>include' line
+		end
+		if (~isempty(names_copy)),		names = names_copy;	end
+
+		if (n_column == 1 && ~isempty(inc_name))		% Very likely a situation where the main list file has only
+			[bin, n_column] = guess_file(inc_name);		% '>include' lines, so count the columns from one of the included
+		end
 	end
 
 % -----------------------------------------------------------------------------------------
