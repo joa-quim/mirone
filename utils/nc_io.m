@@ -257,7 +257,7 @@ function write_nc(fname, handles, data, misc, page)
 	% variable is created and thus avoid the BAD netCDF 187 bug that ends up in a crash.
 	n = 0;
 	if (~isempty(no_val))
-		if (isnan(no_val) && varstruct.Nctype == 5)		% The following chunk it's because TMW is so shameless that
+		if (isnan(no_val) && varstruct.Nctype == 5)		% The following chunk it's because TMW is so shameless
 			try											% that for the ML compiler (the TRUE compiler)
 				IamCompiled = handles.IamCompiled;		% class(single(NaN)) = double
 			catch
