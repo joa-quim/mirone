@@ -789,7 +789,7 @@ function calc_yearMean(handles, months, fname2, flag, nCells, fname3, splina, ti
 		if (months(end) > n_anos && months(end) < 20)	% A crude test to detect a year-request-overflow (it may screw)
 			months = months(1):n_anos;
 			if (isempty(months))
-				errodlg('Nonsense: Requested period is not covered by the input data','Error'),		return
+				errordlg('Nonsense: Requested period is not covered by the input data','Error'),		return
 			else
 				warndlg('You requested more years than the data actually has. Reseting max to max years in data.','Warning')
 			end
