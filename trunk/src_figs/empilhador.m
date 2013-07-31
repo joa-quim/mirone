@@ -189,9 +189,6 @@ function push_namesList_CB(hObject, handles, opt)
 	handles.strTimes = cell(m,1);		% To hold time steps as strings
 	SDSinfo = cell(m,1);				% To hold Sub Datasets info
 	handles.SDSinfo = [];				% If above exists, it will be copied here
-	handles.SDSflag = [];				% For when we want to apply also a quality flag (GHRSST .nc)
-	handles.outname = [];				% For when -G<outname> is used in the header
-	handles.desc_attrib = '';			% For when -D"description" is used in the header
 	c = false(m,1);
 	caracol = false(m,1);				% Case name list has '@' to pause for a CD change
 
@@ -316,6 +313,10 @@ function [handles, names, n_column] = parse_list_file(handles, fname, n_column)
 	c = fread(fid,'*char')';	fclose(fid);
 	ind = strfind(c,'>');
 	names = strread(c,'%s','delimiter','\n');
+
+	handles.SDSflag = [];				% For when we want to apply also a quality flag (GHRSST .nc)
+	handles.outname = [];				% For when -G<outname> is used in the header
+	handles.desc_attrib = '';			% For when -D"description" is used in the header
 
 	handles = parse_header(handles, names);		% Check if we have a header line with further instructions
 
