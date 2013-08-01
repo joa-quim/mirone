@@ -397,6 +397,9 @@ function calcGrad(handles, slope, sub_set, fnameFlag, quality, splina, scale, gr
 	n_anos = handles.number_of_timesteps;
 	[z_id, s, rows, cols] = get_ncInfos(handles);
 
+	% Find if we are dealing with a Pathfinder V5.2 daily file
+	[is_PFV52, tempos] = PFV52(handles, s);	% if not a PFV5.2, tempos = handles.time(:)
+
 	if (nargin >= 3 && (numel(sub_set) == 2))
 		jump_anos = sub_set(1);		stop_before_end_anos = sub_set(2);
 	else
@@ -430,6 +433,7 @@ function calcGrad(handles, slope, sub_set, fnameFlag, quality, splina, scale, gr
 	if (~slope),		scale = 1;		end				% Make sure to not scale p-values
 
 	Tmed = alloc_mex(rows, cols, n_anos, 'single');
+	aguentabar(0,'title','Loading data ...')
 	for (m = 1:n_anos)
  		Tmed(:,:,m) = nc_funs('varget', handles.fname, s.Dataset(z_id).Name, [(m - 1 + jump_anos) 0 0], [1 rows cols]);
 	end
@@ -520,9 +524,17 @@ function calcGrad(handles, slope, sub_set, fnameFlag, quality, splina, scale, gr
 
 	aguentabar(0,'title','Compute the Time rate','CreateCancelBtn')
 
+	if (is_PFV52)		% For Pathfinder V5.2 (daily) use the true time coordinates
+		x = tempos;
+		if (splina),	yy = tempos;			end
+		threshold_perc = 0.10;	% AD-HOC threshold percentace of the n points below which do NOT compute slope
+	else
+		x = (0:n_anos-1)';
+		if (splina),	yy = (0:n_anos-1)';		end
+		threshold_perc = 0.66;	% 66%
+	end
+
 	Tvar = zeros(rows, cols) * NaN;
-	x = (0:n_anos-1)';
-	if (splina),	yy = (0:n_anos-1)';		end
 	for (m = 1:rows)
 		for (n = 1:cols)
 			y = double( squeeze(Tmed(m,n,:)) );
@@ -534,7 +546,7 @@ function calcGrad(handles, slope, sub_set, fnameFlag, quality, splina, scale, gr
 			end
 			ind = isnan(y);
 			y(ind) = [];
-			if (numel(y) < n_anos * 0.66),		continue,	end			% Completely ad-hoc test (it also jumps land cells)
+			if (numel(y) < n_anos * threshold_perc),	continue,	end	% Completely ad-hoc test (it also jumps land cells)
 
 			if (splina)
 				if ( ~all(ind) )		% Otherwise we have them all and so nothing to interp
@@ -565,7 +577,7 @@ function calcGrad(handles, slope, sub_set, fnameFlag, quality, splina, scale, gr
 				p = trend1d_m([x(~ind) y],'-L','-N2r');
 				%[model, p] = trend1d_m([x(~ind) y],'-Fm','-N3r');	% To get the acceleration (coeff of x^2)
 				Tvar(m,n) = p(1);
-			else			% Compute p parameter
+			else			% Compute p value
 	 			p = trend1d_m([x(~ind) y],'-L','-N2r','-R','-P');
 				if (p(1) < -0.5 || p(1) > 1),	continue,	end		% Another ad-hoc (CLIPPING)
 				Tvar(m,n) = p(4);
@@ -702,16 +714,11 @@ function calc_yearMean(handles, months, fname2, flag, nCells, fname3, splina, ti
 %
 % GRD_OUT	Name of the netCDF file where to store the result. If not provided, it will be asked here.
 
-	do_flags = false;		track_filled = false;		do_saveSeries = false;	is_PFV52 = false;
+	do_flags = false;		track_filled = false;		do_saveSeries = false;
 	[z_id, s, rows, cols] = get_ncInfos(handles);
 
-	% Find if we are dealing with one Pathfinder V5.2 daily file
-	for (k = 1:numel(s.Attribute))
-		if (strcmp(s.Attribute(k).Name, 'description') && ~isempty(strfind(s.Attribute(k).Value,'Pathfinder 5.2 daily')))
-			is_PFV52 = true;
-			break
-		end
-	end
+	% Find if we are dealing with a Pathfinder V5.2 daily file
+	is_PFV52 = PFV52(handles, s);
 
 	if (isempty(months)),	months = 1:12;		end
 
@@ -778,9 +785,6 @@ function calc_yearMean(handles, months, fname2, flag, nCells, fname3, splina, ti
 	end
 	if (is_PFV52)		% This relies on the fact that the apropriate 'description' global attribute has been set
 		anos = fix(handles.time);
-		%n_days_in_year = datenummx(anos+1,1,1) - datenummx(anos,1,1);
-		%tempos = (handles.time - anos) * 100;		% Decimal day of the year (wrongly aka julian day)
-		%tempos = anos + tempos / n_days_in_year;	% Now we have decimal years
 		n_anos = max(anos) - min(anos) + 1;
 		if (n_anos == 2 && anos(1) ~= anos(2))		% Crazy NOAAs have year of 2006 start a 2005.99xxx
 			n_anos = 1;
@@ -1041,8 +1045,6 @@ function calc_L2_periods(handles, period, tipoStat, regMinMax, grd_out)
 %
 % GRD_OUT	Name of the netCDF file where to store the result. If not provided, it will be asked here.
 
-	is_PFV52 = false;
-
 	if (nargin < 5)	% Note: old and simple CASE 3 in main cannot send here the output name 
 		txt1 = 'netCDF grid format (*.nc,*.grd)';	txt2 = 'Select output netCDF grid';
 		[FileName,PathName] = put_or_get_file(handles,{'*.nc;*.grd',txt1; '*.*', 'All Files (*.*)'},txt2,'put','.nc');
@@ -1056,20 +1058,9 @@ function calc_L2_periods(handles, period, tipoStat, regMinMax, grd_out)
 	end
 
 	[z_id, s, rows, cols] = get_ncInfos(handles);
-	tempos = handles.time(:);
 
-	% Find if we are dealing with one Pathfinder V5.2 daily file
-	for (k = 1:numel(s.Attribute))
-		if (strcmp(s.Attribute(k).Name, 'description') && ~isempty(strfind(s.Attribute(k).Value,'Pathfinder 5.2 daily')))
-			anos = fix(handles.time);
-			n_days_in_year = datenummx(anos+1,1,1) - datenummx(anos,1,1);
-			tempos = (handles.time - anos) * 100;		% Decimal day of the year (wrongly aka julian day)
-			tempos = anos + tempos / n_days_in_year;	% Now we have decimal years
-			handles.time = tempos;
-			is_PFV52 = true;
-			break
-		end
-	end
+	% Find if we are dealing with a Pathfinder V5.2 daily file
+	[is_PFV52, tempos] = PFV52(handles, s);	% if not a PFV5.2, tempos = handles.time(:)
 
 	if (numel(period) == 1)
 		periods = fix(tempos(1)) : period : fix(tempos(end))+period-1;	% Don't risk to loose an incomplete last interval
@@ -1349,6 +1340,31 @@ function pass_by_count(handles, count, fname2)
 
 		h = aguentabar(m/n_layers);
 		if (isnan(h)),	break,	end
+	end
+
+% ------------------------------------------------------------------------------------------------
+function [is_PFV52, times, anos] = PFV52(handles, s)
+% Find if we are dealing with one Pathfinder V5.2 daily file.
+% If yes and user request it, convert and return also the time vector in the form of decimal years
+% In case file is not a PFV5.5, TIMES = HANDLES.TIME
+
+	is_PFV52 = false;
+	for (k = 1:numel(s.Attribute))
+		if (strcmp(s.Attribute(k).Name, 'description') && ~isempty(strfind(s.Attribute(k).Value,'Pathfinder 5.2 daily')))
+			is_PFV52 = true;
+			break
+		end
+	end
+
+	if (nargout > 1)		% This relies on the fact that the apropriate 'description' global attribute has been set
+		anos = fix(handles.time(:));
+		if (is_PFV52)
+			n_days_in_year = datenummx(anos+1,1,1) - datenummx(anos,1,1);
+			times = (handles.time - anos) * 100;		% Decimal day of the year (wrongly aka julian day)
+			times = anos + times ./ n_days_in_year;		% Now we have decimal years
+		else
+			times = handles.time(:);
+		end
 	end
 
 % ----------------------------------------------------------------------
