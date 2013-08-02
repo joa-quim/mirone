@@ -1360,7 +1360,7 @@ function [is_PFV52, times, anos] = PFV52(handles, s)
 		anos = fix(handles.time(:));
 		if (is_PFV52)
 			n_days_in_year = datenummx(anos+1,1,1) - datenummx(anos,1,1);
-			times = (handles.time - anos) * 100;		% Decimal day of the year (wrongly aka julian day)
+			times = (handles.time - anos) * 1000;		% Decimal day of the year (wrongly aka julian day)
 			times = anos + times ./ n_days_in_year;		% Now we have decimal years
 		else
 			times = handles.time(:);
