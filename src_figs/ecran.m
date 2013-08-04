@@ -105,6 +105,7 @@ function varargout = ecran(varargin)
 		elseif ( n_in >= 2 && isnumeric(varargin{1}) && isnumeric(varargin{2}) ) % ecran(x, y, ...)
 			if (n_in == 2)					% All args are numeric
 				varargin(2:3) = varargin(1:2);
+				n_in = 3;
 			else							% Two numeric and a title
 				varargin(2:4) = varargin(1:3);
 				if (ischar(varargin{4}))	% Fig name
@@ -419,12 +420,12 @@ function wbm_dynSlope(obj,eventdata, x0, I0, hAxes, hLine, hULine, hFLine, hTxt,
 	else					return			% First point. Too soon to do anything
 	end
 	if (~SpectorGrant)
-		fstr = 'Dist=%g\t  Slope=%.2f';		slp = atan(mb(1) / xFact)*180/pi;	% slope in (maybe) degrees
+		fstr = 'Dist=%g\t  Slope=%.2f\t (m=%.2f)';		slp = atan(mb(1) / xFact)*180/pi;	% slope in (maybe) degrees
 	else
 		fstr = 'Dist=%g\t  Depth=%.3f';		slp = abs(mb(1) / (4*pi) * xFact);
 	end
 	xUnderLine = [x0 xx(end)];
-	set(hTxt, 'Pos', [xx(1) 0.11], 'Str', sprintf( fstr, diff(xUnderLine), slp ))
+	set(hTxt, 'Pos', [xx(1) 0.11], 'Str', sprintf(fstr, diff(xUnderLine), slp, mb(1)))
 	set(hFLine(end), 'XData', [xx(1) xx(end)], 'YData', ([xx(1) xx(end)] * mb(1) + mb(2)), 'UserData', [mb slp])
 	set(hULine,'XData', xUnderLine)
 
