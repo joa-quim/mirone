@@ -359,7 +359,7 @@ function out = zonal(handles, dlat, integ_lon, do_trends, sub_set, fnamePoly1, f
 		out = allSeries;
 	end
 	
-% ----------------------------------------------------------------------
+% ------------------------------------------------------------------------------------
 function calcGrad(handles, slope, sub_set, fnameFlag, quality, splina, scale, grd_out)
 % Compute the rate of change of a file by fitting a LS straight line. The file can be one of the
 % already computed yearly means, in which case last three input arguments do not apply,
@@ -398,7 +398,7 @@ function calcGrad(handles, slope, sub_set, fnameFlag, quality, splina, scale, gr
 	[z_id, s, rows, cols] = get_ncInfos(handles);
 
 	% Find if we are dealing with a Pathfinder V5.2 daily file
-	[is_PFV52, tempos] = PFV52(handles, s);	% if not a PFV5.2, tempos = handles.time(:)
+	[is_PFV52, tempos] = PFV52(handles, s);		% if not a PFV5.2, tempos = handles.time(:)
 
 	if (nargin >= 3 && (numel(sub_set) == 2))
 		jump_anos = sub_set(1);		stop_before_end_anos = sub_set(2);
@@ -442,61 +442,7 @@ function calcGrad(handles, slope, sub_set, fnameFlag, quality, splina, scale, gr
 
 	% ---- save profiles of points, located inside polygon of Mirone fig, as a multi-segment file
 	if (get_profiles_in_polygon)
-		hFigs = findobj(0,'type','figure');						% Fish all figures
-		IAmAMir = zeros(1, numel(hFigs));
-		for (k = 1:numel(hFigs))								% Get the first Mirone figure with something in it
-			if (~isempty(getappdata(hFigs(k), 'IAmAMirone')))
-				handMir = guidata(hFigs(k));
-				if (handMir.no_file),	continue,	end			% An virgin Mirone bar figure
-				IAmAMir(k) = 1;		break,	
-			end
-		end
-		if (sum(IAmAMir) ~= 1)
-			errordlg('Did not find any valid Mirone figure with data displayed.','Error'),	return
-		end
-
-		hLine = findobj(handMir.axes1,'Type','line');
-		if (isempty(hLine)),	hLine = findobj(handMir.axes1,'Type','patch');	end		% Try once more
-		x = get(hLine,'XData');		y = get(hLine,'YData');
-		if (isempty(x))
-			errordlg('The Mirone figure needs to have at least one polygon loaded.','Error'),	return
-		end
-		mask = img_fun('roipoly_j',handles.head(1:2),handles.head(3:4),get(handMir.hImg,'CData'),x,y);
-		B = img_fun('find_holes',mask);
-		col_min = min(B{1}(:,2));		col_max = max(B{1}(:,2));
-		row_min = min(B{1}(:,1));		row_max = max(B{1}(:,1));
-		row_vec = row_min:row_max;
-		col_vec = col_min:col_max;
-		x = (0:n_anos-1)';
-		k = 1;
-		stack = cell(1, 3);		% Obviously not enough but will shut up MLint
-		for (n = col_vec)
-			IN = inpolygon(repmat(n, numel(row_vec), 1), row_vec, B{1}(:,2), B{1}(:,1));		% See if ...
-			this_row = 1;
-			for (m = row_vec)
-				if (~IN(this_row)),		continue,	end				% This pixel is outside polygon POI
-				this_row = this_row + 1;
-				y = double( squeeze(Tmed(m,n,:)) );
-				ind = isnan(y);
-				y(ind) = [];
-				if (numel(y) < n_anos/2),		continue,	end		% Completely ad-hoc test
-				p = trend1d_m([x(~ind) y],'-L','-N2r','-R','-P');
-				stack{k,1} = [x(~ind)+1 y];	% x,temp
-				stack{k,2} = p(1);			% Slope
-				stack{k,3} = p(4);			% p-value
-				k = k + 1;
-			end
-		end
-	
-		str1 = {'*.dat;*.DAT', 'Symbol file (*.dat,*.DAT)'; '*.*', 'All Files (*.*)'};
-		[FileName,PathName] = put_or_get_file(handles,str1,'Select Output File name','put','.dat');
-		if isequal(FileName,0),		return,		end
-		f_name = [PathName FileName];
-		double2ascii(f_name, stack, '%.0f\t%.3f', 'maybeMultis');
-		[PATH, FNAME, EXT] = fileparts(f_name);
-		f_name = [PATH filesep FNAME '_mp' EXT];		% Write a second file with 2 columns where 1st col is slope and 2nth is p-value
-		xy = [cat(1,stack{:,2}) cat(1, stack{:,3})];
-		double2ascii(f_name, xy);
+		profiles_in_polygon(handles)
 		return
 	end
 	% -----------------------------------------------------------------------------------------
@@ -522,17 +468,26 @@ function calcGrad(handles, slope, sub_set, fnameFlag, quality, splina, scale, gr
 		end
 	end
 
-	aguentabar(0,'title','Compute the Time rate','CreateCancelBtn')
-
 	if (is_PFV52)		% For Pathfinder V5.2 (daily) use the true time coordinates
 		x = tempos;
 		if (splina),	yy = tempos;			end
-		threshold_perc = 0.10;	% AD-HOC threshold percentace of the n points below which do NOT compute slope
+		threshold_perc = 0.10;	% AD-HOC threshold percentage of the n points below which do NOT compute slope
 	else
 		x = (0:n_anos-1)';
 		if (splina),	yy = (0:n_anos-1)';		end
 		threshold_perc = 0.66;	% 66%
 	end
+
+	if (is_PFV52)
+		aguentabar(0,'title','Computing and removing Seazonal cycle','CreateCancelBtn')
+		Tavg = tideman(handles, Tmed, tempos, 52);
+		Tmed = remove_seazon(handles, Tmed, Tavg, tempos);
+		%ii = find(tempos < 1994.5);
+		%Tmed(:,:,ii(end):end) = [];
+		%tempos(ii(1):end) = [];
+	end
+	
+	aguentabar(0,'title','Compute the Time rate','CreateCancelBtn')
 
 	Tvar = zeros(rows, cols) * NaN;
 	for (m = 1:rows)
@@ -605,6 +560,66 @@ function calcGrad(handles, slope, sub_set, fnameFlag, quality, splina, scale, gr
 		handles.geog = 1;
 		nc_io(grd_out, 'w', handles, Tvar)
 	end
+
+% --------------------------------------------------------------------------------------
+function profiles_in_polygon(handles)
+% Save profiles of points, located inside polygon of Mirone fig, as a multi-segment file
+
+	hFigs = findobj(0,'type','figure');						% Fish all figures
+	IAmAMir = zeros(1, numel(hFigs));
+	for (k = 1:numel(hFigs))								% Get the first Mirone figure with something in it
+		if (~isempty(getappdata(hFigs(k), 'IAmAMirone')))
+			handMir = guidata(hFigs(k));
+			if (handMir.no_file),	continue,	end			% A virgin Mirone bar figure
+			IAmAMir(k) = 1;		break,	
+		end
+	end
+	if (sum(IAmAMir) ~= 1)
+		errordlg('Did not find any valid Mirone figure with data displayed.','Error'),	return
+	end
+
+	hLine = findobj(handMir.axes1,'Type','line');
+	if (isempty(hLine)),	hLine = findobj(handMir.axes1,'Type','patch');	end		% Try once more
+	x = get(hLine,'XData');		y = get(hLine,'YData');
+	if (isempty(x))
+		errordlg('The Mirone figure needs to have at least one polygon loaded.','Error'),	return
+	end
+	mask = img_fun('roipoly_j',handles.head(1:2),handles.head(3:4),get(handMir.hImg,'CData'),x,y);
+	B = img_fun('find_holes',mask);
+	col_min = min(B{1}(:,2));		col_max = max(B{1}(:,2));
+	row_min = min(B{1}(:,1));		row_max = max(B{1}(:,1));
+	row_vec = row_min:row_max;
+	col_vec = col_min:col_max;
+	x = (0:n_anos-1)';
+	k = 1;
+	stack = cell(1, 3);		% Obviously not enough but will shut up MLint
+	for (n = col_vec)
+		IN = inpolygon(repmat(n, numel(row_vec), 1), row_vec, B{1}(:,2), B{1}(:,1));		% See if ...
+		this_row = 1;
+		for (m = row_vec)
+			if (~IN(this_row)),		continue,	end				% This pixel is outside polygon POI
+			this_row = this_row + 1;
+			y = double( squeeze(Tmed(m,n,:)) );
+			ind = isnan(y);
+			y(ind) = [];
+			if (numel(y) < n_anos/2),		continue,	end		% Completely ad-hoc test
+			p = trend1d_m([x(~ind) y],'-L','-N2r','-R','-P');
+			stack{k,1} = [x(~ind)+1 y];	% x,temp
+			stack{k,2} = p(1);			% Slope
+			stack{k,3} = p(4);			% p-value
+			k = k + 1;
+		end
+	end
+
+	str1 = {'*.dat;*.DAT', 'Symbol file (*.dat,*.DAT)'; '*.*', 'All Files (*.*)'};
+	[FileName,PathName] = put_or_get_file(handles,str1,'Select Output File name','put','.dat');
+	if isequal(FileName,0),		return,		end
+	f_name = [PathName FileName];
+	double2ascii(f_name, stack, '%.0f\t%.3f', 'maybeMultis');
+	[PATH, FNAME, EXT] = fileparts(f_name);
+	f_name = [PATH filesep FNAME '_mp' EXT];		% Write a second file with 2 columns where 1st col is slope and 2nth is p-value
+	xy = [cat(1,stack{:,2}) cat(1, stack{:,3})];
+	double2ascii(f_name, xy);
 
 % ------------------------------------------------------------------------------
 function applyFlags(handles, fname, flag, nCells, grd_out)
@@ -1116,11 +1131,64 @@ function calc_L2_periods(handles, period, tipoStat, regMinMax, grd_out)
 
 	end
 
+% ------------------------------------------------------------------------------------
+function Tavg = tideman(handles, Temps, tempos, nPeriods)
+% Apply the method suggested by TideMan in this post
+% http://www.mathworks.com/matlabcentral/newsreader/view_thread/292502#887770
+% but use weeks instead of months which would introduce a significant phase
+% offset because a month is too long period for this method
+
+	if (nargin == 3),	nPeriods = 10;	end
+	rPeriod = 1 / nPeriods;
+	
+	decTime = tempos - fix(tempos);				% The decimal part only
+	Tavg = zeros(size(Temps,1), size(Temps,2), nPeriods);
+	for (k = 1:nPeriods)
+		s = (k - 1) * rPeriod;		e = k * rPeriod;
+		ind = (decTime >= s & decTime < e);
+		thisStackPeriod = Temps(:,:,ind);		% All layers that fall inside this (stacking) period
+		Tavg(:,:,k) = doM_or_M_or_M(thisStackPeriod);
+	end
+
+% ------------------------------------------------------------------------------------
+function T_measured = remove_seazon(handles, T_measured, Tavg, tempos)
+% T_MEASURED is the array with measured temperatures (or something else)
+% TAVG is the mean cycle computed by the tideman function
+% Subtract both (after reinterpolations) and return result in inplace modified T_MEASURED
+
+	nYears = numel(find(diff(fix(tempos)) ~= 0)) + 1;
+	nPeriods = size(Tavg,3);			% Number of intervals in which the seazon model has been computed
+	rPeriod = 1 / nPeriods;
+	ty = linspace(0+rPeriod/2, 1-rPeriod/2, nPeriods)';	% Decimal time centered in the middle of each interval
+	t = zeros(nPeriods * nYears, 1);
+	for (k = 1:nYears)
+		t( (k-1)*nPeriods+1 : k*nPeriods ) = fix(tempos(1)) + (k-1) + ty;
+	end
+
+	y = zeros(1, numel(tempos));
+	for (m = 1:size(T_measured,1))
+		for (n = 1:size(T_measured,2))
+			T_seazon = double( repmat(squeeze(Tavg(m,n,:)), nYears, 1) );		% Replicate seazonal cycle
+			tmp = double( squeeze(T_measured(m,n,:)) );
+			indNan = isnan(tmp);
+			%y = interp1(t, T_seazon, tempos, 'linear', 'extrap');
+			akimaspline(t, T_seazon, tempos, y);		% we don't need a spline but it's much faster
+			y(indNan) = NaN;
+			T_measured(m,n,:) = single(tmp - y(:));
+		end
+	end
+
 % ----------------------------------------------------------------------
 function out = doM_or_M_or_M(ZtoSpline, first_wanted_month, last_wanted_month, regionalMIN, regionalMAX, tipo)
 % Compute either the MEAN (TIPO = 0) or the MIN (TIPO = 1) or MAX of the period selected
 % by the first_wanted_month:last_wanted_month vector. Normaly a year but can be a season as well.
-% This function was only used when SPLINA (see above in calc_yearMean()) up to Mirone 2.2.0
+% NOTE1: This function was only used when SPLINA (see above in calc_yearMean()) up to Mirone 2.2.0
+% NOTE2: It is now (2.5.0dev) used again by the tideman function
+
+	if (nargin == 1)			% Compute average of all layers without ant constraint
+		first_wanted_month = 1;		last_wanted_month = size(ZtoSpline,3);
+		regionalMIN = -10;			regionalMAX = Inf;		tipo = 0;
+	end
 
 	if (tipo == 0)				% Compute the MEAN of the considered period
 		out = ZtoSpline(:,:,first_wanted_month);
