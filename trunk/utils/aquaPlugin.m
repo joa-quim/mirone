@@ -1807,6 +1807,7 @@ function do_math(handles, opt, subSet1, fname2, subSet2)
 %
 % OPT can be one of:
 % 'sum'       => add all layers
+% 'count'     => count the acumulated number of non-NaNs of all layers
 % 'diffstd'   => Compute mean and sdt of A - B (inmemory - fname2)
 %                The array read from FNAME2 does not need to be exactly comptible with A.
 %                When it is not a call to grdsample_m will take care of compatibilization.
@@ -1837,6 +1838,25 @@ function do_math(handles, opt, subSet1, fname2, subSet2)
 			cvlib_mex('add',grid1, Z);
 		end
 		figName1 = 'Stack Sum';
+	elseif (strcmpi(opt, 'count'))			% Count the acumulated number of non NaNs along the 3rth dim of the 3D array
+		aguentabar(0,'title','Counting...','CreateCancelBtn')
+		grid1 = alloc_mex(rows1, cols1, 'single');
+		ini = 1+subSet1(1);		fim = nLayers-subSet1(2);	N = fim - ini + 1;	N10 = fix(N / 10);	c = 0;
+		for (m = ini:fim)
+			Z = nc_funs('varget', handles.fname, s1.Dataset(handles.netcdf_z_id).Name, [m-1 0 0], [1 rows1 cols1]);
+			ind = isnan(Z);
+			Z(~ind) = 1;	Z(ind) = 0;
+			cvlib_mex('add',grid1, Z);
+			p = fix(((m - ini) / N10));
+			if (p)
+				c = c + 1;				p = p + c - 1;
+				N10 = N10 + fix(N / 10);
+				aguentabar(p/10)
+			end
+		end
+		grid1(grid1 == 0) = NaN;
+		aguentabar(1)
+		figName1 = 'Stack Count';
 	elseif (strcmpi(opt, 'diffstd'))
 		if (nargin == 4),	subSet2 = [0 0];		end
 		s2 = nc_funs('info', fname2);
