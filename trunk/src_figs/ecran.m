@@ -420,7 +420,7 @@ function wbm_dynSlope(obj,eventdata, x0, I0, hAxes, hLine, hULine, hFLine, hTxt,
 	else					return			% First point. Too soon to do anything
 	end
 	if (~SpectorGrant)
-		fstr = 'Dist=%g\t  Slope=%.2f\t (m=%.2f)';		slp = atan(mb(1) / xFact)*180/pi;	% slope in (maybe) degrees
+		fstr = 'Dist=%g\t  Slope=%.3f\t (m=%.2f)';		slp = atan(mb(1) / xFact)*180/pi;	% slope in (maybe) degrees
 	else
 		fstr = 'Dist=%g\t  Depth=%.3f';		slp = abs(mb(1) / (4*pi) * xFact);
 	end
@@ -441,8 +441,8 @@ function wbu_dynSlope(obj,eventdata, h, xFact, SpectorGrant, state)
 		uimenu(cmenuHand, 'Label', sprintf('Depth to sources (m) = %.3f', mb_e_slp(3)));
 		uimenu(cmenuHand, 'Label', 'Bandpass Filter', 'Call', {@do_bandFilter,h(end), xFact}, 'Sep', 'on');
 	else
-	 	uimenu(cmenuHand, 'Label', 'Slope  &  Intercept');
-		uimenu(cmenuHand, 'Label', sprintf('%.2f   %.9g', mb_e_slp(3), mb_e_slp(2)));	% Slope(deg?) Intercept
+	 	uimenu(cmenuHand, 'Label', 'Slope (atan(a0)), m  &  Intercept ');
+		uimenu(cmenuHand, 'Label', sprintf('%.2f     %.3f   %.9g', mb_e_slp(3), mb_e_slp(1), mb_e_slp(2)));
 	end
 	uimenu(cmenuHand, 'Label', 'Recomp Slope/Intercept', 'Call', {@recompSI,h(end), xFact, SpectorGrant}, 'Sep', 'on');
 	uimenu(cmenuHand, 'Label', 'Delete this line', 'Call', 'delete(gco)', 'Sep', 'on');
@@ -466,7 +466,7 @@ function recompSI(obj,event, h, xFact, SpectorGrant)
 		fstr = 'Dist=%g\t  Depth=%.3f';
 	else
 		slp = atan(m / xFact)*180/pi;			% Get the slope in (maybe) degrees
-		set(child(K), 'Label', sprintf('%.2f   %.9g', slp, b))		% Slope(deg?) Intercept
+		set(child(K), 'Label', sprintf('%.2f     %.3f   %.9g', slp, m, b))		% Slope(deg?) Intercept
 		fstr = 'Dist=%g\t  Slope=%.2f';
 	end
 
