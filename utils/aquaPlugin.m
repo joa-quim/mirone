@@ -351,8 +351,8 @@ function out = zonal(handles, dlat, integ_lon, do_trends, sub_set, fnamePoly1, f
 				trend(k) = p(1);
 			end
 			ind = find(~isnan(trend));			% Remove any eventual leading or trailing NaNs
-			trend = trend(ind(1):ind(end) );
-			tmp.Y = tmp.Y(ind(1):ind(end) );
+			trend = trend(ind(1):ind(end));
+			tmp.Y = tmp.Y(ind(1):ind(end));
  			ecran(handles, tmp.Y, trend, 'Slope of line fit')
 		end
 	else
@@ -370,7 +370,7 @@ function calcGrad(handles, slope, sub_set, fnameFlag, quality, splina, scale, gr
 %
 % SLOPE		Logical indicating if compute slope of linear fit (TRUE) or the p parameter (FALSE)
 %
-% SUB_SET -> A two columns row vec with number of the offset of years where analysis start and stop.
+% SUB_SET -> A two elements row vec with number of the offset of years where analysis start and stop.
 %			For example [3 1] Starts analysis on forth year and stops on the before last year.
 %			[0 0] Means using the all dataset.
 %
@@ -404,6 +404,14 @@ function calcGrad(handles, slope, sub_set, fnameFlag, quality, splina, scale, gr
 		jump_anos = sub_set(1);		stop_before_end_anos = sub_set(2);
 	else
 		jump_anos = 0;				stop_before_end_anos = 0;
+	end
+
+	% For PFV5.2 daily data, accept the start-stop as time in years. e.g. [1986 2011]
+	if (is_PFV52 && jump_anos >= 1982 && stop_before_end_anos <= 2014)	% Though we only have them till 2011
+		ind = find(tempos > jump_anos);
+		jump_anos = ind(1);
+		ind = find(tempos > stop_before_end_anos);
+		stop_before_end_anos = numel(tempos) - ind(1);
 	end
 
 	n_anos = n_anos - (jump_anos + stop_before_end_anos);	% Number of layers to be used in this run
@@ -482,9 +490,6 @@ function calcGrad(handles, slope, sub_set, fnameFlag, quality, splina, scale, gr
 		aguentabar(0,'title','Computing and removing Seazonal cycle','CreateCancelBtn')
 		Tavg = tideman(handles, Tmed, tempos, 52);
 		Tmed = remove_seazon(handles, Tmed, Tavg, tempos);
-		%ii = find(tempos < 1994.5);
-		%Tmed(:,:,ii(end):end) = [];
-		%tempos(ii(1):end) = [];
 	end
 	
 	aguentabar(0,'title','Compute the Time rate','CreateCancelBtn')
@@ -1827,6 +1832,9 @@ function do_math(handles, opt, subSet1, fname2, subSet2)
 
 	handles.geog = 1;		handles.was_int16 = 0;		handles.computed_grid = 0;
 
+	% Find if we are dealing with a Pathfinder V5.2 daily file
+	[is_PFV52, tempos] = PFV52(handles, handles.nc_info);		% if not a PFV5.2, tempos = handles.time(:)
+
 	if (strcmp(opt, 'sum'))
 		% WARNING: SUBSET1 not implemented
 		grid1 = nc_funs('varget', handles.fname, s1.Dataset(handles.netcdf_z_id).Name, [0 0 0], [1 rows1 cols1]);
@@ -1838,7 +1846,17 @@ function do_math(handles, opt, subSet1, fname2, subSet2)
 			cvlib_mex('add',grid1, Z);
 		end
 		figName1 = 'Stack Sum';
+
 	elseif (strcmpi(opt, 'count'))			% Count the acumulated number of non NaNs along the 3rth dim of the 3D array
+		
+		% Check (GUESS!) if subsets were given as years instead of layer numbers
+		if (is_PFV52 && subSet1(1) >= 1982 && subSet1(2) <= 2014)	% Though we only have them till 2011
+			ind = find(tempos > subSet1(1));
+			subSet1(1) = ind(1);
+			ind = find(tempos > subSet1(2));
+			subSet1(2) = nLayers - ind(1);
+		end
+	
 		aguentabar(0,'title','Counting...','CreateCancelBtn')
 		grid1 = alloc_mex(rows1, cols1, 'single');
 		ini = 1+subSet1(1);		fim = nLayers-subSet1(2);	N = fim - ini + 1;	N10 = fix(N / 10);	c = 0;
@@ -1849,14 +1867,14 @@ function do_math(handles, opt, subSet1, fname2, subSet2)
 			cvlib_mex('add',grid1, Z);
 			p = fix(((m - ini) / N10));
 			if (p)
-				c = c + 1;				p = p + c - 1;
-				N10 = N10 + fix(N / 10);
+				c = c + 1;				p = p + c - 1;		N10 = N10 + fix(N / 10);
 				aguentabar(p/10)
 			end
 		end
 		grid1(grid1 == 0) = NaN;
 		aguentabar(1)
 		figName1 = 'Stack Count';
+
 	elseif (strcmpi(opt, 'diffstd'))
 		if (nargin == 4),	subSet2 = [0 0];		end
 		s2 = nc_funs('info', fname2);
