@@ -450,7 +450,7 @@ function calcGrad(handles, slope, sub_set, fnameFlag, quality, splina, scale, gr
 
 	% ---- save profiles of points, located inside polygon of Mirone fig, as a multi-segment file
 	if (get_profiles_in_polygon)
-		profiles_in_polygon(handles)
+		profiles_in_polygon(handles, Tmed, n_anos)
 		return
 	end
 	% -----------------------------------------------------------------------------------------
@@ -567,7 +567,7 @@ function calcGrad(handles, slope, sub_set, fnameFlag, quality, splina, scale, gr
 	end
 
 % --------------------------------------------------------------------------------------
-function profiles_in_polygon(handles)
+function profiles_in_polygon(handles, Tmed, n_anos)
 % Save profiles of points, located inside polygon of Mirone fig, as a multi-segment file
 
 	hFigs = findobj(0,'type','figure');						% Fish all figures
