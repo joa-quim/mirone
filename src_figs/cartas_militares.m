@@ -158,12 +158,11 @@ function varargout = cartas_militares(varargin)
 	% -------------------------------------------------------------------------------------------------------------
 	
 	% Tooltip
-	msg = sprintf(['When you want to get the files directly from Web\n\n' ...
-		'As for example at:\nhttp://www.civil.ist.utl.pt/~ruif/HRF/cartas/Cartas%%20Militares%%20GIF_25000/']);
+	msg = sprintf('When you want to get the files directly from Web\n');
 	set(handles.radio_inWeb,'Tooltip',msg)
 
-	% Initiliaze with this site. This also means that it doesn't recall changes between usage sessions
-	set(handles.edit_forWeb,'String', 'http://www.civil.ist.utl.pt/~ruif/HRF/cartas/Cartas%20Militares%20GIF_25000/')
+	% Initiliaze with this site (no more, so now empty). This also means that it doesn't recall changes between usage sessions
+	set(handles.edit_forWeb,'String', '')
 
 	guidata(hObject, handles);
 	if (nargout),	varargout{1} = hObject;		end
@@ -322,7 +321,6 @@ function push_lidarMosaico_CB(hObject, handles)
 	pato = get(handles.popup_directory_list,'String');
 	pato = pato{1};
 	if (pato(end) ~= filesep),		pato = [pato filesep];		end
-	%pato = 'C:\dat\LiDAR2011\laz\';
 
 	% Get the decimation factor. This is used to subsample the original data to 10, 20 or 50 meters resolution
 	% Decimation factor: 1 - no decimation; 5 - one every other 5th node taken, 10 - one every other tenth, etc
@@ -415,7 +413,7 @@ function bdnTile(obj,event,hFig)
 % Do what ever it must to get a referenced 1:25000 image
 	handles = guidata(hFig);
 	ud = get(gcbo,'UserData');
-	proj = [];		knowLimits = false;
+	knowLimits = false;
 
 	if (isa(ud,'cell'))				% Exception TYPE I (tile names with inbeded letters)
 		tile_name = ud{1};
@@ -472,6 +470,8 @@ function bdnTile(obj,event,hFig)
 	elseif (~isempty(fnameRef) && ~isempty(att.GeoTransform))		% We had a world file
 		tmp.X = [att.Corners.LL(1) att.Corners.LR(1)];
 		tmp.Y = [att.Corners.LL(2) att.Corners.UL(2)];
+		% Set the proj string for the "Coordenadas militares, datum Lisboa"
+		proj = '+proj=tmerc +lat_0=39.66666666666666 +lon_0=-8.131906111111111 +k=1.0 +x_0=200000 +y_0=300000 +ellps=intl +towgs84=-304.046,-60.576,103.640,0,0,0,0';
 	else
 		if (~knowLimits)		% Otherwise we already know them
 			tmp.X = [(n-1) n] * 16000 + 72000;
