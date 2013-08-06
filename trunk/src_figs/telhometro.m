@@ -1,7 +1,7 @@
 function varargout = telhometro(varargin)
 % Plot magnetic Vine-Mathews carpets and flow lines
 
-%	Copyright (c) 2004-2012 by J. Luis
+%	Copyright (c) 2004-2013 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -98,8 +98,6 @@ function push_compute_CB(hObject, handles)
 		set([handles.edit_poleLon handles.edit_poleLat handles.edit_poleAng],'Enable','off')
 	end
 
-	handMir = guidata(handles.hCallingFig);
-
 	poles_name = get(handles.edit_polesFile,'String');
 	if (isempty(poles_name))
         errordlg('No stage poles provided','Error');    return
@@ -151,8 +149,8 @@ function push_compute_CB(hObject, handles)
         [rlon,rlat] = rot_euler(out_x(:),out_y(:),p_lon,p_lat,-omega);
         % Now we have to rebuild the "telhas" matrix format
         n_col = size(out_x,2); 
-        out_x = reshape(rlon,4,n_col);
-        out_y = reshape(rlat,4,n_col);
+        out_x = reshape(rlon,size(out_x,1),n_col);
+        out_y = reshape(rlat,size(out_x,1),n_col);
         clear rlon rlat;
 	end
 
