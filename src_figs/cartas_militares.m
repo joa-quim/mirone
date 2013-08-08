@@ -92,7 +92,7 @@ function varargout = cartas_militares(varargin)
 	set(handles.axes1,'YLim',[0 (58*10000)] + yMap_min + [-1000 1000])
 	set(handles.axes1,'XTick',[],'YTick',[], 'DataAspectRatio', [1 1 1])
 
-	projStruc.DstProjWKT = ogrproj('+proj=tmerc +lat_0=39.668258333333333 +lon_0=-8.133108611111111 +k=1.0 +x_0=200000 +y_0=300000 +ellps=intl');
+	projStruc.DstProjWKT = ogrproj('+proj=tmerc +lat_0=39.66666666666666 +lon_0=-8.131906111111111 +k=1.0 +x_0=200000 +y_0=300000 +ellps=intl +towgs84=-304.046,-60.576,103.640,0,0,0,0');
 	xy_prj = ogrproj([paises.ct.Country(1,:)' paises.ct.Country(2,:)']+0, projStruc);
 	line('XData',xy_prj(:,1),'YData',xy_prj(:,2),'Parent',handles.axes1);
 
