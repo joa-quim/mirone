@@ -640,12 +640,26 @@ function add_MarkColor(obj, evt, h)
 	xr = get(hM,'XData');		yr = get(hM,'YData');
 	id = find(xr == pt_x);
 	if (isempty(id))            % New Marker
-		if (~isempty(handles.handMir))
+		if (~isempty(handles.handMir) && ishandle(handles.handMir.figure1))
 			% Get the X,Y coordinates to plot this point in the Mirone figure
 			% We need to add x_off since "i" counts only inside the +/- 1/10 of x_lim centered on current point
 			mir_pt_x = handles.data(x_off,1);		mir_pt_y = handles.data(x_off,2);
 			h = line(mir_pt_x, mir_pt_y,'Parent',handles.handMir.axes1,'Marker','o','MarkerFaceColor',get(handles.hLine,'Color'), ...
 				'MarkerEdgeColor','k', 'MarkerSize',6,'LineStyle','none', 'Tag','LinkedSymb');
+			try
+				% Now get the color of the spot in the Mirone image and make the symbol color the complement of that 
+				img = get(handles.handMir.hImg, 'CData');
+				row = round(getPixel_coords(size(img,1), get(handles.handMir.hImg,'YData'),mir_pt_y));
+				col = round(getPixel_coords(size(img,2), get(handles.handMir.hImg,'XData'),mir_pt_x));
+				if (ndims(img) == 2)
+					c = img(row,col);
+					cmap = get(handles.handMir.figure1, 'colormap');
+					c = cmap(c,:);
+				else
+					c = double([img(row,col,1) img(row,col,2) img(row,col,3)]) / 255;
+				end
+				set(h, 'MarkerFaceColor', 1-c)
+			end
 			draw_funs(h,'DrawSymbol')		% Set uicontexts
 		end
 
@@ -672,6 +686,19 @@ function add_MarkColor(obj, evt, h)
 		end
 	end
 
+% -------------------------------------------------------------------------------------
+function pix_coords = getPixel_coords(img_length, XData, axes_coord)
+% Convert coordinates from axes (real coords) to image (pixel) coordinates.
+% IMG_LENGTH is the image width (n_columns)
+% XDATA is the image's [x_min x_max] in axes coordinates
+% AXES_COORD is the (x,y) coordinate of the point(s) to be converted
+
+	slope = (img_length - 1) / (XData(end) - XData(1));
+	if ((XData(1) == 1) && (slope == 1))
+		pix_coords = axes_coord;
+	else
+		pix_coords = slope * (axes_coord - XData(1)) + 1;
+	end
 % --------------------------------------------------------------------------------------------------
 function [pt_x, pt_y, x_off, minDist] = get_pointOnLine(hAxes, hLine, y)
 % Find the coordinates of the closest point on line to the clicked pt
