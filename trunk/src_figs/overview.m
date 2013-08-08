@@ -6,7 +6,7 @@ function varargout = overview(varargin)
 % large grids may be previewed, but the quality of
 % the preview will may degrade with grid size.
 
-%	Copyright (c) 2004-2012 by J. Luis
+%	Copyright (c) 2004-2013 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -21,13 +21,15 @@ function varargout = overview(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-if (nargin >= 4 && ischar(varargin{1}))
-    gui_CB = str2func(varargin{1});
-    feval(gui_CB,varargin{2:end})
-else
-    h = overview_OpeningFcn(varargin{:});
-    if (nargout)    varargout{1} = h;   end
-end
+% $Id$
+
+	if (nargin >= 4 && ischar(varargin{1}))
+		gui_CB = str2func(varargin{1});
+		feval(gui_CB,varargin{2:end})
+	else
+		h = overview_OpeningFcn(varargin{:});
+		if (nargout)    varargout{1} = h;   end
+	end
 
 % --- Executes just before overview is made visible.
 function hObject = overview_OpeningFcn(varargin)
@@ -41,6 +43,7 @@ function hObject = overview_OpeningFcn(varargin)
 		handles.last_dir = varargin{1}.last_dir;
 		handles.work_dir = varargin{1}.work_dir;
 		handles.grdMaxSize = varargin{1}.grdMaxSize;
+		handles.IamCompiled = varargin{1}.IamCompiled;
 	else
 		% Default values for those
 		handles.home_dir = cd;
@@ -48,6 +51,10 @@ function hObject = overview_OpeningFcn(varargin)
 		handles.work_dir = cd;
 		handles.ForceInsitu = 0;
 		handles.grdMaxSize = 1e15;
+		% Need to know if "IamCompiled". Since that info is in Mirone handles, we need to find it out here
+		try			s.s = which('mirone');			handles.IamCompiled = false;
+		catch,		handles.IamCompiled = true;
+		end		
 	end
 
 	handles.path_tmp = [handles.home_dir filesep 'tmp' filesep];
