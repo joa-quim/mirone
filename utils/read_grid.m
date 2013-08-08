@@ -18,7 +18,7 @@ function [Z, X, Y, srsWKT, handles, att] = read_grid(handles, fullname, tipo, op
 %				We use this construct to take advantage to all testing/setting machinery of this function.
 %				With all of that still note that OPT is optional
 
-%	Copyright (c) 2004-2012 by J. Luis
+%	Copyright (c) 2004-2013 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -46,6 +46,10 @@ function [Z, X, Y, srsWKT, handles, att] = read_grid(handles, fullname, tipo, op
 		if (strcmp(tipo, 'GMT')),	error('read_grid: handles cannot be empty when reading a GMT type'),	end
 		handles.ForceInsitu = false;
 		handles.grdMaxSize = 1e15;
+		% Need to know if "IamCompiled". Since that info is in Mirone handles, we need to find it out here
+		try			s.s = which('mirone');			handles.IamCompiled = false;
+		catch,		handles.IamCompiled = true;
+		end
 	end
 	try
 		if (handles.ForceInsitu),	opt_I = '-I';		end	% Use only in desperate cases.
