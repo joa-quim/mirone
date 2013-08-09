@@ -97,9 +97,8 @@ function [hNext, is_pole_new] = compute_pole2neighbor_newStage(hLine)
 % Compute a new pole between isochrons (hLine) and its next older neighbor
 % by brute-forcing only the angle and accepting the lon,lat.
 
-	is_pole_new = false;	is_ridge = false;
-	opt_D = '-D0/0/2';
-	opt_I = '-I1/1/201';
+	is_pole_new = false;		is_ridge = false;
+	opt_D = '-D0/0/2';			opt_I = '-I1/1/201';	% Options for the compute_euler()
 	[hNext, CA, CB] = find_closest_old(hLine);
 	if (isempty(hNext)),	return,		end
 	if (strcmp(CA, '0') && ~isappdata(hLine, 'secondLineInfo'))	% Do this only once
@@ -110,7 +109,7 @@ function [hNext, is_pole_new] = compute_pole2neighbor_newStage(hLine)
 		pole = [p.lon p.lat p2.age 0 p.ang];		% For C0 we cannot compute a stage ... but we can set it
 		is_ridge = true;
 	else
-		pole = get_true_stg (hLine, hNext);		% Get from header or compute (and insert in header) the true half-stage pole
+		pole = get_true_stg(hLine, hNext);		% Get from header or compute (and insert in header) the true half-stage pole
 	end
 	xA = get(hLine, 'XData');	yA = get(hLine, 'YData');
 	xB = get(hNext, 'XData');	yB = get(hNext, 'YData');
