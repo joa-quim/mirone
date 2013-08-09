@@ -2818,7 +2818,8 @@ function str = Isochrons_Info(obj, evt, data)
 	if (nargout),	str = LineInfo;	return,		end
 
 	if (~isempty(LineInfo))
-		msgbox(sprintf(LineInfo),'This line info')
+		if (isa(LineInfo, 'cell')),		LineInfo = LineInfo{1};		end
+		msgbox(sprintf('%s',LineInfo),'This line info')
 	else
 		msgbox('Could not find reference to this object','This line info')
 	end
