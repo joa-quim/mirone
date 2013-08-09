@@ -761,60 +761,6 @@ function poles = read_poles(poles_file)
 		poles = [];
 	end
 
-% -----------------------------------------------------------------------------------
-function stages = finite2stages(lon, lat, omega, t_start, half, side)
-% Convert finite rotations to backwards stage rotations for backtracking
-% LON, LAT, OMEGA & T_START are the finite rotation Euler pole parameters and age of pole
-% Alternatively LON may be a Mx4 matrix with columns LON, LAT, OMEGA & T_START
-% STAGES is a Mx5 matrix of stage pole (Euler) with the following format:
-% lon(deg)  lat(deg)  tstart(Ma)  tstop(Ma)  ccw-angle(deg)
-% stage records go from oldest to youngest rotation
-%
-% HALF = 1|2 If == 1 full angles are returned (good for plate reconstructions).
-%            Else (== 2) compute half angles (good for flow lines in a single plate)
-%
-% NOTE: the notation is the finite pole is b_ROT_a - Where B is the fixed plate
-% The signal of HALF is used to compute b_STAGE_a (default) or a_STAGE_b (if HALF < 0)
-%
-% SIDE = 1  -> poles in the northern hemisphere
-% SIDE = -1 -> poles in the southern hemisphere
-% SIDE = 0  -> report positive rotation angles
-%
-% Translated from C code of libspotter (Paul Wessel - GMT)
-% Joaquim Luis 21-4-2005
-
-	n_args = nargin;
-	if (~(n_args == 1 || n_args == 3 || n_args == 6))
-		error('Wrong number of arguments')
-	elseif (n_args == 1 || n_args == 3)
-		if (n_args == 3),       half = lat;     side = omega;
-		else                    half = 2;       side = 1;    % Default to half angles & North hemisphere poles
-		end
-		t_start = lon(:,4);     omega = lon(:,3);
-		lat = lon(:,2);         lon = lon(:,1);
-	end
-
-	t_old = 0;
-	R_young = eye(3);
-	elon = zeros(1,length(lon));    elat = elon;    ew = elon;  t_stop = elon;
-	for i = 1:length(lon)
-		R_old = make_rot_matrix (lon(i), lat(i), omega(i));     % Get rotation matrix from pole and angle
-		if (half > 0)                                           % the stages come in the reference a_STAGE_b
-			R_stage = R_young * R_old;                          % This is R_stage = R_young^t * R_old
-		else                                                    % the stages come in the reference b_STAGE_a
-			R_stage = R_old * R_young;                          % This is R_stage = R_old * R_young^t
-			R_stage = R_stage';
-		end
-		[elon(i), elat(i), ew(i)] = matrix_to_pole(R_stage,side); % Get rotation parameters from matrix
-		if (elon(i) > 180), elon(i) = elon(i) - 360;     end    % Adjust lon
-		R_young = R_old';                                       % Sets R_young = transpose (R_old) for next round
-		t_stop(i) = t_old;
-		t_old = t_start(i);
-	end
-
-	% Flip order since stages go from oldest to youngest
-	stages = flipud([elon(:) elat(:) t_start(:) t_stop(:) ew(:) / abs(half)]);
-
 % --------------------------------------------------------
 function R = make_rot_matrix (lonp, latp, w)
 % lonp, latp	Euler pole in degrees
