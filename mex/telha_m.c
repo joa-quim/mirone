@@ -73,7 +73,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	struct	ISOC_SCALE *isoc_scale;	/* Pointer to array of time scale */
 	int	error = FALSE, brick = FALSE, age_flow = FALSE;
 	int	multi_flow = FALSE, first_seg = TRUE, invert_rot = FALSE, linear_age = FALSE;
-	int	np_in_seg, switch_xy = FALSE, first = TRUE, n_flow, isoc_c = TRUE;
+	int	np_in_seg, switch_xy = FALSE, first = TRUE, n_flow, isoc_c = FALSE, isoc_cm = TRUE;
 	int	n_seg;			/* Number of segments in input data */
 	int	m, i_min = 0, int_seg = FALSE, ts_file = FALSE, isoc_p = FALSE, isoc_o = FALSE;
 	int	data_in_input = FALSE, ages_given = FALSE, fake_origin = FALSE;
@@ -140,6 +140,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 							isoc_c = TRUE;
 						else if (strcmp (&argv[i][2], "O") == 0) /* Cande (old scale given by Patriat)*/
 							isoc_o = TRUE;
+						else if (strcmp (&argv[i][2], "M") == 0) /* Cande & Kent 95 + Malinverno 2012 */
+							isoc_cm = TRUE;
 						else
 							mexPrintf ("SYNTAX ERROR -C option: Must choose only between -CP (Patriat) or -CC (Cande)\n");
 					}
@@ -208,11 +210,12 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		mexPrintf ("\n\tOPTIONS:\n");
 		mexPrintf ("\t-A create age flow lines (instead of mag) starting at points as \n\t  determined by -S and -G options\n");
 		mexPrintf ("\t-B output a file with direct/reverse polarity blocks\n");
-		mexPrintf ("\t-C choose between different isochron time scales. Append C (-CC) to\n");
-		mexPrintf ("\t   select Cande & Kent 95 time scale (no need, is the Default), O (-CO)\n");
-		mexPrintf ("\t   to select the old Cand time scale (used to be the default), P (-CP)\n");
-		mexPrintf ("\t   to select Patriat time scale. Altervatively give a file name\n");
-		mexPrintf ("\t   (-Ctime_scale) with a user provided time scale.\n");
+		mexPrintf ("\t-C choose between different isochron time scales. Append:\n");
+		mexPrintf ("\t     M (-CM) to select the Cand & Kent 95 + Mailvento 2012 [Default]\n");
+		mexPrintf ("\t     C (-CC) to select the Cand & Kent 95 time scale\n");
+		mexPrintf ("\t     O (-CO) to select the old Cand time scale\n");
+		mexPrintf ("\t     P (-CP) to select the Patriat time scale\n");
+		mexPrintf ("\t   Altervatively give a file name (-Ctime_scale) with a user provided time scale.\n");
 		mexPrintf ("\t-D<inc_deg> distance in degrees used to reinterpolate the flow line \n\t  equidistantly [default 0.005]\n");
 		mexPrintf ("\t-F<filterwidth> apply a gaussian filter (width in meters)\n");
 		mexPrintf ("\t-G create multiple flow lines starting at points defining the \n\t  segment OR at interpolated positions controled by -S option\n");
@@ -290,7 +293,12 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		isoc_scale = (struct ISOC_SCALE *) mxCalloc ((size_t)n_isoc, sizeof(struct ISOC_SCALE));
 		isoc_scale = isoc_scale_p;
 	}
-	else if (isoc_c) {     /* use Cande & Kent 95 time scale (DEFAULT) */
+	else if (isoc_cm) {     /* use Cande & Kent 95 time scale (DEFAULT) */
+		n_isoc = sizeof isoc_scale_cm / sizeof (struct ISOC_SCALE);
+		isoc_scale = (struct ISOC_SCALE *) mxCalloc ((size_t)n_isoc, sizeof(struct ISOC_SCALE));
+		isoc_scale = isoc_scale_cm;
+	}
+	else if (isoc_c) {     /* use Cande & Kent 95 time scale */
 		n_isoc = sizeof isoc_scale_c / sizeof (struct ISOC_SCALE);
 		isoc_scale = (struct ISOC_SCALE *) mxCalloc ((size_t)n_isoc, sizeof(struct ISOC_SCALE));
 		isoc_scale = isoc_scale_c;
