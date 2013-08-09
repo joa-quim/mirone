@@ -17,6 +17,10 @@ function stages = finite2stages(lon, lat, omega, t_start, half, side)
 % SIDE = -1 -> poles in the southern hemisphere
 % SIDE = 0  -> report positive rotation angles
 %
+% The libspotter always report the angles going from Old to New but we use in telha_m and other places
+% the assumption is that we go from Young to Old. That means the angles are symetric of what we need.
+% I'll set it here for the time being as -1 coefficient but in future this should be an input arg.
+%
 % Translated from C code of libspotter (Paul Wessel - GMT) (Now LGPL)
 % Joaquim Luis 21-4-2005
 
@@ -53,9 +57,9 @@ function stages = finite2stages(lon, lat, omega, t_start, half, side)
 	elon = zeros(1,length(lon));    elat = elon;    ew = elon;  t_stop = elon;
 	for i = 1:length(lon)
 		R_old = make_rot_matrix (lon(i), lat(i), omega(i));     % Get rotation matrix from pole and angle
-		if (half > 0)                                           % the stages come in the reference a_STAGE_b
+		if (half > 0)                                           % the stages come in the reference b_STAGE_a
 			R_stage = R_young * R_old;                          % This is R_stage = R_young^t * R_old
-		else                                                    % the stages come in the reference b_STAGE_a
+		else                                                    % the stages come in the reference a_STAGE_b
 			R_stage = R_old * R_young;                          % This is R_stage = R_old * R_young^t
 			R_stage = R_stage';
 		end
@@ -67,7 +71,9 @@ function stages = finite2stages(lon, lat, omega, t_start, half, side)
 	end
 
 	% Flip order since stages go from oldest to youngest
-	stages = flipud([elon(:) elat(:) t_start(:) t_stop(:) ew(:) / abs(half)]);
+	% And for the reason explained above in the man section. Change the sing of the output angles
+	ang_sign = -1;
+	stages = flipud([elon(:) elat(:) t_start(:) t_stop(:) ew(:) / abs(half) * ang_sign]);
 
 % --------------------------------------------------------
 function R = make_rot_matrix (lonp, latp, w)
