@@ -299,6 +299,34 @@ else
 end
 
 % --------------------------------------------------------------------------------------------
+function tf = nc_isunlimitedvar(ncfile,varname)
+%NC_ISUNLIMITEDVAR determine if variable has unlimited dimension.
+%
+%   TF = NC_ISUNLIMITEDVAR(NCFILE,VARNAME) returns true if the netCDF
+%   variable VARNAME in the netCDF file NCFILE has an unlimited dimension,
+%   and false otherwise.
+%
+%   Example:
+%       nc_dump('example.nc');
+%       tf = nc_isunlimitedvar('example.nc','time_series')
+%
+%   See also NC_ISCOORDVAR, NC_DUMP.
+
+	try
+		info = nc_getvarinfo(ncfile, varname);
+	catch 
+		e = lasterror;
+		switch ( e.identifier )
+			case 'NC_FUNS:NC_VARGET:MEXNC:INQ_VAR'
+				tf = false;
+				return
+			otherwise
+				error(e);
+		end
+	end
+
+	tf = info.Unlimited;
+
 % --------------------------------------------------------------------------------------------
 function values = nc_varget(ncfile, varname, varargin )
 % NC_VARGET:  Retrieve data from a netCDF variable.
