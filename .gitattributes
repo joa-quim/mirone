@@ -335,6 +335,13 @@ mex/mexnc/netcdf2.c -text
 mex/mexnc/netcdf2.h -text
 mex/mexnc/netcdf3.c -text
 mex/mexnc/netcdf3.h -text
+mex/mexnc4/common.c -text
+mex/mexnc4/mexgateway.c -text
+mex/mexnc4/mexnc.h -text
+mex/mexnc4/mwsize.h -text
+mex/mexnc4/netcdf3.c -text
+mex/mexnc4/netcdf3.h -text
+mex/mexnc4/netcdf4.c -text
 mex/mirblock.c -text
 mex/mwsize.h -text
 mex/mxgridtrimesh.c -text
