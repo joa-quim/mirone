@@ -369,88 +369,106 @@ function values = nc_varget(ncfile, varname, varargin )
 % 
 %      vardata = nc_varget ( file, variable_name, [300 250], [100 200] );
 
-snc_nargchk(2,5,nargin);
-snc_nargchk(1,1,nargout);
+	snc_nargchk(2,5,nargin);
+	snc_nargchk(1,1,nargout);
 
-[start, count, stride] = parse_and_validate_args_varget(ncfile,varname,varargin{:});
+	% Setting the preference 'PRESERVE_FVD' to true will preserve the fastest
+	% varying dimension, i.e. it will not transpose the data. This flips the order
+	% of the dimension IDs from what one would see by using the ncdump C utility.
+	% This may result in a performance boost when working with large data.
+	preserve_fvd = false;
 
-[ncid,status] = mexnc('open',ncfile,'NOWRITE');
-if status ~= 0
-    snc_error('NC_FUNS:NC_VARGET:MEXNC:OPEN', mexnc('strerror', status) );
-end
+	[start, count, stride] = parse_and_validate_args_varget(ncfile,varname,varargin{:});
 
-[varid, status]=mexnc('inq_varid', ncid, varname);
-if status ~= 0
-    mexnc('close',ncid);
-    snc_error ( 'NC_FUNS:NC_VARGET:MEXNC:INQ_VARID', mexnc('strerror', status) );
-end
+	[ncid,status] = mexnc('open',ncfile,'NOWRITE');
+	if status ~= 0
+		snc_error('NC_FUNS:NC_VARGET:MEXNC:OPEN', mexnc('strerror', status) );
+	end
 
-[dud,var_type,nvdims,dimids,dud,status] = mexnc('inq_var', ncid, varid);
-if status ~= 0
-    mexnc('close',ncid);
-    snc_error ( 'NC_FUNS:NC_VARGET:MEXNC:INQ_VAR', mexnc('strerror',status) );
-end
+	[varid, status] = mexnc('inq_varid', ncid, varname);
+	if (status ~= 0)
+		mexnc('close',ncid);
+		snc_error ( 'NC_FUNS:NC_VARGET:MEXNC:INQ_VARID', mexnc('strerror', status) );
+	end
 
-% Check that the start, count, stride parameters have appropriate lengths.
-% Otherwise we get confusing error messages later on.
-check_index_vectors(start,count,stride,nvdims,ncid,varname);
+	[dud,var_type,nvdims,dimids,dud,status] = mexnc('inq_var', ncid, varid);
+	if (status ~= 0)
+		mexnc('close',ncid);
+		snc_error ( 'NC_FUNS:NC_VARGET:MEXNC:INQ_VAR', mexnc('strerror',status) );
+	end
 
-% What mexnc operation will we use?
-[funcstr_family, funcstr] = determine_funcstr( var_type, nvdims, start, count, stride );
+	% Check that the start, count, stride parameters have appropriate lengths.
+	% Otherwise we get confusing error messages later on.
+	check_index_vectors(start,count,stride,nvdims,ncid,varname);
 
-the_var_size = determine_varsize_mex( ncid, dimids, nvdims );
+	% What mexnc operation will we use?
+	[funcstr_family, funcstr] = determine_funcstr( var_type, nvdims, start, count, stride );
 
-% Check that START index is ok.
-if ~isempty(start) && any(start > the_var_size)
-    snc_error('NC_FUNS:NC_VARGET:badStartIndex', 'The START index argument exceeds the size of the variable.');
-end
+	the_var_size = determine_varsize_mex( ncid, dimids, nvdims );
 
-% If the user had set non-positive numbers in "count", then we replace them
-% with what we need to get the rest of the variable.
-negs = find(count < 0);
-count(negs) = the_var_size(negs) - start(negs);
+	% mexnc does not preserve the fastest varying dimension.  If we want this, then we flip the indices.
+	if (preserve_fvd && true)		% '&& true' is to shut up the bloody warnings
+		the_var_size = fliplr(the_var_size);
+		start  = fliplr(start);
+		count  = fliplr(count);
+		stride = fliplr(stride);
+	end
 
-% At long last, retrieve the data.
-switch funcstr_family
-	case 'get_var',		[values, status] = mexnc( funcstr, ncid, varid );
-	case 'get_var1',	[values, status] = mexnc( funcstr, ncid, varid, 0 );
-	case 'get_vara',	[values, status] = mexnc( funcstr, ncid, varid, start, count );
-	case 'get_vars',	[values, status] = mexnc( funcstr, ncid, varid, start, count, stride );
-	otherwise
-        snc_error('NC_FUNS:NC_VARGET:unhandledType', sprintf ('Unhandled function string type ''%s''\n', funcstr_family) );
-end
+	% Check that START index is ok.
+	if ~isempty(start) && any(start > the_var_size)
+		snc_error('NC_FUNS:NC_VARGET:badStartIndex', 'The START index argument exceeds the size of the variable.');
+	end
 
-if ( status ~= 0 )
+	% If the user had set non-positive numbers in "count", then we replace them
+	% with what we need to get the rest of the variable.
+	negs = find(count < 0);
+	count(negs) = the_var_size(negs) - start(negs);
+
+	% At long last, retrieve the data.
+	switch funcstr_family
+		case 'get_var',		[values, status] = mexnc( funcstr, ncid, varid );
+		case 'get_var1',	[values, status] = mexnc( funcstr, ncid, varid, 0 );
+		case 'get_vara',	[values, status] = mexnc( funcstr, ncid, varid, start, count );
+		case 'get_vars',	[values, status] = mexnc( funcstr, ncid, varid, start, count, stride );
+		otherwise
+			snc_error('NC_FUNS:NC_VARGET:unhandledType', sprintf ('Unhandled function string type ''%s''\n', funcstr_family) );
+	end
+
+	if ( status ~= 0 )
+		mexnc('close',ncid);
+		snc_error ( 'NC_FUNS:NC_VARGET:%s', mexnc('strerror', status) );
+	end
+
+	% Test for situations like the Ifremer SST files where when we get here we have
+	% the_var_size = [1 1024 1024]		and values = [1024 x 1024]
+	% That is, the variable on the netCDF file is singleton on the leading dimension
+	if ( (the_var_size(1) == 1) && (numel(the_var_size) > 2) && (ndims(values) == (numel(the_var_size) - 1)) )
+		the_var_size = the_var_size(2:end);
+	end
+
+	% If it's a 1D vector, make it a column vector.  Otherwise permute the data
+	% to make up for the row-major-order-vs-column-major-order issue.
+	if (length(the_var_size) == 1)
+		values = values(:);
+	else
+        % Ok it's not a 1D vector.  If we are not preserving the fastest
+        % varying dimension, we should permute the data.
+		if (~preserve_fvd)
+			pv = numel(the_var_size):-1:1;		% fliplr
+			values = permute(values, pv);
+		end
+	end                                                                                   
+
+	[values, status] = handle_fill_value_mex ( ncid, varid, var_type, values );	% Do both '_FillValue' & 'missing_value'
+	if (status)		% '_FillValue' was not found. Try the 'missing_value'
+		values = handle_mex_missing_value ( ncid, varid, var_type, values );
+	end
+	values = handle_scaling_mex ( ncid, varid, values );
+
+	% remove any singleton dimensions.
+	values = squeeze( values );
+
 	mexnc('close',ncid);
-	snc_error ( 'NC_FUNS:NC_VARGET:%s', mexnc('strerror', status) );
-end
-
-% Test for situations like the Ifremer SST files where when we get here we have
-% the_var_size = [1 1024 1024]		and values = [1024 x 1024]
-% That is, the variable on the netCDF file is singleton on the leading dimension
-if ( (the_var_size(1) == 1) && (numel(the_var_size) > 2) && (ndims(values) == (numel(the_var_size) - 1)) )
-	the_var_size = the_var_size(2:end);
-end
-
-% If it's a 1D vector, make it a column vector.  Otherwise permute the data
-% to make up for the row-major-order-vs-column-major-order issue.
-if (length(the_var_size) == 1)
-    values = values(:);
-else
-    pv = numel(the_var_size):-1:1;
-    values = permute(values,pv);
-end                                                                                   
-
-[values, status] = handle_fill_value_mex ( ncid, varid, var_type, values );		% Do both '_FillValue' & 'missing_value'
-if (status)		% '_FillValue' was not found. Try the 'missing_value'
-	values = handle_mex_missing_value ( ncid, varid, var_type, values );
-end
-values = handle_scaling_mex ( ncid, varid, values );
-
-% remove any singleton dimensions.
-values = squeeze( values );
-
-mexnc('close',ncid);
 
 % --------------------------------------------------------------------------------
 function [start, count, stride] = parse_and_validate_args_varget(ncfile,varname,varargin)
