@@ -495,7 +495,7 @@ function push_help_CB(hObject, handles)
 % -------------------------------------------------------------------------------------
 function push_runPlugin_CB(hObject, handles)
 % THIS IS A SPECIAL CALLBACK THAT CALLS A FUNCTION NAMED 'aquaPlugin' THAT MAY RESIDE
-% ANYWHERE IN THE PATH WORLD. IT'S UP TO THE USER TO DEFFINE ITS CONTENTS.
+% ANYWHERE IN THE PATH WORLD. IT'S UP TO THE USER TO DEFINE ITS CONTENTS.
 %	OK, because 'aquaPlugin' checks for the state of the 'check_plugFun' checkbox to
 %	allow executing via the OPTcontrol.txt pointed script, and we don't have one with
 %	that name (it's in 'aquamoto'), we will do the next trick.
@@ -509,8 +509,8 @@ function push_runPlugin_CB(hObject, handles)
 % -------------------------------------------------------------------------------------
 function push_compute_CB(hObject, handles)
 %	This function checks the contents of the various uicontrols and creates a file in the
-%	'tmp' directory with the parametrs necessary to run each case. The execution itself
-%	is acomplished by a recursive call using that script name as argument.
+%	'tmp' directory with the parameters necessary to run each case. The execution itself
+%	is accomplished by a recursive call using that script name as argument.
 %
 %	Because the number of cases is not equal between this function and the 'aquaPlugin'
 %	function, it's necessary to map between the two sets.
@@ -523,8 +523,8 @@ function push_compute_CB(hObject, handles)
 % 		'yearMeanFlag' ...  % 4 - Compute yearly averages from monthly data but checked against a quality flag file
 % 		'polygAVG' ...      % 5 - Compute averages of whatever inside polygons (if any)
 % 		'flagsStats' ...    % 6 - Compute per/pixel annual or month counts of pixel values with a quality >= flag
-% 		'pass_by_count' ... % 7 - Check the curently active 3D file against a count file
-% 		'do_math' ...       % 8 - Perform some basic agebraic operations with the 3D planes
+% 		'pass_by_count' ... % 7 - Check the currently active 3D file against a count file
+% 		'do_math' ...       % 8 - Perform some basic algebraic operations with the 3D planes
 % 		'conv2vtk' ...      % 9 - Convert a 3D netCDF file into a VTK format
 % 		'L2_periods' ...    % 10 - Calculate composites of L2 products over fixed periods
 % 		'corrcoef' ...      % 11 - Calculate correlation coefficients between 2 3D arrays
