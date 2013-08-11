@@ -328,6 +328,100 @@ function tf = nc_isunlimitedvar(ncfile,varname)
 	tf = info.Unlimited;
 
 % --------------------------------------------------------------------------------------------
+function values = nc_varget_t(ncfile, varname, varargin)
+% Same as nc_varget() but reads already transposed (10 times SLOWER)
+
+	parse_and_validate_args_varget(ncfile,varname,varargin{:});
+
+	[ncid, status] = mexnc('open',ncfile,'NOWRITE');
+	if (status ~= 0)
+		snc_error('NC_FUNS:NC_VARGET_T:MEXNC:OPEN', mexnc('strerror', status) );
+	end
+
+	[varid, status] = mexnc('inq_varid', ncid, varname);
+	if (status ~= 0)
+		mexnc('close',ncid);
+		snc_error ( 'NC_FUNS:NC_VARGET_T:MEXNC:INQ_VARID', mexnc('strerror', status) );
+	end
+
+	[dud, var_type, nvdims, dimids, dud, status] = mexnc('inq_var', ncid, varid);
+	if (status ~= 0)
+		mexnc('close',ncid);
+		snc_error ( 'NC_FUNS:NC_VARGET_T:MEXNC:INQ_VAR', mexnc('strerror',status) );
+	end
+
+	the_var_size = determine_varsize_mex( ncid, dimids, nvdims );
+    [start, count, stride] = snc_get_indexing(nvdims, the_var_size, varargin{:});
+
+	% Check that START index is ok.
+	if ~isempty(start) && any(start > the_var_size)
+		snc_error('NC_FUNS:NC_VARGET:badStartIndex', 'The START index argument exceeds the size of the variable.');
+	end
+
+	% If the user had set non-positive numbers in "count", then we replace them
+	% with what we need to get the rest of the variable.
+	negs = find(count < 0);
+	count(negs) = the_var_size(negs) - start(negs);
+
+	% Check that the start, count, stride parameters have appropriate lengths.
+	% Otherwise we get confusing error messages later on.
+	check_index_vectors(start,count,stride,nvdims,ncid,varname);
+
+	% What mexnc operation will we use?
+	if (numel(count) > 1)
+		prefix = 'get_varm';
+		switch (var_type)
+			case nc_int,		funcstr = [prefix '_int'];
+			case nc_float,		funcstr = [prefix '_float'];
+			case nc_double,		funcstr = [prefix '_double'];
+			case nc_short,		funcstr = [prefix '_short'];
+			case nc_char,		funcstr = [prefix '_text'];
+			case nc_byte,		funcstr = [prefix '_schar'];
+			otherwise
+				snc_error ( 'NC_FUNS:NC_VARGET_T:badDatatype', sprintf('Unhandled datatype %d.', var_type) );
+		end
+
+		imap_coord = [1 count(1)];
+		[values, status] = mexnc(funcstr, ncid, varid, start, count, stride, imap_coord);
+
+	else
+		[funcstr_family, funcstr] = determine_funcstr(var_type, nvdims, start, count, stride);
+		switch funcstr_family
+			case 'get_var',		[values, status] = mexnc( funcstr, ncid, varid );
+			case 'get_var1',	[values, status] = mexnc( funcstr, ncid, varid, 0 );
+			case 'get_vara',	[values, status] = mexnc( funcstr, ncid, varid, start, count );
+			case 'get_vars',	[values, status] = mexnc( funcstr, ncid, varid, start, count, stride );
+			otherwise
+				snc_error('NC_FUNS:NC_VARGET:unhandledType', sprintf ('Unhandled function string type ''%s''\n', funcstr_family) );
+		end
+	end
+
+	if ( status ~= 0 )
+		mexnc('close',ncid);
+		snc_error ( 'NC_FUNS:NC_VARGET_T', mexnc('strerror', status) );
+	end
+
+	% Test for situations like the Ifremer SST files where when we get here we have
+	% the_var_size = [1 1024 1024]		and values = [1024 x 1024]
+	% That is, the variable on the netCDF file is singleton on the leading dimension
+	if ( (the_var_size(1) == 1) && (numel(the_var_size) > 2) && (ndims(values) == (numel(the_var_size) - 1)) )
+		the_var_size = the_var_size(2:end);
+	end
+
+	% If it's a 1D vector, make it a column vector.  Otherwise permute the data
+	% to make up for the row-major-order-vs-column-major-order issue.
+	if (numel(the_var_size) == 1),		values = values(:);		end
+
+	[values, status] = handle_fill_value_mex ( ncid, varid, var_type, values );	% Do both '_FillValue' & 'missing_value'
+	if (status)		% '_FillValue' was not found. Try the 'missing_value'
+		values = handle_mex_missing_value ( ncid, varid, var_type, values );
+	end
+
+	values = handle_scaling_mex(ncid, varid, values);
+	values = squeeze( values );		% remove any singleton dimensions.
+	mexnc('close',ncid);
+
+% --------------------------------------------------------------------------------------------
 function values = nc_varget(ncfile, varname, varargin )
 % NC_VARGET:  Retrieve data from a netCDF variable.
 %
@@ -369,14 +463,13 @@ function values = nc_varget(ncfile, varname, varargin )
 % 
 %      vardata = nc_varget ( file, variable_name, [300 250], [100 200] );
 
+% 	values = nc_varget_t(ncfile, varname, varargin{:} );
+% 	return
+
 	snc_nargchk(2,5,nargin);
 	snc_nargchk(1,1,nargout);
-
-	% Setting the preference 'PRESERVE_FVD' to true will preserve the fastest
-	% varying dimension, i.e. it will not transpose the data. This flips the order
-	% of the dimension IDs from what one would see by using the ncdump C utility.
-	% This may result in a performance boost when working with large data.
-	preserve_fvd = false;
+% values = nc_varget_t(ncfile, varname, varargin{:});
+% return
 
 	[start, count, stride] = parse_and_validate_args_varget(ncfile,varname,varargin{:});
 
@@ -397,22 +490,15 @@ function values = nc_varget(ncfile, varname, varargin )
 		snc_error ( 'NC_FUNS:NC_VARGET:MEXNC:INQ_VAR', mexnc('strerror',status) );
 	end
 
+	the_var_size = determine_varsize_mex( ncid, dimids, nvdims );
+    %[start, count, stride] = snc_get_indexing(nvdims, the_var_size, varargin{:});	% Only would worth if fvd == true
+
 	% Check that the start, count, stride parameters have appropriate lengths.
 	% Otherwise we get confusing error messages later on.
 	check_index_vectors(start,count,stride,nvdims,ncid,varname);
 
 	% What mexnc operation will we use?
 	[funcstr_family, funcstr] = determine_funcstr( var_type, nvdims, start, count, stride );
-
-	the_var_size = determine_varsize_mex( ncid, dimids, nvdims );
-
-	% mexnc does not preserve the fastest varying dimension.  If we want this, then we flip the indices.
-	if (preserve_fvd && true)		% '&& true' is to shut up the bloody warnings
-		the_var_size = fliplr(the_var_size);
-		start  = fliplr(start);
-		count  = fliplr(count);
-		stride = fliplr(stride);
-	end
 
 	% Check that START index is ok.
 	if ~isempty(start) && any(start > the_var_size)
@@ -453,10 +539,8 @@ function values = nc_varget(ncfile, varname, varargin )
 	else
         % Ok it's not a 1D vector.  If we are not preserving the fastest
         % varying dimension, we should permute the data.
-		if (~preserve_fvd)
-			pv = numel(the_var_size):-1:1;		% fliplr
-			values = permute(values, pv);
-		end
+		pv = numel(the_var_size):-1:1;
+		values = permute(values, pv);
 	end                                                                                   
 
 	[values, status] = handle_fill_value_mex ( ncid, varid, var_type, values );	% Do both '_FillValue' & 'missing_value'
@@ -503,36 +587,97 @@ start = [];		count = [];		stride = [];
 	if ~isnumeric ( stride )
 		snc_error ( 'NC_FUNS:NC_VARGET:badInput', 'the ''stride'' argument must be numeric.' );
 	end
+	
+% --------------------------------------------------------------------------------
+function [start, count, stride] = snc_get_indexing(nvdims, var_size, varargin)
+% Common private function for setting up indexing for NC_VARGET.
+
+	if (nvdims == 0)	% This will happen in the case of a singleton.  No need to go further.
+		start = 0;		count = 1;		stride = 1;
+		return
+	end
+
+	switch(numel(varargin))
+		case 0			% retrieve everything.
+			start  = zeros(1,nvdims);
+			count  = var_size;
+			stride = ones(1,nvdims);
+
+		case 1			% if only start was provided, then the count is implied to be one.
+			start  = varargin{1};
+			count  = ones(1,nvdims);
+			stride = ones(1,nvdims);
+
+		case 2			% just a contiguous hyperslab.
+			start  = varargin{1};
+			count  = varargin{2};
+			stride = ones(1,nvdims);
+
+		case 3
+			start  = varargin{1};
+			count  = varargin{2};
+			stride = varargin{3};
+	end
+
+	start = double(start(:)');
+	count = double(count(:)');
+	stride = double(stride(:)');
+
+	% If the user had set non-positive numbers in "count", then we replace them
+	% with what we need to get the rest of the variable.
+	negs = find((count<0) | isinf(count));
+	count(negs) = (var_size(negs) - start(negs)) ./ stride(negs);
+
+	% Ok, now do some final validation.
+	if (any(start < 0))
+		snc_error('NC_FUNS:INDEXING:badStartIndex', 'The START argument should be nonnegative.');
+	end
+
+	if (any(count <= 0))
+		snc_error('NC_FUNS:INDEXING:badStartIndex', 'The COUNT argument should be positive.');
+	end
+
+	if (any(stride <= 0))
+		snc_error('NC_FUNS:INDEXING:badStartIndex', 'The STRIDE argument should be positive.');
+	end
+
+	if (~isnumeric(start) || ~isnumeric(count) || ~isnumeric(stride))
+		snc_error('NC_FUNS:INDEXING:badIndexType', 'Any index arguments should be numeric');
+	end
+
+	if (numel(start) ~= numel(count)) || (numel(count) ~= numel(stride)) || (numel(stride) ~= nvdims)
+		snc_error('NC_FUNS:INDEXING:badIndexLength', 'The lengths of the index arguments should be %d.', nvdims);
+	end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function [prefix,funcstr] = determine_funcstr ( var_type, nvdims, start, count, stride )
 % DETERMINE_FUNCSTR
 %     Determines if we are to use, say, 'get_var1_text', or 'get_vars_double', or whatever.
 
-% Determine if we are retriving a single value, the whole variable, a 
-% contiguous portion, or a strided portion.
-if (nvdims == 0)													% It is a singleton variable.
-    prefix = 'get_var1';
-elseif isempty(start)												% retrieving the entire variable.
-    prefix = 'get_var';
-elseif (~isempty(start) && ~isempty(count) && isempty(stride))		% retrieving a contiguous portion
-    prefix = 'get_vara';
-elseif (~isempty(start) && ~isempty(count) && ~isempty(stride))		% retrieving a contiguous portion
-    prefix = 'get_vars';
-else
-    snc_error ( 'NC_FUNS:NC_VARGET:FUNCSTR', 'Could not determine funcstr prefix.' );
-end
+	% Determine if we are retriving a single value, the whole variable, a 
+	% contiguous portion, or a strided portion.
+	if (nvdims == 0)													% It is a singleton variable.
+		prefix = 'get_var1';
+	elseif isempty(start)												% retrieving the entire variable.
+		prefix = 'get_var';
+	elseif (~isempty(start) && ~isempty(count) && isempty(stride))		% retrieving a contiguous portion
+		prefix = 'get_vara';
+	elseif (~isempty(start) && ~isempty(count) && ~isempty(stride))		% retrieving a contiguous portion
+		prefix = 'get_vars';
+	else
+		snc_error ( 'NC_FUNS:NC_VARGET:FUNCSTR', 'Could not determine funcstr prefix.' );
+	end
 
-switch ( var_type )
-	case nc_int,		funcstr = [prefix '_int'];
-	case nc_float,		funcstr = [prefix '_float'];
-	case nc_double,		funcstr = [prefix '_double'];
-	case nc_short,		funcstr = [prefix '_short'];
-	case nc_char,		funcstr = [prefix '_text'];
-	case nc_byte,		funcstr = [prefix '_schar'];
-	otherwise
-		snc_error ( 'NC_FUNS:NC_VARGET:badDatatype', sprintf('Unhandled datatype %d.', var_type) );
-end
+	switch ( var_type )
+		case nc_int,		funcstr = [prefix '_int'];
+		case nc_float,		funcstr = [prefix '_float'];
+		case nc_double,		funcstr = [prefix '_double'];
+		case nc_short,		funcstr = [prefix '_short'];
+		case nc_char,		funcstr = [prefix '_text'];
+		case nc_byte,		funcstr = [prefix '_schar'];
+		otherwise
+			snc_error ( 'NC_FUNS:NC_VARGET:badDatatype', sprintf('Unhandled datatype %d.', var_type) );
+	end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function [values, status] = handle_fill_value_mex ( ncid, varid, var_type, values )
@@ -2899,9 +3044,9 @@ if nvdims == 0
     the_var_size = 1;
 else
     the_var_size = zeros(1,nvdims);
-    for j=1:nvdims,
+    for (j = 1:nvdims)
         dimid = dimids(j);
-        [dim_size,status]=mexnc('inq_dimlen', ncid, dimid);
+        [dim_size,status] = mexnc('inq_dimlen', ncid, dimid);
         if ( status ~= 0 )
 			mexnc('close',ncid);
             snc_error ( 'NC_FUNS:NC_VARGET:MEXNC:INQ_DIM_LEN', mexnc('strerror', status) );
