@@ -448,7 +448,20 @@ function [X,Y,Z,head,misc] = read_nc(fname, opt)
 	if (get_Z)
 		nD = numel(z_dim);
 		if (nD == 2 )
-			Z = nc_funs('varget', fname, s.Dataset(z_id).Name);
+			try
+				Z = nc_funs('varget', fname, s.Dataset(z_id).Name);
+			catch
+				if ( ~isempty(strfind(lasterr, 'A memory allocation request failed')) )
+					h = warndlg('We got an Out of memory error. Trying again with a MUCH SLOWER method.','WARNING');
+					try
+						Z = nc_funs('varget_t', fname, s.Dataset(z_id).Name);
+					catch
+						delete(h)
+						error(lasterr)		% Error out so it can be catch by other try-catch
+					end
+					delete(h)
+				end
+			end
 		else
 			if ( ~all([s.Dimension.Length]) )
 				warndlg('One ore more dimensions has ZERO length. Expect #&%%&&$.','Warning')
@@ -536,20 +549,7 @@ function [X,Y,Z,head,misc] = read_old_cdf(fname, s)
 	z_range = double(nc_funs('varget', fname, s.Dataset(z_range_id).Name));
 	spacing = double(nc_funs('varget', fname, s.Dataset(spacing_id).Name));
 	dimension = double(nc_funs('varget', fname, s.Dataset(dimension_id).Name));
-	try
-		Z = nc_funs('varget', fname, s.Dataset(z_id).Name);
-	catch
-		if ( ~isempty(strfind(lasterr, 'A memory allocation request failed')) )
-			h = warndlg('We got an Out of memory error. Trying again with a MUCH SLOWER method.','WARNING');
-			try
-				Z = nc_funs('varget_t', fname, s.Dataset(z_id).Name);
-			catch
-				delete(h)
-				error(lasterr)		% Error out so it can be catch by other try-catch
-			end
-			delete(h)
-		end
-	end
+	Z = nc_funs('varget', fname, s.Dataset(z_id).Name);
 	
 	nx = round(diff(x_range) / spacing(1) + ~node_offset);
 	ny = round(diff(y_range) / spacing(2) + ~node_offset);
