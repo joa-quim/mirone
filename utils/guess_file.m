@@ -1,37 +1,37 @@
-	function [bin,n_column,multi_seg,n_headers,isGSHHS] = guess_file(fiche, opt1, opt2)
-	% Guess characteristics of file "fiche"
-	%
-	% Input:
-	%	OPT1, if given, will be MAXCHARS
-	%	OPT2, if given, will be nl_max
-	%
-	% Output
-	%	BIN        0 or 1, if file is ascii or binary, or empty if error loading file.
-	%	N_COLUMN   Number of columns of the data section
-	%	MULTI_SEG  0 or 1 depending if file is of the GMT multi-segment type or not
-	%	N_HEADERS  Number of headers in file
-	%	ISGSHHS    TRUE or FALSE depending if file is a GMT "GSHHS Master File" or not
-	%
-	% If it detects that "fiche" is ascii this function tries to find out wether the multisegment
-	% symbol (">") is present, the number of columns in the file and if it has header lines.
-	% NOTE that this last tests may not always give reliable results.
+function [bin,n_column,multi_seg,n_headers,isGSHHS] = guess_file(fiche, opt1, opt2)
+% Guess characteristics of file "fiche"
+%
+% Input:
+%	OPT1, if given, will be MAXCHARS
+%	OPT2, if given, will be nl_max
+%
+% Output
+%	BIN        0 or 1, if file is ascii or binary, or empty if error loading file.
+%	N_COLUMN   Number of columns of the data section
+%	MULTI_SEG  0 or 1 depending if file is of the GMT multi-segment type or not
+%	N_HEADERS  Number of headers in file
+%	ISGSHHS    TRUE or FALSE depending if file is a GMT "GSHHS Master File" or not
+%
+% If it detects that "fiche" is ascii this function tries to find out wether the multisegment
+% symbol (">") is present, the number of columns in the file and if it has header lines.
+% NOTE that this last tests may not always give reliable results.
 
-	%	Copyright (c) 2004-2013 by J. Luis
-	%
-	% 	This program is part of Mirone and is free software; you can redistribute
-	% 	it and/or modify it under the terms of the GNU Lesser General Public
-	% 	License as published by the Free Software Foundation; either
-	% 	version 2.1 of the License, or any later version.
-	% 
-	% 	This program is distributed in the hope that it will be useful,
-	% 	but WITHOUT ANY WARRANTY; without even the implied warranty of
-	% 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-	% 	Lesser General Public License for more details.
-	%
-	%	Contact info: w3.ualg.pt/~jluis/mirone
-	% --------------------------------------------------------------------
+%	Copyright (c) 2004-2013 by J. Luis
+%
+% 	This program is part of Mirone and is free software; you can redistribute
+% 	it and/or modify it under the terms of the GNU Lesser General Public
+% 	License as published by the Free Software Foundation; either
+% 	version 2.1 of the License, or any later version.
+% 
+% 	This program is distributed in the hope that it will be useful,
+% 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+% 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+% 	Lesser General Public License for more details.
+%
+%	Contact info: w3.ualg.pt/~jluis/mirone
+% --------------------------------------------------------------------
 
-	% $Id$
+% $Id$
 
 	% Error testing
 	bin = 0;    multi_seg = 0;  n_headers = 0;  n_column = 0;
@@ -81,34 +81,41 @@
 	% Make a crude test to find number of columns and number of headers
 	delimiters = [9:13 32 44];	% White space characters plus comma
 	n_col(1:nl_max) = 0;    n_multi = 0;
+	n_commas(1,nl_max) = 0;
 	idM = false(1,nl_max);
+	n_empty = 0;
 	for (i = 1:nl_max)
-		if isempty(str{i});  continue,   end		% Jump blank lines
+		if (isempty(str{i}))
+			n_empty = n_empty + 1;		continue				% Jump blank lines
+		end
 		if (str{i}(1) == '#' || str{i}(1) == '%'),		continue,   end		% Jump known comment lines
 		if strfind(str{i}(1:min(2,length(str{i}))),'>')   % multisegmet line, so the rest of it is of no interest (but count them)
 			n_multi = n_multi + 1;
-			idM(i) = true;      % Tag it to deletion
+			idM(i)  = true;		% Tag it for deletion
 			continue
 		end
+		n_commas(i) = numel(strfind(str{i},','));
 		str{i} = deblank(str{i});          % Blanks make a mess to the guessing code
 		[tok,rem] = strtok(str{i}, delimiters);
 		if ~isempty(rem);   n_col(i) = n_col(i) + 1;    end     % count first column
 		while ~isempty(rem)
-			[tok,rem]=strtok(rem, delimiters);
-			n_col(i) = n_col(i) + 1;
+			[tok,rem] = strtok(rem, delimiters);
+			n_col(i)  = n_col(i) + 1;
 		end
 	end
 	multi_seg = n_multi;
 	str(idM) = [];			% idM is the index of the multisegment lines
 	n_col(idM) = [];
+	n_commas(idM) = [];
 	nl_max = min(nl_max,numel(str));	% Update because str may have become empty
 
 	% Now decide how many columns have the data lines. The easeast is to assume that the info is in the last line
 	% However this may fail if last line contains, for example, the multisegment symbol (">").
 	% So, do another test.
+	n_commas(~n_col) = [];
 	n_col(~n_col) = [];				% Remove zeros which correspond to comment lines (the ones starting by '#') 
 	m = min(nl_max,numel(n_col));
-	n_headers_candidate = max(0, nl_max - numel(n_col));	% This value will be confirmed later (I'm messing this up)
+	n_headers_candidate = max(0, nl_max - n_empty - numel(n_col));	% This value will be confirmed later (I'm messing this up)
 
 	if (m > 1)
 		n_c1 = n_col(m);	n_c2 = n_col(m-1);		% With bad luck n_c2 can be zero
@@ -119,6 +126,14 @@
 		end
 	else
 		n_column = n_col;
+	end
+
+	% Heuristic to decide if the most frequent number of commas tells us better the number of columns
+	if (~isempty(n_commas) && n_commas(end) > 0 && n_commas(end) ~= n_column)	% We have trouble
+		tmp = median(n_commas);
+		if (max(n_commas - tmp) <= 1 )
+			n_column = tmp + 1;
+		end
 	end
 
 	% Well, this is a stupid patch for the case where the file has only one column.
