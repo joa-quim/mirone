@@ -1,7 +1,7 @@
 function [numeric_data,date,headerlines,str_col,out] = text_read(varargin)
-% This function is another attempt (as compared to guess_file function) to build a funtion
+% This function is another attempt (as compared to guess_file function) to build a function
 % that guesses as much as I can from a generic file. It is crude right now, but if it proves
-% usefull, it should be merged with guess_file
+% useful, it should be merged with guess_file
 %
 % A = TEXT_READ(FILENAME) loads data from FILENAME into A.
 %
@@ -9,12 +9,20 @@ function [numeric_data,date,headerlines,str_col,out] = text_read(varargin)
 % separator (if text).  Use '\t' for tab.
 %
 % NUMERIC_DATA  The numeric data in file
+%
 % DATE          If a column in file is of string type assume that it's a date string and convert it to dec years
 %               However, if multisegment file is indicated in input it will contain the multiseg char
-%               This implyies that files with a date string cannot be multiseg
+%               This implies that files with a date string cannot be multiseg
+%               ---
+%               The above is very old and not guarantied to still work like that (until I get a case to test)
+%               Now what it does is that a last column with text (in a TRUE CSV file) is returned as such,
+%               that is a cell string of text, if an attempt to convert it to decimal years fails.
+%
 % HEADERLINES   Number of header lines in file
+%
 % STR_COL       If a column in file is of string type, return that column number
 %               In case nargout == 4, it contains the header text lines
+%
 % OUT           A structure with NUMERIC_DATA, Header text and Text Data (column text???)
 %
 %	NOTE: When multi-segments it is better to not take a risk and ask only one or two outputs
@@ -45,7 +53,7 @@ function [numeric_data,date,headerlines,str_col,out] = text_read(varargin)
 	end
 
 	if (isnan(requestedHeaderLines))   % GUESS_FILE is better (and probably faster) in in guessing headers
-		[bin, n_column, multi_seg, requestedHeaderLines] = guess_file(filename, 2048, 50);
+		[bin, n_column, multi_seg, requestedHeaderLines] = guess_file(filename, 4096, 50);
 	end
 	hlines = requestedHeaderLines;		headerlines = requestedHeaderLines;
 
@@ -65,9 +73,13 @@ function [numeric_data,date,headerlines,str_col,out] = text_read(varargin)
 	if isnan(requestedDelimiter)
 		str = string(1:min(length(string),4096));       % Limit the variable size used to guess the delimiter
 		delimiter = guessdelim(str);    clear str;
-		if (numel(delimiter) > 1)		% Found more than one likely delimiter, where second is ' ' or '\t'
-			string = strrep(string, delimiter(2), delimiter(1));	% Replace occurences of second delimiter by first
-			delimiter = delimiter(1);
+		if (numel(delimiter) > 1)						% Found more than one likely delimiter, where second is ' ' or '\t'
+			if ( isempty(strfind(delimiter,',')) )
+				string = strrep(string, delimiter(2), delimiter(1));	% Replace occurences of second delimiter by first
+				delimiter = delimiter(1);
+			else
+				delimiter = ',';
+			end
 		end
 	else
 		delimiter = sprintf(requestedDelimiter);
@@ -103,7 +115,8 @@ function [numeric_data,date,headerlines,str_col,out] = text_read(varargin)
 
 	try
 		[out.data, out.textdata, headerlines] = stringparse(string, delimiter, hlines);
-		out = LocalRowColShuffle(out);      clear string;
+		clear string;
+		%out = LocalRowColShuffle(out);		Don't know WTF this was used too.
 	catch
 		errordlg('Unknown error while parsing the file.','Error');
 		numeric_data = [];  date = [];  headerlines = 0;    str_col = [];   out = [];
@@ -112,7 +125,9 @@ function [numeric_data,date,headerlines,str_col,out] = text_read(varargin)
 
 	if (~isnan(requestedHeaderLines))   % Force to beleave in the requested number of HeaderLines
 		out.headers = out.textdata(1:headerlines);          % Return also the headers
-		out.textdata = out.textdata(requestedHeaderLines+1:end,:);
+		if (requestedHeaderLines)
+			out.textdata = out.textdata(requestedHeaderLines+1:end,:);
+		end
 	end
 
 	% If a column in file is of string type assume that it's a date string and convert it to dec years
@@ -257,7 +272,7 @@ function [numericData, textData, numHeaderRows] = stringparse(string, delimiter,
 	if (nargin < 3),    headerLines = NaN;      end
 
 	% use what user asked for header lines if specified
-	[numDataCols, numHeaderRows, numHeaderCols, numHeaderChars] = analyze(string, delimiter, headerLines);
+	[numDataCols, numHeaderRows, numHeaderCols, numHeaderChars, is_last_col_txt] = analyze(string, delimiter, headerLines);
 
 	% fetch header lines and look for a line of column headers
 	headerLine = {};
@@ -265,7 +280,7 @@ function [numericData, textData, numHeaderRows] = stringparse(string, delimiter,
 	origHeaderData = headerData;
 	useAsCells = 1;
 
-	if numHeaderRows
+	if (numHeaderRows)
 		firstLineOffset = numHeaderRows - 1;
 		headerData = strread(string,'%[^\n]',firstLineOffset,'delimiter',delimiter);
 		origHeaderData = headerData;
@@ -297,8 +312,10 @@ function [numericData, textData, numHeaderRows] = stringparse(string, delimiter,
 		end
 	end
 
-	if isempty(delimiter)
+	if (isempty(delimiter))
 		formatString = [repmat('%s', 1, numHeaderCols) repmat('%n', 1, numDataCols)];
+	elseif (is_last_col_txt)	% This case ignores the numHeaderCols (which, I don't remmeber what's in for)
+		formatString = [repmat('%n', 1, numDataCols) '%s'];
 	else
 		formatString = [repmat(['%[^' delimiter ']'], 1, numHeaderCols) repmat('%n', 1, numDataCols)];
 	end
@@ -306,24 +323,18 @@ function [numericData, textData, numHeaderRows] = stringparse(string, delimiter,
 	textCellData = {};
 	numericCellData = {};
 
-	% call strread with format string
-	% (if we got here, there must be at least one good chunk on the 1st line in the file)
-	if numHeaderCols && numDataCols
-		[textCellData{1:numHeaderCols}, numericCellData{1:numDataCols}] = ...
-			strread(string,formatString,1,'delimiter',delimiter,'headerlines',numHeaderRows);
-	elseif numDataCols
-		[numericCellData{1:numDataCols}] = ...
-			strread(string,formatString,1,'delimiter',delimiter,'headerlines',numHeaderRows);
-	end
-
-	% now try again for the whole shootin' match
+ 	% call strread with format string
 	try
-		if numHeaderCols && numDataCols
+		if (numHeaderCols && numDataCols && ~is_last_col_txt)
 			[textCellData{1:numHeaderCols}, numericCellData{1:numDataCols}] = ...
 				strread(string,formatString,'delimiter',delimiter,'headerlines',numHeaderRows);
-		elseif numDataCols
+		elseif (numDataCols && ~is_last_col_txt)
 			[numericCellData{1:numDataCols}] = ...
 				strread(string,formatString,'delimiter',delimiter,'headerlines',numHeaderRows);
+		elseif (numDataCols && is_last_col_txt)
+			[numericCellData{1:numDataCols}, textCellData{1}] = ...
+				strread(string,formatString,'delimiter',delimiter,'headerlines',numHeaderRows);
+			numHeaderCols = 1;		% Instead of fiting this all way down, let's cheat instead
 		end
 		wasError = 0;
 	catch
@@ -348,11 +359,12 @@ function [numericData, textData, numHeaderRows] = stringparse(string, delimiter,
 		end
 	end
 
-	numericData = zeros(numRows,numel(numericCellData));
+	numericData = cell2mat(numericCellData);
 
-	for (i = 1:numDataCols)
-		numericData(:,i) = numericCellData{i};
-		if (nargout > 1), textData(:,i+numHeaderCols) = cell(numRows, 1); end
+	if (nargout > 1 && ~is_last_col_txt)	%WTF is this for?
+		for (i = 1:numDataCols)
+			textData(:,i+numHeaderCols) = cell(numRows, 1);
+		end
 	end
 
 	if (nargout > 1)
@@ -415,10 +427,10 @@ function [numericData, textData, numHeaderRows] = stringparse(string, delimiter,
 		end
 	end
 
-	if (nargout > 1 && ~isempty(textData))    % trim trailing empty rows from textData
+	if (nargout > 1 && ~isempty(textData) && ~is_last_col_txt)    % trim trailing empty rows from textData (WHY????)
 		i = 1;
 		while i <= size(textData,1)
-			if all(cellfun('isempty',textData(i,:)))
+			if all(cellfun('isempty',textData(i,:)))	% HORROR, SLOW
 				break;
 			end
 			i = i + 1;
@@ -441,11 +453,11 @@ function [numericData, textData, numHeaderRows] = stringparse(string, delimiter,
 	end
 
 %-------------------------------------------------------------------------------------------------------
-function [numColumns, numHeaderRows, numHeaderCols, numHeaderChars] = analyze(string, delimiter, header)
+function [numColumns, numHeaderRows, numHeaderCols, numHeaderChars, is_last_col_txt] = analyze(string, delimiter, header)
 %ANALYZE count columns, header rows and header columns
 
 numColumns = 0;         numHeaderRows = 0;
-numHeaderCols = 0;      numHeaderChars = 0;
+numHeaderCols = 0;      numHeaderChars = 0;		is_last_col_txt = false;
 
 if (~isnan(header)),    numHeaderRows = header;     end
 
@@ -456,7 +468,7 @@ thisLine = thisLine{:};
 % When 'thisLine' has blanks at the end this would cause a wrong estimation of numColumns below
 thisLine = deblank(thisLine);
 
-[isvalid, numHeaderCols, numHeaderChars] = isvaliddata(thisLine, delimiter);
+[isvalid, numHeaderCols, numHeaderChars, is_last_col_txt] = isvaliddata(thisLine, delimiter);
 
 if (~isvalid)
     numHeaderRows = numHeaderRows + 1;
@@ -508,87 +520,100 @@ if (isvalid)    % determine num columns
     end
     
     % format string should have 1 more specifier than there are delimiters
-    numColumns = length(delimiterIndexes) + 1;
+    numColumns = length(delimiterIndexes) + 1 - is_last_col_txt;
     if (numHeaderCols > 0)  % add one to numColumns because the two set of columns share a delimiter
         numColumns = numColumns - numHeaderCols;
     end    
 end
 
 %-------------------------------------------------------------------------------------------------------
-function [status, numHeaderCols, numHeaderChars] = isvaliddata(string, delimiter)
+function [status, numHeaderCols, numHeaderChars, is_last_col_txt] = isvaliddata(string, delimiter)
 % ISVALIDDATA delimiters and all numbers or e or + or . or -
 % what about single columns???
 
-numHeaderCols  = 0;     numHeaderChars = 0;
+	numHeaderCols  = 0;     numHeaderChars = 0;		is_last_col_txt = false;
 
-if isempty(delimiter)    % with no delimiter, the line must be all numbers, +, . or -
-    status = isdata(string);
-elseif isempty(strfind(string, delimiter))
-    % a delimiter must occur on each line of data (or there is no delimiter...)
-    status = 0;
-else    % if there is data at the end of the line, it's legit
-    cellstring = {fliplr(strtok(fliplr(deblank(string)), delimiter))};
-    flag = isdata(cellstring);
-    status = 0;
-    if flag
-        cellstring = split(string, delimiter);
-        flags = isdata(cellstring);
-        % num leading zeros in flags is num header cols
-        numHeaderCols = max(find(flags == 0));
-        if (isempty(numHeaderCols))
-            numHeaderCols = 0;
-        end
-        % use contents of 1st data data cell to find num leading chars
-        numHeaderChars = strfind(string, cellstring{numHeaderCols + 1}) - 1;
-        status = 1;
-    end
-end
+	if isempty(delimiter)    % with no delimiter, the line must be all numbers, +, . or -
+		status = isdata(string);
+	elseif isempty(strfind(string, delimiter))
+		% a delimiter must occur on each line of data (or there is no delimiter...)
+		status = 0;
+	else    % if there is data at the end of the line, it's legit
+		cellstring = {fliplr(strtok(fliplr(deblank(string)), delimiter))};
+		flag = isdata(cellstring);
+		if (~flag)
+			ind = strfind(string, delimiter);
+			cellstring = {string(ind(end-1)+1:ind(end)-1)};
+			is_last_col_txt = true;
+			flag = isdata(cellstring);
+		end
+		status = 0;
+		if flag
+			cellstring = split(string, delimiter);
+			flags = isdata(cellstring);
+			% num leading zeros in flags is num header cols.		WTF are 'num header cols'???
+			if (~is_last_col_txt)
+				numHeaderCols = max([0 find(flags == 0)]);
+			end
+			% use contents of 1st data data cell to find num leading chars
+			numHeaderChars = strfind(string, cellstring{numHeaderCols + 1}) - 1;
+			status = 1;
+		end
+	end
 
 %-------------------------------------------------------------------------------------------------------
 function status = isdata(cellstring)
 %ISDATA true if string can be shoved into a number
 
-if (~isa(cellstring,'cell'))
-    cellstring = cellstr(cellstring);
-end
+	if (isempty(cellstring))
+		status = false;		return
+	end
 
-status = logical([]);
-for (i = 1:length(cellstring) - 1)
-    [a,b,c] = sscanf(cellstring{i}, '%g');
-    status(i) = isempty(c);
-end
+	if (~isa(cellstring,'cell'))
+		cellstring = cellstr(cellstring);
+	end
 
-if (~isempty(cellstring{end}))      % ignore empty last field
-    [a,b,c] = sscanf(cellstring{end}, '%g');
-    status(length(cellstring)) = isempty(c);
-end
+	status = logical([]);
+	for (i = 1:length(cellstring) - 1)
+		[a,b,c] = sscanf(cellstring{i}, '%g');
+		status(i) = isempty(c);
+	end
+
+	if (~isempty(cellstring{end}))      % ignore empty last field
+		[a,b,c] = sscanf(cellstring{end}, '%g');
+		status(length(cellstring)) = isempty(c);
+	end
 
 %-------------------------------------------------------------------------------------------------------
 function cellOut = split(string, delimiter)
 %SPLIT rip string apart using strtok
-cellOut = strread(string,'%s','delimiter',delimiter)';
+	cellOut = strread(string,'%s','delimiter',delimiter)';
 
 %-------------------------------------------------------------------------------------------------------
 function [numeric_data,date,str_col] = col_str2dec(in1,delimiter)
-% This function doesn't do anything (and returns emptys) if the in1 var doesn't
+% This function doesn't do anything (and returns empties in DATE & STR_COL) if the in1 var doesn't
 % have a string column. Otherwise NUMERIC_DATA contains the original numeric columns,
 % DATE contains the string date converted to decimal years and STR_COL is the string column number
+%
+% It's been a very long time since this function has been used to do the conversion to decimal years
+% and it probably will have issues. But the behavior now changed. If it is not possible to convert
+% in1.textdata to numeric year just return it into DATE as a cell array.
 
 numeric_data = [];  date = [];  str_col = [];
-if (isstruct(in1) && ~isempty(in1.textdata))     % We have at least one string column in file (the last column)
-    if (iscell(in1.textdata))   % I think that's allways the case, but...
+if (isstruct(in1) && ~isempty(in1.textdata))	% We have at least one string column in file (the last column)
+    if (iscell(in1.textdata))					% I think that's allways the case, but...
         % When the string is in the last column, we still want to know if the previous are numeric
         % In that case in1.textdata will containt only one column per line
         cellstring = strread(in1.textdata{1},'%s','delimiter',delimiter)';
 		try
             flags = isdata(cellstring(1:length(cellstring)-1));
-            n_good = max(find(flags ~= 0));
+            n_good = max([0 find(flags ~= 0)]);
         catch   % Error occurs when in1.textdata has more than 1 column and the n_good condition is not necessary
             n_good = 0;
 		end
 		if (n_good)             % Yes, there are valid data cols before the string col
             tmp = [];   m = size(in1.textdata,1);
-            for (i=1:m)
+            for (i = 1:m)
 				tmp = [tmp; strread(in1.textdata{i},'%s','delimiter',delimiter)'];
             end
 			numeric_data = str2double(in1.textdata(:,1:n_good));
@@ -689,7 +714,7 @@ if (~isempty(str_col))
     % Move in1.textdata to the tmp variable
     tmp = char(in1.textdata);       in1.textdata = [];
 else
-    date = [];  str_col = [];   return;
+    date = in1.textdata;  str_col = [];   return
 end
 
 switch dateform         % Convert the date from its string form to decimal years
