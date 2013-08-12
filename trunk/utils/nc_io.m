@@ -457,7 +457,6 @@ function [X,Y,Z,head,misc] = read_nc(fname, opt)
 						Z = nc_funs('varget_t', fname, s.Dataset(z_id).Name);
 					catch
 						if (ishandle(h)),	delete(h),	end
-						warndlg(['Shit, failed again: ' lasterr],'Warning')
 						error(lasterr)		% Error out so it can be catch by other try-catch
 					end
 					if (ishandle(h)),	delete(h),	end
