@@ -12,6 +12,8 @@ function  varargout = nc_funs(opt,varargin)
 			varargout{1} = nc_getdiminfo(varargin{:});
 		case 'varget'
 			varargout{1} = nc_varget(varargin{:});
+		case 'varget_t'
+			varargout{1} = nc_varget_t(varargin{:});
 		case 'attget'
 			varargout{1} = nc_attget(varargin{:});
 		case 'info'
@@ -468,8 +470,6 @@ function values = nc_varget(ncfile, varname, varargin )
 
 	snc_nargchk(2,5,nargin);
 	snc_nargchk(1,1,nargout);
-% values = nc_varget_t(ncfile, varname, varargin{:});
-% return
 
 	[start, count, stride] = parse_and_validate_args_varget(ncfile,varname,varargin{:});
 
@@ -646,7 +646,7 @@ function [start, count, stride] = snc_get_indexing(nvdims, var_size, varargin)
 	end
 
 	if (numel(start) ~= numel(count)) || (numel(count) ~= numel(stride)) || (numel(stride) ~= nvdims)
-		snc_error('NC_FUNS:INDEXING:badIndexLength', 'The lengths of the index arguments should be %d.', nvdims);
+		snc_error('NC_FUNS:INDEXING:badIndexLength', sprintf('The lengths of the index arguments should be %d.', nvdims));
 	end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
