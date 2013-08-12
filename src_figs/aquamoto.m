@@ -2205,12 +2205,13 @@ function push_maregs_CB(hObject, eventdata, handles, opt)
         errordlg('This file doesn''t have at least 2 columns','Error'),	return
 	end
 	if (isempty(n_headers)),    n_headers = NaN;    end
-	if (multi_seg),		numeric_data = text_read(fname,NaN,n_headers,'>');
-	else				numeric_data = text_read(fname,NaN,n_headers);
+	if (multi_seg),		[numeric_data, labels] = text_read(fname,NaN,n_headers,'>');
+	else				[numeric_data, labels] = text_read(fname,NaN,n_headers);
 	end
 
 	% NEED TO FORESEE THE CASE OF MULTISEGS
 	handles.xyData = numeric_data;
+	handles.xyLabels = labels;
 	set([handles.push_interpolate handles.edit_miscLayerInc], 'Enable', 'on') 
 	guidata(handles.figure1, handles)
 	
@@ -2261,9 +2262,16 @@ function push_interpolate_CB(hObject, eventdata, handles)
 	else			fid = fopen(fname,'w');
 	end
  	if (get(handles.check_miscWriteHeader, 'Val'))		% Write an header
-		fprintf(fid,'%s\n', ['# Interpolated file: ' handles.fname]);
-		fprintf(fid,'%s\n', ['# At locations from: ' get(handles.edit_maregs_CB,'Str')]);
-		fprintf(fid,'%s\n', ['# Variable: ' theVarName]);
+		fprintf(fid,'# Interpolated file: %s\n', handles.fname);
+		fprintf(fid,'# At locations from: %s\n', get(handles.edit_maregs_CB,'Str'));
+		fprintf(fid,'# Variable: %s\n', theVarName);
+		try			% There are many ways in which this can screw
+			if (~isempty(handles.xyLabels))
+				for (k = 1:numel(handles.xyLabels))
+					fprintf(fid, '# Station_Label (%d): %s\n', k, handles.xyLabels{k});
+				end
+			end
+		end
 		fprintf(fid, ['#  \t', repmat('%g(X)\t', [1,ncols]) '\n'], handles.xyData(:,1));
 		fprintf(fid, ['# T\t', repmat('%g(Y)\t', [1,ncols]) '\n'], handles.xyData(:,2));
 	end
