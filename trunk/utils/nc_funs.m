@@ -382,12 +382,14 @@ function values = nc_varget_t(ncfile, varname, varargin)
 			otherwise
 				snc_error ( 'NC_FUNS:NC_VARGET_T:badDatatype', sprintf('Unhandled datatype %d.', var_type) );
 		end
+		funcstr = funcstr_as_float ( ncid, varid, var_type, funcstr);	% If we'll need to convert to float, better read as such
 
 		imap_coord = [1 count(1)];
 		[values, status] = mexnc(funcstr, ncid, varid, start, count, stride, imap_coord);
 
 	else
 		[funcstr_family, funcstr] = determine_funcstr(var_type, nvdims, start, count, stride);
+		funcstr = funcstr_as_float ( ncid, varid, var_type, funcstr);	% If we'll need to convert to float, better read as such
 		switch funcstr_family
 			case 'get_var',		[values, status] = mexnc( funcstr, ncid, varid );
 			case 'get_var1',	[values, status] = mexnc( funcstr, ncid, varid, 0 );
@@ -504,6 +506,8 @@ function values = nc_varget(ncfile, varname, varargin )
 	if ~isempty(start) && any(start > the_var_size)
 		snc_error('NC_FUNS:NC_VARGET:badStartIndex', 'The START index argument exceeds the size of the variable.');
 	end
+	
+	funcstr = funcstr_as_float ( ncid, varid, var_type, funcstr);	% If we'll need to convert to float, better read as such
 
 	% If the user had set non-positive numbers in "count", then we replace them
 	% with what we need to get the rest of the variable.
@@ -677,6 +681,49 @@ function [prefix,funcstr] = determine_funcstr ( var_type, nvdims, start, count, 
 		case nc_byte,		funcstr = [prefix '_schar'];
 		otherwise
 			snc_error ( 'NC_FUNS:NC_VARGET:badDatatype', sprintf('Unhandled datatype %d.', var_type) );
+	end
+	
+% ------------------------------------------------------------------------------
+function funcstr = funcstr_as_float ( ncid, varid, var_type, funcstr)
+% Check for the conditions upon which a short int variable (the grid array) will
+% later be converted to single. If any of those conditions are met, change the
+% reading function string FUNCSTR to its 'float' type which will force the reading
+% into a single variable in first place.
+%
+% Currently tested conditions are that a SCALE_FACTOR ~= 1 or that the 
+% '_FillValue' or 'missing_value' attributes exist
+
+	if (var_type ~= nc_short && var_type ~= nc_int)
+		return
+	end
+
+	[dud, dud, status] = mexnc('INQ_ATT', ncid, varid, 'scale_factor' );
+	if (status == 0),    have_scale = true;			end
+
+	% Return early if we don't have it.
+	if (~have_scale),    return,	end
+
+	[scale_factor, status] = mexnc ( 'get_att_double', ncid, varid, 'scale_factor' );
+	if ( status ~= 0 )
+		mexnc('close',ncid);
+		snc_error('NC_FUNS:NC_VARGET:MEXNC:GET_ATT_DOUBLE', mexnc('strerror', status) );
+	end
+
+	do_replace = false;
+
+	if ( scale_factor ~= 1)
+		do_replace = true;
+	else
+		[dud, dud, status] = mexnc('INQ_ATT', ncid, varid, '_FillValue' );
+		[dud, dud, status2] = mexnc('INQ_ATT', ncid, varid, 'missing_value' );
+		if (status == 0 || status2 == 0)
+			do_replace = true;
+		end
+	end
+
+	if (do_replace)
+		ind = strfind(funcstr, '_');
+		funcstr = [funcstr(1:ind(end)) '_float'];
 	end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
