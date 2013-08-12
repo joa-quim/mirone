@@ -723,7 +723,7 @@ function funcstr = funcstr_as_float ( ncid, varid, var_type, funcstr)
 
 	if (do_replace)
 		ind = strfind(funcstr, '_');
-		funcstr = [funcstr(1:ind(end)) '_float'];
+		funcstr = [funcstr(1:ind(end)) 'float'];
 	end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
