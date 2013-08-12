@@ -456,10 +456,11 @@ function [X,Y,Z,head,misc] = read_nc(fname, opt)
 					try
 						Z = nc_funs('varget_t', fname, s.Dataset(z_id).Name);
 					catch
-						delete(h)
+						if (ishandle(h)),	delete(h),	end
+						warndlg(['Shit, failed again: ' lasterr],'Warning')
 						error(lasterr)		% Error out so it can be catch by other try-catch
 					end
-					delete(h)
+					if (ishandle(h)),	delete(h),	end
 				end
 			end
 		else
