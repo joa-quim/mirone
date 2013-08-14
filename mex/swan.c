@@ -129,10 +129,10 @@ void write_anuga_slice(mwSize ncid, mwSize z_id, mwSize i_start, mwSize j_start,
 		size_t *start, size_t *count, float *slice_range, mwSize idx, mwSize with_land);
 
 mwSize	ip, jp, polar, indl, indb, indr, indt, iopt;
-mwSize	ip1, jp1, ip2, jp2, grn, cumint, *lcum_p;
+mwSize	ip1, jp1, ip2, jp2, grn, cumint, *lcum_p = NULL;
 double	dx, dy, dt, cf, cc, sfx, sfy, time_h, rough;
 double	pistal, pistbl, pistab, pistbb, pistar, pistbr, pistat, pistbt;
-double	dangx, dangy, *anglt;
+double	dangx, dangy, *anglt = NULL;
 mwSize first_in_uvh = TRUE;
 struct	srf_header hdr_b;
 struct	srf_header hdr_f;
@@ -142,12 +142,12 @@ struct	srf_header hdr_f;
 
 void mexFunction(mwSize nlhs, mxArray *plhs[], mwSize nrhs, const mxArray *prhs[]) {
 
-	float	*work, dz, *ptr_mov_32, *mov_32, *time_p;
+	float	*work, dz, *ptr_mov_32, *mov_32, *time_p = NULL;
 	float	work_min = FLT_MAX, work_max = -FLT_MAX;
 	double	*inicial, *r, *rn, *u, *un, *v, *vn, *h, *h_bak, *hn, *zm;
 	double	*dxp, *xpp, *cca, x, y, small = 1e-6, m_per_deg = 111317.1;
 	double	x_min, y_min, dminx, dminy, dtx, dty, *head, *tmp;
-	double	*dep, *dep1, *cum_p, cang, angltt, dumb;
+	double	*dep, *dep1, *cum_p = NULL, cang, angltt, dumb;
 	double	x_inc, y_inc, x_tmp, y_tmp;		/* Used in the maregs positiojn test */
 	double	*ptr_wb; 		/* Pointer to be used in the aguentabar */
 	double	dfXmin = 0.0, dfYmin = 0.0, dfXmax = 0.0, dfYmax = 0.0, xMinOut, yMinOut;
