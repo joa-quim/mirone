@@ -283,7 +283,7 @@ function set_line_uicontext(h, opt)
 	if strcmp(opt,'MBtrack'),	uimenu(cmenuHand, 'Label', 'Show track''s Swath Ratio', 'Call', {@show_swhatRatio,h});	end
 
 	if (IS_RECTANGLE)
-		uimenu(cmenuHand, 'Label', 'Rectangle limits', 'Sep','on', 'Call', @rectangle_limits);
+		uimenu(cmenuHand, 'Label', 'Rectangle limits (edit)', 'Sep','on', 'Call', @rectangle_limits);
 		uimenu(cmenuHand, 'Label', 'Register Image', 'Call', @rectangle_register_img);
 		uimenu(cmenuHand, 'Label', 'Transplant Image here', 'Call', @Transplant_Image);
 		if (handles.geog)
