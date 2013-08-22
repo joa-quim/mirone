@@ -346,6 +346,7 @@ mex/mirblock.c -text
 mex/mwsize.h -text
 mex/mxgridtrimesh.c -text
 mex/nearneighbor_m.c -text
+mex/nswing.c eol=lf
 mex/ogrproj.cpp -text
 mex/ogrread.c -text
 mex/range_change.c -text
