@@ -697,6 +697,7 @@ function funcstr = funcstr_as_float ( ncid, varid, var_type, funcstr)
 		return
 	end
 
+	have_scale = false;
 	[dud, dud, status] = mexnc('INQ_ATT', ncid, varid, 'scale_factor' );
 	if (status == 0),    have_scale = true;			end
 
