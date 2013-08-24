@@ -210,10 +210,11 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	int	ndata_p, ndata_xyz, ndata_t, nx_p, ny_p, n_vert_max;
 	int	z_th, n_triang, ndata_m, ndata_s, n_swap = 0, nFacet;
 	int	argc = 0, n_arg_no_char = 0;
-	int	do_FV = FALSE, nv, node_offset;
+	int	do_FV = FALSE, do_Batta = FALSE, nv, node_offset;
 	int	km, pm;		/* index of current body facet (for mag only) */
 	mwSize	*faces = NULL;
 	float	one_100, *ptr_s = NULL, *vertices = NULL, *out_s;
+	float	*mag_array = NULL, *dec_array = NULL, *dec_array = NULL;
 	double	s_rad = 50000, s_rad2, z_dir = -1, z0 = 0.1, rho = 0.0, zobs = 0, dz = 0;
 	double	w = 0.0, e = 0.0, s = 0.0, n = 0.0, t_mag, a, DX, DY;
 	double	t_dec, t_dip, m_int, m_dec, m_dip, cc_t, cs_t, s_t, *ptr_d, *out_d;
@@ -426,53 +427,74 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		nv = mxGetM( mx_ptr );
 		vertices = (float *)mxGetData( mx_ptr );
 		do_FV = TRUE;
-
-		mx_ptr = mxGetField(prhs[0], 0, "hdr");
-		if (mx_ptr != NULL) {
-			if ( (mxGetM( mx_ptr ) * mxGetN( mx_ptr )) != 9)
-				mexErrMsgTxt("XYZOKB: The 'hdr' member must contain a 9 elements header array");
-			if (!mxIsDouble( mx_ptr))
-				mexErrMsgTxt("XYZOKB: The 'hdr' array must be of type DOUBLE");
-
-			ptr_d = mxGetPr( mx_ptr );
-			west = ptr_d[0];	east = ptr_d[1];
-			south = ptr_d[2];	north = ptr_d[3];
-			x_inc = ptr_d[7];	y_inc = ptr_d[8];
-			node_offset = (int)ptr_d[6];
-			do_grid = TRUE;
-		}
-
-		mx_ptr = mxGetField(prhs[0], 0, "track");
-		if (mx_ptr != NULL && !do_grid) {
-			if (mxGetN( mx_ptr ) > 2)
-				mexErrMsgTxt("XYZOKB: The XY (track) array must be a Mx2 array.");
-
-			ndata_p = mxGetM( mx_ptr );
-			if ((data = (struct DATA *) mxCalloc ((size_t) ndata_p, sizeof(struct DATA)) ) == NULL)
-				mexErrMsgTxt("XYZOKB: Could not allocate memory to hold the track profile structure");
-
-			if (mxIsDouble( mx_ptr)) {
-				ptr_d = mxGetPr( mx_ptr );
-				for (i = 0; i < ndata_p; i++) {
-					data[i].x = ptr_d[i];
-					data[i].y = ptr_d[i + ndata_p];
-				}
-			}
-			else if (mxIsSingle( mx_ptr)) {
-				ptr_s = (float *)mxGetData( mx_ptr );
-				for (i = 0; i < ndata_p; i++) {
-					data[i].x = ptr_s[i];
-					data[i].y = ptr_s[i + ndata_p];
-				}
-			}
-			else
-				mexErrMsgTxt("XYZOKB: The XY (track) array must be of type DOUBLE or SINGLE");
-
-			do_track = TRUE;
-		}
-		else if (mx_ptr != NULL && do_grid)
-			mexPrintf ("XYZOKB: Warning: Given both grid and profile options. Ignoring profile.\n");
 	}
+	else if (!strcmp(type, "prism")) {
+		mx_ptr = mxGetField(prhs[0], 0, "topo");
+		if (mx_ptr == NULL)
+			mexErrMsgTxt("XYZOKB: Input Error. Structure must have a member named 'topo'.");
+
+		vertices = (float *)mxGetData( mx_ptr );
+
+		mx_ptr = mxGetField(prhs[0], 0, "mag");		/* This field is optional. If not provided use cte val */
+		if (mx_ptr != NULL)
+			mag_array = (float *)mxGetData( mx_ptr );
+
+		mx_ptr = mxGetField(prhs[0], 0, "dec");		/* This field is optional. If not provided & needed use cte val */
+		if (mx_ptr != NULL)
+			dec_array = (float *)mxGetData( mx_ptr );
+
+		mx_ptr = mxGetField(prhs[0], 0, "dip");		/* This field is optional. If not provided & needed use cte val */
+		if (mx_ptr != NULL)
+			dip_array = (float *)mxGetData( mx_ptr );
+
+		do_Batta = TRUE;
+	}
+
+	mx_ptr = mxGetField(prhs[0], 0, "hdr");
+	if (mx_ptr != NULL) {
+		if ( (mxGetM( mx_ptr ) * mxGetN( mx_ptr )) != 9)
+			mexErrMsgTxt("XYZOKB: The 'hdr' member must contain a 9 elements header array");
+		if (!mxIsDouble( mx_ptr))
+			mexErrMsgTxt("XYZOKB: The 'hdr' array must be of type DOUBLE");
+
+		ptr_d = mxGetPr( mx_ptr );
+		west = ptr_d[0];	east = ptr_d[1];
+		south = ptr_d[2];	north = ptr_d[3];
+		x_inc = ptr_d[7];	y_inc = ptr_d[8];
+		node_offset = (int)ptr_d[6];
+		do_grid = TRUE;
+	}
+
+	mx_ptr = mxGetField(prhs[0], 0, "track");
+	if (mx_ptr != NULL && !do_grid) {
+		if (mxGetN( mx_ptr ) > 2)
+			mexErrMsgTxt("XYZOKB: The XY (track) array must be a Mx2 array.");
+
+		ndata_p = mxGetM( mx_ptr );
+		if ((data = (struct DATA *) mxCalloc ((size_t) ndata_p, sizeof(struct DATA)) ) == NULL)
+			mexErrMsgTxt("XYZOKB: Could not allocate memory to hold the track profile structure");
+
+		if (mxIsDouble( mx_ptr)) {
+			ptr_d = mxGetPr( mx_ptr );
+			for (i = 0; i < ndata_p; i++) {
+				data[i].x = ptr_d[i];
+				data[i].y = ptr_d[i + ndata_p];
+			}
+		}
+		else if (mxIsSingle( mx_ptr)) {
+			ptr_s = (float *)mxGetData( mx_ptr );
+			for (i = 0; i < ndata_p; i++) {
+				data[i].x = ptr_s[i];
+				data[i].y = ptr_s[i + ndata_p];
+			}
+		}
+		else
+			mexErrMsgTxt("XYZOKB: The XY (track) array must be of type DOUBLE or SINGLE");
+
+		do_track = TRUE;
+	}
+	else if (mx_ptr != NULL && do_grid)
+		mexPrintf ("XYZOKB: Warning: Given both grid and profile options. Ignoring profile.\n");
 
 	/* ------------------------------------------------------------------------------------------ */
 
