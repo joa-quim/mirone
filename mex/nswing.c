@@ -138,8 +138,8 @@ int read_grd_info_ascii (char *file, struct srf_header *hdr);
 int read_header_bin (FILE *fp, struct srf_header *hdr);
 int write_grd_bin(char *name, double x_min, double y_min, double x_inc, double y_inc, mwSize i_start, 
 		mwSize j_start, mwSize i_end, mwSize j_end, mwSize nX, float *work);
-int read_grd_ascii (char *file, struct srf_header *hdr, double *work);
-int read_grd_bin (char *file, struct srf_header *hdr, double *work);
+int read_grd_ascii (char *file, struct srf_header *hdr, double *work, int sign);
+int read_grd_bin (char *file, struct srf_header *hdr, double *work, int sign);
 int read_maregs(struct grd_header hdr, char *file, int *lcum, int nx);
 int count_n_maregs(char *file);
 int decode_R (char *item, double *w, double *e, double *s, double *n);
@@ -169,6 +169,7 @@ void edge_communication(struct nestContainer *nest, int m);
 void mass_conservation(struct nestContainer *nest, int isGeog, int m);
 void moment_conservation(struct nestContainer *nest, int isGeog, int m);
 void upscale_(struct nestContainer *nest, double *etad, int lev, int i_tsr);
+void replicate(struct nestContainer *nest, int lev);
 
 /* --------------------------------------------------------------------------- */
 /* Matlab Gateway routine */
@@ -282,7 +283,7 @@ void mexFunction(mwSize nlhs, mxArray *plhs[], mwSize nrhs, const mxArray *prhs[
 		}
 
 	}
-	if (n_arg_no_char == 5 && !mxIsCell(prhs[4])) {		/* A maregraph vector was given as the sixth argument*/
+	if (n_arg_no_char == 5 && !mxIsCell(prhs[4])) {		/* A maregraph vector was given as the fifth argument*/
 		tmp = mxGetPr(prhs[4]);
 		n_mareg = mxGetM(prhs[5]);
 		dx = head[7];		dy = head[8];
@@ -439,7 +440,7 @@ void mexFunction(mwSize nlhs, mxArray *plhs[], mwSize nrhs, const mxArray *prhs[
 					break;
 				case 't':	/* Time step of simulation */ 
 					dt = atof(&argv[i][2]);
-					if (num_of_nestGrids)
+					if (num_of_nestGrids)	/* In case they were transmitted as numeric arguments */
 						nest.dt_P[0] = dt;	/* Others are initialized latter by initialize_nestum() */
 					break;
 				case 'T':	/* File with maregraph positions */
@@ -499,7 +500,17 @@ void mexFunction(mwSize nlhs, mxArray *plhs[], mwSize nrhs, const mxArray *prhs[
 
 	if (error) return;
 
-	if (!bat_in_input) {			/* If bathymetry & source where not given as arguments, load them */
+	if (!(write_grids || out_sww || out_most || cumpt)) {
+		mexPrintf("Nothing selected for output (grids, or mregraphs), exiting\n");
+		return;
+	}
+
+	if (!bat_in_input && !source_in_input) {			/* If bathymetry & source where not given as arguments, load them */
+		if (!bathy || !fonte) {
+			mexPrintf ("NSWING: error, bathymetry and/or source grids were not provided.\n"); 
+			return;
+		}
+
 		r_bin_b = read_grd_info_ascii (bathy, &hdr_b);	/* Para saber como alocar a memoria */
 		r_bin_f = read_grd_info_ascii (fonte, &hdr_f);	/* e verificar se as grelhas sao compativeis */
 		if (r_bin_b < 0 || r_bin_f < 0) {
@@ -522,10 +533,35 @@ void mexFunction(mwSize nlhs, mxArray *plhs[], mwSize nrhs, const mxArray *prhs[
 		if (error) return;
 	}
 
-	if ( !(write_grids || out_sww || out_most || cumpt) ) {
-		mexPrintf("Nothing selected for output (grids, or mregraphs), exiting\n");
-		return;
+	if (n_arg_no_char == 0) {		/* Read the nesting grids */
+		struct	srf_header hdr;
+		int r_bin;
+		num_of_nestGrids = 0;
+		while (nesteds[num_of_nestGrids] != NULL) {
+			r_bin = read_grd_info_ascii (nesteds[num_of_nestGrids], &hdr);
+			if ((nest.bat[num_of_nestGrids] = (double *)mxCalloc ((size_t)hdr.nx*hdr.ny, sizeof(double)) ) == NULL) 
+				{no_sys_mem("(bat)", hdr.nx*hdr.ny);}
+
+			if (!r_bin)
+				read_grd_ascii (nesteds[num_of_nestGrids], &hdr, nest.bat[num_of_nestGrids], -1);
+			else
+				read_grd_bin (nesteds[num_of_nestGrids], &hdr, nest.bat[num_of_nestGrids], -1);
+
+			dx = (hdr.x_max - hdr.x_min) / (hdr.nx - 1);
+			dy = (hdr.y_max - hdr.y_min) / (hdr.ny - 1);
+			nest.hdr[num_of_nestGrids].nx = hdr.nx;
+			nest.hdr[num_of_nestGrids].ny = hdr.ny;
+			nest.hdr[num_of_nestGrids].x_inc = dx;           nest.hdr[num_of_nestGrids].y_inc = dy;
+			nest.hdr[num_of_nestGrids].x_min = hdr.x_min;    nest.hdr[num_of_nestGrids].x_max = hdr.x_max;
+			nest.hdr[num_of_nestGrids].y_min = hdr.y_min;    nest.hdr[num_of_nestGrids].y_max = hdr.y_max;
+			nest.hdr[num_of_nestGrids].z_min = hdr.z_min;    nest.hdr[num_of_nestGrids].z_max = hdr.z_max;
+			num_of_nestGrids++;
+		}
+		do_nestum = (num_of_nestGrids) ? TRUE : FALSE;
+		if (num_of_nestGrids)	/* OK, in this case only now we know that it must be filled */
+				nest.dt_P[0] = dt;
 	}
+
 	if ( water_depth && (out_sww || out_most) ) {
 		water_depth = FALSE;
 		mexPrintf("WARNING: Total water option is not compatible with ANUGA|MOST outputs. Ignoring\n");
@@ -623,13 +659,13 @@ void mexFunction(mwSize nlhs, mxArray *plhs[], mwSize nrhs, const mxArray *prhs[
 
 	if (!bat_in_input) {			/* If bathymetry & source where not given as arguments, load them */
 		if (!r_bin_b)					/* Read bathymetry */
-			read_grd_ascii (bathy, &hdr_b, bat);
+			read_grd_ascii (bathy, &hdr_b, bat, -1);
 		else
-			read_grd_bin (bathy, &hdr_b, bat);
+			read_grd_bin (bathy, &hdr_b, bat, -1);
 		if (r_bin_b)					/* Read source */
-			read_grd_bin (fonte, &hdr_f, etaa);
+			read_grd_bin (fonte, &hdr_f, etaa, 1);
 		else
-			read_grd_ascii (fonte, &hdr_f, etaa);
+			read_grd_ascii (fonte, &hdr_f, etaa, 1);
 	}
 
 	hdr.nx = hdr_b.nx;          hdr.ny = hdr_b.ny;
@@ -900,13 +936,12 @@ void mexFunction(mwSize nlhs, mxArray *plhs[], mwSize nrhs, const mxArray *prhs[
 						mass(nest.hdr[1], nest.dt[1], nest.bat[1], nest.etaa[1], nest.htotal_d[1],
 							nest.fluxm_a[1], nest.fluxn_a[1], nest.etad[1]);
 
-if (k == 1500) {
-	int aiai=0;
-}
 						moment(nest.hdr[1], nest.dt[1], nest.manning2[1], nest.htotal_a[1],
 							nest.htotal_d[1], nest.bat[1], nest.etad[1], nest.fluxm_a[1],
 							nest.fluxn_a[1], nest.fluxm_d[1], nest.fluxn_d[1], nest.vex[1],
 							nest.vey[1], TRUE);
+
+						replicate(&nest, 1);
 
 						if (jj == nhalf2 && nest.do_upscale)
 							upscale(&nest, nest.etad[0], 1, last_iter2);
@@ -928,6 +963,8 @@ if (k == 1500) {
 						nest.fluxn_a[0], nest.fluxm_d[0], nest.fluxn_d[0], nest.vex[0],
 						nest.vey[0], nest.r0[0], nest.r1m[0], nest.r1n[0], nest.r2m[0],
 						nest.r2n[0], nest.r3m[0], nest.r3n[0], nest.r4m[0], nest.r4n[0], TRUE);
+
+				replicate(&nest, 0);
 
 				if (j == nhalf && nest.do_upscale) 	/* Do the upscale at ... iteration of this cycle */
 					upscale(&nest, etad, 0, last_iter);
@@ -1222,7 +1259,8 @@ int read_grd_info_ascii (char *file, struct srf_header *hdr) {
 }
 
 /* ------------------------------------------------------------------------------ */
-int read_grd_ascii (char *file, struct srf_header *hdr, double *work) {
+int read_grd_ascii (char *file, struct srf_header *hdr, double *work, int sign) {
+	/* sign is either +1 or -1, in case one wants to revert sign of the imported grid */
 
 	/* Reads a grid in the Surfer ascii format */
 	mwSize i = 0, j, n_field;
@@ -1283,7 +1321,8 @@ int read_header_bin (FILE *fp, struct srf_header *hdr) {
 }
 
 /* -------------------------------------------------------------------- */
-int read_grd_bin (char *file, struct srf_header *hdr, double *work) {
+int read_grd_bin (char *file, struct srf_header *hdr, double *work, int sign) {
+	/* sign is either +1 or -1, in case one wants to revert sign of the imported grid */
 	unsigned int i, j, ij, kk;
 	float	*tmp;			/* Array pointer for reading in rows of data */
 	FILE	*fp;
@@ -1301,11 +1340,12 @@ int read_grd_bin (char *file, struct srf_header *hdr, double *work) {
 		ij = j * hdr->nx;
 		for (i = 0; i < hdr->nx; i++) {
 			kk = ij + i;
-			work[kk] = tmp[i];
+			work[kk] = tmp[i] * sign;
 		}
 	}
 	fclose(fp);
 	mxFree ((void *)tmp);
+
 	return (0);
 }
 
@@ -1915,7 +1955,7 @@ void moment(struct grd_header hdr, double dt, double manning2, double *htotal_a,
 	int cm1, rm1;			/* previous column (cm1 = col - 1) and row (rm1 = row - 1) */
 	int cp1, rp1;			/* next column (cp1 = col + 1) and row (rp1 = row + 1) */
 	int cm2, rm2;
-	double xp, xq, xpe, xqe, xpp, xqq, ff, dd, df, cte;
+	double xp, xq, xpe, xqe, xpp, xqq, ff, dd, df, cte, pq_limit;
 	double advx, dtdx, dtdy, advy, rlat, r4mcart;
 	double dpa_ij, dpa_ij_rp1, dpa_ij_rm1, dpa_ij_cm1, dpa_ij_cp1;
 	double dqa_ij, dqa_ij_rp1, dqa_ij_rm1, dqa_ij_cm1, dqa_ij_cp1;
@@ -1927,7 +1967,7 @@ void moment(struct grd_header hdr, double dt, double manning2, double *htotal_a,
 	/* if jupe>nnx/2 and jupe>nny/2 linear model will be applied */
 	if (isNested) {
 		jupe  = 0;
-		first = 0;
+		first = 1;
 		last  = 0;
 	}
 	else {
@@ -1961,7 +2001,7 @@ void moment(struct grd_header hdr, double dt, double manning2, double *htotal_a,
 	for (row = 0; row < hdr.ny - last; row++) {
 		rp1 = hdr.nx;
 		rm1 = (row == 0) ? 0 : hdr.nx;
-		ij = row * hdr.nx - 1;
+		ij = row * hdr.nx - 1 + first;
 		for (col = 0 + first; col < hdr.nx - 1; col++) {
 			cp1 = 1;
 			cm1 = (col == 0) ? 0 : 1;
@@ -1972,9 +2012,6 @@ void moment(struct grd_header hdr, double dt, double manning2, double *htotal_a,
 				continue;
 			}
 
-if (col > 792) {
-	int aiai=0;
-}
 			dpa_ij = (htotal_d[ij] + htotal_a[ij] + htotal_d[ij+cp1] + htotal_a[ij+cp1]) * 0.25;
 			if (dpa_ij < EPS6) dpa_ij = 0;
 
@@ -1998,7 +2035,7 @@ if (col > 792) {
 				}
 				/* case a3/d1 wet-dry */
 			}
-			else if (htotal_d[ij] >= EPS6 && htotal_d[ij+cp1] < EPS6 && etad[ij] >= etad[ij+cp1]) {
+			else if (htotal_d[ij] > EPS6 && htotal_d[ij+cp1] < EPS6 && etad[ij] >= etad[ij+cp1]) {
 				if (bat[ij] > bat[ij+cp1])
 					dd = etad[ij] - etad[ij+cp1];
 				else
@@ -2006,7 +2043,7 @@ if (col > 792) {
 				df = dd;
 			/* case b1 and c3 dry-wet */
 			}
-			else if (htotal_d[ij] < EPS6 && htotal_d[ij+cp1] >= EPS6 && etad[ij] <= etad[ij+cp1]) {
+			else if (htotal_d[ij] < EPS6 && htotal_d[ij+cp1] > EPS6 && etad[ij+cp1] > etad[ij]) {
 				if (bat[ij] > bat[ij+cp1])
 					dd = htotal_d[ij+cp1];
 				else
@@ -2045,17 +2082,6 @@ if (col > 792) {
 			/* - total water depth is smaller than EPS3 >> linear */
 			if (dpa_ij < EPS3)
 				goto L120;
-
-#if 0
-             dpa(ip1,j)=0.25*(htotal_d(ip1,j)+htotal_a(ip1,j)+htotal_d(ip2,j) +htotal_a(ip2,j))
-             dpa(im1,j)=0.25*(htotal_d(im1,j)+htotal_a(im1,j)+htotal_d(i,j) +htotal_a(i,j))
-             dpa(i,jp1)=0.25*(htotal_d(i,jp1)+htotal_a(i,jp1)+htotal_d(ip1,jp1) +htotal_a(ip1,jp1))
-             dpa(i,jm1)=0.25*(htotal_d(i,jm1)+htotal_a(i,jm1)+htotal_d(ip1,jm1) +htotal_a(ip1,jm1))
-
-             dpa(i,j)=0.25*(htotal_d(i,j)+htotal_a(i,j)+htotal_d(ip1,j) +htotal_a(ip1,j))
-             dpd(i,j)=0.50*(htotal_d(i,j)+htotal_d(ip1,j))
-#endif
-
 
 			/* - upwind scheme for x-direction volume flux */
 			if (fluxm_a[ij] < 0) {
@@ -2108,6 +2134,9 @@ if (col > 792) {
 L120:
 			xp /= (ff + 1);
 			if (fabs(xp) < EPS12) xp = 0;
+			//pq_limit = V_LIMIT * dd;
+			//if (xp > pq_limit) xp = pq_limit;
+			//else if (xp < -pq_limit) xp =-pq_limit;
 
 			fluxm_d[ij] = xp;
 			/* elimina velocidades maiores que 10m/s para dd < 1 m */
@@ -2115,6 +2144,7 @@ L120:
 				vex[ij] = xp / df;
 			else
 				vex[ij] = 0;
+
 			if (df < 1 && fabs(vex[ij]) > 10)
 				vex[ij] = 0;
 
@@ -2132,7 +2162,9 @@ L120:
 		rm1 = (row == 0) ? 0 : hdr.nx;
 		ij = row * hdr.nx - 1;
 		for (col = 0; col < hdr.nx - last; col++) {
-			cp1 = 1;
+			//cp1 = 1;
+			//if (col == hdr.nx - 1) cp1 = 0;
+			cp1 = (col < hdr.nx - 1) ? 1 : 0;
 			cm1 = (col == 0) ? 0 : 1;
 			ij++;
 			/* no flux to permanent dry areas */
@@ -2215,15 +2247,6 @@ L120:
 			if (dqa_ij < EPS3)
 					goto L200;
 
-#if 0
-             dqa(i,jp1)=0.25*(htotal_d(i,jp1)+htotal_a(i,jp1)+htotal_d(i,jp1) +htotal_a(i,jp1))
-             dqa(i,jm1)=0.25*(htotal_d(i,jm1)+htotal_a(i,jp1)+htotal_d(i,j) +htotal_a(i,j))
-
-             dqa(i,j)=0.25*(htotal_d(i,j)+htotal_a(i,j)+htotal_d(i,jp1) +htotal_a(i,jp1))
-             dqd(i,j)=0.50*(htotal_d(i,j)+htotal_d(i,jp1))
-#endif
-
-
 			/* - upwind scheme for y-direction volume flux */
 			/* - total water depth is smaller than EPS6 >> linear */
 			if (fluxn_a[ij] < 0) {
@@ -2276,6 +2299,9 @@ L120:
 L200:
 			xq /= (ff + 1);
 			if (fabs(xq) < EPS12) xq = 0;
+			//pq_limit = V_LIMIT * dd;
+			//if (xq >  pq_limit) xq = pq_limit;
+			//else if (xq < -pq_limit) xq =-pq_limit;
 
 			fluxn_d[ij] = xq;
 			/* elimina velocidades maiores que 10m/s para dd < 1m */
@@ -2283,6 +2309,7 @@ L200:
 				vey[ij] = xq / df;
 			else
 				vey[ij] = 0.;
+
 			if (df < 1 && fabs(vey[ij]) > 10)
 				vey[ij] = 0;
 
@@ -2730,7 +2757,7 @@ int initialize_nestum(struct nestContainer *nest, struct grd_header hdr, int isG
 		if ((nest->bat[lev] = (double *)mxCalloc ((size_t)(nm), sizeof(double)) ) == NULL) 
 			{no_sys_mem("(bat)", nm);}
 
-		read_grd_bin ("bat_L1.grd", &hdr_s, nest->bat[lev]);
+		read_grd_bin ("bat_L1.grd", &hdr_s, nest->bat[lev], -1);
 		nest->hdr[lev].nx    = hdr_s.nx;       nest->hdr[lev].ny    = hdr_s.ny;
 		nest->hdr[lev].x_min = hdr_s.x_min;    nest->hdr[lev].x_max = hdr_s.x_max;
 		nest->hdr[lev].y_min = hdr_s.y_min;    nest->hdr[lev].y_max = hdr_s.y_max;
@@ -2900,8 +2927,8 @@ void interp_edges(struct nestContainer *nest, double *flux_L1, double *flux_L2, 
 		s = nest->hdr[lev].y_inc / nest->hdr_P[lev].y_inc;
 		for (i = 0, col = nest->LLcol[lev]; col <= nest->LRcol[lev]; col++, i++) {
 			t1 = flux_L1[ij_grd(col, nest->LLrow[lev],   nest->hdr_P[lev])];
-			t2 = flux_L1[ij_grd(col, nest->LLrow[lev]+1, nest->hdr_P[lev])];
-			nest->edge_row_Ptmp[lev][i] = (t1 + t2) * 0.5;
+			//t2 = flux_L1[ij_grd(col, nest->LLrow[lev]+1, nest->hdr_P[lev])];
+			nest->edge_row_Ptmp[lev][i] = t1;
 		}
 		intp_lin (nest->edge_row_P[lev], nest->edge_row_Ptmp[lev], n, nest->hdr[lev].nx,
 			nest->edge_row[lev], nest->edge_rowTmp[lev]);
@@ -2915,8 +2942,8 @@ void interp_edges(struct nestContainer *nest, double *flux_L1, double *flux_L2, 
 		/* NORTH boundary */
 		for (i = 0, col = nest->LLcol[lev]; col <= nest->LRcol[lev]; col++, i++) {
 			t1 = flux_L1[ij_grd(col, nest->ULrow[lev]-1, nest->hdr_P[lev])];
-			t2 = flux_L1[ij_grd(col, nest->ULrow[lev],   nest->hdr_P[lev])];
-			nest->edge_row_Ptmp[lev][i] = (t1 + t2) * 0.5;
+			//t2 = flux_L1[ij_grd(col, nest->ULrow[lev],   nest->hdr_P[lev])];
+			nest->edge_row_Ptmp[lev][i] = t1;
 		}
 		intp_lin (nest->edge_row_P[lev], nest->edge_row_Ptmp[lev], n, nest->hdr[lev].nx,
 			nest->edge_row[lev], nest->edge_rowTmp[lev]);
@@ -2934,8 +2961,8 @@ void interp_edges(struct nestContainer *nest, double *flux_L1, double *flux_L2, 
 		s = nest->hdr[lev].x_inc / nest->hdr_P[lev].x_inc;
 		for (i = 0, row = nest->LLrow[lev]; row <= nest->ULrow[lev]; row++, i++) {
 			t1 = flux_L1[ij_grd(nest->LLcol[lev],   row, nest->hdr_P[lev])];
-			t2 = flux_L1[ij_grd(nest->LLcol[lev]+1, row, nest->hdr_P[lev])];
-			nest->edge_col_Ptmp[lev][i] = (t1 + t2) * 0.5;
+			//t2 = flux_L1[ij_grd(nest->LLcol[lev]+1, row, nest->hdr_P[lev])];
+			nest->edge_col_Ptmp[lev][i] = t1;
 		}
 		intp_lin (nest->edge_col_P[lev], nest->edge_col_Ptmp[lev], n, nest->hdr[lev].ny,
 			nest->edge_col[lev], nest->edge_colTmp[lev]);
@@ -2949,8 +2976,8 @@ void interp_edges(struct nestContainer *nest, double *flux_L1, double *flux_L2, 
 		/* EAST (right) boundary */
 		for (i = 0, row = nest->LLrow[lev]; row <= nest->ULrow[lev]; row++, i++) {
 			t1 = flux_L1[ij_grd(nest->LRcol[lev]-1, row, nest->hdr_P[lev])];
-			t2 = flux_L1[ij_grd(nest->LRcol[lev],   row, nest->hdr_P[lev])];
-			nest->edge_col_Ptmp[lev][i] = (t1 + t2) * 0.5;
+			//t2 = flux_L1[ij_grd(nest->LRcol[lev],   row, nest->hdr_P[lev])];
+			nest->edge_col_Ptmp[lev][i] = t1;
 		}
 		intp_lin (nest->edge_col_P[lev], nest->edge_col_Ptmp[lev], n, nest->hdr[lev].ny,
 			nest->edge_col[lev], nest->edge_colTmp[lev]);
@@ -3082,6 +3109,7 @@ void upscale(struct nestContainer *nest, double *out, int lev, int i_tsr) {
 		}
 	}
 
+#if 0
 	/* Replicate Left and Bottom boundaries */
 	for (row = 0; row < nest->hdr[lev].ny; row++) {
 		nest->etad[lev][ij_grd(0, row, nest->hdr[lev])] = nest->etad[lev][ij_grd(1, row, nest->hdr[lev])];
@@ -3094,10 +3122,25 @@ void upscale(struct nestContainer *nest, double *out, int lev, int i_tsr) {
 		//nest->etad[lev][ij_grd(col, nest->hdr[lev].ny-1, nest->hdr[lev])] =
 			//nest->etad[lev][ij_grd(col, nest->hdr[lev].ny-2, nest->hdr[lev])];
 	}
+#endif
 
 	/* --- reputs bathymetry on etad on land --- */
 	for (ij = 0; ij < nest->hdr[lev].nx * nest->hdr[lev].ny; ij++)
 		if (nest->bat[lev][ij] < 0) nest->etad[lev][ij] -= nest->bat[lev][ij];
+}
+
+/* --------------------------------------------------------------------- */
+void replicate(struct nestContainer *nest, int lev) {
+	/* Replicate Left and Bottom boundaries */
+	int	k, col, row;
+
+	for (row = 0; row < nest->hdr[lev].ny; row++)
+		nest->etad[lev][ij_grd(0, row, nest->hdr[lev])] =
+			nest->etad[lev][ij_grd(1, row, nest->hdr[lev])];
+
+	for (col = 0; col < nest->hdr[lev].nx; col++)
+		nest->etad[lev][ij_grd(col, 0, nest->hdr[lev])] =
+			nest->etad[lev][ij_grd(col, 1, nest->hdr[lev])];
 }
 
 /* --------------------------------------------------------------------- */
@@ -3148,13 +3191,6 @@ void upscale_(struct nestContainer *nest, double *etad, int lev, int i_tsr) {
 			}
 		}
 	}
-
-	/* --- replicates the boundary rows and columns --- */
-	for (row = 0; row < nest->hdr[lev].ny; row++)
-		nest->etad[lev][ij_grd(0, row, nest->hdr[lev])] = nest->etad[lev][ij_grd(1, row, nest->hdr[lev])];
-
-	for (col = 0; col < nest->hdr[lev].nx; col++)
-		nest->etad[lev][ij_grd(col, 0, nest->hdr[lev])] = nest->etad[lev][ij_grd(col, 1, nest->hdr[lev])];
 
 	/* --- reputs bathymetry on etad on land --- */
 	for (ij = 0; ij < nest->hdr[lev].nx * nest->hdr[lev].ny; ij++)
