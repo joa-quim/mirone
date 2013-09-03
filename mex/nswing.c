@@ -285,20 +285,8 @@ void mexFunction(mwSize nlhs, mxArray *plhs[], mwSize nrhs, const mxArray *prhs[
 		}
 
 	}
-	if (n_arg_no_char == 5 && !mxIsCell(prhs[4])) {		/* A maregraph vector was given as the fifth argument*/
-		tmp = mxGetPr(prhs[4]);
-		n_mareg = mxGetM(prhs[5]);
-		dx = head[7];		dy = head[8];
-		lcum_p = (mwSize *) mxCalloc ((size_t)(n_mareg), sizeof(mwSize));
-		for (i = 0; i < n_mareg; i++) {
-			x = tmp[i];		y = tmp[i+n_mareg];	/* Matlab vectors are stored by columns */
-			lcum_p[i] = (irint((y - hdr_b.y_min) / dy) ) * hdr_b.nx + irint((x - hdr_b.x_min) / dx);
-		}
-		maregs_in_input = TRUE;
-		cumpt = TRUE;
-	}
 
-	if (n_arg_no_char == 5 && mxIsCell(prhs[4])) {
+	if (n_arg_no_char >= 5 && mxIsCell(prhs[4])) {
 		const mxArray *mx_ptr;
 
 		num_of_nestGrids = mxGetNumberOfElements(prhs[4]);
@@ -332,22 +320,16 @@ void mexFunction(mwSize nlhs, mxArray *plhs[], mwSize nrhs, const mxArray *prhs[
 	}
 
 	if (n_arg_no_char == 6) {
-		dep2 = mxGetPr(prhs[4]);
-		nest.hdr[0].nx = mxGetN (prhs[4]);
-		nest.hdr[0].ny = mxGetM (prhs[4]);
-		head  = mxGetPr(prhs[5]);	/* Get bathymetry header info */
-		nest.hdr[0].x_min = head[0];		nest.hdr[0].x_max = head[1];
-		nest.hdr[0].y_min = head[2];		nest.hdr[0].y_max = head[3];
-		nest.hdr[0].z_min = head[4];		nest.hdr[0].z_max = head[5];
-		nest.hdr[0].x_inc = head[7];		nest.hdr[0].y_inc = head[8];
-		nm = nest.hdr[0].nx * nest.hdr[0].ny;
-		if ((nest.bat[0] = (double *)mxCalloc ((size_t)(nm), sizeof(double)) ) == NULL) 
-			{no_sys_mem("(bat)", nm);}
-		for (i = 0; i < nest.hdr[0].ny; i++) {
-			for (j = 0; j < nest.hdr[0].nx; j++)
-				nest.bat[0][i*nest.hdr[0].nx+j] = -dep2[j*nest.hdr[0].ny+i];
+		tmp = mxGetPr(prhs[5]);
+		n_mareg = mxGetM(prhs[5]);
+		dx = head[7];		dy = head[8];
+		lcum_p = (mwSize *) mxCalloc ((size_t)(n_mareg), sizeof(mwSize));
+		for (i = 0; i < n_mareg; i++) {
+			x = tmp[i];		y = tmp[i+n_mareg];	/* Matlab vectors are stored by columns */
+			lcum_p[i] = (irint((y - hdr_b.y_min) / dy) ) * hdr_b.nx + irint((x - hdr_b.x_min) / dx);
 		}
-		do_nestum = TRUE;
+		maregs_in_input = TRUE;
+		cumpt = TRUE;
 	}
 
 	/* get the length of the input string */
