@@ -144,9 +144,10 @@ struct grd_header {     /* Generic grid hdr structure */
 };
 
 struct nestContainer {		/* Container for the nestings */
-	int do_upscale;         /* If false, do not upscale the parent grid */
-	int LLrow[10], LLcol[10], ULrow[10], ULcol[10], URrow[10], URcol[10], LRrow[10], LRcol[10];
-	int incRatio[10];
+	int    do_upscale;         /* If false, do not upscale the parent grid */
+	int    is_mother;          /* Set to true when to use the base level (mother grid) arrays */
+	int    LLrow[10], LLcol[10], ULrow[10], ULcol[10], URrow[10], URcol[10], LRrow[10], LRcol[10];
+	int    incRatio[10];
 	double manning2[10];	/* Square of Manning coefficient. Set to zero if no friction */
 	double LLx[10], LLy[10], ULx[10], ULy[10], URx[10], URy[10], LRx[10], LRy[10];
 	double dt_P[10];                           /* Time step of Parent grid                 */
@@ -164,7 +165,7 @@ struct nestContainer {		/* Container for the nestings */
 	double *r0[10],  *r1m[10], *r1n[10], *r2m[10], *r2n[10], *r3m[10], *r3n[10], *r4m[10], *r4n[10];
 	double *etaa_L0, *etad_L0, *bat_L0;        /* To hold copies of the pointers of the     */
 	double *fluxm_a_L0,  *fluxn_a_L0;          /* variables of the base level (less the L0) */
-	double *fluxm_d_L0,  *fluxn_d_L0;          /*              ""                   */
+	double *fluxm_d_L0,  *fluxn_d_L0;          /*                   ""                      */
 	double *htotal_a_L0, *htotal_d_L0;
 	struct grd_header hdr[10];
 	struct grd_header hdr_P[10];
@@ -951,7 +952,7 @@ int main(int argc, char **argv) {
 	tic = clock();
 #endif
 
-	/*
+	/*		The nesting grids algorithm 
 	LOOP_OVER_ALL_CYCLES {
 		mass_L0
 		openbd
@@ -1049,70 +1050,8 @@ int main(int argc, char **argv) {
 		/* --------------------------------------------------------------------- */
 		/* If Nested grids we have to do the nesting work */
 		/* --------------------------------------------------------------------- */
-		if (do_nestum && 1) {
+		if (do_nestum)
 			nestify(&nest, num_of_nestGrids, 0, isGeog);
-		}
-		if (do_nestum && 0) {
-			int last_iter = (int)(nest.dt_P[0] / nest.dt[0]);  /* No truncations should occur here */
-			int	nhalf = (int)((float)last_iter / 2);           /* */
-			for (j = 0; j < last_iter; j++) {                  /* Loop over the time steps ratio */
-				interp_edges(&nest, fluxm_a, nest.fluxm_a[0], "M", 0, j);
-				interp_edges(&nest, fluxn_a, nest.fluxn_a[0], "N", 0, j);
-
-				if (isGeog == 0)
-					mass(nest.hdr[0], nest.dt[0], nest.bat[0], nest.etaa[0], nest.htotal_d[0],
-						nest.fluxm_a[0], nest.fluxn_a[0], nest.etad[0]);
-				else
-					mass_sp(nest.hdr[0], nest.bat[0], nest.etaa[0], nest.htotal_d[0],
-						nest.fluxm_a[0], nest.fluxn_a[0], nest.etad[0], nest.r0[0],
-						nest.r1m[0], nest.r1n[0], nest.r2m[0], nest.r2n[0]);
-
-				if (num_of_nestGrids == 2) {
-					int last_iter2 = (int)(nest.dt_P[1] / nest.dt[1]), jj;
-					int	nhalf2 = (int)((float)last_iter2 / 2);           /* */
-					for (jj = 0; jj < last_iter2; jj++) {                /* Loop over the time steps ratio */
-						interp_edges(&nest, nest.fluxm_a[0], nest.fluxm_a[1], "M", 1, jj);
-						interp_edges(&nest, nest.fluxn_a[0], nest.fluxn_a[1], "N", 1, jj);
-
-						mass(nest.hdr[1], nest.dt[1], nest.bat[1], nest.etaa[1], nest.htotal_d[1],
-							nest.fluxm_a[1], nest.fluxn_a[1], nest.etad[1]);
-
-						moment(nest.hdr[1], nest.dt[1], nest.manning2[1], nest.htotal_a[1],
-							nest.htotal_d[1], nest.bat[1], nest.etad[1], nest.fluxm_a[1],
-							nest.fluxn_a[1], nest.fluxm_d[1], nest.fluxn_d[1], nest.vex[1],
-							nest.vey[1], TRUE);
-
-						replicate(&nest, 1);
-
-						if (jj == nhalf2 && nest.do_upscale)
-							upscale_(&nest, nest.etad[0], 1, last_iter2);
-
-						update(nest.hdr[1], nest.etaa[1], nest.etad[1], nest.fluxm_a[1], nest.fluxm_d[1],
-							nest.fluxn_a[1], nest.fluxn_d[1], nest.htotal_a[1], nest.htotal_d[1]);
-					}
-				}
-
-				if (isGeog == 0)
-					moment(nest.hdr[0], nest.dt[0], nest.manning2[0], nest.htotal_a[0],
-						nest.htotal_d[0], nest.bat[0], nest.etad[0], nest.fluxm_a[0],
-						nest.fluxn_a[0], nest.fluxm_d[0], nest.fluxn_d[0], nest.vex[0],
-						nest.vey[0], TRUE);
-				else
-					moment_sp(nest.hdr[0], nest.dt[0], nest.manning2[0], nest.htotal_a[0],
-						nest.htotal_d[0], nest.bat[0], nest.etad[0], nest.fluxm_a[0],
-						nest.fluxn_a[0], nest.fluxm_d[0], nest.fluxn_d[0], nest.vex[0],
-						nest.vey[0], nest.r0[0], nest.r1m[0], nest.r1n[0], nest.r2m[0],
-						nest.r2n[0], nest.r3m[0], nest.r3n[0], nest.r4m[0], nest.r4n[0], TRUE);
-
-				replicate(&nest, 0);
-
-				if (j == nhalf && nest.do_upscale) 	/* Do the upscale at ... iteration of this cycle */
-					upscale_(&nest, etad, 0, last_iter);
-
-				update(nest.hdr[0], nest.etaa[0], nest.etad[0], nest.fluxm_a[0], nest.fluxm_d[0],
-					nest.fluxn_a[0], nest.fluxn_d[0], nest.htotal_a[0], nest.htotal_d[0]);
-			}
-		}
 
 		/* --------------------------------------------------------------------- */
 		/* momentum conservation */
@@ -2160,14 +2099,20 @@ void openb(struct grd_header hdr, double *bat, double *fluxm_d, double *fluxn_d,
 void update(struct grd_header hdr, double *etaa, double *etad, double *fluxm_a, double *fluxm_d,
             double *fluxn_a, double *fluxn_d, double *htotal_a, double *htotal_d) {
 
-	unsigned int i, nm = hdr.nx * hdr.ny;
+	unsigned int i;
 
-	for (i = 0; i < nm; i++) {
+	for (i = 0; i < hdr.nm; i++) {
 		etaa[i] = etad[i];
-		fluxm_a[i] = fluxm_d[i];
-		fluxn_a[i] = fluxn_d[i];
-		htotal_a[i] = htotal_d[i];
+		//fluxm_a[i] = fluxm_d[i];
+		//fluxn_a[i] = fluxn_d[i];
+		//htotal_a[i] = htotal_d[i];
 	}
+	for (i = 0; i < hdr.nm; i++)
+		fluxm_a[i] = fluxm_d[i];
+	for (i = 0; i < hdr.nm; i++)
+		fluxn_a[i] = fluxn_d[i];
+	for (i = 0; i < hdr.nm; i++)
+		htotal_a[i] = htotal_d[i];
 }
 
 
@@ -3777,8 +3722,8 @@ void replicate(struct nestContainer *nest, int lev) {
 void sanitize_nestContainer(struct nestContainer *nest) {
 	int i;
 
+	nest->do_upscale  = TRUE;
 	for (i = 0; i < 10; i++) {
-		nest->do_upscale  = TRUE;
 		nest->manning2[i] = 0;
 		nest->LLrow[i] = nest->LLcol[i] = nest->ULrow[i] = nest->ULcol[i] =
 		nest->URrow[i] = nest->URcol[i] = nest->LRrow[i] = nest->LRcol[i] =
@@ -3905,10 +3850,22 @@ unsigned __stdcall MT(void *Arg_p) {
   
 	ThreadArg *Arg = (ThreadArg *)Arg_p;
 	int m = Arg->lev, i = Arg->iThread;
+	double dt, manning2, *bat, *htotal_a, *htotal_d, *etad, *fluxm_a, *fluxm_d, *fluxn_a, *fluxn_d, *vex, *vey;
+	struct grd_header hdr;
 
-	call_moment[i](Arg->nest->hdr[m], Arg->nest->dt[m],   Arg->nest->manning2[m], Arg->nest->htotal_a[m], Arg->nest->htotal_d[m],
+	hdr      = Arg->nest->hdr[m];
+	dt       = Arg->nest->dt[m];              manning2 = Arg->nest->manning2[m];
+	bat      = Arg->nest->bat[m];             etad     = Arg->nest->etad[m];
+	htotal_a = Arg->nest->htotal_a[m];        htotal_d = Arg->nest->htotal_d[m];
+	fluxm_a  = Arg->nest->fluxm_a[m];         fluxm_d  = Arg->nest->fluxm_d[m];
+	fluxn_a  = Arg->nest->fluxn_a[m];         fluxn_d  = Arg->nest->fluxn_d[m];
+	vex      = Arg->nest->vex[m];             vey      = Arg->nest->vey[m];
+
+	call_moment[i](hdr, dt, manning2, htotal_a, htotal_d, bat, etad, fluxm_a,  fluxn_a, fluxm_d,
+                   fluxn_d, vex, vey, TRUE, m);
+	/*call_moment[i](Arg->nest->hdr[m], Arg->nest->dt[m],   Arg->nest->manning2[m], Arg->nest->htotal_a[m], Arg->nest->htotal_d[m],
                    Arg->nest->bat[m], Arg->nest->etad[m], Arg->nest->fluxm_a[m],  Arg->nest->fluxn_a[m],  Arg->nest->fluxm_d[m],
-                   Arg->nest->fluxn_d[m], Arg->nest->vex[m], Arg->nest->vey[m], TRUE, m);
+                   Arg->nest->fluxn_d[m], Arg->nest->vex[m], Arg->nest->vey[m], TRUE, m);*/
 
 	_endthreadex(0);
 
