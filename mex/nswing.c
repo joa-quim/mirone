@@ -58,11 +58,16 @@
 
 #endif
 
-#include <netcdf.h>
+//#include <netcdf.h>
 #include <float.h>
 #include <math.h>
 #include <string.h>
 #include <time.h>
+
+#ifdef _WIN32	/* Special for Windows */
+#	include <windows.h>
+#	include <process.h>
+#endif
 
 #if HAVE_OPENMP
 #include <omp.h>
@@ -135,7 +140,7 @@ struct grd_header {     /* Generic grid hdr structure */
 	double z_max;       /* Maximum z value */
 
 	int doCoriolis;		/* Apply Coriolis if this != 0 */
-	double lat_min4Coriolis;	/* PRECISA SOLUÇÃO. POR AGORA SERÁ Cte = 0 */
+	double lat_min4Coriolis;	/* PRECISA SOLU��O. POR AGORA SER�� Cte = 0 */
 };
 
 struct nestContainer {		/* Container for the nestings */
@@ -166,6 +171,13 @@ struct nestContainer {		/* Container for the nestings */
 	double time_h;
 };
 
+/* Argument struct for threading */
+typedef struct {
+	struct nestContainer *nest;   /* Pointer to a nestContainer struct */
+	int iThread;                  /* Thread index */
+	int lev;                      /* Level of nested grid */
+} ThreadArg;
+
 void no_sys_mem (char *where, unsigned int n);
 int count_col (char *line);
 int read_grd_info_ascii (char *file, struct srf_header *hdr);
@@ -180,19 +192,33 @@ int decode_R (char *item, double *w, double *e, double *s, double *n);
 int check_region (double w, double e, double s, double n);
 double ddmmss_to_degree (char *text);
 void err_trap(int status);
-void write_most_slice(int *ncid_most, int *ids_most, unsigned int i_start, unsigned int j_start, unsigned int i_end, unsigned int j_end, unsigned int nX, float *work, double *h, double *dep, double *u, double *v, float *tmp, size_t *start, size_t *count);
-int open_most_nc (char *basename, char *name_var, int *ids, unsigned int nx, unsigned int ny, double dx, double dy, double xMinOut, double yMinOut);
-int open_anuga_sww (char *fname_sww, int *ids, unsigned int i_start, unsigned int j_start, unsigned int i_end, unsigned int j_end, unsigned int nX, double dx, double dy, double *dep, double xMinOut, double yMinOut, float z_min, float z_max);
-void write_anuga_slice(int ncid, int z_id, unsigned int i_start, unsigned int j_start, unsigned int i_end, unsigned int j_end, unsigned int nX, float *work, double *h, double *dep, double *u, double *v, float *tmp, size_t *start, size_t *count, float *slice_range, int idx, int with_land);
-void mass(struct grd_header hdr, double dt, double *bat, double *etaa, double *htotal_d, double *fluxm_a, double *fluxn_a, double *etad);
+void write_most_slice(int *ncid_most, int *ids_most, unsigned int i_start, unsigned int j_start,
+                      unsigned int i_end, unsigned int j_end, unsigned int nX, float *work, double *h,
+                      double *dep, double *u, double *v, float *tmp, size_t *start, size_t *count);
+int open_most_nc (char *basename, char *name_var, int *ids, unsigned int nx, unsigned int ny, double dx,
+                  double dy, double xMinOut, double yMinOut);
+int open_anuga_sww (char *fname_sww, int *ids, unsigned int i_start, unsigned int j_start, unsigned int i_end,
+                    unsigned int j_end, unsigned int nX, double dx, double dy, double *dep, double xMinOut,
+                    double yMinOut, float z_min, float z_max);
+void write_anuga_slice(int ncid, int z_id, unsigned int i_start, unsigned int j_start, unsigned int i_end,
+                       unsigned int j_end, unsigned int nX, float *work, double *h, double *dep, double *u,
+                       double *v, float *tmp, size_t *start, size_t *count, float *slice_range, int idx, int with_land);
+void mass(struct grd_header hdr, double dt, double *bat, double *etaa, double *htotal_d, double *fluxm_a,
+          double *fluxn_a, double *etad);
 void openb(struct grd_header hdr, double *bat, double *fluxm_d, double *fluxn_d, double *etad);
 void update(struct grd_header hdr, double *etaa, double *etad, double *fluxm_a, double *fluxm_d,
-	double *fluxn_a, double *fluxn_d, double *htotal_a, double *htotal_d);
-void moment(struct grd_header hdr, double dt, double manning2, double *htotal_a, double *htotal_d, double *bat, double *etad, double *fluxm_a, double *fluxn_a, double *fluxm_d, double * fluxn_d, double *vex, double *vey, int isNested);
-void inisp(struct grd_header hdr, double dt, double *r0, double *r1m, double *r1n, double *r2m, double *r2n, double *r3m, double *r3n, double *r4m, double *r4n);
+            double *fluxn_a, double *fluxn_d, double *htotal_a, double *htotal_d);
+void moment(struct grd_header hdr, double dt, double manning2, double *htotal_a, double *htotal_d, double *bat,
+            double *etad, double *fluxm_a, double *fluxn_a, double *fluxm_d, double * fluxn_d, double *vex,
+            double *vey, int isNested);
+void inisp(struct grd_header hdr, double dt, double *r0, double *r1m, double *r1n, double *r2m, double *r2n,
+           double *r3m, double *r3n, double *r4m, double *r4n);
 void mass_sp(struct grd_header hdr, double *bat, double *etaa, double *htotal_d, double *fluxm_a,
-	double *fluxn_a, double *etad, double *r0, double * r1m, double *r1n, double *r2m, double *r2n);
-void moment_sp(struct grd_header hdr, double dt, double manning2, double *htotal_a, double *htotal_d, double *bat, double *etad, double *fluxm_a, double *fluxn_a, double *fluxm_d, double * fluxn_d, double *vex, double *vey, double *r0, double *r1m, double *r1n, double *r2m, double *r2n, double *r3m, double *r3n, double *r4m, double *r4n, int isNested);
+             double *fluxn_a, double *etad, double *r0, double * r1m, double *r1n, double *r2m, double *r2n);
+void moment_sp(struct grd_header hdr, double dt, double manning2, double *htotal_a, double *htotal_d,
+               double *bat, double *etad, double *fluxm_a, double *fluxn_a, double *fluxm_d, double *fluxn_d,
+               double *vex, double *vey, double *r0, double *r1m, double *r1n, double *r2m, double *r2n,
+               double *r3m, double *r3n, double *r4m, double *r4n, int isNested);
 int initialize_nestum(struct nestContainer *nest, struct grd_header hdr, int isGeog, int lev);
 void interp_edges(struct nestContainer *nest, double *flux_L1, double *flux_L2, char *what, int lev, int i_time);
 int intp_lin (double *x, double *y, int n, int m, double *u, double *v);
@@ -211,23 +237,61 @@ int alloc_arrays(int isGeog, int cumpt, int maregs_in_input, int nx, int ny, uns
                  double **r2n, double **r3m, double **r3n, double **r4m, double **r4n, unsigned int **lcum_p,
                  double **cum_p, float **time_p);
 
-void moment_M(struct grd_header hdr, double dt, double manning2, double *htotal_a, double *htotal_d, double *bat, double *etad, double *fluxm_a, double *fluxn_a, double *fluxm_d, double * fluxn_d, double *vex, double *vey, int isNested, int lev);
-void moment_N(struct grd_header hdr, double dt, double manning2, double *htotal_a, double *htotal_d, double *bat, double *etad, double *fluxm_a, double *fluxn_a, double *fluxm_d, double * fluxn_d, double *vex, double *vey, int isNested, int lev);
+void moment_M(struct grd_header hdr, double dt, double manning2, double *htotal_a, double *htotal_d, double *bat,
+              double *etad, double *fluxm_a, double *fluxn_a, double *fluxm_d, double * fluxn_d, double *vex,
+              double *vey, int isNested, int lev);
+void moment_N(struct grd_header hdr, double dt, double manning2, double *htotal_a, double *htotal_d, double *bat,
+              double *etad, double *fluxm_a, double *fluxn_a, double *fluxm_d, double * fluxn_d, double *vex,
+              double *vey, int isNested, int lev);
 
+/* Prototypes for threading related functions */
+unsigned __stdcall MT(void *Arg_p);
+
+/* Function pointers to M & N moment components */
 PFV call_moment[2];
 
 /* --------------------------------------------------------------------------- */
 /* Matlab Gateway routine */
 
 #ifdef I_AM_MEX
-void mexFunction(mwSize nlhs, mxArray *plhs[], mwSize nrhs, const mxArray *prhs[]) {
+void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 #else
 int main(int argc, char **argv) {
 #endif
 
+	int     writeLevel = -1;             /* If save grids, will hold the saving level (when nesting) */
+	int     i, j, k;
+	int     start_i;                     /* Where the loop over argc starts: MEX -> 0; STANDALONE -> 1 */
+	int	    grn = 0, cumint = 0, iprc;
+	int	    w_bin = TRUE, cumpt = FALSE, error = FALSE;
+	int	    first_anuga_time = TRUE, out_sww = FALSE, out_most = FALSE;
+	int	    r_bin_b, r_bin_f, surf_level = TRUE, max_level = FALSE, water_depth = FALSE;
+	int	    n_arg_no_char = 0;
+	int	    ncid, ncid_most[3], z_id = -1, ids[13], ids_ha[6], ids_ua[6], ids_va[6], ids_most[3];
+	int	    n_of_cycles = 1010;          /* Numero de ciclos a calcular */
+	int	    num_of_nestGrids = 0;        /* Number of nesting grids */
+	int	    bat_in_input = FALSE, source_in_input = FALSE, write_grids = FALSE, isGeog = FALSE;
+	int	    maregs_in_input = FALSE, out_momentum = FALSE, got_R = FALSE;
+	int	    with_land = FALSE, IamCompiled = FALSE, do_nestum = FALSE, saveNested = FALSE, verbose = FALSE;
+	int     out_velocity = FALSE, out_velocity_x = FALSE, out_velocity_y = FALSE, out_velocity_r = FALSE;
+	int     out_maregs_velocity = FALSE;
+	unsigned int *lcum_p = NULL, ip2, lcum = 0, n_mareg, n_ptmar, cycle = 1;
+	unsigned int i_start, j_start, i_end, j_end;
+	unsigned int ij, nx, ny, ncl;
+	size_t	start0 = 0, count0 = 1, len, start1_A[2] = {0,0}, count1_A[2], start1_M[3] = {0,0,0}, count1_M[3];
+	char   *bathy = NULL;               /* Name pointer for bathymetry file */
+	char   	hcum[256] = "";             /* Name for cumulative hight file */
+	char    maregs[256] = "";           /* Name for maregraph positions file */
+	char   *fname_sww = NULL;           /* Name pointer for Anuga's .sww file */
+	char   *basename_most = NULL;       /* Name pointer for basename of MOST .nc files */
+	char   *fonte = NULL;               /* Name pointer for tsunami source file */
+	char    stem[256] = "", prenome[128] = "", str_tmp[128] = "";
+	char   *pch;
+	char   *nesteds[4] = {NULL, NULL, NULL, NULL};
+
 	float	*work = NULL, *time_p = NULL;
 	float	work_min = FLT_MAX, work_max = -FLT_MAX;
-	double	small = 1e-6, m_per_deg = 111317.1;
+	double	m_per_deg = 111317.1;
 	double	*bat = NULL, *dep1 = NULL, *dep2 = NULL, *cum_p = NULL, *h = NULL;
 	double	dfXmin = 0.0, dfYmin = 0.0, dfXmax = 0.0, dfYmax = 0.0, xMinOut, yMinOut;
 	double	time_jump = 0, time0, time_for_anuga, prc;
@@ -240,37 +304,7 @@ int main(int argc, char **argv) {
 	double	*eta_for_maregs, *vx_for_maregs, *vy_for_maregs;
 	double	manning2 = 0;
 	double	time_h = 0;
-	int	writeLevel = -1;             /* If save grids, will hold the saving level (when nesting) */
-	int i, j, k;
-	int start_i;                     /* Where the loop over argc starts: MEX -> 0; STANDALONE -> 1 */
 
-	unsigned int *lcum_p = NULL, ip2, lcum = 0, n_mareg, n_ptmar, cycle = 1;
-	unsigned int i_start, j_start, i_end, j_end;
-	unsigned int ij, nx, ny, ncl;
-	int	grn = 0, cumint = 0, iprc;
-	int	w_bin = TRUE, cumpt = FALSE, error = FALSE;
-	int	first_anuga_time = TRUE, out_sww = FALSE, out_most = FALSE;
-	int	r_bin_b, r_bin_f, surf_level = TRUE, max_level = FALSE, water_depth = FALSE;
-	int	n_arg_no_char = 0;
-	int	ncid, ncid_most[3], z_id = -1, ids[13], ids_ha[6], ids_ua[6], ids_va[6], ids_most[3];
-	int	n_of_cycles = 1010;          /* Numero de ciclos a calcular */
-	int	num_of_nestGrids = 0;        /* Number of nesting grids */
-	char	*bathy = NULL;           /* Name pointer for bathymetry file */
-	char 	hcum[256] = "";          /* Name for cumulative hight file */
-	char 	maregs[256] = "";        /* Name for maregraph positions file */
-	char 	*fname_sww = NULL;       /* Name pointer for Anuga's .sww file */
-	char 	*basename_most = NULL;   /* Name pointer for basename of MOST .nc files */
-	char	*fonte = NULL;           /* Name pointer for tsunami source file */
-	char	stem[256] = "", prenome[128] = "", str_tmp[128] = "";
-	char	*pch;
-	char    *nesteds[4] = {NULL, NULL, NULL, NULL};
-	int	bat_in_input = FALSE, source_in_input = FALSE, write_grids = FALSE, isGeog = FALSE;
-	int	maregs_in_input = FALSE, out_momentum = FALSE, got_R = FALSE;
-	int	with_land = FALSE, IamCompiled = FALSE, do_nestum = FALSE, saveNested = FALSE, verbose = FALSE;
-	int out_velocity = FALSE, out_velocity_x = FALSE, out_velocity_y = FALSE, out_velocity_r = FALSE;
-	int out_maregs_velocity = FALSE;
-
-	size_t	start0 = 0, count0 = 1, len, start1_A[2] = {0,0}, count1_A[2], start1_M[3] = {0,0,0}, count1_M[3];
 	float	stage_range[2], xmom_range[2], ymom_range[2], *tmp_slice;
 	struct	srf_header hdr_b, hdr_f;
 	struct	grd_header hdr;
@@ -330,8 +364,8 @@ int main(int argc, char **argv) {
 			mexPrintf ("%d %d %d %d\n", hdr_f.nx, hdr_b.nx, hdr_f.ny, hdr_b.ny); 
 			return;
 		}
-		if (fabs(hdr_f.x_min - hdr_b.x_min) > small || fabs(hdr_f.x_max - hdr_b.x_max) > small ||
-			fabs(hdr_f.y_min - hdr_b.y_min) > small || fabs(hdr_f.y_max - hdr_b.y_max) > small ) {
+		if (fabs(hdr_f.x_min - hdr_b.x_min) > EPS6 || fabs(hdr_f.x_max - hdr_b.x_max) > EPS6 ||
+			fabs(hdr_f.y_min - hdr_b.y_min) > EPS6 || fabs(hdr_f.y_max - hdr_b.y_max) > EPS6 ) {
 			mexPrintf ("Bathymetry & Source grids do not cover the same region\n"); 
 			mexPrintf ("%lf %lf %lf %lf\n", hdr_f.x_min, hdr_b.x_min, hdr_f.x_max, hdr_b.x_max); 
 			mexPrintf ("%lf %lf %lf %lf\n", hdr_f.y_min, hdr_b.y_min, hdr_f.y_max, hdr_b.y_max); 
@@ -472,7 +506,7 @@ int main(int argc, char **argv) {
 					}
 					break;
 				case 'J':
-					sscanf (&argv[i][2], "%f", &time_jump);
+					sscanf (&argv[i][2], "%lf", &time_jump);
 					break;
 				case 'L':	/* Output land nodes in SWW file */ 
 					with_land = TRUE;
@@ -606,12 +640,13 @@ int main(int argc, char **argv) {
 		mexPrintf ("\t   Warning: this option should not be used when maregraphs were transmitted in input.\n");
 		mexPrintf ("\t-O <int>,<outfname> interval at which maregraphs are writen to <outfname> maregraph file.\n");
 		mexPrintf ("\t-e To be used from the Mirone stand-alone version.\n");
-		return;
+		return(error);
 	}
 
 	if (!(write_grids || out_sww || out_most || cumpt)) {
-		mexPrintf("Nothing selected for output (grids, or mregraphs), exiting\n");
-		error++;
+		mexPrintf("Nothing selected for output (grids, or maregraphs), exiting\n");
+		//error++;
+		surf_level = FALSE;	grn = 10000000;
 	}
 
 	if (water_depth && (out_sww || out_most)) {
@@ -662,7 +697,7 @@ int main(int argc, char **argv) {
 	if (!bat_in_input && !source_in_input) {			/* If bathymetry & source where not given as arguments, load them */
 		if (!bathy || !fonte) {
 			mexPrintf ("NSWING: error, bathymetry and/or source grids were not provided.\n"); 
-			return;
+			return(-1);
 		}
 
 		r_bin_b = read_grd_info_ascii (bathy, &hdr_b);	/* Para saber como alocar a memoria */
@@ -686,7 +721,7 @@ int main(int argc, char **argv) {
 		}
 	}
 
-	if (error) return;
+	if (error) return(-1);
 
 	if (n_arg_no_char == 0) {		/* Read the nesting grids */
 		struct	srf_header hdr;
@@ -732,7 +767,7 @@ int main(int argc, char **argv) {
 	if (alloc_arrays(isGeog, cumpt, maregs_in_input, (int)hdr_b.nx, (int)hdr_b.ny, n_mareg, n_ptmar, &bat, &work,
 	                 &etaa, &etad, &fluxm_a, &fluxm_d, &fluxn_a, &fluxn_d, &htotal_a, &htotal_d, &vmax, &wmax,
 	                 &vex, &vey, &r0, &r1m, &r1n, &r2m, &r2n, &r3m, &r3n, &r4m, &r4n, &lcum_p, &cum_p, &time_p))
-		return;
+		return(-1);
 
 	if (bat_in_input) {		/* If bathymetry & source where given as arguments */
 		/* Transpose from Matlab orientation to scanline orientation */
@@ -805,13 +840,14 @@ int main(int argc, char **argv) {
 	}
 	/* ---------------------------------------------------------------------- */
 
+#if 0
 	if (out_sww) {
 		/* ----------------- Open a ANUGA netCDF file for writing --------------- */
 		ncid = open_anuga_sww (fname_sww, ids, i_start, j_start, i_end, j_end, ip2,
 		hdr.x_inc, hdr.y_inc, bat, xMinOut, yMinOut, (float)hdr.z_min, (float)hdr.z_max);
 		if (ncid == -1) {
 			mexPrintf ("NSWING: failure to create ANUGA SWW file.\n");
-			return;
+			return(-1);
 		}
 
 		/* To be used when writing the data slices */
@@ -832,7 +868,7 @@ int main(int argc, char **argv) {
 
 		if (ncid_most[0] == -1 || ncid_most[1] == -1 || ncid_most[2] == -1) {
 			mexPrintf ("NSWING: failure to create one or more of the MOST files\n");
-			return;
+			return(-1);
 		}
 
 		ids_most[0] = ids_ha[5];	/* IDs of the Amp, Xmom & Ymom vriables */
@@ -844,7 +880,8 @@ int main(int argc, char **argv) {
 
 		if (!out_sww)
 			tmp_slice = (float *)mxMalloc (sizeof(float) * (nx * ny));	/* To use inside slice writing */ 
-	}
+	} 
+#endif
 
 	if (do_nestum) {			/* If ...  it */
 		for (k = 0; k < num_of_nestGrids; k++) {
@@ -1119,7 +1156,7 @@ int main(int argc, char **argv) {
 			}
 		}
 
-		if (time_h > time_jump && ( (k % grn) == 0 || k == n_of_cycles - 1) ) {
+		if (time_h > time_jump && ((k % grn) == 0 || k == n_of_cycles - 1) ) {
 			if (water_depth) {
 				for (ij = 0; ij < ncl; ij++)
 					if ((work[ij] = (float) (etaa[ij] + bat[ij])) < 0) work[ij] = 0;
@@ -1191,6 +1228,7 @@ int main(int argc, char **argv) {
 						i_start, j_start, i_end, j_end, ip2, work);
 			}
 
+#if 0
 			if (out_sww) {
 				if (first_anuga_time) {
 					time0 = time_h;
@@ -1219,6 +1257,7 @@ int main(int argc, char **argv) {
 					work, etaa, bat, vex, vey, tmp_slice, start1_M, count1_M);
 				start1_M[0]++;		/* Increment for the next slice */
 			}
+#endif
 
 			start0++;			/* Only used with netCDF formats */
 		}
@@ -1231,6 +1270,7 @@ int main(int argc, char **argv) {
 	mexPrintf("NSWING: CPU secs/ticks = %.3f\n", (double)(toc - tic));
 #endif
 
+#if 0
 	if (out_sww) {		/* Uppdate range values and close SWW file */
 		err_trap (nc_put_var_float (ncid, ids[8], stage_range));
 		err_trap (nc_put_var_float (ncid, ids[10], xmom_range));
@@ -1244,6 +1284,7 @@ int main(int argc, char **argv) {
 		err_trap(nc_close (ncid_most[2])); 
 	}
 	if (out_sww || out_most) mxFree ((void *)tmp_slice);
+#endif
 
 #ifdef I_AM_MEX
 	if (!IamCompiled) {
@@ -1355,8 +1396,10 @@ int alloc_arrays(int isGeog, int cumpt, int maregs_in_input, int nx, int ny, uns
 
 /* --------------------------------------------------------------------------- */
 void err_trap(int status) {
+#if 0
 	if (status != NC_NOERR)	
 		mexPrintf ("NSWING: error and errorcode = %d\n", status);
+#endif
 }
 
 /* --------------------------------------------------------------------------- */
@@ -1414,7 +1457,7 @@ int read_grd_info_ascii (char *file, struct srf_header *hdr) {
 	FILE *fp;
 
 	if ((fp = fopen (file, "r")) == NULL) {
-		mexPrintf ("NSWING: Unable to read file %s - exiting\n", file);
+		mexPrintf ("NSWING: Unable to read file -- %s\n", file);
 		return (-1);
 	}
 
@@ -1647,11 +1690,12 @@ int open_most_nc (char *base, char *name_var, int *ids, unsigned int nx, unsigne
 				  double xMinOut, double yMinOut) {
 	/* Open and initialize a MOST netCDF file for writing ---------------- */
 	char	*long_name = NULL, *units = NULL, *basename = NULL;
-	int ncid, status, dim0[3], dim3[3];
+	int ncid = -1, status, dim0[3], dim3[3];
 	unsigned int m, n;
 	float dummy = -1e34f;
 	double *x, *y;
 
+#if 0
 	basename = (char *) mxMalloc (strlen(base) * sizeof (char));
 	strcpy(basename, base);
 	if (!strcmp(name_var,"HA")) {
@@ -1722,15 +1766,18 @@ int open_most_nc (char *base, char *name_var, int *ids, unsigned int nx, unsigne
 	mxFree ((void *)y); 
 	mxFree ((void *)basename); 
 
+#endif
 	return (ncid);
 }
 
 /* --------------------------------------------------------------------------- */
-void write_most_slice(int *ncid_most, int *ids_most, unsigned int i_start, unsigned int j_start, unsigned int i_end, unsigned int j_end,
-		unsigned int nX, float *work, double *h, double *dep, double *u, double *v, float *tmp, size_t *start, size_t *count) {
+void write_most_slice(int *ncid_most, int *ids_most, unsigned int i_start, unsigned int j_start,
+                      unsigned int i_end, unsigned int j_end, unsigned int nX, float *work, double *h,
+                      double *dep, double *u, double *v, float *tmp, size_t *start, size_t *count) {
 	/* Write a slice of _ha.nc, _va.nc & _ua.nc MOST netCDF files */
 	unsigned int i, j, n, ij, k;
 
+#if 0
 	for (n = 0; n < 3; n++) {	/* Loop over, Amplitude, Xmomentum & Ymomentum */
 		if (n == 0) {		/* Amplitude */
 			for (j = j_start, k = 0; j < j_end; j++)
@@ -1757,6 +1804,7 @@ void write_most_slice(int *ncid_most, int *ids_most, unsigned int i_start, unsig
 			err_trap (nc_put_vara_float (ncid_most[2], ids_most[2], start, count, tmp));
 		}
 	}
+#endif
 }
 
 /* --------------------------------------------------------------------------- */
@@ -1766,6 +1814,7 @@ void write_anuga_slice(int ncid, int z_id, unsigned int i_start, unsigned int j_
 	/* Write a slice of either STAGE, XMOMENTUM or YMOMENTUM of a Anuga's .sww netCDF file */
 	unsigned int i, j, ij, k, ncl;
 
+#if 0
 	ncl = (i_end - i_start)*(j_end - j_start);
 	k = 0;
 	for (j = j_start; j < j_end; j++) {
@@ -1804,6 +1853,7 @@ void write_anuga_slice(int ncid, int z_id, unsigned int i_start, unsigned int j_
 	}
 
 	err_trap (nc_put_vara_float (ncid, z_id, start, count, tmp));
+#endif
 }
 
 /* -------------------------------------------------------------------- */
@@ -1811,13 +1861,14 @@ int open_anuga_sww (char *fname_sww, int *ids, unsigned int i_start, unsigned in
 		unsigned int nX, double dtx, double dty, double *dep, double xMinOut, double yMinOut, float z_min, float z_max) {
 
 	/* Open and initialize a ANUGA netCDF file for writing ---------------- */
-	int ncid, status, dim0[5], dim2[2], dim3[2];
+	int ncid = -1, status, dim0[5], dim2[2], dim3[2];
 	unsigned int m, n, nx, ny, nVolumes, nPoints;
 	unsigned int i, j, k, m_nx, m1_nx, *volumes, *vertices, v1, v2, v3, v4;
 	float dummy2[2], *x, *y, yr, *tmp;
 	double dummy, nan, faultPolyX[11], faultPolyY[11], faultSlip[10], faultStrike[10], 
 		faultDip[10], faultRake[10], faultWidth[10], faultDepth[10];
 
+#if 0
 	if ( (status = nc_create (fname_sww, NC_CLOBBER, &ncid)) != NC_NOERR) {
 		mexPrintf ("swan: Unable to create file %s - exiting\n", fname_sww);
 		return(-1);
@@ -1931,6 +1982,7 @@ int open_anuga_sww (char *fname_sww, int *ids, unsigned int i_start, unsigned in
 	mxFree ((void *)tmp);
 	mxFree ((void *)volumes);
 
+#endif
 	return (ncid);
 }
 
@@ -1943,7 +1995,8 @@ int open_anuga_sww (char *fname_sww, int *ids, unsigned int i_start, unsigned in
  *
  *		Updates only etad and htotal_d
  * -------------------------------------------------------------------- */
-void mass(struct grd_header hdr, double dt, double *bat, double *etaa, double *htotal_d, double *fluxm_a, double *fluxn_a, double *etad) {
+void mass(struct grd_header hdr, double dt, double *bat, double *etaa, double *htotal_d,
+          double *fluxm_a, double *fluxn_a, double *etad) {
 
 	int row, col;
 	int cm1, rm1;			/* previous column (cm1 = col -1) and row (rm1 = row - 1) */
@@ -2966,14 +3019,10 @@ void moment_sp(struct grd_header hdr, double dt, double manning2, double *htotal
 	/* - fixes the width of the lateral buffer for linear aproximation */
 	/* - if jupe>nnx/2 and jupe>nny/2 linear model will be applied */
 	if (isNested) {
-		jupe  = 0;
-		first = 1;
-		last  = 0;
+		jupe = 0;    first = 1;    last = 0;
 	}
 	else {
-		jupe  = 10;
-		first = 0;
-		last  = 1;
+		jupe = 10;   first = 0;    last = 1;
 	}
 
 	/* - fixes friction parameter */
@@ -3814,19 +3863,54 @@ void moment_conservation(struct nestContainer *nest, int isGeog, int m) {
 	/* m is the level of nesting which starts counting at zero for FIRST nesting level */
 
 	if (isGeog == 0) { 
-		/*int i;
+		int i;
+
+#if 1
+		HANDLE ThreadList[2];  /* Handles to the worker threads */
+		ThreadArg Arg_List[2], *Arg_p;
+
+		for (i = 0; i < 2; i++) {
+			Arg_p           = &Arg_List[i];
+			Arg_p->nest     = nest;
+			Arg_p->iThread  = i;
+			Arg_p->lev      = m;
+			ThreadList[i] = (HANDLE) _beginthreadex(NULL, 0, MT, Arg_p, 0, NULL);
+		}
+
+		/* Wait until all threads are ready and close the handles */
+		WaitForMultipleObjects(2, ThreadList, TRUE, INFINITE);
+		for (i = 0; i < 2; i++)
+			CloseHandle(ThreadList[i]);
+#else
 		for (i = 0; i < 2; i++) {
 			call_moment[i](nest->hdr[m], nest->dt[m], nest->manning2[m], nest->htotal_a[m], nest->htotal_d[m],
 					nest->bat[m], nest->etad[m], nest->fluxm_a[m], nest->fluxn_a[m], nest->fluxm_d[m],
 					nest->fluxn_d[m], nest->vex[m], nest->vey[m], TRUE, m);
-		}*/
-		moment(nest->hdr[m], nest->dt[m], nest->manning2[m], nest->htotal_a[m], nest->htotal_d[m],
-			nest->bat[m], nest->etad[m], nest->fluxm_a[m], nest->fluxn_a[m], nest->fluxm_d[m],
-			nest->fluxn_d[m], nest->vex[m], nest->vey[m], TRUE);
+		}
+		//moment(nest->hdr[m], nest->dt[m], nest->manning2[m], nest->htotal_a[m], nest->htotal_d[m],
+			//nest->bat[m], nest->etad[m], nest->fluxm_a[m], nest->fluxn_a[m], nest->fluxm_d[m],
+			//nest->fluxn_d[m], nest->vex[m], nest->vey[m], TRUE);
+#endif
 	}
 	else
 		moment_sp(nest->hdr[m], nest->dt[m], nest->manning2[m], nest->htotal_a[m], nest->htotal_d[m],
 			nest->bat[m], nest->etad[m], nest->fluxm_a[m], nest->fluxn_a[m], nest->fluxm_d[m],
 			nest->fluxn_d[m], nest->vex[m], nest->vey[m], nest->r0[m], nest->r1m[m], nest->r1n[m],
 			nest->r2m[m], nest->r2n[m], nest->r3m[m], nest->r3n[m], nest->r4m[m], nest->r4n[m], TRUE);
+}
+
+/* ------------------------------------------------------------------------------ */
+unsigned __stdcall MT(void *Arg_p) {
+	/* Convert input from (void *) to (ThreadArg *), call the moment and stop the thread. */
+  
+	ThreadArg *Arg = (ThreadArg *)Arg_p;
+	int m = Arg->lev, i = Arg->iThread;
+
+	call_moment[i](Arg->nest->hdr[m], Arg->nest->dt[m],   Arg->nest->manning2[m], Arg->nest->htotal_a[m], Arg->nest->htotal_d[m],
+                   Arg->nest->bat[m], Arg->nest->etad[m], Arg->nest->fluxm_a[m],  Arg->nest->fluxn_a[m],  Arg->nest->fluxm_d[m],
+                   Arg->nest->fluxn_d[m], Arg->nest->vex[m], Arg->nest->vey[m], TRUE, m);
+
+	_endthreadex(0);
+
+	return (0);
 }
