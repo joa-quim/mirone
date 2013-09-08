@@ -278,10 +278,10 @@ function write_nc(fname, handles, data, misc, page)
 	varstruct.Attribute(n+3).Name = 'units';			varstruct.Attribute(n+3).Value = z_units;
 	if (~isempty(add_off))
 		varstruct.Attribute(end+1).Name = 'add_offset';
-		varstruct.Attribute(end+1).Value = add_off;
+		varstruct.Attribute(n+4).Value = add_off;
 		if (isempty(scale_factor))						% We don't use the scale_factor yet in Mirone but CF
 			varstruct.Attribute(end+1).Name = 'scale_factor';	% recommends that one of scale_factor or add_offset
-			varstruct.Attribute(end+1).Value = 1;				% is present the other is set as well (with neutral value)
+			varstruct.Attribute(n+5).Value = 1;				% is present the other is set as well (with neutral value)
 		end
 	end
 	% ------------------------------------------------------------------------------------
