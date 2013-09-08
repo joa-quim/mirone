@@ -1232,7 +1232,6 @@ void sanitize_nestContainer(struct nestContainer *nest) {
 	int i;
 
 	nest->do_upscale  = TRUE;
-	nest->level[0] = 0;               /* The base level (mother grid) */
 	for (i = 0; i < 10; i++) {
 		nest->level[i] = -1;      /* Will be set to due level number for existing nesting levels */
 		nest->manning2[i] = 0;
@@ -1292,6 +1291,8 @@ int initialize_nestum(struct nestContainer *nest, float **work, int isGeog, int 
 		dt = 0.5 * MIN(nest->hdr[lev].x_inc, nest->hdr[lev].y_inc) / sqrt(NORMAL_GRAV * fabs(nest->hdr[lev].z_min));
 		nest->dt[lev] = nest->dt[lev-1] / ceil(nest->dt[lev-1] / dt);
 	}
+
+	nest->level[lev] = lev;
 
 	/* Allocate the working arrays */
 	if (lev == 0 && (*work = (float *) mxCalloc ((size_t)nm, sizeof(float)) ) == NULL)
@@ -2059,8 +2060,12 @@ void mass(struct nestContainer *nest, int lev) {
 	int cm1, rm1;			/* previous column (cm1 = col -1) and row (rm1 = row - 1) */
 	unsigned int ij;
 	double dtdx, dtdy, dd, zzz;
+	double *etaa, *etad, *htotal_d, *bat, *fluxm_a, *fluxn_a;
 
-	/* Function Body */
+	etaa     = nest->etaa[lev];          etad    = nest->etad[lev];
+	htotal_d = nest->htotal_d[lev];      bat     = nest->bat[lev];
+	fluxm_a  = nest->fluxm_a[lev];       fluxn_a = nest->fluxn_a[lev];
+
 	dtdx = nest->dt[lev] / nest->hdr[lev].x_inc;
 	dtdy = nest->dt[lev] / nest->hdr[lev].y_inc;
 
@@ -2070,26 +2075,24 @@ void mass(struct nestContainer *nest, int lev) {
 		for (col = 0; col < nest->hdr[lev].nx; col++) {
 			cm1 = (col == 0) ? 0 : 1;
 			/* case ocean and non permanent dry area */
-			if (nest->bat[lev][ij] > MAXRUNUP) {
-				zzz = nest->etaa[lev][ij] - dtdx * (nest->fluxm_a[lev][ij] - nest->fluxm_a[lev][ij-cm1])
-				    - dtdy * (nest->fluxn_a[lev][ij] - nest->fluxn_a[lev][ij-rm1]);
-				/* troquei EPS6 por EPS12 */
+			if (bat[ij] > MAXRUNUP) {
+				zzz = etaa[ij] - dtdx * (fluxm_a[ij] - fluxm_a[ij-cm1]) - dtdy * (fluxn_a[ij] - fluxn_a[ij-rm1]);
 				if (fabs(zzz) < EPS6) zzz = 0;
-				dd = zzz + nest->bat[lev][ij];
+				dd = zzz + bat[ij];
+
 				/* wetable zone */
-				/* troquei EPS6 por EPS12 */
-				if (dd >= EPS6) {
-					nest->htotal_d[lev][ij] = dd;
-					nest->etad[lev][ij] = zzz;
+				if (dd > EPS6) {
+					htotal_d[ij] = dd;
+					etad[ij] = zzz;
 				}
 				else {
-					nest->htotal_d[lev][ij] = 0;
-					nest->etad[lev][ij] = -nest->bat[lev][ij];
+					htotal_d[ij] = 0;
+					etad[ij] = -bat[ij];
 				}
 			}
 			else {			/* over dry areas htotal is null and eta follows bat */
-				nest->htotal_d[lev][ij] = 0;
-				nest->etad[lev][ij] = -nest->bat[lev][ij];
+				htotal_d[ij] = 0;
+				etad[ij] = -bat[ij];
 			}
 			ij++;
 		}
@@ -2252,11 +2255,11 @@ void update(struct nestContainer *nest, int lev) {
 void moment_M(struct nestContainer *nest, int lev) {
 
 	unsigned int ij;
-	int first, last, jupe, row, col, ilin = 1;
+	int first, last, jupe, row, col;
 	int cm1, rm1;			/* previous column (cm1 = col - 1) and row (rm1 = row - 1) */
 	int cp1, rp1;			/* next column (cp1 = col + 1) and row (rp1 = row + 1) */
 	int rm2, cp2;
-	double xp, xqe, xqq, ff, dd, df, cte;
+	double xp, xqe, xqq, ff = 0, dd, df, cte;
 	double advx, dtdx, dtdy, advy, rlat, r4mcart;
 	double dpa_ij, dpa_ij_rp1, dpa_ij_rm1, dpa_ij_cm1, dpa_ij_cp1;
 
@@ -2284,7 +2287,6 @@ void moment_M(struct nestContainer *nest, int lev) {
 
 	/* fixes friction parameter */
 	cte = (manning2) ? dt * 4.9 : 0;
-	ff = 0;
 
 	//if (nest->out_velocity_x) memset(vex, 0, hdr.nm * sizeof(float));
 	memset(fluxm_d, 0, hdr.nm * sizeof(double));	/* Do this rather than seting to zero under looping conditions */
@@ -2305,8 +2307,10 @@ void moment_M(struct nestContainer *nest, int lev) {
 				continue;
 			}
 
-			dpa_ij = (htotal_d[ij] + htotal_a[ij] + htotal_d[ij+cp1] + htotal_a[ij+cp1]) * 0.25;
-			if (dpa_ij < EPS6) dpa_ij = 0;
+			/* Looks weird but it's faster than an IF case (branch prediction?) */
+			dpa_ij = (dpa_ij = (htotal_d[ij] + htotal_a[ij] + htotal_d[ij+cp1] + htotal_a[ij+cp1]) * 0.25) > EPS6 ? dpa_ij : 0;
+			//dpa_ij = (htotal_d[ij] + htotal_a[ij] + htotal_d[ij+cp1] + htotal_a[ij+cp1]) * 0.25;
+			//if (dpa_ij < EPS6) dpa_ij = 0;
 
 			/* case wet-wet */
 			if (htotal_d[ij] > EPS6 && htotal_d[ij+cp1] > EPS6) {
@@ -2354,8 +2358,7 @@ void moment_M(struct nestContainer *nest, int lev) {
 			}
 			if (df < EPS3) df = EPS3;
 			xqq = (fluxn_a[ij] + fluxn_a[ij+cp1] + fluxn_a[ij-rm1] + fluxn_a[ij+cp1-rm1]) * 0.25;
-			if (manning2)
-				ff = cte * manning2 * sqrt(fluxm_a[ij] * fluxm_a[ij] + xqq * xqq) / pow(df, 2.333333);
+			//ff = (manning2) ? cte * manning2 * sqrt(fluxm_a[ij] * fluxm_a[ij] + xqq * xqq) / pow(df, 2.333333) : 0;
 
 			/* computes linear terms in cartesian coordinates */
 			xp = (1 - ff) * fluxm_a[ij] - dtdx * NORMAL_GRAV * dd * (etad[ij+cp1] - etad[ij]);
@@ -2407,10 +2410,10 @@ void moment_M(struct nestContainer *nest, int lev) {
 			else {
 				dpa_ij_rm1 = (htotal_d[ij-rm1] + htotal_a[ij-rm1] + htotal_d[ij+cp1-rm1] + htotal_a[ij+cp1-rm1]) * 0.25;
 				if (htotal_d[ij-rm1] < EPS6 || htotal_d[ij+cp1-rm1] < EPS6)
-					advy = dtdy * fluxm_a[ij] * xqq / dpa_ij;
+					advy = dtdy * (fluxm_a[ij] * xqq / dpa_ij);
 
 				else if (dpa_ij_rm1 < EPS6)
-					advy = dtdy * fluxm_a[ij] * xqq / dpa_ij;
+					advy = dtdy * (fluxm_a[ij] * xqq / dpa_ij);
 
 				else {
 					rm2 = (row < 2) ? 0 : 2 * hdr.nx;
@@ -2449,11 +2452,11 @@ L120:
 void moment_N(struct nestContainer *nest, int lev) {
 
 	unsigned int ij;
-	int first, last, jupe, row, col, ilin = 1;
+	int first, last, jupe, row, col;
 	int cm1, rm1;			/* previous column (cm1 = col - 1) and row (rm1 = row - 1) */
 	int cp1, rp1;			/* next column (cp1 = col + 1) and row (rp1 = row + 1) */
 	int cm2, rp2;
-	double xq, xpe, xpp, ff, dd, df, cte;
+	double xq, xpe, xpp, ff = 0, dd, df, cte;
 	double advx, dtdx, dtdy, advy, rlat, r4mcart;
 	double dqa_ij, dqa_ij_rp1, dqa_ij_rm1, dqa_ij_cm1, dqa_ij_cp1;
 
@@ -2481,7 +2484,6 @@ void moment_N(struct nestContainer *nest, int lev) {
 
 	/* fixes friction parameter */
 	cte = (manning2) ? dt * 4.9 : 0;
-	ff = 0;
 
 	//if (nest->out_velocity_y) memset(vey, 0, hdr.nm * sizeof(float));
 	memset(fluxn_d, 0, hdr.nm * sizeof(double));	/* Do this rather than seting to zero under looping conditions */ 
@@ -2502,8 +2504,10 @@ void moment_N(struct nestContainer *nest, int lev) {
 				continue;
 			}
 
-			dqa_ij = (htotal_d[ij] + htotal_a[ij] + htotal_d[ij+rp1] + htotal_a[ij+rp1]) * 0.25;
-			if (dqa_ij < EPS6) dqa_ij = 0;
+			/* Looks weird but it's faster than an IF case (branch prediction?) */
+			dqa_ij = (dqa_ij = (htotal_d[ij] + htotal_a[ij] + htotal_d[ij+rp1] + htotal_a[ij+rp1]) * 0.25) > EPS6 ? dqa_ij : 0;
+			//dqa_ij = (htotal_d[ij] + htotal_a[ij] + htotal_d[ij+rp1] + htotal_a[ij+rp1]) * 0.25;
+			//if (dqa_ij < EPS6) dqa_ij = 0;
 
 			/* moving boundary - Imamura algorithm following cho 2009 */
 			if (htotal_d[ij] > EPS6 && htotal_d[ij+rp1] > EPS6) {
@@ -2553,8 +2557,7 @@ void moment_N(struct nestContainer *nest, int lev) {
 			}
 			if (df < EPS3) df = EPS3;
 			xpp = (fluxm_a[ij] + fluxm_a[ij+rp1] + fluxm_a[ij-cm1] + fluxm_a[ij-cm1+rp1]) * 0.25;
-			if (manning2)
-				ff = cte * manning2 * sqrt(fluxn_a[ij] * fluxn_a[ij] + xpp * xpp) / pow(df, 2.333333);
+			//ff = (manning2) ? cte * manning2 * sqrt(fluxn_a[ij] * fluxn_a[ij] + xpp * xpp) / pow(df, 2.333333) : 0;
 
 			/* computes linear terms of N in cartesian coordinates */
 			xq = (1 - ff) * fluxn_a[ij] - dtdy * NORMAL_GRAV * dd * (etad[ij+rp1] - etad[ij]);
@@ -2612,7 +2615,7 @@ void moment_N(struct nestContainer *nest, int lev) {
 					advx = dtdx * (fluxn_a[ij] * xpp / dqa_ij);
 
 				else if (dqa_ij_cm1 < EPS6)
-					advx = dtdx * fluxn_a[ij] * xpp / dqa_ij;
+					advx = dtdx * (fluxn_a[ij] * xpp / dqa_ij);
 
 				else {
 					cm2 = (col < 2) ? 0 : 2;
@@ -2729,11 +2732,11 @@ void mass_sp(struct nestContainer *nest, int lev) {
 void moment_sp_M(struct nestContainer *nest, int lev) {
 
 	unsigned int ij;
-	int first, last, jupe, row, col, ilin = 1;
+	int first, last, jupe, row, col;
 	int cm1, rm1;			/* previous column (cm1 = col - 1) and row (rm1 = row - 1) */
 	int cp1, rp1;			/* next column (cp1 = col + 1) and row (rp1 = row + 1) */
 	int rm2, cp2;
-	double ff, cte;
+	double ff = 0, cte;
 	double dd, df, xp, xqe, xqq, advx, advy;
 	double dpa_ij, dpa_ij_rp1, dpa_ij_rm1, dpa_ij_cm1, dpa_ij_cp1;
 	double dt, manning2, *htotal_a, *htotal_d, *bat, *etad, *fluxm_a, *fluxn_a, *fluxm_d, *fluxn_d;
@@ -2781,7 +2784,8 @@ void moment_sp_M(struct nestContainer *nest, int lev) {
 				continue;
 			}
 
-			dpa_ij = (htotal_d[ij] + htotal_a[ij] + htotal_d[ij+cp1] + htotal_a[ij+cp1]) * 0.25;
+			/* Looks weird but it's faster than an IF case (branch prediction?) */
+			dpa_ij = (dpa_ij = (htotal_d[ij] + htotal_a[ij] + htotal_d[ij+cp1] + htotal_a[ij+cp1]) * 0.25) > EPS6 ? dpa_ij : 0;
 
 			/* - moving boundary - Imamura algorithm following cho 2009 */
 			if (htotal_d[ij] > EPS5 && htotal_d[ij+cp1] > EPS5) {
@@ -2832,11 +2836,7 @@ void moment_sp_M(struct nestContainer *nest, int lev) {
 			}
 			if (df < EPS3) df = EPS3;
 			xqq = (fluxn_a[ij] + fluxn_a[ij+cp1] + fluxn_a[ij-rm1] + fluxn_a[ij+cp1-rm1]) * 0.25;
-			if (manning2) {
-				ff = cte * manning2 * sqrt(fluxm_a[ij] * fluxm_a[ij] + xqq * xqq) / pow(df, 2.333333);
-			} 
-			else
-				ff = 0;
+			//ff = (manning2) ? cte * manning2 * sqrt(fluxm_a[ij] * fluxm_a[ij] + xqq * xqq) / pow(df, 2.333333) : 0;
 
 			/* - computes linear terms in spherical coordinates */
 			xp = (1 - ff) * fluxm_a[ij] - r3m[row] * dd * (etad[ij+cp1] - etad[ij]); /* - includes coriolis */
@@ -2921,7 +2921,6 @@ L120:
 			}
 		}
 	}
-
 }
 
 
@@ -2929,11 +2928,11 @@ L120:
 void moment_sp_N(struct nestContainer *nest, int lev) {
 
 	unsigned int ij;
-	int first, last, jupe, row, col, ilin = 1;
+	int first, last, jupe, row, col;
 	int cm1, rm1;			/* previous column (cm1 = col - 1) and row (rm1 = row - 1) */
 	int cp1, rp1;			/* next column (cp1 = col + 1) and row (rp1 = row + 1) */
 	int cm2, rp2;
-	double ff, cte;
+	double ff = 0, cte;
 	double dd, df, xq, xpe, xpp, advx, advy;
 	double dqa_ij, dqa_ij_rp1, dqa_ij_rm1, dqa_ij_cm1, dqa_ij_cp1;
 	double dt, manning2, *htotal_a, *htotal_d, *bat, *etad, *fluxm_a, *fluxn_a, *fluxm_d, *fluxn_d;
@@ -2982,7 +2981,8 @@ void moment_sp_N(struct nestContainer *nest, int lev) {
 				continue;
 			}
 
-			dqa_ij = (htotal_d[ij] + htotal_a[ij] + htotal_d[ij+rp1] + htotal_a[ij+rp1]) * 0.25;
+			/* Looks weird but it's faster than an IF case (branch prediction?) */
+			dqa_ij = (dqa_ij = (htotal_d[ij] + htotal_a[ij] + htotal_d[ij+rp1] + htotal_a[ij+rp1]) * 0.25) > EPS6 ? dqa_ij : 0;
 
 			/* - moving boundary - Imamura algorithm following cho 2009 */
 			if (htotal_d[ij] > EPS5 && htotal_d[ij+rp1] > EPS5) {
@@ -3030,10 +3030,7 @@ void moment_sp_N(struct nestContainer *nest, int lev) {
 			}
 			if (df < EPS3) df = EPS3;
 			xpp = (fluxm_a[ij] + fluxm_a[ij+rp1] + fluxm_a[ij-cm1] + fluxm_a[ij-cm1+rp1]) * 0.25;
-			if (manning2) 
-				ff = cte * manning2 * sqrt(fluxn_a[ij] * fluxn_a[ij] + xpp * xpp) / pow(df, 2.333333);
-			else
-				ff = 0;
+			//ff = (manning2) ? cte * manning2 * sqrt(fluxn_a[ij] * fluxn_a[ij] + xpp * xpp) / pow(df, 2.333333) : 0;
 
 			/* - computes linear terms of N in cartesian coordinates */
 			xq = (1 - ff) * fluxn_a[ij] - r3n[row] * dd * (etad[ij+rp1] - etad[ij]);
