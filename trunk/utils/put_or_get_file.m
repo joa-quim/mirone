@@ -1,6 +1,10 @@
 function [FileName,PathName,handles] = put_or_get_file(handles,str1,str2,type, ext)
 % Use this function to select input or output filename
 % EXT if provided forces 'FileName' to output with that wished extension
+%
+% On output HANDLES is option but if not provided (i.e. nargout = 2) there will be
+% a call to guidata to update HANDLES after the local changes in this function.
+% If that behavior is not desired, remember to call this function with 3 output args.
 
 %	Copyright (c) 2004-2013 by J. Luis
 %
