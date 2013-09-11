@@ -44,6 +44,10 @@ function tintol(handles,axis_t,X,Y,I)
 		str = get(handTintButt.popup_nestings,'Str');
 		str{1} = '0 -- level ready to use';
 		set(handTintButt.popup_nestings, 'Str', str, 'Val', 1);	% Make clear that level 0 is already in
+		dx = min(head(8), head(9));
+		if (handles.geog),		dx = dx * 111000;		end
+		dtCFL = dx / sqrt(abs(head(5)) * 9.8) / 2;
+		set(handles.edit_dt, 'Str', sprintf('%g',dtCFL))
 	else
 		handles.head = [-20 0 25 45 0 255 0 20/511 20/511];
 		set(handles.figure1, 'Vis', 'off')
@@ -191,15 +195,18 @@ function push_NestGrids_CB(hObject, handles, opt)
 		if (isempty(X))
 			errordlg('You can not read a nesting grid before the base level. Use "File -> Open" to do that.','Error')
 			return
-		else
-			% Since it is complicated to do this at "File->Open" we do it here (saving base level)
-			handles.nested_level{1,1} = double(Z);
-			handles.nested_level{1,2} = head;	
-			str{1} = '0 -- level ready to use';
-			val = val + 1;
-			handles.last_nested_level = val;
-			handles.geog = handMain.geog;
 		end
+		% Since it is complicated to do this at "File->Open" we do it here (saving base level)
+		handles.nested_level{1,1} = double(Z);
+		handles.nested_level{1,2} = head;	
+		str{1} = '0 -- level ready to use';
+		val = val + 1;
+		handles.last_nested_level = val;
+		handles.geog = handMain.geog;
+		dx = min(head(8), head(9));
+		if (handles.geog),		dx = dx * 111000;		end
+		dtCFL = dx / sqrt(abs(head(5)) * 9.8) / 2;
+		set(handles.edit_dt, 'Str', sprintf('%g',dtCFL))
 	elseif (val == handles.last_nested_level)
 		val = val + 1;
 		handles.last_nested_level = val;
@@ -285,6 +292,11 @@ function [erro, suggest] = check_binning(x0P, x0D, dxP, dxD, tol)
 		erro = true;
 		suggest = x0P + n_incs * dxP + dxP / 2 + dxD / 2;		% Suggested location for x0D
 	end
+
+%--------------------------------------------------------------------------------
+function push_bordering_CB(hObject, handles)
+% ...
+	warndlg('Not yet', 'Warning')
 
 %--------------------------------------------------------------------------------
 function popup_nestings_CB(hObject, handles)
@@ -396,8 +408,8 @@ function edit_MaregraphPosFile_CB(hObject, handles)
 	push_MaregraphPosFile_CB(handles.push_MaregraphPosFile, handles, fname)
 
 %--------------------------------------------------------------------------------
-function push_MaregraphPosFile_CB(hObject, handles)
-	if (nargin == 3)
+function push_MaregraphPosFile_CB(hObject, handles, opt)
+	if (nargin == 2)
 		[FileName,PathName] = put_or_get_file(handles, ...
 			{'*.dat;*.DAT;*.xy', 'Maregraph location (*.dat,*.DAT,*.xy)';'*.*', 'All Files (*.*)'},'Select Maregraphs position','get');
 		if isequal(FileName,0),		return,		end
@@ -408,8 +420,7 @@ function push_MaregraphPosFile_CB(hObject, handles)
 
 	[handles, msg] = getMaregsPos(handles, fname);
 	if (~isempty(msg))
-		errordlg(msg,'Error')
-		return
+		errordlg(msg,'Error'),		return
 	end
 	
 	set(handles.edit_Number_of_cycles,'String',size(handles.maregraph_xy,1))
@@ -531,13 +542,19 @@ function push_RUN_CB(hObject, handles)
 
 	opt_N = ['-N' get(handles.edit_Number_of_cycles, 'Str')];
 
+	opt_T = ' ';
+	if (get(handles.check_wantMaregs, 'Val'))
+		opt_T = ['-T,' get(handles.edit_cumint, 'Str') ',' get(handles.edit_MaregraphPosFile,'Str') ...
+			',' get(handles.edit_MaregraphDataFile,'Str')];
+	end
+
 	% Now get the nestings, if any
 	if (~isempty(handles.nested_level{2,1}))
 		nswing(handles.nested_level{1,1}, handles.nested_level{1,2}, handles.Z_src, handles.head_src, ...
-			handles.nested_level(2:end,:), opt_t, opt_G, opt_S, opt_N)
+			handles.nested_level(2:end,:), opt_t, opt_G, opt_S, opt_N, opt_T)
 	else
 		nswing(handles.nested_level{1,1}, handles.nested_level{1,2}, handles.Z_src, handles.head_src, ...
-			opt_t, opt_G, opt_S, opt_N)
+			opt_t, opt_G, opt_S, opt_N, opt_T)
 	end
 
 	
@@ -554,8 +571,8 @@ function err_str = check_errors(handles)
 	end
 
 	% Check that dt is a valid (CFL condition) dt
-	dt = str2double(get(handles.edit_dt,'String'));
-	dx = handles.nested_level{1,1}(9);
+	dt = str2double(get(handles.edit_dt,'Str'));
+	dx = min(handles.nested_level{1,1}(9), handles.nested_level{1,1}(9));
 	if (handles.geog),		dx = dx * 111000;		end
 	dtCFL = dx / sqrt(abs(handles.nested_level{1,1}(5)) * 9.8);
 	if ( dt > dtCFL )
@@ -576,7 +593,7 @@ function err_str = check_errors(handles)
 			err_str = 'Where are your maregraphs? On the Moon (it''s dry there)?';
 			return
 		end
-		if (isempty(get(handles.edit_MaregraphDataFile,'String')))
+		if (isempty(get(handles.edit_MaregraphDataFile,'Str')))
 			err_str = 'You need to tell me the file name where I''ll write the maregraphs water hight';
 			return
 		end
