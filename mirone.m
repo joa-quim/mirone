@@ -1766,8 +1766,8 @@ function handles = show_image(handles, fname, X, Y, I, validGrid, axis_t, adjust
 	if (~isa(handles.head, 'double')),		handles.head = double(handles.head);	end
 	if (~isa(X, 'double')),		X = double(X);	Y = double(Y);	end		% Security measure (+ lines above & below). It happened before
 	if (handles.head(8) == 0 || handles.head(9) == 0)	% Bad usage of the (Z,struct) mirone input mechanism
-		handles.head(8) = diff(handles.head(1:2)) / size(I,2) + ~handles.head(7);		% Get right values for them
-		handles.head(9) = diff(handles.head(3:4)) / size(I,1) + ~handles.head(7);
+		handles.head(8) = diff(handles.head(1:2)) / (size(I,2) - ~handles.head(7));		% Get right values for them
+		handles.head(9) = diff(handles.head(3:4)) / (size(I,1) - ~handles.head(7));
 	end
 
 	if ( (handles.image_type ~= 2 && handles.image_type ~= 20) && (abs(diff(handles.head(8:9))) > 1e-4) )	% Check anisotropy
