@@ -33,42 +33,51 @@ function tintol(handles,axis_t,X,Y,I)
 
 	handles.origFig = [];		% We don't need the image copy anymore
 
-	if (~handles.validGrid)
+	if (handles.validGrid)
+		h = tintol_buttons_LayoutFcn(handles.figure1);
+		handTintButt = local_guihandles(h);				% THIS WILL BE SEEN AS 'HANDLES' inside _CBs
+		resizetrue(handles,[], 'xy', [350 550]);
+		[X,Y,Z,head] = load_grd(handles);				% Copy Z/head into the nested_level cell array
+		handTintButt.nested_level{1,1} = double(Z);
+		handTintButt.nested_level{1,2} = head;
+		handTintButt.geog = handles.geog;
+		str = get(handTintButt.popup_nestings,'Str');
+		str{1} = '0 -- level ready to use';
+		set(handTintButt.popup_nestings, 'Str', str, 'Val', 1);	% Make clear that level 0 is already in
+	else
 		handles.head = [-20 0 25 45 0 255 0 20/511 20/511];
 		set(handles.figure1, 'Vis', 'off')
 		mirone('FileNewBgFrame_CB',handles,[-20 0 25 45 1 0], [512 512], 'TINTOL');
 		resizetrue(handles,[512 512], 'xy', [350 550]);
 
-		handles.head_bat = [];
-		handles.head_src = [];
 		handles.maregraph_xy = [];
 		handles.BothGridsInMemory = 0;  % Flag to signal that bat & deform arrays are already in memory
 		handles.BatGridInMemory = 0;    % Flag to signal that bat array is already in memory
 		handles.MaregraphInMemory = 1;  % Flag to signal that the maregraphs locations are already in memory
-		handles.n_jump = 0;             % If > 0, the maregraphs array will start at n_jump + 1. OR netCDF files start
-		handles.dt = [];
-		handles.grn = 10;
-		handles.cumint = 1;
 
 		h = tintol_buttons_LayoutFcn(handles.figure1);
-		handTintButt = local_guihandles(h);				% THIS WILL BE SEEN AS 'HANDLES' inside _CBs
-		handTintButt.figure1 = handles.figure1;			% Make a copy so that we can fish the main handles in _CBs
-		handTintButt.axes1 = handles.axes1;				% Simplify access to this
-		handTintButt.home_dir = handles.home_dir;		% Start in values
-		handTintButt.work_dir = handles.work_dir;
-		handTintButt.last_dir = handles.last_dir;
-		handTintButt.outPato = handles.last_dir;
-
-% 		[X,Y,Z,head] = load_grd(handles);				% Copy Z/head into the nested_level cell array
-% 		handTintButt.nested_level{1,1} = Z;
-% 		handTintButt.nested_level{1,2} = head;
-		handTintButt.last_nested_level = 1;
-
-		if (handles.last_dir(end) ~= filesep),		handTintButt.outPato = [handles.last_dir filesep];	end
-
-		local_guidata(handles.figure1, handTintButt)	% Store the local handles
+		handTintButt = local_guihandles(h);			% THIS WILL BE SEEN AS 'HANDLES' inside _CBs
+		handTintButt.nested_level = {[],[]};
 		set(handles.figure1, 'Vis', 'on')
 	end
+
+	handTintButt.figure1 = handles.figure1;			% Make a copy so that we can fish the main handles in _CBs
+	handTintButt.axes1 = handles.axes1;				% Simplify access to this
+	handTintButt.home_dir = handles.home_dir;		% Start in values
+	handTintButt.work_dir = handles.work_dir;
+	handTintButt.last_dir = handles.last_dir;
+	handTintButt.outPato = handles.last_dir;
+	if (handles.last_dir(end) ~= filesep),		handTintButt.outPato = [handles.last_dir filesep];	end
+	handTintButt.n_jump = 0;             % If > 0, the maregraphs array will start at n_jump + 1. OR netCDF files start
+	handTintButt.grn = 10;
+	handTintButt.cumint = 1;
+	handTintButt.Z_bat = [];
+	handTintButt.head_src = [];
+
+	handTintButt.last_nested_level = 1;
+
+
+	local_guidata(handles.figure1, handTintButt)	% Store the local handles
 
 %--------------------------------------------------------------------------------
 function data = local_guidata(h, data_in)
@@ -139,7 +148,14 @@ function push_SourceGrid_CB(hObject, handles, opt)
 	end
 
 	[handles,X,Y,handles.Z_src,handles.head_src] = read_gmt_type_grids(handles,fname);
+	handles.Z_src = double(handles.Z_src);
 	if (isempty(X)),    return,		end
+	if (~isempty(handles.nested_level{1,1}))
+		msg = check_paternity(handles.nested_level{1,2}, handles.head_src, '');
+		if (~isempty(msg))
+			errordlg(msg, 'Error'),		return
+		end
+	end
 	%geog = guessGeog(handles.head_src(1:4));
 	%set(handles.radio_cartesian,'Value', ~double(geog))
 	%set(handles.radio_geog,'Value', double(geog))
@@ -153,7 +169,7 @@ function edit_NestGrids_CB(hObject, handles)
 
 %--------------------------------------------------------------------------------
 function push_NestGrids_CB(hObject, handles, opt)
-% Read either base level (level 0) or descendeny nesting grids
+% Read either base level (level 0) or descendent nesting grids
 	if (nargin == 2)
 		str1 = {'*.grd;*.GRD', 'Grid files (*.grd,*.GRD)';'*.*', 'All Files (*.*)'};
 		[FileName,PathName,handles] = put_or_get_file(handles,str1,'Select grid','get');
@@ -169,29 +185,34 @@ function push_NestGrids_CB(hObject, handles, opt)
 	if (val > handles.last_nested_level + 1)		% User Screw up, probably a joke/esticanço
 		errordlg('You cannot jump steps. Be modest and select one nesting level at a time.','Chico Clever')
 		return
-	elseif (val == handles.last_nested_level)
-		val = val + 1;
-		handles.last_nested_level = val;
 	elseif (val == 1 && (numel(str{1}) == 1 && str{1} == '0'))
 		handMain = guidata(handles.figure1);
-		[X,Y,Z,head_bat] = load_grd(handMain,'silent');
+		[X,Y,Z,head] = load_grd(handMain,'silent');
 		if (isempty(X))
 			errordlg('You can not read a nesting grid before the base level. Use "File -> Open" to do that.','Error')
 			return
 		else
-			% Since is complicated to do this when "File->Open" we do it here (saving base level)
-			handles.nested_level{1,1} = Z;
+			% Since it is complicated to do this at "File->Open" we do it here (saving base level)
+			handles.nested_level{1,1} = double(Z);
 			handles.nested_level{1,2} = head;	
 			str{1} = '0 -- level ready to use';
 			val = val + 1;
 			handles.last_nested_level = val;
+			handles.geog = handMain.geog;
 		end
+	elseif (val == handles.last_nested_level)
+		val = val + 1;
+		handles.last_nested_level = val;
 	end		% ELSE just replace one previous level (DUMB and DANGEROUS thing to do -- should not be allowed)
 
 	[handles,X,Y,Z,head] = read_gmt_type_grids(handles, fname);
 	if (isempty(X)),    return,		end
+	msg = check_paternity(handles.nested_level{val-1,2}, head);	% Check that this grid nests well in its mother
+	if (~isempty(msg))
+		errordlg(msg, 'Error'),		return
+	end
 
-	handles.nested_level{val,1} = Z;
+	handles.nested_level{val,1} = double(Z);
 	handles.nested_level{val,2} = head;
 
 	str{val} = sprintf('%d -- level ready to use', val-1);
@@ -204,10 +225,72 @@ function push_NestGrids_CB(hObject, handles, opt)
 
 	local_guidata(handles.figure1,handles)
 
+%---------------------------------------------------------------------------------------------------
+function msg = check_paternity(hdr_parent, hdr_d, opt)
+% Check if descendent grid with header HDR_D qualifies as nested grid with respect to grid HDR_PARENT
+% If OPT is used (content is unimportant) check just base level and source compatibility.
+% WARNING: everything here assumes headers are in GRID registration.
+	msg = '';
+	nxP = round((hdr_parent(2) - hdr_parent(1)) / hdr_parent(8) + 1);
+	nyP = round((hdr_parent(4) - hdr_parent(3)) / hdr_parent(9) + 1);
+	nxD = round((hdr_d(2) - hdr_d(1)) / hdr_d(8) + 1);
+	nyD = round((hdr_d(4) - hdr_d(3)) / hdr_d(9) + 1);
+	% Let's be tolerant and alow errors up to 1/4 of grid increments. That should easy life for geogs
+	threshP_x = hdr_parent(8) / 4;		threshP_y = hdr_parent(9) / 4;
+	threshD_x = hdr_d(8) / 4;			threshD_y = hdr_d(9) / 4;
+	if (nargin == 3)
+		if (nxP ~= nxD || nyP ~= nyD)
+			msg{1} = 'Bathymetry and source grids have different sizes (rows/columns)';
+		end
+		if ( abs((hdr_parent(1) - hdr_d(1)) / hdr_d(8)) > threshP_x || abs((hdr_parent(2) - hdr_d(2)) / hdr_d(8)) > threshP_x || ...
+				abs((hdr_parent(3) - hdr_d(3)) / hdr_d(9)) > threshP_y || abs((hdr_parent(4) - hdr_d(4)) / hdr_d(9)) > threshP_y)
+			msg{end+1} = 'Bathymetry and source grids do not cover the same region';
+		end
+		return
+	end
+
+	% ---------------------- Check nesting at LowerLeft corner ----------------------------
+	[erro, suggest] = check_binning(hdr_parent(1), hdr_d(1), hdr_parent(8), hdr_d(8), threshD_x);
+	if (erro)
+		msg{end+1} = sprintf(['Lower left corner of doughter grid does not obey to nesting rules. ' ...
+			'X_MIN should be (in grid registration):\n\t%f\n'], suggest);
+	end
+	[erro, suggest] = check_binning(hdr_parent(3), hdr_d(3), hdr_parent(9), hdr_d(9), threshD_y);
+	if (erro)
+		msg{end+1} = sprintf(['Lower left corner of doughter grid does not obey to nesting rules. ' ...
+			'Y_MIN should be (in grid registration):\n\t%f\n'], suggest);
+	end
+
+	% ---------------------- Check nesting at UperRight corner ----------------------------
+	[erro, suggest] = check_binning(hdr_parent(1), hdr_d(2), hdr_parent(8), -hdr_d(8), threshD_x);
+	if (erro)
+		msg{end+1} = sprintf(['Upper right corner of doughter grid does not obey to nesting rules. ' ...
+			'X_MAX should be (in grid registration):\n\t%f\n'], suggest);
+	end
+	[erro, suggest] = check_binning(hdr_parent(3), hdr_d(4), hdr_parent(9), -hdr_d(9), threshD_y);
+	if (erro)
+		msg{end+1} = sprintf(['Upper right corner of doughter grid does not obey to nesting rules. ' ...
+			'Y_MAX should be (in grid registration):\n\t%f\n'], suggest);
+	end
+
+%--------------------------------------------------------------------------------
+function [erro, suggest] = check_binning(x0P, x0D, dxP, dxD, tol)
+% Check that point X0D of doughter grid fits within tolerance TOL into parent grid
+% Use a negative dxD when checking the upper left corner (or any east/north edges)
+	erro = false;	suggest = [];
+	x = (x0D - x0P) / dxP;
+	n_incs = fix(x);
+	dec = (x0D - (x0P + n_incs * dxP));
+	if (abs(dec - (dxP / 2 + dxD / 2)) > tol)
+		erro = true;
+		suggest = x0P + n_incs * dxP + dxP / 2 + dxD / 2;		% Suggested location for x0D
+	end
+
 %--------------------------------------------------------------------------------
 function popup_nestings_CB(hObject, handles)
-% Show what has been loaded so far or prepare for the -- eventual -- next level.
-	%str = get(hObject,'Str');
+% Show what has been loaded so far but don't let it be changed because we rely on an automatic schema.
+	val = get(hObject,'Val');
+	set(hObject,'Val',handles.last_nested_level)
 
 %--------------------------------------------------------------------------------
 function radio_outGrids_CB(hObject, handles)
@@ -254,7 +337,12 @@ function radio_most_CB(hObject, handles)
 
 %--------------------------------------------------------------------------------
 function edit_gridNameStem_CB(hObject, handles)
-
+% If no prefix, no options.
+	if (isempty(get(hObject, 'Str')))
+		set([handles.radio_surfLevel handles.radio_totalWater handles.radio_maxWater ...
+			handles.check_velocity handles.check_momentum handles.radio_outGrids ...
+			handles.radio_anuga handles.radio_most],'Val',0)		
+	end
 
 %--------------------------------------------------------------------------------
 function radio_surfLevel_CB(hObject, handles)
@@ -405,21 +493,12 @@ function edit_jumpInitial_CB(hObject, handles)
 
 %--------------------------------------------------------------------------------
 function edit_dt_CB(hObject, handles)
+% Test only if the entered time is not idiot. The CFL condition will be checked at the
+% end by check_errors() because than we'll know the bat for sure. 
 	xx = str2double(get(hObject,'String'));
 	if (isnan(xx) || xx < 0)
-		set(hObject,'String',handles.dt),	return
+		set(hObject,'String', ''),	return
 	end
-	% Check that xx is a valid (CFL condition) dt
-	dx = handles.head_bat(9);
-	if (handles.geog),		dx = dx * 111000;		end
-	dt = dx / sqrt(abs(handles.head_bat(5)) * 9.8);
-	if ( xx > dt )
-		warndlg(['The value entered here doesn''t conform to the CFL condition (' ...
-				sprintf('%.3f',dt) ') and will probably make the simulation diverge.'],'Warning')
-	end
-	handles.dt = xx;
-	if (handles.got_params),	handles.params(1) = xx;		end
-	local_guidata(handles.figure1,handles)
 
 %--------------------------------------------------------------------------------
 function edit_grn_CB(hObject, handles)
@@ -428,21 +507,37 @@ function edit_grn_CB(hObject, handles)
 		set(hObject,'String',handles.grn),	return
 	end
 	handles.grn = xx;
-	if (handles.got_params),	handles.params(2) = xx;		end
 	local_guidata(handles.figure1,handles)
 
 %--------------------------------------------------------------------------------
 function push_RUN_CB(hObject, handles)
 % ...
-	[X,Y,Z,head_bat] = load_grd(handles,'silent');
-	if (~isempty(X))		% So we have a bat grid. Check the remaining conditions for this case.
-		err_str = check_errors(handles);
-		if (~isempty(err_str))
-			errordlg(err_str, 'Error'),		return
-		end
+
+	err_str = check_errors(handles);
+	if (~isempty(err_str))
+		errordlg(err_str, 'Error'),		return
+	end
+
+	opt_t = ['-t' get(handles.edit_dt,'String')];
+	if (get(handles.radio_outGrids,'Val') || get(handles.radio_anuga,'Val') || get(handles.radio_most,'Val'))
+		NameStem = get(handles.edit_gridNameStem, 'Str');
+		opt_G = sprintf('%s+%d,%d', NameStem, handles.last_nested_level-1, handles.grn);
 	else
-		% Print something
-		return
+		opt_G = ' ';
+	end
+
+	opt_S = ' ';
+	if (get(handles.check_velocity, 'Val')),	opt_S = '-S';	end
+
+	opt_N = ['-N' get(handles.edit_Number_of_cycles, 'Str')];
+
+	% Now get the nestings, if any
+	if (~isempty(handles.nested_level{2,1}))
+		nswing(handles.nested_level{1,1}, handles.nested_level{1,2}, handles.Z_src, handles.head_src, ...
+			handles.nested_level(2:end,:), opt_t, opt_G, opt_S, opt_N)
+	else
+		nswing(handles.nested_level{1,1}, handles.nested_level{1,2}, handles.Z_src, handles.head_src, ...
+			opt_t, opt_G, opt_S, opt_N)
 	end
 
 	
@@ -451,22 +546,34 @@ function err_str = check_errors(handles)
 % ...
 	err_str = '';
 
-	[X,Y,Z,head_bat] = load_grd(handles,'silent');
-
+	if (isempty(handles.nested_level{1,1}))
+		err_str = 'No base level bathymetry grid provided. And I NEED ONE!';	return
+	end
 	if (isempty(handles.head_src))
 		err_str = 'No tsunami source grid provided. And I NEED ONE!';	return
+	end
+
+	% Check that dt is a valid (CFL condition) dt
+	dt = str2double(get(handles.edit_dt,'String'));
+	dx = handles.nested_level{1,1}(9);
+	if (handles.geog),		dx = dx * 111000;		end
+	dtCFL = dx / sqrt(abs(handles.nested_level{1,1}(5)) * 9.8);
+	if ( dt > dtCFL )
+		err_str = sprintf(['The value entered here doesn''t conform to the CFL condition ' ...
+				'(%.3f) and would make the simulation diverge.'], dtCFL);
+		return
 	end
 
 	% Cheeck that at lest one operation was selected
 	if ( ~(get(handles.check_wantMaregs,'Val') || get(handles.radio_outGrids,'Val') || ...
 			get(handles.radio_anuga,'Val') || get(handles.radio_most,'Val')) )
-		err_str = 'Comput what? You need to select at least one thing to do';
+		err_str = 'Compute what? You need to select at least one thing to do';
 		return
 	end
 
 	if (get(handles.check_wantMaregs,'Value'))       % That is, requested maregraphs computation
 		if (isempty(handles.maregraph_xy) && handles.MaregraphInMemory == 0)
-			err_str = 'Where are your maregraphs? On the Moon?';
+			err_str = 'Where are your maregraphs? On the Moon (it''s dry there)?';
 			return
 		end
 		if (isempty(get(handles.edit_MaregraphDataFile,'String')))
@@ -474,20 +581,22 @@ function err_str = check_errors(handles)
 			return
 		end
 	end
+	
+% 	local_guidata(handles.figure1,handles)
 
-	% If we reach here, we can now check if grids are compatible.
-	small = 1e-6;   % Used in postion comparation. It places the accuracy at sub-meter level
-	difes = handles.head_src(1:4) - head_bat(1:4);
-	if (any(abs(difes) > small))
-		err_str{1} = 'Bathymetry & Source grids do not cover the same region';
-		err_str{2} = sprintf('x_min diff = %.10g', difes(1));	err_str{3} = sprintf('x_max diff = %.10g', difes(2));
-		err_str{4} = sprintf('y_min diff = %.10g', difes(3));	err_str{5} = sprintf('y_max diff = %.10g', difes(4));
-		return
-	end
-	if (abs(handles.head_src(8) - head_bat(8)) > small || ...
-		abs(handles.head_src(9) - head_bat(9)) > small )
-		err_str = 'Bathymetry & Source grids have different nx and/or ny';
-	end
+% 	% If we reach here, we can now check if grids are compatible.
+% 	small = 1e-6;   % Used in postion comparation. It places the accuracy at sub-meter level
+% 	difes = handles.head_src(1:4) - head_bat(1:4);
+% 	if (any(abs(difes) > small))
+% 		err_str{1} = 'Bathymetry & Source grids do not cover the same region';
+% 		err_str{2} = sprintf('x_min diff = %.10g', difes(1));	err_str{3} = sprintf('x_max diff = %.10g', difes(2));
+% 		err_str{4} = sprintf('y_min diff = %.10g', difes(3));	err_str{5} = sprintf('y_max diff = %.10g', difes(4));
+% 		return
+% 	end
+% 	if (abs(handles.head_src(8) - head_bat(8)) > small || ...
+% 		abs(handles.head_src(9) - head_bat(9)) > small )
+% 		err_str = 'Bathymetry & Source grids have different nx and/or ny';
+% 	end
 
 % ----------------------------------------
 function h = tintol_buttons_LayoutFcn(h1)
