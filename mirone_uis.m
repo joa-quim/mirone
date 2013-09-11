@@ -411,7 +411,6 @@ uimenu('Parent',h,'Call','vitrinite','Label','Vitrinite','Sep','on');
 uimenu('Parent',hTL,'Call','run_cmd(guidata(gcbo))','Label','Run ML Command','Sep','on');
 uimenu('Parent',hTL,'Call','line_operations(guidata(gcbo))','Label','Vector Operations','Tag','lineOP');
 % uimenu('Parent',hTL,'Call','autofaults(guidata(gcbo))','Label','Auto falhas','Sep','on');
-%uimenu('Parent',hTL,'Call','tintol(guidata(gcbo))','Label','TINTOL');
 
 %% --------------------------- DRAW ------------------------------------
 hDR = uimenu('Parent',H1,'Label','Draw','Tag','Draw');
@@ -634,6 +633,7 @@ uimenu('Parent',h,'Call','tsu_funs(''SwanCompute'',guidata(gcbo))','Label','Comp
 uimenu('Parent',h,'Call','load_xyz(guidata(gcbo), [], ''AsMaregraph'')','Label','Import Stations','Sep','on');
 uimenu('Parent',h,'Call','mirone(''GeophysicsSwanPlotStations_CB'',guidata(gcbo))','Label','Plot Stations');
 uimenu('Parent',h,'Call','tsu_funs(''SwanGridBorder'',guidata(gcbo))','Label','Stations on grid borders');
+uimenu('Parent',hT,'Call','tintol(guidata(gcbo))','Label','TINTOL');
 
 uimenu('Parent',hT,'Call','aquamoto(guidata(gcbo))','Label','Aquamoto Viewer','Sep','on');
 
@@ -740,7 +740,7 @@ if (IamCompiled)
 end
 uimenu('Parent',h, 'Call',['mirone(''FileOpenWebImage_CB'',guidata(gcbo),',...
 	' ''http://www2.clustrmaps.com/stats/maps-clusters/w3.ualg.pt-~jluis-mirone-world.jpg'',''nikles'');'],'Label','See visitors map','Sep','on');
-uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 8 Aug 2013'',''2.5.0dev'')','Label','About','Sep','on');
+uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 11 Sep 2013'',''2.5.0dev'')','Label','About','Sep','on');
 
 %% --------------------------- Build HANDLES and finish things here
 	handles = guihandles(H1);
