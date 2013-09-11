@@ -141,7 +141,7 @@ function resize(hAxes, hImg, imSize, opt, withSliders, firstFigSize, pad_left)
 	hFig = get(hAxes, 'Parent');
 	set(hAxes,'Units','normalized','Position',[0 0 1 1]) % Don't realy understand why, but I need this
 
-	if (~pad_left)			% Check if this figure in padded already
+	if (~pad_left(1))			% Check if this figure in padded already
 		am_I_padded = getappdata(hFig,'SidePadded');
 		if (~isempty(am_I_padded)),		pad_left = am_I_padded;		end
 	end
@@ -171,7 +171,7 @@ function resize(hAxes, hImg, imSize, opt, withSliders, firstFigSize, pad_left)
 	% Use a trick to simplify the case when a padding zone was required on the left side.
 	% Just pretend the screen is narrower to not let the extend fig size 'overflow' the true
 	% screen width and at the end we are safe to resize the fig to the account for the required extension
-	if (pad_left),		screenWidth = screenWidth - pad_left;	end
+	if (pad_left),		screenWidth = screenWidth - pad_left(1);	end
 
 	minFigWidth = max(firstFigSize(3), 581);	minFigHeight = 128;      % don't try to make the display image smaller than this.
 
@@ -337,15 +337,15 @@ function resize(hAxes, hImg, imSize, opt, withSliders, firstFigSize, pad_left)
 
 	% --------- See if we need to apply further resizings bcause of left padding -----------------
 	shift_frame_x = 0;	% Amount used to shift the status bar axes when pad_left != 0
-	if (pad_left)
+	if (pad_left(1))
 		dx = round(gutterWidth / 2 - x_margin - (sldT + 2));		% Slider thickness + 2
 		if (dx > 0)		% We have unused space left on the right side. Use it
-			axPos(1)  = axPos(1) + pad_left;
-			figPos(3) = figPos(3) + pad_left - dx;
-			shift_frame_x = pad_left + dx;
+			axPos(1)  = axPos(1) + pad_left(1);
+			figPos(3) = figPos(3) + pad_left(1) - dx;
+			shift_frame_x = pad_left(1) + dx;
 		else
-			axPos(1) = axPos(1) + pad_left;
-			figPos(3) = figPos(3) + pad_left;
+			axPos(1) = axPos(1) + pad_left(1);
+			figPos(3) = figPos(3) + pad_left(1);
 		end
 		if ((figPos(1) + figPos(3)) > screenSize(3))	% Fig is partially out on the right side
 			figPos(1) = screenSize(3) - figPos(3);
@@ -356,6 +356,12 @@ function resize(hAxes, hImg, imSize, opt, withSliders, firstFigSize, pad_left)
 
 	% Force the window to be in the "north" position. 78 is the height of the blue Bar + ...
 	figPos(2) = screenHeight - figPos(4) - 78;
+	if (pad_left(1) && figPos(4) < pad_left(2))			% For the time being only TINTOL triggers this
+		figPos(4) = pad_left(2);
+		figPos(2) = screenHeight - figPos(4) - 78;
+		axPos(2) = axPos(2) - axPos(4)/2 + pad_left(2)/2 - 20;		% Aproximate but should be good enough
+	end
+	axPos = round(axPos);
 	set(hFig, 'Position', figPos);
 	set(hAxes, 'Position', axPos);
 
@@ -387,7 +393,7 @@ function resize(hAxes, hImg, imSize, opt, withSliders, firstFigSize, pad_left)
 
 	if ~strcmp(opt,'sCapture'),   pixval_stsbar(hFig);  end
 	if(~isempty(hFanim))
-		set(getappdata(hFanim,'AnimaFamily'), 'units', 'normalized')	% So that they remain in their corner uppon resinzing
+		set(getappdata(hFanim,'AnimaFamily'), 'units', 'normalized')	% So that they remain in their corner uppon resizing
 	end
 
 %--------------------------------------------------------------------------
