@@ -16,7 +16,6 @@
  *	Contact info: w3.ualg.pt/~jluis/mirone
  *--------------------------------------------------------------------*/
 
-
 /*
  *	Original Fortran version of core hydrodynamic code by J.M. Miranda and COMCOT
  *
@@ -242,12 +241,15 @@ int Return(int code) {		/* To handle return codes between MEX and standalone cod
 	return(code);
 }
 
+
 /* --------------------------------------------------------------------------- */
 /* Matlab Gateway routine */
 
 #ifdef I_AM_MEX
+#define Return(code) {mexErrMsgTxt("\n");}
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 #else
+#define Return(code) {return(code);}
 int main(int argc, char **argv) {
 #endif
 
@@ -475,10 +477,6 @@ int main(int argc, char **argv) {
 					break;
 				case 'G':	/* Write grids at grn intervals */
 					sscanf (&argv[i][2], "%s,%d", &stem, &grn);
-					if ((pch = strstr(stem,"|")) != NULL) {
-						grn = atoi(&pch[1]);
-						pch[0] = '\0';		/* Strip the "|num" part */
-					}
 					if ((pch = strstr(stem,",")) != NULL) {
 						grn = atoi(&pch[1]);
 						pch[0] = '\0';		/* Strip the ",num" part */
@@ -687,18 +685,18 @@ int main(int argc, char **argv) {
 	if (!bat_in_input && !source_in_input) {			/* If bathymetry & source where not given as arguments, load them */
 		if (!bathy || !fonte) {
 			mexPrintf ("NSWING: error, bathymetry and/or source grids were not provided.\n"); 
-			return(-1);
+			Return(-1);
 		}
 
 		r_bin_b = read_grd_info_ascii (bathy, &hdr_b);	/* Para saber como alocar a memoria */
 		if (r_bin_b < 0) {
 			mexPrintf ("NSWING: Invalid bathymetry grid. Possibly it is in the Surfer 7 format\n"); 
-			return(-1);
+			Return(-1);
 		}
 		r_bin_f = read_grd_info_ascii (fonte, &hdr_f);	/* e verificar se as grelhas sao compativeis */
 		if (r_bin_f < 0) {
 			mexPrintf ("NSWING: Invalid source grid. Possibly it is in the Surfer 7 format\n"); 
-			return(-1);
+			Return(-1);
 		}
 
 		if (hdr_f.nx != hdr_b.nx || hdr_f.ny != hdr_b.ny) {
@@ -715,7 +713,7 @@ int main(int argc, char **argv) {
 		}
 	}
 
-	if (error) return(-1);
+	if (error) Return(-1);
 
 	if (n_arg_no_char == 0) {		/* Read the nesting grids */
 		struct	srf_header hdr;
@@ -724,7 +722,7 @@ int main(int argc, char **argv) {
 		while (nesteds[num_of_nestGrids] != NULL) {
 			r_bin = read_grd_info_ascii (nesteds[num_of_nestGrids], &hdr);
 			if ((nest.bat[num_of_nestGrids+1] = (double *)mxCalloc ((size_t)hdr.nx*(size_t)hdr.ny, sizeof(double)) ) == NULL) 
-				{no_sys_mem("(bat)", hdr.nx*hdr.ny); return(-1);}
+				{no_sys_mem("(bat)", hdr.nx*hdr.ny); Return(-1);}
 
 			if (!r_bin)
 				read_grd_ascii (nesteds[num_of_nestGrids], &hdr, nest.bat[num_of_nestGrids+1], -1);
@@ -762,9 +760,9 @@ int main(int argc, char **argv) {
 	nest.out_velocity_x = out_velocity_x;
 	nest.out_velocity_y = out_velocity_y;
 	if (initialize_nestum(&nest, &work, isGeog, 0))
-		return(-1);
+		Return(-1);
 	if (max_level && (wmax = (float *) mxCalloc ((size_t)ncl, sizeof(float)) ) == NULL)
-		{no_sys_mem("(wmax)", ncl); return(-1);}
+		{no_sys_mem("(wmax)", ncl); Return(-1);}
 	/* -------------------------------------------------------------------------------------- */
 
 	if (bat_in_input) {		/* If bathymetry & source where given as arguments */
@@ -856,7 +854,7 @@ int main(int argc, char **argv) {
 		stage_range[0] = xmom_range[0] = ymom_range[0] = FLT_MAX;
 		stage_range[1] = xmom_range[1] = ymom_range[1] = -FLT_MIN;
 
-		tmp_slice = (float *) mxMalloc (sizeof(float) * (hdr.nx * hdr.ny));	/* To use inside slice writing */
+		tmp_slice = (float *) mxMalloc (sizeof(float) * hdr.nm);	/* To use inside slice writing */
 	}
 
 	if (out_most) {
@@ -868,7 +866,7 @@ int main(int argc, char **argv) {
 
 		if (ncid_most[0] == -1 || ncid_most[1] == -1 || ncid_most[2] == -1) {
 			mexPrintf ("NSWING: failure to create one or more of the MOST files\n");
-			return(-1);
+			Return(-1);
 		}
 
 		ids_most[0] = ids_ha[5];	/* IDs of the Amp, Xmom & Ymom vriables */
@@ -898,7 +896,7 @@ int main(int argc, char **argv) {
 			i_end = nest.hdr[writeLevel].nx;
 			j_end = nest.hdr[writeLevel].ny;
 			ip2 = nest.hdr[writeLevel].nx;
-			ncl = (unsigned int)nest.hdr[writeLevel].nx * (unsigned int)nest.hdr[writeLevel].ny;
+			ncl = nest.hdr[writeLevel].nm;
 		}
 	}
 
