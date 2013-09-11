@@ -237,6 +237,15 @@ function hObject = mirone_OpeningFcn(varargin)
 			X = linspace(varargin{1}.range(1), varargin{1}.range(2), varargin{1}.n_columns);
 			Y = linspace(varargin{1}.range(3), varargin{1}.range(4), varargin{1}.n_rows);
 
+		elseif ( n_argin == 2 && isequal([size(varargin{2},1) size(varargin{2},2)],[1 9]) )
+			% A matrix with the classic nine elements header vector
+			handles.head = varargin{2};
+			Z = varargin{1};			grd_data_in = true;
+			if (~isa(Z,'single')),		Z = single(Z);		end
+			handles.have_nans = grdutils(Z,'-N');
+			X = linspace(handles.head(1), handles.head(2), size(Z,2));
+			Y = linspace(handles.head(3), handles.head(4), size(Z,1));
+
 		elseif ( n_argin < 4 && ~(isa(varargin{1},'uint8') || isa(varargin{1},'int8')) )
 			% A matrix. Treat it as if it is a gmt grid. No error testing on the grid head descriptor
 			Z = varargin{1};			grd_data_in = true;
@@ -1068,7 +1077,7 @@ function FileSaveGMTgrid_CB(handles, opt)
 	if isequal(FileName,0),		return,		end
 	f_name = [PathName FileName];
 
-	set(handles.figure1,'pointer','watch')
+	set(handles.figure1,'pointer','watch'),		pause(0.01)
 	if (~isempty(opt) && strcmp(opt,'Surfer'))
 		fid = fopen(f_name, 'wb');		fwrite(fid,'DSBB','char');
 		fwrite(fid,[size(Z,2) size(Z,1)],'int16');		fwrite(fid,head(1:6),'double');
