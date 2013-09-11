@@ -356,8 +356,8 @@ int main(int argc, char **argv) {
 			mexPrintf ("%d %d %d %d\n", hdr_f.nx, hdr_b.nx, hdr_f.ny, hdr_b.ny); 
 			return;
 		}
-		if (fabs(hdr_f.x_min - hdr_b.x_min) > EPS6 || fabs(hdr_f.x_max - hdr_b.x_max) > EPS6 ||
-			fabs(hdr_f.y_min - hdr_b.y_min) > EPS6 || fabs(hdr_f.y_max - hdr_b.y_max) > EPS6 ) {
+		if (fabs(hdr_f.x_min - hdr_b.x_min) > EPS3 || fabs(hdr_f.x_max - hdr_b.x_max) > EPS3 ||
+			fabs(hdr_f.y_min - hdr_b.y_min) > EPS3 || fabs(hdr_f.y_max - hdr_b.y_max) > EPS3 ) {
 			mexPrintf ("Bathymetry & Source grids do not cover the same region\n"); 
 			mexPrintf ("%lf %lf %lf %lf\n", hdr_f.x_min, hdr_b.x_min, hdr_f.x_max, hdr_b.x_max); 
 			mexPrintf ("%lf %lf %lf %lf\n", hdr_f.y_min, hdr_b.y_min, hdr_f.y_max, hdr_b.y_max); 
@@ -704,8 +704,8 @@ int main(int argc, char **argv) {
 			mexPrintf ("%d %d %d %d\n", hdr_b.ny, hdr_f.ny, hdr_b.nx, hdr_f.nx); 
 			error++;
 		}
-		if (hdr_f.x_min != hdr_b.x_min || hdr_f.x_max != hdr_b.x_max ||
-			hdr_f.y_min != hdr_b.y_min || hdr_f.y_max != hdr_b.y_max) {
+		if (fabs(hdr_f.x_min - hdr_b.x_min) > EPS3 || fabs(hdr_f.x_max - hdr_b.x_max) > EPS3 ||
+			fabs(hdr_f.y_min - hdr_b.y_min) > EPS3 || fabs(hdr_f.y_max - hdr_b.y_max) > EPS3) {
 			mexPrintf ("Bathymetry and source grids do not cover the same region\n"); 
 			mexPrintf ("%lf %lf %lf %lf\n", hdr_f.x_min, hdr_b.x_min, hdr_f.x_max, hdr_b.x_max); 
 			mexPrintf ("%lf %lf %lf %lf\n", hdr_f.y_min, hdr_b.y_min, hdr_f.y_max, hdr_b.y_max); 
@@ -1010,9 +1010,9 @@ int main(int argc, char **argv) {
 		}
 
 		if (surf_level && time_h > time_jump && ( (k % grn) == 0 || k == n_of_cycles - 1)) {
-			/* ------------------------------------------------------------------------- */
+			/* --------------------------------------------------------------------- */
 			/* outputs eta file averaging eta(t-dt/2) e eta(t+dt/2)
-			/* ------------------------------------------------------------------------- */
+			/* --------------------------------------------------------------------- */
 			for (ij = 0; ij < nest.hdr[writeLevel].nm; ij++)
 				work[ij] = (float)((nest.etaa[writeLevel][ij] + nest.etad[writeLevel][ij]) * 0.5);
 		}
@@ -1098,8 +1098,8 @@ int main(int argc, char **argv) {
 					}
 						//work[ij] = (float) nest.vex[writeLevel][ij];
 
-					write_grd_bin(strcat(prenome,"_U.grd"), xMinOut, yMinOut, dx, dy, i_start, j_start,
-								  i_end, j_end, ip2, work);
+					write_grd_bin(strcat(prenome,"_U.grd"), xMinOut + nest.hdr[writeLevel].x_inc/2, yMinOut,
+					              dx, dy, i_start, j_start, i_end, j_end, ip2, work);
 					prenome[strlen(prenome) - 6] = '\0';	/* Remove the _U.grd' so that we can add '_V.grd' */
 				}
 				if (out_velocity_y) {
@@ -1114,8 +1114,8 @@ int main(int argc, char **argv) {
 					}
 						//work[ij] = (float) nest.vey[writeLevel][ij];
 
-					write_grd_bin(strcat(prenome,"_V.grd"), xMinOut, yMinOut, dx, dy, i_start, j_start,
-								  i_end, j_end, ip2, work);
+					write_grd_bin(strcat(prenome,"_V.grd"), xMinOut, yMinOut + nest.hdr[writeLevel].y_inc/2,
+					              dx, dy, i_start, j_start, i_end, j_end, ip2, work);
 				}
 			}
 			if (out_momentum) {
