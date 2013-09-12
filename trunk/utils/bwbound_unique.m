@@ -6,7 +6,7 @@ function B = bwbound_unique(B)
 % To complicate things further, the vector lines do not always start at one of the line ends.
 % This function tries to remove the duplicates and re-order vertex so that we have a decent line.
 
-%	Copyright (c) 2004-2012 by J. Luis
+%	Copyright (c) 2004-2013 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -21,6 +21,8 @@ function B = bwbound_unique(B)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
+% $Id$
+
 	for (k = 1:numel(B))
 		y = B{k}(:,1);		x = B{k}(:,2);
 		n_pts = numel(x);
@@ -32,15 +34,23 @@ function B = bwbound_unique(B)
 			dfx = diff(x(1:2:end));
 			dfy = diff(y(1:2:end));
 			ind = find(dfx == 0 & dfy == 0);
-			ind = 2 * ind + 1;
 			if (isempty(ind))
 				dfx = diff(x(2:2:end));
 				dfy = diff(y(2:2:end));
 				ind = find(dfx == 0 & dfy == 0);
-				ind = 2 * ind + 1;			% The differences start a 2nd pt
 			end
 
+			ind = 2 * ind + 1;			% The differences start a 2nd pt
+
 			if (isempty(ind)),		continue,		end
+
+			% The above test is sometimes not good enough. Do one more to detect 'excursions'
+			if (numel(ind) == 1)
+				try
+					confirm = (x(ind-3) == x(ind+2) && y(ind-3) == y(ind+2));
+					if (~confirm),	continue,		end
+				end
+			end
 			
 			if (ind(1) >= n)					% Turning point is at or ahead of mid point
 				x = x((ind-n+1):ind);		y = y((ind-n+1):ind);
