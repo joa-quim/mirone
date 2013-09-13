@@ -34,7 +34,7 @@ function [bin,n_column,multi_seg,n_headers,isGSHHS] = guess_file(fiche, opt1, op
 % $Id$
 
 	% Error testing
-	bin = 0;    multi_seg = 0;  n_headers = 0;  n_column = 0;
+	bin = 0;    multi_seg = 0;  n_headers = 0;  n_column = 0;	isGSHHS = false;
 	n_args = nargin;
 	if (~n_args)
 		errordlg('function guess_file: must give an input file name','File Error')
@@ -188,7 +188,6 @@ function [bin,n_column,multi_seg,n_headers,isGSHHS] = guess_file(fiche, opt1, op
 	end
 
 	if (nargout == 5)
-		isGSHHS = false;
 		for (k = 1:n_headers)
 			if (strfind(str{k}, 'GSHHS Master'))
 				isGSHHS = true;		break
