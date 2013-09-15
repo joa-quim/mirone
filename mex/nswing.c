@@ -746,6 +746,7 @@ int main(int argc, char **argv) {
 	if (writeLevel > num_of_nestGrids) {
 		mexPrintf("Requested save grid level is higher that actual number of nested grids. Using last\n");
 		writeLevel = num_of_nestGrids - 1;		/* -1 because first nested grid is level 0 */
+		if (writeLevel < 0) writeLevel = 0;     /* When num_of_nestGrids is zero */
 	}
 
 	dx = (hdr_b.x_max - hdr_b.x_min) / (hdr_b.nx - 1);
@@ -915,14 +916,14 @@ int main(int argc, char **argv) {
 		if (do_nestum) {
 			for (k = 1; k <= num_of_nestGrids; k++) {
 				mexPrintf("Layer %d x_min = %g\tx_max = %g\ty_min = %g\ty_max = %g\n",
-				k+1, nest.LLx[k], nest.LRx[k], nest.LLy[k], nest.URy[k]);
+				k, nest.LLx[k], nest.LRx[k], nest.LLy[k], nest.URy[k]);
 				mexPrintf("Layer %d inserting index (one based) LL: (row,col) = %d\t%d\t\tUR: (row,col) = %d\t%d\n",
-				k+1, nest.LLrow[k]+2, nest.LLcol[k]+2, nest.URrow[k], nest.URcol[k]);
+				k, nest.LLrow[k]+2, nest.LLcol[k]+2, nest.URrow[k], nest.URcol[k]);
 				if (k == 1) {
-					mexPrintf("Time step ratio to parent grid = %d\n", (int)(nest.dt[k-1] / nest.dt[k]));
+					mexPrintf("\tTime step ratio to parent grid = %d\n", (int)(nest.dt[k-1] / nest.dt[k]));
 				}
 				else {
-					mexPrintf("Time step ratio to parent grid = %d\n", (int)(nest.dt[k-1] / nest.dt[k]));
+					mexPrintf("\tTime step ratio to parent grid = %d\n", (int)(nest.dt[k-1] / nest.dt[k]));
 					mexPrintf("\t\tdts = %f\t%f\n", nest.dt[k-1], nest.dt[k]);
 				}
 			}
@@ -1259,7 +1260,7 @@ int initialize_nestum(struct nestContainer *nest, float **work, int isGeog, int 
 
 	int row, col, i, nSizeIncX, nSizeIncY, n;
 	unsigned int nm = nest->hdr[lev].nm;
-	double dt;
+	double dt, scale;
 	double xoff, yoff, xoff_P, yoff_P;		/* Offsets to move from grid to pixel registration (zero if grid in pix reg) */
 	struct grd_header hdr = nest->hdr[lev-1];
 
@@ -1286,7 +1287,8 @@ int initialize_nestum(struct nestContainer *nest, float **work, int isGeog, int 
 		/* ----------------------------------------------------------------------------- */
 
 		/* Compute the run time step interval for this level */
-		dt = 0.5 * MIN(nest->hdr[lev].x_inc, nest->hdr[lev].y_inc) / sqrt(NORMAL_GRAV * fabs(nest->hdr[lev].z_min));
+		scale = (isGeog) ? 111000 : 1;		/* To get the incs in meters */
+		dt = 0.5 * MIN(nest->hdr[lev].x_inc, nest->hdr[lev].y_inc) * scale / sqrt(NORMAL_GRAV * fabs(nest->hdr[lev].z_min));
 		nest->dt[lev] = nest->dt[lev-1] / ceil(nest->dt[lev-1] / dt);
 	}
 
@@ -1440,13 +1442,13 @@ void free_arrays(struct nestContainer *nest, int isGeog, int lev) {
 		if (isGeog == 1) {
 			if (nest->r0[i]) mxFree(nest->r0[i]);
 			if (nest->r1m[i]) mxFree(nest->r1m[i]);
-			if (nest->r1n[i]) mxFree(nest->r1m[i]);
+			if (nest->r1n[i]) mxFree(nest->r1n[i]);
 			if (nest->r2m[i]) mxFree(nest->r2m[i]);
-			if (nest->r2n[i]) mxFree(nest->r2m[i]);
+			if (nest->r2n[i]) mxFree(nest->r2n[i]);
 			if (nest->r3m[i]) mxFree(nest->r3m[i]);
-			if (nest->r3n[i]) mxFree(nest->r3m[i]);
+			if (nest->r3n[i]) mxFree(nest->r3n[i]);
 			if (nest->r4m[i]) mxFree(nest->r4m[i]);
-			if (nest->r4n[i]) mxFree(nest->r4m[i]);
+			if (nest->r4n[i]) mxFree(nest->r4n[i]);
 		}
 	}
 }
@@ -2291,7 +2293,7 @@ void moment_M(struct nestContainer *nest, int lev) {
 
 	/* main computation cycle fluxm_d */
 	for (row = 0; row < hdr.ny - last; row++) {
-		rp1 = hdr.nx;
+		rp1 = (row < hdr.ny - 1) ? hdr.nx : 0;
 		rm1 = (row == 0) ? 0 : hdr.nx;
 		ij = row * hdr.nx - 1 + first;
 		for (col = 0 + first; col < hdr.nx - 1; col++) {
@@ -2768,7 +2770,7 @@ void moment_sp_M(struct nestContainer *nest, int lev) {
 	if (nest->out_velocity_x) memset(vex, 0, hdr.nm * sizeof(float));
 
 	for (row = 0; row < hdr.ny - last; row++) {		/* - main computation cycle fluxm_d */
-		rp1 = hdr.nx;
+		rp1 = (row < hdr.ny - 1) ? hdr.nx : 0;
 		rm1 = (row == 0) ? 0 : hdr.nx;
 		ij = row * hdr.nx - 1 + first;
 		for (col = 0 + first; col < hdr.nx - 1; col++) {
