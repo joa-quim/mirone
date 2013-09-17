@@ -6,8 +6,8 @@ function varargout = resizetrue(handles, opt, axis_t, opt_pad)
 %
 %	AXIS_T   A string with either 'xy' (sets 'YDir','normal') or 'off' (sets axes invisible)
 %
-%	OPT_PAD  Optional arg with the width in pixels of a zone to be left clear on the
-%            left side of the image. Ignored if == 0. Antecipate future use in TINTOL
+%	OPT_PAD  Optional arg with the [width height] in pixels of a zone to be left clear on the
+%            left side of the image. Ignored if == 0. Used only by TINTOL
 %
 %   This function is distantly rooted on TRUESIZE, but havily hacked to take into account
 %   the left and bottom margins containing (if they exist) Xlabel & Ylabel, etc...
@@ -359,7 +359,12 @@ function resize(hAxes, hImg, imSize, opt, withSliders, firstFigSize, pad_left)
 	if (pad_left(1) && figPos(4) < pad_left(2))			% For the time being only TINTOL triggers this
 		figPos(4) = pad_left(2);
 		figPos(2) = screenHeight - figPos(4) - 78;
-		axPos(2) = axPos(2) - axPos(4)/2 + pad_left(2)/2 - 20;		% Aproximate but should be good enough
+		offset_y = -axPos(4)/2 + pad_left(2)/2 - 20;
+		axPos(2) = axPos(2) + offset_y;					% Aproximate but should be good enough
+		hSliders = getappdata(hAxes,'SliderAxes');		% Need to move the horizontal slider as well
+		pos = get(hSliders(1),'Pos');
+		pos(2) = pos(2) + offset_y;
+		set(hSliders(2), 'Pos', pos)	% THIS IS NOT WORKING
 	end
 	axPos = round(axPos);
 	set(hFig, 'Position', figPos);
