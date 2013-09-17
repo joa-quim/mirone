@@ -670,6 +670,7 @@ uimenu('Parent',hGT,'Call','mirone(''RotateTool_CB'',guidata(gcbo),''grid'')','L
 uimenu('Parent',hGT,'Call','mirone(''GridToolsHistogram_CB'',guidata(gcbo))','Label','Histogram');
 uimenu('Parent',hGT,'Call','mirone(''GridToolsGridMask_CB'',guidata(gcbo))','Label','Write Mask', 'Tag','haveNaNs');
 uimenu('Parent',hGT,'Call','inpaint_nans(guidata(gcbo))','Label','Inpaint NaNs', 'Tag','haveNaNs');
+uimenu('Parent',hGT,'Call','mirone(''ImageEdgeDetect_CB'',guidata(gcbo),''apalpa'')','Label','Digitize holes','Tag','haveNaNs');
 uimenu('Parent',hGT,'Call','mirone(''Transfer_CB'',guidata(gcbo),''morph-grd'')','Label','Morphology');
 uimenu('Parent',hGT,'Call','mirone(''DigitalFilt_CB'',guidata(gcbo),''grid'')','Label','Digital filtering Tool');
 uimenu('Parent',hGT,'Call','mirone(''TransferB_CB'',guidata(gcbo),''fract'')','Label','Fractal field');
@@ -740,7 +741,7 @@ if (IamCompiled)
 end
 uimenu('Parent',h, 'Call',['mirone(''FileOpenWebImage_CB'',guidata(gcbo),',...
 	' ''http://www2.clustrmaps.com/stats/maps-clusters/w3.ualg.pt-~jluis-mirone-world.jpg'',''nikles'');'],'Label','See visitors map','Sep','on');
-uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 11 Sep 2013'',''2.5.0dev'')','Label','About','Sep','on');
+uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 17 Sep 2013'',''2.5.0dev'')','Label','About','Sep','on');
 
 %% --------------------------- Build HANDLES and finish things here
 	handles = guihandles(H1);
