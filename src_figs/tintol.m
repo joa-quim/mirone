@@ -31,12 +31,14 @@ function tintol(handles,axis_t,X,Y,I)
 % 	h2 = setxor(h1,handles.OpenGI);
 % 	delete(h2)
 
-	handles.origFig = [];		% We don't need the image copy anymore
-
 	if (handles.validGrid)
 		h = tintol_buttons_LayoutFcn(handles.figure1);
 		handTintButt = local_guihandles(h);				% THIS WILL BE SEEN AS 'HANDLES' inside _CBs
-		resizetrue(handles,[], 'xy', [350 550]);
+		imSize = [];
+		if (abs(diff(handles.head(8:9))) > 1e-4)
+			imSize = handles.head(8) / handles.head(9);	% Need to remind this to resizetrue
+		end
+		resizetrue(handles, imSize, 'xy', [350 550]);
 		[X,Y,Z,head] = load_grd(handles);				% Copy Z/head into the nested_level cell array
 		handTintButt.nested_level{1,1} = double(Z);
 		handTintButt.nested_level{1,2} = head;
@@ -47,7 +49,7 @@ function tintol(handles,axis_t,X,Y,I)
 		dx = min(head(8), head(9));
 		if (handles.geog),		dx = dx * 111000;		end
 		dtCFL = dx / sqrt(abs(head(5)) * 9.8) / 2;
-		set(handles.edit_dt, 'Str', sprintf('%g',dtCFL))
+		set(handTintButt.edit_dt, 'Str', sprintf('%.3f',dtCFL))
 	else
 		handles.head = [-20 0 25 45 0 255 0 20/511 20/511];
 		set(handles.figure1, 'Vis', 'off')
@@ -77,9 +79,10 @@ function tintol(handles,axis_t,X,Y,I)
 	handTintButt.cumint = 1;
 	handTintButt.Z_bat = [];
 	handTintButt.head_src = [];
-
 	handTintButt.last_nested_level = 1;
 
+	set([handles.Image handles.Tools handles.Plates handles.MagGrav ...
+		handles.Seismology handles.Tsunamis handles.GMT handles.GridTools], 'Vis', 'off')
 
 	local_guidata(handles.figure1, handTintButt)	% Store the local handles
 
@@ -206,7 +209,7 @@ function push_NestGrids_CB(hObject, handles, opt)
 		dx = min(head(8), head(9));
 		if (handles.geog),		dx = dx * 111000;		end
 		dtCFL = dx / sqrt(abs(head(5)) * 9.8) / 2;
-		set(handles.edit_dt, 'Str', sprintf('%g',dtCFL))
+		set(handles.edit_dt, 'Str', sprintf('%.3f',dtCFL))
 	elseif (val == handles.last_nested_level)
 		val = val + 1;
 		handles.last_nested_level = val;
@@ -259,24 +262,24 @@ function msg = check_paternity(hdr_parent, hdr_d, opt)
 	% ---------------------- Check nesting at LowerLeft corner ----------------------------
 	[erro, suggest] = check_binning(hdr_parent(1), hdr_d(1), hdr_parent(8), hdr_d(8), threshD_x);
 	if (erro)
-		msg{end+1} = sprintf(['Lower left corner of doughter grid does not obey to nesting rules. ' ...
+		msg{end+1} = sprintf(['Lower left corner of doughter grid does not obey to the nesting rules. ' ...
 			'X_MIN should be (in grid registration):\n\t%f\n'], suggest);
 	end
 	[erro, suggest] = check_binning(hdr_parent(3), hdr_d(3), hdr_parent(9), hdr_d(9), threshD_y);
 	if (erro)
-		msg{end+1} = sprintf(['Lower left corner of doughter grid does not obey to nesting rules. ' ...
+		msg{end+1} = sprintf(['Lower left corner of doughter grid does not obey to the nesting rules. ' ...
 			'Y_MIN should be (in grid registration):\n\t%f\n'], suggest);
 	end
 
 	% ---------------------- Check nesting at UperRight corner ----------------------------
 	[erro, suggest] = check_binning(hdr_parent(1), hdr_d(2), hdr_parent(8), -hdr_d(8), threshD_x);
 	if (erro)
-		msg{end+1} = sprintf(['Upper right corner of doughter grid does not obey to nesting rules. ' ...
+		msg{end+1} = sprintf(['Upper right corner of doughter grid does not obey to the nesting rules. ' ...
 			'X_MAX should be (in grid registration):\n\t%f\n'], suggest);
 	end
 	[erro, suggest] = check_binning(hdr_parent(3), hdr_d(4), hdr_parent(9), -hdr_d(9), threshD_y);
 	if (erro)
-		msg{end+1} = sprintf(['Upper right corner of doughter grid does not obey to nesting rules. ' ...
+		msg{end+1} = sprintf(['Upper right corner of doughter grid does not obey to the nesting rules. ' ...
 			'Y_MAX should be (in grid registration):\n\t%f\n'], suggest);
 	end
 
@@ -301,7 +304,6 @@ function push_bordering_CB(hObject, handles)
 %--------------------------------------------------------------------------------
 function popup_nestings_CB(hObject, handles)
 % Show what has been loaded so far but don't let it be changed because we rely on an automatic schema.
-	val = get(hObject,'Val');
 	set(hObject,'Val',handles.last_nested_level)
 
 %--------------------------------------------------------------------------------
@@ -532,7 +534,7 @@ function push_RUN_CB(hObject, handles)
 	opt_t = ['-t' get(handles.edit_dt,'String')];
 	if (get(handles.radio_outGrids,'Val') || get(handles.radio_anuga,'Val') || get(handles.radio_most,'Val'))
 		NameStem = get(handles.edit_gridNameStem, 'Str');
-		opt_G = sprintf('%s+%d,%d', NameStem, handles.last_nested_level-1, handles.grn);
+		opt_G = sprintf('-G%s+%d,%d', NameStem, handles.last_nested_level-1, handles.grn);
 	else
 		opt_G = ' ';
 	end
@@ -548,13 +550,19 @@ function push_RUN_CB(hObject, handles)
 			',' get(handles.edit_MaregraphDataFile,'Str')];
 	end
 
+	opt_J = ' ';
+	if (handles.n_jump),	opt_J = sprintf('-J%d', handles.n_jump);	end
+
+	opt_f = ' ';
+	if (handles.n_jump),	opt_f = '-f';	end
+
 	% Now get the nestings, if any
 	if (~isempty(handles.nested_level{2,1}))
 		nswing(handles.nested_level{1,1}, handles.nested_level{1,2}, handles.Z_src, handles.head_src, ...
-			handles.nested_level(2:end,:), opt_t, opt_G, opt_S, opt_N, opt_T)
+			handles.nested_level(2:end,:), opt_t, opt_G, opt_S, opt_N, opt_T, opt_J, opt_f)
 	else
 		nswing(handles.nested_level{1,1}, handles.nested_level{1,2}, handles.Z_src, handles.head_src, ...
-			opt_t, opt_G, opt_S, opt_N, opt_T)
+			opt_t, opt_G, opt_S, opt_N, opt_T, opt_J, opt_f)
 	end
 
 	
@@ -572,7 +580,7 @@ function err_str = check_errors(handles)
 
 	% Check that dt is a valid (CFL condition) dt
 	dt = str2double(get(handles.edit_dt,'Str'));
-	dx = min(handles.nested_level{1,1}(9), handles.nested_level{1,1}(9));
+	dx = min(handles.nested_level{1,2}(9), handles.nested_level{1,2}(9));
 	if (handles.geog),		dx = dx * 111000;		end
 	dtCFL = dx / sqrt(abs(handles.nested_level{1,1}(5)) * 9.8);
 	if ( dt > dtCFL )
@@ -640,6 +648,7 @@ h(n) = uicontrol('Parent',h1, 'Position',[0 140 348 375],...
 h(n) = uicontrol('Parent',h1, 'Position',[49 490 110 22],...
 'Call',@tintolButtons_uiCB,...
 'String','Change Region',...
+'Visible', 'off', ...
 'Tag','push_changeR');	n = n + 1;
 
 
