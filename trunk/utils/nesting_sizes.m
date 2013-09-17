@@ -64,39 +64,58 @@ function nesting_sizes(hand, opt)
 		else
 			hLine = hRects(hRects == gco);
 			info = getappdata(hLine, 'info');
-			opt_R = sprintf('-R%.12g/%.12g/%.12g/%.12g\n', info.head(1:4));
+			opt_R = sprintf('-R%.12g/%.12g/%.12g/%.12g  -I%.10g/%.10g\n', info.head(1:4), info.head(6:7));
+			if (handles.geog)
+				lims_dd = fix(info.head(1:4));
+				lims_dec = abs(info.head(1:4) - lims_dd);
+				lims_mm  = fix(lims_dec * 60);
+				lims_dec = lims_dec * 60 - lims_mm;
+				lims_ss  = lims_dec * 60;		% ss.xxx
+				opt_Rddmmss = sprintf('-R%d:%02d:%.3f/%d:%02d:%.3f/%d:%02d:%.3f/%d:%02d:%.3f\n', ...
+					lims_dd(1), lims_mm(1), lims_ss(1), lims_dd(2), lims_mm(2), lims_ss(2), ...
+					lims_dd(3), lims_mm(3), lims_ss(3), lims_dd(4), lims_mm(4), lims_ss(4));
+			else
+				opt_Rddmmss = [];
+			end
 			inds = sprintf('x_start = %d\nx_end = %d\ny_start = %d\ny_end = %d', ...
 				info.idx_min, info.idx_max, info.idy_min, info.idy_max);
-			message_win('create',[opt_R inds],'edit','yes')
+			message_win('create',[opt_R opt_Rddmmss inds],'edit','yes')
 		end
 		return
 	end
 
-	resize2nesting_size(hRects, limits)
+	resize2nesting_size(handles, hRects, limits)
 
 % --------------------------------------------------------------------------
-function resize2nesting_size(hRects, limits)
-% Resize all inner rectangles so they abey to the nesting size rules.
+function resize2nesting_size(handles, hRects, limits)
+% Resize all inner rectangles so they obey to the nesting size rules.
 % Also store nesting info in appdata, which is available for "Show nesting info" 
 
-	for (k = 2:numel(hRects))
-		nx = ((limits{k-1}(2) - limits{k-1}(1))/ limits{k-1}(6))+1;
-		ny = ((limits{k-1}(4) - limits{k-1}(3))/ limits{k-1}(7))+1;
+	for (k = 1:numel(hRects))
+		if (k == 1 && ~handles.validGrid)		% Parent rectangle in an empty region
+			continue
+		elseif (k == 1 && handles.validGrid)
+			parent_lims = [handles.head(1:4) handles.head(7:9)];
+		else
+			parent_lims = limits{k-1};
+		end
+		nx = ((parent_lims(2) - parent_lims(1))/ parent_lims(6))+1;
+		ny = ((parent_lims(4) - parent_lims(3))/ parent_lims(7))+1;
 
 		%get parent grid coord vectors
-		X = linspace(limits{k-1}(1),limits{k-1}(2),nx);
-		Y = linspace(limits{k-1}(3),limits{k-1}(4),ny);
+		X = linspace(parent_lims(1),parent_lims(2),nx);
+		Y = linspace(parent_lims(3),parent_lims(4),ny);
 
 		%look for closest element
-		xmin = find_nearest(X, limits{k-1}(6), limits{k}(6), limits{k}(1));
-		xmax = find_nearest(X, limits{k-1}(6), limits{k}(6), limits{k}(2));
-		ymin = find_nearest(Y, limits{k-1}(7), limits{k}(7), limits{k}(3));
-		ymax = find_nearest(Y, limits{k-1}(7), limits{k}(7), limits{k}(4));
+		xmin = find_nearest(X, parent_lims(6), limits{k}(6), limits{k}(1));
+		xmax = find_nearest(X, parent_lims(6), limits{k}(6), limits{k}(2));
+		ymin = find_nearest(Y, parent_lims(7), limits{k}(7), limits{k}(3));
+		ymax = find_nearest(Y, parent_lims(7), limits{k}(7), limits{k}(4));
 
-		this_xmin = xmin.val - (limits{k-1}(6)/2) + (limits{k}(6)/2);
-		this_xmax = xmax.val + (limits{k-1}(6)/2) - (limits{k}(6)/2);
-		this_ymin = ymin.val - (limits{k-1}(7)/2) + (limits{k}(7)/2);
-		this_ymax = ymax.val + (limits{k-1}(7)/2) - (limits{k}(7)/2);
+		this_xmin = xmin.val - (parent_lims(6)/2) + (limits{k}(6)/2);
+		this_xmax = xmax.val + (parent_lims(6)/2) - (limits{k}(6)/2);
+		this_ymin = ymin.val - (parent_lims(7)/2) + (limits{k}(7)/2);
+		this_ymax = ymax.val + (parent_lims(7)/2) - (limits{k}(7)/2);
 		h = [this_xmin this_xmax this_ymin this_ymax limits{k}(5:7)];
 
 		resp.head = h;
@@ -132,8 +151,8 @@ function hNew = make_new_nested(hAx, hRects, limits)
 	x = limits{end}(1:2);		y = limits{end}(3:4);
 	x = x + [diff(x) -diff(x)] / 4;
 	y = y + [diff(y) -diff(y)] / 4;
-	x_inc = limits{end}(6);
-	y_inc = limits{end}(7);
+	x_inc = limits{end}(6) / resp;
+	y_inc = limits{end}(7) / resp;
 	
 	cor = get(hRects(end),'Color');
 	lThick = get(hRects(end),'Linewidth');
