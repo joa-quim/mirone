@@ -436,7 +436,7 @@ function edit_MaregraphDataFile_CB(hObject, handles)
 	push_MaregraphDataFile_CB(handles.push_MaregraphDataFile, handles, fname)
 
 %--------------------------------------------------------------------------------
-function push_MaregraphDataFile_CB(hObject, handles)
+function push_MaregraphDataFile_CB(hObject, handles, opt)
 	if (nargin == 3)
 		[FileName,PathName] = put_or_get_file(handles, ...
 			{'*.dat;*.DAT;*.xy', 'Maregraph data file (*.dat,*.DAT,*.xy)';'*.*', 'All Files (*.*)'},'Select Maregraph','get');
