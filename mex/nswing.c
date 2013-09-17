@@ -148,6 +148,7 @@ struct nestContainer {		/* Container for the nestings */
 	int    do_upscale;         /* If false, do not upscale the parent grid */
 	int    out_velocity_x;     /* To know if we must compute the vex,vey velocity arrays */
 	int    out_velocity_y;
+	int    isGeog;             /* 0 == Cartesian, otherwise Geographic coordinates */
 	int    level[10];          /* 0 Will mean base level, others the nesting level */
 	int    LLrow[10], LLcol[10], ULrow[10], ULcol[10], URrow[10], URcol[10], LRrow[10], LRcol[10];
 	int    incRatio[10];
@@ -184,7 +185,7 @@ int write_grd_bin(char *name, double x_min, double y_min, double x_inc, double y
 		unsigned int j_start, unsigned int i_end, unsigned int j_end, unsigned int nX, float *work);
 int read_grd_ascii (char *file, struct srf_header *hdr, double *work, int sign);
 int read_grd_bin (char *file, struct srf_header *hdr, double *work, int sign);
-int read_maregs(struct grd_header hdr, char *file, unsigned int *lcum_p, int nx);
+int read_maregs(struct grd_header hdr, char *file, unsigned int *lcum_p);
 int count_n_maregs(char *file);
 int decode_R (char *item, double *w, double *e, double *s, double *n);
 int check_region (double w, double e, double s, double n);
@@ -195,12 +196,11 @@ void write_most_slice(int *ncid_most, int *ids_most, unsigned int i_start, unsig
                       double *dep, double *u, double *v, float *tmp, size_t *start, size_t *count);
 int open_most_nc (char *basename, char *name_var, int *ids, unsigned int nx, unsigned int ny, double dx,
                   double dy, double xMinOut, double yMinOut);
-int open_anuga_sww (char *fname_sww, int *ids, unsigned int i_start, unsigned int j_start, unsigned int i_end,
-                    unsigned int j_end, unsigned int nX, double dx, double dy, double *dep, double xMinOut,
-                    double yMinOut, float z_min, float z_max);
-void write_anuga_slice(int ncid, int z_id, unsigned int i_start, unsigned int j_start, unsigned int i_end,
-                       unsigned int j_end, unsigned int nX, float *work, double *h, double *dep, double *u,
-                       double *v, float *tmp, size_t *start, size_t *count, float *slice_range, int idx, int with_land);
+int open_anuga_sww (struct nestContainer *nest, char *fname_sww, int *ids, unsigned int i_start, unsigned int j_start, unsigned int i_end,
+                    unsigned int j_end, double xMinOut, double yMinOut, int lev);
+void write_anuga_slice(struct nestContainer *nest, int ncid, int z_id, unsigned int i_start, unsigned int j_start,
+                       unsigned int i_end, unsigned int j_end, float *work, size_t *start, size_t *count,
+                       float *slice_range, int idx, int with_land, int lev);
 void openb(struct grd_header hdr, double *bat, double *fluxm_d, double *fluxn_d, double *etad);
 int initialize_nestum(struct nestContainer *nest, float **work, int isGeog, int lev);
 int intp_lin (double *x, double *y, int n, int m, double *u, double *v);
@@ -222,6 +222,8 @@ void moment_N(struct nestContainer *nest, int lev);
 void moment_sp_M(struct nestContainer *nest, int lev);
 void moment_sp_N(struct nestContainer *nest, int lev);
 void free_arrays(struct nestContainer *nest, int isGeog, int lev);
+int check_paternity(struct nestContainer *nest);
+int check_binning(double x0P, double x0D, double dxP, double dxD, double tol, double *suggest);
 
 #if defined(WIN32) || defined(_WIN32) || defined(_WIN64)
 /* Prototypes for threading related functions */
@@ -289,8 +291,8 @@ int main(int argc, char **argv) {
 	double	*bat = NULL, *dep1 = NULL, *dep2 = NULL, *cum_p = NULL, *h = NULL;
 	double	dfXmin = 0.0, dfYmin = 0.0, dfXmax = 0.0, dfYmax = 0.0, xMinOut, yMinOut;
 	double	time_jump = 0, time0, time_for_anuga, prc;
-	double	dt;			/* Time step for Base level grid */
-	double	dx, dy, etam, one_100;
+	double	dt = 0;			/* Time step for Base level grid */
+	double	dx, dy, ds, dtCFL, etam, one_100;
 	double	*eta_for_maregs, *vx_for_maregs, *vy_for_maregs, *htotal_for_maregs, *fluxm_for_maregs, *fluxn_for_maregs;
 	double	manning2 = 0;
 	double	time_h = 0;
@@ -316,6 +318,13 @@ int main(int argc, char **argv) {
 	call_moment[1] = (PFV) moment_N;
 	call_moment_sp[0] = (PFV) moment_sp_M;
 	call_moment_sp[1] = (PFV) moment_sp_N;
+
+#ifdef DO_MULTI_THREAD
+	if ((k = GetLocalNThread()) == 1) {
+		mexPrintf ("NSWING: This version of the program is build for multi-threading but "
+		           "this machine has only one core. Don't know what will happen here.\n"); 
+	}
+#endif
 
 	sanitize_nestContainer(&nest);
 
@@ -356,14 +365,6 @@ int main(int argc, char **argv) {
 			mexPrintf ("%d %d %d %d\n", hdr_f.nx, hdr_b.nx, hdr_f.ny, hdr_b.ny); 
 			return;
 		}
-		if (fabs(hdr_f.x_min - hdr_b.x_min) > EPS3 || fabs(hdr_f.x_max - hdr_b.x_max) > EPS3 ||
-			fabs(hdr_f.y_min - hdr_b.y_min) > EPS3 || fabs(hdr_f.y_max - hdr_b.y_max) > EPS3 ) {
-			mexPrintf ("Bathymetry & Source grids do not cover the same region\n"); 
-			mexPrintf ("%lf %lf %lf %lf\n", hdr_f.x_min, hdr_b.x_min, hdr_f.x_max, hdr_b.x_max); 
-			mexPrintf ("%lf %lf %lf %lf\n", hdr_f.y_min, hdr_b.y_min, hdr_f.y_max, hdr_b.y_max); 
-			return;
-		}
-
 	}
 
 	if (n_arg_no_char >= 5 && mxIsCell(prhs[4])) {
@@ -539,6 +540,7 @@ int main(int argc, char **argv) {
 						out_velocity_y = TRUE;
 					else if (str_tmp[0] == 'r')     /* Speed (velocity module) -- NOT YET -- */
 						out_velocity_r = TRUE;
+					else if (str_tmp[0] == 'n');    /* No grids, only vx,vy in maregs */
 					else {                          /* Both X & Y*/
 						out_velocity   = TRUE;
 						out_velocity_x = TRUE;
@@ -608,7 +610,7 @@ int main(int argc, char **argv) {
 
 	if (argc <= 1 || error) {
 		mexPrintf ("NSWING - Um gerador de tsunamis\n\n");
-		mexPrintf ( "usage: nswing(bat,hdr_bat,deform,hdr_deform, [maregs], [-G<name>[+lev]], [-B<bathy>] [-D] [-F<fonte>] [-M] [-N<n_cycles>] [-Rw/e/s/n] [-E] [-S[+m]] [-O<int>,<outmaregs>] [-T<int>,<mareg>[,<outmaregs>]]\n");
+		mexPrintf ( "usage: nswing(bat,hdr_bat,deform,hdr_deform, [maregs], [-G<name>[+lev]], [-B<bathy>] [-D] [-F<fonte>] [-M] [-N<n_cycles>] [-Rw/e/s/n] [-E] [-S[x|y|n][+m]] [-O<int>,<outmaregs>] [-T<int>,<mareg>[,<outmaregs>]]\n");
 		mexPrintf ("\t-A name of ANUGA file\n");
 		mexPrintf ("\t-n basename for MOST triplet files (no extension)\n");
 		mexPrintf ("\t-B name of bathymetry file. In case it was not transmited in input.\n");
@@ -620,6 +622,7 @@ int main(int argc, char **argv) {
 		mexPrintf ("\t-N number of cycles [Default 1010].\n");
 		mexPrintf ("\t-R output grids only in the sub-region enclosed by <west/east/south/north>\n");
 		mexPrintf ("\t-S write grids with the velocity. Grid names are appended with _U and _V sufixes.\n");
+		mexPrintf ("\t   Use x or y to save only one of those components. But use n to not velocity grids (maregs only).n");
 		mexPrintf ("\t   Append +m to write also velocity (vx,vy) at maregraphs locations (needs -T and/or -O).\n");
 		mexPrintf ("\t-T <int> interval at which maregraphs are writen to output maregraph file.\n");
 		mexPrintf ("\t   <maregs> file name with the (x y) location of the virtual maregraphs.\n");
@@ -633,13 +636,17 @@ int main(int argc, char **argv) {
 
 	if (!(write_grids || out_sww || out_most || cumpt)) {
 		mexPrintf("Nothing selected for output (grids, or maregraphs), exiting\n");
-		//error++;
-		surf_level = FALSE;	grn = 10000000;
+		error++;
 	}
 
 	if (water_depth && (out_sww || out_most)) {
 		water_depth = FALSE;
 		mexPrintf("WARNING: Total water option is not compatible with ANUGA|MOST outputs. Ignoring\n");
+	}
+
+	if (dt <= 0) {
+		mexPrintf("NSWING: Error -t option. Time step of simulation not provided or negative.\n");
+		error++;
 	}
 
 	if (cumpt) {
@@ -704,20 +711,36 @@ int main(int argc, char **argv) {
 			mexPrintf ("%d %d %d %d\n", hdr_b.ny, hdr_f.ny, hdr_b.nx, hdr_f.nx); 
 			error++;
 		}
-		if (fabs(hdr_f.x_min - hdr_b.x_min) > EPS3 || fabs(hdr_f.x_max - hdr_b.x_max) > EPS3 ||
-			fabs(hdr_f.y_min - hdr_b.y_min) > EPS3 || fabs(hdr_f.y_max - hdr_b.y_max) > EPS3) {
-			mexPrintf ("Bathymetry and source grids do not cover the same region\n"); 
-			mexPrintf ("%lf %lf %lf %lf\n", hdr_f.x_min, hdr_b.x_min, hdr_f.x_max, hdr_b.x_max); 
-			mexPrintf ("%lf %lf %lf %lf\n", hdr_f.y_min, hdr_b.y_min, hdr_f.y_max, hdr_b.y_max); 
-			error++;
-		}
 	}
+
+	dx = (hdr_b.x_max - hdr_b.x_min) / (hdr_b.nx - 1);
+	dy = (hdr_b.y_max - hdr_b.y_min) / (hdr_b.ny - 1);
+	if (fabs(hdr_f.x_min - hdr_b.x_min) / dx > dx / 4 || fabs(hdr_f.x_max - hdr_b.x_max) / dx > dx / 4 ||
+		fabs(hdr_f.y_min - hdr_b.y_min) / dy > dy / 4 || fabs(hdr_f.y_max - hdr_b.y_max) / dy > dy / 4 ) {
+		mexPrintf ("Bathymetry and source grids do not cover the same region\n"); 
+		mexPrintf ("%lf %lf %lf %lf\n", hdr_f.x_min, hdr_b.x_min, hdr_f.x_max, hdr_b.x_max); 
+		mexPrintf ("%lf %lf %lf %lf\n", hdr_f.y_min, hdr_b.y_min, hdr_f.y_max, hdr_b.y_max); 
+		error++;
+	}
+
+	/* Check the CFL condition */
+	ds = MIN(dx, dy);
+	if (isGeog) ds *= 111000;		/* Get it in metters */
+	dtCFL = ds / sqrt(fabs(hdr_b.z_min) * 9.8);
+	if (dt > dtCFL) {
+		mexPrintf ("NSWING: Error: dt is greater than dtCFL. No way that this would work. Stopping here.\n"); 
+		error++;
+	}
+	else if (dt > dtCFL / 2)
+		mexPrintf ("NSWING: Warning: dt > dtCFL / 2 is normaly not good enough. Expect troubles. Consider using ~ %.3f\n", dtCFL/2); 
 
 	if (error) Return(-1);
 
 	if (n_arg_no_char == 0) {		/* Read the nesting grids */
-		struct	srf_header hdr;
 		int r_bin;
+		double dx, dy;		/* Local variables to not interfere with the base level ones */
+		struct	srf_header hdr;
+
 		num_of_nestGrids = 0;
 		while (nesteds[num_of_nestGrids] != NULL) {
 			r_bin = read_grd_info_ascii (nesteds[num_of_nestGrids], &hdr);
@@ -743,27 +766,30 @@ int main(int argc, char **argv) {
 		do_nestum = (num_of_nestGrids) ? TRUE : FALSE;
 	}
 
+	/* Check if nesting grids fit nicely within each others */
+	if (do_nestum && check_paternity(&nest))
+		Return(-1);
+
 	if (writeLevel > num_of_nestGrids) {
 		mexPrintf("Requested save grid level is higher that actual number of nested grids. Using last\n");
-		writeLevel = num_of_nestGrids - 1;		/* -1 because first nested grid is level 0 */
+		writeLevel = num_of_nestGrids;
 		if (writeLevel < 0) writeLevel = 0;     /* When num_of_nestGrids is zero */
 	}
 
-	dx = (hdr_b.x_max - hdr_b.x_min) / (hdr_b.nx - 1);
-	dy = (hdr_b.y_max - hdr_b.y_min) / (hdr_b.ny - 1);
 	ip2 = hdr_b.nx;
 	ncl = (unsigned int)hdr_b.nx * (unsigned int)hdr_b.ny;
 
 	/* -------------------------------------------------------------------------------------- */
 	/* -------------- Allocate memory and initialize the 'nest' structure ------------------- */
-	nest.hdr[0].nx      = hdr_b.nx;	nest.hdr[0].ny = hdr_b.ny;
+	nest.hdr[0].nx      = hdr_b.nx;		nest.hdr[0].ny = hdr_b.ny;
 	nest.hdr[0].nm      = (unsigned int)hdr_b.nx * (unsigned int)hdr_b.ny;
 	nest.out_velocity_x = out_velocity_x;
 	nest.out_velocity_y = out_velocity_y;
+	nest.isGeog = isGeog;
 	if (initialize_nestum(&nest, &work, isGeog, 0))
 		Return(-1);
-	if (max_level && (wmax = (float *) mxCalloc ((size_t)ncl, sizeof(float)) ) == NULL)
-		{no_sys_mem("(wmax)", ncl); Return(-1);}
+	if (max_level && (wmax = (float *) mxCalloc ((size_t)nest.hdr[0].nm, sizeof(float)) ) == NULL)
+		{no_sys_mem("(wmax)", nest.hdr[0].nm); Return(-1);}
 	/* -------------------------------------------------------------------------------------- */
 
 	if (bat_in_input) {		/* If bathymetry & source where given as arguments */
@@ -800,7 +826,8 @@ int main(int argc, char **argv) {
 	nest.hdr[0] = hdr;
 
 	if (cumpt && !maregs_in_input) {
-		if ((n_mareg = read_maregs(nest.hdr[writeLevel], maregs, lcum_p, ip2)) < 1) {	/* Read maregraph locations and recount them */
+		lcum_p = (unsigned int *) mxCalloc ((size_t)(2048), sizeof(unsigned int));	/* We wont never use this many */
+		if ((n_mareg = read_maregs(nest.hdr[writeLevel], maregs, lcum_p)) < 1) {	/* Read maregraph locations and recount them */
 			mexPrintf("NSWING: No maregraphs inside the (inner?) grid\n");
 			n_mareg = 0;
 			if (lcum_p) mxFree (lcum_p);
@@ -824,29 +851,29 @@ int main(int argc, char **argv) {
 	/* ----------------- Compute vars to use if write grids --------------------- */
 	if (!got_R && (write_grids || out_velocity || out_momentum || out_sww || out_most) ) {	
 		/* Write grids over the whole region */
-		i_start = 0;            i_end = hdr.nx;
-		j_start = 0;            j_end = hdr.ny;
-		xMinOut = hdr.x_min;	yMinOut = hdr.y_min;
+		i_start = 0;            i_end = nest.hdr[writeLevel].nx;
+		j_start = 0;            j_end = nest.hdr[writeLevel].ny;
+		xMinOut = nest.hdr[writeLevel].x_min;	yMinOut = nest.hdr[writeLevel].y_min;
 	}
 	else if (got_R && (write_grids || out_velocity || out_momentum || out_sww || out_most) ) {	
 		/* Write grids in sub-region */
-		i_start = irint((dfXmin - hdr.x_min) / dx);
-		j_start = irint((dfYmin - hdr.y_min) / dy); 
-		i_end   = irint((dfXmax - hdr.x_min) / dx) + 1;
-		j_end   = irint((dfYmax - hdr.y_min) / dy) + 1;
-		xMinOut = hdr.x_min + dx * i_start;	/* Adjustes xMin|yMin to lay on the closest grid node */
-		yMinOut = hdr.y_min + dy * j_start;
+		i_start = irint((dfXmin - nest.hdr[writeLevel].x_min) / nest.hdr[writeLevel].x_inc);
+		j_start = irint((dfYmin - nest.hdr[writeLevel].y_min) / nest.hdr[writeLevel].y_inc); 
+		i_end   = irint((dfXmax - nest.hdr[writeLevel].x_min) / nest.hdr[writeLevel].x_inc) + 1;
+		j_end   = irint((dfYmax - nest.hdr[writeLevel].y_min) / nest.hdr[writeLevel].y_inc) + 1;
+		/* Adjustes xMin|yMin to lay on the closest grid node */
+		xMinOut = nest.hdr[writeLevel].x_min + nest.hdr[writeLevel].x_inc * i_start;
+		yMinOut = nest.hdr[writeLevel].y_min + nest.hdr[writeLevel].y_inc * j_start;
 	}
 	/* ---------------------------------------------------------------------- */
 
-#if 0
+#ifdef HAVE_NETCDF
 	if (out_sww) {
 		/* ----------------- Open a ANUGA netCDF file for writing --------------- */
-		ncid = open_anuga_sww (fname_sww, ids, i_start, j_start, i_end, j_end, ip2,
-		hdr.x_inc, hdr.y_inc, bat, xMinOut, yMinOut, (float)hdr.z_min, (float)hdr.z_max);
+		ncid = open_anuga_sww (&nest, fname_sww, ids, i_start, j_start, i_end, j_end, xMinOut, yMinOut, writeLevel);
 		if (ncid == -1) {
 			mexPrintf ("NSWING: failure to create ANUGA SWW file.\n");
-			return(-1);
+			Return(-1);
 		}
 
 		/* To be used when writing the data slices */
@@ -855,7 +882,7 @@ int main(int argc, char **argv) {
 		stage_range[0] = xmom_range[0] = ymom_range[0] = FLT_MAX;
 		stage_range[1] = xmom_range[1] = ymom_range[1] = -FLT_MIN;
 
-		tmp_slice = (float *) mxMalloc (sizeof(float) * hdr.nm);	/* To use inside slice writing */
+		tmp_slice = (float *) mxMalloc (sizeof(float) * nest.hdr[writeLevel].nm);	/* To use inside slice writing */
 	}
 
 	if (out_most) {
@@ -1137,7 +1164,7 @@ int main(int argc, char **argv) {
 						i_start, j_start, i_end, j_end, ip2, work);
 			}
 
-#if 0
+#ifdef HAVE_NETCDF
 			if (out_sww) {
 				if (first_anuga_time) {
 					time0 = time_h;
@@ -1146,15 +1173,12 @@ int main(int argc, char **argv) {
 				time_for_anuga = time_h - time0;	/* I think ANUGA wants time starting at zero */
 				err_trap (nc_put_vara_double (ncid, ids[6], &start0, &count0, &time_for_anuga));
 
-				write_anuga_slice(ncid, ids[7], i_start, j_start, i_end, j_end, ip2, work, nest.etaa[writeLevel],
-                                  nest.bat[writeLevel], nest.vex[0], nest.vey[0], tmp_slice, start1_A, count1_A,
-                                  stage_range, 1, with_land);
-				write_anuga_slice(ncid, ids[9], i_start, j_start, i_end, j_end, ip2, work, nest.etaa[writeLevel],
-                                  nest.bat[writeLevel], nest.vex[0], nest.vey[0], tmp_slice, start1_A, count1_A,
-                                  xmom_range, 2, with_land);
-				write_anuga_slice(ncid, ids[11],i_start, j_start, i_end, j_end, ip2, work, nest.etaa[writeLevel],
-                                  nest.bat[writeLevel], nest.vex[0], nest.vey[0], tmp_slice, start1_A, count1_A,
-                                  ymom_range, 3, with_land);
+				write_anuga_slice(&nest, ncid, ids[7], i_start, j_start, i_end, j_end, tmp_slice, start1_A, count1_A,
+				                  stage_range, 1, with_land, writeLevel);
+				write_anuga_slice(&nest, ncid, ids[9], i_start, j_start, i_end, j_end, tmp_slice, start1_A, count1_A,
+				                  xmom_range, 2, with_land, writeLevel);
+				write_anuga_slice(&nest, ncid, ids[11], i_start, j_start, i_end, j_end, tmp_slice, start1_A, count1_A,
+				                  ymom_range, 3, with_land, writeLevel);
 
 				start1_A[0]++;		/* Increment for the next slice */
 			}
@@ -1182,7 +1206,7 @@ int main(int argc, char **argv) {
 	mexPrintf("NSWING: CPU secs/ticks = %.3f\n", (double)(toc - tic));
 #endif
 
-#if 0
+#ifdef HAVE_NETCDF
 	if (out_sww) {		/* Uppdate range values and close SWW file */
 		err_trap (nc_put_var_float (ncid, ids[8], stage_range));
 		err_trap (nc_put_var_float (ncid, ids[10], xmom_range));
@@ -1213,12 +1237,12 @@ int main(int argc, char **argv) {
 	free_arrays(&nest, isGeog, num_of_nestGrids);
 	if (vmax) mxFree (vmax);
 	if (wmax) mxFree (wmax);
+	if (lcum_p) mxFree (lcum_p);
 	mxFree (work);
 
 	if (cumpt) fclose (fp);
 
 	if (cumpt) {
-		if (lcum_p) mxFree (lcum_p);
 		mxFree((void *) cum_p);	mxFree ((void *) time_p);	 
 	}
 #ifndef I_AM_MEX
@@ -1252,6 +1276,67 @@ void sanitize_nestContainer(struct nestContainer *nest) {
 		nest->edge_row_P[i] = nest->edge_row_Ptmp[i] = NULL;
 		nest->edge_row_P[i] = nest->edge_row_Ptmp[i] = NULL;
 	}
+}
+
+/* -------------------------------------------------------------------------- */
+int check_paternity(struct nestContainer *nest) {
+	/* Check if descendent grid with qualifies as nested grid with respect to grid HDR_PARENT
+	   WARNING: everything here assumes headers are in GRID registration.
+	*/
+
+	int error = 0, k = 1;	/* 1 because first nested grid is Level 1 */
+	double suggest;
+
+	while (nest->level[k] > 0) {
+		/* Check nesting at LowerLeft corner */
+		if (check_binning(nest->hdr[k-1].x_min, nest->hdr[k].x_min, nest->hdr[k-1].x_inc,
+		                  nest->hdr[k].x_inc, nest->hdr[k-1].x_inc / 4, &suggest)) {
+			mexPrintf("Lower left corner of doughter grid does not obey to the nesting rules.\n"
+				"X_MIN should be (in grid registration):\n\t%f\n", suggest);
+			error++;
+		}
+		if (check_binning(nest->hdr[k-1].y_min, nest->hdr[k].y_min, nest->hdr[k-1].y_inc,
+		                  nest->hdr[k].y_inc, nest->hdr[k-1].y_inc / 4, &suggest)) {
+			mexPrintf("Lower left corner of doughter grid does not obey to the nesting rules.\n"
+				"Y_MIN should be (in grid registration):\n\t%f\n", suggest);
+			error++;
+		}
+		/* Check nesting at UpperRight corner */
+		if (check_binning(nest->hdr[k-1].x_min, nest->hdr[k].x_max, nest->hdr[k-1].x_inc,
+		                  -nest->hdr[k].x_inc, nest->hdr[k-1].x_inc / 4, &suggest)) {
+			mexPrintf("Upper right corner of doughter grid does not obey to the nesting rules.\n"
+				"X_MAX should be (in grid registration):\n\t%f\n", suggest);
+			error++;
+		}
+		if (check_binning(nest->hdr[k-1].y_min, nest->hdr[k].y_max, nest->hdr[k-1].y_inc,
+		                  -nest->hdr[k].y_inc, nest->hdr[k-1].y_inc / 4, &suggest)) {
+			mexPrintf("Upper right corner of doughter grid does not obey to the nesting rules.\n"
+				"Y_MAX should be (in grid registration):\n\t%f\n", suggest);
+			error++;
+		}
+
+		if (error)		/* Abort since any further info would be false/useless */
+			break;
+	}
+	return (error);
+}
+
+/* -------------------------------------------------------------------------- */
+int check_binning(double x0P, double x0D, double dxP, double dxD, double tol, double *suggest) {
+	/* Check that point X0D of doughter grid fits within tolerance TOL into parent grid
+	   Use a negative dxD when checking the upper left corner (or any east/north edges)
+	*/
+	int n_incs;
+	double x, dec;
+
+	x = (x0D - x0P) / dxP;
+	n_incs = rint(x);
+	dec = (x0D - (x0P + n_incs * dxP));
+	if (fabs(dec - (dxP / 2 + dxD / 2)) > tol) {
+		*suggest = x0P + n_incs * dxP + dxP / 2 + dxD / 2;		/* Suggested location for x0D */
+		return (-1);
+	}
+	return(0);
 }
 
 /* -------------------------------------------------------------------------- */
@@ -1455,7 +1540,7 @@ void free_arrays(struct nestContainer *nest, int isGeog, int lev) {
 
 /* --------------------------------------------------------------------------- */
 void err_trap(int status) {
-#if 0
+#ifdef HAVE_NETCDF
 	if (status != NC_NOERR)	
 		mexPrintf ("NSWING: error and errorcode = %d\n", status);
 #endif
@@ -1655,7 +1740,7 @@ int count_n_maregs(char *file) {
 }
 
 /* -------------------------------------------------------------------- */
-int read_maregs(struct grd_header hdr, char *file, unsigned int *lcum_p, int nx) {
+int read_maregs(struct grd_header hdr, char *file, unsigned int *lcum_p) {
 	/* Read maregraph positions and convert them to vector indices */
 	int	i = 0, ix, jy;
 	double	x, y;
@@ -1669,12 +1754,12 @@ int read_maregs(struct grd_header hdr, char *file, unsigned int *lcum_p, int nx)
 
 	while (fgets (line, 256, fp) != NULL) {
 		if (line[0] == '#') continue;	/* Jump comment lines */
-		sscanf (line, "%f %f", &x, &y);
+		sscanf (line, "%lf %lf", &x, &y);
 		if (x < hdr.x_min || x > hdr.x_max || y < hdr.y_min || y > hdr.y_max)
 			continue;
 		ix = irint((x - hdr.x_min) / hdr.x_inc);
 		jy = irint((y - hdr.y_min) / hdr.y_inc); 
-		lcum_p[i] = jy * nx + ix; 
+		lcum_p[i] = jy * hdr.nx + ix; 
 		i++;
 	}
 	fclose (fp);
@@ -1754,7 +1839,7 @@ int open_most_nc (char *base, char *name_var, int *ids, unsigned int nx, unsigne
 	float dummy = -1e34f;
 	double *x, *y;
 
-#if 0
+#ifdef HAVE_NETCDF
 	basename = (char *) mxMalloc (strlen(base) * sizeof (char));
 	strcpy(basename, base);
 	if (!strcmp(name_var,"HA")) {
@@ -1836,7 +1921,7 @@ void write_most_slice(int *ncid_most, int *ids_most, unsigned int i_start, unsig
 	/* Write a slice of _ha.nc, _va.nc & _ua.nc MOST netCDF files */
 	unsigned int i, j, n, ij, k;
 
-#if 0
+#ifdef HAVE_NETCDF
 	for (n = 0; n < 3; n++) {	/* Loop over, Amplitude, Xmomentum & Ymomentum */
 		if (n == 0) {		/* Amplitude */
 			for (j = j_start, k = 0; j < j_end; j++)
@@ -1867,57 +1952,79 @@ void write_most_slice(int *ncid_most, int *ids_most, unsigned int i_start, unsig
 }
 
 /* --------------------------------------------------------------------------- */
-void write_anuga_slice(int ncid, int z_id, unsigned int i_start, unsigned int j_start, unsigned int i_end, unsigned int j_end,
-		unsigned int nX, float *work, double *h, double *dep, double *u, double *v, float *tmp, size_t *start,
-		size_t *count, float *slice_range, int idx, int with_land) {
+void write_anuga_slice(struct nestContainer *nest, int ncid, int z_id, unsigned int i_start, unsigned int j_start,
+	unsigned int i_end, unsigned int j_end, float *work, size_t *start, size_t *count,
+	float *slice_range, int idx, int with_land, int lev) {
 	/* Write a slice of either STAGE, XMOMENTUM or YMOMENTUM of a Anuga's .sww netCDF file */
-	unsigned int i, j, ij, k, ncl;
+	unsigned int row, col, ij, k, ncl;
 
-#if 0
-	ncl = (i_end - i_start)*(j_end - j_start);
+#ifdef HAVE_NETCDF
+	ncl = (i_end - i_start) * (j_end - j_start);
 	k = 0;
-	for (j = j_start; j < j_end; j++) {
-		if (idx == 1) 			/* Anuga calls this -> stage */
-			if (!with_land)		/* Land nodes are kept = 0 */
-				for (i = i_start; i < i_end; i++)
-					tmp[k++] = work[ijs(i,j,nX)];
-			else {
-				for (i = i_start; i < i_end; i++) {
-					ij = ijs(i,j,nX);
-					if (work[ij] == 0 && dep[ij] < 0) tmp[k++] = (float)-dep[ij];
-					else 	tmp[k++] = work[ij];
-				}
-			}
 
-		else if (idx == 2) {		/* X momentum */
-			for (i = i_start; i < i_end; i++) {
-				ij = ijs(i,j,nX);
-				if (( tmp[k] = (float)(h[ij] + dep[ij]) ) < 0.) tmp[k] = 0.;
-				tmp[k++] *= (float)u[ij];
+	if (idx == 1) {
+		if (!with_land)		/* Land nodes are kept = 0 */
+			if (i_end == nest->hdr[lev].nx && j_end == nest->hdr[lev].ny) {        /* Full Region */
+				for (ij = 0; ij < nest.hdr[lev].nm; ij++)
+					work[ij] = (float)nest->htotal_d[lev][ij];              /* Anuga calls this -> stage */
+			}
+			else {		/* A sub-region */
+				for (row = j_start; row < j_end; row++)
+					for (col = i_start; col < i_end; col++)
+						work[k++] = (float)nest->htotal_d[lev][ij_grd(col, row, nest->hdr[lev])];
 			}
 		}
-		else {				/* Y momentum */
-			for (i = i_start; i < i_end; i++) {
-				ij = ijs(i,j,nX);
-				if (( tmp[k] = (float)(h[ij] + dep[ij]) ) < 0.) tmp[k] = 0.;
-				tmp[k++] *= (float)v[ij];
+		else {
+			if (i_end == nest->hdr[lev].nx && j_end == nest->hdr[lev].ny) {        /* Full Region */
+				for (ij = 0; ij < nest.hdr[lev].nm; ij++)
+					work[ij] = (nest->htotal_d[lev][ij] < EPS3) ? (float)-nest->bat[lev][ij] : (float)nest->htotal_d[lev][ij];
 			}
+			else {		/* A sub-region */
+				for (row = j_start; row < j_end; row++)
+					for (col = i_start; col < i_end; col++) {
+						ij = ij_grd(col, row, nest->hdr[lev]);
+						work[k++] = (nest->htotal_d[lev][ij] < EPS3) ? (float)-nest->bat[lev][ij] :
+						           (float)nest->htotal_d[lev][ij]; 
+					}
+			}
+		}
+	}
+	else if (idx == 2) {	/* X momentum */
+		if (i_end == nest->hdr[lev].nx && j_end == nest->hdr[lev].ny) {
+			for (ij = 0; ij < nest.hdr[lev].nm; ij++)
+				work[ij] = (float)nest->fluxm_d[lev][ij];
+		}
+		else {		/* A sub-region */
+			for (row = j_start; row < j_end; row++)
+				for (col = i_start; col < i_end; col++)
+					work[k++] = (float)nest->fluxm_d[lev][ij_grd(col, row, nest->hdr[lev])];
+		}
+	}
+	else {			/* Y momentum */
+		if (i_end == nest->hdr[lev].nx && j_end == nest->hdr[lev].ny) {
+			for (ij = 0; ij < nest.hdr[lev].nm; ij++)
+				work[ij] = (float)nest->fluxn_d[lev][ij];
+		}
+		else {		/* A sub-region */
+			for (row = j_start; row < j_end; row++)
+				for (col = i_start; col < i_end; col++)
+					work[k++] = (float)nest->fluxn_d[lev][ij_grd(col, row, nest->hdr[lev])];
 		}
 	}
 
 	/* ----------- Find the min/max of this slice --------- */
 	for (k = 0; k < ncl; k++) {
-		slice_range[1] = MAX(tmp[k], slice_range[1]);
-		slice_range[0] = MIN(tmp[k], slice_range[0]);
+		slice_range[1] = MAX(work[k], slice_range[1]);
+		slice_range[0] = MIN(work[k], slice_range[0]);
 	}
 
-	err_trap (nc_put_vara_float (ncid, z_id, start, count, tmp));
+	err_trap (nc_put_vara_float (ncid, z_id, start, count, work));
 #endif
 }
 
 /* -------------------------------------------------------------------- */
-int open_anuga_sww (char *fname_sww, int *ids, unsigned int i_start, unsigned int j_start, unsigned int i_end, unsigned int j_end,
-		unsigned int nX, double dtx, double dty, double *dep, double xMinOut, double yMinOut, float z_min, float z_max) {
+int open_anuga_sww (struct nestContainer *nest, char *fname_sww, int *ids, unsigned int i_start, unsigned int j_start,
+	unsigned int i_end, unsigned int j_end, double xMinOut, double yMinOut, int lev) {
 
 	/* Open and initialize a ANUGA netCDF file for writing ---------------- */
 	int ncid = -1, status, dim0[5], dim2[2], dim3[2];
@@ -1926,8 +2033,12 @@ int open_anuga_sww (char *fname_sww, int *ids, unsigned int i_start, unsigned in
 	float dummy2[2], *x, *y, yr, *tmp;
 	double dummy, nan, faultPolyX[11], faultPolyY[11], faultSlip[10], faultStrike[10], 
 		faultDip[10], faultRake[10], faultWidth[10], faultDepth[10];
+	float z_min = nest->hdr[lev].z_min;
+	float z_max = nest->hdr[lev].z_max;
+	double dtx = nest->hdr[lev].x_inc;
+	double dty = nest->hdr[lev].y_inc;
 
-#if 0
+#ifdef HAVE_NETCDF
 	if ( (status = nc_create (fname_sww, NC_CLOBBER, &ncid)) != NC_NOERR) {
 		mexPrintf ("swan: Unable to create file %s - exiting\n", fname_sww);
 		return(-1);
@@ -1943,21 +2054,21 @@ int open_anuga_sww (char *fname_sww, int *ids, unsigned int i_start, unsigned in
 	err_trap (nc_def_dim (ncid, "number_of_timesteps", NC_UNLIMITED, &dim0[4]));
 
 	/* ---- Define variables ------------- */
-	dim2[0] = dim0[4];		dim2[1] = dim0[3];
-	dim3[0] = dim0[0];		dim3[1] = dim0[1];
-	err_trap (nc_def_var (ncid, "x",		NC_FLOAT,1, &dim0[3], &ids[0]));
-	err_trap (nc_def_var (ncid, "y",		NC_FLOAT,1, &dim0[3], &ids[1]));
-	err_trap (nc_def_var (ncid, "z",		NC_FLOAT,1, &dim0[3], &ids[2]));
-	err_trap (nc_def_var (ncid, "elevation",	NC_FLOAT,1, &dim0[3], &ids[3]));
-	err_trap (nc_def_var (ncid, "elevation_range", 	NC_FLOAT,1, &dim0[2], &ids[4]));
-	err_trap (nc_def_var (ncid, "volumes",		NC_INT,  2, dim3, &ids[5]));
-	err_trap (nc_def_var (ncid, "time",		NC_DOUBLE,1,&dim0[4], &ids[6]));
-	err_trap (nc_def_var (ncid, "stage",		NC_FLOAT,2, dim2, &ids[7]));
-	err_trap (nc_def_var (ncid, "stage_range",	NC_FLOAT,1, &dim0[2], &ids[8]));
-	err_trap (nc_def_var (ncid, "xmomentum",	NC_FLOAT,2, dim2, &ids[9]));
-	err_trap (nc_def_var (ncid, "xmomentum_range", 	NC_FLOAT,1, &dim0[2], &ids[10]));
-	err_trap (nc_def_var (ncid, "ymomentum",	NC_FLOAT,2, dim2, &ids[11]));
-	err_trap (nc_def_var (ncid, "ymomentum_range", 	NC_FLOAT,1, &dim0[2], &ids[12]));
+	dim2[0] = dim0[4];                              dim2[1] = dim0[3];
+	dim3[0] = dim0[0];                              dim3[1] = dim0[1];
+	err_trap (nc_def_var (ncid, "x",                NC_FLOAT,1, &dim0[3], &ids[0]));
+	err_trap (nc_def_var (ncid, "y",                NC_FLOAT,1, &dim0[3], &ids[1]));
+	err_trap (nc_def_var (ncid, "z",                NC_FLOAT,1, &dim0[3], &ids[2]));
+	err_trap (nc_def_var (ncid, "elevation",        NC_FLOAT,1, &dim0[3], &ids[3]));
+	err_trap (nc_def_var (ncid, "elevation_range",  NC_FLOAT,1, &dim0[2], &ids[4]));
+	err_trap (nc_def_var (ncid, "volumes",          NC_INT,  2, dim3, &ids[5]));
+	err_trap (nc_def_var (ncid, "time",             NC_DOUBLE,1,&dim0[4], &ids[6]));
+	err_trap (nc_def_var (ncid, "stage",            NC_FLOAT,2, dim2, &ids[7]));
+	err_trap (nc_def_var (ncid, "stage_range",      NC_FLOAT,1, &dim0[2], &ids[8]));
+	err_trap (nc_def_var (ncid, "xmomentum",        NC_FLOAT,2, dim2, &ids[9]));
+	err_trap (nc_def_var (ncid, "xmomentum_range",  NC_FLOAT,1, &dim0[2], &ids[10]));
+	err_trap (nc_def_var (ncid, "ymomentum",        NC_FLOAT,2, dim2, &ids[11]));
+	err_trap (nc_def_var (ncid, "ymomentum_range",  NC_FLOAT,1, &dim0[2], &ids[12]));
 
 	/* ---- Global Attributes ------------ */
 	err_trap (nc_put_att_text (ncid, NC_GLOBAL, "institution", 10, "Mirone Tec"));
@@ -2028,7 +2139,7 @@ int open_anuga_sww (char *fname_sww, int *ids, unsigned int i_start, unsigned in
 	tmp = (float *) mxMalloc (sizeof (float) * (nx * ny));
 	for (j = j_start, k = 0; j < j_end; j++) {
 		for (i = i_start; i < i_end; i++)
-			tmp[k++] = (float)-dep[ijs(i,j,nX)];
+			tmp[k++] = (float)-nest->bat[lev][ijs(i,j,nest->hdr[lev].nx)];
 	}
 
 	err_trap (nc_put_var_float (ncid, ids[2], tmp));	/* z */
@@ -2656,26 +2767,29 @@ L200:
 /* initializes parameters needed for spherical computations */
 /* -------------------------------------------------------------------- */
 void inisp(struct nestContainer *nest) {
-	int row;
+	int row, k = 0;
 	double phim_rad, phin_rad, omega, raio_t, dxtemp, dytemp, dt;
 
 	raio_t = 6.371e6;
 	omega = 7.2722e-5;
-	dt = nest->dt[0];
-	dxtemp = raio_t * nest->hdr[0].x_inc * D2R;
-	dytemp = raio_t * nest->hdr[0].y_inc * D2R;
-	for (row = 0; row < nest->hdr[0].ny; row++) {
-		phim_rad = (nest->hdr[0].y_min + row * nest->hdr[0].y_inc) * D2R;
-		phin_rad = (nest->hdr[0].y_min + (row + 0.5) * nest->hdr[0].y_inc) * D2R;
-		nest->r0[0][row] = dt / dytemp;
-		nest->r1m[0][row] = sin(phim_rad);
-		nest->r1n[0][row] = cos(phin_rad);
-		nest->r2m[0][row] = dt / dxtemp / cos(phim_rad);
-		nest->r2n[0][row] = dt / dytemp / cos(phin_rad);
-		nest->r3m[0][row] = NORMAL_GRAV * (dt / dxtemp) / cos(phim_rad);
-		nest->r3n[0][row] = NORMAL_GRAV * (dt / dytemp);
-		nest->r4m[0][row] = dt * omega * sin(phim_rad);
-		nest->r4n[0][row] = dt * omega * sin(phin_rad);
+	while (nest->level[k] >= 0) {
+		dt = nest->dt[k];
+		dxtemp = raio_t * nest->hdr[k].x_inc * D2R;
+		dytemp = raio_t * nest->hdr[k].y_inc * D2R;
+		for (row = 0; row < nest->hdr[k].ny; row++) {
+			phim_rad = (nest->hdr[k].y_min + row * nest->hdr[k].y_inc) * D2R;
+			phin_rad = (nest->hdr[k].y_min + (row + 0.5) * nest->hdr[k].y_inc) * D2R;
+			nest->r0[k][row] = dt / dytemp;
+			nest->r1m[k][row] = sin(phim_rad);
+			nest->r1n[k][row] = cos(phin_rad);
+			nest->r2m[k][row] = dt / dxtemp / cos(phim_rad);
+			nest->r2n[k][row] = dt / dytemp / cos(phin_rad);
+			nest->r3m[k][row] = NORMAL_GRAV * (dt / dxtemp) / cos(phim_rad);
+			nest->r3n[k][row] = NORMAL_GRAV * (dt / dytemp);
+			nest->r4m[k][row] = dt * omega * sin(phim_rad);
+			nest->r4n[k][row] = dt * omega * sin(phin_rad);
+		}
+		k++;
 	}
 }
 
@@ -3361,6 +3475,9 @@ void upscale_(struct nestContainer *nest, double *etad, int lev, int i_tsr) {
 
 	half = irint(floor(nest->incRatio[lev] * nest->incRatio[lev] * 2.0 / 3.0));
 
+	for (ij = 0; ij < nest->hdr[lev].nm; ij++)
+		if (nest->bat[lev][ij] < 0) nest->etad[lev][ij] += nest->bat[lev][ij];
+
 	rim = 1;
 	for (row = nest->LLrow[lev] + 1 + rim, nrow = rim; row < nest->ULrow[lev] - rim; row++, nrow++) {
 		i0 = nrow * nest->incRatio[lev];
@@ -3373,19 +3490,32 @@ void upscale_(struct nestContainer *nest, double *etad, int lev, int i_tsr) {
 				for (kj = 0; kj < nest->incRatio[lev]; kj++) {
 					jj = j0 + kj;
 					ij = ij_grd(jj,ii, nest->hdr[lev]);
+					if (nest->bat[lev][ij] + nest->etad[lev][ij] > EPS5) {
 						if (do_half)
-							sum += 0.5 * (nest->etaa[lev][ij] + nest->etad[lev][ij]) + nest->bat[lev][ij];
+							sum += 0.5 * (nest->etaa[lev][ij] + nest->etad[lev][ij]);
+							//sum += 0.5 * (nest->etaa[lev][ij] + nest->etad[lev][ij]) + nest->bat[lev][ij];
 						else
-							sum += nest->etad[lev][ij] + nest->bat[lev][ij];
+							sum += nest->etad[lev][ij];
+							//sum += nest->etad[lev][ij] + nest->bat[lev][ij];
 						count++;
+					}
 				}
 			}
 
 			/* --- case when more than 50% of daugther cells add to a mother cell */
-			if (sum && count >= half)
-				etad[ij_grd(col,row, nest->hdr[lev-1])] = sum / count - bat_P[ij_grd(col,row, nest->hdr[lev-1])];
+			if (sum && count >= half) {
+				//etad[ij_grd(col,row, nest->hdr[lev-1])] = sum / count - bat_P[ij_grd(col,row, nest->hdr[lev-1])];
+				if (bat_P[ij_grd(col,row, nest->hdr[lev-1])] < 0)
+					etad[ij_grd(col,row, nest->hdr[lev-1])] = sum / count - bat_P[ij_grd(col,row, nest->hdr[lev-1])];
+				else
+					etad[ij_grd(col,row, nest->hdr[lev-1])] = sum / count;
+			}
 		}
 	}
+
+	/* --- reputs bathymetry on etad on land --- */
+	for (ij = 0; ij < nest->hdr[lev].nm; ij++)
+		if (nest->bat[lev][ij] < 0) nest->etad[lev][ij] -= nest->bat[lev][ij];
 }
 
 /* --------------------------------------------------------------------- */
