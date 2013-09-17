@@ -31,9 +31,12 @@ function tintol(handles,axis_t,X,Y,I)
 % 	h2 = setxor(h1,handles.OpenGI);
 % 	delete(h2)
 
+	set(handles.figure1, 'Vis', 'off')
+
 	if (handles.validGrid)
 		h = tintol_buttons_LayoutFcn(handles.figure1);
 		handTintButt = local_guihandles(h);				% THIS WILL BE SEEN AS 'HANDLES' inside _CBs
+		handTintButt.nested_level = cell(10,2);			% 10 is more than enough
 		imSize = [];
 		if (abs(diff(handles.head(8:9))) > 1e-4)
 			imSize = handles.head(8) / handles.head(9);	% Need to remind this to resizetrue
@@ -52,7 +55,6 @@ function tintol(handles,axis_t,X,Y,I)
 		set(handTintButt.edit_dt, 'Str', sprintf('%.3f',dtCFL))
 	else
 		handles.head = [-20 0 25 45 0 255 0 20/511 20/511];
-		set(handles.figure1, 'Vis', 'off')
 		mirone('FileNewBgFrame_CB',handles,[-20 0 25 45 1 0], [512 512], 'TINTOL');
 		resizetrue(handles,[512 512], 'xy', [350 550]);
 
@@ -63,8 +65,7 @@ function tintol(handles,axis_t,X,Y,I)
 
 		h = tintol_buttons_LayoutFcn(handles.figure1);
 		handTintButt = local_guihandles(h);			% THIS WILL BE SEEN AS 'HANDLES' inside _CBs
-		handTintButt.nested_level = {[],[]};
-		set(handles.figure1, 'Vis', 'on')
+		handTintButt.nested_level = cell(10,2);
 	end
 
 	handTintButt.figure1 = handles.figure1;			% Make a copy so that we can fish the main handles in _CBs
@@ -85,6 +86,7 @@ function tintol(handles,axis_t,X,Y,I)
 		handles.Seismology handles.Tsunamis handles.GMT handles.GridTools], 'Vis', 'off')
 
 	local_guidata(handles.figure1, handTintButt)	% Store the local handles
+	set(handles.figure1, 'Vis', 'on')
 
 %--------------------------------------------------------------------------------
 function data = local_guidata(h, data_in)
