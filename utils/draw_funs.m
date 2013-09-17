@@ -398,15 +398,32 @@ function set_recTsu_uicontext(h)
 
 	handles = guidata(h(1));
 	for (k = 1:numel(h))
+		do_nest_sizes = false;
 		cmenuHand = uicontextmenu('Parent',handles.figure1);
-		set(h(k), 'UIContextMenu', cmenuHand);
+		set(h(k), 'UIContextMenu', cmenuHand)
 
-		uimenu(cmenuHand, 'Label', 'Adjust nesting dimensions', 'Call', 'nesting_sizes(gcbo)');
 		ud = get(h(k), 'Userdata');
-		if (isempty(ud))		% Root rectangle, set its Userdata to 1 to flag that fact
+		if (isempty(ud))				% Root rectangle, set its Userdata to 1 to flag that fact
+			if (handles.validGrid)		% Give this rectangle properties based on base level grid
+				resp = fix(abs(str2double(inputdlg({'Enter refinement factor'},'Refinement factor',[1 30],{'5'}))));
+				if (isnan(resp) || resp == 0)		% OK, just make a regular rectangle
+					set(h(k), 'UIContextMenu', '')
+					set_line_uicontext(h(k),'line')
+					return
+				end
+				x_inc = handles.head(8) / resp;
+				y_inc = handles.head(9) / resp;
+				setappdata(h(k),'LineInfo',[sprintf('%.14g %.14g',x_inc, y_inc), handles.head(7)]);
+				do_nest_sizes = true;
+			end
+			uimenu(cmenuHand, 'Label', 'Rectangle limits (edit)', 'Call', @rectangle_limits);
 			ud = 1;		set(h(k),'UserData',ud)
 		end
-		if (ud > 1)
+		if (handles.validGrid)			% Option only available to recognized grids
+			uimenu(cmenuHand, 'Label', 'Crop Grid', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''CropaGrid_pure'')');
+		end
+% 		uimenu(cmenuHand, 'Label', 'Adjust to nesting dimensions', 'Sep', 'on', 'Call', 'nesting_sizes(gcbo)');
+		if (ud > 1 || handles.validGrid)
 			uimenu(cmenuHand, 'Label', 'Show nesting info', 'Call', 'nesting_sizes(gcbo,''Info'')');
 		end
 		if (k == numel(h))
@@ -417,6 +434,9 @@ function set_recTsu_uicontext(h)
 		set(h(k),'Tag','NEST')
 		setappdata(h(k),'RunCB',{'nesting_sizes', h(k)})	% Run this everytime rectangle is editted
 		ui_edit_polygon(h(k))
+		if (do_nest_sizes)
+			nesting_sizes(h(k))			% Do the nesting size adjustment right away
+		end
 	end
 
 % -----------------------------------------------------------------------------------------
