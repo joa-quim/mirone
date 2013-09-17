@@ -4096,7 +4096,8 @@ function FileSaveFleder_CB(handles, opt)
 function ImageEdgeDetect_CB(handles, opt)
 if (handles.no_file),		return,		end
 
-if (~strcmp(opt,'ppa')),	img = get(handles.hImg,'CData');	end
+img = get(handles.hImg,'CData');		% Even when not used, this op cost nothing
+dims = [size(img,1) size(img,2)];
 set(handles.figure1,'pointer','watch')
 if (strcmp(opt,'ppa'))
 	[X,Y,Z,handles.head] = load_grd(handles);
@@ -4119,6 +4120,18 @@ if (strcmp(opt,'ppa'))
 % 	y_inc = (handles.head(4) - handles.head(3)) / m;
 % 	I = flipud(img(:,:,1));
 % 	delete(h_lixo);
+elseif (strcmp(opt,'apalpa'))		% Get the polygons that sorround good data
+	if (~handles.have_nans)
+		warndlg('There are no wholes in this grid.','Chico Clever'),	return
+	end
+	[X,Y,Z] = load_grd(handles);
+	if isempty(Z),		return,		end
+	mask = isnan(Z);
+	B = img_fun('bwboundaries',mask);
+	%B = bwbound_unique(B);
+	dims = [size(Z,1) size(Z,2)];
+	opt = 'Vec';					% Trick to not need to add an extra case in the IF test below
+
 elseif (strcmp(opt,'Vec') || strcmp(opt,'Ras') || strcmp(opt(1:3),'SUS'))
 	if (ndims(img) == 3),		img = cvlib_mex('color',img,'rgb2gray');	end
 	if (~strcmp(opt(1:3),'SUS'))
@@ -4162,7 +4175,7 @@ end
 if (strcmp(opt,'Vec') || strcmp(opt,'Lines') || strcmp(opt,'Rect'))		% Convert the edges found into vector
 	x_inc = handles.head(8);		y_inc = handles.head(9);
 	x_min = handles.head(1);		y_min = handles.head(3);
-	if (handles.head(7))			% Work in grid registration
+	if (handles.head(7))			% Work in pixel registration
 		x_min = x_min + x_inc/2;	y_min = y_min + y_inc/2;
 	end
 	h_edge = zeros(length(B),1);	i = 1;
@@ -4170,8 +4183,14 @@ if (strcmp(opt,'Vec') || strcmp(opt,'Lines') || strcmp(opt,'Rect'))		% Convert t
 		boundary = B{k};
 		if (length(boundary) < 20 && strcmp(opt,'Vec')),	continue,	end
 		if (numel(boundary) > 4)
-			boundary = cvlib_mex('dp', boundary, 0.7);		% Simplify line
+			%boundary = cvlib_mex('dp', boundary, 0.7);		% Simplify line
 		end
+		% Some times we get a BB rectangle, test and ignore it if it's the case
+		if (size(boundary,1) == 5 && min(boundary(:,1)) == 1 && min(boundary(:,2)) == 1 && ...
+				max(boundary(:,1)) == dims(1) && max(boundary(:,2)) == dims(2))
+			continue
+		end
+
 		y = (boundary(:,1)-1)*y_inc + y_min;
 		x = (boundary(:,2)-1)*x_inc + x_min;
 		h_edge(i) = line('XData',x, 'YData',y, 'Parent',handles.axes1,'Linewidth',handles.DefLineThick, ...
