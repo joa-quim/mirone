@@ -109,16 +109,14 @@ function handles = local_guihandles(hAll)
 	handles = [];
 
 	for i = (1:numel(hAll))
-		if isprop(hAll(i), 'Tag')
-			tag = get(hAll(i), 'Tag');
-			if (~isempty(tag))
-				if isfield(handles, tag)
-					prev_h = handles.(tag);
-				else
-					prev_h = [];
-				end
-				handles.(tag) = [prev_h hAll(i)];	% In case a previous handle with same name already exists
+		tag = get(hAll(i), 'Tag');
+		if (~isempty(tag))
+			if isfield(handles, tag)
+				prev_h = handles.(tag);
+			else
+				prev_h = [];
 			end
+			handles.(tag) = [prev_h hAll(i)];	% In case a previous handle with same name already exists
 		end
 	end
 
