@@ -612,7 +612,7 @@ int main(int argc, char **argv) {
 
 	if (argc <= 1 || error) {
 		mexPrintf ("NSWING - Um gerador de tsunamis\n\n");
-		mexPrintf ( "usage: nswing(bat,hdr_bat,deform,hdr_deform, [maregs], [-G<name>[+lev]], [-B<bathy>] [-D] [-F<fonte>] [-M] [-N<n_cycles>] [-Rw/e/s/n] [-E] [-S[x|y|n][+m]] [-O<int>,<outmaregs>] [-T<int>,<mareg>[,<outmaregs>]]\n");
+		mexPrintf ( "usage: nswing(bat,hdr_bat,deform,hdr_deform, [maregs], [-G<name>[+lev]], [-A<fname.sww>], [-B<bathy>], [-D], [-F<fonte>], [-M], [-N<n_cycles>], [-Rw/e/s/n], [-E], [-S[x|y|n][+m]], [-O<int>,<outmaregs>], [-T<int>,<mareg>[,<outmaregs>]]\n");
 		mexPrintf ("\t-A name of ANUGA file\n");
 		mexPrintf ("\t-n basename for MOST triplet files (no extension)\n");
 		mexPrintf ("\t-B name of bathymetry file. In case it was not transmited in input.\n");
@@ -648,6 +648,11 @@ int main(int argc, char **argv) {
 
 	if (dt <= 0) {
 		mexPrintf("NSWING: Error -t option. Time step of simulation not provided or negative.\n");
+		error++;
+	}
+
+	if (out_sww && fname_sww == NULL) {
+		mexPrintf("NSWING: Error -A option. Must provide a name for the .SWW file.\n");
 		error++;
 	}
 
@@ -1954,7 +1959,7 @@ int open_anuga_sww (struct nestContainer *nest, char *fname_sww, int *ids, unsig
 	double dty = nest->hdr[lev].y_inc;
 
 	if ( (status = nc_create (fname_sww, NC_CLOBBER, &ncid)) != NC_NOERR) {
-		mexPrintf ("swan: Unable to create file %s - exiting\n", fname_sww);
+		mexPrintf ("NSWING: Unable to create file -- %s -- exiting\n", fname_sww);
 		return(-1);
 	}
 	/* ---- Define dimensions ------------ */
@@ -2071,8 +2076,8 @@ int open_anuga_sww (struct nestContainer *nest, char *fname_sww, int *ids, unsig
 
 /* --------------------------------------------------------------------------- */
 void write_anuga_slice(struct nestContainer *nest, int ncid, int z_id, unsigned int i_start, unsigned int j_start,
-	unsigned int i_end, unsigned int j_end, float *work, size_t *start, size_t *count,
-	float *slice_range, int idx, int with_land, int lev) {
+	unsigned int i_end, unsigned int j_end, float *work, size_t *start, size_t *count, float *slice_range,
+	int idx, int with_land, int lev) {
 	/* Write a slice of either STAGE, XMOMENTUM or YMOMENTUM of a Anuga's .sww netCDF file */
 	unsigned int row, col, ij, k, ncl;
 
@@ -2083,25 +2088,25 @@ void write_anuga_slice(struct nestContainer *nest, int ncid, int z_id, unsigned 
 		if (!with_land) {		/* Land nodes are kept = 0 */
 			if (i_end == nest->hdr[lev].nx && j_end == nest->hdr[lev].ny) {        /* Full Region */
 				for (ij = 0; ij < nest->hdr[lev].nm; ij++)
-					work[ij] = (float)nest->htotal_d[lev][ij];              /* Anuga calls this -> stage */
+					work[ij] = (float)nest->etad[lev][ij];              /* Anuga calls this -> stage */
 			}
 			else {		/* A sub-region */
 				for (row = j_start; row < j_end; row++)
 					for (col = i_start; col < i_end; col++)
-						work[k++] = (float)nest->htotal_d[lev][ij_grd(col, row, nest->hdr[lev])];
+						work[k++] = (float)nest->etad[lev][ij_grd(col, row, nest->hdr[lev])];
 			}
 		}
 		else {
 			if (i_end == nest->hdr[lev].nx && j_end == nest->hdr[lev].ny) {        /* Full Region */
 				for (ij = 0; ij < nest->hdr[lev].nm; ij++)
-					work[ij] = (nest->htotal_d[lev][ij] < EPS3) ? (float)-nest->bat[lev][ij] : (float)nest->htotal_d[lev][ij];
+					work[ij] = (nest->htotal_d[lev][ij] < EPS3) ? (float)-nest->bat[lev][ij] : (float)nest->etad[lev][ij];
 			}
 			else {		/* A sub-region */
 				for (row = j_start; row < j_end; row++) {
 					for (col = i_start; col < i_end; col++) {
 						ij = ij_grd(col, row, nest->hdr[lev]);
 						work[k++] = (nest->htotal_d[lev][ij] < EPS3) ? (float)-nest->bat[lev][ij] :
-						           (float)nest->htotal_d[lev][ij]; 
+						           (float)nest->etad[lev][ij]; 
 					}
 				}
 			}
