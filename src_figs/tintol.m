@@ -554,7 +554,7 @@ function push_RUN_CB(hObject, handles)
 	if (handles.n_jump),	opt_J = sprintf('-J%d', handles.n_jump);	end
 
 	opt_f = ' ';
-	if (handles.n_jump),	opt_f = '-f';	end
+	if (handles.geog),	opt_f = '-f';	end
 
 	% Now get the nestings, if any
 	if (~isempty(handles.nested_level{2,1}))
