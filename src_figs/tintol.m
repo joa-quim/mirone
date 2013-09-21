@@ -420,13 +420,15 @@ function push_MaregraphPosFile_CB(hObject, handles, opt)
 		fname = opt;
 	end
 
-	[handles, msg] = getMaregsPos(handles, fname);
-	if (~isempty(msg))
-		errordlg(msg,'Error'),		return
+	xy = load_xyz([], fname);
+	if (isempty(xy))		% Error messages already issued in load_xyz()
+		set(handles.edit_MaregraphPosFile, 'Str', '')
+		handles.maregraph_xy = [];
+	else
+		handles.maregraph_xy = xy;
+		set(handles.edit_MaregraphPosFile,'String',fname)
 	end
 	
-	set(handles.edit_Number_of_cycles,'String',size(handles.maregraph_xy,1))
-	set(handles.edit_MaregraphPosFile,'String',fname)
 	local_guidata(handles.figure1,handles)
 
 %--------------------------------------------------------------------------------
@@ -441,29 +443,12 @@ function push_MaregraphDataFile_CB(hObject, handles, opt)
 		[FileName,PathName] = put_or_get_file(handles, ...
 			{'*.dat;*.DAT;*.xy', 'Maregraph data file (*.dat,*.DAT,*.xy)';'*.*', 'All Files (*.*)'},'Select Maregraph','get');
 		if isequal(FileName,0),		return,		end
-		fname = [PathName FileName];
-		
-		if (~handles.is_tsun2)		% We are done with this case
-			set(handles.edit_MaregraphDataFile,'String',fname)
-			return
-		end
+		fname = [PathName FileName];		
 	else
 		fname = opt;
 	end
 
-	% If we get here we are in the tsun2 oputput maregraphs option. We must read that file
-	bak = handles.maregraph_xy;		% To reuse the code from getMaregsPos() we must backup this
-	[handles, msg] = getMaregsPos(handles, fname);
-	if (~isempty(msg))
-		errordlg(msg,'Error')
-		handles.maregraph_xy = bak;			% Get back the original data
-		local_guidata(handles.figure1,handles)
-		return
-	end
-	% OK, we are still playing
-	handles.maregraph_xy = bak;			% Get back the original data
 	set(handles.edit_MaregraphDataFile,'String',fname)
-	local_guidata(handles.figure1,handles)
 
 %--------------------------------------------------------------------------------
 function edit_Number_of_cycles_CB(hObject, handles)
@@ -544,17 +529,38 @@ function push_RUN_CB(hObject, handles)
 
 	opt_N = ['-N' get(handles.edit_Number_of_cycles, 'Str')];
 
+	opt_J = ' ';
+	if (handles.n_jump),	opt_J = sprintf('-J%d', handles.n_jump);	end
+
+	opt_f = ' ';
+	if (handles.geog),	opt_f = '-f';	end
+
 	opt_T = ' ';
 	if (get(handles.check_wantMaregs, 'Val'))
 		opt_T = ['-T,' get(handles.edit_cumint, 'Str') ',' get(handles.edit_MaregraphPosFile,'Str') ...
 			',' get(handles.edit_MaregraphDataFile,'Str')];
 	end
 
-	opt_J = ' ';
-	if (handles.n_jump),	opt_J = sprintf('-J%d', handles.n_jump);	end
-
-	opt_f = ' ';
-	if (handles.geog),	opt_f = '-f';	end
+	% See if we have plotted maregraphs
+	h_mareg = findobj('Type','line','Tag','Maregraph');
+	if (~isempty(h_mareg))
+		x = get(h_mareg,'XData');		y = get(h_mareg,'YData');
+		mareg_pos = [x(:) y(:)];
+		ind = (x < handles.nested_level{handles.last_nested_level,2}(1)  | ... 
+				x > handles.nested_level{handles.last_nested_level,2}(2) | ...
+				y < handles.nested_level{handles.last_nested_level,2}(3) | ...
+				y > handles.nested_level{handles.last_nested_level,2}(4));
+		mareg_pos(ind,:) = [];		% For time being remove those outside the last nesting level
+		str = 'For now only maregraphs located inside the highest refinement nested grid are considered.';
+		if (isempty(mareg_pos))
+			str = sprintf('%s\nAnd none of yours fulfill that condition. So ignoring maregraphs request.', str);
+			warndlg(str,'Warning')
+		elseif (numel(x) ~= size(mareg_pos,1))
+			str = sprintf('%s\nAnd %d of yours do not fulfill that condition. So ignoring those outside.', ...
+				str, numel(x) - size(mareg_pos,1));
+			warndlg(str,'Warning')
+		end
+	end
 
 	% Now get the nestings, if any
 	if (~isempty(handles.nested_level{2,1}))
@@ -565,7 +571,6 @@ function push_RUN_CB(hObject, handles)
 			opt_t, opt_G, opt_S, opt_N, opt_T, opt_J, opt_f)
 	end
 
-	
 %---------------------------------------------------------------------------------------------------
 function err_str = check_errors(handles)
 % ...
@@ -598,7 +603,7 @@ function err_str = check_errors(handles)
 
 	if (get(handles.check_wantMaregs,'Value'))       % That is, requested maregraphs computation
 		if (isempty(handles.maregraph_xy) && handles.MaregraphInMemory == 0)
-			err_str = 'Where are your maregraphs? On the Moon (it''s dry there)?';
+			err_str = 'Where are your maregraphs? On the Moon (it''s kinda off dry there)?';
 			return
 		end
 		if (isempty(get(handles.edit_MaregraphDataFile,'Str')))
@@ -606,22 +611,6 @@ function err_str = check_errors(handles)
 			return
 		end
 	end
-	
-% 	local_guidata(handles.figure1,handles)
-
-% 	% If we reach here, we can now check if grids are compatible.
-% 	small = 1e-6;   % Used in postion comparation. It places the accuracy at sub-meter level
-% 	difes = handles.head_src(1:4) - head_bat(1:4);
-% 	if (any(abs(difes) > small))
-% 		err_str{1} = 'Bathymetry & Source grids do not cover the same region';
-% 		err_str{2} = sprintf('x_min diff = %.10g', difes(1));	err_str{3} = sprintf('x_max diff = %.10g', difes(2));
-% 		err_str{4} = sprintf('y_min diff = %.10g', difes(3));	err_str{5} = sprintf('y_max diff = %.10g', difes(4));
-% 		return
-% 	end
-% 	if (abs(handles.head_src(8) - head_bat(8)) > small || ...
-% 		abs(handles.head_src(9) - head_bat(9)) > small )
-% 		err_str = 'Bathymetry & Source grids have different nx and/or ny';
-% 	end
 
 % ----------------------------------------
 function h = tintol_buttons_LayoutFcn(h1)
