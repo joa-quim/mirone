@@ -10,8 +10,13 @@ function varargout = load_xyz(handles, opt, opt2)
 %	HANDLES	->	Should be the Mirone handles. However, when this function is used with output
 %				HANDLES can be empty([]) or just a simple structure with the field 'no_file' = false
 %
+%	Optional output:
+%
+%	out = load_xyz([],fname);				Read and return data in file FNAME
+%	[out, multi_str] = load_xyz([],fname);	Read file FNAME and return data in OUT and multisegment strings in MULTI_STR
+%
 %	Optional
-%		OPT can be either [] in which case the fiename will be asked here or contain the filename
+%		OPT can be either [] in which case the filename will be asked here or contain the filename
 %		OPT2 can take several values 'arrows' to read a x,y,u,v file
 %			'AsLine'		plots a "regular" line
 %			'AsPoint'		plots the line vertex only using small filled circles 
@@ -108,8 +113,8 @@ function varargout = load_xyz(handles, opt, opt2)
 			drv = aux_funs('findFileType',fname);
 			if (strcmp(drv, 'ncshape')),	opt2 = 'ncshape';	end
 		end
-		if (strcmp(opt2, 'AsArrow'))		got_arrow = true;		% This case does not care about 'line_type'
-		elseif (strcmp(opt2, 'ncshape'))	got_nc = true;			%
+		if (strcmp(opt2, 'AsArrow')),		got_arrow = true;		% This case does not care about 'line_type'
+		elseif (strcmp(opt2, 'ncshape')),	got_nc = true;			%
 		else								line_type = opt2;
 		end
 		if (strncmpi(line_type,'isochron',4) || strcmpi(line_type,'FZ'))
@@ -259,8 +264,8 @@ function varargout = load_xyz(handles, opt, opt2)
 
 		if (got_internal_file)				% We know it's geog (Global Isochrons or FZs)
 			xx = [-180 180];		yy = [-90 90];
-			if (~handles.geog)				handles.geog = 1;
-			elseif (handles.geog == 2)		xx = [0 360];
+			if (~handles.geog),				handles.geog = 1;
+			elseif (handles.geog == 2),		xx = [0 360];
 			end
 			region = [xx yy];
 		end
@@ -477,7 +482,7 @@ function varargout = load_xyz(handles, opt, opt2)
 			if (isempty(tmpx)),     n_clear(i) = true;     continue,		end     % Store indexes for clearing vanished segments info
 			if ( numel(numeric_data{i}(1,:)) >= 3 )		% If we have a Z column
 				tmpz = numeric_data{i}(:,3);
-				if (~isempty(indx) || ~isempty(indy))	tmpz(indx) = [];	tmpz(indy) = [];	end	% If needed, clip outside map data			
+				if (~isempty(indx) || ~isempty(indy)),	tmpz(indx) = [];	tmpz(indy) = [];	end	% If needed, clip outside map data			
 			end
 
 			[lThick, cor, multi_segs_str{i}] = parseW(multi_segs_str{i}(min(2,numel(multi_segs_str{i})):end)); % First time, we can chop the '>' char
@@ -543,7 +548,7 @@ function varargout = load_xyz(handles, opt, opt2)
 					hLine(i) = hQuiver(1);
 				end
 
-				if (~isempty(tmpz))		setappdata(hLine(i),'ZData',tmpz');	end
+				if (~isempty(tmpz)),	setappdata(hLine(i),'ZData',tmpz');	end
 				if (~orig_no_mseg)
 					setappdata(hLine(i),'LineInfo',multi_segs_str{i})  % To work with the sessions and will likely replace old mechansim
 				end
