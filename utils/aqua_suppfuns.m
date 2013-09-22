@@ -76,7 +76,12 @@ if (nargin < 6),		getAllMinMax = true;		end
 		head(5:6) = handles.zMinMaxs(1,:);			% Take the first slice min/max
 	else
 		ind = strcmp({s.Dataset(misc.z_id).Attribute.Name},'actual_range');
-		handles.zMinMaxsGlobal = s.Dataset(misc.z_id).Attribute(ind).Value;
+		if (any(ind))
+			handles.zMinMaxsGlobal = s.Dataset(misc.z_id).Attribute(ind).Value;
+		else
+			warndlg('Non CF complient file. Missing ''actual_range'' attribute. Expect color screws.','Warnerror')
+			handles.zMinMaxsGlobal = [0 1];
+		end
 		head(5:6) = handles.zMinMaxsGlobal;
 	end
 	handles.minWater = handles.zMinMaxsGlobal(1);
