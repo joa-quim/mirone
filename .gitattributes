@@ -615,6 +615,7 @@ utils/roi_filtering.m -text
 utils/rot_euler.m -text
 utils/rtp3d.m -text
 utils/rubberbandbox.m -text
+utils/runCB_tintol.m -text
 utils/save_seismicity.m -text
 utils/save_track_mb.m -text
 utils/screen_capture.m -text
