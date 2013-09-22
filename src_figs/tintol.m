@@ -59,7 +59,6 @@ function tintol(handles,axis_t,X,Y,I)
 		resizetrue(handles,[512 512], 'xy', [350 550]);
 
 		handles.maregraph_xy = [];
-		handles.BothGridsInMemory = 0;  % Flag to signal that bat & deform arrays are already in memory
 		handles.BatGridInMemory = 0;    % Flag to signal that bat array is already in memory
 		handles.MaregraphInMemory = 1;  % Flag to signal that the maregraphs locations are already in memory
 
@@ -82,8 +81,8 @@ function tintol(handles,axis_t,X,Y,I)
 	handTintButt.head_src = [];
 	handTintButt.last_nested_level = 1;
 
-	set([handles.Image handles.Tools handles.Plates handles.MagGrav ...
-		handles.Seismology handles.Tsunamis handles.GMT handles.GridTools], 'Vis', 'off')
+	runCB_tintol(handles)		% Hide non-used (distracting) uicontrols
+	setappdata(handles.figure1, 'show_image_RunCB',{'runCB_tintol' handles.figure1});	% and register it
 
 	local_guidata(handles.figure1, handTintButt)	% Store the local handles
 	set(handles.figure1, 'Vis', 'on')
@@ -560,15 +559,20 @@ function push_RUN_CB(hObject, handles)
 				str, numel(x) - size(mareg_pos,1));
 			warndlg(str,'Warning')
 		end
+		if (~isempty(opt_T) && ~isempty(mareg_pos))
+			warndlg(['You have requested maregraphs from both a file and plotted/imported interactively. ' ...
+				'Ignoring those in file.'],'Warning')
+			opt_T = '';
+		end
 	end
 
 	% Now get the nestings, if any
 	if (~isempty(handles.nested_level{2,1}))
 		nswing(handles.nested_level{1,1}, handles.nested_level{1,2}, handles.Z_src, handles.head_src, ...
-			handles.nested_level(2:end,:), opt_t, opt_G, opt_S, opt_N, opt_T, opt_J, opt_f)
+			handles.nested_level(2:end,:), h_mareg, opt_t, opt_G, opt_S, opt_N, opt_T, opt_J, opt_f)
 	else
 		nswing(handles.nested_level{1,1}, handles.nested_level{1,2}, handles.Z_src, handles.head_src, ...
-			opt_t, opt_G, opt_S, opt_N, opt_T, opt_J, opt_f)
+			h_mareg, opt_t, opt_G, opt_S, opt_N, opt_T, opt_J, opt_f)
 	end
 
 %---------------------------------------------------------------------------------------------------
