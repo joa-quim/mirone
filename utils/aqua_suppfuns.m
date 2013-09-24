@@ -23,6 +23,7 @@ function varargout = aqua_suppfuns(opt, varargin)
 		case 'coards_slice',	coards_sliceShow(varargin{:})
 		case 'forGDAL_hdr',		[varargout{1:nargout}] = init_header_gdal(varargin{:});
 		case 'forGDAL_slice',	gdal_sliceShow(varargin{:})
+		case 'illumByType',		varargout{1} = illumByType(varargin{:});	% Used both in aquamoto and here
 	end
 
 % --------------------------------------------------------------------------
@@ -35,7 +36,7 @@ function out = init_header_params(handles,X,Y,head,misc,getAllMinMax)
 % loading of big files and apparently is not very used/useful because most of the time
 % is spent loading the layer and the min/max computation is extremely fast.
 
-if (nargin < 6),		getAllMinMax = true;		end
+	if (nargin < 6),		getAllMinMax = true;		end
 	handles.x = X;		handles.y = Y;
 	handles.time = [];
 	handles.number_of_timesteps = misc.z_dim(1);		% ... NEEDS THINKING
@@ -219,6 +220,15 @@ function coards_sliceShow(handles, Z)
 		tmp.X = handles.x;		tmp.Y = handles.y;		tmp.head = handles.head;	tmp.cmap = handles.cmapLand;
 		tmp.name = sprintf('Layer = %g',handles.time(handles.sliceNumber+1));
 		if (~isempty(handles.srsWKT)),		tmp.srsWKT = handles.srsWKT;	end
+		hFigs = findobj(0,'type','figure');
+		if (numel(hFigs) == 2)	% Often we have an empty Mir fig but that is very difficult to use here. So blow it
+			inds = [isempty(getappdata(hFigs(1), 'IAmAMirone')) isempty(getappdata(hFigs(2), 'IAmAMirone'))];
+			hFigs = hFigs(~inds);				% Only one of them is a Mirone fig
+			handThis = guidata(hFigs);
+			if (~handThis.validGrid)
+				delete(hFigs),	clear handThis
+			end
+		end
 		handles.hMirFig = mirone(Z, tmp);
 		move2side(handles.figure1,handles.hMirFig,'left')
 		handles.handMir = guidata(handles.hMirFig);			% Get the handles of the now existing Mirone fig
@@ -300,3 +310,15 @@ function set_common(handles, head)
 	set([handles.radio_stage handles.radio_xmoment handles.radio_ymoment handles.check_derivedVar], 'Enable', 'off')
 	set([handles.edit_x_min handles.edit_x_max handles.edit_y_min handles.edit_y_max ...
 		handles.edit_x_inc handles.edit_y_inc handles.edit_Ncols handles.edit_Nrows], 'Enable', 'inactive')
+
+% -----------------------------------------------------------------------------------------
+function R = illumByType(handles, Z, head, illumComm)
+% Compute the illuminance matrix in function of the illumination type
+
+	if ( get(handles.toggle_1, 'Val') )
+		if (handles.geog),  R = grdgradient_m(Z,head,'-M',illumComm,'-Nt');
+		else                R = grdgradient_m(Z,head,illumComm,'-Nt');
+		end
+	else
+		R = grdgradient_m(Z,head,illumComm);
+	end
