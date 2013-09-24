@@ -382,8 +382,8 @@ function push_swwName_CB(hObject, eventdata, handles, opt)
 
 	% Check if it's a netCDF file before decide what to do
 	fid = fopen(handles.fname, 'r');
-	ID = fread(fid,3,'*char');      ID = ID';      fclose(fid);
-	if (strcmpi(ID,'CDF'))
+	ID = fread(fid,4,'*char');      ID = ID';      fclose(fid);
+	if (strcmpi(ID(1:3),'CDF') || strcmpi(ID(2:4),'HDF'))
 		s = nc_funs('info',handles.fname);
 	else			% Some other format. Get it opened with gdalread in aqua_suppfuns
 		set(handles.check_splitDryWet,'Val',0)
