@@ -1528,25 +1528,42 @@ function erro = FileOpenGeoTIFF_CB(handles, tipo, opt)
 	att.fname = handles.fileName;						% If hdfread is used, it will need the file name (not eventual dataset name)
 	att.subDsName = '';
 
-	if ( att.RasterCount == 0 && ~isempty(att.Subdatasets) )
+	if (att.RasterCount == 0 && ~isempty(att.Subdatasets))
 		str = strrep(att.Subdatasets, '=', ' ');
 		c = false(1, numel(str));
+		c3D = false(1, numel(str));						% To keep trace of eventual 3D datasets
 		for (k = 2:2:numel(str))						% Seek for non-interesting (params) arrays 
 			indF = strfind(str{k}, ']');
 			ind = strfind(str{k}(1:indF), 'x');
-			if (isempty(ind) || numel(ind) > 1)			% Don't want 1D or 3D arrays
+			if (isempty(ind) || numel(ind) > 2)			% Don't want 1D or > 3D arrays
 				c(k) = true;	c(k-1) = true;		continue
+			elseif (numel(ind) == 2)
+				c3D(k) = true;
 			end
 			if ((indF - ind) == 2),		c(k) = true;	c(k-1) = true;	end		% Don't want arrays with less than 10 (2 char) columns
 		end
 		if (~all(c) && any(c)),		str(c) = [];	end	% Remove non-interesting arrays from sight
 
-		SS = get(0,'ScreenSize');
+		SS = get(0,'ScreenSize');	nChars = 0;
+		for (k = 1:numel(str)),		nChars = max(nChars, numel(str{k}));	end
 		[s,ok] = listdlg('PromptString',{'This file has subdatasets' 'you have to select one:'}, 'ListSize', ...
-				[min(numel(str{1})*6,SS(3)-100) min((size(str,1)*20 + 50), 200)], ...
+				[min(nChars*6, SS(3)-100) min((size(str,1)*20 + 50), 200)], ...
 				'Name','DATASET Selection', 'SelectionMode','single', 'ListString',str);	pause(0.01)
 		if (~ok),	return,		end						% Uset hit "Cancel"
-		if (rem(s,2) == 0),		s = s - 1;		end		% Selection was done over "description" and not the "name" 
+		if (rem(s,2) == 0),		s = s - 1;		end		% Selection was done over "description" and not the "name"
+
+		% Deal with case of smultaneous existence of one 3D and one or more 2D subdatasets
+		ind = find(c3D);
+		if (~isempty(ind) && (ind(1) - 1 == s))			% VERY PEDESTRIAN. WILL WORK ONLY FOR THE UNIQUE 3D-SUBDATASET CASE
+			handles.hMirFig = [];						% Informs aquamoto/slices that it has to create a new Fig to hold slice
+			if ( any(strncmp(att.Metadata,'NC_GLOBAL#TSU=',13)) )
+				aquamoto(handles, handles.fileName)
+			else
+				slices(handles, handles.fileName)
+			end
+			return
+		end
+
 		ind = strfind(str{s}, ' ');
 		FileName = str{s}(ind+1:end);					% First "ind" chars are of the form SUBDATASET_1_NAME=
 		handles.fileName = FileName;
@@ -1700,10 +1717,10 @@ function loadGRID(handles,fullname,tipo,opt)
 		if (isappdata(handles.figure1,'ProjGMT')),	rmappdata(handles.figure1,'ProjGMT'),	end
 		if (isappdata(handles.figure1,'Proj4')),	rmappdata(handles.figure1,'Proj4'),		end
 	end
-	handles = aux_funs('isProj',handles);		% Check about coordinates type
-	recentFiles(handles);						% Insert fileName into "Recent Files" & save handles
-	if (handles.nLayers > 1)
-		handles.hMirFig = handles.figure1;		% Informs slices of current fig handle but do not save it
+	handles = aux_funs('isProj',handles);			% Check about coordinates type
+	recentFiles(handles);							% Insert fileName into "Recent Files" & save handles
+	if (handles.nLayers > 1)						% nLayers was found inside the read_grid() call
+		handles.hMirFig = handles.figure1;			% Informs slices of current fig handle but do not save it
 		slices(handles, fullname)
 	end
 
