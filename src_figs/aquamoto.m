@@ -30,10 +30,10 @@ function varargout = aquamoto(varargin)
 	handles = guihandles(hObject);
  
 	got_a_file_to_start = [];		run_aquaPlugin = false;		handles.hMirFig = [];
-	if ( numel(varargin) > 0 && ~ischar(varargin{1}) )	% Expects Mirone handles as first arg
+	if (numel(varargin) > 0 && ~ischar(varargin{1}))	% Expects Mirone handles as first arg
 		handMir = varargin{1};
 		if (numel(varargin) == 2)
-			if ( exist(varargin{2}, 'file') == 2 )		% An input file name
+			if (exist(varargin{2}, 'file') == 2)		% An input file name
 				got_a_file_to_start = varargin{2};
 				handles.hMirFig = handMir.hMirFig;		% This fig already has first layer
 			end
@@ -404,16 +404,23 @@ function push_swwName_CB(hObject, eventdata, handles, opt)
 				errordlg('This netCDF file is not 3D. Use Mirone directly to read it.','Error')
 				return
 			end
+			if ( any(strcmp({s.Attribute.Name},'TSU')) )		% An NSWING TSUnami file
+				set(handles.check_splitDryWet, 'Val', 1)
+				handles.IamTSU = true;
+			else
+				set(handles.check_splitDryWet,'Val',0)
+			end
 			handles.nc_info = s;		% Save the nc file info
-			set(handles.check_splitDryWet,'Val',0)
 			aqua_suppfuns('coards_hdr',handles,X,Y,head,misc)
 			set(handles.push_showMesh,'Enable','off')
 			return
 		end
-		errordlg('ERROR: This .sww file is not of recognizable type. For example: "number_of_volumes" was not found.','Error')
+		errordlg('ERROR: This .sww file is not of recognized type. For example: "number_of_volumes" was not found.','Error')
 		set(handles.figure1,'pointer','arrow')
 		return
 	end
+
+	handles.IamTSU = false;
 
 	ind = strcmp(attribNames,'xllcorner');		xllcorner = 0;
 	if (any(ind)),	xllcorner = s.Attribute(ind).Value;		end
@@ -540,10 +547,10 @@ function push_swwName_CB(hObject, eventdata, handles, opt)
 % -----------------------------------------------------------------------------------------
 function push_showSlice_CB(hObject, eventdata, handles)
 % ...
-	if ( ~get(handles.radio_multiLayer, 'Val') && ~isempty(handles.nameList) )
+	if (~get(handles.radio_multiLayer, 'Val') && ~isempty(handles.nameList))
 		errordlg('This button is for exclusive use of ANUGA files. Not for "Time Grids" list.','Error'),	return
 	end
-	if ( isempty(handles.fname) ),		return,		end
+	if (isempty(handles.fname)),		return,		end
 
 	nx = str2double(get(handles.edit_Ncols,'String'));
 	ny = str2double(get(handles.edit_Nrows,'String'));
@@ -588,7 +595,7 @@ function push_showSlice_CB(hObject, eventdata, handles)
 
 	splitDryWet = get(handles.check_splitDryWet,'Val');		% See if we need to build a wet and dry images, or only one
 
-	if ( splitDryWet )
+	if (splitDryWet)
 		indLand = get_landInd(handles, x, y, indWater);		% Compute Dry/Wet indexes - have to recompute, ... since water ... moves
 		if (indVar - indVarShuffle == 8)					% Max Water option. Calculate once the Water delimiting polygon
 			handles.indMaxWater = ~indLand;
@@ -672,7 +679,7 @@ function push_showSlice_CB(hObject, eventdata, handles)
 		set(handles.handMir.figure1, 'Name', sprintf('SWW time = %g',handles.time(handles.sliceNumber+1)))
 	end
 
-	if ( splitDryWet )				% Get the final mixed land/water image 
+	if (splitDryWet)				% Get the final mixed land/water image 
 		if ( handles.useLandPhoto && ~handles.firstLandPhoto )
 			img = do_imgWater(handles, indVar, Z, [], indLand);		% [] means "no need to mix water/land sub-images"
 		else
@@ -681,7 +688,7 @@ function push_showSlice_CB(hObject, eventdata, handles)
 		set(handles.handMir.hImg, 'CData', img)				% IMG is always RGB
 	end
 
-	if ( ~isempty(U) )		% Plot vectors
+	if (~isempty(U))		% Plot vectors
 		x = linspace(handles.head(1),handles.head(2), numel(1:handles.vecSpacing:nx) );
 		y = linspace(handles.head(3),handles.head(4), numel(1:handles.vecSpacing:ny) );
 		U = double( mxgridtrimesh(handles.volumes, [handles.x(:) handles.y(:) U(:)],x,y) );
@@ -947,24 +954,24 @@ function img = do_imgWater(handles, indVar, Z, imgBat, indLand)
 
 % 	minmax = handles.ranges{indVar};		minmax = minmax(:)';
 	minmax = [handles.minWater handles.maxWater];		% Despite the name it respects the "indVar"
-	if ( ~get(handles.check_globalMinMax, 'Val') ),		minmax = [];	end		% Use Slice's min/max
-	if ( ~isempty(minmax) ),		imgWater = scaleto8(Z, 8, minmax);
-	else							imgWater = scaleto8(Z);
+	if (~get(handles.check_globalMinMax, 'Val')),		minmax = [];	end		% Use Slice's min/max
+	if (~isempty(minmax)),		imgWater = scaleto8(Z, 8, minmax);
+	else						imgWater = scaleto8(Z);
 	end
 
 	handles.handMir = guidata(handles.hMirFig);			% Get updated handles to see if illum has changed
-	if ( handles.handMir.Illumin_type >= 1 && handles.handMir.Illumin_type <= 4 )
+	if (handles.handMir.Illumin_type >= 1 && handles.handMir.Illumin_type <= 4)
 		illumComm = handles.waterIllumComm;
 		pal = get(handles.handMir.figure1,'Colormap');
-		if ( get(handles.check_splitDryWet, 'Val') ),	pal = handles.cmapWater;	end
+		if (get(handles.check_splitDryWet, 'Val')),		pal = handles.cmapWater;	end
 		imgWater = ind2rgb8(imgWater, pal);						% image is now RGB
 		R = illumByType(handles, Z, handles.head, illumComm);
 		imgWater = shading_mat(imgWater,R,'no_scale');			% and now it is illuminated
 		clear R;
 	end
-	if ( ndims(imgWater) == 2 ),	imgWater = ind2rgb8(imgWater,handles.cmapWater);	end		% Like promissed above
+	if (ndims(imgWater) == 2),	imgWater = ind2rgb8(imgWater,handles.cmapWater);	end		% Like promissed above
 	alfa = get(handles.slider_transparency, 'Val');
-	if ( ~isempty(imgBat) )
+	if (~isempty(imgBat))
 		img = mixe_images(handles, imgBat, imgWater, indLand, alfa);
 	else							% When we are using a Land external image the spliting is done via an AlphaData
 		img = imgWater;
@@ -1329,21 +1336,21 @@ function radio_noShade_CB(hObject, eventdata, handles)
 
 % -----------------------------------------------------------------------------------------
 function radio_shade_CB(hObject, eventdata, handles)
-	if ( ~get(hObject,'Val'))
+	if (~get(hObject,'Val'))
 		set(hObject,'Val', 1)
 		return
 	end
 	set(handles.radio_noShade, 'Val', 0)
 	set([handles.edit_azim handles.toggle_1 handles.toggle_2], 'Enable', 'on')
 	set(handles.h_line, 'HitTest', 'on')
-	if ( ~get(handles.toggle_1, 'Val') )
+	if (~get(handles.toggle_1, 'Val'))
 		set(handles.edit_elev, 'Enable', 'on')
 	end
 
 % -----------------------------------------------------------------------------------------
 function push_apply_CB(hObject, eventdata, handles)
-	% The job to be done is the same as in "Show slice"
-	if ( ishandle(handles.hMirFig) )
+% The job to be done is the same as in "Show slice"
+	if (ishandle(handles.hMirFig))
 		push_showSlice_CB(handles.push_showSlice, eventdata, handles)
 	end
 
@@ -3300,7 +3307,7 @@ uicontrol('Parent',h1, 'Position',[328 279 25 23],...
 'UserData','anuga');
 
 uicontrol('Parent',h1,'Position',[212 50 110 15],...
-'String','Split Dry/wet',...
+'String','Split Dry/Wet',...
 'Style','checkbox',...
 'TooltipString','If checked, water and land parts of the image are built separately - Nice with shadings.',...
 'Value',1,...
