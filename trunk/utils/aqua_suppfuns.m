@@ -210,7 +210,7 @@ function coards_sliceShow(handles, Z)
 	if (isa(Z,'single'))
 		have_nans = grdutils(Z,'-N');			% No worry, very fast
 	end
-	if ( have_nans && handles.useLandPhoto )
+	if (have_nans && handles.useLandPhoto)
 		alphaMask = alloc_mex(size(Z),'uint8');	% Create an image mask of Dry/Wets
 		alphaMask(~isnan(Z)) = 255;				% nan pixeis will be transparent
 	end
@@ -233,7 +233,7 @@ function coards_sliceShow(handles, Z)
 		move2side(handles.figure1,handles.hMirFig,'left')
 		handles.handMir = guidata(handles.hMirFig);			% Get the handles of the now existing Mirone fig
 		handles.firstLandPhoto = true;
-		if ( handles.useLandPhoto )
+		if (handles.useLandPhoto)
 			h = image('XData',handles.geoPhotoX,'YData',handles.geoPhotoY, 'CData',handles.geoPhoto, 'Parent',handles.handMir.axes1);
 			uistack(h,'bottom')
 			handles.firstLandPhoto = false;
@@ -246,7 +246,7 @@ function coards_sliceShow(handles, Z)
 			setappdata(handles.handMir.figure1,'dem_z',Z);	% Update grid so that coursor display correct values
 		end													% Have to do it here because minmax arg to scalet8 CHANGES Z
 
-		if ( handles.useLandPhoto )							% External Land image
+		if (handles.useLandPhoto)							% External Land image
 			if (handles.firstLandPhoto)						% First time, create the background image
 				h = image('XData',handles.geoPhotoX,'YData',handles.geoPhotoY, 'CData',handles.geoPhoto, 'Parent',handles.handMir.axes1);
 				uistack(h,'bottom')
@@ -255,27 +255,34 @@ function coards_sliceShow(handles, Z)
 			set(handles.handMir.hImg,'AlphaData',alphaMask)	% 'alphaMask' was updated ... somewhere
 		end
 
-		if ( ~get(handles.check_globalMinMax, 'Val') ),		minmax = [];		% Use Slice's min/max
+		if (~get(handles.check_globalMinMax, 'Val')),		minmax = [];		% Use Slice's min/max
 		else							minmax = handles.zMinMaxsGlobal;
 		end
 		if (isa(Z,'int8') && ~isempty(minmax)),	minmax = [];	end	% We don't want to scale a 1 byte array
 
 		if (~isa(Z,'uint8'))
-			if ( ~isempty(minmax) ),		img = scaleto8(Z, 8, minmax);
-			else							img = scaleto8(Z);
+			if (~isempty(minmax)),		img = scaleto8(Z, 8, minmax);
+			else						img = scaleto8(Z);
 			end
 		else
 			img = Z;
 		end
 
-		if ( get(handles.radio_shade, 'Val') )
+		if (get(handles.radio_shade, 'Val'))
 			indVar = 1;									% FAR FROM SURE THAT THIS IS CORRECT
 			img = ind2rgb8(img, handles.cmapLand);		% img is now RGB
 			head = handles.head;
-			if ( ~isempty(handles.ranges{indVar}) ),	head(5:6) = handles.ranges{indVar};		end
+			if (~isempty(handles.ranges{indVar})),		head(5:6) = handles.ranges{indVar};		end
 			R = illumByType(handles, Z, head, handles.landIllumComm);
 			img = shading_mat(img,R,'no_scale');		% and now it is illuminated
 		end
+
+% 		if (handles.IamTSU && get(handles.check_splitDryWet, 'Val'))
+% 			zBat = nc_funs('varget', handles.fname, 'bathymetry');
+% 			dife = cvlib_mex('absDiff', zBat, Z);
+% 			indLand = (dife < 1e-3);					% The 1e-3 SHOULD be parameterized
+%			img = do_imgWater(handles, indVar, Z, handles.imgBat, indLand);
+% 		end
 
 		set(handles.handMir.hImg, 'CData', img)
 		set(handles.handMir.figure1, 'Name', sprintf('Level = %.10g',handles.time(handles.sliceNumber+1)))
