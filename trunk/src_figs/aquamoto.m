@@ -25,11 +25,17 @@ function varargout = aquamoto(varargin)
 
 % For compiling one need to include the aqua_suppfuns.m aquaPlugin.m files.
 
+	if (nargin > 1 && ischar(varargin{1}))
+		gui_CB = str2func(varargin{1});
+		[varargout{1:nargout}] = feval(gui_CB,varargin{2:end});
+		return
+	end
+
 	hObject = figure('Tag','figure1','Visible','off');
 	aquamoto_LayoutFcn(hObject);
 	handles = guihandles(hObject);
  
-	got_a_file_to_start = [];		run_aquaPlugin = false;		handles.hMirFig = [];
+	got_a_file_to_start = [];		handles.hMirFig = [];
 	if (numel(varargin) > 0 && ~ischar(varargin{1}))	% Expects Mirone handles as first arg
 		handMir = varargin{1};
 		if (numel(varargin) == 2)
@@ -46,17 +52,8 @@ function varargout = aquamoto(varargin)
 		handles.IamCompiled = handMir.IamCompiled;
         d_path = handMir.path_data;
 	else
-		if (numel(varargin) >= 1)		% File name in input
-			if ( exist(varargin{1}, 'file') == 2 )
-				got_a_file_to_start = varargin{1};
-			end
-			if (numel(varargin) == 2)		% Run aquaPlugin after loading input file
-				if (ischar(varargin{2}))
-					run_aquaPlugin = varargin{2};	% Name of the control script
-				else
-					run_aquaPlugin = true;			% Search the control script in OPTcontrol.txt
-				end
-			end
+		if (numel(varargin) >= 1 && (exist(varargin{1}, 'file') == 2))		% File name in input
+			got_a_file_to_start = varargin{1};
 		end
 		mir_dirs = getappdata(0,'MIRONE_DIRS');
 		if (~isempty(mir_dirs))
@@ -118,6 +115,7 @@ function varargout = aquamoto(varargin)
 	handles.spacingChanged = false;		% To signal quiver when old arrows should be deleted
 	handles.useLandPhoto = false;
 	handles.firstLandPhoto = true;
+	handles.landIllumComm_bak = '';	% To know when recompute the land illumination 
 
 	set(handles.popup_derivedVar, 'String', ...
 		{'Absolute Velocity (V)'; ...
@@ -285,17 +283,12 @@ function varargout = aquamoto(varargin)
 	show_needed(handles,'grdgradient_A')
 	set(handles.edit_azim,'Visible','off')	% We need to this to invisible again because is too soon to show it up
 	set(handles.toggle_1,'Value',1)         % Start it in a pressed state
-	set(hObject,'WindowButtonDownFcn',{@ButtonDown,h_line,handles});
+	set(hObject,'WindowButtonDownFcn',{@ButtonDown,h_line});
 
 	% If we got a file in input
 	if (~isempty(got_a_file_to_start))
 		push_swwName_CB(handles.push_swwName, [], handles, got_a_file_to_start)
 		handles = guidata(handles.figure1);		% Get updated handles
-		% And now, if asked for, run the aquaPlugin
-		if (run_aquaPlugin),	aquaPlugin(handles, run_aquaPlugin),	end
-	else
-		% This will cause a silent error but it also load the mex file in memory so it will be fast on "first" use
-		try		mexnc('open', 'lixoxo', 0 );	end
 	end
 
 	guidata(hObject, handles);
@@ -960,7 +953,7 @@ function img = do_imgWater(handles, indVar, Z, imgBat, indLand)
 	end
 
 	handles.handMir = guidata(handles.hMirFig);			% Get updated handles to see if illum has changed
-	if (handles.handMir.Illumin_type >= 1 && handles.handMir.Illumin_type <= 4)
+	if (get(handles.radio_shade, 'Val'))
 		illumComm = handles.waterIllumComm;
 		pal = get(handles.handMir.figure1,'Colormap');
 		if (get(handles.check_splitDryWet, 'Val')),		pal = handles.cmapWater;	end
@@ -1242,16 +1235,18 @@ function push_vel_CB(hObject, eventdata, handles)
 
 % -----------------------------------------------------------------------------------------
 function toggle_1_CB(hObject, eventdata, handles)
+	paint_toggle_ico(handles.toggle_1, handles.toggle_2)
 	show_needed(handles,'grdgradient_A')
-	if (get(handles.radio_land,'Value')),   handles.landCurrIllumType = 'grdgradient_A';
+	if (get(handles.radio_land,'Value')),   handles.landCurrIllumType  = 'grdgradient_A';
 	else                                    handles.waterCurrIllumType = 'grdgradient_A';
 	end
 	ButtonUp([],[],handles.h_line,handles)		% This call updates the handles. water|land IllumComm
 
 % -----------------------------------------------------------------------------------------
 function toggle_2_CB(hObject, eventdata, handles)
+	paint_toggle_ico(handles.toggle_2, handles.toggle_1)
 	show_needed(handles,'lambertian')
-	if (get(handles.radio_land,'Value')),   handles.landCurrIllumType = 'lambertian';
+	if (get(handles.radio_land,'Value')),   handles.landCurrIllumType  = 'lambertian';
 	else                                    handles.waterCurrIllumType = 'lambertian';
 	end
 	ButtonUp([],[],handles.h_line,handles)		% This call updates the handles. water|land IllumComm
@@ -1260,10 +1255,15 @@ function toggle_2_CB(hObject, eventdata, handles)
 function radio_land_CB(hObject, eventdata, handles)
 	if (~get(hObject,'Value')),		set(hObject,'Value',1),		return,		end
 
+	if (strcmp(handles.landCurrIllumType, 'lambertian'))
+		paint_toggle_ico(handles.toggle_2, handles.toggle_1)
+	else
+		paint_toggle_ico(handles.toggle_1, handles.toggle_2)
+	end
 	set(handles.radio_water,'Value',0)
 	set(handles.h_line(1),'XData',handles.landLineAzBack(1:2),'YData',handles.landLineAzBack(3:4))
 	set(handles.h_line(2),'XData',handles.landLineElevBack(1:2),'YData',handles.landLineElevBack(3:4))
-	show_needed(handles,handles.landCurrIllumType)
+	show_needed(handles, handles.landCurrIllumType)
 	set(handles.edit_azim,'String', handles.landAzStrBack)
 	set(handles.edit_elev,'String', handles.landElevStrBack)
 	str = sprintf(['Set parametrs for Land illumination\nCurrent selection (in GMT parlance) is:\n',...
@@ -1275,6 +1275,11 @@ function radio_land_CB(hObject, eventdata, handles)
 function radio_water_CB(hObject, eventdata, handles)
 	if (~get(hObject,'Value')),		set(hObject,'Value',1),		return,		end
 
+	if (strcmp(handles.waterCurrIllumType, 'lambertian'))
+		paint_toggle_ico(handles.toggle_2, handles.toggle_1)
+	else
+		paint_toggle_ico(handles.toggle_1, handles.toggle_2)
+	end
 	set(handles.radio_land,'Value',0)
 	set(handles.h_line(1),'XData',handles.waterLineAzBack(1:2),'YData',handles.waterLineAzBack(3:4))
 	set(handles.h_line(2),'XData',handles.waterLineElevBack(1:2),'YData',handles.waterLineElevBack(3:4))
@@ -1285,6 +1290,18 @@ function radio_water_CB(hObject, eventdata, handles)
 		handles.waterIllumComm]);
 	set(hObject,'TooltipString',str)
 	set(handles.push_palette,'TooltipString','Choose another Water palette')
+
+% -----------------------------------------------------------------------------------------
+function paint_toggle_ico(hTogg1, hTogg2)
+% Put a mark in the icon of the currently selected toggle button to easy identification of the active one
+% HTOGG1 is the handle of the button that is going to be marked and HTOGG2 unmarked
+	cdata_me = get(hTogg1, 'CData');
+	cdata_tu = get(hTogg2, 'CData');
+	ind = [1 2 3 4 13 14 15 16 17 18 19 30 31 32 33 34 47 48 49 64];
+	cdata_me(ind) = 200;	cdata_me(ind+16*16) = 0;	cdata_me(ind+2*16*16) = 0;
+	cdata_tu(ind) = 255;	cdata_tu(ind+16*16) = 255;	cdata_tu(ind+2*16*16) = 255;
+	set(hTogg1, 'CData', cdata_me);
+	set(hTogg2, 'CData', cdata_tu, 'Val', 0);
 
 % -----------------------------------------------------------------------------------------
 function push_palette_CB(hObject, eventdata, handles)
@@ -1921,7 +1938,7 @@ function push_landPhoto_CB(hObject, eventdata, handles, opt)
 % -----------------------------------------------------------------------------------------
 function show_needed(handles,opt)
 	h_all = handles.h_line;
-	if (strncmp(opt,'grdgradient',11))
+	if (strcmp(opt,'grdgradient'))
 		set(handles.edit_elev,'Enable','off');			set(handles.edit_azim,'Visible','on')
 		set(handles.text_elev,'Enable','on');			set(handles.edit_azim,'Enable','on');
 		set(handles.text_azim,'Enable','on');
@@ -1936,22 +1953,24 @@ function show_needed(handles,opt)
 	guidata(handles.figure1,handles)
 
 % -----------------------------------------------------------------------------------------
-function ButtonDown(obj,eventdata,h_all,handles)
-	% It could be cleverer.
+function ButtonDown(obj, evt, h_all)
+% It could be cleverer.
+	handles = guidata(obj);
 	pt = get(gca, 'CurrentPoint');
 	x_lim = get(gca,'xlim');      y_lim = get(gca,'ylim');
 	% check if x,y is inside of axis
-	if ~((pt(1,1)>=x_lim(1)) && (pt(1,1)<=x_lim(2)) && (pt(1,2)>=y_lim(1)) && (pt(1,2)<=y_lim(2)))    % outside axis limits
+	if ~((pt(1,1) >= x_lim(1)) && (pt(1,1) <= x_lim(2)) && (pt(1,2) >= y_lim(1)) && (pt(1,2) <= y_lim(2)))  % outside axis limits
 		return
 	end
 	if any(h_all == gco)
 		h = h_all(h_all == gco);    % When more than one line handle exists, find only the selected one
-		set(handles.figure1,'WindowButtonMotionFcn',{@ButtonMotion,h,handles},'WindowButtonUpFcn',{@ButtonUp,h_all,handles},...
-			'Pointer', 'crosshair');
+		set(handles.figure1,'WindowButtonMotionFcn',{@ButtonMotion,h}, ...
+			'WindowButtonUpFcn',{@ButtonUp,h_all}, 'Pointer', 'crosshair');
 	end
 
 % -----------------------------------------------------------------------------------------
-function ButtonMotion(obj,eventdata,h,handles)
+function ButtonMotion(obj, evt, h)
+	handles = guidata(obj);
 	selectionType = get(handles.figure1, 'SelectionType');
 	pt = get(gca, 'CurrentPoint');
 	if strcmp(selectionType, 'normal')      % right-cick
@@ -1979,15 +1998,18 @@ function ButtonMotion(obj,eventdata,h,handles)
 	end
 
 % -----------------------------------------------------------------------------------------
-function ButtonUp(obj,eventdata,h,handles)
-	handles = guidata(handles.figure1);     % We need an updated version
+function ButtonUp(obj, evt, h, handles)
+	if (nargin == 3)
+		handles = guidata(obj);
+	end
 	set(handles.figure1,'WindowButtonMotionFcn','','WindowButtonDownFcn', ...
-		{@ButtonDown,h,handles},'WindowButtonUpFcn','');
+		{@ButtonDown,h},'WindowButtonUpFcn','');
 	set(handles.figure1,'Pointer', 'arrow')
 	azim = get(handles.edit_azim,'String');
 	xdataAz = get(h(1),'XData');        ydataAz = get(h(1),'YData');
 	xdataElev = get(h(2),'XData');      ydataElev = get(h(2),'YData');
 	if (get(handles.radio_land,'Value'))    % We are setting the LAND illum params
+		handles.landIllumComm_bak = handles.landIllumComm;	% Use this to know if bat illum must be recomputed
 		if (get(handles.toggle_1,'Value'))  % grdgradient classic
 			handles.landIllumComm = ['-A' azim];
 		else                                % Lambertian
@@ -2634,7 +2656,7 @@ uicontrol('Parent',h1, 'Position',[690 246 221 158],...
 
 uicontrol('Parent',h1,...
 'Call',{@aquamoto_uiCB,h1,'toggle_1_CB'},...
-'Position',[470 537 20 20],...
+'Position',[469 537 23 23],...
 'Enable', 'off',...
 'Style','togglebutton',...
 'TooltipString','GMT grdgradient classic Illumination',...
@@ -2643,7 +2665,7 @@ uicontrol('Parent',h1,...
 
 uicontrol('Parent',h1,...
 'Call',{@aquamoto_uiCB,h1,'toggle_2_CB'},...
-'Position',[491 537 20 20],...
+'Position',[492 537 23 23],...
 'Enable', 'off',...
 'Style','togglebutton',...
 'TooltipString','Lambertian with lighting Illumination',...
@@ -2690,7 +2712,7 @@ uicontrol('Parent',h1,...
 uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
 'Enable','off',...
-'Position',[513 419 34 21],...
+'Position',[513 420 34 20],...
 'String','0',...
 'Style','edit',...
 'TooltipString','Azimuth direction',...
@@ -2701,7 +2723,7 @@ uicontrol('Parent',h1,...
 'FontName','Helvetica',...
 'FontSize',9,...
 'HorizontalAlignment','left',...
-'Position',[469 420 42 16],...
+'Position',[469 420 44 16],...
 'String','Azimuth',...
 'Style','text',...
 'Tag','text_azim',...
@@ -2954,7 +2976,7 @@ uicontrol('Parent',h1,...
 'FontSize',9,...
 'FontWeight','bold',...
 'Position',[445 355 170 34],...
-'String',{  'OR (fantastic)'; 'Satelitte/Aerial Photograph' },...
+'String',{'OR'; 'Georeferenced Image'},...
 'Style','text',...
 'Tag','text28',...
 'UserData','shade');
