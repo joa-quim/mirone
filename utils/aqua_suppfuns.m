@@ -277,12 +277,27 @@ function coards_sliceShow(handles, Z)
 			img = shading_mat(img,R,'no_scale');		% and now it is illuminated
 		end
 
-% 		if (handles.IamTSU && get(handles.check_splitDryWet, 'Val'))
-% 			zBat = nc_funs('varget', handles.fname, 'bathymetry');
-% 			dife = cvlib_mex('absDiff', zBat, Z);
-% 			indLand = (dife < 1e-3);					% The 1e-3 SHOULD be parameterized
-%			img = do_imgWater(handles, indVar, Z, handles.imgBat, indLand);
-% 		end
+		if (handles.IamTSU && get(handles.check_splitDryWet, 'Val'))
+			zBat = nc_funs('varget', handles.fname, 'bathymetry');
+			recomp = false;
+			if (~isempty(handles.landIllumComm_bak) && ~isequal(handles.landIllumComm_bak, handles.landIllumComm))
+				recomp = true;
+			end
+			if (recomp || isempty(handles.imgBat))	% First time, compute it (not shaded)
+				% Put the cmap discontinuity at the zero of bat
+				zz = grdutils(zBat,'-L');	% I'm lazy to fish this inside the s info struct
+				head = handles.head;	head(5:6) = [zz(1) zz(2)];
+				handles.cmapBat = aquamoto('makeCmapBat', handles, head, handles.cmapLand, 1);
+				handles.imgBat = ind2rgb8(scaleto8(zBat), handles.cmapBat);
+				if (get(handles.radio_shade, 'Val'))
+					R = aquamoto('illumByType', handles, zBat, head, handles.landIllumComm);
+					handles.imgBat = shading_mat(handles.imgBat, R, 'no_scale');
+				end
+			end
+			dife = cvlib_mex('absDiff', zBat, Z);
+			indLand = (dife < 1e-3);					% The 1e-3 SHOULD be parameterized
+			img = aquamoto('do_imgWater', handles, 1, Z, handles.imgBat, indLand);
+		end
 
 		set(handles.handMir.hImg, 'CData', img)
 		set(handles.handMir.figure1, 'Name', sprintf('Level = %.10g',handles.time(handles.sliceNumber+1)))
