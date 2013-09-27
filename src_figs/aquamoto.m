@@ -586,7 +586,7 @@ function push_showSlice_CB(hObject, eventdata, handles)
 
 	handles.head(5:6) = double([min(Z(:)) max(Z(:))]);
 
-	splitDryWet = get(handles.check_splitDryWet,'Val');		% See if we need to build a wet and dry images, or only one
+	splitDryWet = get(handles.check_splitDryWet,'Val');		% See if we need to build wet and dry images, or only one
 
 	if (splitDryWet)
 		indLand = get_landInd(handles, x, y, indWater);		% Compute Dry/Wet indexes - have to recompute, ... since water ... moves
@@ -600,9 +600,9 @@ function push_showSlice_CB(hObject, eventdata, handles)
 
 		if (handles.useLandPhoto)
 			alfa = round((1 - get(handles.slider_transparency, 'Val')) * 255);	% (1 - val) since it will be applyied to Land
-			if ( ~isempty(handles.hMirFig) && ishandle(handles.handMir.hImg) )	% A Mirone figure with image already exists
+			if (~isempty(handles.hMirFig) && ishandle(handles.handMir.hImg))	% A Mirone figure with image already exists
 				alphaMask = get(handles.handMir.hImg,'AlphaData');
-				if ( numel(alphaMask) == 1 )			% No AlphaMask yet, but we'll need one further down
+				if (numel(alphaMask) == 1)		% No AlphaMask yet, but we'll need one further down
 					alphaMask = alloc_mex(size(indLand),'uint8');	% Create an image mask of Dry/Wets
 					alphaMask(~indLand) = alfa;
 				else							% AlphaMask exists, but we need to update it to reflect this slice water level
@@ -673,7 +673,7 @@ function push_showSlice_CB(hObject, eventdata, handles)
 	end
 
 	if (splitDryWet)				% Get the final mixed land/water image 
-		if ( handles.useLandPhoto && ~handles.firstLandPhoto )
+		if (handles.useLandPhoto && ~handles.firstLandPhoto)
 			img = do_imgWater(handles, indVar, Z, [], indLand);		% [] means "no need to mix water/land sub-images"
 		else
 			img = do_imgWater(handles, indVar, Z, handles.imgBat, indLand);
@@ -996,7 +996,7 @@ function imgBat = do_imgBat(handles, indVar, x, y)
 function R = illumByType(handles, Z, head, illumComm)
 % Compute the illuminance matrix in function of the illumination type
 
-	if ( get(handles.toggle_1, 'Val') )
+	if (strncmp(illumComm, '-A', 2))	% This is a bit risky if I ever add other illumination options
 		if (handles.geog),  R = grdgradient_m(Z,head,'-M',illumComm,'-Nt');
 		else                R = grdgradient_m(Z,head,illumComm,'-Nt');
 		end
@@ -1063,12 +1063,11 @@ function new_cmap = makeCmapBat(handles, head, cmap, orig)
 
 	if (~orig),		new_cmap = cmap;	return,		end		% Untill I know better what to do
 
-	% Isto assume que a bat tem partes neg e pos (testar)
+	% This assumes that the bat has negative and positives
 	% cmap = handles.terraMar;
 	% ind_old = 147;			% Discontinuity in the handles.terraMar cmap
-	cmap(end-4:end,:) = [];		% Remove last five colors (nearly white)
-	cmap = [repmat([196 156 104]/255,5,1); cmap];		% Add a yelowish color
-	ind_old = 5;				% New discontinuity in cmap
+	cmap = [[196 156 104]/255; cmap(1:end-1,:)];		% Add a yelowish color and remove last (nearly white)
+	ind_old = 2;				% New discontinuity in cmap
 
 	nc = length(cmap);
 	z_inc = (head(6) - head(5)) / (nc - 1);
@@ -1323,7 +1322,7 @@ function push_palette_CB(hObject, eventdata, handles)
 		else
 			handles.cmapWater = cmap;
 		end
-		set(handles.check_resetCmaps,'Enable','on')
+		set(handles.check_resetCmaps,'Vis','on')
 		guidata(handles.figure1,handles)
 	end
 
@@ -1440,11 +1439,23 @@ function push_movieName_CB(hObject, eventdata, handles, opt)
 		fname = opt;
 		if (~isempty(PathName)),	PathName = [PathName filesep];	end		% To be coherent with the 'if' branch
 	end
+	if (isempty(EXT))
+		if (get(handles.radio_gif,'Value')),		EXT = '.gif';
+		elseif (get(handles.radio_mpg,'Value')),	EXT = '.mpg';
+		else										EXT = '.avi';
+		end
+		fname = [fname EXT];
+	end
 	if ( ~any(strcmpi(EXT,{'.gif' '.avi' '.mpg' '.mpeg'})) )
 		errordlg('Ghrrrrrrrr! Don''t be smart. Only ''.gif'', ''.avi'', ''.mpg'' or ''mpeg'' extensions are acepted.', ...
             'Chico Clever');
 		return
 	end
+	if (isempty(PathName))
+		PathName = fileparts(handles.fname);
+		fname = [PathName filesep fname];
+	end
+
 	set(handles.edit_movieName, 'String', fname)
 	
 	handles.moviePato = PathName;			handles.movieName = FNAME;
@@ -1465,7 +1476,7 @@ function edit_multiLayerInc_CB(hObject, eventdata, handles)
 % Get the increment for movie of a multi-layer grid.
 	str = get(hObject, 'String');
 	xx = round( str2double(str) );
-	if ( isnan(xx) )		% As will be the case if we have a start:inc:stop
+	if (isnan(xx))				% As will be the case if we have a start:inc:stop
 		ind = strfind(str,':');			% Search for a start:inc:end form
 		if (numel(ind) == 2)
 			start = round( str2double( str(1:(ind(1)-1)) ) );
@@ -1483,7 +1494,7 @@ function edit_multiLayerInc_CB(hObject, eventdata, handles)
 		catch
 			set(hObject, 'String', 1),			handles.multiLayerInc = 1;
 		end
-	elseif ( xx < 1)
+	elseif (xx < 1)
 		set(hObject, 'String', 1)
 		handles.multiLayerInc = 1:handles.number_of_timesteps;
 	else
@@ -1519,12 +1530,12 @@ function push_OK_CB(hObject, eventdata, handles, opt)
 	end
 
 	% ------------------------- Do a movie (if so) from a "packed" netcdf file ------------------------
-	if ( get(handles.radio_multiLayer, 'Val') )
-		if ( isempty(handles.fname) )
+	if (get(handles.radio_multiLayer, 'Val'))
+		if (isempty(handles.fname))
 			errordlg('Sorry, I can''t make movies out of a ... NOTHIIIINGGGG. Percebes???','ERROR');
 			return
 		end
-		if ( numel(handles.multiLayerInc) == 1 )		% A const increment. Build the slice vector
+		if (numel(handles.multiLayerInc) == 1)			% A const increment. Build the slice vector
 			slice_vec = 1:handles.multiLayerInc:handles.number_of_timesteps;
 		else
 			slice_vec = handles.multiLayerInc;			% Increments were already in a vector form
@@ -1533,10 +1544,10 @@ function push_OK_CB(hObject, eventdata, handles, opt)
 		aguentabar(0,'title','Relax and wait ... I''m flooding','createcancelbtn');
 		n_slices = numel(slice_vec);
 		M.cdata = [];		M.colormap = [];
-		for (i = 1:n_slices )
+		for (i = 1:n_slices)
 			handles.sliceNumber = slice_vec(i) - 1;
 			if (handles.is_sww)
-				push_showSlice_CB([], [], handles)	% and update image (also saves handles)
+				push_showSlice_CB([], [], handles)		% and update image (also saves handles)
 			elseif (handles.is_coards)
 				aqua_suppfuns('coards_slice', handles)
 			elseif (handles.is_otherMultiband)
@@ -1559,7 +1570,7 @@ function push_OK_CB(hObject, eventdata, handles, opt)
 			if (ndims(img) == 3),	map = [];
 			else					map = get(handles.handMir.figure1,'Colormap');
 			end
-			[M, map] = aux_movie(handles, is_gif, is_mpg, is_avi, img, i, M, map);
+			[M, map] = aux_movie(handles, is_gif, is_mpg, is_avi, img, i, M, map);	% Save in file too
 		end
 		if (is_avi)
 			mname = [handles.moviePato handles.movieName '.avi'];
@@ -1740,7 +1751,7 @@ function push_OK_CB(hObject, eventdata, handles, opt)
 
 % -----------------------------------------------------------------------------------------
 function [M, map] = aux_movie(handles, is_gif, is_mpg, is_avi, img, i, M, map)
-% Auxiliary function to write movie frames
+% Auxiliary function to write movie frames. In case of GIFs we write to file directly here
 	if (nargin == 7),	map = [];	end
 	if ( (ndims(img) == 3) && (is_gif || is_mpg) )
 		dither = 'nodither';
@@ -1819,7 +1830,7 @@ function edit_globalWaterMin_CB(hObject, eventdata, handles)
 % -----------------------------------------------------------------------------------------
 function edit_landPhoto_CB(hObject, eventdata, handles)
 	fname = get(hObject,'String');
-	if ( ~isempty(fname) )
+	if (~isempty(fname))
 		push_landPhoto_CB([], [], handles, fname)
 	else					% Reset
 		handles.geoPhoto = [];
@@ -1829,7 +1840,7 @@ function edit_landPhoto_CB(hObject, eventdata, handles)
 
 % -----------------------------------------------------------------------------------------
 function push_landPhoto_CB(hObject, eventdata, handles, opt)
-	if ( isempty(handles.head) && isempty(handles.head_bat) )
+	if (isempty(handles.head) && isempty(handles.head_bat))
 		errordlg('You need to load the grid data first. Only than I''l know what to do with this image.','Error')
 		return
 	end
@@ -1858,7 +1869,7 @@ function push_landPhoto_CB(hObject, eventdata, handles, opt)
 		try		att = gdalread(fileName,'-M','-C');
 		catch,	errordlg(lasterr,'Error'),	return
 		end
-		if ( att.RasterCount == 0 || att.RasterCount > 3 || ~strcmp(att.Band(1).DataType,'Byte') )
+		if (att.RasterCount == 0 || att.RasterCount > 3 || ~strcmp(att.Band(1).DataType,'Byte'))
 			errordlg('Hmm, I don''t think this is an apropriate file to use here. Bye Bye','ERROR'),	return
 		end
 		opt_U = '-U';		if (isempty(att.GeoTransform)),		opt_U = ' ';	end
@@ -1871,16 +1882,16 @@ function push_landPhoto_CB(hObject, eventdata, handles, opt)
 			errordlg('I''m sorry but your file doesn''t seam to be georerefrenced. At least one that GDAL understands.','Error')
 			return
 		end
-		if (strcmpi(att.ColorInterp,'palette') && ~isempty(att.Band(1).ColorMap) )
+		if (strcmpi(att.ColorInterp,'palette') && ~isempty(att.Band(1).ColorMap))
 			try		pal = att.Band(1).ColorMap.CMap;     pal = pal(:,1:3);       % GDAL creates a Mx4 colormap
 			catch,	errordlg('Figure ColorMap had troubles. Quiting.','ERROR'),		return
 			end
 			I = ind2rgb8(I, pal);
-		elseif ( strcmpi(att.ColorInterp,'gray') )
-			pal = repmat( (att.GMT_hdr(5):att.GMT_hdr(6))' / 255, 1, 3);
+		elseif (strcmpi(att.ColorInterp,'gray'))
+			pal = repmat((att.GMT_hdr(5):att.GMT_hdr(6))' / 255, 1, 3);
 			I = ind2rgb8(I, pal);
 		end
-		if ( ndims(I) == 2 )
+		if (ndims(I) == 2)
 			errordlg('Unknow error in file. Something to do with an uncorrect color palette.','ERROR'),		return
 		end
 
@@ -1889,27 +1900,27 @@ function push_landPhoto_CB(hObject, eventdata, handles, opt)
 		catch,	errordlg(lasterr,'Error'),	return	% It realy may happen
 		end
 		I = flipdim(I,1);
-		if ( ndims(I) == 2 && ~isempty(pal) )
+		if (ndims(I) == 2 && ~isempty(pal))
 			I = ind2rgb8(I, pal);
-		elseif ( ndims(I) == 2 && isempty(pal) )
+		elseif (ndims(I) == 2 && isempty(pal))
 			errordlg('Unknow error in file. The image is indexed but the color palette is empty.','ERROR'),		return
 		end
 	end
 	
-	if ( check_fw )
+	if (check_fw)
 		[head,err_msg] = tfw_funs('inquire',[size(I,1) size(I,2)],PATH,FNAME,EXT);  % See if we have .*fw file
 		if (~isempty(err_msg))
 			warndlg(['A registering world file was found but the following error occured: ' err_msg],'Warning')
 		end
 	end
 	
-	if ( isempty(head) )
+	if (isempty(head))
 		errordlg('Most probably a BUG in calculating the file''s header. Please inform base.','ERROR'),		return
 	end
 
 	handles.headGeoImage = head;
 
-	if ( ~isempty(handles.head) )		% SWW file present
+	if (~isempty(handles.head))			% SWW file present
 		rect_crop = [handles.head(1) handles.head(3) diff(handles.head(1:2)) diff(handles.head(3:4))];
 	else								% List of grids
 		rect_crop = [handles.head_bat(1) handles.head_bat(3) diff(handles.head_bat(1:2)) diff(handles.head_bat(3:4))];
@@ -1929,7 +1940,7 @@ function push_landPhoto_CB(hObject, eventdata, handles, opt)
 	handles.geoPhotoY = [head(3) + (r_c(1)-1)*head(9) head(3) + (r_c(2)-1)*head(9)];
 	handles.useLandPhoto = true;
 
-	if ( ishandle(handles.hMirFig) )
+	if (ishandle(handles.hMirFig))
 		push_showSlice_CB([], [], handles)	% and update image (also saves handles)
 	end
 	set([handles.textResize handles.popup_resize], 'Enable', 'off')
@@ -1938,7 +1949,7 @@ function push_landPhoto_CB(hObject, eventdata, handles, opt)
 % -----------------------------------------------------------------------------------------
 function show_needed(handles,opt)
 	h_all = handles.h_line;
-	if (strcmp(opt,'grdgradient'))
+	if (strncmp(opt,'grdgradient',3))
 		set(handles.edit_elev,'Enable','off');			set(handles.edit_azim,'Visible','on')
 		set(handles.text_elev,'Enable','on');			set(handles.edit_azim,'Enable','on');
 		set(handles.text_azim,'Enable','on');
@@ -1999,6 +2010,7 @@ function ButtonMotion(obj, evt, h)
 
 % -----------------------------------------------------------------------------------------
 function ButtonUp(obj, evt, h, handles)
+% This function is also called directly by the toggle_1|2 functions where is used to set also the 'IllumComm'
 	if (nargin == 3)
 		handles = guidata(obj);
 	end
@@ -2060,8 +2072,8 @@ function push_batGrid_CB(hObject, eventdata, handles, opt)
 	handles.reinterpolated_bat = false;		% In case we need to reinterpolate bat to be compatible with water grid
 	set(handles.edit_batGrid,'String',fname)
 	[dump,FNAME] = fileparts(FileName);
-	if ( get(handles.radio_gif,'Value') ),		EXT = '.gif';
-	elseif ( get(handles.radio_mpg,'Value') )   EXT = '.mpg';
+	if (get(handles.radio_gif,'Value')),		EXT = '.gif';
+	elseif (get(handles.radio_mpg,'Value')),	EXT = '.mpg';
 	else										EXT = '.avi';
 	end
 	handles.moviePato = PathName;
@@ -2938,7 +2950,7 @@ uicontrol('Parent',h1,...
 
 uicontrol('Parent',h1,...
 'Call',{@aquamoto_uiCB,h1,'push_palette_CB'},...
-'Position',[599 514 18 18],...
+'Position',[598 514 20 20],...
 'TooltipString','Choose another Land palette',...
 'Tag','push_palette',...
 'UserData','shade');
@@ -2947,7 +2959,7 @@ uicontrol('Parent',h1,...
 'Call',{@aquamoto_uiCB,h1,'check_resetCmaps_CB'},...
 'FontName','Helvetica',...
 'Position',[620 516 60 15],...
-'Enable', 'off', ...
+'Vis', 'off', ...
 'String','Reset',...
 'Style','checkbox',...
 'TooltipString','Reset to default color palettes',...
