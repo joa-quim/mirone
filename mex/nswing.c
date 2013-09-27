@@ -250,8 +250,8 @@ int check_binning(double x0P, double x0D, double dxP, double dxD, double tol, do
 void write_most_slice(struct nestContainer *nest, int *ncid_most, int *ids_most, unsigned int i_start,
                       unsigned int j_start, unsigned int i_end, unsigned int j_end, float *work, size_t *start,
                       size_t *count, double *slice_range, int isMost, int lev);
-int open_most_nc (struct nestContainer *nest, char *basename, char *name_var, int *ids, unsigned int nx, unsigned int ny,
-                  double xMinOut, double yMinOut, int isMost, int lev);
+int open_most_nc (struct nestContainer *nest, float *work, char *basename, char *name_var, int *ids, unsigned int nx,
+                  unsigned int ny, double xMinOut, double yMinOut, int isMost, int lev);
 int open_anuga_sww (struct nestContainer *nest, char *fname_sww, int *ids, unsigned int i_start, unsigned int j_start,
                     unsigned int i_end, unsigned int j_end, double xMinOut, double yMinOut, int lev);
 void write_anuga_slice(struct nestContainer *nest, int ncid, int z_id, unsigned int i_start, unsigned int j_start,
@@ -299,7 +299,7 @@ int main(int argc, char **argv) {
 	int     r_bin_b, r_bin_f, surf_level = TRUE, max_level = FALSE, water_depth = FALSE;
 	int     n_arg_no_char = 0;
 	int     ncid, ncid_most[3], z_id = -1, ids[13], ids_ha[6], ids_ua[6], ids_va[6], ids_most[3];
-	int     ncid_3D[3], ids_z[4], ids_vx[4], ids_vy[4], ids_3D[3];
+	int     ncid_3D[3], ids_z[5], ids_vx[4], ids_vy[4], ids_3D[3];
 	int     n_of_cycles = 1010;          /* Numero de ciclos a calcular */
 	int     num_of_nestGrids = 0;        /* Number of nesting grids */
 	int     bat_in_input = FALSE, source_in_input = FALSE, write_grids = FALSE, isGeog = FALSE;
@@ -535,7 +535,7 @@ int main(int argc, char **argv) {
 					}
 
 					if (!stem || grn == 0) {
-						mexPrintf("NSWING: Error, -G option, must provide base name and saving interval\n");
+						mexPrintf("NSWING: Error, -G or -Z option. MUST provide base name and saving interval\n");
 						error++;
 					}
 					break;
@@ -780,8 +780,8 @@ int main(int argc, char **argv) {
 		mexPrintf ("NSWING: Error: dt is greater than dtCFL (%.3f). No way that this would work. Stopping here.\n", dtCFL); 
 		error++;
 	}
-	else if (dt > dtCFL / 2)
-		mexPrintf ("NSWING: Warning: dt > dtCFL / 2 is normaly not good enough. Expect troubles. Consider using ~ %.3f\n", dtCFL/2); 
+	else if (dt > (dtCFL / 2)*1.1)		/* With a margin of 10% before triggering the warning */
+		mexPrintf ("NSWING: Warning: dt > dtCFL / 2 is normaly not good enough. This may cause troubles. Consider using ~ %.3f\n", dtCFL/2); 
 
 	if (error) Return(-1);
 
@@ -935,9 +935,9 @@ int main(int argc, char **argv) {
 	if (out_most) {
 		/* ----------------- Open a 3 MOST netCDF files for writing ------------- */
 		nx = i_end - i_start;		ny = j_end - j_start;
-		ncid_most[0] = open_most_nc (&nest, basename_most, "HA", ids_ha, nx, ny, xMinOut, yMinOut, TRUE, writeLevel);
-		ncid_most[1] = open_most_nc (&nest, basename_most, "UA", ids_ua, nx, ny, xMinOut, yMinOut, TRUE, writeLevel);
-		ncid_most[2] = open_most_nc (&nest, basename_most, "VA", ids_va, nx, ny, xMinOut, yMinOut, TRUE, writeLevel);
+		ncid_most[0] = open_most_nc (&nest, work, basename_most, "HA", ids_ha, nx, ny, xMinOut, yMinOut, TRUE, writeLevel);
+		ncid_most[1] = open_most_nc (&nest, work, basename_most, "UA", ids_ua, nx, ny, xMinOut, yMinOut, TRUE, writeLevel);
+		ncid_most[2] = open_most_nc (&nest, work, basename_most, "VA", ids_va, nx, ny, xMinOut, yMinOut, TRUE, writeLevel);
 
 		if (ncid_most[0] == -1 || ncid_most[1] == -1 || ncid_most[2] == -1) {
 			mexPrintf ("NSWING: failure to create one or more of the MOST files\n");
@@ -956,7 +956,7 @@ int main(int argc, char **argv) {
 	} 
 	else if (out_3D) {
 		nx = nest.hdr[writeLevel].nx;		ny = nest.hdr[writeLevel].ny;
-		ncid_3D[0] = open_most_nc (&nest, fname3D, "z", ids_z, nx, ny, xMinOut, yMinOut, FALSE, writeLevel);
+		ncid_3D[0] = open_most_nc (&nest, work, fname3D, "z", ids_z, nx, ny, xMinOut, yMinOut, FALSE, writeLevel);
 
 		if (ncid_3D[0] == -1) {
 			mexPrintf ("NSWING: failure to create netCDF file\n");
@@ -1120,7 +1120,8 @@ int main(int argc, char **argv) {
 						vy = fluxn_for_maregs[lcum_p[ij]] / htotal_for_maregs[lcum_p[ij]];
 					}
 					else {vx = vy = 0;}
-					t = fabs(eta_for_maregs[lcum_p[ij]]) > EPS2 ? 90 - fmod(atan2(vy, vx) * R2D, 360) : 0;
+					t = fabs(eta_for_maregs[lcum_p[ij]]) < EPS2 ? 0 : 90 - atan2(vy, vx) * R2D;
+					if (t < 0) t += 360;
 					fprintf (fp, "\t%.4f\t%.1f", eta_for_maregs[lcum_p[ij]], t);
 					//fprintf (fp, "\t%.4f\t%.2f\t%.2f", eta_for_maregs[lcum_p[ij]], vx, vy);
 							////vx_for_maregs[lcum_p[ij]], vy_for_maregs[lcum_p[ij]]);
@@ -1133,7 +1134,7 @@ int main(int argc, char **argv) {
 			fprintf (fp, "\n");
 		}
 
-		if (time_h > time_jump && ((k % grn) == 0 || k == n_of_cycles - 1) ) {
+		if (grn && time_h > time_jump && ((k % grn) == 0 || k == n_of_cycles - 1) ) {
 			if (water_depth) {
 				for (ij = 0; ij < nest.hdr[writeLevel].nm; ij++)
 					if ((work[ij] = (float) (nest.etaa[writeLevel][ij] + nest.bat[writeLevel][ij])) < 0) work[ij] = 0;
@@ -1868,12 +1869,12 @@ double ddmmss_to_degree (char *text) {
 #ifdef HAVE_NETCDF
 
 /* -------------------------------------------------------------------- */
-int open_most_nc (struct nestContainer *nest, char *base, char *name_var, int *ids, unsigned int nx, unsigned int ny,
-				  double xMinOut, double yMinOut, int isMost, int lev) {
-	/* Open and initialize a MOST netCDF file for writing ---------------- */
+int open_most_nc (struct nestContainer *nest, float *work, char *base, char *name_var, int *ids, unsigned int nx,
+				  unsigned int ny, double xMinOut, double yMinOut, int isMost, int lev) {
+	/* Open and initialize a generic 3D or a MOST netCDF file for writing */
 	char	*long_name = NULL, *units = NULL, *basename = NULL;
 	int ncid = -1, status, dim0[3], dim3[3], id;
-	unsigned int m, n;
+	unsigned int m, n, ij;
 	float dummy = -1e34f;
 	double *x, *y;
 
@@ -1923,6 +1924,8 @@ int open_most_nc (struct nestContainer *nest, char *base, char *name_var, int *i
 		else {
 			err_trap (nc_def_var (ncid, "TIME",  NC_DOUBLE,1, &dim0[2], &ids[2]));
 			err_trap (nc_def_var (ncid, name_var,NC_FLOAT,3,  dim3,     &ids[3]));
+			dim3[0] = dim0[1];			dim3[1] = dim0[0];		/* Bathym array is rank 2 */
+			err_trap (nc_def_var (ncid, "bathymetry",NC_FLOAT,2, dim3,  &ids[4]));
 		}
 	}
 	else {
@@ -1942,6 +1945,8 @@ int open_most_nc (struct nestContainer *nest, char *base, char *name_var, int *i
 		else {
 			err_trap (nc_def_var (ncid, "time",  NC_DOUBLE,1, &dim0[2], &ids[2]));
 			err_trap (nc_def_var (ncid, name_var,NC_FLOAT,3,  dim3,     &ids[3]));
+			dim3[0] = dim0[1];			dim3[1] = dim0[0];		/* Bathym array is rank 2 */
+			err_trap (nc_def_var (ncid, "bathymetry",NC_FLOAT,2, dim3,  &ids[4]));
 		}
 	}
 
@@ -1967,6 +1972,7 @@ int open_most_nc (struct nestContainer *nest, char *base, char *name_var, int *i
 		err_trap (nc_put_att_text (ncid, ids[5], "history", 6, "Nikles"));
 	}
 	else {
+		size_t	start_b[2] = {0,0}, count_b[2];
 		double dummy[2] = {0, 0}, range[2];
 		float nan = (float)mxGetNaN();
 
@@ -1988,12 +1994,32 @@ int open_most_nc (struct nestContainer *nest, char *base, char *name_var, int *i
 		err_trap (nc_put_att_float (ncid, ids[3], "missing_value", NC_FLOAT, 1, &nan));
 		err_trap (nc_put_att_float (ncid, ids[3], "_FillValue", NC_FLOAT, 1, &nan));
 		err_trap (nc_put_att_double(ncid, ids[3], "actual_range", NC_DOUBLE, 2U, dummy));
+
+		//err_trap (nc_def_var_deflate (ncid, ids[4], 1, 1, 4));		/* Set compression level */
+		err_trap (nc_put_att_text  (ncid, ids[4], "long_name", 10, "bathymetry"));
+		err_trap (nc_put_att_text  (ncid, ids[4], "units", 6, "meters"));
+		err_trap (nc_put_att_float (ncid, ids[4], "missing_value", NC_FLOAT, 1, &nan));
+		err_trap (nc_put_att_float (ncid, ids[4], "_FillValue", NC_FLOAT, 1, &nan));
+		range[0] = nest->hdr[lev].z_min;	range[1] = nest->hdr[lev].z_max;
+		err_trap (nc_put_att_double(ncid, ids[4], "actual_range", NC_DOUBLE, 2U, range));
+
+		for (ij = 0; ij < nest->hdr[lev].nm; ij++)
+			work[ij] = (float)-nest->bat[lev][ij];
+
+		count_b[0] = nest->hdr[lev].ny;	count_b[1] = nest->hdr[lev].nx;
+		err_trap (nc_put_vara_float (ncid, ids[4], start_b, count_b, work));
 	}
 
 	/* ---- Global Attributes ------------ */
-	err_trap (nc_put_att_text (ncid, NC_GLOBAL, "Conventions", 13, "COARDS/CF-1.0"));
-	err_trap (nc_put_att_text (ncid, NC_GLOBAL, "history",     10, "Mirone Tec"));
-	err_trap (nc_put_att_text (ncid, NC_GLOBAL, "title",       24, "Created by Mirone-NSWING"));
+	err_trap (nc_put_att_text (ncid, NC_GLOBAL, "Conventions",   13, "COARDS/CF-1.0"));
+	err_trap (nc_put_att_text (ncid, NC_GLOBAL, "history",       10, "Mirone Tec"));
+	if (isMost) {
+		err_trap (nc_put_att_text (ncid, NC_GLOBAL, "title", 39, "MOST type file created by Mirone-NSWING"));
+	}
+	else {
+		err_trap (nc_put_att_text (ncid, NC_GLOBAL, "title", 44, "Water levels series created by Mirone-NSWING"));
+		err_trap (nc_put_att_text (ncid, NC_GLOBAL, "TSU",    6, "NSWING"));
+	}
 
 	err_trap (nc_enddef (ncid));
 
