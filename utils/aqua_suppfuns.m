@@ -23,7 +23,6 @@ function varargout = aqua_suppfuns(opt, varargin)
 		case 'coards_slice',	coards_sliceShow(varargin{:})
 		case 'forGDAL_hdr',		[varargout{1:nargout}] = init_header_gdal(varargin{:});
 		case 'forGDAL_slice',	gdal_sliceShow(varargin{:})
-		case 'illumByType',		varargout{1} = illumByType(varargin{:});	% Used both in aquamoto and here
 	end
 
 % --------------------------------------------------------------------------
@@ -31,7 +30,7 @@ function out = init_header_params(handles,X,Y,head,misc,getAllMinMax)
 % Use the OUT option when using this function to get several usefull info 
 % about the netCDF file but NOT using a GUI.
 %
-% The 'getAllMinMax' when set to TRUE (or not provided) will can the entire file to
+% The 'getAllMinMax' when set to TRUE (or not provided) will scan the entire file to
 % compute all individual layers 'actual_range'. However, this may slow quite a bit the
 % loading of big files and apparently is not very used/useful because most of the time
 % is spent loading the layer and the min/max computation is extremely fast.
@@ -61,7 +60,23 @@ function out = init_header_params(handles,X,Y,head,misc,getAllMinMax)
 
 	% ------ Compute individual and global min/maxs ----------------------------------
 	handles.zMinMaxs = zeros(handles.number_of_timesteps,2);
-	if (getAllMinMax)
+	if (handles.IamTSU)			% This one needs special doing since we want min/max over ocean only
+		aguentabar(0,'title','Computing water surface min/max')
+		zBat = nc_funs('varget', handles.fname, 'bathymetry');
+		ind = (zBat < 0);	clear zBat
+		for (k = 1:handles.number_of_timesteps)
+			Z = nc_funs('varget', handles.fname, s.Dataset(misc.z_id).Name, [(k-1) 0 0], [1 s.Dataset(misc.z_id).Size(end-1:end)]);
+			Z = Z(ind);
+			indNaN = isnan(Z);
+			if (any(indNaN)),	Z(indNaN) = [];	end
+			if (~isempty(Z))
+				handles.zMinMaxs(k,:) = [min(Z) max(Z)];
+			end
+			aguentabar(k/handles.number_of_timesteps);
+		end
+		handles.zMinMaxsGlobal = [min(handles.zMinMaxs(:,1)) max(handles.zMinMaxs(:,2))];
+		head(5:6) = handles.zMinMaxs(1,:);			% Take the first slice min/max
+	elseif (getAllMinMax)
 		aguentabar(0,'title','Computing global min/max')
 		for (k = 1:handles.number_of_timesteps)
 			Z = nc_funs('varget', handles.fname, s.Dataset(misc.z_id).Name, [(k-1) 0 0], [1 s.Dataset(misc.z_id).Size(end-1:end)]);
@@ -90,7 +105,9 @@ function out = init_header_params(handles,X,Y,head,misc,getAllMinMax)
 	handles.geog = aux_funs('guessGeog',head(1:4));
 	% ---------------------------------------------------------------------------------
 
-	handles.cmapLand = jet(256);			% Reset the default colormap (default's Aquamoto is a specific one)
+	if (~handles.IamTSU)
+		handles.cmapLand = jet(256);		% Reset the default colormap (default's Aquamoto is a specific one)
+	end
 	handles.head = head;
 	handles.illumComm = [];					% New file. Reset illum state.
 	handles.imgBat = [];
@@ -202,7 +219,7 @@ function coards_sliceShow(handles, Z)
 		end
 
 		z_id = handles.netcdf_z_id;
-		s = handles.nc_info;						% Retrieve the .nc info struct 
+		s = handles.nc_info;					% Retrieve the .nc info struct 
 		Z = nc_funs('varget', handles.fname, s.Dataset(z_id).Name, [handles.sliceNumber 0 0], [1 s.Dataset(z_id).Size(end-1:end)]);
 	end
 
@@ -225,9 +242,7 @@ function coards_sliceShow(handles, Z)
 			inds = [isempty(getappdata(hFigs(1), 'IAmAMirone')) isempty(getappdata(hFigs(2), 'IAmAMirone'))];
 			hFigs = hFigs(~inds);				% Only one of them is a Mirone fig
 			handThis = guidata(hFigs);
-			if (~handThis.validGrid)
-				delete(hFigs),	clear handThis
-			end
+			if (~handThis.validGrid),		delete(hFigs),	clear handThis,	end
 		end
 		handles.hMirFig = mirone(Z, tmp);
 		move2side(handles.figure1,handles.hMirFig,'left')
@@ -239,6 +254,7 @@ function coards_sliceShow(handles, Z)
 			handles.firstLandPhoto = false;
 			set(handles.handMir.hImg,'AlphaData',alphaMask)	% 'alphaMask' was updated ... maybe somewhere
 		end
+		handles.imgBat = [];				% Make sure this one is always reset when user kills fig
 
 	else									% We already have a Mirone image. Update it with this new slice
 		handles.handMir = guidata(handles.hMirFig);			% Get updated handles to see if illum has changed
@@ -273,7 +289,7 @@ function coards_sliceShow(handles, Z)
 			img = ind2rgb8(img, handles.cmapLand);		% img is now RGB
 			head = handles.head;
 			if (~isempty(handles.ranges{indVar})),		head(5:6) = handles.ranges{indVar};		end
-			R = illumByType(handles, Z, head, handles.landIllumComm);
+			R = aquamoto('illumByType', handles, Z, head, handles.landIllumComm);
 			img = shading_mat(img,R,'no_scale');		% and now it is illuminated
 		end
 
@@ -283,25 +299,25 @@ function coards_sliceShow(handles, Z)
 			if (~isempty(handles.landIllumComm_bak) && ~isequal(handles.landIllumComm_bak, handles.landIllumComm))
 				recomp = true;
 			end
-			if (recomp || isempty(handles.imgBat))	% First time, compute it (not shaded)
+			if (recomp || isempty(handles.imgBat))		% First time, compute it (not necessarily shaded)
 				% Put the cmap discontinuity at the zero of bat
 				zz = grdutils(zBat,'-L');	% I'm lazy to fish this inside the s info struct
 				head = handles.head;	head(5:6) = [zz(1) zz(2)];
 				handles.cmapBat = aquamoto('makeCmapBat', handles, head, handles.cmapLand, 1);
-				handles.imgBat = ind2rgb8(scaleto8(zBat), handles.cmapBat);
+				handles.imgBat  = ind2rgb8(scaleto8(zBat), handles.cmapBat);
 				if (get(handles.radio_shade, 'Val'))
 					R = aquamoto('illumByType', handles, zBat, head, handles.landIllumComm);
 					handles.imgBat = shading_mat(handles.imgBat, R, 'no_scale');
 				end
 			end
 			dife = cvlib_mex('absDiff', zBat, Z);
-			indLand = (dife < 1e-3);					% The 1e-3 SHOULD be parameterized
+			indLand = (dife < 1e-2);					% The 1e-2 SHOULD be parameterized
 			img = aquamoto('do_imgWater', handles, 1, Z, handles.imgBat, indLand);
 		end
 
 		set(handles.handMir.hImg, 'CData', img)
 		set(handles.handMir.figure1, 'Name', sprintf('Level = %.10g',handles.time(handles.sliceNumber+1)))
-		setappdata(handles.handMir.figure1,'dem_x',handles.x);		% Don't get bad surprises (like loaded another file)
+		setappdata(handles.handMir.figure1,'dem_x',handles.x);		% Don't get bad surprises (like load another file)
 		setappdata(handles.handMir.figure1,'dem_y',handles.y);
 	end
 	
@@ -332,15 +348,3 @@ function set_common(handles, head)
 	set([handles.radio_stage handles.radio_xmoment handles.radio_ymoment handles.check_derivedVar], 'Enable', 'off')
 	set([handles.edit_x_min handles.edit_x_max handles.edit_y_min handles.edit_y_max ...
 		handles.edit_x_inc handles.edit_y_inc handles.edit_Ncols handles.edit_Nrows], 'Enable', 'inactive')
-
-% -----------------------------------------------------------------------------------------
-function R = illumByType(handles, Z, head, illumComm)
-% Compute the illuminance matrix in function of the illumination type
-
-	if ( get(handles.toggle_1, 'Val') )
-		if (handles.geog),  R = grdgradient_m(Z,head,'-M',illumComm,'-Nt');
-		else                R = grdgradient_m(Z,head,illumComm,'-Nt');
-		end
-	else
-		R = grdgradient_m(Z,head,illumComm);
-	end
