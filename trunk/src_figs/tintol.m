@@ -309,16 +309,17 @@ function popup_nestings_CB(hObject, handles)
 function radio_outGrids_CB(hObject, handles)
 	if (~get(hObject,'Value'))
 		set([handles.radio_surfLevel handles.radio_maxWater handles.radio_totalWater ...
-				handles.check_velocity handles.check_momentum], 'Enable','off')
+				handles.check_3D handles.radio_velocity handles.radio_momentum], 'Enable','off')
+		set(handles.check_3D, 'Val', 1)
 		set(handles.edit_gridNameStem, 'String','', 'Tooltip','')
 		return
 	end
 	set([handles.radio_anuga handles.radio_most], 'Value',0)
 	set(handles.edit_gridNameStem,'String',[handles.outPato 'tsu_time_'])
-	set(handles.edit_gridNameStem,'Tooltip','Grids are numbered using this name stem')
+	set(handles.edit_gridNameStem,'Tooltip','Grids are numbered using this base name')
 	set([handles.radio_surfLevel handles.radio_maxWater handles.radio_totalWater ...
-			handles.check_velocity handles.check_momentum], 'Enable','on')
-	set(handles.radio_surfLevel, 'Val', 1)
+			handles.check_3D handles.radio_velocity handles.radio_momentum], 'Enable','on')
+	set([handles.radio_surfLevel handles.check_3D], 'Val', 1)
 
 %--------------------------------------------------------------------------------
 function radio_anuga_CB(hObject, handles)
@@ -330,9 +331,7 @@ function radio_anuga_CB(hObject, handles)
 	set(handles.edit_gridNameStem,'String',[handles.outPato 'swan_tsu.sww'])
 	set(handles.edit_gridNameStem,'Tooltip','Output file name')
 	set([handles.radio_surfLevel handles.radio_maxWater handles.radio_totalWater ...
-			handles.check_velocity handles.check_momentum], 'Val',0)
-	set([handles.radio_surfLevel handles.radio_maxWater handles.radio_totalWater ...
-			handles.check_velocity handles.check_momentum], 'Enable','off')
+		handles.check_3D handles.radio_velocity handles.radio_momentum], 'Val',0, 'Enable','off')
 
 %--------------------------------------------------------------------------------
 function radio_most_CB(hObject, handles)
@@ -344,17 +343,15 @@ function radio_most_CB(hObject, handles)
 	set(handles.edit_gridNameStem,'String',[handles.outPato 'swan_tsu'])
 	set(handles.edit_gridNameStem,'Tooltip','Basename for MOST files (do not give extension)')
 	set([handles.radio_surfLevel handles.radio_maxWater handles.radio_totalWater ...
-			handles.check_velocity handles.check_momentum], 'Val',0)
-	set([handles.radio_surfLevel handles.radio_maxWater handles.radio_totalWater ...
-			handles.check_velocity handles.check_momentum], 'Enable','off')
+		handles.check_3D handles.radio_velocity handles.radio_momentum], 'Val',0, 'Enable','off')
 
 %--------------------------------------------------------------------------------
 function edit_gridNameStem_CB(hObject, handles)
 % If no prefix, no options.
 	if (isempty(get(hObject, 'Str')))
 		set([handles.radio_surfLevel handles.radio_totalWater handles.radio_maxWater ...
-			handles.check_velocity handles.check_momentum handles.radio_outGrids ...
-			handles.radio_anuga handles.radio_most],'Val',0)		
+			handles.radio_velocity handles.radio_momentum handles.radio_outGrids ...
+			handles.check_3D handles.radio_anuga handles.radio_most],'Val',0)		
 	end
 
 %--------------------------------------------------------------------------------
@@ -365,20 +362,20 @@ function radio_surfLevel_CB(hObject, handles)
 %--------------------------------------------------------------------------------
 function radio_totalWater_CB(hObject, handles)
 	if (~get(hObject,'Value')),		set(hObject,'Value',1),		return,		end
-	set([handles.radio_surfLevel handles.radio_maxWater],'Val',0)
+	set([handles.radio_surfLevel handles.radio_maxWater handles.check_3D],'Val',0)
 
 %--------------------------------------------------------------------------------
 function radio_maxWater_CB(hObject, handles)
 	if (~get(hObject,'Value')),		set(hObject,'Value',1),		return,		end
-	set([handles.radio_surfLevel handles.radio_totalWater],'Val',0)
+	set([handles.radio_surfLevel handles.radio_totalWater handles.check_3D],'Val',0)
 
 %--------------------------------------------------------------------------------
-function check_velocity_CB(hObject, handles)
-
-
+function radio_velocity_CB(hObject, handles)
+	set([handles.radio_momentum  handles.check_3D],'Val',0)
+	
 %--------------------------------------------------------------------------------
-function check_momentum_CB(hObject, handles)
-
+function radio_momentum_CB(hObject, handles)
+	set([handles.radio_velocity  handles.check_3D],'Val',0)
 
 %--------------------------------------------------------------------------------
 function check_wantMaregs_CB(hObject, handles)
@@ -508,7 +505,7 @@ function edit_grn_CB(hObject, handles)
 
 %--------------------------------------------------------------------------------
 function push_RUN_CB(hObject, handles)
-% ...
+% Colect the sate of the various buttons and build the NSWING calling arguments list
 
 	err_str = check_errors(handles);
 	if (~isempty(err_str))
@@ -522,9 +519,11 @@ function push_RUN_CB(hObject, handles)
 	else
 		opt_G = ' ';
 	end
+	
+	if (get(handles.check_3D, 'Val')),		opt_G(2) = 'Z';		end		% Turn option -G into -Z
 
 	opt_S = ' ';
-	if (get(handles.check_velocity, 'Val')),	opt_S = '-S';	end
+	if (get(handles.radio_velocity, 'Val')),	opt_S = '-S';	end
 
 	opt_N = ['-N' get(handles.edit_Number_of_cycles, 'Str')];
 
@@ -545,7 +544,7 @@ function push_RUN_CB(hObject, handles)
 	if (~isempty(h_mareg))
 		x = get(h_mareg,'XData');		y = get(h_mareg,'YData');
 		mareg_pos = [x(:) y(:)];
-		ind = (x < handles.nested_level{handles.last_nested_level,2}(1)  | ... 
+		ind = ( x < handles.nested_level{handles.last_nested_level,2}(1) | ... 
 				x > handles.nested_level{handles.last_nested_level,2}(2) | ...
 				y < handles.nested_level{handles.last_nested_level,2}(3) | ...
 				y > handles.nested_level{handles.last_nested_level,2}(4));
@@ -785,23 +784,31 @@ h(n) = uicontrol('Parent',h1, 'Position',[130 254 82 15],...
 'UserData','main',...
 'Tag','radio_maxWater');	n = n + 1;
 
+h(n) = uicontrol('Parent',h1, 'Position',[9 234 82 15],...
+'Enable','off',...
+'String','3D file',...
+'Style','checkbox',...
+'Tooltip','Save all water level grids in one single netCDF multi-layered file.',...
+'UserData','main',...
+'Tag','check_3D');	n = n + 1;
+
 h(n) = uicontrol('Parent',h1, 'Position',[130 234 82 15],...
 'Call',@tintolButtons_uiCB,...
 'Enable','off',...
 'String','Velocity',...
-'Style','checkbox',...
+'Style','radiobutton',...
 'Tooltip','Write velocity grids (u and v with sufixes _U, _V)',...
 'UserData','main',...
-'Tag','check_velocity');	n = n + 1;
+'Tag','radio_velocity');	n = n + 1;
 
 h(n) = uicontrol('Parent',h1, 'Position',[248 234 82 15],...
 'Call',@tintolButtons_uiCB,...
 'Enable','off',...
 'String','Momentum',...
-'Style','checkbox',...
+'Style','radiobutton',...
 'Tooltip','Write momentum grids (with sufixes _Uh, _Vh)',...
 'UserData','main',...
-'Tag','check_momentum');	n = n + 1;
+'Tag','radio_momentum');	n = n + 1;
 
 h(n) = uicontrol('Parent',h1, 'Position',[10 202 87 15],...
 'Call',@tintolButtons_uiCB,...
