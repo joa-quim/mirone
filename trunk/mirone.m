@@ -1348,11 +1348,16 @@ function FileOpenNewImage_CB(handles, opt)
 		if (att.RasterCount > 4)
 			% Animatted images.	BUT WORK ONLY WITH INDEXED IMAGES, OTHERWISE ... DON'T KNOW WHAT ERROR
 			handles.cinemaImgs = I;
-			I(:,:,2:end) = [];
+			I = I(:,:,1);
 			handles.hUIcinanim = cine_animations(handles);
 			guidata(handles.figure1,handles)
 			ud(3) = att.RasterCount;		ud(2) = 1;		ud(1) = 1;
 			set(handles.hUIcinanim(1), 'UserData', ud)
+			if (isfield(info_img(1),'ColorTable'))			% Gif images call it 'ColorTable'
+				set(handles.hUIcinanim(3), 'UserData', {info_img.ColorTable})
+			elseif (isfield(info_img(1),'Colormap') && ~isempty(info_img(1).Colormap))
+				set(handles.hUIcinanim(3), 'UserData', {info_img.Colormap})
+			end
 		end
 		[head_fw,err_msg] = tfw_funs('inquire',[size(I,1) size(I,2)],PATH,FNAME,EXT);	% See if we have .*fw file
 		if (~isempty(err_msg))
