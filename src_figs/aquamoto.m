@@ -1,10 +1,5 @@
 function varargout = aquamoto(varargin)
 % A general purpose 3D grid/image file viewer, specialy taylored for tsunami (ANUGA) files
-%
-%	To read a file and call aquaPlugin and direct it to use a "control script"
-%		aquamoto file.nc 'file_name_of_control_script'
-%	To read a file and tell aquaPlugin to search the control script name in the OPTcontrol.txt file:
-%		aquamoto('file.nc', 0)
 
 %	Copyright (c) 2004-2013 by J. Luis
 %
@@ -23,7 +18,7 @@ function varargout = aquamoto(varargin)
 
 % $Id$
 
-% For compiling one need to include the aqua_suppfuns.m aquaPlugin.m files.
+% For compiling one need to include the aqua_suppfuns.m files.
 
 	if (nargin > 1 && ischar(varargin{1}))
 		gui_CB = str2func(varargin{1});
@@ -214,12 +209,6 @@ function varargout = aquamoto(varargin)
 		hhsPos = get(hhs(k), 'Pos');		hhsPos = hhsPos - [320 -80 0 0];
 		set(hhs(k), 'Pos', hhsPos)
 	end
-	
-	% Move the Plug buttons
-	hhsPos = get(handles.push_plugFun, 'Pos');		hhsPos = hhsPos - [0 260 0 0];
-	set(handles.push_plugFun, 'Pos', hhsPos)
-	hhsPos = get(handles.check_plugFun, 'Pos');		hhsPos = hhsPos - [0 140 0 0];
-	set(handles.check_plugFun, 'Pos', hhsPos)
 
 	% ---------------- Transited from tsunamovie --------------------------------------------
 	handles.checkedMM = 0;      % To signal if need or not to get the ensemble water Min/Max
@@ -1314,8 +1303,8 @@ function push_palette_CB(hObject, eventdata, handles)
 	if (~isempty(cmap))
 		if (get(handles.radio_land,'Val'))
 			handles.cmapLand = cmap;        % This copy will be used if user loads another bat grid
-			if ( ~isempty(handles.head_bat) )		head = handles.head_bat;	% ---> DESENRASQUE DA TRETA
-			else									head = handles.head;
+			if (~isempty(handles.head_bat)),	head = handles.head_bat;	% ---> DESENRASQUE DA TRETA
+			else								head = handles.head;
 			end
 			handles.cmapBat = makeCmapBat(handles, head, cmap, 1);
 			handles.imgBat = [];			% Force recomputing on next call
@@ -1330,8 +1319,8 @@ function push_palette_CB(hObject, eventdata, handles)
 function check_resetCmaps_CB(hObject, eventdata, handles)
 % Reset to the default cmaps and make this ui invisible
 	if (get(hObject,'Value'))
-		if ( ~isempty(handles.head_bat) )		head = handles.head_bat;	% ---> DESENRASQUE DA TRETA
-		else									head = handles.head;
+		if (~isempty(handles.head_bat)),	head = handles.head_bat;	% ---> DESENRASQUE DA TRETA
+		else								head = handles.head;
 		end
 		handles.cmapBat = makeCmapBat(handles, head, handles.cmapLand_bak, 1);    % Put the discontinuity at the zero of bat
 		handles.cmapWater = handles.cmapWater_bak;
@@ -1342,7 +1331,7 @@ function check_resetCmaps_CB(hObject, eventdata, handles)
 
 % -----------------------------------------------------------------------------------------
 function radio_noShade_CB(hObject, eventdata, handles)
-	if ( ~get(hObject,'Val'))
+	if (~get(hObject,'Val'))
 		set(hObject,'Val', 1)
 		return
 	end
@@ -1524,9 +1513,15 @@ function push_OK_CB(hObject, eventdata, handles, opt)
 	is_avi = get(handles.radio_avi,'Value');
 	is_mpg = get(handles.radio_mpg,'Value');
 	is_montage = false;
-	do_logo = false;				% Insert a logo image but it needs to be manually positioned in fig
+	first_capture = true;
 	if (nargin == 4)
 		is_montage = true;		is_gif = false;		is_avi = false;		is_mpg = false;
+	end
+
+	do_logo = true;				% Insert a logo image but it needs to be manually positioned in fig
+	if (do_logo)
+		logo = flipdim(imread([handles.home_dir '/data/mirone.tif']), 1);
+		logo_nrow = size(logo, 1);		logo_ncol = size(logo, 2);
 	end
 
 	% ------------------------- Do a movie (if so) from a "packed" netcdf file ------------------------
@@ -1560,17 +1555,37 @@ function push_OK_CB(hObject, eventdata, handles, opt)
 			hAguenta = aguentabar(i / n_slices);		% Show visualy the processing advance
 			if (isnan(hAguenta)),	break,		end		% User hit cancel
 			if (ishandle(hAguenta)),	figure(hAguenta),	end		% Make sure the aguentabar is always on top
-			if ( ~handles.useLandPhoto )
+			if (~handles.useLandPhoto)
 				img = get(handles.handMir.hImg, 'CData');
 			else
-				%img = imcapture(handles.handMir.axes1,'img',150);		% Do a screen capture
-				F = getframe(handles.handMir.axes1);		img = F.cdata;
-				if ( strcmp(get(handles.handMir.axes1,'Ydir'),'normal') ),	img = flipdim(img,1);	end
+				%F = getframe(handles.handMir.axes1);		img = F.cdata;
+				img = imcapture(handles.handMir.axes1,'img',100);		% Do a screen capture
+				if (first_capture)
+					% OK, here we have a problem. Never ending ML bugs screw us again. When we have an overlayn
+					% photograph the screen capture comes up almost 3 times bigger in Y dim that it should and
+					% the extra size is made of white. That is 1/3 is the image (in the middle) and the other
+					% 2/3 are white space. So let's strip those whites.
+					[m1, n1, k.k] = size(get(handles.handMir.hImg, 'CData'));
+					[m2, n2, k] = size(img);
+					if (((m2/n2) / (m1/n1)) > 2)	% Confirm the triplice size in Y
+						ind_crop_whites = find(img(:,1,1) < 255);
+						img = img(ind_crop_whites(1):ind_crop_whites(end), :, :);
+						first_capture = false;
+					end
+				else
+					img = img(ind_crop_whites(1):ind_crop_whites(end), :, :);
+				end
+				if (strcmp(get(handles.handMir.axes1,'Ydir'),'normal')),	img = flipdim(img,1);	end
+			end
+			if (do_logo)		% Implant a semi-transparent logo
+				im = img(2:2+logo_nrow-1, 2:2+logo_ncol-1, :);
+				im = uint8(double(logo)*0.3 + double(im)*0.7);
+				img(2:2+logo_nrow-1, 2:2+logo_ncol-1, :) = im;
 			end
 			if (ndims(img) == 3),	map = [];
 			else					map = get(handles.handMir.figure1,'Colormap');
 			end
-			[M, map] = aux_movie(handles, is_gif, is_mpg, is_avi, img, i, M, map);	% Save in file too
+			[M, map] = aux_movie(handles, is_gif, is_mpg, is_avi, img, i, M, map);	% Save gif in file too
 		end
 		if (is_avi)
 			mname = [handles.moviePato handles.movieName '.avi'];
@@ -1608,8 +1623,8 @@ function push_OK_CB(hObject, eventdata, handles, opt)
 			( ~isequal( size(handles.Z_bat), size(handles.Z_water)) && ~isequal( size(handles.Z_bat), size(Z_water))) ) )
 
 		h = warndlg('Ai, Ai, Bathymetry and Water grids are not compatible. Trying to fix that ...','Warning');
-		opt_R = sprintf( '-R%.12f/%.12f/%.12f/%.12f', handles.head_water(1:4) );
-		opt_I = sprintf( '-I%.12f/%.12f',handles.head_water(8:9) );
+		opt_R = sprintf('-R%.12f/%.12f/%.12f/%.12f', handles.head_water(1:4));
+		opt_I = sprintf('-I%.12f/%.12f',handles.head_water(8:9));
 		handles.Z_bat = grdsample_m(handles.Z_bat,handles.head_bat,opt_R,opt_I);
 		handles.head_bat = handles.head_water;
 		handles.head_bat(5) = double(min(handles.Z_bat(:)));
@@ -1666,7 +1681,7 @@ function push_OK_CB(hObject, eventdata, handles, opt)
 	% ---------------------------------------------------------------------------------------------
 
 	% ---------------------------- If we have a list of names -------------------------------------
-	if ( ~isempty(handles.nameList) )
+	if (~isempty(handles.nameList))
 		if (isempty(handles.movieName))
 			errordlg('Hei! what shoult it be the movie name?','ERROR'),		return
 		end
@@ -1680,9 +1695,7 @@ function push_OK_CB(hObject, eventdata, handles, opt)
 			heads = handles.gridHeaders;
 		end
 
- 		if (do_logo),	logo = flipdim( imread('C:\SVN\mironeWC\data\mirone.tif'), 1);	end
-
-		if ( ~handles.useLandPhoto )		% Otherwise the bar is either hiden by the Mirone window, or screws the transparency  
+		if (~handles.useLandPhoto)		% Otherwise the bar is either hiden by the Mirone window, or screws the transparency  
 			aguentabar(0,'title','Please wait ... I''m flooding','createcancelbtn');
 		end
 		
@@ -1708,14 +1721,14 @@ function push_OK_CB(hObject, eventdata, handles, opt)
 				cvlib_mex('text',imgWater,handles.strTimes{i},[10 30]);
 			end
 
-			if (do_logo)
-				imgWater(30:29+size(logo,1),670:669+size(logo,2),:) = logo;
-			end
+% 			if (do_logo)
+% 				imgWater(30:29+size(logo,1), 670:669+size(logo,2),:) = logo;
+% 			end
 			if (handles.flederize)
 				flederize(handles.nameList{i}, i, Z, imgWater, indLand, [handles.head_water(1:4) minWater maxWater])
 			end
 
-			if ( handles.useLandPhoto )
+			if (handles.useLandPhoto)
 				if (i == 1)			% First round, open a new Mirone window
 					hFig = mirone(imgWater, head_struct);
 					handMir = guidata(hFig);
@@ -2335,12 +2348,6 @@ function save_arrows(hObject, evt, hQuiver)
 	double2ascii(f_name, [x(:) y(:) setas{3}(:) setas{4}(:)], '%.6f\t%.6f\t%.6f\t%.6f');
 
 % -----------------------------------------------------------------------------------------
-function push_plugFun_CB(hObject, eventdata, handles)
-% THIS IS A SPECIAL CALLBACK THAT CALLS A FUNCTION NAMED 'aquaPlugin' THAT MAY RESIDE
-% ANYWHERE IN THE PATH WORLD. IT'S UP TO THE USER TO DIFFINE ITS CONTENTS.
-	aquaPlugin(handles)		% That's all it should be needed
-
-% -----------------------------------------------------------------------------------------
 function layerInc = edit_miscLayerInc_CB(hObject, eventdata, handles)
 % This function's code reuses the code of edit_multiLayerInc_CB() because they
 % are supposed to do exactly the same thing, which is - creating a vector map of layers to use
@@ -2585,14 +2592,6 @@ uicontrol('Parent',h1,...
 'ButtonDownFcn',{@aquamoto_uiCB,h1,'tab_group_ButtonDownFcn'},...
 'Tag','tab_group',...
 'UserData','cinema');
-
-uicontrol('Parent',h1, 'Position',[335 399 46 21],...
-'Call',{@aquamoto_uiCB,h1,'tab_group_CB'},...
-'Enable','inactive',...
-'String','Plug',...
-'ButtonDownFcn',{@aquamoto_uiCB,h1,'tab_group_ButtonDownFcn'},...
-'Tag','tab_group',...
-'UserData','plug');
 
 uicontrol('Parent',h1, 'Position',[61 399 70 21],...
 'Call',{@aquamoto_uiCB,h1,'tab_group_CB'},...
@@ -3610,20 +3609,6 @@ uicontrol('Parent',h1, 'Position',[910 112 105 19],...
 'Value',1,...
 'Tag','check_miscWriteHeader',...
 'UserData','misc');
-
-uicontrol('Parent',h1, 'Position',[140 450 121 81],...
-'Call',{@aquamoto_uiCB,h1,'push_plugFun_CB'},...
-'String','Run Plugin function',...
-'TooltipString','Execute the external ''aquaPlugin'' function ',...
-'Tag','push_plugFun',...
-'UserData','plug');
-
-uicontrol('Parent',h1, 'Position',[140 450 131 21],...
-'String','Seek OPTcontrol.txt',...
-'Style','checkbox',...
-'TooltipString','Scan the OPTcontrol.txt file for a "Control script" file',...
-'Tag','check_plugFun',...
-'UserData','plug');
 
 function aquamoto_uiCB(hObject, eventdata, h1, callback_name)
 % This function is executed by the callback and than the handles is allways updated.
