@@ -42,10 +42,12 @@ function slider_CB(hObject, handles, opt)
 	if (nargin == 3)						% Called by toggle_playPause_CB
 		set( hObject,'Value',ud(1), 'Tooltip',sprintf('%d',ud(1)) )
 	else									% Manual frame setting
+		cmaps = get(handles.hUIcinanim(3),'UserData');
 		val = round(get(hObject,'Value'));
 		ind = val : val + ud(2) - 1;
 		img = handles.cinemaImgs(:,:,ind);
 		set(handles.hImg, 'CData',img)
+		set(handles.figure1, 'Colormap', cmaps{ind})
 		ud(1) = val + ud(2);
 		if (ud(1) > ud(3)),		ud(1) = 1;		end
 		set(handles.hUIcinanim(1),'UserData', ud)
@@ -66,9 +68,12 @@ function toggle_playPause_CB(hObject, handles)
 	end
 	fps = edit_frameRate_CB(handles.hUIcinanim(4), handles);	% Get frame rate
 	fps_cum = 0;
+	cmaps = get(handles.hUIcinanim(3),'UserData');
+
 	while (non_stop)
 		ud = get(handles.hUIcinanim(1),'UserData');
 		ind = ud(1) : ud(1) + ud(2) - 1;
+		set(handles.figure1, 'Colormap', cmaps{ind})
 		img = handles.cinemaImgs(:,:,ind);
 		set(handles.hImg, 'CData',img)
 		ud(1) = ud(1) + ud(2);
