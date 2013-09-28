@@ -224,12 +224,36 @@ function coards_sliceShow(handles, Z)
 	end
 
 	have_nans = 0;
-	if (isa(Z,'single'))
+	if (isa(Z,'single') && ~handles.IamTSU)		% Actually I don't know if this is used in any circumnstances.
 		have_nans = grdutils(Z,'-N');			% No worry, very fast
 	end
 	if (have_nans && handles.useLandPhoto)
 		alphaMask = alloc_mex(size(Z),'uint8');	% Create an image mask of Dry/Wets
 		alphaMask(~isnan(Z)) = 255;				% nan pixeis will be transparent
+	end
+
+	splitDryWet = get(handles.check_splitDryWet,'Val');		% See if we need to build wet and dry images, or only one
+
+	if (splitDryWet && handles.IamTSU)
+		zBat = nc_funs('varget', handles.fname, 'bathymetry');
+		dife = cvlib_mex('absDiff', zBat, Z);
+		indLand = (dife < 1e-2);				% The 1e-2 SHOULD be parameterized
+
+		if (handles.useLandPhoto)
+			alfa = 255;		% Means land will be completely opac and water 100% transparent
+			if (~isempty(handles.hMirFig) && ishandle(handles.handMir.hImg))	% A Mirone figure with image already exists
+				alphaMask = get(handles.handMir.hImg,'AlphaData');
+				if (numel(alphaMask) == 1)		% No AlphaMask yet, but we'll need one further down
+					alphaMask = alloc_mex(size(indLand),'uint8');	% Create an image mask of Dry/Wets
+					alphaMask(~indLand) = alfa;
+				else							% AlphaMask exists, but we need to update it to reflect this slice water level
+					alphaMask(indLand) = 0;		alphaMask(~indLand) = alfa;
+				end
+			else								% The Mirone figure will be created later. Compute the AlphaMask
+				alphaMask = alloc_mex(size(indLand),'uint8');	% Create an image mask of Dry/Wets
+				alphaMask(~indLand) = alfa;
+			end
+		end
 	end
 
 	% ----- Open or update a Mirone window with the slice display ----
@@ -293,8 +317,7 @@ function coards_sliceShow(handles, Z)
 			img = shading_mat(img,R,'no_scale');		% and now it is illuminated
 		end
 
-		if (handles.IamTSU && get(handles.check_splitDryWet, 'Val'))
-			zBat = nc_funs('varget', handles.fname, 'bathymetry');
+		if (handles.IamTSU && splitDryWet)
 			recomp = false;
 			if (~isempty(handles.landIllumComm_bak) && ~isequal(handles.landIllumComm_bak, handles.landIllumComm))
 				recomp = true;
@@ -310,8 +333,6 @@ function coards_sliceShow(handles, Z)
 					handles.imgBat = shading_mat(handles.imgBat, R, 'no_scale');
 				end
 			end
-			dife = cvlib_mex('absDiff', zBat, Z);
-			indLand = (dife < 1e-2);					% The 1e-2 SHOULD be parameterized
 			img = aquamoto('do_imgWater', handles, 1, Z, handles.imgBat, indLand);
 		end
 
