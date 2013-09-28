@@ -1,5 +1,10 @@
 function varargout = slices(varargin)
 % SLICES show individual layers of 3D netCDF file and apply several processing algos to satellite data 
+%
+%	To read a file and call aquaPlugin and direct it to use a "control script"
+%		aquamoto file.nc 'file_name_of_control_script'
+%	To read a file and tell aquaPlugin to search the control script name in the OPTcontrol.txt file:
+%		aquamoto('file.nc', 0)
 
 %	Copyright (c) 2004-2013 by J. Luis
 %
@@ -19,8 +24,6 @@ function varargout = slices(varargin)
 % $Id$
 
 % For compiling one need to include the aqua_suppfuns.m aquaPlugin.m files.
-% Do not worrie acout the -- "illumByType" will produce a run-time error --
-% because the block where it occurs is a inheritage of aquamoto and is not executed
 
 	hObject = figure('Tag','figure1','Visible','off');
 	slices_LayoutFcn(hObject);
