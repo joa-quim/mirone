@@ -1364,19 +1364,31 @@ function radio_gif_CB(hObject, eventdata, handles)
 	if (get(hObject,'Value')),      set([handles.radio_avi handles.radio_mpg],'Value',0)
 	else                            set(hObject,'Value',1)
 	end
-
+	mname = get(handles.edit_movieName,'String');
+	if (~isempty(mname))
+		mname = [handles.moviePato filesep handles.movieName '.gif'];
+		set(handles.edit_movieName,'String',mname)
+	end
 % -----------------------------------------------------------------------------------------
 function radio_avi_CB(hObject, eventdata, handles)
 	if (get(hObject,'Value')),      set([handles.radio_gif handles.radio_mpg],'Value',0)
 	else                            set(hObject,'Value',1)
 	end
-    
+	mname = get(handles.edit_movieName,'String');
+	if (~isempty(mname))
+		mname = [handles.moviePato filesep handles.movieName '.avi'];
+		set(handles.edit_movieName,'String',mname)
+	end
 % -----------------------------------------------------------------------------------------
 function radio_mpg_CB(hObject, eventdata, handles)
 	if (get(hObject,'Value')),		set([handles.radio_avi handles.radio_gif],'Value',0)
 	else							set(hObject,'Value',1)
 	end
-
+	mname = get(handles.edit_movieName,'String');
+	if (~isempty(mname))
+		mname = [handles.moviePato filesep handles.movieName '.mpg'];
+		set(handles.edit_movieName,'String',mname)
+	end
 % -----------------------------------------------------------------------------------------
 function edit_fps_CB(hObject, eventdata, handles)
 % Frames per second
