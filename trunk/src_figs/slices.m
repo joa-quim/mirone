@@ -244,6 +244,11 @@ function push_inputName_CB(hObject, handles, opt)
 			return
 		end
 		handles.nc_info = s;		% Save the nc file info
+		if ( any(strcmp({s.Attribute.Name},'TSU')) )		% An NSWING TSUnami file
+			handles.IamTSU = true;
+		else
+			handles.IamTSU = false;
+		end
 		handles = aqua_suppfuns('coards_hdr',handles,X,Y,head,misc,false);
 		st = [1 10] / (handles.number_of_timesteps - 1);
 		set(handles.slider_layer,'Min',1,'Max',handles.number_of_timesteps,'Val',1,'SliderStep',st) 
