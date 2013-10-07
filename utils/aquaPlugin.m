@@ -1075,6 +1075,7 @@ function calc_L2_periods(handles, period, tipoStat, regMinMax, grd_out)
 		regionalMIN = 0;	regionalMAX = inf;
 	else
 		regionalMIN = regMinMax(1);		regionalMAX = regMinMax(2);
+		if (regionalMIN == 0 && regionalMAX == 0),	regionalMAX = inf;	end
 	end
 
 	[z_id, s, rows, cols] = get_ncInfos(handles);
