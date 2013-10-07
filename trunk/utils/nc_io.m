@@ -55,6 +55,10 @@ function varargout = nc_io(fname, mode, handles, data, misc)
 
 % $Id$
 
+	if (isempty(fname))
+		error('NC_IO:write_nc','Output file name cannot be empty')
+	end
+
 	if ( nargin == 4 && ~isempty(data) )
 		misc = struct('x_units',[],'y_units',[],'z_units',[],'z_name',[],'desc',[], ...
 			'title',[],'history',[],'srsWKT',[], 'strPROJ4',[]);
