@@ -1065,7 +1065,7 @@ function calc_L2_periods(handles, period, tipoStat, regMinMax, grd_out)
 %
 % GRD_OUT	Name of the netCDF file where to store the result. If not provided, it will be asked here.
 
-	if (nargin < 5)	% Note: old and simple CASE 3 in main cannot send here the output name 
+	if ( nargin < 5 || (nargin == 5 && isempty(grd_out)) )	% Note: old and simple CASE 3 in main cannot send here the output name 
 		txt1 = 'netCDF grid format (*.nc,*.grd)';	txt2 = 'Select output netCDF grid';
 		[FileName,PathName] = put_or_get_file(handles,{'*.nc;*.grd',txt1; '*.*', 'All Files (*.*)'},txt2,'put','.nc');
 		if isequal(FileName,0),		return,		end
