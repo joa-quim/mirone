@@ -232,7 +232,11 @@ function coards_sliceShow(handles, Z)
 		alphaMask(~isnan(Z)) = 255;				% nan pixeis will be transparent
 	end
 
-	splitDryWet = get(handles.check_splitDryWet,'Val');		% See if we need to build wet and dry images, or only one
+	try			% MUST BE TURN INTO A PROPER TEST (AQUAMOTO OR NOT-AQUAMOTO)
+		splitDryWet = get(handles.check_splitDryWet,'Val');		% See if we need to build wet and dry images, or only one
+	catch
+		splitDryWet = false;
+	end
 
 	if (splitDryWet && handles.IamTSU)
 		zBat = nc_funs('varget', handles.fname, 'bathymetry');
