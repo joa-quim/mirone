@@ -196,7 +196,7 @@ function push_namesList_CB(hObject, handles, opt)
 	if (n_column > 1)					% When 2nd column holds the 3D numbering
 		for (k = 1:m)
 			[t,r] = strtok(names{k});
-			if (t(1) == '#' || numel(t) < 2)	% Jump empty or comment lines
+			if (numel(t) < 2 || t(1) == '#')	% Jump empty or comment lines
 				c(k) = true;
 				continue
 			elseif (t(1) == '@')
