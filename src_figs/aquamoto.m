@@ -1584,11 +1584,11 @@ function push_OK_CB(hObject, eventdata, handles, opt)
 			end
 			[M, map] = aux_movie(handles, is_gif, is_mpg, is_avi, img, i, M, map);	% Save gif in file too
 		end
+		
+		mname = get(handles.edit_movieName, 'Str');
 		if (is_avi)
-			mname = [handles.moviePato handles.movieName '.avi'];
 			movie2avi_j(M,mname,'compression','none','fps',handles.fps)
 		elseif (is_mpg)
-			mname = [handles.moviePato handles.movieName '.mpg'];
 			opt = [1, 0, 1, 0, 10, 5, 5, 5];
 			mpgwrite(M,map,mname,opt)
 		elseif (is_montage)
@@ -1771,7 +1771,7 @@ function [M, map] = aux_movie(handles, is_gif, is_mpg, is_avi, img, i, M, map)
 	img = flipdim(img,1);			% The stupid UL origin
 
 	if (is_gif)
-		mname = [handles.moviePato handles.movieName '.gif'];
+		mname = get(handles.edit_movieName, 'Str');
 		if (i == 1)
 			writegif(img,map,mname,'loopcount',Inf)
 		else
