@@ -74,6 +74,7 @@
 #	include <stdlib.h>
 #	define mxCalloc calloc
 #	define mxMalloc malloc
+#	define mxRealloc realloc
 #	define mxFree free
 #	define mexPrintf(...) fprintf(stderr, __VA_ARGS__);
 
@@ -182,6 +183,9 @@ struct nestContainer {		/* Container for the nestings */
 	int    out_velocity_x;     /* To know if we must compute the vex,vey velocity arrays */
 	int    out_velocity_y;
 	int    isGeog;             /* 0 == Cartesian, otherwise Geographic coordinates */
+	int    bnc_pos_nPts;       /* Number of points in a external boundary condition file */
+	int    bnc_var_nTimes;     /* Number of time steps in the external boundary condition file */
+	int    bnc_border[4];      /* Each will be set to TRUE if boundary condition on that border W->0, S->1, E->2, N->3 */
 	int    level[10];          /* 0 Will mean base level, others the nesting level */
 	int    LLrow[10], LLcol[10], ULrow[10], ULcol[10], URrow[10], URcol[10], LRrow[10], LRcol[10];
 	int    incRatio[10];
@@ -199,8 +203,14 @@ struct nestContainer {		/* Container for the nestings */
 	double *edge_col_P[10], *edge_col_Ptmp[10];
 	double *edge_row_P[10], *edge_row_Ptmp[10];
 	double *r0[10],  *r1m[10], *r1n[10], *r2m[10], *r2n[10], *r3m[10], *r3n[10], *r4m[10], *r4n[10];
-	struct grd_header hdr[10];
 	double time_h;
+	double *bnc_pos_x;
+	double *bnc_pos_y;
+	double *bnc_var_t;
+	double **bnc_var_z;
+	double *bnc_var_zTmp;
+	double *bnc_var_z_interp;
+	struct grd_header hdr[10];
 };
 
 /* Argument struct for threading */
@@ -223,7 +233,7 @@ int count_n_maregs(char *file);
 int decode_R (char *item, double *w, double *e, double *s, double *n);
 int check_region (double w, double e, double s, double n);
 double ddmmss_to_degree (char *text);
-void openb(struct grd_header hdr, double *bat, double *fluxm_d, double *fluxn_d, double *etad);
+void openb(struct grd_header hdr, double *bat, double *fluxm_d, double *fluxn_d, double *etad, struct nestContainer *nest);
 int initialize_nestum(struct nestContainer *nest, float **work, int isGeog, int lev);
 int intp_lin (double *x, double *y, int n, int m, double *u, double *v);
 void inisp(struct nestContainer *nest);
@@ -246,6 +256,8 @@ void moment_sp_N(struct nestContainer *nest, int lev);
 void free_arrays(struct nestContainer *nest, int isGeog, int lev);
 int check_paternity(struct nestContainer *nest);
 int check_binning(double x0P, double x0D, double dxP, double dxD, double tol, double *suggest);
+int read_bnc_file(struct nestContainer *nest, char *file);
+void interp_bnc (struct nestContainer *nest, double t);
 #ifdef HAVE_NETCDF
 void write_most_slice(struct nestContainer *nest, int *ncid_most, int *ids_most, unsigned int i_start,
                       unsigned int j_start, unsigned int i_end, unsigned int j_end, float *work, size_t *start,
@@ -310,13 +322,14 @@ int main(int argc, char **argv) {
 	unsigned int *lcum_p = NULL, lcum = 0, n_mareg, n_ptmar, cycle = 1;
 	unsigned int ij, nx, ny, i_start, j_start, i_end, j_end;
 	size_t	start0 = 0, count0 = 1, len, start1_A[2] = {0,0}, count1_A[2], start1_M[3] = {0,0,0}, count1_M[3];
-	char   *bathy = NULL;               /* Name pointer for bathymetry file */
-	char   	hcum[256] = "";             /* Name for cumulative hight file */
+	char   *bathy   = NULL;             /* Name pointer for bathymetry file */
+	char   	hcum[256]   = "";           /* Name for cumulative hight file */
 	char    maregs[256] = "";           /* Name for maregraph positions file */
 	char   *fname_sww = NULL;           /* Name pointer for Anuga's .sww file */
 	char   *basename_most = NULL;       /* Name pointer for basename of MOST .nc files */
-	char   *fname3D = NULL;             /* Name pointer for the 3D netCDF file */
-	char   *fonte = NULL;               /* Name pointer for tsunami source file */
+	char   *fname3D  = NULL;            /* Name pointer for the 3D netCDF file */
+	char   *fonte    = NULL;            /* Name pointer for tsunami source file */
+	char   *bnc_file = NULL;            /* Name pointer for a boundary condition file */
 	char    stem[256] = "", prenome[128] = "", str_tmp[128] = "";
 	char   *pch;
 	char   *nesteds[4] = {NULL, NULL, NULL, NULL};
@@ -511,7 +524,7 @@ int main(int argc, char **argv) {
 					out_momentum = TRUE;
 					break;
 				case 'F':	/* File with the source grid */
-					fonte  = &argv[i][2];
+					bnc_file = &argv[i][2];
 					break;
 				case 'G':	/* Write grids at grn intervals */
 				case 'Z':	/* Write one single 3D netCDF at grn intervals */
@@ -739,7 +752,7 @@ int main(int argc, char **argv) {
 	if (out_velocity && (out_sww || out_most)) out_velocity = FALSE;
 
 	if (!bat_in_input && !source_in_input) {			/* If bathymetry & source where not given as arguments, load them */
-		if (!bathy || !fonte) {
+		if (!bathy || (!fonte && !bnc_file)) {
 			mexPrintf ("NSWING: error, bathymetry and/or source grids were not provided.\n"); 
 			Return(-1);
 		}
@@ -749,13 +762,13 @@ int main(int argc, char **argv) {
 			mexPrintf ("NSWING: Invalid bathymetry grid. Possibly it is in the Surfer 7 format\n"); 
 			Return(-1);
 		}
-		r_bin_f = read_grd_info_ascii (fonte, &hdr_f);	/* e verificar se as grelhas sao compativeis */
+		if (!bnc_file) r_bin_f = read_grd_info_ascii (fonte, &hdr_f);	/* e verificar se as grelhas sao compativeis */
 		if (r_bin_f < 0) {
 			mexPrintf ("NSWING: Invalid source grid. Possibly it is in the Surfer 7 format\n"); 
 			Return(-1);
 		}
 
-		if (hdr_f.nx != hdr_b.nx || hdr_f.ny != hdr_b.ny) {
+		if (!bnc_file && (hdr_f.nx != hdr_b.nx || hdr_f.ny != hdr_b.ny)) {
 			mexPrintf ("Bathymetry and source grids have different rows/columns\n"); 
 			mexPrintf ("%d %d %d %d\n", hdr_b.ny, hdr_f.ny, hdr_b.nx, hdr_f.nx); 
 			error++;
@@ -764,12 +777,14 @@ int main(int argc, char **argv) {
 
 	dx = (hdr_b.x_max - hdr_b.x_min) / (hdr_b.nx - 1);
 	dy = (hdr_b.y_max - hdr_b.y_min) / (hdr_b.ny - 1);
-	if (fabs(hdr_f.x_min - hdr_b.x_min) / dx > dx / 4 || fabs(hdr_f.x_max - hdr_b.x_max) / dx > dx / 4 ||
-		fabs(hdr_f.y_min - hdr_b.y_min) / dy > dy / 4 || fabs(hdr_f.y_max - hdr_b.y_max) / dy > dy / 4 ) {
-		mexPrintf ("Bathymetry and source grids do not cover the same region\n"); 
-		mexPrintf ("%lf %lf %lf %lf\n", hdr_f.x_min, hdr_b.x_min, hdr_f.x_max, hdr_b.x_max); 
-		mexPrintf ("%lf %lf %lf %lf\n", hdr_f.y_min, hdr_b.y_min, hdr_f.y_max, hdr_b.y_max); 
-		error++;
+	if (!bnc_file) {
+		if (fabs(hdr_f.x_min - hdr_b.x_min) / dx > dx / 4 || fabs(hdr_f.x_max - hdr_b.x_max) / dx > dx / 4 ||
+			fabs(hdr_f.y_min - hdr_b.y_min) / dy > dy / 4 || fabs(hdr_f.y_max - hdr_b.y_max) / dy > dy / 4 ) {
+			mexPrintf ("Bathymetry and source grids do not cover the same region\n"); 
+			mexPrintf ("%lf %lf %lf %lf\n", hdr_f.x_min, hdr_b.x_min, hdr_f.x_max, hdr_b.x_max); 
+			mexPrintf ("%lf %lf %lf %lf\n", hdr_f.y_min, hdr_b.y_min, hdr_f.y_max, hdr_b.y_max); 
+			error++;
+		}
 	}
 
 	/* Check the CFL condition */
@@ -854,10 +869,12 @@ int main(int argc, char **argv) {
 			read_grd_ascii (bathy, &hdr_b, nest.bat[0], -1);
 		else
 			read_grd_bin (bathy, &hdr_b, nest.bat[0], -1);
-		if (r_bin_b)					/* Read source */
-			read_grd_bin (fonte, &hdr_f, nest.etaa[0], 1);
-		else
-			read_grd_ascii (fonte, &hdr_f, nest.etaa[0], 1);
+		if (bnc_file == NULL) {
+			if (r_bin_b)					/* Read source */
+				read_grd_bin (fonte, &hdr_f, nest.etaa[0], 1);
+			else
+				read_grd_ascii (fonte, &hdr_f, nest.etaa[0], 1);
+		}
 	}
 
 	hdr.nx = hdr_b.nx;          hdr.ny = hdr_b.ny;
@@ -880,6 +897,12 @@ int main(int argc, char **argv) {
 			mxFree((void *) cum_p);	mxFree ((void *) time_p);	 
 			cumpt = FALSE;
 		}
+	}
+
+	/* ------- If we have a boundary condition file, time to load it ------------ */
+	if (bnc_file) {
+		if (read_bnc_file(&nest, bnc_file))
+			Return(-1);
 	}
 
 #ifdef I_AM_MEX
@@ -1067,35 +1090,36 @@ int main(int argc, char **argv) {
 			}
 		}
 
-		if (surf_level && time_h > time_jump && ( (k % grn) == 0 || k == n_of_cycles - 1)) {
-			/* --------------------------------------------------------------------- */
+		if (grn && surf_level && time_h > time_jump && ( (k % grn) == 0 || k == n_of_cycles - 1)) {
+			/* ---------------------------------------------------------------------------- */
 			/* outputs eta file averaging eta(t-dt/2) e eta(t+dt/2)
-			/* --------------------------------------------------------------------- */
+			/* ---------------------------------------------------------------------------- */
 			for (ij = 0; ij < nest.hdr[writeLevel].nm; ij++)
 				work[ij] = (float)((nest.etaa[writeLevel][ij] + nest.etad[writeLevel][ij]) * 0.5);
 		}
-		if (max_level && time_h > time_jump && ( (k % grn) == 0 || k == n_of_cycles - 1))
+		if (grn && max_level && time_h > time_jump && ( (k % grn) == 0 || k == n_of_cycles - 1))
 			for (ij = 0; ij < nest.hdr[writeLevel].nm; ij++) work[ij] = (float) wmax[ij];      /* Output max surface level */
 
-		/* ----------------------------------------------------------------------------- */
+		/* ------------------------------------------------------------------------------------ */
 		/* open boundary condition */
-		/* ----------------------------------------------------------------------------- */
-		openb(nest.hdr[0], nest.bat[0], nest.fluxm_d[0], nest.fluxn_d[0], nest.etad[0]);
+		/* ------------------------------------------------------------------------------------ */
+		if (bnc_file) interp_bnc(&nest, time_h);
+		if (k) openb(nest.hdr[0], nest.bat[0], nest.fluxm_d[0], nest.fluxn_d[0], nest.etad[0], &nest);
 
-		/* ----------------------------------------------------------------------------- */
+		/* ------------------------------------------------------------------------------------ */
 		/* If Nested grids we have to do the nesting work */
-		/* ----------------------------------------------------------------------------- */
+		/* ------------------------------------------------------------------------------------ */
 		if (do_nestum)
 			nestify(&nest, num_of_nestGrids, 1, isGeog);
 
-		/* ----------------------------------------------------------------------------- */
+		/* ------------------------------------------------------------------------------------ */
 		/* momentum conservation */
-		/* ----------------------------------------------------------------------------- */
+		/* ------------------------------------------------------------------------------------ */
 		moment_conservation(&nest, isGeog, 0);
 
-		/* ----------------------------------------------------------------------------- */
+		/* ------------------------------------------------------------------------------------ */
 		/* updates vmax - maximum water velocity using upwind */
-		/* ----------------------------------------------------------------------------- */
+		/* ------------------------------------------------------------------------------------ */
 #if 0
 		if (max_vel) {
 			for (ij = 0; ij < nest.hdr.[writeLevel].nm; i++) {
@@ -1105,9 +1129,9 @@ int main(int argc, char **argv) {
 		}
 #endif
 
-		/* ----------------------------------------------------------------------------- */
+		/* ------------------------------------------------------------------------------------ */
 		/* update eta and fluxes */
-		/* ----------------------------------------------------------------------------- */
+		/* ------------------------------------------------------------------------------------ */
 		update(&nest, 0);
 
 		if (cumpt && cycle % cumint == 0) {			/* Want time series at maregraph positions */
@@ -1300,6 +1324,14 @@ void sanitize_nestContainer(struct nestContainer *nest) {
 	int i;
 
 	nest->do_upscale  = TRUE;
+	nest->bnc_border[0] = nest->bnc_border[1] = nest->bnc_border[2] = nest->bnc_border[3] = FALSE;
+	nest->bnc_pos_x = NULL;
+	nest->bnc_pos_y = NULL;
+	nest->bnc_var_t = NULL;
+	nest->bnc_var_z = NULL;
+	nest->bnc_var_zTmp = NULL;
+	//nest->bnc_var_U = NULL;
+	//nest->bnc_var_V = NULL;
 	for (i = 0; i < 10; i++) {
 		nest->level[i] = -1;      /* Will be set to due level number for existing nesting levels */
 		nest->manning2[i] = 0;
@@ -1540,7 +1572,7 @@ int initialize_nestum(struct nestContainer *nest, float **work, int isGeog, int 
 	nest->hdr[lev].lat_min4Coriolis = 0;
 	nest->hdr[lev].doCoriolis = hdr.doCoriolis;
 
-	return(0);	
+	return(0);
 }
 
 /* ---------------------------------------------------------------------------------- */
@@ -1676,7 +1708,7 @@ int read_grd_ascii (char *file, struct srf_header *hdr, double *work, int sign) 
 	FILE *fp;
 
 	if ((fp = fopen (file, "r")) == NULL) {
-		mexPrintf ("%s: Unable to read file %s - exiting\n", "swan", file);
+		mexPrintf ("NSWING: Unable to read file %s - exiting\n", file);
 		return (-1);
 	}
 
@@ -1711,12 +1743,12 @@ int read_grd_ascii (char *file, struct srf_header *hdr, double *work, int sign) 
 int count_col (char *line) {
 	/* Count # of fields contained in line */
 	int n_col = 0;
-	char *p;
+	char *p, *ntoken = NULL;
 
-	p = (char *)strtok (line, " \t\n\015\032");
+	p = (char *)strtok_s (line, " \t\n\015\032", &ntoken);
 	while (p) {	/* Count # of fields */
 		n_col++;
-		p = (char *)strtok ((char *)NULL, " \t\n\015\032");
+		p = (char *)strtok_s (NULL, " \t\n\015\032", &ntoken);
 	}
 	return (n_col);
 }
@@ -1802,6 +1834,125 @@ int read_maregs(struct grd_header hdr, char *file, unsigned int *lcum_p) {
 	fclose (fp);
 	return (i);
 }
+
+#if 1
+/* -------------------------------------------------------------------- */
+int read_bnc_file(struct nestContainer *nest, char *file) {
+	/* Read file with a boundary condition time series */
+	int	N, n, n_ts = 0, n_pts, n_vars, done_nPts = FALSE, first_vars = TRUE, n_alloc = 1024;
+	char	*p, line[256], buffer[256], *ntoken = NULL;
+	FILE	*fp;
+
+	if ((fp = fopen (file, "r")) == NULL) {
+		mexPrintf ("NSWING: Unable to open file %s - exiting\n", file);
+		return (-1);
+	}
+
+	nest->bnc_border[1] = TRUE;	/* <<<<<<<<<<<<<<< TEMP ---------- */
+
+	while (fgets (line, 256, fp) != NULL) {
+		if (line[0] == '#') continue;	/* Jump comment lines */
+		if (!done_nPts) {
+			strcpy (buffer, line);
+			n_pts = count_col (buffer);	/* Count # of points along border */
+			if (n_pts % 2 || n_pts < 2) {
+				mexPrintf ("NSWING: Must have at least one pair of (x,y) points\n", file);
+				return (-1);
+			}
+			n_pts /= 2;	/* It was the number of x and y */
+			nest->bnc_pos_x = (double *) mxMalloc ((size_t)n_pts * sizeof (double));
+			nest->bnc_pos_y = (double *) mxMalloc ((size_t)n_pts * sizeof (double));
+			p = (char *)strtok_s (line, " \t\n\015\032", &ntoken);
+			sscanf (p, "%lf", &nest->bnc_pos_x[n]);
+			for (n = 0; n < n_pts; n++) {
+				p = (char *)strtok_s (NULL, " \t\n\015\032", &ntoken);
+				sscanf (p, "%lf", &nest->bnc_pos_y[n]);
+			}
+			done_nPts = TRUE;
+			nest->bnc_pos_nPts = n_pts;
+			continue;
+		}
+
+		strcpy (buffer, line);
+		n_vars = count_col (buffer);	/* Count # of variables. */
+		if (n_vars == 0) continue;	/* Empty line */
+		if (n_vars < 2) {
+			mexPrintf ("NSWING: Variables on bnc file (%s) must be (t,z1,[z2,...]), but got only %d fields\n", file, n_vars);
+			return (-1);
+		}
+		if (first_vars) {
+			N = n_vars;
+			nest->bnc_var_t = (double *) mxMalloc ((size_t)n_alloc * sizeof (double));
+			nest->bnc_var_z = (double **) mxMalloc ((size_t)n_alloc * sizeof (double));
+			nest->bnc_var_zTmp = (double *) mxMalloc ((size_t)(N-1) * sizeof (double));
+			for (n = 0; n < n_alloc; n++)
+				nest->bnc_var_z[n] = (double *) mxMalloc ((size_t)(N-1) * sizeof (double));
+
+			/*if (N == 4) {
+				nest->bnc_var_U = (double *) mxMalloc ((size_t)n_alloc * sizeof (double));
+				nest->bnc_var_V = (double *) mxMalloc ((size_t)n_alloc * sizeof (double));
+			}*/
+			first_vars = FALSE;
+		}
+		if (!first_vars && N != n_vars) {
+			mexPrintf ("NSWING: WARNING, expected %d variables but found %d Ignoring this entry\n", N, n_vars);
+			continue;
+		}
+		p = (char *)strtok_s (line, " \t\n\015\032", &ntoken);
+		sscanf (p, "%lf", &nest->bnc_var_t[n_ts]);
+		for (n = 0; n < N-1; n++) {
+			p = (char *)strtok_s (NULL, " \t\n\015\032", &ntoken);
+			sscanf (p, "%lf", &nest->bnc_var_z[n_ts][n]);
+		}
+		//else 
+			//sscanf (line, "%lf %lf %lf %lf", &nest->bnc_var_t[n_ts], &nest->bnc_var_z[n_ts], &nest->bnc_var_U[n_ts], &nest->bnc_var_V[n_ts]);
+
+		n_ts++;
+		if (n_ts > n_alloc) {
+			n_alloc += 1024;
+			nest->bnc_var_t = (double *)  mxRealloc (nest->bnc_var_t, (size_t)n_alloc * sizeof (double));
+			nest->bnc_var_z = (double **) mxRealloc (nest->bnc_var_z, (size_t)n_alloc * sizeof (double));
+			/*if (N == 4) {
+				nest->bnc_var_U = (double *) mxRealloc (nest->bnc_var_U, (size_t)n_alloc * sizeof (double));
+				nest->bnc_var_V = (double *) mxRealloc (nest->bnc_var_V, (size_t)n_alloc * sizeof (double));
+			}*/
+		}
+	}
+	fclose (fp);
+	nest->bnc_var_nTimes = n_ts;
+	return (0);
+}
+
+/* -------------------------------------------------------------------- */
+void interp_bnc (struct nestContainer *nest, double t) {
+	int i, n;
+	double s;
+
+	if (!nest->edge_row_P[0]) {
+		nest->edge_row_P[0] = (double *)mxCalloc((size_t)nest->hdr[0].nx, sizeof(double));
+		for (i = 0; i < nest->hdr[0].nx; i++)
+			nest->edge_row_P[0][i] = nest->hdr[0].x_min + i * nest->hdr[0].x_inc;      /* YY coords along W/E edge */
+
+		nest->bnc_var_z_interp = (double *) mxMalloc ((size_t)nest->hdr[0].nx * sizeof (double));
+	}
+
+	for (n = 0; n < nest->bnc_var_nTimes - 1; n++) {
+		if (t >= nest->bnc_var_t[n] && nest->bnc_var_t[n+1]) {		/* Found the bounds of 't' */
+			s = (t - nest->bnc_var_t[n]) / (nest->bnc_var_t[n+1] - nest->bnc_var_t[n]);
+			for (i = 0; i < nest->bnc_pos_nPts; i++)		/* Interpolate all spatial points for time t */
+				nest->bnc_var_zTmp[i] = nest->bnc_var_z[n][i] + s * (nest->bnc_var_z[n+1][i] - nest->bnc_var_z[n][i]);
+
+			break;
+		}
+	}
+	if (nest->bnc_pos_nPts > 1)
+		intp_lin (nest->bnc_pos_x, nest->bnc_var_zTmp, nest->bnc_pos_nPts, nest->hdr[0].nx, nest->edge_row_P[0], nest->bnc_var_z_interp);
+	else {		/* One point only, replicate it into all values of the line */
+		for (n = 0; n < nest->hdr[0].nx; n++)
+			nest->bnc_var_z_interp[n] = nest->bnc_var_zTmp[0];
+	}
+}
+#endif
 
 /* -------------------------------------------------------------------- */
 void no_sys_mem (char *where, unsigned int n) {	
@@ -2364,7 +2515,7 @@ void mass(struct nestContainer *nest, int lev) {
 /* ---------------------------------------------------------------------- */
 /* open boundary condition */
 /* --------------------------------------------------------------------- */
-void openb(struct grd_header hdr, double *bat, double *fluxm_d, double *fluxn_d, double *etad) {
+void openb(struct grd_header hdr, double *bat, double *fluxm_d, double *fluxn_d, double *etad, struct nestContainer *nest) {
 
 	int i, j;
 	double uh, zz, d__1, d__2;
@@ -2372,15 +2523,19 @@ void openb(struct grd_header hdr, double *bat, double *fluxm_d, double *fluxn_d,
 	/* ----- first column */
 	j = 0;
 	for (i = 1; i < hdr.nx - 1; i++) {
-		if (bat[ij_grd(i,j,hdr)] > EPS5) {
+		if (bat[ij_grd(i,j,hdr)] < EPS5) {
+			etad[ij_grd(i,j,hdr)] = -bat[ij_grd(i,j,hdr)];
+			continue;
+		}
+		if (!nest->bnc_border[1]) {	/* South border. Nothing external is entering here */
 			uh = (fluxm_d[ij_grd(i,j,hdr)] + fluxm_d[ij_grd(i-1,j,hdr)]) * 0.5;
 			d__2 = fluxn_d[ij_grd(i,j,hdr)];
 			zz = sqrt(uh * uh + d__2 * d__2) / sqrt(NORMAL_GRAV * bat[ij_grd(i,j,hdr)]);
-			if (fluxn_d[ij_grd(i,j,hdr)] > 0) zz *= -1;
-			etad[ij_grd(i,j,hdr)] = zz;
-		} 
+			if (d__2 > 0) zz *= -1;
+			etad[ij_grd(i,j,hdr)] = nest->bnc_var_z_interp[i];
+		}
 		else
-			etad[ij_grd(i,j,hdr)] = -bat[ij_grd(i,j,hdr)];
+			etad[ij_grd(i,j,hdr)] = nest->bnc_var_z_interp[i];
 	}
 
 	/* ------ last column */
@@ -3002,7 +3157,7 @@ void moment_sp_M(struct nestContainer *nest, int lev) {
 	int cp1, rp1;			/* next column (cp1 = col + 1) and row (rp1 = row + 1) */
 	int rm2, cp2;
 	double ff = 0, cte;
-	double dd, df, xp, xqe, xqq, advx, advy;
+	double dd, df, xp, xqe, xqq, advx, advy, f_limit;
 	double dpa_ij, dpa_ij_rp1, dpa_ij_rm1, dpa_ij_cm1, dpa_ij_cp1;
 	double dt, manning2, *htotal_a, *htotal_d, *bat, *etad, *fluxm_a, *fluxn_a, *fluxm_d, *fluxn_d;
 	double *vex, *r0, *r1m, *r1n, *r2m, *r2n, *r3m, *r3n, *r4m, *r4n;
@@ -3107,6 +3262,7 @@ void moment_sp_M(struct nestContainer *nest, int lev) {
 			xp = (1 - ff) * fluxm_a[ij] - r3m[row] * dd * (etad[ij+cp1] - etad[ij]); /* - includes coriolis */
 			if (hdr.doCoriolis)
 				xp += r4m[row] * 2 * xqq;
+
 			/* - total water depth is smaller than EPS3 >> linear */
 			if (dpa_ij < EPS3)
 				goto L120;
@@ -3171,6 +3327,12 @@ void moment_sp_M(struct nestContainer *nest, int lev) {
 L120:
 			xp /= (ff + 1);
 			if (fabs(xp) < EPS10) xp = 0;
+			     /* Limit the discharge */
+			else {
+				f_limit = V_LIMIT * dd;
+				if (xp > f_limit) xp = f_limit;
+				else if (xp < -f_limit) xp = -f_limit;
+			}
 
 			fluxm_d[ij] = xp;
 
@@ -3198,7 +3360,7 @@ void moment_sp_N(struct nestContainer *nest, int lev) {
 	int cp1, rp1;			/* next column (cp1 = col + 1) and row (rp1 = row + 1) */
 	int cm2, rp2;
 	double ff = 0, cte;
-	double dd, df, xq, xpe, xpp, advx, advy;
+	double dd, df, xq, xpe, xpp, advx, advy, f_limit;
 	double dqa_ij, dqa_ij_rp1, dqa_ij_rm1, dqa_ij_cm1, dqa_ij_cp1;
 	double dt, manning2, *htotal_a, *htotal_d, *bat, *etad, *fluxm_a, *fluxn_a, *fluxm_d, *fluxn_d;
 	double *vey, *r0, *r1m, *r1n, *r2m, *r2n, *r3m, *r3n, *r4m, *r4n;
@@ -3366,11 +3528,17 @@ void moment_sp_N(struct nestContainer *nest, int lev) {
 L200:
 			xq /= (ff + 1);
 			if (fabs(xq) < EPS10) xq = 0;
+			     /* Limit the discharge */
+			else {
+				f_limit = V_LIMIT * dd;
+				if (xq > f_limit) xq = f_limit;
+				else if (xq < -f_limit) xq = -f_limit;
+			}
 
 			fluxn_d[ij] = xq;
 
 			if (nest->out_velocity_y) {
-				/* elimina velocidades maiores que 10m/s para dd<1m */
+				/* elimina velocidades maiores que 10m/s para dd < 1m */
 				if (dd > EPS3)
 					vey[ij] = xq / df;
 				//else
