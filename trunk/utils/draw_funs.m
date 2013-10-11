@@ -2344,7 +2344,7 @@ function change_SymbPos(obj,eventdata,h)
 % Change the Symbol position by asking it's coordinates
 
 tag = get(h,'Tag');
-if (strcmp(tag,'Pointpolyline') || strcmp(tag,'Maregraph'))
+if (strcmp(tag,'Pointpolyline') || strcmp(tag,'Maregraph') || strcmp(tag,'TTT'))
 	pt = get(gca,'CurrentPoint');
 	xp = get(h,'XData');    yp = get(h,'YData');
 	% Find out which symb was selected
