@@ -1323,6 +1323,7 @@ function [Z, att, known_coords, have_nans] = read_gdal(full_name, att, IamCompil
 		ind = strfind(att.Subdatasets{sds_num+1}, ' ');					% Need to guess the no-data value
 		subDsName = att.Subdatasets{sds_num+1}(ind(1)+1:ind(2)-1);		% Get dataset name
 		NoDataValue = guess_nodataval(subDsName);
+		att.subDsName = subDsName;										% A non-standard name
 	end
 
 	% att.hdrInfo and att.hdrModisL2_NEED2READ are not default fields of the ATT struct
@@ -1458,7 +1459,7 @@ function [Z, att, known_coords, have_nans] = read_gdal(full_name, att, IamCompil
 						if ( any(bitget(Zf(k),bitflags)) ),	c(k) = true;	end
 					end
 					clear Zf
-					if (~strcmp(att.subDsName, 'l2_flags'))		% 'Normal' cases 
+					if (~isfield(att, 'subDsName') || ~strcmp(att.subDsName, 'l2_flags'))		% 'Normal' cases 
 						Z(c) = [];		lon_full(c) = [];		lat_full(c) = [];	% Remove the flagged values
 					else										% Make a grid of the flagged vales themselfs
 						Z = c;
