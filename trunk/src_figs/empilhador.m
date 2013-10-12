@@ -532,6 +532,29 @@ function check_L2_CB(hObject, handles)
 	end
 
 % -----------------------------------------------------------------------------------------
+function check_L2conf_CB(hObject, handles)
+% Scan the the L2config.txt file for the -R string and fill the region boxes with it
+	if (get(hObject,'Val'))
+		fake_R = 'nikles';
+		opt_R = sniff_in_OPTcontrol(fake_R);
+		if (strcmp(opt_R, fake_R))
+			errordlg('The data/L2config.txt file is corrupted and non usable.','Error')
+		else
+			ind = strfind(opt_R,'/');
+			try
+				w = opt_R(3:ind(1)-1);				e = opt_R(ind(1)+1:ind(2)-1);
+				s = opt_R(ind(2)+1:ind(3)-1);		n = opt_R(ind(3)+1:end);
+				set(handles.edit_west, 'Str', w);	set(handles.edit_east, 'Str', e);
+				set(handles.edit_south, 'Str', s);	set(handles.edit_north, 'Str', n);
+			catch
+				errordlg('The -R string in data/L2config.txt file is screwed and useless.','Error')
+				set(handles.edit_west, 'Str', '');	set(handles.edit_east, 'Str', '');
+				set(handles.edit_south, 'Str', '');	set(handles.edit_north, 'Str', '');
+			end
+		end
+	end
+
+% -----------------------------------------------------------------------------------------
 function check_region_CB(hObject, handles)
 	if (get(hObject,'Val'))
 		set([handles.edit_north handles.edit_south handles.edit_west handles.edit_east],'Enable','on')
@@ -631,8 +654,8 @@ function push_compute_CB(hObject, handles)
 		end
 		got_R = true;
 		% See if we have an L2 request and if user wants to use our default settings for that
-		if ( get(handles.check_L2, 'Val') && ~get(handles.check_L2conf, 'Val') )
-			if ( get(handles.radio_multiBand, 'Val') )
+		if (get(handles.check_L2, 'Val') && ~get(handles.check_L2conf, 'Val'))
+			if (get(handles.radio_multiBand, 'Val'))
 				errordlg('No, creating multi-band file is not possible with L2 MODIS files','Error'),	return
 			end
 			fid = fopen([handles.path_tmp 'L2config.txt'], 'w');
@@ -1645,6 +1668,8 @@ function [opt_R, opt_I, opt_C, bitflags, flagsID, despike] = sniff_in_OPTcontrol
 		end
 	end
 
+	if (nargout <= 3),		return,		end		% Used when only MIR_EMPILHADOR was scanned (and no att sent in)
+
 	if (got_flags)
 		% Before anything else find the 'fl_flags' array ID. If not found go away right away
 		flagsID = find_in_subdatasets(att.AllSubdatasets, 'l2_flags');
@@ -1848,6 +1873,7 @@ uicontrol('Parent',h1,'Position',[345 167 85 15],...
 'Tag','check_L2');
 
 uicontrol('Parent',h1,'Position',[430 167 155 15],...
+'Call','empilhador(''check_L2conf_CB'',gcbo,guidata(gcbo))',...
 'String','Use config file',...
 'Style','checkbox',...
 'Vis','off',...
