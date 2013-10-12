@@ -2314,7 +2314,7 @@ function push_interpolate_CB(hObject, eventdata, handles)
 	end
  	if (get(handles.check_miscWriteHeader, 'Val'))		% Write an header
 		fprintf(fid,'# Interpolated file: %s\n', handles.fname);
-		fprintf(fid,'# At locations from: %s\n', get(handles.edit_maregs_CB,'Str'));
+		fprintf(fid,'# At locations from: %s\n', get(handles.edit_maregs,'Str'));
 		fprintf(fid,'# Variable: %s\n', theVarName);
 		try			% There are many ways in which this can screw
 			if (~isempty(handles.xyLabels))
