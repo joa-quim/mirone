@@ -8,4 +8,5 @@ function runCB_tintol(handles)
 	end
 	set([handles.Image handles.Tools handles.Plates handles.MagGrav ...
 		handles.Seismology handles.GMT handles.GridTools], 'Vis', 'off')
-	set([handles.DrawGeogCirc handles.Anaglyph handles.MBplaning], 'Vis', 'off')
+% 	set([handles.DrawGeogCirc handles.Anaglyph handles.MBplaning], 'Vis', 'off')	% Stupid compiler screws here
+ 	set([handles.Anaglyph handles.MBplaning], 'Vis', 'off')
