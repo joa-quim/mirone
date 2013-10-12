@@ -1937,7 +1937,7 @@ void interp_bnc (struct nestContainer *nest, double t) {
 	}
 
 	for (n = 0; n < nest->bnc_var_nTimes - 1; n++) {
-		if (t >= nest->bnc_var_t[n] && nest->bnc_var_t[n+1]) {		/* Found the bounds of 't' */
+		if (t >= nest->bnc_var_t[n] && t < nest->bnc_var_t[n+1]) {		/* Found the bounds of 't' */
 			s = (t - nest->bnc_var_t[n]) / (nest->bnc_var_t[n+1] - nest->bnc_var_t[n]);
 			for (i = 0; i < nest->bnc_pos_nPts; i++)		/* Interpolate all spatial points for time t */
 				nest->bnc_var_zTmp[i] = nest->bnc_var_z[n][i] + s * (nest->bnc_var_z[n+1][i] - nest->bnc_var_z[n][i]);
@@ -2060,7 +2060,7 @@ int open_most_nc (struct nestContainer *nest, float *work, char *base, char *nam
 		/* ---- Define dimensions ------------ */
 		err_trap (nc_def_dim (ncid, "LON", (size_t) nx, &dim0[0]));
 		err_trap (nc_def_dim (ncid, "LAT", (size_t) ny, &dim0[1]));
-		err_trap (nc_def_dim (ncid, "TIME", NC_UNLIMITED, &dim0[2]));
+		err_trap (nc_def_dim (ncid, "time", NC_UNLIMITED, &dim0[2]));
 
 		/* ---- Define variables ------------- */
 		dim3[0] = dim0[2];	dim3[1] = dim0[1];	dim3[2] = dim0[0];
@@ -2069,11 +2069,11 @@ int open_most_nc (struct nestContainer *nest, float *work, char *base, char *nam
 		if (isMost) {
 			err_trap (nc_def_var (ncid, "SLON",  NC_FLOAT,0,  &dim0[0], &ids[2]));
 			err_trap (nc_def_var (ncid, "SLAT",  NC_FLOAT,0,  &dim0[1], &ids[3]));
-			err_trap (nc_def_var (ncid, "TIME",  NC_DOUBLE,1, &dim0[2], &ids[4]));
+			err_trap (nc_def_var (ncid, "time",  NC_DOUBLE,1, &dim0[2], &ids[4]));
 			err_trap (nc_def_var (ncid, name_var,NC_FLOAT,3,  dim3,     &ids[5]));
 		}
 		else {
-			err_trap (nc_def_var (ncid, "TIME",  NC_DOUBLE,1, &dim0[2], &ids[2]));
+			err_trap (nc_def_var (ncid, "time",  NC_DOUBLE,1, &dim0[2], &ids[2]));
 			err_trap (nc_def_var (ncid, name_var,NC_FLOAT,3,  dim3,     &ids[3]));
 			dim3[0] = dim0[1];			dim3[1] = dim0[0];		/* Bathym array is rank 2 */
 			err_trap (nc_def_var (ncid, "bathymetry",NC_FLOAT,2, dim3,  &ids[4]));
