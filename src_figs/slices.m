@@ -635,12 +635,12 @@ function push_compute_CB(hObject, handles)
 		fprintf(fid,'# The ''What'' variable that controls what statistic to compute\n');
 		valW = get(handles.popup_what,'Val');		str = get(handles.popup_what,'Str');
 		switch (str{valW})
-			case 'MEAN',	fprintf(fid,'mean\n');
-			case 'MEDIAN',	fprintf(fid,'median\n');
-			case 'MIN',		fprintf(fid,'min\n');
-			case 'MAX',		fprintf(fid,'max\n');
-			case 'STD',		fprintf(fid,'std\n');
-			otherwise,		fprintf(fid,'mean\n');
+			case 'MEAN',	fprintf(fid,'[]\n');
+			case 'MEDIAN',	fprintf(fid,'char median\n');
+			case 'MIN',		fprintf(fid,'char min\n');
+			case 'MAX',		fprintf(fid,'char max\n');
+			case 'STD',		fprintf(fid,'char std\n');
+			otherwise,		fprintf(fid,'[]\n');
 		end
 		comm = '# The ''fnamepolys'' var - File name of a x,y polygon or a list of polygons. Empty = fish polys from fig';
 		helper_writeFile(handles, fid, comm, 'fname', 2)
