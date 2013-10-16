@@ -791,7 +791,8 @@ function update_GMT_DB(handles, TOL)
 		end
 	end
 	if (isempty(Is))
-		warndlg('Nada, Nothing, Nickles. No polygons updated','Warning')
+		warndlg(['Nada, Nothing, Nickles. No polygons updated. Possibly the ends points of the updating ' ...
+				'polyline was not within 0.02 degrees of the to be updated polygon'],'Warning')
 	end
 
 function [x, y] = check_bombordo(hLine)
