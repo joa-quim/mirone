@@ -201,7 +201,7 @@ function push_ok_CB(hObject, handles)
 		Z = mask;
 	end
 
-	if ( (handles.image_type ~= 2 && handles.image_type ~= 20) || get(handles.radio_float,'Val') )
+	if (handles.image_type ~= 2)
 		tmp.head = handles.head;	tmp.name = 'Mask image';
 		tmp.X = tmp.head(1:2);		tmp.Y = tmp.head(3:4);
 		if (get(handles.radio_float,'Val'))
