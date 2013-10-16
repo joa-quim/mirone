@@ -982,8 +982,11 @@ function set_isochrons_uicontext(h, data)
 		end
 	end
 	% If at least one is closed, activate the Area option
-	if (LINE_ISCLOSED),		uimenu(cmenuHand, 'Label', 'Area under polygon', 'Call', @show_Area);	end
-	if ( (ndims(get(handles.hImg,'CData')) == 2 || handles.validGrid) )
+	if (LINE_ISCLOSED)
+		uimenu(cmenuHand, 'Label', 'Area under polygon', 'Call', @show_Area);
+		uimenu(cmenuHand, 'Label', 'Create Mask', 'Call', 'poly2mask_fig(guidata(gcbo),gco)');
+	end
+	if (handles.image_type ~= 20 && (ndims(get(handles.hImg,'CData')) == 2 || handles.validGrid))
 		cbTrack = 'setappdata(gcf,''TrackThisLine'',gco); mirone(''ExtractProfile_CB'',guidata(gcbo),''point'')';
 		uimenu(cmenuHand, 'Label', 'Point interpolation', 'Call', cbTrack);
 		cbTrack = 'setappdata(gcf,''TrackThisLine'',gco); mirone(''ExtractProfile_CB'',guidata(gcbo))';
