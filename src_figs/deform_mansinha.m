@@ -1,7 +1,7 @@
 function varargout = deform_mansinha(varargin)
 % Compute Elastic deformations using the rngchng MEX
 
-%	Copyright (c) 2004-2012 by J. Luis
+%	Copyright (c) 2004-2013 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -43,7 +43,7 @@ function varargout = deform_mansinha(varargin)
 	handles.hCallingFig = handMir.figure1;     % Handles to the calling figure
 	handles.hCallingAxes = handMir.axes1;
 
-	handles.n_faults = length(handles.h_fault);
+	handles.n_faults = numel(handles.h_fault);
 	handles.nFaults = handles.n_faults;          % Works as a copy of use with the scc option
 	if (handles.n_faults > 1)
 		s_format = ['%.' num2str(fix(log10(handles.n_faults))+1) 'd'];
@@ -60,7 +60,7 @@ function varargout = deform_mansinha(varargin)
 	fault_x = get(handles.h_fault,'XData');     fault_y = get(handles.h_fault,'YData');
 	if (handles.n_faults > 1)
 		nvert = zeros(1,handles.n_faults);
-		for (k=1:handles.n_faults),  nvert(k) = size(fault_x{k},2) - 1;  end
+		for (k = 1:handles.n_faults),  nvert(k) = size(fault_x{k},2) - 1;  end
 	else
 		nvert = size(fault_x,2) - 1;
 	end
@@ -214,7 +214,7 @@ function varargout = deform_mansinha(varargin)
 % ------------------------------------------------------------------------------------
 function handles = edit_FaultWidth_CB(hObject, handles, opt)
 % Actualize the "FaultWidth" field. EVENTDATA may not be empty
-	if (nargout)		xx = opt;
+	if (nargout),		xx = opt;
 	else				xx = str2double(get(hObject,'String'));
 	end
 	if (xx < 0)         % If user tried to give a negative width
@@ -539,12 +539,12 @@ function push_compute_CB(hObject, handles)
 	x = handles.fault_x;            y = handles.fault_y;
 	if (~iscell(x)),                x = {x};    y = {y};    end
 	kk = 1;
-	opt_F = cell(1, sum(handles.nvert) * handles.n_faults);		opt_A = opt_F;		opt_E = opt_F;
+	opt_F = cell(1, n_seg * handles.n_faults);		opt_A = opt_F;		opt_E = opt_F;
 	for (i = 1:handles.n_faults)
-		for (k=1:handles.nvert(i))		% Loop over number of segments of this fault
-			if (handles.is_meters)		% Fault's length must be given in km to mansinha_m
+		for (k = 1:handles.nvert(i))		% Loop over number of segments of this fault
+			if (handles.is_meters)			% Fault's length must be given in km to mansinha_m
 				handles.FaultLength{i}(k) = handles.FaultLength{i}(k) / 1000;
-			elseif (handles.is_km)		% This is a messy case. -E & -I must also be in meters
+			elseif (handles.is_km)			% This is a messy case. -E & -I must also be in meters
 				x{i}(k) = x{i}(k) * 1e3;    y{i}(k) = y{i}(k) * 1e3;
 			end
 			opt_F{kk} = ['-F' num2str(handles.FaultLength{i}(k)) '/' num2str(handles.FaultWidth{i}(k)) '/' ...
@@ -669,6 +669,12 @@ function edit_mu_CB(hObject, handles)
 % -----------------------------------------------------------------------------------------
 function check_SCC_CB(hObject, handles)
 % Activate (or de-...) the variable slip mode.
+	if (~handles.geog)
+		warndlg('Sorry but this works only with geographic grids','Warning')
+		set(hObject,'Value', 0)
+		return
+	end
+
 	if (get(hObject,'Value'))
 		msg = [];
 		if (handles.nFaults ~= 1),              msg = 'Currently only one fault is allowed';    end
@@ -682,6 +688,7 @@ function check_SCC_CB(hObject, handles)
 			return
 		end
 		handles.restoreOldPlane = ~handles.hide_planes;
+		handles.nvert_back = handles.nvert;		% We will need the original if unsetting the SCC
 		do_scc(handles);
 	else								% Remove the scc stripes and restore previous const slip state
 		deleteFatias([],[], handles)
@@ -693,7 +700,18 @@ function check_SCC_CB(hObject, handles)
 		else
 			set(handles.check_hideFaultPlanes,'Val',1)
 		end
+
 		handles.patchFatias = [];       % Reset it so a new cicle may begin
+		if (isappdata(handles.figure1,'handBak'))
+			handBak = getappdata(handles.figure1,'handBak');
+			handles.n_faults = handBak.n_faults;        handles.FaultTopDepth = handBak.FaultTopDepth;
+			handles.nvert = handBak.nvert;              handles.FaultLength = handBak.FaultLength;
+			handles.FaultDip = handBak.FaultDip;        handles.FaultWidth = handBak.FaultWidth;
+			handles.DislocRake = handBak.DislocRake;    handles.DislocSlip = handBak.DislocSlip;
+			handles.fault_x = handBak.fault_x;          handles.fault_y = handBak.fault_y;
+			handles.FaultStrike = handBak.FaultStrike(1);
+		end
+		
 		guidata(handles.figure1,handles)
 	end
 
@@ -704,7 +722,7 @@ function edit_nSlices_CB(hObject, handles)
         warndlg('Number of slices requested is either nonsense or too low. Reseting','Warning')
         set(handles.edit_nSlices,'String','20')
     end
-    if (get(handles.check_SCC,'Val'))    % We are already on the Fatias building mode. So rebuild them
+    if (get(handles.check_SCC,'Val'))	% We are already on the Fatias building mode. So rebuild them
         do_scc(handles);
     end
 
@@ -716,9 +734,8 @@ function edit_qValue_CB(hObject, handles)
         qValue = 0.3;
     end
     handles.qValue = qValue;
-    %guidata(handles.figure1,handles)
-    if (get(handles.check_SCC,'Val'))    % We are already on the Fatias building mode. So rebuild them
-        do_scc(handles);                    % It also saves handles
+    if (get(handles.check_SCC,'Val'))	% We are already on the Fatias building mode. So rebuild them
+        do_scc(handles);				% It also saves handles
     end
 
 % -----------------------------------------------------------------------------------------
@@ -728,7 +745,7 @@ function stripes = do_scc(handles)
     % This is a trick to use the callabck to hide the const slip patches
     if (~get(handles.check_hideFaultPlanes,'Val'))
         set(handles.check_hideFaultPlanes,'Val',1)
-        check_hideFaultPlanes_CB(handles.check_hideFaultPlanes, [], handles)
+        check_hideFaultPlanes_CB(handles.check_hideFaultPlanes, handles)
         set(handles.check_hideFaultPlanes,'Val',0)
     end
     
@@ -750,7 +767,7 @@ function stripes = do_scc(handles)
         handles.fault_x = handBak.fault_x;               handles.fault_y = handBak.fault_y;
         delete(handles.patchFatias)             % Delete existing slices patches before drawing new ones below
     end
-    [stripes,varSlip,sliceWidth] = comp_varSlip(handles);   % <==
+    [stripes,varSlip,sliceWidth] = comp_varSlip(handles);   % <== Compute the variable slip per slice of the source
     handles.varSlip = varSlip;                  % e.g. for ploting
     handles.n_faults = numel(stripes);
     handles.FaultTopDepth = cell(handles.n_faults,1);
@@ -792,7 +809,7 @@ function stripes = do_scc(handles)
 
 % -----------------------------------------------------------------------------------------
 function [stripes,varSlip,sliceWidth] = comp_varSlip(handles)
-    % Compute the descretized slip according to eq 10 of Geist & Demowska, PAGEOPH, 485-512, 1999
+% Compute the descretized slip according to eq 10 of Geist & Demowska, PAGEOPH, 485-512, 1999
     nFatias = round(str2double(get(handles.edit_nSlices,'String')));
     q = handles.qValue;
     D2R = pi / 180;
@@ -1189,7 +1206,7 @@ uicontrol('Parent',h1,'BackgroundColor',[1 1 1],...
 
 uicontrol('Parent',h1,'Position',[224 150 60 15],'ForegroundColor',[1 0 0], 'String','CONFIRM','Style','text');
 
-uicontrol('Parent',h1, 'Position',[410 110 60 18],...
+uicontrol('Parent',h1, 'Position',[410 100 60 18],...
 'String','Mu (x10^10)',...
 'Style','text',...
 'Tag','text_mu');
