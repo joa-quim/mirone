@@ -75,7 +75,14 @@ function out = init_header_params(handles,X,Y,head,misc,getAllMinMax)
 			aguentabar(k/handles.number_of_timesteps);
 		end
 		handles.zMinMaxsGlobal = [min(handles.zMinMaxs(:,1)) max(handles.zMinMaxs(:,2))];
-		head(5:6) = handles.zMinMaxs(1,:);			% Take the first slice min/max
+		k = 1;
+		while (isequal(handles.zMinMaxs(k,:), [0 0]) && (k <= handles.number_of_timesteps))
+			k = k + 1;
+		end
+		if (k > handles.number_of_timesteps)
+			warndlg('WARNING: All layers are zero. You better go home.', 'Warning')
+		end
+		head(5:6) = handles.zMinMaxs(k,:);			% Take the first non zero slice min/max
 	elseif (getAllMinMax)
 		aguentabar(0,'title','Computing global min/max')
 		for (k = 1:handles.number_of_timesteps)
@@ -89,7 +96,13 @@ function out = init_header_params(handles,X,Y,head,misc,getAllMinMax)
 			aguentabar(k/handles.number_of_timesteps);
 		end
 		handles.zMinMaxsGlobal = [min(handles.zMinMaxs(:,1)) max(handles.zMinMaxs(:,2))];
-		head(5:6) = handles.zMinMaxs(1,:);			% Take the first slice min/max
+		while (isequal(handles.zMinMaxs(k,:), [0 0]) && (k <= handles.number_of_timesteps))
+			k = k + 1;
+		end
+		if (k > handles.number_of_timesteps)
+			warndlg('WARNING: All layers are zero. You better go home.', 'Warning')
+		end
+		head(5:6) = handles.zMinMaxs(k,:);			% Take the first non zero slice min/max
 	else
 		ind = strcmp({s.Dataset(misc.z_id).Attribute.Name},'actual_range');
 		if (any(ind))
@@ -312,15 +325,6 @@ function coards_sliceShow(handles, Z)
 			img = Z;
 		end
 
-		if (get(handles.radio_shade, 'Val'))
-			indVar = 1;									% FAR FROM SURE THAT THIS IS CORRECT
-			img = ind2rgb8(img, handles.cmapLand);		% img is now RGB
-			head = handles.head;
-			if (~isempty(handles.ranges{indVar})),		head(5:6) = handles.ranges{indVar};		end
-			R = aquamoto('illumByType', handles, Z, head, handles.landIllumComm);
-			img = shading_mat(img,R,'no_scale');		% and now it is illuminated
-		end
-
 		if (handles.IamTSU && splitDryWet)
 			recomp = false;
 			if (~isempty(handles.landIllumComm_bak) && ~isequal(handles.landIllumComm_bak, handles.landIllumComm))
@@ -338,6 +342,18 @@ function coards_sliceShow(handles, Z)
 				end
 			end
 			img = aquamoto('do_imgWater', handles, 1, Z, handles.imgBat, indLand);
+
+		elseif (get(handles.radio_shade, 'Val'))
+			indVar = 1;									% FAR FROM SURE THAT THIS IS CORRECT
+			img = ind2rgb8(img, handles.cmapLand);		% img is now RGB
+			head = handles.head;
+			if (~isempty(handles.ranges{indVar})),		head(5:6) = handles.ranges{indVar};		end
+			if (head(5) == 0 && head(6) == 0)
+				warndlg('Something screwed up. Don''t know this grid min/max and must comput it now.','Warning')
+				zz = grdutils(Z, '-L');		head(5:6) = [zz(1) zz(2)];
+			end
+			R = aquamoto('illumByType', handles, Z, head, handles.landIllumComm);
+			img = shading_mat(img,R,'no_scale');		% and now it is illuminated
 		end
 
 		set(handles.handMir.hImg, 'CData', img)
@@ -345,7 +361,7 @@ function coards_sliceShow(handles, Z)
 		setappdata(handles.handMir.figure1,'dem_x',handles.x);		% Don't get bad surprises (like load another file)
 		setappdata(handles.handMir.figure1,'dem_y',handles.y);
 	end
-	
+
     guidata(handles.figure1,handles)
 
 	% Save also the updated header in Mirone handles
