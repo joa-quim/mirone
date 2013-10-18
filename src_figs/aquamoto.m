@@ -947,6 +947,10 @@ function img = do_imgWater(handles, indVar, Z, imgBat, indLand)
 		pal = get(handles.handMir.figure1,'Colormap');
 		if (get(handles.check_splitDryWet, 'Val')),		pal = handles.cmapWater;	end
 		imgWater = ind2rgb8(imgWater, pal);						% image is now RGB
+		if (handles.head(5) == 0 && handles.head(6) == 0)
+			warndlg('Something screwed up. Don''t know this grid min/max and must comput it now.','Warning')
+			zz = grdutils(Z, '-L');		handles.head(5:6) = [zz(1) zz(2)];
+		end
 		R = illumByType(handles, Z, handles.head, illumComm);
 		imgWater = shading_mat(imgWater,R,'no_scale');			% and now it is illuminated
 		clear R;
@@ -976,7 +980,7 @@ function imgBat = do_imgBat(handles, indVar, x, y)
 	if ( get(handles.radio_shade, 'Val') )
 		illumComm = handles.landIllumComm;
 		head = handles.head;
-		if ( ~isempty(handles.ranges{indVar}) ),	head(5:6) = handles.ranges{indVar};		end
+		if (~isempty(handles.ranges{indVar})),		head(5:6) = handles.ranges{indVar};		end
 		R = illumByType(handles, bat, head, illumComm);
 		imgBat = shading_mat(imgBat, R, 'no_scale');
 	end
@@ -1185,7 +1189,7 @@ function popup_derivedVar_CB(hObject, eventdata, handles)
 			set(handles.push_vel,'Enable', 'off'),	ico(ind) = 0.6;
 	end
 	set(handles.push_vel,'CData',ico)
-	if ( ~isempty(handles.ranges{val}) )
+	if (~isempty(handles.ranges{val}))
 		handles.minWater = handles.ranges{val}(1);		handles.maxWater = handles.ranges{val}(2);
 		set(handles.edit_globalWaterMin, 'String', handles.minWater)
 		set(handles.edit_globalWaterMax, 'String', handles.maxWater)
