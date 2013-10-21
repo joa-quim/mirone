@@ -779,6 +779,7 @@ function cut2cdf(handles, got_R, west, east, south, north)
 	end
 
 	nSlices = numel(handles.nameList);
+	n_rows = 0;		n_cols = 0;
 	n_cd = 1;
 	for (k = 1:nSlices)
 		set(handles.listbox_list,'Val',k),		pause(0.01)			% Show advance
@@ -792,9 +793,16 @@ function cut2cdf(handles, got_R, west, east, south, north)
 			end
 		end
 
-		if (do_SDS && k > 1)		% If we have an SDS request, get the attribs of that SDS (needed in getZ)
-			[att, do_SDS] = get_headerInfo(handles, handles.nameList{k}, got_R, west, east, south, north);
-			handles = guidata(handles.figure1);		% The get_att() function may have changed handles
+		try
+			if (do_SDS && k > 1)		% If we have an SDS request, get the attribs of that SDS (needed in getZ)
+				[att, do_SDS] = get_headerInfo(handles, handles.nameList{k}, got_R, west, east, south, north);
+				handles = guidata(handles.figure1);		% The get_att() function may have changed handles
+			end
+		catch
+			str = sprintf('Error reading header of file: %s\nIgnoring it\n', handles.nameList{k});
+			fprintf(str)
+			warndlg(str,'WarnError')
+			continue			% Probably, not good enoupg. We should create a Z of NaNs, but complicated here
 		end
 
 		curr_fname = handles.nameList{k};
@@ -802,11 +810,18 @@ function cut2cdf(handles, got_R, west, east, south, north)
 			curr_fname = handles.uncomp_name;		% File was compressed, so we have to use the uncompressed version
 		end
 
-		% In the following, if any of slope, intercept or base changes from file to file ... f
-		NoDataValue = att.Band(1).NoDataValue;		% Backup it because it might be changed for other (now unknow) reasons.
-		[Z, handles.have_nans, att] = ...
-			getZ(curr_fname, att, is_modis, is_linear, is_log, slope, intercept, base, opt_R, handles);
-		att.Band(1).NoDataValue = NoDataValue;
+		try
+			% In the following, if any of slope, intercept or base changes from file to file ... f
+			NoDataValue = att.Band(1).NoDataValue;		% Backup it because it might be changed for other (now unknow) reasons.
+			[Z, handles.have_nans, att] = ...
+				getZ(curr_fname, att, is_modis, is_linear, is_log, slope, intercept, base, opt_R, handles);
+			att.Band(1).NoDataValue = NoDataValue;
+		catch
+			str = sprintf('Error reading file: %s\nIgnoring it\n', curr_fname);
+			fprintf(str)
+			warndlg(str,'WarnError')
+			Z = alloc_mex(n_rows, n_cols, 'single', NaN);
+		end
 
 		% Check if all grids have the same size
 		if (k == 1)
