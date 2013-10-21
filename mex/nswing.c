@@ -667,14 +667,17 @@ int main(int argc, char **argv) {
 
 	if (argc <= 1 || error) {
 		mexPrintf ("NSWING - Um gerador de tsunamis\n\n");
-		mexPrintf ( "usage: nswing(bat,hdr_bat,deform,hdr_deform, [maregs], [-G<name>[+lev]], [-A<fname.sww>], [-B<bathy>], [-D], [-F<fonte>], [-M], [-N<n_cycles>], [-Rw/e/s/n], [-E], [-S[x|y|n][+m]], [-O<int>,<outmaregs>], [-T<int>,<mareg>[,<outmaregs>]]\n");
+		mexPrintf ("usage: nswing(bat,hdr_bat,deform,hdr_deform, [maregs], [-G|Z<name>[+lev],<int>], [-A<fname.sww>], [-B<bathy>]\n");
+		mexPrintf ("              [-D], [-F<BCfile>], [-M], [-N<n_cycles>], [-Rw/e/s/n], [-E], [-S[x|y|n][+m]], [-O<int>,<outmaregs>]\n");
+		mexPrintf ("              [-T<int>,<mareg>[,<outmaregs>]]\n");
 		mexPrintf ("\t-A name of ANUGA file\n");
 		mexPrintf ("\t-n basename for MOST triplet files (no extension)\n");
 		mexPrintf ("\t-B name of bathymetry file. In case it was not transmited in input.\n");
 		mexPrintf ("\t-D write grids with the total water depth\n");
 		mexPrintf ("\t-E write grids with the momentum. i.e velocity times water depth.\n");
-		mexPrintf ("\t-F name of source file (default fonte.grd)\n");
-		mexPrintf ("\t-G<stem> write grids at the grn intervals. Append file prefix. Files will be called <stem>#.grd\n");
+		mexPrintf ("\t-F name of a BoundaryCondition ASCII file\n");
+		mexPrintf ("\t-G<stem> write grids at the int intervals. Append file prefix. Files will be called <stem>#.grd\n");
+		mexPrintf ("\t   When doing nested grids, append +lev to save that particular level (only one level is allowed)\n");
 		mexPrintf ("\t-M write grids of max water level [Default wave surface level]\n");
 		mexPrintf ("\t-N number of cycles [Default 1010].\n");
 		mexPrintf ("\t-R output grids only in the sub-region enclosed by <west/east/south/north>\n");
@@ -687,6 +690,7 @@ int main(int argc, char **argv) {
 		mexPrintf ("\t   If not provided the output name will be constructed by appending '_auto.dat' to <maregs>.\n");
 		mexPrintf ("\t   Warning: this option should not be used when maregraphs were transmitted in input.\n");
 		mexPrintf ("\t-O <int>,<outfname> interval at which maregraphs are writen to <outfname> maregraph file.\n");
+		mexPrintf ("\t-Z Same as -G but saves result in a 3D netCDF file.\n");
 		mexPrintf ("\t-e To be used from the Mirone stand-alone version.\n");
 		return(error);
 	}
@@ -812,9 +816,11 @@ int main(int argc, char **argv) {
 				{no_sys_mem("(bat)", hdr.nx*hdr.ny); Return(-1);}
 
 			if (!r_bin)
-				read_grd_ascii (nesteds[num_of_nestGrids], &hdr, nest.bat[num_of_nestGrids+1], -1);
+				if (read_grd_ascii (nesteds[num_of_nestGrids], &hdr, nest.bat[num_of_nestGrids+1], -1))
+					Return(-1);
 			else
-				read_grd_bin (nesteds[num_of_nestGrids], &hdr, nest.bat[num_of_nestGrids+1], -1);
+				if (read_grd_bin (nesteds[num_of_nestGrids], &hdr, nest.bat[num_of_nestGrids+1], -1))
+					Return(-1);
 
 			dx = (hdr.x_max - hdr.x_min) / (hdr.nx - 1);
 			dy = (hdr.y_max - hdr.y_min) / (hdr.ny - 1);
@@ -838,6 +844,10 @@ int main(int argc, char **argv) {
 		mexPrintf("Requested save grid level is higher that actual number of nested grids. Using last\n");
 		writeLevel = num_of_nestGrids;
 		if (writeLevel < 0) writeLevel = 0;     /* When num_of_nestGrids is zero */
+	}
+
+	if (cumpt && !writeLevel && do_nestum) {	/* The case of maregraphs ONLY and nested grids. Use LAST level */
+		writeLevel = num_of_nestGrids;
 	}
 
 	/* -------------------------------------------------------------------------------------- */
@@ -1769,7 +1779,7 @@ int read_grd_bin (char *file, struct srf_header *hdr, double *work, int sign) {
 	FILE	*fp;
 
 	if ((fp = fopen (file, "rb")) == NULL) {
-		mexPrintf ("%s: Unable to read file %s - exiting\n", "swan", file);
+		mexPrintf ("NSWING: Unable to read file %s - exiting\n", file);
 		return (-1);
 	}
 	fread ((void *)hdr, sizeof (struct srf_header), (size_t)1, fp); 
@@ -1797,7 +1807,7 @@ int count_n_maregs(char *file) {
 	FILE	*fp;
 
 	if ((fp = fopen (file, "r")) == NULL) {
-		mexPrintf ("%s: Unable to open file %s - exiting\n", "swan", file);
+		mexPrintf ("NSWING: Unable to open file %s - exiting\n", file);
 		return (-1);
 	}
 	while (fgets (line, 256, fp) != NULL) {
@@ -1817,7 +1827,7 @@ int read_maregs(struct grd_header hdr, char *file, unsigned int *lcum_p) {
 	FILE	*fp;
 
 	if ((fp = fopen (file, "r")) == NULL) {
-		mexPrintf ("%s: Unable to open file %s - exiting\n", "nswing", file);
+		mexPrintf ("NSWING: Unable to open file %s - exiting\n", file);
 		return (-1);
 	}
 
@@ -2052,7 +2062,7 @@ int open_most_nc (struct nestContainer *nest, float *work, char *base, char *nam
 	}
 
 	if ( (status = nc_create (basename, NC_NETCDF4, &ncid)) != NC_NOERR) {
-		mexPrintf ("swan: Unable to create file %s - exiting\n", basename);
+		mexPrintf ("NSWING: Unable to create file %s - exiting\n", basename);
 		return(-1);
 	}
 
@@ -2532,7 +2542,7 @@ void openb(struct grd_header hdr, double *bat, double *fluxm_d, double *fluxn_d,
 			d__2 = fluxn_d[ij_grd(i,j,hdr)];
 			zz = sqrt(uh * uh + d__2 * d__2) / sqrt(NORMAL_GRAV * bat[ij_grd(i,j,hdr)]);
 			if (d__2 > 0) zz *= -1;
-			etad[ij_grd(i,j,hdr)] = nest->bnc_var_z_interp[i];
+			etad[ij_grd(i,j,hdr)] = zz;
 		}
 		else
 			etad[ij_grd(i,j,hdr)] = nest->bnc_var_z_interp[i];
