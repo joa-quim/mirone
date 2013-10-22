@@ -3007,6 +3007,7 @@ function DrawContours_CB(handles, opt)
 	[X,Y,Z,head] = load_grd(handles);
 	if isempty(Z),		return,		end		% An error message was already issued
 	set(handles.figure1,'pointer','watch')
+	nPtsContour = 0;
 	if (isempty(opt))				% Do the automatic contouring
 		c = contourc(X,Y,double(Z));
 		handles.plotContourLabels = 1;
@@ -3041,6 +3042,7 @@ function DrawContours_CB(handles, opt)
 		if (numel(opt) == 1),		opt = [opt opt];	end
 		c = contourc(X,Y,double(Z),opt);
 		if (isempty(c)),		set(handles.figure1,'pointer','arrow'),		return,		end
+		nPtsContour = handles.nPtsContour;
 	end
 
 	limit = size(c,2);
@@ -3050,6 +3052,7 @@ function DrawContours_CB(handles, opt)
 		if (abs(z_level) < eps),		z_level = 0;	c(1,i) = 0;		end		% Account for another ML BUG
 		nexti = i+npoints+1;
 		xdata = c(1,i+1:i+npoints);		ydata = c(2,i+1:i+npoints);
+		if (nPtsContour && numel(xdata) < nPtsContour),		i = nexti;	continue,	end
 		% Create the lines
 		cu = line('XData',xdata, 'YData',ydata, 'Parent',handles.axes1, 'LineWidth',handles.DefLineThick, ...
 			'Color',handles.DefLineColor, 'userdata',z_level,'Tag','contour');
