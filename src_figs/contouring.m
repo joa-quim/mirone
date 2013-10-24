@@ -81,9 +81,17 @@ function push_GuessIntervals_CB(hObject, handles)
 	set(handles.listbox_ElevValues,'String',list)
 
 %-------------------------------------------------------------------------------
+function edit_minNpts_CB(hObject, handles)
+% Minimum number of points that a contour must have to have right to see the light
+	xx = str2double(get(hObject,'String'));
+	if (isempty(xx) || isnan(xx) || xx < 0)
+		set(hObject,'String','0');
+	end
+
+%-------------------------------------------------------------------------------
 function edit_ElevStep_CB(hObject, handles)
 	xx = str2double(get(hObject,'String'));
-	if ( isempty(xx) || isnan(xx))
+	if (isempty(xx) || isnan(xx))
 		set(hObject,'String','');
 		handles.Zinc = [];
 	else
@@ -94,7 +102,7 @@ function edit_ElevStep_CB(hObject, handles)
 %-------------------------------------------------------------------------------
 function edit_StartElev_CB(hObject, handles)
 	xx = str2double(get(hObject,'String'));
-	if ( isempty(xx) || isnan(xx))
+	if (isempty(xx) || isnan(xx))
 		set(hObject,'String','');
 		handles.Zstart = [];
 	else
@@ -191,6 +199,7 @@ function push_Apply_CB(hObject, handles)
 	else
 		handMir.plotContourLabels = false;
 	end
+	handMir.nPtsContour = num2str(get(handles.edit_minNpts, 'Str'));
 	mirone('DrawContours_CB',handMir,list);
 
 %-------------------------------------------------------------------------------------
@@ -199,7 +208,7 @@ function figure1_KeyPressFcn(hObject, eventdata)
 		delete(hObject);
 	end
 
-	
+
 % --- Creates and returns a handle to the GUI figure. 
 function contouring_LayoutFcn(h1)
 
@@ -243,6 +252,16 @@ uicontrol('Parent',h1, 'Position',[21 236 90 17],...
 'Tooltip','Plot master contour lines',...
 'Value',1,...
 'Tag','check_plotLabels');
+
+uicontrol('Parent',h1, 'Position',[170 238 40 15], 'String','Min pts', 'Style','text');
+
+uicontrol('Parent',h1, 'Position',[210 236 50 21],...
+'Call',@contouring_uiCB,...
+'BackgroundColor',[1 1 1],...
+'Style','edit',...
+'String', '0',...
+'Tooltip','Do not plot contours with less than this number of vertex.',...
+'Tag','edit_minNpts');
 
 uicontrol('Parent',h1, 'Position',[20 206 241 21],...
 'Call',@contouring_uiCB,...
