@@ -56,7 +56,9 @@ function [out, msg, opt_R] = proj2proj_pts(handles, data, varargin)
 	elseif (~isempty(srcWKT))
 		projStruc.SrcProjWKT = srcWKT;
 	else
-		error('Unforeseen case in pro2proj_pts (no source referencing system)')		% The GMT case
+		warning('proj2proj_pts:zz','No source referencing system in input data. Returning as is.')		% The GMT case
+		out = data;
+		return
 	end
 	projStruc.DstProjWKT = dstWKT;
 
