@@ -199,7 +199,7 @@ function push_Apply_CB(hObject, handles)
 	else
 		handMir.plotContourLabels = false;
 	end
-	handMir.nPtsContour = num2str(get(handles.edit_minNpts, 'Str'));
+	handMir.nPtsContour = str2double(get(handles.edit_minNpts, 'Str'));
 	mirone('DrawContours_CB',handMir,list);
 
 %-------------------------------------------------------------------------------------
