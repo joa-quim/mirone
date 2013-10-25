@@ -79,7 +79,7 @@ function varargout = digitalFiltering(varargin)
 %
 %       M-File changed by desGUIDE and manualy edited after
 
-%	Copyright (c) 2004-2012 by J. Luis
+%	Copyright (c) 2004-2013 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -93,7 +93,9 @@ function varargout = digitalFiltering(varargin)
 %
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
- 
+
+% $Id$
+
 	hObject = figure('Vis','off');
 	digitalFiltering_LayoutFcn(hObject);
 	handles = guihandles(hObject);
@@ -315,8 +317,8 @@ function listbox1_CB(hObject, handles)
 		for (i = 1:length(struct_names))
 			name_clean = ddewhite(struct_names{i});
 			if (name_clean(1) == '+' || name_clean(1) == '-'),       name_clean = name_clean(3:end);     end
-			id1 = strmatch(name_clean,all_names(:,1),'exact');    % Find index to pretended name
-			id2 = findstr(name_clean,struct_names{i});              % Find index of starting text (after the blanks)
+			id1 = strmatch(name_clean,all_names(:,1),'exact');       % Find index to pretended name
+			id2 = strfind(name_clean,struct_names{i});				 % Find index of starting text (after the blanks)
 			names{i} = [struct_names{i}(1:id2-1) all_names{id1,2}];        
 		end
 		set(handles.listbox1,'String',names);
@@ -580,9 +582,6 @@ function [grd,img] = push_apply_CB(hObject, handles)
 	grd = [];
 	info = get(handles.tblParams, 'userdata');
 	f = cell2mat(info.data);				% Fish out the filter coefs
-	norma = sum(f(:));
-	if (abs(norma) < 1e-8),    norma = 1;      end
-	f = f / norma;							% Normalize them
 
 	if (isempty(handles.grd_orig)),		img = handles.img_orig;			% We are wowrking on a image
 	else								img = handles.grd_orig;			% We are working on a grid (2D array)
