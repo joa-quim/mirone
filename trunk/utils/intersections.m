@@ -265,7 +265,9 @@ if robust
 		sel_index = find(selected);
 		sel = sel_index(index);
 		iout = i(sel) + T(1,sel).';
-		jout = j(sel) + T(2,sel).';
+		if (nargout == 4)
+			jout = j(sel) + T(2,sel).';
+		end
 	end
 else % non-robust option
 	for k = 1:n
@@ -282,7 +284,9 @@ else % non-robust option
 	% Compute how far along each line segment the intersections are.
 	if nargout > 2
 		iout = i(in_range) + T(1,in_range).';
-		jout = j(in_range) + T(2,in_range).';
+		if (nargout == 4)
+			jout = j(in_range) + T(2,in_range).';
+		end
 	end
 end
 
