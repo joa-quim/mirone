@@ -238,6 +238,7 @@ function set_line_uicontext(h, opt)
 	if (IS_RECTANGLE)
 		uimenu(cmenuHand, 'Label', 'Delete me', 'Call', {@del_line,h});
 		uimenu(cmenuHand, 'Label', 'Delete inside rect', 'Call', {@del_insideRect,h});
+		uimenu(cmenuHand, 'Label', 'Trim inside rect', 'Call', {@trim_withPolygon,h,1});
 		ui_edit_polygon(h)
 	elseif (IS_LINE)
 		uimenu(cmenuHand, 'Label', 'Delete', 'Call', {@del_line,h});
@@ -542,8 +543,15 @@ function seismic_line(obj,evt,hL,opt)
 	end
 
 % -----------------------------------------------------------------------------------------
-function copy_line_object(obj, evt, hFig, hAxes)
-	oldH = gco(hFig);
+function hCopy = copy_line_object(obj, evt, hFig, hAxes)
+% Make a copy of an line object and update some of its properties.
+% If HCOPY output arg is specified, return without setting WindowButtonMotionFcn(). In this case one very
+% likely need to transmit the original object in EVT, since this function was not called after a mouse event.
+
+	if (~isempty(evt)),		oldH = evt;		% When calling this function by another that just wants a copy.
+	else					oldH = gco(hFig);
+	end
+
 	newH = copyobj(oldH,hAxes);
 	h = findobj(get(newH,'uicontextmenu'),'label','Save line');
 	if (~isempty(h))        % Replace the old line handle in the 'Save line' Callback by the just created one
@@ -558,6 +566,13 @@ function copy_line_object(obj, evt, hFig, hAxes)
 	x_lim = get(hAxes,'xlim');        y_lim = get(hAxes,'ylim');
 	current_pt = get(hAxes, 'CurrentPoint');
 	setappdata(newH,'old_pt',[current_pt(1,1) current_pt(1,2)])
+	
+	if (nargout)
+		uirestore_j(state, 'nochildren');	% Restore the figure's initial state
+		ui_edit_polygon(newH)				% Set the edition functions to the this handle
+		hCopy = newH;
+		return
+	end
 
 	set(hFig,'WindowButtonMotionFcn',{@wbm_MovePolygon,newH,[x_lim y_lim],hAxes},...
 		'WindowButtonDownFcn',{@wbd_MovePolygon,newH,state}, 'Pointer','fleur');
@@ -2942,7 +2957,7 @@ function del_line(obj,eventdata,h)
 	delete(h);
 
 % -----------------------------------------------------------------------------------------
-function del_insideRect(obj,eventdata,h)
+function del_insideRect(obj, evt, h)
 % Delete all lines/patches/text objects that have at least one vertex inside the rectangle
 
 	s = getappdata(h,'polygon_data');
@@ -2994,9 +3009,179 @@ function del_insideRect(obj,eventdata,h)
 	end
 	if (found),     refresh;    end     % Bloody text bug
 
+% -----------------------------------------------------------------------------------------
+function trim_withPolygon(obj, evt, h, side)
+% Intention is to ...
+% H is the handle to polyg
+% SIDE -> == 1, kill inside, else kill outside
+
+	hL = fish_inside_rect(h, 'line');
+	if (isempty(hL)),	return,		end
+
+	hAxes = get(h,'Parent');		hFig = get(hAxes,'Parent');
+
+	x0 = get(h,'XData');			y0 = get(h,'YData');	x0 = x0(:);		y0 = y0(:);
+
+	for (k = 1:numel(hL))
+		x = get(hL(k),'XData');		y = get(hL(k),'YData');
+		IN = inpolygon(x,y, x0,y0);					% Find which ones are inside the polygon
+		if (~any(IN)),		continue,	end			% It didn't cross the polygon
+		ind = find(IN);
+		if (numel(ind) == numel(x))					% Object entirely inside
+			if (side),	delete(hL(k)),	end			% Not wanted, delete it
+			continue
+		end
+		[xc, yc, iout] = intersections(x, y, x0, y0, 1);
+		[iout, I] = sort(iout);			% Shit but they aren't always sorted
+		if (any(diff(I) ~= 1))			% When shit happens we need to reorder the crossings too
+			xc = xc(I);		yc = yc(I);
+		end
+
+		if (side)									% KILL inside the polygon
+
+			if (numel(ind) == 1 && numel(xc) == 1)	% Easier case, we have a line with only one vertex inside.
+				if (ind == 1)						% A line with only first vertex inside, which we want to kill
+					x(1) = xc(1);	y(1) = yc(1);
+				else								% A line with last vertex inside, which we want to kill
+					x(end) = xc(1);	y(end) = yc(1);
+				end
+				set(hL(k),'XData',x, 'YData',y)
+			else
+				if (numel(xc) == 1)					% Better, only one crossing
+					if (IN(1))						% Line starts inside the polygon and ends outside
+						x(ind(end)) = xc(1);	y(ind(end)) = yc(1);
+						x(1:end-1) = [];		y(1:end-1) = [];
+					else							% The other way around. Line ends inside polygon
+						x(ind(1)) = xc(1);		y(ind(1)) = yc(1);
+						x(ind(1)+1:end) = [];	y(ind(1)+1:end) = [];
+					end
+					set(hL(k),'XData',x, 'YData',y)
+				elseif (numel(xc) == 2)				% Not so bad yet.
+					if (IN(1))						% Line starts inside polygon (easier, only need to shrink ends)
+						n = fix(iout(2)) + 1;		% Indice of first point to remove (after re-entrance)
+						x(n) = xc(2);			y(n) = yc(2);
+						x(n+1:end) = [];		y(n+1:end) = [];
+						n = fix(iout(1));			% Indice of last point to remove (before getting out)
+						x(n) = xc(1);			y(n) = yc(1);
+						x(1:n-1) = [];			y(1:n-1) = [];
+					else							% Line starts outside. Now need to break it into two lines
+						n = fix(iout(1)) + 1;		% Indice of last point to retain (after entrance)
+						x(n) = xc(1);			y(n) = yc(1);
+						x(n+1:end) = [];			y(n+1:end) = [];
+						hCopy = copy_line_object([], hL(k), hFig, hAxes);
+						xx = get(hCopy,'XData');	yy = get(hCopy,'YData');
+						n = fix(iout(2));			% Indice of first point to retain before second exit
+						xx(n) = xc(2);			yy(n) = yc(2);
+						xx(1:n-1) = [];			yy(1:n-1) = [];
+						set(hCopy,'XData',xx, 'YData',yy)
+					end
+					set(hL(k),'XData',x, 'YData',y)
+				else								% WORST, several crossings in and out. We'll need to create new lines
+					%ind2 = find(~diff(diff(ind) == 1)) + 1;	% Convoluted but it gives the indices of the to be removed pts
+					difa = diff(ind);
+					if (any(difa == 1))
+						ind2 = find(~diff(difa == 1)) + 1;	% Convoluted but it gives the indices of the to be removed pts
+						ind(ind2) = [];						% This guy now has the segment's boundaries
+						if (IN(end) && ind(end) == ind(end-1)+1)
+							ind(end) = [];					% Last pt is inside but not needed for reuse. Must kill it now
+						end
+					end
+					if (IN(1) && ind(1) ~= fix(iout(1)))	% First point survived but it was not the nearest neighbor to crossing
+						ind(1) = [];
+					end
+
+					c = false(1, numel(ind));
+					for (m = 1:numel(ind))
+						if (ind(m) == 1),	continue,	end		% First vertex does not need duplication
+						difa = ind(m) - fix(iout);
+						ind2 = find((ind(m) - fix(iout)) == 0);
+						if (~isempty(ind2) && difa(ind2-1) == 1)
+							c(m) = true;
+						end
+					end
+					if (any(c))
+						%if (c(1) && IN(1)),		c(1) = false;	end		% First vertex does not need duplication
+						ind2 = ind(c);						% These pt guys need to be duplicated
+						ind3 = [1:ind2(1) ind2(1)];
+						for (m = 2:numel(ind2))				% Awful, we need to grow the array expensively
+							ind3 = [ind3 ind2(m-1)+1:ind2(m) ind2(m)];
+						end
+						ind3 = [ind3 ind2(end)+1:numel(x)];
+						x = x(ind3);	y = y(ind3);
+						% Now also increase the 'ind'
+						ind = sort([ind ind2]);
+						ind2 = find(diff(ind) == 0) + 1;
+						for (m = 1:numel(ind2))
+							ind(ind2(m):end) = ind(ind2(m):end) + 1;	% Increase the second of the repetition by 1
+						end
+					end
+
+					if (~IN(1) && ind(1) ~= 1)				% Line starts outside, need to add first index
+						ind = [1 ind];
+					end
+
+					% Deal with last segment case
+					n1 = numel(x);		n2 = numel(ind);	% To shut up the annoying MLint
+					if (numel(xc) == numel(ind))
+						x(ind) = xc;		y(ind) = yc;
+						if (rem(numel(xc), 2) == 1)			% Odd number, line satrts inside but ends outside
+							ind(n2+1) = n1;
+						end
+					elseif (numel(xc) == numel(ind) + 1)	% More convoluted case with only one last point inside
+						x(ind) = xc(1:numel(ind));	y(ind) = yc(1:numel(ind));
+						if (ind(end) == fix(iout(end)))		% We need to insert an extra pt
+							xx = x(end);		yy = y(end);
+							x(end) = xc(end);	y(end) = yc(end);
+							x(n1+1) = xx;		y(n1+1) = yy;
+							ind(n2+1) = ind(end) + 1;
+							ind(n2+2) = numel(x);
+						else
+							x(fix(iout(end))) = xc(end);
+							y(fix(iout(end))) = yc(end);
+							ind(n2+1) = fix(iout(end));
+							ind(n2+2) = numel(x);
+						end
+					elseif (numel(xc) == numel(ind) - 1)	% Also convoluted case. Line starts outside so we added 1 to ind
+						x(ind(2:end)) = xc;		y(ind(2:end)) = yc;
+						if (rem(numel(ind), 2))				% Hammering thinking, might very screw up
+							ind(n2+1) = n1;
+						end
+					else
+						error('Deu merda1')
+					end
+					break_trimeds(hL(k), ind, hFig, hAxes, x, y);
+				end
+			end
+
+		else										% KILL outside the polygon
+		end
+	end
+
+	function break_trimeds(h, ind, hFig, hAxes, x, y)
+	% ...
+	set(h, 'XData',x(ind(1):ind(2)), 'YData',y(ind(1):ind(2)))
+	hCopy = copy_line_object([], h, hFig, hAxes);
+	set(hCopy, 'XData',[], 'YData',[])			% So that we will not copy potentially big lines for nothing
+	for (k = 3:2:numel(ind)-2)					% From second to before last segments
+		hNext = copy_line_object([], hCopy, hFig, hAxes);
+		set(hNext, 'XData',x(ind(k):ind(k+1)), 'YData',y(ind(k):ind(k+1)))
+	end
+
+	hNext = copy_line_object([], hCopy, hFig, hAxes);
+	set(hNext, 'XData',x(ind(end-1):ind(end)), 'YData',y(ind(end-1):ind(end)))	% Last segment
+	delete(hCopy)
+
 % -------------------------------------------------------------------------------------------------------
 function [hLP, hText] = fish_inside_rect(h, opt)
-% Get the handles of those objects that have at least one vertex inside the rectangle
+% Get the handles of those objects that have at least one vertex inside the rectangle whose handle is H
+% OPT is used to restrict what object types to search for. It can be
+%	'all'   -> Search for 'lines', 'patches' and 'texts'
+%	'line'  -> Search only for line type objects
+%	'patch' -> Search only for patch type objects
+%	'text'  -> Search only for text type objects
+
+	if (nargin == 1),	opt = 'all';	end
+	hLines = [];	hPatch = [];	hText = [];
 
 	s = getappdata(h,'polygon_data');
 	if (~isempty(s))            % If the rectangle is in edit mode, force it out of edit
@@ -3005,9 +3190,15 @@ function [hLP, hText] = fish_inside_rect(h, opt)
 	set(h, 'HandleVis','off')           % Make the rectangle handle invisible
 	hAxes = get(h,'Parent');
 
-	hLines = findobj(hAxes,'Type','line');     % Fish all objects of type line in Mirone figure
-	hPatch = findobj(hAxes,'Type','patch');
-	hText = findobj(hAxes,'Type','text');
+	if (strcmpi(opt, 'all') || strcmpi(opt, 'line'))
+		hLines = findobj(hAxes,'Type','line');     % Fish all objects of type line in Mirone figure
+	end
+	if (strcmpi(opt, 'all') || strcmpi(opt, 'patch'))
+		hPatch = findobj(hAxes,'Type','patch');
+	end
+	if (strcmpi(opt, 'all') || strcmpi(opt, 'text'))
+		hText = findobj(hAxes,'Type','text');
+	end
 	hLP = [hLines(:); hPatch(:)];
 	rx = get(h,'XData');        ry = get(h,'YData');
 	rx = [min(rx) max(rx)];     ry = [min(ry) max(ry)];
