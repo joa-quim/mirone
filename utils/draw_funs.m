@@ -238,7 +238,9 @@ function set_line_uicontext(h, opt)
 	if (IS_RECTANGLE)
 		uimenu(cmenuHand, 'Label', 'Delete me', 'Call', {@del_line,h});
 		uimenu(cmenuHand, 'Label', 'Delete inside rect', 'Call', {@del_insideRect,h});
-		uimenu(cmenuHand, 'Label', 'Trim inside rect', 'Call', {@trim_withPolygon,h,1});
+		item_tools = uimenu(cmenuHand, 'Label', 'Trim with rect');
+		uimenu(item_tools, 'Label', 'inside', 'Call', {@trim_withPolygon,h,1});
+		uimenu(item_tools, 'Label', 'outside', 'Call', {@trim_withPolygon,h,0});
 		ui_edit_polygon(h)
 	elseif (IS_LINE)
 		uimenu(cmenuHand, 'Label', 'Delete', 'Call', {@del_line,h});
@@ -3025,10 +3027,11 @@ function trim_withPolygon(obj, evt, h, side)
 	for (k = 1:numel(hL))
 		x = get(hL(k),'XData');		y = get(hL(k),'YData');
 		IN = inpolygon(x,y, x0,y0);					% Find which ones are inside the polygon
+		if (~side),		IN = ~IN;		end
 		if (~any(IN)),		continue,	end			% It didn't cross the polygon
 		ind = find(IN);
 		if (numel(ind) == numel(x))					% Object entirely inside
-			if (side),	delete(hL(k)),	end			% Not wanted, delete it
+			delete(hL(k))							% Not wanted, delete it
 			continue
 		end
 		[xc, yc, iout] = intersections(x, y, x0, y0, 1);
@@ -3037,129 +3040,127 @@ function trim_withPolygon(obj, evt, h, side)
 			xc = xc(I);		yc = yc(I);
 		end
 
-		if (side)									% KILL inside the polygon
-
-			if (numel(ind) == 1 && numel(xc) == 1)	% Easier case, we have a line with only one vertex inside.
-				if (ind == 1)						% A line with only first vertex inside, which we want to kill
-					x(1) = xc(1);	y(1) = yc(1);
-				else								% A line with last vertex inside, which we want to kill
-					x(end) = xc(1);	y(end) = yc(1);
+% 		if (0 && numel(ind) == 1 && numel(xc) == 1)	% Easier case, we have a line with only one vertex inside.
+% 			if (ind == 1)						% A line with only first vertex inside, which we want to kill
+% 				x(1) = xc(1);	y(1) = yc(1);
+% 			else								% A line with last vertex inside, which we want to kill
+% 				x(end) = xc(1);	y(end) = yc(1);
+% 			end
+% 			set(hL(k),'XData',x, 'YData',y)
+% 		else
+% 			if (numel(xc) == 1)					% Better, only one crossing
+% 				if (IN(1))						% Line starts inside the polygon and ends outside
+% 					x(ind(end)) = xc(1);	y(ind(end)) = yc(1);
+% 					x(1:end-1) = [];		y(1:end-1) = [];
+% 				else							% The other way around. Line ends inside polygon
+% 					x(ind(1)) = xc(1);		y(ind(1)) = yc(1);
+% 					x(ind(1)+1:end) = [];	y(ind(1)+1:end) = [];
+% 				end
+% 				set(hL(k),'XData',x, 'YData',y)
+% 			elseif (numel(xc) == 2)				% Not so bad yet.
+% 				if (IN(1))						% Line starts inside polygon (easier, only need to shrink ends)
+% 					n = fix(iout(2)) + 1;		% Indice of first point to remove (after re-entrance)
+% 					x(n) = xc(2);			y(n) = yc(2);
+% 					x(n+1:end) = [];		y(n+1:end) = [];
+% 					n = fix(iout(1));			% Indice of last point to remove (before getting out)
+% 					x(n) = xc(1);			y(n) = yc(1);
+% 					x(1:n-1) = [];			y(1:n-1) = [];
+% 				else							% Line starts outside. Now need to break it into two lines
+% 					n = fix(iout(1)) + 1;		% Indice of last point to retain (after entrance)
+% 					x(n) = xc(1);			y(n) = yc(1);
+% 					x(n+1:end) = [];		y(n+1:end) = [];
+% 					hCopy = copy_line_object([], hL(k), hFig, hAxes);
+% 					xx = get(hCopy,'XData');	yy = get(hCopy,'YData');
+% 					n = fix(iout(2));			% Indice of first point to retain before second exit
+% 					xx(n) = xc(2);			yy(n) = yc(2);
+% 					xx(1:n-1) = [];			yy(1:n-1) = [];
+% 					set(hCopy,'XData',xx, 'YData',yy)
+% 				end
+% 				set(hL(k),'XData',x, 'YData',y)
+% 			else								% WORST, several crossings in and out. We'll need to create new lines
+				%ind2 = find(~diff(diff(ind) == 1)) + 1;	% Convoluted but it gives the indices of the to be removed pts
+				difa = diff(ind);
+				if (any(difa == 1))
+					ind2 = find(difa == 1);
+					ind2 = ind2(diff(ind2) == 1) + 1;	% Find inner sequence of consecutive numbers
+					ind(ind2) = [];						% This guy now has the segment's boundaries
+					if (IN(end) && ind(end) == ind(end-1)+1)
+						ind(end) = [];					% Last pt is inside but not needed for reuse. Must kill it now
+					end
 				end
-				set(hL(k),'XData',x, 'YData',y)
-			else
-				if (numel(xc) == 1)					% Better, only one crossing
-					if (IN(1))						% Line starts inside the polygon and ends outside
-						x(ind(end)) = xc(1);	y(ind(end)) = yc(1);
-						x(1:end-1) = [];		y(1:end-1) = [];
-					else							% The other way around. Line ends inside polygon
-						x(ind(1)) = xc(1);		y(ind(1)) = yc(1);
-						x(ind(1)+1:end) = [];	y(ind(1)+1:end) = [];
-					end
-					set(hL(k),'XData',x, 'YData',y)
-				elseif (numel(xc) == 2)				% Not so bad yet.
-					if (IN(1))						% Line starts inside polygon (easier, only need to shrink ends)
-						n = fix(iout(2)) + 1;		% Indice of first point to remove (after re-entrance)
-						x(n) = xc(2);			y(n) = yc(2);
-						x(n+1:end) = [];		y(n+1:end) = [];
-						n = fix(iout(1));			% Indice of last point to remove (before getting out)
-						x(n) = xc(1);			y(n) = yc(1);
-						x(1:n-1) = [];			y(1:n-1) = [];
-					else							% Line starts outside. Now need to break it into two lines
-						n = fix(iout(1)) + 1;		% Indice of last point to retain (after entrance)
-						x(n) = xc(1);			y(n) = yc(1);
-						x(n+1:end) = [];			y(n+1:end) = [];
-						hCopy = copy_line_object([], hL(k), hFig, hAxes);
-						xx = get(hCopy,'XData');	yy = get(hCopy,'YData');
-						n = fix(iout(2));			% Indice of first point to retain before second exit
-						xx(n) = xc(2);			yy(n) = yc(2);
-						xx(1:n-1) = [];			yy(1:n-1) = [];
-						set(hCopy,'XData',xx, 'YData',yy)
-					end
-					set(hL(k),'XData',x, 'YData',y)
-				else								% WORST, several crossings in and out. We'll need to create new lines
-					%ind2 = find(~diff(diff(ind) == 1)) + 1;	% Convoluted but it gives the indices of the to be removed pts
-					difa = diff(ind);
-					if (any(difa == 1))
-						ind2 = find(~diff(difa == 1)) + 1;	% Convoluted but it gives the indices of the to be removed pts
-						ind(ind2) = [];						% This guy now has the segment's boundaries
-						if (IN(end) && ind(end) == ind(end-1)+1)
-							ind(end) = [];					% Last pt is inside but not needed for reuse. Must kill it now
-						end
-					end
-					if (IN(1) && ind(1) ~= fix(iout(1)))	% First point survived but it was not the nearest neighbor to crossing
-						ind(1) = [];
-					end
+				if (IN(1) && ind(1) ~= fix(iout(1)))	% First point survived but it was not the nearest neighbor to crossing
+					ind(1) = [];
+				end
 
-					c = false(1, numel(ind));
-					for (m = 1:numel(ind))
-						if (ind(m) == 1),	continue,	end		% First vertex does not need duplication
-						difa = ind(m) - fix(iout);
-						ind2 = find((ind(m) - fix(iout)) == 0);
-						if (~isempty(ind2) && difa(ind2-1) == 1)
-							c(m) = true;
-						end
+				% Search for vertices that are 'singletons' inside. Those need to be duplicated to account for the 2x crossing
+				c = false(1, numel(ind));
+				for (m = 1:numel(ind))
+					if (ind(m) == 1),	continue,	end	% First vertex does not need duplication
+					difa = ind(m) - fix(iout);
+					ind2 = find((ind(m) - fix(iout)) == 0);
+					if (~isempty(ind2) && ind2 > 1 && difa(ind2-1) == 1)
+						c(m) = true;
 					end
-					if (any(c))
-						%if (c(1) && IN(1)),		c(1) = false;	end		% First vertex does not need duplication
-						ind2 = ind(c);						% These pt guys need to be duplicated
-						ind3 = [1:ind2(1) ind2(1)];
-						for (m = 2:numel(ind2))				% Awful, we need to grow the array expensively
-							ind3 = [ind3 ind2(m-1)+1:ind2(m) ind2(m)];
-						end
-						ind3 = [ind3 ind2(end)+1:numel(x)];
-						x = x(ind3);	y = y(ind3);
-						% Now also increase the 'ind'
-						ind = sort([ind ind2]);
-						ind2 = find(diff(ind) == 0) + 1;
-						for (m = 1:numel(ind2))
-							ind(ind2(m):end) = ind(ind2(m):end) + 1;	% Increase the second of the repetition by 1
-						end
+				end
+				if (any(c))
+					ind2 = ind(c);						% These pt guys need to be duplicated
+					ind3 = [1:ind2(1) ind2(1)];
+					for (m = 2:numel(ind2))				% Awful, we need to grow the array expensively
+						ind3 = [ind3 ind2(m-1)+1:ind2(m) ind2(m)];
 					end
+					ind3 = [ind3 ind2(end)+1:numel(x)];
+					x = x(ind3);	y = y(ind3);
+					% Now also increase the 'ind'
+					ind = sort([ind ind2]);
+					ind2 = find(diff(ind) == 0) + 1;
+					for (m = 1:numel(ind2))
+						ind(ind2(m):end) = ind(ind2(m):end) + 1;	% Increase the second of the repetition by 1
+					end
+				end
 
-					if (~IN(1) && ind(1) ~= 1)				% Line starts outside, need to add first index
-						ind = [1 ind];
-					end
+				if (~IN(1) && ind(1) ~= 1)				% Line starts outside, need to add first index
+					ind = [1 ind];
+				end
 
-					% Deal with last segment case
-					n1 = numel(x);		n2 = numel(ind);	% To shut up the annoying MLint
-					if (numel(xc) == numel(ind))
-						x(ind) = xc;		y(ind) = yc;
-						if (rem(numel(xc), 2) == 1)			% Odd number, line satrts inside but ends outside
-							ind(n2+1) = n1;
-						end
-					elseif (numel(xc) == numel(ind) + 1)	% More convoluted case with only one last point inside
-						x(ind) = xc(1:numel(ind));	y(ind) = yc(1:numel(ind));
-						if (ind(end) == fix(iout(end)))		% We need to insert an extra pt
-							xx = x(end);		yy = y(end);
-							x(end) = xc(end);	y(end) = yc(end);
-							x(n1+1) = xx;		y(n1+1) = yy;
-							ind(n2+1) = ind(end) + 1;
-							ind(n2+2) = numel(x);
-						else
-							x(fix(iout(end))) = xc(end);
-							y(fix(iout(end))) = yc(end);
-							ind(n2+1) = fix(iout(end));
-							ind(n2+2) = numel(x);
-						end
-					elseif (numel(xc) == numel(ind) - 1)	% Also convoluted case. Line starts outside so we added 1 to ind
-						x(ind(2:end)) = xc;		y(ind(2:end)) = yc;
-						if (rem(numel(ind), 2))				% Hammering thinking, might very screw up
-							ind(n2+1) = n1;
-						end
+				% Deal with last segment case
+				n1 = numel(x);		n2 = numel(ind);	% To shut up the annoying MLint
+				if (numel(xc) == numel(ind))
+					x(ind) = xc;		y(ind) = yc;
+					if (rem(numel(xc), 2) == 1)			% Odd number, line satrts inside but ends outside
+						ind(n2+1) = n1;
+					end
+				elseif (numel(xc) == numel(ind) + 1)	% More convoluted case with only one last point inside
+					x(ind) = xc(1:numel(ind));	y(ind) = yc(1:numel(ind));
+					if (ind(end) == fix(iout(end)))		% We need to insert an extra pt
+						xx = x(end);		yy = y(end);
+						x(end) = xc(end);	y(end) = yc(end);
+						x(n1+1) = xx;		y(n1+1) = yy;
+						ind(n2+1) = ind(end) + 1;
+						ind(n2+2) = numel(x);
 					else
-						error('Deu merda1')
+						x(fix(iout(end))) = xc(end);
+						y(fix(iout(end))) = yc(end);
+						ind(n2+1) = fix(iout(end));
+						ind(n2+2) = numel(x);
 					end
-					break_trimeds(hL(k), ind, hFig, hAxes, x, y);
+				elseif (numel(xc) == numel(ind) - 1)	% Also convoluted case. Line starts outside so we added 1 to ind
+					x(ind(2:end)) = xc;		y(ind(2:end)) = yc;
+					if (rem(numel(ind), 2))				% Hammering thinking, might very screw up
+						ind(n2+1) = n1;
+					end
+				else
+					error('Deu merda1')
 				end
-			end
+				break_trimeds(hL(k), ind, hFig, hAxes, x, y);
+%  			end
+% 		end
 
-		else										% KILL outside the polygon
-		end
 	end
 
 	function break_trimeds(h, ind, hFig, hAxes, x, y)
 	% ...
 	set(h, 'XData',x(ind(1):ind(2)), 'YData',y(ind(1):ind(2)))
+	if (numel(ind) == 2),	return,		end		% We rae done, only one segment
 	hCopy = copy_line_object([], h, hFig, hAxes);
 	set(hCopy, 'XData',[], 'YData',[])			% So that we will not copy potentially big lines for nothing
 	for (k = 3:2:numel(ind)-2)					% From second to before last segments
