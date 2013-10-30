@@ -880,6 +880,10 @@ function FileOpen_CB(hObject, handles)
 % The special case # DATENUM YYYY.MM is also handled (for data output from Aquamoto)
 % but in this case the file must have only 2 columns - (time, data)
 %
+% Another special case is # DATENUM YYYYDOY (for data output from Slices) where the file
+% must have two columns - (time_as_Day-Of-Year, data). Note that YYYY must be replaced by
+% the year in question. Example: # DATENUM 2012DOY
+%
 % Another special case is provided when a comment line is # TO_REFERENCE OFFSET=XX SCALE=XX
 % This will scale X coords as (X - X(1)) * scale + offset and also activate an option to
 % register this line with respect to a reference line.
@@ -923,6 +927,10 @@ function FileOpen_CB(hObject, handles)
 					Y = fix(Y);
 					D = ones(numel(M), 1) * 15;		% half month in this aproximation
 					serial_date = datenum(Y, M, D);
+				elseif (strcmpi(t(5:7),'DOY'))		% YYYYDOY Local form sometimes output from Slices
+					Y = str2double(t(1:4));
+					DOY = str2double(yymmdd);
+					serial_date = datenum(Y, 1, 1) + DOY;
 				else
 					if (~isnan(str2double(t)))		% Interpret 't' as a dateform number
 						t = str2double(t);
