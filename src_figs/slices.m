@@ -94,7 +94,7 @@ function varargout = slices(varargin)
 	handles.cases{1,3} = {handles.text_bounds 'Subset'};	% Set handle String prop to second element
 	handles.cases{1,4} = {'on' 'Restrict the analysis to the interior of this polygon'};
 	handles.cases{1,5} = {'on' 'Optional second polygon'};
-	handles.cases{1,6} = {'on' 'Check against a quality flags file'};
+	handles.cases{1,6} = {'on' 'Filter with quality flags file (opt)'};
 
 	handles.cases{2,1} = [handles.radio_slope handles.radio_pValue handles.check_integDim handles.text_scale ...
 		handles.edit_scale handles.text_bounds handles.edit_subSetA handles.edit_subSetB];
@@ -102,14 +102,14 @@ function varargout = slices(varargin)
 	handles.cases{2,3} = {handles.text_bounds 'Subset'};	% Set handle String prop to second element
 	handles.cases{2,4} = {'on' 'Output file'};
 	handles.cases{2,5} = {'off' 'Not Used yet'};
-	handles.cases{2,6} = {'on' 'Check against a quality flags file'};
+	handles.cases{2,6} = {'on' 'Filter with quality flags file (opt)'};
 
 	handles.cases{3,1} = [handles.text_nCells handles.edit_nCells];
 	handles.cases{3,2} = {'' ''};
 	handles.cases{3,3} = {handles.text_bounds 'Subset'};	% Set handle String prop to second element
 	handles.cases{3,4} = {'on' 'Output file'};
 	handles.cases{3,5} = {'off' 'Not Used'};
-	handles.cases{3,6} = {'on' 'Check against a quality flags file'};
+	handles.cases{3,6} = {'on' 'Filter with quality flags file (opt)'};
 
 	handles.cases{4,1} = [handles.text_periods handles.edit_periods handles.check_integDim handles.text_nCells ...
 		handles.edit_nCells handles.text_bounds handles.edit_subSetA handles.edit_subSetB handles.text_What ...
@@ -117,8 +117,8 @@ function varargout = slices(varargin)
 	handles.cases{4,2} = {[11 250 55 16] [64 248 81 21] [137 198 115 21] '' '' '' '' '' '' ''};
 	handles.cases{4,3} = {handles.text_bounds 'Bounds'};	% Set handle String prop to second element
 	handles.cases{4,4} = {'on' 'Output file'};
-	handles.cases{4,5} = {'on' 'Control file'};
-	handles.cases{4,6} = {'on' 'Check against a quality flags file'};
+	handles.cases{4,5} = {'on' 'Control xy file (optional)'};
+	handles.cases{4,6} = {'on' 'Filter with quality flags file (opt)'};
 
 	handles.cases{5,1} = [handles.text_bounds handles.edit_subSetA handles.edit_subSetB handles.text_What ...
 		handles.popup_what];
@@ -126,7 +126,7 @@ function varargout = slices(varargin)
 	handles.cases{5,3} = {handles.text_bounds 'Subset'};	% Set handle String prop to second element
 	handles.cases{5,4} = {'on' 'Output file'};
 	handles.cases{5,5} = {'on' 'External polygon file'};
-	handles.cases{5,6} = {'on' 'Check against a quality flags file'};
+	handles.cases{5,6} = {'on' 'Filter with quality flags file (opt)'};
 
 	handles.cases{6,1} = [handles.text_periods handles.edit_periods handles.text_bounds handles.edit_subSetA ...
 		handles.edit_subSetB handles.text_What handles.popup_what];
@@ -1024,10 +1024,10 @@ uicontrol('Parent',h1, 'Position',[351 50 21 21],...
 'Call',@slices_uiCB,...
 'Tag','push_fname3');
 
-uicontrol('Parent',h1, 'Position',[9 9 131 22],...
+uicontrol('Parent',h1, 'Position',[9 9 141 21],...
 'Call',@slices_uiCB,...
 'FontSize',9,...
-'String','Run Plugin function',...
+'String','Run Plugin fun (opt)',...
 'Tag','push_runPlugin');
 
 uicontrol('Parent',h1, 'Position',[276 8 101 22],...
