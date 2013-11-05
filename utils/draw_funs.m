@@ -883,6 +883,7 @@ function set_ContourLines_uicontext(h,h_label)
 	uimenu(cmenuHand, 'Label', 'Delete contour', 'Call',{@remove_singleContour,h});
 	uimenu(cmenuHand, 'Label', 'Delete all contours', 'Call', cb_rac);
 	% item1 = uimenu(cmenuHand, 'Label', 'Edit contour (left-click on it)', 'Call', cb1);
+	uimenu(cmenuHand, 'Label', 'Join contours', 'Call', {@join_lines,handles.figure1});
 	uimenu(cmenuHand, 'Label', 'Save contour', 'Call', {@save_formated,h});
 	uimenu(cmenuHand, 'Label', 'Contour length', 'Call', {@show_LineLength,[]});
 	uimenu(cmenuHand, 'Label', 'Area under contour', 'Call', @show_Area);
@@ -2962,54 +2963,59 @@ function del_line(obj,eventdata,h)
 function del_insideRect(obj, evt, h)
 % Delete all lines/patches/text objects that have at least one vertex inside the rectangle
 
-	s = getappdata(h,'polygon_data');
-	if (~isempty(s))            % If the rectangle is in edit mode, force it out of edit
-		if strcmpi(s.controls,'on'),    ui_edit_polygon(h);     end
-	end
-	set(h, 'HandleVis','off')           % Make the rectangle handle invisible
-	hAxes = get(h,'Parent');
+	[hLP, hText] = fish_inside_rect(h);
+	delete(hLP);	delete(hText);
+	if (~isempty(hText)),	refresh;    end     % Bloody text bug
+	return
 
-	hLines = findobj(hAxes,'Type','line');     % Fish all objects of type line in Mirone figure
-	hPatch = findobj(hAxes,'Type','patch');
-	hText = findobj(hAxes,'Type','text');
-	hLP = [hLines(:); hPatch(:)];
-	rx = get(h,'XData');        ry = get(h,'YData');
-	rx = [min(rx) max(rx)];     ry = [min(ry) max(ry)];
-	found = false;
-	for (i = 1:numel(hLP))		% Loop over objects to find if any is on edit mode
-		s = getappdata(hLP(i),'polygon_data');
-		if (~isempty(s))
-			if strcmpi(s.controls,'on')     % Object is in edit mode, so this
-				ui_edit_polygon(hLP(i))     % call will force out of edit mode
-				found = true;
-			end
-		end
-	end
-	if (found)		% We have to do it again because some line handles have meanwhile desapeared
-		hLines = findobj(hAxes,'Type','line');
-		hPatch = findobj(hAxes,'Type','patch');
-		hLP = [hLines(:); hPatch(:)];
-	end
-	set(h, 'HandleVis','on')    % Make the rectangle handle findable again
-
-	de_LP = false(numel(hLP),1);
-	for (i = 1:numel(hLP))		% Loop over objects to find out which cross the rectangle
-		x = get(hLP(i),'XData');        y = get(hLP(i),'YData');
-		if ( any( (x >= rx(1) & x <= rx(2)) & (y >= ry(1) & y <= ry(2)) ) )
-			de_LP(i) = true;
-			delete(hLP(i))
-		end
-	end
-
-	found = false;
-	for (i = 1:numel(hText))	% Text objs are a bit different, so treat them separately
-		pos = get(hText(i),'Position');
-		if ( (pos(1) >= rx(1) && pos(1) <= rx(2)) && (pos(2) >= ry(1) && pos(2) <= ry(2)) )
-			delete(hText(i))
-			found = true;
-		end
-	end
-	if (found),     refresh;    end     % Bloody text bug
+% 	s = getappdata(h,'polygon_data');
+% 	if (~isempty(s))            % If the rectangle is in edit mode, force it out of edit
+% 		if strcmpi(s.controls,'on'),    ui_edit_polygon(h);     end
+% 	end
+% 	set(h, 'HandleVis','off')           % Make the rectangle handle invisible
+% 	hAxes = get(h,'Parent');
+% 
+% 	hLines = findobj(hAxes,'Type','line');     % Fish all objects of type line in Mirone figure
+% 	hPatch = findobj(hAxes,'Type','patch');
+% 	hText = findobj(hAxes,'Type','text');
+% 	hLP = [hLines(:); hPatch(:)];
+% 	rx = get(h,'XData');        ry = get(h,'YData');
+% 	rx = [min(rx) max(rx)];     ry = [min(ry) max(ry)];
+% 	found = false;
+% 	for (i = 1:numel(hLP))		% Loop over objects to find if any is on edit mode
+% 		s = getappdata(hLP(i),'polygon_data');
+% 		if (~isempty(s))
+% 			if strcmpi(s.controls,'on')     % Object is in edit mode, so this
+% 				ui_edit_polygon(hLP(i))     % call will force out of edit mode
+% 				found = true;
+% 			end
+% 		end
+% 	end
+% 	if (found)		% We have to do it again because some line handles have meanwhile desapeared
+% 		hLines = findobj(hAxes,'Type','line');
+% 		hPatch = findobj(hAxes,'Type','patch');
+% 		hLP = [hLines(:); hPatch(:)];
+% 	end
+% 	set(h, 'HandleVis','on')    % Make the rectangle handle findable again
+% 
+% 	de_LP = false(numel(hLP),1);
+% 	for (i = 1:numel(hLP))		% Loop over objects to find out which cross the rectangle
+% 		x = get(hLP(i),'XData');        y = get(hLP(i),'YData');
+% 		if ( any( (x >= rx(1) & x <= rx(2)) & (y >= ry(1) & y <= ry(2)) ) )
+% 			de_LP(i) = true;
+% 			delete(hLP(i))
+% 		end
+% 	end
+% 
+% 	found = false;
+% 	for (i = 1:numel(hText))	% Text objs are a bit different, so treat them separately
+% 		pos = get(hText(i),'Position');
+% 		if ( (pos(1) >= rx(1) && pos(1) <= rx(2)) && (pos(2) >= ry(1) && pos(2) <= ry(2)) )
+% 			delete(hText(i))
+% 			found = true;
+% 		end
+% 	end
+% 	if (found),     refresh;    end     % Bloody text bug
 
 % -----------------------------------------------------------------------------------------
 function trim_withPolygon(obj, evt, h, side)
@@ -3218,18 +3224,41 @@ function [hLP, hText] = fish_inside_rect(h, opt)
 		hPatch = findobj(hAxes,'Type','patch');
 		hLP = [hLines(:); hPatch(:)];
 	end
-	set(h, 'HandleVis','on')    % Make the rectangle handle findable again
+	set(h, 'HandleVis','on')			% Make the rectangle handle findable again
 
 	f_LP = false(numel(hLP),1);
-	for (i = 1:numel(hLP))		% Loop over objects to find out which cross the rectangle
+	for (i = 1:numel(hLP))				% Loop over objects to find out which cross the rectangle
 		x = get(hLP(i),'XData');        y = get(hLP(i),'YData');
 		if ( any( (x >= rx(1) & x <= rx(2)) & (y >= ry(1) & y <= ry(2)) ) )
 			f_LP(i) = true;
 		end
 	end
-	hLP = hLP(f_LP);			% Retain only those that fulfill the condition
+	hTryAgain = hLP(~f_LP);				% Copy these for a second round
+	hLP = hLP(f_LP);					% Retain only those that fulfill the condition
 
-	f_Txt = false(numel(hLP),1);
+	if (~isempty(hTryAgain))			% Check for those beasts that cross but have no vertices inside rect
+		f_LP = false(numel(hTryAgain),1);
+		for (i = 1:numel(hTryAgain))	% Loop over potential slippers that don't have a vertex inside the rect
+			x = get(hTryAgain(i),'XData');		y = get(hTryAgain(i),'YData');
+			x0 = min(x);	x1 = max(x);		y0 = min(y);	y1 = max(y);
+			rect = aux_funs('rectangle_and', [rx ry], [x0 x1 y0 y1]);
+			if (~isempty(rect)),	f_LP(i) = true;		end
+		end
+		if (any(f_LP))					% OK, these potentially cross but only a more detailed check can tell
+			hTryAgain = hTryAgain(f_LP);
+			rxx = get(h,'XData');		ryy = get(h,'YData');
+			f_LP = false(numel(hTryAgain),1);
+			for (i = 1:numel(hTryAgain))% No escap than to compute intersections and see if they are empty or not
+				x = get(hTryAgain(i),'XData');	y = get(hTryAgain(i),'YData');
+				x0 = intersections(rxx, ryy, x, y, 0);
+				if (~isempty(x0)),	f_LP(i) = true;		end
+			end
+			hTryAgain = hTryAgain(f_LP);
+			hLP = [hLP; hTryAgain(:)];
+		end
+	end
+
+	f_Txt = false(numel(hText),1);
 	for (i = 1:numel(hText))	% Text objs are a bit different, so treat them separately
 		pos = get(hText(i),'Position');
 		if ( (pos(1) >= rx(1) && pos(1) <= rx(2)) && (pos(2) >= ry(1) && pos(2) <= ry(2)) )
