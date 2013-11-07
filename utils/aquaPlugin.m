@@ -1618,7 +1618,7 @@ function calc_polygAVG(handles, fnameOut, op, fnamePolys, sub_set, fnameFlag, qu
 			end
 		end
 
-		N = numel(names);
+		N = numel(polys);
 	end
 
 	if (N == 0)
