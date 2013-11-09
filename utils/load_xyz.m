@@ -81,7 +81,7 @@ function varargout = load_xyz(handles, opt, opt2)
 	tol = 0.5;
 	do_project = false;         % We'll estimate below if this holds true
 	got_arrow = false;
-	got_internal_file = false;
+	got_internal_file = false;	% Internal files are those shipped with Mirone (e.g. isochrons)
 	got_nc = false;				% Flag to signal if a shapenc type file comes in
 	orig_no_mseg = false;		% Flag to know if original file had multiseg strings to store
 	line_type = 'AsLine';
@@ -441,8 +441,8 @@ function varargout = load_xyz(handles, opt, opt2)
 					if (~isempty(projStr))
 						numeric_data{i} = proj2proj_pts(handles, numeric_data{i}, 'srcProj4', projStr);
 
-						if (k == 1 && i == 1)	% First time. Store proj info if Figure's appdata
-							if ( isempty(getappdata(handles.figure1,'ProjWKT')) && ...
+						if (k == 1 && i == 1)	% First time. Store proj info in Figure's appdata ... IF not geog already
+							if ( ~handles.geog && isempty(getappdata(handles.figure1,'ProjWKT')) && ...
 								 isempty(getappdata(handles.figure1,'Proj4')) && ...
 								 isempty(getappdata(handles.figure1,'ProjGMT')) )
 								setappdata(handles.figure1,'Proj4', projStr)
