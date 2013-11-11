@@ -426,6 +426,13 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 				plhs[0] = mxCreateNumericArray (ndims,dims,mxSINGLE_CLASS, mxREAL);
 				outF32 = mxGetData(plhs[0]);
 				break;
+			case GDT_Float64:			/* TRICK, hope not get burned */
+				forceSingle = TRUE;
+				plhs[0] = mxCreateNumericArray (ndims,dims,mxSINGLE_CLASS, mxREAL);
+				outF32 = mxGetData(plhs[0]);
+				nPixelSize = 4;
+				insitu = FALSE;		/* Just to be sure */
+				break;
 		}
 	}
 
