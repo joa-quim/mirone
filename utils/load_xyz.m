@@ -224,7 +224,15 @@ function varargout = load_xyz(handles, opt, opt2)
 				else					% Try luck with a binary file
 					fid = fopen(fname);		numeric_data = fread(fid,['*' bin.type]);	fclose(fid);
 					numeric_data = reshape(numeric_data,bin.nCols,numel(numeric_data)/bin.nCols)';
-					if (bin.twoD && (bin.nCols > 2)),	numeric_data(:,3:end) = [];		end % Retain only X,Y 
+					if (bin.twoD && (bin.nCols > 2)),	numeric_data(:,3:end) = [];		end % Retain only X,Y
+					if (~handles.version7 && strcmp(bin.type, 'single') && any(isnan(numeric_data(:,1))))
+						fds = double(numeric_data(:,1));		% It means fdsse, ML engeneers after 20 years stil think that
+						XMin = min(fds);	XMax = max(fds);	% min(single([1 2 NaN])) = NaN
+						fds = double(numeric_data(:,2));
+						YMin = min(fds);	YMax = max(fds);
+						BB = [XMin XMax YMin YMax];
+						clear fds
+					end
 				end
 			end
 
