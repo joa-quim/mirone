@@ -57,9 +57,10 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	int is_uint16 = FALSE, report_nans = FALSE, only_report_nans = FALSE, do_cast = FALSE;
 	int i_min = 0, i_max = 0, do_min_max_loc = FALSE, report_min_max_loc_nan_mean_std = FALSE;
 	int do_shift_int8 = FALSE, insitu = FALSE, is_int8 = FALSE; 
-	char	**argv;
-	float	*zdata, fact;
-	double	*z, min_limit = FLT_MAX, max_limit = -FLT_MAX, mean = 0., sd = 0., rms = 0., tmp;
+	char   **argv;
+	short int *data16;
+	float   *zdata, fact;
+	double  *z, min_limit = FLT_MAX, max_limit = -FLT_MAX, mean = 0., sd = 0., rms = 0., tmp;
 	clock_t tic;
 
 	argc = nrhs;
@@ -220,18 +221,23 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		return;
 	}
 	else {
-		if (!mxIsSingle(prhs[0]))
-			mexErrMsgTxt("GRDUTILS ERROR: Invalid input data type. Only valid type is: Single.\n");
-		zdata = (float *)mxGetData(prhs[0]);
+		if (!is_single && !is_int16)
+			mexErrMsgTxt("GRDUTILS ERROR: Invalid input data type. Only valid type is: Single or Int16.\n");
+		if (is_single)
+			zdata = (float *)mxGetData(prhs[0]);
+		else
+			data16 = (short int *)mxGetData(prhs[0]);
 	}
 
 
 	if (only_report_nans) {
 		/* Loop over the file and find if we have NaNs. Stop at first NaN occurence. */
-		for (i = 0; i < nxy; i++) {
-			if (ISNAN_F(zdata[i])) {
-				nfound = i + 1;		/* + 1 becuse ML is 1 based */
-				break;
+		if (is_single) {
+			for (i = 0; i < nxy; i++) {
+				if (ISNAN_F(zdata[i])) {
+					nfound = i + 1;		/* + 1 becuse ML is 1 based */
+					break;
+				}
 			}
 		}
 
@@ -241,9 +247,40 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		return;
 	}
 
-	for (i = 0; i < nxy; i++) {
-		tmp = (double)zdata[i];
-		if (!ISNAN_F(zdata[i])) {
+	if (is_single) {
+		for (i = 0; i < nxy; i++) {
+			tmp = (double)zdata[i];
+			if (!ISNAN_F(zdata[i])) {
+				if (do_min_max) {
+					if (tmp < min_limit) min_limit = tmp;
+					if (tmp > max_limit) max_limit = tmp;
+				}
+				else if (do_min_max_loc) {
+					if (tmp < min_limit) {
+						min_limit = tmp;
+						i_min = i;
+					}
+					if (tmp > max_limit) {
+						max_limit = tmp;
+						i_max = i;
+					}
+				}
+				else if (MUL)
+					zdata[i] *= fact;
+				else if (ADD)
+					zdata[i] += fact;
+				if (do_std) {
+					mean += tmp;
+					sd += tmp * tmp;
+				}
+			}
+			else
+				nfound++;
+		}
+	}
+	else {
+		for (i = 0; i < nxy; i++) {
+			tmp = (double)data16[i];
 			if (do_min_max) {
 				if (tmp < min_limit) min_limit = tmp;
 				if (tmp > max_limit) max_limit = tmp;
@@ -259,16 +296,14 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 				}
 			}
 			else if (MUL)
-				zdata[i] *= fact;
+				data16[i] *= (short int)fact;
 			else if (ADD)
-				zdata[i] += fact;
+				data16[i] += (short int)fact;
 			if (do_std) {
 				mean += tmp;
 				sd += tmp * tmp;
 			}
 		}
-		else
-			nfound++;
 	}
 
 	ngood = nxy - nfound;	/* This is the number of non-NaN points  */
