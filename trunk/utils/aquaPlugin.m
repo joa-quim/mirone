@@ -696,9 +696,9 @@ function applyFlags(handles, fname, flag, nCells, grd_out)
 		if (isnan(h)),	break,	end
 	end
 
-% ------------------------------------------------------------------------------
+% ------------------------1-------2-------3------4------5-------6--------7-------8---------9-----------10---
 function calc_yearMean(handles, months, fname2, flag, nCells, fname3, splina, tipoStat, chkPts_file, grd_out)
-% Compute anual means from monthly data.
+% Compute anual means or climatologies from monthly data (well, and daily too).
 %
 % MONTHS 	a vector with the months uppon which the mean is to be computed
 %		example: 	months = 1:12		==> Computes yearly mean
@@ -721,7 +721,10 @@ function calc_yearMean(handles, months, fname2, flag, nCells, fname3, splina, ti
 %
 % SPLINA	Logical that if true instructs to spline interpolate the missing monthly values
 %			before computing the yearly mean. Optionaly, it may be a 2 elements vector with
-%			the MIN and MAX values allowed on the Z function (default [0 32])
+%			the MIN and MAX values allowed on the Z function (default [0 32]).
+%			----------------------- OR (to CLIMA) --------------------
+%			A string containing 'CLIMA' to instruct to compute climatologies from montly data
+%			This is a uggly hack but I don't want to add yet another input argument.
 %
 % TIPOSTAT	Variable to control what statistic to compute.
 %			0 Compute MEAN of MONTHS period. 1 Compute MINimum and 2 compute MAXimum
@@ -734,7 +737,7 @@ function calc_yearMean(handles, months, fname2, flag, nCells, fname3, splina, ti
 %
 % GRD_OUT	Name of the netCDF file where to store the result. If not provided, it will be asked here.
 
-	do_flags = false;		track_filled = false;		do_saveSeries = false;
+	do_flags = false;		track_filled = false;		do_saveSeries = false;	do_climatologies = false;
 	[z_id, s, rows, cols] = get_ncInfos(handles);
 
 	% Find if we are dealing with a Pathfinder V5.2 daily file
@@ -749,6 +752,12 @@ function calc_yearMean(handles, months, fname2, flag, nCells, fname3, splina, ti
 		if (~isempty(msg))	errordlg(msg, 'Error'),		return,		end
 		if (nargin == 3),	nCells = 0;		flag = 7;	end			% If not provided, defaults to best quality
 		do_flags = true;
+	end
+
+	if (nargin < 7)
+		splina = false;		tipoStat = 0;	chkPts_file = [];	grd_out = [];
+	elseif (nargin < 8)
+		tipoStat = 0;	chkPts_file = [];	grd_out = [];
 	end
 
 	% -------------- Test if output time series at locations provided in the CHKPTS_FILE --------------------
@@ -789,7 +798,12 @@ function calc_yearMean(handles, months, fname2, flag, nCells, fname3, splina, ti
 
 	% The following limits are used to clip unreasonable temperatures computed during the spline interpolation
 	% When no time (spline) interpolation is used, they are simply ignored
-	if (numel(splina) == 2)
+	if (isa(splina, 'char'))
+		if (strcmpi(splina,'CLIMA'))
+			do_climatologies = true;
+		end
+		splina = false;					% Make it logic again for use in IF tests
+	elseif (numel(splina) == 2)
 		regionalMIN = splina(1);		regionalMAX = splina(2);
 		splina = true;					% Make it logic again for use in IF tests
 	else
@@ -851,15 +865,18 @@ function calc_yearMean(handles, months, fname2, flag, nCells, fname3, splina, ti
 		ZtoSpline = alloc_mex(rows, cols, total_months, 'single', NaN);
 	end
 
-	aguentabar(0,'title','Computing annual means.','CreateCancelBtn');
+	aguentabar(0,'title','Computing means.','CreateCancelBtn');
 	if (~splina)
 		Tmed = zeros(rows, cols);		% Temp media para cada um dos anos
 	end
 	in_break = false;					% Inner loop cancel option
 	last_processed_month = 0;		already_processed = 0;
-	warning off MATLAB:divideByZero
 
-	for (m = 1:n_anos)
+	if (do_climatologies),	n_outer_loop = 1;
+	else					n_outer_loop = n_anos;
+	end
+
+	for (m = 1:n_outer_loop)
 
 		if (splina)
 			if (m == 1)
@@ -872,6 +889,16 @@ function calc_yearMean(handles, months, fname2, flag, nCells, fname3, splina, ti
 				past_months = (m - 1)*12 + months(1) - n_pad_months - 1;
 				this_months = past_months+1 : past_months+(numel(months)+2*n_pad_months);
 			end
+		elseif (do_climatologies)
+			% Litle manip to create a row vector with all months of interest across the years
+			this_months = repmat(months, n_anos, 1);
+			v = ((0:n_anos) * 12)';
+			for (k = 1:n_anos)
+				this_months(k,:) = this_months(k,:) + v(k);
+			end
+			this_months = this_months';
+			this_months = this_months(:)';
+			contanoes = zeros(rows, cols);
 		else
 			this_months = (m - 1) * 12 + months;
 			contanoes = zeros(rows, cols);
@@ -883,7 +910,7 @@ function calc_yearMean(handles, months, fname2, flag, nCells, fname3, splina, ti
 			if (m == 1)						% First year
 				Z = nc_funs('varget', handles.fname, s.Dataset(z_id).Name, [n-1 0 0], [1 rows cols]);
 			else
-				if (n <= last_processed_month && splina)
+				if (splina && n <= last_processed_month)
 					already_processed = already_processed + 1;
 					offset = 1;
 					if (m == 2),	offset = min(1, months(1)-n_pad_months);	end		% Because for the 1st year the series may be shorter
@@ -926,10 +953,11 @@ function calc_yearMean(handles, months, fname2, flag, nCells, fname3, splina, ti
  				if (~already_processed),	ZtoSpline(:,:,counter) = Z;		end
 			end
 
-			if (n_anos == 1 && numel(this_months) > 12)	% For the secret daily data case
+			if (n_anos == 1 && numel(this_months) > 12)			% For the secret daily data case
 				aguentabar(n / (numel(this_months) + 1)),		drawnow
 			end
 		end								% End loop over months
+
 		last_processed_month = this_months(end);
 
 		if (~splina)					% Do not interpolate along time. Compute averages with all non NaNs
@@ -1017,7 +1045,7 @@ function calc_yearMean(handles, months, fname2, flag, nCells, fname3, splina, ti
 
 		% Write this layer to file
 		if (m == 1)
-			if (n_anos == 1)		% If one single layer don't make it 3D
+			if (n_outer_loop == 1)		% If one single layer don't make it 3D
 				% Defaults and srsWKT fishing are set in nc_io
 				misc = struct('x_units',[],'y_units',[],'z_units',[],'z_name',[],'desc',[], ...
 					'title','Yearly or Seazonal average','history',[],'srsWKT',[], 'strPROJ4',[]);
@@ -1031,10 +1059,10 @@ function calc_yearMean(handles, months, fname2, flag, nCells, fname3, splina, ti
 			nc_io(grd_out, sprintf('w%d', m-1), handles, tmp)
 		end
 
-		h = aguentabar(m/n_anos,'title','Computing annual means.');	drawnow
+		h = aguentabar(m/n_outer_loop,'title','Computing means.');	drawnow
 		if (isnan(h)),	break,	end
 
-		if (~splina && m < n_anos),		cvlib_mex('CvtScale', Tmed, 0.0, 0.0);	end			% Reset it to zeros
+		if (~splina && m < n_outer_loop),	cvlib_mex('CvtScale', Tmed, 0.0, 0.0);	end			% Reset it to zeros
 	end
 
 	if (do_saveSeries)			% Save the time series file. The name is build from that of locations file
