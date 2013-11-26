@@ -87,7 +87,7 @@ function varargout = slices(varargin)
 	set(handles.floaters, 'Vis','off')
 
 	% Make a list of visibles on a per operation case
-	handles.cases = cell(8,6);
+	handles.cases = cell(9,6);
 	handles.cases{1,1} = [handles.text_boxSize handles.edit_boxSize handles.check_integDim handles.check_doTrends ...
 		handles.text_bounds handles.edit_subSetA handles.edit_subSetB];
 	handles.cases{1,2} = {'' '' [151 244 139 21] [262 200 81 21] '' '' ''};		% New positions
@@ -128,27 +128,34 @@ function varargout = slices(varargin)
 	handles.cases{5,5} = {'on' 'External polygon file'};
 	handles.cases{5,6} = {'on' 'Filter with quality flags file (opt)'};
 
-	handles.cases{6,1} = [handles.text_periods handles.edit_periods handles.text_bounds handles.edit_subSetA ...
-		handles.edit_subSetB handles.text_What handles.popup_what];
-	handles.cases{6,2} = {[11 250 55 16] [64 248 171 21] '' '' '' '' ''};
+	handles.cases{6,1} = [handles.text_periods handles.edit_periods handles.text_What handles.popup_what];
+	handles.cases{6,2} = {[11 250 55 16] [64 248 171 21] '' ''};
 	handles.cases{6,3} = {handles.text_bounds 'Bounds'};	% Set handle String prop to second element
 	handles.cases{6,4} = {'on' 'Output file'};
 	handles.cases{6,5} = {'off' ''};
 	handles.cases{6,6} = {'off' ''};
 
-	handles.cases{7,1} = [handles.text_bounds handles.edit_subSetA handles.edit_subSetB];
-	handles.cases{7,2} = {'' '' ''};
-	handles.cases{7,3} = {handles.text_bounds 'Subset'};	% Set handle String prop to second element
+	handles.cases{7,1} = [handles.text_periods handles.edit_periods handles.text_nCells ...
+		handles.edit_nCells handles.text_What handles.popup_what];
+	handles.cases{7,2} = {[11 250 55 16] [64 248 81 21] '' '' '' ''};
+	handles.cases{7,3} = {handles.text_bounds 'Bounds'};	% Set handle String prop to second element
 	handles.cases{7,4} = {'on' 'Output file'};
-	handles.cases{7,5} = {'on' 'To correlate file'};
-	handles.cases{7,6} = {'off' ''};
+	handles.cases{7,5} = {'off' ''};
+	handles.cases{7,6} = {'on' 'Filter with quality flags file (opt)'};
 
 	handles.cases{8,1} = [handles.text_bounds handles.edit_subSetA handles.edit_subSetB];
 	handles.cases{8,2} = {'' '' ''};
 	handles.cases{8,3} = {handles.text_bounds 'Subset'};	% Set handle String prop to second element
-	handles.cases{8,4} = {'off' ''};
-	handles.cases{8,5} = {'off' ''};
+	handles.cases{8,4} = {'on' 'Output file'};
+	handles.cases{8,5} = {'on' 'To correlate file'};
 	handles.cases{8,6} = {'off' ''};
+
+	handles.cases{9,1} = [handles.text_bounds handles.edit_subSetA handles.edit_subSetB];
+	handles.cases{9,2} = {'' '' ''};
+	handles.cases{9,3} = {handles.text_bounds 'Subset'};	% Set handle String prop to second element
+	handles.cases{9,4} = {'off' ''};
+	handles.cases{9,5} = {'off' ''};
+	handles.cases{9,6} = {'off' ''};
 
 	%------------ Give a Pro look (3D) to the frame boxes  -------------------------------
 	new_frame3D(hObject, handles.text_opt)
@@ -336,6 +343,12 @@ function popup_cases_CB(hObject, handles)
 			'is to be computed. Example:\n' ...
 			'months = 1:12 ==> Computes yearly mean\n' ...
 			'months = 6:8  ==> Computes June-July-August seazonal means']));
+	elseif (val == 7)
+		set(handles.edit_periods, 'Str', '1:1')
+		set(handles.edit_periods,'Tooltip',sprintf(['A scalar or vector with the months to compute\n' ...
+			'the climatology. Example:\n' ...
+			'months = 1:1 ==> Computes January climatology\n' ...
+			'months = 6:8  ==> Computes June-July-August seazonal climatology']));
 	else
 		set(handles.edit_periods, 'Str', '8')
 		set(handles.edit_periods,'Tooltip',sprintf(['Number of days of the composit period (e.g. 3, 8, 30)\n' ...
@@ -545,6 +558,7 @@ function push_compute_CB(hObject, handles)
 %		'Seasonal Averages' ...
 %		'Polygonal Averages' ...
 %		'L2 MODIS Averages' ...
+%		'Climatologies (monthly)' ...
 %		'Per cell correlation coefficient' ...
 %		'Count non-NaNs cells' ...
 % 		};
@@ -554,7 +568,7 @@ function push_compute_CB(hObject, handles)
 
 	% Map the case numbers from this function to the one in 'aquaPlugin'. THEY MUST BE IN SYNC
 	map2map(1) = 1;		map2map(2) = 2;		map2map(3) = 3;		map2map(4) = 4;
-	map2map(5) = 5;		map2map(6) = 10;	map2map(7) = 11;	map2map(8) = 8;
+	map2map(5) = 5;		map2map(6) = 10;	map2map(7) = 4;		map2map(8) = 11;	map2map(9) = 8;
 	val_in_plugin = map2map(val);
 
 	script_name = sprintf('%sCASE%d_sc.txt', handles.path_tmp, val);
@@ -666,7 +680,27 @@ function push_compute_CB(hObject, handles)
 		comm = '# Name of the netCDF file where to store the result. If not provided, it will be asked here';
 		helper_writeFile(handles, fid, comm, 'fname', 1)
 
-	elseif (val == 7)	% Per cell correlation coefficient
+	elseif (val == 7)	% Climatologies
+		comm = '# The ''Periods'' variable (The month(s) that we want the climatology)';
+		helper_writeFile(handles, fid, comm, 'periods')
+		comm = '# name of a netCDF file with quality flags. If not provided no quality check is done.';
+		helper_writeFile(handles, fid, comm, 'flags')
+		fprintf(fid,'# The ''Ncells'' variable\n%s\n',get(handles.edit_nCells,'Str'));
+		fprintf(fid,'# Not used here but need to set as empty\n[]\n');
+		fprintf(fid,'# The ''spline'' var (a character with the keyword CLIMA)\nchar CLIMA\n');
+		fprintf(fid,'# The ''What'' variable that controls what statistic to compute\n');
+		valW = get(handles.popup_what,'Val');		str = get(handles.popup_what,'Str');
+		switch (str{valW})
+			case 'MEAN',	fprintf(fid,'0\n');
+			case 'MIN',		fprintf(fid,'1\n');
+			case 'MAX',		fprintf(fid,'2\n');
+			otherwise,		fprintf(fid,'0\n');
+		end
+		fprintf(fid,'# Not used here but need to set as empty\n[]\n');
+		comm = '# Name of the netCDF file where to store the result. If not provided, it will be asked here';
+		helper_writeFile(handles, fid, comm, 'fname', 1)
+
+	elseif (val == 8)	% Per cell correlation coefficient
 		comm = '# Name of the other netCDF file whose correlation with loaded array will be estimated';
 		helper_writeFile(handles, fid, comm, 'fname', 2)
 		comm = '# The ''Subset'' var (example: [0 19] -> (82 90)); ([9 9] -> (91 00)); ([19 0] -> (01 09))';
@@ -676,7 +710,7 @@ function push_compute_CB(hObject, handles)
 		comm = '# Name of the netCDF file where to store the result. If not provided, it will be asked here';
 		helper_writeFile(handles, fid, comm, 'fname', 1)
 
-	elseif (val == 8)	% count the acumulated number of non-NaNs
+	elseif (val == 9)	% count the acumulated number of non-NaNs
 		fprintf(fid,'# OPT.\n');
 		fprintf(fid,'char count\n');
 		comm = '# The ''Subset'' var';
@@ -829,7 +863,7 @@ uicontrol('Parent',h1, 'Position',[10 280 361 20],...
 'BackgroundColor',[1 1 1],...
 'Call',@slices_uiCB,...
 'String',{' '; 'Zonal Means'; 'Per cell rate of change '; 'Apply quality flags'; 'Seasonal Averages'; 'Polygonal Averages'; ...
-	'L2 MODIS Averages'; 'Per cell correlation coefficient'; 'Count non-NaNs cells'},...
+	'L2 MODIS Averages'; 'Climatologies (months)'; 'Per cell correlation coefficient'; 'Count non-NaNs cells'},...
 'Style','popupmenu',...
 'Value',1,...
 'Tag','popup_cases');
