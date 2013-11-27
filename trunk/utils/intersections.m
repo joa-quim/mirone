@@ -18,6 +18,9 @@ function [x0,y0,iout,jout] = intersections(x1,y1,x2,y2,robust)
 % your curves don't intersect at any segment boundaries.  Also, the robust
 % version properly handles parallel and overlapping segments.
 %
+%	IF ROBUST > 1 use its value as a chunk size. For self-intersections only
+%	The issue is that this function consumes absurd amounts of memory
+%
 % The algorithm can return two additional vectors that indicate which
 % segment pairs contain intersections and where they are:
 %
@@ -108,10 +111,49 @@ function [x0,y0,iout,jout] = intersections(x1,y1,x2,y2,robust)
 % ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 % POSSIBILITY OF SUCH DAMAGE.
 
+% J. Luis 27-Nov-2013
+% Hacked to do work chunk-wise for self-intersections to minimize the awful 
+% memory consumption of this function. Control of this workaround is sent via
+% the ROBUST variable (used to send in the chunk size).
+
 % $Id$
 
-% Input checks.
-error(nargchk(2,5,nargin))
+	if (nargin == 3)		% Means, self-intersections
+		robust = x2;
+		if (robust > 1)
+			chunk = robust;
+			n_tiles = ceil(numel(x1) / chunk);
+			xy_cell = cell(n_tiles,2);
+			if (nargout >= 3),	iout_cell = cell(n_tiles,1);	end
+			if (nargout == 4),	jout_cell = cell(n_tiles,1);	end
+			if (n_tiles > 10),	aguentabar(0,'title','Computing self-intersections');	end
+			for (k = 1:n_tiles)
+				is = (k - 1) * chunk + 1;
+				if (k < n_tiles)
+					ie = k * chunk;
+				else
+					ie = numel(x1);
+				end
+				x = x1(is:ie);		y = y1(is:ie);
+				if (nargout <= 2)
+					[x0,y0] = intersections(x,y,1);
+				elseif (nargout == 3)
+					[x0,y0,iout] = intersections(x,y,1);
+					iout_cell{k} = iout;
+				else
+					[x0,y0,iout,jout] = intersections(x,y,1);
+					iout_cell{k} = iout;	jout_cell{k} = jout;
+				end
+				xy_cell{k,1} = x0;	xy_cell{k,2} = y0;
+				if (n_tiles > 10),	aguentabar(k/n_tiles);		end
+			end
+			x0 = cat(1,xy_cell{:,1});	y0 = cat(1,xy_cell{:,2});
+			if (nargout >= 3),	iout = cat(1,iout_cell{:});		end
+			if (nargout == 4),	jout = cat(1,jout_cell{:});		end
+			return
+		end
+	end
+
 
 % Adjustments when fewer than five arguments are supplied.
 switch nargin
