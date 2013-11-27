@@ -83,11 +83,11 @@ function varargout = line_operations(varargin)
 	IamCompiled = varargin{1}.IamCompiled;
 
 	handles.known_ops = {'bezier'; 'buffer'; 'bspline'; 'closing'; 'cspline'; 'group'; 'line2patch'; 'polysimplify'; 'polyunion'; ...
-			'polyintersect'; 'polyxor'; 'polyminus'; 'pline'; 'scale'; 'stitch'; 'thicken'; 'toRidge'};
+			'polyintersect'; 'polyxor'; 'polyminus'; 'pline'; 'scale'; 'stitch'; 'thicken'; 'toRidge'; 'self-crossings'};
 	handles.hLine = [];
-	popup_cmds = {'Possible commands'; 'bezier N'; 'buffer DIST'; 'bspline'; 'closing DIST'; 'cspline N RES'; ...
+	popup_cmds = {'Choose command'; 'bezier N'; 'buffer DIST'; 'bspline'; 'closing DIST'; 'cspline N RES'; ...
 			'group lines'; 'line2patch'; 'polysimplify TOL'; 'polyunion'; 'polyintersect'; 'polyxor'; 'polyminus'; ...
-			'pline [x1 ..xn; y1 .. yn]'; 'scale to [-0.5 0.5]'; 'stitch TOL'; 'thicken N'; 'toRidge 5'};
+			'pline [x1 ..xn; y1 .. yn]'; 'scale to [-0.5 0.5]'; 'stitch TOL'; 'thicken N'; 'toRidge 5'; 'self-crossings (find)'};
 
 	if (~IamCompiled)
 		handles.known_ops{end+1} = 'hand2Workspace';
@@ -174,8 +174,9 @@ function varargout = line_operations(varargin)
 	handles.ttips{18} = sprintf(['Calculate a new line with vertex siting on top of nearby ridges.\n' ...
 								'The parameter N is used to search for ridges only inside a sub-region\n' ...
 								'2Nx2N centered on current vertex. Default is 5, but you can change it.']);
+	handles.ttips{19}  = 'Detect self-crossings of all plotted lines/patches OR of the selected line.';
 
-	n = 18;			% NEED TO BE EQUAL TO LAST EXPLICITLY ttips{n} above
+	n = 19;			% NEED TO BE EQUAL TO LAST EXPLICITLY ttips{n} above
 	if (~IamCompiled)
 		n = n + 1;
 		handles.ttips{n} = sprintf(['Send the selected object handles to the Matlab workspace.\n' ...
@@ -238,13 +239,14 @@ function push_apply_CB(hObject, handles)
 		return
 	end
 	if ( isempty(handles.hLine) && ~strcmp(handles.known_ops{ind}, 'pline') && ...
-			~strcmp(handles.known_ops{ind},'scale') && ~strcmp(handles.known_ops{ind},'GMT_DB') )
+			~strcmp(handles.known_ops{ind},'scale') && ~strcmp(handles.known_ops{ind},'GMT_DB') && ...
+			~strcmp(handles.known_ops{ind},'self-crossings') )
 		h = errordlg('Fiu Fiu!! Apply WHERE????','ERROR');
 		if (handles.isPC),	WindowAPI(h, 'TopMost'),	end
 		return
 	end
 	if ( ~strcmp(handles.known_ops{ind},'pline') && ~strcmp(handles.known_ops{ind},'scale') && ...
-			 ~strcmp(handles.known_ops{ind},'GMT_DB') )
+			 ~strcmp(handles.known_ops{ind},'GMT_DB') && ~strcmp(handles.known_ops{ind},'self-crossings') )
 		handles.hLine = handles.hLine(ishandle(handles.hLine));
 		if (isempty(handles.hLine))
 			h = errordlg('Invalid handle. You probably killed the line(s)','ERROR');
@@ -508,6 +510,36 @@ function push_apply_CB(hObject, handles)
 				y = get(hLines(k), 'YData') * scale + off_y;
 				h = line('XData',x, 'YData',y, 'Parent', hNewMirHand.axes1);
 				draw_funs(h,'line_uicontext')
+			end
+
+		case 'self-crossings'
+			if (isempty(handles.hLine))		% If no line selected, use them all
+				hLines = findobj(handles.hMirAxes, 'Type', 'line');
+				hPatches = findobj(handles.hMirAxes, 'Type', 'patch');
+				hLines = [hLines(:); hPatches(:)];
+			else
+				hLines = handles.hLine;
+			end
+			for (k = 1:numel(hLines))
+				x = get(hLines(k), 'XData');
+				y = get(hLines(k), 'YData');
+				n_pts = numel(x);	robust = 1;
+				if (n_pts < 2),			continue
+				elseif (n_pts > 1000)	robust = 1000;		% Do chunking otherwise MEM Kaboom
+				end
+				[xc, yc, iout] = intersections(x, y, robust);
+				if (~isempty(iout) && (iout(1) - 1) < 1e-5),	xc(1) = [];		yc(1) = [];		end		% Avoid annoying false +
+				if (~isempty(yc))
+					h = line('XData',xc, 'YData',yc, 'Parent',handles.hMirAxes, 'LineStyle','none', 'Marker','o', ...
+						'MarkerEdgeColor','k','MarkerFaceColor','y', 'MarkerSize',7, 'Tag','self-crossings');
+					draw_funs(h,'line_uicontext')
+				end
+			end
+			if (~isempty(handles.hLine))
+				% Make it clear that it is neccessary to explicitly pick another line
+				set(handles.push_semaforo,'BackgroundColor',[1 0 0])
+				set(hObject,'Tooltip', 'Have 0 lines to play with')
+				handles.hLine = [];		guidata(handles.figure1, handles)
 			end
 
 		case 'stitch'
