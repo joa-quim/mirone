@@ -187,7 +187,7 @@ function varargout = ecran(varargin)
 		if (freshFig)				% First time here. Create the line handle
 			handles.hLine = line('XData',rd,'YData',handles.data(:,3), 'Parent', handles.axes1, 'Color','b');
 			y_lim = [min(handles.data(:,3)) max(handles.data(:,3))];
-			if (isequal(y_lim, [0 0])),		y_lim = [-1 1];		end		% To not error below
+			if (diff(y_lim) < 1e-8),		y_lim = y_lim + [-1 1];		end		% To not error below
 			set(handles.axes1,'xlim',[rd(1) rd(end)], 'ylim',y_lim)
 		else
 			% Update the track line, but need to reposition also the isochrons texts (names) AND update sythetic
