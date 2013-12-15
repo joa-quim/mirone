@@ -40,12 +40,16 @@ function varargout = travel(varargin)
 	end
 	handles.path_tmp = [handles.home_dir filesep 'tmp' filesep];
 
+	% Load the Coffeeright logo as the default trveling image
+	push_loadImg_CB(handles.push_loadImg, handles, ['data' filesep 'cafe_logo113x100.png'])
+	handles = guidata(hObject);		% need to get the updated one
+
 	set(hObject,'Vis','on');
 	if (nargout),       varargout{1} = hObject;    end
 	guidata(handles.figure1, handles)
 
 % ---------------------------------------------------------------------------------------
-function push_loadImg_CB(hObject, handles)
+function push_loadImg_CB(hObject, handles, opt)
 % 	[FileName,PathName] = uigetfile({ ...
 % 		'*.jpg', 'JPEG image (*.jpg)'; ...
 % 		'*.tif', 'Tagged Image File (*.tif)'; ...
@@ -55,16 +59,21 @@ function push_loadImg_CB(hObject, handles)
 % 		'*.*', 'All Files (*.*)'}, ...
 % 		'Select Image to Travel');
 
-	str = {'*.tif;*.tiff;*.jpg;*.png;*.gif', ...
-			'Files (*.tif,*.tiff,*.jpg,*.png,*.gif)'; '*.*', 'All Files (*.*)'};
-	[FileName,PathName,handles] = put_or_get_file(handles,str,'Select file','get');
-	if isequal(FileName,0),		return,		end
-	[PATH,FNAME,EXT] = fileparts([PathName FileName]);
-	if (strcmpi(EXT,'.jpg') || strcmpi(EXT,'.jpeg') || strcmpi(EXT,'.bmp'))
-		% I think those formats don't have colormaps and gdal is MUCH faster than imread
-		I = gdalread([PathName FileName]);      handles.IPcmap = [];
+	if (nargin == 2)	% Otherwise OPT holds the image full file name
+		str = {'*.tif;*.tiff;*.jpg;*.png;*.gif', ...
+				'Files (*.tif,*.tiff,*.jpg,*.png,*.gif)'; '*.*', 'All Files (*.*)'};
+		[FileName,PathName,handles] = put_or_get_file(handles,str,'Select file','get');
+		if isequal(FileName,0),		return,		end
+		fullName = [PathName FileName];
 	else
-		[I,handles.IPcmap] = imread([PathName FileName]);
+		fullName = opt;
+	end
+	[PATH,FNAME,EXT] = fileparts(fullName);
+	if (strcmpi(EXT,'.jpg') || strcmpi(EXT,'.jpeg') || strcmpi(EXT,'.bmp'))
+		% I think those formats don't have colormaps and gdal is faster than imread
+		I = gdalread(fullName);      handles.IPcmap = [];
+	else
+		[I,handles.IPcmap] = imread(fullName);
 	end
 	[m,n,k] = size(I);		handles.IPsize = [m n k];
 	axes(handles.axes1);	handles.hImg = image(I);
@@ -201,6 +210,7 @@ uicontrol('Parent',h1, 'Position',[3 113 95 14],...
 uicontrol('Parent',h1, 'Position',[100 108 51 22],...
 'Call',@travel_uiCB,...
 'Style','edit',...
+'Str', '50',...
 'BackgroundColor',[1 1 1],...
 'TooltipString','Width in meters that the picture have at its destination',...
 'Tag','edit_picWidth');
