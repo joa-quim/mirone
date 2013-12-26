@@ -143,7 +143,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		n_pts = nr;	n_fields = nc;
 	}
 	else {
-		mexPrintf("Case not foreseen in input array size guessing. Boing??\n");
+		mexPrintf("OGRPROJ: Case not foreseen in input array size guessing. Boing??\n");
 		n_pts = nr;	n_fields = nc;
 	}
 
