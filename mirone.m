@@ -2745,22 +2745,23 @@ function DrawImportOGR_CB(handles, fname)
 
 	% If we have a file already need to know about coords compat
 	if (~handles.no_file)
-		if (~isempty(theProj) && handles.geog && ~is_geog)
-			projStruc.SrcProjWKT = theProj;		do_project = true;		% Inverse projection
-		elseif (~isempty(theProj) && ~handles.geog && is_geog)
-			projStruc.DstProjWKT = theProj;		do_project = true;		% Projection is from geogs to projWKT
-		elseif (~isempty(theProj) && ~handles.geog && ~is_geog)
-			projStruc.SrcProjWKT = theProj;
-			prjInfoStruc = aux_funs('getFigProjInfo',handles);
-			if (isempty(prjInfoStruc.projWKT) && ~isempty(prjInfoStruc.proj4))	% Give it one more chance
-				prjInfoStruc.projWKT = ogrproj(prjInfoStruc.proj4);
-			elseif (isempty(prjInfoStruc.projWKT) && ~isempty(prjInfoStruc.projGMT))
-				errordlg('Sorry but it''s still not possible to convert between GMT and proj4 strings','Error'),	return
-			end
-			projStruc.DstProjWKT = prjInfoStruc.projWKT;				% If it doesn't exist, BUM
-			do_project = true;
-		elseif (isempty(theProj) && handles.geog && ~is_geog)
+		if (isempty(theProj) && handles.geog && ~is_geog)
 			errordlg('Your background image is in geographics but the shape file has unknown coords.','ERROR'),	return	
+		end
+		if (~isempty(theProj))
+			if (handles.geog && ~is_geog)
+				projStruc.SrcProjWKT = theProj;		do_project = true;		% Inverse projection
+			else						% Basicaly a projection from whatever to whatever
+				projStruc.SrcProjWKT = theProj;
+				prjInfoStruc = aux_funs('getFigProjInfo',handles);
+				if (isempty(prjInfoStruc.projWKT) && ~isempty(prjInfoStruc.proj4))	% Give it one more chance
+					prjInfoStruc.projWKT = ogrproj(prjInfoStruc.proj4);
+				elseif (isempty(prjInfoStruc.projWKT) && ~isempty(prjInfoStruc.projGMT))
+					errordlg('Sorry but it''s still not possible to convert between GMT and proj4 strings','Error'), return
+				end
+				projStruc.DstProjWKT = prjInfoStruc.projWKT;				% If it doesn't exist, BUM
+				do_project = true;
+			end
 		end
 		if (do_project)
 			tmp = s(1).BoundingBox;
@@ -2855,22 +2856,23 @@ function DrawImportShape_CB(handles, fname)
 
 	% If we have a file already need to know about coords compat
 	if (~handles.no_file)
-		if (~isempty(theProj) && handles.geog && ~is_geog)
-			projStruc.SrcProjWKT = theProj;		do_project = true;		% Inverse projection
-		elseif (~isempty(theProj) && ~handles.geog && is_geog)
-			projStruc.DstProjWKT = theProj;		do_project = true;		% Projection is from geogs to projWKT
-		elseif (~isempty(theProj) && ~handles.geog && ~is_geog)
-			projStruc.SrcProjWKT = theProj;
-			prjInfoStruc = aux_funs('getFigProjInfo',handles);
-			if (isempty(prjInfoStruc.projWKT) && ~isempty(prjInfoStruc.proj4))	% Give it one more chance
-				prjInfoStruc.projWKT = ogrproj(prjInfoStruc.proj4);
-			elseif (isempty(prjInfoStruc.projWKT) && ~isempty(prjInfoStruc.projGMT))
-				errordlg('Sorry but it''s still not possible to convert between GMT and proj4 strings','Error'),	return
-			end
-			projStruc.DstProjWKT = prjInfoStruc.projWKT;				% If it doesn't exist, BUM
-			do_project = true;
-		elseif (isempty(theProj) && handles.geog && ~is_geog)
+		if (isempty(theProj) && handles.geog && ~is_geog)
 			errordlg('Your background image is in geographics but the shape file has unknown coords.','ERROR'),	return	
+		end
+		if (~isempty(theProj))
+			if (handles.geog && ~is_geog)
+				projStruc.SrcProjWKT = theProj;		do_project = true;		% Inverse projection
+			else						% Basicaly a projection from whatever to whatever
+				projStruc.SrcProjWKT = theProj;
+				prjInfoStruc = aux_funs('getFigProjInfo',handles);
+				if (isempty(prjInfoStruc.projWKT) && ~isempty(prjInfoStruc.proj4))	% Give it one more chance
+					prjInfoStruc.projWKT = ogrproj(prjInfoStruc.proj4);
+				elseif (isempty(prjInfoStruc.projWKT) && ~isempty(prjInfoStruc.projGMT))
+					errordlg('Sorry but it''s still not possible to convert between GMT and proj4 strings','Error'), return
+				end
+				projStruc.DstProjWKT = prjInfoStruc.projWKT;				% If it doesn't exist, BUM
+				do_project = true;
+			end
 		end
 		if (do_project)
 			tmp = [s.BoundingBox];		tmp = tmp(1:2,1:end)';
@@ -3088,6 +3090,10 @@ function FileOpenSession_CB(handles, fname)
 
 	set(handles.figure1,'pointer','watch')
 	s = load([PathName FileName]);
+	if (isfield(s,'data') && isfield(s.data, 'values'))
+		ecran(s.data.values(:,1), s.data.values(:,2))
+		return
+	end
 	if (strcmpi(s.grd_name(max(numel(s.grd_name)-3,1):end),'.mat')),	s.grd_name = [];		end		% Otherwise infinite loop below
 
 	tala = (~isempty(s.grd_name) && exist(s.grd_name,'file') == 2);		flagIllum = true;	% Illuminate (if it is the case)
