@@ -132,13 +132,14 @@ function wbd(obj,eventdata,handles)
 
 % -------------------------------------------------------------------------------------------------
 function edit_LatDeg_CB(hObject, handles)
-	if (isnan(get(hObject,'String'))),    set(hObject,'String','37'); return; end
+	if (isnan(get(hObject,'String'))),    set(hObject,'String','37'),	return,	end
 	lat_deg = str2double(get(hObject,'String'));
 	lat_deg = fix(lat_deg);     % Ensure that the value is an integer
 	lat_min = str2double(get(handles.edit_LatMin,'String'));
 	lat_sec = str2double(get(handles.edit_LatSec,'String'));
 	if (lat_deg < 0),   lat = lat_deg - lat_min/60 - lat_sec/3600;
-	else                lat = lat_deg + lat_min/60 + lat_sec/3600;      end
+	else                lat = lat_deg + lat_min/60 + lat_sec/3600;
+	end
 	set(handles.edit_LatDec,'String',sprintf('%.4f',lat))
 	lon = str2double(get(handles.edit_LonDec,'String'));
 	elev = str2double(get(handles.edit_Elev,'String'));
@@ -148,14 +149,15 @@ function edit_LatDeg_CB(hObject, handles)
 
 % -------------------------------------------------------------------------------------------------
 function edit_LatMin_CB(hObject, handles)
-	if (isnan(get(hObject,'String'))),    set(hObject,'String','0'); return; end
+	if (isnan(get(hObject,'String'))),    set(hObject,'String','0'),	return,	end
 	lat_min = str2double(get(hObject,'String'));
-	if (lat_min < 0 || lat_min >= 60), set(hObject,'String','0'); return; end
+	if (lat_min < 0 || lat_min >= 60), set(hObject,'String','0'),		return,	end
 	lat_min = fix(lat_min);     % Ensure that the value is an integer
 	lat_deg = str2double(get(handles.edit_LatDeg,'String'));
 	lat_sec = str2double(get(handles.edit_LatSec,'String'));
 	if (lat_deg < 0),   lat = lat_deg - lat_min/60 - lat_sec/3600;
-	else                lat = lat_deg + lat_min/60 + lat_sec/3600;      end
+	else                lat = lat_deg + lat_min/60 + lat_sec/3600;
+	end
 	set(handles.edit_LatDec,'String',sprintf('%.4f',lat))
 	lon = str2double(get(handles.edit_LonDec,'String'));
 	elev = str2double(get(handles.edit_Elev,'String'));
@@ -165,13 +167,14 @@ function edit_LatMin_CB(hObject, handles)
 
 % -------------------------------------------------------------------------------------------------
 function edit_LatSec_CB(hObject, handles)
-	if (isnan(get(hObject,'String'))),    set(hObject,'String','0'); return; end
+	if (isnan(get(hObject,'String'))),    set(hObject,'String','0'),	return,	end
 	lat_sec = str2double(get(hObject,'String'));
-	if (lat_sec < 0 || lat_sec >= 60), set(hObject,'String','0'); return; end
+	if (lat_sec < 0 || lat_sec >= 60), set(hObject,'String','0'),		return,	end
 	lat_deg = str2double(get(handles.edit_LatDeg,'String'));
 	lat_min = str2double(get(handles.edit_LatMin,'String'));
 	if (lat_deg < 0),   lat = lat_deg - lat_min/60 - lat_sec/3600;
-	else                lat = lat_deg + lat_min/60 + lat_sec/3600;      end
+	else                lat = lat_deg + lat_min/60 + lat_sec/3600;
+	end
 	set(handles.edit_LatDec,'String',sprintf('%.4f',lat))
 	lon = str2double(get(handles.edit_LonDec,'String'));
 	elev = str2double(get(handles.edit_Elev,'String'));
@@ -195,13 +198,14 @@ function edit_LatDec_CB(hObject, handles)
 
 % -------------------------------------------------------------------------------------------------
 function edit_LonDeg_CB(hObject, handles)
-	if (isnan(get(hObject,'String'))),    set(hObject,'String','-8'); return; end
+	if (isnan(get(hObject,'String'))),    set(hObject,'String','-8'),	return,	end
 	lon_deg = str2double(get(hObject,'String'));
 	lon_deg = fix(lon_deg);     % Ensure that the value is an integer
 	lon_min = str2double(get(handles.edit_LonMin,'String'));
 	lon_sec = str2double(get(handles.edit_LonSec,'String'));
 	if (lon_deg < 0),   lon = lon_deg - lon_min/60 - lon_sec/3600;
-	else                lon = lon_deg + lon_min/60 + lon_sec/3600;      end
+	else                lon = lon_deg + lon_min/60 + lon_sec/3600;
+	end
 	set(handles.edit_LonDec,'String',sprintf('%.4f',lon))
 	lat = str2double(get(handles.edit_LatDec,'String'));
 	elev = str2double(get(handles.edit_Elev,'String'));
@@ -211,14 +215,15 @@ function edit_LonDeg_CB(hObject, handles)
 
 % -------------------------------------------------------------------------------------------------
 function edit_LonMin_CB(hObject, handles)
-	if (isnan(get(hObject,'String'))),    set(hObject,'String','0'); return; end
+	if (isnan(get(hObject,'String'))),    set(hObject,'String','0'),	return,	end
 	lon_min = str2double(get(hObject,'String'));
-	if (lon_min < 0 || lon_min >= 60), set(hObject,'String','0'); return; end
+	if (lon_min < 0 || lon_min >= 60), set(hObject,'String','0'),		return,	end
 	lon_min = fix(lon_min);     % Ensure that the value is an integer
 	lon_deg = str2double(get(handles.edit_LonDeg,'String'));
 	lon_sec = str2double(get(handles.edit_LonSec,'String'));
 	if (lon_deg < 0),   lon = lon_deg - lon_min/60 - lon_sec/3600;
-	else                lon = lon_deg + lon_min/60 + lon_sec/3600;      end
+	else                lon = lon_deg + lon_min/60 + lon_sec/3600;
+	end
 	set(handles.edit_LonDec,'String',sprintf('%.4f',lon))
 	lat = str2double(get(handles.edit_LatDec,'String'));
 	elev = str2double(get(handles.edit_Elev,'String'));
@@ -232,13 +237,14 @@ function edit_LonMin_CB(hObject, handles)
 
 % -------------------------------------------------------------------------------------------------
 function edit_LonSec_CB(hObject, handles)
-	if (isnan(get(hObject,'String'))),    set(hObject,'String','0'); return; end
+	if (isnan(get(hObject,'String'))),    set(hObject,'String','0'),	return,	end
 	lon_sec = str2double(get(hObject,'String'));
-	if (lon_sec < 0 || lon_sec >= 60), set(hObject,'String','0'); return; end
+	if (lon_sec < 0 || lon_sec >= 60), set(hObject,'String','0'),		return,	end
 	lon_deg = str2double(get(handles.edit_LonDeg,'String'));
 	lon_min = str2double(get(handles.edit_LonMin,'String'));
 	if (lon_deg < 0),   lon = lon_deg - lon_min/60 - lon_sec/3600;
-	else                lon = lon_deg + lon_min/60 + lon_sec/3600;      end
+	else                lon = lon_deg + lon_min/60 + lon_sec/3600;
+	end
 	set(handles.edit_LatDec,'String',sprintf('%.4f',lon))
 	lat = str2double(get(handles.edit_LatDec,'String'));
 	elev = str2double(get(handles.edit_Elev,'String'));
@@ -248,7 +254,7 @@ function edit_LonSec_CB(hObject, handles)
 
 % -------------------------------------------------------------------------------------------------
 function edit_LonDec_CB(hObject, handles)
-	if (isnan(get(hObject,'String'))),    set(hObject,'String','-8'); return; end
+	if (isnan(get(hObject,'String'))),    set(hObject,'String','-8'),	return,	end
 	lon = str2double(get(hObject,'String'));
 	lat = str2double(get(handles.edit_LatDec,'String'));
 	elev = str2double(get(handles.edit_Elev,'String'));
@@ -259,7 +265,7 @@ function edit_LonDec_CB(hObject, handles)
 % -------------------------------------------------------------------------------------------------
 function edit_Elev_CB(hObject, handles)
 	xx = get(hObject,'String');
-	if (isnan(xx)),    set(hObject,'String','0'); return; end
+	if (isnan(xx)),    set(hObject,'String','0'),	return,	end
 	lon = str2double(get(handles.edit_LonDec,'String'));
 	lat = str2double(get(handles.edit_LatDec,'String'));
 	elev = str2double(xx);
@@ -273,11 +279,11 @@ function edit_Elev_CB(hObject, handles)
 
 % -------------------------------------------------------------------------------------------------
 function edit_DateDD_CB(hObject, handles)
-	if (isnan(get(hObject,'String'))),    set(hObject,'String','1'); return; end
+	if (isnan(get(hObject,'String'))),    set(hObject,'String','1'),	return,	end
 	day = fix(str2double(get(hObject,'String')));     % Make sure the value is integer
 	month = str2double(get(handles.edit_DateMM,'String'));
 	year  = str2double(get(handles.edit_DateYY,'String'));
-	if (day < 1 || day > 31),    day = 1;    set(hObject,'String','1');  end
+	if (day < 1 || day > 31),    day = 1;    set(hObject,'String','1'),  end
 	if (day > 28 && month == 2 && ~(~rem(year, 4) && rem(year, 100) ) || ~rem(year, 400))
         day = 28;   set(hObject,'String','28');
 	elseif (day > 29 && month == 2 && (~rem(year, 4) && rem(year, 100) ) || ~rem(year, 400))
@@ -295,9 +301,9 @@ function edit_DateDD_CB(hObject, handles)
 
 % -------------------------------------------------------------------------------------------------
 function edit_DateMM_CB(hObject, handles)
-	if (isnan(get(hObject,'String'))),    set(hObject,'String','1'); return; end
+	if (isnan(get(hObject,'String'))),    set(hObject,'String','1'),	return,	end
 	month = fix(str2double(get(hObject,'String')));     % Make sure the value is integer
-	if (month < 1 || month > 12),    month = 1;  set(hObject,'String','1');  end
+	if (month < 1 || month > 12),    month = 1;  set(hObject,'String','1'),	end
 	year  = str2double(get(handles.edit_DateYY,'String'));
 	day = str2double(get(handles.edit_DateDD,'String'));
 	yd = dec_year(year,month,day);
@@ -310,7 +316,7 @@ function edit_DateMM_CB(hObject, handles)
 
 % -------------------------------------------------------------------------------------------------
 function edit_DateYY_CB(hObject, handles)
-	if (isnan(get(hObject,'String'))),    set(hObject,'String','2004'); return; end
+	if (isnan(get(hObject,'String'))),    set(hObject,'String','2004'),	return,	end
 	year = fix(str2double(get(hObject,'String')));
 	if (year < handles.start_stop_epoch(1) || year > handles.start_stop_epoch(2))
         errordlg('Date is outside the coefficients period','Error');
@@ -328,7 +334,7 @@ function edit_DateYY_CB(hObject, handles)
 
 % -------------------------------------------------------------------------------------------------
 function edit_DateDec_CB(hObject, handles)
-	if (isnan(get(hObject,'String'))),    set(hObject,'String','2005'); return; end
+	if (isnan(get(hObject,'String'))),    set(hObject,'String','2005'),	return,	end
 	date = str2double(get(hObject,'String'));
 	if (date < handles.start_stop_epoch(1) || date > handles.start_stop_epoch(2))
         errordlg('Date is outside the coefficients period','Error');
@@ -406,7 +412,7 @@ function push_InputFile_CB(hObject, handles, opt)
 
 	if (isempty(opt))    % Otherwise we already know fname from the 4th input argument
         [FileName,PathName] = put_or_get_file(hand,{'*.dat;*.DAT', 'Mag file (*.dat,*.DAT)';'*.*', 'All Files (*.*)'},'Select file','get');
-        if isequal(FileName,0);     return;     end
+        if isequal(FileName,0),	return,	end
         fname = [PathName FileName];
 	end
 
@@ -453,7 +459,7 @@ function push_InputFile_CB(hObject, handles, opt)
         out = select_cols(numeric_data,'igrf',fname,1000);
 	end
 
-    if (isempty(out)),   return;    end
+    if (isempty(out)),	return,	end
 
 	if (headerlines)        % Update headers info in checkbox and editbox
         set(handles.checkbox_Option_H,'Value',1)
@@ -638,8 +644,10 @@ function push_ComputeGrid_CB(hObject, handles)
             opt_F = '-Fi';  name = 'IGRF Inclination';
 	end
 
-	X = xmin:xinc:xmax;     Y = ymin:yinc:ymax;
-	m = length(Y);          n = length(X);
+	n = str2double(get(handles.edit_Ncols,'String'));
+	m = str2double(get(handles.edit_Nrows,'String'));
+	X = linspace(xmin,xmax,n);
+	Y = linspace(ymin,ymax,m);
 	XX = reshape(repmat(X,m,1),1,m*n);
 	YY = repmat(Y,1,n);
 	f = igrf_m(XX,YY,elev, date,opt_F);         clear XX YY;
