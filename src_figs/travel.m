@@ -41,7 +41,7 @@ function varargout = travel(varargin)
 	handles.path_tmp = [handles.home_dir filesep 'tmp' filesep];
 
 	% Load the Coffeeright logo as the default trveling image
-	push_loadImg_CB(handles.push_loadImg, handles, ['data' filesep 'cafe_logo113x100.png'])
+	push_loadImg_CB(handles.push_loadImg, handles, [handles.home_dir filesep 'data' filesep 'cafe_logo113x100.png'])
 	handles = guidata(hObject);		% need to get the updated one
 
 	set(hObject,'Vis','on');
