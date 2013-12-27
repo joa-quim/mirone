@@ -14,6 +14,8 @@ function wts=bpass3d(nnx,nny,dx,dy,wlong,wshort)
 %       Cleaned a bit of the code for saving RAM and removed the ploting calls
 %---------------------------------------------------------------------------
 
+% $Id$
+
 	twopi = pi*2;
 	dk1 = twopi/((nnx-1)*dx);
 	dk2 = twopi/((nny-1)*dy);
@@ -25,18 +27,20 @@ function wts=bpass3d(nnx,nny,dx,dy,wlong,wshort)
 	% X = ones(size(ky))'*kx; Y = ky'*ones(size(kx));
 	% k = fftshift(2*sqrt(X.^2+Y.^2));  % wavenumber array
 	nx2 = fix(nnx/2);       ny2 = fix(nny/2);
-	if (rem(nnx,2) == 0)    sft_x = 1;
-	else                    sft_x = 0;     end
-	if (rem(nny,2) == 0)    sft_y = 1;
-	else                    sft_y = 0;     end
+	if (rem(nnx,2) == 0),	sft_x = 1;
+	else					sft_x = 0;
+	end
+	if (rem(nny,2) == 0),	sft_y = 1;
+	else					sft_y = 0;
+	end
 	dkx = 2*pi / (nnx*dx);  dky = 2*pi / (nny*dy);
 	kx = (-nx2:nx2-sft_x).*dkx;     ky = (-ny2:ny2-sft_y).*dky;
 	X = repmat(kx,length(ky),1);    Y = repmat(ky',1,length(kx));
 	k = ifftshift(sqrt(X.^2+Y.^2));      % wavenumber array
 	clear X Y;
 
-	if (wshort == 0)    wshort = max(dx*2,dy*2); end
-	if (wlong == 0)     wlong = min(nnx*dx,nny*dy); end
+	if (wshort == 0),	wshort = max(dx*2,dy*2); end
+	if (wlong == 0),	wlong = min(nnx*dx,nny*dy); end
 
 	klo = twopi/wlong;      khi = twopi/wshort;
 	khif = 0.5*khi;         klof = 2*klo;
@@ -50,7 +54,7 @@ function wts=bpass3d(nnx,nny,dx,dy,wlong,wshort)
 	set(0,'ShowHiddenHandles',old_show)
 
 	if (isempty(figdmsg))
-		try,    message_win('create',' BPASS3D SET UP BANDPASS WEIGHTS ARRAY:');    pause(0.001)
+		try,    message_win('create',' BPASS3D SET UP BANDPASS WEIGHTS ARRAY:','width',400,'height',300,'edit','y');
 		catch,  fprintf(' BPASS3D\n SET UP BANDPASS WEIGHTS ARRAY :\n')
 		end
 	else
@@ -85,6 +89,7 @@ function wts=bpass3d(nnx,nny,dx,dy,wlong,wshort)
 	try,    message_win('add',sprintf('   --  CUT TO NYQUIST X,Y= %8.3f  %8.3f',wnx,wny))
 	catch,  fprintf('   --  CUT TO NYQUIST X,Y= %8.3f  %8.3f\n',wnx,wny)
 	end
+
 	%nnx2 = nnx/2+1;     nny2 = nny/2+1;
 	wts = zeros(size(k));  % initialise to zero
 	for i=1:nny,
