@@ -44,6 +44,7 @@ function varargout = parker_stuff(varargin)
 			set(handles.check_CenterDipole,'Value',1)
 			set(handles.check_fieldIsRTP,'Visible','off')
 			set(hObject,'Name','Parker Direct')
+			set([handles.check_showResidue handles.check_showDirect], 'Vis', 'off')
 			handles.what_parker = 'direct';
 			handles.hCallingFig = varargin{2};
 		elseif (strcmp(varargin{1},'parker_inverse'))
@@ -61,10 +62,9 @@ function varargout = parker_stuff(varargin)
 			set(handles.edit_wlong,'Enable','off','BackgroundColor',get(0,'DefaultUicontrolBackgroundColor'))
 			set(handles.edit_wshort,'Enable','off','BackgroundColor',get(0,'DefaultUicontrolBackgroundColor'))
 			set(handles.edit_date,'Enable','off','BackgroundColor',get(0,'DefaultUicontrolBackgroundColor'))
-			set(handles.check_CenterDipole,'Visible','off')
-			set(handles.check_fieldIsRTP,'Visible','off')
-			set(handles.text_wshort,'Enable','off')
-			set(handles.text_wlong,'Enable','off')
+			set([handles.check_CenterDipole handles.check_fieldIsRTP],'Visible','off')
+			set([handles.text_wshort handles.text_wlong],'Enable','off')
+			set([handles.check_showResidue handles.check_showDirect], 'Vis', 'off')
 			% Reuse some edit boxes, but we have to change their text
 			set(handles.text_Level,'String','Field dip')
 			set(handles.edit_zobs,'String','','Tooltip','Inclination of the magnetic field.')
@@ -294,15 +294,9 @@ function push_SourceGrid_CB(hObject, handles, opt)
 % -------------------------------------------------------------------------------------------------
 function check_mirror_CB(hObject, handles)
 	if (get(hObject,'Value'))
-		set(handles.edit_Ncols,'Enble','off')
-		set(handles.listbox_nny,'Enble','off')
-		set(handles.edit_Nrows,'Enble','off')
-		set(handles.listbox_nnx,'Enble','off')
+		set([handles.edit_Ncols handles.edit_Nrows handles.listbox_nny handles.listbox_nnx],'Enble','off')
 	else
-		set(handles.edit_Ncols,'Enble','on')
-		set(handles.listbox_nny,'Enble','on')
-		set(handles.edit_Nrows,'Enble','on')
-		set(handles.listbox_nnx,'Enble','on')
+		set([handles.edit_Ncols handles.edit_Nrows handles.listbox_nny handles.listbox_nnx],'Enble','on')
 	end
 
 % -------------------------------------------------------------------------------------------------
@@ -323,9 +317,8 @@ function edit_date_CB(hObject, handles)
 		handles.date = xx;
 		elev = str2double(get(handles.edit_zobs,'String'));
 		try			% Use a try here because some vars may not have been yet defined
-			%out = igrf(handles.rlat, handles.rlon, elev, xx, handles.igrf_coefs, handles.start_stop_epoch);
-			out = igrf_m(handles.rlon, handles.rlat, elev, xx);
 			if (~get(handles.check_CenterDipole,'Value'))
+				out = igrf_m(handles.rlon, handles.rlat, elev, xx);
 				set(handles.edit_sdec,'String',sprintf('%.1f',out(6)))
 				set(handles.edit_sdip,'String',sprintf('%.1f',out(7)))
 			end
@@ -450,129 +443,163 @@ function check_CenterDipole_CB(hObject, handles)
 	end
 
 % -------------------------------------------------------------------------------------------------
-function push_compute_CB(hObject, handles)
+function [G, Hdr] = push_compute_CB(hObject, handles)
+% When used with output args, no figure is created.
+%
 % Before asking the apropriate function to do the work we have to ... TEST
 % Source grid, Nrows & Ncols are common to all options. So test them first
-if (isempty(handles.Z_src))
-    errordlg('You didn''t give me a Source grid (Field or Magnetization). What do you want me to do?','Chico Clever')
-    return
-end
-if (isempty(get(handles.edit_Nrows,'String')) || isempty(get(handles.edit_Ncols,'String')))
-    errordlg('One or both of grid size dimensions are empty. What have you done?','Error')
-    return
-end
+	if (isempty(handles.Z_src))
+		errordlg('You didn''t give me a Source grid (Field or Magnetization). What do you want me to do?','Chico Clever')
+		return
+	end
+	if (isempty(get(handles.edit_Nrows,'String')) || isempty(get(handles.edit_Ncols,'String')))
+		errordlg('One or both of grid size dimensions are empty. What have you done?','Error')
+		return
+	end
 
-% Now those that are common to direct/inverse cases
-if (strcmp(handles.what_parker,'direct') || strcmp(handles.what_parker,'inverse'))
-    if (isempty(handles.Z_bat))
-        errordlg('Must give me a grid with the bathymetry','Error');    return
-    end
-    date = str2double(get(handles.edit_date,'String'));
-    if (isnan(date) && ~get(handles.check_fieldIsRTP,'Value'))
-        errordlg('I need to know the year of the survey (see Date box)','Error');   return
-    end
-    thick = str2double(get(handles.edit_thickness,'String'));
-    if (isnan(thick))
-        errordlg('I need to know the thickness of the magnetic layer (see Thickness box)','Error');   return
-    end
-    zobs = str2double(get(handles.edit_zobs,'String'));
-    if (isnan(zobs))
-        errordlg('I need to know the level of the observation of the survey (see Level box)','Error');   return
-    end
-    dx = handles.scaled_dx;     dy = handles.scaled_dy;
-end
-% Get Mag/Field Dec & Dip
-sdec = str2double(get(handles.edit_sdec,'String'));
-sdip = str2double(get(handles.edit_sdip,'String'));
-new_nx = str2double(get(handles.edit_Ncols,'String'));
-new_ny = str2double(get(handles.edit_Nrows,'String'));
+	% Now those that are common to direct/inverse cases
+	if (strcmp(handles.what_parker,'direct') || strcmp(handles.what_parker,'inverse'))
+		if (isempty(handles.Z_bat))
+			errordlg('Must give me a grid with the bathymetry','Error');    return
+		end
+		date = str2double(get(handles.edit_date,'String'));
+		if (isnan(date) && ~get(handles.check_fieldIsRTP,'Value'))
+			errordlg('I need to know the year of the survey (see Date box)','Error');   return
+		end
+		thick = str2double(get(handles.edit_thickness,'String'));
+		if (isnan(thick))
+			errordlg('I need to know the thickness of the magnetic layer (see Thickness box)','Error');   return
+		end
+		zobs = str2double(get(handles.edit_zobs,'String'));
+		if (isnan(zobs))
+			errordlg('I need to know the level of the observation of the survey (see Level box)','Error');   return
+		end
+		dx = handles.scaled_dx;     dy = handles.scaled_dy;
+	end
+	% Get Mag/Field Dec & Dip
+	sdec = str2double(get(handles.edit_sdec,'String'));
+	sdip = str2double(get(handles.edit_sdip,'String'));
+	new_nx = str2double(get(handles.edit_Ncols,'String'));
+	new_ny = str2double(get(handles.edit_Nrows,'String'));
 
-switch handles.what_parker
-    case 'direct'
-        if (handles.orig_ncols < handles.ncols || handles.orig_nrows < handles.nrows)      % Padding was asked for
-            if (get(handles.check_mirror,'Value'))   % Do mirror
-                h = mboard(handles.Z_bat,handles.orig_ncols,handles.orig_nrows);
-                f = mboard(handles.Z_src,handles.orig_ncols,handles.orig_nrows);
-                f3d = syn3d(double(f),double(h),handles.rlat,handles.rlon,date,zobs,thick,0,dx,dy,sdip,sdec);
-                f3d = f3d(1:handles.orig_nrows,1:handles.orig_ncols);   % Remove the mirror
-            else
-                [h,band] = mboard(handles.Z_bat,handles.orig_ncols,handles.orig_nrows,new_nx,new_ny);
-                f = mboard(handles.Z_src,handles.orig_ncols,handles.orig_nrows,new_nx,new_ny);
-                f3d = syn3d(double(f),double(h),handles.rlat,handles.rlon,date,zobs,thick,0,dx,dy,sdip,sdec);
-                m1 = band(1)+1;     m2 = m1 + handles.orig_nrows - 1;
-                n1 = band(3)+1;     n2 = n1 + handles.orig_ncols - 1;
-                f3d = f3d(m1:m2,n1:n2);         % Remove the padding skirt
-            end
-        else
-            f3d = syn3d(double(handles.Z_src),double(handles.Z_bat),handles.rlat,handles.rlon, ...
-                date,zobs,thick,0,dx,dy,sdip,sdec);
-        end
-        z_min = min(f3d(:));    z_max = max(f3d(:));
-        tmp.head = [handles.head_src(1) handles.head_src(2) handles.head_src(3) handles.head_src(4) ...
-                z_min z_max 0 handles.head_src(8) handles.head_src(9)];
-        tmp.X = handles.X;      tmp.Y = handles.Y;      tmp.name = 'Magnetic Anomaly (nT)';
-        mirone(single(f3d),tmp);
-    case 'inverse'
-        if (get(handles.check_fieldIsRTP,'Value'))   % Case of a already RTP Field
-            handles.rlat = 90;      handles.rlon = 0;
-            sdip = 90;              sdec = 0;       date = 2000;
-        end
-        ws = str2double(get(handles.edit_wshort,'String'));
-        wl = str2double(get(handles.edit_wlong,'String'));
-        if (handles.orig_ncols < handles.ncols || handles.orig_nrows < handles.nrows)      % Padding was asked for
-            if (get(handles.check_mirror,'Value'))   % Do mirror
-                h = mboard(handles.Z_bat,handles.orig_ncols,handles.orig_nrows);
-                f = mboard(handles.Z_src,handles.orig_ncols,handles.orig_nrows);
-                m3d = inv3d(double(f),double(h),wl,ws,handles.rlat,handles.rlon,date,zobs,thick,0,dx,dy,sdip,sdec);
-                m3d = m3d(1:handles.orig_nrows,1:handles.orig_ncols);   % Remove the mirror
-            else
-                [h,band] = mboard(handles.Z_bat,handles.orig_ncols,handles.orig_nrows,new_nx,new_ny);
-                f = mboard(handles.Z_src,handles.orig_ncols,handles.orig_nrows,new_nx,new_ny);
-                m3d = inv3d(double(f),double(h),wl,ws,handles.rlat,handles.rlon,date,zobs,thick,0,dx,dy,sdip,sdec);
-                m1 = band(1)+1;     m2 = m1 + handles.orig_nrows - 1;
-                n1 = band(3)+1;     n2 = n1 + handles.orig_ncols - 1;
-                m3d = m3d(m1:m2,n1:n2);         % Remove the padding skirt
-            end
-        else
-            m3d = inv3d(double(handles.Z_src),double(handles.Z_bat),wl,ws,handles.rlat,handles.rlon, ...
-                date,zobs,thick,0,dx,dy,sdip,sdec);
-        end
-        z_min = min(m3d(:));        z_max = max(m3d(:));
-        tmp.head = [handles.head_src(1) handles.head_src(2) handles.head_src(3) handles.head_src(4) ...
-                z_min z_max 0 handles.head_src(8) handles.head_src(9)];
-        tmp.X = handles.X;      tmp.Y = handles.Y;      tmp.name = 'Magnetization (A/m^2)';
-        mirone(single(m3d),tmp);
-    case 'redPole'
-        incl_fld = str2double(get(handles.edit_zobs,'String'));
-        decl_fld = str2double(get(handles.edit_thickness,'String'));
-        incl_mag = str2double(get(handles.edit_sdip,'String'));
-        decl_mag = str2double(get(handles.edit_sdec,'String'));
-        if (isnan(incl_fld) || isnan(decl_fld))
-            errordlg('You need to give me valid magnetic field Inclination and Declination.','Error');  return;
-        end
-        if (isnan(incl_mag) || isnan(decl_mag))
-            errordlg('You need to give me valid magnetization Inclination and Declination.','Error');  return;
-        end
-        if (handles.orig_ncols < handles.ncols || handles.orig_nrows < handles.nrows)      % Padding was asked for
-            if (get(handles.check_mirror,'Value'))   % Do mirror
-                f = mboard(handles.Z_src,handles.orig_ncols,handles.orig_nrows);
-                f = rtp3d(double(f),incl_fld,decl_fld,incl_mag,decl_mag);
-                f = f(1:handles.orig_nrows,1:handles.orig_ncols);   % Remove the mirror
-            else
-                [f,band] = mboard(handles.Z_src,handles.orig_ncols,handles.orig_nrows,new_nx,new_ny);
-                f = rtp3d(double(f),incl_fld,decl_fld,incl_mag,decl_mag);
-                m1 = band(1)+1;     m2 = m1 + handles.orig_nrows - 1;
-                n1 = band(3)+1;     n2 = n1 + handles.orig_ncols - 1;
-                f = f(m1:m2,n1:n2);         % Remove the padding skirt
-            end
-        else
-            f = rtp3d(double(handles.Z_src),incl_fld,decl_fld,incl_mag,decl_mag);
-        end
-        z_min = min(f(:));    z_max = max(f(:));
-        tmp.head = [handles.head_src(1:4) z_min z_max 0 handles.head_src(8:9)];
-        tmp.X = handles.X;      tmp.Y = handles.Y;      tmp.name = 'Reduce to the Pole anomaly (nT)';
-        mirone(single(f),tmp);
-end
+	switch (handles.what_parker)
+		case 'direct'
+			if (get(handles.check_fieldIsRTP,'Value'))			% Case of a mag computed from an RTP Field
+				handles.rlat = 90;      handles.rlon = 0;		% Tricky values to inform syn3d about the RTP fact
+				sdip = 90;              sdec = 0;       date = 2000;
+			end
+			if (handles.orig_ncols < handles.ncols || handles.orig_nrows < handles.nrows)      % Padding was asked for
+				if (get(handles.check_mirror,'Value'))   % Do mirror
+					h = mboard(handles.Z_bat,handles.orig_ncols,handles.orig_nrows);
+					f = mboard(handles.Z_src,handles.orig_ncols,handles.orig_nrows);
+					f3d = syn3d(double(f),double(h),handles.rlat,handles.rlon,date,zobs,thick,0,dx,dy,sdip,sdec);
+					f3d = f3d(1:handles.orig_nrows,1:handles.orig_ncols);   % Remove the mirror
+				else
+					[h,band] = mboard(handles.Z_bat,handles.orig_ncols,handles.orig_nrows,new_nx,new_ny);
+					f = mboard(handles.Z_src,handles.orig_ncols,handles.orig_nrows,new_nx,new_ny);
+					f3d = syn3d(double(f),double(h),handles.rlat,handles.rlon,date,zobs,thick,0,dx,dy,sdip,sdec);
+					m1 = band(1)+1;     m2 = m1 + handles.orig_nrows - 1;
+					n1 = band(3)+1;     n2 = n1 + handles.orig_ncols - 1;
+					f3d = f3d(m1:m2,n1:n2);         % Remove the padding skirt
+				end
+			else
+				f3d = syn3d(double(handles.Z_src),double(handles.Z_bat),handles.rlat,handles.rlon, ...
+					date,zobs,thick,0,dx,dy,sdip,sdec);
+			end
+			z_min = min(f3d(:));    z_max = max(f3d(:));
+			tmp.head = [handles.head_src(1) handles.head_src(2) handles.head_src(3) handles.head_src(4) ...
+					z_min z_max 0 handles.head_src(8) handles.head_src(9)];
+			tmp.X = handles.X;      tmp.Y = handles.Y;      tmp.name = 'Magnetic Anomaly (nT)';
+			if (nargout == 0)				% Show result right away
+				f3d = single(f3d);	mirone(f3d,tmp);
+			else							% Send back the result to the caller
+				G = f3d;	Hdr = tmp;
+			end
+		case 'inverse'
+			if (get(handles.check_fieldIsRTP,'Value'))			% Case of a already RTP Field
+				handles.rlat = 90;      handles.rlon = 0;		% Tricky values to inform inv3d about the RTP fact
+				sdip = 90;              sdec = 0;       date = 2000;
+			end
+			ws = str2double(get(handles.edit_wshort,'String'));
+			wl = str2double(get(handles.edit_wlong,'String'));
+			if (handles.orig_ncols < handles.ncols || handles.orig_nrows < handles.nrows)      % Padding was asked for
+				if (get(handles.check_mirror,'Value'))   % Do mirror
+					h = mboard(handles.Z_bat,handles.orig_ncols,handles.orig_nrows);
+					f = mboard(handles.Z_src,handles.orig_ncols,handles.orig_nrows);
+					m3d = inv3d(double(f),double(h),wl,ws,handles.rlat,handles.rlon,date,zobs,thick,0,dx,dy,sdec,sdip);
+					m3d = m3d(1:handles.orig_nrows,1:handles.orig_ncols);   % Remove the mirror
+				else
+					[h,band] = mboard(handles.Z_bat,handles.orig_ncols,handles.orig_nrows,new_nx,new_ny);
+					f = mboard(handles.Z_src,handles.orig_ncols,handles.orig_nrows,new_nx,new_ny);
+					m3d = inv3d(double(f),double(h),wl,ws,handles.rlat,handles.rlon,date,zobs,thick,0,dx,dy,sdec,sdip);
+					m1 = band(1)+1;     m2 = m1 + handles.orig_nrows - 1;
+					n1 = band(3)+1;     n2 = n1 + handles.orig_ncols - 1;
+					m3d = m3d(m1:m2,n1:n2);         % Remove the padding skirt
+				end
+			else
+				m3d = inv3d(double(handles.Z_src),double(handles.Z_bat),wl,ws,handles.rlat,handles.rlon, ...
+					date,zobs,thick,0,dx,dy,sdec,sdip);
+			end
+			z_min = min(m3d(:));        z_max = max(m3d(:));
+			tmp.head = [handles.head_src(1) handles.head_src(2) handles.head_src(3) handles.head_src(4) ...
+					z_min z_max 0 handles.head_src(8) handles.head_src(9)];
+			tmp.X = handles.X;      tmp.Y = handles.Y;      tmp.name = 'Magnetization (A/m^2)';
+
+			if (get(handles.check_showDirect, 'Val') || get(handles.check_showResidue, 'Val'))
+				handles.what_parker = 'direct';
+				handles.Z_src = m3d;		% Since we want the forward solution we must now feed it with the mag
+				[G, Hdr] = push_compute_CB([], handles);
+				if (get(handles.check_showDirect, 'Val'))
+					Hdr.name = 'Forward Anomaly (nT)';
+					G = single(G);		mirone(G, Hdr)
+				end
+				if (get(handles.check_showResidue, 'Val'))
+					G = handles.Z_src - G;
+					Hdr.head(5:6) = [min(G(:)) max(G(:))];
+					Hdr.name = 'Residual Anomaly (nT)';
+					G = single(G);		mirone(G, Hdr)
+				end
+			end
+			if (nargout == 0)				% Show result right away
+				m3d = single(m3d);		mirone(m3d,tmp);
+			else							% Send back the result to the caller
+				G = m3d;	Hdr = tmp;
+			end
+		case 'redPole'
+			incl_fld = str2double(get(handles.edit_zobs,'String'));
+			decl_fld = str2double(get(handles.edit_thickness,'String'));
+			incl_mag = str2double(get(handles.edit_sdip,'String'));
+			decl_mag = str2double(get(handles.edit_sdec,'String'));
+			if (isnan(incl_fld) || isnan(decl_fld))
+				errordlg('You need to give me valid magnetic field Inclination and Declination.','Error');  return;
+			end
+			if (isnan(incl_mag) || isnan(decl_mag))
+				errordlg('You need to give me valid magnetization Inclination and Declination.','Error');  return;
+			end
+			if (handles.orig_ncols < handles.ncols || handles.orig_nrows < handles.nrows)      % Padding was asked for
+				if (get(handles.check_mirror,'Value'))   % Do mirror
+					f = mboard(handles.Z_src,handles.orig_ncols,handles.orig_nrows);
+					f = rtp3d(double(f),incl_fld,decl_fld,incl_mag,decl_mag);
+					f = f(1:handles.orig_nrows,1:handles.orig_ncols);   % Remove the mirror
+				else
+					[f,band] = mboard(handles.Z_src,handles.orig_ncols,handles.orig_nrows,new_nx,new_ny);
+					f = rtp3d(double(f),incl_fld,decl_fld,incl_mag,decl_mag);
+					m1 = band(1)+1;     m2 = m1 + handles.orig_nrows - 1;
+					n1 = band(3)+1;     n2 = n1 + handles.orig_ncols - 1;
+					f = f(m1:m2,n1:n2);         % Remove the padding skirt
+				end
+			else
+				f = rtp3d(double(handles.Z_src),incl_fld,decl_fld,incl_mag,decl_mag);
+			end
+			z_min = min(f(:));    z_max = max(f(:));
+			tmp.head = [handles.head_src(1:4) z_min z_max 0 handles.head_src(8:9)];
+			tmp.X = handles.X;      tmp.Y = handles.Y;      tmp.name = 'Reduce to the Pole anomaly (nT)';
+			if (nargout == 0)				% Show result right away
+				f = single(f);		mirone(f,tmp);
+			else
+				G = f;		Hdr = tmp;
+			end
+	end
 
 % -------------------------------------------------------------------------------------------------
 function [sclat,sclon] = scltln(orlat)
@@ -597,15 +624,15 @@ function [sclat,sclon] = scltln(orlat)
 %
 % Dan Scheirer, 21 May 1991
 
-% These constants belong to the: WGS, 1984 ellipsoid (gmt_defaults.h)
-a = 6378.137;   b = 6356.7521;
+	% These constants belong to the: WGS, 1984 ellipsoid (gmt_defaults.h)
+	a = 6378.137;   b = 6356.7521;
 
-% Now, do the calculations...
-e2 = 1 - (b*b)/(a*a);
-sinlat = sin(orlat*pi/180);
-denom  = sqrt(1 - e2 * sinlat * sinlat);
-sclat = (pi/180) * a * (1 - e2)  / denom / denom / denom;
-sclon = (pi/180) * a * cos(orlat*pi/180) / denom;
+	% Now, do the calculations...
+	e2 = 1 - (b*b)/(a*a);
+	sinlat = sin(orlat*pi/180);
+	denom  = sqrt(1 - e2 * sinlat * sinlat);
+	sclat = (pi/180) * a * (1 - e2)  / denom / denom / denom;
+	sclon = (pi/180) * a * cos(orlat*pi/180) / denom;
 
 
 % --- Creates and returns a handle to the GUI figure. 
@@ -656,6 +683,21 @@ uicontrol('Parent',h1,...
 'Call',@parker_stuff_uiCB,...
 'Position',[361 261 23 23],...
 'Tag','push_SourceGrid');
+
+uicontrol('Parent',h1,...
+'Position',[50 210 140 15],...
+'String','Geographic coords?',...
+'Style','checkbox',...
+'Tooltip','Are the grids in geographical coordinates?',...
+'Tag','check_geog');
+
+uicontrol('Parent',h1,...
+'Call',@parker_stuff_uiCB,...
+'Position',[225 210 140 15],...
+'String','Field is already RTP',...
+'Style','checkbox',...
+'Tooltip','Check this box if the anomalous field is already Reduced To the Pole',...
+'Tag','check_fieldIsRTP');
 
 uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
@@ -732,16 +774,17 @@ uicontrol('Parent',h1,'Position',[291 153 41 15],'String','Wshort','Style','text
 uicontrol('Parent',h1,'HorizontalAlignment','right','Position',[295 114 35 15],...
 'String','Wlong','Style','text','Tag','text_wlong');
 
+uicontrol('Parent',h1,...
+'Call',@parker_stuff_uiCB,...
+'Position',[19 139 60 15],...
+'String','Mirror',...
+'Style','checkbox',...
+'Tooltip','Check this to Mirror the grid before FFT',...
+'Tag','check_mirror');
+
 uicontrol('Parent',h1,'BackgroundColor',[1 1 1],...
 'Call',@parker_stuff_uiCB,...
 'Position',[126 102 51 78],'Style','listbox','Value',1,'Tag','listbox_nny');
-
-uicontrol('Parent',h1,...
-'Call',@parker_stuff_uiCB,...
-'FontWeight','bold',...
-'Position',[326 11 65 21],...
-'String','Compute',...
-'Tag','push_compute');
 
 uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
@@ -771,13 +814,6 @@ uicontrol('Parent',h1,'Position',[86 159 39 15],'String','# Rows','Style','text'
 uicontrol('Parent',h1,'Position',[192 159 39 15],'String','# Cols','Style','text','Tag','text12');
 
 uicontrol('Parent',h1,...
-'Position',[50 210 140 15],...
-'String','Geographic coords?',...
-'Style','checkbox',...
-'Tooltip','Are the grids in geographical coordinates?',...
-'Tag','check_geog');
-
-uicontrol('Parent',h1,...
 'Call',@parker_stuff_uiCB,...
 'Position',[227 19 90 15],...
 'String','Geocentric?',...
@@ -786,20 +822,25 @@ uicontrol('Parent',h1,...
 'Tag','check_CenterDipole');
 
 uicontrol('Parent',h1,...
-'Call',@parker_stuff_uiCB,...
-'Position',[19 139 60 15],...
-'String','Mirror',...
+'Position',[320 70 90 15],...
+'String','Show res',...
 'Style','checkbox',...
-'Tooltip','Check this to Mirror the grid before FFT',...
-'Tag','check_mirror');
+'Tooltip','Show also the residue grid (original anomaly - forward solution)',...
+'Tag','check_showResidue');
+
+uicontrol('Parent',h1,...
+'Position',[320 50 90 15],...
+'String','Show direct',...
+'Style','checkbox',...
+'Tooltip','Show also the forward solution grid',...
+'Tag','check_showDirect');
 
 uicontrol('Parent',h1,...
 'Call',@parker_stuff_uiCB,...
-'Position',[225 210 140 15],...
-'String','Field is already RTP',...
-'Style','checkbox',...
-'Tooltip','Check this box if the anomalous field is already Reduced To the Pole',...
-'Tag','check_fieldIsRTP');
+'FontWeight','bold',...
+'Position',[326 11 65 21],...
+'String','Compute',...
+'Tag','push_compute');
 
 function parker_stuff_uiCB(hObject, eventdata)
 % This function is executed by the callback and than the handles is allways updated.
