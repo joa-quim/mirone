@@ -58,7 +58,7 @@ if (~isa(texto,'cell')),		texto = cellstr(texto);	end
 
 switch option
 	case 'create'
-		[figpos, figName, posTxt, movepos, bgcolor, fwcolor, Font, addButt, winMaxH, modal, editBox] = ...
+		[figpos, figName, posTxt, movepos, bgcolor, fwcolor, Font, addButt, winMaxH, modal, editBox, got_size] = ...
 			parse_inputs(texto, varargin{:});
 		if (isempty(movepos))			% Reposition figure on screen
 			figpos = getnicelocation(figpos, 'pixels');
@@ -88,8 +88,10 @@ switch option
 			end
 		else
 			fpos = figpos;				% Make a copy and use a fixed size ... for the time being.
-			fpos(3:4) = [400 numel(texto)*20+90];
-			set(hFig, 'Pos', fpos)
+			if (~got_size)				% Otherwise respect input
+				fpos(3:4) = [400 numel(texto)*20+90];
+				set(hFig, 'Pos', fpos)
+			end
 			hTxtContainer = uicontrol('Parent',hFig, 'Style','edit', 'Unit','pix', 'BackgroundColor',[1 1 1], ...
 				'HorizontalAlignment','left', 'Max',numel(texto), 'Str', texto, 'Pos', [2 25 fpos(3) fpos(4)-25], ...
 				'Max',2, 'Tag','editBox');
@@ -114,11 +116,11 @@ switch option
 		end
 
 		% See if we should shrink the figure horizontally
-		if ( extent(3) < 1 )					% Yes
+		if (~got_size && extent(3) < 1)						% Yes
 			set([hFig,hTxt], 'unit', 'pix')
 			extent_pix = get(hTxt,'Extent');
 			figpos(3) = extent_pix(3)+20;
-			figpos = getnicelocation(figpos, 'pixels');			% Reposition again
+			figpos = getnicelocation(figpos, 'pixels');		% Reposition again
 			set(hFig, 'Pos', figpos)
 			posBut(1) = figpos(3)-44;
 			set(hBut, 'Pos', posBut)			% We need to recenter the OK button too
@@ -150,11 +152,18 @@ switch option
 
     case 'add'
 		hTxt = findobj(hFig,'Style','Text');
+		if (~isempty(hTxt))
+			Txt = get(hTxt,'String');
+			set(hTxt, 'String',[Txt; texto])
+			posTxt = get(hTxt,'Position');
+			extent = get(hTxt,'Extent');
+		else
+			h = findobj(hFig,'Tag','editBox');
+			Txt = get(h, 'Str');
+			set(h, 'String',[Txt; texto])
+			extent = [0 0 0 0];						% To not go into the if tests below
+		end
 		hSlider = findobj(hFig,'Style','slider');
-		Txt = get(hTxt,'String');
-		set(hTxt, 'String',[Txt; texto])
-		posTxt = get(hTxt,'Position');
-		extent = get(hTxt,'Extent');
 
 		if (extent(4) > 1 && isempty(hSlider))		% Text to big to fit. Add a slider to the figure
 			old_u = get(hFig,'Units');		set(hFig,'Units','pixel')
@@ -165,7 +174,7 @@ switch option
 		elseif (extent(4) > 1)						% Slider already exists; scroll it down
 			scal = get(hSlider, 'Max');
 			if (scal < extent(4))
-				scal = ceil(extent(4));			% Round up to next multiple of text display size
+				scal = ceil(extent(4));				% Round up to next multiple of text display size
 				set(hSlider, 'Max', scal);
 			end
 			slid_val = scal - (extent(4) - 1);
@@ -173,12 +182,14 @@ switch option
 		end
 		if (nargout)	handFig = hFig;		end
 
+		drawnow
+
     case 'close'
 		delete(hFig);
 end
 
 % ------------------------------------------------------------------------------------	
-function [figpos, figName, posTxt, movepos, bgcolor, fwcolor, Font, addButt, winMaxH, modal, editBox] = ...
+function [figpos, figName, posTxt, movepos, bgcolor, fwcolor, Font, addButt, winMaxH, modal, editBox, got_size] = ...
 	parse_inputs(texto, varargin)
 % Parse inputs and compute also fig and text sizes
 
@@ -187,7 +198,7 @@ function [figpos, figName, posTxt, movepos, bgcolor, fwcolor, Font, addButt, win
 	end
 	% Assign defaults
 	win_width = 0;		win_height = 0;		movepos = [];	fwcolor = 'k';	bgcolor = [.95 .95 .95];
-	addButt = false;	modal = false;		editBox = false;
+	got_size = false;	addButt = false;	modal = false;	editBox = false;
 	figName = 'Message window';
 	Font.Size = 9;
 	Font.Weight = 'demi';
@@ -210,6 +221,10 @@ function [figpos, figName, posTxt, movepos, bgcolor, fwcolor, Font, addButt, win
 				case 'edit',		editBox = true;
 			end
 		end
+	end
+
+	if (win_width && win_height)
+		got_size = true;
 	end
 
 	screensize = get(0,'ScreenSize');
