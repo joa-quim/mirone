@@ -33,6 +33,8 @@ function m3d=inv3d(f3d,h,wl,ws,rlat,rlon,yr,zobs,thick,slin,dx,dy,sdec,sdip)
 %               sdec = rlon = 0 & sdip = rlat = 90
 %-----------------------------------------------------------
 
+% $Id$
+
 if (nargin == 0)
 %     try,    message_win('create','DEMO OF INV3D');  pause(0.001);
 %             message_win('add','FIRST GENERATE A PRISM AT DEPTH');
@@ -73,7 +75,7 @@ flag = 0;
 [ny,nx] = size(f3d);
 if size(h) ~= size(f3d), 
     fprintf(' bathy and field arrays must e of the same length\n');
-    return; 
+    return
 end
 % remove mean from input field
 mnf3d = mean(mean(f3d));
@@ -180,7 +182,6 @@ for iter=1:nitrs,       % summation loop
     end
     lastm3d = m3d;
     if (iter == 1) 
-        first1 = errmax + 1e-10; 
         erpast = errmax;
     end
     if (errmax > erpast)
