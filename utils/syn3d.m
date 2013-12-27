@@ -26,7 +26,13 @@ function f3d = syn3d(m3d,h,rlat,rlon,yr,zobs,thick,slin,dx,dy,sdip,sdec)
 %                                   March  1996
 %  Joaquim Luis         May   2004
 %       Cleaned the code for saving RAM and replaced the igrf routine
-%-----------------------------------------------------------
+%
+%   Dec 2013 -> Added an option to deal with case of the magnetization is from RTP
+%               In order to not change the nargins, this option is activated with:
+%               sdec = rlon = 0 & sdip = rlat = 90
+%---------------------------------------------------------------------------------
+
+% $Id$
 
 	if (nargin == 0)
 % 		fprintf('\n\n             DEMO OF SYN3D mfile\n\n');
@@ -53,12 +59,12 @@ function f3d = syn3d(m3d,h,rlat,rlon,yr,zobs,thick,slin,dx,dy,sdip,sdec)
 	% If a window for verbose exists
 	old_show = get(0,'ShowHiddenHandles');
 	set(0,'ShowHiddenHandles','on')
-	h = get(0,'Children'); 
-	figdmsg = findobj(h,'flat','tag','Wdmsgfig');
+	hFig = get(0,'Children'); 
+	figdmsg = findobj(hFig,'flat','tag','Wdmsgfig');
 	set(0,'ShowHiddenHandles',old_show)
 
 	if (isempty(figdmsg))
-		try		message_win('create','     3D MAGNETIC FIELD FORWARD MODEL');    pause(0.001)
+		try		message_win('create','     3D MAGNETIC FIELD FORWARD MODEL');
 		catch,  fprintf('     3D MAGNETIC FIELD FORWARD MODEL\n')
 		end
 	else
@@ -96,11 +102,15 @@ function f3d = syn3d(m3d,h,rlat,rlon,yr,zobs,thick,slin,dx,dy,sdip,sdec)
 	catch,  fprintf(' Spacing of points : %10.4f X %10.4f \n',dx,dy)
 	end
 
-	%y = igrf(rlat, rlon, zobs, yr, 'igrf_1945_2005.dat');
-	y = igrf_m(rlon, rlat, zobs, yr);
+	if (abs(sdec) == 0 && abs(sdip) == 90 && abs(rlat) == 90 && abs(rlon) == 0)
+		% Trick used to inform that the Field is RTP
+		incl1 = 90;		decl1 = 0;
+	else
+		y = igrf_m(rlon, rlat, zobs, yr);
+		decl1 = y(6);   incl1 = y(7);   clear y;
+	end
 
 	% compute skewness parameter
-	decl1 = y(6);   incl1 = y(7);   clear y;
 	if (abs(sdec) > 0. || abs(sdip) > 0.)
 		%[theta,ampfac] = nskew(yr,rlat,rlon,zobs,slin,sdec,sdip);
 	else
