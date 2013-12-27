@@ -1,4 +1,4 @@
-function m3d=inv3d(f3d,h,wl,ws,rlat,rlon,yr,zobs,thick,slin,dx,dy,sdec,sdip);
+function m3d=inv3d(f3d,h,wl,ws,rlat,rlon,yr,zobs,thick,slin,dx,dy,sdec,sdip)
 % INV3D Calculate magnetization from magnetic field and bathymetry for a map.
 %       Assumes constant thickness source layer whose upper bound is bathymetry
 %       Use the Parker & Huestis [1974] Fourier inversion approach.  
@@ -67,8 +67,8 @@ D2R = pi/180;  % conversion D2Rians to degrees
 mu = 100;      % conversion factor to nT
 % changeable parameters
 nterms = 8;     nitrs = 10;
-tol = 0.0001;   tolmag = 0.0001;
-flag = 0;       xmin = 0;
+tolmag = 0.0001;
+flag = 0;
 
 [ny,nx] = size(f3d);
 if size(h) ~= size(f3d), 
@@ -86,9 +86,9 @@ y = igrf_m(rlon, rlat, zobs, yr);
 %bx = y(3);      by = y(4);      bz = y(5);      bh = y(2);
 decl = y(6);    incl = y(7);    clear y;
 %if (abs(sdec) > 0 | abs(sdip) > 0)
-if (abs(sdec) == 0 & abs(sdip) == 90)
+if (abs(sdec) == 0 && abs(sdip) == 90)
     %[theta,ampfac] = nskew(yr,rlat,rlon,zobs,slin,sdec,sdip);
-    if (abs(rlat) == 90 & abs(rlon) == 0)       % Trick used to inform that the Field is RTP
+    if (abs(rlat) == 90 && abs(rlon) == 0)       % Trick used to inform that the Field is RTP
         incl = 90;      decl = 0;
     end
 else
@@ -110,9 +110,11 @@ ra2 = sdip*D2R;     rb2 = (sdec-slin)*D2R;
 
 nx2 = fix(nx/2);        ny2 = fix(ny/2);
 if (rem(nx,2) == 0)     sft_x = 1;
-else                    sft_x = 0;     end
+else                    sft_x = 0;
+end
 if (rem(ny,2) == 0)     sft_y = 1;
-else                    sft_y = 0;     end
+else                    sft_y = 0;
+end
 dkx = 2*pi / (nx*dx);   dky = 2*pi / (ny*dy);
 kx = (-nx2:nx2-sft_x).*dkx;     ky = (-ny2:ny2-sft_y).*dky;
 X = repmat(kx,length(ky),1);    Y = repmat(ky',1,length(kx));
@@ -130,7 +132,6 @@ const = 2*pi*mu;
 
 % shift zero level of bathy
 hmax = max(max(h)); hmin = min(min(h));
-conv = 1;
 shift = hmax;
 hwiggl = abs(hmax-hmin)/2;
 zup = zobs - shift;
@@ -149,7 +150,6 @@ m3d = zeros(ny,nx); % make an initial guess of 0 for m3d
 %sum1 = fft2(m3d);  % Not used
 F = (fft2(f3d));
 % now do summing over nterms
-intsum = 0;
 mlast = zeros(ny,nx);
 lastm3d = zeros(ny,nx);
 B = (F.*dexpz) ./ (const.*alap.*amp.*phase);
@@ -180,7 +180,7 @@ for iter=1:nitrs,       % summation loop
     end
     lastm3d = m3d;
     if (iter == 1) 
-        first1 = errmax+1e-10; 
+        first1 = errmax + 1e-10; 
         erpast = errmax;
     end
     if (errmax > erpast)
