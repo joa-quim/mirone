@@ -12,7 +12,7 @@ function  dim_funs(opt, varargin)
 % handles.x_min_or = 10;  x_min cannot be < 10. This is used for example in grdsample, where
 % sampled grid cannot have larger limits than the original.
 
-%	Copyright (c) 2004-2012 by J. Luis
+%	Copyright (c) 2004-2014 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -27,6 +27,8 @@ function  dim_funs(opt, varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
+% $Id$
+
 	switch opt
 		case 'xMin',	edit_x_min(varargin{:})
 		case 'xMax',	edit_x_max(varargin{:})
@@ -39,16 +41,22 @@ function  dim_funs(opt, varargin)
 	end
 
 % --------------------------------------------------------------------------------------
+function x = cellDMS2double(val)
+% Convert the VAL cell array which has the individual tokens of a DD:MM:SS string into a float
+% This fun is also used to convert the x_inc string
+	x = 0;
+	if str2double(val{1}) > 0
+		for (i = 1:numel(val)),   x = x + str2double(val{i}) / (60 .^ (i-1));    end
+	else
+		for (i = 1:numel(val)),   x = x - abs(str2double(val{i})) / (60 .^ (i-1));   end
+	end
+
+% --------------------------------------------------------------------------------------
 function edit_x_min(hObject, handles)
 	x_min_or = handles.x_min_or;
 	xx = get(hObject,'String');     val = test_dms(xx);
 	if ~isempty(val)            % when dd:mm or dd:mm:ss was given
-        x_min = 0;
-        if str2double(val{1}) > 0
-            for i = 1:numel(val)   x_min = x_min + str2double(val{i}) / (60^(i-1));    end
-        else
-            for i = 1:numel(val)   x_min = x_min - abs(str2double(val{i})) / (60^(i-1));   end
-        end
+		x_min = cellDMS2double(val);
 		frmt = get_format_str(x_min);					% Get format string (it will be of the type '%.Ng')
         if (~isempty(x_min_or) && (x_min < x_min_or)),	set(hObject,'String',sprintf(frmt,x_min_or)),	return,		end
         handles.x_min = x_min;
@@ -79,12 +87,7 @@ function edit_x_max(hObject, handles)
 	x_max_or = handles.x_max_or;
 	xx = get(hObject,'String');     val = test_dms(xx);
 	if ~isempty(val)
-        x_max = 0;
-        if str2double(val{1}) > 0
-            for i = 1:numel(val)   x_max = x_max + str2double(val{i}) / (60^(i-1));    end
-        else
-            for i = 1:numel(val)   x_max = x_max - abs(str2double(val{i})) / (60^(i-1));   end
-        end
+		x_max = cellDMS2double(val);
 		frmt = get_format_str(x_max);					% Get format string (it will be of the type '%.Ng')
         if (~isempty(x_max_or) && (x_max > x_max_or)),	set(hObject,'String',sprintf(frmt,x_max_or)),	return,		end
         handles.x_max = x_max;
@@ -115,12 +118,7 @@ function edit_y_min(hObject, handles)
 	y_min_or = handles.y_min_or;
 	xx = get(hObject,'String');     val = test_dms(xx);
 	if ~isempty(val)
-        y_min = 0;
-        if str2double(val{1}) > 0
-            for i = 1:numel(val)   y_min = y_min + str2double(val{i}) / (60^(i-1));    end
-        else
-            for i = 1:numel(val)   y_min = y_min - abs(str2double(val{i})) / (60^(i-1));   end
-        end
+		y_min = cellDMS2double(val);
 		frmt = get_format_str(y_min);					% Get format string (it will be of the type '%.Ng')
         if (~isempty(y_min_or) && (y_min < y_min_or)),	set(hObject,'String',sprintf(frmt,y_min_or)),	return,		end
         handles.y_min = y_min;
@@ -150,12 +148,7 @@ function edit_y_max(hObject, handles)
 	y_max_or = handles.y_max_or;
 	xx = get(hObject,'String');     val = test_dms(xx);
 	if ~isempty(val)
-        y_max = 0;
-        if str2double(val{1}) > 0
-            for i = 1:numel(val)   y_max = y_max + str2double(val{i}) / (60^(i-1));    end
-        else
-            for i = 1:numel(val)   y_max = y_max - abs(str2double(val{i})) / (60^(i-1));   end
-        end
+		y_max = cellDMS2double(val);
 		frmt = get_format_str(y_max);					% Get format string (it will be of the type '%.Ng')
         if (~isempty(y_max_or) && (y_max > y_max_or)),	set(hObject,'String',sprintf(frmt,y_max_or)),	return,		end
         handles.y_max = y_max;
@@ -182,14 +175,14 @@ function edit_y_max(hObject, handles)
 
 % --------------------------------------------------------------------
 function edit_x_inc(hObject, handles)
-	dms = 0;    x_inc = 0;
+	dms = 0;
 	xx = get(hObject,'String');     val = test_dms(xx);
 	if isempty(val)
         set(hObject, 'String', '');    return
 	end
 
 	if numel(val) > 1    dms = 1;      end         % inc given in dd:mm or dd:mm:ss format
-	for i = 1:numel(val)   x_inc = x_inc + str2double(val{i}) / (60^(i-1));    end
+	x_inc = cellDMS2double(val);
 	if ~isempty(handles.x_min) && ~isempty(handles.x_max)
         % Make whatever x_inc given compatible with GMT_grd_RI_verify
         x_inc = ivan_the_terrible((handles.x_max - handles.x_min), x_inc,2, handles.one_or_zero);
@@ -225,14 +218,14 @@ function edit_Ncols(hObject, handles)
 
 % --------------------------------------------------------------------
 function edit_y_inc(hObject, handles)
-	dms = 0;    y_inc = 0;
+	dms = 0;
 	xx = get(hObject,'String');     val = test_dms(xx);
 	if isempty(val)
         set(hObject, 'String', '');    return
 	end
 
 	if numel(val) > 1    dms = 1;      end         % inc given in dd:mm or dd:mm:ss format
-	for i = 1:numel(val)   y_inc = y_inc + str2double(val{i}) / (60^(i-1));    end
+	y_inc = cellDMS2double(val);
 	if ~isempty(handles.y_min) && ~isempty(handles.y_max)
         % Make whatever y_inc given compatible with GMT_grd_RI_verify
         y_inc = ivan_the_terrible((handles.y_max - handles.y_min), y_inc, 2, handles.one_or_zero);
