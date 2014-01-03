@@ -3,7 +3,7 @@ function val = test_dms(s)
 % val = test_dms(s) returns a cell array with the individual tokens
 % if an error ocurrs or an empty imput is given, it returns an empty array
 
-%	Copyright (c) 2004-2012 by J. Luis
+%	Copyright (c) 2004-2014 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -18,9 +18,11 @@ function val = test_dms(s)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
+% $Id$
+
 	if isempty(s),    val = [];    return;   end
 	error = 0;
-	if (strcmp(s(1),':') | strcmp(s(end),':') | findstr(s,'::'))
+	if (strcmp(s(1),':') || strcmp(s(end),':') || strfind(s,'::'))
 		errordlg('One or more of the dd, mm or ss fields is empty','Error')
 		error = error + 1;
 	end
@@ -32,8 +34,10 @@ function val = test_dms(s)
 		errordlg(str,'Error')
 	end
 	i = 2;
-	while ~isempty(r)
-		[t,r]=strtok(r,':');
+	val = cell(1);
+	unit = cell(1);
+	while (~isempty(r))
+		[t,r] = strtok(r,':');
 		unit{i} = t;
 		if isnan(str2double(unit{i}))
 			str = [unit{i} '   is not a valid number'];
@@ -42,6 +46,4 @@ function val = test_dms(s)
 		end
 		i = i + 1;
 	end
-	if (error), val = {[]};
-	else        val = unit;
-	end
+	if (~error), val = unit;	end
