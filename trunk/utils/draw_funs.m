@@ -275,7 +275,11 @@ function set_line_uicontext(h, opt)
 	end
 
 	if (handles.image_type ~= 20 && ~LINE_ISCLOSED && strcmp(opt,'line'))
-		if ( (ndims(get(handles.hImg,'CData')) == 2) || (handles.validGrid) )	% Because Track of RGB doesn't know how to save
+		if ((ndims(get(handles.hImg,'CData')) == 2) || (handles.validGrid))	% Because Track of RGB doesn't know how to save
+			if (handles.nLayers > 1)
+				cbTrack = 'setappdata(gcf,''TrackThisLine'',gco); mirone(''ExtractProfile_CB'',guidata(gcbo),''3D'')';
+				uimenu(cmenuHand, 'Label', '3D interpolation', 'Call', cbTrack);
+			end
 			cbTrack = 'setappdata(gcf,''TrackThisLine'',gco); mirone(''ExtractProfile_CB'',guidata(gcbo),''point'')';
 			uimenu(cmenuHand, 'Label', 'Point interpolation', 'Call', cbTrack);
 		end
@@ -1005,6 +1009,10 @@ function set_isochrons_uicontext(h, data)
 		uimenu(cmenuHand, 'Label', 'Create Mask', 'Call', 'poly2mask_fig(guidata(gcbo),gco)');
 	end
 	if (handles.image_type ~= 20 && (ndims(get(handles.hImg,'CData')) == 2 || handles.validGrid))
+		if (handles.nLayers > 1)
+			cbTrack = 'setappdata(gcf,''TrackThisLine'',gco); mirone(''ExtractProfile_CB'',guidata(gcbo),''3D'')';
+			uimenu(cmenuHand, 'Label', '3D interpolation', 'Call', cbTrack);
+		end
 		cbTrack = 'setappdata(gcf,''TrackThisLine'',gco); mirone(''ExtractProfile_CB'',guidata(gcbo),''point'')';
 		uimenu(cmenuHand, 'Label', 'Point interpolation', 'Call', cbTrack);
 		cbTrack = 'setappdata(gcf,''TrackThisLine'',gco); mirone(''ExtractProfile_CB'',guidata(gcbo))';
@@ -2267,40 +2275,44 @@ function set_symbol_uicontext(h,data)
 		this_not = false;
 	end
 
-	if (~this_not)					% non class symbols can be moved
-		ui_edit_polygon(h)			% Set edition functions
+	if (~this_not)						% non class symbols can be moved
+		ui_edit_polygon(h)				% Set edition functions
 		uimenu(cmenuHand, 'Label', 'Move (precise)', 'Call', {@change_SymbPos,h});
 	end
 
 	if separator
-		if (~more_than_one)         % Single symbol
+		if (~more_than_one)				% Single symbol
 			uimenu(cmenuHand, 'Label', 'Remove', 'Call', 'delete(gco)', 'Sep','on');
-		else                        % Multiple symbols
+		else							% Multiple symbols
 			uimenu(cmenuHand, 'Label', 'Remove this', 'Call', {@remove_one_from_many,h}, 'Sep','on');
 		end
 	else
-		if (~more_than_one)         % Single symbol
+		if (~more_than_one)				% Single symbol
 			uimenu(cmenuHand, 'Label', 'Remove', 'Call', 'delete(gco)');
-		else                        % Multiple symbols
+		else							% Multiple symbols
 			uimenu(cmenuHand, 'Label', 'Remove this', 'Call', {@remove_one_from_many,h});
 		end
 	end
 
-	if (this_not)					% individual symbols don't belong to a class
+	if (this_not)						% individual symbols don't belong to a class
 		uimenu(cmenuHand, 'Label', 'Remove class', 'Call', {@remove_symbolClass,h});
 	end
 
-	if strcmp(tag,'LinkedSymb')		% Symbols plotted by the "Linked" option in either 'ecran' or 'gmtedit'
+	if strcmp(tag,'LinkedSymb')			% Symbols plotted by the "Linked" option in either 'ecran' or 'gmtedit'
 		uimenu(cmenuHand, 'Label', 'Remove class', 'Call', {@remove_symbolClass,h});
 		uimenu(cmenuHand, 'Label', 'Save all linked pts', 'Call', {@save_line,h});
-		this_not = true;			% Set this to avoid going inside next IF-test
+		this_not = true;				% Set this to avoid going inside next IF-test
 	end
 
-	if (~this_not)					% class symbols don't export
+	if (~this_not)						% class symbols don't export
 		uimenu(cmenuHand, 'Label', 'Save', 'Call', {@export_symbol,h});
 		if (strcmp(tag,'Pointpolyline'))	% Allow pure grdtrack interpolation
 			cbTrack = 'setappdata(gcf,''TrackThisLine'',gco); mirone(''ExtractProfile_CB'',guidata(gcbo),''point'')';
 			uimenu(cmenuHand, 'Label', 'Point interpolation', 'Call', cbTrack, 'Sep','on');
+		end
+		if (handles.nLayers > 1)
+			cbTrack = 'setappdata(gcf,''TrackThisLine'',gco); mirone(''ExtractProfile_CB'',guidata(gcbo),''3D'')';
+			uimenu(cmenuHand, 'Label', '3D interpolation', 'Call', cbTrack, 'Sep','on');
 		end
 	end
 
@@ -2652,24 +2664,40 @@ function export_symbol(obj, evt, h, opt)
 	end
 
 % -----------------------------------------------------------------------------------------
-function save_formated(obj,eventdata, h, opt)
+function save_formated(obj, evt, h, opt)
 % Save x,y[,z] vars into a file but taking into account the 'LabelFormatType'
-% If OPT is given than it must contain a Mx3 array with the x,y,z data to be saved
+% If OPT is given than it must contain either a:
+%	- Mx3 array with the x,y,z data to be saved
+%	- A struct with fields 'x', 'y', 'z', 'time_z' issued from the 3D interpolation
+%	  of a multi-layered grid. See mirone.m ExtractProfile_CB() for details
 
-	if (nargin == 3)
+	if (nargin < 3)
+		errordlg('save_formated: called with a wrong number of arguments.','ERROR'),	return
+	elseif (nargin == 3)
 		if (~isa(h,'cell')),	h = gco;		% Fish the handle so that it works with copyied objs
 		else					h = h{1};		% Really use this handle.
 		end
 		xx = get(h,'XData');    yy = get(h,'YData');
-        doSave_formated(xx, yy)
-	elseif (nargin == 4)
-        if (size(opt,2) ~= 3)
-            errordlg('save_formated: variable must contain a Mx3 array.','ERROR')
-            return
-        end
-        doSave_formated(opt(:,1), opt(:,2), opt(:,3))
+		doSave_formated(xx, yy)
 	else
-        errordlg('save_formated: called with a wrong number of arguments.','ERROR')
+		if (~isa(opt,'struct'))					% The Mx3 array case
+			if (size(opt,2) ~= 3)
+				errordlg('save_formated: variable must contain a Mx3 array.','ERROR')
+				return
+			end
+			doSave_formated(opt(:,1), opt(:,2), opt(:,3))
+		else									% The 3D interpolation case (this needs further doc)
+			handles = guidata(get(0,'CurrentFigure'));
+			[FileName,PathName] = put_or_get_file(handles,{'*.dat;*.DAT','ASCII file'; '*.*', 'All Files (*.*)'},'Output file','put');
+			if isequal(FileName,0),		return,		end
+			fname = [PathName FileName];
+			wmode = 'wt';
+			if (~ispc),		wmode = 'w';	end	% ASCII read mode type
+			fid = fopen(fname, wmode);
+			t = opt.time_z;						% Layers's times (or whatever unit)
+			fprintf(fid,['%.2f\t' repmat('%f\t',[1,size(opt.z,2)]) '\n'], [t(:) double(opt.z)]');
+			fclose(fid);
+		end
 	end
 
 % -----------------------------------------------------------------------------------------
@@ -2679,7 +2707,7 @@ function doSave_formated(xx, yy, opt_z)
 	hFig = get(0,'CurrentFigure');
 	handles = guidata(hFig);
 	str1 = {'*.dat;*.DAT', 'Symbol file (*.dat,*.DAT)'; '*.*', 'All Files (*.*)'};
-	[FileName,PathName] = put_or_get_file(handles,str1,'Select Symbol File name','put','.dat');
+	[FileName,PathName] = put_or_get_file(handles,str1,'Select File name','put','.dat');
 	if isequal(FileName,0),		return,		end
 	f_name = [PathName FileName];
 	
@@ -2725,18 +2753,18 @@ function cb = uictx_SymbColor(h,prop)
 function other_SymbColor(obj,eventdata,h,prop)
 	c = uisetcolor;
 	if length(c) > 1            % That is, if a color was selected
-        set(h,prop,c)
+		set(h,prop,c)
 	end
 
 % -----------------------------------------------------------------------------------------
 function hotspot_info(obj,eventdata,h,name,age,opt)
 	i = get(gco,'Userdata');
 	if isempty(opt)
-        msgbox( sprintf(['Hotspot name: ' name{i} '\n' 'Hotspot age:   ' sprintf('%g',age(i)) ' Ma'] ),'Fogspot info')
+		msgbox( sprintf(['Hotspot name: ' name{i} '\n' 'Hotspot age:   ' sprintf('%g',age(i)) ' Ma'] ),'Fogspot info')
 	else
-        name = strrep(name,'_',' ');            % Replace '_' by ' '
-        textHand = text(get(h(i),'XData'),get(h(i),'YData'),0,name{i});
-        draw_funs(textHand,'DrawText')          % Set text's uicontextmenu
+		name = strrep(name,'_',' ');            % Replace '_' by ' '
+		textHand = text(get(h(i),'XData'),get(h(i),'YData'),0,name{i});
+		draw_funs(textHand,'DrawText')          % Set text's uicontextmenu
 	end
 
 % -----------------------------------------------------------------------------------------
@@ -2925,12 +2953,12 @@ function deleteObj(hTesoura)
 	pointer(13,5) = 1;		pointer(13,8) = 1;		pointer(13,10) = 1;		pointer(13,13) = 1;
 	pointer(14,5) = 1;		pointer(14,8) = 1;		pointer(14,11) = 1;		pointer(14,12) = 1;
 	pointer(15,6:7) = 1;
-    
-    hFig = get(get(hTesoura,'Parent'),'Parent');
-    state = uisuspend_j(hFig);
-    set(hFig,'Pointer','custom','PointerShapeCData',pointer,'PointerShapeHotSpot',[1 8],...
-        'WindowButtonDownFcn',{@wbd_delObj,hFig,hTesoura,state})
-    
+
+	hFig = get(get(hTesoura,'Parent'),'Parent');
+	state = uisuspend_j(hFig);
+	set(hFig,'Pointer','custom','PointerShapeCData',pointer,'PointerShapeHotSpot',[1 8],...
+		'WindowButtonDownFcn',{@wbd_delObj,hFig,hTesoura,state})
+
 function wbd_delObj(obj,event,hFig,hTesoura,state)
 	stype = get(hFig,'selectiontype');
 	if (stype(1) == 'a')                    % A right click ('alt'), end killing
