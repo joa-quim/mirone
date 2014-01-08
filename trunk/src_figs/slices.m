@@ -263,6 +263,15 @@ function push_inputName_CB(hObject, handles, opt)
 		set([handles.edit_sliceNumber handles.slider_layer],'Enable','on')
 		slider_layer_CB(handles.slider_layer, handles)	% Indirect way of saying to display first layer.
 		set(handles.text_Info,'String',sprintf('Time steps = %d',handles.number_of_timesteps))
+
+		% Store the nc_info and z_id in Mirone handles so we can access it from there as well
+		try			% Wrap it for the case hMirFig does not exist or is not valid anymore
+			handMir = guidata(handles.hMirFig);
+			handMir.netcdf_z_id = handles.netcdf_z_id;
+			handMir.nc_info = handles.nc_info;
+			handMir.time_z = handles.time;
+			guidata(handles.hMirFig, handMir)
+		end
 	end
 
 % -------------------------------------------------------------------------------------
