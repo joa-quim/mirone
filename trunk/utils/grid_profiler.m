@@ -1,8 +1,9 @@
-function [xx, yy, zz] = grid_profiler(hFig, xp, yp, point_int, do_dynamic, do_stack)
+function [xx, yy, zz] = grid_profiler(hFig, xp, yp, point_int, do_dynamic, do_stack, do_3D)
 % Compute profiles on the grid displayed by the Mirone figure.
 %
 % POINT_INT  true|false		If true interpolate only on [xp, yp] vertex
-% DO_DYNAMIC true|false 	If true do dynamic profiling
+% DO_DYNAMIC true|false		If true do dynamic profiling
+% DO_3D true|false			(optional) If true do 3D interpolation (validity test should have been done already)
 %
 % When profiling an RGB image the output variable ZZ is a cell array.
 
@@ -45,17 +46,42 @@ function [xx, yy, zz] = grid_profiler(hFig, xp, yp, point_int, do_dynamic, do_st
 		% Reach here when not dealing with a donutified circle. So keep going.
 		yp = get(xp, 'YData');	xp = get(xp, 'XData');
 		point_int = false;		do_dynamic = false;		do_stack = false;
-	elseif (nargin == 5)
+	elseif (nargin <= 5)
 		do_stack = false;
+	end
+
+	if (nargin < 7)
+		do_3D = false;
+	elseif (do_3D)
+		do_stack = false;
+		do_dynamic = false;
+		point_int = true;
 	end
 
 	[X,Y,Z,head] = load_grd(handles,'silent');
 	if (getappdata(handles.figure1,'PixelMode')),	do_stack = false;	end		% Case not programed
-	
-	if (~point_int)         % Profile interp
-		[xx, yy] = make_track(xp, yp, handles.head(8), handles.head(9), do_stack);
-	else					% Interpolation at line vertex (cannot be stacked)
+
+	if (point_int)				% Interpolation at line vertex (cannot be stacked)
 		xx = xp;    yy = yp;
+	else						% Profile interp
+		[xx, yy] = make_track(xp, yp, handles.head(8), handles.head(9), do_stack);
+	end
+
+	% Special case of 3D interpolation. Do it and return.
+	if (do_3D)
+		aguentabar(0,'title','Interpolating multi-layer file','CreateCancelBtn')
+		z_id = handles.netcdf_z_id;
+		s = handles.nc_info;			% Retrieve the .nc info struct
+		zz = single(zeros(handles.nLayers, numel(xx)));
+		for (k = 1:handles.nLayers)
+			z = nc_funs('varget', handles.grdname, s.Dataset(z_id).Name, [k - 1 0 0], [1 s.Dataset(z_id).Size(end-1:end)]);
+			z_ = grdtrack_m(z,handles.head,[xx(:) yy(:)],'-Z');
+			zz(k,:) = z_(:)';
+			h = aguentabar(k / handles.nLayers);	drawnow
+			if (isnan(h)),	break,	end
+		end
+		if (isnan(h)),	zz = [];	end
+		return
 	end
 
 	% Interpolate
