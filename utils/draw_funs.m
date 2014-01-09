@@ -2695,7 +2695,10 @@ function save_formated(obj, evt, h, opt)
 			if (~ispc),		wmode = 'w';	end	% ASCII read mode type
 			fid = fopen(fname, wmode);
 			t = opt.time_z;						% Layers's times (or whatever unit)
-			fprintf(fid,['%.2f\t' repmat('%f\t',[1,size(opt.z,2)]) '\n'], [t(:) double(opt.z)]');
+			fprintf(fid,'# Interpolated file: %s\n', handles.grdname);
+			fprintf(fid, ['#  \t', repmat('%g(X)\t', [1,size(opt.z,2)]) '\n'], opt.x(:));
+			fprintf(fid, ['#  \t', repmat('%g(Y)\t', [1,size(opt.z,2)]) '\n'], opt.y(:));
+			fprintf(fid, ['%.2f\t' repmat('%f\t',[1,size(opt.z,2)]) '\n'], [t(:) double(opt.z)]');
 			fclose(fid);
 		end
 	end
