@@ -184,6 +184,7 @@ uimenu('Parent',h2,'Call','mirone(''FileOpenDEM_CB'',guidata(gcbo),''Surfer'');'
 uimenu('Parent',h2,'Call','mirone(''FileOpenDEM_CB'',guidata(gcbo),''ENCOM'');','Label','Encom grid');
 uimenu('Parent',h2,'Call','mirone(''FileOpenDEM_CB'',guidata(gcbo),''GSOFT'');','Label','Geosoft (2-byte)');
 uimenu('Parent',h2,'Call','mirone(''FileOpenDEM_CB'',guidata(gcbo),''MANI'');','Label','Mani grid');
+%uimenu('Parent',h2,'Call','mirone(''FileOpenDEM_CB'',guidata(gcbo),''SSimg'');','Label','Sandwell/Smith Mercator img file');
 uimenu('Parent',h2,'Call','mirone(''FileOpenDEM_CB'',guidata(gcbo),''ArcAscii'');','Label','Arc/Info ASCII Grid','Sep','on');
 uimenu('Parent',h2,'Call','mirone(''FileOpenDEM_CB'',guidata(gcbo),''ArcBinary'');','Label','Arc/Info Binary Grid');
 uimenu('Parent',h2,'Call','mirone(''FileOpenGeoTIFF_CB'',guidata(gcbo),''bsb'');','Label','BSB Nautical Chart Format');
@@ -198,16 +199,6 @@ uimenu('Parent',h2,'Call','mirone(''FileOpenGeoTIFF_CB'',guidata(gcbo),''jp2'');
 uimenu('Parent',h2,'Call','mirone(''FileOpenGDALmultiBand_CB'',guidata(gcbo),''ENVISAT'');','Label','ENVISAT','Sep','on');
 uimenu('Parent',h2,'Call','mirone(''FileOpenGDALmultiBand_CB'',guidata(gcbo),''AVHRR'');','Label','AVHRR');
 uimenu('Parent',h2,'Call','mirone(''FileOpenGeoTIFF_CB'',guidata(gcbo),''UNKNOWN'');','Label','Try Luck with GDAL');
-
-h = uimenu('Parent',h2,'Label','Digital Elevation','Sep','on');
-uimenu('Parent',h,'Call','mirone(''FileOpenDEM_CB'',guidata(gcbo),''DTED'');','Label','DTED');
-uimenu('Parent',h,'Call','mirone(''FileOpenDEM_CB'',guidata(gcbo),''GTOPO30'');','Label','GTOPO30');
-uimenu('Parent',h,'Call','mirone(''FileOpenDEM_CB'',guidata(gcbo),''MOLA'');','Label','MOLA DEM');
-uimenu('Parent',h,'Call','mirone(''FileOpenDEM_CB'',guidata(gcbo),''SRTM1'');','Label','SRTM 1 arcsec');
-uimenu('Parent',h,'Call','mirone(''FileOpenDEM_CB'',guidata(gcbo),''SRTM3'');','Label','SRTM 3 arcsec');
-uimenu('Parent',h,'Call','mirone(''FileOpenDEM_CB'',guidata(gcbo),''SRTM30'');','Label','SRTM30');
-uimenu('Parent',h,'Call','mirone(''FileOpenDEM_CB'',guidata(gcbo),''USGS_DEM'');','Label','USGS DEM');
-uimenu('Parent',h,'Call','mirone(''FileOpenDEM_CB'',guidata(gcbo),''SDTS'');','Label','USGS SDTS DEM');
 
 % uimenu('Parent',hFL,'Call','mirone(''TransferB_CB'',guidata(gcbo),''url'')','Label','Get Image from URL');
 uimenu('Parent',hFL,'Call','overview(guidata(gcbo))','Label','Open Overview Tool');
@@ -741,7 +732,7 @@ if (IamCompiled)
 end
 uimenu('Parent',h, 'Call',['mirone(''FileOpenWebImage_CB'',guidata(gcbo),',...
 	' ''http://www2.clustrmaps.com/stats/maps-clusters/w3.ualg.pt-~jluis-mirone-world.jpg'',''nikles'');'],'Label','See visitors map','Sep','on');
-uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 1 Dec 2013'',''2.5.0dev'')','Label','About','Sep','on');
+uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 9 Jan 2014'',''2.5.0dev'')','Label','About','Sep','on');
 
 %% --------------------------- Build HANDLES and finish things here
 	handles = guihandles(H1);
