@@ -1,7 +1,7 @@
 function varargout = gdal_project(varargin)
 % Helper Window to do raster projections with GDAL
 
-%	Copyright (c) 2004-2012 by J. Luis
+%	Copyright (c) 2004-2014 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -15,6 +15,8 @@ function varargout = gdal_project(varargin)
 %
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
+
+% $Id$
 
 	if isempty(varargin)
 		errordlg('GDAL_PROJECT: wrong number of input arguments.','Error'),	return
@@ -47,8 +49,8 @@ function varargout = gdal_project(varargin)
 			'Albers Equal Area'; 'Lambert Equal Area'; 'Polyconic'; ...
 			'Bonne'; 'Polar Stereographic'; 'Gnomonic'; 'Ortographic'; 'Van der Grinten'};
 	
-	handles.projGDAL_pars = {''; '+proj=latlong'; '+proj=merc'; '+proj=tmerc +lat_0=0 +lon_0=-9'; '+proj=utm +zone=29 +datum=WGS84'; ...
-			'+proj=mill'; '+proj=cea'; ...
+	handles.projGDAL_pars = {''; '+proj=latlong +datum=WGS84'; '+proj=merc'; '+proj=tmerc +lat_0=0 +lon_0=-9'; ...
+			'+proj=utm +zone=29 +datum=WGS84'; '+proj=mill'; '+proj=cea'; ...
 			'+proj=gall'; '+proj=eqc'; '+proj=cass +lon_0=0'; '+proj=sinu'; '+proj=moll +lon_0=0'; ...
 			'+proj=robin +lon_0=0'; '+proj=eck4'; '+proj=eck6'; '+proj=goode'; '+proj=lcc +lat_1=20n +lat_2=60n'; ...
 			'+proj=eqdc +lat_1=15n +lat_2=75n'; ...
