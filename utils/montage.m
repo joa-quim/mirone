@@ -68,6 +68,10 @@ function montage(I, varargin)
 
 % $Id: montage.m,v 1.7 2009/02/25 16:39:01 ojw Exp $
 
+% Lost track on author's but it seams to be deeply rooted on
+% http://www.mathworks.com/matlabcentral/fileexchange/22387-imdisp
+% which makes this a BSD licensed file
+
 [map layout gap indices lims] = parse_inputs(varargin);
 
 if (nargin == 0 || isempty(I))		% Read in all the images in the directory
@@ -96,7 +100,7 @@ elseif iscell(I)
     end
     n = numel(I);
     % Assume all images are the same size and type as the first
-    [y x c] = size(A);
+    [y, x, c] = size(A);
     if (isempty(lims) || isequal(0, lims)),		lims = default_limits(A);	end
 
 elseif (isa(I,'struct'))
