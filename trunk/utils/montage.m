@@ -1,4 +1,4 @@
-function montage(I, varargin)
+function out = montage(I, varargin)
 %MONTAGE  Display multiple images as a montage of subplots
 %
 % Examples:
@@ -65,298 +65,354 @@ function montage(I, varargin)
 %                       Default: [min(I(:)) max(I(:))].
 %      'Map' - Kx3 colormap or (additionally from above) name of MATLAB
 %              colormap, for use with indexed images. Default: gray(256).
+%      'Flipud' - Flip UD the images before calling imagesc (no value needed)
+%      'handParent' - handle, Send the handle of the calling Fig. Usually a Mirone
+%                     Fig handle. Info about projection, image size/units, etc is
+%                     fished from this handle so that an extracted image can share it.
+%
+% OUT:
+%   out - HxW array of handles to subplot axes.
 
-% $Id: montage.m,v 1.7 2009/02/25 16:39:01 ojw Exp $
+% id: montage.m,v 1.7 2009/02/25 16:39:01 ojw Exp
 
-% Lost track on author's but it seams to be deeply rooted on
+% J. Luis, 11 Jan 2014. Add a couple of more options and the "expandit" function, which
+% makes this funtion dependent on Mirone. If not whished, comment the buttondownfcn setting
+%
+% Lost track on author's but this seams to be deeply rooted on
 % http://www.mathworks.com/matlabcentral/fileexchange/22387-imdisp
 % which makes this a BSD licensed file
 
-[map layout gap indices lims] = parse_inputs(varargin);
+% $Id$
 
-if (nargin == 0 || isempty(I))		% Read in all the images in the directory
-    I = get_im_names;
-    if isempty(I),	return,		end	% No images found
-end
+	[map, layout, gap, indices, lims, do_flipud, hFigParent] = parse_inputs(varargin);
 
-if (isnumeric(I))
-    [y x c n] = size(I);
-    if isempty(lims)
-        lims = [min(reshape(I, numel(I), 1)) max(reshape(I, numel(I), 1))];
-    elseif isequal(0, lims)
-        lims = default_limits(I);
-    end
-    if ( c == 3 && (isa(I,'single') || isa(I,'double')) )
-        I = uint8(I * 256 - 0.5);
-        lims = round(lims * 256 - 0.5);
-    end
-    I = squeeze(num2cell(I, [1 2 3]));
-
-elseif iscell(I)
-    A = I{1};
-    if ischar(A)
-        A = imread_rgb(A);
-        I{1} = imread_rgb(A);
-    end
-    n = numel(I);
-    % Assume all images are the same size and type as the first
-    [y, x, c] = size(A);
-    if (isempty(lims) || isequal(0, lims)),		lims = default_limits(A);	end
-
-elseif (isa(I,'struct'))
-	if (~isfield(I,'cdata') || ~isfield(I,'colormap'))
-		error('Input must be a MATLAB movie.');
+	if (nargin == 0 || isempty(I))		% Read in all the images in the directory
+		I = get_im_names;
+		if isempty(I),	return,		end	% No images found
 	end
-    if (isempty(lims) || isequal(0, lims)),		lims = default_limits(I(1).cdata);	end
-	map = I(1).colormap;
-    [y x c] = size(I(1).cdata);
-	if (c == 1),	I = squeeze(num2cell(cat(3,I.cdata), [1 2]));		% Indexed
-	else			I = squeeze(num2cell(cat(4,I.cdata), [1 2 3]));		% RGB
+
+	if (isnumeric(I))
+		[y x c n] = size(I);
+		if isempty(lims)
+			lims = [min(reshape(I, numel(I), 1)) max(reshape(I, numel(I), 1))];
+		elseif isequal(0, lims)
+			lims = default_limits(I);
+		end
+		if ( c == 3 && (isa(I,'single') || isa(I,'double')) )
+			I = uint8(I * 256 - 0.5);
+			lims = round(lims * 256 - 0.5);
+		end
+		I = squeeze(num2cell(I, [1 2 3]));
+
+	elseif iscell(I)
+		A = I{1};
+		if ischar(A)
+			A = imread_rgb(A);
+			I{1} = imread_rgb(A);
+		end
+		n = numel(I);
+		% Assume all images are the same size and type as the first
+		[y, x, c] = size(A);
+		if (isempty(lims) || isequal(0, lims)),		lims = default_limits(A);	end
+
+	elseif (isa(I,'struct'))
+		if (~isfield(I,'cdata') || ~isfield(I,'colormap'))
+			error('Input must be a MATLAB movie.');
+		end
+		if (isempty(lims) || isequal(0, lims)),		lims = default_limits(I(1).cdata);	end
+		map = I(1).colormap;
+		[y x c] = size(I(1).cdata);
+		if (c == 1),	I = squeeze(num2cell(cat(3,I.cdata), [1 2]));		% Indexed
+		else			I = squeeze(num2cell(cat(4,I.cdata), [1 2 3]));		% RGB
+		end
+		n = numel(I);
+	else
+		error('I not of recognized type.');
 	end
-    n = numel(I);
-else
-	error('I not of recognized type.');
-end
 
-% Select indexed images
-if ~isequal(indices, -1)
-    I = I(indices);
-    n = numel(I);
-end
+	% Select indexed images
+	if ~isequal(indices, -1)
+		I = I(indices);
+		n = numel(I);
+	end
 
-layout = choose_layout(n, y, x, layout);		% Compute a good layout
+	layout = choose_layout(n, y, x, layout);		% Compute a good layout
 
-% Create a data structure to store the data in
-num = prod(layout);
-state.n = num * ceil(n / num);
-state.h = zeros(layout);
-I = [I(:); cell(state.n-n, 1)];
+	% Create a data structure to store the data in
+	num = prod(layout);
+	state.n = num * ceil(n / num);
+	state.h = zeros(layout);
+	I = [I(:); cell(state.n-n, 1)];
 
-% Get and clear the figure
-%fig = gcf;		clf(fig);
-fig = figure('NumberTitle','off', 'Name', 'Montage');
+	hAx = zeros(layout);	% To store the handles of the subplots
 
-% Set the figure size well
-MonSz = get(0, 'ScreenSize');
-MaxSz = MonSz(3:4) - [20 120];
-ImSz = layout([2 1]) .* [x y] ./ (1 - 2 * gap([end 1]));
-RescaleFactor = min(MaxSz ./ ImSz);
-if (RescaleFactor > 1)				% Integer scale for enlarging, but don't make too big
-	MaxSz = min(MaxSz, [1000 680]);
-	RescaleFactor = max(floor(min(MaxSz ./ ImSz)), 1);
-end
-figPosNew = ceil(ImSz * RescaleFactor);
-% Don't move the figure if the size isn't changing
-figPosCur = get(fig, 'Position');
-if ~isequal(figPosCur(3:4), figPosNew)
-    % Keep the centre of the figure stationary
-    figPosNew = [max(1, floor(figPosCur(1:2)+(figPosCur(3:4)-figPosNew)/2)) figPosNew];
-    % Ensure the figure bar is in bounds
-    figPosNew(1:2) = min(figPosNew(1:2), MonSz(1:2)+MonSz(3:4)-[6 101]-figPosNew(3:4));
-    set(fig, 'Position', figPosNew);
-end
+	% Get the figure
+	fig = figure('NumberTitle','off', 'Name', 'Montage', 'menubar','none', 'Vis', 'off');
 
-colormap(map);			% Set the colourmap
+	% Set the figure size
+	MonSz = get(0, 'ScreenSize');
+	MaxSz = MonSz(3:4) - [20 100];
+	ImSz = layout([2 1]) .* [x y] ./ (1 - 2 * gap([end 1]));
+	RescaleFactor = min(MaxSz ./ ImSz);
+	if (RescaleFactor > 1)				% Integer scale for enlarging, but don't make too big
+		MaxSz = min(MaxSz, [1000 680]);
+		RescaleFactor = max(floor(min(MaxSz ./ ImSz)), 1);
+	end
+	figPosNew = ceil(ImSz * RescaleFactor);
+	% Don't move the figure if the size isn't changing
+	figPosCur = get(fig, 'Position');
+	if ~isequal(figPosCur(3:4), figPosNew)
+		% Keep the centre of the figure stationary
+		figPosNew = [max(1, floor(figPosCur(1:2)+(figPosCur(3:4)-figPosNew)/2)) figPosNew];
+		% Ensure the figure bar is in bounds
+		figPosNew(1:2) = min(figPosNew(1:2), MonSz(1:2)+MonSz(3:4)-[6 51]-figPosNew(3:4));
+		set(fig, 'Position', figPosNew);
+	end
 
-% Set the first lot of images
-index = mod(0:num-1, state.n) + 1;
-hw = 1 ./ layout;
-gap = gap ./ layout;
-dims = hw - 2 * gap;
-dims = dims([2 1]);
-for a = 1:layout(1)
-    for b = 1:layout(2)
-        c = index(b + (layout(1) - a) * layout(2));
-        A = I{c};
-        if ischar(A)
-            A = imread_rgb(A);
-            I{c} = A;
-        end
-        subplot('Position', [(b-1)*hw(2)+gap(2) (a-1)*hw(1)+gap(1) dims]);
-        if isempty(A)
-            state.h(a,b) = imagesc(zeros(1, 1, 3), lims);
-            axis image off;
-            set(state.h(a,b), 'CData', []);
-        else
-            state.h(a,b) = imagesc(A, lims);
-            axis image off;
-        end
-    end
-end
-drawnow;
-figure(fig); % Bring the montage into view
+	set(fig, 'Colormap', map);			% Set the colourmap
+	
+	% Store these in appdata for eventual use in expandit()
+	if (~isempty(hFigParent)),	setappdata(fig,'hFigParent',hFigParent),	end
+	setappdata(fig,'flipud',do_flipud)
 
-% Check if we need to be able to scroll through images
-if n > num
-    % Intialize rest of data structure
-    state.index = 1;
-    state.layout = layout;
-    state.I = I;
-    % Set the callback for image navigation, and save the image data in the figure
-    set(fig, 'KeyPressFcn', @keypress_callback, 'Interruptible', 'off', 'UserData', state);
-end
+	% Set the first lot of images
+	index = mod(0:num-1, state.n) + 1;
+	hw = 1 ./ layout;
+	gap = gap ./ layout;
+	dims = hw - 2 * gap;
+	dims = dims([2 1]);
+	for (a = 1:layout(1))
+		for b = (1:layout(2))
+			c = index(b + (layout(1) - a) * layout(2));
+			A = I{c};
+			if (ischar(A))
+				I{c} = imread_rgb(A);
+			end
+			hAx(c) = subplot('Position', [(b-1)*hw(2)+gap(2) (a-1)*hw(1)+gap(1) dims]);
+			if isempty(A)
+				state.h(a,b) = image(zeros(1, 1, 3));
+				set(state.h(a,b), 'CData', []);
+			else
+				if (do_flipud),		A = flipud(A);	end
+				state.h(a,b) = imagesc(A, lims);
+				set(state.h(a,b), 'buttondownfcn', @expandit)
+			end
+			set(hAx(c), 'Vis', 'off')
+		end
+	end
+	drawnow;
+
+	set(fig, 'Vis', 'on')	% make figure visible
+
+	% Check if we need to be able to scroll through images
+	if (n > num)			% Intialize rest of data structure
+		state.index = 1;
+		state.layout = layout;
+		state.I = I;
+		% Set the callback for image navigation, and save the image data in the figure
+		set(fig, 'KeyPressFcn', @keypress_CB, 'Interruptible', 'off', 'UserData', state);
+	end
+
+	if (nargout),	out = hAx;	end
 
 % ------------------------------------------------------------------------
-function keypress_callback(fig, event_data)
+function expandit(hImg, event)
+% ButtonDown function that extracts the clicked image and displays it in Mirone
+% If the handles of the parent Fig (presumably, a Mirone fig) exists. Fish extra info from it
+
+	hFig = get(get(hImg,'Parent'),'Parent');
+	hFigParent = getappdata(hFig,'hFigParent');
+	do_flipud  = getappdata(hFig,'flipud');
+	img = get(hImg, 'CData');
+	if (do_flipud),		img = flipud(img);	end
+
+	if (isempty(hFigParent) || ~ishandle(hFigParent))	% Also whem Mirone fig was deleted
+		mirone(img)
+	else
+		handMir = guidata(hFigParent);
+		if (handMir.image_type == 2)		% Should never hapen (due to previous tests) but just in case ...
+			mirone(img),	return
+		end
+		tmp.X = get(handMir.hImg,'XData');	tmp.Y = get(handMir.hImg,'YData');
+		tmp.head = handMir.head;			tmp.geog = handMir.geog;
+		tmp.cmap = get(hFig, 'Colormap');
+		hTxt = findobj(get(hImg,'Parent'),'Type','text','Tag','cor');
+		if (~isempty(hTxt))
+			tmp.name = get(hTxt,'Str');		% Use label text for figure name
+		end
+		strWKT = getappdata(handMir.figure1,'ProjWKT');
+		if (~isempty(strWKT)),		tmp.strWKT = strWKT;	end
+		mirone(img, tmp)
+	end
+
+% ------------------------------------------------------------------------
+function keypress_CB(fig, event_data)
 % The function which does all the display stuff
 % Check what key was pressed and update the image index as necessary
-switch event_data.Character
-    case 28,	up = -1;	% Left - Back a page
-    case 29,	up = 1;		% Right - Forward a page
-    case 30,	up = -0.1;	% Up - Back a row
-    case 31,	up = 0.1;	% Down - Forward a row
-    otherwise				% Another key was pressed - ignore it
-		return
-end
-% Use control and shift for faster scrolling
-if ~isempty(event_data.Modifier)
-    up = up * (2 ^ (strcmpi(event_data.Modifier, {'shift', 'control'}) * [1; 2]));
-end
-state = get(fig, 'UserData');		% Get the state data, if not given
-index = state.index;				% Get the current index
-n = prod(state.layout);				% Get number of images
-% Generate 12 valid indices
-if (abs(up) < 1)					% Increment by row
-	index = index + state.layout(2) * (up * 10) - 1;
-else
-	if (state.layout(1) == 1),		index = index + up - 1;		% Increment by column
-	else							index = index + n * up - 1;	% Increment by page
+	switch event_data.Character
+		case 28,	up = -1;	% Left - Back a page
+		case 29,	up = 1;		% Right - Forward a page
+		case 30,	up = -0.1;	% Up - Back a row
+		case 31,	up = 0.1;	% Down - Forward a row
+		otherwise				% Another key was pressed - ignore it
+			return
 	end
-end
-index = mod(index:index+n, state.n) + 1;
-% Plot the images
-figure(fig);
-for a = 1:state.layout(1)
-    for b = 1:state.layout(2)
-        c = index(b + (state.layout(1) - a) * state.layout(2));
-        A = state.I{c};
-        if ischar(A)
-            A = imread_rgb(A);
-            state.I{c} = A;
-        end
-        set(state.h(a,b), 'CData', A);
-    end
-end
-drawnow;
-% Save the current index
-state.index = index(1);
-set(fig, 'UserData', state);
+	% Use control and shift for faster scrolling
+	if ~isempty(event_data.Modifier)
+		up = up * (2 ^ (strcmpi(event_data.Modifier, {'shift', 'control'}) * [1; 2]));
+	end
+	state = get(fig, 'UserData');		% Get the state data, if not given
+	index = state.index;				% Get the current index
+	n = prod(state.layout);				% Get number of images
+	% Generate 12 valid indices
+	if (abs(up) < 1)					% Increment by row
+		index = index + state.layout(2) * (up * 10) - 1;
+	else
+		if (state.layout(1) == 1),		index = index + up - 1;		% Increment by column
+		else							index = index + n * up - 1;	% Increment by page
+		end
+	end
+	index = mod(index:index+n, state.n) + 1;
+	% Plot the images
+	figure(fig);
+	for a = 1:state.layout(1)
+		for b = 1:state.layout(2)
+			c = index(b + (state.layout(1) - a) * state.layout(2));
+			A = state.I{c};
+			if ischar(A)
+				A = imread_rgb(A);
+				state.I{c} = A;
+			end
+			set(state.h(a,b), 'CData', A);
+		end
+	end
+	drawnow;
+	% Save the current index
+	state.index = index(1);
+	set(fig, 'UserData', state);
 
 % ------------------------------------------------------------------------
 function layout = choose_layout(n, y, x, layout)
-%% Choose a good layout for the images
-layout = reshape(layout, 1, min(numel(layout), 2));
-v = numel(layout);
-N = isnan(layout);
-if v == 0 || all(N)
-    sz = get(0, 'ScreenSize');
-    sz = sz(3:4) ./ [x y];
-    layout = ceil(sz([2 1]) ./ sqrt(prod(sz) / n));
-    switch ([prod(layout - [1 0]) prod(layout - [0 1])] >= n) * [2; 1]
-        case 0
-        case 1
-            layout = layout - [0 1];
-        case 2
-            layout = layout - [1 0];
-        case 3
-            if min(sz .* (layout - [0 1])) > min(sz .* (layout - [1 0]))
-                layout = layout - [0 1];
-            else
-                layout = layout - [1 0];
-            end
-    end
-elseif v == 1
-    layout = layout([1 1]);
-elseif any(N)
-    layout(N) = ceil(n / layout(~N));
-end
+% Choose a good layout for the images
+	layout = reshape(layout, 1, min(numel(layout), 2));
+	v = numel(layout);
+	N = isnan(layout);
+	if v == 0 || all(N)
+		sz = get(0, 'ScreenSize');
+		sz = sz(3:4) ./ [x y];
+		layout = ceil(sz([2 1]) ./ sqrt(prod(sz) / n));
+		switch ([prod(layout - [1 0]) prod(layout - [0 1])] >= n) * [2; 1]
+			case 0
+			case 1
+				layout = layout - [0 1];
+			case 2
+				layout = layout - [1 0];
+			case 3
+				if min(sz .* (layout - [0 1])) > min(sz .* (layout - [1 0]))
+					layout = layout - [0 1];
+				else
+					layout = layout - [1 0];
+				end
+		end
+	elseif v == 1
+		layout = layout([1 1]);
+	elseif any(N)
+		layout(N) = ceil(n / layout(~N));
+	end
 
 % ------------------------------------------------------------------------
 function A = imread_rgb(name)
-%% Read image to uint8 rgb array
-try
-    [A map] = imread(name);
-catch
-    % Format not recognized by imread, so create a red cross (along diagonals)
-    A = eye(101) | diag(ones(100, 1), 1) | diag(ones(100, 1), -1);
-    A = uint8(255 * (1 - (A | flipud(A))));
-    A = cat(3, zeros(size(A), 'uint8')+uint8(255), A, A);
-    return
-end
-if ~isempty(map)
-    map = uint8(map * 256 - 0.5);
-    A = reshape(map(A,:), [size(A) size(map, 2)]);
-elseif size(A, 3) == 4
-    ll = lower(name(end));
-    if (ll == 'f')			% TIFF in CMYK colourspace - convert to RGB
-        error('CMYK image files not yet supported - please fix.');
-    elseif (ll == 's')		% RAS in RGBA colourspace - convert to RGB
-        error('RGBA image files not yet supported - please fix.');
-    end
-end
+% Read image to uint8 rgb array
+	try
+		[A map] = imread(name);
+	catch
+		% Format not recognized by imread, so create a red cross (along diagonals)
+		A = eye(101) | diag(ones(100, 1), 1) | diag(ones(100, 1), -1);
+		A = uint8(255 * (1 - (A | flipud(A))));
+		A = cat(3, zeros(size(A), 'uint8')+uint8(255), A, A);
+		return
+	end
+	if ~isempty(map)
+		map = uint8(map * 256 - 0.5);
+		A = reshape(map(A,:), [size(A) size(map, 2)]);
+	elseif size(A, 3) == 4
+		ll = lower(name(end));
+		if (ll == 'f')			% TIFF in CMYK colourspace - convert to RGB
+			error('CMYK image files not yet supported - please fix.');
+		elseif (ll == 's')		% RAS in RGBA colourspace - convert to RGB
+			error('RGBA image files not yet supported - please fix.');
+		end
+	end
 
 % ------------------------------------------------------------------------
 function L = get_im_names
-%% Get the names of all images in a directory
-D = dir;
-n = 0;
-L = cell(size(D));
-% Go through the directory list
-for a = 1:numel(D)
-    % Check if file is a supported image type
-    if numel(D(a).name) > 4 && ~D(a).isdir && (any(strcmpi(D(a).name(end-3:end), {'.png', '.tif', '.jpg', '.bmp', '.ppm', '.pgm', '.pbm', '.gif', '.ras'})) || any(strcmpi(D(a).name(end-4:end), {'.tiff', '.jpeg'})))
-        n = n + 1;
-        L{n} = D(a).name;
-    end
-end
-L = L(1:n);
+% Get the names of all images in a directory
+	D = dir;
+	n = 0;
+	L = cell(size(D));
+	% Go through the directory list
+	for a = 1:numel(D)
+		% Check if file is a supported image type
+		if numel(D(a).name) > 4 && ~D(a).isdir && (any(strcmpi(D(a).name(end-3:end), {'.png', '.tif', '.jpg', '.bmp', '.ppm', '.pgm', '.pbm', '.gif', '.ras'})) || any(strcmpi(D(a).name(end-4:end), {'.tiff', '.jpeg'})))
+			n = n + 1;
+			L{n} = D(a).name;
+		end
+	end
+	L = L(1:n);
 
 % ------------------------------------------------------------------------
-function [map, layout, gap, indices, lims] = parse_inputs(inputs)
-
+function [map, layout, gap, indices, lims, do_flipud, hFigParent] = parse_inputs(inputs)
 % Set defaults
-map = gray(256);
-layout = [];
-gap = 0.01;
-indices = -1;
-lims = 0;
+	map = gray(256);
+	layout = [];
+	gap = 0.01;
+	indices = -1;
+	lims = 0;
+	do_flipud = false;
+	hFigParent = [];
 
-% Check for map
-if numel(inputs) && isnumeric(inputs{1}) && size(inputs{1}, 2) == 3
-    map = inputs{1};
-    inputs = inputs(2:end);
-end
+	% Check for map
+	if numel(inputs) && isnumeric(inputs{1}) && size(inputs{1}, 2) == 3
+		map = inputs{1};
+		inputs = inputs(2:end);
+	end
 
-% Go through option pairs
-for a = 1:2:numel(inputs)
-    switch lower(inputs{a})
-        case 'map'
-            map = inputs{a+1};
-            if (ischar(map)),	map = eval([map '(256)']);	end
-        case {'size', 'grid'}
-            layout = inputs{a+1};
-        case {'gap', 'border'}
-            gap = inputs{a+1};
-        case 'indices'
-            indices = inputs{a+1};
-        case {'lims', 'displayrange'}
-            lims = inputs{a+1};
-        otherwise
-            error('Input option %s not recognized', inputs{a});
-    end
-end
+	% Go through option pairs
+	for (a = 1:2:numel(inputs))
+		switch lower(inputs{a})
+			case 'map'
+				map = inputs{a+1};
+				if (ischar(map)),	map = eval([map '(256)']);	end
+			case {'size', 'grid'}
+				layout = inputs{a+1};
+			case {'gap', 'border'}
+				gap = inputs{a+1};
+			case 'indices'
+				indices = inputs{a+1};
+			case {'lims', 'displayrange'}
+				lims = inputs{a+1};
+			case 'flipud'
+				do_flipud = true;
+			case 'handparent'
+				hFigParent = inputs{a+1};
+			case {'' ' '}
+				% Ignore this. Happens with programatically computed inputs
+			otherwise
+				error('Input option %s not recognized', inputs{a});
+		end
+	end
 
 % ------------------------------------------------------------------------
 function lims = default_limits(A)
-%% Return default limits for the image type
-if size(A, 3) == 1
-    lims = [min(reshape(A, numel(A), 1)) max(reshape(A, numel(A), 1))];
-else
-    lims = [0 1];
-    if ~(isa(A,'single') || isa(A,'double'))
-        lims = lims * double(loc_intmax(class(A)));
-    end
-end
+% Return default limits for the image type
+	if size(A, 3) == 1
+		lims = [min(reshape(A, numel(A), 1)) max(reshape(A, numel(A), 1))];
+	else
+		lims = [0 1];
+		if ~(isa(A,'single') || isa(A,'double'))
+			lims = lims * double(loc_intmax(class(A)));
+		end
+	end
 
 % ------------------------------------------------------------------------
 function imax = loc_intmax(classname)
