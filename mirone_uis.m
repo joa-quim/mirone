@@ -357,6 +357,7 @@ h = uimenu('Parent',hIM,'Label','Image Enhance','Sep','on');
 uimenu('Parent',h,'Call','image_enhance(gcf)','Label','1 - Indexed and RGB');
 uimenu('Parent',h,'Call','image_adjust(gcf)','Label', '2 - Indexed only');
 uimenu('Parent',h,'Call','ice_m(gcf,''space'',''rgb'')','Label','Image Color Editor (Indexed and RGB)');
+uimenu('Parent',hIM,'Call','mirone(''Transfer_CB'',guidata(gcbo),''RGBexp'')','Label','Explore RGB');
 
 h = uimenu('Parent',hIM,'Label','Register Image','Sep','on');
 uimenu('Parent',h,'Call','aux_funs(''togCheck'',gcbo)','Label','Activate Image-to-Image/Map GCP Tool','Tag','GCPtool');
@@ -732,7 +733,7 @@ if (IamCompiled)
 end
 uimenu('Parent',h, 'Call',['mirone(''FileOpenWebImage_CB'',guidata(gcbo),',...
 	' ''http://www2.clustrmaps.com/stats/maps-clusters/w3.ualg.pt-~jluis-mirone-world.jpg'',''nikles'');'],'Label','See visitors map','Sep','on');
-uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 9 Jan 2014'',''2.5.0dev'')','Label','About','Sep','on');
+uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 11 Jan 2014'',''2.5.0dev'')','Label','About','Sep','on');
 
 %% --------------------------- Build HANDLES and finish things here
 	handles = guihandles(H1);
