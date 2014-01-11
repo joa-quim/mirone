@@ -1183,12 +1183,13 @@ function FileSaveENCOMgrid_CB(handles)
 
 % --------------------------------------------------------------------
 function ExtractProfile_CB(handles, opt)
-% OPT == 'point' or 'dynamic'. POINT, interpolates at the line vertex only
+% OPT == 'point', 'dynamic' or '3D'. POINT and 3D, interpolate at the line vertex only
+%	3D interpolates along the third dimension (but is not fully 3D interp)
 
 	if (handles.no_file),	return,		end
 	if (nargin == 1),	opt = '';		end
-	point_int = false;										% Default to "profile" interpolation
-	if (strcmp(opt,'point')),	point_int = true;	end
+	point_int = strcmp(opt,'point');
+	do_3D = strcmp(opt,'3D');
 	track_is_done = false;		do_stack = false;
 
 	[X,Y,Z] = load_grd(handles,'silent');
@@ -1210,7 +1211,7 @@ function ExtractProfile_CB(handles, opt)
 		rmappdata(handles.figure1,'StackTrack')
 	else
 		if (strcmp(opt,'dynamic'))
-			getline_j(handles.figure1,'dynamic');
+			getline_j(handles.figure1,'dynamic');					% Calls grid_profiler at every ButtonMotion
 			hDynProfAx = getappdata(handles.axes1,'dynProfile');	% Get the handle of the dynamic profile Axes
 			hLine = getappdata(hDynProfAx,'theLine');
 			ud = get(hLine, 'UserData');
@@ -1220,26 +1221,34 @@ function ExtractProfile_CB(handles, opt)
 		else
 			[xp,yp] = getline_j(handles.figure1);
 			if (numel(xp) < 2),		zoom_state(handles,'maybe_on'),		return,		end
-			[xx, yy, zz] = grid_profiler(handles.figure1, xp, yp, point_int, false);	% The 'false' is for not 'do_dynamic'
+			[xx, yy, zz] = grid_profiler(handles.figure1, xp, yp, point_int, false, false, do_3D);	% The 'false' is for not 'do_dynamic'
 		end
 	end
 
 	if (~track_is_done)			% Otherwise we already know them
-		[xx, yy, zz] = grid_profiler(handles.figure1, xp, yp, point_int, track_is_done, do_stack);
+		[xx, yy, zz] = grid_profiler(handles.figure1, xp, yp, point_int, track_is_done, do_stack, do_3D);
 	end
 
 	zoom_state(handles,'maybe_on')
-	if (~strcmp(opt,'point'))			% Disply profile in ecran
+	if (do_3D && numel(xx) > 1)				% Save result on file (because it has more than one profile)
+		embrulho.x = xx;		embrulho.y = yy;
+		embrulho.z = zz;		embrulho.time_z = handles.time_z;
+		draw_funs([],'save_xyz',embrulho)
+	elseif (point_int && ~do_3D)			% Save result on file
+		draw_funs([],'save_xyz',[xx(:) yy(:) zz(:)])
+	else									% Disply profile in ecran
 		[pato,name,ext] = fileparts(get(handles.figure1,'Name'));
 		if (~isempty(ext))
-			ext = strtok(ext);			% Remove the "@ ??%" part
+			ext = strtok(ext);				% Remove the "@ ??%" part
 		else
 			ind = strfind(name, ' @');
 			if (~isempty(ind))
 				name = name(1:ind(1)-1);	%		"
 			end
 		end
-		if (~isa(zz,'cell'))
+		if (do_3D)
+			ecran(handles,handles.time_z,zz,['3D Profile from ' name ext])
+		elseif (~isa(zz,'cell'))
 			ecran(handles,xx,yy,zz,['Track from ' name ext])
 		else
 			% Make 3 call, one for each channel. This is a bit ugly but plotting the 3 curves 
@@ -1253,8 +1262,6 @@ function ExtractProfile_CB(handles, opt)
 				end
 			end
 		end
-	else						% Save result on file
-		draw_funs([],'save_xyz',[xx(:) yy(:) zz(:)])
 	end
 
 % --------------------------------------------------------------------
@@ -1667,6 +1674,8 @@ function FileOpenDEM_CB(handles, opt)
 	switch opt
 		case {'GMT' 'Surfer', 'ENCOM', 'GSOFT'}
 			str1 = {'*.grd;*.GRD;*.nc;*.NC', 'Grid files (*.grd,*.GRD,*.nc,*.NC)';'*.*', 'All Files (*.*)'};	tipo = 'GMT_relatives';
+		case 'SSimg'
+			str1 = {'*.img;*.IMG', 'Grid files (*.img,*.IMG)';'*.*', 'All Files (*.*)'};
 		case 'MANI'
 			str1 = {'*.man;*.MAN', 'Grid files (*.man,*.MAN)';'*.*', 'All Files (*.*)'};	tipo = 'GMT_relatives';
 		case 'ArcAscii',		str1 = {'*.asc;*.ASC', 'Arc/Info grid (*.asc,*.ASC)'; '*.*', 'All Files (*.*)'};
@@ -1688,7 +1697,7 @@ function FileOpenDEM_CB(handles, opt)
 	loadGRID(handles,fullname,tipo)
 
 % --------------------------------------------------------------------
-function loadGRID(handles,fullname,tipo,opt)
+function loadGRID(handles, fullname, tipo, opt)
 % This function loads grid files that may contain DEMs or other grid (not images) types
 % TIPO	-> 'GMT'		read grids using the read_gmt_type_grids() function
 %		   'MOLA_lbl'	To read Mars MOLA .img with a .lbl header file (cannot be compressed)
@@ -1877,10 +1886,12 @@ function handles = show_image(handles, fname, X, Y, I, validGrid, axis_t, adjust
 			end
 			tmp = {['+ ' 'RGB']; I; tmp1; tmp2; ''; 1:3; [size(I,1) size(I,2) 3]; 'Mirone'};
 			setappdata(handles.figure1,'BandList',tmp)
-			set(findobj(handles.Image,'-depth',1,'Label','Load Bands'),'Vis','on')
+			set(findobj(handles.Image,'-depth',1,'Label','Load Bands'), 'Vis','on')
+			set(findobj(handles.Image,'-depth',1,'Label','Explore RGB'),'Vis','on')
 		elseif (ndims(I) == 2)		% Remove it so it won't try to operate on indexed images
 			if (isappdata(handles.figure1,'BandList')),		rmappdata(handles.figure1,'BandList'),	end
-			set(findobj(handles.figure1,'Label','Load Bands'),'Vis','off')
+			set(findobj(handles.figure1,'Label','Load Bands'), 'Vis','off')
+			set(findobj(handles.figure1,'Label','Explore RGB'),'Vis','off')
 		end
 	end
 	if (isappdata(handles.axes1,'DatumProjInfo')),		rmappdata(handles.axes1,'DatumProjInfo'),	end
@@ -4512,6 +4523,30 @@ function Transfer_CB(handles, opt)
 		set(handles.hImg,'CData', img, 'CDataMapping','scaled');
 		set(handles.figure1,'ColorMap',gray(256))
 		aux_funs('togCheck',handles.ImModBW , [handles.ImMod8cor handles.ImMod8gray handles.ImModRGB])
+
+	elseif (strcmp(opt,'RGBexp'))
+		if (ndims(img) < 3),	return,		end		% Should never happen because non-RGB must have this opt hiden
+		P{1} = cvlib_mex('color',img,'rgb2gray');
+		P{2} = img(:,:,1);		P{3} = img(:,:,2);		P{4} = img(:,:,3);
+		B = cvlib_mex('color',img,'rgb2hsv');
+		P{5} = B(:,:,1);		P{6} = B(:,:,2);		P{7} = B(:,:,3);
+		B = cvlib_mex('color',img,'rgb2YCrCb');
+		P{8} = B(:,:,1);		P{9} = B(:,:,2);		P{10} = B(:,:,3);
+		B = cvlib_mex('color',img,'rgb2lab');
+		P{11} = B(:,:,1);		P{12} = B(:,:,2);		P{13} = B(:,:,3);
+		if (handles.image_type == 2)
+			hAx = montage(P);
+		else
+			hAx = montage(P,'handParent',handles.figure1, 'flipud');
+		end
+		set(get(hAx(1),'Parent'), 'Name', 'Explore RGB')
+		labels = {'Gray' 'Red' 'Green' 'Blue' 'Hue' 'Saturation' 'Value' 'Luminance' 'Blue Chrominance' ...
+			'Red Chrominance' 'L*a*b* => L*' 'L*a*b* => a*' 'L*a*b* => b*'};
+		cores = {'k' [0.7 0 0] [0 0.7 0] 'b' [1 0 1]*0.6 [1 0 1]*0.6 [1 0 1]*0.6 ...
+			[0 1 1]*0.6 [0 1 1]*0.6 [0 1 1]*0.6 [1 1 0]*0.6 [1 1 0]*0.6 [1 1 0]*0.6};
+		for (k = 1:13)		% Add labels to individual component images
+			text(10, 50, labels{k}, 'Parent', hAx(k), 'FontSize',16, 'FontWeight','bold', 'Color',cores{k}, 'Tag','cor');
+		end
 
 	elseif (strcmp(opt,'copyclip'))		% Img and frame capture to ClipBoard
 		h = getappdata(handles.figure1,'CoordsStBar');		set(h,'Visible','off');
