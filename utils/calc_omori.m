@@ -23,6 +23,7 @@ function calc_omori(events_time,events_mag,h_mir_fig);
 % J.Woessner
 % last update: 20.07.04
 
+% $Id$
 
 % Get input parameters
 prompt = {'Enter length of learning period (days)','Enter number of bootstraps:',...
@@ -283,7 +284,7 @@ n = length(time_as);
 loopout = []; 
 % Initialize random seed
 rand('seed',sum(100*clock));
-hWaitbar1 = waitbar(0,'Bootstrapping...');
+hWaitbar1 = aguentabar(0,'title','Bootstrapping...');
 set(hWaitbar1,'Numbertitle','off','Name','Bootstap Omori parameters')
 for (j = 1:bootloops)
     randnr = ceil(rand(n,1)*n);
@@ -292,9 +293,8 @@ for (j = 1:bootloops)
     newtas = sort(newtas);
     [pv1, pv2, cv1, cv2, kv1, kv2, fAIC, fL] = bruteforceloglike_a2(newtas, fT1, nMod);
     loopout = [loopout; pv1, pv2, cv1, cv2, kv1, kv2, fAIC, fL];
-    waitbar(j/bootloops)
+    aguentabar(j/bootloops)
 end
-close(hWaitbar1)
 
 % New version: Choose mean (p,c,k)-variables by modelling the cumulative number at end of 
 % the learning period
