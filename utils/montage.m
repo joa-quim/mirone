@@ -227,7 +227,17 @@ function expandit(hImg, event)
 	if (do_flipud),		img = flipud(img);	end
 
 	if (isempty(hFigParent) || ~ishandle(hFigParent))	% Also whem Mirone fig was deleted
-		mirone(img)
+		h = mirone(img);
+		hTxt = findobj(get(hImg,'Parent'),'Type','text','Tag','cor');
+		if (~isempty(hTxt))
+			name = get(h,'Name');
+			new_name = name;
+			ind = strfind(name, '@');		% The start of zooming level info
+			if (~isempty(ind))
+				new_name = [get(hTxt,'Str') name(ind-1:end)];
+			end
+			set(h,'Name', new_name)			% Use label text for figure name
+		end
 	else
 		handMir = guidata(hFigParent);
 		if (handMir.image_type == 2)		% Should never hapen (due to previous tests) but just in case ...
