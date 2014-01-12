@@ -4492,10 +4492,10 @@ function Transfer_CB(handles, opt)
 		draw_funs(hLine,'isochron',multi_segs_str);
 
 	elseif (strcmp(opt,'toRGB'))
-		if (ndims(img) == 3 || isa(img,'logical')),	set(handles.figure1,'pointer','arrow');		return,		end		% Nothing to do
+		if (ndims(img) == 3 || isa(img,'logical')),	set(handles.figure1,'pointer','arrow'),		return,	end		% Nothing to do
 		img = ind2rgb8(img,get(handles.figure1,'Colormap'));
 		set(handles.hImg,'CData', img)
-		aux_funs('togCheck', handles.ImModRGB, [handles.ImMod8cor handles.ImMod8gray handles.ImModBW])
+		aux_funs('togCheck', handles.ImModRGB, [handles.ImMod8cor handles.ImMod8gray handles.ImModBW handles.ImModNeg handles.ImModNegBW])
 
 	elseif (strcmp(opt,'8-bit'))
 		if (ndims(img) ~= 3),	set(handles.figure1,'pointer','arrow'),		return,		end		% Nothing to do
@@ -4504,20 +4504,31 @@ function Transfer_CB(handles, opt)
 		if (isnan(nColors)),	set(handles.figure1,'pointer','arrow'),		return,		end
 		[img, map] = img_fun( 'rgb2ind', img, max(2, min(nColors, 256)) );	% Ensure we are in the [2-256] int
 		set(handles.hImg,'CData', img),			set(handles.figure1,'ColorMap',map)
-		aux_funs('togCheck', handles.ImMod8cor, [handles.ImMod8gray handles.ImModBW handles.ImModRGB])
+		aux_funs('togCheck', handles.ImMod8cor, [handles.ImMod8gray handles.ImModBW handles.ImModRGB handles.ImModNeg handles.ImModNegBW])
 
 	elseif (strcmp(opt,'gray'))
 		if (ndims(img) == 3)
-			img = cvlib_mex('color',img,'rgb2gray');		set(handles.hImg,'CData', img);
+			img = cvlib_mex('color',img,'rgb2gray');	set(handles.hImg,'CData', img);
 		end
 		set(handles.figure1,'ColorMap',gray(256))
-		aux_funs('togCheck',handles.ImMod8gray , [handles.ImMod8cor handles.ImModBW handles.ImModRGB])
+		aux_funs('togCheck',handles.ImMod8gray, [handles.ImMod8cor handles.ImModBW handles.ImModRGB handles.ImModNeg handles.ImModNegBW])
 
 	elseif (strcmp(opt,'bw'))
 		img = img_fun('im2bw',img);
 		set(handles.hImg,'CData', img, 'CDataMapping','scaled');
 		set(handles.figure1,'ColorMap',gray(256))
-		aux_funs('togCheck',handles.ImModBW , [handles.ImMod8cor handles.ImMod8gray handles.ImModRGB])
+		aux_funs('togCheck',handles.ImModBW, [handles.ImMod8cor handles.ImMod8gray handles.ImModRGB handles.ImModNeg handles.ImModNegBW])
+
+	elseif (strcmp(opt,'neg'))
+		img = img_fun('imcomplement',img);
+		set(handles.hImg,'CData', img)
+		aux_funs('togCheck',handles.ImModNeg, [handles.ImMod8cor handles.ImMod8gray handles.ImModRGB handles.ImModBW handles.ImModNegBW])
+
+	elseif (strcmp(opt,'negBW'))
+		img = img_fun('im2bw',img_fun('imcomplement',img));
+		set(handles.hImg,'CData', img, 'CDataMapping','scaled');
+		set(handles.figure1,'ColorMap',gray(256))
+		aux_funs('togCheck',handles.ImModNegBW, [handles.ImMod8cor handles.ImMod8gray handles.ImModRGB handles.ImModBW handles.ImModNeg])
 
 	elseif (strcmp(opt,'RGBexp'))
 		if (ndims(img) < 3),	return,		end		% Should never happen because non-RGB must have this opt hiden
@@ -4535,8 +4546,8 @@ function Transfer_CB(handles, opt)
 			hAx = montage(P,'handParent',handles.figure1, 'flipud');
 		end
 		set(get(hAx(1),'Parent'), 'Name', 'Explore RGB')
-		labels = {'Gray' 'Red' 'Green' 'Blue' 'Hue' 'Saturation' 'Value' 'Luminance' 'Blue Chrominance' ...
-			'Red Chrominance' 'L*a*b* => L*' 'L*a*b* => a*' 'L*a*b* => b*'};
+		labels = {'Gray' 'Red' 'Green' 'Blue' 'Hue' 'Saturation' 'Value' 'Luminance' 'Red Chrominance' ...
+			'Blue Chrominance' 'L*a*b* => L*' 'L*a*b* => a*' 'L*a*b* => b*'};
 		cores = {'k' [0.7 0 0] [0 0.7 0] 'b' [1 0 1]*0.6 [1 0 1]*0.6 [1 0 1]*0.6 ...
 			[0 1 1]*0.6 [0 1 1]*0.6 [0 1 1]*0.6 [1 1 0]*0.6 [1 1 0]*0.6 [1 1 0]*0.6};
 		for (k = 1:13)		% Add labels to individual component images
