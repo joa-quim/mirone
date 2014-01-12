@@ -338,6 +338,8 @@ uimenu('Parent',h,'Call','mirone(''Transfer_CB'',guidata(gcbo),''toRGB'')','Labe
 uimenu('Parent',h,'Call','mirone(''Transfer_CB'',guidata(gcbo),''8-bit'')','Label','8-bit color','Tag','ImMod8cor');
 uimenu('Parent',h,'Call','mirone(''Transfer_CB'',guidata(gcbo),''gray'')','Label','Gray scale','Tag','ImMod8gray');
 uimenu('Parent',h,'Call','mirone(''Transfer_CB'',guidata(gcbo),''bw'')','Label','Black and White','Tag','ImModBW');
+uimenu('Parent',h,'Call','mirone(''Transfer_CB'',guidata(gcbo),''neg'')','Label','Negative','Tag','ImModNeg');
+uimenu('Parent',h,'Call','mirone(''Transfer_CB'',guidata(gcbo),''negBW'')','Label','Negative BW','Tag','ImModNegBW');
 uimenu('Parent',h,'Call','thresholdit(gcf)','Label','Limiares','Sep','on');
 uimenu('Parent',h,'Call','mirone(''ImageResetOrigImg_CB'',guidata(gcbo))','Label','Original Image','Sep','on');
 
@@ -733,7 +735,7 @@ if (IamCompiled)
 end
 uimenu('Parent',h, 'Call',['mirone(''FileOpenWebImage_CB'',guidata(gcbo),',...
 	' ''http://www2.clustrmaps.com/stats/maps-clusters/w3.ualg.pt-~jluis-mirone-world.jpg'',''nikles'');'],'Label','See visitors map','Sep','on');
-uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 11 Jan 2014'',''2.5.0dev'')','Label','About','Sep','on');
+uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 12 Jan 2014'',''2.5.0dev'')','Label','About','Sep','on');
 
 %% --------------------------- Build HANDLES and finish things here
 	handles = guihandles(H1);
