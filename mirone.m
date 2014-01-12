@@ -4573,7 +4573,7 @@ function Transfer_CB(handles, opt)
 		if (isempty(h) || ~ishandle(h(1)))
 			set(handles.figure1,'pointer','arrow'),		return
 		end
-		draw_funs(h(1), 'Ctrl_v', [], [h(1) handles.axes1])		% Complicated due to transitional form of draw_funs
+		draw_funs(h(1), 'Ctrl_v', [h(1) handles.axes1])
 
 	elseif (strncmp(opt,'flip',4))		% LR or UP image flipage. OPT = flipLR or flipUD
 		% OPT == 'LR' -> Flips the image left-right. OPT == 'UD' -> Flips the image up-down
