@@ -63,6 +63,9 @@ function varargout = gdal_project(varargin)
  	handles.have_prjIn = false;			% It will be true when input is projected and we know how
 	proj4 = getappdata(handles.hMirFig,'Proj4');
 	if (~isempty(proj4))
+		if (strfind(proj4,'latlong') && ~strfind(proj4,'+datum=WGS84'))
+			proj4 = [proj4 ' +datum=WGS84'];
+		end
 		set(handles.edit_source,'String',proj4)
 		handles.have_prjIn = true;
 	else
@@ -72,7 +75,7 @@ function varargout = gdal_project(varargin)
 			set(handles.edit_source,'String',proj4)
 			handles.have_prjIn = true;
 		elseif (handMir.geog)
-			set(handles.edit_source,'String','+proj=latlong')
+			set(handles.edit_source,'String','+proj=latlong +datum=WGS84')
 		end
 	end
 
@@ -123,7 +126,7 @@ function push_OK_CB(hObject, handles)
 	str_src = deblank(get(handles.edit_source,'String'));
 	str_dst = deblank(get(handles.edit_target,'String'));
 	
-	if ( isempty(str_dst) ),	return,		end
+	if (isempty(str_dst)),	return,		end
 	
 	handles.hdr.DstProjSRS = str_dst;
 	if ( ~isempty(str_src) && ~strcmp(str_src,'+proj=latlong') )
@@ -178,7 +181,37 @@ function push_OK_CB(hObject, handles)
 	tmp.srsWKT = att.ProjectionRef;
 	if (~isempty(cmap)),	tmp.cmap = cmap;	end
 
-	mirone(ras,tmp)
+	hMirFig = mirone(ras,tmp);
+
+	% Now see if we have vector data and if yes convert it as well
+
+	hMirNewHand = guidata(hMirFig);				% Projected Mirone handles
+	hMirOldHand = guidata(handles.hMirFig);		% Parent Mirone handles
+	thisHandles = findobj(hMirOldHand.axes1,'Type','line');
+	thisHandle_  = findobj(hMirOldHand.axes1,'Type','patch');
+	thisHandles = [thisHandles(:); thisHandle_(:)];
+
+	if (~isempty(thisHandles))
+		for (k = 1:numel(thisHandles))
+			x = get(thisHandles(k), 'XData');		y = get(thisHandles(k), 'YData');
+			z = get(thisHandles(k), 'ZData');
+			hNew = copyobj(thisHandles(k), hMirNewHand.axes1);
+			xy_prj = ogrproj([x(:) y(:) z(:)], handles.hdr);
+			set(hNew, 'XData', xy_prj(:,1), 'YData', xy_prj(:,2))
+			if (~isempty(z)),	set(hNew, 'ZData', xy_prj(:,3)),	end
+			draw_funs(hNew,'line_uicontext')
+		end
+	end
+
+	thisHandles = findobj(hMirOldHand.axes1,'Type','text');		% Now the Texts
+	if (~isempty(thisHandles))
+		for (k = 1:numel(thisHandles))
+			hNew = copyobj(thisHandles(k), hMirNewHand.axes1);
+			xy_prj = ogrproj(get(thisHandles(k),'Position'), handles.hdr);
+			set(hNew, 'Position', xy_prj(1:2))
+			draw_funs(hNew,'DrawText')			% We probably have some leaks since old properties went ether.
+		end
+	end
 
 % -----------------------------------------------------------------------------------------
 function popup_projections_CB(hObject, handles)
