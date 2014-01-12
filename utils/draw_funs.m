@@ -31,9 +31,6 @@ function varargout = draw_funs(hand, varargin)
 opt = varargin{1};		% function name to evaluate (new) or keyword to select one (old form)
 if (numel(varargin) > 1)
 	data = varargin{2};
-	if (isempty(data))		% We need this for backward compatibility (Don't know anymore where)
-		varargin(2) = [];
-	end
 end
 
 switch opt
