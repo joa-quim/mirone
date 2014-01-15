@@ -3593,7 +3593,7 @@ function GRDdisplay(handles, X, Y, Z, head, tit, name, srsWKT)
 	head(5:6) = double(zz(1:2));
 	tmp.head = head;			tmp.X = X;		tmp.Y = Y;		tmp.geog = handles.geog;	tmp.name = name;
 	if (nargin == 8 && ~isempty(srsWKT)),		tmp.srsWKT = srsWKT;	end
-	mirone(Z,tmp);				set(handles.figure1,'pointer','arrow')
+	set(handles.figure1,'pointer','arrow'),		mirone(Z,tmp);
 
 % --------------------------------------------------------------------
 function FileSaveImgGrdGdal_CB(handles, opt1, opt2)
@@ -4591,23 +4591,9 @@ function Transfer_CB(handles, opt)
 		end
 		writekml(handles,Z,[PathName FileName])		% Z will be used to setup a alpha channel
 
-	elseif (strncmp(opt,'morph',5))			% Works for either image or grids
-		strela = structuring_elem;		pause(0.01)
-		if (isempty(strela)),	set(handles.figure1,'pointer','arrow'),		return,		end
-		if (strcmp(opt(7:end), 'grd'))
-			[X,Y,img] = load_grd(handles);			% Call it 'img' to easy things
-			if isempty(img),		set(handles.figure1,'pointer','arrow'),		return,		end
-		end
-		if ( strcmp(strela.operation,'dilate') || strcmp(strela.operation,'erode') )
-			img = cvlib_mex(strela.operation, img, strela);
-		else
-			img = cvlib_mex('morpho',img, strela.operation, strela);
-		end
-		if (strcmp(opt(7:end), 'img'))
-			set(handles.hImg,'CData', img);
-		else
-			GRDdisplay(handles,X,Y,img,handles.head,[],[strela.operation ' grid']);
-		end
+	elseif (strncmp(opt,'morph',5))				% Works for either image or grids
+		set(handles.figure1,'pointer','arrow')
+		structuring_elem(handles.figure1, strcmp(opt(7:end), 'grd'))
 
 	elseif (strcmp(opt,'scatter'))
 		str = {'*.dat;*.DAT;*.txt;*.TXT', 'Data file (*.dat,*.DAT,*.txt,*.TXT)'; '*.*', 'All Files (*.*)'};
