@@ -128,8 +128,7 @@ function [y,x] = localImhist(img, handles)
 
 	if (nargout == 0)
 		[xx,yy] = localStem(x,y);
-		h = plot(handles.axes2,xx,yy);
-		set(h,'LineWidth',2.5)
+		plot(xx,yy, 'Parent',handles.axes2, 'LineWidth',2.5);
 		set(handles.axes2,'XLim',[min(x) max(x)],'YLim',[min(y) max(y)], 'Xtick',[min(x) max(x)], 'Ytick',[]);
 	end
 
