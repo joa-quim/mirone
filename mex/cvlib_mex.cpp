@@ -1,5 +1,5 @@
 /*--------------------------------------------------------------------
- *	$Id: $
+ *	$Id$
  *
  *	Copyright (c) 2004-2012 by J. Luis
  *
@@ -19,6 +19,7 @@
 /* Program:	cvlib_mex.c
  * Purpose:	matlab callable routine to interface with some OpenCV library functions
  *
+ * Revision 31  17/01/2014 JL	Added cvDistTransform
  * Revision 31  29/03/2010 JL	#ifdefed the call to cvContourArea that stupidly changed the API
  * Revision 30  06/02/2010 JL	Fixed crashing of cvFindContours on R13 (didn't like a freeing of storage)
  * Revision 29  03/02/2010 JL	Added structuring element input to the morphology operations
@@ -142,6 +143,7 @@ void JhaarDetect(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]);
 void Jhomography(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]);
 void JfindRectangles(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]);
 void Jthreshold(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]);
+void Jtransform(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]);
 void Jstat(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[], const char *op);
 void JopticalFlowPyrLK(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]);
 void Jscaleto8(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]);
@@ -171,7 +173,7 @@ void arithmUsage(), addWeightedUsage(), pyrDUsage(), pyrUUsage(), houghCirclesUs
 void smoothUsage(), lineUsage(), plineUsage(), rectUsage(), circUsage(), eBoxUsage();
 void inpaintUsage(), fillConvUsage(), fillPlineUsage(), textUsage(), powUsage();
 void absUsage(), logUsage(), expUsage(), hypotUsage(), haarUsage(), convexHullUsage();
-void approxPolyUsage(), homographyUsage(), findRectangUsage();
+void approxPolyUsage(), homographyUsage(), findRectangUsage(), transformUsage();
 void MatchTemplateUsage(), thresholdUsage(), opticalFlowyrLKUsage(), scaleto8Usage();
 void statUsage(const char *op);
 IplConvKernel *makeStrel(const mxArray *prhs);
@@ -209,6 +211,7 @@ void mexFunction(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]) {
 		mexPrintf("\tCvtScaleAbs (cvCvtScaleAbs)\n");
 		mexPrintf("\tdilate (cvDilate)\n");
 		mexPrintf("\tdiv (cvDiv)\n");
+		mexPrintf("\tdistance (cvDistTransform)\n");
 		mexPrintf("\tdp (cvApproxPoly)\n");
 		mexPrintf("\teBox (cvEllipseBox)\n");
 		mexPrintf("\terode (cvErode)\n");
@@ -301,6 +304,9 @@ void mexFunction(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]) {
 
 		else if (!strcmp(funName,"dilate"))
 			JerodeDilate(n_out, plhs, n_in, prhs, funName);
+
+		else if (!strncmp(funName,"distance",4))
+			Jtransform(n_out, plhs, n_in, prhs);
 
 		else if (!strcmp(funName,"div"))
 			Jarithm(n_out, plhs, n_in, prhs, funName);
@@ -2286,7 +2292,7 @@ void Jthreshold(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]) {
 		mexErrMsgTxt("Threshold returns one (and one only) output");
 
 	if (n_in >= 3) {
-		ptr_d = mxGetPr(prhs[4]);	adaptive_method = (int)ptr_d[0];
+		ptr_d = mxGetPr(prhs[2]);	adaptive_method = (int)ptr_d[0];
 		if (adaptive_method == 1)
 			adaptive_method = CV_ADAPTIVE_THRESH_GAUSSIAN_C;
 	}
@@ -2352,6 +2358,113 @@ void Jthreshold(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]) {
 
 	cvReleaseImageHeader( &src_img );
 	cvReleaseImageHeader( &dst_img );
+	Free_Cv_Ctrl (Ctrl);	/* Deallocate control structure */
+}
+
+/* --------------------------------------------------------------------------- */
+void Jtransform(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]) {
+	int nx, ny, nBands, i, nBytes, img_depth, mask_size = 3;
+	int labelType = CV_DIST_LABEL_CCOMP, distance_type = CV_DIST_L2;
+	unsigned char *ptr_gray;
+	double *ptr_d;
+
+	IplImage *src_img = 0, *dst_img, *src_gray, *labels = NULL;
+	mxArray *ptr_in, *ptr_out;
+
+	struct CV_CTRL *Ctrl;
+	void *New_Cv_Ctrl (), Free_Cv_Ctrl (struct CV_CTRL *C);
+
+	/* ---- Check for input and errors in user's call to function. ----------------- */
+	if (n_in == 1) { transformUsage();	return; }
+	if ( !mxIsUint8(prhs[1]) && !mxIsLogical(prhs[1]) )
+		mexErrMsgTxt("distanceTransform requires image of uint8 type!");
+
+	if (n_out > 2)
+		mexErrMsgTxt("distanceTransform returns one (or two) output");
+
+	if (n_in >= 3) {
+		ptr_d = mxGetPr(prhs[2]);	distance_type = (int)ptr_d[0];
+		if (distance_type == 1)
+			distance_type = CV_DIST_L1;
+		else if (distance_type == 2)
+			distance_type = CV_DIST_L2;
+		else if (distance_type == 3)
+			distance_type = CV_DIST_C;
+		else
+			distance_type = CV_DIST_L2;		/* All others because it's the default */
+
+	}
+	if (n_in >= 4) {
+		ptr_d = mxGetPr(prhs[3]);	mask_size = (int)ptr_d[0];
+		if (mask_size < 3 || mask_size > 5) {
+			mexPrintf("distanceTransform: mask_size argument %d is nonsensic. Reseting to 3\n", mask_size);
+			mask_size = 3;
+		}
+		if (mask_size == 4) mask_size = CV_DIST_MASK_PRECISE;
+	}
+	if (n_in >= 5) {
+		labelType = CV_DIST_LABEL_PIXEL;
+	}
+	/* -------------------- End of parsing input ------------------------------------- */
+
+	ny = mxGetM(prhs[1]);	nx = getNK(prhs[1],1);	nBands = getNK(prhs[1],2);
+	/* Allocate and initialize defaults in a new control structure */
+	Ctrl = (struct CV_CTRL *) New_Cv_Ctrl ();
+	getDataType(Ctrl, prhs, &nBytes, &img_depth);
+
+	src_img = cvCreateImageHeader( cvSize(nx, ny), img_depth, nBands);
+	dst_img = cvCreateImageHeader( cvSize(nx, ny), IPL_DEPTH_32F, 1);
+	plhs[0] = mxCreateNumericMatrix(ny, nx, mxSINGLE_CLASS, mxREAL);
+	if (n_out == 2) {
+		labels = cvCreateImageHeader( cvSize(nx, ny), CV_32SC1, 1);
+		plhs[1] = mxCreateNumericMatrix(ny, nx, mxUINT32_CLASS, mxREAL);
+	}
+
+	if (nBands == 3) {			/* Convert to GRAY */
+		/* ------ Create pointers for output and temporary arrays ---------------- */
+		ptr_in = mxCreateNumericArray(mxGetNumberOfDimensions(prhs[1]),
+			 mxGetDimensions(prhs[1]), mxGetClassID(prhs[1]), mxREAL);
+		ptr_out = mxCreateNumericMatrix(ny, nx, mxGetClassID(prhs[1]), mxREAL);
+		/* ----------------------------------------------------------------------- */ 
+		Set_pt_Ctrl_in ( Ctrl, prhs[1], ptr_in, 1 ); 	/* Set pointer & interleave */
+
+		src_gray = cvCreateImageHeader( cvSize(nx, ny), 8, 1 );
+		ptr_gray = (unsigned char *)mxMalloc (nx*ny);
+		cvSetImageData( src_gray, (void *)ptr_gray, nx );
+		localSetData( Ctrl, src_img, 1, nx * nBands * nBytes );
+		cvCvtColor(src_img, src_gray, CV_BGR2GRAY);
+		for (i = 0; i < nx*ny; i++)	/* Copy the transformed image into Ctrl field */
+			Ctrl->UInt8.tmp_img_in[i] = ptr_gray[i]; 
+		mxFree(ptr_gray);
+		cvReleaseImageHeader( &src_gray );
+
+		/* Here we're going to cheat the src_img in order to pretend that it's 2D */
+		src_img->nChannels = 1;
+		src_img->widthStep = nx * nBytes;
+		src_img->imageSize = ny * src_img->widthStep;
+
+		Set_pt_Ctrl_out1 ( Ctrl, ptr_out ); 
+		localSetData( Ctrl, dst_img, 2, nx * nBytes );
+	}
+	else {
+		cvSetImageData(src_img, (void *)mxGetData(prhs[1]), nx * nBytes);
+		cvSetImageData(dst_img, (void *)mxGetData(plhs[0]), nx * 4);
+		if (n_out == 2)
+			cvSetImageData(labels, (void *)mxGetData(plhs[1]), nx * 4);
+	}
+
+	cvDistTransform(src_img, dst_img, distance_type, mask_size, NULL, labels, labelType);
+
+	if (nBands == 3) {
+		mxDestroyArray(ptr_in);
+		Set_pt_Ctrl_out2 ( Ctrl, plhs[0], 1); 		/* Set pointer & desinterleave */
+		mxDestroyArray(ptr_out);
+	}
+
+	cvReleaseImageHeader(&src_img);
+	cvReleaseImageHeader(&dst_img);
+	if (n_out == 2)
+		cvReleaseImageHeader(&labels);
 	Free_Cv_Ctrl (Ctrl);	/* Deallocate control structure */
 }
 
@@ -5242,6 +5355,25 @@ void textUsage() {
 
 	mexPrintf("       Class support: uint8.\n");
 	mexPrintf("       Memory overhead: 1 copy of IMG.\n");
+}
+
+/* -------------------------------------------------------------------------------------------- */
+void transformUsage() {
+	mexPrintf("Usage: B = cvlib_mex('distance',IMG,[DTYPE,MSIZE[,LTYPE]]);\n");
+	mexPrintf("       Calculates the distance to the closest zero pixel for each pixel of the source image.\n");
+	mexPrintf("       IMG is a uint8 MxNx3 rgb OR a MxN intensity image:\n");
+	mexPrintf("       DTYPE -> Type of distance. It can be 1 (CV_DIST_L1), 2 (CV_DIST_L2), or 3 (CV_DIST_C). [2] \n");
+	mexPrintf("       MSIZE -> Size of the distance transform mask. It can be 3, 5, or 4 (CV_DIST_MASK_PRECISE) [3] \n");
+	mexPrintf("\n");
+	mexPrintf("       [B,L] = cvlib_mex('distance',IMG,DTYPE,MSIZE[,LTYPE]);\n");
+	mexPrintf("       Calculates also the nearest connected component consisting of zero pixels (LTYPE = 1)\n");
+	mexPrintf("       or the nearest zero pixel (LTYPE = 2) [1]\n");
+	mexPrintf("\n");
+	mexPrintf("       B = cvlib_mex('distance',~IMG,2,4); gives exactly the same result as Matlab's B = bwdist(IMG)\n");
+	mexPrintf("       but 3 times faster. Note also the negation in ~IMG because ML & OPENCV compute oposite distances\n");
+
+	mexPrintf("       Class support: logical, uint8.\n");
+	mexPrintf("       Memory overhead: None if IMG is gray or 1 copy of IMG if RGB.\n");
 }
 
 /* -------------------------------------------------------------------------------------------- */
