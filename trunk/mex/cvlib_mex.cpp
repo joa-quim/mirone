@@ -793,6 +793,7 @@ void Jpolyline(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[], cons
 		polyNpts[0] = MAX(m,n);
 		pt = (CvPoint **)mxCalloc( 1, sizeof(buf[0])); /* pt = (CvPoint *)mxCalloc( 1, sizeof(buf[0])); */
 		pt[0] = (CvPoint *)mxCalloc( polyNpts[0], sizeof(buf[0]));
+		ptr_d = (double *)mxGetData(prhs[2]);
 		if (n == 2) {		/* column vector (well, Mx2) */
 			for (j = 0; j < polyNpts[0]; j++)
 				pt[0][j] = cvPoint((int)ptr_d[j],(int)ptr_d[j+polyNpts[0]]);
