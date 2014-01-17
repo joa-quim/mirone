@@ -312,7 +312,8 @@ function bw = cleanDust(bw, opt)
 % 		overlaps = bw3 & removed;
 % 		bw = (bw2 | overlaps);
 	else
-		D = img_fun('bwdist', bw2);
+		%D = img_fun('bwdist', bw2);
+		D = cvlib_mex('distance',~bw2, 2, 4);	% Negate because OpenCV computes distance to zero and ML to non-zero
 		within_hailing_distance = (D <= 5);		clear D
 		put_back_pixels = removed & within_hailing_distance;	clear removed
 		bw = bw2 | put_back_pixels;
