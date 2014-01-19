@@ -70,7 +70,7 @@ function [lon, lat, z, ym] = readimgSS (file, west, east, south, north, scl)
 	end
 	if (botlat > south)
 		disp (['imgread:  WARNING:  Your bottom latitude (' num2str(south) ') lies outside bottom latitude of input (' num2str(botlat) ') - now truncated.']);
-		south = botlat + GMT_CONV_LIMIT;	% To ensure proper round-off in calculating ny */
+		south = botlat + 1e-8;	% To ensure proper round-off in calculating ny */
 	end
 
 	% Re-adjust user-selected region so that it falls on pixel coordinate boundaries
