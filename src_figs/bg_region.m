@@ -242,7 +242,7 @@ function push_OK_CB(hObject, handles)
 		is_geog = get(handles.check_isGeog,'Value');
 		handles.output = [handles.x_min handles.x_max handles.y_min handles.y_max is_geog get(handles.check_toDef,'Val')];
 	else
-		t = get(handles.popup_scale, 'Str');	val = get(handles.popup_scale, 'Str');
+		t = get(handles.popup_scale, 'Str');	val = get(handles.popup_scale, 'Val');
 		handles.output = [handles.x_min handles.x_max handles.y_min handles.y_max str2double(t{val})];
 	end
 	guidata(hObject,handles);
