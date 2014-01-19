@@ -3,7 +3,7 @@ function varargout = bg_region(varargin)
 %
 % It accepts inputs in dd:mm or dd:mm:ss format
 
-%	Copyright (c) 2004-2013 by J. Luis
+%	Copyright (c) 2004-2014 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -27,32 +27,40 @@ function varargout = bg_region(varargin)
 
 	handles.command = cell(15,1);
 
-	if ~isempty(varargin) && strcmp(varargin{1},'empty')
-		handles.x_min = [];						handles.x_max = [];
-		handles.y_min = [];						handles.y_max = [];
-		handles.command{3} = [];				handles.command{5} = [];
-		handles.command{7} = [];				handles.command{9} = [];
-		set(handles.edit_Xmin,'String','');		set(handles.edit_Xmax,'String','');
-		set(handles.edit_Ymin,'String','');		set(handles.edit_Ymax,'String','');
-		set(handles.figure1,'Name','Limits')
-	elseif ~isempty(varargin) && strcmp(varargin{1},'with_limits')
-		tmp = varargin{2};
-		handles.x_min = tmp(1);					handles.x_max = tmp(2);
-		handles.y_min = tmp(3);					handles.y_max = tmp(4);
-		handles.command{3} = num2str(tmp(1));	handles.command{5} = num2str(tmp(2));
-		handles.command{7} = num2str(tmp(3));	handles.command{9} = num2str(tmp(4));
-		set(handles.edit_Xmin,'String',num2str(tmp(1)));	set(handles.edit_Xmax,'String',num2str(tmp(2)));
-		set(handles.edit_Ymin,'String',num2str(tmp(3)));	set(handles.edit_Ymax,'String',num2str(tmp(4)));
-		set(handles.figure1,'Name','Limits')
-		if ((tmp(2) - tmp(1)) > 360 || (tmp(4) - tmp(3)) > 180)  % See if limits rule out "geog"
-			set(handles.check_IsGeog,'Value',0)
+	handles.x_min = -180;				handles.x_max = 180;
+	handles.y_min = -90;				handles.y_max = 90;
+	handles.command{3} = '-180';		handles.command{5} = '180';
+	handles.command{7} = '-90';			handles.command{9} = '90';
+
+	if (~isempty(varargin))
+		if (strcmp(varargin{1},'empty'))
+			handles.x_min = [];						handles.x_max = [];
+			handles.y_min = [];						handles.y_max = [];
+			handles.command{3} = [];				handles.command{5} = [];
+			handles.command{7} = [];				handles.command{9} = [];
+			set(handles.edit_Xmin,'String','');		set(handles.edit_Xmax,'String','');
+			set(handles.edit_Ymin,'String','');		set(handles.edit_Ymax,'String','');
+			set(handles.figure1,'Name','Limits')
+
+		elseif (strcmp(varargin{1},'with_limits'))
+			tmp = varargin{2};
+			handles.x_min = tmp(1);					handles.x_max = tmp(2);
+			handles.y_min = tmp(3);					handles.y_max = tmp(4);
+			handles.command{3} = num2str(tmp(1));	handles.command{5} = num2str(tmp(2));
+			handles.command{7} = num2str(tmp(3));	handles.command{9} = num2str(tmp(4));
+			set(handles.edit_Xmin,'String',num2str(tmp(1)));	set(handles.edit_Xmax,'String',num2str(tmp(2)));
+			set(handles.edit_Ymin,'String',num2str(tmp(3)));	set(handles.edit_Ymax,'String',num2str(tmp(4)));
+			set(handles.figure1,'Name','Limits')
+			if ((tmp(2) - tmp(1)) > 360 || (tmp(4) - tmp(3)) > 180)  % See if limits rule out "geog"
+				set(handles.check_isGeog,'Value',0)
+			end
+			set(handles.check_toDef, 'Vis', 'off')
+
+		elseif (strcmpi(varargin{1},'forIMG'))		% To use when reading .img S&S Mercator files
+			set([handles.popup_scale handles.txt_scale], 'Vis', 'on')
+			set(handles.check_toDef, 'Vis', 'off')
+			set(handles.check_isGeog,'Vis', 'off')
 		end
-		set(handles.check_toDef, 'Vis', 'off')
-	else
-		handles.x_min = -180;					handles.x_max = 180;
-		handles.y_min = -90;					handles.y_max = 90;
-		handles.command{3} = '-180';			handles.command{5} = '180';
-		handles.command{7} = '-90';				handles.command{9} = '90';
 	end
 	% Choose default command line output for bg_region_export
 	handles.output = hObject;
@@ -87,9 +95,9 @@ function edit_Xmin_CB(hObject, handles)
 		end
 		% Guess if we are probably dealing with geog coordinates
 		if ~isempty(get(handles.edit_Xmax,'String')) && (handles.x_max - x_min) <= 360
-			set(handles.check_IsGeog,'Value',1)
+			set(handles.check_isGeog,'Value',1)
 		else
-			set(handles.check_IsGeog,'Value',0)
+			set(handles.check_isGeog,'Value',0)
 		end
 	else                % box is empty
 		handles.command{3} = '';
@@ -117,9 +125,9 @@ function edit_Xmax_CB(hObject, handles)
 		end
 		% Guess if we are probably dealing with geog coordinates
 		if ~isempty(get(handles.edit_Xmin,'String')) && (x_max - handles.x_min) <= 360
-			set(handles.check_IsGeog,'Value',1)
+			set(handles.check_isGeog,'Value',1)
 		else
-			set(handles.check_IsGeog,'Value',0)
+			set(handles.check_isGeog,'Value',0)
 		end
 	else					% box is empty
 		handles.command{5} = '';
@@ -147,9 +155,9 @@ function edit_Ymin_CB(hObject, handles)
 		end
 		% Guess if we are probably dealing with geog coordinates
 		if ~isempty(get(handles.edit_Ymax,'String')) && (handles.y_max - y_min) <= 180
-			set(handles.check_IsGeog,'Value',1)
+			set(handles.check_isGeog,'Value',1)
 		else
-			set(handles.check_IsGeog,'Value',0)
+			set(handles.check_isGeog,'Value',0)
 		end
 	else				% box is empty
 		handles.command{7} = '';
@@ -177,9 +185,9 @@ function edit_Ymax_CB(hObject, handles)
 		end
 		% Guess if we are probably dealing with geog coordinates
 		if ~isempty(get(handles.edit_Ymin,'String')) && (y_max - handles.y_min) <= 180
-			set(handles.check_IsGeog,'Value',1)
+			set(handles.check_isGeog,'Value',1)
 		else
-			set(handles.check_IsGeog,'Value',0)
+			set(handles.check_isGeog,'Value',0)
 		end
 	else				% box is empty    
 		handles.command{9} = '';
@@ -216,7 +224,7 @@ function check_toDef_CB(hObject, handles)
 		edit_Xmax_CB(handles.edit_Xmax, handles),		handles = guidata(handles.figure1);
 		edit_Ymin_CB(handles.edit_Ymin, handles),		handles = guidata(handles.figure1);
 		edit_Ymax_CB(handles.edit_Ymax, handles)
-		set(handles.check_IsGeog, 'Val', 0)
+		set(handles.check_isGeog, 'Val', 0)
 	end
 
 % --------------------------------------------------------------------------------------------------
@@ -230,8 +238,13 @@ function push_showR_CB(hObject, handles)
 function push_OK_CB(hObject, handles)
 	nError = VerifyCommand(handles);
 	if (nError),	return,		end
-	is_geog = get(handles.check_IsGeog,'Value');
-	handles.output = [handles.x_min handles.x_max handles.y_min handles.y_max is_geog get(handles.check_toDef,'Val')];
+	if (strcmp(get(handles.popup_scale,'Vis'), 'off'))
+		is_geog = get(handles.check_isGeog,'Value');
+		handles.output = [handles.x_min handles.x_max handles.y_min handles.y_max is_geog get(handles.check_toDef,'Val')];
+	else
+		t = get(handles.popup_scale, 'Str');	val = get(handles.popup_scale, 'Str');
+		handles.output = [handles.x_min handles.x_max handles.y_min handles.y_max str2double(t{val})];
+	end
 	guidata(hObject,handles);
 	uiresume(handles.figure1);
 
@@ -340,7 +353,7 @@ uicontrol('Parent',h1, 'Pos',[10 32 110 15],...
 'Style','checkbox',...
 'Value',1,...
 'Tooltip','Check if limits are in geographic coordinates',...
-'Tag','check_IsGeog');
+'Tag','check_isGeog');
 
 uicontrol('Parent',h1, 'Pos',[10 10 100 15],...
 'Call',@bg_region_uiCB,...
@@ -348,6 +361,20 @@ uicontrol('Parent',h1, 'Pos',[10 10 100 15],...
 'Style','checkbox',...
 'Tooltip','Set [-0.5 0.5 -0.5 0.5] region suitable to design .def GMT symbols',...
 'Tag','check_toDef');
+
+uicontrol('Parent',h1, 'Pos',[5 7 40 15],...
+'String', 'Scale',...
+'Style','Text',...
+'Vis', 'off', ...
+'Tag','txt_scale');
+
+uicontrol('Parent',h1, 'Pos',[50 10 50 15],...
+'Call',@bg_region_uiCB,...
+'String',{'1';'0.1';'0.01';'0.02'},...
+'Style','popup',...
+'Tooltip','Typically 0.1 for FAA, 0.01 for GEOID, 0.02 for VGG and 1 for TOPO',...
+'Vis', 'off', ...
+'Tag','popup_scale');
 
 uicontrol('Parent',h1, 'Pos',[237 120 21 21],...
 'Call',@bg_region_uiCB,...
