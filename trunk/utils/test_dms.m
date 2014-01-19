@@ -20,13 +20,14 @@ function val = test_dms(s)
 
 % $Id$
 
-	if isempty(s),    val = [];    return;   end
+	if isempty(s),		val = [];		return,	end
 	error = 0;
-	if (strcmp(s(1),':') || strcmp(s(end),':') || strfind(s,'::'))
+	if (strcmp(s(1),':') || strcmp(s(end),':') || ~isempty(strfind(s,'::')))
 		errordlg('One or more of the dd, mm or ss fields is empty','Error')
 		error = error + 1;
 	end
-	[t,r]=strtok(s,':');
+	[t,r] = strtok(s,':');
+	unit = cell(1);
 	unit{1} = t;
 	if isnan(str2double(unit{1}))
 		str = [unit{1} '   is not a valid number'];
@@ -35,7 +36,6 @@ function val = test_dms(s)
 	end
 	i = 2;
 	val = cell(1);
-	unit = cell(1);
 	while (~isempty(r))
 		[t,r] = strtok(r,':');
 		unit{i} = t;
