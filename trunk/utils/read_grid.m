@@ -60,15 +60,20 @@ function [Z, X, Y, srsWKT, handles, att] = read_grid(handles, fullname, tipo, op
 		[handles, X, Y, Z, head, misc] = read_gmt_type_grids(handles, fname);
 		if (isempty(X))		return,		end
 		if (isfield(misc,'z_dim') && numel(misc.z_dim) == 3),	handles.nLayers = misc.z_dim(1);	end
-		if (~isempty(misc) && ~isempty(misc.srsWKT) ),			srsWKT = misc.srsWKT;	end
+		if (~isempty(misc) && ~isempty(misc.srsWKT)),			srsWKT = misc.srsWKT;	end
 	elseif (strncmpi(tipo,'IN',2))
 		Z = opt.Z;
 		X = opt.X;
 		Y = opt.Y;
 		head = opt.head;
-		if (isfield(opt,'name'))
-			fname = opt.name;
-		end
+		if (isfield(opt,'name')),	fname = opt.name;	end
+	elseif (strcmp(tipo,'SSimg'))
+		R = bg_region('forIMG');	% Returns [x_min x_max y_min y_max scale]
+		if (isempty(R)),	return,		end
+		[X, y, Z, Y] = readimgSS(fname, R(1), R(2), R(3), R(4), R(5));
+		X = X * pi/180 * 6378137;		Y = Y * pi/180  * 6378137;
+		head = [X(1) X(end) Y(1) Y(end) min(Z(:)) max(Z(:)) 0 diff(X(1:2)) diff(Y(1:2))];
+		srsWKT = ogrproj('+proj=merc +R=6378137');
 	else
 		grdMaxSize = handles.grdMaxSize;
 		if (nargin >= 4 && isa(opt,'struct'))		% From FileOpenGeoTIFF_CB
@@ -141,7 +146,7 @@ function [Z, X, Y, srsWKT, handles, att] = read_grid(handles, fullname, tipo, op
 		Z = single(Z);
 	end
 
-	if ( ~strncmp(tipo,'GMT',3) && ~strncmpi(tipo,'IN',2) )
+	if (~strncmp(tipo,'GMT',3) && ~strncmpi(tipo,'IN',2) && ~strcmp(tipo,'SSimg'))
 		if ( ~isempty(att.Band(1).NoDataValue) && ~isnan(att.Band(1).NoDataValue) && att.Band(1).NoDataValue ~= 0 )
 			% Do this because some formats (e.g MOLA PDS v3) are so dumb that they declare a NoDataValue
 			% and than don't use it !!!!!!
