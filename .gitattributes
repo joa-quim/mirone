@@ -608,6 +608,7 @@ utils/put_or_get_file.m -text
 utils/read_gdal_info.m -text
 utils/read_gmt_type_grids.m -text
 utils/read_grid.m -text
+utils/readimgSS.m -text
 utils/reduce_qslim.m -text
 utils/register_img.m -text
 utils/resizetrue.m -text
