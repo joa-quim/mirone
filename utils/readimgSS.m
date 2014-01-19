@@ -31,7 +31,7 @@ function [lon, lat, z, ym] = readimgSS (file, west, east, south, north, scl)
 %          otherwise Z is int16
 %          Renamed to readimgSS for file name safety.
 
-% $Id: $
+% $Id$
 
 	if (nargin == 5),	scl = 1;	end		% Must specify default scale
 
@@ -179,7 +179,7 @@ function f = GMT_img_ypix_to_lat (ypix, nytop, radius)
 	f = rad2deg(GMT_img_gud_fwd ((nytop - ypix) / radius));
 
 % ---------------------------------------------------------------
-function [nx360 radius nytop nyrow] = GMT_img_setup_coord (minlat, maxlat, mpixel)
+function [nx360, radius, nytop, nyrow] = GMT_img_setup_coord (minlat, maxlat, mpixel)
 % Given the RANGE info, set up the COORD values.  Return (-1) on failure;
 % 0 on success.
 
