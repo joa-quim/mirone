@@ -17,7 +17,7 @@ function out = gmtedit(varargin)
 %       OUT, if given will contain this figure handle.
 %
 
-%	Copyright (c) 2004-2012 by J. Luis
+%	Copyright (c) 2004-2014 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -448,7 +448,7 @@ function import_clickedCB(hObject, evt, opt)
 function interp_on_grid(obj, event)
 	handles = guidata(obj);
 	hAx = get(handles.figure1, 'CurrentAxes');		% Find which axes are we working on
-	h = gmtedit_track(handles.lon, handles.lat, handles.year, hAx, handles.h_tm, handles.last_dir, handles.work_dir);
+	h = gmtedit_track(handles.lon, handles.lat, handles.year, hAx, handles.h_tm, handles.last_dir, handles.work_dir, handles.hMirAxes);
 	filhas = getappdata(handles.figure1,'Filhas');
 	setappdata(handles.figure1,'Filhas',[filhas(:); h])
 
@@ -1296,7 +1296,7 @@ function outliersdetect_CB(hObject, evt)
 % -------------------------------------------------------------------------------------
 % -------------------------------------------------------------------------------------
 function h = gmtedit_track(varargin)
- 
+% Little figure that asks for the name of grid to be interpolated and profile added to main fig
 	h = figure('Vis','off');
 	gmtedit_track_LayoutFcn(h);
 	handles = guihandles(h);
@@ -1305,10 +1305,25 @@ function h = gmtedit_track(varargin)
 	handles.lat = varargin{2};
 	handles.year = varargin{3};
 	handles.hCallingAxes = varargin{4};
-	handles.h_tm = varargin{5};		% Handle of the Topography line
+	handles.h_tm = varargin{5};			% Handle of the Topography line
 	handles.last_dir = varargin{6};
 	handles.work_dir = varargin{7};
+	handles.hMirAxes = varargin{8};
 	handles.fname = [];
+
+	if (ishandle(handles.hMirAxes))		% See if we have a previously used grid. If yes repeat its offer
+		fname = getappdata(handles.hMirAxes, 'lastGrid');
+		if (~isempty(fname))
+			if (exist(fname,'file'))
+				set(handles.edit_gridToInterp, 'Str', fname)
+				handles.fname = fname;
+			else
+				rmappdata(handles.hMirAxes, 'lastGrid')
+			end
+		else
+			set(handles.edit_gridToInterp, 'Str', handles.last_dir)
+		end
+	end
 
 	guidata(h, handles);
 	set(h,'Visible','on');
@@ -1363,6 +1378,7 @@ function zz = push_OK_CB(hObject, handles)
 	end
 	x = get(h,'XData');
 	line('XData',x,'YData',zz,'Color','b','Parent',handles.hCallingAxes, 'LineWidth', 2, 'HitTest', 'off');
+	setappdata(handles.hMirAxes, 'lastGrid', handles.fname)		% Store it so we can restart by it
 	delete(handles.figure1)
 
 % ----------------------------------------------------------------------------
