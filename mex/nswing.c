@@ -122,6 +122,7 @@
 #define EPS5 1e-5
 #define EPS3 1e-3
 #define EPS2 1e-2
+#define EPS1 1e-1
 
 #define MAXRUNUP -50 	/* Do not waste time computing flood above this altitude */
 #define V_LIMIT   20	/* Upper limit of maximum velocity */
@@ -258,6 +259,8 @@ int check_paternity(struct nestContainer *nest);
 int check_binning(double x0P, double x0D, double dxP, double dxD, double tol, double *suggest);
 int read_bnc_file(struct nestContainer *nest, char *file);
 void interp_bnc (struct nestContainer *nest, double t);
+void total_energy(struct nestContainer *nest, float *work, int lev);
+void power(struct nestContainer *nest, float *work, int lev);
 #ifdef HAVE_NETCDF
 void write_most_slice(struct nestContainer *nest, int *ncid_most, int *ids_most, unsigned int i_start,
                       unsigned int j_start, unsigned int i_end, unsigned int j_end, float *work, size_t *start,
@@ -305,8 +308,9 @@ int main(int argc, char **argv) {
 	int     writeLevel = 0;              /* If save grids, will hold the saving level (when nesting) */
 	int     i, j, k;
 	int     start_i;                     /* Where the loop over argc starts: MEX -> 0; STANDALONE -> 1 */
-	int     grn = 0, cumint = 0, iprc;
-	int     w_bin = TRUE, cumpt = FALSE, error = FALSE;
+	int     grn = 0, cumint = 0, decimate_max = 1, iprc;
+	int     w_bin = TRUE, cumpt = FALSE, error = FALSE, do_2Dgrids = FALSE, do_maxs = FALSE;
+	int     out_energy = FALSE, max_energy = FALSE, out_power = FALSE, max_power = FALSE;
 	int     first_anuga_time = TRUE, out_sww = FALSE, out_most = FALSE, out_3D = FALSE;
 	int     r_bin_b, r_bin_f, surf_level = TRUE, max_level = FALSE, water_depth = FALSE;
 	int     n_arg_no_char = 0;
@@ -516,12 +520,30 @@ int main(int argc, char **argv) {
 				case 'B':	/* File with batymetry */
 					bathy  = &argv[i][2];
 					break;
+				case 'C':	/* Output momentum grids */ 
+					out_momentum = TRUE;
+					break;
 				case 'D':
 					water_depth = TRUE;
 					surf_level = FALSE;
 					break;
-				case 'E':	/* Output momentum grids */ 
-					out_momentum = TRUE;
+				case 'E':	/* Compute total Energy or Power*/
+					if (argv[i][2] == 'p') {
+						if (argv[i][3] == 'm')
+							max_power = TRUE;
+						else
+							out_power = TRUE;
+					}
+					else {
+						if (argv[i][2] == 'm')
+							max_energy = TRUE;
+						else
+							out_energy = TRUE;
+					}
+					if ((pch = strstr(&argv[i][2],",")) != NULL) {
+						decimate_max = atoi(++pch);
+						if (decimate_max < 1) decimate_max = 1;
+					}
 					break;
 				case 'F':	/* File with the source grid */
 					bnc_file = &argv[i][2];
@@ -546,11 +568,6 @@ int main(int argc, char **argv) {
 						out_3D = TRUE;
 						fname3D = stem;
 					}
-
-					if (!stem || grn == 0) {
-						mexPrintf("NSWING: Error, -G or -Z option. MUST provide base name and saving interval\n");
-						error++;
-					}
 					break;
 				case 'J':
 					sscanf (&argv[i][2], "%lf", &time_jump);
@@ -561,6 +578,7 @@ int main(int argc, char **argv) {
 				case 'M':
 					max_level = TRUE;
 					surf_level = FALSE;
+					write_grids = FALSE;
 					break;
 				case 'N':	/* Number of cycles to compute */
 					n_of_cycles = atoi(&argv[i][2]);
@@ -651,6 +669,10 @@ int main(int argc, char **argv) {
 					break;
 				case '4':
 				case '5':
+				case '6':
+				case '7':
+				case '8':
+				case '9':
 					nesteds[atoi(&argv[i][1])-1] = &argv[i][2];
 					break;
 				default:
@@ -667,22 +689,33 @@ int main(int argc, char **argv) {
 
 	if (argc <= 1 || error) {
 		mexPrintf ("NSWING - Um gerador de tsunamis\n\n");
-		mexPrintf ("usage: nswing(bat,hdr_bat,deform,hdr_deform, [maregs], [-G|Z<name>[+lev],<int>], [-A<fname.sww>], [-B<bathy>]\n");
-		mexPrintf ("              [-D], [-F<BCfile>], [-M], [-N<n_cycles>], [-Rw/e/s/n], [-E], [-S[x|y|n][+m]], [-O<int>,<outmaregs>]\n");
-		mexPrintf ("              [-T<int>,<mareg>[,<outmaregs>]]\n");
+#ifdef I_AM_MEX
+		mexPrintf ("nswing(bat,hdr_bat,deform,hdr_deform, [-1<bat_lev1>], [-2<bat_lev2>], [-3<...>] [maregs], [-G|Z<name>[+lev],<int>], [-A<fname.sww>], [-B<bathy>]\n");
+#else
+		mexPrintf ("nswing bathy.grd initial.grd [-1<bat_lev1>] [-2<bat_lev2>] [-3<...>] [-G|Z<name>[+lev],<int>] [-A<fname.sww>] [-B<bathy>]\n");
+#endif
+		mexPrintf ("       [-D], [-F<BCfile>], [-J<time_jump>], [-M], [-N<n_cycles>], [-Rw/e/s/n], [-C], [-E[p][m][,decim]], [-S[x|y|n][+m]], [-O<int>,<outmaregs>]\n");
+		mexPrintf ("       [-T<int>,<mareg>[,<outmaregs>]], -t<dt> [-f]\n");
 		mexPrintf ("\t-A name of ANUGA file\n");
 		mexPrintf ("\t-n basename for MOST triplet files (no extension)\n");
 		mexPrintf ("\t-B name of bathymetry file. In case it was not transmited in input.\n");
 		mexPrintf ("\t-D write grids with the total water depth\n");
-		mexPrintf ("\t-E write grids with the momentum. i.e velocity times water depth.\n");
+		mexPrintf ("\t-C write grids with the momentum. i.e velocity times water depth.\n");
+		mexPrintf ("\t-E write grids with energy or power (-Ep). Apend a 'm' to save only one grid with the max values.\n");
+		mexPrintf ("\t-  Since this can noticeably slow down the run, one can append a decimator factor after the comma.\n");
+		mexPrintf ("\t-  Note, however, that this casuses aliasing that is clearly visible on shaded illumation.\n");
+		mexPrintf ("\t-  The file name is controled by the <name> in the -G or -Z options, complemented with a '_max' prefix,\n");
+		mexPrintf ("\t-  but the saving of multiple grids is disabled. However, it is still possible to save a 3D netCDF\n");
+		mexPrintf ("\t-  file with wave heights if -Z is used.\n");
 		mexPrintf ("\t-F name of a BoundaryCondition ASCII file\n");
 		mexPrintf ("\t-G<stem> write grids at the int intervals. Append file prefix. Files will be called <stem>#.grd\n");
 		mexPrintf ("\t   When doing nested grids, append +lev to save that particular level (only one level is allowed)\n");
+		mexPrintf ("\t-J<time_jump> Do not write grids or maregraphs for times before time_jump in seconds.\n");
 		mexPrintf ("\t-M write grids of max water level [Default wave surface level]\n");
 		mexPrintf ("\t-N number of cycles [Default 1010].\n");
 		mexPrintf ("\t-R output grids only in the sub-region enclosed by <west/east/south/north>\n");
 		mexPrintf ("\t-S write grids with the velocity. Grid names are appended with _U and _V sufixes.\n");
-		mexPrintf ("\t   Use x or y to save only one of those components. But use n to not velocity grids (maregs only).n");
+		mexPrintf ("\t   Use x or y to save only one of those components. But use n to not velocity grids (maregs only).\n");
 		mexPrintf ("\t   Append +m to write also velocity (vx,vy) at maregraphs locations (needs -T and/or -O).\n");
 		mexPrintf ("\t-T <int> interval at which maregraphs are writen to output maregraph file.\n");
 		mexPrintf ("\t   <maregs> file name with the (x y) location of the virtual maregraphs.\n");
@@ -691,12 +724,28 @@ int main(int argc, char **argv) {
 		mexPrintf ("\t   Warning: this option should not be used when maregraphs were transmitted in input.\n");
 		mexPrintf ("\t-O <int>,<outfname> interval at which maregraphs are writen to <outfname> maregraph file.\n");
 		mexPrintf ("\t-Z Same as -G but saves result in a 3D netCDF file.\n");
+		mexPrintf ("\t-t <dt> Time step for simulation.\n");
+		mexPrintf ("\t-f To use when grids are in geographical coordinates.\n");
 		mexPrintf ("\t-e To be used from the Mirone stand-alone version.\n");
 		return(error);
 	}
 
-	if (!(write_grids || out_sww || out_most || out_3D || cumpt)) {
+	do_maxs = (max_level || max_energy || max_power);
+	do_2Dgrids = (write_grids || out_velocity || out_momentum || max_level || max_energy || out_power || max_power);
+
+	if (do_maxs && write_grids) write_grids = FALSE;	/* max_XXX write only one grid */
+
+	if (!(do_2Dgrids || out_sww || out_most || out_3D || cumpt)) {
 		mexPrintf("Nothing selected for output (grids, or maregraphs), exiting\n");
+		error++;
+	}
+
+	if (grn == 0 && !do_maxs) {
+		mexPrintf("NSWING: Error, -G or -Z option. MUST provide saving interval\n");
+		error++;
+	}
+	if (!stem) {
+		mexPrintf("NSWING: Error, -G or -Z option. MUST provide base name\n");
 		error++;
 	}
 
@@ -800,7 +849,8 @@ int main(int argc, char **argv) {
 		error++;
 	}
 	else if (dt > (dtCFL / 2)*1.1)		/* With a margin of 10% before triggering the warning */
-		mexPrintf ("NSWING: Warning: dt > dtCFL / 2 is normaly not good enough. This may cause troubles. Consider using ~ %.3f\n", dtCFL/2); 
+		mexPrintf ("NSWING: Warning: dt > dtCFL / 2 is normaly not good enough. "
+		                    "This may cause troubles. Consider using ~ %.3f\n", dtCFL/2); 
 
 	if (error) Return(-1);
 
@@ -815,12 +865,14 @@ int main(int argc, char **argv) {
 			if ((nest.bat[num_of_nestGrids+1] = (double *)mxCalloc ((size_t)hdr.nx*(size_t)hdr.ny, sizeof(double)) ) == NULL) 
 				{no_sys_mem("(bat)", hdr.nx*hdr.ny); Return(-1);}
 
-			if (!r_bin)
+			if (!r_bin) {
 				if (read_grd_ascii (nesteds[num_of_nestGrids], &hdr, nest.bat[num_of_nestGrids+1], -1))
 					Return(-1);
-			else
+			}
+			else {
 				if (read_grd_bin (nesteds[num_of_nestGrids], &hdr, nest.bat[num_of_nestGrids+1], -1))
 					Return(-1);
+			}
 
 			dx = (hdr.x_max - hdr.x_min) / (hdr.nx - 1);
 			dy = (hdr.y_max - hdr.y_min) / (hdr.ny - 1);
@@ -859,7 +911,7 @@ int main(int argc, char **argv) {
 	nest.isGeog = isGeog;
 	if (initialize_nestum(&nest, &work, isGeog, 0))
 		Return(-1);
-	if (max_level && (wmax = (float *) mxCalloc ((size_t)nest.hdr[writeLevel].nm, sizeof(float)) ) == NULL)
+	if ((max_level || max_energy || max_power) && (wmax = (float *) mxCalloc ((size_t)nest.hdr[writeLevel].nm, sizeof(float)) ) == NULL)
 		{no_sys_mem("(wmax)", nest.hdr[writeLevel].nm); Return(-1);}
 	/* -------------------------------------------------------------------------------------- */
 
@@ -928,13 +980,13 @@ int main(int argc, char **argv) {
 #endif
 
 	/* ----------------- Compute vars to use if write grids --------------------- */
-	if (!got_R && (write_grids || out_velocity || out_momentum || out_sww || out_most || out_3D) ) {	
+	if (!got_R && (do_2Dgrids || out_sww || out_most || out_3D) ) {	
 		/* Write grids over the whole region */
 		i_start = 0;            i_end = nest.hdr[writeLevel].nx;
 		j_start = 0;            j_end = nest.hdr[writeLevel].ny;
 		xMinOut = nest.hdr[writeLevel].x_min;	yMinOut = nest.hdr[writeLevel].y_min;
 	}
-	else if (got_R && (write_grids || out_velocity || out_momentum || out_sww || out_most) ) {	
+	else if (got_R && (do_2Dgrids || out_sww || out_most)) {	
 		/* Write grids in sub-region */
 		i_start = irint((dfXmin - nest.hdr[writeLevel].x_min) / nest.hdr[writeLevel].x_inc);
 		j_start = irint((dfYmin - nest.hdr[writeLevel].y_min) / nest.hdr[writeLevel].y_inc); 
@@ -944,7 +996,7 @@ int main(int argc, char **argv) {
 		xMinOut = nest.hdr[writeLevel].x_min + nest.hdr[writeLevel].x_inc * i_start;
 		yMinOut = nest.hdr[writeLevel].y_min + nest.hdr[writeLevel].y_inc * j_start;
 	}
-	/* ---------------------------------------------------------------------- */
+	/* -------------------------------------------------------------------------- */
 
 #ifdef HAVE_NETCDF
 	if (out_sww) {
@@ -1030,7 +1082,7 @@ int main(int argc, char **argv) {
 
 	if (verbose) {
 		mexPrintf("Layer 0  time step = %g\tx_min = %g\tx_max = %g\ty_min = %g\ty_max = %g\n",
-				dt, hdr_b.x_min, hdr_b.x_max, hdr_b.y_min, hdr_b.y_max);
+		          dt, hdr_b.x_min, hdr_b.x_max, hdr_b.y_min, hdr_b.y_max);
 		if (do_nestum) {
 			for (k = 1; k <= num_of_nestGrids; k++) {
 				mexPrintf("Layer %d x_min = %g\tx_max = %g\ty_min = %g\ty_max = %g\n",
@@ -1045,6 +1097,19 @@ int main(int argc, char **argv) {
 					mexPrintf("\t\tdts = %f\t%f\n", nest.dt[k-1], nest.dt[k]);
 				}
 			}
+		}
+		mexPrintf ("dtCFL = %.4f\n", dtCFL); 
+		if (max_level)
+			mexPrintf("Output Maximum water level.\n");
+		if (water_depth)
+			mexPrintf("Output water depth.\n");
+		if (out_momentum)
+			mexPrintf("Output momentum (V * D).\n");
+		if (do_maxs) {
+			if (max_energy)
+				mexPrintf("Output maximum Energy with a decimation of %d\n", decimate_max);
+			if (max_power)
+				mexPrintf("Output maximum Power with a decimation of %d\n", decimate_max);
 		}
 	}
 
@@ -1061,7 +1126,7 @@ int main(int argc, char **argv) {
 
 	one_100 = (double)(n_of_cycles) / 100.0;
 
-	/* Begin main iteration */
+	/* ------------ Begin main iteration ------------ */
 	for (k = iprc = 0; k < n_of_cycles; k++) {
 
 		if (k > iprc * one_100) {		/* Waitbars stuff */ 
@@ -1090,28 +1155,9 @@ int main(int argc, char **argv) {
 		else
 			mass_sp(&nest, 0);
 
-		/* --------------------------------------------------------------------- */
-		/* updates wmax - maximum water depth */
-		/* --------------------------------------------------------------------- */
-		if (max_level) {
-			for (ij = 0; ij < nest.hdr[writeLevel].nm; ij++) {
-				etam = (nest.etaa[0][ij] + nest.etad[0][ij]) * 0.5;
-				if (wmax[ij] < etam) wmax[ij] = (float)etam;
-			}
-		}
-
-		if (grn && surf_level && time_h > time_jump && ( (k % grn) == 0 || k == n_of_cycles - 1)) {
-			/* ---------------------------------------------------------------------------- */
-			/* outputs eta file averaging eta(t-dt/2) e eta(t+dt/2)
-			/* ---------------------------------------------------------------------------- */
-			for (ij = 0; ij < nest.hdr[writeLevel].nm; ij++)
-				work[ij] = (float)((nest.etaa[writeLevel][ij] + nest.etad[writeLevel][ij]) * 0.5);
-		}
-		if (grn && max_level && time_h > time_jump && ( (k % grn) == 0 || k == n_of_cycles - 1))
-			for (ij = 0; ij < nest.hdr[writeLevel].nm; ij++) work[ij] = (float) wmax[ij];      /* Output max surface level */
 
 		/* ------------------------------------------------------------------------------------ */
-		/* open boundary condition */
+		/* Case off open boundary condition */
 		/* ------------------------------------------------------------------------------------ */
 		if (bnc_file) interp_bnc(&nest, time_h);
 		if (k) openb(nest.hdr[0], nest.bat[0], nest.fluxm_d[0], nest.fluxn_d[0], nest.etad[0], &nest);
@@ -1126,18 +1172,6 @@ int main(int argc, char **argv) {
 		/* momentum conservation */
 		/* ------------------------------------------------------------------------------------ */
 		moment_conservation(&nest, isGeog, 0);
-
-		/* ------------------------------------------------------------------------------------ */
-		/* updates vmax - maximum water velocity using upwind */
-		/* ------------------------------------------------------------------------------------ */
-#if 0
-		if (max_vel) {
-			for (ij = 0; ij < nest.hdr.[writeLevel].nm; i++) {
-				vel2 = sqrt(nest.vex[0][ij] * nest.vex[0][ij] + nest.vey[0][ij] * nest.vey[0][ij]);
-				if (vmax[ij] < vel2) vmax[ij] = vel2;
-			}
-		}
-#endif
 
 		/* ------------------------------------------------------------------------------------ */
 		/* update eta and fluxes */
@@ -1168,16 +1202,90 @@ int main(int argc, char **argv) {
 			fprintf (fp, "\n");
 		}
 
+		/* -------------------------------------------------------------------------------- */
+		/* -- This chunk deals with the cases where we compute somethingat every step
+		      but write only one grid at the end of all cycles
+		*/
+		if (max_level) {		/* Output max surface level */
+			for (ij = 0; ij < nest.hdr[writeLevel].nm; ij++)
+				if (wmax[ij] < nest.etad[writeLevel][ij]) wmax[ij] = (float)nest.etad[writeLevel][ij];
+		}
+		else if (max_energy) {
+			if (k % decimate_max == 0) {
+				total_energy(&nest, work, writeLevel);
+				for (ij = 0; ij < nest.hdr[writeLevel].nm; ij++)
+					if (wmax[ij] < work[ij]) wmax[ij] = work[ij];
+			}
+		}
+		else if (max_power) {
+			if (k % decimate_max == 0) {
+				power(&nest, work, writeLevel);
+				for (ij = 0; ij < nest.hdr[writeLevel].nm; ij++)
+					if (wmax[ij] < work[ij]) wmax[ij] = work[ij];
+			}
+		}
+		if (do_maxs && (k == n_of_cycles - 1)) {
+				/* Last cycle: copy wmax into the work array and write it to file */
+				size_t len;
+				for (ij = 0; ij < nest.hdr[writeLevel].nm; ij++) {
+					if (nest.htotal_d[writeLevel][ij] > EPS1)
+						work[ij] = wmax[ij];
+					else
+						work[ij] = 1.70141e38f;     /* Surfer 'NaNs'. To be changed when outut in netCDF */
+				}
+				len = strlen(stem) - 1;
+				while (stem[len] !='.' && len > 0) len--;
+				if (len == 0) {                     /* No extension, add a "_max.grd" one */
+					strcpy(prenome, stem);
+					strcat(prenome, "_max.grd");
+				}
+				else {
+					strncpy(prenome, stem, len);
+					strcat(prenome, "_max");
+					strcat(prenome, &stem[len]);    /* Put back the given extension */
+				}
+				write_grd_bin(prenome, xMinOut, yMinOut, dx, dy, i_start, j_start, i_end, j_end, nest.hdr[writeLevel].nx, work);
+		}
+		/* -------------------------------------------------------------------------------- */
+
 		if (grn && time_h > time_jump && ((k % grn) == 0 || k == n_of_cycles - 1) ) {
-			if (water_depth) {
+			if (surf_level) {
+				for (ij = 0; ij < nest.hdr[writeLevel].nm; ij++)
+					work[ij] = (float)nest.etad[writeLevel][ij];
+			}
+			else if (water_depth) {
 				for (ij = 0; ij < nest.hdr[writeLevel].nm; ij++)
 					if ((work[ij] = (float) (nest.etaa[writeLevel][ij] + nest.bat[writeLevel][ij])) < 0) work[ij] = 0;
 			}
+
+			if (out_energy)
+				total_energy(&nest, work, writeLevel);
+			else if (out_power)
+				power(&nest, work, writeLevel);
 
 			if (write_grids) {
 				sprintf (prenome, "%s%05d.grd", stem, irint(time_h) );
 				write_grd_bin(prenome, xMinOut, yMinOut, dx, dy, i_start, j_start, i_end, j_end, nest.hdr[writeLevel].nx, work);
 			}
+
+			if (out_momentum) {
+				if (stem[0] == 0)
+					sprintf (prenome,"%.5d\0", irint(time_h) );
+				else
+					sprintf (prenome, "%s%.5d", stem, irint(time_h) );
+
+				for (ij = 0; ij < nest.hdr[writeLevel].nm; ij++) work[ij] = (float)nest.fluxm_d[writeLevel][ij];
+
+				write_grd_bin(strcat(prenome,"_Uh.grd"), xMinOut, yMinOut, dx, dy, 
+				              i_start, j_start, i_end, j_end, nest.hdr[writeLevel].nx, work);
+
+				for (ij = 0; ij < nest.hdr[writeLevel].nm; ij++) work[ij] = (float)nest.fluxn_d[writeLevel][ij];
+
+				prenome[strlen(prenome) - 7] = '\0';	/* Remove the _Uh.grd' so that we can add '_Vh.grd' */
+				write_grd_bin(strcat(prenome,"_Vh.grd"), xMinOut, yMinOut, dx, dy, 
+				              i_start, j_start, i_end, j_end, nest.hdr[writeLevel].nx, work);
+			}
+
 			if (out_velocity) {
 				sprintf (prenome, "%s%05d", stem, irint(time_h) );
 
@@ -1212,23 +1320,6 @@ int main(int argc, char **argv) {
 					write_grd_bin(strcat(prenome,"_V.grd"), xMinOut, yMinOut + nest.hdr[writeLevel].y_inc/2,
 					              dx, dy, i_start, j_start, i_end, j_end, nest.hdr[writeLevel].nx, work);
 				}
-			}
-			if (out_momentum) {
-				if (stem[0] == 0)
-					sprintf (prenome,"%.5d\0", irint(time_h) );
-				else
-					sprintf (prenome, "%s%.5d", stem, irint(time_h) );
-
-				for (ij = 0; ij < nest.hdr[writeLevel].nm; ij++) work[ij] = (float)nest.fluxm_d[writeLevel][ij];
-
-				write_grd_bin(strcat(prenome,"_Uh.grd"), xMinOut, yMinOut, dx, dy, 
-						i_start, j_start, i_end, j_end, nest.hdr[writeLevel].nx, work);
-
-				for (ij = 0; ij < nest.hdr[writeLevel].nm; ij++) work[ij] = (float)nest.fluxn_d[writeLevel][ij];
-
-				prenome[strlen(prenome) - 7] = '\0';	/* Remove the _Uh.grd' so that we can add '_Vh.grd' */
-				write_grd_bin(strcat(prenome,"_Vh.grd"), xMinOut, yMinOut, dx, dy, 
-						i_start, j_start, i_end, j_end, nest.hdr[writeLevel].nx, work);
 			}
 
 #ifdef HAVE_NETCDF
@@ -1621,6 +1712,42 @@ void free_arrays(struct nestContainer *nest, int isGeog, int lev) {
 			if (nest->r3n[i]) mxFree(nest->r3n[i]);
 			if (nest->r4m[i]) mxFree(nest->r4m[i]);
 			if (nest->r4n[i]) mxFree(nest->r4n[i]);
+		}
+	}
+}
+
+/* --------------------------------------------------------------------- */
+void power(struct nestContainer *nest, float *work, int lev) {
+	/* Compute tsunami wave power according to P = 1/2*rho*D*U*u^2 = 1/2*rho*D*sqrt(g*D)*u^2
+	   http://plus.maths.org/content/tsunami-1
+	   Note that since we don't have 'u' directly but must get from momentum we drop one 'D'
+	   in the above formula.
+	*/
+	unsigned int ij;
+	for (ij = 0; ij < nest->hdr[lev].nm; ij++) {
+		if (nest->htotal_d[lev][ij] > EPS2) {
+			work[ij] = (float)(( sqrt(nest->htotal_d[lev][ij] * NORMAL_GRAV) *
+			                   ((nest->fluxm_d[lev][ij] * nest->fluxm_d[lev][ij]) +
+			                    (nest->fluxn_d[lev][ij] * nest->fluxn_d[lev][ij])) /
+			                     nest->htotal_d[lev][ij] ) * 500);
+		}
+	}
+}
+
+/* --------------------------------------------------------------------- */
+void total_energy(struct nestContainer *nest, float *work, int lev) {
+	/* Compute wave total energy according to 1/2*rho*H*u^2 + 1/2*rho*g*eta^2
+	   http://rspa.royalsocietypublishing.org/content/465/2103/725.full.pdf 
+	   http://arxiv.org/ct?url=http%3A%2F%2Fdx.doi.org%2F10%252E1098%2Frspa%252E2008%252E0332&v=9ed92a65 
+	*/
+	unsigned int ij;
+
+	for (ij = 0; ij < nest->hdr[lev].nm; ij++) {
+		if (nest->htotal_d[lev][ij] > EPS2) {
+			work[ij] = (float)(( nest->etad[lev][ij] * nest->etad[lev][ij] * NORMAL_GRAV +
+			                   ((nest->fluxm_d[lev][ij] * nest->fluxm_d[lev][ij]) +
+			                    (nest->fluxn_d[lev][ij] * nest->fluxn_d[lev][ij])) /
+			                     nest->htotal_d[lev][ij] ) * 500);
 		}
 	}
 }
@@ -2207,8 +2334,8 @@ void write_most_slice(struct nestContainer *nest, int *ncid, int *ids, unsigned 
 	unsigned int col, row, n, ij, k;
 
 	if (!isMost) {
-		for (ij = 0; ij < nest->hdr[lev].nm; ij++)
-			work[ij] = (float)nest->etad[lev][ij];
+		//for (ij = 0; ij < nest->hdr[lev].nm; ij++)
+			//work[ij] = (float)nest->etad[lev][ij];
 
 		/* ----------- Find the min/max of this slice --------- */
 		for (ij = 0; ij < nest->hdr[lev].nm; ij++) {
@@ -2650,9 +2777,8 @@ void update(struct nestContainer *nest, int lev) {
 	unsigned int i;
 
 	/* Split the loops for cache friendlyness */
-	for (i = 0; i < nest->hdr[lev].nm; i++) {
+	for (i = 0; i < nest->hdr[lev].nm; i++)
 		nest->etaa[lev][i] = nest->etad[lev][i];
-	}
 	for (i = 0; i < nest->hdr[lev].nm; i++)
 		nest->fluxm_a[lev][i] = nest->fluxm_d[lev][i];
 	for (i = 0; i < nest->hdr[lev].nm; i++)
