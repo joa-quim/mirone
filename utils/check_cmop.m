@@ -55,7 +55,9 @@ function out = check_cmop(fname)
 			end
 			t1(n+1:end) = [];		t2(n+1:end) = [];	t3(n+1:end) = [];
 		end
-		t{k} = datenum([cat(1, t1{:}) vert_space(1:n) cat(1, t2{:})], 31);
+		%{k} = datenum([cat(1, t1{:}) vert_space(1:n) cat(1, t2{:})], 31);	% This doesn't work on R13
+		% Convoluted inside [] but couldn't find a better way to simply cat horizontaly the two cells into one single cell
+		t{k} = DateStr2Num(mat2cell([cat(1, t1{:}) vert_space(1:n) cat(1, t2{:})],ones(1,numel(t1))), 31);
 		t{k+2} = t3;
 	end
 
