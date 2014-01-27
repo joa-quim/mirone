@@ -4,14 +4,21 @@ function varargout = ecran(varargin)
 % ecran(handlesMir, x, y)
 % ecran(handlesMir, x, y, 'title')
 % ecran(handlesMir, x, y, z, 'title')
-% ecran('reuse', x, y, ...)
+% ecran('reuse', x, y, ...)			% Don't know what the 'reuse' is used for anymore
+% ecran('add', x, y, ...)			% Add the x,y to a previous existing Ecran plot
 % ecran('Image', x, y, z, ...)
 % ecran(hMirFig, x, y, ...)
 % ecran(x, y, ...)
+%
+% Function FileOpen_CB() provides several special cases. Namely TIME column input
+% and other goodies such reference one line to another. See its help
+%
+% Also of interest: add_uictx_CB()
+% Tricky function either called externally to 'ecran' or activated when loading a file with DATENUM info
 
 % WARNING: WHEN COMPILING NEEDS TO INCLUDE filter_butter.m
 %
-%	Copyright (c) 2004-2013 by J. Luis
+%	Copyright (c) 2004-2014 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -36,9 +43,17 @@ function varargout = ecran(varargin)
 	set(0,'ShowHiddenHandles',showBak);
 	freshFig = true;
 
+	% A test to catch side (nasty) efects of previous run error
+	if (~isempty(hObject))
+		handles = guidata(hObject(end));
+		if (isempty(handles))					% Happens after a previous error run
+			delete(hObject),	hObject = [];	% Pretend it never existed and carry on
+		end
+	end
+
 	if (~isempty(hObject))		% A previous 'Ecran' figure exists. See if it has a mag synthetic plot
 		handles = guidata(hObject(end));
-		if (~isempty(handles.hSynthetic)),	freshFig = false;	end
+		if (~isempty(handles.hSynthetic) || strcmp(varargin{1},'add')),	freshFig = false;	end
 		% Delete eventual existing vertical dashed line and the red square markers
 		if (ishandle(handles.hAgeLine_fit))
 			delete(handles.hAgeLine_fit),		handles.hAgeLine_fit = [];
@@ -81,7 +96,7 @@ function varargout = ecran(varargin)
 	handles.handMir = [];		handles.show_popups = true;
 	handles.ellipsoide = [];	handles.geog = [];
 	handles.measureUnit = [];
-	if ( isa(varargin{1},'struct') )				% ecran(handlesMir, ...)
+	if (isa(varargin{1},'struct'))					% ecran(handlesMir, ...)
 		handles.handMir = varargin{1};
 		varargin{1} = 'Image';						% For backward compatibility sake
 		handles.work_dir = handles.handMir.work_dir;
@@ -94,8 +109,8 @@ function varargout = ecran(varargin)
 			varargin{1} = 'reuse';		varargin{5} = varargin{4};		% Figure title
 			varargin{4} = [];			n_in = 5;						% Pretend we had one more argin
 		end
-	elseif ( ~isempty(varargin{1}) )				% ecran(..., x, y, ...)
-		if ( n_in >= 3 && ischar(varargin{1}) )		% ecran('reuse', x, y, ...)
+	elseif (~isempty(varargin{1}))					% ecran(..., x, y, ...)
+		if (n_in >= 3 && ischar(varargin{1}))		% ecran('reuse', x, y, ...)
 			varargin{1} = 'reuse';			% Make sure we use this keyword
 
 		elseif ( n_in >= 3 && numel(varargin{1}) == 1 && ishandle(varargin{1}))% ecran(hMirFig, x, y, ...)
@@ -113,7 +128,7 @@ function varargout = ecran(varargin)
 					n_in = 5;
 				end
 			end
-			varargin{1} = 'reuse';
+			varargin{1} = 'reuse';			% STUPID IDEA, now I can't use it to REALY mean a reuse
 		end
 	end
 
@@ -195,7 +210,7 @@ function varargout = ecran(varargin)
 			set(handles.axes1,'xlim',[rd(1) rd(end)], 'ylim',[min(handles.data(:,3)) max(handles.data(:,3))])
 			push_magBar_CB(handles.push_magBar, handles)
 			handles = guidata(handles.figure1);		% Get the updated version (changed in the previous call)
-			handles.batTrack = [];	% Force recomputing (if used, ofc)
+			handles.batTrack = [];					% Force recomputing (if used, ofc)
 			push_syntheticRTP_CB(handles.push_syntheticRTP, handles)
 			handles = guidata(handles.figure1);
 			popup_ageFit_CB(handles.popup_ageFit, handles)
@@ -214,7 +229,7 @@ function varargout = ecran(varargin)
 	elseif strcmp(varargin{1},'reuse')					% Case of auto-referenced call
 		varargin(n_in+1:9) = cell(1,9-n_in);			% So that varargin{1:9} allways exists.
 		set([handles.check_geog handles.popup_selectPlot handles.popup_selectSave], 'Visible','off')	% Hide those
-		handles.data(:,1) = varargin{2};        handles.data(:,2) = varargin{3};
+		handles.data = [varargin{2}(:) varargin{3}(:)];
 		if ~isempty(varargin{9}) && strcmp(varargin{9},'semilogy')
 			set(handles.axes1, 'YScale', 'log')
 			handles.hLine = semilogy(handles.data(:,1),handles.data(:,2), 'Parent', handles.axes1);
@@ -223,6 +238,9 @@ function varargout = ecran(varargin)
 			handles.hLine = semilogx(handles.data(:,1),handles.data(:,2), 'Parent', handles.axes1);
 		else
 			handles.hLine = plot(handles.data(:,1),handles.data(:,2), 'Parent', handles.axes1);
+			if (~freshFig)
+				set(handles.hLine,'Color',rand(1,3))	% We want a different color but NextPlot prop was set to 'add'
+			end
 		end
 		axis(handles.axes1,'tight');
 
@@ -242,6 +260,12 @@ function varargout = ecran(varargin)
 	set(handles.axes1, 'UIContextMenu', handles.cmenu_axes);
   	set(handles.axes1, 'ButtonDownFcn', {@hide_uimenu,handles.figure1});
 	handles.uimenuGrid = uimenu(handles.cmenu_axes, 'Label', 'Grid on/off', 'Call', 'grid');
+	h = findobj(handles.axes1, 'type', 'line', 'tag', 'CMOP');
+	if (~isempty(h))
+		cmenuHand = uicontextmenu('Parent',handles.figure1);
+		set(h, 'UIContextMenu', cmenuHand);
+		uimenu(cmenuHand, 'Label', 'Make scatter plot with Me and the other CMOP line Me', 'Call', @make_scatterPlot);
+	end
 
 	if (~isempty(handles.hLine)),	handles.n_plot = 1;		end		% Always true in cases where varargin{1} ~= []
 
@@ -505,6 +529,29 @@ function do_bandFilter(obj,event, h, xFact)
 % --------------------------------------------------------------------------------------------------
 
 % ------------------------------------------------------------------------------------------
+function make_scatterPlot(obj, evt)
+% Find the two lines whose tag is CMOP and make a scatter plot with eventual interpolation
+	handles = guidata(obj);
+	hLines = findobj(handles.axes1, 'type', 'line', 'tag', 'CMOP');
+	if (numel(hLines) ~= 2)
+		errordlg('Ops, something went wrong with this option programming.','Error'),	return
+	end
+	x1 = get(hLines(1), 'XData');	y1 = get(hLines(1), 'YData');
+	x2 = get(hLines(2), 'XData');	y2 = get(hLines(2), 'YData');
+	if (numel(x1) < numel(x2))
+		y2 = interp1(x2,y2,x1);		% Reinterpolate to fit the smaller dataset
+	elseif (numel(x1) > numel(x2))
+		y1 = interp1(x1,y1,x2);		
+	else
+		% nothing. They are equal sized
+	end
+
+	hf = ecran(y1, y2, 'Scatter plot');
+	newHand = guidata(hf);
+	hLine = findobj(newHand.axes1, 'type', 'line');
+	set(hLine,'LineStyle', 'none', 'Marker', '.')
+
+% ------------------------------------------------------------------------------------------
 function pick_onLines2reference(obj, evt)
 % Entry function for setting GCP type markers on the two lines, of which one will later be
 % pice-wise 'referenced' to the other.
@@ -612,6 +659,7 @@ function do_reference(obj, evt, ind)
 
 % --------------------------------------------------------------------------------------------------
 function pick_CB(obj, evt)
+% ...
 	handles = guidata(obj);
 	o = findobj('Type','uitoggletool', 'Tag', 'DynSlope');
 	if (strcmp(get(o,'State'),'on'))		% If DynSlope is 'on' turn it off
@@ -873,7 +921,7 @@ function FilePrint_CB(hObject, handles)
 
 % --------------------------------------------------------------------
 function FileOpen_CB(hObject, handles)
-% Read the file and select what columns to plot
+% Read the file and select which columns to plot
 %
 % Section to deal with cases where time is provided in data time char srtrings
 % In that case first line of file must be of this form (the time format may change)
@@ -916,10 +964,10 @@ function FileOpen_CB(hObject, handles)
 
 		if (~isempty(ind))				% The DATENUM case
 			if (n_cols == 3)
-				[yymmdd hhmm sl] = strread(todos,'%s %s %f');
+				[yymmdd, hhmm, sl] = strread(todos,'%s %s %f');
 				yymmdd = strcat(yymmdd, repmat({char(32)}, size(yymmdd,1),1), hhmm);	%BUG {char(' ')} is ignored
 			else
-				[yymmdd sl] = strread(todos,'%s %f', 'delimiter', '\t');
+				[yymmdd, sl] = strread(todos,'%s %f', 'delimiter', '\t');
 			end
 			t = strtok(H1(ind(1)+10:end));
 			try
@@ -1010,7 +1058,7 @@ function FileOpen_CB(hObject, handles)
 		end
 		% -----------------------------------------------------------------------------------------------------
 
-		if (size(data,2) > 2)		% If file has more than 2 cols, call the col selection tool
+		if (size(data,2) > 2)			% If file has more than 2 cols, call the col selection tool
 			out = select_cols(data,'xy',fname,1000);
 			if (isempty(out)),		return,		end
 		else
@@ -1018,13 +1066,14 @@ function FileOpen_CB(hObject, handles)
 		end
 	end
 
-	if (numel(out) == 4)			% Not yet in use
+	if (numel(out) == 4)				% Not yet in use
 		rd = get_distances(data(:,out(1)), data(:,out(2)), false, 'n', handles.ellipsoide);	% NO GEOG: SHOULD TEST
 		handles.dist = rd;				% Save it in case user wants to save it to file
 		handles.hLine = line('Parent',handles.axes1,'XData',rd, 'YData',data(:,out(3)));
 	else
 		handles.hLine = line('Parent',handles.axes1,'XData',data(:,out(1)),'YData',data(:,out(2)));
 	end
+
 	set(handles.figure1,'Name',fname)
 	axis(handles.axes1,'tight');
 	handles.n_plot = handles.n_plot + 1;
@@ -1044,7 +1093,7 @@ function FileOpen_CB(hObject, handles)
 	if (got_toReference)				% Make a copy of the toRef line handle
 		handles.hLineToRef = handles.hLine;
 	end
-	if ( ~isempty(handles.hLineToRef) && (handles.n_plot > 1) )
+	if (~isempty(handles.hLineToRef) && (handles.n_plot > 1))
 		h = findobj(handles.figure1, 'type', 'uitoggletool', 'Tag', 'DynSlope');
 		set(h, 'Click',@pick_onLines2reference, 'Tooltip','Pick points alternately on the two lines to later reference')
 	end
@@ -1744,7 +1793,8 @@ function rectang_clicked_CB(obj,evt)
 
 % --------------------------------------------------------------------
 function add_uictx_CB(hObject, handles)
-% Tricky function either called externally from ecran or activated when loading a file with DATENUM info
+% Tricky function either called externally to 'ecran' or activated when loading a file with DATENUM info
+	handles = guidata(handles.figure1);		% Get an updated version since it may be an old one
 	h = findobj(handles.figure1,'Label','Analysis');
 	xx = get_inside_rect(handles);
 	uimenu('Parent',h, 'Call',@ecran_uiCB,...
@@ -1754,14 +1804,14 @@ function add_uictx_CB(hObject, handles)
 	setappdata(handles.axes1,'xIsDatenum',true)		% For FFTs to know how to compute frequency
 
 	if (xx(end) > 365)			% Assume days of the year. No datenum
-		datetick('x','keeplimits')		% Make it auto right away
+		datetick(handles.axes1, 'x','keeplimits', 'keepticks')		% Make it auto right away
 		uimenu(handles.cmenu_axes, 'Label', 'Date Format -> auto', 'Call', {@SetAxesDate,'x'}, 'Sep','on');
 		uimenu(handles.cmenu_axes, 'Label', 'Date Format -> dd-mmm-yyyy', 'Call', {@SetAxesDate,1});
-		uimenu(handles.cmenu_axes, 'Label', 'Date Format -> mm/dd/yy', 'Call', {@SetAxesDate,2});
-		uimenu(handles.cmenu_axes, 'Label', 'Date Format -> mm/dd', 'Call', {@SetAxesDate,6});
-		uimenu(handles.cmenu_axes, 'Label', 'Date Format -> HH:MM', 'Call', {@SetAxesDate,15});
-		uimenu(handles.cmenu_axes, 'Label', 'Date Format -> HH:MM:SS', 'Call', {@SetAxesDate,13});
-		uimenu(handles.cmenu_axes, 'Label', 'Date Format -> dd.xxx', 'Call', @SetAxesDate);
+		uimenu(handles.cmenu_axes, 'Label', 'Date Format -> mm/dd/yy', 'Call',    {@SetAxesDate,2});
+		uimenu(handles.cmenu_axes, 'Label', 'Date Format -> mm/dd', 'Call',       {@SetAxesDate,6});
+		uimenu(handles.cmenu_axes, 'Label', 'Date Format -> HH:MM', 'Call',       {@SetAxesDate,15});
+		uimenu(handles.cmenu_axes, 'Label', 'Date Format -> HH:MM:SS', 'Call',    {@SetAxesDate,13});
+		uimenu(handles.cmenu_axes, 'Label', 'Date Format -> dd.xxx', 'Call',       @SetAxesDate);
 	end
 
 % --------------------------------------------------------------------
@@ -1780,23 +1830,23 @@ function filterButt_CB(hObject, handles)
 		datetick('x','keeplimits')		% Make it auto right away
 		uimenu(handNew.cmenu_axes, 'Label', 'Date Format -> auto', 'Call', {@SetAxesDate,'x'}, 'Sep','on');
 		uimenu(handNew.cmenu_axes, 'Label', 'Date Format -> dd-mmm-yyyy', 'Call', {@SetAxesDate,1});
-		uimenu(handNew.cmenu_axes, 'Label', 'Date Format -> mm/dd/yy', 'Call', {@SetAxesDate,2});
-		uimenu(handNew.cmenu_axes, 'Label', 'Date Format -> mm/dd', 'Call', {@SetAxesDate,6});
-		uimenu(handNew.cmenu_axes, 'Label', 'Date Format -> HH:MM', 'Call', {@SetAxesDate,15});
-		uimenu(handNew.cmenu_axes, 'Label', 'Date Format -> HH:MM:SS', 'Call', {@SetAxesDate,13});
-		uimenu(handNew.cmenu_axes, 'Label', 'Date Format -> dd.xxx', 'Call', @SetAxesDate);
+		uimenu(handNew.cmenu_axes, 'Label', 'Date Format -> mm/dd/yy', 'Call',    {@SetAxesDate,2});
+		uimenu(handNew.cmenu_axes, 'Label', 'Date Format -> mm/dd', 'Call',       {@SetAxesDate,6});
+		uimenu(handNew.cmenu_axes, 'Label', 'Date Format -> HH:MM', 'Call',       {@SetAxesDate,15});
+		uimenu(handNew.cmenu_axes, 'Label', 'Date Format -> HH:MM:SS', 'Call',    {@SetAxesDate,13});
+		uimenu(handNew.cmenu_axes, 'Label', 'Date Format -> dd.xxx', 'Call',       @SetAxesDate);
 	end
 
 % --------------------------------------------------------------------------------------------------
 function handles = SetAxesDate(hObject,evt,opt)
 % Set X axes labels when we know for sure X units are datenum days
+	handles = guidata(hObject);
 	if (nargin == 2)		% Sow the original dd.xxxxx
-		handles = guidata(hObject);
 		set(handles.axes1,'XTickLabel', getappdata(handles.axes1,'XTickOrig'))
 	elseif (ischar(opt))	% Automatic
-		datetick('x')
+		datetick(handles.axes1, 'x','keeplimits', 'keepticks')
 	else
-		datetick('x', opt)
+		datetick(handles.axes1, 'x', opt, 'keeplimits', 'keepticks')
 	end
 
 % --------------------------------------------------------------------
