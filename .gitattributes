@@ -248,6 +248,7 @@ gmt_userdir/gmt.conf -text
 gmt_userdir/us.d -text
 lib_mex/octave/Makefile -text
 mex/CalcMD5.c -text
+mex/DateStr2Num.c -text
 mex/PolygonClip.c -text
 mex/WindowAPI.c -text
 mex/akimaspline.cpp -text
