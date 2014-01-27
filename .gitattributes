@@ -518,6 +518,7 @@ utils/calc_omori.m -text
 utils/calc_omori_aux.p -text
 utils/canny.m -text
 utils/cdf2pal.m -text
+utils/check_cmop.m -text
 utils/cine_animations.m -text
 utils/circ_geo.m -text
 utils/clabel_j.m -text
