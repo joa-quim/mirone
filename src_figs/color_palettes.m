@@ -1,7 +1,7 @@
 function varargout = color_palettes(varargin)
 % Helper window to select/modify a color palette
 
-%	Copyright (c) 2004-2012 by J. Luis
+%	Copyright (c) 2004-2014 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -15,6 +15,8 @@ function varargout = color_palettes(varargin)
 %
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
+
+% $Id$
 
 	hObject = figure('Vis','off');
 	color_palettes_LayoutFcn(hObject);
@@ -98,7 +100,8 @@ function varargout = color_palettes(varargin)
 		'Radial_Eyeball_Brown' 'Radial_Eyeball_Green' 'Radial_Rainbow_Hoop' 'Rounded_edge' ...
 		'Shadows_1' 'Shadows_2' 'Shadows_3' 'Skyline' 'Skyline_polluted' 'Sunrise' ...
 		'Tropical_Colors' 'Wood_1' 'Wood_2' 'Yellow_Contrast' 'Yellow_Orange'};
-	handles.palsT = {'Mag - anomaly' 'SeaLand (m)' 'Bathymetry (m)' 'Topography (m)'};
+	handles.palsT = {'Mag - anomaly' 'SeaLand (m)' 'Bathymetry (m)' 'Topography (m)' ...
+		'SST (12-26)' 'SST (0-20)' 'SST (0-35)'};
 
 	handles.palsML = palsML;
 	pals = [{'Current'} palsML];
@@ -466,6 +469,15 @@ function thematic_pal(handles, pal)
 		load([handles.d_path 'caris256.mat'],'Topographic');			pal = Topographic/255;
 		handles.z_intervals = [0 50 100 200 500 (1000:1000:5000); 50 100 200 500 (1000:1000:6000)]';
 		handles.hinge = 1;
+	elseif (strcmp(pal, 'SST (12-26)'))
+		pal = jet(256);
+		handles.z_intervals = [linspace(12,25.9,140); linspace(12.1,26,140)]';		% 141 = (26-12)/0.1 + 1
+	elseif (strcmp(pal, 'SST (0-20)'))
+		pal = jet(256);
+		handles.z_intervals = [linspace(0,19.9,200); linspace(0.1,20,200)]';		% 201 = (20-0)/0.1 + 1
+	elseif (strcmp(pal, 'SST (0-35)'))
+		pal = jet(256);
+		handles.z_intervals = [linspace(0,34.8,175); linspace(0.2,35,175)]';		% 176 = (35-0)/0.2 + 1
 	else
 		for (k = 1:numel(handles.custom_thematic_name))		% Won't be executed if custom_thematic_name is empty
 			switch pal
@@ -560,11 +572,18 @@ function change_cmap(handles, pal)
 		if (isempty(handles.z_min_orig)),	return,		end						% No Grid, not possible to continue
 		len_Pal = size(pal, 1);    
 		z_grd = linspace(handles.z_min_orig, handles.z_max_orig, len_Pal)';		% Z[min max] descretized in len_Pal intervals
-		z_pal = [handles.z_intervals(:,1); handles.z_intervals(end,2)];			% Palette z intervals
+		z_pal = [handles.z_intervals(:,1); handles.z_intervals(end,end)];		% Palette z intervals
 		% Interpolate the grid levels into the palette Z levels
-		y = (len_Pal - 1) * ((z_pal - z_pal(1)) / (z_pal(end) - z_pal(1)));
-		ind_pal = interp1(z_pal, y, z_grd, 'linear', 'extrap');
-		ind_pal = round(ind_pal + 1);
+		y = (len_Pal - 1) * ((z_pal - z_pal(1)) / (z_pal(end) - z_pal(1)));		% Spread z_pal into the [0 len_Pal] interval
+		%ind_pal = interp1(z_pal, y, z_grd, 'linear', 'extrap');
+		ind_pal = interp1(z_pal, y, z_grd, 'linear', NaN);
+		indNaN  = isnan(ind_pal);			% Because interp1 only has one 'extrapval' we must trick it like this 
+		if (any(indNaN))
+			ib = find(diff(indNaN) == -1);		ie = find(diff(indNaN) == 1);	% Find the indices of extrapolated vals
+			ind_pal(1:ib) = ind_pal(ib+1);		ind_pal(ie+1:end) = ind_pal(ie);% Replace by first/last valid value
+			if (isempty(ib) && isempty(ie)),	ind_pal = zeros(size(ind_pal));	end
+		end
+		ind_pal = round(ind_pal + 0.5);
 		ind_pal(ind_pal < 1) = 1;		ind_pal(ind_pal > len_Pal) = len_Pal;	% Can happen easily for |z_grd| > |z_pal|
 		% Map the old pal indices into the new ones
 		pal = pal(ind_pal,:);
@@ -573,7 +592,7 @@ function change_cmap(handles, pal)
 		pal = makeCmapBat(handles.z_min_orig, handles.z_max_orig, handles.hinge, pal);
 	end
 
-	z_grd = [];				% Most common case. No particular scaling or logarimization
+	z_grd = [];				% Most common case. No particular scaling or logaritmization
 	if ( get(handles.check_logIt,'Val') )			% If logaritmize
 		if ( ~isempty(handles.z_min) && (handles.z_min ~= handles.z_min_orig || handles.z_max ~= handles.z_max_orig) )
 			z_grd = linspace( handles.z_min,handles.z_max, size(pal,1) )';
