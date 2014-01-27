@@ -30,10 +30,10 @@ function out = check_cmop(fname)
 	ind = strfind(t, char(10));		% Find the line breaks
 
 	% Example after the "'" having been removed
-	%time,PST, saturn04.860.R.Oxygen [%],time PST,, saturn04.30.F.Oxygen [%]
+	%time PST, saturn04.860.R.Oxygen [%],time PST,, saturn04.30.F.Oxygen [%]
 	%2012-09-01,00:01:00,87.91153935,2012-09-01,00:11:00,89.47921692
 
-	if ~(strcmp(t(1:5),'time,') && t(ind(1)+11) == ',' && t(ind(1)+20) == ',')
+	if ~(strcmp(t(1:4),'time') && t(ind(1)+11) == ',' && t(ind(1)+20) == ',')
 		out = true;
 		return
 	end
