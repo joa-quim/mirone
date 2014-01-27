@@ -2749,6 +2749,17 @@ function DrawImportOGR_CB(handles, fname)
 	region = s(1).BoundingBox(:)';
 	is_geog = aux_funs('guessGeog',region(1:4));
 
+	% Test if file was correctly read and in case not, try with check_cmop() (profile data)
+	if (any(isinf(region)))
+		err = check_cmop(fname);
+		if (err)
+			warndlg(['Failed reading file ' fname ' with OGR'],'Warning')
+		elseif (handles.no_file)
+			delete(handles.figure1)		% Data is displayed in Ecran and the Mirone fig is of no use
+		end
+		return
+	end
+
 	% If we have a file already need to know about coords compat
 	if (~handles.no_file)
 		if (isempty(theProj) && handles.geog && ~is_geog)
