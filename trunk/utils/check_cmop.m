@@ -40,25 +40,45 @@ function out = check_cmop(fname)
 
 	year  = t(ind(1)+1:ind(1)+4);
 	n_var = numel(strfind(t(ind(1)+1:ind(2)), year));
-	frmt  = repmat('%s%f',1,n_var);
+
+	% ------------------------- Fish the variable names -------------------------
+	var_names = cell(1, n_var);		var_units = cell(1, n_var);
+	hdr = t(1:ind(1)-1);
+	i = strfind(hdr, ',');
+	i(end+1) = ind(1);				% Add a last one to easy up the fishing algo
+	n = 1;
+	for (k = 1:2:numel(i))
+		var_names{n} = ddewhite(hdr(i(k)+1:i(k+1)-1));
+		% within this, get the units that lie inside brackets
+		i1 = strfind(var_names{n}, '[');		i2 = strfind(var_names{n}, ']');
+		var_units{n} = var_names{n}(i1+1:i2-1);
+		% Search for the "[degrees (from)]" case and get rid of the "(from)"
+		if (strcmp(var_units{n}, 'degrees (from)')),	var_units{n} = 'degrees';	end
+		n = n + 1;
+	end
+	% ---------------------------------------------------------------------------
 
 	t = cell(1, n_var * 2);
+	frmt  = repmat('%s%f',1,n_var);
 	[t{1:n_var*2}] = strread(str(ind(1)+1:end),frmt,'delimiter',',');
 
 	for (k = 1:2:n_var*2)
 		t1 = t{k};		t2 = t{k+1};
 		n = numel(t1);
-		if (k > 1)					% Second and on variables are not guarantied to have the same number of points
-			while (t1{n} == '0')	% Loop from end up to search for 0s, that mean no data
-				n = n - 1;
-			end
-			t1(n+1:end) = [];		t2(n+1:end) = [];
+		while (t1{n}(1) == '0')	% Loop from end up to search for 0s, that means no data
+			n = n - 1;
 		end
+		t1(n+1:end) = [];		t2(n+1:end) = [];
 		t{k} = DateStr2Num(t1, 31);
 		t{k+1} = t2;
 	end
 
-	hf = ecran(t{1}, t{2}, 'CMOP file');
+	if (n_var == 1 && strcmp(var_units{1}, 'degrees'))
+		hf = ecran('feather',t{1}, t{2});
+	else
+		hf = ecran(t{1}, t{2}, 'CMOP file');
+	end
+
 	if (n_var > 1)
 		handEcran = guidata(hf);
 		hLine = findobj(handEcran.figure1, 'type', 'line');
