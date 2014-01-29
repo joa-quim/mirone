@@ -74,7 +74,7 @@ function out = check_cmop(fname)
 	end
 
 	if (n_var == 1 && strcmp(var_units{1}, 'degrees'))
-		hf = ecran('feather',t{1}, t{2});
+		hf = ecran('stick',t{1}, t{2}, 'Stick plot');
 	else
 		hf = ecran(t{1}, t{2}, 'CMOP file');
 	end
