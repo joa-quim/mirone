@@ -1,14 +1,14 @@
 function varargout = ecran(varargin)
 % A specialized plot(x,y) function
 %
-% ecran(handlesMir, x, y)
-% ecran(handlesMir, x, y, 'title')
-% ecran(handlesMir, x, y, z, 'title')
-% ecran('reuse', x, y, ...)			% Don't know what the 'reuse' is used for anymore
-% ecran('add', x, y, ...)			% Add the x,y to a previous existing Ecran plot
-% ecran('Image', x, y, z, ...)
-% ecran(hMirFig, x, y, ...)
-% ecran(x, y, ...)
+% ecran(handlesMir, x, y [,'title'])
+% ecran(handlesMir, x, y, z [,'title'])
+% ecran('reuse', x, y [,'title'])			% Don't know what the 'reuse' is used for anymore
+% ecran('add', x, y [,'title'])				% Add the x,y to a previous existing Ecran plot
+% ecran('strick', t, angle [,'title'])		% Plot a stick diagram. ANGLE is supposed to be azimuth in degrees
+% ecran('strick', t, u, v [,'title'])		% Plot a stick diagram. U,V are vector components. 
+% ecran(hMirFig, x, y [,'title'])
+% ecran(x, y [,'title'])
 %
 % Function FileOpen_CB() provides several special cases. Namely TIME column input
 % and other goodies such reference one line to another. See its help
@@ -110,7 +110,10 @@ function varargout = ecran(varargin)
 			varargin{4} = [];			n_in = 5;						% Pretend we had one more argin
 		end
 	elseif (~isempty(varargin{1}))					% ecran(..., x, y, ...)
-		if (n_in >= 3 && ischar(varargin{1}))		% ecran('reuse', x, y, ...)
+		if (ischar(varargin{1}) && strcmp(varargin{1},'stick'))
+			% Decrease n_in so that last arg may be used for Fig name and at same time tell between the 2 use modes
+			if (isa(varargin{end}, 'char')),	n_in = n_in - 1;	end
+		elseif (n_in >= 3 && ischar(varargin{1}))	% ecran('reuse', x, y, ...)
 			varargin{1} = 'reuse';			% Make sure we use this keyword
 
 		elseif ( n_in >= 3 && numel(varargin{1}) == 1 && ishandle(varargin{1}))% ecran(hMirFig, x, y, ...)
@@ -254,6 +257,17 @@ function varargout = ecran(varargin)
 					'FontWeight', get(ax, 'FontWeight'),'Rotation',   0, 'string', varargin{8});
 		end
 		handles.show_popups = false;
+
+	elseif strcmp(varargin{1},'stick')
+		if (n_in == 3)		% Angles only. Assume it's azimuth in degrees
+			[X, Y] = pol2cart(mod(varargin{3}(:) -90, 360)*pi/180, 1);
+			handles.data = [varargin{2}(:) X Y];
+		elseif (n_in == 4)
+			handles.data = [varargin{2}(:) varargin{3}(:) varargin{4}(:)];
+		end
+  		handles.hLine = sticks(handles.axes1, handles.data(:,1), handles.data(:,2), handles.data(:,3));
+		if (isa(varargin{end}, 'char')),	set(hObject,'Name',varargin{end}),	end
+
 	end
 
 	handles.cmenu_axes = uicontextmenu('Parent',handles.figure1);	% Save it because we need it in "add_uictx_CB()"
@@ -2089,6 +2103,93 @@ function rd = get_distances(x, y, geog, units, ellipsoide)
 		tmp = sqrt(xd.*xd + yd.*yd);
 		rd = [0; cumsum(tmp(:))];
 	end
+	
+% ------------------------------------------------------------------------------
+function h = sticks(hAx,jd,u,v,ylims)
+% STICKS  time series stick plot
+%   
+%      USAGE:  
+%          h = timeplt([hAx,] jd,u,v [,ylims]);
+%      where
+%         jd = time vector (normaly a datenum vector)
+%         u,v = vector components containing time the series data (wind?) 
+%         ylims = ylimits of the panel plot. Autoscales if ylims is not set
+%
+%       outputs:
+%            h = handles for stick plot (line)
+%
+% Original code by Rich Signell rsignell@usgs.gov (TIMEPLT) but stripped to bare minimuns
+
+	if (nargin < 3)
+		error('sticks:Unsuficient number of inputs')
+	elseif (~ishandle(hAx))
+		jd = hAx;	u = jd;		v = u;
+		if (nargin == 4),	ylims = v;
+		else				ylims = [];
+		end
+		hAx = gca;
+	else
+		if (nargin == 5),	ylims = v;
+		else				ylims = [];
+		end		
+	end
+
+	%-------------------------------------------------------------------
+	%  Set the cutoff for different types of Gregorian axis types
+	%  You can adjust these to suit your preferences.  For example, if your
+	%  plot got labeled with days, but you want hours, increase "daycut" 
+	%  (until it's larger than the "fac" for your plot).
+	yearcut = 250;	moncut = 20;	daycut = 0.2;	mincut = 0.05;
+
+	% Don't clip that data!
+	%set(0,'DefaultLineclipping','off')
+
+	u = u(:);
+	jd0 = jd(1);
+	jd1 = jd(numel(jd));
+
+	unit_back = get(hAx, 'units');
+	set(hAx,'units','pixels');
+	pos = get(hAx,'pos');
+	xlen = pos(3);
+	font = get(hAx,'fontsize');
+	label_width=5*font;
+	nlabel = floor(xlen/label_width);
+	set(hAx,'units','normalized');
+	fac = (jd1-jd0) / nlabel;  %number of days per label
+	% adjust xfactor for subsequent stretching by Gregorian Date
+	if (fac > yearcut)
+		xlims = [jd0-180 jd1+180];
+	elseif (yearcut > fac && fac > moncut)
+		xlims = [jd0-25 jd1+25];
+	elseif (moncut > fac && fac > daycut)
+		xlims = [floor(jd0)-.5 ceil(jd1)+.5];
+	elseif (daycut > fac && fac > mincut)
+		xlims = [jd0-1/48 jd1+1/48];
+	elseif (mincut > fac)		% leave 2.5% off of each side.
+		time_offset = (jd1-jd0)*0.025;
+		xlims = [jd0-time_offset jd1+time_offset];
+	end
+
+	if (isempty(ylims)),	ylims = [min(v) max(v)]*1.1;	end
+	set(hAx,'units','pixels');
+	ppos = get(hAx,'position');
+	set(hAx,'units','norm');
+	uscale = (diff(xlims)/diff(ylims)) * (ppos(4)/ppos(3));
+	up = uscale * u;
+	yp = zeros(size(jd));
+	xplot = ones(numel(jd),2);
+	yplot = xplot;
+	xplot(:,1) = jd(:);
+	xplot(:,2) = jd(:) + up;
+	xplot(:,3) = jd(:);
+	yplot(:,1) = yp(:);
+	yplot(:,2) = yp(:) + v(:);
+	yplot(:,3) = yp(:) * nan;
+	xplot = xplot';
+	yplot = yplot';
+	h = plot(xplot(:),yplot(:),'-', 'Parent', hAx);
+	set(hAx,'xlim',xlims, 'ylim',ylims, 'units', unit_back);
 
 % ------------------------------------------------------------------------------
 function [anoma, age_line, obliquity] = magmodel(hAxesMagBar, reversalsFile, dxyp, fDec, fInc, speed, ...
