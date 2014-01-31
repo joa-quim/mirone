@@ -76,22 +76,12 @@ function out = check_cmop(fname)
 	if (n_var == 1 && strcmp(var_units{1}, 'degrees'))
 		hf = ecran('stick',t{1}, t{2}, 'Stick plot');
 	else
-		hf = ecran(t{1}, t{2}, 'CMOP file');
+		hf = ecran(t{1}, t{2}, 'CMOP file', {'tag','CMOP'});
 	end
 
 	if (n_var > 1)
-		handEcran = guidata(hf);
-		hLine = findobj(handEcran.figure1, 'type', 'line');
-		set(hLine,'tag','CMOP')			% This tag will be used by ecran to set function handles to do cross scatter plots
 		for (k = 3:2:n_var*2)
-			ecran('add',t{3}, t{k+1});
-			if (k == 3)
-				t = findobj(handEcran.figure1, 'type', 'line');		% Fish the second line handle
-				if (t(1) == hLine),		hLine(2) = t(2);
-				else					hLine(2) = t(1);
-				end
-				set(hLine(2),'tag','CMOP')
-			end
+			ecran('add',t{3}, t{k+1}, {'tag','CMOP'});
 		end
 	end
 
