@@ -9,6 +9,7 @@ function varargout = ecran(varargin)
 % ecran('strick', t, u, v [,'title'])		% Plot a stick diagram. U,V are vector components. 
 % ecran(hMirFig, x, y [,'title'])
 % ecran(x, y [,'title'])
+% ecran([...,]x, y [,'title'],[PV])			% Whre PV is a Mx2 cell array with Property name/values to assign to line handle
 %
 % Function FileOpen_CB() provides several special cases. Namely TIME column input
 % and other goodies such reference one line to another. See its help
@@ -90,8 +91,11 @@ function varargout = ecran(varargin)
 	end
 
 	% ---- OK, the interface for this function is a mess. In part due to backward compatibility issues
-	n_in = nargin;
+	n_in = nargin;		PV = [];
 	if (~n_in),   varargin(1) = {[]};   end
+	if (isa(varargin{end}, 'cell'))				% A cell with Property-Values for lines (no testing correctness)
+		PV = varargin{end};		varargin(end) = [];
+	end
 
 	handles.handMir = [];		handles.show_popups = true;
 	handles.ellipsoide = [];	handles.geog = [];
@@ -120,7 +124,7 @@ function varargout = ecran(varargin)
 			handles.hMirFig = varargin{1};
 			varargin{1} = 'reuse';			% 
 
-		elseif ( n_in >= 2 && isnumeric(varargin{1}) && isnumeric(varargin{2}) ) % ecran(x, y, ...)
+		elseif ((n_in >= 2) && isnumeric(varargin{1}) && isnumeric(varargin{2})) % ecran(x, y, ...)
 			if (n_in == 2)					% All args are numeric
 				varargin(2:3) = varargin(1:2);
 				n_in = 3;
@@ -274,11 +278,17 @@ function varargout = ecran(varargin)
 	set(handles.axes1, 'UIContextMenu', handles.cmenu_axes);
   	set(handles.axes1, 'ButtonDownFcn', {@hide_uimenu,handles.figure1});
 	handles.uimenuGrid = uimenu(handles.cmenu_axes, 'Label', 'Grid on/off', 'Call', 'grid');
-	h = findobj(handles.axes1, 'type', 'line', 'tag', 'CMOP');
-	if (~isempty(h))
-		cmenuHand = uicontextmenu('Parent',handles.figure1);
-		set(h, 'UIContextMenu', cmenuHand);
-		uimenu(cmenuHand, 'Label', 'Make scatter plot with Me and the other CMOP line Me', 'Call', @make_scatterPlot);
+
+	if (~isempty(PV))
+		for (k = 1:size(PV,1))
+			set(handles.hLine, PV{k,1},PV{k,2})
+		end
+		if (strcmp(get(handles.hLine, 'tag'), 'CMOP'))
+			cmenuHand = uicontextmenu('Parent',handles.figure1);
+			set(handles.hLine, 'UIContextMenu', cmenuHand);
+			uimenu(cmenuHand, 'Label', 'Make scatter plot with Me and the other CMOP line Me', 'Call', @make_scatterPlot);
+			uimenu(cmenuHand, 'Label', 'Remove Outliers', 'Call', {@outliers_clean,handles.hLine}, 'Sep','on');
+		end
 	end
 
 	if (~isempty(handles.hLine)),	handles.n_plot = 1;		end		% Always true in cases where varargin{1} ~= []
@@ -564,6 +574,18 @@ function make_scatterPlot(obj, evt)
 	newHand = guidata(hf);
 	hLine = findobj(newHand.axes1, 'type', 'line');
 	set(hLine,'LineStyle', 'none', 'Marker', '.')
+
+% ------------------------------------------------------------------------------------------
+function outliers_clean(obj, evt, h)
+% ...
+	x = get(h,'XData');		y = get(h,'YData');
+	[pp,p] = spl_fun('csaps',x,y);			% To get csaps's p estimate
+	yy = spl_fun('csaps',x,y,p*0.95,x);
+	difa = abs(y - yy);
+	ind = (difa < 2*std(difa));
+	xx = x(ind);		yy = y(ind);
+	set(h, 'XData',xx, 'YData',yy)
+	axis(get(h,'Parent'),'tight');
 
 % ------------------------------------------------------------------------------------------
 function pick_onLines2reference(obj, evt)
