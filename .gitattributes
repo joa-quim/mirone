@@ -218,6 +218,7 @@ data/volcanoes.dat -text
 data/wcity.dat -text
 data/wcity_major.dat -text
 doc/MironeMan.chm -text
+/faz2.bat -text
 gmt_userdir/.gmtdefaults_SI -text
 gmt_userdir/.gmtdefaults_US -text
 gmt_userdir/CUSTOM_font_info.d -text
