@@ -3227,7 +3227,7 @@ function FileOpenSession_CB(handles, fname)
 		for (i = 1:length(s.Pline))
 			h_line = line('Xdata',s.Pline(i).x,'Ydata',s.Pline(i).y,'Parent',handles.axes1,'LineWidth',s.Pline(i).LineWidth,...
 				'color',s.Pline(i).color,'Tag',s.Pline(i).tag, 'LineStyle',s.Pline(i).LineStyle);
-			if (isfield(s.Pline(i),'Marker'))					% New in 21-9-2011
+			if (isfield(s.Pline(i),'Marker') && ~isempty(s.Pline(i).Marker))% New in 21-9-2011
 				set(h_line, 'Marker', s.Pline(i).Marker, 'MarkerSize',s.Pline(i).Size, ...
 					'MarkerFaceColor',s.Pline(i).FillColor, 'MarkerEdgeColor',s.Pline(i).EdgeColor)
 			end
