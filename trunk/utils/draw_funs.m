@@ -10,7 +10,7 @@ function varargout = draw_funs(hand, varargin)
 %	the data from an object handle, call with HAND = []. E.g (in load_xyz)
 %	draw_funs([], 'doSave_formated', x, y, z)
 
-%	Copyright (c) 2004-2013 by J. Luis
+%	Copyright (c) 2004-2014 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -289,7 +289,11 @@ function set_line_uicontext(h, opt)
 	if (IS_RECTANGLE)
 		uimenu(cmenuHand, 'Label', 'Rectangle limits (edit)', 'Sep','on', 'Call', @rectangle_limits);
 		uimenu(cmenuHand, 'Label', 'Register Image', 'Call', @rectangle_register_img);
-		uimenu(cmenuHand, 'Label', 'Transplant Image here', 'Call', @Transplant_Image);
+		if (handles.validGrid)
+			uimenu(cmenuHand, 'Label', 'Transplant GRID here', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''ImplantGrid'')');
+		else
+			uimenu(cmenuHand, 'Label', 'Transplant Image here','Call', 'transplants(gco,''image'')');
+		end
 		if (handles.geog)
 			uimenu(cmenuHand, 'Label', 'Grid/Image mosaicer', 'Call', 'mosaicer(gco)');
 			uimenu(cmenuHand, 'Label', 'Get image from Web Map Server', 'Call', 'wms_tool(gco)');
@@ -2085,80 +2089,6 @@ function trans = AffineTransform(uv,xy)
 	Tinv(:,3) = [0 0 1]';       % add third column
 	trans = inv(Tinv);
 	trans(:,3) = [0 0 1]';
-
-% -----------------------------------------------------------------------------------------
-function Transplant_Image(obj,eventdata)
-% Cirurgy Imagery operation. An external image will be inplanted inside the
-% rectangular zone defined by the rectangle whose handle is h.
-% Notice that we have to forsee the possibility of transplanting RGB images
-% into indexed bg images and vice-versa.
-
-h = gco;
-hFig = get(0,'CurrentFigure');  hAxes = get(hFig,'CurrentAxes');
-out = implanting_img(findobj(hFig,'Type','image'),h,get(hAxes,'xlim'),get(hAxes,'ylim'));
-if isempty(out),	return,		end
-h_img = findobj(get(hFig,'Children'),'Type','image');		% Get background image handle
-zz = get(h_img,'CData');
-
-% Find if Implanting image needs to be ud fliped
-if(strcmp(get(hAxes,'XDir'),'normal') && strcmp(get(hAxes,'YDir'),'reverse'))
-		flip = 0;
-else	flip = 1;
-end
-
-[nl_ip,nc_ip,n_planes_ip] = size(out.ip_img);       % Get dimensions of implanting image
-[nl_bg,nc_bg,n_planes_bg] = size(zz);               % Get dimensions of bg image
-if (n_planes_ip == 3),  indexed_ip = 0;     else   indexed_ip = 1;     end
-if (n_planes_bg == 3),  indexed_bg = 0;     else   indexed_bg = 1;     end
-
-if (out.resizeIP)
-	% We have to interpolate the Ip image to fit exactly with the rectangle dimensions.
-	%nl_new = linspace(1,nl_ip,(out.r_c(2)-out.r_c(1)+1));
-	%nc_new = linspace(1,nc_ip,(out.r_c(4)-out.r_c(3)+1));
-	%[X,Y] = meshgrid(nc_new,nl_new);
-	head = [1 nc_ip 1 nl_ip 0 255 0 1 1];
-	opt_N = ['-N' num2str(out.r_c(4)-out.r_c(3)+1) '/' num2str(out.r_c(2)-out.r_c(1)+1)]; % option for grdsample
-	if (~indexed_ip)                                % Implanting image is of RGB type
-		for (i = 1:3)
-			%ZI(:,:,i) = interp2(double(out.ip_img(:,:,i)),X,Y,'*cubic');
-			ZI(:,:,i) = grdsample_m(single(out.ip_img(:,:,i)),head,opt_N);
-		end
-	else
-		if isempty(out.ip_cmap)
-			errordlg('Implanting image has no colormap. Don''t know what to do.','Sorry');  return
-		end
-		%ZI = interp2(double(out.ip_img),X,Y,'*cubic');
-		ZI = grdsample_m(single(out.ip_img),head,opt_N);
-	end
-	if (flip),   ZI = flipdim(ZI,1);    end
-elseif (out.resizeIP == 10) % So pra nao funcionar (da erro na penultima linha)
-    %nl_new = linspace(1,nl_bg,(out.bg_size_updated(1)));
-    %nc_new = linspace(1,nc_bg,(out.bg_size_updated(2)));
-    %[X,Y] = meshgrid(nc_new,nl_new);
-    %if (~indexed_bg)                            % Background image is of RGB type
-        %for (i=1:3)
-            %zz(:,:,i) = interp2(double(zz(:,:,i)),X,Y,'*cubic');
-            %zz(:,:,i) = grdsample_m(zz(:,:,i),head,opt_N);
-        %end
-    %else
-        %zz = interp2(double(zz),X,Y,'*cubic');
-        %zz = grdsample_m(zz,head,opt_N);
-    %end
-    %if (flip)    out.ip_img = flipdim(out.ip_img,1);    end
-end
-
-if (indexed_ip && ~indexed_bg)				% Implanting indexed image on a RGB bg image
-	%I = ind2rgb8(out.ip_img,out.ip_cmap);	% Transform implanting image to RGB
-elseif (indexed_ip && indexed_bg)			% Shit, both ip & bg images are indexed. We have to RGB them
-	zz = ind2rgb8(zz,colormap);
-	%I = ind2rgb8(out.ip_img,out.ip_cmap);
-elseif (~indexed_ip && ~indexed_bg)			% Nice, nothing to do
-elseif (~indexed_ip && indexed_bg)			% Implanting RGB image on a indexed bg image.
-	zz = ind2rgb8(zz,colormap);				% Transform bg image to RGB
-end
-
-zz(out.r_c(1):out.r_c(2), out.r_c(3):out.r_c(4), :) = uint8(ZI);
-set(h_img,'CData',zz)
 
 % -----------------------------------------------------------------------------------------
 function copy_text_object(obj,eventdata)
