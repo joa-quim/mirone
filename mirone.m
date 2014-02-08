@@ -550,10 +550,10 @@ if ~isempty(opt)				% OPT must be a rectangle/polygon handle (the rect may serve
 		end
 	end
 
-	if ~( (x(1) == x(end)) && (y(1) == y(end)) && numel(x) == 5 && ...
+	xp(1) = min(x);		xp(2) = max(x);
+	yp(1) = min(y);		yp(2) = max(y);
+	if ~( numel(x) == 5 && (x(1) == x(end)) && (y(1) == y(end)) && ...
 			(x(1) == x(2)) && (x(3) == x(4)) && (y(1) == y(4)) && (y(2) == y(3)) )
-		xp(1) = min(x);		xp(2) = max(x);
-		yp(1) = min(y);		yp(2) = max(y);
 		if (xp(1) < handles.head(1) || xp(2) > handles.head(2) || yp(1) < handles.head(3) || yp(2) > handles.head(4))
 			% Somewhat rare case where the polygon extends to outside grid/img limits. Must crop it to them.
 			P1.x = x(:);	P1.y = y(:);	P1.hole = 0;	P2.hole = 0;
@@ -564,12 +564,10 @@ if ~isempty(opt)				% OPT must be a rectangle/polygon handle (the rect may serve
 			xp(1) = min(x);		xp(2) = max(x);
 			yp(1) = min(y);		yp(2) = max(y);
 		end
-		rect_crop = [xp(1) yp(1) (xp(2) - xp(1)) (yp(2) - yp(1))];
 		x_lim = [min(x) max(x)];		y_lim = [min(y) max(y)];
 		crop_pol = true;		% Flag that we are croping from a polygon
-	else
-		rect_crop = [x(1) y(1) (x(3)-x(2)) (y(2)-y(1))];
 	end
+	rect_crop = [xp(1) yp(1) (xp(2) - xp(1)) (yp(2) - yp(1))];	% Even when from a rectangle (to insure a known order)
 
 	if isempty(opt2)				% Just pure Image croping
 		Z_rect = get(handles.hImg,'CData');
