@@ -397,7 +397,7 @@ function erro = gateLoadFile(handles,drv,fname)
 		case 'las',			read_las(handles, fname);
 		case 'mgg_gmt',		GeophysicsImportGmtFile_CB(handles, fname);
 		case 'sww',			aquamoto(fname);
-		case 'dono',		erro = FileOpenGeoTIFF_CB(handles,'dono',fname);		% It means "I don't know"
+		case 'dono',		erro = FileOpenGeoTIFF_CB(handles,'dono',fname);	% It means "I don't know"
 		otherwise,			erro = 1;
 	end
 	if (erro),		warndlg(['Sorry but couldn''t figure out what to do with the ' fname ' file'],'Warning'),	end
@@ -522,10 +522,11 @@ function  PlatesAgeLift_CB(handles)
 
 % --------------------------------------------------------------------------------------------------
 function varargout = ImageCrop_CB(handles, opt, opt2, opt3)
-% OPT is either a handle to a line that may be a rectangle/polygon, OR, if empty
-%	calls rubberbandbox to do a interactive croping (called by "Crop Grid")
+% OPT  is either a handle to a line that may be a rectangle/polygon,
+%      a Mx2 or 2xM matrix with the (x y) vector coordinates, OR, if empty
+%      calls rubberbandbox to do a interactive croping (called by "Crop Grid")
 % OPT2 is a string to direct this function to different operations that
-%	apply to the grid and update the image.
+%      apply to the grid and update the image.
 % OPT3 contains the interpolation method when OPT2 == 'FillGaps' ('cubic', 'linear' or 'sea')
 % Note: I won't make the "Drape" option active in the cropped window
 %
@@ -541,7 +542,7 @@ if (nargin < 3),	opt2 = [];		end
 if (nargin < 4),	opt3 = [];		end
 
 if ~isempty(opt)				% OPT must be a rectangle/polygon handle (the rect may serve many purposes)
-	if ( (numel(opt) == 1) && ishandle(opt) )
+	if ((numel(opt) == 1) && ishandle(opt))
 		x = get(opt,'XData');	y = get(opt,'YData');
 	else
 		if (size(opt,2) > 2),	x = opt(1,1:end);	y = opt(2,1:end);	% Row vectors
@@ -553,7 +554,7 @@ if ~isempty(opt)				% OPT must be a rectangle/polygon handle (the rect may serve
 			(x(1) == x(2)) && (x(3) == x(4)) && (y(1) == y(4)) && (y(2) == y(3)) )
 		xp(1) = min(x);		xp(2) = max(x);
 		yp(1) = min(y);		yp(2) = max(y);
-		if ( xp(1) < handles.head(1) || xp(2) > handles.head(2) || yp(1) < handles.head(3) || yp(2) > handles.head(4) )
+		if (xp(1) < handles.head(1) || xp(2) > handles.head(2) || yp(1) < handles.head(3) || yp(2) > handles.head(4))
 			% Somewhat rare case where the polygon extends to outside grid/img limits. Must crop it to them.
 			P1.x = x(:);	P1.y = y(:);	P1.hole = 0;	P2.hole = 0;
 			P2.x = [handles.head(1); handles.head(1); handles.head(2); handles.head(2); handles.head(1)];
@@ -587,6 +588,7 @@ if ~isempty(opt)				% OPT must be a rectangle/polygon handle (the rect may serve
 			end
 		end
 		[m,n] = size(I);
+
 	elseif (strcmp(opt2,'CropaWithCoords'))		% Crop Image with coordinates
 		Z_rect = get(handles.hImg,'CData');
 		[I,r_c] = cropimg(handles.head(1:2),handles.head(3:4),Z_rect,rect_crop,'out_grid');
@@ -603,6 +605,10 @@ if ~isempty(opt)				% OPT must be a rectangle/polygon handle (the rect may serve
 			end
 		end
 		[m,n] = size(I);
+
+	elseif (strcmp(opt2,'ImplantGrid'))				% Read and external grid and implant it in host grid
+		[Z_rect, r_c] = transplants(opt, 'grid', handles);
+
 	else					% Extract the sub-grid inside the rectangle/polygon
 		[X,Y,Z,head] = load_grd(handles);
 		if isempty(Z),	set(handles.figure1,'pointer','arrow'),		return,	end		% An error message was already issued
@@ -737,31 +743,31 @@ elseif (strcmp(opt2,'FillGaps'))
 	if ~any(isnan(Z_rect(:)))	% No gaps
 		set(handles.figure1,'pointer','arrow')
 		warndlg('Selected area does not have any voids (NaNs)','Warning'),	 return
-	else
-		X = linspace( head(1) + (r_c(3)-1)*head(8), head(1) + (r_c(4)-1)*head(8), r_c(4) - r_c(3) + 1 );
-		Y = linspace( head(3) + (r_c(1)-1)*head(9), head(3) + (r_c(2)-1)*head(9), r_c(2) - r_c(1) + 1 );
-		if (~isempty(opt3) && strcmp(opt3,'surface'))
-			opt_R = sprintf('-R%.10f/%.10f/%.10f/%.10f', X(1), X(end), Y(1), Y(end));
-			opt_I = sprintf('-I%.10f/%.10f',head(8),head(9));
-		end
-		Z_rect = double(Z_rect);	% It has to be
-		aa = isnan(Z_rect(:));
-		[X,Y] = meshgrid(X,Y);
-		ZZ = Z_rect(:);		ZZ(aa) = [];
-		XX = X(:);			XX(aa) = [];
-		YY = Y(:);			YY(aa) = [];
-		if (~isempty(opt3))
-			switch opt3
-				case 'surface', Z_rect = gmtmbgrid_m(XX,YY,ZZ,opt_R,opt_I,'-T.25', '-Mz');
-				case 'cubic',	Z_rect = griddata_j(XX,YY,ZZ,X,Y,'cubic');
-				case 'linear',	Z_rect = griddata_j(XX,YY,ZZ,X,Y,'linear');
-				case 'sea',		Z_rect(aa) = 0;
-			end
-		else
-			Z_rect = gmtmbgrid_m(XX,YY,ZZ,opt_R,opt_I,'-T.25','-v', '-Mz');
-		end
-		clear X XX Y YY ZZ;
 	end
+
+	X = linspace( head(1) + (r_c(3)-1)*head(8), head(1) + (r_c(4)-1)*head(8), r_c(4) - r_c(3) + 1 );
+	Y = linspace( head(3) + (r_c(1)-1)*head(9), head(3) + (r_c(2)-1)*head(9), r_c(2) - r_c(1) + 1 );
+	if (~isempty(opt3) && strcmp(opt3,'surface'))
+		opt_R = sprintf('-R%.10f/%.10f/%.10f/%.10f', X(1), X(end), Y(1), Y(end));
+		opt_I = sprintf('-I%.10f/%.10f',head(8),head(9));
+	end
+	Z_rect = double(Z_rect);	% It has to be
+	aa = isnan(Z_rect(:));
+	[X,Y] = meshgrid(X,Y);
+	ZZ = Z_rect(:);		ZZ(aa) = [];
+	XX = X(:);			XX(aa) = [];
+	YY = Y(:);			YY(aa) = [];
+	if (~isempty(opt3))
+		switch opt3
+			case 'surface', Z_rect = gmtmbgrid_m(XX,YY,ZZ,opt_R,opt_I,'-T.25', '-Mz');
+			case 'cubic',	Z_rect = griddata_j(XX,YY,ZZ,X,Y,'cubic');
+			case 'linear',	Z_rect = griddata_j(XX,YY,ZZ,X,Y,'linear');
+			case 'sea',		Z_rect(aa) = 0;
+		end
+	else
+		Z_rect = gmtmbgrid_m(XX,YY,ZZ,opt_R,opt_I,'-T.25','-v', '-Mz');
+	end
+	clear X XX Y YY ZZ;
 
 elseif (strcmp(opt2,'SplineSmooth'))
 	X = linspace( head(1) + (r_c(3)-1)*head(8), head(1) + (r_c(4)-1)*head(8), r_c(4) - r_c(3) + 1 );
@@ -805,7 +811,12 @@ elseif (strcmp(opt2,'SetConst'))		% Replace grid values inside rect by a cte val
 	elseif (handles.have_nans && ~isnan(resp))			% Check that old NaNs had not been erased
 		handles.have_nans = grdutils(Z_rect,'-N');
 	end
+
+elseif (strcmp(opt2,'ImplantGrid'))		% The first part of this job was done above, where we got Z_rect and r_c
+	[X,Y,Z,head] = load_grd(handles);
+
 end
+
 if (done),		return,		end
 
 if (~strcmp(opt2,'MedianFilter'))		% Otherwise, this was already done in roi_filtering
@@ -821,15 +832,14 @@ if ~isempty(opt2)		% Here we have to update the image in the processed region
 	else					z_min = double(min(Z(:)));	z_max = double(max(Z(:)));
 	end
 	img = [];
-	if ( (abs(z_min - head(5)) > 1e-5 || abs(z_max - head(6)) > 1e-5) && handles.Illumin_type == 0 )
+	if ((abs(z_min - head(5)) > 1e-5 || abs(z_max - head(6)) > 1e-5) && handles.Illumin_type == 0)
 		img = scaleto8(Z);		% Z_MIN or Z_MAX have changed. Need to recompute image (but only if no illumin)
 	end
 	if (first_nans)		% We have NaNs for the first time. Adjust the colormap
 		aux_funs('colormap_bg',handles,Z,get(handles.figure1,'Colormap'));
 	end
 	z_int = uint8(round( ((double(Z_rect) - z_min) / (z_max - z_min))*255 ));
-	if ( handles.Illumin_type == 0)		% Nothing to do in particular
-	elseif ( handles.Illumin_type >= 1 && handles.Illumin_type <= 4 )
+	if (handles.Illumin_type >= 1 && handles.Illumin_type <= 4)
 		illumComm = getappdata(handles.figure1,'illumComm');
 		z_int = ind2rgb8(z_int,get(handles.figure1,'Colormap'));	% z_int is now RGB
 		%X = linspace( head(1) + (r_c(3)-1)*head(8), head(1) + (r_c(4)-1)*head(8), r_c(4) - r_c(3) + 1 );
@@ -844,7 +854,7 @@ if ~isempty(opt2)		% Here we have to update the image in the processed region
 			R = grdgradient_m(Z_rect,head,illumComm, '-a1');
 		end
 		z_int = shading_mat(z_int,R,'no_scale');	% and now it is illuminated
-	else
+	elseif (handles.Illumin_type ~= 0)
 		warndlg('Sorry, this operation is not allowed with this shading illumination type','Warning')
 		set(handles.figure1,'pointer','arrow'),		return
 	end
@@ -1669,7 +1679,7 @@ function ECWpatch(handles, tipo)
 
 % --------------------------------------------------------------------
 function FileOpenDEM_CB(handles, opt)
-	% Files of the following formats are read (well re-directed) here
+% Files of the following formats are read (well re-directed) here
 	tipo = opt;
 	switch opt
 		case {'GMT' 'Surfer', 'ENCOM', 'GSOFT'}
@@ -4148,6 +4158,14 @@ function FileSaveFleder_CB(handles, opt)
 
 % --------------------------------------------------------------------
 function ImageEdgeDetect_CB(handles, opt)
+% OPT	-> 'ppa'     Find ridges
+%		-> 'apalpa'  Get the polygons that sorround good data (limit NaN-noNaN)
+%		-> 'Vec'
+%		-> 'Lines'
+%		-> 'Circles' Find circles in image (uses OpenCV a fails a lot)
+%		-> 'Rect'    Find rectangles in image (uses OpenCV a fails a lot)
+%		-> 'Ras'
+%		-> 'SUS'
 if (handles.no_file),		return,		end
 
 img = get(handles.hImg,'CData');		% Even when not used, this op cost nothing
