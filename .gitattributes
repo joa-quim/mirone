@@ -641,6 +641,7 @@ utils/tfw_funs.m -text
 utils/tile.m -text
 utils/tooltipwrap.m -text
 utils/transform_fun.p -text
+utils/transplants.m -text
 utils/tsu_funs.m -text
 utils/txt2mat.m -text
 utils/ui_edit_patch_special.m -text
