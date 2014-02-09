@@ -3,9 +3,12 @@ function varargout = snapshot(varargin)
 %
 %   snapshot(H) operates on the image contents of the UNIQUE image in Figure whose handle is H
 %   snapshot(H,'whatever') as above but captures image and frame.
+%   snapshot(H,'frame') as above but captures image and frame.
+%   snapshot(H,'noname') Form used for saving Georefed images where format is not selectable here
+%   snapshot(H,'img') same as snapshot(H)
 %
 
-%	Copyright (c) 2004-2013 by J. Luis
+%	Copyright (c) 2004-2014 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -25,7 +28,7 @@ function varargout = snapshot(varargin)
 	if (isempty(varargin))
 	    errordlg('SNAPSHOT: wrong number of input arguments.','Error'),		return
 	end
- 
+
 	hObject = figure('Vis','off');
 	snapshot_LayoutFcn(hObject);
 	handles = guihandles(hObject);
@@ -33,10 +36,9 @@ function varargout = snapshot(varargin)
 
 	handles.hCallingFig = varargin{1};
 	handlesMir = guidata(handles.hCallingFig);
-
 	if (handlesMir.no_file)
 		errordlg('You didn''t even load a file. What are you expecting then?','Error')
-		delete(hObject);    return
+		delete(hObject),	return
 	end
 
 	handles.imgOnly = 1;            % Flag that indicates pure image capture
@@ -61,7 +63,7 @@ function varargout = snapshot(varargin)
 	fs = findobj(handles.hCallingFig, '-depth',1, 'Style','frame', 'Tag', 'FancyFrame');
 	handles.imgIsClean = false;
 	if (isempty(ls) && isempty(ps) && isempty(ts) && isempty(fs))
-		handles.imgIsClean = true;		% We won't need to screen capture if resolution is one-to-one
+		handles.imgIsClean = true;		% We won't need to do screen capture if resolution is one-to-one
 	end
 
 	% -------------- Fill the format popup list
@@ -108,7 +110,7 @@ function varargout = snapshot(varargin)
 	% ---------------- Fill the edit image size with the default values
 	if (handles.imgOnly)
 		nRows = round(handles.imAxSize(1));     nCols = round(handles.imAxSize(2));
-		origMegs = handles.imSize(1)*handles.imSize(2) / 1048576;   % Original image size in Mb
+		origMegs = handles.imSize(1)*handles.imSize(2)*handles.imSize(3) / 1048576;   % Original image size in Mb
 		sizeOrigUnits = ' Megs';
 		if (origMegs < 1)
 			sizeOrigUnits = ' Kb';  origMegs = origMegs * 1024;
@@ -158,35 +160,39 @@ function varargout = snapshot(varargin)
 		set(handles.slider_quality,'Visible','off')
 		set(handles.text_Quality,'Visible','off')
 		set(handles.text_qualityLev,'Visible','off')
+		set(handles.checkbox_origSize,'Val',1,'Enable','inactive')
 	end
 	set(handles.edit_imgSize,'String',handles.txtThisSize);
 
 	% ----------------- Set the slider with the apropriate range
 	if (handles.imgOnly)
-		sliderRange(handles,1,1)
+		sliderRange(handles,1,1)		% Sets in Magnification mode
 	else
 		set(handles.checkbox_origSize,'Enable','off')
-		sliderRange(handles,0,150)
+		sliderRange(handles,0,150)		% Sets in DPI mode
+	end
+	if (~handles.noname)
+		set(handles.slider_mag,'Val',1,'Enable','inactive')	% The above call to sliderRange insists in make it active
 	end
 
 	handles.hImg = handlesMir.hImg;
 	handles.hCallingAx = handlesMir.axes1;
-	handles.currMag = 1;		% Current magnification
-	handles.quality = 75;		% Current quality level. Only applyes to the jpeg format
-	handles.currDPI = 150;		% Current DPI for rasters
-	handles.currVecDPI = 300;	% Current DPI for vector graphics
-	handles.vecGraph = 0;		% To signal when we are dealing with vector graphics
+	handles.currMag = 1;			% Current magnification
+	handles.quality = 75;			% Current quality level. Only applyes to the jpeg format
+	handles.currDPI = 150;			% Current DPI for rasters
+	handles.currVecDPI = 300;		% Current DPI for vector graphics
+	handles.vecGraph = 0;			% To signal when we are dealing with vector graphics
 
 	% ----------------- Choose default command line output for snapshot
 	handles.output = [];
 	guidata(hObject, handles);
-	set(hObject,'Visible','on');
+	set(hObject,'Visible','on')
 
 	if (nargout)
 		uiwait(handles.figure1);
 		handles = guidata(handles.figure1);
 		varargout{1} = handles.output;
-		delete(handles.figure1);
+		delete(handles.figure1)
 	end
 
 % -----------------------------------------------------------------------------
@@ -390,7 +396,7 @@ function push_save_CB(hObject, handles)
 		if (~strcmp(get(handles.hCallingAx,'Ydir'),'normal')),    m = 1:nl;     end
 		for (i = m)
 			for (j = 1:nc)
-				for k=1:3;  pix(l) = img(i,j,k);    l = l + 1;     end
+				for (k=1:3),	pix(l) = img(i,j,k);    l = l + 1;     end
 			end
 		end
 		fwrite(fid,pix,'uint8');        fclose(fid);
@@ -496,7 +502,7 @@ uicontrol('Parent',h1,...
 
 uicontrol('Parent',h1,...
 'HorizontalAlignment','left',...
-'Position',[10 77 60 15],...
+'Position',[10 77 65 15],...
 'String','Magnification',...
 'Style','text',...
 'Tag','text_mag');
