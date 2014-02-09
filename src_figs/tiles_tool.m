@@ -1,7 +1,7 @@
 function varargout = tiles_tool(varargin)
 % Get tiles and mosaic them from Virtual Earth (and others) web tile servers 
 
-%	Copyright (c) 2004-2012 by J. Luis
+%	Copyright (c) 2004-2014 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -217,7 +217,7 @@ function click_anchor_CB(hObject, event)
 	else
 		set(hAnchor,'XData',pt(1,1) ,'YData',pt(1,2))
 	end
-	draw_funs(hAnchor,'DrawSymbol')
+	ui_edit_polygon(hAnchor)				% Set edition functions
 
 % -----------------------------------------------------------------------------------------
 function click_MOSAIC_e_GO_CB(hObject, event)
