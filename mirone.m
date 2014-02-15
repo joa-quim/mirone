@@ -4496,6 +4496,12 @@ function TransferB_CB(handles, opt)
 		fprintf(fid, 'echo Ja ta. Finished update\n');
 		fclose(fid);
 
+ 	elseif (strncmp(opt,'hydro',5))					% ...
+		if (strcmp(opt(7:end), 'flow'))
+			hydrology('entry', handles)
+		elseif (strcmp(opt(7:end), 'basin'))
+			hydrology('picdrain', handles)
+		end
 	end
 
 % --------------------------------------------------------------------

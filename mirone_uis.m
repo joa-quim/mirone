@@ -697,6 +697,10 @@ uimenu('Parent',h,'Call','mirone(''GridToolsDirDerive_CB'',guidata(gcbo),''first
 uimenu('Parent',h,'Call','mirone(''GridToolsDirDerive_CB'',guidata(gcbo),''second'')','Label','Second derivative');
 uimenu('Parent',h2,'Call','mirone(''TransferB_CB'',guidata(gcbo),''Multiscale'')','Label','Multi-scale Analysis');
 
+h = uimenu('Parent',hGT,'Label','River Tools','Sep','on');
+uimenu('Parent',h,'Call','mirone(''TransferB_CB'',guidata(gcbo),''hydro_flow'')','Label','Compute Flow');
+uimenu('Parent',h,'Call','mirone(''TransferB_CB'',guidata(gcbo),''hydro_basin'')','Label','Compute drainage basin');
+
 h = uimenu('Parent',hGT,'Label','Interpolate','Sep','on');
 uimenu('Parent',h,'Call','griding_mir(gcf,''surface'');', 'Label','Minimum curvature');
 uimenu('Parent',h,'Call','griding_mir(gcf,''nearneighbor'');', 'Label','Near neighbor');
