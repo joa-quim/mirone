@@ -171,7 +171,7 @@ function varargout = snapshot(varargin)
 		set(handles.checkbox_origSize,'Enable','off')
 		sliderRange(handles,0,150)		% Sets in DPI mode
 	end
-	if (~handles.noname)
+	if (handles.noname)
 		set(handles.slider_mag,'Val',1,'Enable','inactive')	% The above call to sliderRange insists in make it active
 	end
 
