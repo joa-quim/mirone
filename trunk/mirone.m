@@ -2044,22 +2044,39 @@ function Reft = ImageIllum(luz, handles, opt)
 		if (sigma < 1e-6),		sigma = 1e-6;	end		% We cannot let them be zero on sprintf('%.6f',..) somewhere else
 		if (offset < 1e-6),		offset = 1e-6;	end
 		handles.grad_offset = offset;	handles.grad_sigma = sigma;
+
 	elseif (strcmp(opt,'grdgrad_lamb'))		% GMT grdgradient lambertian illumination
 		illumComm = sprintf('-Es%.2f/%.2f',luz.azim, luz.elev);
 		R = grdgradient_m(Z,head,illumComm ,OPT_a);
 		handles.Illumin_type = 2;
+% 		nhs = 256;	ncolors = 256;
+% 		R = scaleto8(R);		A = handles.origFig;
+% 		IND  = uint16(R+1) + 256*uint16(A) + 1;
+% 		cmap = get(handles.figure1,'Colormap');
+% 		cmap = cmap(:);
+% 		cmap = bsxfun(@times,cmap,linspace(0,1,nhs));
+% 		cmap = reshape(cmap,[ncolors 3 nhs]);
+% 		cmap = permute(cmap,[3 1 2]);
+% 		cmap = reshape(cmap,[ncolors*nhs 3]);
+% 		cmapUINT8 = uint8(round(cmap*256));
+% 		img = reshape(cmapUINT8(IND(:),:),[size(IND),3]);
+% 		%img = ind2rgb8(IND,cmap);		% WTF this one screws (planty of blacks)? It should be the same but more efficient.
+
 	elseif (strcmp(opt,'grdgrad_peuck'))	% GMT grdgradient Peucker illumination
 		illumComm = '-Ep';
 		R = grdgradient_m(Z,head,illumComm, OPT_a);
 		handles.Illumin_type = 3;
+
 	elseif (strcmp(opt,'lambertian'))		% GMT Lambertian lighting illumination
 		illumComm = sprintf('-E%g/%g/%g/%g/%g/%g',luz.azim,luz.elev,luz.ambient,luz.diffuse,luz.specular,luz.shine);
 		R = grdgradient_m(Z,head,illumComm, OPT_a);
 		handles.Illumin_type = 4;
+
 	elseif (strcmp(opt,'manip'))			% GMT5 has this one
 		illumComm = sprintf('-Em%.2f/%.2f', luz.azim, luz.elev);
 		R = grdgradient_m(Z,head,illumComm, OPT_a);
 		handles.Illumin_type = 5;
+
 	else			% ESRI's hillshade
 		illumComm = sprintf('-Eh%.2f/%.2f', luz.azim, luz.elev);
 		R = grdgradient_m(Z,head,illumComm, OPT_a);
@@ -4496,12 +4513,12 @@ function TransferB_CB(handles, opt)
 		fprintf(fid, 'echo Ja ta. Finished update\n');
 		fclose(fid);
 
- 	elseif (strncmp(opt,'hydro',5))					% ...
-		if (strcmp(opt(7:end), 'flow'))
-			hydrology('entry', handles)
-		elseif (strcmp(opt(7:end), 'basin'))
-			hydrology('picdrain', handles)
-		end
+%  	elseif (strncmp(opt,'hydro',5))					% ...
+% 		if (strcmp(opt(7:end), 'flow'))
+% 			hydrology('entry', handles)
+% 		elseif (strcmp(opt(7:end), 'basin'))
+% 			hydrology('picdrain', handles)
+% 		end
 	end
 
 % --------------------------------------------------------------------
