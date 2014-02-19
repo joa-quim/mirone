@@ -973,6 +973,9 @@ function FileOpen_CB(hObject, handles)
 % Another special case is provided when a comment line is # TO_REFERENCE OFFSET=XX SCALE=XX
 % This will scale X coords as (X - X(1)) * scale + offset and also activate an option to
 % register this line with respect to a reference line.
+%
+% Special cases # MAREG or # MAREG_D or # MAREG_H when the file has only two columns and first
+% holds the time in: decimal days (first two cases) or decimal hours (third case)
 
 	str1 = {'*.dat;*.DAT;', 'Data files (*.dat,*.DAT)';'*.*', 'All Files (*.*)'};
 	[FileName, PathName, handles] = put_or_get_file(handles,str1,'Select input data','get');
@@ -1034,6 +1037,13 @@ function FileOpen_CB(hObject, handles)
 
 		elseif (~isempty(ind_mareg))			% The MAREG case
 			[serial_date sl] = strread(todos,'%f %f', 'delimiter', '\t');	% What if n_cols ~= 2?
+			time_is_hh = false;					% i.e time is assumed to be decimal day
+			if ((numel(H1) >= 9) && strcmpi(H1(8:9), '_H'))		% Got oen decimal hours case
+				time_is_hh = true;
+			end
+			if (time_is_hh)
+				serial_date = serial_date / 24;
+			end
 			difa = diff(serial_date);
 			difa2 = abs(diff(difa));
 			if (max(difa2) > 0.001)				% Need to reinterpolate. 1e-3 of a day is close to 1.5 min
