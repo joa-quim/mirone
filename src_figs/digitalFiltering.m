@@ -231,12 +231,13 @@ function varargout = digitalFiltering(varargin)
 	set(hObject,'Visible','on');
 
 	% Check if we have to do a uiwait and what goes out (if anything)
-	if (~isempty(handles.h_calling_img) || n_argout > 0)	% If called to operate in a parent figure
+	%if (~isempty(handles.h_calling_img) || n_argout > 0)	% If called to operate in a parent figure
+	if (n_argout > 0)						% If called with output, we must wait
 		uiwait(handles.figure1);							% or with output, we must wait
 		handles = guidata(hObject);
 		if (handles.output.cancel)			% Don't try to output eventual non-existing variables
-			if (n_argout == 1),     varargout{1} = [];      end
-			if (n_argout == 2),     varargout{1} = [];      varargout{2} = [];  end
+			if (n_argout == 1),		varargout{1} = [];		end
+			if (n_argout == 2),		varargout{1} = [];		varargout{2} = [];  end
 			delete(handles.figure1);		% The figure can be deleted now
 			return
 		end
@@ -256,6 +257,8 @@ function varargout = digitalFiltering(varargin)
 
 % ------------------------------------------------------------------------
 function listbox1_CB(hObject, handles)
+% Poor man simulation of a tree viewer
+
 	index_struct = get(hObject,'Value');
 	struct_names = handles.struct_names;
 	struct_values = handles.struct_values;
@@ -275,9 +278,9 @@ function listbox1_CB(hObject, handles)
 		fields =  fieldnames(struct_val);
 		names = cell(1,length(fields));
 		for i = 1:length(fields)
-			idx = strmatch(fields{i},all_names(:,1),'exact');
+			idx = strcmp(fields{i},all_names(:,1));
 			names{i} = all_names{idx,2};
-			if isstruct(getfield(struct_val(1), fields{i}))
+			if isstruct(struct_val(1).(fields{i}))
 				fields{i} = ['+ ' fields{i}];
 				names{i} = ['+ ' names{i}];            
 			end
@@ -286,16 +289,16 @@ function listbox1_CB(hObject, handles)
 
 	% Display filter info
 	name_clean = ddewhite(struct_names{index_struct});
-	if (name_clean(1) == '+' || name_clean(1) == '-'),       name_clean = name_clean(3:end);     end
-	idx = strmatch(name_clean,all_names(:,1),'exact');
+	if (name_clean(1) == '+' || name_clean(1) == '-'),		name_clean = name_clean(3:end);		end
+	idx = find(strcmp(name_clean,all_names(:,1)));
 	handles.tree_indice = idx;
 	pos = handles.txt_info_pos;
 	[outstring,newpos] = textwrap(handles.h_txt_info,handles.filt_desc{1}(idx));
 	set(handles.h_txt_info,'String',outstring,'Position',[pos(1),pos(2),pos(3),newpos(4)])
 
 	if (isnumeric(struct_val))
-		ind = strmatch('              General User-defined (mxn)',todos(index_struct));
-		if (ind)        % Whatever the custom filter is (it might have been loaded from a file), use it
+		ind = strcmp('              General User-defined (mxn)',todos(index_struct));
+		if (any(ind))				% Whatever the custom filter is (it might have been loaded from a file), use it
 			struct_val = handles.custom_filt;
 		end
 		update_table(handles,struct_val)        % Update the table
@@ -304,8 +307,8 @@ function listbox1_CB(hObject, handles)
 
 	% If double-click, and is struct, expand structure, and show fields
 	if (strcmp(get(handles.figure1, 'SelectionType'), 'open')) % if double click
-		idxP = strfind(struct_names{ index_struct}, '+');
-		idxM = strfind(struct_names{ index_struct}, '-');
+		idxP = strfind(struct_names{index_struct}, '+');
+		idxM = strfind(struct_names{index_struct}, '-');
 		if ~isempty(idxP)
 			[struct_names, struct_values] = expand_struct(struct_names, struct_values, ...
 				index_struct, fields, level, idxP);
@@ -317,8 +320,8 @@ function listbox1_CB(hObject, handles)
 		for (i = 1:length(struct_names))
 			name_clean = ddewhite(struct_names{i});
 			if (name_clean(1) == '+' || name_clean(1) == '-'),       name_clean = name_clean(3:end);     end
-			id1 = strmatch(name_clean,all_names(:,1),'exact');       % Find index to pretended name
-			id2 = strfind(name_clean,struct_names{i});				 % Find index of starting text (after the blanks)
+			id1 = strcmp(name_clean,all_names(:,1));				% Find index to pretended name
+			id2 = strfind(struct_names{i},name_clean);				% Find index of starting text (after the blanks)
 			names{i} = [struct_names{i}(1:id2-1) all_names{id1,2}];        
 		end
 		set(handles.listbox1,'String',names);
@@ -353,7 +356,7 @@ function [struct_names, struct_values] = expand_struct(struct_names, struct_valu
 			if (fields{i}(1) == '+' || fields{i}(1) == '-')
 				fields{i} = fields{i}(3:end);
 			end
-			values_app{i} = getfield(struct_values{idx}, fields{i});
+			values_app{i} = struct_values{idx}.(fields{i});
 		end
 		struct_names = [names_be; names_app; names_af];
 		struct_values = [values_be; values_app'; values_af];
@@ -611,7 +614,7 @@ function [grd,img] = push_apply_CB(hObject, handles)
 	end
 	set(handles.h_img2,'CData',img);			% Put the image in the lower axes
 
-	if (~isempty(handles.h_calling_img))   
+	if (~isempty(handles.h_calling_img) && ishandle(handles.h_calling_img))   
 		try
 			set(handles.h_calling_img,'CData',img);		% Put the filtered image in the original figure
 		catch
