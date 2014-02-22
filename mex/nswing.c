@@ -2869,13 +2869,11 @@ void moment_M(struct nestContainer *nest, int lev) {
 			if (htotal_d[ij] > EPS6 && htotal_d[ij+cp1] > EPS6) {
 				/* case b2 */
 				if (-bat[ij+cp1] >= etad[ij]) {
-					dd = htotal_d[ij+cp1];
-					df = dd;
+					df = dd = htotal_d[ij+cp1];
 				}
 				else if (-bat[ij] >= etad[ij+cp1]) {
 					/* case d2 */
-					dd = htotal_d[ij];
-					df = dd;
+					df = dd = htotal_d[ij];
 				}
 				else {
 					/* case b3/d3 */
@@ -2887,18 +2885,16 @@ void moment_M(struct nestContainer *nest, int lev) {
 			}
 			else if (htotal_d[ij] > EPS6 && htotal_d[ij+cp1] < EPS6 && etad[ij] >= etad[ij+cp1]) {
 				if (bat[ij] > bat[ij+cp1])
-					dd = etad[ij] - etad[ij+cp1];
+					df = dd = etad[ij] - etad[ij+cp1];
 				else
-					dd = htotal_d[ij];
-				df = dd;
+					df = dd = htotal_d[ij];
 			/* case b1 and c3 dry-wet */
 			}
 			else if (htotal_d[ij] < EPS6 && htotal_d[ij+cp1] > EPS6 && etad[ij] <= etad[ij+cp1]) {
 				if (bat[ij] > bat[ij+cp1])
-					dd = htotal_d[ij+cp1];
+					df = dd = htotal_d[ij+cp1];
 				else
-					dd = etad[ij+cp1] - etad[ij];
-				df = dd;
+					df = dd = etad[ij+cp1] - etad[ij];
 			}
 			else {			/* other cases no moving boundary a1,a2,c1,c2 */
 				//fluxm_d[ij] = 0;//vex[ij] = 0;
@@ -2944,7 +2940,7 @@ void moment_M(struct nestContainer *nest, int lev) {
 				if (dpa_ij_cm1 < EPS6 || htotal_d[ij] < EPS6)
 					advx = dtdx * (fluxm_a[ij] * fluxm_a[ij] / dpa_ij);
 				else
-					advx = dtdx * (fluxm_a[ij]*fluxm_a[ij] / dpa_ij - fluxm_a[ij-cm1]*fluxm_a[ij-cm1] / dpa_ij_cm1);
+					advx = dtdx * (fluxm_a[ij] * fluxm_a[ij] / dpa_ij - fluxm_a[ij-cm1] * fluxm_a[ij-cm1] / dpa_ij_cm1);
 			}
 			/* - upwind scheme for y-direction volume flux */
 			if (xqq < 0) {
