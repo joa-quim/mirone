@@ -88,6 +88,7 @@ function hObject = mirone_OpeningFcn(varargin)
 	handles.origFig = [];		% To store the original image copy
 	handles.fileName = [];		% To store any input grid/image file name
 	handles.image_type = 0;		% Image type. 1->grd; 2-> trivial (jpg,png,bmp,etc...); 3->GeoTIFF; 4->DEMs; 20-> white bg
+	handles.transparency = [];	% Will hold the word 'alpha' when reading a RGBA image
 	handles.computed_grid = 0;	% However, matrices with a gmt header will have this == 1, so that they can be saved
 	handles.no_file = 1;		% 0 means a grid is loaded and 1 that it is not (to test when icons can be pushed)
 	handles.geog = 1;			% By default grids are assumed to be in geographical coordinates
@@ -222,6 +223,9 @@ function hObject = mirone_OpeningFcn(varargin)
 				if (~isempty(pal)),		set(handles.figure1,'Colormap',pal),	rmappdata(0,'CropedColormap'),	end
 				setappdata(hObject,'Croped','yes');					% ???
 			end
+
+			if (size(varargin{1},3) == 4),	handles.transparency = 'alpha';		end		% Signal show_image that 4th band is transparency
+
 			handles = show_image(handles,win_name,X,Y,varargin{1},0,axis_t,handles.head(7),1);
 			if (~isReferenced),		grid_info(handles,[],'iminfo',varargin{1});			% Create a info string
 			else					grid_info(handles,tmp.srsWKT,'referenced',varargin{1});
@@ -1360,6 +1364,7 @@ function FileOpenNewImage_CB(handles, opt)
 	else
 		info_img = imfinfo(handles.fileName);		% This and att are repeated but not 100%
 		[I, att] = gdalread(handles.fileName);
+		handles.transparency = info_img.Transparency;
 		if (att.RasterCount > 4)
 			% Animatted images.	BUT WORK ONLY WITH INDEXED IMAGES, OTHERWISE ... DON'T KNOW WHAT ERROR
 			handles.cinemaImgs = I;
@@ -1815,15 +1820,15 @@ function handles = show_image(handles, fname, X, Y, I, validGrid, axis_t, adjust
 
 	if (~validGrid && handles.validGrid),		aux_funs('cleanGRDappdata',handles);	end
 	alpha = 1;
-	%if (size(I,3) == 4),		alpha = I(:,:,4);end
 	if (size(I,3) > 3)
-		alpha = I(:,:,4);
+		if (strcmp(handles.transparency, 'alpha'))
+			alpha = I(:,:,4);
+		end
 		I(:,:,4:end) = [];		% Make sure I is only MxN or MxNx3
 	elseif (size(I,3) == 2),	I(:,:,2) = [];			% (could be otherwise when input from multiband)
 	end
 
 	handles.hImg = image(X,Y,I,'Parent',handles.axes1,'AlphaData',alpha);
-	%set(handles.hImg,'AlphaData',alpha)
 	zoom_state(handles,'off_yes')
 	if (islogical(I))
 		set(handles.hImg,'CDataMapping','scaled');		set(handles.figure1,'ColorMap',gray(16));
@@ -1849,7 +1854,7 @@ function handles = show_image(handles, fname, X, Y, I, validGrid, axis_t, adjust
 	% Make an extra copy of those to use in "restore" because they may be changed by 'bands_list()'
 	handles.validGrid_orig = validGrid;			handles.was_int16_orig = handles.was_int16;
 	handles.computed_grid_orig = handles.computed_grid;
-	handles = SetAxesNumericType(handles);				% Set axes uicontextmenus
+	handles = SetAxesNumericType(handles);					% Set axes uicontextmenus
 	if (handles.image_type ~= 1),	handles.grdname = [];	end
 	if (~handles.have_nans),		set(handles.haveNaNs,'Vis','off')	% If no NaNs no need of these
 	else							set(handles.haveNaNs,'Vis','on')
@@ -1891,7 +1896,7 @@ function handles = show_image(handles, fname, X, Y, I, validGrid, axis_t, adjust
 			setappdata(handles.figure1,'BandList',tmp)
 			set(findobj(handles.Image,'-depth',1,'Label','Load Bands'), 'Vis','on')
 			set(findobj(handles.Image,'-depth',1,'Label','Explore RGB'),'Vis','on')
-		elseif (ndims(I) == 2)		% Remove it so it won't try to operate on indexed images
+		elseif (ndims(I) == 2)				% Remove it so it won't try to operate on indexed images
 			if (isappdata(handles.figure1,'BandList')),		rmappdata(handles.figure1,'BandList'),	end
 			set(findobj(handles.figure1,'Label','Load Bands'), 'Vis','off')
 			set(findobj(handles.figure1,'Label','Explore RGB'),'Vis','off')
