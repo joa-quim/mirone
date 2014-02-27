@@ -1,7 +1,7 @@
 function varargout = bands_list(varargin)
 % Compose a false color image by band selection
 
-%	Copyright (c) 2004-2012 by J. Luis
+%	Copyright (c) 2004-2014 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -122,12 +122,12 @@ function radio_G_CB(hObject, handles)
 
 % ------------------------------------------------------------------------
 function radio_B_CB(hObject, handles)
-if (get(hObject,'Value'))
-    set(handles.radio_R,'Value',0)
-    set(handles.radio_G,'Value',0)
-else
-    set(hObject,'Value',1)
-end
+	if (get(hObject,'Value'))
+		set(handles.radio_R,'Value',0)
+		set(handles.radio_G,'Value',0)
+	else
+		set(hObject,'Value',1)
+	end
 
 % --------------------------------------------------------------------------
 function push_pca_CB(hObject, handles)
@@ -360,9 +360,9 @@ if (strcmp(get(handles.figure1, 'SelectionType'), 'open'))		% if double click
 			index_struct, fields, level, idxM);
 	else
 		if (get(handles.radio_gray,'Value'))
-			guidata(hObject, handles);
 			push_Load_CB(handles.push_Load, handles)
 		end
+		guidata(hObject, handles);
 		return
 	end
 	names = cell(length(struct_names),1);
@@ -473,7 +473,7 @@ function handles = order_bands(handles,idx)
 		% put the clicked band on the box that has the active radiobutton
 		r = get(handles.radio_R,'Value');
 		g = get(handles.radio_G,'Value');
-		
+
 		if (r)
 			set(handles.edit_Rband,'String',handles.all_names{idx,2})
 			set(handles.radio_R,'Value',0)
@@ -529,63 +529,63 @@ function P = princomp(X, q, smaller)
 %   $Revision: 1.4 $  $Date: 2003/10/26 23:16:16 $
 
 
-if (nargin == 3),	smaller = true;			% Do not compute P.X
-else				smaller = false;
-end
+	if (nargin == 3),	smaller = true;			% Do not compute P.X
+	else				smaller = false;
+	end
 
-X = imstack2vectors(X);
+	X = imstack2vectors(X);
 
-K = size(X, 1);			was_double = true;
-if (~isa(X,'double'))
-	X = double(X);		was_double = false;
-end
+	K = size(X, 1);			was_double = true;
+	if (~isa(X,'double'))
+		X = double(X);		was_double = false;
+	end
 
-% Obtain the mean vector and covariance matrix of the vectors in X.
-[P.Cx, P.mx] = covmatrix(X);
-P.mx = P.mx';		% Convert mean vector to a row vector.
+	% Obtain the mean vector and covariance matrix of the vectors in X.
+	[P.Cx, P.mx] = covmatrix(X);
+	P.mx = P.mx';		% Convert mean vector to a row vector.
 
-% Obtain the eigenvectors and corresponding eigenvalues of Cx.  The
-% eigenvectors are the columns of n-by-n matrix V.  D is an n-by-n
-% diagonal matrix whose elements along the main diagonal are the
-% eigenvalues corresponding to the eigenvectors in V, so that X*V = D*V.
-[V, D] = eig(P.Cx);
+	% Obtain the eigenvectors and corresponding eigenvalues of Cx.  The
+	% eigenvectors are the columns of n-by-n matrix V.  D is an n-by-n
+	% diagonal matrix whose elements along the main diagonal are the
+	% eigenvalues corresponding to the eigenvectors in V, so that X*V = D*V.
+	[V, D] = eig(P.Cx);
 
-% Sort the eigenvalues in decreasing order.  Rearrange the eigenvectors to match. 
-d = diag(D);
-[d, idx] = sort(d);
-d = flipud(d);
-idx = flipud(idx);
-D = diag(d);
-V = V(:, idx);
+	% Sort the eigenvalues in decreasing order.  Rearrange the eigenvectors to match. 
+	d = diag(D);
+	[d, idx] = sort(d);
+	d = flipud(d);
+	idx = flipud(idx);
+	D = diag(d);
+	V = V(:, idx);
 
-% Now form the q rows of A from first q columns of V.
-P.A = V(:, 1:q)';
+	% Now form the q rows of A from first q columns of V.
+	P.A = V(:, 1:q)';
 
-% Compute the principal component vectors.
-Mx = repmat(P.mx, K, 1);	% M-by-n matrix.  Each row = P.mx.
-P.Y = P.A*(X - Mx)';		% q-by-K matrix.
-%P.Y = P.A*( cvlib_mex('sub', X, Mx) )';		% q-by-K matrix.
+	% Compute the principal component vectors.
+	Mx = repmat(P.mx, K, 1);	% M-by-n matrix.  Each row = P.mx.
+	P.Y = P.A*(X - Mx)';		% q-by-K matrix.
+	%P.Y = P.A*( cvlib_mex('sub', X, Mx) )';		% q-by-K matrix.
 
-if (~smaller)		% Obtain the reconstructed vectors.
-	P.X = (P.A'*P.Y)' + Mx;
-end
+	if (~smaller)		% Obtain the reconstructed vectors.
+		P.X = (P.A'*P.Y)' + Mx;
+	end
 
-% Save some memory
-if (~was_double),	clear X,	end		% The X was a local variable
-clear Mx
+	% Save some memory
+	if (~was_double),	clear X,	end		% The X was a local variable
+	clear Mx
 
-% Convert P.Y to K-by-q array and P.mx to n-by-1 vector.
-P.Y = single(P.Y);		% <== IT WON'T BE USED ANYMORE EXCEPT IN A CALL TO SCALETO8
-P.Y = P.Y';
-P.mx = P.mx';
+	% Convert P.Y to K-by-q array and P.mx to n-by-1 vector.
+	P.Y = single(P.Y);		% <== IT WON'T BE USED ANYMORE EXCEPT IN A CALL TO SCALETO8
+	P.Y = P.Y';
+	P.mx = P.mx';
 
-% The mean square error is given by the sum of all the 
-% eigenvalues minus the sum of the q largest eigenvalues.
-d = diag(D);
-P.ems = sum(d(q + 1:end));
+	% The mean square error is given by the sum of all the 
+	% eigenvalues minus the sum of the q largest eigenvalues.
+	d = diag(D);
+	P.ems = sum(d(q + 1:end));
 
-% Covariance matrix of the Y's:
-P.Cy = P.A * P.Cx * P.A';
+	% Covariance matrix of the Y's:
+	P.Cy = P.A * P.Cx * P.A';
 
 % -------------------------------------------------------------------------------
 function [C, m] = covmatrix(X)
@@ -599,20 +599,20 @@ function [C, m] = covmatrix(X)
 %   Digital Image Processing Using MATLAB, Prentice-Hall, 2004
 %   $Revision: 1.4 $  $Date: 2003/05/19 12:09:06 $
 
-[K, n] = size(X);
-if (~isa(X,'double')),	X = double(X);	end
-if n == 1		% Handle special case.
-	C = 0; 
-	m = X;
-else			% Compute an unbiased estimate of m.
-	m = sum(X, 1)/K;
-	% Subtract the mean from each row of X.
-	X = X - m(ones(K, 1), :);
-	% Compute an unbiased estimate of C. Note that the product is
-	% X'*X because the vectors are rows of X.	
-	C = (X'*X)/(K - 1);
-	m = m'; % Convert to a column vector.	 
-end
+	[K, n] = size(X);
+	if (~isa(X,'double')),	X = double(X);	end
+	if n == 1		% Handle special case.
+		C = 0; 
+		m = X;
+	else			% Compute an unbiased estimate of m.
+		m = sum(X, 1)/K;
+		% Subtract the mean from each row of X.
+		X = X - m(ones(K, 1), :);
+		% Compute an unbiased estimate of C. Note that the product is
+		% X'*X because the vectors are rows of X.	
+		C = (X'*X)/(K - 1);
+		m = m'; % Convert to a column vector.	 
+	end
 
 % -------------------------------------------------------------------------------
 function [X, R] = imstack2vectors(S, MASK)
@@ -635,33 +635,33 @@ function [X, R] = imstack2vectors(S, MASK)
 %   Digital Image Processing Using MATLAB, Prentice-Hall, 2004
 %   $Revision: 1.6 $  $Date: 2003/11/21 14:37:21 $
 
-% Preliminaries.
-[M, N, n] = size(S);
-if (nargin == 1),		MASK = true(M, N);
-else					MASK = (MASK ~= 0);
-end
+	% Preliminaries.
+	[M, N, n] = size(S);
+	if (nargin == 1),		MASK = true(M, N);
+	else					MASK = (MASK ~= 0);
+	end
 
-% Find the set of locations where the vectors will be kept before
-% MASK is changed later in the program.
-if (nargout == 2)
-	[I, J] = find(MASK);
-	R = [I, J];
-end
+	% Find the set of locations where the vectors will be kept before
+	% MASK is changed later in the program.
+	if (nargout == 2)
+		[I, J] = find(MASK);
+		R = [I, J];
+	end
 
-% Now find X.
+	% Now find X.
 
-% First reshape S into X by turning each set of n values along the third
-% dimension of S so that it becomes a row of X. The order is from top to
-% bottom along the first column, the second column, and so on.
-Q = M*N;
-X = reshape(S, Q, n);
+	% First reshape S into X by turning each set of n values along the third
+	% dimension of S so that it becomes a row of X. The order is from top to
+	% bottom along the first column, the second column, and so on.
+	Q = M*N;
+	X = reshape(S, Q, n);
 
-% Now reshape MASK so that it corresponds to the right locations 
-% vertically along the elements of X.
-MASK = reshape(MASK, Q, 1);
+	% Now reshape MASK so that it corresponds to the right locations 
+	% vertically along the elements of X.
+	MASK = reshape(MASK, Q, 1);
 
-% Keep the rows of X at locations where MASK is not 0.
-X = X(MASK, :);
+	% Keep the rows of X at locations where MASK is not 0.
+	X = X(MASK, :);
 
 % ---------------------------------------------------------------------------	
 % --- Creates and returns a handle to the GUI figure. 
