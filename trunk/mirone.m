@@ -1562,7 +1562,7 @@ function erro = FileOpenGeoTIFF_CB(handles, tipo, opt)
 			ind = strfind(str{k}(1:indF), 'x');
 			if (isempty(ind) || numel(ind) > 2)			% Don't want 1D or > 3D arrays
 				c(k) = true;	c(k-1) = true;		continue
-			elseif (numel(ind) == 2)
+			elseif (numel(ind) == 2 && ~strcmp(str{k}(ind(1)-2:ind(1)-1), '[1'))	% But exclude singletons, e.g. [1x1557x1557]
 				c3D(k) = true;
 			end
 			if ((indF - ind) == 2),		c(k) = true;	c(k-1) = true;	end		% Don't want arrays with less than 10 (2 char) columns
