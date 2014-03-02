@@ -89,7 +89,12 @@ switch option
 		else
 			fpos = figpos;				% Make a copy and use a fixed size ... for the time being.
 			if (~got_size)				% Otherwise respect input
-				fpos(3:4) = [400 numel(texto)*20+90];
+				n = maxTextWidth(texto);
+				fpos(3) = min(max(n * 5 + 20, 200), winMaxH);
+				fpos(4) = min(numel(texto)*20+90, winMaxH);
+				if ((fpos(2) + fpos(4)) > winMaxH)
+					fpos = getnicelocation(fpos, 'pixels');		% Reposition again
+				end
 				set(hFig, 'Pos', fpos)
 			end
 			hTxtContainer = uicontrol('Parent',hFig, 'Style','edit', 'Unit','pix', 'BackgroundColor',[1 1 1], ...
@@ -102,7 +107,7 @@ switch option
 		if (modal)		% Make the Fig modal
 			set(hFig,'WindowStyle','modal')
 		end
-		if (~isempty(movepos))			% Reposition figure on screen
+		if (~isempty(movepos))								% Reposition figure on screen
 			move2side(hFig, movepos)
 		end
 		if (~editBox)
@@ -112,7 +117,7 @@ switch option
 			if (isempty(extent)),	extent = zeros(1,4);	end		% Protection against empty texts
 		else
 			set([hFig,hTxtContainer],'units','norm');
-			extent = [0 0 1 0];		% TMP. Just to cheat the IF test below
+			extent = [0 0 1 0];								% TMP. Just to cheat the IF test below
 		end
 
 		% See if we should shrink the figure horizontally
@@ -233,7 +238,7 @@ function [figpos, figName, posTxt, movepos, bgcolor, fwcolor, Font, addButt, win
 		win_width = defFigPos(3);
 	end
 	if (~win_height)
-		numLines = size(texto, 1);
+		numLines = numel(texto) + 2;			% The extra 2 is to account for the bottom OK button
 		win_height = numLines * 15;
 		winMaxH = round(screensize(4)*.9);		% Max win height is 90% of screen height
 		win_height = min(win_height, winMaxH);
@@ -278,6 +283,18 @@ function figSize = getnicelocation(figSize, figUnits)
 	SS = get(0,'ScreenSize');
 	if ( (figSize(2) + figSize(4) + 30) > SS(4))
 		figSize(2) = figSize(2) - (figSize(2) + figSize(4) + 30 - SS(4));	% Longer but clearer
+	end
+
+% ------------------------------------------------------------------------------------	
+function n = maxTextWidth(texto)
+% Count the maximum columns in all cells of the cell array TEXTO
+	n = 0;
+	if (isa(texto,'cell'))
+		for (k = 1:numel(texto))
+			n = max(n, numel(texto{k}));
+		end
+	else
+		n = size(texto,2);		% If it's a text matrix
 	end
 
 % ------------------------------------------------------------------------------------	
