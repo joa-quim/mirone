@@ -2218,6 +2218,7 @@ function set_symbol_uicontext(h,data)
 			uimenu(cmenuHand, 'Label', 'Remove', 'Call', 'delete(gco)');
 		else							% Multiple symbols
 			uimenu(cmenuHand, 'Label', 'Remove this', 'Call', {@remove_one_from_many,h});
+			uimenu(cmenuHand, 'Label', 'Delete all', 'Call', {@del_line,h});
 		end
 	end
 
