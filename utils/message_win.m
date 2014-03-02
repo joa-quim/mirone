@@ -26,7 +26,7 @@ function handFig = message_win(option, texto, varargin)
 %
 %				'edit'			'yes' Writes the TEXTO into a editbox --- EXPERIMENTAL ----
 
-%	Copyright (c) 2004-2012 by J. Luis
+%	Copyright (c) 2004-2014 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -123,26 +123,26 @@ switch option
 			figpos = getnicelocation(figpos, 'pixels');		% Reposition again
 			set(hFig, 'Pos', figpos)
 			posBut(1) = figpos(3)-44;
-			set(hBut, 'Pos', posBut)			% We need to recenter the OK button too
+			set(hBut, 'Pos', posBut)						% We need to recenter the OK button too
 			set([hFig,hTxt], 'unit', 'norm')
 		end
 
-		if ( extent(4) > 1 || addButt)		% Text too big to fit in?
-			if (figpos(4) == winMaxH)		% Yes, add a slider to the figure
+		if ( extent(4) > 1 || addButt)						% Text too big to fit in?
+			if (figpos(4) > winMaxH || extent(4) > 1)		% Yes, add a slider to the figure
 				posTxt = get(hTxt,'Position');
 				set_slider(hFig, hTxt, posTxt, ceil(extent(4)));
-				figpos(3) = figpos(3) + 15;	% Extend fig width by the slider width (15 pixels)
+				figpos(3) = figpos(3) + 15;					% Extend fig width by the slider width (15 pixels)
 				set(hFig, 'Pos', figpos)
 			else
 				% Previous size estimates failed. Estimate again.
 				set([hFig,hTxt], 'unit', 'pix')
 				figpos = get(hFig, 'Pos');
 				extent = get(hTxt,'Extent');
-				extent(4) = extent(4) + 30;							% Need to take button size into account
-				figpos(4) = round(extent(4)+10);					% New fig height
-				figpos = getnicelocation(figpos, 'pixels');			% Reposition again
+				extent(4) = extent(4) + 30;					% Need to take button size into account
+				figpos(4) = round(extent(4)+10);			% New fig height
+				figpos = getnicelocation(figpos, 'pixels');	% Reposition again
 				set(hFig, 'Pos', figpos)
-				set(hTxt, 'Pos', [posTxt(1:3) extent(4)])			% Update text position after fig resizing
+				set(hTxt, 'Pos', [posTxt(1:3) extent(4)])	% Update text position after fig resizing
 				set([hFig,hTxt], 'unit', 'norm')
 			end
 		end
