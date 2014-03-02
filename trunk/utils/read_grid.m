@@ -2,7 +2,7 @@ function [Z, X, Y, srsWKT, handles, att] = read_grid(handles, fullname, tipo, op
 % Loads grid files that may contain DEMs or other grid (not images (byte)) types
 %
 % HANDLES	-> Normally, the Mirone's handles structure but can actually be any structure with these fields:
-%			-	grdMaxSize, ForceInsitu
+%			-	grdMaxSize, ForceInsitu, IamCompiled
 %			-	path_tmp	(only need if TIPO == GMT and file is GMT grid not in netCDF)
 %			-  Can be empty ([]) when TIPO ~= GMT.
 % FULLNAME	-> Like it says. The file's full name
@@ -18,7 +18,7 @@ function [Z, X, Y, srsWKT, handles, att] = read_grid(handles, fullname, tipo, op
 %				We use this construct to take advantage to all testing/setting machinery of this function.
 %				With all of that still note that OPT is optional
 
-%	Copyright (c) 2004-2013 by J. Luis
+%	Copyright (c) 2004-2014 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
