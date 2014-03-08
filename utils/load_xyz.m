@@ -1,5 +1,5 @@
 function varargout = load_xyz(handles, opt, opt2)
-% Read a generic ascii file that can be, or not, a multiseg file
+% Read a generic ascii file that can be, or not, a multi-segment file
 %
 %	Multi-segs files accept -G, -S & -W GMT type options plus a proj4 string for referencing.
 %		-S<symb>[size] accepts these GMT type symbol codes <a|c|d|h|i|n|p|s|x|+>
@@ -17,7 +17,8 @@ function varargout = load_xyz(handles, opt, opt2)
 %
 %	Optional
 %		OPT can be either [] in which case the filename will be asked here or contain the filename
-%		OPT2 can take several values 'arrows' to read a x,y,u,v file
+%		OPT2 can take several values
+%			'arrows'		to read a x,y,u,v file
 %			'AsLine'		plots a "regular" line
 %			'AsPoint'		plots the line vertex only using small filled circles 
 %			'AsMaregraph'	plots yellow dots used in the Tsunami modeling tools
@@ -48,7 +49,7 @@ function varargout = load_xyz(handles, opt, opt2)
 %					REG is either 0 (grid registration) or 1 (pixel reg). Default is 0
 %					If neither DY and REG is provided, DY = DX and REG = 0 are assumed
 
-%	Copyright (c) 2004-2013 by J. Luis
+%	Copyright (c) 2004-2014 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
