@@ -1,7 +1,9 @@
 function  datasets_funs(opt,varargin)
-% This contains the Mirone's 'Datasets' funtions
+% This contains the Mirone's 'Datasets' funtions. Remember that they are now 'Geography'
+%
+% This function deals also with the case of scattered (and eventally scaled) symbols
 
-%	Copyright (c) 2004-2012 by J. Luis
+%	Copyright (c) 2004-2014 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -15,6 +17,8 @@ function  datasets_funs(opt,varargin)
 %
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
+
+% $Id$
 
 switch opt(1:3)
 	case 'Coa'
