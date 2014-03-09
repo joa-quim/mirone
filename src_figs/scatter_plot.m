@@ -1,7 +1,7 @@
 function varargout = scatter_plot(varargin)
 % Plot scaled symbols. Scaling info (and optional color info) are provided in file's col 4 (5-7)
 
-%	Copyright (c) 2004-2012 by J. Luis
+%	Copyright (c) 2004-2014 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -15,7 +15,9 @@ function varargout = scatter_plot(varargin)
 %
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
-    
+
+% $Id$
+
 	if (isempty(varargin))
 		errordlg('SCATTER PLOT: wrong number of arguments.','Error'),	return
 	end
@@ -111,43 +113,43 @@ function popup_symbSize_CB(hObject, handles)
 
 % ------------------------------------------------------------------------------------
 function edit_symbSize_CB(hObject, handles)
-    ss = fix(str2double(get(hObject,'String')));
-    if (isnan(ss))      % User stupidity
-        set(hObject,'String',handles.lastSymbSize)
-        return
-    end
-    
-    % Now see if this is an already avilable size in which case it updates the popup
-    avail = [4 5 6 7 8 9 10 11 12 14 18 24];
-    ind = find(avail == ss);
-    if (~isempty(ind))
-        set(handles.popup_symbSize,'Val',ind)
-    else
-        avail = sort([avail ss]);
-        avail = {avail};
-        avail{end+1} = 'other';
-        set(handles.popup_symbSize,'String',avail)
-    end
-    handles.lastSymbSize = ss;
-    guidata(handles.figure1,handles)
+	ss = fix(str2double(get(hObject,'String')));
+	if (isnan(ss))      % User stupidity
+		set(hObject,'String',handles.lastSymbSize)
+		return
+	end
+
+	% Now see if this is an already avilable size in which case it updates the popup
+	avail = [4 5 6 7 8 9 10 11 12 14 18 24];
+	ind = find(avail == ss);
+	if (~isempty(ind))
+		set(handles.popup_symbSize,'Val',ind)
+	else
+		avail = sort([avail ss]);
+		avail = {avail};
+		avail{end+1} = 'other';
+		set(handles.popup_symbSize,'String',avail)
+	end
+	handles.lastSymbSize = ss;
+	guidata(handles.figure1,handles)
 
 % ------------------------------------------------------------------------------------
 function push_plot_CB(hObject, handles)
 % 
-	if (handles.no_file)        % Start empty but below we'll find the true data region
-		geog = 1;               % Not important. It will be confirmed later
+	if (handles.no_file)			% Start empty but below we'll find the true data region
+		geog = 1;					% Not important. It will be confirmed later
 		XMin = min(handles.symbXYZ(:,1));       XMax = max(handles.symbXYZ(:,1));        
 		YMin = min(handles.symbXYZ(:,2));       YMax = max(handles.symbXYZ(:,2));
 		xx = [XMin XMax];           yy = [YMin YMax];
-		region = [xx yy];           % 1 stands for geog but that will be confirmed later
+		region = [xx yy];			% 1 stands for geog but that will be confirmed later
 		mirone('FileNewBgFrame_CB', handles, [region geog])   % Create a background
-	else                        % Reading over an established region
+	else							% Reading over an established region
 		XYlim = getappdata(handles.hCallingAxes,'ThisImageLims');
 		xx = XYlim(1:2);            yy = XYlim(3:4);
 	end
 
 	% Get rid of points that are outside the map limits
-	[x,y,indx,indy] = aux_funs('in_map_region',handles.handMir,handles.symbXYZ(:,1),handles.symbXYZ(:,2),0.5,[xx yy]);
+	[x,y,indx,indy] = aux_funs('in_map_region',handles.handMir,handles.symbXYZ(:,1),handles.symbXYZ(:,2),0,[xx yy]);
 	if (isempty(x))
 		warndlg('There are no points inside the current Window limits.','Warning');
 		return
@@ -203,24 +205,29 @@ function push_plot_CB(hObject, handles)
 
 % ------------------------------------------------------------------------------------
 function push_delete_CB(hObject, handles)
-    delete(handles.hSymbs)
+% ...
+	if (~isempty(handles.hSymbs))
+	    delete(handles.hSymbs)
+		handles.hSymbs = [];
+		guidata(handles.figure1, handles)
+	end
 
 % ------------------------------------------------------------------------------------
 function push_color_CB(hObject, handles)
-    cmap = color_palettes;
-    if (~isempty(cmap))
-        set(handles.figure1,'Colormap',cmap)
-    end
+	cmap = color_palettes;
+	if (~isempty(cmap))
+		set(handles.figure1,'Colormap',cmap)
+	end
     
 % ------------------------------------------------------------------------------------
 function setUIs(handles,h)
-    for k=1:numel(h)
-        cmenuHand = uicontextmenu;
-        set(h(k), 'UIContextMenu', cmenuHand);
-        uimenu(cmenuHand, 'Label', 'Delete this', 'Callback', {@del_line,h(k)});
-        uimenu(cmenuHand, 'Label', 'Delete all', 'Callback', {@del_all,handles,h(k)});
-        ui_edit_polygon(h(k))
-    end
+	for (k = 1:numel(h))
+		cmenuHand = uicontextmenu('Parent', handles.hCallingFig);
+		set(h(k), 'UIContextMenu', cmenuHand);
+		uimenu(cmenuHand, 'Label', 'Delete this', 'Callback', {@del_line,h(k)});
+		uimenu(cmenuHand, 'Label', 'Delete all', 'Callback', {@del_all,handles,h(k)});
+		ui_edit_polygon(h(k))
+	end
     
 % -----------------------------------------------------------------------------------------
 function push_help_CB(hObject, handles)
@@ -232,27 +239,27 @@ msgbox(msg,'Help')
 % -----------------------------------------------------------------------------------------
 function del_all(obj,eventdata,handles,h)
 % Delete all objects that share the same tag of h
-    tag = get(h,'Tag');
-    hAll = findobj(handles.hCallingAxes,'Tag',tag);
-    del_line(obj,eventdata,hAll)
+	tag = get(h,'Tag');
+	hAll = findobj(handles.hCallingAxes,'Tag',tag);
+	del_line(obj,eventdata,hAll)
     
 % -----------------------------------------------------------------------------------------
 function del_line(obj,eventdata,h)
 % Delete symbols but before check if they are in edit mode
-    for (k=1:numel(h))
+	for (k=1:numel(h))
 		if (~isempty(getappdata(h(k),'polygon_data')))
-            s = getappdata(h(k),'polygon_data');
-            if strcmpi(s.controls,'on')         % Object is in edit mode, so this
-                ui_edit_polygon(h(k))           % call will force out of edit mode
-            end
+			s = getappdata(h(k),'polygon_data');
+			if strcmpi(s.controls,'on')         % Object is in edit mode, so this
+				ui_edit_polygon(h(k))           % call will force out of edit mode
+			end
 		end
 		delete(h(k));
-    end
+	end
 
 % --- Executes on key press over figure1 with no controls selected.%
 function figure1_KeyPressFcn(hObject, eventdata)
 	if isequal(get(hObject,'CurrentKey'),'escape')
-        delete(hObject);
+		delete(hObject);
 	end
 
 % --- Creates and returns a handle to the GUI figure. 
