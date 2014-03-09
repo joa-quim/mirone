@@ -1,7 +1,7 @@
 function writekml(handles,Z,fname)
 % Write a GoogleEarth kml file that will allow displaing the current image in GE
 
-%	Copyright (c) 2004-2012 by J. Luis
+%	Copyright (c) 2004-2014 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -207,9 +207,11 @@ function writekml(handles,Z,fname)
 				[latc,lonc] = circ_geo(y,x,rad,[],18);
 				z = repmat(z*200,1,numel(latc));
 				c = get(h(i),'MarkerFaceColor');
-				cores{1} = 255;    cores{2} = round(c(end:-1:1)*255);
-				cores{2} = [0 0 255];
+				cores{1} = 255;
+				cores{2} = round(c(end:-1:1)*255);
+				%cores{2} = [0 0 255];
 				cores{3} = [255 round(c(end:-1:1)*255)];
+
 				writePolygon(fid, lonc, latc, z, cores, 1, 'SSs')
 			end
 			fprintf(fid,'\t%s\n','</Folder>');
