@@ -1,7 +1,7 @@
 function varargout = classificationfig(varargin)
 %   Perform image classification, supervised an unsupervised, using k-means
 
-%	Copyright (c) 2004-2012 by J. Luis
+%	Copyright (c) 2004-2014 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -15,7 +15,11 @@ function varargout = classificationfig(varargin)
 %
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
- 
+%
+% The dcKMeans function is Copyright (C) David Corney 2000		D.Corney@cs.ucl.ac.uk
+
+% $Id: $
+
 	hObject = figure('Vis','off');
 	classificationfig_LayoutFcn(hObject);
 	handles = guihandles(hObject);
@@ -63,7 +67,7 @@ function varargout = classificationfig(varargin)
 	setappdata(handles.hCallingFig,'dependentFigs',plugedWin);
 
 	%------------ Give a Pro look (3D) to the frame boxes  -------------------------------
-		new_frame3D(hObject, handles.text_isolate)
+	new_frame3D(hObject, handles.text_isolate)
 	%------------- END Pro look (3D) -----------------------------------------------------
 
 	str = sprintf(['With the supervised classification\n'...
@@ -150,67 +154,68 @@ function push_compute_CB(hObject, handles)
 		warndlg('Apparently you loaded another file. So you need to call the "k-means classification" option again','Warning')
 		return
 	end
-    img = double(get(handles.hImg,'CData')) / 255;      % Get the image
-    nx = size(img,2);    ny = size(img,1);
-    W = fix(handles.nNeighbors / 2);                    % If W = 3 it means a 3x3 window centered on point i
 
-    if (ndims(img) == 2)
-        segcolors = img(:);
-        to_resize = size(img);
-        if (handles.supervised)
-            colors = zeros(nClusters,1);
-            for (i=1:nClusters)
-                colors(i) = mean(mean( img( max(r(i)-W,1):min(r(i)+W,ny), max(c(i)-W,1):min(c(i)+W,nx) ) ));
-                %colors(i,:) = img(r(i),c(i));
-            end
-        end
-    else
-        %Get individual RGB colors included in segmentation
-        rc = img(:,:,1);        gc = img(:,:,2);        bc = img(:,:,3);
-        to_resize = size(rc);
-        segcolors = [rc(:) gc(:) bc(:)];
-        if (handles.supervised)
-            colors = zeros(nClusters,3);
-            for (i=1:nClusters)
-                tmp1 = mean(mean( img( max(r(i)-W,1):min(r(i)+W,ny), max(c(i)-W,1):min(c(i)+W,nx),1 ) ));
-                tmp2 = mean(mean( img( max(r(i)-W,1):min(r(i)+W,ny), max(c(i)-W,1):min(c(i)+W,nx),2 ) ));
-                tmp3 = mean(mean( img( max(r(i)-W,1):min(r(i)+W,ny), max(c(i)-W,1):min(c(i)+W,nx),3 ) ));
-                %colors(i,:) = img(r(i),c(i),:);
-                colors(i,:) = [tmp1 tmp2 tmp3];
-            end
-        end
-    end
-    
-    if (handles.supervised)
-        %Idx = kmeans_j(segcolors,nClusters,'start',colors,'emptyaction','singleton','display','win');
-        Idx = dcKMeans(segcolors, nClusters, colors, 50);
-    else
-        %[Idx,colors] = kmeans_j(segcolors,nClusters,'emptyaction','singleton','display','win');
-        [Idx,colors] = dcKMeans(segcolors, nClusters, [], 50);
-    end
-    
-    if (isempty(Idx)),		return,		end		% Aborted
+	img = double(get(handles.hImg,'CData')) / 255;      % Get the image
+	nx = size(img,2);    ny = size(img,1);
+	W = fix(handles.nNeighbors / 2);                    % If W = 3 it means a 3x3 window centered on point i
 
-    if (size(colors,2) == 1)    % Unsupervised on a BW image
-        colors = [colors(:) colors(:) colors(:)];
-    end
+	if (ndims(img) == 2)
+		segcolors = img(:);
+		to_resize = size(img);
+		if (handles.supervised)
+			colors = zeros(nClusters,1);
+			for (i=1:nClusters)
+				colors(i) = mean(mean( img( max(r(i)-W,1):min(r(i)+W,ny), max(c(i)-W,1):min(c(i)+W,nx) ) ));
+				%colors(i,:) = img(r(i),c(i));
+			end
+		end
+	else
+		%Get individual RGB colors included in segmentation
+		rc = img(:,:,1);        gc = img(:,:,2);        bc = img(:,:,3);
+		to_resize = size(rc);
+		segcolors = [rc(:) gc(:) bc(:)];
+		if (handles.supervised)
+			colors = zeros(nClusters,3);
+			for (i=1:nClusters)
+				tmp1 = mean(mean( img( max(r(i)-W,1):min(r(i)+W,ny), max(c(i)-W,1):min(c(i)+W,nx),1 ) ));
+				tmp2 = mean(mean( img( max(r(i)-W,1):min(r(i)+W,ny), max(c(i)-W,1):min(c(i)+W,nx),2 ) ));
+				tmp3 = mean(mean( img( max(r(i)-W,1):min(r(i)+W,ny), max(c(i)-W,1):min(c(i)+W,nx),3 ) ));
+				%colors(i,:) = img(r(i),c(i),:);
+				colors(i,:) = [tmp1 tmp2 tmp3];
+			end
+		end
+	end
+
+	if (handles.supervised)
+		%Idx = kmeans_j(segcolors,nClusters,'start',colors,'emptyaction','singleton','display','win');
+		Idx = dcKMeans(segcolors, nClusters, colors, 50);
+	else
+		%[Idx,colors] = kmeans_j(segcolors,nClusters,'emptyaction','singleton','display','win');
+		[Idx,colors] = dcKMeans(segcolors, nClusters, [], 50);
+	end
+
+	if (isempty(Idx)),		return,		end		% Aborted
+
+	if (size(colors,2) == 1)    % Unsupervised on a BW image
+		colors = [colors(:) colors(:) colors(:)];
+	end
 
 	Idx = uint8(Idx-1);
 	Idx = reshape(Idx,to_resize);
 
-    if (handles.image_type == 2 || handles.image_type == 20)
-        h = mirone(Idx);
-        set(h,'ColorMap',colors,'Name','Image classification')
-    else
-        tmp.X = handles.head(1:2);  tmp.Y = handles.head(3:4);  tmp.head = handles.head;
-        tmp.cmap = colors;
-        tmp.name = 'Image classification';
-        h = mirone(Idx,tmp);
-    end
-	
+	if (handles.image_type == 2 || handles.image_type == 20)
+		h = mirone(Idx);
+		set(h,'ColorMap',colors,'Name','Image classification')
+	else
+		tmp.X = handles.head(1:2);  tmp.Y = handles.head(3:4);  tmp.head = handles.head;
+		tmp.cmap = colors;
+		tmp.name = 'Image classification';
+		h = mirone(Idx,tmp);
+	end
+
 	handMir = guidata(h);
 	set(handMir.hImg, 'CDataMapping', 'scaled')
-	
+
 	set(handles.listbox_classes,'String',0:nClusters-1, 'Max', nClusters-1)		% To allow multiple class selection
 	set(handles.push_getClass,'Enable','on')
 	handles.hMirClass.hImg = handMir.hImg;
@@ -328,48 +333,49 @@ function [Classes,Centres,FinalDistance] = dcKMeans(Data,k,InitCentres,MaxIters)
 
 % Copyright (C) David Corney 2000		D.Corney@cs.ucl.ac.uk
 
-if (nargin < 3)
-	InitCentres = ChooseInitialCentres(Data,k);		%randomly choose starting point (where needed)
-end
-if (isempty(InitCentres)),  InitCentres = ChooseInitialCentres(Data,k);     end
-Centres = InitCentres;
-OldCentres = Centres;
-if (nargin < 4),   MaxIters = 100;  end
-boing = 0;
+	if (nargin < 3)
+		InitCentres = ChooseInitialCentres(Data,k);		%randomly choose starting point (where needed)
+	end
+	if (isempty(InitCentres)),  InitCentres = ChooseInitialCentres(Data,k);     end
+	Centres = InitCentres;
+	OldCentres = Centres;
+	if (nargin < 4),   MaxIters = 100;  end
+	boing = 0;
 
-R = size(Data,1);
+	R = size(Data,1);
 
-DataSq = repmat(sum(Data.^2,2),1,k);	%sum squared data - save re-calculating repeatedly later
-%Do we need DataSq? It's constant, and we're minimsing things...
+	DataSq = repmat(sum(Data.^2,2),1,k);	%sum squared data - save re-calculating repeatedly later
+	%Do we need DataSq? It's constant, and we're minimsing things...
 
-aguentabar(0,'title','Please wait ...','CreateCancelBtn')
-for i = 1:MaxIters
-	Dist = DataSq + repmat(sum((Centres.^2)',1),R,1) - 2.*(Data*(Centres'));   %i.e. d^2 = (x-c)^2 = x^2 + c^2 -2xc
-	[D,Centre] = min(Dist,[],2);		%label of nearest centre for each point
-	
-	for j=1:k
-		idx = find(Centre == j);
-		if (~isempty(idx))
-			Centres(j,:) = mean(Data(idx,:));
+	hWait = aguentabar(0,'title','Please wait ...','CreateCancelBtn');
+	for i = 1:MaxIters
+		Dist = DataSq + repmat(sum((Centres.^2)',1),R,1) - 2.*(Data*(Centres'));   %i.e. d^2 = (x-c)^2 = x^2 + c^2 -2xc
+		[D,Centre] = min(Dist,[],2);		%label of nearest centre for each point
+
+		for (j = 1:k)
+			idx = find(Centre == j);
+			if (~isempty(idx))
+				Centres(j,:) = mean(Data(idx,:));
+			end
+		end
+
+		Change = sum(sum(abs(OldCentres-Centres)));
+		if (Change < 1e-8),		break,		end		%Have we converged yet?
+		OldCentres = Centres;
+		hWait = aguentabar(i/MaxIters);
+		if (isnan(hWait))		% The Cancel button was hit and the aguentabar destroyed
+			boing = 1;
+			break
 		end
 	end
-	
-	Change = sum(sum(abs(OldCentres-Centres)));
-	if (Change < 1e-8),		break,		end		%Have we converged yet?
-	OldCentres=Centres;
-	hWait = aguentabar(i/MaxIters);
-	if (isnan(hWait))		% The Cancel button was hit and the aguentabar destroyed
-		boing = 1;
-		break
-	end
-end
-clear D Centre DataSq
+	clear D Centre DataSq
+	if (ishandle(hWait)),	delete(hWait),	end		% When convergence finish before MaxIters
 
-if (~boing)					% Normal termination
-    [FinalDistance,Classes] = min(Dist,[],2);		%label points one last time
-else						% Aborted
-    Classes = [];   Centres = [];   FinalDistance = [];
-end
+	if (~boing)					% Normal termination
+		[FinalDistance,Classes] = min(Dist,[],2);		%label points one last time
+	else						% Aborted
+		Classes = [];   Centres = [];   FinalDistance = [];
+	end
 
 % -------------------------------------------------------------------------
 function [C,perm] = ChooseInitialCentres(set,k)
@@ -380,9 +386,9 @@ function [C,perm] = ChooseInitialCentres(set,k)
 %
 %(C) David Corney (2000)   		D.Corney@cs.ucl.ac.uk
 
-perm = randperm(size(set,1));
-perm = perm(1:k);
-C = set(perm,:);	
+	perm = randperm(size(set,1));
+	perm = perm(1:k);
+	C = set(perm,:);	
 
 % --- Creates and returns a handle to the GUI figure. 
 function classificationfig_LayoutFcn(h1)
