@@ -25,16 +25,17 @@ function varargout = color_palettes(varargin)
 
 	handles.z_min = [];     handles.z_max = [];     handles.z_min_orig = [];    handles.z_max_orig = [];	cmap = [];
 	handles.have_nans = 0;	handles.hCallingFig = [];	later_ReadPalette = false;
+	handles.home_dir = [];
 	handles.IAmOctave = (exist('OCTAVE_VERSION','builtin') ~= 0);	% To know if we are running under Octave
 
 	if (nargin == 1 && isstruct(varargin{1}))
 		handMir = varargin{1};
+		handles.hCallingFig = handMir.figure1;
 		if (~handMir.no_file)			% We have something on the Mirone window
 			if (ndims(get(handMir.hImg,'CData')) == 3)
 				warndlg('True color images do not use color palettes. So you cannot change it.','Warning');
 				delete(hObject);		return
 			end
-			handles.hCallingFig = handMir.figure1;
 			Z = getappdata(handMir.figure1,'dem_z');
 			if (~isempty(Z))
 				handles.have_nans = handMir.have_nans;
@@ -60,9 +61,19 @@ function varargout = color_palettes(varargin)
 		set(handles.OptionsAutoApply,'checked','off','Enable','off')	% Prevent trying to update an unexisting figure cmap
 		set(handles.OptionsApply,'Enable','off')
 		set([handles.edit_Zmax handles.edit_Zmin handles.text_MinZ handles.text_MaxZ],'Enable','off');
-		handles.home_dir = cd;
-		handles.work_dir = cd;		handles.last_dir = cd;	% To not compromize put_or_get_file
 	end
+
+	if (isempty(handles.home_dir))
+		mir_dirs = getappdata(0,'MIRONE_DIRS');
+		if (~isempty(mir_dirs))
+			handles.home_dir = mir_dirs.home_dir;		% Start in values
+			handles.work_dir = mir_dirs.work_dir;
+			handles.last_dir = mir_dirs.last_dir;
+		else
+			handles.home_dir = cd;		handles.work_dir = cd;		handles.last_dir = cd;
+		end
+	end
+
 	handles.d_path = [handles.home_dir filesep 'data' filesep];
 
 	handles.pal_top = [];			% will contain new colormaps as changed by the the sliders
@@ -111,10 +122,10 @@ function varargout = color_palettes(varargin)
 	% This stupid doesn't allow a frame in the background of an axes. I tried
 	% everything but the axes is allways behind the frame. So the trick will be to
 	% change it's size here (it was to small in guide) and let frame3D do the job.
-		posf_b = get(handles.frame_bot,'Pos');
-		posf_t = get(handles.frame_top,'Pos');
-		set(handles.frame_top,'Pos',[posf_t(1) posf_t(2) posf_b(3) posf_t(4)]);
-		new_frame3D(hObject, NaN)
+	posf_b = get(handles.frame_bot,'Pos');
+	posf_t = get(handles.frame_top,'Pos');
+	set(handles.frame_top,'Pos',[posf_t(1) posf_t(2) posf_b(3) posf_t(4)]);
+	new_frame3D(hObject, NaN)
 	%------------- END Pro look (3D) -----------------------------------------------------
 
 	if (later_ReadPalette)		% When pallete filename was transmited in input
@@ -128,6 +139,7 @@ function varargout = color_palettes(varargin)
 		else
 			cmap = colormap(jet(256));
 		end
+		if (isempty(cmap)),		cmap = colormap(jet(256));	end		% When handles.hCallingFig is empty
 	end
 
 	handles.cmap = cmap;
