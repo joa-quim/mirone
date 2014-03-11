@@ -1364,7 +1364,7 @@ function FileOpenNewImage_CB(handles, opt)
 	else
 		info_img = imfinfo(handles.fileName);		% This and att are repeated but not 100%
 		[I, att] = gdalread(handles.fileName);
-		handles.transparency = info_img.Transparency;
+		try,	handles.transparency = info_img.Transparency;	end
 		if (att.RasterCount > 4)
 			% Animatted images.	BUT WORK ONLY WITH INDEXED IMAGES, OTHERWISE ... DON'T KNOW WHAT ERROR
 			handles.cinemaImgs = I;
