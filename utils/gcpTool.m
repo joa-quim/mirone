@@ -3,7 +3,7 @@ function handles = gcpTool(handles,axis_t,X,Y,I)
 % Image registration tool. If the master image has coordinates this will work
 % as Image-to-Map rectification, otherwise it works in the Image-to-Image mode.
 
-%	Copyright (c) 2004-2012 by J. Luis
+%	Copyright (c) 2004-2014 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -17,6 +17,8 @@ function handles = gcpTool(handles,axis_t,X,Y,I)
 %
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
+
+% $Id$
 
 	if (handles.mirVersion(1) >= 2)
 		delete([handles.Image handles.Tools handles.Draw handles.Plates handles.MagGrav ...
@@ -142,7 +144,11 @@ function handles = gcpTool(handles,axis_t,X,Y,I)
 	fonteName = get(handles.axes1,'FontName');      fonteSize = get(handles.axes1,'FontSize');
 	handles.axes2 = axes('Units','pixels','FontName',fonteName,'FontSize',fonteSize, ...   
 		'Pos',[(posFig(1)+marg) (posStatusBar(end)+margAnotHor+sldT+5) img2W axesH]);
-	handles.hSlaveImage = image(X,Y,I,'Parent',handles.axes2);    set(handles.axes2,'Tag','axes2')
+	if (size(I,3) > 3)			% Sometimes, true or fake transparency manage to arrive here. We don't want that
+		I(:,:,4:end) = [];
+	end
+	handles.hSlaveImage = image(X,Y,I,'Parent',handles.axes2);
+	set(handles.axes2,'Tag','axes2')
 	if (strcmp(axis_t,'xy')),			set(handles.axes2,'XDir','normal','YDir','normal')
 	elseif (strcmp(axis_t,'off')),		set(handles.axes2,'Visible','off')
 	end
