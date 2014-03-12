@@ -1480,6 +1480,13 @@ function FileOpenGDALmultiBand_CB(handles, opt, opt2, opt3)
 		opt_B = sprintf('-B1-%d', bands_inMemory);
 		I = gdalread(fname,'-S', opt_B, opt_U, '-C');
 		n_bands = att.RasterCount;
+		if (n_bands == 4)					% We might have a situation here. A Geotiff with transparency
+			[P,N,EXT] = fileparts(fname);
+			if (strncmpi(EXT, '.tif', 4))	% For tiffs/geotiffs check with matlab
+				info_img = imfinfo(fname);	% GDAL doesn't tell us about transparency
+				try,	handles.transparency = info_img.Transparency;	end
+			end
+		end
 		bands_inMemory = 1:min(n_bands,bands_inMemory);			% Make it a vector
 		handles.head = att.GMT_hdr;
 		handles.image_type = 2;		handles.geog = 0;
