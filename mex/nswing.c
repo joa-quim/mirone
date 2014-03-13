@@ -51,7 +51,7 @@
  * To compile, do for example
  *	cl nswing.c -IC:\programs\compa_libs\netcdf_GIT\compileds\VC10_64\include
  *     C:\programs\compa_libs\netcdf_GIT\compileds\VC10_64\lib\netcdf.lib /DI_AM_C 
- *     /Ox /Oy- /arch:SSE2 /fp:precise 
+ *     /DHAVE_NETCDF /Ox /Oy- /arch:SSE2 /fp:precise 
  *
  *	Translated to C, mexified, added number options, etc... By
  *	Joaquim Luis - 2013
@@ -328,11 +328,11 @@ int main(int argc, char **argv) {
 	int     writeLevel = 0;              /* If save grids, will hold the saving level (when nesting) */
 	int     i, j, k, n;
 	int     start_i;                     /* Where the loop over argc starts: MEX -> 0; STANDALONE -> 1 */
-	int     grn = 0, cumint = 0, decimate_max = 1, iprc;
+	int     grn = 0, cumint = 0, decimate_max = 1, iprc, r_bin_b, r_bin_f;
 	int     w_bin = TRUE, cumpt = FALSE, error = FALSE, do_2Dgrids = FALSE, do_maxs = FALSE;
 	int     out_energy = FALSE, max_energy = FALSE, out_power = FALSE, max_power = FALSE;
 	int     first_anuga_time = TRUE, out_sww = FALSE, out_most = FALSE, out_3D = FALSE;
-	int     r_bin_b, r_bin_f, surf_level = TRUE, max_level = FALSE, water_depth = FALSE;
+	int     surf_level = TRUE, max_level = FALSE, water_depth = FALSE, for_inundation = FALSE;
 	int     do_Okada = FALSE;            /* For when one will compute the Okada deformation here */
 	int     out_maregs_nc = FALSE;       /* For when maregs in output are written in netCDF */
 	int     n_arg_no_char = 0;
@@ -360,7 +360,7 @@ int main(int argc, char **argv) {
 	char   *pch;
 	char   *nesteds[4] = {NULL, NULL, NULL, NULL};
 
-	float  *work = NULL, *vmax = NULL, *wmax = NULL, *time_p = NULL;
+	float  *work = NULL, *workMax = NULL, *vmax = NULL, *wmax = NULL, *time_p = NULL;
 	float   work_min = FLT_MAX, work_max = -FLT_MAX, *maregs_array = NULL;
 	double *maregs_timeout = NULL, m_per_deg = 111317.1;
 	double *bat = NULL, *dep1 = NULL, *dep2 = NULL, *cum_p = NULL, *h = NULL;
@@ -547,6 +547,10 @@ int main(int argc, char **argv) {
 				case 'D':
 					water_depth = TRUE;
 					surf_level = FALSE;
+					if (argv[i][2] == 'i') {	/* Write Eta on ocean and water depth on land */
+						for_inundation = TRUE;
+						water_depth = FALSE;
+					}
 					break;
 				case 'E':	/* Compute total Energy or Power*/
 					if (argv[i][2] == 'p') {
@@ -610,7 +614,6 @@ int main(int argc, char **argv) {
 				case 'M':
 					max_level = TRUE;
 					surf_level = FALSE;
-					write_grids = FALSE;
 					break;
 				case 'N':	/* Number of cycles to compute */
 					n_of_cycles = atoi(&argv[i][2]);
@@ -733,18 +736,19 @@ int main(int argc, char **argv) {
 		mexPrintf ("NSWING - Um gerador de tsunamis\n\n");
 #ifdef I_AM_MEX
 		mexPrintf ("nswing(bat,hdr_bat,deform,hdr_deform, [-1<bat_lev1>], [-2<bat_lev2>], [-3<...>] [maregs], [-G|Z<name>[+lev],<int>], [-A<fname.sww>]\n");
-		mexPrintf ("       [-B<BCfile>], [-C], [-D], [-E[p][m][,decim]], [-J<time_jump>], [-M], [-N<n_cycles>], [-Rw/e/s/n], [-S[x|y|n][+m]]\n");
+		mexPrintf ("       [-B<BCfile>], [-C], [-D[i]], [-E[p][m][,decim]], [-J<time_jump>], [-M], [-N<n_cycles>], [-Rw/e/s/n], [-S[x|y|n][+m]]\n");
 		mexPrintf ("       [-O<int>,<outmaregs>], [-T<int>,<mareg>[,<outmaregs[+n]>]], -t<dt> [-f]\n");
 #else
 		mexPrintf ("nswing bathy.grd initial.grd [-1<bat_lev1>] [-2<bat_lev2>] [-3<...>] [-G|Z<name>[+lev],<int>] [-A<fname.sww>]\n");
-		mexPrintf ("       [-B<BCfile>] [-C] [-D] [-E[p][m][,decim]] [-Fdip/strike/rake/slip/length/width/topDepth/x_epic/y_epic]\n"); 
+		mexPrintf ("       [-B<BCfile>] [-C] [-D[i]] [-E[p][m][,decim]] [-Fdip/strike/rake/slip/length/width/topDepth/x_epic/y_epic]\n"); 
 		mexPrintf ("       [-J<time_jump>] [-M] [-N<n_cycles>] [-Rw/e/s/n] [-S[x|y|n][+m]] [-O<int>,<outmaregs>]\n");
 		mexPrintf ("       [-T<int>,<mareg>[,<outmaregs[+n]>]] -t<dt> [-f]\n");
 #endif
-		mexPrintf ("\t-A name of ANUGA file\n");
+		mexPrintf ("\t-A <name> save result as a .SWW ANUGA format file\n");
 		mexPrintf ("\t-n basename for MOST triplet files (no extension)\n");
 		mexPrintf ("\t-B name of a BoundaryCondition ASCII file\n");
-		mexPrintf ("\t-D write grids with the total water depth\n");
+		mexPrintf ("\t-D write grids with the total water depth.\n");
+		mexPrintf ("\t   Append 'i' (as in -Di) to write wave height on ocean and whater depth on land.\n");
 		mexPrintf ("\t-C write grids with the momentum. i.e velocity times water depth.\n");
 		mexPrintf ("\t-E write grids with energy or power (-Ep). Apend a 'm' to save only one grid with the max values.\n");
 		mexPrintf ("\t   Since this can noticeably slow down the run, one can append a decimator factor after the comma.\n");
@@ -780,8 +784,6 @@ int main(int argc, char **argv) {
 
 	do_maxs = (max_level || max_energy || max_power);
 	do_2Dgrids = (write_grids || out_velocity || out_momentum || max_level || max_energy || out_power || max_power);
-
-	if (do_maxs && write_grids) write_grids = FALSE;	/* max_XXX write only one grid */
 
 	if (!(do_2Dgrids || out_sww || out_most || out_3D || cumpt)) {
 		mexPrintf("Nothing selected for output (grids, or maregraphs), exiting\n");
@@ -962,8 +964,10 @@ int main(int argc, char **argv) {
 	nest.isGeog = isGeog;
 	if (initialize_nestum(&nest, &work, isGeog, 0))
 		Return(-1);
-	if ((max_level || max_energy || max_power) && (wmax = (float *) mxCalloc ((size_t)nest.hdr[writeLevel].nm, sizeof(float)) ) == NULL)
+	if (do_maxs && (wmax    = (float *) mxCalloc ((size_t)nest.hdr[writeLevel].nm, sizeof(float)) ) == NULL)
 		{no_sys_mem("(wmax)", nest.hdr[writeLevel].nm); Return(-1);}
+	if (do_maxs && (workMax = (float *) mxCalloc ((size_t)nest.hdr[writeLevel].nm, sizeof(float)) ) == NULL)
+		{no_sys_mem("(workMax)", nest.hdr[writeLevel].nm); Return(-1);}
 	/* -------------------------------------------------------------------------------------- */
 
 	if (bat_in_input) {		/* If bathymetry & source where given as arguments */
@@ -1012,7 +1016,7 @@ int main(int argc, char **argv) {
 	if (cumpt && !maregs_in_input) {
 		lcum_p = (unsigned int *) mxCalloc ((size_t)(2048), sizeof(unsigned int));	/* We wont ever use these many */
 		if ((n_mareg = read_maregs(nest.hdr[writeLevel], maregs, lcum_p)) < 1) {	/* Read maregraph locations and recount them */
-			mexPrintf("NSWING: No maregraphs inside the (inner?) grid\n");
+			mexPrintf("NSWING - WARNING: No maregraphs inside the (inner?) grid\n");
 			n_mareg = 0;
 			if (lcum_p) mxFree (lcum_p);
 			mxFree((void *) cum_p);	mxFree ((void *) time_p);	 
@@ -1164,13 +1168,11 @@ int main(int argc, char **argv) {
 				}
 			}
 		}
-		mexPrintf ("dtCFL = %.4f\n", dtCFL); 
-		if (max_level)
-			mexPrintf("Output Maximum water level.\n");
-		if (water_depth)
-			mexPrintf("Output water depth.\n");
-		if (out_momentum)
-			mexPrintf("Output momentum (V * D).\n");
+		mexPrintf ("dtCFL = %.4f\tCourant number (sqrt(g*h)*dt / max(dx,dy)) = %g\n", dtCFL, 1/dtCFL * dt); 
+		if (max_level)      mexPrintf("Output Maximum water level.\n");
+		if (water_depth)    mexPrintf("Output water depth.\n");
+		if (for_inundation) mexPrintf("Output wave height plus whater thickness on land.\n");
+		if (out_momentum)   mexPrintf("Output momentum (V * D).\n");
 		if (do_maxs) {
 			if (max_energy)
 				mexPrintf("Output maximum Energy with a decimation of %d\n", decimate_max);
@@ -1221,7 +1223,6 @@ int main(int argc, char **argv) {
 		else
 			mass_sp(&nest, 0);
 
-
 		/* ------------------------------------------------------------------------------------ */
 		/* Case off open boundary condition */
 		/* ------------------------------------------------------------------------------------ */
@@ -1253,13 +1254,14 @@ int main(int argc, char **argv) {
 					maregs_array[count_maregs_timeout++] = (float)eta_for_maregs[lcum_p[ij]];
 			}
 			else {
-				if (k == 0) {		/* Write also the maregraphs coordinates */
+				if (k == 0) {		/* Write also the maregraphs coordinates (at grid nodes) */
 					int ix, iy, n;
 					for (n = 0; n < n_mareg; n++) {
 						ix = lcum_p[n] % nest.hdr[writeLevel].nx;
 						iy = lcum_p[n] / nest.hdr[writeLevel].nx;
-						fprintf (fp, "# %g\t%g\n", nest.hdr[writeLevel].x_min + ix * nest.hdr[writeLevel].x_inc,
-						         nest.hdr[writeLevel].y_min + iy * nest.hdr[writeLevel].y_inc);
+						fprintf (fp, "# %g\t%g\t%g\n", nest.hdr[writeLevel].x_min + ix * nest.hdr[writeLevel].x_inc,
+						         nest.hdr[writeLevel].y_min + iy * nest.hdr[writeLevel].y_inc,
+						         nest.bat[writeLevel][lcum_p[n]]);
 					}
 				}
 				fprintf (fp, "%.3f", (time_h + dt/2));
@@ -1296,16 +1298,16 @@ int main(int argc, char **argv) {
 		}
 		else if (max_energy) {
 			if (k % decimate_max == 0) {
-				total_energy(&nest, work, writeLevel);
+				total_energy(&nest, workMax, writeLevel);
 				for (ij = 0; ij < nest.hdr[writeLevel].nm; ij++)
-					if (wmax[ij] < work[ij]) wmax[ij] = work[ij];
+					if (wmax[ij] < workMax[ij]) wmax[ij] = workMax[ij];
 			}
 		}
 		else if (max_power) {
 			if (k % decimate_max == 0) {
-				power(&nest, work, writeLevel);
+				power(&nest, workMax, writeLevel);
 				for (ij = 0; ij < nest.hdr[writeLevel].nm; ij++)
-					if (wmax[ij] < work[ij]) wmax[ij] = work[ij];
+					if (wmax[ij] < workMax[ij]) wmax[ij] = workMax[ij];
 			}
 		}
 		if (do_maxs && (k == n_of_cycles - 1)) {
@@ -1313,9 +1315,9 @@ int main(int argc, char **argv) {
 				size_t len;
 				for (ij = 0; ij < nest.hdr[writeLevel].nm; ij++) {
 					if (nest.htotal_d[writeLevel][ij] > EPS1)
-						work[ij] = wmax[ij];
+						workMax[ij] = wmax[ij];
 					else
-						work[ij] = 1.70141e38f;     /* Surfer 'NaNs'. To be changed when outut in netCDF */
+						workMax[ij] = 1.70141e38f;  /* Surfer 'NaNs'. To be changed when outut in netCDF */
 				}
 				len = strlen(stem) - 1;
 				while (stem[len] !='.' && len > 0) len--;
@@ -1328,7 +1330,8 @@ int main(int argc, char **argv) {
 					strcat(prenome, "_max");
 					strcat(prenome, &stem[len]);    /* Put back the given extension */
 				}
-				write_grd_bin(prenome, xMinOut, yMinOut, dx, dy, i_start, j_start, i_end, j_end, nest.hdr[writeLevel].nx, work);
+				write_grd_bin(prenome, xMinOut, yMinOut, dx, dy, i_start, j_start, i_end, j_end,
+				              nest.hdr[writeLevel].nx, workMax);
 		}
 		/* -------------------------------------------------------------------------------- */
 
@@ -1339,7 +1342,16 @@ int main(int argc, char **argv) {
 			}
 			else if (water_depth) {
 				for (ij = 0; ij < nest.hdr[writeLevel].nm; ij++)
-					if ((work[ij] = (float) (nest.etaa[writeLevel][ij] + nest.bat[writeLevel][ij])) < 0) work[ij] = 0;
+					if ((work[ij] = (float)(nest.etaa[writeLevel][ij] + nest.bat[writeLevel][ij])) < 0) work[ij] = 0;
+			}
+			else if (for_inundation) {
+				for (ij = 0; ij < nest.hdr[writeLevel].nm; ij++) {
+					work[ij] = (float)nest.etad[writeLevel][ij];
+					if (nest.bat[writeLevel][ij] < 0) {
+						if ((work[ij] = (float)(nest.etaa[writeLevel][ij] + nest.bat[writeLevel][ij])) < 0)
+							work[ij] = 0;					
+					}
+				}
 			}
 
 			if (out_energy)
@@ -1495,17 +1507,19 @@ int main(int argc, char **argv) {
 	fprintf(stderr, "\t100 %%\tCPU secs/ticks = %.3f\n", (double)(clock() - tic));
 #endif
 
+	if (cumpt) {
+		fclose (fp);
+		if (cum_p) mxFree((void *) cum_p);
+		if (time_p)mxFree((void *) time_p);	 
+	}
+
 	free_arrays(&nest, isGeog, num_of_nestGrids);
 	if (vmax) mxFree (vmax);
 	if (wmax) mxFree (wmax);
 	if (lcum_p) mxFree (lcum_p);
+	if (workMax) mxFree (workMax);
 	mxFree (work);
 
-	if (cumpt) fclose (fp);
-
-	if (cumpt) {
-		mxFree((void *) cum_p);	mxFree ((void *) time_p);	 
-	}
 #ifndef I_AM_MEX
 	return(0);
 #endif
@@ -2040,7 +2054,7 @@ int count_n_maregs(char *file) {
 /* -------------------------------------------------------------------- */
 int read_maregs(struct grd_header hdr, char *file, unsigned int *lcum_p) {
 	/* Read maregraph positions and convert them to vector linear indices */
-	int     i = 0, ix, jy;
+	int     i = 0, k = 0, ix, jy, n;
 	char    line[256];
 	double  x, y;
 	FILE   *fp;
@@ -2051,8 +2065,16 @@ int read_maregs(struct grd_header hdr, char *file, unsigned int *lcum_p) {
 	}
 
 	while (fgets (line, 256, fp) != NULL) {
+		k++;
 		if (line[0] == '#') continue;	/* Jump comment lines */
-		sscanf (line, "%lf %lf", &x, &y);
+		if ((n = sscanf (line, "%lf %lf", &x, &y)) != 2) {
+			if (n == 1) {				/* Try with commas */
+				if ((n = sscanf(line, "%lf,%lf", &x, &y)) != 2) {
+					mexPrintf("NSWING: Error reading maregraph file at line %d Expected 2 values but got %d\n", k, n);
+					continue;
+				}
+			}
+		}
 		if (x < hdr.x_min || x > hdr.x_max || y < hdr.y_min || y > hdr.y_max)
 			continue;
 		ix = irint((x - hdr.x_min) / hdr.x_inc);
