@@ -3321,6 +3321,7 @@ function FileOpenSession_CB(handles, fname)
 	if (s.havePatches)			% case of patchs - NOTE, the Tags are currently lost 
 		for (i = 1:numel(s.Patches))
 			is_telha = false;
+			is_arrow = strcmp(s.Patches(i).tag,'Arrow');
 			if (strcmp(s.Patches(i).tag,'tapete_R') || strcmp(s.Patches(i).tag,'tapete'))
 				s.Patches(i).x = reshape(s.Patches(i).x,4,numel(s.Patches(i).x)/4);
 				s.Patches(i).y = reshape(s.Patches(i).y,4,numel(s.Patches(i).y)/4);
@@ -3338,6 +3339,8 @@ function FileOpenSession_CB(handles, fname)
 			end
 			if (is_telha)
 				draw_funs(h_patch,'telhas_patch')		% Set telhas's uicontextmenu
+			elseif (is_arrow)
+				draw_funs([],'set_vector_uicontext',h_patch)	% Set Arrow's uicontextmenu
 			else
 				draw_funs(h_patch,'line_uicontext')		% Set patch's uicontextmenu
 			end
