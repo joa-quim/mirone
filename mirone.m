@@ -3310,8 +3310,8 @@ function FileOpenSession_CB(handles, fname)
 				'Parent',handles.axes1, 'Rotation',s.Texto(i).angle,...
 				'FontAngle',s.Texto(i).FontAngle, 'Tag',s.Texto(i).Tag, 'FontWeight',s.Texto(i).FontWeight,...
 				'color',s.Texto(i).color, 'FontName',s.Texto(i).FontName, 'FontSize',s.Texto(i).FontSize);
-			if (isfield(s.Texto(i),'VerticalAlignment')),	set(h_text,'VerticalAlignment',s.Texto(i).VerticalAlignment),			end
-			if (isfield(s.Texto(i),'HorizontalAlignment')),	set(h_text,'HorizontalAlignment',s.Texto(i).HorizontalAlignment),		end
+			if (isfield(s.Texto(i),'VerticalAlignment')),	set(h_text,'VerticalAlignment',s.Texto(i).VerticalAlignment),		end
+			if (isfield(s.Texto(i),'HorizontalAlignment')),	set(h_text,'HorizontalAlignment',s.Texto(i).HorizontalAlignment),	end
 			draw_funs(h_text,'DrawText')		% Set texts's uicontextmenu
 		end
 	end
@@ -3542,7 +3542,12 @@ function FileSaveSession_CB(handles)
 		Patches(i).ud   = get(ALLpatchHand(i),'UserData');
 		Patches(i).tag  = get(ALLpatchHand(i),'Tag');
 		app = getappdata(ALLpatchHand(i));
-		if (~isempty(fieldnames(app))),		Patches(i).appd = app;	end
+		if (~isempty(fieldnames(app)))
+			try
+				app.polygon_data = rmfield(app.polygon_data, 'KeyPress_orig');	% Must kill because it's a function handle
+			end
+			Patches(i).appd = app;
+		end
 		havePatches = 1;
 	end
 
