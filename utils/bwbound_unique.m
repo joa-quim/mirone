@@ -23,10 +23,17 @@ function B = bwbound_unique(B)
 
 % $Id$
 
+	c = false(numel(B),1);
+
 	for (k = 1:numel(B))
 		y = B{k}(:,1);		x = B{k}(:,2);
 		n_pts = numel(x);
-		if ( n_pts <= 2 ),	continue,		end
+		if (n_pts <= 2)
+			if ((n_pts == 2 && x(1) == x(2) && y(1) == y(2)) || n_pts == 1)		% May happen that it's a duplicate point
+				c(k) = true;		% Mark for deletion
+			end
+			continue
+		end
 		n = fix(n_pts/2) + 1; 
 		if ( (y(n-1) == y(n+1)) && (x(n-1) == x(n+1)) )
 			x = x(1:n);  	y = y(1:n);
@@ -60,3 +67,5 @@ function B = bwbound_unique(B)
 		end
 		B{k} = [y x];
 	end
+
+	if (any(c)),	B(c) = [];		end
