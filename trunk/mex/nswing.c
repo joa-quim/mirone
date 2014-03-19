@@ -370,8 +370,7 @@ int main(int argc, char **argv) {
 	double  dx, dy, ds, dtCFL, etam, one_100, t;
 	double *eta_for_maregs, *vx_for_maregs, *vy_for_maregs, *htotal_for_maregs, *fluxm_for_maregs, *fluxn_for_maregs;
 	double  f_dip, f_azim, f_rake, f_slip, f_length, f_width, f_topDepth, x_epic, y_epic;	/* For Okada initial condition */
-	double  manning2 = 0;
-	double  time_h = 0;
+	double  add_const = 0, manning2 = 0, time_h = 0;
 
 	double  actual_range[2];
 	float	stage_range[2], xmom_range[2], ymom_range[2], *tmp_slice;
@@ -524,6 +523,9 @@ int main(int argc, char **argv) {
 	for (i = start_i; i < argc; i++) {
 		if (argv[i][0] == '-') {
 			switch (argv[i][1]) {
+				case 'c':
+					add_const = atof(&argv[i][2]);
+					break;
 				case 'e':
 					IamCompiled = TRUE;
 					break;
@@ -914,7 +916,9 @@ int main(int argc, char **argv) {
 
 		num_of_nestGrids = 0;
 		while (nesteds[num_of_nestGrids] != NULL) {
+//fprintf(stderr, "MERDA1 %d\n", nest.bnc_border[1]);
 			r_bin = read_grd_info_ascii (nesteds[num_of_nestGrids], &hdr);
+//fprintf(stderr, "MERDA2 %d\n", nest.bnc_border[1]);
 			if ((nest.bat[num_of_nestGrids+1] = (double *)mxCalloc ((size_t)hdr.nx*(size_t)hdr.ny, sizeof(double)) ) == NULL) 
 				{no_sys_mem("(bat)", hdr.nx*hdr.ny); Return(-1);}
 
@@ -1117,8 +1121,10 @@ int main(int argc, char **argv) {
 #endif
 
 	if (do_nestum) {                /* If ...  it */
-		for (k = 1; k <= num_of_nestGrids; k++)
-			initialize_nestum(&nest, NULL, isGeog, k);
+		for (k = 1; k <= num_of_nestGrids; k++) {
+			if (initialize_nestum(&nest, NULL, isGeog, k))
+				Return(-1);
+		}
 
 		nest.time_h = time_h;
 
@@ -1159,13 +1165,9 @@ int main(int argc, char **argv) {
 				k, nest.LLx[k], nest.LRx[k], nest.LLy[k], nest.URy[k]);
 				mexPrintf("Layer %d inserting index (one based) LL: (row,col) = %d\t%d\t\tUR: (row,col) = %d\t%d\n",
 				k, nest.LLrow[k]+2, nest.LLcol[k]+2, nest.URrow[k], nest.URcol[k]);
-				if (k == 1) {
-					mexPrintf("\tTime step ratio to parent grid = %d\n", (int)(nest.dt[k-1] / nest.dt[k]));
-				}
-				else {
-					mexPrintf("\tTime step ratio to parent grid = %d\n", (int)(nest.dt[k-1] / nest.dt[k]));
-					mexPrintf("\t\tdts = %f\t%f\n", nest.dt[k-1], nest.dt[k]);
-				}
+				mexPrintf("\tTime step ratio to parent grid = %d\n", (int)(nest.dt[k-1] / nest.dt[k]));
+				if (k > 1)
+					mexPrintf("\t\tdt(parent) = %g\tdt(doughter) = %g\n", nest.dt[k-1], nest.dt[k]);
 			}
 		}
 		mexPrintf ("dtCFL = %.4f\tCourant number (sqrt(g*h)*dt / max(dx,dy)) = %g\n", dtCFL, 1/dtCFL * dt); 
@@ -1529,15 +1531,17 @@ int main(int argc, char **argv) {
 void sanitize_nestContainer(struct nestContainer *nest) {
 	int i;
 
-	nest->do_upscale  = TRUE;
+	nest->do_upscale     = TRUE;
+	nest->out_velocity_x = FALSE;
+	nest->out_velocity_y = FALSE;
+	nest->bnc_pos_nPts   = 0;
+	nest->bnc_var_nTimes = 0;
 	nest->bnc_border[0] = nest->bnc_border[1] = nest->bnc_border[2] = nest->bnc_border[3] = FALSE;
 	nest->bnc_pos_x = NULL;
 	nest->bnc_pos_y = NULL;
 	nest->bnc_var_t = NULL;
 	nest->bnc_var_z = NULL;
 	nest->bnc_var_zTmp = NULL;
-	//nest->bnc_var_U = NULL;
-	//nest->bnc_var_V = NULL;
 	for (i = 0; i < 10; i++) {
 		nest->level[i] = -1;      /* Will be set to due level number for existing nesting levels */
 		nest->manning2[i] = 0;
@@ -1636,18 +1640,24 @@ int initialize_nestum(struct nestContainer *nest, float **work, int isGeog, int 
 		/* -------------------- Check that this grid is nestifiable -------------------- */
 		nSizeIncX = irint(hdr.x_inc / nest->hdr[lev].x_inc);
 		if ((hdr.x_inc / nest->hdr[lev].x_inc) - nSizeIncX > 1e-5) {
-			mexPrintf("NSWING: X increments of inner and outer grids are incompatible.");
+			mexPrintf("NSWING ERROR: X increments of inner (%d) and outer (%d) grids are incompatible.\n", lev, lev-1);
+			mexPrintf("\tInteger ratio of parent (%d) to doughter (%d) X increments = %d\n", lev, lev-1, nSizeIncX);
+			mexPrintf("\tActual  ratio as a floating point = %f\n\tDifference between the two cannot exceed 1e-5\n",
+			          hdr.x_inc / nest->hdr[lev].x_inc);
 			return(-1);
 		}
 
 		nSizeIncY = irint(hdr.y_inc / nest->hdr[lev].y_inc);
 		if ((hdr.y_inc / nest->hdr[lev].y_inc) - nSizeIncY > 1e-5) {
-			mexPrintf("NSWING: Y increments of inner and outer grids are incompatible.");
+			mexPrintf("NSWING ERROR: Y increments of inner (%d) and outer (%d) grids are incompatible.\n", lev, lev-1);
+			mexPrintf("\tInteger ratio of parent (%d) to doughter (%d) Y increments = %d\n", lev, lev-1, nSizeIncY);
+			mexPrintf("\tActual  ratio as a floating point = %f\n\tDifference between the two cannot exceed 1e-5\n",
+			          hdr.y_inc / nest->hdr[lev].y_inc);
 			return(-1);
 		}
 
 		if (nSizeIncX != nSizeIncY) {
-			mexPrintf("NSWING: X/Y increments of inner and outer grid do not divide equaly.");
+			mexPrintf("NSWING ERROR: X/Y increments of inner (%d) and outer (%d) grid do not divide equaly.\n", lev, lev-1);
 			return(-1);
 		}
 
@@ -1909,7 +1919,7 @@ int write_grd_bin(char *name, double x_min, double y_min, double x_inc, double y
 int read_grd_info_ascii (char *file, struct srf_header *hdr) {
 	/* Read Surfer grid header, either in ASCII or binary */
 
-	char line[512], id[5];
+	char line[128], id[5] = "";
 	FILE *fp;
 
 	if ((fp = fopen (file, "r")) == NULL) {
@@ -1917,22 +1927,24 @@ int read_grd_info_ascii (char *file, struct srf_header *hdr) {
 		return (-1);
 	}
 
-	fgets (line, 512, fp);
+	fgets (line, 16, fp);
 	sscanf (line, "%s", &hdr->id);
-	fgets (line, 512, fp);
-	sscanf (line, "%d %d", &hdr->nx, &hdr->ny);
-	fgets (line, 512, fp);
-	sscanf (line, "%lf %lf", &hdr->x_min, &hdr->x_max);
-	fgets (line, 512, fp);
-	sscanf (line, "%lf %lf", &hdr->y_min, &hdr->y_max);
-	fgets (line, 512, fp);
-	sscanf (line, "%lf %lf", &hdr->z_min, &hdr->z_max);
-	fclose(fp);
 	sprintf (id, "%.4s", hdr->id);
-	if (strcmp (id, "DSAA") == 0)
+	if (strcmp (id, "DSAA") == 0) {
+		fgets (line, 128, fp);
+		sscanf (line, "%d %d", &hdr->nx, &hdr->ny);
+		fgets (line, 128, fp);
+		sscanf (line, "%lf %lf", &hdr->x_min, &hdr->x_max);
+		fgets (line, 128, fp);
+		sscanf (line, "%lf %lf", &hdr->y_min, &hdr->y_max);
+		fgets (line, 128, fp);
+		sscanf (line, "%lf %lf", &hdr->z_min, &hdr->z_max);
+		fclose(fp);
 		return (0);
+	}
 	else if (strcmp (id, "DSBB") == 0) {
-		fp = fopen (file, "rb");
+		fclose(fp);
+		fp = fopen (file, "rb");	/* Reopen in binary mode */
 		read_header_bin (fp, hdr);
 		fclose(fp);
 		return (1);
@@ -2854,7 +2866,7 @@ void openb(struct grd_header hdr, double *bat, double *fluxm_d, double *fluxn_d,
 			etad[ij_grd(i,j,hdr)] = -bat[ij_grd(i,j,hdr)];
 			continue;
 		}
-		if (!nest->bnc_border[1]) {	/* South border. Nothing external is entering here */
+		if (nest->bnc_border[1] == 0) {	/* South border. Nothing external is entering here. */
 			uh = (fluxm_d[ij_grd(i,j,hdr)] + fluxm_d[ij_grd(i-1,j,hdr)]) * 0.5;
 			d__2 = fluxn_d[ij_grd(i,j,hdr)];
 			zz = sqrt(uh * uh + d__2 * d__2) / sqrt(NORMAL_GRAV * bat[ij_grd(i,j,hdr)]);
