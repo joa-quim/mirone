@@ -722,118 +722,118 @@ function scaledSymbols(handles, fname)
 % symbol parametrs. If file is not multi-seg, returns before doing anything
 % In that case control will be passed to the scatter_plot() function
 
-[bin,n_column,multi_seg,n_headers] = guess_file(fname);
-if (n_column == 1 && multi_seg == 0)        % Take it as a file names list
-    fid = fopen(fname);
-    c = fread(fid,'*char')';      fclose(fid);
-    names = strread(c,'%s','delimiter','\n');   clear c fid;
-else
-    names = {fname};
-end
+	[bin,n_column,multi_seg,n_headers] = guess_file(fname);
+	if (n_column == 1 && multi_seg == 0)        % Take it as a file names list
+		fid = fopen(fname);
+		c = fread(fid,'*char')';      fclose(fid);
+		names = strread(c,'%s','delimiter','\n');   clear c fid;
+	else
+		names = {fname};
+	end
 
-% Signal Mirone Fig if it is to call the scatter_plot window (in wich case it returns here) or not
-setappdata(handles.figure1,'callScatterWin',false)
-if (n_column > 1 && multi_seg == 0)		% Since no multi-segs, control will be given (in Mirone) to scatter_plot figure
-    setappdata(handles.figure1,'callScatterWin',n_column)		% Return when no multi-segs and cols > 1
-    return
-end
+	% Signal Mirone Fig if it is to call the scatter_plot window (in wich case it returns here) or not
+	setappdata(handles.figure1,'callScatterWin',false)
+	if (n_column > 1 && multi_seg == 0)		% Since no multi-segs, control will be given (in Mirone) to scatter_plot figure
+		setappdata(handles.figure1,'callScatterWin',n_column)		% Return when no multi-segs and cols > 1
+		return
+	end
 
-tol = 0.5;
-do_project = false;			% We'll estimate below if this holds true
+	tol = 0.5;
+	do_project = false;			% We'll estimate below if this holds true
 
-if (handles.no_file)		% Start empty but below we'll find the true data region
-	XMin = 1e50;			XMax = -1e50;		YMin = 1e50;		YMax = -1e50;
-	geog = 1;				% Not important. It will be confirmed later
+	if (handles.no_file)		% Start empty but below we'll find the true data region
+		XMin = 1e50;			XMax = -1e50;		YMin = 1e50;		YMax = -1e50;
+		geog = 1;				% Not important. It will be confirmed later
+		for (k = 1:numel(names))
+			fname = names{k};
+			%j = strfind(fname,filesep);
+			%if (isempty(j)),    fname = [PathName fname];   end         % It was just the filename. Need to add path as well
+			% No caso acima tenho que testar se o fiche existe
+			numeric_data = text_read(fname,NaN,n_headers,'>');
+			for i=1:length(numeric_data)
+				tmpx = numeric_data{i}(:,1);    tmpy = numeric_data{i}(:,2);
+				XMin = min(XMin,min(tmpx));     XMax = max(XMax,max(tmpx));
+				YMin = min(YMin,min(tmpy));     YMax = max(YMax,max(tmpy));
+			end
+		end
+		xx = [XMin XMax];           yy = [YMin YMax];
+		region = [xx yy];           % 1 stands for geog but that will be confirmed later
+		mirone('FileNewBgFrame_CB', handles, [region geog])   % Create a background
+	else                        % Reading over an established region
+		XYlim = getappdata(handles.axes1,'ThisImageLims');
+		xx = XYlim(1:2);            yy = XYlim(3:4);
+		if (handles.is_projected && handles.defCoordsIn > 0)
+			do_project = true;
+		end
+	end
+
 	for (k = 1:numel(names))
 		fname = names{k};
-		%j = strfind(fname,filesep);
-		%if (isempty(j)),    fname = [PathName fname];   end         % It was just the filename. Need to add path as well
-		% No caso acima tenho que testar se o fiche existe
-		numeric_data = text_read(fname,NaN,n_headers,'>');
-		for i=1:length(numeric_data)
-			tmpx = numeric_data{i}(:,1);    tmpy = numeric_data{i}(:,2);
-			XMin = min(XMin,min(tmpx));     XMax = max(XMax,max(tmpx));
-			YMin = min(YMin,min(tmpy));     YMax = max(YMax,max(tmpy));
+		[numeric_data,multi_segs_str] = text_read(fname,NaN,n_headers,'>');
+		n_segments = length(numeric_data);
+		n_clear = false(n_segments,1);
+		for (i = 1:n_segments)
+			if (do_project)				% We need to project
+				numeric_data{i} = geog2projected_pts(handles,numeric_data{i});
+			end
+			% Get rid of points that are outside the map limits
+			[tmpx,tmpy,indx,indy] = aux_funs('in_map_region',handles,numeric_data{i}(:,1),numeric_data{i}(:,2),tol,[xx yy]);
+			if (isempty(tmpx)),     n_clear(i) = 1;		continue,	end		% Store indexes for clearing vanished segments info
+
+			if (handles.no_file)		% We need to compute the data extent in order to set the correct axes limits
+				XMin = min(XMin,min(tmpx));     XMax = max(XMax,max(tmpx));
+				YMin = min(YMin,min(tmpy));     YMax = max(YMax,max(tmpy));
+			end
+
+			if (i == 1)
+				[thick, corW, multi_segs_str{i}] = parseW(multi_segs_str{i});   % Search EdgeColor and thickness
+				if (isempty(thick)),    thick = 0.5;    end		% IF not provided, use default
+				if (isempty(corW)),     corW = 'k';     end		%           "
+				[corFill, multi_segs_str{i}] = parseG(multi_segs_str{i});       % Search Fill color
+				[symbol, dim, multi_segs_str{i}] = parseS(multi_segs_str{i});   % Search Symbols
+				tag = parseT(multi_segs_str{i});				% See if we have a tag
+			else
+				found = parseIqual(multi_segs_str{i});		% First see if symbol is the same
+				if (~found)									% No, it isn't. So get the new one
+					[thick, corW, multi_segs_str{i}] = parseW(multi_segs_str{i});
+					if (isempty(thick)),    thick = 0.5;    end
+					if (isempty(corW)),     corW = 'k';     end
+					[corFill, multi_segs_str{i}] = parseG(multi_segs_str{i});
+					[symbol, dim, multi_segs_str{i}] = parseS(multi_segs_str{i});
+					tag = parseT(multi_segs_str{i});		% See if we have a tag
+				end
+			end
+
+			h = zeros(1,numel(tmpx));
+			if (size(numeric_data{i},2) > 2)        % We have a 3rd column with Z
+				z = numeric_data{i}(:,3);
+				z(indx) = [];       z(indy) = [];
+				for (kk = 1:numel(tmpx))
+					h(kk) = line('XData',tmpx(kk),'YData',tmpy(kk),'Parent',handles.axes1,'LineWidth',thick,'Tag',tag,...
+						'Marker',symbol,'Color',corW,'MarkerFaceColor',corFill,'MarkerSize',dim,'LineStyle','none');
+					setappdata(h(kk),'ZData',z(kk))
+				end
+			else
+				for (kk = 1:numel(tmpx))
+					h(kk) = line('XData',tmpx(kk),'YData',tmpy(kk),'Parent',handles.axes1,'LineWidth',thick,'Tag',tag,...
+						'Marker',symbol,'Color',corW,'MarkerFaceColor',corFill,'MarkerSize',dim,'LineStyle','none');
+				end
+			end
+			if ( numel(multi_segs_str{i}) > 2),		hdr_seg = multi_segs_str{i}(3:end);
+			else									hdr_seg = [];
+			end
+			setUIs(handles, h, hdr_seg)
 		end
 	end
-	xx = [XMin XMax];           yy = [YMin YMax];
-	region = [xx yy];           % 1 stands for geog but that will be confirmed later
-	mirone('FileNewBgFrame_CB', handles, [region geog])   % Create a background
-else                        % Reading over an established region
-	XYlim = getappdata(handles.axes1,'ThisImageLims');
-	xx = XYlim(1:2);            yy = XYlim(3:4);
-	if (handles.is_projected && handles.defCoordsIn > 0)
-		do_project = true;
+
+	if (handles.no_file)        % We have a kind of inf Lims. Adjust for current values
+		region = [XMin XMax YMin YMax];
+		set(handles.figure1,'XLim',[XMin XMax],'YLim',[YMin YMax])
+		setappdata(handles.axes1,'ThisImageLims',region)
+		handles = guidata(handles.figure1);			% Tricky, but we need the new version, which was changed in show_image
+		handles.geog = aux_funs('guessGeog',region);
+		guidata(handles.figure1,handles)
 	end
-end
-
-for (k = 1:numel(names))
-	fname = names{k};
-	[numeric_data,multi_segs_str] = text_read(fname,NaN,n_headers,'>');
-	n_segments = length(numeric_data);
-	n_clear = false(n_segments,1);
-	for (i = 1:n_segments)
-		if (do_project)				% We need to project
-			numeric_data{i} = geog2projected_pts(handles,numeric_data{i});
-		end
-		% Get rid of points that are outside the map limits
-		[tmpx,tmpy,indx,indy] = aux_funs('in_map_region',handles,numeric_data{i}(:,1),numeric_data{i}(:,2),tol,[xx yy]);
-		if (isempty(tmpx)),     n_clear(i) = 1;		continue,	end		% Store indexes for clearing vanished segments info
-
-		if (handles.no_file)		% We need to compute the data extent in order to set the correct axes limits
-			XMin = min(XMin,min(tmpx));     XMax = max(XMax,max(tmpx));
-			YMin = min(YMin,min(tmpy));     YMax = max(YMax,max(tmpy));
-		end
-
-		if (i == 1)
-			[thick, corW, multi_segs_str{i}] = parseW(multi_segs_str{i});   % Search EdgeColor and thickness
-			if (isempty(thick)),    thick = 0.5;    end		% IF not provided, use default
-			if (isempty(corW)),     corW = 'k';     end		%           "
-			[corFill, multi_segs_str{i}] = parseG(multi_segs_str{i});       % Search Fill color
-			[symbol, dim, multi_segs_str{i}] = parseS(multi_segs_str{i});   % Search Symbols
-			tag = parseT(multi_segs_str{i});				% See if we have a tag
-		else
-			found = parseIqual(multi_segs_str{i});		% First see if symbol is the same
-			if (~found)									% No, it isn't. So get the new one
-				[thick, corW, multi_segs_str{i}] = parseW(multi_segs_str{i});
-				if (isempty(thick)),    thick = 0.5;    end
-				if (isempty(corW)),     corW = 'k';     end
-				[corFill, multi_segs_str{i}] = parseG(multi_segs_str{i});
-				[symbol, dim, multi_segs_str{i}] = parseS(multi_segs_str{i});
-				tag = parseT(multi_segs_str{i});		% See if we have a tag
-			end
-		end
-
-		h = zeros(1,numel(tmpx));
-		if (size(numeric_data{i},2) > 2)        % We have a 3rd column with Z
-			z = numeric_data{i}(:,3);
-			z(indx) = [];       z(indy) = [];
-			for kk=1:numel(tmpx)
-				h(kk) = line('XData',tmpx,'YData',tmpy,'Parent',handles.axes1,'LineWidth',thick,'Tag',tag,...
-					'Marker',symbol,'Color',corW,'MarkerFaceColor',corFill,'MarkerSize',dim,'LineStyle','none');
-				setappdata(h(kk),'ZData',z)
-			end
-		else
-			for kk=1:numel(tmpx)
-				h(kk) = line('XData',tmpx,'YData',tmpy,'Parent',handles.axes1,'LineWidth',thick,'Tag',tag,...
-					'Marker',symbol,'Color',corW,'MarkerFaceColor',corFill,'MarkerSize',dim,'LineStyle','none');
-			end
-		end
-		if ( numel(multi_segs_str{i}) > 2),		hdr_seg = multi_segs_str{i}(3:end);
-		else									hdr_seg = [];
-		end
-		setUIs(handles, h, hdr_seg)
-	end
-end
-
-if (handles.no_file)        % We have a kind of inf Lims. Adjust for current values
-	region = [XMin XMax YMin YMax];
-	set(handles.figure1,'XLim',[XMin XMax],'YLim',[YMin YMax])
-	setappdata(handles.axes1,'ThisImageLims',region)
-	handles = guidata(handles.figure1);			% Tricky, but we need the new version, which was changed in show_image
-	handles.geog = aux_funs('guessGeog',region);
-	guidata(handles.figure1,handles)
-end
 
 % --------------------------------------------------------------------
 function GTilesMap(handles)
