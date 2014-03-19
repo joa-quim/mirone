@@ -2234,13 +2234,15 @@ function set_symbol_uicontext(h,data)
 
 	if (~this_not)						% class symbols don't export
 		uimenu(cmenuHand, 'Label', 'Save', 'Call', {@export_symbol,h});
-		if (strcmp(tag,'Pointpolyline'))	% Allow pure grdtrack interpolation
-			cbTrack = 'setappdata(gcf,''TrackThisLine'',gco); mirone(''ExtractProfile_CB'',guidata(gcbo),''point'')';
-			uimenu(cmenuHand, 'Label', 'Point interpolation', 'Call', cbTrack, 'Sep','on');
-		end
-		if (handles.nLayers > 1)
-			cbTrack = 'setappdata(gcf,''TrackThisLine'',gco); mirone(''ExtractProfile_CB'',guidata(gcbo),''3D'')';
-			uimenu(cmenuHand, 'Label', '3D interpolation', 'Call', cbTrack, 'Sep','on');
+		if (handles.image_type ~= 20)
+			if (strcmp(tag,'Pointpolyline'))	% Allow pure grdtrack interpolation
+				cbTrack = 'setappdata(gcf,''TrackThisLine'',gco); mirone(''ExtractProfile_CB'',guidata(gcbo),''point'')';
+				uimenu(cmenuHand, 'Label', 'Point interpolation', 'Call', cbTrack, 'Sep','on');
+			end
+			if (handles.nLayers > 1)
+				cbTrack = 'setappdata(gcf,''TrackThisLine'',gco); mirone(''ExtractProfile_CB'',guidata(gcbo),''3D'')';
+				uimenu(cmenuHand, 'Label', '3D interpolation', 'Call', cbTrack, 'Sep','on');
+			end
 		end
 	end
 
