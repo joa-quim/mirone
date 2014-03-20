@@ -882,29 +882,31 @@ function GTilesMap(handles)
 
 % ------------------------------------------------------------------------------------
 function setUIs(handles, h, hdr)
-	cmenuHand = uicontextmenu('Parent',handles.figure1);
+% This is horribly inefficient because those uicontextmenu are f memory eaters
 	for (k = 1:numel(h))
+		cmenuHand = uicontextmenu('Parent',handles.figure1);
 		set(h(k), 'UIContextMenu', cmenuHand)
 		if (~isempty(hdr))
 			set(h,'UserData',hdr)
 			uimenu(cmenuHand, 'Label', 'Info', 'Call', 'msgbox( get(gco,''UserData''),''Symbol info'' )')
 		end
 		uimenu(cmenuHand, 'Label', 'Delete this', 'Call', {@del_line,h})
-		uimenu(cmenuHand, 'Label', 'Delete all', 'Call', {@del_all,handles,h})
+		uimenu(cmenuHand, 'Label', 'Delete all', 'Call', {@del_all,h})
 		ui_edit_polygon(h(k))
 	end
 
 % -----------------------------------------------------------------------------------------
-function del_all(obj,eventdata,handles,h)
+function del_all(obj,evt,h)
 % Delete all objects that share the same tag of h
-	tag = get(h,'Tag');
+	handles = guidata(h(1));
+	tag = get(h(1),'Tag');
 	hAll = findobj(handles.axes1,'Tag',tag);
-	del_line(obj,eventdata,hAll)
+	del_line(obj,evt,hAll)
     
 % -----------------------------------------------------------------------------------------
 function del_line(obj,eventdata,h)
 % Delete symbols but before check if they are in edit mode
-    for (k=1:numel(h))
+    for (k = 1:numel(h))
 		if (~isempty(getappdata(h(k),'polygon_data')))
             s = getappdata(h(k),'polygon_data');
             if strcmpi(s.controls,'on')         % Object is in edit mode, so this
