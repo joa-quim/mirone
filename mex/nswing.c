@@ -615,7 +615,6 @@ int main(int argc, char **argv) {
 					break;
 				case 'M':
 					max_level = TRUE;
-					surf_level = FALSE;
 					break;
 				case 'N':	/* Number of cycles to compute */
 					n_of_cycles = atoi(&argv[i][2]);
@@ -732,6 +731,10 @@ int main(int argc, char **argv) {
 				bathy = argv[i];
 			else if (fonte == NULL)
 				fonte = argv[i];
+			else if (bathy != NULL && fonte != NULL) {
+				mexPrintf("NSWING: Wrong option %s (misses the minus sign)\n", argv[i]);
+				error = TRUE;
+			}
 	}
 
 	if (argc <= 1 || error) {
@@ -764,7 +767,7 @@ int main(int argc, char **argv) {
 		mexPrintf ("\t-G<stem> write grids at the int intervals. Append file prefix. Files will be called <stem>#.grd\n");
 		mexPrintf ("\t   When doing nested grids, append +lev to save that particular level (only one level is allowed)\n");
 		mexPrintf ("\t-J<time_jump> Do not write grids or maregraphs for times before time_jump in seconds.\n");
-		mexPrintf ("\t-M write grids of max water level [Default wave surface level]\n");
+		mexPrintf ("\t-M write grid of max water level.\n");
 		mexPrintf ("\t-N number of cycles [Default 1010].\n");
 		mexPrintf ("\t-R output grids only in the sub-region enclosed by <west/east/south/north>\n");
 		mexPrintf ("\t-S write grids with the velocity. Grid names are appended with _U and _V sufixes.\n");
@@ -864,14 +867,14 @@ int main(int argc, char **argv) {
 
 		r_bin_b = read_grd_info_ascii (bathy, &hdr_b);	/* To know how what memory to allocate */
 		if (r_bin_b < 0) {
-			mexPrintf ("NSWING: Invalid bathymetry grid. Possibly it is in the Surfer 7 format\n"); 
+			mexPrintf ("NSWING: %s Invalid bathymetry grid. Possibly it is in the Surfer 7 format\n", bathy); 
 			Return(-1);
 		}
 		
 		if (!do_Okada) {		/* Otherwise we will compute initial condition later down after arrays are allocated */
 			if (!bnc_file) r_bin_f = read_grd_info_ascii (fonte, &hdr_f);	/* and check that both grids are compatible */
 			if (r_bin_f < 0) {
-				mexPrintf ("NSWING: Invalid source grid. Possibly it is in the Surfer 7 format\n"); 
+				mexPrintf ("NSWING: %s Invalid source grid. Possibly it is in the Surfer 7 format\n", fonte); 
 				Return(-1);
 			}
 
@@ -916,9 +919,11 @@ int main(int argc, char **argv) {
 
 		num_of_nestGrids = 0;
 		while (nesteds[num_of_nestGrids] != NULL) {
-//fprintf(stderr, "MERDA1 %d\n", nest.bnc_border[1]);
-			r_bin = read_grd_info_ascii (nesteds[num_of_nestGrids], &hdr);
-//fprintf(stderr, "MERDA2 %d\n", nest.bnc_border[1]);
+			if ((r_bin = read_grd_info_ascii (nesteds[num_of_nestGrids], &hdr)) < 0) {
+				mexPrintf ("NSWING: %s Invalid bathymetry grid. Possibly it is in the Surfer 7 format\n",
+					nesteds[num_of_nestGrids]); 
+				Return(-1);
+			}
 			if ((nest.bat[num_of_nestGrids+1] = (double *)mxCalloc ((size_t)hdr.nx*(size_t)hdr.ny, sizeof(double)) ) == NULL) 
 				{no_sys_mem("(bat)", hdr.nx*hdr.ny); Return(-1);}
 
@@ -1351,7 +1356,7 @@ int main(int argc, char **argv) {
 					work[ij] = (float)nest.etad[writeLevel][ij];
 					if (nest.bat[writeLevel][ij] < 0) {
 						if ((work[ij] = (float)(nest.etaa[writeLevel][ij] + nest.bat[writeLevel][ij])) < 0)
-							work[ij] = 0;					
+							work[ij] = 0;
 					}
 				}
 			}
@@ -1658,6 +1663,10 @@ int initialize_nestum(struct nestContainer *nest, float **work, int isGeog, int 
 
 		if (nSizeIncX != nSizeIncY) {
 			mexPrintf("NSWING ERROR: X/Y increments of inner (%d) and outer (%d) grid do not divide equaly.\n", lev, lev-1);
+			mexPrintf("\tinc_x(%d) = %f\t inc_x(%d) = %f.\n", lev-1, hdr.x_inc, lev, nest->hdr[lev].x_inc);
+			mexPrintf("\tinc_y(%d) = %f\t inc_y(%d) = %f.\n", lev-1, hdr.y_inc, lev, nest->hdr[lev].y_inc);
+			mexPrintf("\tRatio of X increments (round(inc_x(%d) / inc_x(%d)) = %d.\n", lev-1, lev, nSizeIncX);
+			mexPrintf("\tRatio of Y increments (round(inc_y(%d) / inc_y(%d)) = %d.\n", lev-1, lev, nSizeIncY);
 			return(-1);
 		}
 
