@@ -4185,13 +4185,17 @@ void replicate(struct nestContainer *nest, int lev) {
 	/* Replicate Left and Bottom boundaries */
 	int	col, row;
 
-	for (row = 0; row < nest->hdr[lev].ny; row++)
+	for (row = 0; row < nest->hdr[lev].ny; row++) {
+		if (nest->bat[lev][ij_grd(0, row, nest->hdr[lev])] < 0) continue;
 		nest->etad[lev][ij_grd(0, row, nest->hdr[lev])] =
 			nest->etad[lev][ij_grd(1, row, nest->hdr[lev])];
+	}
 
-	for (col = 0; col < nest->hdr[lev].nx; col++)
+	for (col = 0; col < nest->hdr[lev].nx; col++) {
+		if (nest->bat[lev][ij_grd(col, 0, nest->hdr[lev])] < 0) continue;
 		nest->etad[lev][ij_grd(col, 0, nest->hdr[lev])] =
 			nest->etad[lev][ij_grd(col, 1, nest->hdr[lev])];
+	}
 }
 
 /* ------------------------------------------------------------------------------ */
