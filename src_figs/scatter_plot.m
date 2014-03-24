@@ -137,7 +137,7 @@ function edit_symbSize_CB(hObject, handles)
 % ------------------------------------------------------------------------------------
 function edit_symbScale_CB(hObject, handles)
 % Get a new scale factor that will be applied to the Zs and take effect only on GE plots
-	ss = fix(str2double(get(hObject,'String')));
+	ss = str2double(get(hObject,'String'));
 	if (isnan(ss))      % User stupidity
 		set(hObject,'String',handles.edit_symbScale)
 		return
