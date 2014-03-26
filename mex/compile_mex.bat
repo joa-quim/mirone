@@ -47,9 +47,6 @@ SET OMP=-DHAVE_OPENMP
 
 IF %R13%=="yes" SET BITS=32
 
-REM The MSVC version. I use this var to select libraries also compiled with this compiler
-SET MSVC_VER="1600"
-
 REM --- Next allows compiling with the compiler you want against the ML6.5 libs (needed in stand-alone version)
 IF %R13%=="yes" (
 SET MATLIB=C:\SVN\pracompila\MAT65\lib\win32\microsoft

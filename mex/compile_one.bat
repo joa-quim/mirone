@@ -32,15 +32,12 @@ SET CC=cl
 REM --------------------------------------------------------------------------------------
 
 REM If set to "yes", linkage is done againsts ML6.5 Libs (needed in compiled version)
-SET R13="no"
+SET R13="yes"
 
 REM Set it to 32 or 64 to build under 64-bits or 32-bits respectively.
 SET BITS=32
 
 IF %R13%=="yes" SET BITS=32
-
-REM The MSVC version. I use this var to select libraries also compiled with this compiler
-SET MSVC_VER="1600"
 
 REM Options are "dll", "mexw32" (recent ML version scream when they find .dll) or "mexw64" (when BITS=64)
 SET MEX_EXT="mexw32"
@@ -50,8 +47,8 @@ SET TIMEIT=-DMIR_TIMEIT
 SET TIMEIT=
 
 REM To buils with OpenMP support (very few)
-SET OMP=
 SET OMP=-DHAVE_OPENMP 
+SET OMP=
 
 REM
 REM Set to "yes" if you want to build a debug version
@@ -59,6 +56,10 @@ SET DEBUG="no"
 REM
 SET LDEBUG=
 IF %DEBUG%=="yes" SET LDEBUG=/debug
+
+REM
+REM Set to "yes" if when you want to build cvlib_mex that needs extra links
+SET PROCV="yes"
 
 REM --- Next allows compiling with the compiler you want against the ML6.5 libs (needed in stand-alone version)
 IF %R13%=="yes" (
@@ -134,18 +135,27 @@ REM ----------------------------------------------------------------------------
 REM ____________________________________________________________________________
 REM ___________________ STOP EDITING HERE ______________________________________
 
+IF %PROCV%=="yes" (
+SET extra_cv_c=sift\sift.c sift\imgfeatures.c sift\kdtree.c sift\minpq.c 
+SET extra_cv_o=sift.obj imgfeatures.obj kdtree.obj minpq.obj 
+) ELSE (
+SET extra_cv_c=
+SET extra_cv_o=
+)
 
-SET COMPFLAGS=/c /Zp8 /GR /EHs /D_CRT_SECURE_NO_DEPRECATE /D_SCL_SECURE_NO_DEPRECATE /D_SECURE_SCL=0 /DMATLAB_MEX_FILE /nologo /MD /Qopenmp
+SET OMP=/openmp
+IF %CC%==icl SET OMP=/Qopenmp
+SET COMPFLAGS=/c /Zp8 /GR /EHs /D_CRT_SECURE_NO_DEPRECATE /D_SCL_SECURE_NO_DEPRECATE /D_SECURE_SCL=0 /DMATLAB_MEX_FILE /nologo /MD /openmp
 SET OPTIM2=/QxSSE4.2 /Qparallel /arch:SSE2 /fp:fast 
-IF %DEBUG%=="no" SET OPTIMFLAGS=/Ox /Oy- /DNDEBUG /arch:SSE2 /fp:fast
+IF %DEBUG%=="no" SET OPTIMFLAGS=/Ox /Oy- /arch:SSE2 /fp:precise /DNDEBUG
 IF %DEBUG%=="yes" SET OPTIMFLAGS=/Z7
 
 IF %BITS%==64 SET arc=X64
 IF %BITS%==32 SET arc=X86
 SET LINKFLAGS=/dll /export:mexFunction /LIBPATH:%MATLIB% libmx.lib libmex.lib libmat.lib /MACHINE:%arc% kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib Vfw32.lib /nologo /incremental:NO %LDEBUG% 
 
-%CC% -DWIN32 %COMPFLAGS% -I%MATINC% -I%NETCDF_INC% -I%GMT_INC% -I%GDAL_INC% -I%CV_INC% -I%CVInc% %LAS_INC% -I%GEOLIB_INC% -I%LASZLIB_INC% %OPTIMFLAGS% %_MX_COMPAT% %TIMEIT% -DDLL_GMT %OMP% %1
-link  /out:"%~n1.%MEX_EXT%" %LINKFLAGS% %NETCDF_LIB% %GMT_LIB% %GDAL_LIB% %LAS_LIB% %GEOLIB_LIB% %LASZLIB_LIB% %CXCORE_LIB% %CVIMG_LIB% %CVCALIB_LIB% %CVOBJ_LIB% %CVVIDEO_LIB% %CVPHOTO_LIB% /implib:templib.x %~n1.obj
+%CC% -DWIN32 %COMPFLAGS% -I%MATINC% -I%NETCDF_INC% -I%GMT_INC% -I%GDAL_INC% -I%CV_INC% -I%CVInc% %LAS_INC% -I%GEOLIB_INC% -I%LASZLIB_INC% %OPTIMFLAGS% %_MX_COMPAT% %TIMEIT% -DDLL_GMT %OMP% %extra_cv_c% %1
+link  /out:"%~n1.%MEX_EXT%" %LINKFLAGS% %NETCDF_LIB% %GMT_LIB% %GDAL_LIB% %LAS_LIB% %GEOLIB_LIB% %LASZLIB_LIB% %CXCORE_LIB% %CVIMG_LIB% %CVCALIB_LIB% %CVOBJ_LIB% %CVVIDEO_LIB% %CVPHOTO_LIB% /implib:templib.x %~n1.obj %extra_cv_o%
 rem link  /out:"%1.%MEX_EXT%" %LINKFLAGS% %NETCDF_LIB% %GMT_LIB% %GDAL_LIB% %LAS_LIB% %GEOLIB_LIB% /implib:templib.x %1.obj
 
 SET INCLUDE=%INCAS%
