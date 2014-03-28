@@ -51,7 +51,7 @@
  * To compile, do for example
  *	cl nswing.c -IC:\programs\compa_libs\netcdf_GIT\compileds\VC10_64\include
  *     C:\programs\compa_libs\netcdf_GIT\compileds\VC10_64\lib\netcdf.lib /DI_AM_C 
- *     /DHAVE_NETCDF /Ox /Oy- /arch:SSE2 /fp:precise 
+ *     /DHAVE_NETCDF /fp:precise /Ox
  *
  *	Translated to C, mexified, added number options, etc... By
  *	Joaquim Luis - 2013
@@ -244,7 +244,7 @@ int  decode_R (char *item, double *w, double *e, double *s, double *n);
 int  check_region (double w, double e, double s, double n);
 double ddmmss_to_degree (char *text);
 void openb(struct grd_header hdr, double *bat, double *fluxm_d, double *fluxn_d, double *etad, struct nestContainer *nest);
-int  initialize_nestum(struct nestContainer *nest, float **work, int isGeog, int lev);
+int  initialize_nestum(struct nestContainer *nest, int isGeog, int lev);
 int  intp_lin (double *x, double *y, int n, int m, double *u, double *v);
 void inisp(struct nestContainer *nest);
 void interp_edges(struct nestContainer *nest, double *flux_L1, double *flux_L2, char *what, int lev, int i_time);
@@ -971,8 +971,13 @@ int main(int argc, char **argv) {
 	nest.out_velocity_x = out_velocity_x;
 	nest.out_velocity_y = out_velocity_y;
 	nest.isGeog = isGeog;
-	if (initialize_nestum(&nest, &work, isGeog, 0))
+	if (initialize_nestum(&nest, isGeog, 0))
 		Return(-1);
+	/* We need the ''work' array in most cases, but not all and also need to make sure it's big enough */
+	if (out_most || out_3D || surf_level || water_depth || for_inundation || out_energy || out_power || out_momentum || out_velocity) {
+		if (do_maxs && (work = (float *) mxCalloc ((size_t)(nest.hdr[0].nm, nest.hdr[writeLevel].nm), sizeof(float)) ) == NULL)
+			{no_sys_mem("(wmax)", nest.hdr[writeLevel].nm); Return(-1);}
+	}
 	if (do_maxs && (wmax    = (float *) mxCalloc ((size_t)nest.hdr[writeLevel].nm, sizeof(float)) ) == NULL)
 		{no_sys_mem("(wmax)", nest.hdr[writeLevel].nm); Return(-1);}
 	if (do_maxs && (workMax = (float *) mxCalloc ((size_t)nest.hdr[writeLevel].nm, sizeof(float)) ) == NULL)
@@ -1127,7 +1132,7 @@ int main(int argc, char **argv) {
 
 	if (do_nestum) {                /* If ...  it */
 		for (k = 1; k <= num_of_nestGrids; k++) {
-			if (initialize_nestum(&nest, NULL, isGeog, k))
+			if (initialize_nestum(&nest, isGeog, k))
 				Return(-1);
 		}
 
@@ -1341,7 +1346,7 @@ int main(int argc, char **argv) {
 				              nest.hdr[writeLevel].nx, workMax);
 		}
 		/* -------------------------------------------------------------------------------- */
-
+ 
 		if (grn && time_h > time_jump && ((k % grn) == 0 || k == n_of_cycles - 1) ) {
 			if (surf_level) {
 				for (ij = 0; ij < nest.hdr[writeLevel].nm; ij++)
@@ -1632,7 +1637,7 @@ int check_binning(double x0P, double x0D, double dxP, double dxD, double tol, do
 }
 
 /* -------------------------------------------------------------------------- */
-int initialize_nestum(struct nestContainer *nest, float **work, int isGeog, int lev) {
+int initialize_nestum(struct nestContainer *nest, int isGeog, int lev) {
 	/* Initialize the nest struct. */
 
 	int row, col, i, nSizeIncX, nSizeIncY, n;
@@ -1682,8 +1687,6 @@ int initialize_nestum(struct nestContainer *nest, float **work, int isGeog, int 
 	nest->level[lev] = lev;
 
 	/* Allocate the working arrays */
-	if (lev == 0 && (*work = (float *) mxCalloc ((size_t)nm, sizeof(float)) ) == NULL)
-		{no_sys_mem("(work)", nm); return(-1);}
 	if (nest->bat[lev] == NULL && (nest->bat[lev] = (double *)  mxCalloc ((size_t)nm, sizeof(double)) ) == NULL)
 		{no_sys_mem("(bat)", nm); return(-1);}
 
