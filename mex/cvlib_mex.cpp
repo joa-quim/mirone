@@ -1988,8 +1988,8 @@ void JfindContours(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]) 
 	double *ptr_d;
 	IplImage *src_img = 0, *dst_img, *src_gray;
 	CvPoint *PointArray;
-        CvSeq *contours = 0, *cont = 0;
-        CvMemStorage* storage;
+	CvSeq *contours = 0, *cont = 0;
+	CvMemStorage* storage;
 	mxArray *ptr_in, *ptr_out, *mx_ptr;
 
 	struct CV_CTRL *Ctrl;
@@ -2038,7 +2038,7 @@ void JfindContours(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]) 
 		src_img->imageSize = ny * src_img->widthStep;
 	}
 
-       	storage = cvCreateMemStorage(0);
+	storage = cvCreateMemStorage(0);
 	/*contours = cvCreateSeq(CV_SEQ_ELTYPE_POINT, sizeof(CvSeq), sizeof(CvPoint), storage);*/
 
 	if (!mxIsLogical(prhs[1])) {
@@ -2046,7 +2046,7 @@ void JfindContours(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[]) 
 		Set_pt_Ctrl_out1 ( Ctrl, ptr_out ); 
 		localSetData( Ctrl, dst_img, 2, nx * nBytes );
 
-        	cvCanny( src_img, dst_img, 50, 200, 3 );
+		cvCanny( src_img, dst_img, 50, 200, 3 );
 
 		ncont = cvFindContours( dst_img, storage, &contours, sizeof(CvContour),
 				CV_RETR_LIST, CV_CHAIN_APPROX_SIMPLE, cvPoint(0,0) );
@@ -2090,11 +2090,11 @@ void JapproxPoly(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[], co
 	int is_double = 1, is_single = 0, is_int = 0, *ptr_i, *index;
 	float *ptr_s;
 	double *ptr_d, *ptr_d2, *x, *y, tolerance = 1;
-	CvSeq *seq = 0, *result;
+	CvSeq *seq = NULL, *result = NULL;
 	CvPoint pt_in_2D32i, *pt_out_2D32i; 
 	CvPoint2D32f pt_in_2D32f, *pt_out_2D32f; 
 	CvPoint3D32f pt_in_3D32f, *pt_out_3D32f; 
-	CvMemStorage* storage = cvCreateMemStorage(0);
+	CvMemStorage *storage = cvCreateMemStorage(0);
 
 	/* ---- Check for input and errors in user's call to function. ------- */
 	if (n_in == 1) { 
@@ -2142,31 +2142,31 @@ void JapproxPoly(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[], co
 	/* -------------------- End of parsing input ------------------------------------- */
 
 	/* It now screws with polygons so I must be sure that polygons remain as such */
-	is_closed = ((ptr_d[0] == ptr_d[ny-1]) && (ptr_d[ny] == ptr_d[2*ny-1]));
+	is_closed = (do_DP && ((ptr_d[0] == ptr_d[ny-1]) && (ptr_d[ny] == ptr_d[2*ny-1])) );
 
 	if (is_double && !geog) {
 		if (nx == 2) {
-			seq = cvCreateSeq( CV_SEQ_KIND_CURVE + CV_32FC2, sizeof(CvContour), sizeof(CvPoint2D32f), storage );
+			seq = cvCreateSeq(CV_SEQ_KIND_CURVE + CV_32FC2, sizeof(CvContour), sizeof(CvPoint2D32f), storage);
 			for (j = 0; j < ny; j++) {
 				pt_in_2D32f.x = (float)ptr_d[j];	pt_in_2D32f.y = (float)ptr_d[j+ny];
-				cvSeqPush( seq, &pt_in_2D32f );
+				cvSeqPush(seq, &pt_in_2D32f);
 			}
 		}
 		else {
-			seq = cvCreateSeq( CV_SEQ_KIND_CURVE + CV_32FC3, sizeof(CvContour), sizeof(CvPoint3D32f), storage );
+			seq = cvCreateSeq(CV_SEQ_KIND_CURVE + CV_32FC3, sizeof(CvContour), sizeof(CvPoint3D32f), storage);
 			for (j = 0; j < ny; j++) {
 				pt_in_3D32f.x = (float)ptr_d[j];	pt_in_3D32f.y = (float)ptr_d[j+ny];
 				pt_in_3D32f.z = (float)ptr_d[j+2*ny];
-				cvSeqPush( seq, &pt_in_3D32f );
+				cvSeqPush(seq, &pt_in_3D32f);
 			}
 		}
 	}
 	else if (is_single && !geog) {
 		if (nx == 2) {
-			seq = cvCreateSeq( CV_SEQ_KIND_CURVE + CV_32FC2, sizeof(CvContour), sizeof(CvPoint2D32f), storage );
+			seq = cvCreateSeq(CV_SEQ_KIND_CURVE + CV_32FC2, sizeof(CvContour), sizeof(CvPoint2D32f), storage);
 			for (j = 0; j < ny; j++) {
 				pt_in_2D32f.x = ptr_s[j];		pt_in_2D32f.y = ptr_s[j+ny];
-				cvSeqPush( seq, &pt_in_2D32f );
+				cvSeqPush(seq, &pt_in_2D32f);
 			}
 		}
 		else {
@@ -2191,17 +2191,55 @@ void JapproxPoly(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[], co
 			result = cvApproxPoly(seq, sizeof(CvContour), storage, CV_POLY_APPROX_DP, tolerance, 0);
 		else
 			result = cvConvexHull2(seq, 0, CV_CLOCKWISE, return_pts);
-		cvReleaseMemStorage(&storage);
+
 		np = result->total; 		/* total number of surviving points */
 		if (is_closed) {
 			if (is_double) {
-				pt_out_2D32f = (CvPoint2D32f*)cvGetSeqElem(result, 0);
-				ptr_d[0] = pt_out_2D32f->x;	ptr_d[2] = pt_out_2D32f->y;
-				pt_out_2D32f = (CvPoint2D32f*)cvGetSeqElem(result, np-1);
-				ptr_d[1] = pt_out_2D32f->x;	ptr_d[3] = pt_out_2D32f->y;
+				if (nx == 2) {
+					pt_out_2D32f = (CvPoint2D32f*)cvGetSeqElem(result, 0);
+					ptr_d[0] = pt_out_2D32f->x;		ptr_d[2] = pt_out_2D32f->y;
+					pt_out_2D32f = (CvPoint2D32f*)cvGetSeqElem(result, np-1);
+					ptr_d[1] = pt_out_2D32f->x;		ptr_d[3] = pt_out_2D32f->y;
+				}
+				else {
+					pt_out_3D32f = (CvPoint3D32f*)cvGetSeqElem(result, 0);
+					ptr_d[0] = pt_out_3D32f->x;		ptr_d[2] = pt_out_3D32f->y;
+					pt_out_3D32f = (CvPoint3D32f*)cvGetSeqElem(result, np-1);
+					ptr_d[1] = pt_out_3D32f->x;		ptr_d[3] = pt_out_3D32f->y;					
+				}
 				if ((ptr_d[0] != ptr_d[1]) || (ptr_d[2] != ptr_d[3])) {		/* Shit, it screwed up */
 					reclose = 1;
 					np++;
+				}
+			}
+			else if (is_single) {
+				if (nx == 2) {
+					pt_out_2D32f = (CvPoint2D32f*)cvGetSeqElem(result, 0);
+					ptr_s[0] = pt_out_2D32f->x;		ptr_s[2] = pt_out_2D32f->y;
+					pt_out_2D32f = (CvPoint2D32f*)cvGetSeqElem(result, np-1);
+					ptr_s[1] = pt_out_2D32f->x;		ptr_s[3] = pt_out_2D32f->y;
+				}
+				else {
+					pt_out_3D32f = (CvPoint3D32f*)cvGetSeqElem(result, 0);
+					ptr_s[0] = pt_out_3D32f->x;		ptr_s[2] = pt_out_3D32f->y;
+					pt_out_3D32f = (CvPoint3D32f*)cvGetSeqElem(result, np-1);
+					ptr_s[1] = pt_out_3D32f->x;		ptr_s[3] = pt_out_3D32f->y;
+				}
+				if ((ptr_s[0] != ptr_s[1]) || (ptr_s[2] != ptr_s[3])) {
+					reclose = 1;
+					np++;
+				}
+			}
+			else {
+				if (nx == 2) {		/* With ints we do only the 2D case (no pt_out_3D32i) */
+					pt_out_2D32i = (CvPoint*)cvGetSeqElem(result, 0);
+					ptr_i[0] = pt_out_2D32i->x;		ptr_i[2] = pt_out_2D32i->y;
+					pt_out_2D32i = (CvPoint*)cvGetSeqElem(result, np-1);
+					ptr_i[1] = pt_out_2D32i->x;		ptr_i[3] = pt_out_2D32i->y;
+					if ((ptr_i[0] != ptr_i[1]) || (ptr_i[2] != ptr_i[3])) {
+						reclose = 1;
+						np++;
+					}
 				}
 			}
 		}
@@ -2232,7 +2270,7 @@ void JapproxPoly(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[], co
 		ptr_d = (double *)mxGetData(plhs[0]);
 		if (nx == 2) {
 			for (j = 0; j < np-reclose; j++) {
-				pt_out_2D32f = (CvPoint2D32f*)cvGetSeqElem( result, j );
+				pt_out_2D32f = (CvPoint2D32f*)cvGetSeqElem(result, j);
 				ptr_d[j] = pt_out_2D32f->x;	ptr_d[j+np] = pt_out_2D32f->y;
 			}
 		}
@@ -2253,13 +2291,13 @@ void JapproxPoly(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[], co
 		ptr_s = (float *)mxGetData(plhs[0]);
 		if (nx == 2) {
 			for (j = 0; j < np; j++) {
-				pt_out_2D32f = (CvPoint2D32f*)cvGetSeqElem( result, j );
+				pt_out_2D32f = (CvPoint2D32f*)cvGetSeqElem(result, j);
 				ptr_s[j] = pt_out_2D32f->x;	ptr_s[j+np] = pt_out_2D32f->y;
 			}
 		}
 		else {
 			for (j = 0; j < np; j++) {
-				pt_out_3D32f = (CvPoint3D32f*)cvGetSeqElem( result, j );
+				pt_out_3D32f = (CvPoint3D32f*)cvGetSeqElem(result, j);
 				ptr_s[j] = pt_out_3D32f->x;	ptr_s[j+np] = pt_out_3D32f->y;
 				ptr_s[j+2*np] = pt_out_3D32f->z;
 			}
@@ -2294,6 +2332,8 @@ void JapproxPoly(int n_out, mxArray *plhs[], int n_in, const mxArray *prhs[], co
 			mxFree((void *)x);	mxFree((void *)y);
 		}
 	}
+
+	cvReleaseMemStorage(&storage);
 }
 
 /* --------------------------------------------------------------------------- */
