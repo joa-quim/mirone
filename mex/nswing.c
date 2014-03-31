@@ -16,6 +16,8 @@
  *	Contact info: w3.ualg.pt/~jluis/mirone
  *--------------------------------------------------------------------*/
 
+static char prog_id[] = "$Id$";
+
 /*
  *	Original Fortran version of core hydrodynamic code by J.M. Miranda and COMCOT
  *
@@ -332,7 +334,7 @@ int main(int argc, char **argv) {
 	int     w_bin = TRUE, cumpt = FALSE, error = FALSE, do_2Dgrids = FALSE, do_maxs = FALSE;
 	int     out_energy = FALSE, max_energy = FALSE, out_power = FALSE, max_power = FALSE;
 	int     first_anuga_time = TRUE, out_sww = FALSE, out_most = FALSE, out_3D = FALSE;
-	int     surf_level = TRUE, max_level = FALSE, water_depth = FALSE, for_inundation = FALSE;
+	int     surf_level = TRUE, max_level = FALSE, water_depth = FALSE;
 	int     do_Okada = FALSE;            /* For when one will compute the Okada deformation here */
 	int     out_maregs_nc = FALSE;       /* For when maregs in output are written in netCDF */
 	int     n_arg_no_char = 0;
@@ -358,7 +360,7 @@ int main(int argc, char **argv) {
 	char   *bnc_file = NULL;            /* Name pointer for a boundary condition file */
 	char    stem[256] = "", prenome[128] = "", str_tmp[128] = "";
 	char   *pch;
-	char   *nesteds[4] = {NULL, NULL, NULL, NULL};
+	char   *nesteds[10] = {NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL};
 
 	float  *work = NULL, *workMax = NULL, *vmax = NULL, *wmax = NULL, *time_p = NULL;
 	float   work_min = FLT_MAX, work_max = -FLT_MAX, *maregs_array = NULL;
@@ -550,8 +552,7 @@ int main(int argc, char **argv) {
 					water_depth = TRUE;
 					surf_level = FALSE;
 					if (argv[i][2] == 'i') {	/* Write Eta on ocean and water depth on land */
-						for_inundation = TRUE;
-						water_depth = FALSE;
+						//water_depth = FALSE;
 					}
 					break;
 				case 'E':	/* Compute total Energy or Power*/
@@ -708,11 +709,7 @@ int main(int argc, char **argv) {
 					nesteds[0] = &argv[i][2];
 					break;
 				case '2':
-					nesteds[1] = &argv[i][2];
-					break;
 				case '3':
-					nesteds[2] = &argv[i][2];
-					break;
 				case '4':
 				case '5':
 				case '6':
@@ -738,7 +735,7 @@ int main(int argc, char **argv) {
 	}
 
 	if (argc <= 1 || error) {
-		mexPrintf ("NSWING - Um gerador de tsunamis\n\n");
+		mexPrintf ("NSWING - A tsunami maker (%s)\n\n", prog_id);
 #ifdef I_AM_MEX
 		mexPrintf ("nswing(bat,hdr_bat,deform,hdr_deform, [-1<bat_lev1>], [-2<bat_lev2>], [-3<...>] [maregs], [-G|Z<name>[+lev],<int>], [-A<fname.sww>]\n");
 		mexPrintf ("       [-B<BCfile>], [-C], [-D[i]], [-E[p][m][,decim]], [-J<time_jump>], [-M], [-N<n_cycles>], [-Rw/e/s/n], [-S[x|y|n][+m]]\n");
@@ -974,7 +971,7 @@ int main(int argc, char **argv) {
 	if (initialize_nestum(&nest, isGeog, 0))
 		Return(-1);
 	/* We need the ''work' array in most cases, but not all and also need to make sure it's big enough */
-	if (out_most || out_3D || surf_level || water_depth || for_inundation || out_energy || out_power || out_momentum || out_velocity) {
+	if (out_most || out_3D || surf_level || water_depth || out_energy || out_power || out_momentum || out_velocity) {
 		if (do_maxs && (work = (float *) mxCalloc ((size_t)(nest.hdr[0].nm, nest.hdr[writeLevel].nm), sizeof(float)) ) == NULL)
 			{no_sys_mem("(wmax)", nest.hdr[writeLevel].nm); Return(-1);}
 	}
@@ -1167,6 +1164,7 @@ int main(int argc, char **argv) {
 
 	/* --------------------------------------------------------------------------------------- */
 	if (verbose) {
+		mexPrintf("NSWING: %s\n\n", prog_id);
 		mexPrintf("Layer 0  time step = %g\tx_min = %g\tx_max = %g\ty_min = %g\ty_max = %g\n",
 		          dt, hdr_b.x_min, hdr_b.x_max, hdr_b.y_min, hdr_b.y_max);
 		if (do_nestum) {
@@ -1182,8 +1180,7 @@ int main(int argc, char **argv) {
 		}
 		mexPrintf ("dtCFL = %.4f\tCourant number (sqrt(g*h)*dt / max(dx,dy)) = %g\n", dtCFL, 1/dtCFL * dt); 
 		if (max_level)      mexPrintf("Output Maximum water level.\n");
-		if (water_depth)    mexPrintf("Output water depth.\n");
-		if (for_inundation) mexPrintf("Output wave height plus whater thickness on land.\n");
+		if (water_depth)    mexPrintf("Output wave height plus whater thickness on land.\n");
 		if (out_momentum)   mexPrintf("Output momentum (V * D).\n");
 		if (do_maxs) {
 			if (max_energy)
@@ -1305,8 +1302,18 @@ int main(int argc, char **argv) {
 		      but write only one grid at the end of all cycles
 		/* ------------------------------------------------------------------------------------ */
 		if (max_level) {		/* Output max surface level */
-			for (ij = 0; ij < nest.hdr[writeLevel].nm; ij++)
-				if (wmax[ij] < nest.etad[writeLevel][ij]) wmax[ij] = (float)nest.etad[writeLevel][ij];
+			//for (ij = 0; ij < nest.hdr[writeLevel].nm; ij++)
+				//if (wmax[ij] < nest.etad[writeLevel][ij])
+					//wmax[ij] = (float)nest.etad[writeLevel][ij];
+			for (ij = 0; ij < nest.hdr[writeLevel].nm; ij++) {
+				work[ij] = (float)nest.etad[writeLevel][ij];
+				if (nest.bat[writeLevel][ij] < 0) {
+					if ((work[ij] = (float)(nest.etaa[writeLevel][ij] + nest.bat[writeLevel][ij])) < 0)
+						work[ij] = 0;
+				}
+				if (wmax[ij] < work[ij]) wmax[ij] = work[ij];	/* Update the maximum at this iteration */
+			}
+
 		}
 		else if (max_energy) {
 			if (k % decimate_max == 0) {
@@ -1326,10 +1333,10 @@ int main(int argc, char **argv) {
 				/* Last cycle: copy wmax into the work array and write it to file */
 				size_t len;
 				for (ij = 0; ij < nest.hdr[writeLevel].nm; ij++) {
-					if (nest.htotal_d[writeLevel][ij] > EPS1)
+					//if (nest.htotal_d[writeLevel][ij] > EPS1)
 						workMax[ij] = wmax[ij];
-					else
-						workMax[ij] = 1.70141e38f;  /* Surfer 'NaNs'. To be changed when outut in netCDF */
+					//else
+						//workMax[ij] = 1.70141e38f;  /* Surfer 'NaNs'. To be changed when outut in netCDF */
 				}
 				len = strlen(stem) - 1;
 				while (stem[len] !='.' && len > 0) len--;
@@ -1352,11 +1359,11 @@ int main(int argc, char **argv) {
 				for (ij = 0; ij < nest.hdr[writeLevel].nm; ij++)
 					work[ij] = (float)nest.etad[writeLevel][ij];
 			}
-			else if (water_depth) {
+			/*else if (water_depth) {
 				for (ij = 0; ij < nest.hdr[writeLevel].nm; ij++)
 					if ((work[ij] = (float)(nest.etaa[writeLevel][ij] + nest.bat[writeLevel][ij])) < 0) work[ij] = 0;
-			}
-			else if (for_inundation) {
+			}*/
+			else if (water_depth) {
 				for (ij = 0; ij < nest.hdr[writeLevel].nm; ij++) {
 					work[ij] = (float)nest.etad[writeLevel][ij];
 					if (nest.bat[writeLevel][ij] < 0) {
