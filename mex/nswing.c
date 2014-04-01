@@ -3033,7 +3033,7 @@ void moment_M(struct nestContainer *nest, int lev) {
 	int cm1, rm1;			/* previous column (cm1 = col - 1) and row (rm1 = row - 1) */
 	int cp1, rp1;			/* next column (cp1 = col + 1) and row (rp1 = row + 1) */
 	int rm2, cp2;
-	double xp, xqe, xqq, ff = 0, dd, df, cte;
+	double xp, xqe, xqq, ff = 0, dd, df, cte, f_limit;
 	double advx, dtdx, dtdy, advy, rlat, r4mcart;
 	double dpa_ij, dpa_ij_rp1, dpa_ij_rm1, dpa_ij_cm1, dpa_ij_cp1;
 
@@ -3071,15 +3071,15 @@ void moment_M(struct nestContainer *nest, int lev) {
 		rm1 = (row == 0) ? 0 : hdr.nx;
 		ij = row * hdr.nx - 1 + first;
 		for (col = 0 + first; col < hdr.nx - 1; col++) {
-			ij++;
-			/* no flux to permanent dry areas */
-			if (bat[ij] <= MAXRUNUP) {
-				fluxm_d[ij] = 0;
-				continue;
-			}
 			cp1 = 1;
 			cp2 = (col < hdr.nx - 2) ? 2 : 1;
 			cm1 = (col == 0) ? 0 : 1;
+			ij++;
+			/* no flux to permanent dry areas */
+			if (bat[ij] <= MAXRUNUP) {
+				//fluxm_d[ij] = 0;
+				continue;
+			}
 
 			/* Looks weird but it's faster than an IF case (branch prediction?) */
 			dpa_ij = (dpa_ij = (htotal_d[ij] + htotal_a[ij] + htotal_d[ij+cp1] + htotal_a[ij+cp1]) * 0.25) > EPS6 ? dpa_ij : 0;
@@ -3105,25 +3105,30 @@ void moment_M(struct nestContainer *nest, int lev) {
 				/* case a3/d1 wet-dry */
 			}
 			else if (htotal_d[ij] > EPS5 && htotal_d[ij+cp1] < EPS5 && etad[ij] >= etad[ij+cp1]) {
-				if (bat[ij] > bat[ij+cp1])
+				if (bat[ij] > bat[ij+cp1]) {
 					df = dd = etad[ij] - etad[ij+cp1];
-				else
+				}
+				else {
 					df = dd = htotal_d[ij];
+				}
+
 			/* case b1 and c3 dry-wet */
 			}
 			else if (htotal_d[ij] < EPS5 && htotal_d[ij+cp1] > EPS5 && etad[ij] <= etad[ij+cp1]) {
-				if (bat[ij] > bat[ij+cp1])
+				if (bat[ij] > bat[ij+cp1]) {
 					df = dd = htotal_d[ij+cp1];
-				else
+				}
+				else {
 					df = dd = etad[ij+cp1] - etad[ij];
+				}
 			}
 			else {			/* other cases no moving boundary a1,a2,c1,c2 */
-				fluxm_d[ij] = 0;
+				//fluxm_d[ij] = 0;
 				continue;
 			}
 			/* disregards fluxes when dd is very small - pode ser EPS6 */
 			if (dd < EPS5) {
-				fluxm_d[ij] = 0;
+				//fluxm_d[ij] = 0;
 				continue;
 			}
 			if (df < EPS3) df = EPS3;
@@ -3198,7 +3203,13 @@ void moment_M(struct nestContainer *nest, int lev) {
 			xp = xp - advx - advy;
 L120:
 			xp /= (ff + 1);
-			if (fabs(xp) < EPS10) xp = 0;
+			if (fabs(xp) < EPS10)
+				xp = 0;
+			else {			/* Limit the discharge */
+				f_limit = V_LIMIT * dd;
+				if (xp > f_limit) xp = f_limit;
+				else if (xp < -f_limit) xp = -f_limit;
+			}
 
 			fluxm_d[ij] = xp;
 
@@ -3226,7 +3237,7 @@ void moment_N(struct nestContainer *nest, int lev) {
 	int cm1, rm1;			/* previous column (cm1 = col - 1) and row (rm1 = row - 1) */
 	int cp1, rp1;			/* next column (cp1 = col + 1) and row (rp1 = row + 1) */
 	int cm2, rp2;
-	double xq, xpe, xpp, ff = 0, dd, df, cte;
+	double xq, xpe, xpp, ff = 0, dd, df, cte, f_limit;
 	double advx, dtdx, dtdy, advy, rlat, r4mcart;
 	double dqa_ij, dqa_ij_rp1, dqa_ij_rm1, dqa_ij_cm1, dqa_ij_cp1;
 
@@ -3265,14 +3276,14 @@ void moment_N(struct nestContainer *nest, int lev) {
 		rm1 = (row == 0) ? 0 : hdr.nx;
 		ij = row * hdr.nx - 1;
 		for (col = 0; col < hdr.nx - last; col++) {
+			cp1 = (col < hdr.nx - 1) ? 1 : 0;
+			cm1 = (col == 0) ? 0 : 1;
 			ij++;
 			/* no flux to permanent dry areas */
 			if (bat[ij] <= MAXRUNUP) {
-				fluxn_d[ij] = 0;
+				//fluxn_d[ij] = 0;
 				continue;
 			}
-			cp1 = (col < hdr.nx - 1) ? 1 : 0;
-			cm1 = (col == 0) ? 0 : 1;
 
 			/* Looks weird but it's faster than an IF case (branch prediction?) */
 			dqa_ij = (dqa_ij = (htotal_d[ij] + htotal_a[ij] + htotal_d[ij+rp1] + htotal_a[ij+rp1]) * 0.25) > EPS6 ? dqa_ij : 0;
@@ -3283,13 +3294,11 @@ void moment_N(struct nestContainer *nest, int lev) {
 			if (htotal_d[ij] > EPS5 && htotal_d[ij+rp1] > EPS5) {
 				/* case b2 */
 				if (-bat[ij+rp1] >= etad[ij]) {
-					dd = htotal_d[ij+rp1];
-					df = dd;
+					df = dd = htotal_d[ij+rp1];
 					/* case d2 */
 				} 
 				else if (-bat[ij] >= etad[ij+rp1]) {
-					dd = htotal_d[ij];
-					df = dd;
+					df = dd = htotal_d[ij];
 				} 
 				else {
 					/* case b3/d3 */
@@ -3301,28 +3310,28 @@ void moment_N(struct nestContainer *nest, int lev) {
 			}		 
 			else if (htotal_d[ij] > EPS5 && htotal_d[ij+rp1] < EPS5 && etad[ij] > etad[ij+rp1]) {
 				if (bat[ij] > bat[ij+rp1])
-					dd = etad[ij] - etad[ij+rp1];
+					df = dd = etad[ij] - etad[ij+rp1];
 				else
-					dd = htotal_d[ij];
+					df = dd = htotal_d[ij];
 	
-				df = dd;
 				/* case b1 and c3 dry-wet */
 			}
 			else if (htotal_d[ij] < EPS5 && htotal_d[ij+rp1] > EPS5 && etad[ij+rp1] > etad[ij]) {
-				if (bat[ij] > bat[ij+rp1])
-					dd = htotal_d[ij+rp1];
-				else
-					dd = etad[ij+rp1] - etad[ij];
-				df = dd;
+				if (bat[ij] > bat[ij+rp1]) {
+					df = dd = htotal_d[ij+rp1];
+				}
+				else {
+					df = dd = etad[ij+rp1] - etad[ij];
+				}
 			}
 			else {				/* other cases no moving boundary */
-				fluxn_d[ij] = 0;
+				//fluxn_d[ij] = 0;
 				continue;
 			}
 
 			/* disregards fluxes when dd is very small */
 			if (dd < EPS5) {
-				fluxn_d[ij] = 0;
+				//fluxn_d[ij] = 0;
 				continue;
 			}
 			if (df < EPS3) df = EPS3;
@@ -3400,7 +3409,13 @@ void moment_N(struct nestContainer *nest, int lev) {
 			xq = xq - advx - advy;
 L200:
 			xq /= (ff + 1);
-			if (fabs(xq) < EPS10) xq = 0;
+			if (fabs(xq) < EPS10)
+				xq = 0;
+			else {			/* Limit the discharge */
+				f_limit = V_LIMIT * dd;
+				if (xq > f_limit) xq = f_limit;
+				else if (xq < -f_limit) xq = -f_limit;
+			}
 
 			fluxn_d[ij] = xq;
 
@@ -3613,8 +3628,10 @@ void moment_sp_M(struct nestContainer *nest, int lev) {
 
 			/* - computes linear terms in spherical coordinates */
 			xp = (1 - ff) * fluxm_a[ij] - r3m[row] * dd * (etad[ij+cp1] - etad[ij]); /* - includes coriolis */
+#if 0
 			if (hdr.doCoriolis)
 				xp += r4m[row] * 2 * xqq;
+#endif
 
 			/* - total water depth is smaller than EPS3 >> linear */
 			if (dpa_ij < EPS3)
@@ -3783,28 +3800,30 @@ void moment_sp_N(struct nestContainer *nest, int lev) {
 			/* - case a3 and d1 wet dry */
 			}
 			else if (htotal_d[ij] > EPS5 && htotal_d[ij+rp1] <= EPS5 && etad[ij] > etad[ij+rp1]) {
-				if (bat[ij] > bat[ij+rp1])
-					dd = etad[ij] - etad[ij+rp1];
-				else
-					dd = htotal_d[ij];
-				df = dd;
+				if (bat[ij] > bat[ij+rp1]) {
+					df = dd = etad[ij] - etad[ij+rp1];
+				}
+				else {
+					df = dd = htotal_d[ij];
+				}
 				/* - case b1 and c3 dry-wet */
 			}
 			else if (htotal_d[ij] <= EPS5 && htotal_d[ij+rp1] > EPS5 && etad[ij] < etad[ij+rp1]) {
-				if (bat[ij] > bat[ij+rp1])
-					dd = htotal_d[ij+rp1];
-				else
-					dd = etad[ij+rp1] - etad[ij];
-				df = dd;
+				if (bat[ij] > bat[ij+rp1]) {
+					df = dd = htotal_d[ij+rp1];
+				}
+				else {
+					df = dd = etad[ij+rp1] - etad[ij];
+				}
 			} 
 			else {				/* - other cases no moving boundary */
-				fluxn_d[ij] = 0;
+				//fluxn_d[ij] = 0;
 				//vey[ij] = 0;
 				continue;
 			}
 			/* - no flux if dd too small */
 			if (dd < EPS5) {
-				fluxn_d[ij] = 0;
+				//fluxn_d[ij] = 0;
 				//vey[ij] = 0;
 				continue;
 			}
@@ -3815,8 +3834,10 @@ void moment_sp_N(struct nestContainer *nest, int lev) {
 			/* - computes linear terms of N in cartesian coordinates */
 			xq = (1 - ff) * fluxn_a[ij] - r3n[row] * dd * (etad[ij+rp1] - etad[ij]);
 			/* - includes coriolis effect */
+#if 0
 			if (hdr.doCoriolis)
 				xq -= r4n[row] * 2 * xpp;
+#endif
 
 			/* - lateral buffer >> linear */
 			if (col < jupe || col > (hdr.nx - jupe - 1) || row < jupe || row > (hdr.ny - jupe - 1))
