@@ -2848,11 +2848,11 @@ void mass(struct nestContainer *nest, int lev) {
 			/* case ocean and non permanent dry area */
 			if (bat[ij] > MAXRUNUP) {
 				zzz = etaa[ij] - dtdx * (fluxm_a[ij] - fluxm_a[ij-cm1]) - dtdy * (fluxn_a[ij] - fluxn_a[ij-rm1]);
-				if (fabs(zzz) < EPS6) zzz = 0;
+				if (fabs(zzz) < EPS10) zzz = 0;
 				dd = zzz + bat[ij];
 
 				/* wetable zone */
-				if (dd > EPS6) {
+				if (dd > EPS10) {
 					htotal_d[ij] = dd;
 					etad[ij] = zzz;
 				}
@@ -3074,7 +3074,7 @@ void moment_M(struct nestContainer *nest, int lev) {
 			ij++;
 			/* no flux to permanent dry areas */
 			if (bat[ij] <= MAXRUNUP) {
-				//fluxm_d[ij] = 0;//vex[ij] = 0;
+				fluxm_d[ij] = 0;
 				continue;
 			}
 			cp1 = 1;
@@ -3087,7 +3087,7 @@ void moment_M(struct nestContainer *nest, int lev) {
 			//if (dpa_ij < EPS6) dpa_ij = 0;
 
 			/* case wet-wet */
-			if (htotal_d[ij] > EPS6 && htotal_d[ij+cp1] > EPS6) {
+			if (htotal_d[ij] > EPS5 && htotal_d[ij+cp1] > EPS5) {
 				/* case b2 */
 				if (-bat[ij+cp1] >= etad[ij]) {
 					df = dd = htotal_d[ij+cp1];
@@ -3099,31 +3099,31 @@ void moment_M(struct nestContainer *nest, int lev) {
 				else {
 					/* case b3/d3 */
 					dd = (htotal_d[ij] + htotal_d[ij+cp1]) * 0.5;
-					if (dd < EPS6) dd = 0;
+					if (dd < EPS5) dd = 0;
 					df = dpa_ij;
 				}
 				/* case a3/d1 wet-dry */
 			}
-			else if (htotal_d[ij] > EPS6 && htotal_d[ij+cp1] < EPS6 && etad[ij] >= etad[ij+cp1]) {
+			else if (htotal_d[ij] > EPS5 && htotal_d[ij+cp1] < EPS5 && etad[ij] >= etad[ij+cp1]) {
 				if (bat[ij] > bat[ij+cp1])
 					df = dd = etad[ij] - etad[ij+cp1];
 				else
 					df = dd = htotal_d[ij];
 			/* case b1 and c3 dry-wet */
 			}
-			else if (htotal_d[ij] < EPS6 && htotal_d[ij+cp1] > EPS6 && etad[ij] <= etad[ij+cp1]) {
+			else if (htotal_d[ij] < EPS5 && htotal_d[ij+cp1] > EPS5 && etad[ij] <= etad[ij+cp1]) {
 				if (bat[ij] > bat[ij+cp1])
 					df = dd = htotal_d[ij+cp1];
 				else
 					df = dd = etad[ij+cp1] - etad[ij];
 			}
 			else {			/* other cases no moving boundary a1,a2,c1,c2 */
-				//fluxm_d[ij] = 0;//vex[ij] = 0;
+				fluxm_d[ij] = 0;
 				continue;
 			}
 			/* disregards fluxes when dd is very small - pode ser EPS6 */
-			if (dd < EPS3) {
-				//fluxm_d[ij] = 0;//vex[ij] = 0;
+			if (dd < EPS5) {
+				fluxm_d[ij] = 0;
 				continue;
 			}
 			if (df < EPS3) df = EPS3;
@@ -3151,14 +3151,14 @@ void moment_M(struct nestContainer *nest, int lev) {
 			/* - upwind scheme for x-direction volume flux */
 			if (fluxm_a[ij] < 0) {
 				dpa_ij_cp1 = (htotal_d[ij+cp1] + htotal_a[ij+cp1] + htotal_d[ij+cp2] + htotal_a[ij+cp2]) * 0.25;
-				if (dpa_ij_cp1 < EPS6 || htotal_d[ij+cp1] < EPS6)
+				if (dpa_ij_cp1 < EPS3 || htotal_d[ij+cp1] < EPS5)
 					advx = dtdx * (-(fluxm_a[ij] * fluxm_a[ij]) / dpa_ij);
 				else
 					advx = dtdx * (fluxm_a[ij+cp1]*fluxm_a[ij+cp1] / dpa_ij_cp1 - fluxm_a[ij]*fluxm_a[ij] / dpa_ij);
 			}
 			else {
 				dpa_ij_cm1 = (htotal_d[ij-cm1] + htotal_a[ij-cm1] + htotal_d[ij] + htotal_a[ij]) * 0.25;
-				if (dpa_ij_cm1 < EPS6 || htotal_d[ij] < EPS6)
+				if (dpa_ij_cm1 < EPS3 || htotal_d[ij] < EPS5)
 					advx = dtdx * (fluxm_a[ij] * fluxm_a[ij] / dpa_ij);
 				else
 					advx = dtdx * (fluxm_a[ij] * fluxm_a[ij] / dpa_ij - fluxm_a[ij-cm1] * fluxm_a[ij-cm1] / dpa_ij_cm1);
@@ -3166,10 +3166,10 @@ void moment_M(struct nestContainer *nest, int lev) {
 			/* - upwind scheme for y-direction volume flux */
 			if (xqq < 0) {
 				dpa_ij_rp1 = (htotal_d[ij+rp1] + htotal_a[ij+rp1] + htotal_d[ij+cp1+rp1] + htotal_a[ij+cp1+rp1]) * 0.25;
-				if (htotal_d[ij+rp1] < EPS6 || htotal_d[ij+rp1+cp1] < EPS6)
+				if (htotal_d[ij+rp1] < EPS5 || htotal_d[ij+rp1+cp1] < EPS5)
 					advy = dtdy * (-fluxm_a[ij] * xqq / dpa_ij);
 
-				else if (dpa_ij_rp1 < EPS6)
+				else if (dpa_ij_rp1 < EPS5)
 					advy = dtdy * (-fluxm_a[ij] * xqq / dpa_ij);
 
 				else {
@@ -3179,10 +3179,10 @@ void moment_M(struct nestContainer *nest, int lev) {
 			}
 			else {
 				dpa_ij_rm1 = (htotal_d[ij-rm1] + htotal_a[ij-rm1] + htotal_d[ij+cp1-rm1] + htotal_a[ij+cp1-rm1]) * 0.25;
-				if (htotal_d[ij-rm1] < EPS6 || htotal_d[ij+cp1-rm1] < EPS6)
+				if (htotal_d[ij-rm1] < EPS5 || htotal_d[ij+cp1-rm1] < EPS5)
 					advy = dtdy * (fluxm_a[ij] * xqq / dpa_ij);
 
-				else if (dpa_ij_rm1 < EPS6)
+				else if (dpa_ij_rm1 < EPS5)
 					advy = dtdy * (fluxm_a[ij] * xqq / dpa_ij);
 
 				else {
@@ -3192,13 +3192,13 @@ void moment_M(struct nestContainer *nest, int lev) {
 				}
 			}
 			/* disregards very small advection terms */
-			if (fabs(advx) <= EPS12) advx = 0;
-			if (fabs(advy) <= EPS12) advy = 0;
+			if (fabs(advx) <= EPS10) advx = 0;
+			if (fabs(advy) <= EPS10) advy = 0;
 			/* adds linear+convection terms */
 			xp = xp - advx - advy;
 L120:
 			xp /= (ff + 1);
-			if (fabs(xp) < EPS12) xp = 0;
+			if (fabs(xp) < EPS10) xp = 0;
 
 			fluxm_d[ij] = xp;
 
@@ -3268,7 +3268,7 @@ void moment_N(struct nestContainer *nest, int lev) {
 			ij++;
 			/* no flux to permanent dry areas */
 			if (bat[ij] <= MAXRUNUP) {
-				//fluxn_d[ij] = 0;//vey[ij] = 0;
+				fluxn_d[ij] = 0;
 				continue;
 			}
 			cp1 = (col < hdr.nx - 1) ? 1 : 0;
@@ -3280,7 +3280,7 @@ void moment_N(struct nestContainer *nest, int lev) {
 			//if (dqa_ij < EPS6) dqa_ij = 0;
 
 			/* moving boundary - Imamura algorithm following cho 2009 */
-			if (htotal_d[ij] > EPS6 && htotal_d[ij+rp1] > EPS6) {
+			if (htotal_d[ij] > EPS5 && htotal_d[ij+rp1] > EPS5) {
 				/* case b2 */
 				if (-bat[ij+rp1] >= etad[ij]) {
 					dd = htotal_d[ij+rp1];
@@ -3294,12 +3294,12 @@ void moment_N(struct nestContainer *nest, int lev) {
 				else {
 					/* case b3/d3 */
 					dd = (htotal_d[ij] + htotal_d[ij+rp1]) * 0.5;
-					if (dd < EPS6) dd = 0;
+					if (dd < EPS5) dd = 0;
 					df = dqa_ij;
 				}
 				/* case a3 and d1 wet dry */
 			}		 
-			else if (htotal_d[ij] > EPS6 && htotal_d[ij+rp1] < EPS6 && etad[ij] > etad[ij+rp1]) {
+			else if (htotal_d[ij] > EPS5 && htotal_d[ij+rp1] < EPS5 && etad[ij] > etad[ij+rp1]) {
 				if (bat[ij] > bat[ij+rp1])
 					dd = etad[ij] - etad[ij+rp1];
 				else
@@ -3308,7 +3308,7 @@ void moment_N(struct nestContainer *nest, int lev) {
 				df = dd;
 				/* case b1 and c3 dry-wet */
 			}
-			else if (htotal_d[ij] < EPS6 && htotal_d[ij+rp1] > EPS6 && etad[ij+rp1] > etad[ij]) {
+			else if (htotal_d[ij] < EPS5 && htotal_d[ij+rp1] > EPS5 && etad[ij+rp1] > etad[ij]) {
 				if (bat[ij] > bat[ij+rp1])
 					dd = htotal_d[ij+rp1];
 				else
@@ -3316,13 +3316,13 @@ void moment_N(struct nestContainer *nest, int lev) {
 				df = dd;
 			}
 			else {				/* other cases no moving boundary */
-				//fluxn_d[ij] = 0;//vey[ij] = 0;
+				fluxn_d[ij] = 0;
 				continue;
 			}
 
 			/* disregards fluxes when dd is very small */
-			if (dd < EPS3) {
-				//fluxn_d[ij] = 0;//vey[ij] = 0;
+			if (dd < EPS5) {
+				fluxn_d[ij] = 0;
 				continue;
 			}
 			if (df < EPS3) df = EPS3;
@@ -3353,14 +3353,14 @@ void moment_N(struct nestContainer *nest, int lev) {
 			/* - total water depth is smaller than EPS6 >> linear */
 			if (fluxn_a[ij] < 0) {
 				dqa_ij_rp1 = (htotal_d[ij+rp1] + htotal_a[ij+rp1] + htotal_d[ij+rp2] + htotal_a[ij+rp2]) * 0.25;
-				if (dqa_ij_rp1 < EPS6 || htotal_d[ij+rp1] < EPS6)
+				if (dqa_ij_rp1 < EPS5 || htotal_d[ij+rp1] < EPS5)
 					advy = dtdy * (-(fluxn_a[ij] * fluxn_a[ij]) / dqa_ij );
 				else
 					advy = dtdy * (fluxn_a[ij+rp1]*fluxn_a[ij+rp1] / dqa_ij_rp1 - fluxn_a[ij]*fluxn_a[ij] / dqa_ij);
 			}
 			else {
 				dqa_ij_rm1 = (htotal_d[ij-rm1] + htotal_a[ij-rm1] + htotal_d[ij] + htotal_a[ij]) * 0.25;
-				if (dqa_ij_rm1 < EPS6 || htotal_d[ij] < EPS6)
+				if (dqa_ij_rm1 < EPS3 || htotal_d[ij] < EPS5)
 					advy = dtdy * (fluxn_a[ij] * fluxn_a[ij]) / dqa_ij;
 				else
 					advy = dtdy * (fluxn_a[ij] * fluxn_a[ij] / dqa_ij - fluxn_a[ij-rm1]*fluxn_a[ij-rm1] / dqa_ij_rm1);
@@ -3368,10 +3368,10 @@ void moment_N(struct nestContainer *nest, int lev) {
 			/* - upwind scheme for x-direction volume flux */
 			if (xpp < 0) {
 				dqa_ij_cp1 = (htotal_d[ij+cp1] + htotal_a[ij+cp1] + htotal_d[ij+rp1+cp1] + htotal_a[ij+rp1+cp1]) * 0.25;
-				if (htotal_d[ij+cp1] < EPS6 || htotal_d[ij+cp1+rp1] < EPS6)
+				if (htotal_d[ij+cp1] < EPS5 || htotal_d[ij+cp1+rp1] < EPS5)
 					advx = dtdx * (-fluxn_a[ij] * xpp / dqa_ij);
 
-				else if (dqa_ij_cp1 < EPS6)
+				else if (dqa_ij_cp1 < EPS3)
 					advx = dtdx * (-fluxn_a[ij] * xpp / dqa_ij);
 
 				else {
@@ -3381,10 +3381,10 @@ void moment_N(struct nestContainer *nest, int lev) {
 			}
 			else {
 				dqa_ij_cm1 = (htotal_d[ij-cm1] + htotal_a[ij-cm1] + htotal_d[ij+rp1-cm1] + htotal_a[ij+rp1-cm1]) * 0.25;
-				if (htotal_d[ij-cm1] < EPS6 || htotal_d[ij-cm1+rp1] < EPS6)
+				if (htotal_d[ij-cm1] < EPS5 || htotal_d[ij-cm1+rp1] < EPS5)
 					advx = dtdx * (fluxn_a[ij] * xpp / dqa_ij);
 
-				else if (dqa_ij_cm1 < EPS6)
+				else if (dqa_ij_cm1 < EPS3)
 					advx = dtdx * (fluxn_a[ij] * xpp / dqa_ij);
 
 				else {
@@ -3394,13 +3394,13 @@ void moment_N(struct nestContainer *nest, int lev) {
 				}
 			}
 			/* disregards very small advection terms */
-			if (fabs(advx) <= EPS12) advx = 0;
-			if (fabs(advy) <= EPS12) advy = 0;
+			if (fabs(advx) <= EPS10) advx = 0;
+			if (fabs(advy) <= EPS10) advy = 0;
 			/* adds linear+convection terms */
 			xq = xq - advx - advy;
 L200:
 			xq /= (ff + 1);
-			if (fabs(xq) < EPS12) xq = 0;
+			if (fabs(xq) < EPS10) xq = 0;
 
 			fluxn_d[ij] = xq;
 
@@ -3601,7 +3601,7 @@ void moment_sp_M(struct nestContainer *nest, int lev) {
 				//vex[ij] = 0;
 				continue;
 			}
-			/* - no flux if dd too smal */
+			/* - no flux if dd too small */
 			if (dd < EPS5) {
 				fluxm_d[ij] = 0;
 				//vex[ij] = 0;
