@@ -3095,8 +3095,7 @@ void moment_M(struct nestContainer *nest, int lev) {
 			cm1 = (col == 0) ? 0 : 1;
 			ij++;
 			/* no flux to permanent dry areas */
-			if (bat[ij] <= MAXRUNUP)
-				continue;
+			if (bat[ij] <= MAXRUNUP) continue;
 
 			/* Looks weird but it's faster than an IF case (branch prediction?) */
 			dpa_ij = (dpa_ij = (htotal_d[ij] + htotal_a[ij] + htotal_d[ij+cp1] + htotal_a[ij+cp1]) * 0.25) > EPS6 ? dpa_ij : 0;
@@ -3143,8 +3142,7 @@ void moment_M(struct nestContainer *nest, int lev) {
 				continue;
 			}
 			/* disregards fluxes when dd is very small - pode ser EPS6 */
-			if (dd < EPS5)
-				continue;
+			if (dd < EPS5) continue;
 
 			if (df < EPS3) df = EPS3;
 			xqq = (fluxn_a[ij] + fluxn_a[ij+cp1] + fluxn_a[ij-rm1] + fluxn_a[ij+cp1-rm1]) * 0.25;
@@ -3281,8 +3279,7 @@ void moment_N(struct nestContainer *nest, int lev) {
 			cm1 = (col == 0) ? 0 : 1;
 			ij++;
 			/* no flux to permanent dry areas */
-			if (bat[ij] <= MAXRUNUP)
-				continue;
+			if (bat[ij] <= MAXRUNUP) continue;
 
 			/* Looks weird but it's faster than an IF case (branch prediction?) */
 			dqa_ij = (dqa_ij = (htotal_d[ij] + htotal_a[ij] + htotal_d[ij+rp1] + htotal_a[ij+rp1]) * 0.25) > EPS6 ? dqa_ij : 0;
@@ -3327,8 +3324,7 @@ void moment_N(struct nestContainer *nest, int lev) {
 				continue;
 
 			/* disregards fluxes when dd is very small */
-			if (dd < EPS5)
-				continue;
+			if (dd < EPS5) continue;
 
 			if (df < EPS3) df = EPS3;
 			xpp = (fluxm_a[ij] + fluxm_a[ij+rp1] + fluxm_a[ij-cm1] + fluxm_a[ij-cm1+rp1]) * 0.25;
@@ -3539,6 +3535,8 @@ void moment_sp_M(struct nestContainer *nest, int lev) {
 	/* - fixes friction parameter */
 	cte = (manning2) ? dt * 4.9 : 0;
 
+	memset(fluxm_d, 0, hdr.nm * sizeof(double));	/* Do this rather than seting to zero under looping conditions */
+
 	for (row = 0; row < hdr.ny - last; row++) {		/* - main computation cycle fluxm_d */
 		rp1 = (row < hdr.ny - 1) ? hdr.nx : 0;
 		rm1 = (row == 0) ? 0 : hdr.nx;
@@ -3549,10 +3547,7 @@ void moment_sp_M(struct nestContainer *nest, int lev) {
 			cm1 = (col == 0) ? 0 : 1;
 			ij++;
 			/* no flux to permanent dry areas */
-			if (bat[ij] <= MAXRUNUP) {
-				fluxm_d[ij] = 0;//vex[ij] = 0;
-				continue;
-			}
+			if (bat[ij] <= MAXRUNUP) continue;
 
 			/* Looks weird but it's faster than an IF case (branch prediction?) */
 			dpa_ij = (dpa_ij = (htotal_d[ij] + htotal_a[ij] + htotal_d[ij+cp1] + htotal_a[ij+cp1]) * 0.25) > EPS6 ? dpa_ij : 0;
@@ -3593,15 +3588,12 @@ void moment_sp_M(struct nestContainer *nest, int lev) {
 					dd = etad[ij+cp1] - etad[ij];
 				df = dd;
 			}
-			else {		/* - other cases no moving boundary a1,a2,c1,c2 */
-				fluxm_d[ij] = 0;
+			else		/* - other cases no moving boundary a1,a2,c1,c2 */
 				continue;
-			}
+
 			/* - no flux if dd too small */
-			if (dd < EPS5) {
-				fluxm_d[ij] = 0;
-				continue;
-			}
+			if (dd < EPS5) continue;
+
 			if (df < EPS3) df = EPS3;
 			xqq = (fluxn_a[ij] + fluxn_a[ij+cp1] + fluxn_a[ij-rm1] + fluxn_a[ij+cp1-rm1]) * 0.25;
 			//ff = (manning2) ? cte * manning2 * sqrt(fluxm_a[ij] * fluxm_a[ij] + xqq * xqq) / pow(df, 2.333333) : 0;
@@ -3729,6 +3721,8 @@ void moment_sp_N(struct nestContainer *nest, int lev) {
 	/* - fixes friction parameter */
 	cte = (manning2) ? dt * 4.9 : 0;
 
+	memset(fluxn_d, 0, hdr.nm * sizeof(double));	/* Do this rather than seting to zero under looping conditions */
+
 	/* - main computation cycle fluxn_d */
 	for (row = 0 + first; row < hdr.ny - 1; row++) {
 		rp1 = hdr.nx;
@@ -3740,10 +3734,7 @@ void moment_sp_N(struct nestContainer *nest, int lev) {
 			cm1 = (col == 0) ? 0 : 1;
 			ij++;
 			/* no flux to permanent dry areas */
-			if (bat[ij] <= MAXRUNUP) {
-				fluxn_d[ij] = 0;//vey[ij] = 0;
-				continue;
-			}
+			if (bat[ij] <= MAXRUNUP) continue;
 
 			/* Looks weird but it's faster than an IF case (branch prediction?) */
 			dqa_ij = (dqa_ij = (htotal_d[ij] + htotal_a[ij] + htotal_d[ij+rp1] + htotal_a[ij+rp1]) * 0.25) > EPS6 ? dqa_ij : 0;
@@ -3783,15 +3774,12 @@ void moment_sp_N(struct nestContainer *nest, int lev) {
 					df = dd = etad[ij+rp1] - etad[ij];
 				}
 			} 
-			else {				/* - other cases no moving boundary */
-				fluxn_d[ij] = 0;
+			else				/* - other cases no moving boundary */
 				continue;
-			}
+
 			/* - no flux if dd too small */
-			if (dd < EPS5) {
-				fluxn_d[ij] = 0;
-				continue;
-			}
+			if (dd < EPS5) continue;
+
 			if (df < EPS3) df = EPS3;
 			xpp = (fluxm_a[ij] + fluxm_a[ij+rp1] + fluxm_a[ij-cm1] + fluxm_a[ij-cm1+rp1]) * 0.25;
 			//ff = (manning2) ? cte * manning2 * sqrt(fluxn_a[ij] * fluxn_a[ij] + xpp * xpp) / pow(df, 2.333333) : 0;
