@@ -1422,7 +1422,6 @@ int main(int argc, char **argv) {
 						if (nest.htotal_d[writeLevel][ij] < 1 && fabs(work[ij]) > 10)	/* Clip above this combination */
 							work[ij] = 0;
 					}
-						//work[ij] = (float) nest.vex[writeLevel][ij];
 
 					write_grd_bin(strcat(prenome,"_U.grd"), xMinOut + nest.hdr[writeLevel].x_inc/2, yMinOut,
 					              dx, dy, i_start, j_start, i_end, j_end, nest.hdr[writeLevel].nx, work);
@@ -1438,7 +1437,6 @@ int main(int argc, char **argv) {
 						if (nest.htotal_d[writeLevel][ij] < 1 && fabs(work[ij]) > 10)	/* Clip above this combination */
 							work[ij] = 0;
 					}
-						//work[ij] = (float) nest.vey[writeLevel][ij];
 
 					write_grd_bin(strcat(prenome,"_V.grd"), xMinOut, yMinOut + nest.hdr[writeLevel].y_inc/2,
 					              dx, dy, i_start, j_start, i_end, j_end, nest.hdr[writeLevel].nx, work);
@@ -3514,10 +3512,10 @@ void moment_sp_M(struct nestContainer *nest, int lev) {
 	double dd, df, xp, xqe, xqq, advx, advy, f_limit;
 	double dpa_ij, dpa_ij_rp1, dpa_ij_rm1, dpa_ij_cm1, dpa_ij_cp1;
 	double dt, manning2, *htotal_a, *htotal_d, *bat, *etad, *fluxm_a, *fluxn_a, *fluxm_d, *fluxn_d;
-	double *vex, *r0, *r1m, *r1n, *r2m, *r2n, *r3m, *r3n, *r4m, *r4n;
+	double *r0, *r1m, *r1n, *r2m, *r2n, *r3m, *r3n, *r4m, *r4n;
 	struct grd_header hdr;
 
-	hdr      = nest->hdr[lev];             vex      = nest->vex[lev];
+	hdr      = nest->hdr[lev];
 	dt       = nest->dt[lev];              manning2 = nest->manning2[lev];
 	bat      = nest->bat[lev];             etad     = nest->etad[lev];
 	htotal_a = nest->htotal_a[lev];        htotal_d = nest->htotal_d[lev];
@@ -3540,8 +3538,6 @@ void moment_sp_M(struct nestContainer *nest, int lev) {
 
 	/* - fixes friction parameter */
 	cte = (manning2) ? dt * 4.9 : 0;
-
-	if (nest->out_velocity_x) memset(vex, 0, hdr.nm * sizeof(float));
 
 	for (row = 0; row < hdr.ny - last; row++) {		/* - main computation cycle fluxm_d */
 		rp1 = (row < hdr.ny - 1) ? hdr.nx : 0;
@@ -3599,13 +3595,11 @@ void moment_sp_M(struct nestContainer *nest, int lev) {
 			}
 			else {		/* - other cases no moving boundary a1,a2,c1,c2 */
 				fluxm_d[ij] = 0;
-				//vex[ij] = 0;
 				continue;
 			}
 			/* - no flux if dd too small */
 			if (dd < EPS5) {
 				fluxm_d[ij] = 0;
-				//vex[ij] = 0;
 				continue;
 			}
 			if (df < EPS3) df = EPS3;
@@ -3691,17 +3685,6 @@ L120:
 			}
 
 			fluxm_d[ij] = xp;
-
-			if (nest->out_velocity_x) {
-				/* elimina velocidades maiores que 10m/s para dd<1m */
-				if (dd > EPS3)
-					vex[ij] = xp / df;
-				//else
-					//vex[ij] = 0;
-
-				if (df < 1 && fabs(vex[ij]) > 10)
-					vex[ij] = 0;
-			}
 		}
 	}
 }
@@ -3719,10 +3702,10 @@ void moment_sp_N(struct nestContainer *nest, int lev) {
 	double dd, df, xq, xpe, xpp, advx, advy, f_limit;
 	double dqa_ij, dqa_ij_rp1, dqa_ij_rm1, dqa_ij_cm1, dqa_ij_cp1;
 	double dt, manning2, *htotal_a, *htotal_d, *bat, *etad, *fluxm_a, *fluxn_a, *fluxm_d, *fluxn_d;
-	double *vey, *r0, *r1m, *r1n, *r2m, *r2n, *r3m, *r3n, *r4m, *r4n;
+	double *r0, *r1m, *r1n, *r2m, *r2n, *r3m, *r3n, *r4m, *r4n;
 	struct grd_header hdr;
 
-	hdr      = nest->hdr[lev];             vey      = nest->vey[lev];
+	hdr      = nest->hdr[lev];
 	dt       = nest->dt[lev];              manning2 = nest->manning2[lev];
 	bat      = nest->bat[lev];             etad     = nest->etad[lev];
 	htotal_a = nest->htotal_a[lev];        htotal_d = nest->htotal_d[lev];
@@ -3745,8 +3728,6 @@ void moment_sp_N(struct nestContainer *nest, int lev) {
 
 	/* - fixes friction parameter */
 	cte = (manning2) ? dt * 4.9 : 0;
-
-	if (nest->out_velocity_y) memset(vey, 0, hdr.nm * sizeof(float));
 
 	/* - main computation cycle fluxn_d */
 	for (row = 0 + first; row < hdr.ny - 1; row++) {
@@ -3803,14 +3784,12 @@ void moment_sp_N(struct nestContainer *nest, int lev) {
 				}
 			} 
 			else {				/* - other cases no moving boundary */
-				//fluxn_d[ij] = 0;
-				//vey[ij] = 0;
+				fluxn_d[ij] = 0;
 				continue;
 			}
 			/* - no flux if dd too small */
 			if (dd < EPS5) {
-				//fluxn_d[ij] = 0;
-				//vey[ij] = 0;
+				fluxn_d[ij] = 0;
 				continue;
 			}
 			if (df < EPS3) df = EPS3;
@@ -3896,17 +3875,6 @@ L200:
 			}
 
 			fluxn_d[ij] = xq;
-
-			if (nest->out_velocity_y) {
-				/* elimina velocidades maiores que 10m/s para dd < 1m */
-				if (dd > EPS3)
-					vey[ij] = xq / df;
-				//else
-					//vey[ij] = 0;
- 
-				if (df < 1 && fabs(vey[ij]) > 10)
-					vey[ij] = 0;
-			}
 		}
 	}
 }
