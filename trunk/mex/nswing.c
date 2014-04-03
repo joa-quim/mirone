@@ -983,7 +983,8 @@ int main(int argc, char **argv) {
 		Return(-1);
 	/* We need the ''work' array in most cases, but not all and also need to make sure it's big enough */
 	if (out_most || out_3D || surf_level || water_depth || out_energy || out_power || out_momentum || out_velocity) {
-		if (do_maxs && (work = (float *) mxCalloc ((size_t)(nest.hdr[0].nm, nest.hdr[writeLevel].nm), sizeof(float)) ) == NULL)
+		if ((do_maxs || surf_level || water_depth) && (work = 
+			(float *) mxCalloc ((size_t)(nest.hdr[0].nm, nest.hdr[writeLevel].nm), sizeof(float)) ) == NULL)
 			{no_sys_mem("(wmax)", nest.hdr[writeLevel].nm); Return(-1);}
 	}
 	if (do_maxs && (wmax    = (float *) mxCalloc ((size_t)nest.hdr[writeLevel].nm, sizeof(float)) ) == NULL)
@@ -2314,7 +2315,6 @@ double ddmmss_to_degree (char *text) {
 }
 
 #ifdef HAVE_NETCDF
-
 /* -------------------------------------------------------------------- */
 int open_most_nc (struct nestContainer *nest, float *work, char *base, char *name_var, int *ids, unsigned int nx,
                   unsigned int ny, double xMinOut, double yMinOut, int isMost, int lev) {
@@ -2827,7 +2827,6 @@ void err_trap_(int status) {
 	if (status != NC_NOERR)	
 		mexPrintf ("NSWING: error at line: %d\t and errorcode = %d\n", __LINE__, status);
 }
-
 #endif		/* end HAVE_NETCDF */
 
 /* --------------------------------------------------------------------
@@ -3023,6 +3022,12 @@ void update(struct nestContainer *nest, int lev) {
 		nest->fluxn_a[lev][i] = nest->fluxn_d[lev][i];
 	for (i = 0; i < nest->hdr[lev].nm; i++)
 		nest->htotal_a[lev][i] = nest->htotal_d[lev][i];
+#if 0
+	memcpy(nest->etaa[lev],    nest->etad[lev],    nest->hdr[lev].nm * sizeof(double));
+	memcpy(nest->fluxm_a[lev], nest->fluxm_d[lev], nest->hdr[lev].nm * sizeof(double));
+	memcpy(nest->fluxn_a[lev], nest->fluxn_d[lev], nest->hdr[lev].nm * sizeof(double));
+	memcpy(nest->htotal_a[lev],nest->htotal_d[lev],nest->hdr[lev].nm * sizeof(double));
+#endif
 }
 
 
