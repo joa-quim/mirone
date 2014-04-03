@@ -3011,6 +3011,7 @@ void update(struct nestContainer *nest, int lev) {
 
 	unsigned int i;
 
+#if 0
 	/* Split the loops for cache friendlyness */
 	for (i = 0; i < nest->hdr[lev].nm; i++)
 		nest->etaa[lev][i] = nest->etad[lev][i];
@@ -3020,12 +3021,11 @@ void update(struct nestContainer *nest, int lev) {
 		nest->fluxn_a[lev][i] = nest->fluxn_d[lev][i];
 	for (i = 0; i < nest->hdr[lev].nm; i++)
 		nest->htotal_a[lev][i] = nest->htotal_d[lev][i];
-#if 0
+#endif
 	memcpy(nest->etaa[lev],    nest->etad[lev],    nest->hdr[lev].nm * sizeof(double));
 	memcpy(nest->fluxm_a[lev], nest->fluxm_d[lev], nest->hdr[lev].nm * sizeof(double));
 	memcpy(nest->fluxn_a[lev], nest->fluxn_d[lev], nest->hdr[lev].nm * sizeof(double));
 	memcpy(nest->htotal_a[lev],nest->htotal_d[lev],nest->hdr[lev].nm * sizeof(double));
-#endif
 }
 
 
