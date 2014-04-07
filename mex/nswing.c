@@ -203,6 +203,7 @@ struct nestContainer {         /* Container for the nestings */
 	int    LLrow[10], LLcol[10], ULrow[10], ULcol[10], URrow[10], URcol[10], LRrow[10], LRcol[10];
 	int    incRatio[10];
 	short  *long_beach[10];    /* Mask arrays for storing the "dry beaches" */
+	double run_jump_time;      /* Time to hold before letting the nested grids start to iterate */
 	double manning2[10];       /* Square of Manning coefficient. Set to zero if no friction */
 	double LLx[10], LLy[10], ULx[10], ULy[10], URx[10], URy[10], LRx[10], LRy[10];
 	double dt[10];                             /* Time step at current level               */
@@ -216,7 +217,7 @@ struct nestContainer {         /* Container for the nestings */
 	double *edge_row[10], *edge_rowTmp[10];
 	double *edge_col_P[10], *edge_col_Ptmp[10];
 	double *edge_row_P[10], *edge_row_Ptmp[10];
-	double *r0[10],  *r1m[10], *r1n[10], *r2m[10], *r2n[10], *r3m[10], *r3n[10], *r4m[10], *r4n[10];
+	double *r0[10], *r1m[10], *r1n[10], *r2m[10], *r2n[10], *r3m[10], *r3n[10], *r4m[10], *r4n[10];
 	double time_h;
 	double *bnc_pos_x;
 	double *bnc_pos_y;
@@ -282,6 +283,9 @@ void tm (double lon, double lat, double *x, double *y, double central_meridian, 
          double t_c2, double t_c3, double t_c4, double t_e2, double t_M0);
 double uscal(double x1, double x2, double x3, double c, double cc, double dp);
 double udcal(double x1, double x2, double x3, double c, double cc, double dp);
+unsigned int gmt_bcr_prep (struct grd_header hdr, double xx, double yy, double wx[], double wy[]);
+double GMT_get_bcr_z (double *grd, double *bat, struct grd_header hdr, double xx, double yy);
+
 
 #ifdef HAVE_NETCDF
 void write_most_slice(struct nestContainer *nest, int *ncid_most, int *ids_most, unsigned int i_start,
@@ -608,10 +612,18 @@ int main(int argc, char **argv) {
 						fname3D = stem;
 					}
 					break;
-				case 'J':
-					sscanf (&argv[i][2], "%lf", &time_jump);
+				case 'J':		/* Jumping options. Accept either -Jn, -J+m, -Jn+m or -Jn -J+m */
+					sscanf (&argv[i][2], "%s", &str_tmp);
+					if ((pch = strstr(str_tmp,"+")) != NULL) {
+						sscanf ((++pch), "%lf", &nest.run_jump_time);
+						pch--;
+						pch = '\0';		/* Put the string end where before was the '+' char */
+					}
+					if (argv[i][2])
+						sscanf (&argv[i][2], "%lf", &time_jump);
+
 					break;
-				case 'L':	/* Output land nodes in SWW file */ 
+				case 'L':	/* Output land nodes in SWW file */
 					with_land = TRUE;
 					break;
 				case 'M':
@@ -724,6 +736,7 @@ int main(int argc, char **argv) {
 				case '7':
 				case '8':
 				case '9':
+				case '10':
 					nesteds[atoi(&argv[i][1])-1] = &argv[i][2];
 					break;
 				default:
@@ -746,12 +759,12 @@ int main(int argc, char **argv) {
 		mexPrintf ("NSWING - A tsunami maker (%s)\n\n", prog_id);
 #ifdef I_AM_MEX
 		mexPrintf ("nswing(bat,hdr_bat,deform,hdr_deform, [-1<bat_lev1>], [-2<bat_lev2>], [-3<...>] [maregs], [-G|Z<name>[+lev],<int>], [-A<fname.sww>]\n");
-		mexPrintf ("       [-B<BCfile>], [-C], [-D], [-E[p][m][,decim]], [-J<time_jump>], [-M[-[<maskname>]]], [-N<n_cycles>], [-Rw/e/s/n], [-S[x|y|n][+m]]\n");
+		mexPrintf ("       [-B<BCfile>], [-C], [-D], [-E[p][m][,decim]], [-J<time_jump>[+run_time_jump]], [-M[-[<maskname>]]], [-N<n_cycles>], [-Rw/e/s/n], [-S[x|y|n][+m]]\n");
 		mexPrintf ("       [-O<int>,<outmaregs>], [-T<int>,<mareg>[,<outmaregs[+n]>]], -t<dt> [-f]\n");
 #else
 		mexPrintf ("nswing bathy.grd initial.grd [-1<bat_lev1>] [-2<bat_lev2>] [-3<...>] [-G|Z<name>[+lev],<int>] [-A<fname.sww>]\n");
 		mexPrintf ("       [-B<BCfile>] [-C] [-D] [-E[p][m][,decim]] [-Fdip/strike/rake/slip/length/width/topDepth/x_epic/y_epic]\n"); 
-		mexPrintf ("       [-J<time_jump>] [-M[-[<maskname>]]] [-N<n_cycles>] [-Rw/e/s/n] [-S[x|y|n][+m]] [-O<int>,<outmaregs>]\n");
+		mexPrintf ("       [-J<time_jump>[+run_time_jump]] [-M[-[<maskname>]]] [-N<n_cycles>] [-Rw/e/s/n] [-S[x|y|n][+m]] [-O<int>,<outmaregs>]\n");
 		mexPrintf ("       [-T<int>,<mareg>[,<outmaregs[+n]>]] -t<dt> [-f]\n");
 #endif
 		mexPrintf ("\t-A <name> save result as a .SWW ANUGA format file\n");
@@ -772,6 +785,8 @@ int main(int argc, char **argv) {
 		mexPrintf ("\t-G<stem> write grids at the int intervals. Append file prefix. Files will be called <stem>#.grd\n");
 		mexPrintf ("\t   When doing nested grids, append +lev to save that particular level (only one level is allowed)\n");
 		mexPrintf ("\t-J<time_jump> Do not write grids or maregraphs for times before time_jump in seconds.\n");
+		mexPrintf ("\t   When doing nested grids, append +<time> to NOT start computations of nested grids before this")
+		mexPrintf ("\t   time has elapsed. Any of these forms is allowed: -Jt1, -J+t2, -Jt1+t2 or -Jt1 -J+t2")
 		mexPrintf ("\t-M write grid of max water level. Append a '-' to compute instead the maximum water retreat.\n");
 		mexPrintf ("\t   The result is writen in a mask file with a default name of 'long_beach.grd'.\n");
 		mexPrintf ("\t   To use a different name append it after the '-' sign. Example: -M-beach_long.grd\n");
@@ -968,9 +983,8 @@ int main(int argc, char **argv) {
 		if (writeLevel < 0) writeLevel = 0;     /* When num_of_nestGrids is zero */
 	}
 
-	if (cumpt && !writeLevel && do_nestum) {	/* The case of maregraphs ONLY and nested grids. Use LAST level */
+	if (cumpt && !writeLevel && do_nestum)      /* The case of maregraphs ONLY and nested grids. Use LAST level */
 		writeLevel = num_of_nestGrids;
-	}
 
 	/* -------------------------------------------------------------------------------------- */
 	/* -------------- Allocate memory and initialize the 'nest' structure ------------------- */
@@ -1190,10 +1204,13 @@ int main(int argc, char **argv) {
 					mexPrintf("\t\tdt(parent) = %g\tdt(doughter) = %g\n", nest.dt[k-1], nest.dt[k]);
 			}
 		}
-		mexPrintf ("dtCFL = %.4f\tCourant number (sqrt(g*h)*dt / max(dx,dy)) = %g\n", dtCFL, 1/dtCFL * dt); 
+		mexPrintf ("dtCFL = %.4f\tCourant number (sqrt(g*h)*dt / max(dx,dy)) = %g\n", dtCFL, 1/dtCFL * dt);
 		if (nest.do_long_beach) mexPrintf("Output the 'Dry beach' mask.\n");
 		if (water_depth)    mexPrintf("Output wave height plus whater thickness on land.\n");
 		if (out_momentum)   mexPrintf("Output momentum (V * D).\n");
+		if (time_jump)      mexPrintf("Hold on %.3f seconds before starting to save results.\n", time_jump);
+		if (nest.run_jump_time)
+			mexPrintf("Holding on %.3f seconds before start running the nested grids.\n", nest.run_jump_time);
 		if (do_maxs) {
 			if (max_energy)
 				mexPrintf("Output maximum Energy with a decimation of %d\n", decimate_max);
@@ -1245,7 +1262,7 @@ int main(int argc, char **argv) {
 			mass_sp(&nest, 0);
 
 		/* ------------------------------------------------------------------------------------ */
-		/* Case off open boundary condition */
+		/* Case of open boundary condition */
 		/* ------------------------------------------------------------------------------------ */
 		if (bnc_file) interp_bnc(&nest, time_h);
 		if (k) openb(nest.hdr[0], nest.bat[0], nest.fluxm_d[0], nest.fluxn_d[0], nest.etad[0], &nest);
@@ -1337,32 +1354,34 @@ int main(int argc, char **argv) {
 					if (wmax[ij] < workMax[ij]) wmax[ij] = workMax[ij];
 			}
 		}
-		else if (nest.do_long_beach) {             /* In this case the calculations were done in mass() */
-			for (ij = 0; ij < nest.hdr[writeLevel].nm; ij++)
-				wmax[ij] = nest.long_beach[writeLevel][ij];    /* A bit silly since we could do workMax but helps keeping algo simpler */
-		}
 		if (do_maxs && (k == n_of_cycles - 1)) {
-				/* Last cycle: copy wmax into the work array and write it to file */
-				size_t len;
+			/* Last cycle: copy wmax into the work array and write it to file */
+			size_t len;
+			for (ij = 0; ij < nest.hdr[writeLevel].nm; ij++)
+				workMax[ij] = wmax[ij];
+
+			len = strlen(stem) - 1;
+			while (stem[len] !='.' && len > 0) len--;
+			if (len == 0) {                     /* No extension, add a "_max.grd" one */
+				strcpy(prenome, stem);
+				strcat(prenome, "_max.grd");
+			}
+			else {
+				strncpy(prenome, stem, len);
+				strcat(prenome, "_max");
+				strcat(prenome, &stem[len]);    /* Put back the given extension */
+			}
+
+			write_grd_bin(prenome, xMinOut, yMinOut, dx, dy, i_start, j_start, i_end, j_end,
+			              nest.hdr[writeLevel].nx, workMax);
+
+			if (nest.do_long_beach) {           /* In this case the calculations were done in mass() */
 				for (ij = 0; ij < nest.hdr[writeLevel].nm; ij++)
-					workMax[ij] = wmax[ij];
+					workMax[ij] = nest.long_beach[writeLevel][ij];	/* Implicitly convert from short int to float */
 
-				len = strlen(stem) - 1;
-				while (stem[len] !='.' && len > 0) len--;
-				if (len == 0) {                     /* No extension, add a "_max.grd" one */
-					strcpy(prenome, stem);
-					strcat(prenome, "_max.grd");
-				}
-				else {
-					strncpy(prenome, stem, len);
-					strcat(prenome, "_max");
-					strcat(prenome, &stem[len]);    /* Put back the given extension */
-				}
-				if (nest.do_long_beach)
-					strcpy(prenome, fname_mask);    /* In this case override above settings */
-
-				write_grd_bin(prenome, xMinOut, yMinOut, dx, dy, i_start, j_start, i_end, j_end,
+				write_grd_bin(fname_mask, xMinOut, yMinOut, dx, dy, i_start, j_start, i_end, j_end,
 				              nest.hdr[writeLevel].nx, workMax);
+			}
 		}
 		/* -------------------------------------------------------------------------------- */
  
@@ -1557,9 +1576,10 @@ void sanitize_nestContainer(struct nestContainer *nest) {
 	nest->do_upscale     = TRUE;
 	nest->out_velocity_x = FALSE;
 	nest->out_velocity_y = FALSE;
-	nest->bnc_pos_nPts   = 0;
 	nest->bnc_var_nTimes = 0;
-	nest->bnc_border[0] = nest->bnc_border[1] = nest->bnc_border[2] = nest->bnc_border[3] = FALSE;
+	nest->bnc_pos_nPts   = 0;
+	nest->bnc_border[0]  = nest->bnc_border[1] = nest->bnc_border[2] = nest->bnc_border[3] = FALSE;
+	nest->run_jump_time  = 0;
 	nest->bnc_pos_x = NULL;
 	nest->bnc_pos_y = NULL;
 	nest->bnc_var_t = NULL;
@@ -2872,7 +2892,7 @@ void mass(struct nestContainer *nest, int lev) {
 					etad[ij] = -bat[ij];
 				}
 
-				if (nest->do_long_beach && bat[ij] > 0 && dd < EPS2)
+				if (nest->do_long_beach && bat[ij] > 0 && dd < EPS1)
 					nest->long_beach[lev][ij] = 1;
 			}
 			//else {			/* over dry areas htotal is null and eta follows bat */
@@ -3009,9 +3029,9 @@ void openb(struct grd_header hdr, double *bat, double *fluxm_d, double *fluxn_d,
 /* --------------------------------------------------------------------- */
 void update(struct nestContainer *nest, int lev) {
 
+#if 0
 	unsigned int i;
 
-#if 0
 	/* Split the loops for cache friendlyness */
 	for (i = 0; i < nest->hdr[lev].nm; i++)
 		nest->etaa[lev][i] = nest->etad[lev][i];
@@ -3481,7 +3501,7 @@ void mass_sp(struct nestContainer *nest, int lev) {
 					nest->etad[lev][ij] = -nest->bat[lev][ij];
 				}
 
-				if (nest->do_long_beach && nest->bat[lev][ij] > 0 && dd < EPS2)
+				if (nest->do_long_beach && nest->bat[lev][ij] > 0 && dd < EPS1)
 					nest->long_beach[lev][ij] = 1;
 			}
 			//else {			/* nas regioes dry poe o h a 0 e o eta a -bat */
@@ -4178,6 +4198,29 @@ void nestify(struct nestContainer *nest, int nNg, int level, int isGeog) {
 	   Start with 0 in first call and this counter is increased internally */
 	int j, last_iter, nhalf;
 
+	if (nest->run_jump_time) {			/* If holding childrens state */
+		if (nest->run_jump_time > nest->time_h)
+			return;
+		else {
+			/* At this point we must interpolate children's eta & flux to not create family discontinuities */
+			unsigned int row, col, ij, k;
+			double xx, yy;
+			for (k = 1; k <= nNg; k++) {
+				for (row = ij = 0; row < nest->hdr[k].ny; row++) {
+					yy = nest->hdr[k].y_min + row * nest->hdr[k].y_inc;
+					for (col = 0; col < nest->hdr[k].nx; col++, ij++) {
+						if (nest->bat[k][ij] < 0) continue;
+						xx = nest->hdr[k].x_min + col * nest->hdr[k].x_inc;
+						nest->etaa[k][ij]    = GMT_get_bcr_z(nest->etaa[k-1], nest->bat[k-1], nest->hdr[k-1], xx, yy);
+						nest->fluxm_a[k][ij] = GMT_get_bcr_z(nest->fluxm_a[k-1], NULL, nest->hdr[k-1], xx, yy);
+						nest->fluxn_a[k][ij] = GMT_get_bcr_z(nest->fluxn_a[k-1], NULL, nest->hdr[k-1], xx, yy);
+					}
+				}
+			}
+			nest->run_jump_time = 0;	/* Since are done, reset to zero so we won't pass here again */
+		}
+	}
+
 	last_iter = (int)(nest->dt[level-1] / nest->dt[level]);  /* No truncations here */
 	nhalf = (int)((float)last_iter / 2);           /* */
 	for (j = 0; j < last_iter; j++) {
@@ -4385,7 +4428,6 @@ double uscal(double x1, double x2, double x3, double c, double cc, double dp) {
 	return (f);
 }
 
-
 /* ---------------------------------------------------------------------------------------- */
 double udcal(double x1, double x2, double x3, double c, double cc, double dp) {
 /* Computation of the vertical displacement due to the DIP SLIP component */
@@ -4464,4 +4506,96 @@ void tm (double lon, double lat, double *x, double *y, double central_meridian, 
 		*y = (M - t_M0 + N * tan_lat * (0.5 * A2 + (5.0 - T + 9.0 * C + 4.0 * C * C) * (A3 * 0.04166666666666666667) +
 		     (61.0 - 58.0 * T + T2 + 600.0 * C - 330.0 * t_e2) * (A5 * 0.00138888888888888889)));
 	}
+}
+
+/* ---------------------------------------------------------------------------------------- */
+double GMT_get_bcr_z (double *grd, double *bat, struct grd_header hdr, double xx, double yy) {
+	/* Given xx, yy in user's grid file (in non-normalized units)
+	   this routine returns the desired bicubic interpolated value at xx, yy
+	   ADAPTED from GMT's routine with the same name. */
+
+	unsigned int i, j, ij, node;
+	double retval, wsum, wx[4], wy[4], w;
+
+	/* Determine nearest node ij and set weights wx, wy */
+
+	ij = gmt_bcr_prep (hdr, xx, yy, wx, wy);
+
+	retval = wsum = 0.0;
+	for (j = 0; j < 4; j++) {
+		for (i = 0; i < 4; i++) {
+			node = ij + i;
+			if (bat && bat[node] < 0) return(0);
+			w = wx[i] * wy[j];
+			retval += grd[node] * w;
+			wsum += w;
+		}
+		ij += hdr.nx;
+	}
+	if (wsum > 0.0)
+		retval /= wsum;
+	else
+		retval = 0;
+
+	return (retval);
+}
+
+/* ---------------------------------------------------------------------------------------- */
+unsigned int gmt_bcr_prep (struct grd_header hdr, double xx, double yy, double wx[], double wy[]) {
+	int col, row;
+	unsigned int ij;
+	double x, y, wp, wq, w, xi, yj;
+
+	/* Compute the normalized real indices (x,y) of the point (xx,yy) within the grid.
+	   Note that the y axis points down from the upper left corner of the grid. */
+
+	x = (xx - hdr.x_min) / hdr.x_inc;
+	y = (yy - hdr.y_min) / hdr.y_inc;
+
+	/* Find the indices (i,j) of the node to the upper left of that.
+   	   Because of padding, i and j can be on the edge. */
+	xi  = floor (x);
+	yj  = floor (y);
+	col = irint (xi);
+	row = irint (yj);
+
+	/* Determine the offset of (x,y) with respect to (i,j). */
+	x -= xi;
+	y -= yj;
+
+	/* For 4x4 interpolants, move over one more cell to the upper left corner */
+	col--; row--;
+
+	/* Save the location of the upper left corner point of the convolution kernel */
+	ij = ij_grd(col, row, hdr);
+
+	/* Build weights */
+
+	/* These weights are based on the cubic convolution kernel, see for example
+	   http://undergraduate.csse.uwa.edu.au/units/CITS4241/Handouts/Lecture04.html
+		  These weights include a free parameter (a), which is set to -0.5 in this case.
+
+	   In the absence of NaNs, the result of this is identical to the scheme introduced
+	   by Walter Smith. The current implementation, however, is much less complex, faster,
+	   allows NaNs to be skipped, and much more similar to the bilinear case.
+
+	   Remko Scharroo, 10 Sep 2007.
+	*/
+	w = 1.0 - x;
+	wp = w * x;
+	wq = -0.5 * wp;
+	wx[0] = wq * w;
+	wx[3] = wq * x;
+	wx[1] = 3 * wx[3] + w + wp;
+	wx[2] = 3 * wx[0] + x + wp;
+
+	w = 1.0 - y;
+	wp = w * y;
+	wq = -0.5 * wp;
+	wy[0] = wq * w;
+	wy[3] = wq * y;
+	wy[1] = 3 * wy[3] + w + wp;
+	wy[2] = 3 * wy[0] + y + wp;
+
+	return (ij);
 }
