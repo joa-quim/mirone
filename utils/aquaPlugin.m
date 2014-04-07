@@ -21,7 +21,7 @@ function aquaPlugin(handles, auto)
 %				aquamoto('file.nc', 0)
 %		In the later case the control script name is searched in the OPTcontrol.txt file
 
-%	Copyright (c) 2004-2013 by J. Luis
+%	Copyright (c) 2004-2014 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -852,7 +852,7 @@ function calc_yearMean(handles, months, fname2, flag, nCells, fname3, splina, ti
 		if (n_anos == 1),	e = '.grd';
 		else				e = '.nc';
 		end
-		grd_out = [p f e];
+		grd_out = [p filesep f e];
 	end
 
 	if (splina)
