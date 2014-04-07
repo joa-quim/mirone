@@ -610,6 +610,7 @@ if ~isempty(opt)				% OPT must be a rectangle/polygon handle (the rect may serve
 
 	elseif (strcmp(opt2,'ImplantGrid'))				% Read and external grid and implant it in host grid
 		[Z_rect, r_c] = transplants(opt, 'grid', handles);
+		if (isempty(Z_rect)),	set(handles.figure1,'pointer','arrow'),		return,		end		% User gave up
 
 	else					% Extract the sub-grid inside the rectangle/polygon
 		[X,Y,Z,head] = load_grd(handles);
