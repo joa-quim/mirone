@@ -53,6 +53,8 @@ function varargout = transplants(hLine, tipo, handles)
 	end
 	% ------------------------------------------------------------------------------------
 
+	varargout = cell(1, nargout);
+
 	str = {'*.grd;*.nc;*.tif;*.tiff;*.jpg;*.jp2;*.png;*.gif;*.mat;*.cpt;*.hdf;*.img', ...
 			'Files (*.grd,*.nc,*.tif,*.tiff,*.jpg,*.jp2,*.png,*.gif,*.mat,*.cpt,*.hdf,*.img)'; '*.*', 'All Files (*.*)'};
 	[FileName,PathName,handles] = put_or_get_file(handles,str,'Select file','get');
