@@ -6,7 +6,7 @@ function varargout = slices(varargin)
 %	To read a file and tell aquaPlugin to search the control script name in the OPTcontrol.txt file:
 %		aquamoto('file.nc', 0)
 
-%	Copyright (c) 2004-2013 by J. Luis
+%	Copyright (c) 2004-2014 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -756,9 +756,19 @@ function helper_writeFile(handles, fid, comm, opt1, opt2)
 % -------------------------------------------------------------------------------------
 function fname = helper_getFile(handles, fname, n)
 % Get and check existence of a input filename
+	checa = true;
+	method = 'get';
+	if (n == 1)		% This box is used both for read/write. Only first case needs to be checked for existence
+		str = get(handles.text_fname1,'Str');
+		if (str(1) == 'O')		% Output file. Do not check if file exists
+			checa = false;
+			method = 'put';
+		end
+	end
+
 	if (isempty(fname))		% Direct call
 		[FileName, PathName] = put_or_get_file(handles, ...
-			{'*.nc;*.NC;*.dat', 'Data files (*.nc,*.NC,*.dat)';'*.*', 'All Files (*.*)'},'file','get');
+			{'*.nc;*.NC;*.dat', 'Data files (*.nc,*.NC,*.dat)';'*.*', 'All Files (*.*)'},'file',method);
 		if isequal(FileName,0),		return,		end
 		
 	else					% File name on input
@@ -768,13 +778,6 @@ function fname = helper_getFile(handles, fname, n)
 	end
 	pause(0.01);	fname = [PathName FileName];
 
-	checa = true;
-	if (n == 1)		% This is box is used both for read/write. Only first case needs to be checked for existence
-		str = get(handles.text_fname1,'Str');
-		if (str(1) == 'O')		% Output file. Do not check if file exists
-			checa = false;
-		end
-	end
 	if (checa && exist(fname, 'file') ~= 2)
 		errordlg(['File: ' fname ' does not exist.'],'Error')
 		fname = [];
