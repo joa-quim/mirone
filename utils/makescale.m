@@ -66,7 +66,7 @@ function [x,y,str] = scale_line(handles, x0, y0, x_lim)
 		ruler_len = dtick(diff(x_lim) * km_per_deg, true);
 		str = sprintf('%g km', ruler_len);
 		if (handles.DefineMeasureUnit(1) == 'n')	% If default unit is Nautical miles
-			ruler_len = ruler_len * 2;
+			ruler_len = ruler_len / 2;
 			str = sprintf('%g Nm', ruler_len);
 		else
 			if (ruler_len < 1)	% We are in m
