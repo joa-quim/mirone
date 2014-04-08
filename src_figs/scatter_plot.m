@@ -172,6 +172,13 @@ function push_plot_CB(hObject, handles)
 		zC = handles.symbCOR;
 		zC(indx) = [];      zC(indy) = [];
 	end
+	
+	ind_NaN = isnan(z);
+	if (any(ind_NaN))
+		x(ind_NaN) = [];	y(ind_NaN) = [];	z(ind_NaN) = [];
+		if (~isempty(handles.symbCOR)),		zC(ind_NaN) = [];	end
+	end
+	
 	nPts = numel(x);
 
 	if (handles.no_file)        % We need to compute the data extent in order to set the correct axes limits
