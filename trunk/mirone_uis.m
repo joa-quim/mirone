@@ -404,7 +404,7 @@ uimenu('Parent',h,'Call','vitrinite','Label','Vitrinite','Sep','on');
 
 uimenu('Parent',hTL,'Call','run_cmd(guidata(gcbo))','Label','Run ML Command','Sep','on');
 uimenu('Parent',hTL,'Call','line_operations(guidata(gcbo))','Label','Vector Operations','Tag','lineOP');
-% uimenu('Parent',hTL,'Call','autofaults(guidata(gcbo))','Label','Auto falhas','Sep','on');
+uimenu('Parent',hTL,'Call','autofaults(guidata(gcbo))','Label','Auto falhas','Sep','on');
 
 %% --------------------------- DRAW ------------------------------------
 hDR = uimenu('Parent',H1,'Label','Draw','Tag','Draw');
@@ -430,9 +430,10 @@ uimenu('Parent',h,'Call','mirone(''Draw_CB'',guidata(gcbo),''Symbol'',''x'')','L
 uimenu('Parent',hDR,'Call','mirone(''Draw_CB'',guidata(gcbo),''Text'')','Label','Insert text');
 hVG(kv) = uimenu('Parent',hDR,'Call','mirone(''DrawContours_CB'',guidata(gcbo))',...
 'Label','Contours (automatic)','Sep','on','Tag','Contours_a');		kv = kv + 1;
-
 hVG(kv) = uimenu('Parent',hDR,...
 'Call','mirone(''DrawContours_CB'',guidata(gcbo),''gui'')','Label','Contours','Tag','Contours_i');	kv = kv + 1;
+
+uimenu('Parent',hDR,'Call','makescale(gca,gcbo)','Label','Map Scale','Sep','on');
 
 %% --------------------------- Geography ---------------------------------
 hDS = uimenu('Parent',H1,'Label','Geography','Tag','Geography');
@@ -739,7 +740,7 @@ if (IamCompiled)
 end
 uimenu('Parent',h, 'Call',['mirone(''FileOpenWebImage_CB'',guidata(gcbo),',...
 	' ''http://www2.clustrmaps.com/stats/maps-clusters/w3.ualg.pt-~jluis-mirone-world.jpg'',''nikles'');'],'Label','See visitors map','Sep','on');
-uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 8 Feb 2014'',''2.6.0dev'')','Label','About','Sep','on');
+uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 9 Apr 2014'',''2.6.0dev'')','Label','About','Sep','on');
 
 %% --------------------------- Build HANDLES and finish things here
 	handles = guihandles(H1);
