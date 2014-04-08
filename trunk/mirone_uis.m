@@ -28,7 +28,7 @@ function [H1,handles,home_dir] = mirone_uis(home_dir)
 %#function mxgridtrimesh aquamoto tiles_tool empilhador grdlandmask_win grdlandmask_m escadeirar
 %#function run_cmd line_operations world_is_not_round_enough cartas_militares ice_m magbarcode
 %#function obj_template_detect floodfill meca_studio inpaint_nans globalcmt guess_bin demets_od
-%#function vector_project tintol
+%#function vector_project tintol makescale
 
 	% The following test will tell us if we are using the compiled or the ML version
 	try
