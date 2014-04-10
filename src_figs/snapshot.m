@@ -6,7 +6,6 @@ function varargout = snapshot(varargin)
 %   snapshot(H,'frame') as above but captures image and frame.
 %   snapshot(H,'noname') Form used for saving Georefed images where format is not selectable here
 %   snapshot(H,'img') same as snapshot(H)
-%
 
 %	Copyright (c) 2004-2014 by J. Luis
 %
@@ -110,7 +109,7 @@ function varargout = snapshot(varargin)
 	% ---------------- Fill the edit image size with the default values
 	if (handles.imgOnly)
 		nRows = round(handles.imAxSize(1));     nCols = round(handles.imAxSize(2));
-		origMegs = handles.imSize(1)*handles.imSize(2)*handles.imSize(3) / 1048576;   % Original image size in Mb
+		origMegs = prod(handles.imSize) / 1048576;   % Original image size in Mb (use prod so it works for indexed too)
 		sizeOrigUnits = ' Megs';
 		if (origMegs < 1)
 			sizeOrigUnits = ' Kb';  origMegs = origMegs * 1024;
