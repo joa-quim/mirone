@@ -16,8 +16,7 @@ function filename = write_flederFiles(opt,varargin)
 % NOTE: For every line/point object FM_CMAP and a GEOREF blocks are writen.
 % Though it doesn't hurt much, it is an idiot thing
 
-% $ID:$
-%	Copyright (c) 2004-2012 by J. Luis
+%	Copyright (c) 2004-2014 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -31,6 +30,8 @@ function filename = write_flederFiles(opt,varargin)
 %
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
+
+% $Id$
 
 	if (opt(1) == 'w' || opt(1) == 'r')			% Here opt is a "write..." or "run..."
 		handles = varargin{1};
@@ -770,7 +771,7 @@ function write_pts(fid,hand,mode,limits,opt)
 
     if (nargin == 4),   opt = [];   end
     
-    symb = 7;	% 0 -> circle; 1 -> square; 2 -> cross hair; 3 -> cube; 4 -> dyamond; 5 -> cylinder; 6 -> sphere; 7 -> point
+    symb = 6;	% 0 -> circle; 1 -> square; 2 -> cross hair; 3 -> cube; 4 -> dyamond; 5 -> cylinder; 6 -> sphere; 7 -> point
     PointRad = 0.02;						% Symbol radius
     ColorBy = 1;							% 0 -> Solid; 1 -> Line Height (Z); 2 -> Attribute
     LabelSize = 0.502;
@@ -845,7 +846,7 @@ function write_pts(fid,hand,mode,limits,opt)
 		end
 		fwrite(fid,cor,'uint8');					% symbol's color
 	end
-    
+
 %----------------------------------------------------------------------------------
 function [x,y,z,count] = lines2multiseg(hands,z_level)
 % Convert a collection of lines whose handles are HANDS into a single multiline (cell array) array.
