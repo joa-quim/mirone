@@ -9,7 +9,7 @@ function uistack_j(hand, opt, step)
 %   It also fixes a bug on the ML R13 function that doesn't allow
 %   restacking between different object types.
   
-%   Coffeeright J. Luis 2004-2012
+%   Coffeeright J. Luis 2004-2014
 
 % $Id$
 
@@ -67,6 +67,16 @@ function uistack_j(hand, opt, step)
 
 	if (bigOnBack)			% If image, light, or surface object exists, put them at the bottom of the stack
 		hImg = findobj(Parent,'type','image');
+		if ((numel(hImg) > 1) && strcmp(get(hand(1),'type'), 'image') && (opt(1) == 'b' || opt(1) == 't'))
+			% Must certify that input image handle goes to top or bottom as required
+			ind = hImg == hand(1);
+			hImg(ind) = [];
+			if (opt(1) == 'b')
+				hImg = [hImg(:); hand(1)];
+			else
+				hImg = [hand(1); hImg(:)];
+			end
+		end
 		hLight = findobj(Parent,'type','light');
 		hSurf = findobj(Parent,'type','surface');
 		hAx_bot = [hImg; hLight; hSurf];
