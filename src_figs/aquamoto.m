@@ -614,7 +614,7 @@ function push_showSlice_CB(hObject, eventdata, handles)
 		handles.firstLandPhoto = true;
 		if ( splitDryWet && handles.useLandPhoto )
 			h = image('XData',handles.geoPhotoX,'YData',handles.geoPhotoY, 'CData',handles.geoPhoto, 'Parent',handles.handMir.axes1);
-			uistack(h,'bottom')
+			uistack_j(h,'bottom')
 			handles.firstLandPhoto = false;
 			set(handles.handMir.hImg,'AlphaData',alphaMask)	% 'alphaMask' was updated above
 		end
@@ -627,7 +627,7 @@ function push_showSlice_CB(hObject, eventdata, handles)
 		if ( splitDryWet && handles.useLandPhoto )			% Land/Water spliting with external Land image
 			if (handles.firstLandPhoto)						% First time, create the background image
 				h = image('XData',handles.geoPhotoX,'YData',handles.geoPhotoY, 'CData',handles.geoPhoto, 'Parent',handles.handMir.axes1);
-				uistack(h,'bottom')
+				uistack_j(h,'bottom')
 				handles.firstLandPhoto = false;
 			end
 			set(handles.handMir.hImg,'AlphaData',alphaMask)	% 'alphaMask' was updated above
@@ -1671,7 +1671,7 @@ function push_OK_CB(hObject, eventdata, handles, opt)
 		handMir = guidata(hFig);
 		if ( handles.useLandPhoto )
 			h = image('XData',handles.geoPhotoX,'YData',handles.geoPhotoY, 'CData',handles.geoPhoto, 'Parent',handMir.axes1);
-			uistack(h,'bottom')			% Send to bottom because we want the alphamask applyied to data derived image
+			uistack_j(h,'bottom')			% Send to bottom because we want the alphamask applyied to data derived image
 			alphaMask = alloc_mex(size(indLand),'uint8');	% Create an image mask of Dry/Wets
 			alfa = round((1 - get(handles.slider_transparency, 'Val')) * 255);	% (1 - val) since it will be applyied to Land
 			alphaMask(~indLand) = alfa;
@@ -1735,7 +1735,7 @@ function push_OK_CB(hObject, eventdata, handles, opt)
 					handMir = guidata(hFig);
 					alphaMask = alloc_mex(size(indLand),'uint8');	% Create an image mask of Dry/Wets
 					h = image('XData',handles.geoPhotoX,'YData',handles.geoPhotoY, 'CData',handles.geoPhoto, 'Parent',handMir.axes1);
-					uistack(h,'bottom')		% Send to bottom because we want the alphamask applyied to data derived image
+					uistack_j(h,'bottom')		% Send to bottom because we want the alphamask applyied to data derived image
 					alfaMasca = round((1 - get(handles.slider_transparency, 'Val')) * 255);	% (1 - val) ... see above
 				end
 				alphaMask(~indLand) = alfaMasca;
