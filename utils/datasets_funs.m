@@ -1,7 +1,5 @@
 function  datasets_funs(opt,varargin)
 % This contains the Mirone's 'Datasets' funtions. Remember that they are now 'Geography'
-%
-% This function deals also with the case of scattered (and eventally scaled) symbols
 
 %	Copyright (c) 2004-2014 by J. Luis
 %
@@ -45,7 +43,7 @@ switch opt(1:3)
 		DatasetsMaregOnLine(varargin{:})
 	case 'Cit'
 		DatasetsCities(varargin{:})
-	case 'sca'
+	case 'sca'							%	NOT USED ANYMORE
 		scaledSymbols(varargin{:})
 	case 'ITR'
 		DatasetsITRF(varargin{:})
@@ -718,6 +716,9 @@ function DatasetsODP_DSDP(handles,opt)
 
 % --------------------------------------------------------------------
 function scaledSymbols(handles, fname)
+%
+%	NOT USED ANYMORE
+%
 % Read and parse a file wich should be multi-seg with "> -S.. -W.. -G.." controling
 % symbol parametrs. If file is not multi-seg, returns before doing anything
 % In that case control will be passed to the scatter_plot() function
