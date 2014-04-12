@@ -2,8 +2,16 @@ function varargout = load_xyz(handles, opt, opt2)
 % Read a generic ascii file that can be, or not, a multi-segment file
 %
 %	Multi-segs files accept -G, -S & -W GMT type options plus a proj4 string for referencing.
-%		-S<symb>[size] accepts these GMT type symbol codes <a|c|d|h|i|n|p|s|x|+>
 %		The proj4 string should be one single word e.g. +proj4=latlong or enclosed in "+proj4=latlong +datum=..."
+%		-S<symb>[size] accepts these GMT type symbol codes <a|c|d|h|i|n|p|s|x|+>
+%		-S<symb>[size][+s<scale>][+c<cor>[+c<cor>]]		==> Full syntax
+%		 Use +s<scale> with files with 3 columns where 3rd column will be used to determine the symbol color
+%		 NOTE that to use this option <scale> must be provided, even if == 1.
+%		      A bonus of this option is that GE will plot cylinders with height determined by Z * scale
+%		 If no +c<cor> is provided, use the current cmap or 'jet(64)' if no fig exists yet.
+%		 If only one +c<cor> is provided, use it as constant color for all symbols.
+%		 Alternatively use the -G<color> if that option is used
+%		 If two +c<cor> are provided, interpolate between them and assign them from z_min to z_max.
 %
 %	It does also deal with the case of ploting the isochrons.dat
 %
@@ -489,7 +497,7 @@ function varargout = load_xyz(handles, opt, opt2)
 				end
 			end
 			if (isempty(tmpx)),     n_clear(i) = true;     continue,		end     % Store indexes for clearing vanished segments info
-			if ( numel(numeric_data{i}(1,:)) >= 3 )		% If we have a Z column
+			if (numel(numeric_data{i}(1,:)) >= 3)		% If we have a Z column
 				tmpz = numeric_data{i}(:,3);
 				if (~isempty(indx) || ~isempty(indy)),	tmpz(indx) = [];	tmpz(indy) = [];	end	% If needed, clip outside map data			
 			end
@@ -499,9 +507,14 @@ function varargout = load_xyz(handles, opt, opt2)
 			if (isempty(cor)),		cor = handles.DefLineColor;		end		%           "
 
 			% ---------- Check if we have a symbols request. If yes turn the 'AsPoint' option on --------
-			[marker, markerSize, multi_segs_str{i}] = parseS(multi_segs_str{i});
+			%[marker, markerSize, multi_segs_str{i}] = parseS(multi_segs_str{i});
+			[marker, markerSize, markerScale, cor1_sc, cor2_sc, multi_segs_str{i}] = parseS(multi_segs_str{i});
 			if (~isempty(marker))
-				line_type = 'AsPoint';
+				if (~isempty(markerScale) && ~isempty(tmpz))
+					line_type = 'scaled';
+				else
+					line_type = 'AsPoint';
+				end
 			else
 				marker = 'o';	markerSize = 2;		% The old defaults
 			end
@@ -548,6 +561,59 @@ function varargout = load_xyz(handles, opt, opt2)
 							hp = zeros(1, numel(tmpx)-1);
 							for (j = 1:numel(tmpx)-1),	hp(j) = patch('XData', [], 'YData',[]);    end
 							setappdata(hLine(i),'PatchHand',hp);
+						case 'scaled'
+							ind_NaN = isnan(tmpz);
+							if (any(ind_NaN))
+								tmpx(ind_NaN) = [];	tmpy(ind_NaN) = [];	tmpz(ind_NaN) = [];
+							end
+							nPts = numel(tmpx);
+							symbSIZES = repmat(markerSize,nPts,1);
+							if (isempty(cor1_sc))	% Make another attempt to see if a color was set by -G
+								cor1_sc = parseG(multi_segs_str{i});
+							end
+							if (~isempty(cor1_sc))			% Case of colors set in -S option (not finished)
+								if (isempty(cor2_sc))
+									zC = repmat(cor1_sc, nPts, 1);
+								else
+									zC = [linspace(cor1_sc(1), cor2_sc(1), nPts)' ...
+									      linspace(cor1_sc(2), cor2_sc(2), nPts)' ...
+									      linspace(cor1_sc(3), cor2_sc(3), nPts)'];
+								end
+							else
+								if (handles.no_file)	% In this case the fig cmap is all whites
+									cmap = jet(64);
+								else
+									cmap = get(handles.figure1,'ColorMap');
+								end
+								Zmin = min(tmpz);        Zmax = max(tmpz);
+								dZ = Zmax - Zmin;
+								if (dZ == 0)        % Cte color
+									zC = repmat(cmap(round(size(cmap,1)/2),:),nPts,1);      % Midle color
+								else
+									zC = round(((tmpz - Zmin) / dZ) * (size(cmap,1)-1) + 1);
+									zC = cmap(zC,:);
+								end
+							end
+							tmpz = abs(tmpz);		% Currently the Z is only used (and many times badly) to make cylinders in GE
+							if (markerScale ~= 1),	tmpz = tmpz * markerScale;		end
+							if (~isempty(cor1_sc) && isempty(cor2_sc))	% Unique color, we can plot them all in one single line
+								hLine(i) = line('XData',tmpx,'YData',tmpy, 'Parent',handles.axes1, ...
+									'LineStyle','none', 'Tag','scatter_symbs', 'Marker',marker,'Color','k', ...
+									'MarkerFaceColor',cor1_sc, 'MarkerSize',symbSIZES(1));					
+								setappdata(hLine(i),'ZData',tmpz)
+								draw_funs(hLine(i),'DrawSymbol')			% Set marker's uicontextmenu					
+							else
+								h = zeros(1,nPts);
+								for (ks = 1:nPts)
+									h(ks) = line('XData',tmpx(ks),'YData',tmpy(ks),'Parent',handles.axes1, ...
+										'LineStyle','none', 'Tag','scatter_symbs', 'Marker',marker,'Color','k', ...
+										'MarkerFaceColor',zC(ks,:), 'MarkerSize',symbSIZES(ks));
+									setappdata(h(ks),'ZData',tmpz(ks))
+									draw_funs(h(ks),'DrawSymbol')
+								end
+							end
+							tmpz = [];				% Because later we test this for other purposes
+							orig_no_mseg = true;	% Also cheat here for the same reason
 					end
 				else
 					struc_arrow.color = cor;
@@ -581,7 +647,7 @@ function varargout = load_xyz(handles, opt, opt2)
 
 		% In case of Lines (and Isocs) uicontexts have not been set yet. Do it now.
 		ind = isnan(hLine);    hLine(ind) = [];      % Clear unused rows in hLine (due to over-dimensioning)
-		if ( ~isempty(hLine) && (strcmp(line_type, 'AsLine') || strcmp(line_type, 'i_file') || got_arrow) )
+		if (~isempty(hLine) && (strcmp(line_type, 'AsLine') || strcmp(line_type, 'i_file') || got_arrow))
 			if (orig_no_mseg)
 				draw_funs(hLine,'line_uicontext')		% Here hLine is actually only a scalar
 			else
@@ -732,34 +798,94 @@ function [proj, str2] = parseProj(str)
 	str2 = str;
 
 % --------------------------------------------------------------------
-function [symbol, symbSize, str2] = parseS(str)
+%function [symbol, symbSize, str2] = parseS_(str)
+%
+% Not used, to be deleted
+%
 % Parse the STR string in search for a -S<symbol>[size]. Valid options are -S...
 % If not found or error SYMBOL = [] &/or SYMBSIZE = [].
 % STR2 is the STR string less the -S<symb>[size] part
-	symbol = [];	symbSize = 2;	str2 = str;
-	ind = strfind(str,' -S');
-	if (isempty(ind)),		return,		end		% No -S option
-	try
-		[strS, rem] = strtok(str(ind+1:end));
-		str2 = [str(1:ind(1)) rem];		% Remove the -S<str> from STR
 
-		strS(1:2) = [];					% Remove the '-S' part from strS
-		% OK, now 'strS' must contain the symbol and optionally its size
-		switch strS(1)
-			case 'a',		symbol = '*';
-			case 'c',		symbol = 'o';
-			case 'd',		symbol = 'd';
-			case 'h',		symbol = 'h';
-			case 'i',		symbol = 'v';
-			case 'n',		symbol = 'p';
-			case 'p',		symbol = '.';
-			case 's',		symbol = 's';
-			case 'x',		symbol = 'x';
-			case '+',		symbol = '+';
-			otherwise,		symbol = 'o';
+% 	symbol = [];	symbSize = 2;	str2 = str;
+% 	ind = strfind(str,' -S');
+% 	if (isempty(ind)),		return,		end		% No -S option
+% 	try
+% 		[strS, rem] = strtok(str(ind+1:end));
+% 		str2 = [str(1:ind(1)) rem];		% Remove the -S<str> from STR
+% 
+% 		strS(1:2) = [];					% Remove the '-S' part from strS
+% 		% OK, now 'strS' must contain the symbol and optionally its size
+% 		switch strS(1)
+% 			case 'a',		symbol = '*';
+% 			case 'c',		symbol = 'o';
+% 			case 'd',		symbol = 'd';
+% 			case 'h',		symbol = 'h';
+% 			case 'i',		symbol = 'v';
+% 			case 'n',		symbol = 'p';
+% 			case 'p',		symbol = '.';
+% 			case 's',		symbol = 's';
+% 			case 'x',		symbol = 'x';
+% 			case '+',		symbol = '+';
+% 			otherwise,		symbol = 'o';
+% 		end
+% 		if (numel(strS) > 1),	symbSize = str2double(strS(2:end));		end
+% 		if (isnan(symbSize)),	symbSize = 3;	end
+% 	end
+
+% --------------------------------------------------------------------
+function [symbol, symbSize, scale, cor1, cor2, str2] = parseS(str)
+% Parse the STR string in search for a -S<symbol>[size][+s<scale>][+c<cor>[+c<cor>]]
+% If not found or error SYMBOL = [] &/or SYMBSIZE = [].
+% STR2 is the STR string less the -S... part
+	symbol = 'o';	symbSize = 7;	scale = [];	cor1 = [];	cor2 = [];
+	symb_pos = 4;	% default symbol start position in string
+	str2 = str;
+	ind = strfind(str,'-S');
+	if (isempty(ind)),		return,		end		% No -S option
+	try                                 % There are so many ways to have it wrong that I won't bother testing
+		[strS, rem] = strtok(str(ind:end));
+		str2 = [str(1:ind(1)-1) rem];   % Remove the -S<str> from STR
+        
+		if (numel(strS) > 2)            % Get the symbol
+			symb_g = 'acdhinpsx+';
+			symb_m = '*odhvp.sx+';
+			ind = strfind(symb_g,strS(3));						
+			if (~isempty(ind))
+				symbol = symb_m(ind);
+				if (symb_g(ind) == '+'),	strS(3) = '_';		end		% Don't let the '+' symbol be mistaken by an a flag
+			elseif ((double(strS(3)) >= 48) && (double(strS(3)) <= 57))
+				symb_pos = 3;
+			end
 		end
-		if (numel(strS) > 1),	symbSize = str2double(strS(2:end));		end
-		if (isnan(symbSize)),	symbSize = 3;	end
+
+		ind_p = strfind(strS, '+');
+        if (numel(strS) > 3)            % Get size
+			last = numel(strS);
+			if (~isempty(ind_p)),	last = ind_p(1) - 1;	end
+            symbSize = str2double(strS(symb_pos:last));
+            if (isnan(symbSize)),    symbSize = 7;   end
+        end
+		if (~isempty(ind_p))
+			ind_p(end+1) = numel(strS) + 1;		% A fake last one to easy up algo
+			for (k = 1:numel(ind_p))
+				switch strS(ind_p(k)+1)
+					case 's'
+						scale = str2double(strS(ind_p(k)+2:ind_p(k+1)-1));
+					case 'c'
+						if (isempty(cor1))
+							[cor1, count] = sscanf(strS(ind_p(k)+2:ind_p(k+1)-1),'%d/%d/%d');
+							cor1 = cor1' / 255;
+						else
+							[cor2, count] = sscanf(strS(ind_p(k)+2:ind_p(k+1)-1), '%d/%d/%d');
+							cor2 = cor2' / 255;
+						end
+						if (count ~= 3)
+							warndlg('Error in parsing symbol color. Baddly formed color string. Ignoring it','WarnError')
+							cor1 = [];	cor2 = [];
+						end
+				end
+			end
+		end
 	end
 
 % --------------------------------------------------------------------------------
