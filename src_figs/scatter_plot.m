@@ -1,5 +1,9 @@
 function varargout = scatter_plot(varargin)
 % Plot scaled symbols. Scaling info (and optional color info) are provided in file's col 4 (5-7)
+%
+% Optional column 4 hold the individual symbol size
+% Optional columns 5-7 hold  individual symbol color
+% This function is still somewhat inefficient as it always plot each symbol as a different line
 
 %	Copyright (c) 2004-2014 by J. Luis
 %
@@ -57,19 +61,26 @@ function varargout = scatter_plot(varargin)
 	handles.lastSymbSize = 7;   % Default symbol size
 	handles.edit_symbScale = 1;	% To eventualy scale the Z's and so have some control on GE cylinder heights
 
-	[numeric_data,multi_segs_str] = text_read(fname,NaN,NaN);
-	if (~isempty(multi_segs_str))
-		% Do something
-	end
+	numeric_data = text_read(fname,NaN,NaN);
 	nCol = size(numeric_data,2);
-    
-	if (nCol >= 4)      % 4th column must contain size
+
+	if (nCol < 2)
+		delete(hObject)
+		errordlg('SCATTER PLOT: Input file does not have even 2 columns.','Error')
+		return
+	elseif (nCol == 2)		% A file with 2 cols should never had landed here. Pass it to load_xyz 
+		delete(hObject)
+		load_xyz(handMir, fname, 'AsPoint')
+		return
+	end
+	
+	if (nCol >= 4)			% 4th column must contain size
 		handles.symbSIZES = numeric_data(:,4);
 		set(handles.popup_symbSize,'Enable','off')
 		set(handles.edit_symbSize,'Enable','off')
 	end
 
-	if (nCol == 7)      % 5-7 columns must contain RGB color [0 1]
+	if (nCol == 7)			% 5-7 columns must contain RGB color [0 1]
 		cmin = min(min(numeric_data(:,5:7)));
 		cmax = max(max(numeric_data(:,5:7)));
 		if (cmin >= 0 && cmax <= 255)       % Color given in the [0 255] range
@@ -172,13 +183,13 @@ function push_plot_CB(hObject, handles)
 		zC = handles.symbCOR;
 		zC(indx) = [];      zC(indy) = [];
 	end
-	
+
 	ind_NaN = isnan(z);
 	if (any(ind_NaN))
 		x(ind_NaN) = [];	y(ind_NaN) = [];	z(ind_NaN) = [];
 		if (~isempty(handles.symbCOR)),		zC(ind_NaN) = [];	end
 	end
-	
+
 	nPts = numel(x);
 
 	if (handles.no_file)        % We need to compute the data extent in order to set the correct axes limits
@@ -199,22 +210,22 @@ function push_plot_CB(hObject, handles)
 	end
 
 	if (isempty(handles.symbCOR))
-        cmap = get(handles.figure1,'ColorMap');
-        Zmin = min(z);        Zmax = max(z);
-        dZ = Zmax - Zmin;
-        if (dZ == 0)        % Cte color
+		cmap = get(handles.figure1,'ColorMap');
+		Zmin = min(z);        Zmax = max(z);
+		dZ = Zmax - Zmin;
+		if (dZ == 0)        % Cte color
 			zC = repmat(cmap(round(size(cmap,1)/2),:),nPts,1);      % Midle color
-        else            
+		else
 			zC = round(((z - Zmin) / dZ) * (size(cmap,1)-1) + 1);
 			zC = cmap(zC,:);
-        end
+		end
 	end
 
 	z = abs(z);			% Currently the Z is only used (and many times badly) to make cylinders in GE
 	if (handles.edit_symbScale ~= 1),	z = z * handles.edit_symbScale;		end
 	h = zeros(1,nPts);
 	for (k = 1:nPts)
-		h(k) = line('XData',x(k),'YData',y(k),'Parent',handles.hCallingAxes,'Tag','scatter_symbs',...
+		h(k) = line('XData',x(k),'YData',y(k),'Parent',handles.hCallingAxes, 'LineStyle','none', 'Tag','scatter_symbs',...
 			'Marker',handles.symbSYMB,'Color','k','MarkerFaceColor',zC(k,:),'MarkerSize',symbSIZES(k));
 		setappdata(h(k),'ZData',z(k)) 
 	end
