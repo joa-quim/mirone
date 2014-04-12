@@ -181,7 +181,7 @@ function hObject = mirone_OpeningFcn(varargin)
 	handles.last_dir = handles.last_directories{1};			% Initialize last_dir to work_dir
 	setappdata(hObject,'swathRatio',handles.swathRatio);	% I need this for getline_mb
 
-	% Change the MeasureDistance label to the selected (in prefs) unites
+	% Change the MeasureDistance label to the selected (in prefs) units
 	set(handles.ToolsMeasureDist,'Label',['Distance in ' handles.DefineMeasureUnit])
 
 	% -------------------------- Find in which mode Mirone was called ----------------------------------
@@ -4669,14 +4669,8 @@ function Transfer_CB(handles, opt)
 	elseif (strcmp(opt,'scatter'))
 		str = {'*.dat;*.DAT;*.txt;*.TXT', 'Data file (*.dat,*.DAT,*.txt,*.TXT)'; '*.*', 'All Files (*.*)'};
 		[FileName,PathName] = put_or_get_file(handles,str,'Select file','get');
-		if isequal(FileName,0),		set(handles.figure1,'pointer','arrow'),		return,		end			% User gave up
-		datasets_funs('scatter',handles, [PathName FileName])		% Do the work when file is multi-seg, or 
-		n_cols = getappdata(handles.figure1,'callScatterWin');		% return here to pass control to scatter_plot()
-		if (n_cols >= 3)		% Came back from datasets_funs() without doing anything
-			scatter_plot(handles,[PathName,FileName]);
-		elseif (n_cols == 1 || n_cols == 2)
-			errordlg('File must contain at least three columns OR ''>...'' multi-seg info.','Error')
-		end
+		if isequal(FileName,0),		set(handles.figure1,'pointer','arrow'),		return,		end		% User gave up
+		scatter_plot(handles,[PathName,FileName]);
 
 	elseif (strcmp(opt,'print'))
 		h = findobj('Type','uicontrol');		set(h,'Visible','off')	% We don't want to print the buttons
