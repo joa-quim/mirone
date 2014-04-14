@@ -4,10 +4,12 @@ function varargout = load_xyz(handles, opt, opt2)
 %	Multi-segs files accept -G, -S & -W GMT type options plus a proj4 string for referencing.
 %		The proj4 string should be one single word e.g. +proj4=latlong or enclosed in "+proj4=latlong +datum=..."
 %		-S<symb>[size] accepts these GMT type symbol codes <a|c|d|h|i|n|p|s|x|+>
-%		-S<symb>[size][+s<scale>][+c<cor>[+c<cor>]]		==> Full syntax
+%		-S<symb>[size][+s<scale>][+f][+c<cor>[+c<cor>]]		==> Full syntax
 %		 Use +s<scale> with files with 3 columns where 3rd column will be used to determine the symbol color
 %		 NOTE that to use this option <scale> must be provided, even if == 1.
 %		      A bonus of this option is that GE will plot cylinders with height determined by Z * scale
+%		 However, if file has 4 columns we can use fourth column to determine the color. To do that
+%		 we use the +f flag. When plotted in GE, cylinders height are set from 3rth column and color from 4rth.
 %		 If no +c<cor> is provided, use the current cmap or 'jet(64)' if no fig exists yet.
 %		 If only one +c<cor> is provided, use it as constant color for all symbols.
 %		 Alternatively use the -G<color> if that option is used
@@ -499,7 +501,7 @@ function varargout = load_xyz(handles, opt, opt2)
 			if (isempty(tmpx)),     n_clear(i) = true;     continue,		end     % Store indexes for clearing vanished segments info
 			if (numel(numeric_data{i}(1,:)) >= 3)		% If we have a Z column
 				tmpz = numeric_data{i}(:,3);
-				if (~isempty(indx) || ~isempty(indy)),	tmpz(indx) = [];	tmpz(indy) = [];	end	% If needed, clip outside map data			
+				if (~isempty(indx) || ~isempty(indy)),	tmpz(indx) = [];	tmpz(indy) = [];	end	% If needed, clip outside map data
 			end
 
 			[lThick, cor, multi_segs_str{i}] = parseW(multi_segs_str{i}(min(2,numel(multi_segs_str{i})):end)); % First time, we can chop the '>' char
@@ -508,7 +510,11 @@ function varargout = load_xyz(handles, opt, opt2)
 
 			% ---------- Check if we have a symbols request. If yes turn the 'AsPoint' option on --------
 			%[marker, markerSize, multi_segs_str{i}] = parseS(multi_segs_str{i});
-			[marker, markerSize, markerScale, cor1_sc, cor2_sc, multi_segs_str{i}] = parseS(multi_segs_str{i});
+			[marker, markerSize, markerScale, color_by4, cor1_sc, cor2_sc, multi_segs_str{i}] = parseS(multi_segs_str{i});
+			if (color_by4 && numel(numeric_data{i}(1,:)) >= 4)
+				tmpz4 = numeric_data{i}(:,4);		% Will be used to color symbols
+				if (~isempty(indx) || ~isempty(indy)),	tmpz4(indx) = [];	tmpz4(indy) = [];	end	% If needed, clip outside map data
+			end
 			if (~isempty(marker))
 				if (~isempty(markerScale) && ~isempty(tmpz))
 					line_type = 'scaled';
@@ -555,7 +561,8 @@ function varargout = load_xyz(handles, opt, opt2)
 								'MarkerEdgeColor','k','MarkerFaceColor','y','MarkerSize',10,'Tag','Maregraph');
 							draw_funs(hLine(i),'DrawSymbol')			% Set marker's uicontextmenu					
 						case 'FaultTrace'
-							hLine(i) = line('XData',tmpx,'YData',tmpy,'Parent',handles.axes1,'Color',cor,'LineWidth',lThick,'Tag','FaultTrace');
+							hLine(i) = line('XData',tmpx,'YData',tmpy,'Parent',handles.axes1,'Color',cor,'LineWidth',lThick, ...
+								'Tag','FaultTrace');
 							draw_funs(hLine(i),'line_uicontext')		% Set lines's uicontextmenu
 							% Create empty patches that will contain the surface projection of the fault plane
 							hp = zeros(1, numel(tmpx)-1);
@@ -564,20 +571,27 @@ function varargout = load_xyz(handles, opt, opt2)
 						case 'scaled'
 							ind_NaN = isnan(tmpz);
 							if (any(ind_NaN))
-								tmpx(ind_NaN) = [];	tmpy(ind_NaN) = [];	tmpz(ind_NaN) = [];
+								tmpx(ind_NaN) = [];	tmpy(ind_NaN) = [];		tmpz(ind_NaN) = [];
+								if (color_by4),		tmpz4(ind_NaN) = [];	end
 							end
 							nPts = numel(tmpx);
 							symbSIZES = repmat(markerSize,nPts,1);
 							if (isempty(cor1_sc))	% Make another attempt to see if a color was set by -G
 								cor1_sc = parseG(multi_segs_str{i});
 							end
+							z_colCor = tmpz;
+							if (color_by4),		z_colCor = tmpz4;	end
+							Zmin = min(z_colCor);	Zmax = max(z_colCor);
+							dZ = Zmax - Zmin;
+
 							if (~isempty(cor1_sc))			% Case of colors set in -S option (not finished)
 								if (isempty(cor2_sc))
 									zC = repmat(cor1_sc, nPts, 1);
 								else
-									zC = [linspace(cor1_sc(1), cor2_sc(1), nPts)' ...
-									      linspace(cor1_sc(2), cor2_sc(2), nPts)' ...
-									      linspace(cor1_sc(3), cor2_sc(3), nPts)'];
+									rn = (z_colCor - Zmin) / dZ;		% range normalized to [0 1]
+									rn = rn(:)';
+									dc = cor2_sc - cor1_sc;
+									zC = [(cor1_sc(1) + dc(1) * rn)' (cor1_sc(2) + dc(2) * rn)' (cor1_sc(3) + dc(3) * rn)'];							
 								end
 							else
 								if (handles.no_file)	% In this case the fig cmap is all whites
@@ -585,16 +599,14 @@ function varargout = load_xyz(handles, opt, opt2)
 								else
 									cmap = get(handles.figure1,'ColorMap');
 								end
-								Zmin = min(tmpz);        Zmax = max(tmpz);
-								dZ = Zmax - Zmin;
 								if (dZ == 0)        % Cte color
-									zC = repmat(cmap(round(size(cmap,1)/2),:),nPts,1);      % Midle color
+									zC = repmat(cmap(round(size(cmap,1)/2),:),nPts,1);      % Middle color
 								else
-									zC = round(((tmpz - Zmin) / dZ) * (size(cmap,1)-1) + 1);
+									zC = round(((z_colCor - Zmin) / dZ) * (size(cmap,1)-1) + 1);
 									zC = cmap(zC,:);
 								end
 							end
-							tmpz = abs(tmpz);		% Currently the Z is only used (and many times badly) to make cylinders in GE
+							tmpz = abs(tmpz);		% Currently the Z is only used to make cylinders in GE
 							if (markerScale ~= 1),	tmpz = tmpz * markerScale;		end
 							if (~isempty(cor1_sc) && isempty(cor2_sc))	% Unique color, we can plot them all in one single line
 								hLine(i) = line('XData',tmpx,'YData',tmpy, 'Parent',handles.axes1, ...
@@ -832,12 +844,12 @@ function [proj, str2] = parseProj(str)
 % 		if (isnan(symbSize)),	symbSize = 3;	end
 % 	end
 
-% --------------------------------------------------------------------
-function [symbol, symbSize, scale, cor1, cor2, str2] = parseS(str)
-% Parse the STR string in search for a -S<symbol>[size][+s<scale>][+c<cor>[+c<cor>]]
+% ---------------------------------------------------------------------------
+function [symbol, symbSize, scale, color_by4, cor1, cor2, str2] = parseS(str)
+% Parse the STR string in search for a -S<symbol>[size][+s<scale>][+f][+c<cor>[+c<cor>]]
 % If not found or error SYMBOL = [] &/or SYMBSIZE = [].
 % STR2 is the STR string less the -S... part
-	symbol = 'o';	symbSize = 7;	scale = [];	cor1 = [];	cor2 = [];
+	symbol = 'o';	symbSize = 7;	scale = [];	cor1 = [];	cor2 = [];	color_by4 = false;
 	symb_pos = 4;	% default symbol start position in string
 	str2 = str;
 	ind = strfind(str,'-S');
@@ -871,6 +883,8 @@ function [symbol, symbSize, scale, cor1, cor2, str2] = parseS(str)
 				switch strS(ind_p(k)+1)
 					case 's'
 						scale = str2double(strS(ind_p(k)+2:ind_p(k+1)-1));
+					case 'f'
+						color_by4 = true;
 					case 'c'
 						if (isempty(cor1))
 							[cor1, count] = sscanf(strS(ind_p(k)+2:ind_p(k+1)-1),'%d/%d/%d');
