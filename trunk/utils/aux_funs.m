@@ -247,11 +247,17 @@ function out = findFileType(fname)
 	elseif ( any(strcmpi(EXT,{'.ecw' '.jp2'})) )	% This is a special case (they cause memory fragmentation)
 		out = 'ecw';
 	elseif ( strcmpi(EXT,'.mat') )
+		warning('off','MATLAB:load:variableNotFound')
 		load(fname,'grd_name')
 		% The mat file is a Session file if it has a var named grd_name (empty or not). Use try because dumb compiler
 		try
 			isempty(grd_name);
 			out = 'mat';
+		catch
+			s = load(fname,'FitLine');	% Try if it is a Ecran session
+			w = whos('s');
+			if (w.bytes > 0),	out = 'mat';	end
+			s.s = '';		% Shut up the annoying MLint false warning
 		end
 	elseif ( any(strcmpi(EXT,{'.n1' '.n14' '.n15' '.n16' '.n17'})) )
 		out = 'multiband';
