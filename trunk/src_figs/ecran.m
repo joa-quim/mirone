@@ -55,7 +55,9 @@ function varargout = ecran(varargin)
 
 	if (~isempty(hObject) && ~isempty(varargin))% A previous 'Ecran' figure exists. See if it has a mag synthetic plot
 		handles = guidata(hObject(end));
-		if (~isempty(handles.hSynthetic) || strcmp(varargin{1},'add')),		freshFig = false;	end
+		if (~isempty(handles.hSynthetic) || (~isa(varargin{1},'struct') && strcmp(varargin{1},'add')))
+			freshFig = false;
+		end
 		% Delete eventual existing vertical dashed line and the red square markers
 		if (ishandle(handles.hAgeLine_fit))
 			delete(handles.hAgeLine_fit),		handles.hAgeLine_fit = [];
