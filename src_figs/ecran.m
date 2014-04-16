@@ -1301,7 +1301,7 @@ function FileOpenSession_CB(hObj, handles, fname)
 	if (ishandle(s.hMirFig))		% OK, we still have a living original Parent Mirone figure
 		h = ecran(guidata(s.hMirFig), s.x, s.y, s.z, 'Session');
 	else							% Parent Mirone is gone, do a minimalist thing
-		lix = struct('ellipsoide', s.ellipsoide, 'geog', s.geog, 'DefineMeasureUnit',s.measureUnit);
+		lix = struct('DefineEllipsoide', s.ellipsoide, 'geog', s.geog, 'DefineMeasureUnit',s.measureUnit);
 		h = ecran(lix, s.x, s.y, s.z, 'Session');
 	end
 	handNew = guidata(h);
