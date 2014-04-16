@@ -7,9 +7,14 @@ function double2ascii(filename, X, formatStr, multiseg)
 %
 % Inputs:  filename  - Name of the output ASCII file
 %		X  - double array can be a vector (1-D), a matrix (2-D) or a cell array.
-%		In later case each cell must contain a Mx2 array and output file will be multisegment
+%		     In later case each cell must contain a Mx2 array and output file will be multisegment
+%
 %		formatStr  - OPTIONAL format string  (Default = '%f')
 %					Provide one string with formats if you want to use different ones
+%					It can also be a two elements cell array, in which case
+%					formatStr{1} is a header string starting with a '#' (for example to describe the columns meanings)
+%					formatStr{2} the format string itself
+%
 %		multiseg   - OPTIONAL
 %					If X is a cell array and MULTISEG is a char string (whatever)
 %					write a multisegment file separated with the GMT '>' multisegment flag.
@@ -29,7 +34,7 @@ function double2ascii(filename, X, formatStr, multiseg)
 %		double2ascii('foo2.txt', X, '%d  %5.2f  %10.3e');
 
 % Distantly rooted on file with the same name by Denis Gilbert
-%	Copyright (c) 2004-2012 by J. Luis
+%	Copyright (c) 2004-2014 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -43,6 +48,8 @@ function double2ascii(filename, X, formatStr, multiseg)
 %
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
+
+% $Id$
 
 	% Set default format string
 	n_arg = nargin;
@@ -65,6 +72,15 @@ function double2ascii(filename, X, formatStr, multiseg)
 		end
 	end
 
+	hdr_str = '';
+	if (isa(formatStr, 'cell'))		% We have a string to be plotted as a header
+		hdr_str = formatStr{1};
+		if (hdr_str(1) ~= '#')		% Headers always start with the '#' character
+			hdr_str = ['# ' hdr_str];
+		end
+		formatStr = formatStr{2};
+	end
+
 	%Find all occurrences of the percent (%) format specifier within the input format string
 	kpercent = numel(strfind(formatStr,'%'));		% IF 'kpercent' == 1, ==> Same format for ALL columns
 
@@ -77,6 +93,10 @@ function double2ascii(filename, X, formatStr, multiseg)
 	if (~isa(X,'cell'))
 		ncols  = size(X,2);					% Determine the number of rows and columns in array X
 		fmt = make_print_format(formatStr, ncols, kpercent);
+	end
+
+	if (~isempty(hdr_str))
+		fprintf(fid, '%s\n', hdr_str);
 	end
 
 	if (n_arg < 4)							% Original form. No eventual NaN cleaning
