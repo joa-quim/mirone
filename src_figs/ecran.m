@@ -1208,7 +1208,9 @@ function plotHeaves_CB(hObject, handles)
 function plotExx_CB(hObject, handles)
 % Plot the Exx estimate
 	[r, f_x] = commonHeaves(handles);
-	exx = (f_x(2:end,2) - f_x(2:end,1)) ./ (f_x(2:end,1) - f_x(1:end-1,2));
+	%exx = (f_x(2:end,2) - f_x(2:end,1)) ./ (f_x(2:end,1) - f_x(1:end-1,2));
+	dist_mean = diff((f_x(:,2) + f_x(:,1)) / 2);		% Distances between mean fault positions
+	exx = (f_x(2:end,2) - f_x(2:end,1)) ./ dist_mean;
 	ecran(r(2:end), exx, 'Exx', {'LineStyle','none';'Marker','*'})
 
 % ----------------------------------------------------------------------------------------------------
