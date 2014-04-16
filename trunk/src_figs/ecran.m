@@ -1200,7 +1200,7 @@ function FileSaveRedMark_CB(hObject, handles)
 % ----------------------------------------------------------------------------------------------------
 function plotHeaves_CB(hObject, handles)
 % Plot the cumulated heaves as function of distance along profile
-	[x, y, r, f_x] = commonHeaves(handles);
+	[r, f_x] = commonHeaves(handles);
 	heave = cumsum(abs(f_x(:,2) - f_x(:,1)));
 	ecran(r, heave, 'Cumulated heaves', {'LineStyle','none';'Marker','*'})
 
