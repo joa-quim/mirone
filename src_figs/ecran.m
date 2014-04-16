@@ -3,13 +3,14 @@ function varargout = ecran(varargin)
 %
 % ecran(handlesMir, x, y [,'title'])
 % ecran(handlesMir, x, y, z [,'title'])
+% ecran(struct, ...)						% Like the above cases but where 'struct' has only 3 memebers (see FileOpenSession)
 % ecran('reuse', x, y [,'title'])			% Don't know what the 'reuse' is used for anymore
 % ecran('add', x, y [,'title'])				% Add the x,y to a previous existing Ecran plot
-% ecran('strick', t, angle [,'title'])		% Plot a stick diagram. ANGLE is supposed to be azimuth in degrees
-% ecran('strick', t, u, v [,'title'])		% Plot a stick diagram. U,V are vector components. 
+% ecran('stick', t, angle [,'title'])		% Plot a stick diagram. ANGLE is supposed to be azimuth in degrees
+% ecran('stick', t, u, v [,'title'])		% Plot a stick diagram. U,V are vector components. 
 % ecran(hMirFig, x, y [,'title'])
 % ecran(x, y [,'title'])
-% ecran([...,]x, y [,'title'],[PV])			% Whre PV is a Mx2 cell array with Property name/values to assign to line handle
+% ecran([...,]x, y [,'title'][,PV])			% Whre PV is a Mx2 cell array with Property name/values to assign to line handle
 %
 % Function FileOpen_CB() provides several special cases. Namely TIME column input
 % and other goodies such reference one line to another. See its help
@@ -52,9 +53,9 @@ function varargout = ecran(varargin)
 		end
 	end
 
-	if (~isempty(hObject))		% A previous 'Ecran' figure exists. See if it has a mag synthetic plot
+	if (~isempty(hObject) && ~isempty(varargin))% A previous 'Ecran' figure exists. See if it has a mag synthetic plot
 		handles = guidata(hObject(end));
-		if (~isempty(handles.hSynthetic) || strcmp(varargin{1},'add')),	freshFig = false;	end
+		if (~isempty(handles.hSynthetic) || strcmp(varargin{1},'add')),		freshFig = false;	end
 		% Delete eventual existing vertical dashed line and the red square markers
 		if (ishandle(handles.hAgeLine_fit))
 			delete(handles.hAgeLine_fit),		handles.hAgeLine_fit = [];
@@ -94,19 +95,21 @@ function varargout = ecran(varargin)
 	n_in = nargin;		PV = [];
 	if (~n_in),   varargin(1) = {[]};   end
 	if (isa(varargin{end}, 'cell'))				% A cell with Property-Values for lines (no testing correctness)
-		PV = varargin{end};		varargin(end) = [];
+		PV = varargin{end};		varargin(end) = [];		n_in = n_in - 1;
 	end
 
 	handles.handMir = [];		handles.show_popups = true;
 	handles.ellipsoide = [];	handles.geog = [];
 	handles.measureUnit = [];
-	if (isa(varargin{1},'struct'))					% ecran(handlesMir, ...)
-		handles.handMir = varargin{1};
+	if (isa(varargin{1},'struct'))					% ecran(handlesMir, ...) or ecran(struct, ...)
+		if (isfield(varargin{1},'LoadBGMap'))		% First arg is the Mirone handles struct
+			handles.handMir = varargin{1};
+			handles.work_dir = handles.handMir.work_dir;
+		end
+		handles.ellipsoide = varargin{1}.DefineEllipsoide;
+		handles.geog = varargin{1}.geog;
+		handles.measureUnit = varargin{1}.DefineMeasureUnit;
 		varargin{1} = 'Image';						% For backward compatibility sake
-		handles.work_dir = handles.handMir.work_dir;
-		handles.ellipsoide = handles.handMir.DefineEllipsoide;
-		handles.geog = handles.handMir.geog;
-		handles.measureUnit = handles.handMir.DefineMeasureUnit;
 		if (n_in == 3)								% ecran(handlesMir, x, y)
 			varargin{1} = 'reuse';
 		elseif (n_in == 4 && ischar(varargin{4}) )	% ecran(handlesMir, x, y, 'title')
@@ -120,7 +123,7 @@ function varargout = ecran(varargin)
 		elseif (n_in >= 3 && ischar(varargin{1}))	% ecran('reuse', x, y, ...)
 			varargin{1} = 'reuse';			% Make sure we use this keyword
 
-		elseif ( n_in >= 3 && numel(varargin{1}) == 1 && ishandle(varargin{1}))% ecran(hMirFig, x, y, ...)
+		elseif (n_in >= 3 && numel(varargin{1}) == 1 && ishandle(varargin{1}))	% ecran(hMirFig, x, y, ...)
 			handles.hMirFig = varargin{1};
 			varargin{1} = 'reuse';			% 
 
@@ -140,11 +143,11 @@ function varargout = ecran(varargin)
 	end
 
 	if (strcmp(varargin{1},'reuse') && n_in < 3)
-		errordlg('Error calling ecran: Minimum arguments are "type",X,Y','Error')
+		errordlg('Error calling ecran: Minimum arguments are "type",X,Y,Title','Error')
 		delete(hObject),		return
 	end
-	if ( strcmp(varargin{1},'Image') && n_in < 5 )   
-		errordlg('Error calling ecran: Minimum arguments are "type",X,Y,Z','Error')
+	if (strcmp(varargin{1},'Image') && n_in < 5)   
+		errordlg('Error calling ecran: Minimum arguments are "type",X,Y,Z,Title','Error')
 		delete(hObject),		return
 	end
 
@@ -194,7 +197,7 @@ function varargout = ecran(varargin)
 	end
 
 	% Choose the default ploting mode
-	if isempty(varargin{1})          % When the file will be read latter
+	if isempty(varargin{1})			% When the file will be read latter
 		set([handles.check_geog handles.popup_selectPlot handles.popup_selectSave], 'Visible','off')	% Hide those
 		handles.show_popups = false;
 
@@ -257,7 +260,7 @@ function varargout = ecran(varargin)
 		if ~isempty(varargin{8})			% Cannot cal title(varargin{8}) in compiled version because ... BUGS;
 			ax = handles.axes1;		h = get(ax,'title');
 			%Over-ride text objects default font attributes with the Axes' default font attributes.
-			set(h, 'FontAngle',  get(ax, 'FontAngle'), 'FontName', get(ax, 'FontName'), 'FontSize', get(ax, 'FontSize'), ...
+			set(h,  'FontAngle',  get(ax, 'FontAngle'), 'FontName', get(ax, 'FontName'), 'FontSize', get(ax, 'FontSize'), ...
 					'FontWeight', get(ax, 'FontWeight'),'Rotation',   0, 'string', varargin{8});
 		end
 		handles.show_popups = false;
@@ -381,12 +384,12 @@ function copyclipbd_CB(obj,eventdata)
 function dynSlope_CB(obj, eventdata)
 % Compute slope over the click and drag region.
 
-	handles = guidata(obj);								mkAnother = false;
+	handles = guidata(obj);				mkAnother = false;
 	if (~strcmp(get(obj,'State'),'on'))
 		set(handles.axes2, 'Vis', 'off')
 		set(findobj(handles.axes2,'Type', 'line', 'Tag', 'UnderLine'), 'Vis', 'off')
 		set(findobj(handles.axes1,'Type', 'line', 'Tag', 'FitLine'), 'Vis', 'off')
-		set(findobj(handles.axes2,'Type', 'text', 'Tag','DS'), 'Vis', 'off')
+		set(findobj(handles.axes2,'Type', 'text', 'Tag', 'DS'), 'Vis', 'off')
 		set(handles.figure1,'Pointer', 'arrow');		% Could be cross when unsetting the toggle button
 		return
 	else
@@ -397,15 +400,18 @@ function dynSlope_CB(obj, eventdata)
 		if (~isempty(hTxt)),		set(hTxt,   'Vis', 'on'),		end
 		if (~isempty(hFLine))
 			set(hFLine, 'Vis', 'on')
-			if ( ~isempty(get(hFLine, 'UserData')) )	mkAnother = true;	end
+			if (~isempty(get(hFLine, 'UserData'))),		mkAnother = true;	end
+			if (numel(hFLine) > 4)
+				set(handles.Heaves, 'Vis', 'on')	% Make this entry visible only when at least 5 Fit Lines
+			end
 		end
 	end
 
-	state = uisuspend_j(handles.figure1);				% Remember initial figure state
+	state = uisuspend_j(handles.figure1);		% Remember initial figure state
 	set(handles.figure1,'Pointer', 'crosshair');
 
 	SpectorGrant = false;		xFact = 1;
-	if ( strncmp(get(handles.figure1,'name'), 'Radial average', 14) )	% Estimate depth to magnetic sources
+	if (strncmp(get(handles.figure1,'name'), 'Radial average', 14))	% Estimate depth to magnetic sources
 		SpectorGrant = true;
 		xl = get(get(handles.axes1, 'XLabel'), 'String');
 		if (strcmp(xl(end-2:end-1), 'km'))		% frequency is in 1/km
@@ -416,8 +422,8 @@ function dynSlope_CB(obj, eventdata)
 		if (get(handles.check_geog, 'Val'))
 			contents = get(handles.popup_selectPlot, 'Str');
 			km_or_M = contents{(get(handles.popup_selectPlot,'Val'))}(end-1);
-			if ( km_or_M == 'm' )			xFact = 1000;	% km
-			elseif ( km_or_M == 'M' )		xFact = 1852;	% NM
+			if (km_or_M == 'm'),			xFact = 1000;	% km
+			elseif (km_or_M == 'M')			xFact = 1852;	% NM
 			end
 		end
 	end
@@ -428,7 +434,10 @@ function dynSlope_CB(obj, eventdata)
 			return												% but is actually a trick to catch a not-yet-interrupted
 		end														% waitforbuttonpress (from a 2 consecutive hits on toggbutton)
 		button = get(handles.figure1, 'SelectionType');
-		if (~strcmp(button,'normal')),		set(handles.figure1,'Pointer', 'arrow'),	return,		end		% left-clicks only
+		if (~strcmp(button,'normal'))							% no left-click ==> out
+			set(handles.figure1,'Pointer', 'arrow')
+			return
+		end
 
 		if (isempty(hULine))
 			hULine = line('XData', [NaN NaN], 'YData', [0.05 0.05], 'Parent', handles.axes2,'Color','k','LineWidth',1,'Tag','UnderLine');
@@ -470,13 +479,15 @@ function wbm_dynSlope(obj,eventdata, x0, I0, hAxes, hLine, hULine, hFLine, hTxt,
 	else					return			% First point. Too soon to do anything
 	end
 	if (~SpectorGrant)
-		fstr = 'Dist=%g\t  Slope=%.3f\t (m=%.2f)';		slp = atan(mb(1) / xFact)*180/pi;	% slope in (maybe) degrees
+		fstr = 'Dist=%g\t  Slope=%.3f\t (m=%.2f)';
+		slp = atan(mb(1) / xFact)*180/pi;	% slope in (may be) degrees
 	else
-		fstr = 'Dist=%g\t  Depth=%.3f';		slp = abs(mb(1) / (4*pi) * xFact);
+		fstr = 'Dist=%g\t  Depth=%.3f';
+		slp = abs(mb(1) / (4*pi) * xFact);
 	end
 	xUnderLine = [x0 xx(end)];
 	set(hTxt, 'Pos', [xx(1) 0.11], 'Str', sprintf(fstr, diff(xUnderLine), slp, mb(1)))
-	set(hFLine(end), 'XData', [xx(1) xx(end)], 'YData', ([xx(1) xx(end)] * mb(1) + mb(2)), 'UserData', [mb slp])
+	set(hFLine(end), 'XData', [xx(1) xx(end)], 'YData', ([xx(1) xx(end)] * mb(1) + mb(2)), 'UserData', [mb slp xUnderLine])
 	set(hULine,'XData', xUnderLine)
 
 function wbu_dynSlope(obj,eventdata, h, xFact, SpectorGrant, state)
@@ -496,6 +507,7 @@ function wbu_dynSlope(obj,eventdata, h, xFact, SpectorGrant, state)
 	end
 	uimenu(cmenuHand, 'Label', 'Recomp Slope/Intercept', 'Call', {@recompSI,h(end), xFact, SpectorGrant}, 'Sep', 'on');
 	uimenu(cmenuHand, 'Label', 'Delete this line', 'Call', 'delete(gco)', 'Sep', 'on');
+	setappdata(h(end), 'xFact', xFact)		% We may need this in OpenSession
 	ui_edit_polygon(h(end))
 	%obj = findobj('Type', 'uitoggletool', 'Tag', 'DynSlope');
 	%dynSlope_CB(obj, [])
@@ -520,7 +532,7 @@ function recompSI(obj,event, h, xFact, SpectorGrant)
 		fstr = 'Dist=%g\t  Slope=%.2f';
 	end
 
-	set(h, 'UserData', [m b slp]);
+	set(h, 'UserData', [m b slp x(1) x(end)]);
 	handles = guidata(h);						% Update also the legend
 	hTxt = findobj(handles.axes2,'type','text','tag','DS');
 	set(hTxt,'Str',sprintf(fstr,(x(end) - x(1)),slp))
@@ -1165,22 +1177,158 @@ function FileSaveRedMark_CB(hObject, handles)
 	if isequal(FileName,0),		return,		end     % User gave up	
     hM = findobj(handles.figure1,'Type','Line','tag','marker');
 	x = get(hM,'XData');		y = get(hM,'YData');
-	n_cols = size(handles.data,2);
-	if (n_cols == 2)		% Simplest but possibly non-existing case. Input data was only x,y
+	if (size(handles.data,2) == 2)			% Simplest but possibly non-existing case. Input data was only x,y
 		double2ascii([PathName FileName],[x(:) y(:)],'%f\t%f');
-	else					% Geog type data. Here we want also to save the distance along profile
-		ind = zeros(1,numel(x));
-		for (k = 1:numel(x))	% Find indices of the points in the handles.data array
-			ind(k) = find((handles.data(:,3) - y(k)) == 0);
+		return
+	end
+	% Geog type data. Here we want also to save the distance along profile
+	ind = zeros(1,numel(x));
+	for (k = 1:numel(x))		% Find indices of the points in the handles.data array
+		ind(k) = find((handles.data(:,3) - y(k)) == 0);
+	end
+	ind = sort(ind);
+	x  = handles.data(ind,1);
+	y  = handles.data(ind,2);
+	z  = handles.data(ind,3);
+	r0 = get_distances([handles.data(1,1) x(1)], [handles.data(1,2) y(1)], handles.geog, handles.measureUnit, handles.ellipsoide);
+	r  = get_distances(x, y, handles.geog, handles.measureUnit, handles.ellipsoide);	% This starts counting dist at x(1)
+	% add r0 so distances are from start of profile
+	double2ascii([PathName FileName], [x(:) y(:) r(:)+r0(2), z(:), ind(:)], '%f\t%f\t%f\t%f\t%d');
+
+% ----------------------------------------------------------------------------------------------------
+function plotHeaves_CB(hObject, handles)
+% Plot the cumulated heaves as function of distance along profile
+	[x, y, r, f_x] = commonHeaves(handles);
+	heave = cumsum(abs(f_x(:,2) - f_x(:,1)));
+	ecran(r, heave, 'Cumulated heaves', {'LineStyle','none';'Marker','*'})
+
+% ----------------------------------------------------------------------------------------------------
+function plotExx_CB(hObject, handles)
+% Plot the Exx estimate
+	[r, f_x] = commonHeaves(handles);
+	exx = (f_x(2:end,2) - f_x(2:end,1)) ./ (f_x(2:end,1) - f_x(1:end-1,2));
+	ecran(r(2:end), exx, 'Exx', {'LineStyle','none';'Marker','*'})
+
+% ----------------------------------------------------------------------------------------------------
+function saveHeaves_CB(hObject, handles)
+% Save the fault picks info that can be used to calculate the Heaves, Exx, etc...
+	[r, f_x, f_y, x, y] = commonHeaves(handles);
+	[FileName,PathName] = put_or_get_file(handles,{'*.dat', 'X,Y (*.dat)';'*.*', 'All Files (*.*)'},'X,Y (ascii)','put', '.dat');
+	if isequal(FileName,0),		return,		end     % User gave up
+	fmt{1} = '# Lon       Lat       f_x1    f_x2    f_z1   f_z2';
+	fmt{2} = '%g';
+	double2ascii([PathName FileName],[x y f_x f_y], fmt);
+
+% ----------------------------------------------------------------------------------------------------
+function [r, f_x, f_y, x, y] = commonHeaves(handles)
+% R   -> distance along profile since the first fault pick
+% F_X -> [Xi Xf] x distance along profile of the begin and end of a fault pick (diff(F_X) == HEAVE)
+% F_Y -> [Yi Yf] z heights of theu base and top of fault pick (diff(F_Y) == Fault vert offset)
+% X,Y -> coordinates of the fault start (at its base)
+
+	hFL = findobj(handles.axes1,'Type','Line','tag','FitLine');
+	ud = get(hFL, 'UserData');
+	ud = cat(1, ud{:});
+	x = ud(:,4);
+	[x,ind] = sort(x);
+	ud = ud(ind,:);
+
+	% Need to find the y's matching x that do not necessarily fall on the profile line.
+	ind = zeros(1,numel(x));
+	for (k = 1:numel(x))		% Find indices of the points in the handles.data array
+		[mi, ind(k)] = min(abs(handles.dist - x(k)));
+	end
+	
+	x = handles.data(ind,1);	y = handles.data(ind,2);
+	r = get_distances(x, y, handles.geog, handles.measureUnit, handles.ellipsoide);	% This starts counting dist at x(1)
+	f_x = ud(:,4:5);			% ...
+	f_y = [ud(:,4) .* ud(:,1) + ud(:,2) ud(:,5) .* ud(:,1) + ud(:,2)];
+
+% ----------------------------------------------------------------------------------------------------
+function FileSaveSession_CB(hObject, handles)
+% Save info necessary to reconstruct present figure in a .mat file (many cases will likely fail)
+
+	str1 = {'*.mat;*.MAT', 'Data files (*.mat,*.MAT)'};
+	[FileName,PathName] = put_or_get_file(handles,str1,'Select session file name','put','.mat');
+	if isequal(FileName,0),		return,		end
+	fname = [PathName FileName];
+
+    hFL = findobj(handles.axes1,'Type','Line','tag','FitLine');
+	FitLine = [];		xFact = 1;
+	if (~isempty(hFL))
+		FitLine = get(hFL, 'UserData');
+		xFact = getappdata(hFL(1), 'xFact');	% X scale factor (to account for geogs, km, Nm, etc)
+	end
+
+    hM = findobj(handles.axes1,'Type','Line','tag','marker');
+	markers = [];
+	if (~isempty(hM))
+		x = get(hM,'XData');	y = get(hM,'YData');
+		markers = [x(:) y(:)];
+	end
+	
+	hMirFig = [];
+	if (~isempty(handles.handMir)),		hMirFig = handles.handMir.figure1;	end
+	
+	ellipsoide = handles.ellipsoide;
+	geog = handles.geog;
+	measureUnit = handles.measureUnit;
+
+	x  = handles.data(:,1);		y  = handles.data(:,2);		z  = handles.data(:,3);		dist = handles.dist;
+	save(fname, 'x', 'y', 'z', 'dist', 'xFact', 'markers', 'FitLine', 'hMirFig', 'ellipsoide', 'geog', 'measureUnit', '-v6')
+	if (0 && hMirFig && FitLine && markers && x && y && z && dist && xFact && geog && ellipsoide && measureUnit)
+	end		% Trick to shut up stupid MLint warnings
+
+% ----------------------------------------------------------------------------------------------------
+function FileOpenSession_CB(hObj, handles, fname)
+% Open the session file and try to recreate as possible the status at time of session creation
+
+	if (nargin == 2)
+		if (isfield(handles, 'session_name'))
+			FileName = handles.session_name;	PathName = [];
+		else
+			str1 = {'*.mat;*.MAT', 'Data files (*.mat,*.MAT)'};
+			[FileName,PathName] = put_or_get_file(handles,str1,'Select session file name','get');
+			if isequal(FileName,0),		return,		end
 		end
-		ind = sort(ind);
-		x = handles.data(ind,1);
-		y = handles.data(ind,2);
-		z = handles.data(ind,3);
-		r0 = get_distances([handles.data(1,1) x(1)], [handles.data(1,2) y(1)], handles.geog, handles.measureUnit, handles.ellipsoide);
-		r = get_distances(x, y, handles.geog, handles.measureUnit, handles.ellipsoide);	% This starts counting dist at x(1)
-		% add r0 so distances are from start of profile
-		double2ascii([PathName FileName],[x(:) y(:) r(:)+r0(2), z(:), ind(:)],'%f\t%f\t%f\t%f\t%d');
+	else
+		FileName = fname;	PathName = [];
+	end
+
+	s = load([PathName FileName]);
+	if (ishandle(s.hMirFig))		% OK, we still have a living original Parent Mirone figure
+		h = ecran(guidata(s.hMirFig), s.x, s.y, s.z, 'Session');
+	else							% Parent Mirone is gone, do a minimalist thing
+		lix = struct('ellipsoide', s.ellipsoide, 'geog', s.geog, 'DefineMeasureUnit',s.measureUnit);
+		h = ecran(lix, s.x, s.y, s.z, 'Session');
+	end
+	handNew = guidata(h);
+
+	if (~isempty(s.markers))		% The red Markers
+		for (k = 1:size(s.markers,1))
+			line('XData', s.markers(k,1), 'YData', s.markers(k,2), 'Parent', handNew.axes1, 'LineStyle', 'none', ...
+				'Marker','s', 'MarkerFaceColor','r', 'MarkerSize',5, 'Tag','marker')
+		end
+	end
+
+	if (~isempty(s.FitLine))		% The local fit lines
+		xFact = 1;
+		for (k = 1:numel(s.FitLine))
+			mb_e_slp = s.FitLine{k};
+			h = line('XData', mb_e_slp(4:5), 'YData', (mb_e_slp(4:5) * mb_e_slp(1) + mb_e_slp(2)), ...
+				'Parent', handNew.axes1, 'LineWidth',2, 'Tag', 'FitLine', 'UserData', mb_e_slp);
+
+			cmenuHand = uicontextmenu('Parent',handNew.figure1);
+			set(h, 'UIContextMenu', cmenuHand);
+			uimenu(cmenuHand, 'Label', 'Slope (atan(a0)), m  &  Intercept ');
+			uimenu(cmenuHand, 'Label', sprintf('%.2f     %.3f   %.9g', mb_e_slp(3), mb_e_slp(1), mb_e_slp(2)));
+			uimenu(cmenuHand, 'Label', 'Recomp Slope/Intercept', 'Call', {@recompSI,h, xFact, false}, 'Sep', 'on');
+			uimenu(cmenuHand, 'Label', 'Delete this line', 'Call', 'delete(gco)', 'Sep', 'on');
+			ui_edit_polygon(h)
+		end
+		if (numel(s.FitLine) > 4)
+			set(handNew.Heaves, 'Vis', 'on')	% Make this entry visible only when at least 5 Fit Lines
+		end
 	end
 
 % --------------------------------------------------------------------
@@ -1731,7 +1879,7 @@ function push_ageFit_CB(hObject, handles)
 
 	% Create or move the age marker as well (the vertical dashed line)
 	ind_ageMarker = get(handles.hAgeMarker,'UserData') + guess_shift;
-	if ( ~strncmp(get(handles.axes2,'XDir'),'normal', 3) )	% The time axis is reversed (grows from right to left)
+	if (~strncmp(get(handles.axes2,'XDir'),'normal', 3))	% The time axis is reversed (grows from right to left)
 		ind_ageMarker = numel(age_line) - ind_ageMarker + 1;
 	end
 	delta_shift = ind_ageMarker - ind_a + 1;	% Age marker must be shifted by this after corr-fit
@@ -2617,6 +2765,9 @@ h10 = uimenu('Parent',h1,'Label','File','Tag','menuFile');
 uimenu('Parent',h10, 'Call',@ecran_uiCB, 'Label','Open', 'Tag','FileOpen');
 uimenu('Parent',h10, 'Call',@ecran_uiCB, 'Label','Save', 'Tag','FileSave');
 uimenu('Parent',h10, 'Call',@ecran_uiCB, 'Label','Save Red Markers', 'Vis', 'off', 'Tag','FileSaveRedMark');
+hSe = uimenu('Parent',h10,'Label','Session','Sep','on');
+uimenu('Parent',hSe, 'Call',@ecran_uiCB, 'Label','Open', 'Tag','FileOpenSession');
+uimenu('Parent',hSe, 'Call',@ecran_uiCB, 'Label','Save', 'Tag','FileSaveSession');
 
 hSc = uimenu('Parent',h10,'Label','Save GMT script','Sep','on');
 uimenu('Parent',hSc, 'Call','write_gmt_script(guidata(gcbo),''bat'')','Label','dos batch');
@@ -2625,11 +2776,11 @@ uimenu('Parent',hSc, 'Call','write_gmt_script(guidata(gcbo),''csh'')','Label','c
 uimenu('Parent',h10, 'Call','ecran','Label','New','Separator','on');
 uimenu('Parent',h10, 'Call',@ecran_uiCB, 'Label','Export...', 'Tag','FileExport', 'Sep','on');
 uimenu('Parent',h10, 'Call','print -dsetup', 'Label','Print Setup', 'Separator','on');
-uimenu('Parent',h10, 'Call',@ecran_uiCB, 'Label','Print...', 'Tag','FilePrint');
+uimenu('Parent',h10, 'Call',@ecran_uiCB, 'Label','Print...', 'Tag', 'FilePrint');
 
 h17 = uimenu('Parent',h1, 'Label','Analysis');
-uimenu('Parent',h17, 'Call',@ecran_uiCB, 'Label','Remove Mean', 'Tag','AnalysisRemoveMean');
-uimenu('Parent',h17, 'Call',@ecran_uiCB, 'Label','Remove Trend', 'Tag','AnalysisRemoveTrend');
+uimenu('Parent',h17, 'Call',@ecran_uiCB, 'Label','Remove Mean',    'Tag','AnalysisRemoveMean');
+uimenu('Parent',h17, 'Call',@ecran_uiCB, 'Label','Remove Trend',   'Tag','AnalysisRemoveTrend');
 uimenu('Parent',h17, 'Call',@ecran_uiCB, 'Label','Fit polynomial', 'Tag','AnalysisFitPoly');
 
 h20 = uimenu('Parent',h17, 'Label','FFT', 'Separator','on');
@@ -2638,14 +2789,19 @@ uimenu('Parent',h20, 'Call',@ecran_uiCB, 'Label','Amplitude Spectrum', 'Tag','An
 uimenu('Parent',h20, 'Call',@ecran_uiCB, 'Label','Power Spectrum Density', 'Tag','AnalysisFFT_PSD');
 uimenu('Parent',h20, 'Call',@ecran_uiCB, 'Label','PSD (Welch method)', 'Tag','AnalysisFFT_PSD');
 
-uimenu('Parent',h17, 'Call',@ecran_uiCB, 'Label','Autocorrelation', 'Tag','AnalysisAutocorr');
+uimenu('Parent',h17, 'Call',@ecran_uiCB, 'Label','Autocorrelation',  'Tag','AnalysisAutocorr');
 uimenu('Parent',h17, 'Call',@ecran_uiCB, 'Label','Smoothing Spline', 'Tag','AnalysisSmoothSpline', 'Sep','on');
-uimenu('Parent',h17, 'Call',@ecran_uiCB, 'Label','1 st derivative', 'Tag','Analysis1derivative');
-uimenu('Parent',h17, 'Call',@ecran_uiCB, 'Label','2 nd derivative', 'Tag','Analysis2derivative');
+uimenu('Parent',h17, 'Call',@ecran_uiCB, 'Label','1 st derivative',  'Tag','Analysis1derivative');
+uimenu('Parent',h17, 'Call',@ecran_uiCB, 'Label','2 nd derivative',  'Tag','Analysis2derivative');
+
+hSh = uimenu('Parent',h17,'Label','Heaves', 'Tag', 'Heaves', 'Sep','on');
+uimenu('Parent',hSh, 'Call',@ecran_uiCB, 'Label','Plot Heaves', 'Tag','plotHeaves');
+uimenu('Parent',hSh, 'Call',@ecran_uiCB, 'Label','Plot Exx',    'Tag','plotExx');
+uimenu('Parent',hSh, 'Call',@ecran_uiCB, 'Label','Save Heaves', 'Tag','saveHeaves');
 
 uimenu('Parent',h17, 'Call','escorrega(''vert'',gcf)', 'Label','Show Vertical Exageration', 'Sep','on');
 
-% Here we provide a hiden entry to activate functions of interest to tide analysis
+% Here we provide a hiden entry to activate functions of interest to tide analysis (porta do cavalo)
 uimenu('Parent',h17,'Call',@ecran_uiCB,'Vis','off','Tag','add_uictx');
 
 uicontrol('Parent',h1, 'Position',[85 8 51 22],...
@@ -2739,7 +2895,7 @@ uicontrol('Parent',h1, 'Position',[780 8 26 21],...
 
 function ecran_uiCB(hObject, eventdata)
 % This function is executed by the callback and than the handles is allways updated.
-	feval([get(hObject,'Tag') '_CB'],hObject, guidata(hObject));
+	feval([get(hObject,'Tag') '_CB'], hObject, guidata(hObject));
 
 %============================================================================
 function varargout = ecran_trend1d(varargin)
