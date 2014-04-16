@@ -3145,7 +3145,7 @@ function FileOpenSession_CB(handles, fname)
 
 	s = load([PathName FileName]);
 	if (isfield(s,'markers') && isfield(s, 'FitLine'))	% Ah, this is ecran session. Send it there and stop here
-		h = ecran();
+		h = ecran;
 		hands = guidata(h);		set(hands.figure1, 'vis', 'off')
 		hands.session_name = [PathName FileName];		% Pass the mat file name in this member
 		guidata(hands.figure1, hands);					% We have to save it on source because it's where is going to be read
