@@ -3143,13 +3143,20 @@ function FileOpenSession_CB(handles, fname)
 		FileName = fname;	PathName = [];
 	end
 
-	set(handles.figure1,'pointer','watch')
 	s = load([PathName FileName]);
-	if (isfield(s,'data') && isfield(s.data, 'values'))
-		ecran(s.data.values(:,1), s.data.values(:,2))
+	if (isfield(s,'markers') && isfield(s, 'FitLine'))	% Ah, this is ecran session. Send it there and stop here
+		h = ecran();
+		hands = guidata(h);		set(hands.figure1, 'vis', 'off')
+		hands.session_name = [PathName FileName];		% Pass the mat file name in this member
+		guidata(hands.figure1, hands);					% We have to save it on source because it's where is going to be read
+		cb = get(hands.FileOpenSession, 'Call');
+		feval(cb, hands.FileOpenSession, hands)			% Call the ecran's FileOpenSession_CB function
+		delete(h)
 		return
 	end
-	if (strcmpi(s.grd_name(max(numel(s.grd_name)-3,1):end),'.mat')),	s.grd_name = [];		end		% Otherwise infinite loop below
+
+	if (strcmpi(s.grd_name(max(numel(s.grd_name)-3,1):end),'.mat')),	s.grd_name = [];	end		% Otherwise infinite loop below
+	set(handles.figure1,'pointer','watch')
 
 	tala = (~isempty(s.grd_name) && exist(s.grd_name,'file') == 2);		flagIllum = true;	% Illuminate (if it is the case)
 	if (~tala && ~isempty(s.grd_name))						% Give user a 2nd chance to tell where the grid is
@@ -3388,8 +3395,8 @@ function FileSaveSession_CB(handles)
 	m = 1;
 	haveMBtrack = 0;	havePline = 0;		haveText = 0;	haveSymbol = 0;		haveCircleGeo = 0;
 	haveCircleCart = 0; havePlineAsPoints = 0;  havePatches = 0;haveCoasts = 0; havePolitic = 0;	haveRivers = 0;
-	MBtrack = [];	MBbar = [];		Pline = [];		Symbol = [];	Texto = [];		CircleGeo = [];	MecaMag5 = [];
-	CircleCart = [];	PlineAsPoints = [];			Patches = [];	coastUD = [];	politicUD = [];	riversUD = [];
+	MBtrack = [];	MBbar = [];		Pline = [];		Symbol = [];	CircleGeo = [];	MecaMag5 = [];
+	CircleCart = [];	PlineAsPoints = [];			coastUD = [];	politicUD = [];	riversUD = [];
 
 	h = findobj(ALLlineHand,'Tag','Symbol');		% case of a Symbol (in fact a line Marker)
 	if (~isempty(h))
@@ -3580,6 +3587,12 @@ function FileSaveSession_CB(handles)
 		'haveCoasts', 'coastUD','havePolitic', 'politicUD','haveRivers', 'riversUD', 'illumComm', ...
 		'illumType', 'MecaMag5', '-v6')
 	set(handles.figure1,'pointer','arrow')
+
+	% Trick to shut up stupid MLint warnings
+	if (0 && grd_name && img_pal && map_limits && illumComm && haveMBtrack && havePline && haveText && haveSymbol) end
+	if (0 && haveCircleCart && havePlineAsPoints && haveCoasts && illumComm && haveMBtrack && illumType) end
+	if (0 && havePolitic && haveRivers && MBtrack && MBbar && Symbol && CircleGeo && MecaMag5 && CircleCart) end
+	if (0 && PlineAsPoints && coastUD && politicUD && riversUD && haveCircleGeo) end
 
 % --------------------------------------------------------------------
 function ImageMapLimits_CB(handles, opt)
