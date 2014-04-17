@@ -849,11 +849,12 @@ function [symbol, symbSize, scale, color_by4, cor1, cor2, str2] = parseS(str)
 % Parse the STR string in search for a -S<symbol>[size][+s<scale>][+f][+c<cor>[+c<cor>]]
 % If not found or error SYMBOL = [] &/or SYMBSIZE = [].
 % STR2 is the STR string less the -S... part
-	symbol = 'o';	symbSize = 7;	scale = [];	cor1 = [];	cor2 = [];	color_by4 = false;
+	symbol = [];	symbSize = 7;	scale = [];	cor1 = [];	cor2 = [];	color_by4 = false;
 	symb_pos = 4;	% default symbol start position in string
 	str2 = str;
 	ind = strfind(str,'-S');
 	if (isempty(ind)),		return,		end		% No -S option
+	symbol = 'o';		% OK, now we have a new default
 	try                                 % There are so many ways to have it wrong that I won't bother testing
 		[strS, rem] = strtok(str(ind:end));
 		str2 = [str(1:ind(1)-1) rem];   % Remove the -S<str> from STR
