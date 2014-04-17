@@ -1208,7 +1208,6 @@ function plotHeaves_CB(hObject, handles)
 function plotExx_CB(hObject, handles)
 % Plot the Exx estimate
 	[r, f_x] = commonHeaves(handles);
-	%exx = (f_x(2:end,2) - f_x(2:end,1)) ./ (f_x(2:end,1) - f_x(1:end-1,2));
 	dist_mean = diff((f_x(:,2) + f_x(:,1)) / 2);		% Distances between mean fault positions
 	exx = (f_x(2:end,2) - f_x(2:end,1)) ./ dist_mean;
 	ecran(r(2:end), exx, 'Exx', {'LineStyle','none';'Marker','*'})
@@ -1216,15 +1215,15 @@ function plotExx_CB(hObject, handles)
 % ----------------------------------------------------------------------------------------------------
 function saveHeaves_CB(hObject, handles)
 % Save the fault picks info that can be used to calculate the Heaves, Exx, etc...
-	[r, f_x, f_y, x, y] = commonHeaves(handles);
+	[r, f_x, f_y, x1, y1, x2, y2] = commonHeaves(handles);
 	[FileName,PathName] = put_or_get_file(handles,{'*.dat', 'X,Y (*.dat)';'*.*', 'All Files (*.*)'},'X,Y (ascii)','put', '.dat');
 	if isequal(FileName,0),		return,		end     % User gave up
-	fmt{1} = '# Lon       Lat       f_x1    f_x2    f_z1   f_z2';
+	fmt{1} = '# Lon_x1    Lat_y1    Lon_x2    Lat_y2    f_x1    f_x2    f_z1    f_z2';
 	fmt{2} = '%g';
-	double2ascii([PathName FileName],[x y f_x f_y], fmt);
+	double2ascii([PathName FileName],[x1 y1 x2 y2 f_x f_y], fmt);
 
 % ----------------------------------------------------------------------------------------------------
-function [r, f_x, f_y, x, y] = commonHeaves(handles)
+function [r, f_x, f_y, x1, y1, x2, y2] = commonHeaves(handles)
 % R   -> distance along profile since the first fault pick
 % F_X -> [Xi Xf] x distance along profile of the begin and end of a fault pick (diff(F_X) == HEAVE)
 % F_Y -> [Yi Yf] z heights of theu base and top of fault pick (diff(F_Y) == Fault vert offset)
@@ -1233,18 +1232,21 @@ function [r, f_x, f_y, x, y] = commonHeaves(handles)
 	hFL = findobj(handles.axes1,'Type','Line','tag','FitLine');
 	ud = get(hFL, 'UserData');
 	ud = cat(1, ud{:});
-	x = ud(:,4);
-	[x,ind] = sort(x);
+	x1 = ud(:,4);
+	[x1,ind] = sort(x1);
 	ud = ud(ind,:);
+	x2 = ud(:,5);
 
 	% Need to find the y's matching x that do not necessarily fall on the profile line.
-	ind = zeros(1,numel(x));
-	for (k = 1:numel(x))		% Find indices of the points in the handles.data array
-		[mi, ind(k)] = min(abs(handles.dist - x(k)));
+	ind1 = zeros(1,numel(x1));		ind2 = zeros(1,numel(x1));
+	for (k = 1:numel(x1))			% Find indices of the points in the handles.data array
+		[mi, ind1(k)] = min(abs(handles.dist - x1(k)));
+		[mi, ind2(k)] = min(abs(handles.dist - x2(k)));
 	end
-	
-	x = handles.data(ind,1);	y = handles.data(ind,2);
-	r = get_distances(x, y, handles.geog, handles.measureUnit, handles.ellipsoide);	% This starts counting dist at x(1)
+
+	x1 = handles.data(ind1,1);	y1 = handles.data(ind1,2);
+	x2 = handles.data(ind2,1);	y2 = handles.data(ind2,2);
+	r = get_distances(x1, y1, handles.geog, handles.measureUnit, handles.ellipsoide);	% This starts counting dist at x(1)
 	f_x = ud(:,4:5);			% ...
 	f_y = [ud(:,4) .* ud(:,1) + ud(:,2) ud(:,5) .* ud(:,1) + ud(:,2)];
 
