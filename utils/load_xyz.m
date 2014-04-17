@@ -58,6 +58,7 @@ function varargout = load_xyz(handles, opt, opt2)
 %					> DX DY REG for the interior rectangles.
 %					REG is either 0 (grid registration) or 1 (pixel reg). Default is 0
 %					If neither DY and REG is provided, DY = DX and REG = 0 are assumed
+%		'>HEAVES'	...
 
 %	Copyright (c) 2004-2014 by J. Luis
 %
@@ -427,6 +428,19 @@ function varargout = load_xyz(handles, opt, opt2)
 			do_nesting = true;
 			orig_no_mseg = true;		% SHIT, I should not have to do this, but need it to go to 'line_uicontext'
 
+		elseif (strncmpi(multi_segs_str{1}, '>HEAVES', 5))			% A Tectonic 'Heaves' file to reconstruct
+			[t,r] = strtok(multi_segs_str{1});
+			n_segments = size(numeric_data{:},1);
+			tmp_cell   = numeric_data;
+			numeric_data = cell(n_segments,1);	multi_segs_str = cell(n_segments,1);
+			for (kh = 1:n_segments)
+				numeric_data{kh} = [tmp_cell{1}(kh,1:2); tmp_cell{1}(kh,3:4)];
+				multi_segs_str{kh} = '>';
+			end
+			multi_segs_str{1} = ['> ' r];							% Rip the HEAVES identifier and leave whathever remains
+			hLine = ones(n_segments,1)*NaN;			% We need to update these two too
+			n_clear = false(n_segments,1);
+
 		elseif (line_type(3) ~= 'P' && ~isempty(strfind(multi_segs_str{1},'-G')) && isempty(strfind(multi_segs_str{1},'-S')) )
 			% -G (paint) alone is enough to make it a patch (if ~point)
 			do_patch = true;
@@ -461,9 +475,9 @@ function varargout = load_xyz(handles, opt, opt2)
 						numeric_data{i} = proj2proj_pts(handles, numeric_data{i}, 'srcProj4', projStr);
 
 						if (k == 1 && i == 1)	% First time. Store proj info in Figure's appdata ... IF not geog already
-							if ( ~handles.geog && isempty(getappdata(handles.figure1,'ProjWKT')) && ...
-								 isempty(getappdata(handles.figure1,'Proj4')) && ...
-								 isempty(getappdata(handles.figure1,'ProjGMT')) )
+							if (~handles.geog && isempty(getappdata(handles.figure1,'ProjWKT')) && ...
+								isempty(getappdata(handles.figure1,'Proj4')) && ...
+								isempty(getappdata(handles.figure1,'ProjGMT')) )
 								setappdata(handles.figure1,'Proj4', projStr)
 								handles.is_projected = true;
 							end
@@ -483,7 +497,7 @@ function varargout = load_xyz(handles, opt, opt2)
 			if (handles.no_file)
 				tmpx = numeric_data{i}(:,1);		tmpy = numeric_data{i}(:,2);
 			else
-	 			difes = [( double(numeric_data{i}(1,1)) - double(numeric_data{i}(end,1)) ) ...	% Remember R13
+	 			difes = [(double(numeric_data{i}(1,1)) - double(numeric_data{i}(end,1)) ) ...	% Remember R13
 					( double(numeric_data{i}(1,2)) - double(numeric_data{i}(end,2)) )];
 				if (any(abs(difes) > 1e-5))			% Assume a not closed polygon
 					[tmpx, tmpy, indx, indy] = ...	% Get rid of points that are outside the map limits
@@ -1070,7 +1084,7 @@ function [numeric_data, multi_segs_str] = swallow_GSHHS(handles, fname)
 	multi_segs_str = hdrs(c);
 	numeric_data(~c) = [];		% Remove unused cells
 	if (ishandle(hBar)),	aguentabar(1),	end
-	
+
 % ---------------------------------------------------------------------
 function [b, ndx_first, ndx_last] = local_unique(a)
 % Striped version of unique that outputs 'first' and 'last'
