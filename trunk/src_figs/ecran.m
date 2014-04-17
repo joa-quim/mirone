@@ -1218,7 +1218,7 @@ function saveHeaves_CB(hObject, handles)
 	[r, f_x, f_y, x1, y1, x2, y2] = commonHeaves(handles);
 	[FileName,PathName] = put_or_get_file(handles,{'*.dat', 'X,Y (*.dat)';'*.*', 'All Files (*.*)'},'X,Y (ascii)','put', '.dat');
 	if isequal(FileName,0),		return,		end     % User gave up
-	fmt{1} = '# Lon_x1    Lat_y1    Lon_x2    Lat_y2    f_x1    f_x2    f_z1    f_z2';
+	fmt{1} = sprintf('# Lon_x1    Lat_y1    Lon_x2    Lat_y2    f_x1    f_x2    f_z1    f_z2\n>HEAVES');
 	fmt{2} = '%g';
 	double2ascii([PathName FileName],[x1 y1 x2 y2 f_x f_y], fmt);
 
