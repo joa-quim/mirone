@@ -86,7 +86,7 @@ function [numeric_data,date,headerlines,str_col,out] = text_read(varargin)
 	end
 
 	% Try the multi-segments case. If yes, finish right away.
-	if ~isnan(requestedMultiSeg)
+	if (~isnan(requestedMultiSeg))
 		p = strfind(string, requestedMultiSeg);
 		if (~isempty(p))
 			s = strread(string,'%s','delimiter','\n');		clear string;
