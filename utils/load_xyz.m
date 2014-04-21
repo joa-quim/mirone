@@ -528,6 +528,8 @@ function varargout = load_xyz(handles, opt, opt2)
 			if (color_by4 && numel(numeric_data{i}(1,:)) >= 4)
 				tmpz4 = numeric_data{i}(:,4);		% Will be used to color symbols
 				if (~isempty(indx) || ~isempty(indy)),	tmpz4(indx) = [];	tmpz4(indy) = [];	end	% If needed, clip outside map data
+			else
+				color_by4 = false;		% bad +f setting. Just ignore it
 			end
 			if (~isempty(marker))
 				if (~isempty(markerScale) && ~isempty(tmpz))
