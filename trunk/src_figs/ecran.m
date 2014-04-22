@@ -169,14 +169,14 @@ function varargout = ecran(varargin)
 		end
 		if (~isempty(handles.handMir))
 			uitoggletool('parent',hTB,'Click',@pick_CB, 'cdata',link_ico,'Tooltip', ...
-				'Pick data point in curve and plot it the mirone figure','Sep','on');
+				'Pick data point in curve and plot it the mirone figure','Sep','on', 'Tag', 'pick_but');
 		end
 		uitoggletool('parent',hTB,'Click',@dynSlope_CB, 'cdata', s.Mline_ico,...
 			'Tooltip','Compute slope dynamically', 'Tag', 'DynSlope');
 		uipushtool('parent',hTB,'Click',@rectang_clicked_CB,'cdata',s.rectang_ico,...
-			'Tooltip','Restrict analysis to X region');
+			'Tooltip','Restrict analysis to X region', 'Tag', 'rectang_but');
 		uitoggletool('parent',hTB,'Click',@isocs_CB, 'cdata', s.bar_ico,...
-			'Tooltip','Enter ages & plot a geomagnetic barcode','Sep','on');
+			'Tooltip','Enter ages & plot a geomagnetic barcode','Sep','on', 'Tag', 'isocs_but');
 		% -------------------------------------------------------------------------------------------
 
 		handles.hLine = [];			% Handles to the ploted line
@@ -403,9 +403,6 @@ function dynSlope_CB(obj, eventdata)
 		if (~isempty(hFLine))
 			set(hFLine, 'Vis', 'on')
 			if (~isempty(get(hFLine, 'UserData'))),		mkAnother = true;	end
-			if (numel(hFLine) > 4)
-				set(handles.Heaves, 'Vis', 'on')	% Make this entry visible only when at least 5 Fit Lines
-			end
 		end
 	end
 
@@ -492,7 +489,7 @@ function wbm_dynSlope(obj,eventdata, x0, I0, hAxes, hLine, hULine, hFLine, hTxt,
 	set(hFLine(end), 'XData', [xx(1) xx(end)], 'YData', ([xx(1) xx(end)] * mb(1) + mb(2)), 'UserData', [mb slp xUnderLine])
 	set(hULine,'XData', xUnderLine)
 
-function wbu_dynSlope(obj,eventdata, h, xFact, SpectorGrant, state)
+function wbu_dynSlope(obj,event, h, xFact, SpectorGrant, state)
     uirestore_j(state, 'nochildren');				% Restore the figure's initial state
 	mb_e_slp = get(h(end), 'UserData');
 	if (isempty(mb_e_slp))		return,		end		% Happens when a single click on fig
@@ -508,11 +505,19 @@ function wbu_dynSlope(obj,eventdata, h, xFact, SpectorGrant, state)
 		uimenu(cmenuHand, 'Label', sprintf('%.2f     %.3f   %.9g', mb_e_slp(3), mb_e_slp(1), mb_e_slp(2)));
 	end
 	uimenu(cmenuHand, 'Label', 'Recomp Slope/Intercept', 'Call', {@recompSI,h(end), xFact, SpectorGrant}, 'Sep', 'on');
-	uimenu(cmenuHand, 'Label', 'Delete this line', 'Call', 'delete(gco)', 'Sep', 'on');
+	hD = uimenu(cmenuHand, 'Label', 'Delete this line', 'Call', 'delete(gco)', 'Sep', 'on');
 	setappdata(h(end), 'xFact', xFact)		% We may need this in OpenSession
 	ui_edit_polygon(h(end))
-	%obj = findobj('Type', 'uitoggletool', 'Tag', 'DynSlope');
-	%dynSlope_CB(obj, [])
+
+	handles = guidata(h(1));				% When on Extensional mode, plot also the faults in the Mir fig
+	if (strcmp(get(handles.extensional, 'Checked'), 'on') && ~isempty(handles.handMir) && ishandle(handles.handMir.figure1))
+		[r, f_x, f_y, x1, y1, x2, y2] = commonHeaves(handles, h(end));
+		hL = line('XData',[x1 x2], 'YData',[y1 y2], 'Parent',handles.handMir.axes1, 'LineWidth',2, 'Tag','LinkedLine');
+		setappdata(h(end), 'sister', hL)	% Store it so the delete line function can also kill the corresponding Mir line
+		set(hD, 'Call', 's=getappdata(gco,''sister'');delete(s);delete(gco)')
+		draw_funs(hL, 'line_uicontext')
+	end
+	%dynSlope_CB(findobj('Type', 'uitoggletool', 'Tag', 'DynSlope'), [])
 
 function recompSI(obj,event, h, xFact, SpectorGrant)
 % Recompute Slope & Intercept because line might have been edited
@@ -541,9 +546,15 @@ function recompSI(obj,event, h, xFact, SpectorGrant)
 	hULine = findobj(handles.axes2,'type','Line','Tag','UnderLine');
 	set(hULine,'XData', [x(1) x(end)])
 
+	handles = guidata(h);				% When on Extensional mode, update also the fault in the Mir fig
+	if (strcmp(get(handles.extensional, 'Checked'), 'on') && ~isempty(handles.handMir) && ishandle(handles.handMir.figure1))
+		[r, f_x, f_y, x1, y1, x2, y2] = commonHeaves(handles, h);
+		hL = getappdata(h, 'sister');
+		set(hL, 'XData',[x1 x2], 'YData',[y1 y2])
+	end
+
 function do_bandFilter(obj,event, h, xFact)
 % Hub function to manage the bandpass filtering
-% "SpectorGrant" is used here to know if we had frequencies in 1/km
 	handles = guidata(obj);
 	if (isempty(handles.hMirFig))
 		errordlg('DO_BANDFILTER: shouldn''t happen.','Error'),	return
@@ -724,7 +735,7 @@ function pick_CB(obj, evt)
 % --------------------------------------------------------------------------------------------------
 function add_MarkColor(obj, evt, h)
 % Add a red Marker over the closest (well, near closest) clicked point.
-% H is the handler to the uitogglebutton
+% H is the handle to the uitogglebutton
 
 	handles = guidata(obj);				% get handles
 	button = get(handles.figure1, 'SelectionType');
@@ -898,33 +909,33 @@ function popup_selectPlot_CB(hObject, handles)
 function popup_selectSave_CB(hObject, handles)
 	val = get(hObject,'Value');     str = get(hObject, 'String');
 	switch str{val};
-		case 'Save Profile on disk'                    %
-		case 'Distance,Z (data units -> ascii)'                    % Save profile in ascii data units
+		case 'Save Profile on disk'
+		case 'Distance,Z (data units -> ascii)'					% Save profile in ascii data units
 			[FileName,PathName] = put_or_get_file(handles,{'*.dat', 'Dist Z (*.dat)'; '*.*', 'All Files (*.*)'},'Distance,Z (ascii)','put','.dat');
 			if isequal(FileName,0),		set(hObject,'Value',1),		return,		end     % User gave up
 			double2ascii([PathName FileName],[handles.dist handles.data(:,3)],'%f\t%f');
-		case 'Distance,Z (data units -> binary)'                    % Save profile in binary data units
+		case 'Distance,Z (data units -> binary)'				% Save profile in binary data units
 			[FileName,PathName] = put_or_get_file(handles,{'*.dat', 'Dist Z (*.dat)'; '*.*', 'All Files (*.*)'},'Distance,Z (binary float)','put');
 			if isequal(FileName,0),		set(hObject,'Value',1),		return,		end     % User gave up
 			fid = fopen([PathName FileName],'wb');
 			fwrite(fid,[handles.dist handles.data(:,3)]','float');  fclose(fid);
-		case 'Distance,Z (km -> ascii)'                    % Save profile in ascii (km Z) 
+		case 'Distance,Z (km -> ascii)'							% Save profile in ascii (km Z) 
 			[FileName,PathName] = put_or_get_file(handles,{'*.dat', 'Dist Z (*.dat)'; '*.*', 'All Files (*.*)'},'Distance (km),Z (ascii)','put','.dat');
 			if isequal(FileName,0),		set(hObject,'Value',1),		return,		end     % User gave up
 			rd = get_distances(handles.data(:,1), handles.data(:,2), true, 'k', handles.ellipsoide);
 			double2ascii([PathName FileName],[rd handles.data(:,3)],'%f\t%f')
-		case 'Distance,Z (km -> binary)'                    % Save profile in binary (km Z) 
+		case 'Distance,Z (km -> binary)'						% Save profile in binary (km Z) 
 			[FileName,PathName] = put_or_get_file(handles,{'*.dat', 'Dist Z (*.dat)'; '*.*', 'All Files (*.*)'},'Distance (km),Z (binary float)','put');
 			if isequal(FileName,0),		set(hObject,'Value',1),		return,		end     % User gave up
 			rd = get_distances(handles.data(:,1), handles.data(:,2), true, 'k', handles.ellipsoide);
 			fid = fopen([PathName FileName],'wb');
 			fwrite(fid,[rd handles.data(:,3)]','float');  fclose(fid);
-		case 'Distance,Z (NM -> ascii)'                    % Save profile in ascii (NM Z) 
+		case 'Distance,Z (NM -> ascii)'							% Save profile in ascii (NM Z) 
 			[FileName,PathName] = put_or_get_file(handles,{'*.dat', 'Dist Z (*.dat)'; '*.*', 'All Files (*.*)'},'Distance (m),Z (ascii)','put','.dat');
 			if isequal(FileName,0),		set(hObject,'Value',1),		return,		end     % User gave up
 			rd = get_distances(handles.data(:,1), handles.data(:,2), true, 'n', handles.ellipsoide);
 			double2ascii([PathName FileName],[rd handles.data(:,3)],'%f\t%f')
-		case 'Distance,Z (NM -> binary)'                    % Save profile in binary (NM Z) 
+		case 'Distance,Z (NM -> binary)'						% Save profile in binary (NM Z) 
 			[FileName,PathName] = put_or_get_file(handles,{'*.dat', 'Dist Z (*.dat)'; '*.*', 'All Files (*.*)'},'Distance (m),Z (binary float)','put');
 			if isequal(FileName,0),		set(hObject,'Value',1),		return,		end     % User gave up
 			rd = get_distances(handles.data(:,1), handles.data(:,2), true, 'n', handles.ellipsoide);
@@ -1198,9 +1209,21 @@ function FileSaveRedMark_CB(hObject, handles)
 	double2ascii([PathName FileName], [x(:) y(:) r(:)+r0(2), z(:), ind(:)], '%f\t%f\t%f\t%f\t%d');
 
 % ----------------------------------------------------------------------------------------------------
+function extensional_CB(hObject, handles)
+% Hide some buttons and put this one in a checked stat that will be used to decide if FitLines are plotted in Mir fig
+	if (strcmp(get(hObject,'checked'),'off'))
+		set(hObject,'checked', 'on')
+		set(handles.Heaves, 'Vis', 'on')
+		set(findobj(handles.figure1, 'Tag', 'isocs_but'), 'Vis', 'off')
+		set(findobj(handles.figure1, 'Tag', 'rectang_but'), 'Vis', 'off')
+		set(findobj(handles.figure1, 'Tag', 'pick_but'), 'Vis', 'off')
+	end
+
+% ----------------------------------------------------------------------------------------------------
 function plotHeaves_CB(hObject, handles)
 % Plot the cumulated heaves as function of distance along profile
 	[r, f_x] = commonHeaves(handles);
+	if (numel(r) < 2),	return,		end		% We have a limitation when plotting single points
 	heave = cumsum(abs(f_x(:,2) - f_x(:,1)));
 	ecran(r, heave, 'Cumulated heaves', {'LineStyle','none';'Marker','*'})
 
@@ -1208,6 +1231,7 @@ function plotHeaves_CB(hObject, handles)
 function plotExx_CB(hObject, handles)
 % Plot the Exx estimate
 	[r, f_x] = commonHeaves(handles);
+	if (numel(r) < 3),	return,		end		% We have a limitation when plotting single points. 3 because its a difference
 	dist_mean = diff((f_x(:,2) + f_x(:,1)) / 2);		% Distances between mean fault positions
 	exx = (f_x(2:end,2) - f_x(2:end,1)) ./ dist_mean;
 	ecran(r(2:end), exx, 'Exx', {'LineStyle','none';'Marker','*'})
@@ -1216,6 +1240,7 @@ function plotExx_CB(hObject, handles)
 function saveHeaves_CB(hObject, handles)
 % Save the fault picks info that can be used to calculate the Heaves, Exx, etc...
 	[r, f_x, f_y, x1, y1, x2, y2] = commonHeaves(handles);
+	if (isempty(r)),	return,		end
 	[FileName,PathName] = put_or_get_file(handles,{'*.dat', 'X,Y (*.dat)';'*.*', 'All Files (*.*)'},'X,Y (ascii)','put', '.dat');
 	if isequal(FileName,0),		return,		end     % User gave up
 	fmt{1} = sprintf('# Lon_x1    Lat_y1    Lon_x2    Lat_y2    f_x1    f_x2    f_z1    f_z2\n>HEAVES');
@@ -1223,15 +1248,27 @@ function saveHeaves_CB(hObject, handles)
 	double2ascii([PathName FileName],[x1 y1 x2 y2 f_x f_y], fmt);
 
 % ----------------------------------------------------------------------------------------------------
-function [r, f_x, f_y, x1, y1, x2, y2] = commonHeaves(handles)
-% R   -> distance along profile since the first fault pick
-% F_X -> [Xi Xf] x distance along profile of the begin and end of a fault pick (diff(F_X) == HEAVE)
-% F_Y -> [Yi Yf] z heights of theu base and top of fault pick (diff(F_Y) == Fault vert offset)
-% X,Y -> coordinates of the fault start (at its base)
+function [r, f_x, f_y, x1, y1, x2, y2] = commonHeaves(handles, opt)
+% OPT, optional arg with the handle of a specific fitLine (fault). If not provided we fish all FitLines
+% R     -> distance along profile since the first fault pick
+% F_X   -> [Xi Xf] x distance along profile of the begin and end of a fault pick (diff(F_X) == HEAVE)
+% F_Y   -> [Yi Yf] z heights of theu base and top of fault pick (diff(F_Y) == Fault vert offset)
+% X1,Y1 -> coordinates of the fault start (at its base)
+% X2,Y2 -> coordinates of the fault end (at its top)
 
-	hFL = findobj(handles.axes1,'Type','Line','tag','FitLine');
+	if (nargin == 1)
+		hFL = findobj(handles.axes1,'Type','Line','tag','FitLine');
+	else
+		hFL = opt;
+	end
 	ud = get(hFL, 'UserData');
-	ud = cat(1, ud{:});
+	if (isempty(ud))
+		r = [];	 f_x = [];	f_y = [];	x1 = [];	y1 = [];	x2 = [];	y2 = [];
+		return
+	end
+	if (isa(ud, 'cell'))
+		ud = cat(1, ud{:});
+	end
 	x1 = ud(:,4);
 	[x1,ind] = sort(x1);
 	ud = ud(ind,:);
@@ -1246,7 +1283,10 @@ function [r, f_x, f_y, x1, y1, x2, y2] = commonHeaves(handles)
 
 	x1 = handles.data(ind1,1);	y1 = handles.data(ind1,2);
 	x2 = handles.data(ind2,1);	y2 = handles.data(ind2,2);
-	r = get_distances(x1, y1, handles.geog, handles.measureUnit, handles.ellipsoide);	% This starts counting dist at x(1)
+	r = 0;
+	if (numel(hFL) > 1)
+		r = get_distances(x1, y1, handles.geog, handles.measureUnit, handles.ellipsoide);	% This starts counting dist at x(1)
+	end
 	f_x = ud(:,4:5);			% ...
 	f_y = [ud(:,4) .* ud(:,1) + ud(:,2) ud(:,5) .* ud(:,1) + ud(:,2)];
 
@@ -1332,9 +1372,7 @@ function FileOpenSession_CB(hObj, handles, fname)
 			uimenu(cmenuHand, 'Label', 'Delete this line', 'Call', 'delete(gco)', 'Sep', 'on');
 			ui_edit_polygon(h)
 		end
-		if (numel(s.FitLine) > 4)
-			set(handNew.Heaves, 'Vis', 'on')	% Make this entry visible only when at least 5 Fit Lines
-		end
+		extensional_CB(handNew.extensional, handNew)
 	end
 
 % --------------------------------------------------------------------
@@ -2800,7 +2838,8 @@ uimenu('Parent',h17, 'Call',@ecran_uiCB, 'Label','Smoothing Spline', 'Tag','Anal
 uimenu('Parent',h17, 'Call',@ecran_uiCB, 'Label','1 st derivative',  'Tag','Analysis1derivative');
 uimenu('Parent',h17, 'Call',@ecran_uiCB, 'Label','2 nd derivative',  'Tag','Analysis2derivative');
 
-hSh = uimenu('Parent',h17,'Label','Heaves', 'Tag', 'Heaves', 'Sep','on');
+uimenu('Parent',h17, 'Call',@ecran_uiCB, 'Label','Activate extensional measuring', 'Tag', 'extensional', 'Sep','on');
+hSh = uimenu('Parent',h17,'Label','Heaves', 'Tag', 'Heaves', 'Vis', 'off');
 uimenu('Parent',hSh, 'Call',@ecran_uiCB, 'Label','Plot Heaves', 'Tag','plotHeaves');
 uimenu('Parent',hSh, 'Call',@ecran_uiCB, 'Label','Plot Exx',    'Tag','plotExx');
 uimenu('Parent',hSh, 'Call',@ecran_uiCB, 'Label','Save Heaves', 'Tag','saveHeaves');
