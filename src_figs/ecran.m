@@ -2749,7 +2749,9 @@ function figure1_ResizeFcn(hObj, evt)
 	posF = get(handles.figure1,'Pos');	
 	posA1 = get(handles.axes1,'Pos');		posA2 = get(handles.axes2,'Pos');
 	posA1(4) = posF(4) - posA1(2) - posA2(4);
+	posA1(3) = posF(3) - posA1(1) - 3;
 	posA2(2) = posA1(2) + posA1(4);
+	posA2(3) = posF(3) - posA2(1) - 3;
 	set(handles.axes1,'Pos', posA1);		set(handles.axes2,'Pos', posA2);
 
 % --- Creates and returns a handle to the GUI figure. 
