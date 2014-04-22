@@ -785,8 +785,8 @@ int main(int argc, char **argv) {
 		mexPrintf ("\t-G<stem> write grids at the int intervals. Append file prefix. Files will be called <stem>#.grd\n");
 		mexPrintf ("\t   When doing nested grids, append +lev to save that particular level (only one level is allowed)\n");
 		mexPrintf ("\t-J<time_jump> Do not write grids or maregraphs for times before time_jump in seconds.\n");
-		mexPrintf ("\t   When doing nested grids, append +<time> to NOT start computations of nested grids before this")
-		mexPrintf ("\t   time has elapsed. Any of these forms is allowed: -Jt1, -J+t2, -Jt1+t2 or -Jt1 -J+t2")
+		mexPrintf ("\t   When doing nested grids, append +<time> to NOT start computations of nested grids before this");
+		mexPrintf ("\t   time has elapsed. Any of these forms is allowed: -Jt1, -J+t2, -Jt1+t2 or -Jt1 -J+t2");
 		mexPrintf ("\t-M write grid of max water level. Append a '-' to compute instead the maximum water retreat.\n");
 		mexPrintf ("\t   The result is writen in a mask file with a default name of 'long_beach.grd'.\n");
 		mexPrintf ("\t   To use a different name append it after the '-' sign. Example: -M-beach_long.grd\n");
@@ -806,7 +806,11 @@ int main(int argc, char **argv) {
 		mexPrintf ("\t-t <dt> Time step for simulation.\n");
 		mexPrintf ("\t-f To use when grids are in geographical coordinates.\n");
 		mexPrintf ("\t-e To be used from the Mirone stand-alone version.\n");
+#ifdef I_AM_MEX
+		return;
+#else
 		return(error);
+#endif
 	}
 
 	do_maxs = (max_level || max_energy || max_power || nest.do_long_beach);
@@ -1182,9 +1186,9 @@ int main(int argc, char **argv) {
 
 		if (out_maregs_nc) {    /* Allocate an array to hold the maregraph data which will be written to a nc file at the end */
 			if ((maregs_array = (float *) mxCalloc ((size_t)(n_ptmar * n_mareg), sizeof(float)) ) == NULL)
-				{no_sys_mem("(maregs_array)", n_ptmar * n_mareg); return(-1);}
+				{no_sys_mem("(maregs_array)", n_ptmar * n_mareg); Return(-1);}
 			if ((maregs_timeout = (double *) mxCalloc ((size_t)n_ptmar, sizeof(double)) ) == NULL)
-				{no_sys_mem("(maregs_timeout)", n_ptmar); return(-1);}
+				{no_sys_mem("(maregs_timeout)", n_ptmar); Return(-1);}
 		}
 	}
 
@@ -1574,6 +1578,7 @@ void sanitize_nestContainer(struct nestContainer *nest) {
 	int i;
 
 	nest->do_upscale     = TRUE;
+	nest->do_long_beach  = FALSE;
 	nest->out_velocity_x = FALSE;
 	nest->out_velocity_y = FALSE;
 	nest->bnc_var_nTimes = 0;
@@ -4492,8 +4497,8 @@ void tm (double lon, double lat, double *x, double *y, double central_meridian, 
 		tan_lat = s / c;
 		M = EQ_RAD * (t_c1 * lat + s2 * (t_c2 + c2 * (t_c3 + c2 * t_c4)));
 		dlon = lon - central_meridian;
-		if (fabs (dlon) > 360.0) dlon += copysign (360.0, -dlon);
-		if (fabs (dlon) > 180.0) dlon  = copysign (360.0 - fabs (dlon), -dlon);
+		if (fabs (dlon) > 360.0) dlon += Loc_copysign (360.0, -dlon);
+		if (fabs (dlon) > 180.0) dlon  = Loc_copysign (360.0 - fabs (dlon), -dlon);
 		N = EQ_RAD / sqrt (1.0 - ECC2 * s * s);
 		T = tan_lat * tan_lat;
 		T2 = T * T;
