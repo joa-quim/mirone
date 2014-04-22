@@ -108,7 +108,7 @@ function out = init_header_params(handles,X,Y,head,misc,getAllMinMax)
 		if (any(ind))
 			handles.zMinMaxsGlobal = s.Dataset(misc.z_id).Attribute(ind).Value;
 		else
-			warndlg('Non CF complient file. Missing ''actual_range'' attribute. Expect color screws.','Warnerror')
+			warndlg('Non CF compliant file. Missing ''actual_range'' attribute. Expect color screws.','Warnerror')
 			handles.zMinMaxsGlobal = [0 1];
 		end
 		head(5:6) = handles.zMinMaxsGlobal;

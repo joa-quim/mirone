@@ -1,7 +1,7 @@
 function  varargout = nc_funs(opt,varargin)
 % This contains some of the MEXNC (John Evans) functions packed in a single file
 % It is not the whole package. Just the functions we use in Mirone
-% Data is returned on its native type. That is, it is not complient with the doubles tirany
+% Data is returned on its native type. That is, it is not compliant with the doubles tirany
 % Except in the case of - ints and scale_factor ~= 1 OR have _FillValue and array data have _FillValue
 % In that case we return the array variable as a single
 % Its is also striped of the Java shit
