@@ -6,6 +6,8 @@ function varargout = nc_io(fname, mode, handles, data, misc)
 %	where:	X, Y, Z are the coords row vectors and the data 2D array
 %			HEAD = [x_min x_max y_min y_max z_min z_max node_offset x_inc y_inc]
 %			MISC is a struct with 'desc', 'title', 'history', 'srsWKT', 'strPROJ4' fields
+%			FNAME is a string or a cell array with two strings, in which case the first
+%				holds the file name and the second the name of the 2D or 3D variable to read
 %
 %	Special cases on reading
 % 		MODE == 'R' ==> varargout = [X,Y,[],head,misc] = nc_io(fname, mode);
@@ -38,7 +40,7 @@ function varargout = nc_io(fname, mode, handles, data, misc)
 %				reason the mexnc call in nc_funs/write_the_data() errors when writing UNLIMITED variables
 %				so the only way out is to send in the levelVec (vector of times, most of times)
 
-%	Copyright (c) 2004-2013 by J. Luis
+%	Copyright (c) 2004-2014 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -59,7 +61,7 @@ function varargout = nc_io(fname, mode, handles, data, misc)
 		error('NC_IO:write_nc','Output file name cannot be empty')
 	end
 
-	if ( nargin == 4 && ~isempty(data) )
+	if (nargin == 4 && ~isempty(data))
 		misc = struct('x_units',[],'y_units',[],'z_units',[],'z_name',[],'desc',[], ...
 			'title',[],'history',[],'srsWKT',[], 'strPROJ4',[]);
 	end
@@ -346,25 +348,37 @@ function write_nc(fname, handles, data, misc, page)
 % _________________________________________________________________________________________________	
 % -*-*-*-*-*-*-$-$-$-$-$-$-#-#-#-#-#-#-%-%-%-%-%-%-@-@-@-@-@-@-(-)-(-)-(-)-&-&-&-&-&-&-{-}-{-}-{-}-
 function [X,Y,Z,head,misc] = read_nc(fname, opt)
-	% Read ...
-	% If OPT, do not load Z (return Z = []) -- Used by Aquamoto to read multi-levels grids
+% Read an nc file or a variable from one
+% If OPT, do not load Z (return Z = []) -- Used by Aquamoto and Slices to read multi-levels grids
+
+	Z = [];		ncVarName = [];		z_id = 0;
 
 	if (nargin == 1),		get_Z = true;
-	else					get_Z = false;		Z = [];
+	else					get_Z = false;
+	end
+
+	if (isa(fname, 'cell'))
+		if (numel(fname) > 1),	ncVarName = fname{2};		end
+		fname = fname{1};
 	end
 
 	s = nc_funs('info',fname);
 	dimNames = {s.Dimension.Name};
-	if ( any(strcmp(dimNames, 'xysize')) )			% Old style netCDF gmt grid format
+	if (any(strcmp(dimNames, 'xysize')))			% Old style netCDF gmt grid format
 		[X,Y,Z,head,misc] = read_old_cdf(fname, s);
 		return
 	end
 
-	nvars = numel(s.Dataset);		z_id = 0;
-	for (k = 1:nvars)			% Find first 2-dimensional (z) variable
-		if (numel(s.Dataset(k).Size) >= 2 )
-			z_id = k;
-			break
+	nvars = numel(s.Dataset);
+	for (k = 1:nvars)
+		if (numel(s.Dataset(k).Size) >= 2)
+			if (isempty(ncVarName))					% Find first 2 or 3-dimensional (z) variable
+				z_id = k;
+				break
+			elseif (strcmp(s.Dataset(k).Name, ncVarName))	% Seek for the variable name sent in 'ncVarName'
+				z_id = k;
+				break
+			end
 		end
 	end
 
