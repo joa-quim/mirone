@@ -29,11 +29,11 @@ function varargout = slices(varargin)
 	slices_LayoutFcn(hObject);
 	handles = guihandles(hObject);
 
-	got_a_file_to_start = [];		run_aquaPlugin = false;		handles.hMirFig = [];
-	if ( numel(varargin) > 0 && ~ischar(varargin{1}) )	% Expects Mirone handles as first arg
+	got_a_file_to_start = [];		run_aquaPlugin = false;		handles.hMirFig = [];	handles.ncVarName = [];
+	if (numel(varargin) > 0 && ~ischar(varargin{1}))	% Expects Mirone handles as first arg
 		handMir = varargin{1};
 		if (numel(varargin) == 2)
-			if ( exist(varargin{2}, 'file') == 2 )		% An input file name
+			if (exist(varargin{2}, 'file') == 2)		% An input file name
 				got_a_file_to_start = varargin{2};
 				handles.hMirFig = handMir.hMirFig;		% This fig already has first layer
 			end
@@ -45,10 +45,11 @@ function varargout = slices(varargin)
 		handles.DefineMeasureUnit = handMir.DefineMeasureUnit;	%				"
 		handles.IamCompiled = handMir.IamCompiled;
 		handles.path_tmp = handMir.path_tmp;
-        d_path = handMir.path_data;
+		try,	handles.ncVarName = handMir.ncVarName;	end		% May exist only for files with 1 or multiple 3D datasets
+		d_path = handMir.path_data;
 	else
 		if (numel(varargin) >= 1)		% File name in input
-			if ( exist(varargin{1}, 'file') == 2 )
+			if (exist(varargin{1}, 'file') == 2)
 				got_a_file_to_start = varargin{1};
 			end
 			if (numel(varargin) == 2)		% Run aquaPlugin after loading input file
@@ -211,7 +212,7 @@ function push_inputName_CB(hObject, handles, opt)
 		[FileName, PathName, handles] = put_or_get_file(handles, ...
 			{'*.nc;*.NC', 'Data files (*.nc,*.NC)';'*.*', 'All Files (*.*)'},'file','get');
 		if isequal(FileName,0),		return,		end
-		
+
 	else					% File name on input
 		[PathName,FNAME,EXT] = fileparts(opt);
 		if (~isempty(PathName)),	PathName = [PathName filesep];	end		% To be coherent with the 'if' branch
@@ -229,7 +230,7 @@ function push_inputName_CB(hObject, handles, opt)
 	% Check if it's a netCDF file before decide what to do
 	fid = fopen(handles.fname, 'r');
 	ID = fread(fid,4,'*char');      ID = ID';      fclose(fid);
-	if (strncmpi(ID,'CDF',3) || strncmpi(ID,'HDF',3)  || strcmpi(ID(2:4),'HDF'))
+	if (strncmpi(ID,'CDF',3) || strncmpi(ID,'HDF',3) || strcmpi(ID(2:4),'HDF'))
 		s = nc_funs('info',handles.fname);
 	else			% Some other format. Get it opened with gdalread in aqua_suppfuns
 		warndlg('This file is not netCDF. Expect troubles.','WarnError')
@@ -244,14 +245,20 @@ function push_inputName_CB(hObject, handles, opt)
 		return
 	end
 
-	[X,Y,Z,head,misc] = nc_io(handles.fname,'R');
+	if (~isempty(handles.ncVarName))	% Here we have a request to load a certain variable from a multi-container
+		fname = {handles.fname; handles.ncVarName};
+	else
+		fname = handles.fname;
+	end
+
+	[X,Y,Z,head,misc] = nc_io(fname,'R');
 	if (numel(head) == 9 && isfield(misc,'z_id'))
 		if (numel(misc.z_dim) <= 2)
 			errordlg('This netCDF file is not 3D. Use Mirone directly to read it.','Error')
 			return
 		end
 		handles.nc_info = s;		% Save the nc file info
-		if ( any(strcmp({s.Attribute.Name},'TSU')) )		% An NSWING TSUnami file
+		if (any(strcmp({s.Attribute.Name},'TSU')))		% An NSWING TSUnami file
 			handles.IamTSU = true;
 		else
 			handles.IamTSU = false;
