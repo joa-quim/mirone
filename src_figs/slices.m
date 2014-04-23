@@ -35,7 +35,7 @@ function varargout = slices(varargin)
 		if (numel(varargin) == 2)
 			if (exist(varargin{2}, 'file') == 2)		% An input file name
 				got_a_file_to_start = varargin{2};
-				handles.hMirFig = handMir.hMirFig;		% This fig already has first layer
+				handles.hMirFig = handMir.hMirFig;		% This fig already has first layer (or not!)
 			end
 		end
 		handles.home_dir = handMir.home_dir;
@@ -272,11 +272,15 @@ function push_inputName_CB(hObject, handles, opt)
 		set(handles.text_Info,'String',sprintf('Time steps = %d',handles.number_of_timesteps))
 
 		% Store the nc_info and z_id in Mirone handles so we can access it from there as well
+		handles = guidata(handles.figure1);
 		try			% Wrap it for the case hMirFig does not exist or is not valid anymore
 			handMir = guidata(handles.hMirFig);
 			handMir.netcdf_z_id = handles.netcdf_z_id;
 			handMir.nc_info = handles.nc_info;
-			handMir.time_z = handles.time;
+			handMir.time_z  = handles.time;
+			handMir.nLayers = misc.z_dim(1);
+			if (isa(fname, 'cell')),	fname = fname{1};	end		% take care when it's a cell
+			handMir.grdname = fname;		% At least grid_profiler() needs this for the 3D interpolations
 			guidata(handles.hMirFig, handMir)
 		end
 	end
