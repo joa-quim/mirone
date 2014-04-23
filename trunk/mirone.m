@@ -1585,20 +1585,22 @@ function erro = FileOpenGeoTIFF_CB(handles, tipo, opt)
 		if (~ok),	return,		end						% Uset hit "Cancel"
 		if (rem(s,2) == 0),		s = s - 1;		end		% Selection was done over "description" and not the "name"
 
+		ind = strfind(str{s}, ' ');
+		FileName = str{s}(ind+1:end);					% First "ind" chars are of the form SUBDATASET_1_NAME=
+
 		% Deal with case of smultaneous existence of one 3D and one or more 2D subdatasets
-		ind = find(c3D);
-		if (~isempty(ind) && (ind(1) - 1 == s))			% VERY PEDESTRIAN. WILL WORK ONLY FOR THE UNIQUE 3D-SUBDATASET CASE
+		if (any(c3D) && c3D(s+1))						% Got a selection of one 3D-SUBDATASET CASE
 			handles.hMirFig = [];						% Informs aquamoto/slices that it has to create a new Fig to hold slice
-			if ( any(strncmp(att.Metadata,'NC_GLOBAL#TSU=',13)) )
+			if (any(strncmp(att.Metadata,'NC_GLOBAL#TSU=',13)))
 				aquamoto(handles, handles.fileName)
 			else
+				ind = strfind(FileName, ':');			% We will need this in slices/push_inputName_CB() to ...
+				handles.ncVarName = FileName(ind(end)+1:end);	% New member (ncVarName)
 				slices(handles, handles.fileName)
 			end
 			return
 		end
 
-		ind = strfind(str{s}, ' ');
-		FileName = str{s}(ind+1:end);					% First "ind" chars are of the form SUBDATASET_1_NAME=
 		handles.fileName = FileName;
 		ind = strfind(str{s+1}, ' ');
 		subDsName = str{s+1}(ind(2)+1:ind(3)-1);		% Get dataset name
