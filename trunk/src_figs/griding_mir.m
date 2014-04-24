@@ -1,7 +1,7 @@
 function varargout = griding_mir(varargin)
 % Wrapper figure to call apropriate interpolation MEX
 
-%	Copyright (c) 2004-2013 by J. Luis
+%	Copyright (c) 2004-2014 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -250,20 +250,27 @@ function edit_InputFile_CB(hObject, handles, opt)
 		handles.command{3} = xx;
 		str = ['minmax -C ' xx];
 		[s,w] = mat_lyies(str);
-		if ~(isequal(s,0))                  % An error as occured
-			errordlg(w,'GMT Error');        return
+		if ~(isequal(s,0))                  % An error as occured. Try loading the file ourselves.
+			try
+				out = load_xyz([],xx);
+			catch
+				errordlg('Error reading input data file', 'Error'),		return
+			end
+			mi = min(out);		x_min = mi(1);	y_min = mi(2);
+			ma = max(out);		x_max = ma(1);	y_max = ma(2);
+			% Create these to mimic the old way with minmax
+			val{1} = sprintf('%0.12g', x_min);			val{2} = sprintf('%0.12g', x_max);
+			val{3} = sprintf('%0.12g', y_min);			val{4} = sprintf('%0.12g', y_max);
+			val{5} = sprintf('%0.12g', mi(3));			val{6} = sprintf('%0.12g', ma(3));
 		else
 			val = string_token(w);      % Decompose the string output from minmax
-			if length(val) < 6
+			if (length(val) < 6)
 				errordlg('File error. Your file doesn''t have at least 3 columns','Error')
 				handles.command{3} = '';        set(hObject,'String','')
 				guidata(hObject, handles);
 				return
 			end
-			handles.command{6} = val{1};    handles.command{7} = '/';
-			handles.command{8} = val{2};    handles.command{9} = '/';
-			handles.command{10} = val{3};   handles.command{11} = '/';
-			handles.command{12} = val{4};   handles.command{5} = ' -R';
+			
 			% compute also handles.x_min, handles.x_max, ...
 			xx = test_dms(val{1});		x_min = 0;
 			if str2double(xx{1}) > 0
@@ -289,18 +296,22 @@ function edit_InputFile_CB(hObject, handles, opt)
 			else
 				for (i = 1:numel(xx)),	y_max = y_max - abs(str2double(xx{i})) / (60^(i-1));   end
 			end
-			handles.x_min = x_min;  handles.x_max = x_max;  handles.y_min = y_min;  handles.y_max = y_max;
-			set(handles.edit_x_min,'String',val{1});     set(handles.edit_x_max,'String',val{2});
-			set(handles.edit_y_min,'String',val{3});     set(handles.edit_y_max,'String',val{4});
-			% Until something more inteligent is devised (like using some kind of estatistics to estimate
-			% default's Nrow & Ncol) the default value of Nrow = Ncol = 100 will be used.
-			x_inc = ivan_the_terrible((x_max - x_min),100,1);			% This will be recomputed in dim_funs()
-			y_inc = ivan_the_terrible((y_max - y_min),100,1);
-			handles.command{14} = ' -I';    handles.command{16} = '/';
-			handles.command{15} = num2str(x_inc,8);   handles.command{17} = num2str(y_inc,8);
-			set(handles.edit_x_inc,'String',num2str(x_inc,8));     set(handles.edit_y_inc,'String',num2str(y_inc,8));
-			set(handles.edit_Ncols,'String','100');     set(handles.edit_Nrows,'String','100');
 		end
+		handles.command{6} = val{1};    handles.command{7} = '/';
+		handles.command{8} = val{2};    handles.command{9} = '/';
+		handles.command{10} = val{3};   handles.command{11} = '/';
+		handles.command{12} = val{4};   handles.command{5} = ' -R';
+		handles.x_min = x_min;  handles.x_max = x_max;  handles.y_min = y_min;  handles.y_max = y_max;
+		set(handles.edit_x_min,'String',val{1});     set(handles.edit_x_max,'String',val{2});
+		set(handles.edit_y_min,'String',val{3});     set(handles.edit_y_max,'String',val{4});
+		% Until something more inteligent is devised (like using some kind of estatistics to estimate
+		% default's Nrow & Ncol) the default value of Nrow = Ncol = 100 will be used.
+		x_inc = ivan_the_terrible((x_max - x_min),100,1);			% This will be recomputed in dim_funs()
+		y_inc = ivan_the_terrible((y_max - y_min),100,1);
+		handles.command{14} = ' -I';    handles.command{16} = '/';
+		handles.command{15} = num2str(x_inc,8);   handles.command{17} = num2str(y_inc,8);
+		set(handles.edit_x_inc,'String',num2str(x_inc,8));     set(handles.edit_y_inc,'String',num2str(y_inc,8));
+		set(handles.edit_Ncols,'String','100');     set(handles.edit_Nrows,'String','100');
 	else
 		% Reset everything to initial state (falta a parte do nearneigh)
 		set(handles.edit_x_min,'String','');	set(handles.edit_x_max,'String','');
@@ -366,49 +377,49 @@ function edit_Nrows_CB(hObject, handles)
 
 % -----------------------------------------------------------------------------------
 function check_ToggleXY_CB(hObject, handles)
-if get(hObject,'Value')
-    t_xmin = get(handles.edit_x_min,'String');   t_xmax = get(handles.edit_x_max,'String');
-    t_ymin = get(handles.edit_y_min,'String');   t_ymax = get(handles.edit_y_max,'String');
-    if ~isempty(t_xmin) && ~isempty(t_xmax) && ~isempty(t_ymin) && ~isempty(t_ymax)
-        set(handles.edit_x_min,'String',t_ymin);        set(handles.edit_x_max,'String',t_ymax)
-        set(handles.edit_y_min,'String',t_xmin);        set(handles.edit_y_max,'String',t_xmax)
-        handles.command{6} = t_ymin;       handles.command{8} = t_ymax;
-        handles.command{10} = t_xmin;      handles.command{12} = t_xmax;
-        handles.command{36} = ' -:';
-    else        % There is nothing yet to toggle
-        set(hObject,'Value',0)
-    end
-    t_xinc = get(handles.edit_x_inc,'String');    t_yinc = get(handles.edit_y_inc,'String');
-    if ~isempty(t_xinc) && ~isempty(t_yinc)
-        set(handles.edit_x_inc,'String',t_yinc);        set(handles.edit_y_inc,'String',t_xinc)
-        handles.command{15} = t_yinc;       handles.command{17} = t_xinc;
-    end
-    t_ncol = get(handles.edit_Ncols,'String');    t_nrow = get(handles.edit_Nrows,'String');
-    if ~isempty(t_ncol) && ~isempty(t_nrow)
-        set(handles.edit_Ncols,'String',t_nrow);        set(handles.edit_Nrows,'String',t_ncol)
-    end
-    guidata(hObject,handles)
-else
-    t_xmin = get(handles.edit_x_min,'String');   t_xmax = get(handles.edit_x_max,'String');
-    t_ymin = get(handles.edit_y_min,'String');   t_ymax = get(handles.edit_y_max,'String');
-    if ~isempty(t_xmin) && ~isempty(t_xmax) && ~isempty(t_ymin) && ~isempty(t_ymax)
-        set(handles.edit_x_min,'String',t_ymin);        set(handles.edit_x_max,'String',t_ymax)
-        set(handles.edit_y_min,'String',t_xmin);        set(handles.edit_y_max,'String',t_xmax)
-        handles.command{6} = t_ymin;       handles.command{8} = t_ymax;
-        handles.command{10} = t_xmin;      handles.command{12} = t_xmax;
-        handles.command{36} = '';
-    end
-    t_xinc = get(handles.edit_x_inc,'String');    t_yinc = get(handles.edit_y_inc,'String');
-    if ~isempty(t_xinc) && ~isempty(t_yinc)
-        set(handles.edit_x_inc,'String',t_yinc);        set(handles.edit_y_inc,'String',t_xinc)
-        handles.command{15} = t_yinc;       handles.command{17} = t_xinc;
-    end
-    t_ncol = get(handles.edit_Ncols,'String');    t_nrow = get(handles.edit_Nrows,'String');
-    if ~isempty(t_ncol) && ~isempty(t_nrow)
-        set(handles.edit_Ncols,'String',t_nrow);        set(handles.edit_Nrows,'String',t_ncol)
-    end
-    guidata(hObject,handles)
-end
+	if get(hObject,'Value')
+		t_xmin = get(handles.edit_x_min,'String');   t_xmax = get(handles.edit_x_max,'String');
+		t_ymin = get(handles.edit_y_min,'String');   t_ymax = get(handles.edit_y_max,'String');
+		if ~isempty(t_xmin) && ~isempty(t_xmax) && ~isempty(t_ymin) && ~isempty(t_ymax)
+			set(handles.edit_x_min,'String',t_ymin);        set(handles.edit_x_max,'String',t_ymax)
+			set(handles.edit_y_min,'String',t_xmin);        set(handles.edit_y_max,'String',t_xmax)
+			handles.command{6} = t_ymin;       handles.command{8} = t_ymax;
+			handles.command{10} = t_xmin;      handles.command{12} = t_xmax;
+			handles.command{36} = ' -:';
+		else        % There is nothing yet to toggle
+			set(hObject,'Value',0)
+		end
+		t_xinc = get(handles.edit_x_inc,'String');    t_yinc = get(handles.edit_y_inc,'String');
+		if ~isempty(t_xinc) && ~isempty(t_yinc)
+			set(handles.edit_x_inc,'String',t_yinc);        set(handles.edit_y_inc,'String',t_xinc)
+			handles.command{15} = t_yinc;       handles.command{17} = t_xinc;
+		end
+		t_ncol = get(handles.edit_Ncols,'String');    t_nrow = get(handles.edit_Nrows,'String');
+		if ~isempty(t_ncol) && ~isempty(t_nrow)
+			set(handles.edit_Ncols,'String',t_nrow);        set(handles.edit_Nrows,'String',t_ncol)
+		end
+		guidata(hObject,handles)
+	else
+		t_xmin = get(handles.edit_x_min,'String');   t_xmax = get(handles.edit_x_max,'String');
+		t_ymin = get(handles.edit_y_min,'String');   t_ymax = get(handles.edit_y_max,'String');
+		if ~isempty(t_xmin) && ~isempty(t_xmax) && ~isempty(t_ymin) && ~isempty(t_ymax)
+			set(handles.edit_x_min,'String',t_ymin);        set(handles.edit_x_max,'String',t_ymax)
+			set(handles.edit_y_min,'String',t_xmin);        set(handles.edit_y_max,'String',t_xmax)
+			handles.command{6} = t_ymin;       handles.command{8} = t_ymax;
+			handles.command{10} = t_xmin;      handles.command{12} = t_xmax;
+			handles.command{36} = '';
+		end
+		t_xinc = get(handles.edit_x_inc,'String');    t_yinc = get(handles.edit_y_inc,'String');
+		if ~isempty(t_xinc) && ~isempty(t_yinc)
+			set(handles.edit_x_inc,'String',t_yinc);        set(handles.edit_y_inc,'String',t_xinc)
+			handles.command{15} = t_yinc;       handles.command{17} = t_xinc;
+		end
+		t_ncol = get(handles.edit_Ncols,'String');    t_nrow = get(handles.edit_Nrows,'String');
+		if ~isempty(t_ncol) && ~isempty(t_nrow)
+			set(handles.edit_Ncols,'String',t_nrow);        set(handles.edit_Nrows,'String',t_ncol)
+		end
+		guidata(hObject,handles)
+	end
 
 % -----------------------------------------------------------------------------------
 function check_Option_F_CB(hObject, handles)
