@@ -1,7 +1,7 @@
 function varargout = mosaicer(varargin)
 % Helper window to paste SRTM grid tiles or Wem image tiles from Bing and others
 
-%	Copyright (c) 2004-2013 by J. Luis
+%	Copyright (c) 2004-2014 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -81,15 +81,15 @@ function varargout = mosaicer(varargin)
 	catch,		cacheDirs = [];
 	end
 
-	if ( ~isempty(cacheDirs) )			% We have cache dir(s), but make sure it exists
+	if (~isempty(cacheDirs))			% We have cache dir(s), but make sure it exists
 		ind = true(1,numel(cacheDirs));
 		for (k = 1:numel(ind))					% dir(s) are stored in a cell array
-			if ( exist(cacheDirs{k}, 'dir') == 7)
+			if (exist(cacheDirs{k}, 'dir') == 7)
 				ind(k) = false;
 			end
 		end
 		cacheDirs(ind) = [];			% Remove eventual non existent dirs
-		if ( isempty(cacheDirs) ),		cacheDirs = {''};		val = 1;	% It can't be an empty var
+		if (isempty(cacheDirs)),		cacheDirs = {''};		val = 1;	% It can't be an empty var
 		else							cacheDirs = [{''}; cacheDirs];		val = 2;
 		end
 		set(handles.popup_cache_dir,'String',cacheDirs, 'Val', val)
@@ -475,7 +475,7 @@ function [files, comp_files, comp_ext, patos, patos_comp] = get_fnames_ext(pato,
 
 	comp_files = [];		comp_ext = [];		patos_comp = [];	ext2 = [];
 	if (nargin == 2),		prefix = '';		end
-	if ( (pato(end) ~= '\') || (pato(end) ~= '/') )
+	if ((pato(end) ~= '\') || (pato(end) ~= '/'))
 		pato(end+1) = '/';
 	end
 	if (iscell(ext))
@@ -702,6 +702,11 @@ function n_tiles = mosaic_srtm(handles)
 	RC = 1201;				% Default to SRTM3 size
 	from_web = get(handles.check_web,'Val');
 
+	if (~from_web && isempty(handles.srtm_files))
+		errordlg('The directory file provided does not contain any SRTM file to select from.', 'Error')
+		return
+	end
+
 	z_min = 1e100;     z_max = -z_min;
 	Z_tot = repmat(single(NaN), m*(RC-1)+1, n*(RC-1)+1);
 	aguentabar(0,'title','Reading SRTM files');		k = 1;
@@ -776,6 +781,11 @@ function n_tiles = mosaic_srtm5(handles)
 	if iscell(fnames),		[m,n] = size(fnames);	end
 	RC = 6001;
 
+	if (isempty(handles.srtm5_files))
+		errordlg('The directory file provided does not contain any SRTM 5 deg file to select from.', 'Error')
+		return
+	end
+
 	z_min = 1e100;     z_max = -z_min;
 	Z_tot = repmat(single(NaN), m*(RC-1)+1, n*(RC-1)+1);
 	aguentabar(0,'title','Reading CGIAR files');		k = 1;
@@ -834,6 +844,11 @@ function n_tiles = mosaic_srtm30(handles)
  	from_web = get(handles.check_web,'Val');
 % 	from_web = false;
 	att = '';
+
+	if (~from_web && isempty(handles.srtm30_files))
+		errordlg('The directory file provided does not contain any SRTM30 file to select from.', 'Error')
+		return
+	end
 
 	z_min = 1e100;     z_max = -z_min;	%x_min = 1e10;	x_max = -x_min;	y_min = 1e10;	y_max = -y_min;
 	if (m * n > 1)
@@ -909,7 +924,7 @@ function n_tiles = mosaic_gmted(handles)
 	[x, y, xP, yP, x_min, y_max] = mosaic_grid(handles.hRectangle, 30, 20);
 
 	local_pato = handles.path_tmp;		% VRT files will be stored here
-	prefix = '/vsicurl/http://igskmncngs506.cr.usgs.gov/gmted/Global_tiles_GMTED/';
+	prefix = '/vsicurl/http://topotools.cr.usgs.gov/GMTED_Viewer/data/Global_tiles_GMTED/';
 
 	if (get(handles.radio_gmted075,'Val'))
 		prefix = [prefix '075darcsec/bln/'];
@@ -933,7 +948,7 @@ function n_tiles = mosaic_gmted(handles)
 			name_ = sprintf('%.2d%c%.3d%c_20101117_gmted_bln%s.tif', abs(yP(i-1)), S, abs(xP(j)), W, res);
 			name = {[local_pato name_]; sprintf('%s/%c%.3d/%s',prefix,W,abs(xP(j)),name_)};
 			names_vrt{k,1} = write_vrt(name, [xP(j) yP(i) n_cols n_rows inc inc], [], ...
-				'nodata',-32768, 'PixelOffset',2, 'relative',0, 'source','simple');
+				'nodata',-32768, 'PixelOffset',2, 'relative',0, 'source','simple');		% Write per grid VRTs
 			names_vrt{k,2} = ii;		% Indices to compute the the '<DstRect xOff yOff later in write_vrt
 			names_vrt{k,3} = j - 1;
 			k = k + 1;
