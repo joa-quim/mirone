@@ -142,7 +142,6 @@ function varargout = load_xyz(handles, opt, opt2)
 	% ------------------- END PARSE INPUTS------------------------------------------------
 
 	if (~got_nc)			% Most common cases
-
 		[bin, n_column, multi_seg, n_headers, isGSHHS] = guess_file(fname);
 		if (isempty(bin))
 			errordlg(['Error reading file (probably empty)' fname],'Error'),	return
@@ -156,8 +155,8 @@ function varargout = load_xyz(handles, opt, opt2)
 			if (isempty(bin))		% User quit
 				varargout = {};		return
 			end
-			n_column = bin.nCols;
 			multi_seg = 0;		n_headers = 0;		is_bin = true;
+			n_column = bin.nCols;
 			if (nargin < 3),	line_type = 'AsPoint';	end		% If not explicitly set line_type
 		end
 
@@ -234,17 +233,7 @@ function varargout = load_xyz(handles, opt, opt2)
 				elseif (~is_bin)
 					numeric_data = text_read(fname,NaN,n_headers);
 				else					% Try luck with a binary file
-					fid = fopen(fname);		numeric_data = fread(fid,['*' bin.type]);	fclose(fid);
-					numeric_data = reshape(numeric_data,bin.nCols,numel(numeric_data)/bin.nCols)';
-					if (bin.twoD && (bin.nCols > 2)),	numeric_data(:,3:end) = [];		end % Retain only X,Y
-					if (~handles.version7 && strcmp(bin.type, 'single') && any(isnan(numeric_data(:,1))))
-						fds = double(numeric_data(:,1));		% It means fdsse, ML engeneers after 20 years stil think that
-						XMin = min(fds);	XMax = max(fds);	% min(single([1 2 NaN])) = NaN
-						fds = double(numeric_data(:,2));
-						YMin = min(fds);	YMax = max(fds);
-						BB = [XMin XMax YMin YMax];
-						clear fds
-					end
+					[numeric_data, multi_segs_str, multi_seg, BB, XMin, XMax, YMin, YMax] = swallow_bin(handles, fname, bin);
 				end
 			end
 
@@ -263,7 +252,7 @@ function varargout = load_xyz(handles, opt, opt2)
 			end
 		end
 
-		if ( multi_seg && strncmp(multi_segs_str{1},'>-:',3) )		% See if we need to swap x<->y
+		if (multi_seg && strncmp(multi_segs_str{1},'>-:',3))		% See if we need to swap x<->y
 			tmp = XMin;		XMin = YMin;	YMin = tmp;				% Need to swap min/max
 			tmp = XMax;		XMax = YMax;	YMax = tmp;
 		end
@@ -325,9 +314,7 @@ function varargout = load_xyz(handles, opt, opt2)
 					elseif (~is_bin)
 						numeric_data = text_read(fname,NaN,n_headers);
 					else				% Try luck with a binary file
-						fid = fopen(fname);		numeric_data = fread(fid,['*' bin.type]);		fclose(fid);
-						numeric_data = reshape(numeric_data,bin.nCols,numel(numeric_data)/bin.nCols)';
-						if (bin.twoD && (bin.nCols > 2)),	numeric_data(:,3:end) = [];		end % Retain only X,Y
+						[numeric_data, multi_segs_str, multi_seg] = swallow_bin(handles, fname, bin);
 					end
 				end
 			end
@@ -825,41 +812,6 @@ function [proj, str2] = parseProj(str)
 	end
 	str2 = str;
 
-% --------------------------------------------------------------------
-%function [symbol, symbSize, str2] = parseS_(str)
-%
-% Not used, to be deleted
-%
-% Parse the STR string in search for a -S<symbol>[size]. Valid options are -S...
-% If not found or error SYMBOL = [] &/or SYMBSIZE = [].
-% STR2 is the STR string less the -S<symb>[size] part
-
-% 	symbol = [];	symbSize = 2;	str2 = str;
-% 	ind = strfind(str,' -S');
-% 	if (isempty(ind)),		return,		end		% No -S option
-% 	try
-% 		[strS, rem] = strtok(str(ind+1:end));
-% 		str2 = [str(1:ind(1)) rem];		% Remove the -S<str> from STR
-% 
-% 		strS(1:2) = [];					% Remove the '-S' part from strS
-% 		% OK, now 'strS' must contain the symbol and optionally its size
-% 		switch strS(1)
-% 			case 'a',		symbol = '*';
-% 			case 'c',		symbol = 'o';
-% 			case 'd',		symbol = 'd';
-% 			case 'h',		symbol = 'h';
-% 			case 'i',		symbol = 'v';
-% 			case 'n',		symbol = 'p';
-% 			case 'p',		symbol = '.';
-% 			case 's',		symbol = 's';
-% 			case 'x',		symbol = 'x';
-% 			case '+',		symbol = '+';
-% 			otherwise,		symbol = 'o';
-% 		end
-% 		if (numel(strS) > 1),	symbSize = str2double(strS(2:end));		end
-% 		if (isnan(symbSize)),	symbSize = 3;	end
-% 	end
-
 % ---------------------------------------------------------------------------
 function [symbol, symbSize, scale, color_by4, cor1, cor2, str2] = parseS(str)
 % Parse the STR string in search for a -S<symbol>[size][+s<scale>][+f][+c<cor>[+c<cor>]]
@@ -1086,6 +1038,48 @@ function [numeric_data, multi_segs_str] = swallow_GSHHS(handles, fname)
 	multi_segs_str = hdrs(c);
 	numeric_data(~c) = [];		% Remove unused cells
 	if (ishandle(hBar)),	aguentabar(1),	end
+
+% --------------------------------------------------------------------------------------------------------------
+function [numeric_data, multi_segs_str, multi_seg, BB, XMin, XMax, YMin, YMax] = swallow_bin(handles, fname, bin)
+% This function deals with the reading of binary files.
+% BIN is the struct as issued in output by guess_file. If there was a request for spliting a NaN separated
+%     file into multisegments, than there is a bit of work to do here.
+% BB  is the Bounding Box, but we only compute it here when no multisegment splitting because in later case
+%     the main code will compute, as for the other (ASCII) multisegment cases
+
+	XMin = 1e50;		XMax = -1e50;    YMin = 1e50;	YMax = -1e50;	BB = [];
+	multi_segs_str = '';	multi_seg = false;
+
+	fid = fopen(fname);		numeric_data = fread(fid,['*' bin.type]);	fclose(fid);
+	numeric_data = reshape(numeric_data,bin.nCols,numel(numeric_data)/bin.nCols)';
+	if (bin.twoD && (bin.nCols > 2)),	numeric_data(:,3:end) = [];		end % Retain only X,Y
+	if (~bin.multiseg && ~handles.version7 && strcmp(bin.type, 'single') && any(isnan(numeric_data(:,1))))
+		fds = double(numeric_data(:,1));		% It means fdsse, ML engeneers after 20 years still think that
+		XMin = min(fds);	XMax = max(fds);	% min(single([1 2 NaN])) = NaN
+		fds = double(numeric_data(:,2));
+		YMin = min(fds);	YMax = max(fds);
+		BB = [XMin XMax YMin YMax];
+		clear fds
+	elseif (bin.multiseg)			% A request to split a multiseg file into individual lines
+		indNaN = find(isnan(numeric_data(:,1)));
+		if (any(indNaN))
+			indNaN = indNaN(:);
+			difa = diff(indNaN);
+			indNaN(difa == 1) = [];	% Remove contiguos NaNs references
+			if (indNaN(1) ~= 1),	indNaN = [1; indNaN];	end		% Pretend that first and last were NaNs
+			if (indNaN(end) ~= size(numeric_data,1)),	indNaN(end+1) = size(numeric_data,1)+1;	end
+			if (~isempty(indNaN))	% It could be if we have NaNs only at first and/or last positions
+				num_data = cell(numel(indNaN)-1, 1);
+				multi_segs_str = cell(numel(indNaN)-1, 1);
+				for (k = 1:numel(indNaN)-1)
+					num_data{k} = numeric_data( (indNaN(k)+1:indNaN(k+1)-1), :);
+					multi_segs_str{k} = '> Nikles ';		% Not sure if we really need this
+				end
+				numeric_data = num_data;
+				multi_seg = true;	% From now on pretend the file had always been multiseg
+			end
+		end
+	end
 
 % ---------------------------------------------------------------------
 function [b, ndx_first, ndx_last] = local_unique(a)
