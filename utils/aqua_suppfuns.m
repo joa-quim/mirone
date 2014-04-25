@@ -240,6 +240,14 @@ function coards_sliceShow(handles, Z)
 		z_id = handles.netcdf_z_id;
 		s = handles.nc_info;					% Retrieve the .nc info struct 
 		Z = nc_funs('varget', handles.fname, s.Dataset(z_id).Name, [handles.sliceNumber 0 0], [1 s.Dataset(z_id).Size(end-1:end)]);
+		dims = s.Dataset(z_id).Dimension;		% Variable names of dimensions z variable
+		y_id = find(strcmp({s.Dataset.Name}, dims{end-1}));
+		if (~isempty(y_id))						% Check if we need to flipud(Z)
+			Y = double(nc_funs('varget', handles.fname, s.Dataset(y_id).Name));
+			if (Y(2) < Y(1))
+				Z = flipud(Z);
+			end
+		end
 	end
 
 	have_nans = 0;
@@ -305,7 +313,7 @@ function coards_sliceShow(handles, Z)
 
 	else									% We already have a Mirone image. Update it with this new slice
 		handles.handMir = guidata(handles.hMirFig);			% Get updated handles to see if illum has changed
-		if ( ~(isa(Z,'uint8') || isa(Z,'int8')) )
+		if (~(isa(Z,'uint8') || isa(Z,'int8')))
 			setappdata(handles.handMir.figure1,'dem_z',Z);	% Update grid so that coursor display correct values
 		end													% Have to do it here because minmax arg to scalet8 CHANGES Z
 
