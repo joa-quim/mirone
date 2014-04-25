@@ -62,25 +62,26 @@ function varargout = scatter_plot(varargin)
 	handles.edit_symbScale = 1;	% To eventualy scale the Z's and so have some control on GE cylinder heights
 
 	numeric_data = text_read(fname,NaN,NaN);
+	if (isempty(numeric_data)),		delete(hObject),	return,		end		% An error message was already issued
 	nCol = size(numeric_data,2);
 
 	if (nCol < 2)
 		delete(hObject)
 		errordlg('SCATTER PLOT: Input file does not have even 2 columns.','Error')
 		return
-	elseif (nCol == 2)		% A file with 2 cols should never had landed here. Pass it to load_xyz 
+	elseif (nCol == 2)			% A file with 2 cols should never had landed here. Pass it to load_xyz 
 		delete(hObject)
 		load_xyz(handMir, fname, 'AsPoint')
 		return
 	end
-	
-	if (nCol >= 4)			% 4th column must contain size
+
+	if (nCol >= 4)				% 4th column may contain size, but a -S option in header would override this if ...
 		handles.symbSIZES = numeric_data(:,4);
 		set(handles.popup_symbSize,'Enable','off')
 		set(handles.edit_symbSize,'Enable','off')
 	end
 
-	if (nCol == 7)			% 5-7 columns must contain RGB color [0 1]
+	if (nCol == 7)				% 5-7 columns must contain RGB color [0 1]
 		cmin = min(min(numeric_data(:,5:7)));
 		cmax = max(max(numeric_data(:,5:7)));
 		if (cmin >= 0 && cmax <= 255)       % Color given in the [0 255] range
@@ -179,7 +180,7 @@ function push_plot_CB(hObject, handles)
 	end
 	z = handles.symbXYZ(:,3);
 	z(indx) = [];       z(indy) = [];
-	if (~isempty(handles.symbCOR))          % Don't forget the color
+	if (~isempty(handles.symbCOR))          % Don't forget the color (columns 5:7, when provided)
 		zC = handles.symbCOR;
 		zC(indx) = [];      zC(indy) = [];
 	end
