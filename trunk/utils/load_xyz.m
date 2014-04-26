@@ -90,7 +90,7 @@ function varargout = load_xyz(handles, opt, opt2)
 % 	set(h, 'UIContextMenu', cmenuHand)
 
 	% ------------------- Some defaults ---------------------------------------------
-	tol = 0.5;
+	tol = 0.5;					% Tolerance for line ploting. Will be set to 0 for Points (symbols) 
 	do_project = false;         % We'll estimate below if this holds true
 	got_arrow = false;
 	got_internal_file = false;	% Internal files are those shipped with Mirone (e.g. isochrons)
@@ -480,12 +480,19 @@ function varargout = load_xyz(handles, opt, opt2)
 				end
 			end
 
+			% Check if we have a symbols request. If yes turn the 'AsPoint' option on, but do the potential trimming first
+			[marker, markerSize, markerScale, color_by4, cor1_sc, cor2_sc, multi_segs_str{i}] = parseS(multi_segs_str{i});
+			if (~isempty(marker) || strcmp(line_type, 'AsPoint') || strcmp(line_type, 'AsMaregraph'))
+				tol = 0;
+			end
+			% ----- Result consequences of this option is resumed further down, but before we have to check trimming -----
+
 			indx = false;	indy = false;			% Default to no need for map clipping
 			if (handles.no_file)
 				tmpx = numeric_data{i}(:,1);		tmpy = numeric_data{i}(:,2);
 			else
 	 			difes = [(double(numeric_data{i}(1,1)) - double(numeric_data{i}(end,1)) ) ...	% Remember R13
-					( double(numeric_data{i}(1,2)) - double(numeric_data{i}(end,2)) )];
+					(double(numeric_data{i}(1,2)) - double(numeric_data{i}(end,2)))];
 				if (any(abs(difes) > 1e-5))			% Assume a not closed polygon
 					[tmpx, tmpy, indx, indy] = ...	% Get rid of points that are outside the map limits
 						aux_funs('in_map_region',handles,numeric_data{i}(:,1),numeric_data{i}(:,2),tol,[xx yy]);
@@ -509,14 +516,12 @@ function varargout = load_xyz(handles, opt, opt2)
 			if (isempty(lThick)),	lThick = handles.DefLineThick;	end		% IF not provided, use default
 			if (isempty(cor)),		cor = handles.DefLineColor;		end		%           "
 
-			% ---------- Check if we have a symbols request. If yes turn the 'AsPoint' option on --------
-			%[marker, markerSize, multi_segs_str{i}] = parseS(multi_segs_str{i});
-			[marker, markerSize, markerScale, color_by4, cor1_sc, cor2_sc, multi_segs_str{i}] = parseS(multi_segs_str{i});
+			% ---- Resume case analysis of -S option in multi-seg that had to be intrrrupted above because of trimming ----
 			if (color_by4 && numel(numeric_data{i}(1,:)) >= 4)
 				tmpz4 = numeric_data{i}(:,4);		% Will be used to color symbols
-				if (~isempty(indx) || ~isempty(indy)),	tmpz4(indx) = [];	tmpz4(indy) = [];	end	% If needed, clip outside map data
+				if (~isempty(indx) || ~isempty(indy)), tmpz4(indx) = [];	tmpz4(indy) = [];	end	% If needed, clip outside map data
 			else
-				color_by4 = false;		% bad +f setting. Just ignore it
+				color_by4 = false;					% bad +f setting. Just ignore it
 			end
 			if (~isempty(marker))
 				if (~isempty(markerScale) && ~isempty(tmpz))
@@ -527,6 +532,7 @@ function varargout = load_xyz(handles, opt, opt2)
 			else
 				marker = 'o';	markerSize = 2;		% The old defaults
 			end
+			% --------------------------------------------------------------------------------------------------------------
 
 			if (do_patch)
 				Fcor = parseG(multi_segs_str{i});
@@ -591,25 +597,26 @@ function varargout = load_xyz(handles, opt, opt2)
 								if (isempty(cor2_sc))
 									zC = repmat(cor1_sc, nPts, 1);
 								else
-									rn = (z_colCor - Zmin) / dZ;		% range normalized to [0 1]
+									rn = (z_colCor - Zmin) / dZ;	% range normalized to [0 1]
+									rn(isnan(rn)) = 1;		% Happens when Zmax == Zmin
 									rn = rn(:)';
 									dc = cor2_sc - cor1_sc;
 									zC = [(cor1_sc(1) + dc(1) * rn)' (cor1_sc(2) + dc(2) * rn)' (cor1_sc(3) + dc(3) * rn)'];							
 								end
 							else
-								if (handles.no_file)	% In this case the fig cmap is all whites
+								if (handles.no_file)		% In this case the fig cmap is all whites
 									cmap = jet(64);
 								else
 									cmap = get(handles.figure1,'ColorMap');
 								end
-								if (dZ == 0)        % Cte color
+								if (dZ == 0)				% Cte color
 									zC = repmat(cmap(round(size(cmap,1)/2),:),nPts,1);      % Middle color
 								else
 									zC = round(((z_colCor - Zmin) / dZ) * (size(cmap,1)-1) + 1);
 									zC = cmap(zC,:);
 								end
 							end
-							tmpz = abs(tmpz);		% Currently the Z is only used to make cylinders in GE
+							tmpz = abs(tmpz);				% Currently the Z is only used to make cylinders in GE
 							if (markerScale ~= 1),	tmpz = tmpz * markerScale;		end
 							if (~isempty(cor1_sc) && isempty(cor2_sc))	% Unique color, we can plot them all in one single line
 								hLine(i) = line('XData',tmpx,'YData',tmpy, 'Parent',handles.axes1, ...
