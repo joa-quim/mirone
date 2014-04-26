@@ -256,9 +256,9 @@ function set_line_uicontext(h, opt)
 	end
 	if (~IS_SEISPOLYG && ~IS_ARROW && ~IS_RECTANGLE)
 		uimenu(cmenuHand, 'Label', label_length, 'Call', @show_LineLength)
+		uimenu(cmenuHand, 'Label', label_azim,   'Call', @show_lineAzims)
 	end
-	if (IS_MBTRACK),			uimenu(cmenuHand, 'Label', 'All tracks length', 'Call', @show_AllTrackLength);	end
-	if (~IS_SEISPOLYG && ~IS_RECTANGLE),	uimenu(cmenuHand, 'Label', label_azim, 'Call', @show_lineAzims);	end
+	if (IS_MBTRACK),	uimenu(cmenuHand, 'Label', 'All MB-tracks length', 'Call', @show_AllTrackLength);	end
 
 	if (LINE_ISCLOSED)
 		uimenu(cmenuHand, 'Label', 'Area under polygon', 'Call', @show_Area);
