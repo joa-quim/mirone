@@ -141,10 +141,9 @@ function [Z, X, Y, srsWKT, handles, att] = read_grid(handles, fullname, tipo, op
 
 	% Given the Z = single(Z); is horribly memory consuming in R13, we are going to experimentally let the
 	% (u)int16 arrays go without type casting to single. If it works well, we'll do it for all sizes & releases
-	if (handles.IamCompiled && numel(Z) > 157286400)	% Don't type cast. 157286400 +/- = 300 Mb of a int16 array
-	elseif (~isa(Z,'single'))
-		Z = single(Z);
-	end
+% 	if (~isa(Z,'single') && numel(Z) < 78643200)		% Don't type cast. 78643200 +/- = 150 Mb of a int16 array
+% 		Z = single(Z);
+% 	end
 
 	if (~strncmp(tipo,'GMT',3) && ~strncmpi(tipo,'IN',2) && ~strcmp(tipo,'SSimg'))
 		if ( ~isempty(att.Band(1).NoDataValue) && ~isnan(att.Band(1).NoDataValue) && att.Band(1).NoDataValue ~= 0 )
@@ -161,12 +160,12 @@ function [Z, X, Y, srsWKT, handles, att] = read_grid(handles, fullname, tipo, op
 			clear ind;
 		end
 		% GDAL wrongly reports the corners as [0 nx] [0 ny] when no SRS
-		if ( isequal((att.Corners.LR - att.Corners.UL),[att.RasterXSize att.RasterYSize]) && ~all(att.Corners.UL) )
+		if (isequal((att.Corners.LR - att.Corners.UL),[att.RasterXSize att.RasterYSize]) && ~all(att.Corners.UL))
 			att.GMT_hdr(1:4) = [1 att.RasterXSize 1 att.RasterYSize];
 		end
 		head = att.GMT_hdr;
 		if (isequal(head(5:6),[0 0]) || any(isnan(head(5:6))))		% It can happen with GeoTiff_DEM
-			zz = grdutils(Z,'-L');			head(5:6) = zz(1:2);		att.GMT_hdr(5:6) = head(5:6);
+			zz = grdutils(Z,'-L');		head(5:6) = zz(1:2);		att.GMT_hdr(5:6) = head(5:6);
 		end
 		X = linspace(head(1),head(2),size(Z,2));	Y = linspace(head(3),head(4),size(Z,1));
 	end
