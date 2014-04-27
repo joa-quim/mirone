@@ -168,7 +168,7 @@ function hand = popup_grd_dir_CB(hObject, handles, opt)
 	if (get(handles.radio_srtm5, 'Val'))		% Here we will only search for zip files
 		exts = 'zip';	prefix = 'srtm_';
 	elseif (get(handles.radio_srtm30, 'Val'))
-		exts{1} = 'srtm';
+		exts{1} = {'srtm', 'nc'};
 	end
 	if (get(handles.radio_srtm, 'Val'))
 		[handles.srtm_files, handles.srtm_compfiles, handles.srtm_ext, handles.srtm_pato, handles.srtm_pato_comp] = ...
@@ -291,7 +291,7 @@ function check_web_CB(hObject, handles)
 		if (get(handles.radio_srtm,'Val'))
 			url = 'http://dds.cr.usgs.gov/srtm/version2_1/SRTM3/Eurasia/';
 		elseif (get(handles.radio_srtm30,'Val'))
-			url = 'ftp://topex.ucsd.edu/pub/srtm30_plus/srtm30/erm/';
+			url = 'ftp://topex.ucsd.edu/pub/srtm30_plus/srtm30/data';
 		end
 	else
 		set([handles.popup_grd_dir handles.push_grd_dir],'Enable', 'on')
@@ -347,7 +347,8 @@ function handles = draw_srtm30_mesh(handles)
 			xp = [xP(j) xP(j) xP(j+1) xP(j+1) xP(j)];
 			mesh_idx = sprintf('%dx%d', i,j);
 			if (xp(1) > 0),	c1 = 'e';	end
- 			tag = sprintf('%s%.3d%s%.2d.Bathymetry.srtm', c1, abs(xp(1)), c2, abs(yp(2)));
+%  			tag = sprintf('%s%.3d%s%.2d.Bathymetry.srtm', c1, abs(xp(1)), c2, abs(yp(2)));
+ 			tag = sprintf('%s%.3d%s%.2d.nc', c1, abs(xp(1)), c2, abs(yp(2)));
 			hp(i,j) = patch('Xdata',xp, 'YData',yp, 'Parent',hAx, 'FaceColor','y', 'FaceAlpha',0.5, ...
 				'Tag',tag, 'UserData',0, 'ButtonDownFcn',{@bdn_Tile, handles.figure1});
 			setappdata(hp(i,j),'MeshIndex',mesh_idx)
@@ -450,7 +451,7 @@ function bdn_Tile(obj, evt, hFig)
 
 	if (~get(gcbo,'UserData'))			% If not selected    
 		set(gcbo,'FaceColor','g','UserData',1)
-		if ( (~any(xx) && ~any(xz)) && isempty(get(handles.edit_url,'Str')) )	% If FALSE ==> WEB dl, we are done
+		if ((~any(xx) && ~any(xz)) && isempty(get(handles.edit_url,'Str')))		% If FALSE ==> WEB dl, we are done
 			%str = ['The file ' tag ' does not exist in the current directory'];
 			set(gcbo,'FaceColor','r')
 			pause(1)
@@ -485,8 +486,16 @@ function [files, comp_files, comp_ext, patos, patos_comp] = get_fnames_ext(pato,
 		ext1 = ext;
 	end
 
-	tmp = dir([pato prefix '*.' ext1]);
-	files = {tmp(:).name}';
+	if (~isa(ext1,'cell'))
+		tmp = dir([pato prefix '*.' ext1]);
+		files = {tmp(:).name}';
+	else
+		tmp = dir([pato prefix '*.' ext1{1}]);
+		files = {tmp(:).name}';
+		tmp = dir([pato prefix '*.' ext1{2}]);
+		files = [files {tmp(:).name}'];
+		ext1 = ext1{1};				% Only first extension can be seeked fro compressed versions. Sorry
+	end
 	patos = repmat({pato},numel(files),1);
 
 	if (~isempty(ext2))				% That is, if we have one or more compression types (e.g. 'zip' 'gz')
@@ -842,7 +851,6 @@ function n_tiles = mosaic_srtm30(handles)
 	if iscell(fnames),		[m,n] = size(fnames);	end
 	RC = [6000 4800];
  	from_web = get(handles.check_web,'Val');
-% 	from_web = false;
 	att = '';
 
 	if (~from_web && isempty(handles.srtm30_files))
@@ -887,13 +895,21 @@ function n_tiles = mosaic_srtm30(handles)
 				warndlg(['Error finding file ' cur_file]),		continue
 			end
 			try
-				Z = gdalread(full_name, '-U', '-s');
+				[lixo, lixo, EXT] = fileparts(full_name);
+				if (strcmpi(EXT, '.nc') || strcmpi(EXT, '.grd'))	% .GRD not yet accounted for but will
+					[Z,X,Y] = read_grid(struct('grdMaxSize',1e30, 'ForceInsitu',0, 'IamCompiled',0), full_name, 'GMT');
+					zz = grdutils(Z,'-L');			att.GMT_hdr(5:6) = zz(:)';
+					att.GMT_hdr(8) = X(2)-X(1);		att.GMT_hdr(9) = Y(2)-Y(1);
+					att.Band.NoDataValue = [];		% Pretend we had an att attribute structure
+				else
+					[Z, att] = gdalread(full_name, '-U', '-s');
+				end
 			catch
 				warndlg(['WARNERROR: GDAL failed to read file: ' full_name],'Error'),	continue
 			end
 			% ------------------------------------------------------------------------------------
 
-			Z(Z == att.Band(1).NoDataValue) = NaN;
+			if (~isempty(att.Band.NoDataValue)),	Z(Z == att.Band(1).NoDataValue) = NaN;	end
 			z_min = min(z_min,att.GMT_hdr(5));		z_max = max(z_max,att.GMT_hdr(6));
 			i_r = (1+(i-1)*RC(1)):i*RC(1);
 			i_c = (1+(j-1)*RC(2)):j*RC(2);
