@@ -897,7 +897,7 @@ function n_tiles = mosaic_srtm30(handles)
 			try
 				[lixo, lixo, EXT] = fileparts(full_name);
 				if (strcmpi(EXT, '.nc') || strcmpi(EXT, '.grd'))	% .GRD not yet accounted for but will
-					[Z,X,Y] = read_grid(struct('grdMaxSize',1e30, 'ForceInsitu',0, 'IamCompiled',0), full_name, 'GMT');
+					[Z,X,Y] = read_grid(struct('grdMaxSize',1e30, 'ForceInsitu',false, 'IamCompiled',false), full_name, 'GMT');
 					zz = grdutils(Z,'-L');			att.GMT_hdr(5:6) = zz(:)';
 					att.GMT_hdr(8) = X(2)-X(1);		att.GMT_hdr(9) = Y(2)-Y(1);
 					att.Band.NoDataValue = [];		% Pretend we had an att attribute structure
