@@ -106,7 +106,7 @@ if (strcmp(tipo,'CDF'))
 	try				% Use the new nc_io()
 		[X, Y, Z, head, misc] = nc_io(fullname, 'r');
 		if (isa(Z,'double')),		Z = single(Z);		end		% The HORRRRRRRRROOOOOOOOOORRRRR
-		if (isa(Z,'int16')),		handles.was_int16 = 1;
+		if (isa(Z,'int16')),		handles.was_int16 = true;
 		elseif (isa(Z,'single')),	handles.have_nans = grdutils(Z,'-N');
 		end
 	catch			% If it have failed try GMT
@@ -118,7 +118,7 @@ if (strcmp(tipo,'CDF'))
 		end
     	[X, Y, Z, head] = grdread_m(fullname,'single',opt_I);
     	handles.have_nans = grdutils(Z,'-N');
-    	if (head(10) == 2 || head(10) == 8 || head(10) == 16),   handles.was_int16 = 1;  end     % New output from grdread_m
+    	if (head(10) == 2 || head(10) == 8 || head(10) == 16),   handles.was_int16 = true;  end     % New output from grdread_m
 		head(10) = [];
 	end
     if (head(7))            % Convert to grid registration
