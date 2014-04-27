@@ -54,7 +54,7 @@ function [Z, X, Y, srsWKT, handles, att] = read_grid(handles, fullname, tipo, op
 	try
 		if (handles.ForceInsitu),	opt_I = '-I';		end	% Use only in desperate cases.
 	end
-	handles.was_int16 = 0;			% To make sure that it wasnt left = 1 from a previous use.
+	handles.was_int16 = false;		% To make sure that it wasnt left = 1 from a previous use.
 
 	if (strncmp(tipo,'GMT',3))		% GMT_relatives - Reading is done by the read_gmt_type_grids function
 		[handles, X, Y, Z, head, misc] = read_gmt_type_grids(handles, fname);
@@ -115,7 +115,7 @@ function [Z, X, Y, srsWKT, handles, att] = read_grid(handles, fullname, tipo, op
 		if ((att.RasterXSize * att.RasterYSize * 4) > grdMaxSize)
 			if ( strcmp(yes_or_no('title','Warning'),'Yes')),	return,		end		% Advise accepted
 		end
-		if (strcmp(att.Band(1).DataType,'Int16')),		handles.was_int16 = 1;	end
+		if (strcmp(att.Band(1).DataType,'Int16')),		handles.was_int16 = true;	end
 
 		if (~strncmp(att.DriverShortName, 'HDF4', 4))
 			if (strcmp(att.DriverShortName, 'BAG'))		% Read only first band
@@ -129,7 +129,7 @@ function [Z, X, Y, srsWKT, handles, att] = read_grid(handles, fullname, tipo, op
 			[head, slope, intercept, base, is_modis, is_linear, is_log, att] = empilhador('getFromMETA', att);
 			[Z, handles.have_nans, att] = empilhador('getZ', fname, att, is_modis, is_linear, is_log, slope, intercept, base);
 			fname = att.fname;				% We'll need better but for now this ensures that no subdataset name is taken as the whole.
-			if (~isa(Z,'int16')),		handles.was_int16 = 0;		end
+			if (~isa(Z,'int16')),		handles.was_int16 = false;		end
 		end
 		[Z, did_scale, att, have_new_nans] = handle_scaling(Z, att);	% See if we need to apply a scale/offset
 		if (~did_scale),	handles.Nodata_int16 = att.Band(1).NoDataValue;		end
