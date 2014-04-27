@@ -183,7 +183,7 @@ function set_line_uicontext(h, opt)
 % h is a handle to a line object (that can be closed)
 	if (isempty(h)),	return,		end
 	
-	if (numel(h) > 1)			% Many, make recursive and hope it doesn't choke the fragile beast
+	if (numel(h) > 1)			% Many, make recursive and hope this doesn't choke the fragile beast
 		for (k = 1:numel(h))
 			set_line_uicontext(h(k), opt)
 		end
@@ -197,7 +197,7 @@ function set_line_uicontext(h, opt)
 	% Check to see if we are dealing with a closed polyline
 	x = get(h,'XData');			y = get(h,'YData');
 	if (isempty(x) || isempty(y)),		return,		end		% Line is totally out of the figure
-	if ( (x(1) == x(end)) && (y(1) == y(end)) )
+	if ((x(1) == x(end)) && (y(1) == y(end)))
 		LINE_ISCLOSED = true;
 		if ( length(x) == 5 && (x(1) == x(2)) && (x(3) == x(4)) && (y(1) == y(4)) && (y(2) == y(3)) )
 			IS_RECTANGLE = true;	
@@ -255,6 +255,9 @@ function set_line_uicontext(h, opt)
 		uimenu(cmenuHand, 'Label', 'Copy', 'Call', {@copy_line_object,handles.figure1,handles.axes1});
 	end
 	if (~IS_SEISPOLYG && ~IS_ARROW && ~IS_RECTANGLE)
+		if (numel(x) > 2)
+			uimenu(cmenuHand, 'Label', 'Spline Smooth', 'Call', {@smooth_line,h})
+		end
 		uimenu(cmenuHand, 'Label', label_length, 'Call', @show_LineLength)
 		uimenu(cmenuHand, 'Label', label_azim,   'Call', @show_lineAzims)
 	end
@@ -1516,7 +1519,6 @@ function ll = show_LineLength(obj, evt, h, opt)
 	elseif ( (n_args == 2 || n_args == 4 || length(h) > 1) && ishandle(h) )
         x = get(h,'XData');    y = get(h,'YData');
 		handles = guidata(h);
-
 	else
 		errordlg('Unknown case in show_LineLength()','error'),	return
 	end
@@ -1657,6 +1659,45 @@ function azim = show_lineAzims(obj, evt, h)
 		azim.az = az;
 	end
 	refresh	
+
+% -----------------------------------------------------------------------------------------
+function [xx, yy] = smooth_line(obj, evt, h)
+% Smooth data by 2-D spline interpolation
+% Core code from Duane Hanselman (BSD License) http://www.mathworks.com/matlabcentral/fileexchange/38862
+
+	x = get(h, 'XData');	y = get(h, 'YData');
+
+	if (size(x,1) > 1)
+		x = x(:)';		y = y(:)';
+	end
+	isopen = ~((x(1) == x(end)) && (y(1) == y(end)));
+	if ~isopen  % wrap data so closed curve is smooth at joint
+		x = [x(end-1) x x(2)];
+		y = [y(end-1) y y(2)];
+	end
+
+	t = [0 cumsum(hypot(diff(x),diff(y)))];			% get path length to create independent variable
+
+	% place interpolation points in between those in t    
+	n  = max(2,ceil(20/sqrt(numel(t))));
+	ti = repmat(t(1:end-1),n,1);
+	d  = repmat((0:n-1)'/n,1,length(x)-1);
+	dt = repmat(diff(t),n,1);
+	ti = ti + d .* dt;
+	ti = [ti(:); t(end)];							% independent variable interpolation points
+
+	% computer new contour points from spline fit
+	xi = akimaspline(t,x,ti);
+	yi = akimaspline(t,y,ti);
+	if ~isopen   % take out redundant data if curve was closed
+		xi = xi(n+1:end-n);
+		yi = yi(n+1:end-n);
+	end
+
+	set(h, 'XData',xi, 'YData',yi)
+	if (nargout)
+		xx = xi;		yy = yi;
+	end
 
 % -----------------------------------------------------------------------------------------
 function set_bar_uicontext(h)
