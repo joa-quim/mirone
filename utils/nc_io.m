@@ -141,7 +141,7 @@ function write_nc(fname, handles, data, misc, page)
 		end
 
 		% Update global min/max
-		if ( isa(data, 'single') )			% min/max is bugged when NaNs in singles
+		if (isa(data, 'single'))			% min/max is bugged when NaNs in singles
 			zz = grdutils(data,'-L');		mima = [zz(1) zz(2)];
 		else
 			mima = [double(min(data(:))) double(max(data(:)))];
@@ -194,8 +194,8 @@ function write_nc(fname, handles, data, misc, page)
 	
 	% See if we have them in appdata
 	try			% Wrap with a try because we want to be able to use this fun even when no figure1
-		if ( isempty(misc.srsWKT) ),		misc.srsWKT = getappdata(handles.figure1,'ProjWKT');	end
-		if ( isempty(misc.strPROJ4) ),		misc.strPROJ4 = getappdata(handles.figure1,'Proj4');	end
+		if (isempty(misc.srsWKT)),		misc.srsWKT = getappdata(handles.figure1,'ProjWKT');	end
+		if (isempty(misc.strPROJ4)),	misc.strPROJ4 = getappdata(handles.figure1,'Proj4');	end
 	end
 
 	% Create the coordinates vectors
@@ -205,8 +205,8 @@ function write_nc(fname, handles, data, misc, page)
 	Y = linspace(handles.head(3), handles.head(4), ny);
 
 	% ---------------------------- Write the dimensions --------------------------------
-	nc_funs('add_dimension', fname, x_var, nx )
-	nc_funs('add_dimension', fname, y_var, ny )
+	nc_funs('add_dimension', fname, x_var, nx)
+	nc_funs('add_dimension', fname, y_var, ny)
 
 	if (is3D)		% Initialize a 3D file
  		nc_funs('add_dimension', fname, levelName, nLevels)
@@ -226,24 +226,24 @@ function write_nc(fname, handles, data, misc, page)
 
 	varstruct.Name = z_name;
 	add_off = [];	scale_factor = [];
-	switch ( class(data) )
+	switch (class(data))
 		case 'single'			% NC_FLOAT
 			if (handles.was_int16 && ~handles.computed_grid)
 				if (handles.have_nans),		data(isnan(data)) = -32768;		end
 				data = int16(data);
-				varstruct.Nctype = 3;		no_val = -32768;
+				varstruct.Nctype = 3;		no_val = int16(-32768);
 			else
 				varstruct.Nctype = 5;		no_val = single(nan);
 			end
 		case 'int16'			% NC_SHORT
-			varstruct.Nctype = 3;		no_val = -32768;
+			varstruct.Nctype = 3;		no_val = int16(-32768);
 		case 'int32'			% NC_INT
-			varstruct.Nctype = 4;		no_val = -2147483648;
+			varstruct.Nctype = 4;		no_val = int32(-2147483648);
 		case 'int8'				% NC_BYTE
 			varstruct.Nctype = 1;		no_val = [];
-			if ( min(data(:)) < 0 ),	add_off = 128;	end		% Apply the offset trick only when needed
+			if (min(data(:)) < 0),		add_off = 128;	end		% Apply the offset trick only when needed
 		case 'uint8'			% NC_CHAR
-			if ( (ndims(data) == 3) && (size(data,1) == 1) )
+			if ((ndims(data) == 3) && (size(data,1) == 1))
 				thisSize = size(data);
 				data = grdutils(squeeze(data),'-C');
 				data = reshape(data, thisSize);
@@ -323,7 +323,7 @@ function write_nc(fname, handles, data, misc, page)
 	nc_funs('attput', fname, y_var, 'units', y_units);
 	nc_funs('attput', fname, y_var, 'actual_range', [Y(1) Y(end)] );
 	
-	if ( ~isempty(misc.srsWKT) || ~isempty(misc.strPROJ4) )
+	if (~isempty(misc.srsWKT) || ~isempty(misc.strPROJ4))
 		% Create a container variable named "grid_mapping" to hold the projection info
 		nc_funs('attput', fname, z_name, 'grid_mapping', 'grid_mapping');
 		nc_funs('addvar', fname, struct('Name','grid_mapping', 'Nctype',2))		% 2 -> char
@@ -422,7 +422,7 @@ function [X,Y,Z,head,misc] = read_nc(fname, opt)
 	y_id = find(ind);
 
 	x_actual_range = [];		y_actual_range = [];
-	if ( ~isempty(x_id) && ~isempty(s.Attribute) )
+	if (~isempty(x_id) && ~isempty(s.Attribute))
 		% ------------------ Get the X & Y ranges ------------------------------------
 		attribNames = {s.Dataset(x_id).Attribute.Name};
 		ind = strcmp(attribNames,'actual_range');
@@ -434,7 +434,7 @@ function [X,Y,Z,head,misc] = read_nc(fname, opt)
 			%if (strncmp(units,'degree',6)),		data.geog = 1;	end
 		%end
 	end
-	if ( ~isempty(y_id) && ~isempty(s.Attribute) )
+	if (~isempty(y_id) && ~isempty(s.Attribute))
 		attribNames = {s.Dataset(y_id).Attribute.Name};
 		ind = strcmp(attribNames,'actual_range');
 		if (any(ind)),	y_actual_range = s.Dataset(y_id).Attribute(ind).Value;	end
@@ -469,7 +469,7 @@ function [X,Y,Z,head,misc] = read_nc(fname, opt)
 			try
 				Z = nc_funs('varget', fname, s.Dataset(z_id).Name);
 			catch
-				if ( ~isempty(strfind(lasterr, 'A memory allocation request failed')) )
+				if (~isempty(strfind(lasterr, 'A memory allocation request failed')))
 					h = warndlg('We got an Out of memory error. Trying again with a MUCH SLOWER method.','WARNING');
 					try
 						Z = nc_funs('varget_t', fname, s.Dataset(z_id).Name);
@@ -481,7 +481,7 @@ function [X,Y,Z,head,misc] = read_nc(fname, opt)
 				end
 			end
 		else
-			if ( ~all([s.Dimension.Length]) )
+			if (~all([s.Dimension.Length]))
 				warndlg('One ore more dimensions has ZERO length. Expect #&%%&&$.','Warning')
 			end
 			Z = nc_funs('varget', fname, s.Dataset(z_id).Name, zeros(1,nD), [ones(1,nD-2) s.Dataset(z_id).Size(end-1:end)]);
@@ -518,7 +518,7 @@ function [X,Y,Z,head,misc] = read_nc(fname, opt)
 	[X, Y, Z, head] = deal_exceptions(Z, X, Y, head, s, attribNames);	% Currently, deal with Ifremer hosted SST stupidities (no coords and Kelvins)
 
 	if (get_Z && isempty(z_actual_range))
-		if ( isa(Z, 'single') )			% min/max are bugged when NaNs in singles
+		if (isa(Z, 'single'))			% min/max are bugged when NaNs in singles
 			zz = grdutils(Z,'-L');  z_actual_range = [zz(1) zz(2)];
 		else
 			z_actual_range = double([min(Z(:)) max(Z(:))]);
@@ -630,7 +630,7 @@ function [X, Y, Z, head] = deal_exceptions(Z, X, Y, head, s, attribNames)
 		
 		% Confirm that the given LAT/LON arrays are likely to be the right one for this file
 		k = 2;
-		while ( abs(NW_lat - NW_lat_check) > 0.1 || abs(SE_lon - SE_lon_check) > 0.1 && (k <= nGrids) )	% If TRUE try next file on list
+		while (abs(NW_lat - NW_lat_check) > 0.1 || abs(SE_lon - SE_lon_check) > 0.1 && (k <= nGrids))	% If TRUE try next file on list
 			lat = nc_funs('varget', fname_coords{k}, 'latitude');			% Try with this coords file
 			lon = nc_funs('varget', fname_coords{k}, 'longitude');
 			NW_lat = double(lat(end,1));	NE_lat = double(lat(end,end));		SW_lat = double(lat(1));		SE_lat = double(lat(1,end));
@@ -652,7 +652,7 @@ function [X, Y, Z, head] = deal_exceptions(Z, X, Y, head, s, attribNames)
 		opt_R = sprintf('-R%.10f/%.10f/%.10f/%.10f', min(NW_lon,SW_lon), max(NE_lon,SE_lon), min(SW_lat,SE_lat), max(NW_lat,NE_lat));
 		lon = single(lon);		lat = (single(lat));
 		[Z, head] = nearneighbor_m(lon(:), lat(:), Z(:), opt_R, opt_e, '-N2', '-I0.02', '-S0.06');
-		if ( any( isnan(head(5:6)) ) )
+		if (any( isnan(head(5:6)) ))
 			zz = grdutils(Z,'-L');  head(5:6) = zz(1:2);
 		end
 		X = linspace(head(1), head(2), size(Z,2));
