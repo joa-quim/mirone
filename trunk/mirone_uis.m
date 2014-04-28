@@ -404,7 +404,7 @@ uimenu('Parent',h,'Call','vitrinite','Label','Vitrinite','Sep','on');
 
 uimenu('Parent',hTL,'Call','run_cmd(guidata(gcbo))','Label','Run ML Command','Sep','on');
 uimenu('Parent',hTL,'Call','line_operations(guidata(gcbo))','Label','Vector Operations','Tag','lineOP');
-uimenu('Parent',hTL,'Call','autofaults(guidata(gcbo))','Label','Auto falhas','Sep','on');
+%uimenu('Parent',hTL,'Call','autofaults(guidata(gcbo))','Label','Auto falhas','Sep','on');
 
 %% --------------------------- DRAW ------------------------------------
 hDR = uimenu('Parent',H1,'Label','Draw','Tag','Draw');
@@ -689,10 +689,10 @@ uimenu('Parent',h,'Call','mirone(''GridToolsSDG_CB'',guidata(gcbo),[])','Label',
 
 h2 = uimenu('Parent',hGT,'Label','Terrain Modeling','Sep','on');
 h = uimenu('Parent',h2,'Label','Slope');
-uimenu('Parent',h,'Call','mirone(''GridToolsSlope_CB'',guidata(gcbo),''degrees'')','Label','In degrees');
-uimenu('Parent',h,'Call','mirone(''GridToolsSlope_CB'',guidata(gcbo),''percent'')','Label','In percentage');
+uimenu('Parent',h,'Call','mirone(''GridToolsSlope_CB'',guidata(gcbo),''degrees'');','Label','In degrees');
+uimenu('Parent',h,'Call','mirone(''GridToolsSlope_CB'',guidata(gcbo),''percent'');','Label','In percentage');
 
-uimenu('Parent',h2,'Call','mirone(''GridToolsSlope_CB'',guidata(gcbo),''aspect'')','Label','Aspect');
+uimenu('Parent',h2,'Call','mirone(''GridToolsSlope_CB'',guidata(gcbo),''aspect'');','Label','Aspect');
 h = uimenu('Parent',h2,'Label','Directional derivative');
 uimenu('Parent',h,'Call','mirone(''GridToolsDirDerive_CB'',guidata(gcbo),''first'')','Label','First derivative');
 uimenu('Parent',h,'Call','mirone(''GridToolsDirDerive_CB'',guidata(gcbo),''second'')','Label','Second derivative');
@@ -740,7 +740,7 @@ if (IamCompiled)
 end
 uimenu('Parent',h, 'Call',['mirone(''FileOpenWebImage_CB'',guidata(gcbo),',...
 	' ''http://www2.clustrmaps.com/stats/maps-clusters/w3.ualg.pt-~jluis-mirone-world.jpg'',''nikles'');'],'Label','See visitors map','Sep','on');
-uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 12 Apr 2014'',''2.6.0dev'')','Label','About','Sep','on');
+uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 28 Apr 2014'',''2.6.0dev'')','Label','About','Sep','on');
 
 %% --------------------------- Build HANDLES and finish things here
 	handles = guihandles(H1);
