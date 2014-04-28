@@ -1676,7 +1676,7 @@ function [xx, yy] = smooth_line(obj, evt, h)
 		y = [y(end-1) y y(2)];
 	end
 
-	t = [0 cumsum(hypot(diff(x),diff(y)))];			% get path length to create independent variable
+	t = [0 cumsum(sqrt(diff(x).^2 + diff(y).^2))];	% get path length to create independent variable
 
 	% place interpolation points in between those in t    
 	n  = max(2,ceil(20/sqrt(numel(t))));
