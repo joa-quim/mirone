@@ -252,8 +252,13 @@ function radio_types(hObject, handles)
 		end
 	end
 
-	if ( ~isempty(handles.(this_radio{3})) )	% Patches already exist. Just set them visible
+	if (~isempty(handles.(this_radio{3})))		% Patches already exist. Just set them visible
 		set(handles.(this_radio{3}), 'Vis', 'on')
+		if (any(strcmp({'GMTED075' 'GMTED150' 'GMTED300'}, nome)))	% User is just toggling among the GMTEDs
+			set([handles.popup_grd_dir handles.push_grd_dir],'Enable', 'off')
+			set(handles.edit_url, 'Str', 'Web only (Via internaly generated VRTs)', 'Enable', 'off')
+			return
+		end
 	else
 		switch nome
 			case 'SRTM',	handles = draw_srtm_mesh(handles);
@@ -268,15 +273,21 @@ function radio_types(hObject, handles)
 		end
 		guidata(handles.figure1,handles)
 
-		if ( any(strcmp({'GMTED075' 'GMTED150' 'GMTED300' 'ACE'}, nome)) )	% Web only cases. Different treatment
+		if (any(strcmp({'GMTED075' 'GMTED150' 'GMTED300' 'ACE'}, nome)))	% Web only cases. Different treatment
 			set(handles.edit_url, 'Str', 'Web only (Via internaly generated VRTs)', 'Enable', 'off')
 			set(handles.check_web, 'Val', 1, 'Enable', 'off')
+			set([handles.popup_grd_dir handles.push_grd_dir],'Enable', 'off')
 			return
 		else
 			set([handles.check_web handles.edit_url], 'Enable', 'on')		% Other cases are free to be changed
+			set([handles.popup_grd_dir handles.push_grd_dir],'Enable', 'on')
 		end
 	end
-	if (get(handles.check_web,'val')),		check_web_CB(handles.check_web, handles),	end
+	if (get(handles.check_web,'val'))
+		check_web_CB(handles.check_web, handles)
+	else
+		set([handles.popup_grd_dir handles.push_grd_dir handles.check_web handles.edit_url],'Enable', 'on')
+	end
 
 % -------------------------------------------------------------------------
 function check_web_CB(hObject, handles)
@@ -445,8 +456,9 @@ function bdn_Tile(obj, evt, hFig)
 		xx = strcmp(tag, handles.srtm30_files);		xz = strcmp(tag, handles.srtm30_compfiles);
 	elseif (get(handles.radio_srtm5, 'Val'))
 		xx = strcmp(tag, handles.srtm5_files);		xz = strcmp(tag, handles.srtm5_compfiles);
-	else
-		xx = strcmp(tag, handles.srtm5_files);		xz = strcmp(tag, handles.srtm5_compfiles);
+	else		% GMTED
+		%xx = strcmp(tag, handles.srtm5_files);		xz = strcmp(tag, handles.srtm5_compfiles);
+		xx = false;		xz = false;
 	end
 
 	if (~get(gcbo,'UserData'))			% If not selected    
