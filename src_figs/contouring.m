@@ -1,7 +1,7 @@
 function varargout = contouring(varargin)
 % Front end to contour selection
 
-%	Copyright (c) 2004-2013 by J. Luis
+%	Copyright (c) 2004-2014 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -71,7 +71,7 @@ function push_GuessIntervals_CB(hObject, handles)
 	zz = repmat(linspace(handles.Zmin,handles.Zmax,50), 50,1);
 	c = contourc(X,Y,zz);
 	limit = size(c,2);
-	i = 1;  k = 1;
+	i = 1;		k = 1;
 	while(i < limit)
 		z_level(k) = c(1,i);    npoints = c(2,i);
 		i = i + npoints + 1;
@@ -112,19 +112,22 @@ function edit_StartElev_CB(hObject, handles)
 
 %-------------------------------------------------------------------------------
 function edit_SingleElev_CB(hObject, handles)
-xx = str2double(get(hObject,'String'));
-if ( isempty(xx) || isnan(xx))
-    set(hObject,'String','');
-    handles.Zsingle = [];
-else
-    handles.Zsingle = xx;
-end
-guidata(hObject, handles);
+	xx = str2double(get(hObject,'String'));
+	if ( isempty(xx) || isnan(xx))
+		set(hObject,'String','');
+		handles.Zsingle = [];
+	else
+		handles.Zsingle = xx;
+	end
+	guidata(hObject, handles);
 
 %-------------------------------------------------------------------------------
 function push_Add_CB(hObject, handles)
-	if (isempty(handles.Zsingle)),   return;    end
+	if (isempty(handles.Zsingle)),		return,		end
 	list = get(handles.listbox_ElevValues,'String');
+	if (isempty(list) && isempty(handles.selected_val))
+		handles.selected_val = 1;
+	end
 	list{end+1} = get(handles.edit_SingleElev,'String');
 	[B,ind] = sort(str2num(char(list)));
 	list = list(ind);
@@ -136,10 +139,14 @@ function push_Add_CB(hObject, handles)
 %-------------------------------------------------------------------------------
 function push_GenerateIntervals_CB(hObject, handles)
 	if (~isempty(handles.Zstart) && ~isempty(handles.Zinc))
-		list = num2cell((handles.Zstart:handles.Zinc:handles.Zmax)');
+		if (handles.Zinc > 0)
+			list = num2cell((handles.Zstart:handles.Zinc:handles.Zmax)');
+		else
+			list = num2cell((handles.Zstart:handles.Zinc:handles.Zmin)');
+		end
 		set(handles.listbox_ElevValues,'String',list)
 	else
-		errordlg('Generate how? From the empty space?','Chico Clever')
+		errordlg('Generate how? From the empty outer space?','Chico Clever')
 	end
 
 %-------------------------------------------------------------------------------
