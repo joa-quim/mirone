@@ -80,55 +80,55 @@ function hObject = mirone_OpeningFcn(varargin)
 	[hObject,handles,home_dir] = mirone_uis(home_dir);
 
 	handles.home_dir = home_dir;
-	handles.DefLineThick = 1;	% Default line thickness (overwriten by mirone_pref)
-	handles.DefLineColor = 'k'; % Default line color (overwriten by mirone_pref)
-	handles.DefineMeasureUnit = 'k'; % Default measure units to kilometrs (overwriten by mirone_pref)
-	handles.grdname = [];		% Contains the name of the current (if it's the case) gmt grid
-	handles.nTrack = 0;			% Counter of the number of MB tracks imported
-	handles.origFig = [];		% To store the original image copy
-	handles.fileName = [];		% To store any input grid/image file name
-	handles.image_type = 0;		% Image type. 1->grd; 2-> trivial (jpg,png,bmp,etc...); 3->GeoTIFF; 4->DEMs; 20-> white bg
-	handles.transparency = [];	% Will hold the word 'alpha' when reading a RGBA image
-	handles.computed_grid = 0;	% However, matrices with a gmt header will have this == 1, so that they can be saved
-	handles.no_file = 1;		% 0 means a grid is loaded and 1 that it is not (to test when icons can be pushed)
-	handles.geog = 1;			% By default grids are assumed to be in geographical coordinates
-	handles.swathRatio = 3;		% Default swath width / water depth ratio for multibeam planing
+	handles.DefLineThick = 1;		% Default line thickness (overwriten by mirone_pref)
+	handles.DefLineColor = 'k';		% Default line color (overwriten by mirone_pref)
+	handles.DefineMeasureUnit = 'k';% Default measure units to kilometrs (overwriten by mirone_pref)
+	handles.grdname = [];			% Contains the name of the current (if it's the case) gmt grid
+	handles.nTrack = 0;				% Counter of the number of MB tracks imported
+	handles.origFig = [];			% To store the original image copy
+	handles.fileName = [];			% To store any input grid/image file name
+	handles.image_type = 0;			% Image type. 1->grd; 2-> trivial (jpg,png,bmp,etc...); 3->GeoTIFF; 4->DEMs; 20-> white bg
+	handles.transparency = [];		% Will hold the word 'alpha' when reading a RGBA image
+	handles.computed_grid = 0;		% However, matrices with a gmt header will have this == 1, so that they can be saved
+	handles.no_file = 1;			% 0 means a grid is loaded and 1 that it is not (to test when icons can be pushed)
+	handles.geog = 1;				% By default grids are assumed to be in geographical coordinates
+	handles.swathRatio = 3;			% Default swath width / water depth ratio for multibeam planing
 	handles.grdMaxSize = 524288000;	% I use this for limiting the grid size that is stored in RAM (50 Mb)
-	handles.firstMBtrack = 1;	% Used for knowing whether to display or not the MB planing info message in "start planing"
+	handles.firstMBtrack = 1;		% Used for knowing whether to display or not the MB planing info message in "start planing"
 	handles.EarthRad = 6371.005076;	% Authalic radius
-	handles.maregraphs_count = 0; % Counter of maregraphs (tsunami modeling)
-	handles.Illumin_type = 0;	% 0 -> no illumination; 1 -> grdgradient; 2 -> grdgradient Lambertian; 4 -> Lambertian;
-	handles.zoom_state = 0;		% Flag to signal if zoom state is to be re-activated (0 means no re-activation)
-	handles.bg_color = [1 1 1]; % (default) Backgoround color used when grid values == NaN
-	handles.which_cont = [];	% To store the contour levels (used to not draw repeated contours)
-	handles.have_nans = 0;		% Used to know if the grids have NaNs
-	handles.is_draped = false;	% Used to know if the image comes from draping
-	handles.was_int16 = 0;		% Keep track of short int imported grids
-	handles.Nodata_int16 = [];	% To store Nodata of short int grids
-	handles.ForceInsitu = 0;	% Use "insitu" grid importing (transposition)
+	handles.maregraphs_count = 0;	% Counter of maregraphs (tsunami modeling)
+	handles.Illumin_type = 0;		% 0 -> no illumination; 1 -> grdgradient; 2 -> grdgradient Lambertian; 4 -> Lambertian;
+	handles.zoom_state = 0;			% Flag to signal if zoom state is to be re-activated (0 means no re-activation)
+	handles.bg_color = [1 1 1];		% (default) Backgoround color used when grid values == NaN
+	handles.which_cont = [];		% To store the contour levels (used to not draw repeated contours)
+	handles.have_nans = 0;			% Used to know if the grids have NaNs
+	handles.is_draped = false;		% Used to know if the image comes from draping
+	handles.was_int16 = false;		% Keep track of short int imported grids
+	handles.Nodata_int16 = [];		% To store Nodata of short int grids
+	handles.ForceInsitu = false;	% Use "insitu" grid importing (transposition)
 	handles.DefineEllipsoide = [6378137, 0, 1/298.2572235630];	% Defaults to WGS-84
 	handles.path_tmp = [home_dir fsep 'tmp' fsep];
 	handles.path_data = [home_dir fsep 'data' fsep];
 	handles.last_directories = {handles.path_tmp; home_dir};	% Let it have something existent
-	handles.hImg = [];			% To hold the image handle
-	handles.firstIllum = 1;		% First illumination will use the displayed image which may have been IP
-	handles.flederBurn = 1;		% When build a fleder obj burn eventual coastlines
-	handles.flederPlanar = 1;	% Default to planar flder objs (but mirone_pref knows better)
-	handles.whichFleder = 1;	% whichFleder = 1 for the free iview4d or 0 for the true thing (fledermaus)
+	handles.hImg = [];				% To hold the image handle
+	handles.firstIllum = 1;			% First illumination will use the displayed image which may have been IP
+	handles.flederBurn = 1;			% When build a fleder obj burn eventual coastlines
+	handles.flederPlanar = 1;		% Default to planar flder objs (but mirone_pref knows better)
+	handles.whichFleder = 1;		% whichFleder = 1 for the free iview4d or 0 for the true thing (fledermaus)
 	handles.oldSize = [get(hObject,'Pos'); get(hObject,'Pos')];		% Duplicate so that we store ORIGINAL size
 	if (handles.oldSize(1,4) == 0),	handles.oldSize(1,4) = 1;		end
-	handles.is_projected = 0;	% To keep track if coords are projected or not
-	handles.defCoordsIn = 0;	% To use when Load files and have to decide if we need to project
-								% 0 -> don't know; -1 -> Coords are already projected; 1 -> geog coords needing project
+	handles.is_projected = 0;		% To keep track if coords are projected or not
+	handles.defCoordsIn = 0;		% To use when Load files and have to decide if we need to project
+									% 0 -> don't know; -1 -> Coords are already projected; 1 -> geog coords needing project
 	try		handles.Projections;			% Use a try/catch since isfield is brain-dead long
-	catch,	handles.Projections = nan;		% Set it to something to prevent "unknown field" error in setAxesDefCoordIn()
+	catch,	handles.Projections = nan;		% Set it to something to prevent "unknown field" error
 	end
-	handles.scale2meanLat = 1;	% Scale geog ref images so that at middle image dx = dy in cartesian units (kind of proj)
+	handles.scale2meanLat = 1;		% Scale geog ref images so that at middle image dx = dy in cartesian units (kind of proj)
 	handles.FOpenList = cell(numel(handles.RecentF),1);
-	handles.withSliders = true; % Set Zoom sliders
-	handles.validGrid = 0;		%
-	handles.nLayers = 1;		% If > 1 after reading a netCDF file call aquamoto
-	handles.deflation_level = 0;% If > 0 will create compressed netCDF-4 files
+	handles.withSliders = true;		% Set Zoom sliders
+	handles.validGrid = false;		%
+	handles.nLayers = 1;			% If > 1 after reading a netCDF file call aquamoto
+	handles.deflation_level = 0;	% If > 0 will create compressed netCDF-4 files
 
 	try							% A file named mirone_pref.mat contains the preferences, read them from it
 		prf = load([handles.path_data 'mirone_pref.mat']);
@@ -1097,11 +1097,10 @@ function FileSaveGMTgrid_CB(handles, opt)
 		if (~isa(Z,'single')),			Z = single(Z);	end
 		if (handles.have_nans),			Z(isnan(Z)) = 1.701410e38;		end
 		fwrite(fid,Z','float32');		fclose(fid);
-		set(handles.figure1,'pointer','arrow');		return
+		set(handles.figure1,'pointer','arrow'),		return
 	end
 
-	% If it was a grid imported by gdal, uppdate the title
-	if (isappdata(handles.axes1,'DatumProjInfo'))
+	if (isappdata(handles.axes1,'DatumProjInfo'))		% If it was a grid imported by gdal, uppdate the title
 		DPI = getappdata(handles.axes1,'DatumProjInfo');
 		tit = ['Projection: ' DPI.projection ' Datum: ' DPI.datum];
 		if (length(tit) > 80),		tit = tit(1:80);	end		% (1:80) otherwise it BOOMs
@@ -1517,7 +1516,7 @@ function FileOpenGDALmultiBand_CB(handles, opt, opt2, opt3)
 	if (reseta),	opt = opt_bak;		end		% Wee need it with a known value for the remaining tests 
 
 	handles.fileName = [];		% Not eligible for automatic re-loading
-	handles.was_int16 = 0;		handles.computed_grid = 0;
+	handles.was_int16 = false;	handles.computed_grid = 0;
  	if ( any(strcmp(opt, {'ENVISAT' 'AVHRR' 'multiband'})) )
 		cmap = att.Band(1).ColorMap;
 		if (isempty(cmap)),		set(handles.figure1,'Colormap',jet(256))
@@ -2483,7 +2482,7 @@ function DrawLine_CB(handles, opt)
 	if (strncmp(opt,'free',4)),				[xp,yp] = getline_j(handles.figure1,'freehand');
 	elseif (strcmp(opt,'GCPmemory')),		xp = [0 0];			% Jump the manual drawing
 	elseif (strcmp(opt,'GCPimport')),		xp = [0 0];			% Jump the manual drawing
-	elseif (strncmp(opt,'spl',3)),			[xp,yp] = getline_j(handles.figure1,'spline');
+	elseif (strcmp(opt,'spline')),			[xp,yp] = getline_j(handles.figure1,'spline');
 	else									[xp,yp] = getline_j(handles.figure1);
 	end
 	n_nodes = numel(xp);					LS = 'none';
