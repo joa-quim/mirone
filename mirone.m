@@ -4458,15 +4458,15 @@ function TransferB_CB(handles, opt)
 		opt_A = sprintf('-A%d', resp.method);
 		opt_W = sprintf('-W%d', resp.size);
 		opt_N = sprintf('-N%d', handles.have_nans);
+		opt_G = ' ';
+		if (handles.geog),	opt_G = '-G';	end
 
-		Z = mirblock(Z, handles.head, opt_A, opt_N, opt_W);	% MUST flexiblize mirblock to acept 10 hdr elements
+		Z = mirblock(Z, handles.head, opt_A, opt_N, opt_W, opt_G);	% MUST flexiblize mirblock to acept 10 hdr elements
 		ind = find(isinf(Z(:)));
 		if (~isempty(ind)),	Z(ind) = NaN;	end
 		projWKT = getappdata(handles.figure1,'ProjWKT');
+		if (strcmp(resp.name, 'Slope')),	resp.name = 'Slope in degrees';		end
 		GRDdisplay(handles,X,Y,Z,handles.head,[],resp.name, projWKT);
-		if (handles.geog && (resp.method == 6 || resp.method == 7))
-			warndlg('WARNING: Sorry, computation of SLOPE or ASPECT of geographical grids is incorrect.', 'WARNERROR')
-		end
 
  	elseif (strcmp(opt,'dump'))					% Show the RAM fragmentation (Windows only)
 		dumpmemmex
