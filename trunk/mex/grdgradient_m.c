@@ -911,20 +911,20 @@ Lhill:
 		mxRealloc((void *)data, nx*ny * sizeof(float));
 	}
 	else if (is_int32) {
-		plhs[0] = mxCreateNumericMatrix (0,0,mxINT32_CLASS,mxREAL);
+		plhs[0] = mxCreateNumericMatrix (0,0,mxSINGLE_CLASS,mxREAL);
 		mxRealloc((void *)data, nx*ny * sizeof(float));
 	}
 	else if (is_int16) {
-		plhs[0] = mxCreateNumericMatrix (0,0,mxINT16_CLASS,mxREAL);
-		mxRealloc((void *)data, nx*ny * sizeof(short int));
+		plhs[0] = mxCreateNumericMatrix (0,0,mxSINGLE_CLASS,mxREAL);
+		mxRealloc((void *)data, nx*ny * sizeof(float));
 	}
 	else if (is_uint16) {
-		plhs[0] = mxCreateNumericMatrix (0,0,mxUINT16_CLASS,mxREAL);
-		mxRealloc((void *)data, nx*ny * sizeof(short int));
+		plhs[0] = mxCreateNumericMatrix (0,0,mxSINGLE_CLASS,mxREAL);
+		mxRealloc((void *)data, nx*ny * sizeof(float));
 	}
 	else if (is_uint8) {
-		plhs[0] = mxCreateNumericMatrix (0,0,mxUINT8_CLASS ,mxREAL);
-		mxRealloc((void *)data, nx*ny * sizeof(char));
+		plhs[0] = mxCreateNumericMatrix (0,0,mxSINGLE_CLASS,mxREAL);
+		mxRealloc((void *)data, nx*ny * sizeof(float));
 	}
 
 	if (is_double)
