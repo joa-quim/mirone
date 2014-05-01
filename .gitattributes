@@ -527,6 +527,7 @@ utils/clabel_j.m -text
 utils/click_e_point.m -text
 utils/conv2anugapts.m -text
 utils/cropimg.p -text
+utils/csv2cell.m -text
 utils/datasets_funs.m -text
 utils/date2jd.m -text
 utils/datums.m -text
