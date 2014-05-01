@@ -1,7 +1,7 @@
 function varargout = earthquakes(varargin)
-% Helper window to plot seimicity
+% Helper window to plot seismicity
 
-%	Copyright (c) 2004-2012 by J. Luis
+%	Copyright (c) 2004-2014 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -15,6 +15,8 @@ function varargout = earthquakes(varargin)
 %
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
+
+% $Id: $
 
 	if (isempty(varargin))
 		errordlg('EARTHQUAKES: wrong number of input arguments.','Error'),	return
@@ -253,105 +255,105 @@ function push_OK_CB(hObject, handles)
         mag_save = uint8(mag*10);
 	end
 
-% See if user only wants equal symbols (simple case)
-if (~get(handles.check_magSlices,'Value') && ~get(handles.check_depSlices,'Value'))
-	h_quakes = line('XData',lon,'YData',lat,'Parent',handles.mironeAxes,'Marker','o','LineStyle','none',...
-          'MarkerFaceColor','r','MarkerEdgeColor','k','MarkerSize',4,'Tag','Earthquakes');
-    setappdata(h_quakes,'SeismicityTime',year_dec);         % Save events time
-    setappdata(h_quakes,'SeismicityDepth',int16(depth*10)); % Save events depth
-    setappdata(h_quakes,'SeismicityMag',mag_save);          % Save events magnitude
-	draw_funs(h_quakes,'Earthquakes',[])
-    return      % We are donne. Bye Bye
-end
+	% See if user only wants equal symbols (simple case)
+	if (~get(handles.check_magSlices,'Value') && ~get(handles.check_depSlices,'Value'))
+		h_quakes = line('XData',lon,'YData',lat,'Parent',handles.mironeAxes,'Marker','o','LineStyle','none',...
+			  'MarkerFaceColor','r','MarkerEdgeColor','k','MarkerSize',4,'Tag','Earthquakes');
+		setappdata(h_quakes,'SeismicityTime',year_dec);         % Save events time
+		setappdata(h_quakes,'SeismicityDepth',int16(depth*10)); % Save events depth
+		setappdata(h_quakes,'SeismicityMag',mag_save);          % Save events magnitude
+		draw_funs(h_quakes,'Earthquakes',[])
+		return      % We are donne. Bye Bye
+	end
 
-if (get(handles.check_magSlices,'Value'))					% We have a magnitude slice request
-    cont = get(handles.popup_mag03,'String');	s(1) = str2double(cont{get(handles.popup_mag03,'Value')});
-    cont = get(handles.popup_mag35,'String');	s(2) = str2double(cont{get(handles.popup_mag35,'Value')});
-    cont = get(handles.popup_mag56,'String');	s(3) = str2double(cont{get(handles.popup_mag56,'Value')});
-    cont = get(handles.popup_mag67,'String');	s(4) = str2double(cont{get(handles.popup_mag67,'Value')});
-    cont = get(handles.popup_mag78,'String');	s(5) = str2double(cont{get(handles.popup_mag78,'Value')});
-    cont = get(handles.popup_mag8,'String');	s(6) = str2double(cont{get(handles.popup_mag8,'Value')});
-    id{1} = find(mag < 3);						id{2} = find(mag >= 3 & mag < 5);
-    id{3} = find(mag >= 5 & mag < 6);			id{4} = find(mag >= 6 & mag < 7);
-    id{5} = find(mag >= 7 & mag < 8);			id{6} = find(mag >= 8);
-    j = 1;
-    for (k=1:length(id))
-        if (~isempty(id{k}))
-            data_s{j} = [lon(id{k}) lat(id{k}) depth(id{k})];
-            grand(j) = s(k);
-            depth_s{j} = int16( depth(id{k})*10 );
-            mag_s{j} = mag_save(id{k});
-            year_s{j} = year_dec(id{k});
-            j = j + 1;
-        end
-    end
-    if (handles.have_mag_nans && get(handles.check_allMagnitudes,'Value'))
-        id = isnan(mag);
-        data_s{1} = [data_s{:}; lon(id) lat(id) depth(id)];
-    end
-    clear id;
-end
+	if (get(handles.check_magSlices,'Value'))					% We have a magnitude slice request
+		cont = get(handles.popup_mag03,'String');	s(1) = str2double(cont{get(handles.popup_mag03,'Value')});
+		cont = get(handles.popup_mag35,'String');	s(2) = str2double(cont{get(handles.popup_mag35,'Value')});
+		cont = get(handles.popup_mag56,'String');	s(3) = str2double(cont{get(handles.popup_mag56,'Value')});
+		cont = get(handles.popup_mag67,'String');	s(4) = str2double(cont{get(handles.popup_mag67,'Value')});
+		cont = get(handles.popup_mag78,'String');	s(5) = str2double(cont{get(handles.popup_mag78,'Value')});
+		cont = get(handles.popup_mag8, 'String');	s(6) = str2double(cont{get(handles.popup_mag8, 'Value')});
+		id{1} = find(mag < 3);						id{2} = find(mag >= 3 & mag < 5);
+		id{3} = find(mag >= 5 & mag < 6);			id{4} = find(mag >= 6 & mag < 7);
+		id{5} = find(mag >= 7 & mag < 8);			id{6} = find(mag >= 8);
+		j = 1;
+		for (k = 1:numel(id))
+			if (~isempty(id{k}))
+				data_s{j} = [lon(id{k}) lat(id{k}) depth(id{k})];
+				grand(j) = s(k);
+				depth_s{j} = int16(depth(id{k})*10);
+				mag_s{j} = mag_save(id{k});
+				year_s{j} = year_dec(id{k});
+				j = j + 1;
+			end
+		end
+		if (handles.have_mag_nans && get(handles.check_allMagnitudes,'Value'))
+			id = isnan(mag);
+			data_s{1} = [data_s{:}; lon(id) lat(id) depth(id)];
+		end
+		clear id;
+	end
 
-if (get(handles.check_depSlices,'Value'))    % We have a depth slice request
-    val(1) = get(handles.popup_dep0_33,'Value');    val(2) = get(handles.popup_dep33_70,'Value');
-    val(3) = get(handles.popup_dep70_150,'Value');  val(4) = get(handles.popup_dep150_300,'Value');
-    val(5) = get(handles.popup_dep300,'Value');
-    id{1} = find(depth < 33);                   id{2} = find(depth >= 33 & depth < 70);
-    id{3} = find(depth >= 70 & depth < 150);    id{4} = find(depth >= 150 & depth < 300);
-    id{5} = find(depth >= 300);
-    j = 1;      cor_str = get(handles.popup_dep0_33,'String');
-    for (k=1:length(id))
-        if (~isempty(id{k}))
-            data_d{j} = [lon(id{k}) lat(id{k})];
-            color(j) = cor_str{val(k)}(1);
-            depth_d{j} = int16( depth(id{k})*10 );
-            mag_d{j} = mag_save(id{k});
-            year_d{j} = year_dec(id{k});
-            j = j + 1;
-        end
-    end    
-end
+	if (get(handles.check_depSlices,'Value'))    % We have a depth slice request
+		val(1) = get(handles.popup_dep0_33,'Value');    val(2) = get(handles.popup_dep33_70,'Value');
+		val(3) = get(handles.popup_dep70_150,'Value');  val(4) = get(handles.popup_dep150_300,'Value');
+		val(5) = get(handles.popup_dep300,'Value');
+		id{1} = find(depth < 33);                   id{2} = find(depth >= 33 & depth < 70);
+		id{3} = find(depth >= 70 & depth < 150);    id{4} = find(depth >= 150 & depth < 300);
+		id{5} = find(depth >= 300);
+		j = 1;      cor_str = get(handles.popup_dep0_33,'String');
+		for (k=1:length(id))
+			if (~isempty(id{k}))
+				data_d{j} = [lon(id{k}) lat(id{k})];
+				color(j) = cor_str{val(k)}(1);
+				depth_d{j} = int16(depth(id{k})*10);
+				mag_d{j} = mag_save(id{k});
+				year_d{j} = year_dec(id{k});
+				j = j + 1;
+			end
+		end    
+	end
 
-if (get(handles.check_magSlices,'Value') && ~get(handles.check_depSlices,'Value'))		% Mag slices
-    for (k = 1:length(data_s))
-		h_quakes = line('XData',data_s{k}(:,1),'YData',data_s{k}(:,2),'LineStyle','none','Marker','o',...
-            'MarkerFaceColor','r','Parent',handles.mironeAxes,'MarkerEdgeColor','k',...
-            'MarkerSize',grand(k),'Tag','Earthquakes');
-        setappdata(h_quakes,'SeismicityDepth',depth_s{k});		% Save events depth
-        setappdata(h_quakes,'SeismicityMag',mag_s{k});			% Save events magnitude
-        setappdata(h_quakes,'SeismicityTime',year_s{k});		% Save events time
-        draw_funs(h_quakes,'Earthquakes',[])
-    end
-elseif (~get(handles.check_magSlices,'Value') && get(handles.check_depSlices,'Value')) % Depth slices
-    for (k = 1:length(data_d))
-		h_quakes = line('XData',data_d{k}(:,1),'YData',data_d{k}(:,2),'LineStyle','none','Marker','o',...
-            'MarkerFaceColor',color(k),'Parent',handles.mironeAxes,'MarkerEdgeColor','k',...
-            'MarkerSize',5,'Tag','Earthquakes');
-        setappdata(h_quakes,'SeismicityDepth',depth_d{k});		% Save events depth
-        setappdata(h_quakes,'SeismicityMag',mag_d{k});			% Save events magnitude
-        setappdata(h_quakes,'SeismicityTime',year_d{k});		% Save events time
-        draw_funs(h_quakes,'Earthquakes',[])
-    end
-else        % Both magnitude and depth slices
-    for (k = 1:length(data_s))    %
-        id{1} = find(data_s{k}(:,3) < 33);
-        id{2} = find(data_s{k}(:,3) >= 33 & data_s{k}(:,3) < 70);
-        id{3} = find(data_s{k}(:,3) >= 70 & data_s{k}(:,3) < 150);
-        id{4} = find(data_s{k}(:,3) >= 150 & data_s{k}(:,3) < 300);
-        id{5} = find(data_s{k}(:,3) >= 300);
-        for (m=1:5)
-            if (isempty(id{m})),     continue;      end
-		    h_quakes = line('XData',data_s{k}(id{m},1),'YData',data_s{k}(id{m},2),'LineStyle','none',...
-                'Marker','o','MarkerFaceColor',color(m),'Parent',handles.mironeAxes,...
-                'MarkerEdgeColor','k','MarkerSize',grand(k),'Tag','Earthquakes');
-            %setappdata(h_quakes,'SeismicityDepth',data_s{k}(id{m},3));		% Save events depth
-            setappdata(h_quakes,'SeismicityDepth',depth_s{k}(id{m}));		% Save events depth
-            setappdata( h_quakes,'SeismicityMag',mag_s{k}(id{m}) );			% Save events magnitude
-            setappdata( h_quakes,'SeismicityTime',year_s{k}(id{m}) );		% Save events time
-            draw_funs(h_quakes,'Earthquakes',[])
-        end
-    end
-end
+	if (get(handles.check_magSlices,'Value') && ~get(handles.check_depSlices,'Value'))		% Mag slices
+		for (k = 1:length(data_s))
+			h_quakes = line('XData',data_s{k}(:,1),'YData',data_s{k}(:,2),'LineStyle','none','Marker','o',...
+				'MarkerFaceColor','r','Parent',handles.mironeAxes,'MarkerEdgeColor','k',...
+				'MarkerSize',grand(k),'Tag','Earthquakes');
+			setappdata(h_quakes,'SeismicityDepth',depth_s{k});		% Save events depth
+			setappdata(h_quakes,'SeismicityMag',mag_s{k});			% Save events magnitude
+			setappdata(h_quakes,'SeismicityTime',year_s{k});		% Save events time
+			draw_funs(h_quakes,'Earthquakes',[])
+		end
+	elseif (~get(handles.check_magSlices,'Value') && get(handles.check_depSlices,'Value')) % Depth slices
+		for (k = 1:length(data_d))
+			h_quakes = line('XData',data_d{k}(:,1),'YData',data_d{k}(:,2),'LineStyle','none','Marker','o',...
+				'MarkerFaceColor',color(k),'Parent',handles.mironeAxes,'MarkerEdgeColor','k',...
+				'MarkerSize',5,'Tag','Earthquakes');
+			setappdata(h_quakes,'SeismicityDepth',depth_d{k});		% Save events depth
+			setappdata(h_quakes,'SeismicityMag',mag_d{k});			% Save events magnitude
+			setappdata(h_quakes,'SeismicityTime',year_d{k});		% Save events time
+			draw_funs(h_quakes,'Earthquakes',[])
+		end
+	else        % Both magnitude and depth slices
+		for (k = 1:numel(data_s))    %
+			id{1} = find(data_s{k}(:,3) < 33);
+			id{2} = find(data_s{k}(:,3) >= 33 & data_s{k}(:,3) < 70);
+			id{3} = find(data_s{k}(:,3) >= 70 & data_s{k}(:,3) < 150);
+			id{4} = find(data_s{k}(:,3) >= 150 & data_s{k}(:,3) < 300);
+			id{5} = find(data_s{k}(:,3) >= 300);
+			for (m = 1:5)
+				if (isempty(id{m})),     continue;      end
+				h_quakes = line('XData',data_s{k}(id{m},1),'YData',data_s{k}(id{m},2),'LineStyle','none',...
+					'Marker','o','MarkerFaceColor',color(m),'Parent',handles.mironeAxes,...
+					'MarkerEdgeColor','k','MarkerSize',grand(k),'Tag','Earthquakes');
+				%setappdata(h_quakes,'SeismicityDepth',data_s{k}(id{m},3));		% Save events depth
+				setappdata(h_quakes,'SeismicityDepth',depth_s{k}(id{m}));		% Save events depth
+				setappdata(h_quakes,'SeismicityMag',mag_s{k}(id{m}));			% Save events magnitude
+				setappdata(h_quakes,'SeismicityTime',year_s{k}(id{m}));			% Save events time
+				draw_funs(h_quakes,'Earthquakes',[])
+			end
+		end
+	end
 
 % -----------------------------------------------------------------------------
 function set_lims(handles,opt)
@@ -580,7 +582,7 @@ function [month, day] = jd2monday(jday,year)
 %   Author:      Peter J. Acklam
 %   Hacked to work with the "fake" JD that start at 1 at 1fst January of each year.
 
-	t = ( ~rem(year, 4) & rem(year, 100) ) | ~rem(year, 400);       % Check for leap-years
+	t = (~rem(year, 4) & rem(year, 100) ) | ~rem(year, 400);       % Check for leap-years
 	tt = (~t & jday > 59);
 	jday(tt) = jday(tt) + 1;            % Trick to make this algo work also for not leap-years
 
@@ -611,9 +613,9 @@ function yd = dec_year(varargin)
 	% Day in given month.
 	try
 		yd = days_in_prev_months(month) ...               % days in prev. months
-			 + ( isleapyear(year) & ( month > 2 ) ) ...   % leap day
+			 + (isleapyear(year) & (month > 2)) ...       % leap day
 			 + day ...                                    % day in month
-			 + ( second + 60*minute + 3600*hour )/86400;  % part of day
+			 + (second + 60*minute + 3600*hour )/86400;   % part of day
 	catch
 		yd = [];    return
 	end
@@ -621,7 +623,7 @@ function yd = dec_year(varargin)
 
 %--------------------------------------------------------------------------
 function t = isleapyear(year)
-	t = ( ~rem(year, 4) & rem(year, 100) ) | ~rem(year, 400);
+	t = (~rem(year, 4) & rem(year, 100)) | ~rem(year, 400);
 
 %--------------------------------------------------------------------------
 function s = int2str_m(x)
