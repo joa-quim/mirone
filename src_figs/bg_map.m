@@ -1,7 +1,7 @@
 function varargout = bg_map(varargin)
 % Helper window to select a basemap image in geogs
 
-%	Copyright (c) 2004-2013 by J. Luis
+%	Copyright (c) 2004-2014 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -27,7 +27,7 @@ function varargout = bg_map(varargin)
 	handles = guihandles(hObject);
 	move2side(hObject,'center');
 
-	if (numel(varargin) > 0)
+	if (~isempty(varargin))
 		handles.f_path = varargin{1};
 	else
 		lix = getappdata(0);
@@ -60,7 +60,7 @@ function varargout = bg_map(varargin)
 	set(handles.hBigRect,'ButtonDownFcn',{@bdn_bgTile,hObject})
 
 	im = uint8(ones(20,28,3) * 255);
-	im(5:6,5:25,:) = 0;			% Top  line
+	im(5:6,5:25,:) = 0;			% Top line
 	im(17:18,5:25,:) = 0;		% Bottom
 	im(5:18,5:6,:) = 0;			% Left
 	im(5:18,24:25,:) = 0;		% Right
@@ -134,14 +134,14 @@ function toggle_region_CB(hObject, handles)
 	end
 	[n_row, n_col, k] = size(get(findobj(handles.axes1,'Type', 'image'),'CData'));
 	x_min = -180;		y_min = -90;	inc = 360 / n_col;
-  
+
 	w = (p1(1) - 1) * inc + x_min;		e = (p2(1) - 1) * inc + x_min;		% Get Region in geogs
 	s = (n_row - p2(2)) * inc + y_min;	n = (n_row - p1(2)) * inc + y_min;	% Also change the stupid origin from UL to BL corner
 	pix_x = round(getPixel_coords(5400, [-180 180], [w e]));					% Now convert to the correct indices of big image 
 	pix_y = 2700 - round(getPixel_coords(2700, [-90 90], [s n])) + 1;			% Again the Y origin shit
 	pix_y = pix_y(2:-1:1);
-	
-	if ( (diff(pix_x(1:2)) < 10) || (diff(pix_y(1:2)) < 10) )
+
+	if ((diff(pix_x(1:2)) < 10) || (diff(pix_y(1:2)) < 10))
 		return
 	end
 
