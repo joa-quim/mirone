@@ -28,11 +28,11 @@ REM ----------------------------------------------------------------------------
 
 
 REM ------------- Set the compiler (set to 'icl' to use the Intel compiler) --------------
-SET CC=cl
+SET CC=icl
 REM --------------------------------------------------------------------------------------
 
 REM If set to "yes", linkage is done againsts ML6.5 Libs (needed in compiled version)
-SET R13="yes"
+SET R13="no"
 
 REM Set it to 32 or 64 to build under 64-bits or 32-bits respectively.
 SET BITS=32
@@ -47,8 +47,8 @@ SET TIMEIT=-DMIR_TIMEIT
 SET TIMEIT=
 
 REM To buils with OpenMP support (very few)
-SET OMP=-DHAVE_OPENMP 
 SET OMP=
+SET OMP=-DHAVE_OPENMP 
 
 REM
 REM Set to "yes" if you want to build a debug version
@@ -143,9 +143,9 @@ SET extra_cv_c=
 SET extra_cv_o=
 )
 
-SET OMP=/openmp
-IF %CC%==icl SET OMP=/Qopenmp
-SET COMPFLAGS=/c /Zp8 /GR /EHs /D_CRT_SECURE_NO_DEPRECATE /D_SCL_SECURE_NO_DEPRECATE /D_SECURE_SCL=0 /DMATLAB_MEX_FILE /nologo /MD /openmp
+SET OMP_F=/openmp
+IF %CC%==icl SET OMP_F=/Qopenmp
+SET COMPFLAGS=/c /Zp8 /GR /EHs /D_CRT_SECURE_NO_DEPRECATE /D_SCL_SECURE_NO_DEPRECATE /D_SECURE_SCL=0 /DMATLAB_MEX_FILE /nologo /MD %OMP_F%
 SET OPTIM2=/QxSSE4.2 /Qparallel /arch:SSE2 /fp:fast 
 IF %DEBUG%=="no" SET OPTIMFLAGS=/Ox /Oy- /arch:SSE2 /fp:precise /DNDEBUG
 IF %DEBUG%=="yes" SET OPTIMFLAGS=/Z7
