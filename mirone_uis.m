@@ -608,6 +608,7 @@ uimenu('Parent',hS,'Call','focal_meca(gcf)','Label','Focal mechanisms');
 uimenu('Parent',hS,'Call','meca_studio','Label','Focal Mechanisms demo');
 uimenu('Parent',hS,'Call','globalcmt(gcf)','Label','CMT Catalog (Web download)');
 uimenu('Parent',hS,'Call','earthquakes(gcf);','Label','Global seismicity (1990-2009)');
+uimenu('Parent',hS,'Call','usgs_recent_seismicity(gcf);','Label','USGS recent seismicity');
 uimenu('Parent',hS,'Call','ground_motion(guidata(gcbo))','Label','Ground motions');
 h = uimenu('Parent',hS,'Label','Elastic deformation','Sep','on');
 uimenu('Parent',h,'Call','mirone(''DrawLine_CB'',guidata(gcbo),''FaultTrace'')','Label','Draw Fault');
@@ -740,7 +741,7 @@ if (IamCompiled)
 end
 uimenu('Parent',h, 'Call',['mirone(''FileOpenWebImage_CB'',guidata(gcbo),',...
 	' ''http://www2.clustrmaps.com/stats/maps-clusters/w3.ualg.pt-~jluis-mirone-world.jpg'',''nikles'');'],'Label','See visitors map','Sep','on');
-uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 28 Apr 2014'',''2.6.0dev'')','Label','About','Sep','on');
+uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 1 May 2014'',''2.6.0dev'')','Label','About','Sep','on');
 
 %% --------------------------- Build HANDLES and finish things here
 	handles = guihandles(H1);
