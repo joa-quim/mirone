@@ -491,6 +491,7 @@ src_figs/tintol.m -text
 src_figs/travel.m -text
 src_figs/tsunamovie.m -text
 src_figs/umDmovie.m -text
+src_figs/usgs_recent_seismicity.m -text
 src_figs/vector_project.m -text
 src_figs/view_anuga.m -text
 src_figs/vitrinite.m -text
