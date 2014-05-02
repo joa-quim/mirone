@@ -1,7 +1,7 @@
 function varargout = diluvio(varargin)
 % Simulate the effect of sea-level variation on DEMs 
 
-%	Copyright (c) 2004-2012 by J. Luis
+%	Copyright (c) 2004-2014 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -16,6 +16,8 @@ function varargout = diluvio(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
+% $Id$
+
 	if isempty(varargin)	return,		end
 
 	hObject = figure('Vis','off');
@@ -24,9 +26,6 @@ function varargout = diluvio(varargin)
 	handMir = varargin{1};
 	move2side(handMir.figure1, hObject, 'right')
 
-	if ( ~(handMir.head(5) < 0 && handMir.head(6) > 0) )
-		warndlg('The grid Z values do not span both above and below zero. Result is undetermined.','Warning')
-	end
 	Z = getappdata(handMir.figure1,'dem_z');
 	if (~isempty(Z))
 		handles.have_nans = handMir.have_nans;
@@ -36,8 +35,9 @@ function varargout = diluvio(varargin)
 		handles.z_max_orig = handles.z_max;
 	else
 		warndlg('Grid was not stored in memory. Quiting','Warning')
-		delete(hObject);        return
+		delete(hObject),	return
 	end
+
 	handles.hAxesMir = handMir.axes1;
 	handles.hImgMir = handMir.hImg;
 	zz = scaleto8(Z,16);
@@ -53,7 +53,7 @@ function varargout = diluvio(varargin)
 	image(I(end:-1:1)','Parent',handles.axes1);
 	set(handles.axes1,'YTick',[],'XTick',[]);
 
-	% Add this figure handle to the carra?as list
+	% Add this figure handle to the carraças list
 	plugedWin = getappdata(handles.hMirFig,'dependentFigs');
 	plugedWin = [plugedWin hObject];
 	setappdata(handles.hMirFig,'dependentFigs',plugedWin);
@@ -62,19 +62,27 @@ function varargout = diluvio(varargin)
 	posThis = get(hObject,'Pos');
 	posParent = get(handles.hMirFig,'Pos');
 	ecran = get(0,'ScreenSize');
-	xLL = posParent(1) + posParent(3) + 6;
+	xLL = posParent(1) + posParent(3) + 12;
 	xLR = xLL + posThis(3);
 	if (xLR > ecran(3))         % If figure is partially out, bring totally into screen
-        xLL = ecran(3) - posThis(3);
+		xLL = ecran(3) - posThis(3);
 	end
 	yLL = (posParent(2) + posParent(4)/2) - posThis(4) / 2;
 	set(hObject,'Pos',[xLL yLL posThis(3:4)])
 
-	% Set the slider to the position corresponding to Z = 0
-	set(handles.slider_zeroLevel,'Min',handles.z_min,'Max',handles.z_max,'Value',0)
+	% Set the slider to the position corresponding to Z = 0, or z_min if grid doesn't cross 0
+	sl_0 = 0;
+	if (~(handMir.head(5) < 0 && handMir.head(6) > 0))		% OK, not the original intent but lets use it anyway
+		sl_0 = handMir.head(5);
+		set(handles.edit_zMin,'Str', ceil(sl_0))
+		set(handles.edit_zMax,'Str', floor(handMir.head(6)))
+		step = diff(handMir.head(5:6)) / 25;				% If it screws (i.e = 0), screws
+		set(handles.edit_zStep,'Str', fix(step))
+	end
+	set(handles.slider_zeroLevel, 'Min',handles.z_min, 'Max',handles.z_max, 'Value',sl_0)
 	set(handles.slider_zeroLevel,'SliderStep',[1 10]/dz)
 	
-	val_cor = round((0 - handles.z_min) / dz * size(handles.cmap,1));
+	val_cor = round((sl_0 - handles.z_min) / dz * size(handles.cmap,1));
 	handles.cmap = [repmat([0 0 1],val_cor,1); handles.cmap_original(val_cor+1:end,:)];
 	set(handles.figure1,'ColorMap',handles.cmap)
 	set(handles.hMirFig,'Colormap',handles.cmap)
@@ -96,22 +104,22 @@ function slider_zeroLevel_CB(hObject, handles)
 % -----------------------------------------------------------------------------------
 function edit_zMin_CB(hObject, handles)
     xx = str2double(get(hObject,'String'));
-    if (isnan(xx)),     set(hObject,'String','0');  end
+    if (isnan(xx)),		set(hObject,'String','0'),	end
 
 % -----------------------------------------------------------------------------------
 function edit_zMax_CB(hObject, handles)
     xx = str2double(get(hObject,'String'));
-    if (isnan(xx)),     set(hObject,'String','50');  end
+    if (isnan(xx)),		set(hObject,'String','50'),	end
 
 % -----------------------------------------------------------------------------------
 function edit_zStep_CB(hObject, handles)
     xx = str2double(get(hObject,'String'));
-    if (isnan(xx)),     set(hObject,'String','1');  end
+    if (isnan(xx)),		set(hObject,'String','1'),	end
 
 % -----------------------------------------------------------------------------------
 function edit_frameInterval_CB(hObject, handles)
     xx = str2double(get(hObject,'String'));
-    if (isnan(xx)),     set(hObject,'String','1');  end
+    if (isnan(xx)),		set(hObject,'String','1'),	end
 
 % -----------------------------------------------------------------------------------
 function push_run_CB(hObject, handles)
@@ -119,7 +127,7 @@ function push_run_CB(hObject, handles)
     zMax = round(str2double(get(handles.edit_zMax,'String')));
     dt = str2double(get(handles.edit_frameInterval,'String'));
     zStep = round(str2double(get(handles.edit_zStep,'String')));
-    zStep = zStep * sign(zMax);     % For going either up or down
+    %zStep = zStep * sign(zMax);     % For going either up or down
     
     for (z = zMin:zStep:zMax)
     	val_cor = round((z - handles.z_min) / (handles.z_max - handles.z_min) * length(handles.cmap));
@@ -134,7 +142,7 @@ function push_run_CB(hObject, handles)
 %-------------------------------------------------------------------------------------
 function figure1_KeyPressFcn(hObject, eventdata)
 	if isequal(get(hObject,'CurrentKey'),'escape')
-        delete(hObject);
+		delete(hObject);
 	end
 
 
@@ -185,7 +193,7 @@ uicontrol('Parent',h1,...
 uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
 'Call',@diluvio_uiCB,...
-'Position',[84 281 30 21],...
+'Position',[80 281 40 21],...
 'String','0',...
 'Style','edit',...
 'TooltipString','Starting value of sea level',...
@@ -194,7 +202,7 @@ uicontrol('Parent',h1,...
 uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
 'Call',@diluvio_uiCB,...
-'Position',[84 230 30 21],...
+'Position',[80 230 40 21],...
 'String','50',...
 'Style','edit',...
 'TooltipString','Maximum height of flooding',...
