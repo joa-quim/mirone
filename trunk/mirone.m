@@ -216,7 +216,7 @@ function hObject = mirone_OpeningFcn(varargin)
 					isReferenced = true;
 				end
 			else
-				X = [];			Y = [];			win_name = 'Cropped Image';
+				X = [];			Y = [];			win_name = 'Cropped_image';
 				handles.image_type = 2;			handles.geog = 0;		axis_t = 'off';
 				handles.head = [1 size(varargin{1}, 2) 1 size(varargin{1}, 1) 0 255 0 1 1];		% Fake a grid reg GMT header
 				if (ndims(varargin{1}) == 2),	set(handles.figure1,'Colormap',gray(256));	end
@@ -242,7 +242,7 @@ function hObject = mirone_OpeningFcn(varargin)
 			X = linspace(varargin{1}.range(1), varargin{1}.range(2), varargin{1}.n_columns);
 			Y = linspace(varargin{1}.range(3), varargin{1}.range(4), varargin{1}.n_rows);
 
-		elseif ( n_argin == 2 && isequal([size(varargin{2},1) size(varargin{2},2)],[1 9]) )
+		elseif (n_argin == 2 && isequal([size(varargin{2},1) size(varargin{2},2)],[1 9]))
 			% A matrix with the classic nine elements header vector
 			handles.head = varargin{2};
 			Z = varargin{1};			grd_data_in = true;
@@ -251,12 +251,12 @@ function hObject = mirone_OpeningFcn(varargin)
 			X = linspace(handles.head(1), handles.head(2), size(Z,2));
 			Y = linspace(handles.head(3), handles.head(4), size(Z,1));
 
-		elseif ( n_argin < 4 && ~(isa(varargin{1},'uint8') || isa(varargin{1},'int8')) )
+		elseif (n_argin < 4 && ~(isa(varargin{1},'uint8') || isa(varargin{1},'int8')))
 			% A matrix. Treat it as if it is a gmt grid. No error testing on the grid head descriptor
 			Z = varargin{1};			grd_data_in = true;
 			if (~isa(Z,'single')),		Z = single(Z);		end
 			handles.have_nans = grdutils(Z,'-N');
-			if ( numel(varargin) == 2 && isa(varargin{2},'struct') )		% An grid with a header
+			if (numel(varargin) == 2 && isa(varargin{2},'struct'))		% An grid with a header
 				tmp = varargin{2};
 				handles.head = tmp.head;	X = tmp.X;	Y = tmp.Y;
 				if (isfield(tmp,'name')),	win_name = tmp.name;	end		% All calls should transmit a name, but ...
@@ -276,7 +276,7 @@ function hObject = mirone_OpeningFcn(varargin)
 				handles.head = [1 size(Z,2) 1 size(Z,1) zz(1) zz(2) 0 1 1];
 				X = 1:size(Z,2);			Y = 1:size(Z,1);
 			end
-		elseif ( n_argin == 4 && isnumeric(varargin{1}) && isa(varargin{2},'struct') && ...
+		elseif (n_argin == 4 && isnumeric(varargin{1}) && isa(varargin{2},'struct') && ...
 				(strcmp(varargin{3},'Deformation') || strcmp(varargin{3},'Interfero')) )
 			% A matrix. Treat it as if it'is a gmt grid. No error testing on the grid head descriptor
 			% Note: this is a special case of the situation above that will be used to identify this figure
@@ -663,7 +663,7 @@ else					% Interactive croping (either Grid or Image)
 		Y = linspace( head(3) + (r_c(1)-1)*head(9), head(3) + (r_c(2)-1)*head(9), r_c(2) - r_c(1) + 1 );
 		head(1) = X(1);		head(2) = X(end);		head(3) = Y(1);		head(4) = Y(end);
 		tit = 'Grid cuted by Mirone';		% Have to change this to reflect the old title
-		GRDdisplay(handles,X,Y,Z_rect,head,tit,'Cropped grid')
+		GRDdisplay(handles,X,Y,Z_rect,head,tit,'Cropped_grid')
 		return
 	else			% Just a image crop op
 		I = cropimg;	[m,n] = size(I);
@@ -684,7 +684,7 @@ if (isempty(opt2) || strcmp(opt2,'CropaWithCoords'))	% Just pure Image croping
 		head(1) = handles.head(1) + (r_c(3)-1)*handles.head(8);
 		head(4) = handles.head(3) + (r_c(2)-1)*handles.head(9);
 		head(3) = handles.head(3) + (r_c(1)-1)*handles.head(9);
-		head(5:9) = [0 255 0 handles.head(8:9)];	tmp.name = 'Cropped Image';
+		head(5:9) = [0 255 0 handles.head(8:9)];	tmp.name = 'Cropped_image';
 		tmp.head = head;		tmp.geog = handles.geog;			tmp.X = head(1:2);		tmp.Y = head(3:4);
 		if (~isempty(pal)),		tmp.cmap = pal;		end
 		proj4 = getappdata(handles.figure1,'Proj4');
@@ -728,7 +728,7 @@ elseif ( strncmp(opt2(1:min(length(opt2),9)),'CropaGrid',9) )		% Do the operatio
 		end
 		if (~nargout)						% Create a new Fig
 			tit = 'Grid cuted by Mirone';	% Have to change this to reflect the old title
-			GRDdisplay(handles,X,Y,Z_rect,head,tit,'Cropped grid',srsWKT)
+			GRDdisplay(handles,X,Y,Z_rect,head,tit,'Cropped_grid',srsWKT)
 		else								% Send back the cropped grid to whom asked for it. 
 			varargout = {X,Y,Z_rect,head};	% Is not going to be easy to document this
 		end
