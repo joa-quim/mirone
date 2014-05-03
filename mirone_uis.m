@@ -651,12 +651,8 @@ uimenu('Parent',h,'Call','griding_mir(gcf,''nearneighbor'');', 'Label','Near nei
 %% --------------------------- GRID TOOLS --------------------------------
 hGT = uimenu('Parent',H1,'Label','Grid Tools','Tag','GridTools');		hVG(kv) = hGT;
 
-sep = 'off';
-if (~IamCompiled)
-    uimenu('Parent',hGT,'Call','grid_calculator(gcf)','Label','grid calculator');	sep = 'on';
-end
-
-h = uimenu('Parent',hGT,'Label','Contours','Sep',sep);
+uimenu('Parent',hGT,'Call','grid_calculator(gcf)','Label','grid calculator');
+h = uimenu('Parent',hGT,'Label','Contours','Sep','on');
 uimenu('Parent',h,'Call','mirone(''DrawContours_CB'',guidata(gcbo))','Label','Automatic','Tag','Contours_a');
 uimenu('Parent',h,'Call','mirone(''DrawContours_CB'',guidata(gcbo),''gui'')','Label','Contour Tool','Tag','Contours_i');
 
@@ -741,7 +737,7 @@ if (IamCompiled)
 end
 uimenu('Parent',h, 'Call',['mirone(''FileOpenWebImage_CB'',guidata(gcbo),',...
 	' ''http://www2.clustrmaps.com/stats/maps-clusters/w3.ualg.pt-~jluis-mirone-world.jpg'',''nikles'');'],'Label','See visitors map','Sep','on');
-uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 1 May 2014'',''2.6.0dev'')','Label','About','Sep','on');
+uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 4 May 2014'',''2.6.0dev'')','Label','About','Sep','on');
 
 %% --------------------------- Build HANDLES and finish things here
 	handles = guihandles(H1);
