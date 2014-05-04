@@ -110,7 +110,7 @@ function do_tests
 			'grid.a + grid.b - grid.c + 100', 'grid.a * sin(grid.b)', ...
 			'grid.a * grid.b + grid.c / cos(grid.b)', 'grid.a * grid.b + grid.c / grid.b', ...
 			'grid.b - grid.a * (grid.b / grid.a)', 'atan(grid.a) * 5 + 4 * 4', ...
-			'(grid.a + grid.b) * (grid.c + grid.a)'};
+			'(grid.a + grid.b) * (grid.c + grid.a)', 'grid.a * -1', 'grid.c + -1'};
 	for (k = numel(comms):-1:1)
 		comm = move_operator(comms{k});
 		commM = strrep(comm,'*','.*');	commM = strrep(commM,'/','./');	commM = strrep(commM,'^','.^');
@@ -493,17 +493,21 @@ function [out, msg, grid, s_names] = run_inner(comm, grid, s_names)
 		msg = 'Number of opening and closing parenthesis is not equal';		return
 	end
 	if (isempty(ind_l) && isempty(ind_r))			% Simplest case. A chain of basic operations
-		ops = split_ops(comm);
-		if (rem(numel(ops),2) == 0),	msg = 'Wrong number of operators + operands';	return,	end
+		[ops, msg] = sanitize_negs(comm);			% Split 'comm' in tokens and also try to address the 'MULL by -1' problem
+		if (~isempty(msg)),		return,		end
 		s = s_names;	% Shorter variable name
 		[out, ops, grid, msg, s_names] = exec_n_consume(ops, '^', grid, s);		% Consume all highest priority operations (POWER)
-		if (~isempty(msg) || numel(ops) == 1),		return,		end		% Either finished or error
+		if (~isempty(msg) || numel(ops) == 1),		return,		end				% Either finished or error
+
 		[out, ops, grid, msg, s_names] = exec_n_consume(ops, '*', grid, s);		% Consume second highest priority operations (MULL)
 		if (~isempty(msg) || numel(ops) == 1),		return,		end
+
 		[out, ops, grid, msg, s_names] = exec_n_consume(ops, '/', grid, s);		% Consume second highest priority operations (DIV)
 		if (~isempty(msg) || numel(ops) == 1),		return,		end
+
 		[out, ops, grid, msg, s_names] = exec_n_consume(ops, '+', grid, s);		% Consume lowest priority operations (SUM)
 		if (~isempty(msg) || numel(ops) == 1),		return,		end
+
 		[out, ops, grid, msg, s_names] = exec_n_consume(ops, '-', grid, s);		% Consume lowest priority operations (SUB)
 		if (~isempty(msg) || numel(ops) == 1),		return,		end
 
@@ -643,6 +647,31 @@ function [r, msg] = do_mull_add(a, b, op, grid)
 		else				r = a_n .^ grid.(b(6));
 		end
 	end
+
+% ------------------------------------------------------------------------
+function [ops, msg] = sanitize_negs(comm)
+% Try to deal with the problem of MULL/DIV by negative numbers
+	msg = '';
+	ops = split_ops(comm);
+	if (rem(numel(ops), 2) == 1),	return,		end		% Done here
+
+	ind = strfind(ops, '-');
+	for (k = numel(ops):-1:1)
+		if (~isempty(ind{k}))		% Found one '-'
+			f = NaN;
+			if (ind{k} == 1)		% First character in the command, check only if next is a number
+				f = str2double(ops{k+1});
+			elseif (ops{k-1} == '*' || ops{k-1} == '\' || ops{k-1} == '^' || ops{k-1} == '+' || ops{k-1} == '-')
+				f = str2double(ops{k+1});
+			end
+			if (~isnan(f))			% Glue the '-' and the number that follows it and clear one 'ops' 
+				ops{k} = ['-' ops{k+1}];
+				ops(k+1) = [];
+			end
+		end
+	end
+
+	if (rem(numel(ops), 2) == 0),	msg = 'Wrong number of operators + operands';	end
 
 % ------------------------------------------------------------------------
 function this_member = is_this_member_used(comm, this_member)
