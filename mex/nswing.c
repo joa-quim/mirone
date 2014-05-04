@@ -211,9 +211,9 @@ struct nestContainer {         /* Container for the nestings */
 	double *bat[10];                           /* Bathymetry of current level              */
 	double *fluxm_a[10],  *fluxm_d[10];        /* t-1/2 & t+1/2 fluxes arrays along X      */
 	double *fluxn_a[10],  *fluxn_d[10];        /* t-1/2 & t+1/2 fluxes arrays along Y      */
-	double *htotal_a[10], *htotal_d[10];       /* t-1/2 & t+1/2 total whater depth         */
+	double *htotal_a[10], *htotal_d[10];       /* t-1/2 & t+1/2 total water depth         */
 	double *vex[10],  *vey[10];                /* X,Y velocity components                  */
-	double *etaa[10], *etad[10];               /* t-1/2 & t+1/2 whater height (eta) arrays */
+	double *etaa[10], *etad[10];               /* t-1/2 & t+1/2 water height (eta) arrays */
 	double *edge_col[10], *edge_colTmp[10];
 	double *edge_row[10], *edge_rowTmp[10];
 	double *edge_col_P[10], *edge_col_Ptmp[10];
@@ -774,7 +774,7 @@ int main(int argc, char **argv) {
 		mexPrintf ("\t-n basename for MOST triplet files (no extension)\n");
 		mexPrintf ("\t-B name of a BoundaryCondition ASCII file\n");
 		mexPrintf ("\t-D write grids with the total water depth. These grids will have wave height on ocean\n");
-		mexPrintf ("\t   and whater thickness on land.\n");
+		mexPrintf ("\t   and water thickness on land.\n");
 		mexPrintf ("\t-C write grids with the momentum. i.e velocity times water depth.\n");
 		mexPrintf ("\t-E write grids with energy or power (-Ep). Apend a 'm' to save only one grid with the max values.\n");
 		mexPrintf ("\t   Since this can noticeably slow down the run, one can append a decimator factor after the comma.\n");
@@ -1214,7 +1214,7 @@ int main(int argc, char **argv) {
 		}
 		mexPrintf ("dtCFL = %.4f\tCourant number (sqrt(g*h)*dt / max(dx,dy)) = %g\n", dtCFL, 1/dtCFL * dt);
 		if (nest.do_long_beach) mexPrintf("Output the 'Dry beach' mask.\n");
-		if (water_depth)    mexPrintf("Output wave height plus whater thickness on land.\n");
+		if (water_depth)    mexPrintf("Output wave height plus water thickness on land.\n");
 		if (out_momentum)   mexPrintf("Output momentum (V * D).\n");
 		if (time_jump)      mexPrintf("Hold on %.3f seconds before starting to save results.\n", time_jump);
 		if (nest.run_jump_time)
