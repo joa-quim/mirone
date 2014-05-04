@@ -51,8 +51,8 @@ static char prog_id[] = "$Id$";
  *
  *
  * To compile, do for example
- *	cl nswing.c -IC:\programs\compa_libs\netcdf_GIT\compileds\VC10_64\include
- *     C:\programs\compa_libs\netcdf_GIT\compileds\VC10_64\lib\netcdf.lib /DI_AM_C 
+ *	cl nswing.c -IC:\programs\compa_libs\netcdf_GIT\compileds\VC12_64\include
+ *     C:\programs\compa_libs\netcdf_GIT\compileds\VC12_64\lib\netcdf.lib /DI_AM_C 
  *     /DHAVE_NETCDF /fp:precise /Ox
  *
  *	Translated to C, mexified, added number options, etc... By
@@ -193,6 +193,7 @@ struct grd_header {     /* Generic grid hdr structure */
 struct nestContainer {         /* Container for the nestings */
 	int    do_upscale;         /* If false, do not upscale the parent grid */
 	int    do_long_beach;      /* If true, compute a mask with ones over the "dryed beach" */
+	int    do_linear;          /* If true, use linear approximation */
 	int    out_velocity_x;     /* To know if we must compute the vex,vey velocity arrays */
 	int    out_velocity_y;
 	int    isGeog;             /* 0 == Cartesian, otherwise Geographic coordinates */
@@ -548,6 +549,8 @@ int main(int argc, char **argv) {
 				case 'A':	/* Name for the Anuga .sww netCDF file */
 					fname_sww  = &argv[i][2];
 					out_sww = TRUE;
+					if (argv[i][2] == 'l')		/* Output land nodes in SWW file */
+						with_land = TRUE;
 					break;
 				case 'B':	/* File with the boundary condition (experimental) */
 					bnc_file = &argv[i][2];
@@ -623,8 +626,8 @@ int main(int argc, char **argv) {
 						sscanf (&argv[i][2], "%lf", &time_jump);
 
 					break;
-				case 'L':	/* Output land nodes in SWW file */
-					with_land = TRUE;
+				case 'L':		/* Use linear approximation */
+					nest.do_linear = TRUE;
 					break;
 				case 'M':
 					if (argv[i][2] == '-') {	/* Compute a mask with ones over the "dried beach" */
@@ -720,7 +723,7 @@ int main(int argc, char **argv) {
 #endif
 					break;
 				case 'U':
-					nest.do_upscale = FALSE;
+					nest.do_upscale = TRUE;
 					break;
 				case 'V':
 					verbose = TRUE;
@@ -759,13 +762,13 @@ int main(int argc, char **argv) {
 		mexPrintf ("NSWING - A tsunami maker (%s)\n\n", prog_id);
 #ifdef I_AM_MEX
 		mexPrintf ("nswing(bat,hdr_bat,deform,hdr_deform, [-1<bat_lev1>], [-2<bat_lev2>], [-3<...>] [maregs], [-G|Z<name>[+lev],<int>], [-A<fname.sww>]\n");
-		mexPrintf ("       [-B<BCfile>], [-C], [-D], [-E[p][m][,decim]], [-J<time_jump>[+run_time_jump]], [-M[-[<maskname>]]], [-N<n_cycles>], [-Rw/e/s/n], [-S[x|y|n][+m]]\n");
+		mexPrintf ("       [-B<BCfile>], [-C], [-D], [-E[p][m][,decim]], [-J<time_jump>[+run_time_jump]], [-L], [-M[-[<maskname>]]], [-N<n_cycles>], [-Rw/e/s/n], [-S[x|y|n][+m]]\n");
 		mexPrintf ("       [-O<int>,<outmaregs>], [-T<int>,<mareg>[,<outmaregs[+n]>]], -t<dt> [-f]\n");
 #else
 		mexPrintf ("nswing bathy.grd initial.grd [-1<bat_lev1>] [-2<bat_lev2>] [-3<...>] [-G|Z<name>[+lev],<int>] [-A<fname.sww>]\n");
 		mexPrintf ("       [-B<BCfile>] [-C] [-D] [-E[p][m][,decim]] [-Fdip/strike/rake/slip/length/width/topDepth/x_epic/y_epic]\n"); 
-		mexPrintf ("       [-J<time_jump>[+run_time_jump]] [-M[-[<maskname>]]] [-N<n_cycles>] [-Rw/e/s/n] [-S[x|y|n][+m]] [-O<int>,<outmaregs>]\n");
-		mexPrintf ("       [-T<int>,<mareg>[,<outmaregs[+n]>]] -t<dt> [-f]\n");
+		mexPrintf ("       [-J<time_jump>[+run_time_jump]] [-L] [-M[-[<maskname>]]] [-N<n_cycles>] [-Rw/e/s/n] [-S[x|y|n][+m]]\n");
+		mexPrintf ("       [-O<int>,<outmaregs>] [-T<int>,<mareg>[,<outmaregs[+n]>]] -t<dt> [-f]\n");
 #endif
 		mexPrintf ("\t-A <name> save result as a .SWW ANUGA format file\n");
 		mexPrintf ("\t-n basename for MOST triplet files (no extension)\n");
@@ -785,8 +788,9 @@ int main(int argc, char **argv) {
 		mexPrintf ("\t-G<stem> write grids at the int intervals. Append file prefix. Files will be called <stem>#.grd\n");
 		mexPrintf ("\t   When doing nested grids, append +lev to save that particular level (only one level is allowed)\n");
 		mexPrintf ("\t-J<time_jump> Do not write grids or maregraphs for times before time_jump in seconds.\n");
-		mexPrintf ("\t   When doing nested grids, append +<time> to NOT start computations of nested grids before this");
-		mexPrintf ("\t   time has elapsed. Any of these forms is allowed: -Jt1, -J+t2, -Jt1+t2 or -Jt1 -J+t2");
+		mexPrintf ("\t   When doing nested grids, append +<time> to NOT start computations of nested grids before this\n");
+		mexPrintf ("\t   time has elapsed. Any of these forms is allowed: -Jt1, -J+t2, -Jt1+t2 or -Jt1 -J+t2\n");
+		mexPrintf ("\t-L Use linear approximation in moment conservation equations (faster but less good).\n");
 		mexPrintf ("\t-M write grid of max water level. Append a '-' to compute instead the maximum water retreat.\n");
 		mexPrintf ("\t   The result is writen in a mask file with a default name of 'long_beach.grd'.\n");
 		mexPrintf ("\t   To use a different name append it after the '-' sign. Example: -M-beach_long.grd\n");
@@ -1577,8 +1581,9 @@ int main(int argc, char **argv) {
 void sanitize_nestContainer(struct nestContainer *nest) {
 	int i;
 
-	nest->do_upscale     = TRUE;
+	nest->do_upscale     = FALSE;
 	nest->do_long_beach  = FALSE;
+	nest->do_linear      = FALSE;
 	nest->out_velocity_x = FALSE;
 	nest->out_velocity_y = FALSE;
 	nest->bnc_var_nTimes = 0;
@@ -3104,6 +3109,8 @@ void moment_M(struct nestContainer *nest, int lev) {
 		jupe = 5;    first = 0;    last = 1;
 	}
 
+	if (nest->do_linear) jupe = 1e6;		/* A tricky way of imposing linearity */
+
 	/* fixes friction parameter */
 	cte = (manning2) ? dt * 4.9 : 0;
 
@@ -3287,6 +3294,8 @@ void moment_N(struct nestContainer *nest, int lev) {
 	else {
 		jupe = 5;    first = 0;    last = 1;
 	}
+
+	if (nest->do_linear) jupe = 1e6;		/* A tricky way of imposing linearity */
 
 	/* fixes friction parameter */
 	cte = (manning2) ? dt * 4.9 : 0;
@@ -3557,6 +3566,8 @@ void moment_sp_M(struct nestContainer *nest, int lev) {
 		jupe = 10;   first = 0;    last = 1;
 	}
 
+	if (nest->do_linear) jupe = 1e6;		/* A tricky way of imposing linearity */
+
 	/* - fixes friction parameter */
 	cte = (manning2) ? dt * 4.9 : 0;
 
@@ -3742,6 +3753,8 @@ void moment_sp_N(struct nestContainer *nest, int lev) {
 	else {
 		jupe = 10;   first = 0;    last = 1;
 	}
+
+	if (nest->do_linear) jupe = 1e6;		/* A tricky way of imposing linearity */
 
 	/* - fixes friction parameter */
 	cte = (manning2) ? dt * 4.9 : 0;
