@@ -2905,10 +2905,10 @@ void mass(struct nestContainer *nest, int lev) {
 				if (nest->do_long_beach && bat[ij] > 0 && dd < EPS1)
 					nest->long_beach[lev][ij] = 1;
 			}
-			//else {			/* over dry areas htotal is null and eta follows bat */
-				//htotal_d[ij] = 0;
-				//etad[ij] = -bat[ij];
-			//}
+			else {			/* over dry areas htotal is null and eta follows bat */
+				htotal_d[ij] = 0;
+				etad[ij] = -bat[ij];
+			}
 			ij++;
 		}
 	}
@@ -3505,12 +3505,13 @@ void mass_sp(struct nestContainer *nest, int lev) {
 				     - nest->fluxn_a[lev][ij-rm1] * nest->r1n[lev][rowm1]);
 				if (fabs(etan) < EPS10) etan = 0;
 				dd = etan + nest->bat[lev][ij];
-				/* caso da zona molhavel */
+
+				/* wetable zone */
 				if (dd >= EPS10) {
 					nest->htotal_d[lev][ij] = dd;
 					nest->etad[lev][ij] = etan;
 				}
-				else {
+				else {		/* over dry areas htotal is null and eta follows bat */
 					nest->htotal_d[lev][ij] = 0;
 					nest->etad[lev][ij] = -nest->bat[lev][ij];
 				}
@@ -3518,10 +3519,10 @@ void mass_sp(struct nestContainer *nest, int lev) {
 				if (nest->do_long_beach && nest->bat[lev][ij] > 0 && dd < EPS1)
 					nest->long_beach[lev][ij] = 1;
 			}
-			//else {			/* nas regioes dry poe o h a 0 e o eta a -bat */
-				//nest->htotal_d[lev][ij] = 0;
-				//nest->etad[lev][ij] = -nest->bat[lev][ij];
-			//}
+			else {			/* over dry areas htotal is null and eta follows bat */
+				nest->htotal_d[lev][ij] = 0;
+				nest->etad[lev][ij] = -nest->bat[lev][ij];
+			}
 			ij++;
 		}
 	}
