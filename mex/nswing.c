@@ -161,6 +161,11 @@ static char prog_id[] = "$Id$";
 
 typedef void (*PFV) ();		/* PFV declares a pointer to a function returning void */
 
+struct tracers {        /* For tracers (oranges) */
+	double *x;          /* x coordinate */
+	double *y;          /* y coordinate */
+};
+
 struct srf_header {     /* Surfer file hdr structure */
 	char id[4];         /* ASCII Binary identifier (DSAA/DSBB) */
 	short int nx;       /* Number of columns */
@@ -245,6 +250,7 @@ int  write_grd_bin(char *name, double x_min, double y_min, double x_inc, double 
 int  read_grd_ascii (char *file, struct srf_header *hdr, double *work, int sign);
 int  read_grd_bin (char *file, struct srf_header *hdr, double *work, int sign);
 int  read_maregs(struct grd_header hdr, char *file, unsigned int *lcum_p);
+int  read_tracers(struct grd_header hdr, char *file, struct tracers *oranges);
 int  count_n_maregs(char *file);
 int  decode_R (char *item, double *w, double *e, double *s, double *n);
 int  check_region (double w, double e, double s, double n);
@@ -343,7 +349,9 @@ int main(int argc, char **argv) {
 	int     first_anuga_time = TRUE, out_sww = FALSE, out_most = FALSE, out_3D = FALSE;
 	int     surf_level = TRUE, max_level = FALSE, water_depth = FALSE;
 	int     do_Okada = FALSE;            /* For when one will compute the Okada deformation here */
+	int     do_tracers = FALSE;          /* For when doing Lagrangian tracers */
 	int     out_maregs_nc = FALSE;       /* For when maregs in output are written in netCDF */
+	int     out_oranges_nc = FALSE;      /* For when tracers in output are written in netCDF */
 	int     n_arg_no_char = 0;
 	int     ncid, ncid_most[3], z_id = -1, ids[13], ids_ha[6], ids_ua[6], ids_va[6], ids_most[3];
 	int     ncid_3D[3], ids_z[5], ids_vx[4], ids_vy[4], ids_3D[3];
@@ -354,7 +362,7 @@ int main(int argc, char **argv) {
 	int     with_land = FALSE, IamCompiled = FALSE, do_nestum = FALSE, saveNested = FALSE, verbose = FALSE;
 	int     out_velocity = FALSE, out_velocity_x = FALSE, out_velocity_y = FALSE, out_velocity_r = FALSE;
 	int     out_maregs_velocity = FALSE;
-	unsigned int *lcum_p = NULL, lcum = 0, n_mareg, n_ptmar, cycle = 1, ij, nx, ny;
+	unsigned int *lcum_p = NULL, lcum = 0, n_mareg, n_ptmar, n_oranges, cycle = 1, ij, nx, ny;
 	unsigned int i_start, j_start, i_end, j_end, count_maregs_timeout = 0, count_time_maregs_timeout = 0;
 	size_t	start0 = 0, count0 = 1, len, start1_A[2] = {0,0}, count1_A[2], start1_M[3] = {0,0,0}, count1_M[3];
 	char   *bathy   = NULL;             /* Name pointer for bathymetry file */
@@ -366,6 +374,7 @@ int main(int argc, char **argv) {
 	char   *fonte    = NULL;            /* Name pointer for tsunami source file */
 	char   *bnc_file = NULL;            /* Name pointer for a boundary condition file */
 	char   *fname_mask = NULL;          /* Name pointer for the "long_beach" mask grid */
+	char    tracers_infile[256] = "", tracers_outfile[256] = "";	/* Names for in and out tracers files */
 	char    stem[256] = "", prenome[128] = "", str_tmp[128] = "";
 	char   *pch;
 	char   *nesteds[10] = {NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL};
@@ -379,6 +388,7 @@ int main(int argc, char **argv) {
 	double  dt = 0;                     /* Time step for Base level grid */
 	double  dx, dy, ds, dtCFL, etam, one_100, t;
 	double *eta_for_maregs, *vx_for_maregs, *vy_for_maregs, *htotal_for_maregs, *fluxm_for_maregs, *fluxn_for_maregs;
+	double *vx_for_oranges, *vy_for_oranges, *fluxm_for_oranges, *fluxn_for_oranges, *htotal_for_oranges;	/* For tracers */
 	double  f_dip, f_azim, f_rake, f_slip, f_length, f_width, f_topDepth, x_epic, y_epic;	/* For Okada initial condition */
 	double  add_const = 0, manning2 = 0, time_h = 0;
 
@@ -387,7 +397,8 @@ int main(int argc, char **argv) {
 	struct	srf_header hdr_b, hdr_f;
 	struct	grd_header hdr;
 	struct  nestContainer nest;
-	FILE   *fp;
+	struct  tracers *oranges;
+	FILE   *fp, *fp_oranges;
 #ifdef I_AM_MEX
 	int     argc;
 	unsigned nm;
@@ -627,9 +638,27 @@ int main(int argc, char **argv) {
 
 					break;
 				case 'L':		/* Use linear approximation */
-					nest.do_linear = TRUE;
+					if (!argv[i][2])
+						nest.do_linear = TRUE;
+					else {
+						sscanf (&argv[i][2], "%s", &str_tmp);
+						if (str_tmp[strlen(str_tmp)-2] == '+') {	/* Output tracers file will be in netCDF */
+							out_oranges_nc = TRUE;
+							str_tmp[strlen(str_tmp)-2] = '\0';
+						}
+						if ((pch = strstr(str_tmp,",")) != NULL) {
+							char *pch2;
+							pch[0] = '\0';
+							strcpy(tracers_infile, str_tmp);
+							strcpy(tracers_outfile, ++pch);		/* NEED TO TEST IF WE GOT A FNAME */
+						}
+						else {
+							mexPrintf("NSWING: Error, -L option, must provide at least the tracers file name\n");
+							error++;
+						}
+						do_tracers = TRUE;						
+					}
 					break;
-				case 'M':
 					if (argv[i][2] == '-') {	/* Compute a mask with ones over the "dried beach" */
 						nest.do_long_beach = TRUE;
 						if (argv[i][3])
@@ -767,7 +796,7 @@ int main(int argc, char **argv) {
 #else
 		mexPrintf ("nswing bathy.grd initial.grd [-1<bat_lev1>] [-2<bat_lev2>] [-3<...>] [-G|Z<name>[+lev],<int>] [-A<fname.sww>]\n");
 		mexPrintf ("       [-B<BCfile>] [-C] [-D] [-E[p][m][,decim]] [-Fdip/strike/rake/slip/length/width/topDepth/x_epic/y_epic]\n"); 
-		mexPrintf ("       [-J<time_jump>[+run_time_jump]] [-L] [-M[-[<maskname>]]] [-N<n_cycles>] [-Rw/e/s/n] [-S[x|y|n][+m]]\n");
+		mexPrintf ("       [-J<time_jump>[+run_time_jump]] [-L[name1,name2]] [-M[-[<maskname>]]] [-N<n_cycles>] [-Rw/e/s/n] [-S[x|y|n][+m]]\n");
 		mexPrintf ("       [-O<int>,<outmaregs>] [-T<int>,<mareg>[,<outmaregs[+n]>]] -t<dt> [-f]\n");
 #endif
 		mexPrintf ("\t-A <name> save result as a .SWW ANUGA format file\n");
@@ -791,6 +820,8 @@ int main(int argc, char **argv) {
 		mexPrintf ("\t   When doing nested grids, append +<time> to NOT start computations of nested grids before this\n");
 		mexPrintf ("\t   time has elapsed. Any of these forms is allowed: -Jt1, -J+t2, -Jt1+t2 or -Jt1 -J+t2\n");
 		mexPrintf ("\t-L Use linear approximation in moment conservation equations (faster but less good).\n");
+		mexPrintf ("\t-L <in_fname>,<out_fname> Do Lagragian tracers, where <in_fname> is the file name of the tracers\n");
+		mexPrintf ("\t   initial position and <out_fname> the file name to hold the results.\n");
 		mexPrintf ("\t-M write grid of max water level. Append a '-' to compute instead the maximum water retreat.\n");
 		mexPrintf ("\t   The result is writen in a mask file with a default name of 'long_beach.grd'.\n");
 		mexPrintf ("\t   To use a different name append it after the '-' sign. Example: -M-beach_long.grd\n");
@@ -856,7 +887,7 @@ int main(int argc, char **argv) {
 			error++;
 		}
 		else if (!maregs) {
-			mexPrintf("NSWING: error, -T or -O options imply a saving interval\n");
+			mexPrintf("NSWING: error, -T or -O options imply a maregs file\n");
 			error++;
 		}
 		else if (!hcum || !strcmp(hcum, "")) {
@@ -884,6 +915,14 @@ int main(int argc, char **argv) {
 				mexPrintf ("NSWING: Warning file %s has no valid data.\n", maregs);
 				cumpt = FALSE;
 			}
+		}
+	}
+
+	if (do_tracers) {	/* Count number of oranges */
+		n_oranges = count_n_maregs(tracers_infile);    /* Count tracers number */
+		if (n_oranges <= 0) {
+			mexPrintf ("NSWING: Warning file %s has no valid data. Ignoring this option\n", tracers_infile);
+			do_tracers = FALSE;			
 		}
 	}
 
@@ -1060,12 +1099,38 @@ int main(int argc, char **argv) {
 
 	if (cumpt && !maregs_in_input) {
 		lcum_p = (unsigned int *) mxCalloc ((size_t)(2048), sizeof(unsigned int));	/* We wont ever use these many */
-		if ((n_mareg = read_maregs(nest.hdr[writeLevel], maregs, lcum_p)) < 1) {	/* Read maregraph locations and recount them */
+		if ((n_mareg = read_maregs(nest.hdr[writeLevel], maregs, lcum_p)) < 1) {	/* Read maregraph locations */
 			mexPrintf("NSWING - WARNING: No maregraphs inside the (inner?) grid\n");
 			n_mareg = 0;
 			if (lcum_p) mxFree (lcum_p);
 			mxFree((void *) cum_p);	mxFree ((void *) time_p);	 
 			cumpt = FALSE;
+		}
+	}
+
+	/* ------- If we have a tracers (oranges) file, time to load it ------------ */
+	if (do_tracers) {
+		if ((fp_oranges = fopen (tracers_outfile, "wt")) == NULL) {
+			mexPrintf ("NSWING: Unable to open output tracers file %s - ignoring this option\n", tracers_outfile);
+			do_tracers = FALSE;
+		}
+		else {
+			oranges = (struct tracers *) mxCalloc((size_t)n_oranges, sizeof(struct tracers));
+			for (n = 0; n < n_oranges; n++) {
+				oranges[n].x = (double *) mxCalloc((size_t)(n_of_cycles), sizeof(double));
+				oranges[n].y = (double *) mxCalloc((size_t)(n_of_cycles), sizeof(double));
+			}
+			if ((n_oranges = read_tracers(nest.hdr[writeLevel], tracers_infile, oranges)) < 1) {	/* Read orange locations */
+				mexPrintf("NSWING - WARNING: No tracers inside the (inner?) grid\n");
+				for (n = 0; n < n_oranges; n++) {mxFree(oranges[n].x);		mxFree(oranges[n].y);}
+				do_tracers = FALSE;
+			}
+			/* Select which vx/vy will be used to compute the lagragian tracers */
+			vx_for_oranges     = nest.vex[writeLevel];
+			vy_for_oranges     = nest.vey[writeLevel];
+			fluxm_for_oranges  = nest.fluxm_d[writeLevel];
+			fluxn_for_oranges  = nest.fluxn_d[writeLevel];
+			htotal_for_oranges = nest.htotal_d[writeLevel];
 		}
 	}
 
@@ -1225,6 +1290,10 @@ int main(int argc, char **argv) {
 			if (max_power)
 				mexPrintf("Output maximum Power with a decimation of %d\n", decimate_max);
 		}
+		if (nest.do_linear)
+			mexPrintf("Using Linear approximation\n");
+		if (do_tracers)
+			mexPrintf("Computing tracers from file %s \n", tracers_infile);
 	}
 	/* --------------------------------------------------------------------------------------- */
 
@@ -1333,6 +1402,40 @@ int main(int argc, char **argv) {
 				fprintf (fp, "\n");
 			}
 		}
+
+#if 1
+		if (do_tracers && k > 0) {
+			unsigned int ix, jy, itmp, ij_c, n;
+			double vx, vy, vx1, vx2, vy1, vy2, dx, dy;
+			for (n = 0; n < n_oranges; n++) {
+				ix = (int)((oranges[n].x[k-1] - nest.hdr[writeLevel].x_min) / nest.hdr[writeLevel].x_inc);
+				jy = (int)((oranges[n].y[k-1] - nest.hdr[writeLevel].y_min) / nest.hdr[writeLevel].y_inc);
+				dx = oranges[n].x[k-1] - (nest.hdr[writeLevel].x_min + ix * nest.hdr[writeLevel].x_inc);
+				dy = oranges[n].y[k-1] - (nest.hdr[writeLevel].y_min + jy * nest.hdr[writeLevel].y_inc);
+
+				ij_c = jy * nest.hdr[writeLevel].nx + ix;   /* Linear index LowerLeft cell corner */
+				if (htotal_for_oranges[ij_c] > EPS2 && htotal_for_oranges[ij_c + 1] > EPS2) {
+					vx1 = fluxm_for_oranges[ij_c]   / htotal_for_oranges[ij_c];
+					vx2 = fluxn_for_oranges[ij_c+1] / htotal_for_oranges[ij_c+1];
+				}
+				else
+					vx1 = vx2 = 0;
+
+				ij_c += nest.hdr[writeLevel].nx;            /* Linear index UpperLeft cell corner */
+				if (htotal_for_oranges[ij_c] > EPS2 && htotal_for_oranges[ij_c + 1] > EPS2) {
+					vy1 = fluxm_for_oranges[ij_c]   / htotal_for_oranges[ij_c];
+					vy2 = fluxn_for_oranges[ij_c+1] / htotal_for_oranges[ij_c+1];
+				}
+				else
+					vy1 = vy2 = 0;
+
+				vx = vx1 + (vx2 - vx1) * dx / nest.hdr[writeLevel].x_inc;
+				vy = vy1 + (vy2 - vy1) * dy / nest.hdr[writeLevel].y_inc;
+				oranges[n].x[k] = oranges[n].x[k-1] + vx * dt;
+				oranges[n].y[k] = oranges[n].y[k-1] + vy * dt;
+			}
+		}
+#endif
 
 		/* ------------------------------------------------------------------------------------ */
 		/* -- This chunk deals with the cases where we compute something at every step
@@ -1514,9 +1617,6 @@ int main(int argc, char **argv) {
 		nest.time_h = time_h;
 		cycle++;
 	}
-#ifdef MIR_TIMEIT
-	mexPrintf("NSWING: CPU secs/ticks = %.3f\n", (double)(clock() - tic));
-#endif
 
 #ifdef HAVE_NETCDF
 	if (out_sww) {          /* Uppdate range values and close SWW file */
@@ -1544,6 +1644,21 @@ int main(int argc, char **argv) {
 		mxFree (maregs_timeout);
 	}
 #endif
+	
+	if (do_tracers) {			/* Write the tracers file and free memory */
+		for (k = 0; k < n_of_cycles; k++) {
+			fprintf (fp_oranges, "%.2f", k * dt);
+			for (n = 0; n < n_oranges; n++)
+				fprintf (fp_oranges, "\t%.5f\t%.5f", oranges[n].x[k], oranges[n].y[k]);
+
+			fprintf (fp_oranges, "\n");
+		}
+
+		fclose (fp_oranges);
+		for (n = 0; n < n_oranges; n++) {
+			mxFree(oranges[n].x);		mxFree(oranges[n].y);
+		}
+	}
 
 #ifdef I_AM_MEX
 	if (!IamCompiled) {
@@ -2152,8 +2267,43 @@ int read_maregs(struct grd_header hdr, char *file, unsigned int *lcum_p) {
 		if (x < hdr.x_min || x > hdr.x_max || y < hdr.y_min || y > hdr.y_max)
 			continue;
 		ix = irint((x - hdr.x_min) / hdr.x_inc);
-		jy = irint((y - hdr.y_min) / hdr.y_inc); 
+		jy = irint((y - hdr.y_min) / hdr.y_inc);
 		lcum_p[i] = jy * hdr.nx + ix; 
+		i++;
+	}
+	fclose (fp);
+	return (i);
+}
+
+/* -------------------------------------------------------------------- */
+int read_tracers(struct grd_header hdr, char *file, struct tracers *oranges) {
+	/* Read tracers positions */
+	int     i = 0, k = 0, ix, jy, n;
+	char    line[256];
+	double  x, y;
+	FILE   *fp;
+
+	if ((fp = fopen (file, "r")) == NULL) {
+		mexPrintf ("NSWING: Unable to open file %s - exiting\n", file);
+		return (-1);
+	}
+
+	while (fgets (line, 256, fp) != NULL) {
+		k++;
+		if (line[0] == '#') continue;	/* Jump comment lines */
+		if ((n = sscanf (line, "%lf %lf", &x, &y)) != 2) {
+			if (n == 1) {				/* Try with commas */
+				if ((n = sscanf(line, "%lf,%lf", &x, &y)) != 2) {
+					mexPrintf("NSWING: Error reading maregraph file at line %d Expected 2 values but got %d\n", k, n);
+					continue;
+				}
+			}
+		}
+		if (x < hdr.x_min || x > hdr.x_max || y < hdr.y_min || y > hdr.y_max)
+			continue;
+
+		oranges[i].x[0] = x;
+		oranges[i].y[0] = y;
 		i++;
 	}
 	fclose (fp);
@@ -4036,6 +4186,7 @@ int intp_lin (double *x, double *y, int n, int m, double *u, double *v) {
 		for (i = 2; i < n && err_flag == 0; i++)
 			if ((x[i] - x[i-1]) < 0.0) err_flag = i;
 	}
+
 	else {
 		down = TRUE;
 		for (i = 2; i < n && err_flag == 0; i++)
