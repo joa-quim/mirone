@@ -570,12 +570,13 @@ if ~isempty(opt)				% OPT must be a rectangle/polygon handle (the rect may serve
 			yp(1) = min(y);		yp(2) = max(y);
 		end
 		x_lim = [min(x) max(x)];		y_lim = [min(y) max(y)];
-		crop_pol = true;		% Flag that we are croping from a polygon
+		crop_pol = true;			% Flag that we are croping from a polygon
 	end
 	rect_crop = [xp(1) yp(1) (xp(2) - xp(1)) (yp(2) - yp(1))];	% Even when from a rectangle (to insure a known order)
 
 	if isempty(opt2)				% Just pure Image croping
 		Z_rect = get(handles.hImg,'CData');
+		if (isa(Z_rect, 'uint16')),		Z_rect = scaleto8(Z_rect);	end		% In the rare event of "Noe Diluge" images
 		limits = getappdata(handles.axes1,'ThisImageLims');
 		I = cropimg(limits(1:2),limits(3:4),Z_rect,rect_crop);
 		if (crop_pol)				% Shape cropping
@@ -594,6 +595,7 @@ if ~isempty(opt)				% OPT must be a rectangle/polygon handle (the rect may serve
 
 	elseif (strcmp(opt2,'CropaWithCoords'))		% Crop Image with coordinates
 		Z_rect = get(handles.hImg,'CData');
+		if (isa(Z_rect, 'uint16')),		Z_rect = scaleto8(Z_rect);	end		% In the rare event of "Noe Diluge" images
 		[I,r_c] = cropimg(handles.head(1:2),handles.head(3:4),Z_rect,rect_crop,'out_grid');
 		if (crop_pol)				% Shape cropping
 			mask = ~(img_fun('roipoly_j',x_lim,y_lim,I,x,y));
