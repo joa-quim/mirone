@@ -559,12 +559,14 @@ function varargout = load_xyz(handles, opt, opt2)
 							hLine(i) = line('XData',tmpx,'YData',tmpy,'Parent',handles.axes1,'Linewidth',lThick,...
 									'Color',cor,'Tag',tag,'Userdata',n_isoc);
 							setappdata(hLine(i),'LineInfo',multi_segs_str{i});
+							setappdata(hLine(i),'was_binary',is_bin);	% To offer option to save as binary too
 						case 'AsPoint'
 							Fcor = parseG(multi_segs_str{i});			% See if user wants colored pts
 							if (isempty(Fcor)),		Fcor = 'k';		end
 							hLine(i) = line('XData',tmpx,'YData',tmpy,'Parent',handles.axes1, 'LineStyle','none', 'Marker',marker,...
 								'MarkerEdgeColor','k','MarkerFaceColor',Fcor, 'MarkerSize',markerSize,'Tag','Pointpolyline');
 							draw_funs(hLine(i),'DrawSymbol')			% Set marker's uicontextmenu (tag is very important)
+							setappdata(hLine(i),'was_binary',is_bin);	% To offer option to save as binary too
 						case 'AsMaregraph'
 							hLine(i) = line('XData',tmpx,'YData',tmpy,'Parent',handles.axes1, 'LineStyle','none', 'Marker','o',...
 								'MarkerEdgeColor','k','MarkerFaceColor','y','MarkerSize',10,'Tag','Maregraph');
