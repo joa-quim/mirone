@@ -648,14 +648,14 @@ function [x, y, was_closed] = join2lines(hLines, TOL)
 		x = [];		y = [];		was_closed = [];
 		return
 	end
-	if (I == 1)				% Lines grow in oposite directions from a "mid point"
-		x = [x2(end:-1:2) x1];		y = [y2(end:-1:2) y1];
+	if (I == 1)				% Line 1 starts near the begining of line 2
+		x = [x2(end:-1:1) x1];		y = [y2(end:-1:1) y1];
 	elseif (I == 2)			% Line 2 ends near the begining of line 1 
 		x = [x2 x1];				y = [y2 y1];
 	elseif (I == 3)			% Line 1 ends near the begining of line 2
 		x = [x1 x2];				y = [y1 y2];
-	else					% Lines grow from the extremeties twards the "mid point"
-		x = [x1 x2(end:-1:2)];		y = [y1 y2(end:-1:2)];
+	else					% Line 1 ends near the end of line 2
+		x = [x1 x2(end:-1:1)];		y = [y1 y2(end:-1:1)];
 	end
 % -----------------------------------------------------------------------------------------
 
