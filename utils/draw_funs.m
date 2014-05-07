@@ -417,7 +417,7 @@ function set_recTsu_uicontext(h)
 		if (isempty(ud))				% Root rectangle, set its Userdata to 1 to flag that fact
 			if (handles.validGrid)		% Give this rectangle properties based on base level grid
 				resp = fix(abs(str2double(inputdlg({'Enter refinement factor'},'Refinement factor',[1 30],{'5'}))));
-				if (isnan(resp) || resp == 0)		% OK, just make a regular rectangle
+				if (isempty(resp) || isnan(resp) || resp == 0)		% OK, just make it a regular rectangle
 					set(h(k), 'UIContextMenu', '')
 					set_line_uicontext(h(k),'line')
 					return
