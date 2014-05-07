@@ -649,13 +649,17 @@ function [x, y, was_closed] = join2lines(hLines, TOL)
 		return
 	end
 	if (I == 1)				% Line 1 starts near the begining of line 2
-		x = [x2(end:-1:1) x1];		y = [y2(end:-1:1) y1];
+		last = 1;
+		if (x1(1) == x2(1) && y1(1) == y2(1)),		last = 2;		end
+		x = [x2(end:-1:last) x1];	y = [y2(end:-1:last) y1];
 	elseif (I == 2)			% Line 2 ends near the begining of line 1 
 		x = [x2 x1];				y = [y2 y1];
 	elseif (I == 3)			% Line 1 ends near the begining of line 2
 		x = [x1 x2];				y = [y1 y2];
 	else					% Line 1 ends near the end of line 2
-		x = [x1 x2(end:-1:1)];		y = [y1 y2(end:-1:1)];
+		last = 1;
+		if (x1(end) == x2(end) && y1(end) == y2(end)),	last = 2;	end		% If points are equal, do not repeat it
+		x = [x1 x2(end:-1:last)];	y = [y1 y2(end:-1:last)];
 	end
 % -----------------------------------------------------------------------------------------
 
