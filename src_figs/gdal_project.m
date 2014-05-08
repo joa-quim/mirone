@@ -63,7 +63,7 @@ function varargout = gdal_project(varargin)
  	handles.have_prjIn = false;			% It will be true when input is projected and we know how
 	proj4 = getappdata(handles.hMirFig,'Proj4');
 	if (~isempty(proj4))
-		if (strfind(proj4,'latlong') && ~strfind(proj4,'+datum=WGS84'))
+		if (~isempty(strfind(proj4,'latlong')) && isempty(strfind(proj4,'+datum=WGS84')) )
 			proj4 = [proj4 ' +datum=WGS84'];
 		end
 		set(handles.edit_source,'String',proj4)
