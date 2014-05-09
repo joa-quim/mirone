@@ -39,7 +39,7 @@ copy /Y %P%hdf5_hl_w%BITS%.dll .   && copy /Y %P%hdf5_w%BITS%.dll .     && copy 
 copy /Y %P%libjpeg_w%BITS%.dll .   && copy /Y %P%openjp2_w%BITS%.dll .  && copy /Y %P%laslib_w%BITS%.dll .
 copy /Y %P%geos_c_w%BITS%.dll .    && copy /Y %P%zlib1_w%BITS%.dll .    && copy /Y %P%xerces-c_3_1_w%BITS%.dll .
 copy /Y %P%libcurl_w%BITS%.dll .   && copy /Y %P%proj_w%BITS%.dll .     && copy /Y %P%expat_w%BITS%.dll .
-copy /Y %P%libecwj2_w%BITS%.dll .
+copy /Y %P%libecwj2_w%BITS%.dll .  && copy /Y %P%geos_w%BITS%.dll .
 
 copy /Y %P%opencv_calib3d_w%BITS%.dll .    && copy /Y %P%opencv_core_w%BITS%.dll .
 copy /Y %P%opencv_highgui_w%BITS%.dll .    && copy /Y %P%opencv_imgproc_w%BITS%.dll .
