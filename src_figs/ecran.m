@@ -410,9 +410,9 @@ function dynSlope_CB(obj, eventdata)
 	set(handles.figure1,'Pointer', 'crosshair');
 
 	SpectorGrant = false;		xFact = 1;
-	if (strncmp(get(handles.figure1,'name'), 'Radial average', 14))	% Estimate depth to magnetic sources
+	xl = get(get(handles.axes1, 'XLabel'), 'String');	% Fish it outside to avoid error if not magnetic radial (poor patch)
+	if (~isempty(xl) && strncmp(get(handles.figure1,'name'), 'Radial average', 14))	% Estimate depth to magnetic sources
 		SpectorGrant = true;
-		xl = get(get(handles.axes1, 'XLabel'), 'String');
 		if (strcmp(xl(end-2:end-1), 'km'))		% frequency is in 1/km
 			xFact = 1000;						% Multiplying factor to get depth in meters
 		end
