@@ -924,7 +924,7 @@ function out = read_shapenc(fname)
 	end
 
 	ind = strcmpi({s.Attribute.Name},'description');
-	if (~isempty(ind))
+	if (~isempty(ind) && any(ind))
 		out.description = s.Attribute(ind).Value;
 	else
 		out.description = [];
