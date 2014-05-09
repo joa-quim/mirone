@@ -6,10 +6,10 @@
 26.09	22.02	           Kamil  0.045	             -	Y  Iron
 -61.70  -27.63   Campo_Del_Cielo  0.05         <_0.004  Y  Coarse_Octahedrite_to_granular_Hexahedrite
 137.87  46.30            Sobolev  0.053        <_0.001  Y  Iron_Meteoritic_Material_Found
-125.37  -22.97           Veevers  0.08             <_1  Y  Iron_(IIAB)
 27.42  57.97            Ilumetsä  0.08         ~0.0066  Y  -
+125.37  -22.97           Veevers  0.08             <_1  Y  Iron_(IIAB)
 16.90  52.48             Morasko  0.1           <_0.01  Y  Octahedrite_fragments
-22.67  58.40              Kaalij  0.11   0.004_±_0.001  Y  Iron_(IAB)
+22.67  58.40           Kaalijärv  0.11   0.004_±_0.001  Y  Iron_(IAB)
 50.47  21.50               Wabar  0.116        0.00014  Y  Iron_(IIIAB)
 133.13  -24.57           Henbury  0.157 0.0042_±_0.0019  Y  Iron_(IIIAB)
 -102.48  31.75            Odessa  0.168         <_0.05  Y  Iron_(IAB)
@@ -37,6 +37,7 @@
 28.5  58.72         Mishina_Gora  2.5     300_±_50  Y  -
 16.30  -27.77         Roter_Kamm  2.5    3.7_±_0.3  Y  -
 -103.7  49.58          Viewfield  2.5     190_±_20  N  -
+6.43  59.23              Ritland  2.7	  520_±_20  Y  -
 32.0  49.0          Rotmistrovka  2.7     120_±_10  N  -
 72.70  47.20              Shunak  2.8      45_±_10  Y  -
 135.3  -13.15             Goyder  3         <_1400  Y  -
@@ -50,6 +51,7 @@
 -7.55  29.0             Ouarkziz  3.5         <_70  Y  -
 32.75  48.7           Zeleny_Gai  3.5      80_±_20  N  -
 -78.48  46.8               Brent  3.8     396_±_20  N  Chondrite
+-46.72  -23.87           Colônia  3.6    >_5,_<_36  Y  -
 -85.67  36.28        Flynn_Creek  3.8     360_±_20  Y  -
 10.7  48.68            Steinheim  3.8       15_±_1  Y  -
 -89.78  40.60           Glasford  4          <_430  N  -
@@ -135,8 +137,8 @@
 172.8  67.50         El'gygytgyn  18      3.5_±_0.5  Y  Achondrite
 138.65  -18.67         Lawn_Hill  18          >_515  Y  -
 24.40  24.58               Oasis  18          <_120  Y  -
-121.57  -23.98           Glikson  ~19         <_508  Y  -
 16.80  61.80              Dellen  19     89.0_±_2.7  Y  Stone?
+121.57  -23.98           Glikson  ~19         <_508  Y  -
 95.93  65.52            Logancha  20        40_±_20  N  -
 32.92  49.58              Obolon  20        169_±_7  N  -
 134.83  -20.92      Amelia_Creek  ~20    1640_±_600  Y  -
@@ -147,6 +149,7 @@
 32.17  48.75             Boltysh  24   65.17_±_0.64  N  Chondrite
 -74.80  49.72          Presqu'ile 24          <_500  Y  -
 10.62  48.88                Ries  24     15.1_±_0.1  Y  Achondrite
+-113.97  72.47          Tunnunik ~25   >_130,_<_450  Y  -
 40.50  48.35             Kamensk  25     49.0_±_0.2  N  -
 -117.63  59.50       Steen_River  25         91_±_7  N  -
 133.58  -15.20        Strangways  25       646_±_42  Y  Achondrite
@@ -160,7 +163,9 @@
 -74.50  56.22    Clearwater_West  36       290_±_20  Y  -
 -109.50  58.45          Carswell  39       115_±_10  Y  -
 -52.98  -16.78        Araguainha  40  244.40_±_3.25  Y  -
+-76.2  37.28      Chesapeake_Bay  40     35.3_±_0.1  N  -
 29.67  73.80             Mjølnir  40    142.0_±_2.6  N  -
+43.72  56.97     Puchezh-Katunki  40        167_±_3  N  -
 -98.53  51.78       Saint_Martin  40       220_±_32  N  -
 114.65  -26.5          Woodleigh  40        364_±_8  N  -
 -64.22  42.88         Montagnais  45   50.50_±_0.76  N  -
@@ -171,11 +176,9 @@
 -113.0  44.60         Beaverhead  60           ~600  Y  -
 64.15  69.10                Kara  65     70.3_±_2.2  N  Chondrite
 23.53  -26.47          Morokweng  70    145.0_±_0.8  N  Chondrite
-43.72  56.97     Puchezh-Katunki  80        167_±_3  N  -
+-68.70  51.38        Manicouagan  85        214_±_1  Y  -
 135.45  -32.2            Acraman  90           ~590  Y  Chondrite
--76.2  37.28      Chesapeake_Bay  90     35.3_±_0.1  N  -
--68.70  51.38        Manicouagan  100       214_±_1  Y  -
 111.18  71.65            Popigai  100    35.7_±_0.2  Y  Chondrite
--89.50  21.33          Chicxulub  170  64.98_±_0.05  N  Chondrite
--81.18  46.60            Sudbury  250      1850_±_3  Y  -
-27.50  -27.0           Vredefort  300      2023_±_4  Y  Chondrite
+-81.18  46.60            Sudbury  130      1850_±_3  Y  -
+-89.50  21.33          Chicxulub  150  64.98_±_0.05  N  Chondrite
+27.50  -27.0           Vredefort  160      2023_±_4  Y  Chondrite
