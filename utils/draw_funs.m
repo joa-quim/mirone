@@ -1269,8 +1269,8 @@ function donutify(obj, evt, h, opt)
 % Make a donut out of a circle (well, actually 2 circles). To be used on radial averages
 	LLR = getappdata(h,'LonLatRad');
 	prompt = {['Inner circle radius (< ' sprintf('%.6g)', LLR(3))]};
-	rad  = abs( str2double(inputdlg(prompt, 'Donut inner Rad', [1 35],{'0.0'})) );
-	if (isnan(rad) || rad >= LLR(3)),	return,		end
+	rad = abs(str2double(inputdlg(prompt, 'Donut inner Rad', [1 35],{'0.0'})) );
+	if (isempty(rad) || isnan(rad) || rad >= LLR(3)),	return,		end
 	handles = guidata(h);		LS = get(h, 'LineStyle');	LW = get(h, 'LineWidth');	cC = get(h, 'color');
 	x = get(h, 'XData');		y = get(h, 'YData');
 	if (opt(1) == 'g')
