@@ -11,15 +11,19 @@ function shapenc(fname, data, varargin)
 % shapenc(..., '-b','binstr')	Mean DATA is a filename of a binary file. BINSTR will than contain a GMT -b style info
 %								E.G 's3' means single and 3, three columns. (valid: 's2', 's3', 'd2', 'd3')
 % shapenc(..., 'geog',1|0)		If keyword GEOG is used  PROJ4STRING -> +proj=latlong  ---- NOT CONFIRMED
+%								Default assumes geog == 1 (ATTENTION, this impacts whith the 'DP' option)
 % shapenc(..., 'multiseg', 'whatever')	Convert the contents of DATA into a multisegment array (NaN separated)
 %								Note that this only apply when DATA is a cell array or the name of a multisegment file.
 % shapenc(..., 'desc','description')  Create a global attribute with contents DESCRIPTION
 % shapenc(..., 'version','ver')  Create a global attribute 'File Version' with contents VER
+% shapenc(..., 'append', 'whatever')	Append to an existing file with name FNAME, or if not exists create one
 % shapenc(..., 'tag','attribs') Add the contents of ATTRIBS to the container variable that is automatically created for each
 %								DATA ensemble. This works only for the first ensemble of DATA (if it has more, others are ignored).
 %								If ATTRIBS is a char, its contents will go to an attribute called 'name'.
 %								If ATTRIBS is a cell, it must contain a Mx2 array where firts column contains the
 %								attribute name and the second the attribute value.
+% shapenc(..., 'dp',TOL)		Apply the Douglas Peucker line simplification algo. This applies only to 2D|3D lines/polygons
+%								When data is in geogs, TOL is the tolerance in km
 %
 % possibilidades de combinações DATA, OUTER, INNER
 % data				<== Point swarm 
@@ -37,8 +41,11 @@ function shapenc(fname, data, varargin)
 %
 %	To append the contents of swarm2.b to the larger file (tey are related) just run it with larger file's name
 %	shapenc('acores_mepc_1.nc','swarm2.b','-b','s3','geog',1,'outer','poly2.dat')
+%
+%	To convert a shape file and apply a line simplification DP with 2 km of tolerance
+%	shapenc('slope.nc','C:\z2\t_shp\Slope\slope.shp','DP',2,'desc','Slope')
 
-%	Copyright (c) 2004-2012 by J. Luis
+%	Copyright (c) 2004-2014 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -53,6 +60,8 @@ function shapenc(fname, data, varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
+% $Id: $
+
 	% ------------------ Parsing and defaults settings------------------ --------------
 	if (nargin < 2),	error('SHAPENC:error', 'Please, minimum 2 arguments -- FNAME & DATA'),	end
 
@@ -66,49 +75,56 @@ function shapenc(fname, data, varargin)
 	fver = [];				% File version
 	conv2multiseg = false;	% When true convert a cell array into a multiseg poly...
 	inbin = false;			% May contain a -bi... GMT type info for DATA in plain binary
+	new_file = true;		% Overwrite any eventual existing file with the same name
+	DP_tol = 0;				% Tolerance for the Douglas Peucker line simplification algorithm
 	tag = [];				% TAG name (or cell with attribs) of the main ensemble
 
 	for (k = 1:2:numel(varargin))
 		if (~ischar(varargin{k})),		error('SHAPENC:error','property name must be a character string'),	end
-		if ( strncmpi(varargin{k}, 'out', 3) )
+		if (strncmpi(varargin{k}, 'out', 3))
 			outer_polygs = varargin{k+1};
-		elseif ( strncmpi(varargin{k}, 'inner', 2) )
+		elseif (strcmpi(varargin{k}, 'append'))
+			new_file = false;
+		elseif (strncmpi(varargin{k}, 'inner', 2))
 			inner_polygs = varargin{k+1};
-		elseif ( strncmpi(varargin{k}, 'version', 3) )
+		elseif (strncmpi(varargin{k}, 'version', 3))
 			fver = varargin{k+1};
-		elseif ( strncmpi(varargin{k}, 'desc', 4) )
+		elseif (strncmpi(varargin{k}, 'desc', 4))
 			desc = varargin{k+1};
-		elseif ( strcmpi(varargin{k}, 'tag') )
+		elseif (strcmpi(varargin{k}, 'tag'))
 			tag = varargin{k+1};
 			if (~ischar(tag) && ~isa(tag,'cell'))
 				disp('TAG contents is neither a char nor a cell array. Ignoring it')
 				tag = [];
 			end
-		elseif ( strncmpi(varargin{k}, 'geog', 4) )
+		elseif (strncmpi(varargin{k}, 'geog', 4))
 			if (~varargin{k+1}),	is_geog = false;	end
-		elseif ( strcmpi(varargin{k}, 'srs') )
+		elseif (strcmpi(varargin{k}, 'srs'))
 			spatial_ref = varargin{k+1};
-		elseif ( strcmpi(varargin{k}, 'point2d') )
+		elseif (strcmpi(varargin{k}, 'point2d'))
 			is_point_2D = true;
-		elseif ( strcmpi(varargin{k}, 'polygon2D') )
+		elseif (strcmpi(varargin{k}, 'polygon2D'))
 			is_polygon_2D = true;
-		elseif ( strcmpi(varargin{k}, 'polygon3D') )
+		elseif (strcmpi(varargin{k}, 'polygon3D'))
 			is_polygon_3D = true;
-		elseif ( strcmpi(varargin{k}, 'polyline2D') )
+		elseif (strcmpi(varargin{k}, 'polyline2D'))
 			is_polyline_2D = true;
-		elseif ( strcmpi(varargin{k}, 'polyline3D') )
+		elseif (strcmpi(varargin{k}, 'polyline3D'))
 			is_polyline_3D = true;
-		elseif ( strcmpi(varargin{k}, 'maxpoly') )
+		elseif (strcmpi(varargin{k}, 'maxpoly'))
 			nMaxChunks = varargin{k+1};
-		elseif ( strncmpi(varargin{k}, 'multiseg', 5) )
+		elseif (strncmpi(varargin{k}, 'multiseg', 5))
 			conv2multiseg = true;
-		elseif ( strcmp(varargin{k}, '-b') )
+		elseif (strcmp(varargin{k}, '-b'))
 			inbin = varargin{k+1};
+		elseif (strcmpi(varargin{k}, 'dp'))
+			DP_tol = varargin{k+1};
+			if (isnan(DP_tol) || DP_tol < 0),	DP_tol = 0;		end
 		end
 	end
-	if ( ~is_geog && strcmp(spatial_ref(7:end), 'longlat') ),	spatial_ref = '+proj=xy';	end
+	if (~is_geog && strcmp(spatial_ref(7:end), 'longlat')),		spatial_ref = '+proj=xy';	end
 
-	if (ischar(data))		% Try to load data from file (including shapefiles)
+	if (ischar(data))					% Try to load data from file (including shapefiles)
 		try
 			[data, multiSegPos, is_polygon_2D, is_polygon_3D, is_polyline_2D, is_polyline_3D, is_point_2D] = ...
 				readFile(data, nMaxChunks, is_polygon_2D, is_polygon_3D, is_polyline_2D, is_polyline_3D, is_point_2D, inbin);
@@ -116,12 +132,12 @@ function shapenc(fname, data, varargin)
 			error(['SHAPENC:reading DATA ' lasterr])
 		end
 	end
-	if (ischar(outer_polygs))		% Try to load data from file
+	if (ischar(outer_polygs))			% Try to load data from file
 		try			outer_polygs = readFile(outer_polygs, nMaxChunks);
 		catch,		error(['SHAPENC:reading OUTER_POLYGS ' lasterr])
 		end
 	end
-	if (ischar(inner_polygs))		% Try to load data from file
+	if (ischar(inner_polygs))			% Try to load data from file
 		try			inner_polygs = readFile(inner_polygs, nMaxChunks);
 		catch,		error(['SHAPENC:reading INNER_POLYGS ' lasterr])
 		end
@@ -132,7 +148,7 @@ function shapenc(fname, data, varargin)
 					inner_polygs{k} = readFile(inner_polygs{k}, nMaxChunks);%#ok
 				end
 			catch
-				error( sprintf('SHAPENC:screw_reading %d element of cellular INNER_POLYGS \n%s', k, lasterr) )
+				error(sprintf('SHAPENC:screw_reading %d element of cellular INNER_POLYGS \n%s', k, lasterr))
 			end
 		end
 	else
@@ -145,7 +161,7 @@ function shapenc(fname, data, varargin)
 
 	if (isa(data,'cell')),		is_Pts_cell = true;		n_swarms = numel(data);		end
 
-	if ( is_Pts_cell && ~isempty(outer_polygs) && ~isa(outer_polygs,'cell') )
+	if (is_Pts_cell && ~isempty(outer_polygs) && ~isa(outer_polygs,'cell'))
 		error('SHAPENC:error','When DATA is a cell array so must be the POLYGON')
 	end
 
@@ -162,14 +178,14 @@ function shapenc(fname, data, varargin)
 	% All other cases must be explicitly declared
 	if (~(is_polygon_2D || is_polygon_3D || is_polyline_2D || is_polyline_3D) )
 		if (is_Pts_cell)
-			if ( size(data{1},2) == 2 ),		is_point_3D = false;	is_point_2D = true;
-			elseif ( size(data{1},2) == 3 ),	is_point_3D = true;		is_point_2D = false;
-			else 	error('SHAPENC:error','DATA must be a Mx2 OR a Mx3 array')
+			if (size(data{1},2) == 2),		is_point_3D = false;	is_point_2D = true;
+			elseif (size(data{1},2) == 3),	is_point_3D = true;		is_point_2D = false;
+			else							error('SHAPENC:error','DATA must be a Mx2 OR a Mx3 array')
 			end
 		else
-			if ( size(data,2) == 2 ),			is_point_3D = false;	is_point_2D = true;
-			elseif ( size(data,2) == 3 ),		is_point_3D = true;		is_point_2D = false;
-			else 	error('SHAPENC:error','DATA must be a Mx2 OR a Mx3 array')
+			if (size(data,2) == 2),			is_point_3D = false;	is_point_2D = true;
+			elseif (size(data,2) == 3),		is_point_3D = true;		is_point_2D = false;
+			else							error('SHAPENC:error','DATA must be a Mx2 OR a Mx3 array')
 			end
 		end
 	end
@@ -177,6 +193,9 @@ function shapenc(fname, data, varargin)
 
 	% ------------------ Count number of points in each (if > 1) ensemble --------------
 	if (is_Pts_cell)
+		if (DP_tol)
+			warning('Douglas Peucker is not implemented for cell array input data.')
+		end
 		n_pts = zeros(numel(data));
 		for (k = 1:n_swarms),		n_pts(k) = size(data{k},1);			end
 		if (isa(outer_polygs,'cell'))
@@ -188,8 +207,12 @@ function shapenc(fname, data, varargin)
 			for (k = 1:numel(inner_polygs)),	nInnerPolys(k) = size(inner_polygs{k},1);		end
 		end
 	else
+		if (DP_tol)
+			[data, multiSegPos] = do_the_DP(data, multiSegPos, DP_tol, is_geog);
+		end
+		
 		n_pts = size(data,1);
-		if (~isempty(outer_polygs)),		nOuterPolys = size(outer_polygs,1);		end
+		if (~isempty(outer_polygs)),	nOuterPolys = size(outer_polygs,1);		end
 		if (~isempty(inner_polygs))
 			if (~isa(inner_polygs, 'cell'))
 				nInnerPolys = size(inner_polygs,1);
@@ -202,8 +225,10 @@ function shapenc(fname, data, varargin)
 	% -----------------------------------------------------------------------------------
 
 	% -----------------------------------------------------------------------------------
-	if (exist(fname,'file') ~= 2)			% If file does not exist, create it.
-		nc_funs('create_empty', fname)
+	if (new_file || exist(fname,'file') ~= 2)			% If file does not exist and want one, create it.
+		nc_funs('create_empty', fname, 'netcdf4-classic')
+	elseif (~new_file && exist(fname,'file') ~= 2)		% Or if append but file file does not exist.
+		nc_funs('create_empty', fname, 'netcdf4-classic')
 	else
 		is_file_new = false;
 		s = nc_funs('info',fname);
@@ -211,7 +236,7 @@ function shapenc(fname, data, varargin)
 		else							attribNames = [];
 		end
 		ind = strcmp(attribNames,'SHAPENC_type');
-		if ( any(ind) )
+		if (any(ind))
 			dimNames = {s.Dimension.Name};
 			ind = strncmp(dimNames,'dimpts_',7);		% Find the dimpts_??? variables
 			for (k = 1:numel(ind))
@@ -264,7 +289,7 @@ function shapenc(fname, data, varargin)
 	else
 		% Get old global BB
 		ind = strcmp(attribNames,'BoundingBox');
-		if ( any(ind) ),				global_BB = s.Attribute(ind).Value;		end
+		if (any(ind)),					global_BB = s.Attribute(ind).Value;		end
 		if (numel(global_BB) ~= 4),		global_BB = [Inf -Inf Inf -Inf];		end
 	end
 	nc_funs('attput', fname, -1, 'Number_of_main_ensembles', ultimo+n_swarms );
@@ -388,12 +413,12 @@ function write_poly_type(fname, data, is_polygon_2D, is_polygon_3D, is_polyline_
 		if (is_Pts_cell),	x = data{k}(:,1);		y = data{k}(:,2);
 		else				x = data(:,1);			y = data(:,2);
 		end
-		if ( ~isa(x,'double') && any(isnan(x)) )	% BLOODY ML BUGS (R13)
+		if (~isa(x,'double') && any(isnan(x)))		% BLOODY ML BUGS (R13)
 			BB = [min(double(x)) max(double(x)) min(double(y)) max(double(y))];
 		else
 			BB = double([min(x) max(x) min(y) max(y)]);
 		end
-		if (is_3D)		% Split cases between 3d and 2D
+		if (is_3D)			% Split cases between 3d and 2D
 			if (is_Pts_cell),	z = data{k}(:,3);
 			else				z = data(:,3);
 			end
@@ -437,6 +462,7 @@ function write_var(fname, name, tipo, dim, long_name, units, actual_range, comme
 	varstruct.Name = name;
 	varstruct.Nctype = tipo;
 	if (~isempty(dim)),		varstruct.Dimension = {dim};	end
+	varstruct.Deflate = 5;
 	nc_funs('addvar', fname, varstruct)
 	if (~isempty(long_name)),		nc_funs('attput', fname, varstruct.Name, 'long_name', long_name ),	end
 	if (~isempty(units)),			nc_funs('attput', fname, varstruct.Name, 'units', units),			end
@@ -445,7 +471,6 @@ function write_var(fname, name, tipo, dim, long_name, units, actual_range, comme
 	if (~isempty(fillValue)),		nc_funs('attput', fname, varstruct.Name, '_FillValue', fillValue),		end
 	if (~isempty(missing_value)),	nc_funs('attput', fname, varstruct.Name, 'missing_value', missing_value),	end
 	if (~isempty(scale_factor)),	nc_funs('attput', fname, varstruct.Name, 'scale_factor', scale_factor),	end
-
 
 % ----------------------------------------------------------------------------------------------
 function write_attribs(fname, cname, tag)
@@ -622,3 +647,66 @@ function [out, pos] = cell2multiseg(data)
 	end
 	pos(end) = [];		% Last point was in excess (for algo convenience only)
 	pos = int32(pos);
+
+% ----------------------------------------------------------------------------------------------
+function [data, pos] = do_the_DP(data, pos, DP_tol, is_geog)
+% Apply the line siplification procedure. Because we don't know the final size and because of the
+% pre-allocation issues that here could be very serious we reuse x,y,z in a gymnastic way
+%
+% POS is an array with the position of the multi-seg separators. That is, the NaNs
+% DP_tol is the tolerance to Douglas Peucker
+
+	if (isempty(pos))			% Simpler (much simpler) case
+		if (is_geog),		data = cvlib_mex('dp', data, DP_tol, 'GEOG');
+		else				data = cvlib_mex('dp', data, DP_tol);
+		end
+		return
+	end
+
+	% Well, the shit here is that we can't rely on POS having the correct info, and if it fails NaNs will
+	% escape. So we have to play safe and re-analize
+	indN = find(isnan(data(:,1)));
+	difa = diff(indN);
+	ind = (difa == 1);				% Find repeated NaNs
+	to_kill = indN(ind);
+	data(to_kill,:) = [];			% Remove them
+	pos = find(isnan(data(:,1)));	% Get the new ones
+
+	extended_pos = false;
+	if (~isnan(data(end,1))),	pos(end+1) = size(data,1) + 1;	extended_pos = true;	end		% To facilitate life
+	stop = 0;
+	for (k = 1:numel(pos)-1)
+		in = double(data(pos(k)+1:pos(k+1)-1,:));	% SHIT SHIT I have a bug in CVLIB_MEX
+		if (is_geog)
+			out_dp = cvlib_mex('dp', in, DP_tol, 'GEOG');
+		else
+			out_dp = cvlib_mex('dp', in, DP_tol);
+		end
+		out_dp = single(out_dp);
+		start = stop + 2;
+		stop  = start + size(out_dp,1) - 1;
+		data(start:stop,:) = out_dp;
+		data(start-1,:) = single(NaN);
+		pos(k) = start-1;
+	end
+	
+	% Now we have to clear the remaining (pre-DP) elements in x,y,[z]
+	data(stop+1:end, :) = [];
+	if (extended_pos),		pos(end) = [];			end
+
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
