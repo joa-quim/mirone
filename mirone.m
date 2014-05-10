@@ -4413,10 +4413,12 @@ function [Z, indNaNs] = fillGridGaps(handles, Z)
 	end
 
 % --------------------------------------------------------------------
-function TransferB_CB(handles, opt)
+function TransferB_CB(handles, opt, opt2)
+% OPT2 is only used by custom_menus() and holds the directory name to start in
 	if (strcmp(opt,'guessType'))
 		str = {'*.grd;*.nc;*.tif;*.tiff;*.jpg;*.jp2;*.png;*.gif;*.mat;*.cpt;*.hdf;*.img', ...
 				'Files (*.grd,*.nc,*.tif,*.tiff,*.jpg,*.jp2,*.png,*.gif,*.mat,*.cpt,*.hdf,*.img)'; '*.*', 'All Files (*.*)'};
+		if (nargin == 3 && ~isempty(opt2)),		handles.last_dir = opt2;		end
 		[FileName,PathName,handles] = put_or_get_file(handles,str,'Select file','get');
 		if (isequal(FileName,0)),	return,		end				% User gave up
 		drv = aux_funs('findFileType',[PathName FileName]);
