@@ -381,6 +381,8 @@ function hObject = mirone_OpeningFcn(varargin)
 	set_gmt(['GDAL_DATA=' home_dir fsep 'data' fsep 'gdal_data']);
 	set_gmt(['GEOTIFF_CSV=' home_dir fsep 'data' fsep 'gdal_data']);
 
+% 	try,	custom_menus(hObject, handles.path_data),	end
+
 % --------------------------------------------------------------------------------------------------
 function erro = gateLoadFile(handles,drv,fname)
 % Gateway function to load a recognized file type using its name
@@ -4308,7 +4310,7 @@ if (strcmp(opt,'Vec') || strcmp(opt,'Lines') || strcmp(opt,'Rect'))		% Convert t
 		boundary = B{k};
 		if (length(boundary) < 20 && strcmp(opt,'Vec')),	continue,	end
 		if (numel(boundary) > 4)
-			%boundary = cvlib_mex('dp', boundary, 0.7);		% Simplify line
+			boundary = cvlib_mex('dp', boundary, 0.7);		% Simplify line
 		end
 		% Some times we get a BB rectangle, test and ignore it if it's the case
 		if (size(boundary,1) == 5 && min(boundary(:,1)) == 1 && min(boundary(:,2)) == 1 && ...
