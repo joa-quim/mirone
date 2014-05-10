@@ -64,7 +64,6 @@ function custom_menus(hFig, path_data)
 	mainMenu(c) = [];	subMenu1(c) = [];	subMenu2(c) = [];	dataDir(c) = [];	% Delete those of non-existing dirs
 	m = numel(mainMenu);
 
-	hSbub2  = zeros(1,m);
 	for (k = 1:m)
 		hThis = findobj(hFig,'Tag',mainMenu{k});
 		if (isempty(hThis))
@@ -77,9 +76,9 @@ function custom_menus(hFig, path_data)
 			hSbub1 = uimenu('Parent',hThis,'Label',['Custom -> ' subMenu1{k}]);
 		end
 		if (isempty(subMenu2{k}))
-			set(hSbub1, 'Call',['hand=guidata(gcf);hand.last_dir=''',dataDir{k},''';mirone(''TransferB_CB'',hand,''guessType'')'])
+			set(hSbub1, 'Call',['mirone(''TransferB_CB'',guidata(gcf),''guessType'',''',dataDir{k},''')'])
 		else
-			hSbub2(k) = uimenu('Parent',hSbub1,'Label',subMenu2{k}, 'Call', ...
-				['hand=guidata(gcf);hand.last_dir=''',dataDir{k},''';mirone(''TransferB_CB'',hand,''guessType'')']);
+			uimenu('Parent',hSbub1,'Label',subMenu2{k}, 'Call', ...
+				['mirone(''TransferB_CB'',guidata(gcf),''guessType'',''',dataDir{k},''')']);
 		end
 	end
