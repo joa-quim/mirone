@@ -7,7 +7,7 @@
 # Where var1,var2,var3 is the name of any of the variables in the .nc file PLUS 'vel' for velocity
 # The varI+slotI form will plot (add) the varI (again, one of the .nc vars) to the slot I (1:3) axes 
 # Next will put Total field on first axes, CM4 anomaly on second and bathymetry on third
-MIR_GMTEDIT -Vmtf1,anom_cm4,depth
+#MIR_GMTEDIT -Vmtf1,anom_cm4,depth
 #MIR_GMTEDIT -Vvel,mtf1,depth
 #MIR_GMTEDIT -Vlon,lat,vel
 #MIR_GMTEDIT -Vvel,mtf1,anom_cm4:mag+3
@@ -52,3 +52,8 @@ MIR_AQUAPLUG C:\SVN\mironeWC\data\example_data\aquaplug_CASE10_sc.txt
 
 # Activate the option to display the GMT database polygons ID inside a ROI rectangle
 MIR_GMT_DB_IDS
+
+# Activate the options to add custom menus with directories where to look for specific files
+MIR_CUSTOM_MENU Geography,GRIDS/SRTM+,C:\j\cd_grids\SRTM+
+MIR_CUSTOM_MENU Geography,GRIDS/cd_grids,C:\j\cd_grids
+MIR_CUSTOM_MENU Geography,Seafloor/geomorphic,C:\SVN\mironeWC\data\seafloor_geomorphic
