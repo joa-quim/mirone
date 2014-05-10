@@ -381,7 +381,7 @@ function hObject = mirone_OpeningFcn(varargin)
 	set_gmt(['GDAL_DATA=' home_dir fsep 'data' fsep 'gdal_data']);
 	set_gmt(['GEOTIFF_CSV=' home_dir fsep 'data' fsep 'gdal_data']);
 
-% 	try,	custom_menus(hObject, handles.path_data),	end
+ 	try,	custom_menus(hObject, handles.path_data),	end			% Add any custom menus as commanded by OPTcontrol.txt
 
 % --------------------------------------------------------------------------------------------------
 function erro = gateLoadFile(handles,drv,fname)
