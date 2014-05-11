@@ -6,7 +6,7 @@ function varargout = overview(varargin)
 % large grids may be previewed, but the quality of
 % the preview will may degrade with grid size.
 
-%	Copyright (c) 2004-2013 by J. Luis
+%	Copyright (c) 2004-2014 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -74,7 +74,7 @@ function hObject = overview_OpeningFcn(varargin)
 	uitoggletool('parent',h_toolbar,'Click',@zoom_clickedCB,'Tag','zoom','Tooltip','Zoom','cdata',zoom_ico);
 	uipushtool('parent',h_toolbar,'Click',@help_clickedCB,'Tag','help','Tooltip','Help','cdata',help_ico);
 
-	logo = gdalread(['data' filesep 'logo.png']);
+	logo = gdalread([handles.home_dir filesep 'data' filesep 'logo.png']);
 	image('parent',handles.axes1,'CData',flipdim(logo,1));
 
 	set(hObject,'Visible','on','HandleVisibility','callback');
