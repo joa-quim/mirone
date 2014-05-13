@@ -559,7 +559,7 @@ if ~isempty(opt)				% OPT must be a rectangle/polygon handle (the rect may serve
 
 	xp(1) = min(x);		xp(2) = max(x);
 	yp(1) = min(y);		yp(2) = max(y);
-	if ~( numel(x) == 5 && (x(1) == x(end)) && (y(1) == y(end)) && ...
+	if ~(numel(x) == 5 && (x(1) == x(end)) && (y(1) == y(end)) && ...
 			(x(1) == x(2)) && (x(3) == x(4)) && (y(1) == y(4)) && (y(2) == y(3)) )
 		if (xp(1) < handles.head(1) || xp(2) > handles.head(2) || yp(1) < handles.head(3) || yp(2) > handles.head(4))
 			% Somewhat rare case where the polygon extends to outside grid/img limits. Must crop it to them.
@@ -2597,7 +2597,7 @@ function DrawClosedPolygon_CB(handles, opt)
 		[p1,p2,hl] = rubberbandbox(handles.axes1);
 		zoom_state(handles,'maybe_on');
 		difa = abs(p2 - p1);
-		if ( (difa(1) < handles.head(7)/4) || (difa(2) < handles.head(8)/4) )
+		if ((difa(1) < handles.head(7)/4) || (difa(2) < handles.head(8)/4))
 			delete(hl),		return			% Don't draw ultra small rectangles
 		end
 		set(hl,'Color',handles.DefLineColor,'LineWidth',handles.DefLineThick)	% Use defaults LineThick and DefLineColor
@@ -4481,6 +4481,9 @@ function TransferB_CB(handles, opt, opt2)
  	elseif (strcmp(opt,'lasterr'))				% Show last error (standalone only and for debug)
 		lstErr = lasterror;
 		msgbox(sprintf('Last error message in stack is:\n\n%s\n%s\n',lstErr.message, lstErr.identifier),'Debug message')
+
+ 	elseif (strncmp(opt,'TransplantGrid',6))	%
+		ImageCrop_CB(handles,zeros(5,2),'ImplantGrid')	% The '0' is only to avoid the call to ruberbandbox in ImageCrop_CB
 
  	elseif (strcmp(opt,'fract'))				% Fractal surf. Have to do it here due to dumb compiler limitations
 		if (handles.no_file)					% When called from a virgin figure, use it
