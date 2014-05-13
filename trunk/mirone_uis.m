@@ -659,6 +659,7 @@ uimenu('Parent',h,'Call','mirone(''DrawContours_CB'',guidata(gcbo),''gui'')','La
 uimenu('Parent',hGT,'Call','ml_clip(guidata(gcbo))','Label','Clip Grid');
 uimenu('Parent',hGT,'Call','mirone(''ImageCrop_CB'',guidata(gcbo),[],''CropaGrid'')','Label','Crop Grid');
 uimenu('Parent',hGT,'Call','mirone(''RotateTool_CB'',guidata(gcbo),''grid'')','Label','Rotate Grid');
+uimenu('Parent',hGT,'Call','mirone(''TransferB_CB'',guidata(gcbo),''TransplantGrid'')','Label','Transplant 2nd Grid');
 uimenu('Parent',hGT,'Call','mirone(''GridToolsHistogram_CB'',guidata(gcbo))','Label','Histogram');
 uimenu('Parent',hGT,'Call','mirone(''GridToolsGridMask_CB'',guidata(gcbo))','Label','Write Mask', 'Tag','haveNaNs');
 uimenu('Parent',hGT,'Call','inpaint_nans(guidata(gcbo))','Label','Inpaint NaNs', 'Tag','haveNaNs');
@@ -714,8 +715,8 @@ uimenu('Parent',h2,'Call','mirone(''GridToolsFindHoles_CB'',guidata(gcbo))','Lab
 uimenu('Parent',h2,'Call','mirone(''GridToolsSaveAsSRTM_CB'',guidata(gcbo))','Label','Save as SRTM');
 
 %uimenu('Parent',hGT,'Call','mirone(''GridToolsMesher_CB'',guidata(gcbo))','Label','Mesher','Sep','on');
-uimenu('Parent',hGT,'Call','mirone(''ImageEdgeDetect_CB'',guidata(gcbo),''ppa'')',...
-'Label','Extract ridges/valleys','Sep','on');
+uimenu('Parent',hGT,'Call','mirone(''ImageEdgeDetect_CB'',guidata(gcbo),''ppa'')','Label','Extract ridges/valleys','Sep','on');
+%uimenu('Parent',hGT,'Call','find_seamounts(guidata(gcbo))','Label','Find Seamounts');
 
 %% --------------------------- PROJECTIONS -----------------------------
 h = uimenu('Parent',H1,'Label','Projections','Tag','Projections');
@@ -737,7 +738,7 @@ if (IamCompiled)
 end
 uimenu('Parent',h, 'Call',['mirone(''FileOpenWebImage_CB'',guidata(gcbo),',...
 	' ''http://www2.clustrmaps.com/stats/maps-clusters/w3.ualg.pt-~jluis-mirone-world.jpg'',''nikles'');'],'Label','See visitors map','Sep','on');
-uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 4 May 2014'',''2.6.0dev'')','Label','About','Sep','on');
+uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 13 May 2014'',''2.6.0dev'')','Label','About','Sep','on');
 
 %% --------------------------- Build HANDLES and finish things here
 	handles = guihandles(H1);
