@@ -4,13 +4,13 @@ function varargout = transplants(hLine, tipo, handles)
 % In the IMPLANTGRID mode this function:
 % Read an external grid, that can be in most of the recognized formats, and "inserts" it
 % on the mother grid. Grid resolutions do not need to be equal as over the modified zone
-% the grid is reinterpolated with gmtmbgrid. A padding zone of one cell is left between
+% the grid is reinterpolated with gmtmbgrid. A padding zone of 1 cell is left between
 % the two datasets so that the interpolation can be made minimally smooth.
 % The to-be-inserted grid may have NaNs but only the outside ones will be acknowledged.
 % That is, inner holes are ignored.
 %
 %  HLINE     -> a line or patch handle to rectangle. Currently it's only used to fetch
-%               the Mirone handles inn the case the HANDLES arg is not provided.
+%               the Mirone handles in the case the HANDLES arg is not provided.
 %  TIPO      -> Is either 'grid' or 'image' (case insensitive) and select the operation to do
 %  HANDLES   -> is the (optional) Mirone handles. If not provided HLINE must be a valid line handle
 %
@@ -78,7 +78,19 @@ function varargout = transplants(hLine, tipo, handles)
 	[Zinner, Xinner, Yinner, srsWKT, handlesInner] = read_grid(handlesInner, fname, tipo);
 	if (isempty(Zinner)),	set(handles.figure1,'pointer','arrow'),		return,		end
 
-	% Compute a rectangle = InnerGrid + pad, but that doesn't got out of OuterGrid
+	% Check that both grids intersect
+	rect = aux_funs('rectangle_and', handles.head, handlesInner.head);
+	if (isempty(rect))
+		errordlg('The to-be-transplanted grid does not have any region in common with the base grid. Bye, Bye.','Error')
+		set(handles.figure1,'pointer','arrow'),		return
+	else
+		h = line('xdata',rect(:,1), 'ydata',rect(:,2), 'Parent', handles.axes1, 'LineWidth', handles.DefLineThick, ...
+			'Color',handles.DefLineColor);
+		draw_funs(h,'line_uicontext')
+		drawnow
+	end
+
+	% Compute a rectangle = InnerGrid + pad, but that doesn't get out of OuterGrid
 	pad = 6;
 	x_min = max(handlesInner.head(1) - pad * handles.head(8), handles.head(1));
 	x_max = min(handlesInner.head(2) + pad * handles.head(8), handles.head(2));
@@ -89,8 +101,9 @@ function varargout = transplants(hLine, tipo, handles)
 	[Z_rect,r_c] = cropimg(head(1:2), head(3:4), Z, rect_outer, 'out_grid');
 
 	if (handlesInner.have_nans)				% Case in which the inner grid has NaNs
-		indNaN = ~isnan(Zinner);
-		B = img_fun('bwboundaries',indNaN, 8, 'noholes');
+		indNotNaN = ~isnan(Zinner);
+		mask = img_fun('bwmorph',indNotNaN,'dilate');
+		B = img_fun('bwboundaries',mask, 8, 'noholes');
 		dims = [size(Zinner,1) size(Zinner,2)];
 		x_inc = handlesInner.head(8);		y_inc = handlesInner.head(9);
 		x_min = handlesInner.head(1);		y_min = handlesInner.head(3);
@@ -121,7 +134,15 @@ function varargout = transplants(hLine, tipo, handles)
 	opt_R = sprintf('-R%.10f/%.10f/%.10f/%.10f', X(1), X(end), Y(1), Y(end));
 	opt_I = sprintf('-I%.10f/%.10f',head(8),head(9));
 
-	mask = ~(img_fun('roipoly_j',[x_min x_max],[y_min y_max],Z_rect,x,y));
+	mask = ~(img_fun('roipoly_j',[x_min x_max],[y_min y_max],Z_rect,x,y));		% Mask at the outer grid resolution
+	if (handlesInner.have_nans && numel(B) > 1)		% If we have holes in Inner grid, let the outer grid values survive there
+		for (k = 2:numel(B))
+			y = (B{k}(:,1)-1)*y_inc + y_min;
+			x = (B{k}(:,2)-1)*x_inc + x_min;
+			mask_t = ~(img_fun('roipoly_j',[x_min x_max],[y_min y_max],Z_rect,x,y));
+			mask = mask | mask_t;
+		end
+	end
 	ZZ = double(Z_rect(mask));			% It F... has to be
 
 	[X,Y] = meshgrid(X,Y);
@@ -130,9 +151,9 @@ function varargout = transplants(hLine, tipo, handles)
 
 	[X,Y] = meshgrid(Xinner,Yinner);
 	if (handlesInner.have_nans)
-		XX = [XX(:); X(indNaN(:))];			clear X
-		YY = [YY(:); Y(indNaN(:))];			clear Y
-		ZZ = [ZZ(:); double(Zinner(indNaN(:)))];	clear Zinner
+		XX = [XX(:); X(indNotNaN(:))];		clear X
+		YY = [YY(:); Y(indNotNaN(:))];		clear Y
+		ZZ = [ZZ(:); double(Zinner(indNotNaN(:)))];	clear Zinner	% Join outer and inner Zs
 	else
 		XX = [XX(:); X(:)];			clear X
 		YY = [YY(:); Y(:)];			clear Y
