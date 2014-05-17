@@ -558,6 +558,7 @@ function varargout = load_xyz(handles, opt, opt2)
 						case {'AsLine' 'i_file'}		% 'i_file' means internal file (Isochrons or FZs)
 							hLine(i) = line('XData',tmpx,'YData',tmpy,'Parent',handles.axes1,'Linewidth',lThick,...
 									'Color',cor,'Tag',tag,'Userdata',n_isoc);
+								disp([num2str(hLine(i)) '  ' num2str(i)])
 							setappdata(hLine(i),'LineInfo',multi_segs_str{i});
 							setappdata(hLine(i),'was_binary',is_bin);	% To offer option to save as binary too
 						case 'AsPoint'
@@ -670,7 +671,8 @@ function varargout = load_xyz(handles, opt, opt2)
 		multi_segs_str(n_clear) = [];		% Clear the unused info
 
 		% In case of Lines (and Isocs) uicontexts have not been set yet. Do it now.
-		ind = isnan(hLine);    hLine(ind) = [];      % Clear unused rows in hLine (due to over-dimensioning)
+		hLine(isnan(hLine)) = [];			% Clear unused rows in hLine (due to over-dimensioning)
+		hLine(hLine == 0) = [];				% The recursive call is very complicated to manage and may end up with zeros here
 		if (~isempty(hLine) && (strcmp(line_type, 'AsLine') || strcmp(line_type, 'i_file') || got_arrow))
 			if (orig_no_mseg)
 				draw_funs(hLine,'line_uicontext')		% Here hLine is actually only a scalar
