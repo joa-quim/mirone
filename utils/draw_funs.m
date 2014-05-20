@@ -292,9 +292,7 @@ function set_line_uicontext(h, opt)
 	if (IS_RECTANGLE)
 		uimenu(cmenuHand, 'Label', 'Rectangle limits (edit)', 'Sep','on', 'Call', @rectangle_limits);
 		uimenu(cmenuHand, 'Label', 'Register Image', 'Call', @rectangle_register_img);
-		if (handles.validGrid)
-			uimenu(cmenuHand, 'Label', 'Transplant GRID here', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''ImplantGrid'')');
-		else
+		if (~handles.validGrid)
 			uimenu(cmenuHand, 'Label', 'Transplant Image here','Call', 'transplants(gco,''image'')');
 		end
 		if (handles.geog)
@@ -992,7 +990,7 @@ function set_isochrons_uicontext(h, data)
 	cb_color = uictx_color(h);				% there are 9 cb_color outputs
 	cbls1 = 'set(gco, ''LineStyle'', ''-''); refresh';   cbls2 = 'set(gco, ''LineStyle'', ''--''); refresh';
 	cbls3 = 'set(gco, ''LineStyle'', '':''); refresh';   cbls4 = 'set(gco, ''LineStyle'', ''-.''); refresh';
-	if (~all(isempty(cat(2,data{:}))))
+	if (~all(isempty(cat(2,data{:}))) )
 		uimenu(cmenuHand, 'Label', [tag ' info'], 'Call', {@Isochrons_Info,data});
 		uimenu(cmenuHand, 'Label', ['Delete this ' tag ' line'], 'Call', {@del_line,h}, 'Sep','on');
 	else
@@ -1005,9 +1003,9 @@ function set_isochrons_uicontext(h, data)
 	uimenu(cmenuHand, 'Label', 'Line azimuths', 'Call', @show_lineAzims);
 	uimenu(cmenuHand, 'Label', 'Line length', 'Call', {@show_LineLength,[],'nikles'});
 	LINE_ISCLOSED = 0;
-	for (i=1:numel(h))
+	for (i = 1:numel(h))
 		x = get(h(i),'XData');      y = get(h(i),'YData');
-		if ( numel(x) > 2 && (x(1) == x(end)) && (y(1) == y(end)) )		% See if we have at least one closed line
+		if (numel(x) > 2 && (x(1) == x(end)) && (y(1) == y(end)))		% See if we have at least one closed line
 			LINE_ISCLOSED = 1;		break
 		end
 	end
