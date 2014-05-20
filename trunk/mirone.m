@@ -4254,7 +4254,7 @@ elseif (strcmp(opt,'apalpa'))		% Get the polygons that sorround good data
 	[X,Y,Z] = load_grd(handles);
 	if isempty(Z),		return,		end
 	mask = isnan(Z);
-	B = img_fun('bwboundaries',mask);
+	B = img_fun('bwboundaries',mask, 8, 'holes');
 	%B = bwbound_unique(B);
 	dims = [size(Z,1) size(Z,2)];
 	opt = 'Vec';					% Trick to not need to add an extra case in the IF test below
@@ -4307,19 +4307,22 @@ if (strcmp(opt,'Vec') || strcmp(opt,'Lines') || strcmp(opt,'Rect'))		% Convert t
 	end
 	h_edge = zeros(length(B),1);	i = 1;
 	for k = 1:length(B)
-		boundary = B{k};
-		if (length(boundary) < 20 && strcmp(opt,'Vec')),	continue,	end
-		if (numel(boundary) > 4)
-			boundary = cvlib_mex('dp', boundary, 0.7);		% Simplify line
+		bnd = B{k};
+		if (strcmp(opt,'apalpa') &&  mask(bnd(1,1),bnd(1,2)) && ...	% Drastic but no better solution to avoid NaNs-in-corners cases
+				(min(bnd(:,1)) == 1 || max(bnd(:,1)) == dims(2) || min(bnd(:,1)) == 1 || max(bnd(:,1)) == dims(1)) )
+			continue
+		end
+		if (size(bnd,1) > 4)
+			bnd = cvlib_mex('dp', bnd, 0.4);		% Simplify line
 		end
 		% Some times we get a BB rectangle, test and ignore it if it's the case
-		if (size(boundary,1) == 5 && min(boundary(:,1)) == 1 && min(boundary(:,2)) == 1 && ...
-				max(boundary(:,1)) == dims(1) && max(boundary(:,2)) == dims(2))
+		if (size(bnd,1) == 5 && min(bnd(:,1)) == 1 && min(bnd(:,2)) == 1 && ...
+				max(bnd(:,1)) == dims(1) && max(bnd(:,2)) == dims(2))
 			continue
 		end
 
-		y = (boundary(:,1)-1)*y_inc + y_min;
-		x = (boundary(:,2)-1)*x_inc + x_min;
+		y = (bnd(:,1)-1)*y_inc + y_min;
+		x = (bnd(:,2)-1)*x_inc + x_min;
 		h_edge(i) = line('XData',x, 'YData',y, 'Parent',handles.axes1,'Linewidth',handles.DefLineThick, ...
 			'Color',handles.DefLineColor,'Tag','edge_detected','Userdata',i);
 		i = i + 1;
