@@ -101,7 +101,7 @@ if (version7)
 	set(H1,PV{:});		% Do it this way to cheat the compiler
 end
 
-hVG = zeros(1,17);		kv = 5;		% hVG will contain the handles of "not valid grid" uis to hide when they are not usable
+hVG = zeros(1,18);		kv = 5;		% hVG will contain the handles of "not valid grid" uis to hide when they are not usable
 hTB = uitoolbar('parent',H1, 'BusyAction','queue','HandleVisibility','on','Interruptible','on',...
 	'Tag','FigureToolBar','Vis','on');
 uipushtool('parent',hTB,'Click','mirone(''TransferB_CB'',guidata(gcbo),''NewEmpty'')', ...
@@ -578,7 +578,7 @@ uimenu('Parent',hP,'Call','mirone(''DrawEulerPoleCircle_CB'',guidata(gcbo))','La
 uimenu('Parent',hP,'Call','mirone(''DrawClosedPolygon_CB'',guidata(gcbo),''EulerTrapezium'')','Label','Draw Euler trapezium');
 uimenu('Parent',hP,'Call','datasets_funs(''ITRF'',guidata(gcbo))','Label','Plot ITRF2008 velocities');
 uimenu('Parent',hP,'Call','datasets_funs(''Plate'',guidata(gcbo))','Label','Plot Plate boundaries');
-uimenu('Parent',hP,'Call','mirone(''PlatesAgeLift_CB'',guidata(gcbo))','Label','Age Lift','Sep','on');
+hVG(kv) = uimenu('Parent',hP,'Call','mirone(''PlatesAgeLift_CB'',guidata(gcbo))','Label','Age Lift','Sep','on');	kv = kv + 1;
 uimenu('Parent',hP,'Call','rally_plater','Label','Rally Plater','Sep','on');
 
 %% --------------------------- Mag/Grav -----------------------------------
@@ -661,9 +661,12 @@ uimenu('Parent',hGT,'Call','mirone(''ImageCrop_CB'',guidata(gcbo),[],''CropaGrid
 uimenu('Parent',hGT,'Call','mirone(''RotateTool_CB'',guidata(gcbo),''grid'')','Label','Rotate Grid');
 uimenu('Parent',hGT,'Call','mirone(''TransferB_CB'',guidata(gcbo),''TransplantGrid'')','Label','Transplant 2nd Grid');
 uimenu('Parent',hGT,'Call','mirone(''GridToolsHistogram_CB'',guidata(gcbo))','Label','Histogram');
-uimenu('Parent',hGT,'Call','mirone(''GridToolsGridMask_CB'',guidata(gcbo))','Label','Write Mask', 'Tag','haveNaNs');
-uimenu('Parent',hGT,'Call','inpaint_nans(guidata(gcbo))','Label','Inpaint NaNs', 'Tag','haveNaNs');
-uimenu('Parent',hGT,'Call','mirone(''ImageEdgeDetect_CB'',guidata(gcbo),''apalpa'')','Label','Digitize holes','Tag','haveNaNs');
+h = uimenu('Parent',hGT,'Label','Holes (NaNs)', 'Tag','haveNaNs');
+uimenu('Parent',h,'Call','mirone(''GridToolsGridMask_CB'',guidata(gcbo))','Label','Write Mask');
+uimenu('Parent',h,'Call','inpaint_nans(guidata(gcbo))','Label','Inpaint NaNs');
+uimenu('Parent',h,'Call','mirone(''ImageEdgeDetect_CB'',guidata(gcbo),''apalpa'')','Label','Digitize holes');
+uimenu('Parent',h,'Call','mirone(''GridToolsFindHoles_CB'',guidata(gcbo))','Label','Find holes');
+
 uimenu('Parent',hGT,'Call','mirone(''Transfer_CB'',guidata(gcbo),''morph-grd'')','Label','Morphology');
 uimenu('Parent',hGT,'Call','mirone(''DigitalFilt_CB'',guidata(gcbo),''grid'')','Label','Digital filtering Tool');
 uimenu('Parent',hGT,'Call','mirone(''TransferB_CB'',guidata(gcbo),''fract'')','Label','Fractal field');
@@ -710,8 +713,6 @@ h = uimenu('Parent',h2,'Label','SRTM mosaic');
 uimenu('Parent',h,'Call','srtm_tool','Label','SRTM 3sec');
 uimenu('Parent',h,'Call','srtm_tool(''srtm1'')','Label','SRTM 1sec');
 uimenu('Parent',h,'Call','srtm_tool(''srtm30'')','Label','SRTM30');
-
-uimenu('Parent',h2,'Call','mirone(''GridToolsFindHoles_CB'',guidata(gcbo))','Label','Find holes');
 uimenu('Parent',h2,'Call','mirone(''GridToolsSaveAsSRTM_CB'',guidata(gcbo))','Label','Save as SRTM');
 
 %uimenu('Parent',hGT,'Call','mirone(''GridToolsMesher_CB'',guidata(gcbo))','Label','Mesher','Sep','on');
@@ -738,7 +739,7 @@ if (IamCompiled)
 end
 uimenu('Parent',h, 'Call',['mirone(''FileOpenWebImage_CB'',guidata(gcbo),',...
 	' ''http://www2.clustrmaps.com/stats/maps-clusters/w3.ualg.pt-~jluis-mirone-world.jpg'',''nikles'');'],'Label','See visitors map','Sep','on');
-uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 13 May 2014'',''2.6.0dev'')','Label','About','Sep','on');
+uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 20 May 2014'',''2.6.0dev'')','Label','About','Sep','on');
 
 %% --------------------------- Build HANDLES and finish things here
 	handles = guihandles(H1);
