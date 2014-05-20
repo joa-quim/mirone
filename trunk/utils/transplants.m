@@ -57,7 +57,7 @@ function varargout = transplants(hLine, tipo, handles)
 
 	str = {'*.grd;*.nc;*.tif;*.tiff;*.jpg;*.jp2;*.png;*.gif;*.mat;*.cpt;*.hdf;*.img', ...
 			'Files (*.grd,*.nc,*.tif,*.tiff,*.jpg,*.jp2,*.png,*.gif,*.mat,*.cpt,*.hdf,*.img)'; '*.*', 'All Files (*.*)'};
-	[FileName,PathName,handles] = put_or_get_file(handles,str,'Select file','get');
+	[FileName,PathName] = put_or_get_file(handles,str,'Select file','get');
 	if (isequal(FileName,0)),	return,		end				% User gave up
 	fname = [PathName FileName];
 	drv = aux_funs('findFileType', fname);
@@ -103,22 +103,33 @@ function varargout = transplants(hLine, tipo, handles)
 	if (handlesInner.have_nans)				% Case in which the inner grid has NaNs
 		indNotNaN = ~isnan(Zinner);
 		mask = img_fun('bwmorph',indNotNaN,'dilate');
-		B = img_fun('bwboundaries',mask, 8, 'noholes');
-		dims = [size(Zinner,1) size(Zinner,2)];
+		B    = img_fun('bwboundaries',mask, 8, 'noholes');
+		B{1} = cvlib_mex('dp', B{1}, 0.1);	% Simplify line
+		Bh   = img_fun('bwboundaries',mask, 8, 'holes');
+		if (~isempty(Bh))					% So we have holes. Must find only those inside B{1}
+			c = false(numel(Bh),1);
+			for (k = 1:numel(Bh))
+				Bh{k} = cvlib_mex('dp', Bh{k}, 0.1);		% Simplify line
+				if (size(Bh{k},1) == size(B{1},1))			% One of them comes out repeated
+					c(k) = true;	continue
+				end
+				IN = inpolygon(Bh{k}(:,1),Bh{k}(:,2), B{1}(:,1),B{1}(:,2));
+				if (~all(IN)),	c(k) = true;	end		% This one is out
+			end
+			Bh(c) = [];
+			if (~isempty(Bh))				% If we have any left its because they are inside holes
+				B = [B; Bh];	clear Bh;
+			end
+		end
 		x_inc = handlesInner.head(8);		y_inc = handlesInner.head(9);
 		x_min = handlesInner.head(1);		y_min = handlesInner.head(3);
 		if (handlesInner.head(7))			% Work in pixel registration
 			x_min = x_min + x_inc/2;	y_min = y_min + y_inc/2;
 		end
-		if (numel(B) > 1)
-			% Some times we get a BB rectangle, test and ignore it if it's the case
-			if (size(B{1},1) == 5 && min(B{1}(:,1)) == 1 && min(B{1}(:,2)) == 1 && ...
-					max(B{1}(:,1)) == dims(1) && max(B{1}(:,2)) == dims(2))
-				B(1) = [];
-			end
-		end
 		y = (B{1}(:,1)-1)*y_inc + y_min;
 		x = (B{1}(:,2)-1)*x_inc + x_min;
+		set(h, 'xdata',x, 'ydata',y)		% Convert the rectangle into the outer polygon
+
 	else
 		% Compute another rect but this time with pad = 1 that will be used to clip inside
 		x1 = max(handlesInner.head(1) - handles.head(8), handles.head(1));
@@ -139,7 +150,7 @@ function varargout = transplants(hLine, tipo, handles)
 		for (k = 2:numel(B))
 			y = (B{k}(:,1)-1)*y_inc + y_min;
 			x = (B{k}(:,2)-1)*x_inc + x_min;
-			mask_t = ~(img_fun('roipoly_j',[x_min x_max],[y_min y_max],Z_rect,x,y));
+			mask_t = (img_fun('roipoly_j',[x_min x_max],[y_min y_max],Z_rect,x,y));
 			mask = mask | mask_t;
 		end
 	end
@@ -148,6 +159,10 @@ function varargout = transplants(hLine, tipo, handles)
 	[X,Y] = meshgrid(X,Y);
 	XX = X(mask(:));
 	YY = Y(mask(:));
+	ind = isnan(ZZ);					% But are those NaN free?
+	if (any(ind))
+		ZZ(ind) = [];	XX(ind) = [];	YY(ind) = [];
+	end
 
 	[X,Y] = meshgrid(Xinner,Yinner);
 	if (handlesInner.have_nans)
@@ -160,7 +175,7 @@ function varargout = transplants(hLine, tipo, handles)
 		ZZ = [ZZ(:); double(Zinner(:))];	clear Zinner
 	end
 
-	Z_rect = gmtmbgrid_m(XX,YY,ZZ(:),opt_R,opt_I,'-T0.25', '-Mz');
+	Z_rect = gmtmbgrid_m(XX,YY,ZZ(:), opt_R, opt_I, '-T0.25', '-Mz', '-C5');
 	clear XX YY ZZ;
 
 	if (nargout == 1)
