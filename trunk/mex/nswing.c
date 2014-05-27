@@ -659,6 +659,7 @@ int main(int argc, char **argv) {
 						do_tracers = TRUE;						
 					}
 					break;
+				case 'M':
 					if (argv[i][2] == '-') {	/* Compute a mask with ones over the "dried beach" */
 						nest.do_long_beach = TRUE;
 						if (argv[i][3])
@@ -772,6 +773,7 @@ int main(int argc, char **argv) {
 					nesteds[atoi(&argv[i][1])-1] = &argv[i][2];
 					break;
 				default:
+					mexPrintf("NSWING: Unknown option %s\n", argv[i]);
 					error = TRUE;
 					break;
 			}
@@ -1078,6 +1080,7 @@ int main(int argc, char **argv) {
 				        f_topDepth, x_epic, y_epic, nest.etaa[0]);
 			}
 			else {
+				r_bin_b = read_grd_info_ascii (fonte, &hdr_f);	/* To know if bin or asc (but idiot, fun should do it all) */
 				if (r_bin_b)			/* Read source */
 					read_grd_bin (fonte, &hdr_f, nest.etaa[0], 1);
 				else
@@ -3695,6 +3698,11 @@ void moment_sp_M(struct nestContainer *nest, int lev) {
 	double dt, manning2, *htotal_a, *htotal_d, *bat, *etad, *fluxm_a, *fluxn_a, *fluxm_d, *fluxn_d;
 	double *r0, *r1m, *r1n, *r2m, *r2n, *r3m, *r3n, *r4m, *r4n;
 	struct grd_header hdr;
+	double bat__ij;
+	double htotal_d__ij;
+	double htotal_d__ij_p_cp1;
+	double etad__ij;
+	double fluxm_a__ij;
 
 	hdr      = nest->hdr[lev];
 	dt       = nest->dt[lev];              manning2 = nest->manning2[lev];
@@ -3733,46 +3741,54 @@ void moment_sp_M(struct nestContainer *nest, int lev) {
 			cp2 = (col < hdr.nx - 2) ? 2 : 1;
 			cm1 = (col == 0) ? 0 : 1;
 			ij++;
+
+			bat__ij = bat[ij];
+
 			/* no flux to permanent dry areas */
-			if (bat[ij] <= MAXRUNUP) continue;
+			if (bat__ij <= MAXRUNUP) continue;
+
+			htotal_d__ij = htotal_d[ij];
+			htotal_d__ij_p_cp1 = htotal_d[ij+cp1];
+			etad__ij = etad[ij];
+			fluxm_a__ij = fluxm_a[ij];
 
 			/* Looks weird but it's faster than an IF case (branch prediction?) */
-			dpa_ij = (dpa_ij = (htotal_d[ij] + htotal_a[ij] + htotal_d[ij+cp1] + htotal_a[ij+cp1]) * 0.25) > EPS6 ? dpa_ij : 0;
+			dpa_ij = (dpa_ij = (htotal_d__ij + htotal_a[ij] + htotal_d__ij_p_cp1 + htotal_a[ij+cp1]) * 0.25) > EPS6 ? dpa_ij : 0;
 
 			/* - moving boundary - Imamura algorithm following cho 2009 */
-			if (htotal_d[ij] > EPS5 && htotal_d[ij+cp1] > EPS5) {
+			if (htotal_d__ij > EPS5 && htotal_d__ij_p_cp1 > EPS5) {
 				/* - case b2 */
-				if (-bat[ij+cp1] >= etad[ij]) {
-					dd = htotal_d[ij+cp1];
+				if (-bat[ij+cp1] >= etad__ij) {
+					dd = htotal_d__ij_p_cp1;
 					df = dd;
 					/* case d2 */
 				}
-				else if (-bat[ij] >= etad[ij+cp1]) {
-					dd = htotal_d[ij];
+				else if (-bat__ij >= etad[ij+cp1]) {
+					dd = htotal_d__ij;
 					df = dd;
 				}
 				else {
 					/* case b3/d3 */
-					dd = (htotal_d[ij] + htotal_d[ij+cp1]) * 0.5;
+					dd = (htotal_d__ij + htotal_d__ij_p_cp1) * 0.5;
 					if (dd < EPS5) dd = 0;
 					df = dpa_ij;
 				}
 				/* - case a3/d1 wet dry */
 			}
-			else if (htotal_d[ij] >= EPS5 && htotal_d[ij+cp1] < EPS5 && etad[ij] > etad[ij+cp1]) {
-				if (bat[ij] > bat[ij+cp1])
-					dd = etad[ij] - etad[ij+cp1];
+			else if (htotal_d__ij >= EPS5 && htotal_d__ij_p_cp1 < EPS5 && etad__ij > etad[ij+cp1]) {
+				if (bat__ij > bat[ij+cp1])
+					dd = etad__ij - etad[ij+cp1];
 				else
-					dd = htotal_d[ij];
+					dd = htotal_d__ij;
 
 				df = dd;
 				/* - case b1 and c3 dry-wet */
 			}
-			else if (htotal_d[ij] < EPS5 && htotal_d[ij+cp1] >= EPS5 && etad[ij] < etad[ij+cp1]) {
-				if (bat[ij] > bat[ij+cp1])
-					dd = htotal_d[ij+cp1];
+			else if (htotal_d__ij < EPS5 && htotal_d__ij_p_cp1 >= EPS5 && etad__ij < etad[ij+cp1]) {
+				if (bat__ij > bat[ij+cp1])
+					dd = htotal_d__ij_p_cp1;
 				else
-					dd = etad[ij+cp1] - etad[ij];
+					dd = etad[ij+cp1] - etad__ij;
 				df = dd;
 			}
 			else		/* - other cases no moving boundary a1,a2,c1,c2 */
@@ -3781,12 +3797,13 @@ void moment_sp_M(struct nestContainer *nest, int lev) {
 			/* - no flux if dd too small */
 			if (dd < EPS5) continue;
 
-			if (df < EPS3) df = EPS3;
+			//if (df < EPS3) df = EPS3;
+			df = (df < EPS3) ? EPS3 : df;		/* Aparently this is faster than the simpe if test */
 			xqq = (fluxn_a[ij] + fluxn_a[ij+cp1] + fluxn_a[ij-rm1] + fluxn_a[ij+cp1-rm1]) * 0.25;
-			//ff = (manning2) ? cte * manning2 * sqrt(fluxm_a[ij] * fluxm_a[ij] + xqq * xqq) / pow(df, 2.333333) : 0;
+			//ff = (manning2) ? cte * manning2 * sqrt(fluxm_a__ij * fluxm_a__ij + xqq * xqq) / pow(df, 2.333333) : 0;
 
 			/* - computes linear terms in spherical coordinates */
-			xp = (1 - ff) * fluxm_a[ij] - r3m[row] * dd * (etad[ij+cp1] - etad[ij]); /* - includes coriolis */
+			xp = (1 - ff) * fluxm_a__ij - r3m[row] * dd * (etad[ij+cp1] - etad__ij); /* - includes coriolis */
 #if 0
 			if (hdr.doCoriolis)
 				xp += r4m[row] * 2 * xqq;
@@ -3802,50 +3819,54 @@ void moment_sp_M(struct nestContainer *nest, int lev) {
 			/* - computes convection terms */
 			advx = advy = 0;
 			/* - upwind scheme for x-direction volume flux */
-			if (fluxm_a[ij] < 0) {
-				dpa_ij_cp1 = (htotal_d[ij+cp1] + htotal_a[ij+cp1] + htotal_d[ij+cp2] + htotal_a[ij+cp2]) * 0.25;
-				if (dpa_ij_cp1 < EPS3 || htotal_d[ij+cp1] < EPS5) {
-					advx = r2m[row] * (-(fluxm_a[ij] * fluxm_a[ij]) / dpa_ij);
+			if (fluxm_a__ij < 0) {
+				dpa_ij_cp1 = (htotal_d__ij_p_cp1 + htotal_a[ij+cp1] + htotal_d[ij+cp2] + htotal_a[ij+cp2]) * 0.25;
+				if (dpa_ij_cp1 < EPS3 || htotal_d__ij_p_cp1 < EPS5) {
+					advx = r2m[row] * (-(fluxm_a__ij * fluxm_a__ij) / dpa_ij);
 				}
 				else {
-					advx = r2m[row] * (fluxm_a[ij+cp1]*fluxm_a[ij+cp1] / dpa_ij_cp1 - fluxm_a[ij]*fluxm_a[ij] / dpa_ij);
+					advx = r2m[row] * (fluxm_a[ij+cp1]*fluxm_a[ij+cp1] / dpa_ij_cp1 - fluxm_a__ij*fluxm_a__ij / dpa_ij);
 				}
 			}
 			else {
-				dpa_ij_cm1 = (htotal_d[ij-cm1] + htotal_a[ij-cm1] + htotal_d[ij] + htotal_a[ij]) * 0.25;
-				if (dpa_ij_cm1 < EPS3 || htotal_d[ij] < EPS5)
-					advx = r2m[row] * (fluxm_a[ij] * fluxm_a[ij] / dpa_ij);
+				dpa_ij_cm1 = (htotal_d[ij-cm1] + htotal_a[ij-cm1] + htotal_d__ij + htotal_a[ij]) * 0.25;
+				if (dpa_ij_cm1 < EPS3 || htotal_d__ij < EPS5)
+					advx = r2m[row] * (fluxm_a__ij * fluxm_a__ij / dpa_ij);
 
 				else
-					advx = r2m[row] * (fluxm_a[ij]*fluxm_a[ij] / dpa_ij) - r2m[row] *
+					advx = r2m[row] * (fluxm_a__ij*fluxm_a__ij / dpa_ij) - r2m[row] *
 						(fluxm_a[ij-cm1]*fluxm_a[ij-cm1] / dpa_ij_cm1);
 			}
 			/* - upwind scheme for y-direction volume flux */
 			if (xqq < 0) {
-				dpa_ij_rp1 = (htotal_d[ij+rp1] + htotal_a[ij+rp1] + htotal_d[ij+cp1+rp1] + htotal_a[ij+cp1+rp1]) * 0.25;
-				if (htotal_d[ij+rp1] < EPS5 || htotal_d[ij+cp1+rp1] < EPS5)
-					advy = r0[row] * (-fluxm_a[ij] * xqq / dpa_ij);
+				double htotal_d__ij_p_rp1 = htotal_d[ij+rp1];
+				double htotal_d__ij_p_cp1_p_rp1 = htotal_d[ij+cp1+rp1];
+				dpa_ij_rp1 = (htotal_d__ij_p_rp1 + htotal_a[ij+rp1] + htotal_d__ij_p_cp1_p_rp1 + htotal_a[ij+cp1+rp1]) * 0.25;
+				if (htotal_d__ij_p_rp1 < EPS5 || htotal_d__ij_p_cp1_p_rp1 < EPS5)
+					advy = r0[row] * (-fluxm_a__ij * xqq / dpa_ij);
 
 				else if (dpa_ij_rp1 < EPS5)
-					advy = r0[row] * (-fluxm_a[ij] * xqq / dpa_ij);
+					advy = r0[row] * (-fluxm_a__ij * xqq / dpa_ij);
 
 				else {
 					xqe = (fluxn_a[ij+rp1] + fluxn_a[ij+cp1+rp1] + fluxn_a[ij] + fluxn_a[ij+cp1]) * 0.25;
-					advy = r0[row] * (-fluxm_a[ij] * xqq / dpa_ij) + r0[row] * (fluxm_a[ij+rp1] * xqe / dpa_ij_rp1);
+					advy = r0[row] * (-fluxm_a__ij * xqq / dpa_ij) + r0[row] * (fluxm_a[ij+rp1] * xqe / dpa_ij_rp1);
 				}
 			} 
 			else {
-				dpa_ij_rm1 = (htotal_d[ij-rm1] + htotal_a[ij-rm1] + htotal_d[ij+cp1-rm1] + htotal_a[ij+cp1-rm1]) * 0.25;
-				if (htotal_d[ij-rm1] < EPS5 || htotal_d[ij+cp1-rm1] < EPS5)
-					advy = r0[row] * fluxm_a[ij] * xqq / dpa_ij;
+				double htotal_d__ij_m_rm1  = htotal_d[ij-rm1];
+				double htotal_d__ij_p_cp1_m_rm1 = htotal_d[ij+cp1-rm1];
+				dpa_ij_rm1 = (htotal_d__ij_m_rm1 + htotal_a[ij-rm1] + htotal_d__ij_p_cp1_m_rm1 + htotal_a[ij+cp1-rm1]) * 0.25;
+				if (htotal_d__ij_m_rm1 < EPS5 || htotal_d__ij_p_cp1_m_rm1 < EPS5)
+					advy = r0[row] * fluxm_a__ij * xqq / dpa_ij;
 
 				else if (dpa_ij_rm1 < EPS5)
-					advy = r0[row] * fluxm_a[ij] * xqq / dpa_ij;
+					advy = r0[row] * fluxm_a__ij * xqq / dpa_ij;
 
 				else {
 					rm2 = ((row < 2) ? 0 : 2) * hdr.nx;
 					xqe = (fluxn_a[ij-rm1] + fluxn_a[ij+cp1-rm1] + fluxn_a[ij-rm2] + fluxn_a[ij+cp1-rm2]) * 0.25;
-					advy = r0[row] * (fluxm_a[ij] * xqq / dpa_ij) - r0[row] * (fluxm_a[ij-rm1] * xqe / dpa_ij_rm1);
+					advy = r0[row] * (fluxm_a__ij * xqq / dpa_ij) - r0[row] * (fluxm_a[ij-rm1] * xqe / dpa_ij_rm1);
 				}
 			}
 			/* - disregards very small advection terms */
@@ -3883,6 +3904,13 @@ void moment_sp_N(struct nestContainer *nest, int lev) {
 	double dt, manning2, *htotal_a, *htotal_d, *bat, *etad, *fluxm_a, *fluxn_a, *fluxm_d, *fluxn_d;
 	double *r0, *r1m, *r1n, *r2m, *r2n, *r3m, *r3n, *r4m, *r4n;
 	struct grd_header hdr;
+	double bat__ij;
+	double htotal_d__ij;
+	double htotal_d__ij_p_rp1;
+	double htotal_a__ij_p_rp1;
+	double etad__ij;
+	double etad__ij_p_rp1;
+	double fluxn_a__ij;
 
 	hdr      = nest->hdr[lev];
 	dt       = nest->dt[lev];              manning2 = nest->manning2[lev];
@@ -3922,45 +3950,55 @@ void moment_sp_N(struct nestContainer *nest, int lev) {
 			cp1 = (col < hdr.nx-1) ? 1 : 0;
 			cm1 = (col == 0) ? 0 : 1;
 			ij++;
+
+			bat__ij = bat[ij];
+
 			/* no flux to permanent dry areas */
-			if (bat[ij] <= MAXRUNUP) continue;
+			if (bat__ij <= MAXRUNUP) continue;
+
+			/* Access these the minimum times possible */
+			htotal_d__ij = htotal_d[ij];
+			htotal_d__ij_p_rp1 = htotal_d[ij+rp1];
+			etad__ij = etad[ij];
+			htotal_a__ij_p_rp1 = htotal_a[ij+rp1];
+			etad__ij_p_rp1 = etad[ij+rp1];
+			fluxn_a__ij = fluxn_a[ij];
 
 			/* Looks weird but it's faster than an IF case (branch prediction?) */
-			dqa_ij = (dqa_ij = (htotal_d[ij] + htotal_a[ij] + htotal_d[ij+rp1] + htotal_a[ij+rp1]) * 0.25) > EPS6 ? dqa_ij : 0;
+			dqa_ij = (dqa_ij = (htotal_d__ij + htotal_a[ij] + htotal_d__ij_p_rp1 + htotal_a__ij_p_rp1) * 0.25) > EPS6 ? dqa_ij : 0;
 
 			/* - moving boundary - Imamura algorithm following cho 2009 */
-			if (htotal_d[ij] > EPS5 && htotal_d[ij+rp1] > EPS5) {
-				/* - case b2 */
-				if (-bat[ij+rp1] >= etad[ij]) {
-					dd = htotal_d[ij+rp1];
+			if (htotal_d__ij > EPS5 && htotal_d__ij_p_rp1 > EPS5) {
+				if (-bat[ij+rp1] >= etad__ij) {				/* - case b2 */
+					dd = htotal_d__ij_p_rp1;
 					df = dd;
 				}
-				else if (-bat[ij] >= etad[ij+rp1]) {	/* casse d2 */
-					dd = htotal_d[ij];
+				else if (-bat__ij >= etad__ij_p_rp1) {		/* casse d2 */
+					dd = htotal_d__ij;
 					df = dd;
 				} 
 				else {	/* case b3/d3 */
-					dd = (htotal_d[ij] + htotal_d[ij+rp1]) * 0.5;
+					dd = (htotal_d__ij + htotal_d__ij_p_rp1) * 0.5;
 					if (dd < EPS5) dd = 0;
 					df = dqa_ij;
 				}
 			/* - case a3 and d1 wet dry */
 			}
-			else if (htotal_d[ij] > EPS5 && htotal_d[ij+rp1] <= EPS5 && etad[ij] > etad[ij+rp1]) {
-				if (bat[ij] > bat[ij+rp1]) {
-					df = dd = etad[ij] - etad[ij+rp1];
+			else if (htotal_d__ij > EPS5 && htotal_d__ij_p_rp1 <= EPS5 && etad__ij > etad__ij_p_rp1) {
+				if (bat__ij > bat[ij+rp1]) {
+					df = dd = etad__ij - etad__ij_p_rp1;
 				}
 				else {
-					df = dd = htotal_d[ij];
+					df = dd = htotal_d__ij;
 				}
 				/* - case b1 and c3 dry-wet */
 			}
-			else if (htotal_d[ij] <= EPS5 && htotal_d[ij+rp1] > EPS5 && etad[ij] < etad[ij+rp1]) {
-				if (bat[ij] > bat[ij+rp1]) {
-					df = dd = htotal_d[ij+rp1];
+			else if (htotal_d__ij <= EPS5 && htotal_d__ij_p_rp1 > EPS5 && etad__ij < etad__ij_p_rp1) {
+				if (bat__ij > bat[ij+rp1]) {
+					df = dd = htotal_d__ij_p_rp1;
 				}
 				else {
-					df = dd = etad[ij+rp1] - etad[ij];
+					df = dd = etad__ij_p_rp1 - etad__ij;
 				}
 			} 
 			else				/* - other cases no moving boundary */
@@ -3969,12 +4007,12 @@ void moment_sp_N(struct nestContainer *nest, int lev) {
 			/* - no flux if dd too small */
 			if (dd < EPS5) continue;
 
-			if (df < EPS3) df = EPS3;
+			df = (df < EPS3) ? EPS3 : df;
 			xpp = (fluxm_a[ij] + fluxm_a[ij+rp1] + fluxm_a[ij-cm1] + fluxm_a[ij-cm1+rp1]) * 0.25;
-			//ff = (manning2) ? cte * manning2 * sqrt(fluxn_a[ij] * fluxn_a[ij] + xpp * xpp) / pow(df, 2.333333) : 0;
+			//ff = (manning2) ? cte * manning2 * sqrt(fluxn_a__ij * fluxn_a__ij + xpp * xpp) / pow(df, 2.333333) : 0;
 
 			/* - computes linear terms of N in cartesian coordinates */
-			xq = (1 - ff) * fluxn_a[ij] - r3n[row] * dd * (etad[ij+rp1] - etad[ij]);
+			xq = (1 - ff) * fluxn_a__ij - r3n[row] * dd * (etad__ij_p_rp1 - etad__ij);
 			/* - includes coriolis effect */
 #if 0
 			if (hdr.doCoriolis)
@@ -3992,48 +4030,50 @@ void moment_sp_N(struct nestContainer *nest, int lev) {
 			advx = advy = 0;
 			/* - upwind scheme for y-direction volume flux */
 			/* - total water depth is smaller than EPS5 >> linear */
-			if (fluxn_a[ij] < 0) {
-				dqa_ij_rp1 = (htotal_d[ij+rp1] + htotal_a[ij+rp1] + htotal_d[ij+rp2] + htotal_a[ij+rp2]) * 0.25;
-				if (dqa_ij_rp1 < EPS5 || htotal_d[ij+rp1] < EPS5)
-					advy = r0[row] * (-(fluxn_a[ij] * fluxn_a[ij]) / dqa_ij);
+			if (fluxn_a__ij < 0) {
+				dqa_ij_rp1 = (htotal_d__ij_p_rp1 + htotal_a__ij_p_rp1 + htotal_d[ij+rp2] + htotal_a[ij+rp2]) * 0.25;
+				if (dqa_ij_rp1 < EPS5 || htotal_d__ij_p_rp1 < EPS5)
+					advy = r0[row] * (-(fluxn_a__ij * fluxn_a__ij) / dqa_ij);
 				else
 					advy = r0[row] * (fluxn_a[ij+rp1]*fluxn_a[ij+rp1] / dqa_ij_rp1 -
-						fluxn_a[ij] * fluxn_a[ij] / dqa_ij);
+						fluxn_a__ij * fluxn_a__ij / dqa_ij);
 			} 
 			else {
-				dqa_ij_rm1 = (htotal_d[ij-rm1] + htotal_a[ij-rm1] + htotal_d[ij] + htotal_a[ij]) * 0.25;
-				if (dqa_ij_rm1 < EPS3 || htotal_d[ij] < EPS5)
-					advy = r0[row] * (fluxn_a[ij] * fluxn_a[ij]) / dqa_ij;
+				dqa_ij_rm1 = (htotal_d[ij-rm1] + htotal_a[ij-rm1] + htotal_d__ij + htotal_a[ij]) * 0.25;
+				if (dqa_ij_rm1 < EPS3 || htotal_d__ij < EPS5)
+					advy = r0[row] * (fluxn_a__ij * fluxn_a__ij) / dqa_ij;
 				else
-					advy = r0[row] * (fluxn_a[ij]*fluxn_a[ij] / dqa_ij) - r0[row] *
+					advy = r0[row] * (fluxn_a__ij*fluxn_a__ij / dqa_ij) - r0[row] *
 						(fluxn_a[ij-rm1]*fluxn_a[ij-rm1] / dqa_ij_rm1);
 			}
 			/* - upwind scheme for x-direction volume flux */
 			if (xpp < 0) {
-				dqa_ij_cp1 = (htotal_d[ij+cp1] + htotal_a[ij+cp1] + htotal_d[ij+rp1+cp1] + htotal_a[ij+rp1+cp1]) * 0.25;
-				if (htotal_d[ij+cp1] < EPS5 || htotal_d[ij+cp1+rp1] < EPS5)
-					advx = r2n[row] * (-fluxn_a[ij] * xpp / dqa_ij);
+				double htotal_d__ij_p_cp1 = htotal_d[ij+cp1];
+				dqa_ij_cp1 = (htotal_d__ij_p_cp1 + htotal_a[ij+cp1] + htotal_d[ij+rp1+cp1] + htotal_a[ij+rp1+cp1]) * 0.25;
+				if (htotal_d__ij_p_cp1 < EPS5 || htotal_d[ij+cp1+rp1] < EPS5)
+					advx = r2n[row] * (-fluxn_a__ij * xpp / dqa_ij);
 
 				else if (dqa_ij_cp1 < EPS3)
-					advx = r2n[row] * (-fluxn_a[ij] * xpp / dqa_ij);
+					advx = r2n[row] * (-fluxn_a__ij * xpp / dqa_ij);
  
 				else {
 					xpe = (fluxm_a[ij+cp1] + fluxm_a[ij+cp1+rp1] + fluxm_a[ij] + fluxm_a[ij+rp1]) * 0.25;
-					advx = r2n[row] * (-fluxn_a[ij] * xpp / dqa_ij) + r2n[row] * (fluxn_a[ij+cp1] * xpe / dqa_ij_cp1);
+					advx = r2n[row] * (-fluxn_a__ij * xpp / dqa_ij) + r2n[row] * (fluxn_a[ij+cp1] * xpe / dqa_ij_cp1);
 				}
 			} 
 			else {
-				dqa_ij_cm1 = (htotal_d[ij-cm1] + htotal_a[ij-cm1] + htotal_d[ij+rp1-cm1] + htotal_a[ij+rp1-cm1]) * 0.25;
-				if (htotal_d[ij-cm1] < EPS5 || htotal_d[ij-cm1+rp1] < EPS5)
-					advx = r2n[row] * (fluxn_a[ij] * xpp / dqa_ij);
+				double htotal_d__ij_m_cm1 = htotal_d[ij-cm1];
+				dqa_ij_cm1 = (htotal_d__ij_m_cm1 + htotal_a[ij-cm1] + htotal_d[ij+rp1-cm1] + htotal_a[ij+rp1-cm1]) * 0.25;
+				if (htotal_d__ij_m_cm1 < EPS5 || htotal_d[ij-cm1+rp1] < EPS5)
+					advx = r2n[row] * (fluxn_a__ij * xpp / dqa_ij);
 
 				else if (dqa_ij_cm1 < EPS3)
-					advx = r2n[row] * fluxn_a[ij] * xpp / dqa_ij;
+					advx = r2n[row] * fluxn_a__ij * xpp / dqa_ij;
 
 				else {
 					cm2 = (col < 2) ? 0 : 2;
 					xpe = (fluxm_a[ij-cm1] + fluxm_a[ij-cm1+rp1] + fluxm_a[ij-cm2] + fluxm_a[ij-cm2+rp1]) * 0.25;
-					advx = r2n[row] * (fluxn_a[ij] * xpp / dqa_ij) - r2n[row] * (fluxn_a[ij-cm1] * xpe / dqa_ij_cm1);
+					advx = r2n[row] * (fluxn_a__ij * xpp / dqa_ij) - r2n[row] * (fluxn_a[ij-cm1] * xpe / dqa_ij_cm1);
 				}
 			}
 			/* disregards very small advection terms */
