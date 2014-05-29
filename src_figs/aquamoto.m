@@ -290,10 +290,10 @@ function tab_group_ButtonDownFcn(hObject, eventdata, handles)
 % This also updates the last_tab field in the handles structure to keep track
 % of which panel was hidden.
 	handles = tabpanelfcn('tab_group_handler',hObject, handles, get(hObject, 'Tag'));
-	if ( hObject == handles.hTabShade )
+	if (hObject == handles.hTabShade)
 		set(handles.push_bg, 'Vis', 'off')		% It has axes, which would be otherwise hidden
 		set(handles.axes2,'Visible','off')		% tabpanelfcn had made them visible
-	elseif ( hObject == handles.hTabMisc )
+	elseif (hObject == handles.hTabMisc)
 		set([handles.edit_globalWaterMin handles.edit_globalWaterMax handles.textMin handles.textMax ...
 				handles.text_globalMM handles.push_bg], 'Vis', 'on');
 	else
@@ -304,7 +304,7 @@ function tab_group_ButtonDownFcn(hObject, eventdata, handles)
 % ------------------------------------------------------------------------------------
 function tab_group_CB(hObject, eventdata, handles)
 %     handles = tabpanelfcn('tab_group_handler',hObject, handles, get(hObject, 'Tag'));
-% 	if ( hObject == handles.hTabShade )
+% 	if (hObject == handles.hTabShade)
 % 		set(handles.push_bg, 'Vis', 'off')		% It has axes, which would be otherwise hidden
 % 		set(handles.axes2,'Visible','off')		% tabpanelfcn had made them visible
 % 	else
@@ -329,7 +329,7 @@ function slider_layer_CB(hObject, eventdata, handles)
 % -----------------------------------------------------------------------------------------
 function edit_swwName_CB(hObject, eventdata, handles)
     fname = get(hObject,'String');
-	if ( ~isempty(fname) ),    push_swwName_CB(handles.push_swwName, [], handles, fname),	end
+	if (~isempty(fname)),	push_swwName_CB(handles.push_swwName, [], handles, fname),	end
 
 % -----------------------------------------------------------------------------------------
 function push_swwName_CB(hObject, eventdata, handles, opt)
@@ -386,7 +386,7 @@ function push_swwName_CB(hObject, eventdata, handles, opt)
 				errordlg('This netCDF file is not 3D. Use Mirone directly to read it.','Error')
 				return
 			end
-			if ( any(strcmp({s.Attribute.Name},'TSU')) )		% An NSWING TSUnami file
+			if (any(strcmp({s.Attribute.Name},'TSU')))			% An NSWING TSUnami file
 				set(handles.check_splitDryWet, 'Val', 1)
 				handles.IamTSU = true;
 			else
@@ -426,10 +426,10 @@ function push_swwName_CB(hObject, eventdata, handles, opt)
 	%set(handles.figure1,'pointer','arrow')
 
 	head = [min(handles.x) max(handles.x) min(handles.y) max(handles.y) 0 1 0];
-	set( handles.edit_x_min,'String',sprintf('%.8g',head(1)) )
-	set( handles.edit_x_max,'String',sprintf('%.8g',head(2)) )
-	set( handles.edit_y_min,'String',sprintf('%.8g',head(3)) )
-	set( handles.edit_y_max,'String',sprintf('%.8g',head(4)) )
+	set(handles.edit_x_min,'String',sprintf('%.8g',head(1)))
+	set(handles.edit_x_max,'String',sprintf('%.8g',head(2)))
+	set(handles.edit_y_min,'String',sprintf('%.8g',head(3)))
+	set(handles.edit_y_max,'String',sprintf('%.8g',head(4)))
 	handles.x_min = head(1);			handles.x_max = head(2);
 	handles.y_min = head(3);			handles.y_max = head(4);
 	handles.x_min_or = head(1);			handles.x_max_or = head(2);
@@ -486,13 +486,24 @@ function push_swwName_CB(hObject, eventdata, handles, opt)
 		set(handles.popup_extraFields, 'Enable', 'on')
 	end
 
+	% --- Find if Roughness exists and if is single or multi-layer
+	handles.n_roughness = 0;
+	ind = strcmpi(varNames,'roughness');
+	if (any(ind))
+		handles.n_roughness = numel(s.Dataset(ind).Size);
+		handles.ranges{30} = double(nc_funs('varget', handles.fname, 'roughness_range'));
+		contents = get(handles.popup_extraFields, 'String');
+		contents{end+1} = 'Rougness';
+		set(handles.popup_extraFields, 'Str', contents, 'Enable', 'on')
+	end
+
 	% --------------- Estimate a "reasonable" proposition for grid dimensions------------------
-	n = round( sqrt(double(handles.number_of_volumes)) );
-	inc = ( diff(head(1:2)) + diff(head(3:4)) ) / (2*(n-1));	% A mean dx dy
-	set( handles.edit_x_inc,'String',sprintf('%.8g',inc) )
-	set( handles.edit_y_inc,'String',sprintf('%.8g',inc) )
-	set( handles.edit_Ncols,'String',sprintf('%d',n) )
-	set( handles.edit_Nrows,'String',sprintf('%d',n) )
+	n = round(sqrt(double(handles.number_of_volumes)));
+	inc = (diff(head(1:2)) + diff(head(3:4))) / (2*(n-1));	% A mean dx dy
+	set(handles.edit_x_inc,'String',sprintf('%.8g',inc))
+	set(handles.edit_y_inc,'String',sprintf('%.8g',inc))
+	set(handles.edit_Ncols,'String',sprintf('%d',n))
+	set(handles.edit_Nrows,'String',sprintf('%d',n))
 	% Call dim_funs to compute & update the correct size
 	dim_funs('xInc', handles.edit_x_inc, handles)
 	dim_funs('yInc', handles.edit_y_inc, handles)
@@ -500,9 +511,9 @@ function push_swwName_CB(hObject, eventdata, handles, opt)
 	% ----------------- Remainings ... --------------------------------------------------------
 	handles.head = head;		% INCOMPLETE HEAD. The rest is computed in push_showSlice_CB()
 
-	if ( ~isempty(handles.elevRange) )
+	if (~isempty(handles.elevRange))
 		head(5:6) = handles.elevRange;
-		if ( head(5) == head(6) ),		head(6) = head(6) + 0.1;	end		% not screw const depth cases
+		if (head(5) == head(6)),		head(6) = head(6) + 0.1;	end		% not screw const depth cases
 		handles.cmapBat = makeCmapBat(handles, head, handles.cmapLand, 1);		% Put the cmap discontinuity at the zero of bat
 	else
 		warndlg('Could not find elevation (bathymetry) min/max. End of the world is NEEEAAAAR','WARNING')	% SCREEEEEMMMMMMMMM
@@ -550,13 +561,13 @@ function push_showSlice_CB(hObject, eventdata, handles)
 
 	% ------------ Create a grid in x and y. But before see if any of the limits has changed --------------
 	x = str2double(get(handles.edit_x_min,'String'));
-	if (abs( (x - handles.head(1)) ) > 1e-5),		handles.head(1) = x;	end
+	if (abs((x - handles.head(1))) > 1e-5),		handles.head(1) = x;	end
 	x = str2double(get(handles.edit_x_max,'String'));
-	if (abs( (x - handles.head(2)) ) > 1e-5),		handles.head(2) = x;	end
+	if (abs((x - handles.head(2))) > 1e-5),		handles.head(2) = x;	end
 	y = str2double(get(handles.edit_y_min,'String'));
-	if (abs( (y - handles.head(3)) ) > 1e-5),		handles.head(3) = y;	end
+	if (abs((y - handles.head(3))) > 1e-5),		handles.head(3) = y;	end
 	y = str2double(get(handles.edit_y_max,'String'));
-	if (abs( (y - handles.head(4)) ) > 1e-5),		handles.head(4) = y;	end
+	if (abs((y - handles.head(4))) > 1e-5),		handles.head(4) = y;	end
 
 	x = linspace(handles.head(1),handles.head(2),nx);
 	y = linspace(handles.head(3),handles.head(4),ny);
@@ -583,7 +594,7 @@ function push_showSlice_CB(hObject, eventdata, handles)
 			handles.indMaxWater = ~indLand;
 		end
 
-		if ( isempty(handles.imgBat) || size(handles.imgBat,1) ~= numel(y) || size(handles.imgBat,2) ~= numel(x) )	% First time, compute it (not shaded)
+		if (isempty(handles.imgBat) || size(handles.imgBat,1) ~= numel(y) || size(handles.imgBat,2) ~= numel(x))	% First time, compute it (not shaded)
 			handles.imgBat = do_imgBat(handles, indVar, x, y);	% IMG is always RGB
 		end
 
@@ -612,7 +623,7 @@ function push_showSlice_CB(hObject, eventdata, handles)
 		move2side(handles.figure1,handles.hMirFig,'left')
 		handles.handMir = guidata(handles.hMirFig);			% Get the handles of the now existing Mirone fig
 		handles.firstLandPhoto = true;
-		if ( splitDryWet && handles.useLandPhoto )
+		if (splitDryWet && handles.useLandPhoto)
 			h = image('XData',handles.geoPhotoX,'YData',handles.geoPhotoY, 'CData',handles.geoPhoto, 'Parent',handles.handMir.axes1);
 			uistack_j(h,'bottom')
 			handles.firstLandPhoto = false;
@@ -624,7 +635,7 @@ function push_showSlice_CB(hObject, eventdata, handles)
 		setappdata(handles.handMir.figure1,'dem_z',Z);		% Update grid so that coursor display correct values
 															% Have to do it here because minmax arg to scalet8 CHANGES Z
 
-		if ( splitDryWet && handles.useLandPhoto )			% Land/Water spliting with external Land image
+		if (splitDryWet && handles.useLandPhoto)			% Land/Water spliting with external Land image
 			if (handles.firstLandPhoto)						% First time, create the background image
 				h = image('XData',handles.geoPhotoX,'YData',handles.geoPhotoY, 'CData',handles.geoPhoto, 'Parent',handles.handMir.axes1);
 				uistack_j(h,'bottom')
@@ -632,13 +643,13 @@ function push_showSlice_CB(hObject, eventdata, handles)
 			end
 			set(handles.handMir.hImg,'AlphaData',alphaMask)	% 'alphaMask' was updated above
 
-		elseif ( splitDryWet && get(handles.radio_shade, 'Val') && ...		% Land/Water spliting with Illumination
-				~isequal(handles.illumComm, handles.landIllumComm) )	% Recompute 'imgBat' if illumination has changed
+		elseif (splitDryWet && get(handles.radio_shade, 'Val') && ...	% Land/Water spliting with Illumination
+				~isequal(handles.illumComm, handles.landIllumComm))		% Recompute 'imgBat' if illumination has changed
 			handles.imgBat = do_imgBat(handles, indVar, x, y);
 			handles.illumComm = handles.landIllumComm;		% save illum command for future comparison
 
 		elseif (~splitDryWet)								% No Land/Water spliting
-			if ( ~get(handles.check_globalMinMax, 'Val') ),		minmax = [];		% Use Slice's min/max
+			if (~get(handles.check_globalMinMax, 'Val')),	minmax = [];		% Use Slice's min/max
 			else				minmax = [handles.minWater handles.maxWater];
 			end
 			
@@ -646,10 +657,10 @@ function push_showSlice_CB(hObject, eventdata, handles)
 			else							img = scaleto8(Z);
 			end
 
-			if ( get(handles.radio_shade, 'Val') )
+			if (get(handles.radio_shade, 'Val'))
 				img = ind2rgb8(img, handles.cmapLand);		% img is now RGB
 				head = handles.head;
-				if ( ~isempty(handles.ranges{indVar}) ),	head(5:6) = handles.ranges{indVar};		end
+				if (~isempty(handles.ranges{indVar})),	head(5:6) = handles.ranges{indVar};		end
 				R = illumByType(handles, Z, head, handles.landIllumComm);
 				img = shading_mat(img,R,'no_scale');		% and now it is illuminated
 			end
@@ -671,10 +682,10 @@ function push_showSlice_CB(hObject, eventdata, handles)
 	end
 
 	if (~isempty(U))		% Plot vectors
-		x = linspace(handles.head(1),handles.head(2), numel(1:handles.vecSpacing:nx) );
-		y = linspace(handles.head(3),handles.head(4), numel(1:handles.vecSpacing:ny) );
-		U = double( mxgridtrimesh(handles.volumes, [handles.x(:) handles.y(:) U(:)],x,y) );
-		V = double( mxgridtrimesh(handles.volumes, [handles.x(:) handles.y(:) V(:)],x,y) );
+		x = linspace(handles.head(1),handles.head(2), numel(1:handles.vecSpacing:nx));
+		y = linspace(handles.head(3),handles.head(4), numel(1:handles.vecSpacing:ny));
+		U = double(mxgridtrimesh(handles.volumes, [handles.x(:) handles.y(:) U(:)],x,y));
+		V = double(mxgridtrimesh(handles.volumes, [handles.x(:) handles.y(:) V(:)],x,y));
 		s.hAx = handles.handMir.axes1;		s.hQuiver = handles.hQuiver;	s.spacingChanged = handles.spacingChanged;
 		handles.hQuiver = loc_quiver(s, x, y, U, V, handles.vecScale);
 		set(handles.hQuiver(1), 'UserData', {x,y,U,V})		% Store for eventual future file saving
@@ -697,10 +708,10 @@ function push_showSlice_CB(hObject, eventdata, handles)
 function push_runIn_CB(hObject, eventdata, handles)
 % Find and plot the polygon which delimits the inundation zone
 
-	if ( isempty(handles.hMirFig) || ~ishandle(handles.hMirFig) || isempty(handles.indMaxWater) )		% Do a lot of tricks 
+	if (isempty(handles.hMirFig) || ~ishandle(handles.hMirFig) || isempty(handles.indMaxWater))		% Do a lot of tricks 
 		% We dont have a valid Mirone figure with data displayed. Try to create one from here.
 		% But since we need "Max Water", set the popup to that before calling "push_showSlice"
-		if ( isempty(handles.indMaxWater) )				% If it has not yet been computed
+		if (isempty(handles.indMaxWater))				% If it has not yet been computed
 			set(handles.check_derivedVar, 'Val', 1)		% Simulate the all process
 			check_derivedVar_CB(handles.check_derivedVar, eventdata, handles)
 			set(handles.popup_derivedVar, 'Val', 5)
@@ -715,13 +726,13 @@ function push_runIn_CB(hObject, eventdata, handles)
 			warndlg('It is the second time (without your knowledge) that I test for a valid Mirone figure. Giving up','Warning'),	return
 		end
 	end
-	if ( isempty(handles.indMaxWater) || ~ishandle(handles.hMirFig) )
+	if (isempty(handles.indMaxWater) || ~ishandle(handles.hMirFig))
 		errordlg('Something screewed up before. It should never come here. Please inform base','Error'),	return
 	end
 
-	if ( ~isempty(handles.runinPoly) )		% We already know the Run in polygon
+	if (~isempty(handles.runinPoly))		% We already know the Run in polygon
 		h = findobj(handles.handMir.axes1, 'type', 'line', 'Tag','inundPoly');
-		if ( ~isempty(h) ),		return,		end		% We already have it. Don't draw it again
+		if (~isempty(h)),		return,		end		% We already have it. Don't draw it again
 		h = line('XData',handles.runinPoly(:,1), 'YData',handles.runinPoly(:,2), 'Parent',handles.handMir.axes1, ...
 			'Linewidth',handles.handMir.DefLineThick, 'Color',handles.handMir.DefLineColor, 'Tag','inundPoly');
 		draw_funs(h,'line_uicontext')        % Set lines's uicontextmenu
@@ -739,7 +750,7 @@ function push_runIn_CB(hObject, eventdata, handles)
 	indLand = (Z >= 0);
 	indInund = (handles.indMaxWater & indLand);				% Now we have the inundation mask
 	B = img_fun('bwboundaries',indInund,'noholes');
-	if ( isempty(B) )
+	if (isempty(B))
 		warndlg('Could not find any inundation zone','Warning'),	return
 	end
 	
@@ -782,7 +793,7 @@ function [theVar, U, V, indVar, indWater, qual] = get_derivedVar(handles)
 			x = nc_funs('varget', handles.fname, 'xmomentum', [handles.sliceNumber 0], [1 handles.number_of_points]);
 			y = nc_funs('varget', handles.fname, 'ymomentum', [handles.sliceNumber 0], [1 handles.number_of_points]);
 			if (~isa(x, 'double')),		x = double(x);		y = double(y);		end
-			if ( qual(1) == 'A' && handles.plotVector )
+			if (qual(1) == 'A' && handles.plotVector)
 				U = x;		V = y;					% momentums copy
 			end
 			theVar = sqrt(x.^2 + y.^2);				% |M|
@@ -793,16 +804,16 @@ function [theVar, U, V, indVar, indWater, qual] = get_derivedVar(handles)
 			ind_0 = (D < 1e-8);			% To get arround a devide-by-nearly-zero and Anuga bug in velocity problem 
 			theVar = theVar ./ D;
 			theVar(ind_0) = 0;
-			if ( qual(1) == 'A' && handles.plotVector )
+			if (qual(1) == 'A' && handles.plotVector)
 				U = U ./ D;			V = V ./ D;
 			end
-			if ( ~isempty(U) )				% Now U,V are vx,vy
+			if (~isempty(U))				% Now U,V are vx,vy
 				U = U ./ D;		V = V ./ D;
 				U(ind_0) = 0;	V(ind_0) = 0;
 			end
 			indVar = 4;
-			if ( strcmp(qual(1:6), 'Froude') )		% V / sqrt(gD)
-				theVar = theVar ./ sqrt( 9.8 * D );
+			if (strcmp(qual(1:6), 'Froude'))		% V / sqrt(gD)
+				theVar = theVar ./ sqrt(9.8 * D);
 				indVar = 10;
 			end
 
@@ -811,7 +822,7 @@ function [theVar, U, V, indVar, indWater, qual] = get_derivedVar(handles)
 			y = nc_funs('varget', handles.fname, 'ymomentum', [handles.sliceNumber 0], [1 handles.number_of_points]);
 			if (~isa(x, 'double')),		x = double(x);		y = double(y);		end
 			theVar = sqrt(x.^2 + y.^2);
-			if ( qual(1) == 'A' && handles.plotVector )
+			if (qual(1) == 'A' && handles.plotVector)
 				U = x;		V = y;
 			end
 			indVar = 5;
@@ -858,7 +869,7 @@ function [theVar, U, V, indVar, indWater, qual] = get_derivedVar(handles)
 				% Compute maximum inundation (runin). Do not use k = 0 because than all IND == 1, since theVar was still == 0
 				if (k > 0),		indWater(ind) = 1;		end
 				h = aguentabar((k+1) / handles.number_of_timesteps);
-				if ( isnan(h) ),	break,	end
+				if (isnan(h)),	break,	end
 			end
 			indVar = 9;
 
@@ -887,7 +898,7 @@ function [theVar, U, V, indVar, indWater, qual] = get_derivedVar(handles)
 				theVar = D + theVar ./ (19.6 * (D .* D));
 				indVar = 13;
 			elseif (strncmp(qual, 'Ta', 2))
-				% theVar = D .* (1 + sqrt(theVar ./ (D .* D)) + theVar ./ (D .* D) );	% D(1+V+V^2) 
+				% theVar = D .* (1 + sqrt(theVar ./ (D .* D)) + theVar ./ (D .* D));	% D(1+V+V^2) 
 				% theVar = D + theVar ./ D + sqrt((D .* D) .* theVar ./ (D .* D));		% D + DV^2 + sqrt(D^2 * (DV)^2 / D^2)
 				theVar = D + theVar ./ D + sqrt(theVar);								% D + DV^2 + DV = D(1+V+V^2)
 				indVar = 14;
@@ -972,12 +983,12 @@ function imgBat = do_imgBat(handles, indVar, x, y)
 %	Output IMGBAT is always RGB
 
 	bat = get_elevation(handles);
-	if (~isa(bat,'double') ),		bat = double(bat);	end
+	if (~isa(bat,'double')),		bat = double(bat);	end
 	bat = mxgridtrimesh(handles.volumes, [handles.x(:) handles.y(:) bat(:)], x, y);
 
 	imgBat = scaleto8(bat);
     imgBat = ind2rgb8(imgBat, handles.cmapBat);
-	if ( get(handles.radio_shade, 'Val') )
+	if (get(handles.radio_shade, 'Val'))
 		illumComm = handles.landIllumComm;
 		head = handles.head;
 		if (~isempty(handles.ranges{indVar})),		head(5:6) = handles.ranges{indVar};		end
@@ -1012,11 +1023,11 @@ function ind = get_landInd(handles, x, y, indWater)
 	end
 
 	if (nargin == 3),	indWater = [];		end
-	if ( isempty(indWater) )		% Compute Dry/Wet indices for a specific time slice
+	if (isempty(indWater))		% Compute Dry/Wet indices for a specific time slice
 		stage = nc_funs('varget', handles.fname, 'stage', [handles.sliceNumber 0], [1 handles.number_of_points]);
 		elevation = get_elevation(handles);
 		dife = cvlib_mex('absDiff',stage,elevation);
-		if (~isa(dife,'double') ),		dife = double(dife);	end
+		if (~isa(dife,'double')),		dife = double(dife);	end
 		dife = mxgridtrimesh(handles.volumes, [handles.x(:) handles.y(:) dife(:)],x,y);
 		ind = (dife < 1e-7);
 	else							% A Max quantity. INDWATER has ones at the indices of that quantity areal extent
@@ -1167,7 +1178,7 @@ function popup_extraFields_CB(hObject, eventdata, handles)
 	contents = get(hObject, 'String');
 	val = get(hObject,'Value');
 	qual = contents{val};
-	if (strcmpi(qual,'elevation') || strcmp(qual,'roughness'))
+	if (strcmpi(qual,'elevation') || strcmpi(qual,'roughness'))
 		set([handles.radio_stage handles.radio_xmoment handles.radio_ymoment], 'Value', 0)
 		set([handles.check_derivedVar handles.check_splitDryWet],'Val',0)
 	else
@@ -1298,7 +1309,7 @@ function paint_toggle_ico(hTogg1, hTogg2)
 % -----------------------------------------------------------------------------------------
 function push_palette_CB(hObject, eventdata, handles)
 % Get the new color map and assign it to either Land or Water cmaps
-	if ( ~get(handles.check_splitDryWet, 'Val') && get(handles.radio_water,'Val') )
+	if (~get(handles.check_splitDryWet, 'Val') && get(handles.radio_water,'Val'))
 		warndlg('Without the "Split Dry/Wet" option selected, what you asked has no effect.','Warning'),	return
 	end
 	handles.no_file = 1;		% We don't want color_palettes trying to update a ghost image (DON'T KILL THIS LINE)
@@ -1436,7 +1447,7 @@ function push_movieName_CB(hObject, eventdata, handles, opt)
 		end
 		fname = [fname EXT];
 	end
-	if ( ~any(strcmpi(EXT,{'.gif' '.avi' '.mpg' '.mpeg'})) )
+	if (~any(strcmpi(EXT,{'.gif' '.avi' '.mpg' '.mpeg'})))
 		errordlg('Ghrrrrrrrr! Don''t be smart. Only ''.gif'', ''.avi'', ''.mpg'' or ''mpeg'' extensions are acepted.', ...
             'Chico Clever');
 		return
@@ -1465,18 +1476,18 @@ function push_movieName_CB(hObject, eventdata, handles, opt)
 function edit_multiLayerInc_CB(hObject, eventdata, handles)
 % Get the increment for movie of a multi-layer grid.
 	str = get(hObject, 'String');
-	xx = round( str2double(str) );
+	xx = round(str2double(str));
 	if (isnan(xx))				% As will be the case if we have a start:inc:stop
 		ind = strfind(str,':');			% Search for a start:inc:end form
 		if (numel(ind) == 2)
-			start = round( str2double( str(1:(ind(1)-1)) ) );
-			inc   = round( str2double( str((ind(1)+1):(ind(2)-1)) ) );
-			fim   = round( str2double( str((ind(2)+1):end) ) );
-			if ( isnan(fim) && strcmp( str((ind(2)+1):end), 'end') ),	fim = handles.number_of_timesteps;	end
+			start = round(str2double(str(1:(ind(1)-1))));
+			inc   = round(str2double(str((ind(1)+1):(ind(2)-1))));
+			fim   = round(str2double(str((ind(2)+1):end)));
+			if (isnan(fim) && strcmp(str((ind(2)+1):end), 'end')),	fim = handles.number_of_timesteps;	end
 		elseif (numel(ind) == 1)		% Only start:stop
-			start = round( str2double( str(1:(ind(1)-1)) ) );
-			fim   = round( str2double( str((ind(1)+1):end) ) );
-			if ( isnan(fim) && strcmp( str((ind(1)+1):end), 'end') ),	fim = handles.number_of_timesteps;	end
+			start = round(str2double(str(1:(ind(1)-1))));
+			fim   = round(str2double(str((ind(1)+1):end)));
+			if (isnan(fim) && strcmp(str((ind(1)+1):end), 'end')),	fim = handles.number_of_timesteps;	end
 			inc = 1;
 		end
 		try
@@ -1495,14 +1506,14 @@ function edit_multiLayerInc_CB(hObject, eventdata, handles)
 % -----------------------------------------------------------------------------------------
 function radio_multiLayer_CB(hObject, eventdata, handles)
 % Movie selection button. Make movie from a netCDF file(s)
-	if ( ~get(hObject, 'Val') ),		set(hObject, 'Val', 1),		return,		end
+	if (~get(hObject, 'Val')),		set(hObject, 'Val', 1),		return,		end
 	set(handles.radio_timeGridsList, 'Val', 0)
 	set(handles.edit_multiLayerInc, 'Enable', 'on')
 
 % -----------------------------------------------------------------------------------------
 function radio_timeGridsList_CB(hObject, eventdata, handles)
 % Movie selection button. Make movie from a list of files
-	if ( ~get(hObject, 'Val') ),		set(hObject, 'Val', 1),		return,		end
+	if (~get(hObject, 'Val')),		set(hObject, 'Val', 1),		return,		end
 	set(handles.radio_multiLayer, 'Val', 0)
 	set(handles.edit_multiLayerInc, 'Enable', 'off')
 
@@ -1621,7 +1632,7 @@ function push_OK_CB(hObject, eventdata, handles, opt)
 
 	% See if we need to (and can) reinterpolate the bat to go along with the water grids
 	if (~handles.reinterpolated_bat && (any(handles.head_water(1:4) - handles.head_bat(1:4)) || ...
-			( ~isequal( size(handles.Z_bat), size(handles.Z_water)) && ~isequal( size(handles.Z_bat), size(Z_water))) ) )
+			(~isequal(size(handles.Z_bat), size(handles.Z_water)) && ~isequal(size(handles.Z_bat), size(Z_water))) ))
 
 		h = warndlg('Ai, Ai, Bathymetry and Water grids are not compatible. Trying to fix that ...','Warning');
 		opt_R = sprintf('-R%.12f/%.12f/%.12f/%.12f', handles.head_water(1:4));
@@ -1654,7 +1665,7 @@ function push_OK_CB(hObject, eventdata, handles, opt)
 	imgBat = shading_mat(imgBat,R,'no_scale');
 
     % ------------------- If we have a testing grid, work on it and return -------------------------- 
-	if ( ~isempty(handles.Z_water) )
+	if (~isempty(handles.Z_water))
 		imgWater = ind2rgb8(scaleto8(handles.Z_water), handles.cmapWater);
 		R = grdgradient_m(handles.Z_water,handles.head_water,handles.waterIllumComm);
 		imgWater = shading_mat(imgWater,R,'no_scale');    	clear R;
@@ -1669,7 +1680,7 @@ function push_OK_CB(hObject, eventdata, handles, opt)
 		end
 		hFig = mirone(imgWater, head_struct);
 		handMir = guidata(hFig);
-		if ( handles.useLandPhoto )
+		if (handles.useLandPhoto)
 			h = image('XData',handles.geoPhotoX,'YData',handles.geoPhotoY, 'CData',handles.geoPhoto, 'Parent',handMir.axes1);
 			uistack_j(h,'bottom')			% Send to bottom because we want the alphamask applyied to data derived image
 			alphaMask = alloc_mex(size(indLand),'uint8');	% Create an image mask of Dry/Wets
@@ -1705,7 +1716,7 @@ function push_OK_CB(hObject, eventdata, handles, opt)
 
 		M = struct('cdata',[], 'colormap',[]);
 		for (i = 1:nGrids)
-			if ( ~handles.useLandPhoto )
+			if (~handles.useLandPhoto)
 				hAguenta = aguentabar(i / nGrids);			% Show visualy the processing advance
 				if (isnan(hAguenta)),	break,		end		% User hit cancel
 			end
@@ -1742,7 +1753,7 @@ function push_OK_CB(hObject, eventdata, handles, opt)
  				set(handMir.hImg,'CData',imgWater,'AlphaData',alphaMask)
 				F = getframe(handMir.axes1);		% Image capture. Unfortunately, without any control
 				imgWater = F.cdata;
-				if ( strcmp(get(handMir.axes1,'Ydir'),'normal') ),	imgWater = flipdim(imgWater,1);	end
+				if (strcmp(get(handMir.axes1,'Ydir'),'normal')),	imgWater = flipdim(imgWater,1);	end
 			end
 
 			[M, map] = aux_movie(handles, is_gif, is_mpg, is_avi, imgWater, i, M);
@@ -1767,7 +1778,7 @@ function push_OK_CB(hObject, eventdata, handles, opt)
 function [M, map] = aux_movie(handles, is_gif, is_mpg, is_avi, img, i, M, map)
 % Auxiliary function to write movie frames. In case of GIFs we write to file directly here
 	if (nargin == 7),	map = [];	end
-	if ( (ndims(img) == 3) && (is_gif || is_mpg) )
+	if ((ndims(img) == 3) && (is_gif || is_mpg))
 		dither = 'nodither';
 		if (get(handles.check_dither,'Value')),		dither = 'dither';		end
 		[img,map] = img_fun('rgb2ind',img,256,dither);
@@ -1879,7 +1890,7 @@ function push_landPhoto_CB(hObject, eventdata, handles, opt)
 	check_fw = true;       head = [];
 	[PATH,FNAME,EXT] = fileparts(fileName);
 	
-	if ( any(strcmpi(EXT,{'.tif' '.tiff' '.jp2' '.ecw' '.sid' '.gif' '.kap'})) )		% GDAL territory
+	if (any(strcmpi(EXT,{'.tif' '.tiff' '.jp2' '.ecw' '.sid' '.gif' '.kap'})))		% GDAL territory
 		try		att = gdalread(fileName,'-M','-C');
 		catch,	errordlg(lasterr,'Error'),	return
 		end
@@ -2005,7 +2016,7 @@ function ButtonMotion(obj, evt, h)
 		x2 = xx(1) + radius * cos(theta);      y2 = yy(1) + radius * sin(theta);
 		if strcmp(get(h,'Tag'),'Elev') && (theta >= 0 && theta <= pi/2)   % Elevation line
 			set(h,'XData',[xx(1) x2],'YData',[yy(1) y2]);
-			set(handles.edit_elev,'String',sprintf('%.0f',theta *180/pi) )
+			set(handles.edit_elev,'String',sprintf('%.0f',theta *180/pi))
 		elseif ~strcmp(get(h,'Tag'),'Elev')     % Azimuth line(s)
 			set(h,'XData',[xx(1) x2],'YData',[yy(1) y2]);
 			% NOTE to if I ever want to reuse this code. Normally ang_2pi should be = pi/2 - (pi*.....)
@@ -2013,12 +2024,12 @@ function ButtonMotion(obj, evt, h)
 			% at top left corner when dealing with images, to get an azimuth angle we have to do like following. 
 
 			% truncate angles into [-pi pi] range
-			ang_2pi = pi/2 + ( pi*((abs(theta)/pi) - 2*ceil(((abs(theta)/pi)-1)/2)) * sign(theta) );
+			ang_2pi = pi/2 + (pi*((abs(theta)/pi) - 2*ceil(((abs(theta)/pi)-1)/2)) * sign(theta));
 			epsilon = -1e-7;        %  Allow points near zero to remain there
 			indx = find(ang_2pi < epsilon);
 			%  Shift the points in the [-pi 0] range to [pi 2pi] range
 			if ~isempty(indx);  ang_2pi(indx) = ang_2pi(indx) + 2*pi;  end;
-			set(handles.edit_azim,'String',sprintf('%.0f',ang_2pi *180/pi) )
+			set(handles.edit_azim,'String',sprintf('%.0f',ang_2pi *180/pi))
 		end
 	end
 
@@ -2144,7 +2155,7 @@ function push_namesList_CB(hObject, eventdata, handles, opt)
 	handles.shortNameList = cell(m,1);      % To hold grid names with path striped
 	c = false(m,1);
 	for (k=1:m)
-		if ( isempty(names{k}) ),	continue,		end		% Jump empty lines
+		if (isempty(names{k})),	continue,		end		% Jump empty lines
 		if (n_column == 1 && names{k}(1) == '#')    % If n_column > 1, this test was already done above
 			c(k) = true;    continue;
 		end
@@ -2181,7 +2192,7 @@ function push_namesList_CB(hObject, eventdata, handles, opt)
 % -----------------------------------------------------------------------------------------
 function listbox1_CB(hObject, eventdata, handles)
     % if this is a doubleclick,
-    if ( strcmp(get(gcbf,'SelectionType'),'open') && ~isempty(handles.nameList) )
+    if (strcmp(get(gcbf,'SelectionType'),'open') && ~isempty(handles.nameList))
         val = get(hObject,'Value');
         if (~isempty(handles.strTimes))
             handles.testTime = handles.strTimes{val};
@@ -2224,7 +2235,7 @@ function push_singleWater_CB(hObject, eventdata, handles, opt)
 % -----------------------------------------------------------------------------------------
 function edit_maregs_CB(hObject, eventdata, handles)
     fname = get(hObject,'String');
-	if ( ~isempty(fname) ),    push_maregs_CB([], [], handles, fname),	end
+	if (~isempty(fname)),    push_maregs_CB([], [], handles, fname),	end
 
 % -----------------------------------------------------------------------------------------
 function push_maregs_CB(hObject, eventdata, handles, opt)
@@ -2252,7 +2263,7 @@ function push_maregs_CB(hObject, eventdata, handles, opt)
    
 	[bin,n_column,multi_seg,n_headers] = guess_file(fname);
 	% If error in reading file
-	if ( isempty(bin) ),	errordlg(['Error reading file ' fname],'Error'),	return,		end
+	if (isempty(bin)),	errordlg(['Error reading file ' fname],'Error'),	return,		end
 	if (isa(bin,'struct') || bin ~= 0)
         errordlg('Sorry, reading binary files is not programed','Error'),	return
 	end
@@ -2365,7 +2376,7 @@ function [theVar, U, V, indVar, indWater, theVarName] = get_swwVar(handles)
 % Since there is no saving of handles, the calling function can safely apply a temporary change
 % to that handles member
 
-	if ( ~get(handles.check_derivedVar,'Val') )			% Get one of the primary quantities
+	if (~get(handles.check_derivedVar,'Val'))			% Get one of the primary quantities
 		% Get the ploting variable
 		if (get(handles.radio_stage, 'Val')),			theVarName = 'stage';		indVar = 1;
 		elseif (get(handles.radio_xmoment, 'Val')),		theVarName = 'xmomentum';	indVar = 2;
@@ -2376,8 +2387,10 @@ function [theVar, U, V, indVar, indWater, theVarName] = get_swwVar(handles)
 			qual = contents{get(handles.popup_extraFields,'Value')};
 			if (strcmpi(qual,'elevation'))
 				theVarName = 'elevation';	indVar = 4;		% Don't know yet how to deal with this new case
+				if (handles.n_elevations == 1),	handles.sliceNumber = 0;	end		% Make sure not asking for non-existing layer
 			elseif strcmpi(qual,'roughness')
-				theVarName = 'roughness';	indVar = 41;	% CASE NOT EXISTING (YET)
+				theVarName = 'roughness';	indVar = 30;	% CASE NOT EXISTING (YET)
+				if (handles.n_roughness == 1),	handles.sliceNumber = 0;	end		% Make sure not asking for non-existing layer
 			end
 		end
 		theVar = nc_funs('varget', handles.fname, theVarName, [handles.sliceNumber 0], [1 handles.number_of_points]);
@@ -2389,10 +2402,10 @@ function [theVar, U, V, indVar, indWater, theVarName] = get_swwVar(handles)
 
 % -----------------------------------------------------------------------------------------
 function geog = guessGeog(lims)
-   % Make a good guess if LIMS are geographic
-    geog = double( ( (lims(1) >= -180 && lims(2) <= 180) || (lims(1) >= 0 && lims(2) <= 360) )...
-        && (lims(3) >= -90 && lims(4) <= 90) );
-	
+% Make a good guess if LIMS are geographic
+	geog = double(((lims(1) >= -180 && lims(2) <= 180) || (lims(1) >= 0 && lims(2) <= 360))...
+			&& (lims(3) >= -90 && lims(4) <= 90));
+
 % -----------------------------------------------------------------------------------------
 function flederize(fname,n, Z, imgWater, indLand, limits)
 % Write a .sd fleder file with z_max smashed to (?) times min water height
@@ -2404,7 +2417,7 @@ function flederize(fname,n, Z, imgWater, indLand, limits)
 	maxWater = 10;
 	minWater = -17;		% We could use limits(5), but it's not sure min is not on land
 	
-	fact = abs( (s * maxWater) / limits(6) );		% smashing factor
+	fact = abs((s * maxWater) / limits(6));		% smashing factor
 	Z_smashed = Z;
 	Z_smashed(indLand) = single(double(Z(indLand)) * fact);
 	write_flederFiles('main_SD', fname, 'Planar', Z_smashed, imgWater, [limits(1:4) minWater maxWater*s])
@@ -2497,7 +2510,7 @@ function hh = loc_quiver(struc_in,varargin)
 		try		delete(struc_in.hQuiver),	struc_in.hQuiver = [];	end		% Remove previous arrow field
 	end
 
-	if ( isempty(struc_in.hQuiver) || ~ishandle(struc_in.hQuiver(1)) )		% No arrows yet.
+	if (isempty(struc_in.hQuiver) || ~ishandle(struc_in.hQuiver(1)))		% No arrows yet.
 		h1 = line('XData',uu(:), 'YData',vv(:), 'Parent',struc_in.hAx, 'Color','k');
 		h2 = line('XData',hu(:), 'YData',hv(:), 'Parent',struc_in.hAx, 'Color','k');
 		if (nargout > 0),	hh = [h1;h2];	end
@@ -3300,7 +3313,7 @@ uicontrol('Parent',h1, 'Position',[275 316 80 22],...
 'BackgroundColor',[1 1 1],...
 'Call',{@aquamoto_uiCB,h1,'popup_extraFields_CB'},...
 'Enable','off',...
-'String',{'Or ...'; 'Elevation';},...
+'String',{'Or ...'; 'Elevation'},...
 'Style','popupmenu',...
 'Value',1,...
 'Tooltip','Other variables, not always available in all .sww',...
@@ -3639,7 +3652,7 @@ function varargout = vector_plot(varargin)
 		set(handles.radio_plotVec,'Val',1),		set(handles.radio_noPlot,'Val',0)
 	end
 	set(handles.edit_vecScale, 'String', handles.vecScale) 
-	set(handles.edit_gridSpacing, 'String', sprintf('1:%d',handles.vecSpacing) )
+	set(handles.edit_gridSpacing, 'String', sprintf('1:%d',handles.vecSpacing))
 	set(handles.slider_scale, 'Val', handles.vecScale) 
 	set(handles.slider_spacing, 'Val', handles.vecSpacing)
 
@@ -3682,7 +3695,7 @@ function slider_spacing_CB(hObject, eventdata, handles)
 
 % ---------------------------------------------------------------------
 function push_vp_OK_CB(hObject, eventdata, handles)
-	if ( get(handles.radio_plotVec, 'Val') )
+	if (get(handles.radio_plotVec, 'Val'))
 		vscale = round(get(handles.slider_scale,'Val'));
 		vspacing = round(get(handles.slider_spacing,'Val'));
 		handAqua = guidata(handles.hAquaFig);
