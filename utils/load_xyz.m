@@ -558,7 +558,6 @@ function varargout = load_xyz(handles, opt, opt2)
 						case {'AsLine' 'i_file'}		% 'i_file' means internal file (Isochrons or FZs)
 							hLine(i) = line('XData',tmpx,'YData',tmpy,'Parent',handles.axes1,'Linewidth',lThick,...
 									'Color',cor,'Tag',tag,'Userdata',n_isoc);
-								disp([num2str(hLine(i)) '  ' num2str(i)])
 							setappdata(hLine(i),'LineInfo',multi_segs_str{i});
 							setappdata(hLine(i),'was_binary',is_bin);	% To offer option to save as binary too
 						case 'AsPoint'
