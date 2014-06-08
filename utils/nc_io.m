@@ -571,6 +571,11 @@ function [X,Y,Z,head,misc] = read_old_cdf(fname, s)
 	
 	nx = round(diff(x_range) / spacing(1) + ~node_offset);
 	ny = round(diff(y_range) / spacing(2) + ~node_offset);
+	if (nx ~= dimension(1) || ny ~= dimension(2))
+		nx = dimension(1);	ny = dimension(2);
+		node_offset = double(~node_offset);
+		warndlg('This grid had a wrong registration type. Trying to guess the correct info','Warning') 
+	end
 	Z = reshape(Z,nx,ny);
 	Z = Z.';
 	Z = flipud(Z);
