@@ -46,16 +46,16 @@ function gmt2mgd77_plus(fname, varargin)
 	fsep = filesep;			opt_Y = '';
 
 	for (k = 1:2:numel(varargin))
-		if ( strcmp(varargin{k}, 'name') )
+		if (strcmp(varargin{k}, 'name'))
 			name_out = varargin{k+1};
-		elseif ( strcmp(varargin{k}, 'anom') )
+		elseif (strcmp(varargin{k}, 'anom'))
 			is_anom = varargin{k+1};
 			if (is_anom == 1),		F_offset = 0;
 			else					F_offset = is_anom;
 			end
-		elseif ( strcmp(varargin{k}, 'meta') )
+		elseif (strcmp(varargin{k}, 'meta'))
 			meta = varargin{k+1};
-		elseif ( strcmp(varargin{k}, 'swap') )
+		elseif (strcmp(varargin{k}, 'swap'))
 			opt_Y = '-Y';
 		end
 	end
@@ -83,7 +83,7 @@ function gmt2mgd77_plus(fname, varargin)
 		if (isfield(meta, 'port_arrival')),		att.port_arrival = meta.port_arrival;		end
 		if (isfield(meta, 'DC_file_number')),	att.DC_file_number = meta.DC_file_number;	end
 	end
-	if (~isa(meta.tow_dist,'char'))			% I made this mistake once already
+	if (~isempty(meta) && ~isa(meta.tow_dist,'char'))			% I made this mistake once already
 		att.tow_dist = sprintf('%d', att.tow_dist);
 	end
 	% ------------------------------------------------------------
