@@ -1494,12 +1494,14 @@ function show_Area(obj,eventdata,h)
 % -----------------------------------------------------------------------------------------
 function ll = show_LineLength(obj, evt, h, opt)
 % Line length (perimeter if it is a closed polyline). If output argument, return a structure
-% ll.len and ll.type, where "len" is line length and "type" is either 'geog' or 'cart'.
+% ll.len, ll.seg_len and ll.type, where "len" is total line length, "seg_len" is the length of
+% each segment (for when there are more than one) and "type" is either 'geog' or 'cart'.
 % For polylines ll.len contains only the total length.
 % 22-09-04  Added OPT option. If it exists, report only total length (for nargout == 0)
-%	2012	OPT can also be used to transmit the coordinates type in which report the result.
-% 22-10-05  H is now only to be used if we whant to specificaly use that handle. Otherwise use []
-% to fish it with gco (MUST use this form to work with copied objects)
+%	2012    OPT can also be used to transmit the coordinates type in which report the result.
+%           E.G. 'n', 'k', 'm' or 'u'
+% 22-10-05  H is now only to be used if we want to specificaly use that handle. Otherwise use []
+%           to fish it with gco (MUST use this form to work with copied objects)
 % 16-08-07  H can contain a Mx2 column vector with the line vertices.
 
 	n_args = nargin;
@@ -1509,7 +1511,7 @@ function ll = show_LineLength(obj, evt, h, opt)
 	elseif (numel(opt) == 1 && isa(opt, 'char'))
 		measureUnit = opt;
 	end
-	if (n_args == 3 || ( numel(h) > 1 && ~any(ishandle(h(:))) ) )
+	if (n_args == 3 || ( numel(h) > 1 && ~any(ishandle(h(:))) ))
 		if (size(h,1) >= 2 && size(h,2) == 2)
 			x = h(:,1);     y = h(:,2);
 			handles = guidata(get(0,'CurrentFigure'));
@@ -1518,7 +1520,7 @@ function ll = show_LineLength(obj, evt, h, opt)
 			handles = guidata(h);
 		end
 
-	elseif ( (n_args == 2 || n_args == 4 || length(h) > 1) && ishandle(h) )
+	elseif ((n_args == 2 || n_args == 4 || length(h) > 1) && ~isempty(h) && ishandle(h))
         x = get(h,'XData');    y = get(h,'YData');
 		handles = guidata(h);
 	else
@@ -1561,13 +1563,13 @@ function ll = show_LineLength(obj, evt, h, opt)
 		elseif (nargout == 0 && ~isempty(opt))
 			msgbox(sprintf('Total length = %.5f %s',total_len, str_unit),'Line length')
 		else        % Should we also out output also the partial lengths?
-			ll.len = total_len;   ll.type = 'geog';
+			ll.len = total_len;   ll.seg_len = tmp / scale;	ll.type = 'geog';
 		end
 	else
 		dx = diff(x);		dy = diff(y);
-		total_len = sum(sqrt(dx.*dx + dy.*dy));
+		len_i = sqrt(dx.*dx + dy.*dy);
+		total_len = sum(len_i);
 		if (nargout == 0 && isempty(opt))
-			len_i = sqrt(dx.^2 + dy.^2);
 			if (numel(dx) <= 200)
 				msg = cell(1, numel(dx) + 1);
 				for i = 1:numel(dx)
@@ -1581,7 +1583,7 @@ function ll = show_LineLength(obj, evt, h, opt)
 		elseif (nargout == 0 && ~isempty(opt))
 			msgbox([sprintf('Total length = %.5f',total_len) ' map units'],'Line length')
 		else		% The same question as in the geog case
-			ll.len = total_len;		ll.type = 'cart';
+			ll.len = total_len;		ll.seg_len = len_i;		ll.type = 'cart';
 		end
 	end
 
@@ -1604,10 +1606,10 @@ function show_AllTrackLength(obj,eventdata)
 % -----------------------------------------------------------------------------------------
 function azim = show_lineAzims(obj, evt, h)
 % Works either in geog or cart coordinates. Otherwise the result is a non-sense
-% If output argument, return a structure % azim.az and azim.type, where "len" is line
+% If an output argument is requested , return a structure azim.az and azim.type, where "az" is line
 % azimuth and "type" is either 'geog' or 'cart'.
 % 22-10-05  H is now only to be used if we want to specifically use that handle. Otherwise use
-% either [] or don't pass the H argument to fish it with gco (MUST use this form to work with copied objects)
+%           either [] or don't pass the H argument to fish it with gco (MUST use this form to work with copied objects)
 % 16-08-07  H can contain a Mx2 column vector with the line vertices.
 % 28-08-08  If > 10 azimuths & ~nargout send the result to "ecran"
 
@@ -1616,7 +1618,7 @@ function azim = show_lineAzims(obj, evt, h)
 			x = h(:,1);     y = h(:,2);
 			handles = guidata(get(0,'CurrentFigure'));
 		elseif (ishandle(h))
-			x = get(h,'XData');    y = get(h,'YData');			
+			x = get(h,'XData');    y = get(h,'YData');
 			handles = guidata(h);
 		end
 	elseif (nargin == 2 || isempty(h) || numel(h) > 1)
@@ -1630,6 +1632,8 @@ function azim = show_lineAzims(obj, evt, h)
 	end
 	
 	if (handles.geog)
+		% I should do this instead
+		%[lix, az] = vdist(y(1:end-1), x(1:end-1), y(2:end), x(2:end),handles.DefineEllipsoide([1 3]));
         az = azimuth_geo(y(1:end-1), x(1:end-1), y(2:end), x(2:end));
         azim.type = 'geog';                 % Even if it is never used
 	else
