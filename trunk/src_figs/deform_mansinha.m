@@ -1,7 +1,7 @@
 function varargout = deform_mansinha(varargin)
 % Compute Elastic deformations using the rngchng MEX
 
-%	Copyright (c) 2004-2013 by J. Luis
+%	Copyright (c) 2004-2014 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -651,13 +651,6 @@ function len = LineLength(h,geog)
 		if (geog)
 			ll = draw_funs(h, 'show_LineLength', [], [], h, 'k');
 			len = ll.seg_len;
-% 			D2R = pi/180;    earth_rad = 6371;
-% 			x = x * D2R;    y = y * D2R;
-% 			lat_i = y(1:length(y)-1);   lat_f = y(2:length(y));     clear y;
-% 			lon_i = x(1:length(x)-1);   lon_f = x(2:length(x));     clear x;
-% 			tmp = sin(lat_i).*sin(lat_f) + cos(lat_i).*cos(lat_f).*cos(lon_f-lon_i);
-% 			clear lat_i lat_f lon_i lon_f;
-% 			len = [len; acos(tmp) * earth_rad];         % Distance in km
 		else
 			dx = diff(x);   dy = diff(y);
 			len = [len; sqrt(dx.*dx + dy.*dy)];         % Distance in user unites
@@ -665,15 +658,9 @@ function len = LineLength(h,geog)
 	else
 		len = cell(1, numel(x));
 		if (geog)
-% 			D2R = pi/180;    earth_rad = 6371;
 			for (k = 1:numel(x))
 				ll = draw_funs(h(k), 'show_LineLength', [], [], h(k), 'k');
 				len{k} = ll.seg_len;
-% 				xx = x{k} * D2R;    yy = y{k} * D2R;
-% 				lat_i = yy(1:length(yy)-1);   lat_f = yy(2:length(yy));
-% 				lon_i = xx(1:length(xx)-1);   lon_f = xx(2:length(xx));
-% 				tmp = sin(lat_i).*sin(lat_f) + cos(lat_i).*cos(lat_f).*cos(lon_f-lon_i);
-% 				len{k} = acos(tmp) * earth_rad;         % Distance in km
 			end
 		else
 			for (k = 1:numel(x))
