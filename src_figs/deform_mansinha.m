@@ -31,7 +31,7 @@ function varargout = deform_mansinha(varargin)
 		handles = set_all_faults(handles,varargin{:});
 		handles.fault_in = 1;
 	else                            % "Normal" case
-		handles.h_fault = varargin{2};      % Handles to the fault lines (each may have more than one segment)
+		handles.h_fault = varargin{2};			% Handles to the fault lines (each may have more than one segment)
 		handles.FaultStrike = varargin{3};
 		handles.fault_in = 0;
 	end
@@ -40,21 +40,21 @@ function varargout = deform_mansinha(varargin)
 	handles.geog = handMir.geog;
 	head = handMir.head;
 	handles.head = head;
-	handles.hCallingFig = handMir.figure1;     % Handles to the calling figure
+	handles.hCallingFig = handMir.figure1;		% Handles to the calling figure
 	handles.hCallingAxes = handMir.axes1;
 
 	handles.n_faults = numel(handles.h_fault);
-	handles.nFaults = handles.n_faults;          % Works as a copy of use with the scc option
+	handles.nFaults = handles.n_faults;			% Works as a copy of use with the scc option
 	if (handles.n_faults > 1)
 		s_format = ['%.' num2str(fix(log10(handles.n_faults))+1) 'd'];
 		S = cell(handles.n_faults,1);
 		for (i=1:handles.n_faults),     S{i} = ['Fault ' sprintf(s_format,i)];   end
 		set(handles.popup_fault,'String',S)
 		set(handles.h_fault(1),'LineStyle','--');   % set the top fault one with a dashed line type
-		refresh(handMir.figure1);         % otherwise, ML BUG
+		refresh(handMir.figure1);				% otherwise, ML BUG
 	else
 		set(handles.popup_fault,'Visible','off')
-		delete(handles.txtFaultNum)    % Otherwise it would reborn in Pro look
+		delete(handles.txtFaultNum)				% Otherwise it would reborn in Pro look
 	end
 
 	fault_x = get(handles.h_fault,'XData');     fault_y = get(handles.h_fault,'YData');
@@ -69,7 +69,7 @@ function varargout = deform_mansinha(varargin)
 		set(handles.popup_segment,'Visible','on');
 		% Even if we have more than one fault, the segments popup will start with only the first fault's segments
 		S = cell(nvert(1),1);
-		for (i=1:nvert(1)),    S{i} = ['Segment ' sprintf('%d',i)];   end
+		for (i=1:nvert(1)),    S{i} = sprintf('Segment %d',i);   end
 		set(handles.popup_segment,'String',S)
 	else
 		set(handles.popup_segment,'Visible','off')
@@ -105,24 +105,28 @@ function varargout = deform_mansinha(varargin)
 	handles.y_min_or = head(3);         handles.y_max_or = head(4);
 	handles.mu = 3;							% Shear modulus (x 10^10)
 
-	if (~handles.fault_in)				% "NORMAL" case (not a fault-patch collection)
+	if (~handles.fault_in)					% "NORMAL" case (not a fault-patch collection)
 		% Make them all cell arrays to simplify logic
 		if (~iscell(handles.FaultLength)),  handles.FaultLength = {handles.FaultLength};   end
 		if (~iscell(handles.FaultStrike)),  handles.FaultStrike = {handles.FaultStrike};   end
 		if (~iscell(handles.fault_x)),      handles.fault_x = {handles.fault_x};    handles.fault_y = {handles.fault_y};   end
 		handles.DislocStrike = handles.FaultStrike;
 
-		for (k=1:handles.n_faults)
+		for (k = 1:handles.n_faults)
 			handles.FaultDip{k}(1:nvert(k)) = 25;       handles.FaultWidth{k}(1:nvert(k)) = NaN;
 			handles.FaultDepth{k}(1:nvert(k)) = NaN;	handles.FaultTopDepth{k}(1:nvert(k)) = 0;
 			handles.DislocSlip{k}(1:nvert(k)) = 1;	    handles.DislocRake{k}(1:nvert(k)) = 90;
 		end
-		handles.DislocRakeCopy = 90;			% In case of SCC
-		handles.DislocSlipCopy = 1;				% 		"
+		handles.DislocRakeCopy = 90;		% In case of SCC
+		handles.DislocSlipCopy = 1;			% 		"
 		
 		z2 = sprintf('%.1f',handles.FaultStrike{1}(1));
-		set(handles.edit_FaultLength,'String',handles.FaultLength{1}(1),'Enable','off')
-		set(handles.edit_FaultStrike,'String',z2,'Enable','off')
+		set(handles.edit_FaultLength,'String',handles.FaultLength{1}(1))
+		set(handles.edit_FaultStrike,'String',z2)
+		if (handles.n_faults > 1)				% Otherwise we are allowed to change Fault's length
+			set(handles.edit_FaultLength,'Enable','off')
+			set(handles.edit_FaultStrike,'Enable','off')
+		end
 		set(handles.edit_FaultDip,'String',sprintf('%.1f',handles.FaultDip{1}(1)))
 		set(handles.edit_DislocStrike,'String',z2)
 		set(handles.edit_DislocSlip,'String','1')
@@ -210,6 +214,40 @@ function varargout = deform_mansinha(varargin)
 	guidata(hObject, handles);
 	set(hObject,'Visible','on');
 	if (nargout),   varargout{1} = hObject;     end
+
+% ------------------------------------------------------------------------------------
+function edit_FaultStrike_CB(hObject, handles)
+% Update the fault's strike to the value entered via this edit box
+	xx = str2double(get(hObject,'String'));
+	if (isnan(xx))
+		set(hObject, 'Str', handles.FaultStrike{1}(1))
+		warndlg('Please, pay attention to what you are doing.','Chico Clever')
+		return
+	end
+
+	[lat2,lon2] = vreckon(handles.fault_y{1}(1), handles.fault_x{1}(1), handles.FaultLength{1}(1)*1e3, xx, 1);
+	set(handles.h_fault, 'XData', [handles.fault_x{1}(1) lon2(end)], 'YData', [handles.fault_y{1}(1) lat2(end)])
+	handles.fault_x{1}(2) = lon2;		handles.fault_y{1}(2) = lat2;
+	handles.FaultStrike{1}(1) = xx;		% We know index is '1' because only single faults can be edited here.
+	set(handles.edit_DislocStrike,'String',get(hObject,'Str'))
+	edit_FaultWidth_CB(handles.edit_FaultWidth, handles);	% Let this do all the updating work (also uppdates handles)
+
+% ------------------------------------------------------------------------------------
+function edit_FaultLength_CB(hObject, handles)
+% Update the fault's length to the value entered via this edit box
+	xx = str2double(get(hObject,'String'));
+	if (isnan(xx) || xx <= 0)
+		set(hObject, 'Str', handles.FaultLength{1}(1))
+		warndlg('Please, pay attention to what you are doing.','Chico Clever')
+		return
+	end
+
+	az = str2double(get(handles.edit_FaultStrike,'String'));
+	[lat2,lon2] = vreckon(handles.fault_y{1}(1), handles.fault_x{1}(1), xx * 1000, az, 1);
+	set(handles.h_fault, 'XData', [handles.fault_x{1}(1) lon2(end)], 'YData', [handles.fault_y{1}(1) lat2(end)])
+	handles.fault_x{1}(2) = lon2;		handles.fault_y{1}(2) = lat2;
+	handles.FaultLength{1}(1) = xx;		% We know index is '1' because only single faults can be edited here.
+	edit_FaultWidth_CB(handles.edit_FaultWidth, handles);	% Let this do all the updating work (also uppdates handles)
 
 % ------------------------------------------------------------------------------------
 function handles = edit_FaultWidth_CB(hObject, handles, opt)
@@ -604,13 +642,15 @@ function len = LineLength(h,geog)
 	len = [];
 	if (~iscell(x))
 		if (geog)
-			D2R = pi/180;    earth_rad = 6371;
-			x = x * D2R;    y = y * D2R;
-			lat_i = y(1:length(y)-1);   lat_f = y(2:length(y));     clear y;
-			lon_i = x(1:length(x)-1);   lon_f = x(2:length(x));     clear x;
-			tmp = sin(lat_i).*sin(lat_f) + cos(lat_i).*cos(lat_f).*cos(lon_f-lon_i);
-			clear lat_i lat_f lon_i lon_f;
-			len = [len; acos(tmp) * earth_rad];         % Distance in km
+			ll = draw_funs(h, 'show_LineLength', [], [], h, 'k');
+			len = ll.seg_len;
+% 			D2R = pi/180;    earth_rad = 6371;
+% 			x = x * D2R;    y = y * D2R;
+% 			lat_i = y(1:length(y)-1);   lat_f = y(2:length(y));     clear y;
+% 			lon_i = x(1:length(x)-1);   lon_f = x(2:length(x));     clear x;
+% 			tmp = sin(lat_i).*sin(lat_f) + cos(lat_i).*cos(lat_f).*cos(lon_f-lon_i);
+% 			clear lat_i lat_f lon_i lon_f;
+% 			len = [len; acos(tmp) * earth_rad];         % Distance in km
 		else
 			dx = diff(x);   dy = diff(y);
 			len = [len; sqrt(dx.*dx + dy.*dy)];         % Distance in user unites
@@ -618,16 +658,18 @@ function len = LineLength(h,geog)
 	else
 		len = cell(1, numel(x));
 		if (geog)
-			D2R = pi/180;    earth_rad = 6371;
-			for (k=1:numel(x))
-				xx = x{k} * D2R;    yy = y{k} * D2R;
-				lat_i = yy(1:length(yy)-1);   lat_f = yy(2:length(yy));
-				lon_i = xx(1:length(xx)-1);   lon_f = xx(2:length(xx));
-				tmp = sin(lat_i).*sin(lat_f) + cos(lat_i).*cos(lat_f).*cos(lon_f-lon_i);
-				len{k} = acos(tmp) * earth_rad;         % Distance in km
+% 			D2R = pi/180;    earth_rad = 6371;
+			for (k = 1:numel(x))
+				ll = draw_funs(h(k), 'show_LineLength', [], [], h(k), 'k');
+				len{k} = ll.seg_len;
+% 				xx = x{k} * D2R;    yy = y{k} * D2R;
+% 				lat_i = yy(1:length(yy)-1);   lat_f = yy(2:length(yy));
+% 				lon_i = xx(1:length(xx)-1);   lon_f = xx(2:length(xx));
+% 				tmp = sin(lat_i).*sin(lat_f) + cos(lat_i).*cos(lat_f).*cos(lon_f-lon_i);
+% 				len{k} = acos(tmp) * earth_rad;         % Distance in km
 			end
 		else
-			for (k=1:numel(x))
+			for (k = 1:numel(x))
 				xx = x{k};      yy = y{k};
 				dx = diff(xx);  dy = diff(yy);
 				len{k} = sqrt(dx.*dx + dy.*dy);         % Distance in user unites
@@ -984,6 +1026,7 @@ set(h1 ,...
 uicontrol('Parent',h1,'Position',[10 126 181 131],'Style','frame');
 
 uicontrol('Parent',h1,'BackgroundColor',[1 1 1],...
+'Call',@deform_mansinha_uiCB,...
 'Position',[20 213 71 21],...
 'Style','edit',...
 'Tooltip','Fault length (km)',...
@@ -997,6 +1040,7 @@ uicontrol('Parent',h1,'BackgroundColor',[1 1 1],...
 'Tag','edit_FaultWidth');
 
 uicontrol('Parent',h1,'BackgroundColor',[1 1 1],...
+'Call',@deform_mansinha_uiCB,...
 'Position',[20 173 71 21],...
 'Style','edit',...
 'Tooltip','Fault strike (degrees)',...
