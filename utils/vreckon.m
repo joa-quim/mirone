@@ -13,16 +13,24 @@ function [lat2,lon2,a21] = vreckon(lat1, lon1, rng, azim, npts, ellipsoid)
 % VARIABLES:
 % lat1 = inital latitude (degrees)
 % lon1 = initial longitude (degrees)
+%
 % rng  = distance (meters)
 %		It can be a scalar or a vector. Latter case computes a series of
 %		circles (or arc circles, see azim) centered on X,Y (which are scalars)
+%
 % azim = intial azimuth (degrees)
 % 		"azim" is a one or two-column vector. For single column, returns
 %		the arc between 0 and azim. For two columns, returns the arc
 %		between azim(1) and azim(2).
+%
+% npts = Number of points ... (need to figure it out again)
+%		Default = 180
+%
 % ellipsoid = two-element ellipsoid vector. Either [a b] or [a f]
 %		If omitted, defaults to WGS-84
+%
 % lat2, lon2 = second point (degrees)
+%
 % a21  = reverse azimuth (degrees), at final point facing back toward the
 %        intial point
 %
@@ -129,9 +137,9 @@ function [lat2,lon2,a21] = vreckon(lat1, lon1, rng, azim, npts, ellipsoid)
 	end
 	
 	% Each circle occupies a row of the output matrices.
-	lat1 = lat1(:,ones([1,size(az,2)]) );
-	lon1 = lon1(:,ones([1,size(az,2)]) );
-	rng  = rng(:,ones([1,size(az,2)]) );
+	lat1 = lat1(:,ones([1,size(az,2)]));
+	lon1 = lon1(:,ones([1,size(az,2)]));
+	rng  = rng(:,ones([1,size(az,2)]));
 	
 	alpha1 = az * 0.1745329251994329577e-1;	% inital azimuth in radians
 	sinAlpha1 = sin(alpha1);	cosAlpha1 = cos(alpha1);
