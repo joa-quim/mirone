@@ -37,6 +37,8 @@ function varargout = deform_mansinha(varargin)
 	end
 
 	handMir = varargin{1};
+	handles.last_dir = handMir.last_dir;
+	handles.work_dir = handMir.work_dir;
 	handles.geog = handMir.geog;
 	head = handMir.head;
 	handles.head = head;
@@ -105,9 +107,10 @@ function varargout = deform_mansinha(varargin)
 	handles.y_min_or = head(3);         handles.y_max_or = head(4);
 	handles.mu = 3;							% Shear modulus (x 10^10)
 
+	if (~iscell(handles.FaultLength)),  handles.FaultLength = {handles.FaultLength};   end
+
 	if (~handles.fault_in)					% "NORMAL" case (not a fault-patch collection)
 		% Make them all cell arrays to simplify logic
-		if (~iscell(handles.FaultLength)),  handles.FaultLength = {handles.FaultLength};   end
 		if (~iscell(handles.FaultStrike)),  handles.FaultStrike = {handles.FaultStrike};   end
 		if (~iscell(handles.fault_x)),      handles.fault_x = {handles.fault_x};    handles.fault_y = {handles.fault_y};   end
 		handles.DislocStrike = handles.FaultStrike;
@@ -119,7 +122,7 @@ function varargout = deform_mansinha(varargin)
 		end
 		handles.DislocRakeCopy = 90;		% In case of SCC
 		handles.DislocSlipCopy = 1;			% 		"
-		
+
 		z2 = sprintf('%.1f',handles.FaultStrike{1}(1));
 		set(handles.edit_FaultLength,'String',handles.FaultLength{1}(1))
 		set(handles.edit_FaultStrike,'String',z2)
@@ -131,7 +134,7 @@ function varargout = deform_mansinha(varargin)
 		set(handles.edit_DislocStrike,'String',z2)
 		set(handles.edit_DislocSlip,'String','1')
 		set(handles.edit_DislocRake,'String','90')
-	
+
 		% Default the top depth fault to zero
 		set(handles.edit_FaultTopDepth,'String','0')
 		if (handles.n_faults == 1)
@@ -154,6 +157,10 @@ function varargout = deform_mansinha(varargin)
 		uicontrol('Parent',hObject,'Enable','inactive','FontSize',10,...
 		'HorizontalAlignment','left','Position',[460 135 90 16],...
 		'String',['Tot = ' sprintf('%.1f',mag)],'Style','text');
+	end
+
+	if (handles.n_faults > 1 || ~handles.geog || handles.fault_in)	% In any of these cases there is nothing to save
+		set(handles.push_save_subfault,'Vis','off')
 	end
 
 	%-----------
@@ -330,7 +337,7 @@ function edit_FaultDip_CB(hObject, handles)
 	try     set(hp(seg),'XData',x,'YData',y,'FaceColor',[.8 .8 .8],'EdgeColor','k','LineWidth',1);  end
 	
 	z = -[top_d top_d depth depth top_d];
-	if ( diff(handles.head(5:6)) > 10 ),	z = z * 1000;		end		% Assume grid's depth is in meters
+	if (diff(handles.head(5:6)) > 10),		z = z * 1000;		end		% Assume grid's depth is in meters
 	z = z + handles.head(5);				% CRUDE. It should be mean depth along the fault's length
 	set(hp, 'UserData', z)					% So that we can Flederize it in 3D 
 
@@ -780,9 +787,52 @@ function edit_qValue_CB(hObject, handles)
         do_scc(handles);				% It also saves handles
     end
 
+% ------------------------------------------------------------------------------------
+function push_save_subfault_CB(hObject, handles)
+% Save the current solution in the sub-fault format.
+% This function, however, may only be called when geogs and single fault, single segment
+
+	str = {'*.dat;*.DAT;*.txt;*.TXT', 'Data file (*.dat,*.DAT,*.txt,*.TXT)'; '*.*', 'All Files (*.*)'};
+	[FileName,PathName] = put_or_get_file(handles,str,'Select file','put','.dat');
+	if isequal(FileName,0),		return,		end
+	f_name = [PathName FileName];
+
+	fid = fopen(f_name, 'wt');
+	if (fid < 0)
+		errordlg('Could not open output file.','Error'),	return
+	end
+	D2R = pi / 180;
+	rng = handles.FaultWidth{1}(1) / 6371 / D2R;
+	strk = handles.FaultStrike{1}(1);
+
+	% Write header
+	fprintf(fid, '#Total number of fault_segments=     1\n');
+	fprintf(fid, '#Fault_segment =   1 nx(Along-strike)=   1 Dx= %.2fkm ny(downdip)=   1 Dy= %.2fkm\n', ...
+		handles.FaultLength{1}, handles.FaultWidth{1});
+	% Write BB
+	fprintf(fid, '#Boundary of Fault_segment     1\n');
+	fprintf(fid, '#Lon.  Lat.  Depth\n');
+	fprintf(fid, '%.5f\t%.5f\t%.5f\n', handles.fault_x{1}(1), handles.fault_y{1}(1), handles.FaultTopDepth{1}(1));
+	fprintf(fid, '%.5f\t%.5f\t%.5f\n', handles.fault_x{1}(2), handles.fault_y{1}(2), handles.FaultTopDepth{1}(1));
+	[lat1,lon1] = circ_geo(handles.fault_y{1}(1), handles.fault_x{1}(1), rng, strk+90, 1);
+	[lat2,lon2] = circ_geo(handles.fault_y{1}(2), handles.fault_x{1}(2), rng, strk+90, 1);
+	fprintf(fid, '%.5f\t%.5f\t%.5f\n', lon2, lat2, handles.FaultDepth{1}(1));
+	fprintf(fid, '%.5f\t%.5f\t%.5f\n', lon1, lat1, handles.FaultDepth{1}(1));
+	fprintf(fid, '%.5f\t%.5f\t%.5f\n', handles.fault_x{1}(1), handles.fault_y{1}(1), handles.FaultTopDepth{1}(1));
+	% Write the patch (single one for time being)
+	fprintf(fid, '#Lat. Lon. depth slip rake strike dip\n');
+
+	% The shit here is that we need the coordinates of the MIDDLE of the fault trace
+	% So we will the same thing as will be done in fault_models/subfault(), but in reverse order.
+	rng = (handles.FaultLength{1}(1) / 2) / 6371 / D2R;
+	[lat1,lon1] = circ_geo(handles.fault_y{1}(1), handles.fault_x{1}(1), rng, strk, 1);
+	fprintf(fid, '%.4f\t%.4f\t%.3f\t%.2f\t%.1f\t%.1f\t%.1f\n', lat1, lon1, handles.FaultDepth{1}(1), ...
+		handles.DislocSlip{1}(1)*100, handles.DislocRake{1}(1), handles.DislocStrike{1}(1), handles.FaultDip{1}(1));
+	fclose(fid);
+
 % -----------------------------------------------------------------------------------------
 function stripes = do_scc(handles)
-    % Take a constant slip fault plane and divide it it into slices of variable slip
+% Take a constant slip fault plane and divide it it into slices of variable slip
     
     % This is a trick to use the callabck to hide the const slip patches
     if (~get(handles.check_hideFaultPlanes,'Val'))
@@ -925,7 +975,7 @@ function [fault,seg] = getFaultSeg(handles)
 
 % -------------------------------------------------------------------------------------
 function handles = set_all_faults(handles,varargin)
-	% varargin contains a set of parameters of a Slip model transmited by fault_models.m  
+% varargin contains a set of parameters of a Slip model transmited by fault_models.m  
 	handles.h_calling_fig = varargin{1}.figure1;
 	handles.h_fault = varargin{2};
 	handles.FaultTopDepth = varargin{3};
@@ -982,7 +1032,7 @@ function handles = set_all_faults(handles,varargin)
 	
 % ------------------------------------------------------------------------------------
 function [handles, mag, M0] = compMag(handles, fault)
-	% Compute Moment magnitude
+% Compute Moment magnitude
 	mu = handles.mu * 1e10;
 	M0 = mu * handles.um_milhao * handles.DislocSlip{fault}(:) .* handles.FaultWidth{fault}(:) .* ...
 		handles.FaultLength{fault}(:);
@@ -1280,7 +1330,15 @@ uicontrol('Parent',h1,...
 uicontrol('Parent',h1,...
 'Call',@deform_mansinha_uiCB,...
 'FontWeight','bold',...
-'Position',[430 15 71 21],...
+'Position',[370 15 71 21],...
+'Tooltip','Save current solution in sub-fault format',...
+'String','Save fault',...
+'Tag','push_save_subfault');
+
+uicontrol('Parent',h1,...
+'Call',@deform_mansinha_uiCB,...
+'FontWeight','bold',...
+'Position',[460 15 71 21],...
 'String','Compute',...
 'Tag','push_compute');
 
