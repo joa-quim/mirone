@@ -1,7 +1,7 @@
 function varargout = fault_models(varargin)
 % Helper window to import fault models
 
-%	Copyright (c) 2004-2013 by J. Luis
+%	Copyright (c) 2004-2014 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -165,6 +165,8 @@ function subfault(handles, localHandles, fname, cmap)
 	numeric_data = numeric_data{2};			% First cell element contains the all patches rectangle
 	numeric_data(:,4) = numeric_data(:,4) * 1e-2;	% they were in cm
 	maxSlip = max(numeric_data(:,4));		minSlip = min(numeric_data(:,4));
+	deltaSlip = maxSlip - minSlip;
+	if (deltaSlip == 0),	deltaSlip = 1;	end		% Case of a single patch (this is used for color only)
 	% Pre-allocations
 	depth = cell(1,ny);		slip = cell(1,ny);		rake = cell(1,ny);
 	strike = cell(1,ny);	dip = cell(1,ny);		hp = zeros(1,nx);		hLine = zeros(1,ny);
@@ -187,7 +189,7 @@ function subfault(handles, localHandles, fname, cmap)
             [lat1,lon1] = circ_geo(lat(i),lon(i),rng_p,strike{k}(i)+90,1);
             [lat2,lon2] = circ_geo(lat(i+1),lon(i+1),rng_p,strike{k}(i)+90,1);
             x = [lon(i) lon(i+1) lon2 lon1 lon(i)];    y = [lat(i) lat(i+1) lat2 lat1 lat(i)];
-			cor = cmap( round( (slip{k}(i) - minSlip) / (maxSlip - minSlip) * nCores + 1 ), :);
+			cor = cmap(round((slip{k}(i) - minSlip) / deltaSlip * nCores + 1), :);
             hp(i) = patch('XData',x,'YData',y,'Parent',handles.axes1,'FaceColor',cor,'Tag','SlipPatch');
 			set(hp(i),'UserData',z)		% So that we can Flederize it in 3D
 			cmenuHand = uicontextmenu('Parent',handles.figure1);
