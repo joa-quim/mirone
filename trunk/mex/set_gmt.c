@@ -92,24 +92,27 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	if (nrhs >= 1 && mxIsChar(prhs[0])) {
 		char	*envString; 
 		envString = (char *)mxArrayToString(prhs[0]);
-		if (nrhs == 2) {		/* The set PATH case */
+		if (nrhs == 2 && nlhs == 0) {		/* The set PATH case */
 			this = getenv ("PATH");
 			pato = (char *) mxCalloc ((size_t)(strlen(this) + strlen(envString) + 2), (size_t)1);
 			strcpy (pato, envString);
 			strcat (pato, this);
 			if (status = putenv(pato))
-				mexPrintf("TEST_GMT: Failure to set the environmental variable\n %s\n", pato);
+				mexPrintf("SET_GMT: Failure to set the PATH environmental variable\n %s\n", pato);
 			mxFree(pato);
 
-			/*this = getenv ("PATH");
-			papato = (char *) mxCalloc ((size_t)(strlen (this) + 1), (size_t)1);
-			strcpy (papato, this);
-			mexPrintf("Olho Pato -> %s\n", papato);
-			mxFree(papato);*/
-
 		}
-		else if ( nrhs == 1 && (status = putenv(envString)) )
-			mexPrintf("TEST_GMT: Failure to set the environmental variable\n %s\n", envString);
+		else if (nrhs == 2 && nlhs == 1) {	/* Return the contents of the 'envstring' env var (for debug) */
+			if ((this = getenv (envString)) != CNULL)
+				mxStr = mxCreateString(this);
+			else
+				mxStr = mxCreateString("");
+
+			plhs[0] = mxStr;
+			return;
+		}
+		else if (nrhs == 1 && (status = putenv(envString)))
+			mexPrintf("SET_GMT: Failure to set the environmental variable\n %s\n", envString);
 
 		if (nlhs == 0)
 			return;
@@ -120,6 +123,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		mexPrintf("info = set_gmt('envstring');\nDo the same as above and set 'envstring' in the environment list\n");
 		mexPrintf("       set_gmt('envstring');\nJust set 'envstring' in the environment list and return.\n");
 		mexPrintf("       set_gmt('envstring',whatever);\nPrepends 'envstring' to the PATH.\n");
+		mexPrintf(" env = set_gmt('envstring',whatever);\nGets the contents of 'envstring' (for debugging mostly).\n");
 		return;
 	}
 
@@ -142,7 +146,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		sdir = (char *) mxCalloc ((size_t)(strlen (this) + 1), (size_t)1);
 		sprintf (sdir, "GMT_SHAREDIR=%s", GMT_SHAREDIR);
 		if (status = putenv(sdir))
-			mexPrintf("TEST_GMT: Failure trick to local reset the GMT_SHAREDIR env variable\n %s\n", sdir);
+			mexPrintf("SET_GMT: Failure trick to local reset the GMT_SHAREDIR env variable\n %s\n", sdir);
 	}
 	else if ((this = getenv ("GMTHOME")) != CNULL) {	/* We have a pre 4.2 version */
 		char *sdir;
@@ -153,11 +157,12 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		/* sdir will be used by our gmt dlls (& shoredump) */
 		sprintf (sdir, "GMT_SHAREDIR=%s%c%s", this, DIR_DELIM, "share");
 		if (status = putenv(sdir))
-			mexPrintf("TEST_GMT: Failure to set the sharedir environmental variable\n %s\n", sdir);
+			mexPrintf("SET_GMT: Failure to set the sharedir environmental variable\n %s\n", sdir);
 		mxStr = mxCreateString("4");
 	}
 	else						/* No GMT in sight */
 		mxStr = mxCreateString("0");
+
 	mxSetField(info_struct, 0, fieldnames[0], mxStr);
 
 
@@ -172,7 +177,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		GMT_HOMEDIR = (char *) mxCalloc (4, (size_t)1);
 		sprintf (GMT_HOMEDIR, "C:%c", DIR_DELIM);
 #else
-		mexPrintf ("Warning: Could not determine home directory!\n");
+		mexPrintf ("SET_GMT: Warning, could not determine home directory!\n");
 #endif
 	}
 
