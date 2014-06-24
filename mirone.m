@@ -4485,6 +4485,11 @@ function TransferB_CB(handles, opt, opt2)
 		lstErr = lasterror;
 		msgbox(sprintf('Last error message in stack is:\n\n%s\n%s\n',lstErr.message, lstErr.identifier),'Debug message')
 
+ 	elseif (strcmp(opt,'sharedir'))				% Show GMT_SHAREDIR env var (standalone only and for debug)
+		env4 = set_gmt('GMT_SHAREDIR','lixo');
+		env5 = set_gmt('GMT5_SHAREDIR','lixo');
+		msgbox(sprintf('GMT_SHAREDIR = %s\nGMT5_SHAREDIR = %s', env4, env5))
+
  	elseif (strncmp(opt,'TransplantGrid',6))	%
 		ImageCrop_CB(handles,zeros(5,2),'ImplantGrid')	% The '0' is only to avoid the call to ruberbandbox in ImageCrop_CB
 
