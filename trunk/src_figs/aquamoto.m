@@ -798,7 +798,7 @@ function [theVar, U, V, indVar, indWater, qual] = get_derivedVar(handles)
 			end
 			theVar = sqrt(x.^2 + y.^2);				% |M|
 			x = nc_funs('varget', handles.fname, 'stage', [handles.sliceNumber 0], [1 handles.number_of_points]);
-			y = nc_funs('varget', handles.fname, 'elevation')';
+			y = get_elevation(handles);
 			if (~isa(x, 'double')),		x = double(x);		y = double(y);		end
 			D = x - y + 1e-10;		clear x y;
 			ind_0 = (D < 1e-8);			% To get arround a devide-by-nearly-zero and Anuga bug in velocity problem 
@@ -836,7 +836,7 @@ function [theVar, U, V, indVar, indWater, qual] = get_derivedVar(handles)
 
 		case 'Water Depth'			% Water Depth
 			theVar = nc_funs('varget', handles.fname, 'stage', [handles.sliceNumber 0], [1 handles.number_of_points]);
-			elevation = nc_funs('varget', handles.fname, 'elevation')';
+			elevation = get_elevation(handles);
 			cvlib_mex('sub',theVar, elevation);
 			indVar = 6;
 
