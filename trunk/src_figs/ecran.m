@@ -1137,8 +1137,11 @@ function FileOpen_CB(hObject, handles)
 		end
 	end
 
-	if (numel(out) == 4)				% Not yet in use
-		rd = get_distances(data(:,out(1)), data(:,out(2)), false, 'n', handles.ellipsoide);	% NO GEOG: SHOULD TEST
+	if (numel(out) == 4)				% x,y,z but first two are to compute distance
+		geog = aux_funs('guessGeog', [min(data(:,1)) max(data(:,1)) min(data(:,2)) max(data(:,2))]);
+		units = handles.measureUnit;
+		if (geog),	units = 'k';	end
+		rd = get_distances(data(:,out(1)), data(:,out(2)), geog, units, handles.ellipsoide);
 		handles.dist = rd;				% Save it in case user wants to save it to file
 		handles.hLine = line('Parent',handles.axes1,'XData',rd, 'YData',data(:,out(3)));
 	else
@@ -1466,7 +1469,7 @@ function AnalysisSmoothSpline_CB(hObject, handles)
 	xx = get(handles.hLine,'XData');		yy = get(handles.hLine,'YData');
 	[pp,p] = spl_fun('csaps',xx,yy);		% This is just to get csaps's p estimate
 	y = spl_fun('csaps',xx,yy,p,xx);
-	hold on;	h = plot(xx,y);		hold off;
+	hold on;	h = plot(xx,y);		hold off
 
 	smoothing_param(p, [xx(1) xx(2)-xx(1) xx(end)], handles.figure1, handles.axes1, handles.hLine, h);
 	guidata(hObject, handles);
