@@ -7,7 +7,7 @@ function [xx, yy, zz] = grid_profiler(hFig, xp, yp, point_int, do_dynamic, do_st
 %
 % When profiling an RGB image the output variable ZZ is a cell array.
 
-%	Copyright (c) 2004-2012 by J. Luis
+%	Copyright (c) 2004-2014 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -65,6 +65,10 @@ function [xx, yy, zz] = grid_profiler(hFig, xp, yp, point_int, do_dynamic, do_st
 		xx = xp;    yy = yp;
 	else						% Profile interp
 		[xx, yy] = make_track(xp, yp, handles.head(8), handles.head(9), do_stack);
+	end
+
+	if (size(xx, 1) > 1)		% Unfortunately, the row vs column shit
+		xx = xx';		yy = yy';
 	end
 
 	% Special case of 3D interpolation. Do it and return.
