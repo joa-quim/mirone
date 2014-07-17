@@ -21,7 +21,7 @@ function out = select_cols(varargin)
 % OUT   contains a row vector with the order by which the array columns must be arranged in
 %       order to have X,Y[,Z] in the 'xy[z]' modes or lon,lat,F,Date,Altitude in the 'igrf' mode
 
-%	Copyright (c) 2004-2012 by J. Luis
+%	Copyright (c) 2004-2014 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -200,17 +200,19 @@ function out = select_cols(varargin)
 		uicontrol(h_fig, 'Style', 'text', 'Units','pixels', 'BackgroundColor',get(h_fig,'Color'),...
 			'Position',pos_label, 'String', label_pop{i}, 'HorizontalAlignment', 'right');
 	end
+
 	% -------- Make the popups (for column order selecting)
 	% We need also to guess the default Value of each popup
 	if (~igrf_mode)     % Otherwise it has already been deffined above
 		pop_def_value = 1:n_labels;
-		str_nc(end) = [];       % We don't want the # symb that was at the end
+		str_nc(end) = [];		% We don't want the # symb that was at the end
 		ind = 1:length(str_nc);
 	else        % Take into account that cols may be inferior to 5
 		ind = 1:length(str_nc)-1;
 		ind(length(str_nc):n_labels) = length(str_nc);
 	end
-	for (i=1:n_labels)      % Number of labels has to be the same as number of popups
+	popup_but = zeros(n_labels,1);
+	for (i = 1:n_labels)		% Number of labels has to be the same as number of popups
 		pos_pop = [(pos_label(1)+pos_label(3)+7), (fig_size(4)-15-i*30), 71, 23];
 		popup_but(i) = uicontrol(h_fig, 'Style', 'popupmenu', 'Units','pixels','BackgroundColor','white',...
 			'Position',pos_pop, 'String', str_nc, 'Value',pop_def_value(ind(i)), 'HorizontalAlignment','left');
@@ -218,6 +220,7 @@ function out = select_cols(varargin)
 	if (igrf_mode && cols == 2)     % Only lon and lat cols may be interchanged
 		set(popup_but(3:5),'Enable','inactive');
 	end
+
 	% -------- Make one/two checkboxes for selecting what to write in file (only for the igrf or xyz cases)
 	chk_but = [];
 	if (igrf_mode)
@@ -231,10 +234,8 @@ function out = select_cols(varargin)
 			set(chk_but(2),'Value',0,'Enable','inactive')   % No Total Field no anomaly
 		end
 	else
-		if (xyz_mode)
-			chk_but = uicontrol(h_fig, 'Style','checkbox', 'Units','pixels', 'Value',0,...
-				'Position',[pos_pop(1) 70 101 18], 'String','A & B to dist', 'Tooltip','Tell reader to compute hypot(A,B)');
-		end
+		chk_but = uicontrol(h_fig, 'Style','checkbox', 'Units','pixels', 'Value',0,...
+			'Position',[pos_pop(1) 70 101 18], 'String','A & B to dist', 'Tooltip','Tell reader to compute hypot(A,B)');
 	end
 	% -------- Make the OK button
 	OK_but = uicontrol(h_fig, 'Style', 'pushbutton', 'Units','pixels',...
@@ -247,7 +248,7 @@ function out = select_cols(varargin)
 
 	set(h_fig,'Position',[1 1 (pos(1)+pos(3)+10) fig_size(4)])
 
-	if ( (pos(1) + pos(3)) > screen(3) )
+	if ((pos(1) + pos(3)) > screen(3))
 		first_listBox_pos = get(ListBox(1),'Position');
 		slider_pos = [first_listBox_pos(1) first_listBox_pos(2)-5 (first_listBox_pos(1) + pos(1)+pos(3)+5) 10];
 		h_all_uis = findobj(gcf,'Style','listbox');     % Get the Listbox handles
@@ -294,9 +295,9 @@ function move_all_uis(obj,eventdata,h,orig_pos)
 
 % -----------------------------------------------------------------------------------------
 function OK_push(obj, eventdata, h_pop, h_list, h_chk, igrf_mode, xyz_mode)
-	n_pops = numel(h_pop);    % How many popups?
+	n_pops = numel(h_pop);			% How many popups?
 	col = zeros(1, n_pops);
-	for (i = 1:n_pops)            % See what was choosen by each popup
+	for (i = 1:n_pops)				% See what was choosen by each popup
 		col(i) = get(h_pop(i),'Value');
 	end
 	
@@ -313,9 +314,17 @@ function OK_push(obj, eventdata, h_pop, h_list, h_chk, igrf_mode, xyz_mode)
 		if (get(h_chk(2),'Value')),		write_anom = 1;   end
 		set(obj,'UserData',[col write_total_field write_anom])
 	else
-		if (xyz_mode && get(h_chk(1),'val'))
-			col = [col 0];				% This extra value is to be interpreted by the reader
-		end								% to compute hypot(col(1),col(2))
+		if (get(h_chk(1),'val'))
+			if (xyz_mode)
+				col = [col 0];			% This extra value is to be interpreted by the reader
+			else					% the 'xy' case
+				if (col(2) <= 2)
+					errordlg('When A & B are selected to compute distance, Y must be C or greater.','Error')
+					return
+				end
+				col = [1 2 col(2) 0];	% ... to compute hypot(col(1),col(2))
+			end
+		end
 		set(obj,'UserData',col)
 	end
 	uiresume
