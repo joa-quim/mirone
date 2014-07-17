@@ -5,7 +5,7 @@ function varargout = grdtrend_mir(varargin)
 %   out.opt_what -> It wil be '-T','-D' or 'W' and optionaly it may have a 'r' apended
 %   out.opt_N    -> Number of model parameters (allways)
 
-%	Copyright (c) 2004-2012 by J. Luis
+%	Copyright (c) 2004-2014 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -20,6 +20,8 @@ function varargout = grdtrend_mir(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
+% $Id$
+
 	if isempty(varargin)
 		errordlg('GRDTREND: wrong number of arguments.','Error'),	return
 	end
@@ -32,18 +34,18 @@ function varargout = grdtrend_mir(varargin)
 	handles.Z = getappdata(handMir.figure1,'dem_z');
 	handles.have_nans = handMir.have_nans;
 	move2side(handMir.figure1, hObject,'right')
-    
+
 	if (handMir.no_file)
 		errordlg('GRDTREND: You didn''t even load a file. What are you expecting then?','ERROR')
-        delete(hObject);    return
+		delete(hObject);    return
 	end
 	if (~handMir.validGrid)
-        errordlg('GRDTREND: This operation is deffined only for images derived from DEM grids.','ERROR')
-        delete(hObject);    return
+		errordlg('GRDTREND: This operation is deffined only for images derived from DEM grids.','ERROR')
+		delete(hObject);    return
 	end
 	if (isempty(handles.Z))
-        errordlg('GRDTREND: Grid was not saved in memory. Increase "Grid max size" and start over.','ERROR')
-        delete(hObject);    return
+		errordlg('GRDTREND: Grid was not saved in memory. Increase "Grid max size" and start over.','ERROR')
+		delete(hObject);    return
 	end
 
 	handles.hMirFig = handMir.figure1;
@@ -52,6 +54,11 @@ function varargout = grdtrend_mir(varargin)
 	%------------ Give a Pro look (3D) to the frame boxes  -------------------------------
 	new_frame3D(hObject, handles.text_what, handles.frame1)
 	%------------- END Pro look (3D) -----------------------------------------------------
+
+	% Add this figure handle to the carraças list
+	plugedWin = getappdata(handMir.figure1,'dependentFigs');
+	plugedWin = [plugedWin hObject];
+	setappdata(handMir.figure1,'dependentFigs',plugedWin);
 
 	guidata(hObject, handles);
 
