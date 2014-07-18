@@ -22,8 +22,9 @@ function varargout = load_xyz(handles, opt, opt2)
 %
 %	Optional output:
 %
-%	out = load_xyz([],fname);				Read and return data in file FNAME
-%	[out, multi_str] = load_xyz([],fname);	Read file FNAME and return data in OUT and multisegment strings in MULTI_STR
+%	out = load_xyz([],fname);               Read and return data in file FNAME
+%	[out, multi_str] = load_xyz([],fname);  Read file FNAME and return data in OUT and multisegment strings in MULTI_STR
+%	... = load_xyz();                       Like the above but asks the file name here
 %
 %	Optional
 %		OPT can be either [] in which case the filename will be asked here or contain the filename
@@ -107,10 +108,15 @@ function varargout = load_xyz(handles, opt, opt2)
 	% -------------------------------------------------------------------------------
 
 	% ------------------- PARSE INPUTS ----------------------------------------------
-	if (nargout && isempty(handles))		% When this function is used to just read a file and return its contents
-		handles.no_file = false;
+	if (nargout)				% A bit convoluted this test but it's necessary for backward compat reasons
+		if (nargin == 0)
+			handles = [];	fname = [];
+		end
+		if (isempty(handles))	% When this function is used to just read a file and return its contents
+			handles.no_file = false;
+		end
 	end
-	if (nargin >= 2 && isempty(opt))            % Read a ascii file
+	if (nargin >= 2 && isempty(opt))		% Read a ascii file
 		[FileName, PathName, handles] = put_or_get_file(handles, ...
 			{'*.dat;*.DAT', 'Data files (*.dat,*.DAT)';'*.*', 'All Files (*.*)'},'Select File','get');
 		if isequal(FileName,0),		return,		end
@@ -433,7 +439,9 @@ function varargout = load_xyz(handles, opt, opt2)
 			do_patch = true;
 		end
 
+		% -----------------------------------------------------------------------------------
 		% ---------- If OUT is requested there is nothing left to be done here --------------
+		% -----------------------------------------------------------------------------------
 		if (nargout)
 			if (orig_no_mseg),		numeric_data = numeric_data{1};		end
 			varargout{1} = numeric_data;
