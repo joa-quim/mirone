@@ -1527,7 +1527,7 @@ function ll = show_LineLength(obj, evt, h, opt)
 		errordlg('Unknown case in show_LineLength()','error'),	return
 	end
 
-	if (isempty(opt))
+	if (isempty(opt) || strcmp(opt, 'nikles'))		% That call with nikles was shity bad idea
 		measureUnit = handles.DefineMeasureUnit(1);
 	end
 
