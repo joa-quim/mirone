@@ -41,15 +41,15 @@ function [numeric_data,date,headerlines,str_col,out] = text_read(varargin)
 	if (nargin > 3),    requestedMultiSeg = varargin{4};	end
 
 	if ~ischar(filename)				% get filename
-		errordlg('Filename must be a string.','Error');		return
+		errordlg('TEST_READ: Filename must be a string.','Error');		return
 	end
 
 	if isempty(filename)				% do some validation
-		errordlg('Filename must not be empty.','Error');	return
+		errordlg('TEST_READ: Filename must not be empty.','Error');	return
 	end
 
 	if ~isequal(exist(filename,'file'), 2)	% make sure file exists
-		errordlg('File not found.','Error');	return
+		errordlg('TEST_READ: File not found.','Error');	return
 	end
 
 	if (isnan(requestedHeaderLines))   % GUESS_FILE is better (and probably faster) in in guessing headers
@@ -60,13 +60,13 @@ function [numeric_data,date,headerlines,str_col,out] = text_read(varargin)
 	% ----------------------------- open the file ----------------
 	fid = fopen(filename);
 	if fid == (-1)
-		errordlg(['Could not open file ', filename ,'.'],'Error');		return
+		errordlg(['TEST_READ: Could not open file ', filename ,'.'],'Error');		return
 	end
 	string = fread(fid,'*char').';
 	fclose(fid);
 
 	if isempty(string)                  % Check that file is not empty
-		errordlg('Empty file.','Error');	return
+		errordlg('TEST_READ: Empty file.','Error');	return
 	end
 
 	% get the delimiter for the file
@@ -118,7 +118,7 @@ function [numeric_data,date,headerlines,str_col,out] = text_read(varargin)
 		clear string;
 		%out = LocalRowColShuffle(out);		Don't know WTF this was used too.
 	catch
-		errordlg('Unknown error while parsing the file.','Error');
+		errordlg('TEST_READ: Unknown error while parsing the file.','Error');
 		numeric_data = [];  date = [];  headerlines = 0;    str_col = [];   out = [];
 		return
 	end
@@ -644,7 +644,7 @@ if (isstruct(in1) && ~isempty(in1.textdata))	% We have at least one string colum
 		end
 
     else        % Shit, what shell I do?
-        errordlg('Case not forseen in "col_str2dec".','Error')
+        errordlg('TEST_READ: Case not forseen in "col_str2dec".','Error')
         numeric_data = [];  date = [];  str_col = [];   return;
     end
 elseif (isstruct(in1) && isempty(in1.textdata) && ~isempty(in1.data))     % Date string not found but found valid data 
