@@ -1511,7 +1511,8 @@ function ll = show_LineLength(obj, evt, h, opt)
 	elseif (numel(opt) == 1 && isa(opt, 'char'))
 		measureUnit = opt;
 	end
-	if (n_args == 3 || ( numel(h) > 1 && ~any(ishandle(h(:))) ))
+
+	if (n_args == 3 || (numel(h) > 1 && ~ishandle(h(1))) )	% Test only h(1) to reduce the risk of h(?) = 0 and ... fcked
 		if (size(h,1) >= 2 && size(h,2) == 2)
 			x = h(:,1);     y = h(:,2);
 			handles = guidata(get(0,'CurrentFigure'));
@@ -1519,8 +1520,7 @@ function ll = show_LineLength(obj, evt, h, opt)
 			x = get(h,'XData');    y = get(h,'YData');
 			handles = guidata(h);
 		end
-
-	elseif ((n_args == 2 || n_args == 4 || length(h) > 1) && ~isempty(h) && ishandle(h))
+	elseif ((n_args == 2 || n_args == 4 || length(h) > 1) && ~isempty(h) && ishandle(h(1)))
         x = get(h,'XData');    y = get(h,'YData');
 		handles = guidata(h);
 	else
