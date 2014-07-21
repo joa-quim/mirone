@@ -88,11 +88,14 @@ function [fractfield, hdrStruct] = gen_UMF2d(alpha, C1, H, dim)
 	clear kx ky noise
 	FILTER(1,1) = dim^(H);	%/8;
 	fract  = single(real(ifft2(FIELD.*FILTER)));
-
+	
 	tmp.X = linspace(w,e,dim);
 	tmp.Y = linspace(s,n,dim);
 	tmp.head = [w e s n min(fract(:)) max(fract(:)) 0 (e-w)/(dim-1) (n-s)/(dim-1)];
 	tmp.name = 'Fractal Surface';
+
+	fract = grdtrend_m(fract,tmp.head,'-D','-N1');		% Remove mean
+	tmp.head(5) = min(fract(:));	tmp.head(6) = max(fract(:));
 
 	if (nargout == 0)
 		mirone(fract, tmp)
