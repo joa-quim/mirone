@@ -3684,7 +3684,10 @@ function GRDdisplay(handles, X, Y, Z, head, tit, name, srsWKT)
 	head(5:6) = double(zz(1:2));
 	tmp.head = head;			tmp.X = X;		tmp.Y = Y;		tmp.geog = handles.geog;	tmp.name = name;
 	if (nargin == 8 && ~isempty(srsWKT)),		tmp.srsWKT = srsWKT;	end
-	set(handles.figure1,'pointer','arrow'),		mirone(Z,tmp);
+	set(handles.figure1,'pointer','arrow')
+	h = mirone(Z,tmp);			newHand = guidata(h);
+	thematic_pal = getappdata(handles.figure1, 'thematic_pal');		% Because of the bloody cpt2cmap crash
+	if (~isempty(thematic_pal)),	setappdata(newHand.figure1,'thematic_pal',thematic_pal),	end
 
 % --------------------------------------------------------------------
 function FileSaveImgGrdGdal_CB(handles, opt1, opt2)
@@ -4496,6 +4499,8 @@ function TransferB_CB(handles, opt, opt2)
 		if (handles.validGrid)
 			set(newHand.RetroShade,'Vis','on')	% Set the Retro-Illum option to 'on' in the New window
 		end
+		thematic_pal = getappdata(handles.figure1, 'thematic_pal');		% Because of the bloody cpt2cmap crash
+		if (~isempty(thematic_pal)),	setappdata(newHand.figure1,'thematic_pal',thematic_pal),	end
 
 	elseif (strcmp(opt,'scale'))				% Apply a scale factor
 		resp = inputdlg({'Enter scale factor'},'Rescale grid',[1 30],{'-1'});	pause(0.01)
