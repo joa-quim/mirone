@@ -4549,7 +4549,7 @@ function TransferB_CB(handles, opt, opt2)
  	elseif (strcmp(opt,'fract'))				% Fractal surf. Have to do it here due to dumb compiler limitations
 		if (handles.no_file)					% When called from a virgin figure, use it
 			[Z, hdrStruct] = gen_UMF2d;
-			handles.computed_grid = 1;
+			handles.computed_grid = 1;			handles.image_type = 1;
 			hdrStruct.Z = Z;
 			loadGRID(handles,'','IN',hdrStruct)
 		else									% For non-virgin figs, create a new one with the result.
