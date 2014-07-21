@@ -306,7 +306,7 @@ function hObject = mirone_OpeningFcn(varargin)
 			zz = scaleto8(Z);
 		end
 		set(handles.figure1,'Colormap',pal)
-		aux_funs('StoreZ',handles,X,Y,Z)		% If grid size is not to big we'll store it
+		aux_funs('StoreZ',handles,X,Y,Z)			% If grid size is not to big we'll store it
 		aux_funs('colormap_bg',handles,Z,pal);
 		handles = show_image(handles,win_name,X,Y,zz,1,'xy',handles.head(7));
 	end
@@ -1199,10 +1199,15 @@ function FileSaveENCOMgrid_CB(handles)
 	set(handles.figure1,'pointer','arrow')
 
 % --------------------------------------------------------------------
-function ExtractProfile_CB(handles, opt)
-% OPT == 'point', 'dynamic' or '3D'. POINT and 3D, interpolate at the line vertex only
+function out = ExtractProfile_CB(handles, opt, opt2)
+% OPT == 'point', 'dynamic', '3D' or 'input'. POINT and 3D, interpolate at the line vertex only
 %	3D interpolates along the third dimension (but is not fully 3D interp)
+%	'input' means that OPT2 MUST exist and holds a Mx2 matrix with the x,y coordinates.
+%	        This option is to be used in a non-interactive mode and normally goes along with 'OUT'
+% OUT -> When used it returns a structure with 'x', y', and 'z' members (with obvious meaning)
+%        and does not display the result in the 2D profile tool.
 
+	if (nargout),	out = [];	end
 	if (handles.no_file),	return,		end
 	if (nargin == 1),	opt = '';		end
 	point_int = strcmp(opt,'point');
@@ -1234,16 +1239,26 @@ function ExtractProfile_CB(handles, opt)
 			ud = get(hLine, 'UserData');
 			xx = ud(:,1);			yy = ud(:,2);		zz = get(hLine,'YData');
 			delete(hDynProfAx);		rmappdata(handles.axes1,'dynProfile');	% We are over with the dynamic tracking. Remove that axes
-			track_is_done = true;
 		else
-			[xp,yp] = getline_j(handles.figure1);
+			if (strcmp(opt,'input'))
+				xp = opt2(:,1);			yp = opt2(:,2);				% We are not testing here that nargin == 3 and opt2 is correct
+				point_int = true;
+			else
+				[xp,yp] = getline_j(handles.figure1);
+			end
 			if (numel(xp) < 2),		zoom_state(handles,'maybe_on'),		return,		end
 			[xx, yy, zz] = grid_profiler(handles.figure1, xp, yp, point_int, false, false, do_3D);	% The 'false' is for not 'do_dynamic'
 		end
+		track_is_done = true;
 	end
 
 	if (~track_is_done)			% Otherwise we already know them
 		[xx, yy, zz] = grid_profiler(handles.figure1, xp, yp, point_int, track_is_done, do_stack, do_3D);
+	end
+
+	if (nargout)				% Than we are over here.
+		out = struct('x',xx, 'y',yy, 'z',zz);
+		return
 	end
 
 	zoom_state(handles,'maybe_on')
@@ -2279,7 +2294,7 @@ function ImageRetroShade_CB(handles)
 	if (isempty(rect)),	warndlg('The two images do not overlap.','Warning'),	return,		end
 	R = ImageIllumModel_CB(handParent);	% Get parent Reflectance array
 	if (isempty(R)),	warndlg('Illumination models >= 5 don''t work here.','Warning'),	return,		end
-	[R, r_c] = cropimg(handParent.head(1:2),handParent.head(3:4),R,rect_crop,'out_grid');
+	[R, r_c.r_c] = cropimg(handParent.head(1:2),handParent.head(3:4),R,rect_crop,'out_grid');
 
 	% If parent image is of different resolution, resize it to fit the son_image resolution
 	if ( abs(handParent.head(8) - handles.head(8)) > 1e-8 || abs(handParent.head(9) - handles.head(9)) > 1e-8 )
@@ -4414,6 +4429,44 @@ function [Z, indNaNs] = fillGridGaps(handles, Z)
 		Z_rect = gmtmbgrid_m(XX, YY, Z_rect, opt_R, opt_I, '-Mz');
 		Z(r_c(1):r_c(2),r_c(3):r_c(4)) = single(Z_rect);
 	end
+
+% --------------------------------------------------------------------
+function line_levelling(handles)
+% A grid based method to do tie-line leveling of magnetic and/or gravity data.
+% Use the loaded grid, load a x,y,z data file that can be multi-seg (normally the same used to compute the grid)
+% and compute and apply the vertical offset necessary to bring the profile's best fit model to the
+% the best fit surface to the loaded grid. The result is stored in a new file with '_leveled' appended to data's name
+
+	[FileName, pato, handles] = put_or_get_file(handles, ...
+			{'*.dat;*.DAT', 'Data files (*.dat,*.DAT)';'*.*', 'All Files (*.*)'},'Select File','get');
+	if (isequal(FileName,0)),		return,		end
+	fname = [pato FileName];
+	[numeric_data, ms_str] = load_xyz([], fname);
+	if (isempty(numeric_data)),		return,	end
+	if (~isa(numeric_data, 'cell'))
+		numeric_data = {numeric_data};		% To go along with the case of a multi-segment file
+	end
+	[X,Y,Z] = load_grd(handles);			% load the grid array here
+	if isempty(Z),		return,		end		% An error message was already issued
+	opt_N = '-Nr6';							% Fit a quadratic surface
+	newZ = grdtrend_m(Z,handles.head,'-T',opt_N);
+	newZ = grdtrend_m(newZ,handles.head,'-D','-N3');
+	aux_funs('StoreZ',handles,X,Y,newZ)		% Need to do this because ExtractProfile_CB() will get the grid from there
+	[lix,FileName,EXT] = fileparts(FileName);
+	fid = fopen([pato FileName '_leveled' EXT],'wt');
+	for (k = 1:numel(numeric_data))
+		data = numeric_data{k}(:,1:3);
+		ll = draw_funs([], 'show_LineLength', [], [], data(:,1:2), 'k');
+		rP = [0; cumsum(ll.seg_len)];		% The profile accumulated distance
+		zP_fit = trend1d_m([rP data(:,3)],'-Fm','-N4r');	% z of the profile fit
+		track  = ExtractProfile_CB(handles, 'input', data(:,1:2));
+		diffa  = zP_fit - track.z(:);		% Difference between profile fit and grdtrack on surface fit
+		data(:,3) = data(:,3) - diffa;		% The z-leveled profile
+		fprintf(fid, '%s\n', ms_str{k});
+		fprintf(fid, '%.5f\t%.5f\t%.2f\n', data');
+	end
+	fclose(fid);
+	aux_funs('StoreZ',handles,X,Y,Z)		% Restore original array
 
 % --------------------------------------------------------------------
 function TransferB_CB(handles, opt, opt2)
