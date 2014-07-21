@@ -933,6 +933,7 @@ function radio_T_CB(hObject, handles)
 					[cmap, z_int] = cpt2cmap(['-C' ddewhite(r)]);
 					handles.custom_thematic_pal{kk+1,1} = cmap;		handles.custom_thematic_pal{kk+1,2} = z_int;
 					kk = kk + 1;
+					clear mex		% Two calls of cpt2cmap blow the compiled version and a couple calls the ML ver
 				catch
 					kkk = kkk + 1;
 				end
