@@ -129,18 +129,7 @@ function push_OK_CB(hObject, handles)
 
 	val = get(handles.popup_Nmodel,'Value');
 	str = get(handles.popup_Nmodel, 'String');
-	switch str{val};
-		case '1',       opt_N = [opt_N '1'];
-		case '2',       opt_N = [opt_N '2'];
-		case '3',       opt_N = [opt_N '3'];
-		case '4',       opt_N = [opt_N '4'];
-		case '5',       opt_N = [opt_N '5'];
-		case '6',       opt_N = [opt_N '6'];
-		case '7',       opt_N = [opt_N '7'];
-		case '8',       opt_N = [opt_N '8'];
-		case '9',       opt_N = [opt_N '9'];
-		case '10',      opt_N = [opt_N '10'];
-	end
+	opt_N = sprintf('%s%s', opt_N, str{val});
 
 	set(handles.figure1,'pointer','watch');     set(handles.hMirFig,'pointer','watch')
 	newZ = grdtrend_m(handles.Z,handles.head,opt_what,opt_N);
@@ -205,7 +194,7 @@ uicontrol('Parent',h1,...
 'Position',[10 18 53 22],...
 'String',{'1'; '2'; '3'; '4'; '5'; '6'; '7'; '8'; '9'; '10' },...
 'Style','popupmenu',...
-'Value',1,...
+'Value',3,...
 'Tag','popup_Nmodel');
 
 uicontrol('Parent',h1,...
