@@ -52,10 +52,18 @@ function varargout = color_palettes(varargin)
 		handles.home_dir = handMir.home_dir;
 		handles.work_dir = handMir.work_dir;
 		handles.last_dir = handMir.last_dir;
-		% Add this figure handle to the carra?as list
+		% Add this figure handle to the carraças list
 		plugedWin = getappdata(handMir.figure1,'dependentFigs');
 		plugedWin = [plugedWin hObject];
 		setappdata(handMir.figure1,'dependentFigs',plugedWin);
+
+		% See if we have a 'thematic_pal' copy from a previous incarnation
+		thematic_pal = getappdata(handles.hCallingFig, 'thematic_pal');
+		if (~isempty(thematic_pal))
+			handles.custom_thematic_name = thematic_pal{1};
+			handles.custom_thematic_pal  = thematic_pal{2};
+			handles.check_custom_pal = false;
+		end
 	elseif (nargin == 1 && ischar(varargin{1}))
 		later_ReadPalette = true;
 		set(handles.OptionsAutoApply,'checked','off','Enable','off')	% Prevent trying to update an unexisting figure cmap
@@ -929,8 +937,8 @@ function radio_T_CB(hObject, handles)
 				if (~strncmp(lines{k},'MIR_CPT',7)),	continue,	end
 				[t, r] = strtok(lines{k}(9:end));
 				try
-					handles.custom_thematic_name{kk+1} = ddewhite(t);
 					[cmap, z_int] = cpt2cmap(['-C' ddewhite(r)]);
+					handles.custom_thematic_name{kk+1} = ddewhite(t);
 					handles.custom_thematic_pal{kk+1,1} = cmap;		handles.custom_thematic_pal{kk+1,2} = z_int;
 					kk = kk + 1;
 				catch
@@ -944,6 +952,9 @@ function radio_T_CB(hObject, handles)
 		if (kk)			% We got new CPTs. Add them to the list
 			contents = [get(handles.listbox1,'Str'); handles.custom_thematic_name];
 			set(handles.listbox1,'Str', contents)
+			if (~isempty(handles.hCallingFig))	% Save this so we can load it in a next live thus preventing the cpt2cmap call crash
+				setappdata(handles.hCallingFig, 'thematic_pal', {handles.custom_thematic_name; handles.custom_thematic_pal})
+			end
 		end
 
 		handles.check_custom_pal = false;		% Do not try the above again
