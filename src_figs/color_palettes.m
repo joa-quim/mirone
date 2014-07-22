@@ -27,6 +27,15 @@ function varargout = color_palettes(varargin)
 	handles.have_nans = 0;	handles.hCallingFig = [];	later_ReadPalette = false;
 	handles.home_dir = [];
 	handles.IAmOctave = (exist('OCTAVE_VERSION','builtin') ~= 0);	% To know if we are running under Octave
+	handles.pal_top = [];			% will contain new colormaps as changed by the the sliders
+	handles.pal_bot = [];
+	handles.bg_color = [1 1 1];
+	handles.z_intervals = [];
+	handles.thematic = false;		% Some thematic pals will use a pre-set handles.z_intervals
+	handles.hinge = false;			% Thematic pals may have a hinge point
+	handles.check_custom_pal = true;% Check once the OPTcontrol.txt file for custom CPTs to apear in 'Thematic'
+	handles.custom_thematic_name = [];% Will contain eventual CPT names
+	handles.txt_cZ_pos = get(handles.h_txt_cZ,'Pos');
 
 	if (nargin == 1 && isstruct(varargin{1}))
 		handMir = varargin{1};
@@ -83,16 +92,6 @@ function varargout = color_palettes(varargin)
 	end
 
 	handles.d_path = [handles.home_dir filesep 'data' filesep];
-
-	handles.pal_top = [];			% will contain new colormaps as changed by the the sliders
-	handles.pal_bot = [];
-	handles.bg_color = [1 1 1];
-	handles.z_intervals = [];
-	handles.thematic = false;		% Some thematic pals will use a pre-set handles.z_intervals
-	handles.hinge = false;			% Thematic pals may have a hinge point
-	handles.check_custom_pal = true;% Check once the OPTcontrol.txt file for custom CPTs to apear in 'Thematic'
-	handles.custom_thematic_name = [];% Will contain eventual CPT names
-	handles.txt_cZ_pos = get(handles.h_txt_cZ,'Pos');
 
 	% Generate lists of available color palettes
 	palsML = {'ML -- autumn' 'ML -- bone' 'ML -- colorcube' 'ML -- cool' 'ML -- copper' ...
