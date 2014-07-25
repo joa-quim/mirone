@@ -135,7 +135,7 @@ function varargout = transplants(hLine, tipo, handles)
 		x1 = max(handlesInner.head(1) - handles.head(8), handles.head(1));
 		x2 = min(handlesInner.head(2) + handles.head(8), handles.head(2));
 		y1 = max(handlesInner.head(3) - handles.head(9), handles.head(3));
-		y2 = min(handlesInner.head(4) + handles.head(4), handles.head(4));
+		y2 = min(handlesInner.head(4) + handles.head(9), handles.head(4));
 		%rect_inner = [x1 y1; x1 y2; x2 y2; x2 y1; x1 y1];
 		x = [x1 x1 x2 x2 x1];		y = [y1 y2 y2 y1 y1];
 	end
