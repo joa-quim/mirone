@@ -1,7 +1,7 @@
 function varargout = grdlandmask_win(varargin)
 % Front end to grdlandmask MEX
 
-%	Copyright (c) 2004-2012 by J. Luis
+%	Copyright (c) 2004-2014 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -15,6 +15,8 @@ function varargout = grdlandmask_win(varargin)
 %
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
+
+% $Id$
 
 	hObject = figure('Vis','off');
 	grdlandmask_win_LayoutFcn(hObject);
@@ -277,7 +279,7 @@ function push_OK_CB(hObject, handles)
 	else						opt_e = '';
 	end
 
-	% Finally call the guy that really do the work
+	% Finally call the guy that really does the work
 	[mask,tmp.head,tmp.X,tmp.Y] = grdlandmask_m(opt_R, opt_I, opt_D, opt_N, opt_A, opt_F, opt_V, opt_e);
     tmp.name = 'Landmask';		tmp.geog = 1;
 	
@@ -292,7 +294,6 @@ function push_OK_CB(hObject, handles)
 			pal_2(nodes(k)+1,:) = pal_1(k,:);
 		end
 		tmp.cmap = pal_2;
-% 		tmp.cmap = jet(numel(nodes));
 	end
 	mirone(mask,tmp)
 
