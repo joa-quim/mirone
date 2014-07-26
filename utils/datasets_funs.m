@@ -464,17 +464,18 @@ function CoastLines(handles, res)
 	if (~all(isnan(coast(:))))
 		h = line('XData',coast(1,:),'YData',coast(2,:),'Parent',handles.axes1,'Linewidth',handles.DefLineThick,...
             'Color',handles.DefLineColor,'Tag','CoastLineNetCDF','UserData',opt_res(3));
+		setappdata(h, 'resolution', opt_res(3))
 		draw_funs(h,'CoastLineUictx')    % Set line's uicontextmenu
 	end
 	set(handles.figure1,'pointer','arrow')
 
 % --------------------------------------------------------------------
 function PoliticalBound(handles, type, res)
-	% TYPE is: '1' -> National Boundaries
-	%          '2' -> State Boundaries
-	%          '3' -> Marine Boundaries
-	%          'a' -> All Boundaries
-	% RES is:  'c' or 'l' or 'i' or 'h' or 'f' (gmt database resolution)
+% TYPE is: '1' -> National Boundaries
+%          '2' -> State Boundaries
+%          '3' -> Marine Boundaries
+%          'a' -> All Boundaries
+% RES is:  'c' or 'l' or 'i' or 'h' or 'f' (gmt database resolution)
 	if (aux_funs('msg_dlg',5,handles)),		return,		end    % Test no_file || unknown proj
 	
 	set(handles.figure1,'pointer','watch')
