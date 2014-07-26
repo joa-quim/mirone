@@ -921,7 +921,7 @@ function set_ContourLines_uicontext(h,h_label)
 
 % -----------------------------------------------------------------------------------------
 function setCoastLineUictx(h)
-% h is a handle to a line object
+% h is a handle to a line object (a CoastLine one)
 	tag = get(h,'Tag');
 	if (strcmp(tag,'CoastLineNetCDF')),			label = 'Delete coastlines';
 	elseif (strcmp(tag,'PoliticalBoundaries')),	label = 'Delete boundaries';
@@ -929,7 +929,7 @@ function setCoastLineUictx(h)
 	end
 	handles = guidata(h);
 	cmenuHand = uicontextmenu('Parent',handles.figure1);
-	set(h, 'UIContextMenu', cmenuHand);
+	set(h, 'UIContextMenu', cmenuHand)
 	cb_LineWidth = uictx_LineWidth(h);		% there are 5 cb_LineWidth outputs
 	cb13 = 'set(gco, ''LineStyle'', ''-''); refresh';   cb14 = 'set(gco, ''LineStyle'', ''--''); refresh';
 	cb15 = 'set(gco, ''LineStyle'', '':''); refresh';   cb16 = 'set(gco, ''LineStyle'', ''-.''); refresh';
@@ -937,12 +937,55 @@ function setCoastLineUictx(h)
 	
 	uimenu(cmenuHand, 'Label', label, 'Call', 'delete(gco)');
 	uimenu(cmenuHand, 'Label', 'Save coastline', 'Call', {@save_formated,h});
-	
+
+	if (handles.validGrid && strcmp(tag,'CoastLineNetCDF'))		% Options to apply ocean/land masking
+		item = uimenu(cmenuHand, 'Label', 'Mask', 'Sep','on');
+		uimenu(item, 'Label', 'Land',   'Call', {@apply_grdlandMask,h, 'L'})
+		uimenu(item, 'Label', 'Oecean', 'Call', {@apply_grdlandMask,h, 'O'})
+	end
+
 	setLineWidth(uimenu(cmenuHand, 'Label', 'Line Width', 'Sep','on'), cb_LineWidth)
 	item_ls = uimenu(cmenuHand, 'Label', 'Line Style');
 	setLineStyle(item_ls,{cb13 cb14 cb15 cb16})
 	setLineColor(uimenu(cmenuHand, 'Label', 'Line Color'), cb_color)
 	ui_edit_polygon(h)
+
+% -----------------------------------------------------------------------------------------
+function apply_grdlandMask(hObj, evt, h, opt)
+% Blank current grid with the default's grdlandmask setting for this coastline resolution
+	handles = guidata(h);
+	opt_R = sprintf('-R%.10g/%.10g/%.10g/%.10g',handles.head(1), handles.head(2), handles.head(3), handles.head(4));
+	opt_I = sprintf('-I%0.10g/%0.10g',handles.head(8), handles.head(9));
+	opt_F = ' ';	opt_e = ' ';
+	if (handles.head(7)),		opt_F = '-F';	end
+	if (handles.IamCompiled),	opt_e = '-e';	end
+	opt_D = sprintf('-D%s', getappdata(h,'resolution'));	% Get the resolution as stored in line's appdata
+	opt_N = '0/1/0/0/0';		% Continent masking
+	mask = grdlandmask_m(opt_R, opt_I, opt_D, opt_N, opt_F, opt_e, '-A0/0/1', '-V');
+	if (opt == 'O'),	mask = ~mask;	end			% Ocean masking. Setting '1/0/0/0/0' is not working. A bug.
+
+	img = get(handles.hImg, 'CData');	% Mask the image as well
+	if (ndims(img) == 3)
+		bg_color = uint8(handles.bg_color * 255);
+		tmp = img(:,:,1);		tmp(mask) = bg_color(1);	img(:,:,1) = tmp;
+		tmp = img(:,:,2);		tmp(mask) = bg_color(2);	img(:,:,2) = tmp;
+		tmp = img(:,:,3);		tmp(mask) = bg_color(3);	img(:,:,3) = tmp;
+	else
+		img(mask) = 0;
+		pal = get(handles.figure1, 'Colormap');
+		pal(1,:) = handles.bg_color;
+		set(handles.figure1, 'Colormap', pal);
+	end
+	set(handles.hImg, 'CData', img)
+
+	[X,Y,Z] = load_grd(handles);	Z(mask) = NaN;
+	setappdata(handles.figure1,'dem_z',Z);
+	handles.have_nans = grdutils(Z,'-N');
+	zz = grdutils(Z,'-L');			handles.head(5:6) = [zz(1) zz(2)];
+	handles.firstIllum = true;
+	set(handles.haveNaNs,'Vis','on')
+	guidata(handles.figure1, handles)
+% -----------------------------------------------------------------------------------------
 
 % -----------------------------------------------------------------------------------------
 function set_PB_uicontext(h,data)
