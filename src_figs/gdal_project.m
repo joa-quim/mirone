@@ -138,6 +138,10 @@ function push_OK_CB(hObject, handles)
 	if (handles.assign_SRS)
 		str_src = deblank(get(handles.edit_source, 'String'));
 		aux_funs('appProjectionRef', handles.handMir, str_src)
+		if (~handles.handMir.geog)		% Than we need to save the new state
+			handles.handMir.is_projected = true;
+			guidata(handles.handMir.figure1, handles.handMir)
+		end
 		delete(handles.figure1);
 		return
 	end
