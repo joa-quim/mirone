@@ -543,6 +543,7 @@ utils/degree2dms.m -text
 utils/dim_funs.m -text
 utils/dms2degree.m -text
 utils/double2ascii.m -text
+utils/doy.m -text
 utils/draw_funs.m -text
 utils/edit_line.m -text
 utils/edit_track_mb.m -text
