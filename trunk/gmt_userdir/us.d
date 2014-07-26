@@ -1,6 +1,6 @@
 # GMT Time language file for US (english) mode [US]
 #
-#	$Id: us.d,v 1.1 2001/09/23 23:41:15 pwessel Exp $
+#	$Id: us.d 13183 2014-05-21 17:39:42Z remko $
 #-------------------------------------------------
 # Monthnames, with 3-char and 1-char abbreviations
 M	1	January		Jan	J
@@ -26,3 +26,9 @@ W	4	Wednesday	Wed	W
 W	5	Thursday	Thu	T
 W	6	Friday		Fri	F
 W	7	Saturday	Sat	S
+# The following lines give the translation of the 4 major compass directions (WESN).
+# Name in full (optionally capitalized), abbreviation of longitude and latitude on map edge and wind direction (may be more than one letter).
+C	1	West		W	W
+C	2	East		E	E
+C	3	South		S	S
+C	4	North		N	N
