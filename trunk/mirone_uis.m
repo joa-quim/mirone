@@ -589,6 +589,7 @@ uimenu('Parent',hMG,'Call','parker_stuff(''parker_direct'',gcf)','Label','Parker
 uimenu('Parent',hMG,'Call','parker_stuff(''parker_inverse'',gcf)','Label','Parker Inversion');
 uimenu('Parent',hMG,'Call','parker_stuff(''redPole'',gcf)','Label','Reduction to the Pole');
 uimenu('Parent',hMG,'Call','microlev(gcf)','Label','Microleveling (anomaly grid)');
+uimenu('Parent',hMG,'Call','mirone(''line_levelling'',guidata(gcbo))','Label','Macroleveling');
 %uimenu('Parent',hMG,'Call','gravfft(gcf)','Label','GravFFT');
 uimenu('Parent',hMG,'Call','mirone(''GridToolsSectrum_CB'',guidata(gcbo), ''Allopts'')','Label','FFT tool');
 uimenu('Parent',hMG,'Call','telhometro(gcf)','Label','Vine-Mathiews Carpet');
@@ -723,10 +724,10 @@ uimenu('Parent',hGT,'Call','mirone(''ImageEdgeDetect_CB'',guidata(gcbo),''ppa'')
 h = uimenu('Parent',H1,'Label','Projections','Tag','Projections');
 projection_menu(H1, h, home_dir);
 %uimenu('Parent',h,'Call','geog_calculator(guidata(gcbo))','Label','Geographic Computator','Sep','on');
+uimenu('Parent',h,'Call','gdal_project(guidata(gcbo),[])','Label','Assign SRS');
 uimenu('Parent',h,'Call','vector_project(guidata(gcbo))','Label','Point projections','Sep','on');
-uimenu('Parent',h,'Label','  -- REPROJECT --','Enable','off','Sep','on');
+uimenu('Parent',h,'Call','geog_calculator(guidata(gcbo),''onlyGrid'')','Label','GMT project','Sep','on');
 uimenu('Parent',h,'Call','gdal_project(guidata(gcbo))','Label','GDAL project');
-uimenu('Parent',h,'Call','geog_calculator(guidata(gcbo),''onlyGrid'')','Label','GMT project');
 
 %% --------------------------- HELP ------------------------------------
 h = uimenu('Parent',H1,'Label','Help','Tag','Help');
@@ -740,7 +741,7 @@ if (IamCompiled)
 end
 uimenu('Parent',h, 'Call',['mirone(''FileOpenWebImage_CB'',guidata(gcbo),',...
 	' ''http://www2.clustrmaps.com/stats/maps-clusters/w3.ualg.pt-~jluis-mirone-world.jpg'',''nikles'');'],'Label','See visitors map','Sep','on');
-uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 25 June 2014'',''2.6.0dev'')','Label','About','Sep','on');
+uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 26 July 2014'',''2.6.0dev'')','Label','About','Sep','on');
 
 %% --------------------------- Build HANDLES and finish things here
 	handles = guihandles(H1);
