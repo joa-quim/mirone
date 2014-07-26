@@ -1,5 +1,5 @@
 /*--------------------------------------------------------------------
- *	$Id:$
+ *	$Id: $
  *
  *	Copyright (c) 2004-2012 by J. Luis
  *
@@ -113,7 +113,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 
 	int	n_win = 3, i, j;
 	int	algo = 1, nm, nx, ny, nfound = 0, argc = 0, n_arg_no_char = 0;
-	int	error = FALSE, unknown_nans = TRUE, check_nans = FALSE, subsample = FALSE;
+	int	error = FALSE, unknown_nans = TRUE, check_nans = FALSE, subsample = FALSE, overlap = FALSE;
 	char	**argv;
 	float	*zdata, *out;
 	double	*hdr = NULL;
@@ -155,6 +155,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 				case 'G':
 					if (hdr) hdr[9] = 1;	/* Otherwise, ignore this option that is useless */
 					break;
+				case 'H':
+					overlap = TRUE;
+					break;
 				case 'N':
 					j = atoi(&argv[i][2]);
 					if (j && j == 0) {		/* Info is that there are no NaNs here */
@@ -178,7 +181,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 			}
 		}
 	}
-	
+
 	if (n_arg_no_char == 0 || error) {
 		mexPrintf ("mirblock - Compute morphological quantities from DEMs single precision arrays\n\n");
 		mexPrintf ("usage: out = mirblock(input, ['-A<0|...|13>'], [-N<0|1>], [-S], [-W<winsize>], [-G])\n");
@@ -231,14 +234,22 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 
 	zdata = (float *)mxGetData(prhs[0]);
 
-	if (!subsample)
+	if (subsample)
+		plhs[0] = mxCreateNumericMatrix (ny / n_win, nx / n_win, mxSINGLE_CLASS, mxREAL);
+
+	else if (overlap) {
+		int nnx, nny;
+		nnx = nx / n_win;	nnx += nnx / 2;		/* ex: nx = 26; n_win = 5;	nnx = (26 / 5) = 5; nnx = 5 + 5 / 2 = 7; */
+		nny = ny / n_win;	nny += nny / 2;
+		plhs[0] = mxCreateNumericMatrix (nny, nnx, mxSINGLE_CLASS, mxREAL);
+	}
+	else		/* Most common use case */
 		plhs[0] = mxCreateNumericArray(mxGetNumberOfDimensions(prhs[0]), mxGetDimensions(prhs[0]), 
 						mxSINGLE_CLASS, mxREAL);
-	else
-		plhs[0] = mxCreateNumericMatrix (ny / n_win, nx / n_win, mxSINGLE_CLASS, mxREAL);
 
 	out = (float *)(mxGetData(plhs[0]));
 	if (subsample) out[0] = 1;	/* Flag to subsample in the algorithm functions */
+	if (overlap)   out[0] = 2;	/*  */
 
 	if (unknown_nans) {
 		/* Loop over the file and find if we have NaNs. Stop at first NaN occurence. */
@@ -418,11 +429,11 @@ void TPI(int id, double *hdr, float *in, float *out, int n_win, int nx, int ny, 
 	/* Computes TPI. TPI stands for Topographic Position Index, which is defined as the 
 	   difference between a central pixel and the mean of its surrounding cells 
 	   (Wilson et al 2007, Marine Geodesy 30:3-35). */
-	int	n_win2, nHalfWin, n_stop, m_stop, n, m, nm, i, j, k, n_off, nNaNs, no = 0, inc = 1;
+	int	n_win2, nHalfWin, n_stop, m_stop, n, m, nm, i, j, k, n_off, nNaNs, no = 0, inc = 1, o = -1;
 	float	*p;
 	double	mean = 0;
 
-	prepVars(out, n_win, nx, ny, &n_win2, &nHalfWin, &m_stop, &n_stop, &n_off, &inc); /* Set vals for vars in poiters */
+	prepVars(out, n_win, nx, ny, &n_win2, &nHalfWin, &m_stop, &n_stop, &n_off, &inc); /* Set vals for vars in pointers */
 
 	/* Option -S is not yet finished. When resume it we should have to have something like
 	 * if (!-S) no = nm;
@@ -431,11 +442,12 @@ void TPI(int id, double *hdr, float *in, float *out, int n_win, int nx, int ny, 
 	 * and than use out[no] instead of out[nm]
 	 */
 	for (n = nHalfWin; n < n_stop; n += inc) {
-		k = (n - nHalfWin) * ny - 1;		/* Index of window's UL corner */
+		k = (n - nHalfWin) * ny - inc;		/* Index of window's UL corner */
 		for (m = nHalfWin; m < m_stop; m += inc) {
-			k++;
+			k += inc;
 			nm = k + n_off;
-			if (check_nans && ISNAN_F(in[nm])) {out[nm] = in[nm];	continue;}
+			o = (inc == 1) ? nm : (++o);
+			if (check_nans && ISNAN_F(in[nm])) {out[o] = in[nm];	continue;}
 			mean = 0;	nNaNs = 0;
 			for (i = 0; i < n_win; i++) {		/* Loop columns inside window */
 				p = &in[k + i * ny];
@@ -447,7 +459,7 @@ void TPI(int id, double *hdr, float *in, float *out, int n_win, int nx, int ny, 
 					p++;
 				}
 			}
-			out[nm] = in[nm] - (float) (mean / (n_win2 - nNaNs));
+			out[o] = in[nm] - (float) (mean / (n_win2 - nNaNs));
 		}
 	}
 }
@@ -456,18 +468,19 @@ void TRI(int id, double *hdr, float *in, float *out, int n_win, int nx, int ny, 
 	/* Computes TRI. TRI stands for Terrain Ruggedness Index, which is defined as the 
 	   mean difference between a central pixel and its surrounding cells 
 	   (Wilson et al 2007, Marine Geodesy 30:3-35). */
-	int	n_win2, nHalfWin, n_stop, m_stop, n, m, nm, i, j, k, n_off, nNaNs, no = 0, inc = 1;
+	int	n_win2, nHalfWin, n_stop, m_stop, n, m, nm, i, j, k, n_off, nNaNs, no = 0, inc = 1, o = -1;
 	float	*p;
 	double	mean = 0, tmp;
 
-	prepVars(out, n_win, nx, ny, &n_win2, &nHalfWin, &m_stop, &n_stop, &n_off, &inc); /* Set vals for vars in poiters */
+	prepVars(out, n_win, nx, ny, &n_win2, &nHalfWin, &m_stop, &n_stop, &n_off, &inc); /* Set vals for vars in pointers */
 
 	for (n = nHalfWin; n < n_stop; n += inc) {
-		k = (n - nHalfWin) * ny - 1;
+		k = (n - nHalfWin) * ny - inc;
 		for (m = nHalfWin; m < m_stop; m += inc) {
-			k++;
+			k += inc;
 			nm = k + n_off;
-			if (check_nans && ISNAN_F(in[nm])) {out[nm] = in[nm];	continue;}
+			o = (inc == 1) ? nm : (++o);
+			if (check_nans && ISNAN_F(in[nm])) {out[o] = in[nm];	continue;}
 			tmp = in[nm];
 			mean = 0;	nNaNs = 0;
 			for (i = 0; i < n_win; i++) {		/* Loop columns inside window */
@@ -480,7 +493,7 @@ void TRI(int id, double *hdr, float *in, float *out, int n_win, int nx, int ny, 
 					p++;
 				}
 			}
-			out[nm] = (float) (mean / (n_win2 - nNaNs));
+			out[o] = (float) (mean / (n_win2 - nNaNs));
 		}
 	}
 }
@@ -488,17 +501,18 @@ void TRI(int id, double *hdr, float *in, float *out, int n_win, int nx, int ny, 
 void roughness(int id, double *hdr, float *in, float *out, int n_win, int nx, int ny, int check_nans) {
 	/* Computes Roughness defined as the the largest inter-cell difference of a central pixel 
 	   and its surrounding cell (Wilson et al 2007, Marine Geodesy 30:3-35). */
-	int	n_win2, nHalfWin, n_stop, m_stop, n, m, nm, i, j, k, n_off, no = 0, inc = 1;
+	int	n_win2, nHalfWin, n_stop, m_stop, n, m, nm, i, j, k, n_off, no = 0, inc = 1, o = -1;
 	float	*p, tmp, min, max;
 
-	prepVars(out, n_win, nx, ny, &n_win2, &nHalfWin, &m_stop, &n_stop, &n_off, &inc); /* Set vals for vars in poiters */
+	prepVars(out, n_win, nx, ny, &n_win2, &nHalfWin, &m_stop, &n_stop, &n_off, &inc); /* Set vals for vars in pointers */
 
 	for (n = nHalfWin; n < n_stop; n += inc) {
-		k = (n - nHalfWin) * ny - 1;
+		k = (n - nHalfWin) * ny - inc;
 		for (m = nHalfWin; m < m_stop; m += inc) {
-			k++;
+			k += inc;
 			nm = k + n_off;
-			if (check_nans && ISNAN_F(in[nm])) {out[nm] = in[nm];	continue;}
+			o = (inc == 1) ? nm : (++o);
+			if (check_nans && ISNAN_F(in[nm])) {out[o] = in[nm];	continue;}
 			tmp = in[nm];
 			min = max = tmp;
 			for (i = 0; i < n_win; i++) {		/* Loop columns inside window */
@@ -510,25 +524,26 @@ void roughness(int id, double *hdr, float *in, float *out, int n_win, int nx, in
 					p++;
 				}
 			}
-			out[nm] = (max - min);
+			out[o] = (max - min);
 		}
 	}
 }
 
 void average(int id, double *hdr, float *in, float *out, int n_win, int nx, int ny, int check_nans) {
 	/* Computes the mean of cells  inside rectangular window */
-	int	n_win2, nHalfWin, n_stop, m_stop, n, m, nm, i, j, k, n_off, nNaNs, no = 0, inc = 1;
+	int	n_win2, nHalfWin, n_stop, m_stop, n, m, nm, i, j, k, n_off, nNaNs, no = 0, inc = 1, o = -1;
 	float	*p;
 	double	mean = 0;
 
-	prepVars(out, n_win, nx, ny, &n_win2, &nHalfWin, &m_stop, &n_stop, &n_off, &inc); /* Set vals for vars in poiters */
+	prepVars(out, n_win, nx, ny, &n_win2, &nHalfWin, &m_stop, &n_stop, &n_off, &inc); /* Set vals for vars in pointers */
 
 	for (n = nHalfWin; n < n_stop; n += inc) {
-		k = (n - nHalfWin) * ny - 1;		/* Index of window's UL corner */
+		k = (n - nHalfWin) * ny - inc;		/* Index of window's UL corner */
 		for (m = nHalfWin; m < m_stop; m += inc) {
-			k++;
+			k += inc;
 			nm = k + n_off;
-			if (check_nans && ISNAN_F(in[nm])) {out[nm] = in[nm];	continue;}
+			o = (inc == 1) ? nm : (++o);
+			if (check_nans && ISNAN_F(in[nm])) {out[o] = in[nm];	continue;}
 			mean = 0;	nNaNs = 0;
 			for (i = 0; i < n_win; i++) {		/* Loop columns inside window */
 				p = &in[k + i * ny];
@@ -540,24 +555,25 @@ void average(int id, double *hdr, float *in, float *out, int n_win, int nx, int 
 					p++;
 				}
 			}
-			out[nm] = (float) (mean / (n_win2 - nNaNs));
+			out[o] = (float) (mean / (n_win2 - nNaNs));
 		}
 	}
 }
 
 void block_min(int id, double *hdr, float *in, float *out, int n_win, int nx, int ny, int check_nans) {
 	/* Computes the minimum of cells  inside rectangular window */
-	int	n_win2, nHalfWin, n_stop, m_stop, n, m, nm, i, j, k, n_off, no = 0, inc = 1;
+	int	n_win2, nHalfWin, n_stop, m_stop, n, m, nm, i, j, k, n_off, no = 0, inc = 1, o = -1;
 	float	*p, min;
 
-	prepVars(out, n_win, nx, ny, &n_win2, &nHalfWin, &m_stop, &n_stop, &n_off, &inc); /* Set vals for vars in poiters */
+	prepVars(out, n_win, nx, ny, &n_win2, &nHalfWin, &m_stop, &n_stop, &n_off, &inc); /* Set vals for vars in pointers */
 
 	for (n = nHalfWin; n < n_stop; n += inc) {
-		k = (n - nHalfWin) * ny - 1;
+		k = (n - nHalfWin) * ny - inc;
 		for (m = nHalfWin; m < m_stop; m += inc) {
-			k++;
+			k += inc;
 			nm = k + n_off;
-			if (check_nans && ISNAN_F(in[nm])) {out[nm] = in[nm];	continue;}
+			o = (inc == 1) ? nm : (++o);
+			if (check_nans && ISNAN_F(in[nm])) {out[o] = in[nm];	continue;}
 			min = in[nm];
 			for (i = 0; i < n_win; i++) {		/* Loop columns inside window */
 				p = &in[k + i * ny];
@@ -567,24 +583,25 @@ void block_min(int id, double *hdr, float *in, float *out, int n_win, int nx, in
 					p++;
 				}
 			}
-			out[nm] = min;
+			out[o] = min;
 		}
 	}
 }
 
 void block_max(int id, double *hdr, float *in, float *out, int n_win, int nx, int ny, int check_nans) {
 	/* Computes the minimum of cells  inside rectangular window */
-	int	n_win2, nHalfWin, n_stop, m_stop, n, m, nm, i, j, k, n_off, no = 0, inc = 1;
+	int	n_win2, nHalfWin, n_stop, m_stop, n, m, nm, i, j, k, n_off, no = 0, inc = 1, o = -1;
 	float	*p, max;
 
-	prepVars(out, n_win, nx, ny, &n_win2, &nHalfWin, &m_stop, &n_stop, &n_off, &inc); /* Set vals for vars in poiters */
+	prepVars(out, n_win, nx, ny, &n_win2, &nHalfWin, &m_stop, &n_stop, &n_off, &inc); /* Set vals for vars in pointers */
 
 	for (n = nHalfWin; n < n_stop; n += inc) {
-		k = (n - nHalfWin) * ny - 1;
+		k = (n - nHalfWin) * ny - inc;
 		for (m = nHalfWin; m < m_stop; m += inc) {
-			k++;
+			k += inc;
 			nm = k + n_off;
-			if (check_nans && ISNAN_F(in[nm])) {out[nm] = in[nm];	continue;}
+			o = (inc == 1) ? nm : (++o);
+			if (check_nans && ISNAN_F(in[nm])) {out[o] = in[nm];	continue;}
 			max = in[nm];
 			for (i = 0; i < n_win; i++) {		/* Loop columns inside window */
 				p = &in[k + i * ny];
@@ -594,7 +611,7 @@ void block_max(int id, double *hdr, float *in, float *out, int n_win, int nx, in
 					p++;
 				}
 			}
-			out[nm] = max;
+			out[o] = max;
 		}
 	}
 }
@@ -620,18 +637,19 @@ void agc_fullAmp(int id, double *hdr, float *in, float *out, int n_win, int nx, 
 
 void block_rms(int id, double *hdr, float *in, float *out, int n_win, int nx, int ny, int check_nans) {
 	/* Computes the RMS of cells inside the rectangular window */
-	int	n_win2, nHalfWin, n_stop, m_stop, n, m, nm, i, j, k, n_off, nNaNs, ngood, no = 0, inc = 1;
+	int	n_win2, nHalfWin, n_stop, m_stop, n, m, nm, i, j, k, n_off, nNaNs, ngood, no = 0, inc = 1, o = -1;
 	float	*p;
 	double	mean = 0, rms;
 
-	prepVars(out, n_win, nx, ny, &n_win2, &nHalfWin, &m_stop, &n_stop, &n_off, &inc); /* Set vals for vars in poiters */
+	prepVars(out, n_win, nx, ny, &n_win2, &nHalfWin, &m_stop, &n_stop, &n_off, &inc); /* Set vals for vars in pointers */
 
 	for (n = nHalfWin; n < n_stop; n += inc) {
-		k = (n - nHalfWin) * ny - 1;			/* Index of window's UL corner */
+		k = (n - nHalfWin) * ny - inc;			/* Index of window's UL corner */
 		for (m = nHalfWin; m < m_stop; m += inc) {
-			k++;
+			k += inc;
 			nm = k + n_off;
-			if (check_nans && ISNAN_F(in[nm])) {out[nm] = in[nm];	continue;}
+			o = (inc == 1) ? nm : (++o);
+			if (check_nans && ISNAN_F(in[nm])) {out[o] = in[nm];	continue;}
 			mean = rms = 0.;	nNaNs = 0;
 			for (i = 0; i < n_win; i++) {		/* Loop columns inside window */
 				p = &in[k + i * ny];
@@ -649,13 +667,13 @@ void block_rms(int id, double *hdr, float *in, float *out, int n_win, int nx, in
 			if (ngood == 0) {out[nm] = 0;	continue;}
 			mean /= (double)ngood; 
 			rms /= (double)ngood;
-			out[nm] = (float) (sqrt(rms - mean*mean));
+			out[o] = (float) (sqrt(rms - mean*mean));
 		}
 	}
 }
 
 void surface_fit(int id, double *hdr, float *in, float *out, int n_win, int nx, int ny, int check_nans) {
-	int	n_win2, nHalfWin, n_stop, m_stop, n, m, nm, i, j, ij, k, l, n_off, ierror = 0, n_model = 3;
+	int	n_win2, nHalfWin, n_stop, m_stop, n, m, nm, i, j, ij, k, l, o, n_off, ierror = 0, n_model = 3;
 	int	*line, *isub, n_error = 0, no = 0, inc = 1;
 	float	*p, aspect;
 	double	zero_test = 1.0e-08, dv, dy, dx, m_per_deg = 1., *co, c[3], *d, *dd;
@@ -667,7 +685,7 @@ void surface_fit(int id, double *hdr, float *in, float *out, int n_win, int nx, 
 	double	*pstuff;	/* Pointer for array for Legendre polynomials of x[i],y[j]  */
 	float	*data;		/* Pointer for array with a copy of 'in' inside 'n_win' */
 
-	prepVars(out, n_win, nx, ny, &n_win2, &nHalfWin, &m_stop, &n_stop, &n_off, &inc); /* Set vals for vars in poiters */
+	prepVars(out, n_win, nx, ny, &n_win2, &nHalfWin, &m_stop, &n_stop, &n_off, &inc); /* Set vals for vars in pointers */
 	co = (double *)mxMalloc((m_stop - nHalfWin) * sizeof(double));
 
 	if (id == MIRBLOCK_ALGO_SLOPE || id == MIRBLOCK_ALGO_ASPECT) {
@@ -693,9 +711,9 @@ void surface_fit(int id, double *hdr, float *in, float *out, int n_win, int nx, 
 
 	/* Set up xval and yval lookup tables:  */
 	dv = 2. / (double)(n_win - 1);
-	for (j = 0; j < n_win-1; j++) xval[j] = -1. + j * dv;
-	for (j = 0; j < n_win-1; j++) yval[j] = -1. + j * dv;
-	xval[n_win - 1] = yval[n_win - 1] = 1.;
+	for (j = 0; j < n_win-1; j++) xval[j] = -1 + j * dv;
+	for (j = 0; j < n_win-1; j++) yval[j] = -1 + j * dv;
+	xval[n_win - 1] = yval[n_win - 1] = 1;
 
 	/* Work arrays */
 	line =  (int *) mxCalloc ((size_t)n_model, sizeof (int));
@@ -705,12 +723,13 @@ void surface_fit(int id, double *hdr, float *in, float *out, int n_win, int nx, 
 	if (id == MIRBLOCK_ALGO_RES_RMS)
 		diff = (double *) mxCalloc ((size_t)n_win2, sizeof (double));
 
-	for (n = nHalfWin, m = 0; n < n_stop; n += inc) {		/* Loop through columns */
-		k = (n - nHalfWin) * ny - 1;
+	for (n = nHalfWin, o = -1, m = 0; n < n_stop; n += inc) {		/* Loop over columns */
+		k = (n - nHalfWin) * ny - inc;
 		for (m = nHalfWin, l = 0; m < m_stop; l++, m += inc) {
-			k++;
+			k += inc;
 			nm = k + n_off;
-			if (check_nans && ISNAN_F(in[nm])) {out[nm] = in[nm];	continue;}
+			o = (inc == 1) ? nm : (++o);
+			if (check_nans && ISNAN_F(in[nm])) {out[o] = in[nm];	continue;}
 			for (i = 0; i < n_win; i++) {		/* Loop columns inside window */
 				p = &in[k + i * ny];
 				for (j = 0; j < n_win; j++) {
@@ -726,11 +745,11 @@ void surface_fit(int id, double *hdr, float *in, float *out, int n_win, int nx, 
 			   the X & Y are swapped with respect to GMT (i.e. row major) logic */
 			if (n_model == 3) {
 				if (id == MIRBLOCK_ALGO_TREND) {	/* Try these first because no need to cheb_to_pol */
-					out[nm] = (float)gtd[0];	/* gtd[0] = val at window center */
+					out[o] = (float)gtd[0];	/* gtd[0] = val at window center */
 					continue;
 				}
 				else if (id == MIRBLOCK_ALGO_RESIDUE) {
-					out[nm] = data[n_win2 / 2] - (float)gtd[0];
+					out[o] = data[n_win2 / 2] - (float)gtd[0];
 					continue;
 				}
 				else if (id == MIRBLOCK_ALGO_RES_RMS) {
@@ -750,7 +769,7 @@ void surface_fit(int id, double *hdr, float *in, float *out, int n_win, int nx, 
 					}
 					mean /= (double)n_win2; 
 					rms  /= (double)n_win2;
-					out[nm] = (float) (sqrt(rms - mean*mean));
+					out[o] = (float) (sqrt(rms - mean*mean));
 					continue;
 				}
 				c[0] = gtd[0];	c[1] = gtd[2]; 			/* For X we must make a copy */
@@ -758,11 +777,11 @@ void surface_fit(int id, double *hdr, float *in, float *out, int n_win, int nx, 
 				gtd[2] = c[1];
 				GMT_cheb_to_pol (gtd, 2, 0, dy, d, dd);		/* Here we can use gtd directly */
 				if (id == MIRBLOCK_ALGO_SLOPE)
-					out[nm] = (float)(atan(sqrt(gtd[1]*gtd[1] + gtd[2]*gtd[2])) * R2D);
+					out[o] = (float)(atan(sqrt(gtd[1]*gtd[1] + gtd[2]*gtd[2])) * R2D);
 				else {
 					aspect = (float)(-(90 + atan2(gtd[1], gtd[2]) * R2D));
 					if (aspect < 0) aspect += 360;
-					out[nm] = aspect;
+					out[o] = aspect;
 				}
 			}
 			else {		/* This will (eventually) hold the n_model > 3 cases */
@@ -1065,7 +1084,8 @@ void prepVars(float *out, int n_win, int nx, int ny, int *n_win2, int *nHalfWin,
 	/* This is common to all algo functions */
 
 	*nHalfWin = n_win / 2;
-	*n_win2  = n_win * n_win;	*n_off  = *nHalfWin * (ny + 1);
-	*n_stop = nx - *nHalfWin;	*m_stop = ny - *nHalfWin;
-	if (out[0]) *inc = n_win;	/* The Subsample case */
+	*n_win2   = n_win * n_win;	*n_off  = *nHalfWin * (ny + 1);
+	*n_stop   = nx - *nHalfWin;	*m_stop = ny - *nHalfWin;
+	if (out[0] == 1) *inc = n_win;		/* The Subsample case */
+	if (out[0] == 2) *inc = *nHalfWin;	/* The half-overlap case */
 }
