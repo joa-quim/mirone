@@ -189,7 +189,9 @@ if (~isempty(ind))
 	newind = zeros(1,nHead);
 	for (k=1:nHead),        newind(k) = find(inds == ind(k));    end
 	res = [];
-	for (k=1:nHead),        res = [res inds(newind(k)):inds(newind(k)+1)];    end
+	pad = 0;
+	if (newind(nHead) == numel(inds)),	pad = 1;	end		% To prevent an eventual outofbounds error in next line
+	for (k=1:nHead-pad),	res = [res inds(newind(k)):inds(newind(k)+1)];    end
 	str(res)=[];
 end
 
