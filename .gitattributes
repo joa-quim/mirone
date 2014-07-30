@@ -246,6 +246,7 @@ gmt_userdir/Standard+.ps -text
 gmt_userdir/Standard.ps -text
 gmt_userdir/coastline.conf -text
 gmt_userdir/gmt.conf -text
+gmt_userdir/gmt_setup.conf -text
 gmt_userdir/us.d -text
 lib_mex/octave/Makefile -text
 mex/CalcMD5.c -text
