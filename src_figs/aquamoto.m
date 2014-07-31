@@ -279,7 +279,7 @@ function varargout = aquamoto(varargin)
 	if (~isempty(got_a_file_to_start))
 		push_swwName_CB(handles.push_swwName, [], handles, got_a_file_to_start)
 		handles = guidata(handles.figure1);		% Get updated handles
-		slider_layer_CB(handles.slider_layer, [], handles)
+		%slider_layer_CB(handles.slider_layer, [], handles)		% FCK fails because findobj(0,'type','figure') == [] !!!!!!
 	end
 
 	guidata(hObject, handles);
