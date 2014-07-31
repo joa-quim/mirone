@@ -147,11 +147,16 @@ function out = init_header_params(handles,X,Y,head,misc,getAllMinMax)
 		set_common(handles, handles.head)
 		guidata(handles.figure1,handles)
 		% Store the nc_info and z_id in Mirone handles so we can access it from there as well
-		handMir = guidata(handles.hMirFig);
+		if (~isempty(handles.hMirFig))	% This is another patch for the mess of the hMirFig existing or not
+			hFig = handles.hMirFig;		% and how the code flow in places relies on that.
+		else
+			hFig = handles.hMirFig_safe;
+		end
+		handMir = guidata(hFig);
 		handMir.netcdf_z_id = misc.z_id;
 		handMir.nc_info = handles.nc_info;
 		handMir.time_z = handles.time;
-		guidata(handles.hMirFig, handMir)
+		guidata(hFig, handMir)
 	end
 
 % --------------------------------------------------------------------------
