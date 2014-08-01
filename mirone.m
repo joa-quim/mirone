@@ -632,6 +632,7 @@ if ~isempty(opt)				% OPT must be a rectangle/polygon handle (the rect may serve
 				if isempty(resp),	set(handles.figure1,'pointer','arrow'),		return,		end
 				resp = str2double(resp{1});
 			end
+			if (isnan(resp)),	handles.have_nans = 1;	end
 			mask = img_fun('roipoly_j',x_lim,y_lim,double(Z_rect),x,y);
 			if (strcmp(opt2,'CropaGrid_pure'))
 				Z_rect(~mask) = single(resp);
@@ -2143,7 +2144,7 @@ function Reft = ImageIllum(luz, handles, opt)
 	mex_illuminate(img,R)		% New. It can now operate insitu too
 	clear R
 
-	if ( handles.have_nans && ~isequal(handles.bg_color, [1 1 1]) && ~strcmp(OPT_a,' ') )	% Non-white or black NaN color requested
+	if (handles.have_nans && ~isequal(handles.bg_color, [1 1 1]) && ~strcmp(OPT_a,' '))	% Non-white or black NaN color requested
 		ind = isnan(Z);			bg_color = uint8(handles.bg_color * 255);
 		tmp = img(:,:,1);		tmp(ind) = bg_color(1);		img(:,:,1) = tmp;
 		tmp = img(:,:,2);		tmp(ind) = bg_color(2);		img(:,:,2) = tmp;
@@ -2915,13 +2916,13 @@ function DrawImportShape_CB(handles, fname)
 	catch,		errordlg([lasterr ' Quite likely, NOT a shapefile'],'Error'),		return
 	end
 
-	if ( ~(strncmp(t,'Arc',3) || strncmp(t,'Point',5) || strncmp(t,'Polygon',7)) )
+	if (~(strncmp(t,'Arc',3) || strncmp(t,'Point',5) || strncmp(t,'Polygon',7)))
 		errordlg(['Sorry. Dealing with this type of data: ' t ' is not (yet?) supported'],'WarnError'),	return
 	end
 
 	theProj = [];		do_project = false;		no_file = handles.no_file;
 	[PathName, fnamePRJ] = fileparts(fname);
-	if ( exist([PathName filesep fnamePRJ '.prj'], 'file') )
+	if (exist([PathName filesep fnamePRJ '.prj'], 'file'))
 		fid = fopen([PathName filesep fnamePRJ '.prj']);
 		theProj = fread(fid,inf,'*char')';		fclose(fid);
 		if (strncmp(theProj,'+proj',5)),	theProj = ogrproj(theProj);		end		% proj info was a proj4 string
@@ -2969,11 +2970,11 @@ function DrawImportShape_CB(handles, fname)
 
 	nPolygs = length(s);	h = zeros(nPolygs,1);
 	imgLims = getappdata(handles.axes1,'ThisImageLims');
-	if ( strncmp(t,'Arc',3) || strncmp(t,'Point',5) )
+	if (strncmp(t,'Arc',3) || strncmp(t,'Point',5))
 		is3D = false;		lsty = {'LineStyle', '-'};
 		if (t(end) == 'Z'),	is3D = true;	end
 		if (t(1) == 'P'),	lsty = {'LineStyle', 'none', 'Marker','o', 'MarkerSize',2, 'MarkerEdgeColor','k'};	end
-		for i = 1:nPolygs
+		for (i = 1:nPolygs)
 			reco = aux_funs('rectangle_and', imgLims, [s(i).BoundingBox(1,1:2) s(i).BoundingBox(2,1:2)]);
 			if (~isempty(reco))			% It means the polyg BB is at least partially inside
 				if (do_project),	ogrproj(s(i).X, s(i).Y, projStruc);		end		% Project into basemap coords
@@ -3678,9 +3679,7 @@ function GeophysicsSwanPlotStations_CB(handles)
 function GRDdisplay(handles, X, Y, Z, head, tit, name, srsWKT)
 % Show matrix Z in a new window.
 	if (isa(Z,'double')),		Z = single(Z);	end
-	if (handles.have_nans),		zz = grdutils(Z,'-L');
-	else						zz = [min(Z(:)) max(Z(:))];
-	end
+	zz = grdutils(Z,'-L');		% Do not trust that handles.have_nans is always correct
 	head(5:6) = double(zz(1:2));
 	tmp.head = head;			tmp.X = X;		tmp.Y = Y;		tmp.geog = handles.geog;	tmp.name = name;
 	if (nargin == 8 && ~isempty(srsWKT)),		tmp.srsWKT = srsWKT;	end
