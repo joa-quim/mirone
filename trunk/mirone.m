@@ -79,6 +79,10 @@ function hObject = mirone_OpeningFcn(varargin)
 	end
 
 	[hObject,handles,home_dir] = mirone_uis(home_dir);
+	pos = get(handles.figure1,'pos');
+	if (pos(4) == 32)				% On Win 8 and retina, the bloody OS insists in resetting it to 32
+		set(handles.figure1,'Pos',[pos(1), pos(2)+31, pos(3), 1]);
+	end
 
 	handles.home_dir = home_dir;
 	handles.DefLineThick = 1;		% Default line thickness (overwriten by mirone_pref)
@@ -298,7 +302,7 @@ function hObject = mirone_OpeningFcn(varargin)
 	% The following IF cases deal only with cases where a grid was given in argument
 	if (grd_data_in || grd_data_interfero)
 		handles.image_type = 1;		handles.computed_grid = 1;	% Signal that this is a computed grid
-		if ( isempty(pal) ),		pal = jet(256);		end
+		if (isempty(pal)),			pal = jet(256);		end
 		if (grd_data_interfero)			% Interferogram grid
 			pal = load([handles.path_data 'gmt_other_palettes.mat'],'circular');	pal = pal.circular;
 			zz = uint8(abs(rem(double(Z),cdo)/cdo)*255);
@@ -513,8 +517,8 @@ function  PlatesAgeLift_CB(handles)
 		warndlg('The file name provided does not exist. Bye, Bye','Warning'),	return
 	end
 	att = gdalread(fname,'-M','-C');
-	if ( att.GMT_hdr(1) > handles.head(1) || att.GMT_hdr(2) < handles.head(2) || ...
-			att.GMT_hdr(3) > handles.head(3) || att.GMT_hdr(4) < handles.head(4) )
+	if (att.GMT_hdr(1) > handles.head(1) || att.GMT_hdr(2) < handles.head(2) || ...
+			att.GMT_hdr(3) > handles.head(3) || att.GMT_hdr(4) < handles.head(4))
 		errordlg('No way. The Age grid does not cover the limits of the bathymetry grid.','Error'),		return
 	end
 
@@ -627,9 +631,11 @@ if ~isempty(opt)				% OPT must be a rectangle/polygon handle (the rect may serve
 				resp = inputdlg({'Enter outside polygon value'},'Choose out value',[1 30],{sprintf('%.4f',z_min)});	pause(0.01)
 				if isempty(resp),	set(handles.figure1,'pointer','arrow'),		return,		end
 				resp = str2double(resp{1});
-			elseif (strcmp(opt2,'ROI_SetConst'))	% Set the polygon interiour to cte
-				resp = inputdlg({'Enter new grid value'},'Replace with cte value',[1 30]);	pause(0.01)
+			elseif (strcmp(opt2,'ROI_SetConst'))	% Set the polygon in-or-out to cte
+				%resp = inputdlg({'Enter new grid value'},'Replace with cte value',[1 30]);	pause(0.01)
+				resp = question({'Enter new grid value'},'Replace with cte value',[1 30],'NaN','whatever');
 				if isempty(resp),	set(handles.figure1,'pointer','arrow'),		return,		end
+				invert = resp{2};
 				resp = str2double(resp{1});
 			end
 			if (isnan(resp)),	handles.have_nans = 1;	end
@@ -637,6 +643,7 @@ if ~isempty(opt)				% OPT must be a rectangle/polygon handle (the rect may serve
 			if (strcmp(opt2,'CropaGrid_pure'))
 				Z_rect(~mask) = single(resp);
 			elseif (strcmp(opt2,'ROI_SetConst'))
+				if (invert),	mask = ~mask;	end			% Mask in the outside instead
 				Z_rect(mask) = single(resp);				% Set the mask values to const
 				handles.Z_back = Z(r_c(1):r_c(2),r_c(3):r_c(4));	handles.r_c = r_c;			% For the Undo op
 				Z(r_c(1):r_c(2),r_c(3):r_c(4)) = Z_rect;
@@ -1844,7 +1851,7 @@ function handles = show_image(handles, fname, X, Y, I, validGrid, axis_t, adjust
 		handles.head(9) = diff(handles.head(3:4)) / (size(I,1) - ~handles.head(7));
 	end
 
-	if ( (handles.image_type ~= 2 && handles.image_type ~= 20) && (abs(diff(handles.head(8:9))) > 1e-4) )	% Check anisotropy
+	if ((handles.image_type ~= 2 && handles.image_type ~= 20) && (abs(diff(handles.head(8:9))) > 1e-5))	% Check anisotropy
 		imSize = handles.head(8) / handles.head(9);		% resizetrue will know what to do with this
 	end
 
