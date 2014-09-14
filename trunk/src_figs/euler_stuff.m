@@ -1,7 +1,7 @@
 function varargout = euler_stuff(varargin)
 % Helper window to Euler rotations
 
-%	Copyright (c) 2004-2013 by J. Luis
+%	Copyright (c) 2004-2014 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -277,12 +277,13 @@ function push_compute_CB(hObject, handles)
 				lc = get(handles.hLineSelected(i),'Color');
 				set(handles.h_line_orig(i),'XData',rlon,'YData',rlat,'Linewidth',lt,'Color',lc,'Tag','Rotated Line','Userdata',1);
 			end
-			line_info = {['Ang = ' num2str(handles.p_omega)]};
+			line_info = {['Lon = ' num2str(handles.p_lon)]; ['Lat = ' num2str(handles.p_lat)]; ...
+				['Ang = ' num2str(handles.p_omega)]};
 			setappdata(handles.h_line_orig(i),'LineInfo',line_info);
 			draw_funs(handles.h_line_orig(i),'isochron',line_info)
 		end
 		figure(handles.hCallingFig)		% Bring the Mirone figure forward
-		handles.h_line_orig = [];       handles.hLineSelected = [];
+		handles.h_line_orig = [];		handles.hLineSelected = [];
 		guidata(handles.figure1,handles)
 		set(handles.text_activeLine,'String','NO ACTIVE LINE','ForegroundColor',[1 0 0])
 		return
