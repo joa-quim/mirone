@@ -777,9 +777,10 @@ function showGDALdrivers(hObj, evt)
 function figure1_KeyPressFcn(hObj, event)
 	handles = guidata(hObj);
 	if (handles.no_file),	return,		end
-	if isequal(get(hObj,'CurrentCharacter'),'+')
+	cc = get(hObj,'CurrentCharacter');
+	if (cc == '+' || cc == '[')			% Lazzy undocumented keys for convinience when using English keyboards
 		zoom_j(hObj,2,[]);
-	elseif isequal(get(hObj,'CurrentCharacter'),'-')
+	elseif (cc == '-' || cc == '/')
 		zoom_j(hObj,0.5,[]);
 	end
 	hSliders = getappdata(handles.axes1,'SliderAxes');
