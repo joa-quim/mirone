@@ -2,13 +2,14 @@ function varargout = compute_euler(varargin)
 % Helper window to calculate Euler poles but that works also as a command line tool
 %
 % To work from the command line VARARGIN must have (and this is not a complete list)
-% (isoc1, isoc2, plon, plat, pang, [[-DLonRange/LatRange/AngRange] [-ILonInt/LatInt/AngInt or -Iint] [-Eresid_fname] [-C]])
+% (isoc1, isoc2, plon, plat, pang, [[-DLonRange/LatRange/AngRange], [-ILonInt/LatInt/AngInt or -I<int>], ...
+%	[-E<resid_fname>], [-Rx_min/x_max/y_min/y_max/ang_min/ang_max], [-V]])
 % 
 % Where isoc1 & isoc2 can either be a a nx2 matrix with the isochrons coordinates or files names
 % PLON, PLAT, PANG are the parameters of the initial Euler pole.
 % See function parse_noGUI for the definition of the remsining optional arguments
 
-%	Copyright (c) 2004-2013 by J. Luis
+%	Copyright (c) 2004-2014 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -25,7 +26,7 @@ function varargout = compute_euler(varargin)
 
 % $Id$
 
-	if ( numel(varargin) == 0 || (numel(varargin) >= 2 && numel(varargin) <= 5) )
+	if (isempty(varargin) || (numel(varargin) >= 2 && numel(varargin) <= 5))
 		errordlg('COMPUTE EULER: wrong number of input arguments.','Error'),	return
 	elseif (ishandle(varargin{1}))
 		isGUI = true;
@@ -42,10 +43,14 @@ function varargout = compute_euler(varargin)
 		if (ischar(varargin{1})),		handles.isoca1 = le_fiche(varargin{1});
 		else							handles.isoca1 = varargin{1};
 		end
-		handles.pLon_ini = varargin{3};
-		handles.pLat_ini = varargin{4};
-		handles.pAng_ini = varargin{5};
-		if ( isempty(handles.noise) )		% "Regular" mode
+		
+		if (~handles.IamRegion)				% Otherwise those were already set inside parse_noGUI()
+			handles.pLon_ini = varargin{3};
+			handles.pLat_ini = varargin{4};
+			handles.pAng_ini = varargin{5};
+		end
+
+		if (isempty(handles.noise))			% "Regular" mode
 			if (ischar(varargin{2})),		handles.isoca2 = le_fiche(varargin{2});
 			else							handles.isoca2 = varargin{2};
 			end
@@ -53,7 +58,7 @@ function varargout = compute_euler(varargin)
 			% the same sense. That is, Lat is increasing or decreasing for both (we test only Lat)
 			Dlat1 = handles.isoca1(end,2) - handles.isoca1(1,2);
 			Dlat2 = handles.isoca2(end,2) - handles.isoca2(1,2);
-			if ( sign(Dlat1) ~= sign(Dlat2) )		% Lines have oposite orientation. Reverse one of them.
+			if (sign(Dlat1) ~= sign(Dlat2))		% Lines have oposite orientation. Reverse one of them.
 				handles.isoca2 = handles.isoca2(end:-1:1,:);
 			end
 
@@ -82,8 +87,9 @@ function varargout = compute_euler(varargin)
 	handles.nInt_lon = 61;
 	handles.nInt_lat = 41;
 	handles.nInt_ang = 21;
-	handles.isoca1 = [];
-	handles.isoca2 = [];
+	handles.isoc_age = 0;
+	handles.isoca1   = [];
+	handles.isoca2   = [];
 	handles.pLon_ini = [];
 	handles.pLat_ini = [];
 	handles.pAng_ini = [];
@@ -105,7 +111,8 @@ function varargout = compute_euler(varargin)
 		delete(hObject);    return
 	end
 	handles.home_dir = handMir.home_dir;
-	handles.path_continent = [handMir.home_dir filesep 'continents' filesep];
+	handles.path_continent  = [handMir.home_dir filesep 'continents' filesep];
+	handles.deflation_level = handMir.deflation_level;
 	handles.IamCompiled = handMir.IamCompiled;		% Need to know due to crazy issue of nc_funs
 
 	str = sprintf(['The range interval is divided into this number of equally spaced points\n' ...
@@ -447,7 +454,7 @@ function push_compute_CB(hObject, handles)
 	% the same sense. That is, Lat is increasing or decreasing for both (we test only Lat)
 	Dlat1 = handles.isoca1(end,2) - handles.isoca1(1,2);
 	Dlat2 = handles.isoca2(end,2) - handles.isoca2(1,2);
-	if ( sign(Dlat1) ~= sign(Dlat2) )		% Lines have oposite orientation. Reverse one of them.
+	if (sign(Dlat1) ~= sign(Dlat2))			% Lines have oposite orientation. Reverse one of them.
 		handles.isoca2 = handles.isoca2(end:-1:1,:);
 	end
 
@@ -482,13 +489,16 @@ function numeric_data = le_fiche(fname)
 	else
 		numeric_data = text_read(fname,NaN,n_headers);
 	end
+	if (isa(numeric_data, 'cell'))
+		numeric_data = numeric_data{1};
+	end
 
 % -------------------------------------------------------------------------------
 function [polLon, polLat, polAng, area_f] = calca_pEuler(handles, do_weighted, isGUI, OD)
-
+% ...
 	D2R = pi / 180;		h_line = [];
-	ecc = 0.0818191908426215;	% WGS84
-	if (handles.do_graphic)     % Create a empty line handle
+	ecc = 0.0818191908426215;			% WGS84
+	if (handles.do_graphic)				% Create a empty line handle
 		h_line = line('parent',get(handles.hCallingFig,'CurrentAxes'),'XData',[],'YData',[], ...
 			'LineStyle','-.','LineWidth',2,'Tag','Fitted Line','Userdata',1);
 	end
@@ -523,20 +533,20 @@ function [polLon, polLat, polAng, area_f] = calca_pEuler(handles, do_weighted, i
 	 	[isoca1(:,1),isoca1(:,2)] = rot_euler(rlon1, rlat1, handles.pLon_ini*D2R,handles.pLat_ini*D2R,-handles.pAng_ini*D2R,'rad',-1);
 	 	[isoca2(:,1),isoca2(:,2)] = rot_euler(rlon2, rlat2, handles.pLon_ini*D2R,handles.pLat_ini*D2R,handles.pAng_ini*D2R,'rad',-1);
 	end
-	
+
 	isoca1(:,2) = atan2( (1-ecc^2)*sin(isoca1(:,2)), cos(isoca1(:,2)) );	% Lat da isoca1 geocentrica
 	isoca2(:,2) = atan2( (1-ecc^2)*sin(isoca2(:,2)), cos(isoca2(:,2)) );	% Lat da isoca2 geocentrica
 
 	% Compute distances between vertices of the moving isoc
 	X = isoca2(:,1) .* cos(isoca2(:,2)) * 6371;
 	Y = isoca2(:,2) * 6371;
-	xd = diff( X );			yd = diff( Y );
-	lenRot2 = sqrt(xd.*xd + yd.*yd);
+	xd = diff(X);			yd = diff(Y);
+	lenRot2 = sqrt(xd .* xd + yd .* yd);
 
  	[rlon,rlat] = rot_euler(isoca1(:,1), isoca1(:,2),handles.pLon_ini*D2R,handles.pLat_ini*D2R,handles.pAng_ini*D2R,'rad',0);
 	X_rot = rlon .* cos(rlat) * 6371;		Y_rot = rlat * 6371;
-	xd = diff( X_rot );			yd = diff( Y_rot );
-	lenRot1 = sqrt(xd.*xd + yd.*yd);
+	xd = diff(X_rot);		yd = diff(Y_rot);
+	lenRot1 = sqrt(xd .* xd + yd .* yd);
 
 	if (handles.is_spheric)
 	 	area0 = distmin(isoca2(:,1), isoca2(:,2), lenRot2, rlon, rlat, lenRot1);
@@ -583,7 +593,7 @@ function [polLon, polLat, polAng, area_f] = calca_pEuler(handles, do_weighted, i
 	end
 
 	% Sanitize p_lat so that it does not go out of N/S poles
-	ind = ( (p_lat > pi/2) | (p_lat < -pi/2) );
+	ind = ((p_lat > pi/2) | (p_lat < -pi/2));
 	if (any(ind))
 		p_lat(ind) = [];
 		handles.nInt_lat = numel(p_lat);
@@ -601,12 +611,13 @@ function [polLon, polLat, polAng, area_f] = calca_pEuler(handles, do_weighted, i
 	end
 
 	if (~isempty(resid) && isGUI)
-		if (get(handles.radio_netcdf,'Val'))
+		if (get(handles.radio_netcdf, 'Val'))
 			write_netcdf(handles, p_lon/D2R, p_lat/D2R, p_omeg/D2R, resid)
 		else
 			write_vtk(handles, p_lon/D2R, p_lat/D2R, p_omeg/D2R, resid)
 		end
 	elseif (~isempty(resid))	% Command line runn.
+		if (handles.isoc_age),	p_omeg = p_omeg / handles.isoc_age;		end		% Store angular velocity instead
 		write_netcdf(handles, p_lon/D2R, p_lat/D2R, p_omeg/D2R, resid)
 	end
 
@@ -896,7 +907,7 @@ function write_netcdf(handles, lon, lat, ang, resid)
 
 	nz = numel(ang);
 
-	% No problem in changig handles here as it will live only locally to this function
+	% No problem in changing handles here as it will live only locally to this function
 	handles.head = [lon(1) lon(end) lat(1) lat(end) 0 0 0 diff(lon(1:2)) diff(lat(1:2))];
 	handles.geog = 1;		handles.was_int16 = false;
 	Z = resid(:,:,1);
@@ -972,7 +983,11 @@ function lat = auth2geog(lat0)
 
 % ---------------------------------------------------------------------------------
 function [handles, msg] = parse_noGUI(varargin)
-%	
+% Use -D or -R in alternative. The first will center the searching region about the provided pole position
+% -R on the other hand impose a fixed searching region and a fake starting pole will be computed at its center.
+%	This option is usefull when we want to compute residues on the exact same region.
+% -I can be given as the numbert of intervals (old way), or as increments.
+
 	handles.LonRange = 30;
 	handles.LatRange = 20;
 	handles.AngRange = 1;
@@ -984,7 +999,11 @@ function [handles, msg] = parse_noGUI(varargin)
 	handles.residGrdName = [];
 	handles.noise = [];
 	handles.check_plotRes = [];
+	handles.isoc_age = 0;
 	handles.IamCompiled = false;	% Até ver
+	handles.IamRegion = false;		% Will be set to true if -R is provided	
+	handles.deflation_level = 5;	% Since we don't have access to Mirone handles we use this as default
+
 	msg = [];	verbose = false;
 
 	if (numel(varargin) < 6),	return,		end		% No option provided. Just use the defaults
@@ -992,14 +1011,20 @@ function [handles, msg] = parse_noGUI(varargin)
 	for (k = 6:numel(varargin))
 		switch (varargin{k}(2))
 			case 'H'
-				msg = '[-DLonRange/LatRange/AngRange] [-ILonInt/LatInt/AngInt or -Iint] [-Eresid_fname] [-C] [-V]';
+				msg = sprintf(['[-DLonRange/LatRange/AngRange] [-ILonInt/LatInt/AngInt or -Iint] [-E<resid_fname>]\n',...
+						'[-A<age>] [-Rx_min/x_max/y_min/y_max/ang_min/ang_max] [-V]']);
 				return
+			case 'A'
+				handles.isoc_age = sscanf(varargin{k}(3:end), '%f');
+				if (handles.isoc_age <= 0 || isnan(handles.isoc_age))
+					msg = 'Error using option -A [-A<isoc_age>]';		return
+				end
 			case 'C'
-				handles.is_spheric = false;
+				handles.is_spheric = false;			% Not used now
 			case 'D'
 				ind = strfind(varargin{k},'/');
 				if (numel(ind) ~= 2)
-					msg = 'Error usin option -D [-DLonRange/LatRange/AngRange]';		return
+					msg = 'Error using option -D [-DLonRange/LatRange/AngRange]';		return
 				end
 				handles.LonRange = sscanf(varargin{k}(3:ind(1)-1), '%f');
 				handles.LatRange = sscanf(varargin{k}(ind(1)+1:ind(2)-1), '%f');
@@ -1008,14 +1033,14 @@ function [handles, msg] = parse_noGUI(varargin)
 			case 'I'
 				ind = strfind(varargin{k},'/');
 				if (~isempty(ind) && numel(ind) ~= 2)
-					msg = 'Error usin option -I: -ILonInt/LatInt/AngInt or -Iint';		return
+					msg = 'Error using option -I: -ILonInt/LatInt/AngInt or -Iint';		return
 				end
 				if (isempty(ind))
 					handles.nInt_lon = sscanf(varargin{k}(3:end), '%f');
 					handles.nInt_lat = handles.nInt_lon;	handles.nInt_ang = handles.nInt_lon;
-					if (~rem(handles.nInt_lon,2)),			handles.nInt_lon = handles.nInt_lon + 1;	end
-					if (~rem(handles.nInt_lat,2)),			handles.nInt_lat = handles.nInt_lat + 1;	end
-					if (~rem(handles.nInt_ang,2)),			handles.nInt_ang = handles.nInt_ang + 1;	end
+					if (handles.nInt_lon > 1 && ~rem(handles.nInt_lon,2)),	handles.nInt_lon = handles.nInt_lon + 1;	end
+					if (handles.nInt_lat > 1 && ~rem(handles.nInt_lat,2)),	handles.nInt_lat = handles.nInt_lat + 1;	end
+					if (handles.nInt_ang > 1 && ~rem(handles.nInt_ang,2)),	handles.nInt_ang = handles.nInt_ang + 1;	end
 				else
 					handles.nInt_lon = sscanf(varargin{k}(3:ind(1)-1), '%f');
 					handles.nInt_lat = sscanf(varargin{k}(ind(1)+1:ind(2)-1), '%f');
@@ -1028,9 +1053,35 @@ function [handles, msg] = parse_noGUI(varargin)
 			case 'E'
 				handles.residGrdName = varargin{k}(3:end);
 
+			case 'R'
+				ind = strfind(varargin{k},'/');
+				if (numel(ind) ~= 5)
+					msg = 'Error using option -R [-Rx_min/x_max/y_min/y_max/ang_min/ang_max]';		return
+				end
+				% OK, here -R was used and we must compute a fake -D.
+				x_min = sscanf(varargin{k}(3:ind(1)-1),'%f');
+				x_max = sscanf(varargin{k}(ind(1)+1:ind(2)-1),'%f');
+				y_min = sscanf(varargin{k}(ind(2)+1:ind(3)-1),'%f');
+				y_max = sscanf(varargin{k}(ind(3)+1:ind(4)-1),'%f');
+				a_min = sscanf(varargin{k}(ind(4)+1:ind(5)-1),'%f');
+				a_max = sscanf(varargin{k}(ind(5)+1:end),'%f');
+				handles.LonRange = x_max - x_min;
+				handles.LatRange = y_max - y_min;
+				handles.AngRange = a_max - a_min;
+				handles.pLon_ini = x_min + handles.LonRange / 2;
+				handles.pLat_ini = y_min + handles.LatRange / 2;
+				handles.pAng_ini = a_min + handles.AngRange / 2;
+				handles.IamRegion = true;
+
 			case 'V'
 				verbose = true;
 		end
+	end
+
+	if (handles.nInt_lon <= 1)		% -I was given as an increment instead of n of points
+		handles.nInt_lon = round(handles.LonRange / handles.nInt_lon) + 1;
+		handles.nInt_lat = round(handles.LatRange / handles.nInt_lat) + 1;
+		handles.nInt_ang = round(handles.AngRange / handles.nInt_ang) + 1;
 	end
 
 	if (verbose)
@@ -1043,6 +1094,7 @@ function [handles, msg] = parse_noGUI(varargin)
      
 % --- Creates and returns a handle to the GUI figure. 
 function compute_euler_LayoutFcn(h1)
+
 set(h1, 'Pos',[520 379 520 421],...
 'Color',get(0,'factoryUicontrolBackgroundColor'),...
 'MenuBar','none',...
