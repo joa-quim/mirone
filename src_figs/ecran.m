@@ -1460,6 +1460,10 @@ function AnalysisRemoveTrend_CB(hObject, handles)
 function AnalysisFitPoly_CB(hObject, handles)
 	if (isempty(handles.hLine)),	return,		end
 	xx = get(handles.hLine,'XData');		yy = get(handles.hLine,'YData');
+	ind = isnan(yy);
+	if (any(ind))
+		xx(ind) = [];		yy(ind) = [];
+	end
 	handles.polyFig = ecran_trend1d(handles.axes1, [xx(:) yy(:)]);
 	guidata(handles.figure1, handles)
 
