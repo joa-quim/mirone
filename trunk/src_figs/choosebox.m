@@ -292,7 +292,7 @@ end
 		set(fig, 'visible','on');
 		uiwait(fig);
 	catch
-		if ishandle(fig)	delete(fig),	end
+		if ishandle(fig),	delete(fig),	end
 	end
 
 	if (isappdata(0,'ListDialogAppData') == 1)		% Selected Finite pole
@@ -345,12 +345,12 @@ function toggle_clicked_CB1(obj, eventdata, h_toolbar)
 	h2 = findobj(h_toolbar,'Tag','HalfAngle');
 	h1 = findobj(h_toolbar,'Tag','FullAngle');
 	% Now, find out which one of the above is the 'obj' (its one of them)
-	if (h1 == obj)      h_that = h2;
-	else                h_that = h1;
+	if (h1 == obj),		h_that = h2;
+	else				h_that = h1;
 	end
 
 	state = get(obj,'State');
-	if (strcmp(state,'on'))		set(h_that,'State','off');
+	if (strcmp(state,'on')),	set(h_that,'State','off');
 	else						set(h_that,'State','on');
 	end
 
@@ -361,12 +361,12 @@ function toggle_clicked_CB2(obj, eventdata, h_toolbar)
 	h1 = findobj(h_toolbar,'Tag','inverseStages');
 	h2 = findobj(h_toolbar,'Tag','directStages');
 	% Now, find out which one of the above is the 'obj' (its one of them)
-	if (h1 == obj)      h_that = h2;
-	else                h_that = h1;
+	if (h1 == obj),		h_that = h2;
+	else				h_that = h1;
 	end
 
 	state = get(obj,'State');
-	if (strcmp(state,'on'))		set(h_that,'State','off');
+	if (strcmp(state,'on')),	set(h_that,'State','off');
 	else						set(h_that,'State','on');
 	end
 
@@ -504,13 +504,14 @@ function doCancel(varargin)
 function doFinite(varargin)
 	rightbox = findobj('Tag','rightbox');
 	selection = get(rightbox,'String');
-	if (isempty(selection))     return;     end     % If it's empty do nothing
+	if (isempty(selection)),	return,	end		% If it's empty do nothing
 	ad = getappdata(0,'ListDialogAppData');
 	if (~ad.multiple_finite)					% Return only one pole (the first one)
 		ad.value = 1;
 		[tok,rem] = strtok(selection{1});		finite(1) = str2double(tok);
 		[tok,rem] = strtok(rem);				finite(2) = str2double(tok);
-		tok = strtok(rem);						finite(3) = str2double(tok);
+		[tok,rem] = strtok(rem);				finite(3) = str2double(tok);
+		tok = strtok(rem);						finite(4) = str2double(tok);
 	else										% Return all selected poles (including its ages)
 		ad.value = 3;
 		finite = zeros(length(selection),4);
@@ -607,12 +608,12 @@ function doWriteStages(stages)
 %-----------------------------------------------------------------------------------
 function doFromboxClick(varargin)
 % if this is a doubleclick, doRight
-	if strcmp(get(gcbf,'SelectionType'),'open')    doRight;		end
+	if strcmp(get(gcbf,'SelectionType'),'open'),	doRight;	end
 
 %-----------------------------------------------------------------------------------
 function doToboxClick(varargin)
 % if this is a doubleclick, doLeft
-	if strcmp(get(gcbf,'SelectionType'),'open')		doLeft;		end
+	if strcmp(get(gcbf,'SelectionType'),'open'),	doLeft;		end
 
 %-----------------------------------------------------------------------------------
 function doRight(varargin)
@@ -641,8 +642,8 @@ function doLeft(varargin)
 		for i=1:length(selection)
 			next_item = min( find(ad.pos_left > ad.pos_right(selection(i))) );
 			if isempty(next_item)   % Inserting item is last one
-				ad.pos_left(end+1)=ad.pos_right(selection(i));
-				ad.fromstring(end+1)=ad.tostring(selection(i));
+				ad.pos_left(end+1)   = ad.pos_right(selection(i));
+				ad.fromstring(end+1) = ad.tostring(selection(i));
 			elseif (next_item == ad.pos_left(1))		% Inserting item is first one
 				ad.pos_left=[ad.pos_right(selection(i));ad.pos_left];
 				ad.fromstring=[ad.tostring(selection(i)); ad.fromstring];
@@ -652,8 +653,8 @@ function doLeft(varargin)
 			end
 		end
 	end
-	ad.pos_right(selection)=[];
-	ad.tostring(selection)=[];
+	ad.pos_right(selection) = [];
+	ad.tostring(selection)  = [];
 	setappdata(0,'ListDialogAppData',ad)
 	set(leftbox,'String',ad.fromstring,'Value',[]);
 	set(rightbox,'String',ad.tostring,'Value',[]);
