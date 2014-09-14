@@ -28,8 +28,8 @@ function ui_edit_polygon(varargin)
 % Click and drag outside the line/patch vertices control points moves the object (but see 'MOVE_CHOICE')
 %
 %  In edit mode, hit the following keybord keys ...
-%     "r", "-", or backspace:		remove the active vertex
-%     "i" or "+":					inserts a new vertex after the active vertex, or in case there is
+%     "r", or backspace:			remove the active vertex
+%     "i":							inserts a new vertex after the active vertex, or in case there is
 %									no active vertex, guess the right order where to insert the new
 %									vertex in such a way as not to crete zig-zags.
 %     "b":							breaks a line in two parts. One from the first point up to the
@@ -63,7 +63,7 @@ function ui_edit_polygon(varargin)
 %	JL	08-Feb-2010 Added 'y' or 'x' to the move_choice option
 %	JL	21-apr-2012 Significant re-write with a large boost in efficiency by not needing to duplicate line
 
-%	Copyright (c) 2004-2013 by J. Luis
+%	Copyright (c) 2004-2014 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -418,7 +418,7 @@ key = get(s.h_fig, 'CurrentCharacter');
 z = getappdata(s.h_pol,'ZData');
 
 switch key
-    case {'r', 'R', '-'}					% delete vertex
+    case 'r'								% delete vertex
 		if (isempty(s.hCurrentMarker)),	return,		end
 		x = get(s.h_pol,'XData');           x(s.vert_index) = [];
 		y = get(s.h_pol,'YData');           y(s.vert_index) = [];
@@ -431,7 +431,7 @@ switch key
 		if (~isempty(z)),		setappdata(s.h_pol,'ZData',z),		end
 		setappdata(h,'edited',true)
 
-	case {'i', 'I', '+'}				% insert vertex
+	case 'i'								% insert vertex
 		pt = get(s.h_ax, 'CurrentPoint');
 		x = get(s.h_pol,'XData');		y = get(s.h_pol,'YData');
 		if (size(x,1) > 1),		x=x(:)';	y=y(:)';	z=z(:)';	end
@@ -488,7 +488,7 @@ switch key
 		s2.KeyPress_orig = s.KeyPress_orig;
 		setappdata(s2.h_pol,'polygon_data',s2)
 
-	case {'c', 'C'}					% close line
+	case 'c'						% close line
 		if (s.is_patch || s.is_closed),		return,		end		% Don't close what is already closed
 		x = get(s.h_pol,'XData');
 		if (length(x) <= 2),	return,		end			% don't close a line with less than 2 vertex 
@@ -500,7 +500,7 @@ switch key
 		cmenuHand = get(h, 'UIContextMenu');
 		uimenu(cmenuHand, 'Label', 'Create Mask', 'Call', 'poly2mask_fig(guidata(gcbo),gco)');
 
-	case {'e', 'E'}					% edit (extend) line with getline_j
+	case 'e'						% edit (extend) line with getline_j
 		if (s.duplicate),	delete(s.h_vert);		s.h_vert = [];		end
 		s.vert_index = [];			% delete vertex markers
 		if (~isempty(s.hCurrentMarker) && ishandle(s.hCurrentMarker))
