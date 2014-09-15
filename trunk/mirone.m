@@ -548,7 +548,7 @@ function varargout = ImageCrop_CB(handles, opt, opt2, opt3)
 if (handles.no_file),		return,		end
 set(handles.figure1,'pointer','watch')
 first_nans = 0;		pal = [];		mask = [];	crop_pol = false;	% Defaults to croping from a rectangle
-wasROI = false;		done = false;
+wasROI = false;		done = false;	invert = false;
 if (nargin < 3),	opt2 = [];		end
 if (nargin < 4),	opt3 = [];		end
 
@@ -645,7 +645,12 @@ if ~isempty(opt)				% OPT must be a rectangle/polygon handle (the rect may serve
 			elseif (strcmp(opt2,'ROI_SetConst'))
 				if (invert),	mask = ~mask;	end			% Mask in the outside instead
 				Z_rect(mask) = single(resp);				% Set the mask values to const
-				handles.Z_back = Z(r_c(1):r_c(2),r_c(3):r_c(4));	handles.r_c = r_c;			% For the Undo op
+				if (invert)
+					%handles.Z_back = Z;						% in this case we have to backup the whole grid (Grrr)
+					Z(:) = single(resp);					% Actually, we need to mask the whole outside
+				else
+					handles.Z_back = Z(r_c(1):r_c(2),r_c(3):r_c(4));	handles.r_c = r_c;		% For the Undo op
+				end
 				Z(r_c(1):r_c(2),r_c(3):r_c(4)) = Z_rect;
 				if (isnan(resp)),		handles.have_nans = 1;	first_nans = 1;		end
 			elseif (strcmp(opt2,'ROI_MedianFilter'))
@@ -835,7 +840,7 @@ end
 
 if (done),		return,		end
 
-if (~strcmp(opt2,'MedianFilter'))		% Otherwise, this was already done in roi_filtering
+if (~strcmp(opt2,'MedianFilter') && ~strcmp(opt2,'ROI_SetConst'))		% Otherwise, this was already done in roi_filtering
 	if (isa(Z,'single')),		Z(r_c(1):r_c(2),r_c(3):r_c(4)) = single(Z_rect);
 	elseif (isa(Z,'int16')),	Z(r_c(1):r_c(2),r_c(3):r_c(4)) = int16(Z_rect);
 	elseif (isa(Z,'uint16')),	Z(r_c(1):r_c(2),r_c(3):r_c(4)) = uint16(Z_rect);
@@ -889,7 +894,7 @@ if ~isempty(opt2)		% Here we have to update the image in the processed region
 end
 
 % UNDO that works only with these cases
-if any(strcmp(opt2,{'MedianFilter' 'ROI_MedianFilter' 'SetConst' 'ROI_SetConst' 'SplineSmooth'}))
+if (~invert && any(strcmp(opt2,{'MedianFilter' 'ROI_MedianFilter' 'SetConst' 'ROI_SetConst' 'SplineSmooth'})))
 	cmenuHand = get(opt,'UIContextMenu');
 	uimenu(cmenuHand, 'Label', 'Undo', 'Separator','on', 'Callback', {@do_undo,handles.figure1,opt,cmenuHand});
 end
