@@ -741,7 +741,7 @@ if (IamCompiled)
 end
 uimenu('Parent',h, 'Call',['mirone(''FileOpenWebImage_CB'',guidata(gcbo),',...
 	' ''http://www2.clustrmaps.com/stats/maps-clusters/w3.ualg.pt-~jluis-mirone-world.jpg'',''nikles'');'],'Label','See visitors map','Sep','on');
-uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 26 July 2014'',''2.6.0dev'')','Label','About','Sep','on');
+uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 16 Sep 2014'',''2.6.0dev'')','Label','About','Sep','on');
 
 %% --------------------------- Build HANDLES and finish things here
 	handles = guihandles(H1);
@@ -778,6 +778,7 @@ function figure1_KeyPressFcn(hObj, event)
 	handles = guidata(hObj);
 	if (handles.no_file),	return,		end
 	cc = get(hObj,'CurrentCharacter');
+	if (isempty(cc)),		return,		end		% HTF can this happen? But I already saw it happen
 	if (cc == '+' || cc == '[')			% Lazzy undocumented keys for convinience when using English keyboards
 		zoom_j(hObj,2,[]);
 	elseif (cc == '-' || cc == '/')
