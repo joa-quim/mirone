@@ -3189,7 +3189,9 @@ function FileOpenSession_CB(handles, fname)
 		return
 	end
 
-	if (strcmpi(s.grd_name(max(numel(s.grd_name)-3,1):end),'.mat')),	s.grd_name = [];	end		% Otherwise infinite loop below
+	if (~isfield(s,'grd_name') || strcmpi(s.grd_name(max(numel(s.grd_name)-3,1):end),'.mat'))	% Otherwise infinite loop below
+		s.grd_name = [];
+	end
 	set(handles.figure1,'pointer','watch')
 
 	tala = (~isempty(s.grd_name) && exist(s.grd_name,'file') == 2);		flagIllum = true;	% Illuminate (if it is the case)
@@ -3201,14 +3203,14 @@ function FileOpenSession_CB(handles, fname)
 			tala = exist(s.grd_name,'file');
 			if (~tala)
 				warndlg('The name provided doesn''t exist either. Give up trying to help you.','Warning')
-				s.grd_name = [];		% In this case we need this as empty
+				s.grd_name = [];			% In this case we need this as empty
 			end
 		else
-			s.grd_name = [];			% In this case we need this as empty
+			s.grd_name = [];				% In this case we need this as empty
 		end
 	end
 	if (isempty(s.grd_name) || tala == 0)
-		scrsz = get(0,'ScreenSize');			% Get screen size
+		scrsz = get(0,'ScreenSize');		% Get screen size
 		dx = s.map_limits(2) - s.map_limits(1);
 		dy = s.map_limits(4) - s.map_limits(3);
 		aspect = dy / dx;
@@ -4218,8 +4220,8 @@ function FileSaveFleder_CB(handles, opt)
 	else						comm = [' -data ' fname ' &'];		% A SD file
 	end
 	if (strncmp(opt,'run',3))		% Run the viewer and remove the tmp .sd file
-		if (handles.whichFleder),	fcomm = ['iview4d' comm];			% Free viewer
-		else						fcomm = ['fledermaus' comm];		% The real thing
+		if (handles.whichFleder),	fcomm = ['iview3d' comm];		% Free viewer
+		else						fcomm = ['fledermaus' comm];	% The real thing
 		end
 		try
 			if (isunix)				% Stupid linux doesn't react to a non-existant iview4d
@@ -4229,8 +4231,8 @@ function FileSaveFleder_CB(handles, opt)
 				end
 			elseif (ispc)
 				s = dos(fcomm);
-				% Try again with the 'iview3d'
-				if (~s && handles.whichFleder),		fcomm(6) = '3';		dos(fcomm);		end
+				% Try again with the 'iview4d'
+				if (~s && handles.whichFleder),		fcomm(6) = '4';		dos(fcomm);		end
 			else			errordlg('Unknown platform.','Error'),	return
 			end
 		catch
