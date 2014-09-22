@@ -1,12 +1,14 @@
 139.60  61.8    -0.21    0.0  !NAM<-Eurasia  MORVEL (deg/Ma)
-145.50  43.3    -0.39    1.82 !NAM<-Eurasia  An2   Em Mov (res = 1.15)
-140.20  51.1    -0.635   3.06 !NAM<-Eurasia  An2A  Em Mov (res = 1.85)
-138.50  60.1    -1.025   4.72 !NAM<-Eurasia  An3   Em Mov (res = 2.36)
-139.40  55.6    -1.29    6.20 !NAM<-Eurasia  An3A  Em Mov (res = 1.97)
-140.40  56.5    -1.62    7.74 !NAM<-Eurasia  An4   Em Mov (res = 1.74)
-139.20  59.7    -1.94    8.88 !NAM<-Eurasia  An4A  Em Mov (res = 1.77)
-139.00  60.3    -2.32   10.30 !NAM<-Eurasia  An5   Em Mov (res = 2.45)
-139.30  61.8    -4.575  19.60 !NAM<-Eurasia  An6   Em Mov (res = 3.93)
+144.20  42.8    -0.390   1.82 !NAM<-Eurasia  An2   Em Mov (res = 1.135)
+139.80  50.2    -0.637   3.06 !NAM<-Eurasia  An2A  Em Mov (res = 1.373)
+137.10  61.7    -1.033   4.72 !NAM<-Eurasia  An3   Em Mov (res = 1.738)
+139.00  56.1    -1.290   6.20 !NAM<-Eurasia  An3A  Em Mov (res = 1.576)
+140.60  57.2    -1.628   7.74 !NAM<-Eurasia  An4   Em Mov (res = 1.441)
+138.00  60.6    -1.950   8.88 !NAM<-Eurasia  An4A  Em Mov (res = 1.626)
+139.10  60.4    -2.325  10.30 !NAM<-Eurasia  An5   Em Mov (res = 2.346)
+137.90  61.5    -3.875  16.37 !NAM<-Eurasia  An5C  Em Mov (res = 3.578)
+139.40  62.2    -4.630  19.60 !NAM<-Eurasia  An6   Em Mov (res = 3.768)
+137.60  65.6    -6.380  27.47 !NAM<-Eurasia  An9   Em Mov (res = 5.249)
 
   0.0    0.0     0.0     0.0  !ACO-NAM Iberia-North America
 -37.50   7.0    -1.59    3.85 !ACO-NAM An3  J. Luis et al. 1994
@@ -22,6 +24,12 @@
 140.12  56.64   -4.48   19.55 !NAM<-IBE An6  J. Luis & Miranda Sul da CG
 139.25  61.87   -7.24   33.25 !NAM<-IBE An13 J. Luis & Miranda Global
 124.99  71.27   -7.51   33.25 !NAM<-IBE An13 J. Luis & Miranda Iberico
+127.09  70.21   -7.460  33.25 !NAM<-IBE An13 Em Mov (res = 1.613) 
+137.90  63.80   -7.397  33.25 !NAM<-ROK An13 Em Mov (res = 1.514) 
+134.80  64.10   -7.375  33.25 !GRE<-ROK An13 Em Mov (res = 1.571) 
+131.70  47.30   -7.140  39.13 !GRE<-ROK An18 Em Mov (res = 4.021) 
+131.50  43.10   -7.650  43.14 !GRE<-ROK An20 Em Mov (res = 4.725) 
+129.70  33.80   -8.720  49.37 !GRE<-ROK An22 Em Mov (res = 4.125) 
 117.22  77.18   -9.43   39.13 !NAM<-IBE An18 J. Luis & Miranda
 113.70  76.01  -10.23   43.14 !NAM<-IBE An20 J. Luis & Miranda
 112.09  78.68  -11.57   47.06 !NAM<-IBE An21 J. Luis & Miranda
@@ -36,6 +44,24 @@
 132.63  77.31  -18.48   72.25 !NAM<-IBE An32 J. Luis & Miranda
 118.50  85.33  -22.05   78.00 !NAM<-IBE An33 J. Luis & Miranda
 119.98  85.92  -23.22   81.00 !NAM<-IBE An33r J. Luis & Miranda
+
+140.50  46.4    -0.340   1.82 !NAM<-Jan Mayen  An2   Em Mov (res = 0.823)
+130.20  56.1    -0.610   3.06 !NAM<-Jan Mayen  An2A  Em Mov (res = 1.528)
+137.00  56.7    -1.520   7.74 !NAM<-Jan Mayer  An4   Em Mov (res = 1.727)
+141.50  58.9    -1.840   8.88 !NAM<-Jan Mayen  An4A  Em Mov (res = 1.360)
+129.00  67.0    -2.465  10.30 !NAM<-Jan Mayen  An5   Em Mov (res = 1.501) 
+140.90  61.6    -3.755  16.37 !NAM<-Jan Mayen  An5C  Em Mov (res = 0.672)
+138.80  14.2    -3.290  19.60 !NAM<-Jan Mayen  An6   Em Mov (res = 2.115)
+
+112.80  78.90   -3.840  10.30 !GRE<-EUR An5  Em Mov (res = 2.745)
+120.30  80.20   -7.550  19.55 !GRE<-EUR An6  Em Mov (res = 3.920)
+134.60  64.00   -7.080  33.25 !GRE<-EUR An13 Em Mov (res = 1.454)
+132.10  59.40   -7.865  38.13 !GRE<-EUR An18 Em Mov (res = 2.425)
+129.90  55.60   -8.25   43.14 !GRE<-EUR An20 Em Mov (res = 2.371)
+128.20  48.40   -8.35   47.06 !GRE<-EUR An21 Em Mov (res = 3.820)
+129.00  45.91   -8.87   49.37 !GRE<-EUR An22 Em Mov (res = 1.917)
+122.20  55.09  -10.935  51.30 !GRE<-EUR An23 Em Mov (res = 1.864)
+115.50  61.49  -13.730  52.79 !GRE<-EUR An24 Em Mov (res = 2.330)
 
 142.12  57.88   -8.78   39.13 !NAM<-EUR An18 Norte CG
 130.87  35.97   -9.12   49.37 !NAM<-EUR An22 Norte CG (Sem Rockall)
