@@ -51,8 +51,10 @@ function [out, msg, opt_R] = proj2proj_pts(handles, data, varargin)
 		return
 	end
 
-	if ( isempty(srcWKT) && ~isempty(srcProj4) )
-		projStruc.SrcProjSRS = srcProj4;
+	if (isempty(srcWKT) && ~isempty(srcProj4))
+		if (~strcmp(srcProj4, '+proj4=latlong'))	% Avoid a BUG somewhere as this proj4 string causes the error:
+			projStruc.SrcProjSRS = srcProj4;		% OGRPROJ: Translating source SRS failed.
+		end											% And by not using it, internally Geog WGS84 is assumed.
 	elseif (~isempty(srcWKT))
 		projStruc.SrcProjWKT = srcWKT;
 	else
