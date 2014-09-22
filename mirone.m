@@ -4220,7 +4220,7 @@ function FileSaveFleder_CB(handles, opt)
 	else						comm = [' -data ' fname ' &'];		% A SD file
 	end
 	if (strncmp(opt,'run',3))		% Run the viewer and remove the tmp .sd file
-		if (handles.whichFleder),	fcomm = ['iview3d' comm];		% Free viewer
+		if (handles.whichFleder),	fcomm = ['iview4d' comm];		% Free viewer
 		else						fcomm = ['fledermaus' comm];	% The real thing
 		end
 		try
@@ -4231,9 +4231,10 @@ function FileSaveFleder_CB(handles, opt)
 				end
 			elseif (ispc)
 				s = dos(fcomm);
-				% Try again with the 'iview4d'
-				if (~s && handles.whichFleder),		fcomm(6) = '4';		dos(fcomm);		end
-			else			errordlg('Unknown platform.','Error'),	return
+				% Try again with the 'iview3d'
+				if (~s && handles.whichFleder),		fcomm(6) = '3';		dos(fcomm);		end
+			else
+				errordlg('Unknown platform.','Error'),	return
 			end
 		catch
 			errordlg('I could not find Fledermaus. Hmmm, do you have it?','Error')
