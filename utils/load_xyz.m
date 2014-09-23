@@ -2,7 +2,7 @@ function varargout = load_xyz(handles, opt, opt2)
 % Read a generic ascii file that can be, or not, a multi-segment file
 %
 %	Multi-segs files accept -G, -S & -W GMT type options plus a proj4 string for referencing.
-%		The proj4 string should be one single word e.g. +proj4=latlong or enclosed in "+proj4=latlong +datum=..."
+%		The proj4 string should be one single word e.g. +proj4=latlong or enclosed in "+proj=longlat +datum=..."
 %		-S<symb>[size] accepts these GMT type symbol codes <a|c|d|h|i|n|p|s|x|+>
 %		-S<symb>[size][+s<scale>][+f][+c<cor>[+c<cor>]]		==> Full syntax
 %		 Use +s<scale> with files with 3 columns where 3rd column will be used to determine the symbol color
