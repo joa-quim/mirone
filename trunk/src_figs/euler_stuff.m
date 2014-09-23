@@ -27,7 +27,7 @@ function varargout = euler_stuff(varargin)
 	handles = guihandles(hObject);
 	move2side(hObject,'left');
 
-	handles.h_line_orig = [];
+	handles.h_line_orig = [];		% To store the handle of a copy of the to-be-rotated line
 	handles.hLineSelected = [];
 	handles.p_lon = [];
 	handles.p_lat = [];
@@ -39,12 +39,40 @@ function varargout = euler_stuff(varargin)
 	handles.pole2Lat = [];
 	handles.pole2Ang = [];
 	handles.ages = [];
+	handles.do_project = false;		% Will be set to true if the projection is known
 	handles.do_interp = 0;			% Used to decide which 'compute' function to use
 	handles.finite_poles = [];		% Used to store a collection of finite poles (issued by choosebox)
 	handles.activeTab = 1;			% Active tab. To the "Poles selector" button know how to behave
 
 	handles.hCallingFig = varargin{1};
-	handles.mironeAxes = get(varargin{1},'CurrentAxes');
+
+	% Get the Mirone handles. We need it here
+	handlesMir = guidata(handles.hCallingFig);
+	handles.geog = handlesMir.geog;
+	handles.mironeAxes = handlesMir.axes1;
+	if (handlesMir.no_file)
+		errordlg('You didn''t even load a file. What are you expecting then?','Error')
+		delete(hObject);    return
+	end
+
+	if (~handles.geog)
+		srcWKT = getappdata(handlesMir.figure1,'ProjWKT');
+		if (isempty(srcWKT))
+			proj4 = getappdata(handlesMir.figure1,'Proj4');
+			if (~isempty(proj4))
+				srcWKT = ogrproj(proj4);
+			end
+		end
+		if (isempty(srcWKT))
+			errordlg('This tool works only with geographical type data or when the projection is known.','Error')
+			delete(hObject);    return
+		else
+			handles.projStruc_dir.DstProjSRS = srcWKT;		% The other being empty, triggers the WGS assumption in ogrproj
+			handles.projStruc_inv.SrcProjSRS = srcWKT;
+			handles.do_project = true;
+		end
+	end
+	
 	if (length(varargin) == 2)			% Called with the line handle in argument
 		c = get(varargin{2},'Color');
 		t = get(varargin{2},'LineWidth');
@@ -56,18 +84,6 @@ function varargout = euler_stuff(varargin)
 		handles.h_line_orig = h;
 		handles.hLineSelected = varargin{2};
 		set(handles.text_activeLine,'String','GOT A LINE TO WORK WITH','ForegroundColor',[0 0.8 0])
-	end
-
-	% Get the Mirone handles. We need it here
-	handlesMir = guidata(handles.hCallingFig);
-	handles.geog = handlesMir.geog;
-	if (handlesMir.no_file)
-		errordlg('You didn''t even load a file. What are you expecting then?','Error')
-		delete(hObject);    return
-	end
-	if (~handles.geog)
-		errordlg('This tool works only with geographical type data','Error')
-		delete(hObject);    return
 	end
 
 	plugedWin = getappdata(handles.hCallingFig,'dependentFigs');
@@ -99,6 +115,10 @@ function varargout = euler_stuff(varargin)
 	% one for each panel name and another called 'group_name_all'.  These fields
 	% are used by the tabpanefcn when tab_group_handler is called.
 	handles = tabpanelfcn('make_groups',group_name, panel_names, handles, 1);
+
+	if (handles.do_project)		% Geodetic lats option CANNOT be used if projected coords
+		set(handles.check_geodetic, 'Vis', 'off')
+	end
 
 	guidata(hObject, handles);
 	set(hObject,'Visible','on');
@@ -255,8 +275,19 @@ function push_compute_CB(hObject, handles)
 		for (i = 1:numel(handles.h_line_orig))
 			lon = get(handles.h_line_orig(i),'XData');
 			lat = get(handles.h_line_orig(i),'YData');
+			if (handles.do_project)			% Inverse project to Geogs
+				data = double([lon(:) lat(:)]);
+				out = ogrproj(data, handles.projStruc_inv);
+				lon = out(:,1);		lat = out(:,2);
+			end
 			if (do_geocentric)
 				[rlon,rlat] = rot_euler(lon,lat,handles.p_lon,handles.p_lat,handles.p_omega, -1);
+				if (handles.do_project)		% Convert back to projected coords
+					% Note: we do it only in this branch exactly to force an error if ~do_geocentric
+					data = [rlon(:) rlat(:)];
+					out = ogrproj(data, handles.projStruc_dir);
+					rlon = out(:,1);		rlat = out(:,2);
+				end
 			else							% Use geodetic lats
 				[rlon,rlat] = rot_euler(lon,lat,handles.p_lon,handles.p_lat,handles.p_omega);
 			end
@@ -613,7 +644,7 @@ function push_pickLine_CB(hObject, handles)
 		set(handles.text_activeLine,'String','NO ACTIVE LINE','ForegroundColor',[1 0 0])
 	end
 	% Only show the 'Show GMT command' when selection was a point (symbol) (because it's simpler to deal with)
-	if (nl == 1 && (numel(get(handles.h_line_orig,'XData')) == 1) )
+	if (nl == 1 && (numel(get(handles.h_line_orig,'XData')) == 1) && ~handles.do_project)
 		set(handles.push_showGMT,'Enable', 'on')
 	else
 		set(handles.push_showGMT,'Enable', 'off')
@@ -634,7 +665,7 @@ function push_rectSelect_CB(hObject, handles)
 	for (i=1:numel(h_mir_lines))    % Loop over lines to find out which cross the rectangle
 		x = get(h_mir_lines(i),'XData');
 		y = get(h_mir_lines(i),'YData');
-		if ( any( (x >= p1(1) & x <= p2(1)) & (y >= p1(2) & y <= p2(2)) ) )
+		if ( any((x >= p1(1) & x <= p2(1)) & (y >= p1(2) & y <= p2(2))) )
 			tf = ismember(h_mir_lines(i),handles.hLineSelected);    % Check that the line was not already selected
 			if (tf),    continue;     end                           % Repeated line
 			c = get(h_mir_lines(i),'Color');
