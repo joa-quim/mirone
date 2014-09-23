@@ -219,6 +219,13 @@ elseif (v == 2)     % Stage poles
 end
 
 % -------------------------------------------------------------------------------------
+function push_reciclePole_CB(hObject, handles)
+% Get the parameters of computed pole and put them on starting pole edit boxes
+	set(handles.edit_pLon_fim, 'Str', get(handles.edit_pLon_ini, 'Str'))
+	set(handles.edit_pLat_fim, 'Str', get(handles.edit_pLat_ini, 'Str'))
+	set(handles.edit_pAng_fim, 'Str', get(handles.edit_pAng_ini, 'Str'))
+
+% -------------------------------------------------------------------------------------
 function edit_LonRange_CB(hObject, handles)
 	handles.LonRange = str2double(get(hObject,'String'));
 	guidata(hObject, handles);
@@ -472,6 +479,12 @@ function push_compute_CB(hObject, handles)
 			setappdata(hLine,'LineInfo','Fitted Line');
 			draw_funs(hLine,'isochron',{'Fitted Line'})
 		end
+	end
+
+	if (~isempty(get(handles.edit_pLon_fim,'Str')))	% If a new pole was computed set this button visible (driven by lazyness)
+		set(handles.push_reciclePole,'Vis', 'on')
+	else
+		set(handles.push_reciclePole,'Vis', 'off')
 	end
 
 % -------------------------------------------------------------------------------
@@ -1162,6 +1175,13 @@ uicontrol('Parent',h1, 'Pos',[289 248 121 21],...
 'String','Poles selector',...
 'Tooltip','Select a pole from the default list',...
 'Tag','push_polesList');
+
+uicontrol('Parent',h1, 'Pos',[440 248 21 21],...
+'Call',@compute_euler_uiCB,...
+'String','^',...
+'Tooltip','Re-initialize with computed pole',...
+'Vis', 'off',...
+'Tag','push_reciclePole');
 
 uicontrol('Parent',h1, 'Pos',[20 168 84 16],'HorizontalAlignment','left','Str','Longitude Range','Style','text');
 
