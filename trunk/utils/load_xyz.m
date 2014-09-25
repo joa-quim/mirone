@@ -467,9 +467,13 @@ function varargout = load_xyz(handles, opt, opt2)
 			if (do_project)         % We need to project
 				try
 					if (~isempty(projStr))
-						numeric_data{i} = proj2proj_pts(handles, numeric_data{i}, 'srcProj4', projStr);
+						[numeric_data{i}, msg] = proj2proj_pts(handles, numeric_data{i}, 'srcProj4', projStr);
+						if (~isempty(msg) && strncmp(msg, 'unknown', 7))
+							warndlg('Cannot project because destination reference system is unknown.','Warning')
+							do_project = false;
+						end
 
-						if (k == 1 && i == 1)	% First time. Store proj info in Figure's appdata ... IF not geog already
+						if (k == 1 && i == 1 && do_project)		% First time. Store proj info in Figure's appdata. IF ...
 							if (~handles.geog && isempty(getappdata(handles.figure1,'ProjWKT')) && ...
 								isempty(getappdata(handles.figure1,'Proj4')) && ...
 								isempty(getappdata(handles.figure1,'ProjGMT')) )
