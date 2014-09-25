@@ -6,7 +6,7 @@ function [out, msg, opt_R] = proj2proj_pts(handles, data, varargin)
 % ...
 % DATA can have > 3 columns but that's a bad idea
 
-%	Copyright (c) 2004-2012 by J. Luis
+%	Copyright (c) 2004-2014 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -20,6 +20,8 @@ function [out, msg, opt_R] = proj2proj_pts(handles, data, varargin)
 %
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
+
+% $Id$
 
 	opt_R = [];
 	[srcWKT, srcProj4, srcGMT, dstProj4, dstWKT, limits, pad, msg] = parseIn(handles, varargin{:});
@@ -48,6 +50,7 @@ function [out, msg, opt_R] = proj2proj_pts(handles, data, varargin)
 			data = trim_lims(data, limits, pad);
 		end
 		out = data;
+		msg = 'unknown conversion';
 		return
 	end
 
