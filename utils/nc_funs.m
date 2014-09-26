@@ -800,7 +800,7 @@ if ( status == 0 )
 			% For now, do nothing.  Does a fill value even make sense with char data?
 			% If it does, please tell me so.
         case { nc_int, nc_short }
-			[fill_value, status] = mexnc( 'get_att_double', ncid, varid, 'missing_value' );
+			[fill_value, status] = mexnc('get_att_double', ncid, varid, 'missing_value');
 			if (~isnan(fill_value))
 				ind = (values == fill_value);
 				if (any(ind(:)))
@@ -811,7 +811,15 @@ if ( status == 0 )
 				% An idiotic case. A _FillValue = NAN in a array of integers.
 			end
         case { nc_double, nc_float }
-			[fill_value, status] = mexnc( 'get_att_double', ncid, varid, 'missing_value' );
+			[fill_value, status] = mexnc('get_att_double', ncid, varid, 'missing_value');
+			if (status ~= 0)		% It can be a string !!!!!!!!!!!!!!!!!!!!
+				[fill_value, status] = mexnc('get_att_text', ncid, varid, 'missing_value');
+				if (status == 0 && strncmpi(fill_value, 'nan', 3))
+					fill_value = NaN;
+				else
+					fill_value = str2double(fill_value);
+				end
+			end
 			if (~isnan(fill_value))
 				values(values == fill_value) = NaN;
 			end
