@@ -128,6 +128,10 @@ function [Z, X, Y, srsWKT, handles, att] = read_grid(handles, fullname, tipo, op
 		else								% HDF files need a special care. Search for an offset and scale factor, etc...
 			[head, slope, intercept, base, is_modis, is_linear, is_log, att] = empilhador('getFromMETA', att);
 			[Z, handles.have_nans, att] = empilhador('getZ', fname, att, is_modis, is_linear, is_log, slope, intercept, base);
+			if (slope ~= 1)					% Need to update min/max because there a scaling eq was applied.
+				zz = grdutils(Z,'-L');	head(5:6) = [double(zz(1)) double(zz(2))];
+				att.GMT_hdr(5:6) = head(5:6);% Because later there is a if branch that overwrites head with att.GMT_hdr
+			end
 			fname = att.fname;				% We'll need better but for now this ensures that no subdataset name is taken as the whole.
 			if (~isa(Z,'int16')),		handles.was_int16 = false;		end
 		end
@@ -178,11 +182,11 @@ function [data, did_scale, att, have_new_nans] = handle_scaling(data, att)
 %	to single precision and apply the scaling. 
 
 	have_scale_factor = false;			have_add_offset = false;	did_scale = false;	have_new_nans = false;
-	if ( att.Band(1).ScaleOffset(1) ~= 1 )
+	if (att.Band(1).ScaleOffset(1) ~= 1)
 		have_scale_factor = true;
 		scale_factor = att.Band(1).ScaleOffset(1);
 	end
-	if ( att.Band(1).ScaleOffset(2) ~= 0 )
+	if (att.Band(1).ScaleOffset(2) ~= 0)
 		have_add_offset = true;
 		add_offset = att.Band(1).ScaleOffset(2);
 	end
