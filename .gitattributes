@@ -450,6 +450,7 @@ src_figs/mag_synthetic.m -text
 src_figs/magbarcode.m -text
 src_figs/manual_pole_adjust.m -text
 src_figs/meca_studio.m -text
+src_figs/mesher_helper.m -text
 src_figs/microlev.m -text
 src_figs/mirone_pref.m -text
 src_figs/mk_movie_from_list.m -text
