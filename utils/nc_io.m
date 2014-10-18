@@ -315,19 +315,19 @@ function write_nc(fname, handles, data, misc, page)
 		nc_funs('varput', fname, levelName, levelVec );
 	end
 
-	nc_funs('attput', fname, x_var, 'long_name', x_var );
+	nc_funs('attput', fname, x_var, 'long_name', x_var);
 	nc_funs('attput', fname, x_var, 'units', x_units);
-	nc_funs('attput', fname, x_var, 'actual_range', [X(1) X(end)] );
+	nc_funs('attput', fname, x_var, 'actual_range', [X(1) X(end)]);
 
-	nc_funs('attput', fname, y_var, 'long_name', y_var );
+	nc_funs('attput', fname, y_var, 'long_name', y_var);
 	nc_funs('attput', fname, y_var, 'units', y_units);
-	nc_funs('attput', fname, y_var, 'actual_range', [Y(1) Y(end)] );
-	
+	nc_funs('attput', fname, y_var, 'actual_range', [Y(1) Y(end)]);
+
 	if (~isempty(misc.srsWKT) || ~isempty(misc.strPROJ4))
 		% Create a container variable named "grid_mapping" to hold the projection info
-		nc_funs('attput', fname, z_name, 'grid_mapping', 'grid_mapping');
+		nc_funs('attput', fname, z_name, 'grid_mapping', 'grid_mapping');		% Create as attrib of Z variable
 		nc_funs('addvar', fname, struct('Name','grid_mapping', 'Nctype',2))		% 2 -> char
-		
+
 		if (~isempty(misc.srsWKT))
 			nc_funs('attput', fname, 'grid_mapping', 'spatial_ref', misc.srsWKT);
 		end
