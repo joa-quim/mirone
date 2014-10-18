@@ -401,6 +401,7 @@ uimenu('Parent',h,'Call','cartas_militares(guidata(gcbo),''nikles'')','Label','L
 uimenu('Parent',h,'Call','cartas_militares(guidata(gcbo))','Label','Cartas Militares')
 uimenu('Parent',h,'Call','obj_template_detect(gcf)','Label','Object detection','Sep','on');
 uimenu('Parent',h,'Call','vitrinite','Label','Vitrinite','Sep','on');
+uimenu('Parent',h,'Call','mesher_helper(gca)','Label','Nesting meshes','Sep','on');
 
 uimenu('Parent',hTL,'Call','run_cmd(guidata(gcbo))','Label','Run ML Command','Sep','on');
 uimenu('Parent',hTL,'Call','line_operations(guidata(gcbo))','Label','Vector Operations','Tag','lineOP');
@@ -741,7 +742,7 @@ if (IamCompiled)
 end
 uimenu('Parent',h, 'Call',['mirone(''FileOpenWebImage_CB'',guidata(gcbo),',...
 	' ''http://www2.clustrmaps.com/stats/maps-clusters/w3.ualg.pt-~jluis-mirone-world.jpg'',''nikles'');'],'Label','See visitors map','Sep','on');
-uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 16 Sep 2014'',''2.6.0dev'')','Label','About','Sep','on');
+uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 18 Out 2014'',''2.6.0dev'')','Label','About','Sep','on');
 
 %% --------------------------- Build HANDLES and finish things here
 	handles = guihandles(H1);
