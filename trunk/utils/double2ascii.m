@@ -109,8 +109,12 @@ function double2ascii(filename, X, formatStr, multiseg)
 				elseif (do_multiseg)
 					fprintf(fid,'%s\n', multiseg{k});	% Write out the multisegment info we got ininput					
 				end
-				fmt = make_print_format(formatStr, size(X{k},2), kpercent);
-				fprintf(fid, fmt, X{k}');
+				if (isa(X{k}, 'char'))
+					fprintf(fid, '%s\n', X{k});
+				else
+					fmt = make_print_format(formatStr, size(X{k},2), kpercent);
+					fprintf(fid, fmt, X{k}');
+				end
 			end
 		elseif ( ~any(isnan(X)) )		% NO, we haven't
 			fprintf(fid, fmt, X');
