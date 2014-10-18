@@ -197,7 +197,7 @@ function push_dataFile_CB(hObject, handles, opt)
 			errordlg(['Error reading file (probably empty)' fname],'Error'),	return
 		end
 		if (isa(bin,'struct') || bin ~= 0)		% A binary file. For now I wont test any further
-			set(handle.check_isBinary, 'Val',1, 'Vis','on')
+			set(handles.check_isBinary, 'Val',1, 'Vis','on')
 			set([handle.radio_single handles.radio_double], 'Vis','on')			
 			handles.is_binary(pos) = true;
 			update_conf(handles, 'is_binary', true)
