@@ -592,7 +592,9 @@ function push_apply_CB(hObject, handles)
 					end
 					xcell{1} = x;				ycell{1} = y;	% Equivallent of the below set(hCurrLine, 'XData',x, 'YData',y)
 					xcell{indOfFound} = [];		ycell{indOfFound} = [];		% Do not process the same segment again.
-					if (doAguenta && rem(k,10)),hAguenta = aguentabar(k/nLines);		end
+					if (doAguenta && ~rem(k,10)),
+						hAguenta = aguentabar(k/nLines);
+					end
 				end
 				set(hCurrLine, 'XData',x, 'YData',y)
 				nLines = 0;		% TO PREVENT EXECUTING ALSO THE NEXT LOOP
