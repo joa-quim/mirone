@@ -261,6 +261,7 @@ function push_doScript_CB(hObject, handles)
 	else
 		comm = '# ';	fdest = '$all_pts';		sc{1} = '#!/usr/bin';	sc{6} = 'all_pts=lixo.dat';
 	end
+	sc{2} = '';		sc{5} = '';		sc{7} = '';
 	sc{3} = [comm 'Coffeeright Mirone Tec'];
 	sc{4} = [comm 'Automatic script to generate a Delaunay triangulation of an unstructured grid'];
 	bo = ' -bo3f';
@@ -270,7 +271,7 @@ function push_doScript_CB(hObject, handles)
 		r = handles.tree{lev};
 		for (m = 1:numel(r))				% Loop over all groups at this level
 			for (n = 1:size(r{m},1))		% Loop over all polygons of this group
-% 				P = poly_diff(handles.tree, lev, grp(n,1));
+ 				%P = poly_diff(handles.tree, lev, grp(n,1));
 				children = handles.tree{lev+1}{m};	% Mx2 matrix with the M children handles in first column
 
 				n_rows = size(children,1);
@@ -284,32 +285,32 @@ function push_doScript_CB(hObject, handles)
 
 				if (n_rows == 0)			% CASE A)	(One polygon with no children)
 					if (is_grid)
-						sc{l} = ['grd2xyz ' fiche opt_R ' | gmtselect -F' polyFname ' | blockmedian' opt_I opt_R bo ' >> ' fdest];
+						sc{l} = ['grd2xyz ' fiche opt_R ' | gmtselect -F' polyFname ' -V | blockmedian' opt_I opt_R bo ' >> ' fdest];
 					else
 						if (do_interp)		% Must first interpolate into a grid
 							sc{l} = ['surface ' fiche bi opt_R opt_I ' -Glixo.grd -V '];	l = l + 1;
-							sc{l} = ['grd2xyz lixo.grd | gmtselect -F' polyFname bo ' >> ' fdest];
+							sc{l} = ['grd2xyz lixo.grd | gmtselect -F' polyFname bo ' -V >> ' fdest];
 						else
 							% Consider the possibility of an on purpose empty polygon (a data hole)
 							if (~(strcmpi(polyFname, 'void') || strcmpi(polyFname, 'empty')))	% If not empty
-								sc{l} = ['gmtselect ' fiche bi ' -F' polyFname ' | blockmedian' opt_I opt_R bo ' >> ' fdest];
+								sc{l} = ['gmtselect ' fiche bi ' -F' polyFname ' -V | blockmedian' opt_I opt_R bo ' >> ' fdest];
 							end
 						end
 					end
 				else						% CASE B) (One polygon with one or more children)
-					t = '';
+					t = [' | gmtselect -F' polyFname];
 					for (k = 1:n_rows)
 						tmpName = sprintf('L-%d_G-%d_P-%d.dat', [lev+1 m k]);	% Children's polygons
 						t = [t ' | gmtselect -F' tmpName ' -If'];
 					end
 					if (is_grid)
-						sc{l} = ['grd2xyz ' fiche opt_R t ' | blockmedian' opt_I opt_R bo ' >> ' fdest];
+						sc{l} = ['grd2xyz ' fiche opt_R t ' | blockmedian' opt_I opt_R bo ' -V >> ' fdest];
 					else
 						if (do_interp)		% Must first interpolate into a grid
 							sc{l} = ['surface ' fiche bi opt_R opt_I ' -Glixo.grd -V '];	l = l + 1;
-							sc{l} = ['grd2xyz lixo.grd | gmtselect -F' polyFname t bo ' >> ' fdest];
+							sc{l} = ['grd2xyz lixo.grd | gmtselect -F' polyFname t bo ' -V >> ' fdest];
 						else
-							sc{l} = ['gmtselect ' fiche bi ' -F' polyFname t ' | blockmedian' opt_I opt_R bo ' >> ' fdest];
+							sc{l} = ['gmtselect ' fiche bi ' -F' polyFname t ' | blockmedian' opt_I opt_R bo ' -V >> ' fdest];
 						end
 					end
 				end
@@ -337,11 +338,11 @@ function push_doScript_CB(hObject, handles)
 						end
 						if (do_interp)		% Must first interpolate into a grid
 							sc{l} = ['surface ' fiche bi opt_R opt_I ' -Glixo.grd -V '];	l = l + 1;
-							sc{l} = ['grd2xyz lixo.grd | gmtselect -F' polyFname bo ' >> ' fdest];							
+							sc{l} = ['grd2xyz lixo.grd | gmtselect -F' polyFname bo ' -V >> ' fdest];							
 						else
 							% Consider the possibility of an on purpose empty polygon (a data hole)
 							if (~(strcmpi(polyFname, 'void') || strcmpi(polyFname, 'empty')))	% If not empty
-								sc{l} = ['gmtselect ' fiche bi ' -F' polyFname ' | blockmedian' opt_I opt_R bo ' >> ' fdest];
+								sc{l} = ['gmtselect ' fiche bi ' -F' polyFname ' | blockmedian' opt_I opt_R bo ' -V >> ' fdest];
 							end
 						end
 					end
@@ -350,7 +351,7 @@ function push_doScript_CB(hObject, handles)
 			end
 		end
 	end
-	sc{l} = ['triangulate -bi3f ' fdest ' > ' handles.out_name];
+	sc{l} = ['triangulate -bi3f -V ' fdest ' > ' handles.out_name];
 
 	% ---------------------------- WRITE the files section --------------------------------------------
 	% ====== First the script itself ==========
@@ -623,11 +624,14 @@ function handles = check_conf(handles)
 		set(handles.check_force,   'Val', conf.interp),	handles.interp_first(k) = conf.interp;
 		set(handles.radio_single,  'Val', conf.single),	handles.single(k)       = conf.single;
 		set(handles.radio_double,  'Val', ~conf.single)
-		str = get(handles.popup_nodes, 'Str');	s = str{k};
-		s(end-1:end) = [];
-		str{k} = s;
-		set(handles.popup_nodes, 'Str', str)
+		if (~isempty(conf.inc))			% Only when triangle size is known we remove the *
+			str = get(handles.popup_nodes, 'Str');	s = str{k};
+			s(end-1:end) = [];
+			str{k} = s;
+			set(handles.popup_nodes, 'Str', str)
+		end
 	end
+
 	if (~isempty(handles.hPolys))		% It's empty when we still do not have any mesh polygon
 		handles.out_name = getappdata(handles.hPolys(1), 'fname_out');	% Since the polygons are sorted, this should work
 		set(handles.edit_outFile, 'Str', handles.out_name)
