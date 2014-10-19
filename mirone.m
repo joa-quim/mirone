@@ -3279,6 +3279,7 @@ function FileOpenSession_CB(handles, fname)
 		end
 		handles.hMBplot = h_line;
 	end
+
 	if (s.haveCircleGeo)				% case of Geographic circles
 		for (i = 1:length(s.CircleGeo))
 			h_circ = line('Xdata',s.CircleGeo(i).x,'Ydata',s.CircleGeo(i).y,'Parent',handles.axes1, ...
@@ -3291,6 +3292,7 @@ function FileOpenSession_CB(handles, fname)
 			draw_funs(h_circ,'SessionRestoreCircle')		% Set circle's uicontextmenu
 		end
 	end
+
 	if (s.haveCircleCart)				% case of Cartesian circles
 		for (i = 1:length(s.CircleCart))
 			h_circ = line('Xdata',s.CircleCart(i).x,'Ydata',s.CircleCart(i).y,'Parent',handles.axes1, ...
@@ -3304,6 +3306,7 @@ function FileOpenSession_CB(handles, fname)
 			draw_funs(h_circ,'SessionRestoreCircleCart')		% Set circle's uicontextmenu
 		end
 	end
+
 	if (s.havePline)					% case of polylines
 		for (i = 1:length(s.Pline))
 			h_line = line('Xdata',s.Pline(i).x,'Ydata',s.Pline(i).y,'Parent',handles.axes1,'LineWidth',s.Pline(i).LineWidth,...
@@ -3311,6 +3314,12 @@ function FileOpenSession_CB(handles, fname)
 			if (isfield(s.Pline(i),'Marker') && ~isempty(s.Pline(i).Marker))% New in 21-9-2011
 				set(h_line, 'Marker', s.Pline(i).Marker, 'MarkerSize',s.Pline(i).Size, ...
 					'MarkerFaceColor',s.Pline(i).FillColor, 'MarkerEdgeColor',s.Pline(i).EdgeColor)
+			end		
+			if (isfield(s.Pline(i),'appd') && ~isempty(s.Pline(i).appd))	% Need the isfield test for backward compat
+				fdnames = fieldnames(s.Pline(i).appd);
+				for (fd = 1:numel(fdnames))
+					setappdata(h_line, fdnames{fd}, s.Pline(i).appd.(fdnames{fd}))
+				end
 			end
 			if (isfield(s.Pline(i),'LineInfo') && ~isempty(s.Pline(i).LineInfo))
 				setappdata(h_line,'LineInfo',s.Pline(i).LineInfo)
@@ -3325,6 +3334,7 @@ function FileOpenSession_CB(handles, fname)
 			end
 		end
 	end
+
 	if (s.havePlineAsPoints)			% case of polylines as points (markers) only
 		for (i = 1:length(s.PlineAsPoints))
 			h_line_pt = line('Xdata',s.PlineAsPoints(i).x, 'Ydata',s.PlineAsPoints(i).y,'Parent',handles.axes1, ...
@@ -3334,6 +3344,7 @@ function FileOpenSession_CB(handles, fname)
 			draw_funs(h_line_pt,'DrawSymbol')		% Set marker's uicontextmenu (tag is very important)
 		end
 	end
+
 	if (s.haveSymbol)					% case of Symbols (line Markers)
 		for (i = 1:length(s.Symbol))
 			h_symb = line('Xdata',s.Symbol(i).x, 'Ydata',s.Symbol(i).y, 'Parent',handles.axes1,'Marker', ...
@@ -3342,6 +3353,7 @@ function FileOpenSession_CB(handles, fname)
 			draw_funs(h_symb,'DrawSymbol')			% Set symbol's uicontextmenu
 		end
 	end
+
 	if (s.haveText)					% case of text strings
 		try		s.Texto;			% Compatibility issue (Use a try because of compiler bugs)
 		catch
@@ -3359,6 +3371,7 @@ function FileOpenSession_CB(handles, fname)
 			draw_funs(h_text,'DrawText')		% Set texts's uicontextmenu
 		end
 	end
+
 	try		s.havePatches;		% 'Try' because compiler BUGs
 	catch,	s.havePatches = false;
 	end
@@ -3395,6 +3408,7 @@ function FileOpenSession_CB(handles, fname)
 			if (~isempty(s.MecaMag5)),	setappdata(handles.figure1, 'MecaMag5', s.MecaMag5),	end
 		end
 	end
+
 	try
 		if (s.haveCoasts),	datasets_funs('CoastLines', handles, s.coastUD);  end
 		if (s.havePolitic)
@@ -3570,6 +3584,17 @@ function FileSaveSession_CB(handles)
 			elseif (isappdata(ALLlineHand(i),'LineInfo'))
 				Pline(m).LineInfo = getappdata(ALLlineHand(i),'LineInfo');
 			end
+			% NEW at 19-Oct-2014, save all appdatas which will cause that the above two will potentially be repeated
+			app = getappdata(ALLlineHand(i));
+			if (~isempty(fieldnames(app)))
+				if (isfield(app, 'polygon_data'))	% Remove this because it will be restored by ui_edit_polygon()
+					app = rmfield(app, 'polygon_data');
+				end
+				if (~isempty(fieldnames(app)))
+					Pline(m).appd = app;
+				end
+			end
+			
 			m = m + 1;		havePline = 1;
 		end
 	end
