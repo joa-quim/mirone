@@ -1517,7 +1517,7 @@ function FileOpenGDALmultiBand_CB(handles, opt, opt2, opt3)
 			[P,N,EXT] = fileparts(fname);
 			if (strncmpi(EXT, '.tif', 4))	% For tiffs/geotiffs check with matlab
 				info_img = imfinfo(fname);	% GDAL doesn't tell us about transparency
-				try,	handles.transparency = info_img.Transparency;	end
+				try	handles.transparency = info_img.Transparency;	end
 			end
 		end
 		bands_inMemory = 1:min(n_bands,bands_inMemory);			% Make it a vector
@@ -2594,7 +2594,7 @@ function DrawClosedPolygon_CB(handles, opt)
 	% The following is a necessary pach agains two big stupidities.
 	% First is from the user that double-clicked on the polyline icon
 	% Second is from Matlab that doesn't lets us test a double-click on a uipushtool
-	if ( strcmp(get(handles.figure1,'Pointer'), 'crosshair') ),		return,		end
+	if (strcmp(get(handles.figure1,'Pointer'), 'crosshair')),		return,		end
 
 	if ( isempty(opt) || any(strcmp(opt,{'from_ROI' 'EulerTrapezium' 'SeismicPolyg'})) )
 		zoom_state(handles,'maybe_off');
@@ -3378,7 +3378,9 @@ function FileOpenSession_CB(handles, fname)
 			if (isfield(s.Patches(i),'appd') && ~isempty(s.Patches(i).appd))	% Need the isfield test for backward compat
 				fdnames = fieldnames(s.Patches(i).appd);
 				for (fd = 1:numel(fdnames))
-					setappdata(h_patch, fdnames{fd}, s.Patches(i).appd.(fdnames{fd}))
+					if (~strcmp(fdnames{fd}, 'polygon_data'))
+						setappdata(h_patch, fdnames{fd}, s.Patches(i).appd.(fdnames{fd}))
+					end
 				end
 			end
 			if (is_telha)
@@ -3590,10 +3592,12 @@ function FileSaveSession_CB(handles)
 		Patches(i).tag  = get(ALLpatchHand(i),'Tag');
 		app = getappdata(ALLpatchHand(i));
 		if (~isempty(fieldnames(app)))
-			try
-				app.polygon_data = rmfield(app.polygon_data, 'KeyPress_orig');	% Must kill because it's a function handle
+			if (isfield(app, 'polygon_data'))	% Remove this because it will be restored by ui_edit_polygon()
+				app = rmfield(app, 'polygon_data');
 			end
-			Patches(i).appd = app;
+			if (~isempty(fieldnames(app)))
+				Patches(i).appd = app;
+			end
 		end
 		havePatches = 1;
 	end
