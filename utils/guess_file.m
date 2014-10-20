@@ -16,7 +16,7 @@ function [bin,n_column,multi_seg,n_headers,isGSHHS] = guess_file(fiche, opt1, op
 % symbol (">") is present, the number of columns in the file and if it has header lines.
 % NOTE that this last tests may not always give reliable results.
 
-%	Copyright (c) 2004-2013 by J. Luis
+%	Copyright (c) 2004-2014 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -47,6 +47,11 @@ function [bin,n_column,multi_seg,n_headers,isGSHHS] = guess_file(fiche, opt1, op
 	elseif (n_args == 3)
 		MAXCHARS = opt1;
 		nl_max = opt2;
+	end
+	
+	if (isempty(fiche))
+		errordlg('function guess_file: Input filename variable is empty','File Error')
+		return
 	end
 
 	% Now remove any leading white space in file name "fiche"
