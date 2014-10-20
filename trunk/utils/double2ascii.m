@@ -6,6 +6,8 @@ function double2ascii(filename, X, formatStr, multiseg)
 % The user may also specify different formats for each column of the double array X.
 %
 % Inputs:  filename  - Name of the output ASCII file
+%			If prefixed with a '+' character, open the file in append mode.
+%
 %		X  - double array can be a vector (1-D), a matrix (2-D) or a cell array.
 %		     In later case each cell must contain a Mx2 array and output file will be multisegment
 %
@@ -85,10 +87,17 @@ function double2ascii(filename, X, formatStr, multiseg)
 	kpercent = numel(strfind(formatStr,'%'));		% IF 'kpercent' == 1, ==> Same format for ALL columns
 
 	%Open and write to ASCII file
-	if (ispc),			fid = fopen(filename,'wt');
-	elseif (isunix)		fid = fopen(filename,'w');
+	if (ispc),			mode = 't';
+	elseif (isunix),	mode = '';
 	else				error('DOUBLE2ASCII: Unknown platform.');
 	end
+ 	if (filename(1) == '+')			% Open in append mode
+		mode = ['a' mode];
+		filename = filename(2:end);
+	else
+		mode = ['w' mode];
+	end
+	fid = fopen(filename, mode);
 
 	if (~isa(X,'cell'))
 		ncols  = size(X,2);					% Determine the number of rows and columns in array X
