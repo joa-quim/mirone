@@ -108,25 +108,29 @@ function varargout = load_xyz(handles, opt, opt2)
 	% -------------------------------------------------------------------------------
 
 	% ------------------- PARSE INPUTS ----------------------------------------------
+	n_argin = nargin;
 	if (nargout)				% A bit convoluted this test but it's necessary for backward compat reasons
-		if (nargin == 0)
-			handles = [];	fname = [];
+		if (n_argin == 0)
+			handles = [];	fname = [];		opt = [];
+			n_argin = 2;
 		end
 		if (isempty(handles))	% When this function is used to just read a file and return its contents
 			handles.no_file = false;
+			handles.last_dir = cd;			% That's the best we can do (this is needed in put_or_get_file)
 		end
+		varargout{1} = [];					% So that we always have something to return
 	end
-	if (nargin >= 2 && isempty(opt))		% Read a ascii file
+	if (n_argin >= 2 && isempty(opt))		% Read a ascii file
 		[FileName, PathName, handles] = put_or_get_file(handles, ...
 			{'*.dat;*.DAT', 'Data files (*.dat,*.DAT)';'*.*', 'All Files (*.*)'},'Select File','get');
 		if isequal(FileName,0),		return,		end
 		fname = [PathName FileName];
 		[lix,lix,EXT] = fileparts(FileName);
-	elseif (nargin >= 2)		% Read a ascii file of which we already know the name (drag N'drop)
+	elseif (n_argin >= 2)		% Read a ascii file of which we already know the name (drag N'drop)
 		fname = opt;
 		[PathName,lix,EXT] = fileparts(fname);			% We need the 'PathName' below
 	end
-	if (nargin == 3)
+	if (n_argin == 3)
 		if (strcmp(opt2, 'AsLine') && strcmpi(EXT, '.nc'))			% A shapenc loaded 'AsLine', but confirm
 			drv = aux_funs('findFileType',fname);
 			if (strcmp(drv, 'ncshape')),	opt2 = 'ncshape';	end
@@ -163,7 +167,7 @@ function varargout = load_xyz(handles, opt, opt2)
 			end
 			multi_seg = 0;		n_headers = 0;		is_bin = true;
 			n_column = bin.nCols;
-			if (nargin < 3),	line_type = 'AsPoint';	end		% If not explicitly set line_type
+			if (n_argin < 3),	line_type = 'AsPoint';	end		% If not explicitly set line_type
 		end
 
 	else
