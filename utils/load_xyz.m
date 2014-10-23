@@ -54,12 +54,14 @@ function varargout = load_xyz(handles, opt, opt2)
 %					When used from an empty figure these included files won't be taken into account
 %					to determine data BB because the parsing of this option is done afterwards.
 %					If the indicated file(s) do not exist this option is silently ignored.
-%		'>NESTING'	File contains 'Nesting grids' rectangles (multisegment) to help with nested grids creation 
+%		'>NESTING'	File contains 'Nesting grids' rectangles (multisegment) to help with nested grids creation
 %					These files have >NESTING DX DY REG in first multisegment header and only the
 %					> DX DY REG for the interior rectangles.
 %					REG is either 0 (grid registration) or 1 (pixel reg). Default is 0
 %					If neither DY and REG is provided, DY = DX and REG = 0 are assumed
-%		'>HEAVES'	...
+%		'>HEAVES'	See ecran.m/saveHeaves_CB()
+%		'>POLYMESH'	File contains 'Nesting polygons' (multisegment) to help with unstructured grids creation 
+%					Example: >POLYMESH -pol=L-1_G-1_P-1.dat -inc=1000 -interp=1 -data= -grid=0 -binary=0 -single=1
 
 %	Copyright (c) 2004-2014 by J. Luis
 %
@@ -98,12 +100,14 @@ function varargout = load_xyz(handles, opt, opt2)
 	got_nc = false;				% Flag to signal if a shapenc type file comes in
 	orig_no_mseg = false;		% Flag to know if original file had multiseg strings to store
 	line_type = 'AsLine';
-	tag = 'polyline';
+	tag  = 'polyline';
+	tagP = '';					% Tag for patches. Some specific tagged files may set it
 	struc_vimage = [];
 	is_bin = false;				% To flag binary files
 	BB = [];					% To eventually hold a BoundingBox
 	is_GMT_DB = false;			% To flag the special cases when we are dealing with the GMT database polygons
-	do_nesting = false;			% To flag when the imported file is 'Nesting squares'
+	do_nesting = false;			% To flag when the imported file is a 'Nesting squares'
+	do_polymesh = false;		% To flag when the imported file is a 'Nesting polygons' for unstructured grids
 	isGSHHS = false;			% To flg when we are dealing with a GSHHS polygon
 	% -------------------------------------------------------------------------------
 
@@ -212,7 +216,7 @@ function varargout = load_xyz(handles, opt, opt2)
 		out_nc.fname = fname;		% Store the names as we will need it in the set_extra_uicb_options()
 
 		% Add the referencing info to multi_segs_str{1} so that later the recogn algo is the same as for ascii files
-		if ( ~isempty(out_nc.SRS) && out_nc.SRS(1) == '+' )		% Only proj4 are accepted
+		if (~isempty(out_nc.SRS) && out_nc.SRS(1) == '+')		% Only proj4 are accepted
 			multi_segs_str{1} = [multi_segs_str{1} ' ' out_nc.SRS];
 		end
 	end
@@ -336,7 +340,8 @@ function varargout = load_xyz(handles, opt, opt2)
 			orig_no_mseg = true;
 		end
 		n_isoc = 0;     n_segments = length(numeric_data);
-		hLine = ones(n_segments,1)*NaN;			% This is the maximum we can have
+		hLine = zeros(n_segments,1)*NaN;			% This is the maximum we can have
+		hPat  = zeros(n_segments,1)*NaN;			% Or this
 		n_clear = false(n_segments,1);
 		do_patch = false;						% Default to line object
 
@@ -437,6 +442,17 @@ function varargout = load_xyz(handles, opt, opt2)
 			multi_segs_str{1} = ['> ' r];							% Rip the HEAVES identifier and leave whathever remains
 			hLine = ones(n_segments,1)*NaN;			% We need to update these two too
 			n_clear = false(n_segments,1);
+
+		elseif (strncmp(multi_segs_str{1}, '>POLYMESH', 9))			% 
+			multi_segs_str{1}(2:9) = [];							% Rip the swap POLYMESH identifier
+			do_polymesh = true;
+			do_patch = true;		tagP = 'polymesh';
+			polymesh_family = cell(n_segments,1);	% pre-allocations
+			polymesh_conf(n_segments,1) = struct('inc','', 'interp',0, 'fname','', 'is_grid',0, 'is_binary',0, 'single',1);
+			for (kh = 1:n_segments)
+				[multi_segs_str{kh}, polymesh_conf(kh), polymesh_family{kh}, msg] = parse_polymesh(multi_segs_str{kh});
+				if (~isempty(msg)),		errordlg(msg, 'Error'),		return,		end
+			end
 
 		elseif (line_type(3) ~= 'P' && ~isempty(strfind(multi_segs_str{1},'-G')) && isempty(strfind(multi_segs_str{1},'-S')) )
 			% -G (paint) alone is enough to make it a patch (if ~point)
@@ -553,11 +569,12 @@ function varargout = load_xyz(handles, opt, opt2)
 			if (do_patch)
 				Fcor = parseG(multi_segs_str{i});
 				if (isempty(Fcor)),		Fcor = 'none';		end
-				hPat = patch('XData',tmpx,'YData',tmpy,'Parent',handles.axes1,'Linewidth',lThick,'EdgeColor',cor,'FaceColor',Fcor);
+				hPat(i) = patch('XData',tmpx, 'YData',tmpy, 'Parent',handles.axes1, 'Linewidth',lThick, ...
+						'EdgeColor',cor, 'FaceColor',Fcor, 'Tag', tagP);
 				if (~isempty(tmpz))
-					set(hPat,'UserData',tmpz');
+					set(hPat(i),'UserData',tmpz');
 				end	
-				draw_funs(hPat,'line_uicontext')
+				draw_funs(hPat(i),'line_uicontext')
 				n_clear(i) = true;			% Must delete this header info because it only applyies to lines, not patches
 
 			else					% Line plottings
@@ -681,7 +698,7 @@ function varargout = load_xyz(handles, opt, opt2)
 					end
 				end
 
-			end
+			end		% END do_patch or line
 		end			% Loop over number of segments
 		multi_segs_str(n_clear) = [];		% Clear the unused info
 
@@ -695,6 +712,7 @@ function varargout = load_xyz(handles, opt, opt2)
 				draw_funs(hLine,'isochron',multi_segs_str)
 			end
 		end
+
 	end
 	% --------------------- End main loop over files -----------------------------------------
 
@@ -708,7 +726,9 @@ function varargout = load_xyz(handles, opt, opt2)
 		set_extra_uicb_options(handles, hLine, out_nc)	% Reset two Callbacks in UIContextMenu to offer plot/save
 	end
 	if (do_nesting)
-		draw_funs([],'set_recTsu_uicontext', hLine)	% Set uicontextmenus appropriate for grid nesting
+		draw_funs([],'set_recTsu_uicontext', hLine)		% Set uicontextmenus appropriate for grid nesting
+	elseif (do_polymesh)
+		mesher_helper('set_props_from_outside', hPat, polymesh_family, polymesh_conf);
 	end
 	guidata(handles.figure1,handles)
 
@@ -1106,6 +1126,56 @@ function [numeric_data, multi_segs_str, multi_seg, BB, XMin, XMax, YMin, YMax] =
 			end
 		end
 	end
+
+% ---------------------------------------------------------------------
+function [str, conf, family, msg] = parse_polymesh(str)
+% Parse the contents of multi-seg header of a POLYMESH type file for the 'config' params
+% ex: -pol=L-1_G-1_P-1.dat -inc=1000 -interp=1 -data= -grid=0 -binary=0 -single=1
+
+	msg = '';
+	conf = struct('inc','', 'interp',0, 'fname', '', 'is_grid',0, 'is_binary',0, 'single',1);
+	ind = strfind(str,'-pol=');
+	if (isempty(ind))
+		msg = 'Fatal error: meshpolygon group is broken, one of its elements misses the hierarchy nesting info';
+		return
+	end
+	[t, r] = strtok(str(ind(1)+5:end));
+	family = t;
+	str(ind(1):ind(1)+5+numel(t)-1) = [];		% Remove this entry from the input string
+	
+	[str, param] = parse_pm_one(str, '-inc=');
+	if (~isempty(param)),	conf.inc = str2double(param);		end
+	
+	[str, param] = parse_pm_one(str, '-interp=');
+	if (~isempty(param)),	conf.interp = str2double(param);	end
+	
+	[str, param] = parse_pm_one(str, '-data=');
+	if (~isempty(param)),	conf.fname = param;		end
+	
+	[str, param] = parse_pm_one(str, '-grid=');
+	if (~isempty(param)),	conf.is_grid = str2double(param);	end
+	
+	[str, param] = parse_pm_one(str, '-binary=');
+	if (~isempty(param)),	conf.is_binary = str2double(param);	end
+	
+	[str, param] = parse_pm_one(str, '-single=');
+	if (~isempty(param)),	conf.single = str2double(param);	end
+
+% ---------------------------------------------------------------------
+function [str, param] = parse_pm_one(str, tok)
+% Parse a token from the polymesh header. TOK has the form (ex:) '-single='
+
+	param = '';
+	ind = strfind(str,tok);
+	if (~isempty(ind))
+		try					% Wrap it with a try to prevent out of bounds access errors
+			param = strtok(str(ind(1)+numel(tok):end));
+			if (param(1) == '-'),	param = '';		end		% Happens when pram= (nothing) and strtok gets next token
+			% Remove this entry from the input string
+			str(ind(1):ind(1)+numel(tok)+numel(param)-1) = [];
+		end
+	end
+	
 
 % ---------------------------------------------------------------------
 function [b, ndx_first, ndx_last] = local_unique(a)
