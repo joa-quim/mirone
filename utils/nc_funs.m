@@ -1670,9 +1670,9 @@ function write_the_data(ncid,varid,start,count,stride,write_op,data)
 
 % write the data
 pdata = permute(data, fliplr( 1:ndims(data) ));
-switch ( write_op )
+switch (write_op)
     case 'put_var1'
-        switch ( class(data) ),
+        switch (class(data)),
             case 'double',		funcstr = 'put_var1_double';
             case 'single',		funcstr = 'put_var1_float';
             case 'int32',		funcstr = 'put_var1_int';
@@ -1682,12 +1682,12 @@ switch ( write_op )
             case 'char',		funcstr = 'put_var1_text';
             otherwise
                 mexnc('close',ncid);
-                snc_error ( 'NC_FUNS:NC_VARPUT:unhandledMatlabType', sprintf('unhandled data class %s\n', class(pdata)) );
+                snc_error('NC_FUNS:NC_VARPUT:unhandledMatlabType', sprintf('unhandled data class %s\n', class(pdata)) );
         end
         status = mexnc (funcstr, ncid, varid, start, pdata );
 
     case 'put_var'
-        switch ( class(data) )
+        switch (class(data))
             case 'double',		funcstr = 'put_var_double';
             case 'single',		funcstr = 'put_var_float';
             case 'int32',		funcstr = 'put_var_int';
@@ -1702,7 +1702,7 @@ switch ( write_op )
         status = mexnc (funcstr, ncid, varid, pdata );
     
     case 'put_vara'
-        switch ( class(data) )
+        switch (class(data))
             case 'double',		funcstr = 'put_vara_double';
             case 'single',		funcstr = 'put_vara_float';
             case 'int32',		funcstr = 'put_vara_int';
@@ -1719,27 +1719,27 @@ switch ( write_op )
     case 'put_vars'
         switch ( class(data) )
 			case 'double',		funcstr = 'put_vars_double';
-				case 'single',		funcstr = 'put_vars_float';
-				case 'int32',		funcstr = 'put_vars_int';
-				case 'int16',		funcstr = 'put_vars_short';
-				case 'int8',		funcstr = 'put_vars_schar';
-				case 'uint8',		funcstr = 'put_vars_uchar';
-				case 'char',		funcstr = 'put_vars_text';
-				otherwise
-					mexnc('close',ncid);
-					snc_error ('NC_FUNS:NC_VARPUT:unhandledMatlabType', sprintf('unhandled data class %s\n', class(pdata)) );
+			case 'single',		funcstr = 'put_vars_float';
+			case 'int32',		funcstr = 'put_vars_int';
+			case 'int16',		funcstr = 'put_vars_short';
+			case 'int8',		funcstr = 'put_vars_schar';
+			case 'uint8',		funcstr = 'put_vars_uchar';
+			case 'char',		funcstr = 'put_vars_text';
+			otherwise
+				mexnc('close',ncid);
+				snc_error ('NC_FUNS:NC_VARPUT:unhandledMatlabType', sprintf('unhandled data class %s\n', class(pdata)) );
         end
-        status = mexnc (funcstr, ncid, varid, start, count, stride, pdata );
+        status = mexnc(funcstr, ncid, varid, start, count, stride, pdata );
 
     otherwise 
-        mexnc ( 'close', ncid );
+        mexnc('close', ncid);
         snc_error('NC_FUNS:NC_VARPUT:unhandledWriteOp', sprintf('unknown write operation''%s''.\n', write_op) );
 
 end
 
-if ( status ~= 0 )
-	mexnc ( 'close', ncid );
-	snc_error ('NC_FUNS:NC_VARPUT:unhandledMatlabType', sprintf('write operation ''%s'' failed with error ''%s''.\n', write_op, mexnc('STRERROR', status) ) );
+if (status ~= 0)
+	mexnc('close', ncid);
+	snc_error('NC_FUNS:NC_VARPUT:unhandledMatlabType', sprintf('write operation ''%s'' failed with error ''%s''.\n', write_op, mexnc('STRERROR', status) ) );
 end
 
 % ------------------------------------------------------------------------------------------
@@ -1870,28 +1870,28 @@ end
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function varstruct = validate_varstruct ( varstruct )
+function varstruct = validate_varstruct(varstruct)
 % Check that required fields are there.
 % Must at least have a name.
-	if ~isfield ( varstruct, 'Name' )
+	if ~isfield (varstruct, 'Name')
 		snc_error('NC_FUNS:NC_ADDVAR:badInput', 'structure argument must have at least the ''Name'' field.');
 	end
 
 	% Check that required fields are there. Default Nctype is double.
-	if (~isfield ( varstruct, 'Nctype' )),	varstruct.Nctype = 'double';	end
+	if (~isfield (varstruct, 'Nctype')),	varstruct.Nctype = 'double';	end
 
 	if (~isfield(varstruct,'Datatype'))
-		if ~isfield ( varstruct, 'Nctype' ),	varstruct.Datatype = 'double';
-		else									varstruct.Datatype = varstruct.Nctype;
+		if ~isfield (varstruct, 'Nctype'),	varstruct.Datatype = 'double';
+		else								varstruct.Datatype = varstruct.Nctype;
 		end
 	end
 
 	% Are there any unrecognized fields?
-	fnames = fieldnames ( varstruct );
-	for j = 1:length(fnames)
+	fnames = fieldnames(varstruct);
+	for (j = 1:length(fnames))
 		fname = fnames{j};
 		switch (fname)
-			case { 'Datatype', 'Nctype', 'Name', 'Dimension', 'Attribute', ...
+			case {'Datatype', 'Nctype', 'Name', 'Dimension', 'Attribute', ...
 					'FillValue', 'Storage', 'Chunking', 'Shuffle', 'Deflate', 'DeflateLevel'}
 				% These are used to create the variable.  They are ok.
 
@@ -1906,30 +1906,33 @@ function varstruct = validate_varstruct ( varstruct )
 
 	% If the datatype is not a string.
 	% Change suggested by Brian Powell
-	if ( isa(varstruct.Nctype, 'double') && varstruct.Nctype < 7 )
-		types={ 'byte' 'char' 'short' 'int' 'float' 'double'};
+	if (isa(varstruct.Nctype, 'double') && varstruct.Nctype < 8 )
+		types={'byte' 'char' 'short' 'int' 'float' 'double' 'ubyte'};
 		varstruct.Nctype = char(types(varstruct.Nctype));
 		varstruct.Datatype = char(types(varstruct.Datatype));
 	end
 
 	% Check that the datatype is known.
-	switch ( varstruct.Nctype )
-	case { 'NC_DOUBLE', 'double', ...
-		'NC_FLOAT', 'float', ...
-		'NC_INT', 'int', ...
-		'NC_SHORT', 'short', ...
-		'NC_BYTE', 'byte', ...
-		'NC_CHAR', 'char'  }
-		% Do nothing
+	switch (varstruct.Nctype)
+		case {'NC_DOUBLE', 'double', ...
+			'NC_FLOAT', 'float', ...
+			'NC_INT', 'int', ...
+			'NC_SHORT', 'short', ...
+			'NC_BYTE', 'byte', ...
+			'NC_UBYTE', 'ubyte', ...
+			'NC_CHAR', 'char'}
+			% Do nothing
 		case 'single'
 			varstruct.Datatype = 'float';
 		case 'int32'
 			varstruct.Datatype = 'int';
 		case 'int16'
 			varstruct.Datatype = 'short';
-		case { 'int8','uint8' }
+		case 'int8'
 			varstruct.Datatype = 'byte';
-		case { 'uint16', 'uint32', 'int64', 'uint64' }
+		case 'uint8'
+			varstruct.Datatype = 'ubyte';
+		case {'uint16', 'uint32', 'int64', 'uint64'}
 			snc_error('NC_FUNS:NC_ADDVAR:notClassicDatatype', ...
 				'Datatype ''%s'' is not a classic model datatype.', varstruct.Datatype); 
 	otherwise
@@ -1946,7 +1949,7 @@ function varstruct = validate_varstruct ( varstruct )
 	if (~isfield(varstruct,'Chunking')),	varstruct.Chunking = [];	end
 	if (~isfield(varstruct,'Shuffle')),		varstruct.Shuffle = 0;		end
 	if (~isfield(varstruct,'Deflate')),		varstruct.Deflate = 0;		end
-	if (~isfield(varstruct,'DeflateLevel')),	varstruct.DeflateLevel = 0;		end
+	if (~isfield(varstruct,'DeflateLevel')),varstruct.DeflateLevel = 0;	end
 
 % ---------------------------------------------------------------------------------------------------
 function nc_attput_while_open ( ncid, varname, attribute_name, attval )
@@ -2152,17 +2155,17 @@ end
 
 status = mexnc ( 'enddef', ncid );
 if status
-	mexnc ( 'close', ncid );
-	snc_error ( 'NC_FUNS:NC_ADD_DIMENSION:enddefFailed', mexnc('STRERROR', status) );
+	mexnc('close', ncid);
+	snc_error('NC_FUNS:NC_ADD_DIMENSION:enddefFailed', mexnc('STRERROR', status));
 end
 
-status = mexnc ( 'close', ncid );
+status = mexnc('close', ncid);
 if status 
-	snc_error ( 'NC_FUNS:NC_ADD_DIMENSION:closeFailed', mexnc('STRERROR', status) );
+	snc_error('NC_FUNS:NC_ADD_DIMENSION:closeFailed', mexnc('STRERROR', status));
 end
 
 % ---------------------------------------------------------------------------------------
-function nc_create_empty ( ncfile, mode )
+function nc_create_empty (ncfile, mode)
 % NC_CREATE_EMPTY:  creates an empty netCDF file 
 %     NC_CREATE_EMPTY(NCFILE,MODE) creates the empty netCDF file NCFILE
 %     with the given MODE.  MODE is optional, defaulting to nc_clobber_mode.
@@ -3045,24 +3048,24 @@ else
 	end
 end
 
-nb = nc_getbuffer ( ncfile, {var}, -1, num_datums );
+nb = nc_getbuffer (ncfile, {var}, -1, num_datums);
 values = nb.(var);
 
 
 % --------------------------------------------------------------------
-function snc_error ( error_id, error_msg )
-	disp ( [error_id ' ' error_msg] );			% On compiled version that's the only message we'll get
-	error ( error_id, error_msg );
+function snc_error (error_id, error_msg)
+	disp ([error_id ' ' error_msg]);			% On compiled version that's the only message we'll get
+	error (error_id, error_msg);
 
 % --------------------------------------------------------------------
 function snc_nargchk(low,high,N)
 % SNC_NARGCHK:  wrapper for NARGCHK, which changed functionality at R???
-	error ( nargchk(low,high,N ) );
+	error (nargchk(low,high,N));
 
 % --------------------------------------------------------------------
 function snc_nargoutchk(low,high,N)
 % SNC_NARGOUTCHK:  wrapper for NARGOUTCHK, which changed functionality at R???
-	error ( nargoutchk(low,high,N ) );
+	error (nargoutchk(low,high,N));
 
 % --------------------------------------------------------------------
 function check_index_vectors(start,count,stride,nvdims,ncid,varname)
@@ -3145,6 +3148,36 @@ function nc_datatype = nc_float()
 function nc_datatype = nc_double()
 % NC_DOUBLE:  returns constant corresponding to NC_DOUBLE enumerated constant in netcdf.h
 	nc_datatype = 6;
+
+% --------------------------------------------------------------------
+function nc_datatype = nc_ubyte()
+% NC_UBYTE:  returns constant corresponding to NC_UBYTE enumerated constant in netcdf.h
+	nc_datatype = 7;
+
+% --------------------------------------------------------------------
+function nc_datatype = nc_ushort()
+% NC_USHORT:  returns constant corresponding to NC_USHORT enumerated constant in netcdf.h
+	nc_datatype = 8;
+
+% --------------------------------------------------------------------
+function nc_datatype = nc_uint()
+% NC_UINT:  returns constant corresponding to NC_UINT enumerated constant in netcdf.h
+	nc_datatype = 9;
+
+% --------------------------------------------------------------------
+function nc_datatype = nc_int64()
+% NC_INT64:  returns constant corresponding to NC_INT64 enumerated constant in netcdf.h
+	nc_datatype = 10;
+
+% --------------------------------------------------------------------
+function nc_datatype = nc_uint64()
+% NC_UINT64:  returns constant corresponding to NC_UINT64 enumerated constant in netcdf.h
+	nc_datatype = 11;
+
+% --------------------------------------------------------------------
+function nc_datatype = nc_string()
+% NC_STRING:  returns constant corresponding to NC_STRING enumerated constant in netcdf.h
+	nc_datatype = 12;
 
 % --------------------------------------------------------------------
 function the_value = nc_global ()
