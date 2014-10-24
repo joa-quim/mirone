@@ -14,10 +14,20 @@ function varargout = mesher_helper(varargin)
 % 	Lesser General Public License for more details.
 %
 %	Contact info: w3.ualg.pt/~jluis/mirone
-% --------------------------------------------------------------------
+% ---------------------------------------------------------------------------------
 
 % $Id$
 
+	if (nargin > 1 && ischar(varargin{1}))
+		gui_CB = str2func(varargin{1});
+		[varargout{1:nargout}] = feval(gui_CB,varargin{2:end});
+	else
+		h = mesher_helper_OF(varargin{:});
+		if (nargout),	varargout{1} = h;   end
+	end
+
+% ---------------------------------------------------------------------------------
+function varargout = mesher_helper_OF(varargin)	
 	if (isempty(varargin)),		return,		end
 
 	hObject = figure('Vis','off');
@@ -51,49 +61,70 @@ function varargout = mesher_helper(varargin)
 	guidata(hObject, handles);
 
 % --------------------------------------------------------------------------------------
-function push_pickBB_CB(hObject, handles)
+function push_pickBB_CB(hObject, handles, opt1, opt2)
 % Select the root polygon (rectangle) which is supposed to be just a rectangle and turn it into
 % a root rectangle. For that, erase its previous and generalist line properties.
+%
+% OPT1 & OPT2 are used when we want send in a line handle of the root BB rectangle
+% First holds the BB rectangle line handle and second its 'conf' struct.
+% This is used when calling this function via load_xyz() (load ASCII file)
 
-	set(handles.hMirFig,'pointer','crosshair')
-	hLine = get_polygon(handles.hMirFig);		% Get the line handle
-	set(handles.hMirFig,'pointer','arrow');
+	if (nargin == 2)
+		set(handles.hMirFig,'pointer','crosshair')
+		hLine = get_polygon(handles.hMirFig);		% Get the line handle
+		set(handles.hMirFig,'pointer','arrow');
+	else
+		hLine = opt1;	conf = opt2;
+	end
+
 	if (~isempty(hLine))
 		handMir = guidata(hLine);
 		cmenuHand = uicontextmenu('Parent', handMir.figure1);
 		set(hLine, 'UIContextMenu', cmenuHand)
 		uimenu(cmenuHand, 'Label', 'Rectangle limits (edit)', 'Call', 'draw_funs([],''rectangle_limits'')');
-		uimenu(cmenuHand, 'Label', 'New nested polygon', 'Call', {@new_nestPolyg, hLine});
+		uimenu(cmenuHand, 'Label', 'New nested polygon', 'Call', {@draw_new_nestPolyg, hLine});
+		uimenu(cmenuHand, 'Label', 'Import new nested polygon', 'Call', {@import_new_nestPolyg, hLine});
+		uimenu(cmenuHand, 'Label', 'Delete', 'Call', {@del_nestPolyg, hLine});
+		uimenu(cmenuHand, 'Label', 'Save nested polygons', 'Call', {@save_nesteds, hLine}, 'Sep','on');
 		draw_funs([],'set_common_lineProps', hLine, cmenuHand, false)
 		set(hLine,'Tag','polymesh')
 		setappdata(hLine,'family',[0 1])		% In this case the parent handle does not exist, so the 0
-		conf = struct('inc','', 'interp',false, 'fname', '', 'is_grid', false, 'is_binary',false, 'single',true);
+		if (nargin == 2)						% Otherwise, 'conf' was transmitted in input (or error)
+			conf = struct('inc','', 'interp',false, 'fname', '', 'is_grid', false, 'is_binary',false, 'single',true);
+		end
 		setappdata(hLine, 'config', conf)		% Store (blank) configuration struct
-		[handles.tree, handles.hPolys] = tree_fill(handles.hMirAx);
-		guidata(handles.figure1, handles)
+		if (~isempty(handles))					% It's empty when calling via load_xyz (an ASCII import)
+			[handles.tree, handles.hPolys] = tree_fill(handles.hMirAx);
+			guidata(handles.figure1, handles)
+		end
 	end
 
 % --------------------------------------------------------------------------------------
 function push_drawBB_CB(hObject, handles)
 % Draw the BoundingBox rectangle that will be the root polygon
 
-	[p1,p2,hl] = rubberbandbox(handles.hMirAx);
-	handMir = guidata(hl);
+	[p1,p2,hPatch] = rubberbandbox(handles.hMirAx);
+	handMir = guidata(hPatch);
 
 	difa = abs(p2 - p1);
 	if ((difa(1) < handMir.head(7)/4) || (difa(2) < handMir.head(8)/4))
-		delete(hl),		return			% Don't draw ultra small rectangles
+		delete(hPatch),		return			% Don't draw ultra small rectangles
 	end
-	set(hl,'Color',handMir.DefLineColor,'LineWidth',handMir.DefLineThick)	% Use defaults LineThick and DefLineColor
+	set(hPatch,'Color',handMir.DefLineColor,'LineWidth',handMir.DefLineThick)	% Use defaults LineThick and DefLineColor
 
 	cmenuHand = uicontextmenu('Parent',handMir.figure1);
-	set(hl, 'UIContextMenu', cmenuHand)
+	set(hPatch, 'UIContextMenu', cmenuHand)
 	uimenu(cmenuHand, 'Label', 'Rectangle limits (edit)', 'Call', 'draw_funs([],''rectangle_limits'')');
-	uimenu(cmenuHand, 'Label', 'New nested polygon', 'Call', {@new_nestPolyg, hl});
-	draw_funs([],'set_common_lineProps', hl, cmenuHand, false)
-	set(hl,'Tag','polymesh')
-	setappdata(hl,'family',[0 1])		% In this case the parent handle does not exist, so the 0
-	ui_edit_polygon(hl)
+	uimenu(cmenuHand, 'Label', 'New nested polygon', 'Call', {@draw_new_nestPolyg, hPatch});
+	uimenu(cmenuHand, 'Label', 'Import new nested polygon', 'Call', {@import_new_nestPolyg, hPatch});
+	uimenu(cmenuHand, 'Label', 'Delete', 'Call', {@del_nestPolyg, hPatch});
+	uimenu(cmenuHand, 'Label', 'Save nested polygons', 'Call', {@save_nesteds, hPatch}, 'Sep','on');
+	draw_funs([],'set_common_lineProps', hPatch, cmenuHand, false)
+	set(hPatch,'Tag','polymesh')
+	setappdata(hPatch,'family',[0 1])			% In this case the parent handle does not exist, so the 0
+	conf = struct('inc','', 'interp',false, 'fname', '', 'is_grid', false, 'is_binary',false, 'single',true);
+	setappdata(hPatch, 'config', conf)			% Store (blank) configuration struct
+	ui_edit_polygon(hPatch)
 	[handles.tree, handles.hPolys] = tree_fill(handles.hMirAx);
 	guidata(handles.figure1, handles)
 
@@ -114,7 +145,10 @@ function popup_nodes_CB(hObject, handles)
 	prop = 'EdgeColor';					% Default color keyword for the most common case (patches)
 	if (strcmpi(get(hL, 'type'), 'line')),	prop = 'Color';		end
 	lt = get(hL, 'LineWidth');		lc = get(hL, prop);
-	set(h,'LineWidth',lt+2, prop,1-lc, 'Tag','nestEnhancedLine')
+	new_lc = 1 - lc;
+	handMir = guidata(handles.hMirFig);
+	if (handMir.image_type == 20),		new_lc = [0 0.7 0];		end		% On white bg we need a different color
+	set(h,'LineWidth',lt+2, prop,new_lc, 'Tag','nestEnhancedLine')
 	uistack_j(h,'bottom')	
 
 % --------------------------------------------------------------------------------------
@@ -239,6 +273,17 @@ function radio_double_CB(hObject, handles)
 % --------------------------------------------------------------------------------------
 function push_doScript_CB(hObject, handles)
 % Check that all polygons have the triangle size set and generate the GMT script
+%
+% tree{{[100   0]}}
+% tree{{[101 100]
+%       [102 100]
+%       [103 100]}}
+% tree{{[104 102]  [106 103]
+%       [105 102]  [107 103]
+%                  [108 103]}}
+% tree{{[109 104]  [112 106]  [114 107]
+%       [110 104]  [113 106]
+%       [111 104]}}
 
 	if (isempty(handles.out_name))
 		errordlg('Need to provide the output file name', 'Error'),	return
@@ -269,13 +314,13 @@ function push_doScript_CB(hObject, handles)
 	names_polys = cell(numel(handles.hPolys), 1);	nNam = 1;	% To save the names of polygons and later save themselves
 	for (lev = 1:tree_depth - 1)			% Loop over all levels - 1 (last level is dealt separately)
 		r = handles.tree{lev};
-		for (m = 1:numel(r))				% Loop over all groups at this level
-			for (n = 1:size(r{m},1))		% Loop over all polygons of this group
+		for (grp = 1:numel(r))				% Loop over all groups at this level
+			for (n = 1:size(r{grp},1))		% Loop over all polygons of this group
  				%P = poly_diff(handles.tree, lev, grp(n,1));
-				children = handles.tree{lev+1}{m};	% Mx2 matrix with the M children handles in first column
+				children = handles.tree{lev+1}{grp};	% Mx2 matrix with the M children handles in first column
 
 				n_rows = size(children,1);
-				[fiche, polyFname, opt_I, opt_R, is_grid, is_binary, do_interp] = get_GMTopts(handles, [lev m n]);
+				[fiche, polyFname, opt_I, opt_R, is_grid, is_binary, do_interp] = get_GMTopts(handles, [lev grp n]);
 				names_polys{nNam} = polyFname;	nNam = nNam + 1;	% Save the polygs names according to our logic
 				bi = '';
 				if (is_binary)				% Not used in all bellow cases
@@ -300,7 +345,7 @@ function push_doScript_CB(hObject, handles)
 				else						% CASE B) (One polygon with one or more children)
 					t = [' | gmtselect -F' polyFname];
 					for (k = 1:n_rows)
-						tmpName = sprintf('L-%d_G-%d_P-%d.dat', [lev+1 m k]);	% Children's polygons
+						tmpName = sprintf('L-%d_G-%d_P-%d.dat', [lev+1 grp k]);	% Children's polygons
 						t = [t ' | gmtselect -F' tmpName ' -If'];
 					end
 					if (is_grid)
@@ -314,19 +359,17 @@ function push_doScript_CB(hObject, handles)
 						end
 					end
 				end
+				if (lev == 1),	sc{l} = strrep(sc{l}, '>>', '>');	end		% Always start to write in a new output file
 				l = l + 1;		sc{l} = '';		l = l + 1;	% Add empty lines for readibility
 
-% 				for (i = 1:numel(P))
-% 					sc{l} = [P(i).x P(i).y];	l = l + 1;
-% 				end
-			end
-		end
+			end			% Loop over all polygons of this group
+		end				% Loop over all groups at this level
 
 		if (lev == tree_depth - 1)			% Special case of last level
 			r = handles.tree{tree_depth};
-			for (m = 1:numel(r))			% Loop over all groups of last level
-				for (n = 1:size(r{m},1))	% Loop over all polygons of this group
-					[fiche, polyFname, opt_I, opt_R, is_grid, is_binary, do_interp] = get_GMTopts(handles, [lev+1 m n]);
+			for (grp = 1:numel(r))			% Loop over all groups of last level
+				for (n = 1:size(r{grp},1))	% Loop over all polygons of this group
+					[fiche, polyFname, opt_I, opt_R, is_grid, is_binary, do_interp] = get_GMTopts(handles, [lev+1 grp n]);
 					names_polys{nNam} = polyFname;	nNam = nNam + 1;	% Save the polygs names according to our logic
 					if (is_grid)
 						sc{l} = ['grd2xyz ' fiche opt_R ' | gmtselect -F' polyFname ' | blockmedian' opt_I opt_R bo ' >> ' fdest];
@@ -347,10 +390,10 @@ function push_doScript_CB(hObject, handles)
 						end
 					end
 					l = l + 1;		sc{l} = '';		l = l + 1;		% Add empty lines for readibility
-				end
-			end
-		end
-	end
+				end		% Loop over all polygons of this group
+			end			% Loop over all groups of last level
+		end				% Special case of last level
+	end					% Loop over all levels
 	sc{l} = ['triangulate -bi3f -V ' fdest ' > ' handles.out_name];
 
 	% ---------------------------- WRITE the files section --------------------------------------------
@@ -439,28 +482,50 @@ function [fname, polyg, opt_I, opt_R, is_grid, is_binary, do_interp] = get_GMTop
 	do_interp = handles.interp_first(val);
 
 % --------------------------------------------------------------------------------------
-function new_nestPolyg(hObj, evt, hPar)
+function draw_new_nestPolyg(hObj, evt, hPar)
 % Draw a new polygon
 
 	handMir = guidata(hPar);
 	[xp,yp] = getline_j(handMir.figure1,'closed');
 	if (numel(xp) < 4),		return,		end		% 4 because a straight line has 3 vertex (last one repeats)
 	xp = xp(:)';	yp = yp(:)';
-	h = patch('XData',xp,'YData',yp,'FaceColor','none','EdgeColor',handMir.DefLineColor,...
-		'LineWidth',handMir.DefLineThick,'Tag','polymesh');
+	plot_polyg(handMir, hPar, xp, yp)
+
+% --------------------------------------------------------------------------------------
+function import_new_nestPolyg(hObj, evt, hPar)
+% Import a polygon from file
+
+	handMir = guidata(hPar);
+	out = load_xyz(handMir, []);
+	if (~isempty(out))
+		plot_polyg(handMir, hPar, out(:,1), out(:,2))
+	end
+
+% --------------------------------------------------------------------------------------
+function plot_polyg(handMir, hPar, x, y, hPat, conf)
+% Plot the polygon x, y in the axes handMir.axes1 (the Mirone fig)
+
+	if (nargin == 4)
+		hPat = patch('XData',x,'YData',y,'FaceColor','none','EdgeColor',handMir.DefLineColor,...
+			'LineWidth',handMir.DefLineThick,'Tag','polymesh');
+	end
 
 	cmenuHand = uicontextmenu('Parent',handMir.figure1);
-	set(h, 'UIContextMenu', cmenuHand)
-	uimenu(cmenuHand, 'Label', 'New nested polygon', 'Call', {@new_nestPolyg, h});
-	uimenu(cmenuHand, 'Label', 'Delete', 'Call', {@del_nestPolyg, h});
-	draw_funs([],'set_common_lineProps', h, cmenuHand, false)
-	ui_edit_polygon(h)
+	set(hPat, 'UIContextMenu', cmenuHand)
+	uimenu(cmenuHand, 'Label', 'Draw new nested polygon',   'Call', {@draw_new_nestPolyg, hPat});
+	uimenu(cmenuHand, 'Label', 'Import new nested polygon', 'Call', {@import_new_nestPolyg, hPat});
+	uimenu(cmenuHand, 'Label', 'Delete', 'Call', {@del_nestPolyg, hPat});
+	uimenu(cmenuHand, 'Label', 'Save nested polygons',   'Call', {@save_nesteds, hPat}, 'Sep','on');
+	draw_funs([],'set_common_lineProps', hPat, cmenuHand, false)
 	ap = getappdata(hPar, 'family');
 	lev = ap(2) + 1;
-	setappdata(h,'family',[hPar lev])		% Store parent handle and this level of nesting
+	setappdata(hPat,'family',[hPar lev])		% Store parent handle and this level of nesting
 
-	conf = struct('inc','', 'interp',false, 'fname', '', 'is_grid', false, 'is_binary',false, 'single',true);
-	setappdata(h, 'config', conf)			% Store (blank) configuration struct
+	if (nargin == 4)
+		ui_edit_polygon(hPat)
+		conf = struct('inc','', 'interp',false, 'fname', '', 'is_grid', false, 'is_binary',false, 'single',true);
+	end
+	setappdata(hPat, 'config', conf)			% Store (blank) configuration struct
 
 % --------------------------------------------------------------------------------------
 function del_nestPolyg(hObj, evt, hPol)
@@ -470,25 +535,23 @@ function del_nestPolyg(hObj, evt, hPol)
 	tree = tree_fill(handMir.axes1);
 	family = getappdata(hPol, 'family');	% family = [hParent, lev];
 
-	for (lev = family(2)+1:numel(tree))		% Loop over remaining levels
-		r = tree{lev};
-		for (grp = 1:(numel(r)))			% Loop number of groups
-			p = r{grp}(1,2);				% parent handle of currently looped polygon
-			if (hPol == p)					% If current polyg ascendent handle is equal to the to-be-killed
-				p = r{grp}(:,1);			% polygon (argin) those are descendents and must die too.
-				delete(p(ishandle(p)));
-			end
-		end
-	end
-	delete(hPol)
-
-% 	plugedWin = getappdata(handMir.hMirFig,'dependentFigs');
-% 	for (k = 1:numel(plugedWin))
-% 		if (strcmp(get(plugedWin(k), 'Name')), 'Mesher helper')
-% 			handles = guidata(plugedWin(k));
-% 			break
+% 	for (lev = family(2)+1:numel(tree))		% Loop over remaining levels
+% 		r = tree{lev};
+% 		for (grp = 1:(numel(r)))			% Loop number of groups
+% 			p = r{grp}(1,2);				% parent handle of currently looped polygon
+% 			if (hPol == p)					% If current polyg ascendent handle is equal to the to-be-killed
+% 				p = r{grp}(:,1);			% polygon (argin) those are descendents and must die too.
+% 				delete(p(ishandle(p)));
+% 			end
 % 		end
 % 	end
+
+	lev = family(2)+1;		hDesc = hPol;
+	while (lev <= numel(tree) && ~isempty(hDesc))
+		hDesc = delete_descendent(tree, lev, hDesc(1));
+		lev = lev + 1;
+	end
+	delete(hPol)
 
 	hFig = findobj(0, '-depth',1, 'type','figure', 'Name','Mesher helper');		% Find myself
 	% If hFig exists it now needs to be updated because we just killed some guys
@@ -496,7 +559,77 @@ function del_nestPolyg(hObj, evt, hPol)
 		delete(hFig)
 		mesher_helper(handMir.axes1);
 	end
+
+% --------------------------------------------------------------------------------------
+function out = delete_descendent(tree, lev, hPol)
+% ...
+	out = [];
+	for (grp = 1:(numel(tree{lev})))		% Loop number of groups
+		p = tree{lev}{grp}(1,2);			% parent handle of currently looped polygon
+		if (hPol == p)						% If current polyg ascendent handle is equal to the to-be-killed
+			p2 = tree{lev}{grp}(:,1);		% polygon (argin) those are descendents and must die too.
+			p2 = p2(ishandle(p2));
+			if (~isempty(p2))
+				delete(p2);					% Delete these
+				out = p2;					% but use their values as seeds for search further descendents
+			end
+		end
+	end
+
+% --------------------------------------------------------------------------------------
+function save_nesteds(hObj, evt, hPol)
+% Save the nested polygons family
+% conf = struct('inc',str, 'interp',false, 'fname', '', 'is_grid', false, 'is_binary',false, 'single',true);
+% We use here an extra 'conf' member, "pai_grp", to hold the parent group number. We need that
+% to be able to reconstruct the whole family hierarchy from the ASCII file written here.
+
+	handMir = guidata(hPol);
+	tree = tree_fill(handMir.axes1);
+
+	str1 = {'*.dat', 'Polygons file (*.dat)'; '*.*', 'All Files (*.*)'};
+	[FileName,PathName] = put_or_get_file(handMir,str1,'Select File name','put','.dat');
+	if isequal(FileName,0),		return,		end
+	f_name = [PathName FileName];
+	yet = false;
+	pai_grp = 1;
+
+	for (lev = 1:numel(tree))				% Loop over all levels
+		for (grp = 1:(numel(tree{lev})))	% Loop number of groups
+			p = tree{lev}{grp}; 
+			for (pol = 1:size(p,1))
+				cf = getappdata(p(pol,1), 'config');
+				if (lev > 3)				% First two can have only one group se we know for sure pai_grp = 1
+					pai_grp = find_parent_group(tree, lev-1, p(pol,2));		% Find parent group this polyg belongs to
+				end
+				hdr = sprintf('-inc=%s -interp=%d -data=%s -grid=%d -binary=%d -single=%d -pai_grp=%d', ...
+						cf.inc, cf.interp, cf.fname, cf.is_grid, cf.is_binary, cf.single, pai_grp);
+				pname = sprintf('-pol=L-%d_G-%d_P-%d.dat', [lev grp pol]);
+				x = get(p(pol,1), 'XData');	y = get(p(pol,1), 'YData');
+				if (~yet),	sep = '>POLYMESH ';
+				else		sep = '> ';
+				end
+				double2ascii(f_name, {[x(:) y(:)]}, '%.9g', {[sep pname ' ' hdr]});
+				if (~yet)
+					f_name = ['+' f_name];
+					yet = true;
+				end
+			end
+		end
+	end
 	
+% --------------------------------------------------------------------------------------
+function ind = find_parent_group(tree, lev, hPol)
+% Search all polygons of level LEV and find which is equal to POL. Return group index of that fact
+	for (grp = 1:numel(tree{lev}))
+		p = tree{lev}{grp}(:,1);
+		for (pol = 1:numel(p))
+			if (p(pol) == hPol)
+				ind = grp;
+				break
+			end
+		end
+	end
+
 % --------------------------------------------------------------------------------------
 function P = poly_diff(tree, lev, hPoly)
 % Calculate the union of all LEV+1 polygons that are descendent of HPOLY (a handle)
@@ -630,6 +763,8 @@ function handles = check_conf(handles)
 			str{k} = s;
 			set(handles.popup_nodes, 'Str', str)
 		end
+		handles.is_grid(k) = conf.is_grid;
+		if (conf.is_grid),		set(handles.check_isGrid, 'Val',1, 'Vis', 'on'),	end
 	end
 
 	if (~isempty(handles.hPolys))		% It's empty when we still do not have any mesh polygon
@@ -637,6 +772,9 @@ function handles = check_conf(handles)
 		set(handles.edit_outFile, 'Str', handles.out_name)
 		guidata(handles.figure1, handles)
 	end
+
+	% The above left visible the last polygon settings, but we want to show the first (the root)
+	popup_nodes_CB(handles.popup_nodes, handles)	% Simulates a call to the root element
 
 % --------------------------------------------------------------------------------------
 function update_conf(handles, field, val, str)
@@ -662,7 +800,7 @@ function [lev, grp, pol] = get_address(str, opt)
 % Decode a string of the form 'L-2 G-1 P-1' (from the nodes popup) as meaning:
 % LEV = 2; GRP = 1; POL = 1
 % That is, the coordinates of that polygon in the 'tree' cell array.
-% OPT is used when STR == 'L-2_G-1_P-1'
+% OPT ('whatever') is used when STR == 'L-2_G-1_P-1'
 
 	if (nargin == 2)
 		str = strrep(str, '_', ' ');
@@ -670,6 +808,26 @@ function [lev, grp, pol] = get_address(str, opt)
 	[t, r] = strtok(str);	lev = str2double(t(3:end));
 	[t, r] = strtok(r);		grp = str2double(t(3:end));
 	t = strtok(r);			pol = str2double(t(3:end));
+
+% --------------------------------------------------------------------------------------
+function set_props_from_outside(hPat, order, conf)
+% Set the proprties from an imported ASCII file (a saved one). Land here from load_xyz()
+% It is supposed that ORDER (a cell array) and CONF (a struct matrix) have the same number
+% of elements and the same as numel(HPAT) (the patch handles)
+
+	push_pickBB_CB([], [], hPat(1), conf(1))		% Sets the props of the root BB rectangle
+	handMir = guidata(hPat(1));
+	tree = cell(numel(hPat),1);
+	tree{1} = {[hPat(1) 0]};
+
+	for (k = 2:numel(hPat))
+		[pato,hierachy] = fileparts(order{k});		% Remove extention and eventual path
+		[lev, grp, pol] = get_address(hierachy, '');
+		hPar = tree{lev-1}{conf(k).pai_grp}(grp,1);	% handles of the parent polygon (NOT ALWAYS CORRECT)
+		tree{lev}{grp}(pol,:) = [hPat(k) 0];		% No worries with that 0 because 'tree' is rebuild on need.
+		plot_polyg(handMir, hPar, [], [], hPat(k), conf(k))	% Sets the props of the nested polygons
+		setappdata(hPat(k),'family',[hPar lev])		% Store parent handle and this level of nesting
+	end
 
 % --------------------------------------------------------------------------------------
 function figure1_CloseRequestFcn(hObject, evt)
