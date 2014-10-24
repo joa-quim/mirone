@@ -1145,7 +1145,7 @@ function [str, conf, family, msg] = parse_polymesh(str)
 	str(ind(1):ind(1)+5+numel(t)-1) = [];		% Remove this entry from the input string
 	
 	[str, param] = parse_pm_one(str, '-inc=');
-	if (~isempty(param)),	conf.inc = str2double(param);		end
+	if (~isempty(param)),	conf.inc = param;		end
 	
 	[str, param] = parse_pm_one(str, '-interp=');
 	if (~isempty(param)),	conf.interp = str2double(param);	end
