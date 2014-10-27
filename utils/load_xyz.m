@@ -449,7 +449,7 @@ function varargout = load_xyz(handles, opt, opt2)
 			do_patch = true;		tagP = 'polymesh';
 			polymesh_family = cell(n_segments,1);	% pre-allocations
 			polymesh_conf(n_segments,1) = struct('inc','', 'interp',0, 'fname','', 'is_grid',0, ...
-				'is_binary',0, 'single',1, 'pai_grp',1);
+				'is_binary',0, 'single',1, 'pai_grp',1, 'pai_row',1);
 			for (kh = 1:n_segments)
 				[multi_segs_str{kh}, polymesh_conf(kh), polymesh_family{kh}, msg] = parse_polymesh(multi_segs_str{kh});
 				if (~isempty(msg)),		errordlg(msg, 'Error'),		return,		end
@@ -1131,18 +1131,18 @@ function [numeric_data, multi_segs_str, multi_seg, BB, XMin, XMax, YMin, YMax] =
 % ---------------------------------------------------------------------
 function [str, conf, family, msg] = parse_polymesh(str)
 % Parse the contents of multi-seg header of a POLYMESH type file for the 'config' params
-% ex: -pol=L-1_G-1_P-1.dat -inc=1000 -interp=1 -data= -grid=0 -binary=0 -single=1 -pai_grp=3
+% ex: -pol=L-1_G-1_P-1.dat -inc=1000 -interp=1 -data= -grid=0 -binary=0 -single=1 -pai_grp=3  pai_row=1
 
 	msg = '';
-	conf = struct('inc','', 'interp',0, 'fname', '', 'is_grid',0, 'is_binary',0, 'single',1, 'pai_grp',1);
+	conf = struct('inc','', 'interp',0, 'fname', '', 'is_grid',0, 'is_binary',0, 'single',1, 'pai_grp',1, 'pai_row',1);
 	ind = strfind(str,'-pol=');
 	if (isempty(ind))
+		family = 0;
 		msg = 'Fatal error: meshpolygon group is broken, one of its elements misses the hierarchy nesting info';
 		return
 	end
-	[t, r] = strtok(str(ind(1)+5:end));
-	family = t;
-	str(ind(1):ind(1)+5+numel(t)-1) = [];		% Remove this entry from the input string
+	family = strtok(str(ind(1)+5:end));
+	str(ind(1):ind(1)+5+numel(family)-1) = [];		% Remove this entry from the input string
 	
 	[str, param] = parse_pm_one(str, '-inc=');
 	if (~isempty(param)),	conf.inc = param;		end
@@ -1164,6 +1164,9 @@ function [str, conf, family, msg] = parse_polymesh(str)
 	
 	[str, param] = parse_pm_one(str, '-pai_grp=');
 	if (~isempty(param)),	conf.pai_grp = str2double(param);	end
+	
+	[str, param] = parse_pm_one(str, '-pai_row=');
+	if (~isempty(param)),	conf.pai_row = str2double(param);	end
 
 % ---------------------------------------------------------------------
 function [str, param] = parse_pm_one(str, tok)
