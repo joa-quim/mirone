@@ -279,7 +279,7 @@ function push_compute_CB(hObject, handles)
 			for (i = 1:numel(k))	% Loop over grids
 				tok = strtok(com(k(i)+1:end));
 				if (isempty(handles.name_str))
-					n = false;					% Here we know that we don't have any pre-loaded grid
+					n = [];						% Here we know that we don't have any pre-loaded grid
 				else
 					n = find(strcmp(tok,handles.name_str));     % n != []  when grid is already in memory
 				end
