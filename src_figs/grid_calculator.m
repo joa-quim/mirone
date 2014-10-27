@@ -447,7 +447,10 @@ function bandArithm(handles, com)
 
 % ------------------------------------------------------------------------
 function str = move_operator(str)
-	% Make sure that operators are not "glued" to operands.
+% Make sure that operators are not "glued" to operands.
+% But allow grid names with the '-' character.
+
+	[str, ind_s] = let_gridnames_have(str);		% Temporarily replace '-' by '_' in grid names
 	k = strfind(str,')');
 	if (k),		str = strrep(str,')',' ) ');    end
 	k = strfind(str,'(');
@@ -462,6 +465,9 @@ function str = move_operator(str)
 	if (k),		str = strrep(str,'/',' / ');    end
 	k = strfind(str,'\');
 	if (k),		str = strrep(str,'\',' \ ');    end
+	if (~isnan(ind_s(1)))
+		str(ind_s) = '-';	% Reset to original name
+	end
 	k = strfind(str,'. ');
 	if (k)					% Here we want to have things like '.*' and not '. *'
         while (~isempty(k))
@@ -475,6 +481,19 @@ function str = move_operator(str)
             str = [str(1:k(1)-1) str(min(k(1)+1,length(str)):end)];
             k = strfind(str,' ''');
         end    
+	end
+
+% ------------------------------------------------------------------------
+function [str, ind_s] = let_gridnames_have(str)
+% Let grid names have the minus (-) character in the name. We do this by temporarily replacing
+% '-' by '_'. The caller is reponsable for undoing this change with the help of index vector IND_S
+	ind = strfind(str,'&');		ind_s = [];
+	if (isempty(ind)),	ind_s = NaN;	return,		end
+	for (k = 1:numel(ind))
+		t = strtok(str(ind(k):end));
+		ind_s = [ind_s (ind(k) + strfind(t, '-') - 1)];
+		t = strrep(t,'-','_');
+		str(ind(k) : ind(k)+numel(t)-1) = t;
 	end
 
 % ------------------------------------------------------------------------
