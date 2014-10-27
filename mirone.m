@@ -722,7 +722,7 @@ if (isempty(opt2) || strcmp(opt2,'CropaWithCoords'))	% Just pure Image croping
 	end
 	done = true;				% We are done. BYE BYE.
 
-elseif ( strncmp(opt2(1:min(length(opt2),9)),'CropaGrid',9) )		% Do the operation indicated in opt2(11:end) & return
+elseif (strncmp(opt2(1:min(length(opt2),9)),'CropaGrid',9))		% Do the operation indicated in opt2(11:end) & return
 	curr_opt = opt2(11:end);
 	if (~strcmp(curr_opt,'pure'))			% We will need those for all other options
 		head(2) = head(1) + (r_c(4)-1)*head(8);			head(1) = head(1) + (r_c(3)-1)*head(8);
@@ -1772,7 +1772,11 @@ function loadGRID(handles, fullname, tipo, opt)
 
 	aux_funs('StoreZ',handles,X,Y,Z)				% If grid size is not to big we'll store it
 	aux_funs('colormap_bg',handles,Z,jet(256));
-	zz = scaleto8(Z);
+	if (~isa(Z, 'uint8'))
+		zz = scaleto8(Z);
+	else
+		zz = Z;
+	end
 	handles = show_image(handles,handles.fileName,X,Y,zz,1,'xy',handles.head(7));
 	if (isappdata(handles.axes1,'InfoMsg')),	rmappdata(handles.axes1,'InfoMsg'),		end
 	if (~isempty(att))
@@ -4778,6 +4782,9 @@ function Transfer_CB(handles, opt)
 			set(handles.figure1,'pointer','arrow'),		return
 		end
 		draw_funs(h(1), 'Ctrl_v', [h(1) handles.axes1])
+
+% 	elseif (strcmp(opt,'Ctrl-p'))
+% 		uiinspect(gco)
 
 	elseif (strncmp(opt,'flip',4))		% LR or UP image flipage. OPT = flipLR or flipUD
 		% OPT == 'LR' -> Flips the image left-right. OPT == 'UD' -> Flips the image up-down
