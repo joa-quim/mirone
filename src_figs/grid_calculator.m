@@ -210,7 +210,7 @@ function push_loadGrid_CB(hObject, handles)
 % This function doesn't realy loads the grid. It only stores the grid name.
 % True loading is donne in "Compute"
 	str1 = {'*.grd;*.GRD;*.nc;*.NC', 'Grid files (*.grd,*.GRD,*.nc,*.NC)';'*.*', 'All Files (*.*)'};
-	[FileName,PathName] = put_or_get_file(handles, str1,'Select GMT grid','get');
+	[FileName,PathName,handles] = put_or_get_file(handles, str1,'Select GMT grid','get');
 	if isequal(FileName,0),		return,		end
 	str = get(handles.listbox_inArrays,'String');
 	str{end+1} = FileName;
