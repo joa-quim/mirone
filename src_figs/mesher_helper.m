@@ -90,7 +90,8 @@ function push_pickBB_CB(hObject, handles, opt1, opt2)
 		set(hLine,'Tag','polymesh')
 		setappdata(hLine,'family',[0 1])		% In this case the parent handle does not exist, so the 0
 		if (nargin == 2)						% Otherwise, 'conf' was transmitted in input (or error)
-			conf = struct('inc','', 'interp',false, 'fname', '', 'is_grid', false, 'is_binary',false, 'single',true);
+			conf = struct('inc','', 'interp',false, 'fname', '', 'is_grid', false, 'is_binary',false, ...
+				'single',true, 'pai_grp',1, 'pai_row',1);
 		end
 		setappdata(hLine, 'config', conf)		% Store (blank) configuration struct
 		if (~isempty(handles))					% It's empty when calling via load_xyz (an ASCII import)
@@ -122,7 +123,8 @@ function push_drawBB_CB(hObject, handles)
 	draw_funs([],'set_common_lineProps', hPatch, cmenuHand, false)
 	set(hPatch,'Tag','polymesh')
 	setappdata(hPatch,'family',[0 1])			% In this case the parent handle does not exist, so the 0
-	conf = struct('inc','', 'interp',false, 'fname', '', 'is_grid', false, 'is_binary',false, 'single',true);
+	conf = struct('inc','', 'interp',false, 'fname', '', 'is_grid', false, 'is_binary',false, ...
+		'single',true, 'pai_grp',1, 'pai_row',1);	% Last two just invented
 	setappdata(hPatch, 'config', conf)			% Store (blank) configuration struct
 	ui_edit_polygon(hPatch)
 	[handles.tree, handles.hPolys] = tree_fill(handles.hMirAx);
@@ -133,6 +135,7 @@ function popup_nodes_CB(hObject, handles)
 % Read the selected row, decode it, and update the corresponding triangle size edit box
 
 	str = get(hObject, 'Str');		val = get(hObject, 'Val');
+	if (~isa(str, 'cell')),		return,		end		% A call when we still have no polygons
 	[lev, grp, pol] = get_address(str{val});
 	set(handles.edit_triangSize, 'Str', handles.tri_sizes{val})
 	set(handles.edit_dataFile,   'Str', handles.data_fname{val})
@@ -317,7 +320,7 @@ function push_doScript_CB(hObject, handles)
 		for (grp = 1:numel(r))				% Loop over all groups at this level
 			for (n = 1:size(r{grp},1))		% Loop over all polygons of this group
  				%P = poly_diff(handles.tree, lev, grp(n,1));
-				children = handles.tree{lev+1}{grp};	% Mx2 matrix with the M children handles in first column
+				children = find_suns(handles.tree, lev+1, r{grp}(n,1));	% Mx2 matrix with the M childrens in first column
 
 				n_rows = size(children,1);
 				[fiche, polyFname, opt_I, opt_R, is_grid, is_binary, do_interp] = get_GMTopts(handles, [lev grp n]);
@@ -422,6 +425,19 @@ function push_doScript_CB(hObject, handles)
 	end
 
 % --------------------------------------------------------------------------------------
+function out_grp = find_suns(tree, lev, hPol)
+% Find the group at level LEV that are childrens of HPOL that leaves at LEV-1.
+% Return the group where that happens or empty if no childrens are found.
+
+	out_grp = [];
+	for (grp = 1:(numel(tree{lev})))		% Loop number of groups
+		p = tree{lev}{grp}(1,2);			% parent handle of all polygons in this group
+		if (hPol == p)						% Than all these polygons are childrens og HPOL. Signal that and return
+			out_grp = grp;		return
+		end
+	end
+
+% --------------------------------------------------------------------------------------
 function radio_batch_CB(hObject, handles)
 	if (~get(hObject,'Val')),		set(hObject,'Val', 1),		return,		end
 	set(handles.radio_bash, 'Val', 0)
@@ -515,7 +531,7 @@ function plot_polyg(handMir, hPar, x, y, hPat, conf)
 	uimenu(cmenuHand, 'Label', 'Draw new nested polygon',   'Call', {@draw_new_nestPolyg, hPat});
 	uimenu(cmenuHand, 'Label', 'Import new nested polygon', 'Call', {@import_new_nestPolyg, hPat});
 	uimenu(cmenuHand, 'Label', 'Delete', 'Call', {@del_nestPolyg, hPat});
-	uimenu(cmenuHand, 'Label', 'Save nested polygons',   'Call', {@save_nesteds, hPat}, 'Sep','on');
+	uimenu(cmenuHand, 'Label', 'Save nested polygons', 'Call', {@save_nesteds, hPat}, 'Sep','on');
 	draw_funs([],'set_common_lineProps', hPat, cmenuHand, false)
 	ap = getappdata(hPar, 'family');
 	lev = ap(2) + 1;
@@ -523,7 +539,8 @@ function plot_polyg(handMir, hPar, x, y, hPat, conf)
 
 	if (nargin == 4)
 		ui_edit_polygon(hPat)
-		conf = struct('inc','', 'interp',false, 'fname', '', 'is_grid', false, 'is_binary',false, 'single',true);
+		conf = struct('inc','', 'interp',false, 'fname', '', 'is_grid', false, 'is_binary',false, ...
+			'single',true, 'pai_grp',1, 'pai_row',1);
 	end
 	setappdata(hPat, 'config', conf)			% Store (blank) configuration struct
 
@@ -535,22 +552,7 @@ function del_nestPolyg(hObj, evt, hPol)
 	tree = tree_fill(handMir.axes1);
 	family = getappdata(hPol, 'family');	% family = [hParent, lev];
 
-% 	for (lev = family(2)+1:numel(tree))		% Loop over remaining levels
-% 		r = tree{lev};
-% 		for (grp = 1:(numel(r)))			% Loop number of groups
-% 			p = r{grp}(1,2);				% parent handle of currently looped polygon
-% 			if (hPol == p)					% If current polyg ascendent handle is equal to the to-be-killed
-% 				p = r{grp}(:,1);			% polygon (argin) those are descendents and must die too.
-% 				delete(p(ishandle(p)));
-% 			end
-% 		end
-% 	end
-
-	lev = family(2)+1;		hDesc = hPol;
-	while (lev <= numel(tree) && ~isempty(hDesc))
-		hDesc = delete_descendent(tree, lev, hDesc(1));
-		lev = lev + 1;
-	end
+	del_recursive(tree, family(2)+1, hPol)
 	delete(hPol)
 
 	hFig = findobj(0, '-depth',1, 'type','figure', 'Name','Mesher helper');		% Find myself
@@ -561,18 +563,19 @@ function del_nestPolyg(hObj, evt, hPol)
 	end
 
 % --------------------------------------------------------------------------------------
-function out = delete_descendent(tree, lev, hPol)
+function del_recursive(tree, lev, hPol)
 % ...
-	out = [];
-	for (grp = 1:(numel(tree{lev})))		% Loop number of groups
-		p = tree{lev}{grp}(1,2);			% parent handle of currently looped polygon
-		if (hPol == p)						% If current polyg ascendent handle is equal to the to-be-killed
-			p2 = tree{lev}{grp}(:,1);		% polygon (argin) those are descendents and must die too.
-			p2 = p2(ishandle(p2));
-			if (~isempty(p2))
-				delete(p2);					% Delete these
-				out = p2;					% but use their values as seeds for search further descendents
-			end
+	if (lev > numel(tree))		% Because we call this function recursively, this will happen
+		return
+	end
+
+	for (k = 1:numel(hPol))
+		grp_suns = find_suns(tree, lev, hPol(k));			% Group where the descendents are stored
+		if (isempty(grp_suns)),		continue,	end
+		delete(tree{lev}{grp_suns}(:,1))					% Delete all direct childrens
+		if (lev == numel(tree)),	continue,	end			% End of line
+		for (m = 1:size(tree{lev}{grp_suns},1))				% Start again. Now search for grand childrens
+			del_recursive(tree, lev+1, tree{lev}{grp_suns}(m,1))
 		end
 	end
 
@@ -591,18 +594,18 @@ function save_nesteds(hObj, evt, hPol)
 	if isequal(FileName,0),		return,		end
 	f_name = [PathName FileName];
 	yet = false;
-	pai_grp = 1;
+	pai_grp = 1;	pai_row = 1;
 
 	for (lev = 1:numel(tree))				% Loop over all levels
 		for (grp = 1:(numel(tree{lev})))	% Loop number of groups
-			p = tree{lev}{grp}; 
+			p = tree{lev}{grp};
 			for (pol = 1:size(p,1))
 				cf = getappdata(p(pol,1), 'config');
-				if (lev > 3)				% First two can have only one group se we know for sure pai_grp = 1
-					pai_grp = find_parent_group(tree, lev-1, p(pol,2));		% Find parent group this polyg belongs to
+				if (lev > 1)				% First two can have only one group se we know for sure pai_grp = 1
+					[pai_grp, pai_row] = find_parent_group(tree, lev-1, p(pol,2));	% Find parent group this polyg belongs to
 				end
-				hdr = sprintf('-inc=%s -interp=%d -data=%s -grid=%d -binary=%d -single=%d -pai_grp=%d', ...
-						cf.inc, cf.interp, cf.fname, cf.is_grid, cf.is_binary, cf.single, pai_grp);
+				hdr = sprintf('-inc=%s -interp=%d -data=%s -grid=%d -binary=%d -single=%d -pai_grp=%d -pai_row=%d', ...
+						cf.inc, cf.interp, cf.fname, cf.is_grid, cf.is_binary, cf.single, pai_grp, pai_row);
 				pname = sprintf('-pol=L-%d_G-%d_P-%d.dat', [lev grp pol]);
 				x = get(p(pol,1), 'XData');	y = get(p(pol,1), 'YData');
 				if (~yet),	sep = '>POLYMESH ';
@@ -616,15 +619,16 @@ function save_nesteds(hObj, evt, hPol)
 			end
 		end
 	end
-	
+
 % --------------------------------------------------------------------------------------
-function ind = find_parent_group(tree, lev, hPol)
+function [indG, indR] = find_parent_group(tree, lev, hPol)
 % Search all polygons of level LEV and find which is equal to POL. Return group index of that fact
 	for (grp = 1:numel(tree{lev}))
 		p = tree{lev}{grp}(:,1);
 		for (pol = 1:numel(p))
 			if (p(pol) == hPol)
-				ind = grp;
+				indG = grp;
+				indR = pol;
 				break
 			end
 		end
@@ -823,7 +827,7 @@ function set_props_from_outside(hPat, order, conf)
 	for (k = 2:numel(hPat))
 		[pato,hierachy] = fileparts(order{k});		% Remove extention and eventual path
 		[lev, grp, pol] = get_address(hierachy, '');
-		hPar = tree{lev-1}{conf(k).pai_grp}(grp,1);	% handles of the parent polygon (NOT ALWAYS CORRECT)
+		hPar = tree{lev-1}{conf(k).pai_grp}(conf(k).pai_row,1);		% handles of the parent polygon
 		tree{lev}{grp}(pol,:) = [hPat(k) 0];		% No worries with that 0 because 'tree' is rebuild on need.
 		plot_polyg(handMir, hPar, [], [], hPat(k), conf(k))	% Sets the props of the nested polygons
 		setappdata(hPat(k),'family',[hPar lev])		% Store parent handle and this level of nesting
@@ -917,7 +921,7 @@ uicontrol('Parent',h1, 'Position',[10 114 351 22],...
 'HorizontalAlignment','left',...
 'String','',...
 'Style','edit',...
-'TooltipString','If empty, this polygon will use the data file of its parent. Enter ''Void'' or ''Empty'' (no quotes) if this polygon has no data inside it at all',...
+'TooltipString','Enter ''Void'' or ''Empty'' (no quotes) if this polygon has no data inside it at all',...
 'Tag','edit_dataFile');
 
 uicontrol('Parent',h1, 'Position',[360 114 23 23],...
