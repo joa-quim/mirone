@@ -304,6 +304,12 @@ function push_compute_CB(hObject, handles)
 						handtmp = struct('grdMaxSize',1e30, 'ForceInsitu',false, ...
 							'IamCompiled', handles.IamCompiled, 'path_tmp',handles.path_tmp);
 						[grid_t, tmp.X, tmp.Y, srsWKT, handtmp] = read_grid(handtmp, [handles.grid_patos{n_load} tok], 'GMT');
+						if (isempty(grid_t))			% Shit happened
+							if (isempty(findobj(0,'type','figure','Name','ERROR')))		% If no error message, print one
+								errordlg(['Unknown error while reading grid ' tok],'ERROR')
+							end
+							return
+						end
 						tmp.head = handtmp.head;
 						grid_t = double(grid_t);      % grdread_m allways outpus singles
 					else
