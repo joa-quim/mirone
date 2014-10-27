@@ -237,7 +237,7 @@ function coards_sliceShow(handles, Z)
 % ...
 
 	if (nargin == 1)		% Otherwise we suposedly already know Z (from gdalread)
-		if ( isempty(handles.fname) )
+		if (isempty(handles.fname))
 			errordlg('Hey Lou. What about a walk on the Wild Side? Maybe you''ll find a little file there that you can use here!','Chico clever')
 			return
 		end
@@ -249,9 +249,7 @@ function coards_sliceShow(handles, Z)
 		y_id = find(strcmp({s.Dataset.Name}, dims{end-1}));
 		if (~isempty(y_id))						% Check if we need to flipud(Z)
 			Y = double(nc_funs('varget', handles.fname, s.Dataset(y_id).Name));
-			if (Y(2) < Y(1))
-				Z = flipud(Z);
-			end
+			if (Y(2) < Y(1)),	Z = flipud(Z);	end
 		end
 	end
 
@@ -268,6 +266,7 @@ function coards_sliceShow(handles, Z)
 		splitDryWet = get(handles.check_splitDryWet,'Val');		% See if we need to build wet and dry images, or only one
 	catch
 		splitDryWet = false;
+		handles.cmapLand = jet(256);			% Was not yet be deffined if a TSU file opened in SLICES
 	end
 
 	if (splitDryWet && handles.IamTSU)
