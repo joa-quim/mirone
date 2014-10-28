@@ -1758,7 +1758,7 @@ void sanitize_nestContainer(struct nestContainer *nest) {
 	nest->bnc_var_z = NULL;
 	nest->bnc_var_zTmp = NULL;
 	for (i = 0; i < 10; i++) {
-		nest->level[i] = -1;      /* Will be set to due level number for existing nesting levels */
+		nest->level[i] = -1;      /* Will be set to the due level number for existing nesting levels */
 		nest->manning2[i] = 0;
 		nest->LLrow[i] = nest->LLcol[i] = nest->ULrow[i] = nest->ULcol[i] =
 		nest->URrow[i] = nest->URcol[i] = nest->LRrow[i] = nest->LRcol[i] =
@@ -1776,7 +1776,6 @@ void sanitize_nestContainer(struct nestContainer *nest) {
 		nest->edge_col[i] = nest->edge_colTmp[i] = NULL;
 		nest->edge_row[i] = nest->edge_rowTmp[i] = NULL;
 		nest->edge_col_P[i] = nest->edge_col_Ptmp[i] = NULL;
-		nest->edge_row_P[i] = nest->edge_row_Ptmp[i] = NULL;
 		nest->edge_row_P[i] = nest->edge_row_Ptmp[i] = NULL;
 	}
 }
@@ -1982,28 +1981,28 @@ int initialize_nestum(struct nestContainer *nest, int isGeog, int lev) {
 
 	/* Allocate vectors of the size of side inner grid to hold the BC */
 	n = nest->hdr[lev].nx;
-	nest->edge_rowTmp[lev] = (double *)mxCalloc((size_t)n, sizeof(double));	/* To be filled by interp */
-	nest->edge_row[lev]    = (double *)mxCalloc((size_t)n, sizeof(double));
+	nest->edge_rowTmp[lev] = (double *) mxCalloc((size_t)n, sizeof(double));	/* To be filled by interp */
+	nest->edge_row[lev]    = (double *) mxCalloc((size_t)n, sizeof(double));
 	/* Compute XXs of nested grid along N/S edge. We'll use only the south border coordinates */
 	for (col = 0; col < n; col++)
 		nest->edge_row[lev][col] = nest->hdr[lev].x_min + xoff + col * nest->hdr[lev].x_inc;
 
 	n = nest->hdr[lev].ny;
-	nest->edge_colTmp[lev] = (double *)mxCalloc((size_t)n, sizeof(double)); /* To be filled by interp */
-	nest->edge_col[lev]    = (double *)mxCalloc((size_t)n, sizeof(double));
+	nest->edge_colTmp[lev] = (double *) mxCalloc((size_t)n, sizeof(double)); /* To be filled by interp */
+	nest->edge_col[lev]    = (double *) mxCalloc((size_t)n, sizeof(double));
 	for (row = 0; row < n; row++)		/* Compute YYs of inner grid along W/E edge */
 		nest->edge_col[lev][row] = nest->hdr[lev].y_min + yoff + row * nest->hdr[lev].y_inc;
 
 	/* These two will be used to make copies of data around the connected boundary on parent grid */
 	n = nest->LRcol[lev] - nest->LLcol[lev] + 1;
-	nest->edge_row_Ptmp[lev] = (double *)mxCalloc((size_t)n, sizeof(double));
-	nest->edge_row_P[lev]    = (double *)mxCalloc((size_t)n, sizeof(double));
+	nest->edge_row_Ptmp[lev] = (double *) mxCalloc((size_t)n, sizeof(double));
+	nest->edge_row_P[lev]    = (double *) mxCalloc((size_t)n, sizeof(double));
 	for (i = 0; i < n; i++)
 		nest->edge_row_P[lev][i] = nest->LLx[lev] + xoff_P + i * hdr.x_inc;      /* XX coords of parent grid along N/S edge */
 
 	n = nest->ULrow[lev] - nest->LLrow[lev] + 1;
-	nest->edge_col_Ptmp[lev] = (double *)mxCalloc((size_t)n, sizeof(double));
-	nest->edge_col_P[lev]    = (double *)mxCalloc((size_t)n, sizeof(double));
+	nest->edge_col_Ptmp[lev] = (double *) mxCalloc((size_t)n, sizeof(double));
+	nest->edge_col_P[lev]    = (double *) mxCalloc((size_t)n, sizeof(double));
 	for (i = 0; i < n; i++)
 		nest->edge_col_P[lev][i] = nest->LLy[lev] + xoff_P + i * hdr.y_inc;     /* YY coords of parent grid along W/E edge */
 
@@ -2365,29 +2364,33 @@ int read_bnc_file(struct nestContainer *nest, char *file) {
 	char	*p, line[256], buffer[256], *ntoken = NULL;
 	FILE	*fp;
 
-	if ((fp = fopen (file, "r")) == NULL) {
-		mexPrintf ("NSWING: Unable to open file %s - exiting\n", file);
+	if ((fp = fopen(file, "r")) == NULL) {
+		mexPrintf("NSWING: Unable to open file %s - exiting\n", file);
 		return (-1);
 	}
 
 	nest->bnc_border[1] = TRUE;	/* <<<<<<<<<<<<<<< TEMP ---------- */
 
-	while (fgets (line, 256, fp) != NULL) {
+	while (fgets(line, 256, fp) != NULL) {
 		if (line[0] == '#') continue;	/* Jump comment lines */
 		if (!done_nPts) {
-			strcpy (buffer, line);
-			n_pts = count_col (buffer);	/* Count # of points along border */
+			strcpy(buffer, line);
+			n_pts = count_col(buffer);	/* Count # of points along border */
 			if (n_pts % 2 || n_pts < 2) {
 				mexPrintf ("NSWING: Must have at least one pair of (x,y) points\n", file);
 				return (-1);
 			}
 			n_pts /= 2;	/* It was the number of x and y */
-			nest->bnc_pos_x = (double *) mxMalloc ((size_t)n_pts * sizeof (double));
-			nest->bnc_pos_y = (double *) mxMalloc ((size_t)n_pts * sizeof (double));
-			p = (char *)strtok_s (line, " \t\n\015\032", &ntoken);
-			sscanf (p, "%lf", &nest->bnc_pos_x[n]);
-			for (n = 0; n < n_pts; n++) {
-				p = (char *)strtok_s (NULL, " \t\n\015\032", &ntoken);
+			nest->bnc_pos_x = (double *) mxMalloc((size_t)n_pts * sizeof(double));
+			nest->bnc_pos_y = (double *) mxMalloc((size_t)n_pts * sizeof(double));
+			p = (char *)strtok_s(line, " \t\n\015\032", &ntoken);
+			sscanf (p, "%lf", &nest->bnc_pos_x[0]);
+			p = (char *)strtok_s(NULL, " \t\n\015\032", &ntoken);
+			sscanf (p, "%lf", &nest->bnc_pos_y[0]);
+			for (n = 1; n < n_pts; n++) {		/* Now read remaining points */
+				p = (char *)strtok_s(NULL, " \t\n\015\032", &ntoken);
+				sscanf (p, "%lf", &nest->bnc_pos_x[n]);
+				p = (char *)strtok_s(NULL, " \t\n\015\032", &ntoken);
 				sscanf (p, "%lf", &nest->bnc_pos_y[n]);
 			}
 			done_nPts = TRUE;
@@ -2395,8 +2398,8 @@ int read_bnc_file(struct nestContainer *nest, char *file) {
 			continue;
 		}
 
-		strcpy (buffer, line);
-		n_vars = count_col (buffer);	/* Count # of variables. */
+		strcpy(buffer, line);		/* 'line' is now a data row */
+		n_vars = count_col(buffer);	/* Count # of variables. */
 		if (n_vars == 0) continue;	/* Empty line */
 		if (n_vars < 2) {
 			mexPrintf ("NSWING: Variables on bnc file (%s) must be (t,z1,[z2,...]), but got only %d fields\n", file, n_vars);
@@ -2404,15 +2407,15 @@ int read_bnc_file(struct nestContainer *nest, char *file) {
 		}
 		if (first_vars) {
 			N = n_vars;
-			nest->bnc_var_t = (double *) mxMalloc ((size_t)n_alloc * sizeof (double));
-			nest->bnc_var_z = (double **) mxMalloc ((size_t)n_alloc * sizeof (double));
-			nest->bnc_var_zTmp = (double *) mxMalloc ((size_t)(N-1) * sizeof (double));
+			nest->bnc_var_t    = (double *)  mxMalloc((size_t)n_alloc * sizeof(double));
+			nest->bnc_var_z    = (double **) mxMalloc((size_t)n_alloc * sizeof(double));
+			nest->bnc_var_zTmp = (double *)  mxMalloc((size_t)(N-1)   * sizeof(double));
 			for (n = 0; n < n_alloc; n++)
-				nest->bnc_var_z[n] = (double *) mxMalloc ((size_t)(N-1) * sizeof (double));
+				nest->bnc_var_z[n] = (double *) mxMalloc((size_t)(N-1) * sizeof(double));
 
 			/*if (N == 4) {
-				nest->bnc_var_U = (double *) mxMalloc ((size_t)n_alloc * sizeof (double));
-				nest->bnc_var_V = (double *) mxMalloc ((size_t)n_alloc * sizeof (double));
+				nest->bnc_var_U = (double *) mxMalloc ((size_t)n_alloc * sizeof(double));
+				nest->bnc_var_V = (double *) mxMalloc ((size_t)n_alloc * sizeof(double));
 			}*/
 			first_vars = FALSE;
 		}
@@ -2420,23 +2423,24 @@ int read_bnc_file(struct nestContainer *nest, char *file) {
 			mexPrintf ("NSWING: WARNING, expected %d variables but found %d Ignoring this entry\n", N, n_vars);
 			continue;
 		}
-		p = (char *)strtok_s (line, " \t\n\015\032", &ntoken);
+		p = (char *)strtok_s(line, " \t\n\015\032", &ntoken);
 		sscanf (p, "%lf", &nest->bnc_var_t[n_ts]);
 		for (n = 0; n < N-1; n++) {
-			p = (char *)strtok_s (NULL, " \t\n\015\032", &ntoken);
+			p = (char *)strtok_s(NULL, " \t\n\015\032", &ntoken);
 			sscanf (p, "%lf", &nest->bnc_var_z[n_ts][n]);
 		}
 		//else 
-			//sscanf (line, "%lf %lf %lf %lf", &nest->bnc_var_t[n_ts], &nest->bnc_var_z[n_ts], &nest->bnc_var_U[n_ts], &nest->bnc_var_V[n_ts]);
+			//sscanf (line, "%lf %lf %lf %lf", &nest->bnc_var_t[n_ts], &nest->bnc_var_z[n_ts],
+			//&nest->bnc_var_U[n_ts], &nest->bnc_var_V[n_ts]);
 
 		n_ts++;
 		if (n_ts > n_alloc) {
 			n_alloc += 1024;
-			nest->bnc_var_t = (double *)  mxRealloc (nest->bnc_var_t, (size_t)n_alloc * sizeof (double));
-			nest->bnc_var_z = (double **) mxRealloc (nest->bnc_var_z, (size_t)n_alloc * sizeof (double));
+			nest->bnc_var_t = (double *)  mxRealloc(nest->bnc_var_t, (size_t)n_alloc * sizeof(double));
+			nest->bnc_var_z = (double **) mxRealloc(nest->bnc_var_z, (size_t)n_alloc * sizeof(double));
 			/*if (N == 4) {
-				nest->bnc_var_U = (double *) mxRealloc (nest->bnc_var_U, (size_t)n_alloc * sizeof (double));
-				nest->bnc_var_V = (double *) mxRealloc (nest->bnc_var_V, (size_t)n_alloc * sizeof (double));
+				nest->bnc_var_U = (double *) mxRealloc(nest->bnc_var_U, (size_t)n_alloc * sizeof(double));
+				nest->bnc_var_V = (double *) mxRealloc(nest->bnc_var_V, (size_t)n_alloc * sizeof(double));
 			}*/
 		}
 	}
@@ -2451,11 +2455,11 @@ void interp_bnc(struct nestContainer *nest, double t) {
 	double s;
 
 	if (!nest->edge_row_P[0]) {
-		nest->edge_row_P[0] = (double *)mxCalloc((size_t)nest->hdr[0].nx, sizeof(double));
+		nest->edge_row_P[0] = (double *) mxCalloc((size_t)nest->hdr[0].nx, sizeof(double));
 		for (i = 0; i < nest->hdr[0].nx; i++)
-			nest->edge_row_P[0][i] = nest->hdr[0].x_min + i * nest->hdr[0].x_inc;      /* YY coords along W/E edge */
+			nest->edge_row_P[0][i] = nest->hdr[0].x_min + i * nest->hdr[0].x_inc;      /* XX coords along S/N edge */
 
-		nest->bnc_var_z_interp = (double *) mxMalloc ((size_t)nest->hdr[0].nx * sizeof (double));
+		nest->bnc_var_z_interp = (double *) mxMalloc((size_t)nest->hdr[0].nx * sizeof(double));
 	}
 
 	for (n = 0; n < nest->bnc_var_nTimes - 1; n++) {
@@ -2467,8 +2471,10 @@ void interp_bnc(struct nestContainer *nest, double t) {
 			break;
 		}
 	}
+
 	if (nest->bnc_pos_nPts > 1)
-		intp_lin (nest->bnc_pos_x, nest->bnc_var_zTmp, nest->bnc_pos_nPts, nest->hdr[0].nx, nest->edge_row_P[0], nest->bnc_var_z_interp);
+		intp_lin(nest->bnc_pos_x, nest->bnc_var_zTmp, nest->bnc_pos_nPts, nest->hdr[0].nx,
+		          nest->edge_row_P[0], nest->bnc_var_z_interp);
 	else {		/* One point only, replicate it into all values of the line */
 		for (n = 0; n < nest->hdr[0].nx; n++)
 			nest->bnc_var_z_interp[n] = nest->bnc_var_zTmp[0];
@@ -2478,7 +2484,7 @@ void interp_bnc(struct nestContainer *nest, double t) {
 
 /* -------------------------------------------------------------------- */
 void no_sys_mem(char *where, unsigned int n) {	
-		mexPrintf ("Fatal Error: %s could not allocate memory, n = %d\n", where, n);
+		mexPrintf("Fatal Error: %s could not allocate memory, n = %d\n", where, n);
 #ifdef I_AM_MEX
 		mexErrMsgTxt("\n");
 #endif
@@ -2739,19 +2745,23 @@ void write_most_slice(struct nestContainer *nest, int *ncid, int *ids, unsigned 
 				err_trap (nc_put_vara_float (ncid[0], ids[0], start, count, work));
 			}
 			else if (n == 1) {		/* X velocity */ 
-				for (row = j_start, k = 0; row < j_end; row++)
+				for (row = j_start, k = 0; row < j_end; row++) {
 					for (col = i_start; col < i_end; col++) {
 						ij = ij_grd(col, row, nest->hdr[lev]);
-						work[k++] = (nest->htotal_d[lev][ij] < EPS3) ? 0 : (float)(nest->fluxm_d[lev][ij] / nest->htotal_d[lev][ij] * 100);
+						work[k++] = (nest->htotal_d[lev][ij] < EPS3) ? 0 :
+						            (float)(nest->fluxm_d[lev][ij] / nest->htotal_d[lev][ij] * 100);
 					}
+				}
 				err_trap (nc_put_vara_float (ncid[1], ids[1], start, count, work));
 			}
 			else {				/* Y velocity */ 
-				for (row = j_start, k = 0; row < j_end; row++)
+				for (row = j_start, k = 0; row < j_end; row++) {
 					for (col = i_start; col < i_end; col++) {
 						ij = ij_grd(col, row, nest->hdr[lev]);
-						work[k++] = (nest->htotal_d[lev][ij] < EPS3) ? 0 : (float)(nest->fluxn_d[lev][ij] / nest->htotal_d[lev][ij] * 100);
+						work[k++] = (nest->htotal_d[lev][ij] < EPS3) ? 0 :
+						            (float)(nest->fluxn_d[lev][ij] / nest->htotal_d[lev][ij] * 100);
 					}
+				}
 				err_trap (nc_put_vara_float (ncid[2], ids[2], start, count, work));
 			}
 		}
@@ -2805,7 +2815,7 @@ int write_maregs_nc(struct nestContainer *nest, char *fname, float *work, double
 	/* ---- Global Attributes ------------ */
 	err_trap (nc_put_att_text (ncid, NC_GLOBAL, "Institution", 10, "Mirone Tec"));
 	err_trap (nc_put_att_text (ncid, NC_GLOBAL, "Description", 22, "Created by Mirone-NSWING"));
-	err_trap (nc_put_att_int  (ncid, NC_GLOBAL, "Number of maregraphs", NC_UINT, 1, &n_maregs));
+	err_trap (nc_put_att_int  (ncid, NC_GLOBAL, "Number of maregraphs", NC_INT, 1, &(int)n_maregs));
 
 	err_trap (nc_enddef (ncid));
 
