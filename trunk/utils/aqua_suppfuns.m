@@ -299,13 +299,29 @@ function coards_sliceShow(handles, Z)
 		hFigs = findobj(0,'type','figure');
 		if (numel(hFigs) == 2)	% Often we have an empty Mir fig but that is very difficult to use here. So blow it
 			inds = [isempty(getappdata(hFigs(1), 'IAmAMirone')) isempty(getappdata(hFigs(2), 'IAmAMirone'))];
-			hFigs = hFigs(~inds);				% Only one of them is a Mirone fig
+			hFigs = hFigs(~inds);							% Only one of them is a Mirone fig
 			handThis = guidata(hFigs);
 			if (~handThis.validGrid),		delete(hFigs),	clear handThis,	end
 		end
+		
+		reset = false;
+		if (~ishandle(handles.hMirFig))						% Save this before handles.hMirFig is reset
+			nLayers = handles.handMir.nLayers;
+			reset = true;
+		end
+		
 		handles.hMirFig = mirone(Z, tmp);
 		move2side(handles.figure1,handles.hMirFig,'left')
 		handles.handMir = guidata(handles.hMirFig);			% Get the handles of the now existing Mirone fig
+
+		if (reset)											% Figure was killed but the folowing info exists and is needed
+			handles.handMir.nLayers = nLayers;
+			handles.handMir.netcdf_z_id = handles.netcdf_z_id;
+			handles.handMir.nc_info = handles.nc_info;
+			handles.handMir.time_z = handles.time;
+			handles.handMir.grdname = handles.fname;		% At least grid_profiler() needs this for the 3D interpolations
+		end
+
 		handles.firstLandPhoto = true;
 		if (handles.useLandPhoto)
 			h = image('XData',handles.geoPhotoX,'YData',handles.geoPhotoY, 'CData',handles.geoPhoto, 'Parent',handles.handMir.axes1);
