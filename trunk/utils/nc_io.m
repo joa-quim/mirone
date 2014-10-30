@@ -294,6 +294,11 @@ function write_nc(fname, handles, data, misc, page)
 
 	if (deflation_level)
 		varstruct.Deflate = deflation_level;
+		chunksize = set_optimal_chunksize(data);
+		if (~isempty(chunksize))
+			varstruct.Shuffle = 1;
+			varstruct.Chunking = chunksize;
+		end
 	end
 
 	nc_funs('addvar', fname, varstruct )
@@ -687,3 +692,32 @@ function deflation_level = get_deflation(handles)
 			end
 		end
 	end
+
+% -----------------------------------------------------------------------------------------------------
+function chunksize = set_optimal_chunksize(Z)
+% Determines the optimal chunksize
+% Porting of the GMT function with the same name
+
+	chunksize = [128, 128];		min_chunk_pixels = prod(chunksize);
+	[ny, nx] = size(Z);
+	if (ny < chunksize(1) || nx < chunksize(2))		% If chunk size is smaller than grid size
+		chunksize = [];
+		return
+	elseif (nx * ny < min_chunk_pixels)						% Grid too small
+		chunksize = [];
+		return
+	end
+
+	% Adjust default chunk sizes for grids that have more than min_chunk_pixels
+	% cells but less than chunksize (default 128) cells in one dimension
+	if (ny < chunksize(1))
+		chunksize(1) = ny;
+		chunksize(2) = floor(min_chunk_pixels / chunksize(1));
+	elseif (nx < chunksize(2))
+		chunksize(2) = nx;
+		chunksize(1) = floor(min_chunk_pixels / chunksize(2));
+	end
+
+	% determine optimal chunk size in the range [chunksize,2*chunksize]
+	chunksize(1) = ceil (ny / floor (ny / chunksize(1)));
+	chunksize(2) = ceil (nx / floor (nx / chunksize(2)));
