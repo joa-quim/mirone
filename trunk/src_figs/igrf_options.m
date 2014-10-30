@@ -1,7 +1,7 @@
 function varargout = igrf_options(varargin)
 % Select options to pass to the igrf_m MEX and conpute IGRF 
 
-%	Copyright (c) 2004-2012 by J. Luis
+%	Copyright (c) 2004-2014 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -15,7 +15,9 @@ function varargout = igrf_options(varargin)
 %
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
- 
+
+% $Id$
+
 	hObject = figure('Vis','off');
 	igrf_options_LayoutFcn(hObject);
 	handles = guihandles(hObject);
@@ -467,11 +469,8 @@ function push_InputFile_CB(hObject, handles, opt)
 	end
 
 	[m,n] = size(numeric_data);
-	ind_igrf = out(1:5);    ind_opt = out(6:7);     % Split indices to more convinient vars
-	if (ind_igrf(3) == 0)   % Total Field is missing. OK it only means that we cannot compute the anomaly
-        ind_opt(2) = 0;
-	end
-	if (ind_igrf(4) == 0)   % Date is missing (get it from the year edit box)
+	ind_igrf = out(1:5);	% Split indices to more convinient vars
+	if (ind_igrf(4) == 0)	% Date is missing (get it from the year edit box)
         date = str2double(get(handles.edit_DateDec,'String'));
         date = repmat(date,m,1);
 	else
@@ -597,7 +596,7 @@ function edit_Nrows_CB(hObject, handles)
 
 % -------------------------------------------------------------------------------------------------
 function push_ComputeGrid_CB(hObject, handles)
-	% Compute a grid of the field specified on popup_FieldComponent, but first do some tests
+% Compute a grid of the field specified on popup_FieldComponent, but first do some tests
 	xmin = get(handles.edit_x_min,'String');     xmax = get(handles.edit_x_max,'String');
 	xinc = get(handles.edit_x_inc,'String');
 	ymin = get(handles.edit_y_min,'String');     ymax = get(handles.edit_y_max,'String');
@@ -643,6 +642,7 @@ function push_ComputeGrid_CB(hObject, handles)
         case 'Inclination'
             opt_F = '-Fi';  name = 'IGRF Inclination';
 	end
+	name = [name '(Time=' get(handles.edit_DateDec,'Str') ')'];		% Add time to title
 
 	n = str2double(get(handles.edit_Ncols,'String'));
 	m = str2double(get(handles.edit_Nrows,'String'));
@@ -650,7 +650,7 @@ function push_ComputeGrid_CB(hObject, handles)
 	Y = linspace(ymin,ymax,m);
 	XX = reshape(repmat(X,m,1),1,m*n);
 	YY = repmat(Y,1,n);
-	f = igrf_m(XX,YY,elev, date,opt_F);         clear XX YY;
+	f = igrf_m(XX,YY,elev, date, opt_F);         clear XX YY;
 	Zmin = min(f(:));    Zmax = max(f(:));
 	f = single(reshape(f,m,n));
 
