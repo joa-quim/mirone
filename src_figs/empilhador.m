@@ -5,7 +5,7 @@ function varargout = empilhador(varargin)
 %
 % NOTE: The gotFromMETA and getZ functions are callable directly by mirone
 
-%	Copyright (c) 2004-2013 by J. Luis
+%	Copyright (c) 2004-2014 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -1637,7 +1637,8 @@ function [opt_R, opt_I, opt_C, bitflags, flagsID, despike] = sniff_in_OPTcontrol
 	% the user can choose to use my default values that were written in .../tmp/L2config.txt by
 	% push_compute_CB, or alternatively by redirecting the reading to the .../data/L2config.txt
 	handles = fish_handles;
-	if (~isempty(handles) && get(handles.check_L2, 'Val'))		% This should now be the main branch
+	if (~isempty(handles) &&  isfield(handles,'check_L2') && get(handles.check_L2, 'Val'))
+		% This should now be the main branch
 		if (get(handles.check_L2conf, 'Val'))
 			opt_file = [handles.path_data 'L2config.txt'];		% Use User edited config file
 			if (~(exist(opt_file, 'file') == 2))
