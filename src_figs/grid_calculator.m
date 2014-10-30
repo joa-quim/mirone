@@ -359,7 +359,7 @@ function push_compute_CB(hObject, handles)
 			com_s = strrep(com_s, '.^', '^');
 			[resp, msg] = stalone(com_s, grid);
 			if (isempty(resp)),			errordlg('Programming error. Result is empty', 'Error'),	return
-			elseif (~isempty(msg))		errordlg(['ERROR: ' msg]),	return
+			elseif (~isempty(msg)),		errordlg(['ERROR: ' msg]),	return
 			end
 		end
 
@@ -421,7 +421,7 @@ function bandArithm(handles, com)
 			com_s = strrep(com_s, '.^', '^');
 			[resp, msg] = stalone(com_s, grid);
 			if (isempty(resp)),			errordlg('Programming error. Result is empty', 'Error'),	return
-			elseif (~isempty(msg))		errordlg(['ERROR: ' msg]),	return
+			elseif (~isempty(msg)),		errordlg(['ERROR: ' msg]),	return
 			end
 		end
 
@@ -450,7 +450,7 @@ function str = move_operator(str)
 % Make sure that operators are not "glued" to operands.
 % But allow grid names with the '-' character.
 
-	[str, ind_s] = let_gridnames_have(str);		% Temporarily replace '-' by '_' in grid names
+	[str, did] = let_gridnames_have(str, 'forward');	% Temporarily replace +-()= by invisible chars
 	k = strfind(str,')');
 	if (k),		str = strrep(str,')',' ) ');    end
 	k = strfind(str,'(');
@@ -465,8 +465,8 @@ function str = move_operator(str)
 	if (k),		str = strrep(str,'/',' / ');    end
 	k = strfind(str,'\');
 	if (k),		str = strrep(str,'\',' \ ');    end
-	if (~isnan(ind_s(1)))
-		str(ind_s) = '-';	% Reset to original name
+	if (did)	% Reset the invisible chars back to the originals +,-,(,),=
+		str = let_gridnames_have(str, 'inv');
 	end
 	k = strfind(str,'. ');
 	if (k)					% Here we want to have things like '.*' and not '. *'
@@ -484,18 +484,28 @@ function str = move_operator(str)
 	end
 
 % ------------------------------------------------------------------------
-function [str, ind_s] = let_gridnames_have(str)
-% Let grid names have the minus (-) character in the name. We do this by temporarily replacing
-% '-' by '_'. The caller is reponsable for undoing this change with the help of index vector IND_S
-	ind = strfind(str,'&');		ind_s = [];
-	if (isempty(ind)),	ind_s = NaN;	return,		end
-	for (k = 1:numel(ind))
-		t = strtok(str(ind(k):end));
-		ind_s = [ind_s (ind(k) + strfind(t, '-') - 1)];
-		t = strrep(t,'-','_');
-		str(ind(k) : ind(k)+numel(t)-1) = t;
+function [str, did] = let_gridnames_have(str, dir)
+% Let grid names have the  +,-,(,),= characters in the name. We do this by temporarily replacing
+% them with char(1), char(2), ... char(5). 
+% When DIR ~= 'forward' this function does the inverse operations
+
+	did = false;
+	ind = strfind(str,'&');
+	if (isempty(ind)),	return,		end
+	did = true;
+	if (strncmpi(dir, 'for',3))
+		for (k = 1:numel(ind))
+			t = strtok(str(ind(k):end));
+			t = strrep(t,'+',char(1));		t = strrep(t,'-',char(2));
+			t = strrep(t,'(',char(3));		t = strrep(t,')',char(4));
+			t = strrep(t,'=',char(5));
+			str(ind(k) : ind(k)+numel(t)-1) = t;
+		end
+	else			% Do the inverse replacement. That is , restore original name
+		str = strrep(str,char(1), '+');		str = strrep(str,char(2), '-');
+		str = strrep(str,char(3), '(');		str = strrep(str,char(4), ')');
+		str = strrep(str,char(5), '=');
 	end
-	if (isempty(ind_s)),	ind_s = NaN;	end
 
 % ------------------------------------------------------------------------
 function [out, msg] = stalone(comm, grid)
@@ -599,6 +609,7 @@ function [out, ops, grid, msg, s_names] = exec_n_consume(ops, op, grid, s_names)
 % GRID is the structure holding all the array (when they are)
 % At the end return the consumed cell OPS that will hold compute result when it was a scalar
 % or update the content of the GRID.() member that was the first operand
+
 	k = 2;		msg = '';	out = [];
 	while (k < numel(ops))
 		if (ops{k} == op)
@@ -640,16 +651,16 @@ function [r, msg] = do_mull_add(a, b, op, grid)
 	a_n = str2double(a);	b_n = str2double(b);
 	if (~isnan(a_n) && ~isnan(b_n))							% Trivial case of scalar operation
 		if (op == '+'),		r = a_n + b_n;
-		elseif (op == '-')	r = a_n - b_n;
-		elseif (op == '*')	r = a_n * b_n;
-		elseif (op == '/')	r = a_n / b_n;
+		elseif (op == '-'),	r = a_n - b_n;
+		elseif (op == '*'),	r = a_n * b_n;
+		elseif (op == '/'),	r = a_n / b_n;
 		else				r = a_n ^ b_n;
 		end
 	elseif (strncmp(a,'grid',3) && ~isnan(b_n))				% add|sub|mull|div|pow(Matrix, b)
 		if (op == '+'),		r = grid.(a(6)) + b_n;
-		elseif (op == '-')	r = grid.(a(6)) - b_n;
-		elseif (op == '*')	r = grid.(a(6)) * b_n;
-		elseif (op == '/')	r = grid.(a(6)) / b_n;
+		elseif (op == '-'),	r = grid.(a(6)) - b_n;
+		elseif (op == '*'),	r = grid.(a(6)) * b_n;
+		elseif (op == '/'),	r = grid.(a(6)) / b_n;
 		else				r = grid.(a(6)) ^ b_n;
 		end
 	elseif (strncmp(a,'grid',3) && strncmp(b,'grid',3))		% add|sub|mull|div|pow(Matrix, Matrix)
@@ -658,18 +669,18 @@ function [r, msg] = do_mull_add(a, b, op, grid)
 		end
 		try
 			if (op == '+'),		r = grid.(a(6)) +  grid.(b(6));
-			elseif (op == '-')	r = grid.(a(6)) -  grid.(b(6));
-			elseif (op == '*')	r = grid.(a(6)) .* grid.(b(6));
-			elseif (op == '/')	r = grid.(a(6)) ./ grid.(b(6));
+			elseif (op == '-'),	r = grid.(a(6)) -  grid.(b(6));
+			elseif (op == '*'),	r = grid.(a(6)) .* grid.(b(6));
+			elseif (op == '/'),	r = grid.(a(6)) ./ grid.(b(6));
 			else				r = grid.(a(6)) .^ grid.(b(6));
 			end
 		catch,	msg = lasterr;			% Quite likely a data type operation error
 		end
 	elseif (~isnan(a_n) && strncmp(b,'grid',3))				% add|sub|mull|div|pow(a, Matrix), some are odd but possible
 		if (op == '+'),		r = a_n + grid.(b(6));			% A bit idiot, but allowed
-		elseif (op == '-')	r = a_n - grid.(b(6));			%		""
-		elseif (op == '*')	r = a_n * grid.(b(6));
-		elseif (op == '/')	r = a_n ./ grid.(b(6));
+		elseif (op == '-'),	r = a_n - grid.(b(6));			%		""
+		elseif (op == '*'),	r = a_n * grid.(b(6));
+		elseif (op == '/'),	r = a_n ./ grid.(b(6));
 		else				r = a_n .^ grid.(b(6));
 		end
 	end
