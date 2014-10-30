@@ -781,6 +781,9 @@ function cut2cdf(handles, got_R, west, east, south, north)
 	nSlices = numel(handles.nameList);
 	n_rows = 0;		n_cols = 0;
 	n_cd = 1;
+	empties = cell(nSlices, 1);			% To hold the names of the empty/failures files/SDSs
+	have_empties = false;
+
 	for (k = 1:nSlices)
 		set(handles.listbox_list,'Val',k),		pause(0.01)			% Show advance
 
@@ -802,7 +805,8 @@ function cut2cdf(handles, got_R, west, east, south, north)
 			str = sprintf('Error reading header of file: %s\nIgnoring it\n', handles.nameList{k});
 			fprintf(str)
 			warndlg(str,'WarnError')
-			continue			% Probably, not good enoupg. We should create a Z of NaNs, but complicated here
+			empties{k} = handles.nameList{k};	have_empties = true;
+			continue			% Probably, not good enouph. We should create a Z of NaNs, but complicated here
 		end
 
 		curr_fname = handles.nameList{k};
@@ -813,14 +817,18 @@ function cut2cdf(handles, got_R, west, east, south, north)
 		try
 			% In the following, if any of slope, intercept or base changes from file to file ... f
 			NoDataValue = att.Band(1).NoDataValue;		% Backup it because it might be changed for other (now unknow) reasons.
-			[Z, handles.have_nans, att] = ...
+			[Z, handles.have_nans, att, was_empty_name] = ...
 				getZ(curr_fname, att, is_modis, is_linear, is_log, slope, intercept, base, opt_R, handles);
 			att.Band(1).NoDataValue = NoDataValue;
+			if (~isempty(was_empty_name))
+				empties{k} = was_empty_name;	have_empties = true;
+			end
 		catch
 			str = sprintf('Error reading file: %s\nIgnoring it\n', curr_fname);
 			fprintf(str)
 			warndlg(str,'WarnError')
 			Z = alloc_mex(n_rows, n_cols, 'single', NaN);
+			empties{k} = curr_fname;	have_empties = true;
 		end
 
 		% Check if all grids have the same size
@@ -842,7 +850,7 @@ function cut2cdf(handles, got_R, west, east, south, north)
 			continue
 		end
 		
-		if ( isa(Z,'int8') && (min(Z(:)) >= 0) )
+		if (isa(Z,'int8') && (min(Z(:)) >= 0))
 			grdutils(Z,'-c');								% Shift by -128 so it goes well with the uint8 add_off elsewere
 		end
 
@@ -881,6 +889,15 @@ function cut2cdf(handles, got_R, west, east, south, north)
 
 	if (get(handles.radio_conv2vtk,'Val')),		fclose(fid);	end
 	set(handles.listbox_list,'Val',1)
+
+	if (have_empties)			% Right. Get the names of empty arrays
+		c = false(nSlices,1);	% c vector with true for the files where we have data
+		for (k = 1:nSlices)
+			if (isempty(empties{k})),	c(k) = true;	end
+		end
+		empties(c) = [];		% The remainings of this are the failures/empties
+		message_win('create',empties, 'figname', 'Names of no-data files')
+	end
 
 % -----------------------------------------------------------------------------------------
 function [head, opt_R, slope, intercept, base, is_modis, is_linear, is_log, att, do_SDS] = ...
@@ -1201,7 +1218,7 @@ function NoDataValue = guess_nodataval(DsName)
 	end
 
 % -----------------------------------------------------------------------------------------
-function [Z, have_nans, att] = getZ(fname, att, is_modis, is_linear, is_log, slope, intercept, base, opt_R, handles)
+function [Z, have_nans, att, was_empty_name] = getZ(fname, att, is_modis, is_linear, is_log, slope, intercept, base, opt_R, handles)
 % ATT may be still unknown (empty). In that case it will be returned by read_gdal()
 % HANDLES, is transmitted only within internal calls of this function (that is, not from outside calls)
 
@@ -1248,9 +1265,9 @@ function [Z, have_nans, att] = getZ(fname, att, is_modis, is_linear, is_log, slo
 		Corners.UL = att.Corners.UL;
 	end
 
-	[Z, att, known_coords, have_nans] = read_gdal(fname, att, IamCompiled, IamInteractive, '-C', opt_R, '-U');
+	[Z, att, known_coords, have_nans, was_empty_name] = read_gdal(fname, att, IamCompiled, IamInteractive, '-C', opt_R, '-U');
 
-	if (nargin == 10 && ~isempty(handles.SDSflag))
+	if (nargin == 10 && ~isempty(handles.SDSflag) && ~isempty(was_empty_name))
 		ind = strfind(fname, ':');
 		flag_fname = [fname(1:ind(end)) handles.SDSflag];
 		att_flag = gdalread(flag_fname, '-M');
@@ -1258,10 +1275,10 @@ function [Z, have_nans, att] = getZ(fname, att, is_modis, is_linear, is_log, slo
 		Z(F < handles.minQuality) = NaN;
 	end
 
-	% See if we knew the image coordinates but that knowedge is lost in new att
-	if ( ~known_coords && ~isempty(GMT_hdr) )	% For the moment we only know for sure for L2 georeferenced products
-		if ( (isequal(att.GMT_hdr(8:9), [1 1]) && ~isequal(GMT_hdr(8:9), [1 1])) || (diff(GMT_hdr(1:2)) > 359.9) )
-			att.GMT_hdr = GMT_hdr;		% Recover the header info
+	% See if we knew the image coordinates but that knowledge is lost in new att
+	if (~known_coords && ~isempty(GMT_hdr))		% For the moment we only know for sure for L2 georeferenced products
+		if ((isequal(att.GMT_hdr(8:9), [1 1]) && ~isequal(GMT_hdr(8:9), [1 1])) || (diff(GMT_hdr(1:2)) > 359.9))
+			att.GMT_hdr = GMT_hdr;				% Recover the header info
 			att.Corners.LR = Corners.LR;
 			att.Corners.UL = Corners.UL;
 		end
@@ -1269,7 +1286,7 @@ function [Z, have_nans, att] = getZ(fname, att, is_modis, is_linear, is_log, slo
 
 	if (~isempty(uncomp_name)),		delete(uncomp_name);		end		% Delete uncompressed file.
 
-	if ( is_modis && ~isempty(att.Band(1).NoDataValue) && saveNoData)	% att.Band... is isempty when all work has been done before
+	if (is_modis && ~isempty(att.Band(1).NoDataValue) && saveNoData)	% att.Band... is isempty when all work has been done before
 		att.Band(1).NoDataValue = NoDataValue;		% Shity format doesn't inform on the no-data.
 	end
 
@@ -1289,7 +1306,7 @@ function [Z, have_nans, att] = sanitizeZ(Z, att, is_modis, is_linear, is_log, sl
 	end
 
 	ind = [];
-	if ( ~isempty(att.Band(1).NoDataValue) && (att.Band(1).NoDataValue == -9999) )		% TEMP -> PATHFINDER
+	if (~isempty(att.Band(1).NoDataValue) && (att.Band(1).NoDataValue == -9999))		% TEMP -> PATHFINDER
 		if ( ~isempty(att.Metadata) && ~isempty(search_scaleOffset(att.Metadata, 'dsp_SubImageName=QUAL')) )
 			% Quality flags files cannot be NaNified. 
 			% However, they should NOT have a scaling equation either. If quality is [0 7] why scalling?
@@ -1299,7 +1316,7 @@ function [Z, have_nans, att] = sanitizeZ(Z, att, is_modis, is_linear, is_log, sl
 		else
 			ind = (Z == 0);
 		end
-	elseif ( ~isempty(att.Band(1).NoDataValue) && ~isnan(att.Band(1).NoDataValue) )
+	elseif (~isempty(att.Band(1).NoDataValue) && ~isnan(att.Band(1).NoDataValue))
 		ind = (Z == (att.Band(1).NoDataValue));
 	elseif (isnan(att.Band(1).NoDataValue))		% The nodata is NaN, replace NaNs in Z by zero
 		ind = isnan(Z);
@@ -1329,20 +1346,25 @@ function [Z, have_nans, att] = sanitizeZ(Z, att, is_modis, is_linear, is_log, sl
 	end
 
 % -----------------------------------------------------------------------------------------
-function [Z, att, known_coords, have_nans] = read_gdal(full_name, att, IamCompiled, IamInteractive, varargin)
+function [Z, att, known_coords, have_nans, was_empty_name] = read_gdal(full_name, att, IamCompiled, IamInteractive, varargin)
 % Help function to gdalread that deals with cases when file is compressed.
 % ATT is the GDALREAD returned attributes. If empty, we'll get it here
 % VARARGIN will normally contain one or more of '-C', opt_R, '-U'
 % WARNING: If exist(att.hdfInfo) than att.fname should exist as well (both non standard)
 %
-% KNOWN_COORDS	Is a logical that whn true the informs the caller that we already know the coordinates for sure
+% KNOWN_COORDS	Is a logical that when true the informs the caller that we already know the coordinates for sure
 %				and no attempt should be made to fish them from the matadata info.
+%
+% WAS_EMPTY_NAME Is a char string with the name the file (or SDS when an SDS is requested) IF the corresponding
+%                array is empty. If the array is not empty, WAS_EMPTY_NAME itself is empty.
+%                This applies only to L2 files that are interpolated. We use it to check suspicious empty frames.
 %
 % This function is called only by getZ()
 
 	have_nans = [];			% Will only become ~[] when input is a L2 product to be interpolated and referenced
 	NoDataValue = [];		% Some defaults
 	known_coords = false;	% If we know for sure the coords (as for georefed L2 products) tell that to caller
+	was_empty_name = '';	% Will hold the file/SDS name in case it's empty (L2 only)
 	[full_name, uncomp_name] = deal_with_compressed(full_name);
 
 	opt_e = '';
@@ -1381,7 +1403,7 @@ function [Z, att, known_coords, have_nans] = read_gdal(full_name, att, IamCompil
 			lonID = find_in_subdatasets(att.AllSubdatasets, 'longitude');
 			ind = strfind(att.AllSubdatasets{lonID},'=');			% Still must rip the 'SUBDATASET_XX_NAME='
 			lon_full = gdalread(att.AllSubdatasets{lonID}(ind+1:end), '-L');
-			if ( isequal(size(lon_full), [att.RasterYSize att.RasterXSize]) )
+			if (isequal(size(lon_full), [att.RasterYSize att.RasterXSize]))
 				latID = find_in_subdatasets(att.AllSubdatasets, 'latitude');
 				ind = strfind(att.AllSubdatasets{latID},'=');
 				lat_full = gdalread(att.AllSubdatasets{latID}(ind+1:end), '-L');
@@ -1409,7 +1431,7 @@ function [Z, att, known_coords, have_nans] = read_gdal(full_name, att, IamCompil
 			x_max = double(max([lon_full(1) lon_full(1,end) lon_full(end,1) lon_full(end)]));
 			y_min = double(min([lat_full(1) lat_full(1,end) lat_full(end,1) lat_full(end)]));
 			y_max = double(max([lat_full(1) lat_full(1,end) lat_full(end,1) lat_full(end)]));
-			if ( any([x_min x_max y_min y_max] == -999) )		% CAN WE BELIVE THIS???? BUT HAPPENS!!!!!!!!!!!
+			if (any([x_min x_max y_min y_max] == -999))		% CAN WE BELIVE THIS???? BUT HAPPENS!!!!!!!!!!!
 				% YES, L2 MODIS files can have -999 as coordinates. This is unbelievable but happens.
 				% The remedy is to recompute limits and forget the f.. coordinates that will be trimmed by -R below
 				indNotFckCoords = (lon_full ~= -999);
@@ -1437,7 +1459,7 @@ function [Z, att, known_coords, have_nans] = read_gdal(full_name, att, IamCompil
 			[Z, did_scale, att] = handle_scaling(Z, att);			% See if we need to apply a scale/offset
 		end
 		if (isempty(att.GCPvalues) && ~isempty(GCPvalues)),		att.GCPvalues = GCPvalues;		end
-		if ( (att.Band(1).NoDataValue == -1) && (min(Z(:)) == -32767 ) )	% DIRTY PATCH to avoid previous bad nodata guessing
+		if ((att.Band(1).NoDataValue == -1) && (min(Z(:)) == -32767))	% DIRTY PATCH to avoid previous bad nodata guessing
 			att.Band(1).NoDataValue = -32767;
 			if (~isempty(NoDataValue)),		NoDataValue = -32767;	end
 		end
@@ -1494,7 +1516,7 @@ function [Z, att, known_coords, have_nans] = read_gdal(full_name, att, IamCompil
 					c = false(size(Zf));
 					Zf = uint32(Zf);
 					for (k = 1:numel(Zf))
-						if ( any(bitget(Zf(k),bitflags)) ),	c(k) = true;	end
+						if (any(bitget(Zf(k),bitflags))),	c(k) = true;	end
 					end
 					clear Zf
 					if (~isfield(att, 'subDsName') || ~strcmp(att.subDsName, 'l2_flags'))		% 'Normal' cases 
@@ -1506,12 +1528,10 @@ function [Z, att, known_coords, have_nans] = read_gdal(full_name, att, IamCompil
 					clear c
 				end
 				ind = (Z == (att.Band(1).NoDataValue));
-				Z(ind) = [];		lon_full(ind) = [];		lat_full(ind) = [];		hWarn = [];
+				Z(ind) = [];		lon_full(ind) = [];		lat_full(ind) = [];
 
 				if (isempty(Z))			% Instead of aborting we let it go with fully NaNified array
-					if (~isempty(bitflags))
-						hWarn = warndlg(['As a result of applying (probably wrong) quality flags, no data was left in: ' full_name],'Warning');
-					end
+					was_empty_name = full_name;		% Send back to the caller the file (or sds) name of the empty thing
 					[Z, head] = nearneighbor_m(single(1e3), single(1e3), single(0), opt_R, opt_e, '-N1', opt_I, '-S0.02');
 				else
 					if (what.nearneighbor)
@@ -1534,9 +1554,6 @@ function [Z, att, known_coords, have_nans] = read_gdal(full_name, att, IamCompil
 				att.Band(1).NoDataValue = [];		% Don't waist time later trying to NaNify again
 				x_min = head(1) - head(8)/2;		x_max = head(2) + head(8)/2;		% Goto pixel registration
 				y_min = head(3) - head(9)/2;		y_max = head(4) + head(9)/2;		% But not for att.GMT_hdr(7)
-				if (~isempty(hWarn))				% Kill them so that they don't potentially accumulate
-					pause(0.5);		delete(hWarn)
-				end
 			end
 			att.RasterXSize = size(Z,2);		att.RasterYSize = size(Z,1);
 			att.Band.XSize = size(Z,2);			att.Band.YSize = size(Z,1);
