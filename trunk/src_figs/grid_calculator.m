@@ -495,6 +495,7 @@ function [str, ind_s] = let_gridnames_have(str)
 		t = strrep(t,'-','_');
 		str(ind(k) : ind(k)+numel(t)-1) = t;
 	end
+	if (isempty(ind_s)),	ind_s = NaN;	end
 
 % ------------------------------------------------------------------------
 function [out, msg] = stalone(comm, grid)
