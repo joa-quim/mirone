@@ -45,8 +45,8 @@ function varargout = slices(varargin)
 		handles.DefineMeasureUnit = handMir.DefineMeasureUnit;	%				"
 		handles.IamCompiled = handMir.IamCompiled;
 		handles.path_tmp = handMir.path_tmp;
-		try,	handles.ncVarName = handMir.ncVarName;	end		% May exist only for files with 1 or multiple 3D datasets
-		d_path = handMir.path_data;
+		try		handles.ncVarName = handMir.ncVarName;	end		% May exist only for files with 1 or multiple 3D datasets
+		handles.path_data = handMir.path_data;		% Used also to fish the deflation_level in nc_io()
 	else
 		if (numel(varargin) >= 1)		% File name in input
 			if (exist(varargin{1}, 'file') == 2)
@@ -66,7 +66,7 @@ function varargout = slices(varargin)
 		handles.DefineEllipsoide = [6378137, 0, 1/298.2572235630];	% Defaults to WGS-84
  		handles.DefineMeasureUnit = 'u';							% Defaults to 'user' units
 		handles.path_tmp = [handles.home_dir filesep 'tmp' filesep];
-		d_path = [handles.home_dir filesep 'data' filesep];
+		handles.path_data = [handles.home_dir filesep 'data' filesep];
 		% Need to know if "IamCompiled". Since that info is in Mirone handles, we need to find it out here
 		try			s.s = which('mirone');			handles.IamCompiled = false;
 		catch,		handles.IamCompiled = true;
@@ -74,7 +74,7 @@ function varargout = slices(varargin)
 	end
 
 	% -------------- Import/set icons --------------------------------------------
-	load([d_path 'mirone_icons.mat'],'Mfopen_ico');
+	load([handles.path_data 'mirone_icons.mat'],'Mfopen_ico');
 	set(handles.push_inputName,'CData',Mfopen_ico)
 	set(handles.push_fname1,'CData',Mfopen_ico)
 	set(handles.push_fname2,'CData',Mfopen_ico)
@@ -332,7 +332,7 @@ function popup_cases_CB(hObject, handles)
 	% =========================================================================
 
 	for (k = 1:numel(handles.cases{val,2}))		% Loop over floaters uicontrols of case 'val' for:
-		if ( ~isempty(handles.cases{val,2}{k}) )
+		if (~isempty(handles.cases{val,2}{k}))
 			set(handles.cases{val,1}(k), 'pos', handles.cases{val,2}{k})	% repositioning
 		end
 		set(handles.cases{val,3}{1}, 'Str', handles.cases{val,3}{2})		% Reset uicontrol String
@@ -374,7 +374,7 @@ function popup_cases_CB(hObject, handles)
 		set(handles.edit_periods,'Tooltip',sprintf(['Number of days of the composit period (e.g. 3, 8, 30)\n' ...
 			'Alternatively can be a vector with the periods to compute.\n' ...
 			'For example this will compute 3 days composits of Jan2012\n' ...
-			'2012.0:3/365:(2012+29/365)']));
+			'2012.0:3/365:(2012+31/365)']));
 	end
 	str = get(handles.text_bounds, 'Str');
 	if (str(1) == 'S')		% The 'Subset' case
@@ -492,7 +492,7 @@ function edit_periods_CB(hObject, handles)
 	str = strrep(str,':',' ');		str = strrep(str,'/',' ');	% Replace ':' '/' by spaces
 	erro = false;		n = 0;
 	[t,r] = strtok(str);
-	while (~isempty(t) && ~erro )
+	while (~isempty(t) && ~erro)
 		if (isnan(str2double(t))),  erro = true;
 		else                        [t,r] = strtok(r);
 		end
@@ -753,13 +753,13 @@ function helper_writeFile(handles, fid, comm, opt1, opt2)
 		else                    fprintf(fid,'char %s\n', fname);
 		end
 	elseif (strncmp(opt1, 'subset',3))
-		fprintf(fid, sprintf( '[%s %s]\n', get(handles.edit_subSetA,'Str'), get(handles.edit_subSetB,'Str') ));
+		fprintf(fid, sprintf('[%s %s]\n', get(handles.edit_subSetA,'Str'), get(handles.edit_subSetB,'Str')));
 	elseif (strncmp(opt1, 'flags',3))
 		fname = get(handles.edit_fname3, 'Str');
 		if (isempty(fname)),    fprintf(fid,'[]\n');
 		else                    fprintf(fid,'char %s\n', fname);
 		end
-		fprintf( fid,sprintf('# The ''quality'' value. Ignored if fname = []\n%s\n', get(handles.edit_qualFlag,'Str')) );
+		fprintf(fid,sprintf('# The ''quality'' value. Ignored if fname = []\n%s\n', get(handles.edit_qualFlag,'Str')));
 	elseif (strncmp(opt1, 'periods',3))
 		fprintf(fid,sprintf('%s\n',get(handles.edit_periods,'Str')));
 	end
@@ -781,7 +781,7 @@ function fname = helper_getFile(handles, fname, n)
 		[FileName, PathName] = put_or_get_file(handles, ...
 			{'*.nc;*.NC;*.dat', 'Data files (*.nc,*.NC,*.dat)';'*.*', 'All Files (*.*)'},'file',method);
 		if isequal(FileName,0),		return,		end
-		
+
 	else					% File name on input
 		[PathName,FNAME,EXT] = fileparts(fname);
 		if (~isempty(PathName)),	PathName = [PathName filesep];	end
