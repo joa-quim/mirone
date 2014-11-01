@@ -242,7 +242,7 @@ function out = zonal(handles, dlat, integ_lon, do_trends, sub_set, fnamePoly1, f
 	%------------- Check for quality flags request -------------------
 	if (~isempty(fnameFlag))
 		[s_flags, z_id_flags, msg] = checkFlags_compat(fnameFlag, handles.number_of_timesteps, rows, cols);
-		if (~isempty(msg))	errordlg(msg, 'Error'),		return,		end
+		if (~isempty(msg)),	errordlg(msg, 'Error'),		return,		end
 		do_flags = true;
 		if (quality > 0 ),	growing_flag = true;		% PATHFINDER flags
 		else				growing_flag = false;		% MODIS flags
@@ -315,7 +315,7 @@ function out = zonal(handles, dlat, integ_lon, do_trends, sub_set, fnamePoly1, f
 		end
 		% Now add all inside each stripe
 		for (m = 1:nStripes)
-			tmp2 = tmp( indStripe(m):indStripe(m+1) );
+			tmp2 = tmp(indStripe(m):indStripe(m+1));
 			tmp2(tmp2 == 0) = [];			% Not so unlikely
 			allSeries(m,k) = sum(tmp2) / numel(tmp2);
 		end
@@ -328,7 +328,7 @@ function out = zonal(handles, dlat, integ_lon, do_trends, sub_set, fnamePoly1, f
 
 	allSeries(allSeries == 0) = nan;		% NaN is more reasonable to denote data absence
 
-	if ( ~isempty(fnamePoly2) && exist(fnamePoly2,'file') == 2 )
+	if (~isempty(fnamePoly2) && exist(fnamePoly2,'file') == 2)
 		out2 = zonal(handles, dlat, integ_lon, false, sub_set, fnamePoly2, [], fnameFlag, quality);
 		allSeries = double(out2) - allSeries;
 	end
@@ -339,7 +339,7 @@ function out = zonal(handles, dlat, integ_lon, do_trends, sub_set, fnamePoly1, f
 		zz = grdutils(allSeries,'-L');
 		head = [1 nSeries vecD(1) vecD(end) zz(1) zz(2) 0 1 dlat];
 		clear tmp;				% To shut up a useless ML warning due to what will happen at next line
-		tmp.X = 1:nSeries;		tmp.Y = linspace( (vecD(1)+dlat/2), (vecD(end)-dlat/2), nStripes );
+		tmp.X = 1:nSeries;		tmp.Y = linspace((vecD(1)+dlat/2), (vecD(end)-dlat/2), nStripes);
 		if (~do_trends)			% 2D, Mirone
 			tmp.head = [head(1:2) tmp.Y(1) tmp.Y(end) head(5:end)];
 			tmp.geo = 0;		tmp.name = 'Zonal integration';
@@ -418,7 +418,7 @@ function calcGrad(handles, slope, sub_set, fnameFlag, quality, splina, scale, gr
 
 	if (nargin >= 4 && ~isempty(fnameFlag))
 		[s_flags, z_id_flags, msg] = checkFlags_compat(fnameFlag, handles.number_of_timesteps, rows, cols);
-		if (~isempty(msg))	errordlg(msg, 'Error'),		return,		end
+		if (~isempty(msg)),	errordlg(msg, 'Error'),		return,		end
  		%flags = nc_funs('varget', fnameFlag, s_flags.Dataset(z_id_flags).Name, [jump_anos 0 0], [n_anos rows cols]);
 		flags = alloc_mex(rows, cols, n_anos, 'uint8');
 		for (m = 1:n_anos)
@@ -497,7 +497,7 @@ function calcGrad(handles, slope, sub_set, fnameFlag, quality, splina, scale, gr
 	Tvar = zeros(rows, cols) * NaN;
 	for (m = 1:rows)
 		for (n = 1:cols)
-			y = double( squeeze(Tmed(m,n,:)) );
+			y = double(squeeze(Tmed(m,n,:)));
 			if (do_flags)
 				this_flag = squeeze(flags(m,n,:));
 				if (growing_flag),		y(this_flag < quality) = NaN;	% Pathfinder style (higher the best) quality flag
@@ -509,7 +509,7 @@ function calcGrad(handles, slope, sub_set, fnameFlag, quality, splina, scale, gr
 			if (numel(y) < n_anos * threshold_perc),	continue,	end	% Completely ad-hoc test (it also jumps land cells)
 
 			if (splina)
-				if ( ~all(ind) )		% Otherwise we have them all and so nothing to interp
+				if (~all(ind))		% Otherwise we have them all and so nothing to interp
 					akimaspline(x(~ind), y, x, yy);
 					y = yy;										
 					if (ind(1) || ind(end))				% Cases when where we would have extrapolations
@@ -604,7 +604,7 @@ function profiles_in_polygon(handles, Tmed, n_anos)
 		for (m = row_vec)
 			if (~IN(this_row)),		continue,	end				% This pixel is outside polygon POI
 			this_row = this_row + 1;
-			y = double( squeeze(Tmed(m,n,:)) );
+			y = double(squeeze(Tmed(m,n,:)));
 			ind = isnan(y);
 			y(ind) = [];
 			if (numel(y) < n_anos/2),		continue,	end		% Completely ad-hoc test
@@ -648,7 +648,7 @@ function applyFlags(handles, fname, flag, nCells, grd_out)
 	[z_id, s, rows, cols] = get_ncInfos(handles);
 
 	[s_flags, z_id_flags, msg] = checkFlags_compat(fname, handles.number_of_timesteps, rows, cols);
-	if (~isempty(msg))	errordlg(msg, 'Error'),		return,		end
+	if (~isempty(msg)),	errordlg(msg, 'Error'),		return,		end
 	if (nargin == 3),	nCells = 0;		end			% If not provided, defaults to no gaps fill
 
 	if (nargin < 5)
@@ -749,7 +749,7 @@ function calc_yearMean(handles, months, fname2, flag, nCells, fname3, splina, ti
 
 	if (nargin >= 3 && ~isempty(fname2))				% We have a quality-flag ghost file to check
 		[s_flags, z_id_flags, msg] = checkFlags_compat(fname2, handles.number_of_timesteps, rows, cols);
-		if (~isempty(msg))	errordlg(msg, 'Error'),		return,		end
+		if (~isempty(msg)),	errordlg(msg, 'Error'),		return,		end
 		if (nargin == 3),	nCells = 0;		flag = 7;	end			% If not provided, defaults to best quality
 		do_flags = true;
 	end
@@ -766,14 +766,14 @@ function calc_yearMean(handles, months, fname2, flag, nCells, fname3, splina, ti
 			pts_pos = text_read(chkPts_file);
 			indTimeSeries = zeros(size(pts_pos,1), 2);
 			for (k = 1:size(pts_pos,1))
-				indTimeSeries(k,1) = round( (pts_pos(k,1) - handles.head(1)) / handles.head(8) ) + 1;
-				indTimeSeries(k,2) = round( (pts_pos(k,2) - handles.head(3)) / handles.head(9) ) + 1;
+				indTimeSeries(k,1) = round((pts_pos(k,1) - handles.head(1)) / handles.head(8)) + 1;
+				indTimeSeries(k,2) = round((pts_pos(k,2) - handles.head(3)) / handles.head(9)) + 1;
 			end
 			%timeSeries = zeros(s.Dataset(3).Size, k);		% Total number of layers
 			timeSeries = [(1:s.Dataset(3).Size)' zeros(s.Dataset(3).Size, 2*k)];	% Total N of layers + N of check pts
 			indTSCurr_o = 1;		indTSCurr_s = 1;
 	
-			if ( rem(size(timeSeries,1), 12) ~= 0 )
+			if (rem(size(timeSeries,1), 12) ~= 0)
 				warndlg('Output time series works only with complete years of monthly data. Ignoring request','Warning')
 			else
 				do_saveSeries = true;
@@ -884,7 +884,7 @@ function calc_yearMean(handles, months, fname2, flag, nCells, fname3, splina, ti
 				this_months = past_months+1 : (months(end)+n_pad_months);
 			elseif (m == n_anos)
 				past_months = (m - 1)*12 + months(1) - n_pad_months - 1;
-				this_months = past_months+1 : past_months+( n_pad_months + numel(months) + min(n_pad_months, 12-months(end)) );
+				this_months = past_months+1 : past_months+(n_pad_months + numel(months) + min(n_pad_months, 12-months(end)));
 			else
 				past_months = (m - 1)*12 + months(1) - n_pad_months - 1;
 				this_months = past_months+1 : past_months+(numel(months)+2*n_pad_months);
@@ -986,14 +986,14 @@ function calc_yearMean(handles, months, fname2, flag, nCells, fname3, splina, ti
 			for (i = 1:cols)
 				for (j = 1:rows)
 					if (already_processed),		break,	end
-					y = double( squeeze( ZtoSpline(j,i,1:n_meses) ) );
+					y = double(squeeze(ZtoSpline(j,i,1:n_meses)));
 					ind = ~isnan(y);
 					% If have NaNs inside months of interest and the overall series has enough points, interp in the missing positions
-					if ( all( ind(first_wanted_month:last_wanted_month) ) )		% We have them all, so nothing to interp
+					if (all(ind(first_wanted_month:last_wanted_month)))		% We have them all, so nothing to interp
 						ZtoSpline(j,i,1:n_meses) = single(y);
 					elseif (~any(ind))		% They are all NaNs -- Almost sure a land pixel
 						continue
-					elseif ( numel(ind(~ind)) <= round( (numel(this_months) - (n_pad_months * (m ~= 1)) ) / 2) )
+					elseif (numel(ind(~ind)) <= round((numel(this_months) - (n_pad_months * (m ~= 1))) / 2))
 						% At least > 1/2 number of valid pts not counting first n_pad_months that were already interpolated
 						x = this_months(ind);			y0 = y(ind);
  						akimaspline(x, y0, this_months, yy);
@@ -1069,7 +1069,7 @@ function calc_yearMean(handles, months, fname2, flag, nCells, fname3, splina, ti
 		[pato, fname, ext] = fileparts(chkPts_file);
 		fname = [fname '_tseries' ext];
 		if (~isempty(pato)),	fname = [pato filesep fname];	end
-		double2ascii( fname, timeSeries, ['%d' repmat('\t%.4f',[1 size(timeSeries,2)-1])] );
+		double2ascii(fname, timeSeries, ['%d' repmat('\t%.4f',[1 size(timeSeries,2)-1])]);
 	end
 
 % ------------------------------------------------------------------------------
@@ -1093,7 +1093,7 @@ function calc_L2_periods(handles, period, tipoStat, regMinMax, grd_out)
 %
 % GRD_OUT	Name of the netCDF file where to store the result. If not provided, it will be asked here.
 
-	if ( nargin < 5 || (nargin == 5 && isempty(grd_out)) )	% Note: old and simple CASE 3 in main cannot send here the output name 
+	if (nargin < 5 || (nargin == 5 && isempty(grd_out)))	% Note: old and simple CASE 3 in main cannot send here the output name 
 		txt1 = 'netCDF grid format (*.nc,*.grd)';	txt2 = 'Select output netCDF grid';
 		[FileName,PathName] = put_or_get_file(handles,{'*.nc;*.grd',txt1; '*.*', 'All Files (*.*)'},txt2,'put','.nc');
 		if isequal(FileName,0),		return,		end
@@ -1118,7 +1118,7 @@ function calc_L2_periods(handles, period, tipoStat, regMinMax, grd_out)
 		periods = period;
 		half_period = [diff(periods(:)')/2 (periods(end) - periods(end-1))/2];	% Repeat last value
 	end
-	N = histc( fix(tempos), periods );
+	N = histc(fix(tempos), periods);
 
 	handles.was_int16 = false;		% I have to get rid of the need to set this
 
@@ -1130,7 +1130,7 @@ function calc_L2_periods(handles, period, tipoStat, regMinMax, grd_out)
 
 		if (N(m) ~= 0)
 			Z = alloc_mex(rows, cols, N(m), 'single', NaN);
-			for (n = 1:N(m))		% Loop over the days in current period
+			for (n = 1:N(m))			% Loop over the days in current period
 				Z(:,:,n) = nc_funs('varget', handles.fname, s.Dataset(z_id).Name, [c-1 0 0], [1 rows cols]);
 				c = c + 1;
 			end
@@ -1148,8 +1148,8 @@ function calc_L2_periods(handles, period, tipoStat, regMinMax, grd_out)
 		% Write this layer to file, but must treate compiled version differently since
 		% it is not able to write UNLIMITED files
 		if (~handles.IamCompiled)
-			if (m == 1),		nc_io(grd_out, sprintf('w-%f/time',thisLevel), handles, reshape(tmp,[1 size(tmp)]))
-			else				nc_io(grd_out, sprintf('w%d\\%f', m-1, thisLevel), handles, tmp)
+			if (m == 1),	nc_io(grd_out, sprintf('w-%f/time',thisLevel), handles, reshape(tmp,[1 size(tmp)]))
+			else			nc_io(grd_out, sprintf('w%d\\%f', m-1, thisLevel), handles, tmp)
 			end
 		else
 			if (m == 1)
@@ -1196,14 +1196,14 @@ function T_measured = remove_seazon(handles, T_measured, Tavg, tempos)
 	ty = linspace(0+rPeriod/2, 1-rPeriod/2, nPeriods)';	% Decimal time centered in the middle of each interval
 	t = zeros(nPeriods * nYears, 1);
 	for (k = 1:nYears)
-		t( (k-1)*nPeriods+1 : k*nPeriods ) = fix(tempos(1)) + (k-1) + ty;
+		t((k-1)*nPeriods+1 : k*nPeriods) = fix(tempos(1)) + (k-1) + ty;
 	end
 
 	y = zeros(1, numel(tempos));
 	for (m = 1:size(T_measured,1))
 		for (n = 1:size(T_measured,2))
-			T_seazon = double( repmat(squeeze(Tavg(m,n,:)), nYears, 1) );		% Replicate seazonal cycle
-			tmp = double( squeeze(T_measured(m,n,:)) );
+			T_seazon = double(repmat(squeeze(Tavg(m,n,:)), nYears, 1));		% Replicate seazonal cycle
+			tmp = double(squeeze(T_measured(m,n,:)));
 			indNan = isnan(tmp);
 			%y = interp1(t, T_seazon, tempos, 'linear', 'extrap');
 			akimaspline(t, T_seazon, tempos, y);		% we don't need a spline but it's much faster
@@ -1233,7 +1233,8 @@ function out = doM_or_M_or_M(ZtoSpline, first_wanted_month, last_wanted_month, r
 		out(ind) = 0;						% Mutate NaNs to 0 so that they don't screw the adition
 		for (n = (first_wanted_month+1):last_wanted_month)
 			tmp = ZtoSpline(:,:,n);
-			tmp(tmp < regionalMIN | tmp > regionalMAX) = NaN;
+			tmp(tmp < regionalMIN) = NaN;
+			if (~isinf(regionalMAX)),	tmp(tmp > regionalMAX) = NaN;	end
 			ind = isnan(tmp);
 			tmp(ind) = 0;
 			cvlib_mex('add', contanoes, single(~ind));
@@ -1241,9 +1242,9 @@ function out = doM_or_M_or_M(ZtoSpline, first_wanted_month, last_wanted_month, r
 		end
 		cvlib_mex('div', out, contanoes);			% The mean
 	elseif (tipo == 1)			% Minimum of the selected period
-		out = min( ZtoSpline(:,:,first_wanted_month:last_wanted_month),[],3);
+		out = min(ZtoSpline(:,:,first_wanted_month:last_wanted_month),[],3);
 	else						% Maximum
-		out = max( ZtoSpline(:,:,first_wanted_month:last_wanted_month),[],3);
+		out = max(ZtoSpline(:,:,first_wanted_month:last_wanted_month),[],3);
 	end
 
 % ----------------------------------------------------------------------
@@ -1280,7 +1281,7 @@ function calc_corrcoef(handles, secondArray, sub_set, splina, grd_out)
 	n_anos = n_anos - (jump_anos + stop_before_end_anos);	% Number of layers to be used in this run
 
 	[sB, z_idB, msg] = checkFlags_compat(secondArray, handles.number_of_timesteps, rows, cols);
-	if (~isempty(msg))	errordlg(msg, 'Error'),		return,		end
+	if (~isempty(msg)),	errordlg(msg, 'Error'),		return,		end
 	
 	arrayB = alloc_mex(rows, cols, n_anos, 'single');
 	arrayA = alloc_mex(rows, cols, n_anos, 'single');
@@ -1296,15 +1297,15 @@ function calc_corrcoef(handles, secondArray, sub_set, splina, grd_out)
 	if (splina),	yy = (0:n_anos-1)';		end
 	for (m = 1:rows)
 		for (n = 1:cols)
-			Var1 = double( squeeze(arrayA(m,n,:)) );
-			Var2 = double( squeeze(arrayB(m,n,:)) );
+			Var1 = double(squeeze(arrayA(m,n,:)));
+			Var2 = double(squeeze(arrayB(m,n,:)));
 			ind = isnan(Var1);
 			%Var1(ind) = [];
 			% Completely ad-hoc test (it also jumps land cells)
-			if ( (numel(Var1) < n_anos*0.66) || (numel(Var1) < n_anos*0.66) ),		continue,	end
+			if ((numel(Var1) < n_anos*0.66) || (numel(Var1) < n_anos*0.66)),		continue,	end
 
 			if (splina)
-				if ( ~all(ind) )		% Otherwise we have them all and so nothing to interp
+				if (~all(ind))		% Otherwise we have them all and so nothing to interp
 					akimaspline(x(~ind), Var1, x, yy);
 					Var1 = yy;
 					if (ind(1) || ind(end))				% Cases when where we would have extrapolations
@@ -1516,8 +1517,8 @@ function Z = inpaint_nans(handles, Z, bw, nCells)
 
 		if (use_surface)
 			opt_R = sprintf('-R%.10f/%.10f/%.10f/%.10f', X(1), X(end), Y(1), Y(end));
-			%Z_rect = surface_m( XX(:), YY(:), Z_rect(:), opt_R, opt_I, '-T.25' );
-			Z_rect = gmtmbgrid_m( XX(:), YY(:), Z_rect(:), opt_R, opt_I, '-T.25', '-Mz' );
+			%Z_rect = surface_m(XX(:), YY(:), Z_rect(:), opt_R, opt_I, '-T.25');
+			Z_rect = gmtmbgrid_m(XX(:), YY(:), Z_rect(:), opt_R, opt_I, '-T.25', '-Mz');
 		elseif (use_bicubic)
 			Z_rect = griddata_j(XX(:), YY(:), Z_rect(:), X, Y', 'cubic');
 		else
@@ -1591,7 +1592,7 @@ function calc_polygAVG(handles, fnameOut, op, fnamePolys, sub_set, fnameFlag, qu
 	%------------- Check for quality flags request -------------------
 	if (~isempty(fnameFlag))
 		[s_flags, z_id_flags, msg] = checkFlags_compat(fnameFlag, handles.number_of_timesteps, rows, cols);
-		if (~isempty(msg))	errordlg(msg, 'Error'),		return,		end
+		if (~isempty(msg)),	errordlg(msg, 'Error'),		return,		end
 		do_flags = true;
 		if (quality > 0 ),	growing_flag = true;		% PATHFINDER flags
 		else				growing_flag = false;		% MODIS flags
@@ -1692,7 +1693,7 @@ function calc_polygAVG(handles, fnameOut, op, fnamePolys, sub_set, fnameFlag, qu
 				avg(m,k) = feval(fhandle, zz);
 			else			% Accept/Reject based on % of valid numbers
 				nAnoes = sum(ind);		nInPoly = numel(zz);
-				if ( nAnoes / nInPoly < THRESH )
+				if (nAnoes / nInPoly < THRESH)
 					zz = zz(~ind);
 					%avg(m,k) = sum(double(zz)) / numel(zz);
 					avg(m,k) = feval(fhandle, zz);
@@ -1720,7 +1721,7 @@ function calc_polygAVG(handles, fnameOut, op, fnamePolys, sub_set, fnameFlag, qu
 	
 	% --------------- Now finaly save the result in a file	------------------
 	if (isempty(fnameOut))
-		[FileName,PathName] = put_or_get_file( ...
+		[FileName,PathName] = put_or_get_file(...
 			handles,{'*.dat;*.DAT','ASCII file'; '*.*', 'All Files (*.*)'},'Output file','put');
 		if isequal(FileName,0),		return,		end
 		[PATH,FNAME,EXT] = fileparts([PathName FileName]);
@@ -2047,7 +2048,7 @@ function out = script_control(handles, auto)
 	if (~ischar(auto))
 		opt_file = [handles.home_dir filesep 'data' filesep 'OPTcontrol.txt'];
 		out = [];
-		if ( exist(opt_file, 'file') ~= 2 ),	return,		end
+		if (exist(opt_file, 'file') ~= 2),	return,		end
 
 		fid = fopen(opt_file, 'r');
 		c = (fread(fid,'*char'))';      fclose(fid);
