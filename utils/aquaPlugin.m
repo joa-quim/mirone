@@ -1103,7 +1103,7 @@ function calc_L2_periods(handles, period, tipoStat, regMinMax, grd_out)
 		regionalMIN = 0;	regionalMAX = inf;
 	else
 		regionalMIN = regMinMax(1);		regionalMAX = regMinMax(2);
-		if (regionalMIN == 0 && regionalMAX == 0),	regionalMAX = inf;	end
+		if (regionalMIN == 0 && regionalMAX == 0),	regionalMIN = Inf;	regionalMAX = Inf;	end
 	end
 
 	[z_id, s, rows, cols] = get_ncInfos(handles);
@@ -1221,7 +1221,7 @@ function out = doM_or_M_or_M(ZtoSpline, first_wanted_month, last_wanted_month, r
 
 	if (nargin == 1)			% Compute average of all layers without ant constraint
 		first_wanted_month = 1;		last_wanted_month = size(ZtoSpline,3);
-		regionalMIN = -10;			regionalMAX = Inf;		tipo = 0;
+		regionalMIN = Inf;			regionalMAX = Inf;		tipo = 0;
 	end
 
 	if (tipo == 0)				% Compute the MEAN of the considered period
@@ -1233,7 +1233,7 @@ function out = doM_or_M_or_M(ZtoSpline, first_wanted_month, last_wanted_month, r
 		out(ind) = 0;						% Mutate NaNs to 0 so that they don't screw the adition
 		for (n = (first_wanted_month+1):last_wanted_month)
 			tmp = ZtoSpline(:,:,n);
-			tmp(tmp < regionalMIN) = NaN;
+			if (~isinf(regionalMIN)),	tmp(tmp < regionalMIN) = NaN;	end
 			if (~isinf(regionalMAX)),	tmp(tmp > regionalMAX) = NaN;	end
 			ind = isnan(tmp);
 			tmp(ind) = 0;
