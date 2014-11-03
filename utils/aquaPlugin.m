@@ -1116,6 +1116,8 @@ function calc_L2_periods(handles, period, tipoStat, regMinMax, grd_out)
 		half_period = repmat(period/2, 1, numel(periods));		% for naming layers in nc file
 	else
 		periods = period;
+		% Need to add 1 because HISTC counts in the interval edge(k) <= x < edge(k+1) and, e.g., day 3.7 is still day 3
+		periods(2:end) = periods(2:end) + 1;
 		half_period = [diff(periods(:)')/2 (periods(end) - periods(end-1))/2];	% Repeat last value
 	end
 	N = histc(fix(tempos), periods);
@@ -1125,7 +1127,7 @@ function calc_L2_periods(handles, period, tipoStat, regMinMax, grd_out)
 	aguentabar(0,'title','Computing period means.','CreateCancelBtn');
 
 	c = 1;		% Counter to the current layer number being processed. Runs from (1:handles.number_of_timesteps)
-	n_periods = numel(periods); 
+	n_periods = numel(periods) - 1;		% -1 because "The last bin counts any values of x that match edges(end)"
 	for (m = 1:n_periods)
 
 		if (N(m) ~= 0)
