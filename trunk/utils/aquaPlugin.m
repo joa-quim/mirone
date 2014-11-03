@@ -1120,14 +1120,21 @@ function calc_L2_periods(handles, period, tipoStat, regMinMax, grd_out)
 		periods(2:end) = periods(2:end) + 1;
 		half_period = [diff(periods(:)')/2 (periods(end) - periods(end-1))/2];	% Repeat last value
 	end
+
 	N = histc(fix(tempos), periods);
+	if (N(end) == 0)
+		periods(end) = [];		half_period(end) = [];
+		if (isempty(periods))
+			warndlg('There is nothing inside the period(s) you have requested. Bye.', 'Warning'),	return
+		end
+	end
 
 	handles.was_int16 = false;		% I have to get rid of the need to set this
 
 	aguentabar(0,'title','Computing period means.','CreateCancelBtn');
 
 	c = 1;		% Counter to the current layer number being processed. Runs from (1:handles.number_of_timesteps)
-	n_periods = numel(periods) - 1;		% -1 because "The last bin counts any values of x that match edges(end)"
+	n_periods = numel(periods);
 	for (m = 1:n_periods)
 
 		if (N(m) ~= 0)
