@@ -1,7 +1,15 @@
-function [mm,dd] = doy(year, ddd, opt)
-% Convert Day Of Year into month and day or vice-versa depending on the value of OPT
+function [mm, dd] = doy(year, ddd, opt)
+% Convert Day Of Year into month and day or vice-versa depending on the arguments
 %
-% OPT if not provided or equal to -1 ...
+% DY = DOY('datevec')		% returns Day Of Year corresponding to date in DATEVEC
+% DY = DOY(YEAR, MM, DD])	% returns Day Of Year corresponding to the date YYYY MM DD
+% DY = DOY([YEAR MM DD])	% Same as above but with date in a vector
+%
+% Examples:
+%		dy = doy('05-Aug-2014')     (DOY = 217)
+%       dy = doy([2014 8 5])        (DOY = 217)
+%       dy = doy(2014, 8, 5)        (DOY = 217)
+%  [mm,dd] = doy(2014, 217)         (mm = 8; dd = 5)
 
 %	Copyright (c) 2004-2014 by J. Luis
 %
@@ -20,14 +28,24 @@ function [mm,dd] = doy(year, ddd, opt)
 
 % $Id$
 
-	if (nargin ~= 2 && nargin ~= 3)
-		error('DOY:Wrong number of input args')
-	elseif (nargin == 2)
-		opt = -1;
+	if ((nargin == 1 && (isa(year, 'char')) || numel(year) == 3) || (nargin == 3))
+		to_doy = true;		% Get DOY from a DATEVEC date string or [year month day]
+	elseif (nargin > 1)
+		to_doy = false;		% From DOY get [monthm, day]
+	else
+		error('DOY:Bad usage. Wrong number of arguments or their type')
 	end
 
-	if (opt == 1)		% Get DOY
-		error('DOY:option not yet programmed')
+	if (to_doy)			% Get DOY
+		if (isa(year, 'char'))
+			d = datevec(year);
+			mm = datenum([d(1:3), 0, 0, 0]) - datenum([d(1), 1, zeros(1, 4)]);
+		elseif (numel(year) == 3)
+			mm = datenum([year(1:3), 0, 0, 0]) - datenum([year(1), 1, zeros(1, 4)]);
+		else
+			mm = datenum([year, ddd, opt, 0, 0, 0]) - datenum([year, 1, zeros(1, 4)]);			
+		end
+
 	else				% Get month and day from DOY
 		v = datevec(datenum(year, 1, ddd));
 		mm = v(2);		dd = v(3);
