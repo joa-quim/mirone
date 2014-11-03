@@ -374,7 +374,10 @@ function popup_cases_CB(hObject, handles)
 		set(handles.edit_periods,'Tooltip',sprintf(['Number of days of the composit period (e.g. 3, 8, 30)\n' ...
 			'Alternatively can be a vector with the periods to compute.\n' ...
 			'For example this will compute 3 days composits of Jan2012\n' ...
-			'2012.0:3/365:(2012+31/365)']));
+			'2012.0:3/365:(2012+31/365)\n\n' ...
+			'Periods can also be given with Month names using the standard\n' ...
+			'three letters code and the year. The year is needed to know if leap year.\n' ...
+			'E.g Jan2013. You can also give a month range as in Jan2013:Mar2013']));
 	end
 	str = get(handles.text_bounds, 'Str');
 	if (str(1) == 'S')		% The 'Subset' case
@@ -478,6 +481,7 @@ function push_fname3_CB(hObject, handles, fname)
 % -------------------------------------------------------------------------------------
 function edit_periods_CB(hObject, handles)
 % Hard to test if user screws. We will check that the string has only numbers, ':' and '/'
+
 	str = get(hObject, 'Str');
 	if (isempty(str))
 		errordlg('The Periods string is empty. If it resulted from a previous error, please do not insist.','Error')
@@ -489,6 +493,23 @@ function edit_periods_CB(hObject, handles)
 		errordlg('There is one or more empty spaces in the Periods string. That is intolerable.','Error')
 		set(hObject, 'Str', ''),	return
 	end
+
+	% Case where user sent in a period with month names. E.g. 'Jan2013:Mar2013'
+	if ((numel(str) == 7 || numel(str) == 15) && any(strcmpi(str(1),{'J' 'F' 'M' 'A' 'S' 'O' 'N' 'D'})))
+		year = str2double(str(4:7));
+		be = get_months_doys(year, str(1:3));
+		if (numel(str) == 15)
+			if (str(8) ~= ':')
+				errordlg('Badly formated period string with month names. Must be (e.g.) Jan2013:Mar2013','Error')
+				error('Badly formated period string with month names. Must be (e.g.) Jan2013:Mar2013')
+			end
+			be2 = get_months_doys(year, str(9:11));
+			be(2) = be2(2);			be(4) = be2(4);
+		end
+		str = sprintf('%d:%d:%d', be(1), (be(2)-be(1)), be(2));
+		set(hObject, 'Str', str)		% Make it as if user had entered a numeric period
+	end
+
 	str = strrep(str,':',' ');		str = strrep(str,'/',' ');	% Replace ':' '/' by spaces
 	erro = false;		n = 0;
 	[t,r] = strtok(str);
@@ -505,8 +526,42 @@ function edit_periods_CB(hObject, handles)
 	end
 
 % -------------------------------------------------------------------------------------
-function popup_what_CB(hObject, handles)
+function [out, isleapyear] = get_months_doys(year, month)
+% Get first and last DOYs for the MONTH period
+% MONTH is named after the typical three letters names (EN or PT).
+% OUT is a [1 x 4] vector with the DOYs in the first two elements and with
+% decimal year values in the last 2 elements.
 
+	isleapyear = ((~rem(year, 4) && rem(year, 100)) || ~rem(year, 400));
+	switch (lower(month(1:3)))
+		case 'jan',				out = [1 31];
+		case {'feb' 'fev'},		out = [32 59]   + isleapyear;
+		case 'mar',				out = [60 90]   + isleapyear;
+		case {'apr' 'abr'},		out = [91 120]  + isleapyear;
+		case {'may' 'mai'},		out = [121 150] + isleapyear;
+		case 'jun',				out = [151 181] + isleapyear;
+		case 'jul',				out = [182 212] + isleapyear;
+		case {'aug' 'ago'},		out = [213 243] + isleapyear;
+		case {'sep' 'set'},		out = [244 273] + isleapyear;
+		case {'oct' 'out'},		out = [274 304] + isleapyear;
+		case 'nov',				out = [305 334] + isleapyear;
+		case {'dec' 'dez'},		out = [335 365] + isleapyear;
+		otherwise
+			errordlg('Wrong month 3 letters name', 'Error')
+			errord('Wrong month 3 letters name')
+	end
+
+	% Now compute also the decimal year values corresponding to the above period
+	out(3) = year + (out(1)-1) / (365 + isleapyear);
+	out(4) = year + (out(2)-1) / (365 + isleapyear);
+
+% -------------------------------------------------------------------------------------
+function popup_what_CB(hObject, handles)
+% ...
+	if (get(hObject, 'Val') == 2 || get(hObject, 'Val') == 5)
+		warndlg('Sorry, option not yet programmed.','Warning')
+		set(hObject, 'Val', 1)
+	end
 
 % -------------------------------------------------------------------------------------
 function edit_qualFlag_CB(hObject, handles)
@@ -688,12 +743,12 @@ function push_compute_CB(hObject, handles)
 		helper_writeFile(handles, fid, comm, 'periods')
 		valW = get(handles.popup_what,'Val');		str = get(handles.popup_what,'Str');
 		switch (str{valW})
-			case 'MEAN',	fprintf(fid,'0\n');
-			case 'MEDIAN',	fprintf(fid,'0\n');
-			case 'MIN',		fprintf(fid,'1\n');
-			case 'MAX',		fprintf(fid,'2\n');
-			case 'STD',		fprintf(fid,'0\n');
-			otherwise,		fprintf(fid,'0\n');
+			case 'MEAN',	fprintf(fid,'# Which statistics\n0\n');
+			case 'MEDIAN',	fprintf(fid,'# Which statistics\n0\n');
+			case 'MIN',		fprintf(fid,'# Which statistics\n1\n');
+			case 'MAX',		fprintf(fid,'# Which statistics\n2\n');
+			case 'STD',		fprintf(fid,'# Which statistics\n0\n');
+			otherwise,		fprintf(fid,'# Which statistics\n0\n');
 		end
 		comm = '# A 2 elements vector with the MIN and MAX values allowed on the Z function (default [0 inf])';
 		helper_writeFile(handles, fid, comm, 'subset')
