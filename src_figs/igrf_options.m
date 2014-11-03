@@ -595,8 +595,11 @@ function edit_Nrows_CB(hObject, handles)
 	dim_funs('nRows', hObject, handles)
 
 % -------------------------------------------------------------------------------------------------
-function push_ComputeGrid_CB(hObject, handles)
+function [f, hdr] = push_ComputeGrid_CB(hObject, handles)
 % Compute a grid of the field specified on popup_FieldComponent, but first do some tests
+% If an output is requested, do not generate the Mirone fig
+
+	f = [];		hdr = [];
 	xmin = get(handles.edit_x_min,'String');     xmax = get(handles.edit_x_max,'String');
 	xinc = get(handles.edit_x_inc,'String');
 	ymin = get(handles.edit_y_min,'String');     ymax = get(handles.edit_y_max,'String');
@@ -620,7 +623,7 @@ function push_ComputeGrid_CB(hObject, handles)
         errordlg('Yinc box is empty. Give a reasonable value','Error');    return
 	end
 	elev = str2double(get(handles.edit_Elev,'String'));
-	date = str2double(get(handles.edit_DateDec,'String'));
+	date = str2double(get(handles.edit_DateDec,'String'))
 	xmin = str2double(xmin);    xmax = str2double(xmax);    xinc = str2double(xinc);
 	ymin = str2double(ymin);    ymax = str2double(ymax);    yinc = str2double(yinc);
 
@@ -642,7 +645,7 @@ function push_ComputeGrid_CB(hObject, handles)
         case 'Inclination'
             opt_F = '-Fi';  name = 'IGRF Inclination';
 	end
-	name = [name '(Time=' get(handles.edit_DateDec,'Str') ')'];		% Add time to title
+	name = [name ' (Time=' get(handles.edit_DateDec,'Str') ')'];		% Add time to title
 
 	n = str2double(get(handles.edit_Ncols,'String'));
 	m = str2double(get(handles.edit_Nrows,'String'));
@@ -654,16 +657,59 @@ function push_ComputeGrid_CB(hObject, handles)
 	Zmin = min(f(:));    Zmax = max(f(:));
 	f = single(reshape(f,m,n));
 
-	tmp.head = [X(1) X(end) Y(1) Y(end) Zmin Zmax 0 xinc yinc];
-	tmp.X = X;    tmp.Y = Y;    tmp.name = name;
-	mirone(f,tmp);
+	hdr.head = [X(1) X(end) Y(1) Y(end) Zmin Zmax 0 xinc yinc];
+	hdr.X = X;    hdr.Y = Y;    hdr.name = name;
+	if (nargout == 0)
+		mirone(f,hdr);
+		%evolving_field(handles);
+	end
 
 % -------------------------------------------------------------------------------------------------
 function push_HelpGrid_CB(hObject, handles)
 
 %-----------------------------------------------------------------------------
+% function evolving_field(handles)
+% % Compute the differences in consecutive years to see the field variation.
+% 
+% 	v = 19800:2014;
+% 	n = str2double(get(handles.edit_Ncols,'Str'));		m = str2double(get(handles.edit_Nrows,'Str'));
+% 	df(m, n, numel(v)-1) = single(0);
+% 	f(m, n, 2) = single(0);
+% 	M = struct('cdata',[], 'colormap',[]);
+% 
+% 	set(handles.edit_DateDec,'Str', v(1))	% Set the date in edit box because push_ComputeGrid_CB will read from it
+% 	[f(:,:,1), hdr] = push_ComputeGrid_CB([], handles);
+% 	zmin = 1e6;		zmax = -1e6;
+% 	map = jet(256);
+% 	n = 1;
+% 	aguentabar(0)
+% 	for (k = v(2:end))
+% 		set(handles.edit_DateDec,'Str', k)
+% 		[f(:,:,2), hdr] = push_ComputeGrid_CB([], handles);
+% 		df(:,:,n) = f(:,:,2) - f(:,:,1);
+% 		z_min = min(min(df(:,:,n)));		z_max = max(max(df(:,:,n)));
+% 		if (z_min < zmin),		zmin = z_min;		end
+% 		if (z_max > zmax),		zmax = z_max;		end
+% 		f(:,:,1)  = f(:,:,2);
+% 		n = n + 1;
+% 		aguentabar(n/numel(v))
+% 	end
+% 
+% 	mname = 'v:\igrf.gif';
+% 	for (k = 1:numel(v)-1)
+% 		img = scaleto8(df(:,:,k), 8, [double(zmin) double(zmax)]);
+% 		if (k == 1)
+% 			writegif(img, map, mname, 'loopcount',Inf)
+% 		else
+% 			writegif(img, map, mname, 'WriteMode','append','DelayTime',1/5)
+% 		end
+% 		M(k) = im2frame(img, map);
+% 	end
+% 	h=figure;movie(M, 1, 5);
+
+%-----------------------------------------------------------------------------
 function set_field_boxes(out, handles)
-	% Fill the various mag field texts
+% Fill the various mag field texts
 	set(handles.text_FnT,'String',[sprintf('%.0f',out(1)) '  nT'])
 	set(handles.text_HnT,'String',[sprintf('%.0f',out(2)) '  nT'])
 	set(handles.text_XnT,'String',[sprintf('%.0f',out(3)) '  nT'])
