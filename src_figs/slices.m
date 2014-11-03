@@ -550,7 +550,7 @@ function [out, isleapyear] = get_months_doys(year, month)
 		case {'dec' 'dez'},		out = [335 365] + isleapyear;
 		otherwise
 			errordlg('Wrong month 3 letters name', 'Error')
-			errord('Wrong month 3 letters name')
+			error('Wrong month 3 letters name')
 	end
 
 	% Now compute also the decimal year values corresponding to the above period
