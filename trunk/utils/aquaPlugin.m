@@ -1122,11 +1122,9 @@ function calc_L2_periods(handles, period, tipoStat, regMinMax, grd_out)
 	end
 
 	N = histc(fix(tempos), periods);
-	if (N(end) == 0)
-		periods(end) = [];		half_period(end) = [];
-		if (isempty(periods))
-			warndlg('There is nothing inside the period(s) you have requested. Bye.', 'Warning'),	return
-		end
+	N(end) = [];		periods(end) = [];		half_period(end) = [];	% Last N is for >= edge(end) and we don't want it
+	if (isempty(periods))
+		warndlg('There is nothing inside the period(s) you have requested. Bye.', 'Warning'),	return
 	end
 
 	handles.was_int16 = false;		% I have to get rid of the need to set this
