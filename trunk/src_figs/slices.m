@@ -537,11 +537,11 @@ function [out, isleapyear] = get_months_doys(year, month)
 	isleapyear = ((~rem(year, 4) && rem(year, 100)) || ~rem(year, 400));
 	switch (lower(month(1:3)))
 		case 'jan',				out = [1 31];
-		case {'feb' 'fev'},		out = [32 59]   + isleapyear;
+		case {'feb' 'fev'},		out = [32 59 + isleapyear];
 		case 'mar',				out = [60 90]   + isleapyear;
 		case {'apr' 'abr'},		out = [91 120]  + isleapyear;
-		case {'may' 'mai'},		out = [121 150] + isleapyear;
-		case 'jun',				out = [151 181] + isleapyear;
+		case {'may' 'mai'},		out = [121 151] + isleapyear;
+		case 'jun',				out = [152 181] + isleapyear;
 		case 'jul',				out = [182 212] + isleapyear;
 		case {'aug' 'ago'},		out = [213 243] + isleapyear;
 		case {'sep' 'set'},		out = [244 273] + isleapyear;
