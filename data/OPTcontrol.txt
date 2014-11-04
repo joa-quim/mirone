@@ -21,7 +21,7 @@ MIR_MGG M
 MIR_MICROLEV
 
 # Activate the option to display COEs as circles with uicontexts
-MIR_COEs C:\a1\mgd77\COEs_12.dat anom_cm4
+MIR_COEs C:\a1\mgd77\COEs_14_linear.dat best_cm4
 
 # Mag synthetic profiles params
 MIR_MAGPROF DEC 0.0
@@ -41,7 +41,7 @@ MIR_MAGPROF ISOC 10.33_1.4_15
 
 # Custom CPT files that will show up in 'Thematic' of the Color Palettes tool
 # The syntax is MIR_CPT 'palete_name' full_file_path
-MIR_CPT zzz C:\a1\pathfinder\zzz.cpt
+#MIR_CPT zzz C:\a1\pathfinder\zzz.cpt
 
 # Outward displacement (for Euler poles computation). If commented OD is not applied.
 #MIR_OD C:\SVN\mironeWC\continents\OD_simples.dat
@@ -56,4 +56,5 @@ MIR_GMT_DB_IDS
 # Activate the options to add custom menus with directories where to look for specific files
 MIR_CUSTOM_MENU Geography,GRIDS/SRTM+,C:\j\cd_grids\SRTM+
 MIR_CUSTOM_MENU Geography,GRIDS/cd_grids,C:\j\cd_grids
+MIR_CUSTOM_MENU Geography,GRIDS/mag_grids,C:\j\cd_grids\mag
 MIR_CUSTOM_MENU Geography,Seafloor/geomorphic,C:\SVN\mironeWC\data\seafloor_geomorphic
