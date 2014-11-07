@@ -76,10 +76,11 @@ function out = init_header_params(handles,X,Y,head,misc,getAllMinMax)
 		end
 		handles.zMinMaxsGlobal = [min(handles.zMinMaxs(:,1)) max(handles.zMinMaxs(:,2))];
 		k = 1;
-		while (isequal(handles.zMinMaxs(k,:), [0 0]) && (k <= handles.number_of_timesteps))
+		while ((k <= handles.number_of_timesteps) && isequal(handles.zMinMaxs(k,:), [0 0]))
 			k = k + 1;
 		end
-		if (k > handles.number_of_timesteps)
+		if (k == handles.number_of_timesteps + 1)
+			k = 1;		% To not error below
 			warndlg('WARNING: All layers are zero. You better go home.', 'Warning')
 		end
 		head(5:6) = handles.zMinMaxs(k,:);			% Take the first non zero slice min/max
