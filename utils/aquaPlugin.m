@@ -1152,6 +1152,7 @@ function calc_L2_periods(handles, period, tipoStat, regMinMax, grd_out)
 			tmp(tmp == 0) = NaN;		% Reset the NaNs
 			zzz = grdutils(tmp,'-L');
 			handles.head(5) = min(handles.head(5), zzz(1));		handles.head(6) = max(handles.head(6), zzz(2));
+			clear Z;					% Free memory (need because at the alloc time above, two of them would exist)
 		else
 			tmp = alloc_mex(rows, cols, 1, 'single', NaN);
 		end
