@@ -1456,7 +1456,13 @@ function [Z, att, known_coords, have_nans, was_empty_name] = read_gdal(full_name
 			Z = gdalread(full_name, varargin{:}, opt_L);
 		end
 		if (strcmp(att.DriverShortName, 'netCDF'))					% GHRSST 2.0 PATHFINDER ??
-			[Z, did_scale, att] = handle_scaling(Z, att);			% See if we need to apply a scale/offset
+			if (all(Z(:) == 0))		% When files are compressed GDAL screws and returns all zeros
+				handles_tmp.IamCompiled = IamCompiled;	handles_tmp.grdMaxSize = 1e12;
+				handles_tmp.ForceInsitu = false;
+				Z = read_grid(handles_tmp, full_name, 'GMT');		% Read the grid with our own functions
+			else
+				[Z, did_scale, att] = handle_scaling(Z, att);		% See if we need to apply a scale/offset
+			end
 		end
 		if (isempty(att.GCPvalues) && ~isempty(GCPvalues)),		att.GCPvalues = GCPvalues;		end
 		if ((att.Band(1).NoDataValue == -1) && (min(Z(:)) == -32767))	% DIRTY PATCH to avoid previous bad nodata guessing
