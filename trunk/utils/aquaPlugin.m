@@ -426,17 +426,17 @@ function calcGrad(handles, slope, sub_set, fnameFlag, quality, splina, scale, gr
 		end
 		do_flags = true;
 		if (nargin == 4)			% Default to Pathfinder max quality
-			quality = 7;	splina = false;		scale = 1;
+			quality = 7;	splina = false;
 		elseif (nargin == 5)
-			splina = false;		scale = 1;
-		elseif (nargin == 6),	scale = 1;
+			splina = false;
 		end
 		if (quality > 0 ),	growing_flag = true;		% PATHFINDER flags
 		else				growing_flag = false;		% MODIS flags
 		end
 	else
-		splina = false;		scale = 1;
+		splina = false;
 	end
+	if (nargin <= 6),	scale = 1;		end
 	if (nargin < 8),	grd_out = [];	end
 	if (~slope),		scale = 1;		end				% Make sure to not scale p-values
 
@@ -1131,7 +1131,14 @@ function calc_L2_periods(handles, period, tipoStat, regMinMax, grd_out)
 
 	aguentabar(0,'title','Computing period means.','CreateCancelBtn');
 
-	c = 1;		% Counter to the current layer number being processed. Runs from (1:handles.number_of_timesteps)
+	% C is the counter to the current layer number being processed.
+	c = find(fix(tempos) < periods(1));		% Find the starting layer number
+	if (isempty(c))
+		c = 1;				% We start at the begining of file.
+	else
+		c = c(end) + 1;		% We start somewhere at the middle of file.
+	end
+	
 	n_periods = numel(periods);
 	for (m = 1:n_periods)
 
