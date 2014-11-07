@@ -896,7 +896,7 @@ function cut2cdf(handles, got_R, west, east, south, north)
 			if (isempty(empties{k})),	c(k) = true;	end
 		end
 		empties(c) = [];		% The remainings of this are the failures/empties
-		message_win('create',empties, 'figname', 'Names of no-data files')
+		message_win('create',empties, 'figname','Names of no-data files', 'edit','yes')
 	end
 
 % -----------------------------------------------------------------------------------------
