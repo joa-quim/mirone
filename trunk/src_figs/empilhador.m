@@ -825,6 +825,8 @@ function cut2cdf(handles, got_R, west, east, south, north)
 			end
 		catch
 			str = sprintf('Error reading file: %s\nIgnoring it\n', curr_fname);
+			str = strrep(str, '\','/');		% We need to escape these '\' to not bother fprintf()
+			str = sprintf('%s\n%s\n\n', str, lasterr);
 			fprintf(str)
 			warndlg(str,'WarnError')
 			Z = alloc_mex(n_rows, n_cols, 'single', NaN);
@@ -1533,7 +1535,12 @@ function [Z, att, known_coords, have_nans, was_empty_name] = read_gdal(full_name
 					end
 					clear c
 				end
-				ind = (Z == (att.Band(1).NoDataValue));
+
+				if (isnan(NoDataValue)),		ind = isnan(Z);
+				elseif (~isempty(NoDataValue)),	ind = (Z == NoDataValue);
+				else
+					ind = false;	% Just to not error below
+				end
 				Z(ind) = [];		lon_full(ind) = [];		lat_full(ind) = [];
 
 				if (isempty(Z))			% Instead of aborting we let it go with fully NaNified array
@@ -1545,8 +1552,9 @@ function [Z, att, known_coords, have_nans, was_empty_name] = read_gdal(full_name
 						[Z, head] = nearneighbor_m(lon_full(:), lat_full(:), Z(:), opt_R, opt_e, '-N2', opt_I, '-S0.04');
 					else
 						if (~isa(lon_full,'double')),	lon_full = double(lon_full);	lat_full = double(lat_full);	end
-						[Z, head] = gmtmbgrid_m(lon_full(:), lat_full(:), double(Z(:)), opt_I, opt_R, '-Mz', opt_C);
-						Z = single(Z);
+						%[Z, head] = gmtmbgrid_m(lon_full(:), lat_full(:), double(Z(:)), opt_I, opt_R, '-Mz', opt_C);
+						[Z, head, was_empty] = smart_grid(lon_full(:), lat_full(:), double(Z(:)), opt_I, opt_R, opt_C);
+						if (was_empty),		was_empty_name = full_name;		end
 					end
 					if (what.mask)
 						opt_D = {'-Dc' '-Dl' '-Di' '-Dh' '-Df'};
@@ -1570,6 +1578,71 @@ function [Z, att, known_coords, have_nans, was_empty_name] = read_gdal(full_name
 
 	if (~isempty(fname)),		att.fname = fname;		end		% Needed in some HDF cases
 	if (~isempty(uncomp_name)),	delete(uncomp_name);	end		% Delete uncompressed file
+
+% ----------------------------------------------------------------------------------------
+function [Z, head, was_empty] = smart_grid(x, y, z, opt_I, opt_R, opt_C)
+% Interpolate the x,y,z points into the smallest grid that is compatible with
+% opt_I & opt_R. We do this to accelerate the process of interpolating the L2
+% data, which often covers only a small subregion of opt_R.
+%
+% All x,y,z are expected to be double precision column vectors.
+%
+% Return Z that is an array of size determined by opt_R and opt_I
+% We do this interpolating in a smaller subregion determined by x,y and next
+% insert the sub-grid in the array Z.
+
+	was_empty = false;
+
+	x_min = min(x);		x_max = max(x);
+	y_min = min(y);		y_max = max(y);
+	
+	ind = strfind(opt_R, '/');
+	inc = str2double(opt_I(3:end));
+	Rx_min = str2double(opt_R(3:ind(1)-1));			% Full Region min/max
+	Rx_max = str2double(opt_R(ind(1)+1:ind(2)-1));
+	Ry_min = str2double(opt_R(ind(2)+1:ind(3)-1));
+	Ry_max = str2double(opt_R(ind(3)+1:end));
+	
+	n_cols = round((Rx_max - Rx_min) / inc + 1);
+	n_rows = round((Ry_max - Ry_min) / inc + 1);
+	X = linspace(Rx_min, Rx_max, n_cols);
+	Y = linspace(Ry_min, Ry_max, n_rows);
+	
+	% Find rows & columns of Z encompassing all points in x,y
+	c1 = 1;		c2 = n_cols;		r1 = 1;		r2 = n_rows;
+	t = find((X - x_min) > 0);
+	if (~isempty(t) && (t(1) > 1)),	c1 = t(1) - 1;	end
+	t = find((X - x_max) > 0);
+	if (~isempty(t)),	c2 = t(1);	end
+	t = find((Y - y_min) > 0);
+	if (~isempty(t) && (t(1) > 1)),	r1 = t(1) - 1;	end
+	t = find((Y - y_max) > 0);
+	if (~isempty(t)),	r2 = t(1);	end
+
+	if (c2 == 1 || r2 == 1)			% It means all data is outside the opt_R (working area) region
+		Z = alloc_mex(n_rows, n_cols, 'single', NaN);
+		head = [X(1) X(end) Y(1) Y(end) 0 0 0 inc inc];
+		was_empty = true;
+		return
+	end
+	
+	if (c1 <= 3 && c2 >= n_cols - 3 && r1 <= 3 && r2 >= n_cols - 3)		% If almost the full Region, just do it all
+		[Z, head] = gmtmbgrid_m(x, y, z, opt_I, opt_R, '-Mz', opt_C);
+		Z = single(Z);
+		return
+	end
+	
+	opt_subR = sprintf('-R%.10f/%.10f/%.10f/%.10f', X(c1), X(c2), Y(r1), Y(r2));
+	
+	[zz, head] = gmtmbgrid_m(x, y, z, opt_I, opt_subR, '-Mz', opt_C);
+	head(1:4) = [Rx_min Rx_max Ry_min Ry_max];
+	head(5:6) = [min(zz(:)) max(zz(:))];
+	Z = alloc_mex(n_rows, n_cols, 'single', NaN);
+	if (~isequal(head(5:6), [0 0]))
+		Z(r1:r2, c1:c2) = zz;
+	else
+		was_empty = true;				% Means no data fall inside the opt_subR sub-region
+	end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function [data, did_scale, att, have_new_nans] = handle_scaling(data, att)
