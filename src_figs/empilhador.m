@@ -498,11 +498,11 @@ function t = squeeze_time_from_name(name)
 		dn = datenummx( sscanf(FNAME(1:4),'%f'), sscanf(FNAME(5:6),'%f'), sscanf(FNAME(7:8),'%f'), ...
 			sscanf(FNAME(9:10),'%f'), sscanf(FNAME(11:12),'%f'), sscanf(FNAME(13:14),'%f') ) ...
 			- datenummx( sscanf(FNAME(1:4),'%f'), 0, 0);
-		td = sprintf('%f',(dn - fix(dn)));		% Decimal part of the DateNum as a string
+		td = sprintf('%f',(dn - fix(dn)));					% Decimal part of the DateNum as a string
 		t = sprintf('%s.%03d%s', FNAME(1:4), fix(dn), td(3:6));
 	else
-		%t = sprintf('%s.%f',FNAME(2:5),sscanf(FNAME(6:8),'%f') + sscanf(FNAME(9:10),'%f')/24);
-		t = sprintf('%f',sscanf(FNAME(6:8),'%f') + sscanf(FNAME(9:10),'%f')/24);	% Decimal 'Julian day'
+		dd = sscanf(FNAME(6:8),'%f');	hh = sscanf(FNAME(9:10),'%f');		mm = sscanf(FNAME(11:12),'%f');
+		t = sprintf('%f',dd + (hh + mm / 60) / 24);			% Decimal 'Julian day'
 	end
 
 % -----------------------------------------------------------------------------------------
