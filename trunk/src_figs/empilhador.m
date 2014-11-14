@@ -1647,7 +1647,7 @@ function [Z, head, was_empty] = smart_grid(x, y, z, opt_I, opt_R, opt_C)
 	head(1:4) = [Rx_min Rx_max Ry_min Ry_max];
 	head(5:6) = [min(zz(:)) max(zz(:))];
 	Z = alloc_mex(n_rows, n_cols, 'single', NaN);
-	if (~isequal(head(5:6), [0 0]))
+	if (~all(isnan(head(5:6))))
 		Z(r1:r2, c1:c2) = zz;
 	else
 		was_empty = true;				% Means no data fall inside the opt_subR sub-region
