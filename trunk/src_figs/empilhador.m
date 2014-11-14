@@ -784,6 +784,7 @@ function cut2cdf(handles, got_R, west, east, south, north)
 	empties = cell(nSlices, 1);			% To hold the names of the empty/failures files/SDSs
 	have_empties = false;
 
+	nL = 1;			% Counter to the effective number of non-empty layers
 	for (k = 1:nSlices)
 		set(handles.listbox_list,'Val',k),		pause(0.01)			% Show advance
 
@@ -806,7 +807,7 @@ function cut2cdf(handles, got_R, west, east, south, north)
 			fprintf(str)
 			warndlg(str,'WarnError')
 			empties{k} = handles.nameList{k};	have_empties = true;
-			continue			% Probably, not good enouph. We should create a Z of NaNs, but complicated here
+			continue
 		end
 
 		curr_fname = handles.nameList{k};
@@ -847,7 +848,9 @@ function cut2cdf(handles, got_R, west, east, south, north)
 		end
 
 		if (get(handles.radio_conv2vtk,'Val'))				% Write this layer of the VTK file and continue
-			write_vtk(fid, grd_out, Z);
+			if (~isempty(empties{k}))
+				write_vtk(fid, grd_out, Z);
+			end
 			if (~isempty(handles.uncomp_name)),		try		delete(handles.uncomp_name);	end,	end
 			continue
 		end
@@ -864,16 +867,21 @@ function cut2cdf(handles, got_R, west, east, south, north)
 
 		% Must treat compiled version differently since, biggest of mysteries, nc_funs
 		% than hangs when writing unlimited variables
-		if (~handles.IamCompiled)
+		if (true || ~handles.IamCompiled)			% Let's first short circuit this before total remove of other branch
+
+			% For now we let this case reach here, but in future we should make this test/decision right after getZ()
+			if (isempty(empties{k})),	continue,	end
+
 			if (~isempty(handles.strTimes)),		t_val = handles.strTimes{k};
 			else									t_val = sprintf('%d',k - 1);
 			end
-			if (k == 1)
+			if (nL == 1)
 				nc_io(grd_out, ['w-' t_val '/time'], handles, reshape(Z,[1 size(Z)]), misc)
 			else
-				kk = k - n_cd;			% = k - 1 - (n_cd - 1)	We need this when we had "@ change CD" messages
+				kk = nL - n_cd;			% = k - 1 - (n_cd - 1)	We need this when we had "@ change CD" messages
 				nc_io(grd_out, sprintf('w%d\\%s', kk, t_val), handles, Z)
 			end
+			nL = nL + 1;		% Counts effective number of non-empty layers
 		else
 			if (k == 1)
 				handles.levelVec = str2double(handles.strTimes);
