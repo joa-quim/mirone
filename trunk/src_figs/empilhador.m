@@ -848,7 +848,7 @@ function cut2cdf(handles, got_R, west, east, south, north)
 		end
 
 		if (get(handles.radio_conv2vtk,'Val'))				% Write this layer of the VTK file and continue
-			if (~isempty(empties{k}))
+			if (isempty(empties{k}))
 				write_vtk(fid, grd_out, Z);
 			end
 			if (~isempty(handles.uncomp_name)),		try		delete(handles.uncomp_name);	end,	end
@@ -870,18 +870,19 @@ function cut2cdf(handles, got_R, west, east, south, north)
 		if (true || ~handles.IamCompiled)			% Let's first short circuit this before total remove of other branch
 
 			% For now we let this case reach here, but in future we should make this test/decision right after getZ()
-			if (isempty(empties{k})),	continue,	end
-
-			if (~isempty(handles.strTimes)),		t_val = handles.strTimes{k};
-			else									t_val = sprintf('%d',k - 1);
+			% The problem of deleting the uncompressed file must be solved too
+			if (isempty(empties{k}))
+				if (~isempty(handles.strTimes)),		t_val = handles.strTimes{k};
+				else									t_val = sprintf('%d',k - 1);
+				end
+				if (nL == 1)
+					nc_io(grd_out, ['w-' t_val '/time'], handles, reshape(Z,[1 size(Z)]), misc)
+				else
+					kk = nL - n_cd;			% = k - 1 - (n_cd - 1)	We need this when we had "@ change CD" messages
+					nc_io(grd_out, sprintf('w%d\\%s', kk, t_val), handles, Z)
+				end
+				nL = nL + 1;		% Counts effective number of non-empty layers
 			end
-			if (nL == 1)
-				nc_io(grd_out, ['w-' t_val '/time'], handles, reshape(Z,[1 size(Z)]), misc)
-			else
-				kk = nL - n_cd;			% = k - 1 - (n_cd - 1)	We need this when we had "@ change CD" messages
-				nc_io(grd_out, sprintf('w%d\\%s', kk, t_val), handles, Z)
-			end
-			nL = nL + 1;		% Counts effective number of non-empty layers
 		else
 			if (k == 1)
 				handles.levelVec = str2double(handles.strTimes);
