@@ -1645,7 +1645,7 @@ function [Z, head, was_empty] = smart_grid(x, y, z, opt_I, opt_R, opt_C)
 	
 	[zz, head] = gmtmbgrid_m(x, y, z, opt_I, opt_subR, '-Mz', opt_C);
 	head(1:4) = [Rx_min Rx_max Ry_min Ry_max];
-	head(5:6) = [min(zz(:)) max(zz(:))];
+	zz = grdutils(zz,'-L');		head(5:6) = [zz(1) zz(2)];
 	Z = alloc_mex(n_rows, n_cols, 'single', NaN);
 	if (~all(isnan(head(5:6))))
 		Z(r1:r2, c1:c2) = zz;
