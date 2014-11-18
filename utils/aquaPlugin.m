@@ -1162,7 +1162,7 @@ function calc_L2_periods(handles, period, tipoStat, regMinMax, grd_out)
 
 		% Write this layer to file, but must treate compiled version differently since
 		% it is not able to write UNLIMITED files
-		if (~handles.IamCompiled)
+		if (true || ~handles.IamCompiled)		% TEMP. Later, it it works, we'll simply delete the other branch
 			if (m == 1),	nc_io(grd_out, sprintf('w-%f/time',thisLevel), handles, reshape(tmp,[1 size(tmp)]))
 			else			nc_io(grd_out, sprintf('w%d\\%f', m-1, thisLevel), handles, tmp)
 			end
