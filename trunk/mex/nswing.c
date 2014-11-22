@@ -264,6 +264,9 @@ int  decode_R (char *item, double *w, double *e, double *s, double *n);
 int  check_region (double w, double e, double s, double n);
 double ddmmss_to_degree (char *text);
 void openb(struct grd_header hdr, double *bat, double *fluxm_d, double *fluxn_d, double *etad, struct nestContainer *nest);
+void wave_maker(struct nestContainer *nest);
+void wall_it(struct nestContainer *nest);
+void wall_two(struct nestContainer *nest, int ot1, int ot2, int in1, int in2);
 int  initialize_nestum(struct nestContainer *nest, int isGeog, int lev);
 int  intp_lin (double *x, double *y, int n, int m, double *u, double *v);
 void inisp(struct nestContainer *nest);
@@ -641,7 +644,7 @@ int main(int argc, char **argv) {
 					if ((pch = strstr(str_tmp,"+")) != NULL) {
 						sscanf ((++pch), "%lf", &nest.run_jump_time);
 						pch--;
-						pch = '\0';		/* Put the string end where before was the '+' char */
+						pch[0] = '\0';		/* Put the string end where before was the '+' char */
 					}
 					if (argv[i][2])
 						sscanf (&argv[i][2], "%lf", &time_jump);
@@ -1167,6 +1170,7 @@ int main(int argc, char **argv) {
 	/* ------- If we have a boundary condition file, time to load it ------------ */
 	if (bnc_file) {
 		if (read_bnc_file(&nest, bnc_file)) Return(-1);
+		wall_it(&nest);       /* Set Wall boundary conditions */
 	}
 
 #ifdef I_AM_MEX
@@ -1343,7 +1347,7 @@ int main(int argc, char **argv) {
 	tic = clock();
 
 	/* --------------------------------------------------------------------------------------- */
-	if (time_jump == 0) time_jump = -1;	/* Trick to allow writing zero time grids when jump was not demanded */
+	if (time_jump == 0) time_jump = -1; /* Trick to allow writing zero time grids when jump was not demanded */
 
 	one_100 = (double)(n_of_cycles) / 100.0;
 
@@ -1379,10 +1383,14 @@ int main(int argc, char **argv) {
 			mass_sp(&nest, 0);
 
 		/* ------------------------------------------------------------------------------------ */
-		/* Case of open boundary condition */
+		/* Case of open boundary condition or wave maker */
 		/* ------------------------------------------------------------------------------------ */
-		if (bnc_file) interp_bnc(&nest, time_h);
-		if (k) openb(nest.hdr[0], nest.bat[0], nest.fluxm_d[0], nest.fluxn_d[0], nest.etad[0], &nest);
+		if (bnc_file) {
+			interp_bnc(&nest, time_h);
+			wave_maker(&nest);   /* Boundary condition was already set (after reading bnc_file) */
+		}
+		else if (k)
+			openb(nest.hdr[0], nest.bat[0], nest.fluxm_d[0], nest.fluxn_d[0], nest.etad[0], &nest);
 
 		/* ------------------------------------------------------------------------------------ */
 		/* If Nested grids we have to do the nesting work */
@@ -2360,7 +2368,7 @@ int read_tracers(struct grd_header hdr, char *file, struct tracers *oranges) {
 /* -------------------------------------------------------------------- */
 int read_bnc_file(struct nestContainer *nest, char *file) {
 	/* Read file with a boundary condition time series */
-	int	N, n, n_ts = 0, n_pts, n_vars, done_nPts = FALSE, first_vars = TRUE, n_alloc = 1024;
+	int	N, n, n_ts = 0, n_pts, n_vars, done_nPts = FALSE, first_vars = TRUE, foundB = FALSE, n_alloc = 1024;
 	char	*p, line[256], buffer[256], *ntoken = NULL;
 	FILE	*fp;
 
@@ -2369,7 +2377,33 @@ int read_bnc_file(struct nestContainer *nest, char *file) {
 		return (-1);
 	}
 
-	nest->bnc_border[1] = TRUE;	/* <<<<<<<<<<<<<<< TEMP ---------- */
+	while ((fgets(line, 256, fp) != NULL) && line[0] == '#') {
+		if ((p = strstr(line, "B:S")) != NULL) {        /* South */
+			nest->bnc_border[1] = TRUE;
+			foundB = TRUE;
+			break;
+		}
+		else if ((p = strstr(line, "B:W")) != NULL) {   /* West */
+			nest->bnc_border[0] = TRUE;
+			foundB = TRUE;
+			break;
+		}
+		else if ((p = strstr(line, "B:E")) != NULL) {   /* West */
+			nest->bnc_border[2] = TRUE;
+			foundB = TRUE;
+			break;
+		}
+		else if ((p = strstr(line, "B:N")) != NULL) {   /* West */
+			nest->bnc_border[3] = TRUE;
+			foundB = TRUE;
+			break;
+		}
+	}
+	if (!foundB) {
+		nest->bnc_border[1] = TRUE;	/* <<<<<<<<<<<<<<< TEMP ---------- */
+		fprintf(stderr, "\n\n\tATENCAO E PRECISO ESPECIFICAR A FRONTEIRA NO FICHE DA ONDA (ex: # B:S)\n");
+		fprintf(stderr, "\tDAQUI A ALGUM TEMPO NAO O FAZER DARA UM ERRO\n\n");
+	}
 
 	while (fgets(line, 256, fp) != NULL) {
 		if (line[0] == '#') continue;	/* Jump comment lines */
@@ -2549,7 +2583,9 @@ double ddmmss_to_degree(char *text) {
 /* -------------------------------------------------------------------- */
 int open_most_nc(struct nestContainer *nest, float *work, char *base, char *name_var, int *ids, unsigned int nx,
                  unsigned int ny, double xMinOut, double yMinOut, int isMost, int lev) {
-	/* Open and initialize a generic 3D or a MOST netCDF file for writing */
+	/* Open and initialize a generic 3D or a MOST netCDF file for writing
+	   When generic 3D file also writes the bathymetry grid right away.
+	*/
 	char	*long_name = NULL, *units = NULL, *basename = NULL;
 	int ncid = -1, status, dim0[3], dim3[3], id;
 	unsigned int m, n, ij;
@@ -2578,7 +2614,7 @@ int open_most_nc(struct nestContainer *nest, float *work, char *base, char *name
 		units = "meters";
 	}
 
-	if ( (status = nc_create (basename, NC_NETCDF4, &ncid)) != NC_NOERR) {
+	if ((status = nc_create (basename, NC_NETCDF4, &ncid)) != NC_NOERR) {
 		mexPrintf ("NSWING: Unable to create file %s - exiting\n", basename);
 		return(-1);
 	}
@@ -2685,7 +2721,7 @@ int open_most_nc(struct nestContainer *nest, float *work, char *base, char *name
 			work[ij] = (float)-nest->bat[lev][ij];
 
 		count_b[0] = nest->hdr[lev].ny;	count_b[1] = nest->hdr[lev].nx;
-		err_trap (nc_put_vara_float (ncid, ids[4], start_b, count_b, work));
+		err_trap (nc_put_vara_float (ncid, ids[4], start_b, count_b, work));	/* Write the bathymetry */
 	}
 
 	/* ---- Global Attributes ------------ */
@@ -3122,32 +3158,87 @@ void mass(struct nestContainer *nest, int lev) {
 }
 
 /* ---------------------------------------------------------------------- */
+/* Send waves through a boundary */
+/* ---------------------------------------------------------------------- */
+void wave_maker(struct nestContainer *nest) {
+	int col, row;
+
+	if ((nest->bnc_border[0] != 0) || (nest->bnc_border[2] != 0)) {         /* West or East borders */
+		col = (nest->bnc_border[0] != 0) ? 0 : nest->hdr[0].nx - 1;
+		for (row = 0; row < nest->hdr[0].ny; row++) {
+			if (nest->bat [0][ij_grd(col,row,nest->hdr[0])] < EPS5) {
+				nest->etad[0][ij_grd(col,row,nest->hdr[0])] = -nest->bat[0][ij_grd(col,row,nest->hdr[0])];
+				continue;
+			}
+			nest->etad[0][ij_grd(col,row,nest->hdr[0])] = nest->bnc_var_z_interp[row];
+		}
+	}
+	else {    /* South or North borders */
+		row = (nest->bnc_border[1] != 0) ? 0 : nest->hdr[0].ny - 1;
+		for (col = 0; col < nest->hdr[0].nx; col++) {
+			if (nest->bat [0][ij_grd(col,row,nest->hdr[0])] < EPS5) {
+				nest->etad[0][ij_grd(col,row,nest->hdr[0])] = -nest->bat[0][ij_grd(col,row,nest->hdr[0])];
+				continue;
+			}
+			nest->etad[0][ij_grd(col,row,nest->hdr[0])] = nest->bnc_var_z_interp[col];
+		}
+	}
+}
+
+void wall_it(struct nestContainer *nest) {
+	/* Set up vertical walls in all other boundaries but from the one where water goes in */
+
+	if (nest->bnc_border[0] != 0) {		/* West border */
+		wall_two(nest, 0, nest->hdr[0].nx, nest->hdr[0].ny - 2, nest->hdr[0].ny);   /* Wall the North border */
+		wall_two(nest, 0, nest->hdr[0].nx, 0, 2);                                   /* Wall the South border */
+		wall_two(nest, nest->hdr[0].nx - 2, nest->hdr[0].nx, 0, nest->hdr[0].ny);   /* Wall the East border */
+	}
+	else if (nest->bnc_border[1] != 0) {		/* South border */
+		wall_two(nest, 0, 2, 0, nest->hdr[0].ny);                                   /* Wall the West border */
+		wall_two(nest, nest->hdr[0].nx - 2, nest->hdr[0].nx, 0, nest->hdr[0].ny);   /* Wall the East border */
+		wall_two(nest, 0, nest->hdr[0].nx, nest->hdr[0].ny - 2, nest->hdr[0].ny);   /* Wall the North border */
+	}
+}
+
+void wall_two(struct nestContainer *nest, int ot1, int ot2, int in1, int in2) {
+	/* Set up a vertical wall boundary with a thickness of (ot2 - ot1 + 1)
+	   The wall's height is set to minimum needed so that we siduaize it in
+	   a 3D generic nc file, colors are not smashed by an unneeded tal wall
+	*/
+	int i, j;
+	double wall_height = -MIN(nest->hdr[0].z_max, -MAXRUNUP);
+
+	for (i = ot1; i < ot2; i++) {       /* Loop over wall thickness */
+		for (j = in1; j < in2; j++) {   /* Loop over wall length */
+			if (nest->bat[0][ij_grd(i,j,nest->hdr[0])] < MAXRUNUP) continue;	/* Already high enough */
+			nest->bat[0][ij_grd(i,j,nest->hdr[0])] = wall_height;
+		}
+	}
+}
+
+/* ---------------------------------------------------------------------- */
 /* open boundary condition */
-/* --------------------------------------------------------------------- */
+/* ---------------------------------------------------------------------- */
 void openb(struct grd_header hdr, double *bat, double *fluxm_d, double *fluxn_d, double *etad, struct nestContainer *nest) {
 
 	int i, j;
 	double uh, zz, d__1, d__2;
 
-	/* ----- first column */
+	/* ----- first column (South border) */
 	j = 0;
 	for (i = 1; i < hdr.nx - 1; i++) {
 		if (bat[ij_grd(i,j,hdr)] < EPS5) {
 			etad[ij_grd(i,j,hdr)] = -bat[ij_grd(i,j,hdr)];
 			continue;
 		}
-		if (nest->bnc_border[1] == 0) {	/* South border. Nothing external is entering here. */
-			uh = (fluxm_d[ij_grd(i,j,hdr)] + fluxm_d[ij_grd(i-1,j,hdr)]) * 0.5;
-			d__2 = fluxn_d[ij_grd(i,j,hdr)];
-			zz = sqrt(uh * uh + d__2 * d__2) / sqrt(NORMAL_GRAV * bat[ij_grd(i,j,hdr)]);
-			if (d__2 > 0) zz *= -1;
-			etad[ij_grd(i,j,hdr)] = zz;
-		}
-		else
-			etad[ij_grd(i,j,hdr)] = nest->bnc_var_z_interp[i];
+		uh = (fluxm_d[ij_grd(i,j,hdr)] + fluxm_d[ij_grd(i-1,j,hdr)]) * 0.5;
+		d__2 = fluxn_d[ij_grd(i,j,hdr)];
+		zz = sqrt(uh * uh + d__2 * d__2) / sqrt(NORMAL_GRAV * bat[ij_grd(i,j,hdr)]);
+		if (d__2 > 0) zz *= -1;
+		etad[ij_grd(i,j,hdr)] = zz;
 	}
 
-	/* ------ last column */
+	/* ------ last column (North border) */
 	j = hdr.ny - 1;
 	for (i = 1; i < hdr.nx - 1; i++) {
 		if (bat[ij_grd(i,j,hdr)] > EPS5) {
@@ -3162,26 +3253,26 @@ void openb(struct grd_header hdr, double *bat, double *fluxm_d, double *fluxn_d,
 			etad[ij_grd(i,j,hdr)] = -bat[ij_grd(i,j,hdr)];
 	}
 
-	/* ------ first row */
+	/* ------ first row (West border) */
 	i = 0;
 	for (j = 1; j < hdr.ny - 1; j++) {
-		if (bat[ij_grd(i,j,hdr)] > EPS5) {
-			if (bat[ij_grd(i,j-1,hdr)] > EPS5)
-				uh = (fluxn_d[ij_grd(i,j,hdr)] + fluxn_d[ij_grd(i,j-1,hdr)]) * 0.5;
-			else
-				uh = fluxn_d[ij_grd(i,j,hdr)];
-	
-			d__2 = fluxm_d[ij_grd(i,j,hdr)];
-			zz = sqrt(uh * uh + d__2 * d__2) / sqrt(NORMAL_GRAV * bat[ij_grd(i,j,hdr)]);
-			if (fluxm_d[ij_grd(i,j,hdr)] > 0) zz *= -1;
-			if (fabs(zz) <= EPS5) zz = 0;
-			etad[ij_grd(i,j,hdr)] = zz;
-		} 
-		else
+		if (bat[ij_grd(i,j,hdr)] < EPS5) {
 			etad[ij_grd(i,j,hdr)] = -bat[ij_grd(i,j,hdr)];
-	}
+			continue;
+		}
+		if (bat[ij_grd(i,j-1,hdr)] > EPS5)
+			uh = (fluxn_d[ij_grd(i,j,hdr)] + fluxn_d[ij_grd(i,j-1,hdr)]) * 0.5;
+		else
+			uh = fluxn_d[ij_grd(i,j,hdr)];
 	
-	/* ------- last row */
+		d__2 = fluxm_d[ij_grd(i,j,hdr)];
+		zz = sqrt(uh * uh + d__2 * d__2) / sqrt(NORMAL_GRAV * bat[ij_grd(i,j,hdr)]);
+		if (fluxm_d[ij_grd(i,j,hdr)] > 0) zz *= -1;
+		if (fabs(zz) <= EPS5) zz = 0;
+		etad[ij_grd(i,j,hdr)] = zz;
+	}
+
+	/* ------- last row (East border) */
 	i = hdr.nx - 1;
 	for (j = 1; j < hdr.ny - 1; j++) {
 		if (bat[ij_grd(i,j,hdr)] > EPS5) {
@@ -3194,16 +3285,18 @@ void openb(struct grd_header hdr, double *bat, double *fluxm_d, double *fluxn_d,
 		else
 			etad[ij_grd(i,j,hdr)] = -bat[ij_grd(i,j,hdr)];
 	}
-	
-	/* -------- first row & first column */
-	if (bat[0] > EPS5) {
-		zz = sqrt(fluxm_d[0] * fluxm_d[0] + fluxn_d[0] * fluxn_d[0]) / sqrt(NORMAL_GRAV * bat[0]);
-		if (fluxm_d[0] > 0 || fluxn_d[0] > 0) zz *= -1;
-		if (fabs(zz) <= EPS5) zz = 0;
-		etad[0] = zz;
-	} 
-	else
-		etad[0] = -bat[0];
+
+	/* -------- first row & first column (SW corner) */
+	if (nest->bnc_border[1] == 0) { 
+		if (bat[0] > EPS5) {
+			zz = sqrt(fluxm_d[0] * fluxm_d[0] + fluxn_d[0] * fluxn_d[0]) / sqrt(NORMAL_GRAV * bat[0]);
+			if (fluxm_d[0] > 0 || fluxn_d[0] > 0) zz *= -1;
+			if (fabs(zz) <= EPS5) zz = 0;
+			etad[0] = zz;
+		} 
+		else
+			etad[0] = -bat[0];
+	}
 
 	/* -------- last row & first column */
 	if (bat[ij_grd(hdr.nx-1,0,hdr)] > EPS5) {
