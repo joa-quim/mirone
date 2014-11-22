@@ -134,6 +134,7 @@ static char prog_id[] = "$Id$";
 #define EPS10 1e-10
 #define EPS6 1e-6
 #define EPS5 1e-5
+#define EPS4 1e-4
 #define EPS3 1e-3
 #define EPS2 1e-2
 #define EPS1 1e-1
@@ -3471,12 +3472,17 @@ void moment_M(struct nestContainer *nest, int lev) {
 				}
 			}
 			else {			/* other cases no moving boundary a1,a2,c1,c2 */
+				fluxm_d[ij] = 0;
 				continue;
 			}
-			/* disregards fluxes when dd is very small - pode ser EPS6 */
-			if (dd < EPS5) continue;
 
-			if (df < EPS3) df = EPS3;
+			/* disregards fluxes when dd is very small - pode ser EPS6 */
+			if (dd < EPS4) {
+				fluxm_d[ij] = 0;
+				continue;
+			}
+
+			if (df < EPS4) df = EPS4;
 			xqq = (fluxn_a[ij] + fluxn_a[ij+cp1] + fluxn_a[ij-rm1] + fluxn_a[ij+cp1-rm1]) * 0.25;
 			//ff = (manning2) ? cte * manning2 * sqrt(fluxm_a[ij] * fluxm_a[ij] + xqq * xqq) / pow(df, 2.333333) : 0;
 
@@ -3491,7 +3497,7 @@ void moment_M(struct nestContainer *nest, int lev) {
 			}
 #endif
 			/* - total water depth is smaller than EPS3 >> linear */
-			if (dpa_ij < EPS3) goto L120;
+			if (dpa_ij < EPS4) goto L120;
 			/* - lateral buffer >> linear */
 			if (col < jupe || col > (hdr.nx - jupe - 1) || row < jupe || row > (hdr.ny - jupe - 1))
 				goto L120;
@@ -3658,13 +3664,18 @@ void moment_N(struct nestContainer *nest, int lev) {
 					df = dd = etad[ij+rp1] - etad[ij];
 				}
 			}
-			else				/* other cases no moving boundary */
+			else {				/* other cases no moving boundary */
+				fluxn_d[ij] = 0;
 				continue;
+			}
 
 			/* disregards fluxes when dd is very small */
-			if (dd < EPS5) continue;
+			if (dd < EPS4) {
+				fluxn_d[ij] = 0;
+				continue;
+			}
 
-			if (df < EPS3) df = EPS3;
+			if (df < EPS4) df = EPS4;
 			xpp = (fluxm_a[ij] + fluxm_a[ij+rp1] + fluxm_a[ij-cm1] + fluxm_a[ij-cm1+rp1]) * 0.25;
 			//ff = (manning2) ? cte * manning2 * sqrt(fluxn_a[ij] * fluxn_a[ij] + xpp * xpp) / pow(df, 2.333333) : 0;
 
@@ -3681,7 +3692,7 @@ void moment_N(struct nestContainer *nest, int lev) {
 #endif
 
 			/* - total water depth is smaller than EPS3 >> linear */
-			if (dqa_ij < EPS3) goto L200;
+			if (dqa_ij < EPS4) goto L200;
 			/* - lateral buffer >> linear */
 			if (col < jupe || col > (hdr.nx - jupe - 1) || row < jupe || row > (hdr.ny - jupe - 1))
 				goto L200;
@@ -3946,11 +3957,16 @@ void moment_sp_M(struct nestContainer *nest, int lev) {
 					dd = etad[ij+cp1] - etad__ij;
 				df = dd;
 			}
-			else		/* - other cases no moving boundary a1,a2,c1,c2 */
+			else {		/* - other cases no moving boundary a1,a2,c1,c2 */
+				fluxm_d[ij] = 0;
 				continue;
+			}
 
 			/* - no flux if dd too small */
-			if (dd < EPS5) continue;
+			if (dd < EPS5) {
+				fluxm_d[ij] = 0;
+				continue;
+			}
 
 			df = (df < EPS3) ? EPS3 : df;		/* Aparently this is faster than the simpe if test */
 			xqq = (fluxn_a[ij] + fluxn_a[ij+cp1] + fluxn_a[ij-rm1] + fluxn_a[ij+cp1-rm1]) * 0.25;
@@ -4156,11 +4172,16 @@ void moment_sp_N(struct nestContainer *nest, int lev) {
 					df = dd = etad__ij_p_rp1 - etad__ij;
 				}
 			} 
-			else				/* - other cases no moving boundary */
+			else {				/* - other cases no moving boundary */
+				fluxn_d[ij] = 0;
 				continue;
+			}
 
 			/* - no flux if dd too small */
-			if (dd < EPS5) continue;
+			if (dd < EPS5) {
+				fluxn_d[ij] = 0;
+				continue;
+			}
 
 			df = (df < EPS3) ? EPS3 : df;
 			xpp = (fluxm_a[ij] + fluxm_a[ij+rp1] + fluxm_a[ij-cm1] + fluxm_a[ij-cm1+rp1]) * 0.25;
