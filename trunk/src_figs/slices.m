@@ -25,6 +25,8 @@ function varargout = slices(varargin)
 
 % For compiling one need to include the aqua_suppfuns.m aquaPlugin.m files.
 
+% To add more 'cases' see instructions in push_compute_CB()
+
 	hObject = figure('Tag','figure1','Visible','off');
 	slices_LayoutFcn(hObject);
 	handles = guihandles(hObject);
@@ -88,7 +90,7 @@ function varargout = slices(varargin)
 	set(handles.floaters, 'Vis','off')
 
 	% Make a list of visibles on a per operation case
-	handles.cases = cell(9,6);
+	handles.cases = cell(10,6);
 	handles.cases{1,1} = [handles.text_boxSize handles.edit_boxSize handles.check_integDim handles.check_doTrends ...
 		handles.text_bounds handles.edit_subSetA handles.edit_subSetB];
 	handles.cases{1,2} = {'' '' [151 244 139 21] [262 200 81 21] '' '' ''};		% New positions
@@ -157,6 +159,13 @@ function varargout = slices(varargin)
 	handles.cases{9,4} = {'off' ''};
 	handles.cases{9,5} = {'off' ''};
 	handles.cases{9,6} = {'off' ''};
+
+	handles.cases{10,1} = [handles.text_bounds handles.edit_subSetA handles.edit_subSetB];
+	handles.cases{10,2} = {'' '' ''};
+	handles.cases{10,3} = {handles.text_bounds 'Subset'};	% Set handle String prop to second element
+	handles.cases{10,4} = {'on' 'Output file'};
+	handles.cases{10,5} = {'off' ''};
+	handles.cases{10,6} = {'off' ''};
 
 	%------------ Give a Pro look (3D) to the frame boxes  -------------------------------
 	new_frame3D(hObject, handles.text_opt)
@@ -626,6 +635,7 @@ function push_compute_CB(hObject, handles)
 % 		'conv2vtk' ...      % 9 - Convert a 3D netCDF file into a VTK format
 % 		'L2_periods' ...    % 10 - Calculate composites of L2 products over fixed periods
 % 		'corrcoef' ...      % 11 - Calculate correlation coefficients between 2 3D arrays
+%		'count_blooms' ...	% 12 - Count chlor_a blooms
 % 		};
 % 		
 % 	cases_this_map = { ...		% THIS FUNCTION
@@ -638,6 +648,7 @@ function push_compute_CB(hObject, handles)
 %		'Climatologies (monthly)' ...
 %		'Per cell correlation coefficient' ...
 %		'Count non-NaNs cells' ...
+%		'Find Chlor_a blooms' ...
 % 		};
 
 	val = get(handles.popup_cases, 'Val') - 1;
@@ -645,7 +656,8 @@ function push_compute_CB(hObject, handles)
 
 	% Map the case numbers from this function to the one in 'aquaPlugin'. THEY MUST BE IN SYNC
 	map2map(1) = 1;		map2map(2) = 2;		map2map(3) = 3;		map2map(4) = 4;
-	map2map(5) = 5;		map2map(6) = 10;	map2map(7) = 4;		map2map(8) = 11;	map2map(9) = 8;
+	map2map(5) = 5;		map2map(6) = 10;	map2map(7) = 4;		map2map(8) = 11;
+	map2map(9) = 8;		map2map(10)= 12;
 	val_in_plugin = map2map(val);
 
 	script_name = sprintf('%sCASE%d_sc.txt', handles.path_tmp, val);
@@ -792,6 +804,14 @@ function push_compute_CB(hObject, handles)
 		fprintf(fid,'char count\n');
 		comm = '# The ''Subset'' var';
 		helper_writeFile(handles, fid, comm, 'subset')
+
+	elseif (val == 10)	% count bloom events
+		fprintf(fid,'# Threshold number to be considered a bloom.\n3\n');
+		comm = '# The ''Subset'' var';
+		helper_writeFile(handles, fid, comm, 'subset')
+		comm = '# Name of the netCDF file where to store the result. If not provided, it will be asked here';
+		helper_writeFile(handles, fid, comm, 'fname', 1)
+
 	end
 	
 	fclose(fid);
@@ -943,7 +963,8 @@ uicontrol('Parent',h1, 'Position',[10 280 361 20],...
 'BackgroundColor',[1 1 1],...
 'Call',@slices_uiCB,...
 'String',{' '; 'Zonal Means'; 'Per cell rate of change '; 'Apply quality flags'; 'Seasonal Averages'; 'Polygonal Averages'; ...
-	'L2 MODIS Averages'; 'Climatologies (months)'; 'Per cell correlation coefficient'; 'Count non-NaNs cells'},...
+	'L2 MODIS Averages'; 'Climatologies (months)'; 'Per cell correlation coefficient'; 'Count non-NaNs cells'; ...
+	'Find Chlor_a blooms'},...
 'Style','popupmenu',...
 'Value',1,...
 'Tag','popup_cases');
