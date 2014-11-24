@@ -51,10 +51,11 @@ function aquaPlugin(handles, auto)
 			'polygAVG' ...			% 5 - Compute averages of whatever inside polygons (if any)
 			'flagsStats' ...		% 6 - Compute per/pixel annual or month counts of pixel values with a quality >= flag
 			'pass_by_count' ...		% 7 - Check the curently active 3D file against a count file
-			'do_math' ...			% 8 - Perform some basic agebraic operations with the 3D planes
+			'do_math' ...			% 8 - Perform some basic algebric operations with the 3D planes
 			'conv2vtk' ...			% 9 - Convert a 3D netCDF file into a VTK format
 			'L2_periods' ...		% 10 - Calculate composites of L2 products over fixed periods
 			'corrcoef' ...			% 11 - Calculate correlation coefficients between 2 3D arrays
+			'count_blooms' ...		% 12 - Count chlor_a blooms
 			};
 
 	qual = casos{11};			% <== Active by MANUAL selection. May be override by next section
@@ -174,6 +175,10 @@ function aquaPlugin(handles, auto)
 			sub_set = [0 0];		% [jump_start stop_before_end], make it [] or [0 0] to be ignored
 			if (internal_master),	calc_corrcoef(handles, secondArray, sub_set, false, grd_out)
 			else					calc_corrcoef(handles, out{2:end})
+			end
+		case 'count_blooms'			% CASE 12
+			if (internal_master),	count_blooms(handles)
+			else					count_blooms(handles, out{2:end})
 			end
 	end
 
@@ -1984,6 +1989,70 @@ function Z2 = make_compatible(Z2, head2, head1)
 	opt_I = sprintf('-I%.8f/%.8f', head1(8:9));
 	opt_R = sprintf('-R%.8f/%.8f/%.8f/%.8f', head1(1:4));
 	Z2 = grdsample_m(Z2, head2, opt_R, opt_I, '-Q', '-Lg');
+	
+% ------------------------------------------------------------------------------------
+function count_blooms(handles, Ncount, sub_set, grd_out)
+% Given a 3D array with chlorophyl concentration, count events where there are at least
+% NCOUNT consecutive growing elements along the 3rth dimension of the 3D array.
+% For example, when cell (i,j,k) grows for 3 consecutive k, we store the value 3 (or higher
+% the condition holds for k > 3), otherwise we write 0 at the cell position.
+% This is a basic way of detecting blooms
+%
+% OPTIONS:
+% NCOUNT  -> Minimum number of sucessive growing events so that number is stored in output file
+%
+% SUB_SET -> A two elements row vec with number of the offset of years where analysis start and stop.
+%			For example [3 1] Starts analysis on forth year and stops on the before last year.
+%			[0 0] Means using the all dataset.
+%
+% GRD_OUT	Name of the netCDF file where to store the result. Asked here if not provided.
+%
+% NOTE: Low memory footprint. Read laye, process it and write result
+
+	if (nargin == 1)
+		Ncount = 3;
+	end
+	if (nargin < 4 || (nargin == 4 && isempty(grd_out)))
+		txt1 = 'netCDF grid format (*.nc,*.grd)';	txt2 = 'Select output netCDF grid';
+		[FileName,PathName] = put_or_get_file(handles,{'*.nc;*.grd',txt1; '*.*', 'All Files (*.*)'},txt2,'put','.nc');
+		if isequal(FileName,0),		return,		end
+		grd_out = [PathName FileName];
+	end
+
+	if (nargin >= 3 && (numel(sub_set) == 2))
+		jump_slices = sub_set(1);		stop_before_end_slices = sub_set(2);
+	else
+		jump_slices = 0;				stop_before_end_slices = 0;
+	end
+
+	n_slices = handles.number_of_timesteps;
+	[z_id, s, rows, cols] = get_ncInfos(handles);
+	n_slices = n_slices - (jump_slices + stop_before_end_slices);	% Number of layers to be used in this run
+
+	aguentabar(0,'title','Counting blooms')
+ 	layer1 = nc_funs('varget', handles.fname, s.Dataset(z_id).Name, [jump_slices 0 0], [1 rows cols]);
+ 	layer2 = nc_funs('varget', handles.fname, s.Dataset(z_id).Name, [1 + jump_slices 0 0], [1 rows cols]);
+	tmp = int16(layer2 > layer1);
+	layer1 = layer2;
+
+	for (m = 1:n_slices-2)		% Loop over remaining slices (first two were already consumed above)
+ 		layer2 = nc_funs('varget', handles.fname, s.Dataset(z_id).Name, [(m + 1 + jump_slices) 0 0], [1 rows cols]);
+		ind = (layer2 > layer1);
+		cvlib_mex('addS', tmp, 1)% Increase counter of consecutive growings
+		tmp(~ind) = 0;			% Reset to zero those that interrupt the growing escalade
+		t = tmp;
+		ind = (tmp < Ncount);	% Find those that have a counting lower than the threshold.
+		t(ind) = 0;				% Those that didn't (yet?) reach the threshould are written as zero
+
+		thisLevel = handles.time(m+2);
+		if (m == 1),	nc_io(grd_out, sprintf('w-%f/time',thisLevel), handles, reshape(t,[1 size(t)]))
+		else			nc_io(grd_out, sprintf('w%d\\%f', m-1, thisLevel), handles, t)
+		end
+		layer1 = layer2;
+
+		h = aguentabar(m/(n_slices-2));	drawnow
+		if (isnan(h)),	break,	end
+	end
 
 % -----------------------------------------------------------------------------------------
 function fid = write_vtk(handles)
