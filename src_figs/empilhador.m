@@ -1572,6 +1572,9 @@ function [Z, att, known_coords, have_nans, was_empty_name] = read_gdal(full_name
 						Z(mask) = NaN;
 					end
 				end
+				if (isempty(was_empty_name) && all(isnan(Z(:))))	% F. give up and catch all escaped full NaNs here
+					was_empty_name = full_name;
+				end
 				att.GMT_hdr = head;
 				known_coords = true;				% Signal that coordinates are known and should not be guessed again
 				att.Band(1).NoDataValue = [];		% Don't waist time later trying to NaNify again
