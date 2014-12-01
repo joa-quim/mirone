@@ -385,7 +385,7 @@ function hObject = mirone_OpeningFcn(varargin)
 	set_gmt(['GDAL_DATA=' home_dir fsep 'data' fsep 'gdal_data']);
 	set_gmt(['GEOTIFF_CSV=' home_dir fsep 'data' fsep 'gdal_data']);
 
- 	try,	custom_menus(hObject, handles.path_data),	end			% Add any custom menus as commanded by OPTcontrol.txt
+ 	try		custom_menus(hObject, handles.path_data),	end			% Add any custom menus as commanded by OPTcontrol.txt
 
 % --------------------------------------------------------------------------------------------------
 function erro = gateLoadFile(handles,drv,fname)
@@ -627,6 +627,7 @@ if ~isempty(opt)				% OPT must be a rectangle/polygon handle (the rect may serve
 		[Z_rect,r_c] = cropimg(head(1:2),head(3:4),Z,rect_crop,'out_grid');
 		if (crop_pol)
 			zzz = grdutils(Z_rect,'-L');	z_min = zzz(1);		clear zzz;
+			resp = [];
 			if (strcmp(opt2,'CropaGrid_pure'))
 				resp = inputdlg({'Enter outside polygon value'},'Choose out value',[1 30],{sprintf('%.4f',z_min)});	pause(0.01)
 				if isempty(resp),	set(handles.figure1,'pointer','arrow'),		return,		end
@@ -932,6 +933,7 @@ function ImageHistEqualize_CB(handles, hObject)
 		if (ndims(zz) == 3);
 			zz = cvlib_mex('color',zz,'rgb2hls');
 			zz(:,:,2) = img_fun('histeq_j',zz(:,:,2));
+			%zz(:,:,2) = fcnBPDFHE(zz(:,:,2));
 			J = cvlib_mex('color',zz,'hls2rgb');
 		else
 			J = img_fun('histeq_j',zz);
@@ -1397,7 +1399,7 @@ function FileOpenNewImage_CB(handles, opt)
 	else
 		info_img = imfinfo(handles.fileName);		% This and att are repeated but not 100%
 		[I, att] = gdalread(handles.fileName);
-		try,	handles.transparency = info_img.Transparency;	end
+		try		handles.transparency = info_img.Transparency;	end
 		if (att.RasterCount > 4)
 			% Animatted images.	BUT WORK ONLY WITH INDEXED IMAGES, OTHERWISE ... DON'T KNOW WHAT ERROR
 			handles.cinemaImgs = I;
@@ -3658,10 +3660,10 @@ function FileSaveSession_CB(handles)
 	set(handles.figure1,'pointer','arrow')
 
 	% Trick to shut up stupid MLint warnings
-	if (0 && grd_name && img_pal && map_limits && illumComm && haveMBtrack && havePline && haveText && haveSymbol) end
-	if (0 && haveCircleCart && havePlineAsPoints && haveCoasts && illumComm && haveMBtrack && illumType) end
-	if (0 && havePolitic && haveRivers && MBtrack && MBbar && Symbol && CircleGeo && MecaMag5 && CircleCart) end
-	if (0 && PlineAsPoints && coastUD && politicUD && riversUD && haveCircleGeo) end
+	if (0 && grd_name && img_pal && map_limits && illumComm && haveMBtrack && havePline && haveText && haveSymbol), end
+	if (0 && haveCircleCart && havePlineAsPoints && haveCoasts && illumComm && haveMBtrack && illumType), end
+	if (0 && havePolitic && haveRivers && MBtrack && MBbar && Symbol && CircleGeo && MecaMag5 && CircleCart), end
+	if (0 && PlineAsPoints && coastUD && politicUD && riversUD && haveCircleGeo), end
 
 % --------------------------------------------------------------------
 function ImageMapLimits_CB(handles, opt)
