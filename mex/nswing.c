@@ -347,10 +347,10 @@ int Return(int code) {		/* To handle return codes between MEX and standalone cod
 /* Matlab Gateway routine */
 
 #ifdef I_AM_MEX
-#define Return(code) {mexErrMsgTxt("\n");}
+#	define Return(code) {mexErrMsgTxt("\n");}
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 #else
-#define Return(code) {return(code);}
+#	define Return(code) {return(code);}
 int main(int argc, char **argv) {
 #endif
 
@@ -638,6 +638,8 @@ int main(int argc, char **argv) {
 					else {
 						out_3D = TRUE;
 						fname3D = stem;
+						if (fname3D[strlen(fname3D)-3] != '.' && fname3D[strlen(fname3D)-4] != '.')
+							strcat(fname3D, ".nc");		/* If no 2 or 3 letters extension, add .nc */
 					}
 					break;
 				case 'J':		/* Jumping options. Accept either -Jn, -J+m, -Jn+m or -Jn -J+m */
@@ -651,7 +653,7 @@ int main(int argc, char **argv) {
 						sscanf (&argv[i][2], "%lf", &time_jump);
 
 					break;
-				case 'L':		/* Use linear approximation */
+				case 'L':		/* Use linear approximation or Lagrangean tracers*/
 					if (!argv[i][2])
 						nest.do_linear = TRUE;
 					else {
@@ -670,7 +672,8 @@ int main(int argc, char **argv) {
 							mexPrintf("NSWING: Error, -L option, must provide at least the tracers file name\n");
 							error++;
 						}
-						do_tracers = TRUE;						
+						do_tracers = TRUE;
+						out_velocity_x = out_velocity_y = TRUE;
 					}
 					break;
 				case 'M':
@@ -707,6 +710,7 @@ int main(int argc, char **argv) {
 					strcpy (str_tmp, &argv[i][2]);
 					if ((pch = strstr(str_tmp,"+m")) != NULL) {    /* Velocity at maregraphs */
 						out_maregs_velocity = TRUE;
+						out_velocity_x      = out_velocity_y = TRUE;
 						for (k = 0; k < 2; k++) {   /* Strip the '+m' from the str_tmp string */
 							len = strlen(pch);
 							for (j = 0; j < (int)len; j++)
@@ -714,24 +718,32 @@ int main(int argc, char **argv) {
 						}
 					}
 					if ((pch = strstr(str_tmp,"+s")) != NULL) {    /* Comput max speed */
-						max_velocity = TRUE;
+						max_velocity   = TRUE;
+						out_velocity_x = out_velocity_y = TRUE;
 						for (k = 0; k < 2; k++) {   /* Strip the '+s' from the str_tmp string */
 							len = strlen(pch);
 							for (j = 0; j < (int)len; j++)
 								pch[j] = pch[j+1];
 						}
 					}
-					if (str_tmp[0] == 'x')          /* Only X component */
-						out_velocity_x = TRUE;
-					else if (str_tmp[0] == 'y')     /* Only Y component */
-						out_velocity_y = TRUE;
-					else if (str_tmp[0] == 'r')     /* Speed (velocity module) -- NOT YET -- */
-						out_velocity_r = TRUE;
-					else if (str_tmp[0] == 'n');    /* No grids, only vx,vy in maregs */
+					if (str_tmp[0] == 'x') {         /* Only X component */
+						out_velocity   = out_velocity_x = TRUE;
+						if (!(out_maregs_velocity || max_velocity)) out_velocity_y = FALSE;
+					}
+					else if (str_tmp[0] == 'y') {    /* Only Y component */
+						out_velocity   = out_velocity_y = TRUE;
+						if (!(out_maregs_velocity || max_velocity)) out_velocity_x = FALSE;
+					}
+					else if (str_tmp[0] == 'r') {    /* Speed (velocity module) -- NOT YET -- */
+						out_velocity   = out_velocity_r = TRUE;
+						if (!(out_maregs_velocity || max_velocity)) out_velocity_x = out_velocity_y = FALSE;
+					}
+					else if (str_tmp[0] == 'n') {    /* No grids, only vx,vy in maregs */
+						out_velocity_x = out_velocity_y = TRUE;
+						out_velocity   = FALSE;
+					}
 					else {                          /* Both X & Y*/
-						out_velocity   = TRUE;
-						out_velocity_x = TRUE;
-						out_velocity_y = TRUE;
+						out_velocity = out_velocity_x = out_velocity_y = TRUE;
 					}
 					break;
 				case 't':	/* Time step of simulation */ 
@@ -1456,6 +1468,7 @@ int main(int argc, char **argv) {
 		if (do_tracers && k > 0) {
 			unsigned int ix, jy, itmp, ij_c, n;
 			double vx, vy, vx1, vx2, vy1, vy2, dx, dy;
+			double v_LLx, v_LLy, v_LRx, v_LRy, v_ULx, v_ULy, v_URx, v_URy;
 			for (n = 0; n < n_oranges; n++) {
 				ix = (int)((oranges[n].x[k-1] - nest.hdr[writeLevel].x_min) / nest.hdr[writeLevel].x_inc);
 				jy = (int)((oranges[n].y[k-1] - nest.hdr[writeLevel].y_min) / nest.hdr[writeLevel].y_inc);
@@ -1464,23 +1477,33 @@ int main(int argc, char **argv) {
 
 				ij_c = jy * nest.hdr[writeLevel].nx + ix;   /* Linear index LowerLeft cell corner */
 				if (htotal_for_oranges[ij_c] > EPS2 && htotal_for_oranges[ij_c + 1] > EPS2) {
-					vx1 = fluxm_for_oranges[ij_c]   / htotal_for_oranges[ij_c];
-					vx2 = fluxn_for_oranges[ij_c+1] / htotal_for_oranges[ij_c+1];
-					//vx1 = vx_for_oranges[ij_c];
+					//vx1 = fluxm_for_oranges[ij_c]   / htotal_for_oranges[ij_c];
+					//vx2 = fluxn_for_oranges[ij_c+1] / htotal_for_oranges[ij_c+1];
+					v_LLx = vx_for_oranges[ij_c];		v_LLy = vy_for_oranges[ij_c];
+					v_LRx = vx_for_oranges[ij_c+1];		v_LRy = vy_for_oranges[ij_c+1];
 				}
 				else
-					vx1 = vx2 = 0;
+					v_LLx = v_LLy = v_LRx = v_LRy;
+					//vx1 = vx2 = 0;
 
 				ij_c += nest.hdr[writeLevel].nx;            /* Linear index UpperLeft cell corner */
 				if (htotal_for_oranges[ij_c] > EPS2 && htotal_for_oranges[ij_c + 1] > EPS2) {
-					vy1 = fluxm_for_oranges[ij_c]   / htotal_for_oranges[ij_c];
-					vy2 = fluxn_for_oranges[ij_c+1] / htotal_for_oranges[ij_c+1];
+					//vy1 = fluxm_for_oranges[ij_c]   / htotal_for_oranges[ij_c];
+					//vy2 = fluxn_for_oranges[ij_c+1] / htotal_for_oranges[ij_c+1];
+					v_ULx = vx_for_oranges[ij_c];		v_ULy = vy_for_oranges[ij_c];
+					v_URx = vx_for_oranges[ij_c+1];		v_URy = vy_for_oranges[ij_c+1];
 				}
 				else
-					vy1 = vy2 = 0;
+					v_ULx = v_ULy = v_URx = v_URy;
+					//vy1 = vy2 = 0;
 
-				vx = vx1 + (vx2 - vx1) * dx / nest.hdr[writeLevel].x_inc;
-				vy = vy1 + (vy2 - vy1) * dy / nest.hdr[writeLevel].y_inc;
+				dx /= nest.hdr[writeLevel].x_inc;		/* Resuse the dx,dy variables */
+				dy /= nest.hdr[writeLevel].y_inc;
+
+				vx1 = v_LLx + (v_LRx - v_LLx) * dx;		vx2 = v_ULx + (v_URx - v_ULx) * dx;
+				vy1 = v_LLy + (v_ULy - v_LLy) * dy;		vy2 = v_LRy + (v_URy - v_LRy) * dy;
+				vx  = vx1 + (vx2 - vx1) * dy;			vy  = vy1 + (vy2 - vy1) * dx;
+
 				oranges[n].x[k] = oranges[n].x[k-1] + vx * dt;
 				oranges[n].y[k] = oranges[n].y[k-1] + vy * dt;
 			}
@@ -3573,7 +3596,7 @@ L120:
 
 			fluxm_d[ij] = xp;
 
-			if (nest->out_velocity_x)
+			if (nest->out_velocity_x && (lev == nest->writeLevel))
 				vex[ij] = (dd > EPS3) ? xp / df : 0;
 		}
 	}
@@ -4627,7 +4650,7 @@ void nestify(struct nestContainer *nest, int nNg, int level, int isGeog) {
 		edge_communication(nest, level, j);
 		mass_conservation(nest, isGeog, level);
 
-		if (nest->do_max_level)    update_max(nest);            /* This makes sure all time steps are visited */
+		if (nest->do_max_level)    update_max(nest);             /* This makes sure all time steps are visited */
 		if (nest->do_max_velocity) update_max_velocity(nest);    /* This makes sure all time steps are visited */
 
 		/* MAGIC happens here */
@@ -5032,14 +5055,16 @@ void update_max_velocity(struct nestContainer *nest) {
 	for (ij = 0; ij < nest->hdr[writeLevel].nm; ij++) {
 		vx = vy = 0;
 		if (nest->htotal_d[writeLevel][ij] > EPS2)
-			vx = nest->fluxm_d[writeLevel][ij] / nest->htotal_d[writeLevel][ij];
+			//vx = nest->fluxm_d[writeLevel][ij] / nest->htotal_d[writeLevel][ij];
+			vx = nest->vex[writeLevel][ij];
 
 		if (nest->htotal_d[writeLevel][ij] > EPS2)
-			vy = nest->fluxn_d[writeLevel][ij] / nest->htotal_d[writeLevel][ij];
+			//vy = nest->fluxn_d[writeLevel][ij] / nest->htotal_d[writeLevel][ij];
+			vy = nest->vey[writeLevel][ij];
 
 		v = (float)(vx * vx + vy * vy);
 
-		if (nest->htotal_d[writeLevel][ij] < 1 && v > 100)	/* Clip above this combination (100 = 10 * 10) */
+		if (nest->htotal_d[writeLevel][ij] < 0.1 && v > 225)	/* Clip above this combination (225 = 15 * 15) */
 			v = 0;
 
 		if (nest->vmax[ij] < v) nest->vmax[ij] = v;
