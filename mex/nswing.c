@@ -1953,11 +1953,13 @@ int initialize_nestum(struct nestContainer *nest, int isGeog, int lev) {
 			{no_sys_mem("(long_beach)", nm); return(-1);}
 	}
 
-	if (nest->out_velocity_x) {
+	if (nest->out_velocity_x && (lev == nest->writeLevel)) {
+	//if (nest->out_velocity_x) {
 		if ((nest->vex[lev] = (double *) mxCalloc ((size_t)nm, sizeof(double)) ) == NULL)
 			{no_sys_mem("(vex)", nm); return(-1);}
 	}
-	if (nest->out_velocity_y) {
+	if (nest->out_velocity_y && (lev == nest->writeLevel)) {
+	//if (nest->out_velocity_y) {
 		if ((nest->vey[lev] = (double *) mxCalloc ((size_t)nm, sizeof(double)) ) == NULL)
 			{no_sys_mem("(vey)", nm); return(-1);}
 	}
@@ -3793,7 +3795,7 @@ L200:
 
 			fluxn_d[ij] = xq;
 
-			if (nest->out_velocity_y)
+			if (nest->out_velocity_y && (lev == nest->writeLevel))
 				vey[ij] = (dd > EPS3) ? xq / df : 0;
 		}
 	}
@@ -4089,7 +4091,7 @@ L120:
 
 			fluxm_d[ij] = xp;
 
-			if (nest->out_velocity_x)
+			if (nest->out_velocity_x && (lev == nest->writeLevel))
 				vex[ij] = (dd > EPS3) ? xp / df : 0;
 		}
 	}
@@ -4303,7 +4305,7 @@ L200:
 
 			fluxn_d[ij] = xq;
 
-			if (nest->out_velocity_y)
+			if (nest->out_velocity_y && (lev == nest->writeLevel))
 				vey[ij] = (dd > EPS3) ? xq / df : 0;
 		}
 	}
