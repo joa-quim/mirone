@@ -1445,8 +1445,6 @@ int main(int argc, char **argv) {
 					double vx, vy;
 					for (ij = 0; ij < n_mareg; ij++) {
 						if (htotal_for_maregs[lcum_p[ij]] > EPS2) {
-							//vx = fluxm_for_maregs[lcum_p[ij]] / htotal_for_maregs[lcum_p[ij]];
-							//vy = fluxn_for_maregs[lcum_p[ij]] / htotal_for_maregs[lcum_p[ij]];
 							vx = vx_for_maregs[lcum_p[ij]];
 							vy = vy_for_maregs[lcum_p[ij]];
 						}
@@ -1477,25 +1475,19 @@ int main(int argc, char **argv) {
 
 				ij_c = jy * nest.hdr[writeLevel].nx + ix;   /* Linear index LowerLeft cell corner */
 				if (htotal_for_oranges[ij_c] > EPS2 && htotal_for_oranges[ij_c + 1] > EPS2) {
-					//vx1 = fluxm_for_oranges[ij_c]   / htotal_for_oranges[ij_c];
-					//vx2 = fluxn_for_oranges[ij_c+1] / htotal_for_oranges[ij_c+1];
 					v_LLx = vx_for_oranges[ij_c];		v_LLy = vy_for_oranges[ij_c];
 					v_LRx = vx_for_oranges[ij_c+1];		v_LRy = vy_for_oranges[ij_c+1];
 				}
 				else
 					v_LLx = v_LLy = v_LRx = v_LRy;
-					//vx1 = vx2 = 0;
 
 				ij_c += nest.hdr[writeLevel].nx;            /* Linear index UpperLeft cell corner */
 				if (htotal_for_oranges[ij_c] > EPS2 && htotal_for_oranges[ij_c + 1] > EPS2) {
-					//vy1 = fluxm_for_oranges[ij_c]   / htotal_for_oranges[ij_c];
-					//vy2 = fluxn_for_oranges[ij_c+1] / htotal_for_oranges[ij_c+1];
 					v_ULx = vx_for_oranges[ij_c];		v_ULy = vy_for_oranges[ij_c];
 					v_URx = vx_for_oranges[ij_c+1];		v_URy = vy_for_oranges[ij_c+1];
 				}
 				else
 					v_ULx = v_ULy = v_URx = v_URy;
-					//vy1 = vy2 = 0;
 
 				dx /= nest.hdr[writeLevel].x_inc;		/* Resuse the dx,dy variables */
 				dy /= nest.hdr[writeLevel].y_inc;
@@ -1624,7 +1616,6 @@ int main(int argc, char **argv) {
 				if (out_velocity_x) {
 					for (ij = 0; ij < nest.hdr[writeLevel].nm; ij++) {
 						if (nest.htotal_d[writeLevel][ij] > EPS2)
-							//work[ij] = (float) (nest.fluxm_d[writeLevel][ij] / nest.htotal_d[writeLevel][ij]);
 							work[ij] = (float)nest.vex[writeLevel][ij];
 						else
 							work[ij] = 0;
@@ -1640,7 +1631,6 @@ int main(int argc, char **argv) {
 				if (out_velocity_y) {
 					for (ij = 0; ij < nest.hdr[writeLevel].nm; ij++) {
 						if (nest.htotal_d[writeLevel][ij] > EPS2)
-							//work[ij] = (float) (nest.fluxn_d[writeLevel][ij] / nest.htotal_d[writeLevel][ij]);
 							work[ij] = (float)nest.vey[writeLevel][ij];
 						else
 							work[ij] = 0;
@@ -1954,12 +1944,10 @@ int initialize_nestum(struct nestContainer *nest, int isGeog, int lev) {
 	}
 
 	if (nest->out_velocity_x && (lev == nest->writeLevel)) {
-	//if (nest->out_velocity_x) {
 		if ((nest->vex[lev] = (double *) mxCalloc ((size_t)nm, sizeof(double)) ) == NULL)
 			{no_sys_mem("(vex)", nm); return(-1);}
 	}
 	if (nest->out_velocity_y && (lev == nest->writeLevel)) {
-	//if (nest->out_velocity_y) {
 		if ((nest->vey[lev] = (double *) mxCalloc ((size_t)nm, sizeof(double)) ) == NULL)
 			{no_sys_mem("(vey)", nm); return(-1);}
 	}
@@ -2394,7 +2382,6 @@ int read_tracers(struct grd_header hdr, char *file, struct tracers *oranges) {
 	return (i);
 }
 
-#if 1
 /* -------------------------------------------------------------------- */
 int read_bnc_file(struct nestContainer *nest, char *file) {
 	/* Read file with a boundary condition time series */
@@ -2546,7 +2533,6 @@ void interp_bnc(struct nestContainer *nest, double t) {
 			nest->bnc_var_z_interp[n] = nest->bnc_var_zTmp[0];
 	}
 }
-#endif
 
 /* -------------------------------------------------------------------- */
 void no_sys_mem(char *where, unsigned int n) {	
@@ -5057,11 +5043,9 @@ void update_max_velocity(struct nestContainer *nest) {
 	for (ij = 0; ij < nest->hdr[writeLevel].nm; ij++) {
 		vx = vy = 0;
 		if (nest->htotal_d[writeLevel][ij] > EPS2)
-			//vx = nest->fluxm_d[writeLevel][ij] / nest->htotal_d[writeLevel][ij];
 			vx = nest->vex[writeLevel][ij];
 
 		if (nest->htotal_d[writeLevel][ij] > EPS2)
-			//vy = nest->fluxn_d[writeLevel][ij] / nest->htotal_d[writeLevel][ij];
 			vy = nest->vey[writeLevel][ij];
 
 		v = (float)(vx * vx + vy * vy);
