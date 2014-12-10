@@ -1479,7 +1479,7 @@ int main(int argc, char **argv) {
 					v_LRx = vx_for_oranges[ij_c+1];		v_LRy = vy_for_oranges[ij_c+1];
 				}
 				else
-					v_LLx = v_LLy = v_LRx = v_LRy;
+					v_LLx = v_LLy = v_LRx = v_LRy = 0;
 
 				ij_c += nest.hdr[writeLevel].nx;            /* Linear index UpperLeft cell corner */
 				if (htotal_for_oranges[ij_c] > EPS2 && htotal_for_oranges[ij_c + 1] > EPS2) {
@@ -1487,7 +1487,7 @@ int main(int argc, char **argv) {
 					v_URx = vx_for_oranges[ij_c+1];		v_URy = vy_for_oranges[ij_c+1];
 				}
 				else
-					v_ULx = v_ULy = v_URx = v_URy;
+					v_ULx = v_ULy = v_URx = v_URy = 0;
 
 				dx /= nest.hdr[writeLevel].x_inc;		/* Resuse the dx,dy variables */
 				dy /= nest.hdr[writeLevel].y_inc;
