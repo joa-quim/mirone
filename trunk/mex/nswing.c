@@ -2610,7 +2610,7 @@ int open_most_nc(struct nestContainer *nest, float *work, char *base, char *name
 	float dummy = -1e34f;
 	double *x, *y;
 
-	basename = (char *) mxMalloc (strlen(base) * sizeof (char));
+	basename = (char *)mxMalloc (strlen(base) * sizeof (char));
 	strcpy(basename, base);
 	if (!strcmp(name_var,"HA")) {
 		strcat(basename,"_ha.nc");
@@ -2632,76 +2632,76 @@ int open_most_nc(struct nestContainer *nest, float *work, char *base, char *name
 		units = "meters";
 	}
 
-	if ((status = nc_create (basename, NC_NETCDF4, &ncid)) != NC_NOERR) {
+	if ((status = nc_create(basename, NC_NETCDF4, &ncid)) != NC_NOERR) {
 		mexPrintf ("NSWING: Unable to create file %s - exiting\n", basename);
 		return(-1);
 	}
 
 	if (nest->isGeog) {
 		/* ---- Define dimensions ------------ */
-		err_trap (nc_def_dim (ncid, "LON", (size_t) nx, &dim0[0]));
-		err_trap (nc_def_dim (ncid, "LAT", (size_t) ny, &dim0[1]));
-		err_trap (nc_def_dim (ncid, "time", NC_UNLIMITED, &dim0[2]));
+		err_trap(nc_def_dim(ncid, "LON", (size_t) nx, &dim0[0]));
+		err_trap(nc_def_dim(ncid, "LAT", (size_t) ny, &dim0[1]));
+		err_trap(nc_def_dim(ncid, "time", NC_UNLIMITED, &dim0[2]));
 
 		/* ---- Define variables ------------- */
 		dim3[0] = dim0[2];	dim3[1] = dim0[1];	dim3[2] = dim0[0];
-		err_trap (nc_def_var (ncid, "LON",       NC_DOUBLE,1, &dim0[0], &ids[0]));
-		err_trap (nc_def_var (ncid, "LAT",       NC_DOUBLE,1, &dim0[1], &ids[1]));
+		err_trap(nc_def_var(ncid, "LON",       NC_DOUBLE,1, &dim0[0], &ids[0]));
+		err_trap(nc_def_var(ncid, "LAT",       NC_DOUBLE,1, &dim0[1], &ids[1]));
 		if (isMost) {
-			err_trap (nc_def_var (ncid, "SLON",  NC_FLOAT,0,  &dim0[0], &ids[2]));
-			err_trap (nc_def_var (ncid, "SLAT",  NC_FLOAT,0,  &dim0[1], &ids[3]));
-			err_trap (nc_def_var (ncid, "time",  NC_DOUBLE,1, &dim0[2], &ids[4]));
-			err_trap (nc_def_var (ncid, name_var,NC_FLOAT,3,  dim3,     &ids[5]));
+			err_trap(nc_def_var(ncid, "SLON",  NC_FLOAT,0,  &dim0[0], &ids[2]));
+			err_trap(nc_def_var(ncid, "SLAT",  NC_FLOAT,0,  &dim0[1], &ids[3]));
+			err_trap(nc_def_var(ncid, "time",  NC_DOUBLE,1, &dim0[2], &ids[4]));
+			err_trap(nc_def_var(ncid, name_var,NC_FLOAT,3,  dim3,     &ids[5]));
 		}
 		else {
-			err_trap (nc_def_var (ncid, "time",  NC_DOUBLE,1, &dim0[2], &ids[2]));
-			err_trap (nc_def_var (ncid, name_var,NC_FLOAT,3,  dim3,     &ids[3]));
+			err_trap(nc_def_var(ncid, "time",  NC_DOUBLE,1, &dim0[2], &ids[2]));
+			err_trap(nc_def_var(ncid, name_var,NC_FLOAT,3,  dim3,     &ids[3]));
 			dim3[0] = dim0[1];			dim3[1] = dim0[0];		/* Bathym array is rank 2 */
-			err_trap (nc_def_var (ncid, "bathymetry",NC_FLOAT,2, dim3,  &ids[4]));
+			err_trap(nc_def_var(ncid, "bathymetry",NC_FLOAT,2, dim3,  &ids[4]));
 		}
 	}
 	else {
-		err_trap (nc_def_dim (ncid, "x", (size_t) nx, &dim0[0]));
-		err_trap (nc_def_dim (ncid, "y", (size_t) ny, &dim0[1]));
-		err_trap (nc_def_dim (ncid, "time",      NC_UNLIMITED, &dim0[2]));
+		err_trap(nc_def_dim(ncid, "x", (size_t) nx, &dim0[0]));
+		err_trap(nc_def_dim(ncid, "y", (size_t) ny, &dim0[1]));
+		err_trap(nc_def_dim(ncid, "time",      NC_UNLIMITED, &dim0[2]));
 
 		dim3[0] = dim0[2];	dim3[1] = dim0[1];   dim3[2] = dim0[0];
-		err_trap (nc_def_var (ncid, "x",         NC_DOUBLE,1, &dim0[0], &ids[0]));
-		err_trap (nc_def_var (ncid, "y",         NC_DOUBLE,1, &dim0[1], &ids[1]));
+		err_trap(nc_def_var(ncid, "x",         NC_DOUBLE,1, &dim0[0], &ids[0]));
+		err_trap(nc_def_var(ncid, "y",         NC_DOUBLE,1, &dim0[1], &ids[1]));
 		if (isMost) {
-			err_trap (nc_def_var (ncid, "SLON",  NC_FLOAT,0,  &dim0[0], &ids[2]));
-			err_trap (nc_def_var (ncid, "SLAT",  NC_FLOAT,0,  &dim0[1], &ids[3]));
-			err_trap (nc_def_var (ncid, "time",  NC_DOUBLE,1, &dim0[2], &ids[4]));
-			err_trap (nc_def_var (ncid, name_var,NC_FLOAT,3,  dim3,     &ids[5]));
+			err_trap(nc_def_var(ncid, "SLON",  NC_FLOAT,0,  &dim0[0], &ids[2]));
+			err_trap(nc_def_var(ncid, "SLAT",  NC_FLOAT,0,  &dim0[1], &ids[3]));
+			err_trap(nc_def_var(ncid, "time",  NC_DOUBLE,1, &dim0[2], &ids[4]));
+			err_trap(nc_def_var(ncid, name_var,NC_FLOAT,3,  dim3,     &ids[5]));
 		}
 		else {
-			err_trap (nc_def_var (ncid, "time",  NC_DOUBLE,1, &dim0[2], &ids[2]));
-			err_trap (nc_def_var (ncid, name_var,NC_FLOAT,3,  dim3,     &ids[3]));
+			err_trap(nc_def_var(ncid, "time",  NC_DOUBLE,1, &dim0[2], &ids[2]));
+			err_trap(nc_def_var(ncid, name_var,NC_FLOAT,3,  dim3,     &ids[3]));
 			dim3[0] = dim0[1];			dim3[1] = dim0[0];		/* Bathym array is rank 2 */
-			err_trap (nc_def_var (ncid, "bathymetry",NC_FLOAT,2, dim3,  &ids[4]));
+			err_trap(nc_def_var(ncid, "bathymetry",NC_FLOAT,2, dim3,  &ids[4]));
 		}
 	}
 
 	/* Set a deflation level of 5 (4 zero based) and shuffle for z variable */
 	id = (isMost) ? 5 : 3;
-	err_trap (nc_def_var_deflate (ncid, ids[id], 1, 1, 4));
+	err_trap(nc_def_var_deflate(ncid, ids[id], 1, 1, 4));
 
 	/* ---- Variables Attributes --------- */
 	if (isMost) {
-		err_trap (nc_put_att_text (ncid, ids[0], "units", 12, "degrees_east"));
-		err_trap (nc_put_att_text (ncid, ids[0], "point_spacing", 4, "even"));
-		err_trap (nc_put_att_text (ncid, ids[1], "units", 13, "degrees_north"));
-		err_trap (nc_put_att_text (ncid, ids[1], "point_spacing", 4, "even"));
-		err_trap (nc_put_att_text (ncid, ids[2], "units", 12, "degrees_east"));
-		err_trap (nc_put_att_text (ncid, ids[2], "long_name", 16, "Source Longitude"));
-		err_trap (nc_put_att_text (ncid, ids[3], "units", 13, "degrees_north"));
-		err_trap (nc_put_att_text (ncid, ids[3], "long_name", 16, "Source Latitude"));
-		err_trap (nc_put_att_text (ncid, ids[4], "units", 7, "SECONDS"));
-		err_trap (nc_put_att_text (ncid, ids[5], "long_name", strlen(long_name), long_name));
-		err_trap (nc_put_att_text (ncid, ids[5], "units", strlen(units), units));
-		err_trap (nc_put_att_float(ncid, ids[5], "missing_value", NC_FLOAT, 1, &dummy));
-		err_trap (nc_put_att_float(ncid, ids[5], "_FillValue", NC_FLOAT, 1, &dummy));
-		err_trap (nc_put_att_text (ncid, ids[5], "history", 6, "Nikles"));
+		err_trap(nc_put_att_text (ncid, ids[0], "units", 12, "degrees_east"));
+		err_trap(nc_put_att_text (ncid, ids[0], "point_spacing", 4, "even"));
+		err_trap(nc_put_att_text (ncid, ids[1], "units", 13, "degrees_north"));
+		err_trap(nc_put_att_text (ncid, ids[1], "point_spacing", 4, "even"));
+		err_trap(nc_put_att_text (ncid, ids[2], "units", 12, "degrees_east"));
+		err_trap(nc_put_att_text (ncid, ids[2], "long_name", 16, "Source Longitude"));
+		err_trap(nc_put_att_text (ncid, ids[3], "units", 13, "degrees_north"));
+		err_trap(nc_put_att_text (ncid, ids[3], "long_name", 16, "Source Latitude"));
+		err_trap(nc_put_att_text (ncid, ids[4], "units", 7, "SECONDS"));
+		err_trap(nc_put_att_text (ncid, ids[5], "long_name", strlen(long_name), long_name));
+		err_trap(nc_put_att_text (ncid, ids[5], "units", strlen(units), units));
+		err_trap(nc_put_att_float(ncid, ids[5], "missing_value", NC_FLOAT, 1, &dummy));
+		err_trap(nc_put_att_float(ncid, ids[5], "_FillValue", NC_FLOAT, 1, &dummy));
+		err_trap(nc_put_att_text (ncid, ids[5], "history", 6, "Nikles"));
 	}
 	else {
 		size_t	start_b[2] = {0,0}, count_b[2];
@@ -2709,31 +2709,31 @@ int open_most_nc(struct nestContainer *nest, float *work, char *base, char *name
 		float nan = (float)mxGetNaN();
 
 		range[0] = xMinOut;		range[1] = xMinOut + (nx - 1) * nest->hdr[lev].x_inc;
-		err_trap (nc_put_att_double(ncid, ids[0], "actual_range", NC_DOUBLE, 2U, range));
+		err_trap(nc_put_att_double(ncid, ids[0], "actual_range", NC_DOUBLE, 2U, range));
 		range[0] = yMinOut;		range[1] = yMinOut + (ny - 1) * nest->hdr[lev].y_inc;
-		err_trap (nc_put_att_double(ncid, ids[1], "actual_range", NC_DOUBLE, 2U, range));
+		err_trap(nc_put_att_double(ncid, ids[1], "actual_range", NC_DOUBLE, 2U, range));
 		if (nest->isGeog) {
-			err_trap (nc_put_att_text (ncid, ids[0], "units", 12, "degrees_east"));
-			err_trap (nc_put_att_text (ncid, ids[1], "units", 13, "degrees_north"));
+			err_trap(nc_put_att_text(ncid, ids[0], "units", 12, "degrees_east"));
+			err_trap(nc_put_att_text(ncid, ids[1], "units", 13, "degrees_north"));
 		}
 		else {
-			err_trap (nc_put_att_text (ncid, ids[0], "units", 6, "meters"));
-			err_trap (nc_put_att_text (ncid, ids[1], "units", 6, "meters"));
+			err_trap(nc_put_att_text(ncid, ids[0], "units", 6, "meters"));
+			err_trap(nc_put_att_text(ncid, ids[1], "units", 6, "meters"));
 		}
-		err_trap (nc_put_att_text  (ncid, ids[2], "units", 7, "Seconds"));
-		err_trap (nc_put_att_text  (ncid, ids[3], "long_name", strlen(long_name), long_name));
-		err_trap (nc_put_att_text  (ncid, ids[3], "units", strlen(units), units));
-		err_trap (nc_put_att_float (ncid, ids[3], "missing_value", NC_FLOAT, 1, &nan));
-		err_trap (nc_put_att_float (ncid, ids[3], "_FillValue", NC_FLOAT, 1, &nan));
-		err_trap (nc_put_att_double(ncid, ids[3], "actual_range", NC_DOUBLE, 2U, dummy));
+		err_trap(nc_put_att_text  (ncid, ids[2], "units", 7, "Seconds"));
+		err_trap(nc_put_att_text  (ncid, ids[3], "long_name", strlen(long_name), long_name));
+		err_trap(nc_put_att_text  (ncid, ids[3], "units", strlen(units), units));
+		err_trap(nc_put_att_float (ncid, ids[3], "missing_value", NC_FLOAT, 1, &nan));
+		err_trap(nc_put_att_float (ncid, ids[3], "_FillValue", NC_FLOAT, 1, &nan));
+		err_trap(nc_put_att_double(ncid, ids[3], "actual_range", NC_DOUBLE, 2U, dummy));
 
 		//err_trap (nc_def_var_deflate (ncid, ids[4], 1, 1, 4));		/* Set compression level */
-		err_trap (nc_put_att_text  (ncid, ids[4], "long_name", 10, "bathymetry"));
-		err_trap (nc_put_att_text  (ncid, ids[4], "units", 6, "meters"));
-		err_trap (nc_put_att_float (ncid, ids[4], "missing_value", NC_FLOAT, 1, &nan));
-		err_trap (nc_put_att_float (ncid, ids[4], "_FillValue", NC_FLOAT, 1, &nan));
+		err_trap(nc_put_att_text  (ncid, ids[4], "long_name", 10, "bathymetry"));
+		err_trap(nc_put_att_text  (ncid, ids[4], "units", 6, "meters"));
+		err_trap(nc_put_att_float (ncid, ids[4], "missing_value", NC_FLOAT, 1, &nan));
+		err_trap(nc_put_att_float (ncid, ids[4], "_FillValue", NC_FLOAT, 1, &nan));
 		range[0] = nest->hdr[lev].z_min;	range[1] = nest->hdr[lev].z_max;
-		err_trap (nc_put_att_double(ncid, ids[4], "actual_range", NC_DOUBLE, 2U, range));
+		err_trap(nc_put_att_double(ncid, ids[4], "actual_range", NC_DOUBLE, 2U, range));
 
 		for (ij = 0; ij < nest->hdr[lev].nm; ij++)
 			work[ij] = (float)-nest->bat[lev][ij];
@@ -2743,29 +2743,29 @@ int open_most_nc(struct nestContainer *nest, float *work, char *base, char *name
 	}
 
 	/* ---- Global Attributes ------------ */
-	err_trap (nc_put_att_text (ncid, NC_GLOBAL, "Conventions",   13, "COARDS/CF-1.0"));
-	err_trap (nc_put_att_text (ncid, NC_GLOBAL, "history",       10, "Mirone Tec"));
+	err_trap(nc_put_att_text(ncid, NC_GLOBAL, "Conventions",   13, "COARDS/CF-1.0"));
+	err_trap(nc_put_att_text(ncid, NC_GLOBAL, "history",       10, "Mirone Tec"));
 	if (isMost) {
-		err_trap (nc_put_att_text (ncid, NC_GLOBAL, "title", 39, "MOST type file created by Mirone-NSWING"));
+		err_trap(nc_put_att_text(ncid, NC_GLOBAL, "title", 39, "MOST type file created by Mirone-NSWING"));
 	}
 	else {
-		err_trap (nc_put_att_text (ncid, NC_GLOBAL, "title", 44, "Water levels series created by Mirone-NSWING"));
-		err_trap (nc_put_att_text (ncid, NC_GLOBAL, "TSU",    6, "NSWING"));
+		err_trap(nc_put_att_text(ncid, NC_GLOBAL, "title", 44, "Water levels series created by Mirone-NSWING"));
+		err_trap(nc_put_att_text(ncid, NC_GLOBAL, "TSU",    6, "NSWING"));
 	}
 
 	err_trap (nc_enddef (ncid));
 
 	/* ---- Write the vector coords ------ */
-	x = (double *) mxMalloc (sizeof (double) * nx);
-	y = (double *) mxMalloc (sizeof (double) * ny);
+	x = (double *)mxMalloc (sizeof(double) * nx);
+	y = (double *)mxMalloc (sizeof(double) * ny);
 
 	for (n = 0; n < nx; n++) x[n] = xMinOut + n * nest->hdr[lev].x_inc;
 	for (m = 0; m < ny; m++) y[m] = yMinOut + m * nest->hdr[lev].y_inc;
-	err_trap (nc_put_var_double (ncid, ids[0], x));
-	err_trap (nc_put_var_double (ncid, ids[1], y));
-	mxFree ((void *)x); 
-	mxFree ((void *)y); 
-	mxFree ((void *)basename); 
+	err_trap(nc_put_var_double(ncid, ids[0], x));
+	err_trap(nc_put_var_double(ncid, ids[1], y));
+	mxFree((void *)x); 
+	mxFree((void *)y); 
+	mxFree((void *)basename); 
 
 	return (ncid);
 }
