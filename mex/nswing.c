@@ -368,7 +368,7 @@ int main(int argc, char **argv) {
 	int     out_oranges_nc = FALSE;      /* For when tracers in output are written in netCDF */
 	int     n_arg_no_char = 0;
 	int     ncid, ncid_most[3], z_id = -1, ids[13], ids_ha[6], ids_ua[6], ids_va[6], ids_most[3];
-	int     ncid_3D[3], ids_z[5], ids_vx[4], ids_vy[4], ids_3D[3];
+	int     ncid_3D[3], ids_z[8], ids_3D[3];
 	int     n_of_cycles = 1010;          /* Numero de ciclos a calcular */
 	int     num_of_nestGrids = 0;        /* Number of nesting grids */
 	int     bat_in_input = FALSE, source_in_input = FALSE, write_grids = FALSE, isGeog = FALSE;
@@ -1267,6 +1267,8 @@ int main(int argc, char **argv) {
 			Return(-1);
 		}
 		ids_3D[0] = ids_z[3];       /* ID of z vriable */
+		ids_3D[1] = ids_z[5];       /* ID of Vx vriable (only used when it exists) */
+		ids_3D[2] = ids_z[6];       /* ID of Vy vriable (only used when it exists) */
 
 		/* To be used when writing the data slices */
 		count1_M[0] = 1;	count1_M[1] = ny;	count1_M[2] = nx;
@@ -1610,7 +1612,7 @@ int main(int argc, char **argv) {
 				              i_start, j_start, i_end, j_end, nest.hdr[writeLevel].nx, work);
 			}
 
-			if (out_velocity) {
+			if (out_velocity && !out_3D) {
 				sprintf(prenome, "%s%05d", stem, irint(time_h));
 
 				if (out_velocity_x) {
@@ -1620,13 +1622,13 @@ int main(int argc, char **argv) {
 						else
 							work[ij] = 0;
 
-						if (nest.htotal_d[writeLevel][ij] < 0.1 && fabs(work[ij]) > 15)	/* Clip above this combination */
+						if (nest.htotal_d[writeLevel][ij] < 0.5 && fabs(work[ij]) >= V_LIMIT)	/* Clip above this combination */
 							work[ij] = 0;
 					}
 
 					write_grd_bin(strcat(prenome,"_U.grd"), xMinOut + nest.hdr[writeLevel].x_inc/2, yMinOut,
 					              dx, dy, i_start, j_start, i_end, j_end, nest.hdr[writeLevel].nx, work);
-					prenome[strlen(prenome) - 6] = '\0';	/* Remove the _U.grd' so that we can add '_V.grd' */
+					prenome[strlen(prenome)-6] = '\0';	/* Remove the _U.grd' so that we can add '_V.grd' */
 				}
 				if (out_velocity_y) {
 					for (ij = 0; ij < nest.hdr[writeLevel].nm; ij++) {
@@ -1635,7 +1637,7 @@ int main(int argc, char **argv) {
 						else
 							work[ij] = 0;
 
-						if (nest.htotal_d[writeLevel][ij] < 0.1 && fabs(work[ij]) > 15)	/* Clip above this combination */
+						if (nest.htotal_d[writeLevel][ij] < 0.5 && fabs(work[ij]) >= V_LIMIT)	/* Clip above this combination */
 							work[ij] = 0;
 					}
 
@@ -1691,9 +1693,9 @@ int main(int argc, char **argv) {
 
 #ifdef HAVE_NETCDF
 	if (out_sww) {          /* Uppdate range values and close SWW file */
-		err_trap (nc_put_var_float (ncid, ids[8], stage_range));
-		err_trap (nc_put_var_float (ncid, ids[10], xmom_range));
-		err_trap (nc_put_var_float (ncid, ids[12], ymom_range));
+		err_trap(nc_put_var_float (ncid, ids[8], stage_range));
+		err_trap(nc_put_var_float (ncid, ids[10], xmom_range));
+		err_trap(nc_put_var_float (ncid, ids[12], ymom_range));
 		err_trap(nc_close (ncid)); 
 	}
 
@@ -1703,26 +1705,26 @@ int main(int argc, char **argv) {
 		err_trap(nc_close (ncid_most[2])); 
 	}
 	else if (out_3D) {      /* Uppdate range values and close 3D file */
-		err_trap (nc_put_att_double(ncid_3D[0], ids_z[3], "actual_range", NC_DOUBLE, 2U, actual_range));
-		err_trap(nc_close (ncid_3D[0])); 
+		err_trap(nc_put_att_double(ncid_3D[0], ids_z[3], "actual_range", NC_DOUBLE, 2U, actual_range));
+		err_trap(nc_close(ncid_3D[0])); 
 	}
 
 	if (out_sww || out_most) mxFree ((void *)tmp_slice);
 
 	if (out_maregs_nc) {    /* Write the maregs in a netCDF file */
 		write_maregs_nc (&nest, hcum, maregs_array, maregs_timeout, lcum_p, n_mareg, count_time_maregs_timeout, writeLevel);
-		mxFree (maregs_array);
-		mxFree (maregs_timeout);
+		mxFree(maregs_array);
+		mxFree(maregs_timeout);
 	}
 #endif
 	
 	if (do_tracers) {			/* Write the tracers file and free memory */
 		for (k = 0; k < n_of_cycles; k++) {
-			fprintf (fp_oranges, "%.2f", k * dt);
+			fprintf(fp_oranges, "%.2f", k * dt);
 			for (n = 0; n < n_oranges; n++)
-				fprintf (fp_oranges, "\t%.5f\t%.5f", oranges[n].x[k], oranges[n].y[k]);
+				fprintf(fp_oranges, "\t%.5f\t%.5f", oranges[n].x[k], oranges[n].y[k]);
 
-			fprintf (fp_oranges, "\n");
+			fprintf(fp_oranges, "\n");
 		}
 
 		fclose (fp_oranges);
@@ -2601,8 +2603,9 @@ double ddmmss_to_degree(char *text) {
 /* -------------------------------------------------------------------- */
 int open_most_nc(struct nestContainer *nest, float *work, char *base, char *name_var, int *ids, unsigned int nx,
                  unsigned int ny, double xMinOut, double yMinOut, int isMost, int lev) {
-	/* Open and initialize a generic 3D or a MOST netCDF file for writing
+	/* Open and initialize a generic 3D or a MOST netCDF file for writing.
 	   When generic 3D file also writes the bathymetry grid right away.
+	   Returns the ncid of the opened file.
 	*/
 	char	*long_name = NULL, *units = NULL, *basename = NULL;
 	int ncid = -1, status, dim0[3], dim3[3], id;
@@ -2630,6 +2633,14 @@ int open_most_nc(struct nestContainer *nest, float *work, char *base, char *name
 	else if (!strcmp(name_var,"z")) {	/* Generic variable in meters */
 		long_name = "Sea surface";
 		units = "meters";
+	}
+	else if (!strcmp(name_var,"Vx")) {	/* Horizontal velocity, 3D case */
+		long_name = "Velocity Component along x/Longitude";
+		units = "Meters/second";
+	}
+	else if (!strcmp(name_var,"Vy")) {	/* Vertical velocity, 3D case */
+		long_name = "Velocity Component along y/Latitude";
+		units = "Meters/second";
 	}
 
 	if ((status = nc_create(basename, NC_NETCDF4, &ncid)) != NC_NOERR) {
@@ -2727,7 +2738,6 @@ int open_most_nc(struct nestContainer *nest, float *work, char *base, char *name
 		err_trap(nc_put_att_float (ncid, ids[3], "_FillValue", NC_FLOAT, 1, &nan));
 		err_trap(nc_put_att_double(ncid, ids[3], "actual_range", NC_DOUBLE, 2U, dummy));
 
-		//err_trap (nc_def_var_deflate (ncid, ids[4], 1, 1, 4));		/* Set compression level */
 		err_trap(nc_put_att_text  (ncid, ids[4], "long_name", 10, "bathymetry"));
 		err_trap(nc_put_att_text  (ncid, ids[4], "units", 6, "meters"));
 		err_trap(nc_put_att_float (ncid, ids[4], "missing_value", NC_FLOAT, 1, &nan));
@@ -2739,7 +2749,22 @@ int open_most_nc(struct nestContainer *nest, float *work, char *base, char *name
 			work[ij] = (float)-nest->bat[lev][ij];
 
 		count_b[0] = nest->hdr[lev].ny;	count_b[1] = nest->hdr[lev].nx;
-		err_trap (nc_put_vara_float (ncid, ids[4], start_b, count_b, work));	/* Write the bathymetry */
+		err_trap(nc_put_vara_float(ncid, ids[4], start_b, count_b, work));	/* Write the bathymetry */
+
+		if (nest->out_velocity_x) {
+			err_trap(nc_put_att_text  (ncid, ids[5], "long_name", strlen(long_name), long_name));
+			err_trap(nc_put_att_text  (ncid, ids[5], "units", strlen(units), units));
+			err_trap(nc_put_att_float (ncid, ids[5], "missing_value", NC_FLOAT, 1, &nan));
+			err_trap(nc_put_att_float (ncid, ids[5], "_FillValue", NC_FLOAT, 1, &nan));
+			err_trap(nc_put_att_double(ncid, ids[5], "actual_range", NC_DOUBLE, 2U, dummy));
+		}
+		if (nest->out_velocity_y) {
+			err_trap(nc_put_att_text  (ncid, ids[6], "long_name", strlen(long_name), long_name));
+			err_trap(nc_put_att_text  (ncid, ids[6], "units", strlen(units), units));
+			err_trap(nc_put_att_float (ncid, ids[6], "missing_value", NC_FLOAT, 1, &nan));
+			err_trap(nc_put_att_float (ncid, ids[6], "_FillValue", NC_FLOAT, 1, &nan));
+			err_trap(nc_put_att_double(ncid, ids[6], "actual_range", NC_DOUBLE, 2U, dummy));
+		}
 	}
 
 	/* ---- Global Attributes ------------ */
@@ -2753,7 +2778,7 @@ int open_most_nc(struct nestContainer *nest, float *work, char *base, char *name
 		err_trap(nc_put_att_text(ncid, NC_GLOBAL, "TSU",    6, "NSWING"));
 	}
 
-	err_trap (nc_enddef (ncid));
+	err_trap(nc_enddef(ncid));
 
 	/* ---- Write the vector coords ------ */
 	x = (double *)mxMalloc (sizeof(double) * nx);
@@ -2778,9 +2803,6 @@ void write_most_slice(struct nestContainer *nest, int *ncid, int *ids, unsigned 
 	unsigned int col, row, n, ij, k;
 
 	if (!isMost) {
-		//for (ij = 0; ij < nest->hdr[lev].nm; ij++)
-			//work[ij] = (float)nest->etad[lev][ij];
-
 		/* ----------- Find the min/max of this slice --------- */
 		for (ij = 0; ij < nest->hdr[lev].nm; ij++) {
 			slice_range[1] = MAX(work[ij], slice_range[1]);
@@ -2788,6 +2810,26 @@ void write_most_slice(struct nestContainer *nest, int *ncid, int *ids, unsigned 
 		}
 
 		err_trap (nc_put_vara_float (ncid[0], ids[0], start, count, work));
+
+		/* Conditionally write the Vx & Vy velocity components */
+		if (nest->out_velocity_x) {
+			for (ij = 0; ij < nest->hdr[nest->writeLevel].nm; ij++) {
+				work[ij] = (nest->htotal_d[nest->writeLevel][ij] > EPS2) ? (float)nest->vex[nest->writeLevel][ij] : 0;
+
+				if (nest->htotal_d[nest->writeLevel][ij] < 0.5 && fabs(work[ij]) >= V_LIMIT)	/* Clip above this combination */
+					work[ij] = 0;
+			}			
+			err_trap (nc_put_vara_float (ncid[0], ids[1], start, count, work));
+		}
+		if (nest->out_velocity_y) {
+			for (ij = 0; ij < nest->hdr[nest->writeLevel].nm; ij++) {
+				work[ij] = (nest->htotal_d[nest->writeLevel][ij] > EPS2) ? (float)nest->vey[nest->writeLevel][ij] : 0;
+
+				if (nest->htotal_d[nest->writeLevel][ij] < 0.5 && fabs(work[ij]) >= V_LIMIT)	/* Clip above this combination */
+					work[ij] = 0;
+			}			
+			err_trap (nc_put_vara_float (ncid[0], ids[2], start, count, work));
+		}
 	}
 	else {
 		for (n = 0; n < 3; n++) {	/* Loop over, Amplitude, Xmomentum & Ymomentum */
@@ -2873,9 +2915,9 @@ int write_maregs_nc(struct nestContainer *nest, char *fname, float *work, double
 
 	err_trap (nc_enddef (ncid));
 
-	x = (double *) mxMalloc (sizeof (double) * n_maregs);
-	y = (double *) mxMalloc (sizeof (double) * n_maregs);
-	maregs_vec = (int *) mxMalloc (sizeof (int) * n_maregs);
+	x = (double *)mxMalloc(sizeof(double) * n_maregs);
+	y = (double *)mxMalloc(sizeof(double) * n_maregs);
+	maregs_vec = (int *)mxMalloc(sizeof(int) * n_maregs);
 
 	for (k = 0; k < n_maregs; k++) {
 		ix = lcum_p[k] % nest->hdr[lev].nx;
@@ -2885,15 +2927,15 @@ int write_maregs_nc(struct nestContainer *nest, char *fname, float *work, double
 		maregs_vec[k] = k + 1;
 	}
 
-	err_trap (nc_put_var_double (ncid, ids[0], t));
-	err_trap (nc_put_var_int    (ncid, ids[1], maregs_vec));
-	err_trap (nc_put_var_double (ncid, ids[2], x));
-	err_trap (nc_put_var_double (ncid, ids[3], y));
-	mxFree (x); 
-	mxFree (y); 
-	mxFree (maregs_vec); 
+	err_trap(nc_put_var_double(ncid, ids[0], t));
+	err_trap(nc_put_var_int   (ncid, ids[1], maregs_vec));
+	err_trap(nc_put_var_double(ncid, ids[2], x));
+	err_trap(nc_put_var_double(ncid, ids[3], y));
+	mxFree(x); 
+	mxFree(y); 
+	mxFree(maregs_vec); 
 
-	err_trap(nc_close (ncid)); 
+	err_trap(nc_close(ncid)); 
 
 	return (0);
 }
@@ -3578,8 +3620,10 @@ L120:
 				xp = 0;
 			else {			/* Limit the discharge */
 				f_limit = V_LIMIT * dd;
-				if (xp > f_limit) xp = f_limit;
-				else if (xp < -f_limit) xp = -f_limit;
+				if (xp > f_limit)
+					xp = f_limit;
+				else if (xp < -f_limit)
+					xp = -f_limit;
 			}
 
 			fluxm_d[ij] = xp;
@@ -5050,7 +5094,7 @@ void update_max_velocity(struct nestContainer *nest) {
 
 		v = (float)(vx * vx + vy * vy);
 
-		if (nest->htotal_d[writeLevel][ij] < 0.1 && v > 225)	/* Clip above this combination (225 = 15 * 15) */
+		if (nest->htotal_d[writeLevel][ij] < 0.1 && v > 400)	/* Clip above this combination (400 = V_LIMIT * V_LIMIT) */
 			v = 0;
 
 		if (nest->vmax[ij] < v) nest->vmax[ij] = v;
