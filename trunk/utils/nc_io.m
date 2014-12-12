@@ -40,7 +40,7 @@ function varargout = nc_io(fname, mode, handles, data, misc)
 %				reason the mexnc call in nc_funs/write_the_data() errors when writing UNLIMITED variables
 %				so the only way out is to send in the levelVec (vector of times, most of times)
 
-%	Copyright (c) 2004-2014 by J. Luis
+%	Copyright (c) 2004-2015 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -355,6 +355,8 @@ function write_nc(fname, handles, data, misc, page)
 function [X,Y,Z,head,misc] = read_nc(fname, opt)
 % Read an nc file or a variable from one
 % If OPT, do not load Z (return Z = []) -- Used by Aquamoto and Slices to read multi-levels grids
+% If FNAME is a cell array with two ellements, first holds the file name and second the variable
+% name to fetch. When not the var name is not provided we fish the first 2D (or 3D) variable found.
 
 	Z = [];		ncVarName = [];		z_id = 0;
 
