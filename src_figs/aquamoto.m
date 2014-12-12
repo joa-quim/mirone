@@ -396,7 +396,7 @@ function push_swwName_CB(hObject, eventdata, handles, opt)
 			end
 			set(handles.check_splitDryWet,'Val',0)
 			if (any(strcmp({s.Attribute.Name},'TSU')))			% An NSWING TSUnami file
-				if (s.Dataset(z_id).Name(1) == 'V')				% We don't have enough info to split on velocities
+				if (s.Dataset(misc.z_id).Name(1) == 'V')		% We don't have enough info to split on velocities
 					handles.cmapLand = jet(256);				% Uggly shit but velocities get land color in coards_sliceShow()
 				else
 					set(handles.check_splitDryWet, 'Val', 1)
