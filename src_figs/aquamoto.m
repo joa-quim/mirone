@@ -30,13 +30,15 @@ function varargout = aquamoto(varargin)
 	aquamoto_LayoutFcn(hObject);
 	handles = guihandles(hObject);
  
-	got_a_file_to_start = [];		handles.hMirFig = [];
+	got_a_file_to_start = [];	handles.hMirFig = [];
+	handles.ncVarName = [];		% To hold a specific var name that we want to get from a nc file
+
 	if (numel(varargin) > 0 && ~ischar(varargin{1}))	% Expects Mirone handles as first arg
 		handMir = varargin{1};
 		if (numel(varargin) == 2)
 			if (exist(varargin{2}, 'file') == 2)		% An input file name
 				got_a_file_to_start = varargin{2};
-				handles.hMirFig = handMir.hMirFig;		% This fig already has first layer
+				handles.hMirFig = handMir.hMirFig;		% This fig already has first layer (hmm, not always)
 			end
 		end
 		handles.hMirFig_safe = handMir.figure1;			% Need one guarantied to not be empty
@@ -46,6 +48,7 @@ function varargout = aquamoto(varargin)
 		handles.DefineEllipsoide = handMir.DefineEllipsoide;	% Potentially need in aquaPlugin
 		handles.DefineMeasureUnit = handMir.DefineMeasureUnit;	%				"
 		handles.IamCompiled = handMir.IamCompiled;
+		try		handles.ncVarName = handMir.ncVarName;	end		% May exist only for files with 1 or multiple 3D datasets
         d_path = handMir.path_data;
 	else
 		if (numel(varargin) >= 1 && (exist(varargin{1}, 'file') == 2))		% File name in input
@@ -111,7 +114,7 @@ function varargout = aquamoto(varargin)
 	handles.spacingChanged = false;		% To signal quiver when old arrows should be deleted
 	handles.useLandPhoto = false;
 	handles.firstLandPhoto = true;
-	handles.landIllumComm_bak = '';	% To know when recompute the land illumination 
+	handles.landIllumComm_bak = '';	% To know when recompute the land illumination
 
 	set(handles.popup_derivedVar, 'String', ...
 		{'Absolute Velocity (V)'; ...
@@ -216,7 +219,7 @@ function varargout = aquamoto(varargin)
 	handles.usrMM = 0;          % To signal if user has changed the ensemble Min|Max
 	handles.lambCteComm = '/0.55/0.6/0.4/10';   % These Lambertian params are here const
 	handles.waterIllumComm = '-E0/30/0.55/0.6/0.4/10';      % Starting values
-	handles.landIllumComm = '-A0';
+	handles.landIllumComm  = '-A0';
 	handles.landCurrIllumType  = 'grdgradient_A';
 	handles.waterCurrIllumType = 'lambertian';
 	handles.fps = 5;            % Frames per second
@@ -382,17 +385,23 @@ function push_swwName_CB(hObject, eventdata, handles, opt)
 	end
 	ind = strcmp({s.Dimension.Name},'number_of_volumes');
 	if (~any(ind))
-		[X,Y,Z,head,misc] = nc_io(handles.fname,'R');
+		if (isempty(handles.ncVarName)),	tmpName = handles.fname;	% Get the first >= 2D var that shows up in file
+		else								tmpName = {handles.fname, handles.ncVarName};	% Get that specific var
+		end
+		[X,Y,Z,head,misc] = nc_io(tmpName,'R');
 		if (numel(head) == 9 && isfield(misc,'z_id'))			% INTERCEPT POINT FOR PLAIN COARDS NETCDF FILES
 			if (numel(misc.z_dim) <= 2)
 				errordlg('This netCDF file is not 3D. Use Mirone directly to read it.','Error')
 				return
 			end
+			set(handles.check_splitDryWet,'Val',0)
 			if (any(strcmp({s.Attribute.Name},'TSU')))			% An NSWING TSUnami file
-				set(handles.check_splitDryWet, 'Val', 1)
+				if (s.Dataset(z_id).Name(1) == 'V')				% We don't have enough info to split on velocities
+					handles.cmapLand = jet(256);				% Uggly shit but velocities get land color in coards_sliceShow()
+				else
+					set(handles.check_splitDryWet, 'Val', 1)
+				end
 				handles.IamTSU = true;
-			else
-				set(handles.check_splitDryWet,'Val',0)
 			end
 			handles.nc_info = s;		% Save the nc file info
 			aqua_suppfuns('coards_hdr',handles,X,Y,head,misc)
@@ -543,12 +552,9 @@ function push_swwName_CB(hObject, eventdata, handles, opt)
 function push_showSlice_CB(hObject, eventdata, handles)
 % ...
 	if (~get(handles.radio_multiLayer, 'Val') && ~isempty(handles.nameList))
-		errordlg('This button is for exclusive use of ANUGA files. Not for "Time Grids" list.','Error'),	return
+		errordlg('This button is for exclusive use of 3D files. Not for "Time Grids" list.','Error'),	return
 	end
 	if (isempty(handles.fname)),		return,		end
-
-	nx = str2double(get(handles.edit_Ncols,'String'));
-	ny = str2double(get(handles.edit_Nrows,'String'));
 
 	if (handles.is_coards)			% We are dealing with a coards netCDF file
 		aqua_suppfuns('coards_slice', handles),		return
@@ -570,6 +576,9 @@ function push_showSlice_CB(hObject, eventdata, handles)
 	if (abs((y - handles.head(3))) > 1e-5),		handles.head(3) = y;	end
 	y = str2double(get(handles.edit_y_max,'String'));
 	if (abs((y - handles.head(4))) > 1e-5),		handles.head(4) = y;	end
+
+	nx = str2double(get(handles.edit_Ncols,'String'));
+	ny = str2double(get(handles.edit_Nrows,'String'));
 
 	x = linspace(handles.head(1),handles.head(2),nx);
 	y = linspace(handles.head(3),handles.head(4),ny);
@@ -1311,9 +1320,7 @@ function paint_toggle_ico(hTogg1, hTogg2)
 % -----------------------------------------------------------------------------------------
 function push_palette_CB(hObject, eventdata, handles)
 % Get the new color map and assign it to either Land or Water cmaps
-	if (~get(handles.check_splitDryWet, 'Val') && get(handles.radio_water,'Val'))
-		warndlg('Without the "Split Dry/Wet" option selected, what you asked has no effect.','Warning'),	return
-	end
+
 	handles.no_file = 1;		% We don't want color_palettes trying to update a ghost image (DON'T KILL THIS LINE)
 
 	cmap = color_palettes(handles);
