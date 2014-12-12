@@ -1,7 +1,7 @@
 function frame3D(parent,pos,color,bg_color,usr_dat)
 % frame3D.  Define a frame with a 3D effect.
 
-%	Copyright (c) 2004-2012 by J. Luis
+%	Copyright (c) 2004-2015 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -15,6 +15,9 @@ function frame3D(parent,pos,color,bg_color,usr_dat)
 %
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
+
+% $Id$
+
 
 % Build the rectangle's left vertical side
 x1 = [pos(1) pos(2) 1 pos(4)];
