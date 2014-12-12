@@ -57,7 +57,7 @@ function move2side(hFigStatic, hFigMov, opt)
 	if ( ~(ishandle(hFigMov) && strcmp(get(hFigMov,'Type'), 'figure')) )
 		error('move2side: first argument must be a valid figure handle')
 	end
-	if (hFigStatic && ~(ishandle(hFigStatic) && strcmp(get(hFigStatic,'Type'), 'figure')) )
+	if (hFigStatic ~= 0 && ~(ishandle(hFigStatic) && strcmp(get(hFigStatic,'Type'), 'figure')) )
 		error('move2side: second argument must be a valid figure handle')
 	end
 
@@ -66,7 +66,7 @@ function move2side(hFigStatic, hFigMov, opt)
 	ecran = get(0,'ScreenSize');		set(0, 'units', units_bak);
 	
 	% save original figures units and temp set them to pixels
-	if (hFigStatic)
+	if (hFigStatic ~= 0)
 		FigStaticUnit = get(hFigStatic,'Units');
 		set(hFigStatic,'Units','Pixels')
 	end
@@ -75,7 +75,7 @@ function move2side(hFigStatic, hFigMov, opt)
 	% Get figures dimensions
 	posFigMov = get(hFigMov,'Pos');
 	outPosFigMov = get(hFigMov,'outerposition');
-	if (hFigStatic)
+	if (hFigStatic ~= 0)
 		posFigStatic = get(hFigStatic,'Pos');
 	else
 		if (lower(opt(1)) == 'r')
@@ -117,7 +117,7 @@ function move2side(hFigStatic, hFigMov, opt)
 	set(hFigMov,'Pos',[xLL yLL posFigMov(3:4)])
 	
 	% Reset original figures units
-	if (hFigStatic),	set(hFigStatic,'Units',FigStaticUnit),		end
+	if (hFigStatic ~= 0),	set(hFigStatic,'Units',FigStaticUnit),		end
 	set(hFigMov,'Units',FigMovUnit)
 
 
