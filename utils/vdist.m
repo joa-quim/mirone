@@ -87,9 +87,13 @@ function varargout = vdist(lat1,lon1,lat2,lon2,ellipsoide)
 	if (isempty(lon1) || isempty(lat1) || isempty(lon2) || isempty(lat2))
 		error('VIDIST: at least one of the input arguments is empty.')
 	end
-	% if (all(abs(lat2-lat1) < 1e-7) && all(abs(lon2-lon1) < 1e-7))
-	% 	return
-	% end
+	if (all(abs(lat2-lat1) < 1e-7) && all(abs(lon2-lon1) < 1e-7))
+		varargout{1} = zeros(size(lat1));
+		for (k = 2:numel(varargout))
+			varargout{k} = varargout{1};
+		end
+		return
+	end
 
 	if (numel(lat1) == 1 && numel(lat2) > 1)
 		lat1 = repmat(lat1,size(lat2));
