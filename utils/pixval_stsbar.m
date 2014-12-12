@@ -327,7 +327,7 @@ function ButtonDownOnImage(obj, evt, hFig)
 	pt = get(axesHandle, 'CurrentPoint');
 	dbud.x0 = pt(1,1);
 	dbud.y0 = pt(1,2);
-	dbud.line = line('Parent', axesHandle, 'erasemode', 'xor', 'color', [1 0 0], ...
+	dbud.line = line('Parent', axesHandle, 'color', [1 0 0], ...
 		'Xdata', [dbud.x0 dbud.x0],'Ydata', [dbud.y0 dbud.y0]);
 	dbud.displayMode = 'distance';
 	dbud.buttonDownImage = imageHandle;
