@@ -7,7 +7,7 @@ function new_frame3D(hFig, hText, hFrame)
 %
 %	new_frame3D(hFig, hText)	fish all frames in Fig
 
-%	Copyright (c) 2004-2012 by J. Luis
+%	Copyright (c) 2004-2015 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -43,7 +43,7 @@ function new_frame3D(hFig, hText, hFrame)
 		hText = findobj(hFig,'Style','Text');
 	end
 
-	if ~((numel(hText) == 1) && isnan(hText))
+	if ~((numel(hText) == 1) && ~ishandle(hText) && isnan(hText))
 		uistack_j(hText, 'top')
 	end
 
