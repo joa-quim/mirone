@@ -1625,11 +1625,11 @@ function erro = FileOpenGeoTIFF_CB(handles, tipo, opt)
 		% Deal with case of smultaneous existence of one 3D and one or more 2D subdatasets
 		if (any(c3D) && c3D(s+1))						% Got a selection of one 3D-SUBDATASET CASE
 			handles.hMirFig = [];						% Informs aquamoto/slices that it has to create a new Fig to hold slice
+			ind = strfind(FileName, ':');				% We will need this in slices/push_inputName_CB() to ...
+			handles.ncVarName = FileName(ind(end)+1:end);	% New member (ncVarName)
 			if (any(strncmp(att.Metadata,'NC_GLOBAL#TSU=',13)))
 				aquamoto(handles, handles.fileName)
 			else
-				ind = strfind(FileName, ':');			% We will need this in slices/push_inputName_CB() to ...
-				handles.ncVarName = FileName(ind(end)+1:end);	% New member (ncVarName)
 				slices(handles, handles.fileName)
 			end
 			return
