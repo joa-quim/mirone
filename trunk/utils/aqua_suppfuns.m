@@ -252,6 +252,7 @@ function coards_sliceShow(handles, Z)
 			Y = double(nc_funs('varget', handles.fname, s.Dataset(y_id).Name));
 			if (Y(2) < Y(1)),	Z = flipud(Z);	end
 		end
+		try		handles.head(5:6) =  handles.zMinMaxs(handles.sliceNumber,:);	end		%  handles.head was from 1st layer
 	end
 
 	have_nans = 0;
@@ -267,7 +268,7 @@ function coards_sliceShow(handles, Z)
 		splitDryWet = get(handles.check_splitDryWet,'Val');		% See if we need to build wet and dry images, or only one
 	catch
 		splitDryWet = false;
-		handles.cmapLand = jet(256);			% Was not yet be deffined if a TSU file opened in SLICES
+		handles.cmapLand = jet(256);			% Was not yet deffined if a TSU file opened in SLICES
 	end
 
 	if (splitDryWet && handles.IamTSU)
