@@ -647,7 +647,7 @@ function change_cmap(handles, pal)
 
 	if (~isempty(handles.hCallingFig))		% It is when drag-N-drop a .cpt file
 		handMir = guidata(handles.hCallingFig);
-		if (strcmp(get(handMir.hImg, 'CDataMapping'), 'scaled'))	% Scaled images may have much shorter cmaps
+		if (isfield(handMir, 'hImg') && strcmp(get(handMir.hImg, 'CDataMapping'), 'scaled'))	% Scaled images may have much shorter cmaps
 			clim = get(handMir.axes1, 'CLim');
 			pal = interp1(linspace(0,1,size(pal,1)), pal, linspace(0,1,diff(clim)+1), 'linear','extrap');
 		end
