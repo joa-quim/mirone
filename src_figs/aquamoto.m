@@ -956,7 +956,6 @@ function img = do_imgWater(handles, indVar, Z, imgBat, indLand)
 %
 %	Output IMG is always RGB
 
-% 	minmax = handles.ranges{indVar};		minmax = minmax(:)';
 	minmax = [handles.minWater handles.maxWater];		% Despite the name it respects the "indVar"
 	if (~get(handles.check_globalMinMax, 'Val')),		minmax = [];	end		% Use Slice's min/max
 	if (~isempty(minmax)),		imgWater = scaleto8(Z, 8, minmax);
