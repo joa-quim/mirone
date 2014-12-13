@@ -275,6 +275,7 @@ function coards_sliceShow(handles, Z)
 		zBat = nc_funs('varget', handles.fname, 'bathymetry');
 		dife = cvlib_mex('absDiff', zBat, Z);
 		indLand = (dife < 1e-2);				% The 1e-2 SHOULD be parameterized
+		Z(indLand) = 0;							% Smash these to to steal the color dynamics
 
 		if (handles.useLandPhoto)
 			alfa = 255;		% Means land will be completely opac and water 100% transparent
