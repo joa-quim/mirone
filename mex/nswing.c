@@ -205,6 +205,7 @@ struct nestContainer {         /* Container for the nestings */
 	int    do_linear;          /* If true, use linear approximation */
 	int    do_max_level;       /* If true, inform nestify() on the need to update max level at every inner iteration */
 	int    do_max_velocity;    /* If true, inform nestify() on the need to update max velocity at each inner iteration */
+	int    do_Coriolis;        /* If true, compute the Coriolis effect */
 	int    out_velocity_x;     /* To know if we must compute the vex,vey velocity arrays */
 	int    out_velocity_y;
 	int    isGeog;             /* 0 == Cartesian, otherwise Geographic coordinates */
@@ -219,7 +220,8 @@ struct nestContainer {         /* Container for the nestings */
 	float  *work, *wmax;       /* Auxiliary pointers (not direcly allocated) to compute max level of nested grids */
 	float  *vmax;              /* Pointer to array storing the max velocity */
 	double run_jump_time;      /* Time to hold before letting the nested grids start to iterate */
-	double manning2[10];       /* Square of Manning coefficient. Set to zero if no friction */
+	double lat_min4Coriolis;   /* South latitute when computing the Coriolis effect on a cartesian grid */
+	double manning[10];        /* Manning coefficient. Set to zero if no friction */
 	double LLx[10], LLy[10], ULx[10], ULy[10], URx[10], URy[10], LRx[10], LRy[10];
 	double dt[10];                             /* Time step at current level               */
 	double *bat[10];                           /* Bathymetry of current level              */
@@ -271,6 +273,7 @@ void wall_two(struct nestContainer *nest, int ot1, int ot2, int in1, int in2);
 int  initialize_nestum(struct nestContainer *nest, int isGeog, int lev);
 int  intp_lin (double *x, double *y, int n, int m, double *u, double *v);
 void inisp(struct nestContainer *nest);
+void inicart(struct nestContainer *nest);
 void interp_edges(struct nestContainer *nest, double *flux_L1, double *flux_L2, char *what, int lev, int i_time);
 void sanitize_nestContainer(struct nestContainer *nest);
 void nestify(struct nestContainer *nest, int nNg, int recursionLevel, int isGeog);
@@ -404,7 +407,8 @@ int main(int argc, char **argv) {
 	double *eta_for_maregs, *vx_for_maregs, *vy_for_maregs, *htotal_for_maregs, *fluxm_for_maregs, *fluxn_for_maregs;
 	double *vx_for_oranges, *vy_for_oranges, *fluxm_for_oranges, *fluxn_for_oranges, *htotal_for_oranges;	/* For tracers */
 	double  f_dip, f_azim, f_rake, f_slip, f_length, f_width, f_topDepth, x_epic, y_epic;	/* For Okada initial condition */
-	double  add_const = 0, manning2 = 0, time_h = 0;
+	double  add_const = 0, time_h = 0;
+	double  manning[10] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0};	/* Manning coefficients */
 
 	double  actual_range[6] = {1e30, -1e30, 1e30, -1e30, 1e30, -1e30};
 	float	stage_range[2], xmom_range[2], ymom_range[2], *tmp_slice;
@@ -417,8 +421,8 @@ int main(int argc, char **argv) {
 	int     argc;
 	unsigned nm;
 	char   **argv, cmd[16] = "";
-	double	*head, *tmp, x_inc, y_inc, x, y;
-	double	*ptr_wb;                    /* Pointer to be used in the aguentabar */
+	double  *head, *tmp, x_inc, y_inc, x, y;
+	double  *ptr_wb;                    /* Pointer to be used in the aguentabar */
 	mxArray *rhs[3];
 #endif
 	clock_t tic;
@@ -580,8 +584,10 @@ int main(int argc, char **argv) {
 				case 'B':	/* File with the boundary condition (experimental) */
 					bnc_file = &argv[i][2];
 					break;
-				case 'C':	/* Output momentum grids */ 
-					out_momentum = TRUE;
+				case 'C':	/* Output momentum grids */
+					nest.do_Coriolis = TRUE;
+					if (argv[i][2])
+						nest.lat_min4Coriolis = atof(&argv[i][2]);
 					break;
 				case 'D':
 					water_depth = TRUE;
@@ -641,6 +647,9 @@ int main(int argc, char **argv) {
 						if (fname3D[strlen(fname3D)-3] != '.' && fname3D[strlen(fname3D)-4] != '.')
 							strcat(fname3D, ".nc");		/* If no 2 or 3 letters extension, add .nc */
 					}
+					break;
+				case 'H':	/* Output momentum grids */
+					out_momentum = TRUE;
 					break;
 				case 'J':		/* Jumping options. Accept either -Jn, -J+m, -Jn+m or -Jn -J+m */
 					sscanf (&argv[i][2], "%s", &str_tmp);
@@ -786,6 +795,27 @@ int main(int argc, char **argv) {
 					}
 #endif
 					break;
+				case 'X':		/* Manning coeffs */
+					k = 0;
+					sscanf (&argv[i][2], "%s", &str_tmp);
+					if ((pch = strstr(str_tmp,",")) != NULL) {
+						char t[16] = "";
+						pch[0] = '\0';
+						nest.manning[k++] = atof(str_tmp);
+						strcpy(t, ++pch);
+						while ((pch = strstr(t,",")) != NULL) {
+							pch[0] = '\0';
+							nest.manning[k++] = atof(pch);
+							strcpy(t, ++pch);
+						}
+					}
+					else
+						nest.manning[k] = atof(&argv[i][2]);
+
+					if (k == 0)			/* Only one set. Replicate it to the others (being used or not) */
+						for (n = 1; n < 10; n++)
+							nest.manning[n] = nest.manning[0];
+					break;
 				case 'U':
 					nest.do_upscale = TRUE;
 					break;
@@ -826,21 +856,22 @@ int main(int argc, char **argv) {
 	if (argc <= 1 || error) {
 		mexPrintf ("NSWING - A tsunami maker (%s)\n\n", prog_id);
 #ifdef I_AM_MEX
-		mexPrintf ("nswing(bat,hdr_bat,deform,hdr_deform, [-1<bat_lev1>], [-2<bat_lev2>], [-3<...>] [maregs], [-G|Z<name>[+lev],<int>], [-A<fname.sww>]\n");
-		mexPrintf ("       [-B<BCfile>], [-C], [-D], [-E[p][m][,decim]], [-J<time_jump>[+run_time_jump]], [-L], [-M[-[<maskname>]]], [-N<n_cycles>], [-Rw/e/s/n], [-S[x|y|n][+m][+s]]\n");
-		mexPrintf ("       [-O<int>,<outmaregs>], [-T<int>,<mareg>[,<outmaregs[+n]>]], -t<dt> [-f]\n");
+		mexPrintf ("nswing(bat,hdr_bat,deform,hdr_deform, [-1<bat_lev1>], [-2<bat_lev2>], [-3<...>] [maregs], [-G|Z<name>[+lev],<int>],\n");
+		mexPrintf ("       [-A<fname.sww>][-B<BCfile>], [-C], [-D], [-E[p][m][,decim]], [-H], [-J<time_jump>[+run_time_jump]], [-L],\n");
+		mexPrintf ("       [-M[-[<maskname>]]], [-N<n_cycles>], [-Rw/e/s/n], [-S[x|y|n][+m][+s]],\n");
+		mexPrintf ("       [-O<int>,<outmaregs>], [-T<int>,<mareg>[,<outmaregs[+n]>]], [-X<manning0[,...]>] -t<dt> [-f]\n");
 #else
 		mexPrintf ("nswing bathy.grd initial.grd [-1<bat_lev1>] [-2<bat_lev2>] [-3<...>] [-G|Z<name>[+lev],<int>] [-A<fname.sww>]\n");
 		mexPrintf ("       [-B<BCfile>] [-C] [-D] [-E[p][m][,decim]] [-Fdip/strike/rake/slip/length/width/topDepth/x_epic/y_epic]\n"); 
-		mexPrintf ("       [-J<time_jump>[+run_time_jump]] [-L[name1,name2]] [-M[-[<maskname>]]] [-N<n_cycles>] [-Rw/e/s/n] [-S[x|y|n][+m][+s]]\n");
-		mexPrintf ("       [-O<int>,<outmaregs>] [-T<int>,<mareg>[,<outmaregs[+n]>]] -t<dt> [-f]\n");
+		mexPrintf ("       [-H] [-J<time_jump>[+run_time_jump]] [-L[name1,name2]] [-M[-[<maskname>]]] [-N<n_cycles>] [-Rw/e/s/n]\n");
+		mexPrintf ("       [-S[x|y|n][+m][+s]] [-O<int>,<outmaregs>] [-T<int>,<mareg>[,<outmaregs[+n]>]] -t<dt> [-f]\n");
 #endif
 		mexPrintf ("\t-A <name> save result as a .SWW ANUGA format file\n");
 		mexPrintf ("\t-n basename for MOST triplet files (no extension)\n");
 		mexPrintf ("\t-B name of a BoundaryCondition ASCII file\n");
+		mexPrintf ("\t-C Add Coriolis effect.\n");
 		mexPrintf ("\t-D write grids with the total water depth. These grids will have wave height on ocean\n");
 		mexPrintf ("\t   and water thickness on land.\n");
-		mexPrintf ("\t-C write grids with the momentum. i.e velocity times water depth.\n");
 		mexPrintf ("\t-E write grids with energy or power (-Ep). Apend a 'm' to save only one grid with the max values.\n");
 		mexPrintf ("\t   Since this can noticeably slow down the run, one can append a decimator factor after the comma.\n");
 		mexPrintf ("\t   Note, however, that this casuses aliasing that is clearly visible on shaded illumation.\n");
@@ -850,9 +881,10 @@ int main(int argc, char **argv) {
 		mexPrintf ("\t-F dip/strike/rake/slip/length/width/topDepth/x_epic/y_epic\n");
 		mexPrintf ("\t   Fault parameters describing Dip,Azimuth,Rake,Slip(m),lenght,height and depth from sea-bottom\n");
 		mexPrintf ("\t   x_epic,y_epic X and Y coordinates of begining of fault trace. All dimensions must be in km.\n");
-		mexPrintf ("\t-G<stem> write grids at the int intervals. Append file prefix. Files will be called <stem>#.grd\n");
+		mexPrintf ("\t-G <stem> write grids at the int intervals. Append file prefix. Files will be called <stem>#.grd\n");
 		mexPrintf ("\t   When doing nested grids, append +lev to save that particular level (only one level is allowed)\n");
-		mexPrintf ("\t-J<time_jump> Do not write grids or maregraphs for times before time_jump in seconds.\n");
+		mexPrintf ("\t-H write grids with the momentum. i.e velocity times water depth.\n");
+		mexPrintf ("\t-J <time_jump> Do not write grids or maregraphs for times before time_jump in seconds.\n");
 		mexPrintf ("\t   When doing nested grids, append +<time> to NOT start computations of nested grids before this\n");
 		mexPrintf ("\t   time has elapsed. Any of these forms is allowed: -Jt1, -J+t2, -Jt1+t2 or -Jt1 -J+t2\n");
 		mexPrintf ("\t-L Use linear approximation in moment conservation equations (faster but less good).\n");
@@ -862,6 +894,7 @@ int main(int argc, char **argv) {
 		mexPrintf ("\t   The result is writen in a mask file with a default name of 'long_beach.grd'.\n");
 		mexPrintf ("\t   To use a different name append it after the '-' sign. Example: -M-beach_long.grd\n");
 		mexPrintf ("\t-N number of cycles [Default 1010].\n");
+		mexPrintf ("\t-O <int>,<outfname> interval at which maregraphs are writen to the <outfname> maregraph file.\n");
 		mexPrintf ("\t-R output grids only in the sub-region enclosed by <west/east/south/north>\n");
 		mexPrintf ("\t-S write grids with the velocity. Grid names are appended with _U and _V sufixes.\n");
 		mexPrintf ("\t   Use x or y to save only one of those components. But use n to not velocity grids (maregs only).\n");
@@ -874,7 +907,8 @@ int main(int argc, char **argv) {
 		mexPrintf ("\t   If not provided the output name will be constructed by appending '_auto.dat' to <maregs>.\n");
 		mexPrintf ("\t   In any case append a +n to choose writing the maregraphs as a netCDF file.\n");
 		mexPrintf ("\t   Warning: this option cannot be used when maregraphs were transmitted in input.\n");
-		mexPrintf ("\t-O <int>,<outfname> interval at which maregraphs are writen to the <outfname> maregraph file.\n");
+		mexPrintf ("\t-X <maning0[,maning1[,...]]> Manning friction coefficients. If only one provided, use it for all\n");
+		mexPrintf ("\t   nesting levels (if applyable), otherwise specify one for each nesting level separated by commas.\n");
 		mexPrintf ("\t-Z Same as -G but saves result in a 3D netCDF file.\n");
 		mexPrintf ("\t-t <dt> Time step for simulation.\n");
 		mexPrintf ("\t-f To use when grids are in geographical coordinates.\n");
@@ -917,6 +951,11 @@ int main(int argc, char **argv) {
 	if (out_sww && fname_sww == NULL) {
 		mexPrintf("NSWING: Error -A option. Must provide a name for the .SWW file.\n");
 		error++;
+	}
+
+	if (nest.do_Coriolis && !isGeog && nest.lat_min4Coriolis == -100) {
+		mexPrintf("NSWING: Error -C option. For cartesian grids must provide the South latitude. Ignoring Corilis request.\n");
+		nest.do_Coriolis = FALSE;
 	}
 
 	if (cumpt) {		/* Deal with the several aspects of reading a maregraphs file */
@@ -1348,6 +1387,7 @@ int main(int argc, char **argv) {
 
 	/* case spherical coordinates initializes parameters */
 	if (isGeog == 1) inisp(&nest);
+	else if (nest.do_Coriolis) inicart(&nest);
 
 	if (max_level && writeLevel > 0) {    /* Compute the max level of nested grids inside nestify() */
 		nest.do_max_level = TRUE;
@@ -1776,6 +1816,7 @@ void sanitize_nestContainer(struct nestContainer *nest) {
 	nest->bnc_pos_nPts   = 0;
 	nest->bnc_border[0]  = nest->bnc_border[1] = nest->bnc_border[2] = nest->bnc_border[3] = FALSE;
 	nest->run_jump_time  = 0;
+	nest->lat_min4Coriolis = -100;
 	nest->bnc_pos_x = NULL;
 	nest->bnc_pos_y = NULL;
 	nest->bnc_var_t = NULL;
@@ -1783,7 +1824,7 @@ void sanitize_nestContainer(struct nestContainer *nest) {
 	nest->bnc_var_zTmp = NULL;
 	for (i = 0; i < 10; i++) {
 		nest->level[i] = -1;      /* Will be set to the due level number for existing nesting levels */
-		nest->manning2[i] = 0;
+		nest->manning[i] = 0;
 		nest->LLrow[i] = nest->LLcol[i] = nest->ULrow[i] = nest->ULcol[i] =
 		nest->URrow[i] = nest->URcol[i] = nest->LRrow[i] = nest->LRcol[i] =
 		nest->incRatio[i] = 0;
@@ -1950,8 +1991,8 @@ int initialize_nestum(struct nestContainer *nest, int isGeog, int lev) {
 			{no_sys_mem("(vey)", nm); return(-1);}
 	}
 
+	n = nest->hdr[lev].ny;
 	if (isGeog == 1) {		/* case spherical coordinates  */
-		n = nest->hdr[lev].ny;
 		if ((nest->r0[lev] = (double *)  mxCalloc ((size_t)n,	sizeof(double)) ) == NULL) 
 			{no_sys_mem("(r0)", n); return(-1);}
 		if ((nest->r1m[lev] = (double *) mxCalloc ((size_t)n,	sizeof(double)) ) == NULL) 
@@ -1966,11 +2007,12 @@ int initialize_nestum(struct nestContainer *nest, int isGeog, int lev) {
 			{no_sys_mem("(r3m)", n); return(-1);}
 		if ((nest->r3n[lev] = (double *) mxCalloc ((size_t)n,	sizeof(double)) ) == NULL) 
 			{no_sys_mem("(r3n)", n); return(-1);}
-		if ((nest->r4m[lev] = (double *) mxCalloc ((size_t)n,	sizeof(double)) ) == NULL) 
-			{no_sys_mem("(r4m)", n); return(-1);}
-		if ((nest->r4n[lev] = (double *) mxCalloc ((size_t)n,	sizeof(double)) ) == NULL) 
-			{no_sys_mem("(r4n)", n); return(-1);}
 	}
+	/* This may be used also by the Cartesian case */
+	if ((nest->r4m[lev] = (double *) mxCalloc ((size_t)n,	sizeof(double)) ) == NULL) 
+		{no_sys_mem("(r4m)", n); return(-1);}
+	if ((nest->r4n[lev] = (double *) mxCalloc ((size_t)n,	sizeof(double)) ) == NULL) 
+		{no_sys_mem("(r4n)", n); return(-1);}
 
 	/* ------------------------------------------------------------------------------------------ */
 	if (lev == 0)			/* All done for now */
@@ -2072,9 +2114,9 @@ void free_arrays(struct nestContainer *nest, int isGeog, int lev) {
 			if (nest->r2n[i]) mxFree(nest->r2n[i]);
 			if (nest->r3m[i]) mxFree(nest->r3m[i]);
 			if (nest->r3n[i]) mxFree(nest->r3n[i]);
-			if (nest->r4m[i]) mxFree(nest->r4m[i]);
-			if (nest->r4n[i]) mxFree(nest->r4n[i]);
 		}
+		if (nest->r4m[i]) mxFree(nest->r4m[i]);		/* Were allocated in any case */
+		if (nest->r4n[i]) mxFree(nest->r4n[i]);
 	}
 }
 
@@ -3401,20 +3443,6 @@ void openb(struct grd_header hdr, double *bat, double *fluxm_d, double *fluxn_d,
 /* update eta and fluxes */
 /* --------------------------------------------------------------------- */
 void update(struct nestContainer *nest, int lev) {
-
-#if 0
-	unsigned int i;
-
-	/* Split the loops for cache friendlyness */
-	for (i = 0; i < nest->hdr[lev].nm; i++)
-		nest->etaa[lev][i] = nest->etad[lev][i];
-	for (i = 0; i < nest->hdr[lev].nm; i++)
-		nest->fluxm_a[lev][i] = nest->fluxm_d[lev][i];
-	for (i = 0; i < nest->hdr[lev].nm; i++)
-		nest->fluxn_a[lev][i] = nest->fluxn_d[lev][i];
-	for (i = 0; i < nest->hdr[lev].nm; i++)
-		nest->htotal_a[lev][i] = nest->htotal_d[lev][i];
-#endif
 	memcpy(nest->etaa[lev],    nest->etad[lev],    nest->hdr[lev].nm * sizeof(double));
 	memcpy(nest->fluxm_a[lev], nest->fluxm_d[lev], nest->hdr[lev].nm * sizeof(double));
 	memcpy(nest->fluxn_a[lev], nest->fluxn_d[lev], nest->hdr[lev].nm * sizeof(double));
@@ -3447,18 +3475,19 @@ void moment_M(struct nestContainer *nest, int lev) {
 	int cp1, rp1;			/* next column (cp1 = col + 1) and row (rp1 = row + 1) */
 	int rm2, cp2;
 	double xp, xqe, xqq, ff = 0, dd, df, cte, f_limit;
-	double advx, dtdx, dtdy, advy, rlat, r4mcart;
+	double advx, dtdx, dtdy, advy, rlat;
 	double dpa_ij, dpa_ij_rp1, dpa_ij_rm1, dpa_ij_cm1, dpa_ij_cp1;
 
-	double dt, manning2, *bat, *htotal_a, *htotal_d, *etad, *fluxm_a, *fluxm_d, *fluxn_a, *fluxn_d, *vex;
+	double dt, manning, *bat, *htotal_a, *htotal_d, *etad, *fluxm_a, *fluxm_d, *fluxn_a, *fluxn_d, *vex, *r4m;
 	struct grd_header hdr;
 
 	hdr      = nest->hdr[lev];             vex      = nest->vex[lev];
-	dt       = nest->dt[lev];              manning2 = nest->manning2[lev];
+	dt       = nest->dt[lev];              manning  = nest->manning[lev];
 	bat      = nest->bat[lev];             etad     = nest->etad[lev];
 	htotal_a = nest->htotal_a[lev];        htotal_d = nest->htotal_d[lev];
 	fluxm_a  = nest->fluxm_a[lev];         fluxm_d  = nest->fluxm_d[lev];
 	fluxn_a  = nest->fluxn_a[lev];         fluxn_d  = nest->fluxn_d[lev];
+	r4m      = nest->r4m[lev];
 
 	dtdx = dt / hdr.x_inc;
 	dtdy = dt / hdr.y_inc;
@@ -3475,7 +3504,7 @@ void moment_M(struct nestContainer *nest, int lev) {
 	if (nest->do_linear) jupe = 1e6;		/* A tricky way of imposing linearity */
 
 	/* fixes friction parameter */
-	cte = (manning2) ? dt * 4.9 : 0;
+	cte = (manning) ? manning * manning * dt * 4.9 : 0;
 
 	memset(fluxm_d, 0, hdr.nm * sizeof(double));	/* Do this rather than seting to zero under looping conditions */
 
@@ -3494,8 +3523,6 @@ void moment_M(struct nestContainer *nest, int lev) {
 
 			/* Looks weird but it's faster than an IF case (branch prediction?) */
 			dpa_ij = (dpa_ij = (htotal_d[ij] + htotal_a[ij] + htotal_d[ij+cp1] + htotal_a[ij+cp1]) * 0.25) > EPS6 ? dpa_ij : 0;
-			//dpa_ij = (htotal_d[ij] + htotal_a[ij] + htotal_d[ij+cp1] + htotal_a[ij+cp1]) * 0.25;
-			//if (dpa_ij < EPS6) dpa_ij = 0;
 
 			/* case wet-wet */
 			if (htotal_d[ij] > EPS5 && htotal_d[ij+cp1] > EPS5) {
@@ -3546,17 +3573,14 @@ void moment_M(struct nestContainer *nest, int lev) {
 
 			if (df < EPS4) df = EPS4;
 			xqq = (fluxn_a[ij] + fluxn_a[ij+cp1] + fluxn_a[ij-rm1] + fluxn_a[ij+cp1-rm1]) * 0.25;
-			//ff = (manning2) ? cte * manning2 * sqrt(fluxm_a[ij] * fluxm_a[ij] + xqq * xqq) / pow(df, 2.333333) : 0;
+			ff = (manning) ? cte * sqrt(fluxm_a[ij] * fluxm_a[ij] + xqq * xqq) / pow(df, 2.333333) : 0;
 
 			/* computes linear terms in cartesian coordinates */
 			xp = (1 - ff) * fluxm_a[ij] - dtdx * NORMAL_GRAV * dd * (etad[ij+cp1] - etad[ij]);
-#if 0
+#if 1
 			/* - if requested computes coriolis term */
-			if (hdr.doCoriolis) {
-				rlat = hdr.lat_min4Coriolis + row * hdr.y_inc * M_PI / 2e9;
-				r4mcart = dt * 7.2722e-5 * sin(rlat);
-				xp += r4mcart * 2 * xqq;
-			}
+			if (nest->do_Coriolis)
+				xp += r4m[row] * 2 * xqq;
 #endif
 			/* - total water depth is smaller than EPS3 >> linear */
 			if (dpa_ij < EPS4) goto L120;
@@ -3614,6 +3638,8 @@ void moment_M(struct nestContainer *nest, int lev) {
 				}
 			}
 
+			//if (fabs(advx) < EPS10) advx = 0;
+			//if (fabs(advy) < EPS10) advy = 0;
 			/* adds linear+convection terms */
 			xp = xp - advx - advy;
 L120:
@@ -3645,18 +3671,19 @@ void moment_N(struct nestContainer *nest, int lev) {
 	int cp1, rp1;			/* next column (cp1 = col + 1) and row (rp1 = row + 1) */
 	int cm2, rp2;
 	double xq, xpe, xpp, ff = 0, dd, df, cte, f_limit;
-	double advx, dtdx, dtdy, advy, rlat, r4mcart;
+	double advx, dtdx, dtdy, advy, rlat;
 	double dqa_ij, dqa_ij_rp1, dqa_ij_rm1, dqa_ij_cm1, dqa_ij_cp1;
 
-	double dt, manning2, *bat, *htotal_a, *htotal_d, *etad, *fluxm_a, *fluxm_d, *fluxn_a, *fluxn_d, *vey;
+	double dt, manning, *bat, *htotal_a, *htotal_d, *etad, *fluxm_a, *fluxm_d, *fluxn_a, *fluxn_d, *vey, *r4n;
 	struct grd_header hdr;
 
 	hdr      = nest->hdr[lev];             vey      = nest->vey[lev];
-	dt       = nest->dt[lev];              manning2 = nest->manning2[lev];
+	dt       = nest->dt[lev];              manning  = nest->manning[lev];
 	bat      = nest->bat[lev];             etad     = nest->etad[lev];
 	htotal_a = nest->htotal_a[lev];        htotal_d = nest->htotal_d[lev];
 	fluxm_a  = nest->fluxm_a[lev];         fluxm_d  = nest->fluxm_d[lev];
 	fluxn_a  = nest->fluxn_a[lev];         fluxn_d  = nest->fluxn_d[lev];
+	r4n      = nest->r4n[lev];
 
 	dtdx = dt / hdr.x_inc;
 	dtdy = dt / hdr.y_inc;
@@ -3673,7 +3700,7 @@ void moment_N(struct nestContainer *nest, int lev) {
 	if (nest->do_linear) jupe = 1e6;		/* A tricky way of imposing linearity */
 
 	/* fixes friction parameter */
-	cte = (manning2) ? dt * 4.9 : 0;
+	cte = (manning) ? manning * manning * dt * 4.9 : 0;
 
 	memset(fluxn_d, 0, hdr.nm * sizeof(double));	/* Do this rather than seting to zero under looping conditions */ 
 
@@ -3692,8 +3719,6 @@ void moment_N(struct nestContainer *nest, int lev) {
 
 			/* Looks weird but it's faster than an IF case (branch prediction?) */
 			dqa_ij = (dqa_ij = (htotal_d[ij] + htotal_a[ij] + htotal_d[ij+rp1] + htotal_a[ij+rp1]) * 0.25) > EPS6 ? dqa_ij : 0;
-			//dqa_ij = (htotal_d[ij] + htotal_a[ij] + htotal_d[ij+rp1] + htotal_a[ij+rp1]) * 0.25;
-			//if (dqa_ij < EPS6) dqa_ij = 0;
 
 			/* moving boundary - Imamura algorithm following cho 2009 */
 			if (htotal_d[ij] > EPS5 && htotal_d[ij+rp1] > EPS5) {
@@ -3742,18 +3767,15 @@ void moment_N(struct nestContainer *nest, int lev) {
 
 			if (df < EPS4) df = EPS4;
 			xpp = (fluxm_a[ij] + fluxm_a[ij+rp1] + fluxm_a[ij-cm1] + fluxm_a[ij-cm1+rp1]) * 0.25;
-			//ff = (manning2) ? cte * manning2 * sqrt(fluxn_a[ij] * fluxn_a[ij] + xpp * xpp) / pow(df, 2.333333) : 0;
+			ff = (manning) ? cte * sqrt(fluxn_a[ij] * fluxn_a[ij] + xpp * xpp) / pow(df, 2.333333) : 0;
 
 			/* computes linear terms of N in cartesian coordinates */
 			xq = (1 - ff) * fluxn_a[ij] - dtdy * NORMAL_GRAV * dd * (etad[ij+rp1] - etad[ij]);
 
-#if 0
+#if 1
 			/* - if requested computes coriolis term */
-			if (hdr.doCoriolis) {
-				rlat = hdr.lat_min4Coriolis + (row * hdr.y_inc + hdr.y_inc / 2.) * M_PI / 2e9;
-				r4mcart = dt * 7.2722e-5 * sin(rlat);
-				xq -= r4mcart * 2 * xpp;
-			}
+			if (nest->do_Coriolis)
+				xq -= r4n[row] * 2 * xpp;
 #endif
 
 			/* - total water depth is smaller than EPS3 >> linear */
@@ -3864,6 +3886,25 @@ void inisp(struct nestContainer *nest) {
 }
 
 /* -------------------------------------------------------------------- */
+/* initializes vectors needed for computing the Coriolis  */
+/* -------------------------------------------------------------------- */
+void inicart(struct nestContainer *nest) {
+	int row, k = 0;
+	double phim_rad, phin_rad, dt, omega = 7.2722e-5;
+
+	while (nest->level[k] >= 0) {
+		dt = nest->dt[k];
+		for (row = 0; row < nest->hdr[k].ny; row++) {
+			phim_rad = nest->lat_min4Coriolis + row * nest->hdr[k].y_inc * M_PI / 2e9;
+			phin_rad = nest->lat_min4Coriolis + (row * nest->hdr[k].y_inc + nest->hdr[k].y_inc / 2.) * M_PI / 2e9;
+			nest->r4m[k][row] = dt * omega * sin(phim_rad);
+			nest->r4n[k][row] = dt * omega * sin(phin_rad);
+		}
+		k++;
+	}
+}
+
+/* -------------------------------------------------------------------- */
 /* solves non linear continuity equation w/ spherical coordinates */
 /* Computes water depth (htotal) needed for friction and */
 /* moving boundary algorithm */
@@ -3927,8 +3968,8 @@ void moment_sp_M(struct nestContainer *nest, int lev) {
 	double ff = 0, cte;
 	double dd, df, xp, xqe, xqq, advx, advy, f_limit;
 	double dpa_ij, dpa_ij_rp1, dpa_ij_rm1, dpa_ij_cm1, dpa_ij_cp1;
-	double dt, manning2, *htotal_a, *htotal_d, *bat, *etad, *fluxm_a, *fluxn_a, *fluxm_d, *fluxn_d, *vex;
-	double *r0, *r1m, *r1n, *r2m, *r2n, *r3m, *r3n, *r4m, *r4n;
+	double dt, manning, *htotal_a, *htotal_d, *bat, *etad, *fluxm_a, *fluxn_a, *fluxm_d, *fluxn_d, *vex;
+	double *r0, *r2m, *r3m, *r4m;
 	struct grd_header hdr;
 	double bat__ij;
 	double htotal_d__ij;
@@ -3937,16 +3978,13 @@ void moment_sp_M(struct nestContainer *nest, int lev) {
 	double fluxm_a__ij;
 
 	hdr      = nest->hdr[lev];             vex      = nest->vex[lev];
-	dt       = nest->dt[lev];              manning2 = nest->manning2[lev];
+	dt       = nest->dt[lev];              manning  = nest->manning[lev];
 	bat      = nest->bat[lev];             etad     = nest->etad[lev];
 	htotal_a = nest->htotal_a[lev];        htotal_d = nest->htotal_d[lev];
 	fluxm_a  = nest->fluxm_a[lev];         fluxm_d  = nest->fluxm_d[lev];
 	fluxn_a  = nest->fluxn_a[lev];         fluxn_d  = nest->fluxn_d[lev];
-	r0       = nest->r0[lev];
-	r1m      = nest->r1m[lev];             r1n      = nest->r1n[lev];
-	r2m      = nest->r2m[lev];             r2n      = nest->r2n[lev];
-	r3m      = nest->r3m[lev];             r3n      = nest->r3n[lev];
-	r4m      = nest->r4m[lev];             r4n      = nest->r4n[lev];
+	r0       = nest->r0[lev];              r2m      = nest->r2m[lev];
+	r3m      = nest->r3m[lev];             r4m      = nest->r4m[lev];
 
 	/* - fixes the width of the lateral buffer for linear aproximation */
 	/* - if jupe>nnx/2 and jupe>nny/2 linear model will be applied */
@@ -3960,7 +3998,7 @@ void moment_sp_M(struct nestContainer *nest, int lev) {
 	if (nest->do_linear) jupe = 1e6;		/* A tricky way of imposing linearity */
 
 	/* - fixes friction parameter */
-	cte = (manning2) ? dt * 4.9 : 0;
+	cte = (manning) ? manning * manning * dt * 4.9 : 0;
 
 	memset(fluxm_d, 0, hdr.nm * sizeof(double));	/* Do this rather than seting to zero under looping conditions */
 
@@ -4036,12 +4074,12 @@ void moment_sp_M(struct nestContainer *nest, int lev) {
 
 			df = (df < EPS3) ? EPS3 : df;		/* Aparently this is faster than the simpe if test */
 			xqq = (fluxn_a[ij] + fluxn_a[ij+cp1] + fluxn_a[ij-rm1] + fluxn_a[ij+cp1-rm1]) * 0.25;
-			//ff = (manning2) ? cte * manning2 * sqrt(fluxm_a__ij * fluxm_a__ij + xqq * xqq) / pow(df, 2.333333) : 0;
+			ff = (manning) ? cte * sqrt(fluxm_a__ij * fluxm_a__ij + xqq * xqq) / pow(df, 2.333333) : 0;
 
 			/* - computes linear terms in spherical coordinates */
 			xp = (1 - ff) * fluxm_a__ij - r3m[row] * dd * (etad[ij+cp1] - etad__ij); /* - includes coriolis */
-#if 0
-			if (hdr.doCoriolis)
+#if 1
+			if (nest->do_Coriolis)
 				xp += r4m[row] * 2 * xqq;
 #endif
 
@@ -4141,8 +4179,8 @@ void moment_sp_N(struct nestContainer *nest, int lev) {
 	double ff = 0, cte;
 	double dd, df, xq, xpe, xpp, advx, advy, f_limit;
 	double dqa_ij, dqa_ij_rp1, dqa_ij_rm1, dqa_ij_cm1, dqa_ij_cp1;
-	double dt, manning2, *htotal_a, *htotal_d, *bat, *etad, *fluxm_a, *fluxn_a, *fluxm_d, *fluxn_d, *vey;
-	double *r0, *r1m, *r1n, *r2m, *r2n, *r3m, *r3n, *r4m, *r4n;
+	double dt, manning, *htotal_a, *htotal_d, *bat, *etad, *fluxm_a, *fluxn_a, *fluxm_d, *fluxn_d, *vey;
+	double *r0, *r2n, *r3n, *r4n;
 	struct grd_header hdr;
 	double bat__ij;
 	double htotal_d__ij;
@@ -4153,16 +4191,13 @@ void moment_sp_N(struct nestContainer *nest, int lev) {
 	double fluxn_a__ij;
 
 	hdr      = nest->hdr[lev];             vey      = nest->vey[lev];
-	dt       = nest->dt[lev];              manning2 = nest->manning2[lev];
+	dt       = nest->dt[lev];              manning  = nest->manning[lev];
 	bat      = nest->bat[lev];             etad     = nest->etad[lev];
 	htotal_a = nest->htotal_a[lev];        htotal_d = nest->htotal_d[lev];
 	fluxm_a  = nest->fluxm_a[lev];         fluxm_d  = nest->fluxm_d[lev];
 	fluxn_a  = nest->fluxn_a[lev];         fluxn_d  = nest->fluxn_d[lev];
-	r0       = nest->r0[lev];
-	r1m      = nest->r1m[lev];             r1n      = nest->r1n[lev];
-	r2m      = nest->r2m[lev];             r2n      = nest->r2n[lev];
-	r3m      = nest->r3m[lev];             r3n      = nest->r3n[lev];
-	r4m      = nest->r4m[lev];             r4n      = nest->r4n[lev];
+	r0       = nest->r0[lev];              r2n      = nest->r2n[lev];
+	r3n      = nest->r3n[lev];             r4n      = nest->r4n[lev];
 
 	/* - fixes the width of the lateral buffer for linear aproximation */
 	/* - if jupe>nnx/2 and jupe>nny/2 linear model will be applied */
@@ -4176,7 +4211,7 @@ void moment_sp_N(struct nestContainer *nest, int lev) {
 	if (nest->do_linear) jupe = 1e6;		/* A tricky way of imposing linearity */
 
 	/* - fixes friction parameter */
-	cte = (manning2) ? dt * 4.9 : 0;
+	cte = (manning) ? manning * manning * dt * 4.9 : 0;
 
 	memset(fluxn_d, 0, hdr.nm * sizeof(double));	/* Do this rather than seting to zero under looping conditions */
 
@@ -4254,13 +4289,13 @@ void moment_sp_N(struct nestContainer *nest, int lev) {
 
 			df = (df < EPS3) ? EPS3 : df;
 			xpp = (fluxm_a[ij] + fluxm_a[ij+rp1] + fluxm_a[ij-cm1] + fluxm_a[ij-cm1+rp1]) * 0.25;
-			//ff = (manning2) ? cte * manning2 * sqrt(fluxn_a__ij * fluxn_a__ij + xpp * xpp) / pow(df, 2.333333) : 0;
+			ff = (manning) ? cte * sqrt(fluxn_a__ij * fluxn_a__ij + xpp * xpp) / pow(df, 2.333333) : 0;
 
 			/* - computes linear terms of N in cartesian coordinates */
 			xq = (1 - ff) * fluxn_a__ij - r3n[row] * dd * (etad__ij_p_rp1 - etad__ij);
-			/* - includes coriolis effect */
-#if 0
-			if (hdr.doCoriolis)
+
+#if 1
+			if (nest->do_Coriolis)			/* - includes coriolis effect */
 				xq -= r4n[row] * 2 * xpp;
 #endif
 
