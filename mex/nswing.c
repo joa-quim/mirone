@@ -2082,6 +2082,7 @@ int initialize_nestum(struct nestContainer *nest, int isGeog, int lev) {
 	if ((nest->r4n[lev] = (double *) mxCalloc ((size_t)n,	sizeof(double)) ) == NULL) 
 		{no_sys_mem("(r4n)", n); return(-1);}
 
+
 	/* ------------------------------------------------------------------------------------------ */
 	if (lev == 0)			/* All done for now */
 		return(0);
@@ -2226,7 +2227,7 @@ void total_energy(struct nestContainer *nest, float *work, int lev) {
 
 /* --------------------------------------------------------------------------- */
 int write_grd_bin(char *name, double x_min, double y_min, double x_inc, double y_inc, unsigned int i_start,
-                  unsigned int j_start, unsigned int i_end, unsigned int j_end, unsigned int nX, float *work) {
+	unsigned int j_start, unsigned int i_end, unsigned int j_end, unsigned int nX, float *work) {
 
 	/* Writes a grid in the Surfer binary format */
 	unsigned int i, j;
@@ -2708,7 +2709,7 @@ double ddmmss_to_degree(char *text) {
 #ifdef HAVE_NETCDF
 /* -------------------------------------------------------------------- */
 int open_most_nc(struct nestContainer *nest, float *work, char *base, char *name_var, int *ids, unsigned int nx,
-                 unsigned int ny, double xMinOut, double yMinOut, int isMost, int lev) {
+	unsigned int ny, double xMinOut, double yMinOut, int isMost, int lev) {
 	/* Open and initialize a generic 3D or a MOST netCDF file for writing.
 	   When generic 3D file also writes the bathymetry grid right away.
 	   Returns the ncid of the opened file.
@@ -2978,7 +2979,7 @@ void write_most_slice(struct nestContainer *nest, int *ncid, int *ids, unsigned 
 
 /* -------------------------------------------------------------------- */
 int write_maregs_nc(struct nestContainer *nest, char *fname, float *work, double *t,
-                    unsigned int *lcum_p, unsigned int n_maregs, unsigned int n_times, int lev) {
+	unsigned int *lcum_p, unsigned int n_maregs, unsigned int n_times, int lev) {
 	/* Save the maregraphs time series in a netCDF file
 	   t        - is the vector of times
 	   work     - array of maregraphs with one per column
@@ -3539,6 +3540,7 @@ void moment_M(struct nestContainer *nest, int lev) {
 
 	unsigned int ij;
 	int first, last, jupe, row, col;
+	int valid_vel;
 	int cm1, rm1;			/* previous column (cm1 = col - 1) and row (rm1 = row - 1) */
 	int cp1, rp1;			/* next column (cp1 = col + 1) and row (rp1 = row + 1) */
 	int rm2, cp2;
@@ -3581,7 +3583,8 @@ void moment_M(struct nestContainer *nest, int lev) {
 		rp1 = (row < hdr.ny - 1) ? hdr.nx : 0;
 		rm1 = (row == 0) ? 0 : hdr.nx;
 		ij = row * hdr.nx - 1 + first;
-		for (col = 0 + first; col < hdr.nx - 1; col++) {
+
+		for (col = first; col < hdr.nx - 1; col++) {
 			cp1 = 1;
 			cp2 = (col < hdr.nx - 2) ? 2 : 1;
 			cm1 = (col == 0) ? 0 : 1;
@@ -3591,49 +3594,41 @@ void moment_M(struct nestContainer *nest, int lev) {
 
 			/* Looks weird but it's faster than an IF case (branch prediction?) */
 			dpa_ij = (dpa_ij = (htotal_d[ij] + htotal_a[ij] + htotal_d[ij+cp1] + htotal_a[ij+cp1]) * 0.25) > EPS6 ? dpa_ij : 0;
+			xp = 0;
 
-			/* case wet-wet */
-			if (htotal_d[ij] > EPS5 && htotal_d[ij+cp1] > EPS5) {
-				/* case b2 */
-				if (-bat[ij+cp1] >= etad[ij]) {
+			valid_vel = TRUE;
+			if (htotal_d[ij] > EPS5 && htotal_d[ij+cp1] > EPS5) {		/* case wet-wet */
+				if (-bat[ij+cp1] >= etad[ij]) {				/* case b2 */
 					df = dd = htotal_d[ij+cp1];
+					valid_vel = FALSE;		/* It means we won't believe in the velocity estimated for this cell */
 				}
-				else if (-bat[ij] >= etad[ij+cp1]) {
-					/* case d2 */
+				else if (-bat[ij] >= etad[ij+cp1]) {		/* case d2 */
 					df = dd = htotal_d[ij];
+					valid_vel = FALSE;
 				}
-				else {
-					/* case b3/d3 */
+				else {										/* case b3/d3 */
 					dd = (htotal_d[ij] + htotal_d[ij+cp1]) * 0.5;
 					if (dd < EPS5) dd = 0;
 					df = dpa_ij;
 				}
-				/* case a3/d1 wet-dry */
 			}
-			else if (htotal_d[ij] > EPS5 && htotal_d[ij+cp1] < EPS5 && etad[ij] >= etad[ij+cp1]) {
-				if (bat[ij] > bat[ij+cp1]) {
+			else if (htotal_d[ij] > EPS5 && htotal_d[ij+cp1] < EPS5 && etad[ij] >= etad[ij+cp1]) {	/* case a3/d1 wet-dry */
+				if (bat[ij] > bat[ij+cp1])
 					df = dd = etad[ij] - etad[ij+cp1];
-				}
-				else {
+				else
 					df = dd = htotal_d[ij];
-				}
-
-			/* case b1 and c3 dry-wet */
 			}
-			else if (htotal_d[ij] < EPS5 && htotal_d[ij+cp1] > EPS5 && etad[ij] <= etad[ij+cp1]) {
-				if (bat[ij] > bat[ij+cp1]) {
+			else if (htotal_d[ij] < EPS5 && htotal_d[ij+cp1] > EPS5 && etad[ij] <= etad[ij+cp1]) {	/* case b1 and c3 dry-wet */
+				if (bat[ij] > bat[ij+cp1])
 					df = dd = htotal_d[ij+cp1];
-				}
-				else {
+				else
 					df = dd = etad[ij+cp1] - etad[ij];
-				}
 			}
-			else			/* other cases no moving boundary a1,a2,c1,c2 */
-				continue;
+			else            /* other cases no moving boundary a1,a2,c1,c2 */
+				goto L121;  /* Do this instead of a 'continue' to avoid another IF branch to account for velocity */ 
 
 			/* disregards fluxes when dd is very small - pode ser EPS6 */
-			if (dd < EPS4)
-				continue;
+			if (dd < EPS4) goto L121;
 
 			if (df < EPS4) df = EPS4;
 			xqq = (fluxn_a[ij] + fluxn_a[ij+cp1] + fluxn_a[ij-rm1] + fluxn_a[ij+cp1-rm1]) * 0.25;
@@ -3641,11 +3636,10 @@ void moment_M(struct nestContainer *nest, int lev) {
 
 			/* computes linear terms in cartesian coordinates */
 			xp = (1 - ff) * fluxm_a[ij] - dtdx * NORMAL_GRAV * dd * (etad[ij+cp1] - etad[ij]);
-#if 1
-			/* - if requested computes coriolis term */
-			if (nest->do_Coriolis)
-				xp += r4m[row] * 2 * xqq;
-#endif
+
+			/* - if requested computes Coriolis term */
+			if (nest->do_Coriolis) xp += r4m[row] * 2 * xqq;
+
 			/* - total water depth is smaller than EPS3 >> linear */
 			if (dpa_ij < EPS4) goto L120;
 			/* - lateral buffer >> linear */
@@ -3658,9 +3652,9 @@ void moment_M(struct nestContainer *nest, int lev) {
 			if (fluxm_a[ij] < 0) {
 				dpa_ij_cp1 = (htotal_d[ij+cp1] + htotal_a[ij+cp1] + htotal_d[ij+cp2] + htotal_a[ij+cp2]) * 0.25;
 				if (dpa_ij_cp1 < EPS3 || htotal_d[ij+cp1] < EPS5)
-					advx = dtdx * (-(fluxm_a[ij] * fluxm_a[ij]) / dpa_ij);
+					advx = -dtdx * (fluxm_a[ij] * fluxm_a[ij] / dpa_ij);
 				else
-					advx = dtdx * (fluxm_a[ij+cp1]*fluxm_a[ij+cp1] / dpa_ij_cp1 - fluxm_a[ij]*fluxm_a[ij] / dpa_ij);
+					advx =  dtdx * (fluxm_a[ij+cp1]*fluxm_a[ij+cp1] / dpa_ij_cp1 - fluxm_a[ij]*fluxm_a[ij] / dpa_ij);
 			}
 			else {
 				dpa_ij_cm1 = (htotal_d[ij-cm1] + htotal_a[ij-cm1] + htotal_d[ij] + htotal_a[ij]) * 0.25;
@@ -3669,18 +3663,19 @@ void moment_M(struct nestContainer *nest, int lev) {
 				else
 					advx = dtdx * (fluxm_a[ij] * fluxm_a[ij] / dpa_ij - fluxm_a[ij-cm1] * fluxm_a[ij-cm1] / dpa_ij_cm1);
 			}
+
 			/* - upwind scheme for y-direction volume flux */
 			if (xqq < 0) {
-				if (htotal_d[ij+rp1] < EPS5 || htotal_d[ij+rp1+cp1] < EPS5)
-					advy = dtdy * (-fluxm_a[ij] * xqq / dpa_ij);
+				if (htotal_d[ij+rp1] < EPS5 || htotal_d[ij+cp1+rp1] < EPS5)
+					advy = -dtdy * (fluxm_a[ij] * xqq / dpa_ij);
 
 				else {
 					dpa_ij_rp1 = (htotal_d[ij+rp1] + htotal_a[ij+rp1] + htotal_d[ij+cp1+rp1] + htotal_a[ij+cp1+rp1]) * 0.25;
 					if (dpa_ij_rp1 < EPS5)
-						advy = dtdy * (-fluxm_a[ij] * xqq / dpa_ij);
+						advy = -dtdy * (fluxm_a[ij] * xqq / dpa_ij);
 
 					else {
-						xqe = (fluxn_a[ij+rp1] + fluxn_a[ij+rp1+cp1] + fluxn_a[ij] + fluxn_a[ij+cp1]) * 0.25;
+						xqe = (fluxn_a[ij+rp1] + fluxn_a[ij+cp1+rp1] + fluxn_a[ij] + fluxn_a[ij+cp1]) * 0.25;
 						advy = dtdy * (fluxm_a[ij+rp1] * xqe / dpa_ij_rp1 - fluxm_a[ij] * xqq / dpa_ij);
 					}
 				}
@@ -3720,8 +3715,9 @@ L120:
 
 			fluxm_d[ij] = xp;
 
+L121:
 			if (nest->out_velocity_x && (lev == nest->writeLevel))
-				vex[ij] = (dd > EPS3) ? xp / df : 0;
+				vex[ij] = (valid_vel && dd > EPS3) ? xp / df : 0;
 		}
 	}
 }
@@ -3731,6 +3727,7 @@ void moment_N(struct nestContainer *nest, int lev) {
 
 	unsigned int ij;
 	int first, last, jupe, row, col;
+	int valid_vel;
 	int cm1, rm1;			/* previous column (cm1 = col - 1) and row (rm1 = row - 1) */
 	int cp1, rp1;			/* next column (cp1 = col + 1) and row (rp1 = row + 1) */
 	int cm2, rp2;
@@ -3769,7 +3766,7 @@ void moment_N(struct nestContainer *nest, int lev) {
 	memset(fluxn_d, 0, hdr.nm * sizeof(double));	/* Do this rather than seting to zero under looping conditions */ 
 
 	/* main computation cycle fluxn_d */
-	for (row = 0 + first; row < hdr.ny - 1; row++) {
+	for (row = first; row < hdr.ny - 1; row++) {
 		rp1 = hdr.nx;
 		rp2 = (row < hdr.ny - 2) ? 2*hdr.nx : hdr.nx;
 		rm1 = (row == 0) ? 0 : hdr.nx;
@@ -3783,46 +3780,42 @@ void moment_N(struct nestContainer *nest, int lev) {
 
 			/* Looks weird but it's faster than an IF case (branch prediction?) */
 			dqa_ij = (dqa_ij = (htotal_d[ij] + htotal_a[ij] + htotal_d[ij+rp1] + htotal_a[ij+rp1]) * 0.25) > EPS6 ? dqa_ij : 0;
+			xq = 0;
 
 			/* moving boundary - Imamura algorithm following cho 2009 */
+			valid_vel = TRUE;
 			if (htotal_d[ij] > EPS5 && htotal_d[ij+rp1] > EPS5) {
-				/* case b2 */
-				if (-bat[ij+rp1] >= etad[ij]) {
+				if (-bat[ij+rp1] >= etad[ij]) {			/* case b2 */
 					df = dd = htotal_d[ij+rp1];
-					/* case d2 */
+					valid_vel = FALSE;		/* It means we won't believe in the velocity estimated for this cell */
 				} 
-				else if (-bat[ij] >= etad[ij+rp1]) {
+				else if (-bat[ij] >= etad[ij+rp1]) {	/* case d2 */
 					df = dd = htotal_d[ij];
-				} 
-				else {
-					/* case b3/d3 */
+					valid_vel = FALSE;
+				}
+				else {						/* case b3/d3 */
 					dd = (htotal_d[ij] + htotal_d[ij+rp1]) * 0.5;
 					if (dd < EPS5) dd = 0;
 					df = dqa_ij;
 				}
-				/* case a3 and d1 wet dry */
 			}		 
-			else if (htotal_d[ij] > EPS5 && htotal_d[ij+rp1] < EPS5 && etad[ij] > etad[ij+rp1]) {
+			else if (htotal_d[ij] > EPS5 && htotal_d[ij+rp1] < EPS5 && etad[ij] > etad[ij+rp1]) {	/* case a3 and d1 wet dry */
 				if (bat[ij] > bat[ij+rp1])
 					df = dd = etad[ij] - etad[ij+rp1];
 				else
 					df = dd = htotal_d[ij];
-	
-				/* case b1 and c3 dry-wet */
 			}
-			else if (htotal_d[ij] < EPS5 && htotal_d[ij+rp1] > EPS5 && etad[ij+rp1] > etad[ij]) {
-				if (bat[ij] > bat[ij+rp1]) {
+			else if (htotal_d[ij] < EPS5 && htotal_d[ij+rp1] > EPS5 && etad[ij+rp1] > etad[ij]) {	/* case b1 and c3 dry-wet */
+				if (bat[ij] > bat[ij+rp1])
 					df = dd = htotal_d[ij+rp1];
-				}
-				else {
+				else
 					df = dd = etad[ij+rp1] - etad[ij];
-				}
 			}
-			else				/* other cases no moving boundary */
-				continue;
+			else            /* other cases no moving boundary */
+				goto L201;  /* Do this instead of a 'continue' to avoid another IF branch to account for velocity */ 
 
 			/* disregards fluxes when dd is very small */
-			if (dd < EPS4) continue;
+			if (dd < EPS4) goto L201;
 
 			if (df < EPS4) df = EPS4;
 			xpp = (fluxm_a[ij] + fluxm_a[ij+rp1] + fluxm_a[ij-cm1] + fluxm_a[ij-cm1+rp1]) * 0.25;
@@ -3831,11 +3824,9 @@ void moment_N(struct nestContainer *nest, int lev) {
 			/* computes linear terms of N in cartesian coordinates */
 			xq = (1 - ff) * fluxn_a[ij] - dtdy * NORMAL_GRAV * dd * (etad[ij+rp1] - etad[ij]);
 
-#if 1
 			/* - if requested computes coriolis term */
 			if (nest->do_Coriolis)
 				xq -= r4n[row] * 2 * xpp;
-#endif
 
 			/* - total water depth is smaller than EPS3 >> linear */
 			if (dqa_ij < EPS4) goto L200;
@@ -3908,8 +3899,9 @@ L200:
 
 			fluxn_d[ij] = xq;
 
+L201:
 			if (nest->out_velocity_y && (lev == nest->writeLevel))
-				vey[ij] = (dd > EPS3) ? xq / df : 0;
+				vey[ij] = (valid_vel && dd > EPS3) ? xq / df : 0;
 		}
 	}
 }
@@ -4021,6 +4013,7 @@ void moment_sp_M(struct nestContainer *nest, int lev) {
 
 	unsigned int ij;
 	int first, last, jupe, row, col;
+	int valid_vel;
 	int cm1, rm1;			/* previous column (cm1 = col - 1) and row (rm1 = row - 1) */
 	int cp1, rp1;			/* next column (cp1 = col + 1) and row (rp1 = row + 1) */
 	int rm2, cp2;
@@ -4065,7 +4058,7 @@ void moment_sp_M(struct nestContainer *nest, int lev) {
 		rp1 = (row < hdr.ny - 1) ? hdr.nx : 0;
 		rm1 = (row == 0) ? 0 : hdr.nx;
 		ij = row * hdr.nx - 1 + first;
-		for (col = 0 + first; col < hdr.nx - 1; col++) {
+		for (col = first; col < hdr.nx - 1; col++) {
 			cp1 = 1;
 			cp2 = (col < hdr.nx - 2) ? 2 : 1;
 			cm1 = (col == 0) ? 0 : 1;
@@ -4080,51 +4073,45 @@ void moment_sp_M(struct nestContainer *nest, int lev) {
 			htotal_d__ij_p_cp1 = htotal_d[ij+cp1];
 			etad__ij = etad[ij];
 			fluxm_a__ij = fluxm_a[ij];
+			xp = 0;
 
 			/* Looks weird but it's faster than an IF case (branch prediction?) */
 			dpa_ij = (dpa_ij = (htotal_d__ij + htotal_a[ij] + htotal_d__ij_p_cp1 + htotal_a[ij+cp1]) * 0.25) > EPS6 ? dpa_ij : 0;
 
 			/* - moving boundary - Imamura algorithm following cho 2009 */
+			valid_vel = TRUE;
 			if (htotal_d__ij > EPS5 && htotal_d__ij_p_cp1 > EPS5) {
-				/* - case b2 */
-				if (-bat[ij+cp1] >= etad__ij) {
-					dd = htotal_d__ij_p_cp1;
-					df = dd;
-					/* case d2 */
+				if (-bat[ij+cp1] >= etad__ij) {			/* - case b2 */
+					df = dd = htotal_d__ij_p_cp1;
+					valid_vel = FALSE;		/* It means we won't believe in the velocity estimated for this cell */
 				}
-				else if (-bat__ij >= etad[ij+cp1]) {
-					dd = htotal_d__ij;
-					df = dd;
+				else if (-bat__ij >= etad[ij+cp1]) {	/* case d2 */
+					df = dd = htotal_d__ij;
+					valid_vel = FALSE;
 				}
-				else {
-					/* case b3/d3 */
+				else {			/* case b3/d3 */
 					dd = (htotal_d__ij + htotal_d__ij_p_cp1) * 0.5;
 					if (dd < EPS5) dd = 0;
 					df = dpa_ij;
 				}
-				/* - case a3/d1 wet dry */
 			}
-			else if (htotal_d__ij >= EPS5 && htotal_d__ij_p_cp1 < EPS5 && etad__ij > etad[ij+cp1]) {
+			else if (htotal_d__ij >= EPS5 && htotal_d__ij_p_cp1 < EPS5 && etad__ij > etad[ij+cp1]) {	/* - case a3/d1 wet dry */
 				if (bat__ij > bat[ij+cp1])
-					dd = etad__ij - etad[ij+cp1];
+					df = dd = etad__ij - etad[ij+cp1];
 				else
-					dd = htotal_d__ij;
-
-				df = dd;
-				/* - case b1 and c3 dry-wet */
+					df = dd = htotal_d__ij;
 			}
-			else if (htotal_d__ij < EPS5 && htotal_d__ij_p_cp1 >= EPS5 && etad__ij < etad[ij+cp1]) {
+			else if (htotal_d__ij < EPS5 && htotal_d__ij_p_cp1 >= EPS5 && etad__ij < etad[ij+cp1]) {	/* - case b1 and c3 dry-wet */
 				if (bat__ij > bat[ij+cp1])
-					dd = htotal_d__ij_p_cp1;
+					df = dd = htotal_d__ij_p_cp1;
 				else
-					dd = etad[ij+cp1] - etad__ij;
-				df = dd;
+					df = dd = etad[ij+cp1] - etad__ij;
 			}
 			else		/* - other cases no moving boundary a1,a2,c1,c2 */
-				continue;
+				goto L121;  /* Do this instead of a 'continue' to avoid another IF branch to account for velocity */ 
 
 			/* - no flux if dd too small */
-			if (dd < EPS5) continue;
+			if (dd < EPS5) goto L121;
 
 			df = (df < EPS3) ? EPS3 : df;		/* Aparently this is faster than the simpe if test */
 			xqq = (fluxn_a[ij] + fluxn_a[ij+cp1] + fluxn_a[ij-rm1] + fluxn_a[ij+cp1-rm1]) * 0.25;
@@ -4132,10 +4119,9 @@ void moment_sp_M(struct nestContainer *nest, int lev) {
 
 			/* - computes linear terms in spherical coordinates */
 			xp = (1 - ff) * fluxm_a__ij - r3m[row] * dd * (etad[ij+cp1] - etad__ij); /* - includes coriolis */
-#if 1
+
 			if (nest->do_Coriolis)
 				xp += r4m[row] * 2 * xqq;
-#endif
 
 			/* - total water depth is smaller than EPS3 >> linear */
 			if (dpa_ij < EPS3)
@@ -4215,8 +4201,9 @@ L120:
 
 			fluxm_d[ij] = xp;
 
+L121:
 			if (nest->out_velocity_x && (lev == nest->writeLevel))
-				vex[ij] = (dd > EPS3) ? xp / df : 0;
+				vex[ij] = (valid_vel && dd > EPS3) ? xp / df : 0;
 		}
 	}
 }
@@ -4227,6 +4214,7 @@ void moment_sp_N(struct nestContainer *nest, int lev) {
 
 	unsigned int ij;
 	int first, last, jupe, row, col;
+	int valid_vel;
 	int cm1, rm1;			/* previous column (cm1 = col - 1) and row (rm1 = row - 1) */
 	int cp1, rp1;			/* next column (cp1 = col + 1) and row (rp1 = row + 1) */
 	int cm2, rp2;
@@ -4270,7 +4258,7 @@ void moment_sp_N(struct nestContainer *nest, int lev) {
 	memset(fluxn_d, 0, hdr.nm * sizeof(double));	/* Do this rather than seting to zero under looping conditions */
 
 	/* - main computation cycle fluxn_d */
-	for (row = 0 + first; row < hdr.ny - 1; row++) {
+	for (row = first; row < hdr.ny - 1; row++) {
 		rp1 = hdr.nx;
 		rp2 = (row < hdr.ny - 2) ? 2*hdr.nx : hdr.nx;
 		rm1 = (row == 0) ? 0 : hdr.nx;
@@ -4292,37 +4280,37 @@ void moment_sp_N(struct nestContainer *nest, int lev) {
 			htotal_a__ij_p_rp1 = htotal_a[ij+rp1];
 			etad__ij_p_rp1 = etad[ij+rp1];
 			fluxn_a__ij = fluxn_a[ij];
+			xq = 0;
 
 			/* Looks weird but it's faster than an IF case (branch prediction?) */
 			dqa_ij = (dqa_ij = (htotal_d__ij + htotal_a[ij] + htotal_d__ij_p_rp1 + htotal_a__ij_p_rp1) * 0.25) > EPS6 ? dqa_ij : 0;
 
 			/* - moving boundary - Imamura algorithm following cho 2009 */
+			valid_vel = TRUE;
 			if (htotal_d__ij > EPS5 && htotal_d__ij_p_rp1 > EPS5) {
 				if (-bat[ij+rp1] >= etad__ij) {				/* - case b2 */
-					dd = htotal_d__ij_p_rp1;
-					df = dd;
+					df = dd = htotal_d__ij_p_rp1;
+					valid_vel = FALSE;		/* It means we won't believe in the velocity estimated for this cell */
 				}
-				else if (-bat__ij >= etad__ij_p_rp1) {		/* casse d2 */
-					dd = htotal_d__ij;
-					df = dd;
+				else if (-bat__ij >= etad__ij_p_rp1) {		/* case d2 */
+					df = dd = htotal_d__ij;
+					valid_vel = FALSE;
 				} 
 				else {	/* case b3/d3 */
 					dd = (htotal_d__ij + htotal_d__ij_p_rp1) * 0.5;
 					if (dd < EPS5) dd = 0;
 					df = dqa_ij;
 				}
-			/* - case a3 and d1 wet dry */
 			}
-			else if (htotal_d__ij > EPS5 && htotal_d__ij_p_rp1 <= EPS5 && etad__ij > etad__ij_p_rp1) {
+			else if (htotal_d__ij > EPS5 && htotal_d__ij_p_rp1 <= EPS5 && etad__ij > etad__ij_p_rp1) {	/* - case a3 and d1 wet dry */
 				if (bat__ij > bat[ij+rp1]) {
 					df = dd = etad__ij - etad__ij_p_rp1;
 				}
 				else {
 					df = dd = htotal_d__ij;
 				}
-				/* - case b1 and c3 dry-wet */
 			}
-			else if (htotal_d__ij <= EPS5 && htotal_d__ij_p_rp1 > EPS5 && etad__ij < etad__ij_p_rp1) {
+			else if (htotal_d__ij <= EPS5 && htotal_d__ij_p_rp1 > EPS5 && etad__ij < etad__ij_p_rp1) {	/* - case b1 and c3 dry-wet */
 				if (bat__ij > bat[ij+rp1]) {
 					df = dd = htotal_d__ij_p_rp1;
 				}
@@ -4330,11 +4318,11 @@ void moment_sp_N(struct nestContainer *nest, int lev) {
 					df = dd = etad__ij_p_rp1 - etad__ij;
 				}
 			} 
-			else				/* - other cases no moving boundary */
-				continue;
+			else            /* - other cases no moving boundary */
+				goto L201;  /* Do this instead of a 'continue' to avoid another IF branch to account for velocity */ 
 
 			/* - no flux if dd too small */
-			if (dd < EPS5) continue;
+			if (dd < EPS5) goto L201;
 
 			df = (df < EPS3) ? EPS3 : df;
 			xpp = (fluxm_a[ij] + fluxm_a[ij+rp1] + fluxm_a[ij-cm1] + fluxm_a[ij-cm1+rp1]) * 0.25;
@@ -4343,10 +4331,8 @@ void moment_sp_N(struct nestContainer *nest, int lev) {
 			/* - computes linear terms of N in cartesian coordinates */
 			xq = (1 - ff) * fluxn_a__ij - r3n[row] * dd * (etad__ij_p_rp1 - etad__ij);
 
-#if 1
 			if (nest->do_Coriolis)			/* - includes coriolis effect */
 				xq -= r4n[row] * 2 * xpp;
-#endif
 
 			/* - lateral buffer >> linear */
 			if (col < jupe || col > (hdr.nx - jupe - 1) || row < jupe || row > (hdr.ny - jupe - 1))
@@ -4421,8 +4407,9 @@ L200:
 
 			fluxn_d[ij] = xq;
 
+L201:
 			if (nest->out_velocity_y && (lev == nest->writeLevel))
-				vey[ij] = (dd > EPS3) ? xq / df : 0;
+				vey[ij] = (valid_vel && dd > EPS3) ? xq / df : 0;
 		}
 	}
 }
@@ -4882,7 +4869,7 @@ int GetLocalNThread(void) {
 
 /* ---------------------------------------------------------------------------------------- */
 void kaba_source(struct srf_header hdr, double x_inc, double y_inc, double x_min, double x_max,
-	             double y_min, double y_max, int type, double *z) {
+	double y_min, double y_max, int type, double *z) {
 	/* Create a prismatic source (a Kaba) to use as source for the Green's functions method.
 	   when type = 1, all variables represent what their names say
 	   when type = 2, x_min/x_max are instead the prism's center and y_min/y_max its half widths
@@ -5048,7 +5035,7 @@ void vtm(double lat0, double *t_c1, double *t_c2, double *t_c3, double *t_c4, do
 
 /* ---------------------------------------------------------------------------------------- */
 void tm(double lon, double lat, double *x, double *y, double central_meridian, double t_c1,
-         double t_c2, double t_c3, double t_c4, double t_e2, double t_M0) {
+	double t_c2, double t_c3, double t_c4, double t_e2, double t_M0) {
 	/* Convert lon/lat to TM x/y (adapted from GMT_tm) */
 	double N, T, T2, C, A, M, dlon, tan_lat, A2, A3, A5, lat2, s, c, s2, c2;
 
