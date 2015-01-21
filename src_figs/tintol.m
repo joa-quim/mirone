@@ -525,6 +525,9 @@ function push_RUN_CB(hObject, handles)
 	opt_S = ' ';
 	if (get(handles.radio_velocity, 'Val')),	opt_S = '-S';	end
 
+	opt_M = ' ';
+	if (get(handles.radio_maxWater, 'Val')),	opt_M = '-M';	end
+	
 	opt_N = ['-N' get(handles.edit_Number_of_cycles, 'Str')];
 
 	opt_J = ' ';
@@ -568,10 +571,10 @@ function push_RUN_CB(hObject, handles)
 	% Now get the nestings, if any
 	if (~isempty(handles.nested_level{2,1}))
 		nswing(handles.nested_level{1,1}, handles.nested_level{1,2}, handles.Z_src, handles.head_src, ...
-			handles.nested_level(2:end,:), h_mareg, opt_t, opt_G, opt_S, opt_N, opt_T, opt_J, opt_f)
+			handles.nested_level(2:end,:), h_mareg, opt_t, opt_G, opt_S, opt_M, opt_N, opt_T, opt_J, opt_f)
 	else
 		nswing(handles.nested_level{1,1}, handles.nested_level{1,2}, handles.Z_src, handles.head_src, ...
-			h_mareg, opt_t, opt_G, opt_S, opt_N, opt_T, opt_J, opt_f)
+			h_mareg, opt_t, opt_G, opt_S, opt_M, opt_N, opt_T, opt_J, opt_f)
 	end
 
 %---------------------------------------------------------------------------------------------------
