@@ -432,10 +432,10 @@ int main(int argc, char **argv) {
 #endif
 	clock_t tic;
 
-	call_moment[0] = (PFV) moment_M;
-	call_moment[1] = (PFV) moment_N;
-	call_moment_sp[0] = (PFV) moment_sp_M;
-	call_moment_sp[1] = (PFV) moment_sp_N;
+	call_moment[0] = (PFV)moment_M;
+	call_moment[1] = (PFV)moment_N;
+	call_moment_sp[0] = (PFV)moment_sp_M;
+	call_moment_sp[1] = (PFV)moment_sp_N;
 
 #ifdef DO_MULTI_THREAD
 	if ((k = GetLocalNThread()) == 1) {
@@ -881,7 +881,9 @@ int main(int argc, char **argv) {
 					break;
 			}
 		}
-		else
+		else {
+			if (argv[i][0] == ' ' && argv[i][1] == '\0')	/* An empty option (not uncommon from the Matlab side) */
+				continue;
 			if (bathy == NULL)
 				bathy = argv[i];
 			else if (fonte == NULL)
@@ -890,6 +892,7 @@ int main(int argc, char **argv) {
 				mexPrintf("NSWING: Wrong option %s (misses the minus sign)\n", argv[i]);
 				error = TRUE;
 			}
+		}
 	}
 
 	if (argc <= 1 || error) {
@@ -3305,7 +3308,7 @@ void mass(struct nestContainer *nest, int lev) {
 			if (bat[ij] > MAXRUNUP) {
 				cm1 = (col == 0) ? 0 : 1;
 				zzz = etaa[ij] - dtdx * (fluxm_a[ij] - fluxm_a[ij-cm1]) - dtdy * (fluxn_a[ij] - fluxn_a[ij-rm1]);
-				//if (fabs(zzz) < EPS10) zzz = 0;
+				//if (fabs(zzz) < EPS6) zzz = 0;
 				dd = zzz + bat[ij];
 
 				/* wetable zone */
@@ -3593,7 +3596,7 @@ void moment_M(struct nestContainer *nest, int lev) {
 			if (bat[ij] <= MAXRUNUP) continue;
 
 			/* Looks weird but it's faster than an IF case (branch prediction?) */
-			dpa_ij = (dpa_ij = (htotal_d[ij] + htotal_a[ij] + htotal_d[ij+cp1] + htotal_a[ij+cp1]) * 0.25) > EPS6 ? dpa_ij : 0;
+			dpa_ij = (dpa_ij = (htotal_d[ij] + htotal_a[ij] + htotal_d[ij+cp1] + htotal_a[ij+cp1]) * 0.25) > EPS5 ? dpa_ij : 0;
 			xp = 0;
 
 			valid_vel = TRUE;
@@ -3697,21 +3700,19 @@ void moment_M(struct nestContainer *nest, int lev) {
 				}
 			}
 
-			//if (fabs(advx) < EPS10) advx = 0;
-			//if (fabs(advy) < EPS10) advy = 0;
 			/* adds linear+convection terms */
 			xp = xp - advx - advy;
 L120:
 			xp /= (ff + 1);
-			if (fabs(xp) < EPS10)
-				xp = 0;
-			else {			/* Limit the discharge */
-				f_limit = V_LIMIT * dd;
+			//if (fabs(xp) < EPS10)
+				//xp = 0;
+			//else {			/* Limit the discharge */
+				/*f_limit = V_LIMIT * dd;
 				if (xp > f_limit)
 					xp = f_limit;
 				else if (xp < -f_limit)
-					xp = -f_limit;
-			}
+					xp = -f_limit;*/
+			//}
 
 			fluxm_d[ij] = xp;
 
@@ -3779,7 +3780,7 @@ void moment_N(struct nestContainer *nest, int lev) {
 			if (bat[ij] <= MAXRUNUP) continue;
 
 			/* Looks weird but it's faster than an IF case (branch prediction?) */
-			dqa_ij = (dqa_ij = (htotal_d[ij] + htotal_a[ij] + htotal_d[ij+rp1] + htotal_a[ij+rp1]) * 0.25) > EPS6 ? dqa_ij : 0;
+			dqa_ij = (dqa_ij = (htotal_d[ij] + htotal_a[ij] + htotal_d[ij+rp1] + htotal_a[ij+rp1]) * 0.25) > EPS5 ? dqa_ij : 0;
 			xq = 0;
 
 			/* moving boundary - Imamura algorithm following cho 2009 */
@@ -3889,13 +3890,13 @@ void moment_N(struct nestContainer *nest, int lev) {
 			xq = xq - advx - advy;
 L200:
 			xq /= (ff + 1);
-			if (fabs(xq) < EPS10)
-				xq = 0;
-			else {			/* Limit the discharge */
-				f_limit = V_LIMIT * dd;
-				if (xq > f_limit) xq = f_limit;
-				else if (xq < -f_limit) xq = -f_limit;
-			}
+			//if (fabs(xq) < EPS10)
+				//xq = 0;
+			//else {			/* Limit the discharge */
+				//f_limit = V_LIMIT * dd;
+				//if (xq > f_limit) xq = f_limit;
+				//else if (xq < -f_limit) xq = -f_limit;
+			//}
 
 			fluxn_d[ij] = xq;
 
@@ -4076,7 +4077,7 @@ void moment_sp_M(struct nestContainer *nest, int lev) {
 			xp = 0;
 
 			/* Looks weird but it's faster than an IF case (branch prediction?) */
-			dpa_ij = (dpa_ij = (htotal_d__ij + htotal_a[ij] + htotal_d__ij_p_cp1 + htotal_a[ij+cp1]) * 0.25) > EPS6 ? dpa_ij : 0;
+			dpa_ij = (dpa_ij = (htotal_d__ij + htotal_a[ij] + htotal_d__ij_p_cp1 + htotal_a[ij+cp1]) * 0.25) > EPS5 ? dpa_ij : 0;
 
 			/* - moving boundary - Imamura algorithm following cho 2009 */
 			valid_vel = TRUE;
@@ -4283,7 +4284,7 @@ void moment_sp_N(struct nestContainer *nest, int lev) {
 			xq = 0;
 
 			/* Looks weird but it's faster than an IF case (branch prediction?) */
-			dqa_ij = (dqa_ij = (htotal_d__ij + htotal_a[ij] + htotal_d__ij_p_rp1 + htotal_a__ij_p_rp1) * 0.25) > EPS6 ? dqa_ij : 0;
+			dqa_ij = (dqa_ij = (htotal_d__ij + htotal_a[ij] + htotal_d__ij_p_rp1 + htotal_a__ij_p_rp1) * 0.25) > EPS5 ? dqa_ij : 0;
 
 			/* - moving boundary - Imamura algorithm following cho 2009 */
 			valid_vel = TRUE;
@@ -4956,7 +4957,7 @@ void deform(struct srf_header hdr, double x_inc, double y_inc, int isGeog, doubl
 
 /* ---------------------------------------------------------------------------------------- */
 double uscal(double x1, double x2, double x3, double c, double cc, double dp) {
-/* Computation of the vertical displacement due to the STRIKE and SLIP component */
+	/* Computation of the vertical displacement due to the STRIKE and SLIP component */
 	double sn, cs, c1, c2, c3, r, q, r2, r3, q2, q3, h, k, a1, a2, a3, f;
 	double b1, b2, b3, b4, b5, b6, b7, b8, b9, b10, b11, b12, b13, b14;
 
@@ -4990,7 +4991,7 @@ double uscal(double x1, double x2, double x3, double c, double cc, double dp) {
 
 /* ---------------------------------------------------------------------------------------- */
 double udcal(double x1, double x2, double x3, double c, double cc, double dp) {
-/* Computation of the vertical displacement due to the DIP SLIP component */
+	/* Computation of the vertical displacement due to the DIP SLIP component */
 	double sn, cs, c1, c2, c3, r, q, r2, r3, q2, q3, h, k, a1, a2;
 	double b1, b2, b3, d1, d2, d3, d4, d5, d6, t1, t2, t3, f;
 
