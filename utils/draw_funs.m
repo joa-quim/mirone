@@ -175,7 +175,10 @@ function setSHPuictx(h,opt)
 		item = uimenu(cmenuHand, 'Label', 'Line Color');
 		uimenu(item, 'Label', 'Other...', 'Call', {@other_color,h(i)});
 		ui_edit_polygon(h(i))
-		uimenu(cmenuHand, 'Label', 'Join lines', 'Call', {@join_lines,handles.figure1});
+		isPt = getappdata(h(1), 'isPoint');
+		if (~isempty(isPt) && ~isPt)	% For points it makes no sense a 'Join lines'
+			uimenu(cmenuHand, 'Label', 'Join lines', 'Call', {@join_lines,handles.figure1});
+		end
 	end
 
 % -----------------------------------------------------------------------------------------
