@@ -3002,6 +3002,9 @@ function DrawImportShape_CB(handles, fname)
 		end
 		h((h == 0)) = [];				% Those were jumped because thay were completely outside map limits
 		if (isempty(h)),	warndlg('No data inside display region','Warning'),		return,		end
+		if (strncmp(t,'Point',5))
+			setappdata(h(1), 'isPoint', true)	% Used in draw_funs/setSHPuictx to NOT set the "Join lines" uictx
+		end
 		draw_funs(h,'setSHPuictx')		% Set lines's uicontextmenu
 	elseif (strncmp(t,'Polygon',7))
 		nParanoia = 1000;				% The name talks. COMPLETELY MATLAB CONDITIONED, I WAS NOT LIKE THAT BEFORE
