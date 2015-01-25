@@ -220,7 +220,7 @@ set(handles.figure1,'Colormap',pal)
 function out = findFileType(fname)
 % From the extension guess what function should be called to open this file
 	out = [];	
-	if (isempty(fname))		return,		end
+	if (isempty(fname)),	return,		end
 	[PATH,FNAME,EXT] = fileparts(fname);
 	if ( strcmpi(EXT,'.grd') )
 		out = 'gmt';
@@ -243,7 +243,7 @@ function out = findFileType(fname)
 				end
 			end
 		end
-	elseif ( any(strcmpi(EXT,{'.jpg' '.png' '.bmp' '.gif' '.pcx' '.ras' '.ppm' '.pgm' '.xwd' '.shade' '.raw' '.bin'})) )
+	elseif ( any(strcmpi(EXT,{'.jpg' '.png' '.bmp' '.gif' '.pcx' '.ras' '.ppm' '.pgm' '.xwd' '.shade' '.raw'})) )
 		out = 'generic';
 	elseif ( any(strcmpi(EXT,{'.tif' '.tiff' '.sid' '.kap' '.nos'})) )
 		out = 'geotif';
@@ -269,7 +269,7 @@ function out = findFileType(fname)
 		end
 	elseif (strcmpi(EXT,'.cpt'))
 		out = 'cpt';
-	elseif ( any(strcmpi(EXT,{'.dat' '.xy' '.b' '.txt'})) )
+	elseif ( any(strcmpi(EXT,{'.dat' '.xy' 'xyz' '.b' '.txt' '.bin'})) )
 		out = 'dat';
 	elseif (strcmpi(EXT,'.shp'))
 		out = 'shp';
@@ -284,7 +284,7 @@ function out = findFileType(fname)
 	elseif ( any(strcmpi(EXT,{'.kml' '.gml' '.dxf' '.gpx' '.dgn' '.csv' '.s57' '.svg'})) )
 		out = 'ogr';
 	elseif (strcmpi(EXT,'.srtm'))	% While we don't use GMT5, create a header write away & send to GDAL
-		try,	write_esri_hdr(fname,'SRTM30');	end
+		try		write_esri_hdr(fname,'SRTM30');	end
 		out = 'dono';				% aka GDAL
 	elseif (strcmpi(EXT,'.sww'))	% Might be an ANUGA netCDF. Confirm it
 		fid = fopen(fname,'r');
