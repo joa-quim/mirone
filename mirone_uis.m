@@ -1,7 +1,7 @@
 function [H1,handles,home_dir] = mirone_uis(home_dir)
 % Creates and returns a handle to the GUI MIRONE figure.
 
-%	Copyright (c) 2004-2014 by J. Luis
+%	Copyright (c) 2004-2015 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -233,6 +233,7 @@ if (strncmp(computer,'PC',2))
     uimenu('Parent',h,'Call','mirone(''Transfer_CB'',guidata(gcbo),''copyclip'')', 'Label','Image and frame','Tag','noAxes')
 	uimenu('Parent',h,'Call','mirone(''Transfer_CB'',guidata(gcbo),''Ctrl-c'')','Label','Copy active line', 'Accel','c', 'Sep','on')
 	uimenu('Parent',h,'Call','mirone(''Transfer_CB'',guidata(gcbo),''Ctrl-v'')','Label','Paste line', 'Accel','v')
+	%uimenu('Parent',h,'Call','mirone(''Transfer_CB'',guidata(gcbo),''Ctrl-p'')','Label','off', 'Accel','p')
 end
 
 uimenu('Parent',hFL,'Call','mirone(''Transfer_CB'',guidata(gcbo),''KML'')', 'Label','Export to GoogleEarth','Sep','on');
@@ -742,7 +743,7 @@ if (IamCompiled)
 end
 uimenu('Parent',h, 'Call',['mirone(''FileOpenWebImage_CB'',guidata(gcbo),',...
 	' ''http://www2.clustrmaps.com/stats/maps-clusters/w3.ualg.pt-~jluis-mirone-world.jpg'',''nikles'');'],'Label','See visitors map','Sep','on');
-uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 18 Out 2014'',''2.6.0dev'')','Label','About','Sep','on');
+uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 25 Jan 2015'',''2.6.0dev'')','Label','About','Sep','on');
 
 %% --------------------------- Build HANDLES and finish things here
 	handles = guihandles(H1);
