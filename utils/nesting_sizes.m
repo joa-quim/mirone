@@ -72,7 +72,7 @@ function nesting_sizes(hand, opt)
 				lims_mm  = fix(lims_dec * 60);
 				lims_dec = lims_dec * 60 - lims_mm;
 				lims_ss  = lims_dec * 60;		% ss.xxx
-				opt_Rddmmss = sprintf('-R%d:%02d:%.3f/%d:%02d:%.3f/%d:%02d:%.3f/%d:%02d:%.3f\n', ...
+				opt_Rddmmss = sprintf('-R%d:%02d:%.7g/%d:%02d:%.7g/%d:%02d:%.7g/%d:%02d:%.7g\n', ...
 					lims_dd(1), lims_mm(1), lims_ss(1), lims_dd(2), lims_mm(2), lims_ss(2), ...
 					lims_dd(3), lims_mm(3), lims_ss(3), lims_dd(4), lims_mm(4), lims_ss(4));
 			else
@@ -98,14 +98,14 @@ function resize2nesting_size(handles, hRects, limits)
 		elseif (k == 1 && handles.validGrid)
 			parent_lims = [handles.head(1:4) handles.head(7:9)];
 		else
-			parent_lims = limits{k-1};
+			parent_lims = head;					% "head" was computed in the previous iteration
 		end
 		nx = ((parent_lims(2) - parent_lims(1))/ parent_lims(6))+1;
 		ny = ((parent_lims(4) - parent_lims(3))/ parent_lims(7))+1;
 
 		%get parent grid coord vectors
-		X = linspace(parent_lims(1),parent_lims(2),nx);
-		Y = linspace(parent_lims(3),parent_lims(4),ny);
+		X = linspace(parent_lims(1),parent_lims(2),round(nx));
+		Y = linspace(parent_lims(3),parent_lims(4),round(ny));
 
 		%look for closest element
 		xmin = find_nearest(X, parent_lims(6), limits{k}(6), limits{k}(1));
@@ -117,14 +117,14 @@ function resize2nesting_size(handles, hRects, limits)
 		this_xmax = xmax.val + (parent_lims(6)/2) - (limits{k}(6)/2);
 		this_ymin = ymin.val - (parent_lims(7)/2) + (limits{k}(7)/2);
 		this_ymax = ymax.val + (parent_lims(7)/2) - (limits{k}(7)/2);
-		h = [this_xmin this_xmax this_ymin this_ymax limits{k}(5:7)];
+		head = [this_xmin this_xmax this_ymin this_ymax limits{k}(5:7)];
 
-		resp.head = h;
+		resp.head = head;
 		resp.idx_min = xmin.idx;	resp.idx_max = xmax.idx;
 		resp.idy_min = ymin.idx;	resp.idy_max = ymax.idx;
 
 		set(hRects(k),'XData', [this_xmin this_xmin this_xmax this_xmax this_xmin], ...
-			'YData', [this_ymin this_ymax this_ymax this_ymin this_ymin])
+		'YData', [this_ymin this_ymax this_ymax this_ymin this_ymin])
 		setappdata(hRects(k),'info',resp)
 	end
 
