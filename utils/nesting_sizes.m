@@ -6,7 +6,7 @@ function nesting_sizes(hand, opt)
 %	OPT may either be 'New' to create a new refined level rectangle or 
 %	    'whatever' to print the info needed for COMCOT's .ctl and grid limits -R style
 
-%	Copyright (c) 2004-2013 by J. Luis
+%	Copyright (c) 2004-2015 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -60,6 +60,7 @@ function nesting_sizes(hand, opt)
 	if (nargin == 2)
 		if (strcmp(opt,'New'))
 			hNew = make_new_nested(handles.axes1, hRects, limits);
+			if (isempty(hNew)),		return,		end
 			nesting_sizes(hNew)		% Hate recursivity but it makes life easier here
 		else
 			hLine = hRects(hRects == gco);
@@ -145,9 +146,9 @@ function resp = find_nearest(X, dxParent, dxChild, pt)
 % --------------------------------------------------------------------------
 function hNew = make_new_nested(hAx, hRects, limits)
 % Create a new rctangle with half the width of its parent.
-	
+
 	resp = fix(abs(str2double(inputdlg({'Enter refinement factor'},'Refinement factor',[1 30],{'5'}))));
-	if (isnan(resp) || resp == 0),		return,		end
+	if (isempty(resp) || isnan(resp) || resp == 0),		hNew = [];	return,		end
 	x = limits{end}(1:2);		y = limits{end}(3:4);
 	x = x + [diff(x) -diff(x)] / 4;
 	y = y + [diff(y) -diff(y)] / 4;
