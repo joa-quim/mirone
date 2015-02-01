@@ -1766,6 +1766,8 @@ function loadGRID(handles, fullname, tipo, opt)
 	set(handles.figure1,'pointer','watch')
 	[Z, X, Y, srsWKT, handles, att] = read_grid(handles, fullname, tipo, opt);
 	if (isempty(Z)),	set(handles.figure1,'pointer','arrow'),		return,		end
+	pato = fileparts(fullname);
+	handles.last_dir = pato;
 
 	if (~isempty(att) && ~isempty(att.GCPvalues))					% Save GCPs so that we can plot them and warp the image
 		setappdata(handles.figure1,'GCPregImage',att.GCPvalues)
