@@ -1092,7 +1092,7 @@ function calc_L2_periods(handles, period, tipoStat, regMinMax, grd_out)
 %			Off course dates in input must fall in this period, otherwise output is NaNs only
 %
 % TIPOSTAT	Variable to control what statistic to compute.
-%			0 Compute MEAN of MONTHS period. 1 Compute MINimum and 2 compute MAXimum
+%			0 Compute MEAN of MONTHS period. 1 Compute MINimum, 2 compute MAXimum, 3 compute STD
 %
 % REGMINMAX	A 2 elements vector with the MIN and MAX values allowed on the Z function (default [0 inf])
 %
@@ -1233,39 +1233,90 @@ function T_measured = remove_seazon(handles, T_measured, Tavg, tempos)
 	end
 
 % ----------------------------------------------------------------------
-function out = doM_or_M_or_M(ZtoSpline, first_wanted_month, last_wanted_month, regionalMIN, regionalMAX, tipo)
+function out = doM_or_M_or_M(Z, first_level, last_level, regionalMIN, regionalMAX, tipo)
 % Compute either the MEAN (TIPO = 0) or the MIN (TIPO = 1) or MAX of the period selected
 % by the first_wanted_month:last_wanted_month vector. Normaly a year but can be a season as well.
 % NOTE1: This function was only used when SPLINA (see above in calc_yearMean()) up to Mirone 2.2.0
 % NOTE2: It is now (2.5.0dev) used again by the tideman function
 
-	if (nargin == 1)			% Compute average of all layers without ant constraint
-		first_wanted_month = 1;		last_wanted_month = size(ZtoSpline,3);
+	if (nargin == 1)			% Compute average of all layers without any constraint
+		first_level = 1;		last_level = size(Z,3);
 		regionalMIN = Inf;			regionalMAX = Inf;		tipo = 0;
 	end
 
 	if (tipo == 0)				% Compute the MEAN of the considered period
-		out = ZtoSpline(:,:,first_wanted_month);
+		% We don't use nanmean_j here because of the regionalMIN|MAX
+		out = Z(:,:,first_level);
 		out(out < regionalMIN | out > regionalMAX) = NaN;
 		ind = isnan(out);
 		contanoes = alloc_mex(size(ind,1), size(ind,2), 'single');
 		cvlib_mex('add', contanoes, single(~ind));
 		out(ind) = 0;						% Mutate NaNs to 0 so that they don't screw the adition
-		for (n = (first_wanted_month+1):last_wanted_month)
-			tmp = ZtoSpline(:,:,n);
+		for (n = (first_level+1):last_level)
+			tmp = Z(:,:,n);
 			if (~isinf(regionalMIN)),	tmp(tmp < regionalMIN) = NaN;	end
 			if (~isinf(regionalMAX)),	tmp(tmp > regionalMAX) = NaN;	end
 			ind = isnan(tmp);
 			tmp(ind) = 0;
 			cvlib_mex('add', contanoes, single(~ind));
-			cvlib_mex('add',out,tmp);
+			cvlib_mex('add', out, tmp);
 		end
 		cvlib_mex('div', out, contanoes);			% The mean
 	elseif (tipo == 1)			% Minimum of the selected period
-		out = min(ZtoSpline(:,:,first_wanted_month:last_wanted_month),[],3);
-	else						% Maximum
-		out = max(ZtoSpline(:,:,first_wanted_month:last_wanted_month),[],3);
+		out = min(Z(:,:,first_level:last_level),[],3);
+	elseif (tipo == 2)			% Maximum
+		out = max(Z(:,:,first_level:last_level),[],3);
+	elseif (tipo == 3)			% STD
+		out = nanstd_j(Z, first_level, last_level);
 	end
+
+% ----------------------------------------------------------------------
+function out = nanmean_j(Z, first_level, last_level)
+% ...
+	if (nargin == 1)
+		first_level = 1;	last_level = size(Z,3);
+	end
+	out = Z(:,:,first_level);
+	ind = isnan(out);
+	contanoes = alloc_mex(size(ind,1), size(ind,2), 'single');
+	cvlib_mex('add', contanoes, single(~ind));
+	out(ind) = 0;						% Mutate NaNs to 0 so that they don't screw the adition
+	for (n = (first_level+1):last_level)
+		tmp = Z(:,:,n);
+		ind = isnan(tmp);
+		tmp(ind) = 0;
+		cvlib_mex('add', contanoes, single(~ind));
+		cvlib_mex('add', out, tmp);
+	end
+	cvlib_mex('div', out, contanoes);			% The mean
+
+% ----------------------------------------------------------------------
+function out = nanstd_j(Z, first_level, last_level)
+% Compute the STD taking into account the presence of NaNs
+% This is a bit more convoluted for memory efficiency concearns (somethig TMW does not care)
+	if (nargin == 1)
+		first_level = 1;	last_level = size(Z,3);
+	end
+	this_mean = nanmean_j(Z, first_level, last_level);
+	t = single(0);
+	if (isa(Z, 'double')),	t = 0;	end		% Need this gimnastic because cvlib_mex screws if types are different
+	out(size(Z,1), size(Z,2)) = t;
+	for (n = first_level:last_level)
+		t = Z(:,:,n);
+		cvlib_mex('sub', t, this_mean);
+		cvlib_mex('mul', t, t);				% The squares of (xi - xm)
+		t(isnan(t)) = 0;
+		cvlib_mex('add', out, t)
+	end
+
+	n = sum(~isnan(Z(:,:,first_level:last_level)),3);		% Count the number of valid numbers.
+	denom = max(n-1, 1);		% divide by (n-1). But when n == 0 or 1, we'll return ones
+	denom(n == 0) = NaN;		% When all NaNs return NaN, and thus avoid a divide by 0
+	clear n
+	if (isa(Z, 'single')),	denom = single(denom);	end
+
+	cvlib_mex('div', out, denom)	
+	cvlib_mex('pow', out, 0.5)
 
 % ----------------------------------------------------------------------
 function calc_corrcoef(handles, secondArray, sub_set, splina, grd_out)
