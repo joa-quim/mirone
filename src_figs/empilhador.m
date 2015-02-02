@@ -5,7 +5,7 @@ function varargout = empilhador(varargin)
 %
 % NOTE: The gotFromMETA and getZ functions are callable directly by mirone
 
-%	Copyright (c) 2004-2014 by J. Luis
+%	Copyright (c) 2004-2015 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -317,6 +317,8 @@ function [handles, names, n_column] = parse_list_file(handles, fname, n_column)
 	handles.SDSflag = [];				% For when we want to apply also a quality flag (GHRSST .nc)
 	handles.outname = [];				% For when -G<outname> is used in the header
 	handles.desc_attrib = '';			% For when -D"description" is used in the header
+	pato = filepars(fname);
+	if (~isempty(pato)),	handles.last_dir = pato;	end		% This is local handles, not the Mir one
 
 	handles = parse_header(handles, names);		% Check if we have a header line with further instructions
 
