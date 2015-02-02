@@ -317,7 +317,7 @@ function [handles, names, n_column] = parse_list_file(handles, fname, n_column)
 	handles.SDSflag = [];				% For when we want to apply also a quality flag (GHRSST .nc)
 	handles.outname = [];				% For when -G<outname> is used in the header
 	handles.desc_attrib = '';			% For when -D"description" is used in the header
-	pato = filepars(fname);
+	pato = fileparts(fname);
 	if (~isempty(pato)),	handles.last_dir = pato;	end		% This is local handles, not the Mir one
 
 	handles = parse_header(handles, names);		% Check if we have a header line with further instructions
