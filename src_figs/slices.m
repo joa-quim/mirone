@@ -569,7 +569,7 @@ function [out, isleapyear] = get_months_doys(year, month)
 % -------------------------------------------------------------------------------------
 function popup_what_CB(hObject, handles)
 % ...
-	if (get(hObject, 'Val') == 2 || get(hObject, 'Val') == 5)
+	if (get(hObject, 'Val') == 2 || get(hObject, 'Val') == 6)
 		warndlg('Sorry, option not yet programmed.','Warning')
 		set(hObject, 'Val', 1)
 	end
@@ -725,6 +725,7 @@ function push_compute_CB(hObject, handles)
 			case 'MEAN',	fprintf(fid,'0\n');
 			case 'MIN',		fprintf(fid,'1\n');
 			case 'MAX',		fprintf(fid,'2\n');
+			case 'STD',		fprintf(fid,'3\n');
 			otherwise,		fprintf(fid,'0\n');
 		end
 		comm = '# Name of a file with Lon,Lat locations where to output the entire time series';
@@ -761,7 +762,7 @@ function push_compute_CB(hObject, handles)
 			case 'MEDIAN',	fprintf(fid,'# Which statistics\n0\n');
 			case 'MIN',		fprintf(fid,'# Which statistics\n1\n');
 			case 'MAX',		fprintf(fid,'# Which statistics\n2\n');
-			case 'STD',		fprintf(fid,'# Which statistics\n0\n');
+			case 'STD',		fprintf(fid,'# Which statistics\n3\n');
 			otherwise,		fprintf(fid,'# Which statistics\n0\n');
 		end
 		comm = '# A 2 elements vector with the MIN and MAX values allowed on the Z function (default [0 inf])';
