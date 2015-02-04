@@ -1,7 +1,7 @@
 function varargout = show_palette(varargin)
 % Plot a color palette either as an idependent figure or inside the main window
 
-%	Copyright (c) 2004-2012 by J. Luis
+%	Copyright (c) 2004-2015 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -15,7 +15,9 @@ function varargout = show_palette(varargin)
 %
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
-  
+
+% $Id$
+
     handMir = varargin{1};
     tipo = varargin{2};
     
@@ -29,7 +31,16 @@ function varargout = show_palette(varargin)
 	axUnits = get(handMir.axes1, 'Units');			set(handMir.axes1, 'Units', 'pixels');
 	posAxParent = get(handMir.axes1,'Pos');
 	posFigParent = get(handMir.figure1,'Pos');
-	screen = get(0,'ScreenSize');           % In some cases we need this
+	screen = get(0,'ScreenSize');				% In some cases we need this
+	
+	min_max = handMir.head(5:6);
+	if (min_max(1) == 0 && min_max(2) == 0)		% Happens for example with the stacks
+		Z = getappdata(handMir.figure1,'dem_z');
+		if (isempty(Z))
+			errordlg('Something wrong. I have no info to create a color palette.','WarnError'),		return
+		end
+		min_max = grdutils(Z,'-L')';
+	end
     
     if (strcmp(tipo,'Float'))            % Create a new Figure with the colorbar
         
@@ -55,7 +66,7 @@ function varargout = show_palette(varargin)
 		% Create the color bar axes and image object
         axPos = [10 5 40 figPos(4)-10];
 		hAx = axes('Units','Pixels','pos',axPos,'Parent',hObject);
-		image([1 10],handMir.head(5:6),(1:size(cmap,1))');
+		image([1 10], min_max, (1:size(cmap,1))');
 		set(hAx,'XTick',[],'YAxisLocation','right','YDir','normal')
 		set(hObject,'Visible','on');
 		if (nargout),   varargout{1} = hObject;     end
@@ -80,7 +91,7 @@ function varargout = show_palette(varargin)
         marg = 8;			% Margin between Image and colorbar (must be enoug for slider width)
         axPos = [posAxParent(1)+posAxParent(3)+marg posAxParent(2) barW min(420,posAxParent(4))];
 		hAx = axes('Units','Pixels','pos',axPos,'Parent',handMir.figure1,'vis','off');
-		image([1 10],handMir.head(5:6),(1:size(cmap,1))');
+		image([1 10], min_max, (1:size(cmap,1))');
 		set(hAx,'XTick',[],'YAxisLocation','right','YDir','normal','HandleVisibility','off','Tag','MIR_CBat')
 
 		h_Ylabel = get(hAx,'Ylabel');	set(h_Ylabel,'units','pixels')
@@ -111,7 +122,7 @@ function varargout = show_palette(varargin)
         barW = 20;      % Colorbar width
         axPos = [posAxParent(1)+posAxParent(3)-barW posAxParent(2) barW posAxParent(4)];
 		hAx = axes('Units','Pixels','pos',axPos,'Parent',handMir.figure1,'Vis','off');
-		image([1 10],handMir.head(5:6),(1:size(cmap,1))');
+		image([1 10], min_max, (1:size(cmap,1))');
 		set(hAx,'XTick',[],'YDir','normal','HandleVisibility','off','Units','normalized','Vis','on','Tag','MIR_CBin')
 		set(hUict,'Userdata',hAx)            % Save it so that we can restore upon colorbar deletion
 		set(hUict,'Checked','on')
