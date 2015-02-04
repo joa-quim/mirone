@@ -48,8 +48,14 @@ function varargout = color_palettes(varargin)
 			Z = getappdata(handMir.figure1,'dem_z');
 			if (~isempty(Z))
 				handles.have_nans = handMir.have_nans;
-				handles.z_min = handMir.head(5);			handles.z_max = handMir.head(6);
-				handles.z_min_orig = handMir.head(5);		handles.z_max_orig = handMir.head(6);
+				if (handMir.head(5) == 0 && handMir.head(6) == 0)	% Happens for example with the stacks
+					zzz = grdutils(Z,'-L');
+					handles.z_min = zzz(1);			handles.z_max = zzz(2);
+					handles.z_min_orig = zzz(1);	handles.z_max_orig = zzz(2);
+				else
+					handles.z_min = handMir.head(5);		handles.z_max = handMir.head(6);
+					handles.z_min_orig = handMir.head(5);	handles.z_max_orig = handMir.head(6);
+				end
 				set(handles.edit_Zmin,'String',handles.z_min_orig)
 				set(handles.edit_Zmax,'String',handles.z_max_orig)
 			end
