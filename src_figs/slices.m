@@ -117,7 +117,7 @@ function varargout = slices(varargin)
 	handles.cases{4,1} = [handles.text_periods handles.edit_periods handles.check_integDim handles.text_nCells ...
 		handles.edit_nCells handles.text_bounds handles.edit_subSetA handles.edit_subSetB handles.text_What ...
 		handles.popup_what];
-	handles.cases{4,2} = {[11 250 55 16] [64 248 81 21] [137 198 115 21] '' '' '' '' '' '' ''};
+	handles.cases{4,2} = {[11 250 55 16] [64 248 81 23] [137 198 115 21] '' '' '' '' '' '' ''};
 	handles.cases{4,3} = {handles.text_bounds 'Bounds'};	% Set handle String prop to second element
 	handles.cases{4,4} = {'on' 'Output file'};
 	handles.cases{4,5} = {'on' 'Control xy file (optional)'};
@@ -132,7 +132,7 @@ function varargout = slices(varargin)
 	handles.cases{5,6} = {'on' 'Filter with quality flags file (opt)'};
 
 	handles.cases{6,1} = [handles.text_periods handles.edit_periods handles.text_What handles.popup_what];
-	handles.cases{6,2} = {[11 250 55 16] [64 248 171 21] '' ''};
+	handles.cases{6,2} = {[11 250 55 16] [64 248 201 23] '' ''};
 	handles.cases{6,3} = {handles.text_bounds 'Bounds'};	% Set handle String prop to second element
 	handles.cases{6,4} = {'on' 'Output file'};
 	handles.cases{6,5} = {'off' ''};
@@ -140,7 +140,7 @@ function varargout = slices(varargin)
 
 	handles.cases{7,1} = [handles.text_periods handles.edit_periods handles.text_nCells ...
 		handles.edit_nCells handles.text_What handles.popup_what];
-	handles.cases{7,2} = {[11 250 55 16] [64 248 81 21] '' '' '' ''};
+	handles.cases{7,2} = {[11 250 55 16] [64 248 81 23] '' '' '' ''};
 	handles.cases{7,3} = {handles.text_bounds 'Bounds'};	% Set handle String prop to second element
 	handles.cases{7,4} = {'on' 'Output file'};
 	handles.cases{7,5} = {'off' ''};
@@ -384,11 +384,15 @@ function popup_cases_CB(hObject, handles)
 			'Alternatively can be a vector with the periods to compute.\n' ...
 			'For example this will compute 3 days composits of Jan2012\n' ...
 			'2012.0:3/365:(2012+31/365)\n' ...
-			'\n' ...
+			'Another option is to provide a vector with the limits boundaries. For ex:\n' ...
+			'[1 183 365]\n' ...
+			'Says we want two periods: one from [1 183] and the other [184 365]\n' ...
+			' \n' ...
 			'Periods can also be given with Month names using the standard\n' ...
 			'three letters code and the year. The year is needed to know if leap year.\n' ...
 			'E.g Jan2013.\n' ...
-			'You can also give a month range as in Jan2013:Mar2013']));
+			'You can also give a month range as in Jan2013:Mar2013\n' ...
+			'Or request all months of a year (ex: 2014) with Months2014']));
 	end
 	str = get(handles.text_bounds, 'Str');
 	if (str(1) == 'S')		% The 'Subset' case
@@ -445,11 +449,12 @@ function edit_subSetB_CB(hObject, handles)
 % -------------------------------------------------------------------------------------
 function edit_fname1_CB(hObject, handles)
 	fname = get(hObject,'String');
-	pato = fileparts(fname);
+	[pato,f,ext] = fileparts(fname);
 	if (isempty(pato))			% Than output file will be written to same dir as input data
 		name = get(handles.edit_inputName,'String');
 		pato = fileparts(name);
 		if (~isempty(pato))
+			if (isempty(ext)),	fname = [fname '.nc'];	end
 			fname = [pato filesep fname];
 		end
 	end
@@ -499,11 +504,6 @@ function edit_periods_CB(hObject, handles)
 		return
 	end
 	str = ddewhite(str);					% Make sure no blanks at extremities
-	ind = strfind(str, ' ');
-	if (~isempty(ind))
-		errordlg('There is one or more empty spaces in the Periods string. That is intolerable.','Error')
-		set(hObject, 'Str', ''),	return
-	end
 
 	% Case where user sent in a period with month names. E.g. 'Jan2013:Mar2013'
 	if ((numel(str) == 7 || numel(str) == 15) && any(strcmpi(str(1),{'J' 'F' 'M' 'A' 'S' 'O' 'N' 'D'})))
@@ -519,9 +519,24 @@ function edit_periods_CB(hObject, handles)
 		end
 		str = sprintf('%d:%d:%d', be(1), (be(2)-be(1)), be(2));
 		set(hObject, 'Str', str)		% Make it as if user had entered a numeric period
+	elseif (numel(str) == 10 && strncmpi(str,'Months',6))		% A 'Monts2012' type request
+		year = str2double(str(7:10));
+		mon = {'Jan' 'Feb' 'Mar' 'Apr' 'May' 'Jun' 'Jul' 'Aug' 'Sep' 'Oct' 'Nov' 'Dec'};
+		b = ones(1,13);
+		for (k = 1:12)
+			be = get_months_doys(year, mon{k});
+			b(k+1) = be(2);				% Keep the end of the period
+		end
+		str = sprintf('[%d %d %d %d %d %d %d %d %d %d %d %d %d]', b);
+		set(hObject, 'Str', str)		% Make it as if user had entered a numeric period
 	end
 
+	% Make sure that if brackets come in pairs
+	if (str(1) == '[' && str(end) ~= ']'),	set(hObject, 'Str', [str ']']);	end
+	if (str(1) ~= '[' && str(end) == ']'),	set(hObject, 'Str', ['[' str]);	end
+
 	str = strrep(str,':',' ');		str = strrep(str,'/',' ');	% Replace ':' '/' by spaces
+	str = strrep(str,'[','');		str = strrep(str,']','');	% Do not test these to see if they are numeric
 	erro = false;		n = 0;
 	[t,r] = strtok(str);
 	while (~isempty(t) && ~erro)
@@ -530,7 +545,7 @@ function edit_periods_CB(hObject, handles)
 		end
 		n = n + 1;
 	end
-	if (n == 0 || n > 3),		erro = true;	end
+	if (n == 0),	erro = true;	end
 	if (erro)
 		errordlg('There is an error in the Periods string. It is up to you to find it.','Error')
 		set(hObject, 'Str', '')
@@ -546,7 +561,7 @@ function [out, isleapyear] = get_months_doys(year, month)
 	isleapyear = ((~rem(year, 4) && rem(year, 100)) || ~rem(year, 400));
 	switch (lower(month(1:3)))
 		case 'jan',				out = [1 31];
-		case {'feb' 'fev'},		out = [32 59 + isleapyear];
+		case {'feb' 'fev'},		out = [32 59    + isleapyear];
 		case 'mar',				out = [60 90]   + isleapyear;
 		case {'apr' 'abr'},		out = [91 120]  + isleapyear;
 		case {'may' 'mai'},		out = [121 151] + isleapyear;
@@ -1036,7 +1051,7 @@ uicontrol('Parent',h1, 'Position',[11 232 52 16],...
 'Style','text',...
 'Tag','text_periods');
 
-uicontrol('Parent',h1, 'Position',[64 230 171 21],...
+uicontrol('Parent',h1, 'Position',[64 230 171 23],...
 'BackgroundColor',[1 1 1],...
 'Call',@slices_uiCB,...
 'Style','edit',...
