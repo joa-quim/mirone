@@ -1148,16 +1148,19 @@ function calc_L2_periods(handles, period, tipoStat, regMinMax, grd_out)
 	for (m = 1:n_periods)
 
 		if (N(m) ~= 0)
-			Z = alloc_mex(rows, cols, N(m), 'single', NaN);
-			for (n = 1:N(m))			% Loop over the days in current period
-				Z(:,:,n) = nc_funs('varget', handles.fname, s.Dataset(z_id).Name, [c-1 0 0], [1 rows cols]);
-				c = c + 1;
-			end
-			tmp = doM_or_M_or_M(Z, 1, size(Z,3), regionalMIN, regionalMAX, tipoStat);
+% 			Z = alloc_mex(rows, cols, N(m), 'single', NaN);
+% 			for (n = 1:N(m))			% Loop over the days in current period
+% 				Z(:,:,n) = nc_funs('varget', handles.fname, s.Dataset(z_id).Name, [c-1 0 0], [1 rows cols]);
+% 				c = c + 1;
+% 			end
+% 			tmp = doM_or_M_or_M(Z, 1, size(Z,3), regionalMIN, regionalMAX, tipoStat);
+% 			clear Z;					% Free memory (need because at the alloc time above, two of them would exist)
+			s2 = struct('fname',handles.fname, 'info',s, 'n_layers', N(m), 'rows',rows, 'cols',cols, 'layerOI',c, 'z_id',z_id);
+			[tmp, s2] = doM_or_M_or_M([], 1, N(m), regionalMIN, regionalMAX, tipoStat, s2);
+			c = s2.layerOI;				% This is crutial because it tells us where we are in the layer stack
 			tmp(tmp == 0) = NaN;		% Reset the NaNs
 			zzz = grdutils(tmp,'-L');
 			handles.head(5) = min(handles.head(5), zzz(1));		handles.head(6) = max(handles.head(6), zzz(2));
-			clear Z;					% Free memory (need because at the alloc time above, two of them would exist)
 		else
 			tmp = alloc_mex(rows, cols, 1, 'single', NaN);
 		end
@@ -1233,27 +1236,49 @@ function T_measured = remove_seazon(handles, T_measured, Tavg, tempos)
 	end
 
 % ----------------------------------------------------------------------
-function out = doM_or_M_or_M(Z, first_level, last_level, regionalMIN, regionalMAX, tipo)
+function [out, s] = get_layer(Z, layer, s)
+% Get the layer in one of the following two instances
+%	1 - S is empty and Z is [m n p]
+%	2 - S is a structure with info on how to rad the layer directly from the netCDF file
+
+	if (isempty(s))
+		out = Z(:,:,layer);
+	else
+		out = nc_funs('varget', s.fname, s.info.Dataset(s.z_id).Name, [s.layerOI-1 0 0], [1 s.rows s.cols]);
+		s.layerOI = s.layerOI + 1;
+	end
+
+% ----------------------------------------------------------------------
+function [out, s] = doM_or_M_or_M(Z, first_level, last_level, regionalMIN, regionalMAX, tipo, s)
 % Compute either the MEAN (TIPO = 0) or the MIN (TIPO = 1) or MAX of the period selected
 % by the first_wanted_month:last_wanted_month vector. Normaly a year but can be a season as well.
 % NOTE1: This function was only used when SPLINA (see above in calc_yearMean()) up to Mirone 2.2.0
-% NOTE2: It is now (2.5.0dev) used again by the tideman function
+% NOTE2: It is now (2.5.0dev) used again by the tideman function (and other calls)
+%
+% Because of the potentially very large memory comsumption, we can do the data file reading from
+% within this function. In that case Z can be empty and S must be a struct with:
+%	S = struct('fname',handles.fname, 'info',s, 'n_layers', N(m), 'rows',rows, 'cols',cols, 'layerOI',c, 'z_id',z_id);
+% whre N_LAYERS is the numbers of layers to be read. 'layerOI' flags the leayr to be read and must be
+% incremented after each layer reading. But is the role of the GET_LAYER() function.
+% We also return S because it keeps the trace of the current layer (the layerOI field), which is needed
+% when there multiple calls of this function.
 
 	if (nargin == 1)			% Compute average of all layers without any constraint
 		first_level = 1;		last_level = size(Z,3);
-		regionalMIN = Inf;			regionalMAX = Inf;		tipo = 0;
+		regionalMIN = Inf;		regionalMAX = Inf;		tipo = 0;
 	end
+	if (nargin < 7),	s = [];	end
 
 	if (tipo == 0)				% Compute the MEAN of the considered period
 		% We don't use nanmean_j here because of the regionalMIN|MAX
-		out = Z(:,:,first_level);
+		[out, s] = get_layer(Z, first_level, s);
 		out(out < regionalMIN | out > regionalMAX) = NaN;
 		ind = isnan(out);
 		contanoes = alloc_mex(size(ind,1), size(ind,2), 'single');
 		cvlib_mex('add', contanoes, single(~ind));
 		out(ind) = 0;						% Mutate NaNs to 0 so that they don't screw the adition
 		for (n = (first_level+1):last_level)
-			tmp = Z(:,:,n);
+			[tmp, s] = get_layer(Z, n, s);
 			if (~isinf(regionalMIN)),	tmp(tmp < regionalMIN) = NaN;	end
 			if (~isinf(regionalMAX)),	tmp(tmp > regionalMAX) = NaN;	end
 			ind = isnan(tmp);
@@ -1263,26 +1288,42 @@ function out = doM_or_M_or_M(Z, first_level, last_level, regionalMIN, regionalMA
 		end
 		cvlib_mex('div', out, contanoes);			% The mean
 	elseif (tipo == 1)			% Minimum of the selected period
-		out = min(Z(:,:,first_level:last_level),[],3);
+		if (isempty(s))
+			out = min(Z(:,:,first_level:last_level),[],3);
+		else
+			[out, s] = get_layer(Z, 1, s);
+			for (k = 2:s.n_layers)
+				[tmp, s] = get_layer(Z, k, s);
+				out = min(out, tmp);
+			end
+		end
 	elseif (tipo == 2)			% Maximum
-		out = max(Z(:,:,first_level:last_level),[],3);
+		if (isempty(s))
+			out = max(Z(:,:,first_level:last_level),[],3);
+		else
+			[out, s] = get_layer(Z, 1, s);
+			for (k = 2:s.n_layers)
+				[tmp, s] = get_layer(Z, k, s);
+				out = max(out, tmp);
+			end
+		end
 	elseif (tipo == 3)			% STD
-		out = nanstd_j(Z, first_level, last_level);
+		out = nanstd_j(Z, first_level, last_level, s);
 	end
 
 % ----------------------------------------------------------------------
-function out = nanmean_j(Z, first_level, last_level)
+function out = nanmean_j(Z, first_level, last_level, s)
 % ...
 	if (nargin == 1)
-		first_level = 1;	last_level = size(Z,3);
+		first_level = 1;	last_level = size(Z,3);		s = [];
 	end
-	out = Z(:,:,first_level);
+	[out, s] = get_layer(Z, first_level, s);
 	ind = isnan(out);
 	contanoes = alloc_mex(size(ind,1), size(ind,2), 'single');
 	cvlib_mex('add', contanoes, single(~ind));
 	out(ind) = 0;						% Mutate NaNs to 0 so that they don't screw the adition
 	for (n = (first_level+1):last_level)
-		tmp = Z(:,:,n);
+		[tmp, s] = get_layer(Z, n, s);
 		ind = isnan(tmp);
 		tmp(ind) = 0;
 		cvlib_mex('add', contanoes, single(~ind));
@@ -1291,29 +1332,34 @@ function out = nanmean_j(Z, first_level, last_level)
 	cvlib_mex('div', out, contanoes);			% The mean
 
 % ----------------------------------------------------------------------
-function out = nanstd_j(Z, first_level, last_level)
+function out = nanstd_j(Z, first_level, last_level, s)
 % Compute the STD taking into account the presence of NaNs
 % This is a bit more convoluted for memory efficiency concearns (somethig TMW does not care)
+%
+% S is a structure with info to read the layers from file instead of relying in Z (that hould be [] than)
+% For further info, see help section of the doM_or_M_or_M() function
+
 	if (nargin == 1)
-		first_level = 1;	last_level = size(Z,3);
+		first_level = 1;	last_level = size(Z,3);		s = [];
 	end
-	this_mean = nanmean_j(Z, first_level, last_level);
+
+	this_mean = nanmean_j(Z, first_level, last_level, s);
 	t = single(0);
-	if (isa(Z, 'double')),	t = 0;	end		% Need this gimnastic because cvlib_mex screws if types are different
-	out(size(Z,1), size(Z,2)) = t;
+	if (isa(this_mean, 'double')),	t = 0;	end		% Need this gimnastic because cvlib_mex screws if types are different
+	out(size(this_mean,1), size(this_mean,2)) = t;
+	denom = zeros(size(this_mean));				% Swallow the thing but this one has to be done with doubles
 	for (n = first_level:last_level)
-		t = Z(:,:,n);
+		[t, s] = get_layer(Z, n, s);
+		denom = denom + ~isnan(t);
 		cvlib_mex('sub', t, this_mean);
 		cvlib_mex('mul', t, t);				% The squares of (xi - xm)
 		t(isnan(t)) = 0;
 		cvlib_mex('add', out, t)
 	end
 
-	n = sum(~isnan(Z(:,:,first_level:last_level)),3);		% Count the number of valid numbers.
-	denom = max(n-1, 1);		% divide by (n-1). But when n == 0 or 1, we'll return ones
-	denom(n == 0) = NaN;		% When all NaNs return NaN, and thus avoid a divide by 0
-	clear n
-	if (isa(Z, 'single')),	denom = single(denom);	end
+	denom = max(denom-1, 1);		% divide by (n-1). But when n == 0 or 1, we'll return ones
+	denom(denom == 0) = NaN;		% When all NaNs return NaN, and thus avoid a divide by 0
+	if (isa(this_mean, 'single')),	denom = single(denom);	end
 
 	cvlib_mex('div', out, denom)	
 	cvlib_mex('pow', out, 0.5)
