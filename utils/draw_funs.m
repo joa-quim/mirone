@@ -10,7 +10,7 @@ function varargout = draw_funs(hand, varargin)
 %	the data from an object handle, call with HAND = []. E.g (in load_xyz)
 %	draw_funs([], 'doSave_formated', x, y, z)
 
-%	Copyright (c) 2004-2014 by J. Luis
+%	Copyright (c) 2004-2015 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -415,17 +415,23 @@ function set_recTsu_uicontext(h)
 		set(h(k), 'UIContextMenu', cmenuHand)
 
 		ud = get(h(k), 'Userdata');
-		if (isempty(ud))				% Root rectangle, set its Userdata to 1 to flag that fact
+		if (isempty(ud) || ud == 1)		% Root rectangle, set its Userdata to 1 to flag that fact (it's = 1 when restoring sess)
 			if (handles.validGrid)		% Give this rectangle properties based on base level grid
-				resp = fix(abs(str2double(inputdlg({'Enter refinement factor'},'Refinement factor',[1 30],{'5'}))));
-				if (isempty(resp) || isnan(resp) || resp == 0)		% OK, just make it a regular rectangle
-					set(h(k), 'UIContextMenu', '')
-					set_line_uicontext(h(k),'line')
-					return
+				if (ud == 1)			% We are restoring from a session, so we know these already
+					li = getappdata(h(k),'LineInfo');
+					[x_inc, r] = strtok(li);	y_inc = strtok(r);
+					x_inc = str2double(x_inc);	y_inc = str2double(y_inc);
+				else
+					resp = fix(abs(str2double(inputdlg({'Enter refinement factor'},'Refinement factor',[1 30],{'5'}))));
+					if (isempty(resp) || isnan(resp) || resp == 0)		% OK, just make it a regular rectangle
+						set(h(k), 'UIContextMenu', '')
+						set_line_uicontext(h(k),'line')
+						return
+					end
+					x_inc = handles.head(8) / resp;
+					y_inc = handles.head(9) / resp;
 				end
-				x_inc = handles.head(8) / resp;
-				y_inc = handles.head(9) / resp;
-				setappdata(h(k),'LineInfo',[sprintf('%.14g %.14g',x_inc, y_inc), handles.head(7)]);
+				setappdata(h(k),'LineInfo',[sprintf('%.16g %.16g',x_inc, y_inc), handles.head(7)]);
 				do_nest_sizes = true;
 			end
 			uimenu(cmenuHand, 'Label', 'Rectangle limits (edit)', 'Call', @rectangle_limits);
