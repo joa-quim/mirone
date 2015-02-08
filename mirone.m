@@ -3329,10 +3329,16 @@ function FileOpenSession_CB(handles, fname)
 			if (isfield(s.Pline(i),'appd') && ~isempty(s.Pline(i).appd))	% Need the isfield test for backward compat
 				fdnames = fieldnames(s.Pline(i).appd);
 				for (fd = 1:numel(fdnames))
-					setappdata(h_line, fdnames{fd}, s.Pline(i).appd.(fdnames{fd}))
+					if (strcmp(fdnames{fd}, 'UserData'))		% This is a UserData stored in appdata
+						set(h_line, 'UserData', s.Pline(i).appd.(fdnames{fd}))
+					else
+						setappdata(h_line, fdnames{fd}, s.Pline(i).appd.(fdnames{fd}))
+					end
 				end
 			end
-			if (isfield(s.Pline(i),'LineInfo') && ~isempty(s.Pline(i).LineInfo))
+			if (isfield(s.Pline(i),'tag') && strcmp(s.Pline(i).tag, 'NEST'))
+				draw_funs([], 'set_recTsu_uicontext', h_line)
+			elseif (isfield(s.Pline(i),'LineInfo') && ~isempty(s.Pline(i).LineInfo))
 				setappdata(h_line,'LineInfo',s.Pline(i).LineInfo)
 				set(h_line,'UserData',1)
 				draw_funs(h_line,'isochron',{s.Pline(i).LineInfo})
@@ -3597,6 +3603,8 @@ function FileSaveSession_CB(handles)
 			end
 			% NEW at 19-Oct-2014, save all appdatas which will cause that the above two will potentially be repeated
 			app = getappdata(ALLlineHand(i));
+			ud = get(ALLlineHand(i), 'UserData');
+			if (~isempty(ud)),	app.UserData = ud;		end
 			if (~isempty(fieldnames(app)))
 				if (isfield(app, 'polygon_data'))	% Remove this because it will be restored by ui_edit_polygon()
 					app = rmfield(app, 'polygon_data');
@@ -3657,18 +3665,21 @@ function FileSaveSession_CB(handles)
 	if (havePatches)
 		MecaMag5 = getappdata(handles.figure1,'MecaMag5');
 	end
+
+	IamTINTOL = ~isempty(getappdata(handles.figure1, 'L_UsedByGUIData'));
+
 	save(fname,'grd_name','img_pal', 'havePline','Pline', 'haveMBtrack', 'MBtrack','MBbar', ...
 		'haveText','Texto', 'haveSymbol','Symbol', 'haveCircleGeo','CircleGeo', 'haveCircleCart', ...
 		'havePlineAsPoints','PlineAsPoints','CircleCart', 'map_limits', 'havePatches', 'Patches', ...
 		'haveCoasts', 'coastUD','havePolitic', 'politicUD','haveRivers', 'riversUD', 'illumComm', ...
-		'illumType', 'MecaMag5', '-v6')
+		'illumType', 'MecaMag5', 'IamTINTOL', '-v6')
 	set(handles.figure1,'pointer','arrow')
 
 	% Trick to shut up stupid MLint warnings
 	if (0 && grd_name && img_pal && map_limits && illumComm && haveMBtrack && havePline && haveText && haveSymbol), end
 	if (0 && haveCircleCart && havePlineAsPoints && haveCoasts && illumComm && haveMBtrack && illumType), end
 	if (0 && havePolitic && haveRivers && MBtrack && MBbar && Symbol && CircleGeo && MecaMag5 && CircleCart), end
-	if (0 && PlineAsPoints && coastUD && politicUD && riversUD && haveCircleGeo), end
+	if (0 && PlineAsPoints && coastUD && politicUD && riversUD && haveCircleGeo && IamTINTOL), end
 
 % --------------------------------------------------------------------
 function ImageMapLimits_CB(handles, opt)
