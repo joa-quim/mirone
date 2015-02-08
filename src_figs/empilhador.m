@@ -101,19 +101,21 @@ function push_namesList_CB(hObject, handles, opt)
 %		case that name will be asked here.
 %		Alternatively it can contain a wildcard string that will be expanded to create the
 %		filename automatically in the same dir of the data. The contents of the wildcard should
-%		follow what is explained below, but three possible examples are provided right now (no quotes)
+%		follow what is explained below, but three examples are provided right now (no quotes)
 %		'C:\a1\*.L2_LAC_SST4 ? -sst4'
 %		'C:\a1\*.hdf * -qual'
 %		'C:\a1\pathfinder\2010\201*.nc ? sds1'
 %
 % First column holds the filename that can be absolute, relative or have no path info.
 %		If only one column in file the "Time" info below is computed as (1:number_of_files)
+%		However, if any of the input files is 3D the "Time" is computed as (1:number_of_total_layers)
 %
 % Second column is normally the "Time" info. That is, a number that will be used as the 'time'
 %		in the 3D netCDF file. In case of L2 scene products one can use '?' to instruct the
 %		program to get the time from the HDF file name, which is assume to be YYYYDDDHHMMSS....
 %		The '?' mechanism has been extended to the GHRSST PATHFINDER 5.2 netCDF files that have
 %		names of the form YYYYMMDDHHMMSS-...
+%		The "Time" info is, however, ignored when one or more input grids are 3D
 %
 % Third column is used when the HDF file has sub-datasets and we want to select one in
 %		particular. In that case use the (clumsy) construct: 'sdsN' as in sds3 where 'sds' is
@@ -137,7 +139,7 @@ function push_namesList_CB(hObject, handles, opt)
 %		A description string that will go into the global attribute 'description'.
 %		Use the quoted form if the description has more than one word.
 %
-% The above options may be combined in a single command that can be executed from the command line.
+% The above options may be combined in a single command to be executed from the command line.
 %	Example:
 %	empilhador('empilhador_OF','C:\a1\pathfinder\2010\201*.nc ? sds1 -R-15/-5/35/45 -Fquality_level_4 -Glixo.nc');
 %
@@ -786,7 +788,8 @@ function cut2cdf(handles, got_R, west, east, south, north)
 	empties = cell(nSlices, 1);			% To hold the names of the empty/failures files/SDSs
 	have_empties = false;
 
-	nL = 1;			% Counter to the effective number of non-empty layers
+	nL = 1;				% Counter to the effective number of non-empty layers
+	got_3D = false;		% For the case that we have 3D grids in input
 	for (k = 1:nSlices)
 		set(handles.listbox_list,'Val',k),		pause(0.01)			% Show advance
 
@@ -867,32 +870,42 @@ function cut2cdf(handles, got_R, west, east, south, north)
 			handles.head(5:6) = [double(min(Z(:))) double(max(Z(:)))];
 		end
 
-		% Must treat compiled version differently since, biggest of mysteries, nc_funs
-		% than hangs when writing unlimited variables
-		if (true || ~handles.IamCompiled)			% Let's first short circuit this before total remove of other branch
+		% For now we let this case reach here, but in future we should make this test/decision right after getZ()
+		% The problem of deleting the uncompressed file must be solved too
+		if (isempty(empties{k}))
+			if (~isempty(handles.strTimes)),		t_val = handles.strTimes{k};
+			else									t_val = sprintf('%d',k - 1);	% Hmmm, handles.strTimes starts at 1
+			end
+			if (got_3D),	t_val = sprintf('%d', nL);	end		% This case has to account for total number already written
 
-			% For now we let this case reach here, but in future we should make this test/decision right after getZ()
-			% The problem of deleting the uncompressed file must be solved too
-			if (isempty(empties{k}))
-				if (~isempty(handles.strTimes)),		t_val = handles.strTimes{k};
-				else									t_val = sprintf('%d',k - 1);
-				end
-				if (nL == 1)
+			if (nL == 1)
+				if (ndims(Z) == 2)
 					nc_io(grd_out, ['w-' t_val '/time'], handles, reshape(Z,[1 size(Z)]), misc)
-				else
-					kk = nL - n_cd;			% = k - 1 - (n_cd - 1)	We need this when we had "@ change CD" messages
-					nc_io(grd_out, sprintf('w%d\\%s', kk, t_val), handles, Z)
+				else		% A 3D grid
+					got_3D = true;			% Flag that t_val must be recomputed also for the 2D cases
+					nc_io(grd_out, ['w-' t_val '/time'], handles, reshape(Z(:,:,1),[1 size(Z,1) size(Z,2)]), misc)
+					for (this_layer = 2:size(Z,3))
+						this_k = this_layer - 1;
+						t_val = sprintf('%d', this_layer);
+						nc_io(grd_out, sprintf('w%d\\%s', this_k, t_val), handles, Z(:,:,this_layer))
+					end
+					nL = this_layer;
 				end
-				nL = nL + 1;		% Counts effective number of non-empty layers
-			end
-		else
-			if (k == 1)
-				handles.levelVec = str2double(handles.strTimes);
-     			nc_io(grd_out,sprintf('w%d/time',nSlices), handles, reshape(Z,[1 size(Z)]), misc)
 			else
-				kk = k - n_cd;			% = k - 1 - (n_cd - 1)	We need this when we had "@ change CD" messages
-				nc_io(grd_out, sprintf('w%d', kk), handles, Z)
+				kk = nL - n_cd;				% = k - 1 - (n_cd - 1)	We need this when we had "@ change CD" messages
+				if (ndims(Z) == 2)
+					nc_io(grd_out, sprintf('w%d\\%s', kk, t_val), handles, Z)
+				else						% Here we have a 3D (not tested otherwise) array. Loop over its pages
+					got_3D = true;			% Flag that t_val must be recomputed also for the 2D cases
+					for (this_layer = 1:size(Z,3))
+						this_k = kk + this_layer - 1;
+						t_val = sprintf('%d', this_k+1);
+						nc_io(grd_out, sprintf('w%d\\%s', this_k, t_val), handles, Z(:,:,this_layer))
+					end
+					nL = nL + this_layer - 1;	% -1 because the 1 will be incremented 3 lines below
+				end
 			end
+			nL = nL + 1;		% Counts effective number of non-empty layers
 		end
 
 		if (isfield(handles, 'uncomp_name') && ~isempty(handles.uncomp_name))
@@ -1318,7 +1331,7 @@ function [Z, have_nans, att] = sanitizeZ(Z, att, is_modis, is_linear, is_log, sl
 		[head, slope, intercept, base, is_modis, is_linear, is_log] = getFromMETA(att);
 	end
 
-	ind = [];
+	ind = [];		have_nans = 0;
 	if (~isempty(att.Band(1).NoDataValue) && (att.Band(1).NoDataValue == -9999))		% TEMP -> PATHFINDER
 		if ( ~isempty(att.Metadata) && ~isempty(search_scaleOffset(att.Metadata, 'dsp_SubImageName=QUAL')) )
 			% Quality flags files cannot be NaNified. 
@@ -1331,8 +1344,8 @@ function [Z, have_nans, att] = sanitizeZ(Z, att, is_modis, is_linear, is_log, sl
 		end
 	elseif (~isempty(att.Band(1).NoDataValue) && ~isnan(att.Band(1).NoDataValue))
 		ind = (Z == (att.Band(1).NoDataValue));
-	elseif (isnan(att.Band(1).NoDataValue))		% The nodata is NaN, replace NaNs in Z by zero
-		ind = isnan(Z);
+	elseif (isnan(att.Band(1).NoDataValue) && (isa(Z,'single') || isa(Z,'double')))	% The single|double test should be redundant. 
+		have_nans = grdutils(Z, '-N');
 	end
 
 	if ( is_modis && (isa(Z, 'int8') || isa(Z, 'uint8')) )
@@ -1347,7 +1360,6 @@ function [Z, have_nans, att] = sanitizeZ(Z, att, is_modis, is_linear, is_log, sl
 	elseif (is_log)
 		Z = single(base .^ (double(Z) * slope + intercept));
 	end
-	have_nans = 0;
 	if (~isempty(ind))
 		if (~isa(Z,'single') && ~isa(Z,'double'))		% Otherwise NaNs would be converted to 0
 			Z = single(Z);
@@ -1472,7 +1484,12 @@ function [Z, att, known_coords, have_nans, was_empty_name] = read_gdal(full_name
 			if (all(Z(:) == 0))		% When files are compressed GDAL screws and returns all zeros
 				handles_tmp.IamCompiled = IamCompiled;	handles_tmp.grdMaxSize = 1e12;
 				handles_tmp.ForceInsitu = false;
-				Z = read_grid(handles_tmp, full_name, 'GMT');		% Read the grid with our own functions
+				%Z = read_grid(handles_tmp, full_name, 'GMT');		% Read the grid with our own functions
+				% Now, instead of the above (that fails when loading a 3D array), we will use this trick
+				% The second call is only to reset the default value because it remembers the val of previous call
+				varargin(strcmp(varargin, '-U')) = [];	% Need to remove the -U option to compensate the still remaining GDAL bug
+				Z = gdalread(full_name, varargin{:}, opt_L, '-cGDAL_NETCDF_BOTTOMUP/NO');
+				lix.lix = gdalread(full_name, '-cGDAL_NETCDF_BOTTOMUP/YES', '-M');	% only to reset to default val
 			else
 				[Z, did_scale, att] = handle_scaling(Z, att);		% See if we need to apply a scale/offset
 			end
