@@ -27,7 +27,8 @@ function nesting_sizes(hand, opt)
 	hRects = findobj('tag','NEST');
 	ud = get(hRects,'UserData');
 	if (isa(ud, 'cell')),	ud = (cat(1,ud{:}));	end
-	hRects = hRects(ud);				% Reorder them at the order they were plotted (bigger ones first)
+	[ud,IX] = sort(ud);
+	hRects = hRects(IX);			% Reorder them at the order they were plotted (bigger ones first)
 
 	limits = cell(numel(hRects),1);
 	for (k = 1:numel(hRects))
@@ -65,14 +66,14 @@ function nesting_sizes(hand, opt)
 		else
 			hLine = hRects(hRects == gco);
 			info = getappdata(hLine, 'info');
-			opt_R = sprintf('-R%.12g/%.12g/%.12g/%.12g  -I%.10g/%.10g\n', info.head(1:4), info.head(6:7));
+			opt_R = sprintf('-R%.12g/%.12g/%.12g/%.12g -I%.12g/%.12g\n', info.head(1:4), info.head(6:7));
 			if (handles.geog)
 				lims_dd = fix(info.head(1:4));
 				lims_dec = abs(info.head(1:4) - lims_dd);
 				lims_mm  = fix(lims_dec * 60);
 				lims_dec = lims_dec * 60 - lims_mm;
 				lims_ss  = lims_dec * 60;		% ss.xxx
-				opt_Rddmmss = sprintf('-R%d:%02d:%.7g/%d:%02d:%.7g/%d:%02d:%.7g/%d:%02d:%.7g\n', ...
+				opt_Rddmmss = sprintf('-R%d:%02d:%.8g/%d:%02d:%.8g/%d:%02d:%.8g/%d:%02d:%.8g\n', ...
 					lims_dd(1), lims_mm(1), lims_ss(1), lims_dd(2), lims_mm(2), lims_ss(2), ...
 					lims_dd(3), lims_mm(3), lims_ss(3), lims_dd(4), lims_mm(4), lims_ss(4));
 			else
@@ -160,5 +161,5 @@ function hNew = make_new_nested(hAx, hRects, limits)
 	hNew = line('XData',[x(1) x(1) x(2) x(2) x(1)],'YData',[y(1) y(2) y(2) y(1) y(1)],'Parent',hAx,'Linewidth',lThick,...
 				'Color',cor,'Userdata',numel(limits)+1);
 
-	setappdata(hNew,'LineInfo',[sprintf('%.14g %.14g',x_inc, y_inc), limits{end}(5)]);
+	setappdata(hNew,'LineInfo',[sprintf('%.16g %.16g',x_inc, y_inc), limits{end}(5)]);
 	draw_funs([],'set_recTsu_uicontext', hNew)
