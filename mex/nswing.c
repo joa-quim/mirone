@@ -208,6 +208,7 @@ struct nestContainer {         /* Container for the nestings */
 	int    do_Coriolis;        /* If true, compute the Coriolis effect */
 	int    out_velocity_x;     /* To know if we must compute the vex,vey velocity arrays */
 	int    out_velocity_y;
+	int    out_momentum;       /* To know if save the momentum in the 3D netCDF grid. Mutually exclusive with out_velocity_x|y */
 	int    isGeog;             /* 0 == Cartesian, otherwise Geographic coordinates */
 	int    writeLevel;         /* Store info about which level is (if) to be writen [0] */
 	int    bnc_pos_nPts;       /* Number of points in a external boundary condition file */
@@ -1003,6 +1004,11 @@ int main(int argc, char **argv) {
 		error++;
 	}
 
+	if (out_momentum && (out_velocity_x || out_velocity_y)) {
+		mexPrintf("NSWING: Error -S / -H options. Can only select one off velocity OR momentum output.\n");
+		error++;
+	}
+
 	if (nest.do_Coriolis && !isGeog && nest.lat_min4Coriolis == -100) {
 		mexPrintf("NSWING: Error -C option. For cartesian grids must provide the South latitude. Ignoring Corilis request.\n");
 		nest.do_Coriolis = FALSE;
@@ -1175,6 +1181,7 @@ int main(int argc, char **argv) {
 	nest.hdr[0].nm      = (unsigned int)hdr_b.nx * (unsigned int)hdr_b.ny;
 	nest.out_velocity_x = out_velocity_x;
 	nest.out_velocity_y = out_velocity_y;
+	nest.out_momentum   = out_momentum;
 	nest.isGeog = isGeog;
 	nest.writeLevel = writeLevel;
 	if (initialize_nestum(&nest, isGeog, 0)) Return(-1);
@@ -1705,7 +1712,7 @@ int main(int argc, char **argv) {
 				write_grd_bin(prenome, xMinOut, yMinOut, dx, dy, i_start, j_start, i_end, j_end, nest.hdr[writeLevel].nx, work);
 			}
 
-			if (out_momentum) {
+			if (out_momentum && !out_3D) {
 				if (stem[0] == 0)
 					sprintf(prenome,"%.5d\0", irint(time_h) );
 				else
@@ -2769,10 +2776,14 @@ int open_most_nc(struct nestContainer *nest, float *work, char *base, char *name
 		else {
 			err_trap(nc_def_var(ncid, "time",  NC_DOUBLE,1, &dim0[2], &ids[2]));
 			err_trap(nc_def_var(ncid, name_var,NC_FLOAT,3,  dim3,     &ids[3]));
+			if (nest->out_momentum) {
+				err_trap(nc_def_var(ncid, "Mlon",NC_FLOAT,3, dim3,  &ids[5]));
+				err_trap(nc_def_var(ncid, "Mlat",NC_FLOAT,3, dim3,  &ids[6]));
+			}
 			if (nest->out_velocity_x)
-				err_trap(nc_def_var(ncid, "Vlon",NC_FLOAT,2, dim3,  &ids[5]));
+				err_trap(nc_def_var(ncid, "Vlon",NC_FLOAT,3, dim3,  &ids[5]));
 			if (nest->out_velocity_y)
-				err_trap(nc_def_var(ncid, "Vlat",NC_FLOAT,2, dim3,  &ids[6]));
+				err_trap(nc_def_var(ncid, "Vlat",NC_FLOAT,3, dim3,  &ids[6]));
 			dim3[0] = dim0[1];			dim3[1] = dim0[0];		/* Bathym array is rank 2 */
 			err_trap(nc_def_var(ncid, "bathymetry",NC_FLOAT,2, dim3,  &ids[4]));
 		}
@@ -2794,6 +2805,10 @@ int open_most_nc(struct nestContainer *nest, float *work, char *base, char *name
 		else {
 			err_trap(nc_def_var(ncid, "time",  NC_DOUBLE,1, &dim0[2], &ids[2]));
 			err_trap(nc_def_var(ncid, name_var,NC_FLOAT,3,  dim3,     &ids[3]));
+			if (nest->out_momentum) {
+				err_trap(nc_def_var(ncid, "Mx",NC_FLOAT,3, dim3,  &ids[5]));
+				err_trap(nc_def_var(ncid, "My",NC_FLOAT,3, dim3,  &ids[6]));
+			}
 			if (nest->out_velocity_x)
 				err_trap(nc_def_var(ncid, "Vx",NC_FLOAT,3, dim3,  &ids[5]));
 			if (nest->out_velocity_y)
@@ -2861,6 +2876,20 @@ int open_most_nc(struct nestContainer *nest, float *work, char *base, char *name
 		count_b[0] = nest->hdr[lev].ny;	count_b[1] = nest->hdr[lev].nx;
 		err_trap(nc_put_vara_float(ncid, ids[4], start_b, count_b, work));	/* Write the bathymetry */
 
+		if (nest->out_momentum) {
+			long_name = "Moment Component along x/Longitude";
+			err_trap(nc_put_att_text  (ncid, ids[5], "long_name", strlen(long_name), long_name));
+			err_trap(nc_put_att_text  (ncid, ids[5], "units", 15, "Meters^2/second"));
+			err_trap(nc_put_att_float (ncid, ids[5], "missing_value", NC_FLOAT, 1, &nan));
+			err_trap(nc_put_att_float (ncid, ids[5], "_FillValue", NC_FLOAT, 1, &nan));
+			err_trap(nc_put_att_double(ncid, ids[5], "actual_range", NC_DOUBLE, 2U, dummy));
+			long_name = "Moment Component along x/Latitude";
+			err_trap(nc_put_att_text  (ncid, ids[6], "long_name", strlen(long_name), long_name));
+			err_trap(nc_put_att_text  (ncid, ids[6], "units", 15, "Meters^2/second"));
+			err_trap(nc_put_att_float (ncid, ids[6], "missing_value", NC_FLOAT, 1, &nan));
+			err_trap(nc_put_att_float (ncid, ids[6], "_FillValue", NC_FLOAT, 1, &nan));
+			err_trap(nc_put_att_double(ncid, ids[6], "actual_range", NC_DOUBLE, 2U, dummy));
+		}
 		if (nest->out_velocity_x) {			/* Horizontal velocity, 3D case */
 			long_name = "Velocity Component along x/Longitude";
 			err_trap(nc_put_att_text  (ncid, ids[5], "long_name", strlen(long_name), long_name));
@@ -2944,6 +2973,20 @@ void write_most_slice(struct nestContainer *nest, int *ncid, int *ids, unsigned 
 				slice_range[4] = MIN(work[ij], slice_range[4]);
 				slice_range[5] = MAX(work[ij], slice_range[5]);
 			}			
+			err_trap (nc_put_vara_float (ncid[0], ids[2], start, count, work));
+		}
+		if (nest->out_momentum) {
+			for (ij = 0; ij < nest->hdr[nest->writeLevel].nm; ij++) {
+				work[ij] = (float)nest->fluxm_d[nest->writeLevel][ij];
+				slice_range[2] = MIN(work[ij], slice_range[2]);
+				slice_range[3] = MAX(work[ij], slice_range[3]);
+			}
+			err_trap (nc_put_vara_float (ncid[0], ids[1], start, count, work));
+			for (ij = 0; ij < nest->hdr[nest->writeLevel].nm; ij++) {
+				work[ij] = (float)nest->fluxn_d[nest->writeLevel][ij];
+				slice_range[4] = MIN(work[ij], slice_range[2]);
+				slice_range[5] = MAX(work[ij], slice_range[3]);
+			}
 			err_trap (nc_put_vara_float (ncid[0], ids[2], start, count, work));
 		}
 	}
