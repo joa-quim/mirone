@@ -1750,7 +1750,7 @@ function FileOpenDEM_CB(handles, opt)
 	end
 	[FileName,PathName,handles] = put_or_get_file(handles,str1,['Select ' opt ' File'],'get');
 	if isequal(FileName,0),		return,		end
-	fullname{1} = PathName;		fullname{2} = FileName;
+	fullname = [PathName FileName];
 	loadGRID(handles,fullname,tipo)
 
 % --------------------------------------------------------------------
