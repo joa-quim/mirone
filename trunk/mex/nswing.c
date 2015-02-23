@@ -4920,11 +4920,15 @@ void kaba_source(struct srf_header hdr, double x_inc, double y_inc, double x_min
 	*/
 	int row, col, col1, col2, row1, row2;
 
-	if (type == 1) {
+	if (type == 1) {		/* We will select the closest nodes that are INSIDE the -R region */
 		col1 = irint((x_min - hdr.x_min) / x_inc);
 		col2 = irint((x_max - hdr.x_min) / x_inc);
 		row1 = irint((y_min - hdr.y_min) / y_inc);
 		row2 = irint((y_max - hdr.y_min) / y_inc);
+		if (x_min > (hdr.x_min + col1 * x_inc)) col1++;     /* Closest node is to the left of x_min. Select inner node */
+		if (x_max < (hdr.x_min + col2 * x_inc)) col2 -= 1;  /* Closest node is to the right of x_max. Select inner node */
+		if (y_min > (hdr.y_min + row1 * y_inc)) row1++;     /*  Same for S-N */
+		if (y_max < (hdr.y_min + row2 * y_inc)) row2 -= 1;
 	}
 	else {
 		int nx2 = (int)y_min;
