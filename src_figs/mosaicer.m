@@ -1,7 +1,7 @@
 function varargout = mosaicer(varargin)
 % Helper window to paste SRTM grid tiles or Wem image tiles from Bing and others
 
-%	Copyright (c) 2004-2014 by J. Luis
+%	Copyright (c) 2004-2015 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -53,15 +53,18 @@ function varargout = mosaicer(varargin)
 	end
 
 	% --------------------- Read the directory and cache dir list from mirone_pref ----------------------
-	directory_list = [];
-	load([handMir.path_data 'mirone_pref.mat']);
+	t = load([handMir.path_data 'mirone_pref.mat'],'directory_list');
+	directory_list = t.directory_list;
 	j = false(1,numel(directory_list));						% vector for eventual cleaning non-existing dirs
 
 	if iscell(directory_list)								% When exists a dir list in mirone_pref
 		for i = 1:numel(directory_list)
 			if ~exist(directory_list{i},'dir'),   j(i) = true;   end
 		end
-		directory_list(j) = [];								% clean eventual non-existing directories
+		directory_list(j) = [];								% Clean eventual non-existing directories
+	end
+	if (isempty(handles.last_dir))							% Shouldn't happen but it does occasionaly.
+		handles.last_dir = pwd;
 	end
 	if ~isempty(directory_list)								% If there is one left
 		if (~strcmp(directory_list{1}, handles.last_dir))
@@ -70,6 +73,7 @@ function varargout = mosaicer(varargin)
 	else
 		directory_list = {handles.last_dir};
 	end
+
 	set(handles.popup_grd_dir,'String',directory_list)
 	handles.last_directories = directory_list;
 	handles.files_dir = handles.last_directories{1};
@@ -149,7 +153,7 @@ function varargout = mosaicer(varargin)
 % -------------------------------------------------------------------------
 function hand = popup_grd_dir_CB(hObject, handles, opt)
 % Do whatever in the directory containing the grids of interest
-	if (nargin == 2)    opt = [];   end
+	if (nargin == 2),	opt = [];	end
 	if isempty(opt)
 		val = get(hObject,'Value');     str = get(hObject, 'String');
 		% Put the selected field on top of the String list. This is necessary because the "OK" button will
@@ -478,7 +482,7 @@ function [files, comp_files, comp_ext, patos, patos_comp] = get_fnames_ext(pato,
 % Get the list of all files with extention "EXT" seating in the "PATO" dir
 % EXT may be either a char or a cell array. In the first case, only files with extension EXT
 % will be returned (that is;  COMP_FILES & COMP_EXT are empty)
-% On the second case, extra values of EXT will will be searched as well (that is; files with
+% On the second case, extra values of EXT will be searched as well (that is; files with
 % extension *.EXT{1}.EXT{2:numel(EXT)}.
 % FILES is a cell array of chars with the names that have extension EXT.
 % COMP_FILES is a cell array of chars with the names that had extension EXT{2, or 3, or 4, etc...}.
@@ -600,7 +604,7 @@ function popup_cache_dir_CB(hObject, handles, opt)
 % Choose one dir for caching tile images
 % OPT, used by push_cache_dir, is char array
 
-	if (nargin == 2)    opt = [];   end
+	if (nargin == 2),	opt = [];	end
 	if ( ~isempty(opt) )				% Add a new entry to the cache dir list. Otherwise, just normal popup work.
 		contents = get(hObject, 'String');
 		if (numel(contents) == 1),	rest = [];
@@ -717,7 +721,7 @@ function n_tiles = mosaic_srtm(handles)
 % Build a mosaic of SRTM1|3 tiles
 	n_tiles = 0;			% Counter to the number of processed tiles
 	[fnames,limits] = sort_patches(handles, 3);
-	if (isempty(fnames))	return,		end
+	if (isempty(fnames)),	return,		end
 	m = 1;		n = 1;		% If one tile only
 	if iscell(fnames),		[m,n] = size(fnames);	end
 	RC = 1201;				% Default to SRTM3 size
@@ -797,7 +801,7 @@ function n_tiles = mosaic_srtm5(handles)
 % Build a mosaic of SRTM 5 degs (CGIAR messy) tiles
 	n_tiles = 0;			% Counter to the number of processed tiles
 	[fnames,limits] = sort_patches(handles, 5);
-	if (isempty(fnames))	return,		end
+	if (isempty(fnames)),	return,		end
 	m = 1;		n = 1;		% If one tile only
 	if iscell(fnames),		[m,n] = size(fnames);	end
 	RC = 6001;
@@ -858,7 +862,7 @@ function n_tiles = mosaic_srtm30(handles)
 % Build a mosaic of SRTM30 tiles
 	n_tiles = 0;			% Counter to the number of processed tiles
 	[fnames,limits] = sort_patches(handles, 30);
-	if (isempty(fnames))	return,		end
+	if (isempty(fnames)),	return,		end
 	m = 1;		n = 1;		% If one tile only
 	if iscell(fnames),		[m,n] = size(fnames);	end
 	RC = [6000 4800];
@@ -991,7 +995,7 @@ function n_tiles = mosaic_gmted(handles)
 	[Z, X, Y, srsWKT, hand] = read_grid([], [local_pato 'mater.vrt'], 'OVR', opt_R);
 	zz = grdutils(Z,'-L');		hand.head(5:6) = zz(:)';
 	tmp.head = hand.head;		tmp.X = X;		tmp.Y = Y;
-	if (~isempty(srsWKT))		tmp.srsWKT = srsWKT;	end
+	if (~isempty(srsWKT)),		tmp.srsWKT = srsWKT;	end
 	tmp.name = 'GMTED_cut';
 	tmp.was_int16 = hand.was_int16;
 	tmp.Nodata_int16 = hand.Nodata_int16;
@@ -1034,7 +1038,7 @@ function n_tiles = mosaic_ace(handles)
 	[Z, X, Y, srsWKT, hand] = read_grid([], [local_pato 'mater.vrt'], 'OVR', opt_R);
 	zz = grdutils(Z,'-L');		hand.head(5:6) = zz(:)';
 	tmp.head = hand.head;		tmp.X = X;		tmp.Y = Y;
-	if (~isempty(srsWKT))		tmp.srsWKT = srsWKT;	end
+	if (~isempty(srsWKT)),		tmp.srsWKT = srsWKT;	end
 	tmp.name = 'ACE_cut';
 	tmp.was_int16 = hand.was_int16;
 	tmp.Nodata_int16 = hand.Nodata_int16;
@@ -1081,7 +1085,7 @@ function [fnames,limits] = sort_patches(handles, type)
 	idx_r = zeros(1,nTiles);		idx_c = zeros(1,nTiles);
 	for (i = 1:nTiles)
 		% Find the tile coordinates from the file name
-		if (iscell(fnames))		[PATH,FNAME] = fileparts(fnames{i});
+		if (iscell(fnames)),	[PATH,FNAME] = fileparts(fnames{i});
 		else					[PATH,FNAME] = fileparts(fnames);
 		end
 		if (type == 5)			% CGIAR grid
@@ -1092,11 +1096,11 @@ function [fnames,limits] = sort_patches(handles, type)
 			x_w = strfind(FNAME,'W');	x_e = strfind(FNAME,'E');
 			y_s = strfind(FNAME,'S');	y_n = strfind(FNAME,'N');
 			if ~isempty(x_w),			ind_x = x_w(1);		lon_sng = -1;
-			elseif  ~isempty(x_e)		ind_x = x_e(1);		lon_sng = 1;
+			elseif  ~isempty(x_e),		ind_x = x_e(1);		lon_sng = 1;
 			end
 
 			if ~isempty(y_n),			ind_y = y_n(1);		lat_sng = 1;
-			elseif ~isempty(y_s)		ind_y = y_s(1);		lat_sng = -1;
+			elseif ~isempty(y_s),		ind_y = y_s(1);		lat_sng = -1;
 			end
 			lon = sscanf(FNAME(ind_x+1:ind_x+3), '%f') * lon_sng;
 			if (type <= 3),			lat = sscanf(FNAME(2:ind_x-1), '%f') * lat_sng;
@@ -1182,7 +1186,7 @@ function [whatkind, source_PN, source_PV] = get_kind(handles)
 
 	source_PN = 'treta';		source_PV = [];		% Dumb value used to default to VE
 	if (get(handles.toggle_sat,'Val')),			whatkind = 'aerial';
-	elseif (get(handles.toggle_map,'Val'))		whatkind = 'road';
+	elseif (get(handles.toggle_map,'Val')),		whatkind = 'road';
 	else										whatkind = 'hybrid';
 	end
 	if ( whatkind(1) == 'a' && isempty(strfind(handles.serversImageOut, 'virtualearth')) )
