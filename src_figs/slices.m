@@ -6,7 +6,7 @@ function varargout = slices(varargin)
 %	To read a file and tell aquaPlugin to search the control script name in the OPTcontrol.txt file:
 %		aquamoto('file.nc', 0)
 
-%	Copyright (c) 2004-2014 by J. Luis
+%	Copyright (c) 2004-2015 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -799,6 +799,7 @@ function push_compute_CB(hObject, handles)
 			case 'MEAN',	fprintf(fid,'0\n');
 			case 'MIN',		fprintf(fid,'1\n');
 			case 'MAX',		fprintf(fid,'2\n');
+			case 'STD',		fprintf(fid,'3\n');
 			otherwise,		fprintf(fid,'0\n');
 		end
 		fprintf(fid,'# Not used here but need to set as empty\n[]\n');
