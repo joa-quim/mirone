@@ -53,8 +53,8 @@ function varargout = mosaicer(varargin)
 	end
 
 	% --------------------- Read the directory and cache dir list from mirone_pref ----------------------
-	t = load([handMir.path_data 'mirone_pref.mat'],'directory_list');
-	directory_list = t.directory_list;
+	directory_list = [];
+	load([handMir.path_data 'mirone_pref.mat']);
 	j = false(1,numel(directory_list));						% vector for eventual cleaning non-existing dirs
 
 	if iscell(directory_list)								% When exists a dir list in mirone_pref
