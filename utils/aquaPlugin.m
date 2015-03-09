@@ -1274,8 +1274,8 @@ function [out, s] = get_layer(Z, layer, s)
 
 % ----------------------------------------------------------------------
 function [out, s] = doM_or_M_or_M(Z, first_level, lev_inc, last_level, regionalMIN, regionalMAX, tipo, s)
-% Compute either the MEAN (TIPO = 0) or the MIN (TIPO = 1) or MAX of the period selected
-% by the first_level:last_level vector. Normaly a year but can be a season as well.
+% Compute either the MEAN (TIPO = 0) or the MIN (TIPO = 1), MAX (2) or STD (3) of the period selected
+% by the first_level:lev_inc:last_level vector. Normaly a year but can be a season as well.
 % NOTE1: This function was only used when SPLINA (see above in calc_yearMean()) up to Mirone 2.2.0
 % NOTE2: It is now (2.5.0dev) used again by the tideman function (and other calls)
 %
@@ -1370,9 +1370,11 @@ function out = nanstd_j(Z, first_level, lev_inc, last_level, s)
 	end
 
 	this_mean = nanmean_j(Z, first_level, lev_inc, last_level, s);
-	t = single(0);
-	if (isa(this_mean, 'double')),	t = 0;	end		% Need this gimnastic because cvlib_mex screws if types are different
-	out(size(this_mean,1), size(this_mean,2)) = t;
+	if (isa(this_mean, 'single'))		% Need this gimnastic because cvlib_mex screws if types are different
+		out = alloc_mex(size(this_mean,1), size(this_mean,2), 'single');
+	else
+		out = alloc_mex(size(this_mean,1), size(this_mean,2), 'double');
+	end
 	denom = zeros(size(this_mean));			% Swallow the thing but this one has to be done with doubles
 	for (n = first_level:lev_inc:last_level)
 		[t, s] = get_layer(Z, n, s);
