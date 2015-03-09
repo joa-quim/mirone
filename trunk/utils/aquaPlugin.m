@@ -21,7 +21,7 @@ function aquaPlugin(handles, auto)
 %				aquamoto('file.nc', 0)
 %		In the later case the control script name is searched in the OPTcontrol.txt file
 
-%	Copyright (c) 2004-2014 by J. Luis
+%	Copyright (c) 2004-2015 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -743,7 +743,8 @@ function calc_yearMean(handles, months, fname2, flag, nCells, fname3, splina, ti
 % GRD_OUT	Name of the netCDF file where to store the result. If not provided, it will be asked here.
 	
 	% Variables that are not always used but need to exist
-	Tmed = [];	ZtoSpline = [];	contanoes = [];		total_months = [];	n_pad_months = [];	z_id_flags = [];
+	Tmed = [];	ZtoSpline = [];	contanoes = [];		total_months = [];	n_pad_months = [];
+	z_id_flags = [];	s_flags= [];
 
 	do_flags = false;		track_filled = false;		do_saveSeries = false;	do_climatologies = false;
 	[z_id, s, rows, cols] = get_ncInfos(handles);
@@ -920,7 +921,7 @@ function calc_yearMean(handles, months, fname2, flag, nCells, fname3, splina, ti
 		else
 			% For averages and for the time being (not break compat), continue to use the old code in form of function
 			[Tmed, contanoes, ZtoSpline, already_processed] = ...
-				calc_average_old(handles, s, Tmed, ZtoSpline, contanoes, this_months, splina, last_processed_month, ...
+				calc_average_old(handles, s, s_flags, Tmed, ZtoSpline, contanoes, this_months, splina, last_processed_month, ...
 				nCells, n_anos, already_processed, total_months, months, n_pad_months, do_flags, flag, ...
 				fname2, fname3, pintAnoes, track_filled, rows, cols, z_id, z_id_flags, growing_flag, m);
 			if (~splina)					% Do not interpolate along time. Compute averages with all non NaNs
@@ -1040,7 +1041,7 @@ function calc_yearMean(handles, months, fname2, flag, nCells, fname3, splina, ti
 	
 % ------------------------------------------------------------------------------
 function [Tmed, contanoes, ZtoSpline, already_processed] = ...
-		calc_average_old(handles, s, Tmed, ZtoSpline, contanoes, this_months, splina, last_processed_month, ...
+		calc_average_old(handles, s, s_flags, Tmed, ZtoSpline, contanoes, this_months, splina, last_processed_month, ...
 		nCells, n_anos, already_processed, total_months, months, n_pad_months, do_flags, flag, ...
 		fname2, fname3, pintAnoes, track_filled, rows, cols, z_id, z_id_flags, growing_flag, m)
 % Chunk of code that calculates the average in the old way and converted to a function.
