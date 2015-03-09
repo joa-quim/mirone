@@ -741,6 +741,9 @@ function calc_yearMean(handles, months, fname2, flag, nCells, fname3, splina, ti
 %			the data with the holes (NaNs) interpolated with an Akima spline function.
 %
 % GRD_OUT	Name of the netCDF file where to store the result. If not provided, it will be asked here.
+	
+	% Variables that are not always used but need to exist
+	Tmed = [];	ZtoSpline = [];	contanoes = [];		total_months = [];	n_pad_months = [];	z_id_flags = [];
 
 	do_flags = false;		track_filled = false;		do_saveSeries = false;	do_climatologies = false;
 	[z_id, s, rows, cols] = get_ncInfos(handles);
@@ -909,67 +912,26 @@ function calc_yearMean(handles, months, fname2, flag, nCells, fname3, splina, ti
 			contanoes = zeros(rows, cols);
 		end
 
-		counter = 0;
-		for (n = this_months)
-			counter = counter + 1;
-			if (m == 1)						% First year
-				Z = nc_funs('varget', handles.fname, s.Dataset(z_id).Name, [n-1 0 0], [1 rows cols]);
-			else
-				if (splina && n <= last_processed_month)
-					already_processed = already_processed + 1;
-					offset = 1;
-					if (m == 2),	offset = min(1, months(1)-n_pad_months);	end		% Because for the 1st year the series may be shorter
-					offset = total_months - (last_processed_month - n) + offset - 1;
-					ZtoSpline(:,:,already_processed) = ZtoSpline(:,:,offset);
-				else
-					Z = nc_funs('varget', handles.fname, s.Dataset(z_id).Name, [n-1 0 0], [1 rows cols]);
-					already_processed = 0;
-				end
+		if (tipoStat > 0)
+			l_inc = this_months(2) - this_months(1);
+			s2 = struct('fname',handles.fname, 'info',s, 'n_layers', handles.number_of_timesteps, 'rows',rows, ...
+				 'cols',cols, 'layerOI',this_months(1), 'layer_inc',l_inc, 'z_id',z_id);
+			tmp = doM_or_M_or_M([], this_months(1), l_inc, handles.number_of_timesteps, Inf, Inf, tipoStat, s2);
+		else
+			% For averages and for the time being (not break compat), continue to use the old code in form of function
+			[Tmed, contanoes, ZtoSpline, already_processed] = ...
+				calc_average_old(handles, s, Tmed, ZtoSpline, contanoes, this_months, splina, last_processed_month, ...
+				nCells, n_anos, already_processed, total_months, months, n_pad_months, do_flags, flag, ...
+				fname2, fname3, pintAnoes, track_filled, rows, cols, z_id, z_id_flags, growing_flag, m);
+			if (~splina)					% Do not interpolate along time. Compute averages with all non NaNs
+				cvlib_mex('div', Tmed, contanoes);		% The mean for current year
+				tmp = single(Tmed);
 			end
-
-			if (do_flags && ~already_processed)
-				Z_flags = nc_funs('varget', fname2, s_flags.Dataset(z_id_flags).Name, [n-1 0 0], [1 rows cols]);
-				if (growing_flag),		Z(Z_flags < flag) = NaN;	% Pathfinder style (higher the best) quality flag
-				else					Z(Z_flags > flag) = NaN;	% MODIS style (lower the best) quality flag
-				end
-			end
-
-			ind = isnan(Z);
-
- 			if (pintAnoes && ~already_processed && any(ind(:)))		% If fill spatial holes is requested
-				if (track_filled),		ind0 = ind;		end			% Get this Z level original NaNs mask
-				Z = inpaint_nans(handles, Z, ind, nCells);			% Select interp method inside inpaint_nans()
-				ind = isnan(Z);
-				if (track_filled && counter <= 12)					% Write updated quality file (The 'splina' case has counters >> 12)
-					mn = (m - 1)*12 + counter - 1;					% This will work only for entire years (not seasons)
-					Z_flags(ind0 & ~ind) = flag;					% Promote interpolated pixels to quality 'flag'
-					grdutils(Z_flags,'-c');							% Shift by -128 so it goes well with the uint8 add_off elsewere
-					if (mn == 0),		nc_io(fname3, sprintf('w%d/time',n_anos*numel(months)), handles, reshape(Z_flags,[1 size(Z_flags)]))
-					else				nc_io(fname3, sprintf('w%d', mn), handles, Z_flags)
-					end
-				end
-			end
-
-			if (~splina)				% Do not interpolate along time (months)
-				Z(ind) = 0;				% Transmutate the Anoes
-				contanoes = contanoes + ~ind;
-				cvlib_mex('add', Tmed, double(Z));
-			else						% Pack this year into a 3D temporary variable, to be processed later.
- 				if (~already_processed),	ZtoSpline(:,:,counter) = Z;		end
-			end
-
-			if (n_anos == 1 && numel(this_months) > 12)			% For the secret daily data case
-				aguentabar(n / (numel(this_months) + 1)),		drawnow
-			end
-		end								% End loop over months
+		end
 
 		last_processed_month = this_months(end);
 
-		if (~splina)					% Do not interpolate along time. Compute averages with all non NaNs
-			cvlib_mex('div', Tmed, contanoes);			% The mean for current year
-			tmp = single(Tmed);
-
-		else							% Fill missing month data by interpolation based on non-NaN data
+		if (tipoStat == 0 && splina)					% Fill missing month data by interpolation based on non-NaN data
 			hh = aguentabar(eps,'title','Splining it.');	drawnow
 			if (isnan(hh)),		break,		end			% Over time loop said: break
 			n_meses = numel(this_months);
@@ -1034,15 +996,14 @@ function calc_yearMean(handles, months, fname2, flag, nCells, fname3, splina, ti
 			% ----------------------------------------------------------------------------------------------
 
 			% Now we can finaly compute the season MEAN or MIN or MAX
-			tmp = doM_or_M_or_M(ZtoSpline, first_wanted_month, last_wanted_month, regionalMIN, regionalMAX, tipoStat);
-
+			tmp = doM_or_M_or_M(ZtoSpline, first_wanted_month, 1, last_wanted_month, regionalMIN, regionalMAX, tipoStat);
 		end							% End interpolate along time (SPLINA)
 
 		tmp(tmp == 0) = NaN;		% Reset the NaNs
 
 		if (in_break),		break,		end		% Fckng no gotos paranoia obliges to this recursive break
 
-% 		% Clip obvious bad data based on cheap meadian statistics
+% 		% Clip obvious bad data based on cheap median statistics
 % 		aguentabar(0.5,'title','Filtering obvious bad data based on cheap statistics.');	drawnow
 % 		medianas = grdfilter_m(tmp,[1 size(tmp,2) 1 size(tmp,1) 0 50 0 1 1], '-D0', '-Fm11');
 % 		difa = cvlib_mex('absDiff', tmp, medianas);
@@ -1076,6 +1037,67 @@ function calc_yearMean(handles, months, fname2, flag, nCells, fname3, splina, ti
 		if (~isempty(pato)),	fname = [pato filesep fname];	end
 		double2ascii(fname, timeSeries, ['%d' repmat('\t%.4f',[1 size(timeSeries,2)-1])]);
 	end
+	
+% ------------------------------------------------------------------------------
+function [Tmed, contanoes, ZtoSpline, already_processed] = ...
+		calc_average_old(handles, s, Tmed, ZtoSpline, contanoes, this_months, splina, last_processed_month, ...
+		nCells, n_anos, already_processed, total_months, months, n_pad_months, do_flags, flag, ...
+		fname2, fname3, pintAnoes, track_filled, rows, cols, z_id, z_id_flags, growing_flag, m)
+% Chunk of code that calculates the average in the old way and converted to a function.
+
+	counter = 0;
+	for (n = this_months)
+		counter = counter + 1;
+		if (m == 1)						% First year
+			Z = nc_funs('varget', handles.fname, s.Dataset(z_id).Name, [n-1 0 0], [1 rows cols]);
+		else
+			if (splina && n <= last_processed_month)
+				already_processed = already_processed + 1;
+				offset = 1;
+				if (m == 2),	offset = min(1, months(1)-n_pad_months);	end		% Because for the 1st year the series may be shorter
+				offset = total_months - (last_processed_month - n) + offset - 1;
+				ZtoSpline(:,:,already_processed) = ZtoSpline(:,:,offset);
+			else
+				Z = nc_funs('varget', handles.fname, s.Dataset(z_id).Name, [n-1 0 0], [1 rows cols]);
+				already_processed = 0;
+			end
+		end
+
+		if (do_flags && ~already_processed)
+			Z_flags = nc_funs('varget', fname2, s_flags.Dataset(z_id_flags).Name, [n-1 0 0], [1 rows cols]);
+			if (growing_flag),		Z(Z_flags < flag) = NaN;	% Pathfinder style (higher the best) quality flag
+			else					Z(Z_flags > flag) = NaN;	% MODIS style (lower the best) quality flag
+			end
+		end
+
+		ind = isnan(Z);
+
+		if (pintAnoes && ~already_processed && any(ind(:)))		% If fill spatial holes is requested
+			if (track_filled),		ind0 = ind;		end			% Get this Z level original NaNs mask
+			Z = inpaint_nans(handles, Z, ind, nCells);			% Select interp method inside inpaint_nans()
+			ind = isnan(Z);
+			if (track_filled && counter <= 12)					% Write updated quality file (The 'splina' case has counters >> 12)
+				mn = (m - 1)*12 + counter - 1;					% This will work only for entire years (not seasons)
+				Z_flags(ind0 & ~ind) = flag;					% Promote interpolated pixels to quality 'flag'
+				grdutils(Z_flags,'-c');							% Shift by -128 so it goes well with the uint8 add_off elsewere
+				if (mn == 0),		nc_io(fname3, sprintf('w%d/time',n_anos*numel(months)), handles, reshape(Z_flags,[1 size(Z_flags)]))
+				else				nc_io(fname3, sprintf('w%d', mn), handles, Z_flags)
+				end
+			end
+		end
+
+		if (~splina)				% Do not interpolate along time (months)
+			Z(ind) = 0;				% Transmutate the Anoes
+			contanoes = contanoes + ~ind;
+			cvlib_mex('add', Tmed, double(Z));
+		else						% Pack this year into a 3D temporary variable, to be processed later.
+			if (~already_processed),	ZtoSpline(:,:,counter) = Z;		end
+		end
+
+		if (n_anos == 1 && numel(this_months) > 12)			% For the secret daily data case
+			aguentabar(n / (numel(this_months) + 1)),		drawnow
+		end
+	end								% End loop over months
 
 % ------------------------------------------------------------------------------
 function calc_L2_periods(handles, period, tipoStat, regMinMax, grd_out)
@@ -1155,8 +1177,9 @@ function calc_L2_periods(handles, period, tipoStat, regMinMax, grd_out)
 % 			end
 % 			tmp = doM_or_M_or_M(Z, 1, size(Z,3), regionalMIN, regionalMAX, tipoStat);
 % 			clear Z;					% Free memory (need because at the alloc time above, two of them would exist)
-			s2 = struct('fname',handles.fname, 'info',s, 'n_layers', N(m), 'rows',rows, 'cols',cols, 'layerOI',c, 'z_id',z_id);
-			[tmp, s2] = doM_or_M_or_M([], 1, N(m), regionalMIN, regionalMAX, tipoStat, s2);
+			s2 = struct('fname',handles.fname, 'info',s, 'n_layers', N(m), 'rows',rows, 'cols',cols, ...
+				'layerOI',c, 'layer_inc',1, 'z_id',z_id);
+			[tmp, s2] = doM_or_M_or_M([], 1, 1, N(m), regionalMIN, regionalMAX, tipoStat, s2);
 			c = s2.layerOI;				% This is crutial because it tells us where we are in the layer stack
 			tmp(tmp == 0) = NaN;		% Reset the NaNs
 			zzz = grdutils(tmp,'-L');
@@ -1239,35 +1262,37 @@ function T_measured = remove_seazon(handles, T_measured, Tavg, tempos)
 function [out, s] = get_layer(Z, layer, s)
 % Get the layer in one of the following two instances
 %	1 - S is empty and Z is [m n p]
-%	2 - S is a structure with info on how to rad the layer directly from the netCDF file
+%	2 - S is a structure with info on how to read the layer directly from the netCDF file
 
 	if (isempty(s))
 		out = Z(:,:,layer);
 	else
 		out = nc_funs('varget', s.fname, s.info.Dataset(s.z_id).Name, [s.layerOI-1 0 0], [1 s.rows s.cols]);
-		s.layerOI = s.layerOI + 1;
+		s.layerOI = s.layerOI + s.layer_inc;
 	end
 
 % ----------------------------------------------------------------------
-function [out, s] = doM_or_M_or_M(Z, first_level, last_level, regionalMIN, regionalMAX, tipo, s)
+function [out, s] = doM_or_M_or_M(Z, first_level, lev_inc, last_level, regionalMIN, regionalMAX, tipo, s)
 % Compute either the MEAN (TIPO = 0) or the MIN (TIPO = 1) or MAX of the period selected
-% by the first_wanted_month:last_wanted_month vector. Normaly a year but can be a season as well.
+% by the first_level:last_level vector. Normaly a year but can be a season as well.
 % NOTE1: This function was only used when SPLINA (see above in calc_yearMean()) up to Mirone 2.2.0
 % NOTE2: It is now (2.5.0dev) used again by the tideman function (and other calls)
 %
 % Because of the potentially very large memory comsumption, we can do the data file reading from
 % within this function. In that case Z can be empty and S must be a struct with:
-%	S = struct('fname',handles.fname, 'info',s, 'n_layers', N(m), 'rows',rows, 'cols',cols, 'layerOI',c, 'z_id',z_id);
-% whre N_LAYERS is the numbers of layers to be read. 'layerOI' flags the leayr to be read and must be
-% incremented after each layer reading. But is the role of the GET_LAYER() function.
+%	S = struct('fname',handles.fname, 'info',s, 'n_layers', N(m), 'rows',rows, 'cols',cols, ...
+%	           'layerOI',c, layer_inc,n, 'z_id',z_id);
+% whre N_LAYERS is the numbers of layers to be read. 'layerOI' flags the layer to be read and must be
+% incremented after each layer reading (which is done by the GET_LAYER() function).
+% LAYER_INC is the increment between layers. It will be = 1 for consecutive layers, or 12 for climatologies
 % We also return S because it keeps the trace of the current layer (the layerOI field), which is needed
-% when there multiple calls of this function.
+% when there are multiple calls to this function.
 
 	if (nargin == 1)			% Compute average of all layers without any constraint
-		first_level = 1;		last_level = size(Z,3);
+		first_level = 1;		lev_inc = 1;			last_level = size(Z,3);
 		regionalMIN = Inf;		regionalMAX = Inf;		tipo = 0;
 	end
-	if (nargin < 7),	s = [];	end
+	if (nargin < 8),	s = [];	end
 
 	if (tipo == 0)				% Compute the MEAN of the considered period
 		% We don't use nanmean_j here because of the regionalMIN|MAX
@@ -1277,7 +1302,7 @@ function [out, s] = doM_or_M_or_M(Z, first_level, last_level, regionalMIN, regio
 		contanoes = alloc_mex(size(ind,1), size(ind,2), 'single');
 		cvlib_mex('add', contanoes, single(~ind));
 		out(ind) = 0;						% Mutate NaNs to 0 so that they don't screw the adition
-		for (n = (first_level+1):last_level)
+		for (n = (first_level+lev_inc):lev_inc:last_level)
 			[tmp, s] = get_layer(Z, n, s);
 			if (~isinf(regionalMIN)),	tmp(tmp < regionalMIN) = NaN;	end
 			if (~isinf(regionalMAX)),	tmp(tmp > regionalMAX) = NaN;	end
@@ -1289,40 +1314,40 @@ function [out, s] = doM_or_M_or_M(Z, first_level, last_level, regionalMIN, regio
 		cvlib_mex('div', out, contanoes);			% The mean
 	elseif (tipo == 1)			% Minimum of the selected period
 		if (isempty(s))
-			out = min(Z(:,:,first_level:last_level),[],3);
+			out = min(Z(:,:,first_level:lev_inc:last_level),[],3);
 		else
-			[out, s] = get_layer(Z, 1, s);
-			for (k = 2:s.n_layers)
+			[out, s] = get_layer(Z, first_level, s);
+			for (k = first_level+lev_inc:lev_inc:s.n_layers)
 				[tmp, s] = get_layer(Z, k, s);
 				out = min(out, tmp);
 			end
 		end
 	elseif (tipo == 2)			% Maximum
 		if (isempty(s))
-			out = max(Z(:,:,first_level:last_level),[],3);
+			out = max(Z(:,:,first_level:lev_inc:last_level),[],3);
 		else
-			[out, s] = get_layer(Z, 1, s);
-			for (k = 2:s.n_layers)
+			[out, s] = get_layer(Z, first_level, s);
+			for (k = first_level+lev_inc:lev_inc:s.n_layers)
 				[tmp, s] = get_layer(Z, k, s);
 				out = max(out, tmp);
 			end
 		end
 	elseif (tipo == 3)			% STD
-		out = nanstd_j(Z, first_level, last_level, s);
+		out = nanstd_j(Z, first_level, lev_inc, last_level, s);
 	end
 
 % ----------------------------------------------------------------------
-function out = nanmean_j(Z, first_level, last_level, s)
+function out = nanmean_j(Z, first_level, lev_inc, last_level, s)
 % ...
 	if (nargin == 1)
-		first_level = 1;	last_level = size(Z,3);		s = [];
+		first_level = 1;	last_level = size(Z,3);		lev_inc = 1;	s = [];
 	end
 	[out, s] = get_layer(Z, first_level, s);
 	ind = isnan(out);
 	contanoes = alloc_mex(size(ind,1), size(ind,2), 'single');
 	cvlib_mex('add', contanoes, single(~ind));
 	out(ind) = 0;						% Mutate NaNs to 0 so that they don't screw the adition
-	for (n = (first_level+1):last_level)
+	for (n = (first_level+lev_inc):lev_inc:last_level)
 		[tmp, s] = get_layer(Z, n, s);
 		ind = isnan(tmp);
 		tmp(ind) = 0;
@@ -1332,7 +1357,7 @@ function out = nanmean_j(Z, first_level, last_level, s)
 	cvlib_mex('div', out, contanoes);			% The mean
 
 % ----------------------------------------------------------------------
-function out = nanstd_j(Z, first_level, last_level, s)
+function out = nanstd_j(Z, first_level, lev_inc, last_level, s)
 % Compute the STD taking into account the presence of NaNs
 % This is a bit more convoluted for memory efficiency concearns (somethig TMW does not care)
 %
@@ -1340,15 +1365,15 @@ function out = nanstd_j(Z, first_level, last_level, s)
 % For further info, see help section of the doM_or_M_or_M() function
 
 	if (nargin == 1)
-		first_level = 1;	last_level = size(Z,3);		s = [];
+		first_level = 1;	last_level = size(Z,3);		lev_inc = 1;	s = [];
 	end
 
-	this_mean = nanmean_j(Z, first_level, last_level, s);
+	this_mean = nanmean_j(Z, first_level, lev_inc, last_level, s);
 	t = single(0);
 	if (isa(this_mean, 'double')),	t = 0;	end		% Need this gimnastic because cvlib_mex screws if types are different
 	out(size(this_mean,1), size(this_mean,2)) = t;
-	denom = zeros(size(this_mean));				% Swallow the thing but this one has to be done with doubles
-	for (n = first_level:last_level)
+	denom = zeros(size(this_mean));			% Swallow the thing but this one has to be done with doubles
+	for (n = first_level:lev_inc:last_level)
 		[t, s] = get_layer(Z, n, s);
 		denom = denom + ~isnan(t);
 		cvlib_mex('sub', t, this_mean);
