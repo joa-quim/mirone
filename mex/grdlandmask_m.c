@@ -91,8 +91,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	char line[GMT_LONG_TEXT], ptr[BUFSIZ], cmd[24];
 	char *shore_resolution[5] = {"full", "high", "intermediate", "low", "crude"};
 
-	GMT_LONG	i, j, k, ij, ii, bin, ind, nm, np, side, i_min, i_max, j_min, j_max, nx1, ny1, np_new, pos;
-	int		one_or_zero, base = 3, direction, is_inside = 1, err;
+	GMT_LONG i, j, k, ij, ii, bin, ind, nm, np, side, i_min, i_max, j_min, j_max, nx1, ny1, np_new, pos;
+	int      base = 3, direction, is_inside = 1, err;
 
 	unsigned char *data_8;
 
@@ -308,7 +308,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 
 	i_dx = 1.0 / header.x_inc;
 	i_dy = 1.0 / header.y_inc;
-	one_or_zero = (header.node_offset) ? 0 : 1;
 	del_off = (header.node_offset) ? 0.5 : 0.0;
 	xinc2 = (header.node_offset) ? 0.5 * header.x_inc : 0.0;
 	yinc2 = (header.node_offset) ? 0.5 * header.y_inc : 0.0;
@@ -538,7 +537,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		hdr[0] = header.x_min;		hdr[1] = header.x_max;
 		hdr[2] = header.y_min;		hdr[3] = header.y_max;
 		hdr[4] = 0;			hdr[5] = 1;
-		hdr[6] = one_or_zero;
+		hdr[6] = header.node_offset;
 		hdr[7] = header.x_inc;		hdr[8] = header.y_inc;
 		if (nlhs >= 3) {
 			double *xx;
