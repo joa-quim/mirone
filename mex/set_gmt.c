@@ -94,16 +94,16 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		envString = (char *)mxArrayToString(prhs[0]);
 		if (nrhs == 2 && nlhs == 0) {		/* The set PATH case */
 			this = getenv ("PATH");
-			pato = (char *) mxCalloc ((size_t)(strlen(this) + strlen(envString) + 2), (size_t)1);
-			strcpy (pato, envString);
-			strcat (pato, this);
+			pato = (char *) mxCalloc((size_t)(strlen(this) + strlen(envString) + 2), (size_t)1);
+			strcpy(pato, envString);
+			strcat(pato, this);
 			if (status = putenv(pato))
 				mexPrintf("SET_GMT: Failure to set the PATH environmental variable\n %s\n", pato);
 			mxFree(pato);
 
 		}
 		else if (nrhs == 2 && nlhs == 1) {	/* Return the contents of the 'envstring' env var (for debug) */
-			if ((this = getenv (envString)) != CNULL)
+			if ((this = getenv(envString)) != CNULL)
 				mxStr = mxCreateString(this);
 			else
 				mxStr = mxCreateString("");
@@ -129,33 +129,33 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 
 	/* Structure field names. If we have an official GMT installation, only full & high 
 	   will be tested (4-6 will be empty). Otherwise, we'll check also for the lower costlines. */
-	info_struct = mxCreateStructMatrix (1, 1, 6, (const char **)fieldnames );
+	info_struct = mxCreateStructMatrix(1, 1, 6, (const char **)fieldnames);
 
 
 	if ((this = getenv ("GMT_SHAREDIR")) != CNULL) {	/* We have a 4.2 or greater version */
-		GMT_SHAREDIR = (char *) mxCalloc ((size_t)(strlen (this) + 1), (size_t)1);
-		strcpy (GMT_SHAREDIR, this);
+		GMT_SHAREDIR = (char *) mxCalloc((size_t)(strlen(this) + 1), (size_t)1);
+		strcpy(GMT_SHAREDIR, this);
 		mxStr = mxCreateString("4");
 	}
 	else if ((this = getenv ("GMT5_SHAREDIR")) != CNULL) {	/* We have a 5.0 or greater version */
 		char *sdir;
-		GMT_SHAREDIR = (char *) mxCalloc ((size_t)(strlen (this) + 1), (size_t)1);
-		strcpy (GMT_SHAREDIR, this);
+		GMT_SHAREDIR = (char *) mxCalloc((size_t)(strlen(this) + 1), (size_t)1);
+		strcpy(GMT_SHAREDIR, this);
 		mxStr = mxCreateString("5");
 		/* Now cheat GMT4 reseting GMT_SHAREDIR with the GMT5_SHAREDIR's value */
-		sdir = (char *) mxCalloc ((size_t)(strlen (this) + 1), (size_t)1);
-		sprintf (sdir, "GMT_SHAREDIR=%s", GMT_SHAREDIR);
+		sdir = (char *) mxCalloc((size_t)(strlen(this) + 1), (size_t)1);
+		sprintf(sdir, "GMT_SHAREDIR=%s", GMT_SHAREDIR);
 		if (status = putenv(sdir))
 			mexPrintf("SET_GMT: Failure trick to local reset the GMT_SHAREDIR env variable\n %s\n", sdir);
 	}
-	else if ((this = getenv ("GMTHOME")) != CNULL) {	/* We have a pre 4.2 version */
+	else if ((this = getenv("GMTHOME")) != CNULL) {	/* We have a pre 4.2 version */
 		char *sdir;
-		GMT_SHAREDIR = (char *) mxCalloc ((size_t)(strlen (this) + 7), (size_t)1);
-		sdir = (char *) mxCalloc ((size_t)(strlen (this) + 20), (size_t)1);
+		GMT_SHAREDIR = (char *) mxCalloc((size_t)(strlen(this) + 7), (size_t)1);
+		sdir = (char *) mxCalloc((size_t)(strlen (this) + 20), (size_t)1);
 		/* GMT_SHAREDIR is used in this MEX to report what coastlines we have */
-		sprintf (GMT_SHAREDIR, "%s%c%s", this, DIR_DELIM, "share");
+		sprintf(GMT_SHAREDIR, "%s%c%s", this, DIR_DELIM, "share");
 		/* sdir will be used by our gmt dlls (& shoredump) */
-		sprintf (sdir, "GMT_SHAREDIR=%s%c%s", this, DIR_DELIM, "share");
+		sprintf(sdir, "GMT_SHAREDIR=%s%c%s", this, DIR_DELIM, "share");
 		if (status = putenv(sdir))
 			mexPrintf("SET_GMT: Failure to set the sharedir environmental variable\n %s\n", sdir);
 		mxStr = mxCreateString("4");
@@ -168,26 +168,26 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 
 	/* -------------------------------------------------------------------- */
 	if ((this = getenv ("HOME")) != CNULL) {		/* HOME was set */
-		GMT_HOMEDIR = (char *) mxCalloc ((size_t)(strlen (this) + 1), (size_t)1);
- 		strcpy (GMT_HOMEDIR, this);
+		GMT_HOMEDIR = (char *) mxCalloc((size_t)(strlen(this) + 1), (size_t)1);
+ 		strcpy(GMT_HOMEDIR, this);
 	}
 	else {
 #ifdef WIN32
 		/* Set HOME to C:\ under Windows */
-		GMT_HOMEDIR = (char *) mxCalloc (4, (size_t)1);
-		sprintf (GMT_HOMEDIR, "C:%c", DIR_DELIM);
+		GMT_HOMEDIR = (char *) mxCalloc(4, (size_t)1);
+		sprintf(GMT_HOMEDIR, "C:%c", DIR_DELIM);
 #else
-		mexPrintf ("SET_GMT: Warning, could not determine home directory!\n");
+		mexPrintf("SET_GMT: Warning, could not determine home directory!\n");
 #endif
 	}
 
-	if ((this = getenv ("GMT_USERDIR")) != CNULL) {		/* GMT_USERDIR was set */
-		GMT_USERDIR = (char *) mxCalloc ((size_t)(strlen (this) + 1), (size_t)1);
-		strcpy (GMT_USERDIR, this);
+	if ((this = getenv("GMT_USERDIR")) != CNULL) {		/* GMT_USERDIR was set */
+		GMT_USERDIR = (char *) mxCalloc ((size_t)(strlen(this) + 1), (size_t)1);
+		strcpy(GMT_USERDIR, this);
 	}
 	else {				/* Use default pato for GMT_USERDIR (~/.gmt) */
-		GMT_USERDIR = (char *) mxCalloc ((size_t)(strlen (GMT_HOMEDIR) + 6), (size_t)1);
-		sprintf (GMT_USERDIR, "%s%c%s", GMT_HOMEDIR, DIR_DELIM, ".gmt");
+		GMT_USERDIR = (char *) mxCalloc((size_t)(strlen (GMT_HOMEDIR) + 6), (size_t)1);
+		sprintf(GMT_USERDIR, "%s%c%s", GMT_HOMEDIR, DIR_DELIM, ".gmt");
 	}
 	if (access(GMT_USERDIR,R_OK)) GMT_USERDIR = CNULL;
 
@@ -195,7 +195,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	/* -------------------------------------------------------------------- */
 	/* See if we have the Full definition files */
 	sprintf (file, "binned_GSHHS_%c", 'f');
-       	if (shore_getpathname (file, path, GMT_USERDIR, GMT_SHAREDIR))
+       	if (shore_getpathname(file, path, GMT_USERDIR, GMT_SHAREDIR))
 		mxStr = mxCreateString("y");
 	else
 		mxStr = mxCreateString("n");
@@ -203,28 +203,28 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 
 	/* See if we have the High definition files */
 	sprintf (file, "binned_GSHHS_%c", 'h');
-	if (shore_getpathname (file, path, GMT_USERDIR, GMT_SHAREDIR))
+	if (shore_getpathname(file, path, GMT_USERDIR, GMT_SHAREDIR))
 		mxStr = mxCreateString("y");
 	else
 		mxStr = mxCreateString("n");
 	mxSetField(info_struct, 0, fieldnames[2], mxStr);
 
 	sprintf (file, "binned_GSHHS_%c", 'i');	/* Intermediate */
-	if (shore_getpathname (file, path, GMT_USERDIR, GMT_SHAREDIR))
+	if (shore_getpathname(file, path, GMT_USERDIR, GMT_SHAREDIR))
 		mxStr = mxCreateString("y");
 	else
 		mxStr = mxCreateString("n");
 	mxSetField(info_struct, 0, fieldnames[3], mxStr);
 
 	sprintf (file, "binned_GSHHS_%c", 'l');	/* Intermediate */
-	if (shore_getpathname (file, path, GMT_USERDIR, GMT_SHAREDIR))
+	if (shore_getpathname(file, path, GMT_USERDIR, GMT_SHAREDIR))
 		mxStr = mxCreateString("y");
 	else
 		mxStr = mxCreateString("n");
 	mxSetField(info_struct, 0, fieldnames[4], mxStr);
 
 	sprintf (file, "binned_GSHHS_%c", 'c');	/* Intermediate */
-	if (shore_getpathname (file, path, GMT_USERDIR, GMT_SHAREDIR))
+	if (shore_getpathname(file, path, GMT_USERDIR, GMT_SHAREDIR))
 		mxStr = mxCreateString("y");
 	else
 		mxStr = mxCreateString("n");
@@ -238,7 +238,7 @@ void chop (char *string) {
 	/* Chops off any CR or LF at end of string and ensures it is null-terminated */
 	int i, n;
 	if (!string) return;	/* NULL pointer */
-	if ((n = strlen (string)) == 0) return;	/* Empty string */
+	if ((n = strlen(string)) == 0) return;	/* Empty string */
 	for (i = n - 1; i >= 0 && (string[i] == '\n' || string[i] == '\r'); i--);
 	i++;
 	if (i >= 0) string[i] = '\0';	/* Terminate string */
@@ -256,8 +256,8 @@ char *getsharepath (const char *subdir, const char *stem, const char *suffix, ch
 
 	/* First look in the current working directory */
 
-	sprintf (path, "%s%s", stem, suffix);
-	if (!access (path, R_OK)) return (path);	/* Yes, found it in current directory */
+	sprintf(path, "%s%s", stem, suffix);
+	if (!access(path, R_OK)) return (path);	/* Yes, found it in current directory */
 
 	/* Do not continue when full pathname is given */
 
@@ -270,21 +270,21 @@ char *getsharepath (const char *subdir, const char *stem, const char *suffix, ch
 	/* Not found, see if there is a file in the user's GMT_USERDIR (~/.gmt) directory */
 
 	if (GMT_USERDIR) {
-		sprintf (path, "%s%c%s%s", GMT_USERDIR, DIR_DELIM, stem, suffix);
-		if (!access (path, R_OK)) return (path);
+		sprintf(path, "%s%c%s%s", GMT_USERDIR, DIR_DELIM, stem, suffix);
+		if (!access(path, R_OK)) return (path);
 	}
 
 	/* Try to get file from $GMT_SHAREDIR/subdir */
 
 	if (subdir) {
-		sprintf (path, "%s%c%s%c%s%s", GMT_SHAREDIR, DIR_DELIM, subdir, DIR_DELIM, stem, suffix);
-		if (!access (path, R_OK)) return (path);
+		sprintf(path, "%s%c%s%c%s%s", GMT_SHAREDIR, DIR_DELIM, subdir, DIR_DELIM, stem, suffix);
+		if (!access(path, R_OK)) return (path);
 	}
 
 	/* Finally try file in $GMT_SHAREDIR (for backward compatibility) */
 
-	sprintf (path, "%s%c%s%s", GMT_SHAREDIR, DIR_DELIM, stem, suffix);
-	if (!access (path, R_OK)) return (path);
+	sprintf(path, "%s%c%s%s", GMT_SHAREDIR, DIR_DELIM, stem, suffix);
+	if (!access(path, R_OK)) return (path);
 
 	return (NULL);	/* No file found, give up */
 }
@@ -304,27 +304,34 @@ char *shore_getpathname (char *stem, char *path, char *GMT_USERDIR, char *GMT_SH
 	 
 	/* 1. First check for coastline.conf */
 	
-	if (getsharepath ("coast", "coastline", ".conf", path, GMT_USERDIR, GMT_SHAREDIR)) {
+	if (getsharepath("coast", "coastline", ".conf", path, GMT_USERDIR, GMT_SHAREDIR)) {
 
 		/* We get here if coastline.conf exists - search among its directories for the named file */
 
-		fp = fopen (path, "r");
-		while (fgets (dir, BUFSIZ, fp)) {	/* Loop over all input lines until found or done */
+		fp = fopen(path, "r");
+		while (fgets(dir, BUFSIZ, fp)) {	/* Loop over all input lines until found or done */
 			if (dir[0] == '#' || dir[0] == '\n') continue;	/* Comment or blank */
 			chop (dir);		/* Chop off LF or CR/LF */
 			sprintf (path, "%s%c%s%s", dir, DIR_DELIM, stem, ".cdf");
-			if (!access (path, R_OK)) {
-				fclose (fp);
+			if (!access(path, R_OK)) {
+				fclose(fp);
 				return (path);
 			}
+			else {		/* Try the .nc version */
+				sprintf(path, "%s%c%s%s", dir, DIR_DELIM, stem, ".nc");
+				if (!access(path, R_OK)) {
+					fclose(fp);
+					return (path);
+				}
+			}
 		}
-		fclose (fp);
+		fclose(fp);
 	}
 	
 	/* 2. Then check for the named file itself, but now (2013) we may have both .nc or .cdf */
 
-	if (getsharepath ("coast", stem, ".cdf", path, GMT_USERDIR, GMT_SHAREDIR)) return (path);
-	if (getsharepath ("coast", stem, ".nc",  path, GMT_USERDIR, GMT_SHAREDIR)) return (path);
+	if (getsharepath("coast", stem, ".cdf", path, GMT_USERDIR, GMT_SHAREDIR)) return (path);
+	if (getsharepath("coast", stem, ".nc",  path, GMT_USERDIR, GMT_SHAREDIR)) return (path);
 
 	return (NULL);
 }
