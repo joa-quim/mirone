@@ -311,7 +311,7 @@ function push_compute_CB(hObject, handles)
 							return
 						end
 						tmp.head = handtmp.head;
-						grid_t = double(grid_t);      % grdread_m allways outpus singles
+						grid_t = double(grid_t);      % grid reading don't outpus doubles
 					else
 						grid_t = double(getappdata(hand_fig.figure1,'dem_z'));
 						tmp.X = getappdata(hand_fig.figure1,'dem_x');
@@ -325,7 +325,7 @@ function push_compute_CB(hObject, handles)
 							'IamCompiled', handles.IamCompiled, 'path_tmp',handles.path_tmp);
 						[grid_t, tmp.X, tmp.Y, srsWKT, handtmp] = read_grid(handtmp, [handles.grid_patos{n_load} tok], 'GMT');
 						tmp.head = handtmp.head;
-						grid_t = double(grid_t);      % grdread_m allways outpus singles
+						grid_t = double(grid_t);      % grid reading don't outpus doubles
 					else
 						grid_t = double(getappdata(hand_fig.figure1,'dem_z'));
 					end
