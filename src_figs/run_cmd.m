@@ -1,7 +1,7 @@
 function varargout = run_cmd(varargin)
 % Helper Window to run a Matlab command
 
-%	Copyright (c) 2004-2012 by J. Luis
+%	Copyright (c) 2004-2015 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -16,7 +16,9 @@ function varargout = run_cmd(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-	if (isempty(varargin))		return,		end
+% $Id$
+
+	if (isempty(varargin)),		return,		end
  
 	hObject = figure('Vis','off');
 	run_cmd_LayoutFcn(hObject);
@@ -50,7 +52,7 @@ function varargout = run_cmd(varargin)
 	handles.path_tmp = handlesMir.path_tmp;
 	handles.isTrue = 1;
 
-	% Add this figure handle to the carra?as list
+	% Add this figure handle to the carraças list
 	plugedWin = getappdata(handles.hMirFig1,'dependentFigs');
 	plugedWin = [plugedWin hObject];
 	setappdata(handles.hMirFig1,'dependentFigs',plugedWin);
@@ -130,24 +132,42 @@ function push_compute_CB(hObject, handles)
 % 	builtin('delete',fname);
 
 	% See if we are operating on a grid ...
-	if ( strcmp(get(handles.radio_onGrid, 'Enable'), 'on') && get(handles.radio_onGrid, 'Val') )
+	if (strcmp(get(handles.radio_onGrid, 'Enable'), 'on') && get(handles.radio_onGrid, 'Val'))
 		handles.figure1 = handles.hMirFig1;		% it won't hurt as long as we don't save the handles
 		[X,Y,Z] = load_grd(handles);
 		if isempty(Z),  return,		end			% An error message was already issued
 	else										% Nope. Doing things on a image 
 		Z = get(handles.hImg,'CData');
-		if (ndims(Z) == 2 && get(handles.radio_onImage,'Val'))		% Convert to RGB
+		if (ndims(Z) == 2 && get(handles.radio_onImage,'Val') && ~isa(Z,'logical'))		% Convert to RGB
 			Z = ind2rgb8(Z,get(handles.hMirFig1,'Colormap'));
 		end
 		X = handles.head(1:2);		Y = handles.head(3:4);
 	end
 
 	try
+		is_1D = false;
 		cb = str2func('runCmd_cmda');
+		if (strncmp(com, 'sum(', 4))
+			Z(isnan(Z)) = 0;
+			is_1D = true;
+		end
 		arg1.Z = Z;
  		Z_out = feval(cb,arg1,com);
 	catch
 		errordlg(['It didn''t work: ' lasterr],'Error'),		return
+	end
+
+	% A catch point for the 'sum' (1D) case
+	if (is_1D)
+		s = size(Z_out);
+		if (s(1) == 1)
+			ecran(linspace(X(1),X(end),size(Z_out,2)), Z_out)
+		elseif (s(2) == 1)
+			ecran(linspace(Y(1),Y(end),size(Z_out,1)), Z_out)
+		else
+			errordlg('The sum operation can not be used with this type of data','Error')
+		end
+		return
 	end
 
 	% Update the Z_out min/max
@@ -156,7 +176,7 @@ function push_compute_CB(hObject, handles)
 	else						head(5) = double(min(Z_out(:)));	head(6) = double(max(Z_out(:)));
 	end
 	if (isa(Z_out,'logical'))
-		if (handles.isTrue ~= 1)	% Well, what else say ---- true = handles.isTrue
+		if (handles.isTrue ~= 1)	% Well, what else to say ---- true = handles.isTrue
 			Z_out(Z_out) = handles.isTrue;
 		end
 		figTitle = 'Mask image';
