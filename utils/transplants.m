@@ -23,7 +23,7 @@ function varargout = transplants(hLine, tipo, handles)
 % In the IMPLANTIMAGE mode this function calls a subfunction that:
 % An external image will be inplanted inside the zone defined by the rectangle whose handle is HLINE.
 
-%	Copyright (c) 2004-2014 by J. Luis
+%	Copyright (c) 2004-2015 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
