@@ -12,7 +12,7 @@ function varargout = resizetrue(handles, opt, axis_t, opt_pad)
 %   This function is distantly rooted on TRUESIZE, but havily hacked to take into account
 %   the left and bottom margins containing (if they exist) Xlabel & Ylabel, etc...
 
-%	Copyright (c) 2004-2013 by J. Luis
+%	Copyright (c) 2004-2015 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -70,8 +70,15 @@ function varargout = resizetrue(handles, opt, axis_t, opt_pad)
 		imSize = opt;
 		opt = 'fixed_size';
 	elseif (~ischar(opt) && numel(opt) == 1)            % Case of anysotropic dx/dy
-		DAR(2) = xfac;
-		opt = sprintf('adjust_size_%.12f', opt * xfac);
+		oldDAR = get(hAxes, 'DataAspectRatio');
+		% Attempt heuristic to try to discriminate between same units on both axes or different units
+		if ((oldDAR(1) / oldDAR(2) < 8) && (oldDAR(1) / oldDAR(2) > 1/8))	% Assume same units
+			DAR(2) = xfac;
+			opt = sprintf('adjust_size_%.12f', opt * xfac);
+		else
+			DAR(2) = opt * xfac;
+			if (opt > 1),	DAR(2) = 1/opt * xfac;	end
+		end
 	end
 	if (isempty(opt) && xfac ~= 1)                      % Case of isotropic geog grid rescaled to mean lat
 		DAR(2) = xfac;
@@ -89,7 +96,7 @@ function varargout = resizetrue(handles, opt, axis_t, opt_pad)
 	resize(hAxes, hImg, imSize, opt, handles.withSliders, handles.oldSize(2,:), opt_pad);
 	set(hAxes, 'DataAspectRatio', DAR);		% Need to set it explicitly because of compiler bugginess
 
-	if (nargout)        % Compute magnification ratio
+	if (nargout)		% Compute magnification ratio
 		imgWidth  = size(get(hImg, 'CData'), 2);
 		imgHeight = size(get(hImg, 'CData'), 1);
 		axUnits = get(hAxes, 'Units');       set(hAxes, 'Units', 'pixels');
@@ -154,9 +161,9 @@ function resize(hAxes, hImg, imSize, opt, withSliders, firstFigSize, pad_left)
 		imgHeight = imSize(1);
 	end
 
-	if (strncmp(opt,'adjust_size_',12))			% We have an anisotropic dx/dy. OPT is of the form adjust_size_[aniso]
+	if (isa(opt,'char') && strncmp(opt,'adjust_size_',12))	% We have an anisotropic dx/dy. OPT is of the form adjust_size_[aniso]
 		aniso = sscanf(opt(13:end),'%f');
-		if (aniso == 0),	aniso = 1;		end			% Troublematic SeaWiFS files had made this happen
+		if (aniso == 0),	aniso = 1;		end				% Troublematic SeaWiFS files had made this happen
 		if (aniso > 1)
 			imgWidth  = imgWidth * aniso;
 		else
@@ -200,11 +207,11 @@ function resize(hAxes, hImg, imSize, opt, withSliders, firstFigSize, pad_left)
         end
         imgWidth = fix(imgWidth);   imgHeight = fix(imgHeight);
         % Large aspect ratio figures may still need to have their size adjusted
-        if (imgWidth < 512)
-            while (imgWidth < LeastImageSide && imgHeight < screenHeight-50)
-                imgWidth = imgWidth*1.05;  imgHeight = imgHeight*1.05;
-            end
-        end
+		if (imgWidth < 512)
+			while (imgWidth < LeastImageSide && imgHeight < screenHeight-50)
+				imgWidth = imgWidth*1.05;  imgHeight = imgHeight*1.05;
+			end
+		end
 	end
 
 	set(hAxes, 'Units', 'pixels');				axPos = get(hAxes, 'Position');
@@ -322,7 +329,7 @@ function resize(hAxes, hImg, imSize, opt, withSliders, firstFigSize, pad_left)
 	axPos(3) = imgWidth;		axPos(4) = imgHeight;
 
 	H = 22;		% The status bar (simulated box at bottom) height
-	if ( ~axVisible && ((newFigHeight - H) > (1.25 * imgHeight)) )	% A sign of a potentialy large aspect ratio
+	if (~axVisible && ((newFigHeight - H) > (1.25 * imgHeight)))	% A sign of a potentialy large aspect ratio
 		xLim = get(hAxes, 'XLim');		yLim = get(hAxes, 'YLim');
 		aspectWH = diff(xLim) / diff(yLim);
 		if (aspectWH > 3)			% Yes, large aspect ratio. Try to make it a bit more usable (when zooming)
