@@ -398,7 +398,7 @@ function bandArithm(handles, com)
 			for (i = 1:numel(k))		% Loop over bands
 				tok = strtok(com(k(i)+1:end));
 				n = find(strcmp(tok,handles.name_str));		% n ~= [] when it is in memory                
-				grid.(char(n+96)) = double(handles.BL(:,:,n));
+				grid.(char(n+96)) = double(handles.BL(:,:,n)) / 255;
 				N(i) = n;
 			end
 
@@ -426,13 +426,12 @@ function bandArithm(handles, com)
 		end
 
 		if (numel(resp) > 1)			% 'resp' is a array. Construct a fake grid
-			if (max(resp(:)) <= 1),      resp = single(resp * 255);      end
+			resp = single(resp);
 			[m,n] = size(resp);
 			tmp.X = 1:n;        tmp.Y = 1:m;
 			[zzz] = grdutils(resp,'-L');  z_min = zzz(1);     z_max = zzz(2);
 			tmp.head = [1 n 1 m z_min z_max 0 1 1];
 			tmp.name = 'Computed_band';
-			resp = uint8(resp);
 			mirone(resp,tmp);
 		else							% Computations that do not involve grids
 			txt = sprintf('%.10f',resp);
