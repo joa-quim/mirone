@@ -6,7 +6,7 @@ function register_img(handles,h,GCPs)
 % H is the handle of a line or patch object
 % GCPs is a Mx4 matrix with the source and target GCP coordinates (normally given by GDAL)
 
-%	Copyright (c) 2004-2012 by J. Luis
+%	Copyright (c) 2004-2015 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -21,7 +21,7 @@ function register_img(handles,h,GCPs)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: $
+% $Id$
 
 	if (nargin < 2)
 		errordlg('REGISTER_IMG: wrong number of arguments (must be at least two)','ERROR')
@@ -234,7 +234,7 @@ function do_register(handles,input,base)
 				tmp.Y = linspace(att.GMT_hdr(3),att.GMT_hdr(4), size(Z,1));
 			else
 				[Z,att] = gdalwarp_mex(flipdim(Z,1),hdr);
-				tmp.X = tmp.head(1:2);		tmp.Y = tmp.head(3:4);
+				tmp.X = att.GMT_hdr(1:2);		tmp.Y = att.GMT_hdr(3:4);
 			end
 		catch
 		    errordlg(lasterr,'Error'),	return
@@ -350,10 +350,10 @@ function fig_RegMethod(handles)
 
 		% Start with the last selected value
 		RegistMethod = getappdata(hFig,'RegistMethod');
-		idW = strmatch(RegistMethod{1},lower(str1));
+		idW = find(strcmpi(RegistMethod{1},str1));
 		if (isempty(idW)),   idW = 8;     end     % Last one is 'lwm' but its text is 'Loc weighted mean'
 		set(hTrf,'Value',idW)
-		id = strmatch(RegistMethod{2},str2);
+		id = find(strcmp(RegistMethod{2},str2));
 		set(hInterp,'Value',id)
 
 		set(hTrf,'TooltipString',handles.trfToolTips{idW})  % Set the tooltip for the selected method
