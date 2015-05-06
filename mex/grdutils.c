@@ -59,6 +59,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	int do_shift_int8 = FALSE, insitu = FALSE, is_int8 = FALSE; 
 	char   **argv;
 	short int *data16;
+	unsigned short int *dataU16;
 	float   *zdata, fact;
 	double  *z, min_limit = FLT_MAX, max_limit = -FLT_MAX, mean = 0., sd = 0., rms = 0., tmp;
 	clock_t tic;
@@ -221,12 +222,14 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		return;
 	}
 	else {
-		if (!is_single && !is_int16)
-			mexErrMsgTxt("GRDUTILS ERROR: Invalid input data type. Only valid type is: Single or Int16.\n");
+		if (!is_single && !is_int16 && !is_uint16)
+			mexErrMsgTxt("GRDUTILS ERROR: Invalid input data type. Only valid type is: Single, UInt16 or Int16.\n");
 		if (is_single)
 			zdata = (float *)mxGetData(prhs[0]);
+		else if (is_uint16)
+			dataU16 = (unsigned short int *)mxGetData(prhs[0]);
 		else
-			data16 = (short int *)mxGetData(prhs[0]);
+			data16  = (short int *)mxGetData(prhs[0]);
 	}
 
 
@@ -276,6 +279,43 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 			}
 			else
 				nfound++;
+		}
+	}
+	else if (is_uint16) {
+		if (do_min_max) {
+			for (i = 0; i < nxy; i++) {
+				tmp = (double)dataU16[i];
+				if (tmp < min_limit) min_limit = tmp;
+				if (tmp > max_limit) max_limit = tmp;
+			}
+		}
+		else if (do_min_max_loc) {
+			for (i = 0; i < nxy; i++) {
+				tmp = (double)dataU16[i];
+				if (tmp < min_limit) {
+					min_limit = tmp;
+					i_min = i;
+				}
+				if (tmp > max_limit) {
+					max_limit = tmp;
+					i_max = i;
+				}
+			}
+		}
+		else if (MUL) {
+			for (i = 0; i < nxy; i++)
+				dataU16[i] *= (unsigned short int)fact;
+		}
+		else if (ADD) {
+			for (i = 0; i < nxy; i++)
+				dataU16[i] += (unsigned short int)fact;
+		}
+		if (do_std) {
+			for (i = 0; i < nxy; i++) {
+				tmp = (double)dataU16[i];
+				mean += tmp;
+				sd += tmp * tmp;
+			}
 		}
 	}
 	else {
