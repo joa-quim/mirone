@@ -261,7 +261,7 @@ int  write_grd_bin(char *name, double x_min, double y_min, double x_inc, double 
                    unsigned int j_start, unsigned int i_end, unsigned int j_end, unsigned int nX, float *work);
 int  read_grd_ascii (char *file, struct srf_header *hdr, double *work, int sign);
 int  read_grd_bin (char *file, struct srf_header *hdr, double *work, int sign);
-int  read_maregs(struct grd_header hdr, char *file, unsigned int *lcum_p);
+int  read_maregs(struct grd_header hdr, char *file, unsigned int *lcum_p, char *names[]);
 int  read_tracers(struct grd_header hdr, char *file, struct tracers *oranges);
 int  count_n_maregs(char *file);
 int  decode_R (char *item, double *w, double *e, double *s, double *n);
@@ -390,6 +390,7 @@ int main(int argc, char **argv) {
 	char   *bathy   = NULL;             /* Name pointer for bathymetry file */
 	char   	hcum[256]   = "";           /* Name for cumulative hight file */
 	char    maregs[256] = "";           /* Name for maregraph positions file */
+	char  **mareg_names = NULL;         /* Array to hold optional maregraph names */
 	char   *fname_sww = NULL;           /* Name pointer for Anuga's .sww file */
 	char   *basename_most = NULL;       /* Name pointer for basename of MOST .nc files */
 	char   *fname3D  = NULL;            /* Name pointer for the 3D netCDF file */
@@ -537,6 +538,7 @@ int main(int argc, char **argv) {
 			nx    = hdr_b.nx;
 		}
 		lcum_p = (unsigned int *) mxCalloc ((size_t)(n_mareg), sizeof(unsigned int));
+		mareg_names = mxCalloc((size_t)(n_mareg), sizeof(char *));
 		for (ij = j = 0; ij < n_mareg; ij++) {
 			x = tmp[ij];		y = tmp[ij+n_mareg];	/* Matlab vectors are stored by columns */
 			if (x < x_min || x > x_max || y < y_min || y > y_max)
@@ -1261,8 +1263,9 @@ int main(int argc, char **argv) {
 	nest.hdr[0] = hdr;
 
 	if (cumpt && !maregs_in_input) {
-		lcum_p = (unsigned int *) mxCalloc ((size_t)(2048), sizeof(unsigned int));	/* We wont ever use these many */
-		if ((n_mareg = read_maregs(nest.hdr[writeLevel], maregs, lcum_p)) < 1) {	/* Read maregraph locations */
+		lcum_p = (unsigned int *) mxCalloc ((size_t)(1024), sizeof(unsigned int));	/* We wont ever use these many */
+		mareg_names = mxCalloc((size_t)(1024), sizeof(char *));
+		if ((n_mareg = read_maregs(nest.hdr[writeLevel], maregs, lcum_p, mareg_names)) < 1) {	/* Read maregraph locations */
 			mexPrintf("NSWING - WARNING: No maregraphs inside the (inner?) grid\n");
 			n_mareg = 0;
 			if (lcum_p) mxFree (lcum_p);
@@ -1552,13 +1555,21 @@ int main(int argc, char **argv) {
 			else {
 				if (k == 0) {		/* Write also the maregraphs coordinates (at grid nodes) */
 					int ix, iy, n;
+					char *txt[4], t0[16], t1[16], t2[16], t3[16];	/* for the headers */
+					txt[0] = mxCalloc((size_t)n_mareg, 12); txt[1] = calloc((size_t)n_mareg, 12);
+					txt[2] = mxCalloc((size_t)n_mareg, 12); txt[3] = calloc((size_t)n_mareg, 12);
+					sprintf(txt[0], "#\t"); sprintf(txt[1], "#\t"); sprintf(txt[2], "#\t"); sprintf(txt[3], "#\t");
 					for (n = 0; n < n_mareg; n++) {
 						ix = lcum_p[n] % nest.hdr[writeLevel].nx;
 						iy = lcum_p[n] / nest.hdr[writeLevel].nx;
-						fprintf (fp, "# %g\t%g\t%g\n", nest.hdr[writeLevel].x_min + ix * nest.hdr[writeLevel].x_inc,
-						         nest.hdr[writeLevel].y_min + iy * nest.hdr[writeLevel].y_inc,
-						         nest.bat[writeLevel][lcum_p[n]]);
+						sprintf(t0, "%8s",mareg_names[n]);
+						sprintf(t1, "\t%g", nest.hdr[writeLevel].x_min + ix * nest.hdr[writeLevel].x_inc);	/* Xs */
+						sprintf(t2, "\t%g", nest.hdr[writeLevel].y_min + iy * nest.hdr[writeLevel].y_inc);	/* Ys */
+						sprintf(t3, "\t%.1f", nest.bat[writeLevel][lcum_p[n]]); 	/* Zs (from grid) */
+						strcat(txt[0], t0);		strcat(txt[1], t1);		strcat(txt[2], t2);		strcat(txt[3], t3);
 					}
+					fprintf(fp, "%s\n%s\n%s\n%s\n", txt[0], txt[1], txt[2], txt[3]);
+					free(txt[0]);	free(txt[1]);	free(txt[2]);	free(txt[3]);
 				}
 				fprintf (fp, "%.3f", (time_h + dt/2));
 				if (out_maregs_velocity) {
@@ -1571,13 +1582,12 @@ int main(int argc, char **argv) {
 						else {vx = vy = 0;}
 						t = fabs(eta_for_maregs[lcum_p[ij]]) < EPS2 ? 0 : 90 - atan2(vy, vx) * R2D;
 						if (t < 0) t += 360;
-						//fprintf (fp, "\t%.4f\t%.1f", eta_for_maregs[lcum_p[ij]], t);
-						fprintf (fp, "\t%.4f\t%.2f\t%.2f\t%.1f", eta_for_maregs[lcum_p[ij]], vx, vy, t);
+						fprintf (fp, "\t%.5f\t%.2f\t%.2f\t%.1f", eta_for_maregs[lcum_p[ij]], vx, vy, t);
 					}
 				}
 				else {
 					for (ij = 0; ij < n_mareg; ij++)
-						fprintf (fp, "\t%.4f", eta_for_maregs[lcum_p[ij]]);
+						fprintf (fp, "\t%.5f", eta_for_maregs[lcum_p[ij]]);
 				}
 				fprintf (fp, "\n");
 			}
@@ -1872,6 +1882,10 @@ int main(int argc, char **argv) {
 	if (lcum_p) mxFree (lcum_p);
 	if (workMax) mxFree (workMax);
 	if (work) mxFree (work);
+	if (mareg_names) {
+		for (k = 0; k < n_mareg; k++) free(mareg_names[k]);
+		free(mareg_names);
+	}
 
 #ifndef I_AM_MEX
 	return(0);
@@ -2432,10 +2446,10 @@ int count_n_maregs(char *file) {
 }
 
 /* -------------------------------------------------------------------- */
-int read_maregs(struct grd_header hdr, char *file, unsigned int *lcum_p) {
+int read_maregs(struct grd_header hdr, char *file, unsigned int *lcum_p, char *names[]) {
 	/* Read maregraph positions and convert them to vector linear indices */
 	int     i = 0, k = 0, ix, jy, n;
-	char    line[256];
+	char    line[256], txt[16];
 	double  x, y;
 	FILE   *fp;
 
@@ -2447,19 +2461,34 @@ int read_maregs(struct grd_header hdr, char *file, unsigned int *lcum_p) {
 	while (fgets (line, 256, fp) != NULL) {
 		k++;
 		if (line[0] == '#') continue;	/* Jump comment lines */
-		if ((n = sscanf (line, "%lf %lf", &x, &y)) != 2) {
+		n = sscanf (line, "%lf %lf %s", &x, &y, txt);
+		if (n !=2 && n != 3) {
 			if (n == 1) {				/* Try with commas */
-				if ((n = sscanf(line, "%lf,%lf", &x, &y)) != 2) {
-					mexPrintf("NSWING: Error reading maregraph file at line %d Expected 2 values but got %d\n", k, n);
+				n = sscanf (line, "%lf %lf %s", &x, &y, txt);
+				if (n !=2 && n != 3) {
+					mexPrintf("NSWING: Error reading maregraph file at line %d Expected 2 or 3 values but got %d\n", k, n);
 					continue;
 				}
 			}
 		}
+		//if ((n = sscanf (line, "%lf %lf", &x, &y)) != 2) {
+			//if (n == 1) {				/* Try with commas */
+				//if ((n = sscanf(line, "%lf,%lf", &x, &y)) != 2) {
+					//mexPrintf("NSWING: Error reading maregraph file at line %d Expected 2 values but got %d\n", k, n);
+					//continue;
+				//}
+			//}
+		//}
 		if (x < hdr.x_min || x > hdr.x_max || y < hdr.y_min || y > hdr.y_max)
 			continue;
 		ix = irint((x - hdr.x_min) / hdr.x_inc);
 		jy = irint((y - hdr.y_min) / hdr.y_inc);
 		lcum_p[i] = jy * hdr.nx + ix; 
+
+		if (n == 3)		/* This maregraph's name */
+			names[i] = strdup(&txt[0]);
+		else
+			names[i] = strdup("NoName");
 		i++;
 	}
 	fclose (fp);
@@ -4920,15 +4949,11 @@ void kaba_source(struct srf_header hdr, double x_inc, double y_inc, double x_min
 	*/
 	int row, col, col1, col2, row1, row2;
 
-	if (type == 1) {		/* We will select the closest nodes that are INSIDE the -R region */
-		col1 = irint((x_min - hdr.x_min) / x_inc);
+	if (type == 1) {		/* We will select the closest nodes that are INSIDE the -R region on L & B sides and ON R & T sides */
+		col1 = irint((x_min - hdr.x_min) / x_inc) + 1;		/* Leftmost column not included*/
 		col2 = irint((x_max - hdr.x_min) / x_inc);
-		row1 = irint((y_min - hdr.y_min) / y_inc);
+		row1 = irint((y_min - hdr.y_min) / y_inc) + 1;		/* Bottomost row not included */
 		row2 = irint((y_max - hdr.y_min) / y_inc);
-		if (x_min > (hdr.x_min + col1 * x_inc)) col1++;     /* Closest node is to the left of x_min. Select inner node */
-		if (x_max < (hdr.x_min + col2 * x_inc)) col2 -= 1;  /* Closest node is to the right of x_max. Select inner node */
-		if (y_min > (hdr.y_min + row1 * y_inc)) row1++;     /*  Same for S-N */
-		if (y_max < (hdr.y_min + row2 * y_inc)) row2 -= 1;
 	}
 	else {
 		int nx2 = (int)y_min;
