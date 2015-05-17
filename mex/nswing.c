@@ -512,7 +512,7 @@ int main(int argc, char **argv) {
 			nest.hdr[k+1].x_inc = head[7];		nest.hdr[k+1].y_inc = head[8];
 
 			nm = nest.hdr[k+1].nx * nest.hdr[k+1].ny;
-			if ((nest.bat[k+1] = (double *)mxCalloc ((size_t)nm, sizeof(double)) ) == NULL) 
+			if ((nest.bat[k+1] = (double *)mxCalloc((size_t)nm, sizeof(double)) ) == NULL) 
 				{no_sys_mem("(bat)", nm); Return(-1);}
 			for (i = 0; i < nest.hdr[k+1].ny; i++) {
 				for (j = 0; j < nest.hdr[k+1].nx; j++)
@@ -538,7 +538,7 @@ int main(int argc, char **argv) {
 			y_min = hdr_b.y_min;     y_max = hdr_b.y_max;
 			nx    = hdr_b.nx;
 		}
-		lcum_p = (unsigned int *) mxCalloc ((size_t)(n_mareg), sizeof(unsigned int));
+		lcum_p = (unsigned int *)mxCalloc((size_t)(n_mareg), sizeof(unsigned int));
 		mareg_names = mxCalloc((size_t)(n_mareg), sizeof(char *));
 		for (ij = j = 0; ij < n_mareg; ij++) {
 			x = tmp[ij];		y = tmp[ij+n_mareg];	/* Matlab vectors are stored by columns */
@@ -624,15 +624,15 @@ int main(int argc, char **argv) {
 					if (argv[i][2] == 'k') {
 						do_Kaba = TRUE;
 						if (argv[i][3] == 'c') {
-							error += decode_R (&argv[i][2], &kaba_xmin, &kaba_xmax, &kaba_ymin, &kaba_ymax);
+							error += decode_R(&argv[i][2], &kaba_xmin, &kaba_xmax, &kaba_ymin, &kaba_ymax);
 							do_Kaba++;		/* Signal kaba_source function that the above is actually x/y/nx/ny */
 						}
 						else
-							error += decode_R (&argv[i][1], &kaba_xmin, &kaba_xmax, &kaba_ymin, &kaba_ymax);
+							error += decode_R(&argv[i][1], &kaba_xmin, &kaba_xmax, &kaba_ymin, &kaba_ymax);
 					}
 					else {
 						do_Okada = TRUE;
-						n = sscanf (&argv[i][2], "%lf/%lf/%lf/%lf/%lf/%lf/%lf/%lf/%lf", 
+						n = sscanf(&argv[i][2], "%lf/%lf/%lf/%lf/%lf/%lf/%lf/%lf/%lf", 
 						            &f_dip, &f_azim, &f_rake, &f_slip, &f_length, &f_width, &f_topDepth, &x_epic, &y_epic);
 						if (n != 9) {
 							mexPrintf("NSWING: Error, -F option, must provide all 9 parameters.\n");
@@ -647,7 +647,7 @@ int main(int argc, char **argv) {
 					break;
 				case 'G':	/* Write grids at grn intervals */
 				case 'Z':	/* Write one single 3D netCDF at grn intervals */
-					sscanf (&argv[i][2], "%s,%d", &stem, &grn);
+					sscanf(&argv[i][2], "%s,%d", &stem, &grn);
 					if ((pch = strstr(stem,",")) != NULL) {
 						grn = atoi(&pch[1]);
 						pch[0] = '\0';		/* Strip the ",num" part */
@@ -674,7 +674,7 @@ int main(int argc, char **argv) {
 					else if (argv[i][2] == 's' && argv[i][3] == ',')	/* NOT YET. Maybe it will be -Hs,time_to_stop */
 						;
 					else {
-						sscanf (&argv[i][2], "%s", &str_tmp);
+						sscanf(&argv[i][2], "%s", &str_tmp);
 						if ((pch = strstr(str_tmp,",")) != NULL) {
 							pch[0] = '\0';
 							strcpy(fname_momentM, str_tmp);                         /* File names of moment M & N files */
@@ -692,21 +692,21 @@ int main(int argc, char **argv) {
 					}
 					break;
 				case 'J':		/* Jumping options. Accept either -Jn, -J+m, -Jn+m or -Jn -J+m */
-					sscanf (&argv[i][2], "%s", &str_tmp);
+					sscanf(&argv[i][2], "%s", &str_tmp);
 					if ((pch = strstr(str_tmp,"+")) != NULL) {
-						sscanf ((++pch), "%lf", &nest.run_jump_time);
+						sscanf((++pch), "%lf", &nest.run_jump_time);
 						pch--;
 						pch[0] = '\0';		/* Put the string end where before was the '+' char */
 					}
 					if (argv[i][2])
-						sscanf (&argv[i][2], "%lf", &time_jump);
+						sscanf(&argv[i][2], "%lf", &time_jump);
 
 					break;
 				case 'L':		/* Use linear approximation or Lagrangean tracers*/
 					if (!argv[i][2])
 						nest.do_linear = TRUE;
 					else {
-						sscanf (&argv[i][2], "%s", &str_tmp);
+						sscanf(&argv[i][2], "%s", &str_tmp);
 						if (str_tmp[strlen(str_tmp)-2] == '+') {	/* Output tracers file will be in netCDF */
 							out_oranges_nc = TRUE;
 							str_tmp[strlen(str_tmp)-2] = '\0';
@@ -729,7 +729,7 @@ int main(int argc, char **argv) {
 					if (argv[i][2] == '-') {	/* Compute a mask with ones over the "dried beach" */
 						nest.do_long_beach = TRUE;
 						if (argv[i][3])
-							sscanf (&argv[i][3], "%s", &fname_mask);
+							sscanf(&argv[i][3], "%s", &fname_mask);
 						else
 							fname_mask = "long_beach.grd";
 					}
@@ -740,7 +740,7 @@ int main(int argc, char **argv) {
 					n_of_cycles = atoi(&argv[i][2]);
 					break;
 				case 'O':	/* Time interval and fname for maregraph data. Use only when mareg locations were sent in as arg */
-					sscanf (&argv[i][2], "%s", &str_tmp);
+					sscanf(&argv[i][2], "%s", &str_tmp);
 					if ((pch = strstr(str_tmp,",")) != NULL) {
 						pch[0] = '\0';
 						cumint = atoi(str_tmp);
@@ -752,11 +752,11 @@ int main(int argc, char **argv) {
 					}
 					break;
 				case 'R':
-					error += decode_R (argv[i], &dfXmin, &dfXmax, &dfYmin, &dfYmax);
+					error += decode_R(argv[i], &dfXmin, &dfXmax, &dfYmin, &dfYmax);
 					got_R = TRUE;
 					break;
 				case 'S':	/* Output velocity grids */ 
-					strcpy (str_tmp, &argv[i][2]);
+					strcpy(str_tmp, &argv[i][2]);
 					if ((pch = strstr(str_tmp,"+m")) != NULL) {    /* Velocity at maregraphs */
 						out_maregs_velocity = TRUE;
 						out_velocity_x      = out_velocity_y = TRUE;
@@ -805,7 +805,7 @@ int main(int argc, char **argv) {
 						mexPrintf("        Ignoring it.\n");
 						break;
 					}
-					sscanf (&argv[i][2], "%s", &str_tmp);
+					sscanf(&argv[i][2], "%s", &str_tmp);
 					if (str_tmp[strlen(str_tmp)-2] == '+') {	/* Output maregs file will be in netCDF */
 						out_maregs_nc = TRUE;
 						str_tmp[strlen(str_tmp)-2] = '\0';
@@ -840,7 +840,7 @@ int main(int argc, char **argv) {
 					break;
 				case 'X':		/* Manning coeffs */
 					k = 0;
-					sscanf (&argv[i][2], "%s", &str_tmp);
+					sscanf(&argv[i][2], "%s", &str_tmp);
 					if ((pch = strstr(str_tmp,",")) != NULL) {
 						char t[16] = "";
 						pch[0] = '\0';
@@ -902,71 +902,71 @@ int main(int argc, char **argv) {
 	if (argc <= 1 || error) {
 		mexPrintf ("NSWING - A tsunami maker (%s)\n\n", prog_id);
 #ifdef I_AM_MEX
-		mexPrintf ("nswing(bat,hdr_bat,deform,hdr_deform, [-1<bat_lev1>], [-2<bat_lev2>], [-3<...>] [maregs], [-G|Z<name>[+lev],<int>],\n");
-		mexPrintf ("       [-A<fname.sww>], [-B<BCfile>], [-C], [-D], [-E[p][m][,decim]], [-Fdip/strike/rake/slip/length/width/topDepth/x_epic/y_epic],\n");
-		mexPrintf ("       [-Fk[c]<w/e/s/n>], [-H], [-H<momentM,momentN>[,t]], [-J<time_jump>[+run_time_jump]], [-L[name1,name2]],,\n");
-		mexPrintf ("       [-M[-[<maskname>]]][-N<n_cycles>], [-R<w/e/s/n>], [-S[x|y|n][+m][+s]], [-O<int>,<outmaregs>],\n");
-		mexPrintf ("       [-T<int>,<mareg>[,<outmaregs[+n]>]], [-X<manning0[,...]>] -t<dt> [-f]\n");
+		mexPrintf("nswing(bat,hdr_bat,deform,hdr_deform, [-1<bat_lev1>], [-2<bat_lev2>], [-3<...>] [maregs], [-G|Z<name>[+lev],<int>],\n");
+		mexPrintf("       [-A<fname.sww>], [-B<BCfile>], [-C], [-D], [-E[p][m][,decim]], [-Fdip/strike/rake/slip/length/width/topDepth/x_epic/y_epic],\n");
+		mexPrintf("       [-Fk[c]<w/e/s/n>], [-H], [-H<momentM,momentN>[,t]], [-J<time_jump>[+run_time_jump]], [-L[name1,name2]],,\n");
+		mexPrintf("       [-M[-[<maskname>]]][-N<n_cycles>], [-R<w/e/s/n>], [-S[x|y|n][+m][+s]], [-O<int>,<outmaregs>],\n");
+		mexPrintf("       [-T<int>,<mareg>[,<outmaregs[+n]>]], [-X<manning0[,...]>] -t<dt> [-f]\n");
 #else
-		mexPrintf ("nswing bathy.grd initial.grd [-1<bat_lev1>] [-2<bat_lev2>] [-3<...>] [-G|Z<name>[+lev],<int>] [-A<fname.sww>]\n");
-		mexPrintf ("       [-B<BCfile>] [-C] [-D] [-E[p][m][,decim]] [-Fdip/strike/rake/slip/length/width/topDepth/x_epic/y_epic]\n"); 
-		mexPrintf ("       [-Fk[c]<w/e/s/n>] [-H] [-H<momentM,momentN>[,t]] [-J<time_jump>[+run_time_jump]] [-L[name1,name2]]\n");
-		mexPrintf ("       [-M[-[<maskname>]]] [-N<n_cycles>] [-R<w/e/s/n>] [-S[x|y|n][+m][+s]] [-T<int>,<mareg>[,<outmaregs[+n]>]]\n");
-		mexPrintf ("       [-X<manning0[,...]>] -t<dt> [-f]\n");
+		mexPrintf("nswing bathy.grd initial.grd [-1<bat_lev1>] [-2<bat_lev2>] [-3<...>] [-G|Z<name>[+lev],<int>] [-A<fname.sww>]\n");
+		mexPrintf("       [-B<BCfile>] [-C] [-D] [-E[p][m][,decim]] [-Fdip/strike/rake/slip/length/width/topDepth/x_epic/y_epic]\n"); 
+		mexPrintf("       [-Fk[c]<w/e/s/n>] [-H] [-H<momentM,momentN>[,t]] [-J<time_jump>[+run_time_jump]] [-L[name1,name2]]\n");
+		mexPrintf("       [-M[-[<maskname>]]] [-N<n_cycles>] [-R<w/e/s/n>] [-S[x|y|n][+m][+s]] [-T<int>,<mareg>[,<outmaregs[+n]>]]\n");
+		mexPrintf("       [-X<manning0[,...]>] -t<dt> [-f]\n");
 #endif
-		mexPrintf ("\t-A <name> save result as a .SWW ANUGA format file\n");
-		mexPrintf ("\t-n basename for MOST triplet files (no extension)\n");
-		mexPrintf ("\t-B name of a BoundaryCondition ASCII file\n");
-		mexPrintf ("\t-C Add Coriolis effect.\n");
-		mexPrintf ("\t-D write grids with the total water depth. These grids will have wave height on ocean\n");
-		mexPrintf ("\t   and water thickness on land.\n");
-		mexPrintf ("\t-E write grids with energy or power (-Ep). Apend a 'm' to save only one grid with the max values.\n");
-		mexPrintf ("\t   Since this can noticeably slow down the run, one can append a decimator factor after the comma.\n");
-		mexPrintf ("\t   Note, however, that this casuses aliasing that is clearly visible on shaded illumation.\n");
-		mexPrintf ("\t   The file name is controled by the <name> in the -G or -Z options, complemented with a '_max' prefix,\n");
-		mexPrintf ("\t   but the saving of multiple grids is disabled. However, it is still possible to save a 3D netCDF\n");
-		mexPrintf ("\t   file with wave heights if -Z is used.\n");
-		mexPrintf ("\t-F dip/strike/rake/slip/length/width/topDepth/x_epic/y_epic\n");
-		mexPrintf ("\t   Fault parameters describing Dip,Azimuth,Rake,Slip(m),lenght,height and depth from sea-bottom\n");
-		mexPrintf ("\t   x_epic,y_epic X and Y coordinates of begining of fault trace. All dimensions must be in km.\n");
-		mexPrintf ("\t-Fk<west/east/south/north> Build a prism source with these limits and height of 1 meter.\n");
-		mexPrintf ("\t-Fkc<x/y/nx/ny>. Alternatively, provide the prism size as center at x/y and nx/ny half-widths cell number.\n");
-		mexPrintf ("\t-G <stem> write grids at the int intervals. Append file prefix. Files will be called <stem>#.grd\n");
-		mexPrintf ("\t   When doing nested grids, append +lev to save that particular level (only one level is allowed)\n");
-		mexPrintf ("\t-H write grids with the momentum. i.e velocity times water depth.\n");
-		mexPrintf ("\t-H <fname_momentM,fname_momentN>[,t] Do Hot start using these moment grids. Optional 't' is the\n");
-		mexPrintf ("\t   time of hot start. (Need also surface displacement corresponding to the time of these grids.)\n");
-		mexPrintf ("\t-J <time_jump> Do not write grids or maregraphs for times before time_jump in seconds.\n");
-		mexPrintf ("\t   When doing nested grids, append +<time> to NOT start computations of nested grids before this\n");
-		mexPrintf ("\t   time has elapsed. Any of these forms is allowed: -Jt1, -J+t2, -Jt1+t2 or -Jt1 -J+t2\n");
-		mexPrintf ("\t-L Use linear approximation in moment conservation equations (faster but less good).\n");
-		mexPrintf ("\t-L <in_fname>,<out_fname> Do Lagragian tracers, where <in_fname> is the file name of the tracers\n");
-		mexPrintf ("\t   initial position and <out_fname> the file name to hold the results.\n");
-		mexPrintf ("\t-M write grid of max water level. Append a '-' to compute instead the maximum water retreat.\n");
-		mexPrintf ("\t   The result is writen in a mask file with a default name of 'long_beach.grd'.\n");
-		mexPrintf ("\t   To use a different name append it after the '-' sign. Example: -M-beach_long.grd\n");
-		mexPrintf ("\t-N number of cycles [Default 1010].\n");
+		mexPrintf("\t-A <name> save result as a .SWW ANUGA format file\n");
+		mexPrintf("\t-n basename for MOST triplet files (no extension)\n");
+		mexPrintf("\t-B name of a BoundaryCondition ASCII file\n");
+		mexPrintf("\t-C Add Coriolis effect.\n");
+		mexPrintf("\t-D write grids with the total water depth. These grids will have wave height on ocean\n");
+		mexPrintf("\t   and water thickness on land.\n");
+		mexPrintf("\t-E write grids with energy or power (-Ep). Apend a 'm' to save only one grid with the max values.\n");
+		mexPrintf("\t   Since this can noticeably slow down the run, one can append a decimator factor after the comma.\n");
+		mexPrintf("\t   Note, however, that this casuses aliasing that is clearly visible on shaded illumation.\n");
+		mexPrintf("\t   The file name is controled by the <name> in the -G or -Z options, complemented with a '_max' prefix,\n");
+		mexPrintf("\t   but the saving of multiple grids is disabled. However, it is still possible to save a 3D netCDF\n");
+		mexPrintf("\t   file with wave heights if -Z is used.\n");
+		mexPrintf("\t-F dip/strike/rake/slip/length/width/topDepth/x_epic/y_epic\n");
+		mexPrintf("\t   Fault parameters describing Dip,Azimuth,Rake,Slip(m),lenght,height and depth from sea-bottom\n");
+		mexPrintf("\t   x_epic,y_epic X and Y coordinates of begining of fault trace. All dimensions must be in km.\n");
+		mexPrintf("\t-Fk<west/east/south/north> Build a prism source with these limits and height of 1 meter.\n");
+		mexPrintf("\t-Fkc<x/y/nx/ny>. Alternatively, provide the prism size as center at x/y and nx/ny half-widths cell number.\n");
+		mexPrintf("\t-G <stem> write grids at the int intervals. Append file prefix. Files will be called <stem>#.grd\n");
+		mexPrintf("\t   When doing nested grids, append +lev to save that particular level (only one level is allowed)\n");
+		mexPrintf("\t-H write grids with the momentum. i.e velocity times water depth.\n");
+		mexPrintf("\t-H <fname_momentM,fname_momentN>[,t] Do Hot start using these moment grids. Optional 't' is the\n");
+		mexPrintf("\t   time of hot start. (Need also surface displacement corresponding to the time of these grids.)\n");
+		mexPrintf("\t-J <time_jump> Do not write grids or maregraphs for times before time_jump in seconds.\n");
+		mexPrintf("\t   When doing nested grids, append +<time> to NOT start computations of nested grids before this\n");
+		mexPrintf("\t   time has elapsed. Any of these forms is allowed: -Jt1, -J+t2, -Jt1+t2 or -Jt1 -J+t2\n");
+		mexPrintf("\t-L Use linear approximation in moment conservation equations (faster but less good).\n");
+		mexPrintf("\t-L <in_fname>,<out_fname> Do Lagragian tracers, where <in_fname> is the file name of the tracers\n");
+		mexPrintf("\t   initial position and <out_fname> the file name to hold the results.\n");
+		mexPrintf("\t-M write grid of max water level. Append a '-' to compute instead the maximum water retreat.\n");
+		mexPrintf("\t   The result is writen in a mask file with a default name of 'long_beach.grd'.\n");
+		mexPrintf("\t   To use a different name append it after the '-' sign. Example: -M-beach_long.grd\n");
+		mexPrintf("\t-N number of cycles [Default 1010].\n");
 #ifdef I_AM_MEX
-		mexPrintf ("\t-O <int>,<outfname> interval at which maregraphs are writen to the <outfname> maregraph file.\n");
+		mexPrintf("\t-O <int>,<outfname> interval at which maregraphs are writen to the <outfname> maregraph file.\n");
 #endif
-		mexPrintf ("\t-R output grids only in the sub-region enclosed by <west/east/south/north>\n");
-		mexPrintf ("\t-S write grids with the velocity. Grid names are appended with _U and _V sufixes.\n");
-		mexPrintf ("\t   Use x or y to save only one of those components. But use n to not velocity grids (maregs only).\n");
-		mexPrintf ("\t   Append +m to write also velocity (vx,vy) at maregraphs locations (needs -T and/or -O).\n");
-		mexPrintf ("\t   Append +s to write the max speed (|v|). Grid name is appended with _max_speed suffix.\n");
-		mexPrintf ("\t   Use also the the 'n' flag to NOT output the U and V components. e.g -Sn+s\n");
-		mexPrintf ("\t-T <int> interval at which maregraphs are writen to the output maregraph file.\n");
-		mexPrintf ("\t   <maregs> file name with the (x y) location of the virtual maregraphs.\n");
-		mexPrintf ("\t   <outmaregs> optional file name where to save the maregraphs output.\n");
-		mexPrintf ("\t   If not provided the output name will be constructed by appending '_auto.dat' to <maregs>.\n");
-		mexPrintf ("\t   In any case append a +n to choose writing the maregraphs as a netCDF file.\n");
-		mexPrintf ("\t   Warning: this option cannot be used when maregraphs were transmitted in input.\n");
-		mexPrintf ("\t-X <maning0[,maning1[,...]]> Manning friction coefficients. If only one provided, use it for all\n");
-		mexPrintf ("\t   nesting levels (if applyable), otherwise specify one for each nesting level separated by commas.\n");
-		mexPrintf ("\t-Z Same as -G but saves result in a 3D netCDF file.\n");
-		mexPrintf ("\t-t <dt> Time step for simulation.\n");
-		mexPrintf ("\t-f To use when grids are in geographical coordinates.\n");
-		mexPrintf ("\t-e To be used from the Mirone stand-alone version.\n");
+		mexPrintf("\t-R output grids only in the sub-region enclosed by <west/east/south/north>\n");
+		mexPrintf("\t-S write grids with the velocity. Grid names are appended with _U and _V sufixes.\n");
+		mexPrintf("\t   Use x or y to save only one of those components. But use n to not velocity grids (maregs only).\n");
+		mexPrintf("\t   Append +m to write also velocity (vx,vy) at maregraphs locations (needs -T and/or -O).\n");
+		mexPrintf("\t   Append +s to write the max speed (|v|). Grid name is appended with _max_speed suffix.\n");
+		mexPrintf("\t   Use also the the 'n' flag to NOT output the U and V components. e.g -Sn+s\n");
+		mexPrintf("\t-T <int> interval at which maregraphs are writen to the output maregraph file.\n");
+		mexPrintf("\t   <maregs> file name with the (x y) location of the virtual maregraphs.\n");
+		mexPrintf("\t   <outmaregs> optional file name where to save the maregraphs output.\n");
+		mexPrintf("\t   If not provided the output name will be constructed by appending '_auto.dat' to <maregs>.\n");
+		mexPrintf("\t   In any case append a +n to choose writing the maregraphs as a netCDF file.\n");
+		mexPrintf("\t   Warning: this option cannot be used when maregraphs were transmitted in input.\n");
+		mexPrintf("\t-X <maning0[,maning1[,...]]> Manning friction coefficients. If only one provided, use it for all\n");
+		mexPrintf("\t   nesting levels (if applyable), otherwise specify one for each nesting level separated by commas.\n");
+		mexPrintf("\t-Z Same as -G but saves result in a 3D netCDF file.\n");
+		mexPrintf("\t-t <dt> Time step for simulation.\n");
+		mexPrintf("\t-f To use when grids are in geographical coordinates.\n");
+		mexPrintf("\t-e To be used from the Mirone stand-alone version.\n");
 #ifdef I_AM_MEX
 		return;
 #else
@@ -976,7 +976,7 @@ int main(int argc, char **argv) {
 
 	do_maxs = (max_level || max_energy || max_power || nest.do_long_beach);
 	do_2Dgrids = (write_grids || out_velocity || out_velocity_x || out_velocity_y || out_velocity_r || out_momentum ||
-	              max_level || max_velocity || max_energy ||out_power || max_power || nest.do_long_beach);
+	              max_level || max_velocity || max_energy || out_power || max_power || nest.do_long_beach);
 
 	if (!(do_2Dgrids || out_sww || out_most || out_3D || cumpt)) {
 		mexPrintf("Nothing selected for output (grids, or maregraphs), exiting\n");
@@ -1040,7 +1040,7 @@ int main(int argc, char **argv) {
 
 		n_ptmar = n_of_cycles / cumint + 1;
 		if (!error && (fp = fopen (hcum, "w")) == NULL) {
-			mexPrintf ("%s: Unable to create file %s - exiting\n", "nswing", hcum);
+			mexPrintf("%s: Unable to create file %s - exiting\n", "nswing", hcum);
 			Return(-1);
 		}
 		if (!error && !maregs_in_input) {
@@ -1058,7 +1058,7 @@ int main(int argc, char **argv) {
 	if (do_tracers) {	/* Count number of oranges */
 		n_oranges = count_n_maregs(tracers_infile);    /* Count tracers number */
 		if (n_oranges <= 0) {
-			mexPrintf ("NSWING: Warning file %s has no valid data. Ignoring this option\n", tracers_infile);
+			mexPrintf("NSWING: Warning file %s has no valid data. Ignoring this option\n", tracers_infile);
 			do_tracers = FALSE;			
 		}
 	}
@@ -1135,20 +1135,20 @@ int main(int argc, char **argv) {
 
 		num_of_nestGrids = 0;
 		while (nesteds[num_of_nestGrids] != NULL) {
-			if ((r_bin = read_grd_info_ascii (nesteds[num_of_nestGrids], &hdr)) < 0) {
-				mexPrintf ("NSWING: %s Invalid bathymetry grid. Possibly it is in the Surfer 7 format\n",
+			if ((r_bin = read_grd_info_ascii(nesteds[num_of_nestGrids], &hdr)) < 0) {
+				mexPrintf("NSWING: %s Invalid bathymetry grid. Possibly it is in the Surfer 7 format\n",
 					nesteds[num_of_nestGrids]); 
 				Return(-1);
 			}
-			if ((nest.bat[num_of_nestGrids+1] = (double *)mxCalloc ((size_t)hdr.nx*(size_t)hdr.ny, sizeof(double)) ) == NULL) 
+			if ((nest.bat[num_of_nestGrids+1] = (double *)mxCalloc((size_t)hdr.nx*(size_t)hdr.ny, sizeof(double)) ) == NULL) 
 				{no_sys_mem("(bat)", hdr.nx*hdr.ny); Return(-1);}
 
 			if (!r_bin) {
-				if (read_grd_ascii (nesteds[num_of_nestGrids], &hdr, nest.bat[num_of_nestGrids+1], -1))
+				if (read_grd_ascii(nesteds[num_of_nestGrids], &hdr, nest.bat[num_of_nestGrids+1], -1))
 					Return(-1);
 			}
 			else {
-				if (read_grd_bin (nesteds[num_of_nestGrids], &hdr, nest.bat[num_of_nestGrids+1], -1))
+				if (read_grd_bin(nesteds[num_of_nestGrids], &hdr, nest.bat[num_of_nestGrids+1], -1))
 					Return(-1);
 			}
 
@@ -1195,17 +1195,17 @@ int main(int argc, char **argv) {
 	/* We need the ''work' array in most cases, but not all and also need to make sure it's big enough */
 	if ((out_most || out_3D || surf_level || water_depth || out_energy || out_power || out_momentum ||
 		out_velocity || out_velocity_x || out_velocity_y || out_velocity_r || do_maxs || surf_level || water_depth) &&
-		(work = (float *) mxCalloc ((size_t)(nest.hdr[0].nm, nest.hdr[writeLevel].nm), sizeof(float)) ) == NULL)
+		(work = (float *) mxCalloc((size_t)(nest.hdr[0].nm, nest.hdr[writeLevel].nm), sizeof(float)) ) == NULL)
 			{no_sys_mem("(wmax)", nest.hdr[writeLevel].nm); Return(-1);}
 
 	if (do_maxs && (wmax = (float *) mxCalloc((size_t)nest.hdr[writeLevel].nm, sizeof(float)) ) == NULL)
 		{no_sys_mem("(wmax)", nest.hdr[writeLevel].nm); Return(-1);}
-	if (max_energy || max_power && (workMax = (float *) mxCalloc((size_t)nest.hdr[writeLevel].nm, sizeof(float)) ) == NULL)
+	if (max_energy || max_power && (workMax = (float *)mxCalloc((size_t)nest.hdr[writeLevel].nm, sizeof(float)) ) == NULL)
 		{no_sys_mem("(workMax)", nest.hdr[writeLevel].nm); Return(-1);}
 	/* Copy these pointers to use in update_max() */
 	nest.work = work;
 	nest.wmax = wmax;
-	if (max_velocity && (vmax = (float *) mxCalloc((size_t)nest.hdr[writeLevel].nm, sizeof(float)) ) == NULL)
+	if (max_velocity && (vmax = (float *)mxCalloc((size_t)nest.hdr[writeLevel].nm, sizeof(float)) ) == NULL)
 		{no_sys_mem("(vmax)", nest.hdr[writeLevel].nm); Return(-1);}
 	nest.vmax = vmax;
 	/* -------------------------------------------------------------------------------------- */
@@ -1267,28 +1267,28 @@ int main(int argc, char **argv) {
 	nest.hdr[0] = hdr;
 
 	if (cumpt && !maregs_in_input) {
-		lcum_p = (unsigned int *) mxCalloc ((size_t)(1024), sizeof(unsigned int));	/* We wont ever use these many */
+		lcum_p = (unsigned int *)mxCalloc((size_t)(1024), sizeof(unsigned int));	/* We wont ever use these many */
 		mareg_names = mxCalloc((size_t)(1024), sizeof(char *));
 		if ((n_mareg = read_maregs(nest.hdr[writeLevel], maregs, lcum_p, mareg_names)) < 1) {	/* Read maregraph locations */
 			mexPrintf("NSWING - WARNING: No maregraphs inside the (inner?) grid\n");
 			n_mareg = 0;
-			if (lcum_p) mxFree (lcum_p);
-			mxFree((void *) cum_p);	mxFree ((void *) time_p);	 
+			if (lcum_p) mxFree(lcum_p);
+			mxFree((void *) cum_p);	mxFree((void *) time_p);	 
 			cumpt = FALSE;
 		}
 	}
 
 	/* ------- If we have a tracers (oranges) file, time to load it ------------ */
 	if (do_tracers) {
-		if ((fp_oranges = fopen (tracers_outfile, "wt")) == NULL) {
-			mexPrintf ("NSWING: Unable to open output tracers file %s - ignoring this option\n", tracers_outfile);
+		if ((fp_oranges = fopen(tracers_outfile, "wt")) == NULL) {
+			mexPrintf("NSWING: Unable to open output tracers file %s - ignoring this option\n", tracers_outfile);
 			do_tracers = FALSE;
 		}
 		else {
-			oranges = (struct tracers *) mxCalloc((size_t)n_oranges, sizeof(struct tracers));
+			oranges = (struct tracers *)mxCalloc((size_t)n_oranges, sizeof(struct tracers));
 			for (n = 0; n < n_oranges; n++) {
-				oranges[n].x = (double *) mxCalloc((size_t)(n_of_cycles), sizeof(double));
-				oranges[n].y = (double *) mxCalloc((size_t)(n_of_cycles), sizeof(double));
+				oranges[n].x = (double *)mxCalloc((size_t)(n_of_cycles), sizeof(double));
+				oranges[n].y = (double *)mxCalloc((size_t)(n_of_cycles), sizeof(double));
 			}
 			if ((n_oranges = read_tracers(nest.hdr[writeLevel], tracers_infile, oranges)) < 1) {	/* Read orange locations */
 				mexPrintf("NSWING - WARNING: No tracers inside the (inner?) grid\n");
@@ -1329,7 +1329,7 @@ int main(int argc, char **argv) {
 		j_start = 0;            j_end = nest.hdr[writeLevel].ny;
 		xMinOut = nest.hdr[writeLevel].x_min;	yMinOut = nest.hdr[writeLevel].y_min;
 	}
-	else if (got_R && (do_2Dgrids || out_sww || out_most)) {	
+	else if (got_R && (do_2Dgrids || out_sww || out_most || out_3D)) {	
 		/* Write grids in sub-region */
 		i_start = irint((dfXmin - nest.hdr[writeLevel].x_min) / nest.hdr[writeLevel].x_inc);
 		j_start = irint((dfYmin - nest.hdr[writeLevel].y_min) / nest.hdr[writeLevel].y_inc); 
@@ -1345,9 +1345,9 @@ int main(int argc, char **argv) {
 	if (out_sww) {
 		/* ----------------- Open a ANUGA netCDF file for writing --------------- */
 		nx = i_end - i_start;		ny = j_end - j_start;
-		ncid = open_anuga_sww (&nest, fname_sww, history, ids, i_start, j_start, i_end, j_end, xMinOut, yMinOut, writeLevel);
+		ncid = open_anuga_sww(&nest, fname_sww, history, ids, i_start, j_start, i_end, j_end, xMinOut, yMinOut, writeLevel);
 		if (ncid == -1) {
-			mexPrintf ("NSWING: failure to create ANUGA SWW file.\n");
+			mexPrintf("NSWING: failure to create ANUGA SWW file.\n");
 			Return(-1);
 		}
 
@@ -1357,7 +1357,7 @@ int main(int argc, char **argv) {
 		stage_range[0] = xmom_range[0] = ymom_range[0] = FLT_MAX;
 		stage_range[1] = xmom_range[1] = ymom_range[1] = -FLT_MIN;
 
-		tmp_slice = (float *)mxMalloc (sizeof(float) * (nx * ny));       /* To use inside slice writing */ 
+		tmp_slice = (float *)mxMalloc(sizeof(float) * (nx * ny));       /* To use inside slice writing */ 
 	}
 
 	if (out_most) {
@@ -1427,9 +1427,9 @@ int main(int argc, char **argv) {
 		htotal_for_maregs = nest.htotal_d[writeLevel];
 
 		if (out_maregs_nc) {    /* Allocate an array to hold the maregraph data which will be written to a nc file at the end */
-			if ((maregs_array = (float *) mxCalloc ((size_t)(n_ptmar * n_mareg), sizeof(float)) ) == NULL)
+			if ((maregs_array = (float *)mxCalloc((size_t)(n_ptmar * n_mareg), sizeof(float)) ) == NULL)
 				{no_sys_mem("(maregs_array)", n_ptmar * n_mareg); Return(-1);}
-			if ((maregs_timeout = (double *) mxCalloc ((size_t)n_ptmar, sizeof(double)) ) == NULL)
+			if ((maregs_timeout = (double *)mxCalloc((size_t)n_ptmar, sizeof(double)) ) == NULL)
 				{no_sys_mem("(maregs_timeout)", n_ptmar); Return(-1);}
 		}
 	}
