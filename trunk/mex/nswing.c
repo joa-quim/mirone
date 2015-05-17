@@ -253,19 +253,19 @@ typedef struct {
 	int lev;                      /* Level of nested grid */
 } ThreadArg;
 
-void no_sys_mem (char *where, unsigned int n);
-int  count_col (char *line);
-int  read_grd_info_ascii (char *file, struct srf_header *hdr);
+void no_sys_mem(char *where, unsigned int n);
+int  count_col(char *line);
+int  read_grd_info_ascii(char *file, struct srf_header *hdr);
 int  read_header_bin (FILE *fp, struct srf_header *hdr);
 int  write_grd_bin(char *name, double x_min, double y_min, double x_inc, double y_inc, unsigned int i_start, 
                    unsigned int j_start, unsigned int i_end, unsigned int j_end, unsigned int nX, float *work);
 int  read_grd_ascii (char *file, struct srf_header *hdr, double *work, int sign);
-int  read_grd_bin (char *file, struct srf_header *hdr, double *work, int sign);
+int  read_grd_bin(char *file, struct srf_header *hdr, double *work, int sign);
 int  read_maregs(struct grd_header hdr, char *file, unsigned int *lcum_p, char *names[]);
 int  read_tracers(struct grd_header hdr, char *file, struct tracers *oranges);
 int  count_n_maregs(char *file);
-int  decode_R (char *item, double *w, double *e, double *s, double *n);
-int  check_region (double w, double e, double s, double n);
+int  decode_R(char *item, double *w, double *e, double *s, double *n);
+int  check_region(double w, double e, double s, double n);
 double ddmmss_to_degree (char *text);
 void openb(struct grd_header hdr, double *bat, double *fluxm_d, double *fluxn_d, double *etad, struct nestContainer *nest);
 void wave_maker(struct nestContainer *nest);
@@ -309,7 +309,7 @@ void tm (double lon, double lat, double *x, double *y, double central_meridian, 
 double uscal(double x1, double x2, double x3, double c, double cc, double dp);
 double udcal(double x1, double x2, double x3, double c, double cc, double dp);
 unsigned int gmt_bcr_prep (struct grd_header hdr, double xx, double yy, double wx[], double wy[]);
-double GMT_get_bcr_z (double *grd, double *bat, struct grd_header hdr, double xx, double yy);
+double GMT_get_bcr_z(double *grd, double *bat, struct grd_header hdr, double xx, double yy);
 void update_max(struct nestContainer *nest);
 void update_max_velocity(struct nestContainer *nest);
 
@@ -318,15 +318,15 @@ void update_max_velocity(struct nestContainer *nest);
 void write_most_slice(struct nestContainer *nest, int *ncid_most, int *ids_most, unsigned int i_start,
                       unsigned int j_start, unsigned int i_end, unsigned int j_end, float *work, size_t *start,
                       size_t *count, double *slice_range, int isMost, int lev);
-int open_most_nc (struct nestContainer *nest, float *work, char *basename, char *name_var, int *ids, unsigned int nx,
-                  unsigned int ny, double xMinOut, double yMinOut, int isMost, int lev);
-int open_anuga_sww (struct nestContainer *nest, char *fname_sww, int *ids, unsigned int i_start, unsigned int j_start,
-                    unsigned int i_end, unsigned int j_end, double xMinOut, double yMinOut, int lev);
+int open_most_nc (struct nestContainer *nest, float *work, char *basename, char *name_var, char hist[], int *ids,
+                  unsigned int nx, unsigned int ny, double xMinOut, double yMinOut, int isMost, int lev);
+int open_anuga_sww (struct nestContainer *nest, char *fname_sww, char history[], int *ids, unsigned int i_start,
+                    unsigned int j_start, unsigned int i_end, unsigned int j_end, double xMinOut, double yMinOut, int lev);
 void write_anuga_slice(struct nestContainer *nest, int ncid, int z_id, unsigned int i_start, unsigned int j_start,
                        unsigned int i_end, unsigned int j_end, float *work, size_t *start, size_t *count,
                        float *slice_range, int idx, int with_land, int lev);
-int write_maregs_nc (struct nestContainer *nest, char *fname, float *work, double *t,
-                     unsigned int *lcum_p, unsigned int n_maregs, unsigned int count_time_maregs_timeout, int lev);
+int write_maregs_nc(struct nestContainer *nest, char *fname, float *work, double *t, unsigned int *lcum_p,
+                    char *names[], char hist[], unsigned int n_maregs, unsigned int count_time_maregs_timeout, int lev);
 void err_trap_(int status);
 #endif
 
@@ -399,6 +399,7 @@ int main(int argc, char **argv) {
 	char   *fname_mask = NULL;          /* Name pointer for the "long_beach" mask grid */
 	char    tracers_infile[256] = "", tracers_outfile[256] = "";	/* Names for in and out tracers files */
 	char    stem[256] = "", prenome[128] = "", str_tmp[128] = "", fname_momentM[256] = "", fname_momentN[256] = "";
+	char    history[512] = {""};        /* To hold the full command call to be saved in nc files as History */
 	char   *pch;
 	char   *nesteds[10] = {NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL};
 
@@ -441,7 +442,7 @@ int main(int argc, char **argv) {
 
 #ifdef DO_MULTI_THREAD
 	if ((k = GetLocalNThread()) == 1) {
-		mexPrintf ("NSWING: This version of the program is build for multi-threading but "
+		mexPrintf("NSWING: This version of the program is build for multi-threading but "
 		           "this machine has only one core. Don't know what will happen here.\n"); 
 	}
 #endif
@@ -460,8 +461,8 @@ int main(int argc, char **argv) {
 	if (n_arg_no_char >= 4) {          /* Not all combinations are tested */
 		/* Bathymetry */
 		dep1 = mxGetPr(prhs[0]);
-		nx = mxGetN (prhs[0]);
-		ny = mxGetM (prhs[0]);
+		nx = mxGetN(prhs[0]);
+		ny = mxGetM(prhs[0]);
 		head  = mxGetPr(prhs[1]);	/* Get bathymetry header info */
 		hdr_b.x_min = head[0];		hdr_b.x_max = head[1];
 		hdr_b.y_min = head[2];		hdr_b.y_max = head[3];
@@ -471,8 +472,8 @@ int main(int argc, char **argv) {
 		bat_in_input = TRUE;
 		/* Tsunami source */
 		h = mxGetPr(prhs[2]);
-		nx = mxGetN (prhs[2]);
-		ny = mxGetM (prhs[2]);
+		nx = mxGetN(prhs[2]);
+		ny = mxGetM(prhs[2]);
 		head  = mxGetPr(prhs[3]);	/* Get bathymetry header info */
 		hdr_f.x_min = head[0];		hdr_f.x_max = head[1];
 		hdr_f.y_min = head[2];		hdr_f.y_max = head[3];
@@ -481,8 +482,8 @@ int main(int argc, char **argv) {
 		source_in_input = TRUE;
 		/* Now test if bat & source are compatible. If they are not, we go out right here. */
 		if (hdr_f.nx != hdr_b.nx || hdr_f.ny != hdr_b.ny) {
-			mexPrintf ("Bathymetry & Source grids have different nx and/or ny\n"); 
-			mexPrintf ("%d %d %d %d\n", hdr_f.nx, hdr_b.nx, hdr_f.ny, hdr_b.ny); 
+			mexPrintf("Bathymetry & Source grids have different nx and/or ny\n"); 
+			mexPrintf("%d %d %d %d\n", hdr_f.nx, hdr_b.nx, hdr_f.ny, hdr_b.ny); 
 			return;
 		}
 	}
@@ -500,8 +501,8 @@ int main(int argc, char **argv) {
 			if (mx_ptr == NULL)
 				mexErrMsgTxt("NSWING: bloody cell element is empty!!!!!!!");
 			dep2 = mxGetPr(mx_ptr);		/* Get the grid for this level */
-			nest.hdr[k+1].nx = mxGetN (mx_ptr);
-			nest.hdr[k+1].ny = mxGetM (mx_ptr);
+			nest.hdr[k+1].nx = mxGetN(mx_ptr);
+			nest.hdr[k+1].ny = mxGetM(mx_ptr);
 			nest.hdr[k+1].nm = (unsigned int)nest.hdr[k+1].nx * (unsigned int)nest.hdr[k+1].ny;
 			mx_ptr = mxGetCell(prhs[4], k + num_of_nestGrids);
 			head  = mxGetData(mx_ptr);	/* Get header info */
@@ -1178,6 +1179,9 @@ int main(int argc, char **argv) {
 		writeLevel = num_of_nestGrids;
 
 	/* -------------------------------------------------------------------------------------- */
+	for (k = 0; k < argc; k++) {		/* Build the History string (incomplete if AM_MEX) */
+		strcat(history, argv[k]);		strcat(history, " ");
+	}
 	/* -------------- Allocate memory and initialize the 'nest' structure ------------------- */
 	nest.hdr[0].nx      = hdr_b.nx;		nest.hdr[0].ny = hdr_b.ny;
 	nest.hdr[0].nm      = (unsigned int)hdr_b.nx * (unsigned int)hdr_b.ny;
@@ -1341,7 +1345,7 @@ int main(int argc, char **argv) {
 	if (out_sww) {
 		/* ----------------- Open a ANUGA netCDF file for writing --------------- */
 		nx = i_end - i_start;		ny = j_end - j_start;
-		ncid = open_anuga_sww (&nest, fname_sww, ids, i_start, j_start, i_end, j_end, xMinOut, yMinOut, writeLevel);
+		ncid = open_anuga_sww (&nest, fname_sww, history, ids, i_start, j_start, i_end, j_end, xMinOut, yMinOut, writeLevel);
 		if (ncid == -1) {
 			mexPrintf ("NSWING: failure to create ANUGA SWW file.\n");
 			Return(-1);
@@ -1359,9 +1363,9 @@ int main(int argc, char **argv) {
 	if (out_most) {
 		/* ----------------- Open a 3 MOST netCDF files for writing ------------- */
 		nx = i_end - i_start;		ny = j_end - j_start;
-		ncid_most[0] = open_most_nc (&nest, work, basename_most, "HA", ids_ha, nx, ny, xMinOut, yMinOut, TRUE, writeLevel);
-		ncid_most[1] = open_most_nc (&nest, work, basename_most, "UA", ids_ua, nx, ny, xMinOut, yMinOut, TRUE, writeLevel);
-		ncid_most[2] = open_most_nc (&nest, work, basename_most, "VA", ids_va, nx, ny, xMinOut, yMinOut, TRUE, writeLevel);
+		ncid_most[0] = open_most_nc(&nest, work, basename_most, "HA", history, ids_ha, nx, ny, xMinOut, yMinOut, TRUE, writeLevel);
+		ncid_most[1] = open_most_nc(&nest, work, basename_most, "UA", history, ids_ua, nx, ny, xMinOut, yMinOut, TRUE, writeLevel);
+		ncid_most[2] = open_most_nc(&nest, work, basename_most, "VA", history, ids_va, nx, ny, xMinOut, yMinOut, TRUE, writeLevel);
 
 		if (ncid_most[0] == -1 || ncid_most[1] == -1 || ncid_most[2] == -1) {
 			mexPrintf ("NSWING: failure to create one or more of the MOST files\n");
@@ -1376,11 +1380,11 @@ int main(int argc, char **argv) {
 		count1_M[0] = 1;	count1_M[1] = ny;	count1_M[2] = nx;
 
 		if (!out_sww)               /* Otherwise already allocated */
-			tmp_slice = (float *)mxMalloc (sizeof(float) * (nx * ny));   /* To use inside slice writing */ 
+			tmp_slice = (float *)mxMalloc(sizeof(float) * (nx * ny));   /* To use inside slice writing */ 
 	} 
 	else if (out_3D) {
 		nx = nest.hdr[writeLevel].nx;		ny = nest.hdr[writeLevel].ny;
-		ncid_3D[0] = open_most_nc (&nest, work, fname3D, "z", ids_z, nx, ny, xMinOut, yMinOut, FALSE, writeLevel);
+		ncid_3D[0] = open_most_nc(&nest, work, fname3D, "z", history, ids_z, nx, ny, xMinOut, yMinOut, FALSE, writeLevel);
 
 		if (ncid_3D[0] == -1) {
 			mexPrintf ("NSWING: failure to create netCDF file\n");
@@ -1812,16 +1816,16 @@ int main(int argc, char **argv) {
 
 #ifdef HAVE_NETCDF
 	if (out_sww) {          /* Uppdate range values and close SWW file */
-		err_trap(nc_put_var_float (ncid, ids[8], stage_range));
-		err_trap(nc_put_var_float (ncid, ids[10], xmom_range));
-		err_trap(nc_put_var_float (ncid, ids[12], ymom_range));
+		err_trap(nc_put_var_float(ncid, ids[8], stage_range));
+		err_trap(nc_put_var_float(ncid, ids[10], xmom_range));
+		err_trap(nc_put_var_float(ncid, ids[12], ymom_range));
 		err_trap(nc_close (ncid)); 
 	}
 
 	if (out_most) {         /* Close MOST files */
-		err_trap(nc_close (ncid_most[0])); 
-		err_trap(nc_close (ncid_most[1])); 
-		err_trap(nc_close (ncid_most[2])); 
+		err_trap(nc_close(ncid_most[0])); 
+		err_trap(nc_close(ncid_most[1])); 
+		err_trap(nc_close(ncid_most[2])); 
 	}
 	else if (out_3D) {      /* Uppdate range values and close 3D file */
 		err_trap(nc_put_att_double(ncid_3D[0], ids_z[3], "actual_range", NC_DOUBLE, 2U, actual_range));
@@ -1835,7 +1839,8 @@ int main(int argc, char **argv) {
 	if (out_sww || out_most) mxFree ((void *)tmp_slice);
 
 	if (out_maregs_nc) {    /* Write the maregs in a netCDF file */
-		write_maregs_nc (&nest, hcum, maregs_array, maregs_timeout, lcum_p, n_mareg, count_time_maregs_timeout, writeLevel);
+		write_maregs_nc(&nest, hcum, maregs_array, maregs_timeout, lcum_p, mareg_names, history,
+		                n_mareg, count_time_maregs_timeout, writeLevel);
 		mxFree(maregs_array);
 		mxFree(maregs_timeout);
 	}
@@ -2747,8 +2752,8 @@ double ddmmss_to_degree(char *text) {
 
 #ifdef HAVE_NETCDF
 /* -------------------------------------------------------------------- */
-int open_most_nc(struct nestContainer *nest, float *work, char *base, char *name_var, int *ids, unsigned int nx,
-	unsigned int ny, double xMinOut, double yMinOut, int isMost, int lev) {
+int open_most_nc(struct nestContainer *nest, float *work, char *base, char *name_var, char hist[], int *ids,
+	unsigned int nx, unsigned int ny, double xMinOut, double yMinOut, int isMost, int lev) {
 	/* Open and initialize a generic 3D or a MOST netCDF file for writing.
 	   When generic 3D file also writes the bathymetry grid right away.
 	   Returns the ncid of the opened file.
@@ -2947,6 +2952,7 @@ int open_most_nc(struct nestContainer *nest, float *work, char *base, char *name
 		err_trap(nc_put_att_text(ncid, NC_GLOBAL, "title", 44, "Water levels series created by Mirone-NSWING"));
 		err_trap(nc_put_att_text(ncid, NC_GLOBAL, "TSU",    6, "NSWING"));
 	}
+	err_trap(nc_put_att_text(ncid, NC_GLOBAL, "History", strlen(hist), hist));
 
 	err_trap(nc_enddef(ncid));
 
@@ -3053,8 +3059,8 @@ void write_most_slice(struct nestContainer *nest, int *ncid, int *ids, unsigned 
 }
 
 /* -------------------------------------------------------------------- */
-int write_maregs_nc(struct nestContainer *nest, char *fname, float *work, double *t,
-	unsigned int *lcum_p, unsigned int n_maregs, unsigned int n_times, int lev) {
+int write_maregs_nc(struct nestContainer *nest, char *fname, float *work, double *t, unsigned int *lcum_p,
+	char *names[], char hist[], unsigned int n_maregs, unsigned int n_times, int lev) {
 	/* Save the maregraphs time series in a netCDF file
 	   t        - is the vector of times
 	   work     - array of maregraphs with one per column
@@ -3062,46 +3068,52 @@ int write_maregs_nc(struct nestContainer *nest, char *fname, float *work, double
 	   n_times  - length(t)
 	*/
 
-	int     k, ix, iy, ncid = -1, status, dim0[3], dim2[2], ids[5];
+	int     k, ix, iy, ncid = -1, status, dim0[3], dim2[2], ids[6];
 	int    *maregs_vec;
 	size_t	start[2] = {0,0}, count[2];
 	double *x, *y;
 
 	count[0] = n_times;	count[1] = n_maregs;
 
-	if ((status = nc_create (fname, NC_NETCDF4, &ncid)) != NC_NOERR) {
-		mexPrintf ("NSWING: Unable to create file -- %s -- exiting\n", fname);
+	if ((status = nc_create(fname, NC_NETCDF4, &ncid)) != NC_NOERR) {
+		mexPrintf("NSWING: Unable to create file -- %s -- exiting\n", fname);
 		return(-1);
 	}
 
 	/* ---- Define dimensions ------------ */
-	err_trap (nc_def_dim (ncid, "time",   (size_t)n_times,  &dim0[0]));
-	err_trap (nc_def_dim (ncid, "count",  (size_t)n_maregs, &dim0[1]));
+	err_trap(nc_def_dim(ncid, "time",   (size_t)n_times,  &dim0[0]));
+	err_trap(nc_def_dim(ncid, "count",  (size_t)n_maregs, &dim0[1]));
 
 	/* ---- Define variables ------------- */
-	dim2[0] = dim0[0];                     dim2[1] = dim0[1];
-	err_trap (nc_def_var (ncid, "time",    NC_DOUBLE,1, &dim0[0], &ids[0]));
-	err_trap (nc_def_var (ncid, "count",   NC_INT,   1, &dim0[1], &ids[1]));
+	dim2[0] = dim0[0];                   dim2[1] = dim0[1];
+	err_trap(nc_def_var(ncid, "time",    NC_DOUBLE,1, &dim0[0], &ids[0]));
+	err_trap(nc_def_var(ncid, "count",   NC_INT,   1, &dim0[1], &ids[1]));
 	if (nest->isGeog) {
-		err_trap (nc_def_var (ncid, "lon", NC_DOUBLE,1, &dim0[1], &ids[2]));
-		err_trap (nc_def_var (ncid, "lat", NC_DOUBLE,1, &dim0[1], &ids[3]));
+		err_trap(nc_def_var(ncid, "lon", NC_DOUBLE,1, &dim0[1], &ids[2]));
+		err_trap(nc_def_var(ncid, "lat", NC_DOUBLE,1, &dim0[1], &ids[3]));
 	}
 	else {
-		err_trap (nc_def_var (ncid, "x",   NC_DOUBLE,1, &dim0[1], &ids[2]));
-		err_trap (nc_def_var (ncid, "y",   NC_DOUBLE,1, &dim0[1], &ids[3]));
+		err_trap(nc_def_var(ncid, "x",   NC_DOUBLE,1, &dim0[1], &ids[2]));
+		err_trap(nc_def_var(ncid, "y",   NC_DOUBLE,1, &dim0[1], &ids[3]));
 	}
-	err_trap (nc_def_var (ncid, "maregs",  NC_FLOAT, 2, dim2,     &ids[4]));
+	err_trap(nc_def_var(ncid, "NamesMareg", NC_STRING,1, &dim0[1], &ids[4]));
+	err_trap(nc_def_var(ncid, "maregs",  NC_FLOAT, 2, dim2,     &ids[5]));
 
 	/* Set a deflation level of 5 (4, zero based) and shuffle for variables */
-	err_trap (nc_def_var_deflate (ncid, ids[4], 1, 1, 4));
-	err_trap (nc_put_vara_float (ncid, ids[4], start, count, work));
+	err_trap(nc_def_var_deflate(ncid, ids[5], 1, 1, 4));
+	err_trap(nc_put_vara_float(ncid, ids[5], start, count, work));
 
 	/* ---- Global Attributes ------------ */
-	err_trap (nc_put_att_text (ncid, NC_GLOBAL, "Institution", 10, "Mirone Tec"));
-	err_trap (nc_put_att_text (ncid, NC_GLOBAL, "Description", 22, "Created by Mirone-NSWING"));
-	err_trap (nc_put_att_int  (ncid, NC_GLOBAL, "Number of maregraphs", NC_INT, 1, &(int)n_maregs));
+	err_trap(nc_put_att_text(ncid, NC_GLOBAL, "Institution", 10, "Mirone Tec"));
+#ifdef I_AM_MEX
+	err_trap(nc_put_att_text(ncid, NC_GLOBAL, "Description", 24, "Created by Mirone-NSWING"));
+#else
+	err_trap(nc_put_att_text(ncid, NC_GLOBAL, "Description", 17, "Created by NSWING"));
+#endif
+	err_trap(nc_put_att_text(ncid, NC_GLOBAL, "History", strlen(hist), hist));
+	err_trap(nc_put_att_int(ncid,  NC_GLOBAL, "Number of maregraphs", NC_INT, 1, &(int)n_maregs));
 
-	err_trap (nc_enddef (ncid));
+	err_trap(nc_enddef (ncid));
 
 	x = (double *)mxMalloc(sizeof(double) * n_maregs);
 	y = (double *)mxMalloc(sizeof(double) * n_maregs);
@@ -3119,6 +3131,7 @@ int write_maregs_nc(struct nestContainer *nest, char *fname, float *work, double
 	err_trap(nc_put_var_int   (ncid, ids[1], maregs_vec));
 	err_trap(nc_put_var_double(ncid, ids[2], x));
 	err_trap(nc_put_var_double(ncid, ids[3], y));
+	err_trap(nc_put_var_string(ncid, ids[4], (const char **)names));
 	mxFree(x); 
 	mxFree(y); 
 	mxFree(maregs_vec); 
@@ -3129,8 +3142,8 @@ int write_maregs_nc(struct nestContainer *nest, char *fname, float *work, double
 }
 
 /* -------------------------------------------------------------------- */
-int open_anuga_sww (struct nestContainer *nest, char *fname_sww, int *ids, unsigned int i_start, unsigned int j_start,
-	unsigned int i_end, unsigned int j_end, double xMinOut, double yMinOut, int lev) {
+int open_anuga_sww (struct nestContainer *nest, char *fname_sww, char hist[], int *ids, unsigned int i_start,
+	unsigned int j_start, unsigned int i_end, unsigned int j_end, double xMinOut, double yMinOut, int lev) {
 
 	/* Open and initialize a ANUGA netCDF file for writing ---------------- */
 	int ncid = -1, status, dim0[5], dim2[2], dim3[2];
@@ -3177,27 +3190,28 @@ int open_anuga_sww (struct nestContainer *nest, char *fname_sww, int *ids, unsig
 	err_trap (nc_def_var (ncid, "ymomentum_range",  NC_FLOAT,1, &dim0[2], &ids[12]));
 
 	/* Set a deflation level of 5 (4 zero based) and shuffle for variables */
-	err_trap (nc_def_var_deflate (ncid, ids[0], 1, 1, 4));
-	err_trap (nc_def_var_deflate (ncid, ids[1], 1, 1, 4));
-	err_trap (nc_def_var_deflate (ncid, ids[2], 1, 1, 4));
-	err_trap (nc_def_var_deflate (ncid, ids[3], 1, 1, 4));
-	err_trap (nc_def_var_deflate (ncid, ids[5], 1, 1, 4));
-	err_trap (nc_def_var_deflate (ncid, ids[7], 1, 1, 4));
-	err_trap (nc_def_var_deflate (ncid, ids[9], 1, 1, 4));
-	err_trap (nc_def_var_deflate (ncid, ids[11],1, 1, 4));
+	err_trap(nc_def_var_deflate(ncid, ids[0], 1, 1, 4));
+	err_trap(nc_def_var_deflate(ncid, ids[1], 1, 1, 4));
+	err_trap(nc_def_var_deflate(ncid, ids[2], 1, 1, 4));
+	err_trap(nc_def_var_deflate(ncid, ids[3], 1, 1, 4));
+	err_trap(nc_def_var_deflate(ncid, ids[5], 1, 1, 4));
+	err_trap(nc_def_var_deflate(ncid, ids[7], 1, 1, 4));
+	err_trap(nc_def_var_deflate(ncid, ids[9], 1, 1, 4));
+	err_trap(nc_def_var_deflate(ncid, ids[11],1, 1, 4));
 
 	/* ---- Global Attributes ------------ */
-	err_trap (nc_put_att_text (ncid, NC_GLOBAL, "institution", 10, "Mirone Tec"));
-	err_trap (nc_put_att_text (ncid, NC_GLOBAL, "description", 22, "Created by Mirone-NSWING"));
-	err_trap (nc_put_att_double (ncid, NC_GLOBAL, "xllcorner", NC_DOUBLE, 1, &xMinOut));
-	err_trap (nc_put_att_double (ncid, NC_GLOBAL, "yllcorner", NC_DOUBLE, 1, &yMinOut));
-	dummy = 29;	err_trap (nc_put_att_double (ncid, NC_GLOBAL, "zone", NC_DOUBLE, 1, &dummy));
-	dummy = 0;	err_trap (nc_put_att_double (ncid, NC_GLOBAL, "starttime", NC_DOUBLE, 1, &dummy));
-	dummy = 500000;	err_trap (nc_put_att_double (ncid, NC_GLOBAL, "false_easting", NC_DOUBLE, 1, &dummy));
-	dummy = 0;	err_trap (nc_put_att_double (ncid, NC_GLOBAL, "false_northing", NC_DOUBLE, 1, &dummy));
-	err_trap (nc_put_att_text (ncid, NC_GLOBAL, "datum", 5, "wgs84"));
-	err_trap (nc_put_att_text (ncid, NC_GLOBAL, "projection", 3, "UTM"));
-	err_trap (nc_put_att_text (ncid, NC_GLOBAL, "units", 1, "m"));
+	err_trap(nc_put_att_text(ncid,   NC_GLOBAL, "institution", 10, "Mirone Tec"));
+	err_trap(nc_put_att_text(ncid,   NC_GLOBAL, "description", 22, "Created by Mirone-NSWING"));
+	err_trap(nc_put_att_text(ncid,   NC_GLOBAL, "History", strlen(hist), hist));
+	err_trap(nc_put_att_double(ncid, NC_GLOBAL, "xllcorner", NC_DOUBLE, 1, &xMinOut));
+	err_trap(nc_put_att_double(ncid, NC_GLOBAL, "yllcorner", NC_DOUBLE, 1, &yMinOut));
+	dummy = 29;	err_trap(nc_put_att_double(ncid, NC_GLOBAL, "zone", NC_DOUBLE, 1, &dummy));
+	dummy = 0;	err_trap(nc_put_att_double(ncid, NC_GLOBAL, "starttime", NC_DOUBLE, 1, &dummy));
+	dummy = 500000;	err_trap(nc_put_att_double(ncid, NC_GLOBAL, "false_easting", NC_DOUBLE, 1, &dummy));
+	dummy = 0;	err_trap(nc_put_att_double(ncid, NC_GLOBAL, "false_northing", NC_DOUBLE, 1, &dummy));
+	err_trap(nc_put_att_text(ncid,   NC_GLOBAL, "datum", 5, "wgs84"));
+	err_trap(nc_put_att_text(ncid,   NC_GLOBAL, "projection", 3, "UTM"));
+	err_trap(nc_put_att_text(ncid,   NC_GLOBAL, "units", 1, "m"));
 	/* Initialize the following attribs with NaNs. A posterior call will eventualy fill them with the right values */
 	nan = mxGetNaN();
 	for (i = 0; i < 10; i++) {
@@ -3205,20 +3219,20 @@ int open_anuga_sww (struct nestContainer *nest, char *fname_sww, int *ids, unsig
 				faultRake[i] = faultWidth[i] = faultDepth[i] = nan;
 	}
 	faultPolyX[10] = faultPolyY[10] = nan;		/* Those have an extra element */
-	err_trap (nc_put_att_double (ncid, NC_GLOBAL, "faultPolyX",  NC_DOUBLE, 11, faultPolyX));
-	err_trap (nc_put_att_double (ncid, NC_GLOBAL, "faultPolyY",  NC_DOUBLE, 11, faultPolyY));
-	err_trap (nc_put_att_double (ncid, NC_GLOBAL, "faultStrike", NC_DOUBLE, 10, faultStrike));
-	err_trap (nc_put_att_double (ncid, NC_GLOBAL, "faultSlip",   NC_DOUBLE, 10, faultSlip));
-	err_trap (nc_put_att_double (ncid, NC_GLOBAL, "faultDip",    NC_DOUBLE, 10, faultDip));
-	err_trap (nc_put_att_double (ncid, NC_GLOBAL, "faultRake",   NC_DOUBLE, 10, faultRake));
-	err_trap (nc_put_att_double (ncid, NC_GLOBAL, "faultWidth",  NC_DOUBLE, 10, faultWidth));
-	err_trap (nc_put_att_double (ncid, NC_GLOBAL, "faultDepth",  NC_DOUBLE, 10, faultDepth));
+	err_trap(nc_put_att_double(ncid, NC_GLOBAL, "faultPolyX",  NC_DOUBLE, 11, faultPolyX));
+	err_trap(nc_put_att_double(ncid, NC_GLOBAL, "faultPolyY",  NC_DOUBLE, 11, faultPolyY));
+	err_trap(nc_put_att_double(ncid, NC_GLOBAL, "faultStrike", NC_DOUBLE, 10, faultStrike));
+	err_trap(nc_put_att_double(ncid, NC_GLOBAL, "faultSlip",   NC_DOUBLE, 10, faultSlip));
+	err_trap(nc_put_att_double(ncid, NC_GLOBAL, "faultDip",    NC_DOUBLE, 10, faultDip));
+	err_trap(nc_put_att_double(ncid, NC_GLOBAL, "faultRake",   NC_DOUBLE, 10, faultRake));
+	err_trap(nc_put_att_double(ncid, NC_GLOBAL, "faultWidth",  NC_DOUBLE, 10, faultWidth));
+	err_trap(nc_put_att_double(ncid, NC_GLOBAL, "faultDepth",  NC_DOUBLE, 10, faultDepth));
 
 	/* ---- Write the vector coords ------ */
-	x = (float *) mxMalloc (sizeof (float) * (nx * ny));
-	y = (float *) mxMalloc (sizeof (float) * (nx * ny));
-	vertices = (unsigned int *) mxMalloc (sizeof (unsigned int) * (nx * ny));
-	volumes  = (unsigned int *) mxMalloc (sizeof (unsigned int) * (nVolumes * 3));
+	x = (float *)mxMalloc(sizeof(float) * (nx * ny));
+	y = (float *)mxMalloc(sizeof(float) * (nx * ny));
+	vertices = (unsigned int *)mxMalloc(sizeof(unsigned int) * (nx * ny));
+	volumes  = (unsigned int *)mxMalloc(sizeof(unsigned int) * (nVolumes * 3));
 
 	/* Construct 2 triangles per 'rectangular' element */
 	i = 0;
@@ -3246,27 +3260,27 @@ int open_anuga_sww (struct nestContainer *nest, char *fname_sww, int *ids, unsig
 
 	mxFree ((void *)vertices);
 
-	err_trap (nc_enddef (ncid));
-	err_trap (nc_put_var_float (ncid, ids[0], x));
-	err_trap (nc_put_var_float (ncid, ids[1], y));
-	mxFree ((void *)x); 
-	mxFree ((void *)y); 
+	err_trap(nc_enddef(ncid));
+	err_trap(nc_put_var_float(ncid, ids[0], x));
+	err_trap(nc_put_var_float(ncid, ids[1], y));
+	mxFree((void *)x); 
+	mxFree((void *)y); 
 
-	tmp = (float *) mxMalloc (sizeof (float) * (nx * ny));
+	tmp = (float *)mxMalloc(sizeof (float) * (nx * ny));
 	for (j = j_start, k = 0; j < j_end; j++) {
 		for (i = i_start; i < i_end; i++)
 			tmp[k++] = (float)-nest->bat[lev][ijs(i,j,nest->hdr[lev].nx)];
 	}
 
-	err_trap (nc_put_var_float (ncid, ids[2], tmp));	/* z */
+	err_trap(nc_put_var_float(ncid, ids[2], tmp));	/* z */
 
-	err_trap (nc_put_var_float (ncid, ids[3], tmp));	/* elevation */
+	err_trap(nc_put_var_float(ncid, ids[3], tmp));	/* elevation */
 	dummy2[0] = z_min;		dummy2[1] = z_max;
-	err_trap (nc_put_var_float (ncid, ids[4], dummy2));	/* elevation_range */
-	err_trap (nc_put_var_int (ncid, ids[5], volumes));
+	err_trap(nc_put_var_float(ncid, ids[4], dummy2));	/* elevation_range */
+	err_trap(nc_put_var_int(ncid, ids[5], volumes));
 
-	mxFree ((void *)tmp);
-	mxFree ((void *)volumes);
+	mxFree((void *)tmp);
+	mxFree((void *)volumes);
 
 	return (ncid);
 }
