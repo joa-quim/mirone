@@ -1506,7 +1506,7 @@ int main(int argc, char **argv) {
 		if (do_tracers)
 			mexPrintf("Computing tracers from file %s \n", tracers_infile);
 		if (do_Kaba)
-			mexPrintf("Computing a grid of prisms with size %d x %d\n", KbGridRows, KbGridCols);
+			mexPrintf("Computing a grid of prisms with size %d (rows) x %d (cols)\n", KbGridRows, KbGridCols);
 	}
 	/* --------------------------------------------------------------------------------------- */
 
@@ -1882,31 +1882,34 @@ LoopKabas:		/* When computing a grid of Kabas we use a GOTO to simulate a loop *
 
 	if (out_maregs_nc) {    /* Write the maregs in a netCDF file */
 		if (do_Kaba) {
-			size_t strt, cnt;
+			size_t strt, cnt, row, col;
 			double x1, x2, y1, y2;
 			if (cntKabas == 0) {    		/* First call. Open nc file and save first slice */
 				count_Mar[1] = count_time_maregs_timeout;	/* Was not yet initialized */
 				ncid_Mar = open_maregs_nc(&nest, hcum, maregs_array, start_Mar, count_Mar,
 				                          maregs_timeout, lcum_p, mareg_names, history, ids_Mar,
 				                          n_mareg, count_time_maregs_timeout, writeLevel);
+				sprintf(txt, "%g/%g/%g/%g", kaba_xmin, kaba_xmax, kaba_ymin, kaba_ymax);	/* Region string */
+				binRegions[0] = strdup(&txt[0]);
 			}
 			else {
 				start_Mar[0]++;         /* Increment for the next slice */
 				err_trap(nc_put_vara_float(ncid_Mar, ids_Mar[7], start_Mar, count_Mar, maregs_array));
 			}
 			cntKabas++;
-			i = cntKabas % KbGridCols;			j = cntKabas / KbGridCols;
-			x1 = kaba_xmin + i * dxKb;	x2 = kaba_xmax + i * dxKb;
-			y1 = kaba_ymin + j * dxKb;	y2 = kaba_ymax + j * dxKb;
-			sprintf(txt, "%g/%g/%g/%g", x1, x2, y1, y2);
+			col = cntKabas % KbGridCols;		row = cntKabas / KbGridCols;
+			x1 = kaba_xmin + col * dxKb;		x2 = kaba_xmax + col * dxKb;
+			y1 = kaba_ymin + row * dxKb;		y2 = kaba_ymax + row * dxKb;
 			strt = (size_t)(cntKabas - 1);
-			binRegions[cntKabas-1] = strdup(&txt[0]);
 			err_trap(nc_put_vara_int(ncid_Mar, ids_Mar[2], &strt, &count0, &cntKabas));	/* Update unlimited var */
 
 			if (cntKabas < KbGridRows * KbGridCols) {	/* While not all nodes in KabaGrid GOTO ... */
+				sprintf(txt, "%g/%g/%g/%g", x1, x2, y1, y2);	/* Region string to be stored in the nc file */
+				binRegions[cntKabas] = strdup(&txt[0]);
 				kaba_source(hdr_b, dx, dy, x1, x2, y1, y2, do_Kaba, nest.etaa[0]);
 				count_maregs_timeout = 0;	count_time_maregs_timeout = 0;		/* Reset these */
-				fprintf(stderr, "Computing prism %d out of %d\n", cntKabas+1, KbGridRows * KbGridCols);
+				fprintf(stderr, "Computing prism %d out of %d (row = %d\tcol = %d)\n",
+				        cntKabas+1, KbGridRows * KbGridCols, row+1, col+1);
 				goto LoopKabas;			/* A LOOP HERE */
 			}
 			err_trap(nc_put_var_string(ncid_Mar, ids_Mar[6], (const char **)binRegions));
@@ -1915,8 +1918,11 @@ LoopKabas:		/* When computing a grid of Kabas we use a GOTO to simulate a loop *
 		else
 			write_maregs_nc(&nest, hcum, maregs_array, maregs_timeout, lcum_p, mareg_names,
 			                history, n_mareg, count_time_maregs_timeout, writeLevel);
+
 		mxFree(maregs_array);
 		mxFree(maregs_timeout);
+		for (k = 0; k < KbGridRows * KbGridCols; k++) free(binRegions[k]);
+		free(binRegions);
 	}
 #endif
 	
@@ -3129,7 +3135,7 @@ void write_most_slice(struct nestContainer *nest, int *ncid, int *ids, unsigned 
 int open_maregs_nc(struct nestContainer *nest, char *fname, float *work, size_t *start, size_t *count,
 	double *t, unsigned int *lcum_p, char *names[], char hist[], int *ids, unsigned int n_maregs,
 	unsigned int n_times, int lev) {
-	/* Save the maregraphs time series in a netCDF file
+	/* Save the maregraphs time series in a netCDF file. This version is for the KabaGrid case.
 	   t        - is the vector of times
 	   work     - array of maregraphs with one per column
 	   n_maregs - number of maregraphs
@@ -3222,7 +3228,7 @@ int open_maregs_nc(struct nestContainer *nest, char *fname, float *work, size_t 
 /* -------------------------------------------------------------------- */
 int write_maregs_nc(struct nestContainer *nest, char *fname, float *work, double *t, unsigned int *lcum_p,
 	char *names[], char hist[], unsigned int n_maregs, unsigned int n_times, int lev) {
-	/* Save the maregraphs time series in a netCDF file
+	/* Save the maregraphs time series in a netCDF file. This version is for the NO Kabas case.
 	   t        - is the vector of times
 	   work     - array of maregraphs with one per column
 	   n_maregs - number of maregraphs
@@ -3785,7 +3791,6 @@ void update(struct nestContainer *nest, int lev) {
  *
  *		Updates fluxm_d and fluxn_d
  * ---------------------------------------------------------------------- */
-
 void moment_M(struct nestContainer *nest, int lev) {
 
 	unsigned int ij;
