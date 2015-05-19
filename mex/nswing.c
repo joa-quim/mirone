@@ -1,7 +1,7 @@
 /*--------------------------------------------------------------------
  *	$Id$
  *
- *	Copyright (c) 2012-2013 by J. Luis and J. M. Miranda
+ *	Copyright (c) 2012-2015 by J. Luis and J. M. Miranda
  *
  * 	This program is part of Mirone and is free software; you can redistribute
  * 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -655,7 +655,7 @@ int main(int argc, char **argv) {
 
 						k -= 2;	/* Decrease k because the decode_R() function expects 2 chars at begining of string (-R...) */
 						error += decode_R(&argv[i][k], &kaba_xmin, &kaba_xmax, &kaba_ymin, &kaba_ymax);
-						out_maregs_nc = TRUE;
+						if (KbGridRows * KbGridCols > 1) out_maregs_nc = TRUE;	/* Otherwise we can still save in ascii */
 					}
 					else {
 						do_Okada = TRUE;
