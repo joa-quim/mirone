@@ -3,7 +3,7 @@ function tintol(handles,axis_t,X,Y,I)
 % Image registration tool. If the master image has coordinates this will work
 % as Image-to-Map rectification, otherwise it works in the Image-to-Image mode.
 
-%	Copyright (c) 2004-2013 by J. Luis
+%	Copyright (c) 2004-2015 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -30,6 +30,8 @@ function tintol(handles,axis_t,X,Y,I)
 % 	h1 = get(handles.File,'Children');
 % 	h2 = setxor(h1,handles.OpenGI);
 % 	delete(h2)
+
+% $Id$
 
 	set(handles.figure1, 'Vis', 'off')
 
@@ -382,11 +384,11 @@ function check_wantMaregs_CB(hObject, handles)
 	if (get(hObject,'Value'))
 		set([handles.edit_MaregraphPosFile handles.push_MaregraphPosFile],'Enable','on')
 		set([handles.edit_MaregraphDataFile handles.push_MaregraphDataFile],'Enable','on')
+		set([handles.edit_cumint handles.text_SveStepTime],'Enable','on')
 	else
-		set(handles.edit_MaregraphPosFile,'String','','Enable','off')
-		set(handles.edit_MaregraphDataFile,'String','','Enable','off')
-		set(handles.push_MaregraphPosFile,'Enable','off')
-		set(handles.push_MaregraphDataFile,'Enable','off')
+		set([handles.edit_MaregraphPosFile handles.push_MaregraphPosFile],'Enable','off')
+		set([handles.edit_MaregraphDataFile handles.push_MaregraphDataFile],'Enable','off')
+		set([handles.edit_cumint handles.text_SveStepTime],'Enable','off')
 	end
 
 %--------------------------------------------------------------------------------
@@ -435,7 +437,7 @@ function edit_MaregraphDataFile_CB(hObject, handles)
 
 %--------------------------------------------------------------------------------
 function push_MaregraphDataFile_CB(hObject, handles, opt)
-	if (nargin == 3)
+	if (nargin == 2)
 		[FileName,PathName] = put_or_get_file(handles, ...
 			{'*.dat;*.DAT;*.xy', 'Maregraph data file (*.dat,*.DAT,*.xy)';'*.*', 'All Files (*.*)'},'Select Maregraph','get');
 		if isequal(FileName,0),		return,		end
@@ -538,7 +540,7 @@ function push_RUN_CB(hObject, handles)
 
 	opt_T = ' ';
 	if (get(handles.check_wantMaregs, 'Val'))
-		opt_T = ['-T,' get(handles.edit_cumint, 'Str') ',' get(handles.edit_MaregraphPosFile,'Str') ...
+		opt_T = ['-T' get(handles.edit_cumint, 'Str') ',' get(handles.edit_MaregraphPosFile,'Str') ...
 			',' get(handles.edit_MaregraphDataFile,'Str')];
 	end
 
