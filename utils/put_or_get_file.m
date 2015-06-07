@@ -6,7 +6,7 @@ function [FileName,PathName,handles] = put_or_get_file(handles,str1,str2,type, e
 % a call to guidata to update HANDLES after the local changes in this function.
 % If that behavior is not desired, remember to call this function with 3 output args.
 
-%	Copyright (c) 2004-2014 by J. Luis
+%	Copyright (c) 2004-2015 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -28,7 +28,7 @@ function [FileName,PathName,handles] = put_or_get_file(handles,str1,str2,type, e
 		cd(handles.last_dir)
 		[FileName,PathName] = uigetfile(str1,str2);
 	elseif (strcmp(type,'put'))
-		cd(handles.last_dir)
+		if (~isempty(handles.last_dir)),	cd(handles.last_dir),	end
 		done = false;
 		if (nargin == 5)				% Last arg may be just the extension, or the complete name
 			[PATH,FNAME] = fileparts(ext);
