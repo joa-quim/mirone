@@ -66,6 +66,7 @@ function hObject = mirone_OpeningFcn(varargin)
 %#function lasreader_mex laszreader_mex escorrega show_manguito travel thresholdit intersections nswing runCB_tintol
 %#function usgs_recent_seismicity
 
+	global gmt_ver;		gmt_ver = 5;
 %  	global home_dir;	home_dir = cd;		fsep = filesep;		% To compile uncomment this and comment next 5 lines
 	global home_dir;	fsep = filesep;
 	if (isempty(home_dir))		% First time call. Find out where we are
@@ -376,7 +377,7 @@ function hObject = mirone_OpeningFcn(varargin)
 		recentFiles(handles,[]);					% Just make the "Recent files" entry available
 	end
 
-	if (handles.hImg)								% If we had something in input, check the coordinates type
+	if (~isempty(handles.hImg))						% If we had something in input, check the coordinates type
 		handles = aux_funs('isProj', guidata(hObject));
 		setAxesDefCoordIn(handles,1);
 	end
@@ -1110,14 +1111,13 @@ function FileSaveGMTgrid_CB(handles, opt)
 	if isequal(FileName,0),		return,		end
 	f_name = [PathName FileName];
 
-	set(handles.figure1,'pointer','watch'),		pause(0.01)
 	if (~isempty(opt) && strcmp(opt,'Surfer'))
 		fid = fopen(f_name, 'wb');		fwrite(fid,'DSBB','char');
 		fwrite(fid,[size(Z,2) size(Z,1)],'int16');		fwrite(fid,head(1:6),'double');
 		if (~isa(Z,'single')),			Z = single(Z);	end
 		if (handles.have_nans),			Z(isnan(Z)) = 1.701410e38;		end
 		fwrite(fid,Z','float32');		fclose(fid);
-		set(handles.figure1,'pointer','arrow'),		return
+		return
 	end
 
 	if (isappdata(handles.axes1,'DatumProjInfo'))		% If it was a grid imported by gdal, uppdate the title
@@ -1128,7 +1128,7 @@ function FileSaveGMTgrid_CB(handles, opt)
 	% Defaults and srsWKT fishing are set in nc_io
 	misc = struct('x_units',[],'y_units',[],'z_units',[],'z_name',[],'desc',[], ...
 		'title',tit,'history',[],'srsWKT',[], 'strPROJ4',[]);
-	nc_io(f_name, 'w', handles, Z, misc), 		set(handles.figure1,'pointer','arrow')
+	nc_io(f_name, 'w', handles, Z, misc)
 
 % --------------------------------------------------------------------
 function File_img2GMT_RGBgrids_CB(handles, opt1, opt2)
@@ -1763,11 +1763,12 @@ function loadGRID(handles, fullname, tipo, opt)
 % OPT	-> the "att" attributes structure got from att = gdalread(fname,'-M',...)
  
 	if (nargin == 3),	opt = ' ';	end
-	set(handles.figure1,'pointer','watch')
 	[Z, X, Y, srsWKT, handles, att] = read_grid(handles, fullname, tipo, opt);
-	if (isempty(Z)),	set(handles.figure1,'pointer','arrow'),		return,		end
-	pato = fileparts(fullname);
-	handles.last_dir = pato;
+	if (isempty(Z)),	return,		end
+	if (~isempty(fullname))
+		pato = fileparts(fullname);
+		handles.last_dir = pato;
+	end
 
 	if (~isempty(att) && ~isempty(att.GCPvalues))					% Save GCPs so that we can plot them and warp the image
 		setappdata(handles.figure1,'GCPregImage',att.GCPvalues)
@@ -4517,8 +4518,8 @@ function line_levelling(handles)
 	[X,Y,Z] = load_grd(handles);			% load the grid array here
 	if isempty(Z),		return,		end		% An error message was already issued
 	opt_N = '-Nr6';							% Fit a quadratic surface
-	newZ = grdtrend_m(Z,handles.head,'-T',opt_N);
-	newZ = grdtrend_m(newZ,handles.head,'-D','-N3');
+	newZ = grdtrend(Z,handles.head,'-T',opt_N);
+	newZ = grdtrend(newZ,handles.head,'-D','-N3');
 	aux_funs('StoreZ',handles,X,Y,newZ)		% Need to do this because ExtractProfile_CB() will get the grid from there
 	[lix,FileName,EXT] = fileparts(FileName);
 	fid = fopen([pato FileName '_leveled' EXT],'wt');
@@ -4579,6 +4580,16 @@ function TransferB_CB(handles, opt, opt2)
 			tmp = handles.head(5);	handles.head(5) = handles.head(6);	handles.head(6) = tmp;
 		end
 		tmp = struct('X',X, 'Y',Y, 'head',head, 'geog',handles.geog, 'name','Scaled grid');
+		projWKT = getappdata(handles.figure1,'ProjWKT');
+		if (~isempty(projWKT)),		tmp.srsWKT = projWKT;	end
+		mirone(Z, tmp)
+
+	elseif (strcmp(opt,'sinks'))				% Fill sinks
+		[X,Y,Z] = load_grd(handles);			% load the grid array here
+		if isempty(Z),		return,		end
+		Z = img_fun('imfill', Z, 'holes');
+		head = [handles.head(1:4) min(Z(:)) handles.head(6) handles.head(7:end)];
+		tmp = struct('X',X, 'Y',Y, 'head',head, 'geog',handles.geog, 'name','Sinks filled grid');
 		projWKT = getappdata(handles.figure1,'ProjWKT');
 		if (~isempty(projWKT)),		tmp.srsWKT = projWKT;	end
 		mirone(Z, tmp)
