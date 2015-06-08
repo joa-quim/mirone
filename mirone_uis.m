@@ -700,6 +700,7 @@ uimenu('Parent',h2,'Call','mirone(''GridToolsSlope_CB'',guidata(gcbo),''aspect''
 h = uimenu('Parent',h2,'Label','Directional derivative');
 uimenu('Parent',h,'Call','mirone(''GridToolsDirDerive_CB'',guidata(gcbo),''first'')','Label','First derivative');
 uimenu('Parent',h,'Call','mirone(''GridToolsDirDerive_CB'',guidata(gcbo),''second'')','Label','Second derivative');
+uimenu('Parent',h2,'Call','mirone(''TransferB_CB'',guidata(gcbo),''sinks'')','Label','Fill sinks');
 uimenu('Parent',h2,'Call','mirone(''TransferB_CB'',guidata(gcbo),''Multiscale'')','Label','Multi-scale Analysis');
 
 % h = uimenu('Parent',hGT,'Label','River Tools','Sep','on');
@@ -743,7 +744,7 @@ if (IamCompiled)
 end
 uimenu('Parent',h, 'Call',['mirone(''FileOpenWebImage_CB'',guidata(gcbo),',...
 	' ''http://www2.clustrmaps.com/stats/maps-clusters/w3.ualg.pt-~jluis-mirone-world.jpg'',''nikles'');'],'Label','See visitors map','Sep','on');
-uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 21 Apr 2015'',''2.6.0dev'')','Label','About','Sep','on');
+uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 8 Jun 2015'',''2.6.0dev'')','Label','About','Sep','on');
 
 %% --------------------------- Build HANDLES and finish things here
 	handles = guihandles(H1);
