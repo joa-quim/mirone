@@ -624,7 +624,11 @@ if (isstruct(in1) && ~isempty(in1.textdata))	% We have at least one string colum
         else
             [m,n] = size(in1.textdata);
             %numeric_data = reshape(str2num(cat(1,in1.textdata{:,1:n-1})),m,n-1);    % Fds this was tough
-			numeric_data = str2double(in1.textdata(:,1:n-1));
+			if (n == 1)			% Need to do this test because str2double in R13 is bugged
+				numeric_data = [];
+			else
+				numeric_data = str2double(in1.textdata(:,1:n-1));
+			end
             in1.textdata(:,1:end-1) = [];     % retain only the data string in this variable
             str_col = n;            % Keep trace on the string column number
 		end
