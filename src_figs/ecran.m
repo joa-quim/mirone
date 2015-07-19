@@ -422,7 +422,7 @@ function dynSlope_CB(obj, eventdata)
 			contents = get(handles.popup_selectPlot, 'Str');
 			km_or_M = contents{(get(handles.popup_selectPlot,'Val'))}(end-1);
 			if (km_or_M == 'm'),			xFact = 1000;	% km
-			elseif (km_or_M == 'M')			xFact = 1852;	% NM
+			elseif (km_or_M == 'M'),		xFact = 1852;	% NM
 			end
 		end
 	end
@@ -470,11 +470,11 @@ function wbm_dynSlope(obj,eventdata, x0, I0, hAxes, hLine, hULine, hFLine, hTxt,
 	X = get(hLine,'XData');       Y = get(hLine,'YData');
 
 	[temp,i] = min(abs(X - pt(1)));
-	if (i < I0)			ii = I0;			I0 = i;		i = ii;		end		% Dragging right to left
+	if (i < I0),		ii = I0;			I0 = i;		i = ii;		end		% Dragging right to left
 	xx = X(I0:i);		yy = Y(I0:i);		xy = [xx(:) yy(:)];
 	N = numel(xx);
-	if (N > 2)				mb = trend1d_m(xy, '-N2r', '-L');			% Do robust fit
-	elseif (N == 2)			mb = trend1d_m(xy, '-N2', '-L');
+	if (N > 2),				mb = trend1d_m(xy, '-N2r', '-L');			% Do robust fit
+	elseif (N == 2),		mb = trend1d_m(xy, '-N2', '-L');
 	else					return			% First point. Too soon to do anything
 	end
 	if (~SpectorGrant)
@@ -492,7 +492,7 @@ function wbm_dynSlope(obj,eventdata, x0, I0, hAxes, hLine, hULine, hFLine, hTxt,
 function wbu_dynSlope(obj,event, h, xFact, SpectorGrant, state)
     uirestore_j(state, 'nochildren');				% Restore the figure's initial state
 	mb_e_slp = get(h(end), 'UserData');
-	if (isempty(mb_e_slp))		return,		end		% Happens when a single click on fig
+	if (isempty(mb_e_slp)),		return,		end		% Happens when a single click on fig
 	cmenuHand = uicontextmenu('Parent',state.figureHandle);
 	set(h(end), 'UIContextMenu', cmenuHand);
 	if (SpectorGrant)
@@ -565,7 +565,7 @@ function do_bandFilter(obj,event, h, xFact)
 	warndlg('Not finished. Not working correctly. Not Not.','Warning')
 	
 	out = bandpass(get(h, 'XData') / xFact);
-	if (isempty(out))	return,		end
+	if (isempty(out)),	return,		end
 
 	handMir = guidata(handles.hMirFig);			% We need to fish on the original Mir fig
 	[X,Y,in.Z,in.head] = load_grd(handMir);
@@ -1509,7 +1509,7 @@ function edit_startAge_CB(hObject, handles)
 % --------------------------------------------------------------------
 function edit_ageEnd_CB(hObject, handles)
 	xx = str2double(get(hObject,'String'));
-	if (isnan(xx))		set(hObject,'String',''),	end
+	if (isnan(xx)),		set(hObject,'String',''),	end
 	handles.ageEnd = xx;
 	guidata(handles.figure1, handles)
 
@@ -2190,7 +2190,7 @@ function [x,win,noverlap,k,L,nfft] = welchparse(x,varargin)
 	x = x(:);
 	if (numel(varargin) >= 1)
 		win = varargin{1};
-		if (numel(varargin) >= 2)	noverlap = varargin{2};		end
+		if (numel(varargin) >= 2),	noverlap = varargin{2};		end
 	end
 
 	[L,noverlap,win] = segment_info(M,win,noverlap);	% Get the necessary info to segment x.
@@ -2278,10 +2278,10 @@ function [P,f] = periodogram(x,win,nfft)
 
 	% Determine if Npts is odd.
 	isNPTSodd = false;
-	if rem(nfft,2)		isNPTSodd = true;	end
+	if rem(nfft,2),		isNPTSodd = true;	end
 
 	% Determine half the number of points.
-	if (isNPTSodd)	halfNPTS = (nfft+1)/2;  % ODD
+	if (isNPTSodd),	halfNPTS = (nfft+1)/2;  % ODD
 	else			halfNPTS = (nfft/2)+1;  % EVEN
 	end
 
@@ -2298,7 +2298,7 @@ function [P,f] = periodogram(x,win,nfft)
 function w = hamming(n)
 % w = (54 - 46*cos(2*pi*(0:m-1)'/(n-1)))/100;
 
-	if ~rem(n,2)	half = n/2;			last = 0;
+	if ~rem(n,2),	half = n/2;			last = 0;
 	else			half = (n+1)/2;		last = 1;
 	end
 	x = (0:half-1)'/(n-1);
@@ -3102,11 +3102,11 @@ function pushBP_OK_CB(hObject, handles)
 	HP = str2double(get(handles.edit_HP,'Str'));
 	
 	msg = '';
-	if (LC > LP)		msg = 'Low cut cannot be higher than Low pass';
-	elseif (HC > HP)	msg = 'High cut cannot be higher than High pass';
-	elseif (LP > HC)	msg = 'Low pass cannot be higher than High cut';
+	if (LC > LP),		msg = 'Low cut cannot be higher than Low pass';
+	elseif (HC > HP),	msg = 'High cut cannot be higher than High pass';
+	elseif (LP > HC),	msg = 'Low pass cannot be higher than High cut';
 	end
-	if (~isempty(msg))	errordlg(msg, 'Error'),		return,		end
+	if (~isempty(msg)),	errordlg(msg, 'Error'),		return,		end
 	
 	if (get(handles.radio_wave, 'Val'))
 		%handles.output = [LC LP HC HP];
