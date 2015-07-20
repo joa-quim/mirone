@@ -153,7 +153,7 @@ switch option
 		end
 
 		set(hFig, 'Vis', 'on')
-		if (nargout)	handFig = hFig;		end
+		if (nargout),	handFig = hFig;		end
 
     case 'add'
 		hTxt = findobj(hFig,'Style','Text');
@@ -185,7 +185,7 @@ switch option
 			slid_val = scal - (extent(4) - 1);
 			set(hSlider,'Value',slid_val)
 		end
-		if (nargout)	handFig = hFig;		end
+		if (nargout),	handFig = hFig;		end
 
 		drawnow
 
@@ -304,7 +304,7 @@ function set_slider(hFig, hTxt, posTxt, scal)
 	pos = get(hFig, 'Pos');
 	sliderW = 15 / pos(3);			% Make the slider 15 pixels wide
 	pos = [1-sliderW 0 sliderW 1];
-	if (scal > 1)	scal = scal - 1;	end
+	if (scal > 1),	scal = scal - 1;	end
 	cb_slide_step = {@slide_step, hTxt, posTxt};
 	uicontrol(hFig,'style','slider','unit','normalized','pos',pos,...
         'call',cb_slide_step,'min',0,'max',scal,'Value',scal);
