@@ -4,7 +4,10 @@ function [cmap, range] = c_cpt2cmap(fname, varargin)
 % $Id$
 
 	global gmt_ver
+	if (isempty(gmt_ver)),		gmt_ver = 4;	end		% For example, if calls do not come via mirone.m
 	
+	if (strcmp(fname(1:2), '-C')),	fname = fname(3:end);	end		% Strip the -C from name. It should only be added here
+
 	if (gmt_ver == 4)
 		if (nargout == 1)
 			cmap = cpt2cmap(['-C' fname], varargin{:});
