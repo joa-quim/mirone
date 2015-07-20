@@ -4,6 +4,7 @@ function info = c_grdinfo(fname, opt)
 % $Id$
 
 	global gmt_ver
+	if (isempty(gmt_ver)),		gmt_ver = 4;	end		% For example, if calls do not come via mirone.m
 	
 	if (gmt_ver == 4)
 		info = grdinfo_m(fname, opt);

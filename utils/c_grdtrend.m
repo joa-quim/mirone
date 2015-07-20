@@ -4,6 +4,7 @@ function Zout = c_grdtrend(Zin, head, varargin)
 % $Id$
 
 	global gmt_ver
+	if (isempty(gmt_ver)),		gmt_ver = 4;	end		% For example, if calls do not come via mirone.m
 	
 	if (gmt_ver == 4)
 		Zout = grdtrend_m(Zin, head, varargin{:});
