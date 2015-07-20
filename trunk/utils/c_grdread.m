@@ -4,6 +4,7 @@ function [X, Y, Z, head] = c_grdread(fname, varargin)
 % $Id$
 
 	global gmt_ver
+	if (isempty(gmt_ver)),		gmt_ver = 4;	end		% For example, if calls do not come via mirone.m
 	
 	if (gmt_ver == 4)
 		[X, Y, Z, head] = grdread_m(fname, 'single', varargin{:});

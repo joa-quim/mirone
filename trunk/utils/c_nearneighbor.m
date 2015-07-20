@@ -6,6 +6,7 @@ function [out, hdr] = c_nearneighbor(data, varargin)
 % $Id$
 
 	global gmt_ver
+	if (isempty(gmt_ver)),		gmt_ver = 4;	end		% For example, if calls do not come via mirone.m
 	
 	if (gmt_ver == 4)
 		[out, hdr] = nearneighbor_m(data, varargin{:});
