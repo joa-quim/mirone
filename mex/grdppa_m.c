@@ -53,7 +53,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	int is_double = FALSE, is_single = FALSE, is_int32 = FALSE, is_int16 = FALSE;
 	int is_uint16 = FALSE;
 	int	argc = 0, n_arg_no_char = 0, nc_h, nr_h, i2, *i_4;
-        int	i, j, k, n, ic, nx, ny,  mx;
+	int	i, j, k, n, ic, nx, ny,  mx;
 	int	nx_new, ny_new, one_or_zero, ndatac, p_alloc, bytes_to_copy;
 	short int *i_2;
 	unsigned short int *ui_2;
@@ -86,13 +86,13 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		argc = GMT_short_begin (argc, argv);*/
 	argc = GMT_begin (argc, argv);
 
-        for (i = 1; !error && i < argc; i++) {
-                if (argv[i][0] == '-') {
-                        switch (argv[i][1]) {
+	for (i = 1; !error && i < argc; i++) {
+		if (argv[i][0] == '-') {
+			switch (argv[i][1]) {
 				case 'R':
-                                case '\0':
-					error += GMT_get_common_args (argv[i], &w_new, &e_new, &s_new, &n_new);
-                                        break;
+				case '\0':
+					error += GMT_get_common_args(argv[i], &w_new, &e_new, &s_new, &n_new);
+					break;
 				case 'L':
 					sscanf (&argv[i][2], "%d", &ib);
 					break;
@@ -103,14 +103,14 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 					verbose = TRUE;
 					break;
 				default:
-                                        error = TRUE;
+					error = TRUE;
 					GMT_default_error (argv[i][1]);
-                                        break;
-                        }
-                }
-                else
-                        infile = argv[i];
-        }
+					break;
+			}
+		}
+		else
+			infile = argv[i];
+	}
 
 	if (n_arg_no_char < 2 || error) {
 		mexPrintf ("grdppa - automatic extraction of ridge or valley axes\n\n");
@@ -188,26 +188,26 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		
 	if ( !global && ((w_new < h.x_min) || (e_new > h.x_max)) ) error = TRUE;
 	if (error) {
-		mexPrintf ("%s: Subset exceeds data domain!\n", GMT_program);
+		mexPrintf ("grdppa: Subset exceeds data domain!\n");
 		return;
 	}
 
 	/* Check if new wesn differs from old wesn by integer dx/dy */
 
 	if (GMT_minmaxinc_verify (h.x_min, w_new, h.x_inc, GMT_SMALL) == 1) {
-		mexPrintf ("%s: Old and new x_min do not differ by N * dx\n", GMT_program);
+		mexPrintf ("grdppa: Old and new x_min do not differ by N * dx\n");
 		return;
 	}
 	if (GMT_minmaxinc_verify (e_new, h.x_max, h.x_inc, GMT_SMALL) == 1) {
-		mexPrintf ("%s: Old and new x_max do not differ by N * dx\n", GMT_program);
+		mexPrintf ("grdppa: Old and new x_max do not differ by N * dx\n");
 		return;
 	}
 	if (GMT_minmaxinc_verify (h.y_min, s_new, h.y_inc, GMT_SMALL) == 1) {
-		mexPrintf ("%s: Old and new y_min do not differ by N * dy\n", GMT_program);
+		mexPrintf ("grdppa: Old and new y_min do not differ by N * dy\n");
 		return;
 	}
 	if (GMT_minmaxinc_verify (n_new, h.y_max, h.y_inc, GMT_SMALL) == 1) {
-		mexPrintf ("%s: Old and new y_max do not differ by N * dy\n", GMT_program);
+		mexPrintf ("grdppa: Old and new y_max do not differ by N * dy\n");
 		return;
 	}
 	
@@ -241,7 +241,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	nx_new = irint ((e_new - w_new) / h.x_inc) + one_or_zero;
 	ny_new = irint ((n_new - s_new) / h.y_inc) + one_or_zero;
 	
-        ndatac = (nx_new + 2) * (ny_new + 2);
+	ndatac = (nx_new + 2) * (ny_new + 2);
 	n_rows = ny_new + 2;		n_cols = nx_new + 2;
 	x_inc = (float)h.x_inc;		y_inc = (float)h.y_inc;
 	x_min = (float)w_new;		y_min = (float)s_new;
