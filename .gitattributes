@@ -506,6 +506,18 @@ src_figs/yes_or_no.m -text
 /startup.m -text
 /uigetfolder_standalone.m -text
 utils/InOut2WS.m -text
+utils/_cpt2cmap.m -text
+utils/_grdfilter.m -text
+utils/_grdinfo.m -text
+utils/_grdlandmask.m -text
+utils/_grdproject.m -text
+utils/_grdread.m -text
+utils/_grdsample.m -text
+utils/_grdtrend.m -text
+utils/_mapproject.m -text
+utils/_nearneighbor.m -text
+utils/_shoredump.m -text
+utils/_surface.m -text
 utils/abifile.p -text
 utils/add_poles.m -text
 utils/addframe_j.p -text
@@ -551,6 +563,7 @@ utils/draw_funs.m -text
 utils/edit_line.m -text
 utils/edit_track_mb.m -text
 utils/fancyFrame.m -text
+utils/fill_grid_struct.m -text
 utils/filter_butter.p -text
 utils/filter_funs.m -text
 utils/findcell.m -text
