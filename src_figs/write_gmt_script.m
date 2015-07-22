@@ -1,7 +1,7 @@
 function varargout = write_gmt_script(varargin)
 % Helper window to generate a GMT script that reproduces the Mirone's figure contents
 
-%	Copyright (c) 2004-2012 by J. Luis
+%	Copyright (c) 2004-2015 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -481,7 +481,7 @@ function push_uppdate_CB(hObject, handles)
 	in = [handles.x_min handles.y_min; handles.x_min handles.y_max; handles.x_max handles.y_max; handles.x_max handles.y_min];
 	try
 		opt_R = sprintf('-R%.12g/%.12g/%.12g/%.12g', handles.x_min, handles.x_max, handles.y_min, handles.y_max);
-		out = mapproject_m(in,opt_R,opt_J,['-D' handles.which_unit(1)]);
+		out = c_mapproject(in,opt_R,opt_J,['-D' handles.which_unit(1)]);
 	catch
 		return
 	end
@@ -513,8 +513,8 @@ xf = linspace(handles.x_min,handles.x_max,n)';
 yf = linspace(handles.y_min,handles.y_max,n)';
 in = [repmat(xf(1),n,1) yf; xf(2:end) repmat(yf(end),n-1,1); repmat(xf(end),n-1,1) yf(end-1:-1:1); ...
         xf(end:-1:1) repmat(yf(1),n,1)];
-%out_f = mapproject_m(in,opt_R,'-C','-F',[handles.opt_J_no_scale '/' handles.scale handles.which_unit(1)]);
-out_f = mapproject_m(in,opt_R,opt_J,['-D' handles.which_unit(1)]);
+%out_f = c_mapproject(in,opt_R,'-C','-F',[handles.opt_J_no_scale '/' handles.scale handles.which_unit(1)]);
+out_f = c_mapproject(in,opt_R,opt_J,['-D' handles.which_unit(1)]);
 new_x = xx(1) + out_f(:,1);
 new_y = yy(1) + out_f(:,2);
 
@@ -538,7 +538,7 @@ if (~handles.scale_set)     % If user changed scale, don't compute it here
 	opt_R = sprintf('-R%f/%f/%f/%f', xm-2, xm+2, ym-2, ym+2);
 	in = [handles.x_min handles.y_min; handles.x_min handles.y_max; handles.x_max handles.y_max; handles.x_max handles.y_min];
 	opt_J = [handles.opt_J_no_scale '/1'];
-	out = mapproject_m(in,opt_R,'-C','-F',opt_J);
+	out = c_mapproject(in,opt_R,'-C','-F',opt_J);
 	dx_prj = out(4,1) - out(1,1);   % It's in projected meters
 	dy_prj = out(2,2) - out(1,2);   % It's in projected meters
 	dx_rect = xx(4) - xx(1);        % Is in "cm", "in" or "pt". So convert to "cm"
@@ -644,7 +644,7 @@ function edit_scale_CB(hObject, handles)
 	in = [handles.x_min handles.y_min; handles.x_min handles.y_max; handles.x_max handles.y_max; handles.x_max handles.y_min];
 	try
 		opt_R = sprintf('-R%.6f/%.6f/%.6f/%.6f', handles.x_min, handles.x_max, handles.y_min, handles.y_max);
-		out = mapproject_m(in,opt_R,opt_J,['-D' handles.which_unit(1)]);
+		out = c_mapproject(in,opt_R,opt_J,['-D' handles.which_unit(1)]);
 	catch
 		return
 	end

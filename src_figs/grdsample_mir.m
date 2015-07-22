@@ -1,7 +1,7 @@
 function varargout = grdsample_mir(varargin)
 % Helper window to interface with grdsample MEX 
 
-%	Copyright (c) 2004-2013 by J. Luis
+%	Copyright (c) 2004-2015 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -196,7 +196,7 @@ function push_OK_CB(hObject, handles)
 	end
 
 	set(handles.figure1,'pointer','watch');	    set(handles.hMirFig,'pointer','watch')
-	newZ = grdsample_m(handles.Z, handles.head, opt_R, opt_N, opt_Q, opt_L);
+	newZ = c_grdsample(handles.Z, handles.head, opt_R, opt_N, opt_Q, opt_L);
 	zMinMax = grdutils(newZ,'-L');	    [ny,nx] = size(newZ);
 	set(handles.figure1,'pointer','arrow');	    set(handles.hMirFig,'pointer','arrow')
     new_head = [handles.head(1:4) zMinMax(1:2)' handles.head(7)];
