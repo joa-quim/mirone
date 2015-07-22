@@ -1,19 +1,45 @@
 function  test_bots(opt,varargin)
 
-if (nargin)
-	switch opt
-		case 'Illum'
-			test_Illum
-		case 'xyz'
-			test_xyz
-		case 'writeascii'
-			writeascii
+	global gmt_ver;		gmt_ver = 5;
+
+	if (nargin)
+		switch opt
+			case 'Illum'
+				test_Illum
+			case 'xyz'
+				test_xyz
+			case 'writeascii'
+				writeascii
+			case 'loadPall'
+				loadPall
+			case 'grdfilter'
+				grdfilter
+			case 'grdinfo'
+				grdinfo
+			case 'grdlandmask'
+				grdlandmask
+			case 'grdsample'
+				grdsample
+			case 'grdtrend'
+				grdtrend
+			case 'grdread'
+				grdread
+			case 'coasts'
+				coasts
+		end
+	else
+		test_Illum
+		test_xyz
+		writeascii
+		loadPall
+		grdfilter
+		grdinfo
+		grdlandmask
+		grdsample
+		grdtrend
+		grdread
+		coasts
 	end
-else
-	test_Illum
-	test_xyz
-	writeascii
-end
 
 % -----------------
 function test_Illum
@@ -125,4 +151,84 @@ function writeascii
 	if (~isequal(zzz{1}, xyz) && ~isequal(zzz{2}, xyz)),		disp('FAIL: With NaNs and multiseg'),	end
 
 	builtin('delete',fname);
+
+% ----------------------------
+function loadPall
+% Load a GMT cpt file
+	% Note, if use mola.cpt in 5.2 we get a crash. INVESTIGATE IT
+	color_palettes('C:\progs_cygw\GMTdev\gmt4\share\cpt\GMT_ocean.cpt');	% Should be a file in a test dir
+	pause(0.2)
+	delete(findobj('type','figure','Name','Color Palettes'))
+
+% ----------------------------
+function grdfilter
+% ...
+	h = mirone('swath_grid.grd');
+	handles = guidata(h);
+	[X,Y,Z,head] = load_grd(handles);
+	hf = grdfilter_mir(handles);
+	Z = c_grdfilter(Z, head, '-Fb20k', '-D1');	%#ok
+	pause(0.3);		delete(h);		delete(hf)
+
+% ----------------------------
+function grdinfo
+% ...
+	fname = 'swath_grid.grd';
+	h = mirone(fname);
+	grid_info(guidata(h))
+	showBak = get(0,'ShowHiddenHandles');
+	set(0,'ShowHiddenHandles','on');
+	hFig = findobj(get(0,'Children'),'flat', 'tag','Wdmsgfig');
+	pause(0.3);
+	delete([hFig h])
+	set(0,'ShowHiddenHandles',showBak);
+
+% ----------------------------
+function grdlandmask
+% ...
+	h = grdlandmask_win;
+	[mask,head,X,Y] = c_grdlandmask('-R-180/180/-90/90', '-I0.5/0.5'); %#ok
+	pause(0.3);		delete(h);
+
+% ----------------------------
+function grdsample
+% ...
+	h = mirone('swath_grid.grd');
+	handles = guidata(h);
+	[X,Y,Z,head] = load_grd(handles);
+	hf = grdsample_mir(handles);
+	Z = c_grdsample(Z, head, '-N191/131');	%#ok
+	pause(0.3);		delete(h);		delete(hf)
+
+% ----------------------------
+function grdtrend
+% ...
+	h = mirone('swath_grid.grd');
+	handles = guidata(h);
+	[X,Y,Z,head] = load_grd(handles);
+	hf = grdtrend_mir(handles);
+	Z = c_grdtrend(Z, head, '-T', '-N3');	%#ok
+	pause(0.3);		delete(h);		delete(hf)
+
+% ----------------------------
+function grdread
+% ...
+	fname = 'swath_grid.grd';
+	[X, Y, Z, head] = c_grdread(fname,'single');	%#ok
+	h = mirone(Z);
+	pause(0.3);		delete(h);
+
+% ----------------------------
+function coasts
+% ...
+	opt_res = '-Di';	opt_N = '-Na';		opt_I = '-Ia';
+	opt_R = '-R-10/10/30/50';
+	coast = c_shoredump(opt_R,opt_res,'-A1/1/1');
+	boundaries = c_shoredump(opt_R,opt_N,opt_res);
+	rivers = c_shoredump(opt_R,opt_I,opt_res);
+	h = figure; hold on
+	plot(coast(1,:), coast(2,:))
+	plot(boundaries(1,:), boundaries(2,:))
+	plot(rivers(1,:), rivers(2,:))
+	%pause(0.5);		delete(h);
 
