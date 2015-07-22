@@ -1,7 +1,7 @@
 function varargout = microlev(varargin)
 % Helper window to perform microlleveling filter on magnetic grids
 
-%	Copyright (c) 2004-2012 by J. Luis
+%	Copyright (c) 2004-2015 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -166,9 +166,9 @@ function push_applyStep1_CB(hObject, handles)
 
 	set(handles.figure1,'pointer','watch')
 	if (~handles.gotROI)
-		[handles.Z_filt, head] = grdfilter_m(handles.Z,handles.head,opt_F,opt_D);
+		[handles.Z_filt, head] = c_grdfilter(handles.Z,handles.head,opt_F,opt_D);
 	else
-		[handles.Z_filt, head] = grdfilter_m(handles.Z_rect,handles.head,opt_F,opt_D);
+		[handles.Z_filt, head] = c_grdfilter(handles.Z_rect,handles.head,opt_F,opt_D);
 	end
 	update_report(handles, 1)		% Update the listbox info
 	set(handles.figure1,'pointer','arrow')

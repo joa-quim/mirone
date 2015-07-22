@@ -2,7 +2,7 @@ function varargout = escadeirar(varargin)
 % Interface figure to create grids that have constant values in the nodes between contours
 % That is as if they were rice fields on mountain areas.
 %
-%	Copyright (c) 2004-2012 by J. Luis
+%	Copyright (c) 2004-2015 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -16,6 +16,8 @@ function varargout = escadeirar(varargin)
 %
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
+
+% $Id$
 
 	if isempty(varargin)
 		errordlg('Escadeirar: wrong number of input arguments.','Error'),	return
@@ -178,7 +180,7 @@ function push_file_CB(hObject, handles, opt)
 
 	[PATH,FNAME,EXT] = fileparts(fname);
 	if (strcmpi(EXT,'.cpt'))
-		[cmap,z_intervals] = cpt2cmap(['-C' fname]);
+		[cmap,z_intervals] = c_cpt2cmap(['-C' fname]);
 		z_intervals = [z_intervals(:,1); z_intervals(end)];			% It was a 2 column array
 		if (z_intervals(1) == 0 && z_intervals(end) == 1 )			% A master palette
 			stairs = handles.head(5) + z_intervals * (handles.head(6) - handles.head(5));

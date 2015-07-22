@@ -132,7 +132,7 @@ function push_OK_CB(hObject, handles)
 	opt_N = sprintf('%s%s', opt_N, str{val});
 
 	set(handles.figure1,'pointer','watch');     set(handles.hMirFig,'pointer','watch')
-	newZ = grdtrend_m(handles.Z,handles.head,opt_what,opt_N);
+	newZ = c_grdtrend(handles.Z,handles.head,opt_what,opt_N);
 	if (handles.have_nans && opt_what(2) == 'T' && get(handles.check_NaNs, 'Val'))
 		newZ(isnan(handles.Z)) = nan;		% Reset the NaNs where they belong
 	end

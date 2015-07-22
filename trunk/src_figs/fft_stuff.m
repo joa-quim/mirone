@@ -1,7 +1,7 @@
 function varargout = fft_stuff(varargin)
 % Helper window to do FFT operations 
 
-%	Copyright (c) 2004-2012 by J. Luis
+%	Copyright (c) 2004-2015 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -15,6 +15,8 @@ function varargout = fft_stuff(varargin)
 %
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
+
+% $Id: $
 
 	hObject = figure('Tag','figure1','Visible','off');
 	fft_stuff_LayoutFcn(hObject);
@@ -40,7 +42,7 @@ function varargout = fft_stuff(varargin)
 			handles.geog = varargin{1}.geog;
 			mode = varargin{1}.mode;
 			handles.bandpass = varargin{1}.bandpass;	% FREQUENCY in 1/m
-			if (isfield(varargin{1},'hMirFig'))		handles.hMirFig = varargin{1}.hMirFig;		end % MANDATORY
+			if (isfield(varargin{1},'hMirFig')),	handles.hMirFig = varargin{1}.hMirFig;	end % MANDATORY
 		end
 		if (strcmp(mode,'Allopts')),	grid_in_continue = 1;	end     % "Slow mode" show all options in this figure
 		[handles.orig_nrows,handles.orig_ncols] = size(handles.Z1);
@@ -160,7 +162,7 @@ function edit_Grid1_CB(hObject, handles)
 
 % -------------------------------------------------------------------------------------------------
 function push_Grid1_CB(hObject, handles, opt)
-	if (nargin == 3)	fname = opt;
+	if (nargin == 3),	fname = opt;
 	else				opt = [];
 	end
 
@@ -251,7 +253,7 @@ function edit_Grid2_CB(hObject, handles)
 
 % -------------------------------------------------------------------------------------------------
 function push_Grid2_CB(hObject, handles, opt)
-	if (nargin == 3)	fname = opt;
+	if (nargin == 3),	fname = opt;
 	else				opt = [];
 	end
 
@@ -365,7 +367,7 @@ function push_radialPowerAverage_CB(hObject, handles)
 % in the other dimension; that is, an approximation of the integral.
 %   ORIGINAL TEXT FROM WALTER SMITH IN GRDFFT
 
-	if (isempty(handles.Z1))	errordlg('No grid loaded yet.','Error'),	return,		end
+	if (isempty(handles.Z1)),	errordlg('No grid loaded yet.','Error'),	return,		end
 
 	nx2 = handles.new_nx;		ny2 = handles.new_ny;
 	delta_kx = 2*pi / (nx2 * handles.scaled_dx);
@@ -377,9 +379,9 @@ function push_radialPowerAverage_CB(hObject, handles)
 	end
 	r_delta_k = 1 / delta_k;
 	set(handles.figure1,'pointer','watch')
-	if (~isa(handles.Z1, 'double'))		handles.Z1 = double(handles.Z1);	end
+	if (~isa(handles.Z1, 'double')),	handles.Z1 = double(handles.Z1);	end
 	if (get(handles.checkbox_leaveTrend,'Value'))       % Remove trend
-		handles.Z1 = grdtrend_m(handles.Z1, handles.head_Z1, '-D', '-N3');
+		handles.Z1 = c_grdtrend(handles.Z1, handles.head_Z1, '-D', '-N3');
 	end
 	[Z,band,modk] = wavenumber_and_mboard(handles);
 	ifreq = round(modk * r_delta_k) + 1;     clear modk;
@@ -392,7 +394,7 @@ function push_radialPowerAverage_CB(hObject, handles)
 	n_used = 0;
 	for (m=1:ny2)
 		for(n=1:nx2)
-			if (ifreq(m,n) > nk1)		continue,		end		% Might happen when doing r spectrum
+			if (ifreq(m,n) > nk1),		continue,		end		% Might happen when doing r spectrum
 			power(ifreq(m,n)) = power(ifreq(m,n)) + Z(m,n);
 			n_used = n_used + 1;
 		end
@@ -411,8 +413,8 @@ function push_radialPowerAverage_CB(hObject, handles)
 		x_label = 'Frequency (1/m)';
 	end
 
-	if (~isempty(handles.hMirFig))			arg1 = handles.hMirFig;
-	else									arg1 = 'reuse';
+	if (~isempty(handles.hMirFig)),		arg1 = handles.hMirFig;
+	else								arg1 = 'reuse';
 	end
 
 	set(handles.figure1,'pointer','arrow')
@@ -442,9 +444,9 @@ function push_integrate_CB(hObject, handles, opt)
 		scale = 980619.9203;    % Moritz's 1980 IGF value for gravity in mGal at 45 degrees latit
 	end
 	set(handles.figure1,'pointer','watch')
-	if (~isa(handles.Z1, 'double'))		handles.Z1 = double(handles.Z1);	end
+	if (~isa(handles.Z1, 'double')),	handles.Z1 = double(handles.Z1);	end
 	if (get(handles.checkbox_leaveTrend,'Value'))       % Remove trend
-		handles.Z1 = grdtrend_m(handles.Z1,handles.head_Z1,'-D','-N3');
+		handles.Z1 = c_grdtrend(handles.Z1,handles.head_Z1,'-D','-N3');
 	end
 	[Z,band,k] = wavenumber_and_mboard(handles);
 	k(1,1) = eps;       % Avoid a devided by zero warning
@@ -470,18 +472,18 @@ function sectrumFun(handles, Z, head, opt1, Z2)
 	two_grids = 0;			image_type = 1;				% Used by the inverse transform case (default case)
 	if (nargin == 5),		two_grids = 1;		end
 	set(handles.figure1,'pointer','watch')
-	if (~isa(Z, 'double'))		Z = double(Z);		end
+	if (~isa(Z, 'double')),		Z = double(Z);		end
 	if (get(handles.checkbox_leaveTrend,'Value'))       % Remove trend
-		Z = grdtrend_m(Z,handles.head_Z1,'-D','-N3');
+		Z = c_grdtrend(Z,handles.head_Z1,'-D','-N3');
 		if (two_grids)
-			if (~isa(Z2, 'double'))		Z2 = double(Z2);		end
-			Z2 = grdtrend_m(Z2,handles.head_Z1,'-D','-N3');
+			if (~isa(Z2, 'double')),	Z2 = double(Z2);	end
+			Z2 = c_grdtrend(Z2,handles.head_Z1,'-D','-N3');
 		end
 	end
 	nx = handles.orig_ncols;        ny = handles.orig_nrows;
 	[Z,band] = mboard(Z,nx,ny,handles.new_nx,handles.new_ny);
 	if (two_grids)
-		if (~isa(Z2, 'double'))		Z2 = double(Z2);		end
+		if (~isa(Z2, 'double')),	Z2 = double(Z2);		end
 		Z2 = mboard(Z2,nx,ny,handles.new_nx,handles.new_ny);
 	end
 	m1 = band(1)+1;     m2 = m1 + ny - 1;
@@ -561,7 +563,7 @@ function sectrumFun(handles, Z, head, opt1, Z2)
 		handMir = guidata(handles.hMirFig);				% Handles of the space domain figure
 	end
 
-	if (isa(Z, 'double'))	Z = single(Z);		end
+	if (isa(Z, 'double')),	Z = single(Z);		end
 	if ( ~any(strcmp(opt1,{'lpass' 'hpass' 'bpass'})) )
 		tmp.X = (-nx2:nx2-sft_x).*delta_kx;		tmp.Y = (-ny2:ny2-sft_y).*delta_ky;
 		tmp.geog = 0;
@@ -601,9 +603,9 @@ function push_goUDcont_CB(hObject, handles)
 	zup = str2double(get(handles.edit_UDcont,'String'));
 	if (isnan(zup)),     return;     end
 	set(handles.figure1,'pointer','watch')
-	if (~isa(handles.Z1, 'double'))		handles.Z1 = double(handles.Z1);	end
+	if (~isa(handles.Z1, 'double')),	handles.Z1 = double(handles.Z1);	end
 	if (get(handles.checkbox_leaveTrend,'Value'))       % Remove trend
-		handles.Z1 = grdtrend_m(handles.Z1,handles.head_Z1,'-D','-N3');
+		handles.Z1 = c_grdtrend(handles.Z1,handles.head_Z1,'-D','-N3');
 	end
 	[Z,band,k] = wavenumber_and_mboard(handles);
 	Z = fft2(Z) .* exp(-k.*zup);    clear k;
@@ -622,12 +624,12 @@ function push_goDerivative_CB(hObject, handles, opt)
 	end					% Moritz's 1980 IGF value for gravity in mGal at lat = 45 degrees
 	n_der = fix(str2double(get(handles.edit_derivative,'String')));
 	set(handles.figure1,'pointer','watch')
-	if (~isa(handles.Z1, 'double'))		handles.Z1 = double(handles.Z1);	end
+	if (~isa(handles.Z1, 'double')),	handles.Z1 = double(handles.Z1);	end
 	if (get(handles.checkbox_leaveTrend,'Value'))       % Remove trend
-		handles.Z1 = grdtrend_m(handles.Z1,handles.head_Z1,'-D','-N3');
+		handles.Z1 = c_grdtrend(handles.Z1,handles.head_Z1,'-D','-N3');
 	end
 	[Z,band,k] = wavenumber_and_mboard(handles,false,'taper');
-	if (scale == 980619.9203)	n_der = 1;		end
+	if (scale == 980619.9203),	n_der = 1;		end
 	if (n_der > 1),  k = k.^n_der;   end
 	Z = fft2(Z) .* k * scale;	Z(1,1) = 0;		clear k;
 	Z = real(ifft2((Z)));
@@ -662,9 +664,9 @@ function push_goDirDerivative_CB(hObject, handles)
 	if (isempty(handles.Z1)),    errordlg('No grid loaded yet.','Error'),	return,	end
 	azim = str2double(get(handles.edit_dirDerivative,'String'));
 	set(handles.figure1,'pointer','watch')
-	if (~isa(handles.Z1, 'double'))		handles.Z1 = double(handles.Z1);	end
+	if (~isa(handles.Z1, 'double')),	handles.Z1 = double(handles.Z1);	end
 	if (get(handles.checkbox_leaveTrend,'Value'))       % Remove trend
-		handles.Z1 = grdtrend_m(handles.Z1,handles.head_Z1,'-D','-N3');
+		handles.Z1 = c_grdtrend(handles.Z1,handles.head_Z1,'-D','-N3');
 	end
 	[Z,band,k] = wavenumber_and_mboard(handles,1);
 	fact = (sin(azim*pi/180) * k.x + cos(azim*pi/180) * k.y);   clear k;
@@ -716,7 +718,7 @@ function [Z,band,k] = wavenumber_and_mboard(handles,opt,mode)
 		k = ifftshift(sqrt(X.^2+Y.^2));      % wavenumber array   (Tivey used fftshift)
 		clear X Y;
 	end
-	if (~isa(handles.Z1, 'double'))		handles.Z1 = double(handles.Z1);	end
+	if (~isa(handles.Z1, 'double')),	handles.Z1 = double(handles.Z1);	end
 	[Z,band] = mboard(handles.Z1,handles.orig_ncols,handles.orig_nrows,new_nx,new_ny, mode);
 
 % --------------------------------------------------------------------
@@ -740,7 +742,7 @@ function [Z,hdr] = unband(handles,Z,band)
 function popup_GridCoords_CB(hObject, handles)
 	xx = get(hObject,'Value');
 	if (xx == 1),		handles.geog = 1;		handles.is_meters = 0;  handles.is_km = 0;
-	elseif (xx == 2)	handles.is_meters = 1;	handles.is_geog = 0;	handles.is_km = 0;
+	elseif (xx == 2),	handles.is_meters = 1;	handles.is_geog = 0;	handles.is_km = 0;
 	elseif (xx == 3)
 		handles.is_km = 1;      handles.is_geog = 0;    handles.is_meters = 0;
 		handles.scaled_dx = handles.scaled_dx * 1000;

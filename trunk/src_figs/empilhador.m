@@ -411,7 +411,7 @@ function handles = parse_header(handles, names)
 function fname = check_wildcard_fname(strin)
 % Check if user gave a 'path/*.xxx ? -sdsname [OPTs]' on input and if yes, create a resp file
 
-	if ( isempty(strfind(strin, '*')) )		% Normal fname input. Nothing to do here
+	if (isempty(strfind(strin, '*')) && isempty(strfind(strin, '?')))	% Normal fname input. Nothing to do here
 		fname = strin;		return
 	end
 
@@ -444,21 +444,27 @@ function fname = check_wildcard_fname(strin)
 		end
 	end
 	% --------------------------------------------------------------------------------
-
-	[t, r] = strtok(strin);
+	strin = strrep(strin, '\', '/');		% So we only have to deal with one type of slash only
+	ind = strfind(strin, '/');
+	if (~isempty(ind) && (numel(strin) > ind(end)) && (strin(ind(end)+1) ~= ' '))
+		[t, r] = strtok(strin(ind(end)+1:end));
+		t = [strin(1:ind(end)) t];
+	end
+	%[t, r] = strtok(strin);
 	dirlist = dir(t);
+
 	if (isempty(dirlist))
 		errordlg('Wildcard search return an empty result. Have to abort here','ERROR')
 		error('Wildcard search return an empty result. Have to abort here')
 	end
 
 	PATO = fileparts(t);
-	fname = [PATO '/' 'automatic_list.txt'];
-	fid = fopen(fname,'w');
+	fname = [PATO '/automatic_list.txt'];
+	fid = fopen(fname, 'w');
 	if (fid < 0)
-		error('Fail to create the resp file in data directory. Permissions problem?')
+		error(['Fail to create the list file ', fname, ' Permissions problem?'])
 	end
-	if ( ~isempty(opt_F) || ~isempty(opt_G) || ~isempty(opt_R) || ~isempty(opt_D) )	% Insert -D, -F, -G or -R options
+	if (~isempty(opt_F) || ~isempty(opt_G) || ~isempty(opt_R) || ~isempty(opt_D))	% Insert -D, -F, -G or -R options
 		fprintf(fid, '# %s\n', [opt_F ' ' opt_G ' ' opt_R ' ' opt_D]);
 	end
 
@@ -1573,11 +1579,11 @@ function [Z, att, known_coords, have_nans, was_empty_name] = read_gdal(full_name
 
 				if (isempty(Z))			% Instead of aborting we let it go with fully NaNified array
 					was_empty_name = full_name;		% Send back to the caller the file (or sds) name of the empty thing
-					[Z, head] = nearneighbor_m(single(1e3), single(1e3), single(0), opt_R, opt_e, '-N1', opt_I, '-S0.02');
+					[Z, head] = c_nearneighbor(single(1e3), single(1e3), single(0), opt_R, opt_e, '-N1', opt_I, '-S0.02');
 				else
 					if (what.nearneighbor)
 						lon_full = single(lon_full);			lat_full = single(lat_full);	Z = single(Z);
-						[Z, head] = nearneighbor_m(lon_full(:), lat_full(:), Z(:), opt_R, opt_e, '-N2', opt_I, '-S0.04');
+						[Z, head] = c_nearneighbor(lon_full(:), lat_full(:), Z(:), opt_R, opt_e, '-N2', opt_I, '-S0.04');
 					else
 						if (~isa(lon_full,'double')),	lon_full = double(lon_full);	lat_full = double(lat_full);	end
 						%[Z, head] = gmtmbgrid_m(lon_full(:), lat_full(:), double(Z(:)), opt_I, opt_R, '-Mz', opt_C);
@@ -1587,7 +1593,7 @@ function [Z, att, known_coords, have_nans, was_empty_name] = read_gdal(full_name
 					if (what.mask)
 						opt_D = {'-Dc' '-Dl' '-Di' '-Dh' '-Df'};
 						opt_D = opt_D{what.coastRes};
-						mask = grdlandmask_m(opt_R, opt_D, opt_e, '-I0.01', '-V');
+						mask = c_grdlandmask(opt_R, opt_D, opt_e, '-I0.01', '-V');
 						Z(mask) = NaN;
 					end
 				end

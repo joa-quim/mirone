@@ -846,9 +846,9 @@ function cmap = FileReadPalette_CB(hObject, handles, opt, opt2)
 			errordlg(['Error reading file ' fname],'Error');		return
 		end
 		if (~isempty(opt))  % Use the cpt Z levels as well
-			[cmap,handles.z_intervals] = cpt2cmap(['-C' fname]);
+			[cmap,handles.z_intervals] = c_cpt2cmap(['-C' fname]);
 		else                % Use only the cpt colors
-			cmap = cpt2cmap(['-C' fname]);
+			cmap = c_cpt2cmap(['-C' fname]);
 			handles.z_intervals = [];
 		end
 	catch
@@ -942,7 +942,7 @@ function radio_T_CB(hObject, handles)
 				if (~strncmp(lines{k},'MIR_CPT',7)),	continue,	end
 				[t, r] = strtok(lines{k}(9:end));
 				try
-					[cmap, z_int] = cpt2cmap(['-C' ddewhite(r)]);
+					[cmap, z_int] = c_cpt2cmap(['-C' ddewhite(r)]);
 					handles.custom_thematic_name{kk+1} = ddewhite(t);
 					handles.custom_thematic_pal{kk+1,1} = cmap;		handles.custom_thematic_pal{kk+1,2} = z_int;
 					kk = kk + 1;

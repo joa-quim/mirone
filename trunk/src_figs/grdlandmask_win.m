@@ -1,7 +1,7 @@
 function varargout = grdlandmask_win(varargin)
 % Front end to grdlandmask MEX
 
-%	Copyright (c) 2004-2014 by J. Luis
+%	Copyright (c) 2004-2015 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -280,7 +280,7 @@ function push_OK_CB(hObject, handles)
 	end
 
 	% Finally call the guy that really does the work
-	[mask,tmp.head,tmp.X,tmp.Y] = grdlandmask_m(opt_R, opt_I, opt_D, opt_N, opt_A, opt_F, opt_V, opt_e);
+	[mask,tmp.head,tmp.X,tmp.Y] = c_grdlandmask(opt_R, opt_I, opt_D, opt_N, opt_A, opt_F, opt_V, opt_e);
     tmp.name = 'Landmask';		tmp.geog = 1;
 	
 	if (get(handles.check_isFloat,'Val') && ~isa(mask,'single'))	% User wants floats

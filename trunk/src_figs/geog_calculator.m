@@ -5,7 +5,7 @@ function varargout = geog_calculator(varargin)
 % fact that indices in Matlab start at 1, I sometimes have to refer at it as ID=221
 % In case of datum aditions to GMT, those numbers have to be reviewed. 
 
-%	Copyright (c) 2004-2012 by J. Luis
+%	Copyright (c) 2004-2015 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -497,7 +497,7 @@ function push_left2right_CB(hObject, handles)
 			errordlg('Start and ending datums are equal. Nothing to do.','Error')
 			return
 		end
-		out = mapproject_m(in, opt_T);
+		out = c_mapproject(in, opt_T);
 		set(hObject,'TooltipString',sprintf('%s\n%s','Last command:', opt_T))
 	elseif (~isempty(handles.projection_left) && ~isempty(handles.projection_right))
 		% More complicated. To go from one projection to other we have to pass by geogs.
@@ -513,7 +513,7 @@ function push_left2right_CB(hObject, handles)
 		if (~isempty(handles.map_scale_factor_left) && handles.map_scale_factor_left ~= 1)
 			opt_SF = sprintf('--MAP_SCALE_FACTOR=%.4f',handles.map_scale_factor_left);
 		end
-		tmp = mapproject_m([x_c y_c], opt_T, opt_J, opt_Rg, opt_SF, opt_C, opt_F, '-I');
+		tmp = c_mapproject([x_c y_c], opt_T, opt_J, opt_Rg, opt_SF, opt_C, opt_F, '-I');
 		opt_R = sprintf('-R%.3f/%.3f/%.3f/%.3f', tmp(1)-small, tmp(1)+small, tmp(2)-small, tmp(2)+small);
 		% Here we have to re-check the need for ellipsoidal height transformations
 		if (~strcmp(opt_T,' '))
@@ -521,7 +521,7 @@ function push_left2right_CB(hObject, handles)
 			else                                opt_T = ['-T' opt_T(3:end)];
 			end
 		end
-		out = mapproject_m(in, opt_T, opt_J, opt_R, opt_SF, opt_C, opt_F, '-I');
+		out = c_mapproject(in, opt_T, opt_J, opt_R, opt_SF, opt_C, opt_F, '-I');
 		comm1 = [opt_R ' ' opt_J ' ' opt_C ' ' opt_F ' ' opt_T ' ' opt_SF ' -I'];
 		% And now do a direct conversion to the final destination
 		opt_J = handles.projection_right;		opt_T = ' ';
@@ -541,7 +541,7 @@ function push_left2right_CB(hObject, handles)
 		if (~isempty(handles.map_scale_factor_right) && handles.map_scale_factor_right ~= 1)
 			opt_SF = sprintf('--MAP_SCALE_FACTOR=%.4f',handles.map_scale_factor_right);
 		end
-		out = mapproject_m(out, opt_T, opt_J, opt_R, opt_SF, opt_C, opt_F);
+		out = c_mapproject(out, opt_T, opt_J, opt_R, opt_SF, opt_C, opt_F);
 		comm = sprintf('%s\n%s\n%s','Last command:', comm1, [opt_R ' ' opt_J ' ' opt_C ' ' opt_F ' ' opt_T ' ' opt_SF]);
 		set(hObject,'TooltipString',comm)
 	elseif (isempty(handles.projection_right) && ~isempty(handles.projection_left))
@@ -549,15 +549,15 @@ function push_left2right_CB(hObject, handles)
 		opt_J = handles.projection_left;
 		% First apply the trick to get a good estimation of -R
 		if (y_c < 0),   opt_Rg = '-R-180/180/-80/0';    end         % Patches over inventions, not good
-		tmp = mapproject_m([x_c y_c], opt_T, opt_J, opt_Rg, opt_SF, opt_C, opt_F, '-I');
+		tmp = c_mapproject([x_c y_c], opt_T, opt_J, opt_Rg, opt_SF, opt_C, opt_F, '-I');
 		opt_R = ['-R' sprintf('%.10g/%.10g/%.10g/%.10g', tmp(1)-small, tmp(1)+small, tmp(2)-small, tmp(2)+small)];
-		out = mapproject_m(in, opt_T, opt_J, opt_R, opt_SF, opt_C, opt_F, '-I');
+		out = c_mapproject(in, opt_T, opt_J, opt_R, opt_SF, opt_C, opt_F, '-I');
 		comm = sprintf('%s\n%s','Last command:', [opt_R ' ' opt_J ' ' opt_C ' ' opt_F ' -I ' opt_T ' ' opt_SF]);
 		set(hObject,'TooltipString',comm)
 	elseif (~isempty(handles.projection_right) && isempty(handles.projection_left))
 		%       NON-GEOG at right                           GEOG at left.  Do a direct transformation
 		opt_J = handles.projection_right;
-		out = mapproject_m(in, opt_T, opt_J, opt_R, opt_SF, opt_C, opt_F);
+		out = c_mapproject(in, opt_T, opt_J, opt_R, opt_SF, opt_C, opt_F);
 		comm = sprintf('%s\n%s','Last command:', [opt_R ' ' opt_J ' ' opt_C ' ' opt_F ' ' opt_T ' ' opt_SF]);
 		set(hObject,'TooltipString',comm)
 	else
@@ -686,7 +686,7 @@ if (isempty(handles.projection_left) && isempty(handles.projection_right & ~strc
         errordlg('Start and ending datums are equal. Nothing to do.','Error')
         return
     end
-    out = mapproject_m(in, opt_T);
+    out = c_mapproject(in, opt_T);
     set(hObject,'TooltipString',sprintf('%s\n%s','Last command:', opt_T))
 elseif (~isempty(handles.projection_left) && ~isempty(handles.projection_right))
 	% More complicated. To go from one projection to other we have to pass by geogs.
@@ -702,7 +702,7 @@ elseif (~isempty(handles.projection_left) && ~isempty(handles.projection_right))
 	if (~isempty(handles.map_scale_factor_right) && handles.map_scale_factor_right ~= 1)
 		opt_SF = sprintf('--MAP_SCALE_FACTOR=%.4f',handles.map_scale_factor_right);
 	end
-	tmp = mapproject_m([x_c y_c], opt_T, opt_J, opt_Rg, opt_SF, opt_C, opt_F, '-I');
+	tmp = c_mapproject([x_c y_c], opt_T, opt_J, opt_Rg, opt_SF, opt_C, opt_F, '-I');
 	opt_R = sprintf('-R%.3f/%.3f/%.3f/%.3f', tmp(1)-small, tmp(1)+small, tmp(2)-small, tmp(2)+small);
 	% Here we have to re-check the need for ellipsoidal height transformations
 	if (~strcmp(opt_T,' '))
@@ -710,7 +710,7 @@ elseif (~isempty(handles.projection_left) && ~isempty(handles.projection_right))
 		else                                opt_T = ['-T' opt_T(3:end)];
 		end
 	end
-	out = mapproject_m(in, opt_T, opt_J, opt_R, opt_SF, opt_C, opt_F, '-I');
+	out = c_mapproject(in, opt_T, opt_J, opt_R, opt_SF, opt_C, opt_F, '-I');
 	comm1 = [opt_R ' ' opt_J ' ' opt_C ' ' opt_F ' ' opt_T ' ' opt_SF ' -I'];
 	% And now do a direct conversion to the final destination
 	opt_J = handles.projection_left;		opt_T = ' ';
@@ -730,7 +730,7 @@ elseif (~isempty(handles.projection_left) && ~isempty(handles.projection_right))
 	if (~isempty(handles.map_scale_factor_left) && handles.map_scale_factor_left ~= 1)
 		opt_SF = sprintf('--MAP_SCALE_FACTOR=%.4f',handles.map_scale_factor_left);
 	end
-	out = mapproject_m(out, opt_T, opt_J, opt_R, opt_SF, opt_C, opt_F);
+	out = c_mapproject(out, opt_T, opt_J, opt_R, opt_SF, opt_C, opt_F);
 	comm = sprintf('%s\n%s\n%s','Last command:', comm1, [opt_R ' ' opt_J ' ' opt_C ' ' opt_F ' ' opt_T ' ' opt_SF]);
 	set(hObject,'TooltipString',comm)
 elseif (~isempty(handles.projection_right) && isempty(handles.projection_left))
@@ -738,15 +738,15 @@ elseif (~isempty(handles.projection_right) && isempty(handles.projection_left))
     opt_J = handles.projection_right;
     % First apply the trick to get a good estimation of -R
     if (y_c < 0),   opt_Rg = '-R-180/180/-80/0';    end         % Patches over inventions, not good
-    tmp = mapproject_m([x_c y_c], opt_T, opt_J, opt_Rg, opt_SF, opt_C, opt_F, '-I');
+    tmp = c_mapproject([x_c y_c], opt_T, opt_J, opt_Rg, opt_SF, opt_C, opt_F, '-I');
     opt_R = ['-R' sprintf('%.10g/%.10g/%.10g/%.10g', tmp(1)-small, tmp(1)+small, tmp(2)-small, tmp(2)+small)];
-    out = mapproject_m(in, opt_T, opt_J, opt_R, opt_SF, opt_C, opt_F, '-I');
+    out = c_mapproject(in, opt_T, opt_J, opt_R, opt_SF, opt_C, opt_F, '-I');
     comm = sprintf('%s\n%s','Last command:', [opt_R ' ' opt_J ' ' opt_C ' ' opt_F ' -I ' opt_T ' ' opt_SF]);
     set(hObject,'TooltipString',comm)
 elseif (isempty(handles.projection_right) && ~isempty(handles.projection_left))
     %       NON-GEOG at left                           GEOG at right.  Do inverse transformation
     opt_J = handles.projection_left;
-    out = mapproject_m(in, opt_T, opt_J, opt_R, opt_SF, opt_C, opt_F);
+    out = c_mapproject(in, opt_T, opt_J, opt_R, opt_SF, opt_C, opt_F);
     comm = sprintf('%s\n%s','Last command:', [opt_R ' ' opt_J ' ' opt_C ' ' opt_F ' ' opt_T ' ' opt_SF]);
     set(hObject,'TooltipString',comm)
 else
@@ -851,15 +851,15 @@ function msg_err = transform_grid(handles)
 		if (y_c < 0),   				opt_Rg = '-R-180/180/-80/0';		% Patches over inventions, not good
 		elseif (x_c == 0 && y_c == 0)	opt_Rg = '-R-180/180/-80/80';		% Antartica cases
 		end
-		tmp = mapproject_m([x_c y_c], opt_J, opt_Rg, opt_SF, opt_C, opt_mpF, '-I');
+		tmp = c_mapproject([x_c y_c], opt_J, opt_Rg, opt_SF, opt_C, opt_mpF, '-I');
 		opt_R = sprintf('-R%.10g/%.10g/%.10g/%.10g', tmp(1)-1, tmp(1)+1, tmp(2)-1, tmp(2)+1);
 
 		% Now find the exact lims in geogs
-		tmp = mapproject_m([x_min y_min; x_max y_max], opt_J, opt_R, opt_SF, opt_C, opt_mpF, '-I');
+		tmp = c_mapproject([x_min y_min; x_max y_max], opt_J, opt_R, opt_SF, opt_C, opt_mpF, '-I');
 		opt_R = sprintf('-R%.10g/%.10g/%.10g/%.10g',tmp(1,1),tmp(2,1),tmp(1,2),tmp(2,2));
 
 		% Convert to Geogs
-		Z = grdproject_m(handles.gridLeft, handles.gridLeftHead, opt_J, opt_R,...
+		Z = c_grdproject(handles.gridLeft, handles.gridLeftHead, opt_J, opt_R,...
 			opt_SF, opt_C, opt_F, opt_A, opt_N, '-I');
 
 		% And now do a direct conversion to the final destination
@@ -869,26 +869,26 @@ function msg_err = transform_grid(handles)
 		catch
 			opt_C = '-C';
 		end
-		[Z,head] = grdproject_m(Z, handles.gridLeftHead, opt_J, opt_R, opt_SF, opt_C, opt_F, opt_A, opt_N);
+		[Z,head] = c_grdproject(Z, handles.gridLeftHead, opt_J, opt_R, opt_SF, opt_C, opt_F, opt_A, opt_N);
 	elseif (isempty(handles.projection_right) && ~isempty(handles.projection_left))
 		%       GEOG at right                            NON-GEOG at left.  Do a inverse transformation
 		opt_J = handles.projection_left;
 		% First apply the trick to get a good estimation of -R
 		if (y_c < 0),   opt_Rg = '-R-180/180/-80/0';    end         % Patches over inventions, not good
-		tmp = mapproject_m([x_c y_c], opt_J, opt_Rg, opt_SF, opt_C, opt_mpF, '-I');
+		tmp = c_mapproject([x_c y_c], opt_J, opt_Rg, opt_SF, opt_C, opt_mpF, '-I');
 		opt_R = sprintf('-R%.10g/%.10g/%.10g/%.10g', tmp(1)-1, tmp(1)+1, tmp(2)-1, tmp(2)+1);
 	
 		% Now find the exact lims in geogs
-		tmp = mapproject_m([x_min y_min; x_max y_max], opt_J, opt_R, opt_SF, opt_C, opt_mpF, '-I');
+		tmp = c_mapproject([x_min y_min; x_max y_max], opt_J, opt_R, opt_SF, opt_C, opt_mpF, '-I');
 		opt_R = sprintf('-R%.10f/%.10f/%.10f/%.10f',tmp(1,1),tmp(2,1),tmp(1,2),tmp(2,2));
 
-		[Z,head] = grdproject_m(handles.gridLeft, handles.gridLeftHead, opt_A, opt_J, opt_R,...
+		[Z,head] = c_grdproject(handles.gridLeft, handles.gridLeftHead, opt_A, opt_J, opt_R,...
 			opt_SF, opt_C, opt_F, opt_N, '-I');
 		opt_I = '-I';		% Used to inform Mirone that we came from an inverse transform
 	elseif (~isempty(handles.projection_right) && isempty(handles.projection_left))
 		%       NON-GEOG at right                           GEOG at left.  Do a direct transformation
 		opt_J = handles.projection_right;
-		[Z,head] = grdproject_m(handles.gridLeft, handles.gridLeftHead, opt_J, opt_R, opt_SF,...
+		[Z,head] = c_grdproject(handles.gridLeft, handles.gridLeftHead, opt_J, opt_R, opt_SF,...
 			opt_C, opt_F, opt_A, opt_N);
 	else    
         return
