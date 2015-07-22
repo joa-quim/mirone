@@ -4518,8 +4518,8 @@ function line_levelling(handles)
 	[X,Y,Z] = load_grd(handles);			% load the grid array here
 	if isempty(Z),		return,		end		% An error message was already issued
 	opt_N = '-Nr6';							% Fit a quadratic surface
-	newZ = grdtrend_m(Z,handles.head,'-T',opt_N);
-	newZ = grdtrend_m(newZ,handles.head,'-D','-N3');
+	newZ = c_grdtrend(Z,handles.head,'-T',opt_N);
+	newZ = c_grdtrend(newZ,handles.head,'-D','-N3');
 	aux_funs('StoreZ',handles,X,Y,newZ)		% Need to do this because ExtractProfile_CB() will get the grid from there
 	[lix,FileName,EXT] = fileparts(FileName);
 	fid = fopen([pato FileName '_leveled' EXT],'wt');
