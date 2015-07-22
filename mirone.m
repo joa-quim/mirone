@@ -65,6 +65,9 @@ function hObject = mirone_OpeningFcn(varargin)
 %#function write_esri_hdr distmin mag_synthetic image_histo write_gmt_symb mkpj decompress mosaicer
 %#function lasreader_mex laszreader_mex escorrega show_manguito travel thresholdit intersections nswing runCB_tintol
 %#function usgs_recent_seismicity
+%#function c_cpt2cmap c_grdfilter c_grdinfo c_grdlandmask c_grdproject c_grdread c_grdsample
+%#function c_grdtrend c_mapproject c_nearneighbor c_shoredump c_surface
+
 
 	global gmt_ver;		gmt_ver = 5;
 %  	global home_dir;	home_dir = cd;		fsep = filesep;		% To compile uncomment this and comment next 5 lines
