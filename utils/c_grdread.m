@@ -10,7 +10,7 @@ function [X, Y, Z, head] = c_grdread(fname, varargin)
 		[X, Y, Z, head] = grdread_m(fname, 'single', varargin{:});
 	else
 		gmtmex('create')
-		Zout = gmtmex(['read -Tg' fname]);
+		Zout = gmtmex(['read -Tg ' fname]);
 		X = Zout.x;
 		Y = Zout.y;
 		Z = Zout.z;
