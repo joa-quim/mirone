@@ -294,7 +294,7 @@ function SwanGridBorderStations(handles)
 	str1 = {'*.grd;*.GRD', 'Grid files (*.grd,*.GRD)';'*.*', 'All Files (*.*)'};
 	[FileName,PathName] = put_or_get_file(handles,str1,'Select GMT grid','get');
 	if isequal(FileName,0),		return,		end
-	D = grdinfo_m([PathName FileName],'silent');
+	D = c_grdinfo([PathName FileName],'silent');
 
 	% Verify if, on the overlapping zone, the nodes of the larger grid cuincide with nodes of the smaler
 	xoff_w = abs(head(1) - D(1));   %xoff_e = abs(head(2) - D(2));

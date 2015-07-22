@@ -316,6 +316,7 @@ function set_line_uicontext(h, opt)
 			uimenu(item_tools, 'Label', 'Spline smooth', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''SplineSmooth'')');
 			uimenu(item_tools, 'Label', 'Histogram (grid)', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''CropaGrid_histo'')');
 			uimenu(item_tools, 'Label', 'Histogram (image)', 'Call', 'image_histo(guidata(gcbo),gco)');
+%			uimenu(item_tools, 'Label', 'Detect Fronts', 'Call', 'cayula_cornillon(guidata(gcbo),gco)');
 			uimenu(item_tools, 'Label', 'Power', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''CropaGrid_power'')');
 			uimenu(item_tools, 'Label', 'Autocorrelation', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''CropaGrid_autocorr'')');
 			uimenu(item_tools, 'Label', 'FFT tool', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''CropaGrid_fftTools'')');
@@ -545,7 +546,7 @@ function seismic_line(obj,evt,hL,opt)
 
 		f_name = [handles.path_tmp 'lixo.dat'];
 		double2ascii(f_name,[xL(:) yL(:)],'%f\t%f');		% Save as file so we can use it mapproject
-		ptFrac = mapproject_m([x(:) y(:)], ['-L' f_name '+']);	% Project and get fractional points along the line
+		ptFrac = c_mapproject([x(:) y(:)], ['-L' f_name '+']);	% Project and get fractional points along the line
 		ptFrac = ptFrac(:,5) + 1;								% +1 because mapproject is 0 based
 		intSeg = fix(ptFrac);
 		rd = lineSegDistAcum(intSeg) + (ptFrac - intSeg) .* lineSegDist(intSeg);
@@ -970,7 +971,7 @@ function apply_grdlandMask(hObj, evt, h, opt)
 	if (handles.IamCompiled),	opt_e = '-e';	end
 	opt_D = sprintf('-D%s', getappdata(h,'resolution'));	% Get the resolution as stored in line's appdata
 	opt_N = '0/1/0/0/0';		% Continent masking
-	mask = grdlandmask_m(opt_R, opt_I, opt_D, opt_N, opt_F, opt_e, '-A0/0/1', '-V');
+	mask = c_grdlandmask(opt_R, opt_I, opt_D, opt_N, opt_F, opt_e, '-A0/0/1', '-V');
 	if (opt == 'O'),	mask = ~mask;	end			% Ocean masking. Setting '1/0/0/0/0' is not working. A bug.
 
 	img = get(handles.hImg, 'CData');	% Mask the image as well
@@ -3289,7 +3290,7 @@ function [hLP, hText] = fish_inside_rect(h, opt)
 	f_LP = false(numel(hLP),1);
 	for (i = 1:numel(hLP))				% Loop over objects to find out which cross the rectangle
 		x = get(hLP(i),'XData');        y = get(hLP(i),'YData');
-		if ( any( (x >= rx(1) & x <= rx(2)) & (y >= ry(1) & y <= ry(2)) ) )
+		if (any( (x >= rx(1) & x <= rx(2)) & (y >= ry(1) & y <= ry(2)) ))
 			f_LP(i) = true;
 		end
 	end
@@ -3300,6 +3301,7 @@ function [hLP, hText] = fish_inside_rect(h, opt)
 		f_LP = false(numel(hTryAgain),1);
 		for (i = 1:numel(hTryAgain))	% Loop over potential slippers that don't have a vertex inside the rect
 			x = get(hTryAgain(i),'XData');		y = get(hTryAgain(i),'YData');
+			if (isempty(x)),	f_LP(i) = true;	continue,	end		% A stray empty line. Kill it too
 			x0 = min(x);	x1 = max(x);		y0 = min(y);	y1 = max(y);
 			rect = aux_funs('rectangle_and', [rx ry], [x0 x1 y0 y1]);
 			if (~isempty(rect)),	f_LP(i) = true;		end
@@ -3310,6 +3312,7 @@ function [hLP, hText] = fish_inside_rect(h, opt)
 			f_LP = false(numel(hTryAgain),1);
 			for (i = 1:numel(hTryAgain))% No escap than to compute intersections and see if they are empty or not
 				x = get(hTryAgain(i),'XData');	y = get(hTryAgain(i),'YData');
+				if (isempty(x)),	f_LP(i) = true;	continue,	end		% A stray empty line. Kill it too
 				x0 = intersections(rxx, ryy, x, y, 0);
 				if (~isempty(x0)),	f_LP(i) = true;		end
 			end

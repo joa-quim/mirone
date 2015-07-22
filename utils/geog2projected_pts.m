@@ -17,7 +17,7 @@ function [xy_prj, msg, opt_R] = geog2projected_pts(handles, xy, lims, pad, varar
 %
 % On output OPT_R is a -R GMT option string which will be a crude estimation
 % in case of a mapproject conversion (that story of -Rg). We need this OPT_R to
-% use in calls to shoredump_m.
+% use in calls to shoredump.
 % In case of 'projGMT' if OPT_R is asked than XY_PRJ == []
 %
 % A further note on HANDLES. While one normally just send in the Mirone handles, that doesn't always
@@ -25,7 +25,7 @@ function [xy_prj, msg, opt_R] = geog2projected_pts(handles, xy, lims, pad, varar
 % the earthquakes() GUI, is enough that this handles is a structure with just handles.figure1 &
 % handles.axes1 which are the handles of the Figure and its Axes
 
-%	Copyright (c) 2004-2012 by J. Luis
+%	Copyright (c) 2004-2015 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -105,7 +105,7 @@ function [xy_prj, msg, opt_R] = geog2projected_pts(handles, xy, lims, pad, varar
 		if (isempty(lims))          % We need LIMS here
 			lims = [get(handles.axes1,'Xlim') get(handles.axes1,'Ylim')];
 		end
-		out = mapproject_m([lims(1) lims(3); lims(2) lims(4)],'-R-180/180/0/80','-I','-F',projGMT{:});    % Convert lims back to geogs
+		out = c_mapproject([lims(1) lims(3); lims(2) lims(4)],'-R-180/180/0/80','-I','-F',projGMT{:});    % Convert lims back to geogs
 		x_min = min(out(:,1));        x_max = max(out(:,1));
 		y_min = min(out(:,2));        y_max = max(out(:,2));
 		opt_R = sprintf('-R%f/%f/%f/%f',x_min, x_max, y_min, y_max);
@@ -114,7 +114,7 @@ function [xy_prj, msg, opt_R] = geog2projected_pts(handles, xy, lims, pad, varar
 		end
 		opt_I = ' ';
 		if (numel(lims) == 5),      opt_I = ' -I';      end         % Inverse projection
-		xy_prj = mapproject_m(xy, opt_R, opt_I, '-F', projGMT{:});
+		xy_prj = c_mapproject(xy, opt_R, opt_I, '-F', projGMT{:});
 		if (~isempty(lims) && pad ~= 0)
 			% Get rid of data that are outside the map limits
 			lims = lims + [-pad pad -pad pad];      % Extend limits by PAD value
@@ -126,7 +126,7 @@ function [xy_prj, msg, opt_R] = geog2projected_pts(handles, xy, lims, pad, varar
 	else
 		xy_prj = xy;
 		msg = '0';          % Signal that nothing has been done and output = input
-		if (nargout == 3)   % Input in geogs, we need opt_R for shoredump_m (presumably)
+		if (nargout == 3)   % Input in geogs, we need opt_R for shoredump (presumably)
 			opt_R = sprintf('-R%f/%f/%f/%f',lims(1),lims(2),lims(3),lims(4));
 		end
 		return
