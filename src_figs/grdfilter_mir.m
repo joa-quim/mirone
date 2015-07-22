@@ -241,11 +241,11 @@ function push_Compute_CB(hObject, handles)
 	set(handles.hMirFig,'pointer','watch')
 	head = handles.head;
 	if ( strcmp(opt_R,' ') && strcmp(opt_I,' '))
-		Z = grdfilter_m(handles.Z,head,opt_F,opt_D);
+		Z = c_grdfilter(handles.Z,head,opt_F,opt_D);
 	elseif ( strcmp(opt_R,' ') && ~strcmp(opt_I,' '))
-		[Z,head] = grdfilter_m(handles.Z,head,opt_I,opt_F,opt_D);
+		[Z,head] = c_grdfilter(handles.Z,head,opt_I,opt_F,opt_D);
 	elseif ( ~strcmp(opt_R,' ') && strcmp(opt_I,' '))
-		[Z,head] = grdfilter_m(handles.Z,head,opt_R,opt_F,opt_D);
+		[Z,head] = c_grdfilter(handles.Z,head,opt_R,opt_F,opt_D);
 	else
 		errordlg('Bad number of options (My fault also that didn''t guess all possible nonsenses).','Error');
 		return

@@ -1,7 +1,7 @@
 function varargout = aquamoto(varargin)
 % A general purpose 3D grid/image file viewer, specialy taylored for tsunami (ANUGA) files
 
-%	Copyright (c) 2004-2013 by J. Luis
+%	Copyright (c) 2004-2015 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -1645,7 +1645,7 @@ function push_OK_CB(hObject, eventdata, handles, opt)
 		h = warndlg('Ai, Ai, Bathymetry and Water grids are not compatible. Trying to fix that ...','Warning');
 		opt_R = sprintf('-R%.12f/%.12f/%.12f/%.12f', handles.head_water(1:4));
 		opt_I = sprintf('-I%.12f/%.12f',handles.head_water(8:9));
-		handles.Z_bat = grdsample_m(handles.Z_bat,handles.head_bat,opt_R,opt_I);
+		handles.Z_bat = c_grdsample(handles.Z_bat,handles.head_bat,opt_R,opt_I);
 		handles.head_bat = handles.head_water;
 		handles.head_bat(5) = double(min(handles.Z_bat(:)));
 		handles.head_bat(6) = double(max(handles.Z_bat(:)));

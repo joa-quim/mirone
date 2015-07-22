@@ -579,11 +579,11 @@ function push_OK_CB(hObject, handles)
 	switch handles.type
 		case 'surface'
 % 			[Z,head] = gmtmbgrid_m(out{2:end}, '-Mz');		% NOT READY because it doesn't read from file neither -:
-			[Z,head] = surface_m(out{2:end});
+			[Z,head] = c_surface(out{2:end});
 			tit = 'surface interpolation';
 			set(handles.figure1,'Name','Surface')
 		case 'nearneighbor'
-			[Z,head] = nearneighbor_m(out{2:end}, opt_e);	% We don't want the last ','
+			[Z,head] = c_nearneighbor(out{2:end}, opt_e);	% We don't want the last ','
 			tit = 'nearneighbor interpolation';
 			set(handles.figure1,'Name','Nearneighbor')
 		case 'gmtmbgrid'

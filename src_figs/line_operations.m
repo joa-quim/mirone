@@ -744,7 +744,7 @@ function push_apply_CB(hObject, handles)
 				out = grdppa_m(Z, hdr);
 				if ( ~all(isnan(out(1,:))) )
 					double2ascii(f_name,out','%f\t%f');					% Save as file so we can use it mapproject
-					pt = mapproject_m([x(k) y(k)], ['-L' f_name]);		% Project and get points along the line
+					pt = c_mapproject([x(k) y(k)], ['-L' f_name]);		% Project and get points along the line
 				else
 					pt = [0 0 Inf];		% Make it fall into the next 'else' case
 				end

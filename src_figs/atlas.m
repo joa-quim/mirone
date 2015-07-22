@@ -1,7 +1,7 @@
 function varargout = atlas(varargin)
 % Helper window to choose countries or continents and plot them
 
-%	Copyright (c) 2004-2012 by J. Luis
+%	Copyright (c) 2004-2015 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -274,8 +274,8 @@ if (handles.CeateBG)    % Find out the limits off all polygons
         for (k = 1:length(paises.ct))
             %tmp = [handles.output.ct(k).Country(1,1:end-1)' handles.output.ct(k).Country(2,1:end-1)'], ...
             %tmp = tmp(1:end-1,:);
-            %tmp = mapproject_m(tmp, ...
-            tmp = mapproject_m([paises.ct(k).Country(1,1:end-1)' paises.ct(k).Country(2,1:end-1)'], ...
+            %tmp = c_mapproject(tmp, ...
+            tmp = c_mapproject([paises.ct(k).Country(1,1:end-1)' paises.ct(k).Country(2,1:end-1)'], ...
                 proj_str{1}, proj_str{2}, '-F', '-C');
             tmp(end+1,1:2) = NaN;       % Reset the last line to NaNs
             % Now we have to find the new limits. Se here we go again

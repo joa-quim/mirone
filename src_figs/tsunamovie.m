@@ -649,7 +649,7 @@ function pushbutton_OK_CB(hObject, handles)
         opt_R = ['-R' sprintf('%.12f',handles.head_water(1)) '/' sprintf('%.12f',handles.head_water(2)) '/' ...
             sprintf('%.12f',handles.head_water(3)) '/' sprintf('%.12f',handles.head_water(4))];
         opt_I = ['-I' sprintf('%.12f',handles.head_water(8)) '/' sprintf('%.12f',handles.head_water(9))];
-    	handles.Z_bat = grdsample_m(handles.Z_bat,handles.head_bat,opt_R,opt_I);
+    	handles.Z_bat = c_grdsample(handles.Z_bat,handles.head_bat,opt_R,opt_I);
         handles.head_bat = handles.head_water;
         handles.head_bat(5) = double(min(handles.Z_bat(:)));
         handles.head_bat(6) = double(max(handles.Z_bat(:)));
