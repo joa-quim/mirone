@@ -755,7 +755,7 @@ function push_apply_CB(hObject, handles)
 				end
 				set(hR, 'XData', xR, 'YData', yR)
 			end
-			clear mapproject_m			% Because of the memory leaks
+			%clear mapproject_m			% Because of the memory leaks
 			set(hanMir.figure1,'pointer','arrow')
 
 		case 'GMT_DB'
