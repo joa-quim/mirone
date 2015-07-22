@@ -1006,7 +1006,7 @@ function calc_yearMean(handles, months, fname2, flag, nCells, fname3, splina, ti
 
 % 		% Clip obvious bad data based on cheap median statistics
 % 		aguentabar(0.5,'title','Filtering obvious bad data based on cheap statistics.');	drawnow
-% 		medianas = grdfilter_m(tmp,[1 size(tmp,2) 1 size(tmp,1) 0 50 0 1 1], '-D0', '-Fm11');
+% 		medianas = c_grdfilter(tmp,[1 size(tmp,2) 1 size(tmp,1) 0 50 0 1 1], '-D0', '-Fm11');
 % 		difa = cvlib_mex('absDiff', tmp, medianas);
 % 		tmp(difa > 0.75) = NaN;					% 0.75 is probably still too permissive
 
@@ -1662,7 +1662,7 @@ function Z = inpaint_nans(handles, Z, bw, nCells)
 
 		if (use_surface)
 			opt_R = sprintf('-R%.10f/%.10f/%.10f/%.10f', X(1), X(end), Y(1), Y(end));
-			%Z_rect = surface_m(XX(:), YY(:), Z_rect(:), opt_R, opt_I, '-T.25');
+			%Z_rect = c_surface(XX(:), YY(:), Z_rect(:), opt_R, opt_I, '-T.25');
 			Z_rect = gmtmbgrid_m(XX(:), YY(:), Z_rect(:), opt_R, opt_I, '-T.25', '-Mz');
 		elseif (use_bicubic)
 			Z_rect = griddata_j(XX(:), YY(:), Z_rect(:), X, Y', 'cubic');
@@ -1992,7 +1992,7 @@ function do_math(handles, opt, subSet1, fname2, subSet2)
 % 'count'     => count the acumulated number of non-NaNs of all layers
 % 'diffstd'   => Compute mean and sdt of A - B (inmemory - fname2)
 %                The array read from FNAME2 does not need to be exactly comptible with A.
-%                When it is not a call to grdsample_m will take care of compatibilization.
+%                When it is not a call to grdsample will take care of compatibilization.
 %
 % SUBSET1 & SUBSET2 are (optional) two columns row vec with number of the offset layers
 % where analysis starts and stop.
@@ -2113,7 +2113,7 @@ function Z2 = make_compatible(Z2, head2, head1)
 % Reinterpolate Z2 grid to be compatible in terms of -R and resolution with HEAD1 params
 	opt_I = sprintf('-I%.8f/%.8f', head1(8:9));
 	opt_R = sprintf('-R%.8f/%.8f/%.8f/%.8f', head1(1:4));
-	Z2 = grdsample_m(Z2, head2, opt_R, opt_I, '-Q', '-Lg');
+	Z2 = c_grdsample(Z2, head2, opt_R, opt_I, '-Q', '-Lg');
 	
 % ------------------------------------------------------------------------------------
 function count_blooms(handles, Ncount, sub_set, grd_out)

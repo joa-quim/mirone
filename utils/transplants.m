@@ -225,14 +225,14 @@ function transplat_img(handles, h)
 		if (~indexed_ip)                                % Implanting image is of RGB type
 			for (i = 1:3)
 				%ZI(:,:,i) = interp2(double(out.ip_img(:,:,i)),X,Y,'*cubic');
-				ZI(:,:,i) = grdsample_m(single(out.ip_img(:,:,i)),head,opt_N);
+				ZI(:,:,i) = c_grdsample(single(out.ip_img(:,:,i)),head,opt_N);
 			end
 		else
 			if isempty(out.ip_cmap)
 				errordlg('Implanting image has no colormap. Don''t know what to do.','Sorry');  return
 			end
 			%ZI = interp2(double(out.ip_img),X,Y,'*cubic');
-			ZI = grdsample_m(single(out.ip_img),head,opt_N);
+			ZI = c_grdsample(single(out.ip_img),head,opt_N);
 		end
 		if (flip),   ZI = flipdim(ZI,1);    end
 	elseif (out.resizeIP == 10) % So pra nao funcionar (da erro na penultima linha)
@@ -242,11 +242,11 @@ function transplat_img(handles, h)
 		%if (~indexed_bg)                            % Background image is of RGB type
 			%for (i=1:3)
 				%zz(:,:,i) = interp2(double(zz(:,:,i)),X,Y,'*cubic');
-				%zz(:,:,i) = grdsample_m(zz(:,:,i),head,opt_N);
+				%zz(:,:,i) = c_grdsample(zz(:,:,i),head,opt_N);
 			%end
 		%else
 			%zz = interp2(double(zz),X,Y,'*cubic');
-			%zz = grdsample_m(zz,head,opt_N);
+			%zz = c_grdsample(zz,head,opt_N);
 		%end
 		%if (flip)    out.ip_img = flipdim(out.ip_img,1);    end
 	end

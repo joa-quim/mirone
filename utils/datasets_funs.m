@@ -1,7 +1,7 @@
 function  datasets_funs(opt,varargin)
 % This contains the Mirone's 'Datasets' funtions. Remember that they are now 'Geography'
 
-%	Copyright (c) 2004-2014 by J. Luis
+%	Copyright (c) 2004-2015 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -440,7 +440,7 @@ function CoastLines(handles, res)
         case 'h',        opt_res = '-Dh';        pad = 0.03;
         case 'f',        opt_res = '-Df';        pad = 0.005;
 	end
-	coast = shoredump(opt_R,opt_res,'-A1/1/1');
+	coast = c_shoredump(opt_R,opt_res,'-A1/1/1');
 	if (isempty(coast)),	set(handles.figure1,'pointer','arrow'),		return,		end
 
 	[coast, msg] = geog2projected_pts(handles,coast',[lon lat],0);
@@ -496,7 +496,7 @@ function PoliticalBound(handles, type, res)
         case 'h',        opt_res = '-Dh';        pad = 0.05;
         case 'f',        opt_res = '-Df';        pad = 0.01;
 	end
-	boundaries = shoredump(opt_R,opt_N,opt_res);
+	boundaries = c_shoredump(opt_R,opt_N,opt_res);
 	if (isempty(boundaries)),	set(handles.figure1,'pointer','arrow'),		return,		end
 
     [boundaries, msg] = geog2projected_pts(handles,boundaries',[lon lat],0);
@@ -556,7 +556,7 @@ function Rivers(handles, type, res)
         case 'h',        opt_res = '-Dh';        pad = 0.05;
         case 'f',        opt_res = '-Df';        pad = 0.01;
 	end
-	rivers = shoredump(opt_R,opt_I,opt_res);
+	rivers = c_shoredump(opt_R,opt_I,opt_res);
 	if (isempty(rivers)),	set(handles.figure1,'pointer','arrow'),		return,		end
 
     [rivers, msg] = geog2projected_pts(handles,rivers',[lon lat],0);

@@ -184,7 +184,7 @@ function UpdatePixelValues(figHandle,imageHandle, imageType, displayBar,img,x,y)
         if (dbud.toProjPT == 1)
 			xy_p = ogrproj([x y],dbud.projStruc);
         else
-			xy_p = mapproject_m([x y], dbud.opt_R, '-F', '-I', dbud.projGMT{:});
+			xy_p = c_mapproject([x y], dbud.opt_R, '-F', '-I', dbud.projGMT{:});
         end
 		x = xy_p(1);    y = xy_p(2);
 	end

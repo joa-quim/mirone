@@ -1,7 +1,7 @@
 function grid_info(handles,X,Y,hdr)
 % Report info of grid/image currently displayed in Mirone
 
-%	Copyright (c) 2004-2012 by J. Luis
+%	Copyright (c) 2004-2015 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -28,7 +28,7 @@ function grid_info(handles,X,Y,hdr)
 		ref2Hdr(handles,X,hdr);		return
 	end
 
-	if (handles.no_file)	return,		end
+	if (handles.no_file),	return,		end
 
 	if (handles.image_type == 1)					% Image derived from a GMT grdfile
 		Z = getappdata(handles.figure1,'dem_z');	% We want the Z for statistics (might not be in argin)
@@ -39,7 +39,7 @@ function grid_info(handles,X,Y,hdr)
 		nx = size(Z,2);		ny = size(Z,1);
 		try
 			if (~handles.computed_grid)
-				info1 = grdinfo_m(handles.grdname,'hdr_struct');    % info1 is a struct with the GMT grdinfo style
+				info1 = c_grdinfo(handles.grdname,'hdr_struct');    % info1 is a struct with the GMT grdinfo style
 				info_from_GMT_limits = [info1.X_info(1:2) info1.Y_info(1:2)];
 			end
 			erro = false;
@@ -60,7 +60,7 @@ function grid_info(handles,X,Y,hdr)
 
 		% In case grid is Pix reg the handles.head no longer holds that info, so check against info1
 		head = handles.head;
-		if ( ~isempty(info_from_GMT_limits) && (abs(head(1) - info_from_GMT_limits(1)) > head(8)/4) && strncmp(info1.Registration,'Pixel',5) )
+		if (~isempty(info_from_GMT_limits) && (abs(head(1) - info_from_GMT_limits(1)) > head(8)/4) && strncmp(info1.Registration,'Pixel',5) )
 			head(1:4) = info_from_GMT_limits;
 			head(7) = 1;
 		end
