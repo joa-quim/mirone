@@ -16,7 +16,7 @@ function [out, hdr] = c_surface(data, varargin)
 			k0 = 1;
 		elseif (numel(varargin) >= 2 && isnumeric(varargin{1}) && size(varargin{1},2) == 1 && ...
 				isnumeric(varargin{2}) && size(varargin{2},2) == 1)
-			if (umel(varargin) >= 3 && isnumeric(varargin{3}) && size(varargin{3},2) == 1)
+			if (numel(varargin) >= 3 && isnumeric(varargin{3}) && size(varargin{3},2) == 1)
 				data = [data varargin{1} varargin{2} varargin{3}];		% Input is now Mx4
 				k0 = 4;
 			else
