@@ -9,7 +9,7 @@ function out = c_shoredump(varargin)
 	if (gmt_ver == 4)
 		out = shoredump(varargin{:});
 	else
-		cmd = 'pscoast';
+		cmd = 'pscoast -M';
 		no_W = false;
 		for (k = 1:numel(varargin))
 			cmd = sprintf('%s %s', cmd, varargin{k});
@@ -19,6 +19,6 @@ function out = c_shoredump(varargin)
 		end
 		if (~no_W),		cmd = [cmd ' -W'];	end		% If no Rivers or Borders, than Coastlines (-W) 
 		gmtmex('create')
-		out = gmtmex(cmd, data);
+		out = gmtmex(cmd)';
 		gmtmex('destroy')
 	end
