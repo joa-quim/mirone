@@ -9,7 +9,7 @@ function [handles, X, Y, Z, head, misc] = read_gmt_type_grids(handles,fullname,o
 %
 % When used to read netCDF grids HANDLES can be []. Useful to use this function as a standalone
 
-%	Copyright (c) 2004-2012 by J. Luis
+%	Copyright (c) 2004-2015 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -71,10 +71,10 @@ function [handles, X, Y, Z, head, misc] = read_gmt_type_grids(handles,fullname,o
 		head = head(1:9);			% SRF7 returns a 10 elements header vector
 	elseif ( any(strcmp(tipo,{'CDF' 'SRF6' 'SRF7'})) )
 		if (opt(1) == 's')			% Get the info on the struct form
-			X = grdinfo_m(fullname, 'hdr_struct');		% Output goes in the second arg
+			X = c_grdinfo(fullname, 'hdr_struct');		% Output goes in the second arg
 			head = [X.X_info(1:2) X.Y_info(1:2) X.Z_info(1:2)];
 		else						% Get the info on the vector form
-			X = grdinfo_m(fullname, 'silent');
+			X = c_grdinfo(fullname, 'silent');
 			head = X;				% To not error at next IF test
 		end
 	else
@@ -116,7 +116,7 @@ if (strcmp(tipo,'CDF'))
 		if ( ~isempty(strfind(lasterr, 'Out of memory')) ) % If its a memory problem, no use to insist
 			error(lasterr)
 		end
-    	[X, Y, Z, head] = grdread_m(fullname,'single',opt_I);
+    	[X, Y, Z, head] = c_grdread(fullname,'single',opt_I);
     	handles.have_nans = grdutils(Z,'-N');
     	if (head(10) == 2 || head(10) == 8 || head(10) == 16),   handles.was_int16 = true;  end     % New output from grdread_m
 		head(10) = [];
@@ -140,7 +140,7 @@ elseif (strcmp(tipo,'SRF6'))
 	head(7:9) = [0 diff(head(1:2))/(n_cols - 1) diff(head(3:4))/(n_rows - 1)];
     X = linspace(head(1),head(2),n_cols);    Y = linspace(head(3),head(4),n_rows);
 elseif ( strcmp(tipo,'SRF7') || (tipo(1) == 'U') )
-	[X, Y, Z, head] = grdread_m(fullname,'single',opt_I);
+	[X, Y, Z, head] = c_grdread(fullname,'single',opt_I);
 	handles.have_nans = grdutils(Z,'-N');
 elseif (strcmp(tipo,'SRF_ASCII'))	% Pretend that its a internaly computed grid (no reload)
     s = fgetl(fid);

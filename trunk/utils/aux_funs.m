@@ -445,7 +445,7 @@ function toProjPT(handles)
 			dbud.toProjPT = 1;
 		elseif (~isempty(prjInfoStruc.projGMT))
 			lims = getappdata(handles.axes1,'ThisImageLims');
-			out = mapproject_m([lims(1) lims(3); lims(2) lims(4)],'-R-180/180/0/80','-I','-F',prjInfoStruc.projGMT{:});    % Convert lims back to geogs
+			out = c_mapproject([lims(1) lims(3); lims(2) lims(4)],'-R-180/180/0/80','-I','-F',prjInfoStruc.projGMT{:});    % Convert lims back to geogs
 			x_min = min(out(:,1));        x_max = max(out(:,1));
 			y_min = min(out(:,2));        y_max = max(out(:,2));
 			dbud.opt_R = sprintf('-R%f/%f/%f/%f',x_min, x_max, y_min, y_max);

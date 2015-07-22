@@ -94,7 +94,7 @@ function [fractfield, hdrStruct] = gen_UMF2d(alpha, C1, H, dim)
 	tmp.head = [w e s n double(min(fract(:))) double(max(fract(:))) 0 (e-w)/(dim-1) (n-s)/(dim-1)];
 	tmp.name = 'Fractal Surface';
 
-	fract = grdtrend_m(fract,tmp.head,'-D','-N1');		% Remove mean
+	fract = c_grdtrend(fract,tmp.head,'-D','-N1');		% Remove mean
 	tmp.head(5) = min(fract(:));	tmp.head(6) = max(fract(:));
 
 	if (nargout == 0)

@@ -663,7 +663,7 @@ function [X, Y, Z, head] = deal_exceptions(Z, X, Y, head, s, attribNames)
 
 		opt_R = sprintf('-R%.10f/%.10f/%.10f/%.10f', min(NW_lon,SW_lon), max(NE_lon,SE_lon), min(SW_lat,SE_lat), max(NW_lat,NE_lat));
 		lon = single(lon);		lat = (single(lat));
-		[Z, head] = nearneighbor_m(lon(:), lat(:), Z(:), opt_R, opt_e, '-N2', '-I0.02', '-S0.06');
+		[Z, head] = c_nearneighbor(lon(:), lat(:), Z(:), opt_R, opt_e, '-N2', '-I0.02', '-S0.06');
 		if (any( isnan(head(5:6)) ))
 			zz = grdutils(Z,'-L');  head(5:6) = zz(1:2);
 		end
