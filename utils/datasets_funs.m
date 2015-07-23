@@ -54,7 +54,7 @@ end
 % --------------------------------------------------------------------
 function DatasetsHotspots(handles)
 % Read hotspot.dat which has 4 columns (lon lat name age)
-	if (aux_funs('msg_dlg',50,handles))			return,		end    % If no_file create one. Else test unknown proj
+	if (aux_funs('msg_dlg',50,handles)),	return,		end    % If no_file create one. Else test unknown proj
 	fid = fopen([handles.path_data 'hotspots.dat'],'r');
 	fgetl(fid);						% Jump the header line
 	todos = fread(fid,'*char');     fclose(fid);
@@ -168,7 +168,7 @@ function DatasetsMeteor(handles)
 
 % --------------------------------------------------------------------
 function DatasetsMaregOnLine(handles)
-	if (aux_funs('msg_dlg',50,handles))			return,		end    % If no_file create one. Else test unknown proj
+	if (aux_funs('msg_dlg',50,handles)),	return,		end    % If no_file create one. Else test unknown proj
 	fid = fopen([handles.path_data 'mareg_online.dat'],'r');
 	todos = fread(fid,'*char');
 	[mareg.x mareg.y mareg.name dumb mareg.codeSt dumb mareg.country] = strread(todos,'%f %f %s %s %s %s %s');
@@ -191,7 +191,7 @@ function DatasetsMaregOnLine(handles)
 
 % --------------------------------------------------------------------
 function DatasetsTides(handles)
-	if (aux_funs('msg_dlg',50,handles))		return,		end    % If no_file create one. Else test unknown proj
+	if (aux_funs('msg_dlg',50,handles)),	return,		end    % If no_file create one. Else test unknown proj
 	load([handles.path_data 't_xtide.mat']);
 	[tmp, msg] = geog2projected_pts(handles,[xharm.longitude xharm.latitude]);     % If map in geogs, tmp is just a copy of input
 	if (~strncmp(msg,'0',1))        % Coords were projected
@@ -426,8 +426,7 @@ function DatasetsPlateBound_PB_All(handles)
 
 % --------------------------------------------------------------------
 function CoastLines(handles, res)
-	if (aux_funs('msg_dlg',5,handles));     return;      end    % Test no_file || unknown proj
-	set(handles.figure1,'pointer','watch')
+	if (aux_funs('msg_dlg',5,handles)),		return,		end		% Test no_file || unknown proj
 	
 	lon = get(handles.axes1,'Xlim');      lat = get(handles.axes1,'Ylim');
     [dumb, msg, opt_R] = geog2projected_pts(handles,[lon(:) lat(:)],[lon lat 0]);   % Get -R for use in shoredump
@@ -441,33 +440,30 @@ function CoastLines(handles, res)
         case 'f',        opt_res = '-Df';        pad = 0.005;
 	end
 	coast = c_shoredump(opt_R,opt_res,'-A1/1/1');
-	if (isempty(coast)),	set(handles.figure1,'pointer','arrow'),		return,		end
+	if (isempty(coast)),	return,		end
 
 	[coast, msg] = geog2projected_pts(handles,coast',[lon lat],0);
     if (numel(msg) > 2)
-    	set(handles.figure1,'pointer','arrow')
         errordlg(msg,'ERROR');
         return
     end
-	coast = coast';
-    
+   
     if (strncmp(msg,'0',1))     % They are in geogs so we know how to ...
 		% Get rid of data that are outside the map limits
 		lon = lon - [pad -pad];     lat = lat - [pad -pad];
-		indx = (coast(1,:) < lon(1) | coast(1,:) > lon(2));
-		coast(:,indx) = [];
-		indx = (coast(2,:) < lat(1) | coast(2,:) > lat(2));
-		coast(:,indx) = [];
+		indx = (coast(:,1) < lon(1) | coast(:,1) > lon(2));
+		coast(indx,:) = [];
+		indx = (coast(:,2) < lat(1) | coast(:,2) > lat(2));
+		coast(indx,:) = [];
     end
     coast = single(coast);      % If we do this before the test, single(NaN) screw up. Goog job TMW 
-	
+
 	if (~all(isnan(coast(:))))
-		h = line('XData',coast(1,:),'YData',coast(2,:),'Parent',handles.axes1,'Linewidth',handles.DefLineThick,...
+		h = line('XData',coast(:,1),'YData',coast(:,2),'Parent',handles.axes1,'Linewidth',handles.DefLineThick,...
             'Color',handles.DefLineColor,'Tag','CoastLineNetCDF','UserData',opt_res(3));
 		setappdata(h, 'resolution', opt_res(3))
 		draw_funs(h,'CoastLineUictx')    % Set line's uicontextmenu
 	end
-	set(handles.figure1,'pointer','arrow')
 
 % --------------------------------------------------------------------
 function PoliticalBound(handles, type, res)
@@ -478,7 +474,6 @@ function PoliticalBound(handles, type, res)
 % RES is:  'c' or 'l' or 'i' or 'h' or 'f' (gmt database resolution)
 	if (aux_funs('msg_dlg',5,handles)),		return,		end    % Test no_file || unknown proj
 	
-	set(handles.figure1,'pointer','watch')
 	lon = get(handles.axes1,'Xlim');      lat = get(handles.axes1,'Ylim');
     [dumb, msg, opt_R] = geog2projected_pts(handles,[lon(:) lat(:)],[lon lat 0]);   % Get -R for use in shoredump
 	
@@ -497,32 +492,29 @@ function PoliticalBound(handles, type, res)
         case 'f',        opt_res = '-Df';        pad = 0.01;
 	end
 	boundaries = c_shoredump(opt_R,opt_N,opt_res);
-	if (isempty(boundaries)),	set(handles.figure1,'pointer','arrow'),		return,		end
+	if (isempty(boundaries)),	return,		end
 
     [boundaries, msg] = geog2projected_pts(handles,boundaries',[lon lat],0);
     if (numel(msg) > 2)
-    	set(handles.figure1,'pointer','arrow')
         errordlg(msg,'ERROR');
         return
     end
-    boundaries = boundaries';
 	
     if (strncmp(msg,'0',1))     % They are in geogs so we know how to ...
 		% Get rid of data that are outside the map limits
 		lon = lon - [pad -pad];     lat = lat - [pad -pad];
-		indx = (boundaries(1,:) < lon(1) | boundaries(1,:) > lon(2));
-		boundaries(:,indx) = [];
-		indx = (boundaries(2,:) < lat(1) | boundaries(2,:) > lat(2));
-		boundaries(:,indx) = [];
+		indx = (boundaries(:,1) < lon(1) | boundaries(:,1) > lon(2));
+		boundaries(indx,:) = [];
+		indx = (boundaries(:,2) < lat(1) | boundaries(:,2) > lat(2));
+		boundaries(indx,:) = [];
     end
     boundaries = single(boundaries);      % If we do this before the test, single(NaN) screw up. Goog job TMW 
 	
 	if (~all(isnan(boundaries(:))))
-		h = line('XData',boundaries(1,:),'YData',boundaries(2,:),'Parent',handles.axes1,'Linewidth',handles.DefLineThick,...
+		h = line('XData',boundaries(:,1),'YData',boundaries(:,2),'Parent',handles.axes1,'Linewidth',handles.DefLineThick,...
             'Color',handles.DefLineColor,'Tag','PoliticalBoundaries', 'UserData',[opt_res(3) opt_N(3)]);
 		draw_funs(h,'CoastLineUictx')    % Set line's uicontextmenu
 	end
-	set(handles.figure1,'pointer','arrow')
 
 % --------------------------------------------------------------------
 function Rivers(handles, type, res)
@@ -536,7 +528,6 @@ function Rivers(handles, type, res)
 	% RES is:  'c' or 'l' or 'i' or 'h' or 'f' (gmt database resolution)
 	if (aux_funs('msg_dlg',5,handles));     return;      end    % Test no_file || unknown proj
 	
-	set(handles.figure1,'pointer','watch')
 	lon = get(handles.axes1,'Xlim');      lat = get(handles.axes1,'Ylim');
     [dumb, msg, opt_R] = geog2projected_pts(handles,[lon(:) lat(:)],[lon lat 0]);   % Get -R for use in shoredump
 	
@@ -557,35 +548,32 @@ function Rivers(handles, type, res)
         case 'f',        opt_res = '-Df';        pad = 0.01;
 	end
 	rivers = c_shoredump(opt_R,opt_I,opt_res);
-	if (isempty(rivers)),	set(handles.figure1,'pointer','arrow'),		return,		end
+	if (isempty(rivers)),	return,		end
 
     [rivers, msg] = geog2projected_pts(handles,rivers',[lon lat],0);
     if (numel(msg) > 2)
-    	set(handles.figure1,'pointer','arrow')
         errordlg(msg,'ERROR');        return
     end
-    rivers = rivers';
     
     if (strncmp(msg,'0',1))     % They are in geogs so we know to to ...
 		% Get rid of data that are outside the map limits
 		lon = lon - [pad -pad];     lat = lat - [pad -pad];
-		indx = (rivers(1,:) < lon(1) | rivers(1,:) > lon(2));
-		rivers(:,indx) = [];
-		indx = (rivers(2,:) < lat(1) | rivers(2,:) > lat(2));
-		rivers(:,indx) = [];
+		indx = (rivers(:,1) < lon(1) | rivers(:,1) > lon(2));
+		rivers(indx,:) = [];
+		indx = (rivers(:,2) < lat(1) | rivers(:,2) > lat(2));
+		rivers(indx,:) = [];
     end
     rivers = single(rivers);      % If we do this before the test, single(NaN) screw up. Goog job TMW 
 	
 	if (~all(isnan(rivers(:))))
-		h = line('XData',rivers(1,:),'YData',rivers(2,:),'Parent',handles.axes1,'Linewidth',handles.DefLineThick,...
+		h = line('XData',rivers(:,1),'YData',rivers(:,2),'Parent',handles.axes1,'Linewidth',handles.DefLineThick,...
             'Color',handles.DefLineColor,'Tag','Rivers', 'UserData',[opt_res(3) opt_I(3:end)]);
 		draw_funs(h,'CoastLineUictx')    % Set line's uicontextmenu
 	end
-	set(handles.figure1,'pointer','arrow')
 
 % --------------------------------------------------------------------
 function DatasetsCities(handles,opt)
-	if (aux_funs('msg_dlg',50,handles))		return,		end    % If no_file create one. Else test unknown proj
+	if (aux_funs('msg_dlg',50,handles)),	return,		end    % If no_file create one. Else test unknown proj
 	if strcmp(opt,'major')
         fid = fopen([handles.path_data 'wcity_major.dat'],'r');
         tag = 'City_major';
@@ -625,7 +613,7 @@ function DatasetsCities(handles,opt)
 
 % --------------------------------------------------------------------
 function DatasetsODP_DSDP(handles,opt)
-	if (aux_funs('msg_dlg',50,handles))		return,		end    % If no_file create one. Else test unknown proj
+	if (aux_funs('msg_dlg',50,handles)),	return,		end    % If no_file create one. Else test unknown proj
 	set(handles.figure1,'pointer','watch')
 	fid = fopen([handles.path_data 'DSDP_ODP.dat'],'r');
 	todos = fread(fid,'*char');
