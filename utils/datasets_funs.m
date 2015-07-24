@@ -433,34 +433,34 @@ function CoastLines(handles, res)
     if (isempty(opt_R)),    return;    end      % It should never happen, but ...
 	
 	switch res
-        case 'c',        opt_res = '-Dc';        pad = 2.0;
-        case 'l',        opt_res = '-Dl';        pad = 0.5;
-        case 'i',        opt_res = '-Di';        pad = 0.1;
-        case 'h',        opt_res = '-Dh';        pad = 0.03;
-        case 'f',        opt_res = '-Df';        pad = 0.005;
+		case 'c',		opt_res = '-Dc';		pad = 2.0;
+		case 'l',		opt_res = '-Dl';		pad = 0.5;
+		case 'i',		opt_res = '-Di';		pad = 0.1;
+		case 'h',		opt_res = '-Dh';		pad = 0.03;
+		case 'f',		opt_res = '-Df';		pad = 0.005;
 	end
-	coast = c_shoredump(opt_R,opt_res,'-A1/1/1');
+	coast = c_shoredump(opt_R, opt_res, '-A1/1/1');
 	if (isempty(coast)),	return,		end
 
-	[coast, msg] = geog2projected_pts(handles,coast',[lon lat],0);
-    if (numel(msg) > 2)
-        errordlg(msg,'ERROR');
-        return
-    end
-   
-    if (strncmp(msg,'0',1))     % They are in geogs so we know how to ...
+	[coast, msg] = geog2projected_pts(handles, coast, [lon lat], 0);
+	if (numel(msg) > 2)
+		errordlg(msg,'ERROR');
+		return
+	end
+
+	if (strncmp(msg,'0',1))     % They are in geogs so we know how to ...
 		% Get rid of data that are outside the map limits
 		lon = lon - [pad -pad];     lat = lat - [pad -pad];
 		indx = (coast(:,1) < lon(1) | coast(:,1) > lon(2));
 		coast(indx,:) = [];
 		indx = (coast(:,2) < lat(1) | coast(:,2) > lat(2));
 		coast(indx,:) = [];
-    end
-    coast = single(coast);      % If we do this before the test, single(NaN) screw up. Goog job TMW 
+	end
+	coast = single(coast);      % If we do this before the test, single(NaN) screw up. Goog job TMW 
 
 	if (~all(isnan(coast(:))))
 		h = line('XData',coast(:,1),'YData',coast(:,2),'Parent',handles.axes1,'Linewidth',handles.DefLineThick,...
-            'Color',handles.DefLineColor,'Tag','CoastLineNetCDF','UserData',opt_res(3));
+			'Color',handles.DefLineColor,'Tag','CoastLineNetCDF','UserData',opt_res(3));
 		setappdata(h, 'resolution', opt_res(3))
 		draw_funs(h,'CoastLineUictx')    % Set line's uicontextmenu
 	end
@@ -494,7 +494,7 @@ function PoliticalBound(handles, type, res)
 	boundaries = c_shoredump(opt_R,opt_N,opt_res);
 	if (isempty(boundaries)),	return,		end
 
-    [boundaries, msg] = geog2projected_pts(handles,boundaries',[lon lat],0);
+    [boundaries, msg] = geog2projected_pts(handles, boundaries, [lon lat], 0);
     if (numel(msg) > 2)
         errordlg(msg,'ERROR');
         return
@@ -550,7 +550,7 @@ function Rivers(handles, type, res)
 	rivers = c_shoredump(opt_R,opt_I,opt_res);
 	if (isempty(rivers)),	return,		end
 
-    [rivers, msg] = geog2projected_pts(handles,rivers',[lon lat],0);
+    [rivers, msg] = geog2projected_pts(handles, rivers, [lon lat], 0);
     if (numel(msg) > 2)
         errordlg(msg,'ERROR');        return
     end
