@@ -7,7 +7,7 @@ function out = c_shoredump(varargin)
 	if (isempty(gmt_ver)),		gmt_ver = 4;	end		% For example, if calls do not come via mirone.m
 	
 	if (gmt_ver == 4)
-		out = shoredump(varargin{:});
+		out = shoredump(varargin{:})';
 	else
 		cmd = 'pscoast -M';
 		no_W = false;
