@@ -1,0 +1,12 @@
+# Definition file of servers to use in "Tiles Tool"
+# If you want to use more, and that's up to you that they work, please follow exactly the structure below.
+# Notice that the Mars example has the same for all three, which is logic since no Roads on Mars yet.
+# As far as I know, the only two working Quadtree keys are '0132' (MS) or 'qrst' (Google)
+# BEFORE YOU ASK. GOOGLE MAPS USE OUTSIDE GOOGLES PRODUCTS IS ILEGAL ACCORDING TO THEIR TERMS OF USE
+#		Images						Maps					Hybrid			Quadtree key
+a0.ortho.tiles.virtualearth.net/tiles/a	r0.ortho.tiles.virtualearth.net/tiles/r	h0.ortho.tiles.virtualearth.net/tiles/h		0132
+khm0.google.com/kh/v=158&x=		mt2.google.com/vt/lyrs=m@121&hl=iw&x= 	mt3.google.com/vt/lyrs=s,m&hl=iw&x=		qrst
+mw1.google.com/mw-planetary/mars/elevation/t mw1.google.com/mw-planetary/mars/elevation/t mw1.google.com/mw-planetary/mars/elevation/t	qrst
+mw1.google.com/mw-planetary/mars/visible/t mw1.google.com/mw-planetary/mars/visible/t mw1.google.com/mw-planetary/mars/visible/t	qrst
+mw1.google.com/mw-planetary/mars/infrared/t mw1.google.com/mw-planetary/mars/infrared/t mw1.google.com/mw-planetary/mars/infrared/t	qrst
+www.maps-for-free.com/layer/relief/z	www.maps-for-free.com/layer/relief/z	www.maps-for-free.com/layer/relief/z	mfre

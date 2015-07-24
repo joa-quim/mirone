@@ -1,0 +1,293 @@
+139.60  61.8    -0.21    0.0  !NAM<-Eurasia  MORVEL (deg/Ma)
+144.20  42.8    -0.390   1.82 !NAM<-Eurasia  An2   Em Mov (res = 1.135)
+139.80  50.2    -0.637   3.06 !NAM<-Eurasia  An2A  Em Mov (res = 1.373)
+137.10  61.7    -1.033   4.72 !NAM<-Eurasia  An3   Em Mov (res = 1.738)
+139.00  56.1    -1.290   6.20 !NAM<-Eurasia  An3A  Em Mov (res = 1.576)
+140.60  57.2    -1.628   7.74 !NAM<-Eurasia  An4   Em Mov (res = 1.441)
+138.00  60.6    -1.950   8.88 !NAM<-Eurasia  An4A  Em Mov (res = 1.626)
+139.10  60.4    -2.325  10.30 !NAM<-Eurasia  An5   Em Mov (res = 2.346)
+137.90  61.5    -3.875  16.37 !NAM<-Eurasia  An5C  Em Mov (res = 3.578)
+139.40  62.2    -4.630  19.60 !NAM<-Eurasia  An6   Em Mov (res = 3.768)
+137.60  65.6    -6.380  27.47 !NAM<-Eurasia  An9   Em Mov (res = 5.249)
+
+  0.0    0.0     0.0     0.0  !ACO-NAM Iberia-North America
+-37.50   7.0    -1.59    3.85 !ACO-NAM An3  J. Luis et al. 1994
+-33.10  27.5    -5.54    5.69 !ACO-NAM An3A J. Luis et al. 1994
+-35.10  17.8    -3.79    7.01 !ACO-NAM An4  J. Luis et al. 1994
+-32.20  21.7    -6.20    8.69 !ACO-NAM An4A J. Luis et al. 1994
+-37.00   2.2    -3.79   10.10 !ACO-NAM An5  J. Luis et al. 1994
+
+135.8   62.4     0.0     0.0  !NAM<-IBE North America-Iberia (NAm fixed)
+139.87  62.78   -2.34   10.33 !NAM<-EUR An5  J. Luis & Miranda Global
+140.52  53.03   -2.26   10.33 !NAM<-EUR An5  J. Luis & Miranda Sul da CG
+140.04  61.88   -4.56   19.55 !NAM<-IBE An6  J. Luis & Miranda Global
+140.12  56.64   -4.48   19.55 !NAM<-IBE An6  J. Luis & Miranda Sul da CG
+139.25  61.87   -7.24   33.25 !NAM<-IBE An13 J. Luis & Miranda Global
+124.99  71.27   -7.51   33.25 !NAM<-IBE An13 J. Luis & Miranda Iberico
+127.09  70.21   -7.460  33.25 !NAM<-IBE An13 Em Mov (res = 1.613) 
+137.90  63.80   -7.397  33.25 !NAM<-ROK An13 Em Mov (res = 1.514) 
+134.80  64.10   -7.375  33.25 !GRE<-ROK An13 Em Mov (res = 1.571) 
+131.70  47.30   -7.140  39.13 !GRE<-ROK An18 Em Mov (res = 4.021) 
+131.50  43.10   -7.650  43.14 !GRE<-ROK An20 Em Mov (res = 4.725) 
+129.70  33.80   -8.720  49.37 !GRE<-ROK An22 Em Mov (res = 4.125) 
+117.22  77.18   -9.43   39.13 !NAM<-IBE An18 J. Luis & Miranda
+113.70  76.01  -10.23   43.14 !NAM<-IBE An20 J. Luis & Miranda
+112.09  78.68  -11.57   47.06 !NAM<-IBE An21 J. Luis & Miranda
+126.60  72.01  -11.51   49.37 !NAM<-IBE An22 J. Luis & Miranda
+124.59  72.60  -12.15   51.30 !NAM<-IBE An23 J. Luis & Miranda
+124.68  73.23  -12.93   52.79 !NAM<-IBE An24 J. Luis & Miranda
+133.40  68.48  -13.79   56.14 !NAM<-IBE An25 J. Luis & Miranda
+133.74  70.17  -14.44   57.70 !NAM<-IBE An26 J. Luis & Miranda
+137.30  66.82  -15.24   63.09 !NAM<-IBE An28 J. Luis & Miranda
+135.28  70.90  -16.09   64.30 !NAM<-IBE An29 J. Luis & Miranda
+135.65  69.70  -16.51   67.02 !NAM<-IBE An30 J. Luis & Miranda
+132.63  77.31  -18.48   72.25 !NAM<-IBE An32 J. Luis & Miranda
+118.50  85.33  -22.05   78.00 !NAM<-IBE An33 J. Luis & Miranda
+119.98  85.92  -23.22   81.00 !NAM<-IBE An33r J. Luis & Miranda
+
+140.50  46.4    -0.340   1.82 !NAM<-Jan Mayen  An2   Em Mov (res = 0.823)
+130.20  56.1    -0.610   3.06 !NAM<-Jan Mayen  An2A  Em Mov (res = 1.528)
+137.00  56.7    -1.520   7.74 !NAM<-Jan Mayer  An4   Em Mov (res = 1.727)
+141.50  58.9    -1.840   8.88 !NAM<-Jan Mayen  An4A  Em Mov (res = 1.360)
+129.00  67.0    -2.465  10.30 !NAM<-Jan Mayen  An5   Em Mov (res = 1.501) 
+140.90  61.6    -3.755  16.37 !NAM<-Jan Mayen  An5C  Em Mov (res = 0.672)
+138.80  14.2    -3.290  19.60 !NAM<-Jan Mayen  An6   Em Mov (res = 2.115)
+
+112.80  78.90   -3.840  10.30 !GRE<-EUR An5  Em Mov (res = 2.745)
+120.30  80.20   -7.550  19.55 !GRE<-EUR An6  Em Mov (res = 3.920)
+134.60  64.00   -7.080  33.25 !GRE<-EUR An13 Em Mov (res = 1.454)
+132.10  59.40   -7.865  38.13 !GRE<-EUR An18 Em Mov (res = 2.425)
+129.90  55.60   -8.25   43.14 !GRE<-EUR An20 Em Mov (res = 2.371)
+128.20  48.40   -8.35   47.06 !GRE<-EUR An21 Em Mov (res = 3.820)
+129.00  45.91   -8.87   49.37 !GRE<-EUR An22 Em Mov (res = 1.917)
+122.20  55.09  -10.935  51.30 !GRE<-EUR An23 Em Mov (res = 1.864)
+115.50  61.49  -13.730  52.79 !GRE<-EUR An24 Em Mov (res = 2.330)
+
+142.12  57.88   -8.78   39.13 !NAM<-EUR An18 Norte CG
+130.87  35.97   -9.12   49.37 !NAM<-EUR An22 Norte CG (Sem Rockall)
+
+  0.0    0.0     0.0     0.0  !NAM<-POP North America-Porcupine (NAm fixed)
+143.82  64.28   -8.53   39.13 !NAM<-POC An18 Em Mov.
+145.92  62.18   -9.20   43.14 !NAM<-POC An20 Em Mov.
+146.58  72.43  -13.06   52.79 !NAM<-POC An24 Em Mov. (fracote)
+155.98  66.50  -14.65   57.70 !NAM<-POC An26 Em Mov. (fracote)
+145.95  56.80  -16.21   67.02 !NAM<-POC An30 Em Mov. (bom)
+147.95  59.60  -18.46   81.00 !NAM<-POC An33r Em Mov. (bom)
+
+  0.0    0.0     0.0     0.0  !NAM<-IBE North America-Iberia (NAm fixed)
+133.84  64.57   -2.39    9.8  !NAM<-IBE An5 Klitgord & Schouten 1986
+133.58  65.38   -2.44    9.8  !NAM<-IBE An5 Lawver et al. 1990
+136.74  68.92   -4.97   19.7  !NAM<-IBE An6 Lawver et al. 1990
+143.60  52.20   -7.25   33.6  !NAM<-IBE An13 RDM & Roest 1990
+143.50  48.06   -7.20   33.2  !NAM<-IBE An13 Srivastava & Tapscott 1986
+129.05  73.38  -11.04   47.0  !NAM<-IBE An21 Srivastava & Tapscott 1986
+135.50  72.72  -14.29   56.2  !NAM<-IBE An25 Srivastava & Tapscott 1986
+134.80  77.79  -17.66   66.5  !NAM<-IBE An30 Srivastava & Tapscott 1986
+133.88  78.62  -18.01   68.7  !NAM<-IBE An31 Srivastava & Tapscott 1986
+110.26  85.49  -22.41   79.1  !NAM<-IBE An33 Srivastava & Tapscott 1986
+ 57.43  87.18  -24.67   83.0  !NAM<-IBE An34 Srivastava & Tapscott 1986
+  6.90  83.40  -28.94   95.0  !NAM<-IBE CLBS Srivastava & Tapscott 1986
+-10.42  74.92  -39.80  105.0  !NAM<-IBE CRT Srivastava & Tapscott 1986
+-12.60  71.17  -48.00  118.0  !NAM<-IBE AnM0 Srivastava & Tapscott 1986
+-11.98  70.90  -50.07  127.7  !NAM<-IBE AnM4 Srivastava & Tapscott 1986
+-11.08  70.33  -51.09  133.0  !NAM<-IBE AnM11 Srivastava & Tapscott 1986
+-0.92   73.72  -44.44  133.0  !NAM<-IBE AnM11 FIT Masson & Miles 1984
+138.20  68.00   -4.75   19.7  !NAM<-IBE An6 Srivastava et al. 1990
+117.33  76.34   -7.98   33.2  !NAM<-IBE An13 Srivastava et al. 1990
+126.96  74.70  -11.05   47.0  !NAM<-IBE An21 Srivastava et al. 1990
+133.28  72.98  -12.94   52.9  !NAM<-IBE An24 Srivastava et al. 1990
+133.88  73.29  -14.25   56.2  !NAM<-IBE An25 Srivastava et al. 1990
+135.34  74.96  -17.19   68.3  !NAM<-IBE An31 Srivastava et al. 1990
+110.28  85.49  -22.41   79.1  !NAM<-IBE An33o Srivastava et al. 1990
+ 57.43  87.18  -24.67   83.0  !NAM<-IBE An34 Srivastava et al. 1990
+-15.00  68.88  -50.62  118.0  !NAM<-IBE AnM0 Srivastava et al. 1990
+-18.94  64.71  -58.11  127.5  !NAM<-IBE AnM0 Srivastava et al. 2000
+-13.11  68.57  -53.64  131.3  !NAM<-IBE AnM10 Srivastava et al. 1990
+-12.93  66.90  -60.45  154.4  !NAM<-IBE AnM25 Srivastava et al. 1990
+-12.82  65.72  -66.32  175.0  !NAM<-IBE Srivastava & Verhoef 1992
+168.36 -71.71   46.30  120.4  !NAM<-IBE Rowley & Lottes 1988
+171.49 -73.59   52.57  150.0  !NAM<-IBE Rowley & Lottes 1988
+171.49 -73.59   52.57  200.0  !NAM<-IBE Rowley & Lottes 1988
+
+ 40.2   79.2    -0.233   0.0  !NAM<-Nubia  MORVEL (deg/Ma)
+ 34.42  79.02   -0.428   1.82 !NAM<-Nubia  An2   Em Mov (res = 1.374) Sem ZF24
+ 44.32  78.02   -0.706   3.06 !NAM<-Nubia  An2A  Em Mov (res = 1.451) Sem ZF24
+ 35.30  78.40   -1.104   4.72 !NAM<-Nubia  An3   Em Mov (res = 1.913) Sem ZF24
+ 44.78  78.88   -1.448   6.20 !NAM<-Nubia  An3A  Em Mov (res = 1.476) Sem ZF24
+ 50.90  79.32   -1.789   7.74 !NAM<-Nubia  An4   Em Mov (res = 1.527) Sem ZF24
+ 51.56  79.16   -2.090   8.88 !NAM<-Nubia  An4A  Em Mov (res = 1.406) Sem ZF24
+ 51.94  79.48   -2.522  10.30 !NAM<-Nubia  An5   Em Mov (res = 2.626) Sem ZF24
+ 53.16  79.56   -4.251  16.37 !NAM<-Nubia  An5C  Em Mov (res = 2.866) Sem ZF24
+ 34.12  80.24   -5.328  19.60 !NAM<-Nubia  An6   Em Mov (res = 3.458) Sem ZF24 nem Pico
+ 30.08  78.34   -7.546  27.47 !NAM<-Nubia  An9   Em Mov (res = 3.698) Sem ZF24
+  5.42  76.01   -9.870  33.20 !NAM<-Nubia  An13  Em Mov (res = 6.268)
+  5.32  75.61   -9.885  33.20 !NAM<-Nubia  An13  Em Mov (res = 4.360) Sem ZF24
+  5.33  75.53  -12.02   35.70 !NAM<-Nubia  An18  Em movimento
+ -3.23  74.81  -15.23   47.00 !NAM<-Nubia  An21  Em movimento
+  4.90  81.60  -17.85   56.20 !NAM<-Nubia  An25  Em movimento
+  4.60  81.96  -20.70   66.95 !NAM<-Nubia  An30  Em movimento
+-22.85  76.20  -29.66   81.00 !NAM<-Nubia  An33r Em movimento
+-20.14  65.99  -54.45  121.25 !NAM<-Nubia  AnM0  Em movimento
+-20.24  66.19  -55.00  122.45 !NAM<-Nubia  AnM1  Em movimento
+-19.44  65.89  -56.62  126.57 !NAM<-Nubia  AnM5  Em movimento
+-18.20  66.15  -57.47  134.49 !NAM<-Nubia  AnM10 Em movimento
+-18.50  66.10  -59.48  143.20 !NAM<-Nubia  AnM16 Em movimento
+-18.00  66.30  -62.47  152.03 !NAM<-Nubia  AnM22 Em movimento
+-15.00  67.05  -64.61  156.17 !NAM<-Nubia  AnM25 Em movimento
+
+  0.0    0.00    0.0     0.0  !Nubia<-IBE Eurasia-Nubia (Nubia fixed)
+-20.40  21.60    0.131   0.0  !Nubia<-IBE MORVEL (deg/Ma)
+-20.61  21.03    0.0     0.0  !Nubia<-IBE An0 Nuvel
+-22.19  25.05    0.33    1.82 !Nubia<-IBE An2 Closure
+-20.77  25.25    0.51    3.06 !Nubia<-IBE An2a Closure
+-20.08  20.56    0.66    4.72 !Nubia<-IBE An3 Closure
+-20.08  24.33    0.86    6.20 !Nubia<-IBE An3a Closure
+-18.43  23.18    1.04    7.74 !Nubia<-IBE An4 Closure
+-18.64  20.98    1.19    8.88 !Nubia<-IBE An4a Closure
+-17.41  21.46    1.31   10.30 !Nubia<-IBE An5 Closure
+-16.55  25.07    2.61   21.00 !Nubia<-IBE An6 Closure
+
+  0.0    0.00    0.0     0.0  !Afr<-IBE Iberia-Africa (Afr fixed)
+-20.61  21.03    0.0     0.0  !Afr<-IBE An0 Nuvel
+-20.17  30.02    4.74   33.25 !Afr<-IBE An13 Fecho
+-20.81  30.04    5.05   39.13 !Afr<-IBE An18 Fecho
+-20.53  32.12    7.10   47.06 !Afr<-IBE An21 Fecho
+-22.12  33.15    8.64   56.14 !Afr<-IBE An25 Fecho
+-20.62  32.81    9.35   67.02 !Afr<-IBE An30 Fecho
+ 38.8   78.8     0.0     0.0  !NAM<-NWA North America-Africa (NAm fixed)
+ 53.1   80.1    -0.48   1.86  !NAM<-NWA C2 S&P - idades deles
+ 67.7   77.7    -0.92   3.85  !NAM<-NWA C3 S&P
+ 76.3   77.2    -1.29   5.69  !NAM<-NWA C3A S&P
+ 52.0   77.5    -1.65   7.01  !NAM<-NWA C4 S&P
+ 23.8   78.5    -2.29   8.69  !NAM<-NWA C4A S&P
+ 36.1   80.3    -2.67   10.1  !NAM<-NWA C5 S&P
+ 22.82  80.98   -2.478   9.7  !NAM<-NWA An5 Mueller et al. 1997
+ 23.28  80.89   -5.244  19.0  !NAM<-NWA An6 Mueller et al. 1997
+ 28.56  79.34   -7.042  25.8  !NAM<-NWA An8 Mueller et al. 1997
+  5.98  75.99   -9.767  33.1  !NAM<-NWA An13 Mueller et al. 1997
+  0.19  74.54  -11.918  38.4  !NAM<-NWA An18 Mueller et al. 1997
+ -5.01  74.23  -15.106  46.3  !NAM<-NWA An21 Mueller et al. 1997
+ -1.61  77.34  -16.963  52.4  !NAM<-NWA An24 Mueller et al. 1997
+  6.57  80.64  -17.895  55.9  !NAM<-NWA An25 Mueller et al. 1997
+  2.93  82.74  -20.84   65.6  !NAM<-NWA An30 Mueller et al. 1997
+ -8.32  81.35  -22.753  71.6  !NAM<-NWA An32 Mueller et al. 1997
+-18.16  78.64  -26.981  79.1  !NAM<-NWA An30o Mueller et al. 1997
+-20.59  76.81  -29.506  83.0  !NAM<-NWA An34 Mueller et al. 1997
+ 50.80  80.12   -2.52    9.8  !NAM<-NWA An5  Mueller et al. 1990
+  1.12  75.37  -10.04   33.2  !NAM<-NWA An13 Mueller et al. 1990
+ -3.88  75.30  -15.25   47.0  !NAM<-NWA An21 Mueller et al. 1990
+ -0.46  79.68  -18.16   56.0  !NAM<-NWA An25 Mueller et al. 1990
+  4.94  82.90  -20.76   66.0  !NAM<-NWA An30 Mueller et al. 1990
+-22.65  74.33  -33.86   90.0  !NAM<-NWA Roest 1987
+-24.39  72.00  -36.49   94.0  !NAM<-NWA Roest 1987
+-23.52  69.42  -40.46   99.5  !NAM<-NWA Roest 1987
+-22.66  68.08  -45.36  105.0  !NAM<-NWA Roest 1987
+-21.00  66.21  -53.19  116.5  !NAM<-NWA Roest 1987
+-20.17  66.09  -54.45  118.0  !NAM<-NWA AnM0 Roest et al 1991
+-19.43  65.97  -56.63  127.7  !NAM<-NWA AnM4 Roest et al 1991
+-18.72  66.14  -58.03  131.3  !NAM<-NWA AnM10N Roest et al 1991
+-18.33  66.24  -59.71  139.9  !NAM<-NWA AnM16 Roest et al 1991
+-18.33  66.24  -62.14  147.6  !NAM<-NWA AnM21 Roest et al 1991
+-15.85  66.70  -64.90  154.4  !NAM<-NWA AnM25 Roest et al 1991
+-13.17  67.02  -72.10  170.0  !NAM<-NWA Blake Spur Mag. Anom Klitgord & Schouten 1986
+-12.02  66.95  -75.55  175.0  !NAM<-NWA ECMA Klitgord & Schouten 1986
+-12.02  66.95  -75.55  180.0  !NAM<-NWA ECMA maximum closure
+-12.02  66.95  -75.55  186.0  !NAM<-NWA ECMA
+  0.00   0.00    0.00  186.0  !NAM<-PNA cross-over
+  0.00   0.00    0.00  306.0  !NAM<-PNA Paleozoic pieces form NAM
+ 38.30  78.80   -0.25    1.0  !NAM<-NWA DeMets et al. 1990
+ 38.30  78.80   -0.65    2.6  !NAM<-NWA An2a after DeMets et al. 1990
+ 12.57  80.41   -2.52    9.7  !NAM<-NWA An5 RDM 02/26/94
+ 25.02  80.83   -5.22   19.0  !Nam<-NWA An6 RDM 02/26/94
+ 38.54  79.60   -6.91   25.8  !NAM<-NWA An8  RDM 02/26/94
+  5.96  76.04   -9.77   33.1  !NAM<-NWA An13 RDM 02/26/94
+  0.23  74.43  -11.92   35.7  !NAM<-NWA An18 RDM 02/26/94
+ -2.66  74.42  -13.55   38.4  !NAM<-NWA An20 RDM 02/26/94
+ -5.80  74.22  -15.15   42.5  !NAM<-NWA An21 RDM 02/26/94
+ -4.46  75.22  -15.96   49.0  !NAM<-NWA An22 RDM 02/26/94
+ -4.29  76.66  -17.15   52.4  !NAM<-NWA An24 RDM 02/26/94
+  2.22  80.44  -18.03   55.9  !NAM<-NWA An25 RDM 02/26/94
+  3.48  82.83  -20.81   65.6  !NAM<-NWA An30 RDM 02/26/94
+-11.22  80.94  -22.92   71.1  !NAM<-NWA An32 RDM 02/26/94
+-10.71  81.07  -23.75   73.6  !NAM<-NWA An33y RDM 02/26/94
+-18.18  79.58  -27.00   79.1  !NAM<-NWA An33o RDM 02/26/94
+-20.41  76.74  -29.50   83.0  !NAM<-NWA An34 RDM 02/26/94
+ 77.95  79.08   -2.41    9.8  !NAM<-NWA An5  Klitgord & Schouten 1986
+ 37.84  79.57   -5.29   19.7  !NAM<-NWA An6  Klitgord & Schouten 1986
+  7.12  76.41   -9.81   33.2  !NAM<-NWA An13 Klitgord & Schouten 1986
+ -4.83  74.51  -15.32   47.0  !NAM<-NWA An21 Klitgord & Schouten 1986
+ -0.50  80.60  -18.07   56.2  !NAM<-NWA An25 Klitgord & Schouten 1986
+ -0.63  82.51  -20.96   66.5  !NAM<-NWA An30 Klitgord & Schouten 1986
+ -9.15  81.35  -22.87   72.0  !NAM<-NWA An32 Klitgord & Schouten 1986
+-11.76  80.76  -23.91   73.0  !NAM<-NWA An33y Klitgord & Schouten 1986
+-18.35  78.30  -27.06   79.1  !NAM<-NWA An33o Klitgord & Schouten 1986
+-20.73  76.55  -29.60   83.0  !NAM<-NWA An34 Klitgord & Schouten 1986
+-19.48  73.82  -34.28   90.1  !NAM<-NWA Klitgord & Schouten  1986
+-19.90  66.30  -54.25  118.0  !NAM<-NWA AnM0 Klitgord & Schouten 1986
+-19.0   66.13  -56.39  127.7  !NAM<-NWA AnM4 Klitgord & Schouten 1986
+-18.50  65.95  -57.40  131.3  !NAM<-NWA AnM10N Klitgord & Schouten 1986
+-18.40  66.10  -59.79  139.9  !NAM<-NWA AnM16 Klitgord & Schouten 1986
+-18.10  66.50  -61.92  147.6  !NAM<-NWA AnM21 Klitgord & Schouten 1986
+-16.0   67.15  -64.70  154.4  !NAM<-NWA AnM25 Klitgord & Schouten 1986
+ 0.28   75.46  -12.17  39.13  !NAM<-NWA An18 Klit & Sch 1986 INTERP
+-2.68   74.94  -13.77  43.13  !NAM<-NWA An20 Klit & Sch 1986 INTERP
+-3.96   76.28  -16.01  49.37  !NAM<-NWA An22 Klit & Sch 1986 INTERP
+-3.15   77.61  -16.58  51.30  !NAM<-NWA An23 Klit & Sch 1986 INTERP
+-2.45   78.58  -17.03  52.79  !NAM<-NWA An24 Klit & Sch 1986 INTERP
+-0.52   80.91  -18.49  57.70  !NAM<-NWA An26 Klit & Sch 1986 INTERP
+-0.58   81.94  -20.00  63.09  !NAM<-NWA An28 Klit & Sch 1986 INTERP
+-0.60   82.15  -20.34  64.30  !NAM<-NWA An29 Klit & Sch 1986 INTERP
+-12.34  66.97  -74.57  175.0  !NAM<-NWA East Coast Mag. Anom Klitgord & Schouten 1986
+-11.4   66.90  -77.50  180.0  !NAM<-NWA Dunbar & Sawyer 1989
+-11.4   66.90  -77.50  245.0  !NAM<-NWA Dunbar & Sawyer 1989
+ 56.51  81.07   -5.21   19.7  !NAM<-NWA An6 Srivastava et al. 1990
+  2.22  76.28   -9.96   33.2  !NAM<-NWA An13 Srivastava et al. 1990
+ -6.11  73.69  -15.46   47.0  !NAM<-NWA An21 Srivastava et al. 1990
+ -2.64  78.33  -16.91   52.9  !NAM<-NWA An24 Srivastava et al. 1990
+ -0.73  80.02  -18.11   56.2  !NAM<-NWA An25 Srivastava et al. 1990
+-20.18  66.09  -54.45  118.0  !NAM<-NWA AnM0 Srivastava et al. 1990
+-15.85  66.70  -64.90  154.4  !NAM<-NWA AnM25 Srivastava et al. 1990
+-12.76  65.97  -76.44  175.0  !NAM<-NWA ECMA Srivastava et al. 1990
+
+  0.00   0.00    0.00    0.0  !NAM<-EUR North America-Eurasia (NAm fixed)
+129.47  65.41   -2.48    9.8  !NAM<-EUR An5 Skogseid 1993
+136.83  68.89   -4.90   19.7  !NAM<-EUR An6 Skogseid 1993
+137.09  67.60   -5.65   25.2  !NAM<-EUR An7 Skogseid 1993
+136.29  67.90   -7.23   33.2  !NAM<-EUR An13 Skogseid 1993
+137.04  65.81   -7.88   34.8  !NAM<-EUR An15 Skogseid 1993
+137.73  66.56   -8.95   39.9  !NAM<-EUR An18 Skogseid 1993
+135.74  66.99   -9.88   43.2  !NAM<-EUR An20 Skogseid 1993
+134.04  64.63  -10.58   47.0  !NAM<-EUR An21 Skogseid 1993
+132.93  64.14  -11.14   49.4  !NAM<-EUR An22 Skogseid 1993
+136.32  61.69  -11.43   51.0  !NAM<-EUR An23 Skogseid 1993
+136.85  61.20  -12.03   52.5  !NAM<-EUR An24a Skogseid 1993
+137.50  57.92  -12.06   53.3  !NAM<-EUR An24b Skogseid 1993
+147.46  62.37  -18.03   75.0  !NAM<-EUR closure Skogseid 1993
+133.58  65.38   -2.44    9.8  !NAM<-EUR An5 RDM Lawver et al. 1990
+136.74  68.92   -4.97   19.7  !NAM<-EUR An6 RDM Lawver et al. 1990
+136.95  65.64   -7.51   33.6  !NAM<-EUR An13 RDM Lawver et al. 1990
+137.74  67.19  -10.91   46.5  !NAM<-EUR An21 Srivastava & Roest 1989
+140.81  62.60  -12.75   53.3  !NAM<-EUR An24b Srivastava & Roest 1989
+141.66  63.14  -14.22   56.2  !NAM<-EUR An25 Srivastava & Roest 1989
+143.96  64.84  -16.95   68.3  !NAM<-EUR An30 Srivastava & Roest 1989
+147.74  66.17  -19.00   78.9  !NAM<-EUR An33o Srivastava & Roest 1989
+148.91  66.54  -19.70   83.0  !NAM<-EUR An34 Srivastava & Roest 1989
+150.26  66.67  -20.37   92.0  !NAM<-EUR close Lab Sea Srivastava & Roest 1989
+152.34  66.85  -21.49  105.0  !NAM<-EUR AnK Srivastava & Roest 1989
+154.75  68.99  -23.05  118.0  !NAM<-EUR M0 pre-rift fit Srivastava & Roes
+154.26  69.67  -23.17  118.0  !NAM<-EUR M0 Srivastava et al. 2000
+154.75  68.99  -23.05  143.8  !NAM<-EUR M18 Srivastava & Roest 1989
+155.44  69.03  -23.26  154.0  !NAM<-EUR M25 Torsvik et al. 2001
+156.7   69.1   -23.64  170.0  !NAM<-EUR closure of N. Sea grabens RDM 1989
+156.7   71.61  -25.27  175.0  !NAM<-EUR Torsvik et al. 2001
+156.7   69.1   -23.64  245.0  !NAM<-EUR
+156.7   69.1   -23.64  250.0  !NAM<-EUR
+146.60  84.40  -29.20   92.0  !NAM<-EUR Sclater et al 1977
+146.60  84.40  -29.20  245.0  !NAM<-EUR Sclater et al 1977
+
+  0.00   0.00    0.00    0.0  !NAM<-EUR North America-Eurasia (NAm fixed)
+137.88  60.79   -2.32   10.33 !NAM<-EUR An5  J. Luis  BF +/- bem a toda a 5
+145.61  19.07  -12.57   52.79 !NAM<-EUR An24 J. Luis  BF
+146.16  65.29  -16.77   67.02 !NAM<-EUR An30 J. Luis  pode melhorar
+147.85  61.34  -16.98   72.25 !NAM<-EUR An32 J. Luis  nao BF, o BF estraga-o
+147.80  64.75  -18.49   76.20 !NAM<-EUR An33 J. Luis  BF

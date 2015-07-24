@@ -1,0 +1,18 @@
+# Control script to drive operations in the aquaPlugin function
+# First line must start with 'case N', where N is as explained in aquaPlugin
+# Character arguments, like file names, must be prefixed with the 'char' key
+# Empties, even for strings, must be set as []
+# Args for run of CASE 5
+case 5
+# The 'fnameout' var - Empty means the file name is asked at end of run 
+[]
+# The 'op'eration. Empty means 'mean'. Alternatives are median or the name a ML function
+[]
+# The 'fnamepolys' var - File name of a x,y polygon or a list of polygons. Empty fish polys from fig
+[]
+# The 'sub_set' var ([0 19] -> (82 90)); ([9 9] -> (91 00)); ([19 0] -> (01 09));  
+[0 0]
+# The 'fnameflags' var .The quality flags file. If empty no quality check is done.
+[]
+# The 'quality'
+0

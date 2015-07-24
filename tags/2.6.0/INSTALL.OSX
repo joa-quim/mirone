@@ -1,0 +1,20 @@
+THIS APPLIES TO MAC OSX ONLY
+
+To finish instalation you need to run the chrpath.sc script that will set the rpath to the binaries right for your system. That is, on a shell window issue the following command
+
+./chrpath.sc
+
+
+You may also get into troubles due to incompatibilities with old Matlab dynamic libraries. I don't know how TMW manages to screw things so well but the fact is that even with an 'rpath' and DYLD_LIBRARY_PATH set ML goes sniff first to its own versions. The following is a likely example
+
+
+??? Invalid MEX-file
+'/Users/j/programs/MacMirone220/lib_mex/gdalread.mexmaci64':
+dlopen(/Users/j/programs/MacMirone220/lib_mex/gdalread.mexmaci64, 1): Library
+not loaded: /Users/j/programs/MacMirone220/libnetcdf.dylib
+  Referenced from: /Users/j/programs/MacMirone220/libgdal.dylib
+  Reason: Incompatible library version: libgdal.dylib requires version 9.0.0
+  or later, but libnetcdf.dylib provides version 7.0.0.
+
+
+In such cases (HDF5 is another one) the only solution I know is to move the offending ML dynamic libraries out of the way
