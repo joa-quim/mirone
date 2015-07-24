@@ -92,8 +92,8 @@ setappdata(H1,'PixelMode',0)			% Default
 
 % Detect which matlab version is beeing used. For the moment I'm only interested to know if R13 or >= R14
 version7 = version;
-if (double(version7(1)) > 54),		version7 = true;
-else								version7 = false;
+if (double(version7(1)) > 54),		version7 = sscanf(version7(1:3),'%f');
+else								version7 = 0;
 end
 
 if (version7)
@@ -744,7 +744,7 @@ if (IamCompiled)
 end
 uimenu('Parent',h, 'Call',['mirone(''FileOpenWebImage_CB'',guidata(gcbo),',...
 	' ''http://www2.clustrmaps.com/stats/maps-clusters/w3.ualg.pt-~jluis-mirone-world.jpg'',''nikles'');'],'Label','See visitors map','Sep','on');
-uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 22 Jul 2015'',''2.6.0dev'')','Label','About','Sep','on');
+uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 24 Jul 2015'',''2.6.0dev'')','Label','About','Sep','on');
 
 %% --------------------------- Build HANDLES and finish things here
 	handles = guihandles(H1);
