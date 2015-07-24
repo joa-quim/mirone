@@ -44,7 +44,10 @@ function varargout = bg_map(varargin)
 	logo = imread([handles.f_path 'etopo4_logo.jpg']);
 	image(logo,'Parent',handles.axes1);
 	set(handles.axes1,'Visible','off');
-    
+	
+	ver = version;
+	new_graphics = (sscanf(ver(1:3),'%f') >= 8.4);	% New graphics system f the ButtonDownFcn when 'FaceColor','none'
+
 	handles.hRects = zeros(4,8);
 	for (m=1:4)
 		for (n=1:8)
@@ -53,11 +56,13 @@ function varargout = bg_map(varargin)
 			h = patch('XData',xp,'YData',yp,'FaceColor','none','EdgeColor',[.9 .9 .9],'LineWidth',1);
 			%h = rectangle('Pos',[(n-1) (m-1) 1 1]*64,'EdgeColor',[.7 .7 .7],'LineWidth',1);
 			set(h,'ButtonDownFcn',{@bdn_bgTile,hObject},'UserData',[m n])
+			if (new_graphics),	set(h, 'FaceColor', 'w', 'FaceAlpha', 0.005),	end		% No f... comments
 			handles.hRects(m,n) = h;
 		end
 	end
 	handles.hBigRect = patch('XData',[0 512 512 0],'YData',[0 0 256 256],'FaceColor','none','Vis','off');
 	set(handles.hBigRect,'ButtonDownFcn',{@bdn_bgTile,hObject})
+	if (new_graphics),	set(handles.hBigRect, 'FaceColor', 'w', 'FaceAlpha', 0.005),	end	% No f... comments
 
 	im = uint8(ones(20,28,3) * 255);
 	im(5:6,5:25,:) = 0;			% Top line
