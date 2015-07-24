@@ -205,8 +205,8 @@ IF "%1"=="OCV" GOTO END
 
 REM ---------------------- with netCDF ----------------------------------------------
 :swan
-for %%G in (swan swan_sem_wbar) do (
-%CC% -DWIN32 %COMPFLAGS% -I%MATINC% -I%NETCDF_INC% %OPTIMFLAGS% %_MX_COMPAT% %TIMEIT% %OMP% %%G.c
+for %%G in (swan swan_sem_wbar nswing) do (
+%CC% -DWIN32 %COMPFLAGS% /DHAVE_NETCDF -I%MATINC% -I%NETCDF_INC% %OPTIMFLAGS% %_MX_COMPAT% %TIMEIT% %OMP% %%G.c
 link  /out:"%%G.%MEX_EXT%" %LINKFLAGS% %NETCDF_LIB% /implib:templib.x %%G.obj 
 )
 IF "%1"=="swan" GOTO END
