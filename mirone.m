@@ -2624,6 +2624,7 @@ function DrawClosedPolygon_CB(handles, opt)
 		% The following Tag is very important to distinguish from MB tracks, which have Tags = MBtrack#
 		h = patch('XData',xp,'YData',yp,'FaceColor','none','EdgeColor',handles.DefLineColor,...
 			'LineWidth',handles.DefLineThick,'Tag',tag);
+		if (handles.version7 >= 8.4),	set(h, 'FaceColor', 'w', 'FaceAlpha', 0.005),	end		% F TMW, always breaking things
 		draw_funs(h,'line_uicontext')		% Set lines's uicontextmenu
 		% We are done in this mode (just draw a closed polygon)
 		if (isempty(opt) || any(strcmp(tag,{'EulerTrapezium' 'SeismicPolyg'}))),	return,		end
