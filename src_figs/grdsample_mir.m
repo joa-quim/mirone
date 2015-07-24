@@ -86,7 +86,7 @@ function varargout = grdsample_mir(varargin)
 	guidata(hObject, handles);
 
 	set(hObject,'Visible','on');
-	if (strncmp(computer,'PC',2))
+	if (handMir.version7 < 8.4 && strncmp(computer,'PC',2))
 		WindowAPI(hObject, 'TopMost')
 	end
 	if (nargout),   varargout{1} = hObject;     end
