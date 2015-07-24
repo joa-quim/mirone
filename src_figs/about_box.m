@@ -1,7 +1,7 @@
 function varargout = about_box(varargin)
 % Display the "About" thing
 
-%	Copyright (c) 2004-2012 by J. Luis
+%	Copyright (c) 2004-2015 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -15,7 +15,9 @@ function varargout = about_box(varargin)
 %
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
- 
+
+% $Id$ 
+
 	hObject = figure('Vis','off');
 	about_box_LayoutFcn(hObject);
 	handles = guihandles(hObject);
@@ -45,7 +47,7 @@ function varargout = about_box(varargin)
 	end
 	
 	set(hObject,'Vis','on');
-	if (strncmp(computer,'PC',2))
+	if (handMir.version7 < 8.4 && strncmp(computer,'PC',2))
 		WindowAPI(hObject, 'TopMost')
 	end
 	guidata(hObject,handles)
