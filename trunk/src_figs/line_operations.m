@@ -81,6 +81,7 @@ function varargout = line_operations(varargin)
 	handles.path_tmp = varargin{1}.path_tmp;
 	handles.isPC = isPC;
 	IamCompiled = varargin{1}.IamCompiled;
+	handles.version7 = varargin{1}.version7;
 
 	handles.known_ops = {'bezier'; 'buffer'; 'bspline'; 'closing'; 'cspline'; 'group'; 'line2patch'; 'polysimplify'; 'polyunion'; ...
 			'polyintersect'; 'polyxor'; 'polyminus'; 'pline'; 'scale'; 'stitch'; 'thicken'; 'toRidge'; 'self-crossings'};
@@ -108,7 +109,7 @@ function varargout = line_operations(varargin)
 	if (floating)
 		move2side(handles.hMirFig, hObject, 'north')
 		set(hObject,'Visible','on');
-		WindowAPI(hObject, 'TopMost')
+		if (handles.version7 < 8.4),	WindowAPI(hObject, 'TopMost'),	end
 	end
 
 	handles.ttips = cell(numel(handles.known_ops)+1,1);
@@ -227,7 +228,7 @@ function push_apply_CB(hObject, handles)
 	cmd = get(handles.edit_cmd,'String');
 	if (isempty(cmd))
 		h = errordlg('Fiu Fiu!! Apply WHAT????','ERROR');
-		if (handles.isPC),	WindowAPI(h, 'TopMost'),	end
+		if (handles.version7 < 8.4 && handles.isPC),	WindowAPI(h, 'TopMost'),	end
 		return
 	end
 
@@ -242,7 +243,7 @@ function push_apply_CB(hObject, handles)
 			~strcmp(handles.known_ops{ind},'scale') && ~strcmp(handles.known_ops{ind},'GMT_DB') && ...
 			~strcmp(handles.known_ops{ind},'self-crossings') )
 		h = errordlg('Fiu Fiu!! Apply WHERE????','ERROR');
-		if (handles.isPC),	WindowAPI(h, 'TopMost'),	end
+		if (handles.version7 < 8.4 && handles.isPC),	WindowAPI(h, 'TopMost'),	end
 		return
 	end
 	if ( ~strcmp(handles.known_ops{ind},'pline') && ~strcmp(handles.known_ops{ind},'scale') && ...
@@ -250,7 +251,7 @@ function push_apply_CB(hObject, handles)
 		handles.hLine = handles.hLine(ishandle(handles.hLine));
 		if (isempty(handles.hLine))
 			h = errordlg('Invalid handle. You probably killed the line(s)','ERROR');
-			if (handles.isPC),	WindowAPI(h, 'TopMost'),	end
+			if (handles.version7 < 8.4 && handles.isPC),	WindowAPI(h, 'TopMost'),	end
 			return
 		end
 	end
@@ -287,7 +288,7 @@ function push_apply_CB(hObject, handles)
 			if (out.dir),		direction = out.dir;	end
 			if (out.npts),		npts = out.npts;		end
 			if (out.ab),		geodetic = out.ab;		% Custom ellipsoid
-			elseif (out.geod)	geodetic = out.geod;	% WGS84
+			elseif (out.geod),	geodetic = out.geod;	% WGS84
 			end
 
 			if (out.toDegFac)		% Convert to degrees using the simple s = R*theta relation
@@ -347,7 +348,7 @@ function push_apply_CB(hObject, handles)
 			dist = out.dist;
 			if (out.npts),		npts = out.npts;		end
 			if (out.ab),		geodetic = out.ab;		% Custom ellipsoid
-			elseif (out.geod)	geodetic = out.geod;	% WGS84
+			elseif (out.geod),	geodetic = out.geod;	% WGS84
 			end
 
 			if (out.toDegFac)		% Convert to degrees using the simple s = R*theta relation
@@ -408,7 +409,7 @@ function push_apply_CB(hObject, handles)
 		case 'group'
 			if ( ~strcmp(get(handles.hLine(1),'Type'),'line') )
 				h = warndlg('The selected object is not of type LINE. Objects of type PATCH are not currently "groupable"','Warning');
-				if (handles.isPC),	WindowAPI(h, 'TopMost'),	end
+				if (handles.version7 < 8.4 && handles.isPC),	WindowAPI(h, 'TopMost'),	end
 				return
 			end
 			lt = get(handles.hLine, 'LineWidth');		lc = get(handles.hLine, 'Color');
@@ -483,7 +484,7 @@ function push_apply_CB(hObject, handles)
 				draw_funs(h,'line_uicontext')
 			catch
 				h = errordlg(['Something screwd up. Error message is ' lasterr]);
-				if (handles.isPC),	WindowAPI(h, 'TopMost'),	end
+				if (handles.version7 < 8.4 && handles.isPC),	WindowAPI(h, 'TopMost'),	end
 			end
 
 		case 'scale'
@@ -525,7 +526,7 @@ function push_apply_CB(hObject, handles)
 				y = get(hLines(k), 'YData');
 				n_pts = numel(x);	robust = 1;
 				if (n_pts < 2),			continue
-				elseif (n_pts > 1000)	robust = 1000;		% Do chunking otherwise MEM Kaboom
+				elseif (n_pts > 1000),	robust = 1000;		% Do chunking otherwise MEM Kaboom
 				end
 				[xc, yc, iout] = intersections(x, y, robust);
 				if (~isempty(iout) && (iout(1) - 1) < 1e-5),	xc(1) = [];		yc(1) = [];		end		% Avoid annoying false +
@@ -727,7 +728,7 @@ function push_apply_CB(hObject, handles)
 			if (~isempty(msg)),		errordlg(msg,'ERROR'),		return,		end
 			N = out(1);
 			[X,Y,Z,head] = load_grd(hanMir);
-			if (isempty(Z))		return,		end
+			if (isempty(Z)),	return,		end
 			x = get(handles.hLine(1), 'xdata');		y = get(handles.hLine(1), 'ydata');
 			dx = N * head(8);			dy = N * head(9);
 			f_name = [handles.path_tmp 'lixo.dat'];		% Temp file
@@ -812,7 +813,7 @@ function update_GMT_DB(handles, TOL)
 				if (Ie < Is)
 					h = warndlg(['The updating polygon had a wrong orientation non detected by the test,' ...
 						' or the test failled miserably. In either case, polygon was ignored.'],'Warning');
-					if (handles.isPC),	WindowAPI(h, 'TopMost'),	end
+					if (handles.version7 < 8.4 && handles.isPC),	WindowAPI(h, 'TopMost'),	end
 					continue
 				end
 				xG = [xG(1:Is-1) x xG(Ie+1:end)];
