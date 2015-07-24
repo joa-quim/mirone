@@ -35,7 +35,7 @@ REM If set to "yes", linkage is done againsts ML6.5 Libs (needed in compiled ver
 SET R13="no"
 
 REM Set it to 32 or 64 to build under 64-bits or 32-bits respectively.
-SET BITS=32
+SET BITS=64
 
 IF %R13%=="yes" SET BITS=32
 
@@ -59,7 +59,11 @@ IF %DEBUG%=="yes" SET LDEBUG=/debug
 
 REM
 REM Set to "yes" if when you want to build cvlib_mex that needs extra links
-SET PROCV="yes"
+SET PROCV="no"
+
+REM
+REM Set to "yes" if when you want to build imregionalmaxmex that needs extra links
+SET IMREGMAX="yes"
 
 REM --- Next allows compiling with the compiler you want against the ML6.5 libs (needed in stand-alone version)
 IF %R13%=="yes" (
@@ -87,7 +91,7 @@ SET _MX_COMPAT=-DMX_COMPAT_32
 REM -------------- Set up libraries here -------------------------------------------------
 IF %BITS%==64 (
 
-SET  NETCDF_LIB=C:\programs\compa_libs\netcdf\compileds\VC10_64\lib\netcdf.lib
+SET  NETCDF_LIB=C:\programs\compa_libs\netcdf_GIT\compileds\VC10_64\lib\netcdf.lib
 SET     GMT_LIB=c:\progs_cygw\GMTdev\gmt4\WIN64\lib\gmt.lib
 SET GMT_MGG_LIB=c:\progs_cygw\GMTdev\gmt4\WIN64\lib\gmt_mgg.lib
 SET    GDAL_LIB=c:\programs\GDALtrunk\gdal\compileds\VC10_64\lib\gdal_i.lib
@@ -98,12 +102,14 @@ SET   CVOBJ_LIB=C:\programs\compa_libs\opencv\compileds\VC10_64\lib\opencv_objde
 SET CVVIDEO_LIB=C:\programs\compa_libs\opencv\compileds\VC10_64\lib\opencv_video.lib
 SET CVPHOTO_LIB=C:\programs\compa_libs\opencv\compileds\VC10_64\lib\opencv_photo.lib
 SET     LAS_LIB=C:\programs\compa_libs\liblas-src-1.2.1\lib\VC10_64\liblas_i.lib
-SET  GEOLIB_LIB=C:\programs\compa_libs\GeographicLib-1.16\compileds\VC10_64\lib\Geographic.lib
+SET  GEOLIB_LIB=C:\programs\compa_libs\GeographicLib-1.29\compileds\VC10_64\lib\Geographic.lib
 SET LASZLIB_LIB=C:\programs\compa_libs\lastools\compileds\VC10_64\lib\laslib_i.lib 
+SET   JULIA_LIB=C:\programs\julia64\usr\bin\julia.lib 
+SET   JULIA_LIB=V:\julia\usr\bin\julia.lib 
 
 ) ELSE (
 
-SET  NETCDF_LIB=C:\programs\compa_libs\netcdf\compileds\VC10_32\lib\netcdf.lib
+SET  NETCDF_LIB=C:\programs\compa_libs\netcdf_GIT\compileds\VC10_32\lib\netcdf.lib
 SET     GMT_LIB=c:\progs_cygw\GMTdev\gmt4\WIN32\lib\gmt.lib
 SET GMT_MGG_LIB=c:\progs_cygw\GMTdev\gmt4\WIN32\lib\gmt_mgg.lib
 SET    GDAL_LIB=c:\programs\GDALtrunk\gdal\compileds\VC10_32\lib\gdal_i.lib
@@ -114,20 +120,22 @@ SET   CVOBJ_LIB=C:\programs\compa_libs\opencv\compileds\VC10_32\lib\opencv_objde
 SET CVVIDEO_LIB=C:\programs\compa_libs\opencv\compileds\VC10_32\lib\opencv_video.lib
 SET CVPHOTO_LIB=C:\programs\compa_libs\opencv\compileds\VC10_32\lib\opencv_photo.lib
 SET     LAS_LIB=C:\programs\compa_libs\liblas-src-1.2.1\lib\Intel11_32\liblas_i.lib
-SET  GEOLIB_LIB=C:\programs\compa_libs\GeographicLib-1.16\compileds\VC10_32\lib\Geographic.lib
+SET  GEOLIB_LIB=C:\programs\compa_libs\GeographicLib-1.29\compileds\VC10_32\lib\Geographic.lib
 SET LASZLIB_LIB=C:\programs\compa_libs\lastools\compileds\VC10_32\lib\laslib_i.lib 
 
 )
+SET   JULIA_LIB=
 
-SET  NETCDF_INC=C:\programs\compa_libs\netcdf\compileds\VC10_32\include
+SET  NETCDF_INC=C:\programs\compa_libs\netcdf_GIT\compileds\VC10_32\include
 SET     GMT_INC=c:\progs_cygw\GMTdev\GMT4\include
 REM SET GMT_INC=c:\progs_cygw\GMTdev\GMT5\include
 SET    GMT_INC2=C:\progs_cygw\GMTdev\GMT5\src\mex
 SET    GDAL_INC=c:\programs\GDALtrunk\gdal\compileds\VC10_32\include
 SET      CV_INC=C:\programs\compa_libs\opencv\compileds\VC10_32\include
 SET       CVInc=C:\programs\compa_libs\opencv\compileds\VC10_32\include\opencv
-SET  GEOLIB_INC=C:\programs\compa_libs\GeographicLib-1.16\compileds\VC10_64\include
+SET  GEOLIB_INC=C:\programs\compa_libs\GeographicLib-1.29\compileds\VC10_64\include
 SET LASZLIB_INC=C:\programs\compa_libs\lastools\compileds\VC10_32\include
+SET   JULIA_INC=-IC:\programs\julia64\src -IC:\programs\julia64\src\support -IC:\programs\julia64\usr\include
 SET       INCAS=%INCLUDE%
 rem SET     LAS_INC=-IC:\programs\compa_libs\liblas-src-1.2.1\bin\include\liblas\capi -IC:\programs\compa_libs\liblas-src-1.2.1\bin\include\liblas
 REM ----------------------------------------------------------------------------
@@ -143,9 +151,14 @@ SET extra_cv_c=
 SET extra_cv_o=
 )
 
+SET extra_IMREGMAX=
+IF %IMREGMAX%=="yes" (
+SET extra_IMREGMAX=neighborhood
+)
+
 SET OMP_F=/openmp
 IF %CC%==icl SET OMP_F=/Qopenmp
-SET COMPFLAGS=/c /Zp8 /GR /EHs /D_CRT_SECURE_NO_DEPRECATE /D_SCL_SECURE_NO_DEPRECATE /D_SECURE_SCL=0 /DMATLAB_MEX_FILE /nologo /MD %OMP_F%
+SET COMPFLAGS=/c /Zp8 /GR /EHs /D_CRT_SECURE_NO_DEPRECATE /D_SCL_SECURE_NO_DEPRECATE /D_SECURE_SCL=0 /DMATLAB_MEX_FILE /nologo /MD %OMP_F% /DHAVE_NETCDF 
 SET OPTIM2=/QxSSE4.2 /Qparallel /arch:SSE2 /fp:fast 
 IF %DEBUG%=="no" SET OPTIMFLAGS=/Ox /Oy- /arch:SSE2 /fp:precise /DNDEBUG
 IF %DEBUG%=="yes" SET OPTIMFLAGS=/Z7
@@ -154,9 +167,9 @@ IF %BITS%==64 SET arc=X64
 IF %BITS%==32 SET arc=X86
 SET LINKFLAGS=/dll /export:mexFunction /LIBPATH:%MATLIB% libmx.lib libmex.lib libmat.lib /MACHINE:%arc% kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib Vfw32.lib /nologo /incremental:NO %LDEBUG% 
 
-%CC% -DWIN32 %COMPFLAGS% -I%MATINC% -I%NETCDF_INC% -I%GMT_INC% -I%GDAL_INC% -I%CV_INC% -I%CVInc% %LAS_INC% -I%GEOLIB_INC% -I%LASZLIB_INC% %OPTIMFLAGS% %_MX_COMPAT% %TIMEIT% -DDLL_GMT %OMP% %extra_cv_c% %1
-link  /out:"%~n1.%MEX_EXT%" %LINKFLAGS% %NETCDF_LIB% %GMT_LIB% %GDAL_LIB% %LAS_LIB% %GEOLIB_LIB% %LASZLIB_LIB% %CXCORE_LIB% %CVIMG_LIB% %CVCALIB_LIB% %CVOBJ_LIB% %CVVIDEO_LIB% %CVPHOTO_LIB% /implib:templib.x %~n1.obj %extra_cv_o%
-rem link  /out:"%1.%MEX_EXT%" %LINKFLAGS% %NETCDF_LIB% %GMT_LIB% %GDAL_LIB% %LAS_LIB% %GEOLIB_LIB% /implib:templib.x %1.obj
+%CC% -DWIN32 %COMPFLAGS% -I%MATINC% -I%NETCDF_INC% -I%GMT_INC% -I%GDAL_INC% -I%CV_INC% -I%CVInc% %LAS_INC% -I%GEOLIB_INC% -I%LASZLIB_INC% %JULIA_INC% %OPTIMFLAGS% %_MX_COMPAT% %TIMEIT% -DDLL_GMT %OMP% %extra_cv_c% %extra_IMREGMAX%.cpp %1
+
+link  /out:"%~n1.%MEX_EXT%" %LINKFLAGS% %NETCDF_LIB% %GMT_LIB% %GDAL_LIB% %LAS_LIB% %GEOLIB_LIB% %LASZLIB_LIB% %CXCORE_LIB% %CVIMG_LIB% %CVCALIB_LIB% %CVOBJ_LIB% %CVVIDEO_LIB% %CVPHOTO_LIB% %JULIA_LIB% /implib:templib.x %~n1.obj %extra_cv_o% %extra_IMREGMAX%.obj
 
 SET INCLUDE=%INCAS%
 del *.obj *.exp templib.x
