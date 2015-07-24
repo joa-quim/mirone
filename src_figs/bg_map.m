@@ -137,8 +137,8 @@ function toggle_region_CB(hObject, handles)
 
 	w = (p1(1) - 1) * inc + x_min;		e = (p2(1) - 1) * inc + x_min;		% Get Region in geogs
 	s = (n_row - p2(2)) * inc + y_min;	n = (n_row - p1(2)) * inc + y_min;	% Also change the stupid origin from UL to BL corner
-	pix_x = round(getPixel_coords(5400, [-180 180], [w e]));					% Now convert to the correct indices of big image 
-	pix_y = 2700 - round(getPixel_coords(2700, [-90 90], [s n])) + 1;			% Again the Y origin shit
+	pix_x = round(getPixel_coords(5400, [-180 180], [w e]));				% Now convert to the correct indices of big image 
+	pix_y = 2700 - round(getPixel_coords(2700, [-90 90], [s n])) + 1;		% Again the Y origin shit
 	pix_y = pix_y(2:-1:1);
 
 	if ((diff(pix_x(1:2)) < 10) || (diff(pix_y(1:2)) < 10))
@@ -150,7 +150,12 @@ function toggle_region_CB(hObject, handles)
 	h = patch('XData',[p1(1) p2(1) p2(1) p1(1)],'YData',[p1(2) p1(2) p2(2) p2(2)],'FaceColor','none');
 	out.img = get_img(handles.figure1, h, [handles.f_path 'etopo4.jpg'], opt_r, '-U');
 	if (get(handles.radio_360,'Val') && w < 0)
-		w = w + 360;		e = e + 360;
+		if (w >= 0 && e <= 180)
+		elseif (w >= -180 && e < 0)
+			w = w + 360;		e = e + 360;
+		else
+			warndlg('Sorry, this case is not correctly programmed yet.')
+		end
 	end	
 	out.X = [w e];      out.Y = [s n];
 	out.imgName = 'Base image';
