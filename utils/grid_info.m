@@ -128,7 +128,7 @@ function grid_info(handles,X,Y,hdr)
 	plugedWin = [plugedWin hMsg];
 	setappdata(handles.figure1,'dependentFigs',plugedWin);
 
-	if (strncmp(computer,'PC',2))
+	if (handles.version7 < 8.4 && strncmp(computer,'PC',2))
 		WindowAPI(hMsg, 'TopMost')
 	end
 
