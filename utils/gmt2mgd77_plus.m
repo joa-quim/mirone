@@ -99,9 +99,9 @@ function gmt2mgd77_plus(fname, varargin)
 	[PATO, FNAME] = fileparts(fname);
 	if (isempty(PATO)),		fsep = [];	end		% File is in the current directory
 	if (isempty(opt_Y))
-		track = gmtlist_m([PATO fsep FNAME], '-Fsxygmt', '-G');
+		track = c_gmtlist([PATO fsep FNAME], '-Fsxygmt', '-G');
 	else
-		track = gmtlist_m([PATO fsep FNAME], '-Fsxygmt', '-G', opt_Y);
+		track = c_gmtlist([PATO fsep FNAME], '-Fsxygmt', '-G', opt_Y);
 	end
 
 	if (isempty(track.time))
