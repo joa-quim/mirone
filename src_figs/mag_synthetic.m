@@ -389,7 +389,7 @@ function trk_chunk = get_track_chunk(handles)
 		[handles, track] = read_mgd77_plus(handles, handles.f_name);
 	else
 		handles.f_name = [FNAME '.gmt'];	handles.is_gmt = true;			handles.is_mgd77 = false;
-		track = gmtlist_m([PATH filesep FNAME], '-Fsxygmtd', handles.opt_G);
+		track = c_gmtlist([PATH filesep FNAME], '-Fsxygmtd', handles.opt_G);
 	end
 
 	if ~( numel(track.magnetics) > 1 && ~all(isnan(track.magnetics)) )
