@@ -622,7 +622,7 @@ function [track, names, names_ui, vars, x_min, x_max, y_min, y_max] = get_mgg(na
 
 	% EXTRACT NAVIGATION
 	if (strcmpi(EXT, '.gmt'))		% Old style .gmt files (many of the above was useless)
-		track = gmtlist_m(names{:}, varargin{:});
+		track = c_gmtlist(names{:}, varargin{:});
 		for (k = 1:numel(names)),	names{k} = [names{k} EXT];		end		% Restore the extension
 	else							% mgd77 netCDF files
 		if (numel(names) == 1)		% Extrac the entire navigation
