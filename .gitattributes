@@ -520,6 +520,7 @@ utils/bpass3d.m -text
 utils/buffer_j.m -text
 utils/bwbound_unique.m -text
 utils/c_cpt2cmap.m -text
+utils/c_gmtlist.m -text
 utils/c_grdfilter.m -text
 utils/c_grdinfo.m -text
 utils/c_grdlandmask.m -text
