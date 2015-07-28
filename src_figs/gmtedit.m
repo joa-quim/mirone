@@ -335,7 +335,7 @@ function import_clickedCB(hObject, evt, opt)
 		[handles.vars, handles.multi_plot, handles.xISdist] = parse_optV(MIRONE_DIRS.home_dir);
 	else
 		handles.f_name = [FNAME '.gmt'];	handles.is_gmt = true;			handles.is_mgd77 = false;
-		track = c_gmtlist([PATH filesep FNAME], '-Fsxygmtd', handles.opt_G);
+		track = gmtlist_m([PATH filesep FNAME], '-Fsxygmtd', handles.opt_G);
 	end
 	set(handles.figure1,'Name',['gmtedit  ' FNAME EXT])	
 
