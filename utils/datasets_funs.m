@@ -58,7 +58,7 @@ function DatasetsHotspots(handles)
 	fid = fopen([handles.path_data 'hotspots.dat'],'r');
 	fgetl(fid);						% Jump the header line
 	todos = fread(fid,'*char');     fclose(fid);
-	[hot.x hot.y hot.name hot.age] = strread(todos,'%f %f %s %f');     % Note: hot.name is a cell array of chars
+	[hot.x, hot.y, hot.name, hot.age] = strread(todos,'%f %f %s %f');     % Note: hot.name is a cell array of chars
 	clear todos;
     [tmp, msg] = geog2projected_pts(handles,[hot.x hot.y]);     % If map in geogs, tmp is just a copy of input
     if (~strncmp(msg,'0',1))		% Coords were projected
@@ -82,7 +82,7 @@ function DatasetsVolcanoes(handles)
 	if (aux_funs('msg_dlg',50,handles)),		return,		end		% If no_file create one. Else test unknown proj
 	fid = fopen([handles.path_data 'volcanoes.dat'],'r');
 	todos = fread(fid,'*char');
-	[volc.y volc.x volc.name region volc.desc volc.dating] = strread(todos,'%f %f %s %s %s %s');
+	[volc.y, volc.x, volc.name, region, volc.desc, volc.dating] = strread(todos,'%f %f %s %s %s %s');
 	fclose(fid);    clear region todos
     [tmp, msg] = geog2projected_pts(handles,[volc.x volc.y]);		% If map in geogs, tmp is just a copy of input
     if (~strncmp(msg,'0',1))        % Coords were projected
@@ -126,7 +126,7 @@ function DatasetsITRF(handles)
 	if (aux_funs('msg_dlg',50,handles)),		return,		end			% If no_file create one. Else test unknown proj
 	fid = fopen([handles.path_data 'itrf2008.dat'],'r');
 	todos = fread(fid,'*char');
-	[itrf.x itrf.y z.z itrf.Vx itrf.Vy itrf.Vz itrf.stName itrf.stCode z.lix] = strread(todos,'%f %f %f %f %f %f %s %s %s');
+	[itrf.x, itrf.y, z.z, itrf.Vx, itrf.Vy, itrf.Vz, itrf.stName, itrf.stCode, z.lix] = strread(todos,'%f %f %f %f %f %f %s %s %s');
 	fclose(fid);    clear todos
 	[tmp, msg] = geog2projected_pts(handles,[itrf.x itrf.y]);	% If map in geogs, tmp is just a copy of input
 	if (~strncmp(msg,'0',1))		% Coords were projected
@@ -148,7 +148,8 @@ function DatasetsMeteor(handles)
 	if (aux_funs('msg_dlg',50,handles)),		return,		end			% If no_file create one. Else test unknown proj
 	fid = fopen([handles.path_data 'meteoritos.dat'],'r');
 	todos = fread(fid,'*char');
-	[meteor.x meteor.y meteor.name meteor.diameter meteor.dating meteor.exposed meteor.btype] = strread(todos,'%f %f %s %s %s %s %s');
+	[meteor.x, meteor.y, meteor.name, meteor.diameter, meteor.dating, meteor.exposed, meteor.btype] = ...
+		strread(todos,'%f %f %s %s %s %s %s');
 	fclose(fid);    clear todos
 	[tmp, msg] = geog2projected_pts(handles,[meteor.x meteor.y]);	% If map in geogs, tmp is just a copy of input
 	if (~strncmp(msg,'0',1))		% Coords were projected
@@ -171,7 +172,7 @@ function DatasetsMaregOnLine(handles)
 	if (aux_funs('msg_dlg',50,handles)),	return,		end    % If no_file create one. Else test unknown proj
 	fid = fopen([handles.path_data 'mareg_online.dat'],'r');
 	todos = fread(fid,'*char');
-	[mareg.x mareg.y mareg.name dumb mareg.codeSt dumb mareg.country] = strread(todos,'%f %f %s %s %s %s %s');
+	[mareg.x, mareg.y, mareg.name, dumb, mareg.codeSt, dumb, mareg.country] = strread(todos,'%f %f %s %s %s %s %s');
 	fclose(fid);    clear todos
 	[tmp, msg] = geog2projected_pts(handles,[mareg.x mareg.y]);	% If map in geogs, tmp is just a copy of input
 	if (~strncmp(msg,'0',1))		% Coords were projected
@@ -582,7 +583,7 @@ function DatasetsCities(handles,opt)
         tag = 'City_other';
 	end
 	todos = fread(fid,'*char');     fclose(fid);
-	[city.x city.y city.name] = strread(todos,'%f %f %s');      % Note: city.name is a cell array of chars
+	[city.x, city.y, city.name] = strread(todos,'%f %f %s');      % Note: city.name is a cell array of chars
     [tmp, msg] = geog2projected_pts(handles,[city.x city.y]);   % If map in geogs, tmp is just a copy of input
     if (~strncmp(msg,'0',1))        % Coords were projected
         city.x = tmp(:,1);      city.y = tmp(:,2);
@@ -617,7 +618,7 @@ function DatasetsODP_DSDP(handles,opt)
 	set(handles.figure1,'pointer','watch')
 	fid = fopen([handles.path_data 'DSDP_ODP.dat'],'r');
 	todos = fread(fid,'*char');
-	[ODP.x ODP.y ODP.leg ODP.site ODP.z ODP.penetration] = strread(todos,'%f %f %d %s %d %d');
+	[ODP.x, ODP.y, ODP.leg, ODP.site, ODP.z, ODP.penetration] = strread(todos,'%f %f %d %s %d %d');
 	fclose(fid);    clear todos
 	% Stupid memory wast with the bloody doubles paranoia
 	ODP.leg = int16(ODP.leg);		ODP.z = int16(ODP.z);		ODP.penetration = int16(ODP.penetration);
