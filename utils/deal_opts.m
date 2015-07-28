@@ -36,7 +36,7 @@ function out = deal_opts(opt, opt2, varargin)
 	MIRONE_DIRS = getappdata(0,'MIRONE_DIRS');
 	opt_file = [MIRONE_DIRS.home_dir filesep 'data' filesep 'OPTcontrol.txt'];
 	out = [];
-	hCust = false;
+	hCust = [];
 
 	if ( ~exist(opt_file, 'file') == 2 ),	return,		end
 	fid = fopen(opt_file, 'r');
@@ -49,7 +49,7 @@ function out = deal_opts(opt, opt2, varargin)
 		if (strncmp(lines{k},'MIR_',4)),	c(k) = false;	end
 	end
 	lines(c) = [];			% Delete non-keyword (comment) lines
-	if (isempty(lines))		return,		end
+	if (isempty(lines)),	return,		end
 
 	if (~isa(opt,'cell'))	% Some calls (e.g. MGG & Microleveling) come as cells
 		opt = {opt};
@@ -69,7 +69,7 @@ function out = deal_opts(opt, opt2, varargin)
 
 				case 'mgg'			% To find tracks inside calling rectangle
 					if (strncmp(lines{k}(5:end),'MGG',3))
-						if (~hCust)				% Create a uimenu associated to a rectangle
+						if (isempty(hCust))			% Create a uimenu associated to a rectangle
 							hCust = uimenu(opt2, 'Label', 'Custom','Sep','on');
 						end
 						uimenu(hCust, 'Label', 'MGG tracks', 'Call',  @get_MGGtracks);
@@ -81,7 +81,7 @@ function out = deal_opts(opt, opt2, varargin)
 						out = lines{k}(10:end);
 						coeVar = 'mag';			% Default
 						[t, r] = strtok(out);
-						if (~isempty(r))		coeVar = ddewhite(r);	end
+						if (~isempty(r)),		coeVar = ddewhite(r);	end
 						item = uimenu(opt2, 'Label', 'Show Cross Over Errors', 'Sep','on');
 						uimenu(item, 'Label', 'All', 'Call', {@get_COEs, t, coeVar, 'all'});
 						uimenu(item, 'Label', 'External only', 'Call', {@get_COEs, t, coeVar, 'ext'});
@@ -94,7 +94,7 @@ function out = deal_opts(opt, opt2, varargin)
 
 				case 'microlev'		% To do microleveling on a rectangular ROI
 					if (strncmp(lines{k}(5:end),'MICRO',5))
-						if (~hCust)				% Create a uimenu associated to a rectangle
+						if (isempty(hCust))	% Create a uimenu associated to a rectangle
 							hCust = uimenu(opt2, 'Label', 'Custom','Sep','on');
 						end
 						uimenu(hCust, 'Label', 'ROI microleveling', 'Call', 'microlev(gco)');
@@ -103,7 +103,7 @@ function out = deal_opts(opt, opt2, varargin)
 
 				case 'gmt_db_ids'		% To report the IDs of the GMT database polygons inside rectangle
 					if (strncmp(lines{k}(5:end),'GMT_DB_IDS',10))
-						if (~hCust)				% Create a uimenu associated to a rectangle
+						if (isempty(hCust))	% Create a uimenu associated to a rectangle
 							hCust = uimenu(opt2, 'Label', 'Custom','Sep','on');
 						end
 						uimenu(hCust, 'Label', 'Show GMT db polygon IDs', 'Call', @sow_GMT_DB_IDs);
@@ -161,18 +161,18 @@ function get_COEs(obj, event, coeFile, coeVar, opt)
 		warndlg('This cruise doesn''t have the requested COEs in the crossings data base file.')
 		return
 	end
-	if (~isa(names, 'cell'))	names = {names};	end
+	if (~isa(names, 'cell')),	names = {names};	end
 
 	Zmin = min(COEs);		Zmax = max(COEs);
 	dZ = Zmax - Zmin;
 
 	if (doHistogram)
 		% Try to pick a resonable bin size
-		if (abs(dZ) <= 20),		N = 20;		% bimW = 1
-		elseif (abs(dZ) <= 50)	N = 25;		% binW = 2
-		elseif (abs(dZ) <= 100)	N = 20;		% binW = 5
-		elseif (abs(dZ) <= 500)	N = 50;		% binW = 10
-		else					N = 100;	% Whatever
+		if (abs(dZ) <= 20),			N = 20;		% bimW = 1
+		elseif (abs(dZ) <= 50),		N = 25;		% binW = 2
+		elseif (abs(dZ) <= 100),	N = 20;		% binW = 5
+		elseif (abs(dZ) <= 500),	N = 50;		% binW = 10
+		else						N = 100;	% Whatever
 		end
 		figure,histo_m('hist', COEs, N);
 		return
@@ -242,7 +242,7 @@ function tracks = get_MGGtracks(obj, event, x, y)
 
 	fid = fopen(tmp_file,'r');	one_file = fgetl(fid);		fclose(fid);
 	if (exist(one_file, 'file') == 2)	% We are probably in the same dir as the data files
-		if (get_tracks_only)	tracks = ['list_' tmp_file];		return,		end
+		if (get_tracks_only),	tracks = ['list_' tmp_file];		return,		end
 		mirone('GeophysicsImportGmtFile_CB',guidata(gcbo),['list_' tmp_file]),		return
 	end
 
@@ -284,11 +284,11 @@ function tracks = get_MGGtracks(obj, event, x, y)
 	if (~any(c))
 		warndlg('Tracks for the selected area exis, but I couldn''t find them. Not even with the help of the MGD77+_paths.txt file.')
 	else
-		if (get_tracks_only)	return,		end		% We already have the "tracks" content
+		if (get_tracks_only),	return,		end		% We already have the "tracks" content
 		mirone('GeophysicsImportGmtFile_CB',guidata(gcbo), tracks)
 	end
 	delete(tmp_file);
-	
+
 % -----------------------------------------------------------------------------------------
 function sow_GMT_DB_IDs(obj, event)
 % See if there are GMT DB polygons inside the rectangle, and if yes display their IDs
