@@ -9,8 +9,14 @@ function out = c_gmtlist(fname, varargin)
 	if (gmt_ver == 4)
 		out = gmtlist_m(fname, varargin{:});
 	else
+		ind = strfind(fname, '.gmt');
+		if (isempty(ind)),		fname = [fname '.gmt'];		end		% Here we need the extension
 		cmd = ['x2sys_datalist -Tgmt ' fname];
 		for (k = 1:numel(varargin))
+			if (strcmp(varargin{k}, '-G')),		continue,	end		% no -G here
+			if (strcmp(varargin{k}(1:2), '-F'))
+				varargin{k} = '-Ftime,lon,lat,faa,mag,top';
+			end
 			cmd = sprintf('%s %s', cmd, varargin{k});
 		end
 		gmtmex('create')
