@@ -26,6 +26,8 @@ function  test_bots(opt,varargin)
 				grdread
 			case 'coasts'
 				coasts
+			case 'gmtlist'
+				gmtlist
 		end
 	else
 		test_Illum
@@ -39,11 +41,12 @@ function  test_bots(opt,varargin)
 		grdtrend
 		grdread
 		coasts
+		gmtlist
 	end
 
 % -----------------
 function test_Illum
-	h = mirone('swath_grid.grd');
+	h = mirone('c:\SVN\mironeWC\swath_grid.grd');
 	handles = guidata(h);
 	luz = struct('azim',0,'elev',30,'ambient',0.55,'diffuse',0.6,'specular',0.4,'shine',10);
 	try		mirone('ImageIllum',luz, handles, 'grdgrad_class'),		pause(1)
@@ -187,7 +190,7 @@ function grdinfo
 function grdlandmask
 % ...
 	h = grdlandmask_win;
-	[mask,head,X,Y] = c_grdlandmask('-R-180/180/-90/90', '-I0.5/0.5'); %#ok
+	[mask,head,X,Y] = c_grdlandmask('-R-180/180/-90/90', '-I0.5/0.5');
 	pause(0.3);		delete(h);
 
 % ----------------------------
@@ -214,7 +217,7 @@ function grdtrend
 function grdread
 % ...
 	fname = 'swath_grid.grd';
-	[X, Y, Z, head] = c_grdread(fname,'single');	%#ok
+	[X, Y, Z, head] = c_grdread(fname,'single');
 	h = mirone(Z);
 	pause(0.3);		delete(h);
 
@@ -230,5 +233,9 @@ function coasts
 	plot(coast(1,:), coast(2,:))
 	plot(boundaries(1,:), boundaries(2,:))
 	plot(rivers(1,:), rivers(2,:))
-	%pause(0.5);		delete(h);
+	pause(0.5);		delete(h);
 
+% ----------------------------
+function gmtlist
+% ...
+	h = gmtedit('C:\j\cd120\revisao\cd120.gmt');
