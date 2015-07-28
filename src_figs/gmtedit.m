@@ -17,7 +17,7 @@ function out = gmtedit(varargin)
 %       OUT, if given will contain this figure handle.
 %
 
-%	Copyright (c) 2004-2014 by J. Luis
+%	Copyright (c) 2004-2015 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -72,7 +72,7 @@ function out = gmtedit(varargin)
 			[vars, multi_plot, xISdist] = parse_optV(MIRONE_DIRS.home_dir);
 		end
 
-		if ( ishandle(varargin{end}) && strcmp(get(varargin{end},'type'),'axes') )
+		if (~isempty(varargin) && ishandle(varargin{end}) && strcmp(get(varargin{end},'type'),'axes'))
 			hMirAxes = varargin{end};
 			varargin(end) = [];				% Remove it to not complicate switch case below
 		end
@@ -327,7 +327,7 @@ function import_clickedCB(hObject, evt, opt)
 	end
 
 	[PATH,FNAME,EXT] = fileparts(f_name);
-	if (isempty(PATH))		PATH = cd;		end		% Play safe
+	if (isempty(PATH)),		PATH = cd;		end		% Play safe
 	if (strcmpi(EXT,'.nc'))
 		handles.f_name = [PATH filesep FNAME '.nc'];		handles.is_mgd77 = true;		handles.is_gmt = false;
 		[handles, track] = read_mgd77_plus(handles, f_name);
@@ -644,7 +644,7 @@ function save_clickedCB(hObject, evt)
 	
 	if (~isempty(y_g))
 		if (handles.is_gmt),	y_g(isnan(y_g*10)) = NODATA(1);		y_g = int16(y_g);
-		elseif (~isempty(x_gn))	y_g = y_g / handles.gravScaleF;		y_g(isnan(y_g)) = NODATA(1);	y_g = int16(y_g);
+		elseif (~isempty(x_gn)),y_g = y_g / handles.gravScaleF;		y_g(isnan(y_g)) = NODATA(1);	y_g = int16(y_g);
 		end
 	end
 	if (~isempty(y_m))
@@ -666,7 +666,7 @@ function save_clickedCB(hObject, evt)
 	end
 	if (~isempty(y_t))
 		if (handles.is_gmt),	y_t(isnan(y_t)) = NODATA(3);		y_t = int16(y_t);
-		elseif (~isempty(x_tn))	y_t = y_t / handles.topoScaleF;		y_t(isnan(y_t)) = NODATA(3);	y_t = int32(y_t);
+		elseif (~isempty(x_tn)),y_t = y_t / handles.topoScaleF;		y_t(isnan(y_t)) = NODATA(3);	y_t = int32(y_t);
 		end
 	end
 
@@ -898,7 +898,7 @@ function rectang_clickedCB(obj,evt)
 	in_grav = 0;	in_mag = 0;
 	hAx = get(handles.figure1,'CurrentAxes');
 	if (strcmp(get(hAx,'Tag'),'axes1')),			in_grav = 1;	opt = 'GravNull';
-	elseif (strcmp(get(hAx,'Tag'),'axes2'))			in_mag = 1;		opt = 'MagNull';
+	elseif (strcmp(get(hAx,'Tag'),'axes2')),		in_mag = 1;		opt = 'MagNull';
 	else	opt = 'TopNull';
 	end
 
