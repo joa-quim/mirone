@@ -1,5 +1,5 @@
 /*--------------------------------------------------------------------
- *	$Id: gmtlist.c,v 1.7 2005/03/04 21:00:54 remko Exp $
+ *	$Id$
  *
  *    Copyright (c) 1991-2001 by P. Wessel and W. H. F. Smith
  *    See README file for copying and redistribution conditions.
@@ -39,27 +39,116 @@
  * Mexifier:	Joaquim Luis
  * Date:	30-APR-2005
  *	 
- *		04/06/06 J Luis, Updated to compile with version 4.1.3
+ *		28/07/15 J Luis, Make it stand-alone
  *		14/10/06 J Luis, Now includes the memory leak solving solution
+ *		04/06/06 J Luis, Updated to compile with version 4.1.3
  */
  
 #include "mex.h"
-#include "gmt.h"
-#include "gmt_mgg.h"
-#include "x_system.h"
+#include <string.h>
+#include <math.h>
 
 #define KMPRDEG 111.1949e-6
 #define MAXLEGS 5000
 #define S_PR_DAY 86400
+#ifndef M_PI
+#define M_PI	3.14159265358979323846
+#endif
+#define D2R (M_PI / 180.0)
+#define R2D (180.0 / M_PI)
+#define CNULL	((char *)NULL)
+#define Loc_copysign(x,y) ((y) < 0.0 ? -fabs(x) : fabs(x))
 
+#ifndef rint
+#define rint(x) (floor((x)+0.5))
+#endif
+#ifndef irint
+#define irint(x) ((int)rint(x))
+#endif
+
+#ifndef MIN
+#define MIN(x, y) (((x) < (y)) ? (x) : (y))	/* min and max value macros */
+#endif
+#ifndef MAX
+#define MAX(x, y) (((x) > (y)) ? (x) : (y))
+#endif
+
+#ifndef TRUE
+#define TRUE 1
+#endif
+#ifndef FALSE
+#define FALSE 0
+#endif
+
+#define GMTMGG_NODATA (-32000)	/* .gmt file NaN proxy */
+#define MDEG2DEG	0.000001	/* Convert millidegrees to degrees */
+#define NGDC_OLDEST_YY	39	/* Oldest NGDC cruise is from 1939 */
+
+#define GMTMGG_TIME_MAXMONTH	61	/* 5 years is a long time for one cruise */
+#define REC_SIZE 40	/* Rec size for xx_base.b file xover-records and struct XOVERS */
+#define NODATA (-32000)
+
+#ifdef WIN32	/* Start of Windows setup */
+/* fileno and setmode have leading _ under WIN32 */
+#include <io.h>
+#define R_OK 04
+
+#define fileno(stream) _fileno(stream)
+#define setmode(fd,mode) _setmode(fd,mode)
+#endif
+#define GMT_swab2(data) ((((data) & 0xff) << 8) | ((unsigned short) (data) >> 8))
+#define GMT_swab4(data) \
+	(((data) << 24) | (((data) << 8) & 0x00ff0000) | \
+	(((data) >> 8) & 0x0000ff00) | ((unsigned int)(data) >> 24))
+
+struct GMTMGG_TIME {
+  int daymon[GMTMGG_TIME_MAXMONTH];	/* Cumulative number of days up to last month */
+  int first_year;			/* The year the cruise started */
+};
+
+struct GMTMGG_REC {	/* Format of *.gmt file records */
+	int time;
+	int lat;
+	int lon;
+	short int gmt[3];
+};
+
+struct LEG {	/* Structure with info about one leg */
+	char name[10];			/* Name of leg */
+	char agency[10];		/* Collecting agency */
+	int year;			/* Year the leg started */
+	int n_x_int;			/* Total number of internal cross-over points */
+	int n_x_ext;			/* Total number of external cross-over points */
+	int n_gmtint[3];		/* Number of internal gravity/magnetics/topography crossovers */
+	int n_gmtext[3];		/* Number of external gravity/magnetics/topography crossovers */
+	double mean_gmtint[3];		/* Mean gravity/magnetics/topography internal xover value */
+	double mean_gmtext[3];		/* Mean gravity/magnetics/topography external xover value */
+	double st_dev_gmtint[3];	/* St. Dev. of the internal gravity/magnetics/topography crossovers */
+	double st_dev_gmtext[3];	/* Same for external xovers */
+	double dc_shift_gmt[3];		/* Best fitting d.c.-shift for gravity/magnetics/topography */
+	double drift_rate_gmt[3];	/* Best fitting drift rate for gravity/magnetics/topography */
+	struct LEG *next_leg;		/* Pointer to next leg in list */
+};
+
+struct CORR {	/* Structure with the corrections for each leg */
+	char name[10];			/* Name of leg */
+	short int year;			/* Year the leg started */
+	float dc_shift_gmt[3];		/* Best fitting d.c.-shift for gravity, magnetics, and topo */
+	float drift_rate_gmt[3];	/* Best fitting drift-rate for gravity, magnetics, and topo */
+};
 struct CORR **bin;
 
 int binsize = sizeof(struct CORR);
 int nlegs = 0;
 
 int get_id (char *name);
-
-/* int GMTisLoaded = FALSE;	/* Used to know wether GMT stuff is already in memory or not */
+int gmtmgg_date (int time, int *year, int *month, int *day, int *hour, int *minute, int *second, struct GMTMGG_TIME *gmt_struct);
+int gmtmgg_time (int *time, int year, int month, int day, int hour, int minute, int second, struct GMTMGG_TIME *gmt_struct);
+struct GMTMGG_TIME *gmtmgg_init (int year1);
+int gmtmggpath_func (char *leg_path, char *leg);
+int decode_R (char *item, double *w, double *e, double *s, double *n);
+int check_region (double w, double e, double s, double n);
+double ddmmss_to_degree (char *text);
 
 /* --------------------------------------------------------------------------- */
 /* Matlab Gateway routine */
@@ -116,32 +205,22 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	for (i = 1; i < argc; i++) {
 		argv[i] = (char *)mxArrayToString(prhs[i+n_arg_no_char-1]);
 	}
-	
-	/*if (!GMTisLoaded) {
-		argc = GMT_begin (argc, argv);
-		GMTisLoaded = TRUE;
-	}
-	else
-		argc = GMT_short_begin (argc, argv);*/
-	argc = GMT_begin (argc, argv);
 
-	for (i =1; !error && i < argc; i++) {
+	for (i = 1; !error && i < argc; i++) {
 		if (argv[i][0] == '-') {
 			switch(argv[i][1]) {
 			
 				case 'R':
 				case '\0':
-					error += GMT_get_common_args (argv[i], &west, &east, &south, &north);
+					error += decode_R (argv[i], &west, &east, &south, &north);
 					break;
 					
 				case 'D':		/* Assign start/stop times for sub-section */
 					if (argv[i][2] == 'a') {	/* Start date */
-						sscanf(&argv[i][3], "%d/%d/%d/%d:%d",
-							&mon1, &day1, &year1, &hour1, &min1);
+						sscanf(&argv[i][3], "%d/%d/%d/%d:%d", &mon1, &day1, &year1, &hour1, &min1);
 					}
 					else if (argv[i][2] == 'b')	 {	/* Stop date */
-						sscanf(&argv[i][3], "%d/%d/%d/%d:%d",
-							&mon2, &day2, &year2, &hour2, &min2);
+						sscanf(&argv[i][3], "%d/%d/%d/%d:%d", &mon2, &day2, &year2, &hour2, &min2);
 					}
 					else
 						error = TRUE;
@@ -281,8 +360,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		mexPrintf("	-Y swapp bytes. Use this if file was created in a machine with different endianess.\n");
 		return;
 	}
-
-	gmtmggpath_init(GMT_SHAREDIR);
 
 	if ((west < 0.0 && east > 0.0) || (west < 360.0 && east > 360.0)) greenwich = TRUE;
 	if (!geodetic) greenwich = TRUE;
@@ -437,7 +514,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 			if (no_t && record.gmt[2] == GMTMGG_NODATA) continue;
 			
 			/* Check if time or dist falls outside specified range */
-		
+
 			if (dist < start_dist) continue;
 			if (dist > stop_dist) continue;
 			if (record.time < start_time) continue;
@@ -535,7 +612,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		}
 		fclose (fp);
 		gmtmgg_date (record.time,&end_yr,&end_mo,&end_day,&hour,&minute,&second,gmt);
-		GMT_free ((void *)gmt);
+		mxFree(gmt);
 
 		if (greenwich_in) {
 			xmin = MAX(xmin1,xmin2);
@@ -581,8 +658,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		n_cruises++;
 
 	}
-	/*GMT_end_for_mex (argc, argv); */
-	GMT_end (argc, argv);
 	plhs[0] = gmtlist_struct;
 	
 }
@@ -604,3 +679,184 @@ int get_id (char *name) {
 	}
 	return (-1);
 }
+
+
+int gmtmggpath_func (char *leg_path, char *leg) {
+	int id;
+	char geo_path[BUFSIZ];
+
+	sprintf (geo_path, "%s.gmt", leg);
+	if (!access(geo_path, R_OK)) {
+		strcpy(leg_path, geo_path);
+		return (0);
+	}
+	return(1);
+}
+
+/*
+ *	GMT subroutine gmtmgg_init sets up the structure GMT  which is
+ *	used by other gmt routines (gmtmgg_time,gmtmgg_date) to convert
+ *	times.  Daymon[month] contains the cumulative number of
+ *	days from Jan 1 in first_year through the months PRIOR to the
+ *	value of month.  0 <= month <= 60.  month = 0 only occurs
+ *	during initializing in this routine. The user must declare
+ *	a pointer to the struct GMTMGG_TIME in the main program and pass it
+ *	when calling the gmt_* functions. To define the GMT structure,
+ *	include the file gmt.h
+ *
+ *	Paul Wessel
+ *	12-JUL-1987
+ *
+ */
+
+struct GMTMGG_TIME *gmtmgg_init (int year1) {
+	struct GMTMGG_TIME *gmt_struct = NULL;
+	int dm[12];	/* No of days in each month */
+	int year, this_year, month, m;
+	gmt_struct = (struct GMTMGG_TIME *) mxCalloc((size_t)1, sizeof(struct GMTMGG_TIME));
+	gmt_struct->first_year = year1;
+	/* initialize days of the month etc. */
+	dm[0] = 0;
+	dm[1] = 31;
+	dm[2] = 28;
+	dm[3] = 31;
+	dm[4] = 30;
+	dm[5] = 31;
+	dm[6] = 30;
+	dm[7] = 31;
+	dm[8] = 31;
+	dm[9] = 30;
+	dm[10] = 31;
+	dm[11] = 30;
+	gmt_struct->daymon[0] = 0;
+	for (year = 0, month = 0; year < 5; year++) {
+		this_year = gmt_struct->first_year + year;
+		if (this_year%4 == 0 && !(this_year%400 == 0)) dm[2] = 29;
+		for (m = 1; m <= 12; m++) {
+			month++;
+			gmt_struct->daymon[month] = gmt_struct->daymon[month - 1] + dm[m - 1];
+		}
+   		dm[2] = 28;
+   		dm[0] = 31;
+   	}
+
+  	return (gmt_struct);
+}
+
+/* GMT function gmtmgg_time returns the number of seconds from
+ * first_year calculated from (hr/mi/sc/dd/mm/yy). The pointer
+ * to the GMT structure is passed along with the arguments.
+ */
+ /* MODIFIED 10 July, 1987 by W. Smith  --  I killed a bug in month calculation */
+
+int gmtmgg_time (int *time, int year, int month, int day, int hour, int minute, int second, struct GMTMGG_TIME *gmt_struct) {
+	int mon, n_days, bad = 0;
+	if ((mon = (year - gmt_struct->first_year)) > 4) {
+		mexPrintf ("gmtmgg_time:  Year - first_year > 4\n");
+		return(-1);
+	}
+	if (month < 1 || month > 12) mexPrintf ("GMT WARNING: in gmtmgg_time: Month out of range [1-12]: %d\n", month), bad++;
+	if (day < 1 || day > 31) mexPrintf("GMT WARNING: in gmtmgg_time: Day out of range [1-31]: %d\n", day), bad++;
+	if (hour < 0 || hour > 24) mexPrintf("GMT WARNING: in gmtmgg_time: Hour out of range [0-24]: %d\n", hour), bad++;
+	if (minute < 0 || minute > 60) mexPrintf("GMT WARNING: in gmtmgg_time: Minute out of range [0-60]: %d\n", minute), bad++;
+	if (second < 0 || second > 60) mexPrintf("GMT WARNING: in gmtmgg_time: Second out of range [0-60]: %d\n", second), bad++;
+	if (bad) return (-1);	/* When we got garbage input */
+	mon = mon * 12 + month;
+	n_days = gmt_struct->daymon[mon] + day - 1;
+	*time = n_days * 86400 + hour * 3600 + minute * 60 + second;
+	return (*time);
+}
+
+
+/* GMT function gmtmgg_date computes the date (hr/mi/sec/dd/mm/yy) based
+ * on the total time in seconds since the beginning of first_year.
+ * The pointer to the GMT structure is passed allong with the other
+ * arguments. The Julian day is returned. the yymmddhhmmss is passed
+ * through the argument list.
+ */
+
+int gmtmgg_date (int time, int *year, int *month, int *day, int *hour, int *minute, int *second, struct GMTMGG_TIME *gmt_struct) {
+	int day_time, julian_day;
+	day_time = time/86400;
+	*month = day_time / 31 + 1;	/* Only approximately, may be smaller */
+
+	if ((*month) < 0 || (*month) >= GMTMGG_TIME_MAXMONTH) {
+		mexPrintf ("GMT ERROR: in gmtmgg_date: Month outside valid range [0-%d>: %d\n", GMTMGG_TIME_MAXMONTH, *month);
+		return (EXIT_FAILURE);
+	}
+	while (gmt_struct->daymon[*month +1] <= day_time) {
+		(*month)++;
+		if ((*month) < 0 || (*month) > GMTMGG_TIME_MAXMONTH) {
+			mexPrintf ("GMT ERROR: in gmtmgg_date: Month outside valid range [0-%d>: %d\n", GMTMGG_TIME_MAXMONTH, *month);
+			return (EXIT_FAILURE);
+		}
+	}
+	*year = (*month  - 1) / 12 + gmt_struct->first_year;
+	*day = day_time - gmt_struct->daymon[*month] + 1;
+	julian_day = (*month > 12) ?
+		gmt_struct->daymon[*month] - gmt_struct->daymon[(*month - (*month)%12)] + *day :
+		gmt_struct->daymon[*month] + *day;
+	*month  = (*month-1)%12 + 1;
+	time %= 86400;
+	*hour = time / 3600;
+	*minute = (time%3600) / 60;
+	*second = time - *hour * 3600 - *minute * 60;
+	return (julian_day);
+}
+
+
+/* -------------------------------------------------------------------- */
+int decode_R (char *item, double *w, double *e, double *s, double *n) {
+	char *text, string[BUFSIZ];
+	
+	/* Minimalist code to decode option -R extracted from GMT_get_common_args */
+	
+	int i, error = 0;
+	double *p[4];
+	
+	p[0] = w;	p[1] = e;	p[2] = s;	p[3] = n;
+			
+	i = 0;
+	strcpy (string, &item[2]);
+	text = strtok (string, "/");
+	while (text) {
+		*p[i] = ddmmss_to_degree (text);
+		i++;
+		text = strtok (CNULL, "/");
+	}
+	if (item[strlen(item)-1] == 'r')	/* Rectangular box given, but valid here */
+		error++;
+	if (i != 4 || check_region (*p[0], *p[1], *p[2], *p[3]))
+		error++;
+	w = p[0];	e = p[1];
+	s = p[2];	n = p[3];
+	return (error);
+}
+
+/* -------------------------------------------------------------------- */
+int check_region (double w, double e, double s, double n) {
+	/* If region is given then we must have w < e and s < n */
+	return ((w >= e || s >= n));
+}
+
+/* -------------------------------------------------------------------- */
+double ddmmss_to_degree (char *text) {
+	int i, colons = 0, suffix;
+	double degree, minute, degfrac, second;
+
+	for (i = 0; text[i]; i++) if (text[i] == ':') colons++;
+	suffix = (int)text[i-1];	/* Last character in string */
+	if (colons == 2) {	/* dd:mm:ss format */
+		sscanf (text, "%lf:%lf:%lf", &degree, &minute, &second);
+		degfrac = degree + Loc_copysign (minute / 60.0 + second / 3600.0, degree);
+	}
+	else if (colons == 1) {	/* dd:mm format */
+		sscanf (text, "%lf:%lf", &degree, &minute);
+		degfrac = degree + Loc_copysign (minute / 60.0, degree);
+	}
+	else
+		degfrac = atof (text);
+	if (suffix == 'W' || suffix == 'w' || suffix == 'S' || suffix == 's') degfrac = -degfrac;	/* Sign was given implicitly */
+	return (degfrac);
+}
+
