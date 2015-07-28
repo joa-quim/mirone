@@ -19,6 +19,6 @@ function out = c_shoredump(varargin)
 		end
 		if (~no_W),		cmd = [cmd ' -W'];	end		% If no Rivers or Borders, than Coastlines (-W) 
 		gmtmex('create')
-		out = gmtmex(cmd)';
+		out = gmtmex(cmd);
 		gmtmex('destroy')
 	end
