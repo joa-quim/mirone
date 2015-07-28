@@ -3,7 +3,7 @@ function  varargout = aux_funs(opt,varargin)
 % of the Mirone's callback functions. I puted them here to release somehow
 % the burden of the non-stop groing length of the Mirone code.
 
-%	Copyright (c) 2004-2013 by J. Luis
+%	Copyright (c) 2004-2015 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -622,7 +622,7 @@ function [track, names, names_ui, vars, x_min, x_max, y_min, y_max] = get_mgg(na
 
 	% EXTRACT NAVIGATION
 	if (strcmpi(EXT, '.gmt'))		% Old style .gmt files (many of the above was useless)
-		track = c_gmtlist(names{:}, varargin{:});
+		track = gmtlist_m(names{:}, varargin{:});
 		for (k = 1:numel(names)),	names{k} = [names{k} EXT];		end		% Restore the extension
 	else							% mgd77 netCDF files
 		if (numel(names) == 1)		% Extrac the entire navigation
