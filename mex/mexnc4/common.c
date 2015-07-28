@@ -291,6 +291,7 @@ int interpret_char_parameter ( const mxArray *mx ) {
 		{ NC_LONG,                    "LONG"                    }, 
 		{ NC_NAT,                     "NAT"                     }, 
 		{ NC_SHORT,                   "SHORT"                   }, 
+		{ NC_UBYTE,                   "UBYTE"                   }, 
 
 		/*
 		 * Open and create modes.
@@ -663,6 +664,8 @@ nc_type unpackDataType ( const mxArray *mx ) {
 		return ( NC_FLOAT );
 	} else if ( strcmp ( p, "DOUBLE" ) == 0 ) {
 		return ( NC_DOUBLE );
+	} else if ( strcmp ( p, "UBYTE" ) == 0 ) {
+		return ( NC_UBYTE );
 	} else {
 	        sprintf ( error_message, "unable to identify parameter \"%s\"\n", p );
 	        mexErrMsgTxt ( error_message );
