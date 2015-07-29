@@ -1908,8 +1908,8 @@ LoopKabas:		/* When computing a grid of Kabas we use a GOTO to simulate a loop *
 				binRegions[cntKabas] = strdup(&txt[0]);
 				kaba_source(hdr_b, dx, dy, x1, x2, y1, y2, do_Kaba, nest.etaa[0]);
 				count_maregs_timeout = 0;	count_time_maregs_timeout = 0;		/* Reset these */
-				fprintf(stderr, "Computing prism %d out of %d (row = %d\tcol = %d)\n",
-				        cntKabas+1, KbGridRows * KbGridCols, row+1, col+1);
+				fprintf(stderr, "Computing prism %d out of %d (row = %d\tcol = %d)\t%s\n",
+				        cntKabas+1, KbGridRows * KbGridCols, row+1, col+1, txt);
 				goto LoopKabas;			/* A LOOP HERE */
 			}
 			err_trap(nc_put_var_string(ncid_Mar, ids_Mar[6], (const char **)binRegions));
