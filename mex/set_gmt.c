@@ -132,21 +132,15 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	info_struct = mxCreateStructMatrix(1, 1, 6, (const char **)fieldnames);
 
 
-	if ((this = getenv ("GMT_SHAREDIR")) != CNULL) {	/* We have a 4.2 or greater version */
-		GMT_SHAREDIR = (char *) mxCalloc((size_t)(strlen(this) + 1), (size_t)1);
-		strcpy(GMT_SHAREDIR, this);
-		mxStr = mxCreateString("4");
-	}
-	else if ((this = getenv ("GMT5_SHAREDIR")) != CNULL) {	/* We have a 5.0 or greater version */
-		char *sdir;
+	if ((this = getenv ("GMT5_SHAREDIR")) != CNULL) {	/* We have a 5.2 or greater version */
 		GMT_SHAREDIR = (char *) mxCalloc((size_t)(strlen(this) + 1), (size_t)1);
 		strcpy(GMT_SHAREDIR, this);
 		mxStr = mxCreateString("5");
-		/* Now cheat GMT4 reseting GMT_SHAREDIR with the GMT5_SHAREDIR's value */
-		sdir = (char *) mxCalloc((size_t)(strlen(this) + 1), (size_t)1);
-		sprintf(sdir, "GMT_SHAREDIR=%s", GMT_SHAREDIR);
-		if (status = putenv(sdir))
-			mexPrintf("SET_GMT: Failure trick to local reset the GMT_SHAREDIR env variable\n %s\n", sdir);
+	}
+	else if ((this = getenv ("GMT_SHAREDIR")) != CNULL) {	/* We have a 4.2 or greater version */
+		GMT_SHAREDIR = (char *) mxCalloc((size_t)(strlen(this) + 1), (size_t)1);
+		strcpy(GMT_SHAREDIR, this);
+		mxStr = mxCreateString("5");
 	}
 	else if ((this = getenv("GMTHOME")) != CNULL) {	/* We have a pre 4.2 version */
 		char *sdir;
