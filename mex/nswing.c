@@ -71,6 +71,7 @@ static char prog_id[] = "$Id$";
 #include <float.h>
 #include <math.h>
 #include <string.h>
+#include <stdint.h>
 #include <time.h>
 
 #ifdef I_AM_MEX
@@ -79,6 +80,7 @@ static char prog_id[] = "$Id$";
 #else
 #	include <stdio.h>
 #	include <stdlib.h>
+#	include <stdint.h>
 #	define mxCalloc calloc
 #	define mxMalloc malloc
 #	define mxRealloc realloc
@@ -127,6 +129,7 @@ static char prog_id[] = "$Id$";
 #define	NORMAL_GRAV	9.806199203     /* Moritz's 1980 IGF value for gravity at 45 degrees latitude */
 #define	EQ_RAD 6378137.0            /* WGS-84 */
 #define	flattening  1.0/298.2572235630
+//#define LIMIT_DISCHARGE			/* If defined the moment functions will limit the discharge */
 #define ECC2  2 * flattening - flattening * flattening
 #define ECC4  ECC2 * ECC2
 #define ECC6  ECC2 * ECC4
@@ -134,10 +137,12 @@ static char prog_id[] = "$Id$";
 #define EPS10 1e-10
 #define EPS6 1e-6
 #define EPS5 1e-5
-#define EPS4 1e-4
+#define EPS4_ 1e-4
 #define EPS3 1e-3
 #define EPS2 1e-2
 #define EPS1 1e-1
+
+static double EPS4 = EPS4_;		/* Kinda trick to be able to change EPS4 via a command line option */
 
 #define MAXRUNUP -50 	/* Do not waste time computing flood above this altitude */
 #define V_LIMIT   20	/* Upper limit of maximum velocity */
@@ -295,7 +300,7 @@ void free_arrays(struct nestContainer *nest, int isGeog, int lev);
 int  check_paternity(struct nestContainer *nest);
 int  check_binning(double x0P, double x0D, double dxP, double dxD, double tol, double *suggest);
 int  read_bnc_file(struct nestContainer *nest, char *file);
-void interp_bnc (struct nestContainer *nest, double t);
+int  interp_bnc (struct nestContainer *nest, double t);
 void total_energy(struct nestContainer *nest, float *work, int lev);
 void power(struct nestContainer *nest, float *work, int lev);
 void vtm (double lat0, double *t_c1, double *t_c2, double *t_c3, double *t_c4, double *t_e2, double *t_M0);
@@ -608,6 +613,10 @@ int main(int argc, char **argv) {
 					surf_level = FALSE;
 					break;
 				case 'E':	/* Compute total Energy or Power*/
+					if (strstr(argv[i], "EPS4=")) {		/* Secreet option to change the EPS4 value */
+						EPS4 = atof(&argv[i][6]);
+						break;
+					}
 					if (argv[i][2] == 'p') {
 						if (argv[i][3] == 'm')
 							max_power = TRUE;
@@ -989,7 +998,9 @@ int main(int argc, char **argv) {
 		mexPrintf("\t   <outmaregs> optional file name where to save the maregraphs output.\n");
 		mexPrintf("\t   If not provided the output name will be constructed by appending '_auto.dat' to <maregs>.\n");
 		mexPrintf("\t   In any case append a +n to choose writing the maregraphs as a netCDF file.\n");
+#ifdef I_AM_MEX
 		mexPrintf("\t   Warning: this option cannot be used when maregraphs were transmitted in input.\n");
+#endif
 		mexPrintf("\t-X <maning0[,maning1[,...]]> Manning friction coefficients. If only one provided, use it for all\n");
 		mexPrintf("\t   nesting levels (if applyable), otherwise specify one for each nesting level separated by commas.\n");
 		mexPrintf("\t-Z Same as -G but saves result in a 3D netCDF file.\n");
@@ -1340,8 +1351,30 @@ int main(int argc, char **argv) {
 
 	/* ------- If we have a boundary condition file, time to load it ------------ */
 	if (bnc_file) {
+		int side_len;
+
 		if (read_bnc_file(&nest, bnc_file)) Return(-1);
 		wall_it(&nest);       /* Set Wall boundary conditions */
+
+		/* Allocate and initialize vectors for boundary conditions*/
+		if ((nest.bnc_border[0] != 0) || (nest.bnc_border[2] != 0))	/* West or East borders */ 
+			side_len = nest.hdr[0].ny;
+		else
+			side_len = nest.hdr[0].nx;
+
+		nest.bnc_var_z_interp = (double *)mxMalloc((size_t)side_len * sizeof(double));
+
+		if (nest.bnc_pos_nPts > 1) {	/* In this (not yet) case we need to deal with these guys */
+			nest.edge_row_P[0] = (double *) mxCalloc((size_t)side_len, sizeof(double));
+			if (side_len == nest.hdr[0].nx) {
+				for (i = 0; i < nest.hdr[0].nx; i++)
+					nest.edge_row_P[0][i] = nest.hdr[0].x_min + i * nest.hdr[0].x_inc;   /* XX coords along S/N edge */
+			}
+			else {
+				for (i = 0; i < nest.hdr[0].ny; i++)
+					nest.edge_row_P[0][i] = nest.hdr[0].y_min + i * nest.hdr[0].y_inc;   /* YY coords along S/N edge */
+			}
+		}
 	}
 
 #ifdef I_AM_MEX
@@ -1507,6 +1540,9 @@ int main(int argc, char **argv) {
 			mexPrintf("Computing tracers from file %s \n", tracers_infile);
 		if (do_Kaba)
 			mexPrintf("Computing a grid of prisms with size %d (rows) x %d (cols)\n", KbGridRows, KbGridCols);
+		if (EPS4 != EPS4_)
+			mexPrintf("Using a modified EPS4 const of %g\n", EPS4);
+		mexPrintf("\n");
 	}
 	/* --------------------------------------------------------------------------------------- */
 
@@ -1567,7 +1603,9 @@ LoopKabas:		/* When computing a grid of Kabas we use a GOTO to simulate a loop *
 		/* Case of open boundary condition or wave maker */
 		/* ------------------------------------------------------------------------------------ */
 		if (bnc_file) {
-			interp_bnc(&nest, time_h);
+			/* When the next IF is TRUE it means the bnc file ended to be consumed, so following
+			   iterations will use the OPENB() function */
+			if (interp_bnc(&nest, time_h)) bnc_file = NULL;
 			wave_maker(&nest);   /* Boundary condition was already set (after reading bnc_file) */
 		}
 		else if (k)
@@ -1973,7 +2011,7 @@ LoopKabas:		/* When computing a grid of Kabas we use a GOTO to simulate a loop *
 	}
 
 #ifndef I_AM_MEX
-	return(0);
+	return 0;
 #endif
 }
 
@@ -2191,6 +2229,9 @@ int initialize_nestum(struct nestContainer *nest, int isGeog, int lev) {
 	if ((nest->r4n[lev] = (double *) mxCalloc ((size_t)n,	sizeof(double)) ) == NULL) 
 		{no_sys_mem("(r4n)", n); return(-1);}
 
+	nest->bnc_pos_x = nest->bnc_pos_y = nest->bnc_var_t = NULL;
+	nest->bnc_var_z = NULL;
+	nest->bnc_var_zTmp = nest->bnc_var_z_interp = NULL;
 
 	/* ------------------------------------------------------------------------------------------ */
 	if (lev == 0)			/* All done for now */
@@ -2296,6 +2337,12 @@ void free_arrays(struct nestContainer *nest, int isGeog, int lev) {
 		if (nest->r4m[i]) mxFree(nest->r4m[i]);		/* Were allocated in any case */
 		if (nest->r4n[i]) mxFree(nest->r4n[i]);
 	}
+	if (nest->bnc_pos_x) mxFree(nest->bnc_pos_x);
+	if (nest->bnc_pos_y) mxFree(nest->bnc_pos_y);
+	if (nest->bnc_var_z) mxFree(nest->bnc_var_z);
+	if (nest->bnc_var_t) mxFree(nest->bnc_var_t);
+	if (nest->bnc_var_zTmp) mxFree(nest->bnc_var_zTmp);
+	if (nest->bnc_var_z_interp) mxFree(nest->bnc_var_z_interp);
 }
 
 /* --------------------------------------------------------------------------- */
@@ -2611,7 +2658,7 @@ int read_tracers(struct grd_header hdr, char *file, struct tracers *oranges) {
 /* -------------------------------------------------------------------- */
 int read_bnc_file(struct nestContainer *nest, char *file) {
 	/* Read file with a boundary condition time series */
-	int	N, n, n_ts = 0, n_pts, n_vars, done_nPts = FALSE, first_vars = TRUE, foundB = FALSE, n_alloc = 1024;
+	int	N, n, n_ts = 0, n_pts, n_vars, done_nPts = FALSE, first_vars = TRUE, foundB = FALSE, n_alloc = 2048;
 	char	*p, line[256], buffer[256], *ntoken = NULL;
 	FILE	*fp;
 
@@ -2657,10 +2704,11 @@ int read_bnc_file(struct nestContainer *nest, char *file) {
 				mexPrintf ("NSWING: Must have at least one pair of (x,y) points\n", file);
 				return (-1);
 			}
+			strcpy(buffer, line);		/* Copy it again because buffer was 'consumed' in count_col() */
 			n_pts /= 2;	/* It was the number of x and y */
 			nest->bnc_pos_x = (double *) mxMalloc((size_t)n_pts * sizeof(double));
 			nest->bnc_pos_y = (double *) mxMalloc((size_t)n_pts * sizeof(double));
-			p = (char *)strtok_s(line, " \t\n\015\032", &ntoken);
+			p = (char *)strtok_s(buffer, " \t\n\015\032", &ntoken);
 			sscanf (p, "%lf", &nest->bnc_pos_x[0]);
 			p = (char *)strtok_s(NULL, " \t\n\015\032", &ntoken);
 			sscanf (p, "%lf", &nest->bnc_pos_y[0]);
@@ -2672,7 +2720,6 @@ int read_bnc_file(struct nestContainer *nest, char *file) {
 			}
 			done_nPts = TRUE;
 			nest->bnc_pos_nPts = n_pts;
-			continue;
 		}
 
 		strcpy(buffer, line);		/* 'line' is now a data row */
@@ -2712,11 +2759,11 @@ int read_bnc_file(struct nestContainer *nest, char *file) {
 
 		n_ts++;
 		if (n_ts == n_alloc) {
-			n_alloc += 1024;
+			n_alloc += 2048;
 			nest->bnc_var_t = (double *)  mxRealloc(nest->bnc_var_t, (size_t)n_alloc * sizeof(double));
 			nest->bnc_var_z = (double **) mxRealloc(nest->bnc_var_z, (size_t)n_alloc * sizeof(double));
-			for (n = 0; n < n_alloc; n++)
-				nest->bnc_var_z[n] = (double *) mxRealloc(nest->bnc_var_z[n], (size_t)(N-1) * sizeof(double));
+			for (n = n_ts; n < n_alloc; n++)
+				nest->bnc_var_z[n] = (double *)mxMalloc((size_t)(N - 1) * sizeof(double));
 			/*if (N == 4) {
 				nest->bnc_var_U = (double *) mxRealloc(nest->bnc_var_U, (size_t)n_alloc * sizeof(double));
 				nest->bnc_var_V = (double *) mxRealloc(nest->bnc_var_V, (size_t)n_alloc * sizeof(double));
@@ -2729,19 +2776,17 @@ int read_bnc_file(struct nestContainer *nest, char *file) {
 }
 
 /* -------------------------------------------------------------------- */
-void interp_bnc(struct nestContainer *nest, double t) {
-	int i, n;
+int interp_bnc(struct nestContainer *nest, double t) {
+	int i, n, side_len;
 	double s;
 
-	if (!nest->edge_row_P[0]) {
-		nest->edge_row_P[0] = (double *) mxCalloc((size_t)nest->hdr[0].nx, sizeof(double));
-		for (i = 0; i < nest->hdr[0].nx; i++)
-			nest->edge_row_P[0][i] = nest->hdr[0].x_min + i * nest->hdr[0].x_inc;      /* XX coords along S/N edge */
+	/* Pick up the appropriate dimension for this bnc interpolation */
+	if ((nest->bnc_border[0] != 0) || (nest->bnc_border[2] != 0))	/* West or East borders */ 
+		side_len = nest->hdr[0].ny;
+	else
+		side_len = nest->hdr[0].nx;
 
-		nest->bnc_var_z_interp = (double *) mxMalloc((size_t)nest->hdr[0].nx * sizeof(double));
-	}
-
-	for (n = 0; n < nest->bnc_var_nTimes - 1; n++) {
+	for (n = 0; n < nest->bnc_var_nTimes - 1; n++) {		/* Interp boundary data, normally with cruder dt, for the model run time dt */
 		if (t >= nest->bnc_var_t[n] && t < nest->bnc_var_t[n+1]) {		/* Found the bounds of 't' */
 			s = (t - nest->bnc_var_t[n]) / (nest->bnc_var_t[n+1] - nest->bnc_var_t[n]);
 			for (i = 0; i < nest->bnc_pos_nPts; i++)		/* Interpolate all spatial points for time t */
@@ -2749,15 +2794,23 @@ void interp_bnc(struct nestContainer *nest, double t) {
 
 			break;
 		}
+		else if (t > nest->bnc_var_nTimes)		/* Once this is TRUE this function wont be called anymore */
+			return TRUE;
 	}
 
-	if (nest->bnc_pos_nPts > 1)
-		intp_lin(nest->bnc_pos_x, nest->bnc_var_zTmp, nest->bnc_pos_nPts, nest->hdr[0].nx,
-		          nest->edge_row_P[0], nest->bnc_var_z_interp);
-	else {		/* One point only, replicate it into all values of the line */
-		for (n = 0; n < nest->hdr[0].nx; n++)
+	if (nest->bnc_pos_nPts == 1) {		/* One point only, replicate it into all values of the line */
+		for (n = 0; n < side_len; n++)
 			nest->bnc_var_z_interp[n] = nest->bnc_var_zTmp[0];
 	}
+	else { 		/* This case actually not yet implemented via the bnc file (-B option) */
+		if (side_len == nest->hdr[0].nx)
+			intp_lin(nest->bnc_pos_x, nest->bnc_var_zTmp, nest->bnc_pos_nPts, side_len,
+			         nest->edge_row_P[0], nest->bnc_var_z_interp);
+		else
+			intp_lin(nest->bnc_pos_y, nest->bnc_var_zTmp, nest->bnc_pos_nPts, side_len,
+			         nest->edge_row_P[0], nest->bnc_var_z_interp);
+	}
+	return FALSE;
 }
 
 /* -------------------------------------------------------------------- */
@@ -3591,15 +3644,17 @@ void mass(struct nestContainer *nest, int lev) {
 /* ---------------------------------------------------------------------- */
 void wave_maker(struct nestContainer *nest) {
 	int col, row;
+	int64_t ij;
 
 	if ((nest->bnc_border[0] != 0) || (nest->bnc_border[2] != 0)) {         /* West or East borders */
 		col = (nest->bnc_border[0] != 0) ? 0 : nest->hdr[0].nx - 1;
 		for (row = 0; row < nest->hdr[0].ny; row++) {
-			if (nest->bat [0][ij_grd(col,row,nest->hdr[0])] < EPS5) {
-				nest->etad[0][ij_grd(col,row,nest->hdr[0])] = -nest->bat[0][ij_grd(col,row,nest->hdr[0])];
+			ij = ij_grd(col,row,nest->hdr[0]);
+			if (nest->bat [0][ij] < EPS5) {
+				nest->etad[0][ij] = -nest->bat[0][ij];
 				continue;
 			}
-			nest->etad[0][ij_grd(col,row,nest->hdr[0])] = nest->bnc_var_z_interp[row];
+			nest->etad[0][ij] = nest->bnc_var_z_interp[row];
 		}
 	}
 	else {    /* South or North borders */
@@ -3614,6 +3669,7 @@ void wave_maker(struct nestContainer *nest) {
 	}
 }
 
+/* --------------------------------------------------------------------------- */
 void wall_it(struct nestContainer *nest) {
 	/* Set up vertical walls in all other boundaries but from the one where water goes in */
 
@@ -3629,17 +3685,18 @@ void wall_it(struct nestContainer *nest) {
 	}
 }
 
+/* --------------------------------------------------------------------------- */
 void wall_two(struct nestContainer *nest, int ot1, int ot2, int in1, int in2) {
 	/* Set up a vertical wall boundary with a thickness of (ot2 - ot1 + 1)
-	   The wall's height is set to minimum needed so that we siduaize it in
-	   a 3D generic nc file, colors are not smashed by an unneeded tal wall
+	   The wall's height is set to minimum needed so that when we visualize it
+	   in a 3D generic nc file, colors are not smashed by an unneeded tal wall
 	*/
 	int i, j;
 	double wall_height = -MAXRUNUP;
 	wall_height = -MIN(nest->hdr[0].z_max, wall_height);	/* F. crazy but MSVC doesn't allow to do both in one */
 
-	for (i = ot1; i < ot2; i++) {       /* Loop over wall thickness */
-		for (j = in1; j < in2; j++) {   /* Loop over wall length */
+	for (i = ot1; i < ot2; i++) {       /* Loop over wall X length */
+		for (j = in1; j < in2; j++) {   /* Loop over wall Y length */
 			if (nest->bat[0][ij_grd(i,j,nest->hdr[0])] < MAXRUNUP) continue;	/* Already high enough */
 			nest->bat[0][ij_grd(i,j,nest->hdr[0])] = wall_height;
 		}
@@ -3956,16 +4013,17 @@ void moment_M(struct nestContainer *nest, int lev) {
 			xp = xp - advx - advy;
 L120:
 			xp /= (ff + 1);
-			//if (fabs(xp) < EPS10)
-				//xp = 0;
-			//else {			/* Limit the discharge */
-				/*f_limit = V_LIMIT * dd;
+#ifdef LIMIT_DISCHARGE
+			if (fabs(xp) < EPS10)
+				xp = 0;
+			else {			/* Limit the discharge */
+				f_limit = V_LIMIT * dd;
 				if (xp > f_limit)
 					xp = f_limit;
 				else if (xp < -f_limit)
-					xp = -f_limit;*/
-			//}
-
+					xp = -f_limit;
+			}
+#endif
 			fluxm_d[ij] = xp;
 
 L121:
@@ -4142,14 +4200,15 @@ void moment_N(struct nestContainer *nest, int lev) {
 			xq = xq - advx - advy;
 L200:
 			xq /= (ff + 1);
-			//if (fabs(xq) < EPS10)
-				//xq = 0;
-			//else {			/* Limit the discharge */
-				//f_limit = V_LIMIT * dd;
-				//if (xq > f_limit) xq = f_limit;
-				//else if (xq < -f_limit) xq = -f_limit;
-			//}
-
+#ifdef LIMIT_DISCHARGE
+			if (fabs(xq) < EPS10)
+				xq = 0;
+			else {			/* Limit the discharge */
+				f_limit = V_LIMIT * dd;
+				if (xq > f_limit) xq = f_limit;
+				else if (xq < -f_limit) xq = -f_limit;
+			}
+#endif
 			fluxn_d[ij] = xq;
 
 L201:
@@ -4444,16 +4503,16 @@ void moment_sp_M(struct nestContainer *nest, int lev) {
 			xp = xp - advx - advy;
 L120:
 			xp /= (ff + 1);
-			if (fabs(xp) < EPS10) xp = 0;
-			     /* Limit the discharge */
+#ifdef LIMIT_DISCHARGE
+			if (fabs(xp) < EPS10) xp = 0;		/* Limit the discharge */
 			else {
 				f_limit = V_LIMIT * dd;
 				if (xp > f_limit) xp = f_limit;
 				else if (xp < -f_limit) xp = -f_limit;
 			}
+#endif
 
 			fluxm_d[ij] = xp;
-
 L121:
 			if (nest->out_velocity_x && (lev == nest->writeLevel))
 				vex[ij] = (valid_vel && dd > EPS3) ? xp / df : 0;
@@ -4650,14 +4709,14 @@ void moment_sp_N(struct nestContainer *nest, int lev) {
 			xq = xq - advx - advy;
 L200:
 			xq /= (ff + 1);
-			if (fabs(xq) < EPS10) xq = 0;
-			     /* Limit the discharge */
+#ifdef LIMIT_DISCHARGE
+			if (fabs(xq) < EPS10) xq = 0;		/* Limit the discharge */
 			else {
 				f_limit = V_LIMIT * dd;
 				if (xq > f_limit) xq = f_limit;
 				else if (xq < -f_limit) xq = -f_limit;
 			}
-
+#endif
 			fluxn_d[ij] = xq;
 
 L201:
@@ -4685,7 +4744,7 @@ void interp_edges(struct nestContainer *nest, double *flux_L1, double *flux_L2, 
 		/* SOUTH boundary */
 		s = nest->hdr[lev].y_inc / nest->hdr[lev-1].y_inc;
 		for (i = 0, col = nest->LLcol[lev]; col <= nest->LRcol[lev]; col++, i++) {
-			t1 = flux_L1[ij_grd(col, nest->LLrow[lev],   nest->hdr[lev-1])];
+			t1 = flux_L1[ij_grd(col, nest->LLrow[lev], nest->hdr[lev-1])];
 			//t2 = flux_L1[ij_grd(col, nest->LLrow[lev]+1, nest->hdr[lev-1])];
 			nest->edge_row_Ptmp[lev][i] = t1;
 		}
@@ -4835,9 +4894,9 @@ int intp_lin (double *x, double *y, int n, int m, double *u, double *v) {
 	return (0);
 }
 
-/* --------------------------------------------------------------------------------------------- */
+/* ------------------------------------------------------------------------------------------- */
 /* upscale from doughter to parent level
-/* --------------------------------------------------------------------------------------------- */
+/* ------------------------------------------------------------------------------------------- */
 void upscale(struct nestContainer *nest, double *out, int lev, int i_tsr) {
 	/* Computes the mean of cells inside a square window
 	   lev   -> This grid level
