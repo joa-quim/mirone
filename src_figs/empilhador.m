@@ -1471,6 +1471,15 @@ function [Z, att, known_coords, have_nans, was_empty_name] = read_gdal(full_name
 				y_min = double( min(min(lat_full(indNotFckCoords))) );
 				y_max = double( max(max(lat_full(indNotFckCoords))) );
 				clear indNotFckCoords
+			elseif (any([x_min x_max y_min y_max] == -32767))
+				% This is fck unbelievable but NASA files have errors like this.
+				% The damn error in fact is originated by a bugged _FillValue of -32767 when it OBVIOUSLY BE NAN
+				indNotFckCoords = (lon_full ~= -32767);
+				if (x_min == -32767),	x_min = double( min(min(lon_full(indNotFckCoords))) );	end
+				if (x_max == -32767),	x_max = double( max(max(lon_full(indNotFckCoords))) );	end
+				indNotFckCoords = (lat_full ~= -32767);
+				if (y_min == -32767),	y_min = double( min(min(lat_full(indNotFckCoords))) );	end
+				if (y_max == -32767),	y_max = double( max(max(lat_full(indNotFckCoords))) );	end
 			end
 			opt_R = sprintf('-R%.10f/%.10f/%.10f/%.10f', x_min, x_max, y_min, y_max);
 
@@ -1518,7 +1527,7 @@ function [Z, att, known_coords, have_nans, was_empty_name] = read_gdal(full_name
 				what = l2_choices(AllSubdatasets);		% Call secondary GUI to select what to do next
 			else
 				what = struct('georeference',1,'nearneighbor',0,'mask',0,'coastRes',0,'quality','');	% sensor coords
-				ID = find_in_subdatasets(AllSubdatasets, 'qual_sst', 8);	% Check if we have a quality flags array
+				ID = find_in_subdatasets(AllSubdatasets, 'qual_sst');	% Check if we have a quality flags array
 				if (ID)
 					ind = strfind(AllSubdatasets{ID}, '=');			% Yes we have. Use it if not overruled by info in L2config
 					what.qualSDS = AllSubdatasets{ID}(ind+1:end);
@@ -1868,16 +1877,13 @@ function handles = fish_handles()
 	end
 
 % -----------------------------------------------------------------------------------------
-function ID = find_in_subdatasets(AllSubdatasets, name, ncmp)
+function ID = find_in_subdatasets(AllSubdatasets, name)
 % Find the position in the subdatasets array containing the array called 'name'
-% NCMP	is an optional argument containing the N if the strNcmp function.
-%		If not provided, defaults to numel(name)
 
-	if (nargin == 2),	ncmp = numel(name);		end
 	got_it = false;		ID = 0;
 	for (k = 2:2:numel(AllSubdatasets))
-		ind = strfind(AllSubdatasets{k}, ' ');
-		if ( strncmp(AllSubdatasets{k}(ind(1)+1:end), name, ncmp) )
+		ind = strfind(AllSubdatasets{k}, ' ');		
+		if (strfind(AllSubdatasets{k}(ind(1)+1:ind(2)-1), name))
 			got_it = true;		break
 		end
 	end
@@ -2094,7 +2100,7 @@ function varargout = l2_choices(varargin)
 	handles.out.quality = '';
 
 	AllSubdatasets = varargin{1};
-	ID = find_in_subdatasets(AllSubdatasets, 'qual_sst', 8);
+	ID = find_in_subdatasets(AllSubdatasets, 'qual_sst');
 	if (ID)
 		set([handles.popup_quality handles.text_quality],'Enable','on')
 		ind = strfind(AllSubdatasets{ID}, '=');
