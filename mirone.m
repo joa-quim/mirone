@@ -1607,17 +1607,23 @@ function erro = FileOpenGeoTIFF_CB(handles, tipo, opt)
 			ind = strfind(str{k}(1:indF), 'x');
 			if (isempty(ind) || numel(ind) > 2)			% Don't want 1D or > 3D arrays
 				c(k) = true;	c(k-1) = true;		continue
-			elseif (numel(ind) == 2 && ~strcmp(str{k}(ind(1)-2:ind(1)-1), '[1'))	% But exclude singletons, e.g. [1x1557x1557]
+			elseif (numel(ind) == 1 && strcmp(str{k}(ind(1)-2:ind(1)-1), '[1'))		% Nor 1D singletons, e.g. [1x1557]
+				c(k) = true;	c(k-1) = true;		continue
+			elseif (numel(ind) == 2 && ~strcmp(str{k}(ind(1)-2:ind(1)-1), '[1'))	% But exclude 3D singletons, e.g. [1x1557x1557]
 				c3D(k) = true;
 			end
-			if ((indF - ind) == 2),		c(k) = true;	c(k-1) = true;	end		% Don't want arrays with less than 10 (2 char) columns
+			if ((indF - ind) == 2),	c(k) = true;	c(k-1) = true;	end		% Don't want arrays with less than 10 (2 char) columns
 		end
-		if (~all(c) && any(c)),		str(c) = [];	end	% Remove non-interesting arrays from sight
+		if (~all(c) && any(c))		% Remove non-interesting arrays from sight
+			str(c) = [];	att.Subdatasets(c) = [];	% Remove them also from the att.Subdatasets
+		end
 
 		SS = get(0,'ScreenSize');	nChars = 0;
 		for (k = 1:numel(str)),		nChars = max(nChars, numel(str{k}));	end
+		fac = 1;
+		if (handles.IamCompiled),	fac = 0.09;		end
 		[s,ok] = listdlg('PromptString',{'This file has subdatasets' 'you have to select one:'}, 'ListSize', ...
-				[min(nChars*6, SS(3)-100) min((size(str,1)*20 + 50), 200)], ...
+				[min(nChars*6*fac, SS(3)-100) min((size(str,1)*20 + 50), 200)], ...
 				'Name','DATASET Selection', 'SelectionMode','single', 'ListString',str);	pause(0.01)
 		if (~ok),	return,		end						% Uset hit "Cancel"
 		if (rem(s,2) == 0),		s = s - 1;		end		% Selection was done over "description" and not the "name"
@@ -1661,13 +1667,15 @@ function erro = FileOpenGeoTIFF_CB(handles, tipo, opt)
 	end
 
 	if (~strcmp(att.Band(1).DataType,'Byte'))			% JPK2, for example, may contain DTMs
-		loadGRID(handles,handles.fileName,'guess', att);		return
+		tipo = 'guess';			% Probably a temp step during the adaptation period after the OceanColor had f. changed format 
+		if (strcmp(att.DriverShortName, 'netCDF')),		tipo = 'ncHDF';		end
+		loadGRID(handles,handles.fileName, tipo, att);		return
 	end
 
-	if (strncmp(att.DriverShortName, 'HDF4', 4))
+	if (strncmp(att.DriverShortName, 'HDF4', 4))		% Hmm, and what if it's a new nc/HDF file?
 		tmp = att.GMT_hdr(1:4);			% It will change if we find coords in HDF variables not scanned by GDAL
 		[head, slope, intercept, base, is_modis, is_linear, is_log, att] = empilhador('getFromMETA', att);
-		if ( ~isequal(att.GMT_hdr(1:4), tmp) ),		gotHDRcoords = true;		end
+		if (~isequal(att.GMT_hdr(1:4), tmp)),		gotHDRcoords = true;		end
 		if (isfield(att, 'hdrModisL2') && ~isempty(att.hdrModisL2)),	opt_L = '-L';	end
 	end
 
