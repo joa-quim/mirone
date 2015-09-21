@@ -22,10 +22,12 @@ REM ----------------------------------------------------------------------------
 IF %BITS%==64 (
 REM The VS CRT runtime DLLs
 SET PVC="C:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\redist\x64\Microsoft.VC100.CRT\"
+SET PVC2="C:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\redist\x64\Microsoft.VC120.CRT\"
 SET P2=C:\SVN\mironeWC64\
 SET MEX_EXT="mexw64"
 ) ELSE (
 SET PVC="C:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\redist\x86\Microsoft.VC100.CRT\"
+SET PVC2="C:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\redist\x86\Microsoft.VC120.CRT\"
 SET P2=C:\SVN\mironeWC\
 SET MEX_EXT="mexw32"
 )
@@ -54,6 +56,7 @@ copy /Y %P2%gmt.dll .         && copy /Y %P2%gmt_mgg.dll .   && copy /Y %P2%psl.
 copy /Y %Pj%gunzip.exe .      && copy /Y %Pj%unzip.exe .     && copy /Y %Pj%wget.exe .
 copy /Y %Pgd%gdalinfo.exe .   && copy /Y %Pgd%gdal_translate.exe .
 copy /Y %PVC%msvcp100.dll .   && copy /Y %PVC%msvcr100.dll .
+copy /Y %PVC2%msvcp120.dll .  && copy /Y %PVC2%msvcr120.dll .
 
 REM ------------- Copy the MEXs and the P codes --------------------------------------
 md utils  && md lib_mex  &&  cd utils
