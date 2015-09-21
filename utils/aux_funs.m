@@ -226,6 +226,10 @@ function out = findFileType(fname)
 		out = 'gmt';
 	elseif ( strcmpi(EXT,'.nc') )		% .nc files can have grids, mgd77 files or any other thing
 		s = nc_funs('info',fname);
+		if (isempty(s.Dataset))			% New OceanColor nc format uses Groups and nc_funs() says Dataset == []
+			out = 'dono';
+			return
+		end
 		try
 			if     ( any(strcmp({s.Dimension.Name}, 'id_dim')) ),			out = 'mgg_gmt';
 			elseif ( any(strcmp({s.Attribute.Name}, 'SHAPENC_type')) ),		out = 'ncshape';
