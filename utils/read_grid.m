@@ -117,24 +117,49 @@ function [Z, X, Y, srsWKT, handles, att] = read_grid(handles, fullname, tipo, op
 		end
 		if (strcmp(att.Band(1).DataType,'Int16')),		handles.was_int16 = true;	end
 
-		if (~strncmp(att.DriverShortName, 'HDF4', 4))
+		% The new nc with HDF (groups) by OceanColor broke the old logic. Let's see if this new one works.
+		if (strncmp(att.DriverShortName, 'HDF4', 4) || strcmp(tipo, 'ncHDF'))
+			if (strcmp(att.Band(1).DataType,'L3Bin'))	% WTF is this?
+				[Z, handles.have_nans, att] = empilhador('getZ', fname, att, false, false, false, 1, 0, []);
+			else
+				if (strcmp(tipo, 'ncHDF'))		% Dirty trick to make the new OC nc/HDF files work as would the old HDF4
+					att.DriverShortName = 'HDF4_fake';
+				end
+				[head, slope, intercept, base, is_modis, is_linear, is_log, att] = empilhador('getFromMETA', att);
+				[Z, handles.have_nans, att] = empilhador('getZ', fname, att, is_modis, is_linear, is_log, slope, intercept, base);
+				if (slope ~= 1)					% Need to update min/max because there a scaling eq was applied.
+					zz = grdutils(Z,'-L');	head(5:6) = [double(zz(1)) double(zz(2))];
+					att.GMT_hdr(5:6) = head(5:6);% Because later there is a if branch that overwrites head with att.GMT_hdr
+				end
+				fname = att.fname;				% We'll need better but for now this ensures that no subdataset name is taken as the whole.
+				if (~isa(Z,'int16')),		handles.was_int16 = false;		end
+			end
+		else
 			if (strcmp(att.DriverShortName, 'BAG'))		% Read only first band
 				Z = gdalread(att.Name, '-U', opt_I, opt, '-B1');
 			else
 				Z = gdalread(att.Name, '-U', opt_I, opt);
 			end
-		elseif (strcmp(att.Band(1).DataType,'L3Bin'))
-			[Z, handles.have_nans, att] = empilhador('getZ', fname, att, false, false, false, 1, 0, []);
-		else								% HDF files need a special care. Search for an offset and scale factor, etc...
-			[head, slope, intercept, base, is_modis, is_linear, is_log, att] = empilhador('getFromMETA', att);
-			[Z, handles.have_nans, att] = empilhador('getZ', fname, att, is_modis, is_linear, is_log, slope, intercept, base);
-			if (slope ~= 1)					% Need to update min/max because there a scaling eq was applied.
-				zz = grdutils(Z,'-L');	head(5:6) = [double(zz(1)) double(zz(2))];
-				att.GMT_hdr(5:6) = head(5:6);% Because later there is a if branch that overwrites head with att.GMT_hdr
-			end
-			fname = att.fname;				% We'll need better but for now this ensures that no subdataset name is taken as the whole.
-			if (~isa(Z,'int16')),		handles.was_int16 = false;		end
 		end
+
+% 		if (~strncmp(att.DriverShortName, 'HDF4', 4))
+% 			if (strcmp(att.DriverShortName, 'BAG'))		% Read only first band
+% 				Z = gdalread(att.Name, '-U', opt_I, opt, '-B1');
+% 			else
+% 				Z = gdalread(att.Name, '-U', opt_I, opt);
+% 			end
+% 		elseif (strcmp(att.Band(1).DataType,'L3Bin'))
+% 			[Z, handles.have_nans, att] = empilhador('getZ', fname, att, false, false, false, 1, 0, []);
+% 		else								% HDF files need a special care. Search for an offset and scale factor, etc...
+% 			[head, slope, intercept, base, is_modis, is_linear, is_log, att] = empilhador('getFromMETA', att);
+% 			[Z, handles.have_nans, att] = empilhador('getZ', fname, att, is_modis, is_linear, is_log, slope, intercept, base);
+% 			if (slope ~= 1)					% Need to update min/max because there a scaling eq was applied.
+% 				zz = grdutils(Z,'-L');	head(5:6) = [double(zz(1)) double(zz(2))];
+% 				att.GMT_hdr(5:6) = head(5:6);% Because later there is a if branch that overwrites head with att.GMT_hdr
+% 			end
+% 			fname = att.fname;				% We'll need better but for now this ensures that no subdataset name is taken as the whole.
+% 			if (~isa(Z,'int16')),		handles.was_int16 = false;		end
+% 		end
 		[Z, did_scale, att, have_new_nans] = handle_scaling(Z, att);	% See if we need to apply a scale/offset
 		if (~did_scale),	handles.Nodata_int16 = att.Band(1).NoDataValue;		end
 		if (have_new_nans),	handles.have_nans = 1;	end
