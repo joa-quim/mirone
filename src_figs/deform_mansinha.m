@@ -1,7 +1,7 @@
 function varargout = deform_mansinha(varargin)
 % Compute Elastic deformations using the rngchng MEX
 
-%	Copyright (c) 2004-2014 by J. Luis
+%	Copyright (c) 2004-2015 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -594,7 +594,9 @@ function push_compute_CB(hObject, handles)
 			end
 			opt_F{kk} = ['-F' num2str(handles.FaultLength{i}(k)) '/' num2str(handles.FaultWidth{i}(k)) '/' ...
 					num2str(handles.FaultTopDepth{i}(k))];
-			opt_A{kk} = ['-A' num2str(handles.FaultDip{i}(k)) '/' num2str(handles.FaultStrike{i}(k)) '/' ...
+			dip = handles.FaultDip{i}(k);
+			if (dip == 90.0),	dip = 89.9999;	end		% There is bug in mex that screws when dip = 90.0
+			opt_A{kk} = ['-A' num2str(dip) '/' num2str(handles.FaultStrike{i}(k)) '/' ...
 					num2str(handles.DislocRake{i}(k)) '/' num2str(handles.DislocSlip{i}(k))];
 			opt_E{kk} = sprintf('-E%.5f/%.5f',x{i}(k), y{i}(k));
 			kk = kk + 1;
