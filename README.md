@@ -1,0 +1,4 @@
+# mirone
+Automatically exported from code.google.com/p/mirone
+
+Mirone is a MATLAB-based framework tool that allows the display and manipulation of a large number of grid/images formats through its interface with the GDAL library. Its main purpose is to provide users with an easy-to-use graphical interface to manipulate GMT grids. In addition it offers a wide range of tools dedicated to topics in the earth sciences, including tools for multibeam mission planning, elastic deformation studies, tsunami propagation modeling, earth magnetic field computations and magnetic Parker inversions, Euler rotations and poles computations, plate tectonic reconstructions, and seismicity and focal mechanism plotting. The high quality mapping and cartographic capabilities for which GMT is renowned is guaranteed through Mirone’s ability to automatically generate GMT cshell scripts and dos batch files 
