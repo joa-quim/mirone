@@ -264,7 +264,7 @@ function coards_sliceShow(handles, Z)
 		alphaMask(~isnan(Z)) = 255;				% nan pixeis will be transparent
 	end
 
-	try			% MUST BE TURN INTO A PROPER TEST (AQUAMOTO OR NOT-AQUAMOTO)
+	try			% SHOULD BE CONVERTED INTO A PROPER TEST (AQUAMOTO OR NOT-AQUAMOTO)
 		splitDryWet = get(handles.check_splitDryWet,'Val');		% See if we need to build wet and dry images, or only one
 	catch
 		splitDryWet = false;
@@ -276,7 +276,9 @@ function coards_sliceShow(handles, Z)
 		dife = cvlib_mex('absDiff', zBat, Z);
 		indLand = (dife < 1e-2);				% The 1e-2 SHOULD be parameterized
 		Z(indLand) = 0;							% Smash these too to steal the color dynamics
-		%handles.indMaxWater = ~indLand;		% Should be only if required (Max water)
+		if (handles.compute_runIn && isempty(handles.indMaxWater))
+			handles.indMaxWater = compute_indMaxWater(handles, zBat);
+		end
 
 		if (handles.useLandPhoto)
 			alfa = 255;		% Means land will be completely opac and water 100% transparent
@@ -405,6 +407,26 @@ function coards_sliceShow(handles, Z)
 	% Save also the updated header in Mirone handles
 	handles.handMir.head = handles.head;
     guidata(handles.handMir.figure1,handles.handMir)
+
+% ---------------------------------------------------------------------------
+function indLand = compute_indMaxWater(handles, zBat)
+% Compute the mask of max water
+	
+	aguentabar(0, 'title','Computing max water height ...', 'CreateCancelBtn');
+	z_id = handles.netcdf_z_id;
+	s = handles.nc_info;					% Retrieve the .nc info struct
+	Z = nc_funs('varget', handles.fname, s.Dataset(z_id).Name, [0 0 0], [1 s.Dataset(z_id).Size(end-1:end)]);
+	dife = cvlib_mex('absDiff', zBat, Z);
+	indLand = (dife < 1e-2);				% The 1e-2 SHOULD be parameterized
+	for (k = 1:numel(handles.time) - 1)
+		Z = nc_funs('varget', handles.fname, s.Dataset(z_id).Name, [k 0 0], [1 s.Dataset(z_id).Size(end-1:end)]);
+		dife = cvlib_mex('absDiff', zBat, Z);
+		ind = (dife < 1e-2);
+		indLand = indLand & ind;
+		h = aguentabar((k+1) / numel(handles.time));
+		if (isnan(h)),	indLand = [];	break,	end
+	end
+	indLand = ~indLand;
 
 % --------------------------------------------------------------------------
 function set_common(handles, head)
