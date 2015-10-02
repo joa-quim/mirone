@@ -20,7 +20,7 @@ function varargout = mirone(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: mirone.m 4782 2015-10-02 16:44:59Z j $
+% $Id: mirone.m 4785 2015-10-02 23:50:46Z j $
 
 	if (nargin > 1 && ischar(varargin{1}))
 		if ( ~isempty(strfind(varargin{1},':')) || ~isempty(strfind(varargin{1},filesep)) )
@@ -732,8 +732,8 @@ elseif (strncmp(opt2(1:min(length(opt2),9)),'CropaGrid',9))		% Do the operation 
 	if (~strcmp(curr_opt,'pure'))			% We will need those for all other options
 		head(2) = head(1) + (r_c(4)-1)*head(8);			head(1) = head(1) + (r_c(3)-1)*head(8);
 		head(4) = head(3) + (r_c(2)-1)*head(9);			head(3) = head(3) + (r_c(1)-1)*head(9);
-		if (isa(Z,'single')),	zz = grdutils(Z,'-L');			head(5:6) = [zz(1) zz(2)];
-		else					head(5) = double(min(Z(:)));	head(6) = double(max(Z(:)));
+		if (isa(Z,'single')),	zz = grdutils(Z_rect,'-L');			head(5:6) = [zz(1) zz(2)];
+		else					head(5) = double(min(Z_rect(:)));	head(6) = double(max(Z_rect(:)));
 		end
 		to_func.Z = Z_rect;		to_func.head = head;
 	end
