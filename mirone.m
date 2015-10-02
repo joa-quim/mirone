@@ -96,7 +96,7 @@ function hObject = mirone_OpeningFcn(varargin)
 	handles.nTrack = 0;				% Counter of the number of MB tracks imported
 	handles.origFig = [];			% To store the original image copy
 	handles.fileName = [];			% To store any input grid/image file name
-	handles.image_type = 0;			% Image type. 1->grd; 2-> trivial (jpg,png,bmp,etc...); 3->GeoTIFF; 4->DEMs; 20-> white bg
+	handles.image_type = 0;			% 1->grd; 2-> trivial (jpg,png,bmp,etc...); 3->GeoTIFF; 4->DEMs; 20-> white bg
 	handles.transparency = [];		% Will hold the word 'alpha' when reading a RGBA image
 	handles.computed_grid = 0;		% However, matrices with a gmt header will have this == 1, so that they can be saved
 	handles.no_file = 1;			% 0 means a grid is loaded and 1 that it is not (to test when icons can be pushed)
@@ -1616,12 +1616,13 @@ function erro = FileOpenGeoTIFF_CB(handles, tipo, opt)
 		end
 		if (~all(c) && any(c))		% Remove non-interesting arrays from sight
 			str(c) = [];	att.Subdatasets(c) = [];	% Remove them also from the att.Subdatasets
+			c3D(c) = [];
 		end
 
 		SS = get(0,'ScreenSize');	nChars = 0;
 		for (k = 1:numel(str)),		nChars = max(nChars, numel(str{k}));	end
 		fac = 1;
-		if (handles.IamCompiled),	fac = 0.09;		end
+		if (handles.IamCompiled),	fac = 1.05;		end
 		[s,ok] = listdlg('PromptString',{'This file has subdatasets' 'you have to select one:'}, 'ListSize', ...
 				[min(nChars*6*fac, SS(3)-100) min((size(str,1)*20 + 50), 200)], ...
 				'Name','DATASET Selection', 'SelectionMode','single', 'ListString',str);	pause(0.01)
@@ -1708,10 +1709,17 @@ function erro = FileOpenGeoTIFF_CB(handles, tipo, opt)
 		end
 	elseif (strcmpi(att.ColorInterp,'gray'))
 		pal = repmat( (att.GMT_hdr(5):att.GMT_hdr(6))' / att.GMT_hdr(6), 1, 3);
-	elseif (strcmpi(att.ColorInterp,'Undefined') && strcmp(att.Band.DataType, 'Byte') && att.GMT_hdr(5) ~= att.GMT_hdr(6))
-		pal = gray(diff(att.GMT_hdr(5:6))+1);
+	elseif (strcmpi(att.ColorInterp,'Undefined') && strcmp(att.Band.DataType, 'Byte'))
+		if (att.GMT_hdr(5) ~= att.GMT_hdr(6))		% Strong possibility that this is shit from GDAL. Check it
+			att.GMT_hdr(5) = double(min(Z(:)));		att.GMT_hdr(6) = double(max(Z(:)));
+		end
+		if (att.GMT_hdr(5) ~= att.GMT_hdr(6))		% Right, gdalread/GDAL screwed here
+			pal = gray(diff(att.GMT_hdr(5:6))+1);	% This is probably not good enough (think if values are [0 1 3 6 255])
+		else
+			pal = gray(2);
+		end
 	else
-		pal = gray(256);
+		pal = gray(256);		% Fall back case
 	end
 
 	if (~isempty(att.GCPvalues) && isempty(att.GeoTransform))		% Save GCPs so that we can plot them and warp the image
