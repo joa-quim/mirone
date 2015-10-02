@@ -53,7 +53,7 @@ static char prog_id[] = "$Id$";
  * To compile, do for example
  *	cl nswing.c -IC:\programs\compa_libs\netcdf_GIT\compileds\VC12_64\include
  *     C:\programs\compa_libs\netcdf_GIT\compileds\VC12_64\lib\netcdf.lib /DI_AM_C 
- *     /DHAVE_NETCDF /fp:precise /Ox
+ *     /DHAVE_NETCDF /nologo /fp:precise /Ox
  *
  *	Rewritten in C, mexified, added number options, etc... By
  *	Joaquim Luis - 2013
@@ -87,18 +87,22 @@ static char prog_id[] = "$Id$";
 #	define mxFree free
 #	define mexPrintf(...) fprintf(stderr, __VA_ARGS__);
 
-#	ifdef _MSC_VER
-#		include <ymath.h>
-#		ifndef NAN
+#	ifndef NAN
+#		ifdef _MSC_VER
+#			include <ymath.h>
 #			define NAN _Nan._Double
+#		else
+			static const double _NAN = 20;//(HUGE_VAL-HUGE_VAL);
+#			define NAN _NAN
 #		endif
-#	else
-		static const double _NAN = (HUGE_VAL-HUGE_VAL);
-#		define NAN _NAN
 #	endif
-#	define mxGetNaN() (NAN);
+#	define mxGetNaN() (NAN)
 
 #endif
+
+/* At least the Intel compiler screws anf the NAN macro returns 0.0 So we need this hack */
+/* http://stackoverflow.com/questions/5714131/nan-literal-in-c */
+union {uint64_t i; double d;} loc_nan = {0x7ff8000000000000};
 
 #ifdef HAVE_NETCDF
 #	include <netcdf.h>
@@ -207,6 +211,7 @@ struct grd_header {     /* Generic grid hdr structure */
 struct nestContainer {         /* Container for the nestings */
 	int    do_upscale;         /* If false, do not upscale the parent grid */
 	int    do_long_beach;      /* If true, compute a mask with ones over the "dryed beach" */
+	int    do_short_beach;     /* If true, compute a mask with ones over the "innundated beach" */
 	int    do_linear;          /* If true, use linear approximation */
 	int    do_max_level;       /* If true, inform nestify() on the need to update max level at every inner iteration */
 	int    do_max_velocity;    /* If true, inform nestify() on the need to update max velocity at each inner iteration */
@@ -223,6 +228,7 @@ struct nestContainer {         /* Container for the nestings */
 	int    LLrow[10], LLcol[10], ULrow[10], ULcol[10], URrow[10], URcol[10], LRrow[10], LRcol[10];
 	int    incRatio[10];
 	short  *long_beach[10];    /* Mask arrays for storing the "dry beaches" */
+	short  *short_beach[10];   /* Mask arrays for storing the "dry beaches" */
 	float  *work, *wmax;       /* Auxiliary pointers (not direcly allocated) to compute max level of nested grids */
 	float  *vmax;              /* Pointer to array storing the max velocity */
 	double run_jump_time;      /* Time to hold before letting the nested grids start to iterate */
@@ -380,7 +386,7 @@ int main(int argc, char **argv) {
 	int     do_HotStart = FALSE;         /* For when doing a Hot Start */
 	int     n_arg_no_char = 0;
 	int     ncid, ncid_most[3], z_id = -1, ids[13], ids_ha[6], ids_ua[6], ids_va[6], ids_most[3];
-	int     ncid_3D[3], ids_z[8], ids_3D[3], ncid_Mar, ids_Mar[8];
+	int     ncid_3D[3], ids_z[10], ids_3D[3], ncid_Mar, ids_Mar[8];
 	int     n_of_cycles = 1010;          /* Default number of cycles to compute */
 	int     num_of_nestGrids = 0;        /* Number of nesting grids */
 	int     bat_in_input = FALSE, source_in_input = FALSE, write_grids = FALSE, isGeog = FALSE;
@@ -404,7 +410,8 @@ int main(int argc, char **argv) {
 	char   *fname3D  = NULL;             /* Name pointer for the 3D netCDF file */
 	char   *fonte    = NULL;             /* Name pointer for tsunami source file */
 	char   *bnc_file = NULL;             /* Name pointer for a boundary condition file */
-	char   *fname_mask = NULL;           /* Name pointer for the "long_beach" mask grid */
+	char   *fname_mask_lbeach = NULL;    /* Name pointer for the "long_beach" mask grid */
+	char   *fname_mask_sbeach = NULL;    /* Name pointer for the "short_beach" mask grid */
 	char    tracers_infile[256] = "", tracers_outfile[256] = "";	/* Names for in and out tracers files */
 	char    stem[256] = "", prenome[128] = "", str_tmp[128] = "", fname_momentM[256] = "", fname_momentN[256] = "";
 	char    history[512] = {""};         /* To hold the full command call to be saved in nc files as History */
@@ -765,9 +772,16 @@ int main(int argc, char **argv) {
 					if (argv[i][2] == '-') {	/* Compute a mask with ones over the "dried beach" */
 						nest.do_long_beach = TRUE;
 						if (argv[i][3])
-							sscanf(&argv[i][3], "%s", &fname_mask);
+							sscanf(&argv[i][3], "%s", &fname_mask_lbeach);
 						else
-							fname_mask = "long_beach.grd";
+							fname_mask_lbeach = "long_beach.grd";
+					}
+					else if (argv[i][2] == '+') {	/* Compute a mask with ones over the "innundated beach" */
+						nest.do_short_beach = TRUE;
+						if (argv[i][3])
+							sscanf(&argv[i][3], "%s", &fname_mask_sbeach);
+						else
+							fname_mask_sbeach = "short_beach.grd";
 					}
 					else
 						max_level = TRUE;
@@ -941,13 +955,13 @@ int main(int argc, char **argv) {
 		mexPrintf("nswing(bat,hdr_bat,deform,hdr_deform, [-1<bat_lev1>], [-2<bat_lev2>], [-3<...>] [maregs], [-G|Z<name>[+lev],<int>],\n");
 		mexPrintf("       [-A<fname.sww>], [-B<BCfile>], [-C], [-D], [-E[p][m][,decim]], [-Fdip/strike/rake/slip/length/width/topDepth/x_epic/y_epic],\n");
 		mexPrintf("       [-Fk[c]<w/e/s/n>], [-H], [-H<momentM,momentN>[,t]], [-J<time_jump>[+run_time_jump]], [-L[name1,name2]],,\n");
-		mexPrintf("       [-M[-[<maskname>]]][-N<n_cycles>], [-R<w/e/s/n>], [-S[x|y|n][+m][+s]], [-O<int>,<outmaregs>],\n");
+		mexPrintf("       [-M[-|+[<maskname>]]], [-N<n_cycles>], [-R<w/e/s/n>], [-S[x|y|n][+m][+s]], [-O<int>,<outmaregs>],\n");
 		mexPrintf("       [-T<int>,<mareg>[,<outmaregs[+n]>]], [-X<manning0[,...]>] -t<dt> [-f]\n");
 #else
 		mexPrintf("nswing bathy.grd initial.grd [-1<bat_lev1>] [-2<bat_lev2>] [-3<...>] [-G|Z<name>[+lev],<int>] [-A<fname.sww>]\n");
 		mexPrintf("       [-B<BCfile>] [-C] [-D] [-E[p][m][,decim]] [-Fdip/strike/rake/slip/length/width/topDepth/x_epic/y_epic]\n"); 
 		mexPrintf("       [-Fk[c]<w/e/s/n>] [-H] [-H<momentM,momentN>[,t]] [-J<time_jump>[+run_time_jump]] [-L[name1,name2]]\n");
-		mexPrintf("       [-M[-[<maskname>]]] [-N<n_cycles>] [-R<w/e/s/n>] [-S[x|y|n][+m][+s]] [-T<int>,<mareg>[,<outmaregs[+n]>]]\n");
+		mexPrintf("       [-M[-|+[<maskname>]]] [-N<n_cycles>] [-R<w/e/s/n>] [-S[x|y|n][+m][+s]] [-T<int>,<mareg>[,<outmaregs[+n]>]]\n");
 		mexPrintf("       [-X<manning0[,...]>] -t<dt> [-f]\n");
 #endif
 		mexPrintf("\t-A <name> save result as a .SWW ANUGA format file\n");
@@ -983,6 +997,9 @@ int main(int argc, char **argv) {
 		mexPrintf("\t-M write grid of max water level. Append a '-' to compute instead the maximum water retreat.\n");
 		mexPrintf("\t   The result is writen in a mask file with a default name of 'long_beach.grd'.\n");
 		mexPrintf("\t   To use a different name append it after the '-' sign. Example: -M-beach_long.grd\n");
+		mexPrintf("\t   Append a '+' to compute instead a mask with the Run In extent. Otherwise behaves like -M-.\n");
+		mexPrintf("\t   You can repeat -M to compute any of the above. I.e. -M -M- -M+ will compute all three..\n");
+		mexPrintf("\t   Note that if -Z was used the 'long' and 'short' beach arrays will be saved in the .nc file too.\n");
 		mexPrintf("\t-N number of cycles [Default 1010].\n");
 #ifdef I_AM_MEX
 		mexPrintf("\t-O <int>,<outfname> interval at which maregraphs are writen to the <outfname> maregraph file.\n");
@@ -1014,9 +1031,10 @@ int main(int argc, char **argv) {
 #endif
 	}
 
-	do_maxs = (max_level || max_energy || max_power || nest.do_long_beach);
-	do_2Dgrids = (write_grids || out_velocity || out_velocity_x || out_velocity_y || out_velocity_r || out_momentum ||
-	              max_level || max_velocity || max_energy || out_power || max_power || nest.do_long_beach);
+	do_maxs = (max_level || max_energy || max_power || nest.do_long_beach || nest.do_short_beach);
+	do_2Dgrids = (write_grids || out_velocity || out_velocity_x || out_velocity_y || out_velocity_r || out_momentum
+	              || max_level || max_velocity || max_energy || out_power || max_power || nest.do_long_beach
+	              || nest.do_short_beach);
 
 	if (!(do_2Dgrids || out_sww || out_most || out_3D || cumpt)) {
 		mexPrintf("Nothing selected for output (grids, or maregraphs), exiting\n");
@@ -1239,7 +1257,7 @@ int main(int argc, char **argv) {
 	if ((out_most || out_3D || surf_level || water_depth || out_energy || out_power || out_momentum ||
 		out_velocity || out_velocity_x || out_velocity_y || out_velocity_r || do_maxs || surf_level || water_depth) &&
 		(work = (float *) mxCalloc((size_t)(nest.hdr[0].nm, nest.hdr[writeLevel].nm), sizeof(float)) ) == NULL)
-			{no_sys_mem("(wmax)", nest.hdr[writeLevel].nm); Return(-1);}
+			{no_sys_mem("(work)", nest.hdr[writeLevel].nm); Return(-1);}
 
 	if (do_maxs && (wmax = (float *) mxCalloc((size_t)nest.hdr[writeLevel].nm, sizeof(float)) ) == NULL)
 		{no_sys_mem("(wmax)", nest.hdr[writeLevel].nm); Return(-1);}
@@ -1407,6 +1425,14 @@ int main(int argc, char **argv) {
 		yMinOut = nest.hdr[writeLevel].y_min + nest.hdr[writeLevel].y_inc * j_start;
 	}
 	/* -------------------------------------------------------------------------- */
+	
+	if (do_nestum) {                /* Initialize the nest struct array */
+		for (k = 1; k <= num_of_nestGrids; k++) {
+			if (initialize_nestum(&nest, isGeog, k))
+				Return(-1);
+		}
+		nest.time_h = time_h;
+	}
 
 #ifdef HAVE_NETCDF
 	if (out_sww) {
@@ -1470,23 +1496,15 @@ int main(int argc, char **argv) {
 	}
 #endif
 
-	if (do_nestum) {                /* If ...  it */
-		for (k = 1; k <= num_of_nestGrids; k++) {
-			if (initialize_nestum(&nest, isGeog, k))
-				Return(-1);
-		}
 
-		nest.time_h = time_h;
-
-		if (saveNested) {
-			xMinOut = nest.hdr[writeLevel].x_min;
-			yMinOut = nest.hdr[writeLevel].y_min;
-			dx = nest.hdr[writeLevel].x_inc;
-			dy = nest.hdr[writeLevel].y_inc;
-			i_start = 0; j_start = 0;
-			i_end = nest.hdr[writeLevel].nx;
-			j_end = nest.hdr[writeLevel].ny;
-		}
+	if (do_nestum && saveNested) {
+		xMinOut = nest.hdr[writeLevel].x_min;
+		yMinOut = nest.hdr[writeLevel].y_min;
+		dx = nest.hdr[writeLevel].x_inc;
+		dy = nest.hdr[writeLevel].y_inc;
+		i_start = 0; j_start = 0;
+		i_end = nest.hdr[writeLevel].nx;
+		j_end = nest.hdr[writeLevel].ny;
 	}
 
 	if (cumpt) {               /* Select which etad/vx/vy will be used to output maregrapghs */
@@ -1523,6 +1541,7 @@ int main(int argc, char **argv) {
 		}
 		mexPrintf ("dtCFL = %.4f\tCourant number (sqrt(g*h)*dt / max(dx,dy)) = %g\n", dtCFL, 1/dtCFL * dt);
 		if (nest.do_long_beach) mexPrintf("Output the 'Dry beach' mask.\n");
+		if (nest.do_short_beach) mexPrintf("Output the 'Innundated beach' mask.\n");
 		if (water_depth)    mexPrintf("Output wave height plus water thickness on land.\n");
 		if (out_momentum)   mexPrintf("Output momentum (V * D).\n");
 		if (time_jump)      mexPrintf("Hold on %.3f seconds before starting to save results.\n", time_jump);
@@ -1740,16 +1759,16 @@ LoopKabas:		/* When computing a grid of Kabas we use a GOTO to simulate a loop *
 
 		if ((k == n_of_cycles - 1)) {   /* Last cycle: write wmax to file */
 			size_t len = strlen(stem) - 1;
-			while (stem[len] !='.' && len > 0) len--;
+			while (stem[len] != '.' && len > 0) len--;
 			if (do_maxs) {              /* Deal with the case of 'only one of the maximums' */
-				if (len == 0) {                     /* No extension, add a "_max.grd" one */
+				if (len == 0) {                    /* No extension, add a "_max.grd" one */
 					strcpy(prenome, stem);
 					strcat(prenome, "_max.grd");
 				}
 				else {
 					strncpy(prenome, stem, len);
-					strcat(prenome, "_max");
-					strcat(prenome, &stem[len]);    /* Put back the given extension */
+					strcat(prenome, "_max.grd");
+					//strcat(prenome, &stem[len]);    /* Put back the given extension */
 				}
 
 				write_grd_bin(prenome, xMinOut, yMinOut, dx, dy, i_start, j_start, i_end, j_end,
@@ -1759,7 +1778,14 @@ LoopKabas:		/* When computing a grid of Kabas we use a GOTO to simulate a loop *
 					for (ij = 0; ij < nest.hdr[writeLevel].nm; ij++)
 						wmax[ij] = nest.long_beach[writeLevel][ij];	/* Implicitly convert from short int to float */
 
-					write_grd_bin(fname_mask, xMinOut, yMinOut, dx, dy, i_start, j_start, i_end, j_end,
+					write_grd_bin(fname_mask_lbeach, xMinOut, yMinOut, dx, dy, i_start, j_start, i_end, j_end,
+					              nest.hdr[writeLevel].nx, wmax);
+				}
+				if (nest.do_short_beach) {           /* In this case the calculations were done in mass() */
+					for (ij = 0; ij < nest.hdr[writeLevel].nm; ij++)
+						wmax[ij] = nest.short_beach[writeLevel][ij];/* Implicitly convert from short int to float */
+
+					write_grd_bin(fname_mask_sbeach, xMinOut, yMinOut, dx, dy, i_start, j_start, i_end, j_end,
 					              nest.hdr[writeLevel].nx, wmax);
 				}
 			}
@@ -1913,6 +1939,32 @@ LoopKabas:		/* When computing a grid of Kabas we use a GOTO to simulate a loop *
 			err_trap(nc_put_att_double(ncid_3D[0], ids_z[5], "actual_range", NC_DOUBLE, 2U, &actual_range[2]));
 		if (out_velocity_y)
 			err_trap(nc_put_att_double(ncid_3D[0], ids_z[6], "actual_range", NC_DOUBLE, 2U, &actual_range[4]));
+
+		/* It's ugly to have this here but I have no means to tell write_most_slice() when it's the last call */
+		if (nest.do_long_beach || nest.do_short_beach) {	/* Write the mask(s) */
+			unsigned char *pchar = NULL;
+			size_t	start_b[2] = {0,0}, count_b[2];
+			count_b[0] = nest.hdr[writeLevel].ny;	count_b[1] = nest.hdr[writeLevel].nx;
+			/* Allocate memory for the mask that were stored in floats */
+			if ((pchar = (unsigned char *) mxCalloc((size_t)nest.hdr[writeLevel].nm, sizeof(unsigned char)) ) == NULL)
+				{no_sys_mem("(ShortBeach)", nest.hdr[writeLevel].nm); Return(-1);}
+			if (nest.do_long_beach) {
+				float act_range[2] = {0, 0};
+				for (ij = 0; ij < nest.hdr[writeLevel].nm; ij++) pchar[ij] = (unsigned char)nest.long_beach[writeLevel][ij];
+				for (ij = 0; ij < nest.hdr[writeLevel].nm; ij++) if (pchar[ij] == 1) {act_range[1] = 1; break;}
+				err_trap(nc_put_att_float (ncid_3D[0], ids_z[7], "actual_range", NC_FLOAT, 2U, act_range));
+				err_trap(nc_put_vara_ubyte(ncid_3D[0], ids_z[7], start_b, count_b, pchar));		/* Write the mask */
+			}
+			if (nest.do_short_beach) {
+				float act_range[2] = {0, 0};
+				for (ij = 0; ij < nest.hdr[writeLevel].nm; ij++) pchar[ij] = (unsigned char)nest.short_beach[writeLevel][ij];
+				for (ij = 0; ij < nest.hdr[writeLevel].nm; ij++) if (pchar[ij] == 1) {act_range[1] = 1; break;}
+				err_trap(nc_put_att_float (ncid_3D[0], ids_z[8], "actual_range", NC_FLOAT, 2U, act_range));
+				err_trap(nc_put_vara_ubyte(ncid_3D[0], ids_z[8], start_b, count_b, pchar));		/* Write the mask */
+			}
+			if (pchar != NULL) mxFree(pchar);
+		}
+
 		err_trap(nc_close(ncid_3D[0])); 
 	}
 
@@ -2021,6 +2073,7 @@ void sanitize_nestContainer(struct nestContainer *nest) {
 
 	nest->do_upscale     = FALSE;
 	nest->do_long_beach  = FALSE;
+	nest->do_short_beach = FALSE;
 	nest->do_linear      = FALSE;
 	nest->do_max_level   = FALSE;
 	nest->do_max_velocity= FALSE;
@@ -2046,7 +2099,8 @@ void sanitize_nestContainer(struct nestContainer *nest) {
 		nest->LLx[i] = nest->LLy[i] = nest->ULx[i] = nest->ULy[i] =
 		nest->URx[i] = nest->URy[i] = nest->LRx[i] = nest->LRy[i] = 0;
 		nest->dt[i] = 0;
-		nest->long_beach[i] = NULL;
+		nest->long_beach[i]  = NULL;
+		nest->short_beach[i] = NULL;
 		nest->bat[i] = NULL;
 		nest->fluxm_a[i] = nest->fluxm_d[i] = NULL;
 		nest->fluxn_a[i] = nest->fluxm_d[i] = NULL;
@@ -2192,9 +2246,13 @@ int initialize_nestum(struct nestContainer *nest, int isGeog, int lev) {
 	if ((nest->htotal_d[lev] = (double *) mxCalloc ((size_t)nm, sizeof(double)) ) == NULL)
 		{no_sys_mem("(htotal_d)", nm); return(-1);}
 
-	if (nest->do_long_beach) {
+	if (nest->do_long_beach && (lev == nest->writeLevel)) {
 		if ((nest->long_beach[lev] = (short int *) mxCalloc ((size_t)nm, sizeof(short int)) ) == NULL)
 			{no_sys_mem("(long_beach)", nm); return(-1);}
+	}
+	if (nest->do_short_beach && (lev == nest->writeLevel)) {
+		if ((nest->short_beach[lev] = (short int *) mxCalloc ((size_t)nm, sizeof(short int)) ) == NULL)
+			{no_sys_mem("(short_beach)", nm); return(-1);}
 	}
 
 	if (nest->out_velocity_x && (lev == nest->writeLevel)) {
@@ -2303,7 +2361,8 @@ void free_arrays(struct nestContainer *nest, int isGeog, int lev) {
 	int i;
 
 	for (i = 0; i <= lev; i++) {
-		if (nest->long_beach[i]) mxFree(nest->long_beach[i]);
+		if (nest->long_beach[i])  mxFree(nest->long_beach[i]);
+		if (nest->short_beach[i]) mxFree(nest->short_beach[i]);
 		if (nest->bat[i]) mxFree(nest->bat[i]);
 		if (nest->vex[i]) mxFree(nest->vex[i]);
 		if (nest->vey[i]) mxFree(nest->vey[i]);
@@ -2794,8 +2853,9 @@ int interp_bnc(struct nestContainer *nest, double t) {
 
 			break;
 		}
-		else if (t > nest->bnc_var_nTimes)		/* Once this is TRUE this function wont be called anymore */
+		else if (t > nest->bnc_var_nTimes) {		/* Once this is TRUE this function wont be called anymore */
 			return TRUE;
+		}
 	}
 
 	if (nest->bnc_pos_nPts == 1) {		/* One point only, replicate it into all values of the line */
@@ -2934,16 +2994,16 @@ int open_most_nc(struct nestContainer *nest, float *work, char *base, char *name
 			err_trap(nc_def_var(ncid, name_var,NC_FLOAT, 3, dim3,     &ids[5]));
 		}
 		else {
-			err_trap(nc_def_var(ncid, "time",  NC_DOUBLE,1, &dim0[2], &ids[2]));
-			err_trap(nc_def_var(ncid, name_var,NC_FLOAT, 3, dim3,     &ids[3]));
+			err_trap(nc_def_var(ncid, "time",   NC_DOUBLE,1, &dim0[2], &ids[2]));
+			err_trap(nc_def_var(ncid, name_var, NC_FLOAT, 3, dim3,     &ids[3]));
 			if (nest->out_momentum) {
-				err_trap(nc_def_var(ncid, "Mlon",NC_FLOAT,3, dim3,  &ids[5]));
-				err_trap(nc_def_var(ncid, "Mlat",NC_FLOAT,3, dim3,  &ids[6]));
+				err_trap(nc_def_var(ncid, "Mlon", NC_FLOAT,3, dim3,  &ids[5]));
+				err_trap(nc_def_var(ncid, "Mlat", NC_FLOAT,3, dim3,  &ids[6]));
 			}
 			if (nest->out_velocity_x)
-				err_trap(nc_def_var(ncid, "Vlon",NC_FLOAT,3, dim3,  &ids[5]));
+				err_trap(nc_def_var(ncid, "Vlon", NC_FLOAT,3, dim3,  &ids[5]));
 			if (nest->out_velocity_y)
-				err_trap(nc_def_var(ncid, "Vlat",NC_FLOAT,3, dim3,  &ids[6]));
+				err_trap(nc_def_var(ncid, "Vlat", NC_FLOAT,3, dim3,  &ids[6]));
 			dim3[0] = dim0[1];			dim3[1] = dim0[0];		/* Bathym array is rank 2 */
 			err_trap(nc_def_var(ncid, "bathymetry",NC_FLOAT,2, dim3,  &ids[4]));
 		}
@@ -2974,8 +3034,15 @@ int open_most_nc(struct nestContainer *nest, float *work, char *base, char *name
 			if (nest->out_velocity_y)
 				err_trap(nc_def_var(ncid, "Vy",NC_FLOAT,3, dim3,  &ids[6]));
 			dim3[0] = dim0[1];			dim3[1] = dim0[0];		/* Bathym array is rank 2 */
-			err_trap(nc_def_var(ncid, "bathymetry",NC_FLOAT,2, dim3,  &ids[4]));
+			err_trap(nc_def_var(ncid, "bathymetry",NC_FLOAT,2, dim3, &ids[4]));
 		}
+	}
+
+	if (!isMost) {
+		if (nest->do_long_beach)
+			err_trap(nc_def_var(ncid, "LongBeach",  NC_UBYTE, 2, dim3, &ids[7]));
+		if (nest->do_short_beach)
+			err_trap(nc_def_var(ncid, "ShortBeach", NC_UBYTE, 2, dim3, &ids[8]));
 	}
 
 	/* Set a deflation level of 5 (4 zero based) and shuffle for z variable */
@@ -3004,6 +3071,8 @@ int open_most_nc(struct nestContainer *nest, float *work, char *base, char *name
 		double dummy[2] = {0, 0}, range[2];
 		float nan = (float)mxGetNaN();
 
+		if (nan == 0) nan = (float)loc_nan.d;	/* Dirty hack. With the Intel compiler for example mxGetNaN() returns 0*/
+
 		range[0] = xMinOut;		range[1] = xMinOut + (nx - 1) * nest->hdr[lev].x_inc;
 		err_trap(nc_put_att_double(ncid, ids[0], "actual_range", NC_DOUBLE, 2U, range));
 		range[0] = yMinOut;		range[1] = yMinOut + (ny - 1) * nest->hdr[lev].y_inc;
@@ -3030,7 +3099,7 @@ int open_most_nc(struct nestContainer *nest, float *work, char *base, char *name
 		range[0] = nest->hdr[lev].z_min;	range[1] = nest->hdr[lev].z_max;
 		err_trap(nc_put_att_double(ncid, ids[4], "actual_range", NC_DOUBLE, 2U, range));
 
-		for (ij = 0; ij < nest->hdr[lev].nm; ij++)
+		for (ij = 0; ij < nest->hdr[lev].nm; ij++)		/* Change bathy sign back to pos up and copy to work array */
 			work[ij] = (float)-nest->bat[lev][ij];
 
 		count_b[0] = nest->hdr[lev].ny;	count_b[1] = nest->hdr[lev].nx;
@@ -3065,6 +3134,21 @@ int open_most_nc(struct nestContainer *nest, float *work, char *base, char *name
 			err_trap(nc_put_att_float (ncid, ids[6], "missing_value", NC_FLOAT, 1, &nan));
 			err_trap(nc_put_att_float (ncid, ids[6], "_FillValue", NC_FLOAT, 1, &nan));
 			err_trap(nc_put_att_double(ncid, ids[6], "actual_range", NC_DOUBLE, 2U, dummy));
+		}
+
+		if (nest->do_long_beach) {
+			float act_range[2] = {0, 0};
+			long_name = "Mask of receded water";
+			err_trap(nc_put_att_text  (ncid, ids[7], "long_name", strlen(long_name), long_name));
+			err_trap(nc_put_att_text  (ncid, ids[7], "units", 3, "0/1"));
+			err_trap(nc_put_att_float (ncid, ids[7], "actual_range", NC_FLOAT, 2U, act_range));
+		}
+		if (nest->do_short_beach) {
+			float act_range[2] = {0, 0};
+			long_name = "Mask of innundation";
+			err_trap(nc_put_att_text  (ncid, ids[8], "long_name", strlen(long_name), long_name));
+			err_trap(nc_put_att_text  (ncid, ids[8], "units", 3, "0/1"));
+			err_trap(nc_put_att_float(ncid,  ids[8], "actual_range", NC_FLOAT, 2U, act_range));
 		}
 	}
 
@@ -3434,6 +3518,7 @@ int open_anuga_sww (struct nestContainer *nest, char *fname_sww, char hist[], in
 	err_trap(nc_put_att_text(ncid,   NC_GLOBAL, "units", 1, "m"));
 	/* Initialize the following attribs with NaNs. A posterior call will eventualy fill them with the right values */
 	nan = mxGetNaN();
+	if (nan == 0) nan = (float)loc_nan.d;	/* Dirty hack. With the Intel compiler for example mxGetNaN() returns 0*/
 	for (i = 0; i < 10; i++) {
 		faultPolyX[i] = faultPolyY[i] = faultSlip[i] = faultDip[i] = faultStrike[i] = 
 				faultRake[i] = faultWidth[i] = faultDepth[i] = nan;
@@ -3596,7 +3681,7 @@ void mass(struct nestContainer *nest, int lev) {
 	int row, col;
 	int cm1, rm1;			/* previous column (cm1 = col -1) and row (rm1 = row - 1) */
 	unsigned int ij;
-	double dtdx, dtdy, dd, zzz;
+	double dtdx, dtdy, dd = 0, zzz;
 	double *etaa, *etad, *htotal_d, *bat, *fluxm_a, *fluxn_a;
 
 	etaa     = nest->etaa[lev];          etad    = nest->etad[lev];
@@ -3627,11 +3712,12 @@ void mass(struct nestContainer *nest, int lev) {
 					etad[ij] = -bat[ij];
 				}
 
-				if (nest->do_long_beach && bat[ij] > 0 && dd < EPS1)
+				if (nest->do_long_beach  && (lev == nest->writeLevel) && bat[ij] > 0 && dd < EPS1)
 					nest->long_beach[lev][ij] = 1;
+				if (nest->do_short_beach && (lev == nest->writeLevel) && bat[ij] < 0 && zzz > EPS1)
+					nest->short_beach[lev][ij] = 1;
 			}
 			else {			/* over dry areas htotal is null and eta follows bat */
-				//htotal_d[ij] = 0;		/* Hmm, this is always true since it was allocated with calloc */
 				etad[ij] = -bat[ij];
 			}
 			ij++;
@@ -3682,6 +3768,16 @@ void wall_it(struct nestContainer *nest) {
 		wall_two(nest, 0, 2, 0, nest->hdr[0].ny);                                   /* Wall the West border */
 		wall_two(nest, nest->hdr[0].nx - 2, nest->hdr[0].nx, 0, nest->hdr[0].ny);   /* Wall the East border */
 		wall_two(nest, 0, nest->hdr[0].nx, nest->hdr[0].ny - 2, nest->hdr[0].ny);   /* Wall the North border */
+	}
+	else if (nest->bnc_border[2] != 0) {		/* East border */
+		wall_two(nest, 0, nest->hdr[0].nx, nest->hdr[0].ny - 2, nest->hdr[0].ny);   /* Wall the North border */
+		wall_two(nest, 0, nest->hdr[0].nx, 0, 2);                                   /* Wall the South border */
+		wall_two(nest, 0, 2, 0, nest->hdr[0].ny);                                   /* Wall the West border */
+	}
+	else if (nest->bnc_border[3] != 0) {		/* Noth border */
+		wall_two(nest, 0, 2, 0, nest->hdr[0].ny);                                   /* Wall the West border */
+		wall_two(nest, 0, nest->hdr[0].nx, 0, 2);                                   /* Wall the South border */
+		wall_two(nest, nest->hdr[0].nx - 2, nest->hdr[0].nx, 0, nest->hdr[0].ny);   /* Wall the East border */
 	}
 }
 
@@ -4305,11 +4401,12 @@ void mass_sp(struct nestContainer *nest, int lev) {
 					nest->etad[lev][ij] = -nest->bat[lev][ij];
 				}
 
-				if (nest->do_long_beach && nest->bat[lev][ij] > 0 && dd < EPS1)
+				if (nest->do_long_beach  && (lev == nest->writeLevel) && nest->bat[lev][ij] > 0 && dd < EPS1)
 					nest->long_beach[lev][ij] = 1;
+				if (nest->do_short_beach && (lev == nest->writeLevel) && nest->bat[lev][ij] < 0 && dd > EPS1)
+					nest->short_beach[lev][ij] = 1;
 			}
 			else {			/* over dry areas htotal is null and eta follows bat */
-				//nest->htotal_d[lev][ij] = 0;		/* Hmm, this is always true since it was allocated with calloc */
 				nest->etad[lev][ij] = -nest->bat[lev][ij];
 			}
 			ij++;
