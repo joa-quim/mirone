@@ -63,6 +63,18 @@ function nesting_sizes(hand, opt)
 			hNew = make_new_nested(handles.axes1, hRects, limits);
 			if (isempty(hNew)),		return,		end
 			nesting_sizes(hNew)		% Hate recursivity but it makes life easier here
+		elseif (strcmp(opt,'Grid'))	% Create a blank grid with the parameters from 'info'
+			hLine = hRects(hRects == gco);
+			info = getappdata(hLine, 'info');
+			n_cols = round(diff(info.head(1:2)) / info.head(6) + 1);
+			n_rows = round(diff(info.head(3:4)) / info.head(7) + 1);
+			Z(n_rows, n_cols) = single(0);
+			tmp.head = [info.head(1:4) 0 0 0 info.head(6:7)];
+			tmp.X = linspace(info.head(1), info.head(2), n_cols);
+			tmp.Y = linspace(info.head(3), info.head(4), n_rows);
+			tmp.name = 'Blank grid';
+			tmp.geog = handles.geog;
+			mirone(Z, tmp)
 		else
 			hLine = hRects(hRects == gco);
 			info = getappdata(hLine, 'info');
