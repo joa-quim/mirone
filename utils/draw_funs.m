@@ -444,6 +444,7 @@ function set_recTsu_uicontext(h)
 % 		uimenu(cmenuHand, 'Label', 'Adjust to nesting dimensions', 'Sep', 'on', 'Call', 'nesting_sizes(gcbo)');
 		if (ud > 1 || handles.validGrid)
 			uimenu(cmenuHand, 'Label', 'Show nesting info', 'Call', 'nesting_sizes(gcbo,''Info'')');
+			uimenu(cmenuHand, 'Label', 'Create blank grid', 'Call', 'nesting_sizes(gcbo,''Grid'')');
 		end
 		if (k == numel(h))
 			uimenu(cmenuHand, 'Label', 'New nested grid', 'Call', 'nesting_sizes(gcbo,''New'')');
