@@ -115,6 +115,7 @@ function varargout = aquamoto(varargin)
 	handles.useLandPhoto = false;
 	handles.firstLandPhoto = true;
 	handles.landIllumComm_bak = '';	% To know when recompute the land illumination
+	handles.compute_runIn = false;	% To inform aqua_suppfuns to compute a mask with MaxWater
 
 	set(handles.popup_derivedVar, 'String', ...
 		{'Absolute Velocity (V)'; ...
@@ -321,7 +322,6 @@ function tab_group_CB(hObject, eventdata, handles)
 function slider_layer_CB(hObject, eventdata, handles)
 	handles.sliceNumber = round(get(handles.slider_layer,'Value')) - 1;
 	set(handles.edit_sliceNumber,'String', handles.sliceNumber+1)		% Update slice n? box
-	set(handles.figure1,'pointer','watch')
 	if (handles.is_sww)
 		push_showSlice_CB([], [], handles)		% and update image (also saves handles)
 	elseif (handles.is_coards)
@@ -329,7 +329,6 @@ function slider_layer_CB(hObject, eventdata, handles)
 	elseif (handles.is_otherMultiband)
 		aqua_suppfuns('forGDAL_slice', handles)
 	end
-	set(handles.figure1,'pointer','arrow')
 
 % -----------------------------------------------------------------------------------------
 function edit_swwName_CB(hObject, eventdata, handles)
@@ -719,7 +718,16 @@ function push_showSlice_CB(hObject, eventdata, handles)
 function push_runIn_CB(hObject, eventdata, handles)
 % Find and plot the polygon which delimits the inundation zone
 
-	if (isempty(handles.hMirFig) || ~ishandle(handles.hMirFig) || isempty(handles.indMaxWater))		% Do a lot of tricks 
+	indInund = [];
+	if (handles.IamTSU && any(strcmp({handles.nc_info.Dataset.Name},'ShortBeach')))
+		if (isempty(handles.runinPoly))
+			indInund = nc_funs('varget', handles.fname, 'ShortBeach');
+		else
+			indInund = 1;	% We don't need this anymore because we already know the runinPoly but we need non void
+		end
+	end
+
+	if (isempty(handles.hMirFig) || ~ishandle(handles.hMirFig) || (isempty(handles.indMaxWater) && isempty(indInund)) )
 		% We dont have a valid Mirone figure with data displayed. Try to create one from here.
 		% But since we need "Max Water", set the popup to that before calling "push_showSlice"
 		if (isempty(handles.indMaxWater))				% If it has not yet been computed
@@ -730,6 +738,9 @@ function push_runIn_CB(hObject, eventdata, handles)
 			set(handles.check_derivedVar, 'Val', 0)		% Uncheck it to avoid a second maxwater calculation
 			check_derivedVar_CB(handles.check_derivedVar, eventdata, handles)
 		end
+		if (isempty(indInund) && isempty(handles.runinPoly))	% We have neither so we compute it now
+			handles.compute_runIn = true;	% Tell aqua_suppfuns() to compute a mask with 'indMaxWater'
+		end
 		push_showSlice_CB(handles.push_showSlice, eventdata, handles)
 		handles = guidata(handles.figure1);
 		% And teeeestttt again. Who knows
@@ -737,7 +748,7 @@ function push_runIn_CB(hObject, eventdata, handles)
 			warndlg('It is the second time (without your knowledge) that I test for a valid Mirone figure. Giving up','Warning'),	return
 		end
 	end
-	if (isempty(handles.indMaxWater) || ~ishandle(handles.hMirFig))
+	if ((isempty(handles.indMaxWater) && isempty(indInund)) || ~ishandle(handles.hMirFig))
 		errordlg('Something screewed up before. It should never come here. Please inform base','Error'),	return
 	end
 
@@ -751,22 +762,35 @@ function push_runIn_CB(hObject, eventdata, handles)
 	end
 
 	% Calculate the still water mask
-	nx = str2double(get(handles.edit_Ncols,'String'));
-	ny = str2double(get(handles.edit_Nrows,'String'));
-	x = linspace(handles.head(1),handles.head(2),nx);
-	y = linspace(handles.head(3),handles.head(4),ny);
-	Z = nc_funs('varget', handles.fname, 'elevation')';
-	if (~isa(Z, 'double')),		Z = double(Z);		end
-	Z = mxgridtrimesh(handles.volumes, [handles.x(:) handles.y(:) Z(:)],x,y);
-	indLand = (Z >= 0);
-	indInund = (handles.indMaxWater & indLand);				% Now we have the inundation mask
+	if (handles.is_sww)
+		nx = str2double(get(handles.edit_Ncols,'String'));
+		ny = str2double(get(handles.edit_Nrows,'String'));
+		x = linspace(handles.head(1),handles.head(2),nx);
+		y = linspace(handles.head(3),handles.head(4),ny);
+		Z = nc_funs('varget', handles.fname, 'elevation')';
+		if (~isa(Z, 'double')),		Z = double(Z);		end
+		Z = mxgridtrimesh(handles.volumes, [handles.x(:) handles.y(:) Z(:)],x,y);
+	elseif (handles.IamTSU && isempty(indInund))
+		Z = nc_funs('varget', handles.fname, 'bathymetry');
+	elseif (isequal(indInund, 1))
+		disp('Unforeseen case in cumputing innundation polygon. Error follows.')
+	end
+
+	if (isempty(indInund))		% I.e. If we don't know it yet.
+		indLand = (Z >= 0);
+		indInund = (handles.indMaxWater & indLand);				% Now we have the inundation mask
+	end
 	B = img_fun('bwboundaries',indInund,'noholes');
 	if (isempty(B))
 		warndlg('Could not find any inundation zone','Warning'),	return
 	end
 	
-	y = (B{1}(:,1)-1) * handles.handMir.head(9) + handles.handMir.head(3);
-	x = (B{1}(:,2)-1) * handles.handMir.head(8) + handles.handMir.head(1);
+	x = [];		y = [];
+	for (k = 1:numel(B))
+		if (size(B{k}, 1) <= 3),	continue,	end			% Too short segment
+		y = [y; (B{k}(:,1)-1) * handles.handMir.head(9) + handles.handMir.head(3); NaN];
+		x = [x; (B{k}(:,2)-1) * handles.handMir.head(8) + handles.handMir.head(1); NaN];
+	end
 	h = line('XData',x, 'YData',y, 'Parent',handles.handMir.axes1, 'Tag','inundPoly', ...
 		'Linewidth',handles.handMir.DefLineThick, 'Color',handles.handMir.DefLineColor);
 	draw_funs(h,'line_uicontext')        % Set lines's uicontextmenu
@@ -3620,7 +3644,6 @@ uicontrol('Parent',h1, 'Position',[810 114 30 15],...
 'HorizontalAlignment','left',...
 'String','Slices',...
 'Style','text',...
-'Tag','text48',...
 'UserData','misc');
 
 uicontrol('Parent',h1, 'Position',[910 112 105 19],...
