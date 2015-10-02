@@ -672,15 +672,16 @@ function [prefix,funcstr] = determine_funcstr ( var_type, nvdims, start, count, 
 		snc_error ( 'NC_FUNS:NC_VARGET:FUNCSTR', 'Could not determine funcstr prefix.' );
 	end
 
-	switch ( var_type )
+	switch (var_type)
 		case nc_int,		funcstr = [prefix '_int'];
 		case nc_float,		funcstr = [prefix '_float'];
 		case nc_double,		funcstr = [prefix '_double'];
 		case nc_short,		funcstr = [prefix '_short'];
 		case nc_char,		funcstr = [prefix '_text'];
 		case nc_byte,		funcstr = [prefix '_schar'];
+		case nc_ubyte,		funcstr = [prefix '_uchar'];
 		otherwise
-			snc_error ( 'NC_FUNS:NC_VARGET:badDatatype', sprintf('Unhandled datatype %d.', var_type) );
+			snc_error ('NC_FUNS:NC_VARGET:badDatatype', sprintf('Unhandled datatype %d.', var_type));
 	end
 	
 % ------------------------------------------------------------------------------
