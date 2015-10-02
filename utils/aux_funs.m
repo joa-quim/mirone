@@ -18,7 +18,7 @@ function  varargout = aux_funs(opt,varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id$
+% $Id: aux_funs.m 4770 2015-09-21 23:01:07Z j $
 
 switch opt(1:4)
 	case 'Stor'		% 'StoreZ'

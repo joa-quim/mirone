@@ -16,7 +16,7 @@ function varargout = aquamoto(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id$
+% $Id: aquamoto.m 4780 2015-10-02 16:33:38Z j $
 
 % For compiling one need to include the aqua_suppfuns.m files.
 

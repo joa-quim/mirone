@@ -1,5 +1,5 @@
 /*--------------------------------------------------------------------
- *	$Id$
+ *	$Id: nswing.c 4781 2015-10-02 16:43:08Z j $
  *
  *	Copyright (c) 2012-2015 by J. Luis and J. M. Miranda
  *
@@ -16,7 +16,7 @@
  *	Contact info: w3.ualg.pt/~jluis/mirone
  *--------------------------------------------------------------------*/
 
-static char prog_id[] = "$Id$";
+static char prog_id[] = "$Id: nswing.c 4781 2015-10-02 16:43:08Z j $";
 
 /*
  *	Original Fortran version of core hydrodynamic code by J.M. Miranda and COMCOT

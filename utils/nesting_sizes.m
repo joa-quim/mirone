@@ -21,7 +21,7 @@ function nesting_sizes(hand, opt)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id$
+% $Id: nesting_sizes.m 4777 2015-10-02 16:28:27Z j $
 
 	handles = guidata(hand);			% The Mirone handles
 	hRects = findobj('tag','NEST');
