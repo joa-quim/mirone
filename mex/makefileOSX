@@ -23,25 +23,26 @@ endif
 # On Mac (but need to addapt to 32 or 64)
 MATLAB		= /Applications/MATLAB_R2015b.app
 MATLAB_MEX	= maci64
-MEX_EXT	= mexmaci64
+MEX_EXT	    = mexmaci64
 
 #----------------------------------------------------------------------------
 #	Revise some of these if they don't live in /usr/local/
 #----------------------------------------------------------------------------
 
-LINKA = xcrun clang -undefined error -arch x86_64 -bundle
-MEX = cc -c -DMX_COMPAT_32 -DMATLAB_MEX_FILE  -I$(MATLAB)/extern/include
-MEX_LIBS = -lmx -lmex -lmwservices -lut -lstdc++
-MEXLIB	= -L$(MATLAB)/bin/$(MATLAB_MEX) -lmat $(MEX_LIBS)
-LDFLAGS = -L/usr/local/lib -L/Users/j/programs/gmt5/lib
-GMT     = -L.. $(LDFLAGS) -lgmt -lpsl
-NETCDF_INC	= -I/usr/local/include -I/Users/j/programs/gmt5/include/gmt
+GMT_INC = /Users/j/programs/gmt5/include/gmt
+GMT_LIB = /Users/j/programs/gmt5/lib
+MEXLIB	= -L$(MATLAB)/bin/$(MATLAB_MEX) -lmat -lmx -lmex -lut -lstdc++
+LDFLAGS = -L/usr/local/lib -L$(GMT_LIB)
+GMT     = -L.. $(LDFLAGS) -lgmt 					# Currently not used (was for GMT4)
+NETCDF_INC	= -I/usr/local/include -I$(GMT_INC)
 NETCDF_LIB	= -L/usr/local/lib -lnetcdf
 CDF     = $(NETCDF_LIB)
 FLAGS	= -I$(MATLAB)/extern/include $(NETCDF_INC) -I/usr/local/include
 GDAL_LIB    = -L/usr/local/lib/ -lgdal
 GDAL_FLAGS  = -I/usr/local/include -I$(MATLAB)/extern/include
 MEXNC_FLAGS = $(NETCDF_INC) -I$(MATLAB)/extern/include -DNC4_V2_COMPAT
+LINKA   = xcrun clang -undefined error -arch x86_64 -bundle
+MEX     = cc -c -DMX_COMPAT_32 -DMATLAB_MEX_FILE  -I$(MATLAB)/extern/include
 
 #----------------------------------------------------------------------------
 #	STOP EDITS HERE. The rest should should be ok.
