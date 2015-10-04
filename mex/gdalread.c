@@ -1463,7 +1463,7 @@ mxArray *populate_metadata_struct (char *gdal_filename , int correct_bounds, int
 	mxSetField (metadata_struct, 0, "GCPvalues", mxtmp);
 
 	/* ------------------------------------------------------------------------- */
-	/* Record Metadata (if any).
+	/* Record Metadata (if any).                                                 */
 	/* ------------------------------------------------------------------------- */
 	papszMetadata = GDALGetMetadata( hDataset, NULL );
 	nCounter = CSLCount(papszMetadata);
@@ -1475,7 +1475,7 @@ mxArray *populate_metadata_struct (char *gdal_filename , int correct_bounds, int
 	mxSetField (metadata_struct, 0, "Metadata", mxtmp);
 
 	/* ------------------------------------------------------------------------- */
-	/* Record Subdatasets (if any).
+	/* Record Subdatasets (if any).                                              */
 	/* ------------------------------------------------------------------------- */
 	papszMetadata = GDALGetMetadata( hDataset, "SUBDATASETS" );
 	nCounter = CSLCount(papszMetadata);
@@ -1487,7 +1487,7 @@ mxArray *populate_metadata_struct (char *gdal_filename , int correct_bounds, int
 	mxSetField (metadata_struct, 0, "Subdatasets", mxtmp);
 
 	/* ------------------------------------------------------------------------- */
-	/* Record ImageStructure (if any).
+	/* Record ImageStructure (if any).                                           */
 	/* ------------------------------------------------------------------------- */
 	papszMetadata = GDALGetMetadata( hDataset, "IMAGE_STRUCTURE" );
 	nCounter = CSLCount(papszMetadata);
@@ -1499,7 +1499,7 @@ mxArray *populate_metadata_struct (char *gdal_filename , int correct_bounds, int
 	mxSetField (metadata_struct, 0, "ImageStructure", mxtmp);
 
 	/* ------------------------------------------------------------------------- */
-	/* Record Name
+	/* Record Name                                                               */
 	/* ------------------------------------------------------------------------- */
 	mxSetField( metadata_struct, 0, "Name", mxCreateString( gdal_filename ) );
 
@@ -1555,10 +1555,10 @@ int ReportCorner(GDALDatasetH hDataset, double x, double y, double *xy_c, double
             OSRDestroySpatialReference( hLatLong );
         }
 
-        if( hProj != NULL )
+        if (hProj != NULL)
             OSRDestroySpatialReference( hProj );
     }
-/*
+
 /* -------------------------------------------------------------------- */
 /*      Transform to latlong and report.                                */
 /* -------------------------------------------------------------------- */
