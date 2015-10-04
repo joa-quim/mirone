@@ -99,15 +99,17 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray*prhs[] ) {
 
 	/* copy the string data from prhs[0] into a C string. */
 	status = mxGetString( prhs[0], shapefile, buflen );
-	if ( status != 0 )
+	if (status != 0)
 		mexErrMsgTxt( "Not enough space for shapefile argument.\n" );
 
 	/* -------------------------------------------------------------------- */
 	/*      Open the passed shapefile.                                      */
 	/* -------------------------------------------------------------------- */
 	hSHP = SHPOpen( shapefile, "rb" );
-	if( hSHP == NULL )
-		mexErrMsgTxt( "Unable to open:%s\n", shapefile );
+	if (hSHP == NULL) {
+		mexPrintf("Unable to open:%s\n", shapefile);
+		mexErrMsgTxt("\n");
+	}
 
 	/* -------------------------------------------------------------------- */
 	/*      Get the needed information about the shapefile.                 */
@@ -294,7 +296,7 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray*prhs[] ) {
 					mxSetField ( out_struct, i, dbf_field[j+nFields].pszFieldName, mxCreateDoubleScalar ( dbf_double_val ) );
 					break;
 				default:
-					sprintf ( error_buffer, "Unhandled code %d, shape %d, record %d\n", dbf_field[j+nFields].field_type, i, j );
+					sprintf(error_buffer, "Unhandled code %d, shape %d, record %d\n", dbf_field[j+nFields].field_type, i, j);
 	        			mexErrMsgTxt("Unhandled code"); 
 			}
 		}
