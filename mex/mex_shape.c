@@ -100,14 +100,14 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray*prhs[] ) {
 	/* copy the string data from prhs[0] into a C string. */
 	status = mxGetString( prhs[0], shapefile, buflen );
 	if ( status != 0 )
-		mxErrMsgTxt( "Not enough space for shapefile argument.\n" );
+		mexErrMsgTxt( "Not enough space for shapefile argument.\n" );
 
 	/* -------------------------------------------------------------------- */
 	/*      Open the passed shapefile.                                      */
 	/* -------------------------------------------------------------------- */
 	hSHP = SHPOpen( shapefile, "rb" );
 	if( hSHP == NULL )
-		mxErrMsgTxt( "Unable to open:%s\n", shapefile );
+		mexErrMsgTxt( "Unable to open:%s\n", shapefile );
 
 	/* -------------------------------------------------------------------- */
 	/*      Get the needed information about the shapefile.                 */
