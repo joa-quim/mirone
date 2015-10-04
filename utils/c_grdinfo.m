@@ -1,7 +1,7 @@
 function info = c_grdinfo(fname, opt)
 % Temporary function to easy up transition from GMT4 to GMT5.2
 
-% $Id: c_grdinfo.m 4791 2015-10-04 13:29:14Z j $
+% $Id: c_grdinfo.m 4792 2015-10-04 13:41:09Z j $
 
 	global gmt_ver
 	if (isempty(gmt_ver)),		gmt_ver = 4;	end		% For example, if calls do not come via mirone.m
@@ -11,7 +11,7 @@ function info = c_grdinfo(fname, opt)
 	else
 		gmtmex('create')
 		flen = numel(fname);
-		if (strcmp(opt, 'hdr_struct'))
+		if (~strcmp(opt, 'hdr_struct'))
 			info = gmtmex(['grdinfo -C ' fname]);
 		else
 			s = gmtmex(['grdinfo ' fname]);
