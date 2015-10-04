@@ -11,7 +11,7 @@ function info = c_grdinfo(fname, opt)
 	else
 		gmtmex('create')
 		flen = numel(fname);
-		if (strcmp(opt, 'hdr_struct'))
+		if (~strcmp(opt, 'hdr_struct'))
 			info = gmtmex(['grdinfo -C ' fname]);
 		else
 			s = gmtmex(['grdinfo ' fname]);
