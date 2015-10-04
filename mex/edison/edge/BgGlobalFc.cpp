@@ -301,7 +301,7 @@ void bgZoomIn(unsigned char **dest, unsigned char *src, int w, int h, int zconst
 	int i, j, x, y, dp, offset, factor, index;
 	index = 0;
 	//zconst does not divide evenly into image width
-	if(factor = w%zconst)
+	if (factor == w%zconst)
 	{
 		for(j=0; j<(h-zconst); j+=zconst)
 		{
