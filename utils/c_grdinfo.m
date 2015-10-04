@@ -13,7 +13,6 @@ function info = c_grdinfo(fname, opt)
 		flen = numel(fname);
 		if (strcmp(opt, 'hdr_struct'))
 			info = gmtmex(['grdinfo -C ' fname]);
-			info = str2double(info(numel(fname)+1:end));	% The name came out too, need to jump it
 		else
 			s = gmtmex(['grdinfo ' fname]);
 			info.Title = s{1}(flen+9:end);
