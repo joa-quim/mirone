@@ -1,0 +1,268 @@
+#		$Id: makefileOSX 4793 2015-10-04 14:02:49Z j $
+#
+#	Makefile for mirone mexs
+#	make -f makefileOSX
+#	Use with GMT 5.2
+#
+
+# ------------------- Which and where is OpenCV? ----------------------------
+# Set to 'yes' to use a local build version. That is ocvLocal = yes
+ocvLocal =
+
+# Depending on the above setting, revise one of the 2 following if cases
+ifndef ocvLocal
+pato_cv = /usr/local
+pato_cv_lib = /usr/local/lib
+CV_INC = /usr/local/include
+else
+pato_cv = /Users/j/programs/opencv2/trunk/opencv
+pato_cv_lib = /Users/j/programs/opencv2/trunk/opencv/build/lib
+endif
+#----------------------------------------------------------------------------
+
+# On Mac (but need to addapt to 32 or 64)
+MATLAB		= /Applications/MATLAB_R2015b.app
+MATLAB_MEX	= maci64
+MEX_EXT	= mexmaci64
+
+#----------------------------------------------------------------------------
+#	Revise some of these if they don't live in /usr/local/
+#----------------------------------------------------------------------------
+
+LINKA = xcrun clang -undefined error -arch x86_64 -bundle
+MEX = cc -c -DMX_COMPAT_32 -DMATLAB_MEX_FILE  -I$(MATLAB)/extern/include
+MEX_LIBS = -lmx -lmex -lmwservices -lut -lstdc++
+MEXLIB	= -L$(MATLAB)/bin/$(MATLAB_MEX) -lmat $(MEX_LIBS)
+LDFLAGS = -L/usr/local/lib -L/Users/j/programs/gmt5/lib
+GMT     = -L.. $(LDFLAGS) -lgmt -lpsl
+NETCDF_INC	= -I/usr/local/include -I/Users/j/programs/gmt5/include/gmt
+NETCDF_LIB	= -L/usr/local/lib -lnetcdf
+CDF     = $(NETCDF_LIB)
+FLAGS	= -I$(MATLAB)/extern/include $(NETCDF_INC) -I/usr/local/include
+GDAL_LIB    = -L/usr/local/lib/ -lgdal
+GDAL_FLAGS  = -I/usr/local/include -I$(MATLAB)/extern/include
+MEXNC_FLAGS = $(NETCDF_INC) -I$(MATLAB)/extern/include -DNC4_V2_COMPAT
+
+#----------------------------------------------------------------------------
+#	STOP EDITS HERE. The rest should should be ok.
+#----------------------------------------------------------------------------
+
+ifndef ocvLocal
+
+OCV_LIB   = -L$(pato_cv_lib) -lopencv_core -lopencv_imgproc -lopencv_calib3d -lopencv_objdetect -lopencv_video -lopencv_photo
+OCV_FLAGS = -I$(CV_INC)/opencv -I$(CV_INC) -I$(MATLAB)/extern/include
+
+else
+
+OCV_FLAGS = -I$(pato_cv)/include/opencv -I$(pato_cv)/modules/core/include -I$(pato_cv)/modules/imgproc/include \
+	-I$(pato_cv)/modules/features2d/include -I$(pato_cv)/modules/calib3d/include -I$(pato_cv)/modules/objdetect/include \
+	-I$(pato_cv)/modules/video/include -I$(pato_cv)/modules/legacy/include -I$(pato_cv)/modules/flann/include 
+OCV_LIB   = -L$(pato_cv_lib) -lopencv_core -lopencv_imgproc -lopencv_calib3d -lopencv_objdetect -lopencv_video -lopencv_photo
+
+endif
+
+PROG_GMT	= #grdinfo_m grdproject_m grdread_m grdsample_m grdtrend_m grdwrite_m mapproject_m shoredump \
+		surface_m nearneighbor_m grdfilter_m cpt2cmap grdlandmask_m grdppa_m shake_mex
+
+# Non LIB dependent mexs (besides matlab libs, of course)
+PROG_SIMPLE	= test_gmt igrf_m scaleto8 tsun2 wave_travel_time mansinha_m telha_m range_change country_select \
+		mex_illuminate grdutils read_isf alloc_mex susan set_gmt mxgridtrimesh trend1d_m \
+		PolygonClip gmtmbgrid_m grdgradient_m grdtrack_m mirblock akimaspline distmin
+
+# netCDF mexs (other than GMT ones)
+PROG_withCDF = swan
+PROG_GDAL	= gdalread gdalwrite ogrproj gdalwarp_mex gdaltransform_mex ogrread
+PROG_MEXNC	= mex_nc
+PROG_OCV	= cvlib_mex
+PROG_EDISON	= edison_
+PROG_MPGWRITE = mpgwrite_
+
+all:		$(PROG_GMT) $(PROG_GDAL) $(PROG_SIMPLE) $(PROG_withCDF) $(PROG_OCV) $(PROG_MEXNC) $(PROG_EDISON)
+gmt:		$(PROG_GMT)
+gdal:		$(PROG_GDAL)
+mexnc:		$(PROG_MEXNC)
+opencv:		$(PROG_OCV)
+simple:		$(PROG_SIMPLE)
+withCDF:	$(PROG_withCDF)
+edison:		$(PROG_EDISON)
+mpgwrite:	$(PROG_MPGWRITE)
+
+cpt2cmap:	
+		$(MEX) $(FLAGS) cpt2cmap.c $(GMT) $(CDF) $(MEXLIB)
+grdinfo_m:	
+		$(MEX) $(FLAGS) grdinfo_m.c $(GMT) $(CDF) $(MEXLIB) 
+grdread_m:	
+		$(MEX) $(FLAGS) grdread_m.c $(GMT) $(CDF) $(MEXLIB) 
+grdwrite_m:	
+		$(MEX) $(FLAGS) grdwrite_m.c $(GMT) $(CDF) $(MEXLIB)
+grdsample_m:	
+		$(MEX) $(FLAGS) grdsample_m.c $(GMT) $(CDF) $(MEXLIB)
+grdppa_m:	
+		$(MEX) $(FLAGS) grdppa_m.c $(GMT) $(CDF) $(MEXLIB)
+grdfilter_m:	
+		$(MEX) $(FLAGS) grdfilter_m.c $(GMT) $(CDF) $(MEXLIB)
+grdlandmask_m:	
+		$(MEX) $(FLAGS) grdlandmask_m.c $(GMT) $(CDF) $(MEXLIB)
+grdproject_m:	
+		$(MEX) $(FLAGS) grdproject_m.c $(GMT) $(CDF) $(MEXLIB)
+grdtrend_m:	
+		$(MEX) $(FLAGS) grdtrend_m.c $(GMT) $(CDF) $(MEXLIB)
+mapproject_m:	
+		$(MEX) $(FLAGS) mapproject_m.c $(GMT) $(CDF) $(MEXLIB)
+nearneighbor_m:	
+		$(MEX) $(FLAGS) nearneighbor_m.c $(GMT) $(CDF) $(MEXLIB)
+shoredump:	
+		$(MEX) $(FLAGS) shoredump.c $(GMT) $(CDF) $(MEXLIB)
+surface_m:	
+		$(MEX) $(FLAGS) surface_m.c $(GMT) $(CDF) $(MEXLIB)
+shake_mex:	
+		$(MEX) $(FLAGS) shake_mex.c $(GMT) $(CDF) $(MEXLIB)
+
+# -- "PROG_withCDFs" netCDF mexs (other than GMT ones)
+
+swan:	
+		$(MEX) $(NETCDF_INC) swan.c
+		$(LINKA) swan.o $(CDF) $(MEXLIB) -o swan.$(MEX_EXT)
+nswing:	
+		$(MEX) $(NETCDF_INC) nswing.c -DHAVE_NETCDF
+		$(LINKA) nswing.o $(CDF) $(MEXLIB) -o nswing.$(MEX_EXT)
+
+# ---------------------------------------------------------------------------------------
+# -- "Simple progs" that is, those that don't link agains nothing else than matlab itself
+
+test_gmt:	
+		$(MEX) test_gmt.c
+		$(LINKA) test_gmt.o $(GDAL_LIB) $(MEXLIB) -o test_gmt.$(MEX_EXT)
+igrf_m:	
+		$(MEX) igrf_m.c
+		$(LINKA) igrf_m.o $(GDAL_LIB) $(MEXLIB) -o igrf_m.$(MEX_EXT)
+scaleto8:	
+		$(MEX) scaleto8.c
+		$(LINKA) scaleto8.o $(GDAL_LIB) $(MEXLIB) -o scaleto8.$(MEX_EXT)
+tsun2:	
+		$(MEX) tsun2.c
+		$(LINKA) tsun2.o $(GDAL_LIB) $(MEXLIB) -o tsun2.$(MEX_EXT)
+wave_travel_time:	
+		$(MEX) wave_travel_time.c
+		$(LINKA) wave_travel_time.o $(GDAL_LIB) $(MEXLIB) -o wave_travel_time.$(MEX_EXT)
+mansinha_m:
+		$(MEX) mansinha_m.c
+		$(LINKA) mansinha_m.o $(GDAL_LIB) $(MEXLIB) -o mansinha_m.$(MEX_EXT)
+telha_m:	
+		$(MEX) telha_m.c
+		$(LINKA) telha_m.o $(GDAL_LIB) $(MEXLIB) -o telha_m.$(MEX_EXT)
+range_change:	
+		$(MEX) range_change.c
+		$(LINKA) range_change.o $(GDAL_LIB) $(MEXLIB) -o range_change.$(MEX_EXT)
+country_select:	
+		$(MEX) country_select.c
+		$(LINKA) country_select.o $(GDAL_LIB) $(MEXLIB) -o country_select.$(MEX_EXT)
+mex_illuminate:	
+		$(MEX) mex_illuminate.c
+		$(LINKA) mex_illuminate.o $(GDAL_LIB) $(MEXLIB) -o mex_illuminate.$(MEX_EXT)
+grdutils:	
+		$(MEX) grdutils.c
+		$(LINKA) grdutils.o $(GDAL_LIB) $(MEXLIB) -o grdutils.$(MEX_EXT)
+read_isf:	
+		$(MEX) read_isf.c
+		$(LINKA) read_isf.o $(GDAL_LIB) $(MEXLIB) -o read_isf.$(MEX_EXT)
+ind2rgb8:	
+		$(MEX) ind2rgb8.c
+		$(LINKA) ind2rgb8.o $(GDAL_LIB) $(MEXLIB) -o ind2rgb8.$(MEX_EXT)
+alloc_mex:	
+		$(MEX) alloc_mex.c
+		$(LINKA) alloc_mex.o $(GDAL_LIB) $(MEXLIB) -o alloc_mex.$(MEX_EXT)
+susan:	
+		$(MEX) susan.c
+		$(LINKA) susan.o $(GDAL_LIB) $(MEXLIB) -o susan.$(MEX_EXT)
+set_gmt:	
+		$(MEX) set_gmt.c
+		$(LINKA) set_gmt.o $(GDAL_LIB) $(MEXLIB) -o set_gmt.$(MEX_EXT)
+mxgridtrimesh:	
+		$(MEX) mxgridtrimesh.c
+		$(LINKA) mxgridtrimesh.o $(GDAL_LIB) $(MEXLIB) -o mxgridtrimesh.$(MEX_EXT)
+grdgradient_m:
+		$(MEX) grdgradient_m.c
+		$(LINKA) grdgradient_m.o $(GDAL_LIB) $(MEXLIB) -o grdgradient_m.$(MEX_EXT)
+grdtrack_m:
+		$(MEX) grdtrack_m.c
+		$(LINKA) grdtrack_m.o $(GDAL_LIB) $(MEXLIB) -o grdtrack_m.$(MEX_EXT)
+gmtmbgrid_m:
+		$(MEX) gmtmbgrid_m.c
+		$(LINKA) gmtmbgrid_m.o $(GDAL_LIB) $(MEXLIB) -o gmtmbgrid_m.$(MEX_EXT)
+trend1d_m:
+		$(MEX) trend1d_m.c
+		$(LINKA) trend1d_m.o $(GDAL_LIB) $(MEXLIB) -o trend1d_m.$(MEX_EXT)
+PolygonClip:
+		$(MEX) PolygonClip.c gpc.c
+		$(LINKA) PolygonClip.o gpc.c $(GDAL_LIB) $(MEXLIB) -o PolygonClip.$(MEX_EXT)
+akimaspline:
+		$(MEX) akimaspline.cpp
+		$(LINKA) akimaspline.o $(GDAL_LIB) $(MEXLIB) -o akimaspline.$(MEX_EXT)
+mirblock:
+		$(MEX) mirblock.c
+		$(LINKA) mirblock.o $(GDAL_LIB) $(MEXLIB) -o mirblock.$(MEX_EXT)
+distmin:
+		$(MEX) distmin.c
+		$(LINKA) distmin.o $(GDAL_LIB) $(MEXLIB) -o distmin.$(MEX_EXT)
+
+# ------------------------- GDAL progs -----------------------------------
+gdalread:
+		$(MEX) $(GDAL_FLAGS) gdalread.c
+		$(LINKA) gdalread.o $(GDAL_LIB) $(MEXLIB) -lmx -lmex -lmat -lstdc++ -o gdalread.mexmaci64
+gdalwrite:
+		$(MEX) $(GDAL_FLAGS) gdalwrite.c
+		$(LINKA) gdalwrite.o $(GDAL_LIB) $(MEXLIB) -o gdalwrite.$(MEX_EXT)
+gdalwarp_mex:
+		$(MEX) $(GDAL_FLAGS) gdalwarp_mex.cpp
+		$(LINKA) gdalwarp_mex.o $(GDAL_LIB) $(MEXLIB) -o gdalwarp_mex.$(MEX_EXT)
+ogrproj:
+		$(MEX) $(GDAL_FLAGS) ogrproj.cpp
+		$(LINKA) ogrproj.o $(GDAL_LIB) $(MEXLIB) -o ogrproj.$(MEX_EXT)
+ogrread:
+		$(MEX) $(GDAL_FLAGS) ogrread.c
+		$(LINKA) ogrread.o $(GDAL_LIB) $(MEXLIB) -o ogrread.$(MEX_EXT)
+gdaltransform_mex:
+		$(MEX) $(GDAL_FLAGS) gdaltransform_mex.cpp
+		$(LINKA) gdaltransform_mex.o $(GDAL_LIB) $(MEXLIB) -o gdaltransform_mex.$(MEX_EXT)
+mex_shape:	
+		$(MEX) $(GDAL_FLAGS) mex_shape.c
+		$(LINKA) mex_shape.o $(GDAL_LIB) $(MEXLIB) -o mex_shape.$(MEX_EXT)
+
+# ------------------------- MEXNC progs -----------------------------------
+mex_nc:
+		$(MEX) $(MEXNC_FLAGS) mexnc4/mexgateway.c mexnc4/netcdf4.c mexnc4/netcdf3.c mexnc4/common.c
+		$(LINKA) mexgateway.o netcdf4.o netcdf3.o common.o $(CDF) $(MEXLIB) -o mexnc.$(MEX_EXT)
+
+# ------------------------- OPEN_CV progs ---------------------------------
+cvlib_mex:
+		$(MEX) $(OCV_FLAGS) cvlib_mex.c sift/sift.c sift/imgfeatures.c sift/kdtree.c sift/minpq.c
+		$(LINKA) cvlib_mex.o sift.o imgfeatures.o kdtree.o minpq.o $(OCV_LIB) $(MEXLIB) -o cvlib_mex.$(MEX_EXT)
+
+
+# ------------------------- EDISON prog ------------------------------------
+edison_:
+		$(MEX) edison/edison_wrapper_mex.cpp edison/segm/ms.cpp edison/segm/msImageProcessor.cpp \
+		edison/segm/msSysPrompt.cpp edison/segm/RAList.cpp edison/segm/rlist.cpp edison/edge/BgEdge.cpp \
+		edison/edge/BgImage.cpp edison/edge/BgGlobalFc.cpp edison/edge/BgEdgeList.cpp edison/edge/BgEdgeDetect.cpp
+		$(LINKA) edison_wrapper_mex.o ms.o msImageProcessor.o msSysPrompt.o RAList.o rlist.o BgEdge.o BgImage.o BgGlobalFc.o BgEdgeList.o BgEdgeDetect.o $(MEXLIB) -o edison.$(MEX_EXT)
+
+mpgwrite_:
+		$(MEX) mpgwrite/mpgwrite.c mpgwrite/mfwddct.c mpgwrite/postdct.c mpgwrite/huff.c \
+		mpgwrite/bitio.c mpgwrite/mheaders.c mpgwrite/iframe.c mpgwrite/pframe.c mpgwrite/bframe.c \
+		mpgwrite/psearch.c mpgwrite/bsearch.c mpgwrite/block.c mpgwrite/mpeg.c mpgwrite/subsampl.c \
+		mpgwrite/jrevdct.c mpgwrite/frame.c mpgwrite/fsize.c
+		$(LINKA) mpgwrite.o mfwddct.o postdct.o huff.o bitio.o mheaders.o iframe.o pframe.o bframe.o \
+		psearch.o bsearch.o block.o mpeg.o subsampl.o jrevdct.o frame.o fsize.o	 $(MEXLIB) -o mpgwrite.$(MEX_EXT)
+
+spotless:	clean
+		\rm -f makefile config.cache config.log config.status
+
+clean:
+		\rm -f *.$(MEX_EXT) .gmt* .mexrc.sh
+		for f in $(PROG); do \
+			rm -f $$.$(MEX_EXT); \
+		done
+
+install:
+		cp *.$(MEX_EXT) ../lib_mex
