@@ -371,6 +371,16 @@ function hObject = mirone_OpeningFcn(varargin)
 		set([handles.CoastLineCrude handles.PBCrude handles.RiversCrude], 'Enable','off')
 	end
 
+	% Deal with the new (big) troubles introduced by using GMT5.2 that needs to know where to find its own share dir
+	if (gmt_ver == 5)		% For GMT5 we have a shity highly police control on sharedir. Use this to cheat it.
+		t = set_gmt('GMT5_SHAREDIR', 'whatever');	% Inquire if GMT5_SHAREDIR exists 
+		if (isempty(t))
+			% If not, set a fake one with minimalist files so that GMT does not complain/errors
+			% We have to use GMT5_SHAREDIR and NOT GMT_SHAREDIR because it's the first one checked in gmt_init.c/GMT_set_env()
+			set_gmt(['GMT5_SHAREDIR=' home_dir fsep 'gmt_share']);
+		end
+	end
+
 	guidata(hObject, handles);
 	tmp.home_dir = home_dir;	tmp.work_dir = handles.work_dir;	tmp.last_dir = handles.last_dir;
 	setappdata(0,'MIRONE_DIRS',tmp);		% To access from places where handles.home_dir is unknown (must precede gateLoadFile())
