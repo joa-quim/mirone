@@ -219,6 +219,10 @@ data/wcity.dat -text
 data/wcity_major.dat -text
 doc/MironeMan.chm -text
 /faz2.bat -text
+gmt_share/VERSION_all -text
+gmt_share/conf/gmt.conf -text
+gmt_share/localization/gmt_us.locale -text
+gmt_share/postscriptlight/PSL_standard_fonts.txt -text
 gmt_userdir/.gmtdefaults_SI -text
 gmt_userdir/.gmtdefaults_US -text
 gmt_userdir/CUSTOM_font_info.d -text
