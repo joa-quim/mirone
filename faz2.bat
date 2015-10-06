@@ -62,7 +62,7 @@ REM ------------- Copy the MEXs and the P codes --------------------------------
 md utils  && md lib_mex  &&  cd utils
 
 IF %R13%=="yes" (
-copy /Y %P2%lib_mex_dll\*.p .
+copy /Y %P2%lib_mex_dll\p\*.p .
 cd ..\lib_mex
 copy /Y %P2%lib_mex_dll\*.dll .
 SET R13="R13"
