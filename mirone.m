@@ -20,7 +20,7 @@ function varargout = mirone(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: mirone.m 4785 2015-10-02 23:50:46Z j $
+% $Id: mirone.m 4795 2015-10-06 13:02:07Z j $
 
 	if (nargin > 1 && ischar(varargin{1}))
 		if ( ~isempty(strfind(varargin{1},':')) || ~isempty(strfind(varargin{1},filesep)) )
@@ -369,6 +369,16 @@ function hObject = mirone_OpeningFcn(varargin)
 	end
 	if (~strcmp(info.crude, 'y'))
 		set([handles.CoastLineCrude handles.PBCrude handles.RiversCrude], 'Enable','off')
+	end
+
+	% Deal with the new (big) troubles introduced by using GMT5.2 that needs to know where to find its own share dir
+	if (gmt_ver == 5)		% For GMT5 we have a shity highly police control on sharedir. Use this to cheat it.
+		t = set_gmt('GMT5_SHAREDIR', 'whatever');	% Inquire if GMT5_SHAREDIR exists 
+		if (isempty(t))
+			% If not, set a fake one with minimalist files so that GMT does not complain/errors
+			% We have to use GMT5_SHAREDIR and NOT GMT_SHAREDIR because it's the first one checked in gmt_init.c/GMT_set_env()
+			set_gmt(['GMT5_SHAREDIR=' home_dir fsep 'gmt_share']);
+		end
 	end
 
 	guidata(hObject, handles);
