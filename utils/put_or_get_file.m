@@ -25,7 +25,7 @@ function [FileName,PathName,handles] = put_or_get_file(handles,str1,str2,type, e
 
 	return_to = cd;						% New behavior. Return to where it was.
 	if (strcmp(type,'get'))
-		cd(handles.last_dir)
+		try		cd(handles.last_dir),	end		% We cannot risk to error here
 		[FileName,PathName] = uigetfile(str1,str2);
 	elseif (strcmp(type,'put'))
 		if (~isempty(handles.last_dir)),	cd(handles.last_dir),	end
