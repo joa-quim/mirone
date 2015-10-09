@@ -35,7 +35,7 @@ function [Z, X, Y, srsWKT, handles, att] = read_grid(handles, fullname, tipo, op
 
 % $Id$
 
-	if (nargin == 3)	opt = ' ';	end
+	if (nargin == 3),	opt = ' ';	end
 	opt_I = ' ';	srsWKT = [];	att = [];	attVRT = [];	Z = [];		X = [];		Y = [];
 	if (isa(fullname, 'cell') && numel(fullname) == 2 )
 		fname = [fullname{1} fullname{2}];
@@ -58,7 +58,7 @@ function [Z, X, Y, srsWKT, handles, att] = read_grid(handles, fullname, tipo, op
 
 	if (strncmp(tipo,'GMT',3))		% GMT_relatives - Reading is done by the read_gmt_type_grids function
 		[handles, X, Y, Z, head, misc] = read_gmt_type_grids(handles, fname);
-		if (isempty(X))		return,		end
+		if (isempty(X)),	return,		end
 		if (isfield(misc,'z_dim') && numel(misc.z_dim) == 3),	handles.nLayers = misc.z_dim(1);	end
 		if (~isempty(misc) && ~isempty(misc.srsWKT)),			srsWKT = misc.srsWKT;	end
 	elseif (strncmpi(tipo,'IN',2))
