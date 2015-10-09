@@ -16,7 +16,7 @@ function varargout = grdsample_mir(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id$
+% $Id: grdsample_mir.m 4804 2015-10-09 16:05:09Z j $
 
 	if isempty(varargin)
 		errordlg('GRDSAMPLE: wrong number of input arguments.','Error'),	return
@@ -86,9 +86,6 @@ function varargout = grdsample_mir(varargin)
 	guidata(hObject, handles);
 
 	set(hObject,'Visible','on');
-	if (handMir.version7 < 8.4 && strncmp(computer,'PC',2))
-		WindowAPI(hObject, 'TopMost')
-	end
 	if (nargout),   varargout{1} = hObject;     end
 
 % --------------------------------------------------------------------
