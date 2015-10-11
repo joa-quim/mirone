@@ -16,7 +16,7 @@ function varargout = aqua_suppfuns(opt, varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: aqua_suppfuns.m 4779 2015-10-02 16:31:38Z j $
+% $Id: aqua_suppfuns.m 4811 2015-10-11 11:28:53Z j $
 
 	switch opt
 		case 'coards_hdr',		[varargout{1:nargout}] = init_header_params(varargin{:});
@@ -156,7 +156,8 @@ function out = init_header_params(handles,X,Y,head,misc,getAllMinMax)
 		handMir = guidata(hFig);
 		handMir.netcdf_z_id = misc.z_id;
 		handMir.nc_info = handles.nc_info;
-		handMir.time_z = handles.time;
+		handMir.time_z  = handles.time;
+		handMir.nLayers = misc.z_dim(1);
 		guidata(hFig, handMir)
 	end
 
@@ -303,10 +304,12 @@ function coards_sliceShow(handles, Z)
 		tmp.name = sprintf('Layer = %g',handles.time(handles.sliceNumber+1));
 		if (~isempty(handles.srsWKT)),		tmp.srsWKT = handles.srsWKT;	end
 		hFigs = findobj(0,'type','figure');
+		nLayers = 0;
 		if (numel(hFigs) == 2)	% Often we have an empty Mir fig but that is very difficult to use here. So blow it
 			inds = [isempty(getappdata(hFigs(1), 'IAmAMirone')) isempty(getappdata(hFigs(2), 'IAmAMirone'))];
 			hFigs = hFigs(~inds);							% Only one of them is a Mirone fig
 			handThis = guidata(hFigs);
+			nLayers  = handThis.nLayers;
 			if (~handThis.validGrid),		delete(hFigs),	clear handThis,	end
 		end
 		
@@ -320,11 +323,11 @@ function coards_sliceShow(handles, Z)
 		move2side(handles.figure1,handles.hMirFig,'left')
 		handles.handMir = guidata(handles.hMirFig);			% Get the handles of the now existing Mirone fig
 
-		if (reset)											% Figure was killed but the folowing info exists and is needed
+		if (reset || nLayers > 0)							% Figure was killed but the folowing info exists and is needed
 			handles.handMir.nLayers = nLayers;
 			handles.handMir.netcdf_z_id = handles.netcdf_z_id;
 			handles.handMir.nc_info = handles.nc_info;
-			handles.handMir.time_z = handles.time;
+			handles.handMir.time_z  = handles.time;
 			handles.handMir.grdname = handles.fname;		% At least grid_profiler() needs this for the 3D interpolations
 		end
 
