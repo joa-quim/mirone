@@ -992,8 +992,7 @@ function img = do_imgWater(handles, indVar, Z, imgBat, indLand)
 		pal = get(handles.handMir.figure1,'Colormap');
 		if (get(handles.check_splitDryWet, 'Val')),		pal = handles.cmapWater;	end
 		imgWater = ind2rgb8(imgWater, pal);						% image is now RGB
-		if (handles.head(5) == 0 && handles.head(6) == 0)
-			warndlg('Something screwed up. Don''t know this grid min/max and must comput it now.','Warning')
+		if (handles.head(5) == 0 && handles.head(6) == 0)	% Must compute min/max because it maight be an error
 			zz = grdutils(Z, '-L');		handles.head(5:6) = [zz(1) zz(2)];
 		end
 		R = illumByType(handles, Z, handles.head, illumComm);
