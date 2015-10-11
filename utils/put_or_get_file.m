@@ -21,11 +21,11 @@ function [FileName,PathName,handles] = put_or_get_file(handles,str1,str2,type, e
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id$
+% $Id: put_or_get_file.m 4805 2015-10-09 21:55:54Z j $
 
 	return_to = cd;						% New behavior. Return to where it was.
 	if (strcmp(type,'get'))
-		cd(handles.last_dir)
+		try		cd(handles.last_dir),	end		% We cannot risk to error here
 		[FileName,PathName] = uigetfile(str1,str2);
 	elseif (strcmp(type,'put'))
 		if (~isempty(handles.last_dir)),	cd(handles.last_dir),	end

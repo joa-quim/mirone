@@ -16,7 +16,7 @@ function varargout = write_gmt_script(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id$
+% $Id: write_gmt_script.m 4803 2015-10-07 22:08:22Z j $
 
 hObject = figure('Vis','off');
 write_gmt_script_LayoutFcn(hObject);
@@ -1892,18 +1892,24 @@ end
 		script = [script(1:4); tmp; script(5:end)];
 		out_msg = 1;
 	end
-	
+
 	if (strcmp(sc,'bat'))
 		fid = fopen([prefix_ddir '_mir.' sc],'wt');
 	else
 		fid = fopen([prefix_ddir '_mir.' sc],'wb');		% This way scripts are directly executable
 	end
-	
-	for i = 1:length(script)-1
+
+	% Remove empties at the end of 'script' to not screw the last command patching below
+	k = numel(script);
+	while (isempty(script{k})),		k = k - 1;		end
+	if (k < numel(script)),	script(k+1:end) = [];		end
+
+	for i = 1:numel(script)-1
 		fprintf(fid,'%s\n',script{i});
 	end
 	if (strcmp(sc,'bat')),  cut = 11;
-	else                    cut = 10;    end
+	else                    cut = 10;
+	end
 	last = [script{i+1}(1:end-cut) ' >> ' pb 'ps' pf];    % Remove the last '-K'
 	fprintf(fid,'%s\n',last);
 	fclose(fid);

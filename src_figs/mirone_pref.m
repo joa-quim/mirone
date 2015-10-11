@@ -1,7 +1,7 @@
 function varargout = mirone_pref(varargin)
 % Helper window to select some importat defaults
 
-%	Copyright (c) 2004-2013 by J. Luis
+%	Copyright (c) 2004-2015 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -16,7 +16,7 @@ function varargout = mirone_pref(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id$
+% $Id: mirone_pref.m 4802 2015-10-07 22:07:18Z j $
 
 	hObject = figure('Vis','off');
 	mirone_pref_LayoutFcn(hObject);
@@ -44,6 +44,9 @@ function varargout = mirone_pref(varargin)
 		catch
 			handles.deflation_level = 0;
 		end
+		try		handles.gmt_ver = prf.gmt_ver;		% Hope that this will be a temporary thing till GMT5 is fully working
+		catch,	handles.gmt_ver = 4;
+		end
 	catch
 		handles.moveDoubleClick = 1;% 		"
 		handles.flederPlanar = 1;	%		"
@@ -54,6 +57,7 @@ function varargout = mirone_pref(varargin)
 		DefineEllipsoide = [];
 		handles.bg_color = [1 1 1];			% Default is white, but should be update by mirone_pref contents
 		handles.deflation_level = 0;		% Default to classic netCDF
+		handles.gmt_ver = 4;
 		% We need also to create an empty pref file that will be updated by push_OK_CB
 		version7 = version;
 		V7 = (sscanf(version7(1),'%f') > 6);
@@ -66,6 +70,7 @@ function varargout = mirone_pref(varargin)
 	handles.proxyPort = [];
 	handles.proxyAddressPort = [];
 
+    if (handles.gmt_ver == 5),      set(handles.radio_GMT4, 'Val', 0),  set(handles.radio_GMT5, 'Val', 1),  end
 	set(handles.radio_planar,'Val',handles.flederPlanar)
 	set(handles.radio_spherical,'Val',~handles.flederPlanar)
 	if (handles.flederBurn == 0)
@@ -307,14 +312,14 @@ function ellipsoids = ellips_list()
 	
 % ------------------------------------------------------------------------------------
 function radio_geog_CB(hObject, handles)
-	if get(hObject,'Value')     handles.geog = 1;   set(handles.radio_cart,'Value',0)
+	if get(hObject,'Value'),    handles.geog = 1;   set(handles.radio_cart,'Value',0)
 	else                        handles.geog = 0;   set(handles.radio_cart,'Value',1);
 	end
 	guidata(hObject,handles)
 
 % ------------------------------------------------------------------------------------
 function radio_cart_CB(hObject, handles)
-	if get(hObject,'Value')     handles.geog = 0;   set(handles.radio_geog,'Value',0)
+	if get(hObject,'Value'),    handles.geog = 0;   set(handles.radio_geog,'Value',0)
 	else                        handles.geog = 1;   set(handles.radio_geog,'Value',1);
 	end
 	guidata(hObject,handles)
@@ -355,7 +360,7 @@ function push_change_dir_CB(hObject, handles)
 		work_dir = uigetdir(contents{get(handles.popup_directory_list,'Value')}, 'Select a directory');
 	end
 	
-	if (isempty(work_dir) || isequal(work_dir,0))    return;     end
+	if (isempty(work_dir) || isequal(work_dir,0)),	return,		end
 	
 	handles.last_directories = [cellstr(work_dir); handles.last_directories];
 	if length(handles.last_directories) > 15            % Keep only 15 adresses
@@ -465,6 +470,10 @@ function push_OK_CB(hObject, handles)
 				handles.handMir.DefineEllipsoide(3) = handles.ellipsoide{i,4};
 		end
 	end
+	
+	% See what GMT engine is desired
+	gmt_ver = 5;
+	if (get(handles.radio_GMT4, 'Val')),	gmt_ver = 4;	end
 
 	delete(handles.figure1)		% Killing it here will make look that the tool runs faster
 
@@ -488,12 +497,12 @@ function push_OK_CB(hObject, handles)
 		save(fname,'geog','grdMaxSize','swathRatio','directory_list','DefLineThick','DefLineColor',...
 			'DefineMeasureUnit','DefineEllipsoide','DefineEllipsoide_params', 'scale2meanLat',...
 			'flederPlanar', 'flederBurn', 'whichFleder', 'moveDoubleClick', 'nanColor', 'deflation_level', ...
-			'-append')
+			'gmt_ver', '-append')
 	else
 		save(fname,'geog','grdMaxSize','swathRatio','directory_list','DefLineThick','DefLineColor',...
 			'DefineMeasureUnit','DefineEllipsoide','DefineEllipsoide_params', 'scale2meanLat',...
 			'flederPlanar', 'flederBurn', 'whichFleder', 'moveDoubleClick', 'nanColor', 'deflation_level', ...
-			'-append', '-v6')
+			'gmt_ver', '-append', '-v6')
 	end
 
 	% Save the Mirone handles, on the Mirone fig obviously
@@ -513,77 +522,53 @@ function figure1_KeyPressFcn(hObject, eventdata)
 	end
 
 % ------------------------------------------------------------------------------------
-function tab_group_CB(hObject, handles)
-
-% ------------------------------------------------------------------------------------
 function radio_iview_CB(hObject, handles)
-    if (get(hObject,'Val'))
-        set(handles.radio_fleder,'Val',0)
-        handles.whichFleder = 1;
-        guidata(handles.figure1, handles);
-    else
-        set(hObject,'Val',1)
-    end
+	if (~get(hObject,'Val')),		set(hObject,'Val', 1),		return,		end
+	set(handles.radio_fleder,'Val',0)
+	handles.whichFleder = 1;
+	guidata(handles.figure1, handles);
 
 % ------------------------------------------------------------------------------------
 function radio_fleder_CB(hObject, handles)
-    if (get(hObject,'Val'))
-        set(handles.radio_iview,'Val',0)
-        handles.whichFleder = 0;
-        guidata(handles.figure1, handles);
-    else
-        set(hObject,'Val',1)
-    end
+	if (~get(hObject,'Val')),		set(hObject,'Val', 1),		return,		end
+	set(handles.radio_iview,'Val',0)
+	handles.whichFleder = 0;
+	guidata(handles.figure1, handles);
 
 % ------------------------------------------------------------------------------------
 function radio_planar_CB(hObject, handles)
-    if (get(hObject,'Val'))
-        handles.flederPlanar = 1;
-        set(handles.radio_spherical,'Val',0)
-        guidata(handles.figure1, handles);
-    else
-        set(hObject,'Val',1)
-    end
+	if (~get(hObject,'Val')),		set(hObject,'Val', 1),		return,		end
+	handles.flederPlanar = 1;
+	set(handles.radio_spherical,'Val',0)
+	guidata(handles.figure1, handles);
     
 % ------------------------------------------------------------------------------------
 function radio_spherical_CB(hObject, handles)
-    if (get(hObject,'Val'))
-        handles.flederPlanar = 0;
-        set(handles.radio_planar,'Val',0)
-        guidata(handles.figure1, handles);
-    else
-        set(hObject,'Val',1)
-    end
+	if (~get(hObject,'Val')),		set(hObject,'Val', 1),		return,		end
+	handles.flederPlanar = 0;
+	set(handles.radio_planar,'Val',0)
+	guidata(handles.figure1, handles);
 
 % ------------------------------------------------------------------------------------
 function radio_coastsOnly_CB(hObject, handles)
-    if (get(hObject,'Val'))
-        set([handles.radio_noBurnAtAll handles.radio_burnAll],'Val',0)
-        handles.flederBurn = 1;
-        guidata(handles.figure1, handles);
-    else
-        set(hObject,'Val',1)
-    end
+	if (~get(hObject,'Val')),		set(hObject,'Val', 1),		return,		end
+	set([handles.radio_noBurnAtAll handles.radio_burnAll],'Val',0)
+	handles.flederBurn = 1;
+	guidata(handles.figure1, handles);
 
 % ------------------------------------------------------------------------------------
 function radio_noBurnAtAll_CB(hObject, handles)
-    if (get(hObject,'Val'))
-        set([handles.radio_coastsOnly handles.radio_burnAll],'Val',0)
-        handles.flederBurn = 0;
-        guidata(handles.figure1, handles);
-    else
-        set(hObject,'Val',1)
-    end
+	if (~get(hObject,'Val')),		set(hObject,'Val', 1),		return,		end
+	set([handles.radio_coastsOnly handles.radio_burnAll],'Val',0)
+	handles.flederBurn = 0;
+	guidata(handles.figure1, handles);
 
 % ------------------------------------------------------------------------------------
 function radio_burnAll_CB(hObject, handles)
-    if (get(hObject,'Val'))
-        set([handles.radio_coastsOnly handles.radio_noBurnAtAll],'Val',0)
-        handles.flederBurn = 2;
-        guidata(handles.figure1, handles);
-    else
-        set(hObject,'Val',1)
-    end
+	if (~get(hObject,'Val')),		set(hObject,'Val', 1),		return,		end
+	set([handles.radio_coastsOnly handles.radio_noBurnAtAll],'Val',0)
+	handles.flederBurn = 2;
+	guidata(handles.figure1, handles);
 
 % ------------------------------------------------------------------------------------
 function push_NaNcolor_CB(hObject, handles)
@@ -631,6 +616,16 @@ function edit_proxyPort_CB(hObject, handles)
 	guidata(handles.figure1, handles)
 
 % ------------------------------------------------------------------------------------
+function radio_GMT4_CB(hObject, handles)
+	if (~get(hObject,'Val')),		set(hObject,'Val', 1),		return,		end
+	set(handles.radio_GMT5,'Val',0)
+
+% ------------------------------------------------------------------------------------
+function radio_GMT5_CB(hObject, handles)
+	if (~get(hObject,'Val')),		set(hObject,'Val', 1),		return,		end
+	set(handles.radio_GMT4,'Val',0)
+
+% ------------------------------------------------------------------------------------
 % ----------------------- Creates and returns a handle to the GUI figure. 
 function mirone_pref_LayoutFcn(h1)
 
@@ -647,7 +642,6 @@ set(h1,'PaperUnits',get(0,'defaultfigurePaperUnits'),...
 'Tag','figure1');
 
 uicontrol('Parent',h1,'Position',[4 333 61 22],...
-'Call',{@mirone_pref_uiCB,h1,'tab_group_CB'},...
 'Enable','inactive',...
 'String','General',...
 'ButtonDownFcn',{@mirone_pref_uiCB,h1,'tab_group_ButtonDownFcn'},...
@@ -655,7 +649,6 @@ uicontrol('Parent',h1,'Position',[4 333 61 22],...
 'UserData','general');
 
 uicontrol('Parent',h1,'Position',[65 333 80 22],...
-'Call',{@mirone_pref_uiCB,h1,'tab_group_CB'},...
 'Enable','inactive',...
 'String','Fledermaus',...
 'ButtonDownFcn',{@mirone_pref_uiCB,h1,'tab_group_ButtonDownFcn'},...
@@ -663,7 +656,6 @@ uicontrol('Parent',h1,'Position',[65 333 80 22],...
 'UserData','fleder');
 
 uicontrol('Parent',h1,'Position',[145 333 80 22],...
-'Call',{@mirone_pref_uiCB,h1,'tab_group_CB'},...
 'Enable','inactive',...
 'String','More',...
 'ButtonDownFcn',{@mirone_pref_uiCB,h1,'tab_group_ButtonDownFcn'},...
@@ -1000,6 +992,23 @@ uicontrol('Parent',h1, 'Position',[19 159 194 20],...
 'Style','text',...
 'UserData','more',...
 'Tag','text_Deflation');
+
+uicontrol('Parent',h1,'Position',[28 86 180 15],...
+'Call',{@mirone_pref_uiCB,h1,'radio_GMT4_CB'},...
+'String','GMT4 (safer)',...
+'Style','radiobutton',...
+'Tooltip','Use the GMT4 engine for the GMT MEX files',...
+'Value',1,...
+'Tag','radio_GMT4',...
+'UserData','more');
+
+uicontrol('Parent',h1,'Position',[28 56 180 15],...
+'Call',{@mirone_pref_uiCB,h1,'radio_GMT5_CB'},...
+'String','GMT5',...
+'Style','radiobutton',...
+'Tooltip','Use the new GMT5.2 engine for the GMT MEX files. This is currently more unstable',...
+'Tag','radio_GMT5',...
+'UserData','more');
 
 function mirone_pref_uiCB(hObject, eventdata, h1, callback_name)
 % This function is executed by the callback and than the handles is allways updated.

@@ -20,7 +20,7 @@ function varargout = mirone(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: mirone.m 4785 2015-10-02 23:50:46Z j $
+% $Id: mirone.m 4807 2015-10-11 11:07:30Z j $
 
 	if (nargin > 1 && ischar(varargin{1}))
 		if ( ~isempty(strfind(varargin{1},':')) || ~isempty(strfind(varargin{1},filesep)) )
@@ -69,9 +69,9 @@ function hObject = mirone_OpeningFcn(varargin)
 %#function c_grdtrend c_mapproject c_nearneighbor c_shoredump c_surface
 
 
-	global gmt_ver;		gmt_ver = 5;
-%  	global home_dir;	home_dir = cd;		fsep = filesep;		% To compile uncomment this and comment next 5 lines
-	global home_dir;	fsep = filesep;
+	global gmt_ver;		gmt_ver = 5;		fsep = filesep;
+  	global home_dir;
+% 	home_dir = cd;		% To compile uncomment this and comment next 9 lines
 	if (isempty(home_dir))		% First time call. Find out where we are
 		home_dir = fileparts(mfilename('fullpath'));			% Get the Mirone home dir and set path
 		addpath(home_dir, [home_dir fsep 'src_figs'],[home_dir fsep 'utils']);
@@ -163,10 +163,14 @@ function hObject = mirone_OpeningFcn(varargin)
 		end
 		handles.bg_color = prf.nanColor;
 		handles.deflation_level = prf.deflation_level;
+		try		gmt_ver = prf.gmt_ver;		% Hope that this will be a temporary thing till GMT5 is fully working
+		catch,	gmt_ver = 4;
+		end
 	catch
 		% Tell mirone_pref to write up the defaults.
 		mirone_pref(handles,'nikles')
 		handles = guidata(handles.figure1);					% And need also the updated handles
+		gmt_ver = 4;										% Default to GMT4
 	end
 
 	j = false(1,numel(handles.last_directories));			% vector for eventual cleaning non-existing dirs
@@ -369,6 +373,16 @@ function hObject = mirone_OpeningFcn(varargin)
 	end
 	if (~strcmp(info.crude, 'y'))
 		set([handles.CoastLineCrude handles.PBCrude handles.RiversCrude], 'Enable','off')
+	end
+
+	% Deal with the new (big) troubles introduced by using GMT5.2 that needs to know where to find its own share dir
+	if (gmt_ver == 5)		% For GMT5 we have a shity highly police control on sharedir. Use this to cheat it.
+		t = set_gmt('GMT5_SHAREDIR', 'whatever');	% Inquire if GMT5_SHAREDIR exists 
+		if (isempty(t))
+			% If not, set a fake one with minimalist files so that GMT does not complain/errors
+			% We have to use GMT5_SHAREDIR and NOT GMT_SHAREDIR because it's the first one checked in gmt_init.c/GMT_set_env()
+			set_gmt(['GMT5_SHAREDIR=' home_dir fsep 'gmt_share']);
+		end
 	end
 
 	guidata(hObject, handles);
@@ -1786,6 +1800,13 @@ function loadGRID(handles, fullname, tipo, opt)
 	if (isempty(Z)),	return,		end
 	if (~isempty(fullname))
 		pato = fileparts(fullname);
+		ind1 = strfind(fullname, ':"');		% Check if fulname is a subdataset name as 'NETCDF:"v:\tsu\lagos.nc":bathymetry'
+		if (~isempty(ind1))
+			ind2 = strfind(fullname, '":');
+			if (~isempty(ind2))				% It seams it was a subdatset name
+				pato = fileparts(fullname(ind1+2:ind2-1));
+			end
+		end
 		handles.last_dir = pato;
 	end
 
@@ -4658,7 +4679,7 @@ function TransferB_CB(handles, opt, opt2)
 		end
 
  	elseif (strcmp(opt,'update'))				% Update via Web the stand-alone version
-		dest_fiche = [handles.path_tmp 'apudeita.txt'];		url = 'w3.ualg.pt/~jluis/mirone/updates/v26/';
+		dest_fiche = [handles.path_tmp 'apudeita.txt'];		url = 'w3.ualg.pt/~jluis/mirone/updates/v27/';
 		dos(['wget "' url 'apudeita.txt' '" -q --tries=2 --connect-timeout=5 -O ' dest_fiche]);
 		finfo = dir(dest_fiche);
 		if (finfo.bytes == 0)
@@ -4670,9 +4691,11 @@ function TransferB_CB(handles, opt, opt2)
 		[nomes, MD5, V.Vstr] = strread(todos,'%s %s %s');	% In future we will have a use for the version string
 		builtin('delete',dest_fiche);	n = 1;		% Remove this one right away
 		namedl = cell(1);							% Mostly to shutup MLint
+		pato_file = cell(numel(nomes),1);
 		ind_all = false(numel(nomes),1);			% To flag the ones truely to be updated later
 		for (k = 1:numel(nomes))
 			[pato, nome, ext] = fileparts(nomes{k});
+			pato_file{k} = pato;					% Store path files to see if that dir must be created by the bat file
 			if (exist(nomes{k}, 'file'))			% File exists localy and it's a potential target for update
 				localMD5 = CalcMD5(nomes{k},'file');
 				if (~strcmp(MD5{k}, localMD5))
@@ -4689,6 +4712,7 @@ function TransferB_CB(handles, opt, opt2)
 			msgbox('This Mirone version is updated to latest.','Nothing New2'),	return
 		end
 		nomes = nomes(ind_all);						% Retain only the original names (that may include a path) to dl
+		pato_file = pato_file(ind_all);
 
 		ind = false(1,n-1);			msg = [];
 		for (k = 1:n-1)
@@ -4715,6 +4739,9 @@ function TransferB_CB(handles, opt, opt2)
 		fprintf(fid, '@echo off\nREM copy updated files from tmp and place into their destination\n');
 		for (k = 1:numel(namedl))
 			[pato, nome, ext] = fileparts(namedl{k});
+			if (~isempty(pato_file{k}))
+				fprintf(fid, 'IF NOT EXIST %s md %s\n', pato_file{k}, pato_file{k});
+			end
 			fprintf(fid, 'move /Y tmp\\%s\t.\\%s\n', [nome ext], nomes{k});
 		end
 		fprintf(fid, 'echo Ja ta. Finished update\n');
