@@ -20,7 +20,7 @@ function varargout = empilhador(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: empilhador.m 4769 2015-09-21 23:00:03Z j $
+% $Id: empilhador.m 4809 2015-10-11 11:23:03Z j $
 
 	if (nargin > 1 && ischar(varargin{1}))
 		gui_CB = str2func(varargin{1});
@@ -1012,19 +1012,21 @@ function [head , slope, intercept, base, is_modis, is_linear, is_log, att, opt_R
 	att.hdrInfo = [];
 	head = att.GMT_hdr;
 
-	if ( ~isempty(att.Metadata) && ~isempty(search_scaleOffset(att.Metadata, 'HDFEOSVersion')) )
+	if (~isempty(att.Metadata) && ~isempty(search_scaleOffset(att.Metadata, 'HDFEOSVersion')))
 		is_HDFEOS = true;
-		if ( isnan(search_scaleOffset(att.Metadata, 'ENVISAT')) )	% Poor trick to find ESA (well, ENVISAT) products
+		if (isnan(search_scaleOffset(att.Metadata, 'ENVISAT')))	% Poor trick to find ESA (well, ENVISAT) products
 			is_ESA = true;
 		end
 	end
 
-	if ( ~is_HDFEOS && ~isempty(att.Metadata) && ...
-			~isempty(search_scaleOffset(att.Metadata, 'MODIS')) || ~isempty(search_scaleOffset(att.Metadata, 'SeaWiFS')) )
+	if (~is_HDFEOS && ~isempty(att.Metadata) && ...
+			~isempty(search_scaleOffset(att.Metadata, 'MODIS')) || ~isempty(search_scaleOffset(att.Metadata, 'SeaWiFS')))
 		modis_or_seawifs = true;
 	end
 
-	if ( modis_or_seawifs && strncmp(att.DriverShortName, 'HDF4', 4) && ~isempty(search_scaleOffset(att.Metadata, 'Level-2')) )
+	isHDF4 = (strncmp(att.DriverShortName, 'HDF4', 4) && ~strcmp(att.DriverShortName, 'HDF4_fake')); % The fake doesn't count
+	
+	if (modis_or_seawifs && isHDF4 && ~isempty(search_scaleOffset(att.Metadata, 'Level-2')))
 		out = search_scaleOffset(att.Metadata, 'slope');
 		if (~isempty(out))		% Otherwise, no need to search for a 'intercept'
 			slope = out;
@@ -1051,7 +1053,7 @@ function [head , slope, intercept, base, is_modis, is_linear, is_log, att, opt_R
 			att.crop_info.limits = [west east south north];
 			got_R = false;	% So that last block in this function won't try to execute.
 		end
-	elseif ( modis_or_seawifs && strncmp(att.DriverShortName, 'HDF4', 4) )
+	elseif (modis_or_seawifs && isHDF4)
 		x_max = search_scaleOffset(att.Metadata, 'Easternmost');	% Easternmost Latitude=180
 		x_min = search_scaleOffset(att.Metadata, 'Westernmost');	% Westernmost Latitude=-180
 		y_max = search_scaleOffset(att.Metadata, 'Northernmost');	% Northernmost Latitude=90
@@ -1070,11 +1072,11 @@ function [head , slope, intercept, base, is_modis, is_linear, is_log, att, opt_R
 		head(7) = 0;		% Make sure that grid reg is used
 
 		% Get the the scaling equation and its parameters
-		if ( ~isempty(search_scaleOffset(att.Metadata, 'linear')) )
+		if (~isempty(search_scaleOffset(att.Metadata, 'linear')))
 			slope = search_scaleOffset(att.Metadata, 'Slope');	% att.Metadata{47} -> Slope=0.000717185
 			intercept = search_scaleOffset(att.Metadata, 'Intercept');
 			is_linear = true;
-		elseif ( ~isempty(search_scaleOffset(att.Metadata, 'logarithmic')) )
+		elseif (~isempty(search_scaleOffset(att.Metadata, 'logarithmic')))
 			base = search_scaleOffset(att.Metadata, 'Base');	% att.Metadata{41} -> Base=10
 			slope = search_scaleOffset(att.Metadata, 'Slope');	% att.Metadata{41} -> Slope=0.000717185
 			intercept = search_scaleOffset(att.Metadata, 'Intercept');
@@ -1088,7 +1090,7 @@ function [head , slope, intercept, base, is_modis, is_linear, is_log, att, opt_R
 		att.GMT_hdr = head;			% We need this updated
 		is_modis = true;			% We'll use this knowledge to 'avoid' Land pixels = 65535
 
-	elseif ( ~is_HDFEOS && ~modis_or_seawifs && strncmp(att.DriverShortName, 'HDF4', 4)  )		% TEMP -> SST PATHFINDER
+	elseif (~is_HDFEOS && ~modis_or_seawifs && isHDF4)			% TEMP -> SST PATHFINDER
 		finfo = hdf_funs('hdfinfo', att.fname);
 		if (strcmpi(finfo.SDS.Attributes(11).Name, 'slope'))
 			slope = double(finfo.SDS.Attributes(11).Value);		% = 0.075;
@@ -1134,14 +1136,14 @@ function [head , slope, intercept, base, is_modis, is_linear, is_log, att, opt_R
 		is_linear = true;
 		att.hdrInfo = finfo;
 
-	elseif ( ~is_HDFEOS && ~modis_or_seawifs && strcmp(att.DriverShortName, 'netCDF') )		% GHRSST -> PATHFINDER
+	elseif (~is_HDFEOS && ~modis_or_seawifs && strcmp(att.DriverShortName, 'netCDF'))		% GHRSST -> PATHFINDER
 		if (got_R)
 			rows = att.RasterYSize;
 			x_min = head(1);	y_min = head(3);
 			dx = head(8);		dy = head(9);
 		end
 
-	elseif ( is_HDFEOS && ~is_ESA)		% This case might not be complete as yet.
+	elseif (is_HDFEOS && ~is_ESA)		% This case might not be complete as yet.
 		x_min = search_scaleOffset(att.Metadata, 'WESTBOUNDINGCOORDINATE');
 		x_max = search_scaleOffset(att.Metadata, 'EASTBOUNDINGCOORDINATE');
 		y_min = search_scaleOffset(att.Metadata, 'SOUTHBOUNDINGCOORDINATE');
@@ -1156,7 +1158,7 @@ function [head , slope, intercept, base, is_modis, is_linear, is_log, att, opt_R
 		att.Corners.UL = [x_min y_max];			
 		att.Corners.LR = [x_max y_min];			
 		is_linear = true;
-	elseif ( is_HDFEOS && is_ESA)		% One more incredible messy HDF product. Nothing (spatialy) reliable inside.
+	elseif (is_HDFEOS && is_ESA)		% One more incredible messy HDF product. Nothing (spatialy) reliable inside.
 		ind = strfind(att.fname, '_');
 		tmp = att.fname(ind(end)+1:end);
 		indH = strfind(tmp, 'H');		indV = strfind(tmp, 'V');		indDot = strfind(tmp, '.');
@@ -1210,14 +1212,14 @@ function out = search_scaleOffset(attributes, what, N)
 	if (isa(attributes, 'struct'))
 		if (nargin == 2)						% Exact search for WHAT
 			for (k = numel(attributes):-1:1)					% Start from the bottom because they are likely close to it 
-				if ( strcmpi(attributes(k).Name, what) )
+				if (strcmpi(attributes(k).Name, what))
 					out = double(attributes(k).Value);
 					break
 				end
 			end
 		else									% Search with a strncmp. Motivated by the uterly stupid play with ADD_OFF & ADD_OFFSET
 			for (k = numel(attributes):-1:1)				% Start from the bottom because they are likely close to it 
-				if ( strncmpi(attributes(k).Name, what, N) )
+				if (strncmpi(attributes(k).Name, what, N))
 					out = double(attributes(k).Value);
 					break
 				end
@@ -1226,7 +1228,7 @@ function out = search_scaleOffset(attributes, what, N)
 	else					% Not tested but it must be a cell array (the att.Metadata)
 		for (k = 1:numel(attributes))
 			id = strfind(attributes{k}, what);
-			if ( ~isempty(id) )
+			if (~isempty(id))
 				id_eq = strfind(attributes{k},'=');			% Find the '=' sign
 				if (numel(id_eq) > 1),	continue,	end		% Sometimes comments have also the '=' char
 				out = str2double(attributes{k}(id_eq+1:end));
