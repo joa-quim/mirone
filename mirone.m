@@ -1800,6 +1800,13 @@ function loadGRID(handles, fullname, tipo, opt)
 	if (isempty(Z)),	return,		end
 	if (~isempty(fullname))
 		pato = fileparts(fullname);
+		ind1 = strfind(fullname, ':"');		% Check if fulname is a subdataset name as 'NETCDF:"v:\tsu\lagos.nc":bathymetry'
+		if (~isempty(ind1))
+			ind2 = strfind(fullname, '":');
+			if (~isempty(ind2))				% It seams it was a subdatset name
+				pato = fileparts(fullname(ind1+2:ind2-1));
+			end
+		end
 		handles.last_dir = pato;
 	end
 
