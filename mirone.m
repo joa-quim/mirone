@@ -20,7 +20,7 @@ function varargout = mirone(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: mirone.m 4801 2015-10-07 22:05:52Z j $
+% $Id: mirone.m 4807 2015-10-11 11:07:30Z j $
 
 	if (nargin > 1 && ischar(varargin{1}))
 		if ( ~isempty(strfind(varargin{1},':')) || ~isempty(strfind(varargin{1},filesep)) )
@@ -1800,6 +1800,13 @@ function loadGRID(handles, fullname, tipo, opt)
 	if (isempty(Z)),	return,		end
 	if (~isempty(fullname))
 		pato = fileparts(fullname);
+		ind1 = strfind(fullname, ':"');		% Check if fulname is a subdataset name as 'NETCDF:"v:\tsu\lagos.nc":bathymetry'
+		if (~isempty(ind1))
+			ind2 = strfind(fullname, '":');
+			if (~isempty(ind2))				% It seams it was a subdatset name
+				pato = fileparts(fullname(ind1+2:ind2-1));
+			end
+		end
 		handles.last_dir = pato;
 	end
 
