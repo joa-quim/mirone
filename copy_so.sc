@@ -49,7 +49,7 @@ ln -s -f libopencv_flann${linus_sufix}.2.4${mac_sufix} libopencv_flann${linus_su
 
 # ----------------------- GMT libs ------------------------------
 cp -f ${gmt_loc}/libgmt${linus_sufix}.5${mac_sufix} .
-ln -s -f programs/gmt5/lib/libgmt${linus_sufix}.5${mac_sufix} libgmt${linus_sufix}${mac_sufix}
+ln -s -f libgmt${linus_sufix}.5${mac_sufix} libgmt${linus_sufix}${mac_sufix}
 
 cp -f ${gmt_loc}/libpostscriptlight${linus_sufix}.5${mac_sufix} .
 ln -s -f libpostscriptlight${linus_sufix}.5${mac_sufix} libpostscriptlight${linus_sufix}${mac_sufix}
