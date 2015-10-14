@@ -20,7 +20,7 @@ function varargout = empilhador(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: empilhador.m 4817 2015-10-14 00:17:59Z j $
+% $Id: empilhador.m 4818 2015-10-14 00:38:25Z j $
 
 	if (nargin > 1 && ischar(varargin{1}))
 		gui_CB = str2func(varargin{1});
@@ -1555,10 +1555,10 @@ function [Z, att, known_coords, have_nans, was_empty_name] = read_gdal(full_name
 			rect = aux_funs('rectangle_and', r1, r2);
 			if (~isempty(rect))
 				opt_R = opt_R_out;		% All fine
-			else
+			elseif (what.georeference)
 				h = warndlg('The -R region in the L2config.txt file is outside this file''s region. Ignoring it.','WARNING');
 				move2side(h, 'right')
-				pause(1)		% Let it be seen before being possibly hiden
+				pause(1)			% Let it be seen before being possibly hiden
 			end
 			
 			if (isempty(what))							% User killed the window, but it's too late to stop so pretend ...
