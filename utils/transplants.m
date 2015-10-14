@@ -110,9 +110,10 @@ function varargout = transplants(hLine, tipo, handles)
 	t = (abs([x_min x_max y_min y_max] - handles.head(1:4)) < 1e-8);
 	if (all(t))				% Yes it does
 		hd = handlesInner.head;		% Short of
-		rect(1) = max(rect_outer(1) - 2*hd(8), hd(1));		rect(2) = max(rect_outer(2) - 2*hd(9), hd(2));
-		rect(3) = min(rect_outer(3) + 4*hd(8), hd(2));		rect(4) = min(rect_outer(4) + 4*hd(9), hd(4));
-		[Zinner,rc] = cropimg(hd(1:2), hd(3:4), Zinner, rect, 'out_grid');
+        rect_t = [0 0 0 0];
+		rect_t(1) = max(rect_outer(1) - 2*hd(8), hd(1));		    rect_t(2) = max(rect_outer(2) - 2*hd(9), hd(2));
+		rect_t(3) = min(rect_outer(3) + 4*hd(8), diff(hd(1:2)));    rect_t(4) = min(rect_outer(4) + 4*hd(9), diff(hd(3:4)));
+		[Zinner,rc] = cropimg(hd(1:2), hd(3:4), Zinner, rect_t, 'out_grid');
 		Xinner = linspace(hd(1) + (rc(3)-1)*hd(8), hd(1) + (rc(4)-1)*hd(8), rc(4) - rc(3) + 1 );
 		Yinner = linspace(hd(3) + (rc(1)-1)*hd(9), hd(3) + (rc(2)-1)*hd(9), rc(2) - rc(1) + 1 );
 		handlesInner.head(1) = Xinner(1);		handlesInner.head(2) = Xinner(end);
