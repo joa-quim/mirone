@@ -20,7 +20,7 @@ function varargout = empilhador(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: empilhador.m 4809 2015-10-11 11:23:03Z j $
+% $Id: empilhador.m 4817 2015-10-14 00:17:59Z j $
 
 	if (nargin > 1 && ischar(varargin{1}))
 		gui_CB = str2func(varargin{1});
@@ -1026,12 +1026,18 @@ function [head , slope, intercept, base, is_modis, is_linear, is_log, att, opt_R
 
 	isHDF4 = (strncmp(att.DriverShortName, 'HDF4', 4) && ~strcmp(att.DriverShortName, 'HDF4_fake')); % The fake doesn't count
 	
-	if (modis_or_seawifs && isHDF4 && ~isempty(search_scaleOffset(att.Metadata, 'Level-2')))
-		out = search_scaleOffset(att.Metadata, 'slope');
+	if (modis_or_seawifs && strncmp(att.DriverShortName, 'HDF4', 4) && ~isempty(search_scaleOffset(att.Metadata, 'Level-2')))
+		% OK, here the NASA guys fck again and changed the names of the variables. Right, now thew use the CF
+		% compliant ones but the f... broke the compatibility
+		what = 'scale_factor';		% CF name
+		if (~strcmp(att.DriverShortName, 'HDF4_fake')),		what = 'slope';		end		% Old format version name
+		out = search_scaleOffset(att.Metadata, what);
 		if (~isempty(out))		% Otherwise, no need to search for a 'intercept'
 			slope = out;
 			if (slope ~= 1)
-				out = search_scaleOffset(att.Metadata, 'intercept');
+				what = 'add_offset';
+				if (~strcmp(att.DriverShortName, 'HDF4_fake')),		what = 'intercept';		end
+				out = search_scaleOffset(att.Metadata, what);
 				if (~isempty(out)),		intercept = out;	end
 				is_linear = true;
 			end
@@ -1211,7 +1217,7 @@ function out = search_scaleOffset(attributes, what, N)
 	out = [];
 	if (isa(attributes, 'struct'))
 		if (nargin == 2)						% Exact search for WHAT
-			for (k = numel(attributes):-1:1)					% Start from the bottom because they are likely close to it 
+			for (k = numel(attributes):-1:1)				% Start from the bottom because they are likely close to it 
 				if (strcmpi(attributes(k).Name, what))
 					out = double(attributes(k).Value);
 					break
@@ -1541,8 +1547,20 @@ function [Z, att, known_coords, have_nans, was_empty_name] = read_gdal(full_name
 			end
 
 			% Go check if -R or quality flags request exists in L2config.txt file
-			[opt_R, opt_I, opt_C, bitflags, flagsID, despike] = sniff_in_OPTcontrol(opt_R, att);	% Output opt_R gets preference
-
+			[opt_R_out, opt_I, opt_C, bitflags, flagsID, despike] = sniff_in_OPTcontrol(opt_R, att);	% Output opt_R gets preference
+			
+			% Check if the two opt_R intersect
+			r1 = str2num(strrep(opt_R(3:end), '/', ' '));
+			r2 = str2num(strrep(opt_R_out(3:end), '/', ' '));
+			rect = aux_funs('rectangle_and', r1, r2);
+			if (~isempty(rect))
+				opt_R = opt_R_out;		% All fine
+			else
+				h = warndlg('The -R region in the L2config.txt file is outside this file''s region. Ignoring it.','WARNING');
+				move2side(h, 'right')
+				pause(1)		% Let it be seen before being possibly hiden
+			end
+			
 			if (isempty(what))							% User killed the window, but it's too late to stop so pretend ...
 				what =  struct('georeference',1,'nearneighbor',1,'mask',0,'coastRes',0,'quality','');	% sensor coords
 			end
