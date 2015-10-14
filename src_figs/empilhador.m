@@ -1555,10 +1555,10 @@ function [Z, att, known_coords, have_nans, was_empty_name] = read_gdal(full_name
 			rect = aux_funs('rectangle_and', r1, r2);
 			if (~isempty(rect))
 				opt_R = opt_R_out;		% All fine
-			else
+			elseif (what.georeference)
 				h = warndlg('The -R region in the L2config.txt file is outside this file''s region. Ignoring it.','WARNING');
 				move2side(h, 'right')
-				pause(1)		% Let it be seen before being possibly hiden
+				pause(1)			% Let it be seen before being possibly hiden
 			end
 			
 			if (isempty(what))							% User killed the window, but it's too late to stop so pretend ...
