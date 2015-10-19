@@ -2841,10 +2841,11 @@ function mareg_online(obj,eventdata,h, data, opt)
 		if isempty(resp),	return,		end
 		nDays = resp{2};
 		t = sscanf(resp{1}, '%02d-%02d-%04d %02d:%02d');	t = t(:)';
-		t = datevecmx(datenummx([t(3:-1:1) t(4:5) 0]) - str2double(nDays));
+		t = datevecmx(datenummx([t(3:-1:1) t(4:5) 0]) + str2double(nDays));
 		date_start = sprintf('%04d-%02d-%02d %02d:%02d:00', t(1:5));
 	end
-	url = ['http://www.ioc-sealevelmonitoring.org/bgraph.php?output=asc&time=' date_start '&period=' nDays '&par=' code];
+	url = ['http://www.ioc-sealevelmonitoring.org/bgraph.php?code=' code '&output=asc&period=' nDays '&endtime=' date_start];
+	%url = ['http://www.ioc-sealevelmonitoring.org/bgraph.php?output=asc&time=' date_start '&period=' nDays '&par=' code];
 	if (ispc),		dos(['wget "' url '" -q --tries=2 --connect-timeout=5 -O ' dest_fiche]);
 	else			unix(['wget ''' url ''' -q --tries=2 --connect-timeout=5 -O ' dest_fiche]);
 	end
@@ -2860,9 +2861,22 @@ function mareg_online(obj,eventdata,h, data, opt)
 		warndlg('Sorry, but the downloaded file is not organized in the standard way. Quiting.','Warning')
 		return
 	end
+	what = strread(todos(ind(1)+1:ind(2)-1),'%s', 'delimiter', '\t');
+	indVar = find(strcmp(what, 'prs(m)'));
+	if (isempty(indVar))
+		indVar = find(strcmp(what, 'rad(m)'));
+		if (isempty(indVar))
+			fclose(fid);
+			errordlg('Sorry, but no ''prs'' or ''rad'' variables in this file. Quiting.','Error')
+			return
+		end
+	end
 	todos = todos(ind(2)+1:end);		% Jump the 2 header lines
-	[yymmdd, sl] = strread(todos,'%s %f', 'delimiter', '\t');
+	yymmdd = strread(todos,'%s', 'delimiter', '\t');
 	fclose(fid);    clear todos
+	indDate = 1:numel(what):numel(yymmdd);		% Index of the Date lines
+	sl = str2double(yymmdd(indDate+indVar-1));
+	yymmdd = yymmdd(indDate);
 	m = numel(yymmdd);		y = zeros(m,6);
 	for (k = 1:m)
 		t = sscanf(yymmdd{k}, '%04d-%02d-%02d %02d:%02d');		t = t(:)';
