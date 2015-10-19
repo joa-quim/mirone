@@ -56,6 +56,8 @@ continents/polos_Cox_b.dat -text
 continents/south_america.dat -text
 continents/torsvik08_tab1.dat -text
 continents/torsvik08_tab3.dat -text
+/copy_patch_simple_OSX.sh -text
+/copy_patch_with_hide_OSX.sh -text
 /copy_so.sc -text
 /country_extract.exe -text
 data/AKIM2000_poles.dat -text
@@ -395,6 +397,7 @@ mex/x_system.h -text
 mex/xyzokb_m.c -text
 /mirone.m -text
 /mirone_uis.m -text
+/patch_mexs_OSX.sh -text
 /ripa_in_Mac.sc -text
 src_figs/about_box.m -text
 src_figs/animate_seismicity.m -text
