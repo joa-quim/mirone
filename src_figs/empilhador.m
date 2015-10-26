@@ -20,7 +20,7 @@ function varargout = empilhador(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: empilhador.m 4818 2015-10-14 00:38:25Z j $
+% $Id: empilhador.m 4823 2015-10-26 01:47:58Z j $
 
 	if (nargin > 1 && ischar(varargin{1}))
 		gui_CB = str2func(varargin{1});
@@ -1371,6 +1371,9 @@ function [Z, have_nans, att] = sanitizeZ(Z, att, is_modis, is_linear, is_log, sl
 	if (is_linear && (slope ~= 1 || intercept ~= 0))
 		if (~isa(Z,'single')),		Z = single(Z);		end
 		cvlib_mex('CvtScale',Z, slope, intercept)
+		try			% Set these so that the same scaling op is not applied twice (e.g. in read_grid/handle_scaling())
+			att.Band(1).ScaleOffset(1) = 1;		att.Band(1).ScaleOffset(2) = 0;
+		end
 	elseif (is_log)
 		Z = single(base .^ (double(Z) * slope + intercept));
 	end
