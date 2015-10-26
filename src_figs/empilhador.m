@@ -1371,6 +1371,9 @@ function [Z, have_nans, att] = sanitizeZ(Z, att, is_modis, is_linear, is_log, sl
 	if (is_linear && (slope ~= 1 || intercept ~= 0))
 		if (~isa(Z,'single')),		Z = single(Z);		end
 		cvlib_mex('CvtScale',Z, slope, intercept)
+		try			% Set these so that the same scaling op is not applied twice (e.g. in read_grid/handle_scaling())
+			att.Band(1).ScaleOffset(1) = 1;		att.Band(1).ScaleOffset(2) = 0;
+		end
 	elseif (is_log)
 		Z = single(base .^ (double(Z) * slope + intercept));
 	end
