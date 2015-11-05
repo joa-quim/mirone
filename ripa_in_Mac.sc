@@ -9,11 +9,9 @@
 # Regarding GDAL, references to libexpat, libcurl & libsqlite3 are not fixed too. I have them
 # under /usr/lib but don't know if they are still installed when Xcode is not.
 
-install_name_tool -change /Users/j/programs/gmt5/lib/libgmt.5.dylib libgmt.5.dylib gmtmex.mexmaci64
-
 install_name_tool -id libgmt.dylib libgmt.5.dylib
-install_name_tool -change /usr/local/lib/libnetcdf.7.dylib	libnetcdf.dylib	libgmt.dylib
-install_name_tool -change /usr/local/lib/libgdal.1.dylib	libgdal.dylib	libgmt.dylib
+install_name_tool -change /usr/local/lib/libnetcdf.7.dylib	../libnetcdf.dylib	libgmt.dylib
+install_name_tool -change /usr/local/lib/libgdal.1.dylib	../libgdal.dylib	libgmt.dylib
 
 #install_name_tool -id libpsl.dylib libpsl.4.dylib
 install_name_tool -id libpostscriptlight.dylib libpostscriptlight.5.dylib
@@ -30,17 +28,17 @@ install_name_tool -id libgdal.dylib libgdal.1.dylib
 #install_name_tool -change /usr/local/lib/libNCSCnet.0.dylib	../libNCSCnet.dylib	libgdal.dylib
 #install_name_tool -change /usr/local/lib/libNCSUtil.0.dylib	../libNCSUtil.dylib	libgdal.dylib
 
-install_name_tool -change /usr/local/lib/libnetcdf.7.dylib	libnetcdf.dylib	libgdal.dylib
-install_name_tool -change /usr/local/lib/libhdf5.10.dylib	libhdf5.dylib	libgdal.dylib
-install_name_tool -change /usr/local/lib/libhdf5_hl.10.dylib	libhdf5_hl.dylib	libgdal.dylib
+install_name_tool -change /usr/local/lib/libnetcdf.7.dylib	../libnetcdf.dylib	libgdal.dylib
+install_name_tool -change /usr/local/lib/libhdf5.10.dylib	../libhdf5.dylib	libgdal.dylib
+install_name_tool -change /usr/local/lib/libhdf5_hl.10.dylib	../libhdf5_hl.dylib	libgdal.dylib
 #install_name_tool -change /usr/local/lib/libmfhdf.0.dylib	../libmfhdf.dylib	libgdal.dylib
 #install_name_tool -change /usr/local/lib/libdf.0.dylib		../libdf.dylib		libgdal.dylib
 
 # ------------------ jpeg????
 install_name_tool -id libjpeg.dylib	libjpeg.8.dylib
-install_name_tool -change /usr/local/lib/libjpeg.8.dylib	libjpeg.dylib		libgdal.dylib
+install_name_tool -change /usr/local/lib/libjpeg.8.dylib	../libjpeg.dylib		libgdal.dylib
 install_name_tool -id libtiff.dylib	libtiff.5.dylib
-install_name_tool -change /usr/local/lib/libtiff.5.dylib	libtiff.dylib		libgdal.dylib
+install_name_tool -change /usr/local/lib/libtiff.5.dylib	../libtiff.dylib		libgdal.dylib
 
 # ------------------ OpenCVs
 install_name_tool -id libopencv_core.dylib	libopencv_core.2.4.dylib
