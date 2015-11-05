@@ -1631,6 +1631,9 @@ function erro = FileOpenGeoTIFF_CB(handles, tipo, opt)
 		if (~all(c) && any(c))		% Remove non-interesting arrays from sight
 			str(c) = [];	att.Subdatasets(c) = [];	% Remove them also from the att.Subdatasets
 			c3D(c) = [];
+		elseif (all(c) && ~any(c3D))
+			warndlg('This file has no 2D or 3D subdataset, so nothing I can do, Bye. Perhaps a OC SMI file?','Warning')
+			return
 		end
 
 		SS = get(0,'ScreenSize');	nChars = 0;
