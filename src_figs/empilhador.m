@@ -964,7 +964,26 @@ function [att, indSDS, uncomp_name] = get_att(handles, name)
 	indSDS = 0;
 	[att, uncomp_name] = get_baseNameAttribs(name);		% It calls deal_with_compressed()
 
-	if ( att.RasterCount == 0 && ~isempty(att.Subdatasets) )	
+	if (att.RasterCount == 0 && ~isempty(att.Subdatasets))
+
+		% Since the OC F.. format change and while I'm using Sebastian's patch to GDAL nc driver
+		% I have to deal with fact that coordinates vectors show up as Subdatasets as well, but
+		% we don't want this, so blindly remove the singletons [1x????] arrays
+		c = false(1, numel(att.Subdatasets));
+		for (k = 2:2:numel(att.Subdatasets))			% Seek for non-interesting arrays 
+			ind = strfind(att.Subdatasets{k}, '[1x');
+			if (~isempty(ind))
+				c(k) = true;	c(k-1) = true;
+			end
+		end
+		att.Subdatasets(c) = [];
+
+		% If we have only ONE subdataset pretend it was explicitly selected and thus avoid the
+		% "File has Sub-Datasets but you told me nothing about it" error below
+		if (numel(att.Subdatasets) == 2)
+			handles.SDSthis = 1;	handles.SDSinfo = 1;
+		end
+
 		indSDS = 1;
 		if (~isempty(handles.SDSinfo))
 			if (~isnumeric(handles.SDSinfo))			% The SDS info is in its name form. Must convert to number
