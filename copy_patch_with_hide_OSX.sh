@@ -150,4 +150,3 @@ cp ${gmt_loc}/../gmt-mex/src/gmtmex.mexmaci64 .
 cp ${gmt_loc}/../gmt-mex/src/gmt.m .
 chmod +w *.mexmaci64
 install_name_tool -change ${gmt_loc}/libgmt.5.dylib libgmt.dylib gmtmex.mexmaci64
-install_name_tool -change ${gmt_loc}/libgmt.5.dylib libgmt.dylib gmt.mexmaci64
