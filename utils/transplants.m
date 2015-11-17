@@ -2,12 +2,18 @@ function varargout = transplants(hLine, tipo, handles)
 % Replace a zone in the host grid/image by the contents of an external grid/image
 %
 % In the IMPLANTGRID mode this function:
-% Read an external grid, that can be in most of the recognized formats, and "inserts" it
+% Read an external grid, that can have most of the recognized formats, and "inserts" it
 % on the mother grid. Grid resolutions do not need to be equal as over the modified zone
 % the grid is reinterpolated with gmtmbgrid. A padding zone of 1 cell is left between
 % the two datasets so that the interpolation can be made minimally smooth.
 % The to-be-inserted grid may have NaNs but only the outside ones will be acknowledged.
 % That is, inner holes are ignored.
+%
+% At 9-Oct-2015 I changed a bit the above behavior in result of a situation wehere roipoly_j
+% was found to (sometimes?) fail when both grid limits and rectangle were equal (one line
+% of zeros at Left and Top). So now, if implanting grid contains host grid, has no NaNs in
+% common region and is of cruder resolution than we use grdsample to obtain the wished result.
+% If resolution is finer we do as before to avoid aliasing that would be introduced by grdsample.
 %
 %  HLINE     -> a line or patch handle to rectangle. Currently it's only used to fetch
 %               the Mirone handles in the case the HANDLES arg is not provided.
@@ -38,9 +44,9 @@ function varargout = transplants(hLine, tipo, handles)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id$
+% $Id: transplants.m 4820 2015-10-14 15:03:25Z j $
 
-	if (nargin < 3)		% NOTE: I'm not really using (YET) hLine for anything else
+	if (nargin < 3)		% NOTE: in the IMPLANTGRID mode I'm not really using (YET) hLine for anything else
 		if (~ishandle(hLine) && ~strcmp(get(hLine,'type'), 'line') && ~strcmp(get(hLine,'type'), 'patch'))
 			error('TRANSPLANTS First argument is not a valid line handle')
 		end
@@ -100,6 +106,33 @@ function varargout = transplants(hLine, tipo, handles)
 	[X,Y,Z,head] = load_grd(handles);
 	[Z_rect,r_c] = cropimg(head(1:2), head(3:4), Z, rect_outer, 'out_grid');
 
+	% ------------------ See if Inner grid actually contains Outer grid ----------------------
+	t = (abs([x_min x_max y_min y_max] - handles.head(1:4)) < 1e-8);
+	if (all(t))				% Yes it does
+		hd = handlesInner.head;		% Short of
+        rect_t = [0 0 0 0];
+		rect_t(1) = max(rect_outer(1) - 2*hd(8), hd(1));		    rect_t(2) = max(rect_outer(2) - 2*hd(9), hd(2));
+		rect_t(3) = min(rect_outer(3) + 4*hd(8), diff(hd(1:2)));    rect_t(4) = min(rect_outer(4) + 4*hd(9), diff(hd(3:4)));
+		[Zinner,rc] = cropimg(hd(1:2), hd(3:4), Zinner, rect_t, 'out_grid');
+		Xinner = linspace(hd(1) + (rc(3)-1)*hd(8), hd(1) + (rc(4)-1)*hd(8), rc(4) - rc(3) + 1 );
+		Yinner = linspace(hd(3) + (rc(1)-1)*hd(9), hd(3) + (rc(2)-1)*hd(9), rc(2) - rc(1) + 1 );
+		handlesInner.head(1) = Xinner(1);		handlesInner.head(2) = Xinner(end);
+		handlesInner.head(3) = Yinner(1);		handlesInner.head(4) = Yinner(end);
+		% When no NaNs and implanting grid has cruder resolution (no aliasing risk) use grdsample and return
+		if (~handlesInner.have_nans && hd(8) >= head(8))
+			opt_R = sprintf('-R%.12g/%.12g/%.12g/%.12g', head(1:4));
+			opt_I = sprintf('-I%.14g/%.14g', head(8:9));
+			varargout{1} = c_grdsample(Zinner, handlesInner.head, opt_R, opt_I);
+			if (nargout == 2)
+				varargout{2} = r_c;
+			end
+			return
+		end
+		% Else we continue but Zinner is now a potentially much smaller array that original
+		handlesInner.have_nans = grdutils(Zinner,'-N');		% Must recheck this now.
+	end
+	% --------------------------------------------------------------------- ----------------------
+
 	if (handlesInner.have_nans)				% Case in which the inner grid has NaNs
 		indNotNaN = ~isnan(Zinner);
 		mask = img_fun('bwmorph',indNotNaN,'dilate');
@@ -129,6 +162,7 @@ function varargout = transplants(hLine, tipo, handles)
 		y = (B{1}(:,1)-1)*y_inc + y_min;
 		x = (B{1}(:,2)-1)*x_inc + x_min;
 		set(h, 'xdata',x, 'ydata',y)		% Convert the rectangle into the outer polygon
+		mask = ~(img_fun('roipoly_j',[x_min x_max],[y_min y_max],Z_rect,x,y));		% Mask at the outer grid resolution
 
 	else
 		% Compute another rect but this time with pad = 1 that will be used to clip inside
@@ -138,6 +172,7 @@ function varargout = transplants(hLine, tipo, handles)
 		y2 = min(handlesInner.head(4) + handles.head(9), handles.head(4));
 		%rect_inner = [x1 y1; x1 y2; x2 y2; x2 y1; x1 y1];
 		x = [x1 x1 x2 x2 x1];		y = [y1 y2 y2 y1 y1];
+		mask = false(size(Z_rect));
 	end
 
 	X = linspace(head(1) + (r_c(3)-1)*head(8), head(1) + (r_c(4)-1)*head(8), r_c(4) - r_c(3) + 1);
@@ -145,7 +180,6 @@ function varargout = transplants(hLine, tipo, handles)
 	opt_R = sprintf('-R%.10f/%.10f/%.10f/%.10f', X(1), X(end), Y(1), Y(end));
 	opt_I = sprintf('-I%.10f/%.10f',head(8),head(9));
 
-	mask = ~(img_fun('roipoly_j',[x_min x_max],[y_min y_max],Z_rect,x,y));		% Mask at the outer grid resolution
 	if (handlesInner.have_nans && numel(B) > 1)		% If we have holes in Inner grid, let the outer grid values survive there
 		for (k = 2:numel(B))
 			y = (B{k}(:,1)-1)*y_inc + y_min;
@@ -159,9 +193,9 @@ function varargout = transplants(hLine, tipo, handles)
 	[X,Y] = meshgrid(X,Y);
 	XX = X(mask(:));
 	YY = Y(mask(:));
-	ind = isnan(ZZ);					% But are those NaN free?
-	if (any(ind))
-		ZZ(ind) = [];	XX(ind) = [];	YY(ind) = [];
+	indNaN = isnan(ZZ);					% But are those NaN free?
+	if (any(indNaN))
+		ZZ(indNaN) = [];	XX(indNaN) = [];	YY(indNaN) = [];
 	end
 
 	[X,Y] = meshgrid(Xinner,Yinner);
@@ -169,13 +203,19 @@ function varargout = transplants(hLine, tipo, handles)
 		XX = [XX(:); X(indNotNaN(:))];		clear X
 		YY = [YY(:); Y(indNotNaN(:))];		clear Y
 		ZZ = [ZZ(:); double(Zinner(indNotNaN(:)))];	clear Zinner	% Join outer and inner Zs
+		opt_C = '-C5';		% Just a heuristic value
+		if (head(8) < handlesInner.head(8))		% If host grid is finer than implanting grid
+			% Than we must increase -C because data to grid may be too sparse and gaps appear.
+			opt_C = sprintf('-C%d', 2*round(handlesInner.head(8) / head(8)));
+		end
 	else
 		XX = [XX(:); X(:)];			clear X
 		YY = [YY(:); Y(:)];			clear Y
 		ZZ = [ZZ(:); double(Zinner(:))];	clear Zinner
+		opt_C = ' ';
 	end
 
-	Z_rect = gmtmbgrid_m(XX,YY,ZZ(:), opt_R, opt_I, '-T0.25', '-Mz', '-C5');
+	Z_rect = gmtmbgrid_m(XX,YY,ZZ(:), opt_R, opt_I, '-T0.25', '-Mz', opt_C);
 	clear XX YY ZZ;
 
 	if (nargout == 1)
