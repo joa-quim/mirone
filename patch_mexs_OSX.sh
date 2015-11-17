@@ -13,7 +13,7 @@
 
 # $Id :
 
-cd ../lib_mex
+cd lib_mex
 
 install_name_tool -change /usr/local/lib/libnetcdf.7.dylib libnetcdf_hide.dylib mexnc.mexmaci64
 install_name_tool -change /usr/local/lib/libnetcdf.7.dylib libnetcdf_hide.dylib swan.mexmaci64
