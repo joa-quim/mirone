@@ -146,15 +146,8 @@ install_name_tool -change /usr/local/lib/libfftw3f.3.dylib         libfftw3f.dyl
 install_name_tool -change /usr/local/lib/libfftw3f_threads.3.dylib libfftw3f_threads.dylib  supplements.dylib 
 
 # And the GMTMEX
-cp ${gmt_loc}/../gmt-mex/trunk/src/gmtmex.mexmaci64 .
-cp ${gmt_loc}/../gmt-mex/trunk/src/gmt.m .
+cp ${gmt_loc}/../gmt-mex/src/gmtmex.mexmaci64 .
+cp ${gmt_loc}/../gmt-mex/src/gmt.m .
 chmod +w *.mexmaci64
 install_name_tool -change ${gmt_loc}/libgmt.5.dylib libgmt.dylib gmtmex.mexmaci64
 install_name_tool -change ${gmt_loc}/libgmt.5.dylib libgmt.dylib gmt.mexmaci64
-
-
-
-
-
-
-
