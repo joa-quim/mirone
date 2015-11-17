@@ -60,7 +60,9 @@ static char prog_id[] = "$Id$";
  *
  */
 
+#if defined(WIN32) || defined(_WIN32) || defined(_WIN64)
 #define DO_MULTI_THREAD	/* ISTO TEM DE SER AUTOMATIZADO, OU VIA COMPILA */
+#endif
 
 #define I_AM_MEX        /* Build as a MEX */
 
