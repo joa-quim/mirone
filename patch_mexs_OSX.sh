@@ -9,11 +9,11 @@
 # (by appending a '_hide') so that Matlab does not managed to f. in the middle with its own outdated
 # versions. For example libhdf5.dylib will become libhdf5_hide.dylib
 #
-# Patch the MEXs in lib_mex
+# Patch the MEXs in lib_mex.
 
 # $Id :
 
-cd ../lib_mex
+cd lib_mex
 
 install_name_tool -change /usr/local/lib/libnetcdf.7.dylib libnetcdf_hide.dylib mexnc.mexmaci64
 install_name_tool -change /usr/local/lib/libnetcdf.7.dylib libnetcdf_hide.dylib swan.mexmaci64
