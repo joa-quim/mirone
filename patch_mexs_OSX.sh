@@ -56,4 +56,4 @@ do
 	install_name_tool -change /usr/local/lib/libgdal.1.dylib libgdal.dylib $prg
 done
 
-cd ../tmp
+cd ..
