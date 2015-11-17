@@ -1,7 +1,7 @@
 #! /bin/sh
 #
-# This script if the second of a triology:
-# copy_patch_simple.sh, copy_patch_with_hide.sh, patch_mexs.sh   
+# This script is the second of a triology:
+# copy_patch_simple_OSX.sh, copy_patch_with_hide_OSX.sh, patch_mexs_OSX.sh   
 # Run them in that order from a sub-directory of the mirone root dir
 #
 # What they do is to copy several dylibs from /usr/local/lib (built with Homebrew) and strip the
@@ -146,8 +146,8 @@ install_name_tool -change /usr/local/lib/libfftw3f.3.dylib         libfftw3f.dyl
 install_name_tool -change /usr/local/lib/libfftw3f_threads.3.dylib libfftw3f_threads.dylib  supplements.dylib 
 
 # And the GMTMEX
-cp ${gmt_loc}/../5.2.0/gmt-mex/trunk/src/gmtmex.mexmaci64 .
-cp ${gmt_loc}/../5.2.0/gmt-mex/trunk/src/gmt.mexmaci64 .
+cp ${gmt_loc}/../gmt-mex/trunk/src/gmtmex.mexmaci64 .
+cp ${gmt_loc}/../gmt-mex/trunk/src/gmt.m .
 chmod +w *.mexmaci64
 install_name_tool -change ${gmt_loc}/libgmt.5.dylib libgmt.dylib gmtmex.mexmaci64
 install_name_tool -change ${gmt_loc}/libgmt.5.dylib libgmt.dylib gmt.mexmaci64
