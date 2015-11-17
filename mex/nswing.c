@@ -1,5 +1,5 @@
 /*--------------------------------------------------------------------
- *	$Id: nswing.c 7716 2015-11-16 23:02:59Z j $
+ *	$Id: nswing.c 7718 2015-11-17 01:18:49Z j $
  *
  *	Copyright (c) 2012-2015 by J. Luis and J. M. Miranda
  *
@@ -16,7 +16,7 @@
  *	Contact info: w3.ualg.pt/~jluis/mirone
  *--------------------------------------------------------------------*/
 
-static char prog_id[] = "$Id: nswing.c 7716 2015-11-16 23:02:59Z j $";
+static char prog_id[] = "$Id: nswing.c 7718 2015-11-17 01:18:49Z j $";
 
 /*
  *	Original Fortran version of core hydrodynamic code by J.M. Miranda and COMCOT
@@ -60,7 +60,9 @@ static char prog_id[] = "$Id: nswing.c 7716 2015-11-16 23:02:59Z j $";
  *
  */
 
+#if defined(WIN32) || defined(_WIN32) || defined(_WIN64)
 #define DO_MULTI_THREAD	/* ISTO TEM DE SER AUTOMATIZADO, OU VIA COMPILA */
+#endif
 
 #define I_AM_MEX        /* Build as a MEX */
 
