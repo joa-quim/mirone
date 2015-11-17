@@ -75,6 +75,7 @@ PROG_withCDF = swan
 PROG_GDAL	= gdalread gdalwrite ogrproj gdalwarp_mex gdaltransform_mex ogrread
 PROG_MEXNC	= mex_nc
 PROG_OCV	= cvlib_mex
+PROG_withCDF = nswing
 PROG_EDISON	= edison_
 PROG_MPGWRITE = mpgwrite_
 
@@ -246,7 +247,8 @@ edison_:
 		$(MEX) edison/edison_wrapper_mex.cpp edison/segm/ms.cpp edison/segm/msImageProcessor.cpp \
 		edison/segm/msSysPrompt.cpp edison/segm/RAList.cpp edison/segm/rlist.cpp edison/edge/BgEdge.cpp \
 		edison/edge/BgImage.cpp edison/edge/BgGlobalFc.cpp edison/edge/BgEdgeList.cpp edison/edge/BgEdgeDetect.cpp
-		$(LINKA) edison_wrapper_mex.o ms.o msImageProcessor.o msSysPrompt.o RAList.o rlist.o BgEdge.o BgImage.o BgGlobalFc.o BgEdgeList.o BgEdgeDetect.o $(MEXLIB) -o edison.$(MEX_EXT)
+		$(LINKA) edison_wrapper_mex.o ms.o msImageProcessor.o msSysPrompt.o RAList.o rlist.o BgEdge.o BgImage.o \
+		BgGlobalFc.o BgEdgeList.o BgEdgeDetect.o $(MEXLIB) -o edison.$(MEX_EXT)
 
 mpgwrite_:
 		$(MEX) mpgwrite/mpgwrite.c mpgwrite/mfwddct.c mpgwrite/postdct.c mpgwrite/huff.c \
