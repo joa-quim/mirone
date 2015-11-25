@@ -341,7 +341,7 @@ function [numericData, textData, numHeaderRows] = stringparse(string, delimiter,
 		wasError = 0;
 	catch
 		wasError = 1;
-		warning(lasterr);
+		warndlg(['Trouble in stringparse: ' lasterr],'Warning');
 	end
 
 	% setup some default answers if we're not able to do the full read below
