@@ -62,8 +62,9 @@ function varargout = load_xyz(handles, opt, opt2)
 %		'>HEAVES'	See ecran.m/saveHeaves_CB()
 %		'>POLYMESH'	File contains 'Nesting polygons' (multisegment) to help with unstructured grids creation 
 %					Example: >POLYMESH -pol=L-1_G-1_P-1.dat -inc=1000 -interp=1 -data= -grid=0 -binary=0 -single=1
+%		'>XY'       Send the data read here to the XYtool (Ecran). File can be single or multi-column & multi-segment
 
-%	Copyright (c) 2004-2014 by J. Luis
+%	Copyright (c) 2004-2015 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -78,7 +79,7 @@ function varargout = load_xyz(handles, opt, opt2)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id$
+% $Id: load_xyz.m 7729 2015-11-25 02:01:12Z j $
 
 %	EXAMPLE CODE OF HOW TO CREATE A TEMPLATE FOR UICTX WHEN THESE ARE TOO MANY
 % 	cmenuHand = get(h, 'UIContextMenu');
@@ -109,6 +110,7 @@ function varargout = load_xyz(handles, opt, opt2)
 	do_nesting = false;			% To flag when the imported file is a 'Nesting squares'
 	do_polymesh = false;		% To flag when the imported file is a 'Nesting polygons' for unstructured grids
 	isGSHHS = false;			% To flg when we are dealing with a GSHHS polygon
+	goto_XY = false;			% To flag when data will be send to the XYtool
 	% -------------------------------------------------------------------------------
 
 	% ------------------- PARSE INPUTS ----------------------------------------------
@@ -255,46 +257,52 @@ function varargout = load_xyz(handles, opt, opt2)
 				numeric_data = {numeric_data};
 				multi_segs_str = {'> Nikles '};		% Need something (>= 8 chars) to not error further down
 				orig_no_mseg = true;
+			elseif (~got_nc && strncmpi(multi_segs_str{1}, '>XY', 3))	% A request to call the XYtool to display this data
+				goto_XY = true;
+				multi_segs_str{1}(2:3) = [];		% Rip the XY identifier
 			end
-			if (isempty(BB))
+
+			if (isempty(BB) && ~goto_XY)
 				for (i = 1:length(numeric_data))
 					XMin = min(XMin,double(min(numeric_data{i}(:,1))));		XMax = max(XMax,double(max(numeric_data{i}(:,1))));
 					YMin = min(YMin,double(min(numeric_data{i}(:,2))));		YMax = max(YMax,double(max(numeric_data{i}(:,2))));
 				end
-			else
+			elseif (~isempty(BB))		% Also means ~goto_XY
 				XMin = BB(1);		XMax = BB(2);		YMin = BB(3);		YMax = BB(4);
 			end
 		end
 
-		if (multi_seg && strncmp(multi_segs_str{1},'>-:',3))		% See if we need to swap x<->y
-			tmp = XMin;		XMin = YMin;	YMin = tmp;				% Need to swap min/max
-			tmp = XMax;		XMax = YMax;	YMax = tmp;
-		end
-
-		dx = XMax - XMin;			dy = YMax - YMin;
-		if (dx == 0 || dy == 0)
-			errordlg('File is has only one point or all XXs are equal or all YYs are equal','Error')
-			return
-		end
-		
-		if (XMin > -179.5 && XMax < 359.5 && YMin > -89.5 && YMax < 89.5)
-			XMin = XMin - dx / 200;		XMax = XMax + dx / 200;		% Give an extra 0.5% padding margin
-			YMin = YMin - dy / 200;		YMax = YMax + dy / 200;
-		end
-		xx = [XMin XMax];			yy = [YMin YMax];
-		region = [xx yy];
-		handles.geog = aux_funs('guessGeog',region);
-
-		if (got_internal_file)				% We know it's geog (Global Isochrons or FZs)
-			xx = [-180 180];		yy = [-90 90];
-			if (~handles.geog),				handles.geog = 1;
-			elseif (handles.geog == 2),		xx = [0 360];
+		if (~goto_XY)					% goto_XY means we will call Ecran and not Mirone
+			if (multi_seg && strncmp(multi_segs_str{1},'>-:',3))		% See if we need to swap x<->y
+				tmp = XMin;		XMin = YMin;	YMin = tmp;				% Need to swap min/max
+				tmp = XMax;		XMax = YMax;	YMax = tmp;
 			end
+
+			dx = XMax - XMin;			dy = YMax - YMin;
+			if (dx == 0 || dy == 0)
+				errordlg('File is has only one point or all XXs are equal or all YYs are equal','Error')
+				return
+			end
+
+			if (XMin > -179.5 && XMax < 359.5 && YMin > -89.5 && YMax < 89.5)
+				XMin = XMin - dx / 200;		XMax = XMax + dx / 200;		% Give an extra 0.5% padding margin
+				YMin = YMin - dy / 200;		YMax = YMax + dy / 200;
+			end
+			xx = [XMin XMax];			yy = [YMin YMax];
 			region = [xx yy];
+			handles.geog = aux_funs('guessGeog',region);
+
+			if (got_internal_file)				% We know it's geog (Global Isochrons or FZs)
+				xx = [-180 180];		yy = [-90 90];
+				if (~handles.geog),				handles.geog = 1;
+				elseif (handles.geog == 2),		xx = [0 360];
+				end
+				region = [xx yy];
+			end
+			mirone('FileNewBgFrame_CB', handles, [region handles.geog])		% Create a background
+			hMirFig = handles.figure1;
+			drawnow						% Otherwise it takes much longer to plot and other shits
 		end
-		mirone('FileNewBgFrame_CB', handles, [region handles.geog])	% Create a background
-		hMirFig = handles.figure1;
-		drawnow						% Otherwise it takes much longer to plot and other shits
 
 	elseif (~nargout)				% Reading over an established region
 		XYlim = getappdata(handles.axes1,'ThisImageLims');
@@ -309,10 +317,10 @@ function varargout = load_xyz(handles, opt, opt2)
 	% --------------------------- Main loop over data files ------------------------------
 	for (k = 1:numel(names))
 		fname = names{k};
-		if (handles.no_file && k == 1)			% Rename figure with dragged file name
-			[pato,barName] = fileparts(fname);
+		if (handles.no_file && ~goto_XY && k == 1)		% Rename figure with dragged file name
+			[pato, barName] = fileparts(fname);
 			old_name = get(hMirFig,'Name');		ind = strfind(old_name, '@');
-			set(hMirFig,'Name',[barName old_name(ind-1:end)])
+			set(hMirFig, 'Name', [barName old_name(ind-1:end)])
 		end
 
 		if (~handles.no_file)					% Otherwise we already read it
@@ -467,7 +475,41 @@ function varargout = load_xyz(handles, opt, opt2)
 			if (orig_no_mseg),		numeric_data = numeric_data{1};		end
 			varargout{1} = numeric_data;
 			if (nargout == 2),	varargout{2} = multi_segs_str;		end
-			return
+			return			% Means this only works for one single file
+		end
+		% -----------------------------------------------------------------------------------
+
+		% -----------------------------------------------------------------------------------
+		% ----- If a call to plot XY is requested there is nothing left to be done here -----
+		% -----------------------------------------------------------------------------------
+		if (goto_XY)
+			n_cols = size(numeric_data{1},2);
+			if (n_cols == 1)		% If only one column, xx will be 1:npts
+				y = numeric_data{1};	x = 1:numel(y);
+				ecran(x, y, fname)
+				for (i = 2:n_segments)
+					ecran('add', 1:numel(numeric_data{i}), numeric_data{i})
+				end
+			elseif (n_cols == 2)
+				ecran(numeric_data{1}(:,1), numeric_data{1}(:,2), fname)
+				for (i = 2:n_segments)
+					ecran('add', numeric_data{i}(:,1), numeric_data{i}(:,2))
+				end
+			else
+				out = select_cols(numeric_data{1}, 'xy', fname, 1000);
+				if (isempty(out)),		return,		end
+				h = [];
+				if (numel(out) == 4)				% x,y,z and distance request but we don't use it here
+					out(2) = out(3);
+					h = warndlg('Sorry, computing distance is not supported here. Must open the file directly in XYtool.','Warning');
+				end
+				if (n_segments > 1)
+					h = warndlg('With multiple coluns and multi-segments, only first segment is processed.', 'Warning');
+				end
+				ecran(numeric_data{1}(:,out(1)), numeric_data{1}(:,out(2)), fname)
+				if (~isempty(h)),	figure(h),		end		% Bring warning message to top
+			end
+			continue				% Continue the loop over input files (main loop)
 		end
 		% -----------------------------------------------------------------------------------
 
@@ -716,6 +758,7 @@ function varargout = load_xyz(handles, opt, opt2)
 
 	end
 	% --------------------- End main loop over files -----------------------------------------
+	if (goto_XY),	return,		end		% Time now to abandon this function (it had a 'continue' when its job was finish)
 
 	set(handles.figure1,'pointer','arrow')
 
