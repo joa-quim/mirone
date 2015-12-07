@@ -1,7 +1,7 @@
 function varargout = read_las(varargin)
 % Helper window to read, filter and save or display LIDAR data read with libLAS
 
-%	Copyright (c) 2004-2013 by J. Luis
+%	Copyright (c) 2004-2015 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -105,7 +105,7 @@ function varargout = read_las(varargin)
 % -------------------------------------------------------------------------------------------------
 function push_LASfile_CB(hObject, handles)
 	[FileName,PathName] = put_or_get_file(handles, ...
-		{'*.las;*.LAS;*.laz;*.LAZ', 'LIDAR file (*.las,*.LAS,*.laz,*.LAZ)';'*.*', 'All Files (*.*)'},'Select LAS file','get');
+		{'*.las;*.LAS;*.laz;*.LAZ', 'LIDAR file (*.las,*.LAS,*.laz,*.LAZ)';'*.*', 'All Files (*.*)'},'Select LAS file','put');
 	if isequal(FileName,0),		return,		end
 	% Let the edit_LASfile do the rest of the work;
 	edit_LASfile_CB(handles.edit_LASfile, handles, [PathName FileName])
@@ -114,7 +114,7 @@ function push_LASfile_CB(hObject, handles)
 function edit_LASfile_CB(hObject, handles, fname)
 	if (nargin == 2),	fname = [];		end
 
-	if (isempty(fname))		fname = get(hObject, 'Str');
+	if (isempty(fname)),	fname = get(hObject, 'Str');
 	else					set(hObject, 'Str', fname)
 	end
 
@@ -187,7 +187,7 @@ function radio_colorID_CB(hObject, handles)
 % -------------------------------------------------------------------------------------------------
 function check_clipClass_CB(hObject, handles)
 	if (get(hObject,'Value'))		% We need to test several cases
-		if (isempty(handles.fname))		set(hObject,'Val',0),	return,		end		% No file yet
+		if (isempty(handles.fname)),	set(hObject,'Val',0),	return,		end		% No file yet
 		if (isempty(handles.classes))	% Don't know them yet, time to do it
 			semaforo_toggle(handles, 'red')
 			handles.classes = laszreader_mex(handles.fname,'-S');
@@ -203,7 +203,7 @@ function check_clipClass_CB(hObject, handles)
 % -------------------------------------------------------------------------------------------------
 function check_clipIntens_CB(hObject, handles)
 	if (get(hObject,'Value'))		% We need to test several cases
-		if (isempty(handles.fname))		set(hObject,'Val',0),	return,		end		% No file yet
+		if (isempty(handles.fname)),	set(hObject,'Val',0),	return,		end		% No file yet
 		set(handles.edit_clipIntens, 'Enable','on') 
 	else
 		set(handles.edit_clipIntens, 'Enable','off') 
@@ -220,7 +220,7 @@ function edit_clipIntens_CB(hObject, handles)
 % -------------------------------------------------------------------------------------------------
 function check_clipReturns_CB(hObject, handles)
 	if (get(hObject,'Value'))		% We need to test several cases
-		if (isempty(handles.fname))		set(hObject,'Val',0),	return,		end		% No file yet
+		if (isempty(handles.fname)),	set(hObject,'Val',0),	return,		end		% No file yet
 		set(handles.popup_returns, 'Enable','on') 
 	else
 		set(handles.popup_returns, 'Enable','off') 
@@ -277,7 +277,7 @@ function push_BINfile_CB(hObject, handles)
 function edit_BINfile_CB(hObject, handles, fname)
 	if (nargin == 2),	fname = [];		end
 
-	if (isempty(fname))		fname = get(hObject, 'Str');
+	if (isempty(fname)),	fname = get(hObject, 'Str');
 	else					set(hObject, 'Str', fname)
 	end
 % 	fname = [fname '.vtk'];
@@ -289,7 +289,7 @@ function edit_BINfile_CB(hObject, handles, fname)
 	end
 
 	frmt = 'real*4';
-	if (get(handles.check_double, 'Val'))		frmt = 'real*8';	end
+	if (get(handles.check_double, 'Val')),		frmt = 'real*8';	end
 	fid = fopen(fname, 'wb');
 	if (~isa(xyz,'cell'))
 % 		fprintf(fid, '# vtk DataFile Version 2.0\n');
@@ -329,7 +329,7 @@ function edit_FLEDERfile_CB(hObject, handles, fname)
 		warndlg('No data points with current selection','Warning'),		return
 	end
 	
-	if (isempty(fname))		fname = get(hObject, 'Str');
+	if (isempty(fname)),	fname = get(hObject, 'Str');
 	else					set(hObject, 'Str', fname)
 	end
 	write_flederFiles('points', fname, xyz, 'first', handles.bbox);
@@ -348,9 +348,9 @@ function push_goFleder_CB(hObject, handles)
 	write_flederFiles('points', fname, xyz, 'first', handles.bbox);		pause(0.1)
 	semaforo_toggle(handles, 'green')
 	
-	if (isempty(handles.whichFleder))	handles.whichFleder = 1;	end
+	if (isempty(handles.whichFleder)),	handles.whichFleder = 1;	end
 	comm = [' -data ' fname ' &'];
-	if (handles.whichFleder),	fcomm = ['iview4d' comm];			% Free viewer
+	if (handles.whichFleder),	fcomm = ['iview3d' comm];			% Free viewer
 	else						fcomm = ['fledermaus' comm];		% The real thing
 	end
 	try
@@ -359,15 +359,14 @@ function push_goFleder_CB(hObject, handles)
 			if (resp == 0)
 				errordlg('I could not find Fledermaus. Hmmm, do you have it?','Error')
 			end
-		elseif (ispc)	dos(fcomm);
+		elseif (ispc),	dos(fcomm);
 		else			errordlg('Unknown platform.','Error'),	return
 		end
 	catch
 		errordlg('I could not find Fledermaus. Hmmm, do you have it?','Error')
 	end
 
-	pause(1)
-	builtin('delete',fname);
+	pause(0.1)
 
 % -------------------------------------------------------------------------------------------------
 function push_goGrid_CB(hObject, handles)
@@ -385,7 +384,7 @@ function xyz = get_data(handles)
 
 	[out, colorBy] = parse_before_go(handles);
 	if (~colorBy.do)			% Simpler case. No data spliting
-		if (~isempty(out))		xyz = laszreader_mex(handles.fname, out{:});
+		if (~isempty(out)),		xyz = laszreader_mex(handles.fname, out{:});
 		else					xyz = laszreader_mex(handles.fname);
 		end
 	elseif (colorBy.do && colorBy.split)
@@ -438,7 +437,7 @@ function [out, colorBy] = parse_before_go(handles)
 	end
 	if (get(handles.check_clipReturns, 'Val'))
 		n = get(handles.popup_returns,'Val');
-		if (n == 2)		n = 10;		end			% Last return is coded 10
+		if (n == 2),	n = 10;		end			% Last return is coded 10
 		out{end+1} = sprintf('-C%d',n);			%Option -N
 	end
 
