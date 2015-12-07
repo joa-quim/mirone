@@ -20,7 +20,7 @@ function varargout = mirone(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: mirone.m 4807 2015-10-11 11:07:30Z j $
+% $Id: mirone.m 7735 2015-12-07 19:40:11Z j $
 
 	if (nargin > 1 && ischar(varargin{1}))
 		if ( ~isempty(strfind(varargin{1},':')) || ~isempty(strfind(varargin{1},filesep)) )
@@ -3161,7 +3161,11 @@ function DrawContours_CB(handles, opt)
 	elseif (isa(opt,'char'))		% Call the interface contouring GUI
 		h_which_cont = findobj(handles.figure1,'Type','line','Tag','contour');		% See if contours were mouse deleted
 		if (~isempty(h_which_cont))
-			handles.which_cont = unique(cell2mat(get(h_which_cont,'Userdata')));
+			if (numel(h_which_cont) == 1)
+				handles.which_cont = get(h_which_cont,'Userdata');
+			else
+				handles.which_cont = unique(cell2mat(get(h_which_cont,'Userdata')));
+			end
 		else
 			handles.which_cont = [];
 		end
