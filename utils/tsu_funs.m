@@ -51,6 +51,14 @@ function TTT(handles,opt)
 		if (size(out,2) ~= 3)
 			errordlg('Wrong choice. For using this option the file MUST have 3 columns (position and time).','Error'); return
 		end
+		ind = (out(:,1) < handles.head(1) | out(:,1) > handles.head(2) | ...
+			out(:,2) < handles.head(3) | out(:,2) > handles.head(4));
+		if (any(ind))
+			out(ind,:) = [];
+		end
+		if (isempty(out))
+			warndlg('No maregraphs inside this region. Bye Bye.','Warning'),	return
+		end
 		h = line('XData',out(:,1),'YData',out(:,2), 'Parent',handles.axes1, 'Marker','o', ...
 			'MarkerFaceColor','y','linestyle','none', 'MarkerEdgeColor','k','MarkerSize',10,'Tag','TTT','UserData',out(:,3));
 		setappdata(h,'TTTimes',out)
