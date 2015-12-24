@@ -222,6 +222,7 @@ data/wcity_major.dat -text
 doc/MironeMan.chm -text
 /faz2.bat -text
 gmt_share/VERSION_all -text
+gmt_share/VERSION_all.txt -text
 gmt_share/conf/gmt.conf -text
 gmt_share/localization/gmt_us.locale -text
 gmt_share/postscriptlight/PSL_ISOLatin1+.ps -text
