@@ -40,7 +40,11 @@ function grid_info(handles,X,Y,hdr)
 		try
 			if (~handles.computed_grid)
 				info1 = c_grdinfo(handles.grdname,'hdr_struct');    % info1 is a struct with the GMT grdinfo style
-				info_from_GMT_limits = [info1.X_info(1:2) info1.Y_info(1:2)];
+				if (isa(info1.X_info, 'char'))
+					info_from_GMT_limits = info1.hdr(1:4);			% GMT5 case.
+				else
+					info_from_GMT_limits = [info1.X_info(1:2) info1.Y_info(1:2)];
+				end
 			end
 			erro = false;
 		catch
@@ -73,11 +77,11 @@ function grid_info(handles,X,Y,hdr)
 		txt1 = sprintf('%.8g',head(1));			% x_min
 		txt2 = sprintf('%.8g',head(2));			% x_max
 		txt3 = sprintf('%.8g',head(8));			% x_inc
-		w{6} = ['x_min: ' txt1 '  x_max: ' txt2 '  x_inc: ' txt3 '  nx: ' sprintf('%d',info1.X_info(4))];
+		w{6} = ['x_min: ' txt1 '  x_max: ' txt2 '  x_inc: ' txt3 '  nx: ' sprintf('%d', nx)];
 		txt1 = sprintf('%.8g',head(3));			% y_min
 		txt2 = sprintf('%.8g',head(4));			% y_max
 		txt3 = sprintf('%.8g',head(9));			% y_inc
-		w{7} = ['y_min: ' txt1 '  y_max: ' txt2 '  y_inc: ' txt3 '  ny: ' sprintf('%d',info1.Y_info(4))];
+		w{7} = ['y_min: ' txt1 '  y_max: ' txt2 '  y_inc: ' txt3 '  ny: ' sprintf('%d', ny)];
 		txt1 = sprintf('%.8g',info2(1));		% z_min
 		txt2 = sprintf('%.8g',info2(2));		% z_max
 
@@ -97,6 +101,12 @@ function grid_info(handles,X,Y,hdr)
 		w{9} = ['z_max: ' txt2 '   at x = ' txt_x2 '   y = ' txt_y2];
 
 		w{10} = ['scale factor: ' num2str(info1.Scale(1)) '        add_offset: ' num2str(info1.Scale(2))];
+
+		if (isa(info1.X_info, 'char') && ~erro)		% GMT5 case. Fix these four
+			w{5} = info1.Format;		w{6}  = info1.X_info;
+			w{7} = info1.Y_info;		w{10} = info1.Scale;
+		end
+		
 		if (~isequal(info2,0))
 			w{11} = sprintf('mean: %.8g    stdev: %.8g',info2(6), info2(7));
 		else
