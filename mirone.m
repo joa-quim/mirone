@@ -69,16 +69,19 @@ function hObject = mirone_OpeningFcn(varargin)
 %#function c_grdtrend c_mapproject c_nearneighbor c_shoredump c_surface
 
 
-	global gmt_ver;		gmt_ver = 5;		fsep = filesep;
-  	global home_dir;
-% 	home_dir = cd;		% To compile uncomment this and comment next 9 lines
-	if (isempty(home_dir))		% First time call. Find out where we are
-		home_dir = fileparts(mfilename('fullpath'));			% Get the Mirone home dir and set path
-		addpath(home_dir, [home_dir fsep 'src_figs'],[home_dir fsep 'utils']);
-		if (exist('OCTAVE_VERSION','builtin') ~= 0)				% This is a repetition of the test later in mirone_uis
-			addpath([home_dir fsep 'lib_mex' fsep 'octave' fsep octave_config_info.canonical_host_type]);
-		else
-			addpath([home_dir fsep 'lib_mex']);
+	global gmt_ver;		gmt_ver = 5;	global home_dir;	fsep = filesep;
+	toCompile = false;		% To compile set this one to TRUE
+	if (toCompile)
+		home_dir = cd;
+	else
+		if (isempty(home_dir))		% First time call. Find out where we are
+			home_dir = fileparts(mfilename('fullpath'));			% Get the Mirone home dir and set path
+			addpath(home_dir, [home_dir fsep 'src_figs'],[home_dir fsep 'utils']);
+			if (exist('OCTAVE_VERSION','builtin') ~= 0)				% This is a repetition of the test later in mirone_uis
+				addpath([home_dir fsep 'lib_mex' fsep 'octave' fsep octave_config_info.canonical_host_type]);
+			else
+				addpath([home_dir fsep 'lib_mex']);
+			end
 		end
 	end
 
@@ -385,6 +388,14 @@ function hObject = mirone_OpeningFcn(varargin)
 		end
 	end
 
+	% See if we have a TMP dir set by a ENV var that will take precedence over the default one
+	t = set_gmt('MIRONE_TMP', 'whatever');			% Inquire if MIRONE_TMP exists
+	if (~isempty(t))		% Now check that the dir exists
+		if (exist(t, 'dir') == 7)
+			handles.path_tmp = [t fsep];
+		end
+	end
+		
 	guidata(hObject, handles);
 	tmp.home_dir = home_dir;	tmp.work_dir = handles.work_dir;	tmp.last_dir = handles.last_dir;
 	setappdata(0,'MIRONE_DIRS',tmp);		% To access from places where handles.home_dir is unknown (must precede gateLoadFile())
@@ -4319,7 +4330,7 @@ function FileSaveFleder_CB(handles, opt)
 	if (fname(end) == 'e'),		comm = [' -scene ' fname ' &'];		% A SCENE file
 	else						comm = [' -data ' fname ' &'];		% A SD file
 	end
-	if (strncmp(opt,'run',3))		% Run the viewer and remove the tmp .sd file
+	if (strncmp(opt,'run',3))		% Run the viewer
 		if (handles.whichFleder),	fcomm = ['iview4d' comm];		% Free viewer
 		else						fcomm = ['fledermaus' comm];	% The real thing
 		end
