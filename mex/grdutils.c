@@ -58,6 +58,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	int i_min = 0, i_max = 0, do_min_max_loc = FALSE, report_min_max_loc_nan_mean_std = FALSE;
 	int do_shift_int8 = FALSE, insitu = FALSE, is_int8 = FALSE; 
 	char   **argv;
+	char    *data8;
 	short int *data16;
 	unsigned short int *dataU16;
 	float   *zdata, fact;
@@ -195,7 +196,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 
 	if (do_cast && is_uint8) {	/* Case where we only want to cast a uint8 to int8 */
 		unsigned char *Udata8;
-		char	*data8;
 		Udata8 = (unsigned char *)(mxGetData(prhs[0]));
 		plhs[0] = mxCreateNumericArray(mxGetNumberOfDimensions(prhs[0]),
 			mxGetDimensions(prhs[0]), mxINT8_CLASS, mxREAL);
@@ -222,14 +222,16 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		return;
 	}
 	else {
-		if (!is_single && !is_int16 && !is_uint16)
-			mexErrMsgTxt("GRDUTILS ERROR: Invalid input data type. Only valid type is: Single, UInt16 or Int16.\n");
+		if (!is_single && !is_int16 && !is_uint16 && !is_int8)
+			mexErrMsgTxt("GRDUTILS ERROR: Invalid input data type. Only valid type is: Single, UInt16, Int16 or Int8.\n");
 		if (is_single)
 			zdata = (float *)mxGetData(prhs[0]);
 		else if (is_uint16)
 			dataU16 = (unsigned short int *)mxGetData(prhs[0]);
-		else
+		else if (is_int16)
 			data16  = (short int *)mxGetData(prhs[0]);
+		else
+			data8   = (char *)mxGetData(prhs[0]);
 	}
 
 
@@ -318,7 +320,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 			}
 		}
 	}
-	else {
+	else if (is_int16) {
 		for (i = 0; i < nxy; i++) {
 			tmp = (double)data16[i];
 			if (do_min_max) {
@@ -340,6 +342,43 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 			else if (ADD)
 				data16[i] += (short int)fact;
 			if (do_std) {
+				mean += tmp;
+				sd += tmp * tmp;
+			}
+		}
+	}
+	else {
+		if (do_min_max) {
+			for (i = 0; i < nxy; i++) {
+				tmp = (double)data8[i];
+				if (tmp < min_limit) min_limit = tmp;
+				if (tmp > max_limit) max_limit = tmp;
+			}
+		}
+		else if (do_min_max_loc) {
+			for (i = 0; i < nxy; i++) {
+				tmp = (double)data8[i];
+				if (tmp < min_limit) {
+					min_limit = tmp;
+					i_min = i;
+				}
+				if (tmp > max_limit) {
+					max_limit = tmp;
+					i_max = i;
+				}
+			}
+		}
+		else if (MUL) {		/* Will overflow almost for sure */
+			for (i = 0; i < nxy; i++)
+				data8[i] *= (char)fact;
+		}
+		else if (ADD) {
+			for (i = 0; i < nxy; i++)
+				data8[i] += (char)fact;
+		}
+		if (do_std) {
+			for (i = 0; i < nxy; i++) {
+				tmp = (double)data8[i];
 				mean += tmp;
 				sd += tmp * tmp;
 			}
