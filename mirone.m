@@ -20,7 +20,7 @@ function varargout = mirone(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: mirone.m 7739 2016-01-05 14:55:14Z j $
+% $Id: mirone.m 7743 2016-01-08 18:21:52Z j $
 
 	if (nargin > 1 && ischar(varargin{1}))
 		if ( ~isempty(strfind(varargin{1},':')) || ~isempty(strfind(varargin{1},filesep)) )
@@ -141,6 +141,7 @@ function hObject = mirone_OpeningFcn(varargin)
 	handles.validGrid = false;		%
 	handles.nLayers = 1;			% If > 1 after reading a netCDF file call aquamoto
 	handles.deflation_level = 0;	% If > 0 will create compressed netCDF-4 files
+	handles.is_defRegion = false;	% A def region is a particular case to create GMT custom symbols.
 
 	try							% A file named mirone_pref.mat contains the preferences, read them from it
 		prf = load([handles.path_data 'mirone_pref.mat']);
@@ -575,7 +576,6 @@ function varargout = ImageCrop_CB(handles, opt, opt2, opt3)
 %					Crop image (opt == hLine), 'CropaWithCoords', 'CropaGrid_pure'
 
 if (handles.no_file),		return,		end
-set(handles.figure1,'pointer','watch')
 first_nans = 0;		pal = [];		mask = [];	crop_pol = false;	% Defaults to croping from a rectangle
 wasROI = false;		done = false;	invert = false;
 if (nargin < 3),	opt2 = [];		end
@@ -1095,13 +1095,14 @@ function hand = FileNewBgFrame_CB(handles, region, imSize, figTitle)
 	if (nargin == 3 && isa(imSize,'char')),		figTitle = imSize;	imSize = [];	end
 	if (numel(region) == 6 && region(6))		% Add a new uimenu to call the write def symbol code
 		aux_funs('addUI', handles)
+		handles.is_defRegion = true;
 	end
 
 	if ( any(isnan(region(1:4))) )
 		errordlg('The requested region limts is undeterminated (it has NaNs)','Error'),		return
 	end
 	X = region(1:2);	Y = region(3:4);		handles.head = [X Y 0 255 0];
-	if ( isempty(imSize) || numel(imSize) ~= 2 )
+	if (isempty(imSize) || numel(imSize) ~= 2)
 		scrsz = get(0,'ScreenSize');		% Get screen size
 		aspect = diff(Y) / diff(X);
 		nx = round(scrsz(3)*.75);	ny = round(nx * aspect);
@@ -1116,8 +1117,12 @@ function hand = FileNewBgFrame_CB(handles, region, imSize, figTitle)
 	pal = repmat(handles.bg_color,256,1);	set(handles.figure1,'Colormap',pal);
 	handles.image_type = 20;
 	handles = show_image(handles,figTitle,X,Y,Z,0,'xy',0,imSize);
+	if (numel(region) == 6 && region(6))	% def region doesn't use these
+		set([handles.Tools handles.Geography handles.Plates handles.MagGrav ...
+			handles.Seismology handles.Projections], 'Vis', 'off')
+	end
 	drawnow			% Otherwise, the damn Java makes a black window until all posterior elements are plotted
-	aux_funs('isProj',handles);			% Check about coordinates type
+	aux_funs('isProj',handles);				% Check about coordinates type
 	if (nargout),	hand = handles;		end
 
 % --------------------------------------------------------------------
@@ -1403,7 +1408,6 @@ function FileOpenNewImage_CB(handles, opt)
 	end
 	handles.fileName = [PathName FileName];
 
-	set(handles.figure1,'pointer','watch')
 	head_fw = [];			% Used when check for a .*fw registering world file
 	[PATH,FNAME,EXT] = fileparts(handles.fileName);
 	if (strcmpi(EXT,'.shade'))
@@ -1933,7 +1937,35 @@ function handles = show_image(handles, fname, X, Y, I, validGrid, axis_t, adjust
 	elseif (size(I,3) == 2),	I(:,:,2) = [];			% (could be otherwise when input from multiband)
 	end
 
+	% The following applies only to the case where we have a .def region to create GMT custom symbols
+	% The first time it passes here we have a square image and the next code does actually nothing.
+	% In the eventuality of loading an image we will force it to have limits [-0.5 0.5] and no deformation.
+	% In this case (load an image) we don't call resizetrue() because it changes sizes in a way that we can't allow.
+	do_resize = true;
+	if (handles.is_defRegion)
+		if (size(I,1) > size(I,2))		% Image is taller
+			X = [-((size(I,2) / size(I,1)) / 2) ((size(I,2) / size(I,1)) / 2)];		Y = [-0.5 0.5];
+		else
+			Y = [-((size(I,1) / size(I,2)) / 2) ((size(I,1) / size(I,2)) / 2)];		X = [-0.5 0.5];
+		end
+		if (handles.image_type ~= 20)
+			I = flipdim(I,1);		% Need to because we have YDir = Normal (probably need to test for referenced imgs)
+			alpha = flipdim(alpha,1);
+			do_resize = false;	% When other than a back-ground image we don't want to call resizetrue
+		end
+		handles.head(1:4) = [X Y];
+		handles.head(8) = diff(handles.head(1:2)) / (size(I,2) - ~handles.head(7));
+		handles.head(9) = diff(handles.head(3:4)) / (size(I,1) - ~handles.head(7));
+	end
+
 	handles.hImg = image(X,Y,I,'Parent',handles.axes1,'AlphaData',alpha);
+	if (handles.is_defRegion && handles.image_type ~= 20)	% Need to reset Lims to [-0.5 0.5] in order to center the image
+		set(handles.axes1, 'XLim', [-0.5 0.5], 'YLim', [-0.5 0.5])
+	end
+	if (handles.is_defRegion)
+		set(handles.axes1, 'YDir', 'Normal')	% It was bloody set to reverse by the previous image() call.
+	end
+
 	zoom_state(handles,'off_yes')
 	if (islogical(I))
 		set(handles.hImg,'CDataMapping','scaled');		set(handles.figure1,'ColorMap',gray(16));
@@ -1945,11 +1977,13 @@ function handles = show_image(handles, fname, X, Y, I, validGrid, axis_t, adjust
 	end
 	if (handles.image_type == 2),	handles.geog = 0;	end
 
-	magRatio = resizetrue(handles,imSize,axis_t);				% -------> IMAGE IS VISIBLE HERE. <-------
+	if (do_resize)		% If FALSE image is visible already and we don't want to use resizetrue
+		magRatio = resizetrue(handles,imSize,axis_t);			% -------> IMAGE IS VISIBLE HERE. <-------
+	end
 
 	handles.origFig = I;			handles.no_file = 0;
 	handles.Illumin_type = 0;		handles.validGrid = validGrid;	% Signal that gmt grid opps are allowed
-	if (~isempty(fname))
+	if (~isempty(fname) && ~handles.is_defRegion)
 		set(handles.figure1,'Name',[fname sprintf('  @  %d%%',magRatio)])
 	end
 	setappdata(handles.axes1,'ThisImageLims',[get(handles.axes1,'XLim') get(handles.axes1,'YLim')])
@@ -1990,7 +2024,7 @@ function handles = show_image(handles, fname, X, Y, I, validGrid, axis_t, adjust
 	set(handles.GCPmemory,'Visible',GCPmemoryVis)
 
 	BL = getappdata(handles.figure1,'BandList');		% We must tell between fakes and true 'BandList'
-	if ( isempty(BL) || ((numel(BL{end}) == 1) && strcmp(BL{end},'Mirone')) )
+	if (isempty(BL) || ((numel(BL{end}) == 1) && strcmp(BL{end},'Mirone')))
 		if (ndims(I) == 3)		% Some cheating to allow selecting individual bands of a RGB image
 			tmp1 = cell(4,2);	tmp2 = cell(4,2);		tmp1{1,1} = 'RGB';		tmp1{1,2} = 'RGB';
 			for (i = 1:3)
@@ -3263,7 +3297,6 @@ function FileOpenSession_CB(handles, fname)
 	if (~isfield(s,'grd_name') || strcmpi(s.grd_name(max(numel(s.grd_name)-3,1):end),'.mat'))	% Otherwise infinite loop below
 		s.grd_name = [];
 	end
-	set(handles.figure1,'pointer','watch')
 
 	tala = (~isempty(s.grd_name) && exist(s.grd_name,'file') == 2);		flagIllum = true;	% Illuminate (if it is the case)
 	if (~tala && ~isempty(s.grd_name))						% Give user a 2nd chance to tell where the grid is
@@ -3304,7 +3337,7 @@ function FileOpenSession_CB(handles, fname)
 	else
 		drv = aux_funs('findFileType', s.grd_name);
 		erro = gateLoadFile(handles, drv, s.grd_name);		% It loads the file (or dies)
-		if (erro),		set(handles.figure1,'pointer','arrow'),		return,		end		% Error message already issued
+		if (erro),		return,		end					% Error message already issued
 		set(handles.figure1,'Colormap',s.img_pal);
 		handles = guidata(handles.figure1);				% Get the updated version
 		handles.origCmap = s.img_pal;
@@ -3500,7 +3533,7 @@ function FileOpenSession_CB(handles, fname)
 	guidata(handles.figure1, handles);
 	handles.fileName = [PathName FileName];		% TRICK. To be used only in the next call to recentFiles()
 	handles = recentFiles(handles);				% Insert session into "Recent Files" & NOT NOT NOT save handles
-	set(handles.figure1,'pointer','arrow','Name',[PathName FileName])
+	set(handles.figure1, 'Name',[PathName FileName])
 	if (tala == 0 && ~isempty(s.grd_name))		% Only now to not mess with the "current figure"
 		warndlg(['The file ' s.grd_name ' doesn''t exists on the directory it was when the session was saved. Put it back there.'],'Warning')
 	end
