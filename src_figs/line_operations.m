@@ -1,7 +1,7 @@
 function varargout = line_operations(varargin)
 % Wraper figure to perform vectorial operations on line/patch objects
 
-%	Copyright (c) 2004-2012 by J. Luis
+%	Copyright (c) 2004-2016 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -16,7 +16,7 @@ function varargout = line_operations(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id$
+% $Id: line_operations.m 7748 2016-01-09 19:19:27Z j $
 
 	if (isempty(varargin)),		return,		end
 	if (~isfield(varargin{1}, 'head')),		return,		end		% Call from an empty fig
@@ -29,7 +29,7 @@ function varargout = line_operations(varargin)
 
 	if (~floating)
 		hLineOP = getappdata(hMirFig, 'hLineOP');		% Get the uicontrol handles (if they already exist)
-		if ( strcmp(get(varargin{1}.lineOP,'checked'), 'off') && isempty(hLineOP) )		% First time use
+		if (strcmp(get(varargin{1}.lineOP,'checked'), 'off') && isempty(hLineOP))		% First time use
 			old_unit = get(hMirAxes,'units');	set(hMirAxes,'units','pixels')
 			pos = get(hMirAxes,'pos');			set(hMirAxes,'units',old_unit)
 			hObject = figure('Tag','figure1','MenuBar','none','Visible','off');
@@ -44,7 +44,7 @@ function varargout = line_operations(varargin)
 			set(varargin{1}.lineOP,'checked', 'on')
 			setappdata(hMirFig, 'hLineOP', [hObject h])			% Save for an eventual future use
 
-		elseif ( strcmp(get(varargin{1}.lineOP,'checked'), 'off') && ~isempty(hLineOP) )	% Reuse
+		elseif (strcmp(get(varargin{1}.lineOP,'checked'), 'off') && ~isempty(hLineOP))	% Reuse
 			handles.figure1			= hLineOP(1);
 			handles.edit_cmd		= hLineOP(2);
 			handles.push_pickLine	= hLineOP(3);
@@ -239,15 +239,15 @@ function push_apply_CB(hObject, handles)
 		% Here (will come) a function call which tries to adress the general command issue
 		return
 	end
-	if ( isempty(handles.hLine) && ~strcmp(handles.known_ops{ind}, 'pline') && ...
-			~strcmp(handles.known_ops{ind},'scale') && ~strcmp(handles.known_ops{ind},'GMT_DB') && ...
-			~strcmp(handles.known_ops{ind},'self-crossings') )
+	if (isempty(handles.hLine) && ~strcmp(handles.known_ops{ind}, 'pline') && ...
+	    ~strcmp(handles.known_ops{ind},'scale') && ~strcmp(handles.known_ops{ind},'GMT_DB') && ...
+	    ~strcmp(handles.known_ops{ind},'self-crossings') )
 		h = errordlg('Fiu Fiu!! Apply WHERE????','ERROR');
 		if (handles.version7 < 8.4 && handles.isPC),	WindowAPI(h, 'TopMost'),	end
 		return
 	end
-	if ( ~strcmp(handles.known_ops{ind},'pline') && ~strcmp(handles.known_ops{ind},'scale') && ...
-			 ~strcmp(handles.known_ops{ind},'GMT_DB') && ~strcmp(handles.known_ops{ind},'self-crossings') )
+	if (~strcmp(handles.known_ops{ind},'pline') && ~strcmp(handles.known_ops{ind},'scale') && ...
+	    ~strcmp(handles.known_ops{ind},'GMT_DB') && ~strcmp(handles.known_ops{ind},'self-crossings') )
 		handles.hLine = handles.hLine(ishandle(handles.hLine));
 		if (isempty(handles.hLine))
 			h = errordlg('Invalid handle. You probably killed the line(s)','ERROR');
@@ -488,28 +488,42 @@ function push_apply_CB(hObject, handles)
 			end
 
 		case 'scale'
-			hLines = findobj(handles.hMirAxes, 'Type', 'line');
 			xMin = 1e50;	yMin = 1e50;	xMax = -xMin;	yMax = -yMin;
+			hLines = findobj(handles.hMirAxes, 'Type', 'line');
 			for (k = 1:numel(hLines))
 				x = get(hLines(k), 'XData');	y = get(hLines(k), 'YData');
 				xMin = min([xMin min(x)]);		xMax = max([xMax max(x)]);
 				yMin = min([yMin min(y)]);		yMax = max([yMax max(y)]);
 			end
-			h = mirone;		hNewMirHand = guidata(h);
-			hNewMirHand = mirone('FileNewBgFrame_CB', hNewMirHand, [-0.5 0.5 -0.5 0.5 0 1], 'Scaled');
-			scale_x = 1 / (xMax - xMin);	off_x = -0.5 - xMin;
-			scale_y = 1 / (yMax - yMin);	off_y = -0.5 - yMin;
-			if (scale_x < scale_y)
-				scale = scale_x;			off_y = -(yMax - yMin) * scale / 2 - yMin;
-			else
-				scale = scale_y;			off_x = -(xMax - xMin) * scale / 2 - xMin;
+			hPatch = findobj(handles.hMirAxes, 'Type', 'patch');
+			for (k = 1:numel(hPatch))
+				x = get(hPatch(k), 'XData');	y = get(hPatch(k), 'YData');
+				xMin = min([xMin min(x)]);		xMax = max([xMax max(x)]);
+				yMin = min([yMin min(y)]);		yMax = max([yMax max(y)]);
 			end
+
+			h = mirone;		hNewMirHand = guidata(h);
+			hNewMirHand = mirone('FileNewBgFrame_CB', hNewMirHand, [-0.5 0.5 -0.5 0.5 0 1], [], 'Whatever');
+			set(hNewMirHand.figure1, 'Name', 'GMT custom symbol')
+			scale_x = 1 / (xMax - xMin);	off_x = xMin;
+			scale_y = 1 / (yMax - yMin);	off_y = yMin;
+			scale = scale_y;
+			if (scale_x < scale_y),		scale = scale_x;	end
 
 			% Now a second run to efectively scale the data
 			for (k = 1:numel(hLines))
-				x = get(hLines(k), 'XData') * scale + off_x;
-				y = get(hLines(k), 'YData') * scale + off_y;
-				h = line('XData',x, 'YData',y, 'Parent', hNewMirHand.axes1);
+				x = (get(hLines(k), 'XData') - off_x) * scale - 0.5;
+				y = (get(hLines(k), 'YData') - off_y) * scale - 0.5;
+				h = line('XData',x, 'YData',y, 'Parent', hNewMirHand.axes1, 'LineWidth', get(hLines(k),'LineWidth'), ...
+					'Color', get(hLines(k),'Color'), 'LineStyle', get(hLines(k),'LineStyle'), 'Tag', get(hLines(k),'Tag'));
+				draw_funs(h,'line_uicontext')
+			end
+			for (k = 1:numel(hPatch))
+				x = (get(hPatch(k), 'XData') - off_x) * scale - 0.5;
+				y = (get(hPatch(k), 'YData') - off_y) * scale - 0.5;
+				h = patch('XData',x, 'YData',y, 'Parent', hNewMirHand.axes1, 'LineWidth', get(hPatch(k),'LineWidth'), ...
+					'EdgeColor', get(hPatch(k),'EdgeColor'), 'FaceColor', get(hPatch(k),'FaceColor'), ...
+					'LineStyle', get(hPatch(k),'LineStyle'), 'Tag', get(hPatch(k),'Tag'));
 				draw_funs(h,'line_uicontext')
 			end
 
