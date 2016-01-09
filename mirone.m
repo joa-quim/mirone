@@ -5,7 +5,7 @@ function varargout = mirone(varargin)
 %
 %	mirone('CALLBACK',handles,...) calls the local function named CALLBACK with the given input arguments.
 
-%	Copyright (c) 2004-2014 by J. Luis
+%	Copyright (c) 2004-2016 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -1088,7 +1088,7 @@ function hand = FileNewBgFrame_CB(handles, region, imSize, figTitle)
 	if (nargin == 1)
 		region = bg_region;		% region contains [x_min x_max y_min y_max is_geog toDef]
 		if isempty(region),		return,		end		% User gave up
-		if (region(5)),			region(5) = aux_funs('guessGeog',region(1:4));		end	% Refine (can be 2)
+		if (region(5)),			region(5) = aux_funs('guessGeog',region(1:4));		end		% Refine (can be 2)
 		handles.geog = region(5) + 10;			% The +10 instructs show_image to accept this val(and subtracts 10)
 	end
 	if (nargin <= 2),		imSize = [];		figTitle = 'Mirone Base Map';		end
@@ -3281,6 +3281,8 @@ function FileOpenSession_CB(handles, fname)
 	else
 		FileName = fname;	PathName = [];
 	end
+	
+	figName = [PathName FileName];		% Used at the end of this function to set up Fig's name (but can change in the middle)
 
 	s = load([PathName FileName]);
 	if (isfield(s,'markers') && isfield(s, 'FitLine'))	% Ah, this is ecran session. Send it there and stop here
@@ -3331,12 +3333,20 @@ function FileOpenSession_CB(handles, fname)
 		handles.image_type = 20;
 		set(handles.figure1,'Colormap', ones( size(get(handles.figure1,'Colormap'),1), 3))
 		handles = show_image(handles,'Mirone Base Map',X,Y,Z,0,'xy',1);
-		if ( isequal(s.map_limits, [-0.5 0.5 -0.5 0.5]) )				% Special region to draw GMT symbols
+		if (isequal(s.map_limits, [-0.5 0.5 -0.5 0.5]))					% Special region to draw GMT symbols
 			aux_funs('addUI', handles)
 		end
 	else
+		is_defRegion = false;
+		try		is_defRegion = s.is_defRegion;		end
+		if (is_defRegion)		% In this mode we activate the GMT custom symbols drawing tool
+			handles = FileNewBgFrame_CB(handles, [-0.5 0.5 -0.5 0.5 0 1], [], 'Whatever');
+			handles.geog = 0;		% To play safe
+			figName = 'Draw GMT Custom symbol';		% Title bar name for this case
+		end
+
 		drv = aux_funs('findFileType', s.grd_name);
-		erro = gateLoadFile(handles, drv, s.grd_name);		% It loads the file (or dies)
+		erro = gateLoadFile(handles, drv, s.grd_name);	% Load and displays the file (or dies)
 		if (erro),		return,		end					% Error message already issued
 		set(handles.figure1,'Colormap',s.img_pal);
 		handles = guidata(handles.figure1);				% Get the updated version
@@ -3349,7 +3359,7 @@ function FileOpenSession_CB(handles, fname)
 	end
 	try			s.illumType;
 	catch
-		if ( numel(strfind(s.illumComm,'/')) == 5 ),		s.illumType = 4;		end		% Lambertian
+		if (numel(strfind(s.illumComm,'/')) == 5),		s.illumType = 4;	end		% Lambertian
 		s.illumType = 1;		% Test only one case where this might be otherwise
 	end
 
@@ -3531,9 +3541,9 @@ function FileOpenSession_CB(handles, fname)
 		end
 	end
 	guidata(handles.figure1, handles);
-	handles.fileName = [PathName FileName];		% TRICK. To be used only in the next call to recentFiles()
+	handles.fileName = figName;					% TRICK. To be used only in the next call to recentFiles()
 	handles = recentFiles(handles);				% Insert session into "Recent Files" & NOT NOT NOT save handles
-	set(handles.figure1, 'Name',[PathName FileName])
+	set(handles.figure1, 'Name',figName)
 	if (tala == 0 && ~isempty(s.grd_name))		% Only now to not mess with the "current figure"
 		warndlg(['The file ' s.grd_name ' doesn''t exists on the directory it was when the session was saved. Put it back there.'],'Warning')
 	end
@@ -3760,12 +3770,13 @@ function FileSaveSession_CB(handles)
 	end
 
 	IamTINTOL = ~isempty(getappdata(handles.figure1, 'L_UsedByGUIData'));
+	is_defRegion = handles.is_defRegion;
 
 	save(fname,'grd_name','img_pal', 'havePline','Pline', 'haveMBtrack', 'MBtrack','MBbar', ...
 		'haveText','Texto', 'haveSymbol','Symbol', 'haveCircleGeo','CircleGeo', 'haveCircleCart', ...
 		'havePlineAsPoints','PlineAsPoints','CircleCart', 'map_limits', 'havePatches', 'Patches', ...
 		'haveCoasts', 'coastUD','havePolitic', 'politicUD','haveRivers', 'riversUD', 'illumComm', ...
-		'illumType', 'MecaMag5', 'IamTINTOL', '-v6')
+		'illumType', 'MecaMag5', 'IamTINTOL', 'is_defRegion', '-v6')
 	set(handles.figure1,'pointer','arrow')
 
 	% Trick to shut up stupid MLint warnings
