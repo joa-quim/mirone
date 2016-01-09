@@ -20,7 +20,7 @@ function varargout = mirone(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: mirone.m 7746 2016-01-09 02:24:05Z j $
+% $Id: mirone.m 7749 2016-01-09 19:22:21Z j $
 
 	if (nargin > 1 && ischar(varargin{1}))
 		if ( ~isempty(strfind(varargin{1},':')) || ~isempty(strfind(varargin{1},filesep)) )
@@ -3318,30 +3318,35 @@ function FileOpenSession_CB(handles, fname)
 			s.grd_name = [];				% In this case we need this as empty
 		end
 	end
+
+	is_defRegion = false;
+	try		is_defRegion = s.is_defRegion;		end
 	if (isempty(s.grd_name) || tala == 0)
-		scrsz = get(0,'ScreenSize');		% Get screen size
-		dx = s.map_limits(2) - s.map_limits(1);
-		dy = s.map_limits(4) - s.map_limits(3);
-		aspect = dy / dx;
-		nx = round(scrsz(3)*.75);		ny = round(nx * aspect);
-		if (ny > scrsz(4) - 30)
-			ny = scrsz(4) - 30;			nx = round(ny / aspect);
-		end
-		Z = repmat(uint8(255),ny,nx);			% Create a white image
-		X = [s.map_limits(1) s.map_limits(2)];	Y = [s.map_limits(3) s.map_limits(4)];
-		x_inc = diff(X) / nx;					y_inc = diff(Y) / ny;
-		dx2 = x_inc / 2;						dy2 = y_inc / 2;
-		X = X + [dx2 -dx2];						Y = Y + [dy2 -dy2];		% Make it such that the pix-reg info = region
-		handles.head = [X Y 0 255 0 x_inc y_inc];
-		handles.image_type = 20;
-		set(handles.figure1,'Colormap', ones( size(get(handles.figure1,'Colormap'),1), 3))
-		handles = show_image(handles,'Mirone Base Map',X,Y,Z,0,'xy',1);
-		if (isequal(s.map_limits, [-0.5 0.5 -0.5 0.5]))					% Special region to draw GMT symbols
-			aux_funs('addUI', handles)
+		if (is_defRegion)		% In this mode we activate the GMT custom symbols drawing tool
+			handles = FileNewBgFrame_CB(handles, [-0.5 0.5 -0.5 0.5 0 1], [], 'Whatever');
+			handles = guidata(handles.figure1);		% Get the updated version
+			handles.geog = 0;		% To play safe
+			figName = 'Draw GMT Custom symbol';		% Title bar name for this case
+		else
+			scrsz = get(0,'ScreenSize');		% Get screen size
+			dx = s.map_limits(2) - s.map_limits(1);
+			dy = s.map_limits(4) - s.map_limits(3);
+			aspect = dy / dx;
+			nx = round(scrsz(3)*.75);		ny = round(nx * aspect);
+			if (ny > scrsz(4) - 30)
+				ny = scrsz(4) - 30;			nx = round(ny / aspect);
+			end
+			Z = repmat(uint8(255),ny,nx);			% Create a white image
+			X = [s.map_limits(1) s.map_limits(2)];	Y = [s.map_limits(3) s.map_limits(4)];
+			x_inc = diff(X) / nx;					y_inc = diff(Y) / ny;
+			dx2 = x_inc / 2;						dy2 = y_inc / 2;
+			X = X + [dx2 -dx2];						Y = Y + [dy2 -dy2];		% Make it such that the pix-reg info = region
+			handles.head = [X Y 0 255 0 x_inc y_inc];
+			handles.image_type = 20;
+			set(handles.figure1,'Colormap', ones( size(get(handles.figure1,'Colormap'),1), 3))
+			handles = show_image(handles,'Mirone Base Map',X,Y,Z,0,'xy',1);
 		end
 	else
-		is_defRegion = false;
-		try		is_defRegion = s.is_defRegion;		end
 		if (is_defRegion)		% In this mode we activate the GMT custom symbols drawing tool
 			handles = FileNewBgFrame_CB(handles, [-0.5 0.5 -0.5 0.5 0 1], [], 'Whatever');
 			handles.geog = 0;		% To play safe
