@@ -20,7 +20,7 @@ function varargout = mirone(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: mirone.m 7745 2016-01-09 01:46:21Z j $
+% $Id: mirone.m 7746 2016-01-09 02:24:05Z j $
 
 	if (nargin > 1 && ischar(varargin{1}))
 		if ( ~isempty(strfind(varargin{1},':')) || ~isempty(strfind(varargin{1},filesep)) )
@@ -1834,9 +1834,12 @@ function loadGRID(handles, fullname, tipo, opt)
 	end																% from appdata. That is donne in show_image()
 
 	aux_funs('StoreZ',handles,X,Y,Z)				% If grid size is not to big we'll store it
-	aux_funs('colormap_bg',handles,Z,jet(256));
+	aux_funs('colormap_bg',handles,Z,jet(256));		% Insert the background color in the palette for arrays that have NaNs
 	if (~isa(Z, 'uint8'))
 		zz = scaleto8(Z);
+		if (isa(Z,'int8') && handles.head(6) < 255)	% Put in a colormap that uses all data range 
+			set(handles.figure1,'Colormap',jet(handles.head(6)+1))
+		end
 	else
 		zz = Z;
 	end
@@ -3783,7 +3786,7 @@ function FileSaveSession_CB(handles)
 	if (0 && grd_name && img_pal && map_limits && illumComm && haveMBtrack && havePline && haveText && haveSymbol), end
 	if (0 && haveCircleCart && havePlineAsPoints && haveCoasts && illumComm && haveMBtrack && illumType), end
 	if (0 && havePolitic && haveRivers && MBtrack && MBbar && Symbol && CircleGeo && MecaMag5 && CircleCart), end
-	if (0 && PlineAsPoints && coastUD && politicUD && riversUD && haveCircleGeo && IamTINTOL), end
+	if (0 && PlineAsPoints && coastUD && politicUD && riversUD && haveCircleGeo && IamTINTOL && is_defRegion), end
 
 % --------------------------------------------------------------------
 function ImageMapLimits_CB(handles, opt)
