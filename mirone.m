@@ -20,7 +20,7 @@ function varargout = mirone(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: mirone.m 7749 2016-01-09 19:22:21Z j $
+% $Id: mirone.m 7751 2016-01-12 01:46:04Z j $
 
 	if (nargin > 1 && ischar(varargin{1}))
 		if ( ~isempty(strfind(varargin{1},':')) || ~isempty(strfind(varargin{1},filesep)) )
@@ -1117,8 +1117,8 @@ function hand = FileNewBgFrame_CB(handles, region, imSize, figTitle)
 	pal = repmat(handles.bg_color,256,1);	set(handles.figure1,'Colormap',pal);
 	handles.image_type = 20;
 	handles = show_image(handles,figTitle,X,Y,Z,0,'xy',0,imSize);
-	if (numel(region) == 6 && region(6))	% def region doesn't use these
-		set([handles.Tools handles.Geography handles.Plates handles.MagGrav ...
+	if (handles.is_defRegion)			% def region doesn't use these
+		set([handles.Geography handles.Plates handles.MagGrav ...
 			handles.Seismology handles.Projections], 'Vis', 'off')
 	end
 	drawnow			% Otherwise, the damn Java makes a black window until all posterior elements are plotted
@@ -3566,6 +3566,7 @@ function FileSaveSession_CB(handles)
 
 	set(handles.figure1,'pointer','watch')
 	grd_name = handles.fileName;	% Use this variable name for compatibility reason
+	if (handles.image_type == 20),	grd_name = [];	end		% The idea is if we have only vector data it may have been edited
 	img_pal = get(handles.figure1,'Colormap');		illumComm = [];		illumType = handles.Illumin_type;
 	map_limits = getappdata(handles.axes1,'ThisImageLims');
 	if (handles.validGrid && handles.Illumin_type >= 1 && handles.Illumin_type <= 4)
