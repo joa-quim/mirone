@@ -16,7 +16,7 @@ function varargout = line_operations(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: line_operations.m 7750 2016-01-12 01:42:41Z j $
+% $Id: line_operations.m 7753 2016-01-12 01:52:28Z j $
 
 	if (isempty(varargin)),		return,		end
 	if (~isfield(varargin{1}, 'head')),		return,		end		% Call from an empty fig
@@ -696,11 +696,11 @@ function push_apply_CB(hObject, handles)
 					if (~ishandle(hCurrLine)),	continue,	end		% Means this line chunk was already stitched
 					hLines_t = findobj(handles.hMirAxes, 'Type', 'line');
 					hLines_t = setxor(hLines_t, hCurrLine);
-					do_stitching(hLines_t, hCurrLine, tol, xcell);
+					do_stitching(hLines_t, hCurrLine, tol, xcell, ycell);
 				end
 			else
 				hLines = setxor(hLines, hCurrLine);
-				do_stitching(hLines, hCurrLine, tol, xcell);
+				do_stitching(hLines, hCurrLine, tol, xcell, ycell);
 			end
 
 			resetSemaf(handles, hObject)	% Make it clear that it is neccessary to explicitly pick another line
@@ -905,7 +905,7 @@ function [x, y] = check_bombordo(hLine)
 % -------------------------------------------------------------------------------------------------
 
 % -------------------------------------------------------------------------------------------------
-function do_stitching(hLines, hCurrLine, tol, xcell)
+function do_stitching(hLines, hCurrLine, tol, xcell, ycell)
 % Core function to do the line stitching work
 
 	nLines = numel(hLines);				doAguenta = false;	hAguenta = [];	x = [];		y = [];
