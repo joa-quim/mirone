@@ -680,7 +680,7 @@ function push_apply_CB(hObject, handles)
 				tol = (out.val * out.toDegFac) / 6371005.076 * 180 / pi;		% Use the Authalic radius
 			end
 
-			hCurrLine = handles.hLine;		xcell = [];
+			hCurrLine = handles.hLine;		xcell = [];		ycell = [];
 			hLines = findobj(handles.hMirAxes, 'Type', 'line');
 			if (numel(hLines) == 1)				% Only one line in the whole plot. Check if it's a multi-segment
 				[xcell, ycell] = polysplit(get(hCurrLine,'XData'), get(hCurrLine,'YData'));
