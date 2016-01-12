@@ -16,7 +16,7 @@ function varargout = line_operations(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: line_operations.m 7753 2016-01-12 01:52:28Z j $
+% $Id: line_operations.m 7754 2016-01-12 14:45:30Z j $
 
 	if (isempty(varargin)),		return,		end
 	if (~isfield(varargin{1}, 'head')),		return,		end		% Call from an empty fig
@@ -680,7 +680,7 @@ function push_apply_CB(hObject, handles)
 				tol = (out.val * out.toDegFac) / 6371005.076 * 180 / pi;		% Use the Authalic radius
 			end
 
-			hCurrLine = handles.hLine;		xcell = [];
+			hCurrLine = handles.hLine;		xcell = [];		ycell = [];
 			hLines = findobj(handles.hMirAxes, 'Type', 'line');
 			if (numel(hLines) == 1)				% Only one line in the whole plot. Check if it's a multi-segment
 				[xcell, ycell] = polysplit(get(hCurrLine,'XData'), get(hCurrLine,'YData'));
