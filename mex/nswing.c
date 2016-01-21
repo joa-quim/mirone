@@ -1,5 +1,5 @@
 /*--------------------------------------------------------------------
- *	$Id: nswing.c 7719 2015-11-17 01:31:46Z j $
+ *	$Id: nswing.c 7755 2016-01-21 14:56:07Z j $
  *
  *	Copyright (c) 2012-2015 by J. Luis and J. M. Miranda
  *
@@ -16,7 +16,7 @@
  *	Contact info: w3.ualg.pt/~jluis/mirone
  *--------------------------------------------------------------------*/
 
-static char prog_id[] = "$Id: nswing.c 7719 2015-11-17 01:31:46Z j $";
+static char prog_id[] = "$Id: nswing.c 7755 2016-01-21 14:56:07Z j $";
 
 /*
  *	Original Fortran version of core hydrodynamic code by J.M. Miranda and COMCOT
@@ -335,10 +335,10 @@ void update_max_velocity(struct nestContainer *nest);
 void write_most_slice(struct nestContainer *nest, int *ncid_most, int *ids_most, unsigned int i_start,
                       unsigned int j_start, unsigned int i_end, unsigned int j_end, float *work, size_t *start,
                       size_t *count, double *slice_range, int isMost, int lev);
-int open_most_nc (struct nestContainer *nest, float *work, char *basename, char *name_var, char hist[], int *ids,
-                  unsigned int nx, unsigned int ny, double xMinOut, double yMinOut, int isMost, int lev);
-int open_anuga_sww (struct nestContainer *nest, char *fname_sww, char history[], int *ids, unsigned int i_start,
-                    unsigned int j_start, unsigned int i_end, unsigned int j_end, double xMinOut, double yMinOut, int lev);
+int open_most_nc(struct nestContainer *nest, float *work, char *basename, char *name_var, char hist[], int *ids,
+                 unsigned int nx, unsigned int ny, double xMinOut, double yMinOut, int isMost, int lev);
+int open_anuga_sww(struct nestContainer *nest, char *fname_sww, char history[], int *ids, unsigned int i_start,
+                   unsigned int j_start, unsigned int i_end, unsigned int j_end, double xMinOut, double yMinOut, int lev);
 void write_anuga_slice(struct nestContainer *nest, int ncid, int z_id, unsigned int i_start, unsigned int j_start,
                        unsigned int i_end, unsigned int j_end, float *work, size_t *start, size_t *count,
                        float *slice_range, int idx, int with_land, int lev);
@@ -722,7 +722,7 @@ int main(int argc, char **argv) {
 							strcat(fname3D, ".nc");		/* If no 2 or 3 letters extension, add .nc */
 					}
 					break;
-				case 'H':
+				case 'H':		/* Hot start stuff */
 					if (!argv[i][2])					/* Output momentum grids */
 						out_momentum = TRUE;
 					else if (argv[i][2] == 's' && argv[i][3] == ',')	/* NOT YET. Maybe it will be -Hs,time_to_stop */
@@ -970,7 +970,12 @@ int main(int argc, char **argv) {
 	}
 
 	if (argc <= 1 || error) {
-		mexPrintf ("NSWING - A tsunami maker (%s)\n\n", prog_id);
+#ifdef LIMIT_DISCHARGE
+		mexPrintf("NSWING - A tsunami maker (%s)\t\t-- With DISCHARGE limit.\n\n", prog_id)
+#else
+		mexPrintf("NSWING - A tsunami maker (%s)\n\n", prog_id);
+#endif
+
 #ifdef I_AM_MEX
 		mexPrintf("nswing(bat,hdr_bat,deform,hdr_deform, [-1<bat_lev1>], [-2<bat_lev2>], [-3<...>] [maregs], [-G|Z<name>[+lev],<int>],\n");
 		mexPrintf("       [-A<fname.sww>], [-B<BCfile>], [-C], [-D], [-E[p][m][,decim]], [-Fdip/strike/rake/slip/length/width/topDepth/x_epic/y_epic],\n");
@@ -998,7 +1003,7 @@ int main(int argc, char **argv) {
 		mexPrintf("\t   file with wave heights if -Z is used.\n");
 		mexPrintf("\t-F dip/strike/rake/slip/length/width/topDepth/x_epic/y_epic\n");
 		mexPrintf("\t   Fault parameters describing Dip,Azimuth,Rake,Slip(m),lenght,height and depth from sea-bottom\n");
-		mexPrintf("\t   x_epic,y_epic X and Y coordinates of begining of fault trace. All dimensions must be in km.\n");
+		mexPrintf("\t   x_epic, y_epic X and Y coordinates of begining of fault trace. All dimensions must be in km.\n");
 		mexPrintf("\t-Fk<west/east/south/north> Build a prism source with these limits and height of 1 meter.\n");
 		mexPrintf("\t-Fkc<x/y/nx/ny>. Alternatively, provide the prism size as center at x/y and nx/ny half-widths cell number.\n");
 		mexPrintf("\t-Fk.../RxC[/dx]>. Loops over a matrix of size R x C satrting at Lower Left Corner given bw w/e/s/n.\n");
@@ -1039,16 +1044,17 @@ int main(int argc, char **argv) {
 #ifdef I_AM_MEX
 		mexPrintf("\t   Warning: this option cannot be used when maregraphs were transmitted in input.\n");
 #endif
-		mexPrintf("\t-X <maning0[,maning1[,...]]> Manning friction coefficients. If only one provided, use it for all\n");
+		mexPrintf("\t-X <maning0[,maning1[,...]][+<depth>]> Manning friction coefficients. If only one provided, use it for all\n");
 		mexPrintf("\t   nesting levels (if applyable), otherwise specify one for each nesting level separated by commas.\n");
+		mexPrintf("\t   Append +<depth> to only apply Manning at depths shallower than depth (pos up).\n");
 		mexPrintf("\t-Z Same as -G but saves result in a 3D netCDF file.\n");
 		mexPrintf("\t-t <dt> Time step for simulation.\n");
 		mexPrintf("\t-f To use when grids are in geographical coordinates.\n");
-		mexPrintf("\t-e To be used from the Mirone stand-alone version.\n");
 #ifdef I_AM_MEX
+		mexPrintf("\t-e To be used from the Mirone stand-alone version.\n");
 		return;
 #else
-		return(error);
+		return error;
 #endif
 	}
 
@@ -1210,7 +1216,7 @@ int main(int argc, char **argv) {
 
 	if (error) Return(-1);
 
-	if (n_arg_no_char == 0) {		/* Read the nesting grids */
+	if (n_arg_no_char == 0) {		/* Read the nesting grids (when we have them ofc) */
 		int r_bin;
 		double dx, dy;		/* Local variables to not interfere with the base level ones */
 		struct	srf_header hdr;
@@ -1454,7 +1460,11 @@ int main(int argc, char **argv) {
 				Return(-1);
 		}
 		nest.time_h = time_h;
-		resamplegrid(&nest, num_of_nestGrids);	/* Resample eta(s) in descendent grids to avoid initial jumps at borders */
+		/* TEMP trick to NOT do initial interpolation of nested grids. For TESTING purposes only. */
+		if (nest.run_jump_time > 0 && nest.run_jump_time < nest.dt[0])
+			nest.run_jump_time = 0;		/* So that we don't trigger resamplegrid in nestify() */
+		else
+			resamplegrid(&nest, num_of_nestGrids);	/* Resample eta(s) in descendent grids to avoid initial jumps at borders */
 	}
 
 #ifdef HAVE_NETCDF
@@ -1591,6 +1601,9 @@ int main(int argc, char **argv) {
 			mexPrintf("Computing a grid of prisms with size %d (rows) x %d (cols)\n", KbGridRows, KbGridCols);
 		if (EPS4 != EPS4_)
 			mexPrintf("Using a modified EPS4 const of %g\n", EPS4);
+#ifdef LIMIT_DISCHARGE
+		mexPrintf("\nUsing DISCHARGE limit to minimize sources of instability\n")
+#endif
 		mexPrintf("\n");
 	}
 	/* --------------------------------------------------------------------------------------- */
@@ -1616,7 +1629,7 @@ int main(int argc, char **argv) {
 
 	one_100 = (double)(n_of_cycles) / 100.0;
 
-LoopKabas:		/* When computing a grid of Kabas we use a GOTO to simulate a loop */
+LoopKabas:		/* When computing a grid of Kabas we use a GOTO to simulate a loop. Sorry but have to. */
 	/* --------------------------------------------------------------------------------------- */
 	/* Begin main iteration */
 	/* --------------------------------------------------------------------------------------- */
@@ -1687,21 +1700,25 @@ LoopKabas:		/* When computing a grid of Kabas we use a GOTO to simulate a loop *
 			else {
 				if (k == 0) {		/* Write also the maregraphs coordinates (at grid nodes) */
 					int ix, iy, n;
-					char *txt[4], t0[16], t1[16], t2[16], t3[16];	/* for the headers */
-					txt[0] = mxCalloc((size_t)n_mareg, 12); txt[1] = mxCalloc((size_t)n_mareg, 12);
-					txt[2] = mxCalloc((size_t)n_mareg, 12); txt[3] = mxCalloc((size_t)n_mareg, 12);
+					char *txt[4], t0[16], t1[16], t2[16], t3[16], *txt_X, *txt_Y;	/* for the headers */
+					txt[0] = mxCalloc((size_t)n_mareg, 16); txt[1] = mxCalloc((size_t)n_mareg, 16);
+					txt[2] = mxCalloc((size_t)n_mareg, 16); txt[3] = mxCalloc((size_t)n_mareg, 16);
+					txt_X  = mxCalloc((size_t)(n_mareg*10+4), 1);	txt_Y = mxCalloc((size_t)(n_mareg*10+4), 1);
 					sprintf(txt[0], "#\t"); sprintf(txt[1], "#\t"); sprintf(txt[2], "#\t"); sprintf(txt[3], "#\t");
+					sprintf(txt_X, "# X\t");	sprintf(txt_X, "# Y\t");
 					for (n = 0; n < n_mareg; n++) {
 						ix = lcum_p[n] % nest.hdr[writeLevel].nx;
 						iy = lcum_p[n] / nest.hdr[writeLevel].nx;
-						sprintf(t0, "%8s",mareg_names[n]);
+						sprintf(t0, "%8s",  mareg_names[n]);
 						sprintf(t1, "\t%g", nest.hdr[writeLevel].x_min + ix * nest.hdr[writeLevel].x_inc);	/* Xs */
 						sprintf(t2, "\t%g", nest.hdr[writeLevel].y_min + iy * nest.hdr[writeLevel].y_inc);	/* Ys */
 						sprintf(t3, "\t%.1f", nest.bat[writeLevel][lcum_p[n]]); 	/* Zs (from grid) */
 						strcat(txt[0], t0);		strcat(txt[1], t1);		strcat(txt[2], t2);		strcat(txt[3], t3);
+						strcat(txt_X, t1);		strcat(txt_Y, t2);
 					}
-					fprintf(fp, "%s\n%s\n%s\n%s\n", txt[0], txt[1], txt[2], txt[3]);
-					mxFree(txt[0]);	mxFree(txt[1]);	mxFree(txt[2]);	mxFree(txt[3]);
+					fprintf(fp, "%s\n%s\n%s\n%s\n%s\n%s\n", txt[0], txt[1], txt[2], txt[3], txt_X, txt_Y);
+					fprintf(fp, ">XY\n");		/* So that the file can be opened directly with dag-n-drop to Mirone */
+					mxFree(txt[0]);	mxFree(txt[1]);	mxFree(txt[2]);	mxFree(txt[3]);	mxFree(txt_X);	mxFree(txt_Y);
 				}
 				fprintf (fp, "%.3f", (time_h + dt/2));
 				if (out_maregs_velocity) {
@@ -1813,7 +1830,7 @@ LoopKabas:		/* When computing a grid of Kabas we use a GOTO to simulate a loop *
 				write_grd_bin(fname_mask_lbeach, xMinOut, yMinOut, dx, dy, i_start, j_start, i_end, j_end,
 				              nest.hdr[writeLevel].nx, wmax);
 			}
-			if (nest.do_short_beach) {           /* In this case the calculations were done in mass() */
+			if (nest.do_short_beach) {          /* In this case the calculations were done in mass() */
 				for (ij = 0; ij < nest.hdr[writeLevel].nm; ij++)
 					wmax[ij] = nest.short_beach[writeLevel][ij];/* Implicitly convert from short int to float */
 
@@ -2025,10 +2042,23 @@ LoopKabas:		/* When computing a grid of Kabas we use a GOTO to simulate a loop *
 			err_trap(nc_put_vara_int(ncid_Mar, ids_Mar[2], &strt, &count0, &cntKabas));	/* Update unlimited var */
 
 			if (cntKabas < KbGridRows * KbGridCols) {	/* While not all nodes in KabaGrid GOTO ... */
+				unsigned int nm, lev;
 				sprintf(txt, "%g/%g/%g/%g", x1, x2, y1, y2);	/* Region string to be stored in the nc file */
 				binRegions[cntKabas] = strdup(&txt[0]);
 				kaba_source(hdr_b, dx, dy, x1, x2, y1, y2, do_Kaba, nest.etaa[0]);
-				count_maregs_timeout = 0;	count_time_maregs_timeout = 0;		/* Reset these */
+				/* --------------------------------- Reset these ----------------------------------*/
+				count_maregs_timeout = 0;	count_time_maregs_timeout = 0;	nest.time_h = time_h = 0;
+				for (lev = 0; lev <= num_of_nestGrids; lev++) {
+					nm = nest.hdr[lev].nm;
+					memset(nest.etad[lev],     0, (size_t)(nm * sizeof(double)));
+					memset(nest.fluxm_a[lev],  0, (size_t)(nm * sizeof(double)));
+					memset(nest.fluxm_d[lev],  0, (size_t)(nm * sizeof(double)));
+					memset(nest.fluxn_a[lev],  0, (size_t)(nm * sizeof(double)));
+					memset(nest.fluxn_d[lev],  0, (size_t)(nm * sizeof(double)));
+					memset(nest.htotal_a[lev], 0, (size_t)(nm * sizeof(double)));
+					memset(nest.htotal_d[lev], 0, (size_t)(nm * sizeof(double)));
+				}
+				/* ------------------------------------------------------------------------------- */
 				fprintf(stderr, "Computing prism %d out of %d (row = %d\tcol = %d)\t%s\n",
 				        cntKabas+1, KbGridRows * KbGridCols, row+1, col+1, txt);
 				goto LoopKabas;			/* A LOOP HERE */
@@ -2042,8 +2072,10 @@ LoopKabas:		/* When computing a grid of Kabas we use a GOTO to simulate a loop *
 
 		mxFree(maregs_array);
 		mxFree(maregs_timeout);
-		for (k = 0; k < KbGridRows * KbGridCols; k++) mxFree(binRegions[k]);
-		mxFree(binRegions);
+		if (do_Kaba) {
+			for (k = 0; k < KbGridRows * KbGridCols; k++) mxFree(binRegions[k]);
+			mxFree(binRegions);
+		}
 	}
 #endif
 	
@@ -3333,12 +3365,12 @@ int open_maregs_nc(struct nestContainer *nest, char *fname, float *work, size_t 
 	err_trap(nc_def_var(ncid, "time",         NC_DOUBLE,1, &dim0[1], &ids[1]));
 	err_trap(nc_def_var(ncid, "binIndex",     NC_INT,   1, &dim0[2], &ids[2]));
 	if (nest->isGeog) {
-		err_trap(nc_def_var(ncid, "lonMareg", NC_DOUBLE,1, &dim0[1], &ids[3]));
-		err_trap(nc_def_var(ncid, "latMareg", NC_DOUBLE,1, &dim0[1], &ids[4]));
+		err_trap(nc_def_var(ncid, "lonMareg", NC_DOUBLE,1, &dim0[0], &ids[3]));
+		err_trap(nc_def_var(ncid, "latMareg", NC_DOUBLE,1, &dim0[0], &ids[4]));
 	}
 	else {
-		err_trap(nc_def_var(ncid, "xMareg",   NC_DOUBLE,1, &dim0[1], &ids[3]));
-		err_trap(nc_def_var(ncid, "yMareg",   NC_DOUBLE,1, &dim0[1], &ids[4]));
+		err_trap(nc_def_var(ncid, "xMareg",   NC_DOUBLE,1, &dim0[0], &ids[3]));
+		err_trap(nc_def_var(ncid, "yMareg",   NC_DOUBLE,1, &dim0[0], &ids[4]));
 	}
 	err_trap(nc_def_var(ncid, "namesMareg",   NC_STRING,1, &dim0[0], &ids[5]));
 	err_trap(nc_def_var(ncid, "binRegions",   NC_STRING,1, &dim0[2], &ids[6]));
@@ -3357,7 +3389,7 @@ int open_maregs_nc(struct nestContainer *nest, char *fname, float *work, size_t 
 	err_trap(nc_put_att_text (ncid, ids[4], "Description", 22, "Latitude of maregraphs"));
 	err_trap(nc_put_att_text (ncid, ids[5], "Description", 29, "Code names for each maregraph"));
 	err_trap(nc_put_att_text (ncid, ids[6], "Description", 36, "String of BoundingBox for each prism"));
-	err_trap(nc_put_att_text (ncid, ids[7], "Description", 54, "3D array of maregraph waves: Nmareg x Ntimes x Nprisms"));
+	err_trap(nc_put_att_text (ncid, ids[7], "Description", 54, "3D array of maregraph waves: Nprisms x Ntimes x Nmareg"));
 
 	/* ---- Global Attributes ------------ */
 	err_trap(nc_put_att_text(ncid, NC_GLOBAL, "Institution", 10, "Mirone Tec"));
@@ -5168,13 +5200,13 @@ void nestify(struct nestContainer *nest, int nNg, int level, int isGeog) {
 	   Start with 0 in first call and this counter is increased internally */
 	int j, last_iter, nhalf;
 
-	if (nest->run_jump_time) {			/* If holding childrens state */
+	if (nest->run_jump_time > 0) {      /* If holding childrens state */
 		if (nest->run_jump_time > nest->time_h)
 			return;
 		else {
 			/* At this point we must interpolate children's eta & flux to not create family discontinuities */
 			resamplegrid(nest, nNg);
-			nest->run_jump_time = 0;	/* Since we are done, reset to zero so we won't pass here again */
+			nest->run_jump_time = 0;    /* Since we are done, reset to zero so we won't pass here again */
 		}
 	}
 
@@ -5215,8 +5247,13 @@ void resamplegrid(struct nestContainer *nest, int nNg) {
 				if (nest->bat[k][ij] < 0) continue;
 				xx = nest->hdr[k].x_min + col * nest->hdr[k].x_inc;
 				nest->etaa[k][ij]    = GMT_get_bcr_z(nest->etaa[k-1],    nest->hdr[k-1], xx, yy);
+				nest->etad[k][ij]    = GMT_get_bcr_z(nest->etad[k-1],    nest->hdr[k-1], xx, yy);
 				nest->fluxm_a[k][ij] = GMT_get_bcr_z(nest->fluxm_a[k-1], nest->hdr[k-1], xx, yy);
 				nest->fluxn_a[k][ij] = GMT_get_bcr_z(nest->fluxn_a[k-1], nest->hdr[k-1], xx, yy);
+				nest->fluxm_d[k][ij] = GMT_get_bcr_z(nest->fluxm_d[k-1], nest->hdr[k-1], xx, yy);
+				nest->fluxn_d[k][ij] = GMT_get_bcr_z(nest->fluxn_d[k-1], nest->hdr[k-1], xx, yy);
+				nest->htotal_a[k][ij]= GMT_get_bcr_z(nest->htotal_a[k-1],nest->hdr[k-1], xx, yy);
+				nest->htotal_d[k][ij]= GMT_get_bcr_z(nest->htotal_d[k-1],nest->hdr[k-1], xx, yy);
 			}
 		}
 	}
@@ -5340,7 +5377,7 @@ void kaba_source(struct srf_header hdr, double x_inc, double y_inc, double x_min
 		row1 = irint((y_min - hdr.y_min) / y_inc) - ny2;
 		row2 = row1 + 2*ny2;
 	}
-	memset(z, 0, hdr.nx * hdr.ny * sizeof(float));		/* Need because this function may be called recursivly */
+	memset(z, 0, hdr.nx * hdr.ny * sizeof(double));		/* Need because this function may be called recursivly */
 	for (row = row1; row <= row2; row++) {
 		for (col = col1; col <= col2; col++) {
 			z[ij_grd(col,row,hdr)] = 1;
