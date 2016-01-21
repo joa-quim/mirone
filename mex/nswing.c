@@ -1003,7 +1003,7 @@ int main(int argc, char **argv) {
 		mexPrintf("\t   file with wave heights if -Z is used.\n");
 		mexPrintf("\t-F dip/strike/rake/slip/length/width/topDepth/x_epic/y_epic\n");
 		mexPrintf("\t   Fault parameters describing Dip,Azimuth,Rake,Slip(m),lenght,height and depth from sea-bottom\n");
-		mexPrintf("\t   x_epic,y_epic X and Y coordinates of begining of fault trace. All dimensions must be in km.\n");
+		mexPrintf("\t   x_epic, y_epic X and Y coordinates of begining of fault trace. All dimensions must be in km.\n");
 		mexPrintf("\t-Fk<west/east/south/north> Build a prism source with these limits and height of 1 meter.\n");
 		mexPrintf("\t-Fkc<x/y/nx/ny>. Alternatively, provide the prism size as center at x/y and nx/ny half-widths cell number.\n");
 		mexPrintf("\t-Fk.../RxC[/dx]>. Loops over a matrix of size R x C satrting at Lower Left Corner given bw w/e/s/n.\n");
@@ -1216,7 +1216,7 @@ int main(int argc, char **argv) {
 
 	if (error) Return(-1);
 
-	if (n_arg_no_char == 0) {		/* Read the nesting grids */
+	if (n_arg_no_char == 0) {		/* Read the nesting grids (when we have them ofc) */
 		int r_bin;
 		double dx, dy;		/* Local variables to not interfere with the base level ones */
 		struct	srf_header hdr;
@@ -1700,22 +1700,25 @@ LoopKabas:		/* When computing a grid of Kabas we use a GOTO to simulate a loop. 
 			else {
 				if (k == 0) {		/* Write also the maregraphs coordinates (at grid nodes) */
 					int ix, iy, n;
-					char *txt[4], t0[16], t1[16], t2[16], t3[16];	/* for the headers */
+					char *txt[4], t0[16], t1[16], t2[16], t3[16], *txt_X, *txt_Y;	/* for the headers */
 					txt[0] = mxCalloc((size_t)n_mareg, 16); txt[1] = mxCalloc((size_t)n_mareg, 16);
 					txt[2] = mxCalloc((size_t)n_mareg, 16); txt[3] = mxCalloc((size_t)n_mareg, 16);
+					txt_X  = mxCalloc((size_t)(n_mareg*10+4), 1);	txt_Y = mxCalloc((size_t)(n_mareg*10+4), 1);
 					sprintf(txt[0], "#\t"); sprintf(txt[1], "#\t"); sprintf(txt[2], "#\t"); sprintf(txt[3], "#\t");
+					sprintf(txt_X, "# X\t");	sprintf(txt_X, "# Y\t");
 					for (n = 0; n < n_mareg; n++) {
 						ix = lcum_p[n] % nest.hdr[writeLevel].nx;
 						iy = lcum_p[n] / nest.hdr[writeLevel].nx;
-						sprintf(t0, "%8s",mareg_names[n]);
+						sprintf(t0, "%8s",  mareg_names[n]);
 						sprintf(t1, "\t%g", nest.hdr[writeLevel].x_min + ix * nest.hdr[writeLevel].x_inc);	/* Xs */
 						sprintf(t2, "\t%g", nest.hdr[writeLevel].y_min + iy * nest.hdr[writeLevel].y_inc);	/* Ys */
 						sprintf(t3, "\t%.1f", nest.bat[writeLevel][lcum_p[n]]); 	/* Zs (from grid) */
 						strcat(txt[0], t0);		strcat(txt[1], t1);		strcat(txt[2], t2);		strcat(txt[3], t3);
+						strcat(txt_X, t1);		strcat(txt_Y, t2);
 					}
-					fprintf(fp, "%s\n%s\n%s\n%s\n", txt[0], txt[1], txt[2], txt[3]);
+					fprintf(fp, "%s\n%s\n%s\n%s\n%s\n%s\n", txt[0], txt[1], txt[2], txt[3], txt_X, txt_Y);
 					fprintf(fp, ">XY\n");		/* So that the file can be opened directly with dag-n-drop to Mirone */
-					mxFree(txt[0]);	mxFree(txt[1]);	mxFree(txt[2]);	mxFree(txt[3]);
+					mxFree(txt[0]);	mxFree(txt[1]);	mxFree(txt[2]);	mxFree(txt[3]);	mxFree(txt_X);	mxFree(txt_Y);
 				}
 				fprintf (fp, "%.3f", (time_h + dt/2));
 				if (out_maregs_velocity) {
@@ -2039,10 +2042,23 @@ LoopKabas:		/* When computing a grid of Kabas we use a GOTO to simulate a loop. 
 			err_trap(nc_put_vara_int(ncid_Mar, ids_Mar[2], &strt, &count0, &cntKabas));	/* Update unlimited var */
 
 			if (cntKabas < KbGridRows * KbGridCols) {	/* While not all nodes in KabaGrid GOTO ... */
+				unsigned int nm, lev;
 				sprintf(txt, "%g/%g/%g/%g", x1, x2, y1, y2);	/* Region string to be stored in the nc file */
 				binRegions[cntKabas] = strdup(&txt[0]);
 				kaba_source(hdr_b, dx, dy, x1, x2, y1, y2, do_Kaba, nest.etaa[0]);
-				count_maregs_timeout = 0;	count_time_maregs_timeout = 0;		/* Reset these */
+				/* --------------------------------- Reset these ----------------------------------*/
+				count_maregs_timeout = 0;	count_time_maregs_timeout = 0;	nest.time_h = time_h = 0;
+				for (lev = 0; lev <= num_of_nestGrids; lev++) {
+					nm = nest.hdr[lev].nm;
+					memset(nest.etad[lev],     0, (size_t)(nm * sizeof(double)));
+					memset(nest.fluxm_a[lev],  0, (size_t)(nm * sizeof(double)));
+					memset(nest.fluxm_d[lev],  0, (size_t)(nm * sizeof(double)));
+					memset(nest.fluxn_a[lev],  0, (size_t)(nm * sizeof(double)));
+					memset(nest.fluxn_d[lev],  0, (size_t)(nm * sizeof(double)));
+					memset(nest.htotal_a[lev], 0, (size_t)(nm * sizeof(double)));
+					memset(nest.htotal_d[lev], 0, (size_t)(nm * sizeof(double)));
+				}
+				/* ------------------------------------------------------------------------------- */
 				fprintf(stderr, "Computing prism %d out of %d (row = %d\tcol = %d)\t%s\n",
 				        cntKabas+1, KbGridRows * KbGridCols, row+1, col+1, txt);
 				goto LoopKabas;			/* A LOOP HERE */
@@ -2056,8 +2072,10 @@ LoopKabas:		/* When computing a grid of Kabas we use a GOTO to simulate a loop. 
 
 		mxFree(maregs_array);
 		mxFree(maregs_timeout);
-		for (k = 0; k < KbGridRows * KbGridCols; k++) mxFree(binRegions[k]);
-		mxFree(binRegions);
+		if (do_Kaba) {
+			for (k = 0; k < KbGridRows * KbGridCols; k++) mxFree(binRegions[k]);
+			mxFree(binRegions);
+		}
 	}
 #endif
 	
@@ -3347,12 +3365,12 @@ int open_maregs_nc(struct nestContainer *nest, char *fname, float *work, size_t 
 	err_trap(nc_def_var(ncid, "time",         NC_DOUBLE,1, &dim0[1], &ids[1]));
 	err_trap(nc_def_var(ncid, "binIndex",     NC_INT,   1, &dim0[2], &ids[2]));
 	if (nest->isGeog) {
-		err_trap(nc_def_var(ncid, "lonMareg", NC_DOUBLE,1, &dim0[1], &ids[3]));
-		err_trap(nc_def_var(ncid, "latMareg", NC_DOUBLE,1, &dim0[1], &ids[4]));
+		err_trap(nc_def_var(ncid, "lonMareg", NC_DOUBLE,1, &dim0[0], &ids[3]));
+		err_trap(nc_def_var(ncid, "latMareg", NC_DOUBLE,1, &dim0[0], &ids[4]));
 	}
 	else {
-		err_trap(nc_def_var(ncid, "xMareg",   NC_DOUBLE,1, &dim0[1], &ids[3]));
-		err_trap(nc_def_var(ncid, "yMareg",   NC_DOUBLE,1, &dim0[1], &ids[4]));
+		err_trap(nc_def_var(ncid, "xMareg",   NC_DOUBLE,1, &dim0[0], &ids[3]));
+		err_trap(nc_def_var(ncid, "yMareg",   NC_DOUBLE,1, &dim0[0], &ids[4]));
 	}
 	err_trap(nc_def_var(ncid, "namesMareg",   NC_STRING,1, &dim0[0], &ids[5]));
 	err_trap(nc_def_var(ncid, "binRegions",   NC_STRING,1, &dim0[2], &ids[6]));
@@ -3371,7 +3389,7 @@ int open_maregs_nc(struct nestContainer *nest, char *fname, float *work, size_t 
 	err_trap(nc_put_att_text (ncid, ids[4], "Description", 22, "Latitude of maregraphs"));
 	err_trap(nc_put_att_text (ncid, ids[5], "Description", 29, "Code names for each maregraph"));
 	err_trap(nc_put_att_text (ncid, ids[6], "Description", 36, "String of BoundingBox for each prism"));
-	err_trap(nc_put_att_text (ncid, ids[7], "Description", 54, "3D array of maregraph waves: Nmareg x Ntimes x Nprisms"));
+	err_trap(nc_put_att_text (ncid, ids[7], "Description", 54, "3D array of maregraph waves: Nprisms x Ntimes x Nmareg"));
 
 	/* ---- Global Attributes ------------ */
 	err_trap(nc_put_att_text(ncid, NC_GLOBAL, "Institution", 10, "Mirone Tec"));
@@ -5359,7 +5377,7 @@ void kaba_source(struct srf_header hdr, double x_inc, double y_inc, double x_min
 		row1 = irint((y_min - hdr.y_min) / y_inc) - ny2;
 		row2 = row1 + 2*ny2;
 	}
-	memset(z, 0, hdr.nx * hdr.ny * sizeof(float));		/* Need because this function may be called recursivly */
+	memset(z, 0, hdr.nx * hdr.ny * sizeof(double));		/* Need because this function may be called recursivly */
 	for (row = row1; row <= row2; row++) {
 		for (col = col1; col <= col2; col++) {
 			z[ij_grd(col,row,hdr)] = 1;
