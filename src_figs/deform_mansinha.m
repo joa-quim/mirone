@@ -1,7 +1,7 @@
 function varargout = deform_mansinha(varargin)
-% Compute Elastic deformations using the rngchng MEX
+% Compute Elastic deformations
 
-%	Copyright (c) 2004-2015 by J. Luis
+%	Copyright (c) 2004-2016 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -16,7 +16,7 @@ function varargout = deform_mansinha(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: deform_mansinha.m 4775 2015-09-22 10:53:48Z j $
+% $Id: deform_mansinha.m 7757 2016-01-26 12:28:55Z j $
 
 	if isempty(varargin)
 		errordlg('DEFORM MANSINHA: Wrong number of input args','Error');    return
