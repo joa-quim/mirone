@@ -4,11 +4,12 @@ function [latc,lonc] = circ_geo(lat, lon, rng, azim, np, noforce_pipi)
 % azim and np are optional arguments. "azim" is a one or two-column vector. 
 % For single column, returns the arc between 0 and azim. For two columns, returns
 % the arc between azim(1) and azim(2).
+% RNG is the radius of the circle. If it si a vector than compute as many circles as elements of RNG. 
 % "np" specifies the number of output points [default = 180].
 % NOFORCE_PIPI		If TRUE angles are not truncated into the [-pi pi] interval (default)
 % All angles are in degrees.
 
-%	Copyright (c) 2004-2012 by J. Luis
+%	Copyright (c) 2004-2016 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -88,12 +89,15 @@ function [latc,lonc] = circ_geo(lat, lon, rng, azim, np, noforce_pipi)
 		if (any(ind)),		lonc(ind) = lonc(ind) - 2*pi;	end
 		ind = (lonc < -pi);
 		if (any(ind)),		lonc(ind) = lonc(ind) + 2*pi;	end
+		[mi, ind] = min(lonc);
 	else				% Truncate angles into the [0 2pi] range
 		ind = (lonc > 2*pi);
 		if (any(ind)),		lonc(ind) = lonc(ind) - 2*pi;	end
 		ind = (lonc < 0);
 		if (any(ind)),		lonc(ind) = lonc(ind) + 2*pi;	end
 	end
+	lonc = [lonc(ind:end) lonc(1:ind-1)];
+	latc = [latc(ind:end) latc(1:ind-1)];
 
 	%  Convert back to degrees
 	latc = latc / D2R;      lonc = lonc / D2R;
