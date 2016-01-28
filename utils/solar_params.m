@@ -48,7 +48,7 @@ function [sun_params, lon, lat] = solar_params(lon_pt, lat_pt, TZ, termin, day, 
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: $
+% $Id$
 
 	if (nargin == 0)		% Undocumented option. Defaults to Faro, Portugal.
 		lon_pt = -7.92;		lat_pt = 37.073;
