@@ -31,7 +31,7 @@ function varargout = guess_bin(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id$
+% $Id: guess_bin.m 4417 2014-04-24 21:22:37Z j $
 
 	if (nargin == 0)
 		errordlg('Guess in bin ERROR: wrong number of input arguments','Error'),	return

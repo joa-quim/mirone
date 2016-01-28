@@ -10,7 +10,7 @@ function listbox_message(texto,ind,opt)
 %   'del' deletes field number 'ind'
 %   'ins' inserts a new field at position 'ind'
 
-% $Id$
+% $Id: listbox_message.m 3488 2012-04-18 14:55:19Z j $
 %	Copyright (c) 2004-2012 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute

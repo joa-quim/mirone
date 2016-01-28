@@ -16,7 +16,7 @@ function varargout = euler_stuff(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id$
+% $Id: euler_stuff.m 4565 2014-09-23 16:48:30Z j $
 
 	if (isempty(varargin))
 		errordlg('EULER_STUFF: wrong number of input arguments.','Error'),	return

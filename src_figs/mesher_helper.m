@@ -16,7 +16,7 @@ function varargout = mesher_helper(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % ---------------------------------------------------------------------------------
 
-% $Id$
+% $Id: mesher_helper.m 4591 2014-10-27 15:55:23Z j $
 
 	if (nargin > 1 && ischar(varargin{1}))
 		gui_CB = str2func(varargin{1});

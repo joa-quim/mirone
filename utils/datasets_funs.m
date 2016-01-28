@@ -16,7 +16,7 @@ function  datasets_funs(opt,varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id$
+% $Id: datasets_funs.m 4758 2015-07-28 23:30:28Z j $
 
 switch opt(1:3)
 	case 'Coa'

@@ -27,7 +27,7 @@ function [w, to_restore] = mboard(w,nx,ny,nnx,nny,mode)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id$
+% $Id: mboard.m 3869 2013-02-12 14:28:30Z j $
 
 if (nargin == 5),    mode = 'taper';     end
 if (nargin == 3),    mode = 'mirror';     end

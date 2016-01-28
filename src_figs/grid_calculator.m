@@ -25,7 +25,7 @@ function varargout = grid_calculator(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id$
+% $Id: grid_calculator.m 4706 2015-04-21 13:16:26Z j $
 
 	hObject = figure('Vis','off');
 	grid_calculator_LayoutFcn(hObject);

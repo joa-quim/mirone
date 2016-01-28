@@ -27,7 +27,7 @@ function varargout = resizetrue(handles, opt, axis_t, opt_pad)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 	
-% $Id$
+% $Id: resizetrue.m 4702 2015-04-15 14:29:36Z j $
 
 	if (nargin < 4),	opt_pad = 0;	end
 

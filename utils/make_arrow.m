@@ -20,7 +20,7 @@ function [xt, yt] = make_arrow(lh , hscale, vscale, ah, vFac, aspect, full)
 
 % Joaquim Luis	27-Aug-2008
 
-% $Id$
+% $Id: make_arrow.m 3645 2012-07-25 18:25:54Z j $
 
 	n_args = nargin;
 	if (n_args == 2)

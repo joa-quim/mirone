@@ -1,5 +1,5 @@
 /*--------------------------------------------------------------------
- *	$Id$
+ *	$Id: grdgradient_m.c 4444 2014-05-01 22:33:09Z j $
  *
  *	Copyright (c) 1991-2004 by P. Wessel and W. H. F. Smith
  *	See COPYING file for copying and redistribution conditions.

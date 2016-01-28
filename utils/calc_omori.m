@@ -23,7 +23,7 @@ function calc_omori(events_time,events_mag,h_mir_fig);
 % J.Woessner
 % last update: 20.07.04
 
-% $Id$
+% $Id: calc_omori.m 4270 2014-01-11 22:20:41Z j $
 
 % Get input parameters
 prompt = {'Enter length of learning period (days)','Enter number of bootstraps:',...

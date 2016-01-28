@@ -16,7 +16,7 @@ function varargout = rally_plater(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id$
+% $Id: rally_plater.m 3640 2012-07-23 21:03:30Z j $
 
 	hObject = figure('Tag','figure1','Visible','off');
 	rally_plater_LayoutFcn(hObject);

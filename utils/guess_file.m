@@ -31,7 +31,7 @@ function [bin,n_column,multi_seg,n_headers,isGSHHS] = guess_file(fiche, opt1, op
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id$
+% $Id: guess_file.m 4582 2014-10-20 22:20:42Z j $
 
 	% Error testing
 	bin = 0;    multi_seg = 0;  n_headers = 0;  n_column = 0;	isGSHHS = false;

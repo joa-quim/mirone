@@ -16,7 +16,7 @@ function varargout = telhometro(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id$
+% $Id: telhometro.m 4083 2013-08-06 21:53:40Z j $
 
 	if isempty(varargin)
         errordlg('TELHOMETRO: wrong number of input arguments.','Error'),	return

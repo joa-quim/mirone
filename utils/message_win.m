@@ -41,7 +41,7 @@ function handFig = message_win(option, texto, varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id$
+% $Id: message_win.m 4725 2015-07-20 21:53:37Z j $
 
 tagFig = 'Wdmsgfig';
 tagTxt = 'textTag';

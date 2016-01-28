@@ -31,7 +31,7 @@ function tintol(handles,axis_t,X,Y,I)
 % 	h2 = setxor(h1,handles.OpenGI);
 % 	delete(h2)
 
-% $Id$
+% $Id: tintol.m 4715 2015-05-22 11:04:41Z j $
 
 	set(handles.figure1, 'Vis', 'off')
 

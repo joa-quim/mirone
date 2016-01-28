@@ -7,11 +7,12 @@ case 4
 # The 'ano' variable
 1:12
 # The 'fname' var 
-char C:\a1\MODIS\algas\Algas_qual_nsst_TERRA_00_10.nc
+#char C:\a1\MODIS\algas\Algas_qual_nsst_TERRA_00_10.nc
+char C:\SVN\mironeWC\lixo_qual.nc
 # The 'quality'
-0
+6
 # The 'nCells' var
-200
+100
 # The 'fname3' var 	NOTE HOW EMPTY MUST BE SET
 []
 # The 'splina' var
@@ -21,4 +22,5 @@ char C:\a1\MODIS\algas\Algas_qual_nsst_TERRA_00_10.nc
 # The 'chkPts_file' var (optional)
 []
 # The 'grd_out' var (Name of output file - optional)
-char C:\a1\MODIS\algas\lixo.nc
+#char C:\a1\MODIS\algas\lixo.nc
+char C:\SVN\mironeWC\tmp\lixo.nc

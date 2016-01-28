@@ -15,7 +15,7 @@ function uirestore_j(uistate,kidsOnly)
   
 %   Coffeeright J. Luis 2004-2012
 
-% $Id$
+% $Id: uirestore_j.m 3624 2012-07-22 20:17:57Z j $
 
 	hFig = uistate.figureHandle;
 

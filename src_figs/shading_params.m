@@ -16,7 +16,7 @@ function varargout = shading_params(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id$
+% $Id: shading_params.m 3565 2012-05-25 19:46:32Z j $
 
 	if (isempty(varargin))
 		errordlg('Unknown Illumination option','Error'),	return

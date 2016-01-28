@@ -16,7 +16,7 @@ function varargout = mosaicer(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id$
+% $Id: mosaicer.m 4694 2015-03-09 02:51:40Z j $
 
 	hObject = figure('Vis','off');
 	mosaicer_LayoutFcn(hObject);

@@ -574,6 +574,7 @@ uimenu('Parent',h,'Call','datasets_funs(''ODP'',guidata(gcbo),''IODP'')','Label'
 uimenu('Parent',h,'Call','datasets_funs(''ODP'',guidata(gcbo),''ALL'')','Label','DSDP+ODP+IODP');
 
 uimenu('Parent',hDS,'Call','atlas(guidata(gcbo))','Label','Atlas','Tag','Atlas','Sep','on');
+uimenu('Parent',hDS,'Call','mirone(''TransferB_CB'',guidata(gcbo),''DayNight'')','Label','Day and Night','Sep','on');
 % uimenu('Parent',hDS,'Call','datasets_funs(''GTiles'', guidata(gcbo))','Label','GTiles Map','Sep','on');
 
 %% --------------------------- Plates -------------------------------------

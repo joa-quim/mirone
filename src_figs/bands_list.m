@@ -16,7 +16,7 @@ function varargout = bands_list(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id$
+% $Id: bands_list.m 4330 2014-02-27 22:47:14Z j $
 
 	if (numel(varargin) == 0),		return,		end
  

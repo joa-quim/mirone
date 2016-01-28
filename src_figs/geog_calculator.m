@@ -20,7 +20,7 @@ function varargout = geog_calculator(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id$
+% $Id: geog_calculator.m 4730 2015-07-22 15:17:26Z j $
 
 	hObject = figure('Tag','figure1','Visible','off');
 	geog_calculator_LayoutFcn(hObject);

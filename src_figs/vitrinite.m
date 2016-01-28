@@ -16,7 +16,7 @@ function varargout = vitrinite(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id$
+% $Id: vitrinite.m 3608 2012-07-12 16:37:13Z j $
 
 	hObject = figure('Tag','figure1','Visible','off');
 	vitrinite_LayoutFcn(hObject);

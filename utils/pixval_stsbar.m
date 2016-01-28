@@ -3,7 +3,7 @@ function pixval_stsbar(arg1)
 
 % Coffeeright J. Luis 2004-2013
 
-% $Id$
+% $Id: pixval_stsbar.m 4728 2015-07-22 15:14:51Z j $
 
 	if (nargin == 0),	arg1 = [];		end
 

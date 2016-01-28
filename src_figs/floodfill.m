@@ -16,7 +16,7 @@ function varargout = floodfill(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id$
+% $Id: floodfill.m 4457 2014-05-06 01:40:33Z j $
 
 	if (isempty(varargin))
 		errordlg('FLOODFILL: wrong number of arguments.','Error'),	return

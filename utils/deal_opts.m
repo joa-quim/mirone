@@ -10,7 +10,7 @@ function out = deal_opts(opt, opt2, varargin)
 % OPT2 optionally may hold the name of an internal sub-function, in which case that function
 % is called with eventual extra arguments transmited in varargin
 
-% $Id$
+% $Id: deal_opts.m 4755 2015-07-28 19:11:39Z j $
 %	Copyright (c) 2004-2012 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
@@ -26,7 +26,7 @@ function out = deal_opts(opt, opt2, varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id$
+% $Id: deal_opts.m 4755 2015-07-28 19:11:39Z j $
 
 	if (nargin >= 2 && ischar(opt2))
 		out = feval(opt2, varargin{:});

@@ -16,7 +16,7 @@ function varargout = imageresize(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id$
+% $Id: imageresize.m 3986 2013-06-18 23:55:45Z j $
 
 	if (isempty(varargin)),		return,		end
 

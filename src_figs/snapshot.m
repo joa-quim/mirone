@@ -22,7 +22,7 @@ function varargout = snapshot(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id$
+% $Id: snapshot.m 4384 2014-04-10 11:12:26Z j $
 
 	if (isempty(varargin))
 	    errordlg('SNAPSHOT: wrong number of input arguments.','Error'),		return

@@ -55,7 +55,7 @@ function varargout = nc_io(fname, mode, handles, data, misc)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id$
+% $Id: nc_io.m 4728 2015-07-22 15:14:51Z j $
 
 	if (isempty(fname))
 		error('NC_IO:write_nc','Output file name cannot be empty')

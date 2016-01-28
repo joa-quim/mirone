@@ -18,7 +18,7 @@ function handles = gcpTool(handles,axis_t,X,Y,I)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id$
+% $Id: gcpTool.m 4344 2014-03-12 00:40:59Z j $
 
 	if (handles.mirVersion(1) >= 2)
 		delete([handles.Image handles.Tools handles.Draw handles.Plates handles.MagGrav ...

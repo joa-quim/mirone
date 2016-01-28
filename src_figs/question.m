@@ -16,7 +16,7 @@ function out = question(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id$
+% $Id: question.m 4555 2014-09-14 17:40:32Z j $
 
 	hObject = figure('Vis','off');
 	question_LayoutFcn(hObject);

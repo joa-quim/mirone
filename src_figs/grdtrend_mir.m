@@ -20,7 +20,7 @@ function varargout = grdtrend_mir(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id$
+% $Id: grdtrend_mir.m 4730 2015-07-22 15:17:26Z j $
 
 	if isempty(varargin)
 		errordlg('GRDTREND: wrong number of arguments.','Error'),	return

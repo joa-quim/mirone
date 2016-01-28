@@ -16,7 +16,7 @@ function varargout = contouring(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id$
+% $Id: contouring.m 4432 2014-04-28 01:08:05Z j $
 
 	if isempty(varargin),	return,		end
 

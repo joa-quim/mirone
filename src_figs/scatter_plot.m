@@ -20,7 +20,7 @@ function varargout = scatter_plot(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id$
+% $Id: scatter_plot.m 4420 2014-04-25 22:54:48Z j $
 
 	if (isempty(varargin))
 		errordlg('SCATTER PLOT: wrong number of arguments.','Error'),	return

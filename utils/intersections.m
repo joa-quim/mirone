@@ -116,7 +116,7 @@ function [x0,y0,iout,jout] = intersections(x1,y1,x2,y2,robust)
 % memory consumption of this function. Control of this workaround is sent via
 % the ROBUST variable (used to send in the chunk size).
 
-% $Id$
+% $Id: intersections.m 4238 2013-11-27 23:08:58Z j $
 
 	if (nargin == 3)		% Means, self-intersections
 		robust = x2;

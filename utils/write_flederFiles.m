@@ -31,7 +31,7 @@ function filename = write_flederFiles(opt,varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id$
+% $Id: write_flederFiles.m 4382 2014-04-10 00:59:37Z j $
 
 	if (opt(1) == 'w' || opt(1) == 'r')			% Here opt is a "write..." or "run..."
 		handles = varargin{1};

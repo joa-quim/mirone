@@ -17,7 +17,7 @@ function varargout = escadeirar(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id$
+% $Id: escadeirar.m 4730 2015-07-22 15:17:26Z j $
 
 	if isempty(varargin)
 		errordlg('Escadeirar: wrong number of input arguments.','Error'),	return

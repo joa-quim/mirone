@@ -21,7 +21,7 @@ function usgs_recent_seismicity(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id$
+% $Id: usgs_recent_seismicity.m 4440 2014-05-01 18:39:30Z j $
 
 	handMir = guidata(varargin{1});		% Not tested but must be a Mirone fig handle
 

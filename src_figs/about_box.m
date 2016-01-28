@@ -16,7 +16,7 @@ function varargout = about_box(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id$ 
+% $Id: about_box.m 4743 2015-07-24 14:35:38Z j $ 
 
 	hObject = figure('Vis','off');
 	about_box_LayoutFcn(hObject);

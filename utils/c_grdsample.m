@@ -3,7 +3,7 @@ function Zout = c_grdsample(Zin, head, varargin)
 
 % O tsu_funs still calls grdsample directly as a system call
 
-% $Id$
+% $Id: c_grdsample.m 4726 2015-07-20 23:11:57Z j $
 
 	global gmt_ver
 	if (isempty(gmt_ver)),		gmt_ver = 4;	end		% For example, if calls do not come via mirone.m

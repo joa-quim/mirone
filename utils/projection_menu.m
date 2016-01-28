@@ -26,7 +26,7 @@ function projection_menu(hFig, hProj, home_dir)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id$
+% $Id: projection_menu.m 4472 2014-05-10 02:18:22Z j $
 
 	if (nargin == 2)
 		setPRJ([],[], hFig, 1, hProj)

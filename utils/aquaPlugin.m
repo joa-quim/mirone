@@ -36,7 +36,7 @@ function aquaPlugin(handles, auto)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id$
+% $Id: aquaPlugin.m 4728 2015-07-22 15:14:51Z j $
 
 	if (isempty(handles.fname))
 		errordlg('Fast trigger, you probably killed my previous encarnation. Now you have to start again. Bye.','Error')

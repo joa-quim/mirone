@@ -16,7 +16,7 @@ function varargout = igrf_options(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id$
+% $Id: igrf_options.m 4611 2014-11-03 00:56:13Z j $
 
 	hObject = figure('Vis','off');
 	igrf_options_LayoutFcn(hObject);

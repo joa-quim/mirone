@@ -16,7 +16,7 @@ function varargout = surface_options(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id$
+% $Id: surface_options.m 3896 2013-03-06 23:18:01Z j $
 
 hObject = figure('Tag','figure1','Visible','off');
 surface_options_LayoutFcn(hObject);

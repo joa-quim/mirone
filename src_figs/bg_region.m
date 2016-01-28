@@ -18,7 +18,7 @@ function varargout = bg_region(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id$
+% $Id: bg_region.m 4291 2014-01-19 17:51:04Z j $
 
 	hObject = figure('Vis','off');
 	bg_region_LayoutFcn(hObject);

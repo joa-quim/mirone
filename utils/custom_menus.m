@@ -23,7 +23,7 @@ function custom_menus(hFig, path_data)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id$
+% $Id: custom_menus.m 4478 2014-05-10 16:40:45Z j $
 
 	fname = [path_data 'OPTcontrol.txt'];
 	if (exist(fname,'file') ~= 2),	return,		end

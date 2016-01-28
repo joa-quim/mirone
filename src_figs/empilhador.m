@@ -30,7 +30,7 @@ function varargout = empilhador(varargin)
 		if (nargout),	varargout{1} = h;   end
 	end
 
-% --------------------------------------------------------------------------------
+% ---------------------------------------------------------------------------------
 function hObject = empilhador_OF(varargin)
 	hObject = figure('Vis','off');
 	empilhador_LayoutFcn(hObject);

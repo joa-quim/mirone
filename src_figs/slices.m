@@ -21,7 +21,7 @@ function varargout = slices(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id$
+% $Id: slices.m 4692 2015-03-09 02:30:13Z j $
 
 % For compiling one need to include the aqua_suppfuns.m aquaPlugin.m files.
 

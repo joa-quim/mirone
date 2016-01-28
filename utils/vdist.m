@@ -78,7 +78,7 @@ function varargout = vdist(lat1,lon1,lat2,lon2,ellipsoide)
 %
 % Joaquim Luis
 
-% $Id$
+% $Id: vdist.m 4657 2014-12-12 18:47:51Z j $
 
 	% Input check:
 	if any(abs(lat1) > 90 | abs(lat2) > 90)

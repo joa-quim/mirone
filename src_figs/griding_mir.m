@@ -16,7 +16,7 @@ function varargout = griding_mir(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id$
+% $Id: griding_mir.m 4730 2015-07-22 15:17:26Z j $
 
 	hObject = figure('Vis','off');
 	griding_mir_LayoutFcn(hObject);

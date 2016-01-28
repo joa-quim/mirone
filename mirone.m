@@ -211,16 +211,16 @@ function hObject = mirone_OpeningFcn(varargin)
 			[drv, algures] = aux_funs('findFileType',varargin{1});
 			if (ischar(algures)),		varargin{1} = algures;	end 		% File exists but not in Mirone's root dir
 			if (ischar(algures) || algures),	handles.fileName = varargin{1};		end		% Can be added by recentFiles
-		elseif ( isa(varargin{1},'uint8') || isa(varargin{1},'int8') || islogical(varargin{1}) )
+		elseif (isa(varargin{1},'uint8') || isa(varargin{1},'int8') || islogical(varargin{1}))
 			% Called with an image as argument and optionaly an struct header (& geog, name, cmap optional fields)
-			if ( isa(varargin{1},'int8') )		% We cannot represent a int8 image. Do something
+			if (isa(varargin{1},'int8'))		% We cannot represent a int8 image. Do something
 				varargin{1} = uint8(cvlib_mex('addS', int16(varargin{1}), 128));	% [-128 127] -> [0 255]
 			end
 			% Now deal with the case of a eventual multiband ( > than 3 planes) array
 			if (size(varargin{1},3) > 3),		aux_funs('toBandsList', handles.figure1, varargin{1}, 'multiband array'),	end
 
 			isReferenced = false;
-			if ( n_argin == 2 && isa(varargin{2},'struct') )		% An image with coordinates
+			if (n_argin == 2 && isa(varargin{2},'struct'))		% An image with coordinates
 				tmp = varargin{2};
 				handles.head = tmp.head;		X = tmp.X;		Y = tmp.Y;
 				handles.image_type = 3;			axis_t = 'xy';
@@ -2781,7 +2781,7 @@ function DrawEulerPoleCircle_CB(handles)
 % --------------------------------------------------------------------
 function DrawGeogCircle_CB(handles, opt)
 	if (handles.no_file),	return,		end
-	if ( strcmp(get(handles.figure1,'Pointer'), 'crosshair') ),		return,		end		% Already drawing something else
+	if (strcmp(get(handles.figure1,'Pointer'), 'crosshair')),	return,		end		% Already drawing something else
 	if (nargin == 1),	opt = [];	end
 	zoom_state(handles,'maybe_off');
 	if (handles.geog && strcmp(opt,'gcirc'))
@@ -4817,6 +4817,19 @@ function TransferB_CB(handles, opt, opt2)
 		end
 		fprintf(fid, 'echo Ja ta. Finished update\n');
 		fclose(fid);
+
+	elseif (strcmp(opt,'DayNight'))
+		[sun_params, lon, lat] = solar_params(-7.92, 37.073);
+		h = patch('XData',lon, 'YData',lat,'FaceColor','none','Parent',handles.axes1,'Tag','DayNight');
+		draw_funs(h,'line_uicontext')
+% 		img = gdalread([handles.path_data 'etopo4.jpg'], '-U');
+% 		tmp.X = [-180 180];		tmp.Y = [-90 90];
+% 		x_inc = diff(tmp.X) / (size(img,2)-1);
+% 		y_inc = diff(tmp.Y) / (size(img,1)-1);
+% 		tmp.head = [tmp.X tmp.Y 0 255 0 x_inc y_inc];
+% 		h = mirone(img, tmp);
+% 		handles.geog = 1;		handles.image_type = 3;		handles.head = out.head;
+% 		show_image(handles,out.imgName,out.X,out.Y,out.img,0,'xy',1,1);
 
 %  	elseif (strncmp(opt,'hydro',5))					% ...
 % 		if (strcmp(opt(7:end), 'flow'))

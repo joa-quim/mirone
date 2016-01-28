@@ -16,7 +16,7 @@ function writekml(handles,Z,fname)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id$
+% $Id: writekml.m 4342 2014-03-09 15:49:01Z j $
 
 	n_argin = nargin;
 	noFig = true;

@@ -16,7 +16,7 @@ function show_manguito(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id$
+% $Id: show_manguito.m 3885 2013-02-26 00:34:27Z j $
 
 	hObject = figure('Vis','off');
 	show_manguito_LayoutFcn(hObject);

@@ -16,7 +16,7 @@ function varargout = gdal_project(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id$
+% $Id: gdal_project.m 4535 2014-07-26 16:07:45Z j $
 
 	if isempty(varargin)
 		errordlg('GDAL_PROJECT: wrong number of input arguments.','Error'),	return

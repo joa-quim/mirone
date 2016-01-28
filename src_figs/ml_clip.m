@@ -24,7 +24,7 @@ function varargout = ml_clip(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id$
+% $Id: ml_clip.m 3886 2013-02-26 00:35:40Z j $
 
 	if isempty(varargin)
 		errordlg('GRDCLIP: wrong number of arguments.','Error'),	return

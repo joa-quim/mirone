@@ -3,7 +3,7 @@ function [out, hdr] = c_surface(data, varargin)
 
 % A merda é que 'data' pode ser um Mx3 ou entao um Mx1 e os X,Y[,W] devem tar no varargin
 
-% $Id$
+% $Id: c_surface.m 4734 2015-07-22 17:07:26Z j $
 
 	global gmt_ver
 	if (isempty(gmt_ver)),		gmt_ver = 4;	end		% For example, if calls do not come via mirone.m

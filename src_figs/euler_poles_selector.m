@@ -16,7 +16,7 @@ function varargout = euler_poles_selector(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id$
+% $Id: euler_poles_selector.m 4554 2014-09-14 17:39:50Z j $
 
 	hObject = figure('Tag','figure1','Visible','off');
 	euler_poles_selector_LayoutFcn(hObject);

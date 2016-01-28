@@ -16,7 +16,7 @@ function varargout = parker_stuff(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id$
+% $Id: parker_stuff.m 4251 2013-12-27 04:08:18Z j $
 
 	hObject = figure('Vis','off');
 	parker_stuff_LayoutFcn(hObject);
