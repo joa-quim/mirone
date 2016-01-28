@@ -1,7 +1,7 @@
 function [sun_params, lon, lat] = solar_params(lon_pt, lat_pt, TZ, termin, day, month, year, UTChour, UTCmin, UTCsec)
 % Compute the day-night terminator and the civil, nautical and astronomical twilights
 %
-% [sun_params, lon, lat] = sun_params(lon_pt, lat_pt, TZ, termin, day, month, year, UTChour, UTCmin, UTCsec)
+% [sun_params, lon, lat] = solar_params(lon_pt, lat_pt, TZ, termin, day, month, year, UTChour, UTCmin, UTCsec)
 %	Inputs:
 %		LON_PT,LAT_PT -> Location where data is reported
 %		TZ            -> Time Zone
@@ -13,13 +13,13 @@ function [sun_params, lon, lat] = solar_params(lon_pt, lat_pt, TZ, termin, day, 
 %		LON,LAT       -> Terminator coordinates.
 %
 % Particular cases
-% [...] = sun_params(lonp, latp)
+% [...] = solar_params(lonp, latp)
 %       Run computations for location LONP, LATP, time 'now' and Time Zone = 0 
-% [...] = sun_params(lonp, latp, termin)
+% [...] = solar_params(lonp, latp, termin)
 %       Run computations for location LONP, LATP, time 'now', Time Zone = 0 and terminator time TERMIN 
-% [...] = sun_params(lonp, latp, TZ)
+% [...] = solar_params(lonp, latp, TZ)
 %       Run computations for location LONP, LATP, for the time 'now' and Time Zone = TZ
-% [...] = sun_params(lonp, latp, TZ, termin)
+% [...] = solar_params(lonp, latp, TZ, termin)
 %       Run computations for location LONP, LATP, time 'now', Time Zone = TZ and terminator time TERMIN 
 %
 % This function was partially inspired in 'plotdaynightterminator' found in FEX-54875
@@ -48,7 +48,7 @@ function [sun_params, lon, lat] = solar_params(lon_pt, lat_pt, TZ, termin, day, 
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: $
+% $Id: solar_params.m 7762 2016-01-28 00:10:02Z j $
 
 	if (nargin == 0)		% Undocumented option. Defaults to Faro, Portugal.
 		lon_pt = -7.92;		lat_pt = 37.073;
