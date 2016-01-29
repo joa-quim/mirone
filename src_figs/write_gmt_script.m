@@ -16,7 +16,7 @@ function varargout = write_gmt_script(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: write_gmt_script.m 7764 2016-01-29 01:20:17Z j $
+% $Id: write_gmt_script.m 7765 2016-01-29 16:13:23Z j $
 
 hObject = figure('Vis','off');
 write_gmt_script_LayoutFcn(hObject);
@@ -440,10 +440,10 @@ function radio_0_360_CB(hObject, handles)
 function push_uppdate_CB(hObject, handles)
 	xx = get(handles.hand_rect,'XData');
 	yy = get(handles.hand_rect,'YData');
-	set(handles.edit_X0,'String',num2str(xx(1),'%.2f'));
-	set(handles.edit_Y0,'String',num2str(yy(1),'%.2f'));
+	set(handles.edit_X0,'String', sprintf('%.2f', xx(1)));
+	set(handles.edit_Y0,'String', sprintf('%.2f', yy(1)));
 
-	if (strcmp(handles.opt_J_no_scale(1:3),'-JX'))      % Linear proj has a different treatment
+	if (strncmp(handles.opt_J_no_scale, '-JX', 3))		% Linear proj has a different treatment
 		if (~handles.handMir.IamXY)						% Only rescale if image, not XY plot
 			scale_x = (xx(3) - xx(2)) / handles.width_or;
 			scale_y = (yy(2) - yy(1)) / handles.height_or;
@@ -454,12 +454,12 @@ function push_uppdate_CB(hObject, handles)
 			elseif (get(handles.radio_setHeight,'Value'))
 				xx(3) = new_x + xx(2);      xx(4) = new_x + xx(1);
 			else
-				yy(2) = new_y + yy(1);      yy(3) = new_y + yy(1);  % It will become "True" scale
+				yy(2) = new_y + yy(1);      yy(3) = new_y + yy(1);		% It will become "True" scale
 			end
 			set(handles.hand_rect, 'XData', xx, 'YData', yy);
 		end
-		set(handles.edit_mapWidth,'String',num2str((xx(3) - xx(2)),'%.2f'));    % Uppdate map width
-		set(handles.edit_mapHeight,'String',num2str((yy(2) - yy(1)),'%.2f'));   % Uppdate map height
+		set(handles.edit_mapWidth,'String', sprintf('%.2f', (xx(3) - xx(2))));	% Uppdate map width
+		set(handles.edit_mapHeight,'String',sprintf('%.2f', (yy(2) - yy(1))));	% Uppdate map height
 		set(handles.edit_scale,'String','1:1')
 		% Also update the projection info text
 		str = get(handles.h_txt_info,'String');
@@ -468,10 +468,10 @@ function push_uppdate_CB(hObject, handles)
 			str{end} = ['J<options> ->  -JX' new_w handles.which_unit(1)];
 			set(handles.h_txt_info,'String',str)
 		end
-		return      % We are donne
+		return		% We are donne
 	end
 
-	new_w = num2str((xx(3) - xx(2)),'%.2f');
+	new_w = sprintf('%.2f', (xx(3) - xx(2)));
 	set(handles.edit_mapWidth,'String',new_w);
 	opt_J = [handles.opt_J_no_scale '/' new_w handles.which_unit(1)];
 	in = [handles.x_min handles.y_min; handles.x_min handles.y_max; handles.x_max handles.y_max; handles.x_max handles.y_min];
@@ -482,94 +482,94 @@ function push_uppdate_CB(hObject, handles)
 		return
 	end
 
-% scale_prj = abs(out(2,2) - out(1,2)) / abs(out(4,1) - out(1,1));    % = dy / dx     NA TA SEMPRE CERTO
-% scale_x = (xx(3) - xx(2)) / handles.width_or;
-% scale_y = (yy(2) - yy(1)) / handles.height_or;
-% new_y = handles.height_or * scale_x * scale_prj;
-% new_x = handles.width_or * scale_y / scale_prj;
+	% scale_prj = abs(out(2,2) - out(1,2)) / abs(out(4,1) - out(1,1));    % = dy / dx     NA TA SEMPRE CERTO
+	% scale_x = (xx(3) - xx(2)) / handles.width_or;
+	% scale_y = (yy(2) - yy(1)) / handles.height_or;
+	% new_y = handles.height_or * scale_x * scale_prj;
+	% new_x = handles.width_or * scale_y / scale_prj;
 
-new_x = max(out(:,1)) - min(out(:,1));
-new_y = max(out(:,2)) - min(out(:,2));
+	new_x = max(out(:,1)) - min(out(:,1));
+	new_y = max(out(:,2)) - min(out(:,2));
 
-if (get(handles.radio_setWidth,'Value'))
-    yy(2) = new_y + yy(1);      yy(3) = new_y + yy(1);
-elseif (get(handles.radio_setHeight,'Value'))
-    xx(3) = new_x + xx(2);      xx(4) = new_x + xx(1);
-else
-    yy(2) = new_y + yy(1);      yy(3) = new_y + yy(1);  % It will become "True" scale
-end
-set(handles.hand_rect, 'XData', xx, 'YData', yy);
-set(handles.edit_mapWidth,'String',num2str((xx(3) - xx(2)),'%.2f'));    % Uppdate map width
-set(handles.edit_mapHeight,'String',num2str((yy(2) - yy(1)),'%.2f'));   % Uppdate map height
-handles.scale = num2str((xx(3) - xx(2)),'%.2f');
-
-% --- Compute a projected mini frame
-n = 21;
-xf = linspace(handles.x_min,handles.x_max,n)';
-yf = linspace(handles.y_min,handles.y_max,n)';
-in = [repmat(xf(1),n,1) yf; xf(2:end) repmat(yf(end),n-1,1); repmat(xf(end),n-1,1) yf(end-1:-1:1); ...
-        xf(end:-1:1) repmat(yf(1),n,1)];
-%out_f = c_mapproject(in,opt_R,'-C','-F',[handles.opt_J_no_scale '/' handles.scale handles.which_unit(1)]);
-out_f = c_mapproject(in,opt_R,opt_J,['-D' handles.which_unit(1)]);
-new_x = xx(1) + out_f(:,1);
-new_y = yy(1) + out_f(:,2);
-
-% Draw it if it's not a rectangle
-if ~(out_f(1,1) == out_f(n,1) && out_f(n,2) == out_f(2*n-1,2))
-    if (isempty(handles.hand_frame_proj))      % First time. Creat it.
-        handles.hand_frame_proj = line('XData',new_x,'YData',new_y, 'Color','r','LineWidth',.5,'Tag','PlotFrameProj');
-        uistack(handles.hand_frame_proj, 'down')
-    else
-        set(handles.hand_frame_proj, 'XData', new_x, 'YData', new_y);
-    end
-else    % It is a rectangle
-    if (~isempty(handles.hand_frame_proj))  % If we have a previous red frame, delete it
-        delete(handles.hand_frame_proj);  handles.hand_frame_proj = [];
-    end
-end
-
-% ----------- Compute scale 1:xxxx
-if (~handles.scale_set)     % If user changed scale, don't compute it here
-	xm = (handles.x_min + handles.x_max) / 2;   ym = (handles.y_min + handles.y_max) / 2;
-	opt_R = sprintf('-R%f/%f/%f/%f', xm-2, xm+2, ym-2, ym+2);
-	in = [handles.x_min handles.y_min; handles.x_min handles.y_max; handles.x_max handles.y_max; handles.x_max handles.y_min];
-	opt_J = [handles.opt_J_no_scale '/1'];
-	out = c_mapproject(in,opt_R,'-C','-F',opt_J);
-	dx_prj = out(4,1) - out(1,1);   % It's in projected meters
-	dy_prj = out(2,2) - out(1,2);   % It's in projected meters
-	dx_rect = xx(4) - xx(1);        % Is in "cm", "in" or "pt". So convert to "cm"
-	dy_rect = yy(2) - yy(1);        % Is in "cm", "in" or "pt". So convert to "cm"
-	if (strcmp(handles.which_unit,'in')),     dx_rect = dx_rect * 2.54;     dy_rect = dy_rect * 2.54;     end
-	if (strcmp(handles.which_unit,'pt')),     dx_rect = dx_rect * 2.54/72;  dy_rect = dy_rect * 2.54/72;  end
-	scale = max(dx_rect/dx_prj/100, dy_rect/dy_prj/100);
-	[n,d] = rat(scale,1e-9);
-	if (n > 1),    d = d / n;      end
-	set(handles.edit_scale,'String',['1:' num2str(d)])
-	handles.scale_set = 0;
-end
-
-% ------------ Also uppdate the projection info text
-str = get(handles.h_txt_info,'String');
-try
-    new_w = get(handles.edit_mapWidth,'String');
-	k = strfind(str{end},'/');
-	if (~isempty(k))
-        str{end} = [str{end}(1:k(end)) new_w handles.which_unit(1)];
-    else        % We have a -J without any '/'. Linear projection
-        k = strfind(str{end},'-J');
-        str{end} = [str{end}(1:k+2) new_w handles.which_unit(1)];
+	if (get(handles.radio_setWidth,'Value'))
+		yy(2) = new_y + yy(1);      yy(3) = new_y + yy(1);
+	elseif (get(handles.radio_setHeight,'Value'))
+		xx(3) = new_x + xx(2);      xx(4) = new_x + xx(1);
+	else
+		yy(2) = new_y + yy(1);      yy(3) = new_y + yy(1);			% It will become "True" scale
 	end
-    set(handles.h_txt_info,'String',str)
-end
+	set(handles.hand_rect, 'XData', xx, 'YData', yy);
+	set(handles.edit_mapWidth,'String',num2str((xx(3) - xx(2)),'%.2f'));    % Uppdate map width
+	set(handles.edit_mapHeight,'String',num2str((yy(2) - yy(1)),'%.2f'));   % Uppdate map height
+	handles.scale = num2str((xx(3) - xx(2)),'%.2f');
 
-guidata(hObject,handles)
+	% --- Compute a projected mini frame
+	n = 21;
+	xf = linspace(handles.x_min, handles.x_max, n)';
+	yf = linspace(handles.y_min, handles.y_max, n)';
+	in = [repmat(xf(1),n,1) yf; xf(2:end) repmat(yf(end),n-1,1); repmat(xf(end),n-1,1) yf(end-1:-1:1); ...
+			xf(end:-1:1) repmat(yf(1),n,1)];
+	%out_f = c_mapproject(in,opt_R,'-C','-F',[handles.opt_J_no_scale '/' handles.scale handles.which_unit(1)]);
+	out_f = c_mapproject(in,opt_R,opt_J,['-D' handles.which_unit(1)]);
+	new_x = xx(1) + out_f(:,1);
+	new_y = yy(1) + out_f(:,2);
+
+	% Draw it if it's not a rectangle
+	if (out_f(1,1) ~= out_f(n,1) || out_f(n,2) ~= out_f(2*n-1,2))
+		if (isempty(handles.hand_frame_proj))		% First time. Creat it.
+			handles.hand_frame_proj = line('XData',new_x,'YData',new_y, 'Color','r','LineWidth',.5,'Tag','PlotFrameProj');
+			uistack(handles.hand_frame_proj, 'down')
+		else
+			set(handles.hand_frame_proj, 'XData', new_x, 'YData', new_y);
+		end
+	else		% It is a rectangle
+		if (~isempty(handles.hand_frame_proj))		% If we have a previous red frame, delete it
+			delete(handles.hand_frame_proj);		handles.hand_frame_proj = [];
+		end
+	end
+
+	% ----------- Compute scale 1:xxxx
+	if (~handles.scale_set)					% If user changed scale, don't compute it here
+		xm = (handles.x_min + handles.x_max) / 2;   ym = (handles.y_min + handles.y_max) / 2;
+		opt_R = sprintf('-R%f/%f/%f/%f', xm-2, xm+2, ym-2, ym+2);
+		in = [handles.x_min handles.y_min; handles.x_min handles.y_max; handles.x_max handles.y_max; handles.x_max handles.y_min];
+		opt_J = [handles.opt_J_no_scale '/1'];
+		out = c_mapproject(in,opt_R,'-C','-F',opt_J);
+		dx_prj = out(4,1) - out(1,1);		% It's in projected meters
+		dy_prj = out(2,2) - out(1,2);		% It's in projected meters
+		dx_rect = xx(4) - xx(1);			% Is in "cm", "in" or "pt". So convert to "cm"
+		dy_rect = yy(2) - yy(1);			% Is in "cm", "in" or "pt". So convert to "cm"
+		if (strcmp(handles.which_unit,'in')),     dx_rect = dx_rect * 2.54;     dy_rect = dy_rect * 2.54;     end
+		if (strcmp(handles.which_unit,'pt')),     dx_rect = dx_rect * 2.54/72;  dy_rect = dy_rect * 2.54/72;  end
+		scale = max(dx_rect/dx_prj/100, dy_rect/dy_prj/100);
+		[n,d] = rat(scale,1e-9);
+		if (n > 1),    d = d / n;      end
+		set(handles.edit_scale,'String',['1:' num2str(d)])
+		handles.scale_set = 0;
+	end
+
+	% ------------ Also uppdate the projection info text
+	str = get(handles.h_txt_info,'String');
+	try
+		new_w = get(handles.edit_mapWidth,'String');
+		k = strfind(str{end},'/');
+		if (~isempty(k))
+			str{end} = [str{end}(1:k(end)) new_w handles.which_unit(1)];
+		else        % We have a -J without any '/'. Linear projection
+			k = strfind(str{end},'-J');
+			str{end} = [str{end}(1:k+2) new_w handles.which_unit(1)];
+		end
+		set(handles.h_txt_info,'String',str)
+	end
+
+	guidata(hObject,handles)
 
 % -----------------------------------------------------------------------------------
 function edit_X0_CB(hObject, handles)
 % Set new x origin
-	str = get(hObject,'String');        x0 = str2double(str);
+	str = get(hObject,'String');		x0 = str2double(str);
+	if (isnan(x0)),		set(hObject,'String',str),		return,		end
 	xx = get(handles.hand_rect,'XData');
-	if (isnan(x0)),     set(hObject,'String',str);      return;     end
 	set(handles.hand_rect,'XData',xx - xx(1) + x0)
 	if (~isempty(handles.hand_frame_proj))
 		set(handles.hand_frame_proj,'XData',get(handles.hand_frame_proj,'XData') - xx(1) + x0)
@@ -579,8 +579,8 @@ function edit_X0_CB(hObject, handles)
 function edit_Y0_CB(hObject, handles)
 % Set new y origin
 	str = get(hObject,'String');        y0 = str2double(str);
+	if (isnan(y0)),     set(hObject,'String',str),		return,		end
 	yy = get(handles.hand_rect,'YData');
-	if (isnan(y0)),     set(hObject,'String',str);      return;     end
 	set(handles.hand_rect,'YData',yy - yy(1) + y0)
 	if (~isempty(handles.hand_frame_proj))
 		set(handles.hand_frame_proj,'YData',get(handles.hand_frame_proj,'YData') - yy(1) + y0)
@@ -590,8 +590,8 @@ function edit_Y0_CB(hObject, handles)
 function edit_mapWidth_CB(hObject, handles)
 % Set new map width
 	str = get(hObject,'String');        w = str2double(str);
+	if (isnan(w)),     set(hObject,'String',str),		return,		end
 	xx = get(handles.hand_rect,'XData');
-	if (isnan(w)),     set(hObject,'String',str);      return;     end
 	xx(3) = xx(2) + w;      xx(4) = xx(1) + w;
 	set(handles.hand_rect,'XData',xx)
 	push_uppdate_CB(handles.push_uppdate, handles)
@@ -600,8 +600,8 @@ function edit_mapWidth_CB(hObject, handles)
 function edit_mapHeight_CB(hObject, handles)
 % Set new map height
 	str = get(hObject,'String');		h = str2double(str);
+	if (isnan(h)),			set(hObject,'String',str),		return,		end
 	yy = get(handles.hand_rect,'YData');
-	if (isnan(h)),			set(hObject,'String',str);		return,		end
 	yy(2) = yy(1) + h;		yy(3) = yy(4) + h;
 	set(handles.hand_rect,'YData',yy)
 	push_uppdate_CB(handles.push_uppdate, handles)
@@ -634,7 +634,7 @@ function edit_scale_CB(hObject, handles)
 	opt_J = [handles.opt_J_no_scale '/' str];	opt_J(3) = lower(opt_J(3));
 	in = [handles.x_min handles.y_min; handles.x_min handles.y_max; handles.x_max handles.y_max; handles.x_max handles.y_min];
 	try
-		opt_R = sprintf('-R%.6f/%.6f/%.6f/%.6f', handles.x_min, handles.x_max, handles.y_min, handles.y_max);
+		opt_R = sprintf('-R%.12g/%.12g/%.12g/%.12g', handles.x_min, handles.x_max, handles.y_min, handles.y_max);
 		out = c_mapproject(in,opt_R,opt_J,['-D' handles.which_unit(1)]);
 	catch
 		return
@@ -756,11 +756,11 @@ function push_coastLines_CB(hObject, handles)
 %-------------------------------------------------------------------------------------
 function push_OK_CB(hObject, handles)
 % Here we transmit the: -J<...>, paper name, files prefix, X0, Y0 and destination directory
-	if (~strcmp(handles.opt_J_no_scale(1:3),'-JX'))
+	if (~strncmp(handles.opt_J_no_scale, '-JX', 3))
 		opt_J = [handles.opt_J_no_scale '/' handles.scale handles.which_unit(1)];
 	else        % Linear projection
 		if (~handles.handMir.IamXY)			% A Mirone figure
-			opt_J = [handles.opt_J_no_scale(1:3) handles.scale handles.which_unit(1)];
+			opt_J = [handles.opt_J_no_scale(1:3) handles.scale handles.which_unit(1) '/0'];
 		else
 			opt_J = sprintf('-JX%s%s/%s%s', get(handles.edit_mapWidth,'Str'), handles.which_unit(1), ...
 				get(handles.edit_mapHeight,'Str'), handles.which_unit(1));
@@ -822,198 +822,199 @@ function [handles,out] = check_coord_system(handles,coord_system,side)
 %          proj_info_txt
 %          proj_info_pos    % This one has to be dealt inside the opening function (don't know here a def value)
 
-if (isempty(coord_system))   % If it doesn't exist, create an empty one
-    coord_system = struct([]);
-end
+	if (isempty(coord_system))   % If it doesn't exist, create an empty one
+		coord_system = struct([]);
+	end
 
-% If any of those is missing, assign it a default value
-if (~isfield(coord_system,'group_val')),    out.group_val = 1;
-else		out.group_val = coord_system.group_val;
-end
-if (~isfield(coord_system,'system_val')),   out.system_val = 1;
-else		out.system_val = coord_system.system_val;
-end
-if (~isfield(coord_system,'datum_val')),    out.datum_val = 221;   % Default to wgs84
-else		out.datum_val = coord_system.datum_val;
-end
-if (~isfield(coord_system,'cilindrical_val')),  out.cilindrical_val = 1;
-else		out.cilindrical_val = coord_system.cilindrical_val;
-end
-if (~isfield(coord_system,'azimuthal_val')),    out.azimuthal_val = 1;
-else		out.azimuthal_val = coord_system.azimuthal_val;
-end
-if (~isfield(coord_system,'conic_val')),        out.conic_val = 1;
-else		out.conic_val = coord_system.conic_val;
-end
-if (~isfield(coord_system,'miscelaneous_val')), out.miscelaneous_val = 1;
-else		out.miscelaneous_val = coord_system.miscelaneous_val;
-end
-if (~isfield(coord_system,'ProjName')),         out.ProjName = 'Unknown';
-else		out.ProjName = coord_system.ProjName;
-end
-if (~isfield(coord_system,'map_scale_factor')), out.map_scale_factor = [];
-else		out.map_scale_factor = coord_system.map_scale_factor;
-end
-if (~isfield(coord_system,'system_FE_FN')),     out.system_FE_FN = [];
-else		out.system_FE_FN = coord_system.system_FE_FN;
-end
-if (~isfield(coord_system,'projection')),       out.projection = [];
-else		out.projection = coord_system.projection;
-end
-if (~isfield(coord_system,'ProjParameterValue')),out.ProjParameterValue = [];
-else		out.ProjParameterValue = coord_system.ProjParameterValue;
-end
-if (~isfield(coord_system,'proj_info_txt')),    out.proj_info_txt = 'Nikles';
-else		out.proj_info_txt = coord_system.proj_info_txt;
-end
-if (~isfield(coord_system,'MeasureUnit_val')),  out.MeasureUnit_val = 1;
-else		out.MeasureUnit_val = coord_system.MeasureUnit_val;
-end
-if (~isfield(coord_system,'DegreeFormat1_val')),  out.DegreeFormat1_val = 1;
-else		out.DegreeFormat1_val = coord_system.DegreeFormat1_val;
-end
-if (~isfield(coord_system,'DegreeFormat2_val')),  out.DegreeFormat2_val = 1;
-else		out.DegreeFormat2_val = coord_system.DegreeFormat2_val;
-end
-if (~isfield(coord_system,'is_geog')),  out.is_geog = 1;
-else		out.is_geog = coord_system.is_geog;
-end
+	% If any of those is missing, assign it a default value
+	if (~isfield(coord_system,'group_val')),    out.group_val = 1;
+	else		out.group_val = coord_system.group_val;
+	end
+	if (~isfield(coord_system,'system_val')),   out.system_val = 1;
+	else		out.system_val = coord_system.system_val;
+	end
+	if (~isfield(coord_system,'datum_val')),    out.datum_val = 221;   % Default to wgs84
+	else		out.datum_val = coord_system.datum_val;
+	end
+	if (~isfield(coord_system,'cilindrical_val')),  out.cilindrical_val = 1;
+	else		out.cilindrical_val = coord_system.cilindrical_val;
+	end
+	if (~isfield(coord_system,'azimuthal_val')),    out.azimuthal_val = 1;
+	else		out.azimuthal_val = coord_system.azimuthal_val;
+	end
+	if (~isfield(coord_system,'conic_val')),        out.conic_val = 1;
+	else		out.conic_val = coord_system.conic_val;
+	end
+	if (~isfield(coord_system,'miscelaneous_val')), out.miscelaneous_val = 1;
+	else		out.miscelaneous_val = coord_system.miscelaneous_val;
+	end
+	if (~isfield(coord_system,'ProjName')),         out.ProjName = 'Unknown';
+	else		out.ProjName = coord_system.ProjName;
+	end
+	if (~isfield(coord_system,'map_scale_factor')), out.map_scale_factor = [];
+	else		out.map_scale_factor = coord_system.map_scale_factor;
+	end
+	if (~isfield(coord_system,'system_FE_FN')),     out.system_FE_FN = [];
+	else		out.system_FE_FN = coord_system.system_FE_FN;
+	end
+	if (~isfield(coord_system,'projection')),       out.projection = [];
+	else		out.projection = coord_system.projection;
+	end
+	if (~isfield(coord_system,'ProjParameterValue')),out.ProjParameterValue = [];
+	else		out.ProjParameterValue = coord_system.ProjParameterValue;
+	end
+	if (~isfield(coord_system,'proj_info_txt')),    out.proj_info_txt = 'Nikles';
+	else		out.proj_info_txt = coord_system.proj_info_txt;
+	end
+	if (~isfield(coord_system,'MeasureUnit_val')),  out.MeasureUnit_val = 1;
+	else		out.MeasureUnit_val = coord_system.MeasureUnit_val;
+	end
+	if (~isfield(coord_system,'DegreeFormat1_val')),  out.DegreeFormat1_val = 1;
+	else		out.DegreeFormat1_val = coord_system.DegreeFormat1_val;
+	end
+	if (~isfield(coord_system,'DegreeFormat2_val')),  out.DegreeFormat2_val = 1;
+	else		out.DegreeFormat2_val = coord_system.DegreeFormat2_val;
+	end
+	if (~isfield(coord_system,'is_geog')),  out.is_geog = 1;
+	else		out.is_geog = coord_system.is_geog;
+	end
 
-% This is my solution to cat 2 structures. There must be a clever way.
-hand_cell = struct2cell(handles);       % Convert handles struct to cell
-out_cell = struct2cell(out);            % Convert coord_system struct to cell
-both_cell = [hand_cell; out_cell];      % Cat them
-names_hand = fieldnames(handles);       % Get handles field names
-names_out = fieldnames(out);            % Get coord_system field names
-for (i=1:length(names_out))             % Append the "side" to the coord_system field names
-    names_out{i} = [names_out{i} side];
-end
-both_names = [names_hand; names_out];   % Cat the handles and the coord_system field names
-handles = cell2struct(both_cell,both_names,1);  % Finaly, rebuild the handles structure.
+	% This is my solution to cat 2 structures. There must be a clever way.
+	hand_cell = struct2cell(handles);       % Convert handles struct to cell
+	out_cell = struct2cell(out);            % Convert coord_system struct to cell
+	both_cell = [hand_cell; out_cell];      % Cat them
+	names_hand = fieldnames(handles);       % Get handles field names
+	names_out = fieldnames(out);            % Get coord_system field names
+	for (i=1:length(names_out))             % Append the "side" to the coord_system field names
+		names_out{i} = [names_out{i} side];
+	end
+	both_names = [names_hand; names_out];   % Cat the handles and the coord_system field names
+	handles = cell2struct(both_cell,both_names,1);  % Finaly, rebuild the handles structure.
 
 % ----------------------------------------------------------------------------------
 function [ALLlineHand, res, opt_W, type_p, type_r] = find_psc_stuff(ALLlineHand)
 % See if we have any pscoast stuff
-haveCoasts = 0;     havePolitical = 0;  haveRivers = 0;
-res = [];           opt_W = [];         type_p = [];        type_r = [];
-h_c = findobj(ALLlineHand,'Tag','CoastLineNetCDF');
-if (~isempty(h_c))
-	if (length(h_c) > 1),   h_c = h_c(1);     end
-	CoastRes = get(h_c,'UserData');
-	LineWidth_c = get(h_c,'LineWidth');
-	LineColor_c = get(h_c,'Color');
-	LineStyle_c = get(h_c,'LineStyle');
-	haveCoasts = 1;
-end
-h_p = findobj(ALLlineHand,'Tag','PoliticalBoundaries');
-if (~isempty(h_p))
-	if (length(h_p) > 1),   h_p = h_p(1);     end
-	zz = get(h_p,'UserData');
-	if (iscell(zz)),    zz = zz{1};     end
-	PoliticalRes = zz(1);        PoliticalType = zz(2);
-	LineWidth_p = get(h_p,'LineWidth');
-	LineColor_p = get(h_p,'Color');
-	LineStyle_p = get(h_p,'LineStyle');
-	havePolitical = 1;
-end
-h_r = findobj(ALLlineHand,'Tag','Rivers');
-if (~isempty(h_r))
-	if (length(h_r) > 1),   h_r = h_r(1);     end
-	zz = get(h_r,'UserData');
-	if (iscell(zz)),        zz = zz{1};     end
-	RiversRes = zz(1);          RiversType = zz(2);
-	LineWidth_r = get(h_r,'LineWidth');
-	LineColor_r = get(h_r,'Color');
-	LineStyle_r = get(h_r,'LineStyle');
-	haveRivers = 1;
-end
-ALLlineHand = setxor(ALLlineHand, [h_c; h_p; h_r]);
+	haveCoasts = 0;     havePolitical = 0;  haveRivers = 0;
+	res = [];           opt_W = [];         type_p = [];        type_r = [];
+	h_c = findobj(ALLlineHand,'Tag','CoastLineNetCDF');
+	if (~isempty(h_c))
+		if (length(h_c) > 1),   h_c = h_c(1);     end
+		CoastRes = get(h_c,'UserData');
+		LineWidth_c = get(h_c,'LineWidth');
+		LineColor_c = get(h_c,'Color');
+		LineStyle_c = get(h_c,'LineStyle');
+		haveCoasts = 1;
+	end
+	h_p = findobj(ALLlineHand,'Tag','PoliticalBoundaries');
+	if (~isempty(h_p))
+		if (length(h_p) > 1),   h_p = h_p(1);     end
+		zz = get(h_p,'UserData');
+		if (iscell(zz)),    zz = zz{1};     end
+		PoliticalRes = zz(1);        PoliticalType = zz(2);
+		LineWidth_p = get(h_p,'LineWidth');
+		LineColor_p = get(h_p,'Color');
+		LineStyle_p = get(h_p,'LineStyle');
+		havePolitical = 1;
+	end
+	h_r = findobj(ALLlineHand,'Tag','Rivers');
+	if (~isempty(h_r))
+		if (length(h_r) > 1),   h_r = h_r(1);     end
+		zz = get(h_r,'UserData');
+		if (iscell(zz)),        zz = zz{1};     end
+		RiversRes = zz(1);          RiversType = zz(2);
+		LineWidth_r = get(h_r,'LineWidth');
+		LineColor_r = get(h_r,'Color');
+		LineStyle_r = get(h_r,'LineStyle');
+		haveRivers = 1;
+	end
+	ALLlineHand = setxor(ALLlineHand, [h_c; h_p; h_r]);
 
-if (haveCoasts || havePolitical || haveRivers)
-    res_c = '';     res_p = '';     res_r = '';
-    if (haveCoasts)
-        cor = round(LineColor_c * 255);
-        cor = [num2str(cor(1)) '/' num2str(cor(2)) '/' num2str(cor(3))];
-        switch CoastRes
-            case 'f',   res_c = ['-Df -W' num2str(LineWidth_c) 'p,' cor];
-            case 'h',   res_c = ['-Dh -W' num2str(LineWidth_c) 'p,' cor];
-            case 'i',   res_c = ['-Di -W' num2str(LineWidth_c) 'p,' cor];
-            case 'l',   res_c = ['-Dl -W' num2str(LineWidth_c) 'p,' cor];
-            case 'c',   res_c = ['-Dc -W' num2str(LineWidth_c) 'p,' cor];
-        end
-        if (~strcmp(LineStyle_c,'-'))   % If we have a line style other than solid
-            switch LineStyle_c
-                case '--',  res_c = [res_c 'ta'];
-                case ':',   res_c = [res_c 'to'];
-                case '-.',  res_c = [res_c 't10_2_2_5:5'];
-            end
-        end
-    end
-    if (havePolitical)
-        switch PoliticalRes
-			case 'f',   res_p = '-Df';
-			case 'h',   res_p = '-Dh';
-			case 'i',   res_p = '-Di';
-			case 'l',   res_p = '-Dl';
-			case 'c',   res_p = '-Dc';
-        end
-        cor = round(LineColor_p * 255);
-        cor = [num2str(cor(1)) '/' num2str(cor(2)) '/' num2str(cor(3))];
-        switch PoliticalType
-            case '1',   type_p = ['-N1/'  num2str(LineWidth_p) 'p,' cor];
-            case '2',   type_p = ['-N2/'  num2str(LineWidth_p) 'p,' cor];
-            case '3',   type_p = ['-N3/'  num2str(LineWidth_p) 'p,' cor];
-            case 'a',   type_p = ['-Na/'  num2str(LineWidth_p) 'p,' cor];
-        end
-        if (~strcmp(LineStyle_p,'-'))   % If we have a line style other than solid
-            switch LineStyle_p
-                case '--',  type_p = [type_p 'ta'];
-                case ':',   type_p = [type_p 'to'];
-                case '-.',  type_p = [type_p 't10_2_2_5:5'];
-            end
-        end
-    end
-    if (haveRivers)
-        switch RiversRes
-            case 'f',   res_r = '-Df';
-            case 'h',   res_r = '-Dh';
-            case 'i',   res_r = '-Di';
-            case 'l',   res_r = '-Dl';
-            case 'c',   res_r = '-Dc';
-        end
-        cor = round(LineColor_r * 255);
-        cor = [num2str(cor(1)) '/' num2str(cor(2)) '/' num2str(cor(3))];
-        switch RiversType
-			case '1',   type_r = ['-I1/' num2str(LineWidth_r) 'p,' cor];
-			case '2',   type_r = ['-I2/' num2str(LineWidth_r) 'p,' cor];
-			case '3',   type_r = ['-I3/' num2str(LineWidth_r) 'p,' cor];
-			case '4',   type_r = ['-I4/' num2str(LineWidth_r) 'p,' cor];
-			case '5',   type_r = ['-I5/' num2str(LineWidth_r) 'p,' cor];
-			case '6',   type_r = ['-I6/' num2str(LineWidth_r) 'p,' cor];
-			case '7',   type_r = ['-I7/' num2str(LineWidth_r) 'p,' cor];
-			case '8',   type_r = ['-I8/' num2str(LineWidth_r) 'p,' cor];
-			case '9',   type_r = ['-I9/' num2str(LineWidth_r) 'p,' cor];
-			case '10',  type_r = ['-I10/' num2str(LineWidth_r) 'p,' cor];
-			case 'a',   type_r = ['-Ia/' num2str(LineWidth_r) 'p,' cor];
-			case 'r',   type_r = ['-Ir/' num2str(LineWidth_r) 'p,' cor];
-			case 'i',   type_r = ['-Ii/' num2str(LineWidth_r) 'p,' cor];
-			case 'c',   type_r = ['-Ic/' num2str(LineWidth_r) 'p,' cor];
-        end
-        if (~strcmp(LineStyle_r,'-'))   % If we have a line style other than solid
-            switch LineStyle_r
-                case '--',  type_r = [type_r 'ta'];
-                case ':',   type_r = [type_r 'to'];
-                case '-.',  type_r = [type_r 't10_2_2_5:5'];
-            end
-        end
-    end
-        res = unique([res_c(1:3); res_p; res_r],'rows');  % We don't want repeated resolution strings
-        if (size(res,1) > 1)        % Shit, we have mixed resolutions
-            res = '-Di';            % TEMPORARY SOLUTION UNTIL I FIND HOW TO FIND THE HIGHEST COMMON RES
-        end
-        if (~isempty(res_c)),   opt_W = res_c(5:end);
-        else                    opt_W = [];     end
-end
+	if (haveCoasts || havePolitical || haveRivers)
+		res_c = '';     res_p = '';     res_r = '';
+		if (haveCoasts)
+			cor = round(LineColor_c * 255);
+			cor = [num2str(cor(1)) '/' num2str(cor(2)) '/' num2str(cor(3))];
+			switch CoastRes
+				case 'f',   res_c = ['-Df -W' num2str(LineWidth_c) 'p,' cor];
+				case 'h',   res_c = ['-Dh -W' num2str(LineWidth_c) 'p,' cor];
+				case 'i',   res_c = ['-Di -W' num2str(LineWidth_c) 'p,' cor];
+				case 'l',   res_c = ['-Dl -W' num2str(LineWidth_c) 'p,' cor];
+				case 'c',   res_c = ['-Dc -W' num2str(LineWidth_c) 'p,' cor];
+			end
+			if (~strcmp(LineStyle_c,'-'))   % If we have a line style other than solid
+				switch LineStyle_c
+					case '--',  res_c = [res_c 'ta'];
+					case ':',   res_c = [res_c 'to'];
+					case '-.',  res_c = [res_c 't10_2_2_5:5'];
+				end
+			end
+		end
+		if (havePolitical)
+			switch PoliticalRes
+				case 'f',   res_p = '-Df';
+				case 'h',   res_p = '-Dh';
+				case 'i',   res_p = '-Di';
+				case 'l',   res_p = '-Dl';
+				case 'c',   res_p = '-Dc';
+			end
+			cor = round(LineColor_p * 255);
+			cor = [num2str(cor(1)) '/' num2str(cor(2)) '/' num2str(cor(3))];
+			switch PoliticalType
+				case '1',   type_p = ['-N1/'  num2str(LineWidth_p) 'p,' cor];
+				case '2',   type_p = ['-N2/'  num2str(LineWidth_p) 'p,' cor];
+				case '3',   type_p = ['-N3/'  num2str(LineWidth_p) 'p,' cor];
+				case 'a',   type_p = ['-Na/'  num2str(LineWidth_p) 'p,' cor];
+			end
+			if (~strcmp(LineStyle_p,'-'))   % If we have a line style other than solid
+				switch LineStyle_p
+					case '--',  type_p = [type_p 'ta'];
+					case ':',   type_p = [type_p 'to'];
+					case '-.',  type_p = [type_p 't10_2_2_5:5'];
+				end
+			end
+		end
+		if (haveRivers)
+			switch RiversRes
+				case 'f',   res_r = '-Df';
+				case 'h',   res_r = '-Dh';
+				case 'i',   res_r = '-Di';
+				case 'l',   res_r = '-Dl';
+				case 'c',   res_r = '-Dc';
+			end
+			cor = round(LineColor_r * 255);
+			cor = [num2str(cor(1)) '/' num2str(cor(2)) '/' num2str(cor(3))];
+			switch RiversType
+				case '1',   type_r = ['-I1/' num2str(LineWidth_r) 'p,' cor];
+				case '2',   type_r = ['-I2/' num2str(LineWidth_r) 'p,' cor];
+				case '3',   type_r = ['-I3/' num2str(LineWidth_r) 'p,' cor];
+				case '4',   type_r = ['-I4/' num2str(LineWidth_r) 'p,' cor];
+				case '5',   type_r = ['-I5/' num2str(LineWidth_r) 'p,' cor];
+				case '6',   type_r = ['-I6/' num2str(LineWidth_r) 'p,' cor];
+				case '7',   type_r = ['-I7/' num2str(LineWidth_r) 'p,' cor];
+				case '8',   type_r = ['-I8/' num2str(LineWidth_r) 'p,' cor];
+				case '9',   type_r = ['-I9/' num2str(LineWidth_r) 'p,' cor];
+				case '10',  type_r = ['-I10/' num2str(LineWidth_r) 'p,' cor];
+				case 'a',   type_r = ['-Ia/' num2str(LineWidth_r) 'p,' cor];
+				case 'r',   type_r = ['-Ir/' num2str(LineWidth_r) 'p,' cor];
+				case 'i',   type_r = ['-Ii/' num2str(LineWidth_r) 'p,' cor];
+				case 'c',   type_r = ['-Ic/' num2str(LineWidth_r) 'p,' cor];
+			end
+			if (~strcmp(LineStyle_r,'-'))   % If we have a line style other than solid
+				switch LineStyle_r
+					case '--',  type_r = [type_r 'ta'];
+					case ':',   type_r = [type_r 'to'];
+					case '-.',  type_r = [type_r 't10_2_2_5:5'];
+				end
+			end
+		end
+		res = unique([res_c(1:3); res_p; res_r],'rows');  % We don't want repeated resolution strings
+		if (size(res,1) > 1)        % Shit, we have mixed resolutions
+			res = '-Di';            % TEMPORARY SOLUTION UNTIL I FIND HOW TO FIND THE HIGHEST COMMON RES
+		end
+		if (~isempty(res_c)),   opt_W = res_c(5:end);
+		else                    opt_W = [];
+		end
+	end
 
 % --------------------------------------------------------------------------------------------------------
 function out_msg = build_write_script(handles, opt_J, dest_dir, prefix, paper, X0, Y0, opt_P, opt_deg)
@@ -1026,7 +1027,7 @@ function out_msg = build_write_script(handles, opt_J, dest_dir, prefix, paper, X
 	sc = handles.script_type;	ellips = handles.curr_datum;
 	opt_psc = handles.opt_psc;
 	hAlfaPatch = [];			haveAlfa = 0;		% These ones are used to tell if transparency
-	nameRGB = [];			% When not empty it means we'll do a screen capture ('image' or to capture transp)
+	nameRGB = [];				% When not empty it means we'll do a screen capture ('image' or to capture transp)
 
 	if (isempty(opt_psc)),  have_psc = 0;       % We do not have any pscoast commands
 	else                    have_psc = 1;
@@ -1164,7 +1165,7 @@ else											% Write a dos batch
 	end
 end
 
-% ------------- Start writing GMT commands --------------------------------
+	% ------------- Start writing GMT commands --------------------------------
 	script{l} = ' ';            l=l+1;
 	script{l} = [comm '-------- Start by creating the basemap frame'];  l=l+1;
 	if (~strcmp(sc,'bat'))		% In Unix like sys let the annot_font_size param be controled by the .gmtdefaults
@@ -1234,7 +1235,7 @@ end
 		l=l+1;    
 	end
 
-% ------------ If we have used a GMT grid file build the GMT palette -----------------------
+	% ------------ If we have used a GMT grid file build the GMT palette -----------------------
 	if (used_grd || strcmp(get(handMir.PalAt,'Check'),'on') || strcmp(get(handMir.PalIn,'Check'),'on') )
 		tmp = cell(261,1);
 		pal = get(handMir.figure1,'colormap');
@@ -1273,16 +1274,38 @@ end
 		script(id_cpt) = [];    l=l-1;
 	end
 
-% -------------- Coastlines section -----------------------------------
+	% -------------- Coastlines section -----------------------------------
 	if (have_psc)       % We have pscoast commands
 		script{l} = ' ';                        l=l+1;
 		script{l} = [comm 'Plot coastlines'];   l=l+1;
-		script{l} = ['pscoast ' opt_psc ellips opt_L ' -R -J -O -K >> ' pb 'ps' pf];    l=l+1;
+		opt_R = ' -R';
+% 		if (~handMir.geog && handMir.is_projected)
+% 			[xy_prj, msg, opt_R] = geog2projected_pts(handMir, [handles.x_min handles.y_min; handles.x_min handles.y_max; ...
+% 				                                      handles.x_max handles.y_max; handles.x_max handles.y_min;], ...
+% 			                                          [get(handMir.axes1,'Xlim') get(handMir.axes1,'Ylim') 1]);
+% 			if (~isempty(msg))
+% 				errormsg(msg, 'Error'),		opt_R = ' -R';		% Don't stop because of this error
+% 			end
+% 			projGMT = getappdata(handMir.figure1,'ProjGMT');
+% 			if (~isempty(projGMT))		% Only simple case
+% 				opt_J = projGMT;
+% 			else
+% 				proj4 = getappdata(handMir.figure1,'Proj4');
+% 				if (isempty(proj4))
+% 					projWKT = getappdata(handMir.figure1,'ProjWKT');
+% 					if (isempty(projWKT))
+% 						proj4 = ogrproj(projWKT);
+% 					end
+% 				end
+% 			end
+% 			
+% 		end
+		script{l} = ['pscoast ' opt_psc ellips opt_L opt_R ' -J -O -K >> ' pb 'ps' pf];    l=l+1;
 	elseif (~isempty(opt_L))
 		script{l} = ['psbasemap ' opt_L ' -R -J -O -K >> ' pb 'ps' pf];    l=l+1;
 	end
 
-% -------------- Search for contour lines --------------------------------------------------
+	% -------------- Search for contour lines --------------------------------------------------
 	ALLtextHand = findobj(get(handMir.axes1,'Child'),'Type','text');
 	% % If we have focal mecanisms with labels, remove their handles right away
 	% h = findobj(ALLtextHand,'Tag','TextMeca');						% I'M NOT SURE ON THIS ONE
@@ -1326,7 +1349,7 @@ end
 		end
 	end
 
-% -------------- Search for symbols --------------------------------------------------------
+	% -------------- Search for symbols --------------------------------------------------------
 	tag = get(ALLlineHand,'Tag');
 	if (~isempty(tag))
 		h = findobj(ALLlineHand,'Tag','Symbol');
@@ -1417,9 +1440,9 @@ end
 		end
 		clear ns symbols haveSymbol name name_sc;
 	end
-% ------------------------------------------------------------------------------------------------
+	% ------------------------------------------------------------------------------------------------
 
-% -------------- Search for focal mecanisms ----------------------------
+	% -------------- Search for focal mecanisms ----------------------------
 	ALLpatchHand = findobj(get(handMir.axes1,'Child'),'Type','patch');
 	if (~isempty(ALLpatchHand))
 		focHand = findobj(ALLpatchHand,'Tag','FocalMeca');
@@ -1481,9 +1504,9 @@ end
 			clear focHand name name_sc psmeca_line with_label n_cols id_anch opt_S opt_C
 		end
 	end
-% -------------------------------------------------------------------------------------------------------
+	% -------------------------------------------------------------------------------------------------------
 
-% ---------------------------------- Search for "telhas" ---------------------------------
+	% ---------------------------------- Search for "telhas" ---------------------------------
 	if (~isempty(ALLpatchHand))
 		TelhasHand = findobj(ALLpatchHand,'Tag','tapete');
 		if (~isempty(TelhasHand))
@@ -1509,9 +1532,9 @@ end
 			clear TelhasHand name name_sc n_tapetes tmp 
 		end
 	end
-% -------------------------------------------------------------------------------------------------------
+	% -------------------------------------------------------------------------------------------------------
 
-% ------------------------------------- Search for countries --------------------------------------
+	% ------------------------------------- Search for countries --------------------------------------
 	if (~isempty(ALLpatchHand))
 		% First see about these still remaining patch transparency
 		[ALLpatchHand, hAlfaPatch] = findTransparents(ALLpatchHand);
@@ -1542,9 +1565,9 @@ end
 			clear AtlasHand name n_cts ct_with_pato
 		end
 	end
-% -------------------------------------------------------------------------------------------------------
+	% -------------------------------------------------------------------------------------------------------
 
-% ------------------------------ Search for "Arrows" ---------------------------------
+	% ------------------------------ Search for "Arrows" ---------------------------------
 	if (~isempty(ALLpatchHand))
 		thisHand = findobj(ALLpatchHand,'Tag','Arrow');
 		if (~isempty(thisHand))
@@ -1582,9 +1605,9 @@ end
 			clear thisHand name name_sc n_vectors 
 		end
 	end
-% -------------------------------------------------------------------------------------------------------
+	% -------------------------------------------------------------------------------------------------------
 
-% -------------- Search for closed polygons ----------------------------
+	% -------------- Search for closed polygons ----------------------------
 	if (~isempty(ALLpatchHand))
 		xx = get(ALLpatchHand,'XData');     yy = get(ALLpatchHand,'YData');
 		n_patch = length(ALLpatchHand);
@@ -1642,7 +1665,7 @@ end
 		clear ALLpatchHand name name_sc n_patch xx yy LineWidth EdgeColor FillColor cor_edge cor_fill resp
 	end
 
-% -------------- Search for lines or polylines ----------------------------
+	% -------------- Search for lines or polylines ----------------------------
 	if (~isempty(ALLlineHand))      % OK, now the only left line handles must be, plines, mb-tracks, etc
 		xx = get(ALLlineHand,'XData');     yy = get(ALLlineHand,'YData');
 		if (~iscell(xx))            % We have only one line
@@ -1693,7 +1716,7 @@ end
 		clear xx yy cor fid m name name_sc LineStyle LineWidth LineColor
 	end
 
-% -------------- Search for text strings ---------------------------------------------
+	% -------------- Search for text strings ---------------------------------------------
 	if (~isempty(ALLtextHand))      % ALLtextHand was found above in the search for contours -- We (still) have text fields
 		pos = get(ALLtextHand,'Position');      %font = get(ALLtextHand,'FontName');
 		fsize = get(ALLtextHand,'FontSize');    fcolor = get(ALLtextHand,'Color');
@@ -1779,7 +1802,7 @@ end
         end
 	end
 
-% -------------- Search for colorbar -------------------------------------------
+	% -------------- Search for colorbar -------------------------------------------
 	if (strcmp(get(handMir.PalAt,'Check'),'on') || strcmp(get(handMir.PalIn,'Check'),'on'))
 		if (strcmp(get(handMir.PalAt,'Check'),'on')),	axHandle = get(handMir.PalAt,'UserData');
 		else											axHandle = get(handMir.PalIn,'UserData');
@@ -1810,8 +1833,8 @@ end
 		script{saveBind} = [script{saveBind} 'WSNe'];		% Don't write West anotations
 	end
 
-% --------------------------------------------------------------------------------------
-% -------------- See if we have to do a screen capture to 3 RGB grids-------------------
+	% --------------------------------------------------------------------------------------
+	% -------------- See if we have to do a screen capture to 3 RGB grids-------------------
 	if (~isempty(nameRGB) && ~haveAlfa)
         mirone('File_img2GMT_RGBgrids_CB', handMir, 'image', nameRGB)
 	elseif (~isempty(nameRGB) && haveAlfa)
@@ -1833,8 +1856,8 @@ end
 		set(ALLlineHand, 'Vis', 'on');		set(ALLpatchHand, 'Vis', 'on');	set(ALLtextHand, 'Vis', 'on')
 	end
 
-% =============================== Search for "MagBars" (XY only) ===============================
-	if ( handMir.IamXY && strcmp(get(handMir.axes2, 'Vis'), 'on') )
+	% =============================== Search for "MagBars" (XY only) ===============================
+	if (handMir.IamXY && strcmp(get(handMir.axes2, 'Vis'), 'on'))
  		hMagBar = findobj(handMir.axes2, 'type', 'patch');
 		if (~isempty(hMagBar))
 			name = sprintf('%s_magbar.dat', prefix_ddir);
@@ -1860,10 +1883,10 @@ end
 		script{l} = [comm ' ---- Plot the magnetic reversals bars (positives only)'];   l=l+1;
 		script{l} = ['psxy ' name_sc opt_R opt_J Y0 ' -m -O -K >> ' pb 'ps' pf];
 	end
-% ==============================================================================================
+	% ==============================================================================================
 
-% ----------------------------------------------------------------------------------------------
-% ------------------------------------- WRITE THE SCRIPT ---------------------------------------
+	% ----------------------------------------------------------------------------------------------
+	% ------------------------------------- WRITE THE SCRIPT ---------------------------------------
 	% First do some eventual cleaning
 	if (~isempty(handMir.grdname) && ~used_grd),         script(id_grd) = [];        end;
 	if (strncmp(computer,'PC',2) && (used_grd || used_countries) && need_path && ~strcmp(sc,'bat'))
