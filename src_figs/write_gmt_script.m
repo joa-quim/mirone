@@ -18,6 +18,11 @@ function varargout = write_gmt_script(varargin)
 
 % $Id$
 
+	handMir = varargin{1};
+	if (handMir.no_file)     % Stupid call with nothing loaded on the Mirone window
+		return
+	end
+
 	hObject = figure('Vis','off');
 	write_gmt_script_LayoutFcn(hObject);
 	handles = guihandles(hObject);
@@ -73,10 +78,6 @@ function varargout = write_gmt_script(varargin)
 	handles.opt_psc = [];			% To eventualy hold several of the pscoast options
 	handles.scale_set = 0;			% To signal that user changed scale
 
-	handMir = varargin{1};
-	if (handMir.no_file)     % Stupid call with nothing loaded on the Mirone window
-		delete(hObject);    return
-	end
 	handles.script_type = varargin{2};
 	if (strcmp(handles.script_type,'bat'))
 		set(hObject,'Name','Write GMT batch')
@@ -108,7 +109,7 @@ function varargout = write_gmt_script(varargin)
 	% -------------------------------------------------------------------------------
 
 	imgXlim = get(handMir.axes1,'XLim');    imgYlim = get(handMir.axes1,'YLim');
-	if (handMir.image_type == 2 || handMir.image_type == 20)     % "trivial" images
+	if (handMir.image_type == 2 || handMir.image_type == 20)		% "trivial" images
 		if (~handMir.IamXY)
 			[ny,nx,nz] = size(get(handMir.hImg,'CData'));
 		else
@@ -127,21 +128,22 @@ function varargout = write_gmt_script(varargin)
 		end
 		nx = round((head(2) - head(1)) / head(8));		% May not be exactly correct but is good enough here
 		ny = round((head(4) - head(3)) / head(9));
-	end    
+	end
+
 	width  = 15;					% Default starting width in cm
 	fac_15 = nx / width;
 	height = round(ny) / fac_15;
 	if (height > 27)				% That is, if height + Y0 nearly outside the A4 page
 		while (height > 27)			% Make it approximately fit the page height
 			height = round(height * 0.1);
-			width  = round(width * 0.1);
+			width  = round(width  * 0.1);
 		end
 	end
 
 	handles.opt_R = sprintf('-R%.12g/%.12g/%.12g/%.12g', handles.x_min, handles.x_max, handles.y_min, handles.y_max);
 
 	handles.handMir = handMir;
-	handles.width_or = width;  handles.height_or = height;
+	handles.width_orig = width;  handles.height_orig = height;
 	handles.scale = width;
 	handles.which_unit = 'cm';
 	handles.d_path = handMir.path_data;
@@ -442,10 +444,10 @@ function push_uppdate_CB(hObject, handles)
 
 	if (strncmp(handles.opt_J_no_scale, '-JX', 3))		% Linear proj has a different treatment
 		if (~handles.handMir.IamXY)						% Only rescale if image, not XY plot
-			scale_x = (xx(3) - xx(2)) / handles.width_or;
-			scale_y = (yy(2) - yy(1)) / handles.height_or;
-			new_y = handles.height_or * scale_x;
-			new_x = handles.width_or * scale_y;
+			scale_x = (xx(3) - xx(2)) / handles.width_orig;
+			scale_y = (yy(2) - yy(1)) / handles.height_orig;
+			new_y = handles.height_orig * scale_x;
+			new_x = handles.width_orig * scale_y;
 			if (get(handles.radio_setWidth,'Value'))
 				yy(2) = new_y + yy(1);      yy(3) = new_y + yy(1);
 			elseif (get(handles.radio_setHeight,'Value'))
@@ -480,10 +482,10 @@ function push_uppdate_CB(hObject, handles)
 	end
 
 	% scale_prj = abs(out(2,2) - out(1,2)) / abs(out(4,1) - out(1,1));    % = dy / dx     NA TA SEMPRE CERTO
-	% scale_x = (xx(3) - xx(2)) / handles.width_or;
-	% scale_y = (yy(2) - yy(1)) / handles.height_or;
-	% new_y = handles.height_or * scale_x * scale_prj;
-	% new_x = handles.width_or * scale_y / scale_prj;
+	% scale_x = (xx(3) - xx(2)) / handles.width_orig;
+	% scale_y = (yy(2) - yy(1)) / handles.height_orig;
+	% new_y = handles.height_orig * scale_x * scale_prj;
+	% new_x = handles.width_orig * scale_y / scale_prj;
 
 	new_x = max(out(:,1)) - min(out(:,1));
 	new_y = max(out(:,2)) - min(out(:,2));
