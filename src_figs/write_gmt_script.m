@@ -1,7 +1,7 @@
 function varargout = write_gmt_script(varargin)
 % Helper window to generate a GMT script that reproduces the Mirone's figure contents
 
-%	Copyright (c) 2004-2015 by J. Luis
+%	Copyright (c) 2004-2016 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -118,7 +118,7 @@ paper_in = [33.06 46.78; 23.39 33.06; 16.53 23.39; 11.69 16.53; 8.26 11.69; 5.85
 		handles.y_min = imgYlim(1);     handles.y_max = imgYlim(2);
 	else
 		head = handMir.head;
-		if ( diff(imgXlim) < diff(head(1:2))*0.9 )		% Figure is zoomed
+		if (diff(imgXlim) < diff(head(1:2))*0.9)		% Figure is zoomed
 			handles.x_min = imgXlim(1) + head(8)/2;		handles.x_max = imgXlim(2) - head(8)/2;
 			handles.y_min = imgYlim(1) + head(9)/2;		handles.y_max = imgYlim(2) - head(9)/2;
 		else
@@ -219,18 +219,14 @@ paper_in = [33.06 46.78; 23.39 33.06; 16.53 23.39; 11.69 16.53; 8.26 11.69; 5.85
 
 	if iscell(directory_list)							% When exists a dir list in mirone_pref
 		for i = 1:length(directory_list)
-			if ~exist(directory_list{i},'dir'),   j(i) = 1;   end
+			if ~exist(directory_list{i},'dir'),   j(i) = true;   end
 		end
 		directory_list(j) = [];							% clean eventual non-existing directories
-		if ~isempty(directory_list)						% If there is one left
-			set(handles.popup_directory_list,'String',directory_list)
-			handles.last_directories = directory_list;
-		else
-			set(handles.popup_directory_list,'String',cd)
-			handles.last_directories = cellstr(cd);
-		end
+		directory_list = [{handles.handMir.last_dir}; directory_list];
+		set(handles.popup_directory_list,'String',directory_list)
+		handles.last_directories = directory_list;
 	else												% mirone_pref had no dir list
-		handles.last_directories = cellstr(cd);
+		handles.last_directories = {handles.handMir.last_dir};
 		set(handles.popup_directory_list,'String',handles.last_directories)
 	end
 
@@ -619,7 +615,7 @@ function popup_directory_list_CB(hObject, handles)
 
 % -----------------------------------------------------------------------------------------
 function push_change_dir_CB(hObject, handles)
-	pato =  handles.handMir.last_dir;
+	pato = handles.handMir.last_dir;
 	if (strcmp(computer, 'PCWIN'))
 		work_dir = uigetfolder_win32('Select scripts folder',pato);
 	else			% This guy doesn't let to be compiled
