@@ -18,51 +18,51 @@ function varargout = write_gmt_script(varargin)
 
 % $Id$
 
-hObject = figure('Vis','off');
-write_gmt_script_LayoutFcn(hObject);
-handles = guihandles(hObject);
-move2side(hObject,'center');
+	hObject = figure('Vis','off');
+	write_gmt_script_LayoutFcn(hObject);
+	handles = guihandles(hObject);
+	move2side(hObject,'center');
 
-sizes_cm = {'A0 (83.96 118.82 cm)'; 'A1 (59.41 83.96 cm)'; 'A2 (41.98 59.41 cm)'; 'A3 (29.70 41.98 cm)'
-	'A4 (20.99 29.70 cm)'; 'A5 (14.85 20.99 cm)'; 'A6 (10.48 14.85 cm)'; 'A7 (7.41 10.48 cm)'
-	'A8 (5.22 7.41 cm)'; 'A9 (3.70 5.22 cm)'; 'A10 (2.61 3.70 cm)'; 'B0 (100.05 141.39 cm)'
-	'B1 (70.70 100.05 cm)'; 'B2 (50.02 70.70 cm)'; 'B3 (35.35 50.02 cm)'; 'B4 (25.01 35.35 cm)'
-	'B5 (17.67 25.01 cm)'; 'archA (22.86 30.48 cm)'; 'archB (30.48 45.72 cm)'; 'archC (45.72 60.96 cm)'
-	'archD (60.96 91.44 cm)'; 'archE (91.44 121.92 cm)'; 'flsa (21.59 33.02 cm)'; 'halfletter (13.97 21.59 cm)'
-	'note (19.05 25.40 cm)'; 'letter (21.59 27.94 cm)'; 'legal (21.59 35.56 cm)'; '11x17 (27.94 43.18 cm)'
-	'ledger (43.18 27.94 cm)'};
+	sizes_cm = {'A0 (83.96 118.82 cm)'; 'A1 (59.41 83.96 cm)'; 'A2 (41.98 59.41 cm)'; 'A3 (29.70 41.98 cm)'
+		'A4 (20.99 29.70 cm)'; 'A5 (14.85 20.99 cm)'; 'A6 (10.48 14.85 cm)'; 'A7 (7.41 10.48 cm)'
+		'A8 (5.22 7.41 cm)'; 'A9 (3.70 5.22 cm)'; 'A10 (2.61 3.70 cm)'; 'B0 (100.05 141.39 cm)'
+		'B1 (70.70 100.05 cm)'; 'B2 (50.02 70.70 cm)'; 'B3 (35.35 50.02 cm)'; 'B4 (25.01 35.35 cm)'
+		'B5 (17.67 25.01 cm)'; 'archA (22.86 30.48 cm)'; 'archB (30.48 45.72 cm)'; 'archC (45.72 60.96 cm)'
+		'archD (60.96 91.44 cm)'; 'archE (91.44 121.92 cm)'; 'flsa (21.59 33.02 cm)'; 'halfletter (13.97 21.59 cm)'
+		'note (19.05 25.40 cm)'; 'letter (21.59 27.94 cm)'; 'legal (21.59 35.56 cm)'; '11x17 (27.94 43.18 cm)'
+		'ledger (43.18 27.94 cm)'};
 
-sizes_pt = {'A0  (2380 3368 pt)'; 'A1  (1684 2380 pt)'; 'A2  (1190 1684 pt)'; 'A3  (842 1190 pt)'
-	'A4  (595 842 pt)'; 'A5  (421 595 pt)'; 'A6  (297 421 pt)'; 'A7  (210 297 pt)'; 'A8  (148 210 pt)'
-	'A9  (105 148 pt)'; 'A10 (74 105 pt)'; 'B0  (2836 4008 pt)'; 'B1  (2004 2836 pt)'; 'B2  (1418 2004 pt)'
-	'B3  (1002 1418 pt)'; 'B4  (709 1002 pt)'; 'B5  (501 709 pt)'; 'archA (648 864 pt)'; 'archB (864 1296 pt)'
-	'archC (1296 1728 pt)'; 'archD (1728 2592 pt)'; 'archE (2592 3456 pt)'; 'flsa  (612 936 pt)'
-	'halfletter (396 612 pt)'; 'note   (540 720 pt)'; 'letter (612 792 pt)'; 'legal  (612 1008 pt)'
-	'11x17  (792 1224 pt)'; 'ledger (1224 792 pt)'};
+	sizes_pt = {'A0  (2380 3368 pt)'; 'A1  (1684 2380 pt)'; 'A2  (1190 1684 pt)'; 'A3  (842 1190 pt)'
+		'A4  (595 842 pt)'; 'A5  (421 595 pt)'; 'A6  (297 421 pt)'; 'A7  (210 297 pt)'; 'A8  (148 210 pt)'
+		'A9  (105 148 pt)'; 'A10 (74 105 pt)'; 'B0  (2836 4008 pt)'; 'B1  (2004 2836 pt)'; 'B2  (1418 2004 pt)'
+		'B3  (1002 1418 pt)'; 'B4  (709 1002 pt)'; 'B5  (501 709 pt)'; 'archA (648 864 pt)'; 'archB (864 1296 pt)'
+		'archC (1296 1728 pt)'; 'archD (1728 2592 pt)'; 'archE (2592 3456 pt)'; 'flsa  (612 936 pt)'
+		'halfletter (396 612 pt)'; 'note   (540 720 pt)'; 'letter (612 792 pt)'; 'legal  (612 1008 pt)'
+		'11x17  (792 1224 pt)'; 'ledger (1224 792 pt)'};
 
-sizes_in = {'A0 (33.06 46.78 cm)'; 'A1 (23.39 33.06 in)'; 'A2 (16.53 23.39 in)'; 'A3 (11.69 16.53 in)'
-	'A4 (8.26 11.69 in)'; 'A5 (5.85 8.26 in)'; 'A6 (4.13 5.85 in)'; 'A7 (2.92 4.13 in)'
-	'A8 (2.06 2.92 in)'; 'A9 (1.46 2.06 in)'; 'A10 (1.03 1.46 in)'; 'B0 (39.39 55.67 in)'
-	'B1 (27.83 39.39 in)'; 'B2 (19.69 27.83 in)'; 'B3 (13.92 19.69 in)'; 'B4 (9.85 13.92 in)'
-	'B5 (6.96 9.85 in)'; 'archA (9.0 12.0 in)'; 'archB (12.0 18.0 in)'; 'archC (18.0 24.0 in)'
-	'archD (24.0 36.0 in)'; 'archE (36.0 48.0 in)'; 'flsa (8.5 13.0 in)'; 'halfletter (5.5 8.5 in)'
-	'note (7.5 10.0 in)'; 'letter (8.5 11.0 in)'; 'legal (8.5 14.0 in)'; '11x17 (11.0 17.0 in)'
-	'ledger (17.0 11.0 in)'};
+	sizes_in = {'A0 (33.06 46.78 cm)'; 'A1 (23.39 33.06 in)'; 'A2 (16.53 23.39 in)'; 'A3 (11.69 16.53 in)'
+		'A4 (8.26 11.69 in)'; 'A5 (5.85 8.26 in)'; 'A6 (4.13 5.85 in)'; 'A7 (2.92 4.13 in)'
+		'A8 (2.06 2.92 in)'; 'A9 (1.46 2.06 in)'; 'A10 (1.03 1.46 in)'; 'B0 (39.39 55.67 in)'
+		'B1 (27.83 39.39 in)'; 'B2 (19.69 27.83 in)'; 'B3 (13.92 19.69 in)'; 'B4 (9.85 13.92 in)'
+		'B5 (6.96 9.85 in)'; 'archA (9.0 12.0 in)'; 'archB (12.0 18.0 in)'; 'archC (18.0 24.0 in)'
+		'archD (24.0 36.0 in)'; 'archE (36.0 48.0 in)'; 'flsa (8.5 13.0 in)'; 'halfletter (5.5 8.5 in)'
+		'note (7.5 10.0 in)'; 'letter (8.5 11.0 in)'; 'legal (8.5 14.0 in)'; '11x17 (11.0 17.0 in)'
+		'ledger (17.0 11.0 in)'};
 
-paper_cm = [83.96 118.82; 59.41 83.96; 41.98 59.41; 29.70 41.98; 20.99 29.70; 14.85 20.99; ...
-	10.48 14.85; 7.41 10.48; 5.22 7.41; 3.70 5.22; 2.61 3.70; 100.05 141.40; 70.70 100.05; ...
-	50.02 70.70; 35.35 50.02; 25.01 35.35; 17.67 25.01; 22.86 30.48; 30.48 45.72; ...
-	45.72 60.96; 60.96 91.44; 91.44 121.92; 21.59 33.02; 13.97 21.59; 19.05 25.40; ...
-	21.59 27.94; 21.59 35.56; 27.94 43.18; 43.18 27.94];
+	paper_cm = [83.96 118.82; 59.41 83.96; 41.98 59.41; 29.70 41.98; 20.99 29.70; 14.85 20.99; ...
+		10.48 14.85; 7.41 10.48; 5.22 7.41; 3.70 5.22; 2.61 3.70; 100.05 141.40; 70.70 100.05; ...
+		50.02 70.70; 35.35 50.02; 25.01 35.35; 17.67 25.01; 22.86 30.48; 30.48 45.72; ...
+		45.72 60.96; 60.96 91.44; 91.44 121.92; 21.59 33.02; 13.97 21.59; 19.05 25.40; ...
+		21.59 27.94; 21.59 35.56; 27.94 43.18; 43.18 27.94];
 
-paper_pt = [2380 3368; 1684 2380; 1190 1684; 842 1190; 595 842; 421 595; 297 421; 210 297; 148 210; ...
-	105 148; 74 105; 2836 4008; 2004 2836; 1418 2004; 1002 1418; 709 1002; 501 709; 648 864; 864 1296; ...
-	1296 1728; 1728 2592; 2592 3456; 612 936; 396 612; 540 720; 612 792; 612 1008; 792 1224; 1224 792];
+	paper_pt = [2380 3368; 1684 2380; 1190 1684; 842 1190; 595 842; 421 595; 297 421; 210 297; 148 210; ...
+		105 148; 74 105; 2836 4008; 2004 2836; 1418 2004; 1002 1418; 709 1002; 501 709; 648 864; 864 1296; ...
+		1296 1728; 1728 2592; 2592 3456; 612 936; 396 612; 540 720; 612 792; 612 1008; 792 1224; 1224 792];
 
-paper_in = [33.06 46.78; 23.39 33.06; 16.53 23.39; 11.69 16.53; 8.26 11.69; 5.85 8.26; 4.13 5.85; ...
-	2.92 4.13; 2.06 2.92; 1.46 2.06; 1.03 1.46; 39.39 55.67; 27.83 39.39; 19.69 27.83; 13.92 19.69; ...
-	9.85 13.92; 6.96 9.85; 9.0 12.0; 12.0 18.0; 18.0 24.0; 24.0 36.0; 36.0 48.0; 8.5 13.0; 5.5 8.5; ...
-	7.5 10.0; 8.5 11.0; 8.5 14.0; 11.0 17.0; 17.0 11.0];
+	paper_in = [33.06 46.78; 23.39 33.06; 16.53 23.39; 11.69 16.53; 8.26 11.69; 5.85 8.26; 4.13 5.85; ...
+		2.92 4.13; 2.06 2.92; 1.46 2.06; 1.03 1.46; 39.39 55.67; 27.83 39.39; 19.69 27.83; 13.92 19.69; ...
+		9.85 13.92; 6.96 9.85; 9.0 12.0; 12.0 18.0; 18.0 24.0; 24.0 36.0; 36.0 48.0; 8.5 13.0; 5.5 8.5; ...
+		7.5 10.0; 8.5 11.0; 8.5 14.0; 11.0 17.0; 17.0 11.0];
 
 	set(handles.popup_PaperSize,'String',sizes_cm,'Value',5)
 
@@ -279,12 +279,9 @@ paper_in = [33.06 46.78; 23.39 33.06; 16.53 23.39; 11.69 16.53; 8.26 11.69; 5.85
 function popup_PaperSize_CB(hObject, handles)
 	val = get(hObject,'Value');
 	switch handles.which_unit
-		case 'cm'
-			lims = handles.paper_cm(val,1:2);
-		case 'in'
-			lims = handles.paper_in(val,1:2);
-		case 'pt'
-			lims = handles.paper_pt(val,1:2);
+		case 'cm',		lims = handles.paper_cm(val,1:2);
+		case 'in',		lims = handles.paper_in(val,1:2);
+		case 'pt',		lims = handles.paper_pt(val,1:2);
 	end
 	if (get(handles.radio_P,'Value'))
 		set(handles.axes1,'XLim',[0 lims(1)],'YLim',[0 lims(2)]);
@@ -355,66 +352,66 @@ function radio_pt_CB(hObject, handles)
 
 % -----------------------------------------------------------------------------------
 function conv_units(handles,dest)
-xx = get(handles.hand_rect,'XData');        yy = get(handles.hand_rect,'YData');
-xf = get(handles.hand_frame_proj,'XData');  yf = get(handles.hand_frame_proj,'YData');
-if (strcmp(handles.which_unit,'cm') && strcmp(dest,'in'))
-    xx = xx / 2.54;     yy = yy / 2.54;
-    xf = xf / 2.54;     yf = yf / 2.54;
-    set(handles.edit_mapWidth,'String',sprintf( '%.2f',str2double(get(handles.edit_mapWidth,'String'))/2.54 ))
-    set(handles.edit_mapHeight,'String',sprintf( '%.2f',str2double(get(handles.edit_mapHeight,'String'))/2.54 ))
-    set(handles.edit_X0,'String',sprintf( '%.2f',str2double(get(handles.edit_X0,'String'))/2.54 ))
-    set(handles.edit_Y0,'String',sprintf( '%.2f',str2double(get(handles.edit_Y0,'String'))/2.54 ))
-elseif (strcmp(handles.which_unit,'cm') && strcmp(dest,'pt'))
-    xx = xx * 72/2.54;  yy = yy * 72/2.54;
-    xf = xf * 72/2.54;  yf = yf * 72/2.54;
-    set(handles.edit_mapWidth,'String',sprintf( '%.2f',str2double(get(handles.edit_mapWidth,'String'))* 72/2.54 ))
-    set(handles.edit_mapHeight,'String',sprintf( '%.2f',str2double(get(handles.edit_mapHeight,'String'))* 72/2.54 ))
-    set(handles.edit_X0,'String',sprintf( '%.2f',str2double(get(handles.edit_X0,'String'))* 72/2.54 ))
-    set(handles.edit_Y0,'String',sprintf( '%.2f',str2double(get(handles.edit_Y0,'String'))* 72/2.54 ))
-elseif (strcmp(handles.which_unit,'in') && strcmp(dest,'cm'))
-    xx = xx * 2.54;     yy = yy * 2.54;
-    xf = xf * 2.54;     yf = yf * 2.54;
-    set(handles.edit_mapWidth,'String',sprintf( '%.2f',str2double(get(handles.edit_mapWidth,'String'))*2.54 ))
-    set(handles.edit_mapHeight,'String',sprintf( '%.2f',str2double(get(handles.edit_mapHeight,'String'))*2.54 ))
-    set(handles.edit_X0,'String',sprintf( '%.2f',str2double(get(handles.edit_X0,'String'))*2.54 ))
-    set(handles.edit_Y0,'String',sprintf( '%.2f',str2double(get(handles.edit_Y0,'String'))*2.54 ))
-elseif (strcmp(handles.which_unit,'in') && strcmp(dest,'pt'))
-    xx = xx * 72;       yy = yy * 72;
-    xf = xf * 72;       yf = yf * 72;
-    set(handles.edit_mapWidth,'String',sprintf( '%.2f',str2double(get(handles.edit_mapWidth,'String'))*72 ))
-    set(handles.edit_mapHeight,'String',sprintf( '%.2f',str2double(get(handles.edit_mapHeight,'String'))*72 ))
-    set(handles.edit_X0,'String',sprintf( '%.2f',str2double(get(handles.edit_X0,'String'))*72 ))
-    set(handles.edit_Y0,'String',sprintf( '%.2f',str2double(get(handles.edit_Y0,'String'))*72 ))
-elseif (strcmp(handles.which_unit,'pt') && strcmp(dest,'cm'))
-    xx = xx * 2.54/72;  yy = yy * 2.54/72;
-    xf = xf * 2.54/72;  yf = yf * 2.54/72;
-    set(handles.edit_mapWidth,'String',sprintf( '%.2f',str2double(get(handles.edit_mapWidth,'String'))*2.54/72 ))
-    set(handles.edit_mapHeight,'String',sprintf( '%.2f',str2double(get(handles.edit_mapHeight,'String'))*2.54/72 ))
-    set(handles.edit_X0,'String',sprintf( '%.2f',str2double(get(handles.edit_X0,'String'))*2.54/72 ))
-    set(handles.edit_Y0,'String',sprintf( '%.2f',str2double(get(handles.edit_Y0,'String'))*2.54/72 ))
-elseif (strcmp(handles.which_unit,'pt') && strcmp(dest,'in'))
-    xx = xx / 72;       yy = yy / 72;
-    xf = xf / 72;       yf = yf / 72;
-    set(handles.edit_mapWidth,'String',sprintf( '%.2f',str2double(get(handles.edit_mapWidth,'String'))/72 ))
-    set(handles.edit_mapHeight,'String',sprintf( '%.2f',str2double(get(handles.edit_mapHeight,'String'))/72 ))
-    set(handles.edit_X0,'String',sprintf( '%.2f',str2double(get(handles.edit_X0,'String'))/72 ))
-    set(handles.edit_Y0,'String',sprintf( '%.2f',str2double(get(handles.edit_Y0,'String'))/72 ))
-end
-set(handles.hand_rect,'XData',xx);      set(handles.hand_rect,'YData',yy);
-if (~isempty(handles.hand_frame_proj))
-    set(handles.hand_frame_proj,'XData',xf);      set(handles.hand_frame_proj,'YData',yf);
-end
-
-% Also uppdate the projection info text
-str = get(handles.h_txt_info,'String');
-try
-	k = strfind(str{end},'/');
-	if (~isempty(k))
-        new_w = get(handles.edit_mapWidth,'String');
-        str{end} = [str{end}(1:k(end)) new_w handles.which_unit(1)];
-        set(handles.h_txt_info,'String',str)
+	xx = get(handles.hand_rect,'XData');        yy = get(handles.hand_rect,'YData');
+	xf = get(handles.hand_frame_proj,'XData');  yf = get(handles.hand_frame_proj,'YData');
+	if (strcmp(handles.which_unit,'cm') && strcmp(dest,'in'))
+		xx = xx / 2.54;     yy = yy / 2.54;
+		xf = xf / 2.54;     yf = yf / 2.54;
+		set(handles.edit_mapWidth,'String',sprintf('%.2f',str2double(get(handles.edit_mapWidth,'String'))/2.54 ))
+		set(handles.edit_mapHeight,'String',sprintf('%.2f',str2double(get(handles.edit_mapHeight,'String'))/2.54 ))
+		set(handles.edit_X0,'String',sprintf('%.2f',str2double(get(handles.edit_X0,'String'))/2.54 ))
+		set(handles.edit_Y0,'String',sprintf('%.2f',str2double(get(handles.edit_Y0,'String'))/2.54 ))
+	elseif (strcmp(handles.which_unit,'cm') && strcmp(dest,'pt'))
+		xx = xx * 72/2.54;  yy = yy * 72/2.54;
+		xf = xf * 72/2.54;  yf = yf * 72/2.54;
+		set(handles.edit_mapWidth,'String',sprintf('%.2f',str2double(get(handles.edit_mapWidth,'String'))* 72/2.54 ))
+		set(handles.edit_mapHeight,'String',sprintf('%.2f',str2double(get(handles.edit_mapHeight,'String'))* 72/2.54 ))
+		set(handles.edit_X0,'String',sprintf('%.2f',str2double(get(handles.edit_X0,'String'))* 72/2.54 ))
+		set(handles.edit_Y0,'String',sprintf('%.2f',str2double(get(handles.edit_Y0,'String'))* 72/2.54 ))
+	elseif (strcmp(handles.which_unit,'in') && strcmp(dest,'cm'))
+		xx = xx * 2.54;     yy = yy * 2.54;
+		xf = xf * 2.54;     yf = yf * 2.54;
+		set(handles.edit_mapWidth,'String',sprintf('%.2f',str2double(get(handles.edit_mapWidth,'String'))*2.54 ))
+		set(handles.edit_mapHeight,'String',sprintf('%.2f',str2double(get(handles.edit_mapHeight,'String'))*2.54 ))
+		set(handles.edit_X0,'String',sprintf('%.2f',str2double(get(handles.edit_X0,'String'))*2.54 ))
+		set(handles.edit_Y0,'String',sprintf('%.2f',str2double(get(handles.edit_Y0,'String'))*2.54 ))
+	elseif (strcmp(handles.which_unit,'in') && strcmp(dest,'pt'))
+		xx = xx * 72;       yy = yy * 72;
+		xf = xf * 72;       yf = yf * 72;
+		set(handles.edit_mapWidth,'String',sprintf('%.2f',str2double(get(handles.edit_mapWidth,'String'))*72 ))
+		set(handles.edit_mapHeight,'String',sprintf('%.2f',str2double(get(handles.edit_mapHeight,'String'))*72 ))
+		set(handles.edit_X0,'String',sprintf('%.2f',str2double(get(handles.edit_X0,'String'))*72 ))
+		set(handles.edit_Y0,'String',sprintf('%.2f',str2double(get(handles.edit_Y0,'String'))*72 ))
+	elseif (strcmp(handles.which_unit,'pt') && strcmp(dest,'cm'))
+		xx = xx * 2.54/72;  yy = yy * 2.54/72;
+		xf = xf * 2.54/72;  yf = yf * 2.54/72;
+		set(handles.edit_mapWidth,'String',sprintf('%.2f',str2double(get(handles.edit_mapWidth,'String'))*2.54/72 ))
+		set(handles.edit_mapHeight,'String',sprintf('%.2f',str2double(get(handles.edit_mapHeight,'String'))*2.54/72 ))
+		set(handles.edit_X0,'String',sprintf('%.2f',str2double(get(handles.edit_X0,'String'))*2.54/72 ))
+		set(handles.edit_Y0,'String',sprintf('%.2f',str2double(get(handles.edit_Y0,'String'))*2.54/72 ))
+	elseif (strcmp(handles.which_unit,'pt') && strcmp(dest,'in'))
+		xx = xx / 72;       yy = yy / 72;
+		xf = xf / 72;       yf = yf / 72;
+		set(handles.edit_mapWidth,'String', sprintf('%.2f',str2double(get(handles.edit_mapWidth,'String'))/72 ))
+		set(handles.edit_mapHeight,'String',sprintf('%.2f',str2double(get(handles.edit_mapHeight,'String'))/72 ))
+		set(handles.edit_X0,'String',sprintf('%.2f',str2double(get(handles.edit_X0,'String'))/72 ))
+		set(handles.edit_Y0,'String',sprintf('%.2f',str2double(get(handles.edit_Y0,'String'))/72 ))
 	end
-end
+	set(handles.hand_rect,'XData',xx),				set(handles.hand_rect,'YData',yy);
+	if (~isempty(handles.hand_frame_proj))
+		set(handles.hand_frame_proj,'XData',xf),	set(handles.hand_frame_proj,'YData',yf);
+	end
+
+	% Also uppdate the projection info text
+	str = get(handles.h_txt_info,'String');
+	try
+		k = strfind(str{end},'/');
+		if (~isempty(k))
+			new_w = get(handles.edit_mapWidth,'String');
+			str{end} = [str{end}(1:k(end)) new_w handles.which_unit(1)];
+			set(handles.h_txt_info,'String',str)
+		end
+	end
 
 % -----------------------------------------------------------------------------------
 function radio_setWidth_CB(hObject, handles)
