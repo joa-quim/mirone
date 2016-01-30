@@ -16,7 +16,7 @@ function varargout = write_gmt_script(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: write_gmt_script.m 7771 2016-01-30 13:56:14Z j $
+% $Id: write_gmt_script.m 7772 2016-01-30 16:01:48Z j $
 
 	handMir = varargin{1};
 	if (handMir.no_file)     % Stupid call with nothing loaded on the Mirone window
@@ -86,7 +86,7 @@ function varargout = write_gmt_script(varargin)
 		set(hObject,'Name','Write GMT script')
 	end
 
-	% ---------------- See if the caller is 'ecran' ---------------------------------
+	% ---------------------- See if the caller is 'ecran' ----------------------------------------------
 	% If yes, we must set several fake handles struct members that exist in Mirone
 	if (strcmp(get(handMir.axes1,'UserData'), 'XY'))
 		handMir.image_type = 20;
@@ -100,7 +100,7 @@ function varargout = write_gmt_script(varargin)
 	else
 		handMir.IamXY = false;
 	end
-	% -------------------------------------------------------------------------------
+	% --------------------------------------------------------------------------------------------------
 
 	imgXlim = get(handMir.axes1,'XLim');    imgYlim = get(handMir.axes1,'YLim');
 	if (handMir.image_type == 2 || handMir.image_type == 20)		% "trivial" images
@@ -142,7 +142,7 @@ function varargout = write_gmt_script(varargin)
 	handles.which_unit = 'cm';
 	handles.d_path = handMir.path_data;
 
-	% Compute image aspect ratio and set axes 'PlotBoxAspectRatio' to it
+	% ------- Compute image aspect ratio and set axes 'PlotBoxAspectRatio' to it -----------------------
 	handles.paper        = [paper_cm(5,1) paper_cm(5,2)];			% Set to A4 (x,y)
 	handles.paper_aspect = handles.paper(2)/handles.paper(1);
 	% set(handles.axes1,'XLim',[0 handles.paper(1)],'YLim',[0 handles.paper(2)], ...
@@ -155,12 +155,12 @@ function varargout = write_gmt_script(varargin)
 	handles.scale  = sprintf('%.2g', width);
 	set(handles.edit_mapWidth,'String',sprintf('%.2f', width))		% Fill the width editbox
 	set(handles.edit_mapHeight,'String',sprintf('%.2f',height))		% Fill the height editbox
+	% --------------------------------------------------------------------------------------------------
 
-	% ---------- Draw the grid->image rectangle
+	% ---------- Draw the grid->image rectangle --------------------------------------------------------
 	h = patch('XData',rect_x,'YData',rect_y,'FaceColor','w','EdgeColor','k','LineWidth',.5,'Tag','PlotRect');
-
 	ui_edit_polygon(h)					% Set edition functions
-
+	setappdata(h, 'RunCB', {@push_uppdate_CB,[], h})
 	handles.hand_rect = h;				% Save the rectangle hand
 	handles.hand_frame_proj = [];
 
@@ -170,10 +170,10 @@ function varargout = write_gmt_script(varargin)
 	% Check that the coord_system structure has no errors. If it has, load the default value.
 	% The result is used to update the handles structure.
 	[handles,handles.coord_system_script] = check_coord_system(handles,coord_system_script,'_script');
-
 	handles.all_ellipsoides = DefineEllipsoide;		% This is already in mirone_prefs
+	% --------------------------------------------------------------------------------------------------
 
-	%----------- Recall previous settings stored in mirone_pref -------------------
+	%--------------- Recall previous settings stored in mirone_pref ------------------------------------
 	handles.h_txt_info   = findobj(hObject,'Tag','text_ProjDescription');
 	if (handMir.is_projected)
 		set(handles.text_ProjDescription,'String','Using Grid''s projection info')
@@ -196,8 +196,9 @@ function varargout = write_gmt_script(varargin)
 		set(handles.text_ProjDescription,'String',handles.proj_info_txt_script)
 	end
 	handles.all_datums = datums;		% datums is a function in utils
+	% --------------------------------------------------------------------------------------------------
 
-	% ---------- Split the scale from the projection string
+	% ---------------- Split the scale from the projection string --------------------------------------
 	tmp = handles.coord_system_script.projection;
 	if (~isempty(tmp))
 		if (numel(tmp) == 4 && strcmp(tmp(3),'m'))		% Simple Mercator has the form "-Jm1"
@@ -213,10 +214,10 @@ function varargout = write_gmt_script(varargin)
 	end
 	%opt_J = [tmp(1:2) upper(tmp(3)) tmp(4:end) '/' handles.scale handles.which_unit(1)];
 	handles.curr_datum = handles.all_datums{handles.coord_system_script.datum_val,2};	% Save this
+	% --------------------------------------------------------------------------------------------------
 
-	% ----------- Use the directory list from mirone_pref
+	% ----------------- Use the directory list from mirone_pref ----------------------------------------
 	j = false(1,numel(directory_list));					% vector for eventual cleaning non-existing dirs
-
 	if iscell(directory_list)							% When exists a dir list in mirone_pref
 		for i = 1:length(directory_list)
 			if ~exist(directory_list{i},'dir'),   j(i) = true;   end
@@ -229,8 +230,9 @@ function varargout = write_gmt_script(varargin)
 		handles.last_directories = {handles.handMir.last_dir};
 		set(handles.popup_directory_list,'String',handles.last_directories)
 	end
+	% --------------------------------------------------------------------------------------------------
 
-	% --------- Set prefix name based on month and day numbers
+	% ------------------ Set prefix name based on month and day numbers --------------------------------
 	prefix = clock;
 	prefix = sprintf('mir%d-%d',prefix(3), prefix(2));
 	set(handles.edit_prefix,'String',prefix)
@@ -239,8 +241,9 @@ function varargout = write_gmt_script(varargin)
 		set(handles.toggle_Option_L,'Visible','off')
 		set(findobj(hObject,'Style','text','Tag','text_MapScale'), 'Visible','off');
 	end
+	% ---------------------------------------------------------------------------------------------------
 
-	% ---------- See if we have pscoast stuff
+	% ------------------------- See if we have pscoast stuff --------------------------------------------
 	ALLlineHand = findobj(get(handMir.axes1,'Child'),'Type','line');
 	handles.psc_res = [];	handles.psc_opt_W = [];		handles.psc_type_p = [];	handles.psc_type_r  = [];
 	if (~isempty(findobj(ALLlineHand,'Tag','CoastLineNetCDF')) || ~isempty(findobj(ALLlineHand,'Tag','Rivers')) ...
@@ -252,29 +255,28 @@ function varargout = write_gmt_script(varargin)
 		handles.ALLlineHand = ALLlineHand;
 	end
 	clear ALLlineHand;
+	% --------------------------------------------------------------------------------------------------
 
-	%------------ Give a Pro look (3D) to the frame boxes  -------------------------------
+	%------------ Give a Pro look (3D) to the frame boxes  ---------------------------------------------
 	new_frame3D(hObject, NaN)
-	%------------- END Pro look (3D) -----------------------------------------------------
+	%------------- END Pro look (3D) -------------------------------------------------------------------
 
-	% ------------ Apply inherited projection --------------------------------------------
+	% ------------ Apply inherited projection ----------------------------------------------------------
 	guidata(hObject, handles);
 	push_uppdate_CB(handles.push_uppdate, handles)
 	handles = guidata(hObject);		% Recover in "this handles" the changes donne in push_uppdate
 
-	% ------------ See if GMT5 is around ------------------------------------------------
+	% ------------ See if GMT5 is around ---------------------------------------------------------------
 	handles.have_GMT5 = false;
-	s = system('gmt --show-bindir');
-	if (s == 0)
-		handles.have_GMT5 = true;
-	end
-	% ------------------------------------------------------------------------------------
+	[s, w] = system('gmt --show-bindir');	% Ask for the second arg so that it won't be printed without request
+	if (s == 0),	handles.have_GMT5 = true;	end
+	% --------------------------------------------------------------------------------------------------
 
-	% ---------------- Add this figure handle to the carraças list -----------------------
+	% ------------- Add this figure handle to the carraças list ----------------------------------------
 	plugedWin = getappdata(handMir.figure1,'dependentFigs');
 	plugedWin = [plugedWin hObject];
 	setappdata(handMir.figure1,'dependentFigs',plugedWin);
-	% ------------------------------------------------------------------------------------
+	% --------------------------------------------------------------------------------------------------
 
 	guidata(hObject, handles);
 	set(hObject,'Visible','on');
@@ -440,6 +442,10 @@ function radio_0_360_CB(hObject, handles)
 
 % -----------------------------------------------------------------------------------
 function push_uppdate_CB(hObject, handles)
+% ...
+	if (~isa(handles, 'struct'))		% Than this is a call from the RunCB registered by ui_edit_polygon
+		handles = guidata(handles);		% and handles is actually the rectangle handle.
+	end
 	xx = get(handles.hand_rect,'XData');		yy = get(handles.hand_rect,'YData');
 	set(handles.edit_X0,'String', sprintf('%.2f', xx(1)));
 	set(handles.edit_Y0,'String', sprintf('%.2f', yy(1)));
@@ -565,7 +571,7 @@ function push_uppdate_CB(hObject, handles)
 		set(handles.text_ProjDescription,'String',str)
 	end
 
-	guidata(hObject,handles)
+	guidata(handles.figure1, handles)
 
 % -----------------------------------------------------------------------------------
 function scale_str = get_scale(handles, width, height)
