@@ -16,7 +16,7 @@ function varargout = write_gmt_script(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: write_gmt_script.m 7773 2016-01-30 16:13:06Z j $
+% $Id: write_gmt_script.m 7776 2016-01-30 16:52:47Z j $
 
 	handMir = varargin{1};
 	if (handMir.no_file)     % Stupid call with nothing loaded on the Mirone window
@@ -1943,7 +1943,7 @@ function [script, l, warn_msg_pscoast] = do_pscoast(handles, script, l, comm, pb
 										   handles.x_max handles.y_max; handles.x_max handles.y_min;], ...
 										   [get(handles.handMir.axes1,'Xlim') get(handles.handMir.axes1,'Ylim') 1]);
 		if (~isempty(msg))
-			errormsg(msg, 'Error')	% But we don't stop because of this error
+			errordlg(msg, 'Error')	% But we don't stop because of this error
 		else
 			opt_R = sprintf('-R%.12g/%.12g/%.12g/%.12gr', xy_prj(1,:),xy_prj(3,:));		% Note the -R./././.r construct
 		end
