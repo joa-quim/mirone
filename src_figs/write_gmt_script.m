@@ -16,7 +16,7 @@ function varargout = write_gmt_script(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: write_gmt_script.m 7768 2016-01-30 02:14:18Z j $
+% $Id: write_gmt_script.m 7769 2016-01-30 02:17:20Z j $
 
 	handMir = varargin{1};
 	if (handMir.no_file)     % Stupid call with nothing loaded on the Mirone window
@@ -1111,88 +1111,88 @@ function [out_msg, warn_msg_pscoast] = build_write_script(handles, opt_J, dest_d
 	clear Bx By d_Bx d_By;
 % --------------------------------------------------------------------------------------
 
-l = 1;
-if (~strcmp(sc,'bat'))							% Write a csh script
-    script{l} = '#!/bin/csh -f';				l=l+1;
-	script{l} = comm;							l=l+1;
-	script{l} = [comm 'Coffeeright Mirone Tec'];l=l+1;
-	script{l} = comm;							l=l+1;
-	if (~isempty(handles.GMT5bin_path))
-		script{l} = [comm ' ---- Prepend GMT5 bin path to PATH so that GMT5 is used (DON''T remove to use GMT4) ----'];
-		l = l + 1;
-		script{l} = ['set PATH = ' handles.GMT5bin_path ';$PATH'];    l=l+1;
-		script{l} = comm;						l=l+1;
-	end
-	script{l} = [comm ' ---- Projection. You may change it if you know how to'];    l=l+1;
-	script{l} = ['set proj = ' opt_J];			l=l+1;      % Map scale
-	script{l} = [comm ' ---- Frame annotations. You may change it if you know how to'];    l=l+1;
-	script{l} = ['set frm = ' opt_B];			l=l+1;      saveBind = l-1;
-	script{l} = [comm imgDimsInfo];				l=l+1;
-	script{l} = [comm ' ---- Map limits. You may change it if you know how to'];    l=l+1;
-	script{l} = ['set lim = ' opt_R];			l=l+1;
-	script{l} = comm;							l=l+1;
-	script{l} = [comm ' ---- Longitude annotation style. The +ddd:mm:ss form => [0;360] range '];    l=l+1;
-	script{l} = ['set deg_form=' opt_deg];      l=l+1;
-	script{l} = '';                             l=l+1;
-    prefix_ddir = [dest_dir filesep prefix];    % Add destination dir to the name prefix
-	if (~isempty(grd_name))
-		if (~need_path)
-			script{l} = ['set grd = ' just_grd_name];   id_grd = l; l=l+1;
-		else
-			script{l} = ['set grd = ' grd_name];        id_grd = l; l=l+1;
+	l = 1;
+	if (~strcmp(sc,'bat'))							% Write a csh script
+		script{l} = '#!/bin/csh -f';				l=l+1;
+		script{l} = comm;							l=l+1;
+		script{l} = [comm 'Coffeeright Mirone Tec'];l=l+1;
+		script{l} = comm;							l=l+1;
+		if (~isempty(handles.GMT5bin_path))
+			script{l} = [comm ' ---- Prepend GMT5 bin path to PATH so that GMT5 is used (DON''T remove to use GMT4) ----'];
+			l = l + 1;
+			script{l} = ['set PATH = ' handles.GMT5bin_path ';$PATH'];    l=l+1;
+			script{l} = comm;						l=l+1;
+		end
+		script{l} = [comm ' ---- Projection. You may change it if you know how to'];    l=l+1;
+		script{l} = ['set proj = ' opt_J];			l=l+1;      % Map scale
+		script{l} = [comm ' ---- Frame annotations. You may change it if you know how to'];    l=l+1;
+		script{l} = ['set frm = ' opt_B];			l=l+1;      saveBind = l-1;
+		script{l} = [comm imgDimsInfo];				l=l+1;
+		script{l} = [comm ' ---- Map limits. You may change it if you know how to'];    l=l+1;
+		script{l} = ['set lim = ' opt_R];			l=l+1;
+		script{l} = comm;							l=l+1;
+		script{l} = [comm ' ---- Longitude annotation style. The +ddd:mm:ss form => [0;360] range '];    l=l+1;
+		script{l} = ['set deg_form=' opt_deg];      l=l+1;
+		script{l} = '';                             l=l+1;
+		prefix_ddir = [dest_dir filesep prefix];    % Add destination dir to the name prefix
+		if (~isempty(grd_name))
+			if (~need_path)
+				script{l} = ['set grd = ' just_grd_name];   id_grd = l; l=l+1;
+			else
+				script{l} = ['set grd = ' grd_name];        id_grd = l; l=l+1;
+			end
+		end
+		script{l} = ['set cpt = ' prefix '.cpt']; id_cpt = l;   l=l+1;
+		script{l} = ['set ps = ' prefix '.ps'];		l=l+1;
+		if (~isempty(paper_media))
+			script{l} = [comm ' We are not using A4'];  l=l+1;
+			script{l} = ['gmtset PAPER_MEDIA=' paper_media]; l=l+1;
+			script{l} = comm;						l=l+1;        
+		end
+	else											% Write a dos batch    
+		script{l} = '@echo OFF';					l=l+1;
+		script{l} = [comm 'Coffeewrite Mirone Tec'];l=l+1;
+		script{l} = comm;							l=l+1;
+		if (~isempty(handles.GMT5bin_path))
+			script{l} = [comm ' ---- Prepend GMT5 bin path to PATH so that GMT5 is used (DON''T remove to use GMT4) ----'];    l=l+1;
+			script{l} = ['set path=' handles.GMT5bin_path ';%path%'];    l=l+1;
+			script{l} = comm;						l=l+1;
+		end
+		script{l} = [comm ' ---- Projection. You may change it if you know how to'];		l=l+1;
+		script{l} = ['set proj=' opt_J];			l=l+1;      % Map scale
+		script{l} = [comm ' ---- Frame annotations. You may change it if you know how to'];	l=l+1;
+		script{l} = ['set frm=' opt_B];				l=l+1;      saveBind = l-1;
+		script{l} = [comm imgDimsInfo];				l=l+1;
+		script{l} = [comm ' ---- Map limits. You may change it if you know how to'];		l=l+1;
+		script{l} = ['set lim=' opt_R];				l=l+1;
+		script{l} = comm;							l=l+1;
+		script{l} = [comm ' ---- Longitude annotation style. The +ddd:mm:ss form => [0;360] range '];	l=l+1;
+		script{l} = ['set deg_form=' opt_deg];		l=l+1;
+		script{l} = '';								l=l+1;
+		script{l} = [comm ' ---- Annotation font size in points'];    l=l+1;
+		script{l} = ['set annot_size=' opt_annotsize];      l=l+1;
+		if (handMir.IamXY)
+			script{l} = '';							l=l+1;
+			script{l} = [comm ' ---- Map frame thickness in points'];    l=l+1;
+			script{l} = ['set framePen=' frmPen];	l=l+1;
+		end
+		script{l} = '';								l=l+1;
+		prefix_ddir = [dest_dir filesep prefix];    % Add destination dir to the name prefix
+		if (~isempty(grd_name))
+			if (~need_path)
+				script{l} = ['set grd=' just_grd_name];		id_grd = l; l=l+1;
+			else
+				script{l} = ['set grd=' grd_name];			id_grd = l; l=l+1;
+			end
+		end
+		script{l} = ['set cpt=' prefix '.cpt'];		id_cpt = l; l=l+1;
+		script{l} = ['set ps=' prefix '.ps'];		l=l+1;
+		if (~isempty(paper_media))
+			script{l} = [comm ' ---- We are not using A4'];  l=l+1;
+			script{l} = ['gmtset PAPER_MEDIA=' paper_media]; l=l+1;
+			script{l} = comm;						l=l+1;        
 		end
 	end
-    script{l} = ['set cpt = ' prefix '.cpt']; id_cpt = l;   l=l+1;
-	script{l} = ['set ps = ' prefix '.ps'];		l=l+1;
-    if (~isempty(paper_media))
-    	script{l} = [comm ' We are not using A4'];  l=l+1;
-        script{l} = ['gmtset PAPER_MEDIA=' paper_media]; l=l+1;
-    	script{l} = comm;						l=l+1;        
-    end
-else											% Write a dos batch    
-	script{l} = '@echo OFF';					l=l+1;
-	script{l} = [comm 'Coffeewrite Mirone Tec'];l=l+1;
-	script{l} = comm;							l=l+1;
-	if (~isempty(handles.GMT5bin_path))
-		script{l} = [comm ' ---- Prepend GMT5 bin path to PATH so that GMT5 is used (DON''T remove to use GMT4) ----'];    l=l+1;
-		script{l} = ['set path=' handles.GMT5bin_path ';%path%'];    l=l+1;
-		script{l} = comm;						l=l+1;
-	end
-	script{l} = [comm ' ---- Projection. You may change it if you know how to'];		l=l+1;
-	script{l} = ['set proj=' opt_J];			l=l+1;      % Map scale
-	script{l} = [comm ' ---- Frame annotations. You may change it if you know how to'];	l=l+1;
-	script{l} = ['set frm=' opt_B];				l=l+1;      saveBind = l-1;
-	script{l} = [comm imgDimsInfo];				l=l+1;
-	script{l} = [comm ' ---- Map limits. You may change it if you know how to'];		l=l+1;
-	script{l} = ['set lim=' opt_R];				l=l+1;
-	script{l} = comm;							l=l+1;
-	script{l} = [comm ' ---- Longitude annotation style. The +ddd:mm:ss form => [0;360] range '];	l=l+1;
-	script{l} = ['set deg_form=' opt_deg];		l=l+1;
-	script{l} = '';								l=l+1;
-	script{l} = [comm ' ---- Annotation font size in points'];    l=l+1;
-	script{l} = ['set annot_size=' opt_annotsize];      l=l+1;
-	if (handMir.IamXY)
-		script{l} = '';							l=l+1;
-		script{l} = [comm ' ---- Map frame thickness in points'];    l=l+1;
-		script{l} = ['set framePen=' frmPen];	l=l+1;
-	end
-	script{l} = '';                             l=l+1;
-    prefix_ddir = [dest_dir filesep prefix];    % Add destination dir to the name prefix
-	if (~isempty(grd_name))
-		if (~need_path)
-			script{l} = ['set grd=' just_grd_name];     id_grd = l; l=l+1;
-		else
-			script{l} = ['set grd=' grd_name];          id_grd = l; l=l+1;
-		end
-	end
-	script{l} = ['set cpt=' prefix '.cpt'];     id_cpt = l; l=l+1;
-	script{l} = ['set ps=' prefix '.ps'];       l=l+1;
-	if (~isempty(paper_media))
-    	script{l} = [comm ' ---- We are not using A4'];  l=l+1;
-        script{l} = ['gmtset PAPER_MEDIA=' paper_media]; l=l+1;
-    	script{l} = comm;                       l=l+1;        
-	end
-end
 
 	% ------------- Start writing GMT commands --------------------------------
 	script{l} = ' ';		l=l+1;
