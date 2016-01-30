@@ -6,7 +6,8 @@ function [xy_prj, msg, opt_R] = geog2projected_pts(handles, xy, lims, pad, varar
 %       Normally, the image four corners coords.
 %   The second case (a 5 elements vec) is used to select Inverse projection (e.g to Geogs)
 %   when the reprojection is done with GDAL.
-%   LIMS contents are realy only used when PAD is not zero 
+%   LIMS contents are only used when PAD is not zero AND projWKT or proj4. For projGMT
+%	if they are not provided, we get them from handles.axes1 limits.
 %
 % PAD is a scalar with its value in projected coords. It is used as a 'skirt' boundary buffer
 % Note: to remove pts outside the LIMS rectangle one have to provide a PAD ~= 0
@@ -25,7 +26,7 @@ function [xy_prj, msg, opt_R] = geog2projected_pts(handles, xy, lims, pad, varar
 % the earthquakes() GUI, is enough that this handles is a structure with just handles.figure1 &
 % handles.axes1 which are the handles of the Figure and its Axes
 
-%	Copyright (c) 2004-2015 by J. Luis
+%	Copyright (c) 2004-2016 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -69,7 +70,7 @@ function [xy_prj, msg, opt_R] = geog2projected_pts(handles, xy, lims, pad, varar
 		if (~isempty(projWKT)),     theProj = projWKT;
 		else                        theProj = ogrproj(proj4);
 		end
-		if (isempty(lims) || numel(lims) == 4)      % Projection is from geogs to projWKT
+		if (numel(lims) <= 4)                       % Projection is from geogs to projWKT
 			projStruc.DstProjWKT = theProj;
 			if (handles.geog)                       % It would be a geog-to-geog proj. Useless 
 				jump_call = true;
@@ -99,7 +100,7 @@ function [xy_prj, msg, opt_R] = geog2projected_pts(handles, xy, lims, pad, varar
 		if (nargout == 3)
 			x_min = min(xy_prj(:,1));        x_max = max(xy_prj(:,1));
 			y_min = min(xy_prj(:,2));        y_max = max(xy_prj(:,2));
-			opt_R = sprintf('-R%f/%f/%f/%f',x_min, x_max, y_min, y_max);
+			opt_R = sprintf('-R%.12g/%.12g/%.12g/%.12g',x_min, x_max, y_min, y_max);
 		end
 	elseif (~isempty(projGMT))
 		if (isempty(lims))          % We need LIMS here
@@ -108,7 +109,7 @@ function [xy_prj, msg, opt_R] = geog2projected_pts(handles, xy, lims, pad, varar
 		out = c_mapproject([lims(1) lims(3); lims(2) lims(4)],'-R-180/180/0/80','-I','-F',projGMT{:});    % Convert lims back to geogs
 		x_min = min(out(:,1));        x_max = max(out(:,1));
 		y_min = min(out(:,2));        y_max = max(out(:,2));
-		opt_R = sprintf('-R%f/%f/%f/%f',x_min, x_max, y_min, y_max);
+		opt_R = sprintf('-R%.12g/%.12g/%.12g/%.12g',x_min, x_max, y_min, y_max);
 		if (nargout == 3)
 			return              % We are only interested on opt_R
 		end
@@ -127,7 +128,7 @@ function [xy_prj, msg, opt_R] = geog2projected_pts(handles, xy, lims, pad, varar
 		xy_prj = xy;
 		msg = '0';          % Signal that nothing has been done and output = input
 		if (nargout == 3)   % Input in geogs, we need opt_R for shoredump (presumably)
-			opt_R = sprintf('-R%f/%f/%f/%f',lims(1),lims(2),lims(3),lims(4));
+			opt_R = sprintf('-R%.12g/%.12g/%.12g/%.12g',lims(1),lims(2),lims(3),lims(4));
 		end
 		return
 	end
