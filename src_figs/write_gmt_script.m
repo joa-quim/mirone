@@ -16,7 +16,7 @@ function varargout = write_gmt_script(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: write_gmt_script.m 7770 2016-01-30 13:46:55Z j $
+% $Id: write_gmt_script.m 7771 2016-01-30 13:56:14Z j $
 
 	handMir = varargin{1};
 	if (handMir.no_file)     % Stupid call with nothing loaded on the Mirone window
@@ -1058,11 +1058,11 @@ function [out_msg, warn_msg_pscoast] = build_write_script(handles, opt_J, dest_d
 	opt_R = handles.opt_R;		opt_L = handles.opt_L;		opt_U = handles.opt_U;
 	sc = handles.script_type;	ellips = handles.curr_datum;
 	opt_psc = handles.opt_psc;
-	hAlfaPatch = [];			haveAlfa = 0;		% These ones are used to tell if transparency
+	hAlfaPatch = [];			haveAlfa = false;	% These ones are used to tell if transparency
 	nameRGB = [];				% When not empty it means we'll do a screen capture ('image' or to capture transp)
 
-	if (isempty(opt_psc)),		have_psc = 0;		% We do not have any pscoast commands
-	else						have_psc = 1;
+	if (isempty(opt_psc)),		have_psc = false;	% We do not have any pscoast commands
+	else						have_psc = true;
 	end
 
 	if (~strcmp(paper,'A4')),	paper_media = paper;
@@ -1086,14 +1086,14 @@ function [out_msg, warn_msg_pscoast] = build_write_script(handles, opt_J, dest_d
 	end
 
 % ------------ Some (maybe) needed vars -----------------------------------------------
-	haveSymbol = 0;     used_grd = 0;  out_msg = 0;
-	need_path = 0;      used_countries = 0;
+	haveSymbol = false;     used_grd = false;  out_msg = 0;
+	need_path = false;      used_countries = false;
 	script = cell(25,1);
 	if (~isempty(handMir.grdname))
 		[PATH,FNAME,EXT] = fileparts(handMir.grdname);
 		just_grd_name = [FNAME EXT];
-		if (strcmp(PATH,dest_dir)),		need_path = 0;
-		else							need_path = 1;
+		if (strcmp(PATH,dest_dir)),		need_path = false;
+		else							need_path = true;
 		end
 		clear PATH FNAME EXT;
 	end
@@ -1117,30 +1117,30 @@ function [out_msg, warn_msg_pscoast] = build_write_script(handles, opt_J, dest_d
 
 	l = 1;
 	if (~strcmp(sc,'bat'))							% Write a csh script
-		script{l} = '#!/bin/csh -f';				l=l+1;
+		script{l} = '#!/bin/bash -f';				l=l+1;
 		script{l} = [comm 'Coffeeright Mirone Tec'];l=l+1;
 		script{l} = comm;							l=l+1;
 		script{l} = [comm ' ---- Projection. You may change it if you know how to'];    l=l+1;
-		script{l} = ['set proj = ' opt_J];			l=l+1;		% Map scale
+		script{l} = ['proj=' opt_J];			l=l+1;		% Map scale
 		script{l} = [comm ' ---- Frame annotations. You may change it if you know how to'];    l=l+1;
-		script{l} = ['set frm = ' opt_B];			l=l+1;      saveBind = l-1;
+		script{l} = ['frm=' opt_B];			l=l+1;      saveBind = l-1;
 		script{l} = [comm imgDimsInfo];				l=l+1;
 		script{l} = [comm ' ---- Map limits. You may change it if you know how to'];    l=l+1;
-		script{l} = ['set lim = ' opt_R];			l=l+1;
+		script{l} = ['lim=' opt_R];			l=l+1;
 		script{l} = comm;							l=l+1;
 		script{l} = [comm ' ---- Longitude annotation style. The +ddd:mm:ss form => [0;360] range '];    l=l+1;
-		script{l} = ['set deg_form=' opt_deg];      l=l+1;
+		script{l} = ['deg_form=' opt_deg];      l=l+1;
 		script{l} = '';                             l=l+1;
 		prefix_ddir = [dest_dir filesep prefix];    % Add destination dir to the name prefix
 		if (~isempty(grd_name))
 			if (~need_path)
-				script{l} = ['set grd = ' just_grd_name];   id_grd = l; l=l+1;
+				script{l} = ['grd=' just_grd_name];   id_grd = l; l=l+1;
 			else
-				script{l} = ['set grd = ' grd_name];        id_grd = l; l=l+1;
+				script{l} = ['grd=' grd_name];        id_grd = l; l=l+1;
 			end
 		end
-		script{l} = ['set cpt = ' prefix '.cpt']; id_cpt = l;   l=l+1;
-		script{l} = ['set ps = ' prefix '.ps'];		l=l+1;
+		script{l} = ['cpt=' prefix '.cpt'];		id_cpt = l;   l=l+1;
+		script{l} = ['ps=' prefix '.ps'];		l=l+1;
 		if (~isempty(paper_media))
 			script{l} = [comm ' We are not using A4'];  l=l+1;
 			script{l} = ['gmtset PAPER_MEDIA=' paper_media]; l=l+1;
@@ -1195,7 +1195,7 @@ function [out_msg, warn_msg_pscoast] = build_write_script(handles, opt_J, dest_d
 		if (strcmp(get(handMir.figure1,'Renderer'), 'OpenGL'))
 			if (~isempty(findobj(get(handMir.axes1,'Child'),'Type','patch')))		% Extra test
 				handMir.Illumin_type = 10;		% Dumb fake value just to force screen capture
-				haveAlfa = 1;
+				haveAlfa = true;
 			end
 		end
 		if (handMir.nLayers > 1)	% While we could try to read the layer, that's complicated. So, force screen capture
@@ -1212,7 +1212,7 @@ function [out_msg, warn_msg_pscoast] = build_write_script(handles, opt_J, dest_d
 			script{l} = '';                      l=l+1;
 			script{l} = [comm '-------- Compute the illumination grid'];    l=l+1;
 			script{l} = ['grdgradient ' pb 'grd' pf opt_M ' ' illumComm opt_N ' -G' name_illum ellips];    l=l+1;
-			have_gmt_illum = 1;     used_grd = 1;
+			have_gmt_illum = 1;     used_grd = true;
 			illum = [' -I' name_illum];
 		elseif (handMir.Illumin_type > 4 || handMir.is_draped)
 			% We have a Manip or draping illumination. Here we have to use the R,G,B trick
@@ -1221,18 +1221,18 @@ function [out_msg, warn_msg_pscoast] = build_write_script(handles, opt_J, dest_d
 			have_gmt_illum = 0;
 		else        % We don't have any illumination
 			have_gmt_illum = 0;
-			used_grd = 1;
+			used_grd = true;
 		end
 		script{l} = ' ';		l=l+1;
 		if (have_gmt_illum)                     % grdimage with illumination
 			script{l} = [comm '-------- Plot the the base image using grdimage & illumination'];    l=l+1;
 			script{l} = ['grdimage ' pb 'grd' pf ' -R -J -C' pb 'cpt' pf illum ellips ' -O -K >> ' pb 'ps' pf];
 			l=l+1;
-			used_grd = 1;
+			used_grd = true;
 		elseif (used_grd && ~have_gmt_illum)     % Simple grdimage call
 			script{l} = [comm '-------- Plot the the base image using grdimage'];    l=l+1;
 			script{l} = ['grdimage ' pb 'grd' pf ' -R -J -C' pb 'cpt' pf ellips ' -O -K >> ' pb 'ps' pf];   l=l+1;
-			used_grd = 1;
+			used_grd = true;
 		else                                    % No grd used, use the R,G,B channels
 			script{l} = [comm '-------- Plot the 3 RGB base images using grdimage'];    l=l+1;
 			script{l} = ['grdimage ' name_sc '_r.grd ' name_sc '_g.grd ' name_sc '_b.grd' ellips ' -R -J -O -K >> ' pb 'ps' pf];
@@ -1333,7 +1333,7 @@ function [out_msg, warn_msg_pscoast] = build_write_script(handles, opt_J, dest_d
 			script{l} = [comm ' ---- Plot contours'];	l=l+1;
 			script{l} = ['grdcontour ' pb 'grd' pf ' -R -J -C' [prefix '_cont.dat'] ellips ' -O -K >> ' pb 'ps' pf];
 			l=l+1;
-			used_grd = 1;
+			used_grd = true;
 			ALLlineHand = setxor(ALLlineHand, h);       % h is processed, so remove it from handles list
 			ALLtextHand = setxor(ALLtextHand, h_label); % same for contour label strings
 			clear h conts fid name no_anot lab;
@@ -1529,11 +1529,11 @@ function [out_msg, warn_msg_pscoast] = build_write_script(handles, opt_J, dest_d
 	if (~isempty(ALLpatchHand))
 		% First see about these still remaining patch transparency
 		[ALLpatchHand, hAlfaPatch] = findTransparents(ALLpatchHand);
-		if (isempty(hAlfaPatch)),		haveAlfa = 0;		end			% An extra test
+		if (isempty(hAlfaPatch)),		haveAlfa = false;		end			% An extra test
 
 		AtlasHand = findobj(ALLpatchHand,'Tag','Atlas');
 		if (~isempty(AtlasHand))
-			used_countries = 1;     need_path = 1;
+			used_countries = true;		need_path = true;
 			n_cts = length(AtlasHand);
 			if (n_cts > 1)                  % We have multiple countries
 				ct_names = cell(n_cts,1);   % To hold the country names
