@@ -5,23 +5,25 @@ function ui_edit_polygon(varargin)
 % ui_edit_polygon([handle1, handle2, ...],'move_choice')  
 %       (..., where handle_i is a handle to a line or patch)
 %
-% Interactive edit polylines (closed or open) and patches.
-% If obj(handle_i) has allready been made editable with
-% ui_edit_polygon, the function will check the edit state 
+% Interactive edit polylines (closed or open) and patches. If obj(handle_i) has allready
+% been made editable with ui_edit_polygon, the function will check the edit state
 % of obj and turn it off if necessary
 %
-% 	MOVE_CHOICE			% Controls what mouse selection is used to move the whole polygon.
-% 						% If == empty, polygon is moved with a left click. That has often anoying side effects
-% 						% If == 'extend', means that we need a Shift-click left mouse button or click both
-% 						%		left and right mouse buttons to move it. A bit more cumbersome, but safer.
-% 						% If == 'y', OR == 'x' means that Y or X vertices are move while editing
+% This function may also call a callback function registered in 'RunCB' appdata
+% that will be executed at a button up. See wbu_EditPolygon() to see how it works
 %
-%		An alternative way to set the MOVE_CHOICE option is to put it as an appdata of the axes where lines are drawn.
-%		As an example of how it works see this snipet showing how it is recovered here
-% 				hAx = get(varargin{1},'parent');				% Get parent axes
-% 				move_choice = getappdata(hAx, 'MovPolyg');		% Get MOVE_CHOICE option
+% 	MOVE_CHOICE		% Controls what mouse selection is used to move the whole polygon.
+% 					% If == empty, polygon is moved with a left click. That has often anoying side effects
+% 					% If == 'extend', means that we need a Shift-click left mouse button or click both
+% 					%		left and right mouse buttons to move it. A bit more cumbersome, but safer.
+% 					% If == 'y', OR == 'x' means that Y or X vertices are move while editing
+%
+%	An alternative way to set the MOVE_CHOICE option is to put it as an appdata of the axes where lines are drawn.
+%	As an example of how it works see this snipet showing how it is recovered here
+% 			hAx = get(varargin{1},'parent');				% Get parent axes
+% 			move_choice = getappdata(hAx, 'MovPolyg');		% Get MOVE_CHOICE option
 % 
-% --------------------------------------------------------
+% -----------------------------------------------------------------------------
 % Double clicking on the line or patch displays its vertices as control points.
 % To stop edit double click again. 
 % To edit vertex, click and drag control point.
@@ -51,7 +53,7 @@ function ui_edit_polygon(varargin)
 %   3. The remain cases are not forseen. Unknown behavior.
 %
 %  Author(s)
-% -------
+% ----------
 %   Joaquim Luis (jluis@ualg.pt) - Original version
 %       25-Oct-2005 Updated version with bug corrections and added the rectangle mode descrimination. 
 %   Sebastian Hoelz (hoelz@geophysik.tu-berlin.de)
@@ -63,7 +65,7 @@ function ui_edit_polygon(varargin)
 %	JL	08-Feb-2010 Added 'y' or 'x' to the move_choice option
 %	JL	21-apr-2012 Significant re-write with a large boost in efficiency by not needing to duplicate line
 
-%	Copyright (c) 2004-2014 by J. Luis
+%	Copyright (c) 2004-2016 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
