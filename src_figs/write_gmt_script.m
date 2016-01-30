@@ -1943,7 +1943,7 @@ function [script, l, warn_msg_pscoast] = do_pscoast(handles, script, l, comm, pb
 										   handles.x_max handles.y_max; handles.x_max handles.y_min;], ...
 										   [get(handles.handMir.axes1,'Xlim') get(handles.handMir.axes1,'Ylim') 1]);
 		if (~isempty(msg))
-			errormsg(msg, 'Error')	% But we don't stop because of this error
+			errordlg(msg, 'Error')	% But we don't stop because of this error
 		else
 			opt_R = sprintf('-R%.12g/%.12g/%.12g/%.12gr', xy_prj(1,:),xy_prj(3,:));		% Note the -R./././.r construct
 		end
