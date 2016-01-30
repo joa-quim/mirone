@@ -16,7 +16,7 @@ function varargout = write_gmt_script(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: write_gmt_script.m 7776 2016-01-30 16:52:47Z j $
+% $Id: write_gmt_script.m 7777 2016-01-30 17:05:15Z j $
 
 	handMir = varargin{1};
 	if (handMir.no_file)     % Stupid call with nothing loaded on the Mirone window
@@ -268,7 +268,12 @@ function varargout = write_gmt_script(varargin)
 
 	% ------------ See if GMT5 is around ---------------------------------------------------------------
 	handles.have_GMT5 = false;
-	[s, w] = system('gmt --show-bindir');	% Ask for the second arg so that it won't be printed without request
+	if (ispc)
+		[s, w] = dos('gmt --show-bindir');
+	else
+		[s, w] = unix('gmt --show-bindir');
+	end
+	% Ask for the second arg so that it won't be printed without request
 	if (s == 0),	handles.have_GMT5 = true;	end
 	% --------------------------------------------------------------------------------------------------
 
