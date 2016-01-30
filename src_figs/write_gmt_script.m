@@ -268,7 +268,12 @@ function varargout = write_gmt_script(varargin)
 
 	% ------------ See if GMT5 is around ---------------------------------------------------------------
 	handles.have_GMT5 = false;
-	[s, w] = system('gmt --show-bindir');	% Ask for the second arg so that it won't be printed without request
+	if (ispc)
+		[s, w] = dos('gmt --show-bindir');
+	else
+		[s, w] = unix('gmt --show-bindir');
+	end
+	% Ask for the second arg so that it won't be printed without request
 	if (s == 0),	handles.have_GMT5 = true;	end
 	% --------------------------------------------------------------------------------------------------
 
