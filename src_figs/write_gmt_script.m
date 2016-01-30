@@ -16,7 +16,7 @@ function varargout = write_gmt_script(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: write_gmt_script.m 7767 2016-01-29 16:28:56Z j $
+% $Id: write_gmt_script.m 7768 2016-01-30 02:14:18Z j $
 
 	handMir = varargin{1};
 	if (handMir.no_file)     % Stupid call with nothing loaded on the Mirone window
@@ -102,12 +102,6 @@ function varargout = write_gmt_script(varargin)
 	end
 	% -------------------------------------------------------------------------------
 
-	% ---------------- Add this figure handle to the carraças list ------------------
-	plugedWin = getappdata(handMir.figure1,'dependentFigs');
-	plugedWin = [plugedWin hObject];
-	setappdata(handMir.figure1,'dependentFigs',plugedWin);
-	% -------------------------------------------------------------------------------
-
 	imgXlim = get(handMir.axes1,'XLim');    imgYlim = get(handMir.axes1,'YLim');
 	if (handMir.image_type == 2 || handMir.image_type == 20)		% "trivial" images
 		if (~handMir.IamXY)
@@ -143,13 +137,13 @@ function varargout = write_gmt_script(varargin)
 	handles.opt_R = sprintf('-R%.12g/%.12g/%.12g/%.12g', handles.x_min, handles.x_max, handles.y_min, handles.y_max);
 
 	handles.handMir = handMir;
-	handles.width_orig = width;  handles.height_orig = height;
+	handles.width_orig = width;		handles.height_orig = height;
 	handles.scale = width;
 	handles.which_unit = 'cm';
 	handles.d_path = handMir.path_data;
 
 	% Compute image aspect ratio and set axes 'PlotBoxAspectRatio' to it
-	handles.paper = [paper_cm(5,1) paper_cm(5,2)];         % Set to A4 (x,y)
+	handles.paper        = [paper_cm(5,1) paper_cm(5,2)];			% Set to A4 (x,y)
 	handles.paper_aspect = handles.paper(2)/handles.paper(1);
 	% set(handles.axes1,'XLim',[0 handles.paper(1)],'YLim',[0 handles.paper(2)], ...
 	%         'PlotBoxAspectRatio',[1 handles.paper_aspect 1]);
@@ -158,7 +152,7 @@ function varargout = write_gmt_script(varargin)
 	rect_x = [X0 X0 X0+width X0+width X0];
 	rect_y = [Y0 Y0+height Y0+height Y0 Y0];
 	handles.rect_x = rect_x;   handles.rect_y = rect_y;
-	handles.scale = sprintf('%.2g', width);
+	handles.scale  = sprintf('%.2g', width);
 	set(handles.edit_mapWidth,'String',sprintf('%.2f', width))		% Fill the width editbox
 	set(handles.edit_mapHeight,'String',sprintf('%.2f',height))		% Fill the height editbox
 
@@ -180,10 +174,10 @@ function varargout = write_gmt_script(varargin)
 	handles.all_ellipsoides = DefineEllipsoide;		% This is already in mirone_prefs
 
 	%----------- Recall previous settings stored in mirone_pref -------------------
-	handles.h_txt_info = findobj(hObject,'Tag','text_ProjDescription');
+	handles.h_txt_info   = findobj(hObject,'Tag','text_ProjDescription');
 	handles.txt_info_pos = get(handles.h_txt_info,'Position');
-	if (~handMir.geog && iscell(handles.proj_info_txt_script))     % Need to do this because grid is not geog
-		if (length(handles.proj_info_txt_script) == 5),     handles.proj_info_txt_script(3) = [];   end
+	if (~handMir.geog && iscell(handles.proj_info_txt_script))		% Need to do this because grid is not geog
+		if (length(handles.proj_info_txt_script) == 5),		handles.proj_info_txt_script(3) = [];	end
 		k = strfind(handles.proj_info_txt_script{1},'->');
 		handles.proj_info_txt_script{1} = handles.proj_info_txt_script{1}(1:k+1);
 		k = strfind(handles.proj_info_txt_script{2},'->');
@@ -197,7 +191,7 @@ function varargout = write_gmt_script(varargin)
 		handles.coord_system_script.projection = ['-JX' width handles.which_unit(1)];
 	end
 	set(handles.h_txt_info,'String',handles.proj_info_txt_script,'Position',handles.txt_info_pos)
-	handles.all_datums = datums;    % datums is a function in utils
+	handles.all_datums = datums;		% datums is a function in utils
 
 	% ---------- Split the scale from the projection string
 	tmp = handles.coord_system_script.projection;
@@ -205,16 +199,16 @@ function varargout = write_gmt_script(varargin)
 		if (numel(tmp) == 4 && strcmp(tmp(3),'m'))		% Simple Mercator has the form "-Jm1"
 			handles.opt_J_no_scale = [tmp(1:2) upper(tmp(3))];
 		elseif (numel(tmp) == 3 && strcmpi(tmp(3),'X'))	% Linear proj has the form "-JX"
-			handles.opt_J_no_scale = [tmp(1:2) upper(tmp(3))]; % Save this
-		else											% All other should terminate as "-J.../1"
+			handles.opt_J_no_scale = [tmp(1:2) upper(tmp(3))];	% Save this
+		else											% All others should terminate as "-J.../1"
 			tmp = tmp(1:end-2);
-			handles.opt_J_no_scale = [tmp(1:2) upper(tmp(3)) tmp(4:end)];           % Save this
+			handles.opt_J_no_scale = [tmp(1:2) upper(tmp(3)) tmp(4:end)];		% Save this
 		end
 	else
-		handles.opt_J_no_scale = '-JX10';				% Use this default
+		handles.opt_J_no_scale = '-JX15';				% Use this default
 	end
 	%opt_J = [tmp(1:2) upper(tmp(3)) tmp(4:end) '/' handles.scale handles.which_unit(1)];
-	handles.curr_datum = handles.all_datums{handles.coord_system_script.datum_val,2};   % Save this
+	handles.curr_datum = handles.all_datums{handles.coord_system_script.datum_val,2};	% Save this
 
 	% ----------- Use the directory list from mirone_pref
 	j = false(1,numel(directory_list));					% vector for eventual cleaning non-existing dirs
@@ -224,7 +218,7 @@ function varargout = write_gmt_script(varargin)
 			if ~exist(directory_list{i},'dir'),   j(i) = true;   end
 		end
 		directory_list(j) = [];							% clean eventual non-existing directories
-		directory_list = [{handles.handMir.last_dir}; directory_list];
+		directory_list    = [{handles.handMir.last_dir}; directory_list];
 		set(handles.popup_directory_list,'String',directory_list)
 		handles.last_directories = directory_list;
 	else												% mirone_pref had no dir list
@@ -234,17 +228,17 @@ function varargout = write_gmt_script(varargin)
 
 	% --------- Set prefix name based on month and day numbers
 	prefix = clock;
-	prefix = ['mir' sprintf('%d',prefix(3)) '-' sprintf('%d',prefix(2))];
+	prefix = sprintf('mir%d-%d',prefix(3), prefix(2));
 	set(handles.edit_prefix,'String',prefix)
 
-	if (~handMir.geog)   % Non geogs don't use scale bars
+	if (~handMir.geog)		% Non geogs don't use scale bars
 		set(handles.toggle_Option_L,'Visible','off')
 		set(findobj(hObject,'Style','text','Tag','text_MapScale'), 'Visible','off');
 	end
 
 	% ---------- See if we have pscoast stuff
 	ALLlineHand = findobj(get(handMir.axes1,'Child'),'Type','line');
-	handles.psc_res = [];   handles.psc_opt_W = [];     handles.psc_type_p = [];    handles.psc_type_r  = [];
+	handles.psc_res = [];	handles.psc_opt_W = [];		handles.psc_type_p = [];	handles.psc_type_r  = [];
 	if (~isempty(findobj(ALLlineHand,'Tag','CoastLineNetCDF')) || ~isempty(findobj(ALLlineHand,'Tag','Rivers')) ...
 			|| ~isempty(findobj(ALLlineHand,'Tag','PoliticalBoundaries')) )
 		[handles.ALLlineHand, handles.psc_res, handles.psc_opt_W, handles.psc_type_p, handles.psc_type_r] = ...
@@ -262,7 +256,7 @@ function varargout = write_gmt_script(varargin)
 	% ------------ Apply inherited projection --------------------------------------------
 	guidata(hObject, handles);
 	push_uppdate_CB(handles.push_uppdate, handles)
-	handles = guidata(hObject);     % Recover in "this handles" the changes donne in push_uppdate
+	handles = guidata(hObject);		% Recover in "this handles" the changes donne in push_uppdate
 
 	% ------------ See if GMT5 is around ------------------------------------------------
 	handles.GMT5bin_path = '';
@@ -272,6 +266,12 @@ function varargout = write_gmt_script(varargin)
 % 		handles.GMT5bin_path = w;
 % 	end
 	% ------------------------------------------------------------------------------------
+
+	% ---------------- Add this figure handle to the carraças list ------------------
+	plugedWin = getappdata(handMir.figure1,'dependentFigs');
+	plugedWin = [plugedWin hObject];
+	setappdata(handMir.figure1,'dependentFigs',plugedWin);
+	% -------------------------------------------------------------------------------
 
 	guidata(hObject, handles);
 	set(hObject,'Visible','on');
@@ -437,17 +437,17 @@ function radio_0_360_CB(hObject, handles)
 
 % -----------------------------------------------------------------------------------
 function push_uppdate_CB(hObject, handles)
-	xx = get(handles.hand_rect,'XData');
-	yy = get(handles.hand_rect,'YData');
+	xx = get(handles.hand_rect,'XData');		yy = get(handles.hand_rect,'YData');
 	set(handles.edit_X0,'String', sprintf('%.2f', xx(1)));
 	set(handles.edit_Y0,'String', sprintf('%.2f', yy(1)));
 
 	if (strncmp(handles.opt_J_no_scale, '-JX', 3))		% Linear proj has a different treatment
+		scale_str = '1:1';								% Default value when no projected grids
 		if (~handles.handMir.IamXY)						% Only rescale if image, not XY plot
 			scale_x = (xx(3) - xx(2)) / handles.width_orig;
 			scale_y = (yy(2) - yy(1)) / handles.height_orig;
 			new_y = handles.height_orig * scale_x;
-			new_x = handles.width_orig * scale_y;
+			new_x = handles.width_orig  * scale_y;
 			if (get(handles.radio_setWidth,'Value'))
 				yy(2) = new_y + yy(1);      yy(3) = new_y + yy(1);
 			elseif (get(handles.radio_setHeight,'Value'))
@@ -456,14 +456,15 @@ function push_uppdate_CB(hObject, handles)
 				yy(2) = new_y + yy(1);      yy(3) = new_y + yy(1);		% It will become "True" scale
 			end
 			set(handles.hand_rect, 'XData', xx, 'YData', yy);
+			scale_str = get_scale(handles, new_x, new_y);
 		end
 		set(handles.edit_mapWidth,'String', sprintf('%.2f', (xx(3) - xx(2))));	% Uppdate map width
 		set(handles.edit_mapHeight,'String',sprintf('%.2f', (yy(2) - yy(1))));	% Uppdate map height
-		set(handles.edit_scale,'String','1:1')
+		set(handles.edit_scale,'String', scale_str)
 		% Also update the projection info text
 		str = get(handles.h_txt_info,'String');
 		try
-			new_w = get(handles.edit_mapWidth,'String');
+			new_w = get(handles.edit_mapWidth, 'String');
 			str{end} = ['J<options> ->  -JX' new_w handles.which_unit(1)];
 			set(handles.h_txt_info,'String',str)
 		end
@@ -507,7 +508,7 @@ function push_uppdate_CB(hObject, handles)
 	xf = linspace(handles.x_min, handles.x_max, n)';
 	yf = linspace(handles.y_min, handles.y_max, n)';
 	in = [repmat(xf(1),n,1) yf; xf(2:end) repmat(yf(end),n-1,1); repmat(xf(end),n-1,1) yf(end-1:-1:1); ...
-			xf(end:-1:1) repmat(yf(1),n,1)];
+	      xf(end:-1:1) repmat(yf(1),n,1)];
 	%out_f = c_mapproject(in,opt_R,'-C','-F',[handles.opt_J_no_scale '/' handles.scale handles.which_unit(1)]);
 	out_f = c_mapproject(in,opt_R,opt_J,['-D' handles.which_unit(1)]);
 	new_x = xx(1) + out_f(:,1);
@@ -562,6 +563,18 @@ function push_uppdate_CB(hObject, handles)
 	end
 
 	guidata(hObject,handles)
+
+% -----------------------------------------------------------------------------------
+function scale_str = get_scale(handles, width, height)
+% For now this only computes the scale when we have a projected grid
+	if (handles.handMir.is_projected)
+		dx_prj = handles.x_max - handles.x_min;		% It's in projected meters
+		dy_prj = handles.y_max - handles.y_min;		% It's in projected meters
+		scale = max(width/dx_prj/100, height/dy_prj/100);
+		[n,d] = rat(scale,1e-9);
+		if (n > 1),    d = d / n;      end
+		scale_str = sprintf('1:%d', d);
+	end
 
 % -----------------------------------------------------------------------------------
 function edit_X0_CB(hObject, handles)
@@ -630,17 +643,30 @@ function push_change_dir_CB(hObject, handles)
 function edit_scale_CB(hObject, handles)
 	str = get(hObject,'String');
 	xx = get(handles.hand_rect,'XData');		yy = get(handles.hand_rect,'YData');
-	opt_J = [handles.opt_J_no_scale '/' str];	opt_J(3) = lower(opt_J(3));
-	in = [handles.x_min handles.y_min; handles.x_min handles.y_max; handles.x_max handles.y_max; handles.x_max handles.y_min];
-	try
-		opt_R = sprintf('-R%.12g/%.12g/%.12g/%.12g', handles.x_min, handles.x_max, handles.y_min, handles.y_max);
-		out = c_mapproject(in,opt_R,opt_J,['-D' handles.which_unit(1)]);
-	catch
-		return
+	if (~handles.handMir.is_projected)
+		opt_J = [handles.opt_J_no_scale '/' str];	opt_J(3) = lower(opt_J(3));
+		in = [handles.x_min handles.y_min; handles.x_min handles.y_max; ...
+		      handles.x_max handles.y_max; handles.x_max handles.y_min];
+		try
+			opt_R = sprintf('-R%.12g/%.12g/%.12g/%.12g', handles.x_min, handles.x_max, handles.y_min, handles.y_max);
+			out = c_mapproject(in,opt_R,opt_J,['-D' handles.which_unit(1)]);
+		catch
+			return
+		end
+		xmax = max(out(:,1));		ymax = max(out(:,2));
+		xx(3) = xmax+xx(1);			xx(4) = xmax+xx(1);
+		yy(2) = ymax+yy(1);			yy(3) = ymax+yy(1);
+	else
+		scale = 1 / sscanf(str(3:end),'%f',1);
+		dx_prj = handles.x_max - handles.x_min;		% It's in projected meters
+		dy_prj = handles.y_max - handles.y_min;		% It's in projected meters
+		width  = dx_prj * scale * 100;
+		height = dy_prj * scale * 100;
+		if (strcmp(handles.which_unit,'in')),     width = width * 2.54;     height = height * 2.54;     end
+		if (strcmp(handles.which_unit,'pt')),     width = width * 2.54/72;  height = height * 2.54/72;  end
+		xx(3:4) = xx(1) + width;
+		yy(2:3) = yy(1) + height;
 	end
-	xmax = max(out(:,1));		ymax = max(out(:,2));
-	xx(3) = xmax+xx(1);			xx(4) = xmax+xx(1);
-	yy(2) = ymax+yy(1);			yy(3) = ymax+yy(1);
 	set(handles.hand_rect,'XData',xx,'YData',yy)
 	handles.scale_set = 1;
 	guidata(hObject, handles);
@@ -765,16 +791,16 @@ function push_OK_CB(hObject, handles)
 				get(handles.edit_mapHeight,'Str'), handles.which_unit(1));
 		end
 	end
-	val = get(handles.popup_PaperSize,'Value');
-	list = get(handles.popup_PaperSize,'String');
-	str = list{val};        k = strfind(str,' ');
+	val   = get(handles.popup_PaperSize,'Value');
+	list  = get(handles.popup_PaperSize,'String');
+	str   = list{val};        k = strfind(str,' ');
 	paper = str(1:k(1)-1);
 	d_dir = get(handles.popup_directory_list,'String');
-	if (iscell(d_dir)),     d_dir = d_dir{1};    end
+	if (iscell(d_dir)),		d_dir = d_dir{1};		end
 	prefix = get(handles.edit_prefix,'String');
 
-	X0 = get(handles.edit_X0,'String');     Y0 = get(handles.edit_Y0,'String');
-	X0 = ['-X' X0 handles.which_unit(1)];   Y0 = ['-Y' Y0 handles.which_unit(1)];
+	X0 = get(handles.edit_X0,'String');		Y0 = get(handles.edit_Y0,'String');
+	X0 = ['-X' X0 handles.which_unit(1)];	Y0 = ['-Y' Y0 handles.which_unit(1)];
 
 	if (get(handles.radio_180_180,'Value'))		% [-180;180] range
 		opt_deg = '--PLOT_DEGREE_FORMAT=ddd:mm:ss';
@@ -791,11 +817,15 @@ function push_OK_CB(hObject, handles)
 	if (get(handles.radio_P,'Value')),		opt_P = ' -P';
 	else									opt_P = '';
 	end
-	out_msg = build_write_script(handles, opt_J, d_dir, prefix, paper, X0, Y0, opt_P, opt_deg);
-	msg{1} = ['File ' prefix '_mir.' handles.script_type ' successufuly created in:  ' d_dir];
+	[out_msg, warn_msg_pscoast] = build_write_script(handles, opt_J, d_dir, prefix, paper, X0, Y0, opt_P, opt_deg);
+	msg{1} = ['File ' prefix '_mir.' handles.script_type ' successfuly created in:  ' d_dir];
 	if (out_msg)
-		msg{2} = [];   
+		msg{2} = '';
 		msg{3} = 'WARNING: Read the important message on the header of the script';
+	end
+	if (~isempty(warn_msg_pscoast))
+		msg{end+1} = '';   
+		msg{end+1} = warn_msg_pscoast;   
 	end
 	msgbox(msg);
 
@@ -898,11 +928,11 @@ function [ALLlineHand, res, opt_W, type_p, type_r] = find_psc_stuff(ALLlineHand)
 	h_c = findobj(ALLlineHand,'Tag','CoastLineNetCDF');
 	if (~isempty(h_c))
 		if (length(h_c) > 1),   h_c = h_c(1);     end
-		CoastRes = get(h_c,'UserData');
+		CoastRes    = get(h_c,'UserData');
 		LineWidth_c = get(h_c,'LineWidth');
 		LineColor_c = get(h_c,'Color');
 		LineStyle_c = get(h_c,'LineStyle');
-		haveCoasts = 1;
+		haveCoasts  = 1;
 	end
 	h_p = findobj(ALLlineHand,'Tag','PoliticalBoundaries');
 	if (~isempty(h_p))
@@ -1016,24 +1046,23 @@ function [ALLlineHand, res, opt_W, type_p, type_r] = find_psc_stuff(ALLlineHand)
 	end
 
 % --------------------------------------------------------------------------------------------------------
-function out_msg = build_write_script(handles, opt_J, dest_dir, prefix, paper, X0, Y0, opt_P, opt_deg)
+function [out_msg, warn_msg_pscoast] = build_write_script(handles, opt_J, dest_dir, prefix, paper, X0, Y0, opt_P, opt_deg)
 % This function do most of the hard work in finding the script components.
 % The pscoast stuff is worked out by the "find_psc_stuff" function.
 
-	handMir = handles.handMir;
-	ALLlineHand = handles.ALLlineHand;
+	handMir = handles.handMir;	ALLlineHand = handles.ALLlineHand;
 	opt_R = handles.opt_R;		opt_L = handles.opt_L;		opt_U = handles.opt_U;
 	sc = handles.script_type;	ellips = handles.curr_datum;
 	opt_psc = handles.opt_psc;
 	hAlfaPatch = [];			haveAlfa = 0;		% These ones are used to tell if transparency
 	nameRGB = [];				% When not empty it means we'll do a screen capture ('image' or to capture transp)
 
-	if (isempty(opt_psc)),  have_psc = 0;       % We do not have any pscoast commands
-	else                    have_psc = 1;
+	if (isempty(opt_psc)),		have_psc = 0;		% We do not have any pscoast commands
+	else						have_psc = 1;
 	end
 
-	if (~strcmp(paper,'A4')),   paper_media = paper;
-	else                        paper_media = [];
+	if (~strcmp(paper,'A4')),	paper_media = paper;
+	else						paper_media = [];
 	end
 	if (strcmp(sc,'bat'))
 		comm = 'REM ';      pb = '%';   pf = '%';
@@ -1041,13 +1070,13 @@ function out_msg = build_write_script(handles, opt_J, dest_dir, prefix, paper, X
 		comm = '# ';        pb = '$';   pf = '';
 	end
 	if (strcmp(ellips,'WGS-84'))     % It is the default, so don't use any
-		ellips = [];
+		ellips = '';
 	else
 		ellips = [' --ELLIPSOID=' ellips];
 	end
 
 	opt_annotsize = '--ANNOT_FONT_SIZE_PRIMARY=10p';
-	frmPen = [];
+	frmPen = '';
 	if (handMir.IamXY)
 		frmPen = '--FRAME_PEN=1.25p';
 	end
@@ -1089,7 +1118,8 @@ if (~strcmp(sc,'bat'))							% Write a csh script
 	script{l} = [comm 'Coffeeright Mirone Tec'];l=l+1;
 	script{l} = comm;							l=l+1;
 	if (~isempty(handles.GMT5bin_path))
-		script{l} = [comm ' ---- Prepend GMT5 bin path to PATH so that GMT5 is used (DON''T remove to use GMT4) ----'];    l=l+1;
+		script{l} = [comm ' ---- Prepend GMT5 bin path to PATH so that GMT5 is used (DON''T remove to use GMT4) ----'];
+		l = l + 1;
 		script{l} = ['set PATH = ' handles.GMT5bin_path ';$PATH'];    l=l+1;
 		script{l} = comm;						l=l+1;
 	end
@@ -1165,15 +1195,10 @@ else											% Write a dos batch
 end
 
 	% ------------- Start writing GMT commands --------------------------------
-	script{l} = ' ';            l=l+1;
+	script{l} = ' ';		l=l+1;
 	script{l} = [comm '-------- Start by creating the basemap frame'];  l=l+1;
-	if (~strcmp(sc,'bat'))		% In Unix like sys let the annot_font_size param be controled by the .gmtdefaults
-		script{l} = ['psbasemap ' pb 'lim' pf ' ' pb 'proj' pf ' ' pb 'frm' pf ' ' X0 ' ' Y0 opt_U opt_P ' ' pb 'deg_form' pf ' -K > ' pb 'ps' pf];
-	else
-		script{l} = ['psbasemap ' pb 'lim' pf ' ' pb 'proj' pf ' ' pb 'frm' pf ' ' X0 ' ' Y0 opt_U opt_P ...
-			' ' pb 'deg_form' pf ' ' pb 'annot_size' pf ' ' pb 'framePen' pf ' -K > ' pb 'ps' pf];
-	end
-	l=l+1;
+	script{l} = ['psbasemap ' pb 'lim' pf ' ' pb 'proj' pf ' ' pb 'frm' pf ' ' X0 ' ' Y0 opt_U opt_P ...
+	             ' ' pb 'deg_form' pf ' ' pb 'annot_size' pf ' ' pb 'framePen' pf ' -K > ' pb 'ps' pf];		l=l+1;
 
 	if (~isempty(grd_name))
 		% If renderer == OpenGL, that is interpreted as a transparency request. In that case we need a screen capture
@@ -1273,56 +1298,33 @@ end
 		script(id_cpt) = [];    l=l-1;
 	end
 
-	% -------------- Coastlines section -----------------------------------
+	% -------------- Coastlines section --------------------------------------------------------------------
+	warn_msg_pscoast = '';
 	if (have_psc)       % We have pscoast commands
-		script{l} = ' ';                        l=l+1;
-		script{l} = [comm 'Plot coastlines'];   l=l+1;
-		opt_R = ' -R';
-% 		if (~handMir.geog && handMir.is_projected)
-% 			[xy_prj, msg, opt_R] = geog2projected_pts(handMir, [handles.x_min handles.y_min; handles.x_min handles.y_max; ...
-% 				                                      handles.x_max handles.y_max; handles.x_max handles.y_min;], ...
-% 			                                          [get(handMir.axes1,'Xlim') get(handMir.axes1,'Ylim') 1]);
-% 			if (~isempty(msg))
-% 				errormsg(msg, 'Error'),		opt_R = ' -R';		% Don't stop because of this error
-% 			end
-% 			projGMT = getappdata(handMir.figure1,'ProjGMT');
-% 			if (~isempty(projGMT))		% Only simple case
-% 				opt_J = projGMT;
-% 			else
-% 				proj4 = getappdata(handMir.figure1,'Proj4');
-% 				if (isempty(proj4))
-% 					projWKT = getappdata(handMir.figure1,'ProjWKT');
-% 					if (isempty(projWKT))
-% 						proj4 = ogrproj(projWKT);
-% 					end
-% 				end
-% 			end
-% 			
-% 		end
-		script{l} = ['pscoast ' opt_psc ellips opt_L opt_R ' -J -O -K >> ' pb 'ps' pf];    l=l+1;
+		[script, l, warn_msg_pscoast] = do_pscoast(handles, script, l, comm, pb, pf, ellips);
 	elseif (~isempty(opt_L))
 		script{l} = ['psbasemap ' opt_L ' -R -J -O -K >> ' pb 'ps' pf];    l=l+1;
 	end
 
-	% -------------- Search for contour lines --------------------------------------------------
+	% -------------- Search for contour lines --------------------------------------------------------------
 	ALLtextHand = findobj(get(handMir.axes1,'Child'),'Type','text');
 	% % If we have focal mecanisms with labels, remove their handles right away
-	% h = findobj(ALLtextHand,'Tag','TextMeca');						% I'M NOT SURE ON THIS ONE
+	% h = findobj(ALLtextHand,'Tag','TextMeca');					% I'M NOT SURE ON THIS ONE
 	% if (~isempty(h))    ALLtextHand = setxor(ALLtextHand, h);   end
 
 	tag = get(ALLlineHand,'Tag');
 	if (~isempty(tag) && ~isempty(handMir.grdname))
 		h = findobj(ALLlineHand,'Tag','contour');
 		if (~isempty(h))
-			h_label = findobj(ALLtextHand,'Tag','contour');   % Search for contour labels
+			h_label = findobj(ALLtextHand,'Tag','contour');		% Search for contour labels
 			if (~isempty(h_label))
 				lab = get(h_label,'UserData');
 				if (iscell(lab)),   lab = unique(cat(1,lab{:}));    end
 			else
 				lab = [];
 			end
-			conts = zeros(length(h),1);
-			for (i = 1:length(h))
+			conts = zeros(numel(h),1);
+			for (i = 1:numel(h))
 				conts(i) = getappdata(h(i),'cont_label');
 			end
 			conts = unique(conts);
@@ -1658,7 +1660,7 @@ end
 			end
 		end
 		fclose(fid);
-		script{l} = ' ';              l=l+1;
+		script{l} = ' ';			l=l+1;
 		script{l} = [comm ' ---- Plot closed AND colored polygons'];   l=l+1;
 		script{l} = ['psxy ' name_sc ellips ' -R -J --MEASURE_UNIT=point -m -O -K >> ' pb 'ps' pf];    l=l+1;
 		clear ALLpatchHand name name_sc n_patch xx yy LineWidth EdgeColor FillColor cor_edge cor_fill resp
@@ -1929,6 +1931,71 @@ end
 	last = [script{i+1}(1:end-cut) ' >> ' pb 'ps' pf];    % Remove the last '-K'
 	fprintf(fid,'%s\n',last);
 	fclose(fid);
+
+% -------------------------------------------------------------------------------------------
+function [script, l, warn_msg_pscoast] = do_pscoast(handles, script, l, comm, pb, pf, ellips)
+% Do the work of writing a pscoast command
+
+	script{l} = ' ';						l = l + 1;
+	script{l} = [comm 'Plot coastlines'];	l = l + 1;
+	opt_R = ' -R';		opt_J = ' -J';		warn_msg_pscoast = '';
+	if (~handles.handMir.geog && handles.handMir.is_projected)
+		[xy_prj, msg] = geog2projected_pts(handles.handMir, [handles.x_min handles.y_min; handles.x_min handles.y_max; ...
+										   handles.x_max handles.y_max; handles.x_max handles.y_min;], ...
+										   [get(handles.handMir.axes1,'Xlim') get(handles.handMir.axes1,'Ylim') 1]);
+		if (~isempty(msg))
+			errormsg(msg, 'Error')	% But we don't stop because of this error
+		else
+			opt_R = sprintf('-R%.12g/%.12g/%.12g/%.12gr', xy_prj(1,:),xy_prj(3,:));		% Note the -R./././.r construct
+		end
+		projGMT = getappdata(handles.handMir.figure1,'ProjGMT');
+		if (~isempty(projGMT))		% Only simple case
+			opt_J = projGMT;
+		else
+			proj4 = getappdata(handles.handMir.figure1,'Proj4');
+			if (isempty(proj4))
+				projWKT = getappdata(handles.handMir.figure1,'ProjWKT');
+				if (~isempty(projWKT))
+					proj4 = ogrproj(projWKT);
+				end
+			end
+		end
+
+		% Now try to fish some known projections from the proj4 string and make a -J one
+		if (~isempty(proj4))
+			[t, r] = strtok(proj4);
+			prj = t(7:end);
+			escala = get(handles.edit_scale , 'String');
+			switch prj
+				case 'utm'
+					t = strtok(r);
+					opt_J = [' -J' prj '/' t(7:end) '/' escala];
+				otherwise
+					warn_msg_pscoast = ['Your grid is projected but with a projection that I don''t know ' ...
+						'how to convert to the GMT -J sintax. You will have to do it manually ' ...
+						'by editing the script and reading the comment before the pscoast command.'];
+			end
+		end
+	end
+
+	if (~isempty(warn_msg_pscoast))		% Save the proj4 string in script so that user may use it to finish -J
+		script{l} = sprintf('%s --- Use this proj info to finish the -J option in next line\n%s %s\n', comm, comm, proj4);
+		l = l + 1;
+	elseif (~isempty(proj4))	% Anyway, save the proj4 string as cmment.
+		script{l} = sprintf('%s --- Proj4 string describing the grid''s projection. -J may benefit from an extra review.\n%s %s\n', ...
+			comm, comm, proj4);
+		l = l + 1;
+	end
+	script{l} = ['pscoast ' handles.opt_psc ellips handles.opt_L opt_R opt_J ' -O -K >> ' pb 'ps' pf];
+	l = l + 1;
+
+	if (numel(opt_R) > 3)		% We need a trick to reset -R & -J so that the remaining commands can rely on gmt.conf
+		script{l} = ' ';		l = l + 1;
+		script{l} = [comm '-------- Fake command used only to reset the -R & -J to their script defaults.'];    l=l+1;
+		% If GMT5 just use psbasemap -A ... or something else
+		script{l} = ['psbasemap ' pb 'lim' pf ' ' pb 'proj' pf ' ' pb 'frm' pf ' ' pb 'annot_size' pf ' -O -K >> ' pb 'ps' pf];
+		l = l + 1;
+	end
 
 % ----------------------------------------------------------------------------------
 function symbol = get_symbols(hand)
