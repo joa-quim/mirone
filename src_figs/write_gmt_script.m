@@ -175,22 +175,26 @@ function varargout = write_gmt_script(varargin)
 
 	%----------- Recall previous settings stored in mirone_pref -------------------
 	handles.h_txt_info   = findobj(hObject,'Tag','text_ProjDescription');
-	handles.txt_info_pos = get(handles.h_txt_info,'Position');
-	if (~handMir.geog && iscell(handles.proj_info_txt_script))		% Need to do this because grid is not geog
-		if (length(handles.proj_info_txt_script) == 5),		handles.proj_info_txt_script(3) = [];	end
-		k = strfind(handles.proj_info_txt_script{1},'->');
-		handles.proj_info_txt_script{1} = handles.proj_info_txt_script{1}(1:k+1);
-		k = strfind(handles.proj_info_txt_script{2},'->');
-		handles.proj_info_txt_script{2} = [handles.proj_info_txt_script{2}(1:k+2) '   Linear'];
-		% Also remove the Ellipsoid info
-		k = strfind(handles.proj_info_txt_script{end-1},'->');
-		handles.proj_info_txt_script{end-1} = [handles.proj_info_txt_script{end-1}(1:k+2) '   NA'];
-		% Change the -J... to -JX...
-		k = strfind(handles.proj_info_txt_script{end},'-J');
-		handles.proj_info_txt_script{end} = [handles.proj_info_txt_script{end}(1:k+2) 'X' width handles.which_unit(1)];
-		handles.coord_system_script.projection = ['-JX' width handles.which_unit(1)];
+	if (handMir.is_projected)
+		set(handles.text_ProjDescription,'String','Using Grid''s projection info')
+		set(handles.push_mapProjections, 'Enable', 'off')
+	else
+		if (~handMir.geog && iscell(handles.proj_info_txt_script))		% Need to do this because grid is not geog
+			if (length(handles.proj_info_txt_script) == 5),		handles.proj_info_txt_script(3) = [];	end
+			k = strfind(handles.proj_info_txt_script{1},'->');
+			handles.proj_info_txt_script{1} = handles.proj_info_txt_script{1}(1:k+1);
+			k = strfind(handles.proj_info_txt_script{2},'->');
+			handles.proj_info_txt_script{2} = [handles.proj_info_txt_script{2}(1:k+2) '   Linear'];
+			% Also remove the Ellipsoid info
+			k = strfind(handles.proj_info_txt_script{end-1},'->');
+			handles.proj_info_txt_script{end-1} = [handles.proj_info_txt_script{end-1}(1:k+2) '   NA'];
+			% Change the -J... to -JX...
+			k = strfind(handles.proj_info_txt_script{end},'-J');
+			handles.proj_info_txt_script{end} = [handles.proj_info_txt_script{end}(1:k+2) 'X' width handles.which_unit(1)];
+			handles.coord_system_script.projection = ['-JX' width handles.which_unit(1)];
+		end
+		set(handles.text_ProjDescription,'String',handles.proj_info_txt_script)
 	end
-	set(handles.h_txt_info,'String',handles.proj_info_txt_script,'Position',handles.txt_info_pos)
 	handles.all_datums = datums;		% datums is a function in utils
 
 	% ---------- Split the scale from the projection string
@@ -259,25 +263,24 @@ function varargout = write_gmt_script(varargin)
 	handles = guidata(hObject);		% Recover in "this handles" the changes donne in push_uppdate
 
 	% ------------ See if GMT5 is around ------------------------------------------------
-	handles.GMT5bin_path = '';
-% 	[s,w] =  mat_lyies('gmt --show-bindir');
-% 	if (s == 0)
-% 		set(handles.check_GMT5, 'Vis', 'on')
-% 		handles.GMT5bin_path = w;
-% 	end
+	handles.have_GMT5 = false;
+	s = system('gmt --show-bindir');
+	if (s == 0)
+		handles.have_GMT5 = true;
+	end
 	% ------------------------------------------------------------------------------------
 
-	% ---------------- Add this figure handle to the carraças list ------------------
+	% ---------------- Add this figure handle to the carraças list -----------------------
 	plugedWin = getappdata(handMir.figure1,'dependentFigs');
 	plugedWin = [plugedWin hObject];
 	setappdata(handMir.figure1,'dependentFigs',plugedWin);
-	% -------------------------------------------------------------------------------
+	% ------------------------------------------------------------------------------------
 
 	guidata(hObject, handles);
 	set(hObject,'Visible','on');
 	if (nargout),   varargout{1} = hObject;     end
 
-% -----------------------------------------------------------------------------------
+% ----------------------------------------------------------------------------------------
 function popup_PaperSize_CB(hObject, handles)
 	val = get(hObject,'Value');
 	switch handles.which_unit
@@ -405,13 +408,13 @@ function conv_units(handles,dest)
 	end
 
 	% Also uppdate the projection info text
-	str = get(handles.h_txt_info,'String');
+	str = get(handles.text_ProjDescription,'String');
 	try
 		k = strfind(str{end},'/');
 		if (~isempty(k))
 			new_w = get(handles.edit_mapWidth,'String');
 			str{end} = [str{end}(1:k(end)) new_w handles.which_unit(1)];
-			set(handles.h_txt_info,'String',str)
+			set(handles.text_ProjDescription,'String',str)
 		end
 	end
 
@@ -462,11 +465,11 @@ function push_uppdate_CB(hObject, handles)
 		set(handles.edit_mapHeight,'String',sprintf('%.2f', (yy(2) - yy(1))));	% Uppdate map height
 		set(handles.edit_scale,'String', scale_str)
 		% Also update the projection info text
-		str = get(handles.h_txt_info,'String');
+		str = get(handles.text_ProjDescription,'String');
 		try
 			new_w = get(handles.edit_mapWidth, 'String');
 			str{end} = ['J<options> ->  -JX' new_w handles.which_unit(1)];
-			set(handles.h_txt_info,'String',str)
+			set(handles.text_ProjDescription,'String',str)
 		end
 		return		% We are donne
 	end
@@ -549,7 +552,7 @@ function push_uppdate_CB(hObject, handles)
 	end
 
 	% ------------ Also uppdate the projection info text
-	str = get(handles.h_txt_info,'String');
+	str = get(handles.text_ProjDescription,'String');
 	try
 		new_w = get(handles.edit_mapWidth,'String');
 		k = strfind(str{end},'/');
@@ -559,7 +562,7 @@ function push_uppdate_CB(hObject, handles)
 			k = strfind(str{end},'-J');
 			str{end} = [str{end}(1:k+2) new_w handles.which_unit(1)];
 		end
-		set(handles.h_txt_info,'String',str)
+		set(handles.text_ProjDescription,'String',str)
 	end
 
 	guidata(hObject,handles)
@@ -675,10 +678,8 @@ function edit_scale_CB(hObject, handles)
 % -----------------------------------------------------------------------------------
 function push_mapProjections_CB(hObject, handles)
 	if (~handles.handMir.geog)
-		msg = ['I will tell you a secret. A map projection is an operation where GEOGRAPHIC ' ...
-				'coordinates (representing a nearly spherical surface) are transformed into ' ...
-				'planar (flat) coordinates. You got the message?'];
-		warndlg(msg,'Warning');     return
+		warndlg('Only GEOGRAPHIC coordinates can be projected. I don''t do reprojections.','Warning')
+		return
 	end
 	fname = [handles.d_path 'mirone_pref.mat'];
 	coord_system_script = coordinate_system(handles.coord_system_script,handles.all_datums,[]);
@@ -710,10 +711,10 @@ function push_mapProjections_CB(hObject, handles)
 			['Projection -> ' coord_system_script.ProjName];...
 			['Ellipsoid  ->  ' handles.all_datums{coord_system_script.datum_val,2}];...
 			['J<options> ->  ' opt_J]};
-	[outstring,newpos] = textwrap(handles.h_txt_info,string);
-	pos = handles.txt_info_pos;
+	[outstring,newpos] = textwrap(handles.text_ProjDescription,string);
+	pos = get(handles.text_ProjDescription,'Position');
 	pos(4) = newpos(4);
-	set(handles.h_txt_info,'String',outstring,'Position',[pos(1),pos(2),pos(3),pos(4)])
+	set(handles.text_ProjDescription,'String',outstring,'Position',[pos(1),pos(2),pos(3),pos(4)])
 	coord_system_script.proj_info_txt = outstring;
 	coord_system_script.proj_info_pos = pos;
 
@@ -802,10 +803,13 @@ function push_OK_CB(hObject, handles)
 	X0 = get(handles.edit_X0,'String');		Y0 = get(handles.edit_Y0,'String');
 	X0 = ['-X' X0 handles.which_unit(1)];	Y0 = ['-Y' Y0 handles.which_unit(1)];
 
+	if (handles.have_GMT5),		opt_deg = '--FORMAT_GEO_MAP';
+	else						opt_deg = '--PLOT_DEGREE_FORMAT';
+	end
 	if (get(handles.radio_180_180,'Value'))		% [-180;180] range
-		opt_deg = '--PLOT_DEGREE_FORMAT=ddd:mm:ss';
+		opt_deg = [opt_deg '=ddd:mm:ss'];
 	else										% [0;360] range
-		opt_deg = '--PLOT_DEGREE_FORMAT=+ddd:mm:ss';
+		opt_deg = [opt_deg '=+ddd:mm:ss'];
 	end
 
     % Before calling the write script routine we have to find if we have any pscoast stuff
@@ -1064,10 +1068,8 @@ function [out_msg, warn_msg_pscoast] = build_write_script(handles, opt_J, dest_d
 	if (~strcmp(paper,'A4')),	paper_media = paper;
 	else						paper_media = [];
 	end
-	if (strcmp(sc,'bat'))
-		comm = 'REM ';      pb = '%';   pf = '%';
-	else
-		comm = '# ';        pb = '$';   pf = '';
+	if (strcmp(sc,'bat')),		comm = 'REM ';		pb = '%';	pf = '%';
+	else						comm = '# ';		pb = '$';	pf = '';
 	end
 	if (strcmp(ellips,'WGS-84'))     % It is the default, so don't use any
 		ellips = '';
@@ -1075,7 +1077,9 @@ function [out_msg, warn_msg_pscoast] = build_write_script(handles, opt_J, dest_d
 		ellips = [' --ELLIPSOID=' ellips];
 	end
 
-	opt_annotsize = '--ANNOT_FONT_SIZE_PRIMARY=10p';
+	if (handles.have_GMT5),		opt_annotsize = '--FONT_ANNOT_PRIMARY=10p';
+	else						opt_annotsize = '--ANNOT_FONT_SIZE_PRIMARY=10p';
+	end
 	frmPen = '';
 	if (handMir.IamXY)
 		frmPen = '--FRAME_PEN=1.25p';
@@ -1100,7 +1104,7 @@ function [out_msg, warn_msg_pscoast] = build_write_script(handles, opt_J, dest_d
 	if (get(handles.radio_in,'Val')),		units = 'inch';
 	elseif (get(handles.radio_pt,'Val')),	units = 'poits';
 	end
-	imgDimsInfo = sprintf(' --- The image area has exactly %s x %s %s (unless you change -R or -J) ---', ...
+	imgDimsInfo = sprintf(' ---- The image area has exactly %s x %s %s (unless you change -R or -J)', ...
 		get(handles.edit_mapWidth,'Str'), get(handles.edit_mapHeight,'Str'), units);
 % --------------------------------------------------------------------------------------
 
@@ -1114,17 +1118,10 @@ function [out_msg, warn_msg_pscoast] = build_write_script(handles, opt_J, dest_d
 	l = 1;
 	if (~strcmp(sc,'bat'))							% Write a csh script
 		script{l} = '#!/bin/csh -f';				l=l+1;
-		script{l} = comm;							l=l+1;
 		script{l} = [comm 'Coffeeright Mirone Tec'];l=l+1;
 		script{l} = comm;							l=l+1;
-		if (~isempty(handles.GMT5bin_path))
-			script{l} = [comm ' ---- Prepend GMT5 bin path to PATH so that GMT5 is used (DON''T remove to use GMT4) ----'];
-			l = l + 1;
-			script{l} = ['set PATH = ' handles.GMT5bin_path ';$PATH'];    l=l+1;
-			script{l} = comm;						l=l+1;
-		end
 		script{l} = [comm ' ---- Projection. You may change it if you know how to'];    l=l+1;
-		script{l} = ['set proj = ' opt_J];			l=l+1;      % Map scale
+		script{l} = ['set proj = ' opt_J];			l=l+1;		% Map scale
 		script{l} = [comm ' ---- Frame annotations. You may change it if you know how to'];    l=l+1;
 		script{l} = ['set frm = ' opt_B];			l=l+1;      saveBind = l-1;
 		script{l} = [comm imgDimsInfo];				l=l+1;
@@ -1153,13 +1150,8 @@ function [out_msg, warn_msg_pscoast] = build_write_script(handles, opt_J, dest_d
 		script{l} = '@echo OFF';					l=l+1;
 		script{l} = [comm 'Coffeewrite Mirone Tec'];l=l+1;
 		script{l} = comm;							l=l+1;
-		if (~isempty(handles.GMT5bin_path))
-			script{l} = [comm ' ---- Prepend GMT5 bin path to PATH so that GMT5 is used (DON''T remove to use GMT4) ----'];    l=l+1;
-			script{l} = ['set path=' handles.GMT5bin_path ';%path%'];    l=l+1;
-			script{l} = comm;						l=l+1;
-		end
 		script{l} = [comm ' ---- Projection. You may change it if you know how to'];		l=l+1;
-		script{l} = ['set proj=' opt_J];			l=l+1;      % Map scale
+		script{l} = ['set proj=' opt_J];			l=l+1;		% Map scale
 		script{l} = [comm ' ---- Frame annotations. You may change it if you know how to'];	l=l+1;
 		script{l} = ['set frm=' opt_B];				l=l+1;      saveBind = l-1;
 		script{l} = [comm imgDimsInfo];				l=l+1;
@@ -1172,8 +1164,7 @@ function [out_msg, warn_msg_pscoast] = build_write_script(handles, opt_J, dest_d
 		script{l} = [comm ' ---- Annotation font size in points'];    l=l+1;
 		script{l} = ['set annot_size=' opt_annotsize];      l=l+1;
 		if (handMir.IamXY)
-			script{l} = '';							l=l+1;
-			script{l} = [comm ' ---- Map frame thickness in points'];    l=l+1;
+			script{l} = sprintf('\n%s --- Map frame thickness in points.', comm);		l=l+1;
 			script{l} = ['set framePen=' frmPen];	l=l+1;
 		end
 		script{l} = '';								l=l+1;
@@ -1195,8 +1186,7 @@ function [out_msg, warn_msg_pscoast] = build_write_script(handles, opt_J, dest_d
 	end
 
 	% ------------- Start writing GMT commands --------------------------------
-	script{l} = ' ';		l=l+1;
-	script{l} = [comm '-------- Start by creating the basemap frame'];  l=l+1;
+	script{l} = sprintf('\n%s --- Start by creating the basemap frame.', comm);		l=l+1;
 	script{l} = ['psbasemap ' pb 'lim' pf ' ' pb 'proj' pf ' ' pb 'frm' pf ' ' X0 ' ' Y0 opt_U opt_P ...
 	             ' ' pb 'deg_form' pf ' ' pb 'annot_size' pf ' ' pb 'framePen' pf ' -K > ' pb 'ps' pf];		l=l+1;
 
@@ -1919,17 +1909,18 @@ function [out_msg, warn_msg_pscoast] = build_write_script(handles, opt_J, dest_d
 
 	% Remove empties at the end of 'script' to not screw the last command patching below
 	k = numel(script);
-	while (isempty(script{k})),		k = k - 1;		end
+	while (isempty(script{k})),		k = k - 1;			end
 	if (k < numel(script)),	script(k+1:end) = [];		end
 
 	for i = 1:numel(script)-1
 		fprintf(fid,'%s\n',script{i});
 	end
-	if (strcmp(sc,'bat')),  cut = 11;
-	else                    cut = 10;
+
+	ind = strfind(script{i+1}, ' -K');
+	if (~isempty(ind))
+		script{i+1}(ind:ind+2) = [];		% Remove the last '-K'
 	end
-	last = [script{i+1}(1:end-cut) ' >> ' pb 'ps' pf];    % Remove the last '-K'
-	fprintf(fid,'%s\n',last);
+	fprintf(fid,'%s\n',script{i+1});
 	fclose(fid);
 
 % -------------------------------------------------------------------------------------------
@@ -1976,24 +1967,30 @@ function [script, l, warn_msg_pscoast] = do_pscoast(handles, script, l, comm, pb
 						'by editing the script and reading the comment before the pscoast command.'];
 			end
 		end
+		
+		% Here we need also to use the map scale in the form 1:xxxxx
+		ind = strfind(script{5}, '-J');
+		script{5} = [script{5}(1:ind+1) 'x' escala];	% DANGEROUS. IT RELIES ON THE INDEX 5
 	end
 
 	if (~isempty(warn_msg_pscoast))		% Save the proj4 string in script so that user may use it to finish -J
 		script{l} = sprintf('%s --- Use this proj info to finish the -J option in next line\n%s %s\n', comm, comm, proj4);
 		l = l + 1;
 	elseif (~isempty(proj4))	% Anyway, save the proj4 string as cmment.
-		script{l} = sprintf('%s --- Proj4 string describing the grid''s projection. -J may benefit from an extra review.\n%s %s\n', ...
+		script{l} = sprintf('%s --- Proj4 string describing the grid''s projection. -J may benefit from an extra review.\n%s %s', ...
 			comm, comm, proj4);
 		l = l + 1;
 	end
 	script{l} = ['pscoast ' handles.opt_psc ellips handles.opt_L opt_R opt_J ' -O -K >> ' pb 'ps' pf];
 	l = l + 1;
 
-	if (numel(opt_R) > 3)		% We need a trick to reset -R & -J so that the remaining commands can rely on gmt.conf
-		script{l} = ' ';		l = l + 1;
-		script{l} = [comm '-------- Fake command used only to reset the -R & -J to their script defaults.'];    l=l+1;
-		% If GMT5 just use psbasemap -A ... or something else
-		script{l} = ['psbasemap ' pb 'lim' pf ' ' pb 'proj' pf ' ' pb 'frm' pf ' ' pb 'annot_size' pf ' -O -K >> ' pb 'ps' pf];
+	if (numel(opt_R) > 3)		% We need a trick to reset -R & -J so that the remaining commands can rely on gmt.history
+		script{l} = sprintf('\n%s -------- Fake command used only to reset the -R & -J to their script defaults.', comm);    l=l+1;
+		if (handles.have_GMT5)
+			script{l} = ['psxy ' pb 'lim' pf ' ' pb 'proj' pf ' -T -O -K >> ' pb 'ps' pf];
+		else
+			script{l} = ['psbasemap ' pb 'lim' pf ' ' pb 'proj' pf ' ' pb 'frm' pf ' ' pb 'annot_size' pf ' -O -K >> ' pb 'ps' pf];
+		end
 		l = l + 1;
 	end
 
@@ -2110,16 +2107,6 @@ set(h1,...
 'Resize','off',...
 'HandleVisibility','Call',...
 'Tag','figure1');
-
-uicontrol('Parent',h1, 'Position',[340 430 100 20],...
-'Style','checkbox',...
-'Value',1,...
-'FontSize',12,...
-'ForegroundColor',[0.8 0 0],...
-'String','Use GMT5',...
-'Tooltip','Write the script to be used by GMT5',...
-'Visible','off',...
-'Tag','check_GMT5');
 
 uicontrol('Parent',h1,'Position',[30 9 205 121],'Style','frame');
 
