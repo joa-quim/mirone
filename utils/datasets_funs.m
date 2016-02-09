@@ -576,7 +576,7 @@ function Rivers(handles, type, res)
 	end
 
 % --------------------------------------------------------------------
-function [lon lat] = force_in_360(handles, lon, lat)
+function [lon, lat] = force_in_360(handles, lon, lat)
 % Force lon, lat to not be outside the 360; 180 interval
 	if (diff(lon) > 360)		% Shit. GMT5 does not allow that
 		if (handles.geog == 1)
