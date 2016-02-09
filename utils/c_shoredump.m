@@ -1,7 +1,7 @@
 function out = c_shoredump(varargin)
 % Temporary function to easy up transition from GMT4 to GMT5.2
 
-% $Id: c_shoredump.m 4757 2015-07-28 23:30:06Z j $
+% $Id: c_shoredump.m 7780 2016-02-09 12:53:19Z j $
 
 	global gmt_ver
 	if (isempty(gmt_ver)),		gmt_ver = 4;	end		% For example, if calls do not come via mirone.m
@@ -18,7 +18,5 @@ function out = c_shoredump(varargin)
 			end
 		end
 		if (~no_W),		cmd = [cmd ' -W'];	end		% If no Rivers or Borders, than Coastlines (-W) 
-		gmtmex('create')
 		out = gmtmex(cmd);
-		gmtmex('destroy')
 	end
