@@ -16,7 +16,7 @@ function  datasets_funs(opt,varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: datasets_funs.m 4758 2015-07-28 23:30:28Z j $
+% $Id: datasets_funs.m 7781 2016-02-09 12:54:53Z j $
 
 switch opt(1:3)
 	case 'Coa'
@@ -430,6 +430,7 @@ function CoastLines(handles, res)
 	if (aux_funs('msg_dlg',5,handles)),		return,		end		% Test no_file || unknown proj
 	
 	lon = get(handles.axes1,'Xlim');      lat = get(handles.axes1,'Ylim');
+	[lon lat] = force_in_360(handles, lon, lat);
     [dumb, msg, opt_R] = geog2projected_pts(handles,[lon(:) lat(:)],[lon lat 0]);   % Get -R for use in shoredump
     if (isempty(opt_R)),    return;    end      % It should never happen, but ...
 	
@@ -476,6 +477,7 @@ function PoliticalBound(handles, type, res)
 	if (aux_funs('msg_dlg',5,handles)),		return,		end    % Test no_file || unknown proj
 	
 	lon = get(handles.axes1,'Xlim');      lat = get(handles.axes1,'Ylim');
+	[lon lat] = force_in_360(handles, lon, lat);
     [dumb, msg, opt_R] = geog2projected_pts(handles,[lon(:) lat(:)],[lon lat 0]);   % Get -R for use in shoredump
 	
 	switch type
@@ -530,6 +532,7 @@ function Rivers(handles, type, res)
 	if (aux_funs('msg_dlg',5,handles));     return;      end    % Test no_file || unknown proj
 	
 	lon = get(handles.axes1,'Xlim');      lat = get(handles.axes1,'Ylim');
+	[lon lat] = force_in_360(handles, lon, lat);
     [dumb, msg, opt_R] = geog2projected_pts(handles,[lon(:) lat(:)],[lon lat 0]);   % Get -R for use in shoredump
 	
 	switch type
@@ -570,6 +573,20 @@ function Rivers(handles, type, res)
 		h = line('XData',rivers(:,1),'YData',rivers(:,2),'Parent',handles.axes1,'Linewidth',handles.DefLineThick,...
             'Color',handles.DefLineColor,'Tag','Rivers', 'UserData',[opt_res(3) opt_I(3:end)]);
 		draw_funs(h,'CoastLineUictx')    % Set line's uicontextmenu
+	end
+
+% --------------------------------------------------------------------
+function [lon lat] = force_in_360(handles, lon, lat)
+% Force lon, lat to not be outside the 360; 180 interval
+	if (diff(lon) > 360)		% Shit. GMT5 does not allow that
+		if (handles.geog == 1)
+			lon(1) = max(lon(1), -180);		lon(2) = min(lon(2), 180);
+		else
+			lon(1) = max(lon(1), 0);		lon(2) = min(lon(2), 360);
+		end
+	end
+	if (diff(lat) > 180)
+		lat(1) = max(lat(1), -90);			lat(2) = min(lat(2), 90);
 	end
 
 % --------------------------------------------------------------------
