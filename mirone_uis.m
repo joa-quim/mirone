@@ -16,7 +16,7 @@ function [H1,handles,home_dir] = mirone_uis(home_dir)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: mirone_uis.m 7752 2016-01-12 01:47:30Z j $
+% $Id: mirone_uis.m 7784 2016-02-09 15:35:15Z j $
 
 %#function pan igrf_options rally_plater plate_calculator ecran snapshot
 %#function about_box parker_stuff euler_stuff grid_calculator tableGUI
@@ -262,7 +262,7 @@ uimenu('Parent',h,'Call','mirone(''File_img2GMT_RGBgrids_CB'',guidata(gcbo),''sc
 
 h = uimenu('Parent',hFL,'Label','Save GMT script','Sep','on');
 uimenu('Parent',h,'Call','write_gmt_script(guidata(gcbo),''bat'')','Label','dos batch');
-uimenu('Parent',h,'Call','write_gmt_script(guidata(gcbo),''csh'')','Label','csh script');
+uimenu('Parent',h,'Call','write_gmt_script(guidata(gcbo),''csh'')','Label','bash script');
 
 h = uimenu('Parent',hFL,'Label','Save As Fledermaus Objects');
 hVG(kv) = uimenu('Parent',h,'Call','mirone(''FileSaveFleder_CB'',guidata(gcbo),''writeSpherical'')',...
@@ -574,7 +574,7 @@ uimenu('Parent',h,'Call','datasets_funs(''ODP'',guidata(gcbo),''IODP'')','Label'
 uimenu('Parent',h,'Call','datasets_funs(''ODP'',guidata(gcbo),''ALL'')','Label','DSDP+ODP+IODP');
 
 uimenu('Parent',hDS,'Call','atlas(guidata(gcbo))','Label','Atlas','Tag','Atlas','Sep','on');
-uimenu('Parent',hDS,'Call','mirone(''TransferB_CB'',guidata(gcbo),''DayNight'')','Label','Day and Night','Sep','on');
+%uimenu('Parent',hDS,'Call','mirone(''TransferB_CB'',guidata(gcbo),''DayNight'')','Label','Day and Night','Sep','on');
 % uimenu('Parent',hDS,'Call','datasets_funs(''GTiles'', guidata(gcbo))','Label','GTiles Map','Sep','on');
 
 %% --------------------------- Plates -------------------------------------
@@ -752,7 +752,7 @@ if (IamCompiled)
 end
 uimenu('Parent',h, 'Call',['mirone(''FileOpenWebImage_CB'',guidata(gcbo),',...
 	' ''http://www2.clustrmaps.com/stats/maps-clusters/w3.ualg.pt-~jluis-mirone-world.jpg'',''nikles'');'],'Label','See visitors map','Sep','on');
-uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 12 Dec 2016'',''2.7.0dev'')','Label','About','Sep','on');
+uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 9 Feb 2016'',''2.7.0dev'')','Label','About','Sep','on');
 
 %% --------------------------- Build HANDLES and finish things here
 	handles = guihandles(H1);
@@ -820,7 +820,7 @@ function figure1_ResizeFcn(hObj, event)
 	handles = guidata(hObj);
 	if (isempty(handles)),      return,     end
 	screen = get(0,'ScreenSize');	    pos = get(handles.figure1,'Pos');
-	if ( pos(1) == 1 && isequal(screen(3), pos(3)) && handles.oldSize(1,4) > 20)	% Do not allow figure miximizing
+	if (pos(1) == 1 && isequal(screen(3), pos(3)) && handles.oldSize(1,4) > 20)	% Do not allow figure miximizing
 		set(handles.figure1,'Pos',handles.oldSize(1,:))
 	else
 		hSliders = getappdata(handles.axes1,'SliderAxes');
