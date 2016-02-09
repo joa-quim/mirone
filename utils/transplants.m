@@ -29,7 +29,7 @@ function varargout = transplants(hLine, tipo, handles)
 % In the IMPLANTIMAGE mode this function calls a subfunction that:
 % An external image will be inplanted inside the zone defined by the rectangle whose handle is HLINE.
 
-%	Copyright (c) 2004-2015 by J. Luis
+%	Copyright (c) 2004-2016 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -162,7 +162,6 @@ function varargout = transplants(hLine, tipo, handles)
 		y = (B{1}(:,1)-1)*y_inc + y_min;
 		x = (B{1}(:,2)-1)*x_inc + x_min;
 		set(h, 'xdata',x, 'ydata',y)		% Convert the rectangle into the outer polygon
-		mask = ~(img_fun('roipoly_j',[x_min x_max],[y_min y_max],Z_rect,x,y));		% Mask at the outer grid resolution
 
 	else
 		% Compute another rect but this time with pad = 1 that will be used to clip inside
@@ -170,15 +169,14 @@ function varargout = transplants(hLine, tipo, handles)
 		x2 = min(handlesInner.head(2) + handles.head(8), handles.head(2));
 		y1 = max(handlesInner.head(3) - handles.head(9), handles.head(3));
 		y2 = min(handlesInner.head(4) + handles.head(9), handles.head(4));
-		%rect_inner = [x1 y1; x1 y2; x2 y2; x2 y1; x1 y1];
 		x = [x1 x1 x2 x2 x1];		y = [y1 y2 y2 y1 y1];
-		mask = false(size(Z_rect));
 	end
 
 	X = linspace(head(1) + (r_c(3)-1)*head(8), head(1) + (r_c(4)-1)*head(8), r_c(4) - r_c(3) + 1);
 	Y = linspace(head(3) + (r_c(1)-1)*head(9), head(3) + (r_c(2)-1)*head(9), r_c(2) - r_c(1) + 1);
 	opt_R = sprintf('-R%.10f/%.10f/%.10f/%.10f', X(1), X(end), Y(1), Y(end));
 	opt_I = sprintf('-I%.10f/%.10f',head(8),head(9));
+	mask = ~(img_fun('roipoly_j',[x_min x_max],[y_min y_max],Z_rect,x,y));		% Mask at the outer grid resolution
 
 	if (handlesInner.have_nans && numel(B) > 1)		% If we have holes in Inner grid, let the outer grid values survive there
 		for (k = 2:numel(B))
