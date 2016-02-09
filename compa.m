@@ -2,7 +2,7 @@ function compa(fname, varargin)
 % Para criar so o Mirone em C e nao compilar, fazer
 %       compa('exe','-c')
 
-% $Id: compa.m 7785 2016-02-09 15:46:02Z j $
+% $Id: compa.m 7787 2016-02-09 16:07:48Z j $
 
 	if (nargin == 0)
 		fname = 'exe';	varargin = {'-c'};
@@ -67,5 +67,6 @@ function compa(fname, varargin)
 			dos('ren scribefiglisten_.m scribefiglisten.m');	cd(aqui)
 			
 			disp('O compa deu merda')
+            disp(lasterr)
 		end
 	end
