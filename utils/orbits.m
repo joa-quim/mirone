@@ -40,7 +40,7 @@ function LLA = orbits(fname_tle, date_start, date_stop, time_inc)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: $
+% $Id: orbits.m 7779 2016-02-09 02:07:11Z j $
 
 	global opsmode satrec startmfe stopmfe deltamin
 	%   add operation smode for afspc (a) or improved (i)
