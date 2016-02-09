@@ -76,7 +76,7 @@ function varargout = write_gmt_script(varargin)
 	handles.sizes_in = sizes_in;    handles.paper_in = paper_in;
 	handles.opt_L = [];             handles.opt_U = [];
 	handles.opt_psc = [];			% To eventualy hold several of the pscoast options
-	handles.scale_set = 0;			% To signal that user changed scale
+	handles.scale_set = false;		% To signal that user changed scale
 
 	handles.script_type = varargin{2};
 	if (strcmp(handles.script_type,'bat'))
@@ -85,6 +85,17 @@ function varargout = write_gmt_script(varargin)
 	else
 		set(hObject,'Name','Write GMT script')
 	end
+
+	% ------------ See if GMT5 is around ---------------------------------------------------------------
+	handles.have_GMT5 = false;
+	if (ispc)
+		[s, w] = dos('gmt --show-bindir');
+	else
+		[s, w] = unix('gmt --show-bindir');
+	end
+	% Ask for the second arg so that it won't be printed without request
+	if (s == 0),	handles.have_GMT5 = true;	end
+	% --------------------------------------------------------------------------------------------------
 
 	% ---------------------- See if the caller is 'ecran' ----------------------------------------------
 	% If yes, we must set several fake handles struct members that exist in Mirone
@@ -161,7 +172,7 @@ function varargout = write_gmt_script(varargin)
 	h = patch('XData',rect_x,'YData',rect_y,'FaceColor','w','EdgeColor','k','LineWidth',.5,'Tag','PlotRect');
 	ui_edit_polygon(h)					% Set edition functions
 	setappdata(h, 'RunCB', {@update_scales, h})
-	handles.hand_rect = h;				% Save the rectangle hand
+	handles.hRect = h;				% Save the rectangle hand
 	handles.hand_frame_proj = [];
 
 	coord_system_script = [];
@@ -174,10 +185,10 @@ function varargout = write_gmt_script(varargin)
 	% --------------------------------------------------------------------------------------------------
 
 	%--------------- Recall previous settings stored in mirone_pref ------------------------------------
-	handles.h_txt_info   = findobj(hObject,'Tag','text_ProjDescription');
 	if (handMir.is_projected)
 		set(handles.text_ProjDescription,'String','Using Grid''s projection info')
 		set(handles.push_mapProjections, 'Enable', 'off')
+		handles.opt_J_no_scale = '-JX';			% So that update_scales() catch the linear branch
 	else
 		if (~handMir.geog && iscell(handles.proj_info_txt_script))		% Need to do this because grid is not geog
 			if (length(handles.proj_info_txt_script) == 5),		handles.proj_info_txt_script(3) = [];	end
@@ -200,7 +211,7 @@ function varargout = write_gmt_script(varargin)
 
 	% ---------------- Split the scale from the projection string --------------------------------------
 	tmp = handles.coord_system_script.projection;
-	if (~isempty(tmp))
+	if (~isempty(tmp) && ~handMir.is_projected)
 		if (numel(tmp) == 4 && strcmp(tmp(3),'m'))		% Simple Mercator has the form "-Jm1"
 			handles.opt_J_no_scale = [tmp(1:2) upper(tmp(3))];
 		elseif (numel(tmp) == 3 && strcmpi(tmp(3),'X'))	% Linear proj has the form "-JX"
@@ -209,7 +220,7 @@ function varargout = write_gmt_script(varargin)
 			tmp = tmp(1:end-2);
 			handles.opt_J_no_scale = [tmp(1:2) upper(tmp(3)) tmp(4:end)];		% Save this
 		end
-	else
+	elseif (~handMir.is_projected)
 		handles.opt_J_no_scale = '-JX15';				% Use this default
 	end
 	%opt_J = [tmp(1:2) upper(tmp(3)) tmp(4:end) '/' handles.scale handles.which_unit(1)];
@@ -219,7 +230,7 @@ function varargout = write_gmt_script(varargin)
 	% ----------------- Use the directory list from mirone_pref ----------------------------------------
 	j = false(1,numel(directory_list));					% vector for eventual cleaning non-existing dirs
 	if iscell(directory_list)							% When exists a dir list in mirone_pref
-		for i = 1:length(directory_list)
+		for (i = 1:length(directory_list))
 			if ~exist(directory_list{i},'dir'),   j(i) = true;   end
 		end
 		directory_list(j) = [];							% clean eventual non-existing directories
@@ -265,17 +276,6 @@ function varargout = write_gmt_script(varargin)
 	guidata(hObject, handles);
 	update_scales(handles)
 	handles = guidata(hObject);		% Recover in "this handles" the changes donne in push_uppdate
-
-	% ------------ See if GMT5 is around ---------------------------------------------------------------
-	handles.have_GMT5 = false;
-	if (ispc)
-		[s, w] = dos('gmt --show-bindir');
-	else
-		[s, w] = unix('gmt --show-bindir');
-	end
-	% Ask for the second arg so that it won't be printed without request
-	if (s == 0),	handles.have_GMT5 = true;	end
-	% --------------------------------------------------------------------------------------------------
 
 	% ------------- Add this figure handle to the carraças list ----------------------------------------
 	plugedWin = getappdata(handMir.figure1,'dependentFigs');
@@ -364,7 +364,7 @@ function radio_pt_CB(hObject, handles)
 
 % -----------------------------------------------------------------------------------
 function conv_units(handles,dest)
-	xx = get(handles.hand_rect,'XData');        yy = get(handles.hand_rect,'YData');
+	xx = get(handles.hRect,'XData');        yy = get(handles.hRect,'YData');
 	xf = get(handles.hand_frame_proj,'XData');  yf = get(handles.hand_frame_proj,'YData');
 	if (strcmp(handles.which_unit,'cm') && strcmp(dest,'in'))
 		xx = xx / 2.54;     yy = yy / 2.54;
@@ -409,7 +409,7 @@ function conv_units(handles,dest)
 		set(handles.edit_X0,'String',sprintf('%.2f',str2double(get(handles.edit_X0,'String'))/72 ))
 		set(handles.edit_Y0,'String',sprintf('%.2f',str2double(get(handles.edit_Y0,'String'))/72 ))
 	end
-	set(handles.hand_rect,'XData',xx),				set(handles.hand_rect,'YData',yy);
+	set(handles.hRect,'XData',xx),				set(handles.hRect,'YData',yy);
 	if (~isempty(handles.hand_frame_proj))
 		set(handles.hand_frame_proj,'XData',xf),	set(handles.hand_frame_proj,'YData',yf);
 	end
@@ -453,7 +453,7 @@ function update_scales(handles)
 	if (~isa(handles, 'struct'))		% Than this is a call from the RunCB registered by ui_edit_polygon
 		handles = guidata(handles);		% and handles is actually the rectangle handle.
 	end
-	xx = get(handles.hand_rect,'XData');		yy = get(handles.hand_rect,'YData');
+	xx = get(handles.hRect,'XData');		yy = get(handles.hRect,'YData');
 	set(handles.edit_X0,'String', sprintf('%.2f', xx(1)));
 	set(handles.edit_Y0,'String', sprintf('%.2f', yy(1)));
 
@@ -471,7 +471,7 @@ function update_scales(handles)
 			else
 				yy(2) = new_y + yy(1);      yy(3) = new_y + yy(1);		% It will become "True" scale
 			end
-			set(handles.hand_rect, 'XData', xx, 'YData', yy);
+			set(handles.hRect, 'XData', xx, 'YData', yy);
 			scale_str = get_scale(handles, new_x, new_y);
 		end
 		set(handles.edit_mapWidth,'String', sprintf('%.2f', (xx(3) - xx(2))));	% Uppdate map width
@@ -514,7 +514,7 @@ function update_scales(handles)
 	else
 		yy(2) = new_y + yy(1);      yy(3) = new_y + yy(1);			% It will become "True" scale
 	end
-	set(handles.hand_rect, 'XData', xx, 'YData', yy);
+	set(handles.hRect, 'XData', xx, 'YData', yy);
 	set(handles.edit_mapWidth,'String',num2str((xx(3) - xx(2)),'%.2f'));    % Uppdate map width
 	set(handles.edit_mapHeight,'String',num2str((yy(2) - yy(1)),'%.2f'));   % Uppdate map height
 	handles.scale = num2str((xx(3) - xx(2)),'%.2f');
@@ -534,7 +534,7 @@ function update_scales(handles)
 	if (out_f(1,1) ~= out_f(n,1) || out_f(n,2) ~= out_f(2*n-1,2))
 		if (isempty(handles.hand_frame_proj))		% First time. Creat it.
 			handles.hand_frame_proj = line('XData',new_x,'YData',new_y, 'Color','r','LineWidth',.5,'Tag','PlotFrameProj');
-			uistack(handles.hand_frame_proj, 'down')
+			uistack_j(handles.hand_frame_proj, 'down')
 		else
 			set(handles.hand_frame_proj, 'XData', new_x, 'YData', new_y);
 		end
@@ -549,7 +549,12 @@ function update_scales(handles)
 		xm = (handles.x_min + handles.x_max) / 2;   ym = (handles.y_min + handles.y_max) / 2;
 		opt_R = sprintf('-R%f/%f/%f/%f', xm-2, xm+2, ym-2, ym+2);
 		in = [handles.x_min handles.y_min; handles.x_min handles.y_max; handles.x_max handles.y_max; handles.x_max handles.y_min];
-		opt_J = [handles.opt_J_no_scale '/1'];
+		if (handles.have_GMT5)
+			opt_J = [handles.opt_J_no_scale '/1:1'];
+			opt_J(3) = lower(opt_J(3));
+		else
+			opt_J = [handles.opt_J_no_scale '/1'];
+		end
 		out = c_mapproject(in,opt_R,'-C','-F',opt_J);
 		dx_prj = out(4,1) - out(1,1);		% It's in projected meters
 		dy_prj = out(2,2) - out(1,2);		% It's in projected meters
@@ -561,7 +566,7 @@ function update_scales(handles)
 		[n,d] = rat(scale,1e-9);
 		if (n > 1),    d = d / n;      end
 		set(handles.edit_scale,'String',['1:' num2str(d)])
-		handles.scale_set = 0;
+		handles.scale_set = false;
 	end
 
 	% ------------ Also uppdate the projection info text
@@ -583,6 +588,7 @@ function update_scales(handles)
 % -----------------------------------------------------------------------------------
 function scale_str = get_scale(handles, width, height)
 % For now this only computes the scale when we have a projected grid
+	scale_str = '1:1';
 	if (handles.handMir.is_projected)
 		dx_prj = handles.x_max - handles.x_min;		% It's in projected meters
 		dy_prj = handles.y_max - handles.y_min;		% It's in projected meters
@@ -597,8 +603,8 @@ function edit_X0_CB(hObject, handles)
 % Set new x origin
 	str = get(hObject,'String');		x0 = str2double(str);
 	if (isnan(x0)),		set(hObject,'String',str),		return,		end
-	xx = get(handles.hand_rect,'XData');
-	set(handles.hand_rect,'XData',xx - xx(1) + x0)
+	xx = get(handles.hRect,'XData');
+	set(handles.hRect,'XData',xx - xx(1) + x0)
 	if (~isempty(handles.hand_frame_proj))
 		set(handles.hand_frame_proj,'XData',get(handles.hand_frame_proj,'XData') - xx(1) + x0)
 	end
@@ -608,8 +614,8 @@ function edit_Y0_CB(hObject, handles)
 % Set new y origin
 	str = get(hObject,'String');        y0 = str2double(str);
 	if (isnan(y0)),     set(hObject,'String',str),		return,		end
-	yy = get(handles.hand_rect,'YData');
-	set(handles.hand_rect,'YData',yy - yy(1) + y0)
+	yy = get(handles.hRect,'YData');
+	set(handles.hRect,'YData',yy - yy(1) + y0)
 	if (~isempty(handles.hand_frame_proj))
 		set(handles.hand_frame_proj,'YData',get(handles.hand_frame_proj,'YData') - yy(1) + y0)
 	end
@@ -619,9 +625,9 @@ function edit_mapWidth_CB(hObject, handles)
 % Set new map width
 	str = get(hObject,'String');        w = str2double(str);
 	if (isnan(w)),     set(hObject,'String',str),		return,		end
-	xx = get(handles.hand_rect,'XData');
+	xx = get(handles.hRect,'XData');
 	xx(3) = xx(2) + w;      xx(4) = xx(1) + w;
-	set(handles.hand_rect,'XData',xx)
+	set(handles.hRect,'XData',xx)
 	update_scales(handles)
 
 % -----------------------------------------------------------------------------------
@@ -629,9 +635,9 @@ function edit_mapHeight_CB(hObject, handles)
 % Set new map height
 	str = get(hObject,'String');		h = str2double(str);
 	if (isnan(h)),			set(hObject,'String',str),		return,		end
-	yy = get(handles.hand_rect,'YData');
+	yy = get(handles.hRect,'YData');
 	yy(2) = yy(1) + h;		yy(3) = yy(4) + h;
-	set(handles.hand_rect,'YData',yy)
+	set(handles.hRect,'YData',yy)
 	update_scales(handles)
 
 % -----------------------------------------------------------------------------------------
@@ -658,7 +664,7 @@ function push_change_dir_CB(hObject, handles)
 % -----------------------------------------------------------------------------------
 function edit_scale_CB(hObject, handles)
 	str = get(hObject,'String');
-	xx = get(handles.hand_rect,'XData');		yy = get(handles.hand_rect,'YData');
+	xx = get(handles.hRect,'XData');		yy = get(handles.hRect,'YData');
 	if (~handles.handMir.is_projected)
 		opt_J = [handles.opt_J_no_scale '/' str];	opt_J(3) = lower(opt_J(3));
 		in = [handles.x_min handles.y_min; handles.x_min handles.y_max; ...
@@ -683,8 +689,8 @@ function edit_scale_CB(hObject, handles)
 		xx(3:4) = xx(1) + width;
 		yy(2:3) = yy(1) + height;
 	end
-	set(handles.hand_rect,'XData',xx,'YData',yy)
-	handles.scale_set = 1;
+	set(handles.hRect,'XData',xx,'YData',yy)
+	handles.scale_set = true;
 	guidata(hObject, handles);
 	update_scales(handles)
 
@@ -708,7 +714,7 @@ function push_mapProjections_CB(hObject, handles)
 	else                                            % All other should terminate as "-J.../1"
 		tmp = tmp(1:end-2);
 	end
-	xx = get(handles.hand_rect,'XData');
+	xx = get(handles.hRect,'XData');
 	handles.scale = num2str( (xx(3) - xx(2)),'%.2g');
 	if (length(tmp) > 3)
 		opt_J = [tmp(1:2) upper(tmp(3)) tmp(4:end) '/' handles.scale handles.which_unit(1)];
