@@ -67,5 +67,6 @@ function compa(fname, varargin)
 			dos('ren scribefiglisten_.m scribefiglisten.m');	cd(aqui)
 			
 			disp('O compa deu merda')
+            disp(lasterr)
 		end
 	end
