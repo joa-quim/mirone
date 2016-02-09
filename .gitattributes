@@ -1,6 +1,7 @@
 * text=auto !eol
 /INSTALL.OSX -text
 /chrpath.sc -text
+/compa.m -text
 continents/AUS_ABS_hybrid.stg -text
 continents/AUS_torsvik.stg -text
 continents/EANT_ABS_hybrid.stg -text
