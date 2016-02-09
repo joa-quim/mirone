@@ -16,7 +16,7 @@ function  datasets_funs(opt,varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: datasets_funs.m 7781 2016-02-09 12:54:53Z j $
+% $Id: datasets_funs.m 7786 2016-02-09 16:06:29Z j $
 
 switch opt(1:3)
 	case 'Coa'
@@ -576,7 +576,7 @@ function Rivers(handles, type, res)
 	end
 
 % --------------------------------------------------------------------
-function [lon lat] = force_in_360(handles, lon, lat)
+function [lon, lat] = force_in_360(handles, lon, lat)
 % Force lon, lat to not be outside the 360; 180 interval
 	if (diff(lon) > 360)		% Shit. GMT5 does not allow that
 		if (handles.geog == 1)
