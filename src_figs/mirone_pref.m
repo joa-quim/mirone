@@ -16,7 +16,7 @@ function varargout = mirone_pref(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: mirone_pref.m 4802 2015-10-07 22:07:18Z j $
+% $Id: mirone_pref.m 7788 2016-02-11 18:13:12Z j $
 
 	hObject = figure('Vis','off');
 	mirone_pref_LayoutFcn(hObject);
@@ -422,6 +422,9 @@ function popup_ellipsoide_CB(hObject, handles)
 
 % ------------------------------------------------------------------------------------
 function push_OK_CB(hObject, handles)
+% ...
+	global gmt_ver;
+
 	handles.handMir.geog = handles.geog;
 	handles.handMir.grdMaxSize = str2double(get(handles.edit_GridMaxSize,'String')) * 2^20;
 	handles.handMir.swathRatio = str2double(get(handles.edit_swathRatio,'String'));
