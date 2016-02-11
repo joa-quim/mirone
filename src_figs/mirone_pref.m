@@ -422,6 +422,9 @@ function popup_ellipsoide_CB(hObject, handles)
 
 % ------------------------------------------------------------------------------------
 function push_OK_CB(hObject, handles)
+% ...
+	global gmt_ver;
+
 	handles.handMir.geog = handles.geog;
 	handles.handMir.grdMaxSize = str2double(get(handles.edit_GridMaxSize,'String')) * 2^20;
 	handles.handMir.swathRatio = str2double(get(handles.edit_swathRatio,'String'));
