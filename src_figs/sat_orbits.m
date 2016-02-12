@@ -26,15 +26,26 @@ function varargout = sat_orbits(varargin)
 	if (nargin == 0),	varargin{1} = [];	end		% So por agora
 	handles.handMir = varargin{1};
 	handles.hRect = [];
-    if (nargin == 2)
+	if (nargin == 2)
 		handles.hRect = varargin{2};
-    end
+	end
+
+	% By default select current day
+	t = date;
+	set(handles.edit_dateStart, 'Str', [t ' 00:00:00'])
+	set(handles.edit_dateStop , 'Str', [t ' 23:59:59'])
+
+	% See if we have traces in preferences of the last used TLE file
+	s = load([handles.handMir.path_data 'mirone_pref.mat'], 'lastTLE');	% Warning: This is NEVER empty ... even when it is
+	if (~isempty(fields(s)) && exist(s.lastTLE,'file'))		% Yes, we found one
+		set(handles.edit_TLE, 'Str', s.lastTLE)
+	end
 
 	%------------ Give a Pro look (3D) to the frame boxes  --------
 	new_frame3D(hObject, NaN)
 	%------------- END Pro look (3D) ------------------------------
 
-    guidata(hObject, handles);
+	guidata(hObject, handles);
 	set(hObject,'Visible','on');
 	if (nargout),	varargout{1} = hObject;		end
 
@@ -45,8 +56,8 @@ function edit_dateStart_CB(hObject, handles)
 % ------------------------------------------------------------------------
 function push_calendarStart_CB(hObject, handles)
 % ...
-    new_date = uisetdate;
-    set(handles.edit_dateStart, 'Str', new_date)
+	new_date = uisetdate;
+	set(handles.edit_dateStart, 'Str', new_date)
 
 % ------------------------------------------------------------------------
 function edit_dateStop_CB(hObject, handles)
@@ -54,20 +65,36 @@ function edit_dateStop_CB(hObject, handles)
 
 % ------------------------------------------------------------------------
 function push_calendarStop_CB(hObject, handles)
-    new_date = uisetdate;
-    set(handles.edit_dateStop, 'Str', new_date)
+	new_date = uisetdate;
+	set(handles.edit_dateStop, 'Str', new_date)
 
 % ------------------------------------------------------------------------
 function edit_TLE_CB(hObject, handles)
+% Manually entered file or via push_getTLE_CB(). Also saves the file name in preferences
 
+	lastTLE = get(hObject, 'Str');
+	if (check_TLE(lastTLE))			% Check TLE looks good/exists
+		set(hObject, 'Str', '')
+		errordlg('Non existing or badly formated TLE file. Ignoring it.','Error')
+		return
+	end
+
+	% Ok, since we got here we will accept the TLE as good and save its name in preferences
+	version7 = version;
+	V7 = (sscanf(version7(1),'%f') > 6);
+	if (~V7)		% R <= 13. That's all I need to know for now.
+		save([handles.handMir.path_data 'mirone_pref.mat'], 'lastTLE', '-append', '-v6')
+	else
+		save([handles.handMir.path_data 'mirone_pref.mat'], 'lastTLE', '-append')
+	end
 
 % ------------------------------------------------------------------------
 function push_getTLE_CB(hObject, handles)
 % ...
-    str1 = {'*.tle;*.TLE;*.txt;*.TXT;*.dat;*.DAT;', 'TLE files (*.tle,*.txt,*.dat)';'*.*', 'All Files (*.*)'};
+	str1 = {'*.tle;*.TLE;*.txt;*.TXT;*.dat;*.DAT;', 'TLE files (*.tle,*.txt,*.dat)';'*.*', 'All Files (*.*)'};
 	[FileName,PathName] = put_or_get_file(handles,str1,'Select TLE File','get');
 	if isequal(FileName,0),		return,		end
-    set(handles.edit_TLE, 'Str', [PathName FileName])
+	set(handles.edit_TLE, 'Str', [PathName FileName])
 
 % ------------------------------------------------------------------------
 function push_callSpaceTrack_CB(hObject, handles)
@@ -84,12 +111,14 @@ function push_gotoSpaceTrack_CB(hObject, handles)
 % ------------------------------------------------------------------------
 function push_tracks_CB(hObject, handles)
 % ...
-    t_start = get(handles.edit_dateStart, 'Str');
-    t_stop  = get(handles.edit_dateStop, 'Str');
-    fname   = get(handles.edit_TLE, 'Str');
+	[t_start, t_stop, fname, msg] = check_input(handles);
+	if (~isempty(msg))
+		errordlg(msg, 'Error'),		return
+	end
+
 	%profile on
 	tic
-    tracks  = orbits(fname, t_start, t_stop);
+	tracks = orbits(fname, t_start, t_stop);
 	toc
 	%profile viewer
 	h = line('XData',tracks.xyz(:,1), 'YData',tracks.xyz(:,2), 'ZData',tracks.xyz(:,3), ...
@@ -104,10 +133,48 @@ function push_tracksTiles_CB(hObject, handles)
 function push_seeGE_CB(hObject, handles)
 
 
+% ------------------------------------------------------------------------
+function good = check_TLE(fname)
+% Check that the given TLE file exists and looks good. For the second point
+% we only that it has 2 or 3 non empty lines starting by [0] 1 2 but don't
+% care about its real contents. That's a job for orbits.m
+
+	fid = fopen(fname,'r');
+	if (fid == -1),		good = false;	return,		end		% It doesn't even exists
+
+	todos = fread(fid,'*char');		fclose(fid);
+	todos = strread(todos','%s','delimiter','\n');		% Cell array
+	n_lines = numel(todos);
+
+	if ((n_lines < 2) || (n_lines > 4)),	good = false;	return,		end		% Empty or shity TLE file
+	if ((n_lines == 2) && (todos{1}(1) == '1') && (todos{2}(1) == '2'))
+		good = true;
+	elseif ((n_lines >= 3) && (todos{1}(1) == '#' || todos{1}(1) == '0') && (todos{1}(2) == '1') && (todos{3}(1) == '2'))
+		good = true;
+	else
+		good = false;
+	end
+
+% ------------------------------------------------------------------------
+function [t_start, t_stop, fname, msg] = check_input(handles)
+% Check that entered parameters are reasonable. Notice that TLE
+% validity was already checked by check_TLE()
+	msg = '';
+	t_start = get(handles.edit_dateStart, 'Str');
+	t_stop  = get(handles.edit_dateStop, 'Str');
+	fname   = get(handles.edit_TLE, 'Str');
+	
+	if (isempty(fname))
+		msg = 'Error: TLE file name cannot be empty';	return
+	end
+	if (datenum(t_stop) <= datenum(t_start))
+		msg = 'Error: Starting date is later or equal to end date.';
+	end
+
 % --- Executes on key press over figure1 with no controls selected.%
 function figure1_KeyPressFcn(hObject, eventdata)
 	if isequal(get(hObject,'CurrentKey'),'escape')
-        delete(hObject);
+		delete(hObject);
 	end
 
 % ------------------------------------------------------------------------
