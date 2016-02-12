@@ -484,6 +484,7 @@ src_figs/read_las.m -text
 src_figs/roi_image_operations.m -text
 src_figs/rotatetool.m -text
 src_figs/run_cmd.m -text
+src_figs/sat_orbits.m -text
 src_figs/scatter_plot.m -text
 src_figs/select_cols.m -text
 src_figs/shading_params.m -text
