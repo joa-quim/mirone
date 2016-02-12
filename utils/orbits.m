@@ -40,20 +40,20 @@ function LLA = orbits(fname_tle, date_start, date_stop, time_inc)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: orbits.m 7779 2016-02-09 02:07:11Z j $
+% $Id: orbits.m 7791 2016-02-12 01:35:23Z j $
 
 	global opsmode satrec startmfe stopmfe deltamin
 	%   add operation smode for afspc (a) or improved (i)
 	opsmode = 'a';
 
-	write_file = true;		% For sometime
+	write_file = false;		% For sometime
 	outd2 = 'V:\OrbProp\ExampleOutput\LLA_Transit.txt';
 
+	if (nargin < 4),	time_inc   = 0.5;	end
 	if (nargin == 0)
 		fname_tle = 'V:\OrbProp\ExampleInput\AQUA_0101.tle';
 		date_start = '01-Jan-2016 00:00:00';
 		date_stop  = '02-Jan-2016 00:00:00';
-		time_inc   = 0.5;
 	end
 	[satrec, startmfe, stopmfe, deltamin] = loadtle(fname_tle, date_start, date_stop, time_inc);
 
