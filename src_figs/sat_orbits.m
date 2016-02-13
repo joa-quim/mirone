@@ -16,7 +16,7 @@ function varargout = sat_orbits(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: sat_orbits.m 7792 2016-02-12 19:02:19Z j $
+% $Id: sat_orbits.m 7793 2016-02-13 01:23:10Z j $
 
 	hObject = figure('Vis','off');
 	sat_orbits_LayoutFcn(hObject);
@@ -51,17 +51,27 @@ function varargout = sat_orbits(varargin)
 
 % ------------------------------------------------------------------------
 function edit_dateStart_CB(hObject, handles)
-
+% If manually set check likelyhood.
+	d  = datenum(get(hObject, 'Str'));
+	d0 = datenum(now);
+	if (abs(d0 - d) > 10000)	% ~30 yrs!
+		warndlg('I won''t censure this date but it''s highly probable that you are inventing.','Fiu Fiu')
+	end
 
 % ------------------------------------------------------------------------
 function push_calendarStart_CB(hObject, handles)
-% ...
+% Select starting orbit time
 	new_date = uisetdate;
 	set(handles.edit_dateStart, 'Str', new_date)
 
 % ------------------------------------------------------------------------
 function edit_dateStop_CB(hObject, handles)
-
+% If manually set check likelyhood.
+	d  = datenum(get(hObject, 'Str'));
+	d0 = datenum(now);
+	if (abs(d0 - d) > 10000)	% ~30 yrs!
+		warndlg('I won''t censure this date but it''s highly probable that you are inventing.','Fiu Fiu')
+	end
 
 % ------------------------------------------------------------------------
 function push_calendarStop_CB(hObject, handles)
@@ -69,10 +79,10 @@ function push_calendarStop_CB(hObject, handles)
 	set(handles.edit_dateStop, 'Str', new_date)
 
 % ------------------------------------------------------------------------
-function edit_TLE_CB(hObject, handles)
+function edit_TLE_CB(hObject, handles, fname)
 % Manually entered file or via push_getTLE_CB(). Also saves the file name in preferences
 
-	lastTLE = get(hObject, 'Str');
+	lastTLE = get(handles.edit_TLE, 'Str');
 	if (check_TLE(lastTLE))			% Check TLE looks good/exists
 		set(hObject, 'Str', '')
 		errordlg('Non existing or badly formated TLE file. Ignoring it.','Error')
@@ -83,9 +93,9 @@ function edit_TLE_CB(hObject, handles)
 	version7 = version;
 	V7 = (sscanf(version7(1),'%f') > 6);
 	if (~V7)		% R <= 13. That's all I need to know for now.
-		save([handles.handMir.path_data 'mirone_pref.mat'], 'lastTLE', '-append', '-v6')
-	else
 		save([handles.handMir.path_data 'mirone_pref.mat'], 'lastTLE', '-append')
+	else
+		save([handles.handMir.path_data 'mirone_pref.mat'], 'lastTLE', '-append', '-v6')
 	end
 
 % ------------------------------------------------------------------------
@@ -95,18 +105,73 @@ function push_getTLE_CB(hObject, handles)
 	[FileName,PathName] = put_or_get_file(handles,str1,'Select TLE File','get');
 	if isequal(FileName,0),		return,		end
 	set(handles.edit_TLE, 'Str', [PathName FileName])
+	edit_TLE_CB(handles.edit_TLE, handles, [PathName FileName])
 
 % ------------------------------------------------------------------------
 function push_callSpaceTrack_CB(hObject, handles)
-
-
-% ------------------------------------------------------------------------
-function popup_satellite_CB(hObject, handles)
-
+% Send the browser to the SpaceTrack site
+	url = 'https://www.space-track.org/#/tle &';
+	if (ispc),	dos(url)
+	else		unix(url)
+	end
 
 % ------------------------------------------------------------------------
 function push_gotoSpaceTrack_CB(hObject, handles)
+% Select from a known (to me) satellite and get (try) the TLE via SpaceTrack API
 
+	val = get(handles.popup_satellite, 'Val');
+	if (val == 1)
+		errordlg('Cm''on select a satellite. It''s not hard, is it?', 'Error')
+		return
+	end
+	str = get(handles.popup_satellite, 'Str');
+	if (strcmp(str{val}, 'AQUA'))
+		ID = '27424';
+		fname = [handles.handMir.path_data 'example_data/AQUA.tle'];
+	elseif (strcmp(str{val}, 'TERRA'))
+		ID = '25994';
+		fname = [handles.handMir.path_data 'example_data/TERRA.tle'];
+	end
+	if (ispc)
+		cmd = ['wget --post-data "identity=jluis@ualg.pt&password=abaixo0spacetrack&query=' ...
+				'https://www.space-track.org/basicspacedata/query/class/tle_latest/ORDINAL/1/NORAD_CAT_ID/' ...
+				ID ...
+				'/orderby/TLE_LINE1 ASC/format/3le" --keep-session-cookies --no-check-certificate --save-cookies=cookies.txt' ...
+				' https://www.space-track.org/ajaxauth/login -O ' fname];
+		unix(cmd)
+	else
+		cmd = ['wget --post-data ''identity=jluis@ualg.pt&password=abaixo0spacetrack&query=' ...
+				'https://www.space-track.org/basicspacedata/query/class/tle_latest/ORDINAL/1/NORAD_CAT_ID/' ...
+				ID ...
+				'/orderby/TLE_LINE1 ASC/format/3le'' --keep-session-cookies --no-check-certificate --save-cookies=cookies.txt' ...
+				' ''https://www.space-track.org/ajaxauth/login'' -O ' fname];
+		dos(cmd)
+	end
+
+	good = check_TLE(fname)
+	if (~good)
+		warndlg('Sorry, seams that the direct TLE download has failed. Either try again or do it manually.','Warning')
+	else
+		set(handles.edit_TLE, 'Str', fname)
+		edit_TLE_CB(handles.edit_TLE, handles, fname)
+	end
+
+% ------------------------------------------------------------------------
+function push_seeGE_CB(hObject, handles)
+	warndlg('Ah,ah! not yet','')
+
+% ------------------------------------------------------------------------
+function push_tracksTiles_CB(hObject, handles)
+% ...
+	warndlg('Ah,ah! not yet','')
+	[t_start, t_stop, fname, msg] = check_input(handles);
+	if (~isempty(msg))
+		errordlg(msg, 'Error'),		return
+	end
+
+	tracks = orbits(fname, t_start, t_stop);
+	
+	% Now suffer to compute the tiles
 
 % ------------------------------------------------------------------------
 function push_tracks_CB(hObject, handles)
@@ -124,14 +189,6 @@ function push_tracks_CB(hObject, handles)
 	h = line('XData',tracks.xyz(:,1), 'YData',tracks.xyz(:,2), 'ZData',tracks.xyz(:,3), ...
 		'parent',handles.handMir.axes1);
 	draw_funs(h,'line_uicontext')
-
-% ------------------------------------------------------------------------
-function push_tracksTiles_CB(hObject, handles)
-
-
-% ------------------------------------------------------------------------
-function push_seeGE_CB(hObject, handles)
-
 
 % ------------------------------------------------------------------------
 function good = check_TLE(fname)
@@ -265,7 +322,6 @@ uicontrol('Parent',h1, 'Position',[140 134 31 15],...
 'Tag','text2');
 
 uicontrol('Parent',h1, 'Position',[20 60 111 22],...
-'Call',@sat_orbits_uiCB,...
 'BackgroundColor',[1 1 1],...
 'String',{'Select satellite'; 'AQUA'; 'TERRA'},...
 'Style','popupmenu',...
@@ -288,6 +344,7 @@ uicontrol('Parent',h1, 'Position',[90 10 143 21],...
 'Call',@sat_orbits_uiCB,...
 'String','Plot tracks and scene tiles',...
 'TooltipString','Plot the the tracks plus the scene tiles',...
+'Vis', 'off', ...
 'Tag','push_tracksTiles');
 
 uicontrol('Parent',h1, 'Position',[10 10 61 21],...
