@@ -145,15 +145,15 @@ function [satrec, startmfe, stopmfe, deltamin] = loadtle(fname, date_start, date
 % -------------------------------------------------------------------------------------------------------------
 function [satrec, startmfe, stopmfe, deltamin] = twoline2rv(...
 	whichconst, longstr1, longstr2, typerun, typeinput, date_start, date_stop, time_inc)
-%  this function converts the two line element set character string data to
-%  variables and initializes the sgp4 variables. several intermediate varaibles
-%  and quantities are determined. note that the result is a structure so multiple
-%  satellites can be processed simultaneously without having to reinitialize. the
+%  This function converts the two line element set character string data to
+%  variables and initializes the sgp4 variables. Several intermediate varaibles
+%  and quantities are determined. Note that the result is a structure so multiple
+%  satellites can be processed simultaneously without having to reinitialize. The
 %  verification mode is an important option that permits quick checks of any
-%  changes to the underlying technical theory. this option works using a
+%  changes to the underlying technical theory. This option works using a
 %  modified tle file in which the start, stop, and delta time values are
-%  included at the end of the second line of data. this only works with the
-%  verification mode. the catalog mode simply propagates from -1440 to 1440 min
+%  included at the end of the second line of data. This only works with the
+%  verification mode. The catalog mode simply propagates from -1440 to 1440 min
 %  from epoch and is useful when performing entire catalog runs.
 % 
 % Author: 
@@ -200,8 +200,8 @@ function [satrec, startmfe, stopmfe, deltamin] = twoline2rv(...
     global tumin
 
 	if (nargin < 8),	time_inc = 0.5;	end
-    D2R  =   pi / 180.0;         %  0.01745329251994330;  % [deg/rad]
-    xpdotp   =  1440.0 / (2.0*pi);   % 229.1831180523293;  % [rev/day]/[rad/min]  
+    D2R = pi / 180.0;				%  0.01745329251994330;  % [deg/rad]
+    xpdotp = 1440.0 / (2.0*pi);		% 229.1831180523293;  % [rev/day]/[rad/min]  
 
     satrec.error = 0;
 
@@ -680,8 +680,7 @@ function [satrec] = sgp4init(whichconst, satrec, xbstar, xecco, epoch, ...
 			satrec.d4    = 0.5 * temp * ao * tsi * (221.0 * ao + 31.0 * sfour) * satrec.cc1;
 			satrec.t3cof = satrec.d2 + 2.0 * cc1sq;
 			satrec.t4cof = 0.25 * (3.0 * satrec.d3 + satrec.cc1 * (12.0 * satrec.d2 + 10.0 * cc1sq));
-			satrec.t5cof = 0.2 * (3.0 * satrec.d4 +...
-				12.0 * satrec.cc1 * satrec.d3 + 6.0 * satrec.d2 * satrec.d2 +...
+			satrec.t5cof = 0.2 *  (3.0 * satrec.d4 + 12.0 * satrec.cc1 * satrec.d3 + 6.0 * satrec.d2 * satrec.d2 +...
 				15.0 * cc1sq * (2.0 * satrec.d2 + cc1sq));
 		end
 	end %  if omeosq = 0 ...
@@ -1212,7 +1211,7 @@ function [em, argpm, inclm, mm, nm, nodem, irez, atime,  d2201,  d2211,  d3210, 
 
 	% --------------------- local variables ------------------------ */
 	twopi = 2.0 * pi;
-	aonv  = 0.0;
+% 	aonv  = 0.0;
 	q22    = 1.7891679e-6;
 	q31    = 2.1460748e-6;
 	q33    = 2.2123015e-7;
@@ -1814,7 +1813,6 @@ function jd = jday(yr, mon, day, hr, min, sec)
 		+ floor( 275 * mon / 9.0 ) + day + 1721013.5 + ((sec/60.0 + min ) / 60.0 + hr ) / 24.0;
 		%  - 0.5 * sign(100.0 * yr + mon - 190002.5) + 0.5;
 
-
 % ------------------------------------------------------------------------------
 function [mon,day,hr,minute,sec] = days2mdh(year, days)
 %  this function converts the day of the year, days, to the equivalent month
@@ -1938,9 +1936,9 @@ function [ut1, tut1, jdut1, utc, tai, tt, ttt, jdtt, tdb, ttdb, jdtdb, tcg, jdtc
 % = convtime ( year, mon, day, hr, min, sec, timezone, dut1, dat );
 % ------------------------------------------------------------------------------
 
-	jd =  jday( year,mon,day,0,0,0.0 );
-	mjd  = jd - 2400000.5;
-	mfme = hr*60.0 + min + sec/60.0;
+%	jd =  jday( year,mon,day,0,0,0.0 );
+%	mjd  = jd - 2400000.5;
+%	mfme = hr*60.0 + min + sec/60.0;
 
 	% ------------------ start if ( ut1 is known ------------------
 	localhr = timezone + hr;
@@ -1996,7 +1994,7 @@ function [ut1, tut1, jdut1, utc, tai, tt, ttt, jdtt, tdb, ttdb, jdtdb, tcg, jdtc
 	jdtdb = jday( year,mon,day, hrtemp, mintemp, sectemp );
 	ttdb = (jdtdb - 2451545.0  )/ 36525.0;
 
-	[h,m,s] = sec2hms( tdb );
+	%[h,m,s] = sec2hms(tdb);
         
 %%%%%%%%%%%%%%%%%%%%%% tcg
 % approx with tai
@@ -2783,9 +2781,8 @@ function [ainv, ao,     con41,  con42,  cosio,  cosio2, einv,...
 
 	% /* -------------------- wgs-72 earth constants ----------------- */
 	%     // sgp4fix identify constants and allow alternate values
-	global tumin mu radiusearthkm xke j2 j3 j4 j3oj2  
+	global xke j2 opsmode
 	x2o3   = 2.0 / 3.0;
-	global opsmode
 
 	% /* ------------- calculate auxillary epoch quantities ---------- */
 	eccsq  = ecco * ecco;
