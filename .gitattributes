@@ -103,6 +103,7 @@ data/ellipsoids_example.txt -text
 data/etopo2.jpg -text
 data/etopo4.jpg -text
 data/etopo4_logo.jpg -text
+data/example_data/AQUA_0101.tle -text
 data/example_data/aquaplug_CASE2_sc.txt -text
 data/example_data/aquaplug_CASE4_sc.txt -text
 data/example_data/aquaplug_CASE5_sc.txt -text
