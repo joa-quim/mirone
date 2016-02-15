@@ -16,7 +16,7 @@ function varargout = sat_orbits(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: sat_orbits.m 7793 2016-02-13 01:23:10Z j $
+% $Id: sat_orbits.m 7795 2016-02-15 00:37:15Z j $
 
 	hObject = figure('Vis','off');
 	sat_orbits_LayoutFcn(hObject);
@@ -37,7 +37,7 @@ function varargout = sat_orbits(varargin)
 
 	% See if we have traces in preferences of the last used TLE file
 	s = load([handles.handMir.path_data 'mirone_pref.mat'], 'lastTLE');	% Warning: This is NEVER empty ... even when it is
-	if (~isempty(fields(s)) && exist(s.lastTLE,'file'))		% Yes, we found one
+	if (isfield(s,'lastTLE') && exist(s.lastTLE,'file'))		% Yes, we found one
 		set(handles.edit_TLE, 'Str', s.lastTLE)
 	end
 
@@ -53,8 +53,7 @@ function varargout = sat_orbits(varargin)
 function edit_dateStart_CB(hObject, handles)
 % If manually set check likelyhood.
 	d  = datenum(get(hObject, 'Str'));
-	d0 = datenum(now);
-	if (abs(d0 - d) > 10000)	% ~30 yrs!
+	if (abs(now - d) > 10000)	% ~30 yrs!
 		warndlg('I won''t censure this date but it''s highly probable that you are inventing.','Fiu Fiu')
 	end
 
@@ -68,8 +67,7 @@ function push_calendarStart_CB(hObject, handles)
 function edit_dateStop_CB(hObject, handles)
 % If manually set check likelyhood.
 	d  = datenum(get(hObject, 'Str'));
-	d0 = datenum(now);
-	if (abs(d0 - d) > 10000)	% ~30 yrs!
+	if (abs(now - d) > 10000)	% ~30 yrs!
 		warndlg('I won''t censure this date but it''s highly probable that you are inventing.','Fiu Fiu')
 	end
 
@@ -110,10 +108,8 @@ function push_getTLE_CB(hObject, handles)
 % ------------------------------------------------------------------------
 function push_callSpaceTrack_CB(hObject, handles)
 % Send the browser to the SpaceTrack site
-	url = 'https://www.space-track.org/#/tle &';
-	if (ispc),	dos(url)
-	else		unix(url)
-	end
+	url = 'https://www.space-track.org/#/tle';
+	web(url, '-browser');
 
 % ------------------------------------------------------------------------
 function push_gotoSpaceTrack_CB(hObject, handles)
@@ -138,17 +134,17 @@ function push_gotoSpaceTrack_CB(hObject, handles)
 				ID ...
 				'/orderby/TLE_LINE1 ASC/format/3le" --keep-session-cookies --no-check-certificate --save-cookies=cookies.txt' ...
 				' https://www.space-track.org/ajaxauth/login -O ' fname];
-		unix(cmd)
+		dos(cmd)
 	else
 		cmd = ['wget --post-data ''identity=jluis@ualg.pt&password=abaixo0spacetrack&query=' ...
 				'https://www.space-track.org/basicspacedata/query/class/tle_latest/ORDINAL/1/NORAD_CAT_ID/' ...
 				ID ...
 				'/orderby/TLE_LINE1 ASC/format/3le'' --keep-session-cookies --no-check-certificate --save-cookies=cookies.txt' ...
 				' ''https://www.space-track.org/ajaxauth/login'' -O ' fname];
-		dos(cmd)
+		unix(cmd)
 	end
 
-	good = check_TLE(fname)
+	good = check_TLE(fname);
 	if (~good)
 		warndlg('Sorry, seams that the direct TLE download has failed. Either try again or do it manually.','Warning')
 	else
@@ -157,37 +153,131 @@ function push_gotoSpaceTrack_CB(hObject, handles)
 	end
 
 % ------------------------------------------------------------------------
+function popup_satellite_CB(hObject, handles)
+% ...
+	val = get(hObject, 'Val');
+	if (val > 1 ),		set(handles.push_tracksTiles, 'Vis', 'on')
+	else				set(handles.push_tracksTiles, 'Vis', 'off')
+	end
+
+% ------------------------------------------------------------------------
 function push_seeGE_CB(hObject, handles)
 	warndlg('Ah,ah! not yet','')
 
 % ------------------------------------------------------------------------
 function push_tracksTiles_CB(hObject, handles)
-% ...
-	warndlg('Ah,ah! not yet','')
+% Plot the scenes as patches
+
 	[t_start, t_stop, fname, msg] = check_input(handles);
-	if (~isempty(msg))
-		errordlg(msg, 'Error'),		return
+	if (~isempty(msg)),		errordlg(msg, 'Error'),		return,		end
+
+	BB = [get(handles.handMir.axes1, 'XLim') get(handles.handMir.axes1, 'YLim')] + [-3 3 -6 6];	% Plus a pad
+	if (BB(2) - BB(1) > 359),	BB = [];	end		% If global image, bo BoundingBox
+	tracks = orbits(fname, t_start, t_stop, 0.5, BB);
+	if (isempty(tracks))
+		warndlg('No track data inside this region.', 'Warning'),	return
 	end
 
-	tracks = orbits(fname, t_start, t_stop);
-	
+	% --------------- Retain only the DAY or NIGHT parts of the orbits -----------------------
+	str = get(handles.popup_satellite, 'Str');		val = get(handles.popup_satellite, 'Val');
+	if (strfind(str{val}, '(day)'))
+		ind = (tracks.date(:,4) < 7 | tracks.date(:,4) > 19);
+	else
+		ind = (tracks.date(:,4) > 7 | tracks.date(:,4) < 19);
+	end
+	Sat = str{val}(1);			% First char in sat name, used in uicontext to build file name
+	tracks.date(ind,:) = [];	tracks.xyz(ind,:) = [];
+	% ----------------------------------------------------------------------------------------
+
 	% Now suffer to compute the tiles
+	new_track = true;
+	cor = rand(1,3);
+	rng = 2326958 / 2;			% This is if for AQUA (and got by measuring over a L2 grid
+	azims = azimuth_geo(tracks.xyz(1:end-1,2), tracks.xyz(1:end-1,1), tracks.xyz(2:end,2), tracks.xyz(2:end,1));
+	t = tracks.date(:,5) + tracks.date(:,6) / 60;
+	t = str2num(sprintf('%.1f\n', t)) * 10;		% Trick to round to one decimal only. Times 10 to use in rem()
+	ind = find(rem(t, 50) == 0);
+	for (k = 1:numel(ind)-1)
+		if (new_track)			% Deal with the cases where a patch is partially in but starts outside.
+			n = 1;
+			while (ind(k)-n-1 > 0 && (t(ind(k)-n) - t(ind(k)-n-1) == 5))
+				n = n + 1;
+			end
+			if (n < 10)			% Should ALWAYS be true
+				x1 = tracks.xyz(ind(k)-n+1,1);		y1 = tracks.xyz(ind(k)-n+1,2);
+				x2 = tracks.xyz(ind(k),1);			y2 = tracks.xyz(ind(k),2);
+				plot_patches(handles, x1, y1, x2, y2, azims(ind(k)-n+1), azims(ind(k)), rng, cor, Sat, tracks.date(ind(k)-n+1,:))
+				new_track = false;
+			else
+				continue
+			end
+		end
+
+		dmin = t(ind(k+1)) - t(ind(k)); 
+		if ((dmin == 50 || dmin == -550) && (tracks.date(ind(k+1),4) - tracks.date(ind(k),4)) <= 1)
+			x1 = tracks.xyz(ind(k),1);		y1 = tracks.xyz(ind(k),2);
+			x2 = tracks.xyz(ind(k+1),1);	y2 = tracks.xyz(ind(k+1),2);
+			az1 = azims(ind(k));			az2 = azims(ind(k+1));
+		else				% Patches that end outside the displayed region, but we want those too.
+			ii = find(diff(t(ind(k):end)) ~= 5);	% Find next interruption
+			if (~isempty(ii) && ii(1) < 10)			% Restrain to 10 so that we are dealing with a partial outside patch
+				x1 = tracks.xyz(ind(k),1);		y1 = tracks.xyz(ind(k),2);
+				x2 = tracks.xyz(ii(1)+ind(k)-1,1);
+				y2 = tracks.xyz(ii(1)+ind(k)-1,2);
+				az1 = azims(ind(k));		az2 = az1;	% az2 is out of view so don't care to be very accurate.
+			else
+				continue
+			end
+			new_track = true;
+		end
+		plot_patches(handles, x1, y1, x2, y2, az1, az2, rng, cor, Sat, tracks.date(ind(k),:))
+		if (new_track)
+			cor = rand(1,3);		% New track's new color
+		end
+	end
+
+% ------------------------------------------------------------------------
+function plot_patches(handles, x1, y1, x2, y2, az1, az2, rng, cor, Sat, data)
+% AZ1 and AZ2 are the track's azimuth at location X1,Y1 and X2,Y2
+
+	[lat1,lon1] = vreckon(y1, x1, rng, az1+90, 1);
+	[lat4,lon4] = vreckon(y1, x1, rng, az1-90, 1);
+
+	[lat2,lon2] = vreckon(y2, x2, rng, az2+90, 1);
+	[lat3,lon3] = vreckon(y2, x2, rng, az2-90, 1);
+	h = patch('XData',[lon1 lon2 lon3 lon4 lon1], 'YData',[lat1 lat2 lat3 lat4 lat1], 'parent', handles.handMir.axes1, ...
+		'FaceColor',cor, 'EdgeColor',handles.handMir.DefLineColor,'LineWidth',handles.handMir.DefLineThick, ...
+		'FaceAlpha', 0.5, 'Tag', 'L2_Scene');
+	set_uictx(h, Sat, data)
 
 % ------------------------------------------------------------------------
 function push_tracks_CB(hObject, handles)
 % ...
 	[t_start, t_stop, fname, msg] = check_input(handles);
-	if (~isempty(msg))
-		errordlg(msg, 'Error'),		return
+	if (~isempty(msg)),		errordlg(msg, 'Error'),		return,		end
+
+	BB = [get(handles.handMir.axes1, 'XLim') get(handles.handMir.axes1, 'YLim')] + [-3 3 -6 6];	% Plus a pad
+	if (BB(2) - BB(1) > 359),	BB = [];	end		% If global image, bo BoundingBox
+	tracks = orbits(fname, t_start, t_stop, 0.5, BB);
+	if (isempty(tracks))
+		warndlg('No track data inside this region.', 'Warning'),	return
 	end
 
-	%profile on
-	tic
-	tracks = orbits(fname, t_start, t_stop);
-	toc
-	%profile viewer
-	h = line('XData',tracks.xyz(:,1), 'YData',tracks.xyz(:,2), 'ZData',tracks.xyz(:,3), ...
-		'parent',handles.handMir.axes1);
+	% --------If so requested, retain only the DAY or NIGHT parts of the orbits --------------
+	str = get(handles.popup_satellite, 'Str');		val = get(handles.popup_satellite, 'Val');
+	if (val > 1)
+		if (strfind(str{val}, '(day)'))
+			ind = (tracks.date(:,4) < 7 | tracks.date(:,4) > 19);
+		else
+			ind = (tracks.date(:,4) > 7 | tracks.date(:,4) < 19);
+		end
+		tracks.date(ind,:) = [];	tracks.xyz(ind,:) = [];
+	end
+	% ----------------------------------------------------------------------------------------
+
+	h = line('XData',tracks.xyz(:,1), 'YData',tracks.xyz(:,2), ...
+		'parent',handles.handMir.axes1, 'Color',handles.handMir.DefLineColor,'LineWidth',handles.handMir.DefLineThick);
+	setappdata(h, 'ZData', tracks.xyz(:,3))		% We can't just put 'ZData' in the plot because it f... the patches. Damn TMW BUGS
 	draw_funs(h,'line_uicontext')
 
 % ------------------------------------------------------------------------
@@ -227,6 +317,39 @@ function [t_start, t_stop, fname, msg] = check_input(handles)
 	if (datenum(t_stop) <= datenum(t_start))
 		msg = 'Error: Starting date is later or equal to end date.';
 	end
+
+% ------------------------------------------------------------------------
+function set_uictx(h, Sat, data)
+% Set the UIcontext of the scene patches
+% DATA = [YYYY MM DD hh mm ss]
+	handles = guidata(h);
+	cmenuHand = uicontextmenu('Parent',handles.figure1);
+	set(h, 'UIContextMenu', cmenuHand)
+	uimenu(cmenuHand, 'Label', 'Delete this patch', 'Call', 'delete(gco)');
+	uimenu(cmenuHand, 'Label', 'Delete all patches', 'Call', {@del_patches, h});
+	dy = doy(data(1), data(2), data(3));	
+	L2_name_SST = sprintf('%s%d%.3d%.2d%.2d00.L2_LAC_SST.nc', Sat, data(1), dy, data(4), data(5));
+	L2_name_OC  = sprintf('%s%d%.3d%.2d%.2d00.L2_LAC_OC.nc', Sat, data(1), dy, data(4), data(5));
+ 	url = ['http://oceandata.sci.gsfc.nasa.gov/cgi/getfile/' L2_name_SST];
+	uimenu(cmenuHand, 'Label', L2_name_SST, 'Call', {@display_url,url}, 'Sep','on');
+ 	url = ['http://oceandata.sci.gsfc.nasa.gov/cgi/getfile/' L2_name_OC];
+	uimenu(cmenuHand, 'Label', L2_name_OC, 'Call', {@display_url,url}, 'Sep','on');
+% 	dest_fiche = [handles.path_tmp L2_name];
+% 	if (ispc)
+% 		dos(['wget "' url '" -q --tries=2 --connect-timeout=5 -O ' dest_fiche ' &']);
+% 	else
+% 		unix(['wget "' url '" -q --tries=2 --connect-timeout=5 -O ' dest_fiche ' &']);
+% 	end
+
+% ------------------------------------------------------------------------
+function del_patches(obj, evt, h)
+	handles = guidata(h);
+	delete(findobj(handles.axes1, 'Type', 'patch', 'Tag', 'L2_Scene'))
+
+% ------------------------------------------------------------------------
+function display_url(obj, evt, url)
+% ...
+	inputdlg({'Copy-paste this address into your browser to dowload it'}, 'File web address',[1 120], {url});
 
 % --- Executes on key press over figure1 with no controls selected.%
 function figure1_KeyPressFcn(hObject, eventdata)
@@ -323,7 +446,8 @@ uicontrol('Parent',h1, 'Position',[140 134 31 15],...
 
 uicontrol('Parent',h1, 'Position',[20 60 111 22],...
 'BackgroundColor',[1 1 1],...
-'String',{'Select satellite'; 'AQUA'; 'TERRA'},...
+'Call',@sat_orbits_uiCB,...
+'String',{'Select satellite'; 'AQUA (day)'; 'AQUA (night)'; 'TERRA (day)'; 'TERRA (night)'},...
 'Style','popupmenu',...
 'Value',1,...
 'Tag','popup_satellite');
@@ -351,6 +475,7 @@ uicontrol('Parent',h1, 'Position',[10 10 61 21],...
 'Call',@sat_orbits_uiCB,...
 'String','See in GE',...
 'TooltipString','See the tracks in GoogleEarth',...
+'Vis','off', ...
 'Tag','push_seeGE');
 
 function sat_orbits_uiCB(hObject, eventdata)
