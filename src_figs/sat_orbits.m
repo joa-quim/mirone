@@ -18,6 +18,8 @@ function varargout = sat_orbits(varargin)
 
 % $Id$
 
+% For compiling one need to include the orbits.m file.
+
 	hObject = figure('Vis','off');
 	sat_orbits_LayoutFcn(hObject);
 	handles = guihandles(hObject);
@@ -25,10 +27,14 @@ function varargout = sat_orbits(varargin)
 
 	if (nargin == 0),	varargin{1} = [];	end		% So por agora
 	handles.handMir = varargin{1};
-	handles.hRect = [];
-	if (nargin == 2)
-		handles.hRect = varargin{2};
+	handles.rect = [];
+	if (nargin == 2)		% Second arg must be an handle to a rectangle, but not tested.
+		x = get(varargin{2}, 'XData');
+		y = get(varargin{2}, 'YData');
+		handles.rect = [min(x) max(x) min(y) max(y)];
 	end
+	
+	handles.log_pass = [];		% To store login credentials valid for one session.
 
 	% By default select current day
 	t = date;
@@ -44,6 +50,11 @@ function varargout = sat_orbits(varargin)
 	%------------ Give a Pro look (3D) to the frame boxes  --------
 	new_frame3D(hObject, NaN)
 	%------------- END Pro look (3D) ------------------------------
+	
+	% ------- Add this figure handle to the carraças list ---------
+	plugedWin = getappdata(handles.handMir.figure1,'dependentFigs');
+	plugedWin = [plugedWin hObject];
+	setappdata(handles.handMir.figure1,'dependentFigs',plugedWin);
 
 	guidata(hObject, handles);
 	set(hObject,'Visible','on');
@@ -120,23 +131,32 @@ function push_gotoSpaceTrack_CB(hObject, handles)
 		errordlg('Cm''on select a satellite. It''s not hard, is it?', 'Error')
 		return
 	end
+
+	if (isempty(handles.log_pass))
+		resp = inputdlg({'login: (you must have an account at www.space-track.org)' 'password'}, 'Space-Track login data',[1 60]);
+		log = resp{1};		pass = resp{2};
+		if (isempty(log) || isempty(pass))
+			msgbox('OK, bye, bye', 'No I don''t have one.'),		return
+		end
+	end
+
 	str = get(handles.popup_satellite, 'Str');
-	if (strcmp(str{val}, 'AQUA'))
+	if (strncmp(str{val}, 'AQUA', 4))
 		ID = '27424';
 		fname = [handles.handMir.path_data 'example_data/AQUA.tle'];
-	elseif (strcmp(str{val}, 'TERRA'))
+	elseif (strncmp(str{val}, 'TERRA', 5))
 		ID = '25994';
 		fname = [handles.handMir.path_data 'example_data/TERRA.tle'];
 	end
 	if (ispc)
-		cmd = ['wget --post-data "identity=jluis@ualg.pt&password=abaixo0spacetrack&query=' ...
+		cmd = ['wget --post-data "identity=' log '&password=' pass '&query=' ...
 				'https://www.space-track.org/basicspacedata/query/class/tle_latest/ORDINAL/1/NORAD_CAT_ID/' ...
 				ID ...
 				'/orderby/TLE_LINE1 ASC/format/3le" --keep-session-cookies --no-check-certificate --save-cookies=cookies.txt' ...
 				' https://www.space-track.org/ajaxauth/login -O ' fname];
 		dos(cmd)
 	else
-		cmd = ['wget --post-data ''identity=jluis@ualg.pt&password=abaixo0spacetrack&query=' ...
+		cmd = ['wget --post-data ''identity=' log '&password=' pass '&query=' ...
 				'https://www.space-track.org/basicspacedata/query/class/tle_latest/ORDINAL/1/NORAD_CAT_ID/' ...
 				ID ...
 				'/orderby/TLE_LINE1 ASC/format/3le'' --keep-session-cookies --no-check-certificate --save-cookies=cookies.txt' ...
@@ -150,6 +170,8 @@ function push_gotoSpaceTrack_CB(hObject, handles)
 	else
 		set(handles.edit_TLE, 'Str', fname)
 		edit_TLE_CB(handles.edit_TLE, handles, fname)
+		handles.log_pass = {log pass};
+		guidata(handles.figure1, handles)	% Save credentials that will be valid for this session
 	end
 
 % ------------------------------------------------------------------------
@@ -171,8 +193,12 @@ function push_tracksTiles_CB(hObject, handles)
 	[t_start, t_stop, fname, msg] = check_input(handles);
 	if (~isempty(msg)),		errordlg(msg, 'Error'),		return,		end
 
-	BB = [get(handles.handMir.axes1, 'XLim') get(handles.handMir.axes1, 'YLim')] + [-3 3 -6 6];	% Plus a pad
-	if (BB(2) - BB(1) > 359),	BB = [];	end		% If global image, bo BoundingBox
+	if (isempty(handles.rect))	% If not called via a rectangle clicked-callback
+		BB = [get(handles.handMir.axes1, 'XLim') get(handles.handMir.axes1, 'YLim')] + [-10 10 -10 10];	% Plus a pad
+	else
+		BB = handles.rect;
+	end
+	if (BB(2) - BB(1) > 359),	BB = [];	end		% If global image, no BoundingBox
 	tracks = orbits(fname, t_start, t_stop, 0.5, BB);
 	if (isempty(tracks))
 		warndlg('No track data inside this region.', 'Warning'),	return
@@ -185,54 +211,59 @@ function push_tracksTiles_CB(hObject, handles)
 	else
 		ind = (tracks.date(:,4) > 7 | tracks.date(:,4) < 19);
 	end
-	Sat = str{val}(1);			% First char in sat name, used in uicontext to build file name
-	tracks.date(ind,:) = [];	tracks.xyz(ind,:) = [];
+	Sat = str{val}(1);				% First char in sat name, used in uicontext to build file name
+	tracks.date(ind,:) = [];		tracks.xyz(ind,:) = [];
+	if (isnan(tracks.xyz(1,1)))		% Shit, bad luck with the cut above. We don't want to start with a NaN
+		tracks.xyz(1, :)  = [];		tracks.date(1, :)  = [];
+	elseif (isnan(tracks.xyz(2,1)))	% Eve more shity bad luck. We can't have it either in 2 row (because azims)
+		tracks.xyz(1:2, :)  = [];	tracks.date(1:2, :)  = [];
+	end
 	% ----------------------------------------------------------------------------------------
 
 	% Now suffer to compute the tiles
-	new_track = true;
-	cor = rand(1,3);
 	rng = 2326958 / 2;			% This is if for AQUA (and got by measuring over a L2 grid
-	azims = azimuth_geo(tracks.xyz(1:end-1,2), tracks.xyz(1:end-1,1), tracks.xyz(2:end,2), tracks.xyz(2:end,1));
-	t = tracks.date(:,5) + tracks.date(:,6) / 60;
-	t = str2num(sprintf('%.1f\n', t)) * 10;		% Trick to round to one decimal only. Times 10 to use in rem()
-	ind = find(rem(t, 50) == 0);
-	for (k = 1:numel(ind)-1)
-		if (new_track)			% Deal with the cases where a patch is partially in but starts outside.
-			n = 1;
-			while (ind(k)-n-1 > 0 && (t(ind(k)-n) - t(ind(k)-n-1) == 5))
-				n = n + 1;
-			end
-			if (n < 10)			% Should ALWAYS be true
-				x1 = tracks.xyz(ind(k)-n+1,1);		y1 = tracks.xyz(ind(k)-n+1,2);
-				x2 = tracks.xyz(ind(k),1);			y2 = tracks.xyz(ind(k),2);
-				plot_patches(handles, x1, y1, x2, y2, azims(ind(k)-n+1), azims(ind(k)), rng, cor, Sat, tracks.date(ind(k)-n+1,:))
-				new_track = false;
-			else
-				continue
-			end
-		end
 
-		dmin = t(ind(k+1)) - t(ind(k)); 
-		if ((dmin == 50 || dmin == -550) && (tracks.date(ind(k+1),4) - tracks.date(ind(k),4)) <= 1)
-			x1 = tracks.xyz(ind(k),1);		y1 = tracks.xyz(ind(k),2);
-			x2 = tracks.xyz(ind(k+1),1);	y2 = tracks.xyz(ind(k+1),2);
-			az1 = azims(ind(k));			az2 = azims(ind(k+1));
-		else				% Patches that end outside the displayed region, but we want those too.
-			ii = find(diff(t(ind(k):end)) ~= 5);	% Find next interruption
-			if (~isempty(ii) && ii(1) < 10)			% Restrain to 10 so that we are dealing with a partial outside patch
-				x1 = tracks.xyz(ind(k),1);		y1 = tracks.xyz(ind(k),2);
-				x2 = tracks.xyz(ii(1)+ind(k)-1,1);
-				y2 = tracks.xyz(ii(1)+ind(k)-1,2);
-				az1 = azims(ind(k));		az2 = az1;	% az2 is out of view so don't care to be very accurate.
-			else
-				continue
+	ind_NaN = [0; find(isnan(tracks.xyz(:,1))); size(tracks.xyz,1)+1];		% First and last pts are for algorithmic reasons
+	n_tracks = numel(ind_NaN) - 1;	% True number of tracks (number of NaNs + 1)
+
+	for (nt = 1:n_tracks)
+		new_track = true;
+		cor = rand(1,3);
+		x = tracks.xyz(ind_NaN(nt)+1:ind_NaN(nt+1)-1,1);
+		y = tracks.xyz(ind_NaN(nt)+1:ind_NaN(nt+1)-1,2);
+		data = tracks.date(ind_NaN(nt)+1:ind_NaN(nt+1)-1, :);		% Means 'date' in Tuguese
+		data = datevec(datenum(data));	% Round trip to get rid of times like 29 min 60 sec which is probably an orbits() bug
+		azims = azimuth_geo(y(1:end-1), x(1:end-1), y(2:end), x(2:end));
+		t = data(:,5) + data(:,6) / 60;
+		t = str2num(sprintf('%.1f\n', t)) * 10;		% Trick to round to one decimal only. Times 10 to use in rem()
+		ind = find(rem(t, 50) == 0);	% Find all the times multiples of 5 min, which mark the start of a new scene
+		if (ind(end) ~= numel(x)),	ind(end+1) = numel(x);	end		% To plot also the chunk of last (partially outside) patch
+		for (k = 1:numel(ind)-1)
+			if (new_track)				% Deal with the cases where a patch is partially in but starts outside.
+				x1 = x(1);				y1 = y(1);
+				x2 = x(ind(k));			y2 = y(ind(k));
+				d = data(1,:);
+				r = rem(d(5), 5);		% First patch only by chance has the correct minute we need for building file's name.
+				if (r ~= 0),	d(5) = d(5) - r;	end		% This insures we have the 'right minute' for file's name.
+				plot_patches(handles, x1, y1, x2, y2, azims(1), azims(ind(k)), rng, cor, Sat, d)
+				new_track = false;
 			end
-			new_track = true;
-		end
-		plot_patches(handles, x1, y1, x2, y2, az1, az2, rng, cor, Sat, tracks.date(ind(k),:))
-		if (new_track)
-			cor = rand(1,3);		% New track's new color
+
+			dmin = t(ind(k+1)) - t(ind(k)); 
+			if ((dmin == 50 || dmin == -550) && (data(ind(k+1),4) - data(ind(k),4)) <= 1)
+				x1 = x(ind(k));			y1 = y(ind(k));
+				x2 = x(ind(k+1));		y2 = y(ind(k+1));
+				az1 = azims(ind(k));			az2 = azims(ind(k+1));
+			else				% Patches that End outside the displayed region, but we want those too.
+				x1 = x(ind(k));			y1 = y(ind(k));
+				x2 = x(end);			y2 = y(end);
+				az1 = azims(ind(k));	az2 = azims(end);	% az2 is out of view so don't care to be very accurate.
+				new_track = true;
+			end
+			plot_patches(handles, x1, y1, x2, y2, az1, az2, rng, cor, Sat, data(ind(k),:))
+			if (new_track)
+				cor = rand(1,3);		% New track's new color
+			end
 		end
 	end
 
@@ -252,11 +283,16 @@ function plot_patches(handles, x1, y1, x2, y2, az1, az2, rng, cor, Sat, data)
 
 % ------------------------------------------------------------------------
 function push_tracks_CB(hObject, handles)
-% ...
+% Plot the grand tracks
+
 	[t_start, t_stop, fname, msg] = check_input(handles);
 	if (~isempty(msg)),		errordlg(msg, 'Error'),		return,		end
 
-	BB = [get(handles.handMir.axes1, 'XLim') get(handles.handMir.axes1, 'YLim')] + [-3 3 -6 6];	% Plus a pad
+	if (isempty(handles.rect))	% If not called via a rectangle clicked-callback
+		BB = [get(handles.handMir.axes1, 'XLim') get(handles.handMir.axes1, 'YLim')] + [-3 3 -6 6];	% Plus a pad
+	else
+		BB = handles.rect;
+	end
 	if (BB(2) - BB(1) > 359),	BB = [];	end		% If global image, bo BoundingBox
 	tracks = orbits(fname, t_start, t_stop, 0.5, BB);
 	if (isempty(tracks))
@@ -348,8 +384,12 @@ function del_patches(obj, evt, h)
 
 % ------------------------------------------------------------------------
 function display_url(obj, evt, url)
-% ...
-	inputdlg({'Copy-paste this address into your browser to dowload it'}, 'File web address',[1 120], {url});
+% Need to have output from inputdlg otherwise the compiler screwes.
+	resp = inputdlg({'Copy-paste this address into your browser to dowload it'}, 'File web address',[1 120], {url});
+
+% ------- TO COMPILE INCLUDE ORBITS.M HERE -------------------------------
+
+% ------- END OF INCLUDED CODE -------------------------------------------
 
 % --- Executes on key press over figure1 with no controls selected.%
 function figure1_KeyPressFcn(hObject, eventdata)
