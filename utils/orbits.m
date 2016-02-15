@@ -1,10 +1,11 @@
-function LLA = orbits(fname_tle, date_start, date_stop, time_inc)
+function LLA = orbits(fname_tle, date_start, date_stop, time_inc, BB)
 % Use the SGP4 propagator to compute satellite orbits
 %
 %	FNAME_TLE	-> Name of the Two Line Elements file
 %	DATE_START  -> A date string, like '01-Jan-2016 00:00:00', for the starting of computation period.
 %   DATE_STOP   ->  A date string for the end of computation period.
 %   TIME_INC    -> Increment time in minutes [Default = 0.5 min]
+%	BB          -> BoundingBox with [lon_min lon_max lat_min lat_max]. Data outside BB is clipped
 %
 %	LLA is a structure with .xyz matrix that hols the [lon lat z] position for each point 
 %	    and .date Nx6 array ([year, mon, day, hr, min, sec]) with the time of that point.
@@ -40,7 +41,7 @@ function LLA = orbits(fname_tle, date_start, date_stop, time_inc)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: orbits.m 7794 2016-02-13 18:27:17Z j $
+% $Id: orbits.m 7796 2016-02-15 00:39:36Z j $
 
 	global opsmode satrec startmfe stopmfe deltamin
 	%   add operation smode for afspc (a) or improved (i)
@@ -49,7 +50,12 @@ function LLA = orbits(fname_tle, date_start, date_stop, time_inc)
 	write_file = false;		% For sometime
 	outd2 = 'V:\OrbProp\ExampleOutput\LLA_Transit.txt';
 
-	if (nargin < 4),	time_inc   = 0.5;	end
+	if (nargin < 4)
+		time_inc   = 0.5;	BB = [];
+	elseif (nargin == 4)
+		BB = [];
+	end
+	
 	if (nargin == 0)
 		fname_tle = 'V:\OrbProp\ExampleInput\AQUA_0101.tle';
 		date_start = '01-Jan-2016 00:00:00';
@@ -116,6 +122,20 @@ function LLA = orbits(fname_tle, date_start, date_stop, time_inc)
 		%Calc ECEF coordinate for TEME line using correct time
 		recef = teme2ecef(Ro(i,:)',Vo(i,:)',[0;0;0],ttt,jdut1,lod,xp,yp) * 1000;
 		LLA.xyz(i, :) = ecefm2LLA(recef);
+	end
+
+	% If we have a BondingBox request. Retain only the points inside it and insert NaNs as segment separators
+	if (~isempty(BB))
+		ind  = ((LLA.xyz(:,1) < BB(1)) | (LLA.xyz(:,1) > BB(2)) | (LLA.xyz(:,2) < BB(3)) | (LLA.xyz(:,2) > BB(4)));
+		difa = diff(ind);
+		ind_first = find(difa == -1);		% Find the edges between the wished/non-wished data.
+		ind_last  = find(difa == 1) + 1;	% There we are going to insert a NaN
+		LLA.xyz(ind_first,1) = NaN;
+		LLA.xyz(ind_first,2) = NaN;
+		ind(ind_first) = false;				% So that we don't remove the just inserted NaNs
+		ind(ind_last)  = false;
+		LLA.xyz(ind, :)  = [];
+		LLA.date(ind, :) = [];
 	end
 
 	if (write_file)
@@ -2252,6 +2272,7 @@ function [p,a,ecc,incl,omega,argp,nu,m,arglat,truelon,lonper ] = rv2coe (r,v, mu
 	%constmath;
 	small = 1.0e-10;
 	twopi = 2.0 * pi;
+	halfpi = pi / 2;
 	infinite  = 999999.9;
 	undefined = 999999.1;
 	%constastro;  % don't overwrite mu
@@ -2352,16 +2373,16 @@ function [p,a,ecc,incl,omega,argp,nu,m,arglat,truelon,lonper ] = rv2coe (r,v, mu
 		end
 
 		% -- find longitude of perigee - elliptical equatorial ----
-		if  ( ecc>small ) && (strcmp(typeorbit, 'ee'))
+		if  (ecc > small ) && (strcmp(typeorbit, 'ee'))
 			temp= ebar(1)/ecc;
-			if ( abs(temp) > 1.0  )
+			if (abs(temp) > 1.0)
 				temp= sign(temp);
 			end
-			lonper= acos( temp );
+			lonper= acos(temp);
 			if ( ebar(2) < 0.0  )
 				lonper= twopi - lonper;
 			end
-			if ( incl > halfpi )
+			if (incl > halfpi)
 				lonper= twopi - lonper;
 			end
 		else
@@ -2829,5 +2850,3 @@ function [ainv, ao,     con41,  con42,  cosio,  cosio2, einv,...
 	end  
 
 	if (gsto < 0.0),	gsto = gsto + twopi;	end
-
-% --------------------------------------------------------------------------------------------
