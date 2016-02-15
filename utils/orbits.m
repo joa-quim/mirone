@@ -134,6 +134,7 @@ function LLA = orbits(fname_tle, date_start, date_stop, time_inc, BB)
 		LLA.xyz(ind_first,2) = NaN;
 		ind(ind_first) = false;				% So that we don't remove the just inserted NaNs
 		ind(ind_last)  = false;
+		ind(ind_first(1)) = true;			% But we don't want to send in segments starting with NaNs
 		LLA.xyz(ind, :)  = [];
 		LLA.date(ind, :) = [];
 	end
