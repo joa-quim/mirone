@@ -16,7 +16,7 @@ function varargout = sat_orbits(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: sat_orbits.m 7799 2016-02-15 18:24:26Z j $
+% $Id: sat_orbits.m 7800 2016-02-15 20:46:37Z j $
 
 % For compiling one need to include the orbits.m file.
 
@@ -221,6 +221,7 @@ function push_tracksTiles_CB(hObject, handles)
 	% ----------------------------------------------------------------------------------------
 
 	% Now suffer to compute the tiles
+	set(handles.handMir.figure1,'doublebuffer','on')
 	rng = 2326958 / 2;			% This is if for AQUA (and got by measuring over a L2 grid
 
 	ind_NaN = [0; find(isnan(tracks.xyz(:,1))); size(tracks.xyz,1)+1];		% First and last pts are for algorithmic reasons
@@ -232,11 +233,15 @@ function push_tracksTiles_CB(hObject, handles)
 		x = tracks.xyz(ind_NaN(nt)+1:ind_NaN(nt+1)-1,1);
 		y = tracks.xyz(ind_NaN(nt)+1:ind_NaN(nt+1)-1,2);
 		data = tracks.date(ind_NaN(nt)+1:ind_NaN(nt+1)-1, :);		% Means 'date' in Tuguese
+		data(:,6) = round(data(:,6));	% Want exat 0's or 30's
 		data = datevec(datenum(data));	% Round trip to get rid of times like 29 min 60 sec which is probably an orbits() bug
+		data(:,6) = round(data(:,6));	% And bloody again but we'll get again some 29 min 60 sec. BUG BUG R13
 		azims = azimuth_geo(y(1:end-1), x(1:end-1), y(2:end), x(2:end));
+		azims(end+1) = azims(end);		% To have the same number of elements as x,y and data
 		t = data(:,5) + data(:,6) / 60;
 		t = str2num(sprintf('%.1f\n', t)) * 10;		% Trick to round to one decimal only. Times 10 to use in rem()
 		ind = find(rem(t, 50) == 0);	% Find all the times multiples of 5 min, which mark the start of a new scene
+		if (isempty(ind)),		continue,	end
 		if (ind(end) ~= numel(x)),	ind(end+1) = numel(x);	end		% To plot also the chunk of last (partially outside) patch
 		for (k = 1:numel(ind)-1)
 			if (new_track)				% Deal with the cases where a patch is partially in but starts outside.
@@ -363,7 +368,8 @@ function set_uictx(h, Sat, data)
 	set(h, 'UIContextMenu', cmenuHand)
 	uimenu(cmenuHand, 'Label', 'Delete this patch', 'Call', 'delete(gco)');
 	uimenu(cmenuHand, 'Label', 'Delete all patches', 'Call', {@del_patches, h});
-	dy = doy(data(1), data(2), data(3));	
+	dy = doy(data(1), data(2), data(3));
+	if (data(6) == 60),		data(5) = data(5) + 1;		end 	% R13 bugs make this (secs 60) happen.
 	L2_name_SST = sprintf('%s%d%.3d%.2d%.2d00.L2_LAC_SST.nc', Sat, data(1), dy, data(4), data(5));
 	L2_name_OC  = sprintf('%s%d%.3d%.2d%.2d00.L2_LAC_OC.nc', Sat, data(1), dy, data(4), data(5));
  	url = ['http://oceandata.sci.gsfc.nasa.gov/cgi/getfile/' L2_name_SST];
