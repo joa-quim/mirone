@@ -18,7 +18,7 @@ function  varargout = aux_funs(opt,varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: aux_funs.m 4770 2015-09-21 23:01:07Z j $
+% $Id: aux_funs.m 7801 2016-02-22 00:10:35Z j $
 
 switch opt(1:4)
 	case 'Stor'		% 'StoreZ'
@@ -247,7 +247,7 @@ function out = findFileType(fname)
 				end
 			end
 		end
-	elseif ( any(strcmpi(EXT,{'.jpg' '.png' '.bmp' '.gif' '.pcx' '.ras' '.ppm' '.pgm' '.xwd' '.shade' '.raw'})) )
+	elseif ( any(strcmpi(EXT,{'.jpg' '.png' '.bmp' '.gif' '.pcx' '.ras' '.ppm' '.pgm' '.pnm' '.xwd' '.shade' '.raw'})) )
 		out = 'generic';
 	elseif ( any(strcmpi(EXT,{'.tif' '.tiff' '.sid' '.kap' '.nos'})) )
 		out = 'geotif';
