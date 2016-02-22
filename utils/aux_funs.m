@@ -247,7 +247,7 @@ function out = findFileType(fname)
 				end
 			end
 		end
-	elseif ( any(strcmpi(EXT,{'.jpg' '.png' '.bmp' '.gif' '.pcx' '.ras' '.ppm' '.pgm' '.xwd' '.shade' '.raw'})) )
+	elseif ( any(strcmpi(EXT,{'.jpg' '.png' '.bmp' '.gif' '.pcx' '.ras' '.ppm' '.pgm' '.pnm' '.xwd' '.shade' '.raw'})) )
 		out = 'generic';
 	elseif ( any(strcmpi(EXT,{'.tif' '.tiff' '.sid' '.kap' '.nos'})) )
 		out = 'geotif';
