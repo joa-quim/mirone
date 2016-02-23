@@ -18,7 +18,7 @@ function  varargout = aux_funs(opt,varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: aux_funs.m 7801 2016-02-22 00:10:35Z j $
+% $Id: aux_funs.m 7806 2016-02-23 23:47:27Z j $
 
 switch opt(1:4)
 	case 'Stor'		% 'StoreZ'
@@ -247,7 +247,7 @@ function out = findFileType(fname)
 				end
 			end
 		end
-	elseif ( any(strcmpi(EXT,{'.jpg' '.png' '.bmp' '.gif' '.pcx' '.ras' '.ppm' '.pgm' '.pnm' '.xwd' '.shade' '.raw'})) )
+	elseif ( any(strcmpi(EXT,{'.jpg' '.png' '.bmp' '.gif' '.pcx' '.ras' '.pbm' '.ppm' '.pgm' '.pnm' '.xwd' '.shade' '.raw'})) )
 		out = 'generic';
 	elseif ( any(strcmpi(EXT,{'.tif' '.tiff' '.sid' '.kap' '.nos'})) )
 		out = 'geotif';
@@ -287,6 +287,8 @@ function out = findFileType(fname)
 		end
 	elseif ( any(strcmpi(EXT,{'.kml' '.gml' '.dxf' '.gpx' '.dgn' '.csv' '.s57' '.svg'})) )
 		out = 'ogr';
+	elseif (strcmpi(EXT,'.ps') || strcmpi(EXT,'.eps'))
+		out = 'ghost';
 	elseif (strcmpi(EXT,'.srtm'))	% While we don't use GMT5, create a header write away & send to GDAL
 		try		write_esri_hdr(fname,'SRTM30');	end
 		out = 'dono';				% aka GDAL
