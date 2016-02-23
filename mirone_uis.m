@@ -398,6 +398,7 @@ uimenu('Parent',hTL,'Call','ecran','Label','X,Y grapher','Sep','on');
 uimenu('Parent',hTL,'Call','aquamoto(guidata(gcbo))','Label','Aquamoto Viewer','Sep','on');
 uimenu('Parent',hTL,'Call','empilhador(guidata(gcbo))','Label','Empilhador');
 uimenu('Parent',hTL,'Call','slices(guidata(gcbo))','Label','Slices');
+uimenu('Parent',hTL,'Call','sat_orbits(guidata(gcbo))','Label','Satellite Orbits');
 uimenu('Parent',hTL,'Call','tiles_tool(guidata(gcbo))','Label','Tiling Tool','Sep','on');
 hVG(kv) = uimenu('Parent',hTL,'Call','diluvio(guidata(gcbo))','Label','Noe Diluge','Sep','on');		kv = kv + 1;
 uimenu('Parent',hTL,'Call','travel(guidata(gcbo))','Label','Mirone Travel','Sep','on');
@@ -752,7 +753,7 @@ if (IamCompiled)
 end
 uimenu('Parent',h, 'Call',['mirone(''FileOpenWebImage_CB'',guidata(gcbo),',...
 	' ''http://www2.clustrmaps.com/stats/maps-clusters/w3.ualg.pt-~jluis-mirone-world.jpg'',''nikles'');'],'Label','See visitors map','Sep','on');
-uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 9 Feb 2016'',''2.7.0dev'')','Label','About','Sep','on');
+uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 23 Feb 2016'',''2.7.0dev'')','Label','About','Sep','on');
 
 %% --------------------------- Build HANDLES and finish things here
 	handles = guihandles(H1);
