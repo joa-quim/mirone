@@ -363,6 +363,7 @@ mex/nearneighbor_m.c -text
 mex/nswing.c eol=lf
 mex/ogrproj.cpp -text
 mex/ogrread.c -text
+mex/popenr.c -text
 mex/range_change.c -text
 mex/read_isf.c -text
 mex/scaleto8.c -text
