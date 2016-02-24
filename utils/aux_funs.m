@@ -55,8 +55,6 @@ switch opt(1:4)
 		togCheck(varargin{:})
 	case 'poly'		% 'polysplit'
 		[varargout{1} varargout{2}] = localPolysplit(varargin{:});
-	case 'adju'		% 'adjust_lims'
-		[varargout{1} varargout{2}] = adjust_lims(varargin{:});
 	case 'insi'		% 'insideRect'
 		varargout{1} = insideRect(varargin{:});
 	case 'stri'		% 'strip_bg_color'
@@ -536,6 +534,21 @@ function [X,Y] = adjust_lims(X,Y,m,n)
 	dx = (X(2) - X(1)) / n;			dy = (Y(2) - Y(1)) / m;
 	X(1) = X(1) + dx/2;				X(2) = X(2) - dx/2;
 	Y(1) = Y(1) + dy/2;				Y(2) = Y(2) - dy/2;
+
+% --------------------------------------------------------------------
+function [rx, ry] = adjust_rect(handles, rx, ry)
+% Adjust the rectangle limits so that the cropimg function retains only nodes inside the rect.
+% The issue is that cropimg selects all pixels, and hence all nodes, that are totally or
+% partially inside rect. But there are cases where we don't want that behavior.
+% RX = [x_min x_max];		RY = [y_min y_max];
+	if (~handles.validGrid),	return,		end		% Just do nothing.
+	X = getappdata(handles.figure1,'dem_x');	Y = getappdata(handles.figure1,'dem_y');
+	dx2 = (X(2) - X(1)) / 2;		dPo_x = dx2 * 0.01;
+	dy2 = (Y(2) - Y(1)) / 2;		dPo_y = dy2 * 0.01;
+	ind = find((X - rx(1) > 0));	rx(1) = X(ind(1)) - dx2 + dPo_x;
+	ind = find((X - rx(2) > 0));	rx(2) = X(ind(1)) - dx2 - dPo_x;
+	ind = find((Y - ry(1) > 0));	ry(1) = Y(ind(1)) - dy2 + dPo_y;
+	ind = find((Y - ry(2) > 0));	ry(2) = Y(ind(1)) - dy2 - dPo_y;
 
 % --------------------------------------------------------------------
 function geog = guessGeog(lims)
