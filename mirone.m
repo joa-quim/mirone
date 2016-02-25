@@ -602,6 +602,7 @@ function varargout = ImageCrop_CB(handles, opt, opt2, opt3)
 % OPT2 is a string to direct this function to different operations that
 %      apply to the grid and update the image.
 % OPT3 contains the interpolation method when OPT2 == 'FillGaps' ('cubic', 'linear' or 'sea')
+%      Or the fill value when OPT2 == 'SetConst'
 % Note: I won't make the "Drape" option active in the cropped window
 %
 % VARARGOUT -> If used will hold the result of this function instead of creating a new Fig
@@ -887,10 +888,14 @@ elseif (strcmp(opt2,'Clip'))
 	end
 
 elseif (strcmp(opt2,'SetConst'))		% Replace grid values inside rect by a cte value
-	resp = inputdlg({'Enter new grid value'},'Replace with cte value',[1 30]);	pause(0.01)
-	if (isempty(resp)),		return,		end
-	resp = str2double(resp);
-	if (~isreal(resp)),		resp = NaN;		end				% A 'i' or a 'j' in resp would have caused this
+	if (isempty(opt3))
+		resp = inputdlg({'Enter new grid value'},'Replace with cte value',[1 30]);	pause(0.01)
+		if (isempty(resp)),		return,		end
+		resp = str2double(resp);
+		if (~isreal(resp)),		resp = NaN;		end		% A 'i' or a 'j' in resp would have caused this
+	else
+		resp = opt3;
+	end
 	Z_rect = single(resp);
 	handles.Z_back = Z(r_c(1):r_c(2),r_c(3):r_c(4));	handles.r_c = r_c;			% For the Undo op
 	if (~handles.have_nans && isnan(resp))				% See if we have new NaNs
@@ -961,7 +966,7 @@ if ~isempty(opt2)		% Here we have to update the image in the processed region
 end
 
 % UNDO that works only with these cases
-if (~invert && any(strcmp(opt2,{'MedianFilter' 'ROI_MedianFilter' 'SetConst' 'ROI_SetConst' 'SplineSmooth'})))
+if (~invert && (numel(opt) == 1) && any(strcmp(opt2,{'MedianFilter' 'ROI_MedianFilter' 'SetConst' 'ROI_SetConst' 'SplineSmooth'})))
 	cmenuHand = get(opt,'UIContextMenu');
 	uimenu(cmenuHand, 'Label', 'Undo', 'Separator','on', 'Callback', {@do_undo,handles.figure1,opt,cmenuHand});
 end
