@@ -10,7 +10,7 @@ function varargout = draw_funs(hand, varargin)
 %	the data from an object handle, call with HAND = []. E.g (in load_xyz)
 %	draw_funs([], 'doSave_formated', x, y, z)
 
-%	Copyright (c) 2004-2015 by J. Luis
+%	Copyright (c) 2004-2016 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -275,6 +275,9 @@ function set_line_uicontext(h, opt)
 			uimenu(cmenuHand, 'Label', 'Transparency', 'Call', @set_transparency);
 		end
 		uimenu(cmenuHand, 'Label', 'Create Mask', 'Call', 'poly2mask_fig(guidata(gcbo),gco)');
+	end
+	if (IS_RECTANGLE && handles.validGrid)
+		uimenu(cmenuHand, 'Label', 'Make Chess board', 'Call', {@chessify, h});
 	end
 
 	if (handles.image_type ~= 20 && ~LINE_ISCLOSED && strcmp(opt,'line'))
@@ -1500,7 +1503,28 @@ function show_swhatRatio(obj,evt,h)
     msgbox(sprintf('Swath Ratio for this track is: %g',getappdata(h,'swathRatio')),'')
 
 % -----------------------------------------------------------------------------------------
-function show_Area(obj,eventdata,h)
+function chessify(obj, evt, h)
+...
+	prompt = {'Enter DX patch size:','Enter DX patch size:','One Z value','Other Z value'};
+	resp = inputdlg(prompt, 'Chessboard size and values', [1 30], {'','','1','-1'});
+	if (isempty(resp)),		return,		end
+	handles = guidata(h);
+	dx = str2double(resp{1});	dy = str2double(resp{2});
+	up_down = [str2double(resp{3}) 0 str2double(resp{4})];
+	x = get(h,'XData');			y = get(h,'YData');
+	dx_r = max(x) - min(x);		dy_r = max(y) - min(y);
+	nCols = ceil(dx_r / dx);	nRows = ceil(dy_r / dy);
+	for (row = 1:nRows)
+		for (col = 1:nCols)
+			xr = x(1) + [(col - 1) col] * dx;
+			yr = y(1) + [(row - 1) row] * dy;
+			rec = [xr(1) yr(1); xr(1) yr(2); xr(2) yr(2); xr(2) yr(1); xr(1) yr(1)];
+			mirone('ImageCrop_CB', handles, rec, 'SetConst', up_down((-1)^(row+col-1) + 2))
+		end
+	end
+
+% -----------------------------------------------------------------------------------------
+function show_Area(obj, evt, h)
 % Compute area under line and insult the user if the line is not closed
 % NOTE that H is optional. Use only when want to make sure that this fun
 % uses that handle (does not work with copyied objects)
