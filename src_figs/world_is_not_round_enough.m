@@ -16,7 +16,7 @@ function varargout = world_is_not_round_enough(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: world_is_not_round_enough.m 7812 2016-02-26 18:02:59Z j $
+% $Id: world_is_not_round_enough.m 7813 2016-02-26 21:48:41Z j $
 
 	if (numel(varargin) == 0),		return,		end
  
@@ -184,9 +184,28 @@ function [Z, handMir] = to_from_180(handles, handMir, Z, x_min, x_max, dy, eps_x
 	if (x_min >= 0 && (abs(x_max - 360) < eps_x))			% [-180 180] -> [0 360]
 		Z = [Z(:,ncM+1:end,:) Z(:,1:ncM,:)];
 		handMir.geog = 2;
+		wrap_lines(handMir, handMir.geog)
 	elseif (x_min < 180 && (abs(x_max - 180) < eps_x))		% [0 360] -> [-180 180]
 		Z = [Z(:,ncM+1:end,:) Z(:,1:ncM,:)];
 		handMir.geog = 1;
+		wrap_lines(handMir, handMir.geog)
+	end
+
+% -----------------------------------------------------------------------------------------
+function wrap_lines(handMir, geog)
+% When wrapping around from [-180 180] -> [0 360] or inverse line vertices may be lost. Restore them.
+	hLines = findobj(handMir.axes1, 'Type', 'line');
+	for (k = 1: numel(hLines))
+		x = get(hLines(k), 'XData');
+		if (geog == 2)		% Means, it used to be 1 ([-180 180])
+			ind = (x < 0);
+			x(ind) = x(ind) + 360;
+			set(hLines(k), 'XData', x);
+		else				% Was [0 360], will be [-180 180]
+			ind = (x > 180);
+			x(ind) = x(ind) - 360;
+			set(hLines(k), 'XData', x);
+		end
 	end
 
 % -----------------------------------------------------------------------------------------
