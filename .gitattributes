@@ -412,6 +412,7 @@ src_figs/bands_list.m -text
 src_figs/bg_map.m -text
 src_figs/bg_region.m -text
 src_figs/cartas_militares.m -text
+src_figs/cayula_cornillon.m -text
 src_figs/choosebox.m -text
 src_figs/classificationfig.m -text
 src_figs/color_palettes.m -text
