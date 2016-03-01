@@ -26,6 +26,7 @@ function [out, hdr] = c_nearneighbor(data, varargin)
 		end
 		cmd = 'nearneighbor';
 		for (k = k0:numel(varargin))
+			if (strcmp(varargin{k}, '-e')),		continue,	end			% -e option exists only in GMT4 mex
 			cmd = sprintf('%s %s', cmd, varargin{k});
 		end
 		G = gmtmex(cmd, data);
