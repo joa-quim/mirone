@@ -20,7 +20,7 @@ function varargout = empilhador(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: empilhador.m 4824 2015-11-05 00:45:49Z j $
+% $Id: empilhador.m 7815 2016-03-01 17:06:22Z j $
 
 	if (nargin > 1 && ischar(varargin{1}))
 		gui_CB = str2func(varargin{1});
@@ -260,10 +260,12 @@ function push_namesList_CB(hObject, handles, opt)
 		handles.SDSinfo = handles.strTimes;
 		for (k = 1:m),		handles.strTimes{k} = sprintf('%d',k);		end
 	end
+	handles.wasSDS  = false;
 	if (~isempty(handles.SDSinfo))
 		if (strncmpi(handles.SDSinfo{1}, 'sds', 3))				% Old way. Kept for backward compatibility
 			handles.SDSthis = str2double(handles.SDSinfo{1}(4:end));
-			handles.SDSinfo = handles.SDSthis;					% Make it numeric to help test inside att_get()
+			handles.SDSinfo = handles.SDSthis;					% Make it numeric to help test inside get_att()
+			handles.wasSDS  = true;
 		else
 			handles.SDSthis = handles.SDSinfo{1}(2:end);		% Should have the SDSname prepended with a '-' sign
 		end
@@ -994,8 +996,22 @@ function [att, indSDS, uncomp_name] = get_att(handles, name)
 				end
 				handles.SDSthis = (ind + 1) / 2;		% Do this calc because we need here the SDS number from top of file
 			end
-			ind = strfind(att.Subdatasets{handles.SDSthis * 2 - 1}, '=');
-			indSDS = handles.SDSthis * 2 - 1;
+			if (~handles.wasSDS)		% The name case above was already processed once and we now have a number.
+				ind = strfind(att.Subdatasets{handles.SDSthis * 2 - 1}, '=');
+				indSDS = handles.SDSthis * 2 - 1;
+			else			% The SDS is now numeric but was originaly given as sdsN. Must find N in current list order
+				ind = strfind(att.Subdatasets,sprintf('_%.2d_',  handles.SDSthis));		% Find SUBDATASET_??_NAME
+				k = 1;
+				while (isempty(ind(k)) && k < numel(ind))
+					k = k + 1;
+				end
+				if (k == numel(ind))
+					errordlg('The SDS number was not found in SUBDATASET_?? list.','ERROR')
+					error('The SDS number was not found in SUBDATASET_?? list.')
+				end
+				indSDS = k;			handles.SDSthis = k;
+				ind = strfind(att.Subdatasets{indSDS}, '=');
+			end
 		elseif (strncmp(att.DriverShortName, 'HDF4', 4))	% Some MODIS files
 			ind = strfind(att.Subdatasets{1}, '=');
 		else
@@ -1045,7 +1061,7 @@ function [head , slope, intercept, base, is_modis, is_linear, is_log, att, opt_R
 
 	isHDF4 = (strncmp(att.DriverShortName, 'HDF4', 4) && ~strcmp(att.DriverShortName, 'HDF4_fake')); % The fake doesn't count
 	
-	if (modis_or_seawifs && strncmp(att.DriverShortName, 'HDF4', 4) && ~isempty(search_scaleOffset(att.Metadata, 'Level-2')))
+	if (modis_or_seawifs && (strncmp(att.DriverShortName, 'HDF4', 4) || strcmp(att.DriverShortName, 'netCDF')) && ~isempty(search_scaleOffset(att.Metadata, 'Level-2')))
 		% OK, here the NASA guys fck again and changed the names of the variables. Right, now thew use the CF
 		% compliant ones but the f... broke the compatibility
 		what = 'scale_factor';		% CF name
@@ -1781,9 +1797,9 @@ function Z = clipMySpikes(Z)
 	indSpikesB = 10:10:n_rows-5;		% Index of the Before spikies
 	indSpikesA = 12:10:n_rows-5;		% Index of the After spikies
 	for (k = 1:size(Z,2))
-		col = Z(:,k);
+		col = double(Z(:,k));
 		col(indSpikesC) = (col(indSpikesA) + col(indSpikesB)) / 2;	% Replace spikies by average of neighbors
-		Z(:,k) = col;					% and put it back
+		Z(:,k) = single(col);			% and put it back
 	end
 
 % -----------------------------------------------------------------------------------------
@@ -1921,15 +1937,32 @@ function handles = fish_handles()
 % -----------------------------------------------------------------------------------------
 function ID = find_in_subdatasets(AllSubdatasets, name)
 % Find the position in the subdatasets array containing the array called 'name'
+%
+% This is becoming a nightmare. HDF4 have the name of the subdataset in 'DESC' only (the second of
+% the NAME/DESC pair) and in NAME thay have a SDS number only. On the other hand netCDF (new OceanColor
+% format breaking) have it in 'NAME' and 'DESC' have a dubious (sometimes repeated with other SDSs)
+% variable description (example NAME ..../geophysical_data/sst; DESC ... sea_surface_temperature). FUCK.
+% So I'll try the heuristic bellow but the risk of big shit is high.
 
 	got_it = false;		ID = 0;
-	for (k = 2:2:numel(AllSubdatasets))
-		ind = strfind(AllSubdatasets{k}, ' ');		
-		if (strfind(AllSubdatasets{k}(ind(1)+1:ind(2)-1), name))
-			got_it = true;		break
+	ind = strfind(AllSubdatasets{1}, 'NETCDF');
+	if (~isempty(ind))
+		for (k = 1:2:numel(AllSubdatasets))
+			ind = strfind(AllSubdatasets{k}, ':');		
+			if (strfind(AllSubdatasets{k}(ind(end)+1:end), name))
+				got_it = true;		break
+			end
 		end
+		if (got_it),	ID = k;		end
+	else
+		for (k = 2:2:numel(AllSubdatasets))
+			ind = strfind(AllSubdatasets{k}, ' ');		
+			if (strfind(AllSubdatasets{k}(ind(1)+1:ind(2)-1), name))
+				got_it = true;		break
+			end
+		end
+		if (got_it),	ID = k - 1;	end		% -1 because the subdataset name is one position before
 	end
-	if (got_it),	ID = k - 1;		end		% -1 because the subdataset name is one position before
 
 % -----------------------------------------------------------------------------------------
 function [full_name, uncomp_name] = deal_with_compressed(full_name)
