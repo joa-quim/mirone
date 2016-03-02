@@ -1,7 +1,7 @@
 function [Z,Z_rect,handles] = roi_filtering(handles, Z, head, Z_rect, r_c, mask, border)
 % Do median filtering on either a rectangular or arbitrarely shaped ROI zone.
 
-%	Copyright (c) 2004-2012 by J. Luis
+%	Copyright (c) 2004-2016 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -16,17 +16,25 @@ function [Z,Z_rect,handles] = roi_filtering(handles, Z, head, Z_rect, r_c, mask,
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
+% $Id$
+
 	is_rect = 0;			done = 0;
-	if (ischar(mask))		is_rect = 1;	end
-	if (nargin == 6)		border = 'no';	end
+	if (ischar(mask)),		is_rect = 1;	end
+	if (nargin == 6),		border = 'no';	end
 
 	prompt = {'Enter number of filter rows' ,'Enter number of filter cols', 'Maximum allowed change (z units)'};
 	def = {num2str(5) num2str(5) num2str(10)};
 	resp  = inputdlg(prompt,'Median Filtering',[1 30; 1 30; 1 30],def);    pause(0.01)
-	if (isempty(resp))		set(handles.figure1,'pointer','arrow'),		return,		end
-	Z_rect = double(Z_rect);				% It has to be with medfilt2 of R13, but I'll hve to change it to R2006b
+	if (isempty(resp)),		set(handles.figure1,'pointer','arrow'),		return,		end
+	Z_rect = double(Z_rect);					% It has to be with medfilt2 of R13, but I'll hve to change it to R2006b
 
+	ind_NaN_1 = isnan(Z_rect);
 	Z_filt = img_fun('medfilt2',Z_rect,[str2double(resp{1}) str2double(resp{2})]);
+	if (any(any(ind_NaN_1)))					% Than for sure we have more NaNs on the filtered array
+		ind_NaN_2 = isnan(Z_filt);
+		ind_NaN = (ind_NaN_2 & ~ind_NaN_1);		% That is, only the new NaNs created by the medfilt2 call
+		Z_filt(ind_NaN) = Z_rect(ind_NaN);		% In the place of the  new NaNs put the unfiltered values
+	end
 	max_z_cut = str2double(resp{3});
 	dife = (Z_rect - Z_filt);
 	idx_dif_p = find(dife > max_z_cut);
@@ -58,7 +66,7 @@ function [Z,Z_rect,handles] = roi_filtering(handles, Z, head, Z_rect, r_c, mask,
 	handles.Z_back = Z(r_c(1):r_c(2),r_c(3):r_c(4));    % For the undo op
 	handles.r_c = r_c;
 
-	if (done)		return,		end			% Rectangle without border re-interpolation
+	if (done),		return,		end			% Rectangle without border re-interpolation
 
 	Z_rect = smooth_roipoly_edge(head, handles.have_nans, Z, handles.Z_back, Z_filt, r_c, mask, 3);
 
