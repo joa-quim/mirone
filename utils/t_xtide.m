@@ -44,13 +44,13 @@ function pred = t_xtide(varargin)
 %
 %   As usual, Mironified by J. Luis
 
-% Star by finding if we are being reused or its the first time this function is called
+% Star by finding if we are being reused or it is the first time this function is called
 h_fig = findobj('Type','figure','Tag','TidalPred');
 if (isempty(h_fig))     % First time use. Need to load harmonics file
     load(['data' filesep 't_xtide.mat']);
 else                    % We already have the harmonics somwhere. Get them
     xharm = getappdata(h_fig,'XHARM');    xtide = getappdata(h_fig,'XTIDE');
-    if (isempty(xharm))     load(['data' filesep 't_xtide.mat']);   end     % Something wrong occured before
+    if (isempty(xharm)),	load(['data' filesep 't_xtide.mat']);   end     % Something wrong occured before
 end
 
 
@@ -180,12 +180,12 @@ if (nargout == 0)
     y_pos = get(h_axes,'Ylim');
     
     % When a different date was selected (with the calendar) it's easier to start over again
-    if (reuse_fig)  delete(get(h_axes,'Children'));     end
+    if (reuse_fig),		delete(get(h_axes,'Children'));     end
     
     hold on
     for (k=1:length(X))
-        if (Y{k}(end) > Y{k}(1))    cor = 'b';
-        else                        cor = [0 .7 0];      end
+        if (Y{k}(end) > Y{k}(1)),	cor = 'b';
+		else						cor = [0 .7 0];      end
         patch('XData',[X{k} X{k}(end) X{k}(1)],'YData',[Y{k} y_pos(1) y_pos(1)],'FaceColor',cor,'EdgeColor','none')
     end
     hold off
@@ -266,107 +266,108 @@ function [d,hdg] = t_gcdist(lat1,lon1,lat2,lon2)
 %
 %  Code from Richard Dewey.
 
-raddeg = 180/pi;
-degrad = 1/raddeg;
-% convert latitude and longitude to radians
-lat1 = lat1 * degrad;   lat2 = lat2 * degrad;
-in1 = find(lon1>180);   lon1(in1) = lon1(in1)-360;
-in2 = find(lon2>180);   lon2(in2) = lon2(in2)-360;
-lon1 = -lon1.*degrad;   lon2 = -lon2.*degrad;
-% calculate some basic functions
-coslat1=cos(lat1);      sinlat1=sin(lat1);
-coslat2=cos(lat2);      sinlat2=sin(lat2);
-%calculate distance on unit sphere
-dtmp=cos(lon1-lon2);
-dtmp=sinlat1.*sinlat2 + coslat1.*coslat2.*dtmp;
+	raddeg = 180/pi;
+	degrad = 1/raddeg;
+	% convert latitude and longitude to radians
+	lat1 = lat1 * degrad;   lat2 = lat2 * degrad;
+	in1 = find(lon1>180);   lon1(in1) = lon1(in1)-360;
+	in2 = find(lon2>180);   lon2(in2) = lon2(in2)-360;
+	lon1 = -lon1.*degrad;   lon2 = -lon2.*degrad;
+	% calculate some basic functions
+	coslat1=cos(lat1);      sinlat1=sin(lat1);
+	coslat2=cos(lat2);      sinlat2=sin(lat2);
+	%calculate distance on unit sphere
+	dtmp=cos(lon1-lon2);
+	dtmp=sinlat1.*sinlat2 + coslat1.*coslat2.*dtmp;
 
-% check for invalid values due to roundoff errors
-in1= dtmp > 1;     dtmp(in1)=1.0;
-in2= dtmp < -1;    dtmp(in2)=-1.0;
+	% check for invalid values due to roundoff errors
+	in1= dtmp > 1;     dtmp(in1)=1.0;
+	in2= dtmp < -1;    dtmp(in2)=-1.0;
 
-% convert to meters for earth distance
-ad = acos(dtmp);
-d=(111.112) .* raddeg .* ad;
+	% convert to meters for earth distance
+	ad = acos(dtmp);
+	d=(111.112) .* raddeg .* ad;
 
-% now find heading (If it was required)
-if (nargout == 2)
-	hdgcos = (sinlat2-sinlat1.*cos(ad))./(sin(ad).*coslat1);
-	
-	% check value to be legal range
-	in1 = hdgcos > 1.0;   hdgcos(in1) = 1.0;
-	in2 = hdgcos < -1.0;  hdgcos(in2) = -1.0;
-	hdg = acos(hdgcos).*raddeg;
-	
-	% if longitude is decreasing then heading is between 180 and 360
-	test = sin(lon2-lon1);
-	in1 = find(test > 0);
-	hdg(in1) = 360-hdg(in1);
-end
+	% now find heading (If it was required)
+	if (nargout == 2)
+		hdgcos = (sinlat2-sinlat1.*cos(ad))./(sin(ad).*coslat1);
+
+		% check value to be legal range
+		in1 = hdgcos > 1.0;   hdgcos(in1) = 1.0;
+		in2 = hdgcos < -1.0;  hdgcos(in2) = -1.0;
+		hdg = acos(hdgcos).*raddeg;
+
+		% if longitude is decreasing then heading is between 180 and 360
+		test = sin(lon2-lon1);
+		in1 = find(test > 0);
+		hdg(in1) = 360-hdg(in1);
+	end
 
 % ---------------------------------------------------------------------------
 function [h_fig,h_axes] = t_fig()
 % Create a new figure
-h_fig = figure('Number','off','Visible','off','Color',get(0,'factoryUicontrolBackgroundColor'),...
-    'Units','normalized','Position',[0.3 0.3 0.57 0.45],'Tag','TidalPred');
-h_axes = axes('position',[0.06, 0.07, 0.913, 0.909]);
-options = uimenu('Label','Options');
-uimenu(options,'Label','Calendar','callback',{@calendario,h_fig});
-uimenu(options,'Label','Export tides','callback',{@export_mare,h_fig});
-uimenu(options,'Label','Harmonics to Mat file','callback',@harmonics2mat);
+	h_fig = figure('Number','off','Visible','off','Color',get(0,'factoryUicontrolBackgroundColor'),...
+		'Units','normalized','Position',[0.3 0.3 0.57 0.45],'Tag','TidalPred');
+	h_axes = axes('position',[0.06, 0.07, 0.913, 0.909]);
+	options = uimenu('Label','Options');
+	uimenu(options,'Label','Calendar','callback',{@calendario,h_fig});
+	uimenu(options,'Label','Export tides','callback',{@export_mare,h_fig});
+	uimenu(options,'Label','Harmonics to Mat file','callback',@harmonics2mat);
 
 % -------------------------------------------------------------------------------
 function calendario(obj,eventdata,h_fig)
-new_date = uisetdate;
-if (~isempty(new_date))
-    yr = str2double(new_date(8:end));
-    if (yr < 1970 || yr > 2037)
-        errordlg('Tide prediction is not possible for this date.','Error');     return
-    end
-    tim = datenum(new_date);
-    pt = getappdata(h_fig,'CurrentPoint');
-    t_xtide(pt(1),pt(2),tim);
-end
+	new_date = uisetdate;
+	if (~isempty(new_date))
+		yr = str2double(new_date(8:end));
+		if (yr < 1970 || yr > 2037)
+			errordlg('Tide prediction is not possible for this date.','Error');     return
+		end
+		tim = datenum(new_date);
+		pt = getappdata(h_fig,'CurrentPoint');
+		t_xtide(pt(1),pt(2),tim);
+	end
 
 % -------------------------------------------------------------------------------
 function export_mare(obj,eventdata,h_fig)
-% Export the displayed tidal heights
-start_date = getappdata(h_fig,'StartDate');
-xy = getappdata(h_fig,'TideData');
-str1 = {'*.dat', 'Data file (*.dat)';'*.*', 'All Files (*.*)'};
-[FileName,PathName] = uiputfile(str1,'Tidal data file');
-if isequal(FileName,0);     return;     end
-% Open and write to ASCII file
-if ispc;        fid = fopen([PathName FileName],'wt');
-elseif isunix;  fid = fopen([PathName FileName],'w');
-else    errordlg('Unknown platform.','Error');
-end
-fprintf(fid,'# %s\n', start_date);
-fprintf(fid,'%9.5f\t%6.3f\n', xy);
-fclose(fid);
+	% Export the displayed tidal heights
+	start_date = getappdata(h_fig,'StartDate');
+	xy = getappdata(h_fig,'TideData');
+	str1 = {'*.dat', 'Data file (*.dat)';'*.*', 'All Files (*.*)'};
+	[FileName,PathName] = uiputfile(str1,'Tidal data file');
+	if isequal(FileName,0);     return;     end
+	% Open and write to ASCII file
+	if ispc;        fid = fopen([PathName FileName],'wt');
+	elseif isunix;  fid = fopen([PathName FileName],'w');
+	else    errordlg('Unknown platform.','Error');
+	end
+	fprintf(fid,'# %s\n', start_date);
+	fprintf(fid,'%9.5f\t%6.3f\n', xy);
+	fclose(fid);
 
 % -------------------------------------------------------------------------------
 function harmonics2mat(obj,eventdata)
 % Attempt to generate one mat-file from an xtide harmonics file....
 % Latest version available from http://bel-marduk.unh.edu/xtide/files.html
 
-str1 = {'*.txt;*.dat', 'Harmonics file (*.txt,*.dat)';'*.*', 'All Files (*.*)'};
-[FileName,PathName] = uigetfile(str1,'Select Harmonics file');
-pause(0.01)
-if isequal(FileName,0);     return;     end
-fid = fopen([PathName,FileName],'r');
+	str1 = {'*.txt;*.dat', 'Harmonics file (*.txt,*.dat)';'*.*', 'All Files (*.*)'};
+	[FileName,PathName] = uigetfile(str1,'Select Harmonics file');
+	pause(0.01)
+	if isequal(FileName,0);     return;     end
+	fid = fopen([PathName,FileName],'r');
 
-fprintf('Reading harmonics file (this will take a while)\n');
-[xtide,xharm] = read_xtidefile(fid);
+	fprintf('Reading harmonics file (this will take a while)\n');
+	[xtide,xharm] = read_xtidefile(fid);
 
-[FileName,PathName] = uiputfile({'*.mat;*.MAT', 'Data files (*.mat,*.MAT)'},'Select Harmonics Mat-file');
-pause(0.01)
-if isequal(FileName,0);     return;     end
-h = msgbox('Saving harmonic information to t_xtide.mat');
-[PATH,FNAME,EXT] = fileparts([PathName FileName]);
-if isempty(EXT)     fname = [PathName FNAME '.mat'];
-else                fname = [PathName FNAME EXT];       end
-save(fname,'xtide', 'xharm')
-delete(h)
+	[FileName,PathName] = uiputfile({'*.mat;*.MAT', 'Data files (*.mat,*.MAT)'},'Select Harmonics Mat-file');
+	pause(0.01)
+	if isequal(FileName,0);     return;     end
+	h = msgbox('Saving harmonic information to t_xtide.mat');
+	[PATH,FNAME,EXT] = fileparts([PathName FileName]);
+	if isempty(EXT),	fname = [PathName FNAME '.mat'];
+	else				fname = [PathName FNAME EXT];
+	end
+	save(fname,'xtide', 'xharm')
+	delete(h)
   
 % --------------------------------------------------------------------------
 function [xtide,xharm] = read_xtidefile(fid)
@@ -454,7 +455,7 @@ while (~isempty(l) && l(1) ~= -1)
     else
         nh = nh - 1;  
     end
-    if (rem(nh,50) == 0)    fprintf('.');   end
+    if (rem(nh,50) == 0),	fprintf('.');   end
 end
 fprintf('\n');
 
@@ -465,11 +466,11 @@ xharm.kappa = sparse(xharm.kappa);
 % --------------------------------------------------------------------------
 function l = fgetl_nocom(fid)
 % Gets a line that isn't a comment line
-l = fgetl(fid);
-while (~isempty(l) && l(1) == '#')     l = fgetl(fid);  end
+	l = fgetl(fid);
+	while (~isempty(l) && l(1) == '#'),		l = fgetl(fid);  end
   
 % --------------------------------------------------------------------------
-function [varargout] = uisetdate(arg)
+function varargout = uisetdate(arg)
 % uisetdate is designed to select any date among the past current and future years.
 % uisetdate by itself uses the current date and year as a starting point and returns a string
 %           containing the selected date in 'dd-mmm-yyyy' format.
@@ -490,195 +491,192 @@ function [varargout] = uisetdate(arg)
 % To change the year, just type + or - key while pointer is above the figure (unit step change) or
 % type y to select a given year. If you close the figure, all the outputs will be empty. Figure appearance
 % may be changed in the "init" function. uisetdate uses the european calendar style (starting on Monday)
-% and the modified calendar2.m function written by M. Hendrix (search for "calendar2" in Matlab Central).
-% If you prefer the US calendar style, just replace "calendar2" by the original Matlab function "calendar"
-% and modify the variable nammed "listJ" in uisetdate.
+% If you prefer the US calendar style, just modify the variable nammed "listJ" in "init".
 %
 %  Luc Masset (2004)  e-mail: luc.masset@ulg.ac.be
-%
 
-switch nargin,
-    case 0,
-        [datet,Y,M,D,nD]=init;
-        varargout{1} = datet;
-        varargout{2} = Y;   varargout{3} = M;
-        varargout{4} = D;   varargout{5} = nD;
-    case 1,
-        switch arg,
-            case 'update',      update
-            case 'validate',    validate
-            case 'changeday',   changeday
-            case 'changemonth', changemonth
-            case 'changeyear',  changeyear
-            otherwise
-                [datet,Y,M,D,nD]=init(arg);
-                varargout{1} = datet;
-                varargout{2} = Y;   varargout{3} = M;
-                varargout{4} = D;   varargout{5} = nD;
-        end
-end
+	switch nargin,
+		case 0,
+			[datet,Y,M,D,nD] = init;
+			varargout{1} = datet;
+			varargout{2} = Y;   varargout{3} = M;
+			varargout{4} = D;   varargout{5} = nD;
+		case 1,
+			switch arg,
+				case 'update',      update()
+				case 'validate',    validate()
+				case 'changeday',   changeday()
+				case 'changemonth', changemonth()
+				case 'changeyear',  changeyear()
+				otherwise
+					[datet,Y,M,D,nD] = init(arg);
+					varargout{1} = datet;
+					varargout{2} = Y;   varargout{3} = M;
+					varargout{4} = D;   varargout{5} = nD;
+			end
+	end
 
 %------------------------------------------------------------------------------
 function [datet,Y,M,D,nD] = init(datet)
-if (~nargin)    datet=date;     end
+	if (~nargin),	datet = date;     end
 
-%day list
-%listJ={'Mo','Tu','We','Th','Fr','Sa','Su'};	% uncomment for European calendar style
-listJ={'Su','Mo','Tu','We','Th','Fr','Sa'};		% uncomment for US calendar style
+	%day list
+	%listJ={'Mo','Tu','We','Th','Fr','Sa','Su'};	% uncomment for European calendar style
+	listJ={'Su','Mo','Tu','We','Th','Fr','Sa'};		% uncomment for US calendar style
 
-listM={'Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'};    % month list
+	listM={'Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'};    % month list
 
-%year, month and day
-Y = str2double(datet(end-3:end));		D = str2double(datet(1:2));
-M = datet(end-7:end-5);					M = strcmp(M,listM);
-M = find(M);		% 'M' was a logical array
+	%year, month and day
+	Y = str2double(datet(end-3:end));		D = str2double(datet(1:2));
+	M = datet(end-7:end-5);					M = strcmp(M,listM);
+	M = find(M);		% 'M' was a logical array
 
-hfig=figure('units','pixels','position',[0 0 290 330],'menubar','none','numbertitle','off', ...
-            'name','Calendar','resize','off','keypressfcn','uisetdate(''changeyear'')', ...
-            'Color',get(0,'factoryUicontrolBackgroundColor'),'tag','uisetdate', ...
-            'Visible','off','DefaultUIControlFontName','arial','DefaultUIControlFontSize',10);
-move2side(hfig,'center');
+	hfig = figure('units','pixels','position',[0 0 290 330],'menubar','none','numbertitle','off', ...
+				'name','Calendar','resize','off','keypressfcn','uisetdate(''changeyear'')', ...
+				'Color',get(0,'factoryUicontrolBackgroundColor'),'tag','uisetdate', ...
+				'Visible','off','DefaultUIControlFontName','arial','DefaultUIControlFontSize',10);
+	move2side(hfig,'center');
 
-%frame buttons
-uicontrol('style','frame','units','pixels','position',[2 2 286 215]);
-uicontrol('style','frame','units','pixels','position',[2 2 286 185]);
-uicontrol('style','frame','units','pixels','position',[2 222 286 66]);
-uicontrol('style','frame','units','pixels','position',[2 292 286 36]);
+	%frame buttons
+	uicontrol('style','frame','units','pixels','position',[2 2 286 215]);
+	uicontrol('style','frame','units','pixels','position',[2 2 286 185]);
+	uicontrol('style','frame','units','pixels','position',[2 222 286 66]);
+	uicontrol('style','frame','units','pixels','position',[2 292 286 36]);
 
-%current date button
-tts='Use +/- keys to change year by unit step. Use y key to set the year';
-uicontrol('style','text','units','pixels','position',[10 298 270 20],'string',datet, ...
-            'horizontalalignment','center','fontsize',12,'tag','date', 'tooltipstring',tts);
+	%current date button
+	tts='Use +/- keys to change year by unit step. Use y key to set the year';
+	uicontrol('style','text','units','pixels','position',[10 298 270 20],'string',datet, ...
+				'horizontalalignment','center','fontsize',12,'tag','date', 'tooltipstring',tts);
 
-%validate button
-uicontrol('style','pushbutton','units','pixels','position',[245 300 30 20], ...
-            'string','OK','tooltipstring','Validate current date', ...
-            'callback','uisetdate(''validate'')');
+	%validate button
+	uicontrol('style','pushbutton','units','pixels','position',[245 300 30 20], ...
+				'string','OK','tooltipstring','Validate current date', ...
+				'callback','uisetdate(''validate'')');
 
-%static text buttons for day name
-for i=1:7,
-    pos=[10+40*(i-1) 190 30 20];
-    uicontrol('style','text','units','pixels','position',pos,'string',listJ{i}, 'horizontalalignment','center');
-end
-set(hfig,'Visible','on')
+	%static text buttons for day name
+	for (i = 1:7)
+		pos=[10+40*(i-1) 190 30 20];
+		uicontrol('style','text','units','pixels','position',pos,'string',listJ{i}, 'horizontalalignment','center');
+	end
+	set(hfig,'Visible','on')
 
-%figure appdata
-setappdata(hfig,'year',Y);  setappdata(hfig,'month',M);
-setappdata(hfig,'day',D);   setappdata(hfig,'SelectColor','b')
+	%figure appdata
+	setappdata(hfig,'year',Y);  setappdata(hfig,'month',M);
+	setappdata(hfig,'day',D);   setappdata(hfig,'SelectColor','b')
 
-update      % update buttons and text
+	update      % update buttons and text
 
-%temp button
-htemp = uicontrol('style','text','tag','temp','visible','off');
+	%temp button
+	htemp = uicontrol('style','text','tag','temp','visible','off');
 
-%wait for temp button to be deleted
-waitfor(htemp)
-if (~ishandle(hfig))
-    datet=[];   Y=[];   M=[];   D=[];   nD=[];  return
-end
+	%wait for temp button to be deleted
+	waitfor(htemp)
+	if (~ishandle(hfig))
+		datet=[];   Y=[];   M=[];   D=[];   nD=[];  return
+	end
 
-%compute outputs
-Y = getappdata(hfig,'year');    M = getappdata(hfig,'month');   D = getappdata(hfig,'day');
-datet = datestr([Y M D 0 0 0],'dd-mmm-yyyy');
-nD = 0;  %indice du jour
-for (i=1:M-1)   nD = nD + eomday(Y,i);  end
-nD=nD+D;
-close(hfig)
+	%compute outputs
+	Y = getappdata(hfig,'year');    M = getappdata(hfig,'month');   D = getappdata(hfig,'day');
+	datet = datestr([Y M D 0 0 0],'dd-mmm-yyyy');
+	nD = 0;  %indice du jour
+	for (i=1:M-1),	nD = nD + eomday(Y,i);  end
+	nD = nD+D;
+	close(hfig)
 
 %------------------------------------------------------------------------------
-function [] = validate
+function validate()
 % delete temp button
-h_fig = findobj('Type','figure','Tag','uisetdate');
-delete(findobj('tag','temp','type','uicontrol','parent',h_fig))
+	h_fig = findobj('Type','figure','Tag','uisetdate');
+	delete(findobj('tag','temp','type','uicontrol','parent',h_fig))
 
 %------------------------------------------------------------------------------
-function [] = update
-% Update buttons and text when changing year, month or day
+function update()
+	% Update buttons and text when changing year, month or day
 
-h_fig = findobj('Type','figure','Tag','uisetdate');
-%delete old buttons
-delete(findobj('tag','day','type','uicontrol','parent',h_fig))
-delete(findobj('tag','month','type','uicontrol','parent',h_fig))
+	h_fig = findobj('Type','figure','Tag','uisetdate');
+	%delete old buttons
+	delete(findobj('tag','day','type','uicontrol','parent',h_fig))
+	delete(findobj('tag','month','type','uicontrol','parent',h_fig))
 
-%year, month, day
-Y = getappdata(h_fig,'year');       M = getappdata(h_fig,'month');
-D = getappdata(h_fig,'day');        Dmax = eomday(Y,M);
-D = min([D Dmax]);
-setappdata(h_fig,'day',D)
+	%year, month, day
+	Y = getappdata(h_fig,'year');       M = getappdata(h_fig,'month');
+	D = getappdata(h_fig,'day');        Dmax = eomday(Y,M);
+	D = min([D Dmax]);
+	setappdata(h_fig,'day',D)
 
-%current month calendar
-%C=calendar2(Y,M);     % uncomment for European calendar style
-C=calendar(Y,M);     % uncomment for US calendar style
+	%current month calendar
+	%C=calendar2(Y,M);     % uncomment for European calendar style
+	C=calendar(Y,M);     % uncomment for US calendar style
 
-%month buttons
-listM = {'Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'};
-for (i=1:2)
-    for (j=1:6)
-        pos = [15+45*(j-1) 260-(i-1)*30 35 20];
-        st = listM{6*(i-1)+j};
-        uicontrol('style','togglebutton','units','pixels','position',pos,'string',st, ...
-              'tag','month','callback','uisetdate(''changemonth'')');
-    end
-end
+	%month buttons
+	listM = {'Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'};
+	for (i=1:2)
+		for (j=1:6)
+			pos = [15+45*(j-1) 260-(i-1)*30 35 20];
+			st = listM{6*(i-1)+j};
+			uicontrol('style','togglebutton','units','pixels','position',pos,'string',st, ...
+				  'tag','month','callback','uisetdate(''changemonth'')');
+		end
+	end
 
-for (i=1:size(C,1))     % day buttons
-    for j=1:7,
-        if C(i,j),
-            pos=[10+40*(j-1) 160-(i-1)*30 30 20];
-            st=num2str(C(i,j));
-            uicontrol('style','togglebutton','units','pixels','position',pos,'string',st, ...
-               'tag','day','callback','uisetdate(''changeday'')');
-        end
-    end
-end
+	for (i=1:size(C,1))     % day buttons
+		for j=1:7,
+			if C(i,j),
+				pos=[10+40*(j-1) 160-(i-1)*30 30 20];
+				st=num2str(C(i,j));
+				uicontrol('style','togglebutton','units','pixels','position',pos,'string',st, ...
+				   'tag','day','callback','uisetdate(''changeday'')');
+			end
+		end
+	end
 
-%selected month
-scolor = getappdata(h_fig,'SelectColor');
-set(findobj('tag','month','type','uicontrol','parent',h_fig),'value',0,'foregroundcolor','k')
-h = findobj('tag','month','string',listM{M},'type','uicontrol','parent',h_fig);
-set(h,'value',1,'foregroundcolor',scolor)
+	%selected month
+	scolor = getappdata(h_fig,'SelectColor');
+	set(findobj('tag','month','type','uicontrol','parent',h_fig),'value',0,'foregroundcolor','k')
+	h = findobj('tag','month','string',listM{M},'type','uicontrol','parent',h_fig);
+	set(h,'value',1,'foregroundcolor',scolor)
 
-%selected day
-h = findobj('tag','day','string',num2str(D),'type','uicontrol','parent',h_fig);
-set(h,'value',1,'foregroundcolor',scolor)
+	%selected day
+	h = findobj('tag','day','string',num2str(D),'type','uicontrol','parent',h_fig);
+	set(h,'value',1,'foregroundcolor',scolor)
 
-%update current date text
-h = findobj('tag','date','type','uicontrol','parent',h_fig);
-set(h,'string',datestr([Y M D 0 0 0],'dd-mmm-yyyy'))
-
-%------------------------------------------------------------------------------
-function [] = changeday
-h_fig = findobj('Type','figure','Tag','uisetdate');
-D = str2num(get(gcbo,'string'));
-setappdata(h_fig,'day',D)
-update
+	%update current date text
+	h = findobj('tag','date','type','uicontrol','parent',h_fig);
+	set(h,'string',datestr([Y M D 0 0 0],'dd-mmm-yyyy'))
 
 %------------------------------------------------------------------------------
-function [] = changemonth
-h_fig = findobj('Type','figure','Tag','uisetdate');
-listM = {'Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'};
-M = get(gcbo,'string');
-M = strmatch(M,listM);
-setappdata(h_fig,'month',M)
-update
+function [] = changeday()
+	h_fig = findobj('Type','figure','Tag','uisetdate');
+	D = str2num(get(gcbo,'string'));
+	setappdata(h_fig,'day',D)
+	update
 
 %------------------------------------------------------------------------------
-function [] = changeyear
-h_fig = findobj('Type','figure','Tag','uisetdate');
-Y = getappdata(h_fig,'year');
-cc = get(h_fig,'currentcharacter');
-switch cc,
-    case '+',   Y=Y+1;
-    case '-',   Y=Y-1;
-    case 'y',
-        def = {sprintf('%i',Y)};
-        answer = inputdlg({'Year:'},'Set current year',1,def);
-        if isempty(answer)  return;     end
-        Y = str2num(answer{1});
-        if isempty(Y)   return;         end
-        Y = round(Y);
-    otherwise
-        return
-end
-setappdata(h_fig,'year',Y)
-update
+function changemonth()
+	h_fig = findobj('Type','figure','Tag','uisetdate');
+	listM = {'Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'};
+	M = get(gcbo,'string');
+	M = strmatch(M,listM);
+	setappdata(h_fig,'month',M)
+	update
+
+%------------------------------------------------------------------------------
+function changeyear()
+	h_fig = findobj('Type','figure','Tag','uisetdate');
+	Y = getappdata(h_fig,'year');
+	cc = get(h_fig,'currentcharacter');
+	switch cc,
+		case '+',   Y=Y+1;
+		case '-',   Y=Y-1;
+		case 'y',
+			def = {sprintf('%i',Y)};
+			answer = inputdlg({'Year:'},'Set current year',1,def);
+			if isempty(answer),		return,		end
+			Y = str2num(answer{1});
+			if isempty(Y),	return,		end
+			Y = round(Y);
+		otherwise
+			return
+	end
+	setappdata(h_fig,'year',Y)
+	update
