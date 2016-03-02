@@ -1796,10 +1796,24 @@ function Z = clipMySpikes(Z)
 	indSpikesC = 11:10:n_rows-5;		% Index o spiky values
 	indSpikesB = 10:10:n_rows-5;		% Index of the Before spikies
 	indSpikesA = 12:10:n_rows-5;		% Index of the After spikies
+
 	for (k = 1:size(Z,2))
 		col = double(Z(:,k));
-		col(indSpikesC) = (col(indSpikesA) + col(indSpikesB)) / 2;	% Replace spikies by average of neighbors
+		t = (col(indSpikesA) + col(indSpikesB)) / 2;
+		ind = isnan(t);					% Find NaNs and don't let them afect the end result.
+		if (all(ind)),	continue,	end	% They are all NaNs so nothing to do to this column
+		t(ind) = [];		indSpikesC(ind) = [];
+		col(indSpikesC) = t;			% Replace spikies by average of neighbors
 		Z(:,k) = single(col);			% and put it back
+		indSpikesC = 11:10:n_rows-5;	% Need to recreate this vector for next iteration
+	end
+
+% -----------------------------------------------------------------------------------------
+function Zo = clipMySpikes_(Z)
+% Quick experiment to see how a triangular filtering behaves (not so good). No NaNs propagation prevention
+	Zo = Z;
+	for (k = 3:size(Z,1)-2)
+		Zo(k,:) = (Z(k-2,:) + 2*Z(k-1,:) + 3*Z(k,:) + 2*Z(k+1,:) + Z(k+2,:)) / 9;
 	end
 
 % -----------------------------------------------------------------------------------------
