@@ -684,10 +684,10 @@ function shp_quick_grd(hObj, evt, h)
 	z = double(get(h, 'UserData'));
 	x_min = min(x);			x_max = max(x);
 	y_min = min(y);			y_max = max(y);
-	x_inc = median(diff(x(1:100)));
-	y_inc = median(diff(y(1:100)));
-	if (y_inc == 0),		y_inc = x_inc;		% Quite likely if data was previously gridded abd dumped.
-	elseif (x_inc == 0),	x_inc = y_inc;
+	x_inc = abs(median(diff(x(1:100))));
+	y_inc = abs(median(diff(y(1:100))));
+	if (y_inc < x_inc/20),		y_inc = x_inc;		% Quite likely if data was previously gridded abd dumped.
+	elseif (x_inc < x_inc/20),	x_inc = y_inc;
 	end
 	opt_I = sprintf('-I%.8g/%.8g', x_inc, y_inc);
 	if (isa(x, 'single'))
