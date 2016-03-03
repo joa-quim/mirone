@@ -25,7 +25,7 @@ function varargout = draw_funs(hand, varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: draw_funs.m 7821 2016-03-03 02:23:44Z j $
+% $Id: draw_funs.m 7822 2016-03-03 02:44:36Z j $
 
 % A bit of strange tests but they are necessary for the cases when we use the new feval(fun,varargin{:}) 
 opt = varargin{1};		% function name to evaluate (new) or keyword to select one (old form)
@@ -684,10 +684,10 @@ function shp_quick_grd(hObj, evt, h)
 	z = double(get(h, 'UserData'));
 	x_min = min(x);			x_max = max(x);
 	y_min = min(y);			y_max = max(y);
-	x_inc = median(diff(x(1:100)));
-	y_inc = median(diff(y(1:100)));
-	if (y_inc == 0),		y_inc = x_inc;		% Quite likely if data was previously gridded abd dumped.
-	elseif (x_inc == 0),	x_inc = y_inc;
+	x_inc = abs(median(diff(x(1:100))));
+	y_inc = abs(median(diff(y(1:100))));
+	if (y_inc < x_inc/20),		y_inc = x_inc;		% Quite likely if data was previously gridded abd dumped.
+	elseif (x_inc < x_inc/20),	x_inc = y_inc;
 	end
 	opt_I = sprintf('-I%.8g/%.8g', x_inc, y_inc);
 	if (isa(x, 'single'))
