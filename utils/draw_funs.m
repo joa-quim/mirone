@@ -25,7 +25,7 @@ function varargout = draw_funs(hand, varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: draw_funs.m 7809 2016-02-25 16:56:57Z j $
+% $Id: draw_funs.m 7821 2016-03-03 02:23:44Z j $
 
 % A bit of strange tests but they are necessary for the cases when we use the new feval(fun,varargin{:}) 
 opt = varargin{1};		% function name to evaluate (new) or keyword to select one (old form)
@@ -178,6 +178,8 @@ function setSHPuictx(h,opt)
 		isPt = getappdata(h(1), 'isPoint');
 		if (~isempty(isPt) && ~isPt)	% For points it makes no sense a 'Join lines'
 			uimenu(cmenuHand, 'Label', 'Join lines', 'Call', {@join_lines,handles.figure1});
+		elseif (~isempty(get(h(i), 'UserData')))		% If we have z info
+			uimenu(cmenuHand, 'Label', 'Quick grid', 'Call', {@shp_quick_grd,h(i)}, 'Sep', 'on');			
 		end
 	end
 
@@ -674,6 +676,39 @@ function [x, y, was_closed] = join2lines(hLines, TOL)
 		x = [x1 x2(end:-1:last)];	y = [y1 y2(end:-1:last)];
 	end
 % -----------------------------------------------------------------------------------------
+	
+% --------------------------------------------------------------------
+function shp_quick_grd(hObj, evt, h)
+% Automatically calculate a grid from a PointZ shapefile data
+	x = get(h, 'XData');	y = get(h, 'YData');
+	z = double(get(h, 'UserData'));
+	x_min = min(x);			x_max = max(x);
+	y_min = min(y);			y_max = max(y);
+	x_inc = median(diff(x(1:100)));
+	y_inc = median(diff(y(1:100)));
+	if (y_inc == 0),		y_inc = x_inc;		% Quite likely if data was previously gridded abd dumped.
+	elseif (x_inc == 0),	x_inc = y_inc;
+	end
+	opt_I = sprintf('-I%.8g/%.8g', x_inc, y_inc);
+	if (isa(x, 'single'))
+		x = double(x);		y = double(y);
+	end
+	nx = round((x_max - x_min) / x_inc) + 1;
+	ny = round((y_max - y_min) / y_inc) + 1;
+	opt_R = sprintf('-R%.12g/%.12g/%.12g/%.12g', x_min, x_min + (nx-1)*x_inc, y_min, y_min + (ny-1)*y_inc);
+	[Z, head] = gmtmbgrid_m(x, y, z, opt_I, opt_R, '-Mz', '-C2');
+	Z = single(Z);
+	tmp.X = linspace(head(1), head(2), size(Z,2));
+	tmp.Y = linspace(head(3), head(4), size(Z,1));
+	tmp.head = head;
+	tmp.name = 'Quick interpolated PointZ shape data';
+	prjInfoStruc = aux_funs('getFigProjInfo', guidata(h));
+	if (~isempty(prjInfoStruc.projWKT))
+		tmp.srsWKT = prjInfoStruc.projWKT;
+	elseif(~isempty(prjInfoStruc.proj4))
+		tmp.srsWKT = ogrproj(prjInfoStruc.proj4);
+	end
+	mirone(Z, tmp)
 
 % --------------------------------------------------------------------
 function hh = loc_quiver(struc,varargin)
