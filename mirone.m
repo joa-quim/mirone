@@ -20,7 +20,7 @@ function varargout = mirone(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: mirone.m 7811 2016-02-25 17:03:19Z j $
+% $Id: mirone.m 7820 2016-03-03 02:21:40Z j $
 
 	if (nargin > 1 && ischar(varargin{1}))
 		if ( ~isempty(strfind(varargin{1},':')) || ~isempty(strfind(varargin{1},filesep)) )
@@ -1761,7 +1761,7 @@ function erro = FileOpenGeoTIFF_CB(handles, tipo, opt)
 
 	if (~strcmp(att.Band(1).DataType,'Byte'))			% JPK2, for example, may contain DTMs
 		tipo = 'guess';			% Probably a temp step during the adaptation period after the OceanColor had f. changed format 
-		if (strcmp(att.DriverShortName, 'netCDF')),		tipo = 'ncHDF';		end
+		if (strcmp(att.DriverShortName, 'netCDF') || strcmp(att.DriverShortName, 'HDF5Image')),		tipo = 'ncHDF';		end
 		loadGRID(handles,handles.fileName, tipo, att);		return
 	end
 
@@ -3151,11 +3151,12 @@ function DrawImportShape_CB(handles, fname)
 			reco = aux_funs('rectangle_and', imgLims, [s(i).BoundingBox(1,1:2) s(i).BoundingBox(2,1:2)]);
 			if (~isempty(reco))			% It means the polyg BB is at least partially inside
 				if (do_project),	ogrproj(s(i).X, s(i).Y, projStruc);		end		% Project into basemap coords
-				h(i) = line('Xdata',single(s(i).X),'Ydata',single(s(i).Y),'Parent',handles.axes1,'Color',lc,'LineWidth',lt,'Tag','SHPpolyline',lsty{1:end});
+				s(i).X = single(s(i).X);		s(i).Y = single(s(i).Y);
+				h(i) = line('Xdata',s(i).X,'Ydata', s(i).Y, 'Parent',handles.axes1,'Color',lc,'LineWidth',lt,'Tag','SHPpolyline',lsty{1:end});
 			end
 			if (is3D),		set(h(i),'UserData', single(s(i).Z(:)')),	end
 		end
-		h((h == 0)) = [];				% Those were jumped because thay were completely outside map limits
+		h((h == 0)) = [];				% Those were jumped because they were completely outside map limits
 		if (isempty(h)),	warndlg('No data inside display region','Warning'),		return,		end
 		if (strncmp(t,'Point',5))
 			setappdata(h(1), 'isPoint', true)	% Used in draw_funs/setSHPuictx to NOT set the "Join lines" uictx
