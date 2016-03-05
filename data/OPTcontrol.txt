@@ -58,3 +58,6 @@ MIR_CUSTOM_MENU Geography,GRIDS/SRTM+,C:\j\cd_grids\SRTM+
 MIR_CUSTOM_MENU Geography,GRIDS/cd_grids,C:\j\cd_grids
 MIR_CUSTOM_MENU Geography,GRIDS/mag_grids,C:\j\cd_grids\mag
 MIR_CUSTOM_MENU Geography,Seafloor/geomorphic,C:\SVN\mironeWC\data\seafloor_geomorphic
+
+# Activate the option to associate a GMT custom symbol to a line (rectangle) object
+MIR_GMT_SYMBOL
