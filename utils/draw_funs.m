@@ -338,7 +338,7 @@ function set_line_uicontext(h, opt)
 			uimenu(item_tools, 'Label', 'Histogram', 'Call', 'image_histo(guidata(gcbo),gco)');
 		end
 		uimenu(item_tools, 'Label', 'Image process', 'Sep','on', 'Call', 'mirone(''DrawClosedPolygon_CB'',guidata(gcbo),gco)');
-		deal_opts({'MGG' 'MICROLEV' 'GMT_DB_IDS'}, cmenuHand);
+		deal_opts({'MGG' 'MICROLEV' 'GMT_DB_IDS' 'GMT_SYMBOL'}, cmenuHand);
 	end
 
 	if (~IS_SEISPOLYG && LINE_ISCLOSED && ~IS_RECTANGLE)
@@ -586,6 +586,11 @@ function hCopy = copy_line_object(obj, evt, hFig, hAxes)
 	if (isappdata(newH,'polygon_data'))
 		rmappdata(newH,'polygon_data')		% Remove the parent's ui_edit_polygon appdata
 	end
+	if (isappdata(oldH,'cust_symb'))		% If copying an element with an associated GMT symbol copy it too
+		cs_fname = getappdata(oldH, 'cust_symb');
+		setappdata(newH, 'cust_symb', cs_fname)
+	end
+
 	state = uisuspend_j(hFig);				% Remember initial figure state
 	x_lim = get(hAxes,'xlim');        y_lim = get(hAxes,'ylim');
 	current_pt = get(hAxes, 'CurrentPoint');
