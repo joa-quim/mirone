@@ -16,7 +16,7 @@ function varargout = write_gmt_script(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: write_gmt_script.m 7782 2016-02-09 13:02:48Z j $
+% $Id: write_gmt_script.m 7825 2016-03-05 14:26:27Z j $
 
 	handMir = varargin{1};
 	if (handMir.no_file)     % Stupid call with nothing loaded on the Mirone window
@@ -1096,15 +1096,21 @@ function [out_msg, warn_msg_pscoast] = build_write_script(handles, opt_J, dest_d
 		ellips = [' --ELLIPSOID=' ellips];
 	end
 
-	if (handles.have_GMT5),		opt_annotsize = '--FONT_ANNOT_PRIMARY=10p';
-	else						opt_annotsize = '--ANNOT_FONT_SIZE_PRIMARY=10p';
+	if (handles.have_GMT5)
+		opt_annotsize = '--FONT_ANNOT_PRIMARY=10p';
+		opt_len_unit  = ' --PROJ_LENGTH_UNIT=point';
+		opt_m = '';
+	else
+		opt_annotsize = '--ANNOT_FONT_SIZE_PRIMARY=10p';
+		opt_len_unit  = ' --MEASURE_UNIT=point';
+		opt_m = ' -m';
 	end
 	frmPen = '';
 	if (handMir.IamXY)
 		frmPen = '--FRAME_PEN=1.25p';
 	end
 
-% ------------ Some (maybe) needed vars -----------------------------------------------
+	% ------------ Some (maybe) needed vars -----------------------------------------------
 	haveSymbol = false;     used_grd = false;  out_msg = 0;
 	need_path = false;      used_countries = false;
 	script = cell(25,1);
@@ -1118,21 +1124,21 @@ function [out_msg, warn_msg_pscoast] = build_write_script(handles, opt_J, dest_d
 	end
 	grd_name = handMir.grdname;
 
-% ------------ Get size of Rectangle to use as info on the image size ------------------
+	% ------------ Get size of Rectangle to use as info on the image size ------------------
 	units = 'cm';
 	if (get(handles.radio_in,'Val')),		units = 'inch';
 	elseif (get(handles.radio_pt,'Val')),	units = 'poits';
 	end
 	imgDimsInfo = sprintf(' ---- The image area has exactly %s x %s %s (unless you change -R or -J)', ...
 		get(handles.edit_mapWidth,'Str'), get(handles.edit_mapHeight,'Str'), units);
-% --------------------------------------------------------------------------------------
+	% --------------------------------------------------------------------------------------
 
-% --------------------- Build -B string ------------------------------------------------
+	% --------------------- Build -B string ------------------------------------------------
 	Bx = get(handMir.axes1,'XTick');      d_Bx = diff(Bx);
 	By = get(handMir.axes1,'YTick');      d_By = diff(By);
 	opt_B = ['-B' num2str(d_Bx(1)) '/' num2str(d_By(1)) 'WSen'];
 	clear Bx By d_Bx d_By;
-% --------------------------------------------------------------------------------------
+	% --------------------------------------------------------------------------------------
 
 	l = 1;
 	if (~strcmp(sc,'bat'))							% Write a csh script
@@ -1140,10 +1146,10 @@ function [out_msg, warn_msg_pscoast] = build_write_script(handles, opt_J, dest_d
 		script{l} = [comm 'Coffeeright Mirone Tec'];l=l+1;
 		script{l} = comm;							l=l+1;
 		script{l} = [comm ' ---- Projection. You may change it if you know how to'];    l=l+1;
-		script{l} = ['proj=' opt_J];			l=l+1;		% Map scale
+		script{l} = ['proj=' opt_J];		l=l+1;		% Map scale
 		script{l} = [comm ' ---- Frame annotations. You may change it if you know how to'];    l=l+1;
 		script{l} = ['frm=' opt_B];			l=l+1;      saveBind = l-1;
-		script{l} = [comm imgDimsInfo];				l=l+1;
+		script{l} = [comm imgDimsInfo];		l=l+1;
 		script{l} = [comm ' ---- Map limits. You may change it if you know how to'];    l=l+1;
 		script{l} = ['lim=' opt_R];			l=l+1;
 		script{l} = comm;							l=l+1;
@@ -1228,8 +1234,7 @@ function [out_msg, warn_msg_pscoast] = build_write_script(handles, opt_J, dest_d
 			opt_N = '';
 			if (handMir.Illumin_type == 1),      opt_N = ' -Nt';     end
 			name_illum = [prefix '_intens.grd=cf'];
-			script{l} = '';                      l=l+1;
-			script{l} = [comm '-------- Compute the illumination grid'];    l=l+1;
+			script{l} = sprintf('\n%s -------- Compute the illumination grid', comm);    l=l+1;
 			script{l} = ['grdgradient ' pb 'grd' pf opt_M ' ' illumComm opt_N ' -G' name_illum ellips];    l=l+1;
 			have_gmt_illum = 1;     used_grd = true;
 			illum = [' -I' name_illum];
@@ -1242,18 +1247,18 @@ function [out_msg, warn_msg_pscoast] = build_write_script(handles, opt_J, dest_d
 			have_gmt_illum = 0;
 			used_grd = true;
 		end
-		script{l} = ' ';		l=l+1;
+		
 		if (have_gmt_illum)                     % grdimage with illumination
-			script{l} = [comm '-------- Plot the the base image using grdimage & illumination'];    l=l+1;
+			script{l} = sprintf('\n%s -------- Plot the the base image using grdimage & illumination', comm);    l=l+1;
 			script{l} = ['grdimage ' pb 'grd' pf ' -R -J -C' pb 'cpt' pf illum ellips ' -O -K >> ' pb 'ps' pf];
 			l=l+1;
 			used_grd = true;
 		elseif (used_grd && ~have_gmt_illum)     % Simple grdimage call
-			script{l} = [comm '-------- Plot the the base image using grdimage'];    l=l+1;
+			script{l} = sprintf('\n%s -------- Plot the the base image using grdimage', comm);    l=l+1;
 			script{l} = ['grdimage ' pb 'grd' pf ' -R -J -C' pb 'cpt' pf ellips ' -O -K >> ' pb 'ps' pf];   l=l+1;
 			used_grd = true;
 		else                                    % No grd used, use the R,G,B channels
-			script{l} = [comm '-------- Plot the 3 RGB base images using grdimage'];    l=l+1;
+			script{l} = sprintf('\n%s -------- Plot the 3 RGB base images using grdimage', comm);    l=l+1;
 			script{l} = ['grdimage ' name_sc '_r.grd ' name_sc '_g.grd ' name_sc '_b.grd' ellips ' -R -J -O -K >> ' pb 'ps' pf];
 			l=l+1;    
 		end
@@ -1262,8 +1267,7 @@ function [out_msg, warn_msg_pscoast] = build_write_script(handles, opt_J, dest_d
 		% Do nothing regarding the basemap image (in fact we don't have any image)
 	else    % We don't have a grid, so we need to fish the image and save it as R,G,B triplet
 		nameRGB = [prefix_ddir '_channel'];    name_sc = [prefix '_channel'];
-		script{l} = ' ';
-		script{l} = [comm '-------- Plot the 3 RGB base images using grdimage'];    l=l+1;
+		script{l} = sprintf('\n%s -------- Plot the 3 RGB base images using grdimage', comm);    l=l+1;
 		script{l} = ['grdimage ' name_sc '_r.grd ' name_sc '_g.grd ' name_sc '_b.grd' ellips ' -R -J -O -K >> ' pb 'ps' pf];
 		l=l+1;    
 	end
@@ -1348,8 +1352,7 @@ function [out_msg, warn_msg_pscoast] = build_write_script(handles, opt_J, dest_d
 				fprintf(fid,'%.5f\t%c\n',conts');
 			end
 			fclose(fid);
-			script{l} = ' ';                            l=l+1;
-			script{l} = [comm ' ---- Plot contours'];	l=l+1;
+			script{l} = sprintf('\n%s ---- Plot contours', comm);	l=l+1;
 			script{l} = ['grdcontour ' pb 'grd' pf ' -R -J -C' [prefix '_cont.dat'] ellips ' -O -K >> ' pb 'ps' pf];
 			l=l+1;
 			used_grd = true;
@@ -1404,14 +1407,12 @@ function [out_msg, warn_msg_pscoast] = build_write_script(handles, opt_J, dest_d
 		if (ns > 1 && numel(symbols.Size) == 1)			% We have the same symbol repeated ns times
 			fid = fopen(name,'wt');
 			fprintf(fid,'%.5f\t%.5f\n',[symbols.x{:}; symbols.y{:}]);
-			script{l} = ' ';                        	l=l+1;
-			script{l} = [comm ' ---- Plot symbols'];    l=l+1;
+			script{l} = sprintf('\n%s ---- Plot symbols', comm);    l=l+1;
 			script{l} = ['psxy ' name_sc ' -S' symbols.Marker num2str(symbols.Size{1}) 'p' opt_G ...
 					opt_W ellips ' -R -J -O -K >> ' pb 'ps' pf];    l=l+1;
 			fclose(fid);
 		elseif (ns == 1 && numel(symbols.Size) == 1)	% We have only one symbol
-			script{l} = ' ';							l=l+1;
-			script{l} = [comm ' ---- Plot symbol'];		l=l+1;
+			script{l} = sprintf('\n%s  ---- Plot symbol', comm);		l=l+1;
 			script{l} = [sprintf('echo %.6f\t%.6f',symbols.x{1},symbols.y{1}) ' | ' ...
 						'psxy -S' symbols.Marker num2str(symbols.Size{1}) 'p' opt_G ...
 						opt_W ellips ' -R -J -O -K >> ' pb 'ps' pf];    l=l+1;        
@@ -1445,7 +1446,7 @@ function [out_msg, warn_msg_pscoast] = build_write_script(handles, opt_J, dest_d
 			end
 			script{l} = ' ';                        	l=l+1;
 			script{l} = [comm ' ---- Plot symbols'];    l=l+1;
-			script{l} = ['psxy ' name_sc ellips ' -S -R -J --MEASURE_UNIT=point -m -O -K >> ' pb 'ps' pf];    l=l+1;
+			script{l} = ['psxy ' name_sc ellips opt_len_unit opt_m ' -S -R -J -O -K >> ' pb 'ps' pf];    l=l+1;
 			fclose(fid);
 		end
 		clear ns symbols haveSymbol name name_sc;
@@ -1506,8 +1507,7 @@ function [out_msg, warn_msg_pscoast] = build_write_script(handles, opt_J, dest_d
 				end
 			end
 			fclose(fid);
-			script{l} = ' ';			l=l+1;
-			script{l} = [comm ' ---- Plot Focal Mechanisms'];   l=l+1;
+			script{l} = sprintf('\n%s ---- Plot Focal Mechanisms', comm);   l=l+1;
 			script{l} = ['psmeca ' opt_S opt_C ' ' name_sc ellips ' -R -J -O -K >> ' pb 'ps' pf];    l=l+1;
 			ALLpatchHand = setxor(ALLpatchHand, focHand);		% focHand is processed, so remove it from handles list
 			ALLlineHand  = setxor(ALLlineHand, focHandAnchor);	%       iden
@@ -1531,11 +1531,10 @@ function [out_msg, warn_msg_pscoast] = build_write_script(handles, opt_J, dest_d
 					fid = fopen(name,'wt');
 					fprintf(fid,'%.5f\t%.5f\n',saved.line');
 					fclose(fid);
-					script{l} = ' ';              l=l+1;
-					script{l} = [comm ' ---- Plot telhas. NOTE: THIS IS NOT A GMT PROGRAM'];   l=l+1;
+					script{l} = sprintf('\n%s ---- Plot telhas. NOTE: THIS IS NOT A GMT PROGRAM', comm);   l=l+1;
 					script{l} = ['telha ' name_sc ' ' saved.opt_E ' ' saved.opt_I ' ',...
 						saved.opt_N ' ' saved.opt_T ' -Blixo.dat'];     l=l+1;
-					script{l} = ['psxy lixo.dat ' ellips ' -R -J -m -L -O -K >> ' pb 'ps' pf];    l=l+1;
+					script{l} = ['psxy lixo.dat ' ellips opt_m ' -R -J -L -O -K >> ' pb 'ps' pf];    l=l+1;
 				end
 			end
 			ALLpatchHand = setxor(ALLpatchHand, TelhasHand);       % TelhasHand is processed, so remove it from handles list
@@ -1566,11 +1565,10 @@ function [out_msg, warn_msg_pscoast] = build_write_script(handles, opt_J, dest_d
 			name = [prefix_ddir '_country_names.txt'];
 			fid = fopen(name,'wt');
 			fprintf(fid,'%s\n',ct_names{:});        fclose(fid);
-			script{l} = ' ';				l=l+1;
-			script{l} = [comm ' ---- Plot countries. NOTE: THIS IS NOT A GMT PROGRAM'];   l=l+1;
+			script{l} = sprintf('\n%s ---- Plot countries. NOTE: THIS IS NOT A GMT PROGRAM', comm);   l=l+1;
 			ct_with_pato = getappdata(handMir.figure1,'AtlasResolution');
 			script{l} = [cd filesep 'country_extract -P' name ' ' ct_with_pato ' -C | ',...
-					'psxy ' ellips ' -R -J -W0.5p -m -O -K >> ' pb 'ps' pf];    l=l+1;
+					'psxy ' ellips opt_m ' -R -J -W0.5p -O -K >> ' pb 'ps' pf];    l=l+1;
 			ALLpatchHand = setxor(ALLpatchHand, AtlasHand);       % AtlasHand is processed, so remove it from handles list
 			clear AtlasHand name n_cts ct_with_pato
 		end
@@ -1608,9 +1606,8 @@ function [out_msg, warn_msg_pscoast] = build_write_script(handles, opt_J, dest_d
 				fprintf(fid,'%f\t%f\t%.2f\t%.3f\tV0.07c/%.1fp/%.1fp\n',x,y,ud.azim,mag,ud.headLength*ud.vFac,ud.headLength/2);
 			end
 			fclose(fid);
-			script{l} = ' ';              l=l+1;
-			script{l} = [comm ' ---- Plot Vectors. --- '];   l=l+1;
-			script{l} = ['psxy ' name_sc ellips ' -S -R -J --MEASURE_UNIT=point --VECTOR_SHAPE=0.77 -m -O -K >> ' pb 'ps' pf];    l=l+1;
+			script{l} = sprintf('\n%s ---- Plot Vectors. --- ', comm);   l=l+1;
+			script{l} = ['psxy ' name_sc ellips opt_len_unit opt_m ' -S -R -J --VECTOR_SHAPE=0.77 -O -K >> ' pb 'ps' pf];    l=l+1;
 			ALLpatchHand = setxor(ALLpatchHand, thisHand);       % thisHand is processed, so remove it from handles list
 			clear thisHand name name_sc n_vectors 
 		end
@@ -1669,21 +1666,47 @@ function [out_msg, warn_msg_pscoast] = build_write_script(handles, opt_J, dest_d
 			end
 		end
 		fclose(fid);
-		script{l} = ' ';			l=l+1;
-		script{l} = [comm ' ---- Plot closed AND colored polygons'];   l=l+1;
-		script{l} = ['psxy ' name_sc ellips ' -R -J --MEASURE_UNIT=point -m -O -K >> ' pb 'ps' pf];    l=l+1;
+		script{l} = sprintf('\n%s ---- Plot closed AND colored polygons', comm);   l=l+1;
+		script{l} = ['psxy ' name_sc ellips opt_len_unit opt_m ' -R -J -O -K >> ' pb 'ps' pf];    l=l+1;
 		clear ALLpatchHand name name_sc n_patch xx yy LineWidth EdgeColor FillColor cor_edge cor_fill resp
 	end
 
+	% ----------- Search for lines associated with GMT custom symbols ---------
+	if (~isempty(ALLlineHand))
+		c = false(1, numel(ALLlineHand));
+		for (i = 1:numel(ALLlineHand))
+			cs_fname = getappdata(ALLlineHand(i), 'cust_symb');
+			if (isempty(cs_fname)),		continue,	end			% Just a regular element. Will be dealt later
+
+			if (i == 1)
+				script{l} = sprintf('\n%s ---- Plot GMT custom symbols', comm);  l = l + 1;
+			end
+			[PATH,FNAME] = fileparts(cs_fname);
+			cs_fname = [PATH filesep FNAME];		% Must remove the extension
+			xx = get(ALLlineHand(i),'XData');		yy = get(ALLlineHand(i),'YData');
+			x_max = max(xx);		x_min = min(xx);
+			y_max = max(yy);		y_min = min(yy);
+			sym_width = x_max - x_min;
+			x0 = x_min + sym_width/2;	y0 = y_min + (y_max - y_min)/2;
+			map_width = handles.x_max - handles.x_min;
+			w = sym_width / map_width * str2double(handles.scale);	% OK, and if handles.which_unit(1) is not cm?
+			script{l} = sprintf('echo %0.10g %0.10g | psxy -R -J -O -K -Sk%s/%f%c >> %sps%s', ...
+				x0,y0, cs_fname, w, handles.which_unit(1), pb, pf);
+			l = l + 1;
+			c(i) = true;
+		end
+		ALLlineHand(c) = [];		% Delete these since we don't want to plot them
+	end
+	% -------------------------------------------------------------------------
+
 	% -------------- Search for lines or polylines ----------------------------
 	if (~isempty(ALLlineHand))      % OK, now the only left line handles must be, plines, mb-tracks, etc
-		xx = get(ALLlineHand,'XData');     yy = get(ALLlineHand,'YData');
+		xx = get(ALLlineHand,'XData');		yy = get(ALLlineHand,'YData');
 		if (~iscell(xx))            % We have only one line
-			xx = num2cell(xx(:),1);   yy = num2cell(yy(:),1);
+			xx = num2cell(xx(:),1);			yy = num2cell(yy(:),1);
 		end
 		n_lin = length(xx);
-		script{l} = ' ';                        l=l+1;
-		script{l} = [comm ' ---- Plot lines'];  l=l+1;
+		script{l} = sprintf('\n%s ---- Plot lines', comm);  l=l+1;
 		if (n_lin > 0)     % We have more than one line.         E SENAO?
 			LineStyle = get(ALLlineHand,'LineStyle');
 			[LineStyle,LineStyle_gmt] = lineStyle2num(LineStyle);
@@ -1703,7 +1726,7 @@ function [out_msg, warn_msg_pscoast] = build_write_script(handles, opt_J, dest_d
 				name = sprintf('%s_line_%d.dat', prefix_ddir, i);
 				name_sc = sprintf('%s_line_%d.dat', prefix, i);
 				fid = fopen(name,'wt');
-				for j=m(i)+1:m(i+1)
+				for (j = m(i)+1:m(i+1))
 					if (any(isnan(xx{j})))          % If we have NaNs we need to split into segments
 						[latcells,loncells] = aux_funs('polysplit', yy{j}(:),xx{j}(:));
 						for (k=1:numel(loncells))
@@ -1719,8 +1742,8 @@ function [out_msg, warn_msg_pscoast] = build_write_script(handles, opt_J, dest_d
 				cor = round(LineColor(j,:) * 255);
 				cor = [num2str(cor(1)) '/' num2str(cor(2)) '/' num2str(cor(3))];
 				script{l} = ['psxy ' name_sc ellips ' -R -J -W' num2str(LineWidth(j)) 'p,' ...
-						cor LineStyle_gmt{j} ' --MEASURE_UNIT=point -m -O -K >> ' pb 'ps' pf];
-				l=l+1;
+						cor LineStyle_gmt{j} opt_len_unit opt_m ' -O -K >> ' pb 'ps' pf];
+				l = l + 1;
 			end
 		end
 		clear xx yy cor fid m name name_sc LineStyle LineWidth LineColor
@@ -1791,8 +1814,7 @@ function [out_msg, warn_msg_pscoast] = build_write_script(handles, opt_J, dest_d
             str = {str};				%font = {font};
         end
         n_text = numel(str);
-		script{l} = ' ';		l=l+1;
-        script{l} = [comm ' ---- Plot text strings'];   l=l+1;    
+        script{l} = sprintf('\n%s ---- Plot text strings', comm);   l=l+1;    
         for (i = 1:n_text)
 			frmt = 'echo %.5f %.5f %d %.2f 4 %s %s | pstext %s %s  -R -J -O -K >> %sps%s';
 			% Quick and dirty patch for when opt_G is a cell of cells and it than crash below on sprintf
@@ -1837,8 +1859,7 @@ function [out_msg, warn_msg_pscoast] = build_write_script(handles, opt_J, dest_d
 		end
 		YTick = get(axHandle(1),'YTick');		bInt = YTick(2) - YTick(1);		% To use in -B option
 		opt_D = sprintf(' -D%.2f%c/%.2f%c/%.2f%c/%.2f%c',mapW+marg,unitC, cbH/2,unitC, cbH,unitC, cbW,unitC);
-		script{l} = ' ';        l=l+1;
-		script{l} = [comm ' ---- Plot colorbar ---'];   l=l+1;
+		script{l} = sprintf('\n%s ---- Plot colorbar ---', comm);   l=l+1;
 		script{l} = ['psscale' opt_D ' -S -C' pb 'cpt' pf ' -B' num2str(bInt) ' -O -K >> ' pb 'ps' pf];
 		script{saveBind} = [script{saveBind} 'WSNe'];		% Don't write West anotations
 	end
@@ -1889,9 +1910,8 @@ function [out_msg, warn_msg_pscoast] = build_write_script(handles, opt_J, dest_d
 		opt_J = sprintf(' %s0.6c', opt_J(1:i));
 		if (strcmpi(script{saveBind}(end), 'n')),	script{saveBind}(end) = [];		end		% Don't want top frame line
 		l=l+1;
-		script{l} = ' ';              l=l+1;
-		script{l} = [comm ' ---- Plot the magnetic reversals bars (positives only)'];   l=l+1;
-		script{l} = ['psxy ' name_sc opt_R opt_J Y0 ' -m -O -K >> ' pb 'ps' pf];
+		script{l} = sprintf('\n%s ---- Plot the magnetic reversals bars (positives only)', comm);   l=l+1;
+		script{l} = ['psxy ' name_sc opt_R opt_J Y0 opt_m ' -O -K >> ' pb 'ps' pf];
 	end
 	% ==============================================================================================
 
@@ -1946,8 +1966,7 @@ function [out_msg, warn_msg_pscoast] = build_write_script(handles, opt_J, dest_d
 function [script, l, warn_msg_pscoast] = do_pscoast(handles, script, l, comm, pb, pf, ellips)
 % Do the work of writing a pscoast command
 
-	script{l} = ' ';						l = l + 1;
-	script{l} = [comm 'Plot coastlines'];	l = l + 1;
+	script{l} = sprintf('\n%s Plot coastlines', comm);	l = l + 1;
 	opt_R = ' -R';		opt_J = ' -J';		warn_msg_pscoast = '';
 	if (~handles.handMir.geog && handles.handMir.is_projected)
 		[xy_prj, msg] = geog2projected_pts(handles.handMir, [handles.x_min handles.y_min; handles.x_min handles.y_max; ...
