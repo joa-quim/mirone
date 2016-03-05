@@ -8,10 +8,9 @@ function out = deal_opts(opt, opt2, varargin)
 % OPT2 can be a uimenu handle for cases where the OPT case needs one
 %
 % OPT2 optionally may hold the name of an internal sub-function, in which case that function
-% is called with eventual extra arguments transmited in varargin
+% is called with optional extra arguments transmited in varargin
 
-% $Id: deal_opts.m 4755 2015-07-28 19:11:39Z j $
-%	Copyright (c) 2004-2012 by J. Luis
+%	Copyright (c) 2004-2016 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -26,7 +25,7 @@ function out = deal_opts(opt, opt2, varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: deal_opts.m 4755 2015-07-28 19:11:39Z j $
+% $Id: deal_opts.m 7824 2016-03-05 14:24:47Z j $
 
 	if (nargin >= 2 && ischar(opt2))
 		out = feval(opt2, varargin{:});
@@ -38,7 +37,7 @@ function out = deal_opts(opt, opt2, varargin)
 	out = [];
 	hCust = [];
 
-	if ( ~exist(opt_file, 'file') == 2 ),	return,		end
+	if (~exist(opt_file, 'file') == 2),		return,		end
 	fid = fopen(opt_file, 'r');
 	c = (fread(fid,'*char'))';      fclose(fid);
 	lines = strread(c,'%s','delimiter','\n');   clear c fid;
@@ -108,6 +107,15 @@ function out = deal_opts(opt, opt2, varargin)
 						end
 						uimenu(hCust, 'Label', 'Show GMT db polygon IDs', 'Call', @sow_GMT_DB_IDs);
 						uimenu(hCust, 'Label', 'Load GMT db polygon(s)', 'Call',  @load_GMT_DB);
+						break
+					end
+
+				case 'gmt_symbol'		% To plot a GMT custom symbol ~inside rectangle
+					if (strcmp(lines{k}(5:end),'GMT_SYMBOL'))
+						if (isempty(hCust))	% Create a uimenu associated to a rectangle
+							hCust = uimenu(opt2, 'Label', 'Custom','Sep','on');
+						end
+						uimenu(hCust, 'Label', 'Associate to a GMT symbol', 'Call', @assoc_gmt_symbol, 'Sep', 'on');
 						break
 					end
 			end
@@ -316,7 +324,7 @@ function sow_GMT_DB_IDs(obj, event)
 	end
 
 % -----------------------------------------------------------------------------------------
-function load_GMT_DB(obj, event)
+function load_GMT_DB(obj, evt)
 % Load one of the GMT DB ASCII files and trim contents such that only elements that
 % totally or partially cross the rectangle area are displayed.
 
@@ -329,3 +337,12 @@ function load_GMT_DB(obj, event)
 	rx = get(hRect,'XData');		ry = get(hRect,'YData');
 	handles.ROI_rect = [min(rx) max(rx) min(ry) max(ry)];	% Signal load_xyz() that we want to use this ROI
 	load_xyz(handles, fname)
+
+% -----------------------------------------------------------------------------------------
+function assoc_gmt_symbol(obj, evt)
+% Associate a GMT custom symbol file to the line object that called this function
+
+	str = {'*.def;*.eps','GMT custom symbol (*.def,*.eps)'; '*.*', 'All Files (*.*)'};
+	[FileName,PathName] = put_or_get_file(guidata(gco),str,'Select GMT custom symbol','get');
+	if isequal(FileName,0),		return,		end
+	setappdata(gco, 'cust_symb', [PathName FileName])	% OK, now it's up to write_gmt_script to use this info
