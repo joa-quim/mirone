@@ -16,7 +16,7 @@ function varargout = write_gmt_script(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: write_gmt_script.m 7828 2016-03-06 13:25:47Z j $
+% $Id: write_gmt_script.m 7829 2016-03-06 20:28:41Z j $
 
 	handMir = varargin{1};
 	if (handMir.no_file)     % Stupid call with nothing loaded on the Mirone window
@@ -1101,12 +1101,14 @@ function [out_msg, warn_msg_pscoast] = build_write_script(handles, opt_J, dest_d
 	end
 
 	if (handles.have_GMT5)
-		opt_annotsize = '--FONT_ANNOT_PRIMARY=10p';
-		opt_len_unit  = ' --PROJ_LENGTH_UNIT=point';
+		opt_annotsize  = '--FONT_ANNOT_PRIMARY=10p';
+		opt_len_unit   = ' --PROJ_LENGTH_UNIT=point';
+		opt_frameWidth = '--MAP_FRAME_WIDTH=0.15c';
 		opt_m = '';
 	else
 		opt_annotsize = '--ANNOT_FONT_SIZE_PRIMARY=10p';
 		opt_len_unit  = ' --MEASURE_UNIT=point';
+		opt_frameWidth = '--FRAME_WIDTH=0.15c';
 		opt_m = ' -m';
 	end
 	frmPen = '';
@@ -1160,6 +1162,10 @@ function [out_msg, warn_msg_pscoast] = build_write_script(handles, opt_J, dest_d
 		script{l} = [comm ' ---- Longitude annotation style. Use the +ddd:mm:ss form => [0;360] range '];    l=l+1;
 		script{l} = ['deg_form=' opt_deg];      l=l+1;
 		script{l} = '';                             l=l+1;
+		script{l} = [comm ' ---- Width (> 0) of map borders for fancy map frame'];    l=l+1;
+		script{l} = ['frame_width=' opt_frameWidth];      l=l+1;
+		script{l} = [comm ' ---- Annotation font size in points'];    l=l+1;
+		script{l} = ['annot_size=' opt_annotsize];      l=l+1;
 		prefix_ddir = [dest_dir filesep prefix];    % Add destination dir to the name prefix
 		if (~isempty(grd_name))
 			if (~need_path)
@@ -1190,6 +1196,8 @@ function [out_msg, warn_msg_pscoast] = build_write_script(handles, opt_J, dest_d
 		script{l} = [comm ' ---- Longitude annotation style. Use the +ddd:mm:ss form => [0;360] range '];	l=l+1;
 		script{l} = ['set deg_form=' opt_deg];		l=l+1;
 		script{l} = '';								l=l+1;
+		script{l} = [comm ' ---- Width (> 0) of map borders for fancy map frame'];    l=l+1;
+		script{l} = ['set frame_width=' opt_frameWidth];      l=l+1;
 		script{l} = [comm ' ---- Annotation font size in points'];    l=l+1;
 		script{l} = ['set annot_size=' opt_annotsize];      l=l+1;
 		if (handMir.IamXY)
@@ -1217,7 +1225,8 @@ function [out_msg, warn_msg_pscoast] = build_write_script(handles, opt_J, dest_d
 	% ------------- Start writing GMT commands --------------------------------
 	script{l} = sprintf('\n%s --- Start by creating the basemap frame.', comm);		l=l+1;
 	script{l} = ['psbasemap ' pb 'lim' pf ' ' pb 'proj' pf ' ' pb 'frm' pf ' ' X0 ' ' Y0 opt_U opt_P ...
-	             ' ' pb 'deg_form' pf ' ' pb 'annot_size' pf ' ' pb 'framePen' pf ' -K > ' pb 'ps' pf];		l=l+1;
+	             ' ' pb 'deg_form' pf ' ' pb 'annot_size' pf ' ' pb 'framePen' pf ' ' pb 'frame_width' pf ' -K > ' pb 'ps' pf];
+			 l=l+1;
 
 	if (~isempty(grd_name))
 		% If renderer == OpenGL, that is interpreted as a transparency request. In that case we need a screen capture
