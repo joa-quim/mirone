@@ -1157,7 +1157,7 @@ function [out_msg, warn_msg_pscoast] = build_write_script(handles, opt_J, dest_d
 		script{l} = [comm ' ---- Map limits. You may change it if you know how to'];    l=l+1;
 		script{l} = ['lim=' opt_R];			l=l+1;
 		script{l} = comm;							l=l+1;
-		script{l} = [comm ' ---- Longitude annotation style. The +ddd:mm:ss form => [0;360] range '];    l=l+1;
+		script{l} = [comm ' ---- Longitude annotation style. Use the +ddd:mm:ss form => [0;360] range '];    l=l+1;
 		script{l} = ['deg_form=' opt_deg];      l=l+1;
 		script{l} = '';                             l=l+1;
 		prefix_ddir = [dest_dir filesep prefix];    % Add destination dir to the name prefix
@@ -1187,7 +1187,7 @@ function [out_msg, warn_msg_pscoast] = build_write_script(handles, opt_J, dest_d
 		script{l} = [comm ' ---- Map limits. You may change it if you know how to'];		l=l+1;
 		script{l} = ['set lim=' opt_R];				l=l+1;
 		script{l} = comm;							l=l+1;
-		script{l} = [comm ' ---- Longitude annotation style. The +ddd:mm:ss form => [0;360] range '];	l=l+1;
+		script{l} = [comm ' ---- Longitude annotation style. Use the +ddd:mm:ss form => [0;360] range '];	l=l+1;
 		script{l} = ['set deg_form=' opt_deg];		l=l+1;
 		script{l} = '';								l=l+1;
 		script{l} = [comm ' ---- Annotation font size in points'];    l=l+1;
@@ -1234,7 +1234,8 @@ function [out_msg, warn_msg_pscoast] = build_write_script(handles, opt_J, dest_d
 			% We have a image illuminated with grdgradient. Rebuild de illumination
 			illumComm = getappdata(handMir.figure1,'illumComm');
 			opt_M = '';
-			if (handMir.Illumin_type == 1 && handMir.geog),   opt_M = ' -M';     end
+			if (handMir.Illumin_type == 1 && handMir.geog),		opt_M = ' -M';	end
+			if (~isempty(opt_M) && handles.have_GMT5),			opt_M = ' -fg';	end
 			opt_N = '';
 			if (handMir.Illumin_type == 1),      opt_N = ' -Nt';     end
 			name_illum = [prefix '_intens.grd=cf'];
