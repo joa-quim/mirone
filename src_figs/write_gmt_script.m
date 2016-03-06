@@ -16,7 +16,7 @@ function varargout = write_gmt_script(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: write_gmt_script.m 7825 2016-03-05 14:26:27Z j $
+% $Id: write_gmt_script.m 7827 2016-03-06 00:48:27Z j $
 
 	handMir = varargin{1};
 	if (handMir.no_file)     % Stupid call with nothing loaded on the Mirone window
@@ -88,12 +88,16 @@ function varargout = write_gmt_script(varargin)
 
 	% ------------ See if GMT5 is around ---------------------------------------------------------------
 	handles.have_GMT5 = false;
-	if (ispc)
-		[s, w] = dos('gmt --show-bindir');
-	else
-		[s, w] = unix('gmt --show-bindir');
+	try
+		if (ispc)
+			[s, w] = dos('gmt --show-bindir');
+		else
+			[s, w] = unix('gmt --show-bindir');
+		end
+		% Ask for the second arg so that it won't be printed without request
+	catch			% Falls here if no GMT5 around
+		s = 1;
 	end
-	% Ask for the second arg so that it won't be printed without request
 	if (s == 0),	handles.have_GMT5 = true;	end
 	% --------------------------------------------------------------------------------------------------
 
@@ -1967,7 +1971,7 @@ function [script, l, warn_msg_pscoast] = do_pscoast(handles, script, l, comm, pb
 % Do the work of writing a pscoast command
 
 	script{l} = sprintf('\n%s Plot coastlines', comm);	l = l + 1;
-	opt_R = ' -R';		opt_J = ' -J';		warn_msg_pscoast = '';
+	opt_R = ' -R';		opt_J = ' -J';		warn_msg_pscoast = '';		proj4 = '';
 	if (~handles.handMir.geog && handles.handMir.is_projected)
 		[xy_prj, msg] = geog2projected_pts(handles.handMir, [handles.x_min handles.y_min; handles.x_min handles.y_max; ...
 										   handles.x_max handles.y_max; handles.x_max handles.y_min;], ...
@@ -2014,7 +2018,7 @@ function [script, l, warn_msg_pscoast] = do_pscoast(handles, script, l, comm, pb
 	if (~isempty(warn_msg_pscoast))		% Save the proj4 string in script so that user may use it to finish -J
 		script{l} = sprintf('%s --- Use this proj info to finish the -J option in next line\n%s %s\n', comm, comm, proj4);
 		l = l + 1;
-	elseif (~isempty(proj4))	% Anyway, save the proj4 string as cmment.
+	elseif (~isempty(proj4))	% Anyway, save the proj4 string as comment.
 		script{l} = sprintf('%s --- Proj4 string describing the grid''s projection. -J may benefit from an extra review.\n%s %s', ...
 			comm, comm, proj4);
 		l = l + 1;
