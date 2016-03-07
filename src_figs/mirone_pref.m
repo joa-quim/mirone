@@ -131,7 +131,7 @@ function varargout = mirone_pref(varargin)
         set(handles.popup_ellipsoide,'String',prf.DefineEllipsoide)
         set(handles.checkbox_meanLat,'Value',prf.scale2meanLat)
 	catch       % Comes here in first call before variables are stored in mirone_pref.mat
-        DefLineThick = {'2 pt'; '1 pt'; '3 pt'; '4 pt'};
+        DefLineThick = {'0.5 pt'; '1 pt'; '2 pt'; '3 pt'; '4 pt'};
         DefLineColor = {'White'; 'Black'; 'Red'; 'Green'; 'Blue'; 'Cyan'; 'Yellow'; 'Magenta'};
         DefineMeasureUnit = {'nautic miles'; 'kilometers'; 'meters'; 'user'};
         set(handles.popup_DefLineThickness,'String',DefLineThick)
