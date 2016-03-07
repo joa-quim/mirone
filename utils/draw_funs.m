@@ -25,7 +25,7 @@ function varargout = draw_funs(hand, varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: draw_funs.m 7823 2016-03-05 14:21:55Z j $
+% $Id: draw_funs.m 7832 2016-03-07 01:26:24Z j $
 
 % A bit of strange tests but they are necessary for the cases when we use the new feval(fun,varargin{:}) 
 opt = varargin{1};		% function name to evaluate (new) or keyword to select one (old form)
@@ -221,6 +221,7 @@ function set_line_uicontext(h, opt)
 	% Check to see if we are dealing with a multibeam track
 	cmenuHand = uicontextmenu('Parent',handles.figure1);
 	set(h, 'UIContextMenu', cmenuHand);
+	set(cmenuHand, 'UserData', h)		% And with this the cmenuHand knows to whom it belongs
 	switch opt
 		case 'line'
 			label_save = 'Save line';   label_length = 'Line length(s)';   label_azim = 'Line azimuth(s)';
@@ -1875,13 +1876,14 @@ function cb = uictx_color(h,opt)
 
 % -----------------------------------------------------------------------------------------
 function cb = uictx_LineWidth(h)
-	% Set uicontext colors in object hose handle is gco (or h for "other color")
-	cb{1} = 'set(gco, ''LineWidth'', 1);refresh';   cb{2} = 'set(gco, ''LineWidth'', 2);refresh';
-	cb{3} = 'set(gco, ''LineWidth'', 3);refresh';   cb{4} = 'set(gco, ''LineWidth'', 4);refresh';
+% Set uicontext colors in object hose handle is gco (or h for "other color")
+	cb{1} = 'set(gco, ''LineWidth'', 1);refresh';		cb{2} = 'set(gco, ''LineWidth'', 2);refresh';
+	cb{3} = 'set(gco, ''LineWidth'', 3);refresh';		cb{4} = 'set(gco, ''LineWidth'', 4);refresh';
 	cb{5} = {@other_LineWidth,h};
 
-function other_LineWidth(obj,eventdata,h)
-	resp  = inputdlg({'Enter new line width (pt)'}, 'Line width', [1 30]);
+function other_LineWidth(obj,evt,h)
+	lw = get(h, 'LineWidth');
+	resp  = inputdlg({'Enter new line width (pt)'}, 'Line width', [1 30], {num2str(lw)});
 	if isempty(resp),	return,		end
 	set(h,'LineWidth',str2double(resp));        refresh
 % -----------------------------------------------------------------------------------------
