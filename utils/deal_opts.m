@@ -369,3 +369,4 @@ function show_symbName(obj, evt, h)
 	hTxt = text(pos(1),pos(2), fname, 'Interpreter', 'none');
 	pause(1)
 	delete(hTxt)
+	refresh(get(hAx, 'Parent'))		% Need this because of the bloody compiled version bugs.
