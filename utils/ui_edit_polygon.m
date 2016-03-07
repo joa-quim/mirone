@@ -10,7 +10,9 @@ function ui_edit_polygon(varargin)
 % of obj and turn it off if necessary
 %
 % This function may also call a callback function registered in 'RunCB' appdata
-% that will be executed at a button up. See wbu_EditPolygon() to see how it works
+% that will be executed at a button up. See wbu_EditPolygon() to see how it works.
+% Another option is a function, registered in 'BD_runCB' appdata, that will be
+% called only when doing a single right-click on the line element.
 %
 % 	MOVE_CHOICE		% Controls what mouse selection is used to move the whole polygon.
 % 					% If == empty, polygon is moved with a left click. That has often anoying side effects
@@ -177,6 +179,18 @@ function polygonui(varargin)
 	if (~ishandle(varargin{1})),		return,		end
 	s = getappdata(varargin{1},'polygon_data');
 	stype = get(s.h_fig,'selectiontype');
+
+	% See if we have a registered ButtonDownFcn function. If yes, run it and return
+	if (strcmpi(stype, 'normal'))
+		RunCB = getappdata(varargin{1}, 'BD_runCB');	% See if we have a callback function to run when just right-click
+		if (~isempty(RunCB))
+			if (numel(RunCB) == 1),		feval(RunCB{1});
+			else						feval(RunCB{1},RunCB{2:end});
+			end
+		end
+		return
+	end
+
 	if (~strcmpi(stype,'open')),	return,		end
 
 	switch s.controls
