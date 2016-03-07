@@ -20,7 +20,7 @@ function varargout = mirone(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: mirone.m 7834 2016-03-07 01:41:54Z j $
+% $Id: mirone.m 7835 2016-03-07 22:22:17Z j $
 
 	if (nargin > 1 && ischar(varargin{1}))
 		if ( ~isempty(strfind(varargin{1},':')) || ~isempty(strfind(varargin{1},filesep)) )
@@ -91,7 +91,7 @@ function hObject = mirone_OpeningFcn(varargin)
 	end
 
 	handles.home_dir = home_dir;
-	handles.DefLineThick = 1;		% Default line thickness (overwriten by mirone_pref)
+	handles.DefLineThick = 0.5;		% Default line thickness (overwriten by mirone_pref)
 	handles.DefLineColor = 'k';		% Default line color (overwriten by mirone_pref)
 	handles.DefineMeasureUnit = 'k';% Default measure units to kilometrs (overwriten by mirone_pref)
 	handles.grdname = [];			% Contains the name of the current (if it's the case) gmt grid
@@ -148,7 +148,7 @@ function hObject = mirone_OpeningFcn(varargin)
 		handles.grdMaxSize = prf.grdMaxSize;				% 2^20 = 1 Mb
 		handles.swathRatio = prf.swathRatio;
 		handles.last_directories = prf.directory_list;
-		handles.DefLineThick = sscanf(prf.DefLineThick{1}(1),'%f');
+		handles.DefLineThick = sscanf(strtok(prf.DefLineThick{1}),'%f');
 		% Decode the line color string into the corresponding char (e.g. k,w, etc...)
 		if (strcmp(prf.DefLineColor{1},'Black')),	handles.DefLineColor = 'k';
 		else										handles.DefLineColor = lower(prf.DefLineColor{1}(1));
