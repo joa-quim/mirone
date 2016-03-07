@@ -28,7 +28,11 @@ function out = deal_opts(opt, opt2, varargin)
 % $Id$
 
 	if (nargin >= 2 && ischar(opt2))
-		out = feval(opt2, varargin{:});
+		if (nargout)
+			out = feval(opt2, varargin{:});
+		else
+			feval(opt2, varargin{:});
+		end
 		return
 	end
 
@@ -116,6 +120,9 @@ function out = deal_opts(opt, opt2, varargin)
 							hCust = uimenu(opt2, 'Label', 'Custom','Sep','on');
 						end
 						uimenu(hCust, 'Label', 'Associate to a GMT symbol', 'Call', @assoc_gmt_symbol, 'Sep', 'on');
+						h = get(opt2, 'UserData');		% Fish the line handle
+						fname = getappdata(h, 'cust_symb');	% If not empty than we have a call from FileOpenSession_CB
+						if (~isempty(fname)),	assoc_gmt_symbol([], [], h),	end		% and want only to set the BDF CB
 						break
 					end
 			end
@@ -309,7 +316,7 @@ function sow_GMT_DB_IDs(obj, event)
 	c = false(numel(hGMT_DB),1);	ID = cell(numel(hGMT_DB),1);
 	for (m = 1:numel(hGMT_DB))			% Loop over objects to find out which cross the rectangle
 		x = get(hGMT_DB(m),'XData');	y = get(hGMT_DB(m),'YData');
-		if ( any( (x >= rx(1) & x <= rx(2)) & (y >= ry(1) & y <= ry(2)) ) )
+		if (any((x >= rx(1) & x <= rx(2)) & (y >= ry(1) & y <= ry(2))))
 			str = getappdata(hGMT_DB(m), 'LineInfo');
 			ind_IDi = strfind(str, 'Id = ');		ind_IDe = strfind(str, ' N =');
 			ID{m} = str(ind_IDi+5:ind_IDe-1);
@@ -339,10 +346,26 @@ function load_GMT_DB(obj, evt)
 	load_xyz(handles, fname)
 
 % -----------------------------------------------------------------------------------------
-function assoc_gmt_symbol(obj, evt)
+function assoc_gmt_symbol(obj, evt, h)
 % Associate a GMT custom symbol file to the line object that called this function
 
-	str = {'*.def;*.eps','GMT custom symbol (*.def,*.eps)'; '*.*', 'All Files (*.*)'};
-	[FileName,PathName] = put_or_get_file(guidata(gco),str,'Select GMT custom symbol','get');
-	if isequal(FileName,0),		return,		end
-	setappdata(gco, 'cust_symb', [PathName FileName])	% OK, now it's up to write_gmt_script to use this info
+	if (nargin == 2)	% Otherwise this is a call issued in FileOpenSession_CB and we only want to set the BDF CB
+		h = gco;
+		str = {'*.def;*.eps','GMT custom symbol (*.def,*.eps)'; '*.*', 'All Files (*.*)'};
+		[FileName,PathName] = put_or_get_file(guidata(gco),str,'Select GMT custom symbol','get');
+		if isequal(FileName,0),		return,		end
+		setappdata(h, 'cust_symb', [PathName FileName])	% OK, now it's up to write_gmt_script to use this info
+		set(h, 'LineStyle', '--')		% Use this style to indicate the different nature of this element
+	end
+	setappdata(h, 'BD_runCB', {'deal_opts', [], 'show_symbName',[], [], h})	% First [] is the 'opt' (not used) arg in this main
+
+% -----------------------------------------------------------------------------------------
+function show_symbName(obj, evt, h)
+% Print the associated symbol file name for a period of one second
+	hAx = get(h, 'Parent');
+	fname = getappdata(h, 'cust_symb');
+	if (isempty(fname)),	return,		end
+	pos = get(hAx, 'CurrentPoint');		pos = pos(1,:);
+	hTxt = text(pos(1),pos(2), fname, 'Interpreter', 'none');
+	pause(1)
+	delete(hTxt)
