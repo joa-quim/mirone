@@ -25,7 +25,7 @@ function out = deal_opts(opt, opt2, varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: deal_opts.m 7831 2016-03-07 01:22:55Z j $
+% $Id: deal_opts.m 7836 2016-03-07 22:25:03Z j $
 
 	if (nargin >= 2 && ischar(opt2))
 		if (nargout)
@@ -369,3 +369,4 @@ function show_symbName(obj, evt, h)
 	hTxt = text(pos(1),pos(2), fname, 'Interpreter', 'none');
 	pause(1)
 	delete(hTxt)
+	refresh(get(hAx, 'Parent'))		% Need this because of the bloody compiled version bugs.
