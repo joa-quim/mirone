@@ -20,7 +20,7 @@ function varargout = mirone(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: mirone.m 7820 2016-03-03 02:21:40Z j $
+% $Id: mirone.m 7834 2016-03-07 01:41:54Z j $
 
 	if (nargin > 1 && ischar(varargin{1}))
 		if ( ~isempty(strfind(varargin{1},':')) || ~isempty(strfind(varargin{1},filesep)) )
@@ -67,7 +67,6 @@ function hObject = mirone_OpeningFcn(varargin)
 %#function usgs_recent_seismicity sat_orbits uisetdate doy
 %#function c_cpt2cmap c_grdfilter c_grdinfo c_grdlandmask c_grdproject c_grdread c_grdsample
 %#function c_grdtrend c_mapproject c_nearneighbor c_shoredump c_surface popenr
-
 
 	global gmt_ver;		gmt_ver = 5;	global home_dir;	fsep = filesep;
 	toCompile = false;		% To compile set this one to TRUE
@@ -1227,8 +1226,6 @@ function File_img2GMT_RGBgrids_CB(handles, opt1, opt2)
 	else		% It means the output file name was transmited in input
 		[PathName,FileName] = fileparts(opt2);		PathName = [PathName filesep];
 	end
-
-	set(handles.figure1,'pointer','watch')
 
 	[PATH,FNAME,EXT] = fileparts([PathName FileName]);
 	if isempty(EXT),	EXT = '.grd';		end	
@@ -3609,6 +3606,7 @@ function FileOpenSession_CB(handles, fname)
 			datasets_funs('Rivers', handles, s.riversUD(2), s.riversUD(1));
 		end
 	end
+	handles.last_dir = fileparts(figName);		% We want it to point to where te .mat file came from.
 	guidata(handles.figure1, handles);
 	handles.fileName = figName;					% TRICK. To be used only in the next call to recentFiles()
 	handles = recentFiles(handles);				% Insert session into "Recent Files" & NOT NOT NOT save handles
