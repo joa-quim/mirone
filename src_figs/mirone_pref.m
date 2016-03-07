@@ -16,7 +16,7 @@ function varargout = mirone_pref(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: mirone_pref.m 7788 2016-02-11 18:13:12Z j $
+% $Id: mirone_pref.m 7833 2016-03-07 01:29:51Z j $
 
 	hObject = figure('Vis','off');
 	mirone_pref_LayoutFcn(hObject);
@@ -131,7 +131,7 @@ function varargout = mirone_pref(varargin)
         set(handles.popup_ellipsoide,'String',prf.DefineEllipsoide)
         set(handles.checkbox_meanLat,'Value',prf.scale2meanLat)
 	catch       % Comes here in first call before variables are stored in mirone_pref.mat
-        DefLineThick = {'2 pt'; '1 pt'; '3 pt'; '4 pt'};
+        DefLineThick = {'0.5 pt'; '1 pt'; '2 pt'; '3 pt'; '4 pt'};
         DefLineColor = {'White'; 'Black'; 'Red'; 'Green'; 'Blue'; 'Cyan'; 'Yellow'; 'Magenta'};
         DefineMeasureUnit = {'nautic miles'; 'kilometers'; 'meters'; 'user'};
         set(handles.popup_DefLineThickness,'String',DefLineThick)
