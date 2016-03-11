@@ -2,11 +2,11 @@ function varargout = slices(varargin)
 % SLICES show individual layers of 3D netCDF file and apply several processing algos to satellite data 
 %
 %	To read a file and call aquaPlugin and direct it to use a "control script"
-%		aquamoto file.nc 'file_name_of_control_script'
+%		slices file.nc 'file_name_of_control_script'
 %	To read a file and tell aquaPlugin to search the control script name in the OPTcontrol.txt file:
-%		aquamoto('file.nc', 0)
+%		slices('file.nc', 0)
 
-%	Copyright (c) 2004-2015 by J. Luis
+%	Copyright (c) 2004-2016 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
