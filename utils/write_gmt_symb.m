@@ -51,7 +51,7 @@ function write_gmt_symb(handles)
 		end
 		shift_x = min(shift_x, min(min_x));		shift_y = min(shift_y, min(min_y));
 		dx = max(max_x) - min(min_x);	dy = max(max_y) - min(min_y);
-		d = max(d, max(dx, dy));
+		d = max(dx, dy);
 	end
 	scale = 1 / d;
 	% ---------------------------------------------------------------------------------------------------
