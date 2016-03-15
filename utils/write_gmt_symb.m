@@ -16,7 +16,7 @@ function write_gmt_symb(handles)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: write_gmt_symb.m 7744 2016-01-09 01:44:32Z j $
+% $Id: write_gmt_symb.m 7840 2016-03-15 15:49:59Z j $
 
 	ALLlineHand = findobj(get(handles.axes1,'Child'),'Type','line');
 	ALLpatchHand = findobj(get(handles.axes1,'Child'),'Type','patch');
@@ -51,7 +51,7 @@ function write_gmt_symb(handles)
 		end
 		shift_x = min(shift_x, min(min_x));		shift_y = min(shift_y, min(min_y));
 		dx = max(max_x) - min(min_x);	dy = max(max_y) - min(min_y);
-		d = max(d, max(dx, dy));
+		d = max(dx, dy);
 	end
 	scale = 1 / d;
 	% ---------------------------------------------------------------------------------------------------
