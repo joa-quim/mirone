@@ -18,7 +18,7 @@ function  varargout = aux_funs(opt,varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: aux_funs.m 7807 2016-02-24 18:43:49Z j $
+% $Id: aux_funs.m 7846 2016-03-31 23:20:42Z j $
 
 switch opt(1:4)
 	case 'Stor'		% 'StoreZ'
@@ -481,7 +481,7 @@ function toBandsList(hFig, I, array_name, fname, n_bands, bands_inMemory, reader
 
 % ----------------------------------------------------------------------------------
 function prjInfoStruc = getFigProjInfo(handles)
-% Se if we have projection info stored in Figure's appdata. NOTE, often they are empty
+% See if we have projection info stored in Figure's appdata. NOTE, often they are empty
 	prjInfoStruc.projGMT = getappdata(handles.figure1,'ProjGMT');
 	prjInfoStruc.projWKT = getappdata(handles.figure1,'ProjWKT');
 	prjInfoStruc.proj4 = getappdata(handles.figure1,'Proj4');
@@ -832,7 +832,7 @@ function appProjectionRef(handles, strWKT)
 		end
 		setappdata(handles.figure1,'ProjWKT',strWKT)
 		out = decodeProjectionRef(strWKT);				% Decode Proj reference string
-		if ( ~isempty(out.datum) || ~isempty(out.ellipsoid) || ~isempty(out.projection) )
+		if (~isempty(out.datum) || ~isempty(out.ellipsoid) || ~isempty(out.projection))
 			setappdata(handles.axes1,'DatumProjInfo',out)
 		end
 	else							% Otherwise remove eventual previous one
