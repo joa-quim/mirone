@@ -1,8 +1,8 @@
 function varargout = load_xyz(handles, opt, opt2)
 % Read a generic ascii file that can be, or not, a multi-segment file
 %
-%	Multi-segs files accept -G, -S & -W GMT type options plus a proj4 string for referencing.
-%		The proj4 string should be one single word e.g. +proj4=latlong or enclosed in "+proj=longlat +datum=..."
+%	Multi-segs files accept -G, -S -W & -: GMT type options plus a proj4 string for referencing.
+%		The proj4 string should be one single word e.g. +proj=latlong or enclosed in "+proj=longlat +datum=..."
 %		-S<symb>[size] accepts these GMT type symbol codes <a|c|d|h|i|n|p|s|x|+>
 %		-S<symb>[size][+s<scale>][+f][+c<cor>[+c<cor>]]		==> Full syntax
 %		 Use +s<scale> with files with 3 columns where 3rd column will be used to determine the symbol color
@@ -44,7 +44,7 @@ function varargout = load_xyz(handles, opt, opt2)
 %		'>U_N_I_K'	plot a single line NaN separated
 %		'>ARROW'	plot an arrow field
 %		'>VIMAGE'	tell Fleder to plot a scene with a VIMAGE
-%		'>-:'		swap 1st and 2nd columns (assumed as (y,x) -> (x,y))
+%		'>-:'		swap 1st and 2nd columns (assumed as (y,x) -> (x,y)) (The -: can now also be anywhere in the string)
 %		'>CLOSE'	plot patches instead of lines (idependently of pline being closed or not)
 %		'>HAVE_INCLUDES'	Signal that this file has multi-segment headers with the form:
 %					'> INCLUDE=FULL_PATH_TO_FILE'
@@ -64,7 +64,7 @@ function varargout = load_xyz(handles, opt, opt2)
 %					Example: >POLYMESH -pol=L-1_G-1_P-1.dat -inc=1000 -interp=1 -data= -grid=0 -binary=0 -single=1
 %		'>XY'       Send the data read here to the XYtool (Ecran). File can be single or multi-column & multi-segment
 
-%	Copyright (c) 2004-2015 by J. Luis
+%	Copyright (c) 2004-2016 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -79,7 +79,7 @@ function varargout = load_xyz(handles, opt, opt2)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: load_xyz.m 7729 2015-11-25 02:01:12Z j $
+% $Id: load_xyz.m 7847 2016-03-31 23:27:02Z j $
 
 %	EXAMPLE CODE OF HOW TO CREATE A TEMPLATE FOR UICTX WHEN THESE ARE TOO MANY
 % 	cmenuHand = get(h, 'UIContextMenu');
@@ -392,20 +392,11 @@ function varargout = load_xyz(handles, opt, opt2)
 			end
 			struc_vimage = struct('z_min', z_Vmin, 'z_max', z_Vmax, 'vimage', vimage);
 
-		elseif (strncmp(multi_segs_str{1}, '>-:', 3))				% File has y,x instead of x,y
-			multi_segs_str{1}(2:3) = [];							% Rip the swap -: identifier
-			for (i = 1:n_segments)				% Swapp 1st and 2th columns. Do differently would be very complex
-				tmp = numeric_data{i}(:,1);
-				numeric_data{i}(:,1) = numeric_data{i}(:,2);
-				numeric_data{i}(:,2) = tmp;
-			end
-			clear tmp
-
 		elseif (strncmp(multi_segs_str{1}, '>CLOSE', 6))			% Closed or not, plot a patch
 			multi_segs_str{1}(2:6) = [];							% Rip the CLOSE identifier
 			do_patch = true;
 
-		elseif (strncmpi(multi_segs_str{1}, '>HAVE_INCLUDES', 7))	% This file includs other files
+		elseif (strncmpi(multi_segs_str{1}, '>HAVE_INCLUDES', 7))	% This file includes other files
 			if (numel(multi_segs_str) - numel(numeric_data) >= 2)	% Test if first segment has a true header
 				multi_segs_str(1) = [];								% (Yes, it has). This header was now in excess.
 			else
@@ -463,10 +454,25 @@ function varargout = load_xyz(handles, opt, opt2)
 				if (~isempty(msg)),		errordlg(msg, 'Error'),		return,		end
 			end
 
+		elseif (strncmp(multi_segs_str{1}, '>-', 2) || strncmp(multi_segs_str{1}, '>+', 2) || strncmp(multi_segs_str{1}, '>"+', 3))
+			multi_segs_str{1} = ['> ' multi_segs_str{1}(2:end)];	% Open a space btween '>' and next char
+
 		elseif (line_type(3) ~= 'P' && ~isempty(strfind(multi_segs_str{1},'-G')) && isempty(strfind(multi_segs_str{1},'-S')) )
 			% -G (paint) alone is enough to make it a patch (if ~point)
 			do_patch = true;
 		end
+
+		% ------------------ Check if File has y,x instead of x,y --------------------------
+		[do, multi_segs_str{1}] = parseSwap(multi_segs_str{1});
+		if (do)
+			for (i = 1:n_segments)				% Swapp 1st and 2th columns.
+				tmp = numeric_data{i}(:,1);
+				numeric_data{i}(:,1) = numeric_data{i}(:,2);
+				numeric_data{i}(:,2) = tmp;
+			end
+			clear tmp do
+		end
+		% -----------------------------------------------------------------------------------
 
 		% -----------------------------------------------------------------------------------
 		% ---------- If OUT is requested there is nothing left to be done here --------------
@@ -523,6 +529,10 @@ function varargout = load_xyz(handles, opt, opt2)
 		[projStr, multi_segs_str{1}] = parseProj(multi_segs_str{1});
 		if (~isempty(projStr)),		do_project = true;		end
 		% -----------------------------------------------------------------------------------
+
+		if (do_project && handles.no_file)		% If new image set the projection info
+			aux_funs('appProjectionRef', handles, projStr)
+		end
 
 		drawnow
 		for (i = 1:n_segments)		% Loop over number of segments of current file (external loop)
@@ -880,15 +890,15 @@ function [thick, cor, str2] = parseW(str)
 
 % --------------------------------------------------------------------
 function [proj, str2] = parseProj(str)
-% Parse the STR string in search for a +proj4 string indicating data SRS
-% The proj4 string should be one single word e.g. +proj4=latlong or enclose in "+proj4=latlong +datum=..."
-% In later case the "" are sriped from the return PROJ variable
-% STR2 is the STR string less the ["]+proj4... part
+% Parse the STR string in search for a +proj string indicating data SRS
+% The proj4 string should be one single word e.g. +proj=latlong or enclosed in "+proj=latlong +datum=..."
+% In later case the "" are sripped away from the return PROJ variable
+% STR2 is the STR string stripped the ["]+proj... part
 	proj = [];		str2 = str;
 	ind = strfind(str, '+proj');
 	if (isempty(ind)),		return,		end			% No proj. Go away.
 	
-	if (str(ind(1)-1) == '"')				% a "+proj4=... ... ..."
+	if (str(ind(1)-1) == '"')				% a "+proj=... ... ..."
 		ind2 = strfind(str, '"');
 		if (numel(ind2) < 2)
 			disp('Error in proj4 string of this file. Ignoring projection request')
@@ -899,6 +909,9 @@ function [proj, str2] = parseProj(str)
 	else
 		proj = strtok(str(ind(1):end));		% For example +proj4=longlat
 		str(ind(1):ind(1)+numel(proj)-1) = [];	% Strip the proj string
+	end
+	if (proj(6) == '4')						% A wrong +proj4 spelling. Remove the extra '4'
+		proj(6) = [];
 	end
 	str2 = str;
 
@@ -960,6 +973,15 @@ function [symbol, symbSize, scale, color_by4, cor1, cor2, str2] = parseS(str)
 			end
 		end
 	end
+
+% --------------------------------------------------------------------------------
+function [do, str] = parseSwap(str)
+% Parse the STR string in search for a -: flag
+	do = false;
+	ind = strfind(str,' -:');
+	if (isempty(ind)),		return,		end		% No -: option
+	do = true;
+	str(ind(1):ind(1)+2) = [];			% Remove the -: from STR
 
 % --------------------------------------------------------------------------------
 function out = read_shapenc(fname)
