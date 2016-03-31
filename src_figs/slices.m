@@ -377,7 +377,9 @@ function popup_cases_CB(hObject, handles)
 		set(handles.edit_periods,'Tooltip',sprintf(['A scalar or vector with the months to compute\n' ...
 			'the climatology. Example:\n' ...
 			'months = 1:1 ==> Computes January climatology\n' ...
-			'months = 6:8  ==> Computes June-July-August seazonal climatology']));
+			'months = 6:8  ==> Computes June-July-August seazonal climatology\n\n' ...
+			'You can also tell it to compute all 12 climatologies at once with\n' ...
+			'All or AllMonths (case insensitive) in which case a 12 layers nc file is computed.']));
 	else
 		set(handles.edit_periods, 'Str', '8')
 		set(handles.edit_periods,'Tooltip',sprintf(['Number of days of the composit period (e.g. 3, 8, 30)\n' ...
@@ -519,7 +521,11 @@ function edit_periods_CB(hObject, handles)
 		end
 		str = sprintf('%d:%d:%d', be(1), (be(2)-be(1)), be(2));
 		set(hObject, 'Str', str)		% Make it as if user had entered a numeric period
-	elseif (numel(str) == 10 && strncmpi(str,'Months',6))		% A 'Monts2012' type request
+	elseif (strncmpi(str, 'all', 3))	% Allow 'all', 'allmonths', 'all?:?' where ? is a month number. For CLIMATOL only
+		if ((numel(str) == 3) || strcmp(str, 'allmonths'))
+			set(hObject, 'Str', '101:112')
+		end
+	elseif (numel(str) == 10 && strncmpi(str,'Months',6))		% A 'Months2012' type request
 		year = str2double(str(7:10));
 		mon = {'Jan' 'Feb' 'Mar' 'Apr' 'May' 'Jun' 'Jul' 'Aug' 'Sep' 'Oct' 'Nov' 'Dec'};
 		b = ones(1,13);
