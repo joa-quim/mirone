@@ -20,7 +20,7 @@ function varargout = empilhador(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: empilhador.m 7819 2016-03-02 01:28:48Z j $
+% $Id: empilhador.m 7843 2016-03-31 16:05:19Z j $
 
 	if (nargin > 1 && ischar(varargin{1}))
 		gui_CB = str2func(varargin{1});
@@ -1000,12 +1000,16 @@ function [att, indSDS, uncomp_name] = get_att(handles, name)
 				ind = strfind(att.Subdatasets{handles.SDSthis * 2 - 1}, '=');
 				indSDS = handles.SDSthis * 2 - 1;
 			else			% The SDS is now numeric but was originaly given as sdsN. Must find N in current list order
-				ind = strfind(att.Subdatasets,sprintf('_%.2d_',  handles.SDSthis));		% Find SUBDATASET_??_NAME
-				k = 1;
-				while (isempty(ind(k)) && k < numel(ind))
-					k = k + 1;
+				for (k = 1:numel(att.Subdatasets))
+					ind = strfind(att.Subdatasets{k}, sprintf('_%.2d_',  handles.SDSthis));		% Find SUBDATASET_??_NAME
+					if (isempty(ind))		% Try also with SUBDATASET_?_NAME (We can f... have both)
+						ind = strfind(att.Subdatasets{k}, sprintf('_%d_',  handles.SDSthis));
+					end
+					if (~isempty(ind))
+						break
+					end
 				end
-				if (k == numel(ind))
+				if (k == numel(att.Subdatasets))
 					errordlg('The SDS number was not found in SUBDATASET_?? list.','ERROR')
 					error('The SDS number was not found in SUBDATASET_?? list.')
 				end
