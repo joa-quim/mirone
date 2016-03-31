@@ -441,7 +441,7 @@ function push_OK_CB(hObject, handles)
 	deflation_level = get(handles.popup_deflation, 'val') - 1;
 	handles.handMir.deflation_level = deflation_level;
 	% Decode the line thickness string into a number
-	handles.handMir.DefLineThick = str2double(DefLineThick{1}(1));
+	handles.handMir.DefLineThick = str2double(strtok(DefLineThick{1}));
 	% Decode the line color string into the corresponding char (e.g. k,w, etc...)
 	switch DefLineColor{1}
 		case 'Black',       handles.handMir.DefLineColor = 'k';
