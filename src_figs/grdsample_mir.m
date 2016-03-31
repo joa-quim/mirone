@@ -1,7 +1,7 @@
 function varargout = grdsample_mir(varargin)
 % Helper window to interface with grdsample MEX 
 
-%	Copyright (c) 2004-2015 by J. Luis
+%	Copyright (c) 2004-2016 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -206,7 +206,16 @@ function push_OK_CB(hObject, handles)
     tmp.X = linspace(new_head(1),new_head(2),nx);       tmp.Y = linspace(new_head(3),new_head(4),ny);
     tmp.head = new_head;
     tmp.name = 'Resampled grid';
+	prjInfoStruc = aux_funs('getFigProjInfo', handles);
+	if (~isempty(prjInfoStruc.projWKT))
+		tmp.srsWKT = prjInfoStruc.projWKT;
+	elseif (~isempty(prjInfoStruc.proj4))
+		tmp.srsWKT = prjInfoStruc.projWKT;
+	end
     mirone(newZ,tmp);
+	if (~isempty(prjInfoStruc.projGMT))		% If we have this rare one it was not applied above so do it now.
+		setappdata(handles.figure1, 'ProjGMT', prjInfoStruc.projGMT);
+	end
     figure(handles.figure1)         % Don't let this figure forgotten behind the newly created one
 
 % --------------------------------------------------------------------
