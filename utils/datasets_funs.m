@@ -430,7 +430,7 @@ function CoastLines(handles, res)
 	if (aux_funs('msg_dlg',5,handles)),		return,		end		% Test no_file || unknown proj
 	
 	lon = get(handles.axes1,'Xlim');      lat = get(handles.axes1,'Ylim');
-	[lon lat] = force_in_360(handles, lon, lat);
+	if (handles.geog),	[lon lat] = force_in_360(handles, lon, lat);	end
     [dumb, msg, opt_R] = geog2projected_pts(handles,[lon(:) lat(:)],[lon lat 0]);   % Get -R for use in shoredump
     if (isempty(opt_R)),    return;    end      % It should never happen, but ...
 	
@@ -477,7 +477,7 @@ function PoliticalBound(handles, type, res)
 	if (aux_funs('msg_dlg',5,handles)),		return,		end    % Test no_file || unknown proj
 	
 	lon = get(handles.axes1,'Xlim');      lat = get(handles.axes1,'Ylim');
-	[lon lat] = force_in_360(handles, lon, lat);
+	if (handles.geog),	[lon lat] = force_in_360(handles, lon, lat);	end
     [dumb, msg, opt_R] = geog2projected_pts(handles,[lon(:) lat(:)],[lon lat 0]);   % Get -R for use in shoredump
 	
 	switch type
@@ -532,7 +532,7 @@ function Rivers(handles, type, res)
 	if (aux_funs('msg_dlg',5,handles));     return;      end    % Test no_file || unknown proj
 	
 	lon = get(handles.axes1,'Xlim');      lat = get(handles.axes1,'Ylim');
-	[lon lat] = force_in_360(handles, lon, lat);
+	if (handles.geog),	[lon lat] = force_in_360(handles, lon, lat);	end
     [dumb, msg, opt_R] = geog2projected_pts(handles,[lon(:) lat(:)],[lon lat 0]);   % Get -R for use in shoredump
 	
 	switch type
