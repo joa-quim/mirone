@@ -79,7 +79,7 @@ function varargout = load_xyz(handles, opt, opt2)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: load_xyz.m 7847 2016-03-31 23:27:02Z j $
+% $Id: load_xyz.m 7851 2016-04-01 18:57:44Z j $
 
 %	EXAMPLE CODE OF HOW TO CREATE A TEMPLATE FOR UICTX WHEN THESE ARE TOO MANY
 % 	cmenuHand = get(h, 'UIContextMenu');
@@ -273,21 +273,15 @@ function varargout = load_xyz(handles, opt, opt2)
 		end
 
 		if (~goto_XY)					% goto_XY means we will call Ecran and not Mirone
-			if (multi_seg && strncmp(multi_segs_str{1},'>-:',3))		% See if we need to swap x<->y
+			if (multi_seg && ~isempty(strfind(multi_segs_str{1},'-:')))	% See if we need to swap x<->y
 				tmp = XMin;		XMin = YMin;	YMin = tmp;				% Need to swap min/max
 				tmp = XMax;		XMax = YMax;	YMax = tmp;
 			end
 
-			dx = XMax - XMin;			dy = YMax - YMin;
-			if (dx == 0 || dy == 0)
-				errordlg('File is has only one point or all XXs are equal or all YYs are equal','Error')
-				return
-			end
+			% ----- Check for the special case of only one pt or pure Vertical/Horizontal lines ------
+			[XMin, XMax, YMin, YMax] = check_smallness(handles, XMin, XMax, YMin, YMax, numeric_data);
+			% ----------------------------------------------------------------------------------------
 
-			if (XMin > -179.5 && XMax < 359.5 && YMin > -89.5 && YMax < 89.5)
-				XMin = XMin - dx / 200;		XMax = XMax + dx / 200;		% Give an extra 0.5% padding margin
-				YMin = YMin - dy / 200;		YMax = YMax + dy / 200;
-			end
 			xx = [XMin XMax];			yy = [YMin YMax];
 			region = [xx yy];
 			handles.geog = aux_funs('guessGeog',region);
@@ -348,8 +342,8 @@ function varargout = load_xyz(handles, opt, opt2)
 			orig_no_mseg = true;
 		end
 		n_isoc = 0;     n_segments = length(numeric_data);
-		hLine = zeros(n_segments,1)*NaN;			% This is the maximum we can have
-		hPat  = zeros(n_segments,1)*NaN;			% Or this
+		hLine = zeros(n_segments,1) * NaN;			% This is the maximum we can have
+		hPat  = zeros(n_segments,1) * NaN;			% Or this
 		n_clear = false(n_segments,1);
 		do_patch = false;						% Default to line object
 
@@ -644,13 +638,18 @@ function varargout = load_xyz(handles, opt, opt2)
 						case {'AsLine' 'i_file'}		% 'i_file' means internal file (Isochrons or FZs)
 							hLine(i) = line('XData',tmpx,'YData',tmpy,'Parent',handles.axes1,'Linewidth',lThick,...
 									'Color',cor,'Tag',tag,'Userdata',n_isoc);
-							setappdata(hLine(i),'LineInfo',multi_segs_str{i});
+							if ~((numel(multi_segs_str{i}) <= 2) && strfind(multi_segs_str{i}, '>')) % Sometimes we still have only '>'
+								setappdata(hLine(i),'LineInfo',multi_segs_str{i});
+							end
 							setappdata(hLine(i),'was_binary',is_bin);	% To offer option to save as binary too
 						case 'AsPoint'
 							Fcor = parseG(multi_segs_str{i});			% See if user wants colored pts
 							if (isempty(Fcor)),		Fcor = 'k';		end
 							hLine(i) = line('XData',tmpx,'YData',tmpy,'Parent',handles.axes1, 'LineStyle','none', 'Marker',marker,...
 								'MarkerEdgeColor','k','MarkerFaceColor',Fcor, 'MarkerSize',2,'Tag','Pointpolyline');
+							if (~isempty(strtok(multi_segs_str{i})))
+								setappdata(hLine(i),'LineInfo',multi_segs_str{i});
+							end
 							draw_funs(hLine(i),'DrawSymbol')			% Set marker's uicontextmenu (tag is very important)
 							setappdata(hLine(i),'was_binary',is_bin);	% To offer option to save as binary too
 						case 'AsMaregraph'
@@ -762,7 +761,12 @@ function varargout = load_xyz(handles, opt, opt2)
 			if (orig_no_mseg)
 				draw_funs(hLine,'line_uicontext')		% Here hLine is actually only a scalar
 			else
-				draw_funs(hLine,'isochron',multi_segs_str)
+				% Sometimes we still have only '>'. If only one segment test for that case and jump if true
+				if (numel(multi_segs_str) == 1) && (numel(multi_segs_str{i}) <= 2) && strfind(multi_segs_str{i}, '>')
+					draw_funs(hLine,'isochron', '')
+				else
+					draw_funs(hLine,'isochron', multi_segs_str)
+				end
 			end
 		end
 
@@ -982,6 +986,48 @@ function [do, str] = parseSwap(str)
 	if (isempty(ind)),		return,		end		% No -: option
 	do = true;
 	str(ind(1):ind(1)+2) = [];			% Remove the -: from STR
+
+% --------------------------------------------------------------------------------
+function [XMin, XMax, YMin, YMax] = check_smallness(handles, XMin, XMax, YMin, YMax, numeric_data)
+% Check for the special case of only one pt and pure vertical or horizontal lines.
+% If any of such case is found, change the limits to accoomodate a small padding zone.
+	only_one_pt = false;
+	dx = XMax - XMin;			dy = YMax - YMin;
+	if (dx == 0 && dy == 0)
+		only_one_pt = true;
+	else
+		n = size(numeric_data{1}, 1);
+		for (i = 2:length(numeric_data))
+			n = max(n, size(numeric_data{i}, 1));
+		end
+		if (n == 1),	only_one_pt = true;		end
+	end
+	if (only_one_pt)			% OK, give it a small padding zone. Easy on geogs but trickier on others
+		if (handles.geog)
+			XMin = max(-360, XMin - 0.25);		XMax = min(360, XMax + 0.25);
+			YMin = max(-90,  YMin - 0.25);		YMax = min(90,  YMax + 0.25);
+		else
+			XMin = XMin * (1 - 0.02);			XMax = XMax * (1 + 0.02);	% Just a 2% padding zone
+			YMin = YMin * (1 - 0.02);			YMax = YMax * (1 + 0.02);
+		end
+	elseif (dx == 0)
+		if (handles.geog)
+			XMin = max(-360, XMin - 0.25);		XMax = min(360, XMax + 0.25);
+		else
+			XMin = XMin * (1 - 0.02);			XMax = XMax * (1 + 0.02);	% Just a 2% padding zone
+		end
+	elseif (dy == 0)
+		if (handles.geog)
+			YMin = max(-90,  YMin - 0.25);		YMax = min(90,  YMax + 0.25);
+		else
+			YMin = YMin * (1 - 0.02);			YMax = YMax * (1 + 0.02);
+		end
+	end
+
+	if (XMin > -179.5 && XMax < 359.5 && YMin > -89.5 && YMax < 89.5)
+		XMin = XMin - dx / 200;		XMax = XMax + dx / 200;		% Give an extra 0.5% padding margin
+		YMin = YMin - dy / 200;		YMax = YMax + dy / 200;
+	end
 
 % --------------------------------------------------------------------------------
 function out = read_shapenc(fname)
