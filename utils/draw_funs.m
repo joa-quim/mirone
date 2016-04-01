@@ -204,7 +204,7 @@ function set_line_uicontext(h, opt)
 	if (isempty(x) || isempty(y)),		return,		end		% Line is totally out of the figure
 	if ((x(1) == x(end)) && (y(1) == y(end)))
 		LINE_ISCLOSED = true;
-		if ( length(x) == 5 && (x(1) == x(2)) && (x(3) == x(4)) && (y(1) == y(4)) && (y(2) == y(3)) )
+		if (length(x) == 5 && (x(1) == x(2)) && (x(3) == x(4)) && (y(1) == y(4)) && (y(2) == y(3)))
 			IS_RECTANGLE = true;	
 		end  
 		if (strcmp(get(h,'Tag'),'SeismicPolyg')),	IS_SEISPOLYG = true;	end
@@ -216,12 +216,12 @@ function set_line_uicontext(h, opt)
 		IS_SEISMICLINE = true;
 	end
 
-	handles = guidata(get(h,'Parent'));             % Get Mirone handles
+	handles = guidata(get(h,'Parent'));		% Get Mirone handles
 
 	% Check to see if we are dealing with a multibeam track
 	cmenuHand = uicontextmenu('Parent',handles.figure1);
 	set(h, 'UIContextMenu', cmenuHand);
-	set(cmenuHand, 'UserData', h)		% And with this the cmenuHand knows to whom it belongs
+	set(cmenuHand, 'UserData', h)			% And with this the cmenuHand knows to whom it belongs
 	switch opt
 		case 'line'
 			label_save = 'Save line';   label_length = 'Line length(s)';   label_azim = 'Line azimuth(s)';
@@ -231,12 +231,12 @@ function set_line_uicontext(h, opt)
 			label_save = 'Save track';   label_length = 'Track length';   label_azim = 'Track azimuth(s)';
 			IS_LINE = false;	IS_MBTRACK = true;
 	end
-	cb_LineWidth = uictx_LineWidth(h);      % there are 5 cb_LineWidth outputs
+	cb_LineWidth = uictx_LineWidth(h);		% there are 5 cb_LineWidth outputs
 	cb_solid = 'set(gco, ''LineStyle'', ''-''); refresh';
 	cb_dashed = 'set(gco, ''LineStyle'', ''--''); refresh';
 	cb_dotted = 'set(gco, ''LineStyle'', '':''); refresh';
 	cb_dashdot = 'set(gco, ''LineStyle'', ''-.''); refresh';
-	cb_color = uictx_color(h);      % there are 9 cb_color outputs
+	cb_color = uictx_color(h);				% there are 9 cb_color outputs
 
 	if (IS_RECTANGLE)
 		uimenu(cmenuHand, 'Label', 'Delete me', 'Call', {@del_line,h});
@@ -247,8 +247,8 @@ function set_line_uicontext(h, opt)
 		ui_edit_polygon(h)
 	elseif (IS_LINE)
 		uimenu(cmenuHand, 'Label', 'Delete', 'Call', {@del_line,h});
-		ui_edit_polygon(h)		% Set edition functions
-	elseif (IS_MBTRACK)			% Multibeam tracks, when deleted, have to delete also the bars
+		ui_edit_polygon(h)			% Set edition functions
+	elseif (IS_MBTRACK)				% Multibeam tracks, when deleted, have to delete also the bars
 		uimenu(cmenuHand, 'Label', 'Delete track (left-click on it)', 'Call', 'save_track_mb(1);');
 		% Old style edit function. New edit is provided by ui_edit_polygon which doesn't work with mbtracks 
 		uimenu(cmenuHand, 'Label', 'Edit track (left-click on it)', 'Call', 'edit_track_mb');
@@ -1088,7 +1088,7 @@ function set_isochrons_uicontext(h, data)
 	cb_color = uictx_color(h);				% there are 9 cb_color outputs
 	cbls1 = 'set(gco, ''LineStyle'', ''-''); refresh';   cbls2 = 'set(gco, ''LineStyle'', ''--''); refresh';
 	cbls3 = 'set(gco, ''LineStyle'', '':''); refresh';   cbls4 = 'set(gco, ''LineStyle'', ''-.''); refresh';
-	if (~all(isempty(cat(2,data{:}))) )
+	if (~isempty(data) && ~all(isempty(cat(2,data{:}))) )
 		uimenu(cmenuHand, 'Label', [tag ' info'], 'Call', {@Isochrons_Info,data});
 		uimenu(cmenuHand, 'Label', ['Delete this ' tag ' line'], 'Call', {@del_line,h}, 'Sep','on');
 	else
@@ -2333,6 +2333,7 @@ function set_symbol_uicontext(h,data)
 	this_not = true;		% for class symbols "this_not = 1". Used for not seting some options inapropriate to class symbols
 	seismicity_options = false;
 	tide_options = false;
+	sep = 'off';
 
 	if strcmp(tag,'hotspot')		% DATA must be a structure containing name & age fields
 		uimenu(cmenuHand, 'Label', 'Hotspot info', 'Call', {@hotspot_info,h,data.name,data.age,[]});
@@ -2359,6 +2360,11 @@ function set_symbol_uicontext(h,data)
 	elseif strcmp(tag,'Earthquakes')	% DATA is empty because I didn't store any info (they are too many)
 		seismicity_options = isappdata(h,'SeismicityTime');
 	elseif strcmp(tag,'Pointpolyline')	% DATA is empty because it doesn't have any associated info
+		s_info = getappdata(h, 'LineInfo');		% But there might be one in appdata
+		if (~isempty(s_info))
+			uimenu(cmenuHand, 'Label', 'Symbol info', 'Call', {@Isochrons_Info,s_info});
+			sep = 'on';
+		end
 		this_not = false;
 	elseif strcmp(tag,'TTT')			% DATA is empty
 		this_not = false;
@@ -2371,7 +2377,7 @@ function set_symbol_uicontext(h,data)
 
 	if (~this_not)						% non class symbols can be moved
 		ui_edit_polygon(h)				% Set edition functions
-		uimenu(cmenuHand, 'Label', 'Move (precise)', 'Call', {@change_SymbPos,h});
+		uimenu(cmenuHand, 'Label', 'Move (precise)', 'Call', {@change_SymbPos,h}, 'Sep', sep);
 	end
 
 	if separator
