@@ -1,7 +1,7 @@
 function varargout = gdal_project(varargin)
 % Helper Window to do raster projections with GDAL
 
-%	Copyright (c) 2004-2014 by J. Luis
+%	Copyright (c) 2004-2016 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -16,7 +16,7 @@ function varargout = gdal_project(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: gdal_project.m 4535 2014-07-26 16:07:45Z j $
+% $Id: gdal_project.m 7852 2016-04-05 14:56:26Z j $
 
 	if isempty(varargin)
 		errordlg('GDAL_PROJECT: wrong number of input arguments.','Error'),	return
@@ -150,7 +150,10 @@ function push_OK_CB(hObject, handles)
 	str_src = deblank(get(handles.edit_source,'String'));
 	str_dst = deblank(get(handles.edit_target,'String'));
 	
-	if (isempty(str_dst)),	return,		end
+	if (isempty(str_dst))
+		warndlg('OK to what? You obviously need to specify the destination referncing system.', 'Warning')
+		return
+	end
 	
 	handles.hdr.DstProjSRS = str_dst;
 	if (~isempty(str_src) && ~strcmp(str_src,'+proj=latlong'))
