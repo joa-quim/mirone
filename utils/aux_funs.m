@@ -18,7 +18,7 @@ function  varargout = aux_funs(opt,varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: aux_funs.m 7846 2016-03-31 23:20:42Z j $
+% $Id: aux_funs.m 7854 2016-04-07 23:12:35Z j $
 
 switch opt(1:4)
 	case 'Stor'		% 'StoreZ'
@@ -822,6 +822,50 @@ function [xdata, ydata, zdata] = localRemoveExtraNanSeps(xdata, ydata, zdata)
 	% Remove the excess NaNs.
 	xdata(s) = [];      ydata(s) = [];
 	if (nargin >= 3),   zdata(s) = [];  end
+
+% --------------------------------------------------------------------------------
+function out = get_proj_string(hMirFig, opt)
+% Get a proj4 or WKT projection string depending on arguments
+%
+% HMIRFIG -> can be a Mirone handles, a Mirone Fig handle or a string holding a proj4 OR WKT string
+% OPT     -> Optional. If not provided or empty OUT will return a PROJ4 string
+%            If equal to 'proj' OUT is a proj4 string otherwise OUT = to a WKT string
+% OUT     -> Besides what is said above, ot can be empty if we can not fish any
+%            projection info from HANDLES
+%
+% Examples: 
+
+	if (nargin == 1),	opt = '';	end
+	out = '';
+	toProj4 = (isempty(opt) || strncmpi(opt, 'proj', 4));
+
+	if (isa(hMirFig, 'struct') || ishandle(hMirFig))		% A Mirone handles, or handle to Mirone Fig
+		if (isa(hMirFig, 'struct')),	hMirFig = hMirFig.figure1;	end
+		projSTR = getappdata(hMirFig,'Proj4');
+		if (isempty(projSTR))
+			projSTR = getappdata(hMirFig,'ProjWKT');
+			if (isempty(projSTR))		% Shit, nothing found
+				return
+			end
+		end
+	elseif (isa(hMirFig, 'char'))
+		projSTR = hMirFig;
+	else
+		return			% Something else (not allowed) was sent in first arg
+	end
+	
+	if (projSTR(1) == '+')
+		if (~isempty(strfind(projSTR,'latlong')) && isempty(strfind(projSTR,'+datum=WGS84')))
+			projSTR = [projSTR ' +datum=WGS84'];
+		end
+		if (~toProj4)			% Ah, but we want a WKT one, so convert it
+			projSTR = ogrproj(projSTR);
+		end
+	else			% A WKT string
+		if (toProj4),	projSTR = ogrproj(projSTR);		end
+	end
+	
+	out = projSTR;
 
 % -*-*-*-*-*-*-$-$-$-$-$-$-#-#-#-#-#-#-%-%-%-%-%-%-@-@-@-@-@-@-(-)-(-)-(-)-&-&-&-&-&-&-{-}-{-}-{-}-
 function appProjectionRef(handles, strWKT)
