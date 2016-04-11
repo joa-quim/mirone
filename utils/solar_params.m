@@ -48,7 +48,7 @@ function [sun_params, lon, lat] = solar_params(lon_pt, lat_pt, TZ, termin, day, 
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: solar_params.m 7762 2016-01-28 00:10:02Z j $
+% $Id: solar_params.m 7856 2016-04-11 16:32:52Z j $
 
 	if (nargin == 0)		% Undocumented option. Defaults to Faro, Portugal.
 		lon_pt = -7.92;		lat_pt = 37.073;
@@ -104,6 +104,9 @@ function [sun_params, lon, lat] = solar_params(lon_pt, lat_pt, TZ, termin, day, 
 
 	if (nargout > 1)
 		[lat,lon] = circ_geo(SUNdec, -(sun_params.HourAngle - lon_pt), sun_params.radius, [], 181);
+		[mi, ind] = min(lon);
+		lon = [lon(ind:end) lon(1:ind-1)];			% Force that longitudes always start at -pi or min lon.
+		lat = [lat(ind:end) lat(1:ind-1)];
 		lon = [lon 180 180 -180 -180 lon(1)];		% The extra points are to close the polygon cleanly around [-180 180]
 		% Close the polygon (either from North or South, depending on the value of baseline)
 		N_or_S = get_hemisphere(year, month, day, UTChour, UTCmin);
