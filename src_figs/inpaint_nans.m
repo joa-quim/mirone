@@ -19,12 +19,14 @@ function varargout = inpaint_nans(varargin)
 % $Id$
 
 	if (isempty(varargin)),		return,		end
- 
+ 	
+	pt = get(varargin{1}.axes1, 'CurrentPoint');
+
 	hObject = figure('Vis','off');
 	inpaint_nans_LayoutFcn(hObject);
 	handles = guihandles(hObject);
 	move2side(hObject, 'center')
- 
+
 	handles.handMir = varargin{1};
 
 	if (~handles.handMir.have_nans)
@@ -32,10 +34,13 @@ function varargout = inpaint_nans(varargin)
 		delete(hObject),		return
 	end
 
+	handles.clicked_pt = [];
 	% When called with the 'single' argument we offer to paint only the selected hole
 	if (numel(varargin) > 1 && strcmp(varargin{2}, 'single'))
 		set(handles.radio_paintAll, 'Str', 'Paint me', 'Tooltip','Fill this NaNs hole', 'Val', 1)
-		set([handles.radio_paintSmall handles.txt_nCells handles.edit_nCells], 'Vis', 'off')
+		set([handles.txt_nCells handles.edit_nCells], 'Vis', 'off')
+		set(handles.radio_paintSmall,'Val',0, 'Vis', 'off')
+		handles.clicked_pt = pt;
 	end
 
 	handles.nCells = 10;			% Default max number of "Paint small" option
@@ -117,14 +122,35 @@ function push_OK_CB(hObject, handles)
 	set(handles.axes1, 'XTick',[], 'YTick', [])
 	set(handles.figure1, 'Colormap', pal),		drawnow
 
-	bw = isnan(Z);
-	if (get(handles.radio_paintSmall,'Val'))		% Retain only <= handles.nCells sized of connected groups
-		bw2 = img_fun('bwareaopen', bw, handles.nCells);
-		bw = xor(bw, bw2);
-		clear bw2;
+	if (get(handles.radio_paintSmall,'Val') || ~isempty(handles.clicked_pt))	% Otherwise we fill all holes with interpbytiles
+		bw = isnan(Z);
+		if (get(handles.radio_paintSmall,'Val'))		% Retain only <= handles.nCells sized of connected groups
+			bw2 = img_fun('bwareaopen', bw, handles.nCells);
+			bw = xor(bw, bw2);
+			clear bw2;
+		end
+		B = img_fun('find_holes',bw);
 	end
-	
-	B = img_fun('find_holes',bw);
+
+	if (~isempty(handles.clicked_pt))		% A call from pixval_stsbar to inpaint only the clicked hole
+		col = aux_funs('getPixel_coords', size(Z,2), [X(1) X(end)], handles.clicked_pt(1,1));
+		row = aux_funs('getPixel_coords', size(Z,1), [Y(1) Y(end)], handles.clicked_pt(1,2));
+		c = false(numel(B), 1);
+		for (k = 1:numel(B))				
+			IN = inpolygon(col, row, B{k}(:,2), B{k}(:,1));
+			if (~IN),	c(k) = true;	end
+		end
+		B(c) = [];							% Remove those that do not contain the clicked point
+		if (numel(B) > 1)					% Ok, a hole inside another hole. Must find the smalest one
+			lens = ones(numel(B), 1) * 1e50;
+			for (k = 1:numel(B))
+				ll = draw_funs(B{k}, 'show_LineLength', [], [], B{k});
+				lens(k) = ll.len;
+			end
+			[lens, ind] = sort(lens);
+			B = B(ind(1));
+		end
+	end
 
 	[semaforo, pal] = aux_funs('semaforo_green');
 	set(hImg,'CData',semaforo)
@@ -138,7 +164,7 @@ function push_OK_CB(hObject, handles)
 
 	h = aguentabar(0,'title','Tapa buracos (Filling holes)','CreateCancelBtn');
 
-	if (get(handles.radio_paintSmall,'Val'))
+	if (get(handles.radio_paintSmall,'Val') || ~isempty(handles.clicked_pt))
 		pad = 4;		n_buracos = numel(B);
 		for (i = 1:n_buracos)
 			% Get rectangles arround each hole
@@ -151,10 +177,9 @@ function push_OK_CB(hObject, handles)
 
 			rect_crop = [x_min y_min (x_max-x_min) (y_max-y_min)];
 			[Z_rect, r_c]  = cropimg(head(1:2),head(3:4),Z,rect_crop,'out_grid');
-			[bw_rect, zz] = cropimg(head(1:2),head(3:4),bw,rect_crop,'out_grid');
+			[bw_rect, zz]  = cropimg(head(1:2),head(3:4),bw,rect_crop,'out_grid');
 			Z_rect = double(Z_rect);      % It has to be (GHRRRRRRRRRRRRR)
 
-			%X = x_min:head(8):x_max;	Y = y_min:head(9):y_max;
 			X = linspace(x_min,x_max,size(Z_rect,2));		% It is safer this way (against rounding errors)
 			Y = linspace(y_min,y_max,size(Z_rect,1));
 			[XX,YY] = meshgrid(X,Y);
@@ -203,11 +228,11 @@ function push_OK_CB(hObject, handles)
 
 	end
 
-	if (ishandle(h))	delete(h),		end
+	if (ishandle(h)),	delete(h),		end
 
 	zz = grdutils(Z,'-L');		z_min = zz(1);		z_max = zz(2);
 
-	if ( get(handles.radio_newWin,'Val') )		% Output in new window
+	if (get(handles.radio_newWin,'Val'))		% Output in new window
 		hdr.geog = handles.handMir.geog;	hdr.name = 'Filled holes';
 		hdr.head(5:6) = [z_min z_max];
 		mirone(Z, hdr)
@@ -236,7 +261,7 @@ function [Z,h] = interpbytiles(handles, Z, head, rows, cols, opt_I, n_tiles)
 			n_this = [max(1, um_part_col * (n-1) - pad) 	min(um_part_col * n + pad, cols)];
 			Z_rect = Z(m_this(1):m_this(2), n_this(1):n_this(2));
 			have_nans = grdutils(Z_rect,'-N');
-			if ( ~have_nans ),		continue,	end		% This tile has no NaNs so goto next one
+			if (~have_nans),		continue,	end		% This tile has no NaNs so goto next one
 			Z_rect = double(Z_rect);			% It has to be double (GHRRRRRRRRRRRRR)
 			bw = isnan(Z_rect);			% Get the NaNs mask
 
@@ -257,10 +282,10 @@ function [Z,h] = interpbytiles(handles, Z, head, rows, cols, opt_I, n_tiles)
 			end
 
 			% Inprint the processed rectangle back into orig array
-			if (isa(Z,'single')),		Z( m_this(1):m_this(2),n_this(1):n_this(2) ) = single(Z_rect);
-			elseif (isa(Z,'int16')),	Z( m_this(1):m_this(2),n_this(1):n_this(2) ) = int16(Z_rect);
-			elseif (isa(Z,'uint16')),	Z( m_this(1):m_this(2),n_this(1):n_this(2) ) = uint16(Z_rect);
-			else						Z( m_this(1):m_this(2),n_this(1):n_this(2) ) = single(Z_rect);
+			if (isa(Z,'single')),		Z(m_this(1):m_this(2),n_this(1):n_this(2)) = single(Z_rect);
+			elseif (isa(Z,'int16')),	Z(m_this(1):m_this(2),n_this(1):n_this(2)) = int16(Z_rect);
+			elseif (isa(Z,'uint16')),	Z(m_this(1):m_this(2),n_this(1):n_this(2)) = uint16(Z_rect);
+			else						Z(m_this(1):m_this(2),n_this(1):n_this(2)) = single(Z_rect);
 			end
 
 			h = aguentabar((n*m)/9);		% ...
