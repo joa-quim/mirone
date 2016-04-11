@@ -756,6 +756,20 @@ function out = seek_OPTcontrol(KEY)
 		break
 	end
 
+% -------------------------------------------------------------------------------------
+function pix_coords = getPixel_coords(img_length, XData, axes_coord)
+% Convert coordinates from axes (real coords) to image (pixel) coordinates.
+% IMG_LENGTH is the image width (n_columns)
+% XDATA is the image's [x_min x_max] in axes coordinates
+% AXES_COORD is the (x,y) coordinate of the point(s) to be converted
+
+	slope = (img_length - 1) / (XData(end) - XData(1));
+	if ((XData(1) == 1) && (slope == 1))
+		pix_coords = axes_coord;
+	else
+		pix_coords = round(slope * (axes_coord - XData(1))) + 1;
+	end
+
 % --------------------------------------------------------------------------------
 function [latcells,loncells,Zcells] = localPolysplit(lat,lon, Z)
 %POLYSPLIT Extract segments of NaN-delimited polygon vectors to cell arrays
