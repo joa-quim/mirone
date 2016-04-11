@@ -104,6 +104,9 @@ function [sun_params, lon, lat] = solar_params(lon_pt, lat_pt, TZ, termin, day, 
 
 	if (nargout > 1)
 		[lat,lon] = circ_geo(SUNdec, -(sun_params.HourAngle - lon_pt), sun_params.radius, [], 181);
+		[mi, ind] = min(lon);
+		lon = [lon(ind:end) lon(1:ind-1)];			% Force that longitudes always start at -pi or min lon.
+		lat = [lat(ind:end) lat(1:ind-1)];
 		lon = [lon 180 180 -180 -180 lon(1)];		% The extra points are to close the polygon cleanly around [-180 180]
 		% Close the polygon (either from North or South, depending on the value of baseline)
 		N_or_S = get_hemisphere(year, month, day, UTChour, UTCmin);
