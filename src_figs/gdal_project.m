@@ -1,5 +1,21 @@
 function varargout = gdal_project(varargin)
-% Helper Window to do raster projections with GDAL
+% Helper Window to do raster projections with GDAL.
+%
+% VARARGIN can be a One, Two or Four arguments array.
+%          First arg must always contain the Mirone handles
+%
+%	gdal_project(mirHand)
+%		Most common usage. Input SRS is fished from Mir Fig
+%
+%	gdal_project(mirHand, [])
+%		puts this figure in the SRS assignement mode
+%
+%	gdal_project(mirHand, 'hiden', srcSRS, dstSRS)
+%		Do the reprojection ander the hood using the Source and Destination SRSs as 3rth & 4rth args
+%
+%	VARGOUT if selected will return the handle to the newly created Mirone Fig.
+%	        But notice that if second arg == 'hiden', that Mirone Figure is invisible and it's up
+%	        to the user to remove when no loger needed. Otherwise ... (big) memory leaks.
 
 %	Copyright (c) 2004-2016 by J. Luis
 %
@@ -16,15 +32,22 @@ function varargout = gdal_project(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: gdal_project.m 7852 2016-04-05 14:56:26Z j $
+% $Id: gdal_project.m 7861 2016-04-11 17:43:27Z j $
 
 	if isempty(varargin)
 		errordlg('GDAL_PROJECT: wrong number of input arguments.','Error'),	return
 	end
  
 	hObject = figure('Vis','off');
-	opt = [];
-	if (numel(varargin) == 2),		opt = true;		end
+	opt = [];		hiden = false;		SRSonly = false;
+	if (numel(varargin) >= 2)
+		if (isempty(varargin{2}))		% VERY WEEK LOGIC
+			SRSonly = true;
+			opt = true;
+		elseif (strcmp(varargin{2}, 'hiden'))
+			hiden = true;
+		end
+	end
 	gdal_project_LayoutFcn(hObject, opt);
 	handles = guihandles(hObject);
 
@@ -41,7 +64,7 @@ function varargout = gdal_project(varargin)
 	handles.hdr.ULy = handMir.head(4) + handMir.head(9) / 2 * (~handMir.head(7));
 	handles.hdr.Xinc = handMir.head(8);    handles.hdr.Yinc = handMir.head(9);
 
- 	if (numel(varargin) == 2)							% The Assign SRS only mode
+ 	if (SRSonly)										% The Assign SRS only mode
 		handles.which_edit = handles.edit_source;		% To be used in popup_projections_CB()
 		handles.assign_SRS = true;						% To be used by push_OK_CB()
 	else
@@ -68,6 +91,19 @@ function varargout = gdal_project(varargin)
 			'+proj=bonne'; '+proj=stere +lat_ts=71 +lat_0=90 +lon_0=0'; '+proj=gnom'; '+proj=ortho'; '+proj=vandg';};
 
 	set(handles.popup_projections,'String',handles.projGDAL_name)
+
+	% ------ IF HIDEN, DO THE REPROJECTION AND GET OUT WITHOUT EVEN MAKING THIS FIG VISIBLE --------
+	if (hiden)
+		if (numel(varargin) == 4)		% For the time being, the only syntax allowed
+			set(handles.edit_source,'String', varargin{3})
+			set(handles.edit_target,'String', varargin{4})
+			varargout{1} = push_OK_CB([], handles);		% Do the projection and return the new Mirone Fig handle
+			set(varargout{1}, 'Vis', 'off')				% Hide also the new Mirone Fig (but we must do better than this)
+			delete(handles.figure1)
+			return
+		end
+	end
+	% -----------------------------------------------------------------------------------------------
 
 	% See if we have something to put in the source edit box
  	handles.have_prjIn = false;			% It will be true when input is projected and we know how
@@ -132,8 +168,11 @@ function edit_yInc_CB(hObject, handles)
 	guidata(handles.figure1, handles)
 
 % -----------------------------------------------------------------------------------------
-function push_OK_CB(hObject, handles)
+function out = push_OK_CB(hObject, handles)
 % Do either the warping, or just sets the assigned SRS in Mirone figure's metadata
+% OUT, if requested, will return the handle of the new Mirone Fig
+
+	out = [];
 
 	if (handles.assign_SRS)
 		str_src = deblank(get(handles.edit_source, 'String'));
@@ -146,7 +185,6 @@ function push_OK_CB(hObject, handles)
 		return
 	end
 
-	cmap = [];
 	str_src = deblank(get(handles.edit_source,'String'));
 	str_dst = deblank(get(handles.edit_target,'String'));
 	
@@ -172,38 +210,46 @@ function push_OK_CB(hObject, handles)
 		% nearest - but it's already the default
 	end
 
-	% See if we size or resolution requests
+	% See if we have a size or resolution requests
 	if (~isempty(handles.xInc))			% Resolution takes precedence
 		handles.hdr.t_res = [handles.xInc handles.xInc];
 		if (~isempty(handles.yInc))
 			handles.hdr.t_res(2) = handles.yInc;
 		end
-	elseif ( ~isempty(handles.nCols) && ~isempty(handles.nRows) )
+	elseif (~isempty(handles.nCols) && ~isempty(handles.nRows))
 		handles.hdr.t_size = [handles.nCols handles.nRows];
 	end
 
-	if (handles.handMir.validGrid)
-		[X,Y,Z] = load_grd(handles.handMir);
+	prjName = handles.projGDAL_name{get(handles.popup_projections,'Value')};
+	out = do_project(handles.handMir, handles.hdr, prjName);
+
+% -----------------------------------------------------------------------------------------
+function out = do_project(handMir, hdrStruct, prjName)
+% Make this code an separate function that can be called by other modules, like writekml
+
+	out = [];	cmap = [];
+
+	if (handMir.validGrid)
+		[X,Y,Z] = load_grd(handMir);
 		tipo = 'grid';
 	else
-		Z = get(handles.handMir.hImg,'CData');
+		Z = get(handMir.hImg,'CData');
 		tipo = 'image';
-		if (ndims(Z) == 2),		cmap = get(handles.handMir.figure1,'Colormap');		end
+		if (ndims(Z) == 2),		cmap = get(handMir.figure1,'Colormap');		end
 	end
-	[ras, att] = gdalwarp_mex(Z, handles.hdr);
+	[ras, att] = gdalwarp_mex(Z, hdrStruct);
 	
 	if (numel(ras) < 4)
-		errordlg('Sorry but the operation went wrong. We got nothing valuable on return.','Error'),	return
+		errordlg('GDALPROJECT: Sorry but the operation went wrong. We got nothing valuable on return.','Error'),	return
 	end
 
-	if (handles.handMir.validGrid)
+	if (handMir.validGrid)
 		tmp.X = linspace(att.GMT_hdr(1),att.GMT_hdr(2), size(ras,2));
 		tmp.Y = linspace(att.GMT_hdr(3),att.GMT_hdr(4), size(ras,1));
 	else
 		tmp.X = att.GMT_hdr(1:2);		tmp.Y = att.GMT_hdr(3:4);
 	end
 	tmp.head = att.GMT_hdr;
-	prjName = handles.projGDAL_name{get(handles.popup_projections,'Value')};
 	tmp.name = ['Reprojected (' prjName ') ' tipo];
 	tmp.srsWKT = att.ProjectionRef;
 	if (~isempty(cmap)),	tmp.cmap = cmap;	end
@@ -212,10 +258,10 @@ function push_OK_CB(hObject, handles)
 
 	% Now see if we have vector data and if yes convert it as well
 
-	hMirNewHand = guidata(hMirFig);				% Projected Mirone handles
-	hMirOldHand = guidata(handles.hMirFig);		% Parent Mirone handles
+	hMirNewHand = guidata(hMirFig);			% Projected Mirone handles
+	hMirOldHand = handMir;					% Parent Mirone handles
 	thisHandles = findobj(hMirOldHand.axes1,'Type','line');
-	thisHandle_  = findobj(hMirOldHand.axes1,'Type','patch');
+	thisHandle_ = findobj(hMirOldHand.axes1,'Type','patch');
 	thisHandles = [thisHandles(:); thisHandle_(:)];
 
 	if (~isempty(thisHandles))
@@ -223,7 +269,7 @@ function push_OK_CB(hObject, handles)
 			x = get(thisHandles(k), 'XData');		y = get(thisHandles(k), 'YData');
 			z = get(thisHandles(k), 'ZData');
 			hNew = copyobj(thisHandles(k), hMirNewHand.axes1);
-			xy_prj = ogrproj([x(:) y(:) z(:)], handles.hdr);
+			xy_prj = ogrproj([x(:) y(:) z(:)], hdrStruct);
 			set(hNew, 'XData', xy_prj(:,1), 'YData', xy_prj(:,2))
 			if (~isempty(z)),	set(hNew, 'ZData', xy_prj(:,3)),	end
 			draw_funs(hNew,'line_uicontext')
@@ -234,11 +280,13 @@ function push_OK_CB(hObject, handles)
 	if (~isempty(thisHandles))
 		for (k = 1:numel(thisHandles))
 			hNew = copyobj(thisHandles(k), hMirNewHand.axes1);
-			xy_prj = ogrproj(get(thisHandles(k),'Position'), handles.hdr);
+			xy_prj = ogrproj(get(thisHandles(k),'Position'), hdrStruct);
 			set(hNew, 'Position', xy_prj(1:2))
 			draw_funs(hNew,'DrawText')			% We probably have some leaks since old properties went ether.
 		end
 	end
+
+	if (nargout),	out = hMirFig;		end
 
 % -----------------------------------------------------------------------------------------
 function popup_projections_CB(hObject, handles)
