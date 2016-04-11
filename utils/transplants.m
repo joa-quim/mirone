@@ -45,7 +45,7 @@ function varargout = transplants(hLine, tipo, handles, second_g)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: transplants.m 7858 2016-04-11 17:32:54Z j $
+% $Id: transplants.m 7866 2016-04-11 22:55:01Z j $
 
 	if (nargin < 3)		% NOTE: in the IMPLANTGRID mode I'm not really using (YET) hLine for anything else
 		if (~ishandle(hLine) && ~strcmp(get(hLine,'type'), 'line') && ~strcmp(get(hLine,'type'), 'patch'))
@@ -483,14 +483,14 @@ function Z = do_the_tile(Zout, hdr_out, out_geog, Zin, hdr_in, x, y, buff_width)
 	ZZi = Zin(mask_in(:));
 
 	if (false)		% if Zin has NaNs
-		XX = [XX(:); X(indNotNaN(:))];		clear X
-		YY = [YY(:); Y(indNotNaN(:))];		clear Y
-		ZZ = [ZZ(:); double(Zinner(indNotNaN(:)))];	clear Zinner	% Join outer and inner Zs
-		opt_C = '-C5';		% Just a heuristic value
-		if (hdr_out(8) < hdr_in(8))			% If host grid is finner than implanting grid
-			% Than we must increase -C because data to grid may be too sparse and gaps appear.
-			opt_C = sprintf('-C%d', 2 * round(hdr_in(8) / hdr_out(8)));
-		end
+% 		XX = [XX(:); X(indNotNaN(:))];		clear X
+% 		YY = [YY(:); Y(indNotNaN(:))];		clear Y
+% 		ZZ = [ZZ(:); double(Zinner(indNotNaN(:)))];	clear Zinner	% Join outer and inner Zs
+% 		opt_C = '-C5';		% Just a heuristic value
+% 		if (hdr_out(8) < hdr_in(8))			% If host grid is finner than implanting grid
+% 			% Than we must increase -C because data to grid may be too sparse and gaps appear.
+% 			opt_C = sprintf('-C%d', 2 * round(hdr_in(8) / hdr_out(8)));
+% 		end
 	else
 		XX = [XX(:); XXi(:)];			clear XXi
 		YY = [YY(:); YYi(:)];			clear YYi
