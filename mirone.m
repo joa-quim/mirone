@@ -128,7 +128,7 @@ function hObject = mirone_OpeningFcn(varargin)
 	handles.whichFleder = 1;		% whichFleder = 1 for the free iview4d or 0 for the true thing (fledermaus)
 	handles.oldSize = [get(hObject,'Pos'); get(hObject,'Pos')];		% Duplicate so that we store ORIGINAL size
 	if (handles.oldSize(1,4) == 0),	handles.oldSize(1,4) = 1;		end
-	handles.is_projected = 0;		% To keep track if coords are projected or not
+	handles.is_projected = false;	% To keep track if coords are projected or not
 	handles.defCoordsIn = 0;		% To use when Load files and have to decide if we need to project
 									% 0 -> don't know; -1 -> Coords are already projected; 1 -> geog coords needing project
 	try		handles.Projections;			% Use a try/catch since isfield is brain-dead long
@@ -229,6 +229,7 @@ function hObject = mirone_OpeningFcn(varargin)
 				if (isfield(tmp,'srsWKT'))
 					aux_funs('appP', handles, tmp.srsWKT)			% If we have a WKT proj, store it
 					isReferenced = true;
+					if (~handles.geog),		handles.is_projected = true;	end		% WEAK LOGIC. SHOULD PARSE WKT TO MAKE SURE
 				end
 			else
 				X = [];			Y = [];			win_name = 'Cropped_image';
@@ -282,6 +283,7 @@ function hObject = mirone_OpeningFcn(varargin)
 				if (isfield(tmp,'srsWKT'))
 					grid_info(handles,tmp.srsWKT,'referenced',varargin{1});	% Create a info string
 					aux_funs('appP', handles, tmp.srsWKT)					% We have a WKT proj, store it
+					handles.is_projected = true;		% WEAK LOGIC. SHOULD PARSE WKT TO MAKE SURE
 				elseif (isfield(tmp,'ProjGMT'))			% From geog_calculator. Has opt_J.
 					projection_menu(handles, tmp.ProjGMT)
 					handles = guidata(hObject);			% Get the updated version changed in the above call
@@ -325,6 +327,10 @@ function hObject = mirone_OpeningFcn(varargin)
 		aux_funs('colormap_bg',handles,Z,pal);
 		handles = show_image(handles,win_name,X,Y,zz,1,'xy',handles.head(7));
 	end
+
+	% ---------+================+---------- FIGURE VISIBLE HERE ----------+==============+-----------
+	set(handles.figure1,'Vis', 'on')
+	% ---------+================+---------- FIGURE VISIBLE HERE ----------+==============+-----------
 
 	handles.IAmAMac = strncmp(computer,'MAC',3);
 	setappdata(0,'IAmAMac',handles.IAmAMac)
@@ -508,7 +514,7 @@ function handles = SetAxesNumericType(handles,event)
 
 % --------------------------------------------------------------------------------------------------
 function PixMode_CB(hObject, event, hFig, opt)
-% Inside each grid cell, which is a pixel in the screen, display only the grid node value
+% Inside each grid cell, which is a pixel on the screen, display only the grid node value
 	handles = guidata(hFig);
 	if (opt)		% Pixel mode on/off
 		if (strcmp(get(hObject,'Checked'),'off'))
@@ -617,6 +623,9 @@ if (nargin < 4),	opt3 = [];		end
 if ~isempty(opt)				% OPT must be a rectangle/polygon handle (the rect may serve many purposes)
 	if ((numel(opt) == 1) && ishandle(opt))
 		x = get(opt,'XData');	y = get(opt,'YData');
+	elseif (numel(opt) == 4)	% Assume that we have a [xmin xmax ymin ymax] BB
+		x = [opt(1) opt(1) opt(2) opt(2) opt(1)];
+		y = [opt(3) opt(4) opt(4) opt(3) opt(3)];
 	else
 		if (size(opt,2) > 2),	x = opt(1,1:end);	y = opt(2,1:end);	% Row vectors
 		else					x = opt(:,1)';		y = opt(:,2)';		% Were col vectors, make them row for consistency
@@ -934,9 +943,6 @@ if ~isempty(opt2)		% Here we have to update the image in the processed region
 	if (handles.Illumin_type >= 1 && handles.Illumin_type <= 4)
 		illumComm = getappdata(handles.figure1,'illumComm');
 		z_int = ind2rgb8(z_int,get(handles.figure1,'Colormap'));	% z_int is now RGB
-		%X = linspace( head(1) + (r_c(3)-1)*head(8), head(1) + (r_c(4)-1)*head(8), r_c(4) - r_c(3) + 1 );
-		%Y = linspace( head(3) + (r_c(1)-1)*head(9), head(3) + (r_c(2)-1)*head(9), r_c(2) - r_c(1) + 1 );
-		%head_tmp = [X(1) X(end) Y(1) Y(end) head(5:9)];
 		if (handles.Illumin_type == 1)
 			opt_N = sprintf('-Nt1/%.6f/%.6f',handles.grad_sigma, handles.grad_offset);
 			if (handles.geog),	R = grdgradient_m(Z_rect,head,'-M',illumComm,opt_N);
@@ -1873,6 +1879,7 @@ function loadGRID(handles, fullname, tipo, opt)
 	if (nargin == 3),	opt = ' ';	end
 	[Z, X, Y, srsWKT, handles, att] = read_grid(handles, fullname, tipo, opt);
 	if (isempty(Z)),	return,		end
+	if (~isempty(srsWKT)),	handles.is_projected = true;	end		% WEAK TEST
 	if (~isempty(fullname))
 		pato = fileparts(fullname);
 		ind1 = strfind(fullname, ':"');		% Check if fulname is a subdataset name as 'NETCDF:"v:\tsu\lagos.nc":bathymetry'
@@ -2067,6 +2074,7 @@ function handles = show_image(handles, fname, X, Y, I, validGrid, axis_t, adjust
 	set([handles.Geography handles.MagGrav handles.Seismology handles.Plates],'Vis', st{(handles.image_type ~= 2) + 1})
 	set(handles.noAxes,'Vis', st{~strcmp(axis_t,'off') + 1})
 	set(handles.toGE,'Enable', st{min(handles.geog,1) + 1})
+ 	if (handles.is_projected),	set(handles.toGE,'Enable', 'on'),	end		% Regardless of the above line
 	set(findobj(handles.Projections,'-depth',1,'Label','GMT project'), 'Vis', st{validGrid + 1})
 	if (handles.geog),		set(handles.DrawGeogCirc,'Tooltip','Draw geographical circle')
 	else					set(handles.DrawGeogCirc,'Tooltip','Draw circle')
@@ -2234,7 +2242,6 @@ function Reft = ImageIllum(luz, handles, opt)
 
 	[X,Y,Z,head] = load_grd(handles);	% If needed, load gmt grid again
 	if isempty(Z),	return,		end		% An error message was already issued
-	set(handles.figure1,'pointer','watch'),		pause(0.01)
 
 	OPT_a = '-a1';
 	if (sum(handles.bg_color) < 0.01),	OPT_a = ' ';	end		% Near black bg color has a different treatment
@@ -2291,7 +2298,6 @@ function Reft = ImageIllum(luz, handles, opt)
 
 	if (nargout)	% Send the reflectance back to caller and stop here
 		Reft = R;	guidata(handles.figure1, handles);
-		set(handles.figure1,'pointer','arrow')
 		return
 	end
 
@@ -2322,7 +2328,7 @@ function Reft = ImageIllum(luz, handles, opt)
 	
 	set(handles.hImg,'CData',img),		refresh(handles.figure1)		% Crazzy beast does not always update the image !!!!!!!!!
 	aux_funs('togCheck',handles.ImModRGB, [handles.ImMod8cor handles.ImMod8gray handles.ImModBW])
-	guidata(handles.figure1, handles);			set(handles.figure1,'pointer','arrow')
+	guidata(handles.figure1, handles);
 
 % --------------------------------------------------------------------
 function ImageIllumFalseColor(luz, handles)
@@ -4472,8 +4478,8 @@ function ImageEdgeDetect_CB(handles, opt)
 %		-> 'apalpa'  Get the polygons that sorround good data (limit NaN-noNaN)
 %		-> 'Vec'
 %		-> 'Lines'
-%		-> 'Circles' Find circles in image (uses OpenCV a fails a lot)
-%		-> 'Rect'    Find rectangles in image (uses OpenCV a fails a lot)
+%		-> 'Circles' Find circles in image (uses OpenCV and fails a lot)
+%		-> 'Rect'    Find rectangles in image (uses OpenCV and fails a lot)
 %		-> 'Ras'
 %		-> 'SUS'
 if (handles.no_file),		return,		end
@@ -4563,12 +4569,12 @@ if (strcmp(opt,'Vec') || strcmp(opt,'Lines') || strcmp(opt,'Rect'))		% Convert t
 	h_edge = zeros(length(B),1);	i = 1;
 	for k = 1:length(B)
 		bnd = B{k};
-		if (strcmp(opt,'apalpa') &&  mask(bnd(1,1),bnd(1,2)) && ...	% Drastic but no better solution to avoid NaNs-in-corners cases
+		if (strcmp(opt,'apalpa') && mask(bnd(1,1),bnd(1,2)) && ...	% Drastic but no better solution to avoid NaNs-in-corners cases
 				(min(bnd(:,1)) == 1 || max(bnd(:,1)) == dims(2) || min(bnd(:,1)) == 1 || max(bnd(:,1)) == dims(1)) )
 			continue
 		end
 		if (size(bnd,1) > 4)
-			bnd = cvlib_mex('dp', bnd, 0.4);		% Simplify line
+			bnd = cvlib_mex('dp', bnd, 0.2);		% Simplify line but only on straight lines
 		end
 		% Some times we get a BB rectangle, test and ignore it if it's the case
 		if (size(bnd,1) == 5 && min(bnd(:,1)) == 1 && min(bnd(:,2)) == 1 && ...
