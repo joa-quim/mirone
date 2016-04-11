@@ -483,14 +483,14 @@ function Z = do_the_tile(Zout, hdr_out, out_geog, Zin, hdr_in, x, y, buff_width)
 	ZZi = Zin(mask_in(:));
 
 	if (false)		% if Zin has NaNs
-		XX = [XX(:); X(indNotNaN(:))];		clear X
-		YY = [YY(:); Y(indNotNaN(:))];		clear Y
-		ZZ = [ZZ(:); double(Zinner(indNotNaN(:)))];	clear Zinner	% Join outer and inner Zs
-		opt_C = '-C5';		% Just a heuristic value
-		if (hdr_out(8) < hdr_in(8))			% If host grid is finner than implanting grid
-			% Than we must increase -C because data to grid may be too sparse and gaps appear.
-			opt_C = sprintf('-C%d', 2 * round(hdr_in(8) / hdr_out(8)));
-		end
+% 		XX = [XX(:); X(indNotNaN(:))];		clear X
+% 		YY = [YY(:); Y(indNotNaN(:))];		clear Y
+% 		ZZ = [ZZ(:); double(Zinner(indNotNaN(:)))];	clear Zinner	% Join outer and inner Zs
+% 		opt_C = '-C5';		% Just a heuristic value
+% 		if (hdr_out(8) < hdr_in(8))			% If host grid is finner than implanting grid
+% 			% Than we must increase -C because data to grid may be too sparse and gaps appear.
+% 			opt_C = sprintf('-C%d', 2 * round(hdr_in(8) / hdr_out(8)));
+% 		end
 	else
 		XX = [XX(:); XXi(:)];			clear XXi
 		YY = [YY(:); YYi(:)];			clear YYi
