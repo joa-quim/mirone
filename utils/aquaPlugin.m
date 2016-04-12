@@ -36,7 +36,7 @@ function aquaPlugin(handles, auto)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: aquaPlugin.m 7841 2016-03-31 00:36:42Z j $
+% $Id: aquaPlugin.m 7868 2016-04-12 15:15:16Z j $
 
 	if (isempty(handles.fname))
 		errordlg('Fast trigger, you probably killed my previous encarnation. Now you have to start again. Bye.','Error')
@@ -119,7 +119,7 @@ function aquaPlugin(handles, auto)
 			fname3 = [];	%'C:\a1\pathfinder\qual7_85_07_Interp200_Q6.nc';
 			%splina = true;
 			splina = [12 30];		% Fill missing monthly data by a spline interpolation taken over two years (out limits set to NaN)
-			tipoStat = 0;			% 0, Compute MEAN, 1 compute MINimum and 2 compute MAXimum of the ANO period
+			tipoStat = 0;			% 0, Compute MEAN, 1 -> Median; 2 -> MINimum; 3 -> MAXimum; 4 -> STD of the ANO period
 			% If not empty, it must contain the name of a Lon,Lat file with locations where to output time series
 			chkPts_file = [];	%chkPts_file = 'C:\a1\pathfinder\chkPts.dat';
 			if (internal_master)
@@ -1170,15 +1170,12 @@ function calc_L2_periods(handles, period, tipoStat, regMinMax, grd_out)
 
 	% C is the counter to the current layer number being processed.
 	c = find(fix(tempos) < periods(1));		% Find the starting layer number
-	if (isempty(c))
-		c = 1;				% We start at the begining of file.
-	else
-		c = c(end) + 1;		% We start somewhere at the middle of file.
+	if (isempty(c)),	c = 1;				% We start at the begining of file.
+	else				c = c(end) + 1;		% We start somewhere at the middle of file.
 	end
 	
 	n_periods = numel(periods);
 	for (m = 1:n_periods)
-
 		if (N(m) ~= 0)
 % 			Z = alloc_mex(rows, cols, N(m), 'single', NaN);
 % 			for (n = 1:N(m))			% Loop over the days in current period
@@ -1218,7 +1215,6 @@ function calc_L2_periods(handles, period, tipoStat, regMinMax, grd_out)
 
 		h = aguentabar(m/n_periods,'title','Computing period means.');	drawnow
 		if (isnan(h)),	break,	end
-
 	end
 
 % ------------------------------------------------------------------------------------
@@ -1283,7 +1279,7 @@ function [out, s] = get_layer(Z, layer, s)
 
 % ----------------------------------------------------------------------
 function [out, s] = doM_or_M_or_M(Z, first_level, lev_inc, last_level, regionalMIN, regionalMAX, tipo, s)
-% Compute either the MEAN (TIPO = 0) or the MIN (TIPO = 1), MAX (2) or STD (3) of the period selected
+% Compute either the MEAN (TIPO = 0) or the MIN (TIPO = 2), MAX (3) or STD (4) of the period selected
 % by the first_level:lev_inc:last_level vector. Normaly a year but can be a season as well.
 % NOTE1: This function was only used when SPLINA (see above in calc_yearMean()) up to Mirone 2.2.0
 % NOTE2: It is now (2.5.0dev) used again by the tideman function (and other calls)
@@ -1322,14 +1318,16 @@ function [out, s] = doM_or_M_or_M(Z, first_level, lev_inc, last_level, regionalM
 			cvlib_mex('add', out, tmp);
 		end
 		cvlib_mex('div', out, contanoes);			% The mean
-	elseif (tipo == 1 || tipo == 2)			% ...
+	elseif (tipo == 1)						% Median
+		% too complicated if the entire dataset is not on memory 
+	elseif (tipo == 2 || tipo == 3)			% ...
 		v = version;
 		if (str2double(v(1)) > 6)			% With R14 and above we use the built in min and max
-			if (tipo == 1),		fh = @min;	% Minimum of the selected period
+			if (tipo == 2),		fh = @min;	% Minimum of the selected period
 			else				fh = @max;	% Maximum of the selected period
 			end
 		else								% But for R13 and compiled we must avoid the BUGGY NaNs comparisons
-			if (tipo == 1),		fh = @min_nan;		test = 1e10;
+			if (tipo == 2),		fh = @min_nan;		test = 1e10;
 			else				fh = @max_nan;		test = -1e10;
 			end
 		end
@@ -1345,7 +1343,7 @@ function [out, s] = doM_or_M_or_M(Z, first_level, lev_inc, last_level, regionalM
 				out(out == test) = NaN;		% Reset the ests values back to NaNs
 			end
 		end
-	elseif (tipo == 3)			% STD
+	elseif (tipo == 4)			% STD
 		out = nanstd_j(Z, first_level, lev_inc, last_level, s);
 	end
 
