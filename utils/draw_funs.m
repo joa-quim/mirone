@@ -25,7 +25,7 @@ function varargout = draw_funs(hand, varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: draw_funs.m 7850 2016-04-01 18:47:13Z j $
+% $Id: draw_funs.m 7869 2016-04-12 15:17:22Z j $
 
 % A bit of strange tests but they are necessary for the cases when we use the new feval(fun,varargin{:}) 
 opt = varargin{1};		% function name to evaluate (new) or keyword to select one (old form)
@@ -317,18 +317,22 @@ function set_line_uicontext(h, opt)
 			uimenu(item_tools, 'Label', 'Crop Image (with coords)', 'Call', ...
 				'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''CropaWithCoords'')');
 			uimenu(item_tools, 'Label', 'Set to constant', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''SetConst'')','Sep','on');
-			uimenu(item_tools, 'Label', 'Clip grid', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''Clip'')');
+			item_tools3 = uimenu(item_tools, 'Label', 'Stats');
+			uimenu(item_tools3,'Label', 'Mean',          'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''GetMean'')');
+			uimenu(item_tools3,'Label', 'Median',        'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''GetMedian'')');
+			uimenu(item_tools3,'Label', 'STD',           'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''GetSTD'')');
+			uimenu(item_tools, 'Label', 'Clip grid',     'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''Clip'')');
 			uimenu(item_tools, 'Label', 'Median filter', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''MedianFilter'')');
 			uimenu(item_tools, 'Label', 'Spline smooth', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''SplineSmooth'')');
 			uimenu(item_tools, 'Label', 'Histogram (grid)', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''CropaGrid_histo'')');
 			uimenu(item_tools, 'Label', 'Histogram (image)', 'Call', 'image_histo(guidata(gcbo),gco)');
 %			uimenu(item_tools, 'Label', 'Detect Fronts', 'Call', 'cayula_cornillon(guidata(gcbo),gco)');
-			uimenu(item_tools, 'Label', 'Power', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''CropaGrid_power'')');
+			uimenu(item_tools, 'Label', 'Power',           'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''CropaGrid_power'')');
 			uimenu(item_tools, 'Label', 'Autocorrelation', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''CropaGrid_autocorr'')');
 			uimenu(item_tools, 'Label', 'FFT tool', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''CropaGrid_fftTools'')');
 			item_fill = uimenu(item_tools, 'Label', 'Fill gaps');
-			uimenu(item_fill, 'Label', 'Fill gaps (surface)', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''FillGaps'',''surface'')');
-			uimenu(item_fill, 'Label', 'Fill gaps (cubic)', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''FillGaps'',''cubic'');');
+			uimenu(item_fill, 'Label', 'Fill gaps (surface)','Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''FillGaps'',''surface'')');
+			uimenu(item_fill, 'Label', 'Fill gaps (cubic)',  'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''FillGaps'',''cubic'');');
 			uimenu(item_fill, 'Label', 'Fill gaps (linear)', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''FillGaps'',''linear'');');
 		else			% We have an Image
 			uimenu(item_tools, 'Label', 'Crop Image', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco)');
@@ -350,6 +354,10 @@ function set_line_uicontext(h, opt)
 			uimenu(item_tools2, 'Label', 'Crop Image (with coords)', 'Call', ...
 				'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''CropaWithCoords'')');
 			uimenu(item_tools2, 'Label', 'Set to constant', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''ROI_SetConst'')','Sep','on');
+			item_tools3 = uimenu(item_tools2, 'Label', 'Stats');
+			uimenu(item_tools3, 'Label', 'Mean', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''ROI_Mean'')');
+			uimenu(item_tools3, 'Label', 'Median', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''ROI_Median'')');
+			uimenu(item_tools3, 'Label', 'STD', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''ROI_STD'')');
 			uimenu(item_tools2, 'Label', 'Clip grid', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''ROI_Clip'')');
 			uimenu(item_tools2, 'Label', 'Median filter', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''ROI_MedianFilter'')');
 			uimenu(item_tools2, 'Label', 'Spline smooth', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''ROI_SplineSmooth'')');
@@ -844,6 +852,7 @@ function set_country_uicontext(h)
 			item_ct = uimenu(cmenuHand, 'Label', 'ROI Crop Tools','Sep','on');
 			uimenu(item_ct, 'Label', 'Crop Grid', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''CropaGrid_pure'')');
 			uimenu(item_ct, 'Label', 'Set to constant', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''ROI_SetConst'')');
+			uimenu(item_ct, 'Label', 'Mean', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''ROI_Mean'')');
 			uimenu(item_ct, 'Label', 'Clip grid', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''ROI_Clip'')');
 			uimenu(item_ct, 'Label', 'Median filter', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''ROI_MedianFilter'')');
 			uimenu(item_ct, 'Label', 'Spline smooth', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''ROI_SplineSmooth'')');
