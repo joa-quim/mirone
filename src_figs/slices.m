@@ -21,7 +21,7 @@ function varargout = slices(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: slices.m 7842 2016-03-31 00:38:42Z j $
+% $Id: slices.m 7867 2016-04-12 15:14:26Z j $
 
 % For compiling one need to include the aqua_suppfuns.m aquaPlugin.m files.
 
@@ -590,9 +590,14 @@ function [out, isleapyear] = get_months_doys(year, month)
 % -------------------------------------------------------------------------------------
 function popup_what_CB(hObject, handles)
 % ...
-	if (get(hObject, 'Val') == 2 || get(hObject, 'Val') == 6)
-		warndlg('Sorry, option not yet programmed.','Warning')
-		set(hObject, 'Val', 1)
+	if (get(hObject, 'Val') == 2)
+		val = get(handles.popup_cases, 'Val') - 1;
+		if (val == 4 || val == 6 || val == 7)
+			warndlg(sprintf(['Sorry, option too comlicated.\n\n   (YES, too complicated)\n\n' ...
+			'Try to calculate the median WHITHOUT having all\n' ...
+			'the data in memory and you''ll see what I mean)'],'Warning'))
+			set(hObject, 'Val', 1)
+		end
 	end
 
 % -------------------------------------------------------------------------------------
@@ -689,7 +694,7 @@ function push_compute_CB(hObject, handles)
 	fprintf(fid,'# Empties, even for strings, must be set as []\n');
 	fprintf(fid,'# Args for run of CASE %d\n\ncase %d\n', val_in_plugin, val_in_plugin);
 
-	if (val == 1)		% Zonal means
+	if (val == 1)		% Zonal means -- CASE 1
 		fprintf(fid,'# The ''DLAT'' variable\n%s\n',get(handles.edit_boxSize,'Str'));
 		fprintf(fid,'# INTEG_LON (Logical). If TRUE, integration is done along longitude\n%d\n', get(handles.check_integDim,'Val'));
 		fprintf(fid,'# DO_TRENDS If FALSE compute zonal integrations, otherwise compute trends of the zonal integrations (per DLAT)\n');
@@ -703,7 +708,7 @@ function push_compute_CB(hObject, handles)
 		comm = '# name of a netCDF file with quality flags. If not provided no quality check is done.';
 		helper_writeFile(handles, fid, comm, 'flags')
 
-	elseif (val == 2)	% tvar
+	elseif (val == 2)	% tvar -- CASE 2
 		fprintf(fid,'# The ''slope'' var (logical) indicates if compute slope of linear fit (TRUE) or the p parameter (FALSE)\n');
 		fprintf(fid,'%d\n', get(handles.radio_slope,'Val'));
 		comm = '# The ''Subset'' var (example: [0 19] -> (82 90)); ([9 9] -> (91 00)); ([19 0] -> (01 09))';
@@ -716,14 +721,14 @@ function push_compute_CB(hObject, handles)
 		comm = '# Name of the netCDF file where to store the result. If not provided, it will be asked here';
 		helper_writeFile(handles, fid, comm, 'fname', 1)
 
-	elseif (val == 3)	% Apply flags
+	elseif (val == 3)	% Apply flags -- CASE 3
 		comm = '# name of a netCDF file with quality flags. If not provided no quality check is done.';
 		helper_writeFile(handles, fid, comm, 'flags')
 		fprintf(fid,'# The ''Ncells'' variable\n%s\n',get(handles.edit_nCells,'Str'));
 		comm = '# Name of the netCDF file where to store the result. If not provided, it will be asked here';
 		helper_writeFile(handles, fid, comm, 'fname', 1)
 
-	elseif (val == 4)	% Seazonal Averages
+	elseif (val == 4)	% Seazonal Averages -- CASE 4
 		comm = '# The ''Periods'' variable (normaly, the number of days of each period)';
 		helper_writeFile(handles, fid, comm, 'periods')
 		comm = '# name of a netCDF file with quality flags. If not provided no quality check is done.';
@@ -744,9 +749,10 @@ function push_compute_CB(hObject, handles)
 		valW = get(handles.popup_what,'Val');		str = get(handles.popup_what,'Str');
 		switch (str{valW})
 			case 'MEAN',	fprintf(fid,'0\n');
-			case 'MIN',		fprintf(fid,'1\n');
-			case 'MAX',		fprintf(fid,'2\n');
-			case 'STD',		fprintf(fid,'3\n');
+			case 'MEDIAN',	fprintf(fid,'1\n');
+			case 'MIN',		fprintf(fid,'2\n');
+			case 'MAX',		fprintf(fid,'3\n');
+			case 'STD',		fprintf(fid,'4\n');
 			otherwise,		fprintf(fid,'0\n');
 		end
 		comm = '# Name of a file with Lon,Lat locations where to output the entire time series';
@@ -754,7 +760,7 @@ function push_compute_CB(hObject, handles)
 		comm = '# Name of the netCDF file where to store the result. If not provided, it will be asked here';
 		helper_writeFile(handles, fid, comm, 'fname', 1)
 
-	elseif (val == 5)	% Polygonal Averages
+	elseif (val == 5)	% Polygonal Averages -- CASE 5
 		comm = '# Name of the netCDF file where to store the result. If not provided, it will be asked here';
 		helper_writeFile(handles, fid, comm, 'fname', 1)
 		fprintf(fid,'# The ''What'' variable that controls what statistic to compute\n');
@@ -774,16 +780,16 @@ function push_compute_CB(hObject, handles)
 		comm = '# name of a netCDF file with quality flags. If not provided no quality check is done.';
 		helper_writeFile(handles, fid, comm, 'flags')
 
-	elseif (val == 6)	% L2 MODIS Averages
+	elseif (val == 6)	% L2 MODIS Averages -- CASE 10
 		comm = '# The ''Periods'' variable (normaly, the number of days of each period)';
 		helper_writeFile(handles, fid, comm, 'periods')
 		valW = get(handles.popup_what,'Val');		str = get(handles.popup_what,'Str');
 		switch (str{valW})
 			case 'MEAN',	fprintf(fid,'# Which statistics\n0\n');
-			case 'MEDIAN',	fprintf(fid,'# Which statistics\n0\n');
-			case 'MIN',		fprintf(fid,'# Which statistics\n1\n');
-			case 'MAX',		fprintf(fid,'# Which statistics\n2\n');
-			case 'STD',		fprintf(fid,'# Which statistics\n3\n');
+			case 'MEDIAN',	fprintf(fid,'# Which statistics\n1\n');
+			case 'MIN',		fprintf(fid,'# Which statistics\n2\n');
+			case 'MAX',		fprintf(fid,'# Which statistics\n3\n');
+			case 'STD',		fprintf(fid,'# Which statistics\n4\n');
 			otherwise,		fprintf(fid,'# Which statistics\n0\n');
 		end
 		comm = '# A 2 elements vector with the MIN and MAX values allowed on the Z function (default [0 inf])';
@@ -791,7 +797,7 @@ function push_compute_CB(hObject, handles)
 		comm = '# Name of the netCDF file where to store the result. If not provided, it will be asked here';
 		helper_writeFile(handles, fid, comm, 'fname', 1)
 
-	elseif (val == 7)	% Climatologies
+	elseif (val == 7)	% Climatologies -- CASE 4
 		comm = '# The ''Periods'' variable (The month(s) that we want the climatology)';
 		helper_writeFile(handles, fid, comm, 'periods')
 		comm = '# name of a netCDF file with quality flags. If not provided no quality check is done.';
@@ -803,16 +809,17 @@ function push_compute_CB(hObject, handles)
 		valW = get(handles.popup_what,'Val');		str = get(handles.popup_what,'Str');
 		switch (str{valW})
 			case 'MEAN',	fprintf(fid,'0\n');
-			case 'MIN',		fprintf(fid,'1\n');
-			case 'MAX',		fprintf(fid,'2\n');
-			case 'STD',		fprintf(fid,'3\n');
+			case 'MEDIAN',	fprintf(fid,'1\n');
+			case 'MIN',		fprintf(fid,'2\n');
+			case 'MAX',		fprintf(fid,'3\n');
+			case 'STD',		fprintf(fid,'4\n');
 			otherwise,		fprintf(fid,'0\n');
 		end
 		fprintf(fid,'# Not used here but need to set as empty\n[]\n');
 		comm = '# Name of the netCDF file where to store the result. If not provided, it will be asked here';
 		helper_writeFile(handles, fid, comm, 'fname', 1)
 
-	elseif (val == 8)	% Per cell correlation coefficient
+	elseif (val == 8)	% Per cell correlation coefficient -- CASE 11
 		comm = '# Name of the other netCDF file whose correlation with loaded array will be estimated';
 		helper_writeFile(handles, fid, comm, 'fname', 2)
 		comm = '# The ''Subset'' var (example: [0 19] -> (82 90)); ([9 9] -> (91 00)); ([19 0] -> (01 09))';
@@ -822,13 +829,13 @@ function push_compute_CB(hObject, handles)
 		comm = '# Name of the netCDF file where to store the result. If not provided, it will be asked here';
 		helper_writeFile(handles, fid, comm, 'fname', 1)
 
-	elseif (val == 9)	% count the acumulated number of non-NaNs
+	elseif (val == 9)	% count the acumulated number of non-NaNs -- CASE 8
 		fprintf(fid,'# OPT.\n');
 		fprintf(fid,'char count\n');
 		comm = '# The ''Subset'' var';
 		helper_writeFile(handles, fid, comm, 'subset')
 
-	elseif (val == 10)	% count bloom events
+	elseif (val == 10)	% count bloom events -- CASE 12
 		fprintf(fid,'# Threshold number to be considered a bloom.\n3\n');
 		comm = '# The ''Subset'' var';
 		helper_writeFile(handles, fid, comm, 'subset')
