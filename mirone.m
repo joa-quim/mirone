@@ -611,8 +611,8 @@ function varargout = ImageCrop_CB(handles, opt, opt2, opt3)
 % Note: I won't make the "Drape" option active in the cropped window
 %
 % VARARGOUT -> If used will hold the result of this function instead of creating a new Fig
-%				Currently implemented in cases:
-%					Crop image (opt == hLine), 'CropaWithCoords', 'CropaGrid_pure'
+%              Currently implemented in cases:
+%                  Crop image (opt == hLine), 'CropaWithCoords', 'CropaGrid_pure', 'ROI_Mean', 'ROI_Median', 'ROI_STD'
 
 if (handles.no_file),		return,		end
 first_nans = 0;		pal = [];		mask = [];	crop_pol = false;	% Defaults to croping from a rectangle
@@ -708,13 +708,13 @@ if ~isempty(opt)				% OPT must be a rectangle/polygon handle (the rect may serve
 				if isempty(resp),		return,		end
 				resp = str2double(resp{1});
 			elseif (strcmp(opt2,'ROI_SetConst'))	% Set the polygon in-or-out to cte
-				%resp = inputdlg({'Enter new grid value'},'Replace with cte value',[1 30]);	pause(0.01)
 				resp = question({'Enter new grid value'},'Replace with cte value',[1 30],'NaN','whatever');
 				if isempty(resp),		return,		end
 				invert = resp{2};
 				resp = str2double(resp{1});
 			end
 			if (isnan(resp)),	handles.have_nans = 1;	end
+
 			mask = img_fun('roipoly_j',x_lim,y_lim,double(Z_rect),x,y);
 			if (strcmp(opt2,'CropaGrid_pure'))
 				Z_rect(~mask) = single(resp);
@@ -722,13 +722,24 @@ if ~isempty(opt)				% OPT must be a rectangle/polygon handle (the rect may serve
 				if (invert),	mask = ~mask;	end			% Mask in the outside instead
 				Z_rect(mask) = single(resp);				% Set the mask values to const
 				if (invert)
-					%handles.Z_back = Z;						% in this case we have to backup the whole grid (Grrr)
 					Z(:) = single(resp);					% Actually, we need to mask the whole outside
 				else
 					handles.Z_back = Z(r_c(1):r_c(2),r_c(3):r_c(4));	handles.r_c = r_c;		% For the Undo op
 				end
 				Z(r_c(1):r_c(2),r_c(3):r_c(4)) = Z_rect;
 				if (isnan(resp)),		handles.have_nans = 1;	first_nans = 1;		end
+			elseif (strcmp(opt2,'ROI_Mean'))
+				res = Z_rect(mask);		res(isnan(res)) = [];	res = mean(double(res));
+				if (nargout),	varargout{1} = res;		return,		end
+				msgbox(sprintf('Mean over ROI = %15g',res),'ROI-Mean'),	return	
+			elseif (strcmp(opt2,'ROI_Median'))
+				res = Z_rect(mask);		res(isnan(res)) = [];	res = median(res);
+				if (nargout),	varargout{1} = res;		return,		end
+				msgbox(sprintf('Median over ROI = %15g',res),'ROI-Median'),	return	
+			elseif (strcmp(opt2,'ROI_STD'))
+				res = Z_rect(mask);		res(isnan(res)) = [];	res = std(double(res));
+				if (nargout),	varargout{1} = res;		return,		end
+				msgbox(sprintf('STD over ROI = %15g',res),'ROI-STD'),	return	
 			elseif (strcmp(opt2,'ROI_MedianFilter'))
 				[Z,Z_rect,handles] = roi_filtering(handles, Z, head, Z_rect, r_c, mask);
 			elseif (strcmp(opt2,'ROI_SplineSmooth'))
@@ -909,6 +920,24 @@ elseif (strcmp(opt2,'SetConst'))		% Replace grid values inside rect by a cte val
 	if (~handles.have_nans && isnan(resp))				% See if we have new NaNs
 		handles.have_nans = 1;		first_nans = 1;
 	end
+	
+elseif (strcmp(opt2,'GetMean'))			% ...
+	Z_rect(isnan(Z_rect)) = [];		res = mean(double(Z_rect(:)));
+	if (nargout),	varargout{1} = res;		return,		end
+	msgbox(sprintf('Mean over ROI = %15g',res),'ROI-Mean')
+	done = true;
+
+elseif (strcmp(opt2,'GetMedian'))		% ...
+	Z_rect(isnan(Z_rect)) = [];		res = median(Z_rect(:));
+	if (nargout),	varargout{1} = res;		return,		end
+	msgbox(sprintf('Median over ROI = %15g',res),'ROI-Median')
+	done = true;
+	
+elseif (strcmp(opt2,'GetSTD'))			% ...
+	Z_rect(isnan(Z_rect)) = [];		res = std(double(Z_rect(:)));
+	if (nargout),	varargout{1} = res;		return,		end
+	msgbox(sprintf('STD over ROI = %15g',res),'ROI-STD')
+	done = true;
 
 elseif (strcmp(opt2,'ImplantGrid'))		% The first part of this job was done above, where we got Z_rect and r_c
 	[X,Y,Z,head] = load_grd(handles);
