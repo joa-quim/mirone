@@ -28,6 +28,8 @@ function  test_bots(opt,varargin)
 				coasts
 			case 'gmtlist'
 				gmtlist
+			case 'implant'
+				implant
 		end
 	else
 		test_Illum
@@ -42,6 +44,7 @@ function  test_bots(opt,varargin)
 		grdread
 		coasts
 		gmtlist
+		implant
 	end
 
 % -----------------
@@ -58,7 +61,7 @@ function test_Illum
 	try		mirone('ImageIllum',luz, handles, 'grdgrad_peuck'),		pause(1)
 	catch,	disp('FAIL: a ilum com o peucker')
 	end
-	try		mirone('ImageIllum',luz, handles, 'lambertian'),			pause(1)
+	try		mirone('ImageIllum',luz, handles, 'lambertian'),		pause(1)
 	catch,	disp('FAIL: a ilum com o lambert')
 	end
 	try		mirone('ImageIllum',luz, handles, 'manip'),				pause(1)
@@ -238,4 +241,27 @@ function coasts
 % ----------------------------
 function gmtlist
 % ...
-	h = gmtedit('C:\j\cd120\revisao\cd120.gmt');
+	gmtedit('C:\j\cd120\revisao\cd120.gmt');
+
+% ----------------------------
+function implant
+% ...
+
+	[Z, hdrStruct] = gen_UMF2d(1.8, 0.05, 0.9, 1000);		% Pretend it's geogs
+	Zf = c_grdfilter(Z,hdrStruct.head,'-Fb20','-D1');		% Filter boxcar 20 km
+	hand1.Z = Zf(1:5:end, 1:5:end);
+
+ 	X = 1:5:1000; 	Y = 1:5:1000;
+	hand1.head = [1 X(end) 1 Y(end) hdrStruct.head(5:6) 0 5 5];
+ 	hand2.X = 350:650;
+ 	hand2.Y = 350:650;
+	hand2.Z = Z(350:650, 350:650);
+	hand2.head = double([hand2.X(1) hand2.X(end) hand2.Y(1) hand2.Y(end) min(hand2.Z(:)) max(hand2.Z(:)) 0 1 1]);
+
+	Z = transplants([], 'grid', hand1, hand2);
+% 	[Z,aa] = transplants([], 'grid', hand1, hand2);
+% 	mirone(Z)
+	hand1.X = X;	hand1.Y = Y;
+	mirone(Z, hand1)
+	
+	
