@@ -16,7 +16,7 @@ function varargout = update_gmt(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: update_gmt.m 7874 2016-04-21 17:00:55Z j $
+% $Id: update_gmt.m 7876 2016-04-21 18:53:20Z j $
 
 	hObject = figure('Tag','figure1','Visible','off');
 	update_gmt_LayoutFcn(hObject);
@@ -36,13 +36,13 @@ function varargout = update_gmt(varargin)
 
 	% Try to find which GMT5 is currently in use and find if it's a 64 or 32 bits version.
 	try
-		[s, w] = dos('gmt --show-bindir');
+		[s, w] = mat_lyies('gmt --show-bindir');
 	catch			% Falls here if no GMT5 around
 		s = 1;
 	end
 	if (s == 0)
 		try
-			patoGMT = w(1:end-5);		% Last char is the \n
+			patoGMT = w(1:end-4);		% Last char is the \n
 			[s, w2] = mat_lyies(['pesnoop ' patoGMT '/bin/psxy.exe /PE_CD']);
 			if (s == 0)
 				ind = strfind(w2, 'bit Portable');
@@ -54,6 +54,8 @@ function varargout = update_gmt(varargin)
 					end
 				end
 			end
+		catch
+			disp(lasterr)
 		end
 	end
 
@@ -125,7 +127,7 @@ function push_OK_CB(hObject, handles)
 	if (isempty(patoGMT))
 		errordlg('Yes, update what?', 'Chico Clever'),	return
 	end
-	patoGMT = [patoGMT '/'];
+	patoGMT = [ddewhite(patoGMT) '/'];
 
 	dest_fiche = [handles.path_tmp 'apudeitaGMT.txt'];		url = 'w3.ualg.pt/~jluis/GMTshiny_w64/';
 	if (~do_64),	url(end-2:end-1) = '32';	end			% Redirect to 32 bits dir
@@ -144,11 +146,11 @@ function push_OK_CB(hObject, handles)
 	n = 0;
 	for (k = 1:numel(nomes))
 		nome = [patoGMT nomes{k}];
-		if (~exist(nome, 'file'))			% If it does not exist, can't be updated (But if new file?)
+		if (exist(nome, 'file') ~= 2)		% If it does not exist, can't be updated (But if new file?)
 			continue
 		end
 		localMD5 = CalcMD5(nome, 'file');
-		if (~strcmp(MD5{k}, localMD5))		% OK, we have a new version of this guy
+		if (~strcmpi(MD5{k}, localMD5))		% OK, we have a new version of this guy
 			n = n + 1;
 			namedl{n} = [url nomes{k}];		% File name to update
 		end		
