@@ -156,7 +156,7 @@ function push_OK_CB(hObject, handles)
 			c(k) = false;
 		else
 			localMD5 = CalcMD5(nome, 'file');
-			if (~strcmp(MD5{k}, localMD5))	% OK, we have a new version of this guy
+			if (~strcmpi(MD5{k}, localMD5))	% OK, we have a new version of this guy
 				namedl{k} = [url nomes{k}];	% File name to update
 				c(k) = false;
 			end		
