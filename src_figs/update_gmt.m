@@ -16,7 +16,7 @@ function varargout = update_gmt(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: update_gmt.m 7877 2016-04-23 00:51:13Z j $
+% $Id: update_gmt.m 7878 2016-04-23 01:07:32Z j $
 
 	hObject = figure('Tag','figure1','Visible','off');
 	update_gmt_LayoutFcn(hObject);
@@ -156,7 +156,7 @@ function push_OK_CB(hObject, handles)
 			c(k) = false;
 		else
 			localMD5 = CalcMD5(nome, 'file');
-			if (~strcmp(MD5{k}, localMD5))	% OK, we have a new version of this guy
+			if (~strcmpi(MD5{k}, localMD5))	% OK, we have a new version of this guy
 				namedl{k} = [url nomes{k}];	% File name to update
 				c(k) = false;
 			end		
