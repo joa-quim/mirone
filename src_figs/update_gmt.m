@@ -25,13 +25,18 @@ function varargout = update_gmt(varargin)
 
 	if (nargin)			% Than varargin must hold the Mirone handles
 		handles.path_tmp = varargin{1}.path_tmp;
+		handles.home_dir = varargin{1}.home_dir;
+		handles.IamCompiled = varargin{1}.IamCompiled;
 	else
 		mir_dirs = getappdata(0,'MIRONE_DIRS');
 		if (~isempty(mir_dirs))
 			handles.path_tmp = [mir_dirs.home_dir '/tmp/'];
+			handles.home_dir = mir_dirs.home_dir;
 		else
 			handles.path_tmp = [pwd '/'];
+			handles.home_dir = pwd;
 		end
+		handles.IamCompiled = false;		% Though we actually do not know
 	end
 
 	% Try to find which GMT5 is currently in use and find if it's a 64 or 32 bits version.
@@ -74,15 +79,7 @@ function edit_path64_CB(hObject, handles, opt)
 	if (nargin == 3),	pato = opt;
 	else				pato = get(hObject, 'Str');
 	end
-	if (~exist(pato, 'dir') == 7)
-		errordlg('This directory does not exist.','Error')
-		set(hObject, 'Str', '')
-	else
-		if (~isempty(get(handles.edit_path32, 'Str')))
-			warndlg('Cannot update more than one version at same time. Make up your mind 64 or 32 bits?', 'Warn')
-			set(hObject, 'Str', '')
-		end
-	end
+	sanitize_gmt_path(handles.edit_path32, pato)
 
 % ---------------------------------------------------------------------
 function push_path32_CB(hObject, handles)
@@ -92,18 +89,26 @@ function push_path32_CB(hObject, handles)
 
 % ---------------------------------------------------------------------
 function edit_path32_CB(hObject, handles, opt)
-% ...
 	if (nargin == 3),	pato = opt;
 	else				pato = get(hObject, 'Str');
 	end
+	sanitize_gmt_path(handles.edit_path64, pato)
+
+% ---------------------------------------------------------------------
+function sanitize_gmt_path(hObject, pato)
+% Common code used by both edit_path??_CB functions to do some sanity checks on the path provided
 	if (~exist(pato, 'dir') == 7)
 		errordlg('This directory does not exist.','Error')
-		set(hObject, 'Str', '')
+		set(hObject, 'Str', ''),		return
 	else
-		if (~isempty(get(handles.edit_path64, 'Str')))
+		if (~isempty(get(hObject, 'Str')))
 			warndlg('Cannot update more than one version at same time. Make up your mind 64 or 32 bits?', 'Warn')
-			set(hObject, 'Str', '')
+			set(hObject, 'Str', ''),	return
 		end
+	end
+	if (exist([pato '/psxy.exe'], 'file') ~= 2)
+		errordlg('This is not a root directory of a GMT installation.','Error')
+		set(hObject, 'Str', '')
 	end
 
 % ---------------------------------------------------------------------
@@ -143,33 +148,42 @@ function push_OK_CB(hObject, handles)
 	builtin('delete',dest_fiche);			% Remove this one right away
 	namedl = cell(numel(nomes),1);			% To hold the names of the to-be-updated files
 
-	n = 0;
+	c = true(numel(nomes),1);
 	for (k = 1:numel(nomes))
 		nome = [patoGMT nomes{k}];
-		if (exist(nome, 'file') ~= 2)		% If it does not exist, can't be updated (But if new file?)
-			continue
+		if (exist(nome, 'file') ~= 2)		% If it does not exist
+			namedl{k} = [url nomes{k}];		% If file does not exist locally, it's for sure one to update
+			c(k) = false;
+		else
+			localMD5 = CalcMD5(nome, 'file');
+			if (~strcmp(MD5{k}, localMD5))	% OK, we have a new version of this guy
+				namedl{k} = [url nomes{k}];	% File name to update
+				c(k) = false;
+			end		
 		end
-		localMD5 = CalcMD5(nome, 'file');
-		if (~strcmpi(MD5{k}, localMD5))		% OK, we have a new version of this guy
-			n = n + 1;
-			namedl{n} = [url nomes{k}];		% File name to update
-		end		
 	end
-	if (n == 0)
+	namedl(c) = [];		nomes(c) = [];	MD5(c) = [];	% Remove names that don't need to be updated
+	if (isempty(namedl))
 		msgbox('Your GMT is updated to the latest.','Nothing New2'),	return
 	end
-	namedl = namedl(1:n);		% Remove non used cells
 
 	fid1 = fopen([patoGMT 'dowload.bat'],'wt');	% Create the downloading batch
 	fprintf(fid1, '@echo off\nREM Batch file to download the latest GMT files needed to update your instalation\n\n');
 	fprintf(fid1, 'REM Create a tmp directory to receive the downloaded files\n');
-	fprintf(fid1, 'IF NOT EXIST %s md %s\n\necho downloading files ...\n', [patoGMT 'tmp'], [patoGMT 'tmp']);
+	t = strrep([patoGMT 'tmp'], '/', '\');		% Otherwise, stupid Windows says "The syntax of the command is incorrect"
+	fprintf(fid1, 'IF NOT EXIST %s md %s\n\necho downloading files ...\n', t, t);
 	fid2 = fopen([patoGMT 'update.bat'],'wt');	% Create the updating batch
 	fprintf(fid2, '@echo off\nREM Batch file to move the dowloaded files to their finally destiny\n\ncd tmp\n');
+	prefix = '';
+	if (handles.IamCompiled),		prefix = [handles.home_dir '/'];	end
 	for (k = 1:numel(namedl))
 		[pato, nome, ext] = fileparts(namedl{k});
-		fprintf(fid1, 'wget %s -q --tries=2 --connect-timeout=5 -O %stmp/%s\n', namedl{k}, patoGMT, [nome ext]);
-		fprintf(fid2, 'move /Y %s\t../%s\n', [nome ext], nomes{k});
+		if (~strcmp(nome, 'VERSION'))
+			fprintf(fid1, '%swget %s -q --tries=2 --connect-timeout=5 -O %stmp/%s\n', prefix, namedl{k}, patoGMT, [nome ext]);
+			fprintf(fid2, 'move /Y %s\t../%s\n', [nome ext], nomes{k});
+		else
+			fprintf(fid2, 'echo %s > ../share/VERSION\n', MD5{k});
+		end
 	end
 	fprintf(fid1, 'echo Finished dowload. Now manually run the updtate batch to finish the update\npause\n');
 	fprintf(fid2, 'echo Finished. Your GMT5 should be updated now\npause\n');
