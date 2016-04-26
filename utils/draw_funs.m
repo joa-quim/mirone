@@ -3432,7 +3432,9 @@ function changeAxesLabels(opt)
 
 	hFig = get(0,'CurrentFigure');      hAxes = get(hFig,'CurrentAxes');
 	x_tick = getappdata(hAxes,'XTickOrig');
+	if (isa(x_tick, 'cell')),	x_tick = char(x_tick);	end		% Damn TMW never stops breaking compatibility (now in R2016a)
 	y_tick = getappdata(hAxes,'YTickOrig');
+	if (isa(y_tick, 'cell')),	y_tick = char(y_tick);	end
 	n_xtick = size(x_tick,1);                   n_ytick = size(y_tick,1);
 	sep = ':';
 	switch opt
