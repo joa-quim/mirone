@@ -25,7 +25,7 @@ function varargout = draw_funs(hand, varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: draw_funs.m 7873 2016-04-20 11:13:12Z j $
+% $Id: draw_funs.m 7880 2016-04-26 23:05:06Z j $
 
 % A bit of strange tests but they are necessary for the cases when we use the new feval(fun,varargin{:}) 
 opt = varargin{1};		% function name to evaluate (new) or keyword to select one (old form)
@@ -3432,7 +3432,9 @@ function changeAxesLabels(opt)
 
 	hFig = get(0,'CurrentFigure');      hAxes = get(hFig,'CurrentAxes');
 	x_tick = getappdata(hAxes,'XTickOrig');
+	if (isa(x_tick, 'cell')),	x_tick = char(x_tick);	end		% Damn TMW never stops breaking compatibility (now in R2016a)
 	y_tick = getappdata(hAxes,'YTickOrig');
+	if (isa(y_tick, 'cell')),	y_tick = char(y_tick);	end
 	n_xtick = size(x_tick,1);                   n_ytick = size(y_tick,1);
 	sep = ':';
 	switch opt
