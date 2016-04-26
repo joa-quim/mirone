@@ -79,7 +79,10 @@ function edit_path64_CB(hObject, handles, opt)
 	if (nargin == 3),	pato = opt;
 	else				pato = get(hObject, 'Str');
 	end
-	sanitize_gmt_path(handles.edit_path32, pato)
+	if (~isempty(pato))
+		pato = ddewhite(pato);	set(hObject, 'Str', pato)		% Make sure no blanks to f us up.
+		sanitize_gmt_path(handles.edit_path32, pato)
+	end
 
 % ---------------------------------------------------------------------
 function push_path32_CB(hObject, handles)
@@ -92,21 +95,24 @@ function edit_path32_CB(hObject, handles, opt)
 	if (nargin == 3),	pato = opt;
 	else				pato = get(hObject, 'Str');
 	end
-	sanitize_gmt_path(handles.edit_path64, pato)
+	if (~isempty(pato))
+		pato = ddewhite(pato);	set(hObject, 'Str', pato)		% Make sure no blanks to f us up.
+		sanitize_gmt_path(handles.edit_path64, pato)
+	end
 
 % ---------------------------------------------------------------------
 function sanitize_gmt_path(hObject, pato)
 % Common code used by both edit_path??_CB functions to do some sanity checks on the path provided
-	if (~exist(pato, 'dir') == 7)
+	if (exist(pato, 'dir') ~= 7)
 		errordlg('This directory does not exist.','Error')
 		set(hObject, 'Str', ''),		return
 	else
-		if (~isempty(get(hObject, 'Str')))
+		if (~isempty(get(hObject, 'Str')))		% Attention, this 'hObject' is that of the complementary bitage edit box
 			warndlg('Cannot update more than one version at same time. Make up your mind 64 or 32 bits?', 'Warn')
 			set(hObject, 'Str', ''),	return
 		end
 	end
-	if (exist([pato '/psxy.exe'], 'file') ~= 2)
+	if (exist([pato '/bin/psxy.exe'], 'file') ~= 2)
 		errordlg('This is not a root directory of a GMT installation.','Error')
 		set(hObject, 'Str', '')
 	end
@@ -173,7 +179,10 @@ function push_OK_CB(hObject, handles)
 	t = strrep([patoGMT 'tmp'], '/', '\');		% Otherwise, stupid Windows says "The syntax of the command is incorrect"
 	fprintf(fid1, 'IF NOT EXIST %s md %s\n\necho downloading files ...\n', t, t);
 	fid2 = fopen([patoGMT 'update.bat'],'wt');	% Create the updating batch
-	fprintf(fid2, '@echo off\nREM Batch file to move the dowloaded files to their finally destiny\n\ncd tmp\n');
+	fprintf(fid2, '@echo off\nREM Batch file to move the dowloaded files to their finally destiny\n\n');
+	fprintf(fid2, 'IF NOT EXIST share\\postscriptlight md share\\postscriptlight\n');
+	fprintf(fid2, 'IF NOT EXIST share\\spotter md share\\spotter\n');
+	fprintf(fid2, 'cd tmp\n');
 	prefix = '';
 	if (handles.IamCompiled),		prefix = [handles.home_dir '/'];	end
 	for (k = 1:numel(namedl))
