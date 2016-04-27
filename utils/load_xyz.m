@@ -241,7 +241,7 @@ function varargout = load_xyz(handles, opt, opt2)
 		for (k = 1:numel(names))
 			fname = names{k};
 			j = strfind(fname,filesep);
-			if (isempty(j)),    fname = sprintf('%s%s',PathName, fname);   end		% Need to add path as well 
+			if (isempty(j)),    fname = sprintf('%s/%s',PathName, fname);   end		% Need to add path as well 
 			if (isempty(n_headers)),    n_headers = NaN;    end
 			if (~got_nc)				% Otherwise data was read already
 				if (multi_seg)
