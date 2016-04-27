@@ -186,7 +186,7 @@ function hObject = mirone_OpeningFcn(varargin)
 		handles.last_directories = {handles.path_tmp; home_dir};	% Let it have something existent
 	end
 	if (any(j))					% If any of the old dirs evaporated, update that info in mirone_prefs
-		directory_list = handles.last_directories;
+		directory_list = handles.last_directories;	isempty(directory_list);	% To shut up MLint
 		if (handles.version7),		save([handles.path_data 'mirone_pref.mat'],'directory_list', '-append', '-v6')
 		else						save([handles.path_data 'mirone_pref.mat'],'directory_list', '-append')
 		end
@@ -250,13 +250,36 @@ function hObject = mirone_OpeningFcn(varargin)
 			handles = aux_funs('isProj',handles);				% Check/set about coordinates type
 			
 		elseif (n_argin == 1 && isa(varargin{1},'struct') && isfield(varargin{1},'ProjectionRefPROJ4'))
-			% A GMT5 grid/image structure (image not implemented yet).
-			handles.head = [varargin{1}.range varargin{1}.MinMax varargin{1}.registration varargin{1}.inc];
-			Z = varargin{1}.z;			grd_data_in = true;
-			if (~isa(Z,'single')),		Z = single(Z);		end
-			handles.have_nans = grdutils(Z,'-N');
-			X = linspace(varargin{1}.range(1), varargin{1}.range(2), varargin{1}.n_columns);
-			Y = linspace(varargin{1}.range(3), varargin{1}.range(4), varargin{1}.n_rows);
+			% A GMT5 grid/image structure. (for images we still do not use eventual alpha channel)
+			handles.head = [varargin{1}.range varargin{1}.registration varargin{1}.inc];
+			if (~isfield(varargin{1}, 'image'))
+				Z = varargin{1}.z;			grd_data_in = true;
+				if (~isa(Z,'single')),		Z = single(Z);		end
+				handles.have_nans = grdutils(Z,'-N');
+				X = linspace(varargin{1}.range(1), varargin{1}.range(2), varargin{1}.n_columns);
+				Y = linspace(varargin{1}.range(3), varargin{1}.range(4), varargin{1}.n_rows);
+			else
+				handles.image_type = 3;		isReferenced = false;
+				X = [varargin{1}.x(1) varargin{1}.x(end)];		Y = [varargin{1}.y(1) varargin{1}.y(end)];
+				handles.geog = aux_funs('guessGeog', [Y Y]);
+				ProjectionRefWKT = varargin{1}.ProjectionRefWKT;
+				if (isempty(ProjectionRefWKT) && ~isempty(varargin{1}.ProjectionRefPROJ4))
+					ProjectionRefWKT = ogrproj(varargin{1}.ProjectionRefPROJ4);
+				end
+				if (~isempty(ProjectionRefWKT))
+					aux_funs('appP', handles, varargin{1}.ProjectionRefWKT)			% If we have a WKT proj, store it
+					isReferenced = true;
+					if (~handles.geog),		handles.is_projected = true;	end		% WEAK LOGIC. SHOULD PARSE WKT TO MAKE SURE
+				end
+				if (ndims(varargin{1}.image) == 2),		set(handles.figure1,'Colormap',gray(256));		end
+				win_name = 'Nikles';
+				if (~isempty(varargin{1}.title)),		win_name = varargin{1}.title;	end
+				handles = show_image(handles,win_name,X,Y,varargin{1}.image,0,'xy',varargin{1}.registration,1);
+				if (~isReferenced),		grid_info(handles,[],'iminfo',varargin{1}.image);		% Create a info string
+				else					grid_info(ProjectionRefWKT, 'referenced', varargin{1}.image);
+				end
+				handles = aux_funs('isProj',handles);				% Check/set about coordinates type
+			end
 
 		elseif (n_argin == 2 && isequal([size(varargin{2},1) size(varargin{2},2)],[1 9]))
 			% A matrix with the classic nine elements header vector
@@ -426,6 +449,7 @@ function hObject = mirone_OpeningFcn(varargin)
 function erro = gateLoadFile(handles,drv,fname)
 % Gateway function to load a recognized file type using its name
 	erro = 0;
+	if (strncmp(drv, 'MB', 2)),	drv_or = drv;	drv = 'MB';		end		% The MB (system) type case are actually several
 	switch drv
 		case 'gmt',			loadGRID(handles, fname, 'GMT_relatives')
 		case 'generic',		FileOpenNewImage_CB(handles, fname);
@@ -444,6 +468,7 @@ function erro = gateLoadFile(handles,drv,fname)
 		case 'mgg_gmt',		GeophysicsImportGmtFile_CB(handles, fname);
 		case 'ghost',		load_ps(handles, fname);		% Put ghostscript on works
 		case 'sww',			aquamoto(fname);
+		case 'MB',          load_MB(handles, fname, drv_or);
 		case 'dono',		erro = FileOpenGeoTIFF_CB(handles,'dono',fname);	% It means "I don't know"
 		otherwise,			erro = 1;
 	end
@@ -598,6 +623,23 @@ function load_ps(handles, fname)
 	end
 	popenr(P, -1)						% Close the stdin stream
 	mirone(img);
+
+% --------------------------------------------------------------------------------------------------
+function load_MB(handles, fname, frmt)
+% Send MB datalist or single MB file to mbimport and get back an Image like that produced by mbswath
+	cmd = '';
+	fid = fopen(fname,'rt');
+	todos = fread(fid,'*char');		fclose(fid);
+	if (todos(1) == '#' || todos(1) == '>')
+		ind = find(todos == 10);		% Find new lines
+		cmd = todos(2:ind(1)-1)';
+		%todos = todos(ind(1)+1:end);
+	end
+	%[nomes, frmt] = strread(todos,'%s %s');
+
+	I = gmtmex(['mbimport -I' fname ' ' cmd]);
+	mirone(I)
+	if (handles.no_file),	delete(handles.figure1),	end		% Delete the old and empty fig.
 
 % --------------------------------------------------------------------------------------------------
 function varargout = ImageCrop_CB(handles, opt, opt2, opt3)
