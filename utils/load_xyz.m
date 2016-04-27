@@ -79,7 +79,7 @@ function varargout = load_xyz(handles, opt, opt2)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: load_xyz.m 7851 2016-04-01 18:57:44Z j $
+% $Id: load_xyz.m 7884 2016-04-27 22:39:25Z j $
 
 %	EXAMPLE CODE OF HOW TO CREATE A TEMPLATE FOR UICTX WHEN THESE ARE TOO MANY
 % 	cmenuHand = get(h, 'UIContextMenu');
@@ -241,7 +241,7 @@ function varargout = load_xyz(handles, opt, opt2)
 		for (k = 1:numel(names))
 			fname = names{k};
 			j = strfind(fname,filesep);
-			if (isempty(j)),    fname = sprintf('%s%s',PathName, fname);   end		% Need to add path as well 
+			if (isempty(j)),    fname = sprintf('%s/%s',PathName, fname);   end		% Need to add path as well 
 			if (isempty(n_headers)),    n_headers = NaN;    end
 			if (~got_nc)				% Otherwise data was read already
 				if (multi_seg)
