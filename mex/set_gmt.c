@@ -97,7 +97,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 			pato = (char *) mxCalloc((size_t)(strlen(this) + strlen(envString) + 2), (size_t)1);
 			strcpy(pato, envString);
 			strcat(pato, this);
-			if (status = putenv(pato))
+			if ((status = putenv(pato)) != 0)
 				mexPrintf("SET_GMT: Failure to set the PATH environmental variable\n %s\n", pato);
 			mxFree(pato);
 
@@ -150,7 +150,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		sprintf(GMT_SHAREDIR, "%s%c%s", this, DIR_DELIM, "share");
 		/* sdir will be used by our gmt dlls (& shoredump) */
 		sprintf(sdir, "GMT_SHAREDIR=%s%c%s", this, DIR_DELIM, "share");
-		if (status = putenv(sdir))
+		if ((status = putenv(sdir)) != 0)
 			mexPrintf("SET_GMT: Failure to set the sharedir environmental variable\n %s\n", sdir);
 		mxStr = mxCreateString("4");
 	}
