@@ -1,5 +1,5 @@
 /*--------------------------------------------------------------------
- *	$Id: set_gmt.c 4765 2015-07-29 13:41:32Z j $
+ *	$Id: set_gmt.c 7885 2016-04-28 21:33:41Z j $
  *
  *	Copyright (c) 2004-2013 by J. Luis
  *
@@ -97,7 +97,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 			pato = (char *) mxCalloc((size_t)(strlen(this) + strlen(envString) + 2), (size_t)1);
 			strcpy(pato, envString);
 			strcat(pato, this);
-			if (status = putenv(pato))
+			if ((status = putenv(pato)) != 0)
 				mexPrintf("SET_GMT: Failure to set the PATH environmental variable\n %s\n", pato);
 			mxFree(pato);
 
@@ -150,7 +150,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		sprintf(GMT_SHAREDIR, "%s%c%s", this, DIR_DELIM, "share");
 		/* sdir will be used by our gmt dlls (& shoredump) */
 		sprintf(sdir, "GMT_SHAREDIR=%s%c%s", this, DIR_DELIM, "share");
-		if (status = putenv(sdir))
+		if ((status = putenv(sdir)) != 0)
 			mexPrintf("SET_GMT: Failure to set the sharedir environmental variable\n %s\n", sdir);
 		mxStr = mxCreateString("4");
 	}
