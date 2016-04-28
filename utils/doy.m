@@ -26,7 +26,7 @@ function [mm, dd] = doy(year, ddd, opt)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id$
+% $Id: doy.m 4614 2014-11-03 01:02:31Z j $
 
 	if ((nargin == 1 && (isa(year, 'char')) || numel(year) == 3) || (nargin == 3))
 		to_doy = true;		% Get DOY from a DATEVEC date string or [year month day]

@@ -21,7 +21,7 @@ function varargout = overview(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id$
+% $Id: overview.m 4479 2014-05-11 14:19:36Z j $
 
 	if (nargin >= 4 && ischar(varargin{1}))
 		gui_CB = str2func(varargin{1});

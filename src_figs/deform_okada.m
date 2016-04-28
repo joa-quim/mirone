@@ -1,7 +1,7 @@
 function varargout = deform_okada(varargin)
-% Compute Elastic deformations
+% Compute Elastic deformations using the rngchng MEX
 
-%	Copyright (c) 2004-2012 by J. Luis
+%	Copyright (c) 2004-2016 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -15,6 +15,8 @@ function varargout = deform_okada(varargin)
 %
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
+
+% $Id: deform_okada.m 7757 2016-01-26 12:28:55Z j $
 
 	if isempty(varargin)
 		errordlg('DEFORM OKADA: Wrong number of input args','Error');    return
@@ -696,11 +698,11 @@ function push_compute_CB(hObject, handles)
 	end
 
 	% Get grid params
-	xmin = str2double(get(handles.edit_x_min,'String'));     xmax = str2double(get(handles.edit_x_max,'String'));
-	ymin = str2double(get(handles.edit_y_min,'String'));     ymax = str2double(get(handles.edit_y_max,'String'));
-	nrow = str2double(get(handles.edit_Nrows,'String'));    ncol = str2double(get(handles.edit_Ncols,'String'));
+	xmin = str2double(get(handles.edit_x_min,'String'));	xmax = str2double(get(handles.edit_x_max,'String'));
+	ymin = str2double(get(handles.edit_y_min,'String'));	ymax = str2double(get(handles.edit_y_max,'String'));
+	nrow = str2double(get(handles.edit_Nrows,'String'));	ncol = str2double(get(handles.edit_Ncols,'String'));
 
-	x = handles.fault_x;    y = handles.fault_y;
+	x = handles.fault_x;	y = handles.fault_y;
 	if (~iscell(x)),        x = {x};    y = {y};    end
 	fig_xlim = [xmin xmax];   fig_ylim = [ymin ymax];
 	to_km = 1;      % The conversion from m->km will be done inside range_change
@@ -716,7 +718,7 @@ function push_compute_CB(hObject, handles)
 		opt_M = '';
 	end
 
-	for (i=1:handles.n_faults)
+	for (i = 1:handles.n_faults)
 		% I have to do fish the patch coords because range_change does not seams to
 		% use the fault trace coords but the coordinates of the fault at its depth 
 		hp = getappdata(handles.h_fault(i),'PatchHand');

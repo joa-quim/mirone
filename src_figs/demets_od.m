@@ -16,7 +16,7 @@ function varargout = demets_od(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id$
+% $Id: demets_od.m 3656 2012-08-09 13:20:31Z j $
 
 	if (isempty(varargin))
 		errordlg('DEMETS_OD called with empty arguments','Error'),	return

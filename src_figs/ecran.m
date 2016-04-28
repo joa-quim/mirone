@@ -35,13 +35,13 @@ function varargout = ecran(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id$
+% $Id: ecran.m 7728 2015-11-25 01:57:51Z j $
 
 	% This before-start test is to allow updating magnetic tracks that are used to pick the isochrons
 	% using the convolution method. If no synthetic plot is found, the whole updating issue is simply ignored.
 	showBak = get(0,'ShowHiddenHandles');
 	set(0,'ShowHiddenHandles','on');
-	hObject = findobj(get(0,'Children'),'flat', 'FileName', 'plotxy');		% Find a copy of myself
+	hObject = findobj(get(0,'Children'),'flat', 'FileName', 'plotxy');		% Find a copy of myself. But what if many?
 	set(0,'ShowHiddenHandles',showBak);
 	freshFig = true;
 
@@ -91,6 +91,9 @@ function varargout = ecran(varargin)
 		handles.d_path = [handles.home_dir filesep 'data' filesep];
 		s = load([handles.d_path 'mirone_pref.mat'],'directory_list');
 		try			handles.last_dir = s.directory_list{1}; 	end
+	elseif (isempty(hObject))
+		errordlg('ECRAN: Requested ADD to a previous plot but the Figure does not exists.','Error')
+		return
 	end
 
 	% ---- OK, the interface for this function is a mess. In part due to backward compatibility issues

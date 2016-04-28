@@ -16,7 +16,7 @@ function varargout = pole2neighbor(obj, evt, hLine, mode, opt)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id$
+% $Id: pole2neighbor.m 4097 2013-08-09 18:59:06Z j $
 
 	if (isempty(hLine)),	hLine = gco;	end
 	hNext = hLine;

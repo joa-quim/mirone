@@ -60,7 +60,7 @@ function shapenc(fname, data, varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id$
+% $Id: shapenc.m 4666 2015-01-24 19:58:46Z j $
 
 	% ------------------ Parsing and defaults settings------------------ --------------
 	if (nargin < 2),	error('SHAPENC:error', 'Please, minimum 2 arguments -- FNAME & DATA'),	end

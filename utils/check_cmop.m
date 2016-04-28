@@ -18,7 +18,7 @@ function out = check_cmop(fname)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id$
+% $Id: check_cmop.m 4309 2014-01-31 15:26:34Z j $
 
 	fid = fopen(fname);
 	str = fread(fid,'*char');

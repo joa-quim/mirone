@@ -16,7 +16,7 @@ function varargout = show_palette(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id$
+% $Id: show_palette.m 4678 2015-02-04 13:52:12Z j $
 
     handMir = varargin{1};
     tipo = varargin{2};

@@ -94,7 +94,7 @@ function varargout = digitalFiltering(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id$
+% $Id: digitalFiltering.m 4327 2014-02-19 16:53:14Z j $
 
 	hObject = figure('Vis','off');
 	digitalFiltering_LayoutFcn(hObject);

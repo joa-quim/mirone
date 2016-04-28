@@ -21,7 +21,7 @@ function B = bwbound_unique(B)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id$
+% $Id: bwbound_unique.m 4348 2014-03-14 17:34:54Z j $
 
 	c = false(numel(B),1);
 

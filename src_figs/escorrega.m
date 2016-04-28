@@ -16,7 +16,7 @@ function varargout = escorrega(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id$
+% $Id: escorrega.m 3818 2013-01-07 16:23:39Z j $
 
 	hObject = figure('Vis','off');
 	escorrega_LayoutFcn(hObject);

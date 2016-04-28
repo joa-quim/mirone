@@ -16,7 +16,7 @@ function varargout = vector_project(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id$
+% $Id: vector_project.m 4265 2014-01-10 12:13:59Z j $
 
 	hObject = figure('Vis','off');
 	vector_project_LayoutFcn(hObject);

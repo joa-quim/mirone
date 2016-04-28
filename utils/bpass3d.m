@@ -14,7 +14,7 @@ function wts=bpass3d(nnx,nny,dx,dy,wlong,wshort)
 %       Cleaned a bit of the code for saving RAM and removed the ploting calls
 %---------------------------------------------------------------------------
 
-% $Id$
+% $Id: bpass3d.m 4247 2013-12-27 03:50:16Z j $
 
 	twopi = pi*2;
 	dk1 = twopi/((nnx-1)*dx);

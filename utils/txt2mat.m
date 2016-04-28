@@ -580,7 +580,7 @@ function [A,ffn,numHeader,repChar,hl,fpos] = txt2mat(varargin)
 %	   the code considerably, but I din't cross that aprts of the code to feel the
 %	   need to try more improvments.
 
-% $Id$
+% $Id: txt2mat.m 3926 2013-04-16 01:11:19Z j $
 
 %% Get input arguments
 

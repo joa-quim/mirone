@@ -1,9 +1,9 @@
 function pixval_stsbar(arg1)
 % This is based on the defunct pixval, but heavily hacked in several ways.
 
-% Coffeeright J. Luis 2004-2013
+% Coffeeright J. Luis 2004-2016
 
-% $Id$
+% $Id: pixval_stsbar.m 7859 2016-04-11 17:38:17Z j $
 
 	if (nargin == 0),	arg1 = [];		end
 
@@ -198,31 +198,31 @@ function UpdatePixelValues(figHandle,imageHandle, imageType, displayBar,img,x,y)
 	x1 = x;		y1 = y;
 	switch labelType
 		case {'DegDec', 'NotGeog'}       % This's the default. Just build the format string
-			form_xy = ' %8.3f,%7.3f =';                
+			form_xy = ' %8.3f,%7.3f =';
 		case 'DegMin'
-			out_x = degree2dms(x,'DDMM',0,'str');   x = [out_x.dd ':' out_x.mm];
-			out_y = degree2dms(y,'DDMM',0,'str');   y = [out_y.dd ':' out_y.mm];
+			out_x = degree2dms(x,'DDMM',0,'str');		x = [out_x.dd ':' out_x.mm];
+			out_y = degree2dms(y,'DDMM',0,'str');		y = [out_y.dd ':' out_y.mm];
 			form_xy = ' %s, %s =';
 		case 'DegMinDec'
-			out_x = degree2dms(x,'DDMM.x',2,'str');   x = [out_x.dd ':' out_x.mm];
-			out_y = degree2dms(y,'DDMM.x',2,'str');   y = [out_y.dd ':' out_y.mm];
+			out_x = degree2dms(x,'DDMM.x',2,'str');		x = [out_x.dd ':' out_x.mm];
+			out_y = degree2dms(y,'DDMM.x',2,'str');		y = [out_y.dd ':' out_y.mm];
 			form_xy = ' %s, %s =';
 		case 'DegMinSec'
-			out_x = degree2dms(x,'DDMMSS',0,'str');   x = [out_x.dd ':' out_x.mm ':' out_x.ss];
-			out_y = degree2dms(y,'DDMMSS',0,'str');   y = [out_y.dd ':' out_y.mm ':' out_y.ss];
+			out_x = degree2dms(x,'DDMMSS',0,'str');		x = [out_x.dd ':' out_x.mm ':' out_x.ss];
+			out_y = degree2dms(y,'DDMMSS',0,'str');		y = [out_y.dd ':' out_y.mm ':' out_y.ss];
 			form_xy = ' %s, %s =';
 		case 'DegMinSecDec'
-			out_x = degree2dms(x,'DDMMSS.x',2,'str');   x = [out_x.dd ':' out_x.mm ':' out_x.ss];
-			out_y = degree2dms(y,'DDMMSS.x',2,'str');   y = [out_y.dd ':' out_y.mm ':' out_y.ss];
+			out_x = degree2dms(x,'DDMMSS.x',2,'str');	x = [out_x.dd ':' out_x.mm ':' out_x.ss];
+			out_y = degree2dms(y,'DDMMSS.x',2,'str');	y = [out_y.dd ':' out_y.mm ':' out_y.ss];
 			form_xy = ' %s, %s =';
 	end
  
 	% figure out the new string
 	switch dbud.displayMode
-		case 'normal'   % Just display Z (or intensity) information
+		case 'normal'			% Just display Z (or intensity) information
 			if strcmp(imageType,'rgb') || strcmp(imageType,'indexed')
 				if isa(img, 'uint8') && strcmp(imageType,'rgb')
-					if (dbud.haveGrid)           % Hacked here
+					if (dbud.haveGrid)			% Hacked here
 						pixval_str = sprintf([form_xy ' %6.3f'], x,y,pixel(1:end));
 					else
 						pixval_str = sprintf([form_xy ' %3d,%3d,%3d'], x,y,pixel(1:end));
@@ -245,7 +245,7 @@ function UpdatePixelValues(figHandle,imageHandle, imageType, displayBar,img,x,y)
 						end
 					end
 				end
-			else      % intensity
+			else		% intensity
 				if isa(img, 'uint8'),			pixval_str = sprintf([form_xy ' %g'],x,y,pixel(1));
 				elseif isa(img, 'uint16'),		pixval_str = sprintf([form_xy ' %g'],x,y,pixel(1));
 				elseif islogical(img),			pixval_str = sprintf([form_xy ' %g'],x,y,pixel(1));
@@ -308,21 +308,41 @@ function UpdatePixelValues(figHandle,imageHandle, imageType, displayBar,img,x,y)
 	set(displayBar, 'String', pixval_str, 'UserData', dbud);
 
 %-----------------------------------------------------------------------------------------
-function ButtonDownOnImage(obj, evt, hFig)
-% 	imageHandle = gcbo;
-% 	figHandle = get(get(imageHandle,'Parent'),'Parent');
-	imageHandle = obj;
-	figHandle = hFig;
-	stype = get(figHandle,'selectiontype');
+function ButtonDownOnImage(hImg, evt, hFig)
+	stype = get(hFig,'selectiontype');
 	if (strcmp(stype,'alt'))		% A right-click, either return or pass control to ...
-		if ( ~isempty(getappdata(figHandle,'LinkedTo')) )
-			linkDisplays(figHandle)
+		if (~isempty(getappdata(hFig,'LinkedTo')))
+			linkDisplays(hFig)
+		else						% uictx to options to fill gaps (NaN holes) 
+			Z = getappdata(hFig,'dem_z');
+			if (~isempty(Z))
+				pt = get(get(hImg, 'Parent'), 'CurrentPoint');
+				[rows, cols, rp] = size(get(hImg,'CData'));
+				rp = getPixel_coords(rows, get(hImg,'YData'),pt(1,2));
+				cp = getPixel_coords(cols, get(hImg,'XData'),pt(1,1));
+				r = min(rows, max(1, round(rp)));	c = min(cols, max(1, round(cp)));
+				z = Z(r,c);
+				if (isnan(z))		% Create the UIContextMenu
+					cmenu = uicontextmenu('Parent', hFig, 'Tag','clickedHole');
+					set(hImg, 'UIContextMenu', cmenu);
+					uimenu(cmenu, 'Label', 'Digitize this hole', 'Call', 'mirone(''ImageEdgeDetect_CB'',guidata(gcbo),''apalpa'')');
+					uimenu(cmenu, 'Label', 'Inpaint this hole', 'Call', 'inpaint_nans(guidata(gcbo), ''single'')');
+					item1 = uimenu(cmenu, 'Label', 'Fill this hole ...', 'Sep','on');
+					uimenu(item1, 'Label', 'with 2nd Grid (sharp edges)', 'Call', 'transplants([], ''one_sharp'', guidata(gcbo))');
+					uimenu(item1, 'Label', 'with 2nd Grid (smooth edges)','Call', 'transplants([], ''one_smooth'', guidata(gcbo))');
+					item2 = uimenu(cmenu, 'Label', 'Fill all holes ...');
+					uimenu(item2, 'Label', 'with 2nd Grid (sharp edges)', 'Call', '');
+					uimenu(item2, 'Label', 'with 2nd Grid (smooth edges)', 'Call', '');
+				else
+					delete(findobj('Tag','clickedHole'))	% Delete uctx so that it does show up on right-clicks on ANY point
+				end
+			end
 		end
 		return
 	end
-	displayBar = findobj(figHandle, 'Tag', 'pixValStsBar');
+	displayBar = findobj(hFig, 'Tag', 'pixValStsBar');
 	dbud = get(displayBar, 'UserData');
-	axesHandle = get(imageHandle, 'Parent');
+	axesHandle = get(hImg, 'Parent');
 	% Set the initial point (x0,y0)
 	pt = get(axesHandle, 'CurrentPoint');
 	dbud.x0 = pt(1,1);
@@ -330,7 +350,7 @@ function ButtonDownOnImage(obj, evt, hFig)
 	dbud.line = line('Parent', axesHandle, 'color', [1 0 0], ...
 		'Xdata', [dbud.x0 dbud.x0],'Ydata', [dbud.y0 dbud.y0]);
 	dbud.displayMode = 'distance';
-	dbud.buttonDownImage = imageHandle;
+	dbud.buttonDownImage = hImg;
 	set(displayBar, 'UserData', dbud);
 	set(dbud.figHandle, 'WindowButtonUpFcn', {@BackToNormalPixvalDisplay, displayBar});
 	PixvalMotionFcn([], [], displayBar);
@@ -370,7 +390,7 @@ function [A,state] = get_image_info(him)
 		userdata = get(him, 'UserData');
 		cdatamapping = get(him, 'CDataMapping');
 		A = get(him, 'CData');
-		if ((ndims(A) == 3) && (size(A,3) == 3))     % We have an RGB image
+		if ((ndims(A) == 3) && (size(A,3) == 3))	% We have an RGB image
 			state = 4;
 		else                                        % Not an RGB image
 			if (isequal(cdatamapping,'direct'))

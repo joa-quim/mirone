@@ -16,7 +16,7 @@ function varargout = run_cmd(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id$
+% $Id: run_cmd.m 4701 2015-04-15 14:15:04Z j $
 
 	if (isempty(varargin)),		return,		end
  

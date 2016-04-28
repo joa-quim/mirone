@@ -16,7 +16,7 @@ function varargout = thresholdit(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id$
+% $Id: thresholdit.m 4285 2014-01-17 04:04:39Z j $
 
 	if (isempty(varargin)),		return,		end
 

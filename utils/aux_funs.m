@@ -18,7 +18,7 @@ function  varargout = aux_funs(opt,varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: aux_funs.m 4770 2015-09-21 23:01:07Z j $
+% $Id: aux_funs.m 7860 2016-04-11 17:39:33Z j $
 
 switch opt(1:4)
 	case 'Stor'		% 'StoreZ'
@@ -55,8 +55,6 @@ switch opt(1:4)
 		togCheck(varargin{:})
 	case 'poly'		% 'polysplit'
 		[varargout{1} varargout{2}] = localPolysplit(varargin{:});
-	case 'adju'		% 'adjust_lims'
-		[varargout{1} varargout{2}] = adjust_lims(varargin{:});
 	case 'insi'		% 'insideRect'
 		varargout{1} = insideRect(varargin{:});
 	case 'stri'		% 'strip_bg_color'
@@ -247,7 +245,7 @@ function out = findFileType(fname)
 				end
 			end
 		end
-	elseif ( any(strcmpi(EXT,{'.jpg' '.png' '.bmp' '.gif' '.pcx' '.ras' '.ppm' '.pgm' '.xwd' '.shade' '.raw'})) )
+	elseif ( any(strcmpi(EXT,{'.jpg' '.png' '.bmp' '.gif' '.pcx' '.ras' '.pbm' '.ppm' '.pgm' '.pnm' '.xwd' '.shade' '.raw'})) )
 		out = 'generic';
 	elseif ( any(strcmpi(EXT,{'.tif' '.tiff' '.sid' '.kap' '.nos'})) )
 		out = 'geotif';
@@ -287,6 +285,8 @@ function out = findFileType(fname)
 		end
 	elseif ( any(strcmpi(EXT,{'.kml' '.gml' '.dxf' '.gpx' '.dgn' '.csv' '.s57' '.svg'})) )
 		out = 'ogr';
+	elseif (strcmpi(EXT,'.ps') || strcmpi(EXT,'.eps'))
+		out = 'ghost';
 	elseif (strcmpi(EXT,'.srtm'))	% While we don't use GMT5, create a header write away & send to GDAL
 		try		write_esri_hdr(fname,'SRTM30');	end
 		out = 'dono';				% aka GDAL
@@ -481,7 +481,7 @@ function toBandsList(hFig, I, array_name, fname, n_bands, bands_inMemory, reader
 
 % ----------------------------------------------------------------------------------
 function prjInfoStruc = getFigProjInfo(handles)
-% Se if we have projection info stored in Figure's appdata. NOTE, often they are empty
+% See if we have projection info stored in Figure's appdata. NOTE, often they are empty
 	prjInfoStruc.projGMT = getappdata(handles.figure1,'ProjGMT');
 	prjInfoStruc.projWKT = getappdata(handles.figure1,'ProjWKT');
 	prjInfoStruc.proj4 = getappdata(handles.figure1,'Proj4');
@@ -534,6 +534,21 @@ function [X,Y] = adjust_lims(X,Y,m,n)
 	dx = (X(2) - X(1)) / n;			dy = (Y(2) - Y(1)) / m;
 	X(1) = X(1) + dx/2;				X(2) = X(2) - dx/2;
 	Y(1) = Y(1) + dy/2;				Y(2) = Y(2) - dy/2;
+
+% --------------------------------------------------------------------
+function [rx, ry] = adjust_rect(handles, rx, ry)
+% Adjust the rectangle limits so that the cropimg function retains only nodes inside the rect.
+% The issue is that cropimg selects all pixels, and hence all nodes, that are totally or
+% partially inside rect. But there are cases where we don't want that behavior.
+% RX = [x_min x_max];		RY = [y_min y_max];
+	if (~handles.validGrid),	return,		end		% Just do nothing.
+	X = getappdata(handles.figure1,'dem_x');	Y = getappdata(handles.figure1,'dem_y');
+	dx2 = (X(2) - X(1)) / 2;		dPo_x = dx2 * 0.01;
+	dy2 = (Y(2) - Y(1)) / 2;		dPo_y = dy2 * 0.01;
+	ind = find((X - rx(1) > 0));	rx(1) = X(ind(1)) - dx2 + dPo_x;
+	ind = find((X - rx(2) > 0));	rx(2) = X(ind(1)) - dx2 - dPo_x;
+	ind = find((Y - ry(1) > 0));	ry(1) = Y(ind(1)) - dy2 + dPo_y;
+	ind = find((Y - ry(2) > 0));	ry(2) = Y(ind(1)) - dy2 - dPo_y;
 
 % --------------------------------------------------------------------
 function geog = guessGeog(lims)
@@ -741,6 +756,20 @@ function out = seek_OPTcontrol(KEY)
 		break
 	end
 
+% -------------------------------------------------------------------------------------
+function pix_coords = getPixel_coords(img_length, XData, axes_coord)
+% Convert coordinates from axes (real coords) to image (pixel) coordinates.
+% IMG_LENGTH is the image width (n_columns)
+% XDATA is the image's [x_min x_max] in axes coordinates
+% AXES_COORD is the (x,y) coordinate of the point(s) to be converted
+
+	slope = (img_length - 1) / (XData(end) - XData(1));
+	if ((XData(1) == 1) && (slope == 1))
+		pix_coords = axes_coord;
+	else
+		pix_coords = round(slope * (axes_coord - XData(1))) + 1;
+	end
+
 % --------------------------------------------------------------------------------
 function [latcells,loncells,Zcells] = localPolysplit(lat,lon, Z)
 %POLYSPLIT Extract segments of NaN-delimited polygon vectors to cell arrays
@@ -808,6 +837,50 @@ function [xdata, ydata, zdata] = localRemoveExtraNanSeps(xdata, ydata, zdata)
 	xdata(s) = [];      ydata(s) = [];
 	if (nargin >= 3),   zdata(s) = [];  end
 
+% --------------------------------------------------------------------------------
+function out = get_proj_string(hMirFig, opt)
+% Get a proj4 or WKT projection string depending on arguments
+%
+% HMIRFIG -> can be a Mirone handles, a Mirone Fig handle or a string holding a proj4 OR WKT string
+% OPT     -> Optional. If not provided or empty OUT will return a PROJ4 string
+%            If equal to 'proj' OUT is a proj4 string otherwise OUT = to a WKT string
+% OUT     -> Besides what is said above, ot can be empty if we can not fish any
+%            projection info from HANDLES
+%
+% Examples: 
+
+	if (nargin == 1),	opt = '';	end
+	out = '';
+	toProj4 = (isempty(opt) || strncmpi(opt, 'proj', 4));
+
+	if (isa(hMirFig, 'struct') || ishandle(hMirFig))		% A Mirone handles, or handle to Mirone Fig
+		if (isa(hMirFig, 'struct')),	hMirFig = hMirFig.figure1;	end
+		projSTR = getappdata(hMirFig,'Proj4');
+		if (isempty(projSTR))
+			projSTR = getappdata(hMirFig,'ProjWKT');
+			if (isempty(projSTR))		% Shit, nothing found
+				return
+			end
+		end
+	elseif (isa(hMirFig, 'char'))
+		projSTR = hMirFig;
+	else
+		return			% Something else (not allowed) was sent in first arg
+	end
+	
+	if (projSTR(1) == '+')
+		if (~isempty(strfind(projSTR,'latlong')) && isempty(strfind(projSTR,'+datum=WGS84')))
+			projSTR = [projSTR ' +datum=WGS84'];
+		end
+		if (~toProj4)			% Ah, but we want a WKT one, so convert it
+			projSTR = ogrproj(projSTR);
+		end
+	else			% A WKT string
+		if (toProj4),	projSTR = ogrproj(projSTR);		end
+	end
+	
+	out = projSTR;
+
 % -*-*-*-*-*-*-$-$-$-$-$-$-#-#-#-#-#-#-%-%-%-%-%-%-@-@-@-@-@-@-(-)-(-)-(-)-&-&-&-&-&-&-{-}-{-}-{-}-
 function appProjectionRef(handles, strWKT)
 % If we have a WKT proj store it, otherwise clean eventual predecessors
@@ -817,7 +890,7 @@ function appProjectionRef(handles, strWKT)
 		end
 		setappdata(handles.figure1,'ProjWKT',strWKT)
 		out = decodeProjectionRef(strWKT);				% Decode Proj reference string
-		if ( ~isempty(out.datum) || ~isempty(out.ellipsoid) || ~isempty(out.projection) )
+		if (~isempty(out.datum) || ~isempty(out.ellipsoid) || ~isempty(out.projection))
 			setappdata(handles.axes1,'DatumProjInfo',out)
 		end
 	else							% Otherwise remove eventual previous one

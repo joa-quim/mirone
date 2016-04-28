@@ -19,7 +19,7 @@ function varargout = mag_synthetic(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id$
+% $Id: mag_synthetic.m 4760 2015-07-28 23:51:57Z j $
 
 	if (nargin ~= 4)
 		errordlg('MAG_SYNTHETIC: Called with wrong number of args (4)'),	return

@@ -16,7 +16,7 @@ function varargout = globalcmt(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id$
+% $Id: globalcmt.m 3841 2013-01-18 18:33:31Z j $
 
 	if (isempty(varargin))
 		errordlg('GlobalCMT: wrong number of input arguments.','Error'),	return

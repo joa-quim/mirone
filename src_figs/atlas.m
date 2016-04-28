@@ -16,7 +16,7 @@ function varargout = atlas(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id$
+% $Id: atlas.m 4730 2015-07-22 15:17:26Z j $
 
 	if (isempty(varargin))		return,		end
 

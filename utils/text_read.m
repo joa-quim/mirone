@@ -30,7 +30,7 @@ function [numeric_data,date,headerlines,str_col,out] = text_read(varargin)
 % This function uses some sub-functions of IMPORTDATA
 % Coffeeright Joaquim Luis
 
-% $Id$
+% $Id: text_read.m 7730 2015-11-25 02:02:51Z j $
 
 	filename = varargin{1};     headerlines = 0;
 	requestedDelimiter = NaN;	requestedHeaderLines = NaN;		requestedMultiSeg = NaN;
@@ -341,7 +341,7 @@ function [numericData, textData, numHeaderRows] = stringparse(string, delimiter,
 		wasError = 0;
 	catch
 		wasError = 1;
-		warning(lasterr);
+		warndlg(['Trouble in stringparse: ' lasterr],'Warning');
 	end
 
 	% setup some default answers if we're not able to do the full read below

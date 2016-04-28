@@ -16,7 +16,7 @@ function varargout = travel(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id$
+% $Id: travel.m 4253 2013-12-27 15:13:53Z j $
 
 	hObject = figure('Vis','off');
 	travel_LayoutFcn(hObject);

@@ -16,7 +16,7 @@ function filename = write_flederFiles(opt,varargin)
 % NOTE: For every line/point object FM_CMAP and a GEOREF blocks are writen.
 % Though it doesn't hurt much, it is an idiot thing
 
-%	Copyright (c) 2004-2014 by J. Luis
+%	Copyright (c) 2004-2016 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -31,7 +31,7 @@ function filename = write_flederFiles(opt,varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id$
+% $Id: write_flederFiles.m 7810 2016-02-25 16:58:40Z j $
 
 	if (opt(1) == 'w' || opt(1) == 'r')			% Here opt is a "write..." or "run..."
 		handles = varargin{1};
@@ -327,14 +327,14 @@ function write_scene(fid, tipo, mode, Z, img, img2, limits, struct_vimage)
 				info_img = imfinfo(struct_vimage(k).vimage);
 				I = gdalread(struct_vimage(k).vimage,'-U');
 				if (strcmp(info_img(1).ColorType,'grayscale') || (strcmp(info_img(1).ColorType,'truecolor') && (ndims(I) ~= 3)) )
-					I = ind2rgb8(img2,'Colormap',gray(256));
+					I = ind2rgb8(I, gray(256));
 				elseif (isfield(info_img(1),'ColorTable'))			% Gif images call it 'ColorTable'
-					I = ind2rgb8(img2,'Colormap',info_img(1).ColorTable);
+					I = ind2rgb8(I, info_img(1).ColorTable);
 				elseif (isfield(info_img(1),'Colormap') && ~isempty(info_img(1).Colormap))
-					I = ind2rgb8(img2,'Colormap',info_img(1).Colormap);
+					I = ind2rgb8(I, info_img(1).Colormap);
 				end
 			catch
-				errordlg(['WriteFleder: Error reading image: ' struct_vimage(k).vimage],'ERROR')
+				errordlg(sprintf('WriteFleder: Error reading image: %s\n\n%s', struct_vimage(k).vimage, lasterr),'ERROR')
 				continue
 			end
 

@@ -237,7 +237,7 @@ case 'down'
 
     if (m == 1)        % Zoom in
         units = get(fig,'units'); set(fig,'units','pixels')
-        rbbox([get(fig,'currentpoint') 0 0],get(fig,'currentpoint'),fig);
+        rbbox([get(fig,'currentpoint') 0 0],get(fig,'currentpoint'));
         ZOOM_Pt2 = get_currentpoint(ax);
         set(fig,'units',units)
 

@@ -51,7 +51,7 @@ function double2ascii(filename, X, formatStr, multiseg)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id$
+% $Id: double2ascii.m 4584 2014-10-20 23:31:10Z j $
 
 	% Set default format string
 	n_arg = nargin;

@@ -16,7 +16,7 @@ function varargout = arrow_shape(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id$
+% $Id: arrow_shape.m 3646 2012-07-25 18:27:54Z j $
 
 	if (isempty(varargin))
 		errordlg('ARROW_SHAPE: wrong number of input arguments.','Error'),	return

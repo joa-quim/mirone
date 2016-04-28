@@ -83,27 +83,20 @@ struct srf_header {		/* Surfer file header structure */
 };
 
 
-double uscal(double x1, double x2, double x3, double c, double cc, double dp);
-double udcal(double x1, double x2, double x3, double c, double cc, double dp);
-void deform (double x_min, double y_min, int i_end, int j_end, float *z, double dx, double dy, double fault_length, double fault_width, double th, double dip, double rake, double d, double top_depth, double xl, double yl);
-void meda (double x_min, double y_min, int i_end, int j_end, float *z, double dx, double dy, double side_x, double side_y, double height, double xl, double yl);
-void tm (double lon, double lat, double *x, double *y);
-void vtm (double lon0, double lat0);
-int GMT_getinc (char *line, double *dx, double *dy);
-int GMT_getincn (char *line, double inc[], int n);
+double uscal(double x1, double x2, double x3, double c, double cc, double sin_dp, double cos_dp, double tan_dp);
+double udcal(double x1, double x2, double x3, double c, double cc, double sin_dp, double cos_dp);
+void deform(double x_min, double y_min, int i_end, int j_end, float *z, double dx, double dy, double fault_length,
+            double fault_width, double th, double dip, double rake, double d, double top_depth, double xl, double yl);
+void meda(double x_min, double y_min, int i_end, int j_end, float *z, double dx, double dy, double side_x,
+          double side_y, double height, double xl, double yl);
+void tm(double lon, double lat, double *x, double *y);
+void vtm(double lon0, double lat0);
+int GMT_getinc(char *line, double *dx, double *dy);
+int GMT_getincn(char *line, double inc[], int n);
 
-int	is_geog = FALSE;
-double	fault_length = 0.0;		/*  */
-double	fault_width = 0.0;		/*  */
-double	top_depth = 0.0;	/* Top Fault depth */
-double	dip = 0.0;		/* Dip angle */
-double	th = 0.0;		/* Strike direction */
-double	rake = 0.0;		/* Rake angle */
-double	d = 0.0;		/* Dislocation */
-double	x_epic = 0.0;		/* x_epicenter coord */
-double	y_epic = 0.0;		/* y_epicenter coord */
-double	EQ_RAD = 6378137.0;	/* WGS-84 */
-double	flattening = 1.0/298.2572235630;
+int     is_geog = FALSE;
+double	EQ_RAD = 6378137.0;     /* WGS-84 */
+double	flattening = 1 / 298.2572235630;
 double	ECC2, ECC4, ECC6;
 double	one_m_ECC2, i_one_m_ECC2;
 double	t_c1, t_c2, t_c3, t_c4, t_e2, t_M0;
@@ -114,13 +107,23 @@ double	central_meridian;
 
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 
-	int	error = FALSE, is_meda = FALSE;
-	int	i, i_end, j_end;
-	int	argc = 0, n_arg_no_char = 0, nx, ny;
-	float	*z, *pdata;		/* Array with bottom deformation points */
+	char  **argv;
+	int     error = FALSE, is_meda = FALSE;
+	int     i, i_end, j_end;
+	int     argc = 0, n_arg_no_char = 0, nx, ny;
+	float  *z, *pdata;		/* Array with bottom deformation points */
+	double  sin_dp, cos_dp, tan_dp;
 	double  x_min = 0, x_max = 0, y_min = 0, y_max = 0, x_inc = 0, y_inc = 0;
 	double	height = 100, side_x = 20, side_y = 20;
-	char	**argv;
+	double  fault_length = 0.0;     /*  */
+	double  fault_width = 0.0;      /*  */
+	double  top_depth = 0.0;        /* Top Fault depth */
+	double  dip = 0.0;              /* Dip angle */
+	double  th = 0.0;               /* Strike direction */
+	double  rake = 0.0;             /* Rake angle */
+	double  d = 0.0;                /* Dislocation */
+	double  x_epic = 0.0;           /* x_epicenter coord */
+	double  y_epic = 0.0;           /* y_epicenter coord */
 	
 	argc = nrhs;
 	for (i = 0; i < nrhs; i++) {		/* Check input to find how many arguments are of type char */
@@ -138,17 +141,16 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		argv[i] = (char *)mxArrayToString(prhs[i+n_arg_no_char-1]);
 	}
 
-        for (i = 1; i < argc; i++) {
-                if (argv[i][0] == '-') {
-                        switch (argv[i][1]) {
- 		
-				/* Common parameters */
-			
+	for (i = 1; i < argc; i++) {
+		if (argv[i][0] == '-') {
+			switch (argv[i][1]) {
+
 				case '\0':
 					error = TRUE;
 					break;
 				case 'A': /* Fault's angle parameters */
 					sscanf (&argv[i][2], "%lf/%lf/%lf/%lf", &dip, &th, &rake, &d);
+					if (dip = 90) dip = 89.9999;	/* There is a problem somewhere when dip is exactly 90 */
 					break;
 				case 'E': /* epicenter */
 					sscanf (&argv[i][2], "%lf/%lf", &x_epic, &y_epic);
@@ -169,23 +171,25 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 				case 'R':
 					sscanf (&argv[i][2], "%lf/%lf/%lf/%lf", &x_min, &x_max, &y_min, &y_max);
 					break;
-                                default:
-                                        error = TRUE;
-                                        break;
-                        }
-                }
-        }
+				default:
+					error = TRUE;
+					break;
+			}
+		}
+	}
 
 	if (argc == 1 || error) {	/* Display usage */
-		mexPrintf("mansinha - usage:\n Z = mansinha('-A<dip/azimuth/rake/slip>', '-E<x_epic/y_epic>', '-F<fault_length/fault_width/top_depth>', '-I<grid_inc>', '-R<xmin/xmax/ymin/ymax>', '[-M]', '[-P[x][/y][/h]]')\n\n");
+		mexPrintf("mansinha - usage:\n Z = mansinha([Zin], '-A<dip/azimuth/rake/slip>', '-E<x_epic/y_epic>', '-F<fault_length/fault_width/top_depth>', '-I<grid_inc>', '-R<xmin/xmax/ymin/ymax>', '[-M]', '[-P[x][/y][/h]]')\n\n");
  		
-		mexPrintf ("\t-R<limits> Grid coordinate limits where deformation is computed.\n");
+		mexPrintf ("\tZin is an optional pre-allocated array of floats with the exact same size of the solution\n");
+		mexPrintf ("\t that will be used to store it. Hence, no output in this case.\n");
 		mexPrintf ("\t-A<fault_params> Fault parameters describing Dip/Azimuth/Rake/Slip(m)\n");
 		mexPrintf ("\t of focal mechanism. Azimuth is counted cw from North.\n");
 		mexPrintf ("\t-E<epic_location> X and Y epicenter coordinates\n");
 		mexPrintf ("\t-F<length/height/depth> Fault lenght, height and depth from sea-bottom.\n");
 		mexPrintf ("\t They must all be given in km.\n");
 		mexPrintf ("\t-I sets the grid spacing for the grid. Append m for minutes, c for seconds.\n");
+		mexPrintf ("\t-R<limits> Grid coordinate limits where deformation is computed.\n");
 		mexPrintf ("\t Note that x_max and y_max may be slightly adjusted\n");
 		mexPrintf ("\n\tOPTIONS:\n");
 		mexPrintf ("\t-M create grid in geographical coordinates\n");
@@ -197,7 +201,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		mexPrintf ("\n");
 		mexPrintf ("\tmansinha -Gteste.grd -R-20/-5/30/40 -I1m -A60/45/90/10 -F60/25/0 -E-15/35 -M\n");
 		mexErrMsgTxt("\n");
-        }
+	}
 
 	if (x_min == 0 && x_max == 0 && y_min == 0 && y_max == 0) {
 		mexPrintf ("MANSINHA SYNTAX ERROR: Must specify -R option\n");
@@ -224,8 +228,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 
 	if (error) mexErrMsgTxt("\n");
 
-	if (nlhs != 1)
-		mexErrMsgTxt("SURFACE ERROR: Must provide one output.\n");
+	if (nlhs != 1 && n_arg_no_char == 0)
+		mexErrMsgTxt("MANSINHA ERROR: Must provide one output.\n");
 
 	/* Convert fault dimensions to meters (that's what is used by deform) */
 	fault_length *= 1000;
@@ -245,19 +249,25 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	if (is_geog) vtm(x_epic+x_inc/2, y_epic+y_inc/2);
 
 	nx = j_end;	ny = i_end;
-	plhs[0] = mxCreateNumericMatrix (ny,nx,mxSINGLE_CLASS,mxREAL);
-	z = mxGetData(plhs[0]);
+	if (n_arg_no_char == 0) {
+		plhs[0] = mxCreateNumericMatrix (ny,nx,mxSINGLE_CLASS,mxREAL);
+		z = mxGetData(plhs[0]);
+	}
+	else
+		z = (float *)mxGetData(prhs[0]);
 
 	if (is_meda) {	/* Compute a punctual (exponential) source */
 		side_x *= 1000;		side_y *= 1000;
 		meda (x_min, y_min, i_end, j_end, z, x_inc, y_inc, side_x, side_x, height, x_epic, y_epic);
 	}
 	else		/* Compute a elastic source */
-		deform (x_min, y_min, i_end, j_end, z, x_inc, y_inc, fault_length, fault_width, th, dip, rake, d, top_depth, x_epic, y_epic);
+		deform (x_min, y_min, i_end, j_end, z, x_inc, y_inc, fault_length, fault_width, th, dip,
+		        rake, d, top_depth, x_epic, y_epic);
 
 }
 
-void meda (double x_min, double y_min, int i_end, int j_end, float *z, double dx, double dy, double side_x, double side_y, double height, double xl, double yl) {
+void meda(double x_min, double y_min, int i_end, int j_end, float *z, double dx, double dy, double side_x,
+          double side_y, double height, double xl, double yl) {
 	/* Build a source with an exponential shape */
 	double	c, xx, yy, rx, ry, rx2, ry2, tmp; 
 	int	i, j, k = 0;
@@ -284,7 +294,8 @@ void meda (double x_min, double y_min, int i_end, int j_end, float *z, double dx
 	}
 }
 
-void deform (double x_min, double y_min, int i_end, int j_end, float *z, double dx, double dy, double fault_length, double fault_width, double th, double dip, double rake, double d, double top_depth, double xl, double yl) {
+void deform(double x_min, double y_min, int i_end, int j_end, float *z, double dx, double dy, double fault_length,
+            double fault_width, double th, double dip, double rake, double d, double top_depth, double xl, double yl) {
 
 /*	fault_length - comprimento da falha (m)
 	fault_width  - largura da falha (m)
@@ -295,19 +306,25 @@ void deform (double x_min, double y_min, int i_end, int j_end, float *z, double 
 	top_depth - profundidade do topo (m)		Top fault depth
 */
 
-	double h1, h2, ds, dd, xx, yy, x1, x2, x3, us, ud, sn_tmp, cs_tmp, tg_tmp;
+	double h1, h2, ds, dd, xx, yy, x1, x2, x3, us, ud, sn_tmp, cs_tmp;
 	double f1, f2, f3, f4, g1, g2, g3, g4, rx, ry;
+	double sin_dp, cos_dp, tan_dp, fl_2;
 	int i, j, k = 0;
 
-	h1 = top_depth / sin(D2R * dip);
-	h2 = top_depth / sin(D2R * dip) + fault_width;
+	dip *= D2R;
+	h1 = top_depth / sin(dip);
+	h2 = top_depth / sin(dip) + fault_width;
 	ds = -d * cos(D2R * rake);
 	dd = d * sin(D2R * rake);
-	sn_tmp = sin(D2R*th);	cs_tmp = cos(D2R*th);	tg_tmp = tan(D2R*dip);
+	sn_tmp = sin(D2R*th);	cs_tmp = cos(D2R*th);
+	sin_dp = sin(dip);
+	cos_dp = cos(dip);
+	tan_dp = tan(dip);
+	fl_2 = fault_length / 2;
 
-	for(j = 0; j < j_end; j++) {
+	for (j = 0; j < j_end; j++) {
 		xx = x_min + dx * j;
-		for(i = 0; i < i_end; i++) {
+		for (i = 0; i < i_end; i++) {
 			yy = y_min + dy * i;
 			if (is_geog)
 				tm(xx, yy, &rx, &ry);	/* Remember that (xl,yl) is already the proj origin */
@@ -315,89 +332,102 @@ void deform (double x_min, double y_min, int i_end, int j_end, float *z, double 
 				rx = xx - xl;
 				ry = yy - yl;
 			}
-			x1 = rx*sn_tmp + ry*cs_tmp - fault_length/2.0;
-			x2 = rx*cs_tmp - ry*sn_tmp + top_depth/tg_tmp;
+			x1 = rx*sn_tmp + ry*cs_tmp - fault_length / 2.0;
+			x2 = rx*cs_tmp - ry*sn_tmp + top_depth / tan_dp;
 			x3 = 0.0;
-			f1 = uscal(x1, x2, x3, fault_length/2., h2, D2R*dip);
-			f2 = uscal(x1, x2, x3, fault_length/2., h1, D2R*dip);
-			f3 = uscal(x1, x2, x3, -fault_length/2., h2, D2R*dip);
-			f4 = uscal(x1, x2, x3, -fault_length/2., h1, D2R*dip);
-			g1 = udcal(x1, x2, x3, fault_length/2., h2, D2R*dip);
-			g2 = udcal(x1, x2, x3, fault_length/2., h1, D2R*dip);
-			g3 = udcal(x1, x2, x3, -fault_length/2., h2, D2R*dip);
-			g4 = udcal(x1, x2, x3, -fault_length/2., h1, D2R*dip);
-			us = (f1-f2-f3+f4)*ds / (12.* M_PI);
-			ud = (g1-g2-g3+g4)*dd / (12.* M_PI);
+			f1 = uscal(x1, x2, x3,  fl_2, h2, sin_dp, cos_dp, tan_dp);
+			f2 = uscal(x1, x2, x3,  fl_2, h1, sin_dp, cos_dp, tan_dp);
+			f3 = uscal(x1, x2, x3, -fl_2, h2, sin_dp, cos_dp, tan_dp);
+			f4 = uscal(x1, x2, x3, -fl_2, h1, sin_dp, cos_dp, tan_dp);
+			g1 = udcal(x1, x2, x3,  fl_2, h2, sin_dp, cos_dp);
+			g2 = udcal(x1, x2, x3,  fl_2, h1, sin_dp, cos_dp);
+			g3 = udcal(x1, x2, x3, -fl_2, h2, sin_dp, cos_dp);
+			g4 = udcal(x1, x2, x3, -fl_2, h1, sin_dp, cos_dp);
+			us = (f1-f2-f3+f4) * ds / (12 * M_PI);
+			ud = (g1-g2-g3+g4) * dd / (12 * M_PI);
 			z[k++] = (float)(us + ud);
 		}
 	}
 }
 
-double uscal(double x1, double x2, double x3, double c, double cc, double dp) {
+double uscal(double x1, double x2, double x3, double c, double cc, double sin_dp, double cos_dp, double tan_dp) {
 /* Computation of the vertical displacement due to the STRIKE and SLIP component */
 	double sn, cs, c1, c2, c3, r, q, r2, r3, q2, q3, h, k, a1, a2, a3, f;
 	double b1, b2, b3, b4, b5, b6, b7, b8, b9, b10, b11, b12, b13, b14;
 
-	sn = sin(dp);	cs = cos(dp);
+	sn = sin_dp;	cs = cos_dp;
 	c1 = c;		c2 = cc * cs;	c3 = cc * sn;
-	r = d_sqrt((x1-c1)*(x1-c1) + (x2-c2)*(x2-c2) + (x3-c3)*(x3-c3));
-	q = d_sqrt((x1-c1)*(x1-c1) + (x2-c2)*(x2-c2) + (x3+c3)*(x3+c3));
+	r = sqrt((x1-c1)*(x1-c1) + (x2-c2)*(x2-c2) + (x3-c3)*(x3-c3));
+	q = sqrt((x1-c1)*(x1-c1) + (x2-c2)*(x2-c2) + (x3+c3)*(x3+c3));
 	r2 = x2*sn - x3*cs;	r3 = x2*cs + x3*sn;
 	q2 = x2*sn + x3*cs;	q3 = -x2*cs + x3*sn;
-	h = d_sqrt(q2*q2 + (q3+cc)*(q3+cc));
-	k = d_sqrt(q2*q2 + (x1-c1)*(x1-c1));
-	a1 = log(r+r3-cc);	a2 = log(q+q3+cc);	a3 = log(q+x3+c3);
-	b1 = 1. + 3. * (tan(dp)*tan(dp));
-	b2 = 3. * tan(dp) / cs;
-	b3 = 2. * r2 * sn;
+	h  = sqrt(q2*q2 + (q3+cc)*(q3+cc));
+	//k  = sqrt(q2*q2 + (x1-c1)*(x1-c1));
+	a1 = log(r+r3-cc);
+	a2 = log(q+q3+cc);
+	a3 = log(q+x3+c3);
+	b1 = 1 + 3 * (tan_dp * tan_dp);
+	b2 = 3 * tan_dp / cs;
+	b3 = 2 * r2 * sn;
 	b4 = q2 + x2 * sn;
-	b5 = 2. * r2*r2 * cs;
+	b5 = 2 * r2*r2 * cs;
 	b6 = r * (r+r3-cc);
-	b7 = 4. * q2 * x3 * sn*sn;
-	b8 = 2. * (q2+x2*sn) * (x3+q3*sn);
+	b7 = 4 * q2 * x3 * sn*sn;
+	b8 = 2 * (q2+x2*sn) * (x3+q3*sn);
 	b9 = q * (q+q3+cc);
-	b10 = 4. * q2 * x3 * sn;
+	b10 = 4 * q2 * x3 * sn;
 	b11 = (x3+c3) - q3 * sn;
-	b12 = 4. * q2*q2 * q3 * x3 * cs * sn;
-	b13 = 2. * q + q3 + cc;
+	b12 = 4 * q2*q2 * q3 * x3 * cs * sn;
+	b13 = 2 * q + q3 + cc;
 	b14 = pow(q,3) * pow((q+q3+cc),2);
-	f = cs * (a1 + b1*a2 - b2*a3) + b3/r + 2.*sn*b4/q - b5/b6 + (b7-b8)/b9 + b10*b11/(pow(q,3)) - b12*b13/b14;
+	f   = cs * (a1 + b1*a2 - b2*a3) + b3/r + 2*sn*b4/q - b5/b6 + (b7-b8)/b9 + b10*b11/(pow(q,3)) - b12*b13/b14;
 
 	return (f);
 }
 
 
-double udcal(double x1, double x2, double x3, double c, double cc, double dp) {
+double udcal(double x1, double x2, double x3, double c, double cc, double sin_dp, double cos_dp) {
 /* Computation of the vertical displacement due to the DIP SLIP component */
 	double sn, cs, c1, c2, c3, r, q, r2, r3, q2, q3, h, k, a1, a2;
 	double b1, b2, b3, d1, d2, d3, d4, d5, d6, t1, t2, t3, f;
 
-	sn = sin(dp);	cs = cos(dp);
+	sn = sin_dp;	cs = cos_dp;
 	c1 = c;		c2 = cc * cs;	c3 = cc * sn;
-	r = d_sqrt((x1-c1)*(x1-c1) + (x2-c2)*(x2-c2) + (x3-c3)*(x3-c3));
-	q = d_sqrt((x1-c1)*(x1-c1) + (x2-c2)*(x2-c2) + (x3+c3)*(x3+c3));
-	r2 = x2*sn - x3*cs;	r3 = x2*cs + x3*sn;
-	q2 = x2*sn + x3*cs;	q3 = -x2*cs + x3*sn;
-	h = d_sqrt(q2*q2 + (q3+cc)*(q3+cc));
-	k = d_sqrt(q2*q2 + (x1-c1)*(x1-c1));
-	a1 = log(r+x1-c1);	a2 = log(q+x1-c1);
-	b1 = q * (q+x1-c1);	b2 = r * (r+x1-c1);	b3 = q * (q+q3+cc);
-	d1 = x1 - c1;		d2 = x2 - c2;		d3 = x3 - c3;
-	d4 = x3 + c3;		d5 = r3 - cc;		d6 = q3 + cc;
-	t1 = d_atn(d1*d2, (h+d4)*(q+h));
-	t2 = d_atn(d1*d5, r2*r);
-	t3 = d_atn(d1*d6, q2*q);
-	f = sn * (d2*(2.*d3/b2 + 4.*d3/b1 - 4.*c3*x3*d4*(2.*q+d1)/(b1*b1*q)) - 6.*t1 + 3.*t2 - 6.*t3) + cs * (a1-a2 - 2.*(d3*d3)/b2 - 4.*(d4*d4 - c3*x3)/b1 - 4.*c3*x3*d4*d4*(2*q+x1-c1)/(b1*b1*q)) + 6.*x3*(cs*sn*(2.*d6/b1 + d1/b3) - q2*(sn*sn - cs*cs)/b1);
+	r  = sqrt((x1-c1)*(x1-c1) + (x2-c2)*(x2-c2) + (x3-c3)*(x3-c3));
+	q  = sqrt((x1-c1)*(x1-c1) + (x2-c2)*(x2-c2) + (x3+c3)*(x3+c3));
+	r2 = x2*sn - x3*cs;
+	r3 = x2*cs + x3*sn;
+	q2 = x2*sn + x3*cs;
+	q3 = -x2*cs + x3*sn;
+	h  = sqrt(q2*q2 + (q3+cc)*(q3+cc));
+	//k  = sqrt(q2*q2 + (x1-c1)*(x1-c1));
+	a1 = log(r+x1-c1);
+	a2 = log(q+x1-c1);
+	b1 = q * (q+x1-c1);
+	b2 = r * (r+x1-c1);
+	b3 = q * (q+q3+cc);
+	d1 = x1 - c1;
+	d2 = x2 - c2;
+	d3 = x3 - c3;
+	d4 = x3 + c3;
+	d5 = r3 - cc;
+	d6 = q3 + cc;
+	t1 = atan2(d1*d2, (h+d4)*(q+h));
+	t2 = atan2(d1*d5, r2*r);
+	t3 = atan2(d1*d6, q2*q);
+	f  = sn * (d2*(2.*d3/b2 + 4.*d3/b1 - 4.*c3*x3*d4*(2.*q+d1)/(b1*b1*q)) - 6.*t1 + 3.*t2 - 6.*t3) +
+	     cs * (a1-a2 - 2.*(d3*d3)/b2 - 4.*(d4*d4 - c3*x3)/b1 - 4.*c3*x3*d4*d4*(2*q+x1-c1)/(b1*b1*q)) +
+	     6.*x3*(cs*sn*(2.*d6/b1 + d1/b3) - q2*(sn*sn - cs*cs)/b1);
 
 	return (f);
 }
 
-int	no_sys_mem (char *where, int n) {	
-		mexPrintf ("Fatal Error: %s could not allocate memory, n = %d\n", where, n);
-		return (-1);
+int	no_sys_mem(char *where, int n) {	
+	mexPrintf ("Fatal Error: %s could not allocate memory, n = %d\n", where, n);
+	return (-1);
 }
 
-void vtm (double lon0, double lat0) {
+void vtm(double lon0, double lat0) {
 	/* Set up an TM projection (extract of GMT_vtm)*/
 	double lat2, s2, c2;
 	
@@ -419,11 +449,11 @@ void vtm (double lon0, double lat0) {
 	central_meridian = lon0;
 }
 
-void tm (double lon, double lat, double *x, double *y) {
+void tm(double lon, double lat, double *x, double *y) {
 	/* Convert lon/lat to TM x/y (adapted from GMT_tm) */
 	double N, T, T2, C, A, M, dlon, tan_lat, A2, A3, A5, lat2, s, c, s2, c2;
 
-	if (fabs (fabs (lat) - 90.0) < GMT_CONV_LIMIT) {
+	if (fabs(fabs(lat) - 90.0) < GMT_CONV_LIMIT) {
 		M = EQ_RAD * t_c1 * M_PI_2;
 		*x = 0.0;
 		*y = M;
@@ -436,21 +466,23 @@ void tm (double lon, double lat, double *x, double *y) {
 		tan_lat = s / c;
 		M = EQ_RAD * (t_c1 * lat + s2 * (t_c2 + c2 * (t_c3 + c2 * t_c4)));
 		dlon = lon - central_meridian;
-		if (fabs (dlon) > 360.0) dlon += copysign (360.0, -dlon);
-		if (fabs (dlon) > 180.0) dlon = copysign (360.0 - fabs (dlon), -dlon);
-		N = EQ_RAD / d_sqrt (1.0 - ECC2 * s * s);
+		if (fabs(dlon) > 360.0) dlon += copysign (360.0, -dlon);
+		if (fabs(dlon) > 180.0) dlon  = copysign (360.0 - fabs(dlon), -dlon);
+		N = EQ_RAD / sqrt(1.0 - ECC2 * s * s);
 		T = tan_lat * tan_lat;
 		T2 = T * T;
 		C = t_e2 * c * c;
 		A = dlon * D2R * c;
 		A2 = A * A;	A3 = A2 * A;	A5 = A3 * A2;
-		*x = N * (A + (1.0 - T + C) * (A3 * 0.16666666666666666667) + (5.0 - 18.0 * T + T2 + 72.0 * C - 58.0 * t_e2) * (A5 * 0.00833333333333333333));
+		*x = N * (A + (1.0 - T + C) * (A3 * 0.16666666666666666667) + (5.0 - 18.0 * T + T2 + 72.0 * C - 58.0 * t_e2) *
+		     (A5 * 0.00833333333333333333));
 		A3 *= A;	A5 *= A;
-		*y = (M - t_M0 + N * tan_lat * (0.5 * A2 + (5.0 - T + 9.0 * C + 4.0 * C * C) * (A3 * 0.04166666666666666667) + (61.0 - 58.0 * T + T2 + 600.0 * C - 330.0 * t_e2) * (A5 * 0.00138888888888888889)));
+		*y = (M - t_M0 + N * tan_lat * (0.5 * A2 + (5.0 - T + 9.0 * C + 4.0 * C * C) * (A3 * 0.04166666666666666667) +
+		     (61.0 - 58.0 * T + T2 + 600.0 * C - 330.0 * t_e2) * (A5 * 0.00138888888888888889)));
 	}
 }
 
-int GMT_getinc (char *line, double *dx, double *dy) {
+int GMT_getinc(char *line, double *dx, double *dy) {
 	/* Special case of getincn use where n is two. */
 	double inc[2];
 	
@@ -459,15 +491,15 @@ int GMT_getinc (char *line, double *dx, double *dy) {
 	return (0);
 }
 
-int GMT_getincn (char *line, double inc[], int n) {
+int GMT_getincn(char *line, double inc[], int n) {
 	int last, i;
 	char tmpstring[512], *p;
 	double scale;
 	
 	/* Dechipers dx/dy/dz/dw/du/dv/... increment strings with n items */
 	
-	memset ((void *)inc, 0, (size_t)(n * sizeof (double)));
-	strcpy (tmpstring, line);	/* Since strtok clobbers the string */
+	memset((void *)inc, 0, (size_t)(n * sizeof(double)));
+	strcpy(tmpstring, line);	/* Since strtok clobbers the string */
 	
 	p = (char *)strtok (tmpstring, "/");
 	i = 0;
@@ -483,8 +515,8 @@ int GMT_getincn (char *line, double inc[], int n) {
 		}
 		else	/*  No units given */
 			scale = 1.0;
-		if ( (sscanf(p, "%lf", &inc[i])) != 1) {
-			mexPrintf ("MANSINHA ERROR: Unable to decode %s as a floating point number\n",p);
+		if ((sscanf(p, "%lf", &inc[i])) != 1) {
+			mexPrintf("MANSINHA ERROR: Unable to decode %s as a floating point number\n",p);
 			mexErrMsgTxt ("\n");
 		}
 		inc[i] *= scale;

@@ -1,8 +1,8 @@
 function varargout = load_xyz(handles, opt, opt2)
 % Read a generic ascii file that can be, or not, a multi-segment file
 %
-%	Multi-segs files accept -G, -S & -W GMT type options plus a proj4 string for referencing.
-%		The proj4 string should be one single word e.g. +proj4=latlong or enclosed in "+proj=longlat +datum=..."
+%	Multi-segs files accept -G, -S -W & -: GMT type options plus a proj4 string for referencing.
+%		The proj4 string should be one single word e.g. +proj=latlong or enclosed in "+proj=longlat +datum=..."
 %		-S<symb>[size] accepts these GMT type symbol codes <a|c|d|h|i|n|p|s|x|+>
 %		-S<symb>[size][+s<scale>][+f][+c<cor>[+c<cor>]]		==> Full syntax
 %		 Use +s<scale> with files with 3 columns where 3rd column will be used to determine the symbol color
@@ -44,7 +44,7 @@ function varargout = load_xyz(handles, opt, opt2)
 %		'>U_N_I_K'	plot a single line NaN separated
 %		'>ARROW'	plot an arrow field
 %		'>VIMAGE'	tell Fleder to plot a scene with a VIMAGE
-%		'>-:'		swap 1st and 2nd columns (assumed as (y,x) -> (x,y))
+%		'>-:'		swap 1st and 2nd columns (assumed as (y,x) -> (x,y)) (The -: can now also be anywhere in the string)
 %		'>CLOSE'	plot patches instead of lines (idependently of pline being closed or not)
 %		'>HAVE_INCLUDES'	Signal that this file has multi-segment headers with the form:
 %					'> INCLUDE=FULL_PATH_TO_FILE'
@@ -62,8 +62,9 @@ function varargout = load_xyz(handles, opt, opt2)
 %		'>HEAVES'	See ecran.m/saveHeaves_CB()
 %		'>POLYMESH'	File contains 'Nesting polygons' (multisegment) to help with unstructured grids creation 
 %					Example: >POLYMESH -pol=L-1_G-1_P-1.dat -inc=1000 -interp=1 -data= -grid=0 -binary=0 -single=1
+%		'>XY'       Send the data read here to the XYtool (Ecran). File can be single or multi-column & multi-segment
 
-%	Copyright (c) 2004-2014 by J. Luis
+%	Copyright (c) 2004-2016 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -78,7 +79,7 @@ function varargout = load_xyz(handles, opt, opt2)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id$
+% $Id: load_xyz.m 7884 2016-04-27 22:39:25Z j $
 
 %	EXAMPLE CODE OF HOW TO CREATE A TEMPLATE FOR UICTX WHEN THESE ARE TOO MANY
 % 	cmenuHand = get(h, 'UIContextMenu');
@@ -109,6 +110,7 @@ function varargout = load_xyz(handles, opt, opt2)
 	do_nesting = false;			% To flag when the imported file is a 'Nesting squares'
 	do_polymesh = false;		% To flag when the imported file is a 'Nesting polygons' for unstructured grids
 	isGSHHS = false;			% To flg when we are dealing with a GSHHS polygon
+	goto_XY = false;			% To flag when data will be send to the XYtool
 	% -------------------------------------------------------------------------------
 
 	% ------------------- PARSE INPUTS ----------------------------------------------
@@ -239,7 +241,7 @@ function varargout = load_xyz(handles, opt, opt2)
 		for (k = 1:numel(names))
 			fname = names{k};
 			j = strfind(fname,filesep);
-			if (isempty(j)),    fname = sprintf('%s%s',PathName, fname);   end		% Need to add path as well 
+			if (isempty(j)),    fname = sprintf('%s/%s',PathName, fname);   end		% Need to add path as well 
 			if (isempty(n_headers)),    n_headers = NaN;    end
 			if (~got_nc)				% Otherwise data was read already
 				if (multi_seg)
@@ -255,46 +257,46 @@ function varargout = load_xyz(handles, opt, opt2)
 				numeric_data = {numeric_data};
 				multi_segs_str = {'> Nikles '};		% Need something (>= 8 chars) to not error further down
 				orig_no_mseg = true;
+			elseif (~got_nc && strncmpi(multi_segs_str{1}, '>XY', 3))	% A request to call the XYtool to display this data
+				goto_XY = true;
+				multi_segs_str{1}(2:3) = [];		% Rip the XY identifier
 			end
-			if (isempty(BB))
+
+			if (isempty(BB) && ~goto_XY)
 				for (i = 1:length(numeric_data))
 					XMin = min(XMin,double(min(numeric_data{i}(:,1))));		XMax = max(XMax,double(max(numeric_data{i}(:,1))));
 					YMin = min(YMin,double(min(numeric_data{i}(:,2))));		YMax = max(YMax,double(max(numeric_data{i}(:,2))));
 				end
-			else
+			elseif (~isempty(BB))		% Also means ~goto_XY
 				XMin = BB(1);		XMax = BB(2);		YMin = BB(3);		YMax = BB(4);
 			end
 		end
 
-		if (multi_seg && strncmp(multi_segs_str{1},'>-:',3))		% See if we need to swap x<->y
-			tmp = XMin;		XMin = YMin;	YMin = tmp;				% Need to swap min/max
-			tmp = XMax;		XMax = YMax;	YMax = tmp;
-		end
-
-		dx = XMax - XMin;			dy = YMax - YMin;
-		if (dx == 0 || dy == 0)
-			errordlg('File is has only one point or all XXs are equal or all YYs are equal','Error')
-			return
-		end
-		
-		if (XMin > -179.5 && XMax < 359.5 && YMin > -89.5 && YMax < 89.5)
-			XMin = XMin - dx / 200;		XMax = XMax + dx / 200;		% Give an extra 0.5% padding margin
-			YMin = YMin - dy / 200;		YMax = YMax + dy / 200;
-		end
-		xx = [XMin XMax];			yy = [YMin YMax];
-		region = [xx yy];
-		handles.geog = aux_funs('guessGeog',region);
-
-		if (got_internal_file)				% We know it's geog (Global Isochrons or FZs)
-			xx = [-180 180];		yy = [-90 90];
-			if (~handles.geog),				handles.geog = 1;
-			elseif (handles.geog == 2),		xx = [0 360];
+		if (~goto_XY)					% goto_XY means we will call Ecran and not Mirone
+			if (multi_seg && ~isempty(strfind(multi_segs_str{1},'-:')))	% See if we need to swap x<->y
+				tmp = XMin;		XMin = YMin;	YMin = tmp;				% Need to swap min/max
+				tmp = XMax;		XMax = YMax;	YMax = tmp;
 			end
+
+			% ----- Check for the special case of only one pt or pure Vertical/Horizontal lines ------
+			[XMin, XMax, YMin, YMax] = check_smallness(handles, XMin, XMax, YMin, YMax, numeric_data);
+			% ----------------------------------------------------------------------------------------
+
+			xx = [XMin XMax];			yy = [YMin YMax];
 			region = [xx yy];
+			handles.geog = aux_funs('guessGeog',region);
+
+			if (got_internal_file)				% We know it's geog (Global Isochrons or FZs)
+				xx = [-180 180];		yy = [-90 90];
+				if (~handles.geog),				handles.geog = 1;
+				elseif (handles.geog == 2),		xx = [0 360];
+				end
+				region = [xx yy];
+			end
+			mirone('FileNewBgFrame_CB', handles, [region handles.geog])		% Create a background
+			hMirFig = handles.figure1;
+			drawnow						% Otherwise it takes much longer to plot and other shits
 		end
-		mirone('FileNewBgFrame_CB', handles, [region handles.geog])	% Create a background
-		hMirFig = handles.figure1;
-		drawnow						% Otherwise it takes much longer to plot and other shits
 
 	elseif (~nargout)				% Reading over an established region
 		XYlim = getappdata(handles.axes1,'ThisImageLims');
@@ -309,10 +311,10 @@ function varargout = load_xyz(handles, opt, opt2)
 	% --------------------------- Main loop over data files ------------------------------
 	for (k = 1:numel(names))
 		fname = names{k};
-		if (handles.no_file && k == 1)			% Rename figure with dragged file name
-			[pato,barName] = fileparts(fname);
+		if (handles.no_file && ~goto_XY && k == 1)		% Rename figure with dragged file name
+			[pato, barName] = fileparts(fname);
 			old_name = get(hMirFig,'Name');		ind = strfind(old_name, '@');
-			set(hMirFig,'Name',[barName old_name(ind-1:end)])
+			set(hMirFig, 'Name', [barName old_name(ind-1:end)])
 		end
 
 		if (~handles.no_file)					% Otherwise we already read it
@@ -340,8 +342,8 @@ function varargout = load_xyz(handles, opt, opt2)
 			orig_no_mseg = true;
 		end
 		n_isoc = 0;     n_segments = length(numeric_data);
-		hLine = zeros(n_segments,1)*NaN;			% This is the maximum we can have
-		hPat  = zeros(n_segments,1)*NaN;			% Or this
+		hLine = zeros(n_segments,1) * NaN;			% This is the maximum we can have
+		hPat  = zeros(n_segments,1) * NaN;			% Or this
 		n_clear = false(n_segments,1);
 		do_patch = false;						% Default to line object
 
@@ -384,20 +386,11 @@ function varargout = load_xyz(handles, opt, opt2)
 			end
 			struc_vimage = struct('z_min', z_Vmin, 'z_max', z_Vmax, 'vimage', vimage);
 
-		elseif (strncmp(multi_segs_str{1}, '>-:', 3))				% File has y,x instead of x,y
-			multi_segs_str{1}(2:3) = [];							% Rip the swap -: identifier
-			for (i = 1:n_segments)				% Swapp 1st and 2th columns. Do differently would be very complex
-				tmp = numeric_data{i}(:,1);
-				numeric_data{i}(:,1) = numeric_data{i}(:,2);
-				numeric_data{i}(:,2) = tmp;
-			end
-			clear tmp
-
 		elseif (strncmp(multi_segs_str{1}, '>CLOSE', 6))			% Closed or not, plot a patch
 			multi_segs_str{1}(2:6) = [];							% Rip the CLOSE identifier
 			do_patch = true;
 
-		elseif (strncmpi(multi_segs_str{1}, '>HAVE_INCLUDES', 7))	% This file includs other files
+		elseif (strncmpi(multi_segs_str{1}, '>HAVE_INCLUDES', 7))	% This file includes other files
 			if (numel(multi_segs_str) - numel(numeric_data) >= 2)	% Test if first segment has a true header
 				multi_segs_str(1) = [];								% (Yes, it has). This header was now in excess.
 			else
@@ -455,10 +448,25 @@ function varargout = load_xyz(handles, opt, opt2)
 				if (~isempty(msg)),		errordlg(msg, 'Error'),		return,		end
 			end
 
+		elseif (strncmp(multi_segs_str{1}, '>-', 2) || strncmp(multi_segs_str{1}, '>+', 2) || strncmp(multi_segs_str{1}, '>"+', 3))
+			multi_segs_str{1} = ['> ' multi_segs_str{1}(2:end)];	% Open a space btween '>' and next char
+
 		elseif (line_type(3) ~= 'P' && ~isempty(strfind(multi_segs_str{1},'-G')) && isempty(strfind(multi_segs_str{1},'-S')) )
 			% -G (paint) alone is enough to make it a patch (if ~point)
 			do_patch = true;
 		end
+
+		% ------------------ Check if File has y,x instead of x,y --------------------------
+		[do, multi_segs_str{1}] = parseSwap(multi_segs_str{1});
+		if (do)
+			for (i = 1:n_segments)				% Swapp 1st and 2th columns.
+				tmp = numeric_data{i}(:,1);
+				numeric_data{i}(:,1) = numeric_data{i}(:,2);
+				numeric_data{i}(:,2) = tmp;
+			end
+			clear tmp do
+		end
+		% -----------------------------------------------------------------------------------
 
 		% -----------------------------------------------------------------------------------
 		% ---------- If OUT is requested there is nothing left to be done here --------------
@@ -467,7 +475,41 @@ function varargout = load_xyz(handles, opt, opt2)
 			if (orig_no_mseg),		numeric_data = numeric_data{1};		end
 			varargout{1} = numeric_data;
 			if (nargout == 2),	varargout{2} = multi_segs_str;		end
-			return
+			return			% Means this only works for one single file
+		end
+		% -----------------------------------------------------------------------------------
+
+		% -----------------------------------------------------------------------------------
+		% ----- If a call to plot XY is requested there is nothing left to be done here -----
+		% -----------------------------------------------------------------------------------
+		if (goto_XY)
+			n_cols = size(numeric_data{1},2);
+			if (n_cols == 1)		% If only one column, xx will be 1:npts
+				y = numeric_data{1};	x = 1:numel(y);
+				ecran(x, y, fname)
+				for (i = 2:n_segments)
+					ecran('add', 1:numel(numeric_data{i}), numeric_data{i})
+				end
+			elseif (n_cols == 2)
+				ecran(numeric_data{1}(:,1), numeric_data{1}(:,2), fname)
+				for (i = 2:n_segments)
+					ecran('add', numeric_data{i}(:,1), numeric_data{i}(:,2))
+				end
+			else
+				out = select_cols(numeric_data{1}, 'xy', fname, 1000);
+				if (isempty(out)),		return,		end
+				h = [];
+				if (numel(out) == 4)				% x,y,z and distance request but we don't use it here
+					out(2) = out(3);
+					h = warndlg('Sorry, computing distance is not supported here. Must open the file directly in XYtool.','Warning');
+				end
+				if (n_segments > 1)
+					h = warndlg('With multiple coluns and multi-segments, only first segment is processed.', 'Warning');
+				end
+				ecran(numeric_data{1}(:,out(1)), numeric_data{1}(:,out(2)), fname)
+				if (~isempty(h)),	figure(h),		end		% Bring warning message to top
+			end
+			continue				% Continue the loop over input files (main loop)
 		end
 		% -----------------------------------------------------------------------------------
 
@@ -481,6 +523,10 @@ function varargout = load_xyz(handles, opt, opt2)
 		[projStr, multi_segs_str{1}] = parseProj(multi_segs_str{1});
 		if (~isempty(projStr)),		do_project = true;		end
 		% -----------------------------------------------------------------------------------
+
+		if (do_project && handles.no_file)		% If new image set the projection info
+			aux_funs('appProjectionRef', handles, projStr)
+		end
 
 		drawnow
 		for (i = 1:n_segments)		% Loop over number of segments of current file (external loop)
@@ -592,13 +638,18 @@ function varargout = load_xyz(handles, opt, opt2)
 						case {'AsLine' 'i_file'}		% 'i_file' means internal file (Isochrons or FZs)
 							hLine(i) = line('XData',tmpx,'YData',tmpy,'Parent',handles.axes1,'Linewidth',lThick,...
 									'Color',cor,'Tag',tag,'Userdata',n_isoc);
-							setappdata(hLine(i),'LineInfo',multi_segs_str{i});
+							if ~((numel(multi_segs_str{i}) <= 2) && strfind(multi_segs_str{i}, '>')) % Sometimes we still have only '>'
+								setappdata(hLine(i),'LineInfo',multi_segs_str{i});
+							end
 							setappdata(hLine(i),'was_binary',is_bin);	% To offer option to save as binary too
 						case 'AsPoint'
 							Fcor = parseG(multi_segs_str{i});			% See if user wants colored pts
 							if (isempty(Fcor)),		Fcor = 'k';		end
 							hLine(i) = line('XData',tmpx,'YData',tmpy,'Parent',handles.axes1, 'LineStyle','none', 'Marker',marker,...
 								'MarkerEdgeColor','k','MarkerFaceColor',Fcor, 'MarkerSize',2,'Tag','Pointpolyline');
+							if (~isempty(strtok(multi_segs_str{i})))
+								setappdata(hLine(i),'LineInfo',multi_segs_str{i});
+							end
 							draw_funs(hLine(i),'DrawSymbol')			% Set marker's uicontextmenu (tag is very important)
 							setappdata(hLine(i),'was_binary',is_bin);	% To offer option to save as binary too
 						case 'AsMaregraph'
@@ -710,12 +761,18 @@ function varargout = load_xyz(handles, opt, opt2)
 			if (orig_no_mseg)
 				draw_funs(hLine,'line_uicontext')		% Here hLine is actually only a scalar
 			else
-				draw_funs(hLine,'isochron',multi_segs_str)
+				% Sometimes we still have only '>'. If only one segment test for that case and jump if true
+				if (numel(multi_segs_str) == 1) && (numel(multi_segs_str{i}) <= 2) && strfind(multi_segs_str{i}, '>')
+					draw_funs(hLine,'isochron', '')
+				else
+					draw_funs(hLine,'isochron', multi_segs_str)
+				end
 			end
 		end
 
 	end
 	% --------------------- End main loop over files -----------------------------------------
+	if (goto_XY),	return,		end		% Time now to abandon this function (it had a 'continue' when its job was finish)
 
 	set(handles.figure1,'pointer','arrow')
 
@@ -837,15 +894,15 @@ function [thick, cor, str2] = parseW(str)
 
 % --------------------------------------------------------------------
 function [proj, str2] = parseProj(str)
-% Parse the STR string in search for a +proj4 string indicating data SRS
-% The proj4 string should be one single word e.g. +proj4=latlong or enclose in "+proj4=latlong +datum=..."
-% In later case the "" are sriped from the return PROJ variable
-% STR2 is the STR string less the ["]+proj4... part
+% Parse the STR string in search for a +proj string indicating data SRS
+% The proj4 string should be one single word e.g. +proj=latlong or enclosed in "+proj=latlong +datum=..."
+% In later case the "" are sripped away from the return PROJ variable
+% STR2 is the STR string stripped the ["]+proj... part
 	proj = [];		str2 = str;
 	ind = strfind(str, '+proj');
 	if (isempty(ind)),		return,		end			% No proj. Go away.
 	
-	if (str(ind(1)-1) == '"')				% a "+proj4=... ... ..."
+	if (str(ind(1)-1) == '"')				% a "+proj=... ... ..."
 		ind2 = strfind(str, '"');
 		if (numel(ind2) < 2)
 			disp('Error in proj4 string of this file. Ignoring projection request')
@@ -856,6 +913,9 @@ function [proj, str2] = parseProj(str)
 	else
 		proj = strtok(str(ind(1):end));		% For example +proj4=longlat
 		str(ind(1):ind(1)+numel(proj)-1) = [];	% Strip the proj string
+	end
+	if (proj(6) == '4')						% A wrong +proj4 spelling. Remove the extra '4'
+		proj(6) = [];
 	end
 	str2 = str;
 
@@ -916,6 +976,57 @@ function [symbol, symbSize, scale, color_by4, cor1, cor2, str2] = parseS(str)
 				end
 			end
 		end
+	end
+
+% --------------------------------------------------------------------------------
+function [do, str] = parseSwap(str)
+% Parse the STR string in search for a -: flag
+	do = false;
+	ind = strfind(str,' -:');
+	if (isempty(ind)),		return,		end		% No -: option
+	do = true;
+	str(ind(1):ind(1)+2) = [];			% Remove the -: from STR
+
+% --------------------------------------------------------------------------------
+function [XMin, XMax, YMin, YMax] = check_smallness(handles, XMin, XMax, YMin, YMax, numeric_data)
+% Check for the special case of only one pt and pure vertical or horizontal lines.
+% If any of such case is found, change the limits to accoomodate a small padding zone.
+	only_one_pt = false;
+	dx = XMax - XMin;			dy = YMax - YMin;
+	if (dx == 0 && dy == 0)
+		only_one_pt = true;
+	else
+		n = size(numeric_data{1}, 1);
+		for (i = 2:length(numeric_data))
+			n = max(n, size(numeric_data{i}, 1));
+		end
+		if (n == 1),	only_one_pt = true;		end
+	end
+	if (only_one_pt)			% OK, give it a small padding zone. Easy on geogs but trickier on others
+		if (handles.geog)
+			XMin = max(-360, XMin - 0.25);		XMax = min(360, XMax + 0.25);
+			YMin = max(-90,  YMin - 0.25);		YMax = min(90,  YMax + 0.25);
+		else
+			XMin = XMin * (1 - 0.02);			XMax = XMax * (1 + 0.02);	% Just a 2% padding zone
+			YMin = YMin * (1 - 0.02);			YMax = YMax * (1 + 0.02);
+		end
+	elseif (dx == 0)
+		if (handles.geog)
+			XMin = max(-360, XMin - 0.25);		XMax = min(360, XMax + 0.25);
+		else
+			XMin = XMin * (1 - 0.02);			XMax = XMax * (1 + 0.02);	% Just a 2% padding zone
+		end
+	elseif (dy == 0)
+		if (handles.geog)
+			YMin = max(-90,  YMin - 0.25);		YMax = min(90,  YMax + 0.25);
+		else
+			YMin = YMin * (1 - 0.02);			YMax = YMax * (1 + 0.02);
+		end
+	end
+
+	if (XMin > -179.5 && XMax < 359.5 && YMin > -89.5 && YMax < 89.5)
+		XMin = XMin - dx / 200;		XMax = XMax + dx / 200;		% Give an extra 0.5% padding margin
+		YMin = YMin - dy / 200;		YMax = YMax + dy / 200;
 	end
 
 % --------------------------------------------------------------------------------

@@ -82,7 +82,7 @@ function out = montage(I, varargin)
 % http://www.mathworks.com/matlabcentral/fileexchange/22387-imdisp
 % which makes this a BSD licensed file
 
-% $Id$
+% $Id: montage.m 4274 2014-01-12 15:42:59Z j $
 
 	[map, layout, gap, indices, lims, do_flipud, hFigParent] = parse_inputs(varargin);
 

@@ -16,7 +16,7 @@ function varargout = mirone_pref(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: mirone_pref.m 4802 2015-10-07 22:07:18Z j $
+% $Id: mirone_pref.m 7845 2016-03-31 23:19:23Z j $
 
 	hObject = figure('Vis','off');
 	mirone_pref_LayoutFcn(hObject);
@@ -131,7 +131,7 @@ function varargout = mirone_pref(varargin)
         set(handles.popup_ellipsoide,'String',prf.DefineEllipsoide)
         set(handles.checkbox_meanLat,'Value',prf.scale2meanLat)
 	catch       % Comes here in first call before variables are stored in mirone_pref.mat
-        DefLineThick = {'2 pt'; '1 pt'; '3 pt'; '4 pt'};
+        DefLineThick = {'0.5 pt'; '1 pt'; '2 pt'; '3 pt'; '4 pt'};
         DefLineColor = {'White'; 'Black'; 'Red'; 'Green'; 'Blue'; 'Cyan'; 'Yellow'; 'Magenta'};
         DefineMeasureUnit = {'nautic miles'; 'kilometers'; 'meters'; 'user'};
         set(handles.popup_DefLineThickness,'String',DefLineThick)
@@ -422,6 +422,9 @@ function popup_ellipsoide_CB(hObject, handles)
 
 % ------------------------------------------------------------------------------------
 function push_OK_CB(hObject, handles)
+% ...
+	global gmt_ver;
+
 	handles.handMir.geog = handles.geog;
 	handles.handMir.grdMaxSize = str2double(get(handles.edit_GridMaxSize,'String')) * 2^20;
 	handles.handMir.swathRatio = str2double(get(handles.edit_swathRatio,'String'));
@@ -438,7 +441,7 @@ function push_OK_CB(hObject, handles)
 	deflation_level = get(handles.popup_deflation, 'val') - 1;
 	handles.handMir.deflation_level = deflation_level;
 	% Decode the line thickness string into a number
-	handles.handMir.DefLineThick = str2double(DefLineThick{1}(1));
+	handles.handMir.DefLineThick = str2double(strtok(DefLineThick{1}));
 	% Decode the line color string into the corresponding char (e.g. k,w, etc...)
 	switch DefLineColor{1}
 		case 'Black',       handles.handMir.DefLineColor = 'k';

@@ -24,7 +24,7 @@ function varargout = cartas_militares(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id$
+% $Id: cartas_militares.m 4088 2013-08-08 01:01:18Z j $
 
 	hObject = figure('Visible','off');
 	cartas_militares_LayoutFcn(hObject);

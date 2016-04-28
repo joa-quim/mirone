@@ -1,7 +1,12 @@
-function writekml(handles,Z,fname)
+function writekml(handles, Z, fname)
 % Write a GoogleEarth kml file that will allow displaing the current image in GE
+%
+% HANDLES -> Can be a Mirone handles or a struct with data as prepared by
+%            choosebox.m prepare_poles_struct('kml') function.
+% Z       -> Optional (otherwise fished from the HANDLES struct)
+% FNAME   -> Optional. Apparently only used when HANDLES is a choosebox struct
 
-%	Copyright (c) 2004-2014 by J. Luis
+%	Copyright (c) 2004-2016 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -16,17 +21,19 @@ function writekml(handles,Z,fname)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id$
+% $Id: writekml.m 7857 2016-04-11 17:29:20Z j $
 
 	n_argin = nargin;
 	noFig = true;
+	to_delete = [];			% To hold a Fig handle that, if we have to reproject, will be deleted at the end
 
-	% Check for the case where the input is NOT a handles structure but one with the data
+	% Check for the case where the input is NOT a handles structure but one with the data (choosebox.m uses this)
 	if ((n_argin == 1) && isfield(handles, 'nofig'))
 		handles.no_file = false;	handles.have_nans = false;
 		handles.axes1 = [];			handles.hImg = [];
 		handles.image_type = 20;
-		if (isfield(handles, 'fname'))		% Write the kml on file but NOT call GE
+		handles.is_projected = false;		% Actually this should be made possible one day.
+		if (isfield(handles, 'fname'))		% Write the kml file but NOT call GE
 			fname = handles.fname;
 			n_argin = 3;					% Dirty trick to force the flow into "write file and stop"
 		elseif (isfield(handles, 'tmpdir'))
@@ -42,18 +49,38 @@ function writekml(handles,Z,fname)
 		noFig = true;
 	end
 
-	if (handles.no_file)	return,		end
+	if (handles.no_file),	return,		end		% This is convoluted. It allows calls by choosebox, but too convoluted.
+
 	if (n_argin <= 2)
 		if (n_argin == 1)					% Only HANDLES was transmited (called via clicked callback)
 			Z = [];							% Z will be of use to know if need transparency
-			if (handles.have_nans)
-				[X,Y,Z] = load_grd(handles,'silent');
+			if (handles.have_nans),		[X,Y,Z] = load_grd(handles,'silent');	end
+		end
+		if (handles.is_projected)				% SHIT, we need to convert to geogs under the hood
+			handles = guidata(handles.figure1);
+			prjSrc  = aux_funs('get_proj_string', handles);			% Get the proj4 string of this projection
+			prjDest = '+proj=latlong +datum=WGS84';
+			illumComm = getappdata(handles.figure1,'illumComm');	% Need to save this before it's erased below
+			Illumin_type = handles.Illumin_type;					%		""
+			hMirFigNew = gdal_project(handles, 'hiden', prjSrc, prjDest);
+			handles = guidata(hMirFigNew);		% From now on this is the handles we will use
+			[X,Y,Z] = load_grd(handles,'silent');
+			handles.have_nans = grdutils(Z,'-N');
+			if (Illumin_type >= 1 && Illumin_type <= 4)
+				if (Illumin_type == 1)
+					R = grdgradient_m(Z, handles.head,'-M', illumComm,'-Nt');	% This is the Geog case
+				else
+					R = grdgradient_m(Z, handles.head, illumComm, '-a1');
+				end
+				zz = ind2rgb8(get(handles.hImg,'CData'),get(handles.figure1,'ColorMap'));	% zz is now RGB
+				zz = shading_mat(zz,R,'no_scale');		set(handles.hImg,'CData',zz)		% and now it is illuminated			
 			end
+			to_delete = hMirFigNew;			% And now store this guy to be leted at the end
 		end
 		fname_kml = [handles.path_tmp 'MironeTec.kml'];
 		fname_img = [handles.path_tmp 'MironeTec'];
 	else
-		[PATH,FNAME] = fileparts( fname);
+		[PATH,FNAME] = fileparts(fname);
 		fname_kml = [PATH filesep FNAME '.kml'];% Make sure it has the .kml extension
 		fname_img = [PATH filesep FNAME];       % Extension will be added later
 	end
@@ -391,6 +418,8 @@ function writekml(handles,Z,fname)
 	fprintf(fid,'%s\n','</Document>');
 	fprintf(fid,'%s','</kml>');
 	fclose(fid);
+
+	if (~isempty(to_delete)),	delete(to_delete);	end		% The hidden Mirone Fig holding the reprojected window
 
 	if (n_argin == 1)
 		try

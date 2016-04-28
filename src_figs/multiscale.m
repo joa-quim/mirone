@@ -16,7 +16,7 @@ function varargout = multiscale(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id$
+% $Id: multiscale.m 4523 2014-07-22 16:25:11Z j $
 
 	hObject = figure('Vis','off');
 	multiscale_LayoutFcn(hObject);

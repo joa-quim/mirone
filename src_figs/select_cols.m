@@ -36,7 +36,7 @@ function out = select_cols(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id$
+% $Id: select_cols.m 4506 2014-07-17 13:53:57Z j $
 
 	demo = 0;
 	if (nargin == 0)        % Demo mode

@@ -16,7 +16,7 @@ function varargout = fault_models(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id$
+% $Id: fault_models.m 4498 2014-06-09 18:21:50Z j $
 
 	if (nargin)
 		handMir = varargin{1};

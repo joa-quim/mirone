@@ -22,7 +22,7 @@ function new_frame3D(hFig, hText, hFrame)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id$
+% $Id: new_frame3D.m 4651 2014-12-12 17:33:55Z j $
 
 	% Give a Pro look (3D) to the frame boxes 
 	bgcolor = get(0,'DefaultUicontrolBackgroundColor');

@@ -1,7 +1,7 @@
 function [X, Y, Z, head] = c_grdread(fname, varargin)
 % Temporary function to easy up transition from GMT4 to GMT5.2
 
-% $Id$
+% $Id: c_grdread.m 4727 2015-07-22 14:51:27Z j $
 
 	global gmt_ver
 	if (isempty(gmt_ver)),		gmt_ver = 4;	end		% For example, if calls do not come via mirone.m

@@ -1,7 +1,7 @@
 function [H1,handles,home_dir] = mirone_uis(home_dir)
 % Creates and returns a handle to the GUI MIRONE figure.
 
-%	Copyright (c) 2004-2015 by J. Luis
+%	Copyright (c) 2004-2016 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -16,7 +16,7 @@ function [H1,handles,home_dir] = mirone_uis(home_dir)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: mirone_uis.m 4825 2015-11-05 00:48:21Z j $
+% $Id: mirone_uis.m 7875 2016-04-21 17:11:43Z j $
 
 %#function pan igrf_options rally_plater plate_calculator ecran snapshot
 %#function about_box parker_stuff euler_stuff grid_calculator tableGUI
@@ -28,7 +28,7 @@ function [H1,handles,home_dir] = mirone_uis(home_dir)
 %#function mxgridtrimesh aquamoto tiles_tool empilhador grdlandmask_win grdlandmask_m escadeirar
 %#function run_cmd line_operations world_is_not_round_enough cartas_militares ice_m magbarcode
 %#function obj_template_detect floodfill meca_studio inpaint_nans globalcmt guess_bin demets_od
-%#function vector_project tintol makescale mesher_helper
+%#function vector_project tintol makescale mesher_helper update_gmt
 
 	% The following test will tell us if we are using the compiled or the ML version
 	try
@@ -67,39 +67,46 @@ function [H1,handles,home_dir] = mirone_uis(home_dir)
         end
 	end
 
-pos = [520 758 figW 21];     % R13 honest figure dimension
-H1 = figure('PaperUnits','centimeters',...
-'CloseRequestFcn',@figure1_CloseRequestFcn,...
-'ResizeFcn',@figure1_ResizeFcn,...
-'KeyPressFcn',@figure1_KeyPressFcn,...
-'Color',get(0,'factoryUicontrolBackgroundColor'),...
-'DoubleBuffer','on',...
-'IntegerHandle','off',...
-'MenuBar','none',...
-'Toolbar', 'none',...
-'Name','Mirone 2.7.0dev',...
-'NumberTitle','off',...
-'PaperPositionMode','auto',...
-'PaperSize',[20.98404194812 29.67743169791],...
-'PaperType',get(0,'defaultfigurePaperType'),...
-'Position',pos,...
-'HandleVisibility','callback',...
-'Tag','figure1',...
-'Vis','off');
+	if (IAmOctave)
+		ladrilhos  = single(ladrilhos / 255);
+		shade2_ico = single(shade2_ico / 255);
+		MB_ico     = single(MB_ico / 255);
+		olho_ico   = single(olho_ico / 255);
+	end
 
-setappdata(H1,'IAmAMirone',true)		% Use this appdata to identify Mirone figures
-setappdata(H1,'PixelMode',0)			% Default
+	pos = [520 758 figW 21];     % R13 honest figure dimension
+	H1 = figure('PaperUnits','centimeters',...
+		'CloseRequestFcn',@figure1_CloseRequestFcn,...
+		'ResizeFcn',@figure1_ResizeFcn,...
+		'KeyPressFcn',@figure1_KeyPressFcn,...
+		'Color',get(0,'factoryUicontrolBackgroundColor'),...
+		'DoubleBuffer','on',...
+		'IntegerHandle','off',...
+		'MenuBar','none',...
+		'Toolbar', 'none',...
+		'Name','Mirone 2.7.0dev',...
+		'NumberTitle','off',...
+		'PaperPositionMode','auto',...
+		'PaperSize',[20.98404194812 29.67743169791],...
+		'PaperType',get(0,'defaultfigurePaperType'),...
+		'Position',pos,...
+		'HandleVisibility','callback',...
+		'Tag','figure1',...
+		'Vis','off');
 
-% Detect which matlab version is beeing used. For the moment I'm only interested to know if R13 or >= R14
-version7 = version;
-if (double(version7(1)) > 54),		version7 = sscanf(version7(1:3),'%f');
-else								version7 = 0;
-end
+	setappdata(H1,'IAmAMirone',true)		% Use this appdata to identify Mirone figures
+	setappdata(H1,'PixelMode',0)			% Default
 
-if (version7)
-	PV = {'DockControls','off'};
-	set(H1,PV{:});		% Do it this way to cheat the compiler
-end
+	% Detect which matlab version is beeing used. For the moment I'm only interested to know if R13 or >= R14
+	version7 = version;
+	if (double(version7(1)) > 54),		version7 = sscanf(version7(1:3),'%f');
+	else								version7 = 0;
+	end
+
+	if (version7)
+		PV = {'DockControls','off'};
+		set(H1,PV{:});		% Do it this way to cheat the compiler
+	end
 
 hVG = zeros(1,18);		kv = 5;		% hVG will contain the handles of "not valid grid" uis to hide when they are not usable
 hTB = uitoolbar('parent',H1, 'BusyAction','queue','HandleVisibility','on','Interruptible','on',...
@@ -255,7 +262,7 @@ uimenu('Parent',h,'Call','mirone(''File_img2GMT_RGBgrids_CB'',guidata(gcbo),''sc
 
 h = uimenu('Parent',hFL,'Label','Save GMT script','Sep','on');
 uimenu('Parent',h,'Call','write_gmt_script(guidata(gcbo),''bat'')','Label','dos batch');
-uimenu('Parent',h,'Call','write_gmt_script(guidata(gcbo),''csh'')','Label','csh script');
+uimenu('Parent',h,'Call','write_gmt_script(guidata(gcbo),''csh'')','Label','bash script');
 
 h = uimenu('Parent',hFL,'Label','Save As Fledermaus Objects');
 hVG(kv) = uimenu('Parent',h,'Call','mirone(''FileSaveFleder_CB'',guidata(gcbo),''writeSpherical'')',...
@@ -391,6 +398,7 @@ uimenu('Parent',hTL,'Call','ecran','Label','X,Y grapher','Sep','on');
 uimenu('Parent',hTL,'Call','aquamoto(guidata(gcbo))','Label','Aquamoto Viewer','Sep','on');
 uimenu('Parent',hTL,'Call','empilhador(guidata(gcbo))','Label','Empilhador');
 uimenu('Parent',hTL,'Call','slices(guidata(gcbo))','Label','Slices');
+uimenu('Parent',hTL,'Call','sat_orbits(guidata(gcbo))','Label','Satellite Orbits');
 uimenu('Parent',hTL,'Call','tiles_tool(guidata(gcbo))','Label','Tiling Tool','Sep','on');
 hVG(kv) = uimenu('Parent',hTL,'Call','diluvio(guidata(gcbo))','Label','Noe Diluge','Sep','on');		kv = kv + 1;
 uimenu('Parent',hTL,'Call','travel(guidata(gcbo))','Label','Mirone Travel','Sep','on');
@@ -567,6 +575,7 @@ uimenu('Parent',h,'Call','datasets_funs(''ODP'',guidata(gcbo),''IODP'')','Label'
 uimenu('Parent',h,'Call','datasets_funs(''ODP'',guidata(gcbo),''ALL'')','Label','DSDP+ODP+IODP');
 
 uimenu('Parent',hDS,'Call','atlas(guidata(gcbo))','Label','Atlas','Tag','Atlas','Sep','on');
+%uimenu('Parent',hDS,'Call','mirone(''TransferB_CB'',guidata(gcbo),''DayNight'')','Label','Day and Night','Sep','on');
 % uimenu('Parent',hDS,'Call','datasets_funs(''GTiles'', guidata(gcbo))','Label','GTiles Map','Sep','on');
 
 %% --------------------------- Plates -------------------------------------
@@ -742,9 +751,10 @@ if (IamCompiled)
 	uimenu('Parent',h, 'Call', 'mirone(''TransferB_CB'',guidata(gcbo),''sharedir'')','Label','Debug - Print GMT_SHAREDIR')
 	uimenu('Parent',h, 'Call', 'mirone(''TransferB_CB'',guidata(gcbo),''update'')','Label','Check for updates','Sep','on')
 end
+uimenu('Parent',h, 'Call', 'update_gmt(guidata(gcbo))','Label','Update your GMT5','Sep','on')
 uimenu('Parent',h, 'Call',['mirone(''FileOpenWebImage_CB'',guidata(gcbo),',...
 	' ''http://www2.clustrmaps.com/stats/maps-clusters/w3.ualg.pt-~jluis-mirone-world.jpg'',''nikles'');'],'Label','See visitors map','Sep','on');
-uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 5 Nov 2015'',''2.7.0dev'')','Label','About','Sep','on');
+uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 21 Apr 2016'',''2.7.0dev'')','Label','About','Sep','on');
 
 %% --------------------------- Build HANDLES and finish things here
 	handles = guihandles(H1);
@@ -757,7 +767,7 @@ uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 5 N
 	handles.noVGlist = hVG;					% List of ui handles that will not show when "not valid grid"
 	handles.mirVersion = [2 0 0];			% Something like [major minor revision]
 	move2side(H1,'north');					% Reposition the window on screen
-	set(H1,'Vis','on');
+% 	set(H1,'Vis','on');
 
 % --------------------------------------------------------------------------------------------------
 % We need this function also when the pixval_stsbar get stucked
@@ -812,7 +822,7 @@ function figure1_ResizeFcn(hObj, event)
 	handles = guidata(hObj);
 	if (isempty(handles)),      return,     end
 	screen = get(0,'ScreenSize');	    pos = get(handles.figure1,'Pos');
-	if ( pos(1) == 1 && isequal(screen(3), pos(3)) && handles.oldSize(1,4) > 20)	% Do not allow figure miximizing
+	if (pos(1) == 1 && isequal(screen(3), pos(3)) && handles.oldSize(1,4) > 20)	% Do not allow figure miximizing
 		set(handles.figure1,'Pos',handles.oldSize(1,:))
 	else
 		hSliders = getappdata(handles.axes1,'SliderAxes');

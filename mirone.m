@@ -5,7 +5,7 @@ function varargout = mirone(varargin)
 %
 %	mirone('CALLBACK',handles,...) calls the local function named CALLBACK with the given input arguments.
 
-%	Copyright (c) 2004-2014 by J. Luis
+%	Copyright (c) 2004-2016 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -20,7 +20,7 @@ function varargout = mirone(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: mirone.m 4807 2015-10-11 11:07:30Z j $
+% $Id: mirone.m 7881 2016-04-27 19:39:26Z j $
 
 	if (nargin > 1 && ischar(varargin{1}))
 		if ( ~isempty(strfind(varargin{1},':')) || ~isempty(strfind(varargin{1},filesep)) )
@@ -64,21 +64,23 @@ function hObject = mirone_OpeningFcn(varargin)
 %#function mat2clip buffer_j PolygonClip trend1d_m akimaspline shake_mex ground_motion wms_tool microlev
 %#function write_esri_hdr distmin mag_synthetic image_histo write_gmt_symb mkpj decompress mosaicer
 %#function lasreader_mex laszreader_mex escorrega show_manguito travel thresholdit intersections nswing runCB_tintol
-%#function usgs_recent_seismicity
+%#function usgs_recent_seismicity sat_orbits uisetdate doy
 %#function c_cpt2cmap c_grdfilter c_grdinfo c_grdlandmask c_grdproject c_grdread c_grdsample
-%#function c_grdtrend c_mapproject c_nearneighbor c_shoredump c_surface
+%#function c_grdtrend c_mapproject c_nearneighbor c_shoredump c_surface popenr
 
-
-	global gmt_ver;		gmt_ver = 5;		fsep = filesep;
-  	global home_dir;
-% 	home_dir = cd;		% To compile uncomment this and comment next 9 lines
-	if (isempty(home_dir))		% First time call. Find out where we are
-		home_dir = fileparts(mfilename('fullpath'));			% Get the Mirone home dir and set path
-		addpath(home_dir, [home_dir fsep 'src_figs'],[home_dir fsep 'utils']);
-		if (exist('OCTAVE_VERSION','builtin') ~= 0)				% This is a repetition of the test later in mirone_uis
-			addpath([home_dir fsep 'lib_mex' fsep 'octave' fsep octave_config_info.canonical_host_type]);
-		else
-			addpath([home_dir fsep 'lib_mex']);
+	global gmt_ver;		gmt_ver = 5;	global home_dir;	fsep = filesep;
+	toCompile = false;		% To compile set this one to TRUE
+	if (toCompile)
+		home_dir = cd;
+	else
+		if (isempty(home_dir))		% First time call. Find out where we are
+			home_dir = fileparts(mfilename('fullpath'));			% Get the Mirone home dir and set path
+			addpath(home_dir, [home_dir fsep 'src_figs'],[home_dir fsep 'utils']);
+			if (exist('OCTAVE_VERSION','builtin') ~= 0)				% This is a repetition of the test later in mirone_uis
+				addpath([home_dir fsep 'lib_mex' fsep 'octave' fsep octave_config_info.canonical_host_type]);
+			else
+				addpath([home_dir fsep 'lib_mex']);
+			end
 		end
 	end
 
@@ -89,7 +91,7 @@ function hObject = mirone_OpeningFcn(varargin)
 	end
 
 	handles.home_dir = home_dir;
-	handles.DefLineThick = 1;		% Default line thickness (overwriten by mirone_pref)
+	handles.DefLineThick = 0.5;		% Default line thickness (overwriten by mirone_pref)
 	handles.DefLineColor = 'k';		% Default line color (overwriten by mirone_pref)
 	handles.DefineMeasureUnit = 'k';% Default measure units to kilometrs (overwriten by mirone_pref)
 	handles.grdname = [];			% Contains the name of the current (if it's the case) gmt grid
@@ -126,7 +128,7 @@ function hObject = mirone_OpeningFcn(varargin)
 	handles.whichFleder = 1;		% whichFleder = 1 for the free iview4d or 0 for the true thing (fledermaus)
 	handles.oldSize = [get(hObject,'Pos'); get(hObject,'Pos')];		% Duplicate so that we store ORIGINAL size
 	if (handles.oldSize(1,4) == 0),	handles.oldSize(1,4) = 1;		end
-	handles.is_projected = 0;		% To keep track if coords are projected or not
+	handles.is_projected = false;	% To keep track if coords are projected or not
 	handles.defCoordsIn = 0;		% To use when Load files and have to decide if we need to project
 									% 0 -> don't know; -1 -> Coords are already projected; 1 -> geog coords needing project
 	try		handles.Projections;			% Use a try/catch since isfield is brain-dead long
@@ -138,6 +140,7 @@ function hObject = mirone_OpeningFcn(varargin)
 	handles.validGrid = false;		%
 	handles.nLayers = 1;			% If > 1 after reading a netCDF file call aquamoto
 	handles.deflation_level = 0;	% If > 0 will create compressed netCDF-4 files
+	handles.is_defRegion = false;	% A def region is a particular case to create GMT custom symbols.
 
 	try							% A file named mirone_pref.mat contains the preferences, read them from it
 		prf = load([handles.path_data 'mirone_pref.mat']);
@@ -145,7 +148,7 @@ function hObject = mirone_OpeningFcn(varargin)
 		handles.grdMaxSize = prf.grdMaxSize;				% 2^20 = 1 Mb
 		handles.swathRatio = prf.swathRatio;
 		handles.last_directories = prf.directory_list;
-		handles.DefLineThick = sscanf(prf.DefLineThick{1}(1),'%f');
+		handles.DefLineThick = sscanf(strtok(prf.DefLineThick{1}),'%f');
 		% Decode the line color string into the corresponding char (e.g. k,w, etc...)
 		if (strcmp(prf.DefLineColor{1},'Black')),	handles.DefLineColor = 'k';
 		else										handles.DefLineColor = lower(prf.DefLineColor{1}(1));
@@ -183,7 +186,7 @@ function hObject = mirone_OpeningFcn(varargin)
 		handles.last_directories = {handles.path_tmp; home_dir};	% Let it have something existent
 	end
 	if (any(j))					% If any of the old dirs evaporated, update that info in mirone_prefs
-		directory_list = handles.last_directories;
+		directory_list = handles.last_directories;	isempty(directory_list);	% To shut up MLint
 		if (handles.version7),		save([handles.path_data 'mirone_pref.mat'],'directory_list', '-append', '-v6')
 		else						save([handles.path_data 'mirone_pref.mat'],'directory_list', '-append')
 		end
@@ -207,16 +210,16 @@ function hObject = mirone_OpeningFcn(varargin)
 			[drv, algures] = aux_funs('findFileType',varargin{1});
 			if (ischar(algures)),		varargin{1} = algures;	end 		% File exists but not in Mirone's root dir
 			if (ischar(algures) || algures),	handles.fileName = varargin{1};		end		% Can be added by recentFiles
-		elseif ( isa(varargin{1},'uint8') || isa(varargin{1},'int8') || islogical(varargin{1}) )
+		elseif (isa(varargin{1},'uint8') || isa(varargin{1},'int8') || islogical(varargin{1}))
 			% Called with an image as argument and optionaly an struct header (& geog, name, cmap optional fields)
-			if ( isa(varargin{1},'int8') )		% We cannot represent a int8 image. Do something
+			if (isa(varargin{1},'int8'))		% We cannot represent a int8 image. Do something
 				varargin{1} = uint8(cvlib_mex('addS', int16(varargin{1}), 128));	% [-128 127] -> [0 255]
 			end
 			% Now deal with the case of a eventual multiband ( > than 3 planes) array
 			if (size(varargin{1},3) > 3),		aux_funs('toBandsList', handles.figure1, varargin{1}, 'multiband array'),	end
 
 			isReferenced = false;
-			if ( n_argin == 2 && isa(varargin{2},'struct') )		% An image with coordinates
+			if (n_argin == 2 && isa(varargin{2},'struct'))		% An image with coordinates
 				tmp = varargin{2};
 				handles.head = tmp.head;		X = tmp.X;		Y = tmp.Y;
 				handles.image_type = 3;			axis_t = 'xy';
@@ -226,6 +229,7 @@ function hObject = mirone_OpeningFcn(varargin)
 				if (isfield(tmp,'srsWKT'))
 					aux_funs('appP', handles, tmp.srsWKT)			% If we have a WKT proj, store it
 					isReferenced = true;
+					if (~handles.geog),		handles.is_projected = true;	end		% WEAK LOGIC. SHOULD PARSE WKT TO MAKE SURE
 				end
 			else
 				X = [];			Y = [];			win_name = 'Cropped_image';
@@ -246,13 +250,36 @@ function hObject = mirone_OpeningFcn(varargin)
 			handles = aux_funs('isProj',handles);				% Check/set about coordinates type
 			
 		elseif (n_argin == 1 && isa(varargin{1},'struct') && isfield(varargin{1},'ProjectionRefPROJ4'))
-			% A GMT5 grid/image structure (image not implemented yet).
-			handles.head = [varargin{1}.range varargin{1}.MinMax varargin{1}.registration varargin{1}.inc];
-			Z = varargin{1}.z;			grd_data_in = true;
-			if (~isa(Z,'single')),		Z = single(Z);		end
-			handles.have_nans = grdutils(Z,'-N');
-			X = linspace(varargin{1}.range(1), varargin{1}.range(2), varargin{1}.n_columns);
-			Y = linspace(varargin{1}.range(3), varargin{1}.range(4), varargin{1}.n_rows);
+			% A GMT5 grid/image structure. (for images we still do not use eventual alpha channel)
+			handles.head = [varargin{1}.range varargin{1}.registration varargin{1}.inc];
+			if (~isfield(varargin{1}, 'image'))
+				Z = varargin{1}.z;			grd_data_in = true;
+				if (~isa(Z,'single')),		Z = single(Z);		end
+				handles.have_nans = grdutils(Z,'-N');
+				X = linspace(varargin{1}.range(1), varargin{1}.range(2), varargin{1}.n_columns);
+				Y = linspace(varargin{1}.range(3), varargin{1}.range(4), varargin{1}.n_rows);
+			else
+				handles.image_type = 3;		isReferenced = false;
+				X = [varargin{1}.x(1) varargin{1}.x(end)];		Y = [varargin{1}.y(1) varargin{1}.y(end)];
+				handles.geog = aux_funs('guessGeog', [Y Y]);
+				ProjectionRefWKT = varargin{1}.ProjectionRefWKT;
+				if (isempty(ProjectionRefWKT) && ~isempty(varargin{1}.ProjectionRefPROJ4))
+					ProjectionRefWKT = ogrproj(varargin{1}.ProjectionRefPROJ4);
+				end
+				if (~isempty(ProjectionRefWKT))
+					aux_funs('appP', handles, varargin{1}.ProjectionRefWKT)			% If we have a WKT proj, store it
+					isReferenced = true;
+					if (~handles.geog),		handles.is_projected = true;	end		% WEAK LOGIC. SHOULD PARSE WKT TO MAKE SURE
+				end
+				if (ndims(varargin{1}.image) == 2),		set(handles.figure1,'Colormap',gray(256));		end
+				win_name = 'Nikles';
+				if (~isempty(varargin{1}.title)),		win_name = varargin{1}.title;	end
+				handles = show_image(handles,win_name,X,Y,varargin{1}.image,0,'xy',varargin{1}.registration,1);
+				if (~isReferenced),		grid_info(handles,[],'iminfo',varargin{1}.image);		% Create a info string
+				else					grid_info(ProjectionRefWKT, 'referenced', varargin{1}.image);
+				end
+				handles = aux_funs('isProj',handles);				% Check/set about coordinates type
+			end
 
 		elseif (n_argin == 2 && isequal([size(varargin{2},1) size(varargin{2},2)],[1 9]))
 			% A matrix with the classic nine elements header vector
@@ -279,6 +306,7 @@ function hObject = mirone_OpeningFcn(varargin)
 				if (isfield(tmp,'srsWKT'))
 					grid_info(handles,tmp.srsWKT,'referenced',varargin{1});	% Create a info string
 					aux_funs('appP', handles, tmp.srsWKT)					% We have a WKT proj, store it
+					handles.is_projected = true;		% WEAK LOGIC. SHOULD PARSE WKT TO MAKE SURE
 				elseif (isfield(tmp,'ProjGMT'))			% From geog_calculator. Has opt_J.
 					projection_menu(handles, tmp.ProjGMT)
 					handles = guidata(hObject);			% Get the updated version changed in the above call
@@ -322,6 +350,10 @@ function hObject = mirone_OpeningFcn(varargin)
 		aux_funs('colormap_bg',handles,Z,pal);
 		handles = show_image(handles,win_name,X,Y,zz,1,'xy',handles.head(7));
 	end
+
+	% ---------+================+---------- FIGURE VISIBLE HERE ----------+==============+-----------
+	set(handles.figure1,'Vis', 'on')
+	% ---------+================+---------- FIGURE VISIBLE HERE ----------+==============+-----------
 
 	handles.IAmAMac = strncmp(computer,'MAC',3);
 	setappdata(0,'IAmAMac',handles.IAmAMac)
@@ -385,6 +417,14 @@ function hObject = mirone_OpeningFcn(varargin)
 		end
 	end
 
+	% See if we have a TMP dir set by a ENV var that will take precedence over the default one
+	t = set_gmt('MIRONE_TMP', 'whatever');			% Inquire if MIRONE_TMP exists
+	if (~isempty(t))		% Now check that the dir exists
+		if (exist(t, 'dir') == 7)
+			handles.path_tmp = [t fsep];
+		end
+	end
+		
 	guidata(hObject, handles);
 	tmp.home_dir = home_dir;	tmp.work_dir = handles.work_dir;	tmp.last_dir = handles.last_dir;
 	setappdata(0,'MIRONE_DIRS',tmp);		% To access from places where handles.home_dir is unknown (must precede gateLoadFile())
@@ -409,6 +449,7 @@ function hObject = mirone_OpeningFcn(varargin)
 function erro = gateLoadFile(handles,drv,fname)
 % Gateway function to load a recognized file type using its name
 	erro = 0;
+	if (strncmp(drv, 'MB', 2)),	drv_or = drv;	drv = 'MB';		end		% The MB (system) type case are actually several
 	switch drv
 		case 'gmt',			loadGRID(handles, fname, 'GMT_relatives')
 		case 'generic',		FileOpenNewImage_CB(handles, fname);
@@ -416,8 +457,8 @@ function erro = gateLoadFile(handles,drv,fname)
 		case 'ecw',			FileOpenGeoTIFF_CB(handles, 'ecw', fname);		% A particular case (includes jp2)
 		case 'multiband',	FileOpenGDALmultiBand_CB(handles, 'AVHRR', fname);
 		case 'envherd',		FileOpen_ENVI_Erdas_CB(handles, [], fname);
-		case 'mola',		loadGRID(handles, fname, 'MOLA');
 		case 'mat',			FileOpenSession_CB(handles, fname)
+		case 'mola',		loadGRID(handles, fname, 'MOLA');
 		case 'cpt',			color_palettes(fname);
 		case 'dat',			load_xyz(handles, fname);
 		case 'ncshape',		load_xyz(handles, fname, drv);
@@ -425,7 +466,9 @@ function erro = gateLoadFile(handles,drv,fname)
 		case 'ogr',			DrawImportOGR_CB(handles, fname);
 		case 'las',			read_las(handles, fname);
 		case 'mgg_gmt',		GeophysicsImportGmtFile_CB(handles, fname);
+		case 'ghost',		load_ps(handles, fname);		% Put ghostscript on works
 		case 'sww',			aquamoto(fname);
+		case 'MB',          load_MB(handles, fname, drv_or);
 		case 'dono',		erro = FileOpenGeoTIFF_CB(handles,'dono',fname);	% It means "I don't know"
 		otherwise,			erro = 1;
 	end
@@ -467,6 +510,7 @@ function handles = recentFiles(handles, opt)
 
 % --------------------------------------------------------------------------------------------------
 function openRF(obj,event,n)
+% Open from 'Recent Files'
 	handles = guidata(obj);
 	[drv, sim] = aux_funs('findFileType',handles.FOpenList{n});
 	if (sim)
@@ -495,7 +539,7 @@ function handles = SetAxesNumericType(handles,event)
 
 % --------------------------------------------------------------------------------------------------
 function PixMode_CB(hObject, event, hFig, opt)
-% Inside each grid cell, which is a pixel in the screen, display only the grid node value
+% Inside each grid cell, which is a pixel on the screen, display only the grid node value
 	handles = guidata(hFig);
 	if (opt)		% Pixel mode on/off
 		if (strcmp(get(hObject,'Checked'),'off'))
@@ -550,6 +594,54 @@ function  PlatesAgeLift_CB(handles)
 	GRDdisplay(handles,X,Y,lift,miniHandles.head,[],'AgeLiftedBathymetry',srsWKT)
 
 % --------------------------------------------------------------------------------------------------
+function load_ps(handles, fname)
+% Load a PostScript file ... via ghostscript and a MEX to access ghost stdout (SHITY QUALITY)
+% P6
+% # Image generated by Ghostscript (device=ppmraw)
+% 612 792
+% 255
+	P = popenr(['gswin64c -q -r300x300 -sDEVICE=ppmraw -sOutputFile=- ' fname]);
+	try
+		% The following while's are because we can't fseek a pipe and header size is variable.
+		while (popenr(P,1,'char') ~= 10),	end		% Consume First  header line
+		while (popenr(P,1,'char') ~= 10),	end		% Consume Second header line
+		t = '                    ';
+		for (k = 1:20)
+			t(k) = popenr(P,1,'char');
+			if (t(k) == 10),	break,		end		% EOF reached
+		end
+		t(k:end) = [];								% Remove excess characters
+		ii = find(t == 32);							% Find the dimensions separator (a blank)
+		width  = str2double(char( t(1 : ii(1)-1) )');
+		height = str2double(char( t(ii(1)+1 : end) )');
+
+		while (popenr(P,1,'char') ~= 10),	end		% Consume Fourth header line
+		img = popenr(P, [height width 3], 'char');
+	catch
+		popenr(P, -1)					% Close the stdin stream
+		errordlg(lasterr, 'Error'),		return
+	end
+	popenr(P, -1)						% Close the stdin stream
+	mirone(img);
+
+% --------------------------------------------------------------------------------------------------
+function load_MB(handles, fname, frmt)
+% Send MB datalist or single MB file to mbimport and get back an Image like that produced by mbswath
+	cmd = '';
+	fid = fopen(fname,'rt');
+	todos = fread(fid,'*char');		fclose(fid);
+	if (todos(1) == '#' || todos(1) == '>')
+		ind = find(todos == 10);		% Find new lines
+		cmd = todos(2:ind(1)-1)';
+		%todos = todos(ind(1)+1:end);
+	end
+	%[nomes, frmt] = strread(todos,'%s %s');
+
+	I = gmtmex(['mbimport -I' fname ' ' cmd]);
+	mirone(I)
+	if (handles.no_file),	delete(handles.figure1),	end		% Delete the old and empty fig.
+
+% --------------------------------------------------------------------------------------------------
 function varargout = ImageCrop_CB(handles, opt, opt2, opt3)
 % OPT  is either a handle to a line that may be a rectangle/polygon,
 %      a Mx2 or 2xM matrix with the (x y) vector coordinates, OR, if empty
@@ -557,14 +649,14 @@ function varargout = ImageCrop_CB(handles, opt, opt2, opt3)
 % OPT2 is a string to direct this function to different operations that
 %      apply to the grid and update the image.
 % OPT3 contains the interpolation method when OPT2 == 'FillGaps' ('cubic', 'linear' or 'sea')
+%      Or the fill value when OPT2 == 'SetConst'
 % Note: I won't make the "Drape" option active in the cropped window
 %
 % VARARGOUT -> If used will hold the result of this function instead of creating a new Fig
-%				Currently implemented in cases:
-%					Crop image (opt == hLine), 'CropaWithCoords', 'CropaGrid_pure'
+%              Currently implemented in cases:
+%                  Crop image (opt == hLine), 'CropaWithCoords', 'CropaGrid_pure', 'ROI_Mean', 'ROI_Median', 'ROI_STD'
 
 if (handles.no_file),		return,		end
-set(handles.figure1,'pointer','watch')
 first_nans = 0;		pal = [];		mask = [];	crop_pol = false;	% Defaults to croping from a rectangle
 wasROI = false;		done = false;	invert = false;
 if (nargin < 3),	opt2 = [];		end
@@ -573,6 +665,9 @@ if (nargin < 4),	opt3 = [];		end
 if ~isempty(opt)				% OPT must be a rectangle/polygon handle (the rect may serve many purposes)
 	if ((numel(opt) == 1) && ishandle(opt))
 		x = get(opt,'XData');	y = get(opt,'YData');
+	elseif (numel(opt) == 4)	% Assume that we have a [xmin xmax ymin ymax] BB
+		x = [opt(1) opt(1) opt(2) opt(2) opt(1)];
+		y = [opt(3) opt(4) opt(4) opt(3) opt(3)];
 	else
 		if (size(opt,2) > 2),	x = opt(1,1:end);	y = opt(2,1:end);	% Row vectors
 		else					x = opt(:,1)';		y = opt(:,2)';		% Were col vectors, make them row for consistency
@@ -581,8 +676,12 @@ if ~isempty(opt)				% OPT must be a rectangle/polygon handle (the rect may serve
 
 	xp(1) = min(x);		xp(2) = max(x);
 	yp(1) = min(y);		yp(2) = max(y);
-	if ~(numel(x) == 5 && (x(1) == x(end)) && (y(1) == y(end)) && ...
+	if (numel(x) == 5 && (x(1) == x(end)) && (y(1) == y(end)) && ...		% Test if we have a rectangle
 			(x(1) == x(2)) && (x(3) == x(4)) && (y(1) == y(4)) && (y(2) == y(3)) )
+		if (strcmp(opt2,'SetConst'))
+			[xp, yp] = aux_funs('adjust_rect', handles, xp, yp);	% Adjust such that only inside nodes are selected
+		end
+	else
 		if (xp(1) < handles.head(1) || xp(2) > handles.head(2) || yp(1) < handles.head(3) || yp(2) > handles.head(4))
 			% Somewhat rare case where the polygon extends to outside grid/img limits. Must crop it to them.
 			P1.x = x(:);	P1.y = y(:);	P1.hole = 0;	P2.hole = 0;
@@ -637,27 +736,27 @@ if ~isempty(opt)				% OPT must be a rectangle/polygon handle (the rect may serve
 
 	elseif (strcmp(opt2,'ImplantGrid'))				% Read and external grid and implant it in host grid
 		[Z_rect, r_c] = transplants(opt, 'grid', handles);
-		if (isempty(Z_rect)),	set(handles.figure1,'pointer','arrow'),		return,		end		% User gave up
+		if (isempty(Z_rect)),		return,		end		% User gave up
 
 	else					% Extract the sub-grid inside the rectangle/polygon
 		[X,Y,Z,head] = load_grd(handles);
-		if isempty(Z),	set(handles.figure1,'pointer','arrow'),		return,	end		% An error message was already issued
+		if isempty(Z),		return,		end		% An error message was already issued
 		[Z_rect,r_c] = cropimg(head(1:2),head(3:4),Z,rect_crop,'out_grid');
 		if (crop_pol)
 			zzz = grdutils(Z_rect,'-L');	z_min = zzz(1);		clear zzz;
 			resp = [];
 			if (strcmp(opt2,'CropaGrid_pure'))
 				resp = inputdlg({'Enter outside polygon value'},'Choose out value',[1 30],{sprintf('%.4f',z_min)});	pause(0.01)
-				if isempty(resp),	set(handles.figure1,'pointer','arrow'),		return,		end
+				if isempty(resp),		return,		end
 				resp = str2double(resp{1});
 			elseif (strcmp(opt2,'ROI_SetConst'))	% Set the polygon in-or-out to cte
-				%resp = inputdlg({'Enter new grid value'},'Replace with cte value',[1 30]);	pause(0.01)
 				resp = question({'Enter new grid value'},'Replace with cte value',[1 30],'NaN','whatever');
-				if isempty(resp),	set(handles.figure1,'pointer','arrow'),		return,		end
+				if isempty(resp),		return,		end
 				invert = resp{2};
 				resp = str2double(resp{1});
 			end
 			if (isnan(resp)),	handles.have_nans = 1;	end
+
 			mask = img_fun('roipoly_j',x_lim,y_lim,double(Z_rect),x,y);
 			if (strcmp(opt2,'CropaGrid_pure'))
 				Z_rect(~mask) = single(resp);
@@ -665,13 +764,24 @@ if ~isempty(opt)				% OPT must be a rectangle/polygon handle (the rect may serve
 				if (invert),	mask = ~mask;	end			% Mask in the outside instead
 				Z_rect(mask) = single(resp);				% Set the mask values to const
 				if (invert)
-					%handles.Z_back = Z;						% in this case we have to backup the whole grid (Grrr)
 					Z(:) = single(resp);					% Actually, we need to mask the whole outside
 				else
 					handles.Z_back = Z(r_c(1):r_c(2),r_c(3):r_c(4));	handles.r_c = r_c;		% For the Undo op
 				end
 				Z(r_c(1):r_c(2),r_c(3):r_c(4)) = Z_rect;
 				if (isnan(resp)),		handles.have_nans = 1;	first_nans = 1;		end
+			elseif (strcmp(opt2,'ROI_Mean'))
+				res = Z_rect(mask);		res(isnan(res)) = [];	res = mean(double(res));
+				if (nargout),	varargout{1} = res;		return,		end
+				msgbox(sprintf('Mean over ROI = %15g',res),'ROI-Mean'),	return	
+			elseif (strcmp(opt2,'ROI_Median'))
+				res = Z_rect(mask);		res(isnan(res)) = [];	res = median(res);
+				if (nargout),	varargout{1} = res;		return,		end
+				msgbox(sprintf('Median over ROI = %15g',res),'ROI-Median'),	return	
+			elseif (strcmp(opt2,'ROI_STD'))
+				res = Z_rect(mask);		res(isnan(res)) = [];	res = std(double(res));
+				if (nargout),	varargout{1} = res;		return,		end
+				msgbox(sprintf('STD over ROI = %15g',res),'ROI-STD'),	return	
 			elseif (strcmp(opt2,'ROI_MedianFilter'))
 				[Z,Z_rect,handles] = roi_filtering(handles, Z, head, Z_rect, r_c, mask);
 			elseif (strcmp(opt2,'ROI_SplineSmooth'))
@@ -682,7 +792,7 @@ if ~isempty(opt)				% OPT must be a rectangle/polygon handle (the rect may serve
 			elseif (strcmp(opt2,'ROI_Clip'))
 				opt2 = 'Clip';			% Now that we have the mask, make this case == to rectangle clip
 			else
-				warndlg('Unknown case in ImageCrop','Warning'),		set(handles.figure1,'pointer','arrow'),	return
+				warndlg('Unknown case in ImageCrop','Warning'),		return
 			end
 		end
 		[m,n] = size(Z_rect);
@@ -690,7 +800,7 @@ if ~isempty(opt)				% OPT must be a rectangle/polygon handle (the rect may serve
 else					% Interactive croping (either Grid or Image)
 	if (strcmp(opt2,'CropaGrid'))	% Arrive here when called by "Grid Tools -> Crop Grid"
 		[X,Y,Z,head] = load_grd(handles);
-		if isempty(Z),	set(handles.figure1,'pointer','arrow'),		return,		end
+		if isempty(Z),		return,		end
 		[p1,p2] = rubberbandbox;
 		x0 = min(p1(1),p2(1));		y0 = min(p1(2),p2(2));
 		dx = abs(p2(1)-p1(1));		dy = abs(p2(2)-p1(2));
@@ -707,7 +817,7 @@ else					% Interactive croping (either Grid or Image)
 end
 
 if (isempty(opt2) || strcmp(opt2,'CropaWithCoords'))	% Just pure Image croping
-	if (m < 2 || n < 2),	set(handles.figure1,'pointer','arrow'),	return,	end		% Image too small.
+	if (m < 2 || n < 2),	return,	end		% Image too small.
 	if (strcmp(get(handles.axes1,'Ydir'),'normal')),	I = flipdim(I,1);	end
 	if (ndims(I) == 2)
 		pal = get(handles.figure1, 'Colormap');
@@ -781,7 +891,6 @@ elseif (strncmp(opt2(1:min(length(opt2),9)),'CropaGrid',9))		% Do the operation 
 
 elseif (strcmp(opt2,'FillGaps'))
 	if ~any(isnan(Z_rect(:)))	% No gaps
-		set(handles.figure1,'pointer','arrow')
 		warndlg('Selected area does not have any voids (NaNs)','Warning'),	 return
 	end
 
@@ -816,7 +925,7 @@ elseif (strcmp(opt2,'SplineSmooth'))
 	[pp, p_guess] = spl_fun('csaps',{Y(1:min(m,10)),X(1:min(n,10))},Z_rect(1:min(m,10),1:min(n,10)));% Get a good estimate of p
 	prompt = {'Enter smoothing p paramer'};		dlg_title = 'Smoothing parameter input';
 	defAns = {sprintf('%.12f',p_guess{1})};		resp = inputdlg(prompt,dlg_title,[1 38],defAns);
-	if (isempty(resp)),		set(handles.figure1,'pointer','arrow'),		return,		end
+	if (isempty(resp)),		return,		end
 	resp = str2double(resp{1});
 	if (isnan(resp)),		set(handles.figure1,'pointer','arrow'),		return,		end
 	pp = spl_fun('csaps',{Y,X},Z_rect,resp);
@@ -832,7 +941,7 @@ elseif (strcmp(opt2,'MedianFilter'))
 elseif (strcmp(opt2,'Clip'))
 	handles.Z_back = Z(r_c(1):r_c(2),r_c(3):r_c(4));	handles.r_c = r_c;			% For the Undo op
 	[Z_rect,head] = ml_clip(handles, handles.Z_back);
-	if (isempty(Z_rect)),	set(handles.figure1,'pointer','arrow'),		return,		end
+	if (isempty(Z_rect)),		return,		end
 	handles.head(5:6) = head(5:6);
 	if (crop_pol)			% Means, if ROI_Clip
 		Z_rect(~mask) = handles.Z_back(~mask);
@@ -840,17 +949,37 @@ elseif (strcmp(opt2,'Clip'))
 	end
 
 elseif (strcmp(opt2,'SetConst'))		% Replace grid values inside rect by a cte value
-	resp = inputdlg({'Enter new grid value'},'Replace with cte value',[1 30]);	pause(0.01)
-	if (isempty(resp)),		set(handles.figure1,'pointer','arrow'),		return,		end
-	resp = str2double(resp);
-	if (~isreal(resp)),		resp = NaN;		end				% A 'i' or a 'j' in resp would have caused this
+	if (isempty(opt3))
+		resp = inputdlg({'Enter new grid value'},'Replace with cte value',[1 30]);	pause(0.01)
+		if (isempty(resp)),		return,		end
+		resp = str2double(resp);
+		if (~isreal(resp)),		resp = NaN;		end		% A 'i' or a 'j' in resp would have caused this
+	else
+		resp = opt3;
+	end
 	Z_rect = single(resp);
 	handles.Z_back = Z(r_c(1):r_c(2),r_c(3):r_c(4));	handles.r_c = r_c;			% For the Undo op
 	if (~handles.have_nans && isnan(resp))				% See if we have new NaNs
 		handles.have_nans = 1;		first_nans = 1;
-	elseif (handles.have_nans && ~isnan(resp))			% Check that old NaNs had not been erased
-		handles.have_nans = grdutils(Z_rect,'-N');
 	end
+	
+elseif (strcmp(opt2,'GetMean'))			% ...
+	Z_rect(isnan(Z_rect)) = [];		res = mean(double(Z_rect(:)));
+	if (nargout),	varargout{1} = res;		return,		end
+	msgbox(sprintf('Mean over ROI = %15g',res),'ROI-Mean')
+	done = true;
+
+elseif (strcmp(opt2,'GetMedian'))		% ...
+	Z_rect(isnan(Z_rect)) = [];		res = median(Z_rect(:));
+	if (nargout),	varargout{1} = res;		return,		end
+	msgbox(sprintf('Median over ROI = %15g',res),'ROI-Median')
+	done = true;
+	
+elseif (strcmp(opt2,'GetSTD'))			% ...
+	Z_rect(isnan(Z_rect)) = [];		res = std(double(Z_rect(:)));
+	if (nargout),	varargout{1} = res;		return,		end
+	msgbox(sprintf('STD over ROI = %15g',res),'ROI-STD')
+	done = true;
 
 elseif (strcmp(opt2,'ImplantGrid'))		% The first part of this job was done above, where we got Z_rect and r_c
 	[X,Y,Z,head] = load_grd(handles);
@@ -864,6 +993,9 @@ if (~strcmp(opt2,'MedianFilter') && ~strcmp(opt2,'ROI_SetConst'))		% Otherwise, 
 	elseif (isa(Z,'int16')),	Z(r_c(1):r_c(2),r_c(3):r_c(4)) = int16(Z_rect);
 	elseif (isa(Z,'uint16')),	Z(r_c(1):r_c(2),r_c(3):r_c(4)) = uint16(Z_rect);
 	else						Z(r_c(1):r_c(2),r_c(3):r_c(4)) = single(Z_rect);
+	end
+	if (handles.have_nans && ~isnan(Z_rect))			% Check that old NaNs had not been erased
+		handles.have_nans = grdutils(Z,'-N');
 	end
 end
 
@@ -882,9 +1014,6 @@ if ~isempty(opt2)		% Here we have to update the image in the processed region
 	if (handles.Illumin_type >= 1 && handles.Illumin_type <= 4)
 		illumComm = getappdata(handles.figure1,'illumComm');
 		z_int = ind2rgb8(z_int,get(handles.figure1,'Colormap'));	% z_int is now RGB
-		%X = linspace( head(1) + (r_c(3)-1)*head(8), head(1) + (r_c(4)-1)*head(8), r_c(4) - r_c(3) + 1 );
-		%Y = linspace( head(3) + (r_c(1)-1)*head(9), head(3) + (r_c(2)-1)*head(9), r_c(2) - r_c(1) + 1 );
-		%head_tmp = [X(1) X(end) Y(1) Y(end) head(5:9)];
 		if (handles.Illumin_type == 1)
 			opt_N = sprintf('-Nt1/%.6f/%.6f',handles.grad_sigma, handles.grad_offset);
 			if (handles.geog),	R = grdgradient_m(Z_rect,head,'-M',illumComm,opt_N);
@@ -896,7 +1025,7 @@ if ~isempty(opt2)		% Here we have to update the image in the processed region
 		z_int = shading_mat(z_int,R,'no_scale');	% and now it is illuminated
 	elseif (handles.Illumin_type ~= 0)
 		warndlg('Sorry, this operation is not allowed with this shading illumination type','Warning')
-		set(handles.figure1,'pointer','arrow'),		return
+		return
 	end
 	if (isempty(img)),		img = get(handles.hImg,'CData');	end		% If img was not recomputed, get from screen 
 	handles.img_back = img(r_c(1):r_c(2),r_c(3):r_c(4),1:end);			% For the undo op
@@ -913,7 +1042,7 @@ if ~isempty(opt2)		% Here we have to update the image in the processed region
 end
 
 % UNDO that works only with these cases
-if (~invert && any(strcmp(opt2,{'MedianFilter' 'ROI_MedianFilter' 'SetConst' 'ROI_SetConst' 'SplineSmooth'})))
+if (~invert && (numel(opt) == 1) && any(strcmp(opt2,{'MedianFilter' 'ROI_MedianFilter' 'SetConst' 'ROI_SetConst' 'SplineSmooth'})))
 	cmenuHand = get(opt,'UIContextMenu');
 	uimenu(cmenuHand, 'Label', 'Undo', 'Separator','on', 'Callback', {@do_undo,handles.figure1,opt,cmenuHand});
 end
@@ -1077,20 +1206,21 @@ function hand = FileNewBgFrame_CB(handles, region, imSize, figTitle)
 	if (nargin == 1)
 		region = bg_region;		% region contains [x_min x_max y_min y_max is_geog toDef]
 		if isempty(region),		return,		end		% User gave up
-		if (region(5)),			region(5) = aux_funs('guessGeog',region(1:4));		end	% Refine (can be 2)
+		if (region(5)),			region(5) = aux_funs('guessGeog',region(1:4));		end		% Refine (can be 2)
 		handles.geog = region(5) + 10;			% The +10 instructs show_image to accept this val(and subtracts 10)
 	end
 	if (nargin <= 2),		imSize = [];		figTitle = 'Mirone Base Map';		end
 	if (nargin == 3 && isa(imSize,'char')),		figTitle = imSize;	imSize = [];	end
 	if (numel(region) == 6 && region(6))		% Add a new uimenu to call the write def symbol code
 		aux_funs('addUI', handles)
+		handles.is_defRegion = true;
 	end
 
 	if ( any(isnan(region(1:4))) )
 		errordlg('The requested region limts is undeterminated (it has NaNs)','Error'),		return
 	end
 	X = region(1:2);	Y = region(3:4);		handles.head = [X Y 0 255 0];
-	if ( isempty(imSize) || numel(imSize) ~= 2 )
+	if (isempty(imSize) || numel(imSize) ~= 2)
 		scrsz = get(0,'ScreenSize');		% Get screen size
 		aspect = diff(Y) / diff(X);
 		nx = round(scrsz(3)*.75);	ny = round(nx * aspect);
@@ -1105,8 +1235,12 @@ function hand = FileNewBgFrame_CB(handles, region, imSize, figTitle)
 	pal = repmat(handles.bg_color,256,1);	set(handles.figure1,'Colormap',pal);
 	handles.image_type = 20;
 	handles = show_image(handles,figTitle,X,Y,Z,0,'xy',0,imSize);
+	if (handles.is_defRegion)			% def region doesn't use these
+		set([handles.Geography handles.Plates handles.MagGrav ...
+			handles.Seismology handles.Projections], 'Vis', 'off')
+	end
 	drawnow			% Otherwise, the damn Java makes a black window until all posterior elements are plotted
-	aux_funs('isProj',handles);			% Check about coordinates type
+	aux_funs('isProj',handles);				% Check about coordinates type
 	if (nargout),	hand = handles;		end
 
 % --------------------------------------------------------------------
@@ -1169,8 +1303,6 @@ function File_img2GMT_RGBgrids_CB(handles, opt1, opt2)
 	else		% It means the output file name was transmited in input
 		[PathName,FileName] = fileparts(opt2);		PathName = [PathName filesep];
 	end
-
-	set(handles.figure1,'pointer','watch')
 
 	[PATH,FNAME,EXT] = fileparts([PathName FileName]);
 	if isempty(EXT),	EXT = '.grd';		end	
@@ -1392,7 +1524,6 @@ function FileOpenNewImage_CB(handles, opt)
 	end
 	handles.fileName = [PathName FileName];
 
-	set(handles.figure1,'pointer','watch')
 	head_fw = [];			% Used when check for a .*fw registering world file
 	[PATH,FNAME,EXT] = fileparts(handles.fileName);
 	if (strcmpi(EXT,'.shade'))
@@ -1415,7 +1546,25 @@ function FileOpenNewImage_CB(handles, opt)
 		return		% We are done here. Bye Bye.
 	else
 		info_img = imfinfo(handles.fileName);		% This and att are repeated but not 100%
-		[I, att] = gdalread(handles.fileName);
+		if (strcmpi(EXT,'.ppm') || strcmpi(EXT,'.pnm') || strcmpi(EXT,'.pgm')  || strcmpi(EXT,'.pbm') || ...
+				strcmpi(EXT,'.pcx') || strcmpi(EXT,'.ras'))		% GDAL screws on these
+			try			I = imread(handles.fileName);
+			catch,		errordlg(lasterr,'Error'),		return	% It realy may happen
+			end
+			att.RasterCount = size(I, 3);
+		else
+			% Try with GDAL and if it fails try again with imread
+			try
+				[I, att] = gdalread(handles.fileName);
+			catch
+				try
+					I = imread(handles.fileName);
+					att.RasterCount = size(I, 3);
+				catch
+					errordlg(lasterr, 'Error')
+				end
+			end
+		end
 		try		handles.transparency = info_img.Transparency;	end
 		if (att.RasterCount > 4)
 			% Animatted images.	BUT WORK ONLY WITH INDEXED IMAGES, OTHERWISE ... DON'T KNOW WHAT ERROR
@@ -1686,7 +1835,7 @@ function erro = FileOpenGeoTIFF_CB(handles, tipo, opt)
 
 	if (~strcmp(att.Band(1).DataType,'Byte'))			% JPK2, for example, may contain DTMs
 		tipo = 'guess';			% Probably a temp step during the adaptation period after the OceanColor had f. changed format 
-		if (strcmp(att.DriverShortName, 'netCDF')),		tipo = 'ncHDF';		end
+		if (strcmp(att.DriverShortName, 'netCDF') || strcmp(att.DriverShortName, 'HDF5Image')),		tipo = 'ncHDF';		end
 		loadGRID(handles,handles.fileName, tipo, att);		return
 	end
 
@@ -1801,6 +1950,7 @@ function loadGRID(handles, fullname, tipo, opt)
 	if (nargin == 3),	opt = ' ';	end
 	[Z, X, Y, srsWKT, handles, att] = read_grid(handles, fullname, tipo, opt);
 	if (isempty(Z)),	return,		end
+	if (~isempty(srsWKT)),	handles.is_projected = true;	end		% WEAK TEST
 	if (~isempty(fullname))
 		pato = fileparts(fullname);
 		ind1 = strfind(fullname, ':"');		% Check if fulname is a subdataset name as 'NETCDF:"v:\tsu\lagos.nc":bathymetry'
@@ -1819,9 +1969,12 @@ function loadGRID(handles, fullname, tipo, opt)
 	end																% from appdata. That is donne in show_image()
 
 	aux_funs('StoreZ',handles,X,Y,Z)				% If grid size is not to big we'll store it
-	aux_funs('colormap_bg',handles,Z,jet(256));
+	aux_funs('colormap_bg',handles,Z,jet(256));		% Insert the background color in the palette for arrays that have NaNs
 	if (~isa(Z, 'uint8'))
 		zz = scaleto8(Z);
+		if (isa(Z,'int8') && handles.head(6) < 255)	% Put in a colormap that uses all data range 
+			set(handles.figure1,'Colormap',jet(handles.head(6)+1))
+		end
 	else
 		zz = Z;
 	end
@@ -1922,7 +2075,35 @@ function handles = show_image(handles, fname, X, Y, I, validGrid, axis_t, adjust
 	elseif (size(I,3) == 2),	I(:,:,2) = [];			% (could be otherwise when input from multiband)
 	end
 
+	% The following applies only to the case where we have a .def region to create GMT custom symbols
+	% The first time it passes here we have a square image and the next code does actually nothing.
+	% In the eventuality of loading an image we will force it to have limits [-0.5 0.5] and no deformation.
+	% In this case (load an image) we don't call resizetrue() because it changes sizes in a way that we can't allow.
+	do_resize = true;
+	if (handles.is_defRegion)
+		if (size(I,1) > size(I,2))		% Image is taller
+			X = [-((size(I,2) / size(I,1)) / 2) ((size(I,2) / size(I,1)) / 2)];		Y = [-0.5 0.5];
+		else
+			Y = [-((size(I,1) / size(I,2)) / 2) ((size(I,1) / size(I,2)) / 2)];		X = [-0.5 0.5];
+		end
+		if (handles.image_type ~= 20)
+			I = flipdim(I,1);		% Need to because we have YDir = Normal (probably need to test for referenced imgs)
+			alpha = flipdim(alpha,1);
+			do_resize = false;	% When other than a back-ground image we don't want to call resizetrue
+		end
+		handles.head(1:4) = [X Y];
+		handles.head(8) = diff(handles.head(1:2)) / (size(I,2) - ~handles.head(7));
+		handles.head(9) = diff(handles.head(3:4)) / (size(I,1) - ~handles.head(7));
+	end
+
 	handles.hImg = image(X,Y,I,'Parent',handles.axes1,'AlphaData',alpha);
+	if (handles.is_defRegion && handles.image_type ~= 20)	% Need to reset Lims to [-0.5 0.5] in order to center the image
+		set(handles.axes1, 'XLim', [-0.5 0.5], 'YLim', [-0.5 0.5])
+	end
+	if (handles.is_defRegion)
+		set(handles.axes1, 'YDir', 'Normal')	% It was bloody set to reverse by the previous image() call.
+	end
+
 	zoom_state(handles,'off_yes')
 	if (islogical(I))
 		set(handles.hImg,'CDataMapping','scaled');		set(handles.figure1,'ColorMap',gray(16));
@@ -1934,11 +2115,13 @@ function handles = show_image(handles, fname, X, Y, I, validGrid, axis_t, adjust
 	end
 	if (handles.image_type == 2),	handles.geog = 0;	end
 
-	magRatio = resizetrue(handles,imSize,axis_t);				% -------> IMAGE IS VISIBLE HERE. <-------
+	if (do_resize)		% If FALSE image is visible already and we don't want to use resizetrue
+		magRatio = resizetrue(handles,imSize,axis_t);			% -------> IMAGE IS VISIBLE HERE. <-------
+	end
 
 	handles.origFig = I;			handles.no_file = 0;
 	handles.Illumin_type = 0;		handles.validGrid = validGrid;	% Signal that gmt grid opps are allowed
-	if (~isempty(fname))
+	if (~isempty(fname) && ~handles.is_defRegion)
 		set(handles.figure1,'Name',[fname sprintf('  @  %d%%',magRatio)])
 	end
 	setappdata(handles.axes1,'ThisImageLims',[get(handles.axes1,'XLim') get(handles.axes1,'YLim')])
@@ -1962,6 +2145,7 @@ function handles = show_image(handles, fname, X, Y, I, validGrid, axis_t, adjust
 	set([handles.Geography handles.MagGrav handles.Seismology handles.Plates],'Vis', st{(handles.image_type ~= 2) + 1})
 	set(handles.noAxes,'Vis', st{~strcmp(axis_t,'off') + 1})
 	set(handles.toGE,'Enable', st{min(handles.geog,1) + 1})
+ 	if (handles.is_projected),	set(handles.toGE,'Enable', 'on'),	end		% Regardless of the above line
 	set(findobj(handles.Projections,'-depth',1,'Label','GMT project'), 'Vis', st{validGrid + 1})
 	if (handles.geog),		set(handles.DrawGeogCirc,'Tooltip','Draw geographical circle')
 	else					set(handles.DrawGeogCirc,'Tooltip','Draw circle')
@@ -1979,7 +2163,7 @@ function handles = show_image(handles, fname, X, Y, I, validGrid, axis_t, adjust
 	set(handles.GCPmemory,'Visible',GCPmemoryVis)
 
 	BL = getappdata(handles.figure1,'BandList');		% We must tell between fakes and true 'BandList'
-	if ( isempty(BL) || ((numel(BL{end}) == 1) && strcmp(BL{end},'Mirone')) )
+	if (isempty(BL) || ((numel(BL{end}) == 1) && strcmp(BL{end},'Mirone')))
 		if (ndims(I) == 3)		% Some cheating to allow selecting individual bands of a RGB image
 			tmp1 = cell(4,2);	tmp2 = cell(4,2);		tmp1{1,1} = 'RGB';		tmp1{1,2} = 'RGB';
 			for (i = 1:3)
@@ -2129,7 +2313,6 @@ function Reft = ImageIllum(luz, handles, opt)
 
 	[X,Y,Z,head] = load_grd(handles);	% If needed, load gmt grid again
 	if isempty(Z),	return,		end		% An error message was already issued
-	set(handles.figure1,'pointer','watch'),		pause(0.01)
 
 	OPT_a = '-a1';
 	if (sum(handles.bg_color) < 0.01),	OPT_a = ' ';	end		% Near black bg color has a different treatment
@@ -2186,7 +2369,6 @@ function Reft = ImageIllum(luz, handles, opt)
 
 	if (nargout)	% Send the reflectance back to caller and stop here
 		Reft = R;	guidata(handles.figure1, handles);
-		set(handles.figure1,'pointer','arrow')
 		return
 	end
 
@@ -2217,7 +2399,7 @@ function Reft = ImageIllum(luz, handles, opt)
 	
 	set(handles.hImg,'CData',img),		refresh(handles.figure1)		% Crazzy beast does not always update the image !!!!!!!!!
 	aux_funs('togCheck',handles.ImModRGB, [handles.ImMod8cor handles.ImMod8gray handles.ImModBW])
-	guidata(handles.figure1, handles);			set(handles.figure1,'pointer','arrow')
+	guidata(handles.figure1, handles);
 
 % --------------------------------------------------------------------
 function ImageIllumFalseColor(luz, handles)
@@ -2733,7 +2915,7 @@ function DrawEulerPoleCircle_CB(handles)
 % --------------------------------------------------------------------
 function DrawGeogCircle_CB(handles, opt)
 	if (handles.no_file),	return,		end
-	if ( strcmp(get(handles.figure1,'Pointer'), 'crosshair') ),		return,		end		% Already drawing something else
+	if (strcmp(get(handles.figure1,'Pointer'), 'crosshair')),	return,		end		% Already drawing something else
 	if (nargin == 1),	opt = [];	end
 	zoom_state(handles,'maybe_off');
 	if (handles.geog && strcmp(opt,'gcirc'))
@@ -3043,11 +3225,12 @@ function DrawImportShape_CB(handles, fname)
 			reco = aux_funs('rectangle_and', imgLims, [s(i).BoundingBox(1,1:2) s(i).BoundingBox(2,1:2)]);
 			if (~isempty(reco))			% It means the polyg BB is at least partially inside
 				if (do_project),	ogrproj(s(i).X, s(i).Y, projStruc);		end		% Project into basemap coords
-				h(i) = line('Xdata',single(s(i).X),'Ydata',single(s(i).Y),'Parent',handles.axes1,'Color',lc,'LineWidth',lt,'Tag','SHPpolyline',lsty{1:end});
+				s(i).X = single(s(i).X);		s(i).Y = single(s(i).Y);
+				h(i) = line('Xdata',s(i).X,'Ydata', s(i).Y, 'Parent',handles.axes1,'Color',lc,'LineWidth',lt,'Tag','SHPpolyline',lsty{1:end});
 			end
 			if (is3D),		set(h(i),'UserData', single(s(i).Z(:)')),	end
 		end
-		h((h == 0)) = [];				% Those were jumped because thay were completely outside map limits
+		h((h == 0)) = [];				% Those were jumped because they were completely outside map limits
 		if (isempty(h)),	warndlg('No data inside display region','Warning'),		return,		end
 		if (strncmp(t,'Point',5))
 			setappdata(h(1), 'isPoint', true)	% Used in draw_funs/setSHPuictx to NOT set the "Join lines" uictx
@@ -3161,7 +3344,11 @@ function DrawContours_CB(handles, opt)
 	elseif (isa(opt,'char'))		% Call the interface contouring GUI
 		h_which_cont = findobj(handles.figure1,'Type','line','Tag','contour');		% See if contours were mouse deleted
 		if (~isempty(h_which_cont))
-			handles.which_cont = unique(cell2mat(get(h_which_cont,'Userdata')));
+			if (numel(h_which_cont) == 1)
+				handles.which_cont = get(h_which_cont,'Userdata');
+			else
+				handles.which_cont = unique(cell2mat(get(h_which_cont,'Userdata')));
+			end
 		else
 			handles.which_cont = [];
 		end
@@ -3232,6 +3419,8 @@ function FileOpenSession_CB(handles, fname)
 	else
 		FileName = fname;	PathName = [];
 	end
+	
+	figName = [PathName FileName];		% Used at the end of this function to set up Fig's name (but can change in the middle)
 
 	s = load([PathName FileName]);
 	if (isfield(s,'markers') && isfield(s, 'FitLine'))	% Ah, this is ecran session. Send it there and stop here
@@ -3248,7 +3437,6 @@ function FileOpenSession_CB(handles, fname)
 	if (~isfield(s,'grd_name') || strcmpi(s.grd_name(max(numel(s.grd_name)-3,1):end),'.mat'))	% Otherwise infinite loop below
 		s.grd_name = [];
 	end
-	set(handles.figure1,'pointer','watch')
 
 	tala = (~isempty(s.grd_name) && exist(s.grd_name,'file') == 2);		flagIllum = true;	% Illuminate (if it is the case)
 	if (~tala && ~isempty(s.grd_name))						% Give user a 2nd chance to tell where the grid is
@@ -3265,31 +3453,44 @@ function FileOpenSession_CB(handles, fname)
 			s.grd_name = [];				% In this case we need this as empty
 		end
 	end
+
+	is_defRegion = false;
+	try		is_defRegion = s.is_defRegion;		end
 	if (isempty(s.grd_name) || tala == 0)
-		scrsz = get(0,'ScreenSize');		% Get screen size
-		dx = s.map_limits(2) - s.map_limits(1);
-		dy = s.map_limits(4) - s.map_limits(3);
-		aspect = dy / dx;
-		nx = round(scrsz(3)*.75);		ny = round(nx * aspect);
-		if (ny > scrsz(4) - 30)
-			ny = scrsz(4) - 30;			nx = round(ny / aspect);
-		end
-		Z = repmat(uint8(255),ny,nx);			% Create a white image
-		X = [s.map_limits(1) s.map_limits(2)];	Y = [s.map_limits(3) s.map_limits(4)];
-		x_inc = diff(X) / nx;					y_inc = diff(Y) / ny;
-		dx2 = x_inc / 2;						dy2 = y_inc / 2;
-		X = X + [dx2 -dx2];						Y = Y + [dy2 -dy2];		% Make it such that the pix-reg info = region
-		handles.head = [X Y 0 255 0 x_inc y_inc];
-		handles.image_type = 20;
-		set(handles.figure1,'Colormap', ones( size(get(handles.figure1,'Colormap'),1), 3))
-		handles = show_image(handles,'Mirone Base Map',X,Y,Z,0,'xy',1);
-		if ( isequal(s.map_limits, [-0.5 0.5 -0.5 0.5]) )				% Special region to draw GMT symbols
-			aux_funs('addUI', handles)
+		if (is_defRegion)		% In this mode we activate the GMT custom symbols drawing tool
+			handles = FileNewBgFrame_CB(handles, [-0.5 0.5 -0.5 0.5 0 1], [], 'Whatever');
+			handles = guidata(handles.figure1);		% Get the updated version
+			handles.geog = 0;		% To play safe
+			figName = 'Draw GMT Custom symbol';		% Title bar name for this case
+		else
+			scrsz = get(0,'ScreenSize');		% Get screen size
+			dx = s.map_limits(2) - s.map_limits(1);
+			dy = s.map_limits(4) - s.map_limits(3);
+			aspect = dy / dx;
+			nx = round(scrsz(3)*.75);		ny = round(nx * aspect);
+			if (ny > scrsz(4) - 30)
+				ny = scrsz(4) - 30;			nx = round(ny / aspect);
+			end
+			Z = repmat(uint8(255),ny,nx);			% Create a white image
+			X = [s.map_limits(1) s.map_limits(2)];	Y = [s.map_limits(3) s.map_limits(4)];
+			x_inc = diff(X) / nx;					y_inc = diff(Y) / ny;
+			dx2 = x_inc / 2;						dy2 = y_inc / 2;
+			X = X + [dx2 -dx2];						Y = Y + [dy2 -dy2];		% Make it such that the pix-reg info = region
+			handles.head = [X Y 0 255 0 x_inc y_inc];
+			handles.image_type = 20;
+			set(handles.figure1,'Colormap', ones( size(get(handles.figure1,'Colormap'),1), 3))
+			handles = show_image(handles,'Mirone Base Map',X,Y,Z,0,'xy',1);
 		end
 	else
+		if (is_defRegion)		% In this mode we activate the GMT custom symbols drawing tool
+			handles = FileNewBgFrame_CB(handles, [-0.5 0.5 -0.5 0.5 0 1], [], 'Whatever');
+			handles.geog = 0;		% To play safe
+			figName = 'Draw GMT Custom symbol';		% Title bar name for this case
+		end
+
 		drv = aux_funs('findFileType', s.grd_name);
-		erro = gateLoadFile(handles, drv, s.grd_name);		% It loads the file (or dies)
-		if (erro),		set(handles.figure1,'pointer','arrow'),		return,		end		% Error message already issued
+		erro = gateLoadFile(handles, drv, s.grd_name);	% Load and displays the file (or dies)
+		if (erro),		return,		end					% Error message already issued
 		set(handles.figure1,'Colormap',s.img_pal);
 		handles = guidata(handles.figure1);				% Get the updated version
 		handles.origCmap = s.img_pal;
@@ -3301,7 +3502,7 @@ function FileOpenSession_CB(handles, fname)
 	end
 	try			s.illumType;
 	catch
-		if ( numel(strfind(s.illumComm,'/')) == 5 ),		s.illumType = 4;		end		% Lambertian
+		if (numel(strfind(s.illumComm,'/')) == 5),		s.illumType = 4;	end		% Lambertian
 		s.illumType = 1;		% Test only one case where this might be otherwise
 	end
 
@@ -3482,10 +3683,11 @@ function FileOpenSession_CB(handles, fname)
 			datasets_funs('Rivers', handles, s.riversUD(2), s.riversUD(1));
 		end
 	end
+	handles.last_dir = fileparts(figName);		% We want it to point to where te .mat file came from.
 	guidata(handles.figure1, handles);
-	handles.fileName = [PathName FileName];		% TRICK. To be used only in the next call to recentFiles()
+	handles.fileName = figName;					% TRICK. To be used only in the next call to recentFiles()
 	handles = recentFiles(handles);				% Insert session into "Recent Files" & NOT NOT NOT save handles
-	set(handles.figure1,'pointer','arrow','Name',[PathName FileName])
+	set(handles.figure1, 'Name',figName)
 	if (tala == 0 && ~isempty(s.grd_name))		% Only now to not mess with the "current figure"
 		warndlg(['The file ' s.grd_name ' doesn''t exists on the directory it was when the session was saved. Put it back there.'],'Warning')
 	end
@@ -3500,6 +3702,7 @@ function FileSaveSession_CB(handles)
 
 	set(handles.figure1,'pointer','watch')
 	grd_name = handles.fileName;	% Use this variable name for compatibility reason
+	if (handles.image_type == 20),	grd_name = [];	end		% The idea is if we have only vector data it may have been edited
 	img_pal = get(handles.figure1,'Colormap');		illumComm = [];		illumType = handles.Illumin_type;
 	map_limits = getappdata(handles.axes1,'ThisImageLims');
 	if (handles.validGrid && handles.Illumin_type >= 1 && handles.Illumin_type <= 4)
@@ -3712,19 +3915,20 @@ function FileSaveSession_CB(handles)
 	end
 
 	IamTINTOL = ~isempty(getappdata(handles.figure1, 'L_UsedByGUIData'));
+	is_defRegion = handles.is_defRegion;
 
 	save(fname,'grd_name','img_pal', 'havePline','Pline', 'haveMBtrack', 'MBtrack','MBbar', ...
 		'haveText','Texto', 'haveSymbol','Symbol', 'haveCircleGeo','CircleGeo', 'haveCircleCart', ...
 		'havePlineAsPoints','PlineAsPoints','CircleCart', 'map_limits', 'havePatches', 'Patches', ...
 		'haveCoasts', 'coastUD','havePolitic', 'politicUD','haveRivers', 'riversUD', 'illumComm', ...
-		'illumType', 'MecaMag5', 'IamTINTOL', '-v6')
+		'illumType', 'MecaMag5', 'IamTINTOL', 'is_defRegion', '-v6')
 	set(handles.figure1,'pointer','arrow')
 
 	% Trick to shut up stupid MLint warnings
 	if (0 && grd_name && img_pal && map_limits && illumComm && haveMBtrack && havePline && haveText && haveSymbol), end
 	if (0 && haveCircleCart && havePlineAsPoints && haveCoasts && illumComm && haveMBtrack && illumType), end
 	if (0 && havePolitic && haveRivers && MBtrack && MBbar && Symbol && CircleGeo && MecaMag5 && CircleCart), end
-	if (0 && PlineAsPoints && coastUD && politicUD && riversUD && haveCircleGeo && IamTINTOL), end
+	if (0 && PlineAsPoints && coastUD && politicUD && riversUD && haveCircleGeo && IamTINTOL && is_defRegion), end
 
 % --------------------------------------------------------------------
 function ImageMapLimits_CB(handles, opt)
@@ -4315,7 +4519,7 @@ function FileSaveFleder_CB(handles, opt)
 	if (fname(end) == 'e'),		comm = [' -scene ' fname ' &'];		% A SCENE file
 	else						comm = [' -data ' fname ' &'];		% A SD file
 	end
-	if (strncmp(opt,'run',3))		% Run the viewer and remove the tmp .sd file
+	if (strncmp(opt,'run',3))		% Run the viewer
 		if (handles.whichFleder),	fcomm = ['iview4d' comm];		% Free viewer
 		else						fcomm = ['fledermaus' comm];	% The real thing
 		end
@@ -4345,8 +4549,8 @@ function ImageEdgeDetect_CB(handles, opt)
 %		-> 'apalpa'  Get the polygons that sorround good data (limit NaN-noNaN)
 %		-> 'Vec'
 %		-> 'Lines'
-%		-> 'Circles' Find circles in image (uses OpenCV a fails a lot)
-%		-> 'Rect'    Find rectangles in image (uses OpenCV a fails a lot)
+%		-> 'Circles' Find circles in image (uses OpenCV and fails a lot)
+%		-> 'Rect'    Find rectangles in image (uses OpenCV and fails a lot)
 %		-> 'Ras'
 %		-> 'SUS'
 if (handles.no_file),		return,		end
@@ -4436,12 +4640,12 @@ if (strcmp(opt,'Vec') || strcmp(opt,'Lines') || strcmp(opt,'Rect'))		% Convert t
 	h_edge = zeros(length(B),1);	i = 1;
 	for k = 1:length(B)
 		bnd = B{k};
-		if (strcmp(opt,'apalpa') &&  mask(bnd(1,1),bnd(1,2)) && ...	% Drastic but no better solution to avoid NaNs-in-corners cases
+		if (strcmp(opt,'apalpa') && mask(bnd(1,1),bnd(1,2)) && ...	% Drastic but no better solution to avoid NaNs-in-corners cases
 				(min(bnd(:,1)) == 1 || max(bnd(:,1)) == dims(2) || min(bnd(:,1)) == 1 || max(bnd(:,1)) == dims(1)) )
 			continue
 		end
 		if (size(bnd,1) > 4)
-			bnd = cvlib_mex('dp', bnd, 0.4);		% Simplify line
+			bnd = cvlib_mex('dp', bnd, 0.2);		% Simplify line but only on straight lines
 		end
 		% Some times we get a BB rectangle, test and ignore it if it's the case
 		if (size(bnd,1) == 5 && min(bnd(:,1)) == 1 && min(bnd(:,2)) == 1 && ...
@@ -4749,6 +4953,19 @@ function TransferB_CB(handles, opt, opt2)
 		end
 		fprintf(fid, 'echo Ja ta. Finished update\n');
 		fclose(fid);
+
+	elseif (strcmp(opt,'DayNight'))
+% 		[sun_params, lon, lat] = solar_params(-7.92, 37.073);
+% 		h = patch('XData',lon, 'YData',lat,'FaceColor','none','Parent',handles.axes1,'Tag','DayNight');
+% 		draw_funs(h,'line_uicontext')
+% 		img = gdalread([handles.path_data 'etopo4.jpg'], '-U');
+% 		tmp.X = [-180 180];		tmp.Y = [-90 90];
+% 		x_inc = diff(tmp.X) / (size(img,2)-1);
+% 		y_inc = diff(tmp.Y) / (size(img,1)-1);
+% 		tmp.head = [tmp.X tmp.Y 0 255 0 x_inc y_inc];
+% 		h = mirone(img, tmp);
+% 		handles.geog = 1;		handles.image_type = 3;		handles.head = out.head;
+% 		show_image(handles,out.imgName,out.X,out.Y,out.img,0,'xy',1,1);
 
 %  	elseif (strncmp(opt,'hydro',5))					% ...
 % 		if (strcmp(opt(7:end), 'flow'))

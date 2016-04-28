@@ -17,7 +17,7 @@ function uistate = uisuspend_j(fig, setdefaults)
 
 %   Coffeeright J. Luis 2004-2012
 
-% $Id$
+% $Id: uisuspend_j.m 3624 2012-07-22 20:17:57Z j $
 
 	if (nargin < 2)
 		setdefaults = true;

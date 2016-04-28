@@ -154,7 +154,6 @@ double	z_mean;
 double	z_scale = 1.0;		/* Root mean square range of z after removing planar trend  */
 double	r_z_scale = 1.0;	/* reciprocal of z_scale  */
 double	plane_c0, plane_c1, plane_c2;	/* Coefficients of best fitting plane to data  */
-double small;			/* Let data point coincide with node if distance < small */
 float *u;			/* Pointer to grid array */
 float *v2;			/* Pointer to v.2.0 grid array */
 char *iu;			/* Pointer to grid info array */
@@ -833,7 +832,6 @@ void find_nearest_point(void) {
 	float z_at_node;
 	
 	last_index = -1;
-	small = 0.05 * ((grid_xinc < grid_yinc) ? grid_xinc : grid_yinc);
 
 	for (i = 0; i < nx; i += grid)	/* Reset grid info */
 		for (j = 0; j < ny; j += grid)
@@ -850,7 +848,7 @@ void find_nearest_point(void) {
 	 		y0 = y_min + block_j*grid_yinc;
 	 		dx = (data[k].x - x0)*r_grid_xinc;
 	 		dy = (data[k].y - y0)*r_grid_yinc;
-	 		if (fabs(dx) < small && fabs(dy) < small) {	/* Close enough to assign value to node */
+	 		if (fabs(dx) < 0.05 && fabs(dy) < 0.05) {	/* Close enough to assign value to node */
 	 			iu[iu_index] = 5;
 	 			/* v3.3.4: NEW CODE
 	 			 * Since point is basically moved from (dx, dy) to (0,0) we must adjust for

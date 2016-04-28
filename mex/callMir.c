@@ -1,7 +1,7 @@
 /*--------------------------------------------------------------------
- *	$Id$
+ *	$Id: callMir.c 7802 2016-02-22 15:38:44Z j $
  *
- *	Copyright (c) 2004-2012 by J. Luis
+ *	Copyright (c) 2004-2016 by J. Luis
  *
  * 	This program is part of Mirone and is free software; you can redistribute
  * 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -36,15 +36,14 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#define CNULL		((char *)NULL)
 #ifdef _WIN32	/* Start of Windows setup */
 #define R_OK 04
 #endif		/* End of Windows setup */
 
 int main(int argc, char **argv) {
 
-	char *path, *pato, *papato, *patoUD, *cd; 
-	int	status, size_cd = 256;
+	char *path, *pato, *papato = NULL, *patoUD, *cd; 
+	int   status, size_cd = 256;
 
 	path = getenv ("PATH");
 
@@ -98,8 +97,8 @@ int main(int argc, char **argv) {
 		strcpy (papato, "mirone.exe ");
 		strcat (papato, argv[1]);
 		system (papato);
-		free((void *)papato);
 	}
+	if (papato) free(papato);
 
-	return(1);
+	return 1;
 }

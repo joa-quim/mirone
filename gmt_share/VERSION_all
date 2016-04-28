@@ -1,6 +1,0 @@
-# The version in this file is matched with the hardcoded GMT version at
-# runtime to check if this directory contains the correct run-time support
-# files.  In case of a version mismatch the directory will silently be
-# ignored.
-#
-5.2.0_r14950

@@ -49,7 +49,7 @@ function out = structuring_elem(x,y,p, varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id$
+% $Id: structuring_elem.m 4279 2014-01-15 20:00:09Z j $
 
 	if  (nargin <= 2)
 		H.x = 7;	H.y = 7;	H.p = 15;

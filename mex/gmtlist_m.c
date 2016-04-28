@@ -1,5 +1,5 @@
 /*--------------------------------------------------------------------
- *	$Id$
+ *	$Id: gmtlist_m.c 4761 2015-07-28 23:54:46Z j $
  *
  *    Copyright (c) 1991-2001 by P. Wessel and W. H. F. Smith
  *    See README file for copying and redistribution conditions.

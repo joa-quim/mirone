@@ -16,7 +16,7 @@ function varargout = poly2mask_fig(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id$
+% $Id: poly2mask_fig.m 4210 2013-10-16 15:06:54Z j $
 
 	if (numel(varargin) < 2)
 		errordlg('POLY2MASK: wrong number of input arguments.','Error')

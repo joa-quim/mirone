@@ -32,7 +32,7 @@ function out = gmtedit(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id$
+% $Id: gmtedit.m 4760 2015-07-28 23:51:57Z j $
 
 	f_name = '';
 	got_inFile = 0;

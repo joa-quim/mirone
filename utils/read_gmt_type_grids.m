@@ -24,7 +24,7 @@ function [handles, X, Y, Z, head, misc] = read_gmt_type_grids(handles,fullname,o
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id$
+% $Id: read_gmt_type_grids.m 4728 2015-07-22 15:14:51Z j $
 
     infoOnly = false;
     if (nargin == 3),   infoOnly = true;    end

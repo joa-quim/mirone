@@ -36,7 +36,7 @@ function aquaPlugin(handles, auto)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id$
+% $Id: aquaPlugin.m 7868 2016-04-12 15:15:16Z j $
 
 	if (isempty(handles.fname))
 		errordlg('Fast trigger, you probably killed my previous encarnation. Now you have to start again. Bye.','Error')
@@ -119,7 +119,7 @@ function aquaPlugin(handles, auto)
 			fname3 = [];	%'C:\a1\pathfinder\qual7_85_07_Interp200_Q6.nc';
 			%splina = true;
 			splina = [12 30];		% Fill missing monthly data by a spline interpolation taken over two years (out limits set to NaN)
-			tipoStat = 0;			% 0, Compute MEAN, 1 compute MINimum and 2 compute MAXimum of the ANO period
+			tipoStat = 0;			% 0, Compute MEAN, 1 -> Median; 2 -> MINimum; 3 -> MAXimum; 4 -> STD of the ANO period
 			% If not empty, it must contain the name of a Lon,Lat file with locations where to output time series
 			chkPts_file = [];	%chkPts_file = 'C:\a1\pathfinder\chkPts.dat';
 			if (internal_master)
@@ -881,8 +881,13 @@ function calc_yearMean(handles, months, fname2, flag, nCells, fname3, splina, ti
 	in_break = false;					% Inner loop cancel option
 	last_processed_month = 0;		already_processed = 0;
 
-	if (do_climatologies),	n_outer_loop = 1;
-	else					n_outer_loop = n_anos;
+	if (do_climatologies)
+		multi_climat = false;		n_outer_loop = 1;
+		if (months(1) > 100)			% Compute a climat for each element in 'months'
+			multi_climat = true;	n_outer_loop = numel(months);
+		end
+	else
+		n_outer_loop = n_anos;
 	end
 
 	for (m = 1:n_outer_loop)
@@ -900,7 +905,11 @@ function calc_yearMean(handles, months, fname2, flag, nCells, fname3, splina, ti
 			end
 		elseif (do_climatologies)
 			% Litle manip to create a row vector with all months of interest across the years
-			this_months = repmat(months, n_anos, 1);
+			if (multi_climat)
+				this_months = repmat(months(m)-100, n_anos, 1);
+			else
+				this_months = repmat(months, n_anos, 1);
+			end
 			v = ((0:n_anos) * 12)';
 			for (k = 1:n_anos)
 				this_months(k,:) = this_months(k,:) + v(k);
@@ -1020,7 +1029,7 @@ function calc_yearMean(handles, months, fname2, flag, nCells, fname3, splina, ti
 				handles.head(5:6) = [double(zz(1)) double(zz(2))];
 				nc_io(grd_out, 'w', handles, tmp, misc)
 			else
-				nc_io(grd_out, sprintf('w%d/time',n_anos), handles, reshape(tmp,[1 size(tmp)]))
+				nc_io(grd_out, sprintf('w%d/time',n_outer_loop), handles, reshape(tmp,[1 size(tmp)]))
 			end
 		else
 			nc_io(grd_out, sprintf('w%d', m-1), handles, tmp)
@@ -1161,15 +1170,12 @@ function calc_L2_periods(handles, period, tipoStat, regMinMax, grd_out)
 
 	% C is the counter to the current layer number being processed.
 	c = find(fix(tempos) < periods(1));		% Find the starting layer number
-	if (isempty(c))
-		c = 1;				% We start at the begining of file.
-	else
-		c = c(end) + 1;		% We start somewhere at the middle of file.
+	if (isempty(c)),	c = 1;				% We start at the begining of file.
+	else				c = c(end) + 1;		% We start somewhere at the middle of file.
 	end
 	
 	n_periods = numel(periods);
 	for (m = 1:n_periods)
-
 		if (N(m) ~= 0)
 % 			Z = alloc_mex(rows, cols, N(m), 'single', NaN);
 % 			for (n = 1:N(m))			% Loop over the days in current period
@@ -1209,7 +1215,6 @@ function calc_L2_periods(handles, period, tipoStat, regMinMax, grd_out)
 
 		h = aguentabar(m/n_periods,'title','Computing period means.');	drawnow
 		if (isnan(h)),	break,	end
-
 	end
 
 % ------------------------------------------------------------------------------------
@@ -1274,7 +1279,7 @@ function [out, s] = get_layer(Z, layer, s)
 
 % ----------------------------------------------------------------------
 function [out, s] = doM_or_M_or_M(Z, first_level, lev_inc, last_level, regionalMIN, regionalMAX, tipo, s)
-% Compute either the MEAN (TIPO = 0) or the MIN (TIPO = 1), MAX (2) or STD (3) of the period selected
+% Compute either the MEAN (TIPO = 0) or the MIN (TIPO = 2), MAX (3) or STD (4) of the period selected
 % by the first_level:lev_inc:last_level vector. Normaly a year but can be a season as well.
 % NOTE1: This function was only used when SPLINA (see above in calc_yearMean()) up to Mirone 2.2.0
 % NOTE2: It is now (2.5.0dev) used again by the tideman function (and other calls)
@@ -1313,28 +1318,63 @@ function [out, s] = doM_or_M_or_M(Z, first_level, lev_inc, last_level, regionalM
 			cvlib_mex('add', out, tmp);
 		end
 		cvlib_mex('div', out, contanoes);			% The mean
-	elseif (tipo == 1)			% Minimum of the selected period
+	elseif (tipo == 1)						% Median
+		% too complicated if the entire dataset is not on memory 
+	elseif (tipo == 2 || tipo == 3)			% ...
+		v = version;
+		if (str2double(v(1)) > 6)			% With R14 and above we use the built in min and max
+			if (tipo == 2),		fh = @min;	% Minimum of the selected period
+			else				fh = @max;	% Maximum of the selected period
+			end
+		else								% But for R13 and compiled we must avoid the BUGGY NaNs comparisons
+			if (tipo == 2),		fh = @min_nan;		test = 1e10;
+			else				fh = @max_nan;		test = -1e10;
+			end
+		end
 		if (isempty(s))
-			out = min(Z(:,:,first_level:lev_inc:last_level),[],3);
+			out = feval(fh, Z(:,:,first_level:lev_inc:last_level),[],3);
 		else
 			[out, s] = get_layer(Z, first_level, s);
 			for (k = first_level+lev_inc:lev_inc:s.n_layers)
 				[tmp, s] = get_layer(Z, k, s);
-				out = min(out, tmp);
+				out = feval(fh, out, tmp);
+			end
+			if (str2double(v(1)) <= 6)
+				out(out == test) = NaN;		% Reset the ests values back to NaNs
 			end
 		end
-	elseif (tipo == 2)			% Maximum
-		if (isempty(s))
-			out = max(Z(:,:,first_level:lev_inc:last_level),[],3);
-		else
-			[out, s] = get_layer(Z, first_level, s);
-			for (k = first_level+lev_inc:lev_inc:s.n_layers)
-				[tmp, s] = get_layer(Z, k, s);
-				out = max(out, tmp);
-			end
-		end
-	elseif (tipo == 3)			% STD
+	elseif (tipo == 4)			% STD
 		out = nanstd_j(Z, first_level, lev_inc, last_level, s);
+	end
+
+% ----------------------------------------------------------------------
+function out = min_nan(A, B)
+% Compute minimum of a 3D array or two 2D arrays that have NaNs.
+% This function is used only by R13 and compiled versionn that very bugged in whta concerns NaNs comparisons
+% Fot the two arguments case, the caller function is responsible to reset the 1e10 to NaNs again.
+% This to allow calls in a loop and avoid intermediate wasting replacements.
+	if (nargin == 1)
+		A(isnan(A)) = 1e10;
+		out = min(A, [], 3);
+		out(out == 1e10) = nan;
+	else
+		A(isnan(A)) = 1e10;		B(isnan(B)) = 1e10;
+		out = min(A, B);
+	end
+
+% ----------------------------------------------------------------------
+function out = max_nan(A, B)
+% Compute maximum of a 3D array or two 2D arrays that have NaNs.
+% This function is used only by R13 and compiled versionn that very bugged in whta concerns NaNs comparisons
+% Fot the two arguments case, the caller function is responsible to reset the -1e10 to NaNs again.
+% This to allow calls in a loop and avoid intermediate wasting replacements.
+	if (nargin == 1)
+		A(isnan(A)) = -1e10;
+		out = max(A, [], 3);
+		out(out == -1e10) = nan;
+	else
+		A(isnan(A)) = -1e10;	B(isnan(B)) = -1e10;
+		out = max(A, B);
 	end
 
 % ----------------------------------------------------------------------

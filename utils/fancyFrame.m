@@ -16,7 +16,7 @@ function fancyFrame(handles, opt)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id$
+% $Id: fancyFrame.m 3992 2013-06-27 16:18:34Z j $
 
 	if (opt(1) == 'p')		% Temporary solution for printing (create a frame made of patches)
 		frame_patch(handles, opt(2:end))

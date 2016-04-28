@@ -1,7 +1,7 @@
 function varargout = line_operations(varargin)
 % Wraper figure to perform vectorial operations on line/patch objects
 
-%	Copyright (c) 2004-2012 by J. Luis
+%	Copyright (c) 2004-2016 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -16,7 +16,7 @@ function varargout = line_operations(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id$
+% $Id: line_operations.m 7754 2016-01-12 14:45:30Z j $
 
 	if (isempty(varargin)),		return,		end
 	if (~isfield(varargin{1}, 'head')),		return,		end		% Call from an empty fig
@@ -29,7 +29,7 @@ function varargout = line_operations(varargin)
 
 	if (~floating)
 		hLineOP = getappdata(hMirFig, 'hLineOP');		% Get the uicontrol handles (if they already exist)
-		if ( strcmp(get(varargin{1}.lineOP,'checked'), 'off') && isempty(hLineOP) )		% First time use
+		if (strcmp(get(varargin{1}.lineOP,'checked'), 'off') && isempty(hLineOP))		% First time use
 			old_unit = get(hMirAxes,'units');	set(hMirAxes,'units','pixels')
 			pos = get(hMirAxes,'pos');			set(hMirAxes,'units',old_unit)
 			hObject = figure('Tag','figure1','MenuBar','none','Visible','off');
@@ -44,7 +44,7 @@ function varargout = line_operations(varargin)
 			set(varargin{1}.lineOP,'checked', 'on')
 			setappdata(hMirFig, 'hLineOP', [hObject h])			% Save for an eventual future use
 
-		elseif ( strcmp(get(varargin{1}.lineOP,'checked'), 'off') && ~isempty(hLineOP) )	% Reuse
+		elseif (strcmp(get(varargin{1}.lineOP,'checked'), 'off') && ~isempty(hLineOP))	% Reuse
 			handles.figure1			= hLineOP(1);
 			handles.edit_cmd		= hLineOP(2);
 			handles.push_pickLine	= hLineOP(3);
@@ -83,12 +83,14 @@ function varargout = line_operations(varargin)
 	IamCompiled = varargin{1}.IamCompiled;
 	handles.version7 = varargin{1}.version7;
 
-	handles.known_ops = {'bezier'; 'buffer'; 'bspline'; 'closing'; 'cspline'; 'group'; 'line2patch'; 'polysimplify'; 'polyunion'; ...
-			'polyintersect'; 'polyxor'; 'polyminus'; 'pline'; 'scale'; 'stitch'; 'thicken'; 'toRidge'; 'self-crossings'};
+	handles.known_ops = {'bezier'; 'buffer'; 'bspline'; 'closing'; 'cspline'; 'delete'; 'group'; ...
+			 'line2patch'; 'polysimplify'; 'polyunion'; 'polyintersect'; 'polyxor'; 'polyminus'; 'pline'; ...
+			'scale'; 'stitch'; 'thicken'; 'toRidge'; 'self-crossings'};
 	handles.hLine = [];
 	popup_cmds = {'Choose command'; 'bezier N'; 'buffer DIST'; 'bspline'; 'closing DIST'; 'cspline N RES'; ...
-			'group lines'; 'line2patch'; 'polysimplify TOL'; 'polyunion'; 'polyintersect'; 'polyxor'; 'polyminus'; ...
-			'pline [x1 ..xn; y1 .. yn]'; 'scale to [-0.5 0.5]'; 'stitch TOL'; 'thicken N'; 'toRidge 5'; 'self-crossings (find)'};
+			'delete DUP|SMALL N|SPUR'; 'group lines'; 'line2patch'; 'polysimplify TOL'; 'polyunion'; ...
+			'polyintersect'; 'polyxor'; 'polyminus'; 'pline [x1 ..xn; y1 .. yn]'; 'scale to [-0.5 0.5]'; ...
+			'stitch TOL'; 'thicken N'; 'toRidge 5'; 'self-crossings (find)'};
 
 	if (~IamCompiled)
 		handles.known_ops{end+1} = 'hand2Workspace';
@@ -144,40 +146,48 @@ function varargout = line_operations(varargin)
 								'split the downsampled interval in 10 sub-intervald, thus reseting\n' ...
 								'the original number of point, excetp at the end of the line.\n' ...
 								'If omited RES defaults to 10.']);
-	handles.ttips{7} = sprintf(['Group lines that have exactly the same characteristics.\n' ...
+	handles.ttips{7} = sprintf(['Delete duplicate lines OR delete lines with with less than N\n' ...
+								'vertices, OR remove spurs from lines. For the first case use the form\n' ...
+								'delete DUP\n' ...
+								'For the second case (where N is the line''s minimum number of vertices)\n' ...
+								'delete SMALL N (e.g. delete SMALL 10\n' ...
+								'For the third case use the form (here you can also select the line to work on)\n' ...
+								'delete SPUR']);
+	handles.ttips{8} = sprintf(['Group lines that have exactly the same characteristics.\n' ...
 								'Unfortunately Matlab has a very bad memory management and it\n' ...
 								'very slow when there are many different lines plotted.\n' ...
 								'This option groups same type lines into one single multi-segment\n' ...
 								'line. Visually it will look the same but performance jumps.']);
-	handles.ttips{8} = 'Convert line objects into patch. Patches, for example, accept fill color.';
-	handles.ttips{9} = sprintf(['Approximates polygonal curve with desired precision\n' ...
+	handles.ttips{9} = 'Convert line objects into patch. Patches, for example, accept fill color.';
+	handles.ttips{10} = sprintf(['Approximates polygonal curve with desired precision\n' ...
 								'using the Douglas-Peucker algorithm.\n' ...
 								'Replace TOL by the desired approximation accuracy.\n' ...
 								'When data is in geogs, TOL is the tolerance in km.']);
-	handles.ttips{10}  = 'Performs the boolean operation of Union to the selected polygons.';
-	handles.ttips{11} = 'Performs the boolean operation of Intersection to the selected polygons.';
-	handles.ttips{12} = 'Performs the boolean operation of exclusive OR to the selected polygons.';
-	handles.ttips{13} = 'Performs the boolean operation of subtraction to the selected polygons.';
-	handles.ttips{14} = sprintf(['Dray a polyline with vertices defined by coords [x1 xn; y1 yn].\n' ...
+	handles.ttips{11}  = 'Performs the boolean operation of Union to the selected polygons.';
+	handles.ttips{12} = 'Performs the boolean operation of Intersection to the selected polygons.';
+	handles.ttips{13} = 'Performs the boolean operation of exclusive OR to the selected polygons.';
+	handles.ttips{14} = 'Performs the boolean operation of subtraction to the selected polygons.';
+	handles.ttips{15} = sprintf(['Dray a polyline with vertices defined by coords [x1 xn; y1 yn].\n' ...
 								'Note: you must use the brackets and semi-comma notation as above.\n' ...
 								'Example vector: [1 1.5 3.1; 2 4 8.4]']);
-	handles.ttips{15} = 'Scale to the [-0.5 0.5] interval.';
-	handles.ttips{16} = sprintf(['Stitch in cascade the lines that are closer than TOL to selected line.\n' ...
+	handles.ttips{16} = 'Scale to the [-0.5 0.5] interval.';
+	handles.ttips{17} = sprintf(['Stitch in cascade the lines that are closer than TOL to selected line.\n' ...
 								'Replace TOL by the desired maximum distance for lines still be stitched.\n' ...
 								'If removed or left as the string "TOL" (no quotes) it defaults to Inf.\n' ...
 								'Optionaly if map is in geogs apend M, K or N to TOL to indicate\n' ...
-								'Meters, Kilometers or NMiles (e.g. 10M)\n\n']);
-	handles.ttips{17} = sprintf(['Thicken line object to a thickness corresponding to N grid cells.\n' ...
+								'Meters, Kilometers or NMiles (e.g. 10M)\n\n' ...
+								'Apend ALL to the command to stich all lines without needing to select one.']);
+	handles.ttips{18} = sprintf(['Thicken line object to a thickness corresponding to N grid cells.\n' ...
 								'The interest of this comes when used trough the "Extract profile"\n' ...
 								'option. Since the thickned line stored in its pocked N + 1 parallel\n' ...
 								'lines, roughly separate by 1 grid cell size, the profile interpolation\n' ...
 								'is carried on those N + 1 lines, which are averaged (stacked) in the end.']);
-	handles.ttips{18} = sprintf(['Calculate a new line with vertex siting on top of nearby ridges.\n' ...
+	handles.ttips{19} = sprintf(['Calculate a new line with vertex siting on top of nearby ridges.\n' ...
 								'The parameter N is used to search for ridges only inside a sub-region\n' ...
 								'2Nx2N centered on current vertex. Default is 5, but you can change it.']);
-	handles.ttips{19}  = 'Detect self-crossings of all plotted lines/patches OR of the selected line.';
+	handles.ttips{20}  = 'Detect self-crossings of all plotted lines/patches OR of the selected line.';
 
-	n = 19;			% NEED TO BE EQUAL TO LAST EXPLICITLY ttips{n} above
+	n = 20;			% NEED TO BE EQUAL TO LAST EXPLICITLY ttips{n} above
 	if (~IamCompiled)
 		n = n + 1;
 		handles.ttips{n} = sprintf(['Send the selected object handles to the Matlab workspace.\n' ...
@@ -234,20 +244,36 @@ function push_apply_CB(hObject, handles)
 
 	[t, r] = strtok(cmd);
 	r = ddewhite(r);	% Remove leading spaces on 'r' that idiot strtok didn't care to do
+
+	jump = false;		% If true, the missing line selection tests below are not executed
+	stitch_all = false;
+	if (strcmp(t, 'stitch'))	% Test for the case 'stitch TOL ALL' that will stitch all lines
+		[tt, rr] = strtok(r);
+		rr = ddewhite(rr);		% Ghrr, stupid strtok
+		if (strcmpi(rr, 'all'))
+			stitch_all = true;
+			jump = true;		% Do not execute the missing line selection tests below.
+			r = tt;				% This is the TOL val that wi'll need later down
+		end
+	end
+	if (strcmp(t, 'delete'))
+		jump = true;
+	end
+
 	ind = find(strcmp(t, handles.known_ops));
 	if (isempty(ind))
 		% Here (will come) a function call which tries to adress the general command issue
 		return
 	end
-	if ( isempty(handles.hLine) && ~strcmp(handles.known_ops{ind}, 'pline') && ...
-			~strcmp(handles.known_ops{ind},'scale') && ~strcmp(handles.known_ops{ind},'GMT_DB') && ...
-			~strcmp(handles.known_ops{ind},'self-crossings') )
+	if (isempty(handles.hLine) && ~strcmp(handles.known_ops{ind}, 'pline') && ...
+	    ~strcmp(handles.known_ops{ind},'scale') && ~strcmp(handles.known_ops{ind},'GMT_DB') && ...
+	    ~strcmp(handles.known_ops{ind},'self-crossings') && ~jump)
 		h = errordlg('Fiu Fiu!! Apply WHERE????','ERROR');
 		if (handles.version7 < 8.4 && handles.isPC),	WindowAPI(h, 'TopMost'),	end
 		return
 	end
-	if ( ~strcmp(handles.known_ops{ind},'pline') && ~strcmp(handles.known_ops{ind},'scale') && ...
-			 ~strcmp(handles.known_ops{ind},'GMT_DB') && ~strcmp(handles.known_ops{ind},'self-crossings') )
+	if (~strcmp(handles.known_ops{ind},'pline') && ~strcmp(handles.known_ops{ind},'scale') && ...
+	    ~strcmp(handles.known_ops{ind},'GMT_DB') && ~strcmp(handles.known_ops{ind},'self-crossings') && ~jump)
 		handles.hLine = handles.hLine(ishandle(handles.hLine));
 		if (isempty(handles.hLine))
 			h = errordlg('Invalid handle. You probably killed the line(s)','ERROR');
@@ -406,6 +432,102 @@ function push_apply_CB(hObject, handles)
 				draw_funs(h,'line_uicontext')
 			end
 
+		case 'delete'
+			% Ok, here already know 't' & 'r' from the strtok at the beguining of this fun
+			do_DUP = false;		do_SMALL = false;	do_SPUR = false;
+			if (strcmpi(r, 'DUP'))
+				do_DUP = true;
+			elseif (strncmpi(r, 'SMALL', 5))
+				[tt, rr] = strtok(r);		% We are searching here for the 'SMALL N'
+				if (~strcmpi(tt, 'SMALL'))
+					errordlg('Bad usage. Correct syntax is ''delete SMALL N''','ERROR');	return
+				end
+				n_vert = round(str2double(rr));	% Minimize chances of stupidity.
+				if (isnan(n_vert) || n_vert <= 0)
+					errordlg('Bad usage. N must be a valid positive integer','ERROR');	return
+				end
+				do_SMALL = true;
+			elseif (strcmpi(r, 'SPUR'))
+				do_SPUR = true;
+			elseif (strcmp(r, 'DUP|SMALL'))
+				errordlg('Bad usage: DUP|SMALL is not to be used literaly. You must choose one only of DUP or SMALL.', 'Error')
+				return
+			end
+			if (~any([do_DUP do_SMALL do_SPUR]))
+				errordlg('Unknown invented option.','ERROR');	return
+			end
+
+			hLines = findobj(handles.hMirAxes, 'Type', 'line');
+			nLines = numel(hLines);
+			if (do_DUP)
+				hAguenta = aguentabar(0,'title',sprintf('Removing duplicates from %d lines', nLines));
+				n = 0;
+				perc = max(round(nLines / 100 * 2), 2);		% Advance every 2% in aguentabar
+				t0 = cputime;
+				for (k = 1:nLines)
+					hCurrLine = hLines(k);
+					if (~ishandle(hCurrLine)),	continue,	end
+					x = get(hCurrLine, 'XData');	y = get(hCurrLine, 'YData');
+					for (m = k+1:nLines)
+						if (~ishandle(hLines(m))),	continue,	end
+						% Search first for repetition with lines plotted backward one to the other (more likely)
+						if (isequal(x(end:-1:1), get(hLines(m), 'XData')) && isequal(y(end:-1:1), get(hLines(m), 'YData')))
+							delete(hLines(m)),	n = n + 1;		continue
+						end
+						if (isequal(x, get(hLines(m), 'XData')) && isequal(y, get(hLines(m), 'YData')))
+							delete(hLines(m)),	n = n + 1;		continue
+						end
+					end
+					if (~rem(k, perc))
+						hAguenta = aguentabar(k/nLines);
+					end
+				end
+				if (ishandle(hAguenta)),	delete(hAguenta),	end
+				t1 = cputime;
+				helpdlg(sprintf('Removed %d DUPlicated lines in %.1f sec', n, (t1-t0)),'Info')
+			elseif (do_SMALL)
+				n = 0;
+				for (k = 1:nLines)
+					if (numel(get(hLines(k), 'XData')) < n_vert)
+						delete(hLines(k)),	n = n + 1;
+					end
+				end
+				helpdlg(sprintf('Removed %d SMALL lines', n),'Info')
+			else		% The SPURs case
+				if (~isempty(handles.hLine))	% If we have a line selected, use that one only.
+					hLines = handles.hLine;		nLines = 1;
+				end
+				
+				for (k = 1:nLines)			% Loop over all lines
+					x = get(hLines(k), 'XData');	y = get(hLines(k), 'YData');
+					dif_x = x(1:end-2) - x(3:end);
+					if (all(dif_x ~= 0))	% No spurs here for shure
+						continue
+					else
+						dif_y = y(1:end-2) - y(3:end);
+					end
+					ind = find((dif_x == 0) & (dif_y == 0));
+					for (m = 1:numel(ind))
+						n1 = ind(m) - 1;	n2 = ind(m) + 1;	c = 0;
+						while ((n1 > 0 && n2 <= numel(x)) && (dif_x(n1) == 0) && (dif_x(n2) == 0) && ...
+						       (dif_y(n1) == 0) && (dif_y(n2) == 0))
+						   n1 = n1 + 1;	   n2 = n2 + 1;
+						   c  = c + 1;
+						end
+						if (c)			% Means we have a SPUR here
+							x((ind(m) - c):(ind(m) + c)) = [];		y((ind(m) - c):(ind(m) + c)) = [];
+							if (isempty(x))
+								delete(hLines(k))		% If it is empty, better delete it
+							else
+								set(hLines(k), 'XData', x);		set(hLines(k), 'YData', y);
+							end
+						end
+					end
+				end
+				resetSemaf(handles, hObject)	% Make it clear that it is neccessary to explicitly pick another line
+				
+			end
+
 		case 'group'
 			if ( ~strcmp(get(handles.hLine(1),'Type'),'line') )
 				h = warndlg('The selected object is not of type LINE. Objects of type PATCH are not currently "groupable"','Warning');
@@ -488,28 +610,42 @@ function push_apply_CB(hObject, handles)
 			end
 
 		case 'scale'
-			hLines = findobj(handles.hMirAxes, 'Type', 'line');
 			xMin = 1e50;	yMin = 1e50;	xMax = -xMin;	yMax = -yMin;
+			hLines = findobj(handles.hMirAxes, 'Type', 'line');
 			for (k = 1:numel(hLines))
 				x = get(hLines(k), 'XData');	y = get(hLines(k), 'YData');
 				xMin = min([xMin min(x)]);		xMax = max([xMax max(x)]);
 				yMin = min([yMin min(y)]);		yMax = max([yMax max(y)]);
 			end
-			h = mirone;		hNewMirHand = guidata(h);
-			hNewMirHand = mirone('FileNewBgFrame_CB', hNewMirHand, [-0.5 0.5 -0.5 0.5 0 1], 'Scaled');
-			scale_x = 1 / (xMax - xMin);	off_x = -0.5 - xMin;
-			scale_y = 1 / (yMax - yMin);	off_y = -0.5 - yMin;
-			if (scale_x < scale_y)
-				scale = scale_x;			off_y = -(yMax - yMin) * scale / 2 - yMin;
-			else
-				scale = scale_y;			off_x = -(xMax - xMin) * scale / 2 - xMin;
+			hPatch = findobj(handles.hMirAxes, 'Type', 'patch');
+			for (k = 1:numel(hPatch))
+				x = get(hPatch(k), 'XData');	y = get(hPatch(k), 'YData');
+				xMin = min([xMin min(x)]);		xMax = max([xMax max(x)]);
+				yMin = min([yMin min(y)]);		yMax = max([yMax max(y)]);
 			end
+
+			h = mirone;		hNewMirHand = guidata(h);
+			hNewMirHand = mirone('FileNewBgFrame_CB', hNewMirHand, [-0.5 0.5 -0.5 0.5 0 1], [], 'Whatever');
+			set(hNewMirHand.figure1, 'Name', 'GMT custom symbol')
+			scale_x = 1 / (xMax - xMin);	off_x = xMin;
+			scale_y = 1 / (yMax - yMin);	off_y = yMin;
+			scale = scale_y;
+			if (scale_x < scale_y),		scale = scale_x;	end
 
 			% Now a second run to efectively scale the data
 			for (k = 1:numel(hLines))
-				x = get(hLines(k), 'XData') * scale + off_x;
-				y = get(hLines(k), 'YData') * scale + off_y;
-				h = line('XData',x, 'YData',y, 'Parent', hNewMirHand.axes1);
+				x = (get(hLines(k), 'XData') - off_x) * scale - 0.5;
+				y = (get(hLines(k), 'YData') - off_y) * scale - 0.5;
+				h = line('XData',x, 'YData',y, 'Parent', hNewMirHand.axes1, 'LineWidth', get(hLines(k),'LineWidth'), ...
+					'Color', get(hLines(k),'Color'), 'LineStyle', get(hLines(k),'LineStyle'), 'Tag', get(hLines(k),'Tag'));
+				draw_funs(h,'line_uicontext')
+			end
+			for (k = 1:numel(hPatch))
+				x = (get(hPatch(k), 'XData') - off_x) * scale - 0.5;
+				y = (get(hPatch(k), 'YData') - off_y) * scale - 0.5;
+				h = patch('XData',x, 'YData',y, 'Parent', hNewMirHand.axes1, 'LineWidth', get(hPatch(k),'LineWidth'), ...
+					'EdgeColor', get(hPatch(k),'EdgeColor'), 'FaceColor', get(hPatch(k),'FaceColor'), ...
+					'LineStyle', get(hPatch(k),'LineStyle'), 'Tag', get(hPatch(k),'Tag'));
 				draw_funs(h,'line_uicontext')
 			end
 
@@ -522,8 +658,7 @@ function push_apply_CB(hObject, handles)
 				hLines = handles.hLine;
 			end
 			for (k = 1:numel(hLines))
-				x = get(hLines(k), 'XData');
-				y = get(hLines(k), 'YData');
+				x = get(hLines(k), 'XData');	y = get(hLines(k), 'YData');
 				n_pts = numel(x);	robust = 1;
 				if (n_pts < 2),			continue
 				elseif (n_pts > 1000),	robust = 1000;		% Do chunking otherwise MEM Kaboom
@@ -536,12 +671,7 @@ function push_apply_CB(hObject, handles)
 					draw_funs(h,'line_uicontext')
 				end
 			end
-			if (~isempty(handles.hLine))
-				% Make it clear that it is neccessary to explicitly pick another line
-				set(handles.push_semaforo,'BackgroundColor',[1 0 0])
-				set(hObject,'Tooltip', 'Have 0 lines to play with')
-				handles.hLine = [];		guidata(handles.figure1, handles)
-			end
+			resetSemaf(handles, hObject)	% reset line selection to empty and and red color in semaforo icon
 
 		case 'stitch'
 			out = validate_args(handles.known_ops{ind}, r);
@@ -550,113 +680,30 @@ function push_apply_CB(hObject, handles)
 				tol = (out.val * out.toDegFac) / 6371005.076 * 180 / pi;		% Use the Authalic radius
 			end
 
-			hCurrLine = handles.hLine;		xcell = [];
+			hCurrLine = handles.hLine;		xcell = [];		ycell = [];
 			hLines = findobj(handles.hMirAxes, 'Type', 'line');
 			if (numel(hLines) == 1)				% Only one line in the whole plot. Check if it's a multi-segment
 				[xcell, ycell] = polysplit(get(hCurrLine,'XData'), get(hCurrLine,'YData'));
 				if (isempty(ycell))
-					warndlg('There is only one line in Town and with no NaNs breaking. So stitch where?','Warning'),	return
+					warndlg('There is only one line in Town and with no NaNs breaking. So stitch where?','Warning')
+					return
 				end
 			end
-			hLines = setxor(hLines, hCurrLine);
-			nLines = numel(hLines);				doAguenta = false;	hAguenta = [];	x = [];		y = [];
-			if (nLines == 0)					% When one single hLine holding a multi-segment pline
-				nLines = numel(xcell);
-			end
 
-			if (nLines > 100 )					% greater than 100?
-				hAguenta = aguentabar(0,'title',['Stitching ' sprintf('%d', nLines) ' lines']);
-				doAguenta = true;
-			end
-
-			% If we have a multi-segment situation, deal with it right away and at the end short-circuit the line handles case
-			if (~isempty(xcell))
-				nCycles = numel(xcell)-1;		% -1 because the first is used in first arg to find_closestline()
-				for (k = 1:nCycles)
-					hLines = {xcell(2:end) ycell(2:end)};
-					[hLineClosest, endType, indOfFound] = find_closestline({xcell(1) ycell(1)}, hLines, tol);
-					if (~indOfFound)
-						continue
-					else
-						indOfFound = indOfFound + 1;	% Because we started at second segment
-					end
-					x1 = xcell{1};				y1 = ycell{1};
-					x2 = xcell{indOfFound};		y2 = ycell{indOfFound};
-					if (endType == 1)			% Lines grow in oposite directions from a "mid point"
-						x = [x2(end:-1:1) x1];	y = [y2(end:-1:1) y1];
-					elseif (endType == 2)		% Line 2 ends near the begining of line 1 
-						x = [x2 x1];			y = [y2 y1];
-					elseif (endType == 3)		% Line 1 ends near the begining of line 2
-						x = [x1 x2];			y = [y1 y2];
-					else						% Lines grow from the extremeties twards the "mid point"
-						x = [x1 x2(end:-1:1)];	y = [y1 y2(end:-1:1)];
-					end
-					xcell{1} = x;				ycell{1} = y;	% Equivallent of the below set(hCurrLine, 'XData',x, 'YData',y)
-					xcell{indOfFound} = [];		ycell{indOfFound} = [];		% Do not process the same segment again.
-					if (doAguenta && ~rem(k,10)),
-						hAguenta = aguentabar(k/nLines);
-					end
+			if (stitch_all)
+				for (k = 1:numel(hLines))
+					hCurrLine = hLines(k);
+					if (~ishandle(hCurrLine)),	continue,	end		% Means this line chunk was already stitched
+					hLines_t = findobj(handles.hMirAxes, 'Type', 'line');
+					hLines_t = setxor(hLines_t, hCurrLine);
+					do_stitching(hLines_t, hCurrLine, tol, xcell, ycell);
 				end
-				set(hCurrLine, 'XData',x, 'YData',y)
-				nLines = 0;		% TO PREVENT EXECUTING ALSO THE NEXT LOOP
+			else
+				hLines = setxor(hLines, hCurrLine);
+				do_stitching(hLines, hCurrLine, tol, xcell, ycell);
 			end
 
-			for (k = 1:nLines)					% Loop over all others but selected line. FOR NON MULTI-SEGMENT CASES
-				[hLineClosest, endType, indOfFound] = find_closestline(hCurrLine, hLines, tol);
-				if (isempty(hLineClosest))		% Either we found and finished or found nothing
-					break
-				end
-				x1 = get(hCurrLine,'XData');	y1 = get(hCurrLine,'YData');
-				x2 = get(hLineClosest,'XData');	y2 = get(hLineClosest,'YData');
-				if (endType == 1)				% Lines grow in oposite directions from a "mid point"
-					x = [x2(end:-1:1) x1];		y = [y2(end:-1:1) y1];
-				elseif (endType == 2)			% Line 2 ends near the begining of line 1 
-					x = [x2 x1];				y = [y2 y1];
-				elseif (endType == 3)			% Line 1 ends near the begining of line 2
-					x = [x1 x2];				y = [y1 y2];
-				else							% Lines grow from the extremeties twards the "mid point"
-					x = [x1 x2(end:-1:1)];		y = [y1 y2(end:-1:1)];
-				end
-				set(hCurrLine, 'XData',x, 'YData',y)
-				delete(hLineClosest)			% It was assimilated, now delete old one.
-				hLines(indOfFound) = [];		% Do not process the same line again.
-				if (doAguenta && rem(k,10)),	hAguenta = aguentabar(k/nLines);		end
-			end
-
-			% Now search for repeated points along the stitched line (nothing uncommon)
-			ind_x = (diff(x) ~= 0);		ind_y = (diff(y) ~= 0);
-			unicos = (ind_x | ind_y);
-			if (~isempty(x))					% Prevent case of an initial x = []
-				unicos(end+1) = true;
-				x = x(unicos);			y = y(unicos);
-				set(hCurrLine, 'XData',x, 'YData',y)
-			end
-
-			% Files (imported with ogr) can have each line segment repeated which causes strange effects. 
-			% This corrects one type of those effects, which is hard to describe with words.
-			knees = zeros(2,1);			nKnees = 0;
-			for (k = 1:numel(x)-2)		% Do it scalar because is equaly fast (or more) and waist no memory
-				if ( (x(k) == x(k+2)) && (y(k) == y(k+2)) )	% Detect points where line returns along same path.
-					nKnees = nKnees + 1;
-					knees(nKnees) = k;	
-				end
-			end
-			if (nKnees == 2)
-				x = x(knees(1)+1:knees(2)+1);	y = y(knees(1)+1:knees(2)+1);
-				set(hCurrLine, 'XData',x, 'YData',y)
-			end
-
-			% We still need to check if first and last pts are whithin TOL, case in which line is closed.
-			if ( ~isempty(x) && (x(1) ~= x(end)) && (y(1) ~= y(end)) && (sqrt((x(1) - x(end))^2 + (y(1) - y(end))^2) <= tol) )
-				x(end+1) = x(1);		y(end+1) = y(1);
-				set(hCurrLine, 'XData',x, 'YData',y)
-			end
-			if (ishandle(hAguenta)),	delete(hAguenta),	end
-
-			% Make it clear that it is neccessary to explicitly pick another line
-			set(handles.push_semaforo,'BackgroundColor',[1 0 0])
-			set(hObject,'Tooltip', 'Have 0 lines to play with')
-			handles.hLine = [];		guidata(handles.figure1, handles)
+			resetSemaf(handles, hObject)	% Make it clear that it is neccessary to explicitly pick another line
 
 		case 'thicken'
 			[out, msg] = validate_args(handles.known_ops{ind}, r, handles.hMirAxes);
@@ -764,6 +811,15 @@ function push_apply_CB(hObject, handles)
 	end
 
 % -------------------------------------------------------------------------------------------------
+function resetSemaf(handles, hObject)
+% Make it clear that it is neccessary to explicitly pick another line
+	if (~isempty(handles.hLine))
+		set(handles.push_semaforo,'BackgroundColor',[1 0 0])
+		set(hObject,'Tooltip', 'Have 0 lines to play with')
+		handles.hLine = [];		guidata(handles.figure1, handles)
+	end
+
+% -------------------------------------------------------------------------------------------------
 function update_GMT_DB(handles, TOL)
 % Take the GMT database polygons displayed in the figure and update them with the
 % data from other ordinary polylines also present in the figure. The updating is done
@@ -847,6 +903,105 @@ function [x, y] = check_bombordo(hLine)
 		y = y(end:-1:1);
 	end	
 % -------------------------------------------------------------------------------------------------
+
+% -------------------------------------------------------------------------------------------------
+function do_stitching(hLines, hCurrLine, tol, xcell, ycell)
+% Core function to do the line stitching work
+
+	nLines = numel(hLines);				doAguenta = false;	hAguenta = [];	x = [];		y = [];
+	if (nLines == 0)					% When one single hLine holding a multi-segment pline
+		nLines = numel(xcell);
+	end
+
+	if (nLines > 100 )					% greater than 100?
+		hAguenta = aguentabar(0,'title',sprintf('Stitching %d lines', nLines));
+		perc = max(round(nLines / 100 * 2), 2);		% Advance every 2% in aguentabar
+		doAguenta = true;
+	end
+
+	% If we have a multi-segment situation, deal with it right away and at the end short-circuit the line handles case
+	if (~isempty(xcell))
+		nCycles = numel(xcell)-1;		% -1 because the first is used in first arg to find_closestline()
+		for (k = 1:nCycles)
+			hLines = {xcell(2:end) ycell(2:end)};
+			[hLineClosest, endType, indOfFound] = find_closestline({xcell(1) ycell(1)}, hLines, tol);
+			if (~indOfFound)
+				continue
+			else
+				indOfFound = indOfFound + 1;	% Because we started at second segment
+			end
+			x1 = xcell{1};				y1 = ycell{1};
+			x2 = xcell{indOfFound};		y2 = ycell{indOfFound};
+			if (endType == 1)			% Lines grow in oposite directions from a "mid point"
+				x = [x2(end:-1:1) x1];	y = [y2(end:-1:1) y1];
+			elseif (endType == 2)		% Line 2 ends near the begining of line 1 
+				x = [x2 x1];			y = [y2 y1];
+			elseif (endType == 3)		% Line 1 ends near the begining of line 2
+				x = [x1 x2];			y = [y1 y2];
+			else						% Lines grow from the extremeties twards the "mid point"
+				x = [x1 x2(end:-1:1)];	y = [y1 y2(end:-1:1)];
+			end
+			xcell{1} = x;				ycell{1} = y;	% Equivallent of the below set(hCurrLine, 'XData',x, 'YData',y)
+			xcell{indOfFound} = [];		ycell{indOfFound} = [];		% Do not process the same segment again.
+			if (doAguenta && ~rem(k, perc)),
+				hAguenta = aguentabar(k/nLines);
+			end
+		end
+		set(hCurrLine, 'XData',x, 'YData',y)
+		nLines = 0;		% TO PREVENT EXECUTING ALSO THE NEXT LOOP
+	end
+
+	for (k = 1:nLines)					% Loop over all others but selected line. FOR NON MULTI-SEGMENT CASES
+		[hLineClosest, endType, indOfFound] = find_closestline(hCurrLine, hLines, tol);
+		if (isempty(hLineClosest))		% Either we found and finished or found nothing
+			break
+		end
+		x1 = get(hCurrLine,'XData');	y1 = get(hCurrLine,'YData');
+		x2 = get(hLineClosest,'XData');	y2 = get(hLineClosest,'YData');
+		if (endType == 1)				% Lines grow in oposite directions from a "mid point"
+			x = [x2(end:-1:1) x1];		y = [y2(end:-1:1) y1];
+		elseif (endType == 2)			% Line 2 ends near the begining of line 1 
+			x = [x2 x1];				y = [y2 y1];
+		elseif (endType == 3)			% Line 1 ends near the begining of line 2
+			x = [x1 x2];				y = [y1 y2];
+		else							% Lines grow from the extremeties twards the "mid point"
+			x = [x1 x2(end:-1:1)];		y = [y1 y2(end:-1:1)];
+		end
+		set(hCurrLine, 'XData',x, 'YData',y)
+		delete(hLineClosest)			% It was assimilated, now delete old one.
+		hLines(indOfFound) = [];		% Do not process the same line again.
+		if (doAguenta && rem(k,perc)),	hAguenta = aguentabar(k/nLines);		end
+	end
+
+	% Now search for repeated points along the stitched line (nothing uncommon)
+	ind_x = (diff(x) ~= 0);		ind_y = (diff(y) ~= 0);
+	unicos = (ind_x | ind_y);
+	if (~isempty(x))					% Prevent case of an initial x = []
+		unicos(end+1) = true;
+		x = x(unicos);			y = y(unicos);
+		set(hCurrLine, 'XData',x, 'YData',y)
+	end
+
+	% Files (imported with ogr) can have each line segment repeated which causes strange effects. 
+	% This corrects one type of those effects, which is hard to describe with words.
+	knees = zeros(2,1);			nKnees = 0;
+	for (k = 1:numel(x)-2)		% Do it scalar because is equaly fast (or more) and waste no memory
+		if ( (x(k) == x(k+2)) && (y(k) == y(k+2)) )	% Detect points where line returns along same path.
+			nKnees = nKnees + 1;
+			knees(nKnees) = k;	
+		end
+	end
+	if (nKnees == 2)
+		x(knees(1)+1:knees(2)+1) = [];		y(knees(1)+1:knees(2)+1) = [];
+		set(hCurrLine, 'XData',x, 'YData',y)
+	end
+
+	% We still need to check if first and last pts are whithin TOL, case in which line is closed.
+	if (~isempty(x) && (x(1) ~= x(end)) && (y(1) ~= y(end)) && (sqrt((x(1) - x(end))^2 + (y(1) - y(end))^2) <= tol))
+		x(end+1) = x(1);		y(end+1) = y(1);
+		set(hCurrLine, 'XData',x, 'YData',y)
+	end
+	if (ishandle(hAguenta)),	delete(hAguenta),	end
 
 % -------------------------------------------------------------------------------------------------
 function [hLineClosest, endType, indOfFound] = find_closestline(hMe, hLines, TOL)

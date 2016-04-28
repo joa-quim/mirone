@@ -10,7 +10,7 @@ function varargout = draw_funs(hand, varargin)
 %	the data from an object handle, call with HAND = []. E.g (in load_xyz)
 %	draw_funs([], 'doSave_formated', x, y, z)
 
-%	Copyright (c) 2004-2015 by J. Luis
+%	Copyright (c) 2004-2016 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -25,7 +25,7 @@ function varargout = draw_funs(hand, varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: draw_funs.m 4821 2015-10-19 00:00:02Z j $
+% $Id: draw_funs.m 7880 2016-04-26 23:05:06Z j $
 
 % A bit of strange tests but they are necessary for the cases when we use the new feval(fun,varargin{:}) 
 opt = varargin{1};		% function name to evaluate (new) or keyword to select one (old form)
@@ -178,6 +178,8 @@ function setSHPuictx(h,opt)
 		isPt = getappdata(h(1), 'isPoint');
 		if (~isempty(isPt) && ~isPt)	% For points it makes no sense a 'Join lines'
 			uimenu(cmenuHand, 'Label', 'Join lines', 'Call', {@join_lines,handles.figure1});
+		elseif (~isempty(get(h(i), 'UserData')))		% If we have z info
+			uimenu(cmenuHand, 'Label', 'Quick grid', 'Call', {@shp_quick_grd,h(i)}, 'Sep', 'on');			
 		end
 	end
 
@@ -202,7 +204,7 @@ function set_line_uicontext(h, opt)
 	if (isempty(x) || isempty(y)),		return,		end		% Line is totally out of the figure
 	if ((x(1) == x(end)) && (y(1) == y(end)))
 		LINE_ISCLOSED = true;
-		if ( length(x) == 5 && (x(1) == x(2)) && (x(3) == x(4)) && (y(1) == y(4)) && (y(2) == y(3)) )
+		if (length(x) == 5 && (x(1) == x(2)) && (x(3) == x(4)) && (y(1) == y(4)) && (y(2) == y(3)))
 			IS_RECTANGLE = true;	
 		end  
 		if (strcmp(get(h,'Tag'),'SeismicPolyg')),	IS_SEISPOLYG = true;	end
@@ -214,11 +216,12 @@ function set_line_uicontext(h, opt)
 		IS_SEISMICLINE = true;
 	end
 
-	handles = guidata(get(h,'Parent'));             % Get Mirone handles
+	handles = guidata(get(h,'Parent'));		% Get Mirone handles
 
 	% Check to see if we are dealing with a multibeam track
 	cmenuHand = uicontextmenu('Parent',handles.figure1);
 	set(h, 'UIContextMenu', cmenuHand);
+	set(cmenuHand, 'UserData', h)			% And with this the cmenuHand knows to whom it belongs
 	switch opt
 		case 'line'
 			label_save = 'Save line';   label_length = 'Line length(s)';   label_azim = 'Line azimuth(s)';
@@ -228,12 +231,12 @@ function set_line_uicontext(h, opt)
 			label_save = 'Save track';   label_length = 'Track length';   label_azim = 'Track azimuth(s)';
 			IS_LINE = false;	IS_MBTRACK = true;
 	end
-	cb_LineWidth = uictx_LineWidth(h);      % there are 5 cb_LineWidth outputs
+	cb_LineWidth = uictx_LineWidth(h);		% there are 5 cb_LineWidth outputs
 	cb_solid = 'set(gco, ''LineStyle'', ''-''); refresh';
 	cb_dashed = 'set(gco, ''LineStyle'', ''--''); refresh';
 	cb_dotted = 'set(gco, ''LineStyle'', '':''); refresh';
 	cb_dashdot = 'set(gco, ''LineStyle'', ''-.''); refresh';
-	cb_color = uictx_color(h);      % there are 9 cb_color outputs
+	cb_color = uictx_color(h);				% there are 9 cb_color outputs
 
 	if (IS_RECTANGLE)
 		uimenu(cmenuHand, 'Label', 'Delete me', 'Call', {@del_line,h});
@@ -244,8 +247,8 @@ function set_line_uicontext(h, opt)
 		ui_edit_polygon(h)
 	elseif (IS_LINE)
 		uimenu(cmenuHand, 'Label', 'Delete', 'Call', {@del_line,h});
-		ui_edit_polygon(h)		% Set edition functions
-	elseif (IS_MBTRACK)			% Multibeam tracks, when deleted, have to delete also the bars
+		ui_edit_polygon(h)			% Set edition functions
+	elseif (IS_MBTRACK)				% Multibeam tracks, when deleted, have to delete also the bars
 		uimenu(cmenuHand, 'Label', 'Delete track (left-click on it)', 'Call', 'save_track_mb(1);');
 		% Old style edit function. New edit is provided by ui_edit_polygon which doesn't work with mbtracks 
 		uimenu(cmenuHand, 'Label', 'Edit track (left-click on it)', 'Call', 'edit_track_mb');
@@ -275,6 +278,9 @@ function set_line_uicontext(h, opt)
 			uimenu(cmenuHand, 'Label', 'Transparency', 'Call', @set_transparency);
 		end
 		uimenu(cmenuHand, 'Label', 'Create Mask', 'Call', 'poly2mask_fig(guidata(gcbo),gco)');
+	end
+	if (IS_RECTANGLE && handles.validGrid)
+		uimenu(cmenuHand, 'Label', 'Make Chess board', 'Call', {@chessify, h});
 	end
 
 	if (handles.image_type ~= 20 && ~LINE_ISCLOSED && strcmp(opt,'line'))
@@ -311,18 +317,22 @@ function set_line_uicontext(h, opt)
 			uimenu(item_tools, 'Label', 'Crop Image (with coords)', 'Call', ...
 				'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''CropaWithCoords'')');
 			uimenu(item_tools, 'Label', 'Set to constant', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''SetConst'')','Sep','on');
-			uimenu(item_tools, 'Label', 'Clip grid', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''Clip'')');
+			item_tools3 = uimenu(item_tools, 'Label', 'Stats');
+			uimenu(item_tools3,'Label', 'Mean',          'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''GetMean'')');
+			uimenu(item_tools3,'Label', 'Median',        'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''GetMedian'')');
+			uimenu(item_tools3,'Label', 'STD',           'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''GetSTD'')');
+			uimenu(item_tools, 'Label', 'Clip grid',     'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''Clip'')');
 			uimenu(item_tools, 'Label', 'Median filter', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''MedianFilter'')');
 			uimenu(item_tools, 'Label', 'Spline smooth', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''SplineSmooth'')');
 			uimenu(item_tools, 'Label', 'Histogram (grid)', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''CropaGrid_histo'')');
 			uimenu(item_tools, 'Label', 'Histogram (image)', 'Call', 'image_histo(guidata(gcbo),gco)');
 %			uimenu(item_tools, 'Label', 'Detect Fronts', 'Call', 'cayula_cornillon(guidata(gcbo),gco)');
-			uimenu(item_tools, 'Label', 'Power', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''CropaGrid_power'')');
+			uimenu(item_tools, 'Label', 'Power',           'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''CropaGrid_power'')');
 			uimenu(item_tools, 'Label', 'Autocorrelation', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''CropaGrid_autocorr'')');
 			uimenu(item_tools, 'Label', 'FFT tool', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''CropaGrid_fftTools'')');
 			item_fill = uimenu(item_tools, 'Label', 'Fill gaps');
-			uimenu(item_fill, 'Label', 'Fill gaps (surface)', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''FillGaps'',''surface'')');
-			uimenu(item_fill, 'Label', 'Fill gaps (cubic)', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''FillGaps'',''cubic'');');
+			uimenu(item_fill, 'Label', 'Fill gaps (surface)','Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''FillGaps'',''surface'')');
+			uimenu(item_fill, 'Label', 'Fill gaps (cubic)',  'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''FillGaps'',''cubic'');');
 			uimenu(item_fill, 'Label', 'Fill gaps (linear)', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''FillGaps'',''linear'');');
 		else			% We have an Image
 			uimenu(item_tools, 'Label', 'Crop Image', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco)');
@@ -333,7 +343,7 @@ function set_line_uicontext(h, opt)
 			uimenu(item_tools, 'Label', 'Histogram', 'Call', 'image_histo(guidata(gcbo),gco)');
 		end
 		uimenu(item_tools, 'Label', 'Image process', 'Sep','on', 'Call', 'mirone(''DrawClosedPolygon_CB'',guidata(gcbo),gco)');
-		deal_opts({'MGG' 'MICROLEV' 'GMT_DB_IDS'}, cmenuHand);
+		deal_opts({'MGG' 'MICROLEV' 'GMT_DB_IDS' 'GMT_SYMBOL'}, cmenuHand);
 	end
 
 	if (~IS_SEISPOLYG && LINE_ISCLOSED && ~IS_RECTANGLE)
@@ -344,6 +354,10 @@ function set_line_uicontext(h, opt)
 			uimenu(item_tools2, 'Label', 'Crop Image (with coords)', 'Call', ...
 				'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''CropaWithCoords'')');
 			uimenu(item_tools2, 'Label', 'Set to constant', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''ROI_SetConst'')','Sep','on');
+			item_tools3 = uimenu(item_tools2, 'Label', 'Stats');
+			uimenu(item_tools3, 'Label', 'Mean', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''ROI_Mean'')');
+			uimenu(item_tools3, 'Label', 'Median', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''ROI_Median'')');
+			uimenu(item_tools3, 'Label', 'STD', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''ROI_STD'')');
 			uimenu(item_tools2, 'Label', 'Clip grid', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''ROI_Clip'')');
 			uimenu(item_tools2, 'Label', 'Median filter', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''ROI_MedianFilter'')');
 			uimenu(item_tools2, 'Label', 'Spline smooth', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''ROI_SplineSmooth'')');
@@ -581,6 +595,11 @@ function hCopy = copy_line_object(obj, evt, hFig, hAxes)
 	if (isappdata(newH,'polygon_data'))
 		rmappdata(newH,'polygon_data')		% Remove the parent's ui_edit_polygon appdata
 	end
+	if (isappdata(oldH,'cust_symb'))		% If copying an element with an associated GMT symbol copy it too
+		cs_fname = getappdata(oldH, 'cust_symb');
+		setappdata(newH, 'cust_symb', cs_fname)
+	end
+
 	state = uisuspend_j(hFig);				% Remember initial figure state
 	x_lim = get(hAxes,'xlim');        y_lim = get(hAxes,'ylim');
 	current_pt = get(hAxes, 'CurrentPoint');
@@ -671,6 +690,39 @@ function [x, y, was_closed] = join2lines(hLines, TOL)
 		x = [x1 x2(end:-1:last)];	y = [y1 y2(end:-1:last)];
 	end
 % -----------------------------------------------------------------------------------------
+	
+% --------------------------------------------------------------------
+function shp_quick_grd(hObj, evt, h)
+% Automatically calculate a grid from a PointZ shapefile data
+	x = get(h, 'XData');	y = get(h, 'YData');
+	z = double(get(h, 'UserData'));
+	x_min = min(x);			x_max = max(x);
+	y_min = min(y);			y_max = max(y);
+	x_inc = abs(median(diff(x(1:100))));
+	y_inc = abs(median(diff(y(1:100))));
+	if (y_inc < x_inc/20),		y_inc = x_inc;		% Quite likely if data was previously gridded abd dumped.
+	elseif (x_inc < x_inc/20),	x_inc = y_inc;
+	end
+	opt_I = sprintf('-I%.8g/%.8g', x_inc, y_inc);
+	if (isa(x, 'single'))
+		x = double(x);		y = double(y);
+	end
+	nx = round((x_max - x_min) / x_inc) + 1;
+	ny = round((y_max - y_min) / y_inc) + 1;
+	opt_R = sprintf('-R%.12g/%.12g/%.12g/%.12g', x_min, x_min + (nx-1)*x_inc, y_min, y_min + (ny-1)*y_inc);
+	[Z, head] = gmtmbgrid_m(x, y, z, opt_I, opt_R, '-Mz', '-C2');
+	Z = single(Z);
+	tmp.X = linspace(head(1), head(2), size(Z,2));
+	tmp.Y = linspace(head(3), head(4), size(Z,1));
+	tmp.head = head;
+	tmp.name = 'Quick interpolated PointZ shape data';
+	prjInfoStruc = aux_funs('getFigProjInfo', guidata(h));
+	if (~isempty(prjInfoStruc.projWKT))
+		tmp.srsWKT = prjInfoStruc.projWKT;
+	elseif(~isempty(prjInfoStruc.proj4))
+		tmp.srsWKT = ogrproj(prjInfoStruc.proj4);
+	end
+	mirone(Z, tmp)
 
 % --------------------------------------------------------------------
 function hh = loc_quiver(struc,varargin)
@@ -800,6 +852,7 @@ function set_country_uicontext(h)
 			item_ct = uimenu(cmenuHand, 'Label', 'ROI Crop Tools','Sep','on');
 			uimenu(item_ct, 'Label', 'Crop Grid', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''CropaGrid_pure'')');
 			uimenu(item_ct, 'Label', 'Set to constant', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''ROI_SetConst'')');
+			uimenu(item_ct, 'Label', 'Mean', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''ROI_Mean'')');
 			uimenu(item_ct, 'Label', 'Clip grid', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''ROI_Clip'')');
 			uimenu(item_ct, 'Label', 'Median filter', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''ROI_MedianFilter'')');
 			uimenu(item_ct, 'Label', 'Spline smooth', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''ROI_SplineSmooth'')');
@@ -1044,7 +1097,7 @@ function set_isochrons_uicontext(h, data)
 	cb_color = uictx_color(h);				% there are 9 cb_color outputs
 	cbls1 = 'set(gco, ''LineStyle'', ''-''); refresh';   cbls2 = 'set(gco, ''LineStyle'', ''--''); refresh';
 	cbls3 = 'set(gco, ''LineStyle'', '':''); refresh';   cbls4 = 'set(gco, ''LineStyle'', ''-.''); refresh';
-	if (~all(isempty(cat(2,data{:}))) )
+	if (~isempty(data) && ~all(isempty(cat(2,data{:}))) )
 		uimenu(cmenuHand, 'Label', [tag ' info'], 'Call', {@Isochrons_Info,data});
 		uimenu(cmenuHand, 'Label', ['Delete this ' tag ' line'], 'Call', {@del_line,h}, 'Sep','on');
 	else
@@ -1500,7 +1553,28 @@ function show_swhatRatio(obj,evt,h)
     msgbox(sprintf('Swath Ratio for this track is: %g',getappdata(h,'swathRatio')),'')
 
 % -----------------------------------------------------------------------------------------
-function show_Area(obj,eventdata,h)
+function chessify(obj, evt, h)
+...
+	prompt = {'Enter DX patch size:','Enter DX patch size:','One Z value','Other Z value'};
+	resp = inputdlg(prompt, 'Chessboard size and values', [1 30], {'','','1','-1'});
+	if (isempty(resp)),		return,		end
+	handles = guidata(h);
+	dx = str2double(resp{1});	dy = str2double(resp{2});
+	up_down = [str2double(resp{3}) 0 str2double(resp{4})];
+	x = get(h,'XData');			y = get(h,'YData');
+	dx_r = max(x) - min(x);		dy_r = max(y) - min(y);
+	nCols = ceil(dx_r / dx);	nRows = ceil(dy_r / dy);
+	for (row = 1:nRows)
+		for (col = 1:nCols)
+			xr = x(1) + [(col - 1) col] * dx;
+			yr = y(1) + [(row - 1) row] * dy;
+			rec = [xr(1) yr(1); xr(1) yr(2); xr(2) yr(2); xr(2) yr(1); xr(1) yr(1)];
+			mirone('ImageCrop_CB', handles, rec, 'SetConst', up_down((-1)^(row+col-1) + 2))
+		end
+	end
+
+% -----------------------------------------------------------------------------------------
+function show_Area(obj, evt, h)
 % Compute area under line and insult the user if the line is not closed
 % NOTE that H is optional. Use only when want to make sure that this fun
 % uses that handle (does not work with copyied objects)
@@ -1581,7 +1655,7 @@ function ll = show_LineLength(obj, evt, h, opt)
 		errordlg('Unknown case in show_LineLength()','error'),	return
 	end
 
-	if (isempty(opt) || strcmp(opt, 'nikles'))		% That call with nikles was shity bad idea
+	if (isempty(opt) || strcmp(opt, 'nikles') || strcmp(opt, 'total'))	% That call with nikles was shity bad idea
 		measureUnit = handles.DefineMeasureUnit(1);
 	end
 
@@ -1811,13 +1885,14 @@ function cb = uictx_color(h,opt)
 
 % -----------------------------------------------------------------------------------------
 function cb = uictx_LineWidth(h)
-	% Set uicontext colors in object hose handle is gco (or h for "other color")
-	cb{1} = 'set(gco, ''LineWidth'', 1);refresh';   cb{2} = 'set(gco, ''LineWidth'', 2);refresh';
-	cb{3} = 'set(gco, ''LineWidth'', 3);refresh';   cb{4} = 'set(gco, ''LineWidth'', 4);refresh';
+% Set uicontext colors in object hose handle is gco (or h for "other color")
+	cb{1} = 'set(gco, ''LineWidth'', 1);refresh';		cb{2} = 'set(gco, ''LineWidth'', 2);refresh';
+	cb{3} = 'set(gco, ''LineWidth'', 3);refresh';		cb{4} = 'set(gco, ''LineWidth'', 4);refresh';
 	cb{5} = {@other_LineWidth,h};
 
-function other_LineWidth(obj,eventdata,h)
-	resp  = inputdlg({'Enter new line width (pt)'}, 'Line width', [1 30]);
+function other_LineWidth(obj,evt,h)
+	lw = get(h, 'LineWidth');
+	resp  = inputdlg({'Enter new line width (pt)'}, 'Line width', [1 30], {num2str(lw)});
 	if isempty(resp),	return,		end
 	set(h,'LineWidth',str2double(resp));        refresh
 % -----------------------------------------------------------------------------------------
@@ -2267,6 +2342,7 @@ function set_symbol_uicontext(h,data)
 	this_not = true;		% for class symbols "this_not = 1". Used for not seting some options inapropriate to class symbols
 	seismicity_options = false;
 	tide_options = false;
+	sep = 'off';
 
 	if strcmp(tag,'hotspot')		% DATA must be a structure containing name & age fields
 		uimenu(cmenuHand, 'Label', 'Hotspot info', 'Call', {@hotspot_info,h,data.name,data.age,[]});
@@ -2293,6 +2369,11 @@ function set_symbol_uicontext(h,data)
 	elseif strcmp(tag,'Earthquakes')	% DATA is empty because I didn't store any info (they are too many)
 		seismicity_options = isappdata(h,'SeismicityTime');
 	elseif strcmp(tag,'Pointpolyline')	% DATA is empty because it doesn't have any associated info
+		s_info = getappdata(h, 'LineInfo');		% But there might be one in appdata
+		if (~isempty(s_info))
+			uimenu(cmenuHand, 'Label', 'Symbol info', 'Call', {@Isochrons_Info,s_info});
+			sep = 'on';
+		end
 		this_not = false;
 	elseif strcmp(tag,'TTT')			% DATA is empty
 		this_not = false;
@@ -2305,7 +2386,7 @@ function set_symbol_uicontext(h,data)
 
 	if (~this_not)						% non class symbols can be moved
 		ui_edit_polygon(h)				% Set edition functions
-		uimenu(cmenuHand, 'Label', 'Move (precise)', 'Call', {@change_SymbPos,h});
+		uimenu(cmenuHand, 'Label', 'Move (precise)', 'Call', {@change_SymbPos,h}, 'Sep', sep);
 	end
 
 	if separator
@@ -3351,7 +3432,9 @@ function changeAxesLabels(opt)
 
 	hFig = get(0,'CurrentFigure');      hAxes = get(hFig,'CurrentAxes');
 	x_tick = getappdata(hAxes,'XTickOrig');
+	if (isa(x_tick, 'cell')),	x_tick = char(x_tick);	end		% Damn TMW never stops breaking compatibility (now in R2016a)
 	y_tick = getappdata(hAxes,'YTickOrig');
+	if (isa(y_tick, 'cell')),	y_tick = char(y_tick);	end
 	n_xtick = size(x_tick,1);                   n_ytick = size(y_tick,1);
 	sep = ':';
 	switch opt

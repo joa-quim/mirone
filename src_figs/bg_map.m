@@ -20,7 +20,7 @@ function varargout = bg_map(varargin)
 %	They come from the size of the 'etopo4.jpg' image. If another image would
 %	be used, those figures need to be adapted (as well as those of the tilles)
 
-% $Id$
+% $Id: bg_map.m 4744 2015-07-24 14:38:51Z j $
 
 	hObject = figure('Vis','off','doublebuffer','on');
 	bg_map_LayoutFcn(hObject);
