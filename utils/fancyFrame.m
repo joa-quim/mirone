@@ -16,7 +16,7 @@ function fancyFrame(handles, opt)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: fancyFrame.m 3992 2013-06-27 16:18:34Z j $
+% $Id: fancyFrame.m 7889 2016-05-07 21:57:51Z j $
 
 	if (opt(1) == 'p')		% Temporary solution for printing (create a frame made of patches)
 		frame_patch(handles, opt(2:end))
@@ -102,13 +102,12 @@ function frame_patch(handles, opt)
 
 	if (strcmp(opt,'unset'))
 		hFrancyFrames = findobj(handles.axes1, '-depth',1, 'Type','patch', 'Tag', 'PatchFrame');
-		delete(hFrancyFrames)
-		return
+		delete(hFrancyFrames),		return
 	end
 
 	xLim = get(handles.axes1, 'XLim');		yLim = get(handles.axes1, 'YLim');
 	DAR = get(handles.axes1, 'DataAspectRatio');
-	bwy = 0.008*diff(yLim);			% Y border width = 1%
+	bwy = 0.009*diff(yLim);			% Y border width = 1%
 	bwx = bwy/DAR(2);				% border width (in degree of longitude)
 
 	patch([xLim(1)-bwx,xLim(2)+bwx,xLim(2)+bwx,xLim(1)-bwx],yLim(1) - bwy*[0,0,1,1],'k','FaceColor','none','clipping','off','Tag','PatchFrame')
