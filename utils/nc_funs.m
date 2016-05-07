@@ -39,20 +39,24 @@ function  varargout = nc_funs(opt,varargin)
 	end
 
 % --------------------------------------------------------------------
-function fileinfo = nc_info( ncfile )
+function fileinfo = nc_info(ncfile)
 % This function is the core function of the snctools/nc_info
 
 fileinfo.Filename = ncfile;
 
-[ncid, status] = mexnc('open', ncfile, nc_nowrite_mode );
+[ncid, status] = mexnc('open', ncfile, nc_nowrite_mode);
 if status ~= 0
+	if (status == -101)			% Damn dirty trick to avoid a situation where a file (from Ocean Color only?)
+		fileinfo.Dataset = [];	% was previously open by gdalread and something in it didn't copletely close.
+		return					% As a consequence accessing it with mecnc fails. But that's what we want anyway.
+	end							% so return right now and aux_funs(findFileType,...) will send it to gdal again.
     snc_error ( 'NC_INFO:MEXNC:OPEN', mexnc('strerror', status) );
 end
 
 [ndims, nvars, ngatts, record_dimension, status] = mexnc('INQ', ncid);
 if status ~= 0
     mexnc('close',ncid);
-    snc_error( 'NC_FUNS:NC_INFO:MEXNC:INQ', mexnc('strerror', status) );
+    snc_error('NC_FUNS:NC_INFO:MEXNC:INQ', mexnc('strerror', status));
 end
 
 % Get the dimensions
