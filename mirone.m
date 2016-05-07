@@ -20,7 +20,7 @@ function varargout = mirone(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: mirone.m 7881 2016-04-27 19:39:26Z j $
+% $Id: mirone.m 7891 2016-05-07 22:09:22Z j $
 
 	if (nargin > 1 && ischar(varargin{1}))
 		if ( ~isempty(strfind(varargin{1},':')) || ~isempty(strfind(varargin{1},filesep)) )
@@ -1820,7 +1820,6 @@ function erro = FileOpenGeoTIFF_CB(handles, tipo, opt)
 		att.AllSubdatasets = AllSubdatasets;			% and another
 	end
 	att.fname = fnameBak;								% If hdfread is used, it will need the file name (not eventual dataset name)
-	set(handles.figure1,'pointer','watch')
 
 	if (att.RasterCount == 0)			% Should never happen given the piece of code above, but ...
 		errordlg('Probably a multi-container file. Could not read it since its says that it has no raster bands.','ERROR')
@@ -5112,7 +5111,10 @@ function Transfer_CB(handles, opt)
 		h = findobj('Type','uicontrol');		set(h,'Visible','off')	% We don't want to print the buttons
 		handsStBar = getappdata(handles.figure1,'CoordsStBar');
 		set(handsStBar,'Visible','off');		set(handles.figure1,'pointer','arrow')
+		ff = findobj(handles.figure1, '-depth',1, 'Style','frame', 'Tag', 'FancyFrame');
+		if (~isempty(ff)),		fancyFrame(guidata(handles.figure1),'pset');	end
 		if (ispc),		print -v,		else	print;  end
+		if (~isempty(ff)),		fancyFrame(handles,'punset');	end
 		set(h,'Visible','on');  set(handsStBar(2:end),'Visible','on');
 
 	end
