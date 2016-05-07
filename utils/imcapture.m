@@ -93,7 +93,7 @@ function img = imcapture( h, opt, dpi, opt2, opt3)
 %           27-Aug-2007     Was failing if H = fighandle; OPT = imgAx and there were more that one visible axes
 %                           Recognizes and captures a Mirone "At side" Colorbar (but not perfect)
 
-%	Copyright (c) 2004-2012 by J. Luis
+%	Copyright (c) 2004-2016 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -108,7 +108,7 @@ function img = imcapture( h, opt, dpi, opt2, opt3)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: imcapture.m 3996 2013-06-27 17:56:31Z j $
+% $Id: imcapture.m 7887 2016-05-07 21:43:52Z j $
 
 	hAxes = [];
 	if (nargin == 0 || isempty(h)),     h = get(0,'CurrentFigure');    end
@@ -126,7 +126,7 @@ function img = imcapture( h, opt, dpi, opt2, opt3)
 	else
 		h = [];
 	end
-	while ( ~isempty(h) && ~strcmp('figure', get(h,'type')) )
+	while (~isempty(h) && ~strcmp('figure', get(h,'type')) )
 		h = get(h,'parent');
 	end
 	if (~ishandle(h))
@@ -190,7 +190,8 @@ function img = imcapture( h, opt, dpi, opt2, opt3)
 	end
 
 	msg = [];
-	if (numel(hAxes) == 1 && strcmp( get(hAxes,'Visible'),'off') && (nargin == 1 || isempty(opt)) )
+	if (numel(hAxes) == 1 && strcmp(get(hAxes,'Visible'),'off') && (nargin == 1 || isempty(opt)))
+		
 		% Default to 'imgOnly' when we have only one image with invisible axes
 		opt = 'img';
 	end
@@ -204,9 +205,9 @@ function img = imcapture( h, opt, dpi, opt2, opt3)
 	if (nargin > 1)
 		switch opt
 			case 'img'      % Capture the image only
-				[img,msg] = imgOnly([],hAxes,inputargs{:});
+				[img,msg] = imgOnly([], hAxes, ~isempty(ff), inputargs{:});
 			case 'imgAx'    % Capture an image including the Labels
-				[img,msg] = imgOnly('nikles',hAxes,inputargs{:});
+				[img,msg] = imgOnly('nikles', hAxes, ~isempty(ff), inputargs{:});
 			case 'all'      % Capture everything in Figure
 				img = allInFig(inputargs{:});
 			otherwise
@@ -222,11 +223,11 @@ function img = imcapture( h, opt, dpi, opt2, opt3)
 		error('imcapture:a',msg);
 	end
 
-	% ------------------------------------------------------------------    
-	function [img, msg] = imgOnly(opt, hAxes, varargin)
-	% Capture the image, and optionaly the frame, mantaining the original image aspect ratio.
-	% We do that be messing with the Figure's 'PaperPosition' property
-	h = varargin{1};    msg = [];
+% ------------------------------------------------------------------    
+function [img, msg] = imgOnly(opt, hAxes, have_fancy, varargin)
+% Capture the image, and optionaly the frame, mantaining the original image aspect ratio.
+% We do that be messing with the Figure's 'PaperPosition' property
+	hFig = varargin{1};    msg = [];
 	if (isempty(hAxes) || numel(hAxes) > 1)
 		msg = 'With the selected options the figure must contain one, and one ONLY axes';
 		return
@@ -240,18 +241,20 @@ function img = imcapture( h, opt, dpi, opt2, opt3)
 		nx = axPos(3);                  ny = axPos(4);
 	end
 
-	PU = get(h,'paperunits');       set(h,'paperunits','inch')
-	pp = get(h,'paperposition');    PPM = get(h,'PaperPositionMode');
+	PU = get(hFig,'paperunits');       set(hFig,'paperunits','inch')
+	pp = get(hFig,'paperposition');    PPM = get(hFig,'PaperPositionMode');
 	dpi = (nx / pp(3));             % I used to have a round() here but this pobably more correct
-	% Here is the key point of all this manip.
-	set(h,'paperposition',[pp(1:3) ny / dpi])
+
+	% ========== Here is the key point of all this manip ==============
+	set(hFig,'paperposition',[pp(1:3) ny / dpi])
+	% =================================================================
 
 	axUnit = get(hAxes,'Units');
 	axPos = get(hAxes,'pos');           % Save this because we will have to restore it later
 	set(hAxes,'Units','Normalized')     % This is the default, but be sure
-	fig_c = get(h,'Color');       set(h,'Color','w')
+	fig_c = get(hFig,'Color');       set(hFig,'Color','w')
 
-	[all_axes, cbWidth, cbAx] = getAllAxes(h);	% Find all visible axes plus eventual Mirone Colorbar
+	[all_axes, cbWidth, cbAx] = getAllAxes(hFig);	% Find all visible axes plus eventual Mirone Colorbar
 	% If there are more than one axis, put them out of sight so that they wont interfere
 	% (Just make them invisible is not enough)
 	if (numel(all_axes) > 1)
@@ -274,6 +277,12 @@ function img = imcapture( h, opt, dpi, opt2, opt3)
 	axVis = get(hAxes,'Visible');
 	if (~isempty(cbAx))					% If we have one color bar we may have to deal with it too
 		cbar_pos = get(cbAx,'Pos');
+	end
+
+	DAR = get(hAxes, 'DataAspectRatio');
+	DAR_is_not_one = false;
+	if (DAR(1) == 1 && DAR(2) < 1)		% Mirone Figs with cos(lat) active
+		DAR_is_not_one = true;
 	end
 
 	if (isempty(opt))                   % Pure Image only capture. Even if axes are visible, ignore them
@@ -301,7 +310,8 @@ function img = imcapture( h, opt, dpi, opt2, opt3)
 		FontSize = get(hAxes,'FontSize');       set(hAxes,'FontUnits',old_FU)
 		nYchars = size(YTickLabel,2);
 		% This is kitchen sizing, but what else can it be done with such can of bugs?
-		Ylabel_pos(1) = max(abs(Ylabel_pos(1)), nYchars * FontSize * 0.8 + 2);
+		%Ylabel_pos(1) = max(abs(Ylabel_pos(1)), nYchars * FontSize * 0.8 + 2);
+		Ylabel_pos(1) = abs(Ylabel_pos(1));
 
 		y_margin = abs(Xlabel_pos(2))+get(h_Xlabel,'Margin') + tenSizeX + tenSizeY;    % To hold the Xlabel height
 		x_margin = abs(Ylabel_pos(1))+get(h_Ylabel,'Margin');               % To hold the Ylabel width
@@ -312,15 +322,43 @@ function img = imcapture( h, opt, dpi, opt2, opt3)
 			x_margin = 60;
 		end
 
-		figUnit = get(h,'Units');        set(h,'Units','pixels')
-		figPos = get(h,'pos');           set(h,'Units',figUnit)
+		figUnit = get(hFig,'Units');        set(hFig,'Units','pixels')
+		figPos = get(hFig,'pos');           set(hFig,'Units',figUnit)
+		
 		x0 = x_margin / figPos(3);
 		y0 = y_margin / figPos(4);
 		tenSizeY = tenSizeY / figPos(4);    % Normalize it as well
 		cbWidth = cbWidth / figPos(3);      % Either 0 or the Mirone Colorbar width
-		set(hAxes,'pos',[x0 y0-tenSizeY 1-[x0+cbWidth y0]-1e-2])
+		pad = 1e-2;							% Only needed if Fancy Frame or when upper Y label == YLim
+		CB_label_width = 0;
+		if (cbWidth > 0)		% A "At side CB"
+			CB_Ylabel_pos = get(get(cbAx,'Ylabel'),'Extent');
+			CB_label_width = abs(CB_Ylabel_pos(1)) / figPos(3);
+		end
+		pos_main_Ax = [x0 y0-tenSizeY 1-[x0+cbWidth+CB_label_width y0]-pad];
+		if (have_fancy)
+			hFrancyFrames = findobj(get(hAxes,'Parent'), '-depth',1, 'Tag', 'FancyFrame');
+			Fu = get(hFrancyFrames(1), 'Units');		set(hFrancyFrames(1), 'Units', 'Normalized');
+			pos_fancy = get(hFrancyFrames(1), 'Pos');	set(hFrancyFrames(1), 'Units', Fu);
+			fancy_width = min(pos_fancy(3), pos_fancy(4));
+			pos_main_Ax(1) = pos_main_Ax(1) + fancy_width;
+			pad = pad + pad;		% to account for the frame on the right side
+		end
+		set(hAxes,'pos',pos_main_Ax)
 		if (~isempty(cbAx))					% If we have one color bar we must deal with it too
-			set(cbAx, 'Pos', [(x0 + 1 - (x0+cbWidth)) (y0-tenSizeY) cbar_pos(3) cbar_pos(4)]);
+			% When DAR != 1 this is damn complicated. Apparently the imcapture applyies the DAR
+			% to the CB position under the hood. So we have to compute a new CB position so that
+			% the two operations cancel and we get the Color Bar in the position we see it in Mirone fig.
+			sc = (1 - DAR(2)) / 2 + DAR(2);
+			if (cbWidth > 0)		% A "At side CB"
+				if (DAR_is_not_one)			% Mirone Figs with cos(lat) active
+					set(cbAx, 'Pos', [(x0+pos_main_Ax(3) + pad + CB_label_width)*sc pos_main_Ax(2) cbar_pos(3) cbar_pos(4)]);
+				else
+					set(cbAx, 'Pos', [(x0+pos_main_Ax(3) + pad) cbar_pos(2)+2e-2 cbar_pos(3) cbar_pos(4)]);	% VooDoo
+				end
+			else
+				set(cbAx, 'Pos', [(x0+pos_main_Ax(3) - pad)*sc pos_main_Ax(2) cbar_pos(3) pos_main_Ax(4)]);
+			end
 		end
 		set(h_Xlabel,'units',units_save);     set(h_Ylabel,'units',units_save);
 	else            % Dumb choice. 'imgAx' selected but axes are invisible. Default to Image only
@@ -337,37 +375,27 @@ function img = imcapture( h, opt, dpi, opt2, opt3)
 			mrows = varargin{4}(1);
 			ncols = varargin{4}(2);
 			if (~have_frames)
-				set(h,'paperposition',[pp(1:2) ncols/dpi mrows/dpi])
+				set(hFig,'paperposition',[pp(1:2) ncols/dpi mrows/dpi])
 				confirm = true;
 			else                        % This is kind of very idiot selection, but let it go
 				wdt = pp(3);          hgt = pp(3) * mrows/ncols;
-				set(h,'paperposition',[pp(1:2) wdt hgt])
+				set(hFig,'paperposition',[pp(1:2) wdt hgt])
 			end
 			varargin{4} = ['-r' sprintf('%d',round(dpi))];
 		else                            % Fourth arg contains the dpi
 			if (have_frames)
 				wdt = pp(3);          hgt = pp(3) * ny/nx;
-				set(h,'paperposition',[pp(1:2) wdt hgt])
+				set(hFig,'paperposition',[pp(1:2) wdt hgt])
 			end
 		end
 		if (numel(varargin) == 5)       % Vector graphics formats
-			set(h,'paperposition',[pp(1:2) varargin{5}*2.54])       % I warned in doc to use CM dimensions
+			set(hFig,'paperposition',[pp(1:2) varargin{5}*2.54])       % I warned in doc to use CM dimensions
 			varargin(5) = [];           % We don't want it to go into hardcopy
 		end
 
 		% This block is meant to deal with Mirone figures. Other cases were not tested recently
-		Stsb = getappdata(h,'CoordsStBar');		% Mirone status bar
+		Stsb = getappdata(hFig,'CoordsStBar');		% Mirone status bar
 		if (~isempty(Stsb)),		set(Stsb(2:end), 'Vis', 'off'),		end
-
-		DAR = get(hAxes, 'DataAspectRatio');
-
-		leave_DAR_alone = true;
-		if (DAR(1) == 1 && DAR(2) < 1)		% Mirone Figs with cos(lat) active
-			leave_DAR_alone = false;
-		end
-
-		% NOT Pure Image only capture.
-		if (~isempty(opt) && ~isequal(DAR, [1 1 1]) && ~leave_DAR_alone ),	set(hAxes, 'DataAspectRatio', [1 1 1]);		end
 
 		img = hardcopy( varargin{:} );      % CAPTURE -- CAPTURE -- CAPTURE -- CAPTURE -- CAPTURE
 
@@ -377,18 +405,17 @@ function img = imcapture( h, opt, dpi, opt2, opt3)
 			if (dx ~= 0 || dy ~= 0)         % ML failed (probably R14). Repeat to make it obey
 				mrows_desBUG = mrows + dy;
 				ncols_desBUG = ncols + dx;
-				set(h,'paperposition',[pp(1:2) ncols_desBUG/dpi mrows_desBUG/dpi])
+				set(hFig,'paperposition',[pp(1:2) ncols_desBUG/dpi mrows_desBUG/dpi])
 				img = hardcopy( varargin{:} );      % Insist
 			end
 		end
 		if (~isempty(Stsb)),	set(Stsb(2:end), 'Vis', 'on'),	end
-		if (~isequal(DAR, [1 1 1]) && ~leave_DAR_alone),	set(hAxes, 'DataAspectRatio', DAR);			end		% Reset it if its the case
 		if (~isempty(cbAx))		% Reset the color bar into its original position
 			set(cbAx, 'Pos', cbar_pos);
 		end
 	catch                                   % If it screws, restore original Fig properties anyway
 		set(hAxes,'Units',axUnit,'pos',axPos,'Visible','on')
-		set(h,'paperposition',pp,'paperunits',PU,'PaperPositionMode',PPM,'Color',fig_c)
+		set(hFig,'paperposition',pp,'paperunits',PU,'PaperPositionMode',PPM,'Color',fig_c)
 		if (~isempty(Stsb)),	set(Stsb(2:end), 'Vis', 'on'),	end
 		msg = lasterr;      img = [];
 	end
@@ -404,7 +431,7 @@ function img = imcapture( h, opt, dpi, opt2, opt3)
 
 	% Reset the original fig properties
 	set(hAxes,'Units',axUnit,'pos',axPos,'Visible',axVis)
-	set(h,'paperposition',pp,'paperunits',PU,'PaperPositionMode',PPM,'Color',fig_c)
+	set(hFig,'paperposition',pp,'paperunits',PU,'PaperPositionMode',PPM,'Color',fig_c)
     
 % ------------------------------------------------------------------    
 function img = allInFig(varargin)
@@ -425,11 +452,16 @@ function [all_axes, cbFullWidth, cbAx] = getAllAxes(hFig)
 	all_axes = findobj(hFig,'Type','axes');
 	set(0,'ShowHiddenHandles','on')
 	cbAx = findobj(hFig,'Type','axes','Tag','MIR_CBat');
-	set(0,'ShowHiddenHandles','off')
 
 	if (~isempty(cbAx))
 		h_Ylabel = get(cbAx,'Ylabel');		units_save = get(h_Ylabel,'units');
 		set(h_Ylabel,'units','pixels');		Ylabel_pos = get(h_Ylabel,'Extent');
 		set(h_Ylabel,'units',units_save)
 		cbFullWidth = Ylabel_pos(1);
+	else
+		cbAx = findobj(hFig,'Type','axes','Tag','MIR_CBin');	% Search for "Inside" cbar.
+		if (~isempty(cbAx))
+			cbFullWidth = 0;	% Zero because we wont need to make room for this color bar
+		end
 	end
+	set(0,'ShowHiddenHandles','off')
