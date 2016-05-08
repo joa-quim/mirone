@@ -108,7 +108,7 @@ function img = imcapture( h, opt, dpi, opt2, opt3)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: imcapture.m 7887 2016-05-07 21:43:52Z j $
+% $Id: imcapture.m 7892 2016-05-08 23:49:38Z j $
 
 	hAxes = [];
 	if (nargin == 0 || isempty(h)),     h = get(0,'CurrentFigure');    end
@@ -313,11 +313,14 @@ function [img, msg] = imgOnly(opt, hAxes, have_fancy, varargin)
 		%Ylabel_pos(1) = max(abs(Ylabel_pos(1)), nYchars * FontSize * 0.8 + 2);
 		Ylabel_pos(1) = abs(Ylabel_pos(1));
 
+		% Today (8 May 2016) I found a beautiful fact. The XYlabel_pos keep growing when I repeat
+		% the capturing command (as is typical in debugging sessions). TMW, Why, Why????
 		y_margin = abs(Xlabel_pos(2))+get(h_Xlabel,'Margin') + tenSizeX + tenSizeY;    % To hold the Xlabel height
 		x_margin = abs(Ylabel_pos(1))+get(h_Ylabel,'Margin');               % To hold the Ylabel width
 		if (y_margin > 70)          % Play safe. LabelPos non-sense is always ready to strike 
 			y_margin = 30 + tenSizeX + tenSizeY;
 		end
+		if (y_margin < 30),		y_margin = 30;		end		% The nonsense has no end. To not clip the X legend
 		if (x_margin > 60)          % Play safe. LabelPos non-sense is always ready to strike 
 			x_margin = 60;
 		end
