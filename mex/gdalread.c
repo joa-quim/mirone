@@ -1,5 +1,5 @@
 /*--------------------------------------------------------------------
- *	$Id: gdalread.c 4787 2015-10-04 11:11:23Z j $
+ *	$Id: gdalread.c 7894 2016-05-09 00:18:26Z j $
  *
  *	Copyright (c) 2004-2012 by J. Luis
  *
@@ -79,7 +79,7 @@
 #include "cpl_string.h"
 #include "cpl_conv.h"
 
-int record_geotransform ( char *gdal_filename, GDALDatasetH hDataset, double *adfGeoTransform );
+int record_geotransform (char *gdal_filename, GDALDatasetH hDataset, double *adfGeoTransform);
 mxArray * populate_metadata_struct (char * ,int , int, int, int, int, double, double, double, double, double, double);
 int ReportCorner(GDALDatasetH hDataset, double x, double y, double *xy_c, double *xy_geo);
 void grd_FLIPUD_I32(int data[], int nx, int ny);
@@ -98,6 +98,15 @@ int decode_columns (char *txt, int *whichBands, int n_col);
 int GMT_strtok (const char *string, const char *sep, int *start, char *token);
 double ddmmss_to_degree (char *text);
 
+
+static char *mxstrdup (const char *s) {
+	/* A strdup replacement to be used in Mexs to avoid memory leaks since the MATLAB
+	   memory management will take care to free the memory allocated by this function */
+	char *d = mxMalloc (strlen (s) + 1);
+	if (d == NULL) return NULL;
+	strcpy (d,s);
+	return d;
+}
 
 /* ------------------- Matlab Gateway routine ---------------------------------- */
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
@@ -159,7 +168,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 					else
 						nn = atoi(&argv[i][2]);
 					whichBands = mxCalloc(nn, sizeof(int));
-					nReqBands = decode_columns (&argv[i][2], whichBands, nn);
+					nReqBands = decode_columns(&argv[i][2], whichBands, nn);
 					break;
 				case 'C':
 					correct_bounds = TRUE;
@@ -171,7 +180,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 					}
 					else {
 						*p = '\0';	*p++;
-						CPLSetConfigOption( &argv[i][2], p ); 
+						CPLSetConfigOption(&argv[i][2], p); 
 						mexPrintf("key = %s\tval = %s\n",&argv[i][2], p);
 					}
 					break;
@@ -188,11 +197,11 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 					metadata_only = TRUE;
 					break;
 				case 'R':
-					error += decode_R (argv[i], &dfULX, &dfLRX, &dfLRY, &dfULY);
+					error += decode_R(argv[i], &dfULX, &dfLRX, &dfLRY, &dfULY);
 					got_R = TRUE;
 					break;
 				case 'r':	/* Region is given in pixels */
-					error += decode_R (argv[i], &dfULX, &dfLRX, &dfLRY, &dfULY);
+					error += decode_R(argv[i], &dfULX, &dfLRX, &dfLRY, &dfULY);
 					got_r = TRUE;
 					break;
 				case 'P':
@@ -215,29 +224,29 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	}
 	
 	if (error || nrhs < 1 || nlhs > 2) {
-		mexPrintf ("usage(s): z = gdalread('filename',['-C'],['-F'],['-I'],['-Rw/e/s/n']);\n");
-		mexPrintf ("                       ['-S'],['-U'], ['-c<key>/<value>'], ['-s']);\n");
-		mexPrintf (" 	 [z,attrib] = gdalread('filename', ...);\n");
-		mexPrintf (" 	 attrib     = gdalread('','-M');\n\n");
-		mexPrintf ("\t   attrib is a structure with metadata.\n");
-		mexPrintf ("\t-C correct the grid bounds reported by GDAL (it thinks that all grids are pixel registered)\n");
-		mexPrintf ("\t-c Sets the named configuration keyword to the given value. Some common configuration\n");
-		mexPrintf ("\t   keywords are GDAL_CACHEMAX (memory used internally for caching in megabytes) and\n");
-		mexPrintf ("\t   GDAL_DATA (path of the GDAL 'data' directory)\n");
-		mexPrintf ("\t-F force pixel registration in attrib.GMT_hdr\n");
-		mexPrintf ("\t-I force importing via the 'insitu' transposition (about 10 times slower)\n");
-		mexPrintf ("\t-L flip the grid LeftRight (For the time being, ignored if -U).\n");
-		mexPrintf ("\t-M ouputs only the metadata structure\n");
-		mexPrintf ("\t-S scale ouptut into the [0-255] range\n");
-		mexPrintf ("\t-s Force the output 'z' array to be of float type (singles)\n");
-		mexPrintf ("\t-R read only the sub-region enclosed by <west/east/south/north>\n");
-		mexPrintf ("\t-U flip the grid UpDown (needed for all DEM grids in Mirone)\n");
+		mexPrintf("usage(s): z = gdalread('filename',['-C'],['-F'],['-I'],['-Rw/e/s/n']);\n");
+		mexPrintf("                       ['-S'],['-U'], ['-c<key>/<value>'], ['-s']);\n");
+		mexPrintf(" 	 [z,attrib] = gdalread('filename', ...);\n");
+		mexPrintf(" 	 attrib     = gdalread('','-M');\n\n");
+		mexPrintf("\t   attrib is a structure with metadata.\n");
+		mexPrintf("\t-C correct the grid bounds reported by GDAL (it thinks that all grids are pixel registered)\n");
+		mexPrintf("\t-c Sets the named configuration keyword to the given value. Some common configuration\n");
+		mexPrintf("\t   keywords are GDAL_CACHEMAX (memory used internally for caching in megabytes) and\n");
+		mexPrintf("\t   GDAL_DATA (path of the GDAL 'data' directory)\n");
+		mexPrintf("\t-F force pixel registration in attrib.GMT_hdr\n");
+		mexPrintf("\t-I force importing via the 'insitu' transposition (about 10 times slower)\n");
+		mexPrintf("\t-L flip the grid LeftRight (For the time being, ignored if -U).\n");
+		mexPrintf("\t-M ouputs only the metadata structure\n");
+		mexPrintf("\t-S scale ouptut into the [0-255] range\n");
+		mexPrintf("\t-s Force the output 'z' array to be of float type (singles)\n");
+		mexPrintf("\t-R read only the sub-region enclosed by <west/east/south/north>\n");
+		mexPrintf("\t-U flip the grid UpDown (needed for all DEM grids in Mirone)\n");
 		return;
 	}
 
 	/* Load the file name into a char string */
 
-	if ( (gdal_filename = (char *)mxArrayToString(prhs[0])) == NULL) {
+	if ((gdal_filename = (char *)mxArrayToString(prhs[0])) == NULL) {
 		mexPrintf ("%s\n", gdal_filename);
 		mexErrMsgTxt ("gdalread: failure to decode gdal_filename string \n");
 	}
@@ -255,7 +264,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 
 	if (metadata_only) {
 		plhs[0] = populate_metadata_struct (gdal_filename, correct_bounds, pixel_reg, got_R, 
-						nXSize, nYSize, dfULX, dfULY, dfLRX, dfLRY, z_min, z_max);
+		                                    nXSize, nYSize, dfULX, dfULY, dfLRX, dfLRY, z_min, z_max);
 		runed_once = TRUE;	/* Signals that next call won't need to call GDALAllRegister() again */
 		return;
 	}
@@ -263,8 +272,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	hDataset = GDALOpen(gdal_filename, GA_ReadOnly);
 
 	if (hDataset == NULL) {
-		mexPrintf ("GDALOpen failed %s\n", CPLGetLastErrorMsg());
-		plhs[0] = mxCreateNumericMatrix (0,0,mxDOUBLE_CLASS, mxREAL);
+		mexPrintf("GDALOpen failed %s\n", CPLGetLastErrorMsg());
+		plhs[0] = mxCreateNumericMatrix(0,0,mxDOUBLE_CLASS, mxREAL);
 		mexErrMsgTxt ("\n");
 	}
 
@@ -295,39 +304,39 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		/* -------------------------------------------------------------------- */
 		double	adfGeoTransform[6];
 
-		GDALGetGeoTransform( hDataset, adfGeoTransform );
+		GDALGetGeoTransform(hDataset, adfGeoTransform);
 
-		if( adfGeoTransform[2] != 0.0 || adfGeoTransform[4] != 0.0 ) {
+		if (adfGeoTransform[2] != 0.0 || adfGeoTransform[4] != 0.0) {
 			mexPrintf("The -projwin option was used, but the geotransform is\n"
 					"rotated. This configuration is not supported.\n");
-			GDALClose( hDataset );
+			GDALClose(hDataset);
 			GDALDestroyDriverManager();
 			return;
 		}
 
 		if (got_R) {	/* Region in map coordinates */
-			anSrcWin[0] = (int) ((dfULX - adfGeoTransform[0]) / adfGeoTransform[1] + 0.001);
-			anSrcWin[1] = (int) ((dfULY - adfGeoTransform[3]) / adfGeoTransform[5] + 0.001);
-			anSrcWin[2] = (int) ((dfLRX - dfULX) / adfGeoTransform[1] + 0.5);
-			anSrcWin[3] = (int) ((dfLRY - dfULY) / adfGeoTransform[5] + 0.5);
+			anSrcWin[0] = (int)((dfULX - adfGeoTransform[0]) / adfGeoTransform[1] + 0.001);
+			anSrcWin[1] = (int)((dfULY - adfGeoTransform[3]) / adfGeoTransform[5] + 0.001);
+			anSrcWin[2] = (int)((dfLRX - dfULX) / adfGeoTransform[1] + 0.5);
+			anSrcWin[3] = (int)((dfLRY - dfULY) / adfGeoTransform[5] + 0.5);
 			if (GDAL_VERSION_NUM < 1700 && !strcmp(format,"netCDF")) {
 				/* PATCH against the never ending GDAL bug of reading netCDF files */
 				anSrcWin[1] = GDALGetRasterYSize(hDataset) - (anSrcWin[1] + anSrcWin[3]) - 1;
 			}
 		}
 		else {		/* Region in pixel/line */
-			anSrcWin[0] = (int) (dfULX);
-			anSrcWin[1] = (int) (dfLRY);
-			anSrcWin[2] = (int) (dfLRX - dfULX);
-			anSrcWin[3] = (int) (dfULY - dfLRY);
+			anSrcWin[0] = (int)(dfULX);
+			anSrcWin[1] = (int)(dfLRY);
+			anSrcWin[2] = (int)(dfLRX - dfULX);
+			anSrcWin[3] = (int)(dfULY - dfLRY);
 		}
 
-		if( anSrcWin[0] < 0 || anSrcWin[1] < 0
+		if (anSrcWin[0] < 0 || anSrcWin[1] < 0
 			|| anSrcWin[0] + anSrcWin[2] > GDALGetRasterXSize(hDataset)
-			|| anSrcWin[1] + anSrcWin[3] > GDALGetRasterYSize(hDataset) ) {
+			|| anSrcWin[1] + anSrcWin[3] > GDALGetRasterYSize(hDataset)) {
 			mexPrintf("Computed -srcwin falls outside raster size of %dx%d.\n",
 			GDALGetRasterXSize(hDataset),
-			GDALGetRasterYSize(hDataset) );
+			GDALGetRasterYSize(hDataset));
 			return;
 		}
 		xOrigin = anSrcWin[0];
@@ -362,7 +371,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 
 	if (nReqBands) nBands = MIN(nBands,nReqBands);	/* If a band selection was made */
 
-	if ( scale_range && (GDALGetRasterDataType(hBand) == GDT_Byte) )	/* Just sanitizing */
+	if (scale_range && (GDALGetRasterDataType(hBand) == GDT_Byte))	/* Just sanitizing */
 		scale_range = FALSE;
 
 	/* Create a matrix for the return array */
@@ -375,60 +384,60 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	dims[0] = nBufYSize;	dims[1] = nBufXSize;
 
 	if (scale_range) {
-		plhs[0] = mxCreateNumericArray (ndims,dims,mxUINT8_CLASS, mxREAL);
+		plhs[0] = mxCreateNumericArray(ndims,dims,mxUINT8_CLASS, mxREAL);
 		outByte = mxGetData(plhs[0]);
 		if (!got_R)		/* Otherwise, Min/Max will be computed bellow */
 			GDALComputeRasterMinMax(hBand, FALSE, adfMinMax);
 	}
 	else if (forceSingle) {
-		plhs[0] = mxCreateNumericArray (ndims,dims,mxSINGLE_CLASS, mxREAL);
+		plhs[0] = mxCreateNumericArray(ndims,dims,mxSINGLE_CLASS, mxREAL);
 		outF32 = mxGetData(plhs[0]);
 		nPixelSize = 4;
 		insitu = FALSE;		/* Just to be sure */
 	}
 	else {
-		switch( GDALGetRasterDataType(hBand) ) {
+		switch(GDALGetRasterDataType(hBand)) {
 			case GDT_Byte:
-				plhs[0] = mxCreateNumericArray (ndims,dims,mxUINT8_CLASS, mxREAL);
+				plhs[0] = mxCreateNumericArray(ndims,dims,mxUINT8_CLASS, mxREAL);
 				outByte = mxGetData(plhs[0]);
 				insitu = FALSE;		/* Just to be sure */
 				break;
 			case GDT_Int16:
-				plhs[0] = mxCreateNumericArray (ndims,dims,mxINT16_CLASS, mxREAL);
+				plhs[0] = mxCreateNumericArray(ndims,dims,mxINT16_CLASS, mxREAL);
 				outI16 = mxGetData(plhs[0]);
 				insitu = FALSE;		/* Just to be sure */
 				break;
 			case GDT_CInt16:
 				ndims = 3;	dims[2] = 2*nBands;  /* Complex is as if we have the double of Bands */
-				plhs[0] = mxCreateNumericArray (ndims,dims,mxINT16_CLASS, mxREAL);
+				plhs[0] = mxCreateNumericArray(ndims,dims,mxINT16_CLASS, mxREAL);
 				outI16 = mxGetData(plhs[0]);
 				insitu = FALSE;		/* Just to be sure */
 				break;
 			case GDT_UInt16:
-				plhs[0] = mxCreateNumericArray (ndims,dims,mxUINT16_CLASS, mxREAL);
+				plhs[0] = mxCreateNumericArray(ndims,dims,mxUINT16_CLASS, mxREAL);
 				outUI16 = mxGetData(plhs[0]);
 				insitu = FALSE;		/* Just to be sure */
 				break;
 			case GDT_Int32:
-				plhs[0] = mxCreateNumericArray (ndims,dims,mxINT32_CLASS, mxREAL);
+				plhs[0] = mxCreateNumericArray(ndims,dims,mxINT32_CLASS, mxREAL);
 				outI32 = mxGetData(plhs[0]);
 				break;
 			case GDT_UInt32:
-				plhs[0] = mxCreateNumericArray (ndims,dims,mxUINT32_CLASS, mxREAL);
+				plhs[0] = mxCreateNumericArray(ndims,dims,mxUINT32_CLASS, mxREAL);
 				outUI32 = mxGetData(plhs[0]);
 				break;
 			case GDT_Float32:
-				plhs[0] = mxCreateNumericArray (ndims,dims,mxSINGLE_CLASS, mxREAL);
+				plhs[0] = mxCreateNumericArray(ndims,dims,mxSINGLE_CLASS, mxREAL);
 				outF32 = mxGetData(plhs[0]);
 				break;
 			case GDT_CFloat32:
 				ndims = 3;	dims[2] = 2*nBands;  /* Complex is as if we have the double of Bands */
-				plhs[0] = mxCreateNumericArray (ndims,dims,mxSINGLE_CLASS, mxREAL);
+				plhs[0] = mxCreateNumericArray(ndims,dims,mxSINGLE_CLASS, mxREAL);
 				outF32 = mxGetData(plhs[0]);
 				break;
 			case GDT_Float64:			/* TRICK, hope not get burned */
 				forceSingle = TRUE;
-				plhs[0] = mxCreateNumericArray (ndims,dims,mxSINGLE_CLASS, mxREAL);
+				plhs[0] = mxCreateNumericArray(ndims,dims,mxSINGLE_CLASS, mxREAL);
 				outF32 = mxGetData(plhs[0]);
 				nPixelSize = 4;
 				insitu = FALSE;		/* Just to be sure */
@@ -438,8 +447,10 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 
 	if (!insitu) {		/* EXPLICAR PORQUE */
 		tmp = mxCalloc(nBufYSize * nBufXSize, nPixelSize);
-		if (tmp == NULL)
-			mexErrMsgTxt ("gdalread: failure to allocate enough memory\n");
+		if (tmp == NULL) {
+			mexPrintf("gdalread: failure to allocate enough memory (mutiply those) %d\t%d\t%d\n", nBufYSize, nBufXSize, nPixelSize);
+			mexErrMsgTxt("\n");
+		}
 	}
 	else
 		tmp = mxGetData(plhs[0]);	/* Apropriate type was already selected above */
@@ -470,23 +481,23 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 
 	for (i = 0; i < nBands; i++) {
 		if (!nReqBands)		/* No band selection, read them sequentialy */
-			hBand = GDALGetRasterBand( hDataset, i+1 );
+			hBand = GDALGetRasterBand(hDataset, i+1);
 		else			/* Band selection. Read only the requested ones */
-			hBand = GDALGetRasterBand( hDataset, whichBands[i] );
+			hBand = GDALGetRasterBand(hDataset, whichBands[i]);
 
 		dataType = GDALGetRasterDataType(hBand);
 		if (forceSingle)
 			dataType = GDT_Float32;
 
 		GDALRasterIO(hBand, GF_Read, xOrigin, yOrigin, nXSize, nYSize,
-			tmp, nBufXSize, nBufYSize, dataType, 0, 0 );
+			tmp, nBufXSize, nBufYSize, dataType, 0, 0);
 
         	dfNoData = GDALGetRasterNoDataValue(hBand, &bGotNodata);
 		/* If we didn't computed it yet, its time to do it now */
 		if (got_R) ComputeRasterMinMax(tmp, hBand, adfMinMax, nXSize, nYSize, z_min, z_max);
 		if (nBands > 1 && scale_range) {	/* got_R && scale_range && nBands > 1 Should never be true */
-			adfMinMax[0] = GDALGetRasterMinimum( hBand, &bGotMin );
-			adfMinMax[1] = GDALGetRasterMaximum( hBand, &bGotMax );
+			adfMinMax[0] = GDALGetRasterMinimum(hBand, &bGotMin);
+			adfMinMax[1] = GDALGetRasterMaximum(hBand, &bGotMax);
 			if(!(bGotMin && bGotMax))
 				GDALComputeRasterMinMax(hBand, FALSE, adfMinMax);
 		}
@@ -508,14 +519,14 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 						if (bGotNodata) {
 							if (tmp[mVector[m]+n] != (GByte)dfNoData) {
 								aux = tmp[mVector[m]+n];
-								aux = ((aux - adfMinMax[0]) / range ) * 254 + 1;
+								aux = ((aux - adfMinMax[0]) / range) * 254 + 1;
 							}
 							else	/* Put the NoData value to a cte */
 								aux = 0;
 						}
 						else {
 							aux = tmp[mVector[m]+n];
-							aux = ((aux - adfMinMax[0]) / range ) * 254 + 1;
+							aux = ((aux - adfMinMax[0]) / range) * 254 + 1;
 						}
 						if (flipud)	nn = nVector[n]-m + i_x_nXYSize;
 						else		nn = nVector[n]+m + i_x_nXYSize;
@@ -538,14 +549,14 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 						if (bGotNodata) {
 							if (tmpI16[mVector[m]+n] != (GInt16)dfNoData) {
 								aux = tmpI16[mVector[m]+n];
-								aux = ((aux - adfMinMax[0]) / range ) * 254 + 1;
+								aux = ((aux - adfMinMax[0]) / range) * 254 + 1;
 							}
 							else	/* Put the NoData value to a cte */
 								aux = 0;
 						}
 						else {
 							aux = tmpI16[mVector[m]+n];
-							aux = ((aux - adfMinMax[0]) / range ) * 254 + 1;
+							aux = ((aux - adfMinMax[0]) / range) * 254 + 1;
 						}
 						if (flipud)	nn = nVector[n]-m + i_x_nXYSize;
 						else		nn = nVector[n]+m + i_x_nXYSize;
@@ -587,14 +598,14 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 						if (bGotNodata) {
 							if (tmpUI16[mVector[m]+n] != (GUInt16)dfNoData) {
 								aux = tmpUI16[mVector[m]+n];
-								aux = ((aux - adfMinMax[0]) / range ) * 254 + 1;
+								aux = ((aux - adfMinMax[0]) / range) * 254 + 1;
 							}
 							else	/* Put the NoData value to a cte */
 								aux = 0;
 						}
 						else {
 							aux = tmpUI16[mVector[m]+n];
-							aux = ((aux - adfMinMax[0]) / range ) * 254 + 1;
+							aux = ((aux - adfMinMax[0]) / range) * 254 + 1;
 						}
 						if (flipud)	nn = nVector[n]-m + i_x_nXYSize;
 						else		nn = nVector[n]+m + i_x_nXYSize;
@@ -617,14 +628,14 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 						if (bGotNodata) {
 							if (tmpI32[mVector[m]+n] != (GInt32)dfNoData) {
 								aux = (float)tmpI32[mVector[m]+n];
-								aux = ((aux - adfMinMax[0]) / range ) * 254 + 1;
+								aux = ((aux - adfMinMax[0]) / range) * 254 + 1;
 							}
 							else	/* Put the NoData value to a cte */
 								aux = 0;
 						}
 						else {
 							aux = (float)tmpI32[mVector[m]+n];
-							aux = ((aux - adfMinMax[0]) / range ) * 254 + 1;
+							aux = ((aux - adfMinMax[0]) / range) * 254 + 1;
 						}
 						if (flipud)	nn = nVector[n]-m + i_x_nXYSize;
 						else		nn = nVector[n]+m + i_x_nXYSize;
@@ -642,14 +653,14 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 						if (bGotNodata) {
 							if (tmpUI32[mVector[m]+n] != (GUInt32)dfNoData) {
 								aux = (float)tmpUI32[mVector[m]+n];
-								aux = ((aux - adfMinMax[0]) / range ) * 254 + 1;
+								aux = ((aux - adfMinMax[0]) / range) * 254 + 1;
 							}
 							else	/* Put the NoData value to a cte */
 								aux = 0;
 						}
 						else {
 							aux = (float)tmpUI32[mVector[m]+n];
-							aux = ((aux - adfMinMax[0]) / range ) * 254 + 1;
+							aux = ((aux - adfMinMax[0]) / range) * 254 + 1;
 						}
 						if (flipud)	nn = nVector[n]-m + i_x_nXYSize;
 						else		nn = nVector[n]+m + i_x_nXYSize;
@@ -667,14 +678,14 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 						if (bGotNodata) {
 							if (tmpF32[mVector[m]+n] > (float)dfNoData) {
 								aux = tmpF32[mVector[m]+n];
-								aux = ((aux - adfMinMax[0]) / range ) * 254 + 1;
+								aux = ((aux - adfMinMax[0]) / range) * 254 + 1;
 							}
 							else	/* Put the NoData value to a cte */
 								aux = 0;
 						}
 						else {
 							aux = tmpF32[mVector[m]+n];
-							aux = ((aux - adfMinMax[0]) / range ) * 254 + 1;
+							aux = ((aux - adfMinMax[0]) / range) * 254 + 1;
 						}
 						if (flipud)	nn = nVector[n]-m + i_x_nXYSize;
 						else		nn = nVector[n]+m + i_x_nXYSize;
@@ -704,7 +715,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 				}
 				break;
 			default:
-				CPLAssert( FALSE );
+				CPLAssert(FALSE);
 		}
 	}
 
@@ -942,8 +953,8 @@ void grd_FLIPUD_F32(float data[], int nx, int ny) {
  *
  * */
 mxArray *populate_metadata_struct (char *gdal_filename , int correct_bounds, int pixel_reg, int got_R, 
-				int nXSize, int nYSize, double dfULX, double dfULY, double dfLRX, 
-				double dfLRY, double z_min, double z_max) {
+                                   int nXSize, int nYSize, double dfULX, double dfULY, double dfLRX, 
+                                   double dfLRY, double z_min, double z_max) {
 	static int driverCount = 0;	/* Number of available drivers for the version of GDAL we are using. */
 
 	/* These are used to define the metadata structure about available GDAL drivers. */
@@ -975,8 +986,7 @@ mxArray *populate_metadata_struct (char *gdal_filename , int correct_bounds, int
 
 	int	i,j, overview, band_number;	/* Loop indices */
 	int	n_colors;		/* Number of colors in the eventual Color Table */ 
-	double	*dptr, *dptr2, *dptrMM,	/* short cut to the mxArray data */
-		*dptrSO;
+	double	*dptr, *dptr2, *dptrMM, *dptrSO;	/* short cut to the mxArray data */
 
 	GDALDriverH hDriver;		/* This is the driver chosen by the GDAL library to query the dataset. */
 	GDALDatasetH hDataset;		/* pointer structure used to query the gdal file. */
@@ -993,13 +1003,13 @@ mxArray *populate_metadata_struct (char *gdal_filename , int correct_bounds, int
 	int	num_struct_fields;	/* number of fields in the metadata structures. */
 	int	num_band_fields;
 	int	num_corner_fields;
-	int	nCounter;		/* Generic counter */
+	int	nCounter = 0, nCounterBand = 0;		/* Generic counter */
 	char	*fieldnames[20];	/* this array contains the names of the fields of the metadata structure. */
 	char	*band_fieldnames[20];
 	char	*corner_fieldnames[20];
 	char	*overview_fieldnames[20];
 	char	*colormap_fieldnames[1];
-	char	**papszMetadata;
+	char	**papszMetadata = NULL, **papszMetadataBand = NULL;
 	int	xSize, ySize, raster_count; /* Dimensions of the dataset */
 	int	gdal_type;		/* Datatype of the bands. */
 	double	nan, tmpdble;		/* NaN & temporary value */
@@ -1018,41 +1028,39 @@ mxArray *populate_metadata_struct (char *gdal_filename , int correct_bounds, int
 	/* Create the metadata structure. Just one element, with XXX fields. */
 	/* ------------------------------------------------------------------------- */
 	num_struct_fields = 19;
-	fieldnames[0] = strdup ("ProjectionRef");
-	fieldnames[1] = strdup ("GeoTransform");
-	fieldnames[2] = strdup ("DriverShortName");
-	fieldnames[3] = strdup ("DriverLongName");
-	fieldnames[4] = strdup ("RasterXSize");
-	fieldnames[5] = strdup ("RasterYSize");
-	fieldnames[6] = strdup ("RasterCount");
-	fieldnames[7] = strdup ("ColorInterp");
-	fieldnames[8] = strdup ("Driver" );
-	fieldnames[9] = strdup ("Band");
-	fieldnames[10] = strdup ("Corners");
-	fieldnames[11] = strdup("GEOGCorners");
-	fieldnames[12] = strdup("GMT_hdr");
-	fieldnames[13] = strdup("GCPprojection");
-	fieldnames[14] = strdup("GCPvalues");
-	fieldnames[15] = strdup("Metadata");
-	fieldnames[16] = strdup("Subdatasets");
-	fieldnames[17] = strdup("ImageStructure");
-	fieldnames[18] = strdup("Name");
-	metadata_struct = mxCreateStructMatrix ( 1, 1, num_struct_fields, (const char **)fieldnames );
+	fieldnames[0]  = mxstrdup("ProjectionRef");
+	fieldnames[1]  = mxstrdup("GeoTransform");
+	fieldnames[2]  = mxstrdup("DriverShortName");
+	fieldnames[3]  = mxstrdup("DriverLongName");
+	fieldnames[4]  = mxstrdup("RasterXSize");
+	fieldnames[5]  = mxstrdup("RasterYSize");
+	fieldnames[6]  = mxstrdup("RasterCount");
+	fieldnames[7]  = mxstrdup("ColorInterp");
+	fieldnames[8]  = mxstrdup("Driver");
+	fieldnames[9]  = mxstrdup("Band");
+	fieldnames[10] = mxstrdup("Corners");
+	fieldnames[11] = mxstrdup("GEOGCorners");
+	fieldnames[12] = mxstrdup("GMT_hdr");
+	fieldnames[13] = mxstrdup("GCPprojection");
+	fieldnames[14] = mxstrdup("GCPvalues");
+	fieldnames[15] = mxstrdup("Metadata");
+	fieldnames[16] = mxstrdup("Subdatasets");
+	fieldnames[17] = mxstrdup("ImageStructure");
+	fieldnames[18] = mxstrdup("Name");
+	metadata_struct = mxCreateStructMatrix(1, 1, num_struct_fields, (const char **)fieldnames);
 
 	num_driver_fields = 2;
-	driver_fieldnames[0] = strdup( "DriverLongName" );
-	driver_fieldnames[1] = strdup( "DriverShortName" );
-	driver_struct = mxCreateStructMatrix ( driverCount, 1, num_driver_fields, (const char **)driver_fieldnames );
-	for ( j = 0; j < driverCount; ++j ) {
-		hDriver = GDALGetDriver( j );
-		mxtmp = mxCreateString ( GDALGetDriverLongName(hDriver) );
-		mxSetField ( driver_struct, j, (const char *) "DriverLongName", mxtmp );
-
-		mxtmp = mxCreateString ( GDALGetDriverShortName(hDriver) );
-		mxSetField ( driver_struct, j, (const char *) "DriverShortName", mxtmp );
-
+	driver_fieldnames[0] = mxstrdup("DriverLongName");
+	driver_fieldnames[1] = mxstrdup("DriverShortName");
+	driver_struct = mxCreateStructMatrix (driverCount, 1, num_driver_fields, (const char **)driver_fieldnames);
+	for (j = 0; j < driverCount; ++j) {
+		hDriver = GDALGetDriver(j);
+		mxtmp = mxCreateString (GDALGetDriverLongName(hDriver));
+		mxSetField (driver_struct, j, (const char *) "DriverLongName", mxtmp);
+		mxtmp = mxCreateString (GDALGetDriverShortName(hDriver));
+		mxSetField (driver_struct, j, (const char *) "DriverShortName", mxtmp);
 	}
-	mxSetField( metadata_struct, 0, "Driver", driver_struct );
+	mxSetField(metadata_struct, 0, "Driver", driver_struct);
 
 	if (strlen(gdal_filename) == 0)
 		return(metadata_struct);
@@ -1060,42 +1068,42 @@ mxArray *populate_metadata_struct (char *gdal_filename , int correct_bounds, int
 	/* ------------------------------------------------------------------------- */
 	/* Open the file (if we can). */
 	/* ------------------------------------------------------------------------- */
-	hDataset = GDALOpen ( gdal_filename, GA_ReadOnly );
-	if ( hDataset == NULL ) {
-		sprintf ( error_msg, "Unable to open %s.\n", gdal_filename );
-		mexErrMsgTxt ( error_msg );
+	hDataset = GDALOpen(gdal_filename, GA_ReadOnly);
+	if (hDataset == NULL) {
+		sprintf(error_msg, "Unable to open %s.\n", gdal_filename);
+		mexErrMsgTxt(error_msg);
 	}
 
 	/* ------------------------------------------------------------------------- */
 	/* Record the ProjectionRef. */
 	/* ------------------------------------------------------------------------- */
-	if( GDALGetProjectionRef( hDataset ) != NULL ) {
+	if (GDALGetProjectionRef(hDataset) != NULL) {
 		OGRSpatialReferenceH  hSRS;
 		char		      *pszProjection;
-		pszProjection = (char *) GDALGetProjectionRef( hDataset );
+		pszProjection = (char *)GDALGetProjectionRef(hDataset);
 
 		hSRS = OSRNewSpatialReference(NULL);
-		if( OSRImportFromWkt( hSRS, &pszProjection ) == CE_None ) {
+		if (OSRImportFromWkt(hSRS, &pszProjection) == CE_None) {
 			char	*pszPrettyWkt = NULL;
-			OSRExportToPrettyWkt( hSRS, &pszPrettyWkt, FALSE );
-			mxProjectionRef = mxCreateString ( pszPrettyWkt );
-			CPLFree( pszPrettyWkt );
+			OSRExportToPrettyWkt(hSRS, &pszPrettyWkt, FALSE);
+			mxProjectionRef = mxCreateString (pszPrettyWkt);
+			CPLFree(pszPrettyWkt);
 		}
 		else
-			mxProjectionRef = mxCreateString ( GDALGetProjectionRef( hDataset ) );
+			mxProjectionRef = mxCreateString (GDALGetProjectionRef(hDataset));
 
-		OSRDestroySpatialReference( hSRS );
+		OSRDestroySpatialReference(hSRS);
 	}
-	mxSetField ( metadata_struct, 0, "ProjectionRef", mxProjectionRef );
+	mxSetField(metadata_struct, 0, "ProjectionRef", mxProjectionRef);
 
 	/* ------------------------------------------------------------------------- */
 	/* Record the geotransform. */
 	/* ------------------------------------------------------------------------- */
-	mxGeoTransform = mxCreateNumericMatrix ( 6, 1, mxDOUBLE_CLASS, mxREAL );
-	dptr = mxGetPr ( mxGeoTransform );
+	mxGeoTransform = mxCreateNumericMatrix (6, 1, mxDOUBLE_CLASS, mxREAL);
+	dptr = mxGetPr(mxGeoTransform);
 
-	status = record_geotransform ( gdal_filename, hDataset, adfGeoTransform );
-	if ( status == 0 ) {
+	status = record_geotransform (gdal_filename, hDataset, adfGeoTransform);
+	if (status == 0) {
 		dptr[0] = adfGeoTransform[0];
 		dptr[1] = adfGeoTransform[1];
 		dptr[2] = adfGeoTransform[2];
@@ -1106,35 +1114,35 @@ mxArray *populate_metadata_struct (char *gdal_filename , int correct_bounds, int
 			dptr[0] = dfULX;
 			dptr[3] = dfULY;
 		}
-		mxSetField ( metadata_struct, 0, "GeoTransform", mxGeoTransform );
+		mxSetField (metadata_struct, 0, "GeoTransform", mxGeoTransform);
 	} 
 	else {
-		sprintf ( error_msg, "No internal georeferencing exists for %s, and could not find a suitable world file either.\n", gdal_filename );	
-		/*mexWarnMsgTxt ( error_msg );*/
+		sprintf (error_msg, "No internal georeferencing exists for %s, and could not find a suitable world file either.\n", gdal_filename);	
+		/*mexWarnMsgTxt (error_msg);*/
 	}
 
 	/* ------------------------------------------------------------------------- */
 	/* Get driver information */
 	/* ------------------------------------------------------------------------- */
-	hDriver = GDALGetDatasetDriver( hDataset );
+	hDriver = GDALGetDatasetDriver(hDataset);
 
-	mxGDALDriverShortName = mxCreateString ( GDALGetDriverShortName( hDriver ) );
-	mxSetField ( metadata_struct, 0, (const char *) "DriverShortName", mxGDALDriverShortName );
+	mxGDALDriverShortName = mxCreateString (GDALGetDriverShortName(hDriver));
+	mxSetField (metadata_struct, 0, (const char *) "DriverShortName", mxGDALDriverShortName);
 
-	mxGDALDriverLongName = mxCreateString ( GDALGetDriverLongName( hDriver ) );
-	mxSetField ( metadata_struct, 0, (const char *) "DriverLongName", mxGDALDriverLongName );
+	mxGDALDriverLongName = mxCreateString (GDALGetDriverLongName(hDriver));
+	mxSetField (metadata_struct, 0, (const char *) "DriverLongName", mxGDALDriverLongName);
 
 	if (!got_R) {		/* That is, if we are using the entire dataset */
-		xSize = GDALGetRasterXSize( hDataset );
-		ySize = GDALGetRasterYSize( hDataset );
+		xSize = GDALGetRasterXSize(hDataset);
+		ySize = GDALGetRasterYSize(hDataset);
 	}
 	else if (got_R && nXSize == 0 && nYSize == 0) {		/* metadata_only */
 		int	anSrcWin[4];
 		anSrcWin[0] = anSrcWin[1] = anSrcWin[2] = anSrcWin[3] = 0;
-		if( adfGeoTransform[2] != 0.0 || adfGeoTransform[4] != 0.0 ) {
+		if (adfGeoTransform[2] != 0.0 || adfGeoTransform[4] != 0.0) {
 			mexPrintf("The -projwin option was used, but the geotransform is\n"
 					"rotated. This configuration is not supported.\n");
-			GDALClose( hDataset );
+			GDALClose(hDataset);
 			GDALDestroyDriverManager();
 			mexErrMsgTxt ("Quiting with error\n");
 		}
@@ -1144,12 +1152,12 @@ mxArray *populate_metadata_struct (char *gdal_filename , int correct_bounds, int
 		anSrcWin[2] = (int) ((dfLRX - dfULX) / adfGeoTransform[1] + 0.5);
 		anSrcWin[3] = (int) ((dfLRY - dfULY) / adfGeoTransform[5] + 0.5);
 
-		if( anSrcWin[0] < 0 || anSrcWin[1] < 0
+		if (anSrcWin[0] < 0 || anSrcWin[1] < 0
 			|| anSrcWin[0] + anSrcWin[2] > GDALGetRasterXSize(hDataset)
-			|| anSrcWin[1] + anSrcWin[3] > GDALGetRasterYSize(hDataset) ) {
+			|| anSrcWin[1] + anSrcWin[3] > GDALGetRasterYSize(hDataset)) {
 			mexPrintf("Computed -srcwin falls outside raster size of %dx%d.\n",
 			GDALGetRasterXSize(hDataset),
-			GDALGetRasterYSize(hDataset) );
+			GDALGetRasterYSize(hDataset));
 			mexErrMsgTxt ("Quiting with error\n");
 		}
 		nXSize = anSrcWin[2];	nYSize = anSrcWin[3];
@@ -1165,79 +1173,79 @@ mxArray *populate_metadata_struct (char *gdal_filename , int correct_bounds, int
 		ySize = nYSize;
 	}
 
-	mxGDALRasterXSize = mxCreateDoubleScalar ( (double) xSize );
-	mxSetField ( metadata_struct, 0, (const char *) "RasterXSize", mxGDALRasterXSize );
+	mxGDALRasterXSize = mxCreateDoubleScalar ((double) xSize);
+	mxSetField(metadata_struct, 0, (const char *)"RasterXSize", mxGDALRasterXSize);
 
-	mxGDALRasterYSize = mxCreateDoubleScalar ( (double) ySize );
-	mxSetField ( metadata_struct, 0, (const char *) "RasterYSize", mxGDALRasterYSize );
+	mxGDALRasterYSize = mxCreateDoubleScalar ((double) ySize);
+	mxSetField(metadata_struct, 0, (const char *)"RasterYSize", mxGDALRasterYSize);
 
-	raster_count = GDALGetRasterCount( hDataset );
-	mxGDALRasterCount = mxCreateDoubleScalar ( (double)raster_count );
-	mxSetField ( metadata_struct, 0, (const char *) "RasterCount", mxGDALRasterCount );
+	/* ODDLY raster_count = 0 means the hDataset is the main file. So why raster count is zero???? */
+	raster_count = GDALGetRasterCount(hDataset);
+	mxGDALRasterCount = mxCreateDoubleScalar ((double)raster_count);
+	mxSetField (metadata_struct, 0, (const char *)"RasterCount", mxGDALRasterCount);
 
 	/* ------------------------------------------------------------------------- */
 	/* Get the Color Interpretation Name */
 	/* ------------------------------------------------------------------------- */
-	hBand = GDALGetRasterBand( hDataset, 1 );
-	if (raster_count > 0) {
-		mxtmp = mxCreateString ( GDALGetColorInterpretationName(
-			GDALGetRasterColorInterpretation(hBand)) );
-		mxSetField ( metadata_struct, 0, (const char *) "ColorInterp", mxtmp );
+	hBand = GDALGetRasterBand(hDataset, 1);
+	if (raster_count > 0) {		/* Oddly, this means that hDataset points to a SUBDATSET */
+		mxtmp = mxCreateString(GDALGetColorInterpretationName(GDALGetRasterColorInterpretation(hBand)));
+		mxSetField(metadata_struct, 0, (const char *) "ColorInterp", mxtmp);
 	}
 	else
-		mxSetField ( metadata_struct, 0, (const char *) "ColorInterp", mxCreateString("nikles") );
+		mxSetField(metadata_struct, 0, (const char *) "ColorInterp", mxCreateString("nikles"));
 
 	/* ------------------------------------------------------------------------- */
 	/* Get the metadata for each band. */
 	/* ------------------------------------------------------------------------- */
 	num_band_fields = 8;
-	band_fieldnames[0] = strdup ( "XSize" );
-	band_fieldnames[1] = strdup ( "YSize" );
-	band_fieldnames[2] = strdup ( "Overview" );
-	band_fieldnames[3] = strdup ( "NoDataValue" );
-	band_fieldnames[4] = strdup ( "MinMax" );
-	band_fieldnames[5] = strdup ( "ScaleOffset" );
-	band_fieldnames[6] = strdup ( "DataType" );
-	band_fieldnames[7] = strdup ( "ColorMap" );
-	band_struct = mxCreateStructMatrix ( raster_count, 1, num_band_fields, (const char **)band_fieldnames );
+	band_fieldnames[0] = mxstrdup("XSize");
+	band_fieldnames[1] = mxstrdup("YSize");
+	band_fieldnames[2] = mxstrdup("Overview");
+	band_fieldnames[3] = mxstrdup("NoDataValue");
+	band_fieldnames[4] = mxstrdup("MinMax");
+	band_fieldnames[5] = mxstrdup("ScaleOffset");
+	band_fieldnames[6] = mxstrdup("DataType");
+	band_fieldnames[7] = mxstrdup("ColorMap");
+	band_struct = mxCreateStructMatrix(raster_count, 1, num_band_fields, (const char **)band_fieldnames);
 
 	num_overview_fields = 2;
-	overview_fieldnames[0] = strdup ( "XSize" );
-	overview_fieldnames[1] = strdup ( "YSize" );
-	colormap_fieldnames[0] = strdup ( "CMap" );
+	overview_fieldnames[0] = mxstrdup("XSize");
+	overview_fieldnames[1] = mxstrdup("YSize");
+	colormap_fieldnames[0] = mxstrdup("CMap");
 	nan = mxGetNaN();
 
 	/* ==================================================================== */
 	/*      Loop over bands.                                                */
 	/* ==================================================================== */
-	for ( band_number = 0; band_number < raster_count; ++band_number ) {
+	for (band_number = 0; band_number < raster_count; band_number++) {
 
-		hBand = GDALGetRasterBand( hDataset, band_number+1 );
+		hBand = GDALGetRasterBand(hDataset, band_number+1);
 
 		if (!got_R) 		/* Not sure about what will realy happen in this case */
-			mxtmp = mxCreateDoubleScalar ( (double) GDALGetRasterBandXSize( hBand ) );
+			mxtmp = mxCreateDoubleScalar ((double) GDALGetRasterBandXSize(hBand));
 		else
-			mxtmp = mxCreateDoubleScalar ( (double)nXSize );
-		mxSetField ( band_struct, band_number, "XSize", mxtmp );
+			mxtmp = mxCreateDoubleScalar ((double)nXSize);
+		mxSetField (band_struct, band_number, "XSize", mxtmp);
 
 		if (!got_R)
-			mxtmp = mxCreateDoubleScalar ( (double) GDALGetRasterBandYSize( hBand ) );
+			mxtmp = mxCreateDoubleScalar ((double) GDALGetRasterBandYSize(hBand));
 		else
-			mxtmp = mxCreateDoubleScalar ( (double)nYSize );
-		mxSetField ( band_struct, band_number, "YSize", mxtmp );
+			mxtmp = mxCreateDoubleScalar ((double)nYSize);
+		mxSetField (band_struct, band_number, "YSize", mxtmp);
 	
-		gdal_type = GDALGetRasterDataType ( hBand );
-		mxtmp = mxCreateString ( GDALGetDataTypeName ( gdal_type ) );
-		mxSetField ( band_struct, band_number, (const char *) "DataType", mxtmp );
+		gdal_type = GDALGetRasterDataType (hBand);
+		mxtmp = mxCreateString (GDALGetDataTypeName (gdal_type));
+		mxSetField (band_struct, band_number, (const char *) "DataType", mxtmp);
 
-		mxtmp = mxCreateDoubleScalar ( (double) (GDALGetRasterNoDataValue ( hBand, &status ) ) );
-		mxSetField ( band_struct, band_number, "NoDataValue", mxtmp );
+		mxtmp = mxCreateDoubleScalar ((double) (GDALGetRasterNoDataValue (hBand, &status)));
+		mxSetField (band_struct, band_number, "NoDataValue", mxtmp);
 	
 		/* Get band's Min/Max. If the band has no record of it we won't compute it */
 		toMinMax = mxCreateNumericMatrix(1, 2, mxDOUBLE_CLASS, mxREAL);	/* To hold band's min/max */
 		dptrMM = mxGetPr(toMinMax);
-		adfMinMax[0] = GDALGetRasterMinimum( hBand, &bGotMin );
-		adfMinMax[1] = GDALGetRasterMaximum( hBand, &bGotMax );
+		adfMinMax[0] = GDALGetRasterMinimum(hBand, &bGotMin);
+		adfMinMax[1] = GDALGetRasterMaximum(hBand, &bGotMax);
 		if((bGotMin && bGotMax)) {
 			dptrMM[0] = adfMinMax[0];
 			dptrMM[1] = adfMinMax[1];
@@ -1245,63 +1253,63 @@ mxArray *populate_metadata_struct (char *gdal_filename , int correct_bounds, int
 		else {		/* No Min/Max, we won't computer it either */
 			dptrMM[0] = dptrMM[1] = nan;
 		}
-		mxSetField ( band_struct, band_number, "MinMax", toMinMax );
+		mxSetField (band_struct, band_number, "MinMax", toMinMax);
 
 		/* Get band's Scale/Offset. If the band does not have them use the neutral 1/0 values */
 		toScaleOff = mxCreateNumericMatrix(1, 2, mxDOUBLE_CLASS, mxREAL);	/* To hold band's min/max */
 		dptrSO = mxGetPr(toScaleOff);
-		if (GDALGetRasterScale( hBand, &bSuccess ) != 1 || GDALGetRasterOffset( hBand, &bSuccess ) != 0) {
-			dptrSO[0] = GDALGetRasterScale ( hBand, &bSuccess );
-			dptrSO[1] = GDALGetRasterOffset( hBand, &bSuccess );
+		if (GDALGetRasterScale(hBand, &bSuccess) != 1 || GDALGetRasterOffset(hBand, &bSuccess) != 0) {
+			dptrSO[0] = GDALGetRasterScale (hBand, &bSuccess);
+			dptrSO[1] = GDALGetRasterOffset(hBand, &bSuccess);
 		}
 		else {
 			dptrSO[0] = 1.0;
 			dptrSO[1] = 0.0;
 		}
-		mxSetField ( band_struct, band_number, "ScaleOffset", toScaleOff );
+		mxSetField (band_struct, band_number, "ScaleOffset", toScaleOff);
 
-		num_overviews = GDALGetOverviewCount( hBand );	/* Can have multiple overviews per band. */
-		if ( num_overviews > 0 ) {
+		num_overviews = GDALGetOverviewCount(hBand);	/* Can have multiple overviews per band. */
+		if (num_overviews > 0) {
 
-			overview_struct = mxCreateStructMatrix ( num_overviews, 1, num_overview_fields,
-						(const char **)overview_fieldnames );
+			overview_struct = mxCreateStructMatrix (num_overviews, 1, num_overview_fields,
+						(const char **)overview_fieldnames);
 	
-			for ( overview = 0; overview < num_overviews; ++overview ) {
-				overview_hBand = GDALGetOverview ( hBand, overview );
+			for (overview = 0; overview < num_overviews; ++overview) {
+				overview_hBand = GDALGetOverview (hBand, overview);
 	
-				xSize = GDALGetRasterBandXSize ( overview_hBand );
-				mxtmp = mxCreateDoubleScalar ( xSize );
-				mxSetField ( overview_struct, overview, "XSize", mxtmp );
+				xSize = GDALGetRasterBandXSize (overview_hBand);
+				mxtmp = mxCreateDoubleScalar (xSize);
+				mxSetField (overview_struct, overview, "XSize", mxtmp);
 	
-				ySize = GDALGetRasterBandYSize ( overview_hBand );
-				mxtmp = mxCreateDoubleScalar ( ySize );
-				mxSetField ( overview_struct, overview, "YSize", mxtmp );
+				ySize = GDALGetRasterBandYSize (overview_hBand);
+				mxtmp = mxCreateDoubleScalar (ySize);
+				mxSetField (overview_struct, overview, "YSize", mxtmp);
 			}
-			mxSetField ( band_struct, band_number, "Overview", overview_struct );
+			mxSetField (band_struct, band_number, "Overview", overview_struct);
 		}
 
 		/* See if we have Color Tables(s) */
 		colormap_struct = mxCreateStructMatrix(raster_count, 1, 1, (const char **)colormap_fieldnames);
-		if( GDALGetRasterColorInterpretation(hBand) == GCI_PaletteIndex 
-			&& (hTable = GDALGetRasterColorTable( hBand )) != NULL ) {
+		if (GDALGetRasterColorInterpretation(hBand) == GCI_PaletteIndex 
+			&& (hTable = GDALGetRasterColorTable(hBand)) != NULL) {
 
-			n_colors = GDALGetColorEntryCount( hTable );
+			n_colors = GDALGetColorEntryCount(hTable);
 			dims[0] = n_colors;	 dims[1] = 4;
 			mxCMap = mxCreateNumericArray (2,dims,mxDOUBLE_CLASS, mxREAL);
 			dptr = mxGetPr(mxCMap);
 
-			for( i = 0; i < n_colors; i++ ) {
-				GDALGetColorEntryAsRGB( hTable, i, &sEntry );
+			for (i = 0; i < n_colors; i++) {
+				GDALGetColorEntryAsRGB(hTable, i, &sEntry);
 				dptr[i] = (double)sEntry.c1 / 255;
 				dptr[i+n_colors] = (double)sEntry.c2 / 255;
 				dptr[i+2*n_colors] = (double)sEntry.c3 / 255;
 				dptr[i+3*n_colors] = (double)sEntry.c4 / 255;
 			}
-			mxSetField ( colormap_struct, band_number, "CMap", mxCMap );
-			mxSetField ( band_struct, band_number, "ColorMap", colormap_struct );
+			mxSetField (colormap_struct, band_number, "CMap", mxCMap);
+			mxSetField (band_struct, band_number, "ColorMap", colormap_struct);
 		}
 	}
-	mxSetField ( metadata_struct, 0, "Band", band_struct );
+	mxSetField (metadata_struct, 0, "Band", band_struct);
 
 	/* ------------------------------------------------------------------------- */
 	/* Record the GMT header. This will be interleaved with "corners" because they share somes values */
@@ -1313,10 +1321,10 @@ mxArray *populate_metadata_struct (char *gdal_filename , int correct_bounds, int
 	/* Record corners. */
 	/* ------------------------------------------------------------------------- */
 	num_corner_fields = 4;
-	corner_fieldnames[0] = strdup ("LL");
-	corner_fieldnames[1] = strdup ("UL");
-	corner_fieldnames[2] = strdup ("UR");
-	corner_fieldnames[3] = strdup ("LR");
+	corner_fieldnames[0] = mxstrdup ("LL");
+	corner_fieldnames[1] = mxstrdup ("UL");
+	corner_fieldnames[2] = mxstrdup ("UR");
+	corner_fieldnames[3] = mxstrdup ("LR");
 
 	corner_struct = mxCreateStructMatrix(1, 1, num_corner_fields, (const char **)corner_fieldnames);
 	dims[0] = 1;	 dims[1] = 2;
@@ -1329,7 +1337,7 @@ mxArray *populate_metadata_struct (char *gdal_filename , int correct_bounds, int
 	dptr = mxGetPr(mxCorners);
 	dptr[0] = xy_c[0];		dptr[1] = xy_c[1];
 	dptr2[0] = xy_c[0];		dptr2[2] = xy_c[1];	/* xmin, ymin */
-	mxSetField(corner_struct, 0, "LL", mxCorners );
+	mxSetField(corner_struct, 0, "LL", mxCorners);
 
 	if (!got_R)					/* Upper Left */
 		ReportCorner(hDataset, 0.0, 0.0, xy_c, xy_geo[1]);				
@@ -1338,7 +1346,7 @@ mxArray *populate_metadata_struct (char *gdal_filename , int correct_bounds, int
 	mxCorners = mxCreateNumericArray (2,dims,mxDOUBLE_CLASS, mxREAL);
 	dptr = mxGetPr(mxCorners);
 	dptr[0] = xy_c[0];		dptr[1] = xy_c[1];
-	mxSetField(corner_struct, 0, "UL", mxCorners );
+	mxSetField(corner_struct, 0, "UL", mxCorners);
 
 	if (!got_R)					/* Upper Rigt */
 		ReportCorner(hDataset, GDALGetRasterXSize(hDataset), 0.0, xy_c, xy_geo[2]);
@@ -1348,7 +1356,7 @@ mxArray *populate_metadata_struct (char *gdal_filename , int correct_bounds, int
 	dptr = mxGetPr(mxCorners);
 	dptr[0] = xy_c[0];		dptr[1] = xy_c[1];
 	dptr2[1] = xy_c[0];		dptr2[3] = xy_c[1];	/* xmax, ymax */
-	mxSetField(corner_struct, 0, "UR", mxCorners );
+	mxSetField(corner_struct, 0, "UR", mxCorners);
 
 	if (!got_R)					/* LR */
 		ReportCorner(hDataset, GDALGetRasterXSize(hDataset), GDALGetRasterYSize(hDataset), xy_c, xy_geo[3]);
@@ -1357,7 +1365,7 @@ mxArray *populate_metadata_struct (char *gdal_filename , int correct_bounds, int
 	mxCorners = mxCreateNumericArray (2,dims,mxDOUBLE_CLASS, mxREAL);
 	dptr = mxGetPr(mxCorners);
 	dptr[0] = xy_c[0];		dptr[1] = xy_c[1];
-	mxSetField(corner_struct, 0, "LR", mxCorners );
+	mxSetField(corner_struct, 0, "LR", mxCorners);
 
 	mxSetField (metadata_struct, 0, "Corners", corner_struct);
 
@@ -1366,14 +1374,14 @@ mxArray *populate_metadata_struct (char *gdal_filename , int correct_bounds, int
 	 * elements in a row contain a string version of Lon,Lat, the other a numeric
 	 * version. The corner's order is the same as the 'Corners' field. That is LL, UL, UR, LR.
 	 * -------------------------------------------------------------------------------------- */
-	if( !got_R ) {
-		if( !mxIsNaN(xy_geo[0][0]) ) {
+	if (!got_R) {
+		if (!mxIsNaN(xy_geo[0][0])) {
 			mxtmp = mxCreateCellMatrix(4, 4);
-			for( i = 0; i < 4; i++ ) {
-				mxSetCell( mxtmp,i,mxDuplicateArray( mxCreateString(GDALDecToDMS( xy_geo[i][0], "Long", 2 )) ) );
-				mxSetCell( mxtmp,i+4,mxDuplicateArray( mxCreateString(GDALDecToDMS( xy_geo[i][1], "Lat", 2 )) ) );
-				mxSetCell( mxtmp,i+8,mxDuplicateArray( mxCreateDoubleScalar(xy_geo[i][0])) );
-				mxSetCell( mxtmp,i+12,mxDuplicateArray( mxCreateDoubleScalar(xy_geo[i][1])) );
+			for (i = 0; i < 4; i++) {
+				mxSetCell(mxtmp,i,mxDuplicateArray(mxCreateString(GDALDecToDMS(xy_geo[i][0], "Long", 2))));
+				mxSetCell(mxtmp,i+4,mxDuplicateArray(mxCreateString(GDALDecToDMS(xy_geo[i][1], "Lat", 2))));
+				mxSetCell(mxtmp,i+8,mxDuplicateArray(mxCreateDoubleScalar(xy_geo[i][0])));
+				mxSetCell(mxtmp,i+12,mxDuplicateArray(mxCreateDoubleScalar(xy_geo[i][1])));
 			}
 		}
 		else
@@ -1388,15 +1396,15 @@ mxArray *populate_metadata_struct (char *gdal_filename , int correct_bounds, int
 	/* Fill in the rest of the GMT header values (If ...) */
 	if (raster_count > 0) {
 		if (z_min == 1e50) {		/* We don't know yet the dataset Min/Max */
-			/*adfMinMax[0] = GDALGetRasterMinimum( hBand, &bGotMin );
-			adfMinMax[1] = GDALGetRasterMaximum( hBand, &bGotMax );
+			/*adfMinMax[0] = GDALGetRasterMinimum(hBand, &bGotMin);
+			adfMinMax[1] = GDALGetRasterMaximum(hBand, &bGotMax);
 			if(!(bGotMin && bGotMax))
-				GDALComputeRasterMinMax( hBand, FALSE, adfMinMax );*/
+				GDALComputeRasterMinMax(hBand, FALSE, adfMinMax);*/
 			/* If file is a "VRT/Virtual Raster" do NOT try to compute min/max and trust on XML info */
 			if (strcmp(GDALGetDriverShortName(hDriver), "VRT"))
-				GDALComputeRasterMinMax( hBand, FALSE, adfMinMax );		/* NO VRT, scan file to compute min/max */
+				GDALComputeRasterMinMax(hBand, FALSE, adfMinMax);		/* NO VRT, scan file to compute min/max */
 			else
-				GDALComputeRasterMinMax( hBand, TRUE, adfMinMax );		/* VRT, believe in metadata info */
+				GDALComputeRasterMinMax(hBand, TRUE, adfMinMax);		/* VRT, believe in metadata info */
 
 			dptr2[4] = adfMinMax[0];
 			dptr2[5] = adfMinMax[1];
@@ -1437,19 +1445,19 @@ mxArray *populate_metadata_struct (char *gdal_filename , int correct_bounds, int
 	/* ------------------------------------------------------------------------- */
 	/* Record the GCPprojection. */
 	/* ------------------------------------------------------------------------- */
-	mxProjectionRef = mxCreateString ( GDALGetGCPProjection( hDataset ) );
-	mxSetField ( metadata_struct, 0, "GCPprojection", mxProjectionRef );
+	mxProjectionRef = mxCreateString (GDALGetGCPProjection(hDataset));
+	mxSetField(metadata_struct, 0, "GCPprojection", mxProjectionRef);
 
 	/* ------------------------------------------------------------------------- */
 	/* Record the GCPvalues. */
 	/* ------------------------------------------------------------------------- */
-	nCounter = GDALGetGCPCount( hDataset );
+	nCounter = GDALGetGCPCount(hDataset);
 	mxtmp = mxCreateNumericMatrix(nCounter, 5, mxDOUBLE_CLASS, mxREAL);	/* Empy matrix if no GCPs */
-	if( nCounter > 0 ) {
+	if (nCounter > 0) {
 		format = GDALGetDriverShortName(hDriver);
 		dptr = mxGetPr(mxtmp);
-		for( i = 0; i < nCounter; i++ ) {
-			psGCP = GDALGetGCPs( hDataset ) + i;
+		for (i = 0; i < nCounter; i++) {
+			psGCP = GDALGetGCPs(hDataset) + i;
 			if (!strcmp(format,"ESAT"))	/* ENVISAT GCPs are left-right fliped */ 
 				dptr[i] = xSize - psGCP->dfGCPPixel;
 			else
@@ -1465,47 +1473,56 @@ mxArray *populate_metadata_struct (char *gdal_filename , int correct_bounds, int
 	/* ------------------------------------------------------------------------- */
 	/* Record Metadata (if any).                                                 */
 	/* ------------------------------------------------------------------------- */
-	papszMetadata = GDALGetMetadata( hDataset, NULL );
+	papszMetadata = GDALGetMetadata(hDataset, NULL);
+	if (raster_count > 0) {			/* Oddly, a raster_count > 0 means that we are dealing with a SUBDATSET */
+		papszMetadataBand = GDALGetMetadata(hBand, NULL);	/* So get its own metadata */
+		nCounterBand = CSLCount(papszMetadataBand) + 1;		/* +1 to account for a separator line */
+	}
 	nCounter = CSLCount(papszMetadata);
-	mxtmp = mxCreateCellMatrix(nCounter, 1);
-	if( nCounter > 0 ) {
-		for( i = 0; i < nCounter; i++ )
-			mxSetCell( mxtmp,i,mxDuplicateArray( mxCreateString(papszMetadata[i]) ) );
+	mxtmp = mxCreateCellMatrix(nCounter + nCounterBand, 1);
+	if (nCounter > 0) {
+		for (i = 0; i < nCounter; i++)
+			mxSetCell(mxtmp,i,mxDuplicateArray(mxCreateString(papszMetadata[i])));
+	}
+	if (nCounterBand > 1) {			/* And add the band specific metadata */
+		mxSetCell(mxtmp, nCounter, mxDuplicateArray(mxCreateString("SUBDATSET Metadata")));		/* Flag that band meta starts here */
+		for (i = 0; i < nCounterBand; i++)
+			mxSetCell(mxtmp, i + nCounter + 1, mxDuplicateArray(mxCreateString(papszMetadataBand[i])));
 	}
 	mxSetField (metadata_struct, 0, "Metadata", mxtmp);
 
 	/* ------------------------------------------------------------------------- */
 	/* Record Subdatasets (if any).                                              */
 	/* ------------------------------------------------------------------------- */
-	papszMetadata = GDALGetMetadata( hDataset, "SUBDATASETS" );
+	papszMetadata = GDALGetMetadata(hDataset, "SUBDATASETS");
 	nCounter = CSLCount(papszMetadata);
 	mxtmp = mxCreateCellMatrix(nCounter, 1);
-	if( nCounter > 0 ) {
-		for( i = 0; i < nCounter; i++ )
-			mxSetCell( mxtmp,i,mxDuplicateArray( mxCreateString(papszMetadata[i]) ) );
+	if (nCounter > 0) {
+		for (i = 0; i < nCounter; i++)
+			mxSetCell(mxtmp,i,mxDuplicateArray(mxCreateString(papszMetadata[i])));
 	}
 	mxSetField (metadata_struct, 0, "Subdatasets", mxtmp);
 
 	/* ------------------------------------------------------------------------- */
 	/* Record ImageStructure (if any).                                           */
 	/* ------------------------------------------------------------------------- */
-	papszMetadata = GDALGetMetadata( hDataset, "IMAGE_STRUCTURE" );
+	papszMetadata = GDALGetMetadata(hDataset, "IMAGE_STRUCTURE");
 	nCounter = CSLCount(papszMetadata);
 	mxtmp = mxCreateCellMatrix(nCounter, 1);
-	if( nCounter > 0 ) {
-		for( i = 0; i < nCounter; i++ )
-			mxSetCell( mxtmp,i,mxDuplicateArray( mxCreateString(papszMetadata[i]) ) );
+	if (nCounter > 0) {
+		for (i = 0; i < nCounter; i++)
+			mxSetCell(mxtmp,i,mxDuplicateArray(mxCreateString(papszMetadata[i])));
 	}
-	mxSetField (metadata_struct, 0, "ImageStructure", mxtmp);
+	mxSetField(metadata_struct, 0, "ImageStructure", mxtmp);
 
 	/* ------------------------------------------------------------------------- */
 	/* Record Name                                                               */
 	/* ------------------------------------------------------------------------- */
-	mxSetField( metadata_struct, 0, "Name", mxCreateString( gdal_filename ) );
+	mxSetField(metadata_struct, 0, "Name", mxCreateString(gdal_filename));
 
-	GDALClose ( hDataset );
+	GDALClose(hDataset);
 
-	return ( metadata_struct );
+	return metadata_struct;
 }
 
 /************************************************************************/
@@ -1524,14 +1541,14 @@ int ReportCorner(GDALDatasetH hDataset, double x, double y, double *xy_c, double
 /* -------------------------------------------------------------------- */
 /*      Transform the point into georeferenced coordinates.             */
 /* -------------------------------------------------------------------- */
-	if( GDALGetGeoTransform( hDataset, adfGeoTransform ) == CE_None ) {
+	if (GDALGetGeoTransform(hDataset, adfGeoTransform) == CE_None) {
         	pszProjection = GDALGetProjectionRef(hDataset);
         	dfGeoX = adfGeoTransform[0] + adfGeoTransform[1] * x + adfGeoTransform[2] * y;
         	dfGeoY = adfGeoTransform[3] + adfGeoTransform[4] * x + adfGeoTransform[5] * y;
 	}
 	else {
 		xy_c[0] = x;	xy_c[1] = y;
-        	return FALSE;
+		return FALSE;
 	}
 
 /* -------------------------------------------------------------------- */
@@ -1542,31 +1559,31 @@ int ReportCorner(GDALDatasetH hDataset, double x, double y, double *xy_c, double
 /* -------------------------------------------------------------------- */
 /*      Setup transformation to lat/long.                               */
 /* -------------------------------------------------------------------- */
-    if( pszProjection != NULL && strlen(pszProjection) > 0 ) {
+    if (pszProjection != NULL && strlen(pszProjection) > 0) {
 
-        hProj = OSRNewSpatialReference( pszProjection );
-        if( hProj != NULL )
-            hLatLong = OSRCloneGeogCS( hProj );
+        hProj = OSRNewSpatialReference(pszProjection);
+        if (hProj != NULL)
+            hLatLong = OSRCloneGeogCS(hProj);
 
-        if( hLatLong != NULL ) {
-            CPLPushErrorHandler( CPLQuietErrorHandler );
-            hTransform = OCTNewCoordinateTransformation( hProj, hLatLong );
+        if (hLatLong != NULL) {
+            CPLPushErrorHandler(CPLQuietErrorHandler);
+            hTransform = OCTNewCoordinateTransformation(hProj, hLatLong);
             CPLPopErrorHandler();
-            OSRDestroySpatialReference( hLatLong );
+            OSRDestroySpatialReference(hLatLong);
         }
 
         if (hProj != NULL)
-            OSRDestroySpatialReference( hProj );
+            OSRDestroySpatialReference(hProj);
     }
 
 /* -------------------------------------------------------------------- */
 /*      Transform to latlong and report.                                */
 /* -------------------------------------------------------------------- */
-	if( hTransform != NULL && OCTTransform(hTransform,1,&dfGeoX,&dfGeoY,NULL) )
+	if (hTransform != NULL && OCTTransform(hTransform,1,&dfGeoX,&dfGeoY,NULL))
 		xy_geo[0] = dfGeoX;	xy_geo[1] = dfGeoY;
 
-	if( hTransform != NULL )
-		OCTDestroyCoordinateTransformation( hTransform );
+	if (hTransform != NULL)
+		OCTDestroyCoordinateTransformation(hTransform);
 
 	return TRUE;
 }
@@ -1577,21 +1594,21 @@ int ReportCorner(GDALDatasetH hDataset, double x, double y, double *xy_c, double
  * If the gdal file is not internally georeferenced, try to get the world file.
  * Returns -1 in case no world file is found.
  */
-int record_geotransform ( char *gdal_filename, GDALDatasetH hDataset, double *adfGeoTransform ) {
+int record_geotransform (char *gdal_filename, GDALDatasetH hDataset, double *adfGeoTransform) {
 	int status = -1;
 	char generic_buffer[5000];
 
-	if( GDALGetGeoTransform( hDataset, adfGeoTransform ) == CE_None )
+	if (GDALGetGeoTransform(hDataset, adfGeoTransform) == CE_None)
 		return (0);
 
 	/* Try a world file.  First the generic extension. If the gdal_filename
 	   is, say, "a.tif", then this will look for "a.wld". */
-	if ( GDALReadWorldFile ( gdal_filename, "wld", adfGeoTransform ) )
+	if (GDALReadWorldFile (gdal_filename, "wld", adfGeoTransform))
 		return (0);
 
 	/* Try again, but try "a.tif.wld" instead. */
-	sprintf ( generic_buffer, "%s.xxx", gdal_filename );
-	status = GDALReadWorldFile ( generic_buffer, "wld", adfGeoTransform );
+	sprintf (generic_buffer, "%s.xxx", gdal_filename);
+	status = GDALReadWorldFile (generic_buffer, "wld", adfGeoTransform);
 	if (status == 1)
 		return (0);
 
@@ -1612,10 +1629,10 @@ void ComputeRasterMinMax(char *tmp, GDALRasterBandH hBand, double adfMinMax[2],
 	double	dfNoDataValue;
 
         dfNoDataValue = GDALGetRasterNoDataValue(hBand, &bGotNoDataValue);
-	switch( GDALGetRasterDataType(hBand) ) {
+	switch(GDALGetRasterDataType(hBand)) {
 		case GDT_Byte:
 			for (i = 0; i < nXSize*nYSize; i++) {
-				if( bGotNoDataValue && tmp[i] == dfNoDataValue ) continue;
+				if (bGotNoDataValue && tmp[i] == dfNoDataValue) continue;
 				z_min = MIN(tmp[i], z_min);
 				z_max = MAX(tmp[i], z_max);
 			}
@@ -1623,7 +1640,7 @@ void ComputeRasterMinMax(char *tmp, GDALRasterBandH hBand, double adfMinMax[2],
 		case GDT_Int16:
 			tmpI16 = (GInt16 *) tmp;
 			for (i = 0; i < nXSize*nYSize; i++) {
-				if( bGotNoDataValue && tmpI16[i] == dfNoDataValue ) continue;
+				if (bGotNoDataValue && tmpI16[i] == dfNoDataValue) continue;
 				z_min = MIN(tmpI16[i], z_min);
 				z_max = MAX(tmpI16[i], z_max);
 			}
@@ -1631,7 +1648,7 @@ void ComputeRasterMinMax(char *tmp, GDALRasterBandH hBand, double adfMinMax[2],
 		case GDT_UInt16:
 			tmpUI16 = (GUInt16 *) tmp;
 			for (i = 0; i < nXSize*nYSize; i++) {
-				if( bGotNoDataValue && tmpUI16[i] == dfNoDataValue ) continue;
+				if (bGotNoDataValue && tmpUI16[i] == dfNoDataValue) continue;
 				z_min = MIN(tmpUI16[i], z_min);
 				z_max = MAX(tmpUI16[i], z_max);
 			}
@@ -1639,7 +1656,7 @@ void ComputeRasterMinMax(char *tmp, GDALRasterBandH hBand, double adfMinMax[2],
 		case GDT_Int32:
 			tmpI32 = (GInt32 *) tmp;
 			for (i = 0; i < nXSize*nYSize; i++) {
-				if( bGotNoDataValue && tmpI32[i] == dfNoDataValue ) continue;
+				if (bGotNoDataValue && tmpI32[i] == dfNoDataValue) continue;
 				z_min = MIN(tmpI32[i], z_min);
 				z_max = MAX(tmpI32[i], z_max);
 			}
@@ -1647,7 +1664,7 @@ void ComputeRasterMinMax(char *tmp, GDALRasterBandH hBand, double adfMinMax[2],
 		case GDT_UInt32:
 			tmpUI32 = (GUInt32 *) tmp;
 			for (i = 0; i < nXSize*nYSize; i++) {
-				if( bGotNoDataValue && tmpUI32[i] == dfNoDataValue ) continue;
+				if (bGotNoDataValue && tmpUI32[i] == dfNoDataValue) continue;
 				z_min = MIN(tmpUI32[i], z_min);
 				z_max = MAX(tmpUI32[i], z_max);
 			}
@@ -1655,7 +1672,7 @@ void ComputeRasterMinMax(char *tmp, GDALRasterBandH hBand, double adfMinMax[2],
 		case GDT_Float32:
 			tmpF32 = (float *) tmp;
 			for (i = 0; i < nXSize*nYSize; i++) {
-				if( bGotNoDataValue && tmpF32[i] == dfNoDataValue ) continue;
+				if (bGotNoDataValue && tmpF32[i] == dfNoDataValue) continue;
 				z_min = MIN(tmpF32[i], z_min);
 				z_max = MAX(tmpF32[i], z_max);
 			}
@@ -1667,7 +1684,7 @@ void ComputeRasterMinMax(char *tmp, GDALRasterBandH hBand, double adfMinMax[2],
 
 /* -------------------------------------------------------------------- */
 int decode_R (char *item, double *w, double *e, double *s, double *n) {
-	char *text, string[BUFSIZ];
+	char *text, string[256];
 	
 	/* Minimalist code to decode option -R extracted from GMT_get_common_args */
 	
