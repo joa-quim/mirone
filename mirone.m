@@ -20,7 +20,7 @@ function varargout = mirone(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: mirone.m 7891 2016-05-07 22:09:22Z j $
+% $Id: mirone.m 7893 2016-05-09 00:14:29Z j $
 
 	if (nargin > 1 && ischar(varargin{1}))
 		if ( ~isempty(strfind(varargin{1},':')) || ~isempty(strfind(varargin{1},filesep)) )
@@ -4896,7 +4896,7 @@ function TransferB_CB(handles, opt, opt2)
 		todos = fread(fid,'*char');		fclose(fid);
 		[nomes, MD5, V.Vstr] = strread(todos,'%s %s %s');	% In future we will have a use for the version string
 		builtin('delete',dest_fiche);	n = 1;		% Remove this one right away
-		namedl = cell(1);							% Mostly to shutup MLint
+		namedl = cell(1);	MD5_check = cell(1);	% Mostly to shutup MLint
 		pato_file = cell(numel(nomes),1);
 		ind_all = false(numel(nomes),1);			% To flag the ones truely to be updated later
 		for (k = 1:numel(nomes))
@@ -4906,10 +4906,12 @@ function TransferB_CB(handles, opt, opt2)
 				localMD5 = CalcMD5(nomes{k},'file');
 				if (~strcmp(MD5{k}, localMD5))
 					namedl{n} = [url nome ext];		% File name to update with path realtive to Mir root
+					MD5_check{n} = MD5{k};
 					n = n + 1;		ind_all(k) = true;
 				end
 			else									% New file. Download for sure.
 				namedl{n} = [url nome ext];
+				MD5_check{n} = MD5{k};
 				n = n + 1;			ind_all(k) = true;
 			end
 		end
@@ -4924,7 +4926,8 @@ function TransferB_CB(handles, opt, opt2)
 		for (k = 1:n-1)
 			[pato, nome, ext] = fileparts(namedl{k});		dest_fiche = [handles.path_tmp nome ext];
 			dos(['wget "' url nome ext '" -q --tries=2 --connect-timeout=5 -O ' dest_fiche]);
-			if (~exist(dest_fiche, 'file'))			% Troubles in transmission
+			localMD5 = CalcMD5(dest_fiche, 'file');
+			if (~strcmp(MD5_check{k}, localMD5))	% Troubles in transmission
 				ind(k) = true;
 			end
 		end
