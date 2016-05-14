@@ -3,7 +3,7 @@ function pixval_stsbar(arg1)
 
 % Coffeeright J. Luis 2004-2016
 
-% $Id: pixval_stsbar.m 7859 2016-04-11 17:38:17Z j $
+% $Id: pixval_stsbar.m 7896 2016-05-14 21:05:43Z j $
 
 	if (nargin == 0),	arg1 = [];		end
 
@@ -338,6 +338,9 @@ function ButtonDownOnImage(hImg, evt, hFig)
 				end
 			end
 		end
+		return
+	elseif (strcmp(stype,'extend'))
+		magnify(get(hImg, 'Parent'))
 		return
 	end
 	displayBar = findobj(hFig, 'Tag', 'pixValStsBar');
