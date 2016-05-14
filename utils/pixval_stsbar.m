@@ -339,6 +339,9 @@ function ButtonDownOnImage(hImg, evt, hFig)
 			end
 		end
 		return
+	elseif (strcmp(stype,'extend'))
+		magnify(get(hImg, 'Parent'))
+		return
 	end
 	displayBar = findobj(hFig, 'Tag', 'pixValStsBar');
 	dbud = get(displayBar, 'UserData');
