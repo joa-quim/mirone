@@ -18,7 +18,7 @@ function  varargout = aux_funs(opt,varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: aux_funs.m 7860 2016-04-11 17:39:33Z j $
+% $Id: aux_funs.m 7883 2016-04-27 22:37:36Z j $
 
 switch opt(1:4)
 	case 'Stor'		% 'StoreZ'
@@ -220,17 +220,17 @@ function out = findFileType(fname)
 	out = [];	
 	if (isempty(fname)),	return,		end
 	[PATH,FNAME,EXT] = fileparts(fname);
-	if ( strcmpi(EXT,'.grd') )
+	if (strcmpi(EXT,'.grd'))
 		out = 'gmt';
-	elseif ( strcmpi(EXT,'.nc') )		% .nc files can have grids, mgd77 files or any other thing
+	elseif (strcmpi(EXT,'.nc'))		% .nc files can have grids, mgd77 files or any other thing
 		s = nc_funs('info',fname);
 		if (isempty(s.Dataset))			% New OceanColor nc format uses Groups and nc_funs() says Dataset == []
 			out = 'dono';
 			return
 		end
 		try
-			if     ( any(strcmp({s.Dimension.Name}, 'id_dim')) ),			out = 'mgg_gmt';
-			elseif ( any(strcmp({s.Attribute.Name}, 'SHAPENC_type')) ),		out = 'ncshape';
+			if     (any(strcmp({s.Dimension.Name}, 'id_dim'))),			out = 'mgg_gmt';
+			elseif (any(strcmp({s.Attribute.Name}, 'SHAPENC_type'))),	out = 'ncshape';
 			else	out = 'gmt';
 			end
 		catch
@@ -245,11 +245,11 @@ function out = findFileType(fname)
 				end
 			end
 		end
-	elseif ( any(strcmpi(EXT,{'.jpg' '.png' '.bmp' '.gif' '.pcx' '.ras' '.pbm' '.ppm' '.pgm' '.pnm' '.xwd' '.shade' '.raw'})) )
+	elseif (any(strcmpi(EXT,{'.jpg' '.png' '.bmp' '.gif' '.pcx' '.ras' '.pbm' '.ppm' '.pgm' '.pnm' '.xwd' '.shade' '.raw'})) )
 		out = 'generic';
-	elseif ( any(strcmpi(EXT,{'.tif' '.tiff' '.sid' '.kap' '.nos'})) )
+	elseif (any(strcmpi(EXT,{'.tif' '.tiff' '.sid' '.kap' '.nos'})) )
 		out = 'geotif';
-	elseif ( any(strcmpi(EXT,{'.ecw' '.jp2'})) )	% This is a special case (they cause memory fragmentation)
+	elseif (any(strcmpi(EXT,{'.ecw' '.jp2'})) )	% This is a special case (they cause memory fragmentation)
 		out = 'ecw';
 	elseif ( strcmpi(EXT,'.mat') )
 		warning('off','MATLAB:load:variableNotFound')
@@ -260,9 +260,9 @@ function out = findFileType(fname)
 			s = load(fname,'FitLine');	% Try if it is a Ecran session
 			if (isfield(s, 'FitLine')),	out = 'mat';	end
 		end
-	elseif ( any(strcmpi(EXT,{'.n1' '.n14' '.n15' '.n16' '.n17'})) )
+	elseif (any(strcmpi(EXT,{'.n1' '.n14' '.n15' '.n16' '.n17'})) )
 		out = 'multiband';
-	elseif ( strcmpi(EXT,'.img') )
+	elseif (strcmpi(EXT,'.img'))
 		nome = [PATH filesep FNAME '.lbl'];
 		if (exist(nome, 'file'))
 			out = 'mola';
@@ -275,7 +275,7 @@ function out = findFileType(fname)
 		out = 'dat';
 	elseif (strcmpi(EXT,'.shp'))
 		out = 'shp';
-	elseif ( any(strcmpi(EXT,{'.las' '.laz'})) )
+	elseif (any(strcmpi(EXT,{'.las' '.laz'})) )
 		out = 'las';
 	elseif (strcmpi(EXT,'.gmt'))
 		fid = fopen(fname,'rt');
@@ -283,7 +283,7 @@ function out = findFileType(fname)
 		if (strncmp(ID,'# @VGMT', 7)),	out = 'ogr';
 		else							out = 'mgg_gmt';
 		end
-	elseif ( any(strcmpi(EXT,{'.kml' '.gml' '.dxf' '.gpx' '.dgn' '.csv' '.s57' '.svg'})) )
+	elseif (any(strcmpi(EXT,{'.kml' '.gml' '.dxf' '.gpx' '.dgn' '.csv' '.s57' '.svg'})) )
 		out = 'ogr';
 	elseif (strcmpi(EXT,'.ps') || strcmpi(EXT,'.eps'))
 		out = 'ghost';
@@ -298,6 +298,12 @@ function out = findFileType(fname)
 			s = nc_funs('info',fname);
 			ind = strcmp({s.Dimension.Name},'number_of_volumes');
 			if (any(ind)),		out = 'sww';	end		% Yes, it's ANUGA file.
+		end
+	elseif (strncmpi(EXT,'.mb',3) && numel(EXT) > 3)	% A MB datalist or an MB file
+		if (strcmpi(EXT,'.mb-1'))
+			out = 'MB-1';
+		else
+			out = ['MB' EXT(4:end)];
 		end
 	else
 		% OK, here we'll send ASCII files to load_xyz (after one more test) and binary to GDAL ... and see what happens.
