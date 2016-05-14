@@ -621,6 +621,7 @@ utils/ivan_the_terrible.m -text
 utils/jd2date.m -text
 utils/load_grd.m -text
 utils/load_xyz.m -text
+utils/magnify.m -text
 utils/make_arrow.m -text
 utils/makescale.m -text
 utils/map_funs.p -text
