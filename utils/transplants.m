@@ -18,6 +18,7 @@ function varargout = transplants(hLine, tipo, handles, second_g)
 %  HLINE     -> a line or patch handle to rectangle. Currently it's only used to fetch
 %               the Mirone handles in the case the HANDLES arg is not provided.
 %  TIPO      -> Is either 'grid' or 'image' (case insensitive) and select the operation to do
+%               OR 'one_sharp' or 'one_smooth' to fill a hole with sharp or smooth transition.
 %  HANDLES   -> is the (1/2 optional) Mirone handles. If not provided HLINE must be a valid line handle
 %  SECOND_G  -> A char string with the grid name to implant. If not provided, it will asked here.
 %
@@ -62,9 +63,9 @@ function varargout = transplants(hLine, tipo, handles, second_g)
 		transplant_img(handles, hLine),		return
 	elseif (strncmp(tipo, 'one_', 4))
 		if (strcmp(tipo(5:end), 'sharp'))
-			fill_one_hole(handles, 'sharp')
+			fill_one_hole(handles, 'sharp', second_g)
 		else
-			fill_one_hole(handles, 'smooth')
+			fill_one_hole(handles, 'smooth', second_g)
 		end
 		return
 	end
@@ -74,7 +75,7 @@ function varargout = transplants(hLine, tipo, handles, second_g)
 
 	is_graphic = true;		% Case when this function is called with a Mirone handles or a line handle in a Mir fig
 
-	if (isempty(second_g) || isa(second_g, 'char'))
+	if (isempty(second_g) || isa(second_g, 'char') || isa(second_g, 'struct'))
 % 		if (isempty(second_g))
 % 			str = {'*.grd;*.nc;*.tif;*.tiff;*.jpg;*.jp2;*.png;*.gif;*.mat;*.cpt;*.hdf;*.img', ...
 % 					'Files (*.grd,*.nc,*.tif,*.tiff,*.jpg,*.jp2,*.png,*.gif,*.mat,*.cpt,*.hdf,*.img)'; '*.*', 'All Files (*.*)'};
@@ -340,10 +341,18 @@ function transplant_img(handles, h)
 
 % --------------------------------------------------------------------------------------------------
 function [X, Y, Z, handlesInner, srsWKT] = load_implant_grid(handles, fname)
-% Load the grid to be implanted. Not tested that the fname exists
+% Load the grid to be implanted. Not tested that the FNAME exists
+% If FNAME is a struct, it is expected to have the members: X,Y,Z,head
+%	This is mostly used for testing purposes.
+
 	Z = [];		X = [];		Y = [];		srsWKT = '';	handlesInner = [];
 	if (nargin == 1),	fname = [];		end
-	if (isempty(fname))
+	
+	if (isa(fname, 'struct'))		% Just decompose the struct in its necessary members (not tested if exist)
+		X = fname.X;	Y = fname.Y;	Z = fname.Z;
+		handlesInner.head = fname.head;	handlesInner.have_nans = grdutils(Z, '-N');
+		return
+	elseif (isempty(fname))
 		str = {'*.grd;*.nc;*.tif;*.tiff;*.jpg;*.jp2;*.png;*.gif;*.mat;*.cpt;*.hdf;*.img', ...
 				'Files (*.grd,*.nc,*.tif,*.tiff,*.jpg,*.jp2,*.png,*.gif,*.mat,*.cpt,*.hdf,*.img)'; '*.*', 'All Files (*.*)'};
 		[FileName,PathName] = put_or_get_file(handles,str,'Select file','get');
@@ -368,12 +377,12 @@ function [X, Y, Z, handlesInner, srsWKT] = load_implant_grid(handles, fname)
 	[Z, X, Y, srsWKT, handlesInner] = read_grid(handlesInner, fname, tipo);
 
 % --------------------------------------------------------------------------------------------------
-function fill_one_hole(handles, kind)
-% Fill the hole right-clicked on a Mirone window. This function is (indirectly) called by pixval_stsbar
+function fill_one_hole(handles, kind, second_g)
+% Fill the hole right-clicked on a Mirone window. This function is (indirectly) called by pixval_stsbar.
 % The hole can have any shape. We digitize it here and and fish its handle, from which we get its coordinates.
 % The implanting grid will be asked and loaded from within this function.
 %
-% Also for the sharp king we call the interpolator because there are some mysterious NaNs left in the polyg border
+% Also for the sharp kind we call the interpolator because there are some mysterious NaNs left in the polyg border
 %
 % The do_the_tile() function can probably be made much more mem efficient if using GMT5
 
@@ -390,8 +399,12 @@ function fill_one_hole(handles, kind)
 		IN = inpolygon(pt(1,1), pt(1,2), get(hLines(k),'XData'), get(hLines(k),'YData'));
 		if (~IN),	c(k) = true;	end
 	end
-	delete(hLines(c))
-	hLines(c) = [];					% Remove those that do not contain the clicked point
+	if (all(c) && numel(c) <= 2)	% We can't have this (delete all lines). Hopefuly a call from test_bots.m
+		% Do nothing. Clearer coding than negating the above
+	else
+		delete(hLines(c))
+		hLines(c) = [];					% Remove those that do not contain the clicked point
+	end
 
 	if (numel(hLines) > 1)			% Ok, still must find the smalest one
 		lens = ones(numel(hLines), 1) * 1e50;
@@ -408,30 +421,32 @@ function fill_one_hole(handles, kind)
  	delete(hLines)			% We no longer need it
 	BB = [min(x) max(x) min(y) max(y)];
 	x_min = min(x);		x_max = max(x);		y_min = min(y);		y_max = max(y);
-	[X, Y, Zin, handlesImp, srsWKT] = load_implant_grid(handles);		% Get the implanting grid (MUST test that SRS are compatible)
-	if (isempty(Zin))
+	[X, Y, Zimp, handlesImp, srsWKT] = load_implant_grid(handles, second_g);	% Get the implanting grid (MUST test that SRS are compatible)
+	if (isempty(Zimp))
 		errordlg('Error loading implanting grid','Error'),	return
 	end
 	rect = [x_min y_min (x_max - x_min) (y_max - y_min)];
-	[Z_rect, r_c] = cropimg(handlesImp.head(1:2), handlesImp.head(3:4), Zin, rect, 'out_grid');	% Ideally it should have been croped on reading
+	% Crop the implanting grid to the BB of the polygon (Ideally it should have been croped on reading)
+	[Zimp_rect, r_c] = cropimg(handlesImp.head(1:2), handlesImp.head(3:4), Zimp, rect, 'out_grid');
 
-	% Resample impanting grid to the resolution of host grid
-	opt_R = sprintf('-R%.12g/%.12g/%.12g/%.12g', BB);
-	opt_I = sprintf('-I%.14g/%.14g', handles.head(8:9));
-	hdr_in = [(handlesImp.head(1) + (r_c(3)-1) * handlesImp.head(8)) (handlesImp.head(1) + (r_c(4)-1) * handlesImp.head(8)) ...
-	          (handlesImp.head(3) + (r_c(1)-1) * handlesImp.head(9)) (handlesImp.head(3) + (r_c(2)-1) * handlesImp.head(9)) ...
-	           handlesImp.head(5:9)];		% Well z_min z_max here may be wrong, but that shouldn't matter.	
-	Zin = c_grdsample(Z_rect, hdr_in, opt_R, opt_I);	clear Z_rect
-	
+	% Resample implanting grid to the resolution of host grid
+	opt_R = sprintf('-R%.16g/%.16g/%.16g/%.16g', BB);
+	opt_I = sprintf('-I%.16g/%.16g', handles.head(8:9));
+	hdr_imp_rect = [(handlesImp.head(1) + (r_c(3)-1) * handlesImp.head(8)) (handlesImp.head(1) + (r_c(4)-1) * handlesImp.head(8)) ...
+	                (handlesImp.head(3) + (r_c(1)-1) * handlesImp.head(9)) (handlesImp.head(3) + (r_c(2)-1) * handlesImp.head(9)) ...
+	                 handlesImp.head(5:9)];		% Well z_min z_max here may be wrong, but that shouldn't matter.	
+	[Zimp, hdr_imp] = c_grdsample(Zimp_rect, hdr_imp_rect, opt_R, opt_I);		% Z_imp_rect interpolated at base grid resolution
+	clear Z_imp_rect
+
 	% and insert it into the hole
 	[X,Y,Z] = load_grd(handles);
 	cols = aux_funs('getPixel_coords', size(Z,2), [X(1) X(end)], [x_min x_max]);
 	rows = aux_funs('getPixel_coords', size(Z,1), [Y(1) Y(end)], [y_min y_max]);
 
-	Zt = Z(rows(1):rows(2), cols(1):cols(2));		% Rectangle with the size of the hole's boundingbox
-	hdr_out = [X(cols(1)) X(cols(2)) Y(rows(1)) Y(rows(2)) handlesImp.head(5:9)];	% Again, z_min z_max here may be wrong
-	Zt = do_the_tile(Zt, hdr_out, handles.geog, Zin, hdr_in, x, y, pad);		% <--- HARD WORK HERE
-	clear Zin
+	Zt = Z(rows(1):rows(2), cols(1):cols(2));		% Croped zone of the Base grid with the size of the hole's BB
+	hdr_t = [X(cols(1)) X(cols(2)) Y(rows(1)) Y(rows(2)) handles.head(5:9)];	% Again, z_min z_max here may be wrong
+	Zt = do_the_tile(Zt, hdr_t, handles.geog, Zimp, hdr_imp, x, y, pad);		% <--- HARD WORK HERE
+	clear Zimp
 	Z(rows(1):rows(2), cols(1):cols(2)) = Zt;		% An now put the temporary rectangle back to the host grid
 	clear Zt
 
@@ -443,46 +458,51 @@ function fill_one_hole(handles, kind)
 	setappdata(handles.figure1,'dem_z',Z);
 
 % --------------------------------------------------------------------------------------------------
-function Z = do_the_tile(Zout, hdr_out, out_geog, Zin, hdr_in, x, y, buff_width)
+function Z = do_the_tile(Zhost, hdr_host, out_geog, Zimp, hdr_imp, x, y, buff_width)
 % ...
-% OUT_GEOG   -> The handles.geog of the outer grid
+% ZHOST      -> The host grid (or a cropped zone embracinf the whole we want to fill)
+% ZIMP       -> The implanting grid. It can be larger or smaller, higher or lower resolution than ZHOST
+% OUT_GEOG   -> The handles.geog of the host grid
 % X,Y        -> polygon coordinates
 % BUFF_WIDTH -> Number of cells to shrink the polygon X,Y (with buffer) to compute the inner mask
+%
+% Z          -> The result of filling the hole in ZHOST with the data from ZIMP. Same res as ZHOST. 
+%
+% If size(Zhost) == size(Zimp) and Region is the same (happens if Zimp was grdsampled) than we should
+% not need to go to the interpolation step. But grdsample GMT5 is very picky and may return a line of NaNs
 
-	Xout = linspace(hdr_out(1), hdr_out(2), size(Zout,2));
-	Yout = linspace(hdr_out(3), hdr_out(4), size(Zout,1));
-	Xin  = linspace(hdr_in(1),  hdr_in(2),  size(Zin, 2));
-	Yin  = linspace(hdr_in(3),  hdr_in(4),  size(Zin, 1));
-
-	Zout = double(Zout);		% If I use GMT5 maybe this waste won't be necessary
-	Zin  = double(Zin);
+	Xhost = linspace(hdr_host(1), hdr_host(2), size(Zhost,2));
+	Yhost = linspace(hdr_host(3), hdr_host(4), size(Zhost,1));
+	Ximp  = linspace(hdr_imp(1),  hdr_imp(2),  size(Zimp, 2));
+	Yimp  = linspace(hdr_imp(3),  hdr_imp(4),  size(Zimp, 1));
 
 	% Compute the OUTer and INner masks (in simplest case, they are equal)
-	mask_out = img_fun('roipoly_j',hdr_out(1:2),hdr_out(3:4),Zout,x,y);	% Get the mask of the hole at outer resolution
-	mask_in = mask_out;			% For the "life is easy" case
+	mask_host = img_fun('roipoly_j',hdr_host(1:2),hdr_host(3:4),Zhost,x,y);		% Get the mask of the hole at host resolution
+	mask_imp = mask_host;			% For the "life is easy" case
 	if (buff_width ~= 0)		% Than we must compute another polygon using the buffer algo
-		[y, x] = buffer_j(y, x, abs(max(hdr_in(8:9)) * buff_width), 'in', 13, out_geog);
+		[y, x] = buffer_j(y, x, abs(max(hdr_imp(8:9)) * buff_width), 'in', 13, out_geog);
 	end
-	if ((buff_width ~= 0) || ~isequal(size(Zout), size(Zin)))		% Than, need two masks
-		mask_in = img_fun('roipoly_j',hdr_in(1:2),hdr_in(3:4),Zin,x,y);	% Get the mask of the hole at inner resolution
+	if ((buff_width ~= 0) || ~isequal(size(Zhost), size(Zimp)))		% Than, need two masks
+		mask_imp = img_fun('roipoly_j',hdr_imp(1:2),hdr_imp(3:4),Zimp,x,y);	% Get the mask of the hole at implanting resolution
 	end
 
-	ZZ = Zout(~mask_out);
+	ZZ = Zhost(~mask_host);
 
-	[X,Y] = meshgrid(Xout,Yout);
-	XX = X(~mask_out(:));
-	YY = Y(~mask_out(:));
-	indNaN = isnan(ZZ);					% But are those NaN free?
+	[X,Y] = meshgrid(Xhost, Yhost);			% The HORROR
+	XX = X(~mask_host(:));
+	YY = Y(~mask_host(:));
+	indNaN = isnan(ZZ);						% But are those NaN free?
 	if (any(indNaN))
 		ZZ(indNaN) = [];	XX(indNaN) = [];	YY(indNaN) = [];
 	end
 
-	[X,Y] = meshgrid(Xin,Yin);
-	XXi = X(mask_in(:));
-	YYi = Y(mask_in(:));
-	ZZi = Zin(mask_in(:));
+	[X,Y] = meshgrid(Ximp,Yimp);
+	XXi = X(mask_imp(:));
+	YYi = Y(mask_imp(:));
+	ZZi = double(Zimp(mask_imp(:)));		% With GMT5 there should be a way to avoid this memory waste.
+	ZZ  = double(ZZ);
 
-	if (false)		% if Zin has NaNs
+	if (false)		% if Zimp has NaNs
 % 		XX = [XX(:); X(indNotNaN(:))];		clear X
 % 		YY = [YY(:); Y(indNotNaN(:))];		clear Y
 % 		ZZ = [ZZ(:); double(Zinner(indNotNaN(:)))];	clear Zinner	% Join outer and inner Zs
@@ -498,8 +518,8 @@ function Z = do_the_tile(Zout, hdr_out, out_geog, Zin, hdr_in, x, y, buff_width)
 		opt_C = ' ';
 	end
 
-	opt_R = sprintf('-R%.10f/%.10f/%.10f/%.10f', hdr_out(1), hdr_out(2), hdr_out(3), hdr_out(4));
-	opt_I = sprintf('-I%.10f/%.10f',hdr_out(8),hdr_out(9));
+	opt_R = sprintf('-R%.16g/%.16g/%.16g/%.16g', hdr_host(1), hdr_host(2), hdr_host(3), hdr_host(4));
+	opt_I = sprintf('-I%.16g/%.16g',hdr_host(8), hdr_host(9));
 
 	Z = gmtmbgrid_m(XX,YY,ZZ, opt_R, opt_I, '-T0.25', '-Mz', opt_C);
 
