@@ -30,6 +30,8 @@ function  test_bots(opt,varargin)
 				gmtlist
 			case 'implant'
 				implant
+			case 'fill_poly_hole'
+				fill_poly_hole
 		end
 	else
 		test_Illum
@@ -263,5 +265,22 @@ function implant
 % 	mirone(Z)
 	hand1.X = X;	hand1.Y = Y;
 	mirone(Z, hand1)
+
+% ----------------------------
+function fill_poly_hole
+% ...
+
+	[Z, hdrStruct] = gen_UMF2d(1.8, 0.05, 0.9, 1024);		% Pretend it's geogs (Remark, piking 1001 returns Z = NaNs everywhere)
+	x = [-10 -7 -5 -10]';		y = [38 40 37.5 38]';
+	x_lim = [hdrStruct.X(1) hdrStruct.X(end)];		y_lim = [hdrStruct.Y(1) hdrStruct.Y(end)];
+	mask = img_fun('roipoly_j',x_lim,y_lim,Z,x,y);
+	Z(mask) = NaN;
+	hand1.X = hdrStruct.X;		hand1.Y = hdrStruct.Y;
+	hand1.head = hdrStruct.head;
+	hFig = mirone(Z, hand1);
+	[Z2, hdrStruct2] = gen_UMF2d(1.8, 0.05, 0.95, 1024, [-10.5 -4.5 37 40.5]);
+	hdrStruct2.Z = Z2;
+	handles = guidata(hFig);
+	transplants([], 'one_sharp', handles, hdrStruct2)
 	
 	
