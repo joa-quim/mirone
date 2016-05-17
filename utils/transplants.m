@@ -46,7 +46,7 @@ function varargout = transplants(hLine, tipo, handles, second_g)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: transplants.m 7900 2016-05-17 21:36:37Z j $
+% $Id: transplants.m 7905 2016-05-17 21:55:19Z j $
 
 	if (nargin < 3)		% NOTE: in the IMPLANTGRID mode I'm not really using (YET) hLine for anything else
 		if (~ishandle(hLine) && ~strcmp(get(hLine,'type'), 'line') && ~strcmp(get(hLine,'type'), 'patch'))
@@ -435,8 +435,8 @@ function fill_one_hole(handles, kind, second_g)
 	hdr_imp_rect = [(handlesImp.head(1) + (r_c(3)-1) * handlesImp.head(8)) (handlesImp.head(1) + (r_c(4)-1) * handlesImp.head(8)) ...
 	                (handlesImp.head(3) + (r_c(1)-1) * handlesImp.head(9)) (handlesImp.head(3) + (r_c(2)-1) * handlesImp.head(9)) ...
 	                 handlesImp.head(5:9)];		% Well z_min z_max here may be wrong, but that shouldn't matter.	
-	[Zimp, hdr_imp] = c_grdsample(Zimp_rect, hdr_imp_rect, opt_R, opt_I);		% Z_imp_rect interpolated at base grid resolution
-	clear Z_imp_rect
+	[Zimp, hdr_imp] = c_grdsample(Zimp_rect, hdr_imp_rect, opt_R, opt_I);		% Zimp_rect interpolated at base grid resolution
+	clear Zimp_rect
 
 	% and insert it into the hole
 	[X,Y,Z] = load_grd(handles);
