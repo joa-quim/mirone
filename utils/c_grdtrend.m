@@ -14,8 +14,6 @@ function Zout = c_grdtrend(Zin, head, varargin)
 		for (k = 1:numel(varargin))
 			cmd = sprintf('%s %s', cmd, varargin{k});
 		end
-		gmtmex('create')
 		Zout = gmtmex(cmd, G);
 		Zout = Zout.z;
-		gmtmex('destroy')
 	end
