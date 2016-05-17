@@ -17,7 +17,7 @@ function magnify(hAx)
 	if (nargin == 0), hAx = gca; end
 	oldFigureUIState = uisuspend_j(get(hAx, 'parent'), true);
 	setappdata(hAx, 'Magnify_UIState', oldFigureUIState)
-	
+
 	hFig = get(hAx, 'parent');
 	set(get(hAx, 'parent'), 'WindowButtonDownFcn', {@wbd_magnifyCB, hAx}, ...
 		'WindowButtonMotionFcn', {@wbm_magnifyCB, hAx}, 'KeyPressFcn', {@KeyPress_magnifyCB, hAx});
