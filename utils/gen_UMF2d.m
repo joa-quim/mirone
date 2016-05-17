@@ -1,4 +1,4 @@
-function [fractfield, hdrStruct] = gen_UMF2d(alpha, C1, H, dim)
+function [fractfield, hdrStruct] = gen_UMF2d(alpha, C1, H, dim, region)
 % Generation of a stocastic 2D multi-fractal random field
 % Can be used to simulate DEM, turbulent fields (clouds etc)
 %
@@ -6,11 +6,11 @@ function [fractfield, hdrStruct] = gen_UMF2d(alpha, C1, H, dim)
 % Lovejoy - Schertzer "Nonlinear variability in geophysics: multifractal simulations and analysis"
 % 
 % Inputs:
-% alpha = [0..2] Levy parameter, governs the mutli-fractal behviour 
-%    (0 = monofractals)
-% C1 = governs the sparseness of the field
-% H = fractional integration, parameters, governs the ruggedness or smoothness of the field
-% dim = size of the fractal field
+% alpha   ->[0..2] Levy parameter, governs the mutli-fractal behviour (0 = monofractals)
+% C1      -> governs the sparseness of the field
+% H       -> fractional integration, parameters, governs the ruggedness or smoothness of the field
+% dim     -> size of the fractal field
+% region  -> Optional region limits (default = [-12 -2 35 45]). Grid inc is computed from it.
 
 %   Author(s): Andrea Monti Guarnieri, P. Biancardi, , D. D'Aria et. al
 
@@ -46,14 +46,18 @@ function [fractfield, hdrStruct] = gen_UMF2d(alpha, C1, H, dim)
 
 % Cleaned a lot of the unfortunatelly usual memory absurdity use
 
-% $Id: gen_UMF2d.m 4728 2015-07-22 15:14:51Z j $
+% $Id: gen_UMF2d.m 7901 2016-05-17 21:38:17Z j $
 
 	if nargin == 0
 		alpha = 1.8;	C1 = 0.05;		H = 0.9;	dim = 512;
 	end
 
 	% Pseudo corrdinates of this fractal field
-	w = -12;	e = -2;		s = 35;		n = 45;
+	if (nargin < 5)
+		w = -12;	e = -2;		s = 35;		n = 45;
+	else
+		w = region(1);	e = region(2);	s = region(3);	n = region(4);	
+	end
 
 	d = 2;
 
