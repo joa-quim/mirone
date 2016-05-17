@@ -20,7 +20,7 @@ function varargout = mirone(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: mirone.m 7893 2016-05-09 00:14:29Z j $
+% $Id: mirone.m 7903 2016-05-17 21:46:14Z j $
 
 	if (nargin > 1 && ischar(varargin{1}))
 		if ( ~isempty(strfind(varargin{1},':')) || ~isempty(strfind(varargin{1},filesep)) )
@@ -757,7 +757,7 @@ if ~isempty(opt)				% OPT must be a rectangle/polygon handle (the rect may serve
 			end
 			if (isnan(resp)),	handles.have_nans = 1;	end
 
-			mask = img_fun('roipoly_j',x_lim,y_lim,double(Z_rect),x,y);
+			mask = img_fun('roipoly_j', x_lim, y_lim, Z_rect, x, y);
 			if (strcmp(opt2,'CropaGrid_pure'))
 				Z_rect(~mask) = single(resp);
 			elseif (strcmp(opt2,'ROI_SetConst'))
@@ -994,7 +994,7 @@ if (~strcmp(opt2,'MedianFilter') && ~strcmp(opt2,'ROI_SetConst'))		% Otherwise, 
 	elseif (isa(Z,'uint16')),	Z(r_c(1):r_c(2),r_c(3):r_c(4)) = uint16(Z_rect);
 	else						Z(r_c(1):r_c(2),r_c(3):r_c(4)) = single(Z_rect);
 	end
-	if (handles.have_nans && ~isnan(Z_rect))			% Check that old NaNs had not been erased
+	if (handles.have_nans && ~any(isnan(Z_rect(:))))	% Check that old NaNs had not been erased
 		handles.have_nans = grdutils(Z,'-N');
 	end
 end
@@ -4869,7 +4869,15 @@ function TransferB_CB(handles, opt, opt2)
  	elseif (strcmp(opt,'sharedir'))				% Show GMT_SHAREDIR env var (standalone only and for debug)
 		env4 = set_gmt('GMT_SHAREDIR','lixo');
 		env5 = set_gmt('GMT5_SHAREDIR','lixo');
-		msgbox(sprintf('GMT_SHAREDIR = %s\nGMT5_SHAREDIR = %s', env4, env5))
+		if (~isempty(env4) && ~isempty(env5))
+			msgbox(sprintf('GMT_SHAREDIR = %s\nGMT5_SHAREDIR = %s', env4, env5))
+		elseif (~isempty(env4))
+			msgbox(sprintf('GMT_SHAREDIR = %s', env4))
+		elseif (~isempty(env5))
+			msgbox(sprintf('GMT5_SHAREDIR = %s', env5))
+		else
+			warndlg('No GMT_SHAREDIR variables found. Most likely you do not have GMT installed.', 'Warning')
+		end
 
  	elseif (strncmp(opt,'TransplantGrid',6))	%
 		ImageCrop_CB(handles,zeros(5,2),'ImplantGrid')	% The '0' is only to avoid the call to ruberbandbox in ImageCrop_CB
