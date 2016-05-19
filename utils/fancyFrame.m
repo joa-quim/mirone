@@ -88,7 +88,20 @@ function fancyFrame(handles, opt)
 			'Pos',[posAxNorm(1)+posAxNorm(3) ytFU(k) BarThickY ytFU(k+1)-ytFU(k)], 'Tag','FancyFrame');
 	end
 
-	set(handles.axes1,'TickDir','out','XTick',xtick,'YTick',ytick)
+	% Count number of decimals and force to use the same numbel for ALL labels.
+	XTickLabel = num2str(xtick(:));			% Rely on default value by num2str to decide on the number of decimals.
+	ind = strfind(XTickLabel(1,:), '.');
+	n_dec = size(XTickLabel, 2) - ind;
+	XTickLabel = num2str(xtick(:), sprintf('%%.%df', n_dec));
+	
+	YTickLabel = num2str(ytick(:));
+	ind = strfind(YTickLabel(1,:), '.');
+	n_dec = size(YTickLabel, 2) - ind;
+	YTickLabel = num2str(ytick(:), sprintf('%%.%df', n_dec));
+
+	set(handles.axes1,'TickDir','out','XTick',xtick, 'XTickLabel',XTickLabel, 'YTick',ytick, 'YTickLabel',YTickLabel)
+	setappdata(handles.axes1, 'XTickOrig', XTickLabel),		setappdata(handles.axes1, 'XTickOrigNum', xtick)
+	setappdata(handles.axes1, 'YTickOrig', YTickLabel),		setappdata(handles.axes1, 'YTickOrigNum', ytick)
 
 % -----------------------------------------------------------------------------------------
 function frame_patch(handles, opt)
