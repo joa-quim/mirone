@@ -25,7 +25,7 @@ function varargout = draw_funs(hand, varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: draw_funs.m 7880 2016-04-26 23:05:06Z j $
+% $Id: draw_funs.m 7908 2016-05-19 13:03:25Z j $
 
 % A bit of strange tests but they are necessary for the cases when we use the new feval(fun,varargin{:}) 
 opt = varargin{1};		% function name to evaluate (new) or keyword to select one (old form)
@@ -3435,43 +3435,40 @@ function changeAxesLabels(opt)
 	if (isa(x_tick, 'cell')),	x_tick = char(x_tick);	end		% Damn TMW never stops breaking compatibility (now in R2016a)
 	y_tick = getappdata(hAxes,'YTickOrig');
 	if (isa(y_tick, 'cell')),	y_tick = char(y_tick);	end
-	n_xtick = size(x_tick,1);                   n_ytick = size(y_tick,1);
+	n_xtick = size(x_tick,1);	n_ytick = size(y_tick,1);
 	sep = ':';
 	switch opt
 		case 'ToDegDec'
 			% This is easy because original Labels where saved in appdata
-			set(hAxes,'XTickLabel',getappdata(hAxes,'XTickOrig'));
-			set(hAxes,'YTickLabel',getappdata(hAxes,'YTickOrig'))
+			str_x = x_tick;			str_y = y_tick;
 			setappdata(hAxes,'LabelFormatType','DegDec')       % Save it so zoom can know the label type
 		case 'ToDegMin'
-			x_str = degree2dms(str2num( ddewhite(x_tick) ),'DDMM',0,'str');     % x_str is a structure with string fields
-			y_str = degree2dms(str2num( ddewhite(y_tick) ),'DDMM',0,'str');
+			x_str = degree2dms(str2num(ddewhite(x_tick)),'DDMM',0,'str');     % x_str is a structure with string fields
+			y_str = degree2dms(str2num(ddewhite(y_tick)),'DDMM',0,'str');
 			str_x = [x_str.dd repmat(sep,n_xtick,1) x_str.mm];
 			str_y = [y_str.dd repmat(sep,n_ytick,1) y_str.mm];
-			set(hAxes,'XTickLabel',str_x);        set(hAxes,'YTickLabel',str_y)
 			setappdata(hAxes,'LabelFormatType','DegMin')        % Save it so zoom can know the label type
 		case 'ToDegMinDec'
-			x_str = degree2dms(str2num( ddewhite(x_tick) ),'DDMM.x',2,'str');    % x_str is a structure with string fields
-			y_str = degree2dms(str2num( ddewhite(y_tick) ),'DDMM.x',2,'str');
+			x_str = degree2dms(str2num(ddewhite(x_tick)),'DDMM.x',2,'str');    % x_str is a structure with string fields
+			y_str = degree2dms(str2num(ddewhite(y_tick)),'DDMM.x',2,'str');
 			str_x = [x_str.dd repmat(sep,n_xtick,1) x_str.mm];
 			str_y = [y_str.dd repmat(sep,n_ytick,1) y_str.mm];
-			set(hAxes,'XTickLabel',str_x);        set(hAxes,'YTickLabel',str_y)
 			setappdata(hAxes,'LabelFormatType','DegMinDec')     % Save it so zoom can know the label type
 		case 'ToDegMinSec'
-			x_str = degree2dms(str2num( ddewhite(x_tick) ),'DDMMSS',0,'str');    % x_str is a structure with string fields
-			y_str = degree2dms(str2num( ddewhite(y_tick) ),'DDMMSS',0,'str');
+			x_str = degree2dms(str2num(ddewhite(x_tick)),'DDMMSS',0,'str');    % x_str is a structure with string fields
+			y_str = degree2dms(str2num(ddewhite(y_tick)),'DDMMSS',0,'str');
 			str_x = [x_str.dd repmat(sep,n_xtick,1) x_str.mm repmat(sep,n_xtick,1) x_str.ss];
 			str_y = [y_str.dd repmat(sep,n_ytick,1) y_str.mm repmat(sep,n_ytick,1) y_str.ss];
-			set(hAxes,'XTickLabel',str_x);        set(hAxes,'YTickLabel',str_y)
 			setappdata(hAxes,'LabelFormatType','DegMinSec')      % Save it so zoom can know the label type
 		case 'ToDegMinSecDec'
-			x_str = degree2dms(str2num( ddewhite(x_tick) ),'DDMMSS.x',1,'str');   % x_str is a structure with string fields
-			y_str = degree2dms(str2num( ddewhite(y_tick) ),'DDMMSS.x',1,'str');
+			x_str = degree2dms(str2num(ddewhite(x_tick)),'DDMMSS.x',1,'str');   % x_str is a structure with string fields
+			y_str = degree2dms(str2num(ddewhite(y_tick)),'DDMMSS.x',1,'str');
 			str_x = [x_str.dd repmat(sep,n_xtick,1) x_str.mm repmat(sep,n_xtick,1) x_str.ss];
 			str_y = [y_str.dd repmat(sep,n_ytick,1) y_str.mm repmat(sep,n_ytick,1) y_str.ss];
-			set(hAxes,'XTickLabel',str_x);        set(hAxes,'YTickLabel',str_y)
 			setappdata(hAxes,'LabelFormatType','DegMinSecDec')   % Save it so zoom can know the label type
 	end
+	set(hAxes,'XTickLabel',str_x, 'XTick', getappdata(hAxes,'XTickOrigNum'));
+	set(hAxes,'YTickLabel',str_y, 'YTick', getappdata(hAxes,'YTickOrigNum'))
 
 % -----------------------------------------------------------------------------------------
 function sout = ddewhite(s)
