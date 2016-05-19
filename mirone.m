@@ -525,7 +525,9 @@ function openRF(obj,event,n)
 function handles = SetAxesNumericType(handles,event)
 % Save original X & Y labels in appdata for easear access when we want to change them
 	setappdata(handles.axes1,'XTickOrig',get(handles.axes1,'XTickLabel'))
+	setappdata(handles.axes1,'XTickOrigNum',get(handles.axes1,'XTick'))
 	setappdata(handles.axes1,'YTickOrig',get(handles.axes1,'YTickLabel'))
+	setappdata(handles.axes1,'YTickOrigNum',get(handles.axes1,'YTick'))
 	set(handles.axes1, 'FontSize', 9)				% Make this the default
 	LFT = 'DegDec';			visibility = 'on';		% For the geog case
 	if (~handles.geog),		LFT = 'NotGeog';	visibility = 'off';		end 
@@ -1254,7 +1256,7 @@ function FileSaveGMTgrid_CB(handles, opt)
 	if (~isempty(opt) && strcmp(opt,'Surfer'))
 		txt1 = 'Surfer 6 binary grid (*.grd,*.GRD)';	txt2 = 'Select output Surfer 6 grid';
 	else			% Internaly computed grid
-		tit = 'Grid computed inside Mirone';
+		tit = 'Grid computed with Mirone';
 		txt1 = 'netCDF grid format (*.grd,*.GRD)';		txt2 = 'Select output GMT grid';
 	end
 
@@ -2130,6 +2132,7 @@ function handles = show_image(handles, fname, X, Y, I, validGrid, axis_t, adjust
 	% Make an extra copy of those to use in "restore" because they may be changed by 'bands_list()'
 	handles.validGrid_orig = validGrid;			handles.was_int16_orig = handles.was_int16;
 	handles.computed_grid_orig = handles.computed_grid;
+	fix_axes_labels(handles)		% Make ALL labels have the same number of decimals.
 	handles = SetAxesNumericType(handles);					% Set axes uicontextmenus
 	if (handles.image_type ~= 1),	handles.grdname = [];	end
 	if (~handles.have_nans),		set(handles.haveNaNs,'Vis','off')	% If no NaNs no need of these
@@ -2194,6 +2197,24 @@ function handles = show_image(handles, fname, X, Y, I, validGrid, axis_t, adjust
 	if (~isempty(hfun))
 		feval(hfun{1}, hfun{2:end})
 	end
+
+% --------------------------------------------------------------------
+function fix_axes_labels(handles)
+% Fix the annoyingly ugly effect of the varying number of decimals in labels
+% Trust in the estimate made by num2str.
+	xTick  = get(handles.axes1, 'XTick');
+	xLabel = num2str(xTick(:));
+	ind    = strfind(xLabel(1,:), '.');
+	n_dec  = size(xLabel, 2) - ind;
+	xLabel = num2str(xTick(:), sprintf('%%.%df', n_dec));
+
+	yTick  = get(handles.axes1, 'YTick');
+	yLabel = num2str(yTick(:));
+	ind    = strfind(yLabel(1,:), '.');
+	n_dec  = size(yLabel, 2) - ind;
+	yLabel = num2str(yTick(:), sprintf('%%.%df', n_dec));
+	
+	set(handles.axes1, 'XTickLabel', xLabel, 'YTickLabel', yLabel)
 
 % --------------------------------------------------------------------
 function ToolsMBplaningStart_CB(handles)
@@ -4639,7 +4660,7 @@ if (strcmp(opt,'Vec') || strcmp(opt,'Lines') || strcmp(opt,'Rect'))		% Convert t
 	h_edge = zeros(length(B),1);	i = 1;
 	for k = 1:length(B)
 		bnd = B{k};
-		if (strcmp(opt,'apalpa') && mask(bnd(1,1),bnd(1,2)) && ...	% Drastic but no better solution to avoid NaNs-in-corners cases
+		if (strcmp(opt,'Vec') && mask(bnd(1,1),bnd(1,2)) && ...	% Drastic but no better solution to avoid NaNs-in-corners cases
 				(min(bnd(:,1)) == 1 || max(bnd(:,1)) == dims(2) || min(bnd(:,1)) == 1 || max(bnd(:,1)) == dims(1)) )
 			continue
 		end
@@ -4817,6 +4838,7 @@ function TransferB_CB(handles, opt, opt2)
 
 	elseif (strcmp(opt,'scale'))				% Apply a scale factor
 		resp = inputdlg({'Enter scale factor'},'Rescale grid',[1 30],{'-1'});	pause(0.01)
+		if (isempty(resp)),		return,	end
 		scal = str2double(resp{1});
 		if (isnan(scal)),	return,		end
 		[X,Y,Z] = load_grd(handles);			% load the grid array here
