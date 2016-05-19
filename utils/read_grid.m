@@ -43,12 +43,16 @@ function [Z, X, Y, srsWKT, handles, att] = read_grid(handles, fullname, tipo, op
 		fname = fullname;
 	end
 	if (isempty(handles))
-		if (strcmp(tipo, 'GMT')),	error('read_grid: handles cannot be empty when reading a GMT type'),	end
-		handles.ForceInsitu = false;
-		handles.grdMaxSize = 1e15;
-		% Need to know if "IamCompiled". Since that info is in Mirone handles, we need to find it out here
-		try			s.s = which('mirone');			handles.IamCompiled = false;
-		catch,		handles.IamCompiled = true;
+		if (strcmp(tipo, 'GMT'))
+			warndlg('read_grid: ''handles'' cannot be empty when reading a GMT type. Trying with GDAL.')
+			tipo = 'whatever';
+		else
+			handles.ForceInsitu = false;
+			handles.grdMaxSize = 1e15;
+			% Need to know if "IamCompiled". Since that info is in Mirone handles, we need to find it out here
+			try			s.s = which('mirone');			handles.IamCompiled = false;
+			catch,		handles.IamCompiled = true;
+			end
 		end
 	end
 	try
@@ -58,7 +62,11 @@ function [Z, X, Y, srsWKT, handles, att] = read_grid(handles, fullname, tipo, op
 
 	if (strncmp(tipo,'GMT',3))		% GMT_relatives - Reading is done by the read_gmt_type_grids function
 		[handles, X, Y, Z, head, misc] = read_gmt_type_grids(handles, fname);
-		if (isempty(X)),	return,		end
+		if (isempty(X))
+			warndlg('read_grid: Failed to read file with the ''GMT'' branch. Trying with ''GDAL''.')
+			[Z, X, Y, srsWKT, handles, att] = read_grid(handles, fullname, 'GDAL');
+			return
+		end
 		if (isfield(misc,'z_dim') && numel(misc.z_dim) == 3),	handles.nLayers = misc.z_dim(1);	end
 		if (~isempty(misc) && ~isempty(misc.srsWKT)),			srsWKT = misc.srsWKT;	end
 	elseif (strncmpi(tipo,'IN',2))
