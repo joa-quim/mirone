@@ -737,7 +737,7 @@ if ~isempty(opt)				% OPT must be a rectangle/polygon handle (the rect may serve
 		[m,n] = size(I);
 
 	elseif (strcmp(opt2,'ImplantGrid'))				% Read and external grid and implant it in host grid
-		[Z_rect, r_c] = transplants(opt, 'grid', handles);
+		[Z_rect, r_c] = transplants(opt, 'grid', true, handles);
 		if (isempty(Z_rect)),		return,		end		% User gave up
 
 	else					% Extract the sub-grid inside the rectangle/polygon
