@@ -20,7 +20,7 @@ function varargout = mirone(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: mirone.m 7909 2016-05-19 13:38:49Z j $
+% $Id: mirone.m 7910 2016-05-19 13:40:59Z j $
 
 	if (nargin > 1 && ischar(varargin{1}))
 		if ( ~isempty(strfind(varargin{1},':')) || ~isempty(strfind(varargin{1},filesep)) )
@@ -737,7 +737,7 @@ if ~isempty(opt)				% OPT must be a rectangle/polygon handle (the rect may serve
 		[m,n] = size(I);
 
 	elseif (strcmp(opt2,'ImplantGrid'))				% Read and external grid and implant it in host grid
-		[Z_rect, r_c] = transplants(opt, 'grid', handles);
+		[Z_rect, r_c] = transplants(opt, 'grid', true, handles);
 		if (isempty(Z_rect)),		return,		end		% User gave up
 
 	else					% Extract the sub-grid inside the rectangle/polygon
