@@ -12,6 +12,7 @@ function [Z, X, Y, srsWKT, handles, att] = read_grid(handles, fullname, tipo, op
 %			   'OVR' Used only by the overview tool together with -P option
 %			   'IN' Used to send in an internally computed grid, transmitted in OPT
 %			-> 'whatever'	Let GDAL guess what to do (it means, any string)
+%           -   And if 'GMT' and it fails to load file, a further attempt is run with GDAL 
 % OPT		-> -R<...> or -P<...> options of gdalread OR the "att" attributes structure
 %				got from att = gdalread(fname,'-M',...).
 %			-> It can also hold a structure with fields 'X','Y','Z','head' & 'name' (optional).
@@ -33,7 +34,7 @@ function [Z, X, Y, srsWKT, handles, att] = read_grid(handles, fullname, tipo, op
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: read_grid.m 7906 2016-05-19 00:10:17Z j $
+% $Id: read_grid.m 7907 2016-05-19 13:00:52Z j $
 
 	if (nargin == 3),	opt = ' ';	end
 	opt_I = ' ';	srsWKT = [];	att = [];	attVRT = [];	Z = [];		X = [];		Y = [];
