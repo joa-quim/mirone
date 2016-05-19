@@ -3,7 +3,7 @@ function pixval_stsbar(arg1)
 
 % Coffeeright J. Luis 2004-2016
 
-% $Id: pixval_stsbar.m 7896 2016-05-14 21:05:43Z j $
+% $Id: pixval_stsbar.m 7910 2016-05-19 13:40:59Z j $
 
 	if (nargin == 0),	arg1 = [];		end
 
@@ -328,8 +328,8 @@ function ButtonDownOnImage(hImg, evt, hFig)
 					uimenu(cmenu, 'Label', 'Digitize this hole', 'Call', 'mirone(''ImageEdgeDetect_CB'',guidata(gcbo),''apalpa'')');
 					uimenu(cmenu, 'Label', 'Inpaint this hole', 'Call', 'inpaint_nans(guidata(gcbo), ''single'')');
 					item1 = uimenu(cmenu, 'Label', 'Fill this hole ...', 'Sep','on');
-					uimenu(item1, 'Label', 'with 2nd Grid (sharp edges)', 'Call', 'transplants([], ''one_sharp'', guidata(gcbo))');
-					uimenu(item1, 'Label', 'with 2nd Grid (smooth edges)','Call', 'transplants([], ''one_smooth'', guidata(gcbo))');
+					uimenu(item1, 'Label', 'with 2nd Grid (sharp edges)', 'Call', 'transplants([], ''one_sharp'', true, guidata(gcbo))');
+					uimenu(item1, 'Label', 'with 2nd Grid (smooth edges)','Call', 'transplants([], ''one_smooth'', true, guidata(gcbo))');
 					item2 = uimenu(cmenu, 'Label', 'Fill all holes ...');
 					uimenu(item2, 'Label', 'with 2nd Grid (sharp edges)', 'Call', '');
 					uimenu(item2, 'Label', 'with 2nd Grid (smooth edges)', 'Call', '');
