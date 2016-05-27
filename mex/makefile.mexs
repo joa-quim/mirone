@@ -10,7 +10,7 @@
 
 #-------------------- Where install will place the files? -------------------
 # Notice that it must allways be ..../"mirone root"/lib_mex
-mirone_mex_dir	= /Users/j/programs/mironeTrunk/lib_mex
+mirone_mex_dir	= /Users/j/programs/mirone/lib_mex
 #----------------------------------------------------------------------------
 
 # ------------------- Which and where is OpenCV? ----------------------------
@@ -29,7 +29,7 @@ endif
 #----------------------------------------------------------------------------
 
 # On Mac (but need to addapt to 32 or 64)
-MATLAB		= /Applications/MATLAB_R2012a.app
+MATLAB		= /Applications/MATLAB_R2015b.app
 MATLAB_MEX	= maci64
 MEX_EXT	= mexmaci64
 
@@ -42,13 +42,14 @@ MEX_EXT	= mexmaci64
 #	Revise some of these if they don't live in /usr/local/
 #----------------------------------------------------------------------------
 
-MEX	= $(MATLAB)/bin/mex
+MEX = cc
+#MEX	= $(MATLAB)/bin/mex
 #MEXLIB	= -L$(MATLAB)/extern/lib/$(MATLAB_MEX) -lmat
 MEXLIB	= -L$(MATLAB)/bin/$(MATLAB_MEX) -lmat
-LDFLAGS = -L/usr/local/lib
+LDFLAGS = -L/usr/local/lib -L/Users/j/programs/gmt5/lib
 GMT     = -L.. $(LDFLAGS) -lgmt -lpsl
 GMT_MGG = -L.. $(LDFLAGS) -lgmt_mgg
-NETCDF_INC	= -I/usr/local/include
+NETCDF_INC	= -I/usr/local/include -I/Users/j/programs/gmt5/include/gmt
 NETCDF_LIB	= -L/usr/local/lib -lnetcdf
 CDF     = $(NETCDF_LIB)
 FLAGS	= -I$(MATLAB)/extern/include $(NETCDF_INC) -I/usr/local/include
