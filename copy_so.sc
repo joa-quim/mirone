@@ -35,7 +35,6 @@ ln -s -f libopencv_video${linus_sufix}.2.4${mac_sufix} libopencv_video${linus_su
 cp -f ${lib_loc}/libopencv_photo${linus_sufix}.2.4${mac_sufix} .
 ln -s -f libopencv_photo${linus_sufix}.2.4${mac_sufix} libopencv_photo${linus_sufix}${mac_sufix}
 
-
 cp -f ${lib_loc}/libopencv_highgui${linus_sufix}.2.4${mac_sufix} .
 ln -s -f libopencv_highgui${linus_sufix}.2.4${mac_sufix} libopencv_highgui${linus_sufix}${mac_sufix}
 
@@ -63,6 +62,7 @@ ln -s -f libfftw3f${linus_sufix}.3${mac_sufix} libfftw3f${linus_sufix}${mac_sufi
 cp -f ${lib_loc}/libfftw3f_threads${linus_sufix}.3${mac_sufix} .
 ln -s -f libfftw3f_threads${linus_sufix}.3${mac_sufix} libfftw3f_threads${linus_sufix}${mac_sufix}
 
+cp /Users/j/programs/gmt5/lib/gmt/plugins/supplements.so supplements.dylib
 
 # ------------------------- GDAL libs ---------------------------
 cp -f ${lib_loc}/libgdal${linus_sufix}.1${mac_sufix} .
@@ -137,8 +137,23 @@ ln -s -f libspatialite${linus_sufix}.7${mac_sufix} libspatialite${linus_sufix}${
 cp -f /usr/local/opt/libxml2/lib/libxml2${linus_sufix}${mac_sufix} .
 ln -s -f libxml2${linus_sufix}.2${mac_sufix} libxml2${linus_sufix}${mac_sufix}
 
+cp -f /usr/local/opt/sqlite/lib/libsqlite$3{linus_sufix}.0${mac_sufix} .
+ln -s -f libsqlite3${linus_sufix}.0${mac_sufix} libsqlite${linus_sufix}${mac_sufix}
+
 cp -f ${lib_loc}/libsz${linus_sufix}.2${mac_sufix} .
 ln -s -f libsz${linus_sufix}.2${mac_sufix} libsz${linus_sufix}${mac_sufix}
+
+cp /usr/local/opt/libxml2/lib/libxml2{linus_sufix}.2${mac_sufix} .
+ln -s -f libxml2{linus_sufix}.2.${mac_sufix} libxml2{linus_sufix}${mac_sufix}
+
+cp /usr/local/Cellar/geos/3.4.2/lib/libgeos-3{linus_sufix}.4.2${mac_sufix} .
+ln -s -f libgeos-3{linus_sufix}.4.2${mac_sufix} libgeos-3{linus_sufix}${mac_sufix} 
+
+cp /usr/local/opt/liblwgeom/lib/liblwgeom-2{linus_sufix}.1.5${mac_sufix} .
+ln -s -f liblwgeom-2{linus_sufix}.1.5${mac_sufix} liblwgeom-2{linus_sufix}${mac_sufix} .
+
+cp /usr/local/lib/libpopt{linus_sufix}.0${mac_sufix} .
+ln -s -f libpopt{linus_sufix}.0${mac_sufix} . libpopt{linus_sufix}ß${mac_sufix}
 
 # ---------- ECW ???
 #cp -f ${lib_loc}/libNCSCnet${linus_sufix}.0.0.0${mac_sufix} .
