@@ -7,7 +7,7 @@ function G = fill_grid_struct(Z, head)
 	G.ProjectionRefPROJ4 = '';
 	G.ProjectionRefWKT = '';	
 	G.hdr = head;
-	G.range = head(1:4);
+	G.range = head(1:6);
 	G.inc = head(8:9);
 	G.dim = [size(Z,1) size(Z,2)];
 	G.n_rows = G.dim(1);
@@ -26,4 +26,3 @@ function G = fill_grid_struct(Z, head)
 	G.x_units = '';
 	G.y_units = '';
 	G.z_units = '';	
-	
