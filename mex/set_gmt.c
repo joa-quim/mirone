@@ -81,13 +81,14 @@ void chop (char *string);
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 
 	char *this, *fieldnames[6] = {"version", "full", "high", "intermediate", "low", "crude"};
-	char file[64];
+	char  file[64];
 	char *GMT_SHAREDIR = CNULL;
 	char *GMT_HOMEDIR = CNULL;
 	char *GMT_USERDIR = CNULL;
-	char path[BUFSIZ], *pato, *papato; 
-	int	status;
-	mxArray *mxStr, *info_struct;
+	char  path[BUFSIZ], *pato, *papato; 
+	int   status;
+	int   keep_searching = TRUE;
+	mxArray *mxStr = NULL, *info_struct = NULL;
 
 	if (nrhs >= 1 && mxIsChar(prhs[0])) {
 		char	*envString; 
@@ -133,16 +134,22 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 
 
 	if ((this = getenv ("GMT5_SHAREDIR")) != CNULL) {	/* We have a 5.2 or greater version */
-		GMT_SHAREDIR = (char *) mxCalloc((size_t)(strlen(this) + 1), (size_t)1);
-		strcpy(GMT_SHAREDIR, this);
-		mxStr = mxCreateString("5");
+		if (access (this, R_OK) == 0) {
+			GMT_SHAREDIR = (char *) mxCalloc((size_t)(strlen(this) + 1), (size_t)1);
+			strcpy(GMT_SHAREDIR, this);
+			mxStr = mxCreateString("5");
+			keep_searching = FALSE;
+		}
 	}
-	else if ((this = getenv ("GMT_SHAREDIR")) != CNULL) {	/* We have a 4.2 or greater version */
-		GMT_SHAREDIR = (char *) mxCalloc((size_t)(strlen(this) + 1), (size_t)1);
-		strcpy(GMT_SHAREDIR, this);
-		mxStr = mxCreateString("5");
+	if (keep_searching && (this = getenv ("GMT_SHAREDIR")) != CNULL) {	/* We have a 4.2 or greater version */
+		if (access (this, R_OK) == 0) {
+			GMT_SHAREDIR = (char *) mxCalloc((size_t)(strlen(this) + 1), (size_t)1);
+			strcpy(GMT_SHAREDIR, this);
+			mxStr = mxCreateString("5");
+			keep_searching = FALSE;
+		}
 	}
-	else if ((this = getenv("GMTHOME")) != CNULL) {	/* We have a pre 4.2 version */
+	if (keep_searching && (this = getenv("GMTHOME")) != CNULL) {	/* We have a pre 4.2 version */
 		char *sdir;
 		GMT_SHAREDIR = (char *) mxCalloc((size_t)(strlen(this) + 7), (size_t)1);
 		sdir = (char *) mxCalloc((size_t)(strlen (this) + 20), (size_t)1);
@@ -155,7 +162,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		mxStr = mxCreateString("4");
 	}
 	else						/* No GMT in sight */
-		mxStr = mxCreateString("0");
+		if (mxStr == NULL) mxStr = mxCreateString("0");		/* Otherwise it was set by one of the cases above. */
 
 	mxSetField(info_struct, 0, fieldnames[0], mxStr);
 
@@ -189,7 +196,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	/* -------------------------------------------------------------------- */
 	/* See if we have the Full definition files */
 	sprintf (file, "binned_GSHHS_%c", 'f');
-       	if (shore_getpathname(file, path, GMT_USERDIR, GMT_SHAREDIR))
+	if (shore_getpathname(file, path, GMT_USERDIR, GMT_SHAREDIR))
 		mxStr = mxCreateString("y");
 	else
 		mxStr = mxCreateString("n");
