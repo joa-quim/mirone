@@ -1371,11 +1371,11 @@ if ( try_to_scale && ~(isa(data,'int8') || isa(data,'uint8')) )
 	if ( did_scale )					% Dangerous case. (J. LUIS)
 		var_type = mexnc('INQ_VARTYPE',ncid,varid);
 		switch var_type
-			case nc_byte,	    if (~isa(data,'int8'))		data = int8(data);		end
-			case nc_char,	    if (~isa(data,'uint8'))		data = uint8(data);		end
-			case nc_short,	    if (~isa(data,'int16'))		data = int16(data);		end
-			case nc_int,	    if (~isa(data,'int32'))		data = int32(data);		end
-			case nc_float,	    if (~isa(data,'single'))	data = single(data);	end
+			case nc_byte,	    if (~isa(data,'int8')),     data = int8(data);		end
+			case nc_char,	    if (~isa(data,'uint8')),    data = uint8(data);		end
+			case nc_short,	    if (~isa(data,'int16')),    data = int16(data);		end
+			case nc_int,	    if (~isa(data,'int32')),    data = int32(data);		end
+			case nc_float,	    if (~isa(data,'single')),   data = single(data);	end
 		end
 	end
 end
@@ -3065,12 +3065,16 @@ function snc_error (error_id, error_msg)
 % --------------------------------------------------------------------
 function snc_nargchk(low,high,N)
 % SNC_NARGCHK:  wrapper for NARGCHK, which changed functionality at R???
-	error (nargchk(low,high,N));
+	if (N < low || N > high)
+		error('Wrong number of input arguments')
+	end
 
 % --------------------------------------------------------------------
 function snc_nargoutchk(low,high,N)
 % SNC_NARGOUTCHK:  wrapper for NARGOUTCHK, which changed functionality at R???
-	error (nargoutchk(low,high,N));
+	if (N < low || N > high)
+		error('Wrong number of output arguments')
+	end
 
 % --------------------------------------------------------------------
 function check_index_vectors(start,count,stride,nvdims,ncid,varname)
