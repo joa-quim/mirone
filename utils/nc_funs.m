@@ -1371,11 +1371,11 @@ if ( try_to_scale && ~(isa(data,'int8') || isa(data,'uint8')) )
 	if ( did_scale )					% Dangerous case. (J. LUIS)
 		var_type = mexnc('INQ_VARTYPE',ncid,varid);
 		switch var_type
-			case nc_byte,	    if (~isa(data,'int8'))		data = int8(data);		end
-			case nc_char,	    if (~isa(data,'uint8'))		data = uint8(data);		end
-			case nc_short,	    if (~isa(data,'int16'))		data = int16(data);		end
-			case nc_int,	    if (~isa(data,'int32'))		data = int32(data);		end
-			case nc_float,	    if (~isa(data,'single'))	data = single(data);	end
+			case nc_byte,	    if (~isa(data,'int8')),     data = int8(data);		end
+			case nc_char,	    if (~isa(data,'uint8')),    data = uint8(data);		end
+			case nc_short,	    if (~isa(data,'int16')),    data = int16(data);		end
+			case nc_int,	    if (~isa(data,'int32')),    data = int32(data);		end
+			case nc_float,	    if (~isa(data,'single')),   data = single(data);	end
 		end
 	end
 end
@@ -2475,7 +2475,7 @@ function new_data = nc_addnewrecs ( ncfile, input_buffer, record_variable )
 % In case of an error, an exception is thrown.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% $Id: nc_funs.m 7888 2016-05-07 21:55:25Z j $
+% $Id: nc_funs.m 7915 2016-05-31 15:39:37Z j $
 % $LastChangedDate: 2007-04-23 09:05:21 -0400 (Mon, 23 Apr 2007) $
 % $LastChangedRevision: 2178 $
 % $LastChangedBy: johnevans007 $
@@ -2651,7 +2651,7 @@ function nc_add_recs ( ncfile, new_data, varargin )
 %   johnevans@acm.org
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% $Id: nc_funs.m 7888 2016-05-07 21:55:25Z j $
+% $Id: nc_funs.m 7915 2016-05-31 15:39:37Z j $
 % $LastChangedDate: 2007-08-31 16:30:56 -0400 (Fri, 31 Aug 2007) $
 % $LastChangedRevision: 2309 $
 % $LastChangedBy: johnevans007 $
@@ -2860,7 +2860,7 @@ function theBuffer = nc_getbuffer ( ncfile, varargin )
 %        Each such field contains the data for that variable.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% $Id: nc_funs.m 7888 2016-05-07 21:55:25Z j $
+% $Id: nc_funs.m 7915 2016-05-31 15:39:37Z j $
 % $LastChangedDate: 2007-09-03 12:07:33 -0400 (Mon, 03 Sep 2007) $
 % $LastChangedRevision: 2315 $
 % $LastChangedBy: johnevans007 $
@@ -2997,7 +2997,7 @@ function varsize = nc_varsize(ncfile, varname)
 % NCVAR in the netCDF file NCFILE.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% $Id: nc_funs.m 7888 2016-05-07 21:55:25Z j $
+% $Id: nc_funs.m 7915 2016-05-31 15:39:37Z j $
 % $LastChangedDate: 2007-09-03 12:07:33 -0400 (Mon, 03 Sep 2007) $
 % $LastChangedRevision: 2315 $
 % $LastChangedBy: johnevans007 $
@@ -3025,7 +3025,7 @@ function values = nc_getlast(ncfile, var, num_datums)
 % If NUM_DATUMS is not supplied, the default value is 1.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% $Id: nc_funs.m 7888 2016-05-07 21:55:25Z j $
+% $Id: nc_funs.m 7915 2016-05-31 15:39:37Z j $
 % $LastChangedDate: 2007-09-03 12:07:33 -0400 (Mon, 03 Sep 2007) $
 % $LastChangedRevision: 2315 $
 % $LastChangedBy: johnevans007 $
@@ -3065,12 +3065,16 @@ function snc_error (error_id, error_msg)
 % --------------------------------------------------------------------
 function snc_nargchk(low,high,N)
 % SNC_NARGCHK:  wrapper for NARGCHK, which changed functionality at R???
-	error (nargchk(low,high,N));
+	if (N < low || N > high)
+		error('Wrong number of input arguments')
+	end
 
 % --------------------------------------------------------------------
 function snc_nargoutchk(low,high,N)
 % SNC_NARGOUTCHK:  wrapper for NARGOUTCHK, which changed functionality at R???
-	error (nargoutchk(low,high,N));
+	if (N < low || N > high)
+		error('Wrong number of output arguments')
+	end
 
 % --------------------------------------------------------------------
 function check_index_vectors(start,count,stride,nvdims,ncid,varname)
