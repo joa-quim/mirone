@@ -759,7 +759,7 @@ function overprint(handles, fname_imp)
 		Zout = gmtmex(['grdsample ' fname_imp opt_R opt_I]);	% Zimp interpolated at Host grid resolution
 		Zimp = Zout.z;
 	else
-		[X, Y, Zimp, handlesImp, srsWKT] = load_implant_grid(handles, second_g);	% Get the implanting grid (MUST test that SRS are compatible)
+		[X, Y, Zimp, handlesImp, srsWKT] = load_implant_grid(handles, fname_imp);	% Get the implanting grid (MUST test that SRS are compatible)
 		if (isempty(Zimp)),		return,		end		% Silently return. It may have been a 'give up' or a real reading error.
 		Zimp = c_grdsample(Zimp, handlesImp.head, opt_R, opt_I);		% Zimp_rect interpolated at Host grid resolution
 	end
