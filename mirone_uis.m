@@ -41,7 +41,7 @@ function [H1,handles,home_dir] = mirone_uis(home_dir)
 	end
 
 	IAmAMac = strncmp(computer,'MAC',3);
-	if (IAmAMac),	figW = 800;		end		% On Macs buttons have different sizes
+	if (IAmAMac),	figW = 840;		end		% On Macs buttons have different sizes
 
 	IAmOctave = (exist('OCTAVE_VERSION','builtin') ~= 0);	% To know if we are running under Octave
 	if (IAmOctave),	figW = 750;		end		% QtHandles has different padding size
@@ -672,6 +672,7 @@ uimenu('Parent',hGT,'Call','ml_clip(guidata(gcbo))','Label','Clip Grid');
 uimenu('Parent',hGT,'Call','mirone(''ImageCrop_CB'',guidata(gcbo),[],''CropaGrid'')','Label','Crop Grid');
 uimenu('Parent',hGT,'Call','mirone(''RotateTool_CB'',guidata(gcbo),''grid'')','Label','Rotate Grid');
 uimenu('Parent',hGT,'Call','mirone(''TransferB_CB'',guidata(gcbo),''TransplantGrid'')','Label','Transplant 2nd Grid');
+%uimenu('Parent',hGT,'Call','transplant_grid(guidata(gcbo))','Label','Transplant 2nd Grid');
 uimenu('Parent',hGT,'Call','mirone(''GridToolsHistogram_CB'',guidata(gcbo))','Label','Histogram');
 h = uimenu('Parent',hGT,'Label','Holes (NaNs)', 'Tag','haveNaNs');
 uimenu('Parent',h,'Call','mirone(''GridToolsGridMask_CB'',guidata(gcbo))','Label','Write Mask');
@@ -683,7 +684,7 @@ uimenu('Parent',hGT,'Call','mirone(''Transfer_CB'',guidata(gcbo),''morph-grd'')'
 uimenu('Parent',hGT,'Call','mirone(''DigitalFilt_CB'',guidata(gcbo),''grid'')','Label','Digital filtering Tool');
 uimenu('Parent',hGT,'Call','mirone(''TransferB_CB'',guidata(gcbo),''fract'')','Label','Fractal field');
 
-h = uimenu('Parent',hGT,'Label','Hammer grid','Sep','on');
+h = uimenu('Parent',hGT,'Label','Hammer this grid','Sep','on');
 uimenu('Parent',h,'Call','escadeirar(guidata(gcbo))','Label','Rice-field Grid');
 uimenu('Parent',h,'Call','mirone(''TransferB_CB'',guidata(gcbo),''scale'')','Label','Rescale');
 uimenu('Parent',h,'Call','mirone(''GridToolsPadd2Const_CB'',guidata(gcbo))','Label','Pad to zero');
@@ -754,7 +755,7 @@ end
 uimenu('Parent',h, 'Call', 'update_gmt(guidata(gcbo))','Label','Update your GMT5','Sep','on')
 uimenu('Parent',h, 'Call',['mirone(''FileOpenWebImage_CB'',guidata(gcbo),',...
 	' ''http://www2.clustrmaps.com/stats/maps-clusters/w3.ualg.pt-~jluis-mirone-world.jpg'',''nikles'');'],'Label','See visitors map','Sep','on');
-uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 17 May 2016'',''2.7.0dev'')','Label','About','Sep','on');
+uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 31 May 2016'',''2.7.0dev'')','Label','About','Sep','on');
 
 %% --------------------------- Build HANDLES and finish things here
 	handles = guihandles(H1);
