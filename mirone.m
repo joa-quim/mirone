@@ -409,8 +409,8 @@ function hObject = mirone_OpeningFcn(varargin)
 
 	% Deal with the new (big) troubles introduced by using GMT5.2 that needs to know where to find its own share dir
 	if (gmt_ver == 5)		% For GMT5 we have a shity highly police control on sharedir. Use this to cheat it.
-		t = set_gmt('GMT5_SHAREDIR', 'whatever');	% Inquire if GMT5_SHAREDIR exists 
-		if (isempty(t))
+		t = set_gmt('GMT5_SHAREDIR', 'whatever');		% Inquire if GMT5_SHAREDIR exists 
+		if (isempty(t) || (~(exist(t, 'dir') == 7)))	% Test also that the dir exists
 			% If not, set a fake one with minimalist files so that GMT does not complain/errors
 			% We have to use GMT5_SHAREDIR and NOT GMT_SHAREDIR because it's the first one checked in gmt_init.c/GMT_set_env()
 			set_gmt(['GMT5_SHAREDIR=' home_dir fsep 'gmt_share']);
@@ -424,7 +424,7 @@ function hObject = mirone_OpeningFcn(varargin)
 			handles.path_tmp = [t fsep];
 		end
 	end
-		
+
 	guidata(hObject, handles);
 	tmp.home_dir = home_dir;	tmp.work_dir = handles.work_dir;	tmp.last_dir = handles.last_dir;
 	setappdata(0,'MIRONE_DIRS',tmp);		% To access from places where handles.home_dir is unknown (must precede gateLoadFile())
@@ -4665,12 +4665,16 @@ if (strcmp(opt,'Vec') || strcmp(opt,'Lines') || strcmp(opt,'Rect'))		% Convert t
 			continue
 		end
 		if (size(bnd,1) > 4)
-			bnd = cvlib_mex('dp', bnd, 0.2);		% Simplify line but only on straight lines
+			bnd = cvlib_mex('dp', bnd, 0.1);		% Simplify line but only on straight lines
 		end
 		% Some times we get a BB rectangle, test and ignore it if it's the case
-		if (size(bnd,1) == 5 && min(bnd(:,1)) == 1 && min(bnd(:,2)) == 1 && ...
-				max(bnd(:,1)) == dims(1) && max(bnd(:,2)) == dims(2))
-			continue
+		if (size(bnd,1) < 10)
+			ma = max(bnd);
+			if (all(abs(min(bnd) - 1)) < 1e-3)
+				if ((abs(ma(1) - dims(1)) < 1e-3) && (abs(ma(2) - dims(2)) < 1e-3))
+					continue
+				end
+			end
 		end
 
 		y = (bnd(:,1)-1)*y_inc + y_min;
