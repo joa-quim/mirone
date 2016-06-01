@@ -20,7 +20,7 @@ function varargout = mirone(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: mirone.m 7919 2016-05-31 15:55:41Z j $
+% $Id: mirone.m 7922 2016-06-01 01:45:46Z j $
 
 	if (nargin > 1 && ischar(varargin{1}))
 		if ( ~isempty(strfind(varargin{1},':')) || ~isempty(strfind(varargin{1},filesep)) )
@@ -2205,13 +2205,17 @@ function fix_axes_labels(handles)
 	xTick  = get(handles.axes1, 'XTick');
 	xLabel = num2str(xTick(:));
 	ind    = strfind(xLabel(1,:), '.');
-	n_dec  = size(xLabel, 2) - ind;
+	if (isempty(ind)),	n_dec = 0;
+	else				n_dec  = size(xLabel, 2) - ind;
+	end
 	xLabel = num2str(xTick(:), sprintf('%%.%df', n_dec));
 
 	yTick  = get(handles.axes1, 'YTick');
 	yLabel = num2str(yTick(:));
 	ind    = strfind(yLabel(1,:), '.');
-	n_dec  = size(yLabel, 2) - ind;
+	if (isempty(ind)),	n_dec = 0;
+	else				n_dec  = size(yLabel, 2) - ind;
+	end
 	yLabel = num2str(yTick(:), sprintf('%%.%df', n_dec));
 	
 	set(handles.axes1, 'XTickLabel', xLabel, 'YTickLabel', yLabel)
