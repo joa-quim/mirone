@@ -16,7 +16,7 @@ function fancyFrame(handles, opt)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: fancyFrame.m 7908 2016-05-19 13:03:25Z j $
+% $Id: fancyFrame.m 7921 2016-06-01 01:42:56Z j $
 
 	if (opt(1) == 'p')		% Temporary solution for printing (create a frame made of patches)
 		frame_patch(handles, opt(2:end))
@@ -91,12 +91,17 @@ function fancyFrame(handles, opt)
 	% Count number of decimals and force to use the same numbel for ALL labels.
 	XTickLabel = num2str(xtick(:));			% Rely on default value by num2str to decide on the number of decimals.
 	ind = strfind(XTickLabel(1,:), '.');
-	n_dec = size(XTickLabel, 2) - ind;
+	if (isempty(ind)),	n_dec = 0;
+	else				n_dec  = size(XTickLabel, 2) - ind;
+	end
+
 	XTickLabel = num2str(xtick(:), sprintf('%%.%df', n_dec));
 	
 	YTickLabel = num2str(ytick(:));
 	ind = strfind(YTickLabel(1,:), '.');
-	n_dec = size(YTickLabel, 2) - ind;
+	if (isempty(ind)),	n_dec = 0;
+	else				n_dec  = size(YTickLabel, 2) - ind;
+	end
 	YTickLabel = num2str(ytick(:), sprintf('%%.%df', n_dec));
 
 	set(handles.axes1,'TickDir','out','XTick',xtick, 'XTickLabel',XTickLabel, 'YTick',ytick, 'YTickLabel',YTickLabel)
