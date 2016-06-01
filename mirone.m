@@ -2205,13 +2205,17 @@ function fix_axes_labels(handles)
 	xTick  = get(handles.axes1, 'XTick');
 	xLabel = num2str(xTick(:));
 	ind    = strfind(xLabel(1,:), '.');
-	n_dec  = size(xLabel, 2) - ind;
+	if (isempty(ind)),	n_dec = 0;
+	else				n_dec  = size(xLabel, 2) - ind;
+	end
 	xLabel = num2str(xTick(:), sprintf('%%.%df', n_dec));
 
 	yTick  = get(handles.axes1, 'YTick');
 	yLabel = num2str(yTick(:));
 	ind    = strfind(yLabel(1,:), '.');
-	n_dec  = size(yLabel, 2) - ind;
+	if (isempty(ind)),	n_dec = 0;
+	else				n_dec  = size(yLabel, 2) - ind;
+	end
 	yLabel = num2str(yTick(:), sprintf('%%.%df', n_dec));
 	
 	set(handles.axes1, 'XTickLabel', xLabel, 'YTickLabel', yLabel)
