@@ -247,6 +247,10 @@ gmt_userdir/ISO-8859-8.ps -text
 gmt_userdir/ISO-8859-9.ps -text
 gmt_userdir/ISOLatin1+.ps -text
 gmt_userdir/ISOLatin1.ps -text
+gmt_userdir/PSL_ISOLatin1+.ps -text
+gmt_userdir/PSL_ISOLatin1.ps -text
+gmt_userdir/PSL_Standard+.ps -text
+gmt_userdir/PSL_Standard.ps -text
 gmt_userdir/PSL_label.ps -text
 gmt_userdir/PSL_prologue.ps -text
 gmt_userdir/PSL_text.ps -text

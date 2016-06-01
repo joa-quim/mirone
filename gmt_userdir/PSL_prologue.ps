@@ -1,165 +1,140 @@
-%	$Id: PSL_prologue.ps,v 1.11 2006/08/15 02:37:29 remko Exp $
+%-	$Id: PSL_prologue.ps 12824 2014-02-01 00:01:27Z remko $
+%-----------------------------------------------------------------------------
+%-	Make sure that the version number matches the one mentioned in pslib.c
+%-----------------------------------------------------------------------------
 % Begin pslib header
 250 dict begin
-/A /setgray load def
-/B /setdash load def
-/C /setrgbcolor load def
-/D /rlineto load def
-/E {dup stringwidth pop} bind def
-/F /fill load def
-/G /rmoveto load def
-/H /sethsbcolor load def
-/K /setcmykcolor load def
-/L /lineto load def 
-/M {stroke moveto} bind def
-/m {moveto} bind def
-/N /newpath load def
-/O {M W 0 0 D S} bind def
-/P /closepath load def
-/R /rotate load def
-/S /stroke load def
-/T /translate load def
-/U /grestore load def
-/V /gsave load def
-/W /setlinewidth load def
-/X {M dup 0 D dup 2 div neg dup G 0 exch D S} bind def
-/Y {findfont exch scalefont setfont} bind def
-/Z /show load def
-/a0 {0 0 M D D 0 D D D D D 0 D D P V A F U N} bind def
-/a1 {0 0 M D D 0 D D D D D 0 D D P V A F U S} bind def
-/a2 {0 0 M D D 0 D D D D D 0 D D P V C F U N} bind def
-/a3 {0 0 M D D 0 D D D D D 0 D D P V C F U S} bind def
-/a4 {0 0 M D D 0 D D D D D 0 D D P S} bind def
-/a5 {0 0 M D D 0 D D D D D 0 D D P V K F U N} bind def
-/a6 {0 0 M D D 0 D D D D D 0 D D P V K F U S} bind def
-/a7 {0 0 M D D 0 D D D D D 0 D D P V H F U N} bind def
-/a8 {0 0 M D D 0 D D D D D 0 D D P V H F U S} bind def
-/A0 {0 exch M 0 D D D D D 0 D P V A F U N} bind def
-/A1 {0 exch M 0 D D D D D 0 D P V A F U S} bind def
-/A2 {0 exch M 0 D D D D D 0 D P V C F U N} bind def
-/A3 {0 exch M 0 D D D D D 0 D P V C F U S} bind def
-/A4 {0 exch M 0 D D D D D 0 D P S} bind def
-/A5 {0 exch M 0 D D D D D 0 D P V K F U N} bind def
-/A6 {0 exch M 0 D D D D D 0 D P V K F U S} bind def
-/A7 {0 exch M 0 D D D D D 0 D P V H F U N} bind def
-/A8 {0 exch M 0 D D D D D 0 D P V H F U S} bind def
-/C0 {0 360 arc V A F U N} bind def
-/C1 {0 360 arc V A F U S} bind def
-/C2 {0 360 arc V C F U N} bind def
-/C3 {0 360 arc V C F U S} bind def
-/C4 {0 360 arc S} bind def
-/C5 {0 360 arc V K F U N} bind def
-/C6 {0 360 arc V K F U S} bind def
-/C7 {0 360 arc V H F U N} bind def
-/C8 {0 360 arc V H F U S} bind def
-/D0 {M 5 {dup} repeat D neg exch D neg exch neg D P V A F U N} bind def
-/D1 {M 5 {dup} repeat D neg exch D neg exch neg D P V A F U S} bind def
-/D2 {M 5 {dup} repeat D neg exch D neg exch neg D P V C F U N} bind def
-/D3 {M 5 {dup} repeat D neg exch D neg exch neg D P V C F U S} bind def
-/D4 {M 5 {dup} repeat D neg exch D neg exch neg D P S} bind def
-/D5 {M 5 {dup} repeat D neg exch D neg exch neg D P V K F U N} bind def
-/D6 {M 5 {dup} repeat D neg exch D neg exch neg D P V K F U S} bind def
-/D7 {M 5 {dup} repeat D neg exch D neg exch neg D P V H F U N} bind def
-/D8 {M 5 {dup} repeat D neg exch D neg exch neg D P V H F U S} bind def
-/R0 {M dup 0 D exch 0 exch D neg 0 D P V A F U N} bind def
-/R1 {M dup 0 D exch 0 exch D neg 0 D P V A F U S} bind def
-/R2 {M dup 0 D exch 0 exch D neg 0 D P V C F U N} bind def
-/R3 {M dup 0 D exch 0 exch D neg 0 D P V C F U S} bind def
-/R4 {M dup 0 D exch 0 exch D neg 0 D P S} bind def
-/R5 {M dup 0 D exch 0 exch D neg 0 D P V K F U N} bind def
-/R6 {M dup 0 D exch 0 exch D neg 0 D P V K F U S} bind def
-/R7 {M dup 0 D exch 0 exch D neg 0 D P V H F U N} bind def
-/R8 {M dup 0 D exch 0 exch D neg 0 D P V H F U S} bind def
-/S0 {M dup dup 0 D 0 exch D neg 0 D P V A F U N} bind def
-/S1 {M dup dup 0 D 0 exch D neg 0 D P V A F U S} bind def
-/S2 {M dup dup 0 D 0 exch D neg 0 D P V C F U N} bind def
-/S3 {M dup dup 0 D 0 exch D neg 0 D P V C F U S} bind def
-/S4 {M dup dup 0 D 0 exch D neg 0 D P S} bind def
-/S5 {M dup dup 0 D 0 exch D neg 0 D P V K F U N} bind def
-/S6 {M dup dup 0 D 0 exch D neg 0 D P V K F U S} bind def
-/S7 {M dup dup 0 D 0 exch D neg 0 D P V H F U N} bind def
-/S8 {M dup dup 0 D 0 exch D neg 0 D P V H F U S} bind def
-/T0 {M dup 0 D dup 2 div neg exch 0.866025 mul D P V A F U N} bind def
-/T1 {M dup 0 D dup 2 div neg exch 0.866025 mul D P V A F U S} bind def
-/T2 {M dup 0 D dup 2 div neg exch 0.866025 mul D P V C F U N} bind def
-/T3 {M dup 0 D dup 2 div neg exch 0.866025 mul D P V C F U S} bind def
-/T4 {M dup 0 D dup 2 div neg exch 0.866025 mul D P S} bind def
-/T5 {M dup 0 D dup 2 div neg exch 0.866025 mul D P V K F U N} bind def
-/T6 {M dup 0 D dup 2 div neg exch 0.866025 mul D P V K F U S} bind def
-/T7 {M dup 0 D dup 2 div neg exch 0.866025 mul D P V H F U N} bind def
-/T8 {M dup 0 D dup 2 div neg exch 0.866025 mul D P V H F U S} bind def
-/I0 {M dup 0 D dup 2 div neg exch -0.866025 mul D P V A F U N} bind def
-/I1 {M dup 0 D dup 2 div neg exch -0.866025 mul D P V A F U S} bind def
-/I2 {M dup 0 D dup 2 div neg exch -0.866025 mul D P V C F U N} bind def
-/I3 {M dup 0 D dup 2 div neg exch -0.866025 mul D P V C F U S} bind def
-/I4 {M dup 0 D dup 2 div neg exch -0.866025 mul D P S} bind def
-/I5 {M dup 0 D dup 2 div neg exch -0.866025 mul D P V K F U N} bind def
-/I6 {M dup 0 D dup 2 div neg exch -0.866025 mul D P V K F U S} bind def
-/I7 {M dup 0 D dup 2 div neg exch -0.866025 mul D P V H F U N} bind def
-/I8 {M dup 0 D dup 2 div neg exch -0.866025 mul D P V H F U S} bind def
-/E0 {V T dup 0 exch M 0.726542528 mul -72 R dup 0 D 4 {72 R dup 0 D -144 R dup 0 D} repeat pop P V A F U N U} bind def
-/E1 {V T dup 0 exch M 0.726542528 mul -72 R dup 0 D 4 {72 R dup 0 D -144 R dup 0 D} repeat pop P V A F U S U} bind def
-/E2 {V T dup 0 exch M 0.726542528 mul -72 R dup 0 D 4 {72 R dup 0 D -144 R dup 0 D} repeat pop P V C F U N U} bind def
-/E3 {V T dup 0 exch M 0.726542528 mul -72 R dup 0 D 4 {72 R dup 0 D -144 R dup 0 D} repeat pop P V C F U S U} bind def
-/E4 {V T dup 0 exch M 0.726542528 mul -72 R dup 0 D 4 {72 R dup 0 D -144 R dup 0 D} repeat pop P S U} bind def
-/E5 {V T dup 0 exch M 0.726542528 mul -72 R dup 0 D 4 {72 R dup 0 D -144 R dup 0 D} repeat pop P V K F U N U} bind def
-/E6 {V T dup 0 exch M 0.726542528 mul -72 R dup 0 D 4 {72 R dup 0 D -144 R dup 0 D} repeat pop P V K F U S U} bind def
-/E7 {V T dup 0 exch M 0.726542528 mul -72 R dup 0 D 4 {72 R dup 0 D -144 R dup 0 D} repeat pop P V H F U S U} bind def
-/E8 {V T dup 0 exch M 0.726542528 mul -72 R dup 0 D 4 {72 R dup 0 D -144 R dup 0 D} repeat pop P V H F U N U} bind def
-/H0 {V T dup dup 2 div exch 0.866025404 mul M 5 {-60 R dup 0 D} repeat pop P V A F U N U} bind def
-/H1 {V T dup dup 2 div exch 0.866025404 mul M 5 {-60 R dup 0 D} repeat pop P V A F U S U} bind def
-/H2 {V T dup dup 2 div exch 0.866025404 mul M 5 {-60 R dup 0 D} repeat pop P V C F U N U} bind def
-/H3 {V T dup dup 2 div exch 0.866025404 mul M 5 {-60 R dup 0 D} repeat pop P V C F U S U} bind def
-/H4 {V T dup dup 2 div exch 0.866025404 mul M 5 {-60 R dup 0 D} repeat pop P S U} bind def
-/H5 {V T dup dup 2 div exch 0.866025404 mul M 5 {-60 R dup 0 D} repeat pop P V K F U N U} bind def
-/H6 {V T dup dup 2 div exch 0.866025404 mul M 5 {-60 R dup 0 D} repeat pop P V K F U S U} bind def
-/H7 {V T dup dup 2 div exch 0.866025404 mul M 5 {-60 R dup 0 D} repeat pop P V H F U N U} bind def
-/H8 {V T dup dup 2 div exch 0.866025404 mul M 5 {-60 R dup 0 D} repeat pop P V H F U S U} bind def
-/N0 {V T dup 1.175570504 mul exch dup 0.587785252 mul exch -0.809016994 mul M 4 {72 R dup 0 D} repeat pop P V A F U N U} bind def
-/N1 {V T dup 1.175570504 mul exch dup 0.587785252 mul exch -0.809016994 mul M 4 {72 R dup 0 D} repeat pop P V A F U S U} bind def
-/N2 {V T dup 1.175570504 mul exch dup 0.587785252 mul exch -0.809016994 mul M 4 {72 R dup 0 D} repeat pop P V C F U N U} bind def
-/N3 {V T dup 1.175570504 mul exch dup 0.587785252 mul exch -0.809016994 mul M 4 {72 R dup 0 D} repeat pop P V C F U S U} bind def
-/N4 {V T dup 1.175570504 mul exch dup 0.587785252 mul exch -0.809016994 mul M 4 {72 R dup 0 D} repeat pop P S U} bind def
-/N5 {V T dup 1.175570504 mul exch dup 0.587785252 mul exch -0.809016994 mul M 4 {72 R dup 0 D} repeat pop P V K F U N U} bind def
-/H6 {V T dup 1.175570504 mul exch dup 0.587785252 mul exch -0.809016994 mul M 4 {72 R dup 0 D} repeat pop P V K F U S U} bind def
-/N7 {V T dup 1.175570504 mul exch dup 0.587785252 mul exch -0.809016994 mul M 4 {72 R dup 0 D} repeat pop P V H F U N U} bind def
-/H8 {V T dup 1.175570504 mul exch dup 0.587785252 mul exch -0.809016994 mul M 4 {72 R dup 0 D} repeat pop P V H F U S U} bind def
-/O0 {V T dup dup 0.414213562 mul exch M 0.828427125 mul 7 {-45 R dup 0 D} repeat pop P V A F U N U} bind def
-/O1 {V T dup dup 0.414213562 mul exch M 0.828427125 mul 7 {-45 R dup 0 D} repeat pop P V A F U S U} bind def
-/O2 {V T dup dup 0.414213562 mul exch M 0.828427125 mul 7 {-45 R dup 0 D} repeat pop P V C F U N U} bind def
-/O3 {V T dup dup 0.414213562 mul exch M 0.828427125 mul 7 {-45 R dup 0 D} repeat pop P V C F U S U} bind def
-/O4 {V T dup dup 0.414213562 mul exch M 0.828427125 mul 7 {-45 R dup 0 D} repeat pop P S U} bind def
-/O5 {V T dup dup 0.414213562 mul exch M 0.828427125 mul 7 {-45 R dup 0 D} repeat pop P V K F U N U} bind def
-/O6 {V T dup dup 0.414213562 mul exch M 0.828427125 mul 7 {-45 R dup 0 D} repeat pop P V K F U S U} bind def
-/O7 {V T dup dup 0.414213562 mul exch M 0.828427125 mul 7 {-45 R dup 0 D} repeat pop P V H F U N U} bind def
-/O8 {V T dup dup 0.414213562 mul exch M 0.828427125 mul 7 {-45 R dup 0 D} repeat pop P V H F U S U} bind def
-/P0 {arc P V A F U N} bind def
-/P1 {arc P V A F U S} bind def
-/P2 {arc P V C F U N} bind def
-/P3 {arc P V C F U S} bind def
-/P4 {arc P S} bind def
-/P5 {arc P V K F U N} bind def
-/P6 {arc P V K F U S} bind def
-/P7 {arc P V H F U N} bind def
-/P8 {arc P V H F U S} bind def
-/a {P V A F U N} def
-/b {P V A F U S} def
-/c {P V C F U N} def
-/d {P V C F U S} def
-/k {P V K F U N} def
-/l {P V K F U S} def
-/h {P V H F U N} def
-/i {P V H F U S} def
-/p {P S} def
-/q {M {D} repeat P V A F U N} def
-/r {M {D} repeat P V A F U S} def
-/s {M {D} repeat P V C F U N} def
-/t {M {D} repeat P V C F U S} def
-/u {M {D} repeat P V K F U N} def
-/v {M {D} repeat P V K F U S} def
-/w {M {D} repeat P S} def
-/x {M {D} repeat P V H F U N} def
-/y {M {D} repeat P V H F U S} def
-/bby {tcf pathbbox N exch pop sub abs exch pop} bind def
-/tcf {true charpath flattenpath} bind def
-
+/! {bind def} bind def
+/# {load def}!
+/A /setgray #
+/B /setdash #
+/C /setrgbcolor #
+/D /rlineto #
+/E {dup stringwidth pop}!
+/F /fill #
+/G /rmoveto #
+/H /sethsbcolor #
+/I /setpattern #
+/K /setcmykcolor #
+/L /lineto #
+/M /moveto #
+/N /newpath #
+/P /closepath #
+/R /rotate #
+/S /stroke #
+/T /translate #
+/U /grestore #
+/V /gsave #
+/W /setlinewidth #
+/Y {findfont exch scalefont setfont}!
+/Z /show #
+/FP {true charpath flattenpath}!
+/MU {matrix setmatrix}!
+/MS {/SMat matrix currentmatrix def}!
+/MR {SMat setmatrix}!
+/edef {exch def}!
+% Path fill
+/FS {/fc edef /fs {V fc F U} def}!
+/FQ {/fs {} def}!
+% Outline off or on
+/O0 {/os {N} def}!
+/O1 {/os {P S} def}!
+% Set both fill and outline
+/FO {fs os}!
+% Star: radius xc yc
+/Sa {M MS dup 0 exch G 0.726542528 mul -72 R dup 0 D 4 {72 R dup 0 D -144 R dup 0 D} repeat pop MR FO}!
+% Box: height width xll yll
+/Sb {M dup 0 D exch 0 exch D neg 0 D FO}!
+% Rounded box: height width radius xll yll
+/SB {MS T /BoxR edef /BoxW edef /BoxH edef BoxR 0 M
+  BoxW 0 BoxW BoxH BoxR arct BoxW BoxH 0 BoxH BoxR arct 0 BoxH 0 0 BoxR arct 0 0 BoxW 0 BoxR arct MR FO}!
+% Circle: radius xc yc
+/Sc {N 3 -1 roll 0 360 arc FO}!
+% Diamond: radius xc yc
+/Sd {M 4 {dup} repeat 0 G neg dup dup D exch D D FO}!
+% Ellipse: major minor angle xc yc
+/Se {N MS T R scale 0 0 1 0 360 arc MR FO}!
+% Octagon: radius xc yc
+/Sg {M MS 22.5 R dup 0 exch G -22.5 R 0.765366865 mul dup 0 D 6 {-45 R dup 0 D} repeat pop MR FO}!
+% Hexagon: radius xc yc
+/Sh {M MS dup 0 G -120 R dup 0 D 4 {-60 R dup 0 D} repeat pop MR FO}!
+% Inverted triangle: radius xc yc
+/Si {M MS dup neg 0 exch G 60 R 1.732050808 mul dup 0 D 120 R 0 D MR FO}!
+% Rotated rectangle: height width angle xc yc
+/Sj {M MS R dup -2 div 2 index -2 div G dup 0 D exch 0 exch D neg 0 D MR FO}!
+% Pentagon: radius xc yc
+/Sn {M MS dup 0 exch G -36 R 1.175570505 mul dup 0 D 3 {-72 R dup 0 D} repeat pop MR FO}!
+% Dot: radius xc yc [hardwired as circle with no outline]
+/Sp {N 3 -1 roll 0 360 arc fs N}!
+% Patch fill: x1 y1 ... xn yn n
+/SP {M {D} repeat FO}!
+% Rectangle: height width xc yc
+/Sr {M dup -2 div 2 index -2 div G dup 0 D exch 0 exch D neg 0 D FO}!
+% Rounded rectangle: height width radius xc yc
+/SR {MS T /BoxR edef /BoxW edef /BoxH edef BoxR BoxW -2 div BoxH -2 div T BoxR 0 M
+  BoxW 0 BoxW BoxH BoxR arct BoxW BoxH 0 BoxH BoxR arct 0 BoxH 0 0 BoxR arct 0 0 BoxW 0 BoxR arct MR FO}!
+% Square: radius xc yc
+/Ss {M 1.414213562 mul dup dup dup -2 div dup G 0 D 0 exch D neg 0 D FO}!
+% Triangle: radius xc yc
+/St {M MS dup 0 exch G -60 R 1.732050808 mul dup 0 D -120 R 0 D MR FO}!
+% Single-headed vector
+/SV {0 exch M 0 D D D D D 0 D FO}!
+% Double-headed vector
+/Sv {0 0 M D D 0 D D D D D 0 D D FO}!
+% Pie Wedge: radius angle1 angle2 xc yc
+/Sw {2 copy M 5 2 roll arc FO}!
+% Cross: radius xc yc
+/Sx {M 1.414213562 mul 5 {dup} repeat -2 div dup G D neg 0 G neg D S}!
+% Y-dash: radius xc yc
+/Sy {M dup 0 exch G dup -2 mul dup 0 exch D S}!
+% Plus: radius xc yc
+/S+ {M dup 0 G dup -2 mul dup 0 D exch dup G 0 exch D S}!
+% X-dash: radius xc yc
+/S- {M dup 0 G dup -2 mul dup 0 D S}!
+% String width, height, depth and total height (height-depth)
+/sw {stringwidth pop}!
+/sh {V MU 0 0 M FP pathbbox N 4 1 roll pop pop pop U}!
+/sd {V MU 0 0 M FP pathbbox N pop pop exch pop U}!
+/sH {V MU 0 0 M FP pathbbox N exch pop exch sub exch pop U}!
+/sb {E exch sh}!
+% To align text {bottom,middle,top}{left,center,right}
+/bl {}!
+/bc {E -2 div 0 G}!
+/br {E neg 0 G}!
+/ml {dup 0 exch sh -2 div G}!
+/mc {dup E -2 div exch sh -2 div G}!
+/mr {dup E neg exch sh -2 div G}!
+/tl {dup 0 exch sh neg G}!
+/tc {dup E -2 div exch sh neg G}!
+/tr {dup E neg exch sh neg G}!
+% Maximum of two numbers
+/mx {2 copy lt {exch} if pop}!
+% Translate and memorize advance
+/PSL_xorig 0 def /PSL_yorig 0 def
+/TM {2 copy T PSL_yorig add /PSL_yorig edef PSL_xorig add /PSL_xorig edef}!
+% To reencode one font with the provided encoding vector
+/PSL_reencode {findfont dup length dict begin
+  {1 index /FID ne {def}{pop pop} ifelse} forall
+  exch /Encoding edef currentdict end definefont pop
+}!
+/PSL_eps_begin {					% Marks begin of EPSF inclusion
+  /PSL_eps_state save def				% Save state for cleanup
+  /PSL_dict_count countdictstack def			% Count objects on dict stack
+  /PSL_op_count count 1 sub def				% Count objects on operand stack
+  userdict begin					% Push userdict stack
+  /showpage {} def					% Deactivate showpage command
+  0 setgray 0 setlinecap 1 setlinewidth			% Prepare clean graphics state
+  0 setlinejoin 10 setmiterlimit [] 0 setdash newpath
+  /languagelevel where	% If level != 1, set strokeadjust and overprint to their defaults
+  {pop languagelevel 1 ne {false setstrokeadjust false setoverprint} if} if
+}!
+/PSL_eps_end {						% Marks end of EPSF inclusion
+  count PSL_op_count sub {pop} repeat			% Clean up operand stack
+  countdictstack PSL_dict_count sub {end} repeat	% Clean up dict stack
+  PSL_eps_state restore					% Restore saved state
+}!
+/PSL_transp {						% Set transparency
+  /.setopacityalpha where {pop .setblendmode .setopacityalpha}{		% Using ghostscript
+  /pdfmark where {pop [ /BM exch /CA exch dup /ca exch /SetTransparency pdfmark}	% Or Adobe
+  {pop pop} ifelse} ifelse				% Or skip if neither are supported
+}!
