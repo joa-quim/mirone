@@ -13,7 +13,6 @@ function out = c_mapproject(data, varargin)
 		for (k = 1:numel(varargin))
 			cmd = sprintf('%s %s', cmd, varargin{k});
 		end
-		gmtmex('create')
 		out = gmtmex(cmd, data);
 		gmtmex('destroy')
 	end

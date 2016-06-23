@@ -18,7 +18,6 @@ function [Zout, head] = c_grdproject(Zin, head, varargin)
 		for (k = 1:numel(varargin))
 			cmd = sprintf('%s %s', cmd, varargin{k});
 		end
-		gmtmex('create')
 		Z = gmtmex(cmd, G);
 		Zout = Z.z;
 		gmtmex('destroy')
