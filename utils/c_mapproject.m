@@ -1,7 +1,7 @@
 function out = c_mapproject(data, varargin)
 % Temporary function to easy up transition from GMT4 to GMT5.2
 
-% $Id: c_mapproject.m 4726 2015-07-20 23:11:57Z j $
+% $Id: c_mapproject.m 7928 2016-06-23 00:27:25Z j $
 
 	global gmt_ver
 	if (isempty(gmt_ver)),		gmt_ver = 4;	end		% For example, if calls do not come via mirone.m
@@ -13,7 +13,6 @@ function out = c_mapproject(data, varargin)
 		for (k = 1:numel(varargin))
 			cmd = sprintf('%s %s', cmd, varargin{k});
 		end
-		gmtmex('create')
 		out = gmtmex(cmd, data);
 		gmtmex('destroy')
 	end
