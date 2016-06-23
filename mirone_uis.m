@@ -16,7 +16,7 @@ function [H1,handles,home_dir] = mirone_uis(home_dir)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: mirone_uis.m 7918 2016-05-31 15:49:06Z j $
+% $Id: mirone_uis.m 7930 2016-06-23 00:33:40Z j $
 
 %#function pan igrf_options rally_plater plate_calculator ecran snapshot
 %#function about_box parker_stuff euler_stuff grid_calculator tableGUI
@@ -755,7 +755,7 @@ end
 uimenu('Parent',h, 'Call', 'update_gmt(guidata(gcbo))','Label','Update your GMT5','Sep','on')
 uimenu('Parent',h, 'Call',['mirone(''FileOpenWebImage_CB'',guidata(gcbo),',...
 	' ''http://www2.clustrmaps.com/stats/maps-clusters/w3.ualg.pt-~jluis-mirone-world.jpg'',''nikles'');'],'Label','See visitors map','Sep','on');
-uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 31 May 2016'',''2.7.0dev'')','Label','About','Sep','on');
+uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 23 Jun 2016'',''2.7.0dev'')','Label','About','Sep','on');
 
 %% --------------------------- Build HANDLES and finish things here
 	handles = guihandles(H1);
