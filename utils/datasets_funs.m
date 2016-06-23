@@ -429,12 +429,16 @@ function DatasetsPlateBound_PB_All(handles)
 function CoastLines(handles, res)
 	if (aux_funs('msg_dlg',5,handles)),		return,		end		% Test no_file || unknown proj
 	
-	lon = get(handles.axes1,'Xlim');      lat = get(handles.axes1,'Ylim');
+	lon = get(handles.axes1,'Xlim');	lat = get(handles.axes1,'Ylim');
+	lat(1) = max(lat(1), -90);			lat(2) = min(lat(2), 90);	% Protect against sliping pixel registration shit.
 	if (handles.geog == 2)
+		if (diff(lon) > 360)			% Than pay attention to pixel reg shit
+			lon(1) = max(lon(1), 0);	lon(2) = min(lon(2), 360);
+		end
 		ind = (lon < 0);
 		lon(ind) = lon(ind) + 360;
 	end
-	if (handles.geog),	[lon lat] = force_in_360(handles, lon, lat);	end
+	if (handles.geog),	[lon, lat] = force_in_360(handles, lon, lat);	end
     [dumb, msg, opt_R] = geog2projected_pts(handles,[lon(:) lat(:)],[lon lat 0]);   % Get -R for use in shoredump
     if (isempty(opt_R)),    return;    end      % It should never happen, but ...
 	
@@ -485,7 +489,7 @@ function PoliticalBound(handles, type, res)
 		ind = (lon < 0);
 		lon(ind) = lon(ind) + 360;
 	end
-	if (handles.geog),	[lon lat] = force_in_360(handles, lon, lat);	end
+	if (handles.geog),	[lon, lat] = force_in_360(handles, lon, lat);	end
     [dumb, msg, opt_R] = geog2projected_pts(handles,[lon(:) lat(:)],[lon lat 0]);   % Get -R for use in shoredump
 	
 	switch type
@@ -540,7 +544,7 @@ function Rivers(handles, type, res)
 	if (aux_funs('msg_dlg',5,handles));     return;      end    % Test no_file || unknown proj
 	
 	lon = get(handles.axes1,'Xlim');      lat = get(handles.axes1,'Ylim');
-	if (handles.geog),	[lon lat] = force_in_360(handles, lon, lat);	end
+	if (handles.geog),	[lon, lat] = force_in_360(handles, lon, lat);	end
 	if (handles.geog == 2)
 		ind = (lon < 0);
 		lon(ind) = lon(ind) + 360;
