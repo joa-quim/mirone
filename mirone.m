@@ -20,7 +20,7 @@ function varargout = mirone(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: mirone.m 7922 2016-06-01 01:45:46Z j $
+% $Id: mirone.m 7929 2016-06-23 00:31:53Z j $
 
 	if (nargin > 1 && ischar(varargin{1}))
 		if ( ~isempty(strfind(varargin{1},':')) || ~isempty(strfind(varargin{1},filesep)) )
@@ -249,25 +249,25 @@ function hObject = mirone_OpeningFcn(varargin)
 			end
 			handles = aux_funs('isProj',handles);				% Check/set about coordinates type
 			
-		elseif (n_argin == 1 && isa(varargin{1},'struct') && isfield(varargin{1},'ProjectionRefPROJ4'))
+		elseif (n_argin == 1 && isa(varargin{1},'struct') && isfield(varargin{1},'projection_ref_proj4'))
 			% A GMT5 grid/image structure. (for images we still do not use eventual alpha channel)
 			handles.head = [varargin{1}.range varargin{1}.registration varargin{1}.inc];
 			if (~isfield(varargin{1}, 'image'))
 				Z = varargin{1}.z;			grd_data_in = true;
 				if (~isa(Z,'single')),		Z = single(Z);		end
 				handles.have_nans = grdutils(Z,'-N');
-				X = linspace(varargin{1}.range(1), varargin{1}.range(2), varargin{1}.n_columns);
-				Y = linspace(varargin{1}.range(3), varargin{1}.range(4), varargin{1}.n_rows);
+				X = linspace(varargin{1}.range(1), varargin{1}.range(2), size(varargin{1}.z, 2));
+				Y = linspace(varargin{1}.range(3), varargin{1}.range(4), size(varargin{1}.z, 1));
 			else
 				handles.image_type = 3;		isReferenced = false;
 				X = [varargin{1}.x(1) varargin{1}.x(end)];		Y = [varargin{1}.y(1) varargin{1}.y(end)];
 				handles.geog = aux_funs('guessGeog', [Y Y]);
-				ProjectionRefWKT = varargin{1}.ProjectionRefWKT;
-				if (isempty(ProjectionRefWKT) && ~isempty(varargin{1}.ProjectionRefPROJ4))
-					ProjectionRefWKT = ogrproj(varargin{1}.ProjectionRefPROJ4);
+				ProjectionRefWKT = varargin{1}.projection_ref_wkt;
+				if (isempty(ProjectionRefWKT) && ~isempty(varargin{1}.projection_ref_proj4))
+					ProjectionRefWKT = ogrproj(varargin{1}.projection_ref_proj4);
 				end
 				if (~isempty(ProjectionRefWKT))
-					aux_funs('appP', handles, varargin{1}.ProjectionRefWKT)			% If we have a WKT proj, store it
+					aux_funs('appP', handles, varargin{1}.projection_ref_wkt)		% If we have a WKT proj, store it
 					isReferenced = true;
 					if (~handles.geog),		handles.is_projected = true;	end		% WEAK LOGIC. SHOULD PARSE WKT TO MAKE SURE
 				end
@@ -528,7 +528,13 @@ function handles = SetAxesNumericType(handles,event)
 	setappdata(handles.axes1,'XTickOrigNum',get(handles.axes1,'XTick'))
 	setappdata(handles.axes1,'YTickOrig',get(handles.axes1,'YTickLabel'))
 	setappdata(handles.axes1,'YTickOrigNum',get(handles.axes1,'YTick'))
-	set(handles.axes1, 'FontSize', 9)				% Make this the default
+	n1 = numel(get(handles.axes1,'YTick'));
+	fsize = get(handles.axes1, 'FontSize');
+	set(handles.axes1, 'FontSize', 9)		% Make this the default
+	n2 = numel(get(handles.axes1,'YTick'));
+	if (n1 ~= n2)							% BUT SOMETIMES IT FCK IT??????????. DAMN ML BUGS
+		set(handles.axes1, 'FontSize', fsize)
+	end
 	LFT = 'DegDec';			visibility = 'on';		% For the geog case
 	if (~handles.geog),		LFT = 'NotGeog';	visibility = 'off';		end 
 	setappdata(handles.axes1,'LabelFormatType',LFT)
