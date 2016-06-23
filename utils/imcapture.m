@@ -108,7 +108,7 @@ function img = imcapture( h, opt, dpi, opt2, opt3)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: imcapture.m 7892 2016-05-08 23:49:38Z j $
+% $Id: imcapture.m 7927 2016-06-23 00:25:36Z j $
 
 	hAxes = [];
 	if (nargin == 0 || isempty(h)),     h = get(0,'CurrentFigure');    end
@@ -220,7 +220,7 @@ function img = imcapture( h, opt, dpi, opt2, opt3)
 	if (~isempty(ff)),		fancyFrame(guidata(h),'punset');	end		% Remove (if) the temporary patch frame
 
 	if (~isempty(msg))      % If we had an error inside imgOnly()
-		error('imcapture:a',msg);
+		warning('imcapture:a',msg);
 	end
 
 % ------------------------------------------------------------------    
