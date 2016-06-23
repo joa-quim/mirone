@@ -220,7 +220,7 @@ function img = imcapture( h, opt, dpi, opt2, opt3)
 	if (~isempty(ff)),		fancyFrame(guidata(h),'punset');	end		% Remove (if) the temporary patch frame
 
 	if (~isempty(msg))      % If we had an error inside imgOnly()
-		error('imcapture:a',msg);
+		warning('imcapture:a',msg);
 	end
 
 % ------------------------------------------------------------------    
