@@ -20,7 +20,7 @@ function varargout = mirone(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: mirone.m 7929 2016-06-23 00:31:53Z j $
+% $Id: mirone.m 7931 2016-07-04 23:51:52Z j $
 
 	if (nargin > 1 && ischar(varargin{1}))
 		if ( ~isempty(strfind(varargin{1},':')) || ~isempty(strfind(varargin{1},filesep)) )
@@ -259,7 +259,7 @@ function hObject = mirone_OpeningFcn(varargin)
 				X = linspace(varargin{1}.range(1), varargin{1}.range(2), size(varargin{1}.z, 2));
 				Y = linspace(varargin{1}.range(3), varargin{1}.range(4), size(varargin{1}.z, 1));
 			else
-				handles.image_type = 3;		isReferenced = false;
+				handles.image_type = 2;		isReferenced = false;
 				X = [varargin{1}.x(1) varargin{1}.x(end)];		Y = [varargin{1}.y(1) varargin{1}.y(end)];
 				handles.geog = aux_funs('guessGeog', [Y Y]);
 				ProjectionRefWKT = varargin{1}.projection_ref_wkt;
@@ -274,7 +274,9 @@ function hObject = mirone_OpeningFcn(varargin)
 				if (ndims(varargin{1}.image) == 2),		set(handles.figure1,'Colormap',gray(256));		end
 				win_name = 'Nikles';
 				if (~isempty(varargin{1}.title)),		win_name = varargin{1}.title;	end
-				handles = show_image(handles,win_name,X,Y,varargin{1}.image,0,'xy',varargin{1}.registration,1);
+				alpha = 1;
+				if (~isempty(varargin{1}.alpha)),		alpha = varargin{1}.alpha;		end
+				handles = show_image(handles,win_name,X,Y,varargin{1}.image,0,'off',varargin{1}.registration,1, alpha);
 				if (~isReferenced),		grid_info(handles,[],'iminfo',varargin{1}.image);		% Create a info string
 				else					grid_info(ProjectionRefWKT, 'referenced', varargin{1}.image);
 				end
@@ -2048,11 +2050,15 @@ function showRADARSAT(handles, att, fname, Z)
 
 % _________________________________________________________________________________________________
 % -*-*-*-*-*-*-$-$-$-$-$-$-#-#-#-#-#-#-%-%-%-%-%-%-@-@-@-@-@-@-(-)-(-)-(-)-&-&-&-&-&-&-{-}-{-}-{-}-
-function handles = show_image(handles, fname, X, Y, I, validGrid, axis_t, adjust, imSize)
+function handles = show_image(handles, fname, X, Y, I, validGrid, axis_t, adjust, imSize, alpha)
 % Show image and set other parameters
 % AXIS_T	'xy' or 'off'
 % IMSIZE	Optional arg. Use when dx ~= dy
+% ALPHA		Optional arg to hold an alpha layer instead of having size(I) = MxNx4
 
+	if (nargin == 10 && numel(alpha) ~= 1 && (size(I,1) ~= size(alpha,1) || size(I,2) ~= size(alpha,2)))
+		error('Aplha channel has not the same size as the image')
+	end
 	if (adjust)				% Convert the image limits from pixel reg to grid reg
 		[X,Y] = aux_funs('adjust_lims', X, Y, size(I,1), size(I,2));
 	end
@@ -2073,7 +2079,7 @@ function handles = show_image(handles, fname, X, Y, I, validGrid, axis_t, adjust
 	end
 
 	if (~validGrid && handles.validGrid),		aux_funs('cleanGRDappdata',handles);	end
-	alpha = 1;
+	if (nargin < 10),	alpha = 1;	end			% That is, if no alpha sent as argin
 	if (size(I,3) > 3)
 		if (strcmp(handles.transparency, 'alpha'))
 			alpha = I(:,:,4);
@@ -2124,6 +2130,7 @@ function handles = show_image(handles, fname, X, Y, I, validGrid, axis_t, adjust
 
 	if (do_resize)		% If FALSE image is visible already and we don't want to use resizetrue
 		magRatio = resizetrue(handles,imSize,axis_t);			% -------> IMAGE IS VISIBLE HERE. <-------
+		set(handles.figure1,'Vis','on')			% And if it wasn't now it is
 	end
 
 	handles.origFig = I;			handles.no_file = 0;
@@ -2210,18 +2217,22 @@ function fix_axes_labels(handles)
 % Trust in the estimate made by num2str.
 	xTick  = get(handles.axes1, 'XTick');
 	xLabel = num2str(xTick(:));
-	ind    = strfind(xLabel(1,:), '.');
-	if (isempty(ind)),	n_dec = 0;
-	else				n_dec  = size(xLabel, 2) - ind;
+	ind = 0;
+	for (k = 1:size(xLabel, 1))
+		t = strfind(xLabel(k,:), '.');
+		if (~isempty(t)),	ind = max(ind, t);	end
 	end
+	n_dec  = size(xLabel, 2) - ind;
 	xLabel = num2str(xTick(:), sprintf('%%.%df', n_dec));
 
 	yTick  = get(handles.axes1, 'YTick');
 	yLabel = num2str(yTick(:));
-	ind    = strfind(yLabel(1,:), '.');
-	if (isempty(ind)),	n_dec = 0;
-	else				n_dec  = size(yLabel, 2) - ind;
+	ind = 0;
+	for (k = 1:size(yLabel, 1))
+		t = strfind(yLabel(k,:), '.');
+		if (~isempty(t)),	ind = max(ind, t);	end
 	end
+	n_dec  = size(yLabel, 2) - ind;
 	yLabel = num2str(yTick(:), sprintf('%%.%df', n_dec));
 	
 	set(handles.axes1, 'XTickLabel', xLabel, 'YTickLabel', yLabel)
