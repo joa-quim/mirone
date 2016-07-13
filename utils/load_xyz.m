@@ -591,6 +591,7 @@ function varargout = load_xyz(handles, opt, opt2)
 				if (~isempty(indx) || ~isempty(indy)),	tmpz(indx) = [];	tmpz(indy) = [];	end	% If needed, clip outside map data
 			end
 
+			multi_segs_str{i} = deblank(multi_segs_str{i});
 			[lThick, cor, multi_segs_str{i}] = parseW(multi_segs_str{i}(min(2,numel(multi_segs_str{i})):end)); % First time, we can chop the '>' char
 			if (isempty(lThick)),	lThick = handles.DefLineThick;	end		% IF not provided, use default
 			if (isempty(cor)),		cor = handles.DefLineColor;		end		%           "
