@@ -249,7 +249,7 @@ function hObject = mirone_OpeningFcn(varargin)
 			end
 			handles = aux_funs('isProj',handles);				% Check/set about coordinates type
 			
-		elseif (n_argin == 1 && isa(varargin{1},'struct') && isfield(varargin{1},'projection_ref_proj4'))
+		elseif (n_argin == 1 && isa(varargin{1},'struct') && isfield(varargin{1},'proj4'))
 			% A GMT5 grid/image structure. (for images we still do not use eventual alpha channel)
 			handles.head = [varargin{1}.range varargin{1}.registration varargin{1}.inc];
 			if (~isfield(varargin{1}, 'image'))
@@ -262,12 +262,12 @@ function hObject = mirone_OpeningFcn(varargin)
 				handles.image_type = 2;		isReferenced = false;
 				X = [varargin{1}.x(1) varargin{1}.x(end)];		Y = [varargin{1}.y(1) varargin{1}.y(end)];
 				handles.geog = aux_funs('guessGeog', [Y Y]);
-				ProjectionRefWKT = varargin{1}.projection_ref_wkt;
-				if (isempty(ProjectionRefWKT) && ~isempty(varargin{1}.projection_ref_proj4))
-					ProjectionRefWKT = ogrproj(varargin{1}.projection_ref_proj4);
+				ProjectionRefWKT = varargin{1}.wkt;
+				if (isempty(ProjectionRefWKT) && ~isempty(varargin{1}.proj4))
+					ProjectionRefWKT = ogrproj(varargin{1}.proj4);
 				end
 				if (~isempty(ProjectionRefWKT))
-					aux_funs('appP', handles, varargin{1}.projection_ref_wkt)		% If we have a WKT proj, store it
+					aux_funs('appP', handles, varargin{1}.wkt)		% If we have a WKT proj, store it
 					isReferenced = true;
 					if (~handles.geog),		handles.is_projected = true;	end		% WEAK LOGIC. SHOULD PARSE WKT TO MAKE SURE
 				end
@@ -278,7 +278,7 @@ function hObject = mirone_OpeningFcn(varargin)
 				if (~isempty(varargin{1}.alpha)),		alpha = varargin{1}.alpha;		end
 				handles = show_image(handles,win_name,X,Y,varargin{1}.image,0,'off',varargin{1}.registration,1, alpha);
 				if (~isReferenced),		grid_info(handles,[],'iminfo',varargin{1}.image);		% Create a info string
-				else					grid_info(ProjectionRefWKT, 'referenced', varargin{1}.image);
+				else					grid_info(handles, ProjectionRefWKT, 'referenced', varargin{1}.image);
 				end
 				handles = aux_funs('isProj',handles);				% Check/set about coordinates type
 			end
