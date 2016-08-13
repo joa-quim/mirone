@@ -16,7 +16,7 @@ function varargout = sat_orbits(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: sat_orbits.m 7800 2016-02-15 20:46:37Z j $
+% $Id: sat_orbits.m 7936 2016-08-13 00:17:25Z j $
 
 % For compiling one need to include the orbits.m file.
 
@@ -207,9 +207,9 @@ function push_tracksTiles_CB(hObject, handles)
 	% --------------- Retain only the DAY or NIGHT parts of the orbits -----------------------
 	str = get(handles.popup_satellite, 'Str');		val = get(handles.popup_satellite, 'Val');
 	if (strfind(str{val}, '(day)'))
-		ind = (tracks.date(:,4) < 7 | tracks.date(:,4) > 19);
+		ind = (tracks.date(:,4) < 7 | tracks.date(:,4) > 19);		% The ~Night period
 	else
-		ind = (tracks.date(:,4) > 7 | tracks.date(:,4) < 19);
+		ind = (tracks.date(:,4) > 7 & tracks.date(:,4) < 19);		% The ~Day period
 	end
 	Sat = str{val}(1);				% First char in sat name, used in uicontext to build file name
 	tracks.date(ind,:) = [];		tracks.xyz(ind,:) = [];
