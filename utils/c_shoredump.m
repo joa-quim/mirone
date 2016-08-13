@@ -19,6 +19,7 @@ function out = c_shoredump(varargin)
 			end
 			if (maxLat > 180)
 				cmd = sprintf('%s %s --FORMAT_GEO_OUT=+D', cmd, varargin{k});
+				maxLat = 0;		% Reset it so we wont come here again
 			else
 				cmd = sprintf('%s %s', cmd, varargin{k});
 			end
