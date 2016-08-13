@@ -1,7 +1,7 @@
 function out = c_shoredump(varargin)
 % Temporary function to easy up transition from GMT4 to GMT5.2
 
-% $Id: c_shoredump.m 7925 2016-06-23 00:22:14Z j $
+% $Id: c_shoredump.m 7938 2016-08-13 00:21:50Z j $
 
 	global gmt_ver
 	if (isempty(gmt_ver)),		gmt_ver = 4;	end		% For example, if calls do not come via mirone.m
@@ -19,6 +19,7 @@ function out = c_shoredump(varargin)
 			end
 			if (maxLat > 180)
 				cmd = sprintf('%s %s --FORMAT_GEO_OUT=+D', cmd, varargin{k});
+				maxLat = 0;		% Reset it so we wont come here again
 			else
 				cmd = sprintf('%s %s', cmd, varargin{k});
 			end
