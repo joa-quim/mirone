@@ -18,7 +18,7 @@ function  varargout = aux_funs(opt,varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: aux_funs.m 7883 2016-04-27 22:37:36Z j $
+% $Id: aux_funs.m 7937 2016-08-13 00:20:04Z j $
 
 switch opt(1:4)
 	case 'Stor'		% 'StoreZ'
@@ -926,6 +926,44 @@ function out = decodeProjectionRef(strProj)
 			if (numel(xx) < 2),     continue;   end
 			xx = strfind(str,'"');
 			out.projection = str(xx(1)+1:xx(2)-1);
+		end
+	end
+
+% ----------------------------------------------------------------
+function out = catsegment(A, opt)
+% MERGE  Combine all segment arrays to a single array
+%   out = catsegment(A, opt)
+%
+% Concatenate all data segment arrays in the structures A
+% into a single array.  If the optional argument opt is given
+% the we start each segment with a NaN record.
+
+	n_segments = length(A);		n = 0;
+	n_arg = nargin;
+	[nr, nc] = size(A(1).data);	% Get # columns from first segment
+	for k = 1:n_segments		% Count total rows
+		n = n + length(A(k).data);
+	end
+	if (n_arg == 2)				% Need to add a NaN-record per segment
+		out = zeros(n+n_segments, nc);
+	else
+	    out = zeros(n, nc);
+	end
+	
+	n = 1;
+	if (n_arg == 2)			% Add NaN-record
+		for k = 1:n_segments
+			nr = size(A(k).data, 1);
+			out(n,:) = NaN;
+			n = n + 1;
+			out(n:(n+nr-1),:) = A(k).data;
+			n = n + nr;
+		end
+	else
+		for k = 1:n_segments
+			nr = size(A(k).data, 1);
+			out(n:(n+nr-1),:) = A(k).data;
+			n = n + nr;
 		end
 	end
 
