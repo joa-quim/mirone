@@ -2217,22 +2217,23 @@ function fix_axes_labels(handles)
 % Trust in the estimate made by num2str.
 	xTick  = get(handles.axes1, 'XTick');
 	xLabel = num2str(xTick(:));
-	ind = 0;
+	tv = zeros(size(xLabel, 1), 1);
+	nc = size(xLabel, 2);
 	for (k = 1:size(xLabel, 1))
 		t = strfind(xLabel(k,:), '.');
-		if (~isempty(t)),	ind = max(ind, t);	end
+		if (~isempty(t)),	tv(k) = nc - t;		end
 	end
-	n_dec  = size(xLabel, 2) - ind;
+	n_dec = median(tv);
 	xLabel = num2str(xTick(:), sprintf('%%.%df', n_dec));
 
 	yTick  = get(handles.axes1, 'YTick');
 	yLabel = num2str(yTick(:));
-	ind = 0;
+	tv = zeros(size(yLabel, 1), 1);
 	for (k = 1:size(yLabel, 1))
 		t = strfind(yLabel(k,:), '.');
-		if (~isempty(t)),	ind = max(ind, t);	end
+		if (~isempty(t)),	tv(k) = nc - t;		end
 	end
-	n_dec  = size(yLabel, 2) - ind;
+	n_dec = median(tv);
 	yLabel = num2str(yTick(:), sprintf('%%.%df', n_dec));
 	
 	set(handles.axes1, 'XTickLabel', xLabel, 'YTickLabel', yLabel)
