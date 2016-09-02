@@ -1,7 +1,7 @@
 function varargout = poly2mask_fig(varargin)
 % Helper figure to create a mask image from lines or polygons in the calling fig 
 
-%	Copyright (c) 2004-2013 by J. Luis
+%	Copyright (c) 2004-2016 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -145,6 +145,7 @@ function push_ok_CB(hObject, handles)
 		nRows = 0;		nCols = 0;
 	end
 
+	hMsg = false;
 	if (~handles.inputIsLine)
 
 		if (get(handles.check_allPolygs,'Val'))		% We have more than one closed poly
@@ -163,12 +164,27 @@ function push_ok_CB(hObject, handles)
 		end
 		limits = getappdata(handles.hMirAxes,'ThisImageLims');
 		x = get(hLine(1),'XData');   y = get(hLine(1),'YData');
-		mask = img_fun('roipoly_j',limits(1:2),limits(3:4),I,x,y);
+		if (any(isnan(x)))
+			errordlg('This polygon has NaNs, which makes it invalid for masking.','Error')
+			if (numel(hLine) == 1),		return,		end		% Otherwise try the others
+		end
+		mask = img_fun('roipoly_j', limits(1:2),limits(3:4),I,x,y);
 		mask2 =  [];
+		c = false(numel(hLine), 1);		% For counting porposes
 		for (k = 2:numel(hLine))
 			x = get(hLine(k),'XData');   y = get(hLine(k),'YData');
+			if (any(isnan(x)))
+				c(k) = true;
+				continue
+			end
 			mask2 = img_fun('roipoly_j',limits(1:2),limits(3:4),I,x,y);
 			mask = mask | mask2;		% Combine all masks
+		end
+		if (any(c))
+			c = find(c);				% Retain only the non-zeros
+			msg{1} = 'This polygon(s) had NaNs and therefore could not be used';
+			msg{2} = int2str(c);
+			hMsg = warndlg(msg, 'Warning');
 		end
 		if (~isempty(mask2)),	clear mask2;	end
 	else
@@ -214,6 +230,7 @@ function push_ok_CB(hObject, handles)
 		h = mirone(Z);
 		set(h,'Name','Mask image')
 	end
+	if (hMsg),	figure(hMsg),	end		% Bring it to to so it can be easily seen
 
 % -------------------------------------------------------------------------
 function hPoly = find_closed(handles)
@@ -300,7 +317,6 @@ uicontrol('Parent',h1, 'Position',[195 79 51 21],...
 'Tag','edit_out');
 
 uicontrol('Parent',h1, 'Position',[14 17 131 23],...
-'Call',@poly2mask_fig_uiCB,...
 'FontName','Helvetica',...
 'String','Apply to all polygons',...
 'Style','checkbox',...
