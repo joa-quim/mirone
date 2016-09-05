@@ -637,8 +637,8 @@ function join_lines(obj,evt,hFig)
 % Join lines that are NOT -- SEISPOLYGON, or MBTRACK, or FaultTrace or closed polygons
 
 	hCurrLine = gco;
-	hLines = get_polygon(hFig,'multi');		% Get the line handles
-	if (isempty(hLines)),	return,		end
+	hLines = get_polygon(hFig,'multi');				% Get the line handles
+	if (isempty(hLines)),		return,		end
 	hLines = setxor(hLines, hCurrLine);
 	if (numel(hLines) == 0),	return,		end		% Nothing to join
 	for (k = 1:numel(hLines))
@@ -3003,12 +3003,12 @@ function ODP_info(obj,eventdata,h,leg,site,z,penetration)
 
 % -----------------------------------------------------------------------------------------
 function str = Isochrons_Info(obj, evt, data)
-% Display the info associated with the current object (a pline)
+% Display the info associated with the current object (a pline). get(OBJ, 'Type') == uimenu
 	hLine = gco;
 	LineInfo = getappdata(hLine,'LineInfo');	% Try first to get the info directly fom appdata
 	if (isempty(LineInfo))						% If it fails, fall back to old mechanism
 		i = get(hLine,'Userdata');
-		if (isstruct(i))    % This happens when h is ui_edit_polygon(ed)
+		if (isstruct(i))			% This happens when h is ui_edit_polygon(ed)
 			i = i.old_ud;
 		end
 		if (~isempty(i)),	LineInfo = data{i};	end
