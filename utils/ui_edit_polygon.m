@@ -82,7 +82,7 @@ function ui_edit_polygon(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: ui_edit_polygon.m 7837 2016-03-07 22:27:14Z j $
+% $Id: ui_edit_polygon.m 7945 2016-09-05 22:51:05Z j $
 
 	if (isa(varargin{end},'char'))	% Moving polygon option was transmitted in input
 		move_choice = varargin{end};
@@ -489,11 +489,13 @@ switch key
 		% Now make the a new segment from rest of the original (but without markers)
 		lc = get(s.h_pol,'Color');			ls = get(s.h_pol,'LineStyle');
 		lw = get(s.h_pol,'LineWidth');		lT = get(s.h_pol,'Tag');
+		lI = getappdata(s.h_pol,'LineInfo');
 		ud = get(s.h_pol,'UserData');
 		% create a new line handle
 		tmp = line('XData',x2,'YData',y2,'Parent',s.h_ax,'LineWidth',lw,'Color',lc,'LineStyle',ls, 'UserData',ud);
 		if (~isempty(z)),		setappdata(tmp, 'ZData',z2),	end
-		if (~isempty(lT)),		set(tmp, 'Tag', lT),	end
+		if (~isempty(lT)),		set(tmp, 'Tag', lT),			end
+		if (~isempty(lI)),		setappdata(tmp, 'LineInfo', lI),end 
 		set(tmp,'uicontextmenu',get(s.h_pol,'uicontextmenu'))   % Copy the uicontextmenu
 		ui_edit_polygon(tmp)
 		s.is_closed = false;		% It's not closed anymore
