@@ -341,9 +341,9 @@ function varargout = load_xyz(handles, opt, opt2)
 			multi_segs_str = {'> Nikles '};		% Need something in it to not error below
 			orig_no_mseg = true;
 		end
-		n_isoc = 0;     n_segments = length(numeric_data);
-		hLine = zeros(n_segments,1) * NaN;			% This is the maximum we can have
-		hPat  = zeros(n_segments,1) * NaN;			% Or this
+		n_isoc  = 0;     n_segments = length(numeric_data);
+		hLine   = zeros(n_segments,1) * NaN;	% This is the maximum we can have
+		hPat    = zeros(n_segments,1) * NaN;	% Or this
 		n_clear = false(n_segments,1);
 		do_patch = false;						% Default to line object
 
@@ -526,6 +526,7 @@ function varargout = load_xyz(handles, opt, opt2)
 
 		if (do_project && handles.no_file)		% If new image set the projection info
 			aux_funs('appProjectionRef', handles, projStr)
+			handles.is_projected = true; 
 		end
 
 		drawnow
@@ -1165,8 +1166,8 @@ function [numeric_data, multi_segs_str] = swallow_GSHHS(handles, fname)
 	else
 		XYlim = getappdata(handles.axes1,'ThisImageLims');
 	end
-	if (XYlim(1) < 0),	XYlim(1) = XYlim(1) + 360;	end
-	if (XYlim(2) < 0),	XYlim(2) = XYlim(2) + 360;	end
+% 	if (XYlim(1) < 0),	XYlim(1) = XYlim(1) + 360;	end
+% 	if (XYlim(2) < 0),	XYlim(2) = XYlim(2) + 360;	end
 	[bin,n_column,multi_seg,n_headers] = guess_file(fname);		% Repeated op but never mind, it's a fast one
 	[hdrs, ind] = txt2mat(fname, 'NumHeaderLines',n_headers,'Format','%s','GoodLineString',{'>'},'ReadMode','cell');
 	nTot = numel(hdrs);
