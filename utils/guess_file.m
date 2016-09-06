@@ -35,7 +35,7 @@ function [bin,n_column,multi_seg,n_headers,isGSHHS, GSHHS_str] = guess_file(fich
 % $Id$
 
 	% Error testing
-	bin = 0;    multi_seg = 0;  n_headers = 0;  n_column = 0;	isGSHHS = false;
+	bin = 0;    multi_seg = 0;  n_headers = 0;  n_column = 0;	isGSHHS = false;	GSHHS_str = '';
 	n_args = nargin;
 	if (~n_args)
 		errordlg('function guess_file: must give an input file name','File Error')
