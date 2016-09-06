@@ -2747,7 +2747,11 @@ function save_GMT_DB_asc(h, fname)
 	if (fid < 0),	errordlg(['Can''t open file:  ' fname],'Error'),	return,		end
 	h = findobj('Tag','GMT_DBpolyline');
 	for (k = 1:numel(h))
-		if ( isempty(getappdata(h(k), 'edited')) ),		continue,	end		% Skip because it was not modified
+		if (isempty(getappdata(h(k), 'edited'))),	continue,	end		% Skip because it was not modified
+		GSHHS_str = getappdata(h(k),'GSHHS_str');
+		if (k == 1 && ~isempty(GSHHS_str))		% Write back the magic string that allows us to recognize these type of files
+			fprintf(fid,'# $Id$\n#\n%s\n#\n', GSHHS_str);
+		end
 		hdr = getappdata(h(k), 'LineInfo');
 		x = get(h(k), 'XData');			y = get(h(k), 'YData');
 		indNaN = find(isnan(x));
