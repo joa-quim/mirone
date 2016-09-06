@@ -2223,7 +2223,7 @@ function fix_axes_labels(handles)
 		t = strfind(xLabel(k,:), '.');
 		if (~isempty(t)),	tv(k) = nc - t;		end
 	end
-	n_dec = median(tv);
+	n_dec = ceil(median(tv));
 	xLabel = num2str(xTick(:), sprintf('%%.%df', n_dec));
 
 	yTick  = get(handles.axes1, 'YTick');
@@ -2233,7 +2233,7 @@ function fix_axes_labels(handles)
 		t = strfind(yLabel(k,:), '.');
 		if (~isempty(t)),	tv(k) = nc - t;		end
 	end
-	n_dec = median(tv);
+	n_dec = ceil(median(tv));
 	yLabel = num2str(yTick(:), sprintf('%%.%df', n_dec));
 	
 	set(handles.axes1, 'XTickLabel', xLabel, 'YTickLabel', yLabel)
