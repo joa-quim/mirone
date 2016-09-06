@@ -451,7 +451,7 @@ function CoastLines(handles, res)
 		case 'h',		opt_res = '-Dh';		pad = 0.03;
 		case 'f',		opt_res = '-Df';		pad = 0.005;
 	end
-	coast = c_shoredump(opt_R, opt_res, '-A1/1/1');
+	coast = c_shoredump(opt_R, opt_res, '-A0/1/1');
 	if (isa(coast, 'struct'))			% We want only the data (if GMT5 it will be a struct)
 		coast = aux_funs('catsegment',coast,1);
 	end
