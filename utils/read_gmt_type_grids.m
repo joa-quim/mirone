@@ -9,7 +9,7 @@ function [handles, X, Y, Z, head, misc] = read_gmt_type_grids(handles,fullname,o
 %
 % When used to read netCDF grids HANDLES can be []. Useful to use this function as a standalone
 
-%	Copyright (c) 2004-2015 by J. Luis
+%	Copyright (c) 2004-2016 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -24,7 +24,11 @@ function [handles, X, Y, Z, head, misc] = read_gmt_type_grids(handles,fullname,o
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: read_gmt_type_grids.m 4728 2015-07-22 15:14:51Z j $
+% Must rewrite this function to use the GMT5 machinery in first place.
+
+% $Id: read_gmt_type_grids.m 7954 2016-09-10 01:30:47Z j $
+
+	global gmt_ver
 
     infoOnly = false;
     if (nargin == 3),   infoOnly = true;    end
@@ -59,9 +63,19 @@ function [handles, X, Y, Z, head, misc] = read_gmt_type_grids(handles,fullname,o
 	if (~strcmp(ID(1:3),'CDF') && ~(tipo(1) == 'S' || tipo(1) == 'E' || tipo(1) == 'M') )
 		str = ['grdinfo ' fullname];
 		[PATH,FNAME,EXT] = fileparts(fullname);
-		s = mat_lyies(str,[handles.path_tmp FNAME EXT '.info']);
+		[s, w] = mat_lyies(str,[handles.path_tmp FNAME EXT '.info']);
 		if ~(isequal(s,0))          % File could not be read
-			errordlg([fullname ' : Is not a grid that GMT can read!'],'ERROR');
+			if (~isempty(gmt_ver) && gmt_ver == 5 && strfind(w, 'Based on header values we guessed'))
+				% Not so pretty patch to deal with native binary grids (floats).
+				if (infoOnly)
+					head = c_grdinfo(fullname, 'silent');
+				else
+					[X, Y, Z, head, misc] = c_grdread(fullname,'single');
+					head(10) = [];	% For old reasons we still trail this 10th arround
+				end
+			else
+				errordlg([fullname ' : Is not a grid that GMT can read!'],'ERROR');
+			end
 			return
 		end
 	end
@@ -69,7 +83,7 @@ function [handles, X, Y, Z, head, misc] = read_gmt_type_grids(handles,fullname,o
 	if (~infoOnly)
 		[handles, X, Y, Z, head, misc] = read_grid(handles,fullname,tipo);
 		head = head(1:9);			% SRF7 returns a 10 elements header vector
-	elseif ( any(strcmp(tipo,{'CDF' 'SRF6' 'SRF7'})) )
+	elseif (any(strcmp(tipo,{'CDF' 'SRF6' 'SRF7'})) )
 		if (opt(1) == 's')			% Get the info on the struct form
 			X = c_grdinfo(fullname, 'hdr_struct');		% Output goes in the second arg
 			head = [X.X_info(1:2) X.Y_info(1:2) X.Z_info(1:2)];
@@ -113,7 +127,7 @@ if (strcmp(tipo,'CDF'))
 		str = sprintf(['First attempt to load netCDF file failed because ... \n\n\n %s\n\n\n       Trying now with GMT mex ...' ...
 		'\n\nBTW. Please inform me about this error so that I can try to correct it.\nThanks.'], lasterr);
 		warndlg(str,'Info')
-		if ( ~isempty(strfind(lasterr, 'Out of memory')) ) % If its a memory problem, no use to insist
+		if (~isempty(strfind(lasterr, 'Out of memory')) ) % If its a memory problem, no use to insist
 			error(lasterr)
 		end
     	[X, Y, Z, head] = c_grdread(fullname,'single',opt_I);
