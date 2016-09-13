@@ -2229,6 +2229,7 @@ function fix_axes_labels(handles)
 	yTick  = get(handles.axes1, 'YTick');
 	yLabel = num2str(yTick(:));
 	tv = zeros(size(yLabel, 1), 1);
+	nc = size(yLabel, 2);
 	for (k = 1:size(yLabel, 1))
 		t = strfind(yLabel(k,:), '.');
 		if (~isempty(t)),	tv(k) = nc - t;		end
