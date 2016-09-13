@@ -20,7 +20,7 @@ function varargout = mirone(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: mirone.m 7955 2016-09-13 12:45:28Z j $
+% $Id: mirone.m 7956 2016-09-13 12:47:43Z j $
 
 	if (nargin > 1 && ischar(varargin{1}))
 		if ( ~isempty(strfind(varargin{1},':')) || ~isempty(strfind(varargin{1},filesep)) )
@@ -2128,7 +2128,7 @@ function handles = show_image(handles, fname, X, Y, I, validGrid, axis_t, adjust
 	end
 	if (handles.image_type == 2),	handles.geog = 0;	end
 
-	if (do_resize)		% If FALSE image is visible already and we don't want to use resizetrue
+	if (do_resize)				% If FALSE image is visible already and we don't want to use resizetrue
 		magRatio = resizetrue(handles,imSize,axis_t);			% -------> IMAGE IS VISIBLE HERE. <-------
 		set(handles.figure1,'Vis','on')			% And if it wasn't now it is
 	end
