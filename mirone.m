@@ -20,7 +20,7 @@ function varargout = mirone(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: mirone.m 7956 2016-09-13 12:47:43Z j $
+% $Id: mirone.m 7957 2016-09-17 15:31:15Z j $
 
 	if (nargin > 1 && ischar(varargin{1}))
 		if ( ~isempty(strfind(varargin{1},':')) || ~isempty(strfind(varargin{1},filesep)) )
@@ -4596,143 +4596,144 @@ function ImageEdgeDetect_CB(handles, opt)
 %		-> 'Rect'    Find rectangles in image (uses OpenCV and fails a lot)
 %		-> 'Ras'
 %		-> 'SUS'
-if (handles.no_file),		return,		end
+	if (handles.no_file),		return,		end
 
-img = get(handles.hImg,'CData');		% Even when not used, this op cost nothing
-dims = [size(img,1) size(img,2)];
-set(handles.figure1,'pointer','watch')
-if (strcmp(opt,'ppa'))
-	[X,Y,Z,handles.head] = load_grd(handles);
-	if isempty(Z),		return,		end
-	out = grdppa_m(Z,handles.head);
-	h_ridge = line(out(1,1:end),out(2,1:end), 'Linewidth',handles.DefLineThick, ...
-		'Color',handles.DefLineColor,'Tag','creast_line','Userdata',1);
-	multi_segs_str = cell(length(h_ridge),1);	% Just create a set of empty info strings
-	draw_funs(h_ridge,'isochron',multi_segs_str)
-	set(handles.figure1,'pointer','arrow')
-	return
-% 	x_lim = get(handles.axes1,'XLim');	y_lim = get(handles.axes1,'YLim');
-% 	h_lixo = figure('MenuBar','none');
-% 	h_tmp = line('XData',out(1,:),'YData',out(2,:),'Linewidth',0.1);
-% 	set(handles.axes1,'XLim',x_lim,'YLim',y_lim)
-% 	F = getframe(h_lixo);
-% 	img = F.cdata;
-% 	[m,n,k] = size(img);
-% 	x_inc = (handles.head(2) - handles.head(1)) / n;
-% 	y_inc = (handles.head(4) - handles.head(3)) / m;
-% 	I = flipud(img(:,:,1));
-% 	delete(h_lixo);
-elseif (strcmp(opt,'apalpa'))		% Get the polygons that sorround good data
-	if (~handles.have_nans)
-		warndlg('There are no wholes in this grid.','Chico Clever'),	return
-	end
-	[X,Y,Z] = load_grd(handles);
-	if isempty(Z),		return,		end
-	mask = isnan(Z);
-	B = img_fun('bwboundaries',mask, 8, 'holes');
-	%B = bwbound_unique(B);
-	dims = [size(Z,1) size(Z,2)];
-	opt = 'Vec';					% Trick to not need to add an extra case in the IF test below
+	mask = false;		% So far, only used in 'apalpa'
+	img = get(handles.hImg,'CData');		% Even when not used, this op cost nothing
+	dims = [size(img,1) size(img,2)];
+	set(handles.figure1,'pointer','watch')
+	if (strcmp(opt,'ppa'))
+		[X,Y,Z,handles.head] = load_grd(handles);
+		if isempty(Z),		return,		end
+		out = grdppa_m(Z,handles.head);
+		h_ridge = line(out(1,1:end),out(2,1:end), 'Linewidth',handles.DefLineThick, ...
+			'Color',handles.DefLineColor,'Tag','creast_line','Userdata',1);
+		multi_segs_str = cell(length(h_ridge),1);	% Just create a set of empty info strings
+		draw_funs(h_ridge,'isochron',multi_segs_str)
+		set(handles.figure1,'pointer','arrow')
+		return
+	% 	x_lim = get(handles.axes1,'XLim');	y_lim = get(handles.axes1,'YLim');
+	% 	h_lixo = figure('MenuBar','none');
+	% 	h_tmp = line('XData',out(1,:),'YData',out(2,:),'Linewidth',0.1);
+	% 	set(handles.axes1,'XLim',x_lim,'YLim',y_lim)
+	% 	F = getframe(h_lixo);
+	% 	img = F.cdata;
+	% 	[m,n,k] = size(img);
+	% 	x_inc = (handles.head(2) - handles.head(1)) / n;
+	% 	y_inc = (handles.head(4) - handles.head(3)) / m;
+	% 	I = flipud(img(:,:,1));
+	% 	delete(h_lixo);
+	elseif (strcmp(opt,'apalpa'))		% Get the polygons that sorround good data
+		if (~handles.have_nans)
+			warndlg('There are no wholes in this grid.','Chico Clever'),	return
+		end
+		[X,Y,Z] = load_grd(handles);
+		if isempty(Z),		return,		end
+		mask = isnan(Z);
+		B = img_fun('bwboundaries',mask, 8, 'holes');
+		%B = bwbound_unique(B);
+		dims = [size(Z,1) size(Z,2)];
+		opt = 'Vec';					% Trick to not need to add an extra case in the IF test below
 
-elseif (strcmp(opt,'Vec') || strcmp(opt,'Ras') || strcmp(opt(1:3),'SUS'))
-	if (ndims(img) == 3),		img = cvlib_mex('color',img,'rgb2gray');	end
-	if (~strcmp(opt(1:3),'SUS'))
-		if (~handles.IamCompiled),		img = canny(img);		% Economic version (uses singles & cvlib_mex but crashs in compiled)
-		else							img = img_fun('edge',img,'canny');
-		end
-	else
-		img = susan(img,'-e');				% Do SUSAN edge detect
-		if (strcmp(opt(4:end),'vec')),	opt = 'Vec';		% This avoids some extra tests later
-		else							opt = 'Ras';
-		end
-	end
-	if (strcmp(opt,'Vec'))
-		B = img_fun('bwboundaries',img,'noholes');
-		B = bwbound_unique(B);
-	end
-elseif (strcmp(opt,'Lines'))
-	%B = cvlib_mex('houghlines2',img,'standard',1,pi/180,100,0,0);
-	%BW = cvlib_mex('canny',img,40,200,3);
-	if (ndims(img) == 3),			img = cvlib_mex('color',img,'rgb2gray');	end
-	if (~handles.IamCompiled),		BW = canny(img);
-	else							BW = img_fun('edge',img,'canny');
-	end
-
-	[H,T,R] = img_fun('hough',BW);
-	P = img_fun('houghpeaks',H,50,'threshold',ceil(0.3*double(max(H(:)))));
-	lines = img_fun('houghlines',BW,T,R,P,'FillGap',10,'MinLength',50);
-	if (~isfield(lines,'point1')),	set(handles.figure1,'pointer','arrow'),		return,		end
-	B = cell(1,length(lines));
-	for (k = 1:length(lines))
-		B{k} = [lines(k).point1(2:-1:1); lines(k).point2(2:-1:1)];
-	end
-elseif (strcmp(opt,'Circles'))
-	B = cvlib_mex('houghcircles',img);
-	if (isempty(B)),	set(handles.figure1,'pointer','arrow'),		return,		end
-elseif (strcmp(opt,'Rect'))
-	B = cvlib_mex('findrect',img);
-	if (isempty(B)),	set(handles.figure1,'pointer','arrow'),		return,		end
-end
-
-if (strcmp(opt,'Vec') || strcmp(opt,'Lines') || strcmp(opt,'Rect'))		% Convert the edges found into vector
-	x_inc = handles.head(8);		y_inc = handles.head(9);
-	x_min = handles.head(1);		y_min = handles.head(3);
-	if (handles.head(7))			% Work in pixel registration
-		x_min = x_min + x_inc/2;	y_min = y_min + y_inc/2;
-	end
-	h_edge = zeros(length(B),1);	i = 1;
-	for k = 1:length(B)
-		bnd = B{k};
-		if (strcmp(opt,'Vec') && mask(bnd(1,1),bnd(1,2)) && ...	% Drastic but no better solution to avoid NaNs-in-corners cases
-				(min(bnd(:,1)) == 1 || max(bnd(:,1)) == dims(2) || min(bnd(:,1)) == 1 || max(bnd(:,1)) == dims(1)) )
-			continue
-		end
-		if (size(bnd,1) > 4)
-			bnd = cvlib_mex('dp', bnd, 0.1);		% Simplify line but only on straight lines
-		end
-		% Some times we get a BB rectangle, test and ignore it if it's the case
-		if (size(bnd,1) < 10)
-			ma = max(bnd);
-			if (all(abs(min(bnd) - 1)) < 1e-3)
-				if ((abs(ma(1) - dims(1)) < 1e-3) && (abs(ma(2) - dims(2)) < 1e-3))
-					continue
-				end
+	elseif (strcmp(opt,'Vec') || strcmp(opt,'Ras') || strcmp(opt(1:3),'SUS'))
+		if (ndims(img) == 3),		img = cvlib_mex('color',img,'rgb2gray');	end
+		if (~strcmp(opt(1:3),'SUS'))
+			if (~handles.IamCompiled),		img = canny(img);		% Economic version (uses singles & cvlib_mex but crashs in compiled)
+			else							img = img_fun('edge',img,'canny');
+			end
+		else
+			img = susan(img,'-e');				% Do SUSAN edge detect
+			if (strcmp(opt(4:end),'vec')),	opt = 'Vec';		% This avoids some extra tests later
+			else							opt = 'Ras';
 			end
 		end
+		if (strcmp(opt,'Vec'))
+			B = img_fun('bwboundaries',img,'noholes');
+			B = bwbound_unique(B);
+		end
+	elseif (strcmp(opt,'Lines'))
+		%B = cvlib_mex('houghlines2',img,'standard',1,pi/180,100,0,0);
+		%BW = cvlib_mex('canny',img,40,200,3);
+		if (ndims(img) == 3),			img = cvlib_mex('color',img,'rgb2gray');	end
+		if (~handles.IamCompiled),		BW = canny(img);
+		else							BW = img_fun('edge',img,'canny');
+		end
 
-		y = (bnd(:,1)-1)*y_inc + y_min;
-		x = (bnd(:,2)-1)*x_inc + x_min;
-		h_edge(i) = line('XData',x, 'YData',y, 'Parent',handles.axes1,'Linewidth',handles.DefLineThick, ...
-			'Color',handles.DefLineColor,'Tag','edge_detected','Userdata',i);
-		i = i + 1;
-		%ellipse_t = fit_ellipse( x,y,handles.axes1 );
+		[H,T,R] = img_fun('hough',BW);
+		P = img_fun('houghpeaks',H,50,'threshold',ceil(0.3*double(max(H(:)))));
+		lines = img_fun('houghlines',BW,T,R,P,'FillGap',10,'MinLength',50);
+		if (~isfield(lines,'point1')),	set(handles.figure1,'pointer','arrow'),		return,		end
+		B = cell(1,length(lines));
+		for (k = 1:length(lines))
+			B{k} = [lines(k).point1(2:-1:1); lines(k).point2(2:-1:1)];
+		end
+	elseif (strcmp(opt,'Circles'))
+		B = cvlib_mex('houghcircles',img);
+		if (isempty(B)),	set(handles.figure1,'pointer','arrow'),		return,		end
+	elseif (strcmp(opt,'Rect'))
+		B = cvlib_mex('findrect',img);
+		if (isempty(B)),	set(handles.figure1,'pointer','arrow'),		return,		end
 	end
-	h_edge(h_edge == 0) = [];					% Remove empty handles remaining from pre-declaration
-	multi_segs_str = cell(length(h_edge),1);	% Just create a set of empty info strings
-	draw_funs(h_edge,'isochron',multi_segs_str);
-elseif (strcmp(opt,'Circles'))
-	x = linspace(-pi,pi,360);		y = x;
-	xx = cos(x);					yy = sin(y);
-	%h_circ = line('XData', [], 'YData', []);
-	for k = 1:size(B,1)
-		x = B(k,1) + B(k,3) * xx;			y = B(k,2) + B(k,3) * yy;
-		h_circ = line('XData',x, 'YData',y, 'Parent',handles.axes1, 'Linewidth',handles.DefLineThick, ...
-				'Color',handles.DefLineColor,'Userdata',B(k,1:end));
-		draw_funs(h_circ,'SessionRestoreCircleCart')	% Give uicontext
-		setappdata(h_circ,'LonLatRad',B(k,1:end))
-		%setappdata(h_circ,'X',xx);		setappdata(h_circ,'Y',yy);
+
+	if (strcmp(opt,'Vec') || strcmp(opt,'Lines') || strcmp(opt,'Rect'))		% Convert the edges found into vector
+		x_inc = handles.head(8);		y_inc = handles.head(9);
+		x_min = handles.head(1);		y_min = handles.head(3);
+		if (handles.head(7))			% Work in pixel registration
+			x_min = x_min + x_inc/2;	y_min = y_min + y_inc/2;
+		end
+		h_edge = zeros(length(B),1);	i = 1;
+		for k = 1:length(B)
+			bnd = B{k};
+			if (mask && strcmp(opt,'Vec') && mask(bnd(1,1),bnd(1,2)) && ...	% Drastic but no better solution to avoid NaNs-in-corners cases
+					(min(bnd(:,1)) == 1 || max(bnd(:,1)) == dims(2) || min(bnd(:,1)) == 1 || max(bnd(:,1)) == dims(1)) )
+				continue
+			end
+			if (size(bnd,1) > 4)
+				bnd = cvlib_mex('dp', bnd, 0.1);		% Simplify line but only on straight lines
+			end
+			% Some times we get a BB rectangle, test and ignore it if it's the case
+			if (size(bnd,1) < 10)
+				ma = max(bnd);
+				if (all(abs(min(bnd) - 1)) < 1e-3)
+					if ((abs(ma(1) - dims(1)) < 1e-3) && (abs(ma(2) - dims(2)) < 1e-3))
+						continue
+					end
+				end
+			end
+
+			y = (bnd(:,1)-1)*y_inc + y_min;
+			x = (bnd(:,2)-1)*x_inc + x_min;
+			h_edge(i) = line('XData',x, 'YData',y, 'Parent',handles.axes1,'Linewidth',handles.DefLineThick, ...
+				'Color',handles.DefLineColor,'Tag','edge_detected','Userdata',i);
+			i = i + 1;
+			%ellipse_t = fit_ellipse( x,y,handles.axes1 );
+		end
+		h_edge(h_edge == 0) = [];					% Remove empty handles remaining from pre-declaration
+		multi_segs_str = cell(length(h_edge),1);	% Just create a set of empty info strings
+		draw_funs(h_edge,'isochron',multi_segs_str);
+	elseif (strcmp(opt,'Circles'))
+		x = linspace(-pi,pi,360);		y = x;
+		xx = cos(x);					yy = sin(y);
+		%h_circ = line('XData', [], 'YData', []);
+		for k = 1:size(B,1)
+			x = B(k,1) + B(k,3) * xx;			y = B(k,2) + B(k,3) * yy;
+			h_circ = line('XData',x, 'YData',y, 'Parent',handles.axes1, 'Linewidth',handles.DefLineThick, ...
+					'Color',handles.DefLineColor,'Userdata',B(k,1:end));
+			draw_funs(h_circ,'SessionRestoreCircleCart')	% Give uicontext
+			setappdata(h_circ,'LonLatRad',B(k,1:end))
+			%setappdata(h_circ,'X',xx);		setappdata(h_circ,'Y',yy);
+		end
+	else							% Display the bw image where the edges are the whites
+		setappdata(0,'CropedColormap',gray);
+		if (handles.image_type == 2)
+			mirone(img);
+		else
+			tmp.X = handles.head(1:2);	tmp.Y = handles.head(3:4);		tmp.name = 'Edge detected';
+			tmp.geog = handles.geog;	tmp.head = [handles.head(1:4) 0 1 handles.head(7:9)];
+			mirone(img, tmp);
+		end
 	end
-else							% Display the bw image where the edges are the whites
-	setappdata(0,'CropedColormap',gray);
-	if (handles.image_type == 2)
-		mirone(img);
-	else
-		tmp.X = handles.head(1:2);	tmp.Y = handles.head(3:4);		tmp.name = 'Edge detected';
-		tmp.geog = handles.geog;	tmp.head = [handles.head(1:4) 0 1 handles.head(7:9)];
-		mirone(img, tmp);
-	end
-end
-set(handles.figure1,'pointer','arrow')
+	set(handles.figure1,'pointer','arrow')
 
 % --------------------------------------------------------------------
 function DigitalFilt_CB(handles, opt)
