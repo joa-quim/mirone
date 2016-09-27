@@ -1,4 +1,4 @@
-function [Z, X, Y, srsWKT, handles, att] = read_grid(handles, fullname, tipo, opt)
+function [Z, X, Y, srsWKT, handles, att, pal_file] = read_grid(handles, fullname, tipo, opt)
 % Loads grid files that may contain DEMs or other grid (not images (byte)) types
 %
 % HANDLES	-> Normally, the Mirone's handles structure but can actually be any structure with these fields:
@@ -38,6 +38,7 @@ function [Z, X, Y, srsWKT, handles, att] = read_grid(handles, fullname, tipo, op
 
 	if (nargin == 3),	opt = ' ';	end
 	opt_I = ' ';	srsWKT = [];	att = [];	attVRT = [];	Z = [];		X = [];		Y = [];
+	pal_file = [];
 	if (isa(fullname, 'cell') && numel(fullname) == 2 )
 		fname = [fullname{1} fullname{2}];
 	else
@@ -133,6 +134,18 @@ function [Z, X, Y, srsWKT, handles, att] = read_grid(handles, fullname, tipo, op
 			else
 				if (strcmp(tipo, 'ncHDF'))		% Dirty trick to make the new OC nc/HDF files work as would the old HDF4
 					att.DriverShortName = 'HDF4_fake';
+% 					try							% See if file has a palette array but play safe with this
+%					Commented because the palettes from OCs files are pure rubish
+% 						t = strfind(att.AllSubdatasets, 'palette');
+% 						for (k = 1:numel(t))
+% 							if (~isempty(t{k}))
+% 								ind = strfind(att.AllSubdatasets{k}, '=');
+% 								pal_file = double(gdalread(att.AllSubdatasets{k}(ind+1:end))');		% The M(256)x3 cmap
+% 								if (max(pal_file(:,1)) > 1),	pal_file = pal_file / 255;	end		% Probably originally a uint8
+% 								break
+% 							end
+% 						end
+% 					end
 				end
 				[head, slope, intercept, base, is_modis, is_linear, is_log, att] = empilhador('getFromMETA', att);
 				[Z, handles.have_nans, att] = empilhador('getZ', fname, att, is_modis, is_linear, is_log, slope, intercept, base);
