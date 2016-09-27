@@ -41,7 +41,7 @@ function grid_info(handles,X,Y,hdr)
 			if (~handles.computed_grid)
 				info1 = c_grdinfo(handles.grdname,'hdr_struct');    % info1 is a struct with the GMT grdinfo style
 				if (isa(info1.X_info, 'char'))
-					info_from_GMT_limits = info1.hdr(1:4);			% GMT5 case.
+					info_from_GMT_limits = info1.hdr.data(1:4);			% GMT5 case.
 				else
 					info_from_GMT_limits = [info1.X_info(1:2) info1.Y_info(1:2)];
 				end
