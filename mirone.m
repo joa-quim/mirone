@@ -1957,7 +1957,7 @@ function loadGRID(handles, fullname, tipo, opt)
 % OPT	-> the "att" attributes structure got from att = gdalread(fname,'-M',...)
  
 	if (nargin == 3),	opt = ' ';	end
-	[Z, X, Y, srsWKT, handles, att] = read_grid(handles, fullname, tipo, opt);
+	[Z, X, Y, srsWKT, handles, att, pal_file] = read_grid(handles, fullname, tipo, opt);
 	if (isempty(Z)),	return,		end
 	if (~isempty(srsWKT)),	handles.is_projected = true;	end		% WEAK TEST
 	if (~isempty(fullname))
@@ -1978,7 +1978,10 @@ function loadGRID(handles, fullname, tipo, opt)
 	end																% from appdata. That is donne in show_image()
 
 	aux_funs('StoreZ',handles,X,Y,Z)				% If grid size is not to big we'll store it
-	aux_funs('colormap_bg',handles,Z,jet(256));		% Insert the background color in the palette for arrays that have NaNs
+	if (~isempty(pal_file)),	pal = pal_file;		% If the file has a palette, use it instead.
+	else						pal = jet(256);
+	end
+	aux_funs('colormap_bg', handles, Z, pal);		% Insert the background color in the palette for arrays that have NaNs
 	if (~isa(Z, 'uint8'))
 		zz = scaleto8(Z);
 		if (isa(Z,'int8') && handles.head(6) < 255)	% Put in a colormap that uses all data range 
