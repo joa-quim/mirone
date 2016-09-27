@@ -72,6 +72,8 @@ function [handles, X, Y, Z, head, misc] = read_gmt_type_grids(handles,fullname,o
 				else
 					[X, Y, Z, head, misc] = c_grdread(fullname,'single');
 					head(10) = [];	% For old reasons we still trail this 10th arround
+					handles.have_nans = grdutils(Z,'-N');
+					handles.grdname = fullname;		handles.image_type = 1;		handles.computed_grid = 0;
 				end
 			else
 				errordlg([fullname ' : Is not a grid that GMT can read!'],'ERROR');
@@ -96,7 +98,7 @@ function [handles, X, Y, Z, head, misc] = read_gmt_type_grids(handles,fullname,o
 		return
 	end
 
-	if ( (abs(head(5)) < 1e-12) && (abs(head(6)) < 1e-12) )		% Badly behaved grid. No min/max info
+	if ((abs(head(5)) < 1e-12) && (abs(head(6)) < 1e-12))		% Badly behaved grid. No min/max info
 		if (handles.have_nans),		zz = grdutils(Z,'-L');
 		else						zz = [min(Z(:)) max(Z(:))];
 		end
