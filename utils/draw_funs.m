@@ -627,9 +627,16 @@ function wbm_MovePolygon(obj,evt,h,lim,hAxes)
 	set(h, 'XData',xx, 'YData',yy);
 
 % ---------
-function wbd_MovePolygon(obj,eventdata,h,state)
+function wbd_MovePolygon(obj,evt,h,state)
 	uirestore_j(state, 'nochildren');	% Restore the figure's initial state
-	ui_edit_polygon(h)					% Reset the edition functions with the correct handle
+	if (strcmp(get(h, 'Tag'), 'Arrow'))	% (Called by Copy object) Must also update the anchor points
+		ud = get(h, 'UserData');
+		x  = get(h, 'xdata');	y = get(h, 'ydata');
+		ud.anchors = [(x(6)+x(7))/2 x(3); (y(6)+y(7))/2 y(3)]';
+		set(h, 'UserData', ud);
+	else
+		ui_edit_polygon(h)				% Reset the edition functions with the correct handle
+	end
 % -----------------------------------------------------------------------------------------
 
 % -----------------------------------------------------------------------------------------
@@ -1508,11 +1515,16 @@ function set_vector_uicontext(h)
 	uimenu(cmenuHand, 'Label', 'Delete', 'Call', 'delete(gco)');
 	uimenu(cmenuHand, 'Label', 'Save line', 'Call', {@save_formated, h});
 	uimenu(cmenuHand, 'Label', 'Copy', 'Call', {@copy_line_object, handles.figure1, handles.axes1});
- 	uimenu(cmenuHand, 'Label', 'Edit (redraw)', 'Call', {@arrowRedraw, h});
-	uimenu(cmenuHand, 'Label', 'Reshape (head)', 'Call', {@arrow_shape,h});
+ 	uimenu(cmenuHand, 'Label', 'Edit (redraw)', 'Call', @arrowRedraw);
+	uimenu(cmenuHand, 'Label', 'Reshape (head)','Call', {@arrow_shape,gco});
 	if (handles.geog)		% No solution yet for cartesian arrows
-		uimenu(cmenuHand, 'Label', 'Copy (mirror)', 'Call', {@mirror_arrow, h});
+		uimenu(cmenuHand, 'Label', 'Copy (mirror)', 'Call', @mirror_arrow);
 	end
+	x = get(h, 'xdata');	y = get(h, 'ydata');
+	L = [x(3) x(6); y(3) y(6)]';	% To compute arrow length (head included)
+	uimenu(cmenuHand, 'Label', 'Arrow length (with head)', 'Call', {@show_LineLength, L}, 'Sep','on')
+	L = [x(7) x(8); y(7) y(8)]';	% To compute arrow azimuth
+	uimenu(cmenuHand, 'Label', 'Arrow azimuth','Call', {@show_lineAzims, L})
 	setLineColor(uimenu(cmenuHand, 'Label', 'Line Color','Sep','on'), uictx_color(h,'EdgeColor'))
 	item2 = uimenu(cmenuHand, 'Label','Fill Color');
 	setLineColor( item2, uictx_color(h, 'facecolor') )
@@ -1521,20 +1533,21 @@ function set_vector_uicontext(h)
 	set(h, 'ButtonDownFcn', 'move_obj(1)')
 
 % -----------------------------------------------------------------------------------------
-function arrowRedraw(obj, evt, hVec)
-% Edit a previously existing arrow
+function arrowRedraw(obj, evt)
+	% Edit a previously existing arrow
+	hVec = gco;
 	hAxes = get(hVec,'parent');
 	hFig = get(hAxes,'parent');
 	state = uisuspend_j(hFig);		% Remember initial figure state
 	set(hFig,'Pointer', 'crosshair');
 	hVec(2) = line('XData', [], 'YData', [],'LineWidth',0.5,'Tag','Arrow');
 	ud = get(hVec(1),'UserData');
-	vectorFirstButtonDown(hFig, hAxes, hVec, state, ud.anchors, ...
-		ud.headLength, ud.vFac, ud.aspectRatio)
+	vectorFirstButtonDown(hFig, hAxes, hVec, state, ud.anchors, ud.headLength, ud.vFac, ud.aspectRatio)
 
 % -----------------------------------------------------------------------------------------
-function mirror_arrow(obj, evt, h)
-% Make a copy of the arrow whose handle is H, but mirrored. That is pointing in the oposite sense
+function mirror_arrow(obj, evt)
+	% Make a copy of the arrow whose handle is H, but mirrored. That is pointing in the oposite sense
+	h = gco;
 	handles = guidata(h);
 	ud = get(h, 'UserData');
 	x1 = (ud.arrow_xy(end-2,1) + ud.arrow_xy(end-1,1)) / 2;
@@ -1901,7 +1914,7 @@ function other_LineWidth(obj,evt,h)
 function hVec = DrawVector
 	hFig = get(0,'CurrentFigure');		handles = guidata(hFig);
 	hVec(1) = patch('XData',[], 'YData', [],'FaceColor',handles.DefLineColor,'EdgeColor', ...
-		handles.DefLineColor,'LineWidth',0.5,'Tag','Arrow');
+	                handles.DefLineColor,'LineWidth',0.5,'Tag','Arrow');
 	hVec(2) = line('XData', [], 'YData', [],'Color',handles.DefLineColor,'LineWidth',0.5,'Tag','Arrow');
 	state = uisuspend_j(hFig);			% Remember initial figure state
 	set(hFig,'Pointer', 'crosshair');
@@ -1950,7 +1963,7 @@ function wbm_vector(obj, evt, origin, h, hAxes, hscale, vscale, ah, vFac, aspect
 function wbd_vector(obj, evt, h, state, hscale, vscale)
 % End interactive edition
 	uirestore_j(state, 'nochildren');		% Restore the figure's initial state
-	x = get(h(2), 'XData');		y = get(h(2), 'YData');
+	x  = get(h(2), 'XData');	y  = get(h(2), 'YData');
 	xx = get(h(1), 'XData');	yy = get(h(1), 'YData');
 	ud_old = get(h(1), 'UserData');
 	ud.arrow_xy = [xx(:) yy(:)];
