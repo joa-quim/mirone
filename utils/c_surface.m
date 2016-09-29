@@ -3,7 +3,7 @@ function [out, hdr] = c_surface(data, varargin)
 
 % A merda é que 'data' pode ser um Mx3 ou entao um Mx1 e os X,Y[,W] devem tar no varargin
 
-% $Id: c_surface.m 4734 2015-07-22 17:07:26Z j $
+% $Id: c_surface.m 7928 2016-06-23 00:27:25Z j $
 
 	global gmt_ver
 	if (isempty(gmt_ver)),		gmt_ver = 4;	end		% For example, if calls do not come via mirone.m
@@ -28,7 +28,6 @@ function [out, hdr] = c_surface(data, varargin)
 		for (k = k0:numel(varargin))
 			cmd = sprintf('%s %s', cmd, varargin{k});
 		end
-		gmtmex('create')
 		G = gmtmex(cmd, data);
 		out = G.z;
 		hdr = G.hdr;

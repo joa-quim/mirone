@@ -1,7 +1,7 @@
 function out = c_shoredump(varargin)
 % Temporary function to easy up transition from GMT4 to GMT5.2
 
-% $Id: c_shoredump.m 7780 2016-02-09 12:53:19Z j $
+% $Id: c_shoredump.m 7938 2016-08-13 00:21:50Z j $
 
 	global gmt_ver
 	if (isempty(gmt_ver)),		gmt_ver = 4;	end		% For example, if calls do not come via mirone.m
@@ -11,8 +11,18 @@ function out = c_shoredump(varargin)
 	else
 		cmd = 'pscoast -M';
 		no_W = false;
+		maxLat = 0;
 		for (k = 1:numel(varargin))
-			cmd = sprintf('%s %s', cmd, varargin{k});
+			if (varargin{k}(2) == 'R')		% We must fck saddly check if -R spans on [0 360] and if yes acting accordingly.
+				ind = strfind(varargin{k}, '/');
+				maxLat = str2double(varargin{k}(ind(1)+1:ind(2)-1));
+			end
+			if (maxLat > 180)
+				cmd = sprintf('%s %s --FORMAT_GEO_OUT=+D', cmd, varargin{k});
+				maxLat = 0;		% Reset it so we wont come here again
+			else
+				cmd = sprintf('%s %s', cmd, varargin{k});
+			end
 			if (varargin{k}(2) == 'N' || varargin{k}(2) == 'I')
 				no_W = true;
 			end

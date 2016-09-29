@@ -1,4 +1,4 @@
-function [bin,n_column,multi_seg,n_headers,isGSHHS] = guess_file(fiche, opt1, opt2)
+function [bin,n_column,multi_seg,n_headers,isGSHHS, GSHHS_str] = guess_file(fiche, opt1, opt2)
 % Guess characteristics of file "fiche"
 %
 % Input:
@@ -11,6 +11,7 @@ function [bin,n_column,multi_seg,n_headers,isGSHHS] = guess_file(fiche, opt1, op
 %	MULTI_SEG  0 or 1 depending if file is of the GMT multi-segment type or not
 %	N_HEADERS  Number of headers in file
 %	ISGSHHS    TRUE or FALSE depending if file is a GMT "GSHHS Master File" or not
+%	GSHHS_STR  The full string "GSHHS Master File ..." that we need to put back is saving the edit poygon.
 %
 % If it detects that "fiche" is ascii this function tries to find out wether the multisegment
 % symbol (">") is present, the number of columns in the file and if it has header lines.
@@ -31,10 +32,10 @@ function [bin,n_column,multi_seg,n_headers,isGSHHS] = guess_file(fiche, opt1, op
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: guess_file.m 4582 2014-10-20 22:20:42Z j $
+% $Id: guess_file.m 7952 2016-09-06 14:52:34Z j $
 
 	% Error testing
-	bin = 0;    multi_seg = 0;  n_headers = 0;  n_column = 0;	isGSHHS = false;
+	bin = 0;    multi_seg = 0;  n_headers = 0;  n_column = 0;	isGSHHS = false;	GSHHS_str = '';
 	n_args = nargin;
 	if (~n_args)
 		errordlg('function guess_file: must give an input file name','File Error')
@@ -192,16 +193,18 @@ function [bin,n_column,multi_seg,n_headers,isGSHHS] = guess_file(fiche, opt1, op
 		end
 	end
 
-	if (nargout == 5)
+	if (nargout >= 5)
 		for (k = 1:n_headers)
 			if (strfind(str{k}, 'GSHHS Master'))
-				isGSHHS = true;		break
+				isGSHHS = true;		GSHHS_str = str{k};
+				break
 			end
 		end
 		if (~isGSHHS)		% Try if WDBII
 			for (k = 1:n_headers)
 				if (strfind(str{k}, 'WDBII Borders'))
-					isGSHHS = true;		break
+					isGSHHS = true;	GSHHS_str = str{k};
+					break
 				end
 			end
 		end

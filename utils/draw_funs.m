@@ -25,7 +25,7 @@ function varargout = draw_funs(hand, varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: draw_funs.m 7880 2016-04-26 23:05:06Z j $
+% $Id: draw_funs.m 7961 2016-09-27 13:52:35Z j $
 
 % A bit of strange tests but they are necessary for the cases when we use the new feval(fun,varargin{:}) 
 opt = varargin{1};		% function name to evaluate (new) or keyword to select one (old form)
@@ -627,9 +627,16 @@ function wbm_MovePolygon(obj,evt,h,lim,hAxes)
 	set(h, 'XData',xx, 'YData',yy);
 
 % ---------
-function wbd_MovePolygon(obj,eventdata,h,state)
+function wbd_MovePolygon(obj,evt,h,state)
 	uirestore_j(state, 'nochildren');	% Restore the figure's initial state
-	ui_edit_polygon(h)					% Reset the edition functions with the correct handle
+	if (strcmp(get(h, 'Tag'), 'Arrow'))	% (Called by Copy object) Must also update the anchor points
+		ud = get(h, 'UserData');
+		x  = get(h, 'xdata');	y = get(h, 'ydata');
+		ud.anchors = [(x(6)+x(7))/2 x(3); (y(6)+y(7))/2 y(3)]';
+		set(h, 'UserData', ud);
+	else
+		ui_edit_polygon(h)				% Reset the edition functions with the correct handle
+	end
 % -----------------------------------------------------------------------------------------
 
 % -----------------------------------------------------------------------------------------
@@ -637,8 +644,8 @@ function join_lines(obj,evt,hFig)
 % Join lines that are NOT -- SEISPOLYGON, or MBTRACK, or FaultTrace or closed polygons
 
 	hCurrLine = gco;
-	hLines = get_polygon(hFig,'multi');		% Get the line handles
-	if (isempty(hLines)),	return,		end
+	hLines = get_polygon(hFig,'multi');				% Get the line handles
+	if (isempty(hLines)),		return,		end
 	hLines = setxor(hLines, hCurrLine);
 	if (numel(hLines) == 0),	return,		end		% Nothing to join
 	for (k = 1:numel(hLines))
@@ -1508,11 +1515,16 @@ function set_vector_uicontext(h)
 	uimenu(cmenuHand, 'Label', 'Delete', 'Call', 'delete(gco)');
 	uimenu(cmenuHand, 'Label', 'Save line', 'Call', {@save_formated, h});
 	uimenu(cmenuHand, 'Label', 'Copy', 'Call', {@copy_line_object, handles.figure1, handles.axes1});
- 	uimenu(cmenuHand, 'Label', 'Edit (redraw)', 'Call', {@arrowRedraw, h});
-	uimenu(cmenuHand, 'Label', 'Reshape (head)', 'Call', {@arrow_shape,h});
+ 	uimenu(cmenuHand, 'Label', 'Edit (redraw)', 'Call', @arrowRedraw);
+	uimenu(cmenuHand, 'Label', 'Reshape (head)','Call', {@arrow_shape,gco});
 	if (handles.geog)		% No solution yet for cartesian arrows
-		uimenu(cmenuHand, 'Label', 'Copy (mirror)', 'Call', {@mirror_arrow, h});
+		uimenu(cmenuHand, 'Label', 'Copy (mirror)', 'Call', @mirror_arrow);
 	end
+	x = get(h, 'xdata');	y = get(h, 'ydata');
+	L = [x(3) x(6); y(3) y(6)]';	% To compute arrow length (head included)
+	uimenu(cmenuHand, 'Label', 'Arrow length (with head)', 'Call', {@show_LineLength, L}, 'Sep','on')
+	L = [x(7) x(8); y(7) y(8)]';	% To compute arrow azimuth
+	uimenu(cmenuHand, 'Label', 'Arrow azimuth','Call', {@show_lineAzims, L})
 	setLineColor(uimenu(cmenuHand, 'Label', 'Line Color','Sep','on'), uictx_color(h,'EdgeColor'))
 	item2 = uimenu(cmenuHand, 'Label','Fill Color');
 	setLineColor( item2, uictx_color(h, 'facecolor') )
@@ -1521,20 +1533,21 @@ function set_vector_uicontext(h)
 	set(h, 'ButtonDownFcn', 'move_obj(1)')
 
 % -----------------------------------------------------------------------------------------
-function arrowRedraw(obj, evt, hVec)
-% Edit a previously existing arrow
+function arrowRedraw(obj, evt)
+	% Edit a previously existing arrow
+	hVec = gco;
 	hAxes = get(hVec,'parent');
 	hFig = get(hAxes,'parent');
 	state = uisuspend_j(hFig);		% Remember initial figure state
 	set(hFig,'Pointer', 'crosshair');
 	hVec(2) = line('XData', [], 'YData', [],'LineWidth',0.5,'Tag','Arrow');
 	ud = get(hVec(1),'UserData');
-	vectorFirstButtonDown(hFig, hAxes, hVec, state, ud.anchors, ...
-		ud.headLength, ud.vFac, ud.aspectRatio)
+	vectorFirstButtonDown(hFig, hAxes, hVec, state, ud.anchors, ud.headLength, ud.vFac, ud.aspectRatio)
 
 % -----------------------------------------------------------------------------------------
-function mirror_arrow(obj, evt, h)
-% Make a copy of the arrow whose handle is H, but mirrored. That is pointing in the oposite sense
+function mirror_arrow(obj, evt)
+	% Make a copy of the arrow whose handle is H, but mirrored. That is pointing in the oposite sense
+	h = gco;
 	handles = guidata(h);
 	ud = get(h, 'UserData');
 	x1 = (ud.arrow_xy(end-2,1) + ud.arrow_xy(end-1,1)) / 2;
@@ -1901,7 +1914,7 @@ function other_LineWidth(obj,evt,h)
 function hVec = DrawVector
 	hFig = get(0,'CurrentFigure');		handles = guidata(hFig);
 	hVec(1) = patch('XData',[], 'YData', [],'FaceColor',handles.DefLineColor,'EdgeColor', ...
-		handles.DefLineColor,'LineWidth',0.5,'Tag','Arrow');
+	                handles.DefLineColor,'LineWidth',0.5,'Tag','Arrow');
 	hVec(2) = line('XData', [], 'YData', [],'Color',handles.DefLineColor,'LineWidth',0.5,'Tag','Arrow');
 	state = uisuspend_j(hFig);			% Remember initial figure state
 	set(hFig,'Pointer', 'crosshair');
@@ -1950,7 +1963,7 @@ function wbm_vector(obj, evt, origin, h, hAxes, hscale, vscale, ah, vFac, aspect
 function wbd_vector(obj, evt, h, state, hscale, vscale)
 % End interactive edition
 	uirestore_j(state, 'nochildren');		% Restore the figure's initial state
-	x = get(h(2), 'XData');		y = get(h(2), 'YData');
+	x  = get(h(2), 'XData');	y  = get(h(2), 'YData');
 	xx = get(h(1), 'XData');	yy = get(h(1), 'YData');
 	ud_old = get(h(1), 'UserData');
 	ud.arrow_xy = [xx(:) yy(:)];
@@ -2747,7 +2760,11 @@ function save_GMT_DB_asc(h, fname)
 	if (fid < 0),	errordlg(['Can''t open file:  ' fname],'Error'),	return,		end
 	h = findobj('Tag','GMT_DBpolyline');
 	for (k = 1:numel(h))
-		if ( isempty(getappdata(h(k), 'edited')) ),		continue,	end		% Skip because it was not modified
+		if (isempty(getappdata(h(k), 'edited'))),	continue,	end		% Skip because it was not modified
+		GSHHS_str = getappdata(h(k),'GSHHS_str');
+		if (k == 1 && ~isempty(GSHHS_str))		% Write back the magic string that allows us to recognize these type of files
+			fprintf(fid,'# $Id: draw_funs.m 7961 2016-09-27 13:52:35Z j $\n#\n%s\n#\n', GSHHS_str);
+		end
 		hdr = getappdata(h(k), 'LineInfo');
 		x = get(h(k), 'XData');			y = get(h(k), 'YData');
 		indNaN = find(isnan(x));
@@ -3003,12 +3020,12 @@ function ODP_info(obj,eventdata,h,leg,site,z,penetration)
 
 % -----------------------------------------------------------------------------------------
 function str = Isochrons_Info(obj, evt, data)
-% Display the info associated with the current object (a pline)
+% Display the info associated with the current object (a pline). get(OBJ, 'Type') == uimenu
 	hLine = gco;
 	LineInfo = getappdata(hLine,'LineInfo');	% Try first to get the info directly fom appdata
 	if (isempty(LineInfo))						% If it fails, fall back to old mechanism
 		i = get(hLine,'Userdata');
-		if (isstruct(i))    % This happens when h is ui_edit_polygon(ed)
+		if (isstruct(i))			% This happens when h is ui_edit_polygon(ed)
 			i = i.old_ud;
 		end
 		if (~isempty(i)),	LineInfo = data{i};	end
@@ -3435,43 +3452,40 @@ function changeAxesLabels(opt)
 	if (isa(x_tick, 'cell')),	x_tick = char(x_tick);	end		% Damn TMW never stops breaking compatibility (now in R2016a)
 	y_tick = getappdata(hAxes,'YTickOrig');
 	if (isa(y_tick, 'cell')),	y_tick = char(y_tick);	end
-	n_xtick = size(x_tick,1);                   n_ytick = size(y_tick,1);
+	n_xtick = size(x_tick,1);	n_ytick = size(y_tick,1);
 	sep = ':';
 	switch opt
 		case 'ToDegDec'
 			% This is easy because original Labels where saved in appdata
-			set(hAxes,'XTickLabel',getappdata(hAxes,'XTickOrig'));
-			set(hAxes,'YTickLabel',getappdata(hAxes,'YTickOrig'))
+			str_x = x_tick;			str_y = y_tick;
 			setappdata(hAxes,'LabelFormatType','DegDec')       % Save it so zoom can know the label type
 		case 'ToDegMin'
-			x_str = degree2dms(str2num( ddewhite(x_tick) ),'DDMM',0,'str');     % x_str is a structure with string fields
-			y_str = degree2dms(str2num( ddewhite(y_tick) ),'DDMM',0,'str');
+			x_str = degree2dms(str2num(ddewhite(x_tick)),'DDMM',0,'str');     % x_str is a structure with string fields
+			y_str = degree2dms(str2num(ddewhite(y_tick)),'DDMM',0,'str');
 			str_x = [x_str.dd repmat(sep,n_xtick,1) x_str.mm];
 			str_y = [y_str.dd repmat(sep,n_ytick,1) y_str.mm];
-			set(hAxes,'XTickLabel',str_x);        set(hAxes,'YTickLabel',str_y)
 			setappdata(hAxes,'LabelFormatType','DegMin')        % Save it so zoom can know the label type
 		case 'ToDegMinDec'
-			x_str = degree2dms(str2num( ddewhite(x_tick) ),'DDMM.x',2,'str');    % x_str is a structure with string fields
-			y_str = degree2dms(str2num( ddewhite(y_tick) ),'DDMM.x',2,'str');
+			x_str = degree2dms(str2num(ddewhite(x_tick)),'DDMM.x',2,'str');    % x_str is a structure with string fields
+			y_str = degree2dms(str2num(ddewhite(y_tick)),'DDMM.x',2,'str');
 			str_x = [x_str.dd repmat(sep,n_xtick,1) x_str.mm];
 			str_y = [y_str.dd repmat(sep,n_ytick,1) y_str.mm];
-			set(hAxes,'XTickLabel',str_x);        set(hAxes,'YTickLabel',str_y)
 			setappdata(hAxes,'LabelFormatType','DegMinDec')     % Save it so zoom can know the label type
 		case 'ToDegMinSec'
-			x_str = degree2dms(str2num( ddewhite(x_tick) ),'DDMMSS',0,'str');    % x_str is a structure with string fields
-			y_str = degree2dms(str2num( ddewhite(y_tick) ),'DDMMSS',0,'str');
+			x_str = degree2dms(str2num(ddewhite(x_tick)),'DDMMSS',0,'str');    % x_str is a structure with string fields
+			y_str = degree2dms(str2num(ddewhite(y_tick)),'DDMMSS',0,'str');
 			str_x = [x_str.dd repmat(sep,n_xtick,1) x_str.mm repmat(sep,n_xtick,1) x_str.ss];
 			str_y = [y_str.dd repmat(sep,n_ytick,1) y_str.mm repmat(sep,n_ytick,1) y_str.ss];
-			set(hAxes,'XTickLabel',str_x);        set(hAxes,'YTickLabel',str_y)
 			setappdata(hAxes,'LabelFormatType','DegMinSec')      % Save it so zoom can know the label type
 		case 'ToDegMinSecDec'
-			x_str = degree2dms(str2num( ddewhite(x_tick) ),'DDMMSS.x',1,'str');   % x_str is a structure with string fields
-			y_str = degree2dms(str2num( ddewhite(y_tick) ),'DDMMSS.x',1,'str');
+			x_str = degree2dms(str2num(ddewhite(x_tick)),'DDMMSS.x',1,'str');   % x_str is a structure with string fields
+			y_str = degree2dms(str2num(ddewhite(y_tick)),'DDMMSS.x',1,'str');
 			str_x = [x_str.dd repmat(sep,n_xtick,1) x_str.mm repmat(sep,n_xtick,1) x_str.ss];
 			str_y = [y_str.dd repmat(sep,n_ytick,1) y_str.mm repmat(sep,n_ytick,1) y_str.ss];
-			set(hAxes,'XTickLabel',str_x);        set(hAxes,'YTickLabel',str_y)
 			setappdata(hAxes,'LabelFormatType','DegMinSecDec')   % Save it so zoom can know the label type
 	end
+	set(hAxes,'XTickLabel',str_x, 'XTick', getappdata(hAxes,'XTickOrigNum'));
+	set(hAxes,'YTickLabel',str_y, 'YTick', getappdata(hAxes,'YTickOrigNum'))
 
 % -----------------------------------------------------------------------------------------
 function sout = ddewhite(s)

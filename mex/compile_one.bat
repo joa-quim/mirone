@@ -28,11 +28,11 @@ REM ----------------------------------------------------------------------------
 
 
 REM ------------- Set the compiler (set to 'icl' to use the Intel compiler) --------------
-SET CC=icl
+SET CC=cl
 REM --------------------------------------------------------------------------------------
 
 REM If set to "yes", linkage is done againsts ML6.5 Libs (needed in compiled version)
-SET R13="no"
+SET R13="yes"
 
 REM Set it to 32 or 64 to build under 64-bits or 32-bits respectively.
 SET BITS=32
@@ -91,10 +91,10 @@ SET _MX_COMPAT=-DMX_COMPAT_32
 REM -------------- Set up libraries here -------------------------------------------------
 IF %BITS%==64 (
 
-SET  NETCDF_LIB=C:\programs\compa_libs\netcdf_GIT\compileds\VC10_64\lib\netcdf.lib
+SET  NETCDF_LIB=C:\programs\compa_libs\netcdf_GIT\compileds\VC12_64\lib\netcdf.lib
 SET     GMT_LIB=c:\progs_cygw\GMTdev\gmt4\WIN64\lib\gmt.lib
 SET GMT_MGG_LIB=c:\progs_cygw\GMTdev\gmt4\WIN64\lib\gmt_mgg.lib
-SET    GDAL_LIB=c:\programs\GDALtrunk\gdal\compileds\VC10_64\lib\gdal_i.lib
+SET    GDAL_LIB=c:\programs\compa_libs\gdal\compileds\VC12_64\lib\gdal_i.lib
 SET  CXCORE_LIB=C:\programs\compa_libs\opencv\compileds\VC10_64\lib\opencv_core.lib
 SET   CVIMG_LIB=C:\programs\compa_libs\opencv\compileds\VC10_64\lib\opencv_imgproc.lib
 SET CVCALIB_LIB=C:\programs\compa_libs\opencv\compileds\VC10_64\lib\opencv_calib3d.lib
@@ -109,10 +109,10 @@ SET   JULIA_LIB=V:\julia\usr\bin\julia.lib
 
 ) ELSE (
 
-SET  NETCDF_LIB=C:\programs\compa_libs\netcdf_GIT\compileds\VC10_32\lib\netcdf.lib
+SET  NETCDF_LIB=C:\programs\compa_libs\netcdf_GIT\compileds\VC12_32\lib\netcdf.lib
 SET     GMT_LIB=c:\progs_cygw\GMTdev\gmt4\WIN32\lib\gmt.lib
 SET GMT_MGG_LIB=c:\progs_cygw\GMTdev\gmt4\WIN32\lib\gmt_mgg.lib
-SET    GDAL_LIB=c:\programs\GDALtrunk\gdal\compileds\VC10_32\lib\gdal_i.lib
+SET    GDAL_LIB=c:\programs\compa_libs\gdal\compileds\VC12_32\lib\gdal_i.lib
 SET  CXCORE_LIB=C:\programs\compa_libs\opencv\compileds\VC10_32\lib\opencv_core.lib
 SET   CVIMG_LIB=C:\programs\compa_libs\opencv\compileds\VC10_32\lib\opencv_imgproc.lib
 SET CVCALIB_LIB=C:\programs\compa_libs\opencv\compileds\VC10_32\lib\opencv_calib3d.lib
@@ -126,11 +126,11 @@ SET LASZLIB_LIB=C:\programs\compa_libs\lastools\compileds\VC10_32\lib\laslib_i.l
 )
 SET   JULIA_LIB=
 
-SET  NETCDF_INC=C:\programs\compa_libs\netcdf_GIT\compileds\VC10_32\include
+SET  NETCDF_INC=C:\programs\compa_libs\netcdf_GIT\compileds\VC12_32\include
 SET     GMT_INC=c:\progs_cygw\GMTdev\GMT4\include
 REM SET GMT_INC=c:\progs_cygw\GMTdev\GMT5\include
 SET    GMT_INC2=C:\progs_cygw\GMTdev\GMT5\src\mex
-SET    GDAL_INC=c:\programs\GDALtrunk\gdal\compileds\VC10_32\include
+SET    GDAL_INC=c:\programs\compa_libs\gdal\compileds\VC12_32\include
 SET      CV_INC=C:\programs\compa_libs\opencv\compileds\VC10_32\include
 SET       CVInc=C:\programs\compa_libs\opencv\compileds\VC10_32\include\opencv
 SET  GEOLIB_INC=C:\programs\compa_libs\GeographicLib-1.29\compileds\VC10_64\include

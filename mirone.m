@@ -20,7 +20,7 @@ function varargout = mirone(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: mirone.m 7881 2016-04-27 19:39:26Z j $
+% $Id: mirone.m 7962 2016-09-27 13:55:41Z j $
 
 	if (nargin > 1 && ischar(varargin{1}))
 		if ( ~isempty(strfind(varargin{1},':')) || ~isempty(strfind(varargin{1},filesep)) )
@@ -249,34 +249,36 @@ function hObject = mirone_OpeningFcn(varargin)
 			end
 			handles = aux_funs('isProj',handles);				% Check/set about coordinates type
 			
-		elseif (n_argin == 1 && isa(varargin{1},'struct') && isfield(varargin{1},'ProjectionRefPROJ4'))
+		elseif (n_argin == 1 && isa(varargin{1},'struct') && isfield(varargin{1},'proj4'))
 			% A GMT5 grid/image structure. (for images we still do not use eventual alpha channel)
 			handles.head = [varargin{1}.range varargin{1}.registration varargin{1}.inc];
 			if (~isfield(varargin{1}, 'image'))
 				Z = varargin{1}.z;			grd_data_in = true;
 				if (~isa(Z,'single')),		Z = single(Z);		end
 				handles.have_nans = grdutils(Z,'-N');
-				X = linspace(varargin{1}.range(1), varargin{1}.range(2), varargin{1}.n_columns);
-				Y = linspace(varargin{1}.range(3), varargin{1}.range(4), varargin{1}.n_rows);
+				X = linspace(varargin{1}.range(1), varargin{1}.range(2), size(varargin{1}.z, 2));
+				Y = linspace(varargin{1}.range(3), varargin{1}.range(4), size(varargin{1}.z, 1));
 			else
-				handles.image_type = 3;		isReferenced = false;
+				handles.image_type = 2;		isReferenced = false;
 				X = [varargin{1}.x(1) varargin{1}.x(end)];		Y = [varargin{1}.y(1) varargin{1}.y(end)];
 				handles.geog = aux_funs('guessGeog', [Y Y]);
-				ProjectionRefWKT = varargin{1}.ProjectionRefWKT;
-				if (isempty(ProjectionRefWKT) && ~isempty(varargin{1}.ProjectionRefPROJ4))
-					ProjectionRefWKT = ogrproj(varargin{1}.ProjectionRefPROJ4);
+				ProjectionRefWKT = varargin{1}.wkt;
+				if (isempty(ProjectionRefWKT) && ~isempty(varargin{1}.proj4))
+					ProjectionRefWKT = ogrproj(varargin{1}.proj4);
 				end
 				if (~isempty(ProjectionRefWKT))
-					aux_funs('appP', handles, varargin{1}.ProjectionRefWKT)			% If we have a WKT proj, store it
+					aux_funs('appP', handles, varargin{1}.wkt)		% If we have a WKT proj, store it
 					isReferenced = true;
 					if (~handles.geog),		handles.is_projected = true;	end		% WEAK LOGIC. SHOULD PARSE WKT TO MAKE SURE
 				end
 				if (ndims(varargin{1}.image) == 2),		set(handles.figure1,'Colormap',gray(256));		end
 				win_name = 'Nikles';
 				if (~isempty(varargin{1}.title)),		win_name = varargin{1}.title;	end
-				handles = show_image(handles,win_name,X,Y,varargin{1}.image,0,'xy',varargin{1}.registration,1);
+				alpha = 1;
+				if (~isempty(varargin{1}.alpha)),		alpha = varargin{1}.alpha;		end
+				handles = show_image(handles,win_name,X,Y,varargin{1}.image,0,'off',varargin{1}.registration,1, alpha);
 				if (~isReferenced),		grid_info(handles,[],'iminfo',varargin{1}.image);		% Create a info string
-				else					grid_info(ProjectionRefWKT, 'referenced', varargin{1}.image);
+				else					grid_info(handles, ProjectionRefWKT, 'referenced', varargin{1}.image);
 				end
 				handles = aux_funs('isProj',handles);				% Check/set about coordinates type
 			end
@@ -409,8 +411,8 @@ function hObject = mirone_OpeningFcn(varargin)
 
 	% Deal with the new (big) troubles introduced by using GMT5.2 that needs to know where to find its own share dir
 	if (gmt_ver == 5)		% For GMT5 we have a shity highly police control on sharedir. Use this to cheat it.
-		t = set_gmt('GMT5_SHAREDIR', 'whatever');	% Inquire if GMT5_SHAREDIR exists 
-		if (isempty(t))
+		t = set_gmt('GMT5_SHAREDIR', 'whatever');		% Inquire if GMT5_SHAREDIR exists 
+		if (isempty(t) || (~(exist(t, 'dir') == 7)))	% Test also that the dir exists
 			% If not, set a fake one with minimalist files so that GMT does not complain/errors
 			% We have to use GMT5_SHAREDIR and NOT GMT_SHAREDIR because it's the first one checked in gmt_init.c/GMT_set_env()
 			set_gmt(['GMT5_SHAREDIR=' home_dir fsep 'gmt_share']);
@@ -424,7 +426,7 @@ function hObject = mirone_OpeningFcn(varargin)
 			handles.path_tmp = [t fsep];
 		end
 	end
-		
+
 	guidata(hObject, handles);
 	tmp.home_dir = home_dir;	tmp.work_dir = handles.work_dir;	tmp.last_dir = handles.last_dir;
 	setappdata(0,'MIRONE_DIRS',tmp);		% To access from places where handles.home_dir is unknown (must precede gateLoadFile())
@@ -525,8 +527,16 @@ function openRF(obj,event,n)
 function handles = SetAxesNumericType(handles,event)
 % Save original X & Y labels in appdata for easear access when we want to change them
 	setappdata(handles.axes1,'XTickOrig',get(handles.axes1,'XTickLabel'))
+	setappdata(handles.axes1,'XTickOrigNum',get(handles.axes1,'XTick'))
 	setappdata(handles.axes1,'YTickOrig',get(handles.axes1,'YTickLabel'))
-	set(handles.axes1, 'FontSize', 9)				% Make this the default
+	setappdata(handles.axes1,'YTickOrigNum',get(handles.axes1,'YTick'))
+	n1 = numel(get(handles.axes1,'YTick'));
+	fsize = get(handles.axes1, 'FontSize');
+	set(handles.axes1, 'FontSize', 9)		% Make this the default
+	n2 = numel(get(handles.axes1,'YTick'));
+	if (n1 ~= n2)							% BUT SOMETIMES IT FCK IT??????????. DAMN ML BUGS
+		set(handles.axes1, 'FontSize', fsize)
+	end
 	LFT = 'DegDec';			visibility = 'on';		% For the geog case
 	if (~handles.geog),		LFT = 'NotGeog';	visibility = 'off';		end 
 	setappdata(handles.axes1,'LabelFormatType',LFT)
@@ -735,7 +745,7 @@ if ~isempty(opt)				% OPT must be a rectangle/polygon handle (the rect may serve
 		[m,n] = size(I);
 
 	elseif (strcmp(opt2,'ImplantGrid'))				% Read and external grid and implant it in host grid
-		[Z_rect, r_c] = transplants(opt, 'grid', handles);
+		[Z_rect, r_c] = transplants(opt, 'grid', true, handles);
 		if (isempty(Z_rect)),		return,		end		% User gave up
 
 	else					% Extract the sub-grid inside the rectangle/polygon
@@ -757,7 +767,7 @@ if ~isempty(opt)				% OPT must be a rectangle/polygon handle (the rect may serve
 			end
 			if (isnan(resp)),	handles.have_nans = 1;	end
 
-			mask = img_fun('roipoly_j',x_lim,y_lim,double(Z_rect),x,y);
+			mask = img_fun('roipoly_j', x_lim, y_lim, Z_rect, x, y);
 			if (strcmp(opt2,'CropaGrid_pure'))
 				Z_rect(~mask) = single(resp);
 			elseif (strcmp(opt2,'ROI_SetConst'))
@@ -994,7 +1004,7 @@ if (~strcmp(opt2,'MedianFilter') && ~strcmp(opt2,'ROI_SetConst'))		% Otherwise, 
 	elseif (isa(Z,'uint16')),	Z(r_c(1):r_c(2),r_c(3):r_c(4)) = uint16(Z_rect);
 	else						Z(r_c(1):r_c(2),r_c(3):r_c(4)) = single(Z_rect);
 	end
-	if (handles.have_nans && ~isnan(Z_rect))			% Check that old NaNs had not been erased
+	if (handles.have_nans && ~any(isnan(Z_rect(:))))	% Check that old NaNs had not been erased
 		handles.have_nans = grdutils(Z,'-N');
 	end
 end
@@ -1254,7 +1264,7 @@ function FileSaveGMTgrid_CB(handles, opt)
 	if (~isempty(opt) && strcmp(opt,'Surfer'))
 		txt1 = 'Surfer 6 binary grid (*.grd,*.GRD)';	txt2 = 'Select output Surfer 6 grid';
 	else			% Internaly computed grid
-		tit = 'Grid computed inside Mirone';
+		tit = 'Grid computed with Mirone';
 		txt1 = 'netCDF grid format (*.grd,*.GRD)';		txt2 = 'Select output GMT grid';
 	end
 
@@ -1820,7 +1830,6 @@ function erro = FileOpenGeoTIFF_CB(handles, tipo, opt)
 		att.AllSubdatasets = AllSubdatasets;			% and another
 	end
 	att.fname = fnameBak;								% If hdfread is used, it will need the file name (not eventual dataset name)
-	set(handles.figure1,'pointer','watch')
 
 	if (att.RasterCount == 0)			% Should never happen given the piece of code above, but ...
 		errordlg('Probably a multi-container file. Could not read it since its says that it has no raster bands.','ERROR')
@@ -1948,7 +1957,7 @@ function loadGRID(handles, fullname, tipo, opt)
 % OPT	-> the "att" attributes structure got from att = gdalread(fname,'-M',...)
  
 	if (nargin == 3),	opt = ' ';	end
-	[Z, X, Y, srsWKT, handles, att] = read_grid(handles, fullname, tipo, opt);
+	[Z, X, Y, srsWKT, handles, att, pal_file] = read_grid(handles, fullname, tipo, opt);
 	if (isempty(Z)),	return,		end
 	if (~isempty(srsWKT)),	handles.is_projected = true;	end		% WEAK TEST
 	if (~isempty(fullname))
@@ -1969,7 +1978,10 @@ function loadGRID(handles, fullname, tipo, opt)
 	end																% from appdata. That is donne in show_image()
 
 	aux_funs('StoreZ',handles,X,Y,Z)				% If grid size is not to big we'll store it
-	aux_funs('colormap_bg',handles,Z,jet(256));		% Insert the background color in the palette for arrays that have NaNs
+	if (~isempty(pal_file)),	pal = pal_file;		% If the file has a palette, use it instead.
+	else						pal = jet(256);
+	end
+	aux_funs('colormap_bg', handles, Z, pal);		% Insert the background color in the palette for arrays that have NaNs
 	if (~isa(Z, 'uint8'))
 		zz = scaleto8(Z);
 		if (isa(Z,'int8') && handles.head(6) < 255)	% Put in a colormap that uses all data range 
@@ -2041,11 +2053,15 @@ function showRADARSAT(handles, att, fname, Z)
 
 % _________________________________________________________________________________________________
 % -*-*-*-*-*-*-$-$-$-$-$-$-#-#-#-#-#-#-%-%-%-%-%-%-@-@-@-@-@-@-(-)-(-)-(-)-&-&-&-&-&-&-{-}-{-}-{-}-
-function handles = show_image(handles, fname, X, Y, I, validGrid, axis_t, adjust, imSize)
+function handles = show_image(handles, fname, X, Y, I, validGrid, axis_t, adjust, imSize, alpha)
 % Show image and set other parameters
 % AXIS_T	'xy' or 'off'
 % IMSIZE	Optional arg. Use when dx ~= dy
+% ALPHA		Optional arg to hold an alpha layer instead of having size(I) = MxNx4
 
+	if (nargin == 10 && numel(alpha) ~= 1 && (size(I,1) ~= size(alpha,1) || size(I,2) ~= size(alpha,2)))
+		error('Aplha channel has not the same size as the image')
+	end
 	if (adjust)				% Convert the image limits from pixel reg to grid reg
 		[X,Y] = aux_funs('adjust_lims', X, Y, size(I,1), size(I,2));
 	end
@@ -2066,7 +2082,7 @@ function handles = show_image(handles, fname, X, Y, I, validGrid, axis_t, adjust
 	end
 
 	if (~validGrid && handles.validGrid),		aux_funs('cleanGRDappdata',handles);	end
-	alpha = 1;
+	if (nargin < 10),	alpha = 1;	end			% That is, if no alpha sent as argin
 	if (size(I,3) > 3)
 		if (strcmp(handles.transparency, 'alpha'))
 			alpha = I(:,:,4);
@@ -2115,8 +2131,9 @@ function handles = show_image(handles, fname, X, Y, I, validGrid, axis_t, adjust
 	end
 	if (handles.image_type == 2),	handles.geog = 0;	end
 
-	if (do_resize)		% If FALSE image is visible already and we don't want to use resizetrue
+	if (do_resize)				% If FALSE image is visible already and we don't want to use resizetrue
 		magRatio = resizetrue(handles,imSize,axis_t);			% -------> IMAGE IS VISIBLE HERE. <-------
+		set(handles.figure1,'Vis','on')			% And if it wasn't now it is
 	end
 
 	handles.origFig = I;			handles.no_file = 0;
@@ -2131,6 +2148,7 @@ function handles = show_image(handles, fname, X, Y, I, validGrid, axis_t, adjust
 	% Make an extra copy of those to use in "restore" because they may be changed by 'bands_list()'
 	handles.validGrid_orig = validGrid;			handles.was_int16_orig = handles.was_int16;
 	handles.computed_grid_orig = handles.computed_grid;
+	fix_axes_labels(handles)		% Make ALL labels have the same number of decimals.
 	handles = SetAxesNumericType(handles);					% Set axes uicontextmenus
 	if (handles.image_type ~= 1),	handles.grdname = [];	end
 	if (~handles.have_nans),		set(handles.haveNaNs,'Vis','off')	% If no NaNs no need of these
@@ -2195,6 +2213,34 @@ function handles = show_image(handles, fname, X, Y, I, validGrid, axis_t, adjust
 	if (~isempty(hfun))
 		feval(hfun{1}, hfun{2:end})
 	end
+
+% --------------------------------------------------------------------
+function fix_axes_labels(handles)
+% Fix the annoyingly ugly effect of the varying number of decimals in labels
+% Trust in the estimate made by num2str.
+	xTick  = get(handles.axes1, 'XTick');
+	xLabel = num2str(xTick(:));
+	tv = zeros(size(xLabel, 1), 1);
+	nc = size(xLabel, 2);
+	for (k = 1:size(xLabel, 1))
+		t = strfind(xLabel(k,:), '.');
+		if (~isempty(t)),	tv(k) = nc - t;		end
+	end
+	n_dec = ceil(median(tv));
+	xLabel = num2str(xTick(:), sprintf('%%.%df', n_dec));
+
+	yTick  = get(handles.axes1, 'YTick');
+	yLabel = num2str(yTick(:));
+	tv = zeros(size(yLabel, 1), 1);
+	nc = size(yLabel, 2);
+	for (k = 1:size(yLabel, 1))
+		t = strfind(yLabel(k,:), '.');
+		if (~isempty(t)),	tv(k) = nc - t;		end
+	end
+	n_dec = ceil(median(tv));
+	yLabel = num2str(yTick(:), sprintf('%%.%df', n_dec));
+	
+	set(handles.axes1, 'XTickLabel', xLabel, 'YTickLabel', yLabel)
 
 % --------------------------------------------------------------------
 function ToolsMBplaningStart_CB(handles)
@@ -4553,139 +4599,144 @@ function ImageEdgeDetect_CB(handles, opt)
 %		-> 'Rect'    Find rectangles in image (uses OpenCV and fails a lot)
 %		-> 'Ras'
 %		-> 'SUS'
-if (handles.no_file),		return,		end
+	if (handles.no_file),		return,		end
 
-img = get(handles.hImg,'CData');		% Even when not used, this op cost nothing
-dims = [size(img,1) size(img,2)];
-set(handles.figure1,'pointer','watch')
-if (strcmp(opt,'ppa'))
-	[X,Y,Z,handles.head] = load_grd(handles);
-	if isempty(Z),		return,		end
-	out = grdppa_m(Z,handles.head);
-	h_ridge = line(out(1,1:end),out(2,1:end), 'Linewidth',handles.DefLineThick, ...
-		'Color',handles.DefLineColor,'Tag','creast_line','Userdata',1);
-	multi_segs_str = cell(length(h_ridge),1);	% Just create a set of empty info strings
-	draw_funs(h_ridge,'isochron',multi_segs_str)
+	mask = false;		% So far, only used in 'apalpa'
+	img = get(handles.hImg,'CData');		% Even when not used, this op cost nothing
+	dims = [size(img,1) size(img,2)];
+	set(handles.figure1,'pointer','watch')
+	if (strcmp(opt,'ppa'))
+		[X,Y,Z,handles.head] = load_grd(handles);
+		if isempty(Z),		return,		end
+		out = grdppa_m(Z,handles.head);
+		h_ridge = line(out(1,1:end),out(2,1:end), 'Linewidth',handles.DefLineThick, ...
+			'Color',handles.DefLineColor,'Tag','creast_line','Userdata',1);
+		multi_segs_str = cell(length(h_ridge),1);	% Just create a set of empty info strings
+		draw_funs(h_ridge,'isochron',multi_segs_str)
+		set(handles.figure1,'pointer','arrow')
+		return
+	% 	x_lim = get(handles.axes1,'XLim');	y_lim = get(handles.axes1,'YLim');
+	% 	h_lixo = figure('MenuBar','none');
+	% 	h_tmp = line('XData',out(1,:),'YData',out(2,:),'Linewidth',0.1);
+	% 	set(handles.axes1,'XLim',x_lim,'YLim',y_lim)
+	% 	F = getframe(h_lixo);
+	% 	img = F.cdata;
+	% 	[m,n,k] = size(img);
+	% 	x_inc = (handles.head(2) - handles.head(1)) / n;
+	% 	y_inc = (handles.head(4) - handles.head(3)) / m;
+	% 	I = flipud(img(:,:,1));
+	% 	delete(h_lixo);
+	elseif (strcmp(opt,'apalpa'))		% Get the polygons that sorround good data
+		if (~handles.have_nans)
+			warndlg('There are no wholes in this grid.','Chico Clever'),	return
+		end
+		[X,Y,Z] = load_grd(handles);
+		if isempty(Z),		return,		end
+		mask = isnan(Z);
+		B = img_fun('bwboundaries',mask, 8, 'holes');
+		%B = bwbound_unique(B);
+		dims = [size(Z,1) size(Z,2)];
+		opt = 'Vec';					% Trick to not need to add an extra case in the IF test below
+
+	elseif (strcmp(opt,'Vec') || strcmp(opt,'Ras') || strcmp(opt(1:3),'SUS'))
+		if (ndims(img) == 3),		img = cvlib_mex('color',img,'rgb2gray');	end
+		if (~strcmp(opt(1:3),'SUS'))
+			if (~handles.IamCompiled),		img = canny(img);		% Economic version (uses singles & cvlib_mex but crashs in compiled)
+			else							img = img_fun('edge',img,'canny');
+			end
+		else
+			img = susan(img,'-e');				% Do SUSAN edge detect
+			if (strcmp(opt(4:end),'vec')),	opt = 'Vec';		% This avoids some extra tests later
+			else							opt = 'Ras';
+			end
+		end
+		if (strcmp(opt,'Vec'))
+			B = img_fun('bwboundaries',img,'noholes');
+			B = bwbound_unique(B);
+		end
+	elseif (strcmp(opt,'Lines'))
+		%B = cvlib_mex('houghlines2',img,'standard',1,pi/180,100,0,0);
+		%BW = cvlib_mex('canny',img,40,200,3);
+		if (ndims(img) == 3),			img = cvlib_mex('color',img,'rgb2gray');	end
+		if (~handles.IamCompiled),		BW = canny(img);
+		else							BW = img_fun('edge',img,'canny');
+		end
+
+		[H,T,R] = img_fun('hough',BW);
+		P = img_fun('houghpeaks',H,50,'threshold',ceil(0.3*double(max(H(:)))));
+		lines = img_fun('houghlines',BW,T,R,P,'FillGap',10,'MinLength',50);
+		if (~isfield(lines,'point1')),	set(handles.figure1,'pointer','arrow'),		return,		end
+		B = cell(1,length(lines));
+		for (k = 1:length(lines))
+			B{k} = [lines(k).point1(2:-1:1); lines(k).point2(2:-1:1)];
+		end
+	elseif (strcmp(opt,'Circles'))
+		B = cvlib_mex('houghcircles',img);
+		if (isempty(B)),	set(handles.figure1,'pointer','arrow'),		return,		end
+	elseif (strcmp(opt,'Rect'))
+		B = cvlib_mex('findrect',img);
+		if (isempty(B)),	set(handles.figure1,'pointer','arrow'),		return,		end
+	end
+
+	if (strcmp(opt,'Vec') || strcmp(opt,'Lines') || strcmp(opt,'Rect'))		% Convert the edges found into vector
+		x_inc = handles.head(8);		y_inc = handles.head(9);
+		x_min = handles.head(1);		y_min = handles.head(3);
+		if (handles.head(7))			% Work in pixel registration
+			x_min = x_min + x_inc/2;	y_min = y_min + y_inc/2;
+		end
+		h_edge = zeros(length(B),1);	i = 1;
+		for k = 1:length(B)
+			bnd = B{k};
+			if (mask && strcmp(opt,'Vec') && mask(bnd(1,1),bnd(1,2)) && ...	% Drastic but no better solution to avoid NaNs-in-corners cases
+					(min(bnd(:,1)) == 1 || max(bnd(:,1)) == dims(2) || min(bnd(:,1)) == 1 || max(bnd(:,1)) == dims(1)) )
+				continue
+			end
+			if (size(bnd,1) > 4)
+				bnd = cvlib_mex('dp', bnd, 0.1);		% Simplify line but only on straight lines
+			end
+			% Some times we get a BB rectangle, test and ignore it if it's the case
+			if (size(bnd,1) < 10)
+				ma = max(bnd);
+				if (all(abs(min(bnd) - 1)) < 1e-3)
+					if ((abs(ma(1) - dims(1)) < 1e-3) && (abs(ma(2) - dims(2)) < 1e-3))
+						continue
+					end
+				end
+			end
+
+			y = (bnd(:,1)-1)*y_inc + y_min;
+			x = (bnd(:,2)-1)*x_inc + x_min;
+			h_edge(i) = line('XData',x, 'YData',y, 'Parent',handles.axes1,'Linewidth',handles.DefLineThick, ...
+				'Color',handles.DefLineColor,'Tag','edge_detected','Userdata',i);
+			i = i + 1;
+			%ellipse_t = fit_ellipse( x,y,handles.axes1 );
+		end
+		h_edge(h_edge == 0) = [];					% Remove empty handles remaining from pre-declaration
+		multi_segs_str = cell(length(h_edge),1);	% Just create a set of empty info strings
+		draw_funs(h_edge,'isochron',multi_segs_str);
+	elseif (strcmp(opt,'Circles'))
+		x = linspace(-pi,pi,360);		y = x;
+		xx = cos(x);					yy = sin(y);
+		%h_circ = line('XData', [], 'YData', []);
+		for k = 1:size(B,1)
+			x = B(k,1) + B(k,3) * xx;			y = B(k,2) + B(k,3) * yy;
+			h_circ = line('XData',x, 'YData',y, 'Parent',handles.axes1, 'Linewidth',handles.DefLineThick, ...
+					'Color',handles.DefLineColor,'Userdata',B(k,1:end));
+			draw_funs(h_circ,'SessionRestoreCircleCart')	% Give uicontext
+			setappdata(h_circ,'LonLatRad',B(k,1:end))
+			%setappdata(h_circ,'X',xx);		setappdata(h_circ,'Y',yy);
+		end
+	else							% Display the bw image where the edges are the whites
+		setappdata(0,'CropedColormap',gray);
+		if (handles.image_type == 2)
+			mirone(img);
+		else
+			tmp.X = handles.head(1:2);	tmp.Y = handles.head(3:4);		tmp.name = 'Edge detected';
+			tmp.geog = handles.geog;	tmp.head = [handles.head(1:4) 0 1 handles.head(7:9)];
+			mirone(img, tmp);
+		end
+	end
 	set(handles.figure1,'pointer','arrow')
-	return
-% 	x_lim = get(handles.axes1,'XLim');	y_lim = get(handles.axes1,'YLim');
-% 	h_lixo = figure('MenuBar','none');
-% 	h_tmp = line('XData',out(1,:),'YData',out(2,:),'Linewidth',0.1);
-% 	set(handles.axes1,'XLim',x_lim,'YLim',y_lim)
-% 	F = getframe(h_lixo);
-% 	img = F.cdata;
-% 	[m,n,k] = size(img);
-% 	x_inc = (handles.head(2) - handles.head(1)) / n;
-% 	y_inc = (handles.head(4) - handles.head(3)) / m;
-% 	I = flipud(img(:,:,1));
-% 	delete(h_lixo);
-elseif (strcmp(opt,'apalpa'))		% Get the polygons that sorround good data
-	if (~handles.have_nans)
-		warndlg('There are no wholes in this grid.','Chico Clever'),	return
-	end
-	[X,Y,Z] = load_grd(handles);
-	if isempty(Z),		return,		end
-	mask = isnan(Z);
-	B = img_fun('bwboundaries',mask, 8, 'holes');
-	%B = bwbound_unique(B);
-	dims = [size(Z,1) size(Z,2)];
-	opt = 'Vec';					% Trick to not need to add an extra case in the IF test below
-
-elseif (strcmp(opt,'Vec') || strcmp(opt,'Ras') || strcmp(opt(1:3),'SUS'))
-	if (ndims(img) == 3),		img = cvlib_mex('color',img,'rgb2gray');	end
-	if (~strcmp(opt(1:3),'SUS'))
-		if (~handles.IamCompiled),		img = canny(img);		% Economic version (uses singles & cvlib_mex but crashs in compiled)
-		else							img = img_fun('edge',img,'canny');
-		end
-	else
-		img = susan(img,'-e');				% Do SUSAN edge detect
-		if (strcmp(opt(4:end),'vec')),	opt = 'Vec';		% This avoids some extra tests later
-		else							opt = 'Ras';
-		end
-	end
-	if (strcmp(opt,'Vec'))
-		B = img_fun('bwboundaries',img,'noholes');
-		B = bwbound_unique(B);
-	end
-elseif (strcmp(opt,'Lines'))
-	%B = cvlib_mex('houghlines2',img,'standard',1,pi/180,100,0,0);
-	%BW = cvlib_mex('canny',img,40,200,3);
-	if (ndims(img) == 3),			img = cvlib_mex('color',img,'rgb2gray');	end
-	if (~handles.IamCompiled),		BW = canny(img);
-	else							BW = img_fun('edge',img,'canny');
-	end
-
-	[H,T,R] = img_fun('hough',BW);
-	P = img_fun('houghpeaks',H,50,'threshold',ceil(0.3*double(max(H(:)))));
-	lines = img_fun('houghlines',BW,T,R,P,'FillGap',10,'MinLength',50);
-	if (~isfield(lines,'point1')),	set(handles.figure1,'pointer','arrow'),		return,		end
-	B = cell(1,length(lines));
-	for (k = 1:length(lines))
-		B{k} = [lines(k).point1(2:-1:1); lines(k).point2(2:-1:1)];
-	end
-elseif (strcmp(opt,'Circles'))
-	B = cvlib_mex('houghcircles',img);
-	if (isempty(B)),	set(handles.figure1,'pointer','arrow'),		return,		end
-elseif (strcmp(opt,'Rect'))
-	B = cvlib_mex('findrect',img);
-	if (isempty(B)),	set(handles.figure1,'pointer','arrow'),		return,		end
-end
-
-if (strcmp(opt,'Vec') || strcmp(opt,'Lines') || strcmp(opt,'Rect'))		% Convert the edges found into vector
-	x_inc = handles.head(8);		y_inc = handles.head(9);
-	x_min = handles.head(1);		y_min = handles.head(3);
-	if (handles.head(7))			% Work in pixel registration
-		x_min = x_min + x_inc/2;	y_min = y_min + y_inc/2;
-	end
-	h_edge = zeros(length(B),1);	i = 1;
-	for k = 1:length(B)
-		bnd = B{k};
-		if (strcmp(opt,'apalpa') && mask(bnd(1,1),bnd(1,2)) && ...	% Drastic but no better solution to avoid NaNs-in-corners cases
-				(min(bnd(:,1)) == 1 || max(bnd(:,1)) == dims(2) || min(bnd(:,1)) == 1 || max(bnd(:,1)) == dims(1)) )
-			continue
-		end
-		if (size(bnd,1) > 4)
-			bnd = cvlib_mex('dp', bnd, 0.2);		% Simplify line but only on straight lines
-		end
-		% Some times we get a BB rectangle, test and ignore it if it's the case
-		if (size(bnd,1) == 5 && min(bnd(:,1)) == 1 && min(bnd(:,2)) == 1 && ...
-				max(bnd(:,1)) == dims(1) && max(bnd(:,2)) == dims(2))
-			continue
-		end
-
-		y = (bnd(:,1)-1)*y_inc + y_min;
-		x = (bnd(:,2)-1)*x_inc + x_min;
-		h_edge(i) = line('XData',x, 'YData',y, 'Parent',handles.axes1,'Linewidth',handles.DefLineThick, ...
-			'Color',handles.DefLineColor,'Tag','edge_detected','Userdata',i);
-		i = i + 1;
-		%ellipse_t = fit_ellipse( x,y,handles.axes1 );
-	end
-	h_edge(h_edge == 0) = [];					% Remove empty handles remaining from pre-declaration
-	multi_segs_str = cell(length(h_edge),1);	% Just create a set of empty info strings
-	draw_funs(h_edge,'isochron',multi_segs_str);
-elseif (strcmp(opt,'Circles'))
-	x = linspace(-pi,pi,360);		y = x;
-	xx = cos(x);					yy = sin(y);
-	%h_circ = line('XData', [], 'YData', []);
-	for k = 1:size(B,1)
-		x = B(k,1) + B(k,3) * xx;			y = B(k,2) + B(k,3) * yy;
-		h_circ = line('XData',x, 'YData',y, 'Parent',handles.axes1, 'Linewidth',handles.DefLineThick, ...
-				'Color',handles.DefLineColor,'Userdata',B(k,1:end));
-		draw_funs(h_circ,'SessionRestoreCircleCart')	% Give uicontext
-		setappdata(h_circ,'LonLatRad',B(k,1:end))
-		%setappdata(h_circ,'X',xx);		setappdata(h_circ,'Y',yy);
-	end
-else							% Display the bw image where the edges are the whites
-	setappdata(0,'CropedColormap',gray);
-	if (handles.image_type == 2)
-		mirone(img);
-	else
-		tmp.X = handles.head(1:2);	tmp.Y = handles.head(3:4);		tmp.name = 'Edge detected';
-		tmp.geog = handles.geog;	tmp.head = [handles.head(1:4) 0 1 handles.head(7:9)];
-		mirone(img, tmp);
-	end
-end
-set(handles.figure1,'pointer','arrow')
 
 % --------------------------------------------------------------------
 function DigitalFilt_CB(handles, opt)
@@ -4818,6 +4869,7 @@ function TransferB_CB(handles, opt, opt2)
 
 	elseif (strcmp(opt,'scale'))				% Apply a scale factor
 		resp = inputdlg({'Enter scale factor'},'Rescale grid',[1 30],{'-1'});	pause(0.01)
+		if (isempty(resp)),		return,	end
 		scal = str2double(resp{1});
 		if (isnan(scal)),	return,		end
 		[X,Y,Z] = load_grd(handles);			% load the grid array here
@@ -4870,7 +4922,15 @@ function TransferB_CB(handles, opt, opt2)
  	elseif (strcmp(opt,'sharedir'))				% Show GMT_SHAREDIR env var (standalone only and for debug)
 		env4 = set_gmt('GMT_SHAREDIR','lixo');
 		env5 = set_gmt('GMT5_SHAREDIR','lixo');
-		msgbox(sprintf('GMT_SHAREDIR = %s\nGMT5_SHAREDIR = %s', env4, env5))
+		if (~isempty(env4) && ~isempty(env5))
+			msgbox(sprintf('GMT_SHAREDIR = %s\nGMT5_SHAREDIR = %s', env4, env5))
+		elseif (~isempty(env4))
+			msgbox(sprintf('GMT_SHAREDIR = %s', env4))
+		elseif (~isempty(env5))
+			msgbox(sprintf('GMT5_SHAREDIR = %s', env5))
+		else
+			warndlg('No GMT_SHAREDIR variables found. Most likely you do not have GMT installed.', 'Warning')
+		end
 
  	elseif (strncmp(opt,'TransplantGrid',6))	%
 		ImageCrop_CB(handles,zeros(5,2),'ImplantGrid')	% The '0' is only to avoid the call to ruberbandbox in ImageCrop_CB
@@ -4897,7 +4957,7 @@ function TransferB_CB(handles, opt, opt2)
 		todos = fread(fid,'*char');		fclose(fid);
 		[nomes, MD5, V.Vstr] = strread(todos,'%s %s %s');	% In future we will have a use for the version string
 		builtin('delete',dest_fiche);	n = 1;		% Remove this one right away
-		namedl = cell(1);							% Mostly to shutup MLint
+		namedl = cell(1);	MD5_check = cell(1);	% Mostly to shutup MLint
 		pato_file = cell(numel(nomes),1);
 		ind_all = false(numel(nomes),1);			% To flag the ones truely to be updated later
 		for (k = 1:numel(nomes))
@@ -4907,10 +4967,12 @@ function TransferB_CB(handles, opt, opt2)
 				localMD5 = CalcMD5(nomes{k},'file');
 				if (~strcmp(MD5{k}, localMD5))
 					namedl{n} = [url nome ext];		% File name to update with path realtive to Mir root
+					MD5_check{n} = MD5{k};
 					n = n + 1;		ind_all(k) = true;
 				end
 			else									% New file. Download for sure.
 				namedl{n} = [url nome ext];
+				MD5_check{n} = MD5{k};
 				n = n + 1;			ind_all(k) = true;
 			end
 		end
@@ -4925,7 +4987,8 @@ function TransferB_CB(handles, opt, opt2)
 		for (k = 1:n-1)
 			[pato, nome, ext] = fileparts(namedl{k});		dest_fiche = [handles.path_tmp nome ext];
 			dos(['wget "' url nome ext '" -q --tries=2 --connect-timeout=5 -O ' dest_fiche]);
-			if (~exist(dest_fiche, 'file'))			% Troubles in transmission
+			localMD5 = CalcMD5(dest_fiche, 'file');
+			if (~strcmp(MD5_check{k}, localMD5))	% Troubles in transmission
 				ind(k) = true;
 			end
 		end
@@ -5112,7 +5175,10 @@ function Transfer_CB(handles, opt)
 		h = findobj('Type','uicontrol');		set(h,'Visible','off')	% We don't want to print the buttons
 		handsStBar = getappdata(handles.figure1,'CoordsStBar');
 		set(handsStBar,'Visible','off');		set(handles.figure1,'pointer','arrow')
+		ff = findobj(handles.figure1, '-depth',1, 'Style','frame', 'Tag', 'FancyFrame');
+		if (~isempty(ff)),		fancyFrame(guidata(handles.figure1),'pset');	end
 		if (ispc),		print -v,		else	print;  end
+		if (~isempty(ff)),		fancyFrame(handles,'punset');	end
 		set(h,'Visible','on');  set(handsStBar(2:end),'Visible','on');
 
 	end

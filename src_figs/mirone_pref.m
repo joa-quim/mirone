@@ -16,7 +16,7 @@ function varargout = mirone_pref(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: mirone_pref.m 7845 2016-03-31 23:19:23Z j $
+% $Id: mirone_pref.m 7935 2016-08-13 00:14:10Z j $
 
 	hObject = figure('Vis','off');
 	mirone_pref_LayoutFcn(hObject);
@@ -315,12 +315,20 @@ function radio_geog_CB(hObject, handles)
 	if get(hObject,'Value'),    handles.geog = 1;   set(handles.radio_cart,'Value',0)
 	else                        handles.geog = 0;   set(handles.radio_cart,'Value',1);
 	end
+	if (handles.geog)		% See if we have a [0 360] range
+		thisImageLims =  getappdata(handles.handMir.axes1, 'ThisImageLims');
+		if (thisImageLims(2) > 180),	handles.geog = 2;	end
+	end
 	guidata(hObject,handles)
 
 % ------------------------------------------------------------------------------------
 function radio_cart_CB(hObject, handles)
 	if get(hObject,'Value'),    handles.geog = 0;   set(handles.radio_geog,'Value',0)
 	else                        handles.geog = 1;   set(handles.radio_geog,'Value',1);
+	end
+	if (handles.geog)		% See if we have a [0 360] range
+		thisImageLims =  getappdata(handles.handMir.axes1, 'ThisImageLims');
+		if (thisImageLims(2) > 180),	handles.geog = 2;	end
 	end
 	guidata(hObject,handles)
 

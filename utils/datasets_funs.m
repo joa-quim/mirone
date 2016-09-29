@@ -16,7 +16,7 @@ function  datasets_funs(opt,varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: datasets_funs.m 7853 2016-04-07 23:09:44Z j $
+% $Id: datasets_funs.m 7950 2016-09-06 14:24:10Z j $
 
 switch opt(1:3)
 	case 'Coa'
@@ -429,12 +429,18 @@ function DatasetsPlateBound_PB_All(handles)
 function CoastLines(handles, res)
 	if (aux_funs('msg_dlg',5,handles)),		return,		end		% Test no_file || unknown proj
 	
-	lon = get(handles.axes1,'Xlim');      lat = get(handles.axes1,'Ylim');
+	lon = get(handles.axes1,'Xlim');	lat = get(handles.axes1,'Ylim');
+	if (~handles.is_projected)
+		lat(1) = max(lat(1), -90);		lat(2) = min(lat(2), 90);	% Protect against sliping pixel registration shit.
+	end
 	if (handles.geog == 2)
+		if (diff(lon) > 360)			% Than pay attention to pixel reg shit
+			lon(1) = max(lon(1), 0);	lon(2) = min(lon(2), 360);
+		end
 		ind = (lon < 0);
 		lon(ind) = lon(ind) + 360;
 	end
-	if (handles.geog),	[lon lat] = force_in_360(handles, lon, lat);	end
+	if (handles.geog),	[lon, lat] = force_in_360(handles, lon, lat);	end
     [dumb, msg, opt_R] = geog2projected_pts(handles,[lon(:) lat(:)],[lon lat 0]);   % Get -R for use in shoredump
     if (isempty(opt_R)),    return;    end      % It should never happen, but ...
 	
@@ -445,7 +451,10 @@ function CoastLines(handles, res)
 		case 'h',		opt_res = '-Dh';		pad = 0.03;
 		case 'f',		opt_res = '-Df';		pad = 0.005;
 	end
-	coast = c_shoredump(opt_R, opt_res, '-A1/1/1');
+	coast = c_shoredump(opt_R, opt_res, '-A0/1/1');
+	if (isa(coast, 'struct'))			% We want only the data (if GMT5 it will be a struct)
+		coast = aux_funs('catsegment',coast,1);
+	end
 	if (isempty(coast)),	return,		end
 
 	[coast, msg] = geog2projected_pts(handles, coast, [lon lat], 0);
@@ -485,7 +494,7 @@ function PoliticalBound(handles, type, res)
 		ind = (lon < 0);
 		lon(ind) = lon(ind) + 360;
 	end
-	if (handles.geog),	[lon lat] = force_in_360(handles, lon, lat);	end
+	if (handles.geog),	[lon, lat] = force_in_360(handles, lon, lat);	end
     [dumb, msg, opt_R] = geog2projected_pts(handles,[lon(:) lat(:)],[lon lat 0]);   % Get -R for use in shoredump
 	
 	switch type
@@ -503,6 +512,7 @@ function PoliticalBound(handles, type, res)
         case 'f',        opt_res = '-Df';        pad = 0.01;
 	end
 	boundaries = c_shoredump(opt_R,opt_N,opt_res);
+	if (isa(boundaries, 'struct')),	boundaries = boundaries.data;	end		% We want only the data (if GMT5 it will be a struct)
 	if (isempty(boundaries)),	return,		end
 
     [boundaries, msg] = geog2projected_pts(handles, boundaries, [lon lat], 0);
@@ -540,7 +550,7 @@ function Rivers(handles, type, res)
 	if (aux_funs('msg_dlg',5,handles));     return;      end    % Test no_file || unknown proj
 	
 	lon = get(handles.axes1,'Xlim');      lat = get(handles.axes1,'Ylim');
-	if (handles.geog),	[lon lat] = force_in_360(handles, lon, lat);	end
+	if (handles.geog),	[lon, lat] = force_in_360(handles, lon, lat);	end
 	if (handles.geog == 2)
 		ind = (lon < 0);
 		lon(ind) = lon(ind) + 360;
@@ -564,6 +574,7 @@ function Rivers(handles, type, res)
         case 'f',        opt_res = '-Df';        pad = 0.01;
 	end
 	rivers = c_shoredump(opt_R,opt_I,opt_res);
+	if (isa(rivers, 'struct')),	rivers = rivers.data;	end		% We want only the data (if GMT5 it will be a struct)
 	if (isempty(rivers)),	return,		end
 
     [rivers, msg] = geog2projected_pts(handles, rivers, [lon lat], 0);

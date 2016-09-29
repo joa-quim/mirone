@@ -30,6 +30,8 @@ function  test_bots(opt,varargin)
 				gmtlist
 			case 'implant'
 				implant
+			case 'fill_poly_hole'
+				fill_poly_hole
 		end
 	else
 		test_Illum
@@ -246,7 +248,6 @@ function gmtlist
 % ----------------------------
 function implant
 % ...
-
 	[Z, hdrStruct] = gen_UMF2d(1.8, 0.05, 0.9, 1000);		% Pretend it's geogs
 	Zf = c_grdfilter(Z,hdrStruct.head,'-Fb20','-D1');		% Filter boxcar 20 km
 	hand1.Z = Zf(1:5:end, 1:5:end);
@@ -255,13 +256,28 @@ function implant
 	hand1.head = [1 X(end) 1 Y(end) hdrStruct.head(5:6) 0 5 5];
  	hand2.X = 350:650;
  	hand2.Y = 350:650;
-	hand2.Z = Z(350:650, 350:650);
+	hand2.Z = Z(350:650, 350:650)*2;
+	hand2.Z(30:150,30:150) = NaN;
 	hand2.head = double([hand2.X(1) hand2.X(end) hand2.Y(1) hand2.Y(end) min(hand2.Z(:)) max(hand2.Z(:)) 0 1 1]);
 
-	Z = transplants([], 'grid', hand1, hand2);
-% 	[Z,aa] = transplants([], 'grid', hand1, hand2);
-% 	mirone(Z)
+	Z = transplants([], 'grid', true, hand1, hand2);
 	hand1.X = X;	hand1.Y = Y;
 	mirone(Z, hand1)
+
+% ----------------------------
+function fill_poly_hole
+% ...
+	[Z, hdrStruct] = gen_UMF2d(1.8, 0.05, 0.9, 1024);		% Pretend it's geogs (Remark, piking 1001 returns Z = NaNs everywhere)
+	x = [-10 -7 -5 -10]';		y = [38 40 37.5 38]';
+	x_lim = [hdrStruct.X(1) hdrStruct.X(end)];		y_lim = [hdrStruct.Y(1) hdrStruct.Y(end)];
+	mask = img_fun('roipoly_j',x_lim,y_lim,Z,x,y);
+	Z(mask) = NaN;
+	hand1.X = hdrStruct.X;		hand1.Y = hdrStruct.Y;
+	hand1.head = hdrStruct.head;
+	hFig = mirone(Z, hand1);
+	[Z2, hdrStruct2] = gen_UMF2d(1.8, 0.05, 0.95, 1024, [-10.5 -4.5 37 40.5]);
+	hdrStruct2.Z = Z2;
+	handles = guidata(hFig);
+	transplants([], 'one_sharp', true, handles, hdrStruct2)
 	
 	

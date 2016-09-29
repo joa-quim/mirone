@@ -39,20 +39,24 @@ function  varargout = nc_funs(opt,varargin)
 	end
 
 % --------------------------------------------------------------------
-function fileinfo = nc_info( ncfile )
+function fileinfo = nc_info(ncfile)
 % This function is the core function of the snctools/nc_info
 
 fileinfo.Filename = ncfile;
 
-[ncid, status] = mexnc('open', ncfile, nc_nowrite_mode );
+[ncid, status] = mexnc('open', ncfile, nc_nowrite_mode);
 if status ~= 0
+	if (status == -101)			% Damn dirty trick to avoid a situation where a file (from Ocean Color only?)
+		fileinfo.Dataset = [];	% was previously open by gdalread and something in it didn't copletely close.
+		return					% As a consequence accessing it with mecnc fails. But that's what we want anyway.
+	end							% so return right now and aux_funs(findFileType,...) will send it to gdal again.
     snc_error ( 'NC_INFO:MEXNC:OPEN', mexnc('strerror', status) );
 end
 
 [ndims, nvars, ngatts, record_dimension, status] = mexnc('INQ', ncid);
 if status ~= 0
     mexnc('close',ncid);
-    snc_error( 'NC_FUNS:NC_INFO:MEXNC:INQ', mexnc('strerror', status) );
+    snc_error('NC_FUNS:NC_INFO:MEXNC:INQ', mexnc('strerror', status));
 end
 
 % Get the dimensions
@@ -1367,11 +1371,11 @@ if ( try_to_scale && ~(isa(data,'int8') || isa(data,'uint8')) )
 	if ( did_scale )					% Dangerous case. (J. LUIS)
 		var_type = mexnc('INQ_VARTYPE',ncid,varid);
 		switch var_type
-			case nc_byte,	    if (~isa(data,'int8'))		data = int8(data);		end
-			case nc_char,	    if (~isa(data,'uint8'))		data = uint8(data);		end
-			case nc_short,	    if (~isa(data,'int16'))		data = int16(data);		end
-			case nc_int,	    if (~isa(data,'int32'))		data = int32(data);		end
-			case nc_float,	    if (~isa(data,'single'))	data = single(data);	end
+			case nc_byte,	    if (~isa(data,'int8')),     data = int8(data);		end
+			case nc_char,	    if (~isa(data,'uint8')),    data = uint8(data);		end
+			case nc_short,	    if (~isa(data,'int16')),    data = int16(data);		end
+			case nc_int,	    if (~isa(data,'int32')),    data = int32(data);		end
+			case nc_float,	    if (~isa(data,'single')),   data = single(data);	end
 		end
 	end
 end
@@ -2471,7 +2475,7 @@ function new_data = nc_addnewrecs ( ncfile, input_buffer, record_variable )
 % In case of an error, an exception is thrown.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% $Id: nc_funs.m 4778 2015-10-02 16:30:13Z j $
+% $Id: nc_funs.m 7915 2016-05-31 15:39:37Z j $
 % $LastChangedDate: 2007-04-23 09:05:21 -0400 (Mon, 23 Apr 2007) $
 % $LastChangedRevision: 2178 $
 % $LastChangedBy: johnevans007 $
@@ -2647,7 +2651,7 @@ function nc_add_recs ( ncfile, new_data, varargin )
 %   johnevans@acm.org
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% $Id: nc_funs.m 4778 2015-10-02 16:30:13Z j $
+% $Id: nc_funs.m 7915 2016-05-31 15:39:37Z j $
 % $LastChangedDate: 2007-08-31 16:30:56 -0400 (Fri, 31 Aug 2007) $
 % $LastChangedRevision: 2309 $
 % $LastChangedBy: johnevans007 $
@@ -2856,7 +2860,7 @@ function theBuffer = nc_getbuffer ( ncfile, varargin )
 %        Each such field contains the data for that variable.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% $Id: nc_funs.m 4778 2015-10-02 16:30:13Z j $
+% $Id: nc_funs.m 7915 2016-05-31 15:39:37Z j $
 % $LastChangedDate: 2007-09-03 12:07:33 -0400 (Mon, 03 Sep 2007) $
 % $LastChangedRevision: 2315 $
 % $LastChangedBy: johnevans007 $
@@ -2993,7 +2997,7 @@ function varsize = nc_varsize(ncfile, varname)
 % NCVAR in the netCDF file NCFILE.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% $Id: nc_funs.m 4778 2015-10-02 16:30:13Z j $
+% $Id: nc_funs.m 7915 2016-05-31 15:39:37Z j $
 % $LastChangedDate: 2007-09-03 12:07:33 -0400 (Mon, 03 Sep 2007) $
 % $LastChangedRevision: 2315 $
 % $LastChangedBy: johnevans007 $
@@ -3021,7 +3025,7 @@ function values = nc_getlast(ncfile, var, num_datums)
 % If NUM_DATUMS is not supplied, the default value is 1.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% $Id: nc_funs.m 4778 2015-10-02 16:30:13Z j $
+% $Id: nc_funs.m 7915 2016-05-31 15:39:37Z j $
 % $LastChangedDate: 2007-09-03 12:07:33 -0400 (Mon, 03 Sep 2007) $
 % $LastChangedRevision: 2315 $
 % $LastChangedBy: johnevans007 $
@@ -3061,12 +3065,16 @@ function snc_error (error_id, error_msg)
 % --------------------------------------------------------------------
 function snc_nargchk(low,high,N)
 % SNC_NARGCHK:  wrapper for NARGCHK, which changed functionality at R???
-	error (nargchk(low,high,N));
+	if (N < low || N > high)
+		error('Wrong number of input arguments')
+	end
 
 % --------------------------------------------------------------------
 function snc_nargoutchk(low,high,N)
 % SNC_NARGOUTCHK:  wrapper for NARGOUTCHK, which changed functionality at R???
-	error (nargoutchk(low,high,N));
+	if (N < low || N > high)
+		error('Wrong number of output arguments')
+	end
 
 % --------------------------------------------------------------------
 function check_index_vectors(start,count,stride,nvdims,ncid,varname)

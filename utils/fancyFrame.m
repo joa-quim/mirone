@@ -16,7 +16,7 @@ function fancyFrame(handles, opt)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: fancyFrame.m 3992 2013-06-27 16:18:34Z j $
+% $Id: fancyFrame.m 7921 2016-06-01 01:42:56Z j $
 
 	if (opt(1) == 'p')		% Temporary solution for printing (create a frame made of patches)
 		frame_patch(handles, opt(2:end))
@@ -88,7 +88,25 @@ function fancyFrame(handles, opt)
 			'Pos',[posAxNorm(1)+posAxNorm(3) ytFU(k) BarThickY ytFU(k+1)-ytFU(k)], 'Tag','FancyFrame');
 	end
 
-	set(handles.axes1,'TickDir','out','XTick',xtick,'YTick',ytick)
+	% Count number of decimals and force to use the same numbel for ALL labels.
+	XTickLabel = num2str(xtick(:));			% Rely on default value by num2str to decide on the number of decimals.
+	ind = strfind(XTickLabel(1,:), '.');
+	if (isempty(ind)),	n_dec = 0;
+	else				n_dec  = size(XTickLabel, 2) - ind;
+	end
+
+	XTickLabel = num2str(xtick(:), sprintf('%%.%df', n_dec));
+	
+	YTickLabel = num2str(ytick(:));
+	ind = strfind(YTickLabel(1,:), '.');
+	if (isempty(ind)),	n_dec = 0;
+	else				n_dec  = size(YTickLabel, 2) - ind;
+	end
+	YTickLabel = num2str(ytick(:), sprintf('%%.%df', n_dec));
+
+	set(handles.axes1,'TickDir','out','XTick',xtick, 'XTickLabel',XTickLabel, 'YTick',ytick, 'YTickLabel',YTickLabel)
+	setappdata(handles.axes1, 'XTickOrig', XTickLabel),		setappdata(handles.axes1, 'XTickOrigNum', xtick)
+	setappdata(handles.axes1, 'YTickOrig', YTickLabel),		setappdata(handles.axes1, 'YTickOrigNum', ytick)
 
 % -----------------------------------------------------------------------------------------
 function frame_patch(handles, opt)
@@ -102,13 +120,12 @@ function frame_patch(handles, opt)
 
 	if (strcmp(opt,'unset'))
 		hFrancyFrames = findobj(handles.axes1, '-depth',1, 'Type','patch', 'Tag', 'PatchFrame');
-		delete(hFrancyFrames)
-		return
+		delete(hFrancyFrames),		return
 	end
 
 	xLim = get(handles.axes1, 'XLim');		yLim = get(handles.axes1, 'YLim');
 	DAR = get(handles.axes1, 'DataAspectRatio');
-	bwy = 0.008*diff(yLim);			% Y border width = 1%
+	bwy = 0.009*diff(yLim);			% Y border width = 1%
 	bwx = bwy/DAR(2);				% border width (in degree of longitude)
 
 	patch([xLim(1)-bwx,xLim(2)+bwx,xLim(2)+bwx,xLim(1)-bwx],yLim(1) - bwy*[0,0,1,1],'k','FaceColor','none','clipping','off','Tag','PatchFrame')

@@ -16,7 +16,7 @@ function varargout = deform_okada(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: deform_okada.m 7757 2016-01-26 12:28:55Z j $
+% $Id: deform_okada.m 7934 2016-08-13 00:08:31Z j $
 
 	if isempty(varargin)
 		errordlg('DEFORM OKADA: Wrong number of input args','Error');    return
@@ -790,12 +790,13 @@ function push_compute_CB(hObject, handles)
 		if get(handles.radio_deformation,'Value')		% Show deformation 
 			mirone(U,head,'Deformation',handles.hCallingFig);
 		else												% Show Interferogram
-			val = get(handles.list_Interfero,'Val');
-			switch val
-				case 1,		cdo = 28.4;				% mm
-				case 2,		cdo = 28.4 / 10;		% cm
-				case 3,		cdo = 28.4 / 1000;		% meters
-			end
+			cdo = 28.4 / 1000;		% meters
+% 			val = get(handles.list_Interfero,'Val');
+% 			switch val
+% 				case 1,		cdo = 28.4;				% mm
+% 				case 2,		cdo = 28.4 / 10;		% cm
+% 				case 3,		cdo = 28.4 / 1000;		% meters
+% 			end
 			mirone(U,head,'Interfero',cdo);
 		end
 		if (~isempty(hWarn)),   figure(hWarn);      end
@@ -870,7 +871,7 @@ function radio_deformation_CB(hObject, handles)
 		set(handles.edit_sx,'String',num2str(handles.sx))
 		set(handles.edit_sy,'String',num2str(handles.sy))
 		set(handles.edit_sz,'String',num2str(handles.sz))
-		set(handles.list_Interfero,'Vis','off')
+		%set(handles.list_Interfero,'Vis','off')
 	else
 		set(hObject,'Value',1)
 	end
@@ -883,7 +884,7 @@ function radio_interfero_CB(hObject, handles)
 		set(handles.edit_sx,'String','0.333')
 		set(handles.edit_sy,'String','-0.07')
 		set(handles.edit_sz,'String','0.94')
-		set(handles.list_Interfero,'Vis','on')
+		%set(handles.list_Interfero,'Vis','on')
 	else
 		set(hObject,'Value',1)
 	end

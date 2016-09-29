@@ -1,4 +1,4 @@
-function [Z, X, Y, srsWKT, handles, att] = read_grid(handles, fullname, tipo, opt)
+function [Z, X, Y, srsWKT, handles, att, pal_file] = read_grid(handles, fullname, tipo, opt)
 % Loads grid files that may contain DEMs or other grid (not images (byte)) types
 %
 % HANDLES	-> Normally, the Mirone's handles structure but can actually be any structure with these fields:
@@ -12,6 +12,7 @@ function [Z, X, Y, srsWKT, handles, att] = read_grid(handles, fullname, tipo, op
 %			   'OVR' Used only by the overview tool together with -P option
 %			   'IN' Used to send in an internally computed grid, transmitted in OPT
 %			-> 'whatever'	Let GDAL guess what to do (it means, any string)
+%           -   And if 'GMT' and it fails to load file, a further attempt is run with GDAL 
 % OPT		-> -R<...> or -P<...> options of gdalread OR the "att" attributes structure
 %				got from att = gdalread(fname,'-M',...).
 %			-> It can also hold a structure with fields 'X','Y','Z','head' & 'name' (optional).
@@ -33,22 +34,27 @@ function [Z, X, Y, srsWKT, handles, att] = read_grid(handles, fullname, tipo, op
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: read_grid.m 4806 2015-10-09 22:30:14Z j $
+% $Id: read_grid.m 7958 2016-09-27 13:44:35Z j $
 
 	if (nargin == 3),	opt = ' ';	end
 	opt_I = ' ';	srsWKT = [];	att = [];	attVRT = [];	Z = [];		X = [];		Y = [];
+	pal_file = [];
 	if (isa(fullname, 'cell') && numel(fullname) == 2 )
 		fname = [fullname{1} fullname{2}];
 	else
 		fname = fullname;
 	end
 	if (isempty(handles))
-		if (strcmp(tipo, 'GMT')),	error('read_grid: handles cannot be empty when reading a GMT type'),	end
-		handles.ForceInsitu = false;
-		handles.grdMaxSize = 1e15;
-		% Need to know if "IamCompiled". Since that info is in Mirone handles, we need to find it out here
-		try			s.s = which('mirone');			handles.IamCompiled = false;
-		catch,		handles.IamCompiled = true;
+		if (strcmp(tipo, 'GMT'))
+			warndlg('read_grid: ''handles'' cannot be empty when reading a GMT type. Trying with GDAL.')
+			tipo = 'whatever';
+		else
+			handles.ForceInsitu = false;
+			handles.grdMaxSize = 1e15;
+			% Need to know if "IamCompiled". Since that info is in Mirone handles, we need to find it out here
+			try			s.s = which('mirone');			handles.IamCompiled = false;
+			catch,		handles.IamCompiled = true;
+			end
 		end
 	end
 	try
@@ -58,7 +64,11 @@ function [Z, X, Y, srsWKT, handles, att] = read_grid(handles, fullname, tipo, op
 
 	if (strncmp(tipo,'GMT',3))		% GMT_relatives - Reading is done by the read_gmt_type_grids function
 		[handles, X, Y, Z, head, misc] = read_gmt_type_grids(handles, fname);
-		if (isempty(X)),	return,		end
+		if (isempty(X))
+			warndlg('read_grid: Failed to read file with the ''GMT'' branch. Trying with ''GDAL''.')
+			[Z, X, Y, srsWKT, handles, att] = read_grid(handles, fullname, 'GDAL');
+			return
+		end
 		if (isfield(misc,'z_dim') && numel(misc.z_dim) == 3),	handles.nLayers = misc.z_dim(1);	end
 		if (~isempty(misc) && ~isempty(misc.srsWKT)),			srsWKT = misc.srsWKT;	end
 	elseif (strncmpi(tipo,'IN',2))
@@ -124,6 +134,18 @@ function [Z, X, Y, srsWKT, handles, att] = read_grid(handles, fullname, tipo, op
 			else
 				if (strcmp(tipo, 'ncHDF'))		% Dirty trick to make the new OC nc/HDF files work as would the old HDF4
 					att.DriverShortName = 'HDF4_fake';
+% 					try							% See if file has a palette array but play safe with this
+%					Commented because the palettes from OCs files are pure rubish
+% 						t = strfind(att.AllSubdatasets, 'palette');
+% 						for (k = 1:numel(t))
+% 							if (~isempty(t{k}))
+% 								ind = strfind(att.AllSubdatasets{k}, '=');
+% 								pal_file = double(gdalread(att.AllSubdatasets{k}(ind+1:end))');		% The M(256)x3 cmap
+% 								if (max(pal_file(:,1)) > 1),	pal_file = pal_file / 255;	end		% Probably originally a uint8
+% 								break
+% 							end
+% 						end
+% 					end
 				end
 				[head, slope, intercept, base, is_modis, is_linear, is_log, att] = empilhador('getFromMETA', att);
 				[Z, handles.have_nans, att] = empilhador('getZ', fname, att, is_modis, is_linear, is_log, slope, intercept, base);

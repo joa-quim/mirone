@@ -2,7 +2,7 @@ function out = deal_opts(opt, opt2, varargin)
 % Function to provide fine (manual) control on some Mirone modules.
 %
 % The mechanism of this function relies on the contents of the "OPTcontrol.txt" control file.
-% That file has keewords that trigger the usage of optional (specialized) features in Mirone.
+% That file has keywords that trigger the usage of optional (specialized) features in Mirone.
 %
 % OPT directs to the option of interest. It may be a cell array of options.
 % OPT2 can be a uimenu handle for cases where the OPT case needs one
@@ -25,9 +25,9 @@ function out = deal_opts(opt, opt2, varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: deal_opts.m 7836 2016-03-07 22:25:03Z j $
+% $Id: deal_opts.m 7943 2016-09-05 22:47:28Z j $
 
-	if (nargin >= 2 && ischar(opt2))
+	if (nargin > 1 && ischar(opt2))
 		if (nargout)
 			out = feval(opt2, varargin{:});
 		else
@@ -41,7 +41,7 @@ function out = deal_opts(opt, opt2, varargin)
 	out = [];
 	hCust = [];
 
-	if (~exist(opt_file, 'file') == 2),		return,		end
+	if (~exist(opt_file, 'file') == 2),		return,		end		% No OPTcontrol.txt in sight
 	fid = fopen(opt_file, 'r');
 	c = (fread(fid,'*char'))';      fclose(fid);
 	lines = strread(c,'%s','delimiter','\n');   clear c fid;
@@ -106,7 +106,7 @@ function out = deal_opts(opt, opt2, varargin)
 
 				case 'gmt_db_ids'		% To report the IDs of the GMT database polygons inside rectangle
 					if (strncmp(lines{k}(5:end),'GMT_DB_IDS',10))
-						if (isempty(hCust))	% Create a uimenu associated to a rectangle
+						if (isempty(hCust))		% Create a uimenu associated to a rectangle
 							hCust = uimenu(opt2, 'Label', 'Custom','Sep','on');
 						end
 						uimenu(hCust, 'Label', 'Show GMT db polygon IDs', 'Call', @sow_GMT_DB_IDs);

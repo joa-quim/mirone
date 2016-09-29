@@ -3,7 +3,7 @@ function tintol(handles,axis_t,X,Y,I)
 % Image registration tool. If the master image has coordinates this will work
 % as Image-to-Map rectification, otherwise it works in the Image-to-Image mode.
 
-%	Copyright (c) 2004-2015 by J. Luis
+%	Copyright (c) 2004-2016 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -31,7 +31,7 @@ function tintol(handles,axis_t,X,Y,I)
 % 	h2 = setxor(h1,handles.OpenGI);
 % 	delete(h2)
 
-% $Id: tintol.m 4715 2015-05-22 11:04:41Z j $
+% $Id: tintol.m 7964 2016-09-28 22:09:05Z j $
 
 	set(handles.figure1, 'Vis', 'off')
 
@@ -59,15 +59,15 @@ function tintol(handles,axis_t,X,Y,I)
 		handles.head = [-20 0 25 45 0 255 0 20/511 20/511];
 		mirone('FileNewBgFrame_CB',handles,[-20 0 25 45 1 0], [512 512], 'TINTOL');
 		resizetrue(handles,[512 512], 'xy', [350 550]);
-
-		handles.maregraph_xy = [];
-		handles.BatGridInMemory = 0;    % Flag to signal that bat array is already in memory
-		handles.MaregraphInMemory = 1;  % Flag to signal that the maregraphs locations are already in memory
-
 		h = tintol_buttons_LayoutFcn(handles.figure1);
 		handTintButt = local_guihandles(h);			% THIS WILL BE SEEN AS 'HANDLES' inside _CBs
 		handTintButt.nested_level = cell(10,2);
 	end
+	
+	set([handTintButt.edit_MaregraphPosFile  handTintButt.push_MaregraphPosFile], 'Enable','off')
+	set([handTintButt.edit_MaregraphDataFile handTintButt.push_MaregraphDataFile],'Enable','off')
+
+	handles.maregraph_xy = [];
 
 	handTintButt.figure1 = handles.figure1;			% Make a copy so that we can fish the main handles in _CBs
 	handTintButt.axes1 = handles.axes1;				% Simplify access to this
@@ -92,11 +92,11 @@ function tintol(handles,axis_t,X,Y,I)
 %--------------------------------------------------------------------------------
 function data = local_guidata(h, data_in)
 % A local version of guidata that uses a different key for appdata
-	fig = getParentFigure(h);
+	hFig = getParentFigure(h);
 	if (nargin == 1)
-		data = getappdata(fig, 'L_UsedByGUIData');
+		data = getappdata(hFig, 'L_UsedByGUIData');
 	else
-		setappdata(fig, 'L_UsedByGUIData', data_in);
+		setappdata(hFig, 'L_UsedByGUIData', data_in);
 	end
 
 %--------------------------------------------------------------------------------
@@ -124,13 +124,6 @@ function handles = local_guihandles(hAll)
 	end
 
 %--------------------------------------------------------------------------------
-function push_nswing_CB(hObject, handles)
-
-
-%--------------------------------------------------------------------------------
-function push_anuga_CB(hObject, handles)
-
-%--------------------------------------------------------------------------------
 function push_changeR_CB(hObject, handles)
 % Remember, this handles is NOT the Mirone handles a local one so we need
 % to fetch the old Mirone one to transmit to its function.
@@ -147,7 +140,7 @@ function edit_SourceGrid_CB(hObject, handles)
 function push_SourceGrid_CB(hObject, handles, opt)
 	if (nargin == 2)
 		str1 = {'*.grd;*.GRD', 'Grid files (*.grd,*.GRD)';'*.*', 'All Files (*.*)'};
-		[FileName,PathName,handles] = put_or_get_file(handles,str1,'Select grid','get');
+		[FileName, PathName, handles] = put_or_get_file(handles,str1,'Select grid','get');
 		if isequal(FileName,0),		return,		end
 		fname = [PathName FileName];
 		set(handles.edit_SourceGrid,'Str',fname)
@@ -389,6 +382,10 @@ function check_wantMaregs_CB(hObject, handles)
 		set([handles.edit_MaregraphPosFile handles.push_MaregraphPosFile],'Enable','off')
 		set([handles.edit_MaregraphDataFile handles.push_MaregraphDataFile],'Enable','off')
 		set([handles.edit_cumint handles.text_SveStepTime],'Enable','off')
+		% Remove this information string from the source edit box
+		if (strcmp(get(handles.edit_MaregraphPosFile, 'Str'), 'plotted/imported'))
+			set(handles.edit_MaregraphPosFile, 'Str', '')
+		end
 	end
 
 %--------------------------------------------------------------------------------
@@ -409,8 +406,14 @@ function edit_MaregraphPosFile_CB(hObject, handles)
 
 %--------------------------------------------------------------------------------
 function push_MaregraphPosFile_CB(hObject, handles, opt)
+	% Load a maregraph file and store its name
+	if (~isempty(findobj('Type','line','Tag','Maregraph')))
+		errordlg('When you have imported or ploted maregraphs you cannot select this option. For it, delete them first.')
+		return
+	end
+
 	if (nargin == 2)
-		[FileName,PathName] = put_or_get_file(handles, ...
+		[FileName,PathName, handles] = put_or_get_file(handles, ...
 			{'*.dat;*.DAT;*.xy', 'Maregraph location (*.dat,*.DAT,*.xy)';'*.*', 'All Files (*.*)'},'Select Maregraphs position','get');
 		if isequal(FileName,0),		return,		end
 		fname = [PathName FileName];
@@ -426,7 +429,13 @@ function push_MaregraphPosFile_CB(hObject, handles, opt)
 		handles.maregraph_xy = xy;
 		set(handles.edit_MaregraphPosFile,'String',fname)
 	end
-	
+
+	if (isempty(get(handles.edit_MaregraphDataFile,'Str')))		% Than fill with an automatic default name
+		[pato, fn, ext] = fileparts(fname);
+		out = [pato fn '_auto' ext];
+		set(handles.edit_MaregraphDataFile,'Str', out)
+	end
+
 	local_guidata(handles.figure1,handles)
 
 %--------------------------------------------------------------------------------
@@ -438,7 +447,7 @@ function edit_MaregraphDataFile_CB(hObject, handles)
 %--------------------------------------------------------------------------------
 function push_MaregraphDataFile_CB(hObject, handles, opt)
 	if (nargin == 2)
-		[FileName,PathName] = put_or_get_file(handles, ...
+		[FileName, PathName, handles] = put_or_get_file(handles, ...
 			{'*.dat;*.DAT;*.xy', 'Maregraph data file (*.dat,*.DAT,*.xy)';'*.*', 'All Files (*.*)'},'Select Maregraph','get');
 		if isequal(FileName,0),		return,		end
 		fname = [PathName FileName];		
@@ -468,7 +477,7 @@ function edit_jumpInitial_CB(hObject, handles)
 		return
 	end
 
-	if ( ~isempty(handles.maregraph_xy) )
+	if (~isempty(handles.maregraph_xy))
 		m = size(handles.maregraph_xy,1);
      	dt1 = diff(handles.maregraph_xy(:,1));    dt2 = diff(dt1);
 		if any(dt2 ~= 0)				% First column doesn't have the time
@@ -509,6 +518,12 @@ function edit_grn_CB(hObject, handles)
 function push_RUN_CB(hObject, handles)
 % Colect the sate of the various buttons and build the NSWING calling arguments list
 
+	% Must do this search before calling the check_error function
+	h_mareg = findobj('Type','line','Tag','Maregraph');
+	if (isempty(h_mareg)),		handles.MaregraphInMemory = false;
+	else						handles.MaregraphInMemory = true;
+	end
+
 	err_str = check_errors(handles);
 	if (~isempty(err_str))
 		errordlg(err_str, 'Error'),		return
@@ -538,14 +553,14 @@ function push_RUN_CB(hObject, handles)
 	opt_f = ' ';
 	if (handles.geog),	opt_f = '-f';	end
 
-	opt_T = ' ';
-	if (get(handles.check_wantMaregs, 'Val'))
+	opt_T = '';
+	if (get(handles.check_wantMaregs, 'Val') && ~isempty(get(handles.edit_MaregraphPosFile,'Str')))
 		opt_T = ['-T' get(handles.edit_cumint, 'Str') ',' get(handles.edit_MaregraphPosFile,'Str') ...
 			',' get(handles.edit_MaregraphDataFile,'Str')];
 	end
 
 	% See if we have plotted maregraphs
-	h_mareg = findobj('Type','line','Tag','Maregraph');
+	opt_O = ' ';	mareg_pos = [];
 	if (~isempty(h_mareg))
 		x = get(h_mareg,'XData');		y = get(h_mareg,'YData');
 		mareg_pos = [x(:) y(:)];
@@ -563,20 +578,33 @@ function push_RUN_CB(hObject, handles)
 				str, numel(x) - size(mareg_pos,1));
 			warndlg(str,'Warning')
 		end
-		if (~isempty(opt_T) && ~isempty(mareg_pos))
-			warndlg(['You have requested maregraphs from both a file and plotted/imported interactively. ' ...
-				'Ignoring those in file.'],'Warning')
-			opt_T = '';
+		if (~isempty(mareg_pos))
+			mareg_out_name = ddewhite(get(handles.edit_MaregraphDataFile,'Str'));
+			if (isempty(mareg_out_name))		% No name in the destination edit box
+				mareg_out_name = [handles.outPato 'maregs_auto.dat'];
+				set(handles.edit_MaregraphDataFile,'Str', mareg_out_name)	% But might be too late for user to change this
+			end
+			set(handles.edit_MaregraphPosFile, 'Str', 'plotted/imported')
+			set(handles.check_wantMaregs, 'val', 1)			% Simulate that user has checked this with a mouse click
+			check_wantMaregs_CB(handles.check_wantMaregs, handles)
+			set(handles.edit_MaregraphPosFile, 'Enable', 'off')
+	
+			opt_O = ['-O' get(handles.edit_cumint, 'Str') ',' mareg_out_name];
+			if (~isempty(opt_T))
+				warndlg(['You have requested maregraphs from both a file and plotted/imported interactively. ' ...
+					'Ignoring those in file.'],'Warning')
+				opt_T = '';
+			end
 		end
 	end
 
 	% Now get the nestings, if any
 	if (~isempty(handles.nested_level{2,1}))
 		nswing(handles.nested_level{1,1}, handles.nested_level{1,2}, handles.Z_src, handles.head_src, ...
-			handles.nested_level(2:end,:), h_mareg, opt_t, opt_G, opt_S, opt_M, opt_N, opt_T, opt_J, opt_f)
+			handles.nested_level(2:end,:), mareg_pos, opt_t, opt_G, opt_S, opt_M, opt_N, opt_O, opt_T, opt_J, opt_f)
 	else
 		nswing(handles.nested_level{1,1}, handles.nested_level{1,2}, handles.Z_src, handles.head_src, ...
-			h_mareg, opt_t, opt_G, opt_S, opt_M, opt_N, opt_T, opt_J, opt_f)
+			mareg_pos, opt_t, opt_G, opt_S, opt_M, opt_N, opt_O, opt_T, opt_J, opt_f)
 	end
 
 %---------------------------------------------------------------------------------------------------
@@ -609,8 +637,8 @@ function err_str = check_errors(handles)
 		return
 	end
 
-	if (get(handles.check_wantMaregs,'Value'))       % That is, requested maregraphs computation
-		if (isempty(handles.maregraph_xy) && handles.MaregraphInMemory == 0)
+	if (~handles.MaregraphInMemory && get(handles.check_wantMaregs,'Value'))       % That is, requested maregraphs computation
+		if (isempty(handles.maregraph_xy))
 			err_str = 'Where are your maregraphs? On the Moon (it''s kinda off dry there)?';
 			return
 		end
@@ -626,13 +654,11 @@ function h = tintol_buttons_LayoutFcn(h1)
 h = zeros(36);		% Change this if uis are added or removed
 n = 1;
 h(n) = uicontrol('Parent',h1, 'Position',[10 512 66 23],...
-'Call',@tintolButtons_uiCB,...
 'String','NSWING',...
 'UserData','main',...
 'Tag','push_nswing');	n = n + 1;
 
 h(n) = uicontrol('Parent',h1, 'Position',[80 512 80 23],...
-'Call',@tintolButtons_uiCB,...
 'String','ANUGA',...
 'HitTest','off',...
 'UserData','params',...
@@ -870,14 +896,14 @@ h(n) = uicontrol('Parent',h1, 'Position',[321 148 23 23],...
 
 h(n) = uicontrol('Parent',h1, 'Position',[12 179 36 16],...
 'HorizontalAlignment','right',...
-'String','In file',...
+'String','In file:',...
 'Style','text',...
 'UserData','main',...
 'Tag','text_InFile');	n = n + 1;
 
 h(n) = uicontrol('Parent',h1, 'Position',[10 152 38 16],...
 'HorizontalAlignment','right',...
-'String','Out file',...
+'String','Out file:',...
 'Style','text',...
 'UserData','main',...
 'Tag','text_OutFile');	n = n + 1;

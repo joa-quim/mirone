@@ -1,29 +1,23 @@
 function G = fill_grid_struct(Z, head)
 % Fill the Grid struct used in gmtmex
 
-% $Id: fill_grid_struct.m 4723 2015-07-20 13:28:30Z j $
+% $Id: fill_grid_struct.m 7924 2016-06-23 00:20:27Z j $
 
 	if (~isa(head, 'double')),	head = double(head);	end
-	G.ProjectionRefPROJ4 = '';
-	G.ProjectionRefWKT = '';	
+	G.projection_ref_proj4 = '';
+	G.projection_ref_wkt = '';	
 	G.hdr = head;
-	G.range = head(1:4);
+	G.range = head(1:6);
 	G.inc = head(8:9);
-	G.dim = [size(Z,1) size(Z,2)];
-	G.n_rows = G.dim(1);
-	G.n_columns = G.dim(2);
-	G.MinMax = head(5:6);
-	G.NoDataValue = NaN;
+	G.no_data_value = NaN;
 	G.registration = head(7);
 	G.title = '';
 	G.remark = '';
 	G.command = '';
-	G.DataType = 'float32';
-	G.LayerCount = 1;
-	G.x = linspace(head(1), head(2), G.n_columns);
-	G.y = linspace(head(3), head(4), G.n_rows);
+	G.datatype = 'float32';
+	G.x = linspace(head(1), head(2), size(Z,2));
+	G.y = linspace(head(3), head(4), size(Z,1));
 	G.z = Z;
-	G.x_units = '';
-	G.y_units = '';
-	G.z_units = '';	
-	
+	G.x_unit = '';
+	G.y_unit = '';
+	G.z_unit = '';	

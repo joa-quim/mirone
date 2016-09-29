@@ -79,7 +79,7 @@ function varargout = load_xyz(handles, opt, opt2)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: load_xyz.m 7884 2016-04-27 22:39:25Z j $
+% $Id: load_xyz.m 7947 2016-09-06 14:19:48Z j $
 
 %	EXAMPLE CODE OF HOW TO CREATE A TEMPLATE FOR UICTX WHEN THESE ARE TOO MANY
 % 	cmenuHand = get(h, 'UIContextMenu');
@@ -106,7 +106,6 @@ function varargout = load_xyz(handles, opt, opt2)
 	struc_vimage = [];
 	is_bin = false;				% To flag binary files
 	BB = [];					% To eventually hold a BoundingBox
-	is_GMT_DB = false;			% To flag the special cases when we are dealing with the GMT database polygons
 	do_nesting = false;			% To flag when the imported file is a 'Nesting squares'
 	do_polymesh = false;		% To flag when the imported file is a 'Nesting polygons' for unstructured grids
 	isGSHHS = false;			% To flg when we are dealing with a GSHHS polygon
@@ -158,7 +157,7 @@ function varargout = load_xyz(handles, opt, opt2)
 	% ------------------- END PARSE INPUTS------------------------------------------------
 
 	if (~got_nc)			% Most common cases
-		[bin, n_column, multi_seg, n_headers, isGSHHS] = guess_file(fname);
+		[bin, n_column, multi_seg, n_headers, isGSHHS, GSHHS_str] = guess_file(fname);
 		if (isempty(bin))
 			errordlg(['Error reading file (probably empty)' fname],'Error'),	return
 		end
@@ -324,6 +323,11 @@ function varargout = load_xyz(handles, opt, opt2)
 			if (~got_nc)			% Otherwise data was read already
 				if (isGSHHS)		% Special case of a "GSHHS Master File" that must be dealt first
 					[numeric_data, multi_segs_str] = swallow_GSHHS(handles, fname);
+					if (isempty(numeric_data))
+						warndlg('There is no GSHHG data inside this region.', 'Warning')
+						if (nargout),	varargout{1} = [];	end
+						return
+					end
 				else
 					if (multi_seg)
 						[numeric_data, multi_segs_str] = text_read(fname,NaN,n_headers,'>');
@@ -341,9 +345,9 @@ function varargout = load_xyz(handles, opt, opt2)
 			multi_segs_str = {'> Nikles '};		% Need something in it to not error below
 			orig_no_mseg = true;
 		end
-		n_isoc = 0;     n_segments = length(numeric_data);
-		hLine = zeros(n_segments,1) * NaN;			% This is the maximum we can have
-		hPat  = zeros(n_segments,1) * NaN;			% Or this
+		n_isoc  = 0;     n_segments = length(numeric_data);
+		hLine   = zeros(n_segments,1) * NaN;	% This is the maximum we can have
+		hPat    = zeros(n_segments,1) * NaN;	% Or this
 		n_clear = false(n_segments,1);
 		do_patch = false;						% Default to line object
 
@@ -515,7 +519,7 @@ function varargout = load_xyz(handles, opt, opt2)
 
 		% ------------------ Check if it is a GSHHS or WDBII file ---------------------------
 		if (isGSHHS)
-			tag = 'GMT_DBpolyline';		is_GMT_DB = true;
+			tag = 'GMT_DBpolyline';
 		end
 		% -----------------------------------------------------------------------------------
 
@@ -526,6 +530,7 @@ function varargout = load_xyz(handles, opt, opt2)
 
 		if (do_project && handles.no_file)		% If new image set the projection info
 			aux_funs('appProjectionRef', handles, projStr)
+			handles.is_projected = true; 
 		end
 
 		drawnow
@@ -575,7 +580,7 @@ function varargout = load_xyz(handles, opt, opt2)
 				if (any(abs(difes) > 1e-5))			% Assume a not closed polygon
 					[tmpx, tmpy, indx, indy] = ...	% Get rid of points that are outside the map limits
 						aux_funs('in_map_region',handles,numeric_data{i}(:,1),numeric_data{i}(:,2),tol,[xx yy]);
-				elseif (~is_GMT_DB)
+				elseif (~isGSHHS)
 					% TEMPORARY. For now if the polygon is partially inside we plot it all (no clipping)
 					[tmpx, tmpy, indx, indy] = ...
 						aux_funs('in_map_region',handles,numeric_data{i}(:,1),numeric_data{i}(:,2),-1,[xx yy]);
@@ -591,6 +596,7 @@ function varargout = load_xyz(handles, opt, opt2)
 				if (~isempty(indx) || ~isempty(indy)),	tmpz(indx) = [];	tmpz(indy) = [];	end	% If needed, clip outside map data
 			end
 
+			multi_segs_str{i} = deblank(multi_segs_str{i});
 			[lThick, cor, multi_segs_str{i}] = parseW(multi_segs_str{i}(min(2,numel(multi_segs_str{i})):end)); % First time, we can chop the '>' char
 			if (isempty(lThick)),	lThick = handles.DefLineThick;	end		% IF not provided, use default
 			if (isempty(cor)),		cor = handles.DefLineColor;		end		%           "
@@ -636,10 +642,13 @@ function varargout = load_xyz(handles, opt, opt2)
 				if (~got_arrow)
 					switch line_type
 						case {'AsLine' 'i_file'}		% 'i_file' means internal file (Isochrons or FZs)
-							hLine(i) = line('XData',tmpx,'YData',tmpy,'Parent',handles.axes1,'Linewidth',lThick,...
-									'Color',cor,'Tag',tag,'Userdata',n_isoc);
+							hLine(i) = line('XData',tmpx, 'YData',tmpy, 'Parent',handles.axes1, 'Linewidth',lThick,...
+									'Color',cor, 'Tag',tag, 'Userdata',n_isoc);
 							if ~((numel(multi_segs_str{i}) <= 2) && strfind(multi_segs_str{i}, '>')) % Sometimes we still have only '>'
 								setappdata(hLine(i),'LineInfo',multi_segs_str{i});
+								if (isGSHHS)	% Need to store this for writing edited GSHHG polygons.
+									setappdata(hLine(i),'GSHHS_str', GSHHS_str);
+								end
 							end
 							setappdata(hLine(i),'was_binary',is_bin);	% To offer option to save as binary too
 						case 'AsPoint'
@@ -1164,7 +1173,7 @@ function [numeric_data, multi_segs_str] = swallow_GSHHS(handles, fname)
 	else
 		XYlim = getappdata(handles.axes1,'ThisImageLims');
 	end
-	if (XYlim(1) < 0),	XYlim(1) = XYlim(1) + 360;	end
+	if (XYlim(1) < 0),	XYlim(1) = XYlim(1) + 360;	end		% At the Scripts GMT Sumit this failed but I'm not able to reproduce
 	if (XYlim(2) < 0),	XYlim(2) = XYlim(2) + 360;	end
 	[bin,n_column,multi_seg,n_headers] = guess_file(fname);		% Repeated op but never mind, it's a fast one
 	[hdrs, ind] = txt2mat(fname, 'NumHeaderLines',n_headers,'Format','%s','GoodLineString',{'>'},'ReadMode','cell');
