@@ -405,14 +405,14 @@ int main(int argc, char **argv) {
 	int     out_maregs_velocity = FALSE;
 	int     KbGridCols = 1, KbGridRows = 1; /* Number of rows & columns IF computing a grid of 'Kabas' */
 	int     cntKabas = 0;                /* Counter of the number of Kabas (prisms) already processed */
-	int     n_mareg, n_ptmar, n_oranges;
+	int     n_mareg, n_ptmar, n_oranges, pos_prhs;
 	unsigned int *lcum_p = NULL, lcum = 0, ij, nx, ny;
 	unsigned int i_start, j_start, i_end, j_end, count_maregs_timeout = 0, count_time_maregs_timeout = 0;
 	size_t	start0 = 0, count0 = 1, len, start1_A[2] = {0,0}, count1_A[2];
 	size_t  start1_M[3] = {0,0,0}, count1_M[3], start_Mar[3] = {0,0,0}, count_Mar[2];
 	char   *bathy   = NULL;              /* Name pointer for bathymetry file */
-	char   	hcum[256]   = "";            /* Name for cumulative hight file */
-	char    maregs[256] = "";            /* Name for maregraph positions file */
+	char   	hcum[256]   = "";            /* Name of the cumulative hight file */
+	char    maregs[256] = "";            /* Name of the maregraph positions file */
 	char  **mareg_names = NULL;          /* Array to hold optional maregraph names */
 	char   *fname_sww = NULL;            /* Name pointer for Anuga's .sww file */
 	char   *basename_most = NULL;        /* Name pointer for basename of MOST .nc files */
@@ -549,10 +549,17 @@ int main(int argc, char **argv) {
 		do_nestum = TRUE;
 	}
 
-	if (n_arg_no_char == 6 && !mxIsEmpty(prhs[5])) {	/* Allow (and ignore) an empty vector of maregraphs */
+	/* See if we have a vector of maregraphs */
+	pos_prhs = 0;
+	if (n_arg_no_char == 5 && !mxIsEmpty(prhs[4]))
+		pos_prhs = 4;
+	else if (n_arg_no_char == 6 && !mxIsEmpty(prhs[5])) 
+		pos_prhs = 5;
+
+	if (pos_prhs) {
 		double x_min, x_max, y_min, y_max;
-		tmp = mxGetPr(prhs[5]);
-		n_mareg = mxGetM(prhs[5]);
+		tmp = mxGetPr(prhs[pos_prhs]);
+		n_mareg = mxGetM(prhs[pos_prhs]);
 		if (do_nestum) {
 			dx = nest.hdr[num_of_nestGrids].x_inc;      dy = nest.hdr[num_of_nestGrids].y_inc;
 			x_min = nest.hdr[num_of_nestGrids].x_min;   x_max = nest.hdr[num_of_nestGrids].x_max;
@@ -742,7 +749,7 @@ int main(int argc, char **argv) {
 							strcat(fname3D, ".nc");		/* If no 2 or 3 letters extension, add .nc */
 					}
 					break;
-				case 'H':		/* Hot start stuff */
+				case 'H':	/* Hot start stuff */
 					if (!argv[i][2])					/* Output momentum grids */
 						out_momentum = TRUE;
 					else if (argv[i][2] == 's' && argv[i][3] == ',')	/* NOT YET. Maybe it will be -Hs,time_to_stop */
@@ -765,7 +772,7 @@ int main(int argc, char **argv) {
 						}
 					}
 					break;
-				case 'J':		/* Jumping options. Accept either -Jn, -J+m, -Jn+m or -Jn -J+m */
+				case 'J':	/* Jumping options. Accept either -Jn, -J+m, -Jn+m or -Jn -J+m */
 					sscanf(&argv[i][2], "%s", str_tmp);
 					if ((pch = strstr(str_tmp,"+")) != NULL) {
 						sscanf((++pch), "%lf", &nest.run_jump_time);
@@ -776,7 +783,7 @@ int main(int argc, char **argv) {
 						sscanf(&argv[i][2], "%lf", &time_jump);
 
 					break;
-				case 'L':		/* Use linear approximation or Lagrangean tracers*/
+				case 'L':	/* Use linear approximation or Lagrangean tracers*/
 					if (!argv[i][2])
 						nest.do_linear = TRUE;
 					else {
@@ -799,7 +806,7 @@ int main(int argc, char **argv) {
 						out_velocity_x = out_velocity_y = TRUE;
 					}
 					break;
-				case 'M':			/* Max/min options */
+				case 'M':	/* Max/min options */
 					if (argv[i][2] == '-') {	/* Compute a mask with ones over the "dried beach" */
 						nest.do_long_beach = TRUE;
 						if (argv[i][3])
@@ -820,7 +827,7 @@ int main(int argc, char **argv) {
 				case 'N':	/* Number of cycles to compute */
 					n_of_cycles = atoi(&argv[i][2]);
 					break;
-				case 'O':	/* Time interval and fname for maregraph data. Use only when mareg locations were sent in as arg */
+				case 'O':	/* Time interval and fname for maregraph data. Use only when mareg locations were sent in as arg (MEX) */
 					sscanf(&argv[i][2], "%s", str_tmp);
 					if ((pch = strstr(str_tmp,",")) != NULL) {
 						pch[0] = '\0';
@@ -1723,18 +1730,22 @@ LoopKabas:		/* When computing a grid of Kabas we use a GOTO to simulate a loop. 
 			else {
 				if (k == 0) {		/* Write also the maregraphs coordinates (at grid nodes) */
 					int ix, iy, n;
-					char *txt[4], t0[16], t1[16], t2[16], t3[16], *txt_X, *txt_Y;	/* for the headers */
+					char *txt[4], t0[16], t1[16], t2[16], t3[16], *txt_X, *txt_Y, fmt[8];	/* for the headers */
 					txt[0] = mxCalloc((size_t)n_mareg, 16); txt[1] = mxCalloc((size_t)n_mareg, 16);
 					txt[2] = mxCalloc((size_t)n_mareg, 16); txt[3] = mxCalloc((size_t)n_mareg, 16);
 					txt_X  = mxCalloc((size_t)(n_mareg*10+4), 1);	txt_Y = mxCalloc((size_t)(n_mareg*10+4), 1);
 					sprintf(txt[0], "#\t"); sprintf(txt[1], "#\t"); sprintf(txt[2], "#\t"); sprintf(txt[3], "#\t");
-					sprintf(txt_X, "# X\t");	sprintf(txt_X, "# Y\t");
+					sprintf(txt_X, "# X\t");	sprintf(txt_Y, "# Y\t");
+					if (isGeog)
+						strcpy(fmt, "\t%.5f");
+					else
+						strcpy(fmt, "\t%.2f");
 					for (n = 0; n < n_mareg; n++) {
 						ix = lcum_p[n] % nest.hdr[writeLevel].nx;
 						iy = lcum_p[n] / nest.hdr[writeLevel].nx;
 						sprintf(t0, "%8s",  mareg_names[n]);
-						sprintf(t1, "\t%g", nest.hdr[writeLevel].x_min + ix * nest.hdr[writeLevel].x_inc);	/* Xs */
-						sprintf(t2, "\t%g", nest.hdr[writeLevel].y_min + iy * nest.hdr[writeLevel].y_inc);	/* Ys */
+						sprintf(t1, fmt, nest.hdr[writeLevel].x_min + ix * nest.hdr[writeLevel].x_inc);	/* Xs */
+						sprintf(t2, fmt, nest.hdr[writeLevel].y_min + iy * nest.hdr[writeLevel].y_inc);	/* Ys */
 						sprintf(t3, "\t%.1f", nest.bat[writeLevel][lcum_p[n]]); 	/* Zs (from grid) */
 						strcat(txt[0], t0);		strcat(txt[1], t1);		strcat(txt[2], t2);		strcat(txt[3], t3);
 						strcat(txt_X, t1);		strcat(txt_Y, t2);
