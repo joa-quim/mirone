@@ -12,12 +12,12 @@ function magnify(hAx)
 
 % Coffeeright J. Luis 2004-2016
 
-% $Id: magnify.m 7895 2016-05-14 21:02:30Z j $
+% $Id: magnify.m 7899 2016-05-17 21:35:10Z j $
 
 	if (nargin == 0), hAx = gca; end
 	oldFigureUIState = uisuspend_j(get(hAx, 'parent'), true);
 	setappdata(hAx, 'Magnify_UIState', oldFigureUIState)
-	
+
 	hFig = get(hAx, 'parent');
 	set(get(hAx, 'parent'), 'WindowButtonDownFcn', {@wbd_magnifyCB, hAx}, ...
 		'WindowButtonMotionFcn', {@wbm_magnifyCB, hAx}, 'KeyPressFcn', {@KeyPress_magnifyCB, hAx});
