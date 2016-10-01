@@ -48,7 +48,7 @@ MIR_MAGPROF ISOC 10.33_1.4_15
 #MIR_OD C:\SVN\mironeWC\continents\out_displacement.dat
 
 # File with case selection and the EXACT arguments to run one of the main functions in aquaPlugin
-MIR_AQUAPLUG C:\SVN\mironeWC\data\example_data\aquaplug_CASE10_sc.txt 
+#MIR_AQUAPLUG C:\SVN\mironeWC\data\example_data\aquaplug_CASE10_sc.txt 
 
 # Activate the option to display the GMT database polygons ID inside a ROI rectangle
 MIR_GMT_DB_IDS
