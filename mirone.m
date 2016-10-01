@@ -20,7 +20,7 @@ function varargout = mirone(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: mirone.m 7962 2016-09-27 13:55:41Z j $
+% $Id: mirone.m 7969 2016-10-01 00:13:00Z j $
 
 	if (nargin > 1 && ischar(varargin{1}))
 		if ( ~isempty(strfind(varargin{1},':')) || ~isempty(strfind(varargin{1},filesep)) )
@@ -4601,7 +4601,7 @@ function ImageEdgeDetect_CB(handles, opt)
 %		-> 'SUS'
 	if (handles.no_file),		return,		end
 
-	mask = false;		% So far, only used in 'apalpa'
+	do_mask = false;		% So far, only used in 'apalpa'
 	img = get(handles.hImg,'CData');		% Even when not used, this op cost nothing
 	dims = [size(img,1) size(img,2)];
 	set(handles.figure1,'pointer','watch')
@@ -4633,6 +4633,7 @@ function ImageEdgeDetect_CB(handles, opt)
 		[X,Y,Z] = load_grd(handles);
 		if isempty(Z),		return,		end
 		mask = isnan(Z);
+		do_mask = true;
 		B = img_fun('bwboundaries',mask, 8, 'holes');
 		%B = bwbound_unique(B);
 		dims = [size(Z,1) size(Z,2)];
@@ -4687,7 +4688,7 @@ function ImageEdgeDetect_CB(handles, opt)
 		h_edge = zeros(length(B),1);	i = 1;
 		for k = 1:length(B)
 			bnd = B{k};
-			if (mask && strcmp(opt,'Vec') && mask(bnd(1,1),bnd(1,2)) && ...	% Drastic but no better solution to avoid NaNs-in-corners cases
+			if (do_mask && strcmp(opt,'Vec') && mask(bnd(1,1),bnd(1,2)) && ...	% Drastic but no better solution to avoid NaNs-in-corners cases
 					(min(bnd(:,1)) == 1 || max(bnd(:,1)) == dims(2) || min(bnd(:,1)) == 1 || max(bnd(:,1)) == dims(1)) )
 				continue
 			end
