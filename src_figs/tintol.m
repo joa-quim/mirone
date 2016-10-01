@@ -67,6 +67,13 @@ function tintol(handles,axis_t,X,Y,I)
 	set([handTintButt.edit_MaregraphPosFile  handTintButt.push_MaregraphPosFile], 'Enable','off')
 	set([handTintButt.edit_MaregraphDataFile handTintButt.push_MaregraphDataFile],'Enable','off')
 
+	% Import icons
+	load([handles.path_data 'mirone_icons.mat'],'Mfopen_ico');
+	set(handTintButt.push_MaregraphPosFile, 'CData',Mfopen_ico)
+	set(handTintButt.push_MaregraphDataFile,'CData',Mfopen_ico)
+	set(handTintButt.push_SourceGrid,'CData',Mfopen_ico)
+	set(handTintButt.push_NestGrids, 'CData',Mfopen_ico)
+
 	handles.maregraph_xy = [];
 
 	handTintButt.figure1 = handles.figure1;			% Make a copy so that we can fish the main handles in _CBs
@@ -563,6 +570,9 @@ function push_RUN_CB(hObject, handles)
 	opt_O = ' ';	mareg_pos = [];
 	if (~isempty(h_mareg))
 		x = get(h_mareg,'XData');		y = get(h_mareg,'YData');
+		if (isa(x, 'cell'))				% Wen more than one
+			x = cell2mat(x);			y = cell2mat(y);
+		end
 		mareg_pos = [x(:) y(:)];
 		ind = ( x < handles.nested_level{handles.last_nested_level,2}(1) | ... 
 				x > handles.nested_level{handles.last_nested_level,2}(2) | ...
@@ -631,8 +641,8 @@ function err_str = check_errors(handles)
 	end
 
 	% Cheeck that at lest one operation was selected
-	if ( ~(get(handles.check_wantMaregs,'Val') || get(handles.radio_outGrids,'Val') || ...
-			get(handles.radio_anuga,'Val') || get(handles.radio_most,'Val')) )
+	if (~(get(handles.check_wantMaregs,'Val') || get(handles.radio_outGrids,'Val') || ...
+	      get(handles.radio_anuga,'Val') || get(handles.radio_most,'Val')) && ~handles.MaregraphInMemory)
 		err_str = 'Compute what? You need to select at least one thing to do';
 		return
 	end
