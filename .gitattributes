@@ -1,6 +1,7 @@
 * text=auto !eol
 /INSTALL.OSX -text
 /chrpath.sc -text
+/compa.m -text
 continents/AUS_ABS_hybrid.stg -text
 continents/AUS_torsvik.stg -text
 continents/EANT_ABS_hybrid.stg -text
@@ -102,6 +103,7 @@ data/ellipsoids_example.txt -text
 data/etopo2.jpg -text
 data/etopo4.jpg -text
 data/etopo4_logo.jpg -text
+data/example_data/AQUA_0101.tle -text
 data/example_data/aquaplug_CASE2_sc.txt -text
 data/example_data/aquaplug_CASE4_sc.txt -text
 data/example_data/aquaplug_CASE5_sc.txt -text
@@ -222,6 +224,7 @@ data/wcity_major.dat -text
 doc/MironeMan.chm -text
 /faz2.bat -text
 gmt_share/VERSION_all -text
+gmt_share/VERSION_all.txt -text
 gmt_share/conf/gmt.conf -text
 gmt_share/localization/gmt_us.locale -text
 gmt_share/postscriptlight/PSL_ISOLatin1+.ps -text
@@ -244,6 +247,10 @@ gmt_userdir/ISO-8859-8.ps -text
 gmt_userdir/ISO-8859-9.ps -text
 gmt_userdir/ISOLatin1+.ps -text
 gmt_userdir/ISOLatin1.ps -text
+gmt_userdir/PSL_ISOLatin1+.ps -text
+gmt_userdir/PSL_ISOLatin1.ps -text
+gmt_userdir/PSL_Standard+.ps -text
+gmt_userdir/PSL_Standard.ps -text
 gmt_userdir/PSL_label.ps -text
 gmt_userdir/PSL_prologue.ps -text
 gmt_userdir/PSL_text.ps -text
@@ -360,6 +367,7 @@ mex/nearneighbor_m.c -text
 mex/nswing.c eol=lf
 mex/ogrproj.cpp -text
 mex/ogrread.c -text
+mex/popenr.c -text
 mex/range_change.c -text
 mex/read_isf.c -text
 mex/scaleto8.c -text
@@ -408,6 +416,7 @@ src_figs/bands_list.m -text
 src_figs/bg_map.m -text
 src_figs/bg_region.m -text
 src_figs/cartas_militares.m -text
+src_figs/cayula_cornillon.m -text
 src_figs/choosebox.m -text
 src_figs/classificationfig.m -text
 src_figs/color_palettes.m -text
@@ -482,6 +491,7 @@ src_figs/read_las.m -text
 src_figs/roi_image_operations.m -text
 src_figs/rotatetool.m -text
 src_figs/run_cmd.m -text
+src_figs/sat_orbits.m -text
 src_figs/scatter_plot.m -text
 src_figs/select_cols.m -text
 src_figs/shading_params.m -text
@@ -502,7 +512,9 @@ src_figs/time_stamp.m -text
 src_figs/tintol.m -text
 src_figs/travel.m -text
 src_figs/tsunamovie.m -text
+src_figs/uisetdate.m -text
 src_figs/umDmovie.m -text
+src_figs/update_gmt.m -text
 src_figs/usgs_recent_seismicity.m -text
 src_figs/vector_project.m -text
 src_figs/view_anuga.m -text
@@ -613,6 +625,7 @@ utils/ivan_the_terrible.m -text
 utils/jd2date.m -text
 utils/load_grd.m -text
 utils/load_xyz.m -text
+utils/magnify.m -text
 utils/make_arrow.m -text
 utils/makescale.m -text
 utils/map_funs.p -text
@@ -632,6 +645,7 @@ utils/nc_funs.m -text
 utils/nc_io.m -text
 utils/nesting_sizes.m -text
 utils/new_frame3D.m -text
+utils/orbits.m -text
 utils/pan.p -text
 utils/patch_meca.m -text
 utils/pixval_stsbar.m -text
@@ -658,6 +672,7 @@ utils/setAxesDefCoordIn.m -text
 utils/shading_mat.m -text
 utils/shapenc.m -text
 utils/smooth_roipoly_edge.m -text
+utils/solar_params.m -text
 utils/spl_fun.p -text
 utils/spline_interp.m -text
 utils/string_token.m -text

@@ -2763,7 +2763,7 @@ function save_GMT_DB_asc(h, fname)
 		if (isempty(getappdata(h(k), 'edited'))),	continue,	end		% Skip because it was not modified
 		GSHHS_str = getappdata(h(k),'GSHHS_str');
 		if (k == 1 && ~isempty(GSHHS_str))		% Write back the magic string that allows us to recognize these type of files
-			fprintf(fid,'# $Id: draw_funs.m 7961 2016-09-27 13:52:35Z j $\n#\n%s\n#\n', GSHHS_str);
+			fprintf(fid,'# $Id$\n#\n%s\n#\n', GSHHS_str);
 		end
 		hdr = getappdata(h(k), 'LineInfo');
 		x = get(h(k), 'XData');			y = get(h(k), 'YData');

@@ -165,7 +165,7 @@ function stg2plate(handles,h_plate,str_stgs,n_pole,opt)
 % N_POLE   -> position on the STR_STGS cell of the plate's default stage poles
 % OPT      -> If == 1, Just initialize the uimenus, but do not associate a pole to the plate
 
-	if (nargin == 4)    opt = 0;   end
+	if (nargin == 4),	opt = 0;   end
 
 	cmenuHand = uicontextmenu('Parent',handles.figure1);
 	set(h_plate, 'UIContextMenu', cmenuHand);
@@ -189,7 +189,7 @@ function stg2plate(handles,h_plate,str_stgs,n_pole,opt)
 
 	% Set the delete uicontext
 	tag = get(h_plate,'Tag');
-	if (iscell(tag))    tag = tag{1};   end
+	if (iscell(tag)),	tag = tag{1};   end
 	uimenu(cmenuHand,'Label',['Delete this ' tag ' element'],'Tag','DeleteSingle','Sep','on',...
 		'Call',{@delete_element,h_plate,0});
 	uimenu(cmenuHand,'Label',['Delete all ' tag ' family'],'Tag','DeleteAll','Call',{@delete_element,h_plate,1});
@@ -213,7 +213,7 @@ function set_stg(obj,eventdata,patchHand,poles_file,opt)
 
 	handles = guidata(obj);
 	this_body_tag = get(patchHand,'Tag');
-	if (iscell(this_body_tag))		this_body_tag = this_body_tag{1};	end
+	if (iscell(this_body_tag)),		this_body_tag = this_body_tag{1};	end
 	h = findobj(handles.figure1,'Tag',this_body_tag);
 	patchHand = h;
 
@@ -236,137 +236,137 @@ function set_stg(obj,eventdata,patchHand,poles_file,opt)
 % -----------------------------------------------------------------------------------------
 function freeze_plate(obj,eventdata,patchHand)
 % 
-pole_file = get(patchHand,'UserData');
-if (isequal(pole_file,0))               % This plate has currently no associated poles
-    try                                 % See if we have a backup
-        pole_file = getappdata(patchHand,'BackupPoles');
-    catch                               % No, we do not. So there is nothing to freeze
-        return
-    end
-else
-    for (k=1:length(patchHand))
-        setappdata(patchHand(k),'BackupPoles',pole_file)
-    end
-end
+	pole_file = get(patchHand,'UserData');
+	if (isequal(pole_file,0))               % This plate has currently no associated poles
+		try                                 % See if we have a backup
+			pole_file = getappdata(patchHand,'BackupPoles');
+		catch                               % No, we do not. So there is nothing to freeze
+			return
+		end
+	else
+		for (k=1:length(patchHand))
+			setappdata(patchHand(k),'BackupPoles',pole_file)
+		end
+	end
 
-if (iscell(pole_file))      pole_file = pole_file{1};   end
+	if (iscell(pole_file)),		pole_file = pole_file{1};   end
 
-if (strcmp(get(obj,'Checked'),'on'))
-    set(obj,'Checked','off')
-    %set(patchHand,'UserData',pole_file);% Note that, in this case, pole_file was retrieved from appdata
-else
-    set(obj,'Checked','on')
-    pole_file = 0;        % This is what realy freezes the plate
-end
+	if (strcmp(get(obj,'Checked'),'on'))
+		set(obj,'Checked','off')
+		%set(patchHand,'UserData',pole_file);% Note that, in this case, pole_file was retrieved from appdata
+	else
+		set(obj,'Checked','on')
+		pole_file = 0;        % This is what realy freezes the plate
+	end
 
-for (k=1:length(patchHand))
-    set(patchHand(k),'UserData',pole_file)
-end
+	for (k=1:length(patchHand))
+		set(patchHand(k),'UserData',pole_file)
+	end
 
 % -----------------------------------------------------------------------------------------
 function delete_element(obj,eventdata,h_element,mode)
 % MODE = 0 Delete only the selected family element
 % MODE = 1 Delete all family elements
 
-handles = guidata(obj);
-h_current = gco;
+	handles = guidata(obj);
+	h_current = gco;
 
-% The killing is easy, but we have also to clean all traces of the victim
-tag = get(h_current,'Tag');
-if (iscell(tag))    tag = tag{1};   end
+	% The killing is easy, but we have also to clean all traces of the victim
+	tag = get(h_current,'Tag');
+	if (iscell(tag)),	tag = tag{1};   end
 
-% Again as above, problems arrive when a new element was added lately (relatively to time of the
-% 'h_element' creation). In this case the "old" h_element vector was not updated. That is
-% why we going to fish all handles that share the same 'Tag' as the one of old h_element
-h = findobj(handles.figure1,'Tag',tag,'Visible','on');
-h_element = sort(h);
-h_element = h_element(:)';		% Make sure it is a sorted row vector
+	% Again as above, problems arrive when a new element was added lately (relatively to time of the
+	% 'h_element' creation). In this case the "old" h_element vector was not updated. That is
+	% why we going to fish all handles that share the same 'Tag' as the one of old h_element
+	h = findobj(handles.figure1,'Tag',tag,'Visible','on');
+	h_element = sort(h);
+	h_element = h_element(:)';		% Make sure it is a sorted row vector
 
-n_pos = 0;
-for (k = 1:numel(handles.plates))
-    if (isequal(h_element,handles.plates{k}))
-        n_pos = k;  % OK, we found the position on the variable list
-        break
-    end
-end
+	n_pos = 0;
+	for (k = 1:numel(handles.plates))
+		if (isequal(h_element,handles.plates{k}))
+			n_pos = k;  % OK, we found the position on the variable list
+			break
+		end
+	end
 
-if (n_pos == 0)     % Souldn't occur. Semething wrong happened before
-    warndlg('Sorry, due to a previous unknown error I cannot delete the element(s)','Warning')
-    return
-end
+	if (n_pos == 0)     % Souldn't occur. Semething wrong happened before
+		warndlg('Sorry, due to a previous unknown error I cannot delete the element(s)','Warning')
+		return
+	end
 
-id = strmatch(tag,handles.def_tags);
+	id = strmatch(tag,handles.def_tags);
 
-if (mode)           % Delete all family
-    handles.plates(n_pos) = [];
-    handles.plates_bak(n_pos) = [];
-    handles.def_tags(id) = [];
-    handles.plates_color(id,:) = [];
-    delete(h_element);
-else                % Delete the element. But, and if it is the only one in the family?
-    for (k=1:length(handles.plates{n_pos}))
-        if (isequal(h_current,handles.plates{n_pos}(k)))
-            handles.plates{n_pos}(k) = [];
-            handles.plates_bak{n_pos}(k) = [];
-            delete(h_current);
-            break
-        end
-    end
-    % We still have to check if it was the only one in the family.
-    % The stupid thing is that I found no way of searching for an empty cell other than this
-    for (l=1:numel(handles.plates))
-        if (isempty(handles.plates{l}))     % It was
-            handles.plates(l) = [];
-            handles.plates_bak(l) = [];
-            handles.def_tags(id) = [];
-            handles.plates_color(id,:) = [];
-            break
-        end
-    end
-end
+	if (mode)           % Delete all family
+		handles.plates(n_pos) = [];
+		handles.plates_bak(n_pos) = [];
+		handles.def_tags(id) = [];
+		handles.plates_color(id,:) = [];
+		delete(h_element);
+	else                % Delete the element. But, and if it is the only one in the family?
+		for (k=1:length(handles.plates{n_pos}))
+			if (isequal(h_current,handles.plates{n_pos}(k)))
+				handles.plates{n_pos}(k) = [];
+				handles.plates_bak{n_pos}(k) = [];
+				delete(h_current);
+				break
+			end
+		end
+		% We still have to check if it was the only one in the family.
+		% The stupid thing is that I found no way of searching for an empty cell other than this
+		for (l=1:numel(handles.plates))
+			if (isempty(handles.plates{l}))     % It was
+				handles.plates(l) = [];
+				handles.plates_bak(l) = [];
+				handles.def_tags(id) = [];
+				handles.plates_color(id,:) = [];
+				break
+			end
+		end
+	end
  
-guidata(handles.figure1,handles)
+	guidata(handles.figure1,handles)
 
 % -----------------------------------------------------------------------------------------
 function newColors_clickedcallback(obj,eventdata)
 % Randomly change colors of all families
 
-handles = guidata(obj);
-for (k=1:length(handles.plates))
-    tag = get(handles.plates{k},'Tag');
-    if (iscell(tag))    tag = tag{1};   end
-    h_patch = findobj(handles.figure1,'Tag',tag,'Type','patch','Visible','on');
-    h_line = findobj(handles.figure1,'Tag',tag,'Type','line','Visible','on');
-    c = rand(1,3);
-    if (~isempty(h_patch))
-        set(h_patch,'FaceColor',c);
-    end
-    if (~isempty(h_line))
-        set(h_line,'Color',c);
-    end
-    handles.plates_color(k,1:3) = c;    % Update the color list
-end
-refresh;
+	handles = guidata(obj);
+	for (k=1:length(handles.plates))
+		tag = get(handles.plates{k},'Tag');
+		if (iscell(tag)),	tag = tag{1};   end
+		h_patch = findobj(handles.figure1,'Tag',tag,'Type','patch','Visible','on');
+		h_line = findobj(handles.figure1,'Tag',tag,'Type','line','Visible','on');
+		c = rand(1,3);
+		if (~isempty(h_patch))
+			set(h_patch,'FaceColor',c);
+		end
+		if (~isempty(h_line))
+			set(h_line,'Color',c);
+		end
+		handles.plates_color(k,1:3) = c;    % Update the color list
+	end
+	refresh;
 
 % -----------------------------------------------------------------------------------------
 function change_color(obj,eventdata)
 % Change the color of all family
-handles = guidata(obj);
-tag = get(gco,'Tag');
-if (iscell(tag))    tag = tag{1};   end
-h_patch = findobj(handles.figure1,'Tag',tag,'Type','patch','Visible','on');
-h_line = findobj(handles.figure1,'Tag',tag,'Type','line','Visible','on');
+	handles = guidata(obj);
+	tag = get(gco,'Tag');
+	if (iscell(tag)),	tag = tag{1};   end
+	h_patch = findobj(handles.figure1,'Tag',tag,'Type','patch','Visible','on');
+	h_line = findobj(handles.figure1,'Tag',tag,'Type','line','Visible','on');
 
-c = uisetcolor;
-if length(c) > 1            % That is, if a color was selected
-    if (~isempty(h_patch))
-        set(h_patch,'FaceColor',c,'EdgeColor',[0 0 0]);
-    end
-    if (~isempty(h_line))
-        set(h_line,'Color',c);
-    end
-    refresh;
-end
+	c = uisetcolor;
+	if length(c) > 1            % That is, if a color was selected
+		if (~isempty(h_patch))
+			set(h_patch,'FaceColor',c,'EdgeColor',[0 0 0]);
+		end
+		if (~isempty(h_line))
+			set(h_line,'Color',c);
+		end
+		refresh;
+	end
 
 % -----------------------------------------------------------------------------------------
 function [h_plate,out_tag] = read_plate_bodies(handles,plate_body,c_map,opt1,opt2,opt3)
@@ -420,34 +420,34 @@ function [poles,p_name] = read_stgs(poles_file)
 % it is assumed that 'Name' is the moving plate's name and the value will
 % be stored in P_NAME. Though I do not use it yet, I have some ideas for future uses
 
-fid = fopen(poles_file,'r');
-c = fread(fid,'*char').';
-fclose(fid);
-s=strread(c,'%s','delimiter','\n');
-ix = strmatch('#',s);
+	fid = fopen(poles_file,'r');
+	c = fread(fid,'*char').';
+	fclose(fid);
+	s=strread(c,'%s','delimiter','\n');
+	ix = strmatch('#',s);
 
-hdr = s(ix);
-n_hdr = length(hdr);
-n_stgs = length(s)-n_hdr;
-poles = zeros(n_stgs,5);
-try
-	for i=1:n_stgs
-         tmp = sscanf(s{i+n_hdr}','%f',5);
-         poles(i,1:5) = tmp';
+	hdr = s(ix);
+	n_hdr = length(hdr);
+	n_stgs = length(s)-n_hdr;
+	poles = zeros(n_stgs,5);
+	try
+		for i=1:n_stgs
+			 tmp = sscanf(s{i+n_hdr}','%f',5);
+			 poles(i,1:5) = tmp';
+		end
+	catch
+		errordlg(['The file ' poles_file 'is not a properly formated Stage poles file.'],'Error');
+		poles = [];     p_name = '';
+		return
 	end
-catch
-    errordlg(['The file ' poles_file 'is not a properly formated Stage poles file.'],'Error');
-    poles = [];     p_name = '';
-    return
-end
 
-p_name = '';
-if (~isempty(ix))           % There are header lines in the file
-    [t,r]=strtok(hdr{1}(2:end));
-    if (isempty(r))         % Only one word. We interpret this as the plate's name
-        p_name = t;
-    end
-end
+	p_name = '';
+	if (~isempty(ix))           % There are header lines in the file
+		[t,r]=strtok(hdr{1}(2:end));
+		if (isempty(r))         % Only one word. We interpret this as the plate's name
+			p_name = t;
+		end
+	end
 
 % --------------------------------------------------------------------------------------------------
 function zoom_clickedcallback(obj,eventdata)
@@ -460,85 +460,85 @@ function zoom_clickedcallback(obj,eventdata)
 % --------------------------------------------------------------------
 function animate_clickedcallback(obj, eventdata)
 % Animate
-handles = guidata(obj);
-do_proj = get(handles.radio_projOrtho,'Val');		% Are we working with projected coords?
-orig = [get(handles.slider_projOrigLat,'Val') get(handles.slider_projOrigLon,'Val') ...
-        get(handles.slider_projOrigPitch,'Val')];	% In case we are, we will need this
-opt_L = ['-L' get(handles.edit_ageStart,'String') '/' get(handles.edit_ageStop,'String') ...
-        '/' get(handles.edit_ageStep,'String')];
-n_flow = [];
+	handles = guidata(obj);
+	do_proj = get(handles.radio_projOrtho,'Val');		% Are we working with projected coords?
+	orig = [get(handles.slider_projOrigLat,'Val') get(handles.slider_projOrigLon,'Val') ...
+			get(handles.slider_projOrigPitch,'Val')];	% In case we are, we will need this
+	opt_L = ['-L' get(handles.edit_ageStart,'String') '/' get(handles.edit_ageStop,'String') ...
+			'/' get(handles.edit_ageStep,'String')];
+	n_flow = [];
 
-nPlates = numel(handles.plates);
-out = cell(1, nPlates);		n_data = zeros(1, nPlates);		n_seg = zeros(1, nPlates);
+	nPlates = numel(handles.plates);
+	out = cell(1, nPlates);		n_data = zeros(1, nPlates);		n_seg = zeros(1, nPlates);
 
-for (k = 1:nPlates)					% Loop over number of plates with associated poles
-    pole_file = get(handles.plates{k},'UserData');
-    if (isequal(pole_file,0))				% This plate has no associated poles
-        continue
-    end
-    x = get(handles.plates_bak{k},'XData');
-    y = get(handles.plates_bak{k},'YData');
-    if (iscell(pole_file))					% This occurs with plates made of more than one element
-        pole_file = pole_file{1};			% In this case, they are all equal
-        if (isequal(pole_file,0))	continue,	end
-        nseg = length(x);
-        xx = [];    yy = [];
-        for (l = 1:nseg)					% Loop over number of segments of this active plate
-            xx = [xx; NaN; x{l}];
-            yy = [yy; NaN; y{l}];
-        end
-        x = xx;     y = yy;     clear xx yy;
-    end
-    opt_E = ['-E' pole_file];
-    [out{k},n_data(k),n_seg(k),n_flow] = telha_m([x y], opt_E, opt_L);
-
-    if (do_proj)							% Project coords
-        [x,y] = orthographic(out{k}(:,1), out{k}(:,2), orig);
-        out{k} = [x y];
-    else
-        [out{k}(:,2),out{k}(:,1)] = map_funs('trimpatch', out{k}(:,2), [-Inf 89], noJumpLong(out{k}(:,1)), [-180 180]);
-    end
-    
-    handles.moved_body(k) = k;				% Keep track of which body was moved
-end
-if (isempty(n_flow))	return,		end		% There wasn't any active plate
-clear x y;
-
-% Now do the animation
-
-frm_step = str2double(get(handles.edit_frameInterval,'String'));    % Get frame interval
-t_step = str2double(get(handles.edit_ageStep,'String'));
-
-% Get the animation direction. Forward (from past to present) or Backward (the oposit)
-if (get(handles.radio_animForward,'Value'))
-    j_dir = n_flow:-1:1;		% Forward
-else
-    j_dir = 1:n_flow;			% Backward
-end
-
-id = cell(1, nPlates);		ini = cell(1, nPlates);		fim = cell(1, nPlates);
-
-for (j = j_dir)									% For each time increment
-	for (m = 1:numel(out))						% Loop over the number of moved plates
-        if (isempty(out{m}))	continue,	end % Freezed body
-        [x{m},y{m}] = get_time_slice(out{m},n_data(m),n_seg(m),j);
-        x{m}(length(x{m})+1) = NaN;     y{m}(length(y{m})+1) = NaN;    % Needed for processing multiple patches.
-        id{m} = find(isnan(x{m}));
-	
-		for (i = 1:length(id{m}) )				% Cycle through and display each element
-			if (i == 1)		ini{m}(i) = 1;
-			else			ini{m}(i) = id{m}(i-1)+1;
+	for (k = 1:nPlates)					% Loop over number of plates with associated poles
+		pole_file = get(handles.plates{k},'UserData');
+		if (isequal(pole_file,0))				% This plate has no associated poles
+			continue
+		end
+		x = get(handles.plates_bak{k},'XData');
+		y = get(handles.plates_bak{k},'YData');
+		if (iscell(pole_file))					% This occurs with plates made of more than one element
+			pole_file = pole_file{1};			% In this case, they are all equal
+			if (isequal(pole_file,0))	continue,	end
+			nseg = length(x);
+			xx = [];    yy = [];
+			for (l = 1:nseg)					% Loop over number of segments of this active plate
+				xx = [xx; NaN; x{l}];
+				yy = [yy; NaN; y{l}];
 			end
-			fim{m}(i) = id{m}(i)-1;
-			try									% This is crutial when working on proj coords
-				set(handles.plates{m}(i),'XData',x{m}(ini{m}(i):fim{m}(i)),'YData',y{m}(ini{m}(i):fim{m}(i)))
+			x = xx;     y = yy;     clear xx yy;
+		end
+		opt_E = ['-E' pole_file];
+		[out{k},n_data(k),n_seg(k),n_flow] = telha_m([x y], opt_E, opt_L);
+
+		if (do_proj)							% Project coords
+			[x,y] = orthographic(out{k}(:,1), out{k}(:,2), orig);
+			out{k} = [x y];
+		else
+			[out{k}(:,2),out{k}(:,1)] = map_funs('trimpatch', out{k}(:,2), [-Inf 89], noJumpLong(out{k}(:,1)), [-180 180]);
+		end
+
+		handles.moved_body(k) = k;				% Keep track of which body was moved
+	end
+	if (isempty(n_flow)),	return,		end		% There wasn't any active plate
+	clear x y;
+
+	% Now do the animation
+
+	frm_step = str2double(get(handles.edit_frameInterval,'String'));    % Get frame interval
+	t_step = str2double(get(handles.edit_ageStep,'String'));
+
+	% Get the animation direction. Forward (from past to present) or Backward (the oposit)
+	if (get(handles.radio_animForward,'Value'))
+		j_dir = n_flow:-1:1;		% Forward
+	else
+		j_dir = 1:n_flow;			% Backward
+	end
+
+	id = cell(1, nPlates);		ini = cell(1, nPlates);		fim = cell(1, nPlates);
+
+	for (j = j_dir)									% For each time increment
+		for (m = 1:numel(out))						% Loop over the number of moved plates
+			if (isempty(out{m})),	continue,	end % Freezed body
+			[x{m},y{m}] = get_time_slice(out{m},n_data(m),n_seg(m),j);
+			x{m}(length(x{m})+1) = NaN;     y{m}(length(y{m})+1) = NaN;    % Needed for processing multiple patches.
+			id{m} = find(isnan(x{m}));
+
+			for (i = 1:length(id{m}) )				% Cycle through and display each element
+				if (i == 1),	ini{m}(i) = 1;
+				else			ini{m}(i) = id{m}(i-1)+1;
+				end
+				fim{m}(i) = id{m}(i)-1;
+				try									% This is crutial when working on proj coords
+					set(handles.plates{m}(i),'XData',x{m}(ini{m}(i):fim{m}(i)),'YData',y{m}(ini{m}(i):fim{m}(i)))
+				end
 			end
 		end
+		pause(frm_step);
+		set(handles.figure1,'Name',['Rally Plater    ' num2str((j-1)*t_step) '  Ma'])
 	end
-	pause(frm_step);
-	set(handles.figure1,'Name',['Rally Plater    ' num2str((j-1)*t_step) '  Ma'])
-end
-guidata(handles.figure1,handles);
+	guidata(handles.figure1,handles);
 
 % --------------------------------------------------------------------
 function [x,y] = get_time_slice(data,n_data,n_seg,n,first)
@@ -548,26 +548,26 @@ function [x,y] = get_time_slice(data,n_data,n_seg,n,first)
 
 % --------------------------------------------------------------------
 function reset_clickedcallback(hObject, eventdata)
-handles = guidata(hObject);
-set(handles.figure1,'Name','Rally Plater')
-set(handles.edit_ageSlider,'String','0')
-set(handles.slider_age,'Value',0)
+	handles = guidata(hObject);
+	set(handles.figure1,'Name','Rally Plater')
+	set(handles.edit_ageSlider,'String','0')
+	set(handles.slider_age,'Value',0)
 
-if (get(handles.radio_projOrtho,'Value'))
-    swap_proj(handles)                          % Just reset to the initial Ortho projected coords and return
-    return
-end
+	if (get(handles.radio_projOrtho,'Value'))
+		swap_proj(handles)                          % Just reset to the initial Ortho projected coords and return
+		return
+	end
 
-n = find(handles.moved_body);					% Get the number of moved bodies (it is a vector)
-if (isempty(n))		return,		end				% Nothing moved yet (the guy is plaing with the buttons)
-for (k = 1:length(n))							% Loop over moved bodies
-    for (m = 1:length(handles.plates{n(k)}))	% Loop over each element of the outer loop moved body
-        set(handles.plates{n(k)}(m),'XData',get(handles.plates_bak{n(k)}(m),'XData'), ...
-            'YData',get(handles.plates_bak{n(k)}(m),'YData'));
-    end
-end
-handles.moved_body = zeros(100,1);				% Reset to bodies_moved = 0
-guidata(handles.figure1,handles);
+	n = find(handles.moved_body);					% Get the number of moved bodies (it is a vector)
+	if (isempty(n)),	return,		end				% Nothing moved yet (the guy is plaing with the buttons)
+	for (k = 1:length(n))							% Loop over moved bodies
+		for (m = 1:length(handles.plates{n(k)}))	% Loop over each element of the outer loop moved body
+			set(handles.plates{n(k)}(m),'XData',get(handles.plates_bak{n(k)}(m),'XData'), ...
+				'YData',get(handles.plates_bak{n(k)}(m),'YData'));
+		end
+	end
+	handles.moved_body = zeros(100,1);				% Reset to bodies_moved = 0
+	guidata(handles.figure1,handles);
 
 % --------------------------------------------------------------------------------------------------
 function help_clickedcallback(obj,eventdata)
@@ -645,13 +645,13 @@ function push_loadStages_CB(hObject, handles)
 
 	% Check that it is a goodly formated stage poles file. We don't want surprises in mexs
 	dumb = read_stgs(fname);
-	if (isempty(dumb))		return,		end			% Bad stage poles file
+	if (isempty(dumb)),		return,		end			% Bad stage poles file
 
 	max_age = max(dumb(1,3), get(handles.slider_age,'Max'));
 	set(handles.slider_age,'Max',max_age)
 
 	str_stgs = get(handles.listbox_stages,'String');
-	if (~iscell(str_stgs))		str_stgs = {str_stgs; FileName};
+	if (~iscell(str_stgs)),		str_stgs = {str_stgs; FileName};
 	else						str_stgs{end+1} = FileName;
 	end
 
@@ -742,11 +742,11 @@ function draw_element(handles,x,y,tag)
 		handles.plates{id}(end+1) = h;			% Store the new handle in its family cell
 		handles.plates_bak{id}(end+1) = copyobj(h,handles.axes1);
 		set(handles.plates_bak{id}(end),'Visible','off')
-	else						% We have a new element with a new Tag - It means, a new plate or a stray element
+	else							% We have a new element with a new Tag - It means, a new plate or a stray element
 		c_map = rand(1,3);						% Create a new color for this new family
 		set(h,prop_str,c_map)					% Set it to the new color
 		str_stgs = get(handles.listbox_stages,'String');
-		if (~iscell(str_stgs))      str_stgs = {str_stgs};      end
+		if (~iscell(str_stgs)),		str_stgs = {str_stgs};      end
 		stg2plate(handles,h,str_stgs,0,1)		% Initialize with no associated poles
 		handles.plates{end+1} = h;				% Increase the plates counter
 		handles.plates_bak{end+1} = copyobj(h,handles.axes1);   % Make a copy of the new object
@@ -761,194 +761,188 @@ function draw_element(handles,x,y,tag)
 function slider_age_CB(hObject, handles)
 % Reconstruct to a particular age determined by the slider value
 
-do_proj = get(handles.radio_projOrtho,'Value');
-orig = [get(handles.slider_projOrigLat,'Value') get(handles.slider_projOrigLon,'Value') ...
-        get(handles.slider_projOrigPitch,'Value')];
+	do_proj = get(handles.radio_projOrtho,'Value');
+	orig = [get(handles.slider_projOrigLat,'Value') get(handles.slider_projOrigLon,'Value') ...
+			get(handles.slider_projOrigPitch,'Value')];
 
-n_flow = [];
-age = get(hObject,'Value');
-set(handles.edit_ageSlider,'String',num2str(age));
+	n_flow = [];
+	age = get(hObject,'Value');
+	set(handles.edit_ageSlider,'String',num2str(age));
 
-nPlates = numel(handles.plates);
-out = cell(1, nPlates);		n_data = zeros(1, nPlates);		n_seg = zeros(1, nPlates);
+	nPlates = numel(handles.plates);
+	out = cell(1, nPlates);		n_data = zeros(1, nPlates);		n_seg = zeros(1, nPlates);
 
-for (k = 1:nPlates)				% Loop over number of plates with associated poles
-    pole_file = get(handles.plates{k},'UserData');
-    if (isequal(pole_file,0))				% This plate has currently no associated poles
-        continue
-    end
-    x = get(handles.plates_bak{k},'XData');
-    y = get(handles.plates_bak{k},'YData');
-    if (iscell(pole_file))
-        pole_file = pole_file{1};			% In this case, they are all equal
-        if (isequal(pole_file,0))		continue,	end
-        nseg = length(x);
-        xx = [];    yy = [];
-        for (l = 1:nseg)					% Loop over number of segments of this active plate
-            xx = [xx; NaN; x{l}];
-            yy = [yy; NaN; y{l}];
-        end
-    else
-        xx = [NaN; x];
-        yy = [NaN; y];
-    end
-    x = xx;     y = yy;     clear xx yy;
-    
-    opt_E = ['-E' pole_file];
-    [out{k},n_data(k),n_seg(k),n_flow] = telha_m([x y], age, opt_E, '-P');
-    if (isempty(out{k}))	continue,	end % This hapens when the one of the stage poles reach its oldest age
-    
-    if (do_proj)							% Project coords
-        [x,y] = orthographic(out{k}(:,1), out{k}(:,2), orig);
-        out{k} = [x y];
-    else
-        [out{k}(:,2),out{k}(:,1)] = map_funs('trimpatch', out{k}(:,2), [-Inf 89], noJumpLong(out{k}(:,1)), [-180 180]);
-    end
-    
-    if (n_seg(k) == 1)						% This is because telha outputs an extra line with (0,0)
-        out{k}(end,:) = [];					% in the case of a single segment with one rotation only
-    end
-    handles.moved_body(k) = k;				% Keep track of which body was moved
-end
-if (isempty(n_flow))	return,		end		% There wasn't any active plate
-clear x y;
+	for (k = 1:nPlates)				% Loop over number of plates with associated poles
+		pole_file = get(handles.plates{k},'UserData');
+		if (isequal(pole_file,0))				% This plate has currently no associated poles
+			continue
+		end
+		x = get(handles.plates_bak{k},'XData');
+		y = get(handles.plates_bak{k},'YData');
+		if (iscell(pole_file))
+			pole_file = pole_file{1};			% In this case, they are all equal
+			if (isequal(pole_file,0)),		continue,	end
+			nseg = length(x);
+			xx = [];    yy = [];
+			for (l = 1:nseg)					% Loop over number of segments of this active plate
+				xx = [xx; NaN; x{l}];
+				yy = [yy; NaN; y{l}];
+			end
+		else
+			xx = [NaN; x];
+			yy = [NaN; y];
+		end
+		x = xx;     y = yy;     clear xx yy;
 
-% Plot the plates at their new positions
-id = cell(1, nPlates);		ini = cell(1, nPlates);		fim = cell(1, nPlates);
+		opt_E = ['-E' pole_file];
+		[out{k},n_data(k),n_seg(k),n_flow] = telha_m([x y], age, opt_E, '-P');
+		if (isempty(out{k})),	continue,	end % This hapens when the one of the stage poles reach its oldest age
 
-for (m = 1:length(out))						% Loop over the number of moved plates
-    if (isempty(out{m}))	continue,	end % Freezed body
-    if (n_seg(m) > 1)
-        out{m}(1,:) = [];					% Mata a primeira linha de anoes
-    end
-    x{m} = out{m}(:,1);             y{m} = out{m}(:,2);
-    x{m}(length(x{m})+1) = NaN;     y{m}(length(y{m})+1) = NaN;    % Needed for processing multiple patches.
-    id{m} = find(isnan(x{m}));
+		if (do_proj)							% Project coords
+			[x,y] = orthographic(out{k}(:,1), out{k}(:,2), orig);
+			out{k} = [x y];
+		else
+			[out{k}(:,2),out{k}(:,1)] = map_funs('trimpatch', out{k}(:,2), [-Inf 89], noJumpLong(out{k}(:,1)), [-180 180]);
+		end
 
-	for (i = 1:length(id{m}) )				% Cycle through and display each element
-        if (i == 1)     ini{m}(i) = 1;
-        else            ini{m}(i) = id{m}(i-1)+1;    end
-        fim{m}(i) = id{m}(i)-1;
-        try									% We realy nead this when working on proj coords
-            set(handles.plates{m}(i),'XData',x{m}(ini{m}(i):fim{m}(i)),'YData',y{m}(ini{m}(i):fim{m}(i)));
-        end
+		if (n_seg(k) == 1)						% This is because telha outputs an extra line with (0,0)
+			out{k}(end,:) = [];					% in the case of a single segment with one rotation only
+		end
+		handles.moved_body(k) = k;				% Keep track of which body was moved
 	end
-end
-guidata(handles.figure1,handles)
+	if (isempty(n_flow)),	return,		end		% There wasn't any active plate
+	clear x y;
+
+	% Plot the plates at their new positions
+	id = cell(1, nPlates);		ini = cell(1, nPlates);		fim = cell(1, nPlates);
+
+	for (m = 1:length(out))						% Loop over the number of moved plates
+		if (isempty(out{m})),	continue,	end % Freezed body
+		if (n_seg(m) > 1)
+			out{m}(1,:) = [];					% Mata a primeira linha de anoes
+		end
+		x{m} = out{m}(:,1);             y{m} = out{m}(:,2);
+		x{m}(length(x{m})+1) = NaN;     y{m}(length(y{m})+1) = NaN;    % Needed for processing multiple patches.
+		id{m} = find(isnan(x{m}));
+
+		for (i = 1:length(id{m}) )				% Cycle through and display each element
+			if (i == 1),	ini{m}(i) = 1;
+			else            ini{m}(i) = id{m}(i-1)+1;    end
+			fim{m}(i) = id{m}(i)-1;
+			try									% We realy nead this when working on proj coords
+				set(handles.plates{m}(i),'XData',x{m}(ini{m}(i):fim{m}(i)),'YData',y{m}(ini{m}(i):fim{m}(i)));
+			end
+		end
+	end
+	guidata(handles.figure1,handles)
 
 % --------------------------------------------------------------------
 function lon = noJumpLong(lon)
 % Finds jumps in longitude (crossing of date line) and removes them
 % By using this function before calling trimpatch, the result is that
 % The plates will desapear at < -180 or > 180. It seams resonable.
-dif = diff(lon);
-id = find(abs(dif) > 181);
-
-while ~isempty(id)
-	lon(id+1:end) = lon(id+1:end)-sign(dif(id(1)))*360;
 	dif = diff(lon);
 	id = find(abs(dif) > 181);
-end	
+
+	while ~isempty(id)
+		lon(id+1:end) = lon(id+1:end)-sign(dif(id(1)))*360;
+		dif = diff(lon);
+		id = find(abs(dif) > 181);
+	end	
 
 % --------------------------------------------------------------------
 function edit_ageSlider_CB(hObject, handles)
-val = str2double(get(hObject,'String'));
-if (val > get(handles.slider_age,'Max'))
-    set(handles.slider_age,'Max',val)
-end
-set(handles.slider_age,'Value',val)
+	val = str2double(get(hObject,'String'));
+	if (val > get(handles.slider_age,'Max'))
+		set(handles.slider_age,'Max',val)
+	end
+	set(handles.slider_age,'Value',val)
 
-% Call the slider callback to do the rest of the work
-slider_age_CB(handles.slider_age, [], handles)
+	% Call the slider callback to do the rest of the work
+	slider_age_CB(handles.slider_age, [], handles)
 
 % --------------------------------------------------------------------
 function [x,y] = orthographic(lon, lat, origin)
 % Project geographic coords into spherical orthographic projection
 
-D2R = pi / 180;
-lat = lat * D2R;   %  Convert to radians
-lon = lon * D2R;
-origin = origin * D2R;
+	D2R = pi / 180;
+	lat = lat * D2R;   %  Convert to radians
+	lon = lon * D2R;
+	origin = origin * D2R;
 
-% Rotate sphere only if it is needed
-if (sum(origin))
-    [lon,lat] = rotate(lon,lat,origin);
-end
-% Compute the azims and distances on the sphere
-orig0 = zeros(size(lat));
-azim  = azimuth_geo(orig0, orig0, lat, lon,'radians');
-rng = acos(cos(lat).*cos(lon));         % NOTE: the formula simplifies because we are computing from a [0 0] origin
+	% Rotate sphere only if it is needed
+	if (sum(origin))
+		[lon,lat] = rotate(lon,lat,origin);
+	end
+	% Compute the azims and distances on the sphere
+	orig0 = zeros(size(lat));
+	azim  = azimuth_geo(orig0, orig0, lat, lon,'radians');
+	rng = acos(cos(lat).*cos(lon));         % NOTE: the formula simplifies because we are computing from a [0 0] origin
 
-%  Trim data exceeding the visible part of the sphere
-[rng,azim] = map_funs('trimpatch', rng, [-Inf 89]*D2R, azim, [-inf inf]);
+	%  Trim data exceeding the visible part of the sphere
+	[rng,azim] = map_funs('trimpatch', rng, [-Inf 89]*D2R, azim, [-inf inf]);
 
-x = sin(rng) .* sin(azim);
-y = sin(rng) .* cos(azim);
+	x = sin(rng) .* sin(azim);
+	y = sin(rng) .* cos(azim);
 
 %--------------------------------------------------------------------------------------------------
 function [lon1,lat1] = rotate(lon,lat,orig)
 %ROTATE  Rotate data for specified orig and orientation (angles are in radians)
 
-rot1 = [cos(orig(2)) sin(orig(2))  0        % Rotation matrix about x axis
-       -sin(orig(2)) cos(orig(2))  0
-	    0            0             1];
-rot2 = [cos(orig(1)) 0 sin(orig(1))         % Rotation matrix about y axis
-        0            1 0
-	   -sin(orig(1)) 0 cos(orig(1))];
-rot3 = [1  0            0
-        0  cos(orig(3)) sin(orig(3))        % Rotation matrix about z axis
-        0 -sin(orig(3)) cos(orig(3))];
+	rot1 = [cos(orig(2)) sin(orig(2))  0        % Rotation matrix about x axis
+		   -sin(orig(2)) cos(orig(2))  0
+			0            0             1];
+	rot2 = [cos(orig(1)) 0 sin(orig(1))         % Rotation matrix about y axis
+			0            1 0
+		   -sin(orig(1)) 0 cos(orig(1))];
+	rot3 = [1  0            0
+			0  cos(orig(3)) sin(orig(3))        % Rotation matrix about z axis
+			0 -sin(orig(3)) cos(orig(3))];
 
-rot = rot3 * rot2 * rot1;                   % Euler rotation matrix
+	rot = rot3 * rot2 * rot1;                   % Euler rotation matrix
 
-%  Move pi/2 points epsilon inward to prevent round-off problems with pi/2 points.
-epsilon = 1e-6;
-indx = find(abs(pi/2 - abs(lat)) <= epsilon);
-if ~isempty(indx)
-	lat(indx) = (pi/2 - epsilon) * sign(lat(indx));
-end
+	%  Move pi/2 points epsilon inward to prevent round-off problems with pi/2 points.
+	epsilon = 1e-6;
+	indx = find(abs(pi/2 - abs(lat)) <= epsilon);
+	if ~isempty(indx)
+		lat(indx) = (pi/2 - epsilon) * sign(lat(indx));
+	end
 
-%  Prevent possible confusion with points at +180 or -180 degrees
-lon = atan2(sin(lon*(1 - 1e-6)),cos(lon*(1 - 1e-6)));
+	%  Prevent possible confusion with points at +180 or -180 degrees
+	lon = atan2(sin(lon*(1 - 1e-6)),cos(lon*(1 - 1e-6)));
 
-%  Compute the new x,y,z point in cartesian space
-xyz = ( rot * ([cos(lat).*cos(lon) cos(lat).*sin(lon) sin(lat)]') )';% We want column vectors
+	%  Compute the new x,y,z point in cartesian space
+	xyz = ( rot * ([cos(lat).*cos(lon) cos(lat).*sin(lon) sin(lat)]') )';% We want column vectors
 
-% epsilon = 1.0e-8;
-% indx = find(abs(xyz(:,1)) <= epsilon & abs(xyz(:,2)) <= epsilon);   % Be careful with x & y nearely 0 in atan2
-% if ~isempty(indx);   x(indx) = 0;  y(indx) = 0;   end
+	% epsilon = 1.0e-8;
+	% indx = find(abs(xyz(:,1)) <= epsilon & abs(xyz(:,2)) <= epsilon);   % Be careful with x & y nearely 0 in atan2
+	% if ~isempty(indx);   x(indx) = 0;  y(indx) = 0;   end
 
-[lon1, lat1] = cart2sph(xyz(:,1),xyz(:,2),xyz(:,3));  % Transform to spherical coordinates
+	[lon1, lat1] = cart2sph(xyz(:,1),xyz(:,2),xyz(:,3));  % Transform to spherical coordinates
 
 % --------------------------------------------------------------------
-function radio_proj_CB(hObject, handles)
-% Set the map projection to either Linear or Orthographic
-
-	do_Ortho = false;
-	if ( strcmp(get(hObject,'tag'), 'radio_projOrtho') )	do_Ortho = true;	end
-
-	set_Ortho = false;
-	if ( (get(hObject,'Value') && do_Ortho) || (~get(hObject,'Value') && ~do_Ortho) )
-		set_Ortho = true;
-	end
-
-	if (set_Ortho)
-		set(handles.axes1,'xlim',[-1 1], 'ylim',[-1 1],'DataAspectRatio',[1 1 1], 'Vis', 'off')
-		set(handles.radio_projLinear,'Val',0),				set(handles.radio_projOrtho,'Val',1)
-		set(handles.slider_projOrigLon,'Enable','on')
-		set(handles.slider_projOrigLat,'Enable','on')
-		set(handles.slider_projOrigPitch,'Enable','on')
-		set(handles.h_circ,'Visible','on')
-	else
-		set(handles.axes1,'xlim',[-180 180], 'ylim',[-90 90],'XtickMode','auto', 'YtickMode','auto', 'Vis', 'on')
-		set(handles.radio_projLinear,'Val',1),				set(handles.radio_projOrtho,'Val',0)
-		set(handles.slider_projOrigLon,'Enable','off')
-		set(handles.slider_projOrigLat,'Enable','off')
-		set(handles.slider_projOrigPitch,'Enable','off')
-		set(handles.h_circ,'Visible','off')
-	end
+function radio_projLinear_CB(hObject, handles)
+% ...
+	set(handles.axes1,'xlim',[-180 180], 'ylim',[-90 90],'XtickMode','auto', 'YtickMode','auto', 'Vis', 'on')
+	set(handles.radio_projLinear,'Val',1),				set(handles.radio_projOrtho,'Val',0)
+	set(handles.slider_projOrigLon,'Enable','off')
+	set(handles.slider_projOrigLat,'Enable','off')
+	set(handles.slider_projOrigPitch,'Enable','off')
+	set(handles.h_circ,'Visible','off')
 	swap_proj(handles)
+	set(handles.edit_ageSlider,'String','0')
+	set(handles.slider_age,'Val',0)
 
+% --------------------------------------------------------------------
+function radio_projOrtho_CB(hObject, handles)
+% ...
+	set(handles.axes1,'xlim',[-1 1], 'ylim',[-1 1],'DataAspectRatio',[1 1 1], 'Vis', 'off')
+	set(handles.radio_projLinear,'Val',0),				set(handles.radio_projOrtho,'Val',1)
+	set(handles.slider_projOrigLon,'Enable','on')
+	set(handles.slider_projOrigLat,'Enable','on')
+	set(handles.slider_projOrigPitch,'Enable','on')
+	set(handles.h_circ,'Visible','on')
+	swap_proj(handles)
 	set(handles.edit_ageSlider,'String','0')
 	set(handles.slider_age,'Val',0)
 
@@ -969,45 +963,39 @@ function slider_projOrigPitch_CB(hObject, handles)
 
 % --------------------------------------------------------------------
 function swap_proj(handles)
-
-if (get(handles.radio_projOrtho,'Value'))
-    orig = [get(handles.slider_projOrigLat,'Value') get(handles.slider_projOrigLon,'Value') ...
-            get(handles.slider_projOrigPitch,'Value')];
-    for (k = 1:numel(handles.plates_bak))
-        for (l = 1:numel(handles.plates_bak{k}))
-            x = get(handles.plates_bak{k}(l),'XData');
-            y = get(handles.plates_bak{k}(l),'YData');
-            [x,y] = orthographic(x, y, orig);
-            set(handles.plates{k}(l),'XData',x,'YData',y)
-        end
-    end
-else
-    for (k = 1:numel(handles.plates_bak))
-        for (l = 1:numel(handles.plates_bak{k}))
-            x = get(handles.plates_bak{k}(l),'XData');
-            y = get(handles.plates_bak{k}(l),'YData');
-            set(handles.plates{k}(l),'XData',x,'YData',y)
-        end
-    end    
-end
+% ...
+	if (get(handles.radio_projOrtho,'Value'))
+		orig = [get(handles.slider_projOrigLat,'Value') get(handles.slider_projOrigLon,'Value') ...
+				get(handles.slider_projOrigPitch,'Value')];
+		for (k = 1:numel(handles.plates_bak))
+			for (l = 1:numel(handles.plates_bak{k}))
+				x = get(handles.plates_bak{k}(l),'XData');
+				y = get(handles.plates_bak{k}(l),'YData');
+				[x,y] = orthographic(x, y, orig);
+				set(handles.plates{k}(l),'XData',x,'YData',y)
+			end
+		end
+	else
+		for (k = 1:numel(handles.plates_bak))
+			for (l = 1:numel(handles.plates_bak{k}))
+				x = get(handles.plates_bak{k}(l),'XData');
+				y = get(handles.plates_bak{k}(l),'YData');
+				set(handles.plates{k}(l),'XData',x,'YData',y)
+			end
+		end    
+	end
 
 % --------------------------------------------------------------------
 function radio_animForward_CB(hObject, handles)
 % Just make sure that only one of this radiobuttons pair is on. The animation
 % callback will check the status of it and decide on the reconstruction direction.
-	if (get(hObject,'Val'))
-		set(handles.radio_animBackward,'Val',0)
-	else
-		set(handles.radio_animBackward,'Val',1)
-	end
+	if (~get(hObject,'Val')),		set(hObject,'Val', 1),		return,		end
+	set(handles.radio_animBackward, 'Val', 0)
 
 % --------------------------------------------------------------------
 function radio_animBackward_CB(hObject, handles)
-	if (get(hObject,'Val'))
-		set(handles.radio_animForward,'Val',0)
-	else
-		set(handles.radio_animForward,'Val',1)
-	end
+	if (~get(hObject,'Val')),		set(hObject,'Val', 1),		return,		end
+	set(handles.radio_animForward, 'Val', 0)
 
 % --- Creates and returns a handle to the GUI figure. 
 function rally_plater_LayoutFcn(h1)
@@ -1041,26 +1029,26 @@ uicontrol('Parent',h1, 'Position',[390 8 271 101], 'Style','frame');
 
 uicontrol('Parent',h1, 'Position',[10 8 221 100],...
 'BackgroundColor',[1 1 1],...
-'Call',{@main_uiCB,h1,'listbox_stages_CB'},...
+'Call',@rally_uiCB,...
 'Style','listbox',...
 'Tooltip','List of currently available satge poles',...
 'Value',1,...
 'Tag','listbox_stages');
 
 uicontrol('Parent',h1, 'Position',[10 108 80 21],...
-'Call',{@main_uiCB,h1,'push_unSet_CB'},...
+'Call',@rally_uiCB,...
 'String','Unset All',...
 'Tooltip','Unlink all plates of their currently set poles',...
 'Tag','push_unSet');
 
 uicontrol('Parent',h1, 'Position',[140 108 80 21],...
-'Call',{@main_uiCB,h1,'push_setABS_CB'},...
+'Call',@rally_uiCB,...
 'String','Set ABS',...
 'Tooltip','Load the Absolute plate models',...
 'Tag','push_setABS');
 
 uicontrol('Parent',h1, 'Position',[240 53 111 21],...
-'Call',{@main_uiCB,h1,'push_loadStages_CB'},...
+'Call',@rally_uiCB,...
 'String','Load stage poles',...
 'Tooltip','Load a file with your own stage poles',...
 'Tag','push_loadStages');
@@ -1096,7 +1084,7 @@ uicontrol('Parent',h1,...
 
 uicontrol('Parent',h1,...
 'BackgroundColor',[0.899999976158142 0.899999976158142 0.899999976158142],...
-'Call',{@main_uiCB,h1,'slider_age_CB'},...
+'Call',@rally_uiCB,...
 'Position',[700 85 201 16],...
 'Style','slider',...
 'Tooltip','Slide to select a certain age of reconstruction',...
@@ -1104,7 +1092,7 @@ uicontrol('Parent',h1,...
 
 uicontrol('Parent',h1,...
 'BackgroundColor',[1 1 1],...
-'Call',{@main_uiCB,h1,'edit_ageSlider_CB'},...
+'Call',@rally_uiCB,...
 'Position',[900 83 47 22],...
 'Style','edit',...
 'Tooltip','Age of reconstruction (Ma)',...
@@ -1123,7 +1111,7 @@ uicontrol('Parent',h1,...
 'Style','text');
 
 uicontrol('Parent',h1,...
-'Call',{@main_uiCB,h1,'push_makeStages_CB'},...
+'Call',@rally_uiCB,...
 'Position',[240 13 111 21],...
 'String','Make stage poles',...
 'Tooltip','Create stage poles from a finite rotation poles list',...
@@ -1139,7 +1127,7 @@ uicontrol('Parent',h1, 'Position',[902 105 41 15],...
 
 uicontrol('Parent',h1,...
 'BackgroundColor',[0.899999976158142 0.899999976158142 0.899999976158142],...
-'Call',{@main_uiCB,h1,'slider_projOrigLon_CB'},...
+'Call',@rally_uiCB,...
 'Max',180,...
 'Min',-180,...
 'Position',[500 76 101 14],...
@@ -1149,7 +1137,7 @@ uicontrol('Parent',h1,...
 
 uicontrol('Parent',h1,...
 'BackgroundColor',[0.899999976158142 0.899999976158142 0.899999976158142],...
-'Call',{@main_uiCB,h1,'slider_projOrigLat_CB'},...
+'Call',@rally_uiCB,...
 'Max',90,...
 'Min',-90,...
 'Position',[500 48 101 14],...
@@ -1159,7 +1147,7 @@ uicontrol('Parent',h1,...
 
 uicontrol('Parent',h1,...
 'BackgroundColor',[0.899999976158142 0.899999976158142 0.899999976158142],...
-'Call',{@main_uiCB,h1,'slider_projOrigPitch_CB'},...
+'Call',@rally_uiCB,...
 'Max',90,...
 'Min',-90,...
 'Position',[500 21 101 14],...
@@ -1189,7 +1177,7 @@ uicontrol('Parent',h1,...
 'Tag','text_projOrigPitch');
 
 uicontrol('Parent',h1,...
-'Call',{@main_uiCB,h1,'radio_proj_CB'},...
+'Call',@rally_uiCB,...
 'Position',[400 64 79 15],...
 'String','Linear',...
 'Style','radiobutton',...
@@ -1197,7 +1185,7 @@ uicontrol('Parent',h1,...
 'Tag','radio_projLinear');
 
 uicontrol('Parent',h1,...
-'Call',{@main_uiCB,h1,'radio_proj_CB'},...
+'Call',@rally_uiCB,...
 'Position',[400 34 96 15],...
 'String','Orthographic',...
 'Style','radiobutton',...
@@ -1210,7 +1198,7 @@ uicontrol('Parent',h1, 'Position',[517 100 111 17],...
 'Style','text');
 
 uicontrol('Parent',h1,...
-'Call',{@main_uiCB,h1,'radio_animForward_CB'},...
+'Call',@rally_uiCB,...
 'Position',[700 53 79 15],...
 'String','Forward',...
 'Style','radiobutton',...
@@ -1219,7 +1207,7 @@ uicontrol('Parent',h1,...
 'Tag','radio_animForward');
 
 uicontrol('Parent',h1,...
-'Call',{@main_uiCB,h1,'radio_animBackward_CB'},...
+'Call',@rally_uiCB,...
 'Position',[810 53 79 15],...
 'String','Backward',...
 'Style','radiobutton',...
@@ -1238,6 +1226,6 @@ uicontrol('Parent',h1, 'Position',[409 99 71 17],...
 'Tag','txt_Prj',...
 'Style','text');
 
-function main_uiCB(hObject, eventdata, h1, callback_name)
+function rally_uiCB(hObject, eventdata)
 % This function is executed by the callback and than the handles is allways updated.
-	feval(callback_name,hObject,guidata(h1));
+	feval([get(hObject,'Tag') '_CB'],hObject, guidata(hObject));
