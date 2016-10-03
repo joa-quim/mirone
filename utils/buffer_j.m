@@ -163,7 +163,7 @@ function [xb, yb] = buffer(x, y, dist, npts, direction, geog)
  	[y_circ, x_circ] = feval(fhandle_circ, y, x, range, perim, npts, geog == 2);
 	
 	% Rectangles around each edge
-	[dumb, az] = feval( fhandle_azim, y(1:end-1), x(1:end-1), y(2:end), x(2:end) );
+	[dumb, az] = feval(fhandle_azim, y(1:end-1), x(1:end-1), y(2:end), x(2:end));
 	[latbl1,lonbl1] = feval( fhandle_circ, y(1:end-1), x(1:end-1), range, az-90, 1, geog == 2);
 	[latbr1,lonbr1] = feval( fhandle_circ, y(1:end-1), x(1:end-1), range, az+90, 1, geog == 2);
 	[latbl2,lonbl2] = feval( fhandle_circ, y(2:end),   x(2:end),   range, az-90, 1, geog == 2);
@@ -189,11 +189,11 @@ function [xb, yb] = buffer(x, y, dist, npts, direction, geog)
 	% Now deal with any particular 'direction' request
 	n_polygs = numel(P3);
 	if (n_polygs == 1)
-		if ( direction(1) == 'b' || direction(1) == 'o' )	% If only one, it will always be an outside
+		if (direction(1) == 'b' || direction(1) == 'o')		% If only one, it will always be an outside
 			xb = P3.x;		yb = P3.y;
 		end
 	else
-		if ( direction(1) == 'b')			% Want both 'in' and 'out'
+		if (direction(1) == 'b')			% Want both 'in' and 'out'
 			for (k = 1:n_polygs-1)
 				xb = [xb; P3(k).x; NaN];		yb = [yb; P3(k).y; NaN];
 			end
@@ -202,7 +202,7 @@ function [xb, yb] = buffer(x, y, dist, npts, direction, geog)
 			n_in_polygs = zeros(n_polygs,1);
 			for (k = 1:n_polygs),	n_in_polygs(k) = numel(P3(k).x);	end	% Count np in each polygon
 			[dumb, m] = max(n_in_polygs);
-			if ( direction(1) == 'o')		% 'out'
+			if (direction(1) == 'o')		% 'out'
 				xb = P3(m).x;		yb = P3(m).y;
 			else							% 'in'
 				u = 1:n_polygs;
@@ -216,7 +216,8 @@ function [xb, yb] = buffer(x, y, dist, npts, direction, geog)
 	end
 
 % ------------------------------------------------------------------------------------------
-function [x_circ, y_circ] = circ_cart(x, y, range, perim, npts);
+function [x_circ, y_circ] = circ_cart(x, y, range, perim, npts, dumb)
+% DUMB is a variable never used except on the calling side (to make the nargin equal to the geog case)
 	perim = perim * pi / 180;
 	t = linspace(perim(1),perim(end),npts);
 	x_circ = zeros(numel(x), npts);		y_circ = zeros(numel(x), npts);
@@ -226,7 +227,7 @@ function [x_circ, y_circ] = circ_cart(x, y, range, perim, npts);
 	end
 
 % ------------------------------------------------------------------------------------------
-function [dumb, az] = azim_cart(x1, y1, x2, y2);
+function [dumb, az] = azim_cart(x1, y1, x2, y2)
 	dumb = [];
 	dx = x2 - x1;   dy = y2 - y1;
 	angs = atan2(dy,dx) * 180/pi;		% and convert to degrees
