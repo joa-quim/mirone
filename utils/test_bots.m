@@ -1,6 +1,7 @@
 function  test_bots(opt,varargin)
 
 	global gmt_ver;		gmt_ver = 5;
+	warning('off', 'MATLAB:dispatcher:ShadowedMEXExtension');	% Fck shutup
 
 	if (nargin)
 		switch opt
@@ -32,6 +33,8 @@ function  test_bots(opt,varargin)
 				implant
 			case 'fill_poly_hole'
 				fill_poly_hole
+			case 'digitize_hole'
+				digitize_hole
 		end
 	else
 		test_Illum
@@ -47,6 +50,8 @@ function  test_bots(opt,varargin)
 		coasts
 		gmtlist
 		implant
+		fill_poly_hole
+		digitize_hole
 	end
 
 % -----------------
@@ -222,7 +227,7 @@ function grdtrend
 function grdread
 % ...
 	fname = 'swath_grid.grd';
-	[X, Y, Z, head] = c_grdread(fname,'single');
+	[X, Y, Z] = c_grdread(fname,'single');
 	h = mirone(Z);
 	pause(0.3);		delete(h);
 
@@ -232,18 +237,34 @@ function coasts
 	opt_res = '-Di';	opt_N = '-Na';		opt_I = '-Ia';
 	opt_R = '-R-10/10/30/50';
 	coast = c_shoredump(opt_R,opt_res,'-A1/1/1');
-	boundaries = c_shoredump(opt_R,opt_N,opt_res);
-	rivers = c_shoredump(opt_R,opt_I,opt_res);
 	h = figure; hold on
-	plot(coast(1,:), coast(2,:))
-	plot(boundaries(1,:), boundaries(2,:))
-	plot(rivers(1,:), rivers(2,:))
+	if (isa(coast, 'struct'))			% We want only the data (if GMT5 it will be a struct)
+		coast = aux_funs('catsegment',coast,1);
+		plot(coast(:,1), coast(:,2))
+	else
+		plot(coast(1,:), coast(2,:))
+	end
+	boundaries = c_shoredump(opt_R,opt_N,opt_res);
+	if (isa(boundaries, 'struct'))
+		boundaries = aux_funs('catsegment',boundaries,1);
+		plot(boundaries(:,1), boundaries(:,2))
+	else
+		plot(boundaries(1,:), boundaries(2,:))
+	end
+	rivers = c_shoredump(opt_R,opt_I,opt_res);
+	if (isa(rivers, 'struct'))
+		rivers = aux_funs('catsegment',rivers,1);
+		plot(rivers(:,1), rivers(:,2))
+	else
+		plot(rivers(1,:), rivers(2,:))
+	end
 	pause(0.5);		delete(h);
 
 % ----------------------------
 function gmtlist
 % ...
-	gmtedit('C:\j\cd120\revisao\cd120.gmt');
+	h = gmtedit('C:\j\cd120\revisao\cd120.gmt');
+	pause(0.5);		delete(h);
 
 % ----------------------------
 function implant
@@ -262,11 +283,12 @@ function implant
 
 	Z = transplants([], 'grid', true, hand1, hand2);
 	hand1.X = X;	hand1.Y = Y;
-	mirone(Z, hand1)
+	h = mirone(Z, hand1);
+	pause(0.5);		delete(h);
 
 % ----------------------------
-function fill_poly_hole
-% ...
+function hFig = helper_holes
+% ... This is not a testing function but rather a helper one. Returns a fig with a triangular hole
 	[Z, hdrStruct] = gen_UMF2d(1.8, 0.05, 0.9, 1024);		% Pretend it's geogs (Remark, piking 1001 returns Z = NaNs everywhere)
 	x = [-10 -7 -5 -10]';		y = [38 40 37.5 38]';
 	x_lim = [hdrStruct.X(1) hdrStruct.X(end)];		y_lim = [hdrStruct.Y(1) hdrStruct.Y(end)];
@@ -275,9 +297,27 @@ function fill_poly_hole
 	hand1.X = hdrStruct.X;		hand1.Y = hdrStruct.Y;
 	hand1.head = hdrStruct.head;
 	hFig = mirone(Z, hand1);
+
+% ----------------------------
+function fill_poly_hole
+% Fill a triangular hole with data from another resolution
+	hFig = helper_holes;
 	[Z2, hdrStruct2] = gen_UMF2d(1.8, 0.05, 0.95, 1024, [-10.5 -4.5 37 40.5]);
 	hdrStruct2.Z = Z2;
 	handles = guidata(hFig);
 	transplants([], 'one_sharp', true, handles, hdrStruct2)
-	
-	
+	pause(0.5);		delete(hFig);
+
+% ----------------------------
+function digitize_hole
+% Digitize the triangular hole in grid computed by helper_holes(). Digitize both the hole and the non-hole
+% This test tests only a simply feature (one single hole)
+	hFig = helper_holes;
+	mirone('ImageEdgeDetect_CB', guidata(hFig), 'apalpa')			% Digitize the triang hole
+	Z = getappdata(hFig,'dem_z');
+	mask = isnan(Z);
+	Z(mask) = 1;
+	Z(~mask) = NaN;			% Revert what is NaN and what is not. Make the triang of const Z
+	setappdata(hFig,'dem_z',Z)
+	mirone('ImageEdgeDetect_CB', guidata(hFig), 'apalpa_body_10')	% Digitize the triang with a pad of 10
+	pause(0.5);		delete(hFig);
