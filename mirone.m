@@ -4601,7 +4601,6 @@ function ImageEdgeDetect_CB(handles, opt)
 %		-> 'SUS'
 	if (handles.no_file),		return,		end
 
-	do_mask = false;		% So far, only used in 'apalpa'
 	img = get(handles.hImg,'CData');		% Even when not used, this op cost nothing
 	dims = [size(img,1) size(img,2)];
 	set(handles.figure1,'pointer','watch')
@@ -4626,16 +4625,51 @@ function ImageEdgeDetect_CB(handles, opt)
 	% 	y_inc = (handles.head(4) - handles.head(3)) / m;
 	% 	I = flipud(img(:,:,1));
 	% 	delete(h_lixo);
-	elseif (strcmp(opt,'apalpa'))		% Get the polygons that sorround good data
+	elseif (strncmp(opt,'apalpa',6))		% Get the polygons that sorround good data
 		if (~handles.have_nans)
 			warndlg('There are no wholes in this grid.','Chico Clever'),	return
 		end
 		[X,Y,Z] = load_grd(handles);
 		if isempty(Z),		return,		end
-		mask = isnan(Z);
-		do_mask = true;
-		B = img_fun('bwboundaries',mask, 8, 'holes');
-		%B = bwbound_unique(B);
+		if (strncmp(opt,'apalpa_body', 11))	% Digitize the Non-NaN zone
+			mask = ~isnan(Z);
+			if (numel(opt) >= 13)			% We have a padding request. Find out how much
+				pad = str2num(opt(13:end));
+				se = zeros(2*pad+1);		% If pad = 1 we make a SE (a plus) of 3x3, pad = 2 SE of 5x5
+				se(pad+1, :) = 1;		se(:, pad+1) = 1;
+				mask = img_fun('imdilate',mask,se);
+			end
+		else
+			mask = isnan(Z);
+		end
+		B = img_fun('bwboundaries',mask, 8, 'noholes');
+
+		if (strcmp(opt,'apalpa_um'))		% When only one hole is to be diditized
+			pt = get(handles.axes1, 'CurrentPoint');
+			col = aux_funs('getPixel_coords', size(Z,2), [X(1) X(end)], pt(1,1));
+			row = aux_funs('getPixel_coords', size(Z,1), [Y(1) Y(end)], pt(1,2));
+			c = false(numel(B), 1);
+			for (k = 1:numel(B))				
+				IN = inpolygon(col, row, B{k}(:,2), B{k}(:,1));
+				if (~IN),	c(k) = true;	end
+			end
+			B(c) = [];					% Remove those that do not contain the clicked point
+		elseif (strcmp(opt,'apalpa_transplant'))	% For the time being this is for not breaking compat with old way
+			c = false(numel(B), 1);
+			for (k = 1:numel(B))
+				bnd = B{k};
+				if (mask(bnd(1,1),bnd(1,2)) && ...	% Drastic but no better solution to avoid NaNs-in-corners cases
+						(min(bnd(:,1)) == 1 || max(bnd(:,1)) == dims(2) || min(bnd(:,1)) == 1 || max(bnd(:,1)) == dims(1)) )
+					c(k) = true;
+				end
+			end
+			B(c) = [];
+		end
+		if (isempty(B))
+			warndlg('Something screw in this digitizing operation. No digitized polygons left.','Warning')
+			set(handles.figure1,'pointer','arrow'),		return
+		end
+
 		dims = [size(Z,1) size(Z,2)];
 		opt = 'Vec';					% Trick to not need to add an extra case in the IF test below
 
@@ -4688,10 +4722,6 @@ function ImageEdgeDetect_CB(handles, opt)
 		h_edge = zeros(length(B),1);	i = 1;
 		for k = 1:length(B)
 			bnd = B{k};
-			if (do_mask && strcmp(opt,'Vec') && mask(bnd(1,1),bnd(1,2)) && ...	% Drastic but no better solution to avoid NaNs-in-corners cases
-					(min(bnd(:,1)) == 1 || max(bnd(:,1)) == dims(2) || min(bnd(:,1)) == 1 || max(bnd(:,1)) == dims(1)) )
-				continue
-			end
 			if (size(bnd,1) > 4)
 				bnd = cvlib_mex('dp', bnd, 0.1);		% Simplify line but only on straight lines
 			end
