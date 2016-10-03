@@ -613,7 +613,7 @@ function fill_one_hole(handles, kind, second_g)
 	else							% For 'sharp' transition we have no padding zone
 		pad = 0;
 	end
-	mirone('ImageEdgeDetect_CB', handles, 'apalpa')
+	mirone('ImageEdgeDetect_CB', handles, 'apalpa_transplant')
 	hLines = findobj(handles.axes1, 'type','line', 'Tag','edge_detected');
 	pt = get(handles.axes1, 'CurrentPoint');
 	c = false(numel(hLines), 1);
