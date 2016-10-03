@@ -1,7 +1,7 @@
 function out = c_gmtlist(fname, varargin)
 % Temporary function to easy up transition from GMT4 to GMT5.2
 
-% $Id: c_gmtlist.m 4763 2015-07-28 23:58:47Z j $
+% $Id: c_gmtlist.m 9840 2016-10-03 01:18:59Z j $
 
 	global gmt_ver
 	if (isempty(gmt_ver)),		gmt_ver = 4;	end		% For example, if calls do not come via mirone.m
@@ -19,7 +19,6 @@ function out = c_gmtlist(fname, varargin)
 			end
 			cmd = sprintf('%s %s', cmd, varargin{k});
 		end
-		gmtmex('create')
 		out = gmtmex(cmd);
 		gmtmex('destroy')
 	end

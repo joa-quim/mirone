@@ -1,7 +1,7 @@
 function [cmap, range] = c_cpt2cmap(fname, varargin)
 % Temporary function to easy up transition from GMT4 to GMT5.2
 
-% $Id: c_cpt2cmap.m 4726 2015-07-20 23:11:57Z j $
+% $Id: c_cpt2cmap.m 9840 2016-10-03 01:18:59Z j $
 
 	global gmt_ver
 	if (isempty(gmt_ver)),		gmt_ver = 4;	end		% For example, if calls do not come via mirone.m
@@ -19,7 +19,6 @@ function [cmap, range] = c_cpt2cmap(fname, varargin)
 		for (k = 1:numel(varargin))
 			cmd = sprintf('%s %s', cmd, varargin{k});
 		end
-		gmtmex('create')
 		C = gmtmex(cmd);
 		cmap = C.colormap;
 		gmtmex('destroy')

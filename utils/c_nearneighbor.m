@@ -3,7 +3,7 @@ function [out, hdr] = c_nearneighbor(data, varargin)
 
 % A merda é que 'data' pode ser um Mx3 ou entao um Mx1 e os X,Y[,W] devem tar no varargin
 
-% $Id: c_nearneighbor.m 7816 2016-03-01 23:57:41Z j $
+% $Id: c_nearneighbor.m 9840 2016-10-03 01:18:59Z j $
 
 	global gmt_ver
 	if (isempty(gmt_ver)),		gmt_ver = 4;	end		% For example, if calls do not come via mirone.m
@@ -30,6 +30,7 @@ function [out, hdr] = c_nearneighbor(data, varargin)
 			cmd = sprintf('%s %s', cmd, varargin{k});
 		end
 		G = gmtmex(cmd, data);
+		gmtmex('destroy')
 		out = G.z;
 		hdr = G.hdr;
 	end

@@ -3,7 +3,7 @@ function [Zout, hdr] = c_grdsample(Zin, head, varargin)
 
 % The tsu_funs still calls grdsample directly as a system call
 
-% $Id: c_grdsample.m 7897 2016-05-17 20:46:24Z j $
+% $Id: c_grdsample.m 9840 2016-10-03 01:18:59Z j $
 
 	global gmt_ver
 	if (isempty(gmt_ver)),		gmt_ver = 4;	end		% For example, if calls do not come via mirone.m
@@ -21,6 +21,7 @@ function [Zout, hdr] = c_grdsample(Zin, head, varargin)
 			cmd = sprintf('%s %s', cmd, varargin{k});
 		end
 		Zout = gmtmex(cmd, G);
+		gmtmex('destroy')
 		if (nargout == 1)
 			Zout = Zout.z;
 		else
