@@ -325,7 +325,12 @@ function ButtonDownOnImage(hImg, evt, hFig)
 				if (isnan(z))		% Create the UIContextMenu
 					cmenu = uicontextmenu('Parent', hFig, 'Tag','clickedHole');
 					set(hImg, 'UIContextMenu', cmenu);
-					uimenu(cmenu, 'Label', 'Digitize this hole', 'Call', 'mirone(''ImageEdgeDetect_CB'',guidata(gcbo),''apalpa'')');
+					uimenu(cmenu, 'Label', 'Digitize body', 'Call', 'mirone(''ImageEdgeDetect_CB'',guidata(gcbo),''apalpa_body'')');
+					item0 = uimenu(cmenu, 'Label', 'Digitize body with pad');
+					uimenu(item0, 'Label', 'pad = 1 cell', 'Call', 'mirone(''ImageEdgeDetect_CB'',guidata(gcbo),''apalpa_body_1'')');
+					uimenu(item0, 'Label', 'pad = 2 cell', 'Call', 'mirone(''ImageEdgeDetect_CB'',guidata(gcbo),''apalpa_body_2'')');
+					uimenu(item0, 'Label', 'other...',  'Call', @other_pad);
+					uimenu(cmenu, 'Label', 'Digitize this hole', 'Call', 'mirone(''ImageEdgeDetect_CB'',guidata(gcbo),''apalpa_um'')', 'Sep','on');
 					uimenu(cmenu, 'Label', 'Inpaint this hole', 'Call', 'inpaint_nans(guidata(gcbo), ''single'')');
 					item1 = uimenu(cmenu, 'Label', 'Fill this hole ...', 'Sep','on');
 					uimenu(item1, 'Label', 'with 2nd Grid (sharp edges)', 'Call', 'transplants([], ''one_sharp'', true, guidata(gcbo))');
@@ -357,6 +362,13 @@ function ButtonDownOnImage(hImg, evt, hFig)
 	set(displayBar, 'UserData', dbud);
 	set(dbud.figHandle, 'WindowButtonUpFcn', {@BackToNormalPixvalDisplay, displayBar});
 	PixvalMotionFcn([], [], displayBar);
+
+%-----------------------------------------------------------------------------------------
+function other_pad(obj,evt)
+% Set the padding for a digitize request
+	resp  = str2double(inputdlg({'Enter new pad width in number of cells'}, 'Pad width', [1 30], {'3'}));
+	if (isnan(resp) || resp < 0),	return,		end
+	mirone('ImageEdgeDetect_CB', guidata(obj), sprintf('apalpa_body_%d', round(resp)))
 
 %-----------------------------------------------------------------------------------------
 function BackToNormalPixvalDisplay(obj, evt, displayBar)
