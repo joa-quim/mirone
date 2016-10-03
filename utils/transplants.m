@@ -48,7 +48,7 @@ function varargout = transplants(hLine, tipo, res, handles, second_g)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: transplants.m 7920 2016-05-31 16:12:25Z j $
+% $Id: transplants.m 9843 2016-10-03 01:29:48Z j $
 
 	if (nargin < 4)		% NOTE: in the IMPLANTGRID mode I'm not really using (YET) hLine for anything else
 		if (~ishandle(hLine) && ~strcmp(get(hLine,'type'), 'line') && ~strcmp(get(hLine,'type'), 'patch'))
@@ -613,7 +613,7 @@ function fill_one_hole(handles, kind, second_g)
 	else							% For 'sharp' transition we have no padding zone
 		pad = 0;
 	end
-	mirone('ImageEdgeDetect_CB', handles, 'apalpa')
+	mirone('ImageEdgeDetect_CB', handles, 'apalpa_transplant')
 	hLines = findobj(handles.axes1, 'type','line', 'Tag','edge_detected');
 	pt = get(handles.axes1, 'CurrentPoint');
 	c = false(numel(hLines), 1);
