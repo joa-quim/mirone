@@ -30,6 +30,7 @@ function [out, hdr] = c_nearneighbor(data, varargin)
 			cmd = sprintf('%s %s', cmd, varargin{k});
 		end
 		G = gmtmex(cmd, data);
+		gmtmex('destroy')
 		out = G.z;
 		hdr = G.hdr;
 	end

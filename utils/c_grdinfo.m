@@ -25,4 +25,5 @@ function info = c_grdinfo(fname, opt)
 			info.Scale  = s.text{9}(flen+3:end);
 			info.hdr    = gmtmex(['grdinfo -C ' fname]);	% This is now a struct with 'data','text','header','comment','proj4','wkt'
 		end
+		gmtmex('destroy')
 	end

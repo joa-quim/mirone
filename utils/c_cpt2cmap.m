@@ -19,7 +19,6 @@ function [cmap, range] = c_cpt2cmap(fname, varargin)
 		for (k = 1:numel(varargin))
 			cmd = sprintf('%s %s', cmd, varargin{k});
 		end
-		gmtmex('create')
 		C = gmtmex(cmd);
 		cmap = C.colormap;
 		gmtmex('destroy')

@@ -19,11 +19,10 @@ function [mask, head, X, Y] = c_grdlandmask(varargin)
 		for (k = 1:numel(varargin))
 			cmd = sprintf('%s %s', cmd, varargin{k});
 		end
-		gmtmex('create')
 		mask = gmtmex(cmd);
 		gmtmex('destroy')
-		if (nargout == 4)
-			head = mask.hdr;	X = mask.x;		Y = mask.y;
+		if (nargout > 1)
+			head = [mask.range mask.registration mask.inc];	X = mask.x;		Y = mask.y;
 		end
 		mask = mask.z;
 	end

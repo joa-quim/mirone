@@ -19,7 +19,6 @@ function out = c_gmtlist(fname, varargin)
 			end
 			cmd = sprintf('%s %s', cmd, varargin{k});
 		end
-		gmtmex('create')
 		out = gmtmex(cmd);
 		gmtmex('destroy')
 	end
