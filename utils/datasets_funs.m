@@ -452,10 +452,10 @@ function CoastLines(handles, res)
 		case 'f',		opt_res = '-Df';		pad = 0.005;
 	end
 	coast = c_shoredump(opt_R, opt_res, '-A0/1/1');
+	if (isempty(coast)),	return,		end
 	if (isa(coast, 'struct'))			% We want only the data (if GMT5 it will be a struct)
 		coast = aux_funs('catsegment',coast,1);
 	end
-	if (isempty(coast)),	return,		end
 
 	[coast, msg] = geog2projected_pts(handles, coast, [lon lat], 0);
 	if (numel(msg) > 2)
@@ -512,8 +512,10 @@ function PoliticalBound(handles, type, res)
         case 'f',        opt_res = '-Df';        pad = 0.01;
 	end
 	boundaries = c_shoredump(opt_R,opt_N,opt_res);
-	if (isa(boundaries, 'struct')),	boundaries = boundaries.data;	end		% We want only the data (if GMT5 it will be a struct)
 	if (isempty(boundaries)),	return,		end
+	if (isa(boundaries, 'struct'))			% We want only the data (if GMT5 it will be a struct)
+		boundaries = aux_funs('catsegment',boundaries,1);
+	end
 
     [boundaries, msg] = geog2projected_pts(handles, boundaries, [lon lat], 0);
     if (numel(msg) > 2)
@@ -574,8 +576,10 @@ function Rivers(handles, type, res)
         case 'f',        opt_res = '-Df';        pad = 0.01;
 	end
 	rivers = c_shoredump(opt_R,opt_I,opt_res);
-	if (isa(rivers, 'struct')),	rivers = rivers.data;	end		% We want only the data (if GMT5 it will be a struct)
 	if (isempty(rivers)),	return,		end
+	if (isa(rivers, 'struct'))			% We want only the data (if GMT5 it will be a struct)
+		rivers = aux_funs('catsegment',rivers,1);
+	end
 
     [rivers, msg] = geog2projected_pts(handles, rivers, [lon lat], 0);
     if (numel(msg) > 2)
