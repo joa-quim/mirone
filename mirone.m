@@ -20,7 +20,7 @@ function varargout = mirone(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: mirone.m 9845 2016-10-03 01:33:56Z j $
+% $Id: mirone.m 9846 2016-10-04 10:56:33Z j $
 
 	if (nargin > 1 && ischar(varargin{1}))
 		if ( ~isempty(strfind(varargin{1},':')) || ~isempty(strfind(varargin{1},filesep)) )
@@ -47,7 +47,7 @@ function hObject = mirone_OpeningFcn(varargin)
 %#function range_change swan tsun2 mansinha_m deform_mansinha deform_okada dim_funs
 %----- These are for image
 %#function grayto8 grayto16 grayxform imfilter_mex imhistc imlincombc parityscan intlutc ordf
-%#function imreconstructmex applylutc bwboundariesmex bwlabel1 bwlabel2 ditherc bwlabelnmex
+%#function imreconstructmex applylutc bwboundariesmex bwlabel1 bwlabel2 ditherc bwlabelnmex morphmex
 %----- These are in utils
 %#function tabpanelfcn degree2dms dms2degree dec2deg dec_year ivan_the_terrible ddewhite string_token
 %#function test_dms text_read double2ascii save_seismicity jd2date guess_file shading_mat 
