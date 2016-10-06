@@ -79,7 +79,7 @@ function varargout = load_xyz(handles, opt, opt2)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: load_xyz.m 7947 2016-09-06 14:19:48Z j $
+% $Id: load_xyz.m 9848 2016-10-06 15:13:44Z j $
 
 %	EXAMPLE CODE OF HOW TO CREATE A TEMPLATE FOR UICTX WHEN THESE ARE TOO MANY
 % 	cmenuHand = get(h, 'UIContextMenu');
@@ -811,9 +811,8 @@ function set_extra_uicb_options(handles, hLine, out_nc)
 	set(h2,'Label','Plot interior points')
 	set(h2,'Call',{@nc_plotSave_pts, out_nc.fname, out_nc.PolyIndex, 'plot'})
 	set(h2,'Pos',2)			% Move it up on the UIContextMenu order (and hope it doesn't screw)
-	h2 = findobj(h1,'-depth',0, 'Label','Point interpolation');	% Reuse this one too
-	set(h2,'Label','Save interior points to file')
-	set(h2,'Call',{@nc_plotSave_pts, out_nc.fname, out_nc.PolyIndex, 'save'})
+	h2 = uimenu(get(h2,'Parent'), 'Label','Save interior points to file', ...
+	            'Call',{@nc_plotSave_pts, out_nc.fname, out_nc.PolyIndex, 'save'});
 	set(h2,'Pos',3)
 
 function nc_plotSave_pts(obj, evt, fname, PolyIndex, opt)
