@@ -25,7 +25,7 @@ function varargout = draw_funs(hand, varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: draw_funs.m 7961 2016-09-27 13:52:35Z j $
+% $Id: draw_funs.m 9849 2016-10-06 15:16:11Z j $
 
 % A bit of strange tests but they are necessary for the cases when we use the new feval(fun,varargin{:}) 
 opt = varargin{1};		% function name to evaluate (new) or keyword to select one (old form)
@@ -300,7 +300,7 @@ function set_line_uicontext(h, opt)
 
 	if (IS_RECTANGLE)
 		uimenu(cmenuHand, 'Label', 'Rectangle limits (edit)', 'Sep','on', 'Call', @rectangle_limits);
-		uimenu(cmenuHand, 'Label', 'Register Image', 'Call', @rectangle_register_img);
+		if (handles.image_type ~= 20), uimenu(cmenuHand, 'Label', 'Register Image', 'Call', @rectangle_register_img);	end
 		if (~handles.validGrid)
 			uimenu(cmenuHand, 'Label', 'Transplant Image here','Call', 'transplants(gco,''image'')');
 		end
@@ -334,7 +334,7 @@ function set_line_uicontext(h, opt)
 			uimenu(item_fill, 'Label', 'Fill gaps (surface)','Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''FillGaps'',''surface'')');
 			uimenu(item_fill, 'Label', 'Fill gaps (cubic)',  'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''FillGaps'',''cubic'');');
 			uimenu(item_fill, 'Label', 'Fill gaps (linear)', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''FillGaps'',''linear'');');
-		else			% We have an Image
+		elseif (handles.image_type ~= 20)			% We have an Image
 			uimenu(item_tools, 'Label', 'Crop Image', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco)');
 			if (handles.image_type == 3)
 					uimenu(item_tools, 'Label', 'Crop Image (with coords)', 'Call', ...
@@ -342,11 +342,15 @@ function set_line_uicontext(h, opt)
 			end
 			uimenu(item_tools, 'Label', 'Histogram', 'Call', 'image_histo(guidata(gcbo),gco)');
 		end
-		uimenu(item_tools, 'Label', 'Image process', 'Sep','on', 'Call', 'mirone(''DrawClosedPolygon_CB'',guidata(gcbo),gco)');
+		if (handles.validGrid || handles.image_type ~= 20)
+			uimenu(item_tools, 'Label', 'Image process', 'Sep','on', 'Call', 'mirone(''DrawClosedPolygon_CB'',guidata(gcbo),gco)');
+		else
+			delete(item_tools)		% Easier to create it at top and delete in the case where it had no use
+		end
 		deal_opts({'MGG' 'MICROLEV' 'GMT_DB_IDS' 'GMT_SYMBOL'}, cmenuHand);
 	end
 
-	if (~IS_SEISPOLYG && LINE_ISCLOSED && ~IS_RECTANGLE)
+	if (~IS_SEISPOLYG && LINE_ISCLOSED && ~IS_RECTANGLE && (handles.validGrid || handles.image_type ~= 20))
 		item_tools2 = uimenu(cmenuHand, 'Label', 'ROI Crop Tools','Sep','on');
 		if (handles.validGrid)    % Option only available to recognized grids
 			uimenu(item_tools2, 'Label', 'Crop Grid', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''CropaGrid_pure'')');
@@ -382,7 +386,6 @@ function set_line_uicontext(h, opt)
 			uimenu(cmenuHand, 'Label', 'Compute Euler Pole', 'Sep','on', 'Call',...
 				'calc_bonin_euler_pole(get(gco,''XData''), get(gco,''YData''));' );
 		end
-		%uimenu(cmenuHand, 'Label', 'Testa patches', 'Sep','on', 'Call', 'patch_options(gco)');
 	end
 
 	setLineWidth(uimenu(cmenuHand, 'Label', 'Line Width', 'Sep','on'), cb_LineWidth)
@@ -651,25 +654,36 @@ function join_lines(obj,evt,hFig)
 	for (k = 1:numel(hLines))
 		if (hCurrLine == hLines(k)),	continue,	end	% Must find a clever solution
 		if (strcmp(get(hLines(k),'Type'),'patch')),		continue,	end
-		[x, y, was_closed] = join2lines([hCurrLine hLines(k)]);
+		[x, y, z, Z, was_closed] = join2lines([hCurrLine hLines(k)]);
 		if (~was_closed),	delete(hLines(k)),	end		% Closed polygons are ignored 
 		set(hCurrLine, 'XData',x, 'YData',y)
+		if (~isempty(z)),	set(hCurrLine, 'ZData',z),	end
+		if (~isempty(Z)),	setappdata(hCurrLine, 'ZData',Z),	end
 	end
 
 % ---------
-function [x, y, was_closed] = join2lines(hLines, TOL)
+function [x, y, z, Z, was_closed] = join2lines(hLines, TOL)
 % Joint the two lines which have handles "hLines" by their closest connection points
 % TOL is the max distance that the two lines can be apart and still be joint.
 %	If not provided, defaults to Inf, but if it is and the two lines are too further
 %	apart than X,Y & WAS_CLOSED are all set to empty. It's callers responsability to check it.
 
-	x1 = get(hLines(1),'XData');		y1 = get(hLines(1),'YData');
-	x2 = get(hLines(2),'XData');		y2 = get(hLines(2),'YData');
 	if (nargin == 1),	TOL = inf;		end
-	
+
+	x1 = get(hLines(1),'XData');	x2 = get(hLines(2),'XData');
+	y1 = get(hLines(1),'YData');	y2 = get(hLines(2),'YData');
+	z1 = get(hLines(1),'ZData');	z2 = get(hLines(2),'ZData');
+	Z1 = getappdata(hLines(1),'ZData');		Z2 = getappdata(hLines(2),'ZData');
+	if (~isempty(z1) && isempty(z2)),		z2 = zeros(size(z1));
+	elseif (~isempty(z2) && isempty(z1)),	z1 = zeros(size(z2));
+	end
+	if (~isempty(Z1) && isempty(Z2)),		Z2 = zeros(size(Z1));
+	elseif (~isempty(Z2) && isempty(Z1)),	Z1 = zeros(size(Z2));
+	end
+
 	was_closed = false;
-	if ( (x2(1) == x2(end)) && (y2(1) == y2(end)) )		% Ignore closed polygons
-		x = x1;		y = y1;
+	if ((x2(1) == x2(end)) && (y2(1) == y2(end)))		% Ignore closed polygons
+		x = x1;		y = y1;		z = [];		Z = [];
 		was_closed = true;
 		return
 	end
@@ -680,22 +694,32 @@ function [x, y, was_closed] = join2lines(hLines, TOL)
 	dist = sum([dif_x dif_y] .^2 ,2);	% Square of distances between the 4 extremities
 	[mimi, I] = min(dist);				% We only care about the min location
 	if (mimi > TOL)
-		x = [];		y = [];		was_closed = [];
+		x = [];		y = [];		z = [];		Z = [];		was_closed = [];
 		return
 	end
 	if (I == 1)				% Line 1 starts near the begining of line 2
 		last = 1;
 		if (x1(1) == x2(1) && y1(1) == y2(1)),		last = 2;		end
 		x = [x2(end:-1:last) x1];	y = [y2(end:-1:last) y1];
+		if (~isempty(z1)),	z = [z2(end:-1:last) z1];	end			% z is regular line 3rth dim, Z is the same stored in appdata
+		if (~isempty(Z1)),	Z = [Z2(end:-1:last) Z1];	end
 	elseif (I == 2)			% Line 2 ends near the begining of line 1 
 		x = [x2 x1];				y = [y2 y1];
+		if (~isempty(z1)),	z = [z2 z1];	end
+		if (~isempty(Z1)),	Z = [Z2 Z1];	end
 	elseif (I == 3)			% Line 1 ends near the begining of line 2
 		x = [x1 x2];				y = [y1 y2];
+		if (~isempty(z1)),	z = [z1 z2];	end
+		if (~isempty(Z1)),	Z = [Z1 Z2];	end
 	else					% Line 1 ends near the end of line 2
 		last = 1;
 		if (x1(end) == x2(end) && y1(end) == y2(end)),	last = 2;	end		% If points are equal, do not repeat it
 		x = [x1 x2(end:-1:last)];	y = [y1 y2(end:-1:last)];
+		if (~isempty(z1)),	z = [z1 z2(end:-1:last)];	end
+		if (~isempty(Z1)),	Z = [Z1 Z2(end:-1:last)];	end
 	end
+	if (isempty(z1)),	z = [];	end
+	if (isempty(Z1)),	Z = [];	end
 % -----------------------------------------------------------------------------------------
 	
 % --------------------------------------------------------------------
@@ -1110,9 +1134,7 @@ function set_isochrons_uicontext(h, data)
 	else
 		uimenu(cmenuHand, 'Label', ['Delete this ' tag ' line'], 'Call', {@del_line,h});
 	end
-	uimenu(cmenuHand, 'Label', ['Delete all ' tag ' lines'], 'Call', {@remove_symbolClass,h});
 	uimenu(cmenuHand, 'Label', ['Save this '  tag ' line'],  'Call', @save_line);
-	uimenu(cmenuHand, 'Label', ['Save all '   tag ' lines'], 'Call', {@save_line,h});
 	uimenu(cmenuHand, 'Label', 'Join lines', 'Call', {@join_lines,handles.figure1});
 	uimenu(cmenuHand, 'Label', 'Line azimuths', 'Call', @show_lineAzims);
 	uimenu(cmenuHand, 'Label', 'Line length', 'Call', {@show_LineLength,[],'nikles'});
@@ -1142,18 +1164,23 @@ function set_isochrons_uicontext(h, data)
 	setLineStyle(uimenu(cmenuHand, 'Label', 'Line Style'), {cbls1 cbls2 cbls3 cbls4})
 	setLineColor(uimenu(cmenuHand, 'Label', 'Color'), cb_color)
 	set_stack_order(cmenuHand)		% Set options to change order in the stackpot	
+
 	% --------- Now set the class properties
+	item_allThis = uimenu(cmenuHand, 'Label', ['All ' tag '...'], 'Sep','on');
+	uimenu(item_allThis, 'Label', 'Delete all', 'Call', {@remove_symbolClass,h});
+	uimenu(item_allThis, 'Label', 'Save all', 'Call',   {@save_line,h});
+
 	cb_ClassColor = uictx_Class_LineColor(h);        % there are 9 cb_color outputs
-	setLineColor(uimenu(cmenuHand, 'Label', ['All ' tag ' Color'], 'Sep','on'), cb_ClassColor)
+	setLineColor(uimenu(item_allThis, 'Label', 'Color'), cb_ClassColor)
 	cb_ClassLineWidth = uictx_Class_LineWidth(h);    % there are 5 cb_ClassLineWidth outputs
-	item_Class_lw = uimenu(cmenuHand, 'Label', ['All ' tag ' Line Width']);
+	item_Class_lw = uimenu(item_allThis, 'Label', 'Line Width');
 	uimenu(item_Class_lw, 'Label', '1       pt', 'Call', cb_ClassLineWidth{1});
 	uimenu(item_Class_lw, 'Label', '2       pt', 'Call', cb_ClassLineWidth{2});
 	uimenu(item_Class_lw, 'Label', '3       pt', 'Call', cb_ClassLineWidth{3});
 	uimenu(item_Class_lw, 'Label', '4       pt', 'Call', cb_ClassLineWidth{4});
 	uimenu(item_Class_lw, 'Label', 'Other...', 'Call', cb_ClassLineWidth{5});
 	cb_ClassLineStyle = uictx_Class_LineStyle(h);    % there are 4 cb_ClassLineStyle outputs
-	item_Class_lt = uimenu(cmenuHand, 'Label', ['All ' tag ' Line Style']);
+	item_Class_lt = uimenu(item_allThis, 'Label', 'Line Style');
 	setLineStyle(item_Class_lt,{cb_ClassLineStyle{1} cb_ClassLineStyle{2} cb_ClassLineStyle{3} cb_ClassLineStyle{4}})
 	item = uimenu(cmenuHand, 'Label', 'Compute pole to neighbor', 'Sep','on');
 	%uimenu(item, 'Label', 'Bonin (all in this plate)', 'Sep','on', 'Call', {@pole2neighbor, [], 'Bonin'});
@@ -2719,8 +2746,21 @@ function save_line(obj, evt, h)
 		end
 	elseif (~iscell(x))
 		LineInfo = getappdata(h,'LineInfo');
+		if (strcmp(LineInfo, '>')),	LineInfo = '';	end		% Sometimes we get a trailling one
+		if (handles.is_projected && ~isempty(getappdata(handles.figure1,'Proj4')))
+			prj4 = getappdata(handles.figure1,'Proj4');
+			LineInfo = [LineInfo ' "' prj4 '"'];			% Append also the Proj4 projection info
+		end
 		if (~isempty(LineInfo)),	fprintf(fid,'> %s\n',LineInfo);	end
-		fprintf(fid,'%.6f\t%.6f\n',[x(:)'; y(:)']);
+		z = getappdata(h,'ZData');
+		if (isempty(z) || numel(z) ~= numel(x))
+			fprintf(fid,'%.6f\t%.6f\n',[x(:)'; y(:)']);
+			if (numel(z) ~= numel(x))
+				warndlg('Cannot save the Z column due to a bug in line editing.', 'Warning')
+			end
+		else
+			fprintf(fid,'%.6f\t%.6f\t%.6f\n',[x(:)'; y(:)'; z(:)']);
+		end
 	else
 		for (i = 1:numel(h))
 			LineInfo = getappdata(h(i),'LineInfo');
@@ -2729,8 +2769,21 @@ function save_line(obj, evt, h)
 			else
 				str = '>';
 			end
-			fprintf(fid,'%s\n',str);
-			fprintf(fid,'%.6f\t%.6f\n',[x{i}(:)'; y{i}(:)']);
+			if (i == 1 && handles.is_projected && ~isempty(getappdata(handles.figure1,'Proj4')))
+				prj4 = getappdata(handles.figure1,'Proj4');
+				fprintf(fid,'%s\n', [str ' "' prj4 '"']);	% Append also the Proj4 projection info
+			else
+				fprintf(fid,'%s\n',str);
+			end
+			z = getappdata(h(i),'ZData');
+			if (isempty(z) || numel(z) ~= numel(x{i}))
+				fprintf(fid,'%.6f\t%.6f\n',[x{i}(:)'; y{i}(:)']);
+				if (numel(z) ~= numel(x{i}))
+					warndlg('Cannot save the Z column due to a bug in line editing.', 'Warning')
+				end
+			else
+				fprintf(fid,'%.6f\t%.6f\t%.6f\n',[x{i}(:)'; y{i}(:)'; z(:)']);
+			end
 		end
 	end
 	fclose(fid);
@@ -2763,7 +2816,7 @@ function save_GMT_DB_asc(h, fname)
 		if (isempty(getappdata(h(k), 'edited'))),	continue,	end		% Skip because it was not modified
 		GSHHS_str = getappdata(h(k),'GSHHS_str');
 		if (k == 1 && ~isempty(GSHHS_str))		% Write back the magic string that allows us to recognize these type of files
-			fprintf(fid,'# $Id$\n#\n%s\n#\n', GSHHS_str);
+			fprintf(fid,'# $Id: draw_funs.m 9849 2016-10-06 15:16:11Z j $\n#\n%s\n#\n', GSHHS_str);
 		end
 		hdr = getappdata(h(k), 'LineInfo');
 		x = get(h(k), 'XData');			y = get(h(k), 'YData');
