@@ -56,7 +56,7 @@ function writekml(handles, Z, fname)
 			Z = [];							% Z will be of use to know if need transparency
 			if (handles.have_nans),		[X,Y,Z] = load_grd(handles,'silent');	end
 		end
-		if (handles.is_projected)				% SHIT, we need to convert to geogs under the hood
+		if (handles.is_projected && handles.validGrid)				% SHIT, we need to convert to geogs under the hood
 			handles = guidata(handles.figure1);
 			prjSrc  = aux_funs('get_proj_string', handles);			% Get the proj4 string of this projection
 			prjDest = '+proj=latlong +datum=WGS84';
