@@ -189,7 +189,7 @@ function varargout = load_xyz(handles, opt, opt2)
 		kk = 1;
 		for (k = 1:out_nc.n_PolyOUT)		% Order will be for each swarm OUT + its INs
 			numeric_data{kk} = [out_nc.Poly(k).OUT.lon out_nc.Poly(k).OUT.lat];
-			for ( n = 1:numel(out_nc.Poly(k).IN) )
+			for (n = 1:numel(out_nc.Poly(k).IN))
 				if (isempty(out_nc.Poly(k).IN(n).lon)),		continue,	end
 				kk = kk + 1;
 				numeric_data{kk} = [out_nc.Poly(k).IN(n).lon out_nc.Poly(k).IN(n).lat];
@@ -205,6 +205,9 @@ function varargout = load_xyz(handles, opt, opt2)
 		if (numel(numeric_data) > 1)
 			multi_seg = true;
 			multi_segs_str = repmat({desc}, numel(numeric_data),1);
+			for (k = 2:numel(numeric_data))		% Complement with the hole number
+				multi_segs_str{k} = sprintf('%s\n\nHole number: %d\n', multi_segs_str{k}, k-1);
+			end
 		else
 			multi_segs_str = {desc};
 		end
@@ -821,15 +824,21 @@ function nc_plotSave_pts(obj, evt, fname, PolyIndex, opt)
 	hLine = gco;
 	ud = get(hLine,'UserData');
 	s = nc_funs('info',fname);
-	x = nc_funs('varget', fname, s.Dataset(PolyIndex(ud) - 4).Name);
-	y = nc_funs('varget', fname, s.Dataset(PolyIndex(ud) - 3).Name);
+	try
+		ind = PolyIndex(ud);
+	catch
+		warndlg('Either this a hole and hence no data inside it, or some programming error.', 'Warning'),
+		return
+	end
+	x = nc_funs('varget', fname, s.Dataset(ind - 4).Name);
+	y = nc_funs('varget', fname, s.Dataset(ind - 3).Name);
 	if (opt(1) == 'p')
 		hAx = get(hLine, 'Parent');
 		h = line('XData',x,'YData',y,'Parent',hAx, 'LineStyle','none', 'Marker','.',...
 		'MarkerSize',2, 'Tag','Pointpolyline');
 		draw_funs(h,'DrawSymbol')			% Set marker's uicontextmenu
 	else
-		z = nc_funs('varget', fname, s.Dataset(PolyIndex(ud) - 2).Name);
+		z = nc_funs('varget', fname, s.Dataset(ind - 2).Name);
 		draw_funs([], 'doSave_formated', x, y, z)		% The first arg (empty) means no data fishing in handles
 	end
 % --------------------------------------------------------------------
@@ -1125,6 +1134,7 @@ function out = read_shapenc(fname)
 		nPolys_in_group = tmp(2,m_last);
 		for (k = 1:n_PolyIN_groups)				% Loop over number of groups that have Inner polygons
 			n = find( b(k) == 1:n_PolyOUT );
+			if (isempty(n)),	continue,	end	% This actually is a bug in the shapenc file
 			if (~isempty(n))				% This group has Inner polygs
 				out.Poly(n).IN(nPolys_in_group(k)).lon = [];	% Pre-allocate
 				out.Poly(n).IN(nPolys_in_group(k)).lat = [];
