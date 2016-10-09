@@ -331,9 +331,11 @@ function set_line_uicontext(h, opt)
 			uimenu(item_tools, 'Label', 'Autocorrelation', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''CropaGrid_autocorr'')');
 			uimenu(item_tools, 'Label', 'FFT tool', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''CropaGrid_fftTools'')');
 			item_fill = uimenu(item_tools, 'Label', 'Fill gaps');
-			uimenu(item_fill, 'Label', 'Fill gaps (surface)','Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''FillGaps'',''surface'')');
-			uimenu(item_fill, 'Label', 'Fill gaps (cubic)',  'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''FillGaps'',''cubic'');');
-			uimenu(item_fill, 'Label', 'Fill gaps (linear)', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''FillGaps'',''linear'');');
+			uimenu(item_fill,  'Label', 'Fill gaps (surface)','Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''FillGaps'',''surface'')');
+			uimenu(item_fill,  'Label', 'Fill gaps (cubic)',  'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''FillGaps'',''cubic'');');
+			uimenu(item_fill,  'Label', 'Fill gaps (linear)', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''FillGaps'',''linear'');');
+			uimenu(item_tools, 'Label', 'Fill sinks', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''FillSinks_pitt'')');
+			uimenu(item_tools, 'Label', 'Slice peaks','Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''FillSinks_peak'')');
 		elseif (handles.image_type ~= 20)			% We have an Image
 			uimenu(item_tools, 'Label', 'Crop Image', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco)');
 			if (handles.image_type == 3)
@@ -365,6 +367,8 @@ function set_line_uicontext(h, opt)
 			uimenu(item_tools2, 'Label', 'Clip grid', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''ROI_Clip'')');
 			uimenu(item_tools2, 'Label', 'Median filter', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''ROI_MedianFilter'')');
 			uimenu(item_tools2, 'Label', 'Spline smooth', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''ROI_SplineSmooth'')');
+			uimenu(item_tools2, 'Label', 'Fill sinks', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''ROI_FillSinks_pitt'')');
+			uimenu(item_tools2, 'Label', 'Slice peaks','Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''ROI_FillSinks_peak'')');
 			uimenu(item_tools2, 'Label', 'Histogram (grid)', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''CropaGrid_histo'')');
 			uimenu(item_tools2, 'Label', 'Histogram (image)','Call', 'image_histo(guidata(gcbo),gco)');
 			hP = getappdata(handles.figure1, 'ParentFig');
