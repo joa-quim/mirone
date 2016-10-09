@@ -20,7 +20,7 @@ function varargout = mirone(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: mirone.m 9846 2016-10-04 10:56:33Z j $
+% $Id: mirone.m 9852 2016-10-09 15:46:13Z j $
 
 	if (nargin > 1 && ischar(varargin{1}))
 		if ( ~isempty(strfind(varargin{1},':')) || ~isempty(strfind(varargin{1},filesep)) )
@@ -687,7 +687,7 @@ if ~isempty(opt)				% OPT must be a rectangle/polygon handle (the rect may serve
 	xp(1) = min(x);		xp(2) = max(x);
 	yp(1) = min(y);		yp(2) = max(y);
 	if (numel(x) == 5 && (x(1) == x(end)) && (y(1) == y(end)) && ...		% Test if we have a rectangle
-			(x(1) == x(2)) && (x(3) == x(4)) && (y(1) == y(4)) && (y(2) == y(3)) )
+	    (x(1) == x(2)) && (x(3) == x(4)) && (y(1) == y(4)) && (y(2) == y(3)) )
 		if (strcmp(opt2,'SetConst'))
 			[xp, yp] = aux_funs('adjust_rect', handles, xp, yp);	% Adjust such that only inside nodes are selected
 		end
@@ -797,12 +797,15 @@ if ~isempty(opt)				% OPT must be a rectangle/polygon handle (the rect may serve
 			elseif (strcmp(opt2,'ROI_SplineSmooth'))
 				opt2 = 'SplineSmooth';	% Strip the 'ROI_' part so that we can use the same code as for rectangles
 				wasROI = true;			% Signal the SplineSmooth code below that we need to mask result
+			elseif (strncmp(opt2,'ROI_FillSinks', 13))
+				opt2 = opt2(5:end);		% Strip the 'ROI_' part so that we can use the same code as for rectangles
+				wasROI = true;			% Signal the FillSinks_xxxx code below that we need to mask result				
 			elseif (strcmp(opt2,'CropaGrid_histo'))
 				Z_rect(~mask) = single(NaN);
 			elseif (strcmp(opt2,'ROI_Clip'))
 				opt2 = 'Clip';			% Now that we have the mask, make this case == to rectangle clip
 			else
-				warndlg('Unknown case in ImageCrop','Warning'),		return
+				errordlg('Unknown case in ImageCrop','Error'),		return
 			end
 		end
 		[m,n] = size(Z_rect);
@@ -818,7 +821,7 @@ else					% Interactive croping (either Grid or Image)
 		X = linspace( head(1) + (r_c(3)-1)*head(8), head(1) + (r_c(4)-1)*head(8), r_c(4) - r_c(3) + 1 );
 		Y = linspace( head(3) + (r_c(1)-1)*head(9), head(3) + (r_c(2)-1)*head(9), r_c(2) - r_c(1) + 1 );
 		head(1) = X(1);		head(2) = X(end);		head(3) = Y(1);		head(4) = Y(end);
-		tit = 'Grid cuted by Mirone';		% Have to change this to reflect the old title
+		tit = 'Grid cut by Mirone';		% Have to change this to reflect the old title
 		GRDdisplay(handles,X,Y,Z_rect,head,tit,'Cropped_grid')
 		return
 	else			% Just a image crop op
@@ -831,7 +834,7 @@ if (isempty(opt2) || strcmp(opt2,'CropaWithCoords'))	% Just pure Image croping
 	if (strcmp(get(handles.axes1,'Ydir'),'normal')),	I = flipdim(I,1);	end
 	if (ndims(I) == 2)
 		pal = get(handles.figure1, 'Colormap');
-		if (length(pal) == 64), pal = jet(256);		end		% Risky - This is a patch for "Find Clusters"
+		if (length(pal) == 64), pal = jet(256);		end	% Risky - This is a patch for "Find Clusters"
 		setappdata(0,'CropedColormap',pal);			% indexed image, so I need to save it's colormap
 	end
 	set(handles.figure1,'pointer','arrow');
@@ -928,6 +931,19 @@ elseif (strcmp(opt2,'FillGaps'))
 	end
 	clear X XX Y YY ZZ;
 
+elseif (strncmp(opt2,'FillSinks', 9))
+	handles.Z_back = Z(r_c(1):r_c(2),r_c(3):r_c(4));	handles.r_c = r_c;			% For the Undo op
+	if (strcmp(opt2,'FillSinks_pitt'))		% Fill up the holes
+		Z_rect = img_fun('imfill', Z_rect, 'holes');
+	else									% Slice the peaks
+		grdutils(Z_rect, '-M-1');			% In-situ op
+		Z_rect = img_fun('imfill', Z_rect, 'holes');
+		grdutils(Z_rect, '-M-1');			% Set it back to vert-up
+	end
+	if (wasROI)					% Reset the outside ROI to unchanged values
+		Z_rect(~mask) = handles.Z_back(~mask);
+	end
+
 elseif (strcmp(opt2,'SplineSmooth'))
 	X = linspace( head(1) + (r_c(3)-1)*head(8), head(1) + (r_c(4)-1)*head(8), r_c(4) - r_c(3) + 1 );
 	Y = linspace( head(3) + (r_c(1)-1)*head(9), head(3) + (r_c(2)-1)*head(9), r_c(2) - r_c(1) + 1 );
@@ -941,7 +957,7 @@ elseif (strcmp(opt2,'SplineSmooth'))
 	pp = spl_fun('csaps',{Y,X},Z_rect,resp);
 	Z_rect = spl_fun('fnval',pp,{Y,X});		clear pp;
 	handles.Z_back = Z(r_c(1):r_c(2),r_c(3):r_c(4));	handles.r_c = r_c;			% For the Undo op
-	if (wasROI)				% Apply the mask and smooth over the mask edges
+	if (wasROI)					% Apply the mask and smooth over the mask edges
 		Z_rect = smooth_roipoly_edge(head, handles.have_nans, Z, handles.Z_back, Z_rect, r_c, mask, 3);
 	end
 
@@ -1052,7 +1068,8 @@ if ~isempty(opt2)		% Here we have to update the image in the processed region
 end
 
 % UNDO that works only with these cases
-if (~invert && (numel(opt) == 1) && any(strcmp(opt2,{'MedianFilter' 'ROI_MedianFilter' 'SetConst' 'ROI_SetConst' 'SplineSmooth'})))
+if (~invert && (numel(opt) == 1) && any(strcmp(opt2,{'MedianFilter' 'ROI_MedianFilter' 'SetConst' 'ROI_SetConst' 'SplineSmooth' ...
+		'FillSinks_pitt' 'FillSinks_peak'})))
 	cmenuHand = get(opt,'UIContextMenu');
 	uimenu(cmenuHand, 'Label', 'Undo', 'Separator','on', 'Callback', {@do_undo,handles.figure1,opt,cmenuHand});
 end
