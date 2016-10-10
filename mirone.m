@@ -20,7 +20,7 @@ function varargout = mirone(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: mirone.m 9856 2016-10-10 18:42:32Z j $
+% $Id: mirone.m 9858 2016-10-10 23:44:10Z j $
 
 	if (nargin > 1 && ischar(varargin{1}))
 		if ( ~isempty(strfind(varargin{1},':')) || ~isempty(strfind(varargin{1},filesep)) )
@@ -3295,7 +3295,7 @@ function DrawImportShape_CB(handles, fname)
 				s(i).X = single(s(i).X);		s(i).Y = single(s(i).Y);
 				h(i) = line('Xdata',s(i).X,'Ydata', s(i).Y, 'Parent',handles.axes1,'Color',lc,'LineWidth',lt,'Tag','SHPpolyline',lsty{1:end});
 			end
-			if (is3D),		set(h(i),'UserData', single(s(i).Z(:)')),	end
+			if (is3D && h(i)),		set(h(i),'ZData', single(s(i).Z(:)')),	end
 		end
 		h((h == 0)) = [];				% Those were jumped because they were completely outside map limits
 		if (isempty(h)),	warndlg('No data inside display region','Warning'),		return,		end
@@ -3317,8 +3317,8 @@ function DrawImportShape_CB(handles, fname)
 					[s(i).Y, s(i).X] = map_funs('trimwrap', s(i).Y, s(i).X, [-90 90], [XMin XMax], 'wrap');
 				end
 				h(i) = patch('XData',s(i).X,'YData', s(i).Y,'FaceColor','none','EdgeColor',lc,'Parent',handles.axes1,'Tag','SHPpolygon');
-				if ( (numel(t) >= 8) && (t(8) == 'Z') )		% IT'S IGNORING THE EARTH-IS-ROUND? TEST
-					set(h(i), 'UserData', s(i).Z(:)')		% Fleder can drape it (+ other eventual usages)
+				if ((numel(t) >= 8) && (t(8) == 'Z'))		% IT'S IGNORING THE EARTH-IS-ROUND? TEST
+					set(h(i), 'ZData', s(i).Z(:)')			% Fleder can drape it (+ other eventual usages)
 				end
 				% With luck, your hardware won't choke to dead with this
 				if (nPolygs <= nParanoia),	draw_funs(h(i),'line_uicontext'),	end
