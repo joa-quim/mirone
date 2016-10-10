@@ -25,7 +25,7 @@ function varargout = draw_funs(hand, varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: draw_funs.m 9854 2016-10-10 18:37:34Z j $
+% $Id: draw_funs.m 9857 2016-10-10 23:42:11Z j $
 
 % A bit of strange tests but they are necessary for the cases when we use the new feval(fun,varargin{:}) 
 opt = varargin{1};		% function name to evaluate (new) or keyword to select one (old form)
@@ -161,6 +161,12 @@ function setSHPuictx(h,opt)
 		uimenu(cmenuHand, 'Label', 'Delete this line', 'Call', {@del_line,h(i)});
 		uimenu(cmenuHand, 'Label', 'Delete class', 'Call', 'delete(findobj(''Tag'',''SHPpolyline''))');
 
+		if (~isempty(get(h(i), 'ZData')))				% If we have z info
+			item = uimenu(cmenuHand, 'Label', 'Quick grid', 'Sep', 'on');
+			uimenu(item, 'Label', 'auto', 'Call', {@pt_quick_grd,h(i),'a'});
+			uimenu(item, 'Label', 'set increments', 'Call', {@pt_quick_grd, h(i), 'q'});
+		end
+
 		cb_solid   = 'set(gco, ''LineStyle'', ''-''); refresh';
 		cb_dashed  = 'set(gco, ''LineStyle'', ''--''); refresh';
 		cb_dotted  = 'set(gco, ''LineStyle'', '':''); refresh';
@@ -178,13 +184,6 @@ function setSHPuictx(h,opt)
 		isPt = getappdata(h(1), 'isPoint');
 		if (~isempty(isPt) && ~isPt)	% For points it makes no sense a 'Join lines'
 			uimenu(cmenuHand, 'Label', 'Join lines', 'Call', {@join_lines,handles.figure1});
-% 		elseif (~isempty(get(h(i), 'UserData')))		% If we have z info
-% 			uimenu(cmenuHand, 'Label', 'Quick grid', 'Call', {@pt_quick_grd,h(i),'a'}, 'Sep', 'on');
-		end
-		if (~isempty(getappdata(h(i), 'ZData')))		% If we have z info
-			item = uimenu(cmenuHand, 'Label', 'Quick grid', 'Sep', 'on');
-			uimenu(item, 'Label', 'auto', 'Call', {@pt_quick_grd,h(i),'a'});
-			uimenu(item, 'Label', 'set increments', 'Call', {@pt_quick_grd, h(i), 'q'});
 		end
 	end
 
@@ -2878,7 +2877,7 @@ function save_GMT_DB_asc(h, fname)
 		if (isempty(getappdata(h(k), 'edited'))),	continue,	end		% Skip because it was not modified
 		GSHHS_str = getappdata(h(k),'GSHHS_str');
 		if (k == 1 && ~isempty(GSHHS_str))		% Write back the magic string that allows us to recognize these type of files
-			fprintf(fid,'# $Id: draw_funs.m 9854 2016-10-10 18:37:34Z j $\n#\n%s\n#\n', GSHHS_str);
+			fprintf(fid,'# $Id: draw_funs.m 9857 2016-10-10 23:42:11Z j $\n#\n%s\n#\n', GSHHS_str);
 		end
 		hdr = getappdata(h(k), 'LineInfo');
 		x = get(h(k), 'XData');			y = get(h(k), 'YData');
@@ -2921,8 +2920,8 @@ function save_formated(obj, evt, h, opt)
 		if (~isa(h,'cell')),	h = gco;		% Fish the handle so that it works with copyied objs
 		else					h = h{1};		% Really use this handle.
 		end
-		xx = get(h,'XData');    yy = get(h,'YData');
-		doSave_formated(xx, yy)
+		xx = get(h,'XData');    yy = get(h,'YData');	zz = get(h, 'ZData');
+		doSave_formated(xx, yy, zz)
 	else
 		if (~isa(opt,'struct'))					% The Mx3 array case
 			if (size(opt,2) ~= 3)
@@ -2983,7 +2982,7 @@ function doSave_formated(xx, yy, opt_z)
 			fmt = '%4d %02d %02.2f\t%4d %02d %02.2f';		
 	end
 	
-	if (nargin == 3)      
+	if (nargin == 3 && ~isempty(opt_z))      
 		xy = [xy opt_z(:)];    fmt = [fmt '\t%f'];
 	end
 	double2ascii(f_name,xy,fmt,'maybeMultis');
