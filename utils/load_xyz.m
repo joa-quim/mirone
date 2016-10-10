@@ -832,13 +832,13 @@ function nc_plotSave_pts(obj, evt, fname, PolyIndex, opt)
 	end
 	x = nc_funs('varget', fname, s.Dataset(ind - 4).Name);
 	y = nc_funs('varget', fname, s.Dataset(ind - 3).Name);
+	z = nc_funs('varget', fname, s.Dataset(ind - 2).Name);
 	if (opt(1) == 'p')
 		hAx = get(hLine, 'Parent');
-		h = line('XData',x,'YData',y,'Parent',hAx, 'LineStyle','none', 'Marker','.',...
+		h = line('XData',x, 'YData',y, 'ZData',z, 'Parent',hAx, 'LineStyle','none', 'Marker','.',...
 		'MarkerSize',2, 'Tag','Pointpolyline');
 		draw_funs(h,'DrawSymbol')			% Set marker's uicontextmenu
 	else
-		z = nc_funs('varget', fname, s.Dataset(ind - 2).Name);
 		draw_funs([], 'doSave_formated', x, y, z)		% The first arg (empty) means no data fishing in handles
 	end
 % --------------------------------------------------------------------
