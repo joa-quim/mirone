@@ -178,8 +178,13 @@ function setSHPuictx(h,opt)
 		isPt = getappdata(h(1), 'isPoint');
 		if (~isempty(isPt) && ~isPt)	% For points it makes no sense a 'Join lines'
 			uimenu(cmenuHand, 'Label', 'Join lines', 'Call', {@join_lines,handles.figure1});
-		elseif (~isempty(get(h(i), 'UserData')))		% If we have z info
-			uimenu(cmenuHand, 'Label', 'Quick grid', 'Call', {@shp_quick_grd,h(i)}, 'Sep', 'on');			
+% 		elseif (~isempty(get(h(i), 'UserData')))		% If we have z info
+% 			uimenu(cmenuHand, 'Label', 'Quick grid', 'Call', {@pt_quick_grd,h(i),'a'}, 'Sep', 'on');
+		end
+		if (~isempty(getappdata(h(i), 'ZData')))		% If we have z info
+			item = uimenu(cmenuHand, 'Label', 'Quick grid', 'Sep', 'on');
+			uimenu(item, 'Label', 'auto', 'Call', {@pt_quick_grd,h(i),'a'});
+			uimenu(item, 'Label', 'set increments', 'Call', {@pt_quick_grd, h(i), 'q'});
 		end
 	end
 
@@ -727,25 +732,69 @@ function [x, y, z, Z, was_closed] = join2lines(hLines, TOL)
 % -----------------------------------------------------------------------------------------
 	
 % --------------------------------------------------------------------
-function shp_quick_grd(hObj, evt, h)
-% Automatically calculate a grid from a PointZ shapefile data
-	x = get(h, 'XData');	y = get(h, 'YData');
-	z = double(get(h, 'UserData'));
-	x_min = min(x);			x_max = max(x);
-	y_min = min(y);			y_max = max(y);
-	x_inc = abs(median(diff(x(1:100))));
-	y_inc = abs(median(diff(y(1:100))));
-	if (y_inc < x_inc/20),		y_inc = x_inc;		% Quite likely if data was previously gridded abd dumped.
-	elseif (x_inc < x_inc/20),	x_inc = y_inc;
+function pt_quick_grd(hObj, evt, h, opt)
+% Automatically calculate a grid from a PointZ data
+	
+	x = get(h, 'XData');	y = get(h, 'YData');	z = get(h, 'ZData');
+	if (isempty(z))
+		z = getappdata(h, 'ZData');
+		if (isempty(z))		% Than sothing screwed in between
+			errordlg('Smething screwed with storing the Z coords of this element. Have to quit.', 'Error')
+			return
+		end
 	end
-	opt_I = sprintf('-I%.8g/%.8g', x_inc, y_inc);
+	z = double(z);
 	if (isa(x, 'single'))
 		x = double(x);		y = double(y);
 	end
-	nx = round((x_max - x_min) / x_inc) + 1;
-	ny = round((y_max - y_min) / y_inc) + 1;
+	x_min = min(x);			x_max = max(x);
+	y_min = min(y);			y_max = max(y);
+
+	if (opt == 'a')			% ------------- Estimate x|y_inc based on cheap heuristics ------
+		dx = diff(x(1:min(300, numel(x))));
+		dy = diff(y(1:min(300, numel(y))));
+		dx(dx == 0) = [];		dy(dy == 0) = [];		% Remove influence of repeated points
+		x_inc = abs(mean(dx));
+		y_inc = abs(mean(dy));
+		if (y_inc < x_inc/20),		y_inc = x_inc;		% Quite likely if data was previously gridded and dumped.
+		elseif (x_inc < y_inc/20),	x_inc = y_inc;
+		end
+
+		nx = round((x_max - x_min) / x_inc) + 1;
+		ny = round((y_max - y_min) / y_inc) + 1;
+		if (nx > 1000 || ny > 1000)
+			x_inc = (x_max - x_min) / min(nx,1000);
+			y_inc = (y_max - y_min) / min(ny,1000);
+			x_inc = (x_inc + y_inc) / 2;
+			y_inc = x_inc;
+			nx = round((x_max - x_min) / x_inc) + 1;
+			ny = round((y_max - y_min) / y_inc) + 1;
+		end
+		if (x_inc < 1e-5 && y_inc < 1e-5)
+			errordlg('Sorry, couldn''t figure out a sensible value off X & Y increments for the quick gridding.', 'Error')
+			return
+		end
+	else
+		resp = inputdlg({'Enter X increment:','Enter Y increment (if empty, equal x_inc):'},'Grid increments', 1);
+		if (numel(resp) == 1 || (isempty(resp{1}) && isempty(resp{2})))		% User just Canceled
+			return
+		else
+			% Allow only one answer
+			if (isempty(resp{2}) && ~isempty(resp{1})),			resp{2} = resp{1};
+			elseif (isempty(resp{1}) && ~isempty(resp{2})),		resp{1} = resp{2};
+			end
+			x_inc = str2double(resp{1});		y_inc = str2double(resp{2});
+			if (isnan(x_inc) || x_inc <= 0 || isnan(y_inc) || y_inc <= 0)
+				show_manguito,	return
+			end
+			nx = round((x_max - x_min) / x_inc) + 1;
+			ny = round((y_max - y_min) / y_inc) + 1;
+		end
+	end
+
+	opt_I = sprintf('-I%.8g/%.8g', x_inc, y_inc);
 	opt_R = sprintf('-R%.12g/%.12g/%.12g/%.12g', x_min, x_min + (nx-1)*x_inc, y_min, y_min + (ny-1)*y_inc);
-	[Z, head] = gmtmbgrid_m(x, y, z, opt_I, opt_R, '-Mz', '-C2');
+	[Z, head] = gmtmbgrid_m(x, y, z, opt_I, opt_R, '-Mz', '-C4');
 	Z = single(Z);
 	tmp.X = linspace(head(1), head(2), size(Z,2));
 	tmp.Y = linspace(head(3), head(4), size(Z,1));
@@ -2472,13 +2521,22 @@ function set_symbol_uicontext(h,data)
 		end
 	end
 
+	% -------------- See if we may offer the Quick interpolation option ------------------
+	z = get(h, 'ZData');
+	if (isempty(z)),	z = getappdata(h, 'ZData');		end
+	if (~isempty(z))
+		item = uimenu(cmenuHand, 'Label', 'Quick grid', 'Sep', 'on');
+		uimenu(item, 'Label', 'auto', 'Call', {@pt_quick_grd,h,'a'});
+		uimenu(item, 'Label', 'set increments', 'Call', {@pt_quick_grd,h,'q'});
+	end
+
 	if (seismicity_options)
 		uimenu(cmenuHand, 'Label', 'Save events', 'Call', 'save_seismicity(gcf,gco)', 'Sep','on');
 		uimenu(cmenuHand, 'Label', 'Seismicity movie', 'Call', 'animate_seismicity(gcf,gco)');
 		uimenu(cmenuHand, 'Label', 'Draw polygon', 'Call', ...
-			'mirone(''DrawClosedPolygon_CB'',guidata(gcbo),''SeismicPolyg'')');
+		       'mirone(''DrawClosedPolygon_CB'',guidata(gcbo),''SeismicPolyg'')');
 		uimenu(cmenuHand, 'Label', 'Draw seismic line', 'Call', ...
-			'mirone(''DrawLine_CB'',guidata(gcbo),''SeismicLine'')');
+		       'mirone(''DrawLine_CB'',guidata(gcbo),''SeismicLine'')');
 		itemHist = uimenu(cmenuHand, 'Label','Histograms');
 		uimenu(itemHist, 'Label', 'Guttenberg & Richter', 'Call', 'histos_seis(gco,''GR'')');
 		uimenu(itemHist, 'Label', 'Cumulative number', 'Call', 'histos_seis(gco,''CH'')');
