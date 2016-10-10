@@ -1071,7 +1071,10 @@ end
 if (~invert && (numel(opt) == 1) && any(strcmp(opt2,{'MedianFilter' 'ROI_MedianFilter' 'SetConst' 'ROI_SetConst' 'SplineSmooth' ...
 		'FillSinks_pitt' 'FillSinks_peak'})))
 	cmenuHand = get(opt,'UIContextMenu');
-	uimenu(cmenuHand, 'Label', 'Undo', 'Separator','on', 'Callback', {@do_undo,handles.figure1,opt,cmenuHand});
+	u = findobj(cmenuHand, 'Label', 'Undo');
+	if (isempty(u))		% Otherwise just reuse previous one
+		uimenu(cmenuHand, 'Label', 'Undo', 'Separator','on', 'Callback', {@do_undo,handles.figure1,opt,cmenuHand});
+	end
 end
 guidata(handles.figure1, handles);		set(handles.figure1,'pointer','arrow')
 
@@ -3175,13 +3178,14 @@ function DrawImportOGR_CB(handles, fname)
 		is3D = ~isempty(s(k).Z);
 		if (isempty(s(k).X)),	continue,		end		% The out struct can have many empty elements
 		if (do_project),	ogrproj(s(k).X, s(k).Y, projStruc);		end		% Project into basemap coords
-		if ( strncmp(s(k).Type,'Point', 5) || strncmp(s(k).Type,'Line', 4) )
+		if (strncmp(s(k).Type,'Point', 5) || strncmp(s(k).Type,'Line', 4))
 			lsty = {'LineStyle', '-'};
 			if (s(k).Type(1) == 'P'),	lsty = {'LineStyle', 'none', 'Marker','o', 'MarkerSize',2, 'MarkerEdgeColor','k'};	end
 
 			h1(k) = line('Xdata',single(s(k).X),'Ydata',single(s(k).Y),'Parent',handles.axes1, ...
 				'Color',lc,'LineWidth',lt,'Tag','SHPpolyline',lsty{1:end});
-			if (is3D),		set(h1(k),'UserData', single(s(k).Z)),	end
+			%if (is3D),		set(h1(k),'UserData', single(s(k).Z)),	end
+			if (is3D),		setappdata(h1(k),'ZData', single(s(k).Z)),	end
 
 		else				% Polygons
 			% Make sure it knows that the Earth is round
@@ -3192,18 +3196,18 @@ function DrawImportOGR_CB(handles, fname)
 			end
 			h2(k) = patch('XData',s(k).X,'YData', s(k).Y,'FaceColor','none','EdgeColor',lc,'Parent',handles.axes1,'Tag','SHPpolygon');
 			if (is3D)								% IT'S IGNORING THE EARTH-IS-ROUND? TEST
-				set(h2(k), 'UserData', s(k).Z)		% Fleder can drape it (+ other eventual usages)
+				setappdata(h2(k), 'ZData', s(k).Z)	% Fleder can drape it (+ other eventual usages)
 			end
 			if (nGeoms <= nParanoia),	draw_funs(h2(k),'line_uicontext'),	end
 		end
 	end
 
 	h1((h1 == 0)) = [];		h2((h2 == 0)) = [];
-	if ( isempty(h1) && isempty(h2) ),	warndlg('No data inside display region','Warning'),		return,		end
-	if ( ~isempty(h1) )
+	if (isempty(h1) && isempty(h2)),	warndlg('No data inside display region','Warning'),		return,		end
+	if (~isempty(h1))
 		draw_funs(h1,'setSHPuictx')				% Set lines's uicontextmenu
 	end
-	if ( ~isempty(h2) && (nGeoms > nParanoia) )	% With luck, your hardware won't choke to dead with this
+	if (~isempty(h2) && (nGeoms > nParanoia))	% With luck, your hardware won't choke to dead with this
 		draw_funs(h2,'country_patch')			% nParanoia is an arbitrary number that practice will show dependency
 	end											% mostly on hardware, for I don't beleave ML will ever behave decently.
 
