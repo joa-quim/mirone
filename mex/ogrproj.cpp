@@ -23,7 +23,6 @@
  *
  */
 
-#define CNULL	((char *)NULL)
 #ifndef MIN
 #define MIN(x, y) (((x) < (y)) ? (x) : (y))	/* min and max value macros */
 #endif
@@ -212,24 +211,21 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 			z = (double *)mxCalloc(n_pts, sizeof(double));
 			for (j = 0; j < n_pts; j++)
 				z[j] = in_data[j+2*n_pts];
-
-			poCT->Transform( n_pts, x, y, z );
 		}
-		else
-			poCT->Transform( n_pts, x, y );
+		poCT->Transform(n_pts, x, y);
 	}
 	else {
 		x = mxGetPr(prhs[0]);	y = mxGetPr(prhs[1]);
-		poCT->Transform( n_pts, x, y );
+		poCT->Transform(n_pts, x, y);
 	}
 
 	OGRCoordinateTransformation::DestroyCT(poCT);
 	/*OGRSpatialReference::DestroySpatialReference ( &oSrcSRS );
 	OGRSpatialReference::DestroySpatialReference ( &oDstSRS );*/
-	if (pszSrcWKT && strlen(pszSrcWKT) > 1 ) OGRFree(pszSrcWKT);
-	if (pszDstWKT && strlen(pszDstWKT) > 1 ) OGRFree(pszDstWKT);
-	if (pszSrcWKT && strlen(pszSrcWKT) > 1 ) free((void *)pszSrcWKT);
-	if (pszDstWKT && strlen(pszDstWKT) > 1 ) free((void *)pszDstWKT);
+	if (pszSrcWKT && strlen(pszSrcWKT) > 1) OGRFree(pszSrcWKT);
+	if (pszDstWKT && strlen(pszDstWKT) > 1) OGRFree(pszDstWKT);
+	if (pszSrcWKT && strlen(pszSrcWKT) > 1) free((void *)pszSrcWKT);
+	if (pszDstWKT && strlen(pszDstWKT) > 1) free((void *)pszDstWKT);
 
 
 	if (nlhs) {	/* --------- Copy the result into plhs  ------------- */
