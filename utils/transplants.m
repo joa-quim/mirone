@@ -318,7 +318,9 @@ function [Zhost_rect, r_c, hdr_new] = job_no_nans(handlesHost, Zhost, handlesImp
 	else
 		opt_I = sprintf('-I%.16g/%.16g',handlesImp.head(8), handlesImp.head(9));
 	end
-	mask_skirt = ~(img_fun('roipoly_j',[x_min x_max],[y_min y_max],Zhost_rect,x,y));	% Mask at the Host grid resolution
+	%mask_skirt = ~(img_fun('roipoly_j',[x_min x_max]+[-eps eps],[y_min y_max]+[-eps eps],Zhost_rect,x,y));	% Mask at the Host grid resolution
+	% Do this trick to cheat the shity roipoly that fails when both regions are equal
+	mask_skirt = ~(img_fun('roipoly_j',[x_min x_max]+[eps -eps]*1e2,[y_min y_max]+[eps -eps]*1e2,Zhost_rect,x,y));
 
 	Zhost_skirt = double(Zhost_rect(mask_skirt));		% It F... has to be
 
@@ -332,7 +334,7 @@ function [Zhost_rect, r_c, hdr_new] = job_no_nans(handlesHost, Zhost, handlesImp
 	ZZ = [Zhost_skirt(:); double(Zimp(:))];				% Add Implant data with the skirt (of width pad-1) of Host data
 	opt_C = ' ';
 
-	Zhost_rect = gmtmbgrid_m(XX,YY,ZZ(:), opt_R, opt_I, '-T0.25', '-Mz', opt_C);
+	Zhost_rect = gmtmbgrid_m(XX,YY,ZZ(:), opt_R, opt_I, '-T0.25', '-Mz', opt_C, '-T100');
 
 	% For doing this with grdsample, but I need still to calculate the apropriate new 'r_c'
 % 	opt_R = sprintf('-R%.16g/%.16g/%.16g/%.16g', Ximp(1), Ximp(end), Yimp(1), Yimp(end));
