@@ -284,7 +284,7 @@ function implant
 	Z = transplants([], 'grid', true, hand1, hand2);
 	hand1.X = X;	hand1.Y = Y;
 	h = mirone(Z, hand1);
-	pause(0.5);		delete(h);
+	pause(2);		delete(h);
 
 % ----------------------------
 function hFig = helper_holes
@@ -306,7 +306,7 @@ function fill_poly_hole
 	hdrStruct2.Z = Z2;
 	handles = guidata(hFig);
 	transplants([], 'one_sharp', true, handles, hdrStruct2)
-	pause(0.5);		delete(hFig);
+	pause(1);		delete(hFig);
 
 % ----------------------------
 function digitize_hole
@@ -320,4 +320,4 @@ function digitize_hole
 	Z(~mask) = NaN;			% Revert what is NaN and what is not. Make the triang of const Z
 	setappdata(hFig,'dem_z',Z)
 	mirone('ImageEdgeDetect_CB', guidata(hFig), 'apalpa_body_10')	% Digitize the triang with a pad of 10
-	pause(0.5);		delete(hFig);
+	pause(1);		delete(hFig);
