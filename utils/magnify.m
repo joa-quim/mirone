@@ -38,10 +38,10 @@ function wbd_magnifyCB(obj, evt, hAx)
 	set(hAx, 'Color', get(hAxMag,'Color'));
 	set(hFig, 'Pointer','arrow', 'CurrentAxes',hAx);
 	uirestore_j(getappdata(hAx, 'Magnify_UIState'))
-	if ~strcmp(get(hFig,'SelectionType'),'alt')
+	%if ~strcmp(get(hFig,'SelectionType'),'alt')
 		delete(hAxMag)
 		setappdata(hAx, 'Magnified', '')
-	end
+	%end
 
 function wbm_magnifyCB(obj, evt, hAx)
 	hFig = get(hAx, 'parent');
@@ -50,9 +50,9 @@ function wbm_magnifyCB(obj, evt, hAx)
 		a2_param = get(hAxMag,'UserData');
 		f_pos  = get(hFig,'Position');
 		a1_pos = get(hAx,'Position');
-		fUnit = get(hFig,'Units');			set(hFig,'Units','pixels')
-		f_cp  = get(hFig,'CurrentPoint');
-		a1_cp = get(hAx,'CurrentPoint');
+		fUnit  = get(hFig,'Units');			set(hFig,'Units','pixels')
+		f_cp   = get(hFig,'CurrentPoint');
+		a1_cp  = get(hAx,'CurrentPoint');
 		set(hFig, 'Units', fUnit)
 		set(hAxMag,'Position',[(f_cp./f_pos(3:4)) 0 0] + a2_param(2)*a1_pos(3)*[-1 -1 2 2]);
 		a2_pos = get(hAxMag,'Position');
