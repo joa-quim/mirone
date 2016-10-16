@@ -21,7 +21,7 @@ function [out, msg, opt_R] = proj2proj_pts(handles, data, varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: proj2proj_pts.m 4567 2014-09-25 23:43:31Z j $
+% $Id: proj2proj_pts.m 9866 2016-10-16 18:37:47Z j $
 
 	opt_R = [];
 	[srcWKT, srcProj4, srcGMT, dstProj4, dstWKT, limits, pad, msg] = parseIn(handles, varargin{:});
@@ -50,7 +50,9 @@ function [out, msg, opt_R] = proj2proj_pts(handles, data, varargin)
 			data = trim_lims(data, limits, pad);
 		end
 		out = data;
-		msg = 'unknown conversion';
+		if (~isequal(srcProj4, '+proj=longlat'))	% Above we checked that if not the case, a dstWKT was assigned
+			msg = 'unknown conversion';
+		end
 		return
 	end
 
