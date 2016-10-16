@@ -50,7 +50,9 @@ function [out, msg, opt_R] = proj2proj_pts(handles, data, varargin)
 			data = trim_lims(data, limits, pad);
 		end
 		out = data;
-		msg = 'unknown conversion';
+		if (~isequal(srcProj4, '+proj=longlat'))	% Above we checked that if not the case, a dstWKT was assigned
+			msg = 'unknown conversion';
+		end
 		return
 	end
 
