@@ -310,7 +310,7 @@ function set_line_uicontext(h, opt)
 		end
 		if (handles.geog)
 			uimenu(cmenuHand, 'Label', 'Grid/Image mosaicer', 'Call', 'mosaicer(gco)');
-			uimenu(cmenuHand, 'Label', 'Get image from Web Map Server', 'Call', 'wms_tool(gco)');
+			%uimenu(cmenuHand, 'Label', 'Get image from Web Map Server', 'Call', 'wms_tool(gco)');
 			uimenu(cmenuHand, 'Label', 'CMT Catalog (Web download)', 'Call', 'globalcmt(gcf,gco)');
 		end
 
@@ -329,7 +329,6 @@ function set_line_uicontext(h, opt)
 			uimenu(item_tools, 'Label', 'Median filter', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''MedianFilter'')');
 			uimenu(item_tools, 'Label', 'Spline smooth', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''SplineSmooth'')');
 			uimenu(item_tools, 'Label', 'Histogram (grid)', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''CropaGrid_histo'')');
-			uimenu(item_tools, 'Label', 'Histogram (image)', 'Call', 'image_histo(guidata(gcbo),gco)');
 %			uimenu(item_tools, 'Label', 'Detect Fronts', 'Call', 'cayula_cornillon(guidata(gcbo),gco)');
 			uimenu(item_tools, 'Label', 'Power',           'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''CropaGrid_power'')');
 			uimenu(item_tools, 'Label', 'Autocorrelation', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''CropaGrid_autocorr'')');
@@ -374,7 +373,6 @@ function set_line_uicontext(h, opt)
 			uimenu(item_tools2, 'Label', 'Fill sinks', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''ROI_FillSinks_pitt'')');
 			uimenu(item_tools2, 'Label', 'Slice peaks','Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''ROI_FillSinks_peak'')');
 			uimenu(item_tools2, 'Label', 'Histogram (grid)', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''CropaGrid_histo'')');
-			uimenu(item_tools2, 'Label', 'Histogram (image)','Call', 'image_histo(guidata(gcbo),gco)');
 			hP = getappdata(handles.figure1, 'ParentFig');
 			if ( ~isempty(hP) && ishandle(hP) && ~isempty(strfind(get(handles.figure1,'Name'), 'spectrum')) )
 				uimenu(item_tools2, 'Label', 'Low Pass FFT filter', 'Call', 'mirone(''GridToolsSectrum_CB'',guidata(gcbo), ''lpass'', gco)');
