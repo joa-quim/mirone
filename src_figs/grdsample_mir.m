@@ -16,7 +16,7 @@ function varargout = grdsample_mir(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: grdsample_mir.m 9860 2016-10-11 23:39:58Z j $
+% $Id: grdsample_mir.m 9867 2016-10-16 18:39:36Z j $
 
 	if isempty(varargin)
 		errordlg('GRDSAMPLE: wrong number of input arguments.','Error'),	return
@@ -128,6 +128,7 @@ function edit_refGrid_CB(hObject, handles)
 
 %--------------------------------------------------------------------------------
 function push_refGrid_CB(hObject, handles, opt)
+% ATENTION: this will not work with GMT4
 	if (nargin == 2)
 		str1 = {'*.grd;*.GRD', 'Grid files (*.grd,*.GRD)';'*.*', 'All Files (*.*)'};
 		[FileName, PathName, handles] = put_or_get_file(handles,str1,'Select grid','get');
@@ -141,10 +142,14 @@ function push_refGrid_CB(hObject, handles, opt)
 	% Now fill the edit boxes after the -R -I of this grid
 	hdr = c_grdinfo(fname,'no_struct');
 	hdr = hdr.data;
-	set(handles.edit_x_min,'Str', hdr(1)),		set(handles.edit_x_max,'Str', hdr(2))
-	set(handles.edit_y_min,'Str', hdr(3)),		set(handles.edit_y_max,'Str', hdr(4))
-	set(handles.edit_x_inc,'Str', hdr(7)),		set(handles.edit_y_inc,'Str', hdr(8))
+	set(handles.edit_x_min,'Str', sprintf('%.12g',hdr(1))),		set(handles.edit_x_max,'Str', sprintf('%.12g',hdr(2)))
+	set(handles.edit_y_min,'Str', sprintf('%.12g',hdr(3))),		set(handles.edit_y_max,'Str', sprintf('%.12g',hdr(4)))
+	set(handles.edit_x_inc,'Str', sprintf('%.12g',hdr(7))),		set(handles.edit_y_inc,'Str', sprintf('%.12g',hdr(8)))
 	set(handles.edit_Ncols,'Str', hdr(9)),		set(handles.edit_Nrows,'Str', hdr(10))
+	handles.x_min = hdr(1);		handles.x_max = hdr(2);
+	handles.y_min = hdr(3);		handles.y_max = hdr(4);
+	handles.x_inc = hdr(7);		handles.y_inc = hdr(8);
+	guidata(handles.figure1, handles)
 
 % --------------------------------------------------------------------
 function push_Help_R_F_T_CB(hObject, handles)
@@ -219,7 +224,7 @@ function push_OK_CB(hObject, handles)
 	end
 
 	if (~n_set)
-        errordlg('You haven''t select anything usefull to do.','Chico Clever');   return
+        errordlg('You haven''t select anything usefull to do (Output grid would be equal to Input).','Chico Clever');   return
 	end
 
 	if (gmt_ver == 5)				% Than use the GMT5 syntax
@@ -228,10 +233,8 @@ function push_OK_CB(hObject, handles)
 		opt_N(end+1) = '+';
 	end
 
-	set(handles.figure1,'pointer','watch');	    set(handles.hMirFig,'pointer','watch')
 	newZ = c_grdsample(handles.Z, handles.head, opt_R, opt_N, opt_Q, opt_L);
 	zMinMax = grdutils(newZ,'-L');	    [ny,nx] = size(newZ);
-	set(handles.figure1,'pointer','arrow');	    set(handles.hMirFig,'pointer','arrow')
     new_head = [handles.head(1:4) zMinMax(1:2)' handles.head(7)];
 	if (~strcmp(opt_R,' '))       % Grid limits did change
         new_head(1:4) = [x_min x_max y_min y_max];    
