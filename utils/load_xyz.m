@@ -773,8 +773,8 @@ function varargout = load_xyz(handles, opt, opt2)
 			if (orig_no_mseg)
 				draw_funs(hLine,'line_uicontext')		% Here hLine is actually only a scalar
 			else
-				% Sometimes we still have only '>'. If only one segment test for that case and jump if true
-				if (numel(multi_segs_str) == 1) && (numel(multi_segs_str{i}) <= 2) && strfind(multi_segs_str{i}, '>')
+				% Sometimes we still have only '>'. If only one segment, test for that case and jump if true
+				if (numel(multi_segs_str) == 1) && (numel(multi_segs_str{1}) <= 2) && strfind(multi_segs_str{1}, '>')
 					draw_funs(hLine,'isochron', '')
 				else
 					draw_funs(hLine,'isochron', multi_segs_str)
