@@ -20,7 +20,7 @@ function varargout = mirone(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: mirone.m 9868 2016-10-16 18:41:40Z j $
+% $Id: mirone.m 9871 2016-10-19 22:30:06Z j $
 
 	if (nargin > 1 && ischar(varargin{1}))
 		if ( ~isempty(strfind(varargin{1},':')) || ~isempty(strfind(varargin{1},filesep)) )
@@ -291,6 +291,18 @@ function hObject = mirone_OpeningFcn(varargin)
 			handles.have_nans = grdutils(Z,'-N');
 			X = linspace(handles.head(1), handles.head(2), size(Z,2));
 			Y = linspace(handles.head(3), handles.head(4), size(Z,1));
+
+		elseif (n_argin == 3 && numel(varargin{1} == size(varargin{3},2)) && numel(varargin{2} == size(varargin{3},1)))
+			% A (X, Y, Z) where X,Y are the coord vectors and Z is the grid matrix
+			Z = varargin{3};			grd_data_in = true;
+			X = varargin{1}(:)';		Y = varargin{2}(:)';
+			if (X(2) < X(1)),			X = X(end:-1:1);	end
+			if (Y(2) < Y(1)),			Y = Y(end:-1:1);	end
+			if (~isa(Z,'single')),		Z = single(Z);		end
+			handles.have_nans = grdutils(Z,'-N');
+			win_name = 'Nikles';
+			zz = grdutils(Z,'-L');
+			handles.head = [X(1) X(end) Y(1) Y(end) zz(1) zz(2) 0 X(2)-X(1) Y(2)-Y(1)];
 
 		elseif (n_argin < 4 && ~(isa(varargin{1},'uint8') || isa(varargin{1},'int8')))
 			% A matrix. Treat it as if it is a gmt grid. No error testing on the grid head descriptor
