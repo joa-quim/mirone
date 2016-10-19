@@ -30,7 +30,7 @@ function [numeric_data,date,headerlines,str_col,out] = text_read(varargin)
 % This function uses some sub-functions of IMPORTDATA
 % Coffeeright Joaquim Luis
 
-% $Id: text_read.m 7730 2015-11-25 02:02:51Z j $
+% $Id: text_read.m 9870 2016-10-19 22:27:31Z j $
 
 	filename = varargin{1};     headerlines = 0;
 	requestedDelimiter = NaN;	requestedHeaderLines = NaN;		requestedMultiSeg = NaN;
@@ -41,32 +41,39 @@ function [numeric_data,date,headerlines,str_col,out] = text_read(varargin)
 	if (nargin > 3),    requestedMultiSeg = varargin{4};	end
 
 	if ~ischar(filename)				% get filename
-		errordlg('TEST_READ: Filename must be a string.','Error');		return
+		errordlg('TEXT_READ: Filename must be a string.','Error');		return
 	end
 
 	if isempty(filename)				% do some validation
-		errordlg('TEST_READ: Filename must not be empty.','Error');	return
+		errordlg('TEXT_READ: Filename must not be empty.','Error');	return
 	end
 
 	if ~isequal(exist(filename,'file'), 2)	% make sure file exists
-		errordlg('TEST_READ: File not found.','Error');	return
+		errordlg('TEXT_READ: File not found.','Error');	return
 	end
 
-	if (isnan(requestedHeaderLines))   % GUESS_FILE is better (and probably faster) in in guessing headers
+	if (isnan(requestedHeaderLines))	% GUESS_FILE is better (and probably faster) in in guessing headers
 		[bin, n_column, multi_seg, requestedHeaderLines] = guess_file(filename, 4096, 50);
+		if (multi_seg)					% OK, so we must avoid reading the '> ...' line too with the numeric format
+			requestedHeaderLines = requestedHeaderLines + 1;
+			if (multi_seg > 1)
+				warndlg(sprintf(['TEXT_READ: This is a multi-segment file with %d segments and it''s now ' ...
+				'probably too late to have detected that. Errors will probably follow.'],multi_seg), 'Warning')
+			end
+		end
 	end
 	hlines = requestedHeaderLines;		headerlines = requestedHeaderLines;
 
 	% ----------------------------- open the file ----------------
 	fid = fopen(filename);
-	if fid == (-1)
-		errordlg(['TEST_READ: Could not open file ', filename ,'.'],'Error');		return
+	if (fid == -1)
+		errordlg(['TEXT_READ: Could not open file ', filename ,'.'],'Error');		return
 	end
 	string = fread(fid,'*char').';
 	fclose(fid);
 
 	if isempty(string)                  % Check that file is not empty
-		errordlg('TEST_READ: Empty file.','Error');	return
+		errordlg('TEXT_READ: Empty file.','Error');	return
 	end
 
 	% get the delimiter for the file
@@ -74,7 +81,7 @@ function [numeric_data,date,headerlines,str_col,out] = text_read(varargin)
 		str = string(1:min(length(string),4096));       % Limit the variable size used to guess the delimiter
 		delimiter = guessdelim(str);    clear str;
 		if (numel(delimiter) > 1)						% Found more than one likely delimiter, where second is ' ' or '\t'
-			if ( isempty(strfind(delimiter,',')) )
+			if (isempty(strfind(delimiter,',')))
 				string = strrep(string, delimiter(2), delimiter(1));	% Replace occurences of second delimiter by first
 				delimiter = delimiter(1);
 			else
@@ -118,7 +125,7 @@ function [numeric_data,date,headerlines,str_col,out] = text_read(varargin)
 		clear string;
 		%out = LocalRowColShuffle(out);		Don't know WTF this was used too.
 	catch
-		errordlg('TEST_READ: Unknown error while parsing the file.','Error');
+		errordlg('TEXT_READ: Unknown error while parsing the file.','Error');
 		numeric_data = [];  date = [];  headerlines = 0;    str_col = [];   out = [];
 		return
 	end
@@ -650,7 +657,7 @@ if (isstruct(in1) && ~isempty(in1.textdata))	% We have at least one string colum
 		end
 
     else        % Shit, what shell I do?
-        errordlg('TEST_READ: Case not forseen in "col_str2dec".','Error')
+        errordlg('TEXT_READ: Case not forseen in "col_str2dec".','Error')
         numeric_data = [];  date = [];  str_col = [];   return;
     end
 elseif (isstruct(in1) && isempty(in1.textdata) && ~isempty(in1.data))     % Date string not found but found valid data 
