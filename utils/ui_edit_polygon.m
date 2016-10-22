@@ -82,12 +82,12 @@ function ui_edit_polygon(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: ui_edit_polygon.m 7945 2016-09-05 22:51:05Z j $
+% $Id: ui_edit_polygon.m 9877 2016-10-22 01:00:17Z j $
 
 	if (isa(varargin{end},'char'))	% Moving polygon option was transmitted in input
 		move_choice = varargin{end};
 		varargin(end) = [];
-		if ( ~(strncmp(move_choice, 'ex' ,2) || strcmp(move_choice, 'x') || strcmp(move_choice, 'y')) )
+		if (~(strncmp(move_choice, 'ex' ,2) || strcmp(move_choice, 'x') || strcmp(move_choice, 'y')) )
 			% Besides [], the other possible values are 'extend', 'x' or 'y'
 			move_choice = [];
 		end
@@ -99,7 +99,7 @@ function ui_edit_polygon(varargin)
 			move_choice = [];
 		end
 	end
-	if ( ~isempty(move_choice) && ~((move_choice(1) == 'x') || (move_choice(1) == 'y')) )
+	if (~isempty(move_choice) && ~((move_choice(1) == 'x') || (move_choice(1) == 'y')) )
 		move_choice = 'a';			% Means 'xy'
 	end
 
@@ -219,11 +219,11 @@ function polygonui(varargin)
 			s.controls = 'on';
 			if (~s.duplicate)
 				set(s.h_pol, 'Marker','s','MarkerEdgeColor','r', 'MarkerFaceColor','none', ...
-						'MarkerSize',5,'buttondownfcn',{@edit_polygon,s.h_pol});
+						'MarkerSize',6,'buttondownfcn',{@edit_polygon,s.h_pol});
 			else
 				s.h_vert = line('xdata',get(s.h_pol,'XData'),'ydata',get(s.h_pol,'YData'), ...
 						'Parent',s.h_ax, 'Marker','s','color','r', 'MarkerFaceColor','none', ...
-						'MarkerSize',5,'buttondownfcn',{@edit_polygon,s.h_pol});
+						'MarkerSize',6,'buttondownfcn',{@edit_polygon,s.h_pol});
 				% Now we also need to set the line style to be equal to original so that we can drag it
 				set(s.h_vert, 'linestyle',get(s.h_pol,'linestyle'), 'LineWidth',get(s.h_pol,'LineWidth'))
 			end
@@ -266,8 +266,9 @@ function edit_polygon(obj,evt,h)
 
 	s.save_x = x(s.vert_index);			s.save_y = y(s.vert_index);		% needed in the "i"nsert option
 	if isempty(s.hCurrentMarker)		% If the black marker doesn't exist, creat it
+		cor = get(s.h_pol, 'Color');
 		s.hCurrentMarker = line('xdata',s.save_x,'ydata', s.save_y, 'parent', s.h_ax,'Marker','s', ...
-								'MarkerFaceColor','k','MarkerSize',5,'Tag','current_marker');
+								'MarkerFaceColor',cor, 'MarkerSize',6, 'Tag','current_marker');
 		uistack_j(s.hCurrentMarker,'bottom')	% Since it has no ButtonDown and was on top
 	else								% The black marker exists, just move it.
 		set(s.hCurrentMarker,'XData',s.save_x,'YData',s.save_y)
@@ -384,7 +385,7 @@ function wbm_MovePolygon(obj,evt,h,lim)
 
 	if (~isempty(s.hCurrentMarker))				% If the black marker exists, move it too
 		x = get(s.hCurrentMarker,'XData');		y = get(s.hCurrentMarker,'YData');
-		if ( isempty(s.what_move) || s.what_move(1) == 'a' )
+		if (isempty(s.what_move) || s.what_move(1) == 'a')
 			if (isa(xx,'double'))
 				x = x + dx;		y = y + dy;
 			else
@@ -401,9 +402,9 @@ function wbm_MovePolygon(obj,evt,h,lim)
 
 	% When we have a duplicated line (originally a line with Markers), we have to move it too
 	if (s.duplicate)
-		if ( isempty(s.what_move) || s.what_move(1) == 'a' )
+		if (isempty(s.what_move) || s.what_move(1) == 'a')
 			set(s.h_vert, 'XData',xx, 'YData',yy);
-		elseif ( ~isempty(s.what_move) && s.what_move(1) == 'y' )
+		elseif (~isempty(s.what_move) && s.what_move(1) == 'y')
 			set(s.h_vert, 'YData',yy);
 		else
 			set(s.h_vert, 'YData',xx);
@@ -458,7 +459,7 @@ switch key
 			y = [y(1:s.vert_index) pt(1,2) y(s.vert_index+1:end)];
 			if (~isempty(z))
 				n = s.vert_index;
-				z = [z(1:n) inter_Z(x(n-1:n), y(n-1:n), z(n-1:n), pt) z(n+1:end)];
+				z = [z(1:n) interp_Z(x(n-1:n), y(n-1:n), z(n-1:n), pt) z(n+1:end)];
 			end
 			s.vert_index = s.vert_index+1;
 			set(s.hCurrentMarker,'XData',pt(1,1),'YData',pt(1,2));
@@ -637,7 +638,7 @@ function [x, y, z] = insert_pt(x_in, y_in, z_in, pt, hAx)
 			if (~isempty(z)),	z = [z(1) z];	end			% Do not extrapolate (!?)
 			x = [pt(1) x];		y = [pt(2) y];
 		else						% Current point lyies between the first two points
-			if (~isempty(z)),	z = [z(1) inter_Z(x(1:2), y(1:2), z(1:2), pt) z(2)];	end
+			if (~isempty(z)),	z = [z(1) interp_Z(x(1:2), y(1:2), z(1:2), pt) z(2)];	end
 			x = [x(1) pt(1) x(2:end)];		y = [y(1) pt(2) y(2:end)];
 		end
 		
@@ -648,7 +649,7 @@ function [x, y, z] = insert_pt(x_in, y_in, z_in, pt, hAx)
 			if (~isempty(z)),	z = [z z(1)];		end			% Do not extrapolate (!?)
 			x = [x pt(1)];		y = [y pt(2)];
 		else						% New point is between the two last points
-			if (~isempty(z)),	z = [z(1:i-1) inter_Z(x(i-1:i), y(i-1:i), z(i-1:i), pt) z(end)];	end
+			if (~isempty(z)),	z = [z(1:i-1) interp_Z(x(i-1:i), y(i-1:i), z(i-1:i), pt) z(end)];	end
 			x = [x(1:i-1) pt(1) x(end)];
 			y = [y(1:i-1) pt(2) y(end)];	
 		end
@@ -656,11 +657,11 @@ function [x, y, z] = insert_pt(x_in, y_in, z_in, pt, hAx)
 		a = ( (x(i) - x(i-1))^2 + (y(i) - y(i-1))^2 );		% square distance between current and before points
 		hypot_pitag = ( a + r(i) );
 		if ( r(i-1) < hypot_pitag )		% Insert point is in the interval [previous_point closest_point]
-			if (~isempty(z)),	z = [z(1:i-1) inter_Z(x(i-1:i), y(i-1:i), z(i-1:i), pt) z(i:end)];	end
+			if (~isempty(z)),	z = [z(1:i-1) interp_Z(x(i-1:i), y(i-1:i), z(i-1:i), pt) z(i:end)];	end
 			x = [x(1:i-1) pt(1) x(i:end)];
 			y = [y(1:i-1) pt(2) y(i:end)];			
 		else						% Insert point is in the interval [closest_point next_point]
-			if (~isempty(z)),	z = [z(1:i) inter_Z(x(i:i+1), y(i:i+1), z(i:i+1), pt) z(i+1:end)];	end
+			if (~isempty(z)),	z = [z(1:i) interp_Z(x(i:i+1), y(i:i+1), z(i:i+1), pt) z(i+1:end)];	end
 			x = [x(1:i) pt(1) x(i+1:end)];
 			y = [y(1:i) pt(2) y(i+1:end)];
 		end
@@ -716,9 +717,8 @@ function [x, y, z, idS, idE, is_subset] = get_subset(hAx, x, y, z, pt)
 	end
 
 %--------------------------------------------------
-function z = inter_Z(x, y, z, pt)
+function z = interp_Z(x, y, z, pt)
 % Do a crude estimate of the Z value by linear interpolation both in Z and horizontally
 	ri = (pt(1) - x(1))^2 + (pt(2) - y(1))^2;
 	r = (x(2) - x(1))^2 + (y(2) - y(1))^2;
 	z = z(1) + (z(2)-z(1)) * ri / r;
-
