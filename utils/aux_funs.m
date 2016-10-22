@@ -768,6 +768,8 @@ function pix_coords = getPixel_coords(img_length, XData, axes_coord)
 % IMG_LENGTH is the image width (n_columns)
 % XDATA is the image's [x_min x_max] in axes coordinates
 % AXES_COORD is the (x,y) coordinate of the point(s) to be converted
+%
+% Example call:		col = aux_funs('getPixel_coords', size(Z,2), [X(1) X(end)], x);
 
 	slope = (img_length - 1) / (XData(end) - XData(1));
 	if ((XData(1) == 1) && (slope == 1))
