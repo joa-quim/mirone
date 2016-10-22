@@ -4,7 +4,7 @@ function [latc,lonc] = circ_geo(lat, lon, rng, azim, np, noforce_pipi)
 % azim and np are optional arguments. "azim" is a one or two-column vector. 
 % For single column, returns the arc between 0 and azim. For two columns, returns
 % the arc between azim(1) and azim(2).
-% RNG is the radius of the circle. If it is a vector than compute as many circles as elements of RNG. 
+% RNG is the radius of the circle in degrees. If it is a vector than compute as many circles as elements of RNG. 
 % "np" specifies the number of output points [default = 180].
 % NOFORCE_PIPI		If TRUE angles are not truncated into the [-pi pi] interval (default)
 % All angles are in degrees.
