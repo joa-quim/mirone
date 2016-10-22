@@ -666,8 +666,8 @@ function load_MB(handles, fname, frmt)
 % --------------------------------------------------------------------------------------------------
 function varargout = ImageCrop_CB(handles, opt, opt2, opt3)
 % OPT  is either a handle to a line that may be a rectangle/polygon,
-%      a Mx2 or 2xM matrix with the (x y) vector coordinates, OR, if empty
-%      calls rubberbandbox to do a interactive croping (called by "Crop Grid")
+%      a Mx2, a 2xM matrix with the (x y) vector coordinates, or a [xmin xmax ymin ymax] BB.
+%      If empty, it calls rubberbandbox to do a interactive croping (called by "Crop Grid")
 % OPT2 is a string to direct this function to different operations that
 %      apply to the grid and update the image.
 % OPT3 contains the interpolation method when OPT2 == 'FillGaps' ('cubic', 'linear' or 'sea')
@@ -677,6 +677,7 @@ function varargout = ImageCrop_CB(handles, opt, opt2, opt3)
 % VARARGOUT -> If used will hold the result of this function instead of creating a new Fig
 %              Currently implemented in cases:
 %                  Crop image (opt == hLine), 'CropaWithCoords', 'CropaGrid_pure', 'ROI_Mean', 'ROI_Median', 'ROI_STD'
+%              For the 'CropaGrid_pure' case varargout actualy returns 4 values -- {X,Y,Z_rect,head}
 
 if (handles.no_file),		return,		end
 first_nans = 0;		pal = [];		mask = [];	crop_pol = false;	% Defaults to croping from a rectangle
@@ -696,8 +697,8 @@ if ~isempty(opt)				% OPT must be a rectangle/polygon handle (the rect may serve
 		end
 	end
 
-	xp(1) = min(x);		xp(2) = max(x);
-	yp(1) = min(y);		yp(2) = max(y);
+	xp = [min(x) max(x)];
+	yp = [min(y) max(y)];
 	if (numel(x) == 5 && (x(1) == x(end)) && (y(1) == y(end)) && ...		% Test if we have a rectangle
 	    (x(1) == x(2)) && (x(3) == x(4)) && (y(1) == y(4)) && (y(2) == y(3)) )
 		if (strcmp(opt2,'SetConst'))
@@ -2258,7 +2259,7 @@ function fix_axes_labels(handles)
 		t = strfind(xLabel(k,:), '.');
 		if (~isempty(t)),	tv(k) = nc - t;		end
 	end
-	n_dec = ceil(median(tv));
+	n_dec = ceil(mean(tv));
 	xLabel = num2str(xTick(:), sprintf('%%.%df', n_dec));
 
 	yTick  = get(handles.axes1, 'YTick');
@@ -2269,7 +2270,7 @@ function fix_axes_labels(handles)
 		t = strfind(yLabel(k,:), '.');
 		if (~isempty(t)),	tv(k) = nc - t;		end
 	end
-	n_dec = ceil(median(tv));
+	n_dec = ceil(mean(tv));
 	yLabel = num2str(yTick(:), sprintf('%%.%df', n_dec));
 	
 	set(handles.axes1, 'XTickLabel', xLabel, 'YTickLabel', yLabel)
