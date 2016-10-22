@@ -7,7 +7,7 @@ function [xx, yy, zz] = grid_profiler(hFig, xp, yp, point_int, do_dynamic, do_st
 %
 % When profiling an RGB image the output variable ZZ is a cell array.
 
-%	Copyright (c) 2004-2014 by J. Luis
+%	Copyright (c) 2004-2016 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -24,7 +24,14 @@ function [xx, yy, zz] = grid_profiler(hFig, xp, yp, point_int, do_dynamic, do_st
 
 % $Id$
 
-	handles = guidata(hFig);
+	if (ishandle(hFig))
+		handles = guidata(hFig);
+		hMir_handle = true;
+	else
+		handles = hFig;		% But here HFIG must have all we need in this function to run the simple grid interp case
+		hMir_handle = false;
+	end
+
 	if (nargin == 2 && ishandle(xp))	% Normally, a call from "Radial Average"
 		ud = getappdata(xp, 'donut');
 		try						% Use a try to find if the handle is from a donutified circle
@@ -48,6 +55,9 @@ function [xx, yy, zz] = grid_profiler(hFig, xp, yp, point_int, do_dynamic, do_st
 		point_int = false;		do_dynamic = false;		do_stack = false;
 	elseif (nargin <= 5)
 		do_stack = false;
+		if (nargin < 5)
+			do_dynamic = false;
+		end
 	end
 
 	if (nargin < 7)
@@ -58,8 +68,13 @@ function [xx, yy, zz] = grid_profiler(hFig, xp, yp, point_int, do_dynamic, do_st
 		point_int = true;
 	end
 
-	[X,Y,Z,head] = load_grd(handles,'silent');
-	if (getappdata(handles.figure1,'PixelMode')),	do_stack = false;	end		% Case not programed
+	if (hMir_handle)
+		[X,Y,Z] = load_grd(handles,'silent');
+	else
+		X = handles.X;	Y = handles.Y;	Z = handles.Z;
+	end
+
+	if (do_stack && getappdata(handles.figure1,'PixelMode')),	do_stack = false;	end		% Case not programed
 
 	if (point_int)				% Interpolation at line vertex (cannot be stacked)
 		xx = xp;    yy = yp;
@@ -89,14 +104,14 @@ function [xx, yy, zz] = grid_profiler(hFig, xp, yp, point_int, do_dynamic, do_st
 	end
 
 	% Interpolate
-	if ~isempty(getappdata(handles.figure1,'dem_x'))		% Grid is in memory
+	if (~isempty(X))										% Grid is in memory
         if (~getappdata(handles.figure1,'PixelMode'))		% Interpolation mode
 			if ((size(xx,1) == 1) || (size(xx,2) == 1))		% Typical, one tack interpolation only
-				zz = grdtrack_m(Z,head,[xx' yy'],'-Z')';
+				zz = grdtrack_m(Z,handles.head,[xx' yy'],'-Z')';
 			else							% Multi-track interpolation and stacking
-				zz = grdtrack_m(Z,head,[xx(1,:)' yy(1,:)'],'-Z')';
+				zz = grdtrack_m(Z,handles.head,[xx(1,:)' yy(1,:)'],'-Z')';
 				for (k = 2:size(xx,1))
-					zz = zz + grdtrack_m(Z,head,[xx(k,:)' yy(k,:)'],'-Z')';
+					zz = zz + grdtrack_m(Z,handles.head,[xx(k,:)' yy(k,:)'],'-Z')';
 				end
 				zz = zz / size(xx,1);
 			end
