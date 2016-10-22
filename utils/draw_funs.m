@@ -2476,6 +2476,7 @@ function set_symbol_uicontext(h,data)
 
 	if (~this_not)						% non class symbols can be moved
 		ui_edit_polygon(h)				% Set edition functions
+		uimenu(cmenuHand, 'Label', 'LOS', 'Call', 'line_of_sight(gco)');
 		uimenu(cmenuHand, 'Label', 'Move (precise)', 'Call', {@change_SymbPos,h}, 'Sep', sep);
 	end
 
