@@ -623,6 +623,7 @@ utils/intersections.m eol=lf
 utils/inv3d.m -text
 utils/ivan_the_terrible.m -text
 utils/jd2date.m -text
+utils/line_of_sight.m -text
 utils/load_grd.m -text
 utils/load_xyz.m -text
 utils/magnify.m -text
