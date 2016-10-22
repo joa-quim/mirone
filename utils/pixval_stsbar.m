@@ -3,7 +3,7 @@ function pixval_stsbar(arg1)
 
 % Coffeeright J. Luis 2004-2016
 
-% $Id: pixval_stsbar.m 9842 2016-10-03 01:28:03Z j $
+% $Id: pixval_stsbar.m 9876 2016-10-22 00:59:00Z j $
 
 	if (nargin == 0),	arg1 = [];		end
 
@@ -147,7 +147,7 @@ function UpdatePixelValues(figHandle,imageHandle, imageType, displayBar,img,x,y)
 		if (isempty(pMode)),		pMode = false;		end
 		if (isempty(rcMode)),		rcMode = false;		end
  		if (pMode || rcMode)
-			% Inside each grid cell, which is a pixel in the screen, display only the grid node value
+			% Inside each grid cell, which is a pixel on the screen, display only the grid node value
 			rows = size(img, 1);		cols = size(img, 2);
 			rp = getPixel_coords(rows, get(imageHandle,'YData'),y);
 			cp = getPixel_coords(cols, get(imageHandle,'XData'),x);
