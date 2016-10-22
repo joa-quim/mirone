@@ -147,7 +147,7 @@ function UpdatePixelValues(figHandle,imageHandle, imageType, displayBar,img,x,y)
 		if (isempty(pMode)),		pMode = false;		end
 		if (isempty(rcMode)),		rcMode = false;		end
  		if (pMode || rcMode)
-			% Inside each grid cell, which is a pixel in the screen, display only the grid node value
+			% Inside each grid cell, which is a pixel on the screen, display only the grid node value
 			rows = size(img, 1);		cols = size(img, 2);
 			rp = getPixel_coords(rows, get(imageHandle,'YData'),y);
 			cp = getPixel_coords(cols, get(imageHandle,'XData'),x);
