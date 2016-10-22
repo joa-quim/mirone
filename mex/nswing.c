@@ -1,5 +1,5 @@
 /*--------------------------------------------------------------------
- *	$Id: nswing.c 7968 2016-09-29 18:48:41Z j $
+ *	$Id: nswing.c 9884 2016-10-22 17:26:19Z j $
  *
  *	Copyright (c) 2012-2015 by J. Luis and J. M. Miranda
  *
@@ -16,7 +16,7 @@
  *	Contact info: w3.ualg.pt/~jluis/mirone
  *--------------------------------------------------------------------*/
 
-static char prog_id[] = "$Id: nswing.c 7968 2016-09-29 18:48:41Z j $";
+static char prog_id[] = "$Id: nswing.c 9884 2016-10-22 17:26:19Z j $";
 
 /*
  *	Original Fortran version of core hydrodynamic code by J.M. Miranda and COMCOT
@@ -137,7 +137,7 @@ union {uint64_t i; double d;} loc_nan = {0x7ff8000000000000};
 #define	NORMAL_GRAV	9.806199203     /* Moritz's 1980 IGF value for gravity at 45 degrees latitude */
 #define	EQ_RAD 6378137.0            /* WGS-84 */
 #define	flattening  1.0/298.2572235630
-//#define LIMIT_DISCHARGE			/* If defined the moment functions will limit the discharge */
+#define LIMIT_DISCHARGE			/* If defined the moment functions will limit the discharge */
 #define ECC2  2 * flattening - flattening * flattening
 #define ECC4  ECC2 * ECC2
 #define ECC6  ECC2 * ECC4
@@ -419,8 +419,8 @@ int main(int argc, char **argv) {
 	char   *fname3D  = NULL;             /* Name pointer for the 3D netCDF file */
 	char   *fonte    = NULL;             /* Name pointer for tsunami source file */
 	char   *bnc_file = NULL;             /* Name pointer for a boundary condition file */
-	char   *fname_mask_lbeach = NULL;    /* Name pointer for the "long_beach" mask grid */
-	char   *fname_mask_sbeach = NULL;    /* Name pointer for the "short_beach" mask grid */
+	char    fname_mask_lbeach[256] = ""; /* Name pointer for the "long_beach" mask grid */
+	char    fname_mask_sbeach[256] = ""; /* Name pointer for the "short_beach" mask grid */
 	char    tracers_infile[256] = "", tracers_outfile[256] = "";	/* Names for in and out tracers files */
 	char    stem[256] = "", prenome[128] = "", str_tmp[128] = "", fname_momentM[256] = "", fname_momentN[256] = "";
 	char    history[512] = {""};         /* To hold the full command call to be saved in nc files as History */
@@ -812,14 +812,14 @@ int main(int argc, char **argv) {
 						if (argv[i][3])
 							sscanf(&argv[i][3], "%s", fname_mask_lbeach);
 						else
-							fname_mask_lbeach = "long_beach.grd";
+							strcpy(fname_mask_lbeach, "long_beach.grd");
 					}
 					else if (argv[i][2] == '+') {	/* Compute a mask with ones over the "innundated beach" */
 						nest.do_short_beach = TRUE;
 						if (argv[i][3])
 							sscanf(&argv[i][3], "%s", fname_mask_sbeach);
 						else
-							fname_mask_sbeach = "short_beach.grd";
+							strcpy(fname_mask_sbeach, "short_beach.grd");
 					}
 					else
 						max_level = TRUE;
@@ -839,7 +839,7 @@ int main(int argc, char **argv) {
 						error++;
 					}
 					break;
-				case 'Q':		/* Vertical offset (simulate tide) */
+				case 'Q':	/* Vertical offset (simulate tide) */
 					if (argv[i][2])
 						sscanf(&argv[i][2], "%lf", &z_offset);
 
@@ -1048,9 +1048,11 @@ int main(int argc, char **argv) {
 		mexPrintf("\t-L Use linear approximation in moment conservation equations (faster but less good).\n");
 		mexPrintf("\t-L <in_fname>,<out_fname> Do Lagragian tracers, where <in_fname> is the file name of the tracers\n");
 		mexPrintf("\t   initial position and <out_fname> the file name to hold the results.\n");
-		mexPrintf("\t-M write grid of max water level. Append a '-' to compute instead the maximum water retreat.\n");
-		mexPrintf("\t   The result is writen in a mask file with a default name of 'long_beach.grd'.\n");
-		mexPrintf("\t   To use a different name append it after the '-' sign. Example: -M-beach_long.grd\n");
+		mexPrintf("\t-M write a grid with the max water level. The file name is controled by the <name> in the -Z option,\n");
+		mexPrintf("\t   complemented with a '_max' prefix.\n");
+		mexPrintf("\t   Append a '-' to compute instead the maximum water retreat. The result is writen to a\n");
+		mexPrintf("\t   mask file, witch by default is called 'long_beach.grd'. To use a different name append it\n");
+		mexPrintf("\t   after the '-' sign. Example: -M-beach_long.grd\n");
 		mexPrintf("\t   Append a '+' to compute instead a mask with the Run In extent. Otherwise behaves like -M-.\n");
 		mexPrintf("\t   You can repeat -M to compute any of the above. I.e. -M -M- -M+ will compute all three..\n");
 		mexPrintf("\t   Note that if -Z was used the 'long' and 'short' beach arrays will be saved in the .nc file too.\n");
