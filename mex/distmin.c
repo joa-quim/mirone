@@ -79,22 +79,22 @@
 #define atan2d(y,x) (atan2(y,x) * R2D)
 #define sincosd(x,s,c) sincos((x) * D2R,s,c)
 
-void geo_to_cart (double lat, double lon, double *a, int degrees);
-void cart_to_geo (double *lat, double *lon, double *a, int degrees);
-void cross3v (double *a, double *b, double *c);
-void normalize3v (double *a);
-double mag3v (double *a);
-double dot3v (double *a, double *b);
+static void geo_to_cart (double lat, double lon, double *a, int degrees);
+static void cart_to_geo (double *lat, double *lon, double *a, int degrees);
+static void cross3v (double *a, double *b, double *c);
+static void normalize3v (double *a);
+static double mag3v (double *a);
+static double dot3v (double *a, double *b);
 double GMT_distance(double x0, double y0, double x1, double y1);
-double great_circle_dist (double lon1, double lat1, double lon2, double lat2);
-double great_circle_dist2 (double cosa, double sina, double lon1, double lon2, double lat2);
+static double great_circle_dist (double lon1, double lat1, double lon2, double lat2);
+static double great_circle_dist2 (double cosa, double sina, double lon1, double lon2, double lat2);
 void sincos (double a, double *s, double *c);
 double dists_sph (double *lon, double *lat, int n_pt, double *r_lon, double *r_lat, double *lengthsRot, 
                   int n_pt_rot, int nlhs, double *xy_near, double *dists, double *weights, double class_dist[]);
-void dists_cart (double *lon, double *lat, double *r_lon, double *r_lat, double *lengthsRot, 
+static void dists_cart (double *lon, double *lat, double *r_lon, double *r_lat, double *lengthsRot, 
                  int n_pt, int n_pt_rot, double *dist, double *segLen);
-int great_circle_intersection (double A[], double B[], double C[], double X[], double *CX_dist);
-int near_a_line_spherical (double lon, double lat, double *line_lon, double *line_lat, int n_pt, int row_s,
+static int great_circle_intersection (double A[], double B[], double C[], double X[], double *CX_dist);
+static int near_a_line_spherical (double lon, double lat, double *line_lon, double *line_lat, int n_pt, int row_s,
                            double *dist_min, int *seg_number, double *x_near, double *y_near);
 
 /* --------------------------------------------------------------------------- */
