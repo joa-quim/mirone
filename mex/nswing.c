@@ -998,7 +998,7 @@ int main(int argc, char **argv) {
 
 	if (argc <= 1 || error) {
 #ifdef LIMIT_DISCHARGE
-		mexPrintf("NSWING - A tsunami maker (%s)\t\t-- With DISCHARGE limit.\n\n", prog_id)
+		mexPrintf("NSWING - A tsunami maker (%s)\t\t-- With DISCHARGE limit.\n\n", prog_id);
 #else
 		mexPrintf("NSWING - A tsunami maker (%s)\n\n", prog_id);
 #endif
@@ -1634,7 +1634,7 @@ int main(int argc, char **argv) {
 		if (EPS4 != EPS4_)
 			mexPrintf("Using a modified EPS4 const of %g\n", EPS4);
 #ifdef LIMIT_DISCHARGE
-		mexPrintf("\nUsing DISCHARGE limit to minimize sources of instability\n")
+		mexPrintf("\nUsing DISCHARGE limit to minimize sources of instability\n");
 #endif
 		mexPrintf("\n");
 	}
