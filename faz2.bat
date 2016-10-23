@@ -7,7 +7,7 @@ REM If set to "yes", fish the MEXs with the old .dll extension
 SET R13="no"
 
 REM Set to 32 or 64 to the corresponding bitage version
-SET BITS=32
+SET BITS=64
 
 IF %R13%=="yes" SET BITS=32
 
@@ -16,7 +16,7 @@ SET P=c:\programs\compa_libs\DLLs_%BITS%\
 SET Pj=c:\j\bin\
 
 REM The GDAL location 
-SET Pgd=C:\programs\GDALtrunk\gdal\compileds\VC10_%BITS%\bin\
+SET Pgd=C:\programs\compa_libs\gdal\compileds\VC12_%BITS%\bin\
 REM ------------------------------------------------------------------------------------------------
 
 IF %BITS%==64 (
@@ -57,6 +57,7 @@ copy /Y %Pj%gunzip.exe .      && copy /Y %Pj%unzip.exe .     && copy /Y %Pj%wget
 copy /Y %Pgd%gdalinfo.exe .   && copy /Y %Pgd%gdal_translate.exe .
 copy /Y %PVC%msvcp100.dll .   && copy /Y %PVC%msvcr100.dll .
 copy /Y %PVC2%msvcp120.dll .  && copy /Y %PVC2%msvcr120.dll .
+copy /Y %P2%gmt.m .
 
 REM ------------- Copy the MEXs and the P codes --------------------------------------
 md utils  && md lib_mex  &&  cd utils
@@ -65,6 +66,8 @@ IF %R13%=="yes" (
 copy /Y %P2%lib_mex_dll\p\*.p .
 cd ..\lib_mex
 copy /Y %P2%lib_mex_dll\*.dll .
+cd ..
+copy /Y %P2%\gmtmex.dll .
 SET R13="R13"
 
 ) ELSE (
@@ -73,11 +76,12 @@ copy /Y %P2%utils\*.p .
 cd ..\lib_mex
 copy /Y %P2%lib_mex\*.%MEX_EXT% .
 IF %BITS%==32 copy /Y %P2%lib_mex\*.dll .
+cd ..
+copy /Y %P2%\gmtmex.%MEX_EXT% .
 SET R13=
 )
 REM ----------------------------------------------------------------------------------
 
-cd ..
 
 REM Create a simple readme
 echo unzip the contents of this file to the Mirone's root directory > READEME.txt
