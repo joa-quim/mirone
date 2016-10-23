@@ -45,7 +45,7 @@ function varargout = mirone_pref(varargin)
 			handles.deflation_level = 0;
 		end
 		try		handles.gmt_ver = prf.gmt_ver;		% Hope that this will be a temporary thing till GMT5 is fully working
-		catch,	handles.gmt_ver = 4;
+		catch,	handles.gmt_ver = 5;
 		end
 	catch
 		handles.moveDoubleClick = 1;% 		"
@@ -57,7 +57,7 @@ function varargout = mirone_pref(varargin)
 		DefineEllipsoide = [];
 		handles.bg_color = [1 1 1];			% Default is white, but should be update by mirone_pref contents
 		handles.deflation_level = 0;		% Default to classic netCDF
-		handles.gmt_ver = 4;
+		handles.gmt_ver = 5;
 		% We need also to create an empty pref file that will be updated by push_OK_CB
 		version7 = version;
 		V7 = (sscanf(version7(1),'%f') > 6);
