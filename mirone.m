@@ -20,7 +20,7 @@ function varargout = mirone(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: mirone.m 9882 2016-10-22 17:11:25Z j $
+% $Id: mirone.m 9888 2016-10-23 00:26:18Z j $
 
 	if (nargin > 1 && ischar(varargin{1}))
 		if ( ~isempty(strfind(varargin{1},':')) || ~isempty(strfind(varargin{1},filesep)) )
@@ -167,13 +167,13 @@ function hObject = mirone_OpeningFcn(varargin)
 		handles.bg_color = prf.nanColor;
 		handles.deflation_level = prf.deflation_level;
 		try		gmt_ver = prf.gmt_ver;		% Hope that this will be a temporary thing till GMT5 is fully working
-		catch,	gmt_ver = 4;
+		catch,	gmt_ver = 5;
 		end
 	catch
 		% Tell mirone_pref to write up the defaults.
 		mirone_pref(handles,'nikles')
 		handles = guidata(handles.figure1);					% And need also the updated handles
-		gmt_ver = 4;										% Default to GMT4
+		gmt_ver = 5;										% Default to GMT4
 	end
 
 	j = false(1,numel(handles.last_directories));			% vector for eventual cleaning non-existing dirs
