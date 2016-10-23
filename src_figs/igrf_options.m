@@ -1,7 +1,7 @@
 function varargout = igrf_options(varargin)
 % Select options to pass to the igrf_m MEX and conpute IGRF 
 
-%	Copyright (c) 2004-2014 by J. Luis
+%	Copyright (c) 2004-2016 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -16,7 +16,7 @@ function varargout = igrf_options(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: igrf_options.m 4611 2014-11-03 00:56:13Z j $
+% $Id: igrf_options.m 9893 2016-10-23 19:56:08Z j $
 
 	hObject = figure('Vis','off');
 	igrf_options_LayoutFcn(hObject);
@@ -270,7 +270,7 @@ function edit_Elev_CB(hObject, handles)
 	if (isnan(xx)),    set(hObject,'String','0'),	return,	end
 	lon = str2double(get(handles.edit_LonDec,'String'));
 	lat = str2double(get(handles.edit_LatDec,'String'));
-	elev = str2double(xx);
+	elev = str2double(xx) / 1000;
 	date = str2double(get(handles.edit_DateDec,'String'));
 	dms = dec2deg(lon,'opt');       % Convert decimal degrees in deg,min,sec
 	set(handles.edit_LonDeg,'String',sprintf('%.0f',dms(1)))
@@ -623,7 +623,7 @@ function [f, hdr] = push_ComputeGrid_CB(hObject, handles)
         errordlg('Yinc box is empty. Give a reasonable value','Error');    return
 	end
 	elev = str2double(get(handles.edit_Elev,'String'));
-	date = str2double(get(handles.edit_DateDec,'String'))
+	date = str2double(get(handles.edit_DateDec,'String'));
 	xmin = str2double(xmin);    xmax = str2double(xmax);    xinc = str2double(xinc);
 	ymin = str2double(ymin);    ymax = str2double(ymax);    yinc = str2double(yinc);
 
