@@ -535,6 +535,7 @@ utils/aqua_suppfuns.m -text
 utils/area_geo.m -text
 utils/aux_funs.m -text
 utils/azimuth_geo.m -text
+utils/bathymetrator.m -text
 utils/bi_linear.m -text
 utils/bpass3d.m -text
 utils/buffer_j.m -text
@@ -622,6 +623,7 @@ utils/intersections.m eol=lf
 utils/inv3d.m -text
 utils/ivan_the_terrible.m -text
 utils/jd2date.m -text
+utils/line_of_sight.m -text
 utils/load_grd.m -text
 utils/load_xyz.m -text
 utils/magnify.m -text
