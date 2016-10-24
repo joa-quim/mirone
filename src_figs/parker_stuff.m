@@ -1,7 +1,7 @@
 function varargout = parker_stuff(varargin)
 % Helper window to do Parker inversions and Reduce To the Pole 
 
-%	Copyright (c) 2004-2013 by J. Luis
+%	Copyright (c) 2004-2016 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -16,7 +16,7 @@ function varargout = parker_stuff(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: parker_stuff.m 4251 2013-12-27 04:08:18Z j $
+% $Id: parker_stuff.m 9894 2016-10-24 13:49:02Z j $
 
 	hObject = figure('Vis','off');
 	parker_stuff_LayoutFcn(hObject);
@@ -77,8 +77,9 @@ function varargout = parker_stuff(varargin)
 			handMir = guidata(handles.hCallingFig);
 			if (handMir.validGrid)
 				[X, Y, Z, head] = load_grd(handMir);
-				if ( ~isempty(Z) && head(5) < 0 && head(6) > 0 )	% Run some simple tests
+				if (~isempty(Z) && head(5) < 0 && head(6) > 0)	% Run some simple tests
 					handles.X = X;	handles.Y = Y;	handles.Z_src = Z;	handles.head_src = head;
+					handles.have_nans = handMir.have_nans;
 					push_SourceGrid_CB(handles.push_SourceGrid, handles, '__inMEM')
 					set(handles.edit_SourceGrid,'String',' In memory array','Enable','off')
 					handles = guidata(hObject);		% Get the updated version
