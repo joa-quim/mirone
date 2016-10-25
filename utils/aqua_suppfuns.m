@@ -1,7 +1,7 @@
 function varargout = aqua_suppfuns(opt, varargin)
 % Supplement functions to allow using Aquamoto with plain netCDF coards grids
 
-%	Copyright (c) 2004-2013 by J. Luis
+%	Copyright (c) 2004-2016 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -283,16 +283,17 @@ function coards_sliceShow(handles, Z)
 
 		if (handles.useLandPhoto)
 			alfa = 255;		% Means land will be completely opac and water 100% transparent
+			[nr, nc] = size(indLand);
 			if (~isempty(handles.hMirFig) && ishandle(handles.handMir.hImg))	% A Mirone figure with image already exists
 				alphaMask = get(handles.handMir.hImg,'AlphaData');
 				if (numel(alphaMask) == 1)		% No AlphaMask yet, but we'll need one further down
-					alphaMask = alloc_mex(size(indLand),'uint8');	% Create an image mask of Dry/Wets
+					alphaMask(nr, nc) = uint8(0);
 					alphaMask(~indLand) = alfa;
 				else							% AlphaMask exists, but we need to update it to reflect this slice water level
 					alphaMask(indLand) = 0;		alphaMask(~indLand) = alfa;
 				end
 			else								% The Mirone figure will be created later. Compute the AlphaMask
-				alphaMask = alloc_mex(size(indLand),'uint8');	% Create an image mask of Dry/Wets
+				alphaMask(nr, nc) = uint8(0);
 				alphaMask(~indLand) = alfa;
 			end
 		end
@@ -334,7 +335,7 @@ function coards_sliceShow(handles, Z)
 		handles.firstLandPhoto = true;
 		if (handles.useLandPhoto)
 			h = image('XData',handles.geoPhotoX,'YData',handles.geoPhotoY, 'CData',handles.geoPhoto, 'Parent',handles.handMir.axes1);
-			uistack(h,'bottom')
+			uistack_j(h,'bottom')
 			handles.firstLandPhoto = false;
 			set(handles.handMir.hImg,'AlphaData',alphaMask)	% 'alphaMask' was updated ... maybe somewhere
 		end
@@ -349,7 +350,7 @@ function coards_sliceShow(handles, Z)
 		if (handles.useLandPhoto)							% External Land image
 			if (handles.firstLandPhoto)						% First time, create the background image
 				h = image('XData',handles.geoPhotoX,'YData',handles.geoPhotoY, 'CData',handles.geoPhoto, 'Parent',handles.handMir.axes1);
-				uistack(h,'bottom')
+				uistack_j(h,'bottom')
 				handles.firstLandPhoto = false;
 			end
 			set(handles.handMir.hImg,'AlphaData',alphaMask)	% 'alphaMask' was updated ... somewhere
