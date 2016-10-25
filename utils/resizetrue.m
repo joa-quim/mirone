@@ -27,7 +27,7 @@ function varargout = resizetrue(handles, opt, axis_t, opt_pad)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 	
-% $Id: resizetrue.m 4702 2015-04-15 14:29:36Z j $
+% $Id: resizetrue.m 9895 2016-10-25 20:00:41Z j $
 
 	if (nargin < 4),	opt_pad = 0;	end
 
@@ -226,11 +226,15 @@ function resize(hAxes, hImg, imSize, opt, withSliders, firstFigSize, pad_left)
     % One more atempt to make any sense out of this non-sense
     tenSizeX = 0;       tenSizeY = 0;   % When axes labels have 10^n this will hold its ~ text height
     XTickLabel = get(hAxes,'XTickLabel');    XTick = get(hAxes,'XTick');
-	if (isa(XTickLabel,'cell')),		XTickLabel = XTickLabel{end};		end		% In Octave it is
+	if (isa(XTickLabel,'cell'))			% In R2015 and Octave it is
+		if (~strcmp(XTickLabel{end}, '0')),		XTickLabel = XTickLabel{end};
+		else									XTickLabel = XTickLabel{end-1};
+		end
+	end
     if (XTick(end) ~= 0)				% See that we do not devide by zero
 		test_tick = XTick(end);			test_tick_str = sscanf(XTickLabel(end,:),'%f');
 	else								% They cannot be both zero
-		test_tick = XTick(end-1);		test_tick_str = sscanf(XTickLabel(end-1,:),'%f');
+		test_tick = XTick(end-1);		test_tick_str = sscanf(XTickLabel(end,:),'%f');
     end
     if ( test_tick_str && (test_tick_str / test_tick < 0.1) )	% Also test if first guy is != 0
 		% We have a 10 power. That's the only way I found to detect
@@ -241,7 +245,11 @@ function resize(hAxes, hImg, imSize, opt, withSliders, firstFigSize, pad_left)
     % OK, here the problem is that YTickLabel still does not exist (imgHeight +- 2 or 3)
     set(hAxes, 'Position', axPos+[0 -500 0 500]);        % So, use this trick to set it up
     YTickLabel = get(hAxes,'YTickLabel');    YTick = get(hAxes,'YTick');
-	if (isa(YTickLabel,'cell')),		YTickLabel = YTickLabel{end};		end		% In Octave it is
+	if (isa(YTickLabel,'cell'))			% In R2015 and Octave it is
+		if (~strcmp(YTickLabel{end}, '0')),		YTickLabel = YTickLabel{end};
+		else									YTickLabel = YTickLabel{end};
+		end
+	end
     if (YTick(end) ~= 0)				% See that we do not devide by zero
         test_tick = YTick(end);			test_tick_str = sscanf(YTickLabel(end,:),'%f');
 	else								% They cannot be both zero
