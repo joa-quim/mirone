@@ -54,9 +54,7 @@ function filename = write_flederFiles(opt,varargin)
 			[FileName,PathName] = put_or_get_file(handles,str1,'Name stem for the 3 (.geo, .dtm, .shade) IVS files','put');
 			if isequal(FileName,0),		return,		end
 			[PATH,FNAME] = fileparts(FileName);    fname = [PathName filesep FNAME];
-			set(handles.figure1,'pointer','watch')
 			write_all3(fname,handles.flederPlanar,Z,img,head(1:6))
-			set(handles.figure1,'pointer','arrow')
 			return
 		end
 
@@ -69,7 +67,6 @@ function filename = write_flederFiles(opt,varargin)
 			fname = [handles.path_tmp 'lixoSD.sd'];
 		end
 
-		set(handles.figure1,'pointer','watch')
 		[PATH,FNAME,EXT] = fileparts(fname);
 		if isempty(EXT),    fname = [fname '.sd'];  end
 		if (strcmp(opt(end-2:end),'img'))		% either writeGeoimg or runGeoimg
@@ -100,7 +97,6 @@ function filename = write_flederFiles(opt,varargin)
 			write_lines_or_points(fid, handles.axes1, head(1:6), handles.flederBurn);
 		end
 		write_eof(fid)						% Write EOF block and close the file
-		set(handles.figure1,'pointer','arrow')
 	end
 
 	% Go trough here when using specific external calls (some are probably not possible to call from outside)
@@ -121,12 +117,12 @@ function filename = write_flederFiles(opt,varargin)
 		case 'line'
 			write_line(varargin{:});    % Write line objects
 		case 'points'
-			if (ischar(varargin{1}))	varargin{1} = fopen(varargin{1},'wb');	end		% Was file name
+			if (ischar(varargin{1})),	varargin{1} = fopen(varargin{1},'wb');	end		% Was file name
 			write_pts(varargin{:});     % Write point objects
 			write_eof(varargin{1})		% Write EOF block and close the file
 	end
 
-	if (nargout)	filename = fname;	end		% Otherwise the compiled version would silently error
+	if (nargout),	filename = fname;	end		% Otherwise the compiled version would silently error
 
 %----------------------------------------------------------------------------------
 function [img, img2] = getImg(handles)
@@ -140,7 +136,7 @@ function [img, img2] = getImg(handles)
 	% The UD flip horror.
 	flipa = false;
 	if (strcmp(get(handles.axes1,'Ydir'),'reverse') && handles.flederBurn ~= 2),    	flipa = true;
-	elseif (strcmp(get(handles.axes1,'Ydir'),'normal') && handles.flederBurn == 2)		flipa = true;
+	elseif (strcmp(get(handles.axes1,'Ydir'),'normal') && handles.flederBurn == 2),		flipa = true;
 	end
 
 	img2 = [];		% To hold original image in case of drapping when displayed image was resized
@@ -591,6 +587,7 @@ if (~isempty(ALLlineHand))
 	hands_sort = ALLlineHand(ind);			% Sort also the handles according to the previous sorting cretirea
 	difs = diff([tmp(1,:); tmp]);			% Repeat first row to account for the decrease 1 resulting from diff
 	id_row = find(difs ~= 0);				% Find the lines of different type
+	id_row = rem(id_row, size(difs,1));		% Get the line index. Before it was the linear index
 	id_row = unique(id_row);				% Get rid of repeated values
 	id_row = [1; id_row];					% Make id_row start at one
 	id_row(end+1) = size(tmp,1);			% Add the last row as well (for the algo)
@@ -792,7 +789,7 @@ function write_pts(fid,hand,mode,limits,opt)
 			PointRad = get(hand(i),'MarkerSize') / 72 * 2.54 / 7;   % Symbol size. The 7 is an ad-hoc corr factor
 		else
 			[m n] = size(hand{i});		% We must allow for column or row vectors in input
-			if (m > n)		xx = hand{i}(:,1)';		yy = hand{i}(:,2)';
+			if (m > n),		xx = hand{i}(:,1)';		yy = hand{i}(:,2)';
 			else			xx = hand{i}(1,:);		yy = hand{i}(2,:);
 			end
 		end
@@ -805,11 +802,11 @@ function write_pts(fid,hand,mode,limits,opt)
 		else
 			if (ishandle(hand(i)))
 				zz = get(hand(i),'ZData');
-				if (isempty(zz))	zz = getappdata(hand(i),'ZData');	end		% Try this too
-				if (isempty(zz))	zz = get(hand(i),'UserData');	end		% Try this too
+				if (isempty(zz)),	zz = getappdata(hand(i),'ZData');	end		% Try this too
+				if (isempty(zz)),	zz = get(hand(i),'UserData');		end		% Try this too
 			else
 				if (min(m,n) == 3)	% Have Z
-					if (m > n)		zz = hand{i}(:,3)';
+					if (m > n),		zz = hand{i}(:,3)';
 					else			zz = hand{i}(3,:);
 					end
 				end
