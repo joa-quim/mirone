@@ -249,7 +249,7 @@ function hObject = mirone_OpeningFcn(varargin)
 			end
 			handles = aux_funs('isProj',handles);				% Check/set about coordinates type
 			
-		elseif (n_argin == 1 && isa(varargin{1},'struct') && isfield(varargin{1},'projection_ref_proj4'))
+		elseif (n_argin == 1 && isa(varargin{1},'struct') && isfield(varargin{1},'proj4'))
 			% A GMT5 grid/image structure. (for images we still do not use eventual alpha channel)
 			handles.head = [varargin{1}.range varargin{1}.registration varargin{1}.inc];
 			if (~isfield(varargin{1}, 'image'))
@@ -262,12 +262,12 @@ function hObject = mirone_OpeningFcn(varargin)
 				handles.image_type = 2;		isReferenced = false;
 				X = [varargin{1}.x(1) varargin{1}.x(end)];		Y = [varargin{1}.y(1) varargin{1}.y(end)];
 				handles.geog = aux_funs('guessGeog', [Y Y]);
-				ProjectionRefWKT = varargin{1}.projection_ref_wkt;
-				if (isempty(ProjectionRefWKT) && ~isempty(varargin{1}.projection_ref_proj4))
-					ProjectionRefWKT = ogrproj(varargin{1}.projection_ref_proj4);
+				ProjectionRefWKT = varargin{1}.wkt;
+				if (isempty(ProjectionRefWKT) && ~isempty(varargin{1}.proj4))
+					ProjectionRefWKT = ogrproj(varargin{1}.proj4);
 				end
 				if (~isempty(ProjectionRefWKT))
-					aux_funs('appP', handles, varargin{1}.projection_ref_wkt)		% If we have a WKT proj, store it
+					aux_funs('appP', handles, varargin{1}.wkt)		% If we have a WKT proj, store it
 					isReferenced = true;
 					if (~handles.geog),		handles.is_projected = true;	end		% WEAK LOGIC. SHOULD PARSE WKT TO MAKE SURE
 				end
@@ -891,6 +891,9 @@ elseif (strncmp(opt2(1:min(length(opt2),9)),'CropaGrid',9))		% Do the operation 
 		X = linspace( head(1) + (r_c(3)-1)*head(8), head(1) + (r_c(4)-1)*head(8), r_c(4) - r_c(3) + 1 );
 		Y = linspace( head(3) + (r_c(1)-1)*head(9), head(3) + (r_c(2)-1)*head(9), r_c(2) - r_c(1) + 1 );
 		head(1) = X(1);		head(2) = X(end);		head(3) = Y(1);		head(4) = Y(end);
+		if (isa(Z,'single')),	zz = grdutils(Z_rect,'-L');			head(5:6) = [zz(1) zz(2)];
+		else					head(5) = double(min(Z_rect(:)));	head(6) = double(max(Z_rect(:)));
+		end
 		srsWKT = [];
 		if (~handles.geog)
 			prjInfoStruc = aux_funs('getFigProjInfo',handles);
@@ -901,7 +904,7 @@ elseif (strncmp(opt2(1:min(length(opt2),9)),'CropaGrid',9))		% Do the operation 
 		if (~nargout)						% Create a new Fig
 			tit = 'Grid cuted by Mirone';	% Have to change this to reflect the old title
 			GRDdisplay(handles,X,Y,Z_rect,head,tit,'Cropped_grid',srsWKT)
-		else								% Send back the cropped grid to whom asked for it. 
+		else								% Send back the cropped grid to whom asked for it.
 			varargout = {X,Y,Z_rect,head};	% Is not going to be easy to document this
 		end
 	elseif (strcmp(curr_opt,'histo'))		% HISTO means compute histogram inside the selected rect area
@@ -2588,13 +2591,7 @@ function ImageLink_CB(handles, opt)
 	if (handles.no_file),	return,		end
 	hFigs = findobj(0,'type','figure');						% Fish all figures
 	if (numel(hFigs) == 1),	return,		end					% No one else arround
-	ind = (hFigs - handles.figure1) == 0;
-	hFigs(ind) = [];										% Remove current figure from the fished list
-	IAmAMir = true(1, numel(hFigs));
-	for (k = 1:numel(hFigs))
-		if (isempty(getappdata(hFigs(k), 'IAmAMirone'))),	IAmAMir(k) = false;		end
-	end
-	hFigs = hFigs(IAmAMir);									% Retain only the Mirone figures
+	hFigs = aux_funs('figs_XOR', handles.figure1, hFigs);	% Get all unique Mirone Figs
 	if (isempty(hFigs)),		return,		end
 	nomes = get(hFigs,'name');
 	if (~isa(nomes,'cell')),	nomes = {nomes};	end
@@ -5011,7 +5008,7 @@ function TransferB_CB(handles, opt, opt2)
 		end
 
  	elseif (strcmp(opt,'update'))				% Update via Web the stand-alone version
-		dest_fiche = [handles.path_tmp 'apudeita.txt'];		url = 'w3.ualg.pt/~jluis/mirone/updates/v28/';
+		dest_fiche = [handles.path_tmp 'apudeita.txt'];		url = 'w3.ualg.pt/~jluis/mirone/updates/v27/';
 		dos(['wget "' url 'apudeita.txt' '" -q --tries=2 --connect-timeout=5 -O ' dest_fiche]);
 		finfo = dir(dest_fiche);
 		if (finfo.bytes == 0)
@@ -5060,7 +5057,7 @@ function TransferB_CB(handles, opt, opt2)
 		if (any(ind))								% If some file was lost report it and remove them from list
 			namedl(~ind) = [];		nomes(~ind) = [];
 			msg = cell(numel(find(ind))+1,1);
-			msg{1} = 'Failed to download these files:';		msg(2:end) = namedl(ind);
+			msg{1} = 'Failed to download these files:';		msg(2:end) = namedl;
 		elseif (all(ind))
 			warndlg(sprintf('Failed to download all %d files. Try again.', n-1),'Warning'),		return
 		end
@@ -5192,7 +5189,7 @@ function Transfer_CB(handles, opt)
 
 	elseif (strcmp(opt,'Ctrl-c'))
 		h_active = getappdata(handles.figure1,'epActivHand');
-		if (h_active)					% We have a line or patch in edit mode. Copy it
+		if (ishandle(h_active))			% We have a line or patch in edit mode. Copy it
 			x = get(h_active,'xdata');		y = get(h_active,'ydata');		z = getappdata(h_active,'ZData');
 			if (isempty(z)),		mat2clip([x(:) y(:)],8)
 			else					mat2clip([x(:) y(:) z(:)],8)
