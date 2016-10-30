@@ -54,7 +54,7 @@ switch opt(1:4)
 	case 'togC'		% 'togCheck'			% Toggle the check state of a uimenu
 		togCheck(varargin{:})
 	case 'poly'		% 'polysplit'
-		[varargout{1} varargout{2}] = localPolysplit(varargin{:});
+		[varargout{1}, varargout{2}] = localPolysplit(varargin{:});
 	case 'insi'		% 'insideRect'
 		varargout{1} = insideRect(varargin{:});
 	case 'stri'		% 'strip_bg_color'
@@ -968,6 +968,27 @@ function out = catsegment(A, opt)
 			n = n + nr;
 		end
 	end
+
+% ----------------------------------------------------------------
+function out = figs_XOR(hFig, hFigs)
+% Return the handles of all Figs that are not HFIG and are Mirone figs.
+% Need to treat differently pre and pos R2014b because TMW broke compatibility
+	if (isa(hFig, 'double'))		% A pre R2014b handle graphics handle
+		ind = (hFigs - handles.figure1) == 0;
+	else
+		% For some (no remember) reason 'IntegerHandle' prop has to be off but we need it on to tell which one is which
+		set(hFig, 'IntegerHandle', 'on');		set(hFigs, 'IntegerHandle', 'on');		% Set them temporarily to 'on'
+		Figs_Number = cat(1,hFigs.Number);
+		ind = ((Figs_Number - hFig.Number) == 0);
+		set(hFig, 'IntegerHandle', 'off');		set(hFigs, 'IntegerHandle', 'off');		% And reset to 'off'
+	end
+
+	hFigs(ind) = [];							% Remove current figure from the fished list
+	IAmAMir = true(1, numel(hFigs));
+	for (k = 1:numel(hFigs))
+		if (isempty(getappdata(hFigs(k), 'IAmAMirone'))),	IAmAMir(k) = false;		end
+	end
+	out = hFigs(IAmAMir);						% Retain only the Mirone figures
 
 % ----------------------------------------------------------------
 function [img, pal] = semaforo_green()
