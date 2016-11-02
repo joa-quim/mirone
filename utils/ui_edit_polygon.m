@@ -82,7 +82,7 @@ function ui_edit_polygon(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: ui_edit_polygon.m 9877 2016-10-22 01:00:17Z j $
+% $Id: ui_edit_polygon.m 9900 2016-11-02 11:38:44Z j $
 
 	if (isa(varargin{end},'char'))	% Moving polygon option was transmitted in input
 		move_choice = varargin{end};
@@ -266,7 +266,11 @@ function edit_polygon(obj,evt,h)
 
 	s.save_x = x(s.vert_index);			s.save_y = y(s.vert_index);		% needed in the "i"nsert option
 	if isempty(s.hCurrentMarker)		% If the black marker doesn't exist, creat it
-		cor = get(s.h_pol, 'Color');
+		if (strcmp(get(s.h_pol, 'Type'), 'line'))
+			cor = get(s.h_pol, 'Color');
+		else
+			cor = get(s.h_pol, 'EdgeColor');
+		end
 		s.hCurrentMarker = line('xdata',s.save_x,'ydata', s.save_y, 'parent', s.h_ax,'Marker','s', ...
 								'MarkerFaceColor',cor, 'MarkerSize',6, 'Tag','current_marker');
 		uistack_j(s.hCurrentMarker,'bottom')	% Since it has no ButtonDown and was on top
