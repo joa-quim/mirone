@@ -18,7 +18,7 @@ function  varargout = aux_funs(opt,varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: aux_funs.m 9898 2016-10-30 00:35:16Z j $
+% $Id: aux_funs.m 9901 2016-11-02 14:03:43Z j $
 
 switch opt(1:4)
 	case 'Stor'		% 'StoreZ'
@@ -974,7 +974,7 @@ function out = figs_XOR(hFig, hFigs)
 % Return the handles of all Figs that are not HFIG and are Mirone figs.
 % Need to treat differently pre and pos R2014b because TMW broke compatibility
 	if (isa(hFig, 'double'))		% A pre R2014b handle graphics handle
-		ind = (hFigs - handles.figure1) == 0;
+		ind = (hFigs - hFig) == 0;
 	else
 		% For some (no remember) reason 'IntegerHandle' prop has to be off but we need it on to tell which one is which
 		set(hFig, 'IntegerHandle', 'on');		set(hFigs, 'IntegerHandle', 'on');		% Set them temporarily to 'on'
