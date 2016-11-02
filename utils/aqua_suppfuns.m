@@ -313,13 +313,13 @@ function coards_sliceShow(handles, Z)
 			nLayers  = handThis.nLayers;
 			if (~handThis.validGrid),		delete(hFigs),	clear handThis,	end
 		end
-		
+
 		reset = false;
 		if (~ishandle(handles.hMirFig))						% Save this before handles.hMirFig is reset
 			nLayers = handles.handMir.nLayers;
 			reset = true;
 		end
-		
+
 		handles.hMirFig = mirone(Z, tmp);
 		move2side(handles.figure1,handles.hMirFig,'left')
 		handles.handMir = guidata(handles.hMirFig);			% Get the handles of the now existing Mirone fig
@@ -334,7 +334,8 @@ function coards_sliceShow(handles, Z)
 
 		handles.firstLandPhoto = true;
 		if (handles.useLandPhoto)
-			h = image('XData',handles.geoPhotoX,'YData',handles.geoPhotoY, 'CData',handles.geoPhoto, 'Parent',handles.handMir.axes1);
+			h = image('XData',handles.geoPhotoX,'YData',handles.geoPhotoY, 'CData',handles.geoPhoto, ...
+			          'Parent',handles.handMir.axes1, 'Tag', 'LandPhoto');
 			uistack_j(h,'bottom')
 			handles.firstLandPhoto = false;
 			set(handles.handMir.hImg,'AlphaData',alphaMask)	% 'alphaMask' was updated ... maybe somewhere
@@ -349,7 +350,8 @@ function coards_sliceShow(handles, Z)
 
 		if (handles.useLandPhoto)							% External Land image
 			if (handles.firstLandPhoto)						% First time, create the background image
-				h = image('XData',handles.geoPhotoX,'YData',handles.geoPhotoY, 'CData',handles.geoPhoto, 'Parent',handles.handMir.axes1);
+				h = image('XData',handles.geoPhotoX,'YData',handles.geoPhotoY, 'CData',handles.geoPhoto, ...
+				          'Parent',handles.handMir.axes1, 'Tag', 'LandPhoto');
 				uistack_j(h,'bottom')
 				handles.firstLandPhoto = false;
 			end
