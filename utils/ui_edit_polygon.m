@@ -266,7 +266,11 @@ function edit_polygon(obj,evt,h)
 
 	s.save_x = x(s.vert_index);			s.save_y = y(s.vert_index);		% needed in the "i"nsert option
 	if isempty(s.hCurrentMarker)		% If the black marker doesn't exist, creat it
-		cor = get(s.h_pol, 'Color');
+		if (strcmp(get(s.h_pol, 'Type'), 'line'))
+			cor = get(s.h_pol, 'Color');
+		else
+			cor = get(s.h_pol, 'EdgeColor');
+		end
 		s.hCurrentMarker = line('xdata',s.save_x,'ydata', s.save_y, 'parent', s.h_ax,'Marker','s', ...
 								'MarkerFaceColor',cor, 'MarkerSize',6, 'Tag','current_marker');
 		uistack_j(s.hCurrentMarker,'bottom')	% Since it has no ButtonDown and was on top
