@@ -46,7 +46,7 @@ function stopBar =  aguentabar(varargin)
 %
 % 	05-Jan-2008		Joaquim Luis (jluis@ualg.pt)
 
-%	Copyright (c) 2004-2013 by J. Luis
+%	Copyright (c) 2004-2016 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -61,20 +61,20 @@ function stopBar =  aguentabar(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: aguentabar.m 3961 2013-05-28 16:27:53Z j $
+% $Id: aguentabar.m 9902 2016-11-02 19:06:23Z j $
 
 	% Parse inputs
 	n_argin = nargin;
 	fracdone = 0;		haveCancel = 0;			titulo = [];		% Default values
 	if (n_argin)
-		for ( i = 1:numel(varargin) )
-			if ( isnumeric(varargin{i}) )
+		for (i = 1:numel(varargin))
+			if (isnumeric(varargin{i}))
 				fracdone = varargin{i};
-			elseif ( strncmpi(varargin{i}, 'title',5) )
+			elseif (strncmpi(varargin{i}, 'title',5))
 				try		titulo = varargin{i+1};				% In case title string was not provided
 				catch,	titulo = '';
 				end
-			elseif ( strncmpi(varargin{i}, 'createcancelbtn',7) )
+			elseif (strncmpi(varargin{i}, 'createcancelbtn',7))
 				haveCancel = 1;
 			end
 		end
@@ -86,8 +86,13 @@ function stopBar =  aguentabar(varargin)
 		hFig = f(1);
 		if (fracdone ~= 0)
 			ud = get(hFig, 'UserData');
-			hPatch = ud(1);				starttime = ud(2:7);
-			lastupdate = ud(8:13);		killBill = ud(14);
+			if (isa(ud, 'cell'))
+				hPatch = ud{1};				starttime = ud{2};
+				lastupdate = ud{3};			killBill = ud{4};
+			else
+				hPatch = ud(1);				starttime = ud(2:7);
+				lastupdate = ud(8:13);		killBill = ud(14);
+			end
 			if (fracdone < 0)			% Change only the title string but keep the percentage
 				fracdone = get(hPatch, 'UserData');
 			end
@@ -98,7 +103,7 @@ function stopBar =  aguentabar(varargin)
 		end
 	end
 
-	if ( killBill )				% Ah Ha, user hit (and accepted) the Cancel button
+	if (killBill)				% Ah Ha, user hit (and accepted) the Cancel button
 		if (nargout),	stopBar = nan;	end
 		delete(hFig)
 		return
@@ -107,7 +112,7 @@ function stopBar =  aguentabar(varargin)
 	percentdone = floor(100*fracdone);
 
 	% Create new progress bar if needed
-	if ( isempty(hFig) )
+	if (isempty(hFig))
 		screenSize = get(0,'ScreenSize');
 		x0 = screenSize(3)/2-160;			y0 = screenSize(4)/2-20;
 
@@ -123,17 +128,17 @@ function stopBar =  aguentabar(varargin)
 	
         % Initialize progress bar
         hFig = figure('Units', 'pixels', 'Position', figPos, 'NumberTitle','off', 'Resize','off',...
-			'MenuBar','none', 'Tag','AGUENTAbar', 'HandleVisibility','callback', 'BackingStore','off');
+		              'MenuBar','none', 'Tag','AGUENTAbar', 'HandleVisibility','callback', 'BackingStore','off');
         hAxes = axes('Parent',hFig, 'Units','pixels', 'Position',axPos, 'XLim',[0 1], 'YLim',[0 1],...
-            'Box','on', 'ytick',[], 'xtick',[]);
-        hPatch = patch('XData',[0 0 0 0], 'YData',[0 0 1 1], 'Parent',hAxes, 'FaceColor',[.1 1 .1], 'EraseMode','none');
+                     'Box','on', 'ytick',[], 'xtick',[]);
+        hPatch = patch('XData',[0 0 0 0], 'YData',[0 0 1 1], 'Parent',hAxes, 'FaceColor',[.1 1 .1]);
 	
 		if (haveCancel)
 			uicontrol('Parent',hFig, 'Units','pixels', 'String','Cancel', ...
-						'Position', butaoPos, 'Callback', {@closeBar, hFig})
+			          'Position', butaoPos, 'Callback', {@closeBar, hFig})
 		end
 	
-		if ( ~isempty(titulo) ),	set(get(hAxes,'Title'),'String',titulo,'Interpreter','none'),	end
+		if (~isempty(titulo)),	set(get(hAxes,'Title'),'String',titulo,'Interpreter','none'),	end
 	
 		% enable this code if you want the bar to change colors when the user clicks on the progress bar
 		set([hFig hAxes hPatch],'ButtonDownFcn',{@changecolor,hPatch})
@@ -145,14 +150,18 @@ function stopBar =  aguentabar(varargin)
         % Task starting time reference
         if (isempty(starttime) || (fracdone == 0)),		starttime = clock;		end
 
-	elseif ( ~isempty(titulo) )			% Update title on an existing aguentabar figure
+	elseif (~isempty(titulo))			% Update title on an existing aguentabar figure
 		set(get(findobj(hFig, 'type', 'axes'),'Title'),'String',titulo,'Interpreter','none')
 	end
 
 	% Enforce a minimum time interval between updates, but allows for
 	% the case when the bar reaches 100% so that the user can see it
 	if (etime(clock,lastupdate) < 0.1 && (percentdone < 100))
-		set(hFig, 'UserData', [hPatch starttime lastupdate killBill])
+		if (isa(hPatch, 'double'))	% Pre R2014b
+			set(hFig, 'UserData', [hPatch starttime lastupdate killBill])
+		else
+			set(hFig, 'UserData', {hPatch starttime lastupdate killBill})
+		end
 		if (nargout),	stopBar = hFig;		end
 		return
 	end
@@ -182,7 +191,11 @@ function stopBar =  aguentabar(varargin)
 
 	lastupdate = clock;			% Record time of this update
 
-	set(hFig, 'UserData', [hPatch starttime lastupdate killBill])		% Store for the next round
+	if (isa(hPatch, 'double'))	% Pre R2014b
+		set(hFig, 'UserData', [hPatch starttime lastupdate killBill])		% Store for the next round
+	else
+		set(hFig, 'UserData', {hPatch starttime lastupdate killBill})		% Store for the next round
+	end
 	if (nargout),	stopBar = hFig;		end
 
 % ------------------------------------------------------------------------------
@@ -199,26 +212,26 @@ function changecolor(obj,evt,hPatch)
 function timestr = sec2timestr(sec)
 % Convert a time measurement from seconds into a human readable string.
 
-% Convert seconds to other units
-d = floor(sec/86400);		sec = sec - d*86400;		% Days and remaing seconds
-h = floor(sec/3600);		sec = sec - h*3600;			% Hours and remaing seconds
-m = floor(sec/60);			sec = sec - m*60;			% Minutes and remaing seconds
-s = floor(sec);				% Seconds
+	% Convert seconds to other units
+	d = floor(sec/86400);		sec = sec - d*86400;		% Days and remaing seconds
+	h = floor(sec/3600);		sec = sec - h*3600;			% Hours and remaing seconds
+	m = floor(sec/60);			sec = sec - m*60;			% Minutes and remaing seconds
+	s = floor(sec);				% Seconds
 
-% Create time string
-if d > 0
-	timestr = sprintf('%d day, %.1f hr', d, (h+m/60));
-elseif h > 0
-	timestr = sprintf('%d hr, %d min',h, m);
-elseif m > 0
-    if m > 9
-		timestr = sprintf('%d min',m);
-    else
-		timestr = sprintf('%d min, %d sec',m,s);
-    end
-else
-	timestr = sprintf('%d sec',s);
-end
+	% Create time string
+	if d > 0
+		timestr = sprintf('%d day, %.1f hr', d, (h+m/60));
+	elseif h > 0
+		timestr = sprintf('%d hr, %d min',h, m);
+	elseif m > 0
+		if m > 9
+			timestr = sprintf('%d min',m);
+		else
+			timestr = sprintf('%d min, %d sec',m,s);
+		end
+	else
+		timestr = sprintf('%d sec',s);
+	end
 
 % ----------------------------------------------------------------------------------
 function closeBar(obj, evt, hFig)
