@@ -498,6 +498,7 @@ function update_scales(handles)
 	try
 		opt_R = sprintf('-R%.12g/%.12g/%.12g/%.12g', handles.x_min, handles.x_max, handles.y_min, handles.y_max);
 		out = c_mapproject(in,opt_R,opt_J,['-D' handles.which_unit(1)]);
+		if (isa(out, 'struct')),	out = out.data;		end		% When GMT5, out is a struct
 	catch
 		return
 	end
@@ -531,6 +532,7 @@ function update_scales(handles)
 	      xf(end:-1:1) repmat(yf(1),n,1)];
 	%out_f = c_mapproject(in,opt_R,'-C','-F',[handles.opt_J_no_scale '/' handles.scale handles.which_unit(1)]);
 	out_f = c_mapproject(in,opt_R,opt_J,['-D' handles.which_unit(1)]);
+	if (isa(out_f, 'struct')),	out_f = out_f.data;		end		% When GMT5, out is a struct
 	new_x = xx(1) + out_f(:,1);
 	new_y = yy(1) + out_f(:,2);
 
@@ -549,7 +551,7 @@ function update_scales(handles)
 	end
 
 	% ----------- Compute scale 1:xxxx
-	if (~handles.scale_set)					% If user changed scale, don't compute it here
+	if (~handles.scale_set)						% If user changed scale, don't compute it here
 		xm = (handles.x_min + handles.x_max) / 2;   ym = (handles.y_min + handles.y_max) / 2;
 		opt_R = sprintf('-R%f/%f/%f/%f', xm-2, xm+2, ym-2, ym+2);
 		in = [handles.x_min handles.y_min; handles.x_min handles.y_max; handles.x_max handles.y_max; handles.x_max handles.y_min];
@@ -560,10 +562,11 @@ function update_scales(handles)
 			opt_J = [handles.opt_J_no_scale '/1'];
 		end
 		out = c_mapproject(in,opt_R,'-C','-F',opt_J);
-		dx_prj = out(4,1) - out(1,1);		% It's in projected meters
-		dy_prj = out(2,2) - out(1,2);		% It's in projected meters
-		dx_rect = xx(4) - xx(1);			% Is in "cm", "in" or "pt". So convert to "cm"
-		dy_rect = yy(2) - yy(1);			% Is in "cm", "in" or "pt". So convert to "cm"
+		if (isa(out, 'struct')),	out = out.data;		end		% When GMT5, out is a struct
+		dx_prj = out(4,1) - out(1,1);			% It's in projected meters
+		dy_prj = out(2,2) - out(1,2);			% It's in projected meters
+		dx_rect = xx(4) - xx(1);				% Is in "cm", "in" or "pt". So convert to "cm"
+		dy_rect = yy(2) - yy(1);				% Is in "cm", "in" or "pt". So convert to "cm"
 		if (strcmp(handles.which_unit,'in')),     dx_rect = dx_rect * 2.54;     dy_rect = dy_rect * 2.54;     end
 		if (strcmp(handles.which_unit,'pt')),     dx_rect = dx_rect * 2.54/72;  dy_rect = dy_rect * 2.54/72;  end
 		scale = max(dx_rect/dx_prj/100, dy_rect/dy_prj/100);
@@ -676,6 +679,7 @@ function edit_scale_CB(hObject, handles)
 		try
 			opt_R = sprintf('-R%.12g/%.12g/%.12g/%.12g', handles.x_min, handles.x_max, handles.y_min, handles.y_max);
 			out = c_mapproject(in,opt_R,opt_J,['-D' handles.which_unit(1)]);
+			if (isa(out, 'struct')),	out = out.data;		end		% When GMT5, out is a struct
 		catch
 			return
 		end
