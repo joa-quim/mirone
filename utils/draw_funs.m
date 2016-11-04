@@ -101,7 +101,7 @@ function Ctrl_v(h)
 		markFC = get(hLine,'MarkerFaceColor');		markEC = get(hLine,'MarkerEdgeColor');
 		% Set the markers only if they are different from the red square markers used for edition
 		% However, this is a risky test because if one of them is ever changed the test will fail.
-		if ( ~( strcmp(marker, 'square') && strcmp(markFC, 'none') && markSize == 5 && isequal(markEC,[1 0 0]) ) )
+		if (~(strcmp(marker, 'square') && strcmp(markFC, 'none') && markSize == 6 && isequal(markEC,[1 0 0]) ))
 			set(h, 'Marker', marker, 'MarkerSize',markSize, 'MarkerEdgeColor',markEC, 'MarkerFaceColor',markFC)
 		end
 	else
