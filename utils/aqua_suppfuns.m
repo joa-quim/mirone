@@ -16,7 +16,7 @@ function varargout = aqua_suppfuns(opt, varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: aqua_suppfuns.m 9905 2016-11-04 16:47:01Z j $
+% $Id: aqua_suppfuns.m 9908 2016-11-04 16:58:26Z j $
 
 	switch opt
 		case 'coards_hdr',		[varargout{1:nargout}] = init_header_params(varargin{:});
@@ -474,7 +474,6 @@ function coards_sliceShow(handles, Z)
 % ---------------------------------------------------------------------------
 function indLand = compute_indMaxWater(handles, zBat)
 % Compute the mask of max water
-	
 	aguentabar(0, 'title','Computing max water height ...', 'CreateCancelBtn');
 	z_id = handles.netcdf_z_id;
 	s = handles.nc_info;					% Retrieve the .nc info struct
@@ -511,4 +510,4 @@ function set_common(handles, head)
 	set([handles.textResize handles.popup_resize], 'Enable', 'off')
 	set([handles.radio_stage handles.radio_xmoment handles.radio_ymoment handles.check_derivedVar], 'Enable', 'off')
 	set([handles.edit_x_min handles.edit_x_max handles.edit_y_min handles.edit_y_max ...
-	     handles.edit_x_inc handles.edit_y_inc handles.edit_Ncols handles.edit_Nrows], 'Enable', 'inactive')
+		handles.edit_x_inc handles.edit_y_inc handles.edit_Ncols handles.edit_Nrows], 'Enable', 'inactive')
