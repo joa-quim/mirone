@@ -474,7 +474,6 @@ function coards_sliceShow(handles, Z)
 % ---------------------------------------------------------------------------
 function indLand = compute_indMaxWater(handles, zBat)
 % Compute the mask of max water
-	
 	aguentabar(0, 'title','Computing max water height ...', 'CreateCancelBtn');
 	z_id = handles.netcdf_z_id;
 	s = handles.nc_info;					% Retrieve the .nc info struct
