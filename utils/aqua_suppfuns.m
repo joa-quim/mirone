@@ -16,7 +16,7 @@ function varargout = aqua_suppfuns(opt, varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: aqua_suppfuns.m 9903 2016-11-02 19:08:02Z j $
+% $Id: aqua_suppfuns.m 9905 2016-11-04 16:47:01Z j $
 
 	switch opt
 		case 'coards_hdr',		[varargout{1:nargout}] = init_header_params(varargin{:});
@@ -88,7 +88,7 @@ function out = init_header_params(handles,X,Y,head,misc,getAllMinMax)
 		aguentabar(0,'title','Computing global min/max')
 		for (k = 1:handles.number_of_timesteps)
 			Z = nc_funs('varget', handles.fname, s.Dataset(misc.z_id).Name, [(k-1) 0 0], [1 s.Dataset(misc.z_id).Size(end-1:end)]);
-			if ( isa(Z, 'single') )			% min/max are bugged when NaNs in singles
+			if (isa(Z, 'single'))			% min/max are bugged when NaNs in singles
 				zz = grdutils(Z,'-L');
 				handles.zMinMaxs(k,:) = [zz(1) zz(2)];
 			else
@@ -238,6 +238,8 @@ function gdal_sliceShow(handles, att)
 function coards_sliceShow(handles, Z)
 % ...
 
+	cmap_slice = [];		% Will have a cmap when doing individual frames of a global cmap
+
 	if (nargin == 1)		% Otherwise we suposedly already know Z (from gdalread)
 		if (isempty(handles.fname))
 			errordlg('Hey Lou. What about a walk on the Wild Side? Maybe you''ll find a little file there that you can use here!','Chico clever')
@@ -253,7 +255,7 @@ function coards_sliceShow(handles, Z)
 			Y = double(nc_funs('varget', handles.fname, s.Dataset(y_id).Name));
 			if (Y(2) < Y(1)),	Z = flipud(Z);	end
 		end
-		try		handles.head(5:6) =  handles.zMinMaxs(handles.sliceNumber,:);	end		%  handles.head was from 1st layer
+		try		handles.head(5:6) = handles.zMinMaxs(handles.sliceNumber+1,:);	end		%  handles.head was from 1st layer
 	end
 
 	have_nans = 0;
@@ -276,7 +278,13 @@ function coards_sliceShow(handles, Z)
 		zBat = nc_funs('varget', handles.fname, 'bathymetry');
 		dife = cvlib_mex('absDiff', zBat, Z);
 		indLand = (dife < 1e-2);				% The 1e-2 SHOULD be parameterized
-		Z(indLand) = 0;							% Smash these too to steal the color dynamics
+		zero = 0;
+		if     (zero > handles.head(6)),	zero = handles.head(6) - eps;
+		elseif (zero < handles.head(5)),	zero = handles.head(5) + eps;
+		end
+		Z(indLand) = zero;						% Smash these too to not steal the color dynamics
+		% Because of the inundation the handles.zMinMaxs may not be correct, so must compute them again
+		zz = grdutils(Z,'-L');		handles.head(5:6) = zz(:)';		% This may contradict the 'zero' above but 'bad luck'
 		if (handles.compute_runIn && isempty(handles.indMaxWater))
 			handles.indMaxWater = compute_indMaxWater(handles, zBat);
 		end
@@ -297,11 +305,22 @@ function coards_sliceShow(handles, Z)
 				alphaMask(~indLand) = alfa;
 			end
 		end
+
+		% For global color scales we need to compute this particular frame cmap
+		if (size(handles.cmapWater,1) > 2 && get(handles.check_globalMinMax, 'Val'))
+			percent_local_extrema = (handles.head(5:6) - handles.zMinMaxsGlobal(1)) / diff(handles.zMinMaxsGlobal);
+			ind_colors = round(percent_local_extrema * size(handles.cmapWater,1));
+			cmap_slice = handles.cmapWater(ind_colors(1):ind_colors(2),:);
+			cmap_slice = interp1(cmap_slice, linspace(1,size(cmap_slice,1), size(handles.cmapWater,1)));
+		end
 	end
 
 	% ----- Open or update a Mirone window with the slice display ----
 	if (isempty(handles.hMirFig) || ~ishandle(handles.hMirFig))			% First run or killed Mirone window
 		tmp.X = handles.x;		tmp.Y = handles.y;		tmp.head = handles.head;	tmp.cmap = handles.cmapLand;
+		if (~isempty(cmap_slice)),	tmp.cmap = cmap_slice;				% Restoring a particular frame of a global cmap
+		elseif (handles.IamTSU),	tmp.cmap = handles.cmapWater;		% A possible first fig
+		end
 		tmp.name = sprintf('Layer = %g',handles.time(handles.sliceNumber+1));
 		if (~isempty(handles.srsWKT)),		tmp.srsWKT = handles.srsWKT;	end
 		hFigs = findobj(0,'type','figure');
@@ -309,9 +328,11 @@ function coards_sliceShow(handles, Z)
 		if (numel(hFigs) == 2)	% Often we have an empty Mir fig but that is very difficult to use here. So blow it
 			inds = [isempty(getappdata(hFigs(1), 'IAmAMirone')) isempty(getappdata(hFigs(2), 'IAmAMirone'))];
 			hFigs = hFigs(~inds);							% Only one of them is a Mirone fig
-			handThis = guidata(hFigs);
-			nLayers  = handThis.nLayers;
-			if (~handThis.validGrid),		delete(hFigs),	clear handThis,	end
+			if (~isempty(hFigs))							% It happened once in debug but might happen in areal future case
+				handThis = guidata(hFigs);
+				nLayers  = handThis.nLayers;
+				if (~handThis.validGrid),		delete(hFigs),	clear handThis,	end
+			end
 		end
 
 		reset = false;
@@ -347,6 +368,9 @@ function coards_sliceShow(handles, Z)
 		if (~(isa(Z,'uint8') || isa(Z,'int8')))
 			setappdata(handles.handMir.figure1,'dem_z',Z);	% Update grid so that coursor display correct values
 		end													% Have to do it here because minmax arg to scalet8 CHANGES Z
+		if (~isempty(cmap_slice))							% A particular frame of a global cmap
+			set(handles.handMir.figure1,'Colormap',cmap_slice)
+		end
 
 		if (handles.useLandPhoto)							% External Land image
 			if (handles.firstLandPhoto)						% First time, create the background image
@@ -413,6 +437,39 @@ function coards_sliceShow(handles, Z)
 	% Save also the updated header in Mirone handles
 	handles.handMir.head = handles.head;
     guidata(handles.handMir.figure1,handles.handMir)
+
+	% See if we have a displayed Colorbar and if yes update its values. The thing is done with quite some trickery.
+	if (~isempty(handles.hMirFig) && ishandle(handles.hMirFig))
+		try			% Let this try be here for a while before removing it no shit happens inside this
+			if (splitDryWet && handles.IamTSU && size(handles.cmapWater,1) > 2)		% Cannot allow the 'blue' case because it's F bugged by TMW
+				where = '';
+				set(0,'ShowHiddenHandles','on')
+				if (strcmp(get(handles.handMir.PalAt,'Check'),'on'))
+					hAxPal  = findobj(handles.handMir.figure1,'Type','axes','Tag','MIR_CBat');
+					handPal = handles.handMir.PalAt;
+					where   = 'At';				% Color bar location relative to mirone axes1
+					ud_old  = get(handPal, 'UserData');
+				elseif (strcmp(get(handles.handMir.PalIn,'Check'),'on'))
+					hAxPal  = findobj(handles.handMir.figure1,'Type','axes','Tag','MIR_CBin');
+					handPal = handles.handMir.PalIn;
+					where   = 'In';				% Color bar location relative to mirone axes1
+				end
+				set(0,'ShowHiddenHandles','off')
+				if (~isempty(where))						% Otherwise what we might have is a Floating Fig with the cbar
+					delete(hAxPal)							% Delete the old cbar
+					set(handPal,'Check','off')				% So that a new color bar is created instead of delting the old one
+					show_palette(handles.handMir, where)	% __-*++ ===> Create a new colorbar with correct values <=== ++*-__
+					if (strcmp(where, 'At'))				% Only this needs the 'origFigWidth' info preserved
+						ud_new = get(handPal, 'UserData');	% 'show_palette' changed it
+						set(handPal, 'UserData', [ud_new(1) ud_old(2)]);		% ud_old(2) has the true 'origFigWidth'
+					end
+					set(handPal,'Check','on')
+				end
+			end
+		catch
+			disp(lasterr)
+		end
+	end
 
 % ---------------------------------------------------------------------------
 function indLand = compute_indMaxWater(handles, zBat)
