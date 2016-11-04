@@ -139,8 +139,8 @@ function out = init_header_params(handles,X,Y,head,misc,getAllMinMax)
 	if (nargout)
 		out = handles;
 	else
-		set( handles.edit_Ncols,'String',sprintf('%d',misc.z_dim(end)) )
-		set( handles.edit_Nrows,'String',sprintf('%d',misc.z_dim(end-1)) )
+		set(handles.edit_Ncols,'String',sprintf('%d',misc.z_dim(end)))
+		set(handles.edit_Nrows,'String',sprintf('%d',misc.z_dim(end-1)))
 		set(handles.slider_layer,'Min',1,'Max',slMax,'Val',1,'SliderStep',st) 	
 		set(handles.edit_globalWaterMin,'String',handles.zMinMaxsGlobal(1))
 		set(handles.edit_globalWaterMax,'String',handles.zMinMaxsGlobal(2))
