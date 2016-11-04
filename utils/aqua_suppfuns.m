@@ -511,4 +511,4 @@ function set_common(handles, head)
 	set([handles.textResize handles.popup_resize], 'Enable', 'off')
 	set([handles.radio_stage handles.radio_xmoment handles.radio_ymoment handles.check_derivedVar], 'Enable', 'off')
 	set([handles.edit_x_min handles.edit_x_max handles.edit_y_min handles.edit_y_max ...
-		handles.edit_x_inc handles.edit_y_inc handles.edit_Ncols handles.edit_Nrows], 'Enable', 'inactive')
+	     handles.edit_x_inc handles.edit_y_inc handles.edit_Ncols handles.edit_Nrows], 'Enable', 'inactive')
