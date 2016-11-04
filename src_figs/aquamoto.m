@@ -1,7 +1,7 @@
 function varargout = aquamoto(varargin)
 % A general purpose 3D grid/image file viewer, specialy taylored for tsunami (ANUGA) files
 
-%	Copyright (c) 2004-2015 by J. Luis
+%	Copyright (c) 2004-2016 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -992,7 +992,7 @@ function img = do_imgWater(handles, indVar, Z, imgBat, indLand)
 		pal = get(handles.handMir.figure1,'Colormap');
 		if (get(handles.check_splitDryWet, 'Val')),		pal = handles.cmapWater;	end
 		imgWater = ind2rgb8(imgWater, pal);						% image is now RGB
-		if (handles.head(5) == 0 && handles.head(6) == 0)	% Must compute min/max because it maight be an error
+		if (handles.head(5) == 0 && handles.head(6) == 0)	% Must compute min/max because it might be an error
 			zz = grdutils(Z, '-L');		handles.head(5:6) = [zz(1) zz(2)];
 		end
 		R = illumByType(handles, Z, handles.head, illumComm);
@@ -1311,6 +1311,10 @@ function radio_land_CB(hObject, eventdata, handles)
 function radio_water_CB(hObject, eventdata, handles)
 	if (~get(hObject,'Value')),		set(hObject,'Value',1),		return,		end
 
+	if (~get(handles.radio_shade, 'Val'))		% Unblock the shading option right away
+		set(handles.radio_shade, 'Val',1)
+		radio_shade_CB(handles.radio_shade, eventdata, handles)
+	end
 	if (strcmp(handles.waterCurrIllumType, 'lambertian'))
 		paint_toggle_ico(handles.toggle_2, handles.toggle_1)
 	else
@@ -1377,20 +1381,14 @@ function check_resetCmaps_CB(hObject, eventdata, handles)
 
 % -----------------------------------------------------------------------------------------
 function radio_noShade_CB(hObject, eventdata, handles)
-	if (~get(hObject,'Val'))
-		set(hObject,'Val', 1)
-		return
-	end
+	if (~get(hObject,'Val')),	set(hObject,'Val', 1),	return,		end
 	set(handles.radio_shade, 'Val', 0)
 	set([handles.edit_elev handles.edit_azim handles.toggle_1 handles.toggle_2], 'Enable', 'off')
 	set(handles.h_line, 'HitTest', 'off')
 
 % -----------------------------------------------------------------------------------------
 function radio_shade_CB(hObject, eventdata, handles)
-	if (~get(hObject,'Val'))
-		set(hObject,'Val', 1)
-		return
-	end
+	if (~get(hObject,'Val')),	set(hObject,'Val', 1),	return,		end
 	set(handles.radio_noShade, 'Val', 0)
 	set([handles.edit_azim handles.toggle_1 handles.toggle_2], 'Enable', 'on')
 	set(handles.h_line, 'HitTest', 'on')
@@ -2070,8 +2068,7 @@ function ButtonUp(obj, evt, h, handles)
 	if (nargin == 3)
 		handles = guidata(obj);
 	end
-	set(handles.figure1,'WindowButtonMotionFcn','','WindowButtonDownFcn', ...
-		{@ButtonDown,h},'WindowButtonUpFcn','');
+	set(handles.figure1,'WindowButtonMotionFcn','','WindowButtonDownFcn', {@ButtonDown,h},'WindowButtonUpFcn','');
 	set(handles.figure1,'Pointer', 'arrow')
 	azim = get(handles.edit_azim,'String');
 	xdataAz = get(h(1),'XData');        ydataAz = get(h(1),'YData');
@@ -2100,7 +2097,9 @@ function ButtonUp(obj, evt, h, handles)
 		handles.waterAzStrBack = get(handles.edit_azim,'String'); % And string-numeric
 		handles.waterElevStrBack = get(handles.edit_elev,'String');
 	end
+
 	guidata(handles.figure1,handles)
+	push_apply_CB(handles.push_apply, evt, handles)		% Same as hitting the "Apply" button
 
 % -----------------------------------------------------------------------------------------
 function edit_batGrid_CB(hObject, eventdata, handles)
