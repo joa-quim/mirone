@@ -16,7 +16,7 @@ function varargout = aqua_suppfuns(opt, varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: aqua_suppfuns.m 9908 2016-11-04 16:58:26Z j $
+% $Id: aqua_suppfuns.m 9909 2016-11-04 17:01:22Z j $
 
 	switch opt
 		case 'coards_hdr',		[varargout{1:nargout}] = init_header_params(varargin{:});
@@ -139,8 +139,8 @@ function out = init_header_params(handles,X,Y,head,misc,getAllMinMax)
 	if (nargout)
 		out = handles;
 	else
-		set( handles.edit_Ncols,'String',sprintf('%d',misc.z_dim(end)) )
-		set( handles.edit_Nrows,'String',sprintf('%d',misc.z_dim(end-1)) )
+		set(handles.edit_Ncols,'String',sprintf('%d',misc.z_dim(end)))
+		set(handles.edit_Nrows,'String',sprintf('%d',misc.z_dim(end-1)))
 		set(handles.slider_layer,'Min',1,'Max',slMax,'Val',1,'SliderStep',st) 	
 		set(handles.edit_globalWaterMin,'String',handles.zMinMaxsGlobal(1))
 		set(handles.edit_globalWaterMax,'String',handles.zMinMaxsGlobal(2))
