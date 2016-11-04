@@ -20,7 +20,7 @@ function varargout = mirone(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: mirone.m 9899 2016-10-30 00:39:19Z j $
+% $Id: mirone.m 9912 2016-11-04 17:11:14Z j $
 
 	if (nargin > 1 && ischar(varargin{1}))
 		if ( ~isempty(strfind(varargin{1},':')) || ~isempty(strfind(varargin{1},filesep)) )
@@ -1340,7 +1340,8 @@ function File_img2GMT_RGBgrids_CB(handles, opt1, opt2)
 	if (handles.no_file),	return,		end
 
 	if    (nargin == 1),	opt1 = 'image';		opt2 = [];
-	elseif(nargin == 2),	opt2 = [];			end
+	elseif(nargin == 2),	opt2 = [];
+	end
 
 	str1 = {'*.grd;*.GRD','netCDF int2 grid format (*.grd,*.GRD)'; '*.*', 'All Files (*.*)'};
 	if (isempty(opt2))
@@ -1355,7 +1356,25 @@ function File_img2GMT_RGBgrids_CB(handles, opt1, opt2)
 	f_name_r = [PathName FNAME '_r' EXT];	f_name_g = [PathName FNAME '_g' EXT];
 	f_name_b = [PathName FNAME '_b' EXT];
 
-	if (strcmp(opt1,'image')),			img = get(handles.hImg,'CData');			% Get image
+	if (strcmp(opt1,'image'))			% Get image but things can get pretty complicated nowadays
+		hImgs = findobj(handles.axes1, 'Type', 'image');
+		if (numel(hImgs) == 1)			% OK simple job, one image only
+			img = get(handles.hImg,'CData');
+		elseif (numel(hImgs) == 2)
+			% Old 'hardcopy' function hangs in this case so, we needed a new solution to replace it ... which still works in R13.
+			img1 = get(hImgs(1),'CData');			img2 = get(hImgs(2),'CData');
+			alpha1 = get(hImgs(1), 'AlphaData');	alpha2 = get(hImgs(2), 'AlphaData');
+			x = get(hImgs(1), 'XData');				y = get(hImgs(1), 'YData');
+			BB_1 = [x(1) x(end) y(1) y(end)];
+			x = get(hImgs(2), 'XData');				y = get(hImgs(2), 'YData');
+			BB_2 = [x(1) x(end) y(1) y(end)];
+			[img, inc, msg] = blend_images(img1, img2, alpha1, alpha2, BB_1, BB_2, '2');
+			if (~isempty(msg)),		errordlg(msg, 'Error'),		return,		end
+			handles.head(8:9) = inc;
+		else
+			warndlg('Where the hell did I invent this 3 images cases not foreseen here?', 'Warning')
+			img = get(handles.hImg,'CData');
+		end
 	elseif (strcmp(opt1,'screen')),		img = snapshot(handles.figure1,'noname');	% Screen capture with resizing option
 	else								img = flipdim(imcapture(handles.axes1,'img',0),1);		% Call from write_script
 	end
@@ -2148,7 +2167,7 @@ function handles = show_image(handles, fname, X, Y, I, validGrid, axis_t, adjust
 		handles.head(9) = diff(handles.head(3:4)) / (size(I,1) - ~handles.head(7));
 	end
 
-	handles.hImg = image(X,Y,I,'Parent',handles.axes1,'AlphaData',alpha);
+	handles.hImg = image(X,Y,I,'Parent',handles.axes1, 'AlphaData',alpha, 'Tag', 'image1');
 	if (handles.is_defRegion && handles.image_type ~= 20)	% Need to reset Lims to [-0.5 0.5] in order to center the image
 		set(handles.axes1, 'XLim', [-0.5 0.5], 'YLim', [-0.5 0.5])
 	end
@@ -2695,7 +2714,7 @@ function ImageDrape_CB(handles, alfa)
 		rect_crop = [rx_min ry_min rx_max-rx_min ry_max-ry_min];
 
 		% If parent image is of lesser resolution (90% lower) resize it to fit the son_image resolution
-		if ( (handParent.head(8) > handles.head(8)*1.1) || (handParent.head(9) > handles.head(9)*1.1) )
+		if ((handParent.head(8) > handles.head(8)*1.1) || (handParent.head(9) > handles.head(9)*1.1))
 			x_parent = round(diff(handParent.head(1:2)) / handles.head(8)) + 1;
 			y_parent = round(diff(handParent.head(3:4)) / handles.head(9)) + 1;
 			parent_img = cvlib_mex('resize',parent_img,[y_parent x_parent],'bicubic');
@@ -2746,7 +2765,7 @@ function ImageDrape_CB(handles, alfa)
 		set(handParent.hImg,'CData',son_img);
 	else
 		imSize = [];
-		if ( (handles.image_type ~= 2 && handles.image_type ~= 20) && (abs(diff(handles.head(8:9))) > 1e-4) )	% Check aniso
+		if ((handles.image_type ~= 2 && handles.image_type ~= 20) && (abs(diff(handles.head(8:9))) > 1e-4))	% Check aniso
 			imSize = handles.head(8) / handles.head(9);		% resizetrue will know what to do with this
 		end
 		handParent.hImg = image(handParent.head(1:2),handParent.head(3:4),son_img,'Parent',handParent.axes1);
