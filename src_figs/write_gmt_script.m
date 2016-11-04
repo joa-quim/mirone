@@ -16,7 +16,7 @@ function varargout = write_gmt_script(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: write_gmt_script.m 9904 2016-11-02 19:10:05Z j $
+% $Id: write_gmt_script.m 9913 2016-11-04 21:51:11Z j $
 
 	handMir = varargin{1};
 	if (handMir.no_file)     % Stupid call with nothing loaded on the Mirone window
@@ -1081,6 +1081,8 @@ function [out_msg, warn_msg_pscoast] = build_write_script(handles, opt_J, dest_d
 % This function do most of the hard work in finding the script components.
 % The pscoast stuff is worked out by the "find_psc_stuff" function.
 
+	global gmt_ver
+
 	handMir = handles.handMir;	ALLlineHand = handles.ALLlineHand;
 	opt_R = handles.opt_R;		opt_L = handles.opt_L;		opt_U = handles.opt_U;
 	sc = handles.script_type;	ellips = handles.curr_datum;
@@ -1144,10 +1146,14 @@ function [out_msg, warn_msg_pscoast] = build_write_script(handles, opt_J, dest_d
 	% --------------------------------------------------------------------------------------
 
 	% --------------------- Build -B string ------------------------------------------------
-	Bx = get(handMir.axes1,'XTick');      d_Bx = diff(Bx);
-	By = get(handMir.axes1,'YTick');      d_By = diff(By);
-	opt_B = ['-B' num2str(d_Bx(1)) '/' num2str(d_By(1)) 'WSen'];
-	clear Bx By d_Bx d_By;
+	if (gmt_ver == 5)
+		opt_B = '-Ba -BWSen';
+	else
+		Bx = get(handMir.axes1,'XTick');      d_Bx = diff(Bx);
+		By = get(handMir.axes1,'YTick');      d_By = diff(By);
+		opt_B = ['-B' num2str(d_Bx(1)) '/' num2str(d_By(1)) 'WSen'];
+		clear Bx By d_Bx d_By;
+	end
 	% --------------------------------------------------------------------------------------
 
 	l = 1;
@@ -1879,7 +1885,6 @@ function [out_msg, warn_msg_pscoast] = build_write_script(handles, opt_J, dest_d
 		opt_D = sprintf(' -D%.2f%c/%.2f%c/%.2f%c/%.2f%c',mapW+marg,unitC, cbH/2,unitC, cbH,unitC, cbW,unitC);
 		script{l} = sprintf('\n%s ---- Plot colorbar ---', comm);   l=l+1;
 		script{l} = ['psscale' opt_D ' -S -C' pb 'cpt' pf ' -B' num2str(bInt) ' -O -K >> ' pb 'ps' pf];
-		script{saveBind} = [script{saveBind} 'WSNe'];		% Don't write West anotations
 	end
 
 	% --------------------------------------------------------------------------------------
