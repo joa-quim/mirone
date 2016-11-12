@@ -16,7 +16,7 @@ function varargout = write_gmt_script(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: write_gmt_script.m 9913 2016-11-04 21:51:11Z j $
+% $Id: write_gmt_script.m 9916 2016-11-12 19:40:09Z j $
 
 	handMir = varargin{1};
 	if (handMir.no_file)     % Stupid call with nothing loaded on the Mirone window
@@ -1119,7 +1119,11 @@ function [out_msg, warn_msg_pscoast] = build_write_script(handles, opt_J, dest_d
 	end
 	frmPen = '';
 	if (handMir.IamXY)
-		frmPen = '--FRAME_PEN=1.25p';
+		if (handles.have_GMT5)
+			frmPen = '--MAP_FRAME_PEN=1.25p';
+		else
+			frmPen = '--FRAME_PEN=1.25p';
+		end
 	end
 
 	% ------------ Some (maybe) needed vars -----------------------------------------------
