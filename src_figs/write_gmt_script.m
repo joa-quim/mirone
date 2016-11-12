@@ -1119,7 +1119,11 @@ function [out_msg, warn_msg_pscoast] = build_write_script(handles, opt_J, dest_d
 	end
 	frmPen = '';
 	if (handMir.IamXY)
-		frmPen = '--FRAME_PEN=1.25p';
+		if (handles.have_GMT5)
+			frmPen = '--MAP_FRAME_PEN=1.25p';
+		else
+			frmPen = '--FRAME_PEN=1.25p';
+		end
 	end
 
 	% ------------ Some (maybe) needed vars -----------------------------------------------
