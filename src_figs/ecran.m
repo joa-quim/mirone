@@ -20,7 +20,7 @@ function varargout = ecran(varargin)
 
 % WARNING: WHEN COMPILING NEEDS TO INCLUDE filter_butter.m
 %
-%	Copyright (c) 2004-2014 by J. Luis
+%	Copyright (c) 2004-2016 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -245,10 +245,10 @@ function varargout = ecran(varargin)
 		varargin(n_in+1:9) = cell(1,9-n_in);			% So that varargin{1:9} allways exists.
 		set([handles.check_geog handles.popup_selectPlot handles.popup_selectSave], 'Visible','off')	% Hide those
 		handles.data = [varargin{2}(:) varargin{3}(:)];
-		if ~isempty(varargin{9}) && strcmp(varargin{9},'semilogy')
+		if (~isempty(varargin{9}) && strcmp(varargin{9},'semilogy'))
 			set(handles.axes1, 'YScale', 'log')
 			handles.hLine = semilogy(handles.data(:,1),handles.data(:,2), 'Parent', handles.axes1);
-		elseif ~isempty(varargin{9}) && strcmp(varargin{9},'semilogx');
+		elseif (~isempty(varargin{9}) && strcmp(varargin{9},'semilogx'))
 			set(handles.axes1, 'XScale', 'log')
 			handles.hLine = semilogx(handles.data(:,1),handles.data(:,2), 'Parent', handles.axes1);
 		else
@@ -259,14 +259,14 @@ function varargout = ecran(varargin)
 		end
 		axis(handles.axes1,'tight');
 
-		if ~isempty(varargin{5}),    set(hObject,'Name',varargin{5});		end		% Figure Name
-		if ~isempty(varargin{6}),    xlabel(varargin{6});					end		% XLabel
-		if ~isempty(varargin{7}),    ylabel(varargin{7});					end		% YLabel
-		if ~isempty(varargin{8})			% Cannot cal title(varargin{8}) in compiled version because ... BUGS;
+		if (~isempty(varargin{5})),    set(hObject,'Name',varargin{5});		end		% Figure Name
+		if (~isempty(varargin{6})),    xlabel(varargin{6});					end		% XLabel
+		if (~isempty(varargin{7})),    ylabel(varargin{7});					end		% YLabel
+		if (~isempty(varargin{8}))			% Cannot cal title(varargin{8}) in compiled version because ... BUGS;
 			ax = handles.axes1;		h = get(ax,'title');
 			%Over-ride text objects default font attributes with the Axes' default font attributes.
-			set(h,  'FontAngle',  get(ax, 'FontAngle'), 'FontName', get(ax, 'FontName'), 'FontSize', get(ax, 'FontSize'), ...
-					'FontWeight', get(ax, 'FontWeight'),'Rotation',   0, 'string', varargin{8});
+			set(h, 'FontAngle',  get(ax, 'FontAngle'), 'FontName', get(ax, 'FontName'), 'FontSize', get(ax, 'FontSize'), ...
+			       'FontWeight', get(ax, 'FontWeight'),'Rotation',   0, 'string', varargin{8});
 		end
 		handles.show_popups = false;
 
@@ -301,9 +301,49 @@ function varargout = ecran(varargin)
 
 	if (~isempty(handles.hLine)),	handles.n_plot = 1;		end		% Always true in cases where varargin{1} ~= []
 
+	% These are not needed here but must exist in pixval_stsbar() and have the same meaning as in the mirone figs
+	handles.image_type = 20;
+	handles.is_projected = false;
+	handles.DefineMeasureUnit = 'user';		% Always use 'user' units even if we know 'geog'. The point is Y is never geog
+	if (~isempty(handles.ellipsoide))
+		handles.DefineEllipsoide = handles.ellipsoide;
+	else
+		handles.DefineEllipsoide = [6378137, 0, 1/298.2572235630];	% WGS84, but this is only used if 'geog' anyway.
+	end
+	% --------------------------------------------------------------------------------------------------------
+
+	handles = createframe(handles);
 	guidata(hObject, handles);
 	set(hObject,'Vis','on');
 	if (nargout),	varargout{1} = hObject;		end
+
+%--------------------------------------------------------------------------
+function handles = createframe(handles)
+% Creates a virtual panel to display the coordinates and measures
+
+	H = 20;		% The status bar height
+	figPos = get(handles.figure1, 'Pos');		axPos = get(handles.axes1, 'Pos');
+	hAx = handles.axes2;
+	x1 = 0;     x2 = figPos(3);
+	y1 = axPos(2)+axPos(4)-1;		y2 = y1 + H;
+
+	% I could (should?) do it simpler since these line are only used in pixval_stsbar to determine
+	% where to plot the coords status bar. But I must maintain compatibility with resizetrue()
+	hFrame(1) = line([x1 x2],[y2 y2],'Visible','off','Tag','Sts_T','parent',hAx);    % Top line
+	hFrame(2) = line([x1 x1],[y1 y2],'Visible','off','Tag','Sts_L','parent',hAx);    % Left line
+
+	setappdata(handles.figure1,'CoordsStBar',[hAx hFrame]);		% Save it for use in pixval_stsbar
+
+	X = get(handles.axes1, 'XLim');		Y = get(handles.axes1, 'YLim');
+	handles.head = [X Y 0 255 0 0 0];
+	nx = axPos(3);		ny = axPos(4);
+	handles.head(8) = diff(X) / (nx - 1);	handles.head(9) = diff(Y) / (ny - 1);
+
+	geog = handles.geog;
+	handles.geog = 0;			% Have to set it to not because handles.geog has a very different usage in pixval_stsbar()
+	guidata(handles.figure1, handles);		% This has to go first because pixval_stsbar is expecting un updated version
+	pixval_stsbar(handles.figure1)
+	handles.geog = geog;		% And now restore original value
 
 % -----------------------------------------------------------------------------
 function ico = make_link_ico()
@@ -329,7 +369,7 @@ function ico = make_link_ico()
 % --------------------------------------------------------------------------------------------------
 function hide_uimenu(obj,evt, hFig)
 % This function serves only to not show the annoying uicontextmenu when we right-click on the plotting area.
-% I don't know what happens in this program, but this was the only way I found to do it, and I tryied.
+% I don't know what happens in this program, but this was the only way I found to do it, and I tried.
 % The problem will be we need the 'ButtonDownFcn' for something else
 	st = get(hFig,'SelectionType');
 	if (strcmp(st, 'alt'))
@@ -1064,7 +1104,7 @@ function FileOpen_CB(hObject, handles)
 			isDateNum = true;
 
 		elseif (~isempty(ind_mareg))			% The MAREG case
-			[serial_date sl] = strread(todos,'%f %f', 'delimiter', '\t');	% What if n_cols ~= 2?
+			[serial_date, sl] = strread(todos,'%f %f', 'delimiter', '\t');	% What if n_cols ~= 2?
 			time_is_hh = false;					% i.e time is assumed to be decimal day
 			if ((numel(H1) >= 9) && strcmpi(H1(8:9), '_H'))		% Got oen decimal hours case
 				time_is_hh = true;
@@ -1527,17 +1567,21 @@ function push_magBar_CB(hObject, handles)
 		errordlg('Take a second look to what you are asking for. Wrong ages','Error'),		return
 	end
 
+	% First delete the Coordinates status bar because it shares the same space as that of the Mag Bar
+	pixval_stsbar('exit')
+
 	set(handles.axes2, 'Vis', 'on', 'YTick',[])
 
 	reverse_XDir = false;		% If first age > last age, we'll revert the sense of the X axis
-	if ( handles.ageStart >= handles.ageEnd )
+	if (handles.ageStart >= handles.ageEnd)
 		reverse_XDir = true;
 		tmp = handles.ageStart;		handles.ageStart = handles.ageEnd;		handles.ageEnd = tmp;
 		set(handles.axes2,'XDir','reverse')
 	end
 
 	fid = fopen([handles.d_path 'Cande_Kent_95.dat'],'r');
-	todos = fread(fid,'*char');     [chron age_start age_end age_txt] = strread(todos,'%s %f %f %s');
+	todos = fread(fid,'*char');
+	[chron, age_start, age_end, age_txt] = strread(todos,'%s %f %f %s');
 	fclose(fid);    clear todos
 
 	id_ini = (age_start >= handles.ageStart);		id_ini = find(id_ini);		id_ini = id_ini(1);
@@ -1722,7 +1766,7 @@ function push_syntheticRTP_CB(hObject, handles)
 		dxyp = [handles.dist * scale_x handles.data(:,1:2) handles.batTrack(:)];
 	end
 
-	[anom handles.age_line] = magmodel(handles.axes2, [handles.d_path 'Cande_Kent_95.dat'], dxyp, handles.syntPar.dec, ...
+	[anom, handles.age_line] = magmodel(handles.axes2, [handles.d_path 'Cande_Kent_95.dat'], dxyp, handles.syntPar.dec, ...
 			handles.syntPar.inc, handles.syntPar.speed, handles.syntPar.dir_spread, handles.syntPar.dir_profile, 0, contamin);
 
 	if (isempty(handles.hSynthetic))
@@ -2452,7 +2496,7 @@ function [anoma, age_line, obliquity] = magmodel(hAxesMagBar, reversalsFile, dxy
 
 	fid = fopen(reversalsFile,'r');
 	todos = fread(fid,'*char');
-	[chron age_start age_end s.age_txt] = strread(todos,'%s %f %f %s');
+	[chron, age_start, age_end, s.age_txt] = strread(todos,'%s %f %f %s');
 	fclose(fid);    clear todos
 	BA = zeros(numel(age_start)*2,2);
 	BA(1:2:end-1,1) = age_start;	BA(2:2:end,1) = age_end;
@@ -2764,6 +2808,12 @@ function figure1_ResizeFcn(hObj, evt)
 	posA2(3) = posF(3) - posA2(1) - 3;
 	set(handles.axes1,'Pos', posA1);		set(handles.axes2,'Pos', posA2);
 
+	% Drag the Coordinates StatusBar arround too.
+	displayBar = findobj(handles.figure1, 'Tag', 'pixValStsBar');
+	pos = get(displayBar, 'Pos');
+	pos(2) = posA2(2) + 1;
+	set(displayBar, 'Pos', pos)
+	
 % --- Creates and returns a handle to the GUI figure. 
 function ecran_LayoutFcn(h1)
 
@@ -2788,16 +2838,15 @@ axes('Parent',h1, 'Units','pixels', 'Position',[40 369 771 21], 'Vis','off', 'Ta
 axes('Parent',h1, 'Units','pixels', 'Position',[40 48 771 321], 'UserData','XY', 'NextPlot','Add', 'Tag','axes1');
 %'Position',[0.04791154791154791 0.12082262210796911 0.947174447174447 0.8251928020565552],...
 
-uicontrol('Parent',h1,...
+uicontrol('Parent',h1, 'Position',[40 5 161 23],...
 'Call',@ecran_uiCB,...
-'Position',[40 6 161 23],...
 'String','Geographical coordinates',...
 'Tooltip',sprintf(['Check this if your data is in geographical coordinates.\n' ...
 			'You will than be able to see and save the profile in km (or m) vs z.']),...
 'Style','checkbox',...
 'Tag','check_geog');
 
-uicontrol('Parent',h1, 'Position',[279 6 261 23],...
+uicontrol('Parent',h1, 'Position',[279 5 261 23],...
 'BackgroundColor',[1 1 1],...
 'Call',@ecran_uiCB,...
 'String','Distance along profile (data units)', ...
@@ -2806,10 +2855,9 @@ uicontrol('Parent',h1, 'Position',[279 6 261 23],...
 'Tooltip', 'Select different ways of seeing the profile', ...
 'Tag','popup_selectPlot');
 
-uicontrol('Parent',h1,...
+uicontrol('Parent',h1, 'Position',[570 5 241 23],...
 'BackgroundColor',[1 1 1],...
 'Call',@ecran_uiCB,...
-'Position',[570 6 241 23],...
 'String',{'Save Profile on disk'; 'distance Z (data units -> ascii)'; 'distance Z (data units -> binary)'; 'distance Z (km -> ascii)'; 'distance Z (km -> binary)'; 'distance Z (NM -> ascii)'; 'distance Z (NM -> binary)'; 'X Y Z (data units -> ascii)'; 'X Y Z (data units -> binary)' },...
 'Style','popupmenu',...
 'Value',1,...
