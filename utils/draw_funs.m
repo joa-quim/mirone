@@ -188,6 +188,34 @@ function setSHPuictx(h,opt)
 	end
 
 % -----------------------------------------------------------------------------------------
+function set_line_uicontext_XY(h)
+% Set the line uicontext for lines plotted in a profiler (Ecran) figure. They are much
+% simpler that the Mirone ones, so put it in a separate function (this function).
+	if (isempty(h)),	return,		end
+	x = get(h,'XData');			y = get(h,'YData');
+	handles = guidata(get(h,'Parent'));		% Get Ecran handles
+
+	% Check to see if we are dealing with a multibeam track
+	cmenuHand = uicontextmenu('Parent',handles.figure1);
+	set(h, 'UIContextMenu', cmenuHand);
+	set(cmenuHand, 'UserData', h)			% And with this the cmenuHand knows to whom it belongs
+
+	cb_LineWidth = uictx_LineWidth(h);		% there are 5 cb_LineWidth outputs
+	cb_solid   = 'set(gco, ''LineStyle'', ''-''); refresh';
+	cb_dashed  = 'set(gco, ''LineStyle'', ''--''); refresh';
+	cb_dotted  = 'set(gco, ''LineStyle'', '':''); refresh';
+	cb_dashdot = 'set(gco, ''LineStyle'', ''-.''); refresh';
+	cb_color   = uictx_color(h);				% there are 9 cb_color outputs
+		
+	uimenu(cmenuHand, 'Label', 'Delete', 'Call', {@del_line,h});
+	ui_edit_polygon(h)			% Set edition functions
+	uimenu(cmenuHand, 'Label', 'Save line', 'Call', {@save_formated,h});
+	uimenu(cmenuHand, 'Label', 'Line length', 'Call', @show_LineLength_XY)
+	setLineWidth(uimenu(cmenuHand, 'Label', 'Line Width', 'Sep','on'), cb_LineWidth)
+	setLineStyle(uimenu(cmenuHand, 'Label', 'Line Style'), {cb_solid cb_dashed cb_dotted cb_dashdot})
+	setLineColor(uimenu(cmenuHand, 'Label', 'Line Color'), cb_color)
+
+% -----------------------------------------------------------------------------------------
 function set_line_uicontext(h, opt)
 % h is a handle to a line object (that can be closed)
 	if (isempty(h)),	return,		end
@@ -1707,6 +1735,31 @@ function show_Area(obj, evt, h)
 		area = polyarea(x,y);   % Area is reported in map user unites
 		msg{2} = ['Area = ' sprintf('%g',area) ' map units ^2'];
 		msgbox(msg,'Area')
+	end
+
+% -----------------------------------------------------------------------------------------
+function ll = show_LineLength_XY(obj, evt, h)
+% Print or return the length per X & Y component.
+% If output, return a structure ll.len_x and ll.len_y, with the X & Y length of each line segment
+% This function is meant to use on lines plotted into a profile ('ecran()') figure where X and
+% Y components have different units (y = f(x)) and therefore only per component info has meaning.
+
+	if (nargin == 2 || isempty(h)),		h = gco;	end
+	x = get(h,'XData');		y = get(h,'YData');
+	dx = diff(x);			dy = diff(y);
+	if (nargout == 0)
+		if (numel(dx) > 1)
+			msg = cell(1, numel(dx) + 1);
+			for (i = 1:numel(dx))
+				msg{i} = sprintf('Length%d_X = %g;  Length%d_Y = %g   map units',i, dx, i, dy);
+			end
+			msg{i+1} = sprintf('Total (map units): length_X = %g;\nlength_y = %g',sum(dx), sum(dy));
+		else
+			msg = {sprintf('Map Units\nlength_X = %g;\nlength_Y = %g',dx, dy)};
+		end
+		msgbox(msg,'Line(s) length')
+	else
+		ll.len_x = dx;		ll.len_y = dy;
 	end
 
 % -----------------------------------------------------------------------------------------
