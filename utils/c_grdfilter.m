@@ -1,7 +1,7 @@
-function [Zout, head] = c_grdfilter(Zin, head, varargin)
+function [Zout, hdr] = c_grdfilter(Zin, head, varargin)
 % Temporary function to easy up transition from GMT4 to GMT5.2
 
-% $Id: c_grdfilter.m 9840 2016-10-03 01:18:59Z j $
+% $Id: c_grdfilter.m 9918 2016-11-14 18:27:48Z j $
 
 	global gmt_ver
 	if (isempty(gmt_ver)),		gmt_ver = 4;	end		% For example, if calls do not come via mirone.m
@@ -10,7 +10,7 @@ function [Zout, head] = c_grdfilter(Zin, head, varargin)
 		if (nargout == 1)
 			Zout = grdfilter_m(Zin, head, varargin{:});
 		else
-			[Zout, head] = grdfilter_m(Zin, head, varargin{:});
+			[Zout, hdr] = grdfilter_m(Zin, head, varargin{:});
 		end
 	else
 		G = fill_grid_struct(Zin, head);
@@ -18,10 +18,12 @@ function [Zout, head] = c_grdfilter(Zin, head, varargin)
 		for (k = 1:numel(varargin))
 			cmd = sprintf('%s %s', cmd, varargin{k});
 		end
-		Z = gmtmex(cmd, G);
-		Zout = Z.z;
+		Zout = gmtmex(cmd, G);
 		gmtmex('destroy')
-		if (nargout == 2)
-			head = Z.hdr;
+		if (nargout == 1)
+			Zout = Zout.z;
+		else
+			hdr = [Zout.range Zout.registration Zout.inc];
+			Zout = Zout.z;
 		end
 	end
