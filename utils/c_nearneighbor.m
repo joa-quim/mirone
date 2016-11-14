@@ -31,6 +31,10 @@ function [out, hdr] = c_nearneighbor(data, varargin)
 		end
 		G = gmtmex(cmd, data);
 		gmtmex('destroy')
-		out = G.z;
-		hdr = G.hdr;
+		if (nargout == 1)
+			out = G.z;
+		else
+			hdr = [G.range G.registration G.inc];
+			out = G.z;
+		end
 	end

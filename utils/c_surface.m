@@ -29,7 +29,11 @@ function [out, hdr] = c_surface(data, varargin)
 			cmd = sprintf('%s %s', cmd, varargin{k});
 		end
 		G = gmtmex(cmd, data);
-		out = G.z;
-		hdr = G.hdr;
 		gmtmex('destroy')
+		if (nargout == 1)
+			out = G.z;
+		else
+			hdr = [G.range G.registration G.inc];
+			out = G.z;
+		end
 	end
