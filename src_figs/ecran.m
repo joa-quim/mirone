@@ -10,7 +10,7 @@ function varargout = ecran(varargin)
 % ecran('stick', t, u, v [,'title'])		% Plot a stick diagram. U,V are vector components. 
 % ecran(hMirFig, x, y [,'title'])
 % ecran(x, y [,'title'])
-% ecran([...,]x, y [,'title'][,PV])			% Whre PV is a Mx2 cell array with Property name/values to assign to line handle
+% ecran([...,]x, y [,'title'][,PV])			% Where PV is a Mx2 cell array with Property name/values to assign to line handle
 %
 % Function FileOpen_CB() provides several special cases. Namely TIME column input
 % and other goodies such reference one line to another. See its help
@@ -171,7 +171,7 @@ function varargout = ecran(varargin)
 		end
 		if (~isempty(handles.handMir))
 			uitoggletool('parent',hTB,'Click',@pick_CB, 'cdata',link_ico,'Tooltip', ...
-			             'Pick data point in curve and plot it the mirone figure','Sep','on', 'Tag', 'pick_but');
+			             'Pick data point in curve and plot it on the Mirone figure','Sep','on', 'Tag', 'pick_but');
 		end
 		uitoggletool('parent',hTB,'Click',@dynSlope_CB, 'cdata', s.Mline_ico,...
 		             'Tooltip','Compute slope dynamically', 'Tag', 'DynSlope');
@@ -217,6 +217,8 @@ function varargout = ecran(varargin)
 		if (freshFig)				% First time here. Create the line handle
 			handles.hLine = line('XData',rd,'YData',handles.data(:,3), 'Parent', handles.axes1, 'Color','b');
 			y_lim = [min(handles.data(:,3)) max(handles.data(:,3))];
+			y_lim(1) = y_lim(1) - abs(y_lim(1)) * 0.007;	% Leave a very small margin on top & bottom
+			y_lim(2) = y_lim(2) + abs(y_lim(2)) * 0.007;
 			if (diff(y_lim) < 1e-8),		y_lim = y_lim + [-1 1];		end		% To not error below
 			set(handles.axes1,'xlim',[rd(1) rd(end)], 'ylim',y_lim)
 		else
@@ -287,6 +289,7 @@ function varargout = ecran(varargin)
   	set(handles.axes1, 'ButtonDownFcn', {@hide_uimenu,handles.figure1});
 	handles.uimenuGrid = uimenu(handles.cmenu_axes, 'Label', 'Grid on/off', 'Call', 'grid');
 
+	is_CMOP = false;
 	if (~isempty(PV))
 		for (k = 1:size(PV,1))
 			set(handles.hLine, PV{k,1},PV{k,2})
@@ -296,6 +299,7 @@ function varargout = ecran(varargin)
 			set(handles.hLine, 'UIContextMenu', cmenuHand);
 			uimenu(cmenuHand, 'Label', 'Make scatter plot with Me and the other CMOP line Me', 'Call', @make_scatterPlot);
 			uimenu(cmenuHand, 'Label', 'Remove Outliers', 'Call', {@outliers_clean,handles.hLine}, 'Sep','on');
+			is_CMOP = true;
 		end
 	end
 
@@ -315,6 +319,10 @@ function varargout = ecran(varargin)
 	handles = createframe(handles);
 	guidata(hObject, handles);
 	set(hObject,'Vis','on');
+	if (~is_CMOP && ~isempty(handles.hLine)),
+		draw_funs([], 'set_line_uicontext_XY', handles.hLine, 'main')		% Set lines's uicontextmenu
+		finish_line_uictx(handles.hLine)		% Assign the callbacks to menus only declared by draw_funs()
+	end
 	if (nargout),	varargout{1} = hObject;		end
 
 %--------------------------------------------------------------------------
@@ -382,9 +390,44 @@ function hide_uimenu(obj,evt, hFig)
 			set(handles.uimenuGrid,'Vis','on')
 		end
 	end
+	
+% --------------------------------------------------------------------------------------------------
+function finish_line_uictx(hLine)
+% draw_funs/set_line_uicontext_XY() declared these menus but did not assign Callbacks to them. Do it now
+	uictx = get(hLine, 'UIContextMenu');
+	h = findobj(uictx, 'Label', 'X origin only');
+	set(h, 'Call', {@shift_orig, 'X'})
+	h = findobj(uictx, 'Label', 'Y origin only');
+	set(h, 'Call', {@shift_orig, 'Y'})
+	h = findobj(uictx, 'Label', 'XY origin');
+	set(h, 'Call', {@shift_orig, 'XY'})
 
 % --------------------------------------------------------------------------------------------------
-function zoom_CB(obj,eventdata,opt)
+function shift_orig(obj,evt,opt)
+% Shift the graph origin to either a new X0, Y0 or both. The new origin is the close point on curve to the clicking pt
+	hLine = gco;
+	handles = guidata(get(get(hLine, 'Parent'), 'Parent'));
+	[pt_x, pt_y, x_off] = get_pointOnLine(handles.axes1, hLine);
+	if (strcmp(opt, 'X'))
+		x = get(hLine, 'XData');		x = x - pt_x;
+		set(hLine, 'XData', x)
+		zoom_j('out'),		zoom_j('off')		% Must always turn Zoom off otherwise it screws when manually zooming out
+		set(handles.axes1, 'XLim', [x(1) x(end)])
+	elseif (strcmp(opt, 'Y'))
+		y = get(hLine, 'YData');		y = y - pt_y;
+		set(hLine, 'YData', y)
+		zoom_j('out'),		zoom_j('off')
+		set(handles.axes1, 'YLim', [y(1) y(end)])
+	else
+		x = get(hLine, 'XData');		x = x - pt_x;
+		y = get(hLine, 'YData');		y = y - pt_xy;
+		set(hLine, 'XData', x, 'YData', y)
+		zoom_j('out'),		zoom_j('off')
+		set(handles.axes1, 'XLim', [x(1) x(end)], 'YLim', [y(1) y(end)])
+	end
+
+% --------------------------------------------------------------------------------------------------
+function zoom_CB(obj,evt,opt)
 	if (strcmp(get(obj,'State'),'on'))
 		if (strcmp(opt,'x')),		zoom_j xon;
 		else						zoom_j on;
@@ -912,16 +955,16 @@ function isocs_CB(obj, evt)
 % -------------------------------------------------------------------------------
 function check_geog_CB(hObject, handles)
 	if get(hObject,'Value')
-		set(handles.popup_selectPlot,'String',{'Distance along profile (data units)';
-			'Distance along profile (km)';'Distance along profile (NM)'; 'Distance along profile (m)'});
-		set(handles.popup_selectSave,'String',{'Save Profile on disk';'Distance,Z (data units -> ascii)';
+		set(handles.popup_selectPlot,'String',{'Distance along line (data units)';
+			'Distance along line (km)';'Distance along line (NM)'; 'Distance along line (m)'});
+		set(handles.popup_selectSave,'String',{'Save Line on disk';'Distance,Z (data units -> ascii)';
 			'Distance,Z (data units -> binary)';'Distance,Z (km -> ascii)';'Distance,Z (km -> binary)';
 			'Distance,Z (NM -> ascii)';'Distance,Z (NM -> binary)';
 			'X,Y,Z (data units -> ascii)';'X,Y,Z (data units -> binary)';
 			'Distance,Z (NM -> mat file)';'Distance,Z (km -> mat file)';'Distance,Z (data units -> mat file)'});
 	else
-		set(handles.popup_selectPlot,'String','Distance along profile (data units)','Value',1);
-		set(handles.popup_selectSave,'String',{'Save Profile on disk';'Distance,Z (data units -> ascii)';
+		set(handles.popup_selectPlot,'String','Distance along line (data units)','Value',1);
+		set(handles.popup_selectSave,'String',{'Save Line on disk';'Distance,Z (data units -> ascii)';
 			'Distance,Z (data units -> binary)';'X,Y,Z (data units -> ascii)';'X,Y,Z (data units -> binary)';
 			'Distance,Z (data units -> mat file)'},'Value',1);
 	end
@@ -931,16 +974,13 @@ function popup_selectPlot_CB(hObject, handles)
 	val = get(hObject,'Value');     str = get(hObject, 'String');
 	geog = true;
 	switch str{val};
-		case 'Distance along profile (data units)'  % Compute the accumulated distance along profile in data units
+		case 'Distance along line (data units)'  % Compute the accumulated distance along line in data units
 			units = 'u';	geog = false;
-
-		case 'Distance along profile (km)'			% Compute the accumulated distance along profile in km
+		case 'Distance along line (km)'			% Compute the accumulated distance along line in km
 			units = 'km';
-
-		case 'Distance along profile (m)'			% Compute the accumulated distance along profile in m
+		case 'Distance along line (m)'			% Compute the accumulated distance along line in m
 			units = 'm';
-
-		case 'Distance along profile (NM)'			% Compute the accumulated distance along profile in Nmiles
+		case 'Distance along line (NM)'			% Compute the accumulated distance along line in Nmiles
 			units = 'nm';
 	end
 	rd = get_distances(handles.data(:,1), handles.data(:,2), geog, units, handles.ellipsoide);
@@ -952,7 +992,7 @@ function popup_selectPlot_CB(hObject, handles)
 function popup_selectSave_CB(hObject, handles)
 	val = get(hObject,'Value');     str = get(hObject, 'String');
 	switch str{val};
-		case 'Save Profile on disk'
+		case 'Save Line on disk'
 		case 'Distance,Z (data units -> ascii)'					% Save profile in ascii data units
 			[FileName,PathName] = put_or_get_file(handles,{'*.dat', 'Dist Z (*.dat)'; '*.*', 'All Files (*.*)'},'Distance,Z (ascii)','put','.dat');
 			if isequal(FileName,0),		set(hObject,'Value',1),		return,		end     % User gave up
@@ -1240,7 +1280,7 @@ function FileSaveRedMark_CB(hObject, handles)
 		double2ascii([PathName FileName],[x(:) y(:)],'%f\t%f');
 		return
 	end
-	% Geog type data. Here we want also to save the distance along profile
+	% Geog type data. Here we want also to save the distance along line
 	ind = zeros(1,numel(x));
 	for (k = 1:numel(x))		% Find indices of the points in the handles.data array
 		ind(k) = find((handles.data(:,3) - y(k)) == 0);
@@ -1267,7 +1307,7 @@ function extensional_CB(hObject, handles)
 
 % ----------------------------------------------------------------------------------------------------
 function plotHeaves_CB(hObject, handles)
-% Plot the cumulated heaves as function of distance along profile
+% Plot the cumulated heaves as function of distance along line
 	[r, f_x] = commonHeaves(handles);
 	if (numel(r) < 2),	return,		end		% We have a limitation when plotting single points
 	heave = cumsum(abs(f_x(:,2) - f_x(:,1)));
@@ -1296,8 +1336,8 @@ function saveHeaves_CB(hObject, handles)
 % ----------------------------------------------------------------------------------------------------
 function [r, f_x, f_y, x1, y1, x2, y2] = commonHeaves(handles, opt)
 % OPT, optional arg with the handle of a specific fitLine (fault). If not provided we fish all FitLines
-% R     -> distance along profile since the first fault pick
-% F_X   -> [Xi Xf] x distance along profile of the begin and end of a fault pick (diff(F_X) == HEAVE)
+% R     -> distance along line since the first fault pick
+% F_X   -> [Xi Xf] x distance along line of the begin and end of a fault pick (diff(F_X) == HEAVE)
 % F_Y   -> [Yi Yf] z heights of theu base and top of fault pick (diff(F_Y) == Fault vert offset)
 % X1,Y1 -> coordinates of the fault start (at its base)
 % X2,Y2 -> coordinates of the fault end (at its top)
@@ -2362,7 +2402,7 @@ function w = hamming(n)
 
 % ---------------------------------------------------------------------------------
 function rd = get_distances(x, y, geog, units, ellipsoide)
-% Compute acumulated distances along profile
+% Compute acumulated distances along line
 	% Play safe with NaNs
 	ix = isnan(x);
 	if (any(ix)),		x(ix) = [];     y(ix) = [];		end
@@ -2849,22 +2889,22 @@ uicontrol('Parent',h1, 'Position',[40 5 161 23],...
 'Style','checkbox',...
 'Tag','check_geog');
 
-uicontrol('Parent',h1, 'Position',[279 5 261 23],...
+uicontrol('Parent',h1, 'Position',[360 5 200 23],...
 'BackgroundColor',[1 1 1],...
 'Call',@ecran_uiCB,...
-'String','Distance along profile (data units)', ...
+'String','Distance along line (data units)', ...
 'Style','popupmenu',...
 'Value',1,...
-'Tooltip', 'Select different ways of seeing the profile', ...
+'Tooltip', 'Select different ways of seeing the line', ...
 'Tag','popup_selectPlot');
 
-uicontrol('Parent',h1, 'Position',[570 5 241 23],...
+uicontrol('Parent',h1, 'Position',[610 5 200 23],...
 'BackgroundColor',[1 1 1],...
 'Call',@ecran_uiCB,...
-'String',{'Save Profile on disk'; 'distance Z (data units -> ascii)'; 'distance Z (data units -> binary)'; 'distance Z (km -> ascii)'; 'distance Z (km -> binary)'; 'distance Z (NM -> ascii)'; 'distance Z (NM -> binary)'; 'X Y Z (data units -> ascii)'; 'X Y Z (data units -> binary)' },...
+'String',{'Save Line on disk'; 'distance Z (data units -> ascii)'; 'distance Z (data units -> binary)'; 'distance Z (km -> ascii)'; 'distance Z (km -> binary)'; 'distance Z (NM -> ascii)'; 'distance Z (NM -> binary)'; 'X Y Z (data units -> ascii)'; 'X Y Z (data units -> binary)' },...
 'Style','popupmenu',...
 'Value',1,...
-'Tooltip', 'Choose how to save the profile', ...
+'Tooltip', 'Choose how to save the line', ...
 'Tag','popup_selectSave');
 
 h10 = uimenu('Parent',h1,'Label','File','Tag','menuFile');
