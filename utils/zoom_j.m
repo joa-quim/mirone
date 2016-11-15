@@ -34,10 +34,10 @@ switch nargin
 	case 1      % one arg in
         % If argument is string, it is a zoom command (i.e. (on, off, down, xdown, etc.).
         if ischar(varargin{1})
-			zoomCmd=varargin{1};
+			zoomCmd = varargin{1};
         else    % Otherwise, the argument is assumed to be a zoom factor.
-			scale_factor=varargin{1};
-			zoomCmd='scale';
+			scale_factor = varargin{1};
+			zoomCmd = 'scale';
         end
         fig = get(0,'currentfigure');
         if isempty(fig),    return;    end
@@ -52,11 +52,11 @@ switch nargin
         end
 	case 3      % three arg in. Third, if empty, center zoom on current point, otherwise -- function handle world
 		fig = varargin{1};
-		if ( isempty(varargin{3}) )				% Do a zoom centered on the current point or the image center
+		if (isempty(varargin{3}))				% Do a zoom centered on the current point or the image center
 			scale_factor = varargin{2};
 			zoomCmd = 'ptscale';
 			anchor_pt = [];
-		elseif ( numel(varargin{3}) == 2 && isnumeric(varargin{3}(1)) )	% Center on the varargin{3} point
+		elseif (numel(varargin{3}) == 2 && isnumeric(varargin{3}(1)))	% Center on the varargin{3} point
 			scale_factor = varargin{2};
 			zoomCmd = 'ptscale';
 			anchor_pt = varargin{3};
@@ -70,7 +70,7 @@ switch nargin
 			end
 		end
 	otherwise   % too many args
-        error(nargchk(0, 3, nargin));
+        error('Too many args');
 end
 
 %------------------------------------------------------------------------------%
@@ -87,8 +87,8 @@ if strcmp(zoomCmd,'off')			% turn zoom off
         % because they were restored already when zoom was turned on
         uirestore_j(state,'nouicontrols');
         %set(fig,'pointer',ptr)
-        if isappdata(fig,'ZOOMFigureState')
-            rmappdata(fig,'ZOOMFigureState');
+        if (isappdata(fig,'ZOOMFigureState'))
+            rmappdata(fig,'ZOOMFigureState')
         end
         % get rid of on state appdata if it exists the non-existance
         % of this appdata indicates that zoom is off.
@@ -110,8 +110,7 @@ rbbox_mode = 0;
 % initialize unconstrained state
 zoomx = 1; zoomy = 1;
 % catch 3d zoom
-if ~isempty(ax) && any(get(ax,'view')~=[0 90]) ...
-        && ~(strcmp(zoomCmd,'scale') || strcmp(zoomCmd,'fill'))
+if ~isempty(ax) && any(get(ax,'view')~=[0 90]) && ~(strcmp(zoomCmd,'scale') || strcmp(zoomCmd,'fill'))
     fZoom3d = 1;
 else
     fZoom3d = 0;
@@ -138,8 +137,7 @@ elseif strcmp(zoomCmd,'ydown')
 end
 
 % Catch bad argin/argout match
-if (nargout ~= 0) && ~isequal(zoomCmd,'getmode') && ...
-        ~isequal(zoomCmd,'getlimits') && ~isequal(zoomCmd,'getconnect')
+if ((nargout ~= 0) && ~isequal(zoomCmd,'getmode') && ~isequal(zoomCmd,'getlimits') && ~isequal(zoomCmd,'getconnect'))
     error('ZOOM only returns an output if the command is getmode, getlimits, or getconnect');
 end
 
@@ -380,7 +378,7 @@ case 'outmode'
 case 'reset',
     axz = get(ax,'ZLabel');
     if isappdata(axz,'ZOOMAxesData')
-        rmappdata(axz,'ZOOMAxesData');
+        rmappdata(axz,'ZOOMAxesData')
     end
     return
 case 'xon',
@@ -434,9 +432,9 @@ case 'getlimits', % Get axis limits
         % Use slow method only if someone else is using the userdata
         h = get(ax,'Children');
         xmin = inf; xmax = -inf; ymin = inf; ymax = -inf;
-        for i=1:length(h),
+        for (i = 1:length(h))
             t = get(h(i),'Type');
-            if ~strcmp(t,'text'),
+            if (~strcmp(t,'text'))
                 if strcmp(t,'image'), % Determine axis limits for image
                     x = get(h(i),'Xdata'); y = get(h(i),'Ydata');
                     x = [min(min(x)) max(max(x))];
