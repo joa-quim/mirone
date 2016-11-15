@@ -35,7 +35,7 @@ function varargout = ecran(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: ecran.m 9927 2016-11-15 23:01:52Z j $
+% $Id: ecran.m 9929 2016-11-15 23:22:07Z j $
 
 	% This before-start test is to allow updating magnetic tracks that are used to pick the isochrons
 	% using the convolution method. If no synthetic plot is found, the whole updating issue is simply ignored.
@@ -432,7 +432,7 @@ function shift_orig(obj,evt,opt)
 		set(handles.axes1, 'YLim', [y(1) y(end)])
 	else
 		x = get(hLine, 'XData');		x = x - pt_x;
-		y = get(hLine, 'YData');		y = y - pt_xy;
+		y = get(hLine, 'YData');		y = y - pt_y;
 		set(hLine, 'XData', x, 'YData', y)
 		if (zoom_is_on),	zoom_j('out'),	zoom_j('off'),	end
 		set(handles.axes1, 'XLim', [x(1) x(end)], 'YLim', [y(1) y(end)])
