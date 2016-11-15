@@ -432,7 +432,7 @@ function shift_orig(obj,evt,opt)
 		set(handles.axes1, 'YLim', [y(1) y(end)])
 	else
 		x = get(hLine, 'XData');		x = x - pt_x;
-		y = get(hLine, 'YData');		y = y - pt_xy;
+		y = get(hLine, 'YData');		y = y - pt_y;
 		set(hLine, 'XData', x, 'YData', y)
 		if (zoom_is_on),	zoom_j('out'),	zoom_j('off'),	end
 		set(handles.axes1, 'XLim', [x(1) x(end)], 'YLim', [y(1) y(end)])
