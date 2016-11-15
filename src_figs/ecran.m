@@ -35,7 +35,7 @@ function varargout = ecran(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: ecran.m 9924 2016-11-15 15:23:13Z j $
+% $Id: ecran.m 9927 2016-11-15 23:01:52Z j $
 
 	% This before-start test is to allow updating magnetic tracks that are used to pick the isochrons
 	% using the convolution method. If no synthetic plot is found, the whole updating issue is simply ignored.
@@ -164,8 +164,8 @@ function varargout = ecran(varargin)
 
 		hTB = uitoolbar('parent',hObject,'Clipping', 'on', 'BusyAction','queue','HandleVisibility','on',...
 		               'Interruptible','on','Tag','FigureToolBar','Visible','on');
-		uitoggletool('parent',hTB,'Click',{@zoom_CB,''}, 'cdata',s.zoom_ico,'Tooltip','Zoom');
-		uitoggletool('parent',hTB,'Click',{@zoom_CB,'x'}, 'cdata',s.zoomx_ico,'Tooltip','Zoom X');
+		uitoggletool('parent',hTB,'Click',{@zoom_CB,''}, 'cdata',s.zoom_ico,'Tooltip','Zoom', 'Tag','ZoomToggle');
+		uitoggletool('parent',hTB,'Click',{@zoom_CB,'x'},'cdata',s.zoomx_ico,'Tooltip','Zoom X', 'Tag','Zoom_xToggle');
 		if (strncmp(computer,'PC',2))
 			uipushtool('parent',hTB,'Click',@copyclipbd_CB, 'cdata',s.clipcopy_ico,'Tooltip','Copy to clipboard ','Sep','on');
 		end
@@ -308,6 +308,13 @@ function varargout = ecran(varargin)
 	handles.image_type = 20;
 	handles.is_projected = false;
 	handles.DefineMeasureUnit = 'user';		% Always use 'user' units even if we know 'geog'. The point is Y is never geog
+
+	handles.is_defRegion = false;
+	handles.fileName = '';
+	handles.Illumin_type = 0;
+	handles.validGrid = false;
+	setappdata(handles.axes1,'ThisImageLims', [get(handles.axes1,'XLim') get(handles.axes1,'YLim')])
+
 	if (~isempty(handles.ellipsoide))
 		handles.DefineEllipsoide = handles.ellipsoide;
 	else
@@ -389,7 +396,7 @@ function hide_uimenu(obj,evt, hFig)
 			set(handles.uimenuGrid,'Vis','on')
 		end
 	end
-	
+
 % --------------------------------------------------------------------------------------------------
 function finish_line_uictx(hLine)
 % draw_funs/set_line_uicontext_XY() declared these menus but did not assign Callbacks to them. Do it now
@@ -403,25 +410,31 @@ function finish_line_uictx(hLine)
 
 % --------------------------------------------------------------------------------------------------
 function shift_orig(obj,evt,opt)
-% Shift the graph origin to either a new X0, Y0 or both. The new origin is the close point on curve to the clicking pt
+% Shift the graph origin to either a new X0, Y0 or both. The new origin is the closest point on curve to the clicking pt
 	hLine = gco;
 	handles = guidata(get(get(hLine, 'Parent'), 'Parent'));
-	[pt_x, pt_y, x_off] = get_pointOnLine(handles.axes1, hLine);
+	[pt_x, pt_y] = get_pointOnLine(handles.axes1, hLine);	% Get the clicked closest point on line
+	hZ1 = findobj(handles.figure1, 'Tag','ZoomToggle');
+	hZ2 = findobj(handles.figure1, 'Tag','Zoom_xToggle');
+	zoom_is_on = false;
+	if (strcmp(get(hZ1,'State'),'on') || strcmp(get(hZ2,'State'),'on'))
+		zoom_is_on = true;
+	end
 	if (strcmp(opt, 'X'))
 		x = get(hLine, 'XData');		x = x - pt_x;
 		set(hLine, 'XData', x)
-		zoom_j('out'),		zoom_j('off')		% Must always turn Zoom off otherwise it screws when manually zooming out
+		if (zoom_is_on),	zoom_j('out'),	zoom_j('off'),	end		% Must always turn Zoom off otherwise it screws when manually zooming out
 		set(handles.axes1, 'XLim', [x(1) x(end)])
 	elseif (strcmp(opt, 'Y'))
 		y = get(hLine, 'YData');		y = y - pt_y;
 		set(hLine, 'YData', y)
-		zoom_j('out'),		zoom_j('off')
+		if (zoom_is_on),	zoom_j('out'),	zoom_j('off'),	end
 		set(handles.axes1, 'YLim', [y(1) y(end)])
 	else
 		x = get(hLine, 'XData');		x = x - pt_x;
 		y = get(hLine, 'YData');		y = y - pt_xy;
 		set(hLine, 'XData', x, 'YData', y)
-		zoom_j('out'),		zoom_j('off')
+		if (zoom_is_on),	zoom_j('out'),	zoom_j('off'),	end
 		set(handles.axes1, 'XLim', [x(1) x(end)], 'YLim', [y(1) y(end)])
 	end
 
@@ -954,14 +967,14 @@ function isocs_CB(obj, evt)
 % -------------------------------------------------------------------------------
 function check_geog_CB(hObject, handles)
 	if get(hObject,'Value')
-		set(handles.popup_selectPlot,'String',{'Distance along line (data units)';
-			'Distance along line (km)';'Distance along line (NM)'; 'Distance along line (m)'});
+		set(handles.popup_selectPlot,'String',{'Horizontal coordinates (data units)';
+			'Horizontal coordinates (km)';'Horizontal coordinates (NM)'; 'Horizontal coordinates (m)'});
 		set(handles.popup_selectSave,'String',{'Save Line on disk';'Distance,Z (data units -> ascii)';
 			'Distance,Z (data units -> binary)';'Distance,Z (km -> ascii)';'Distance,Z (km -> binary)';
 			'Distance,Z (NM -> ascii)';'Distance,Z (NM -> binary)';
 			'X,Y,Z (data units -> ascii)';'X,Y,Z (data units -> binary)'});
 	else
-		set(handles.popup_selectPlot,'String','Distance along line (data units)','Value',1);
+		set(handles.popup_selectPlot,'String','Horizontal coordinates (data units)','Value',1);
 		set(handles.popup_selectSave,'String',{'Save Line on disk';'Distance,Z (data units -> ascii)';
 			'Distance,Z (data units -> binary)';'X,Y,Z (data units -> ascii)';'X,Y,Z (data units -> binary)'},'Value',1);
 	end
@@ -971,13 +984,13 @@ function popup_selectPlot_CB(hObject, handles)
 	val = get(hObject,'Value');     str = get(hObject, 'String');
 	geog = true;
 	switch str{val};
-		case 'Distance along line (data units)'  % Compute the accumulated distance along line in data units
+		case 'Horizontal coordinates (data units)'	% Compute the accumulated distance along line in data units
 			units = 'u';	geog = false;
-		case 'Distance along line (km)'			% Compute the accumulated distance along line in km
+		case 'Horizontal coordinates (km)'			% Compute the accumulated distance along line in km
 			units = 'km';
-		case 'Distance along line (m)'			% Compute the accumulated distance along line in m
+		case 'Horizontal coordinates (m)'			% Compute the accumulated distance along line in m
 			units = 'm';
-		case 'Distance along line (NM)'			% Compute the accumulated distance along line in Nmiles
+		case 'Horizontal coordinates (NM)'			% Compute the accumulated distance along line in Nmiles
 			units = 'nm';
 	end
 	rd = get_distances(handles.data(:,1), handles.data(:,2), geog, units, handles.ellipsoide);
@@ -1211,6 +1224,9 @@ function FileOpen_CB(hObject, handles)
 		handles.hLine = line('Parent',handles.axes1,'XData',data(:,out(1)),'YData',data(:,out(2)));
 	end
 
+	draw_funs([], 'set_line_uicontext_XY', handles.hLine, 'main')		% Set lines's uicontextmenu
+	finish_line_uictx(handles.hLine)		% Assign the callbacks to menus only declared by draw_funs()
+
 	set(handles.figure1,'Name',fname)
 	axis(handles.axes1,'tight');
 	handles.n_plot = handles.n_plot + 1;
@@ -1365,6 +1381,24 @@ function FileSaveSession_CB(hObject, handles)
 	if isequal(FileName,0),		return,		end
 	fname = [PathName FileName];
 
+	haveText = false;	havePline = false;
+
+	ALLtextHand = findobj(get(handles.axes1,'Child'),'Type','text');
+	nO = numel(ALLtextHand);
+	Texto = struct('str',cell(1,nO), 'pos',cell(1,nO), 'angle',cell(1,nO), 'color',cell(1,nO), ...
+		'FontSize',cell(1,nO), 'HorizontalAlignment',cell(1,nO), 'VerticalAlignment',cell(1,nO));
+	for (i = 1:nO)
+		Texto(i).str = get(ALLtextHand(i),'String');
+		if (isempty(Texto(i).str)),  continue,	end
+		Texto(i).pos = get(ALLtextHand(i),'Position');		Texto(i).FontAngle = get(ALLtextHand(i),'FontAngle');
+		Texto(i).angle = get(ALLtextHand(i),'Rotation');	Texto(i).Tag = get(ALLtextHand(i),'Tag');
+		Texto(i).color = get(ALLtextHand(i),'color');		Texto(i).FontName = get(ALLtextHand(i),'FontName');
+		Texto(i).FontSize = get(ALLtextHand(i),'FontSize');	Texto(i).FontWeight = get(ALLtextHand(i),'FontWeight');
+		Texto(i).HorizontalAlignment = get(ALLtextHand(i),'HorizontalAlignment');
+		Texto(i).VerticalAlignment = get(ALLtextHand(i),'VerticalAlignment');
+		haveText = true;
+	end
+
     hFL = findobj(handles.axes1,'Type','Line','tag','FitLine');
 	FitLine = [];		xFact = 1;
 	if (~isempty(hFL))
@@ -1378,7 +1412,46 @@ function FileSaveSession_CB(hObject, handles)
 		x = get(hM,'XData');	y = get(hM,'YData');
 		markers = [x(:) y(:)];
 	end
-	
+
+	ALLlineHand = findobj(get(handles.axes1,'Child'),'Type','line');
+	ALLlineHand = setxor(ALLlineHand, hM);		% Those are processed, so remove them from handles list
+	ALLlineHand = setxor(ALLlineHand, hFL);
+
+	Pline = struct('x','double');				% Just to shut up MLint
+	m = 1;
+	for (i = 1:numel(ALLlineHand))
+		tag = get(ALLlineHand(i),'Tag');
+		if (isempty(tag)),		continue,	end	% MAIN LINE. SHOULD CHECK FOR A PRTICULAR TAG INSTEAD
+		xx = get(ALLlineHand(i),'XData');		yy = get(ALLlineHand(i),'YData');
+		Pline(m).x = xx(:);			Pline(m).y = yy(:);
+		Pline(m).LineWidth = get(ALLlineHand(i),'LineWidth');
+		Pline(m).LineStyle = get(ALLlineHand(i),'LineStyle');
+		Pline(m).color = get(ALLlineHand(i),'color');
+		Pline(m).tag = tag;
+		Marker = get(ALLlineHand(i),'Marker');
+		if (Marker(1) ~= 'n')		% Not 'none' so something.
+			Pline(m).Marker = Marker;
+			Pline(m).Size = get(ALLlineHand(i),'MarkerSize');
+			Pline(m).FillColor = get(ALLlineHand(i),'MarkerFaceColor');
+			Pline(m).EdgeColor = get(ALLlineHand(i),'MarkerEdgeColor');
+		end
+		if (isappdata(ALLlineHand(i),'LineInfo'))
+			Pline(m).LineInfo = getappdata(ALLlineHand(i),'LineInfo');
+		end
+		% Save all appdatas which will cause that the above two will potentially be repeated
+		app = getappdata(ALLlineHand(i));
+		ud = get(ALLlineHand(i), 'UserData');
+		if (~isempty(ud)),	app.UserData = ud;		end
+		if (~isempty(fieldnames(app)))
+			if (isfield(app, 'polygon_data'))	% Remove this because it will be restored by ui_edit_polygon()
+				app = rmfield(app, 'polygon_data');
+			end
+			if (~isempty(fieldnames(app))),		Pline(m).appd = app;	end
+		end
+		m = m + 1;	havePline = true;
+	end
+	if (m == 1),	Pline = [];		end			% Initiated but not used.
+
 	hMirFig = [];
 	if (~isempty(handles.handMir)),		hMirFig = handles.handMir.figure1;	end
 	
@@ -1387,9 +1460,11 @@ function FileSaveSession_CB(hObject, handles)
 	measureUnit = handles.measureUnit;
 
 	x  = handles.data(:,1);		y  = handles.data(:,2);		z  = handles.data(:,3);		dist = handles.dist;
-	save(fname, 'x', 'y', 'z', 'dist', 'xFact', 'markers', 'FitLine', 'hMirFig', 'ellipsoide', 'geog', 'measureUnit', '-v6')
-	if (0 && hMirFig && FitLine && markers && x && y && z && dist && xFact && geog && ellipsoide && measureUnit)
-	end		% Trick to shut up stupid MLint warnings
+	save(fname, 'x', 'y', 'z', 'dist', 'xFact', 'markers', 'FitLine', 'hMirFig', 'ellipsoide', 'geog', ...
+		'measureUnit', 'havePline','Pline', 'haveText','Texto', '-v6')
+	% Trick to shut up stupid MLint warnings
+	if (0 && hMirFig && FitLine && markers && x && y && z && dist && xFact && geog && ellipsoide && measureUnit), end
+	if (0 && haveText && havePline && Pline), end
 
 % ----------------------------------------------------------------------------------------------------
 function FileOpenSession_CB(hObj, handles, fname)
@@ -1420,6 +1495,52 @@ function FileOpenSession_CB(hObj, handles, fname)
 		for (k = 1:size(s.markers,1))
 			line('XData', s.markers(k,1), 'YData', s.markers(k,2), 'Parent', handNew.axes1, 'LineStyle', 'none', ...
 				'Marker','s', 'MarkerFaceColor','r', 'MarkerSize',5, 'Tag','marker')
+		end
+	end
+
+	if (s.haveText)					% case of text strings
+		try		s.Texto;			% Compatibility issue (Use a try because of compiler bugs)
+		catch
+			% Do it this way because compiled version canot tel 'Text' from 'text'
+			t = load([PathName FileName],'Text');	s.Texto = t.Text;
+		end
+		for (i = 1:length(s.Texto))
+			if (isempty(s.Texto(i).str)),		continue,	end
+			h_text = text(s.Texto(i).pos(1), s.Texto(i).pos(2), s.Texto(i).pos(3), s.Texto(i).str,...
+				'Parent',handNew.axes1, 'Rotation',s.Texto(i).angle,...
+				'FontAngle',s.Texto(i).FontAngle, 'Tag',s.Texto(i).Tag, 'FontWeight',s.Texto(i).FontWeight,...
+				'color',s.Texto(i).color, 'FontName',s.Texto(i).FontName, 'FontSize',s.Texto(i).FontSize);
+			if (isfield(s.Texto(i),'VerticalAlignment')),	set(h_text,'VerticalAlignment',s.Texto(i).VerticalAlignment),		end
+			if (isfield(s.Texto(i),'HorizontalAlignment')),	set(h_text,'HorizontalAlignment',s.Texto(i).HorizontalAlignment),	end
+			draw_funs(h_text,'DrawText')		% Set texts's uicontextmenu
+		end
+	end
+
+	if (s.havePline)					% case of polylines
+		for (i = 1:length(s.Pline))
+			h_line = line('Xdata',s.Pline(i).x,'Ydata',s.Pline(i).y,'Parent',handNew.axes1,'LineWidth',s.Pline(i).LineWidth,...
+				'color',s.Pline(i).color,'Tag',s.Pline(i).tag, 'LineStyle',s.Pline(i).LineStyle);
+			if (isfield(s.Pline(i),'Marker') && ~isempty(s.Pline(i).Marker))% New in 21-9-2011
+				set(h_line, 'Marker', s.Pline(i).Marker, 'MarkerSize',s.Pline(i).Size, ...
+					'MarkerFaceColor',s.Pline(i).FillColor, 'MarkerEdgeColor',s.Pline(i).EdgeColor)
+			end		
+			if (isfield(s.Pline(i),'appd') && ~isempty(s.Pline(i).appd))	% Need the isfield test for backward compat
+				fdnames = fieldnames(s.Pline(i).appd);
+				for (fd = 1:numel(fdnames))
+					if (strcmp(fdnames{fd}, 'UserData'))		% This is a UserData stored in appdata
+						set(h_line, 'UserData', s.Pline(i).appd.(fdnames{fd}))
+					else
+						setappdata(h_line, fdnames{fd}, s.Pline(i).appd.(fdnames{fd}))
+					end
+				end
+			end
+			if (isfield(s.Pline(i),'LineInfo') && ~isempty(s.Pline(i).LineInfo))	% Should not pass here
+				setappdata(h_line,'LineInfo',s.Pline(i).LineInfo)
+				set(h_line,'UserData',1)
+				draw_funs(h_line,'isochron',{s.Pline(i).LineInfo})
+			else
+				draw_funs([], 'set_line_uicontext_XY', h_line)	% Set lines's uicontextmenu
+			end
 		end
 	end
 
@@ -2872,10 +2993,10 @@ uicontrol('Parent',h1, 'Position',[40 5 161 23],...
 uicontrol('Parent',h1, 'Position',[360 5 200 23],...
 'BackgroundColor',[1 1 1],...
 'Call',@ecran_uiCB,...
-'String','Distance along line (data units)', ...
+'String','Horizontal coordinates (data units)', ...
 'Style','popupmenu',...
 'Value',1,...
-'Tooltip', 'Select different ways of seeing the line', ...
+'Tooltip', 'Select horizontal display coordinates', ...
 'Tag','popup_selectPlot');
 
 uicontrol('Parent',h1, 'Position',[610 5 200 23],...
