@@ -5,7 +5,7 @@ function varargout = empilhador(varargin)
 %
 % NOTE: The gotFromMETA and getZ functions are callable directly by mirone
 
-%	Copyright (c) 2004-2015 by J. Luis
+%	Copyright (c) 2004-2016 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -1596,7 +1596,7 @@ function [Z, att, known_coords, have_nans, was_empty_name] = read_gdal(full_name
 			r2 = str2num(strrep(opt_R_out(3:end), '/', ' '));
 			rect = aux_funs('rectangle_and', r1, r2);
 			if (~isempty(rect))
-				opt_R = opt_R_out;		% All fine
+				% All fine. The -R in OPTcontrol may even be different from opt_R (the edit boxes have been usedf to change lims)
 			elseif (what.georeference)
 				h = warndlg('The -R region in the L2config.txt file is outside this file''s region. Ignoring it.','WARNING');
 				move2side(h, 'right')
