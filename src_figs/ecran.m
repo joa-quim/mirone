@@ -35,7 +35,7 @@ function varargout = ecran(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: ecran.m 9923 2016-11-15 15:15:29Z j $
+% $Id: ecran.m 9924 2016-11-15 15:23:13Z j $
 
 	% This before-start test is to allow updating magnetic tracks that are used to pick the isochrons
 	% using the convolution method. If no synthetic plot is found, the whole updating issue is simply ignored.
@@ -208,9 +208,8 @@ function varargout = ecran(varargin)
 
 	elseif strcmp(varargin{1},'Image')
 		handles.data = [varargin{2}(:) varargin{3}(:) varargin{4}(:)];
-		set(handles.popup_selectSave,'String',{'Save Profile on disk';'Distance,Z (data units -> ascii)';
-			'Distance,Z (data units -> binary)';'X,Y,Z (data units -> ascii)';'X,Y,Z (data units -> binary)';
-			'Distance,Z (data units -> mat file)'});
+		set(handles.popup_selectSave,'String',{'Save Line on disk';'Distance,Z (data units -> ascii)';
+			'Distance,Z (data units -> binary)';'X,Y,Z (data units -> ascii)';'X,Y,Z (data units -> binary)'});
 		rd = get_distances(handles.data(:,1), handles.data(:,2), handles.geog, handles.measureUnit, handles.ellipsoide);
 		handles.dist = rd;			% This one is by default, so save it in case user wants to save to file
 
@@ -960,13 +959,11 @@ function check_geog_CB(hObject, handles)
 		set(handles.popup_selectSave,'String',{'Save Line on disk';'Distance,Z (data units -> ascii)';
 			'Distance,Z (data units -> binary)';'Distance,Z (km -> ascii)';'Distance,Z (km -> binary)';
 			'Distance,Z (NM -> ascii)';'Distance,Z (NM -> binary)';
-			'X,Y,Z (data units -> ascii)';'X,Y,Z (data units -> binary)';
-			'Distance,Z (NM -> mat file)';'Distance,Z (km -> mat file)';'Distance,Z (data units -> mat file)'});
+			'X,Y,Z (data units -> ascii)';'X,Y,Z (data units -> binary)'});
 	else
 		set(handles.popup_selectPlot,'String','Distance along line (data units)','Value',1);
 		set(handles.popup_selectSave,'String',{'Save Line on disk';'Distance,Z (data units -> ascii)';
-			'Distance,Z (data units -> binary)';'X,Y,Z (data units -> ascii)';'X,Y,Z (data units -> binary)';
-			'Distance,Z (data units -> mat file)'},'Value',1);
+			'Distance,Z (data units -> binary)';'X,Y,Z (data units -> ascii)';'X,Y,Z (data units -> binary)'},'Value',1);
 	end
 
 % ---------------------------------------------------------------------------------
@@ -1033,23 +1030,6 @@ function popup_selectSave_CB(hObject, handles)
 			if isequal(FileName,0),		set(hObject,'Value',1),		return,		end     % User gave up
 			fid = fopen([PathName FileName],'wb');
 			fwrite(fid,[handles.data(:,1) handles.data(:,2) handles.data(:,3)]','float');  fclose(fid);
-		case 'Distance,Z (NM -> mat file)'						% Save profile in mat file (m Z) 
-			[FileName,PathName] = put_or_get_file(handles,{'*.mat', 'Dist Z (*.mat)';'*.*', 'All Files (*.*)'},'Distance (m),Z (Matlab mat file)','put');
-			if isequal(FileName,0),		set(hObject,'Value',1),		return,		end     % User gave up
-			rd = get_distances(handles.data(:,1), handles.data(:,2), true, 'n', handles.ellipsoide);
-			Z = handles.data(:,3);								% More BUGs, handles.data(:,3) canot be saved
-			save([PathName FileName],'rd','Z')
-		case 'Distance,Z (km -> mat file)'						% Save profile in mat file (km Z)
-			[FileName,PathName] = put_or_get_file(handles,{'*.mat', 'Dist Z (*.mat)';'*.*', 'All Files (*.*)'},'Distance (km),Z (Matlab mat file)','put');
-			if isequal(FileName,0),		set(hObject,'Value',1),		return,		end     % User gave up
-			rd = get_distances(handles.data(:,1), handles.data(:,2), true, 'k', handles.ellipsoide);
-			Z = handles.data(:,3);
-			save([PathName FileName],'rd','Z')
-		case 'Distance,Z (data units -> mat file)'				% Save profile in binary data units
-			[FileName,PathName] = put_or_get_file(handles,{'*.mat', 'Dist Z (*.mat)';'*.*', 'All Files (*.*)'},'Distance,Z (Matlab mat file)','put');
-			if isequal(FileName,0),		set(hObject,'Value',1),		return,		end     % User gave up
-			R = handles.dist';   Z = handles.data(:,3)';		% More one BUG, handles.data(:,3) canot be saved
-			save([PathName FileName],'R','Z')
 	end
 	set(hObject,'Value',1);
 
