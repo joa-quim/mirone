@@ -3789,14 +3789,14 @@ function FileOpenSession_CB(handles, fname)
 	end
 
 % ------------------------------------------------------------------------------------------------
-function FileSaveSession_CB(handles)
+function out = FileSaveSession_CB(handles)
+	if (nargout),	out = '';	end
 	if (handles.image_type == 0),		return,		end
 	str1 = {'*.mat;*.MAT', 'Data files (*.mat,*.MAT)'};
 	[FileName,PathName] = put_or_get_file(handles,str1,'Select session file name','put','.mat');
 	if isequal(FileName,0),		return,		end
 	fname = [PathName FileName];
 
-	set(handles.figure1,'pointer','watch')
 	grd_name = handles.fileName;	% Use this variable name for compatibility reason
 	if (handles.image_type == 20),	grd_name = [];	end		% The idea is if we have only vector data it may have been edited
 	img_pal = get(handles.figure1,'Colormap');		illumComm = [];		illumType = handles.Illumin_type;
@@ -3805,7 +3805,6 @@ function FileSaveSession_CB(handles)
 		illumComm = getappdata(handles.figure1,'illumComm');
 	end
 	ALLlineHand = findobj(get(handles.axes1,'Child'),'Type','line');
-	m = 1;
 	haveMBtrack = 0;	havePline = 0;		haveText = 0;	haveSymbol = 0;		haveCircleGeo = 0;
 	haveCircleCart = 0; havePlineAsPoints = 0;  havePatches = 0;haveCoasts = 0; havePolitic = 0;	haveRivers = 0;
 	MBtrack = [];	MBbar = [];		Pline = [];		Symbol = [];	CircleGeo = [];	MecaMag5 = [];
@@ -3918,6 +3917,7 @@ function FileSaveSession_CB(handles)
 		draw_funs(h,'MBbarUictx')				% Set track bar's uicontextmenu
 	end
 
+	m = 1;
 	for (i = 1:numel(ALLlineHand))
 		tag = get(ALLlineHand(i),'Tag');
 		if (strcmp(tag,'CoastLineNetCDF'))
@@ -4018,8 +4018,8 @@ function FileSaveSession_CB(handles)
 		'havePlineAsPoints','PlineAsPoints','CircleCart', 'map_limits', 'havePatches', 'Patches', ...
 		'haveCoasts', 'coastUD','havePolitic', 'politicUD','haveRivers', 'riversUD', 'illumComm', ...
 		'illumType', 'MecaMag5', 'IamTINTOL', 'is_defRegion', '-v6')
-	set(handles.figure1,'pointer','arrow')
 
+	if (nargout),	out = fname;	end
 	% Trick to shut up stupid MLint warnings
 	if (0 && grd_name && img_pal && map_limits && illumComm && haveMBtrack && havePline && haveText && haveSymbol), end
 	if (0 && haveCircleCart && havePlineAsPoints && haveCoasts && illumComm && haveMBtrack && illumType), end
