@@ -25,7 +25,7 @@ function varargout = draw_funs(hand, varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: draw_funs.m 9915 2016-11-12 19:36:19Z j $
+% $Id: draw_funs.m 9926 2016-11-15 22:59:11Z j $
 
 % A bit of strange tests but they are necessary for the cases when we use the new feval(fun,varargin{:}) 
 opt = varargin{1};		% function name to evaluate (new) or keyword to select one (old form)
@@ -188,12 +188,13 @@ function setSHPuictx(h,opt)
 	end
 
 % -----------------------------------------------------------------------------------------
-function set_line_uicontext_XY(h)
+function set_line_uicontext_XY(h, opt)
 % Set the line uicontext for lines plotted in a profiler (Ecran) figure. They are much
 % simpler that the Mirone ones, so put it in a separate function (this function).
 	if (isempty(h)),	return,		end
-	x = get(h,'XData');			y = get(h,'YData');
-	handles = guidata(get(h,'Parent'));		% Get Ecran handles
+	if (nargin == 1),	opt = '';	end
+	hFig = getParentFigure(h);
+	handles = guidata(hFig);		% Get Ecran handles
 
 	% Check to see if we are dealing with a multibeam track
 	cmenuHand = uicontextmenu('Parent',handles.figure1);
@@ -208,9 +209,17 @@ function set_line_uicontext_XY(h)
 	cb_color   = uictx_color(h);				% there are 9 cb_color outputs
 		
 	uimenu(cmenuHand, 'Label', 'Delete', 'Call', {@del_line,h});
-	ui_edit_polygon(h)			% Set edition functions
 	uimenu(cmenuHand, 'Label', 'Save line', 'Call', {@save_formated,h});
-	uimenu(cmenuHand, 'Label', 'Line length', 'Call', @show_LineLength_XY)
+	if (strcmp(opt, 'main'))
+		% Attention, if I ever change these labels I MUST do it also in ecran/finish_line_uictx()
+		h = uimenu(cmenuHand, 'Label', 'Shift origin here');
+		uimenu('Parent',h, 'Label', 'X origin only');
+		uimenu('Parent',h, 'Label', 'Y origin only');
+		uimenu('Parent',h, 'Label', 'XY origin');
+	else
+		ui_edit_polygon(h)			% Set edition functions
+		uimenu(cmenuHand, 'Label', 'Line length', 'Call', @show_LineLength_XY)
+	end
 	setLineWidth(uimenu(cmenuHand, 'Label', 'Line Width', 'Sep','on'), cb_LineWidth)
 	setLineStyle(uimenu(cmenuHand, 'Label', 'Line Style'), {cb_solid cb_dashed cb_dotted cb_dashdot})
 	setLineColor(uimenu(cmenuHand, 'Label', 'Line Color'), cb_color)
@@ -380,7 +389,7 @@ function set_line_uicontext(h, opt)
 		else
 			delete(item_tools)		% Easier to create it at top and delete in the case where it had no use
 		end
-		deal_opts({'MGG' 'MICROLEV' 'GMT_DB_IDS' 'GMT_SYMBOL'}, cmenuHand);
+		deal_opts({'MGG' 'MICROLEV' 'GMT_DB_IDS' 'GMT_SYMBOL' 'GRAVITY'}, cmenuHand);
 	end
 
 	if (~IS_SEISPOLYG && LINE_ISCLOSED && ~IS_RECTANGLE && (handles.validGrid || handles.image_type ~= 20))
@@ -936,7 +945,7 @@ function hh = loc_quiver(struc,varargin)
 		try		delete(hQuiver),	hQuiver = [];	end		% Remove previous arrow field
 	end
 
-	if ( isempty(hQuiver) || ~ishandle(hQuiver(1)) )		% No arrows yet.
+	if (isempty(hQuiver) || ~ishandle(hQuiver(1)))			% No arrows yet.
 		h1 = line('XData',uu(:), 'YData',vv(:), 'Parent',hAx, 'Color',lc,'Linewidth',lThick);
 		h2 = line('XData',hu(:), 'YData',hv(:), 'Parent',hAx, 'Color',lc,'Linewidth',lThick);
 		if (nargout > 0),	hh = [h1;h2];	end
@@ -2929,7 +2938,7 @@ function save_GMT_DB_asc(h, fname)
 		if (isempty(getappdata(h(k), 'edited'))),	continue,	end		% Skip because it was not modified
 		GSHHS_str = getappdata(h(k),'GSHHS_str');
 		if (k == 1 && ~isempty(GSHHS_str))		% Write back the magic string that allows us to recognize these type of files
-			fprintf(fid,'# $Id: draw_funs.m 9915 2016-11-12 19:36:19Z j $\n#\n%s\n#\n', GSHHS_str);
+			fprintf(fid,'# $Id: draw_funs.m 9926 2016-11-15 22:59:11Z j $\n#\n%s\n#\n', GSHHS_str);
 		end
 		hdr = getappdata(h(k), 'LineInfo');
 		x = get(h(k), 'XData');			y = get(h(k), 'YData');
@@ -3777,3 +3786,10 @@ function set_stack_order(cmenuHand)
 	uimenu(item_order, 'Label', 'Send to Bottom', 'Call','uistack_j(gco,''bottom'')');
 	uimenu(item_order, 'Label', 'Move up', 'Call','uistack_j(gco,''up'')');
 	uimenu(item_order, 'Label', 'Move down', 'Call','uistack_j(gco,''down'')');
+
+%--------------------------------------------------------------------------------
+function fig = getParentFigure(fig)
+% Get the Fig handle of graphical object whose handle is FIG
+	while ~isempty(fig) && ~strcmp('figure', get(fig,'Type'))
+		fig = get(fig,'Parent');
+	end
