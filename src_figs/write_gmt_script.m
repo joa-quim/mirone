@@ -16,7 +16,7 @@ function varargout = write_gmt_script(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: write_gmt_script.m 9916 2016-11-12 19:40:09Z j $
+% $Id: write_gmt_script.m 9922 2016-11-15 01:09:14Z j $
 
 	handMir = varargin{1};
 	if (handMir.no_file)     % Stupid call with nothing loaded on the Mirone window
@@ -2019,20 +2019,23 @@ function [script, l, warn_msg_pscoast] = do_pscoast(handles, script, l, comm, pb
 
 		% Now try to fish some known projections from the proj4 string and make a -J one
 		if (~isempty(proj4))
-			[t, r] = strtok(proj4);
-			prj = t(7:end);
 			escala = get(handles.edit_scale , 'String');
-			switch prj
-				case 'utm'
-					t = strtok(r);
-					opt_J = [' -J' prj '/' t(7:end) '/' escala];
-				otherwise
+			try
+				opt_J = parse_proj4(proj4);
+				if (~isempty(opt_J))
+					opt_J = [' ' opt_J '/' escala];
+				else
 					warn_msg_pscoast = ['Your grid is projected but with a projection that I don''t know ' ...
 						'how to convert to the GMT -J sintax. You will have to do it manually ' ...
 						'by editing the script and reading the comment before the pscoast command.'];
+				end
+			catch
+				warn_msg_pscoast = ['Your grid is projected but with a projection that I don''t know ' ...
+					'how to convert to the GMT -J sintax. You will have to do it manually ' ...
+					'by editing the script and reading the comment before the pscoast command.'];
 			end
 		end
-		
+
 		% Here we need also to use the map scale in the form 1:xxxxx
 		ind = strfind(script{5}, '-J');
 		script{5} = [script{5}(1:ind+1) 'x' escala];	% DANGEROUS. IT RELIES ON THE INDEX 5
@@ -2151,6 +2154,68 @@ function [ALLpatchHand, hAlfaPatch] = findTransparents(ALLpatchHand)
 	end
 	hAlfaPatch = ALLpatchHand(ind);			% Split the transparent and non-transparent
 	ALLpatchHand(ind) = [];
+
+%-------------------------------------------------------------------------------------
+function prj_GMT = parse_proj4(proj4)
+% Parse a proj4 string and return the equivalent in the GMT syntax
+	ind = strfind(proj4, '=');
+	[prj, r] = strtok(proj4(ind(1)+1:end));
+	projs = known_projs;
+	ind = find(strcmp(prj, projs));
+	if (isempty(ind))
+		prj_GMT = '';	return
+	end
+	Callback = str2func(projs{ind});
+	prj_GMT = feval(Callback, ddewhite(r));
+
+%-------------------------------------------------------------------------------------
+function out = known_projs()
+% Return a cell array with the names of the known Proj4 projection keys
+	out = {'merc' 'tmerc' 'utm' 'stere'};
+
+%-------------------------------------------------------------------------------------
+function out = merc(opts)
+% Create a GMT projection string for the Mercator projection from the Proj4 string
+	out = '-Jm';
+
+%-------------------------------------------------------------------------------------
+function out = tmerc(opts)
+% Create a GMT projection string for the Transverse Mercator projection from the Proj4 string
+	ind = strfind(opts, '+lon_0');		val = strtok(opts(ind+7:end));
+	out = ['-Jt' val '/'];
+	ind = strfind(opts, '+lat_0');		val = strtok(opts(ind+7:end));
+	out = [out val];
+
+%-------------------------------------------------------------------------------------
+function out = stere(opts)
+% Create a GMT projection string for the stereographic projection from the Proj4 string
+% +proj=stere +lat_0=90 +lat_ts=70 +lon_0=-45 +k=1 +x_0=0 +y_0=0 +datum=WGS84 +units=m +no_defs
+% -Js-45/90/70
+	ind = strfind(opts, '+lon_0');		val = strtok(opts(ind+7:end));
+	out = ['-Js' val '/'];
+	ind = strfind(opts, '+lat_0');		val = strtok(opts(ind+7:end));
+	out = [out val '/'];
+	ind = strfind(opts, '+lat_ts');		val = strtok(opts(ind+8:end));
+	out = [out val];
+
+%-------------------------------------------------------------------------------------
+function out = utm(opts)
+% Create a GMT projection string for the UTM projection from the Proj4 string
+	ind = strfind(opts, '+zone');		val = strtok(opts(ind+6:end));
+	out = ['-Ju' val];
+	
+	datum = check_datum(opts);
+	if (~isempty(datum))
+	end
+
+%-------------------------------------------------------------------------------------
+function out = check_datum(opts)
+% See what the datum is
+	out = '';
+	ind = strfind(opts, '+datum');		val = strtok(opts(ind+7:end));
+	if (~strcmp(val, 'WGS84'))
+		% So must write a function to deal with datum differences
+	end
 
 %-------------------------------------------------------------------------------------
 function figure1_KeyPressFcn(hObject, eventdata)
