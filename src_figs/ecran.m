@@ -35,7 +35,7 @@ function varargout = ecran(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: ecran.m 9917 2016-11-12 19:44:30Z j $
+% $Id: ecran.m 9920 2016-11-15 01:04:31Z j $
 
 	% This before-start test is to allow updating magnetic tracks that are used to pick the isochrons
 	% using the convolution method. If no synthetic plot is found, the whole updating issue is simply ignored.
@@ -159,27 +159,27 @@ function varargout = ecran(varargin)
 	if (freshFig)
 		% ------------------ Set the UITOOLBAR and its buttons -------------------------------------
 		s = load([handles.d_path 'mirone_icons.mat'],'zoom_ico','zoomx_ico', 'clipcopy_ico',...
-			'Mline_ico', 'rectang_ico', 'bar_ico');
+			'Mline_ico', 'rectang_ico', 'bar_ico', 'text_ico');
 		link_ico = make_link_ico;
 
 		hTB = uitoolbar('parent',hObject,'Clipping', 'on', 'BusyAction','queue','HandleVisibility','on',...
-			'Interruptible','on','Tag','FigureToolBar','Visible','on');
+		               'Interruptible','on','Tag','FigureToolBar','Visible','on');
 		uitoggletool('parent',hTB,'Click',{@zoom_CB,''}, 'cdata',s.zoom_ico,'Tooltip','Zoom');
 		uitoggletool('parent',hTB,'Click',{@zoom_CB,'x'}, 'cdata',s.zoomx_ico,'Tooltip','Zoom X');
 		if (strncmp(computer,'PC',2))
-			uipushtool('parent',hTB,'Click',@copyclipbd_CB, 'cdata',s.clipcopy_ico,...
-				'Tooltip','Copy to clipboard ','Sep','on');
+			uipushtool('parent',hTB,'Click',@copyclipbd_CB, 'cdata',s.clipcopy_ico,'Tooltip','Copy to clipboard ','Sep','on');
 		end
 		if (~isempty(handles.handMir))
 			uitoggletool('parent',hTB,'Click',@pick_CB, 'cdata',link_ico,'Tooltip', ...
-				'Pick data point in curve and plot it the mirone figure','Sep','on', 'Tag', 'pick_but');
+			             'Pick data point in curve and plot it the mirone figure','Sep','on', 'Tag', 'pick_but');
 		end
 		uitoggletool('parent',hTB,'Click',@dynSlope_CB, 'cdata', s.Mline_ico,...
-			'Tooltip','Compute slope dynamically', 'Tag', 'DynSlope');
+		             'Tooltip','Compute slope dynamically', 'Tag', 'DynSlope');
 		uipushtool('parent',hTB,'Click',@rectang_clicked_CB,'cdata',s.rectang_ico,...
-			'Tooltip','Restrict analysis to X region', 'Tag', 'rectang_but');
+		           'Tooltip','Restrict analysis to X region', 'Tag', 'rectang_but');
+		uipushtool('parent',hTB,'Click',@write_text_CB, 'cdata',s.text_ico,'Tooltip','Write text','Sep','on');
 		uitoggletool('parent',hTB,'Click',@isocs_CB, 'cdata', s.bar_ico,...
-			'Tooltip','Enter ages & plot a geomagnetic barcode','Sep','on', 'Tag', 'isocs_but');
+		             'Tooltip','Enter ages & plot a geomagnetic barcode','Sep','on', 'Tag', 'isocs_but');
 		% -------------------------------------------------------------------------------------------
 
 		handles.hLine = [];			% Handles to the ploted line
@@ -2083,6 +2083,14 @@ function rectang_clicked_CB(obj,evt)
 	handles.hRect = hLine;
 	guidata(handles.figure1, handles)
 
+% --------------------------------------------------------------------------------------------------
+function write_text_CB(obj, evt)
+% Draw Texts
+	pt = click_e_point(1,'crosshair');
+	if (isempty(pt)),	return,		end
+	h = text(pt(1),pt(2),0,'','Editing','on','VerticalAlignment','baseline','Margin',1);
+	draw_funs(h, 'DrawText')		% Set uicontextmenu
+
 % --------------------------------------------------------------------
 function add_uictx_CB(hObject, handles)
 % Tricky function either called externally to 'ecran' or activated when loading a file with DATENUM info
@@ -2729,8 +2737,7 @@ function anoma = calcmag(nb_struct,fInc,fDec,dir_spread,blockMag,stat_x,stat_z,n
 
 % --------------------------------------------------------------------
 function [amxx,amzz] = fcalcmagpt(nbps,stax,staz,nbsta,polxxm,polzzm,dd1,dd2,dd3)
-% Function to calculate the magnetized anomaly created
-% by each point of a magnetized body
+% Function to calculate the magnetized anomaly create by each point of a magnetized body
 
 	matstax = repmat(stax,1,nbps-1);
 	matstaz = repmat(staz,1,nbps-1);
@@ -2818,25 +2825,21 @@ function figure1_ResizeFcn(hObj, evt)
 function ecran_LayoutFcn(h1)
 
 set(h1, 'Position',[500 400 814 389],...
-'Color',get(0,'factoryUicontrolBackgroundColor'),...
-'KeyPressFcn',@figure1_KeyPressFcn,...
-'CloseRequestFcn',@figure1_CloseRequestFcn,...
-'ResizeFcn',@figure1_ResizeFcn,...
-'MenuBar','none',...
-'Name','XY view',...
-'NumberTitle','off',...
-'PaperUnits','normalized',...
-'PaperPosition',[0.0119243429653489 0.0842781102631165 0.381578974891164 0.20226746463148],...
-'PaperPositionMode', 'auto', ...
-'RendererMode','manual',...
-'FileName','plotxy',...
-'Tag','figure1');
+	'Color',get(0,'factoryUicontrolBackgroundColor'),...
+	'KeyPressFcn',@figure1_KeyPressFcn,...
+	'CloseRequestFcn',@figure1_CloseRequestFcn,...
+	'ResizeFcn',@figure1_ResizeFcn,...
+	'DoubleBuffer','on',...
+	'MenuBar','none',...
+	'Name','XY view',...
+	'NumberTitle','off',...
+	'RendererMode','manual',...
+	'FileName','plotxy',...
+	'Tag','figure1');
 
 axes('Parent',h1, 'Units','pixels', 'Position',[40 369 771 21], 'Vis','off', 'Tag','axes2');
-%'Position',[0.04791154791154791 0.9460154241645242 0.947174447174447 0.05398457583547558],...
 
 axes('Parent',h1, 'Units','pixels', 'Position',[40 48 771 321], 'UserData','XY', 'NextPlot','Add', 'Tag','axes1');
-%'Position',[0.04791154791154791 0.12082262210796911 0.947174447174447 0.8251928020565552],...
 
 uicontrol('Parent',h1, 'Position',[40 5 161 23],...
 'Call',@ecran_uiCB,...
@@ -3160,7 +3163,6 @@ function pushBP_OK_CB(hObject, handles)
 	if (~isempty(msg)),	errordlg(msg, 'Error'),		return,		end
 	
 	if (get(handles.radio_wave, 'Val'))
-		%handles.output = [LC LP HC HP];
 		handles.output = 1 ./ [HP HC LP LC];	% The input to fft_stuff is frequency
 	end
 	guidata(handles.figure1, handles);
