@@ -35,7 +35,7 @@ function varargout = ecran(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: ecran.m 9929 2016-11-15 23:22:07Z j $
+% $Id: ecran.m 9930 2016-11-16 00:08:29Z j $
 
 	% This before-start test is to allow updating magnetic tracks that are used to pick the isochrons
 	% using the convolution method. If no synthetic plot is found, the whole updating issue is simply ignored.
@@ -216,8 +216,8 @@ function varargout = ecran(varargin)
 		if (freshFig)				% First time here. Create the line handle
 			handles.hLine = line('XData',rd,'YData',handles.data(:,3), 'Parent', handles.axes1, 'Color','b');
 			y_lim = [min(handles.data(:,3)) max(handles.data(:,3))];
-			y_lim(1) = y_lim(1) - abs(y_lim(1)) * 0.007;	% Leave a very small margin on top & bottom
-			y_lim(2) = y_lim(2) + abs(y_lim(2)) * 0.007;
+			%y_lim(1) = y_lim(1) - abs(y_lim(1)) * 0.007;	% Leave a very small margin on top & bottom
+			%y_lim(2) = y_lim(2) + abs(y_lim(2)) * 0.007;
 			if (diff(y_lim) < 1e-8),		y_lim = y_lim + [-1 1];		end		% To not error below
 			set(handles.axes1,'xlim',[rd(1) rd(end)], 'ylim',y_lim)
 		else
