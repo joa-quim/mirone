@@ -20,7 +20,7 @@ function varargout = mirone(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: mirone.m 9928 2016-11-15 23:20:05Z j $
+% $Id: mirone.m 9933 2016-11-17 14:18:44Z j $
 
 	if (nargin > 1 && ischar(varargin{1}))
 		if ( ~isempty(strfind(varargin{1},':')) || ~isempty(strfind(varargin{1},filesep)) )
@@ -3520,6 +3520,7 @@ function FileOpenSession_CB(handles, fname)
 
 	s = load([PathName FileName]);
 	if (isfield(s,'markers') && isfield(s, 'FitLine'))	% Ah, this is ecran session. Send it there and stop here
+		if (handles.no_file),	delete(handles.figure1),	end		% If Mirone fig is empty (a drag-n-drop) delete it
 		h = ecran;
 		hands = guidata(h);		set(hands.figure1, 'vis', 'off')
 		hands.session_name = [PathName FileName];		% Pass the mat file name in this member
