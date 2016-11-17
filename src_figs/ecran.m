@@ -457,7 +457,8 @@ function shift_orig(obj, evt, eixo, hLine, pt_x, pt_y, opt)
 % --------------------------------------------------------------------------------------------------
 function shift_children(handles, hLine, pt_x, pt_y, eixo, opt)
 % Shift all Text and line objects, except HLINE that was already shifted
-	if (nargin == 6)
+% But since this function is also called upon a Session load we must protect against multiple shifting
+	if (~isempty(opt))
 		% OK, here is what happening. There was a shift stored in the .mat file but that shift
 		% has already been applied to the targets of this function (by a previous run of this code)
 		% so we don't want to applyit again and hence return right away.
