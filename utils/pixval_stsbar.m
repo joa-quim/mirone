@@ -3,7 +3,7 @@ function pixval_stsbar(arg1)
 
 % Coffeeright J. Luis 2004-2016
 
-% $Id: pixval_stsbar.m 9914 2016-11-12 19:32:15Z j $
+% $Id: pixval_stsbar.m 9931 2016-11-17 14:14:07Z j $
 
 	if (nargin == 0),	arg1 = [];		end
 
@@ -12,7 +12,7 @@ function pixval_stsbar(arg1)
 			case 'exit'
 				displayBar = findobj(gcf, 'Tag', 'pixValStsBar');
 				userData = get(displayBar, 'UserData');
-				uirestore_j(userData.oldFigureUIState);
+				if (~isempty(userData)),	uirestore_j(userData.oldFigureUIState),		end
 				if ishandle(displayBar),    delete(displayBar);     end
 				return
 		end 
@@ -307,9 +307,9 @@ function UpdatePixelValues(hFig, hImg, imageType, displayBar, img, x, y)
 			
 			% The difference is that handles.geog can be changed in mid-time but the one in userData is frozen to its initial value.
 			geog = handles.geog;
-			if (~strcmp(get(hImg, 'type'),'image')),	geog = userData.geog;	end		% Serving 'ecran()'
+			if (~userData.IAmImage),		geog = userData.geog;	end		% Serving 'ecran()'
 			if (geog)
-				switch handles.DefineMeasureUnit     % I have to do it here to allow midtime changes in preferences
+				switch handles.DefineMeasureUnit(1)     % I have to do it here to allow midtime changes in preferences
 					case 'n',		scale = 1852;   str_dist = 'dist(NM)';		% Nautical miles
 					case 'k',		scale = 1000;   str_dist = 'dist(km)';		% Kilometers
 					case 'm',		scale = 1;      str_dist = 'dist(m)';		% Meters or user unites
