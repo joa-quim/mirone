@@ -411,31 +411,33 @@ function finish_line_uictx(hLine)
 	set(h, 'Call', {@shift_orig, 'XY'})
 
 % --------------------------------------------------------------------------------------------------
-function shift_orig(obj, evt, opt, hLine, pt_x, pt_y)
+function shift_orig(obj, evt, eixo, hLine, pt_x, pt_y, opt)
 % Shift the graph origin to either a new X0, Y0 or both. The new origin is the closest point on curve to the clicking pt
-% HLINE, PT_X & PT_Y are optional arguments that are transmitted when this function is called from OpenSession
+% HLINE, PT_X, PT_Y & OPT are optional arguments that are transmitted when this function is called from OpenSession
 	if (nargin < 4),		hLine = gco;	end
 	handles = guidata(get(get(hLine, 'Parent'), 'Parent'));
 	if (nargin < 5)
 		[pt_x, pt_y] = get_pointOnLine(handles.axes1, hLine);	% Get the clicked closest point on line
 	end
+	if (nargin < 7),	opt = '';	end
+
 	hZ1 = findobj(handles.figure1, 'Tag','ZoomToggle');
 	hZ2 = findobj(handles.figure1, 'Tag','Zoom_xToggle');
 	zoom_is_on = false;
 	if (strcmp(get(hZ1,'State'),'on') || strcmp(get(hZ2,'State'),'on'))
 		zoom_is_on = true;
 	end
-	if (strcmp(opt, 'X'))
+	if (strcmp(eixo, 'X'))
 		x = get(hLine, 'XData');		x = x - pt_x;
 		set(hLine, 'XData', x)
-		shift_children(handles, hLine, pt_x, pt_y, opt)		% Shift other eventual Text and Line elements
+		shift_children(handles, hLine, pt_x, pt_y, eixo, opt)		% Shift other eventual Text and Line elements
 		if (zoom_is_on),	zoom_j('out'),	zoom_j('off'),	end		% Must always turn Zoom off otherwise it screws when manually zooming out
 		set(handles.axes1, 'XLim', [x(1) x(end)])
 		handles.dist = x;
-	elseif (strcmp(opt, 'Y'))
+	elseif (strcmp(eixo, 'Y'))
 		y = get(hLine, 'YData');		y = y - pt_y;
 		set(hLine, 'YData', y)
-		shift_children(handles, hLine, pt_x, pt_y, opt)		% Shift other eventual Text and Line elements
+		shift_children(handles, hLine, pt_x, pt_y, eixo, opt)		% Shift other eventual Text and Line elements
 		if (zoom_is_on),	zoom_j('out'),	zoom_j('off'),	end
 		set(handles.axes1, 'YLim', [y(1) y(end)])
 		handles.data(:,3) = y(:);
@@ -443,18 +445,24 @@ function shift_orig(obj, evt, opt, hLine, pt_x, pt_y)
 		x = get(hLine, 'XData');		x = x - pt_x;
 		y = get(hLine, 'YData');		y = y - pt_y;
 		set(hLine, 'XData', x, 'YData', y)
-		shift_children(handles, hLine, pt_x, pt_y, opt)		% Shift other eventual Text and Line elements
+		shift_children(handles, hLine, pt_x, pt_y, eixo, opt)		% Shift other eventual Text and Line elements
 		if (zoom_is_on),	zoom_j('out'),	zoom_j('off'),	end
 		set(handles.axes1, 'XLim', [x(1) x(end)], 'YLim', [y(1) y(end)])
 		handles.dist = x;	handles.data(:,3) = y(:);
 	end
 	handles.offset_coords = [pt_x pt_y];	% Save for eventual use in Sessions
-	handles.offset_axes   = opt;
+	handles.offset_axes   = eixo;
 	guidata(handles.figure1, handles)
 
 % --------------------------------------------------------------------------------------------------
-function shift_children(handles, hLine, pt_x, pt_y, eixo)
+function shift_children(handles, hLine, pt_x, pt_y, eixo, opt)
 % Shift all Text and line objects, except HLINE that was already shifted
+	if (nargin == 6)
+		% OK, here is what happening. There was a shift stored in the .mat file but that shift
+		% has already been applied to the targets of this function (by a previous run of this code)
+		% so we don't want to applyit again and hence return right away.
+		return
+	end
 	if (strcmpi(eixo, 'X')),		pt_y = 0;
 	elseif (strcmpi(eixo, 'Y')),	pt_x = 0;
 	end
@@ -1614,7 +1622,7 @@ function FileOpenSession_CB(hObj, handles, fname)
 	end
 
 	if (~isempty(s.offset_coords))		% We have an origin shift, apply it now
-		shift_orig([], [], s.offset_axes, handNew.hLine, s.offset_coords(1), s.offset_coords(2))
+		shift_orig([], [], s.offset_axes, handNew.hLine, s.offset_coords(1), s.offset_coords(2), 'nochilds')
 	end
 
 % --------------------------------------------------------------------
