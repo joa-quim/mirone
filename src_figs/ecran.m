@@ -199,6 +199,8 @@ function varargout = ecran(varargin)
 		handles.hTxtChrons = [];	% Handles of isochrons names (when used)
 		handles.no_file = false;	% Will need to be updated latter to true case (used in write_gmt_script)
 		handles.hMarkerToRef = [];	% To hold the handles of an eventual markers 'to reference type line'
+		handles.offset_coords = [];	% Will store new origin after a Shift origin op
+		handles.offset_axes   = '';
 	end
 
 	% Choose the default ploting mode
@@ -409,11 +411,14 @@ function finish_line_uictx(hLine)
 	set(h, 'Call', {@shift_orig, 'XY'})
 
 % --------------------------------------------------------------------------------------------------
-function shift_orig(obj,evt,opt)
+function shift_orig(obj, evt, opt, hLine, pt_x, pt_y)
 % Shift the graph origin to either a new X0, Y0 or both. The new origin is the closest point on curve to the clicking pt
-	hLine = gco;
+% HLINE, PT_X & PT_Y are optional arguments that are transmitted when this function is called from OpenSession
+	if (nargin < 4),		hLine = gco;	end
 	handles = guidata(get(get(hLine, 'Parent'), 'Parent'));
-	[pt_x, pt_y] = get_pointOnLine(handles.axes1, hLine);	% Get the clicked closest point on line
+	if (nargin < 5)
+		[pt_x, pt_y] = get_pointOnLine(handles.axes1, hLine);	% Get the clicked closest point on line
+	end
 	hZ1 = findobj(handles.figure1, 'Tag','ZoomToggle');
 	hZ2 = findobj(handles.figure1, 'Tag','Zoom_xToggle');
 	zoom_is_on = false;
@@ -423,19 +428,52 @@ function shift_orig(obj,evt,opt)
 	if (strcmp(opt, 'X'))
 		x = get(hLine, 'XData');		x = x - pt_x;
 		set(hLine, 'XData', x)
+		shift_children(handles, hLine, pt_x, pt_y, opt)		% Shift other eventual Text and Line elements
 		if (zoom_is_on),	zoom_j('out'),	zoom_j('off'),	end		% Must always turn Zoom off otherwise it screws when manually zooming out
 		set(handles.axes1, 'XLim', [x(1) x(end)])
+		handles.dist = x;
 	elseif (strcmp(opt, 'Y'))
 		y = get(hLine, 'YData');		y = y - pt_y;
 		set(hLine, 'YData', y)
+		shift_children(handles, hLine, pt_x, pt_y, opt)		% Shift other eventual Text and Line elements
 		if (zoom_is_on),	zoom_j('out'),	zoom_j('off'),	end
 		set(handles.axes1, 'YLim', [y(1) y(end)])
-	else
+		handles.data(:,3) = y(:);
+	else			% Both X & Y
 		x = get(hLine, 'XData');		x = x - pt_x;
 		y = get(hLine, 'YData');		y = y - pt_y;
 		set(hLine, 'XData', x, 'YData', y)
+		shift_children(handles, hLine, pt_x, pt_y, opt)		% Shift other eventual Text and Line elements
 		if (zoom_is_on),	zoom_j('out'),	zoom_j('off'),	end
 		set(handles.axes1, 'XLim', [x(1) x(end)], 'YLim', [y(1) y(end)])
+		handles.dist = x;	handles.data(:,3) = y(:);
+	end
+	handles.offset_coords = [pt_x pt_y];	% Save for eventual use in Sessions
+	handles.offset_axes   = opt;
+	guidata(handles.figure1, handles)
+
+% --------------------------------------------------------------------------------------------------
+function shift_children(handles, hLine, pt_x, pt_y, eixo)
+% Shift all Text and line objects, except HLINE that was already shifted
+	if (strcmpi(eixo, 'X')),		pt_y = 0;
+	elseif (strcmpi(eixo, 'Y')),	pt_x = 0;
+	end
+
+	% Fish Texts and shift them
+	ALLtextHand = findobj(get(handles.axes1,'Child'),'Type','text');
+	for (k = 1:numel(ALLtextHand))
+		pos = get(ALLtextHand(k), 'Pos');
+		pos(1,1) = pos(1,1) - pt_x;		pos(1,2) = pos(1,2) - pt_y;
+		set(ALLtextHand(k), 'Pos', pos);
+	end
+
+	% Fish Lines and shift them
+	ALLlineHand = findobj(get(handles.axes1,'Child'),'Type','line');
+	ALLlineHand = setxor(ALLlineHand, hLine);		% The HLINE line has already been shifted, so remove it from list
+	for (k = 1:numel(ALLlineHand))
+		x = get(ALLlineHand(k), 'XData');	y = get(ALLlineHand(k), 'YData');
+		if (pt_x ~= 0),		set(ALLlineHand(k), 'XData', x - pt_x),		end
+		if (pt_y ~= 0),		set(ALLlineHand(k), 'YData', y - pt_y),		end
 	end
 
 % --------------------------------------------------------------------------------------------------
@@ -485,12 +523,18 @@ function dynSlope_CB(obj, eventdata)
 % Compute slope over the click and drag region.
 
 	handles = guidata(obj);				mkAnother = false;
-	if (~strcmp(get(obj,'State'),'on'))
+	if (~strcmp(get(obj,'State'),'on'))				% Unchecked, so hide the dynslope objects
 		set(handles.axes2, 'Vis', 'off')
 		set(findobj(handles.axes2,'Type', 'line', 'Tag', 'UnderLine'), 'Vis', 'off')
 		set(findobj(handles.axes1,'Type', 'line', 'Tag', 'FitLine'), 'Vis', 'off')
 		set(findobj(handles.axes2,'Type', 'text', 'Tag', 'DS'), 'Vis', 'off')
-		set(handles.figure1,'Pointer', 'arrow');		% Could be cross when unsetting the toggle button
+		set(handles.figure1,'Pointer', 'arrow');	% Could be cross when unsetting the toggle button
+		displayBar = findobj(handles.figure1, 'Tag', 'pixValStsBar');
+		if (isempty(displayBar))					% pixValStsBar was deleted but not yet recreated. Time to reborn it
+			pixval_stsbar(handles.figure1)
+		else
+			set(displayBar, 'Vis','on')
+		end
 		return
 	else
 		hULine = findobj(handles.axes2,'Type', 'line', 'Tag', 'UnderLine');
@@ -502,6 +546,7 @@ function dynSlope_CB(obj, eventdata)
 			set(hFLine, 'Vis', 'on')
 			if (~isempty(get(hFLine, 'UserData'))),		mkAnother = true;	end
 		end
+		pixval_stsbar('exit')
 	end
 
 	state = uisuspend_j(handles.figure1);		% Remember initial figure state
@@ -527,7 +572,7 @@ function dynSlope_CB(obj, eventdata)
 
 	w = waitforbuttonpress;
 	if (w == 0)					% A mouse click
-		if (strcmp(get(handles.figure1, 'Pointer'), 'arrow'))	% This might look idiot (pointer was set 3 lines above)
+		if (strcmp(get(handles.figure1, 'Pointer'), 'arrow'))	% This might look idiot (pointer was set some lines above)
 			return												% but is actually a trick to catch a not-yet-interrupted
 		end														% waitforbuttonpress (from a 2 consecutive hits on toggbutton)
 		button = get(handles.figure1, 'SelectionType');
@@ -616,6 +661,8 @@ function wbu_dynSlope(obj,event, h, xFact, SpectorGrant, state)
 		draw_funs(hL, 'line_uicontext')
 	end
 	%dynSlope_CB(findobj('Type', 'uitoggletool', 'Tag', 'DynSlope'), [])
+	pixval_stsbar(handles.figure1)			% Recreate the pixValStsBar
+	set(findobj(handles.figure1, 'Tag', 'pixValStsBar'), 'Vis', 'off')		% But leave it invisible while DynSlope button is checked
 
 function recompSI(obj,event, h, xFact, SpectorGrant)
 % Recompute Slope & Intercept because line might have been edited
@@ -1458,13 +1505,15 @@ function FileSaveSession_CB(hObject, handles)
 	ellipsoide = handles.ellipsoide;
 	geog = handles.geog;
 	measureUnit = handles.measureUnit;
+	offset_coords = handles.offset_coords;
+	offset_axes = handles.offset_axes;
 
-	x  = handles.data(:,1);		y  = handles.data(:,2);		z  = handles.data(:,3);		dist = handles.dist;
+	x = handles.data(:,1);		y = handles.data(:,2);		z = handles.data(:,3);		dist = handles.dist;
 	save(fname, 'x', 'y', 'z', 'dist', 'xFact', 'markers', 'FitLine', 'hMirFig', 'ellipsoide', 'geog', ...
-		'measureUnit', 'havePline','Pline', 'haveText','Texto', '-v6')
+		'measureUnit', 'havePline','Pline', 'haveText','Texto', 'offset_coords', 'offset_axes', '-v6')
 	% Trick to shut up stupid MLint warnings
 	if (0 && hMirFig && FitLine && markers && x && y && z && dist && xFact && geog && ellipsoide && measureUnit), end
-	if (0 && haveText && havePline && Pline), end
+	if (0 && haveText && havePline && Pline && offset_axes && offset_coords), end
 
 % ----------------------------------------------------------------------------------------------------
 function FileOpenSession_CB(hObj, handles, fname)
@@ -1481,13 +1530,14 @@ function FileOpenSession_CB(hObj, handles, fname)
 	else
 		FileName = fname;	PathName = [];
 	end
+	fname = [PathName FileName];
 
-	s = load([PathName FileName]);
+	s = load(fname);
 	if (ishandle(s.hMirFig))		% OK, we still have a living original Parent Mirone figure
-		h = ecran(guidata(s.hMirFig), s.x, s.y, s.z, 'Session');
+		h = ecran(guidata(s.hMirFig), s.x, s.y, s.z, fname);
 	else							% Parent Mirone is gone, do a minimalist thing
 		lix = struct('DefineEllipsoide', s.ellipsoide, 'geog', s.geog, 'DefineMeasureUnit',s.measureUnit);
-		h = ecran(lix, s.x, s.y, s.z, 'Session');
+		h = ecran(lix, s.x, s.y, s.z, fname);
 	end
 	handNew = guidata(h);
 
@@ -1502,7 +1552,7 @@ function FileOpenSession_CB(hObj, handles, fname)
 		try		s.Texto;			% Compatibility issue (Use a try because of compiler bugs)
 		catch
 			% Do it this way because compiled version canot tel 'Text' from 'text'
-			t = load([PathName FileName],'Text');	s.Texto = t.Text;
+			t = load(fname,'Text');	s.Texto = t.Text;
 		end
 		for (i = 1:length(s.Texto))
 			if (isempty(s.Texto(i).str)),		continue,	end
@@ -1546,6 +1596,7 @@ function FileOpenSession_CB(hObj, handles, fname)
 
 	if (~isempty(s.FitLine))		% The local fit lines
 		xFact = 1;
+		if (~isa(s.FitLine, 'cell')),	s.FitLine = {s.FitLine};	end
 		for (k = 1:numel(s.FitLine))
 			mb_e_slp = s.FitLine{k};
 			h = line('XData', mb_e_slp(4:5), 'YData', (mb_e_slp(4:5) * mb_e_slp(1) + mb_e_slp(2)), ...
@@ -1560,6 +1611,10 @@ function FileOpenSession_CB(hObj, handles, fname)
 			ui_edit_polygon(h)
 		end
 		extensional_CB(handNew.extensional, handNew)
+	end
+
+	if (~isempty(s.offset_coords))		% We have an origin shift, apply it now
+		shift_orig([], [], s.offset_axes, handNew.hLine, s.offset_coords(1), s.offset_coords(2))
 	end
 
 % --------------------------------------------------------------------
@@ -2926,13 +2981,6 @@ function [amxx,amzz] = fcalcmagpt(nbps,stax,staz,nbsta,polxxm,polzzm,dd1,dd2,dd3
 % ------------------------------------------------------------------------------
 
 % -----------------------------------------------------------------------------
-function figure1_KeyPressFcn(hObject, eventdata)
-	if isequal(get(hObject,'CurrentKey'),'escape')
-		handles = guidata(hObject);
-		delete(handles.figure1)
-	end
-
-% -----------------------------------------------------------------------------
 function figure1_CloseRequestFcn(hObject, eventdata)
 	set(hObject, 'vis', 'off'),		pause(0.05)		% To avoid ugly noticeable resizing before death
 	handles = guidata(hObject);
@@ -2967,7 +3015,6 @@ function ecran_LayoutFcn(h1)
 
 set(h1, 'Position',[500 400 814 389],...
 	'Color',get(0,'factoryUicontrolBackgroundColor'),...
-	'KeyPressFcn',@figure1_KeyPressFcn,...
 	'CloseRequestFcn',@figure1_CloseRequestFcn,...
 	'ResizeFcn',@figure1_ResizeFcn,...
 	'DoubleBuffer','on',...
