@@ -35,7 +35,7 @@ function varargout = ecran(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: ecran.m 9934 2016-11-17 15:05:49Z j $
+% $Id: ecran.m 9935 2016-11-17 15:24:19Z j $
 
 	% This before-start test is to allow updating magnetic tracks that are used to pick the isochrons
 	% using the convolution method. If no synthetic plot is found, the whole updating issue is simply ignored.
@@ -457,7 +457,8 @@ function shift_orig(obj, evt, eixo, hLine, pt_x, pt_y, opt)
 % --------------------------------------------------------------------------------------------------
 function shift_children(handles, hLine, pt_x, pt_y, eixo, opt)
 % Shift all Text and line objects, except HLINE that was already shifted
-	if (nargin == 6)
+% But since this function is also called upon a Session load we must protect against multiple shifting
+	if (~isempty(opt))
 		% OK, here is what happening. There was a shift stored in the .mat file but that shift
 		% has already been applied to the targets of this function (by a previous run of this code)
 		% so we don't want to applyit again and hence return right away.
