@@ -945,9 +945,10 @@ int main(int argc, char **argv) {
 						strcpy(t, ++pch);
 						while ((pch = strstr(t,",")) != NULL) {
 							pch[0] = '\0';
-							nest.manning[k++] = atof(pch);
+							nest.manning[k++] = atof(t);
 							strcpy(t, ++pch);
 						}
+						nest.manning[k] = atof(t);	/* Last one doesn't end with a comma so was skipped above */
 					}
 					else
 						nest.manning[k] = atof(&argv[i][2]);
@@ -998,7 +999,7 @@ int main(int argc, char **argv) {
 
 	if (argc <= 1 || error) {
 #ifdef LIMIT_DISCHARGE
-		mexPrintf("NSWING - A tsunami maker (%s)\t\t-- With DISCHARGE limit.\n\n", prog_id)
+		mexPrintf("NSWING - A tsunami maker (%s)\t\t-- With DISCHARGE limit.\n\n", prog_id);
 #else
 		mexPrintf("NSWING - A tsunami maker (%s)\n\n", prog_id);
 #endif
@@ -1634,7 +1635,7 @@ int main(int argc, char **argv) {
 		if (EPS4 != EPS4_)
 			mexPrintf("Using a modified EPS4 const of %g\n", EPS4);
 #ifdef LIMIT_DISCHARGE
-		mexPrintf("\nUsing DISCHARGE limit to minimize sources of instability\n")
+		mexPrintf("\nUsing DISCHARGE limit to minimize sources of instability\n");
 #endif
 		mexPrintf("\n");
 	}
@@ -4080,7 +4081,7 @@ void moment_M(struct nestContainer *nest, int lev) {
 	if (nest->do_linear) jupe = 1e6;		/* A tricky way of imposing linearity */
 
 	/* fixes friction parameter */
-	cte = (manning) ? manning * manning * dt * 4.9 : 0;
+	cte = (manning != 0) ? manning * manning * dt * 4.9 : 0;
 
 	memset(fluxm_d, 0, hdr.nm * sizeof(double));	/* Do this rather than seting to zero under looping conditions */
 
@@ -4138,7 +4139,7 @@ void moment_M(struct nestContainer *nest, int lev) {
 
 			if (df < EPS4) df = EPS4;
 			xqq = (fluxn_a[ij] + fluxn_a[ij+cp1] + fluxn_a[ij-rm1] + fluxn_a[ij+cp1-rm1]) * 0.25;
-			ff = (manning && bat[ij] < nest->manning_depth) ? cte * sqrt(fluxm_a[ij] * fluxm_a[ij] + xqq * xqq) / pow(df, 2.333333) : 0;
+			ff = (manning != 0 && bat[ij] < nest->manning_depth) ? cte * sqrt(fluxm_a[ij] * fluxm_a[ij] + xqq * xqq) / pow(df, 2.333333) : 0;
 
 			/* computes linear terms in cartesian coordinates */
 			xp = (1 - ff) * fluxm_a[ij] - dtdx * NORMAL_GRAV * dd * (etad[ij+cp1] - etad[ij]);
@@ -4266,7 +4267,7 @@ void moment_N(struct nestContainer *nest, int lev) {
 	if (nest->do_linear) jupe = 1e6;		/* A tricky way of imposing linearity */
 
 	/* fixes friction parameter */
-	cte = (manning) ? manning * manning * dt * 4.9 : 0;
+	cte = (manning != 0) ? manning * manning * dt * 4.9 : 0;
 
 	memset(fluxn_d, 0, hdr.nm * sizeof(double));	/* Do this rather than seting to zero under looping conditions */ 
 
@@ -4324,7 +4325,7 @@ void moment_N(struct nestContainer *nest, int lev) {
 
 			if (df < EPS4) df = EPS4;
 			xpp = (fluxm_a[ij] + fluxm_a[ij+rp1] + fluxm_a[ij-cm1] + fluxm_a[ij-cm1+rp1]) * 0.25;
-			ff = (manning && bat[ij] < nest->manning_depth) ? cte * sqrt(fluxn_a[ij] * fluxn_a[ij] + xpp * xpp) / pow(df, 2.333333) : 0;
+			ff = (manning != 0 && bat[ij] < nest->manning_depth) ? cte * sqrt(fluxn_a[ij] * fluxn_a[ij] + xpp * xpp) / pow(df, 2.333333) : 0;
 
 			/* computes linear terms of N in cartesian coordinates */
 			xq = (1 - ff) * fluxn_a[ij] - dtdy * NORMAL_GRAV * dd * (etad[ij+rp1] - etad[ij]);
@@ -4557,7 +4558,7 @@ void moment_sp_M(struct nestContainer *nest, int lev) {
 	if (nest->do_linear) jupe = 1e6;		/* A tricky way of imposing linearity */
 
 	/* - fixes friction parameter */
-	cte = (manning) ? manning * manning * dt * 4.9 : 0;
+	cte = (manning != 0) ? manning * manning * dt * 4.9 : 0;
 
 	memset(fluxm_d, 0, hdr.nm * sizeof(double));	/* Do this rather than seting to zero under looping conditions */
 
@@ -4622,7 +4623,7 @@ void moment_sp_M(struct nestContainer *nest, int lev) {
 
 			df = (df < EPS3) ? EPS3 : df;		/* Aparently this is faster than the simpe if test */
 			xqq = (fluxn_a[ij] + fluxn_a[ij+cp1] + fluxn_a[ij-rm1] + fluxn_a[ij+cp1-rm1]) * 0.25;
-			ff = (manning) ? cte * sqrt(fluxm_a__ij * fluxm_a__ij + xqq * xqq) / pow(df, 2.333333) : 0;
+			ff = (manning != 0) ? cte * sqrt(fluxm_a__ij * fluxm_a__ij + xqq * xqq) / pow(df, 2.333333) : 0;
 
 			/* - computes linear terms in spherical coordinates */
 			xp = (1 - ff) * fluxm_a__ij - r3m[row] * dd * (etad[ij+cp1] - etad__ij); /* - includes coriolis */
@@ -4760,7 +4761,7 @@ void moment_sp_N(struct nestContainer *nest, int lev) {
 	if (nest->do_linear) jupe = 1e6;		/* A tricky way of imposing linearity */
 
 	/* - fixes friction parameter */
-	cte = (manning) ? manning * manning * dt * 4.9 : 0;
+	cte = (manning != 0) ? manning * manning * dt * 4.9 : 0;
 
 	memset(fluxn_d, 0, hdr.nm * sizeof(double));	/* Do this rather than seting to zero under looping conditions */
 
@@ -4833,7 +4834,7 @@ void moment_sp_N(struct nestContainer *nest, int lev) {
 
 			df = (df < EPS3) ? EPS3 : df;
 			xpp = (fluxm_a[ij] + fluxm_a[ij+rp1] + fluxm_a[ij-cm1] + fluxm_a[ij-cm1+rp1]) * 0.25;
-			ff = (manning) ? cte * sqrt(fluxn_a__ij * fluxn_a__ij + xpp * xpp) / pow(df, 2.333333) : 0;
+			ff = (manning != 0) ? cte * sqrt(fluxn_a__ij * fluxn_a__ij + xpp * xpp) / pow(df, 2.333333) : 0;
 
 			/* - computes linear terms of N in cartesian coordinates */
 			xq = (1 - ff) * fluxn_a__ij - r3n[row] * dd * (etad__ij_p_rp1 - etad__ij);
