@@ -3520,6 +3520,7 @@ function FileOpenSession_CB(handles, fname)
 
 	s = load([PathName FileName]);
 	if (isfield(s,'markers') && isfield(s, 'FitLine'))	% Ah, this is ecran session. Send it there and stop here
+		if (handles.no_file),	delete(handles.figure1),	end		% If Mirone fig is empty (a drag-n-drop) delete it
 		h = ecran;
 		hands = guidata(h);		set(hands.figure1, 'vis', 'off')
 		hands.session_name = [PathName FileName];		% Pass the mat file name in this member
