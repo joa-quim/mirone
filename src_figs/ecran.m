@@ -299,7 +299,7 @@ function varargout = ecran(varargin)
 			cmenuHand = uicontextmenu('Parent',handles.figure1);
 			set(handles.hLine, 'UIContextMenu', cmenuHand);
 			uimenu(cmenuHand, 'Label', 'Make scatter plot with Me and the other CMOP line Me', 'Call', @make_scatterPlot);
-			uimenu(cmenuHand, 'Label', 'Remove Outliers', 'Call', {@outliers_clean,handles.hLine}, 'Sep','on');
+			uimenu(cmenuHand, 'Label', 'Filter Outliers', 'Call', {@outliers_clean,handles.hLine}, 'Sep','on');
 			is_CMOP = true;
 		end
 	end
@@ -409,6 +409,8 @@ function finish_line_uictx(hLine)
 	set(h, 'Call', {@shift_orig, 'Y'})
 	h = findobj(uictx, 'Label', 'XY origin');
 	set(h, 'Call', {@shift_orig, 'XY'})
+	h = findobj(uictx, 'Label', 'Filter Outliers');
+	set(h, 'Call', {@outliers_clean, hLine})
 
 % --------------------------------------------------------------------------------------------------
 function shift_orig(obj, evt, eixo, hLine, pt_x, pt_y, opt)
@@ -756,15 +758,27 @@ function make_scatterPlot(obj, evt)
 
 % ------------------------------------------------------------------------------------------
 function outliers_clean(obj, evt, h)
-% ...
+% Filter outliers by replacing them with interpolated values
 	x = get(h,'XData');		y = get(h,'YData');
-	[pp,p] = spl_fun('csaps',x,y);			% To get csaps's p estimate
+	indNaN = isnan(y);
+	if (any(indNaN))
+		y(indNaN) = interp1(x(~indNaN), y(~indNaN), x(indNaN), 'linear','extrap');
+	end
+	[pp,p] = spl_fun('csaps',x,y);				% To get csaps's p estimate
 	yy = spl_fun('csaps',x,y,p*0.95,x);
 	difa = abs(y - yy);
-	ind = (difa < 2*std(difa));
-	xx = x(ind);		yy = y(ind);
-	set(h, 'XData',xx, 'YData',yy)
-	axis(get(h,'Parent'),'tight');
+	ind = (difa > 2*std(difa));
+
+	if (any(ind))
+		y(ind) = interp1(x(~ind), y(~ind), x(ind));
+	end
+	if (any(indNaN)),	y(indNaN) = NaN;	end		% Restore the original holes (NaNs)
+	set(h, 'YData', y)
+	handles = guidata(h);
+	if (size(handles.data,2) == 3)				% In this case we need to update Z column too (saved in Sessions)
+		handles.data(:,3) = y;
+		guidata(handles.figure1, handles);
+	end
 
 % ------------------------------------------------------------------------------------------
 function pick_onLines2reference(obj, evt)
@@ -3075,7 +3089,7 @@ uimenu('Parent',hSe, 'Call',@ecran_uiCB, 'Label','Save', 'Tag','FileSaveSession'
 
 hSc = uimenu('Parent',h10,'Label','Save GMT script','Sep','on');
 uimenu('Parent',hSc, 'Call','write_gmt_script(guidata(gcbo),''bat'')','Label','dos batch');
-uimenu('Parent',hSc, 'Call','write_gmt_script(guidata(gcbo),''csh'')','Label','csh script');
+uimenu('Parent',hSc, 'Call','write_gmt_script(guidata(gcbo),''csh'')','Label','bash script');
 
 uimenu('Parent',h10, 'Call','ecran','Label','New','Separator','on');
 uimenu('Parent',h10, 'Call',@ecran_uiCB, 'Label','Export...', 'Tag','FileExport', 'Sep','on');
