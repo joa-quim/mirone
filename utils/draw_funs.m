@@ -216,6 +216,7 @@ function set_line_uicontext_XY(h, opt)
 		uimenu('Parent',h, 'Label', 'X origin only');
 		uimenu('Parent',h, 'Label', 'Y origin only');
 		uimenu('Parent',h, 'Label', 'XY origin');
+		uimenu(cmenuHand,  'Label', 'Filter Outliers', 'Sep','on');
 	else
 		ui_edit_polygon(h)			% Set edition functions
 		uimenu(cmenuHand, 'Label', 'Line length', 'Call', @show_LineLength_XY)
