@@ -16,7 +16,7 @@ function varargout = write_gmt_script(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: write_gmt_script.m 9922 2016-11-15 01:09:14Z j $
+% $Id: write_gmt_script.m 9942 2016-11-21 23:03:02Z j $
 
 	handMir = varargin{1};
 	if (handMir.no_file)     % Stupid call with nothing loaded on the Mirone window
@@ -250,7 +250,8 @@ function varargout = write_gmt_script(varargin)
 	% ------------------ Set prefix name based on month and day numbers --------------------------------
 	prefix = clock;
 	prefix = sprintf('mir%d-%d',prefix(3), prefix(2));
-	set(handles.edit_prefix,'String',prefix)
+	[lixo,figname] = fileparts(get(handMir.figure1, 'Name'));
+	set(handles.edit_prefix,'String',strtok(figname))
 
 	if (~handMir.geog)		% Non geogs don't use scale bars
 		set(handles.toggle_Option_L,'Visible','off')
