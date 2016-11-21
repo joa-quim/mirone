@@ -250,7 +250,8 @@ function varargout = write_gmt_script(varargin)
 	% ------------------ Set prefix name based on month and day numbers --------------------------------
 	prefix = clock;
 	prefix = sprintf('mir%d-%d',prefix(3), prefix(2));
-	set(handles.edit_prefix,'String',prefix)
+	[lixo,figname] = fileparts(get(handMir.figure1, 'Name'));
+	set(handles.edit_prefix,'String',strtok(figname))
 
 	if (~handMir.geog)		% Non geogs don't use scale bars
 		set(handles.toggle_Option_L,'Visible','off')
