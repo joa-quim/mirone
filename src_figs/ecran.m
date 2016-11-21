@@ -3,7 +3,8 @@ function varargout = ecran(varargin)
 %
 % ecran(handlesMir, x, y [,'title'])
 % ecran(handlesMir, x, y, z [,'title'])
-% ecran(struct, ...)						% Like the above cases but where 'struct' has only 3 memebers (see FileOpenSession)
+% ecran(struct, ...)						% Like the above cases but where 'struct' has only 3 memebers
+%											% 'DefineEllipsoide', 'geog' and 'DefineMeasureUnit'
 % ecran('reuse', x, y [,'title'])			% Don't know what the 'reuse' is used for anymore
 % ecran('add', x, y [,'title'])				% Add the x,y to a previous existing Ecran plot
 % ecran('stick', t, angle [,'title'])		% Plot a stick diagram. ANGLE is supposed to be azimuth in degrees
@@ -199,8 +200,9 @@ function varargout = ecran(varargin)
 		handles.hTxtChrons = [];	% Handles of isochrons names (when used)
 		handles.no_file = false;	% Will need to be updated latter to true case (used in write_gmt_script)
 		handles.hMarkerToRef = [];	% To hold the handles of an eventual markers 'to reference type line'
-		handles.offset_coords = [];	% Will store new origin after a Shift origin op
-		handles.offset_axes   = '';
+		handles.offset_coords = [0 0];	% Will store new origin after a Shift origin op
+		handles.offset_axes   = '';	% Save info on which axe(s) a coordinate shift was applyied
+		handles.fname_session = '';	% If a session is loaded, save its full file name in here
 	end
 
 	% Choose the default ploting mode
@@ -423,6 +425,10 @@ function shift_orig(obj, evt, eixo, hLine, pt_x, pt_y, opt)
 	end
 	if (nargin < 7),	opt = '';	end
 
+	if (strcmpi(eixo, 'X')),		pt_y = 0;
+	elseif (strcmpi(eixo, 'Y')),	pt_x = 0;
+	end
+
 	hZ1 = findobj(handles.figure1, 'Tag','ZoomToggle');
 	hZ2 = findobj(handles.figure1, 'Tag','Zoom_xToggle');
 	zoom_is_on = false;
@@ -441,19 +447,20 @@ function shift_orig(obj, evt, eixo, hLine, pt_x, pt_y, opt)
 		set(hLine, 'YData', y)
 		shift_children(handles, hLine, pt_x, pt_y, eixo, opt)		% Shift other eventual Text and Line elements
 		if (zoom_is_on),	zoom_j('out'),	zoom_j('off'),	end
-		set(handles.axes1, 'YLim', [y(1) y(end)])
-		handles.data(:,3) = y(:);
+		set(handles.axes1, 'YLim', [min(y) max(y)])
 	else			% Both X & Y
 		x = get(hLine, 'XData');		x = x - pt_x;
 		y = get(hLine, 'YData');		y = y - pt_y;
 		set(hLine, 'XData', x, 'YData', y)
 		shift_children(handles, hLine, pt_x, pt_y, eixo, opt)		% Shift other eventual Text and Line elements
 		if (zoom_is_on),	zoom_j('out'),	zoom_j('off'),	end
-		set(handles.axes1, 'XLim', [x(1) x(end)], 'YLim', [y(1) y(end)])
-		handles.dist = x;	handles.data(:,3) = y(:);
+		set(handles.axes1, 'XLim', [x(1) x(end)], 'YLim', [min(y) max(y)])
+		handles.dist = x;
 	end
-	handles.offset_coords = [pt_x pt_y];	% Save for eventual use in Sessions
-	handles.offset_axes   = eixo;
+	handles.offset_coords = handles.offset_coords + [pt_x pt_y];	% Save for eventual use in Sessions and accumulate from any previous
+	if (~isequal(handles.offset_axes, eixo))
+		handles.offset_axes = char(unique(double([handles.offset_axes eixo])));	% Make sure we have only a 'X' or 'Y' or 'XY'
+	end
 	guidata(handles.figure1, handles)
 
 % --------------------------------------------------------------------------------------------------
@@ -465,9 +472,6 @@ function shift_children(handles, hLine, pt_x, pt_y, eixo, opt)
 		% has already been applied to the targets of this function (by a previous run of this code)
 		% so we don't want to applyit again and hence return right away.
 		return
-	end
-	if (strcmpi(eixo, 'X')),		pt_y = 0;
-	elseif (strcmpi(eixo, 'Y')),	pt_x = 0;
 	end
 
 	% Fish Texts and shift them
@@ -759,7 +763,14 @@ function make_scatterPlot(obj, evt)
 % ------------------------------------------------------------------------------------------
 function outliers_clean(obj, evt, h)
 % Filter outliers by replacing them with interpolated values
+	handles = guidata(h);
 	x = get(h,'XData');		y = get(h,'YData');
+	ind = find(diff(x) == 0);
+	if (~isempty(ind))							% Means we have repeated X that would screw the interp1 step
+		x(ind) = [];	y(ind) = [];
+		handles.data(ind,:) = [];
+		guidata(handles.figure1, handles);
+	end
 	indNaN = isnan(y);
 	if (any(indNaN))
 		y(indNaN) = interp1(x(~indNaN), y(~indNaN), x(indNaN), 'linear','extrap');
@@ -772,9 +783,8 @@ function outliers_clean(obj, evt, h)
 	if (any(ind))
 		y(ind) = interp1(x(~ind), y(~ind), x(ind));
 	end
-	if (any(indNaN)),	y(indNaN) = NaN;	end		% Restore the original holes (NaNs)
-	set(h, 'YData', y)
-	handles = guidata(h);
+	if (any(indNaN)),	y(indNaN) = NaN;	end	% Restore the original holes (NaNs)
+	set(h, 'XData',x, 'YData', y)
 	if (size(handles.data,2) == 3)				% In this case we need to update Z column too (saved in Sessions)
 		handles.data(:,3) = y;
 		guidata(handles.figure1, handles);
@@ -1446,8 +1456,14 @@ function [r, f_x, f_y, x1, y1, x2, y2] = commonHeaves(handles, opt)
 function FileSaveSession_CB(hObject, handles)
 % Save info necessary to reconstruct present figure in a .mat file (many cases will likely fail)
 
+	if (isempty(handles.fname_session))
+		pname = '.mat';
+	else
+		pname = handles.fname_session;		% Propose the original name
+	end
+
 	str1 = {'*.mat;*.MAT', 'Data files (*.mat,*.MAT)'};
-	[FileName,PathName] = put_or_get_file(handles,str1,'Select session file name','put','.mat');
+	[FileName,PathName] = put_or_get_file(handles, str1, 'Select session file name', 'put', pname);
 	if isequal(FileName,0),		return,		end
 	fname = [PathName FileName];
 
@@ -1525,11 +1541,11 @@ function FileSaveSession_CB(hObject, handles)
 	hMirFig = [];
 	if (~isempty(handles.handMir)),		hMirFig = handles.handMir.figure1;	end
 	
-	ellipsoide = handles.ellipsoide;
 	geog = handles.geog;
-	measureUnit = handles.measureUnit;
+	ellipsoide    = handles.ellipsoide;
+	measureUnit   = handles.measureUnit;
 	offset_coords = handles.offset_coords;
-	offset_axes = handles.offset_axes;
+	offset_axes   = handles.offset_axes;
 
 	x = handles.data(:,1);		y = handles.data(:,2);		z = handles.data(:,3);		dist = handles.dist;
 	save(fname, 'x', 'y', 'z', 'dist', 'xFact', 'markers', 'FitLine', 'hMirFig', 'ellipsoide', 'geog', ...
@@ -1541,6 +1557,8 @@ function FileSaveSession_CB(hObject, handles)
 % ----------------------------------------------------------------------------------------------------
 function FileOpenSession_CB(hObj, handles, fname)
 % Open the session file and try to recreate as possible the status at time of session creation
+% When the session was open via Mirone (e.g. with a drag-n-drop) HANDLES is the handle of a temporary
+% (auxiliary) ecran Fig that will be deleted after this function executes.
 
 	if (nargin == 2)
 		if (isfield(handles, 'session_name'))
@@ -1562,7 +1580,10 @@ function FileOpenSession_CB(hObj, handles, fname)
 		lix = struct('DefineEllipsoide', s.ellipsoide, 'geog', s.geog, 'DefineMeasureUnit',s.measureUnit);
 		h = ecran(lix, s.x, s.y, s.z, fname);
 	end
+
 	handNew = guidata(h);
+	handNew.fname_session = fname;	% Store session's name to propose it if user wants to edit and save again
+	guidata(handNew.figure1, handNew)
 
 	if (~isempty(s.markers))		% The red Markers
 		for (k = 1:size(s.markers,1))
@@ -1636,7 +1657,7 @@ function FileOpenSession_CB(hObj, handles, fname)
 		extensional_CB(handNew.extensional, handNew)
 	end
 
-	if (~isempty(s.offset_coords))		% We have an origin shift, apply it now
+	if (~isequal(s.offset_coords, [0 0]))		% We have an origin shift, apply it now (It fishes and updated handles)
 		shift_orig([], [], s.offset_axes, handNew.hLine, s.offset_coords(1), s.offset_coords(2), 'nochilds')
 	end
 
@@ -1709,14 +1730,14 @@ function AnalysisAutocorr_CB(hObject, handles)
 function AnalysisRemoveMean_CB(hObject, handles)
 	if (isempty(handles.hLine)),	return,		end
 	[x, y] = get_inside_rect(handles);
-	ecran('reuse',x,y-mean(y),[],'Mean Removed')
+	recall_me(handles, x, y-mean(y), 'Mean Removed')		% New Fig
 
 % --------------------------------------------------------------------
 function AnalysisRemoveTrend_CB(hObject, handles)
 	if (isempty(handles.hLine)),	return,		end
-	[xx, yy] = get_inside_rect(handles);
-	p = polyfit(xx,yy,1);			y = polyval(p,xx);
-	ecran('reuse',xx,yy-y,[],'Trend Removed')
+	[x, y] = get_inside_rect(handles);
+	p = polyfit(x,y,1);		y_fit = polyval(p,x);
+	recall_me(handles, x, y-y_fit, 'Trend Removed')		% New Fig
 
 % --------------------------------------------------------------------
 function AnalysisFitPoly_CB(hObject, handles)
@@ -1746,7 +1767,7 @@ function Analysis1derivative_CB(hObject, handles)
 	[xx, yy] = get_inside_rect(handles);
 	pp = spl_fun('csaps',xx,yy,1);		% Use 1 for not smoothing, just interpolate
 	v = spl_fun('ppual',pp,xx,'l','first');
-	ecran('reuse',xx,v,[],'First derivative')
+	recall_me(handles, xx, v, 'First derivative')		% New Fig
 
 % --------------------------------------------------------------------
 function Analysis2derivative_CB(hObject, handles)
@@ -1754,7 +1775,20 @@ function Analysis2derivative_CB(hObject, handles)
 	[xx, yy] = get_inside_rect(handles);
 	pp = spl_fun('csaps',xx,yy,1);		% Use 1 for not smoothing, just interpolate
 	v = spl_fun('ppual',pp,xx,'l','second');
-	ecran('reuse',xx,v,[],'Second derivative')
+	recall_me(handles, xx, v, 'Second derivative')		% New Fig
+
+% --------------------------------------------------------------------
+function recall_me(handles, x, y_new, title)
+% Create another Ecran fig but try to maintain all features of the original one (e.g, the linking button)
+	if (~isempty(handles.handMir))
+		ecran(handles.handMir, handles.data(:,1), handles.data(:,2), y_new, title)
+	elseif (size(handles.data,2) == 3)
+		stru = struct('DefineEllipsoide', handles.ellipsoide, 'geog', handles.geog, ...
+		              'DefineMeasureUnit',handles.measureUnit);
+		ecran(stru, handles.data(:,1), handles.data(:,2), y_new, title)
+	else
+		ecran('reuse', x, y_new, [], title)
+	end
 
 % --------------------------------------------------------------------
 function edit_startAge_CB(hObject, handles)
