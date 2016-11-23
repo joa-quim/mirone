@@ -17,7 +17,7 @@ function out = gmtedit(varargin)
 %       OUT, if given will contain this figure handle.
 %
 
-%	Copyright (c) 2004-2015 by J. Luis
+%	Copyright (c) 2004-2016 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -32,7 +32,7 @@ function out = gmtedit(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: gmtedit.m 4760 2015-07-28 23:51:57Z j $
+% $Id: gmtedit.m 9943 2016-11-23 02:24:16Z j $
 
 	f_name = '';
 	got_inFile = 0;
@@ -107,19 +107,19 @@ function out = gmtedit(varargin)
 	ax_width = sc_size(3) - marg_l - marg_r;
 	fp = [0 0.035 1 0.965];
 
-	hf = figure('name','gmtedit','numbertitle','off', 'visible','off', 'units','normalized',...
-        'outerposition',fp, 'DoubleBuffer','on', 'Tag','figure1', 'closerequestfcn',@fig_CloseRequestFcn, ...
-		'Color',get(0,'defaultUicontrolBackgroundColor'));
+	hFig = figure('name','gmtedit','numbertitle','off', 'visible','off', 'units','normalized',...
+	              'outerposition',fp, 'DoubleBuffer','on', 'Tag','figure1', 'closerequestfcn',@fig_CloseRequestFcn, ...
+	              'Color',get(0,'defaultUicontrolBackgroundColor'));
 
 	% Apply this trick to get the icons. Let's hope that this is not version/OS dependent 
-	hA = findall(hf);
+	hA = findall(hFig);
 	hh = findobj(hA,'Tooltip','Open File');			openFile_img = get(hh(1),'CData');
 	hh = findobj(hA,'Tooltip','Save Figure');		saveFile_img = get(hh(1),'CData');
 	hh = findobj(hA,'Tooltip','Zoom In');			zoomIn_img   = get(hh(1),'CData');
 	hh = findobj(hA,'Tooltip','Zoom Out');			zoomOut_img  = get(hh(1),'CData');
-	set(hf,'menubar','none','units','pixel')		% Set the menubar to none
+	set(hFig,'menubar','none','units','pixel')		% Set the menubar to none
 
-	handles = guihandles(hf);
+	handles = guihandles(hFig);
 
 	if (~isempty(MIRONE_DIRS))							% Should not be empty, but ...
 		handles.home_dir = MIRONE_DIRS.home_dir;		% False info if not called from Mir root dir
@@ -137,14 +137,14 @@ function out = gmtedit(varargin)
 	s = load([handles.home_dir filesep 'data' filesep 'mirone_icons.mat'],'rectang_ico','info_ico','trincha_ico');
 	link_ico = make_link_ico;
 
-	h_toolbar = uitoolbar('parent',hf,'Clipping', 'on', 'BusyAction','queue','HandleVisibility','on',...
-		'Interruptible','on','Tag','FigureToolBar','Visible','on');
+	h_toolbar = uitoolbar('parent',hFig,'Clipping', 'on', 'BusyAction','queue','HandleVisibility','on',...
+	                      'Interruptible','on','Tag','FigureToolBar','Visible','on');
 	uipushtool('parent',h_toolbar,'Click',{@import_clickedCB,f_name},'Tag','import',...
-		'cdata',openFile_img,'Tooltip','Open gmt file');
+	           'cdata',openFile_img,'Tooltip','Open gmt file');
 	uipushtool('parent',h_toolbar,'Click',@save_clickedCB,'Tag','save', 'cdata',saveFile_img,'Tooltip','Save gmt file');
 	uipushtool('parent',h_toolbar,'Click',@info_clickedCB,'Tag','info','cdata',s.info_ico, 'Tooltip','Cruise Info');
 	uipushtool('parent',h_toolbar,'Click',@rectang_clickedCB,'Tag','rectang', 'cdata',s.rectang_ico, ...
-		'Tooltip','Rectangular region','Sep','on');
+	           'Tooltip','Rectangular region','Sep','on');
 	s.rectang_ico(7:10,8,:) = 0;
 	uipushtool('parent',h_toolbar,'Click',@rectangMove_clickedCB,'cdata',s.rectang_ico,'Tooltip','Select for moving');
 	uipushtool('parent',h_toolbar,'Click',{@changeScale_clickedCB,'inc'}, 'cdata',zoomIn_img,'Tooltip','Increase scale','Sep','on');
@@ -152,21 +152,21 @@ function out = gmtedit(varargin)
 	uipushtool('parent',h_toolbar,'Click',@outliers_clickedCB, 'cdata',s.trincha_ico,'Tooltip','Outliers detector','Sep','on');
 	if (~is_gmt)				% Not an old .gmt file
 		uipushtool('parent',h_toolbar,'Click',{@NavFilters_ClickedCB,f_name}, ...
-			'cdata',flipdim(s.trincha_ico,1),'Tooltip','Find Nav/Grad troubles','Sep','on');
+		           'cdata',flipdim(s.trincha_ico,1),'Tooltip','Find Nav/Grad troubles','Sep','on');
 	end
 	if (~isempty(hMirAxes))
 		uitoggletool('parent',h_toolbar,'Click',@ptcoords_clickedCB, 'cdata',link_ico, ...
-			'Tooltip','Pick data point in curve and plot it the mirone figure','Sep','on');
+		             'Tooltip','Pick data point in curve and plot it the mirone figure','Sep','on');
 	end
 
 	pos = [marg_l fig_height-ax_height-marg_tb ax_width ax_height];
-	handles.axes1 = axes('Parent',hf, 'Units','pixels', 'Position',pos, 'XLim',[0 def_width_km], 'Tag','axes1');
+	handles.axes1 = axes('Parent',hFig, 'Units','pixels', 'Position',pos, 'XLim',[0 def_width_km], 'Tag','axes1');
 
 	pos(2) = fig_height-2*(ax_height+marg_tb)-marg_ax;
-	handles.axes2 = axes('Parent',hf, 'Units','pixels', 'Position',pos, 'XLim',[0 def_width_km], 'Tag','axes2');
+	handles.axes2 = axes('Parent',hFig, 'Units','pixels', 'Position',pos, 'XLim',[0 def_width_km], 'Tag','axes2');
 
 	pos(2) = fig_height-3*(ax_height+marg_tb)-2*marg_ax;
-	handles.axes3 = axes('Parent',hf,'Units','pixels', 'Position',pos, 'XLim',[0 def_width_km], 'Tag','axes3');
+	handles.axes3 = axes('Parent',hFig,'Units','pixels', 'Position',pos, 'XLim',[0 def_width_km], 'Tag','axes3');
 
 	if (isempty(vars))		% Default GMT axes names
 		set(get(handles.axes1,'YLabel'),'String','Gravity anomaly (mGal)')
@@ -194,6 +194,10 @@ function out = gmtedit(varargin)
 	set([handles.axes1 handles.axes2 handles.axes3], 'UIContextMenu', cmenuHand);
 	uimenu(cmenuHand, 'Label', 'Overlay interpolation', 'Call',@interp_on_grid);
 
+	item = uimenu(cmenuHand, 'Label', 'Show in XY grapher');
+	uimenu(item, 'Label', 'All data', 'Call',{@move_to_ecran, 'all'});
+	uimenu(item, 'Label', 'This window data', 'Call',{@move_to_ecran, 'window'});
+
 	handles.opt_G = opt_G;
 	handles.info = [];
 	handles.h_broken = [];
@@ -209,16 +213,16 @@ function out = gmtedit(varargin)
 	handles.adjustedVel = false;	% Will be set to true if any velocity (coords) is recalculated
 	handles.hMirAxes = hMirAxes;	% Non-empty when called from draw_funs
 
-	guidata(hf, handles);
+	guidata(hFig, handles);
 
 	% Now that we have a figure and its handles, we can open the file if it was requested on input
-	if (got_inFile),	import_clickedCB(hf,[],f_name),		end
+	if (got_inFile),	import_clickedCB(hFig,[],f_name),		end
 
 	% Add or remove red Markers
-	set(hf,'WindowButtonDownFcn',@add_MarkColor,'Visible','on')
+	set(hFig,'WindowButtonDownFcn',@add_MarkColor,'Visible','on')
 
 	% Choose default command line output for gmtedit
-	if (nargout == 1),	out = hf;   end
+	if (nargout == 1),	out = hFig;   end
 
 % --------------------------------------------------------------------------
 function [vars, multi_plot, xISdist] = parse_optV(home_dir)
@@ -371,17 +375,17 @@ function import_clickedCB(hObject, evt, opt)
 		handles.h_broken = [];
 	end
 
-	if ( numel(track.gravity) > 1 && ~all(isnan(track.gravity)) )
+	if (numel(track.gravity) > 1 && ~all(isnan(track.gravity)))
 		set(handles.h_gm,'XData',track.distance,'YData',track.gravity, 'Tag','orig_grav')
 	else
 		set(handles.h_gm,'XData',[],'YData',[])    
 	end
-	if ( numel(track.magnetics) > 1 && ~all(isnan(track.magnetics)) )
+	if (numel(track.magnetics) > 1 && ~all(isnan(track.magnetics)))
 		set(handles.h_mm,'XData',track.distance,'YData',track.magnetics, 'Tag','orig_mag')
 	else
 		set(handles.h_mm,'XData',[],'YData',[])    
 	end
-	if ( numel(track.topography) > 1 && ~all(isnan(track.topography)) )
+	if (numel(track.topography) > 1 && ~all(isnan(track.topography)))
 		set(handles.h_tm,'XData',track.distance,'YData',track.topography, 'Tag','orig_topo')
 	else
 		set(handles.h_tm,'XData',[],'YData',[])    
@@ -397,7 +401,7 @@ function import_clickedCB(hObject, evt, opt)
 	if (~handles.begin)         % Start the display at a user selected coordinate
 		r1 = 1;		r2 = 1;		n_iter = 0;
 		x = handles.lon - handles.center_win(1);		y = handles.lat - handles.center_win(2);
-		while ( (min(r1, r2) > 0.02) && (n_iter < 10) )	% We need this loop for cases when both id1 & id2 are bad
+		while ((min(r1, r2) > 0.02) && (n_iter < 10))	% We need this loop for cases when both id1 & id2 are bad
 			[zz,id1] = min(abs(x));			[zz,id2] = min(abs(y));
 			% id1 and id2 are not forcedly equal. Find out the "best"
 			r1 = sqrt((handles.lon(id1) - handles.center_win(1))^2 + (handles.lat(id1) - handles.center_win(2))^2);
@@ -453,10 +457,44 @@ function interp_on_grid(obj, event)
 	setappdata(handles.figure1,'Filhas',[filhas(:); h])
 
 % --------------------------------------------------------------------
+function move_to_ecran(obj, event, opt)
+% Fish data from the clicked axes and send it to ecran().
+% OPT is either 'all', for all data or 'window' for just selecting the data visible on window
+	if (nargin < 3),	opt = 'all';	end
+	handles = guidata(obj);
+	hAx = get(handles.figure1, 'CurrentAxes');		% Find which axes are we working on
+	if (strcmp(get(hAx,'Tag'),'axes1'))
+		z = get(handles.h_gm,'YData');			x = get(handles.h_gm,'XData');		tit = 'Gravity_from_';
+	elseif (strcmp(get(hAx,'Tag'),'axes2'))
+		z = get(handles.h_mm,'YData');			x = get(handles.h_mm,'XData');		tit = 'Magnetics_from_';
+	elseif (strcmp(get(hAx,'Tag'),'axes3'))
+		z = -get(handles.h_tm,'YData');			x = get(handles.h_tm,'XData');		tit = 'Bathymetry_from_';
+	else		% Should never geter here but ...
+		return
+	end
+
+	if (opt(1) == 'w')
+		x_lim = get(hAx,'Xlim');
+		ind = (x >= x_lim(1) & x <= x_lim(2));
+		x = handles.lon(ind);	y = handles.lat(ind);	z = z(ind);
+	else
+		x = handles.lon;		y = handles.lat;
+	end
+
+	fname = get(handles.figure1, 'Name');
+	[pato, fname, ext] = fileparts(fname);
+	if (ishandle(handles.hMirAxes))		% We have a valid Mirone Fig from which this gmtedit Fig descends
+		ecran(guidata(handles.hMirAxes), x, y, z, [tit fname ext])
+	else									% No, either Mirone fig was killed or it never existed
+		stru = struct('DefineEllipsoide', [6378137, 0, 1/298.257223563], 'geog', 1, 'DefineMeasureUnit','k');
+		ecran(stru, x, y, z, [tit fname ext])
+	end
+
+% --------------------------------------------------------------------
 function NavFilters_ClickedCB(obj, event, fname)
 % Rise a Window with controls for filtering Nav/Grads
 	handles = guidata(obj);
-	if ( isempty(get(handles.h_mm,'YData')) )
+	if (isempty(get(handles.h_mm,'YData')))
 		errordlg('Warning. This option operates only on magnetic data ... and you don''t have any here.','Warnerr')
 		return
 	end
@@ -479,7 +517,7 @@ function [handles, track] = read_mgd77_plus(handles, fname)
 	else
 		try
 			ind_v = strncmp('vel', handles.vars, 3);		% Was velocity asked for?
-			if ( any(ind_v) )		% A bit boring below because 'vel' is not a MGD77+ Variable. So we need to avoid error
+			if (any(ind_v))		% A bit boring below because 'vel' is not a MGD77+ Variable. So we need to avoid error
 				ind_v = find(ind_v);
 				tempo = nc_funs('varget', fname, 'time');
 				if (ind_v == 1)
@@ -610,11 +648,11 @@ function save_clickedCB(hObject, evt)
 		saveGRAV = ~isempty(y_gn);		saveMAG = ~isempty(y_mn);		saveTOPO = ~isempty(y_tn);
 	else
 		for (k = 1:numel(handles.vars))		% Would be more elegant with a strmatch but this is lighter
-			if ( strcmp(handles.vars{k}, 'faa')   && ~isempty(y_gn) && k == 1 ),		saveGRAV = true;	end
-			if ( strcmp(handles.vars{k}, 'mtf1') && k == 2 && (~isempty(y_mn) || ~isempty(handles.h_broken)) )
+			if (strcmp(handles.vars{k}, 'faa')  && ~isempty(y_gn) && k == 1),		saveGRAV = true;	end
+			if (strcmp(handles.vars{k}, 'mtf1') && k == 2 && (~isempty(y_mn) || ~isempty(handles.h_broken)))
 				saveMAG = true;
 			end
-			if ( strcmp(handles.vars{k}, 'depth') && ~isempty(y_tn) && k == 3 ),		saveTOPO = true;	end
+			if (strcmp(handles.vars{k}, 'depth') && ~isempty(y_tn) && k == 3),		saveTOPO = true;	end
 		end
 	end
 
@@ -671,7 +709,7 @@ function save_clickedCB(hObject, evt)
 	end
 
 	n_rec = numel(handles.lon);
-	if ( (handles.is_gmt || handles.force_gmt) && (isempty(y_gn) || isempty(y_mn) || isempty(y_tn)) )
+	if ((handles.is_gmt || handles.force_gmt) && (isempty(y_gn) || isempty(y_mn) || isempty(y_tn)))
 		if (isempty(y_g)),		y_g = repmat(int16(NODATA(1)),1,n_rec);		end		% Original had not this type of data
 		if (isempty(y_m)),		y_m = repmat(int16(NODATA(1)),1,n_rec);		end
 		if (isempty(y_t)),		y_t = repmat(int16(NODATA(1)),1,n_rec);		end
