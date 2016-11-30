@@ -326,6 +326,7 @@ function set_line_uicontext(h, opt)
 	end
 
 	if (handles.image_type ~= 20 && ~LINE_ISCLOSED && strcmp(opt,'line'))
+		%uimenu(cmenuHand, 'Label', 'Stacked profile', 'Call', @stack_profiles);
 		if ((ndims(get(handles.hImg,'CData')) == 2) || (handles.validGrid))	% Because Track of RGB doesn't know how to save
 			if (handles.nLayers > 1)
 				cbTrack = 'setappdata(gcf,''TrackThisLine'',gco); mirone(''ExtractProfile_CB'',guidata(gcbo),''3D'')';
@@ -1681,9 +1682,37 @@ function show_swhatRatio(obj,evt,h)
     msgbox(sprintf('Swath Ratio for this track is: %g',getappdata(h,'swathRatio')),'')
 
 % -----------------------------------------------------------------------------------------
+% function stack_profiles(obj,evt)
+% % ...
+% 	h = gco;
+% 	prompt = {'Cross profile length (km):','Distance between cross profiles:'};
+% 	resp = inputdlg(prompt, 'Stacked profiles', [1 30], {'',''});
+% 	if (isempty(resp)),		return,		end
+% 	len = str2double(resp{1});	sep = str2double(resp{2});
+% 	if (isnan(len) || isnan(sep))
+% 		errordlg('#@&%$#!&%$$#&?', 'Error'),	return
+% 	end
+% 	
+% 	handles = guidata(h);
+% 	[X, Y, Z] = load_grd(handles);
+% 	G = gmt('wrapgrid', Z, handles.head);
+% 	x = get(h, 'XData');	y = get(h, 'YData');
+% 	ds = min(handles.head(8:9)) * pi / 180 * handles.DefineEllipsoide(1) / 1000;	% In approx km
+% 	opt_C = sprintf('-C%sk/%g/%s', resp{1}, ds, resp{2});
+% 	[profiles, stack] = gmtmex(['grdtrack -G ' opt_C ' -Sm+s+a --FORMAT_GEO_OUT=+D'], [x(:) y(:)], G);
+% 	% Show the stacked profiles
+% 	figure(2);	hold on
+% 	for (k = 1:length(profiles))
+% 		p = polyfit(profiles(k).data(:,3),profiles(k).data(:,5),1);		y_fit = polyval(p,profiles(k).data(:,3));
+% 		plot(profiles(k).data(:,3), profiles(k).data(:,5)-y_fit)
+% 	end
+% 	p = polyfit(stack.data(:,1), stack.data(:,2),1);		y_fit = polyval(p,stack.data(:,1));
+% 	plot(stack.data(:,1), stack.data(:,2)-y_fit, 'LineWidth', 3)
+
+% -----------------------------------------------------------------------------------------
 function chessify(obj, evt, h)
-...
-	prompt = {'Enter DX patch size:','Enter DX patch size:','One Z value','Other Z value'};
+% Create a chess-board grid
+	prompt = {'Enter DX patch size:','Enter DY patch size:','One Z value','Other Z value'};
 	resp = inputdlg(prompt, 'Chessboard size and values', [1 30], {'','','1','-1'});
 	if (isempty(resp)),		return,		end
 	handles = guidata(h);
