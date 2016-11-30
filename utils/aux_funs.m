@@ -756,9 +756,9 @@ function out = seek_OPTcontrol(KEY)
 			opt = 'M';			% Default to good old Magnetics
 		end
 		opt = ddewhite(opt);
-		out.grav = strcmp(opt,'G');
-		out.mag  = strcmp(opt,'M');
-		out.topo = strcmp(opt,'T');
+		out.grav = ~isempty(strfind(opt,'G'));
+		out.mag  = ~isempty(strfind(opt,'M'));
+		out.topo = ~isempty(strfind(opt,'T'));
 		break
 	end
 
