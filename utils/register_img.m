@@ -6,7 +6,7 @@ function register_img(handles,h,GCPs)
 % H is the handle of a line or patch object
 % GCPs is a Mx4 matrix with the source and target GCP coordinates (normally given by GDAL)
 
-%	Copyright (c) 2004-2015 by J. Luis
+%	Copyright (c) 2004-2016 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -21,7 +21,7 @@ function register_img(handles,h,GCPs)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: register_img.m 4708 2015-05-06 16:34:19Z j $
+% $Id: register_img.m 9946 2016-11-30 14:08:37Z j $
 
 	if (nargin < 2)
 		errordlg('REGISTER_IMG: wrong number of arguments (must be at least two)','ERROR')
@@ -80,7 +80,7 @@ function register_img(handles,h,GCPs)
 	handles.trfToolTips = trfToolTips;              % Since handles is not saved this field exists only here
 
 	ui_edit_polygon(h)    % Set edition functions
-	cmenuHand = uicontextmenu;
+	cmenuHand = uicontextmenu('Parent',handles.figure1);
 	set(h, 'UIContextMenu', cmenuHand);
 
 	if (nargin == 2),   label = 'Set reference Points';
