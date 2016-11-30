@@ -18,7 +18,7 @@ function  varargout = aux_funs(opt,varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: aux_funs.m 9901 2016-11-02 14:03:43Z j $
+% $Id: aux_funs.m 9944 2016-11-30 14:06:05Z j $
 
 switch opt(1:4)
 	case 'Stor'		% 'StoreZ'
@@ -756,9 +756,9 @@ function out = seek_OPTcontrol(KEY)
 			opt = 'M';			% Default to good old Magnetics
 		end
 		opt = ddewhite(opt);
-		out.grav = strcmp(opt,'G');
-		out.mag  = strcmp(opt,'M');
-		out.topo = strcmp(opt,'T');
+		out.grav = ~isempty(strfind(opt,'G'));
+		out.mag  = ~isempty(strfind(opt,'M'));
+		out.topo = ~isempty(strfind(opt,'T'));
 		break
 	end
 
