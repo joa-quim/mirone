@@ -3705,6 +3705,16 @@ function FileOpenSession_CB(handles, fname)
 		end
 	end
 
+	if (s.havePlineAsGCPs)				% case of polyline as GCP points (markers) only
+		h_line_pt = line('Xdata',s.PlineAsGCPs.x, 'Ydata',s.PlineAsGCPs.y,'Parent',handles.axes1, ...
+			'LineStyle','none', 'Marker',s.PlineAsGCPs.Marker, 'MarkerSize',s.PlineAsGCPs.Size, ...
+			'MarkerFaceColor',s.PlineAsGCPs.FillColor, 'MarkerEdgeColor',s.PlineAsGCPs.EdgeColor, ...
+			'Tag',s.PlineAsGCPs.tag);
+		register_img(handles,h_line_pt)
+		setappdata(handles.figure1,'GCPregImage',s.PlineAsGCPs.crxy)
+		setappdata(handles.figure1,'fnameGCP',s.PlineAsGCPs.fnameGCP)
+	end
+
 	if (s.haveSymbol)					% case of Symbols (line Markers)
 		for (i = 1:length(s.Symbol))
 			h_symb = line('Xdata',s.Symbol(i).x, 'Ydata',s.Symbol(i).y, 'Parent',handles.axes1,'Marker', ...
@@ -3807,9 +3817,11 @@ function out = FileSaveSession_CB(handles)
 	end
 	ALLlineHand = findobj(get(handles.axes1,'Child'),'Type','line');
 	haveMBtrack = 0;	havePline = 0;		haveText = 0;	haveSymbol = 0;		haveCircleGeo = 0;
-	haveCircleCart = 0; havePlineAsPoints = 0;  havePatches = 0;haveCoasts = 0; havePolitic = 0;	haveRivers = 0;
+	haveCircleCart = 0; havePlineAsPoints = 0;  havePatches = 0;haveCoasts = 0; havePolitic = 0;
+	haveRivers = 0;		havePlineAsGCPs = false;
 	MBtrack = [];	MBbar = [];		Pline = [];		Symbol = [];	CircleGeo = [];	MecaMag5 = [];
 	CircleCart = [];	PlineAsPoints = [];			coastUD = [];	politicUD = [];	riversUD = [];
+	PlineAsGCPs = [];
 
 	h = findobj(ALLlineHand,'Tag','Symbol');		% case of a Symbol (in fact a line Marker)
 	if (~isempty(h))
@@ -3844,6 +3856,20 @@ function out = FileSaveSession_CB(handles)
 			PlineAsPoints(i).tag = 'Pointpolyline';
 		end
 		ALLlineHand = setxor(ALLlineHand, h);		havePlineAsPoints = 1;
+	end
+	
+	h = findobj(ALLlineHand,'Tag','GCPpolyline');		% Polyline with markers (yellow circles) acting as GCPs
+	if (~isempty(h))
+		xx = get(h(1),'XData');		yy = get(h(1),'YData');
+		PlineAsGCPs.x = xx(:);		PlineAsGCPs.y = yy(:);
+		PlineAsGCPs.Marker = get(h(1),'Marker');
+		PlineAsGCPs.Size = get(h(1),'MarkerSize');
+		PlineAsGCPs.FillColor = get(h(1),'MarkerFaceColor');
+		PlineAsGCPs.EdgeColor = get(h(1),'MarkerEdgeColor');
+		PlineAsGCPs.tag = 'GCPpolyline';
+		PlineAsGCPs.crxy = getappdata(handles.figure1,'GCPregImage');	% Extra fields that we need to recover the GCP info
+		PlineAsGCPs.fnameGCP = getappdata(handles.figure1,'fnameGCP');
+		ALLlineHand = setxor(ALLlineHand, h);		havePlineAsGCPs = true;
 	end
 
 	h = findobj(ALLlineHand,'Tag','circleGeo');			% circles are particular line cases
@@ -4016,16 +4042,16 @@ function out = FileSaveSession_CB(handles)
 
 	save(fname,'grd_name','img_pal', 'havePline','Pline', 'haveMBtrack', 'MBtrack','MBbar', ...
 		'haveText','Texto', 'haveSymbol','Symbol', 'haveCircleGeo','CircleGeo', 'haveCircleCart', ...
-		'havePlineAsPoints','PlineAsPoints','CircleCart', 'map_limits', 'havePatches', 'Patches', ...
-		'haveCoasts', 'coastUD','havePolitic', 'politicUD','haveRivers', 'riversUD', 'illumComm', ...
-		'illumType', 'MecaMag5', 'IamTINTOL', 'is_defRegion', '-v6')
+		'havePlineAsPoints','PlineAsPoints','havePlineAsGCPs','PlineAsGCPs','CircleCart', 'map_limits', ...
+		'havePatches', 'Patches', 'haveCoasts', 'coastUD','havePolitic', 'politicUD','haveRivers', ...
+		'riversUD', 'illumComm', 'illumType', 'MecaMag5', 'IamTINTOL', 'is_defRegion', '-v6')
 
 	if (nargout),	out = fname;	end
 	% Trick to shut up stupid MLint warnings
 	if (0 && grd_name && img_pal && map_limits && illumComm && haveMBtrack && havePline && haveText && haveSymbol), end
-	if (0 && haveCircleCart && havePlineAsPoints && haveCoasts && illumComm && haveMBtrack && illumType), end
+	if (0 && haveCircleCart && havePlineAsPoints && haveCoasts && illumComm && haveMBtrack && illumType && PlineAsGCPs), end
 	if (0 && havePolitic && haveRivers && MBtrack && MBbar && Symbol && CircleGeo && MecaMag5 && CircleCart), end
-	if (0 && PlineAsPoints && coastUD && politicUD && riversUD && haveCircleGeo && IamTINTOL && is_defRegion), end
+	if (0 && PlineAsPoints && havePlineAsGCPs && coastUD && politicUD && riversUD && haveCircleGeo && IamTINTOL && is_defRegion), end
 
 % --------------------------------------------------------------------
 function ImageMapLimits_CB(handles, opt)
@@ -4155,7 +4181,7 @@ function FileSaveImgGrdGdal_CB(handles, opt1, opt2)
 	catch
 		errordlg('Shit, image header was not saved as it should.','Error'),		return
 	end
-	if ( (strcmp(opt2,'img') || strcmp(opt2,'screen')) && ndims(Z) == 2 )
+	if ((strcmp(opt2,'img') || strcmp(opt2,'screen')) && ndims(Z) == 2)
 		hdr.Cmap = get(handles.figure1,'ColorMap');
 	end
 	if ( strcmp(driver,'GTiff') )
