@@ -298,14 +298,19 @@ function write_scene(fid, tipo, mode, Z, img, img2, limits, struct_vimage)
 
 	write_scene_block(fid)
 	write_node_block(fid, 'root', 'Root Node', 'Unknown')
-	%write_geo(fid,'add',limits)
-	write_geo(fid,'add',[limits(1:4) -10000 limits(end)])
+	lower_z = -10000;				% One time I invented this and now I'm afraid to change to another unknown
+	if (strcmp(mode,'vimage'))
+		lower_z = struct_vimage(1).z_min;	% Almost for sure it should the be the minimum of ALL Vimages
+	end
+	write_geo(fid,'add',[limits(1:4) lower_z limits(end)])
 	write_alignparent_block(fid)
 
 	if (~isempty(Z))
-		write_geo(fid,'add',[limits(1:4) -10000 limits(end)])	% <
-%		write_node_block(fid, 'dtm', 'Surface', 'unknown')
-  		write_node_block(fid, 'dtm', 'test1.sd', 'C:|programs|IVS|bin|test1.sd')
+		write_geo(fid,'add',[limits(1:4) lower_z limits(end)])	% <
+		node_mode = 'dtm';
+		if (strcmp(mode,'vimage')),		node_mode = [node_mode '-vimage'];	end		% VIMAGE seam to use different codings
+		write_node_block(fid, node_mode, 'Surface', 'unknown')
+  		%write_node_block(fid, node_mode, 'test1.sd', 'C:|programs|IVS|bin|test1.sd')
 		write_geo(fid,'add',limits)		% <
 		write_sonardtm_block(fid, tipo)
 		write_dtm(fid,'add',Z,limits)
@@ -335,15 +340,15 @@ function write_scene(fid, tipo, mode, Z, img, img2, limits, struct_vimage)
 			end
 
 			[pato, fname] = fileparts(struct_vimage(k).vimage);
- 			write_node_block(fid, 'vimage', fname, 'unknown')
-			X = get(hLine, 'XData');		Y = get(hLine, 'YData');
-			Vlimits = [X(1) Y(1) struct_vimage(k).z_min X(end) Y(end) struct_vimage(k).z_max];
-			write_geo(fid,'add',limits)	% <
-			write_vimage_block(fid, Vlimits)
-			Vlimits = [X(1) X(end) Y(1) Y(end) struct_vimage(k).z_min struct_vimage(k).z_max];
+			X = (get(hLine, 'XData'));		Y = (get(hLine, 'YData'));
+			VlimitsBB   = [min(X) max(X) min(Y) max(Y) struct_vimage(k).z_min struct_vimage(k).z_max];
+			VlimitsDiag = [X(1) Y(1) struct_vimage(k).z_min X(end) Y(end) struct_vimage(k).z_max];
+ 			write_node_block(fid, 'vimage', fname, 'unknown', limits, VlimitsBB)
+			write_geo(fid,'add',VlimitsBB)			% Era VlimitsDiag
+			write_vimage_block(fid, VlimitsDiag)
 			write_shade(fid, 'add', I, 'geoimg')
-			write_geo(fid,'add',Vlimits)
-			write_geo(fid,'add',Vlimits)
+			write_geo(fid,'add',VlimitsBB)
+			write_geo(fid,'add',VlimitsBB)
 			write_vimage_atb_block(fid)
 		end
 	else
@@ -394,8 +399,10 @@ function write_scene_block(fid)
 	fwrite(fid,[0 0 1 1 1 1 (1:18)*0],'uchar');
 
 %----------------------------------------------------------------------------------
-function write_node_block(fid, tipo, str1, str2)
+function write_node_block(fid, tipo, str1, str2, BBfig, BBimg)
 % Write the FM_NODE block
+% BBfig is the Figure's BoundingBox
+% BBimg is the Vimage's BoundingBox
 
 	dl = 180 + numel(str1) + numel(str2);
 	fwrite(fid,[9910 dl],'integer*4');		% Tag ID, Data Length
@@ -406,18 +413,28 @@ function write_node_block(fid, tipo, str1, str2)
 		fwrite(fid,[24 4 41 66 203 90 225 65 0 0 128 63],'uchar');
 		fwrite(fid,[0 0 0 3 1 1 1],'integer*4');
 	elseif (strcmp(tipo, 'dtm'))
-		%fwrite(fid,[0 0 128 63 0 0 128 63 205 204 76 62],'uchar');		% Non VIMAGE ???
-		%fwrite(fid,[0 0 0 12 0 1 1],'integer*4');
 		fwrite(fid,[0 0 128 63 0 0 128 63],'uchar');
 		fwrite(fid,[11 234 229 62 0 0 0 128 0 0 0 128 251 10 141 62],'uchar');
+		fwrite(fid,[12 0 1 1],'integer*4');
+	elseif (strcmp(tipo, 'dtm-vimage'))
+		fwrite(fid,[0 0 128 63 0 0 128 63],'uchar');
+		fwrite(fid,[200 215 129 62 0 0 0 128 0 0 0 128 28 20 191 62],'uchar');
 		fwrite(fid,[12 0 1 1],'integer*4');
 	elseif (strcmp(tipo, 'geoimg'))
 		fwrite(fid,[0 0 128 63 0 0 128 63 0 0 128 63],'uchar');
 		fwrite(fid,[0 0 0 36 0 1 1],'integer*4');
 	elseif (strcmp(tipo, 'vimage'))
-		fwrite(fid,[171 170 42 63 0 205],'uchar');
-		fwrite(fid,[204 61 244 106 34 63 0 0],'uchar');		% Somehow it depends on the inserting coods
-		fwrite(fid,[0 128 0 205 76 61 25 42 59 190 41 0 0 0],'uchar');		%	"
+		% This was damn difficult to find
+		center_fig = [(BBfig(1)+BBfig(2))/2 (BBfig(3)+BBfig(4))/2 (BBfig(5)+BBfig(6))/2];
+		center_img = [(BBimg(1)+BBimg(2))/2 (BBimg(3)+BBimg(4))/2 (BBimg(5)+BBimg(6))/2];
+		fwrite(fid, diff(BBimg(1:2)) / diff(BBfig(1:2)), 'real*4');		% Fraction IMG_DX / FIG_DX
+		fwrite(fid, diff(BBimg(3:4)) / diff(BBfig(3:4)), 'real*4');		% Fraction IMG_DY / FIG_DY
+		fwrite(fid, diff(BBimg(5:6)) / (BBfig(6)-BBimg(5)), 'real*4');	% Messy, likely fails if > 1 Vimages
+		fwrite(fid, (center_img(1)-center_fig(1)) / diff(BBfig(1:2)), 'real*4');	% Fraction of img_x mid-point away from Fig center
+		fwrite(fid, (center_img(2)-center_fig(2)) / diff(BBfig(3:4)),'real*4');		%		"" for img_y mid-point
+		x = -(BBimg(6) - BBfig(6)) / (BBimg(5) - BBfig(6)) / 2;			% ??? but that's how it is
+		fwrite(fid, x, 'real*4');
+		fwrite(fid,[41 0 0 0],'uchar');
 		fwrite(fid,[0 1 1],'integer*4');
 	else
 		error('Case unpredicted in write_node_block')
@@ -427,7 +444,12 @@ function write_node_block(fid, tipo, str1, str2)
 	fwrite(fid,(1:8)*0,'integer*4');
 	fwrite(fid,[0 16256],'integer*2');
 	fwrite(fid,(1:12)*0,'integer*4');
-	fwrite(fid,[188 251 29 66 68 4 38 66 17 17 88 193 239 238 39 193 45 208 176 197 0 0 128 63 0 0 0 0],'uchar');
+	if (strcmp(tipo, 'vimage'))
+		fwrite(fid,[0 0 62 66 0 0 66 66 0 0 40 194 0 0 36 194 0 112 148 198 0 240 135 197],'uchar');
+	else
+		fwrite(fid,[188 251 29 66 68 4 38 66 17 17 88 193 239 238 39 193 45 208 176 197 0 0 128 63],'uchar');
+	end
+	fwrite(fid,0,'integer*4');
 
 %----------------------------------------------------------------------------------
 function write_alignparent_block(fid)
@@ -586,14 +608,14 @@ if (~isempty(ALLlineHand))
 	[tmp,ind] = sortrows([LineWidth LineColor]);
 	hands_sort = ALLlineHand(ind);			% Sort also the handles according to the previous sorting cretirea
 	difs = diff([tmp(1,:); tmp]);			% Repeat first row to account for the decrease 1 resulting from diff
-	id_row = find(difs ~= 0);				% Find the lines of different type
-	id_row = rem(id_row, size(difs,1));		% Get the line index. Before it was the linear index
+	id_row = find(difs ~= 0);				% Find the lines of different type (linear index)
+	id_row = rem(id_row-1,size(difs,1)) + 1;% Get the line index. Before it was the linear index
 	id_row = unique(id_row);				% Get rid of repeated values
 	id_row = [1; id_row];					% Make id_row start at one
 	id_row(end+1) = size(tmp,1);			% Add the last row as well (for the algo)
 	hands = cell(1,numel(id_row)-1);
 	for (i = 1:numel(id_row)-1)
-		hands{i} = hands_sort(id_row(i):id_row(i+1)-1);
+		hands{i} = hands_sort(id_row(i):id_row(i+1));
 		if (numel(hands{i}) > 1)			% Make sure that the following procedure applyies only to repeated line types
 			line_thick = get(hands{i}(1),'LineWidth');			% Line thickness
 			line_color = get(hands{i}(1),'color');				% Line color
@@ -611,7 +633,7 @@ if (~isempty(ALLlineHand))
         line_thick = get(ALLlineHand(i),'LineWidth');		% Line thickness
         line_color = get(ALLlineHand(i),'color');			% Line color
         line_props = [line_thick line_color 0 1 1 1];		% 0 means is not a patch and the [1 1 1] is not used
-		if ( ~strcmp(get(ALLlineHand(i), 'LineStyle'), 'none') )
+		if (~strcmp(get(ALLlineHand(i), 'LineStyle'), 'none'))
 			write_line(fid,'add',x,y,z,count,limits,line_props)
 		else
 			write_pts(fid,ALLlineHand(i),'add',limits)
@@ -742,7 +764,7 @@ function write_line(fid,mode,x,y,z,np,lim_reg,line_props)
 
 	if (iscell(x))
 		for (i = 1:n_segments)
-			np_s = numel(x{i});                % Number of points in this segment
+			np_s = numel(x{i});					% Number of points in this segment
 			fwrite(fid,[np_s 0],'integer*4');
 			fwrite(fid,[x{i}; y{i}; z{i}],'real*8');
 		end
@@ -754,10 +776,10 @@ function write_line(fid,mode,x,y,z,np,lim_reg,line_props)
 	write_geo(fid,'add',lim_reg)				% Write a GEOREF block
 	write_cmap(fid)								% Write a FM_CMAP block
 
-	fwrite(fid,[10526 32],'integer*4');         % ID of block SD_LINES3D_ATB and n bytes in this block
+	fwrite(fid,[10526 32],'integer*4');			% ID of block SD_LINES3D_ATB and n bytes in this block
 	fwrite(fid,[0 0 1 1 1 6 (1:18)*0],'integer*1');     % The 6 is a number of version
 
-	fwrite(fid,[l_color(1:3) 255],'uchar');     % Don't know what is the last 255
+	fwrite(fid,[l_color(1:3) 255],'uchar');		% Don't know what is the last 255
 	fwrite(fid,[1 1 ColorBy 0 0 1 l_thick],'integer*4'); % First 1 is 'gap', but don't know what are the others
 
 %----------------------------------------------------------------------------------
@@ -850,7 +872,7 @@ function [x,y,z,count] = lines2multiseg(hands,z_level)
 % If HANDS is a scalar, it will check if that line is broken with NaNs. If yes, it will be
 % converted into a multiseg cell array. So we can call this function safely even when we don't
 % know exactly what is contained in HANDS. The test of if x,... is a single or multisegment line
-% are carried out inside the write_line function
+% is carried out inside the write_line function
 % Z_LEVEL, if transmited will be used to set the line height, otherwise ZERO will be used.
 % If lines have Z in UserData AND take precedence over transmited z_level
 
@@ -866,6 +888,10 @@ function [x,y,z,count] = lines2multiseg(hands,z_level)
 			z = x;						% Create a cell array of the same size as x
 			for (i = 1:n_lines)
 				z{i} = ones(1,numel(x{i})) * z_level;
+			end
+		elseif (numel(z{1}) == 1 && numel(x{1}) > 1)
+			for (i = 1:n_lines)
+				z{i} = repmat(z{i}, 1, numel(x{i}));
 			end
 		end
 	else
