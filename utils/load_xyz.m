@@ -389,7 +389,7 @@ function varargout = load_xyz(handles, opt, opt2)
 				errordlg('Load VIMAGE error. First 2 fields must contain Z_START & Z_END info.','Error'),	return
 			end
 			if (~ischar(vimage) || ~exist(vimage,'file'))
-				errordlg('Load VIMAGE error. Third field must contain an existing picture file name.','Error'),	return
+				errordlg('Load VIMAGE error. Third field must contain the name of an existing image.','Error'),	return
 			end
 			struc_vimage = struct('z_min', z_Vmin, 'z_max', z_Vmax, 'vimage', vimage);
 
@@ -752,14 +752,17 @@ function varargout = load_xyz(handles, opt, opt2)
 				% Finish the Vertical image section (if it exists obviously)
 				if (~isempty(struc_vimage))
 					vimage = getappdata(handles.axes1,'VIMAGE');
+					set(hLine(i), 'Tag', 'VIMAGE')
+					X = get(hLine(i), 'XData');		Y = get(hLine(i), 'YData');
+					struc_vimage.XY = [X(:) Y(:)];
+					struc_vimage.hLine = hLine(i);
 					if (isempty(vimage))			% First one
-						struc_vimage.hLine = hLine(i);
 						setappdata(handles.axes1, 'VIMAGE', struc_vimage)
 					else
-						struc_vimage.hLine = hLine(i);
 						vimage(end+1) = struc_vimage;
 						setappdata(handles.axes1, 'VIMAGE', vimage)
 					end
+					setappdata(hLine(i), 'VIMAGE', struc_vimage)	% Make another copy here. Eventually I should get rid of the axes appd
 				end
 
 			end		% END do_patch or line
