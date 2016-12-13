@@ -30,7 +30,7 @@ function [numeric_data,date,headerlines,str_col,out] = text_read(varargin)
 % This function uses some sub-functions of IMPORTDATA
 % Coffeeright Joaquim Luis
 
-% $Id: text_read.m 9870 2016-10-19 22:27:31Z j $
+% $Id: text_read.m 9953 2016-12-13 03:28:31Z j $
 
 	filename = varargin{1};     headerlines = 0;
 	requestedDelimiter = NaN;	requestedHeaderLines = NaN;		requestedMultiSeg = NaN;
@@ -49,7 +49,7 @@ function [numeric_data,date,headerlines,str_col,out] = text_read(varargin)
 	end
 
 	if ~isequal(exist(filename,'file'), 2)	% make sure file exists
-		errordlg('TEXT_READ: File not found.','Error');	return
+		errordlg(['TEXT_READ: File (' filename ') not found.'],'Error');	return
 	end
 
 	if (isnan(requestedHeaderLines))	% GUESS_FILE is better (and probably faster) in in guessing headers
