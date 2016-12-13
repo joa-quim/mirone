@@ -18,7 +18,7 @@ function varargout = bg_region(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: bg_region.m 4291 2014-01-19 17:51:04Z j $
+% $Id: bg_region.m 9949 2016-12-13 03:18:12Z j $
 
 	hObject = figure('Vis','off');
 	bg_region_LayoutFcn(hObject);
@@ -31,9 +31,10 @@ function varargout = bg_region(varargin)
 	handles.y_min = -90;				handles.y_max = 90;
 	handles.command{3} = '-180';		handles.command{5} = '180';
 	handles.command{7} = '-90';			handles.command{9} = '90';
+	handles.register = false;
 
 	if (~isempty(varargin))
-		if (strcmp(varargin{1},'empty'))
+		if (strncmp(varargin{1}, 'empty', 5))
 			handles.x_min = [];						handles.x_max = [];
 			handles.y_min = [];						handles.y_max = [];
 			handles.command{3} = [];				handles.command{5} = [];
@@ -41,6 +42,9 @@ function varargout = bg_region(varargin)
 			set(handles.edit_Xmin,'String','');		set(handles.edit_Xmax,'String','');
 			set(handles.edit_Ymin,'String','');		set(handles.edit_Ymax,'String','');
 			set(handles.figure1,'Name','Limits')
+			if (strcmpi(varargin{1}, 'emptyREGIST'))	% Than we case enter W-E and/or N-S in any order
+				handles.register = true;
+			end
 
 		elseif (strcmp(varargin{1},'with_limits'))
 			tmp = varargin{2};
@@ -85,7 +89,7 @@ function edit_Xmin_CB(hObject, handles)
 			for i = 1:length(val),  x_min = x_min - abs(str2double(val{i})) / (60^(i-1));   end
 		end
 		handles.x_min = x_min;
-		if ~isempty(handles.x_max) && x_min >= handles.x_max
+		if (~handles.register && ~isempty(handles.x_max) && x_min >= handles.x_max)
 			errordlg('West Longitude >= East Longitude ','Error in Longitude limits')
 			handles.command{3} = '';
 			set(hObject,'String','');   guidata(hObject, handles);  return
@@ -115,7 +119,7 @@ function edit_Xmax_CB(hObject, handles)
 			for i = 1:length(val),  x_max = x_max - abs(str2double(val{i})) / (60^(i-1));   end
 		end
 		handles.x_max = x_max;
-		if ~isempty(handles.x_min) && x_max <= handles.x_min
+		if (~handles.register && ~isempty(handles.x_min) && x_max <= handles.x_min)
 			errordlg('East Longitude <= West Longitude','Error in Longitude limits')
 			handles.command{5} = '';
 			set(hObject,'String','');   guidata(hObject, handles);  return
@@ -145,7 +149,7 @@ function edit_Ymin_CB(hObject, handles)
 			for i = 1:length(val),  y_min = y_min - abs(str2double(val{i})) / (60^(i-1));   end
 		end
 		handles.y_min = y_min;
-		if ~isempty(handles.y_max) && y_min >= handles.y_max
+		if (~handles.register && ~isempty(handles.y_max) && y_min >= handles.y_max)
 			errordlg('South Latitude >= North Latitude','Error in Latitude limits')
 			handles.command{7} = '';
 			set(hObject,'String','');   guidata(hObject, handles);  return
@@ -175,7 +179,7 @@ function edit_Ymax_CB(hObject, handles)
 			for i = 1:length(val),   y_max = y_max - abs(str2double(val{i})) / (60^(i-1));   end
 		end
 		handles.y_max = y_max;
-		if ~isempty(handles.y_min) && y_max <= handles.y_min
+		if (~handles.register && ~isempty(handles.y_min) && y_max <= handles.y_min)
 			errordlg('North Latitude <= South Latitude','Error in Latitude limits')
 			handles.command{9} = '';
 			set(hObject,'String','');   guidata(hObject, handles);  return
@@ -184,7 +188,7 @@ function edit_Ymax_CB(hObject, handles)
 			guidata(hObject, handles);
 		end
 		% Guess if we are probably dealing with geog coordinates
-		if ~isempty(get(handles.edit_Ymin,'String')) && (y_max - handles.y_min) <= 180
+		if (~handles.register && ~isempty(get(handles.edit_Ymin,'String')) && (y_max - handles.y_min) <= 180)
 			set(handles.check_isGeog,'Value',1)
 		else
 			set(handles.check_isGeog,'Value',0)
