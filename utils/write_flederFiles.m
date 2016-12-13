@@ -31,7 +31,7 @@ function filename = write_flederFiles(opt,varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: write_flederFiles.m 9948 2016-12-02 16:40:08Z j $
+% $Id: write_flederFiles.m 9955 2016-12-13 03:31:48Z j $
 
 	if (opt(1) == 'w' || opt(1) == 'r')			% Here opt is a "write..." or "run..."
 		handles = varargin{1};
@@ -889,9 +889,11 @@ function [x,y,z,count] = lines2multiseg(hands,z_level)
 			for (i = 1:n_lines)
 				z{i} = ones(1,numel(x{i})) * z_level;
 			end
-		elseif (numel(z{1}) == 1 && numel(x{1}) > 1)
+		else
 			for (i = 1:n_lines)
-				z{i} = repmat(z{i}, 1, numel(x{i}));
+				if (numel(z{i}) < numel(x{i}))
+					z{i} = repmat(z{i}, 1, numel(x{i}));
+				end
 			end
 		end
 	else
