@@ -25,7 +25,7 @@ function varargout = draw_funs(hand, varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: draw_funs.m 9945 2016-11-30 14:07:39Z j $
+% $Id: draw_funs.m 9951 2016-12-13 03:25:19Z j $
 
 % A bit of strange tests but they are necessary for the cases when we use the new feval(fun,varargin{:}) 
 opt = varargin{1};		% function name to evaluate (new) or keyword to select one (old form)
@@ -2326,7 +2326,7 @@ function rectangle_register_img(obj, event)
 	handles = guidata(get(h,'Parent'));
 	rect_x = get(h,'XData');   rect_y = get(h,'YData');		% Get rectangle limits
 
-	region = bg_region('empty');
+	region = bg_region('emptyREGIST');
 	if isempty(region),		return,		end		% User gave up
 	x_min = region(1);		x_max = region(2);
 	y_min = region(3);		y_max = region(4);
@@ -2377,9 +2377,10 @@ function rectangle_register_img(obj, event)
 	[new_xlim,new_ylim] = aux_funs('adjust_lims',new_xlim,new_ylim,m,n);
 	delete(handles.hImg);
 	handles.hImg = image(new_xlim,new_ylim,img,'Parent',handles.axes1);
-	set(ax,'xlim',new_xlim,'ylim',new_ylim,'YDir','normal')
 	handles.head(1:4) = [new_xlim new_ylim];
 	resizetrue(handles, [], 'xy');
+	if (new_ylim(2) < new_ylim(1)),		set(ax,'YDir','reverse'),	end		% resizetrue doesn't know how to do this
+	if (new_xlim(2) < new_xlim(1)),		set(ax,'XDir','reverse'),	end
 	setappdata(ax,'ThisImageLims',[get(ax,'XLim') get(ax,'YLim')])
 	handles.old_size = get(handles.figure1,'Pos');      % Save fig size to prevent maximizing
 	handles.origFig = img;
@@ -2968,7 +2969,7 @@ function save_GMT_DB_asc(h, fname)
 		if (isempty(getappdata(h(k), 'edited'))),	continue,	end		% Skip because it was not modified
 		GSHHS_str = getappdata(h(k),'GSHHS_str');
 		if (k == 1 && ~isempty(GSHHS_str))		% Write back the magic string that allows us to recognize these type of files
-			fprintf(fid,'# $Id: draw_funs.m 9945 2016-11-30 14:07:39Z j $\n#\n%s\n#\n', GSHHS_str);
+			fprintf(fid,'# $Id: draw_funs.m 9951 2016-12-13 03:25:19Z j $\n#\n%s\n#\n', GSHHS_str);
 		end
 		hdr = getappdata(h(k), 'LineInfo');
 		x = get(h(k), 'XData');			y = get(h(k), 'YData');
