@@ -20,7 +20,7 @@ function varargout = mirone(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: mirone.m 9947 2016-11-30 14:10:50Z j $
+% $Id: mirone.m 9950 2016-12-13 03:23:30Z j $
 
 	if (nargin > 1 && ischar(varargin{1}))
 		if ( ~isempty(strfind(varargin{1},':')) || ~isempty(strfind(varargin{1},filesep)) )
@@ -1939,7 +1939,7 @@ function erro = FileOpenGeoTIFF_CB(handles, tipo, opt)
 		end
 	elseif (strcmpi(att.ColorInterp,'gray'))
 		pal = repmat( (att.GMT_hdr(5):att.GMT_hdr(6))' / att.GMT_hdr(6), 1, 3);
-	elseif (strcmpi(att.ColorInterp,'Undefined') && strcmp(att.Band.DataType, 'Byte'))
+	elseif (strcmpi(att.ColorInterp,'Undefined') && strcmp(att.Band(1).DataType, 'Byte'))
 		if (att.GMT_hdr(5) ~= att.GMT_hdr(6))		% Strong possibility that this is shit from GDAL. Check it
 			att.GMT_hdr(5) = double(min(Z(:)));		att.GMT_hdr(6) = double(max(Z(:)));
 		end
@@ -3685,6 +3685,17 @@ function FileOpenSession_CB(handles, fname)
 				setappdata(h_line,'LineInfo',s.Pline(i).LineInfo)
 				set(h_line,'UserData',1)
 				draw_funs(h_line,'isochron',{s.Pline(i).LineInfo})
+				if (isfield(s.Pline(i),'tag') && strcmp(s.Pline(i).tag, 'VIMAGE'))
+					vimage = getappdata(handles.axes1,'VIMAGE');
+					if (isempty(vimage))				% First one
+						s.Pline(i).appd.VIMAGE.hLine = h_line;	% Have to update this to the this session true line handle
+						setappdata(handles.axes1, 'VIMAGE', s.Pline(i).appd.VIMAGE)	% For use in the old way (actually there is no new way yet)
+					else
+						s.Pline(i).appd.hLine.VIMAGE.hLine = h_line;
+						vimage(end+1) = s.Pline(i).appd.VIMAGE;
+						setappdata(handles.axes1, 'VIMAGE', vimage)
+					end
+				end
 			elseif (isfield(s.Pline(i),'cont_label') && ~isempty(s.Pline(i).cont_label))
 				setappdata(h_line,'cont_label',s.Pline(i).cont_label)		% Used in write_script
 				set(h_line,'UserData',s.Pline(i).cont_label)				% Not sure if realy worth save this in UD
