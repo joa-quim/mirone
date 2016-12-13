@@ -2326,7 +2326,7 @@ function rectangle_register_img(obj, event)
 	handles = guidata(get(h,'Parent'));
 	rect_x = get(h,'XData');   rect_y = get(h,'YData');		% Get rectangle limits
 
-	region = bg_region('empty');
+	region = bg_region('emptyREGIST');
 	if isempty(region),		return,		end		% User gave up
 	x_min = region(1);		x_max = region(2);
 	y_min = region(3);		y_max = region(4);
@@ -2377,9 +2377,10 @@ function rectangle_register_img(obj, event)
 	[new_xlim,new_ylim] = aux_funs('adjust_lims',new_xlim,new_ylim,m,n);
 	delete(handles.hImg);
 	handles.hImg = image(new_xlim,new_ylim,img,'Parent',handles.axes1);
-	set(ax,'xlim',new_xlim,'ylim',new_ylim,'YDir','normal')
 	handles.head(1:4) = [new_xlim new_ylim];
 	resizetrue(handles, [], 'xy');
+	if (new_ylim(2) < new_ylim(1)),		set(ax,'YDir','reverse'),	end		% resizetrue doesn't know how to do this
+	if (new_xlim(2) < new_xlim(1)),		set(ax,'XDir','reverse'),	end
 	setappdata(ax,'ThisImageLims',[get(ax,'XLim') get(ax,'YLim')])
 	handles.old_size = get(handles.figure1,'Pos');      % Save fig size to prevent maximizing
 	handles.origFig = img;
