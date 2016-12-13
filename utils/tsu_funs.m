@@ -16,7 +16,7 @@ function tsu_funs(opt,varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: tsu_funs.m 7733 2015-12-07 19:33:51Z j $
+% $Id: tsu_funs.m 9954 2016-12-13 03:30:02Z j $
 
 	switch opt
 		case 'SwanCompute'
@@ -65,6 +65,9 @@ function TTT(handles,opt)
 		draw_funs(h,'DrawSymbol')			% Set symbol's uicontextmenu    
 	else					% Compute
 		h_src = findobj(handles.axes1,'Type','line','Tag','TTT');
+		if (isempty(h_src))		% OK, than search for trace faults.
+			h_src = findobj(handles.axes1,'Type','line','Tag','FaultTrace');
+		end
 		if (isempty(h_src)),    errordlg('Yes I compute, but ... WHAT?','Error'),	return,		end
 		if (numel(h_src) > 1)
 			errordlg('More than one source found. This is not allowed neither in single source or Ray tracing modes. Be modest.','Error');     return
