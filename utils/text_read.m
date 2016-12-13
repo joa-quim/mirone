@@ -49,7 +49,7 @@ function [numeric_data,date,headerlines,str_col,out] = text_read(varargin)
 	end
 
 	if ~isequal(exist(filename,'file'), 2)	% make sure file exists
-		errordlg('TEXT_READ: File not found.','Error');	return
+		errordlg(['TEXT_READ: File (' filename ') not found.'],'Error');	return
 	end
 
 	if (isnan(requestedHeaderLines))	% GUESS_FILE is better (and probably faster) in in guessing headers
