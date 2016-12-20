@@ -25,7 +25,7 @@ function varargout = draw_funs(hand, varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: draw_funs.m 9951 2016-12-13 03:25:19Z j $
+% $Id: draw_funs.m 9957 2016-12-20 11:37:58Z j $
 
 % A bit of strange tests but they are necessary for the cases when we use the new feval(fun,varargin{:}) 
 opt = varargin{1};		% function name to evaluate (new) or keyword to select one (old form)
@@ -2908,7 +2908,7 @@ function save_line(obj, evt, h)
 		z = getappdata(h,'ZData');
 		if (isempty(z) || numel(z) ~= numel(x))
 			fprintf(fid,'%.6f\t%.6f\n',[x(:)'; y(:)']);
-			if (numel(z) ~= numel(x))
+			if (~isempty(z) && numel(z) ~= numel(x))
 				warndlg('Cannot save the Z column due to a bug in line editing.', 'Warning')
 			end
 		else
@@ -2931,7 +2931,7 @@ function save_line(obj, evt, h)
 			z = getappdata(h(i),'ZData');
 			if (isempty(z) || numel(z) ~= numel(x{i}))
 				fprintf(fid,'%.6f\t%.6f\n',[x{i}(:)'; y{i}(:)']);
-				if (numel(z) ~= numel(x{i}))
+				if (~isempty(z) && numel(z) ~= numel(x{i}))
 					warndlg('Cannot save the Z column due to a bug in line editing.', 'Warning')
 				end
 			else
@@ -2969,7 +2969,7 @@ function save_GMT_DB_asc(h, fname)
 		if (isempty(getappdata(h(k), 'edited'))),	continue,	end		% Skip because it was not modified
 		GSHHS_str = getappdata(h(k),'GSHHS_str');
 		if (k == 1 && ~isempty(GSHHS_str))		% Write back the magic string that allows us to recognize these type of files
-			fprintf(fid,'# $Id: draw_funs.m 9951 2016-12-13 03:25:19Z j $\n#\n%s\n#\n', GSHHS_str);
+			fprintf(fid,'# $Id: draw_funs.m 9957 2016-12-20 11:37:58Z j $\n#\n%s\n#\n', GSHHS_str);
 		end
 		hdr = getappdata(h(k), 'LineInfo');
 		x = get(h(k), 'XData');			y = get(h(k), 'YData');
