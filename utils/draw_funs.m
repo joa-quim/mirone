@@ -2908,7 +2908,7 @@ function save_line(obj, evt, h)
 		z = getappdata(h,'ZData');
 		if (isempty(z) || numel(z) ~= numel(x))
 			fprintf(fid,'%.6f\t%.6f\n',[x(:)'; y(:)']);
-			if (numel(z) ~= numel(x))
+			if (~isempty(z) && numel(z) ~= numel(x))
 				warndlg('Cannot save the Z column due to a bug in line editing.', 'Warning')
 			end
 		else
@@ -2931,7 +2931,7 @@ function save_line(obj, evt, h)
 			z = getappdata(h(i),'ZData');
 			if (isempty(z) || numel(z) ~= numel(x{i}))
 				fprintf(fid,'%.6f\t%.6f\n',[x{i}(:)'; y{i}(:)']);
-				if (numel(z) ~= numel(x{i}))
+				if (~isempty(z) && numel(z) ~= numel(x{i}))
 					warndlg('Cannot save the Z column due to a bug in line editing.', 'Warning')
 				end
 			else
