@@ -9,7 +9,7 @@ function varargout = compute_euler(varargin)
 % PLON, PLAT, PANG are the parameters of the initial Euler pole.
 % See function parse_noGUI for the definition of the remsining optional arguments
 
-%	Copyright (c) 2004-2014 by J. Luis
+%	Copyright (c) 2004-2017 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -196,34 +196,38 @@ function edit_pAng_ini_CB(hObject, handles)
 
 % -------------------------------------------------------------------------------------
 function push_polesList_CB(hObject, handles)
-fid = fopen([handles.path_continent 'lista_polos.dat'],'rt');
-c = fread(fid,'*char').';
-fclose(fid);
-s = strread(c,'%s','delimiter','\n');
+	fid = fopen([handles.path_continent 'lista_polos.dat'],'rt');
+	c = fread(fid,'*char').';
+	fclose(fid);
+	s = strread(c,'%s','delimiter','\n');
 
-[s,v] = choosebox('Name','One Euler list',...
-                    'PromptString','List of poles:',...
-                    'SelectString','Selected poles:',...
-                    'ListSize',[450 300],'ListString',s);
+	[s,v] = choosebox('Name','One Euler list',...
+					  'PromptString','List of poles:',...
+					  'SelectString','Selected poles:',...
+					  'ListSize',[450 300 15],'ListString',s);
 
-if (v == 1)         % Finite pole
-    handles.pLon_ini = s(1);
-    handles.pLat_ini = s(2);
-    handles.pAng_ini = s(3);
-    set(handles.edit_pLon_ini, 'String', num2str(s(1)))
-    set(handles.edit_pLat_ini, 'String', num2str(s(2)))
-    set(handles.edit_pAng_ini, 'String', num2str(s(3)))
-    guidata(hObject,handles)
-elseif (v == 2)     % Stage poles
-    %set(handles.edit_polesFile,'String',s)
-end
+	if (v == 1)         % Finite pole
+		handles.pLon_ini = s(1);
+		handles.pLat_ini = s(2);
+		handles.pAng_ini = s(3);
+		set(handles.edit_pLon_ini, 'String', num2str(s(1)))
+		set(handles.edit_pLat_ini, 'String', num2str(s(2)))
+		set(handles.edit_pAng_ini, 'String', num2str(s(3)))
+		guidata(hObject,handles)
+	elseif (v == 2)     % Stage poles
+		%set(handles.edit_polesFile,'String',s)
+	end
 
 % -------------------------------------------------------------------------------------
 function push_reciclePole_CB(hObject, handles)
 % Get the parameters of computed pole and put them on starting pole edit boxes
-	set(handles.edit_pLon_fim, 'Str', get(handles.edit_pLon_ini, 'Str'))
-	set(handles.edit_pLat_fim, 'Str', get(handles.edit_pLat_ini, 'Str'))
-	set(handles.edit_pAng_fim, 'Str', get(handles.edit_pAng_ini, 'Str'))
+	set(handles.edit_pLon_ini, 'Str', get(handles.edit_pLon_fim, 'Str'))
+	set(handles.edit_pLat_ini, 'Str', get(handles.edit_pLat_fim, 'Str'))
+	set(handles.edit_pAng_ini, 'Str', get(handles.edit_pAng_fim, 'Str'))
+    handles.pLon_ini = str2double(get(handles.edit_pLon_ini,'String'));
+    handles.pLat_ini = str2double(get(handles.edit_pLat_ini,'String'));
+    handles.pAng_ini = str2double(get(handles.edit_pAng_ini,'String'));
+	guidata(hObject, handles);
 
 % -------------------------------------------------------------------------------------
 function edit_LonRange_CB(hObject, handles)
@@ -443,6 +447,9 @@ function push_compute_CB(hObject, handles)
 		return
 	else
 		% Fish the polyline coordinates again so that eventual line edits are taken into account right away
+		if (~ishandle(handles.hLines(1)) || ~ishandle(handles.hLines(2)))
+			errordlg('Line(s) were deleted. Start over by picking new lines.', 'Error'),	return
+		end
 		x = get(handles.hLines(1),'XData');		y = get(handles.hLines(1),'YData');
 		handles.isoca1 = [x(:) y(:)];
 		x = get(handles.hLines(2),'XData');		y = get(handles.hLines(2),'YData');
