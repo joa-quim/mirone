@@ -1,7 +1,7 @@
 function varargout = telhometro(varargin)
 % Plot magnetic Vine-Mathews carpets and flow lines
 
-%	Copyright (c) 2004-2013 by J. Luis
+%	Copyright (c) 2004-2017 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -55,14 +55,14 @@ function varargout = telhometro(varargin)
 % -------------------------------------------------------------------------------------
 function edit_polesFile_CB(hObject, handles)
 	fname = get(hObject,'String');
-	if isempty(fname)    return;    end
+	if isempty(fname),	return,		end
 	% Let the push_readPolesFile_CB do all the work
 	push_readPolesFile_CB(hObject,guidata(gcbo),fname)
 
 % -------------------------------------------------------------------------------------
 function push_readPolesFile_CB(hObject, handles, opt)
 % Get poles file name
-	if (nargin == 3)	fname = opt;
+	if (nargin == 3),	fname = opt;
 	else				opt = [];
 	end
 
@@ -78,12 +78,12 @@ function push_readPolesFile_CB(hObject, handles, opt)
 % -----------------------------------------------------------------------------------
 function edit_timeStart_CB(hObject, handles)
 	xx = str2double(get(hObject,'String'));
-	if (isnan(xx) || xx < 0)     set(hObject, 'String','0');     end
+	if (isnan(xx) || xx < 0),	set(hObject, 'String','0'),		end
 
 % -----------------------------------------------------------------------------------
 function edit_timeEnd_CB(hObject, handles)
 	xx = str2double(get(hObject,'String'));
-	if (isnan(xx) || xx < 0)     set(hObject, 'String','');      end
+	if (isnan(xx) || xx < 0),	set(hObject, 'String',''),		end
 
 % -------------------------------------------------------------------------------------
 function push_compute_CB(hObject, handles)
@@ -114,12 +114,12 @@ function push_compute_CB(hObject, handles)
 	end
 
 	t0 = str2double(get(handles.edit_timeStart,'String'));
-	if (t0 > 0)     opt_T = ['-T' num2str(t0)];
+	if (t0 > 0),    opt_T = ['-T' num2str(t0)];
 	else            opt_T = ' ';
 	end
 
 	t1 = str2double(get(handles.edit_timeEnd,'String'));
-	if (t1 > 0)     opt_N = ['-N' num2str(t1)];
+	if (t1 > 0),    opt_N = ['-N' num2str(t1)];
 	else            opt_N = ' ';
 	end
 
@@ -128,7 +128,7 @@ function push_compute_CB(hObject, handles)
         return
 	end
 
-	[out_x,out_y,first_mag,n_flow] = telha_m(linha, opt_E, opt_I, '-B', opt_T, opt_N);
+	[out_x,out_y,first_mag] = telha_m(linha, opt_E, opt_I, '-B', opt_T, opt_N);
 
 	% if (get(handles.checkbox_ridgeStartTime,'Value'))
 	% 	dx = out_x(1,1) - linha(1,1);
@@ -175,8 +175,8 @@ function push_compute_CB(hObject, handles)
         [out_x1,out_y1] = rot_euler(out_x1,out_y1,handles.p_lon,handles.p_lat,handles.p_omega);
         [out_x2,out_y2] = rot_euler(out_x2,out_y2,handles.p_lon,handles.p_lat,handles.p_omega);
 		% Need to reshape because they are all now column vectors
-		out_x1=reshape(out_x1,dims1);		out_y1=reshape(out_y1,dims1);
-		out_x2=reshape(out_x2,dims2);		out_y2=reshape(out_y2,dims2);
+		out_x1 = reshape(out_x1,dims1);		out_y1 = reshape(out_y1,dims1);
+		out_x2 = reshape(out_x2,dims2);		out_y2 = reshape(out_y2,dims2);
 	end
 
 	hd = patch(out_x1,out_y1,cor_d,'EdgeColor','none','Tag','tapete');
@@ -205,10 +205,10 @@ function push_polesList_CB(hObject, handles)
 	s = strread(c,'%s','delimiter','\n');
 
 	[s,v] = choosebox('Name','One Euler list',...
-                        'PromptString','List of poles:',...
-                        'SelectString','Selected poles:',...
-                        'ListSize',[450 300],...
-                        'ListString',s);
+                      'PromptString','List of poles:',...
+                      'SelectString','Selected poles:',...
+                      'ListSize',[450 300 15],...
+                      'ListString',s);
 
 	if (v == 1)         % Finite pole
 		if (~get(handles.check_additionalRot,'Val'))
@@ -404,6 +404,7 @@ uicontrol('Parent',h1,...
 'Call',{@telhometro_uiCB,h1,'edit_timeEnd_CB'},...
 'Position',[80 92 41 21],...
 'Style','edit',...
+'Tooltip','Leave blank to use the oldest age in stage poles file', ...
 'Tag','edit_timeEnd');
 
 uicontrol('Parent',h1,...

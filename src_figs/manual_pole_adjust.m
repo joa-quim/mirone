@@ -1,7 +1,7 @@
 function varargout = manual_pole_adjust(varargin)
 %	Do Euler rotations interactively
 
-%	Copyright (c) 2004-2012 by J. Luis
+%	Copyright (c) 2004-2017 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -16,7 +16,7 @@ function varargout = manual_pole_adjust(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: $
+% $Id$
 
 	if (isempty(varargin))
 		errordlg('MANUAL POLE ADJUST: wrong number of arguments.','Error'),	return
@@ -153,7 +153,7 @@ function push_polesList_CB(hObject, handles)
 	[s,v] = choosebox('Name','One Euler list',...
 						'PromptString','List of poles:',...
 						'SelectString','Selected poles:',...
-						'ListSize',[450 300],...
+						'ListSize',[450 300 15],...
 						'ListString',s);
 
 	if (v == 1)         % Finite pole
