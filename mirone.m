@@ -20,7 +20,7 @@ function varargout = mirone(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: mirone.m 9950 2016-12-13 03:23:30Z j $
+% $Id: mirone.m 9958 2016-12-21 02:53:39Z j $
 
 	if (nargin > 1 && ischar(varargin{1}))
 		if ( ~isempty(strfind(varargin{1},':')) || ~isempty(strfind(varargin{1},filesep)) )
@@ -3691,7 +3691,7 @@ function FileOpenSession_CB(handles, fname)
 						s.Pline(i).appd.VIMAGE.hLine = h_line;	% Have to update this to the this session true line handle
 						setappdata(handles.axes1, 'VIMAGE', s.Pline(i).appd.VIMAGE)	% For use in the old way (actually there is no new way yet)
 					else
-						s.Pline(i).appd.hLine.VIMAGE.hLine = h_line;
+						s.Pline(i).appd.VIMAGE.hLine = h_line;
 						vimage(end+1) = s.Pline(i).appd.VIMAGE;
 						setappdata(handles.axes1, 'VIMAGE', vimage)
 					end
