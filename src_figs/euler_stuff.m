@@ -1,7 +1,7 @@
 function varargout = euler_stuff(varargin)
 % Helper window to Euler rotations
 
-%	Copyright (c) 2004-2014 by J. Luis
+%	Copyright (c) 2004-2017 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -16,7 +16,7 @@ function varargout = euler_stuff(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: euler_stuff.m 4565 2014-09-23 16:48:30Z j $
+% $Id: euler_stuff.m 9961 2016-12-21 03:04:35Z j $
 
 	if (isempty(varargin))
 		errordlg('EULER_STUFF: wrong number of input arguments.','Error'),	return
@@ -356,7 +356,9 @@ function push_compute_CB(hObject, handles)
 			for (k = 1:n_flow)			% For each time increment
 				[x,y] = get_time_slice(out,n_data,n_seg,k);
 				h_line(k) = line('XData',x,'YData',y,'Linewidth',lt,'Color',lc,'Tag','Rotated Line','Userdata',k);
-				setappdata(h_line(k),'LineInfo',line_info{k});
+				if (n_flow == numel(handles.ages))				% Wrong. Ages are not necessarilly in sync with output
+					setappdata(h_line(k),'LineInfo',line_info{k});
+				end
 			end
 		end
 		draw_funs(h_line,'isochron',line_info)
@@ -558,7 +560,7 @@ function push_polesList_CB(hObject, handles)
 	[s,v] = choosebox('Name','One Euler list',...
 						'PromptString','List of poles:',...
 						'SelectString','Selected poles:',...
-						'ListSize',[450 300],...
+						'ListSize',[450 300 15],...
 						multiple_str,multiple_val,...
 						'addpoles',doAddPoles,...
 						'ListString',s);
