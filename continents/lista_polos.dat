@@ -122,12 +122,15 @@
  30.08  78.34   -7.546  27.47 !NAM<-Nubia  An9   Em Mov (res = 3.698) Sem ZF24
   4.52  75.41   -9.920  33.20 !NAM<-Nubia  An13  Em Mov (res = 4.365) Sem ZF24
   5.42  76.01   -9.870  33.20 !NAM<-Nubia  An13  Em Mov (res = 6.033)
-  2.93  75.13  -12.100  39.13 !NAM<-Nubia  An18  Em Mov (res = 8.482) Sem ZF24
-  3.53  75.33  -12.100  39.13 !NAM<-Nubia  An18  Em Mov (res = 9.274)
- -3.23  74.81  -15.23   47.00 !NAM<-Nubia  An21  Em movimento
-  4.90  81.60  -17.85   56.20 !NAM<-Nubia  An25  Em movimento
-  4.60  81.96  -20.70   66.95 !NAM<-Nubia  An30  Em movimento
--22.85  76.20  -29.66   81.00 !NAM<-Nubia  An33r Em movimento
+  2.33  74.73  -12.165  39.13 !NAM<-Nubia  An18  Em Mov (res = 5.798) Sem ZF24
+  2.33  74.73  -12.175  39.13 !NAM<-Nubia  An18  Em Mov (res = 6.814)
+ -0.97  74.53  -13.655  43.14 !NAM<-Nubia  An20  Em Mov (res = 3.629) Sem ZF24
+ -0.97  74.53  -13.650  43.14 !NAM<-Nubia  An20  Em Mov (res = 5.899) 
+ -1.73  75.21  -15.09   47.00 !NAM<-Nubia  An21  Em Mov (res = 4.724) Sem ZF24
+ -1.73  75.21  -15.09   47.00 !NAM<-Nubia  An21  Em Mov (res = 4.892)
+  7.00  81.60  -17.78   56.20 !NAM<-Nubia  An25  Em Mov (res = 5.880)
+  8.50  83.16  -20.52   66.95 !NAM<-Nubia  An30  Em Mov (res = 6.213)
+-21.95  76.20  -29.62   81.00 !NAM<-Nubia  An33r Em Mov (res = 5.452)
 -20.14  65.99  -54.45  121.25 !NAM<-Nubia  AnM0  Em movimento
 -20.24  66.19  -55.00  122.45 !NAM<-Nubia  AnM1  Em movimento
 -19.44  65.89  -56.62  126.57 !NAM<-Nubia  AnM5  Em movimento
@@ -151,6 +154,7 @@
 -14.19  24.74    3.80   27.47 !Nubia<-IBE An9  Closure
 -20.16  29.95    5.167  33.20 !Nubia<-IBE An13 Closure
 -17.71  28.98    5.056  39.13 !Nubia<-IBE An18 Closure
+-21.11  31.18    6.101  43.14 !Nubia<-IBE An20 Closure
 
   0.0    0.00    0.0     0.0  !Afr<-IBE Iberia-Africa (Afr fixed)
 -20.61  21.03    0.0     0.0  !Afr<-IBE An0 Nuvel
@@ -291,7 +295,6 @@
 146.60  84.40  -29.20  245.0  !NAM<-EUR Sclater et al 1977
 
   0.00   0.00    0.00    0.0  !NAM<-EUR North America-Eurasia (NAm fixed)
-137.88  60.79   -2.32   10.33 !NAM<-EUR An5  J. Luis  BF +/- bem a toda a 5
 145.61  19.07  -12.57   52.79 !NAM<-EUR An24 J. Luis  BF
 146.16  65.29  -16.77   67.02 !NAM<-EUR An30 J. Luis  pode melhorar
 147.85  61.34  -16.98   72.25 !NAM<-EUR An32 J. Luis  nao BF, o BF estraga-o
