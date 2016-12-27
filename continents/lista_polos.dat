@@ -71,8 +71,64 @@
 145.92  62.18   -9.20   43.14 !NAM<-POC An20 Em Mov.
 146.58  72.43  -13.06   52.79 !NAM<-POC An24 Em Mov. (fracote)
 155.98  66.50  -14.65   57.70 !NAM<-POC An26 Em Mov. (fracote)
-145.95  56.80  -16.21   67.02 !NAM<-POC An30 Em Mov. (bom)
-147.95  59.60  -18.46   81.00 !NAM<-POC An33r Em Mov. (bom)
+146.13  54.62  -15.855  67.02 !NAM<-POC An30 Em Mov (res = 2.082)
+148.70  63.55  -18.865  81.00 !NAM<-POC An33r Em Mov (res = 1.539)
+
+ 40.2   79.2    -0.233   0.0  !NAM<-Nubia  MORVEL (deg/Ma)
+ 34.42  79.02   -0.428   1.82 !NAM<-Nubia  An2   Em Mov (res = 1.374) Sem ZF24
+ 34.72  79.02   -0.428   1.82 !NAM<-Nubia  An2   Em Mov (res = 1.658)
+ 44.32  78.02   -0.706   3.06 !NAM<-Nubia  An2A  Em Mov (res = 1.451) Sem ZF24
+ 31.42  78.42   -0.731   3.06 !NAM<-Nubia  An2A  Em Mov (res = 1.675)
+ 35.30  78.40   -1.104   4.72 !NAM<-Nubia  An3   Em Mov (res = 1.913) Sem ZF24
+ 39.20  78.80   -1.099   4.72 !NAM<-Nubia  An3   Em Mov (res = 2.146)
+ 44.78  78.88   -1.448   6.20 !NAM<-Nubia  An3A  Em Mov (res = 1.476) Sem ZF24
+ 41.48  78.88   -1.458   6.20 !NAM<-Nubia  An3A  Em Mov (res = 1.889)
+ 50.90  79.32   -1.789   7.74 !NAM<-Nubia  An4   Em Mov (res = 1.527) Sem ZF24
+ 51.20  79.52   -1.789   7.74 !NAM<-Nubia  An4   Em Mov (res = 1.880)
+ 51.56  79.16   -2.090   8.88 !NAM<-Nubia  An4A  Em Mov (res = 1.406) Sem ZF24
+ 40.76  79.56   -2.135   8.88 !NAM<-Nubia  An4A  Em Mov (res = 2.251)
+ 51.94  79.48   -2.522  10.30 !NAM<-Nubia  An5   Em Mov (res = 2.626) Sem ZF24
+ 46.54  80.08   -2.562  10.30 !NAM<-Nubia  An5   Em Mov (res = 3.464)
+ 49.26  79.96   -4.296  16.37 !NAM<-Nubia  An5C  Em Mov (res = 2.683) Sem ZF24
+ 38.49  79.96   -4.376  16.37 !NAM<-Nubia  An5C  Em Mov (res = 3.467)
+ 32.32  80.44   -5.353  19.60 !NAM<-Nubia  An6   Em Mov (res = 3.352) Sem ZF24
+ 31.72  80.64   -5.368  19.60 !NAM<-Nubia  An6   Em Mov (res = 3.705)
+ 25.58  78.34   -7.616  27.47 !NAM<-Nubia  An9   Em Mov (res = 4.076) Sem ZF24
+  4.52  75.41   -9.920  33.20 !NAM<-Nubia  An13  Em Mov (res = 4.365) Sem ZF24
+  5.42  76.01   -9.870  33.20 !NAM<-Nubia  An13  Em Mov (res = 6.033)
+  2.33  74.73  -12.165  39.13 !NAM<-Nubia  An18  Em Mov (res = 5.798) Sem ZF24
+  2.33  74.73  -12.175  39.13 !NAM<-Nubia  An18  Em Mov (res = 6.814)
+ -0.97  74.53  -13.655  43.14 !NAM<-Nubia  An20  Em Mov (res = 3.629) Sem ZF24
+ -0.97  74.53  -13.650  43.14 !NAM<-Nubia  An20  Em Mov (res = 5.899) 
+ -1.73  75.21  -15.09   47.00 !NAM<-Nubia  An21  Em Mov (res = 4.724) Sem ZF24
+ -1.73  75.21  -15.09   47.00 !NAM<-Nubia  An21  Em Mov (res = 4.892)
+  7.00  81.60  -17.78   56.20 !NAM<-Nubia  An25  Em Mov (res = 5.880)
+  8.50  83.16  -20.52   66.95 !NAM<-Nubia  An30  Em Mov (res = 6.213)
+-21.95  76.20  -29.62   81.00 !NAM<-Nubia  An33r Em Mov (res = 5.452)
+-20.14  65.99  -54.45  121.25 !NAM<-Nubia  AnM0  Em movimento
+-20.24  66.19  -55.00  122.45 !NAM<-Nubia  AnM1  Em movimento
+-19.44  65.89  -56.62  126.57 !NAM<-Nubia  AnM5  Em movimento
+-18.20  66.15  -57.47  134.49 !NAM<-Nubia  AnM10 Em movimento
+-18.50  66.10  -59.48  143.20 !NAM<-Nubia  AnM16 Em movimento
+-18.00  66.30  -62.47  152.03 !NAM<-Nubia  AnM22 Em movimento
+-15.00  67.05  -64.61  156.17 !NAM<-Nubia  AnM25 Em movimento
+
+  0.0    0.00    0.0     0.0  !Nubia<-IBE Eurasia-Nubia (Nubia fixed)
+-20.40  21.60    0.131   0.0  !Nubia<-IBE MORVEL (deg/Ma)
+-20.61  21.03    0.0     0.0  !Nubia<-IBE An0  Nuvel
+-21.86  25.63    0.34    1.82 !Nubia<-IBE An2  Closure
+-20.79  24.20    0.49    3.06 !Nubia<-IBE An2a Closure
+-20.28  16.48    0.60    4.72 !Nubia<-IBE An3  Closure
+-19.69  23.75    0.86    6.20 !Nubia<-IBE An3a Closure
+-17.91  22.34    1.02    7.74 !Nubia<-IBE An4  Closure
+-18.19  18.08    1.07    8.88 !Nubia<-IBE An4a Closure
+-17.47  20.42    1.30   10.30 !Nubia<-IBE An5  Closure
+-17.54  20.66    2.05   16.48 !Nubia<-IBE An5C Closure
+-18.74  24.40    2.82   21.00 !Nubia<-IBE An6  Closure
+-15.38  25.07    3.92   27.47 !Nubia<-IBE An9  Closure
+-20.16  29.95    5.167  33.20 !Nubia<-IBE An13 Closure
+-17.71  28.98    5.056  39.13 !Nubia<-IBE An18 Closure
+-21.11  31.18    6.101  43.14 !Nubia<-IBE An20 Closure
 
   0.0    0.0     0.0     0.0  !NAM<-IBE North America-Iberia (NAm fixed)
 133.84  64.57   -2.39    9.8  !NAM<-IBE An5 Klitgord & Schouten 1986
@@ -108,53 +164,6 @@
 168.36 -71.71   46.30  120.4  !NAM<-IBE Rowley & Lottes 1988
 171.49 -73.59   52.57  150.0  !NAM<-IBE Rowley & Lottes 1988
 171.49 -73.59   52.57  200.0  !NAM<-IBE Rowley & Lottes 1988
-
- 40.2   79.2    -0.233   0.0  !NAM<-Nubia  MORVEL (deg/Ma)
- 34.42  79.02   -0.428   1.82 !NAM<-Nubia  An2   Em Mov (res = 1.374) Sem ZF24
- 44.32  78.02   -0.706   3.06 !NAM<-Nubia  An2A  Em Mov (res = 1.451) Sem ZF24
- 35.30  78.40   -1.104   4.72 !NAM<-Nubia  An3   Em Mov (res = 1.913) Sem ZF24
- 44.78  78.88   -1.448   6.20 !NAM<-Nubia  An3A  Em Mov (res = 1.476) Sem ZF24
- 50.90  79.32   -1.789   7.74 !NAM<-Nubia  An4   Em Mov (res = 1.527) Sem ZF24
- 51.56  79.16   -2.090   8.88 !NAM<-Nubia  An4A  Em Mov (res = 1.406) Sem ZF24
- 51.94  79.48   -2.522  10.30 !NAM<-Nubia  An5   Em Mov (res = 2.626) Sem ZF24
- 53.16  79.56   -4.251  16.37 !NAM<-Nubia  An5C  Em Mov (res = 2.809) Sem ZF24
- 34.12  80.24   -5.328  19.60 !NAM<-Nubia  An6   Em Mov (res = 3.458) Sem ZF24 nem Pico
- 30.08  78.34   -7.546  27.47 !NAM<-Nubia  An9   Em Mov (res = 3.698) Sem ZF24
-  4.52  75.41   -9.920  33.20 !NAM<-Nubia  An13  Em Mov (res = 4.365) Sem ZF24
-  5.42  76.01   -9.870  33.20 !NAM<-Nubia  An13  Em Mov (res = 6.033)
-  2.33  74.73  -12.165  39.13 !NAM<-Nubia  An18  Em Mov (res = 5.798) Sem ZF24
-  2.33  74.73  -12.175  39.13 !NAM<-Nubia  An18  Em Mov (res = 6.814)
- -0.97  74.53  -13.655  43.14 !NAM<-Nubia  An20  Em Mov (res = 3.629) Sem ZF24
- -0.97  74.53  -13.650  43.14 !NAM<-Nubia  An20  Em Mov (res = 5.899) 
- -1.73  75.21  -15.09   47.00 !NAM<-Nubia  An21  Em Mov (res = 4.724) Sem ZF24
- -1.73  75.21  -15.09   47.00 !NAM<-Nubia  An21  Em Mov (res = 4.892)
-  7.00  81.60  -17.78   56.20 !NAM<-Nubia  An25  Em Mov (res = 5.880)
-  8.50  83.16  -20.52   66.95 !NAM<-Nubia  An30  Em Mov (res = 6.213)
--21.95  76.20  -29.62   81.00 !NAM<-Nubia  An33r Em Mov (res = 5.452)
--20.14  65.99  -54.45  121.25 !NAM<-Nubia  AnM0  Em movimento
--20.24  66.19  -55.00  122.45 !NAM<-Nubia  AnM1  Em movimento
--19.44  65.89  -56.62  126.57 !NAM<-Nubia  AnM5  Em movimento
--18.20  66.15  -57.47  134.49 !NAM<-Nubia  AnM10 Em movimento
--18.50  66.10  -59.48  143.20 !NAM<-Nubia  AnM16 Em movimento
--18.00  66.30  -62.47  152.03 !NAM<-Nubia  AnM22 Em movimento
--15.00  67.05  -64.61  156.17 !NAM<-Nubia  AnM25 Em movimento
-
-  0.0    0.00    0.0     0.0  !Nubia<-IBE Eurasia-Nubia (Nubia fixed)
--20.40  21.60    0.131   0.0  !Nubia<-IBE MORVEL (deg/Ma)
--20.61  21.03    0.0     0.0  !Nubia<-IBE An0  Nuvel
--21.86  25.63    0.34    1.82 !Nubia<-IBE An2  Closure
--20.79  24.20    0.49    3.06 !Nubia<-IBE An2a Closure
--20.28  16.48    0.60    4.72 !Nubia<-IBE An3  Closure
--19.69  23.75    0.86    6.20 !Nubia<-IBE An3a Closure
--17.91  22.34    1.02    7.74 !Nubia<-IBE An4  Closure
--18.19  18.08    1.07    8.88 !Nubia<-IBE An4a Closure
--17.47  20.42    1.30   10.30 !Nubia<-IBE An5  Closure
--16.42  19.75    2.00   16.48 !Nubia<-IBE An5C Closure
--18.12  23.99    2.80   21.00 !Nubia<-IBE An6  Closure
--14.19  24.74    3.80   27.47 !Nubia<-IBE An9  Closure
--20.16  29.95    5.167  33.20 !Nubia<-IBE An13 Closure
--17.71  28.98    5.056  39.13 !Nubia<-IBE An18 Closure
--21.11  31.18    6.101  43.14 !Nubia<-IBE An20 Closure
 
   0.0    0.00    0.0     0.0  !Afr<-IBE Iberia-Africa (Afr fixed)
 -20.61  21.03    0.0     0.0  !Afr<-IBE An0 Nuvel
