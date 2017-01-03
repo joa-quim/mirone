@@ -93,17 +93,17 @@
  38.49  79.96   -4.376  16.37 !NAM<-Nubia  An5C  Em Mov (res = 3.467)
  32.32  80.44   -5.353  19.60 !NAM<-Nubia  An6   Em Mov (res = 3.352) Sem ZF24
  31.72  80.64   -5.368  19.60 !NAM<-Nubia  An6   Em Mov (res = 3.705)
- 25.58  78.34   -7.616  27.47 !NAM<-Nubia  An9   Em Mov (res = 4.076) Sem ZF24
-  4.52  75.41   -9.920  33.20 !NAM<-Nubia  An13  Em Mov (res = 4.365) Sem ZF24
-  5.42  76.01   -9.870  33.20 !NAM<-Nubia  An13  Em Mov (res = 6.033)
-  2.33  74.73  -12.165  39.13 !NAM<-Nubia  An18  Em Mov (res = 5.798) Sem ZF24
-  2.33  74.73  -12.175  39.13 !NAM<-Nubia  An18  Em Mov (res = 6.814)
- -0.97  74.53  -13.655  43.14 !NAM<-Nubia  An20  Em Mov (res = 3.629) Sem ZF24
- -0.97  74.53  -13.650  43.14 !NAM<-Nubia  An20  Em Mov (res = 5.899) 
- -1.73  75.21  -15.09   47.00 !NAM<-Nubia  An21  Em Mov (res = 4.724) Sem ZF24
- -1.73  75.21  -15.09   47.00 !NAM<-Nubia  An21  Em Mov (res = 4.892)
-  7.00  81.60  -17.78   56.20 !NAM<-Nubia  An25  Em Mov (res = 5.880)
-  8.50  83.16  -20.52   66.95 !NAM<-Nubia  An30  Em Mov (res = 6.213)
+ 29.78  78.34   -7.541  27.47 !NAM<-Nubia  An9   Em Mov (res = 4.576)
+  3.32  75.41   -9.970  33.20 !NAM<-Nubia  An13  Em Mov (res = 3.434)
+  1.13  75.13  -12.155  39.13 !NAM<-Nubia  An18  Em Mov (res = 4.895) Sem ZF24
+  0.53  74.73  -12.245  39.13 !NAM<-Nubia  An18  Em Mov (res = 6.894)
+ -1.27  74.55  -13.670  43.14 !NAM<-Nubia  An20  Em Mov (res = 4.077) 
+ -3.83  75.01  -15.190  47.00 !NAM<-Nubia  An21  Em Mov (res = 5.579)
+ -3.93  75.10  -16.060  49.37 !NAM<-Nubia  An22  Em Mov (res = 4.774)
+ -2.73  78.11  -17.210  52.79 !NAM<-Nubia  An24  Em Mov (res = 5.560)
+  2.50  80.60  -18.120  56.20 !NAM<-Nubia  An25  Em Mov (res = 3.667)
+ -3.10  82.36  -21.335  66.95 !NAM<-Nubia  An30  Em Mov (res = 6.961)
+ -7.50  81.45  -23.040  72.24 !NAM<-Nubia  An32  Em Mov (res = 5.278)
 -21.95  76.20  -29.62   81.00 !NAM<-Nubia  An33r Em Mov (res = 5.452)
 -20.14  65.99  -54.45  121.25 !NAM<-Nubia  AnM0  Em movimento
 -20.24  66.19  -55.00  122.45 !NAM<-Nubia  AnM1  Em movimento
