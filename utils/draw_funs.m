@@ -193,37 +193,39 @@ function set_line_uicontext_XY(h, opt)
 % simpler that the Mirone ones, so put it in a separate function (this function).
 	if (isempty(h)),	return,		end
 	if (nargin == 1),	opt = '';	end
-	hFig = getParentFigure(h);
+	hFig = getParentFigure(h(1));
 	handles = guidata(hFig);		% Get Ecran handles
 
-	% Check to see if we are dealing with a multibeam track
-	cmenuHand = uicontextmenu('Parent',handles.figure1);
-	set(h, 'UIContextMenu', cmenuHand);
-	set(cmenuHand, 'UserData', h)			% And with this the cmenuHand knows to whom it belongs
+	for (k = 1:numel(h))
+		cmenuHand = uicontextmenu('Parent',handles.figure1);
+		set(h(k), 'UIContextMenu', cmenuHand);
+		set(cmenuHand, 'UserData', h(k))			% And with this the cmenuHand knows to whom it belongs
 
-	cb_LineWidth = uictx_LineWidth(h);		% there are 5 cb_LineWidth outputs
-	cb_solid   = 'set(gco, ''LineStyle'', ''-''); refresh';
-	cb_dashed  = 'set(gco, ''LineStyle'', ''--''); refresh';
-	cb_dotted  = 'set(gco, ''LineStyle'', '':''); refresh';
-	cb_dashdot = 'set(gco, ''LineStyle'', ''-.''); refresh';
-	cb_color   = uictx_color(h);				% there are 9 cb_color outputs
-		
-	uimenu(cmenuHand, 'Label', 'Delete', 'Call', {@del_line,h});
-	uimenu(cmenuHand, 'Label', 'Save line', 'Call', {@save_formated,h});
-	if (strcmp(opt, 'main'))
-		% Attention, if I ever change these labels I MUST do it also in ecran/finish_line_uictx()
-		h = uimenu(cmenuHand, 'Label', 'Shift origin here');
-		uimenu('Parent',h, 'Label', 'X origin only');
-		uimenu('Parent',h, 'Label', 'Y origin only');
-		uimenu('Parent',h, 'Label', 'XY origin');
-		uimenu(cmenuHand,  'Label', 'Filter Outliers', 'Sep','on');
-	else
-		ui_edit_polygon(h)			% Set edition functions
-		uimenu(cmenuHand, 'Label', 'Line length', 'Call', @show_LineLength_XY)
+		cb_LineWidth = uictx_LineWidth(h(k));		% there are 5 cb_LineWidth outputs
+		cb_solid   = 'set(gco, ''LineStyle'', ''-''); refresh';
+		cb_dashed  = 'set(gco, ''LineStyle'', ''--''); refresh';
+		cb_dotted  = 'set(gco, ''LineStyle'', '':''); refresh';
+		cb_dashdot = 'set(gco, ''LineStyle'', ''-.''); refresh';
+		cb_color   = uictx_color(h(k));				% there are 9 cb_color outputs
+
+		uimenu(cmenuHand, 'Label', 'Delete', 'Call', {@del_line,h(k)});
+		uimenu(cmenuHand, 'Label', 'Save line', 'Call', {@save_formated,h(k)});
+		if (strcmp(opt, 'main'))
+			% Attention, if I ever change these labels I MUST do it also in ecran/finish_line_uictx()
+			hh = uimenu(cmenuHand, 'Label', 'Shift origin here');
+			uimenu('Parent',hh, 'Label', 'X origin only');
+			uimenu('Parent',hh, 'Label', 'Y origin only');
+			uimenu('Parent',hh, 'Label', 'XY origin');
+			uimenu(cmenuHand,   'Label', 'Filter Outliers', 'Sep','on');
+		else
+			ui_edit_polygon(h(k))			% Set edition functions
+			uimenu(cmenuHand, 'Label', 'Line length', 'Call', @show_LineLength_XY)
+		end
+		setLineWidth(uimenu(cmenuHand, 'Label', 'Line Width', 'Sep','on'), cb_LineWidth)
+		setLineStyle(uimenu(cmenuHand, 'Label', 'Line Style'), {cb_solid cb_dashed cb_dotted cb_dashdot})
+		setLineColor(uimenu(cmenuHand, 'Label', 'Line Color'), cb_color)
+		uimenu(cmenuHand,  'Label', 'Show data points', 'Sep','on');
 	end
-	setLineWidth(uimenu(cmenuHand, 'Label', 'Line Width', 'Sep','on'), cb_LineWidth)
-	setLineStyle(uimenu(cmenuHand, 'Label', 'Line Style'), {cb_solid cb_dashed cb_dotted cb_dashdot})
-	setLineColor(uimenu(cmenuHand, 'Label', 'Line Color'), cb_color)
 
 % -----------------------------------------------------------------------------------------
 function set_line_uicontext(h, opt)
@@ -1271,14 +1273,16 @@ function set_isochrons_uicontext(h, data)
 	cb_ClassLineStyle = uictx_Class_LineStyle(h);    % there are 4 cb_ClassLineStyle outputs
 	item_Class_lt = uimenu(item_allThis, 'Label', 'Line Style');
 	setLineStyle(item_Class_lt,{cb_ClassLineStyle{1} cb_ClassLineStyle{2} cb_ClassLineStyle{3} cb_ClassLineStyle{4}})
-	item = uimenu(cmenuHand, 'Label', 'Compute pole to neighbor', 'Sep','on');
-	%uimenu(item, 'Label', 'Bonin (all in this plate)', 'Sep','on', 'Call', {@pole2neighbor, [], 'Bonin'});
-	uimenu(item, 'Label', 'Best-Fit (all in this plate)', 'Call', {@pole2neighbor, [], 'anglefit'});
-	uimenu(item, 'Label', 'Best-Fit (only me)', 'Call', {@pole2neighbor, [], 'anglefit', 1});
-	uimenu(item, 'Label', 'Best-Fit (only me -> iterate)', 'Call', {@pole2neighbor, [], 'anglefit', 10});
-	uimenu(item, 'Label', 'Show Results', 'Call', {@pole2neighbor, [], 'showresults'});
-	uimenu(cmenuHand, 'Label', 'Age Grid', 'Call', {@pole2neighbor, [], 'agegrid'});
-	uimenu(cmenuHand, 'Label', 'Make Age-script', 'Call', @make_age_script);
+	item = uimenu(cmenuHand, 'Label', 'Isochron pole operations', 'Sep','on');
+	uimenu(item, 'Label', 'Update poles in headers', 'Call', {@pole2neighbor, [], 'update_poles'});
+	item2 = uimenu(item, 'Label', 'Compute pole to neighbor', 'Sep','on');
+	uimenu(item2, 'Label', 'Best-Fit (all in this plate)', 'Call', {@pole2neighbor, [], 'anglefit'});
+	uimenu(item2, 'Label', 'Best-Fit (only me)', 'Call', {@pole2neighbor, [], 'anglefit', 1});
+	uimenu(item2, 'Label', 'Best-Fit (only me -> iterate)', 'Call', {@pole2neighbor, [], 'anglefit', 10});
+	uimenu(item2, 'Label', 'Show Results', 'Call', {@pole2neighbor, [], 'showresults'});
+	uimenu(item, 'Label', 'Plates stage poles', 'Call', {@pole2neighbor, [], 'plate_stages'});
+	uimenu(item, 'Label', 'Age Grid', 'Call', {@pole2neighbor, [], 'agegrid'}, 'Sep','on');
+	uimenu(item, 'Label', 'Make Age-script', 'Call', @make_age_script);	
 	uimenu(cmenuHand, 'Label', 'Euler rotation', 'Sep','on', 'Call', 'euler_stuff(gcf,gco)');
 	for (i=1:length(h)),		ui_edit_polygon(h(i)),		end		% Set edition functions
 
@@ -1378,7 +1382,7 @@ function cb = uictx_setMarker(h,prop)
 	end
 
 	function other_Marker(obj,eventdata,h,prop,opt)
-	set(h,prop,opt);    refresh
+		set(h,prop,opt);    refresh
 % -----------------------------------------------------------------------------------------
 
 % -----------------------------------------------------------------------------------------
@@ -2038,7 +2042,7 @@ function set_bar_uicontext(h)
 	setLineColor(item_lc,cb_color)
 
 % -----------------------------------------------------------------------------------------
-function cb = uictx_color(h,opt)
+function cb = uictx_color(h, opt)
 % Set uicontext colors in object whose handle is gco (or h for "other color")
 % If opt is not given opt = 'Color' is assumed
 	if (nargin == 1),   opt = [];   end
