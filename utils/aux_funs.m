@@ -18,7 +18,7 @@ function  varargout = aux_funs(opt,varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: aux_funs.m 9944 2016-11-30 14:06:05Z j $
+% $Id: aux_funs.m 9968 2017-01-05 23:55:39Z j $
 
 switch opt(1:4)
 	case 'Stor'		% 'StoreZ'
@@ -287,6 +287,8 @@ function out = findFileType(fname)
 		out = 'ogr';
 	elseif (strcmpi(EXT,'.ps') || strcmpi(EXT,'.eps'))
 		out = 'ghost';
+	elseif (strcmpi(EXT,'.pick'))	% A GPlates anomaly picks file
+		out = 'pick';
 	elseif (strcmpi(EXT,'.srtm'))	% While we don't use GMT5, create a header write away & send to GDAL
 		try		write_esri_hdr(fname,'SRTM30');	end
 		out = 'dono';				% aka GDAL
