@@ -287,6 +287,8 @@ function out = findFileType(fname)
 		out = 'ogr';
 	elseif (strcmpi(EXT,'.ps') || strcmpi(EXT,'.eps'))
 		out = 'ghost';
+	elseif (strcmpi(EXT,'.pick'))	% A GPlates anomaly picks file
+		out = 'pick';
 	elseif (strcmpi(EXT,'.srtm'))	% While we don't use GMT5, create a header write away & send to GDAL
 		try		write_esri_hdr(fname,'SRTM30');	end
 		out = 'dono';				% aka GDAL
