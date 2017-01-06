@@ -8,15 +8,21 @@ function filename = write_flederFiles(opt,varargin)
 % OPT = 'runPlanar' build a planar .sd file 			named "lixoSD.sd" at ...\tmp
 % OPT = 'runSpherical' build a spherical .sd file					"
 %
+% We now are able to write either TDR 2.0 (Fleder 6) or 2.1 (Fleder 7) version files
+% but this requires new options in the varargin list. In order to make it optional (and
+% default to Fleder 6) varargin{end} must be a struct with 2 members:
+%   'TDRver', which holds a '2.0' or '2.1' string
+%   'proj' which can be == 'geog', a WKT projection string or be empty
+%
 % It is also possible to use this as a gateway to some subfunctions. In that case 
 % OPT = subfunction, and VARARGIN varies with the function called
-% In main_SD must be: VARARGIN = (fid|fname, 'Planar|other', Z, img, limits)
-% In write_all3 must be: VARARGIN = (name, flederPlanar, Z, img, limits)
+% In main_SD must be: VARARGIN = (fid|fname, 'Planar|other', Z, img, limits [,OPTstruct])
+% In write_all3 must be: VARARGIN = (name, flederPlanar, Z, img, limits [,OPTstruct])
 
 % NOTE: For every line/point object FM_CMAP and a GEOREF blocks are writen.
 % Though it doesn't hurt much, it is an idiot thing
 
-%	Copyright (c) 2004-2016 by J. Luis
+%	Copyright (c) 2004-2017 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -32,6 +38,24 @@ function filename = write_flederFiles(opt,varargin)
 % --------------------------------------------------------------------
 
 % $Id$
+
+	% - Little initial block to deal with the adding of two new input vars and try to
+	%   do it in a compatible way. That is, set up a mechanism that guaranties backward
+	%   compat for functions that call ME without these two new and now mandatory options.
+	% - New options should be wrapped in a struct so that we can detect it in the varargin list
+	global TDRver
+	if (~isa(varargin{end}, 'struct') || ~isfield(varargin{end}, 'TDRver'))
+		varargin{end+1} = struct('TDRver', '2.0', 'proj', '');
+	end
+	s = varargin{end};
+	TDRver = s.TDRver;		proj = s.proj;
+	if (~(strcmp(TDRver, '2.0') || strcmp(TDRver, '2.1')))
+		warndlg('write_flederFiles: ''TDRver'' MUST really be either ''2.0'' OR ''2.1'' and it wasn''t. Defaulting to 2.0', 'WarnError')
+		TDRver = '2.0';
+	end
+	varargin(end) = [];		clear s
+	varargin{end+1} = TDRver;
+	varargin{end+1} = proj;
 
 	if (opt(1) == 'w' || opt(1) == 'r')			% Here opt is a "write..." or "run..."
 		handles = varargin{1};
@@ -54,7 +78,7 @@ function filename = write_flederFiles(opt,varargin)
 			[FileName,PathName] = put_or_get_file(handles,str1,'Name stem for the 3 (.geo, .dtm, .shade) IVS files','put');
 			if isequal(FileName,0),		return,		end
 			[PATH,FNAME] = fileparts(FileName);    fname = [PathName filesep FNAME];
-			write_all3(fname,handles.flederPlanar,Z,img,head(1:6))
+			write_all3(fname,handles.flederPlanar,Z,img,head(1:6), TDRver, proj)
 			return
 		end
 
@@ -73,9 +97,9 @@ function filename = write_flederFiles(opt,varargin)
 			fid = fopen(fname,'wb');
 			if (~isempty(img))
 				write_geoimg(fid, 'first', img)
-				write_geo(fid,'add',head(1:6))
+				write_georef(fid,'add',head(1:6), TDRver, proj)
 			else								% Initiate the TDR
-				fprintf(fid,'%s\n%s\f\n','%% TDR 2.0 Binary','%%');
+				fprintf(fid,'%s\n%s\f\n',['%% TDR ' TDRver '  Binary'],'%%');	% ATTENTION
 			end
 		else
 			if (strcmp(opt,'writePlanar') || handles.flederPlanar)
@@ -86,43 +110,51 @@ function filename = write_flederFiles(opt,varargin)
 			vimage = getappdata(handles.axes1,'VIMAGE');
 			if (isempty(vimage))
 				fid = fopen(fname,'wb');
-				write_main(fid, tipo, Z, img, img2, head(1:6));
+				write_main(fid, tipo, Z, img, img2, head(1:6), TDRver, proj);
 			else
 				fname = [fname '.scene'];		% Will have .sd.scene extension but no big deal
 				fid = fopen(fname,'wb');
-				write_scene(fid, tipo, 'vimage', Z, img, img2, head(1:6), vimage)
+				write_scene(fid, tipo, 'vimage', Z, img, img2, head(1:6), vimage, TDRver, proj)
 			end
 		end
 		if (handles.flederBurn ~= 2)		% If not screen capture, see if there are lines & pts to flederize
-			write_lines_or_points(fid, handles.axes1, head(1:6), handles.flederBurn);
+			write_lines_or_points(fid, handles.axes1, head(1:6), handles.flederBurn, TDRver, proj);
 		end
-		write_eof(fid)						% Write EOF block and close the file
+		write_block_tag(fid, 999999999, 0, 1)	% Write EOF block and close the file
 	end
 
 	% Go trough here when using specific external calls (some are probably not possible to call from outside)
 	switch opt
 		case 'geo'
-			write_geo(varargin{:});     % Write a .geo block
+			write_georef(varargin{:});		% Write a .geo block
 		case 'dtm'
-			write_dtm(varargin{:});     % Write a .dtm object
+			write_dtm(varargin{:});		% Write a .dtm object
 		case 'shade'
-			write_shade(varargin{:});   % Write a .shade object
+			write_shade(varargin{:});	% Write a .shade object
 		case 'main_SD'		% The call must be: write_main(fid, tipo, Z, img, img2, limits)
 			fid = write_main(varargin{:});		% Write a .sd object made of .geo .dtm & .shade blocks
 			write_eof(fid)						% Write EOF block and close the file
 		case 'all3'			% The call must be: write_all3(name, flederPlanar, Z, img, limits)
-			write_all3(varargin{:})     % Write three files: .geo, .dtm, .shade as DMagic would do
+			write_all3(varargin{:})		% Write three files: .geo, .dtm, .shade as DMagic would do
 		case 'line_or_points'
 			write_lines_or_points(varargin{:});    % Search for and write lines and/or points objects
 		case 'line'
-			write_line(varargin{:});    % Write line objects
+			write_line(varargin{:});	% Write line objects
 		case 'points'
 			if (ischar(varargin{1})),	varargin{1} = fopen(varargin{1},'wb');	end		% Was file name
-			write_pts(varargin{:});     % Write point objects
+			write_pts(varargin{:});		% Write point objects
 			write_eof(varargin{1})		% Write EOF block and close the file
 	end
 
 	if (nargout),	filename = fname;	end		% Otherwise the compiled version would silently error
+
+%----------------------------------------------------------------------------------
+function start_TDR(fid, mode)
+% Write the opening ASCII header of a TDR file
+	global TDRver
+	if (strcmp(mode,'first'))       % The TDR object starts here
+		fprintf(fid,'%s\n%s\n%s\f\n',['%% TDR ' TDRver ' Binary'],'Created by:    Mirone Tech!','%%');
+	end
 
 %----------------------------------------------------------------------------------
 function [img, img2] = getImg(handles)
@@ -130,7 +162,7 @@ function [img, img2] = getImg(handles)
 % This function is used when only HANDLES was transmited
 
 	if (handles.image_type == 20 && handles.flederBurn ~= 2)		% We don't have any bg image
-		img = [];		img2 = [];		return
+		img = [];	img2 = [];		return
 	end
 
 	% The UD flip horror.
@@ -177,37 +209,62 @@ function [img, img2] = getImg(handles)
 	end
 
 %----------------------------------------------------------------------------------
-function write_geo(fid,mode,limits)
+function write_georef(fid, mode, limits, TDRver, proj)
 % Write a GEOREF block
-	if (strcmp(mode,'first'))       % The TDR object starts here
-		fprintf(fid,'%s\n%s\n%s\f\n','%% TDR 2.0 Binary','Created by:    Mirone Tech!','%%');
+	if (nargin == 3 || strcmp(TDRver, '2.0'))	% Write a Version 6 GEOREF block
+		start_TDR(fid, mode)				% If mode == 'first' the TDR object starts here
+		write_block_tag(fid, 15000, 6*8+4*3, 1)
+		fwrite(fid, [0 0 0], 'integer*4');	% Don't know what there are
+		fwrite(fid, limits,'real*8');
+	else						% Write a Version 7 GEOREF block
+		start_TDR(fid, mode)				% If mode == 'first' the TDR object starts here
+		if (strncmp(proj, 'geo', 3))
+			str = geo_WKT();
+		else
+			str = proj;
+		end
+		len_str = numel(str);
+		write_block_tag(fid, 15000, len_str + 19*8+2+4, 2)
+		fwrite(fid, limits,'real*8');
+		fwrite(fid, [0 0 0 1],'real*8');	% Quaternions (no rotation)
+		fwrite(fid, limits,'real*8');		% OuterBounds (== to InnerBounds)
+		fwrite(fid, zeros(1,3),'real*8');	% PivotPoint
+		fwrite(fid,[0 0],'uchar');			% defaultPivotPosition & haveCustomPivot
+		fwrite(fid, len_str,'int');
+		if (~isempty(proj))
+			fwrite(fid, str, 'uchar');
+		end
 	end
-	fwrite(fid,[15000 100],'integer*4');     % Tag ID, Data Length
-	fwrite(fid,[0 0 1 1 1 1 (1:30)*0],'uchar');
-	fwrite(fid,limits,'real*8');
-	fwrite(fid,(1:10)*0,'integer*4');
+
+%----------------------------------------------------------------------------------
+function str = geo_WKT()
+% Just return a geographics WGS84 WKT
+	str = [ 'GEOGCS["FG_WGS_84",' ...
+			'DATUM["FD_WGS_1984",' ...
+			'SPHEROID["WGS 84",6378137,298.257223563,' ...
+			'AUTHORITY["EPSG","7030"]],' ...
+			'TOWGS84[0,0,0,0,0,0,0],AUTHORITY["EPSG","6326"]],' ...
+			'PRIMEM["Greenwich",0,AUTHORITY["EPSG","8901"]],' ...
+			'UNIT["degree",0.01745329251994328,AUTHORITY["EPSG","9122"]],' ...
+			'AUTHORITY["EPSG","4326"]]' ];
 
 %----------------------------------------------------------------------------------
 function write_dtm(fid,mode,Z,limits)
 % Write a .dtm block
-	if (strcmp(mode,'first'))       % The TDR object starts here
-		fprintf(fid,'%s\n%s\n%s\f\n','%% TDR 2.0 Binary','Created by:    Mirone Tech!','%%');
-	end
+	start_TDR(fid, mode)				% If mode == 'first' the TDR object starts here
 	[m,n] = size(Z);
 	fwrite(fid,[1000 m*n*2+30],'integer*4');		% Tag ID, Data Length 
 	fwrite(fid,[0 0 1 1 1 2 (1:18)*0],'uchar');
 	fwrite(fid,[2 n m 3 16],'integer*2');			% nDim(?) nCols nRows ?? BitWidth
 	fwrite(fid,[limits(5) limits(6)],'real*8');
 	fwrite(fid,[0 65535],'uint16');
-	Z = flipud( uint16(rot90(scaleto8(Z,16),1)) );
+	Z = flipud(uint16(rot90(scaleto8(Z,16),1)));
 	fwrite(fid,Z,'uint16');
 
 %----------------------------------------------------------------------------------
 function write_shade(fid, mode, img, geoimg)
 % Write a .shade or a geoimage block
-    if (strcmp(mode,'first'))       % The TDR object starts here
-		fprintf(fid,'%s\n%s\n%s\f\n','%% TDR 2.0 Binary','Created by:    Mirone Tech!','%%');
-    end
+	start_TDR(fid, mode)				% If mode == 'first' the TDR object starts here
 
 	if (nargin == 3)		% Non geoimage
 		soma = 34;		nZeros = 10;	bW = [7 32];	nB = 65535;		% Again this is from pure trial
@@ -225,19 +282,19 @@ function write_shade(fid, mode, img, geoimg)
 	fwrite(fid,img,'uint8');
 
 %----------------------------------------------------------------------------------
-function write_all3(name_stem, flederPlanar, Z, img, limits)
+function write_all3(name_stem, flederPlanar, Z, img, limits, TDRver, proj)
 % Write three files: .geo, .dtm, .shade
 
 	exts = {'geo' 'dtm' 'shade'};
 	for (k = 1:3)
 		fid = fopen([name_stem '.' exts{k}],'wb');
-		fprintf(fid,'%s\n%s\n%s\f\n','%% TDR 2.0 Binary','Created by:    Mirone Tech!','%%');
+		start_TDR(fid, 'first')					% If mode == 'first' the TDR object starts here
 
 		if (k == 1)			% .geo
 			tipo = '';
 			if (flederPlanar),	tipo = 'Planar';	end
 			write_sonardtm_block(fid, tipo)
-			write_geo(fid,'add',limits);		% Write a .geo block
+			write_georef(fid,'add',limits, TDRver, proj);		% Write a .geo block
 		elseif (k == 2)		% .dtm
 			write_dtm(fid,'add',Z,limits);		% Write a .dtm object
 		else				%.shade
@@ -247,54 +304,53 @@ function write_all3(name_stem, flederPlanar, Z, img, limits)
 	end
 
 %----------------------------------------------------------------------------------
-function fid = write_main(fid, tipo, Z, img, img2, limits)
+function fid = write_main(fid, tipo, Z, img, img2, limits, TDRver, proj)
 % Write a basic .sd file. That is with a DTM, a SHADE & a GEO blocks
 
-	if (ischar(fid))		% FID is in fact the file name 
+	if (ischar(fid))		% Than FID is in fact the file name 
 		fid = fopen(fid,'wb');
 	end
 
-	fprintf(fid,'%s\n%s\n%s\f\n','%% TDR 2.0 Binary','Created by:    Mirone Tech!','%%');
+	start_TDR(fid, 'first')				% If mode == 'first' the TDR object starts here
 
 	if (nargin == 5 || isempty(img2))		% A SD object
 		write_sonardtm_block(fid, tipo)
 		write_dtm(fid,'add',Z,limits)
 		write_shade(fid, 'add', img)
-		write_geo(fid,'add',limits)
+		write_georef(fid,'add',limits, TDRver, proj)
 	elseif (1)								% A textureDTM SD object
 		write_texturedtm_block(fid)
 		write_shade(fid, 'add', img, 'geoimg')
-		write_geo(fid,'add',limits)
+		write_georef(fid,'add',limits, TDRver, proj)
 		write_dtm(fid,'add',Z,limits)
 		write_shade(fid, 'add', img2)
-		write_geo(fid,'add',limits)
+		write_georef(fid,'add',limits, TDRver, proj)
 	else									% A SCENE object
 		write_scene_block(fid)
 		write_node_block(fid, 'root', 'Root Node', 'Unknown')
-		write_geo(fid,'add',limits)
+		write_georef(fid,'add',limits, TDRver, proj)
 		write_alignparent_block(fid)
-		write_geo(fid,'add',limits)
+		write_georef(fid,'add',limits, TDRver, proj)
  		write_node_block(fid, 'dtm', 'Surface', 'test1.sd')
-		write_geo(fid,'add',limits)
+		write_georef(fid,'add',limits, TDRver, proj)
 		write_sonardtm_block(fid, tipo)
 		write_dtm(fid,'add',Z,limits)
 		write_shade(fid, 'add', img2)
-		write_geo(fid,'add',limits)
+		write_georef(fid,'add',limits, TDRver, proj)
 		write_sonardtm_atb_block(fid)
  		write_node_block(fid, 'geoimg', 'Drapped', 'test2.sd')
 		limits(5:6) = [0 1];
-		write_geo(fid,'add',limits)
+		write_georef(fid,'add',limits, TDRver, proj)
 		write_geoimg(fid, 'add', img)
-		write_geo(fid,'add',limits)
+		write_georef(fid,'add',limits, TDRver, proj)
 		write_geoimg_atb_block(fid)
 	end
 
 %----------------------------------------------------------------------------------
-function write_scene(fid, tipo, mode, Z, img, img2, limits, struct_vimage)
+function write_scene(fid, tipo, mode, Z, img, img2, limits, struct_vimage, TDRver, proj)
 % Write a scene (very crude)
 
-%	fprintf(fid,'%s\n%s\n%s\f\n','%% TDR 2.0 Binary','Created by:    Mirone Tech!','%%');
-	fprintf(fid,'%s\n%s\n%s\f\n','%% TDR 2.0 Binary','Fledermaus wrote this scene file!','%%');
+	start_TDR(fid, 'first')				% If mode == 'first' the TDR object starts here
 
 	write_scene_block(fid)
 	write_node_block(fid, 'root', 'Root Node', 'Unknown')
@@ -302,20 +358,19 @@ function write_scene(fid, tipo, mode, Z, img, img2, limits, struct_vimage)
 	if (strcmp(mode,'vimage'))
 		lower_z = struct_vimage(1).z_min;	% Almost for sure it should the be the minimum of ALL Vimages
 	end
-	write_geo(fid,'add',[limits(1:4) lower_z limits(end)])
+	write_georef(fid,'add',[limits(1:4) lower_z limits(end)], TDRver, proj)
 	write_alignparent_block(fid)
 
 	if (~isempty(Z))
-		write_geo(fid,'add',[limits(1:4) lower_z limits(end)])	% <
+		write_georef(fid,'add',[limits(1:4) lower_z limits(end)], TDRver, proj)	% 
 		node_mode = 'dtm';
 		if (strcmp(mode,'vimage')),		node_mode = [node_mode '-vimage'];	end		% VIMAGE seam to use different codings
 		write_node_block(fid, node_mode, 'Surface', 'unknown')
-  		%write_node_block(fid, node_mode, 'test1.sd', 'C:|programs|IVS|bin|test1.sd')
-		write_geo(fid,'add',limits)		% <
+		write_georef(fid,'add',limits)
 		write_sonardtm_block(fid, tipo)
 		write_dtm(fid,'add',Z,limits)
 		write_shade(fid, 'add', img)
-		write_geo(fid,'add',limits)
+		write_georef(fid,'add',limits)
 		write_sonardtm_atb_block(fid)
 	end
 
@@ -344,28 +399,26 @@ function write_scene(fid, tipo, mode, Z, img, img2, limits, struct_vimage)
 			VlimitsBB   = [min(X) max(X) min(Y) max(Y) struct_vimage(k).z_min struct_vimage(k).z_max];
 			VlimitsDiag = [X(1) Y(1) struct_vimage(k).z_min X(end) Y(end) struct_vimage(k).z_max];
  			write_node_block(fid, 'vimage', fname, 'unknown', limits, VlimitsBB)
-			write_geo(fid,'add',VlimitsBB)			% Era VlimitsDiag
+			write_georef(fid,'add',VlimitsBB)			% Era VlimitsDiag
 			write_vimage_block(fid, VlimitsDiag)
 			write_shade(fid, 'add', I, 'geoimg')
-			write_geo(fid,'add',VlimitsBB)
-			write_geo(fid,'add',VlimitsBB)
+			write_georef(fid,'add',VlimitsBB)
+			write_georef(fid,'add',VlimitsBB)
 			write_vimage_atb_block(fid)
 		end
 	else
 		write_node_block(fid, 'geoimg', 'Drapped', 'unknown')
 		limits(5:6) = [0 1];
-		write_geo(fid,'add',limits)
+		write_georef(fid,'add',limits, TDRver, proj)
 		write_geoimg(fid, 'add', img2)
-		write_geo(fid,'add',limits)
+		write_georef(fid,'add',limits, TDRver, proj)
 		write_geoimg_atb_block(fid)
 	end
 
 %----------------------------------------------------------------------------------
 function write_geoimg(fid, mode, img)
 % Write a basic image .sd file. That is one with image & a GEO blocks
-	if (strcmp(mode,'first'))       % The TDR object starts here
-		fprintf(fid,'%s\n%s\n%s\f\n','%% TDR 2.0 Binary','Created by:    Mirone Tech!','%%');
-	end
+	start_TDR(fid, mode)				% If mode == 'first' the TDR object starts here
 	write_geoimg_block(fid)
 	write_shade(fid, 'add', img, 'geoimg')
 
@@ -387,13 +440,10 @@ function write_scene_block(fid)
 	fwrite(fid,[20002 116],'integer*4');		% Tag ID, Data Length
 	fwrite(fid,[0 0 1 1 1 3 0 0],'uchar');
 	fwrite(fid,(1:9)*0,'integer*4');
-% 	fwrite(fid,[205 204 204 61 0 64 28 70 0 0 0 0 10 215 35 60 0 36 116 72],'uchar');
-% 	fwrite(fid,[0 64 156 69 0 64 156 69 0 0 128 63 (1:19)*0 63 215 179 93 191],'uchar');
 	fwrite(fid,[205 204 204 61 0 64 28 70 1 0 1 0 10 215 35 60 0 36 116 72],'uchar');
 	fwrite(fid,[72 127 248 66 0 192 90 69 0 0 128 63 (1:16)*0 202 232 227 62 21 61 101 191],'uchar');
 	fwrite(fid,[0 0],'integer*4');
 
-	%  	fwrite(fid,[215 179 93 63 0 0 0 63 (1:13)*0 64 156 197 0 0 128 63 0 0 72 66],'uchar');
  	fwrite(fid,[21 61 101 63 202 232 227 62 (1:13)*0 64 156 197 0 0 128 63 0 0 72 66],'uchar');
 	fwrite(fid,[9900 0],'integer*4');				% Tag ID, Data Length		-- SD_HIERARCHY
 	fwrite(fid,[0 0 1 1 1 1 (1:18)*0],'uchar');
@@ -514,7 +564,25 @@ function write_eof(fid)
 	fclose(fid);
 
 %----------------------------------------------------------------------------------
-function write_lines_or_points(fid, hAxes, limits, burnCoasts)
+function write_block_tag(fid, ID, len, DBver)
+% Write block Tag.
+% ID    -> A unique unsigned integer based identifier for each DB type
+% len   -> The length in bytes of the DB's contents
+% DBver -> Version of the data block contents
+% Example for a EOF DB: write_block_tag(fid, 999999999, 0, 1)
+	fwrite(fid,ID,'uint');
+	fwrite(fid,len,'int');
+	fwrite(fid,0,'uint16');		% Unused
+	fwrite(fid,1,'uchar');		% Tag version
+	fwrite(fid,1,'uint8');		% Data type (Binary)
+	fwrite(fid,1,'uchar');		% Endianess (little)
+	fwrite(fid, DBver, 'uint16');
+	fwrite(fid,0,'int64');		% Length64
+	fwrite(fid,(1:9)*0,'uchar');% Padding bytes
+	if (ID == 999999999),	fclose(fid);	end
+
+%----------------------------------------------------------------------------------
+function write_lines_or_points(fid, hAxes, limits, burnCoasts, TDRver, proj)
 % Look for line and/or points Matlab objects and write them as Fledermaus
 % objects. It does so (when it finds them) by calling the corresponding
 % function that writes either lines or points objects in Fleder format
@@ -530,7 +598,7 @@ end
 if (~isempty(ALLlineHand))
 	h = findobj(ALLlineHand,'Tag','Earthquakes');		% Search first for earthquakes because they have depths
 	if (~isempty(h))
-		write_pts(fid,h,'add',limits,'Earthquakes')		% earthquakes
+		write_pts(fid,h,'add',limits,'Earthquakes', TDRver, proj)
 		ALLlineHand = setxor(ALLlineHand, h);			% h is processed, so remove it from handles list
 	end
 
@@ -551,7 +619,7 @@ if (~isempty(ALLlineHand))
 		line_thick = get(h(1),'LineWidth');       % Line thickness
 		line_color = get(h(1),'color');           % Line color
 		line_props = [line_thick line_color 0 [1 1 1]];     % 0 means is not a patch and the [1 1 1] is not used
-		write_line(fid,'add',x,y,z,count,limits,line_props)
+		write_line(fid,'add',x,y,z,count,limits,line_props, TDRver, proj)
 		ALLlineHand = setxor(ALLlineHand, h);     % h are processed, so remove them from handles list
 	end
     
@@ -563,7 +631,7 @@ if (~isempty(ALLlineHand))
 		line_thick = get(h(1),'LineWidth');       % Line thickness
 		line_color = get(h(1),'color');           % Line color
 		line_props = [line_thick line_color 0 [1 1 1]];     % 0 means is not a patch and the [1 1 1] is not used
-		write_line(fid,'add',x,y,z,count,limits,line_props)
+		write_line(fid,'add',x,y,z,count,limits,line_props, TDRver, proj)
 		ALLlineHand = setxor(ALLlineHand, h);     % h are processed, so remove them from handles list
 	end
 
@@ -575,7 +643,7 @@ if (~isempty(ALLlineHand))
 		line_thick = get(h(1),'LineWidth');       % Line thickness
 		line_color = get(h(1),'color');           % Line color
 		line_props = [line_thick line_color 0 [1 1 1]];     % 0 means is not a patch and the [1 1 1] is not used
-		write_line(fid,'add',x,y,z,count,limits,line_props)
+		write_line(fid,'add',x,y,z,count,limits,line_props, TDRver, proj)
 		ALLlineHand = setxor(ALLlineHand, h);     % h are processed, so remove them from handles list
 	end
     
@@ -591,7 +659,7 @@ if (~isempty(ALLlineHand))
 			line_thick = get(h(i),'LineWidth');		% Line thickness
 			line_color = get(h(i),'color');			% Line color
 			line_props = [line_thick line_color 0 [1 1 1]];     % 0 means is not a patch and the [1 1 1] is not used
-			write_line(fid,'add',x,y,z,count,limits,line_props)
+			write_line(fid,'add',x,y,z,count,limits,line_props, TDRver, proj)
 		end
 		ALLlineHand = setxor(ALLlineHand, h);       % h are processed, so remove them from handles list
 	end
@@ -621,7 +689,7 @@ if (~isempty(ALLlineHand))
 			line_color = get(hands{i}(1),'color');				% Line color
 			line_props = [line_thick line_color 0 1 1 1];		% 0 means is not a patch and the [1 1 1] is not used
 			[x,y,z,count] = lines2multiseg(hands{i},limits(end));
-			write_line(fid,'add',x,y,z,count,limits,line_props)
+			write_line(fid,'add',x,y,z,count,limits,line_props, TDRver, proj)
 			ALLlineHand = setxor(ALLlineHand, hands{i});		% hands{i} are processed, so remove them from handles list
 		end
 	end
@@ -634,9 +702,9 @@ if (~isempty(ALLlineHand))
         line_color = get(ALLlineHand(i),'color');			% Line color
         line_props = [line_thick line_color 0 1 1 1];		% 0 means is not a patch and the [1 1 1] is not used
 		if (~strcmp(get(ALLlineHand(i), 'LineStyle'), 'none'))
-			write_line(fid,'add',x,y,z,count,limits,line_props)
+			write_line(fid,'add',x,y,z,count,limits,line_props, TDRver, proj)
 		else
-			write_pts(fid,ALLlineHand(i),'add',limits)
+			write_pts(fid,ALLlineHand(i),'add',limits, TDRver, proj)
 		end
     end
 end     % end  -> if (~isempty(ALLlineHand))<-
@@ -669,7 +737,7 @@ if (~isempty(ALLpatchHand))
         if (count < n_vert)
             xx(count+1:end) = [];    yy(count+1:end) = [];    zz(count+1:end) = [];
         end
-        write_line(fid,'add',xx,yy,zz,count,limits,line_props)
+        write_line(fid,'add',xx,yy,zz,count,limits,line_props, TDRver, proj)
         ALLpatchHand = setxor(ALLpatchHand, telhasHand_d);  % telhasHand_d is processed, so remove it from handles list
     end
     
@@ -693,7 +761,7 @@ if (~isempty(ALLpatchHand))
         if (count < n_vert)
             xx(count+1:end) = [];    yy(count+1:end) = [];    zz(count+1:end) = [];
         end
-        write_line(fid,'add',xx,yy,zz,count,limits,line_props)
+        write_line(fid,'add',xx,yy,zz,count,limits,line_props, TDRver, proj)
         ALLpatchHand = setxor(ALLpatchHand, telhasHand_r);  % telhasHand_r is processed, so remove it from handles list
         clear xx yy zz;
     end
@@ -717,12 +785,12 @@ if (~isempty(ALLpatchHand))                 % Now see if we still have more patc
         count = numel(x);
 		z = get(ALLpatchHand(i),'UserData');	% See if we have depth info
 		if (isempty(z)),        z = repmat(z_level,1,count);	end
-        write_line(fid,'add',x,y,z,count,limits,line_props)
+        write_line(fid,'add',x,y,z,count,limits,line_props, TDRver, proj)
     end
 end
 
 %----------------------------------------------------------------------------------
-function write_line(fid,mode,x,y,z,np,lim_reg,line_props)
+function write_line(fid,mode,x,y,z,np,lim_reg,line_props, TDRver, proj)
 % Build an line TDR object
 % Se tiver multisegs basta voltar a escrever o np do segmento seguinte + um 0 int*4 e continuar (e o n_byte?)
 % Nota o np quase de certeza que e int*8
@@ -740,9 +808,7 @@ function write_line(fid,mode,x,y,z,np,lim_reg,line_props)
 		l_color = round(line_props(2:4) * 255);
 	end
 
-	if (strcmp(mode,'first'))       % The TDR object starts here
-		fprintf(fid,'%s\n%s\n%s\f\n','%% TDR 2.0 Binary','Created by:    Mirone Tech!','%%');
-	end
+	start_TDR(fid, mode)				% If mode == 'first' the TDR object starts here
 
 	if (iscell(x)),     n_segments = length(x);
 	else                n_segments = 1;
@@ -773,7 +839,7 @@ function write_line(fid,mode,x,y,z,np,lim_reg,line_props)
 		fwrite(fid,[x; y; z],'real*8');
 	end
 
-	write_geo(fid,'add',lim_reg)				% Write a GEOREF block
+	write_georef(fid,'add',lim_reg, TDRver, proj)	% Write a GEOREF block
 	write_cmap(fid)								% Write a FM_CMAP block
 
 	fwrite(fid,[10526 32],'integer*4');			% ID of block SD_LINES3D_ATB and n bytes in this block
@@ -783,7 +849,7 @@ function write_line(fid,mode,x,y,z,np,lim_reg,line_props)
 	fwrite(fid,[1 1 ColorBy 0 0 1 l_thick],'integer*4'); % First 1 is 'gap', but don't know what are the others
 
 %----------------------------------------------------------------------------------
-function write_pts(fid,hand,mode,limits,opt)
+function write_pts(fid, hand, mode, limits, opt, TDRver, proj)
 % HAND -> handles of the line (points) object
 % MODE = FIRST or ADD. Where FIRST indicates that the TDR object starts to created here.
 % OPT, when it exists, is = 'Earthquakes'
@@ -800,9 +866,7 @@ function write_pts(fid,hand,mode,limits,opt)
 	end
 	n_groups = numel(hand);					% N of different point ensembles
 
-	if (strcmpi(mode,'first'))				% The TDR object starts here
-		fprintf(fid,'%s\n%s\f\n','%% TDR 2.0 Binary','%%');
-	end
+	start_TDR(fid, mode)					% If mode == 'first' the TDR object starts here
 
 	for (i = 1:n_groups)
 		this_CB = ColorBy;					% Earthquakes are colored by symbol color, others by color scale
@@ -850,10 +914,10 @@ function write_pts(fid,hand,mode,limits,opt)
 		fwrite(fid,[xx; yy; zz;],'real*8');
 
 		limits(1:4) = [min(xx) max(xx) min(yy) max(yy)];	% Required by Fleder7 (???)
-		write_geo(fid,'add',limits)					% Write a GEOREF block
-		if (this_CB > 0),	write_cmap(fid),	end	% Write a FM_CMAP block (no need if color is solid)
+		write_georef(fid,'add',limits, TDRver, proj)			% Write a GEOREF block
+		if (this_CB > 0),	write_cmap(fid),	end			% Write a FM_CMAP block (no need if color is solid)
 
-		fwrite(fid,[10521 35],'integer*4');			% 10520 is the SD_POINT3D_ATB code, 35 -> Data Length
+		fwrite(fid,[10521 35],'integer*4');				% 10520 is the SD_POINT3D_ATB code, 35 -> Data Length
 		fwrite(fid,[0 0 1 1 1 5 (1:18)*0],'integer*1');
 		fwrite(fid,[1 this_CB symb],'integer*4');
 		fwrite(fid,[PointRad LabelSize],'real*4');
