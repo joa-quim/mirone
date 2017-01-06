@@ -219,7 +219,7 @@ function write_georef(fid, mode, limits, TDRver, proj)
 	else						% Write a Version 7 GEOREF block
 		start_TDR(fid, mode)				% If mode == 'first' the TDR object starts here
 		if (strncmp(proj, 'geo', 3))
-			str = geo_WKT();
+			str = geo_WKT;
 		else
 			str = proj;
 		end
