@@ -25,7 +25,7 @@ function varargout = draw_funs(hand, varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: draw_funs.m 9969 2017-01-05 23:59:10Z j $
+% $Id: draw_funs.m 9975 2017-01-06 00:31:47Z j $
 
 % A bit of strange tests but they are necessary for the cases when we use the new feval(fun,varargin{:}) 
 opt = varargin{1};		% function name to evaluate (new) or keyword to select one (old form)
@@ -2908,7 +2908,17 @@ function save_line(obj, evt, h)
 			prj4 = getappdata(handles.figure1,'Proj4');
 			LineInfo = [LineInfo ' "' prj4 '"'];			% Append also the Proj4 projection info
 		end
-		if (~isempty(LineInfo)),	fprintf(fid,'> %s\n',LineInfo);	end
+		if (~isempty(LineInfo))
+			if (isa(LineInfo, 'cell'))
+				fprintf(fid,'> %s',LineInfo{1});
+				for (k = 2:numel(LineInfo))
+					fprintf(fid,'\t%s',LineInfo{k});
+				end
+				fprintf(fid,'\n');
+			else
+				fprintf(fid,'> %s\n',LineInfo);
+			end
+		end
 		z = getappdata(h,'ZData');
 		if (isempty(z) || numel(z) ~= numel(x))
 			fprintf(fid,'%.6f\t%.6f\n',[x(:)'; y(:)']);
@@ -2973,7 +2983,7 @@ function save_GMT_DB_asc(h, fname)
 		if (isempty(getappdata(h(k), 'edited'))),	continue,	end		% Skip because it was not modified
 		GSHHS_str = getappdata(h(k),'GSHHS_str');
 		if (k == 1 && ~isempty(GSHHS_str))		% Write back the magic string that allows us to recognize these type of files
-			fprintf(fid,'# $Id: draw_funs.m 9969 2017-01-05 23:59:10Z j $\n#\n%s\n#\n', GSHHS_str);
+			fprintf(fid,'# $Id: draw_funs.m 9975 2017-01-06 00:31:47Z j $\n#\n%s\n#\n', GSHHS_str);
 		end
 		hdr = getappdata(h(k), 'LineInfo');
 		x = get(h(k), 'XData');			y = get(h(k), 'YData');
