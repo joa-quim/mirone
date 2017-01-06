@@ -20,7 +20,7 @@ function varargout = mirone(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: mirone.m 9958 2016-12-21 02:53:39Z j $
+% $Id: mirone.m 9976 2017-01-06 00:43:29Z j $
 
 	if (nargin > 1 && ischar(varargin{1}))
 		if ( ~isempty(strfind(varargin{1},':')) || ~isempty(strfind(varargin{1},filesep)) )
@@ -141,6 +141,7 @@ function hObject = mirone_OpeningFcn(varargin)
 	handles.nLayers = 1;			% If > 1 after reading a netCDF file call aquamoto
 	handles.deflation_level = 0;	% If > 0 will create compressed netCDF-4 files
 	handles.is_defRegion = false;	% A def region is a particular case to create GMT custom symbols.
+	handles.screenSize = [];		% Fill it for the case when one wants to fake a different get(0, 'ScreenSize')
 
 	try							% A file named mirone_pref.mat contains the preferences, read them from it
 		prf = load([handles.path_data 'mirone_pref.mat']);
@@ -168,6 +169,9 @@ function hObject = mirone_OpeningFcn(varargin)
 		handles.deflation_level = prf.deflation_level;
 		try		gmt_ver = prf.gmt_ver;		% Hope that this will be a temporary thing till GMT5 is fully working
 		catch,	gmt_ver = 5;
+		end
+		if (isfield(prf, 'TDRver')),	handles.TDRver = prf.TDRver;
+		else							handles.TDRver = '2.0';
 		end
 	catch
 		% Tell mirone_pref to write up the defaults.
@@ -325,6 +329,9 @@ function hObject = mirone_OpeningFcn(varargin)
 					projection_menu(handles, tmp.ProjGMT)
 					handles = guidata(hObject);			% Get the updated version changed in the above call
 				end
+				if (isfield(tmp,'screenSize'))
+					handles.screenSize = tmp.screenSize;
+				end
 			else
 				zz = grdutils(Z,'-L');
 				handles.head = [1 size(Z,2) 1 size(Z,1) zz(1) zz(2) 0 1 1];
@@ -466,6 +473,7 @@ function erro = gateLoadFile(handles,drv,fname)
 	if (strncmp(drv, 'MB', 2)),	drv_or = drv;	drv = 'MB';		end		% The MB (system) type case are actually several
 	switch drv
 		case 'gmt',			loadGRID(handles, fname, 'GMT_relatives')
+		case 'dono',		erro = FileOpenGeoTIFF_CB(handles,'dono',fname);	% It means "I don't know" and dealt by GDAL
 		case 'generic',		FileOpenNewImage_CB(handles, fname);
 		case 'geotif',		FileOpenGeoTIFF_CB(handles, 'nikles', fname);
 		case 'ecw',			FileOpenGeoTIFF_CB(handles, 'ecw', fname);		% A particular case (includes jp2)
@@ -475,6 +483,7 @@ function erro = gateLoadFile(handles,drv,fname)
 		case 'mola',		loadGRID(handles, fname, 'MOLA');
 		case 'cpt',			color_palettes(fname);
 		case 'dat',			load_xyz(handles, fname);
+		case 'pick',		load_xyz(handles, fname, drv);
 		case 'ncshape',		load_xyz(handles, fname, drv);
 		case 'shp',			DrawImportShape_CB(handles, fname);
 		case 'ogr',			DrawImportOGR_CB(handles, fname);
@@ -482,8 +491,7 @@ function erro = gateLoadFile(handles,drv,fname)
 		case 'mgg_gmt',		GeophysicsImportGmtFile_CB(handles, fname);
 		case 'ghost',		load_ps(handles, fname);		% Put ghostscript on works
 		case 'sww',			aquamoto(fname);
-		case 'MB',          load_MB(handles, fname, drv_or);
-		case 'dono',		erro = FileOpenGeoTIFF_CB(handles,'dono',fname);	% It means "I don't know"
+		case 'MB',			load_MB(handles, fname, drv_or);
 		otherwise,			erro = 1;
 	end
 	if (erro),		warndlg(['Sorry but couldn''t figure out what to do with the ' fname ' file'],'Warning'),	end
@@ -3149,7 +3157,7 @@ function DrawImportOGR_CB(handles, fname)
 	theProj = s(1).SRSProj4;
 
 	region = s(1).BoundingBox(:)';
-	is_geog = aux_funs('guessGeog',region(1:4));
+	is_geog = aux_funs('guessGeog',region(1:4));	% SHOULD AT LEAST CONFIRM AGAINTS 'theProj'
 
 	% Test if file was correctly read and in case not, try with check_cmop() (profile data)
 	if (any(isinf(region)))
@@ -3179,7 +3187,11 @@ function DrawImportOGR_CB(handles, fname)
 					errordlg('Sorry but it''s still not possible to convert between GMT and proj4 strings','Error'), return
 				end
 				projStruc.DstProjWKT = prjInfoStruc.projWKT;				% If it doesn't exist, BUM
-				do_project = true;
+				if (~isempty(projStruc.DstProjWKT))
+					do_project = true;
+				elseif (~(handles.geog && is_geog))
+					warndlg('Couldn''t find out the combination of background map/data coordinates. Unknown result.', 'Warning')
+				end
 			end
 		end
 		if (do_project)
@@ -4644,11 +4656,17 @@ function FileSaveFleder_CB(handles, opt)
 % OPT = 'runSpherical' build a spherical .sd file (but don't keep it) and run the viewer
 	if (handles.no_file),	return,		end
 	if (nargin == 1),		opt = 'runPlanar';	end
-	if ( (strcmp(opt,'writeSpherical') || ~handles.flederPlanar) && ~handles.geog)
+	if ((strcmp(opt,'writeSpherical') || ~handles.flederPlanar) && ~handles.geog)
 		errordlg('Spherical objects are allowed only for geographical grids','Error'),	return
 	end
 
-	fname = write_flederFiles(opt, handles);		pause(0.01);
+	if (handles.geog)
+		proj = 'geog';
+	else		% NEED TO EXPAND FOR THE CASES WHERE WE KNOW THE WKT PROJECTION
+		proj = '';
+	end
+	s = struct('TDRver', handles.TDRver, 'proj', proj);
+	fname = write_flederFiles(opt, handles, s);		pause(0.01);
 	if (isempty(fname)),	return,		end
 	if (fname(end) == 'e'),		comm = [' -scene ' fname ' &'];		% A SCENE file
 	else						comm = [' -data ' fname ' &'];		% A SD file
@@ -4664,9 +4682,8 @@ function FileSaveFleder_CB(handles, opt)
 					errordlg('I could not find Fledermaus. Hmmm, do you have it?','Error')
 				end
 			elseif (ispc)
-				s = dos(fcomm);
-				% Try again with the 'iview3d'
-				if (~s && handles.whichFleder),		fcomm(6) = '3';		dos(fcomm);		end
+				if (strcmp(handles.TDRver, '2.0')),	fcomm(6) = '3';		end		% Call iview3d
+				dos(fcomm);		% s is always 0 (success) as long as iview4d is accessible, even when the comm fails
 			else
 				errordlg('Unknown platform.','Error'),	return
 			end
