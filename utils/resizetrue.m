@@ -93,7 +93,7 @@ function varargout = resizetrue(handles, opt, axis_t, opt_pad)
 		set(hAxes,'Visible','on');
 	end
 
-	resize(hAxes, hImg, imSize, opt, handles.withSliders, handles.oldSize(2,:), opt_pad);
+	resize(hAxes, hImg, imSize, opt, handles.withSliders, handles.oldSize(2,:), opt_pad, handles.screenSize);
 	set(hAxes, 'DataAspectRatio', DAR);		% Need to set it explicitly because of compiler bugginess
 
 	if (nargout)		% Compute magnification ratio
@@ -136,14 +136,15 @@ function [hAxes,hImg,msg] = ParseInputs(varargin)
 		end
 	end
 
-%--------------------------------------------
-function resize(hAxes, hImg, imSize, opt, withSliders, firstFigSize, pad_left)
+%--------------------------------------------------------------------------------
+function resize(hAxes, hImg, imSize, opt, withSliders, firstFigSize, pad_left, screenSize)
 % Resize figure containing a single axes object with a single image.
 %
-% PAD_LEFT   Optional arg with the width in pixels of a zone to be left clear on the
+% PAD_LEFT   arg with the width in pixels of a zone to be left clear on the
 %            left side of the image. Ignored if == 0.
-
-	if (nargin < 7),	pad_left = 0;		end
+%
+% SCREENSIZE A [1x4] vector with a different size than that got with get(0, 'ScreenSize').
+%            An [] value mean compute that value int his function.
 
 	hFig = get(hAxes, 'Parent');
 	set(hAxes,'Units','normalized','Position',[0 0 1 1]) % Don't realy understand why, but I need this
@@ -172,8 +173,11 @@ function resize(hAxes, hImg, imSize, opt, withSliders, firstFigSize, pad_left)
 	end
 
 	% Screen dimensions
-	rootUnits = get(0, 'Units');			set(0, 'Units', 'pixels');
-	screenSize = get(0, 'ScreenSize');      screenWidth = screenSize(3)-8;    screenHeight = screenSize(4);
+	rootUnits  = get(0, 'Units');			set(0, 'Units', 'pixels');
+	if (isempty(screenSize))				% Almost all the cases fall in here
+		screenSize = get(0, 'ScreenSize');
+	end
+	screenWidth = screenSize(3)-8;    screenHeight = screenSize(4);
 
 	% Use a trick to simplify the case when a padding zone was required on the left side.
 	% Just pretend the screen is narrower to not let the extend fig size 'overflow' the true
