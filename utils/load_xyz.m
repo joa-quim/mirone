@@ -79,7 +79,7 @@ function varargout = load_xyz(handles, opt, opt2)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: load_xyz.m 9952 2016-12-13 03:26:54Z j $
+% $Id: load_xyz.m 9970 2017-01-06 00:00:38Z j $
 
 %	EXAMPLE CODE OF HOW TO CREATE A TEMPLATE FOR UICTX WHEN THESE ARE TOO MANY
 % 	cmenuHand = get(h, 'UIContextMenu');
@@ -99,6 +99,7 @@ function varargout = load_xyz(handles, opt, opt2)
 	got_arrow = false;
 	got_internal_file = false;	% Internal files are those shipped with Mirone (e.g. isochrons)
 	got_nc = false;				% Flag to signal if a shapenc type file comes in
+	got_pick = false;			% Flag to signal if a GPlates isochrn type file comes in
 	orig_no_mseg = false;		% Flag to know if original file had multiseg strings to store
 	line_type = 'AsLine';
 	tag  = 'polyline';
@@ -142,6 +143,7 @@ function varargout = load_xyz(handles, opt, opt2)
 		end
 		if (strcmp(opt2, 'AsArrow')),		got_arrow = true;		% This case does not care about 'line_type'
 		elseif (strcmp(opt2, 'ncshape')),	got_nc = true;			%
+		elseif (strcmp(opt2, 'pick')),		got_pick = true;		% A GPlates isochron formated file
 		else								line_type = opt2;
 		end
 		if (strncmpi(line_type,'isochron',4) || strcmpi(line_type,'FZ'))
@@ -156,30 +158,11 @@ function varargout = load_xyz(handles, opt, opt2)
 	end
 	% ------------------- END PARSE INPUTS------------------------------------------------
 
-	if (~got_nc)			% Most common cases
-		[bin, n_column, multi_seg, n_headers, isGSHHS, GSHHS_str] = guess_file(fname);
-		if (isempty(bin))
-			errordlg(['Error reading file (probably empty)' fname],'Error'),	return
-		end
-		if (isa(bin,'struct') || bin ~= 0)				% ---****** BINARY FILE *******---
-			if (isa(bin,'struct'))
-				bin = guess_bin(bin.nCols, bin.type);	% Ask user to confirm/modify guessing
-			else
-				bin = guess_bin(false);					% Ask user what's in file
-			end
-			if (isempty(bin))		% User quit
-				varargout = {};		return
-			end
-			multi_seg = 0;		n_headers = 0;		is_bin = true;
-			n_column = bin.nCols;
-			if (n_argin < 3),	line_type = 'AsPoint';	end		% If not explicitly set line_type
-		end
-
-	else
+	if (got_nc)			% Shapenc files
 		out_nc = read_shapenc(fname);
-		n_column = 2;		% ???
+		n_column = 2;		% Not surewhat happens if it's > 2 but anyway we need a number > 1 for a test later down
 		bin = false;		multi_seg = 0;		n_headers = 0;
-		if ( (out_nc.n_PolyOUT + out_nc.n_PolyIN) == 0 )
+		if ((out_nc.n_PolyOUT + out_nc.n_PolyIN) == 0)
 			warndlg('Warning, no polygons to plot in this shapenc file. Bye','Warning')
 			if (nargout),	[varargout{1:nargout}] = {};		end
 			return
@@ -223,6 +206,44 @@ function varargout = load_xyz(handles, opt, opt2)
 		if (~isempty(out_nc.SRS) && out_nc.SRS(1) == '+')		% Only proj4 are accepted
 			multi_segs_str{1} = [multi_segs_str{1} ' ' out_nc.SRS];
 		end
+		already_read = true;
+
+	elseif (got_pick)
+		D = gmtmex(['read -Tt ' fname]);
+		ind = (D.data(:,1) == 1);
+		numeric_data{1} = [D.data(ind,4) D.data(ind,3)];	% Pick files have lat lon
+		numeric_data{2} = [D.data(~ind,4) D.data(~ind,3)];
+		hell_segs1 = D.data(ind,2);		hell_segs2 = D.data(~ind,2);		% Hellinger segment numbers of each pick
+		hell_stds1 = D.data(ind,5);		hell_stds2 = D.data(~ind,5);		% Pick's Standard errror
+
+		desc = '> Nikles ';
+		if (~isempty(D.text{1})),	desc = ['> ' D.text{1}];	end
+		clear D
+		multi_segs_str{1} = [desc ' +proj=longlat +datum=wgs84 +no_defs'];
+		multi_segs_str{2} = multi_segs_str{1};
+		n_column = 2;		n_headers = 0;
+		multi_seg = true;	line_type = 'AsPoint';
+		already_read = true;
+
+	else					% Most common cases
+		[bin, n_column, multi_seg, n_headers, isGSHHS, GSHHS_str] = guess_file(fname);
+		if (isempty(bin))
+			errordlg(['Error reading file (probably empty)' fname],'Error'),	return
+		end
+		if (isa(bin,'struct') || bin ~= 0)				% ===========---****** BINARY FILE *******---=============
+			if (isa(bin,'struct'))
+				bin = guess_bin(bin.nCols, bin.type);	% Ask user to confirm/modify guessing
+			else
+				bin = guess_bin(false);					% Ask user what's in file
+			end
+			if (isempty(bin))		% User quit
+				varargout = {};		return
+			end
+			multi_seg = 0;		n_headers = 0;		is_bin = true;
+			n_column = bin.nCols;
+			if (n_argin < 3),	line_type = 'AsPoint';	end		% If not explicitly set line_type
+		end
+		already_read = false;		% Means data is still to be read
 	end
 
 	if (n_column == 1 && multi_seg == 0)			% Take it as a file names list
@@ -245,7 +266,7 @@ function varargout = load_xyz(handles, opt, opt2)
 			j = strfind(fname,filesep);
 			if (isempty(j)),    fname = sprintf('%s/%s',PathName, fname);   end		% Need to add path as well 
 			if (isempty(n_headers)),    n_headers = NaN;    end
-			if (~got_nc)				% Otherwise data was read already
+			if (~already_read)			% Otherwise data was read already
 				if (multi_seg)
 					[numeric_data, multi_segs_str] = text_read(fname,NaN,n_headers,'>');
 				elseif (~is_bin)
@@ -323,8 +344,8 @@ function varargout = load_xyz(handles, opt, opt2)
 			j = strfind(fname,filesep);
 			if (isempty(j)),    fname = sprintf('%s%s',PathName, fname);   end		% Need to add path as well 
 			if (isempty(n_headers)),    n_headers = NaN;    end
-			if (~got_nc)			% Otherwise data was read already
-				if (isGSHHS)		% Special case of a "GSHHS Master File" that must be dealt first
+			if (~already_read)					% Otherwise data was read already
+				if (isGSHHS)					% Special case of a "GSHHS Master File" that must be dealt first
 					[numeric_data, multi_segs_str] = swallow_GSHHS(handles, fname);
 					if (isempty(numeric_data))
 						warndlg('There is no GSHHG data inside this region.', 'Warning')
@@ -336,7 +357,7 @@ function varargout = load_xyz(handles, opt, opt2)
 						[numeric_data, multi_segs_str] = text_read(fname,NaN,n_headers,'>');
 					elseif (~is_bin)
 						numeric_data = text_read(fname,NaN,n_headers);
-					else				% Try luck with a binary file
+					else						% Try luck with a binary file
 						[numeric_data, multi_segs_str, multi_seg] = swallow_bin(handles, fname, bin);
 					end
 				end
@@ -795,9 +816,16 @@ function varargout = load_xyz(handles, opt, opt2)
 		geog = handles.geog;	 is_projected = handles.is_projected;
 		handles = guidata(handles.figure1);		handles.geog = geog;	 handles.is_projected = is_projected;
 	end
+
 	if (got_nc)
 		set_extra_uicb_options(handles, hLine, out_nc)	% Reset two Callbacks in UIContextMenu to offer plot/save
+	elseif (got_pick)			% Set these appdata so that one can send them to hellinger pole calculater
+		setappdata(hLine(1), 'HellingProps', [hell_segs1 hell_stds1])
+		setappdata(hLine(1), 'HellingConjug', hLine(2))
+		setappdata(hLine(2), 'HellingProps', [hell_segs2 hell_stds2])
+		setappdata(hLine(2), 'HellingConjug', hLine(1))
 	end
+
 	if (do_nesting)
 		draw_funs([],'set_recTsu_uicontext', hLine)		% Set uicontextmenus appropriate for grid nesting
 	elseif (do_polymesh)
