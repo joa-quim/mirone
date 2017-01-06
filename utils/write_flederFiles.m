@@ -37,7 +37,7 @@ function filename = write_flederFiles(opt,varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: write_flederFiles.m 9974 2017-01-06 00:12:17Z j $
+% $Id: write_flederFiles.m 9981 2017-01-06 02:01:57Z j $
 
 	% - Little initial block to deal with the adding of two new input vars and try to
 	%   do it in a compatible way. That is, set up a mechanism that guaranties backward
@@ -219,7 +219,7 @@ function write_georef(fid, mode, limits, TDRver, proj)
 	else						% Write a Version 7 GEOREF block
 		start_TDR(fid, mode)				% If mode == 'first' the TDR object starts here
 		if (strncmp(proj, 'geo', 3))
-			str = geo_WKT();
+			str = geo_WKT;
 		else
 			str = proj;
 		end
