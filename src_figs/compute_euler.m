@@ -24,7 +24,7 @@ function varargout = compute_euler(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: compute_euler.m 9960 2016-12-21 03:02:27Z j $
+% $Id: compute_euler.m 9979 2017-01-06 00:49:42Z j $
 
 	if (isempty(varargin) || (numel(varargin) >= 2 && numel(varargin) <= 5))
 		errordlg('COMPUTE EULER: wrong number of input arguments.','Error'),	return
@@ -277,6 +277,9 @@ function edit_LatRange_CB(hObject, handles)
 % -------------------------------------------------------------------------------------
 function edit_AngRange_CB(hObject, handles)
 	handles.AngRange = str2double(get(hObject,'String'));
+	ud = get(handles.edit_nInt, 'UserData');		% There are 3 of them
+	ind = strcmp(ud,'ang');
+	edit_nInt_CB(handles.edit_nInt(ind), handles)	% Call it so that the new intervals are updated
 	guidata(hObject, handles);
 
 % -------------------------------------------------------------------------------------
@@ -338,20 +341,27 @@ function toggle_pickLines_CB(hObject, handles)
 function check_hellinger_CB(hObject, handles)
 	if (get(hObject,'Value'))
 		set([handles.edit_LonRange handles.edit_LatRange handles.edit_AngRange],'Enable','off')
-		set([handles.edit_nInt_lat handles.edit_nInt_ang],'Vis','off')
-		set(handles.edit_nInt_lon,'String', handles.DP_tol)
-		set(handles.textNint,'String','DP tolerance')
-		set(handles.edit_nInt,'Tooltip', sprintf(['Tolerance used to break up the isochron into\n' ...
+		for (k = 1:3)
+			tag = get(handles.edit_nInt(k), 'UserData');
+			setappdata(handles.edit_nInt(k), 'Tip', get(handles.edit_nInt(k), 'Tooltip'))	% Copy this for eventual restore
+			setappdata(handles.edit_nInt(k), 'Str', get(handles.edit_nInt(k), 'Str'))
+			if (~strcmp(tag, 'lon'))
+				set(handles.edit_nInt(k), 'Vis','off'),		continue
+			end
+			set(handles.edit_nInt(k),'Tooltip', sprintf(['Tolerance used to break up the isochron into\n' ...
 				'linear chunks (the Heillinger segments).\n' ...
 				'The units of the tolerance are degrees\n', ...
-				'of arc on the surface of a sphere']))
+				'of arc on the surface of a sphere']), 'String', handles.DP_tol)
+		end
+		set(handles.textNint,'String','DP tolerance')
 	else
 		set([handles.edit_LonRange handles.edit_LatRange handles.edit_AngRange],'Enable','on')
-		set([handles.edit_nInt_lat handles.edit_nInt_ang],'Vis','on')
+		set(handles.edit_nInt,'Vis','on')
 		set(handles.textNint,'String','N Intervals')
-		str = sprintf(['The range interval is divided into this number of equally spaced points\n' ...
-			'Alternatively use the form N*Delta (e.g. 100*0.1) to set up both range and resolution']);
-		set(handles.edit_nInt,'Str', handles.nInt,'Tooltip', str)		% and so we loose the resolution info
+		for (k = 1:3)			% Restore infos from the appdatas
+			set(handles.edit_nInt(k), 'Str', getappdata(handles.edit_nInt(k), 'Str'))
+			set(handles.edit_nInt(k), 'Tooltip', getappdata(handles.edit_nInt(k), 'Tip'))
+		end
 	end
 
 % -----------------------------------------------------------------------------
@@ -475,14 +485,35 @@ function push_compute_CB(hObject, handles)
 	if (~get(handles.check_hellinger,'Val'))		% Our method
 		do_weighted = true;
 		calca_pEuler(handles, do_weighted, true, OD);
+
 	else											% Try with Hellinger's (pfiu)
-		[pLon,pLat,pAng] = hellinger(handles.pLon_ini,handles.pLat_ini,handles.pAng_ini, handles.isoca1, handles.isoca2, handles.DP_tol);
+		conjug = getappdata(handles.hLines(1),'HellingConjug');
+		if (~isempty(conjug))		% Have Hellinger pair of isocs
+			if (conjug ~= handles.hLines(2))
+				errordlg('Error: the pair of lines do not constitue a pair of Hellinger conjugate isochrons.', 'Error')
+				return
+			end
+			props1 = getappdata(handles.hLines(1),'HellingProps');		% First column segments, second the stds
+			props2 = getappdata(handles.hLines(2),'HellingProps');
+			[pLon,pLat,pAng] = hellinger(handles.pLon_ini,handles.pLat_ini,handles.pAng_ini, handles.isoca1, handles.isoca2, ...
+			                             props1, props2);
+		else
+			[pLon,pLat,pAng] = hellinger(handles.pLon_ini,handles.pLat_ini,handles.pAng_ini, handles.isoca1, handles.isoca2, ...
+			                             handles.DP_tol);
+		end
 		set(handles.edit_pLon_fim,'String',pLon);			set(handles.edit_pLat_fim,'String',pLat)
 		set(handles.edit_pAng_fim,'String',pAng)
 		if (handles.do_graphic)     % Create a empty line handle
-			[rlon,rlat] = rot_euler(handles.isoca1(:,1),handles.isoca1(:,2),pLon, pLat, pAng,-1);
+			area0 = calca_pEuler(handles, false, false, []);
+			% Put new pole params in handles that will be needed in next call to calca_pEuler()
+			handles.pLon_ini = pLon;	handles.pLat_ini = pLat;	handles.pAng_ini = pAng;
+			handles.do_graphic = false;
+			[area1, rlon, rlat] = calca_pEuler(handles, false, false, []);
+
+			set(handles.edit_InitialResidue,'String',sprintf('%.4f', area0));
+			set(handles.edit_BFresidue,'String',sprintf('%.4f', area1));
 			hLine = line('parent',get(handles.hCallingFig,'CurrentAxes'),'XData',rlon,'YData',rlat, ...
-			'LineStyle','-.','LineWidth',2,'Tag','Fitted Line','Userdata',1);
+			             'LineStyle','-.','LineWidth',2,'Tag','Fitted Line','Userdata',1);
 			setappdata(hLine,'LineInfo','Fitted Line');
 			draw_funs(hLine,'isochron',{'Fitted Line'})
 		end
@@ -493,6 +524,14 @@ function push_compute_CB(hObject, handles)
 	else
 		set(handles.push_reciclePole,'Vis', 'off')
 	end
+
+% -------------------------------------------------------------------------------
+function lengths = compute_seg_len(isoca)
+% Compute the lengths in km of the segments composing the polyline ISOCA, which must be in radians
+	X = isoca(:,1) .* cos(isoca(:,2)) * 6371;
+	Y = isoca(:,2) * 6371;
+	xd = diff(X);			yd = diff(Y);
+	lengths = sqrt(xd .* xd + yd .* yd);
 
 % -------------------------------------------------------------------------------
 function numeric_data = le_fiche(fname)
@@ -515,7 +554,14 @@ function numeric_data = le_fiche(fname)
 
 % -------------------------------------------------------------------------------
 function [polLon, polLat, polAng, area_f] = calca_pEuler(handles, do_weighted, isGUI, OD)
-% ...
+% Compute the Euler pole but taking care to first do the rotation operations only on geocentric coords.
+% The forms:
+%		area_f = calca_pEuler(handles, do_weighted, isGUI, OD)
+% and
+%		[area_f, rlon, rlat] = calca_pEuler(handles, do_weighted, isGUI, OD)
+% compute only the initial residue and/or residue plurs rotated line. Pole parameters are stored in handles.
+% These two forms are used by the Hellinger case to compute the residues and plot the rotated line.
+
 	D2R = pi / 180;		h_line = [];
 	ecc = 0.0818191908426215;			% WGS84
 	if (handles.do_graphic)				% Create a empty line handle
@@ -554,8 +600,8 @@ function [polLon, polLat, polAng, area_f] = calca_pEuler(handles, do_weighted, i
 	 	[isoca2(:,1),isoca2(:,2)] = rot_euler(rlon2, rlat2, handles.pLon_ini*D2R,handles.pLat_ini*D2R,handles.pAng_ini*D2R,'rad',-1);
 	end
 
-	isoca1(:,2) = atan2( (1-ecc^2)*sin(isoca1(:,2)), cos(isoca1(:,2)) );	% Lat da isoca1 geocentrica
-	isoca2(:,2) = atan2( (1-ecc^2)*sin(isoca2(:,2)), cos(isoca2(:,2)) );	% Lat da isoca2 geocentrica
+	isoca1(:,2) = atan2((1-ecc^2)*sin(isoca1(:,2)), cos(isoca1(:,2)));	% Lat da isoca1 geocentrica
+	isoca2(:,2) = atan2((1-ecc^2)*sin(isoca2(:,2)), cos(isoca2(:,2)));	% Lat da isoca2 geocentrica
 
 	% Compute distances between vertices of the moving isoc
 	X = isoca2(:,1) .* cos(isoca2(:,2)) * 6371;
@@ -580,6 +626,16 @@ function [polLon, polLat, polAng, area_f] = calca_pEuler(handles, do_weighted, i
 		%area0 = (sum1 + sum2) / 2;
 	end
 	%sum22 = weightedSum(dist2, segLen2, do_weighted);
+
+	% ----------- See if this function was called only to compute the initial rotation/residue --------------
+	if (nargout == 1 || nargout == 3)
+		polLon = area0;
+		if (nargout == 3)
+			rlat = atan2(sin(rlat), (1-ecc^2)*cos(rlat));		% Convert back to geodetic latitudes
+			polLat = rlon / D2R;		polAng = rlat / D2R;
+		end
+		return
+	end
 
 	% See if there is a request to plot only the signed residues of the starting pole.
 	if (get(handles.check_plotRes,'Val'))
@@ -705,7 +761,7 @@ function [lon_bf, lat_bf, omega_bf, area_f, resid] = ...
 				rlat = asin(p_sin_lat * s_lat_ - p_cos_lat * cc_);
 				rlon = p_lon(i) + atan2(c_lat_ .* s_lon_, p_sin_lat * cc_ + p_cos_lat * s_lat_);
 
-				%rlat = atan2( sin(rlat), (1-ecc^2)*cos(rlat) );		% Convert back to geodetic latitudes
+				%rlat = atan2(sin(rlat), (1-ecc^2)*cos(rlat));		% Convert back to geodetic latitudes
 				ind = (rlon > pi);					
 				if (any(ind)),		rlon(ind) = rlon(ind) - 2*pi;	end
 
@@ -1098,7 +1154,7 @@ function [handles, msg] = parse_noGUI(varargin)
 		end
 	end
 
-	if (handles.nInt_lon <= 1)		% -I was given as an increment instead of n of points
+	if (handles.nInt_lon <= 1 && handles.nInt_ang < 1)		% -I was given as an increment instead of n of points
 		handles.nInt_lon = round(handles.LonRange / handles.nInt_lon) + 1;
 		handles.nInt_lat = round(handles.LatRange / handles.nInt_lat) + 1;
 		handles.nInt_ang = round(handles.AngRange / handles.nInt_ang) + 1;
