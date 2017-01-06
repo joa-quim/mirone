@@ -13,6 +13,8 @@ function varargout = ecran(varargin)
 % ecran(x, y [,'title'])
 % ecran([...,]x, y [,'title'][,PV])			% Where PV is a Mx2 cell array with Property name/values to assign to line handle
 %
+% Experimentally, x,y can be matrices or vector (x) and matrix (y) where the y columns hold different lines
+%
 % Function FileOpen_CB() provides several special cases. Namely TIME column input
 % and other goodies such reference one line to another. See its help
 %
@@ -21,7 +23,7 @@ function varargout = ecran(varargin)
 
 % WARNING: WHEN COMPILING NEEDS TO INCLUDE filter_butter.m
 %
-%	Copyright (c) 2004-2016 by J. Luis
+%	Copyright (c) 2004-2017 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -210,7 +212,7 @@ function varargout = ecran(varargin)
 		set([handles.check_geog handles.popup_selectPlot handles.popup_selectSave], 'Visible','off')	% Hide those
 		handles.show_popups = false;
 
-	elseif strcmp(varargin{1},'Image')
+	elseif strcmp(varargin{1},'Image')			% Case when the comes referenced to a grid/image
 		handles.data = [varargin{2}(:) varargin{3}(:) varargin{4}(:)];
 		set(handles.popup_selectSave,'String',{'Save Line on disk';'Distance,Z (data units -> ascii)';
 			'Distance,Z (data units -> binary)';'X,Y,Z (data units -> ascii)';'X,Y,Z (data units -> binary)'});
@@ -246,20 +248,22 @@ function varargout = ecran(varargin)
 		end
 		set(hObject,'Name',varargin{5})
 
-	elseif strcmp(varargin{1},'reuse')					% Case of auto-referenced call
+	elseif strcmp(varargin{1},'reuse')					% Case of (x, y) or auto-referenced call
 		varargin(n_in+1:9) = cell(1,9-n_in);			% So that varargin{1:9} allways exists.
 		set([handles.check_geog handles.popup_selectPlot handles.popup_selectSave], 'Visible','off')	% Hide those
-		handles.data = [varargin{2}(:) varargin{3}(:)];
-		if (~isempty(varargin{9}) && strcmp(varargin{9},'semilogy'))
-			set(handles.axes1, 'YScale', 'log')
-			handles.hLine = semilogy(handles.data(:,1),handles.data(:,2), 'Parent', handles.axes1);
-		elseif (~isempty(varargin{9}) && strcmp(varargin{9},'semilogx'))
-			set(handles.axes1, 'XScale', 'log')
-			handles.hLine = semilogx(handles.data(:,1),handles.data(:,2), 'Parent', handles.axes1);
-		else
-			handles.hLine = plot(handles.data(:,1),handles.data(:,2), 'Parent', handles.axes1);
-			if (~freshFig)
-				set(handles.hLine,'Color',rand(1,3))	% We want a different color but NextPlot prop was set to 'add'
+		handles.data = parse_numeric_input(varargin{2}, varargin{3}, []);
+		for (k = 1:size(handles.data,3))		% Loop over the number of lines
+			if (~isempty(varargin{9}) && strcmp(varargin{9},'semilogy'))
+				set(handles.axes1, 'YScale', 'log')
+				handles.hLine(k) = semilogy(handles.data(:,1,k),handles.data(:,2,k), 'Parent', handles.axes1);
+			elseif (~isempty(varargin{9}) && strcmp(varargin{9},'semilogx'))
+				set(handles.axes1, 'XScale', 'log')
+				handles.hLine(k) = semilogx(handles.data(:,1,k),handles.data(:,2,k), 'Parent', handles.axes1);
+			else
+				handles.hLine(k) = plot(handles.data(:,1,k),handles.data(:,2,k), 'Parent', handles.axes1);
+				if (~freshFig || k > 1)
+					set(handles.hLine(k),'Color',rand(1,3))	% We want a different color but NextPlot prop was set to 'add'
+				end
 			end
 		end
 		axis(handles.axes1,'tight');
@@ -331,9 +335,58 @@ function varargout = ecran(varargin)
 	set(hObject,'Vis','on');
 	if (~is_CMOP && ~isempty(handles.hLine)),
 		draw_funs([], 'set_line_uicontext_XY', handles.hLine, 'main')		% Set lines's uicontextmenu
-		finish_line_uictx(handles.hLine)		% Assign the callbacks to menus only declared by draw_funs()
+		for (k = 1:numel(handles.hLine))
+			finish_line_uictx(handles.hLine(k))		% Assign the callbacks to menus only declared by draw_funs()
+		end
 	end
 	if (nargout),	varargout{1} = hObject;		end
+
+%--------------------------------------------------------------------------
+function data = parse_numeric_input(X, Y, Z)
+% X,Y,Z can be:
+%	All vectors
+%	All 2D matrices with the same sizes
+%	X a vector and Y/Z 2D matrices with the same size and number of rows equal to numel(X)
+% On top of this, Z can be empty (the case of a simple x,y input)
+%
+% The output is a 2D matrix (first case) or a 3D matrix where each layer contains one curve.
+
+	if (any(size(X) == 1) && any(size(Y) == 1))		% Simple single line case but where Z is not tested
+		data = [X(:) Y(:) Z(:)];
+		return
+	end
+
+	if (isequal(size(X), size(Y)))		% X & Y are matrix with the same dimensions, again Z is not tested
+		if (isempty(Z))
+			data = zeros(size(X,1), 2, size(Y,2));
+			for (k = 1:size(Y,2))
+				data(:,:,k) = [X(:,k) Y(:,k)];
+			end
+		else
+			data = zeros(numel(X), 3, size(Y,2));
+			for (k = 1:size(Y,2))
+				data(:,:,k) = [X(:,k) Y(:,k) Z(:,k)];
+			end
+		end
+	elseif (any(size(X) == 1) && all(size(Y) ~= 1))		% X is a vector Y is a matrix
+		if (numel(X) ~= size(Y,1))
+			error('ECRAN:Number of X elements must be equal to number of Y rows')
+		end
+		if (isempty(Z))
+			data = zeros(numel(X), 2, size(Y,2));
+			for (k = 1:size(Y,2))
+				data(:,:,k) = [X(:) Y(:,k)];
+			end
+		else
+			if (~isequal(size(Y), size(Z)))
+				error('ECRAN: size of matrices Y and Z must be equal')
+			end
+			data = zeros(numel(X), 3, size(Y,2));
+			for (k = 1:size(Y,2))
+				data(:,:,k) = [X(:) Y(:,k) Z(:,k)];
+			end
+		end
+	end
 
 %--------------------------------------------------------------------------
 function handles = createframe(handles)
@@ -413,6 +466,7 @@ function finish_line_uictx(hLine)
 	set(h, 'Call', {@shift_orig, 'XY'})
 	h = findobj(uictx, 'Label', 'Filter Outliers');
 	set(h, 'Call', {@outliers_clean, hLine})
+	h = findobj(uictx, 'Label', 'Show data points');
 
 % --------------------------------------------------------------------------------------------------
 function shift_orig(obj, evt, eixo, hLine, pt_x, pt_y, opt)
@@ -2356,7 +2410,10 @@ function add_uictx_CB(hObject, handles)
 	setappdata(handles.axes1,'XTickOrig',get(handles.axes1,'XTickLabel'))
 	setappdata(handles.axes1,'xIsDatenum',true)		% For FFTs to know how to compute frequency
 
-	if (xx(end) > 365)			% Assume days of the year. No datenum
+	if (isa(xx, 'cell')),	doit = xx{1}(end) > 365;
+	else					doit = xx(end) > 365;
+	end
+	if (doit)			% Assume days of the year. No datenum
 		datetick(handles.axes1, 'x','keeplimits', 'keepticks')		% Make it auto right away
 		uimenu(handles.cmenu_axes, 'Label', 'Date Format -> auto', 'Call', {@SetAxesDate,'x'}, 'Sep','on');
 		uimenu(handles.cmenu_axes, 'Label', 'Date Format -> dd-mmm-yyyy', 'Call', {@SetAxesDate,1});
