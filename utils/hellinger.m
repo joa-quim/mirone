@@ -1,4 +1,4 @@
-function [along, alat, rho] = hellinger(along, alat, rho, isow, isoe, DP_tol)
+function [along, alat, rho] = hellinger(along, alat, rho, isow, isoe, isoc1_props, isoc2_props)
 % c simplified September 9, 2000, July 2001
 % c
 % c program implementing section 1 of 'on reconstructing tectonic plate
@@ -25,6 +25,8 @@ function [along, alat, rho] = hellinger(along, alat, rho, isow, isoe, DP_tol)
 % c
 % c***********************************************************************
 
+% $Id: hellinger.m 9971 2017-01-06 00:04:28Z j $
+
 	global eta etai
 
 % calculating matrices sigma and sigma-tilde
@@ -33,46 +35,65 @@ function [along, alat, rho] = hellinger(along, alat, rho, isow, isoe, DP_tol)
 		alat = 64;		along = 135;	rho = 0.66;
 	end
 
+	% Converting to geocentric, as is correct, makes almost no difference
+	D2R = pi / 180;
+	ecc = 0.0818191908426215;			% WGS84
+	isow = isow * D2R;
+	isoe = isoe * D2R;
+	isow(:,2) = atan2((1-ecc^2)*sin(isow(:,2)), cos(isow(:,2)));	% Lat da isow geocentrica
+	isoe(:,2) = atan2((1-ecc^2)*sin(isoe(:,2)), cos(isoe(:,2)));	% Lat da isoe geocentrica
+	isow = isow / D2R;
+	isoe = isoe / D2R;
+
 % 	isow = load('c:\j\chang\a2w.dat');
 % 	isoe = load('c:\j\chang\a2e.dat');
-	if (nargin < 6),	DP_tol = 0.05;		end
-	%[lat, lon] = reducem_m(isow(:,2), isow(:,1), DP_tol);
-	DP_tol = DP_tol * 111;			% Crude conversion of TOL from degrees to km
-	B = cvlib_mex('dp',isow,DP_tol,'GEOG');
-	lat = B(:,2);	lon = B(:,1);
-	
-	isow_dp = [lat lon];
-	[c,ind] = intersect(isow(:,2),lat);
-	ind = ind(end:-1:1);
-	flags_w = zeros(size(isow,1),1);
-	for (k = 1:numel(ind)-1)
-		flags_w(ind(k):ind(k+1)-1) = k;
-	end
-	flags_w(end) = numel(ind) - 1;
 
-	[r_lon,r_lat] = rot_euler(isow_dp(:,2),isow_dp(:,1), along, alat, rho, -1);		% Rotate DP moving isoc
-	ndata = size(isoe,1);
-	n_pts_dp = size(isow_dp,1);
-	flags_e = zeros(ndata,1);
-	for (k = 1:ndata)						% Loop over points of the static isoc
-		P  = isoe(k,1:2);
-		Dsts = sqrt((P(1)-r_lon).^2 + (P(2)-r_lat).^2);
-		[D,ind] = min(Dsts);
-		if ~(ind == 1 || ind == n_pts_dp)
-			Q1 = [r_lon(ind-1) r_lat(ind-1)];		Q2 = [r_lon(ind) r_lat(ind)];
-			D1 = abs(det([Q2-Q1; P-Q1])) / norm(Q2-Q1);
-			Q1 = [r_lon(ind) r_lat(ind)];			Q2 = [r_lon(ind+1) r_lat(ind+1)];
-			D2 = abs(det([Q2-Q1; P-Q1])) / norm(Q2-Q1);
-		else
-			D1 = 1;		D2 = 2;		% dumb values for D1 < D2
+	if (nargin == 7)
+		data = [ones(size(isow,1),1) isoc1_props(:,1) isow(:,2:-1:1) isoc1_props(:,2); ...
+			ones(size(isoe,1),1)*2 isoc2_props(:,1) isoe(:,2:-1:1) isoc2_props(:,2)];
+	else
+		if (nargin < 6),		DP_tol = 0.05;
+		elseif (nargin == 6),	DP_tol = isoc1_props;
 		end
-		if (D1 < D2)
-			flags_e(k) = ind;
-		else
-			flags_e(k) = ind + 1;
+		%[lat, lon] = reducem_m(isow(:,2), isow(:,1), DP_tol);
+		DP_tol = DP_tol * 111;			% Crude conversion of TOL from degrees to km
+		B = cvlib_mex('dp',isow,DP_tol,'GEOG');
+		lat = B(:,2);	lon = B(:,1);
+
+		isow_dp = [lat lon];
+		[c,ind] = intersect(isow(:,2),lat);
+		ind = ind(end:-1:1);
+		flags_w = zeros(size(isow,1),1);
+		for (k = 1:numel(ind)-1)
+			flags_w(ind(k):ind(k+1)-1) = k;
 		end
+		flags_w(end) = numel(ind) - 1;
+
+		[r_lon,r_lat] = rot_euler(isow_dp(:,2),isow_dp(:,1), along, alat, rho, -1);		% Rotate DP moving isoc
+		ndata = size(isoe,1);
+		n_pts_dp = size(isow_dp,1);
+		flags_e = zeros(ndata,1);
+		for (k = 1:ndata)						% Loop over points of the static isoc
+			P  = isoe(k,1:2);
+			Dsts = sqrt((P(1)-r_lon).^2 + (P(2)-r_lat).^2);
+			[D,ind] = min(Dsts);
+			if ~(ind == 1 || ind == n_pts_dp)
+				Q1 = [r_lon(ind-1) r_lat(ind-1)];		Q2 = [r_lon(ind) r_lat(ind)];
+				D1 = abs(det([Q2-Q1; P-Q1])) / norm(Q2-Q1);
+				Q1 = [r_lon(ind) r_lat(ind)];			Q2 = [r_lon(ind+1) r_lat(ind+1)];
+				D2 = abs(det([Q2-Q1; P-Q1])) / norm(Q2-Q1);
+			else
+				D1 = 1;		D2 = 2;		% dumb values for D1 < D2
+			end
+			if (D1 < D2)
+				flags_e(k) = ind;
+			else
+				flags_e(k) = ind + 1;
+			end
+		end
+		data = [ones(size(isow,1),1) flags_w isow(:,2:-1:1) ones(size(isow,1),1); ...
+			ones(size(isoe,1),1)*2 flags_e isoe(:,2:-1:1) ones(ndata,1)];
 	end
-	data = [ones(size(isow,1),1) flags_w isow(:,2:-1:1) ones(size(isow,1),1); ones(size(isoe,1),1)*2 flags_e isoe(:,2:-1:1) ones(ndata,1)];
 
 % 	fname = 'c:\j\chang\a2hell_lin.dat';
 % 	data = load(fname);
@@ -104,7 +125,7 @@ function [along, alat, rho] = hellinger(along, alat, rho, isow, isoe, DP_tol)
 
 % minimization section--grid search
 	qhati = trans3(alat,along,rho);
-	h = zeros(3,1);
+	%h = zeros(3,1);
 	%[qhati, eps_, rmin] = grds(eps_, sigma, qhati, nsect);
 
 % 250   write(6,*) 'Initial guess: alat, along, rho? '
@@ -132,6 +153,7 @@ function [along, alat, rho] = hellinger(along, alat, rho, isow, isoe, DP_tol)
 % minimization section--calling amoeba
 
 	count = 1;	rprev = 1e30;		rmin = 0;	r_fac = rmin / rprev;
+	yp = zeros(1, 4);
 	while (r_fac < 0.99 && count <= 5)
 		hp = [zeros(3,1) eye(3,3) * eps_];
 		for (k = 1:4)
@@ -251,6 +273,7 @@ function [along, alat, rho] = hellinger(along, alat, rho, isow, isoe, DP_tol)
 	end
      
 	ndim = 2*nsect + 3;
+	sigma3 = zeros(ndim, ndim);
 	k = 0;
 	for (i = 1:ndim)
 		for (j = 1:i)
@@ -301,7 +324,7 @@ function [along, alat, rho] = hellinger(along, alat, rho, isow, isoe, DP_tol)
 % rotation parameters are stored in upper 3 by 3 corner.
 
 	[V,D] = eig(sigma3);
-	[D, ind] = sort(diag(D)');		% Make sure that eigs are in ascending order
+	[D, ind] = sort(diag(D));		% Make sure that eigs are in ascending order
 	V = V(:,ind);
 	sigma3 = zeros(ndim);
 	for (i = 1:ndim)
@@ -355,7 +378,7 @@ function [along, alat, rho] = hellinger(along, alat, rho, isow, isoe, DP_tol)
 % calculation of h11.2 matrix--stored sigma4
 	cov = sigma3(1:3,1:3);
 	[V,D] = eig(sigma3);
-	[D, ind] = sort(diag(D)');		% Make sure that eigs are in ascending order
+	[D, ind] = sort(diag(D));		% Make sure that eigs are in ascending order
 	V = V(:,ind);
 	sigma4 = zeros(3);
 	for (i = 1:3)
