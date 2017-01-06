@@ -1,7 +1,16 @@
 function varargout = pole2neighbor(obj, evt, hLine, mode, opt)
 % Compute finite poles from isochron N to isochron N+1 of the data/isochrons.dat file (must be loaded)
+%
+% STG0 -> Half Stage pole [lon lat old_age(t_start) new_age(t_end) ang] computed from finite P1 to P2 on one plate
+% STG1 -> Same as STG0 but the stage pole was computed with the Bonin method
+% STG2_CA_CB -> Stage pole computed by pure brute force best fit between chrons CA (younger) and CB
+%               located in the same plate (e.g C4A_C5). It has all the same as STG0 plus the fit residue
+% STG3_CA_CB -> Same as STG2_CA_CB but computed differently. Here a first guess is done by computing
+%               the stage pole between CA & CB (e.g C4A_C5) but this pole is later refined by best fit 
+%               but in where only the angle is allowed to change. By comparing the predictions of
+%               STG3_CA_CB on both plates we have an excellent estimate of the assymetry.
 
-%	Copyright (c) 2004-2013 by J. Luis
+%	Copyright (c) 2004-2017 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -16,7 +25,7 @@ function varargout = pole2neighbor(obj, evt, hLine, mode, opt)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: pole2neighbor.m 4097 2013-08-09 18:59:06Z j $
+% $Id: pole2neighbor.m 9973 2017-01-06 00:09:11Z j $
 
 	if (isempty(hLine)),	hLine = gco;	end
 	hNext = hLine;
@@ -89,6 +98,13 @@ function varargout = pole2neighbor(obj, evt, hLine, mode, opt)
 
 	elseif (strcmpi(mode, 'agegrid'))
 		fill_age_grid(hLine)
+
+	elseif (strcmpi(mode, 'update_poles'))	% Update the finite poles stored in line's appdata. Do it from info in a poles file
+		update_poles_headers(hLine)
+
+	elseif (strcmpi(mode, 'plate_stages'))
+		[out1, out2] = get_plate_stages(hLine);
+		h=figure;plot(out1(:,4),cumsum(abs(out1(:,17))), out2(:,4),cumsum(abs(out2(:,17))));
 
 	end
 
@@ -214,12 +230,50 @@ function swap_lineInfo(hLine)
 	setappdata(hLine, 'secondLineInfo', lineInfo)
 
 % -----------------------------------------------------------------------------------------------------------------
-function fill_age_grid(hLine)
-% ...
+function [out1, out2] = get_plate_stages(hLine)
+% Get the collection of stage poles for the two plates pair
+	hLine0 = find_ridge(hLine);					% Find the ridge of the hLine's plate pair
+	out1   = get_all_stgs(hLine0);
+	% Now the conjugate plate
+	swap_lineInfo(hLine0)
+	out2  = get_all_stgs(hLine0);
 
-% 	lon_min = -49;		lat_min = 12;
-% 	lon_max = -11;		lat_max = 40;
-	[lon_min, lon_max, lat_min, lat_max, hLine] = get_BB(hLine);	% The returned hLine is the Ridge
+	if (sign(out1(1,5)) ~= sign(out1(2,5)))
+		out1(1,5) = -out1(1,5);		out1(1,11) = -out1(1,11);		out1(1,17) = -out1(1,17);
+	end
+	if (sign(out2(1,5)) ~= sign(out2(2,5)))
+		out2(1,5) = -out2(1,5);		out2(1,11) = -out2(1,11);		out2(1,17) = -out2(1,17);
+	end
+
+	fnome1 = 'C:\SVN\mironeWC\data\isocs\stages_tmp_A.stg';
+	fid = fopen(fnome1,'w');
+	fprintf(fid, '#longitude	latitude	tstart(Ma)	tend(Ma)	angle(deg)\n');
+	fprintf(fid, '%.4f\t%.4f\t%.2f\t%.2f\t%.4f\n', out1(end:-1:1,13:17)');
+	fclose(fid);
+	fnome2 = 'C:\SVN\mironeWC\data\isocs\stages_tmp_B.stg';
+	fid = fopen(fnome2,'w');
+	fprintf(fid, '#longitude	latitude	tstart(Ma)	tend(Ma)	angle(deg)\n');
+	fprintf(fid, '%.4f\t%.4f\t%.2f\t%.2f\t%.4f\n', out2(end:-1:1,13:17)');
+	fclose(fid);
+	fnome3 = 'C:\SVN\mironeWC\data\isocs\stages_tmp_AB.stg';
+	fid = fopen(fnome3,'w');
+	fprintf(fid, '#longitude	latitude	tstart(Ma)	tend(Ma)	angle(deg)\n');
+	fprintf(fid, '%.4f\t%.4f\t%.2f\t%.2f\t%.4f\n', out2(end:-1:1,1:5)');
+	fclose(fid);
+
+	flo = gmtmex(['backtracker -Lf -E' fnome1], [-44.37327966 27.08623588 152.03]);
+	dist_age1 = gmtmex('mapproject -Gk -o2,3', flo);
+	flo = gmtmex(['backtracker -Lf -E' fnome2], [-44.37327966 27.08623588 152.03]);
+	dist_age2 = gmtmex('mapproject -Gk -o2,3', flo);
+	flo = gmtmex(['backtracker -Lf -E' fnome3], [-44.37327966 27.08623588 152.03]);
+	dist_age3 = gmtmex('mapproject -Gk -o2,3', flo);
+	ecran(dist_age1.data(:,1),[dist_age1.data(:,2) dist_age2.data(:,2) dist_age3.data(:,2)])
+
+% -----------------------------------------------------------------------------------------------------------------
+function fill_age_grid(hLine)
+% Take stage poles info stored in isochrons LineInfo and compute an age grid for the plate pair selected.
+
+	[lon_min, lon_max, lat_min, lat_max, hLine] = get_BB(hLine);	% The returned hLine is the Ridge and BB is the plate pair one
 	lon_min = floor(lon_min);	lon_max = ceil(lon_max);
 	lat_min = floor(lat_min);	lat_max = ceil(lat_max);
 	x_inc = 2/60;		y_inc = x_inc;
@@ -232,16 +286,13 @@ function fill_age_grid(hLine)
 	aguentabar(0,'title','Filling age cells (First plate)')
 	while (~isempty(hNext))
 		current_seed_hand = hNext;
-
-		x  = get(current_seed_hand,'Xdata');	y  = get(current_seed_hand,'Ydata');
+		x = get(current_seed_hand,'Xdata');		y = get(current_seed_hand,'Ydata');
 		lat_i = y(1:end-1);   lat_f = y(2:end);
 		lon_i = x(1:end-1);   lon_f = x(2:end);
 		tmp = vdist(lat_i,lon_i,lat_f,lon_f);
 		r = [0; cumsum(tmp(:))] / 1852;			% Distance along isoc in Nautical Miles (~arc minutes)
 		ind = (diff(r) == 0);
-		if (any(ind))
-			r(ind) = [];	x(ind) = [];	y(ind) = [];
-		end
+		if (any(ind)),		r(ind) = [];	x(ind) = [];	y(ind) = [];	end
 		x = interp1(r, x, [r(1):2:r(end) r(end)]);
 		y = interp1(r, y, [r(1):2:r(end) r(end)]);
 
@@ -275,9 +326,13 @@ function fill_age_grid(hLine)
 	swap_lineInfo(hLine)						% Reset
 	aguentabar(1)
 
-	G.z = grd;	G.n_columns = size(grd,2);	G.n_rows = size(grd,1);	G.range = [lon_min lon_max lat_min lat_max];
-	G.head = [G.range 0 165 0 x_inc y_inc];	G.ProjectionRefPROJ4 = '';
-	G.inc = [x_inc y_inc];		G.MinMax = [0 165];		G.registration = 0;
+	G.z = grd;
+	G.x = linspace(lon_min, lon_max, size(grd,2));
+	G.y = linspace(lat_min, lat_max, size(grd,1));
+	G.range = [lon_min lon_max lat_min lat_max 0 165];
+	G.proj4 = '+proj=longlat';
+	G.inc = [x_inc y_inc];		G.registration = 0;
+	G.title = 'Age of Seafloor';
 	mirone(G)
 
 % -----------------------------------------------------------------------------------------------------------------
@@ -354,6 +409,43 @@ function [out, hNext, p1, p2, n_pts, ind_last, x2, y2] = get_arc_from_a2b(hLine,
 		out.age = linspace(p1.age, p2.age, numel(lonc));
 	end
 	ind_last = k;
+
+% -----------------------------------------------------------------------------------------------------------------
+function update_poles_headers(hLine, fname)
+% Read poles from a file and update the isochron's 'LineInfo' content
+
+	hAllIsocs = findobj(get(hLine,'Parent'),'Tag', get(hLine,'Tag'));
+	T = gmtmex('read -Tt C:\SVN\mironeWC\data\isocs\polos_para_idades.dat');
+	for (k = 1:numel(T.text))				% Loop over all updating poles
+		% Ex: "2 AFRICA/NORTH AMERICA" !NAM<-Nubia  An2   Em Mov (res = 1.374) Sem ZF24
+		ind = strfind(T.text{k}, '"');
+		str = T.text{k}(2:ind(2)-1);		% Get only the part between ""
+		ind = strfind(str, '/');
+		[isoc, P1] = strtok(str(1:ind-1));	P2 = str(ind+1:end);		% The plate pair
+		P1 = ddewhite(P1);					% Idiot strtok leaves blanks on second output arg
+		m = 0;
+		for (n = 1:numel(hAllIsocs))		% Loop over all Isochrons
+			this_lineInfo  = getappdata(hAllIsocs(n),'LineInfo');
+			[this_isoc, r] = strtok(this_lineInfo);
+			if (strcmpi(this_isoc, isoc))	% OK, same isochron so now search for the same plate pair
+				if (~isempty(strfind(r, P1)) && ~isempty(strfind(r, P2)))	% Then we found a target
+					% but we still don't know the plate pair order
+					r = ddewhite(r);
+					ind = strfind(r, '/');
+					if (strcmp(P1, r(1:ind(1)-1)))		% OK, plate order is the same as in the poles file
+						new_str = sprintf('%s %s/%s FIN"%g %g %g %g"', this_isoc, P1, P2, T.data(k,:));
+						m = m + 1;
+					else
+						new_str = sprintf('%s %s/%s FIN"%g %g %g %g"', this_isoc, P2, P1, T.data(k,1:2), -T.data(k,3), T.data(k,4));
+						m = m + 1;
+					end
+					setappdata(hAllIsocs(n), 'LineInfo', new_str);
+					if (m == 2),	break,		end		% Found the conjugate pair
+					continue
+				end
+			end
+		end
+	end
 
 % -----------------------------------------------------------------------------------------------------------------
 function hLine0 = find_ridge(hLine)
@@ -533,7 +625,6 @@ function [hNext, pole, lineInfo, p, p_closest, CA, CB] = compute_pole2neighbor_B
 
 	% So at this point we should be able to get a first good estimate of the seeked rotation pole using Bonin Method
 	[plon,plat,omega] = calc_bonin_euler_pole([x(indF); x(indL)],[y(indF); y(indL)],[xcFirst; xcLast],[ycFirst; ycLast]);
-	%sprintf('Lon = %.1f  Lat = %.1f   Ang = %.3f', plon, plat, omega)
 
 	% Get the neighbor pole parameters, though we will only use its age
 	p_closest = parse_finite_pole(closest_lineInfo);	% Get the pole of neighbor because we need its age
@@ -555,7 +646,7 @@ function [new_lineInfo, is_pole_new] = set_stg_info(mode, hLine, lineInfo, plon,
 % Update (or insert) the stage pole info in the isochron header data.
 % MODE = 'bonin' insert/update the bonin type pole
 % MODE = 'whatever' insert/update the Best-Fit type pole
-% Actually the pole is a finite pole but due to how it was compute ... it is fact a stage pole (not convinced?)
+% Actually the pole is a finite pole but due to how it was computed ... it is in fact a stage pole (not convinced?)
 %
 % P & P_CLOSEST are structures with the finite poles of isochron CA and CB. Only P.AGE is used here
 % CA, CB, RESIDUE are used only with the second generation Brute-Force (best-fit) poles and denote
@@ -571,18 +662,15 @@ function [new_lineInfo, is_pole_new] = set_stg_info(mode, hLine, lineInfo, plon,
 	if (strcmpi(mode,'bonin'))
 		indS = strfind(lineInfo, 'STG1"');			% See if we aready have one INSITU STG
 		if (isempty(indS))							% No, create one
-			new_lineInfo = sprintf('%s STG1"%.1f %.1f %.1f %.2f %.3f"', lineInfo, plon, plat, p_closest.age, p.age, omega);
+			new_lineInfo = sprintf('%s STG1"%.2f %.2f %.2f %.2f %.3f"', lineInfo, plon, plat, p_closest.age, p.age, omega);
 		else										% Yes, update it
 			ind2 = strfind(lineInfo(indS+5:end),'"') + indS + 5 - 1;	% So that indS refers to string start too
-			str = sprintf('%.1f %.1f %.1f %.2f %.3f', plon, plat, p_closest.age, p.age, omega);
+			str = sprintf('%.2f %.2f %.2f %.2f %.3f', plon, plat, p_closest.age, p.age, omega);
 			new_lineInfo = [lineInfo(1:indS+4) str lineInfo(ind2(1):end)];
 		end
 
 	elseif (strcmpi(mode,'stagefit'))				% Set/Update the FIT true STAGE (half) pole
 		indS = strfind(lineInfo, 'STG');			% See if we aready have an true STG
-		if (~isempty(indS) && lineInfo(indS(1)+3) == ' ') % The annoying old STG not quoted case. Strip it.
-			indS = indS(2:end);
-		end
 
 		% Get chron ages from lineInfo in the FIN(ite) pole
 		ind2 = strfind(lineInfo(indS(end):end), '"') + indS(end) - 1;
@@ -593,18 +681,18 @@ function [new_lineInfo, is_pole_new] = set_stg_info(mode, hLine, lineInfo, plon,
 
 		indS = strfind(lineInfo, 'STG3');			% Does a previous STG3 exists?
 		if (isempty(indS))							% No. Append one at the end
-			new_lineInfo = sprintf('%s STG3_%s-%s"%.1f %.1f %s %s %.3f %.3f"', ...
+			new_lineInfo = sprintf('%s STG3_%s-%s"%.2f %.2f %s %s %.3f %.3f"', ...
 				lineInfo, CA, CB, plon, plat, ageB, ageA, omega, residue);
 		else
 			ind2 = (strfind(lineInfo(indS(1):end), '"') + indS(1) - 1); % Indices of the '"' pair
 			ind2 = ind2(2) - 1;		ind1 = ind2;
 			while (lineInfo(ind1) ~= ' '),	ind1 = ind1 - 1;	end
 			old_res = str2double(lineInfo(ind1:ind2));	% Get old residue
-			if ( (old_res - residue) < 1e-3 )			% Old one is better, don't change it
+			if ((old_res - residue) < 1e-3)				% Old one is better, don't change it
 				return
 			end
 			fprintf('Anom --> %s  Res antes = %.6f  Res depois = %.6f\n',CA, old_res, residue)
-			str = sprintf('"%.1f %.1f %s %s %.3f %.3f"', plon, plat, ageB, ageA, omega, residue);
+			str = sprintf('"%.2f %.2f %s %s %.3f %.3f"', plon, plat, ageB, ageA, omega, residue);
 			new_lineInfo = [lineInfo(1:indS+3) sprintf('_%s-%s', CA, CB) str];
 			if (numel(lineInfo) > ind2+2)			% +1 to compensate the above - 1 and the other for the space
 				 new_lineInfo = [new_lineInfo lineInfo(ind2+2:end)];
@@ -614,9 +702,6 @@ function [new_lineInfo, is_pole_new] = set_stg_info(mode, hLine, lineInfo, plon,
 
 	else											% Set/update the Best-Fit pole info
 		indS = strfind(lineInfo, 'STG');
-		if (numel(indS) > 1 && lineInfo(indS(1)+3) == ' ') % The annoying old STG not quoted case. Strip it.
-			indS = indS(2:end);
-		end
 
 		% We don't always know the age of the older chron sent as argument (p_closest) so get it directly from lineInfo
 		ind2 = strfind(lineInfo(indS(end):end), '"') + indS(end) - 1;
@@ -626,7 +711,7 @@ function [new_lineInfo, is_pole_new] = set_stg_info(mode, hLine, lineInfo, plon,
 		t = strtok(r);			ageA = t;
 
 		if (numel(indS) == 1)							% --- Only a Bonin type STG, insert the new Brute-Force one
-			new_lineInfo = sprintf('%s STG2_%s-%s"%.1f %.1f %s %s %.3f %.3f"', ...
+			new_lineInfo = sprintf('%s STG2_%s-%s"%.2f %.2f %s %s %.3f %.3f"', ...
 				lineInfo, CA, CB, plon, plat, ageB, ageA, omega, residue);
 		else											% --- Already have a Brute-Force type STG, update it
 			% the following gymnastic is because the STG string has the form STGXX_YY-ZZ"
@@ -634,11 +719,11 @@ function [new_lineInfo, is_pole_new] = set_stg_info(mode, hLine, lineInfo, plon,
 			ind2 = ind2(2) - 1;		ind1 = ind2;
 			while (lineInfo(ind1) ~= ' '),	ind1 = ind1 - 1;	end
 			old_res = str2double(lineInfo(ind1:ind2));	% Get old residue
-			if ( (old_res - residue) < 1e-3 )			% Old one is better, don't change it
+			if ((old_res - residue) < 1e-3)				% Old one is better, don't change it
 				return
 			end
 			fprintf('Anom --> %s  Res antes = %.6f  Res depois = %.6f\n',CA, old_res, residue)
-			str = sprintf('"%.1f %.1f %s %s %.3f %.3f"', plon, plat, ageB, ageA, omega, residue);
+			str = sprintf('"%.2f %.2f %s %s %.3f %.3f"', plon, plat, ageB, ageA, omega, residue);
 			new_lineInfo = [lineInfo(1:indS+2) sprintf('2_%s-%s', CA, CB) str];
 			if (numel(lineInfo) > ind2+2)			% +1 to compensate the above - 1 and the other for the space
 				 new_lineInfo = [new_lineInfo lineInfo(ind2+2:end)];
@@ -666,7 +751,7 @@ function stage = get_true_stg (hLineA, hLineB)
 		stage = finite2stages([pA.lon; pB.lon], [pA.lat; pB.lat], [pA.ang; pB.ang], [pA.age; pB.age], 2, 1);
 		ind =  strfind(lineInfoA, 'FIN"');
 		ind2 = strfind(lineInfoA(ind:end), '"') + ind - 1;	% Find the pair of '"' indices
-		new_lineInfo = sprintf('%s STG0"%.1f %.1f %.1f %.1f %.3f%s', lineInfoA(1:ind2(2)), stage(1,1), stage(1,2), ...
+		new_lineInfo = sprintf('%s STG0"%.2f %.2f %.2f %.2f %.3f%s', lineInfoA(1:ind2(2)), stage(1,1), stage(1,2), ...
 			stage(1,3), stage(1,4), stage(1,5), lineInfoA(ind2(2):end) );
 		setappdata(hLineA,'LineInfo', new_lineInfo);
 	else										% Yes, read it and send it back to caller
@@ -682,15 +767,15 @@ function stage = get_true_stg (hLineA, hLineB)
 
 % -----------------------------------------------------------------------------------------------------------------
 function stage = get_stg_pole(stg, lineInfo)
-% Parse the string starting at STG?_XX-XX" and read the stage pole parameters
-% Also tries to get the residue, which will be NaN if it doesn't exist
+% Parse the string starting at STG?[_XX-XX]" and read the stage pole parameters
+% Also tries to get the residue, which will be NaN if it does not exist
 
 	stage = (1:6)* NaN;			% Make sure the 6 elements are always return
 	if (isempty(lineInfo)),		return,		end
 	indS = strfind(lineInfo, stg);
 	if (isempty(indS)),			return,		end
 	ind2 = strfind(lineInfo(indS:end), '"') + indS - 1;	% Find the pair of '"' indices
-	[t, r] = strtok( lineInfo(ind2(1)+1:ind2(2)-1) );
+	[t, r] = strtok(lineInfo(ind2(1)+1:ind2(2)-1));
 	stage(1) = str2double(t);
 	[t, r] = strtok(r);			stage(2) = str2double(t);	% Lat
 	[t, r] = strtok(r);			stage(3) = str2double(t);	% Age older (t_start)
@@ -748,7 +833,7 @@ function p = parse_finite_pole(lineInfo)
 	if (isempty(indF)),		p = [];		return,		end
 	ind2 = strfind(lineInfo(indF+4:end),'"') + indF + 4 - 1;	% So that ind refers to the begining string too
 	[t, r] = strtok(lineInfo(indF(1)+4:ind2(1)-1));
-	p.lon = sscanf(t, '%f');
+	p.lon  = sscanf(t, '%f');
 	[t, r] = strtok(r);			p.lat = sscanf(t, '%f');
 	[t, r] = strtok(r);			p.ang = sscanf(t, '%f');
 	t      = strtok(r);			p.age = sscanf(t, '%f');
@@ -756,7 +841,7 @@ function p = parse_finite_pole(lineInfo)
 % -----------------------------------------------------------------------------------------------------------------
 function isoc = get_isoc_numeric(isoc_str)
 % Get the isoc name in numeric form. We need a fun because isoc names sometimes have letters
-	if (isoc_str(end) == 'a' || isoc_str(end) == 'r')		% We have 4a, 33r, etc...
+	if (isoc_str(end) == 'a' || isoc_str(end) == 'c' || isoc_str(end) == 'r')		% We have 4a, 33r, etc...
 		isoc_str = [isoc_str(1:end-1) '.1'];	% Just to be older than the corresponding 'no a' version
 	end
 	if (isoc_str(1) == 'M'),	isoc_str = ['10' isoc_str(2:end)];	end		% The M's are older. Pretend it's 100, etc.
