@@ -16,13 +16,13 @@ function gmt2mgd77_plus(fname, varargin)
 %	'swap'		whatever		Swap bytes of the .gmt file. Precious to recover old files
 %
 %	'meta'		A metadata structure.		Fileds of this structure are:
-%								country			(Default 'Coxichina')
-%								funding			(Default 'WWF')
+%								country			(Default 'Portugal')
+%								funding			(Default 'EMEPC')
 %								chief			(Default 'Mestre Silva')
-%								ship			(Default 'Nau Catarineta')
+%								ship			(Default 'Gago Coutinho')
 %								leg				(Default 'Chicken Leg')
-%								port_departure	(Default 'Port Wine')
-%								port_arrival	(Default 'Green Wine')
+%								port_departure	(Default 'Lisbon')
+%								port_arrival	(Default 'Lisbon')
 %								tow_dist		(Default '199')
 %								survey_id		(Default '00000000')
 %								DC_file_number	(Default '00000000')
