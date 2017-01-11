@@ -64,7 +64,7 @@ function out = deal_opts(opt, opt2, varargin)
 				case 'gmtedit'		% To select what to plot in GMTEDIT slots
 					if (strncmp(lines{k}(5:end),'GMTEDIT',7))
 						t = strtok(lines{k}(13:end));
-						if ( strcmp(t(1:2), '-V') )		% Here we only check for a -V... and do not check for errors
+						if (strcmp(t(1:2), '-V'))		% Here we only check for a -V... and do not check for errors
 							out = t;
 						end
 						break
@@ -116,7 +116,7 @@ function out = deal_opts(opt, opt2, varargin)
 
 				case 'gmt_symbol'		% To plot a GMT custom symbol ~inside rectangle
 					if (strcmp(lines{k}(5:end),'GMT_SYMBOL'))
-						if (isempty(hCust))	% Create a uimenu associated to a rectangle
+						if (isempty(hCust))		% Create a uimenu associated to a rectangle
 							hCust = uimenu(opt2, 'Label', 'Custom','Sep','on');
 						end
 						uimenu(hCust, 'Label', 'Associate to a GMT symbol', 'Call', @assoc_gmt_symbol, 'Sep', 'on');
@@ -124,6 +124,15 @@ function out = deal_opts(opt, opt2, varargin)
 						fname = getappdata(h, 'cust_symb');	% If not empty than we have a call from FileOpenSession_CB
 						if (~isempty(fname)),	assoc_gmt_symbol([], [], h),	end		% and want only to set the BDF CB
 						break
+					end
+
+				case 'gravity'			% To compute the gravity anomaly inside rectangle
+					if (strcmp(lines{k}(5:end),'GRAVITY'))
+						if (isempty(hCust))		% Create a uimenu associated to a rectangle
+							hCust = uimenu(opt2, 'Label', 'Custom','Sep','on');
+						end
+						h = get(opt2, 'UserData');		% Fish the line handle
+						uimenu(hCust, 'Label', 'Compute Gravity anomaly', 'Call', {@gravity, h}, 'Sep', 'on');
 					end
 			end
 		end
@@ -167,8 +176,11 @@ function get_COEs(obj, event, coeFile, coeVar, opt)
 	end
 
 	fid = fopen(tmp_file);
-	fgetl(fid);		fgetl(fid);		fgetl(fid);		% Jum the 3 header lines
 	c = fread(fid,inf,'*char');		fclose(fid);
+	ind1 = find(c == '#');
+	ind2 = find(c == sprintf('\n'));	% Find the line breaks
+	ind = ind2(numel(ind1));			% Index of last comment line newline
+	c = c(ind+1:end);					% Rip the header lines
 	[names,x,y,COEs] = strread(c,'%s\t%f\t%f\t%f');
 	delete(tmp_file);
 
@@ -370,3 +382,8 @@ function show_symbName(obj, evt, h)
 	pause(1)
 	delete(hTxt)
 	refresh(get(hAx, 'Parent'))		% Need this because of the bloody compiled version bugs.
+
+% -----------------------------------------------------------------------------------------
+function gravity(obj, evt, h)
+% Call the bouger_tool with a line handle as argument
+	bouger_tool(h)
