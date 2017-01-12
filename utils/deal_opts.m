@@ -25,7 +25,7 @@ function out = deal_opts(opt, opt2, varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: deal_opts.m 9983 2017-01-11 12:15:26Z j $
+% $Id: deal_opts.m 9984 2017-01-12 12:03:24Z j $
 
 	if (nargin > 1 && ischar(opt2))
 		if (nargout)
@@ -215,11 +215,12 @@ function get_COEs(obj, event, coeFile, coeVar, opt)
 
 	for (k = 1:numel(COEs))
 		hS = line('XData',x(k), 'YData',y(k), 'parent',handles.axes1, 'Marker','o', ...
-			'MarkerFaceColor',zC(k,:), 'MarkerEdgeColor','k', 'MarkerSize',8, 'Tag','COEpt');
+			'MarkerFaceColor',zC(k,:), 'MarkerEdgeColor','k', 'MarkerSize',6, 'Tag','COEpt');
 
         cmenuHand = uicontextmenu('Parent',handles.figure1);
         set(hS, 'UIContextMenu', cmenuHand);
         uimenu(cmenuHand, 'Label', sprintf('COE = %.1f (with %s)',COEs(k), names{k}));
+        uimenu(cmenuHand, 'Label', sprintf('Plot the track ->  %s', names{k}), 'Call', {@get_MGGtracks, names{k}});
         uimenu(cmenuHand, 'Label', 'Delete this', 'Call', {@uictxCOE,handles.axes1,hS,'del'}, 'Sep','on');
         uimenu(cmenuHand, 'Label', 'Delete all',  'Call', {@uictxCOE,handles.axes1,hS,'delAll'});
 	end
@@ -235,30 +236,43 @@ function uictxCOE(obj,evt,hAx,h,tipo)
 	
 	
 % -----------------------------------------------------------------------------------------
-function tracks = get_MGGtracks(obj, event, x, y)
+function tracks = get_MGGtracks(obj, evt, x, y)
 % Get a list of MGG tracks that cross the rectangular area enclosed by gco
 % OR by the rect defined by the optional input X, Y vars
+% The form: [tracks = ] get_MGGtracks(obj, evt, fname) is used when we already know the file
+%	that we want to plot but want to reuse all the checking/finding machinery of this function.
+%	If FNAME has no extension, we assume a .nc file
 %
 % When an output is requested it will hold either a file name containing a list of the tracks
 % or a cell array with the fullpath of each track.
 % In either case, the tracks are not ploted.
 
-	get_tracks_only = false;
+	get_tracks_only = false;	fname = '';
 	if (nargin == 2)
 		h = gco;
 		x = get(h,'XData');			y = get(h,'YData');
+	elseif (nargin == 3 && isa(x, 'char'))
+		fname = x;
 	end
 	if (nargout)
 		get_tracks_only = true;		tracks = [];
 	end
 
 	MIRONE_DIRS = getappdata(0,'MIRONE_DIRS');
-	lim = sprintf('-R%.4f/%.4f/%.4f/%.4f',x(1),x(3),y(1:2));
 	tmp_file = [MIRONE_DIRS.home_dir filesep 'tmp' filesep 'MGGtracks.txt'];
-	if (ispc)
-		dos(['x2sys_get -TMGD77+ -Fmtf1 -D -E ' lim ' > ' tmp_file]);
-	else
-		unix(['x2sys_get -TMGD77+ -Fmtf1 -D -E ' lim ' > ' tmp_file]);
+	if (isempty(fname))
+		lim = sprintf('-R%.4f/%.4f/%.4f/%.4f',x(1),x(3),y(1:2));
+		if (ispc)
+			dos(['x2sys_get -TMGD77+ -Fmtf1 -D -E ' lim ' > ' tmp_file]);
+		else
+			unix(['x2sys_get -TMGD77+ -Fmtf1 -D -E ' lim ' > ' tmp_file]);
+		end
+	else					% A track name was transmitted in input, so use it instead
+		[pato, name, ext] = fileparts(fname);
+		if (isempty(ext)),	fname = [fname '.nc'];	end
+		fid = fopen(tmp_file, 'w');
+		fprintf(fid, '%s\n', fname);
+		fclose(fid);
 	end
 
 	d = dir(tmp_file);
