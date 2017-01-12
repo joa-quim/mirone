@@ -17,7 +17,7 @@ function out = gmtedit(varargin)
 %       OUT, if given will contain this figure handle.
 %
 
-%	Copyright (c) 2004-2016 by J. Luis
+%	Copyright (c) 2004-2017 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -32,7 +32,7 @@ function out = gmtedit(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: gmtedit.m 9943 2016-11-23 02:24:16Z j $
+% $Id: gmtedit.m 9985 2017-01-12 12:05:41Z j $
 
 	f_name = '';
 	got_inFile = 0;
@@ -193,6 +193,7 @@ function out = gmtedit(varargin)
 	cmenuHand = uicontextmenu('Parent',handles.figure1);
 	set([handles.axes1 handles.axes2 handles.axes3], 'UIContextMenu', cmenuHand);
 	uimenu(cmenuHand, 'Label', 'Overlay interpolation', 'Call',@interp_on_grid);
+	uimenu(cmenuHand, 'Label', 'Overlay another variable', 'Call',@append_variable);
 
 	item = uimenu(cmenuHand, 'Label', 'Show in XY grapher');
 	uimenu(item, 'Label', 'All data', 'Call',{@move_to_ecran, 'all'});
@@ -233,7 +234,7 @@ function [vars, multi_plot, xISdist] = parse_optV(home_dir)
 	xISdist = true;				% Default absicssae to distance in km
 
 	opt_file = [home_dir filesep 'data' filesep 'OPTcontrol.txt'];
-	if ( exist(opt_file, 'file') == 2 )
+	if (exist(opt_file, 'file') == 2)
 		fid = fopen(opt_file, 'r');
 		c = (fread(fid,'*char'))';      fclose(fid);
 		lines = strread(c,'%s','delimiter','\n');   clear c fid;
@@ -242,7 +243,7 @@ function [vars, multi_plot, xISdist] = parse_optV(home_dir)
 			if (~strncmp(lines{k},'MIR_GMTEDIT',11)),	continue,	end
 			if (numel(lines{k}) <= 14),	continue,	end		% The minimum it takes to have a -? switch
 			t = strtok(lines{k}(13:end));
-			if ( strcmp(t(1:2), '-V') )		% Here we only check for a -V... and do not check for errors
+			if (strcmp(t(1:2), '-V'))		% Here we only check for a -V... and do not check for errors
 				opt_V = t(3:end);
 				break
 			end
@@ -345,10 +346,11 @@ function import_clickedCB(hObject, evt, opt)
 
 	% Save those for use when saving into a new file
 	if (handles.is_gmt),	handles.time = track.time;		end
-	handles.lon = track.longitude;
-	handles.lat = track.latitude;
-	handles.year = track.year;
-	handles.info = track.info;
+	handles.lon   = track.longitude;
+	handles.lat   = track.latitude;
+	handles.year  = track.year;
+	handles.info  = track.info;
+	handles.fname_nc = track.fname;
 	if (length(track.agency) ~= 10)			% Ensures that agency is exactly 10 chars
 		agency = '          ';				% 10 blanks
 		len = min(length(track.agency),10);
@@ -455,6 +457,29 @@ function interp_on_grid(obj, event)
 	h = gmtedit_track(handles.lon, handles.lat, handles.year, hAx, handles.h_tm, handles.last_dir, handles.work_dir, handles.hMirAxes);
 	filhas = getappdata(handles.figure1,'Filhas');
 	setappdata(handles.figure1,'Filhas',[filhas(:); h])
+
+
+% --------------------------------------------------------------------
+function append_variable(obj, evt)
+% Ask for another variable of the same file. It's user responsability not to mix apples-n-oranges
+	resp  = inputdlg({'Name of variable to load'}, 'Line width', [1 40]);
+	if (isempty(resp{1})),		return,		end
+	handles = guidata(obj);
+	try
+		new_var  = nc_funs('varget', handles.fname_nc, resp{1});
+	catch
+		errordlg(['ERROR: the variable ' resp ' does not exist in ' handles.fname_nc], 'Error'),	return
+	end
+	hAx = get(handles.figure1, 'CurrentAxes');		% Find which axes are we working on
+	X = get(handles.h_gm, 'XData');					% Get the X coords from any of these (they are all the same)
+	if (isempty(X)),	X = get(handles.h_mm, 'XData');
+	else				X = get(handles.h_tm, 'XData');
+	end
+	if (isempty(X))
+		warndlg('Should not happen but couldn''t find any plotted line to get the coords from it.', 'WarnError')
+		return
+	end
+	line('Parent', hAx, 'XData', X, 'YData', new_var)
 
 % --------------------------------------------------------------------
 function move_to_ecran(obj, event, opt)
@@ -608,6 +633,7 @@ function [handles, track] = read_mgd77_plus(handles, fname)
 		track.agency = s.Attribute(ind).Value;
 	end
 	track.info = 'Bla Bla';
+	track.fname = fname;
 
 % --------------------------------------------------------------------
 function save_clickedCB(hObject, evt)
