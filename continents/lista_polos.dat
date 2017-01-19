@@ -1,14 +1,23 @@
 139.60  61.8    -0.21    0.0  !NAM<-Eurasia  MORVEL (deg/Ma)
-144.20  42.8    -0.390   1.82 !NAM<-Eurasia  An2   Em Mov (res = 1.135)
-139.80  50.2    -0.637   3.06 !NAM<-Eurasia  An2A  Em Mov (res = 1.373)
-137.10  61.7    -1.033   4.72 !NAM<-Eurasia  An3   Em Mov (res = 1.738)
-139.00  56.1    -1.290   6.20 !NAM<-Eurasia  An3A  Em Mov (res = 1.576)
-140.60  57.2    -1.628   7.74 !NAM<-Eurasia  An4   Em Mov (res = 1.441)
-138.00  60.6    -1.950   8.88 !NAM<-Eurasia  An4A  Em Mov (res = 1.626)
-139.10  60.4    -2.325  10.30 !NAM<-Eurasia  An5   Em Mov (res = 2.346)
-137.40  62.9    -3.925  16.37 !NAM<-Eurasia  An5C  Em Mov (res = 3.136)
-139.40  62.2    -4.630  19.60 !NAM<-Eurasia  An6   Em Mov (res = 3.768)
-137.30  65.2    -6.350  27.47 !NAM<-Eurasia  An9   Em Mov (res = 5.005)
+142.70  44.4    -0.390   1.82 !NAM<-Eurasia  An2   Em Mov (res = 1.087) Sul Islandia
+137.00  53.4    -0.397   1.82 !NAM<-Eurasia  An2   Em Mov (res = 1.385) Ate Joao Maia
+138.00  56.0    -0.648   3.06 !NAM<-Eurasia  An2A  Em Mov (res = 1.358) Sul Islandia
+136.20  60.2    -0.664   3.06 !NAM<-Eurasia  An2A  Em Mov (res = 1.737) Ate aos 74
+136.80  60.3    -1.026   4.72 !NAM<-Eurasia  An3   Em Mov (res = 1.800) Sul Islandia
+135.30  62.1    -1.036   4.72 !NAM<-Eurasia  An3   Em Mov (res = 2.056) Ate Joao Maia
+138.70  56.3    -1.291   6.20 !NAM<-Eurasia  An3A  Em Mov (res = 1.602) Sul Islandia
+138.10  56.9    -1.294   6.20 !NAM<-Eurasia  An3A  Em Mov (res = 2.329) Ate Joao Maia
+140.00  57.6    -1.630   7.74 !NAM<-Eurasia  An4   Em Mov (res = 1.488) Sul Islandia
+136.10  61.4    -1.664   7.74 !NAM<-Eurasia  An4   Em Mov (res = 2.048) Ate Joao Maia
+137.40  61.0    -1.949   8.88 !NAM<-Eurasia  An4A  Em Mov (res = 1.642) Sul Islandia
+135.60  63.4    -1.990   8.88 !NAM<-Eurasia  An4A  Em Mov (res = 1.956) Ate Joao Maia
+138.80  60.8    -2.332  10.30 !NAM<-Eurasia  An5   Em Mov (res = 2.416) Sul Islandia
+135.20  64.8    -2.408  10.30 !NAM<-Eurasia  An5   Em Mov (res = 3.121) Ate Joao Maia
+136.80  62.9    -3.924  16.37 !NAM<-Eurasia  An5C  Em Mov (res = 3.073) Sul Islandia
+135.60  65.9    -4.045  16.37 !NAM<-Eurasia  An5C  Em Mov (res = 3.048) Ate Joao Maia
+138.50  62.2    -4.619  19.60 !NAM<-Eurasia  An6   Em Mov (res = 3.887) Sul Islandia
+135.50  66.4    -4.807  19.60 !NAM<-Eurasia  An6   Em Mov (res = 6.564) Ate aos 74
+138.20  62.0    -6.132  27.47 !NAM<-Eurasia  An9   Em Mov (res = 3.619) Sul Islandia
 
   0.0    0.0     0.0     0.0  !ACO-NAM Iberia-North America
 -37.50   7.0    -1.59    3.85 !ACO-NAM An3  J. Luis et al. 1994
@@ -18,32 +27,45 @@
 -37.00   2.2    -3.79   10.10 !ACO-NAM An5  J. Luis et al. 1994
 
 135.8   62.4     0.0     0.0  !NAM<-IBE North America-Iberia (NAm fixed)
-139.87  62.78   -2.34   10.33 !NAM<-EUR An5  J. Luis & Miranda Global
-140.52  53.03   -2.26   10.33 !NAM<-EUR An5  J. Luis & Miranda Sul da CG
-140.04  61.88   -4.56   19.55 !NAM<-IBE An6  J. Luis & Miranda Global
-140.12  56.64   -4.48   19.55 !NAM<-IBE An6  J. Luis & Miranda Sul da CG
-139.25  61.87   -7.24   33.25 !NAM<-IBE An13 J. Luis & Miranda Global
-124.99  71.27   -7.51   33.25 !NAM<-IBE An13 J. Luis & Miranda Iberico
-127.69  69.81   -7.430  33.25 !NAM<-IBE An13 Em Mov (res = 1.592) 
-137.90  63.80   -7.397  33.25 !NAM<-ROK An13 Em Mov (res = 1.514) 
-134.80  64.10   -7.375  33.25 !GRE<-ROK An13 Em Mov (res = 1.571) 
-131.70  47.30   -7.140  39.13 !GRE<-ROK An18 Em Mov (res = 4.021) 
-131.50  43.10   -7.650  43.14 !GRE<-ROK An20 Em Mov (res = 4.725) 
+128.29  69.01   -7.387  33.25 !NAM<-IBE An13 Em Mov (res = 1.713) 
+122.02  73.20   -9.063  39.13 !NAM<-IBE An18 Em Mov (res = 3.037) 
+114.90  76.00  -10.215  43.14 !NAM<-IBE An20 Em Mov (res = 2.625) 
+109.10  78.70  -11.612  47.06 !NAM<-IBE An21 Em Mov (res = 4.176)
+125.40  72.00  -11.506  49.37 !NAM<-IBE An22 Em Mov (res = 2.698)
+124.00  72.60  -12.159  51.30 !NAM<-IBE An23 Em Mov (res = 2.942)
+124.70  73.23  -12.931  52.79 !NAM<-IBE An24 Em Mov (res = 4.889)
+132.20  68.50  -13.809  56.14 !NAM<-IBE An25 Em Mov (res = 3.275)
+131.30  70.20  -14.419  57.70 !NAM<-IBE An26 Em Mov (res = 3.795)
+134.70  70.50  -16.079  64.30 !NAM<-IBE An29 Em Mov (res = 5.911)
+136.85  69.30  -16.504  67.02 !NAM<-IBE An30 Em Mov (res = 5.822)
+137.40  76.90  -18.486  72.25 !NAM<-IBE An32 Em Mov (res = 3.809)
+117.86  86.30  -23.234  81.00 !NAM<-IBE An33r Em Mov (res = 3.795)
 129.70  33.80   -8.720  49.37 !GRE<-ROK An22 Em Mov (res = 4.125) 
-117.22  77.18   -9.43   39.13 !NAM<-IBE An18 J. Luis & Miranda
-113.70  76.01  -10.23   43.14 !NAM<-IBE An20 J. Luis & Miranda
-112.09  78.68  -11.57   47.06 !NAM<-IBE An21 J. Luis & Miranda
-126.60  72.01  -11.51   49.37 !NAM<-IBE An22 J. Luis & Miranda
-124.59  72.60  -12.15   51.30 !NAM<-IBE An23 J. Luis & Miranda
-124.68  73.23  -12.93   52.79 !NAM<-IBE An24 J. Luis & Miranda
-133.40  68.48  -13.79   56.14 !NAM<-IBE An25 J. Luis & Miranda
-133.74  70.17  -14.44   57.70 !NAM<-IBE An26 J. Luis & Miranda
-137.30  66.82  -15.24   63.09 !NAM<-IBE An28 J. Luis & Miranda
-135.28  70.90  -16.09   64.30 !NAM<-IBE An29 J. Luis & Miranda
-135.65  69.70  -16.51   67.02 !NAM<-IBE An30 J. Luis & Miranda
-132.63  77.31  -18.48   72.25 !NAM<-IBE An32 J. Luis & Miranda
-118.50  85.33  -22.05   78.00 !NAM<-IBE An33 J. Luis & Miranda
-119.98  85.92  -23.22   81.00 !NAM<-IBE An33r J. Luis & Miranda
+140.52  53.03   -2.26   10.33 !NAM<-EUR An5  J. Luis & Miranda (2008)
+140.12  56.64   -4.48   19.55 !NAM<-IBE An6  J. Luis & Miranda (2008)
+124.99  71.27   -7.51   33.25 !NAM<-IBE An13 J. Luis & Miranda (2008)
+117.22  77.18   -9.43   39.13 !NAM<-IBE An18 J. Luis & Miranda (2008)
+113.70  76.01  -10.23   43.14 !NAM<-IBE An20 J. Luis & Miranda (2008)
+112.09  78.68  -11.57   47.06 !NAM<-IBE An21 J. Luis & Miranda (2008)
+126.60  72.01  -11.51   49.37 !NAM<-IBE An22 J. Luis & Miranda (2008)
+124.59  72.60  -12.15   51.30 !NAM<-IBE An23 J. Luis & Miranda (2008)
+124.68  73.23  -12.93   52.79 !NAM<-IBE An24 J. Luis & Miranda (2008)
+133.40  68.48  -13.79   56.14 !NAM<-IBE An25 J. Luis & Miranda (2008)
+133.74  70.17  -14.44   57.70 !NAM<-IBE An26 J. Luis & Miranda (2008)
+137.30  66.82  -15.24   63.09 !NAM<-IBE An28 J. Luis & Miranda (2008)
+135.28  70.90  -16.09   64.30 !NAM<-IBE An29 J. Luis & Miranda (2008)
+135.65  69.70  -16.51   67.02 !NAM<-IBE An30 J. Luis & Miranda (2008)
+132.63  77.31  -18.48   72.25 !NAM<-IBE An32 J. Luis & Miranda (2008)
+118.50  85.33  -22.05   78.00 !NAM<-IBE An33 J. Luis & Miranda (2008)
+119.98  85.92  -23.22   81.00 !NAM<-IBE An33r J. Luis & Miranda (2008)
+
+137.90  62.80   -7.311  33.25 !NAM<-EUR An13 Em Mov (res = 4.676) 
+139.70  60.40   -8.456  39.13 !NAM<-EUR An18 Em Mov (res = 3.878) 
+140.70  58.10   -9.134  43.14 !NAM<-EUR An20 Em Mov (res = 5.685) 
+142.50  53.10   -9.984  47.06 !NAM<-EUR An21 Em Mov (res = 4.081) 
+141.80  55.20  -10.662  49.37 !NAM<-EUR An22 Em Mov (res = 3.021) 
+147.70  57.80  -16.650  72.25 !NAM<-EUR An32 Em Mov (res = 4.762)
+148.00  64.40  -19.058  81.00 !NAM<-EUR An33r Em Mov (res = 2.330)
 
 140.50  46.4    -0.340   1.82 !NAM<-Jan Mayen  An2   Em Mov (res = 0.823)
 130.20  56.1    -0.610   3.06 !NAM<-Jan Mayen  An2A  Em Mov (res = 1.528)
@@ -52,6 +74,10 @@
 129.00  67.0    -2.465  10.30 !NAM<-Jan Mayen  An5   Em Mov (res = 1.501) 
 140.90  61.6    -3.755  16.37 !NAM<-Jan Mayen  An5C  Em Mov (res = 0.672)
 138.80  14.2    -3.290  19.60 !NAM<-Jan Mayen  An6   Em Mov (res = 2.115)
+
+126.50  68.00   -2.508  10.33 !NAM<-XXX  An5 Em Mov (res = 2.883)
+129.80  68.80   -4.807  19.60 !NAM<-XXX  An6 Em Mov (res = 3.238)
+129.80  66.20   -7.381  33.25 !NAM<-XXX An13 Em Mov (res = 2.823) 
 
 112.80  78.90   -3.840  10.30 !GRE<-EUR An5  Em Mov (res = 2.745)
 120.30  80.20   -7.550  19.55 !GRE<-EUR An6  Em Mov (res = 3.920)
@@ -75,43 +101,33 @@
 148.70  63.55  -18.865  81.00 !NAM<-POC An33r Em Mov (res = 1.539)
 
  40.2   79.2    -0.233   0.0  !NAM<-Nubia  MORVEL (deg/Ma)
- 34.42  79.02   -0.428   1.82 !NAM<-Nubia  An2   Em Mov (res = 1.374) Sem ZF24
- 34.72  79.02   -0.428   1.82 !NAM<-Nubia  An2   Em Mov (res = 1.658)
- 44.32  78.02   -0.706   3.06 !NAM<-Nubia  An2A  Em Mov (res = 1.451) Sem ZF24
- 31.42  78.42   -0.731   3.06 !NAM<-Nubia  An2A  Em Mov (res = 1.675)
- 35.30  78.40   -1.104   4.72 !NAM<-Nubia  An3   Em Mov (res = 1.913) Sem ZF24
- 39.20  78.80   -1.099   4.72 !NAM<-Nubia  An3   Em Mov (res = 2.146)
- 44.78  78.88   -1.448   6.20 !NAM<-Nubia  An3A  Em Mov (res = 1.476) Sem ZF24
- 41.48  78.88   -1.458   6.20 !NAM<-Nubia  An3A  Em Mov (res = 1.889)
- 50.90  79.32   -1.789   7.74 !NAM<-Nubia  An4   Em Mov (res = 1.527) Sem ZF24
- 51.20  79.52   -1.789   7.74 !NAM<-Nubia  An4   Em Mov (res = 1.880)
- 51.56  79.16   -2.090   8.88 !NAM<-Nubia  An4A  Em Mov (res = 1.406) Sem ZF24
- 40.76  79.56   -2.135   8.88 !NAM<-Nubia  An4A  Em Mov (res = 2.251)
- 51.94  79.48   -2.522  10.30 !NAM<-Nubia  An5   Em Mov (res = 2.626) Sem ZF24
- 46.54  80.08   -2.562  10.30 !NAM<-Nubia  An5   Em Mov (res = 3.464)
- 49.26  79.96   -4.296  16.37 !NAM<-Nubia  An5C  Em Mov (res = 2.683) Sem ZF24
- 38.49  79.96   -4.376  16.37 !NAM<-Nubia  An5C  Em Mov (res = 3.467)
- 32.32  80.44   -5.353  19.60 !NAM<-Nubia  An6   Em Mov (res = 3.352) Sem ZF24
- 31.72  80.64   -5.368  19.60 !NAM<-Nubia  An6   Em Mov (res = 3.705)
- 29.78  78.34   -7.541  27.47 !NAM<-Nubia  An9   Em Mov (res = 4.576)
-  3.32  75.41   -9.970  33.20 !NAM<-Nubia  An13  Em Mov (res = 3.434)
-  1.13  75.13  -12.155  39.13 !NAM<-Nubia  An18  Em Mov (res = 4.895) Sem ZF24
-  0.53  74.73  -12.245  39.13 !NAM<-Nubia  An18  Em Mov (res = 6.894)
- -1.27  74.55  -13.670  43.14 !NAM<-Nubia  An20  Em Mov (res = 4.077) 
- -3.83  75.01  -15.190  47.00 !NAM<-Nubia  An21  Em Mov (res = 5.579)
- -3.93  75.10  -16.060  49.37 !NAM<-Nubia  An22  Em Mov (res = 4.774)
- -2.73  78.11  -17.210  52.79 !NAM<-Nubia  An24  Em Mov (res = 5.560)
-  2.50  80.60  -18.120  56.20 !NAM<-Nubia  An25  Em Mov (res = 3.667)
- -3.10  82.36  -21.335  66.95 !NAM<-Nubia  An30  Em Mov (res = 6.961)
- -7.50  81.45  -23.040  72.24 !NAM<-Nubia  An32  Em Mov (res = 5.278)
--21.95  76.20  -29.62   81.00 !NAM<-Nubia  An33r Em Mov (res = 5.452)
--20.14  65.99  -54.45  121.25 !NAM<-Nubia  AnM0  Em movimento
--20.24  66.19  -55.00  122.45 !NAM<-Nubia  AnM1  Em movimento
--19.44  65.89  -56.62  126.57 !NAM<-Nubia  AnM5  Em movimento
--18.20  66.15  -57.47  134.49 !NAM<-Nubia  AnM10 Em movimento
--18.50  66.10  -59.48  143.20 !NAM<-Nubia  AnM16 Em movimento
--18.00  66.30  -62.47  152.03 !NAM<-Nubia  AnM22 Em movimento
--15.00  67.05  -64.61  156.17 !NAM<-Nubia  AnM25 Em movimento
+ 29.92  79.62   -0.433   1.82 !NAM<-Nubia  An2   Em Mov (res = 1.579)
+ 35.02  79.22   -0.722   3.06 !NAM<-Nubia  An2A  Em Mov (res = 1.791)
+ 36.50  80.00   -1.111   4.72 !NAM<-Nubia  An3   Em Mov (res = 2.148)
+ 44.78  79.68   -1.454   6.20 !NAM<-Nubia  An3A  Em Mov (res = 1.781)
+ 50.90  79.92   -1.794   7.74 !NAM<-Nubia  An4   Em Mov (res = 1.519)
+ 41.06  80.36   -2.136   8.88 !NAM<-Nubia  An4A  Em Mov (res = 1.951)
+ 47.14  80.48   -2.570  10.30 !NAM<-Nubia  An5   Em Mov (res = 2.474)
+ 48.69  80.36   -4.312  16.37 !NAM<-Nubia  An5C  Em Mov (res = 3.695)
+ 30.22  80.44   -5.382  19.60 !NAM<-Nubia  An6   Em Mov (res = 3.682)
+ 28.28  78.54   -7.565  27.47 !NAM<-Nubia  An9   Em Mov (res = 4.110)
+  3.32  75.41   -9.973  33.20 !NAM<-Nubia  An13  Em Mov (res = 3.290)
+ -0.37  74.73  -12.277  39.13 !NAM<-Nubia  An18  Em Mov (res = 6.220)
+ -1.57  74.55  -13.664  43.14 !NAM<-Nubia  An20  Em Mov (res = 3.913) 
+ -4.73  74.81  -15.264  47.00 !NAM<-Nubia  An21  Em Mov (res = 5.042)
+ -2.73  75.70  -16.013  49.37 !NAM<-Nubia  An22  Em Mov (res = 4.602)
+ -2.43  77.91  -17.217  52.79 !NAM<-Nubia  An24  Em Mov (res = 5.304)
+  3.10  80.60  -18.110  56.20 !NAM<-Nubia  An25  Em Mov (res = 3.628)
+ -4.30  81.96  -21.415  66.95 !NAM<-Nubia  An30  Em Mov (res = 6.588)
+ -7.80  81.45  -23.052  72.24 !NAM<-Nubia  An32  Em Mov (res = 5.384)
+-22.55  76.20  -29.660  81.00 !NAM<-Nubia  An33r Em Mov (res = 5.708)
+-20.14  65.99  -54.445 121.25 !NAM<-Nubia  AnM0  Em Mov (res = 3.886)
+-20.24  66.19  -55.002 122.45 !NAM<-Nubia  AnM1  Em Mov (res = 4.858)
+-19.44  65.89  -56.616 126.57 !NAM<-Nubia  AnM5  Em Mov (res = 3.214)
+-18.20  66.15  -57.469 134.49 !NAM<-Nubia  AnM10 Em Mov (res = 4.531)
+-18.50  66.10  -59.479 143.20 !NAM<-Nubia  AnM16 Em Mov (res = 3.040)
+-18.00  66.30  -62.465 152.03 !NAM<-Nubia  AnM22 Em Mov (res = 4.984)
+-15.00  67.05  -64.597 156.17 !NAM<-Nubia  AnM25 Em Mov (res = 6.062)
 
   0.0    0.00    0.0     0.0  !Nubia<-IBE Eurasia-Nubia (Nubia fixed)
 -20.40  21.60    0.131   0.0  !Nubia<-IBE MORVEL (deg/Ma)
