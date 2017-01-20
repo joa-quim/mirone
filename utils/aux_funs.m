@@ -104,7 +104,10 @@ function [x,y,indx,indy,hdr_str] = in_map_region(handles, x, y, tol, map_lims, h
 %   OPTIONS:
 %   TOL is used normally when ploting lines and serves to extend the map
 %       limits so that lines are allowed to be drawn until the image borders
+%       If TOL < 0, than lines that are even if only partialy inside are returned untouched.
 %   MAP_LIMS a 1x4 vector with [x_min x_max y_min y_max]. If not given it will be fetch here
+%	HDR_STR -> Very special case of GMT_DB polygons. Next time I see its contents here DOCUMENT me
+%
 %   NOTE THAT ALL ARGUMENTS MUST BE PROVIDED, EVEN IF THEY ARE EMPTY
 
 	if (isempty(tol)),	tol = 0;		end
@@ -130,8 +133,23 @@ function [x,y,indx,indy,hdr_str] = in_map_region(handles, x, y, tol, map_lims, h
 		indy = find((y < y_lim(1)-tol) | (y > y_lim(2)+tol));
 		x(indy) = [];           y(indy) = [];
 		set(handles.figure1,'CurrentAxes',handles.axes1)	% This is for the GCP mode be able to plot on the Master Image
+	elseif (tol < 0)			% Clip only the lines that are completely out of map. That is, partial in map are not clipped
+		keep_it = false;
+		indx = find((x > x_lim(1)) & (x <= x_lim(2)));
+		if (~isempty(indx))
+			indy = find((y(indx) >= y_lim(1)) & (y(indx) <= y_lim(2)));
+			if (~isempty(indy))
+				keep_it = true;
+			end
+		end
+		if (keep_it)
+			indx = [];		indy = [];
+		else
+			x = [];			y = [];			% All out, so delete them.
+			indx = 1:numel(x);		indy = indx;
+		end
 	else
-		indx = [];		indy = [];				% Set this while we don't do any cipping
+		indx = [];		indy = [];				% Set this while we don't do any clipping
 		if (nargin == 6)						% Very special case of GMT_DB polygons
 			ind_Gi = strfind(hdr_str, 'G = ');		ind_Ge = strfind(hdr_str, ' L =');	
 			%ind_Ei = strfind(hdr_str, 'E = ');		ind_Ee = strfind(hdr_str, ' S =');	
@@ -553,10 +571,14 @@ function [rx, ry] = adjust_rect(handles, rx, ry)
 	X = getappdata(handles.figure1,'dem_x');	Y = getappdata(handles.figure1,'dem_y');
 	dx2 = (X(2) - X(1)) / 2;		dPo_x = dx2 * 0.01;
 	dy2 = (Y(2) - Y(1)) / 2;		dPo_y = dy2 * 0.01;
-	ind = find((X - rx(1) > 0));	rx(1) = X(ind(1)) - dx2 + dPo_x;
-	ind = find((X - rx(2) > 0));	rx(2) = X(ind(1)) - dx2 - dPo_x;
-	ind = find((Y - ry(1) > 0));	ry(1) = Y(ind(1)) - dy2 + dPo_y;
-	ind = find((Y - ry(2) > 0));	ry(2) = Y(ind(1)) - dy2 - dPo_y;
+	ind = find((X - rx(1) > 0));
+	if (~isempty(ind)),		rx(1) = X(ind(1)) - dx2 + dPo_x;	end
+	ind = find((X - rx(2) > 0));
+	if (~isempty(ind)),		rx(2) = X(ind(1)) - dx2 - dPo_x;	end
+	ind = find((Y - ry(1) > 0));
+	if (~isempty(ind)),		ry(1) = Y(ind(1)) - dy2 + dPo_y;	end
+	ind = find((Y - ry(2) > 0));
+	if (~isempty(ind)),		ry(2) = Y(ind(1)) - dy2 - dPo_y;	end
 
 % --------------------------------------------------------------------
 function geog = guessGeog(lims)
@@ -853,8 +875,8 @@ function out = get_proj_string(hMirFig, opt)
 %
 % HMIRFIG -> can be a Mirone handles, a Mirone Fig handle or a string holding a proj4 OR WKT string
 % OPT     -> Optional. If not provided or empty OUT will return a PROJ4 string
-%            If equal to 'proj' OUT is a proj4 string otherwise OUT = to a WKT string
-% OUT     -> Besides what is said above, ot can be empty if we can not fish any
+%            If equal to 'proj' OUT is a PROJ4 string otherwise OUT = to a WKT string
+% OUT     -> Besides what is said above, OUT can be empty if we can not fish any
 %            projection info from HANDLES
 %
 % Examples: 
