@@ -127,6 +127,10 @@ function setLineStyle(item,cbs)
 	uimenu(item, 'Label', 'dashed', 'Call', cbs{2});
 	uimenu(item, 'Label', 'dotted', 'Call', cbs{3});
 	uimenu(item, 'Label', 'dash-dotted', 'Call', cbs{4});
+	if (numel(cbs) == 6)
+		uimenu(item, 'Label', 'Show markers', 'Call', cbs{5}, 'Sep', 'on');
+		uimenu(item, 'Label', 'Hide markers', 'Call', cbs{6});
+	end
 
 % -----------------------------------------------------------------------------------------
 function setLineColor(item,cbs)
@@ -206,6 +210,8 @@ function set_line_uicontext_XY(h, opt)
 		cb_dashed  = 'set(gco, ''LineStyle'', ''--''); refresh';
 		cb_dotted  = 'set(gco, ''LineStyle'', '':''); refresh';
 		cb_dashdot = 'set(gco, ''LineStyle'', ''-.''); refresh';
+		cb_markers_on = 'set(gco, ''Marker'', ''c'', ''MarkerFaceColor'', get(gco, ''Color''), ''MarkerSize'',6); refresh';
+		cb_markers_off = 'set(gco, ''Marker'', ''none''); refresh';
 		cb_color   = uictx_color(h(k));				% there are 9 cb_color outputs
 
 		uimenu(cmenuHand, 'Label', 'Delete', 'Call', {@del_line,h(k)});
@@ -222,9 +228,8 @@ function set_line_uicontext_XY(h, opt)
 			uimenu(cmenuHand, 'Label', 'Line length', 'Call', @show_LineLength_XY)
 		end
 		setLineWidth(uimenu(cmenuHand, 'Label', 'Line Width', 'Sep','on'), cb_LineWidth)
-		setLineStyle(uimenu(cmenuHand, 'Label', 'Line Style'), {cb_solid cb_dashed cb_dotted cb_dashdot})
+		setLineStyle(uimenu(cmenuHand, 'Label', 'Line Style'), {cb_solid cb_dashed cb_dotted cb_dashdot cb_markers_on cb_markers_off})
 		setLineColor(uimenu(cmenuHand, 'Label', 'Line Color'), cb_color)
-		uimenu(cmenuHand,  'Label', 'Show data points', 'Sep','on');
 	end
 
 % -----------------------------------------------------------------------------------------
@@ -1261,7 +1266,7 @@ function set_isochrons_uicontext(h, data)
 	uimenu(item_allThis, 'Label', 'Delete all', 'Call', {@remove_symbolClass,h});
 	uimenu(item_allThis, 'Label', 'Save all', 'Call',   {@save_line,h});
 
-	cb_ClassColor = uictx_Class_LineColor(h);        % there are 9 cb_color outputs
+	cb_ClassColor = uictx_Class_LineColor(h);        % there are 9 cb_color outputs. SHIT, IF h IS MULTIPLE WE CAN'T SET INDIVIDUAL COLORS
 	setLineColor(uimenu(item_allThis, 'Label', 'Color'), cb_ClassColor)
 	cb_ClassLineWidth = uictx_Class_LineWidth(h);    % there are 5 cb_ClassLineWidth outputs
 	item_Class_lw = uimenu(item_allThis, 'Label', 'Line Width');
@@ -2057,15 +2062,14 @@ function cb = uictx_color(h, opt)
 	cb{7} = ['set(gco,''' c_type ''',''c'');refresh'];       cb{8} = ['set(gco,''' c_type ''',''m'');refresh'];
 	cb{9} = {@other_color,h,opt};
 
-	function other_color(obj,eventdata,h,opt)
+	function other_color(obj, evt, h, opt)
 	if (nargin == 3),   opt = [];   end
 	c = uisetcolor;
-	if (length(c) > 1),			% That is, if a color was selected
-		if ~isempty(opt) && ischar(opt)
-			set(h,opt,c);   refresh;
-		else
-			set(h,'color',c);   refresh;
-		end
+	if (isequal(c, 0)),		return,		end			% User gave up
+	if (~isempty(opt) && ischar(opt))
+		set(h, opt, c);   refresh;
+	else
+		set(h,'color',c);   refresh;
 	end
 % -----------------------------------------------------------------------------------------
 
@@ -3171,7 +3175,7 @@ function mareg_online(obj,eventdata,h, data, opt)
 	fid = fopen(dest_fiche,'r');
 	todos = fread(fid,'*char');
 	if (numel(todos) < 100)
-		warndlg('This station has no data or a file tranfer error occured.','Warning')
+		warndlg(sprintf('This station has no data or a file tranfer error occured.\nYou may inquire this web site to see why\n%s',url),'Warning')
 		fclose(fid);		return
 	end
 	ind = strfind(todos(1:128)',sprintf('\n'));
