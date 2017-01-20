@@ -111,6 +111,7 @@ function varargout = load_xyz(handles, opt, opt2)
 	do_polymesh = false;		% To flag when the imported file is a 'Nesting polygons' for unstructured grids
 	isGSHHS = false;			% To flg when we are dealing with a GSHHS polygon
 	goto_XY = false;			% To flag when data will be send to the XYtool
+	projStr = '';				% To hold a proj4 string stored in multi-segment headers
 	% -------------------------------------------------------------------------------
 
 	% ------------------- PARSE INPUTS ----------------------------------------------
@@ -149,12 +150,14 @@ function varargout = load_xyz(handles, opt, opt2)
 		if (strncmpi(line_type,'isochron',4) || strcmpi(line_type,'FZ'))
 			if (strncmpi(line_type,'isochron',4))
 				tag = 'isochron';		fname = [handles.path_data 'isochrons.dat'];
+				tol = -1;		% Tell the clipping function (in_map_region) to NOT clip the partially inside lines
 			else
 				tag = 'FZ';				fname = [handles.path_data 'fracture_zones.dat'];
 			end
 			got_internal_file = true;	PathName = handles.path_data;
 			line_type = 'i_file';
 		end
+		if (got_pick),	tol = -1;	end		% See right above for the why
 	end
 	% ------------------- END PARSE INPUTS------------------------------------------------
 
@@ -419,8 +422,11 @@ function varargout = load_xyz(handles, opt, opt2)
 			do_patch = true;
 
 		elseif (strncmpi(multi_segs_str{1}, '>HAVE_INCLUDES', 7))	% This file includes other files
-			if (numel(multi_segs_str) - numel(numeric_data) >= 2)	% Test if first segment has a true header
-				multi_segs_str(1) = [];								% (Yes, it has). This header was now in excess.
+			if (numel(multi_segs_str) - numel(numeric_data) > 1)	% Test if first segment has a true header
+				if (numel(multi_segs_str{1}) > 14)					% If there is more beyond '>HAV...', see if it's a proj string
+					projStr = parseProj(multi_segs_str{1});
+				end
+				multi_segs_str(1) = [];								% This header was now in excess.
 			else
 				multi_segs_str{1} = '> Nikles ';					% We need a first header that didn't exist
 			end
@@ -542,13 +548,13 @@ function varargout = load_xyz(handles, opt, opt2)
 		% -----------------------------------------------------------------------------------
 
 		% ------------------ Check if it is a GSHHS or WDBII file ---------------------------
-		if (isGSHHS)
-			tag = 'GMT_DBpolyline';
-		end
+		if (isGSHHS),	tag = 'GMT_DBpolyline';		end
 		% -----------------------------------------------------------------------------------
 
 		% ------------------ Check if first header line has a PROJ4 string ------------------
-		[projStr, multi_segs_str{1}] = parseProj(multi_segs_str{1});
+		if (isempty(projStr))		% Might already have been known for example in the HAVE_INCLUDES case
+			[projStr, multi_segs_str{1}] = parseProj(multi_segs_str{1});
+		end
 		if (~isempty(projStr)),		do_project = true;		end
 		% -----------------------------------------------------------------------------------
 
@@ -595,11 +601,11 @@ function varargout = load_xyz(handles, opt, opt2)
 			end
 			% ----- Result consequences of this option is resumed further down, but before we have to check trimming -----
 
-			indx = false;	indy = false;			% Default to no need for map clipping
+			indx = [];		indy = [];				% Default to no need for map clipping
 			if (handles.no_file)
 				tmpx = numeric_data{i}(:,1);		tmpy = numeric_data{i}(:,2);
 			else
-	 			difes = [(double(numeric_data{i}(1,1)) - double(numeric_data{i}(end,1)) ) ...	% Remember R13
+	 			difes = [(double(numeric_data{i}(1,1)) - double(numeric_data{i}(end,1))) ...	% Remember R13
 					(double(numeric_data{i}(1,2)) - double(numeric_data{i}(end,2)))];
 				if (any(abs(difes) > 1e-5))			% Assume a not closed polygon
 					[tmpx, tmpy, indx, indy] = ...	% Get rid of points that are outside the map limits
