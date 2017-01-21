@@ -18,7 +18,7 @@ function  varargout = aux_funs(opt,varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: aux_funs.m 9987 2017-01-20 11:46:46Z j $
+% $Id: aux_funs.m 9990 2017-01-21 02:14:30Z j $
 
 switch opt(1:4)
 	case 'Stor'		% 'StoreZ'
@@ -774,7 +774,7 @@ function out = seek_OPTcontrol(KEY)
 	m = numel(lines);
 	for (k = 1:m)
 		if (~strncmp(lines{k}, KEY, numel(KEY))),	continue,	end
-		% If we reach here that's becasuse the KEY line wsa found
+		% If we reach here that's becasuse the KEY line was found
 		[t,opt] = strtok(lines{k});
 		if (isempty(opt))
 			opt = 'M';			% Default to good old Magnetics
@@ -783,6 +783,41 @@ function out = seek_OPTcontrol(KEY)
 		out.grav = ~isempty(strfind(opt,'G'));
 		out.mag  = ~isempty(strfind(opt,'M'));
 		out.topo = ~isempty(strfind(opt,'T'));
+		break
+	end
+
+% --------------------------------------------------------------------------------
+function [got_it, pars] = inquire_OPTcontrol(KEY, fname)
+% Inquire the contents of the OPTcontrol.txt file to see if KEY is active and return also
+% its eventual parameters.
+% FNAME (optional) is the full name of the OPTcontrol.txt file. If not provided we try to fish it here.
+% GOT_IT will be either 'true' or 'false' depending on if KEY exists
+% PARS is a string holding the eventual extra parameters associated to KEY, or empty if
+%      no extra params. It's the caller responsability to further process the PARS contents.
+	got_it = false;	pars = '';
+	if (nargin == 1)
+		mir_dirs = getappdata(0,'MIRONE_DIRS');
+		if (~isempty(mir_dirs))
+			fname = [mir_dirs.home_dir '/data/OPTcontrol.txt'];
+		else
+			error('Cannot find the OPTcontrol.txt file')
+		end
+	end
+	if (~(exist(fname, 'file') == 2))
+		errordlg(['File ' fname ' does not exist'], 'Error')
+		return
+	end
+
+	fid = fopen(fname, 'r');
+	c = (fread(fid,'*char'))';      fclose(fid);
+	lines = strread(c,'%s','delimiter','\n');   clear c fid;
+	m = numel(lines);
+	for (k = 1:m)
+		if (~strncmp(lines{k}, KEY, numel(KEY))),	continue,	end
+		% If we reach here that's becasuse the KEY line was found
+		[t, r] = strtok(lines{k});
+		got_it = true;
+		pars = ddewhite(r);
 		break
 	end
 
