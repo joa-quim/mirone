@@ -16,7 +16,7 @@ function varargout = euler_stuff(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: euler_stuff.m 9961 2016-12-21 03:04:35Z j $
+% $Id: euler_stuff.m 9994 2017-01-22 18:00:11Z j $
 
 	if (isempty(varargin))
 		errordlg('EULER_STUFF: wrong number of input arguments.','Error'),	return
@@ -464,7 +464,9 @@ function push_showGMT_CB(hObject, handles)
 	if (isempty(poles_name))
 		errordlg('No stage poles provided','Error');    return
 	end
-	
+	if (isempty(handles.h_line_orig) || ~ishandle(handles.h_line_orig(1)))
+		warningdlg('Need a line to work with.', 'WarnError'),	return
+	end
 	x = get(handles.h_line_orig(1),'XData');       y = get(handles.h_line_orig(1),'YData');
 	old = handles.ages(end);
 	str = sprintf('echo %.4f %.4f %.1f | backtracker -E%s -Db -Lf-1 -N%.1f', x(1), y(1), old, poles_name, old);
