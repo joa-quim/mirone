@@ -1061,21 +1061,25 @@ if ~isempty(opt2)		% Here we have to update the image in the processed region
 		aux_funs('colormap_bg',handles,Z,get(handles.figure1,'Colormap'));
 	end
 	z_int = uint8(round( ((double(Z_rect) - z_min) / (z_max - z_min))*255 ));
-	if (handles.Illumin_type >= 1 && handles.Illumin_type <= 4)
-		illumComm = getappdata(handles.figure1,'illumComm');
-		z_int = ind2rgb8(z_int,get(handles.figure1,'Colormap'));	% z_int is now RGB
-		if (handles.Illumin_type == 1)
-			opt_N = sprintf('-Nt1/%.6f/%.6f',handles.grad_sigma, handles.grad_offset);
-			if (handles.geog),	R = grdgradient_m(Z_rect,head,'-M',illumComm,opt_N);
-			else				R = grdgradient_m(Z_rect,head,illumComm,opt_N);
+	if (numel(Z_rect) > 9)		% This excludes the case of SetConst in which Z_rect is a scalar
+		if (handles.Illumin_type >= 1 && handles.Illumin_type <= 4)
+			illumComm = getappdata(handles.figure1,'illumComm');
+			z_int = ind2rgb8(z_int,get(handles.figure1,'Colormap'));	% z_int is now RGB
+			if (handles.Illumin_type == 1)
+				opt_N = sprintf('-Nt1/%.6f/%.6f',handles.grad_sigma, handles.grad_offset);
+				if (handles.geog),	R = grdgradient_m(Z_rect,head,'-M',illumComm,opt_N);
+				else				R = grdgradient_m(Z_rect,head,illumComm,opt_N);
+				end
+			else
+				R = grdgradient_m(Z_rect,head,illumComm, '-a1');
 			end
-		else
-			R = grdgradient_m(Z_rect,head,illumComm, '-a1');
+			z_int = shading_mat(z_int,R,'no_scale');	% and now it is illuminated
+		elseif (handles.Illumin_type ~= 0)
+			warndlg('Sorry, this operation is not allowed with this shading illumination type','Warning')
+			return
 		end
-		z_int = shading_mat(z_int,R,'no_scale');	% and now it is illuminated
-	elseif (handles.Illumin_type ~= 0)
-		warndlg('Sorry, this operation is not allowed with this shading illumination type','Warning')
-		return
+	elseif (numel(Z_rect) == 1 && isnan(Z_rect))
+		z_int = handles.bg_color(1);
 	end
 	if (isempty(img)),		img = get(handles.hImg,'CData');	end		% If img was not recomputed, get from screen 
 	handles.img_back = img(r_c(1):r_c(2),r_c(3):r_c(4),1:end);			% For the undo op
@@ -3382,7 +3386,7 @@ function DrawImportShape_CB(handles, fname)
 % --------------------------------------------------------------------
 function GeophysicsImportGmtFile_CB(handles, opt)
 % Open a .gmt/.nc(MGD77+) file OR a list of .gmt/.nc files
-	if (~handles.no_file && ~handles.geog),		aux_funs('msg_dlg',1,handles);		return,		end
+	if (~handles.no_file && ~handles.geog && ~handles.is_projected),	aux_funs('msg_dlg',1,handles);		return,		end
 	if (strncmp(opt, 'list', 4))
 		if (numel(opt) == 4)			% Else OPT contains already the name of the file with list
 			str1 = {'*.dat;*.DAT;*.txt;*.TXT', 'Data files (*.dat,*.DAT,*.txt,*.TXT)';'*.*', 'All Files (*.*)'};
@@ -3413,9 +3417,22 @@ function GeophysicsImportGmtFile_CB(handles, opt)
 		handles.no_file = 0;	handles.geog = 1;	guidata(handles.figure1, handles)
 	else
 		x_lim = get(handles.axes1,'XLim');		y_lim = get(handles.axes1,'YLim');
+		if (handles.is_projected)
+			proj = aux_funs('get_proj_string', handles.figure1, 'proj');
+			[xy, msg] = proj2proj_pts([], [x_lim(:) y_lim(:)], 'srcProj4', proj, 'dstProj4', '+proj=longlat');
+			if (~isempty(msg)),		errordlg(msg, 'Error'),		return,		end
+			x_lim = xy(:,1);		y_lim = xy(:,2);
+		end
 		opt_R = sprintf('-R%.6f/%.6f/%.6f/%.6f', x_lim(1), x_lim(2), y_lim(1), y_lim(2));
 		[track, names, names_ui, vars] = aux_funs('get_mgg', names, PathName, '-Fxym', '-G', opt_R);
 		if (isempty(names)),	return,		end			% Non existing files probably
+		if (handles.is_projected)
+			for (k = 1:numel(track))
+				xy = proj2proj_pts([], [track(k).longitude(:) track(k).latitude(:)], 'dstProj4', proj, 'srcProj4', '+proj=longlat');
+				track(k).longitude = xy(:,1);
+				track(k).latitude  = xy(:,2);
+			end
+		end
 	end
 
 	% And finaly do the ploting
