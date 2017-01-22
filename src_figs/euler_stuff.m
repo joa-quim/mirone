@@ -464,7 +464,9 @@ function push_showGMT_CB(hObject, handles)
 	if (isempty(poles_name))
 		errordlg('No stage poles provided','Error');    return
 	end
-	
+	if (isempty(handles.h_line_orig) || ~ishandle(handles.h_line_orig(1)))
+		warningdlg('Need a line to work with.', 'WarnError'),	return
+	end
 	x = get(handles.h_line_orig(1),'XData');       y = get(handles.h_line_orig(1),'YData');
 	old = handles.ages(end);
 	str = sprintf('echo %.4f %.4f %.1f | backtracker -E%s -Db -Lf-1 -N%.1f', x(1), y(1), old, poles_name, old);
