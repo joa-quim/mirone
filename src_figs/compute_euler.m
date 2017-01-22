@@ -24,7 +24,7 @@ function varargout = compute_euler(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: compute_euler.m 9979 2017-01-06 00:49:42Z j $
+% $Id: compute_euler.m 9995 2017-01-22 18:02:16Z j $
 
 	if (isempty(varargin) || (numel(varargin) >= 2 && numel(varargin) <= 5))
 		errordlg('COMPUTE EULER: wrong number of input arguments.','Error'),	return
@@ -97,6 +97,7 @@ function varargout = compute_euler(varargin)
 	handles.DP_tol = 0.05;
 	handles.residGrdName = [];
 	handles.is_spheric = true;
+	handles.projection = '';		% To use if lines are in projected coords.
 	set(handles.slider_wait,'Max',handles.nInt_lon)
 
 	handles.hCallingFig = varargin{1};        % This is the Mirone's fig handle
@@ -107,8 +108,11 @@ function varargout = compute_euler(varargin)
 		delete(hObject);    return
 	end
 	if (~handMir.geog)
-		errordlg('This operation is currently possible only for geographic type data','ERROR')
-		delete(hObject);    return
+		handles.projection = aux_funs('get_proj_string', handMir.figure1, 'proj');
+		if (isempty(handles.projection))
+			errordlg('This operation is currently possible only for geographic or when the projection is known.','ERROR')
+			delete(hObject);    return
+		end
 	end
 	handles.home_dir = handMir.home_dir;
 	handles.path_continent  = [handMir.home_dir filesep 'continents' filesep];
@@ -300,8 +304,8 @@ function toggle_pickLines_CB(hObject, handles)
 			errordlg(str,'Chico Clever');   set(hObject,'Value',0);     return;
 		end
 
-		% The above test is not enough. For exemple, coastlines are not eligible neither,
-		% but is very cumbersome to test all the possibilities of pure non-eligible lines.
+		% The above test is not enough. For exemple, coastlines are not eligible either,
+		% but it's very cumbersome to test all the possibilities of pure non-eligible lines.
 		set(handles.hCallingFig,'pointer','crosshair')
 		h_line1 = get_polygon(handles.hCallingFig);		% Get first line handle
 		if (~isempty(h_line1))
@@ -421,7 +425,7 @@ function out = outward_displacement_treta(handles)
 % See if the OPTcontrol.txt file has an outward displacement file entry
 	opt_file = [handles.home_dir filesep 'data' filesep 'OPTcontrol.txt'];
 	out = [];
-	if ( exist(opt_file, 'file') == 2 )
+	if (exist(opt_file, 'file') == 2 )
 		fid = fopen(opt_file, 'r');
 		c = (fread(fid,'*char'))';      fclose(fid);
 		lines = strread(c,'%s','delimiter','\n');   clear c fid;
@@ -469,6 +473,20 @@ function push_compute_CB(hObject, handles)
 		errordlg(['I need a first guess of the Euler pole you are seeking for.' ...
 			'Pay attention to the "Starting Pole Section"'],'Error')
 		return
+	end
+
+	% See if data is in projected coords and convert to geogs in case they are
+	if (~isempty(handles.projection))
+		[xy, msg] = proj2proj_pts([], handles.isoca1, 'srcProj4', handles.projection, 'dstProj4', '+proj=longlat');
+		if (~isempty(msg))
+			errordlg(msg, 'Error'),		return
+		end
+		% If no error, we'll trust that isoca 2 converts nicelly as well.
+		handles.isoca1_bak = handles.isoca1;
+		handles.isoca1 = xy;
+		xy = proj2proj_pts([], handles.isoca2, 'srcProj4', handles.projection, 'dstProj4', '+proj=longlat');
+		handles.isoca2_bak = handles.isoca2;
+		handles.isoca2 = xy;
 	end
 
 	% Check if we have an Outward Displacement request placed in OPTcontrol.txt. If not 'out' is []
@@ -519,6 +537,12 @@ function push_compute_CB(hObject, handles)
 		end
 	end
 
+	if (~isempty(handles.projection))			% Not sure that I have to do this!
+		handles.isoca1 = handles.isoca1_bak;
+		handles.isoca2 = handles.isoca2_bak;
+		guidata(handles.figure1, handles)
+	end
+
 	if (~isempty(get(handles.edit_pLon_fim,'Str')))	% If a new pole was computed set this button visible (driven by lazyness)
 		set(handles.push_reciclePole,'Vis', 'on')
 	else
@@ -559,7 +583,7 @@ function [polLon, polLat, polAng, area_f] = calca_pEuler(handles, do_weighted, i
 %		area_f = calca_pEuler(handles, do_weighted, isGUI, OD)
 % and
 %		[area_f, rlon, rlat] = calca_pEuler(handles, do_weighted, isGUI, OD)
-% compute only the initial residue and/or residue plurs rotated line. Pole parameters are stored in handles.
+% compute only the initial residue and/or residue plus rotated line. Pole parameters are stored in handles.
 % These two forms are used by the Hellinger case to compute the residues and plot the rotated line.
 
 	D2R = pi / 180;		h_line = [];
@@ -644,7 +668,11 @@ function [polLon, polLat, polAng, area_f] = calca_pEuler(handles, do_weighted, i
 	end
 
 	if (handles.do_graphic)
-		set(handles.edit_InitialResidue,'String',sprintf('%.4f', area0));    pause(0.01)
+		set(handles.edit_InitialResidue,'String',sprintf('%.4f', area0));    pause(0.001)
+		if (~isempty(handles.projection))
+			xy = proj2proj_pts([], [rlon rlat]/D2R, 'srcProj4', '+proj=longlat', 'dstProj4', handles.projection);
+			rlon = xy(:,1);		rlat = xy(:,2);
+		end
 		set(h_line,'XData',rlon,'YData',rlat)
 	end
 
@@ -723,7 +751,7 @@ function [lon_bf, lat_bf, omega_bf, area_f, resid] = ...
 
 	X = isoca2(:,1) .* cos(isoca2(:,2)) * 6371;		Y = isoca2(:,2) * 6371;
 	i_m = 1;	j_m = 1;	k_m = 0;
-	for i = 1:nLon			% Loop over n lon intervals
+	for (i = 1:nLon)			% Loop over n lon intervals
 		if (isGUI && get(handles.slider_wait,'Max') == 1)			% The STOP button was pushed. So, stop
 			set(handles.slider_wait,'Max',handles.nInt_lon)			% Reset it for the next run
 			area_f = -1;		resid = [];
@@ -731,7 +759,7 @@ function [lon_bf, lat_bf, omega_bf, area_f, resid] = ...
 		end
 		s_lon = sin(isoca1(:,1) - p_lon(i));	c_lon = cos(isoca1(:,1) - p_lon(i));
 		cc = c_lat .* c_lon;
-		for j = 1:nLat		% Loop over n lat intervals
+		for (j = 1:nLat)		% Loop over n lat intervals
 			if (isGUI && get(handles.slider_wait,'Max') == 1)		% The STOP button was pushed. So, stop
 				set(handles.slider_wait,'Max',handles.nInt_lon)		% Reset it for the next run
 				area_f = -1;	resid = [];
@@ -742,7 +770,7 @@ function [lon_bf, lat_bf, omega_bf, area_f, resid] = ...
 			s_lat_ = p_sin_lat * s_lat + p_cos_lat * cc;
 			c_lat_ = sqrt(1 - s_lat_ .* s_lat_);
 			if (isGUI && ~rem(j,10)),		set(handles.slider_wait,'Value',i),		drawnow;	end	% Otherwise slider may stall
-			for k = 1:nAng	% Loop over n omega intervals
+			for (k = 1:nAng)		% Loop over n omega intervals
 				%[rlon,rlat] = rot_euler(isoca1(:,1),isoca1(:,2),p_lon(i),p_lat(j),p_omeg(k),'radians',-1);
 
                 %lat = atan2( (1-ecc^2)*sin(isoca1(:,2)), cos(isoca1(:,2)) );
@@ -782,8 +810,13 @@ function [lon_bf, lat_bf, omega_bf, area_f, resid] = ...
 					i_m = i;	j_m = j;	k_m = k;
 					if (handles.do_graphic)
 						rlat = atan2(sin(rlat), (1-ecc^2)*cos(rlat));		% Convert back to geodetic latitudes
-						set(h_line,'XData',rlon/D2R,'YData',rlat/D2R)
-						pause(0.01)
+						rlon = rlon / D2R;		rlat = rlat / D2R;
+						if (~isempty(handles.projection))
+							xy = proj2proj_pts([], [rlon rlat], 'srcProj4', '+proj=longlat', 'dstProj4', handles.projection);
+							rlon = xy(:,1);		rlat = xy(:,2);
+						end
+						set(h_line,'XData',rlon,'YData',rlat)
+						pause(0.001)
 					end
 					if (isGUI)
 						set(handles.edit_pLon_fim,'String',sprintf('%.3f', p_lon(i) / D2R))
