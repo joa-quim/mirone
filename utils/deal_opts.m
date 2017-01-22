@@ -10,7 +10,7 @@ function out = deal_opts(opt, opt2, varargin)
 % OPT2 optionally may hold the name of an internal sub-function, in which case that function
 % is called with optional extra arguments transmited in varargin
 
-%	Copyright (c) 2004-2016 by J. Luis
+%	Copyright (c) 2004-2017 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -25,7 +25,7 @@ function out = deal_opts(opt, opt2, varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: deal_opts.m 9984 2017-01-12 12:03:24Z j $
+% $Id: deal_opts.m 9991 2017-01-22 17:49:25Z j $
 
 	if (nargin > 1 && ischar(opt2))
 		if (nargout)
@@ -76,6 +76,7 @@ function out = deal_opts(opt, opt2, varargin)
 							hCust = uimenu(opt2, 'Label', 'Custom','Sep','on');
 						end
 						uimenu(hCust, 'Label', 'MGG tracks', 'Call',  @get_MGGtracks);
+						uimenu(hCust, 'Label', 'MGG from file list', 'Call',  {@get_MGGtracks, ''});
 						break
 					end
 
@@ -242,12 +243,13 @@ function tracks = get_MGGtracks(obj, evt, x, y)
 % The form: [tracks = ] get_MGGtracks(obj, evt, fname) is used when we already know the file
 %	that we want to plot but want to reuse all the checking/finding machinery of this function.
 %	If FNAME has no extension, we assume a .nc file
+%	FNAME can also be an empty string to mean "Ask for a file with the list of .nc files to plot"
 %
 % When an output is requested it will hold either a file name containing a list of the tracks
 % or a cell array with the fullpath of each track.
 % In either case, the tracks are not ploted.
 
-	get_tracks_only = false;	fname = '';
+	get_tracks_only = false;	fname = NaN;
 	if (nargin == 2)
 		h = gco;
 		x = get(h,'XData');			y = get(h,'YData');
@@ -260,16 +262,30 @@ function tracks = get_MGGtracks(obj, evt, x, y)
 
 	MIRONE_DIRS = getappdata(0,'MIRONE_DIRS');
 	tmp_file = [MIRONE_DIRS.home_dir filesep 'tmp' filesep 'MGGtracks.txt'];
-	if (isempty(fname))
+	if (isnan(fname))
 		lim = sprintf('-R%.4f/%.4f/%.4f/%.4f',x(1),x(3),y(1:2));
 		if (ispc)
 			dos(['x2sys_get -TMGD77+ -Fmtf1 -D -E ' lim ' > ' tmp_file]);
 		else
 			unix(['x2sys_get -TMGD77+ -Fmtf1 -D -E ' lim ' > ' tmp_file]);
 		end
-	else					% A track name was transmitted in input, so use it instead
-		[pato, name, ext] = fileparts(fname);
-		if (isempty(ext)),	fname = [fname '.nc'];	end
+	else						% A track name or a request for a list file was transmitted in input, so use it instead
+		if (~isempty(fname))	% A file
+			[pato, name, ext] = fileparts(fname);
+			if (isempty(ext)),	fname = [fname '.nc'];	end
+		else					% Ask for a file list
+			[FileName,PathName,x.x] = put_or_get_file(MIRONE_DIRS,{'*.txt;*.TXT', 'MGG file list (*.txt,*.TXT)';'*.*', ...
+				'All Files (*.*)'},'Select file','get');
+			if isequal(FileName,0),		return,		end
+			fid = fopen([PathName FileName], 'rt');
+			fname = fread(fid,'*char');		fclose(fid);
+			files = strread(fname, '%s');
+			pato = fileparts(files{1});
+			if (isempty(pato))				% Then we must prepend the path to all files
+				for (k = 1:numel(files)),	files{k} = [PathName files{k}];		end
+				fname = files;
+			end
+		end
 		fid = fopen(tmp_file, 'w');
 		fprintf(fid, '%s\n', fname);
 		fclose(fid);
