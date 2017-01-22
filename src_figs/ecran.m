@@ -38,7 +38,7 @@ function varargout = ecran(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: ecran.m 9977 2017-01-06 00:45:12Z j $
+% $Id: ecran.m 9996 2017-01-22 18:04:29Z j $
 
 	% This before-start test is to allow updating magnetic tracks that are used to pick the isochrons
 	% using the convolution method. If no synthetic plot is found, the whole updating issue is simply ignored.
@@ -1983,9 +1983,9 @@ function push_syntheticRTP_CB(hObject, handles)
 	handles.syntPar.ageStretch = 0;		% If needed, tt will expanded further down
 	handles.syntPar.agePad = 1.5;		% Is overwriten by value in OPTcontrol. Probably too short for older isochrons
 
-	% See if the  case the OPTcontrol.txt file has relevant info for this run
+	% See if the case the OPTcontrol.txt file has relevant info for this run
 	opt_file = [handles.home_dir filesep 'data' filesep 'OPTcontrol.txt'];
-	if ( exist(opt_file, 'file') == 2 )
+	if (exist(opt_file, 'file') == 2)
 		fid = fopen(opt_file, 'r');
 		c = (fread(fid,'*char'))';      fclose(fid);
 		lines = strread(c,'%s','delimiter','\n');   clear c fid;
@@ -2067,24 +2067,40 @@ function push_syntheticRTP_CB(hObject, handles)
 			end
 		end
 	end
-	if (isempty(dxyp) && isempty(handles.batTrack))
-		dxyp = [handles.dist * scale_x handles.data(:,1:2) ones(size(handles.data,1),1)*2.5];
-	elseif (isempty(dxyp) && ~isempty(handles.batTrack))
-		dxyp = [handles.dist * scale_x handles.data(:,1:2) handles.batTrack(:)];
+
+	if (handles.handMir.is_projected)		% In this case we wont expect to have a bathymetry profile
+		proj = aux_funs('get_proj_string', handles.handMir.figure1, 'proj');
+		[xy, msg] = proj2proj_pts([], handles.data(:,1:2), 'srcProj4', proj, 'dstProj4', '+proj=longlat');
+		if (~isempty(msg))
+			errordlg(msg, 'Error'),		return
+		end
+		rd = get_distances(xy(:,1), xy(:,2), 1, 'k', handles.ellipsoide);
+		dxyp = [rd xy ones(size(handles.data,1),1)*2.5];
+		if (handles.syntPar.speed > 25)		% Previous value was based on projected coords
+			handles.syntPar.speed =  2 * rd(end) / (handles.ageEnd - handles.ageStart) * 0.1;
+		end
+		handles.syntPar.dir_profile = azimuth_geo(xy(1,2), xy(1,1), xy(end,2), xy(end,1));
+		handles.syntPar.dir_spread  = handles.syntPar.dir_profile;
+	else
+		if (isempty(dxyp) && isempty(handles.batTrack))
+			dxyp = [handles.dist * scale_x handles.data(:,1:2) ones(size(handles.data,1),1)*2.5];
+		elseif (isempty(dxyp) && ~isempty(handles.batTrack))
+			dxyp = [handles.dist * scale_x handles.data(:,1:2) handles.batTrack(:)];
+		end
 	end
 
 	[anom, handles.age_line] = magmodel(handles.axes2, [handles.d_path 'Cande_Kent_95.dat'], dxyp, handles.syntPar.dec, ...
 			handles.syntPar.inc, handles.syntPar.speed, handles.syntPar.dir_spread, handles.syntPar.dir_profile, 0, contamin);
 
 	if (isempty(handles.hSynthetic))
-		if ( strncmp(get(handles.axes2,'XDir'),'normal', 3) )
+		if (strncmp(get(handles.axes2,'XDir'),'normal', 3))
 			handles.hSynthetic = line('XData', handles.dist, 'YData', anom, 'Parent', handles.axes1, 'Color', 'r');
 		else
 			handles.hSynthetic = line('XData', handles.dist(end:-1:1), 'YData', anom, 'Parent', handles.axes1, 'Color', 'r');
 		end
 		uistack_j(handles.hSynthetic, 'bottom')		% It's preferable to have it lower on stack than data profile
 	else
-		if ( strncmp(get(handles.axes2,'XDir'),'normal', 3) )
+		if (strncmp(get(handles.axes2,'XDir'),'normal', 3))
 			set(handles.hSynthetic, 'XData', handles.dist, 'YData', anom)
 		else
 			set(handles.hSynthetic, 'XData', handles.dist(end:-1:1), 'YData', anom)
