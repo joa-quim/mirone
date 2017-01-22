@@ -149,7 +149,11 @@ function varargout = load_xyz(handles, opt, opt2)
 		end
 		if (strncmpi(line_type,'isochron',4) || strcmpi(line_type,'FZ'))
 			if (strncmpi(line_type,'isochron',4))
-				tag = 'isochron';		fname = [handles.path_data 'isochrons.dat'];
+				[got_it, fname] = aux_funs('inquire_OPTcontrol', 'MIR_ISOC', [handles.home_dir '/data/OPTcontrol.txt']);
+				if (~got_it)				% Than use the default name
+					fname = [handles.path_data 'isochrons.dat'];
+				end
+				tag = 'isochron';
 				tol = -1;		% Tell the clipping function (in_map_region) to NOT clip the partially inside lines
 			else
 				tag = 'FZ';				fname = [handles.path_data 'fracture_zones.dat'];
@@ -158,6 +162,10 @@ function varargout = load_xyz(handles, opt, opt2)
 			line_type = 'i_file';
 		end
 		if (got_pick),	tol = -1;	end		% See right above for the why
+	end
+	if (~(exist(fname, 'file') == 2))
+		errordlg(['File ' fname ' does not exist'], 'Error')
+		return
 	end
 	% ------------------- END PARSE INPUTS------------------------------------------------
 
@@ -552,9 +560,8 @@ function varargout = load_xyz(handles, opt, opt2)
 		% -----------------------------------------------------------------------------------
 
 		% ------------------ Check if first header line has a PROJ4 string ------------------
-		if (isempty(projStr))		% Might already have been known for example in the HAVE_INCLUDES case
-			[projStr, multi_segs_str{1}] = parseProj(multi_segs_str{1});
-		end
+		[projStr_, multi_segs_str{1}] = parseProj(multi_segs_str{1});	% If proj info exists it takes precedence
+		if (~isempty(projStr_)),	projStr = projStr_;		end		% Otherwise maybe 'projStr' already has it
 		if (~isempty(projStr)),		do_project = true;		end
 		% -----------------------------------------------------------------------------------
 
