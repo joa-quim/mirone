@@ -5,7 +5,7 @@ function varargout = mag_synthetic(varargin)
 %
 % This function has the magmodel repeated from 'ecran', which is bad practice
 
-%	Copyright (c) 2004-2012 by J. Luis
+%	Copyright (c) 2004-2017 by J. Luis
 %
 %	This program is free software; you can redistribute it and/or modify
 %	it under the terms of the GNU General Public License as published by
@@ -24,7 +24,7 @@ function varargout = mag_synthetic(varargin)
 	if (nargin ~= 4)
 		errordlg('MAG_SYNTHETIC: Called with wrong number of args (4)'),	return
 	end
-	
+
 	hObject = figure('Vis','off');
 	mag_synthetic_LayoutFcn(hObject);
 	handles = guihandles(hObject);
@@ -77,7 +77,7 @@ function varargout = mag_synthetic(varargin)
 			set(handles.edit_inc, 'Str',handles.inc),		set(handles.edit_contamin, 'Str',handles.contamin)
 		end
 	end
-	
+
 	%------------ Give a Pro look (3D) to the frame boxes  --------
 	new_frame3D(hObject, handles.text_synthet)
 	%------------- END Pro look (3D) ------------------------------
@@ -194,7 +194,7 @@ function push_run_CB(hObject, handles)
 		errordlg('Who told you to kill the Zero Age marker? Bye-Bye.','Error'),	return
 	end
 
-	if ( isempty(handles.hEcran) || ~ishandle(handles.hEcran) )
+	if (isempty(handles.hEcran) || ~ishandle(handles.hEcran))
 		handles = getProfile([], [], handles.figure1);
 	end
 
@@ -224,7 +224,7 @@ function push_run_CB(hObject, handles)
 	end
 
 	magRTP = [];
-	if ( get(handles.check_RTP,'Val') )			% See if we need to compute the RTP profile as well
+	if (get(handles.check_RTP,'Val'))			% See if we need to compute the RTP profile as well
 		[theta,ampfac] = nskew(0, handles.spreadDir-90, handles.decl, handles.inc, pt_x);
 		magRTP = -rtp2d(handles.trk_chunk.mag, theta, ampfac);
 	end
@@ -247,7 +247,7 @@ function push_run_CB(hObject, handles)
 		% Get obliquity that takes into account the spreading obliquity for eventual Mag Bars stretch/shrink
 		[dir_spread, obliq] = obliquity_care(handles.spreadDir, handles.chunkAzim, handles.spreadObliqDir);
 		if (obliq > 0),			handEcran.stretchMagBar = 1 / cos(obliq * pi / 180);
-		elseif (obliq < 0)		handEcran.stretchMagBar = cos(obliq * pi / 180);
+		elseif (obliq < 0),		handEcran.stretchMagBar = cos(obliq * pi / 180);
 		end
 		guidata(handEcran.figure1, handEcran)						% Update Ecran handles so it knows hot to plot the mag bars
 		cb = get(handEcran.push_magBar,'Call');						% Clever trick to fish the callback
@@ -422,12 +422,12 @@ function trk_chunk = get_track_chunk(handles)
 	end
 
 	guideLineLength = vdist(pt_hGuideLine(1,2), pt_hGuideLine(1,1), pt_hGuideLine(2,2), pt_hGuideLine(2,1)) / 1000;
-	if ( (trk_chunk.distance(end) - trk_chunk.distance(1)) > guideLineLength * 1.2)
+	if ((trk_chunk.distance(end) - trk_chunk.distance(1)) > guideLineLength * 1.2)
 		warndlg('Extracted chunk suspiciously longer than guide line. Picked on a track cross-over?','Warning')
 	end
 
 	indNan = isnan(track.topography);
-	if ( numel(track.topography) > 1 && ~all(indNan) )
+	if (numel(track.topography) > 1 && ~all(indNan))
 		trk_chunk.topography = double(track.topography(ind)) / 1000;
 		indNan = isnan(trk_chunk.topography);
 		if (any(indNan))		% Shit. Let's hope they are not too many
@@ -440,6 +440,10 @@ function trk_chunk = get_track_chunk(handles)
 
 	% Reinterpolate at a constant step because that may be needed for the FFT (RTP)
 	x = linspace(0, trk_chunk.distance(end), numel(trk_chunk.distance))';
+	difa = (diff(trk_chunk.distance) == 0);
+	if (any(difa))			% See if we have repeated points, which unfortunately is not that rare
+		trk_chunk.mag(difa) = [];		trk_chunk.distance(difa) = [];
+	end
 	trk_chunk.mag = interp1(trk_chunk.distance, trk_chunk.mag, x);
 	trk_chunk.distance = x;
 	% We should do the topography too, but I think it doesn't worth it because the apprximation is good enough
