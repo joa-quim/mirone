@@ -465,7 +465,7 @@ function push_showGMT_CB(hObject, handles)
 		errordlg('No stage poles provided','Error');    return
 	end
 	if (isempty(handles.h_line_orig) || ~ishandle(handles.h_line_orig(1)))
-		warningdlg('Need a line to work with.', 'WarnError'),	return
+		warndlg('Need a line to work with.', 'WarnError'),	return
 	end
 	x = get(handles.h_line_orig(1),'XData');       y = get(handles.h_line_orig(1),'YData');
 	old = handles.ages(end);
