@@ -25,7 +25,7 @@ function varargout = draw_funs(hand, varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: draw_funs.m 9988 2017-01-20 11:49:56Z j $
+% $Id: draw_funs.m 9992 2017-01-22 17:52:11Z j $
 
 % A bit of strange tests but they are necessary for the cases when we use the new feval(fun,varargin{:}) 
 opt = varargin{1};		% function name to evaluate (new) or keyword to select one (old form)
@@ -1350,16 +1350,32 @@ function set_gmtfile_uicontext(h, data)
 
 % -----------------------------------------------------------------------------------------
 function call_gmtedit(obj, evt, h, opt)
+	handles = guidata(h);
+	if (handles.is_projected)
+		proj = aux_funs('get_proj_string', handles.figure1, 'proj');
+	end
 	if (nargin == 4)		% Call helper window to extract a chunk of the mag anom profile
 		hFig = get(get(h,'Parent'),'Parent');
 		[xp,yp] = getline_j(hFig);
 		if (numel(xp) < 2),		return,		end
+		if (handles.is_projected)
+			xy = proj2proj_pts([], [xp(:) yp(:)], 'srcProj4', proj, 'dstProj4', '+proj=longlat');
+			xp = xy(:,1);	yp = xy(:,2);
+			bak = handles.geog;		handles.geog = 1;		% Need this to cheat a later call to mag_synthetic
+			guidata(handles.figure1, handles)
+		end
 		hGL = line('XData', xp, 'YData', yp,'Color','y','Parent',get(h,'Parent'),'LineWidth',3,'Tag','polyline');
 		guidelineAzim = azimuth_geo(yp(1), xp(1), yp(end), xp(end));
 		mag_synthetic(hFig, h, hGL, guidelineAzim)
+		if (handles.is_projected)
+			handles.geog = bak;		guidata(handles.figure1, handles)
+		end
 		return
 	end
 	pt = get(get(h,'Parent'), 'CurrentPoint');
+	if (handles.is_projected)
+		pt = proj2proj_pts([], pt(1,1:2), 'srcProj4', proj, 'dstProj4', '+proj=longlat');
+	end
 	vars = getappdata(h,'VarsName');		opt_V = '  ';	% To be ignored opt_V needs to have at least 2 chars
 	if (~isempty(vars))
 		opt_V = ['-V' vars{1} ','  vars{2} ',' vars{3}];	% Need to encode the Vars info in a single string
@@ -2987,7 +3003,7 @@ function save_GMT_DB_asc(h, fname)
 		if (isempty(getappdata(h(k), 'edited'))),	continue,	end		% Skip because it was not modified
 		GSHHS_str = getappdata(h(k),'GSHHS_str');
 		if (k == 1 && ~isempty(GSHHS_str))		% Write back the magic string that allows us to recognize these type of files
-			fprintf(fid,'# $Id: draw_funs.m 9988 2017-01-20 11:49:56Z j $\n#\n%s\n#\n', GSHHS_str);
+			fprintf(fid,'# $Id: draw_funs.m 9992 2017-01-22 17:52:11Z j $\n#\n%s\n#\n', GSHHS_str);
 		end
 		hdr = getappdata(h(k), 'LineInfo');
 		x = get(h(k), 'XData');			y = get(h(k), 'YData');
