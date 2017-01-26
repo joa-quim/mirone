@@ -25,7 +25,7 @@ function out = deal_opts(opt, opt2, varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: deal_opts.m 9991 2017-01-22 17:49:25Z j $
+% $Id: deal_opts.m 10001 2017-01-26 01:48:11Z j $
 
 	if (nargin > 1 && ischar(opt2))
 		if (nargout)
@@ -270,9 +270,11 @@ function tracks = get_MGGtracks(obj, evt, x, y)
 			unix(['x2sys_get -TMGD77+ -Fmtf1 -D -E ' lim ' > ' tmp_file]);
 		end
 	else						% A track name or a request for a list file was transmitted in input, so use it instead
+		fid_t = fopen(tmp_file, 'w');
 		if (~isempty(fname))	% A file
 			[pato, name, ext] = fileparts(fname);
 			if (isempty(ext)),	fname = [fname '.nc'];	end
+			fprintf(fid_t, '%s\n', fname);
 		else					% Ask for a file list
 			[FileName,PathName,x.x] = put_or_get_file(MIRONE_DIRS,{'*.txt;*.TXT', 'MGG file list (*.txt,*.TXT)';'*.*', ...
 				'All Files (*.*)'},'Select file','get');
@@ -282,13 +284,14 @@ function tracks = get_MGGtracks(obj, evt, x, y)
 			files = strread(fname, '%s');
 			pato = fileparts(files{1});
 			if (isempty(pato))				% Then we must prepend the path to all files
-				for (k = 1:numel(files)),	files{k} = [PathName files{k}];		end
-				fname = files;
+				for (k = 1:numel(files))
+					fprintf(fid_t, '%s\n', [PathName files{k}]);
+				end
+			else
+				fprintf(fid_t, '%s\n', fname);	% May write it verbatim
 			end
 		end
-		fid = fopen(tmp_file, 'w');
-		fprintf(fid, '%s\n', fname);
-		fclose(fid);
+		fclose(fid_t);
 	end
 
 	d = dir(tmp_file);
