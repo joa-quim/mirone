@@ -4262,8 +4262,7 @@ function GridToolsHistogram_CB(handles, opt)
 	end
 	binwidth = (z_max - z_min) / 20;	% Default to 20 bins
 	resp = inputdlg({'Enter Bin Width (default is 20 bins)'},'Histogram',[1 38],{sprintf('%g',binwidth)});	pause(0.01);
-	resp = abs( str2double(resp{1}) );
-	if (isnan(resp)),	set(handles.figure1,'pointer','arrow'),		return,		end
+	if (isempty(resp) || isnan(abs(str2double(resp{1})))),	set(handles.figure1,'pointer','arrow'),		return,		end
 	n = round( (z_max - z_min) / resp );
 	[n,xout] = histo_m('hist',Z(:),n,[z_min z_max]);
 	h = mirone;							% Create a new Mirone figure
