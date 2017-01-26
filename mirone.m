@@ -20,7 +20,7 @@ function varargout = mirone(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: mirone.m 9998 2017-01-22 18:10:58Z j $
+% $Id: mirone.m 10004 2017-01-26 02:54:30Z j $
 
 	if (nargin > 1 && ischar(varargin{1}))
 		if ( ~isempty(strfind(varargin{1},':')) || ~isempty(strfind(varargin{1},filesep)) )
@@ -4262,8 +4262,7 @@ function GridToolsHistogram_CB(handles, opt)
 	end
 	binwidth = (z_max - z_min) / 20;	% Default to 20 bins
 	resp = inputdlg({'Enter Bin Width (default is 20 bins)'},'Histogram',[1 38],{sprintf('%g',binwidth)});	pause(0.01);
-	resp = abs( str2double(resp{1}) );
-	if (isnan(resp)),	set(handles.figure1,'pointer','arrow'),		return,		end
+	if (isempty(resp) || isnan(abs(str2double(resp{1})))),	set(handles.figure1,'pointer','arrow'),		return,		end
 	n = round( (z_max - z_min) / resp );
 	[n,xout] = histo_m('hist',Z(:),n,[z_min z_max]);
 	h = mirone;							% Create a new Mirone figure
