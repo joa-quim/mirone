@@ -25,7 +25,7 @@ function varargout = draw_funs(hand, varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: draw_funs.m 9992 2017-01-22 17:52:11Z j $
+% $Id: draw_funs.m 10002 2017-01-26 01:49:16Z j $
 
 % A bit of strange tests but they are necessary for the cases when we use the new feval(fun,varargin{:}) 
 opt = varargin{1};		% function name to evaluate (new) or keyword to select one (old form)
@@ -210,7 +210,7 @@ function set_line_uicontext_XY(h, opt)
 		cb_dashed  = 'set(gco, ''LineStyle'', ''--''); refresh';
 		cb_dotted  = 'set(gco, ''LineStyle'', '':''); refresh';
 		cb_dashdot = 'set(gco, ''LineStyle'', ''-.''); refresh';
-		cb_markers_on = 'set(gco, ''Marker'', ''c'', ''MarkerFaceColor'', get(gco, ''Color''), ''MarkerSize'',6); refresh';
+		cb_markers_on = 'set(gco, ''Marker'', ''o'', ''MarkerFaceColor'', get(gco, ''Color''), ''MarkerSize'',4); refresh';
 		cb_markers_off = 'set(gco, ''Marker'', ''none''); refresh';
 		cb_color   = uictx_color(h(k));				% there are 9 cb_color outputs
 
@@ -223,6 +223,7 @@ function set_line_uicontext_XY(h, opt)
 			uimenu('Parent',hh, 'Label', 'Y origin only');
 			uimenu('Parent',hh, 'Label', 'XY origin');
 			uimenu(cmenuHand,   'Label', 'Filter Outliers', 'Sep','on');
+			uimenu(cmenuHand,   'Label', 'Show histogram',  'Sep','on');
 		else
 			ui_edit_polygon(h(k))			% Set edition functions
 			uimenu(cmenuHand, 'Label', 'Line length', 'Call', @show_LineLength_XY)
@@ -3003,7 +3004,7 @@ function save_GMT_DB_asc(h, fname)
 		if (isempty(getappdata(h(k), 'edited'))),	continue,	end		% Skip because it was not modified
 		GSHHS_str = getappdata(h(k),'GSHHS_str');
 		if (k == 1 && ~isempty(GSHHS_str))		% Write back the magic string that allows us to recognize these type of files
-			fprintf(fid,'# $Id: draw_funs.m 9992 2017-01-22 17:52:11Z j $\n#\n%s\n#\n', GSHHS_str);
+			fprintf(fid,'# $Id: draw_funs.m 10002 2017-01-26 01:49:16Z j $\n#\n%s\n#\n', GSHHS_str);
 		end
 		hdr = getappdata(h(k), 'LineInfo');
 		x = get(h(k), 'XData');			y = get(h(k), 'YData');
