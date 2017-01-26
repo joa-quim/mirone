@@ -122,8 +122,21 @@ function [hNext, is_pole_new] = compute_pole2neighbor_newStage(hLine)
 		p2 = parse_finite_pole(lineInfo);
 		lineInfo = getappdata(hLine, 'LineInfo');
 		p = parse_finite_pole(lineInfo);
-		pole = [p.lon p.lat p2.age 0 p.ang];		% For C0 we cannot compute a stage ... but we can set it
+		if (isempty(p))
+			msg = sprintf('Failed to find the finite pole (instantaneous pole) for this ridge\n%s', lineInfo);
+			errodlg(msg, 'Error')
+			error('compute_pole2neighbor_newStage:zz', msg)
+		end
+		pole = [p.lon p.lat p2.age 0 p.ang];	% For C0 we cannot compute a stage ... but we can set it
 		is_ridge = true;
+		indS = strfind(lineInfo, 'STG0"');		% See if we already have one true (half) STG
+		if (isempty(indS))						% No, create one
+			ind =  strfind(lineInfo, 'FIN"');
+			ind2 = strfind(lineInfo(ind:end), '"') + ind - 1;	% Find the pair of '"' indices
+			new_lineInfo = sprintf('%s STG0"%.2f %.2f %.2f %.2f %.3f%s', lineInfo(1:ind2(2)), pole(1), pole(2), ...
+				pole(3), pole(4), pole(5)*pole(3)/2, lineInfo(ind2(2):end));	% last pole term is age*omega/2
+			setappdata(hLine,'LineInfo', new_lineInfo);
+		end
 	else
 		pole = get_true_stg(hLine, hNext);		% Get from header or compute (and insert in header) the true half-stage pole
 	end
@@ -232,6 +245,9 @@ function swap_lineInfo(hLine)
 % -----------------------------------------------------------------------------------------------------------------
 function [out1, out2] = get_plate_stages(hLine)
 % Get the collection of stage poles for the two plates pair
+	%pt_ref = [-44.37327966 27.08623588 152.03];	% Origin Point where to start then flow lines. Las value is oldest age 
+	pt_ref = [-29.71789163 39.51538935 82.0];
+	
 	hLine0 = find_ridge(hLine);					% Find the ridge of the hLine's plate pair
 	out1   = get_all_stgs(hLine0);
 	% Now the conjugate plate
@@ -261,11 +277,11 @@ function [out1, out2] = get_plate_stages(hLine)
 	fprintf(fid, '%.4f\t%.4f\t%.2f\t%.2f\t%.4f\n', out2(end:-1:1,1:5)');
 	fclose(fid);
 
-	flo = gmtmex(['backtracker -Lf -E' fnome1], [-44.37327966 27.08623588 152.03]);
+	flo = gmtmex(['backtracker -Lf -E' fnome1], pt_ref);
 	dist_age1 = gmtmex('mapproject -Gk -o2,3', flo);
-	flo = gmtmex(['backtracker -Lf -E' fnome2], [-44.37327966 27.08623588 152.03]);
+	flo = gmtmex(['backtracker -Lf -E' fnome2], pt_ref);
 	dist_age2 = gmtmex('mapproject -Gk -o2,3', flo);
-	flo = gmtmex(['backtracker -Lf -E' fnome3], [-44.37327966 27.08623588 152.03]);
+	flo = gmtmex(['backtracker -Lf -E' fnome3], pt_ref);
 	dist_age3 = gmtmex('mapproject -Gk -o2,3', flo);
 	ecran(dist_age1.data(:,1),[dist_age1.data(:,2) dist_age2.data(:,2) dist_age3.data(:,2)])
 
@@ -474,7 +490,7 @@ function hLine0 = find_ridge(hLine)
 % -----------------------------------------------------------------------------------------------------------------
 function [hNext, CA, CB] = find_closest_old(hLine)
 % Find the closest older isochron to HLINE and return it in HNEXT or empty if not found
-% CA & CB are strings with the names of both isochrons
+% CA & CB are strings with the names of both isochrons (CA -> hLine; CB -> hNext)
 
 	hNext = [];		CB = '';
 
