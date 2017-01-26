@@ -677,6 +677,7 @@ utils/smooth_roipoly_edge.m -text
 utils/solar_params.m -text
 utils/spl_fun.p -text
 utils/spline_interp.m -text
+utils/sshist.m -text
 utils/string_token.m -text
 utils/swan2sww.m -text
 utils/syn3d.m -text
