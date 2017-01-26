@@ -210,7 +210,7 @@ function set_line_uicontext_XY(h, opt)
 		cb_dashed  = 'set(gco, ''LineStyle'', ''--''); refresh';
 		cb_dotted  = 'set(gco, ''LineStyle'', '':''); refresh';
 		cb_dashdot = 'set(gco, ''LineStyle'', ''-.''); refresh';
-		cb_markers_on = 'set(gco, ''Marker'', ''c'', ''MarkerFaceColor'', get(gco, ''Color''), ''MarkerSize'',6); refresh';
+		cb_markers_on = 'set(gco, ''Marker'', ''o'', ''MarkerFaceColor'', get(gco, ''Color''), ''MarkerSize'',4); refresh';
 		cb_markers_off = 'set(gco, ''Marker'', ''none''); refresh';
 		cb_color   = uictx_color(h(k));				% there are 9 cb_color outputs
 
@@ -223,6 +223,7 @@ function set_line_uicontext_XY(h, opt)
 			uimenu('Parent',hh, 'Label', 'Y origin only');
 			uimenu('Parent',hh, 'Label', 'XY origin');
 			uimenu(cmenuHand,   'Label', 'Filter Outliers', 'Sep','on');
+			uimenu(cmenuHand,   'Label', 'Show histogram',  'Sep','on');
 		else
 			ui_edit_polygon(h(k))			% Set edition functions
 			uimenu(cmenuHand, 'Label', 'Line length', 'Call', @show_LineLength_XY)
