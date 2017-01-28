@@ -578,6 +578,7 @@ utils/dec2deg.m -text
 utils/dec_year.m -text
 utils/decompress.m -text
 utils/degree2dms.m -text
+utils/diffCenterVar.m -text
 utils/dim_funs.m -text
 utils/dms2degree.m -text
 utils/double2ascii.m -text
