@@ -25,7 +25,7 @@ function varargout = draw_funs(hand, varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: draw_funs.m 10002 2017-01-26 01:49:16Z j $
+% $Id: draw_funs.m 10006 2017-01-28 12:03:43Z j $
 
 % A bit of strange tests but they are necessary for the cases when we use the new feval(fun,varargin{:}) 
 opt = varargin{1};		% function name to evaluate (new) or keyword to select one (old form)
@@ -1219,7 +1219,7 @@ function set_isochrons_uicontext(h, data)
 	if (iscell(tag)),   tag = tag{1};   end
 
 	handles = guidata(get(h(1),'Parent'));				% Get Mirone handles
-	cmenuHand = uicontextmenu('Parent',handles.figure1);
+	cmenuHand = uicontextmenu('Parent',handles.figure1, 'Call', @store_clicked_pt);
 	set(h, 'UIContextMenu', cmenuHand);
 	cb_LineWidth = uictx_LineWidth(h);		% there are 5 cb_LineWidth outputs
 	cb_color = uictx_color(h);				% there are 9 cb_color outputs
@@ -1292,6 +1292,14 @@ function set_isochrons_uicontext(h, data)
 	uimenu(cmenuHand, 'Label', 'Euler rotation', 'Sep','on', 'Call', 'euler_stuff(gcf,gco)');
 	for (i=1:length(h)),		ui_edit_polygon(h(i)),		end		% Set edition functions
 
+% -----------------------------------------------------------------------------------------
+function store_clicked_pt(hObject, evt)
+% Store the clicked point on the base cmenuHand appdata. This is usefull when one want to know
+% the current point at the time of first clicking on figure. The axes current point prop only
+% tells the current point of last clicking, which normally was somewhere on a uictx option.
+	handles = guidata(hObject);
+	setappdata(hObject, 'clicked_pt', get(handles.axes1, 'CurrentPoint'))
+	
 % -----------------------------------------------------------------------------------------
 function set_gmtfile_uicontext(h, data)
 % h is a handle to the line of a gmtfile
@@ -3004,7 +3012,7 @@ function save_GMT_DB_asc(h, fname)
 		if (isempty(getappdata(h(k), 'edited'))),	continue,	end		% Skip because it was not modified
 		GSHHS_str = getappdata(h(k),'GSHHS_str');
 		if (k == 1 && ~isempty(GSHHS_str))		% Write back the magic string that allows us to recognize these type of files
-			fprintf(fid,'# $Id: draw_funs.m 10002 2017-01-26 01:49:16Z j $\n#\n%s\n#\n', GSHHS_str);
+			fprintf(fid,'# $Id: draw_funs.m 10006 2017-01-28 12:03:43Z j $\n#\n%s\n#\n', GSHHS_str);
 		end
 		hdr = getappdata(h(k), 'LineInfo');
 		x = get(h(k), 'XData');			y = get(h(k), 'YData');
