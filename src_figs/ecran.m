@@ -466,7 +466,8 @@ function finish_line_uictx(hLine)
 	set(h, 'Call', {@shift_orig, 'XY'})
 	h = findobj(uictx, 'Label', 'Filter Outliers');
 	set(h, 'Call', {@outliers_clean, hLine})
-	h = findobj(uictx, 'Label', 'Show data points');
+	h = findobj(uictx, 'Label', 'Show histogram');
+	set(h, 'Call', {@do_histogram, hLine})
 
 % --------------------------------------------------------------------------------------------------
 function shift_orig(obj, evt, eixo, hLine, pt_x, pt_y, opt)
@@ -843,6 +844,14 @@ function outliers_clean(obj, evt, h)
 		handles.data(:,3) = y;
 		guidata(handles.figure1, handles);
 	end
+
+
+% ------------------------------------------------------------------------------------------
+function do_histogram(obj, evt, h)
+% Show an histogram of the yy data
+	y = get(h, 'YData');
+	n_bins = sshist(y);			% Automatic bining
+	figure,histo_m('hist', y, n_bins);
 
 % ------------------------------------------------------------------------------------------
 function pick_onLines2reference(obj, evt)
@@ -1819,17 +1828,17 @@ function AnalysisSmoothSpline_CB(hObject, handles)
 function Analysis1derivative_CB(hObject, handles)
 	if (isempty(handles.hLine)),	return,		end
 	[xx, yy] = get_inside_rect(handles);
-	pp = spl_fun('csaps',xx,yy,1);		% Use 1 for not smoothing, just interpolate
-	v = spl_fun('ppual',pp,xx,'l','first');
+	%pp = spl_fun('csaps',xx,yy,1);		% Use 1 for not smoothing, just interpolate
+	%v = spl_fun('ppual',pp,xx,'l','first');
+	v = diffCenterVar(xx, yy);
 	recall_me(handles, xx, v, 'First derivative')		% New Fig
 
 % --------------------------------------------------------------------
 function Analysis2derivative_CB(hObject, handles)
 	if (isempty(handles.hLine)),	return,		end
 	[xx, yy] = get_inside_rect(handles);
-	pp = spl_fun('csaps',xx,yy,1);		% Use 1 for not smoothing, just interpolate
-	v = spl_fun('ppual',pp,xx,'l','second');
-	recall_me(handles, xx, v, 'Second derivative')		% New Fig
+	[v, a] = diffCenterVar(xx, yy);
+	recall_me(handles, xx, a, 'Second derivative')		% New Fig
 
 % --------------------------------------------------------------------
 function recall_me(handles, x, y_new, title)
