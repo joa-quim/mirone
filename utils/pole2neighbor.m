@@ -25,7 +25,7 @@ function varargout = pole2neighbor(obj, evt, hLine, mode, opt)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: pole2neighbor.m 10003 2017-01-26 01:51:00Z j $
+% $Id: pole2neighbor.m 10011 2017-01-30 02:05:38Z j $
 
 	if (isempty(hLine)),	hLine = gco;	end
 	hNext = hLine;
@@ -125,7 +125,7 @@ function [hNext, is_pole_new] = compute_pole2neighbor_newStage(hLine)
 		if (isempty(p))
 			msg = sprintf('Failed to find the finite pole (instantaneous pole) for this ridge\n%s', lineInfo);
 			errodlg(msg, 'Error')
-			error('compute_pole2neighbor_newStage:zz', msg)
+			error('compute_pole2neighbor_newStage:z', msg)
 		end
 		pole = [p.lon p.lat p2.age 0 p.ang];	% For C0 we cannot compute a stage ... but we can set it
 		is_ridge = true;
@@ -245,10 +245,25 @@ function swap_lineInfo(hLine)
 % -----------------------------------------------------------------------------------------------------------------
 function [out1, out2] = get_plate_stages(hLine)
 % Get the collection of stage poles for the two plates pair
-	%pt_ref = [-44.37327966 27.08623588 152.03];	% Origin Point where to start then flow lines. Las value is oldest age 
-	pt_ref = [-29.71789163 39.51538935 82.0];
-	
-	hLine0 = find_ridge(hLine);					% Find the ridge of the hLine's plate pair
+	%pt_ref = [-44.37327966 27.08623588 152.03];	% Origin Point where to start the flow lines. Last value is oldest age 
+	%pt_ref = [-29.71789163 39.51538935 81.0];
+	pole_fin = parse_finite_pole(getappdata(hLine, 'LineInfo'));
+	if (isempty(pole_fin))
+		errordlg('This isochron has no Finite pole associated so I can''t find the ridge.', 'Error'),	return
+	end
+	pt = getappdata(get(hLine, 'UIContextMenu'), 'clicked_pt');
+	pt_ridge = gmtmex(sprintf('backtracker -E%f/%f/%f', pole_fin.lon, pole_fin.lat, pole_fin.ang/2), pt(1,1:2));
+
+	% Now we need to find the oldest isochron in this plates pair to extract its age
+	hNext = find_closest_old(hLine);	hLast = hNext;
+	while (~isempty(hNext))
+		hLast = hNext;
+		hNext = find_closest_old(hLast);
+	end
+	p = parse_finite_pole(getappdata(hLast, 'LineInfo'));	% Get FINite pole of last isochron
+	pt_ref = [pt_ridge.data(1) pt_ridge.data(2) p.age];		% Seed point on Ridge plus oldest age to extend the flow line to.
+
+	hLine0 = find_ridge(hLine);								% Find the ridge of the hLine's plate pair
 	out1   = get_all_stgs(hLine0);
 	% Now the conjugate plate
 	swap_lineInfo(hLine0)
@@ -277,13 +292,14 @@ function [out1, out2] = get_plate_stages(hLine)
 	fprintf(fid, '%.4f\t%.4f\t%.2f\t%.2f\t%.4f\n', out2(end:-1:1,1:5)');
 	fclose(fid);
 
-	flo = gmtmex(['backtracker -Lf -E' fnome1], pt_ref);
-	dist_age1 = gmtmex('mapproject -Gk -o2,3', flo);
-	flo = gmtmex(['backtracker -Lf -E' fnome2], pt_ref);
-	dist_age2 = gmtmex('mapproject -Gk -o2,3', flo);
+% 	flo = gmtmex(['backtracker -Lf -E' fnome1], pt_ref);
+% 	dist_age1 = gmtmex('mapproject -Gk -o2,3', flo);
+% 	flo = gmtmex(['backtracker -Lf -E' fnome2], pt_ref);
+% 	dist_age2 = gmtmex('mapproject -Gk -o2,3', flo);
 	flo = gmtmex(['backtracker -Lf -E' fnome3], pt_ref);
 	dist_age3 = gmtmex('mapproject -Gk -o2,3', flo);
-	ecran(dist_age1.data(:,1),[dist_age1.data(:,2) dist_age2.data(:,2) dist_age3.data(:,2)])
+% 	ecran(dist_age1.data(:,1),[dist_age1.data(:,2) dist_age2.data(:,2) dist_age3.data(:,2)])
+	ecran(dist_age3.data(:,1),dist_age3.data(:,2))
 
 % -----------------------------------------------------------------------------------------------------------------
 function fill_age_grid(hLine)
@@ -364,14 +380,14 @@ function [out, hNext, p1, p2, n_pts, ind_last, x2, y2] = get_arc_from_a2b(hLine,
 			p1 = [];	p2 = [];	return
 		end
 		%p1 = parse_finite_pole(getappdata(hLine,'LineInfo'));		% Get the Euler pole parameters of this isoc
-		p1 = get_STG_pole(getappdata(hLine,'LineInfo'), 'STG3');	% Get the Euler pole parameters of this isoc
+		p1 = get_this_STG_pole('STG3', getappdata(hLine,'LineInfo'));	% Get the Euler pole parameters of this isoc
 		if (isempty(p1))
 			fprintf('This isoc has no STG3 pole info in it header\n%s\n', getappdata(hLine,'LineInfo'));
 			p2 = [];				return
 		end
 
 		%p2 = parse_finite_pole(getappdata(hNext,'LineInfo'));
-		p2 = get_STG_pole(getappdata(hNext,'LineInfo'), 'STG3');
+		p2 = get_this_STG_pole('STG3', getappdata(hNext,'LineInfo'));
 		if (isempty(p2)),	return,	end		% Hopefully the last one on the run (those cannot have an STG)
 		k = 1;
 
@@ -431,9 +447,20 @@ function update_poles_headers(hLine, fname)
 % Read poles from a file and update the isochron's 'LineInfo' content
 
 	hAllIsocs = findobj(get(hLine,'Parent'),'Tag', get(hLine,'Tag'));
-	T = gmtmex('read -Tt C:\SVN\mironeWC\data\isocs\polos_para_idades.dat');
+	[got_it, fname] = aux_funs('inquire_OPTcontrol', 'MIR_POLES_FOR_ISOC');
+	msg = '';
+	if (~got_it)
+		msg = 'Sorry, need the name of the poles file in the OPTcontrol.txt file (Key MIR_POLES_FOR_ISOC)';
+	elseif (~exist(fname, 'file'))
+		msg = ['The file ' fname ' does not exist'];
+	end
+	if (~isempty(msg))
+		errordlg(msg, 'Error')
+		return
+	end
+	T = gmtmex(['read -Tt ' fname]);
 	for (k = 1:numel(T.text))				% Loop over all updating poles
-		% Ex: "2 AFRICA/NORTH AMERICA" !NAM<-Nubia  An2   Em Mov (res = 1.374) Sem ZF24
+		% Ex: "2 AFRICA/NORTH AMERICA" !NAM<-Nubia  An2 (res = 1.374) Sem ZF24
 		ind = strfind(T.text{k}, '"');
 		str = T.text{k}(2:ind(2)-1);		% Get only the part between ""
 		ind = strfind(str, '/');
@@ -792,12 +819,33 @@ function stage = get_stg_pole(stg, lineInfo)
 	if (isempty(indS)),			return,		end
 	ind2 = strfind(lineInfo(indS:end), '"') + indS - 1;	% Find the pair of '"' indices
 	[t, r] = strtok(lineInfo(ind2(1)+1:ind2(2)-1));
-	stage(1) = str2double(t);
+	stage(1) = str2double(t);	% Lon
 	[t, r] = strtok(r);			stage(2) = str2double(t);	% Lat
 	[t, r] = strtok(r);			stage(3) = str2double(t);	% Age older (t_start)
 	[t, r] = strtok(r);			stage(4) = str2double(t);	% Age newer (t_end)
 	[t, r] = strtok(r);			stage(5) = str2double(t);	% Ang
 	t      = strtok(r);			stage(6) = str2double(t);	% Residue
+
+% -----------------------------------------------------------------------------------------------------------------
+function p = get_this_STG_pole(stg, lineInfo)
+% Get the finite pole parameters from the pseudo stage pole stored in STGX
+% Returns the result in a structure as parse_finite_pole, or empty if not found
+% Don't remember why this function is different from get_stg_pole()
+
+	p = [];
+
+	indS = strfind(lineInfo, stg);
+	if (isempty(indS))
+		fprintf('The requested pole, %s does not exist in this isochron header\n%s\n', stg, lineInfo);
+		return
+	end
+
+	ind2 = strfind(lineInfo(indS:end),'"') + indS - 1;			% It starts after the quote
+	[t, r] = strtok(lineInfo(ind2(1)+1:ind2(2)-1));				p.lon = sscanf(t, '%f');
+	[t, r] = strtok(r);			p.lat  = sscanf(t, '%f');
+	[t, r] = strtok(r);			p.ageB = sscanf(t, '%f');		% Call it ageB 
+	[t, r] = strtok(r);			p.age  = sscanf(t, '%f');		% Call it simply 'age' to go along with the FIN(ite) pole
+	p.ang = sscanf(strtok(r), '%f');
 
 % -----------------------------------------------------------------------------------------------------------------
 function [plon,plat,ang] = get_last_pole(lineInfo)
@@ -821,26 +869,6 @@ function [plon,plat,ang] = get_last_pole(lineInfo)
 	plon = str2double(plon);
 	plat = str2double(plat);
 	ang = str2double(ang);
-
-% -----------------------------------------------------------------------------------------------------------------
-function p = get_STG_pole(lineInfo, stg)
-% Get the finite pole parameters from the pseudo stage pole stored in STGX
-% Returns the result in a structure as parse_finite_pole, or empty if not found
-
-	p = [];
-
-	indS = strfind(lineInfo, stg);
-	if (isempty(indS))
-		fprintf('The requested pole, %s does not exist in this isochron header\n%s\n', stg, lineInfo);
-		return
-	end
-
-	ind2 = strfind(lineInfo(indS:end),'"') + indS - 1;			% It starts after the quote
-	[t, r] = strtok(lineInfo(ind2(1)+1:ind2(2)-1));				p.lon = sscanf(t, '%f');
-	[t, r] = strtok(r);			p.lat  = sscanf(t, '%f');
-	[t, r] = strtok(r);			p.ageB = sscanf(t, '%f');		% Call it ageB 
-	[t, r] = strtok(r);			p.age  = sscanf(t, '%f');		% Call it simply 'age' to go along with the FIN(ite) pole
-	p.ang = sscanf(strtok(r), '%f');
 
 % -----------------------------------------------------------------------------------------------------------------
 function p = parse_finite_pole(lineInfo)
