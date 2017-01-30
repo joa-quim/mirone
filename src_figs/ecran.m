@@ -745,7 +745,7 @@ function recompSI(obj,event, h, xFact, SpectorGrant)
 	end
 	if (SpectorGrant)
 		slp = abs(m / (4*pi) * xFact);
-		set( child(K), 'Label', sprintf('Depth to sources (m) =  %.3f', slp) );		K = K + 1;
+		set(child(K), 'Label', sprintf('Depth to sources (m) =  %.3f', slp));		K = K + 1;
 		set(child(K), 'Label', sprintf('%.2f   %.9g', m / (2*pi), b))		% Slope Intercept
 		fstr = 'Dist=%g\t  Depth=%.3f';
 	else
@@ -1337,7 +1337,7 @@ function FileOpen_CB(hObject, handles)
 					scale  = sscanf(t(ind1(1)+6:end), '%f');
 					offset = sscanf(r(ind2(1)+7:end), '%f');
 				end
-				if ( any(isnan([scale offset])) )
+				if (any(isnan([scale offset])))
 					warndlg('Badly formated line to instruct the scaling/offset of imported file.','WarnError')
 				else
 					% SCALE X distance from first to last point and add OFFSET
@@ -1940,6 +1940,7 @@ function push_magBar_CB(hObject, handles)
 	set(handles.axes2, 'xlim', [handles.ageStart handles.ageEnd])
 	if (isempty(handles.hPatchMagBar))
 		handles.hPatchMagBar = patch('Parent',handles.axes2,'Faces',faces,'Vertices',[x y],'FaceVertexCData',cor,'FaceColor','flat');
+		set(handles.hPatchMagBar, 'Tag', 'MagBarCode', 'ButtonDownFcn', {@bdn_MagBar,handles.figure1})
 	else
 		set(handles.hPatchMagBar,'Faces',faces,'Vertices',[x y],'FaceVertexCData',cor)
 	end
@@ -1973,6 +1974,59 @@ function push_magBar_CB(hObject, handles)
 	
 	set(handles.push_syntheticRTP, 'Vis','on')			% Now this may be set to visible
 	guidata(handles.figure1, handles)
+
+% -----------------------------------------------------------------------------------------
+function bdn_MagBar(obj,evt, hFig)
+% ...
+	handles = guidata(hFig);
+	stype = get(handles.figure1,'selectiontype');
+	if (~strcmp(stype,'open')),		return,		end
+
+	% Create a pico marker
+	p = get(handles.axes2,'currentpoint');		px = p(1,1);
+	y = get(handles.axes2,'YLim');		xLim = get(handles.axes2,'XLim');
+	yh = 0.8;					% Stick height (0.8 of axe's height)
+	yv = yh / 2.5;				% Stick point height
+	xw = diff(xLim) * 0.005;	% Stick half-width
+	x = [px px-xw px-xw px+xw px+xw px];
+	y = [y(1) yv y(1)+yh y(1)+yh yv y(1)];
+	h = patch(x,y,'r');
+	yLim = get(handles.axes1,'YLim');
+	orig_u = get(handles.axes1, 'units');
+	set(handles.axes1, 'units', 'normalized');
+	x_in_1 = px / diff(xLim) * diff(get(handles.axes1,'XLim'));
+	hLine = line('Parent',handles.axes1, 'XData', [x_in_1 x_in_1], 'YData', yLim);
+	set(handles.axes1, 'units', orig_u);
+	set(h, 'Tag', 'Picos', 'UserData',hLine, 'ButtonDownFcn',{@bdn_pico,hFig,h,xw})
+
+function bdn_pico(obj,evt,hFig,h,xw)
+	handles = guidata(hFig);
+	stype = get(handles.figure1,'selectiontype');
+	if strcmp(stype,'open')
+		delete(get(h, 'UserData'))
+		delete(h)
+	else
+		state = uisuspend_j(hFig);				% Remember initial figure state
+		set(handles.figure1,'WindowButtonMotionFcn',{@wbm_pico,hFig, h, xw}, ...
+			'WindowButtonUpFcn',{@wbu_pico,hFig, state});
+	end
+
+function wbm_pico(obj,evt, hFig, h, xw)
+% On 'Pico' motion do this
+	handles = guidata(hFig);
+	p = get(handles.axes2,'currentpoint');		px = p(1,1);
+	x = get(handles.axes2,'XLim');
+	if (px < 0 || px > x(end)),		return,		end			% Don't get out of the Bar Code
+	x = [px px-xw px-xw px+xw px+xw px];
+	set(h,'XData',x)
+	hLine = get(h, 'UserData');
+	x_in_1 = px / diff(get(handles.axes2,'XLim')) * diff(get(handles.axes1,'XLim'));
+	set(hLine, 'XData', [x_in_1 x_in_1])
+
+function wbu_pico(obj,evt, hFig, state)
+% When Up, restore Figur's previous state
+	uirestore_j(state, 'nochildren');		% Restore the figure's initial state
+% -----------------------------------------------------------------------------------------
 
 % ---------------------------------------------------------------------
 function push_syntheticRTP_CB(hObject, handles)
@@ -2034,8 +2088,8 @@ function push_syntheticRTP_CB(hObject, handles)
 					kk = kk + 1;
 			end
 		end
-		set( handles.popup_ageFit,'Vis','on','Str',handles.syntPar.ageMarkers )
-		set( handles.edit_ageFit, 'Vis', 'off')		% We don't use this in this case.
+		set(handles.popup_ageFit,'Vis','on','Str',handles.syntPar.ageMarkers)
+		set(handles.edit_ageFit, 'Vis', 'off')		% We don't use this in this case.
 		if (contamin <= 1 && contamin >= 0.5)
 			set(handles.slider_filter,'Val', contamin)
 		else
@@ -2066,7 +2120,7 @@ function push_syntheticRTP_CB(hObject, handles)
 		if (isempty(handles.batTrack))	% Do grid interpolation only once
 			[handles, X, Y, Z, head] = read_gmt_type_grids(handles, batFile);
 			if (~isempty(Z))
-				zz = abs( grdtrack_m(Z,head,handles.data(:,1:2),'-Z') ) / 1000;	% Need Z in km
+				zz = abs(grdtrack_m(Z,head,handles.data(:,1:2),'-Z')) / 1000;	% Need Z in km
 				if (all(zz == 0))
 					warndlg('Bat grid used but profile is probably out of its limits. Ignoring bat grid track.','Warning')
 				else
@@ -2259,7 +2313,7 @@ function push_ageFit_CB(hObject, handles)
 	[mimi,ind_a] = min(abs(age_line - (xx - agePad)));
 	[mimi,ind_b] = min(abs(age_line - (xx + agePad)));
 	ind_a = max(1, ind_a);		ind_b = min(numel(age_line), ind_b);	% Make sure we are not outside of limits
-	if ( ~strncmp(get(handles.axes2,'XDir'),'normal', 3) )
+	if (~strncmp(get(handles.axes2,'XDir'),'normal', 3))
 		t = ind_a;	ind_a = ind_b;	ind_b = t;
 	end
 	y = y(ind_a:ind_b);
@@ -2294,7 +2348,7 @@ function push_ageFit_CB(hObject, handles)
 
 	shift = sanitize_shift(yn, y_ano, ageStretch);		% <===== DO THE HEAVY BRILIANT WORK
 
-	if ( (ind_a+shift < 1) || (ind_b+shift > numel(x)) )
+	if ((ind_a+shift < 1) || (ind_b+shift > numel(x)))
 		warndlg('Guess work by convolution failed (index out of bounds). Try increase the isochron pad limits','Warning')
 		return
 	end
@@ -2832,7 +2886,7 @@ function [anoma, age_line, obliquity] = magmodel(hAxesMagBar, reversalsFile, dxy
 		dxyp = [dxyp(:,1:3) ones(size(dxyp,1),1)*2.5];
 	end
 
-	zObs = 0;		magAtAxe = 18;		magFlatOfEachBlock = 4;
+	zObs = 0;		magAtAxe = 15;		magFlatOfEachBlock = 5;
 	psubsi = 0.35;			% Coefficient of thermal subsidence equation
 	thickness = 0.5;
 	speed = speed * 10;		% From full rate in cm/year to rate in km/Ma 
@@ -2850,7 +2904,7 @@ function [anoma, age_line, obliquity] = magmodel(hAxesMagBar, reversalsFile, dxy
 	distAlongProfile = dxyp(:,1);
 	profileDepth = dxyp(:,4);
 	ind = isnan(profileDepth);
-	if ( any(ind) )			% Many files have gaps in bathymetry. Reinvent it
+	if (any(ind))			% Many files have gaps in bathymetry. Reinvent it
 		profileDepth(ind) = interp1(distAlongProfile(~ind), profileDepth(~ind), distAlongProfile(ind));
 	end
 	
@@ -2896,7 +2950,7 @@ function [anoma, age_line, obliquity] = magmodel(hAxesMagBar, reversalsFile, dxy
 		end
 	end
 
-	hMagBar = findobj(hAxesMagBar, 'type', 'patch');
+	hMagBar = findobj(hAxesMagBar, 'type', 'patch', 'Tag', 'MagBarCode');
 	xx = get(hMagBar,'XData');
 	ind = find((xx(1) - blockAge(:,1)) > 0);	% Find index of closest block start of displyed bricks and those from file
 	ind = ind(end);								% The last one is closest from the left (starting) side
@@ -3030,13 +3084,13 @@ function [dir_spread, obliquity] = obliquity_care(dir_spread, dir_profil, ridgeO
 	if (~ridgeObliquity),		return,		end		% We are done, bye
 
 	if (dir_spread > 180)		% Let's call it the left side branch
-		if ( (dir_profil <= dir_spread) || (dir_profil >= dir_spread + 2*ridgeObliquity) )
+		if ((dir_profil <= dir_spread) || (dir_profil >= dir_spread + 2*ridgeObliquity))
 			obliquity = abs(dir_profil - dir_spread);	% Simpler case.
 		else
 			obliquity = -abs(ridgeObliquity - mod(dir_profil - dir_spread, ridgeObliquity));
 		end
 	else						% The right side branch
-		if ( (dir_profil >= dir_spread + 2*ridgeObliquity) || (dir_profil <= dir_spread) )
+		if ((dir_profil >= dir_spread + 2*ridgeObliquity) || (dir_profil <= dir_spread))
 			obliquity = abs(dir_profil - dir_spread);	% Simpler case.
 		else
 			obliquity = -abs(ridgeObliquity - mod(dir_profil - dir_spread, ridgeObliquity));
