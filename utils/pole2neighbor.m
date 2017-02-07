@@ -25,10 +25,12 @@ function varargout = pole2neighbor(obj, evt, hLine, mode, opt)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: pole2neighbor.m 10011 2017-01-30 02:05:38Z j $
+% $Id: pole2neighbor.m 10015 2017-02-07 18:20:30Z j $
 
 	if (isempty(hLine)),	hLine = gco;	end
 	hNext = hLine;
+	clicked_pt = getappdata(get(hLine, 'UIContextMenu'), 'clicked_pt');
+	[hLines_cross_1, hLines_cross_2] = find_isocs_in_block(hLine, clicked_pt);
 	if (strcmpi(mode, 'Bonin'))
 		while (~isempty(hNext))
 			hNext = compute_pole2neighbor_Bonin(hNext);
@@ -36,24 +38,34 @@ function varargout = pole2neighbor(obj, evt, hLine, mode, opt)
 
 	elseif (strcmpi(mode, 'anglefit'))
 		if (nargin == 4)				% Make one full round on all poles in same plate of the seed
-			nNewPoles = 0;
-			hLine0 = find_ridge(hLine);
-			hNext = hLine0;
-			while (~isempty(hNext))
-				[hNext, is_pole_new] = compute_pole2neighbor_newStage(hNext);
-				nNewPoles = nNewPoles + is_pole_new;
+% 			nNewPoles = 0;
+% 			hLine0 = find_ridge(hLine);
+% 			hNext = hLine0;
+% 			while (~isempty(hNext))
+% 				[hNext, is_pole_new] = compute_pole2neighbor_newStage(hNext);
+% 				nNewPoles = nNewPoles + is_pole_new;
+% 			end
+			
+			hLine0 = find_ridge(hLines_cross_1(1));
+			compute_pole2neighbor_newStage(hLine0);
+			for (k = 1:numel(hLines_cross_1))
+				compute_pole2neighbor_newStage(hLines_cross_1(k));
 			end
 			secondLineInfo = getappdata(hLine0,'secondLineInfo');	% Only Ridge line may have this set
 			if (~isempty(secondLineInfo))
 				swap_lineInfo(hLine0)
-				hNext = hLine0;
-				while (~isempty(hNext))	% Make another full round on the conjugate plate
-					[hNext, is_pole_new] = compute_pole2neighbor_newStage(hNext);
-					nNewPoles = nNewPoles + is_pole_new;
+% 				hNext = hLine0;
+% 				while (~isempty(hNext))	% Make another full round on the conjugate plate
+% 					[hNext, is_pole_new] = compute_pole2neighbor_newStage(hNext);
+% 					nNewPoles = nNewPoles + is_pole_new;
+% 				end
+% 				swap_lineInfo(hLine0)	% Reset the original
+				for (k = 1:numel(hLines_cross_2))
+					compute_pole2neighbor_newStage(hLines_cross_2(k));
 				end
 				swap_lineInfo(hLine0)	% Reset the original
 			end
-			fprintf('Computed %d new poles', nNewPoles)
+			fprintf('Computed %d new poles\n', numel(hLines_cross_1))
 		else							% Compute the pole of the seed isoc only, iterating OPT times or not improving
 			n = 1;		is_pole_new = true;
 			while (n <= opt && is_pole_new)
@@ -104,7 +116,7 @@ function varargout = pole2neighbor(obj, evt, hLine, mode, opt)
 
 	elseif (strcmpi(mode, 'plate_stages'))
 		[out1, out2] = get_plate_stages(hLine);
-		h=figure;plot(out1(:,4),cumsum(abs(out1(:,17))), out2(:,4),cumsum(abs(out2(:,17))));
+		figure;plot(out1(:,4),cumsum(abs(out1(:,17))), out2(:,4),cumsum(abs(out2(:,17))));
 
 	end
 
@@ -178,7 +190,7 @@ function [hNext, is_pole_new] = compute_pole2neighbor_BruteForce(hLine)
 
 % -----------------------------------------------------------------------------------------------------------------
 function out = get_all_stgs(hLine)
-% Fish the info about the the STG2 (Best-fit) and STG3 (true stage lon,lat bt bets fit angle)
+% Fish the info about the the STG2 (Best-fit) and STG3 (true stage lon,lat best fit angle)
 % poles stored in isochron headers.
 % HLINE is the handle of the 'seed' isochron. Only it and older isocs are analysed
 
@@ -236,8 +248,9 @@ function swap_lineInfo(hLine)
 	lineInfo = getappdata(hLine, 'LineInfo');
 	secondLineInfo = getappdata(hLine, 'secondLineInfo');
 	if (isempty(secondLineInfo))					% See if we have poles info to run on conjugate plate
-		pole2neighbor([], [], hLine, 'anglefit');	% This will set 'secondLineInfo'
-		secondLineInfo = getappdata(hLine, 'secondLineInfo');
+		%pole2neighbor([], [], hLine, 'anglefit');	% This will set 'secondLineInfo'
+		%secondLineInfo = getappdata(hLine, 'secondLineInfo');
+		error('BUG: secondLineInfo should already have been set before')
 	end
 	setappdata(hLine, 'LineInfo', secondLineInfo)
 	setappdata(hLine, 'secondLineInfo', lineInfo)
@@ -268,6 +281,7 @@ function [out1, out2] = get_plate_stages(hLine)
 	% Now the conjugate plate
 	swap_lineInfo(hLine0)
 	out2  = get_all_stgs(hLine0);
+	swap_lineInfo(hLine0)				% Reset the original
 
 	if (sign(out1(1,5)) ~= sign(out1(2,5)))
 		out1(1,5) = -out1(1,5);		out1(1,11) = -out1(1,11);		out1(1,17) = -out1(1,17);
@@ -297,9 +311,63 @@ function [out1, out2] = get_plate_stages(hLine)
 % 	flo = gmtmex(['backtracker -Lf -E' fnome2], pt_ref);
 % 	dist_age2 = gmtmex('mapproject -Gk -o2,3', flo);
 	flo = gmtmex(['backtracker -Lf -E' fnome3], pt_ref);
+	if (isempty(flo))
+		errordlg(['Something went wrong with the stage poles. See file: ' fnome3], 'Error')
+		return
+	end
 	dist_age3 = gmtmex('mapproject -Gk -o2,3', flo);
-% 	ecran(dist_age1.data(:,1),[dist_age1.data(:,2) dist_age2.data(:,2) dist_age3.data(:,2)])
-	ecran(dist_age3.data(:,1),dist_age3.data(:,2))
+	ecran(dist_age1.data(:,1),[dist_age1.data(:,2) dist_age2.data(:,2) dist_age3.data(:,2)])
+	title = get_plate_pair(hLine0);
+	ecran(dist_age3.data(:,1),dist_age3.data(:,2), title)
+
+	[vel, azim] = draw_funs([], 'compute_EulerVel', flo.data(1:end-1,2),flo.data(1:end-1,1), ...
+	                        out2(:,2),out2(:,1),out2(:,5)./diff(flo.data(:,3)));
+	ecran(flo.data(1:end-1,3),vel*10, [title ' - Velocity'])	% In mm/Ma
+	ecran(flo.data(1:end-1,3),azim,   [title ' - Azimuth'])
+
+% 	plot_arrows_flowline(hLine, flo.data(1,1), flo.data(1,2), azim)
+
+% -----------------------------------------------------------------------------------------------------------------
+function plot_arrows_flowline(hLine, lon0, lat0, azims)
+% Plot a flow line of arrows. Not that much interesting after all. We could do the same
+% using the flowline and turn its segments into arrows.
+	handles = guidata(hLine);
+	% Get the scales (copyied from draw_funs/vectorFirstButtonDown())
+ 	axLims = getappdata(handles.axes1,'ThisImageLims');
+	% Create a conversion from data to points for the current axis
+	oldUnits = get(handles.axes1,'Units');	set(handles.axes1,'Units','points');
+	Pos = get(handles.axes1,'Position');	set(handles.axes1,'Units',oldUnits);
+	vscale = 1/Pos(4) * diff(axLims(3:4));	hscale = 1/Pos(3) * diff(axLims(1:2));
+	vscale = (vscale + hscale) / 2;			hscale = vscale;	% For not having a head direction dependency
+	DAR = get(handles.axes1, 'DataAspectRatio');
+	if (DAR(1) == 1 && DAR(1) ~= DAR(2))	% To account for the "Scale geog images at mean lat" effect
+		vscale = vscale * DAR(2);		hscale = hscale * DAR(1);
+	end
+
+% 	resp = inputdlg({'Enter scale in points per speed (cm/yr). Default 30 pt = 1 cm/yr'}, ...
+% 		'Scale pt/velocity', [1 50], {'30'});
+% 	resp = sscanf(resp{1},'%f');
+% 	if isnan(resp),		return,		end
+	resp = 15;
+	mag = resp * ((hscale + vscale) / 2) * 111110;		% Length in meters, which is what vreckon wants
+	
+	lon = lon0;		lat = lat0;
+	for (k = 1:numel(azims))
+		[lat2,lon2] = vreckon(lat, lon, mag, [azims(k) azims(k)], 1);		% Get arrow tip point
+		[xt, yt] = make_arrow([lon lon2; lat lat2], hscale, vscale, 10);
+
+		hVec = patch('XData',xt, 'YData', yt, 'FaceColor','r','EdgeColor', ...
+			handles.DefLineColor,'LineWidth',0.5,'Tag','Arrow');
+		ud.arrow_xy = [xt(:) yt(:)];		
+		ud.vFac = 1.3;			ud.headLength = 10;
+		ud.aspectRatio = 3/2;	ud.length = mag;
+		ud.hscale = hscale;		ud.vscale = vscale;
+		ud.anchors = [lon lon2; lat lat2]';		% Transpose because we store by columns
+		ud.mag = mag;			ud.azim = azims(k);
+		set(hVec, 'UserData', ud)
+		draw_funs([], 'set_vector_uicontext', hVec)
+		lon = lon2;		lat = lat2;		% Get ready for next arrow
+	end
 
 % -----------------------------------------------------------------------------------------------------------------
 function fill_age_grid(hLine)
@@ -494,6 +562,23 @@ function update_poles_headers(hLine, fname)
 function hLine0 = find_ridge(hLine)
 % Find the ridge (isochron 0) of the plate on which this hLine lies
 
+	hLine0 = getappdata(hLine, 'mother');
+	if (~isempty(hLine0))
+		lineInfo = getappdata(hLine0,'LineInfo');
+		t = strtok(lineInfo);
+		if (~strcmp(t, '0'))
+			error('This Ridge is not a C0 isochron')
+		end
+		return
+	else
+		warndlg('Passed in the old code of find_ridge. It shouldn''t have done that.')
+		hLine0 = find_ridge_by_names(hLine);
+	end
+
+% -----------------------------------------------------------------------------------------------------------------
+function hLine0 = find_ridge_by_names(hLine)
+% Find the ridge (isochron 0) of the plate on which this hLine lies. This is done in the old
+% way where we seach for a C0 with the same plate pairs names as those stored in HLINE appdata
 	hLine0 = [];
 	lineInfo = getappdata(hLine,'LineInfo');
 	[t, r] = strtok(lineInfo);
@@ -513,9 +598,158 @@ function hLine0 = find_ridge(hLine)
 			end
 		end
 	end
+	if (isempty(hLine0))		% If all went well hLine is the seeked ridge. Let's check that
+		lineInfo = getappdata(hLine, 'LineInfo');
+		if (strcmp(strtok(lineInfo), '0'))
+			hLine0 = hLine;
+		else
+			error(['Couldn''t find the ridge for this isochron: ' lineInfo])
+		end
+	end
+
+% -----------------------------------------------------------------------------------------------------------------
+function pp = get_plate_pair(hLine)
+% Get the plate pair info stored in line's appata. HLINE can be a n isochrn handle or it's lineInfo
+	if (ishandle(hLine))
+		lineInfo = getappdata(hLine, 'LineInfo');
+	else
+		lineInfo = hLine;
+	end
+	[t, r] = strtok(lineInfo);
+	ind = strfind(r, 'FIN"');
+	pp = ddewhite(r(1:ind-1));
+
+% -----------------------------------------------------------------------------------------------------------------
+function [hLines_cross_1, hLines_cross_2] = find_isocs_in_block(hLine, clicked_pt)
+% Find the sequence of all isochrons from the Ridge of this block (where hLine lies) and in a growing age order.
+% I name it a block and not a plate because it may hold isochrons of more than one plate along
+% the opening history. Think on the Iberia plate that is now attached to Eurasia.
+%
+% The output are the handles of the block isochrons ranged in growing age order. This same output
+% is also stored in this-block Ridge appdatas ('isocs_1' & 'isocs_2') so it can be retrieved by other
+% functions and hence do not need to run this function over and over again.
+% Besides that, all hLines_cross_1,2 have their mother ridge stored as setappdata(hLines_cross_1, 'mother', hLine0)
+
+	if (nargin == 0),		hLine = gco;	end
+
+	lineInfo = getappdata(hLine, 'LineInfo');
+	pole_fin = parse_finite_pole(lineInfo);
+	if (isempty(pole_fin))
+		hLines_cross_1 = [];	hLines_cross_2 = [];
+		errordlg('This isochron has no Finite pole associated so I can''t find the ridge.', 'Error'),	return
+	end
+	% Estimate an angle to rotate the PT_FAR point from info on what plate pair are we.
+	% This point must be far enough so that a connection from it to Ridge crosses all isochrons that we are seeking.
+	pp = get_plate_pair(lineInfo);
+	if (~isempty(strfind(pp, 'LOMONOSOV')) || ~isempty(strfind(pp, 'MOHNS')) || ~isempty(strfind(pp, 'JAN')))
+		ang = 10;
+	elseif (~isempty(strfind(pp, 'EURASIA')))
+		ang = 13;
+	else					% AFRICA and futures
+		ang = 35;
+	end
+	pt_ridge  = gmtmex(sprintf('backtracker -E%f/%f/%f', pole_fin.lon, pole_fin.lat, pole_fin.ang/2), clicked_pt(1,1:2));
+	pt_far_1  = gmtmex(sprintf('backtracker -E%f/%f/%f', pole_fin.lon, pole_fin.lat, -sign(pole_fin.ang)*ang), clicked_pt(1,1:2));
+	pt_far_2  = gmtmex(sprintf('backtracker -E%f/%f/%f', pole_fin.lon, pole_fin.lat,  sign(pole_fin.ang)*ang), clicked_pt(1,1:2));
+
+	hAllIsocs = findobj(get(hLine,'Parent'),'Tag', get(hLine,'Tag'));
+	k = 1;
+	hLines_cross_1 = zeros(40,1);				% 40 Should be more than enough
+	dist2_cross  = zeros(40,1);
+	for (n = 1:numel(hAllIsocs))				% Loop to find the closest and older to currently active isoc
+		x = get(hAllIsocs(n), 'XData');		y = get(hAllIsocs(n), 'YData');
+		[x0, y0] = intersections([pt_ridge.data(1); pt_far_1.data(1)], [pt_ridge.data(2); pt_far_1.data(2)], x, y, false);
+		if (isempty(x0)),	continue,	end
+		hLines_cross_1(k) = hAllIsocs(n);
+		dist2_cross(k)  = (x0-pt_ridge.data(1))^2 + (y0-pt_ridge.data(2))^2;
+		k = k + 1;
+	end
+	hLines_cross_1(k:end) = [];					% Delete those in excess (remember k grew 1 too much in the for loop)
+	dist2_cross(k:end) = [];
+	[lix, ind] = sort(dist2_cross);
+	hLines_cross_1 = hLines_cross_1(ind);		% OK, now these handles should be sorted in growing age
+
+	% OK, now the same thing but for the conjugate plate(s)
+	k = 1;
+	hLines_cross_2 = zeros(40,1);				% 40 Should be more than enough
+	dist2_cross  = zeros(40,1);
+	for (n = 1:numel(hAllIsocs))				% Loop to find the closest and older to currently active isoc
+		x = get(hAllIsocs(n), 'XData');		y = get(hAllIsocs(n), 'YData');
+		[x0, y0] = intersections([pt_ridge.data(1); pt_far_2.data(1)], [pt_ridge.data(2); pt_far_2.data(2)], x, y, false);
+		if (isempty(x0)),	continue,	end
+		hLines_cross_2(k) = hAllIsocs(n);
+		dist2_cross(k)  = (x0(1)-pt_ridge.data(1))^2 + (y0(1)-pt_ridge.data(2))^2;
+		k = k + 1;
+	end
+	hLines_cross_2(k:end) = [];					% Delete those in excess (remember k grew 1 too much in the for loop)
+	dist2_cross(k:end) = [];
+	[lix, ind] = sort(dist2_cross);
+	hLines_cross_2 = hLines_cross_2(ind);		% OK, now these handles should be sorted in growing age
+
+	% Now find the mother Ridge and also store these handles in her pocket
+	hLine0 = find_ridge_by_names(hLines_cross_1(2));
+	% Check that neither hLines_cross_1(1) or hLines_cross_2(1) is the ridge itself
+	if (strcmp(strtok(getappdata(hLines_cross_1(1), 'LineInfo')), '0'))
+		hLines_cross_1(1) = [];
+	end
+	if (strcmp(strtok(getappdata(hLines_cross_2(1), 'LineInfo')), '0'))
+		hLines_cross_2(1) = [];
+	end
+	setappdata(hLine0, 'isocs_1', hLines_cross_1)
+	setappdata(hLine0, 'isocs_2', hLines_cross_2)
+	setappdata(hLine0, 'mother', hLine0)		% Yes, autoreference for algorithmic reasons
+	for (k = 1:numel(hLines_cross_1)),		setappdata(hLines_cross_1(k), 'mother', hLine0),	end
+	for (k = 1:numel(hLines_cross_2)),		setappdata(hLines_cross_2(k), 'mother', hLine0),	end
 
 % -----------------------------------------------------------------------------------------------------------------
 function [hNext, CA, CB] = find_closest_old(hLine)
+% Find the closest older isochron to HLINE and return it in HNEXT or empty if not found
+% CA & CB are strings with the names of both isochrons (CA -> hLine; CB -> hNext)
+
+	hNext = [];		CB = '';
+	if (nargin == 0),		hLine = gco;	end
+	this_lineInfo = getappdata(hLine,'LineInfo');
+	this_isoc = strtok(this_lineInfo);
+	CA = this_isoc;								% A copy as a string for eventual use in Best-Fit info data
+	hLine0  = getappdata(hLine,  'mother');
+	isocs_1 = getappdata(hLine0, 'isocs_1');
+	isocs_2 = getappdata(hLine0, 'isocs_2');
+	
+	ind = find(isocs_1 == hLine);
+	if (~isempty(ind))
+		if (ind < numel(isocs_1))
+			hNext = isocs_1(ind+1);
+			CB = strtok(getappdata(hNext,'LineInfo'));
+		end
+	else					% OK, try the other set of isochrns (on the conjugate plate)
+		ind = find(isocs_2 == hLine);
+		if (~isempty(ind))
+			if (ind < numel(isocs_2))
+				hNext = isocs_2(ind+1);
+				CB = strtok(getappdata(hNext,'LineInfo'));
+			end
+		else				% It has to be the Ridge
+			if (~strcmp(CA, '0'))
+				error('It can''t be empty anymore')
+			end
+			% Right but still need to find on each side of the Ridge are we runing. We can only find it checking headers
+			lineInfo_1 = getappdata(isocs_1(1), 'LineInfo');
+			[t, r] = strtok(lineInfo_1);
+			ind = strfind(r, 'FIN"');
+			plates_1 = ddewhite(r(1:ind-1));
+			[t, r] = strtok(this_lineInfo);			% This one are here sure to be the Ridge
+			ind = strfind(r, 'FIN"');
+			plates_0 = ddewhite(r(1:ind-1));
+			if (strcmp(plates_0, plates_1))
+				hNext = isocs_1(1);
+			else
+				hNext = isocs_2(1);
+			end
+		end
+	end
+
+% -----------------------------------------------------------------------------------------------------------------
+function [hNext, CA, CB] = find_closest_old__(hLine)
 % Find the closest older isochron to HLINE and return it in HNEXT or empty if not found
 % CA & CB are strings with the names of both isochrons (CA -> hLine; CB -> hNext)
 
@@ -705,10 +939,10 @@ function [new_lineInfo, is_pole_new] = set_stg_info(mode, hLine, lineInfo, plon,
 	if (strcmpi(mode,'bonin'))
 		indS = strfind(lineInfo, 'STG1"');			% See if we aready have one INSITU STG
 		if (isempty(indS))							% No, create one
-			new_lineInfo = sprintf('%s STG1"%.2f %.2f %.2f %.2f %.3f"', lineInfo, plon, plat, p_closest.age, p.age, omega);
+			new_lineInfo = sprintf('%s STG1"%.4f %.4f %.2f %.2f %.4f"', lineInfo, plon, plat, p_closest.age, p.age, omega);
 		else										% Yes, update it
 			ind2 = strfind(lineInfo(indS+5:end),'"') + indS + 5 - 1;	% So that indS refers to string start too
-			str = sprintf('%.2f %.2f %.2f %.2f %.3f', plon, plat, p_closest.age, p.age, omega);
+			str = sprintf('%.4f %.4f %.2f %.2f %.4f', plon, plat, p_closest.age, p.age, omega);
 			new_lineInfo = [lineInfo(1:indS+4) str lineInfo(ind2(1):end)];
 		end
 
@@ -724,7 +958,7 @@ function [new_lineInfo, is_pole_new] = set_stg_info(mode, hLine, lineInfo, plon,
 
 		indS = strfind(lineInfo, 'STG3');			% Does a previous STG3 exists?
 		if (isempty(indS))							% No. Append one at the end
-			new_lineInfo = sprintf('%s STG3_%s-%s"%.2f %.2f %s %s %.3f %.3f"', ...
+			new_lineInfo = sprintf('%s STG3_%s-%s"%.4f %.4f %s %s %.4f %.3f"', ...
 				lineInfo, CA, CB, plon, plat, ageB, ageA, omega, residue);
 		else
 			ind2 = (strfind(lineInfo(indS(1):end), '"') + indS(1) - 1); % Indices of the '"' pair
@@ -735,7 +969,7 @@ function [new_lineInfo, is_pole_new] = set_stg_info(mode, hLine, lineInfo, plon,
 				return
 			end
 			fprintf('Anom --> %s  Res antes = %.6f  Res depois = %.6f\n',CA, old_res, residue)
-			str = sprintf('"%.2f %.2f %s %s %.3f %.3f"', plon, plat, ageB, ageA, omega, residue);
+			str = sprintf('"%.4f %.4f %s %s %.4f %.3f"', plon, plat, ageB, ageA, omega, residue);
 			new_lineInfo = [lineInfo(1:indS+3) sprintf('_%s-%s', CA, CB) str];
 			if (numel(lineInfo) > ind2+2)			% +1 to compensate the above - 1 and the other for the space
 				 new_lineInfo = [new_lineInfo lineInfo(ind2+2:end)];
@@ -754,7 +988,7 @@ function [new_lineInfo, is_pole_new] = set_stg_info(mode, hLine, lineInfo, plon,
 		t = strtok(r);			ageA = t;
 
 		if (numel(indS) == 1)							% --- Only a Bonin type STG, insert the new Brute-Force one
-			new_lineInfo = sprintf('%s STG2_%s-%s"%.2f %.2f %s %s %.3f %.3f"', ...
+			new_lineInfo = sprintf('%s STG2_%s-%s"%.4f %.4f %s %s %.4f %.3f"', ...
 				lineInfo, CA, CB, plon, plat, ageB, ageA, omega, residue);
 		else											% --- Already have a Brute-Force type STG, update it
 			% the following gymnastic is because the STG string has the form STGXX_YY-ZZ"
@@ -766,7 +1000,7 @@ function [new_lineInfo, is_pole_new] = set_stg_info(mode, hLine, lineInfo, plon,
 				return
 			end
 			fprintf('Anom --> %s  Res antes = %.6f  Res depois = %.6f\n',CA, old_res, residue)
-			str = sprintf('"%.2f %.2f %s %s %.3f %.3f"', plon, plat, ageB, ageA, omega, residue);
+			str = sprintf('"%.4f %.4f %s %s %.4f %.3f"', plon, plat, ageB, ageA, omega, residue);
 			new_lineInfo = [lineInfo(1:indS+2) sprintf('2_%s-%s', CA, CB) str];
 			if (numel(lineInfo) > ind2+2)			% +1 to compensate the above - 1 and the other for the space
 				 new_lineInfo = [new_lineInfo lineInfo(ind2+2:end)];
