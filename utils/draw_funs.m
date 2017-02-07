@@ -25,7 +25,7 @@ function varargout = draw_funs(hand, varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: draw_funs.m 10006 2017-01-28 12:03:43Z j $
+% $Id: draw_funs.m 10014 2017-02-07 18:15:21Z j $
 
 % A bit of strange tests but they are necessary for the cases when we use the new feval(fun,varargin{:}) 
 opt = varargin{1};		% function name to evaluate (new) or keyword to select one (old form)
@@ -2130,6 +2130,7 @@ function hVec = DrawVector
 function [hs, vs] = vectorFirstButtonDown(hFig, hAxes, h, state, anchor, ah, vFac, aspect)
 % Outputs are used by the report_EulerVel (when PLOTing) function
 % ANCHOR, if used, contains the arrow anchor point coords (used by the edit mode)
+% When output is requested, minimum args is ([], HAXES).
 
 	if (nargin >= 5),		pt = anchor;
 	else					pt = get(hAxes, 'CurrentPoint');
@@ -3012,7 +3013,7 @@ function save_GMT_DB_asc(h, fname)
 		if (isempty(getappdata(h(k), 'edited'))),	continue,	end		% Skip because it was not modified
 		GSHHS_str = getappdata(h(k),'GSHHS_str');
 		if (k == 1 && ~isempty(GSHHS_str))		% Write back the magic string that allows us to recognize these type of files
-			fprintf(fid,'# $Id: draw_funs.m 10006 2017-01-28 12:03:43Z j $\n#\n%s\n#\n', GSHHS_str);
+			fprintf(fid,'# $Id: draw_funs.m 10014 2017-02-07 18:15:21Z j $\n#\n%s\n#\n', GSHHS_str);
 		end
 		hdr = getappdata(h(k), 'LineInfo');
 		x = get(h(k), 'XData');			y = get(h(k), 'YData');
