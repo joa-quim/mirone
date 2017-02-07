@@ -2130,6 +2130,7 @@ function hVec = DrawVector
 function [hs, vs] = vectorFirstButtonDown(hFig, hAxes, h, state, anchor, ah, vFac, aspect)
 % Outputs are used by the report_EulerVel (when PLOTing) function
 % ANCHOR, if used, contains the arrow anchor point coords (used by the edit mode)
+% When output is requested, minimum args is ([], HAXES).
 
 	if (nargin >= 5),		pt = anchor;
 	else					pt = get(hAxes, 'CurrentPoint');
