@@ -20,7 +20,7 @@ function varargout = mirone(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: mirone.m 10004 2017-01-26 02:54:30Z j $
+% $Id: mirone.m 10017 2017-02-08 17:22:15Z j $
 
 	if (nargin > 1 && ischar(varargin{1}))
 		if ( ~isempty(strfind(varargin{1},':')) || ~isempty(strfind(varargin{1},filesep)) )
@@ -66,7 +66,7 @@ function hObject = mirone_OpeningFcn(varargin)
 %#function lasreader_mex laszreader_mex escorrega show_manguito travel thresholdit intersections nswing runCB_tintol
 %#function usgs_recent_seismicity sat_orbits uisetdate doy
 %#function c_cpt2cmap c_grdfilter c_grdinfo c_grdlandmask c_grdproject c_grdread c_grdsample
-%#function c_grdtrend c_mapproject c_nearneighbor c_shoredump c_surface popenr
+%#function c_grdtrend c_mapproject c_nearneighbor c_shoredump c_surface popenr diffCenterVar
 
 	global gmt_ver;		gmt_ver = 5;	global home_dir;	fsep = filesep;
 	toCompile = false;		% To compile set this one to TRUE
@@ -2546,8 +2546,77 @@ function ImageIllumFalseColor(luz, handles)
 	guidata(handles.figure1, handles);
 
 % --------------------------------------------------------------------
+function ImageAnaglyph_CB_(handles)
+	if (aux_funs('msg_dlg',14,handles)),	return,		end
+	[X,Y,Z,head,m,n] = load_grd(handles);
+	if isempty(Z),	return,		end		% An error message was already issued
+
+	[ny,nx] = size(Z);		D2R = pi/180;			deg2m = 111194.9;
+	x_min = head(1);		y_min = head(3);		x_max = head(2);	y_max = head(4);
+	z_min = head(5);		z_max = head(6) + 1;	x_inc = head(8);	y_inc = head(9);
+
+	if (handles.geog)
+		p_size = sqrt((x_inc * deg2m) * (y_inc * deg2m * cos ((y_max + y_min)*0.5 * D2R))); 
+	else
+		p_size = x_inc * y_inc;
+	end
+
+	azimuth	= -90 * D2R;	elevation = 20 * D2R;
+
+	% Tiling
+	[ind_s,ind] = tile(m,600,4);	% shade_manip_raster "only consumes" 3 times Z grid size
+	if (size(ind_s,1) > 1)
+		sh = [];
+		sh(m,n) = 0;				% pre-allocation
+		last_row = 1;
+		for i = 1:size(ind_s,1)
+			tmp1 = (ind_s(i,1):ind_s(i,2));		% Indexes with overlapping zone
+			tmp2 = ind(i,1):ind(i,2);			% Indexes of chunks without the overlaping zone
+			tmp = shade_manip_raster(azimuth,elevation,Z(tmp1,1:end));
+			tmp = tmp(tmp2, 1:end);
+			sh(last_row : (last_row + size(tmp,1) - 1), :) = tmp;
+			last_row = last_row + size(tmp,1);
+		end
+	else
+		sh = shade_manip_raster(azimuth,elevation,Z);
+	end
+	sh = uint8((254 * sh) + 1);
+
+	str_amp = 2;
+	alpha = tan(25 * D2R) * str_amp / p_size;
+	decal = 1 + fix(2 * alpha * (z_max - z_min));
+	ana_header.nx = nx + decal;
+	ana_header.x_min = x_min - x_inc * (decal / 2);
+	ana_header.x_max = x_max + x_inc * (decal / 2);
+
+	left = repmat(uint8(255), 1, ana_header.nx);	right = left;
+	ar = repmat(uint8(0), ny, ana_header.nx);		ag = ar;	l = 0;	r = l;
+	for (i = 1:ny)
+		for (j = 1:nx)
+			iz = fix(alpha * (double(Z(i,j)) - z_min));
+			if (j == 1)
+				left(j+iz) = sh(i,j);
+				right(decal+j-iz) = sh(i,j);
+			else
+				for (k=r:decal + j - iz),	right(k) = sh(i,j);		end
+				for (k=l:j + iz),			left(k)  = sh(i,j);		end
+			end
+			l = j + iz;			r = decal + j-iz;
+		end
+		ar(i,1:end) = left;		ag(i,1:end) = right;
+		left(:) = uint8(0);		right(:) = uint8(0);
+	end
+	zz(:,:,1) = ar;		zz(:,:,2) = ag;		zz(:,:,3) = ag; 
+	tmp.head = head;		tmp.geog = handles.geog;	tmp.name = 'Anaglyph';
+	tmp.X = head(1:2);		tmp.Y = head(3:4);
+	mirone(zz,tmp);
+
+% --------------------------------------------------------------------
 function ImageAnaglyph_CB(handles)
 	if (aux_funs('msg_dlg',14,handles)),	return,		end
+	if (handles.have_nans)
+		warndlg('Current implementation does not work with grids that have NaNs. And this one has.','Warning'),	return
+	end
 	[X,Y,Z,head] = load_grd(handles);
 	if isempty(Z),	return,		end		% An error message was already issued
 
@@ -2561,17 +2630,24 @@ function ImageAnaglyph_CB(handles)
 		p_size = head(8) * head(9);
 	end
 
-	sh = grdgradient_m(Z, head, sprintf('-Em%.2f/%.2f', 0, 20));
+	m_scale = 1;
+	resp  = inputdlg({'Enter amplification factor'}, 'Amplification fact', [1 30], {'1'});
+	if (~(isempty(resp) || isnan(str2double(resp{1}))))
+		m_scale = str2double(resp{1});
+	end
+
+	sh = grdgradient_m(Z, head, sprintf('-Em%.2f/%.2f', 0, 30), sprintf('-M%f', m_scale));
 	sh = uint8(cvlib_mex('CvtScale', sh, 254, 1));
 
-	str_amp = 2;
+	str_amp = 2;	% Default value
+
 	alpha = tan(25 * D2R) * str_amp / p_size;
 	decal = fix(2 * alpha * (z_max - z_min));
 	decal = max(8, decal + rem(decal,2));			% Make it always even and with a minimum of 8
 
 	left = repmat(uint8(255), 1, nx + decal);	right = left;
 	ar = repmat(uint8(0), ny, nx);				ag = ar;	l = 0;	r = l;
-	inner_ind = (decal / 2) + 1 : nx + (decal / 2);	% Inner indices that trow away the left-right expansion
+	inner_ind = (decal / 2) + 1 : nx + (decal / 2);	% Inner indices that throw away the left-right expansion
 	for (i = 1:ny)
 		for (j = 1:nx)
 			iz = fix(alpha * (double(Z(i,j)) - z_min));
