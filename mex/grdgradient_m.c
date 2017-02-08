@@ -1,12 +1,12 @@
 /*--------------------------------------------------------------------
- *	$Id: grdgradient_m.c 4444 2014-05-01 22:33:09Z j $
+ *	$Id: grdgradient_m.c 10016 2017-02-08 17:16:46Z j $
  *
- *	Copyright (c) 1991-2004 by P. Wessel and W. H. F. Smith
+ *	Copyright (c) 1991-2017 by P. Wessel and W. H. F. Smith
  *	See COPYING file for copying and redistribution conditions.
  *
  *	This program is free software; you can redistribute it and/or modify
- *	it under the terms of the GNU General Public License as published by
- *	the Free Software Foundation; version 2 of the License.
+ *	it under the terms of the GNU Lesser General Public License as published by
+ *	the Free Software Foundation; version 3 or any later version.
  *
  *	This program is distributed in the hope that it will be useful,
  *	but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -86,6 +86,8 @@
  *
  *		10/10/12 J Luis, Hope that finally fixed the -a option issues.
  *		                 TODO. Implement a "known nans?" option
+ *
+ *		08/02/17 J Luis, Extend -M option to accept a scale factor to use in the -Em option.
  */
 
 #include "mex.h"
@@ -210,8 +212,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	
 	float	*data, *z_4, *pdata_s;
 	float	NaN = mxGetNaN(), nan = -999;
-	double	dzdx = 0.0, dzdy = 0.0, ave_gradient = 0., norm_val = 1.0, sigma = 0.0;
-	double	azim = 0.0, denom, max_gradient = 0.0, min_gradient = 0.0, rpi, m_pr_degree, lat, azim2;
+	double	dzdx = 0, dzdy = 0, ave_gradient = 0, norm_val = 1, sigma = 0, m_scale = 0;
+	double	azim = 0, denom, max_gradient = 0, min_gradient = 0, rpi, m_pr_degree, lat, azim2;
 	double	x_factor2, y_factor2, dzdx2, dzdy2, dzds1, dzds2, offset;
 	double	*pdata, *pdata_d, *z_8, *head;
 	double	p0, q0, elev, p0q0_cte;
@@ -380,6 +382,11 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 					break;
 				case 'M':
 					map_units = TRUE;
+					j = sscanf(&argv[i][2], "%lf", &m_scale);
+					if (j == 1)	{	/* Scale value will be used in the ManipRaster case */
+						map_units = FALSE;
+						m_scale *= -1. / 100.;	/* So that higher numbers will amplify the relief in Anaglyphs */
+					}
 					break;
 				case 'N':
 					normalize = TRUE;
@@ -421,7 +428,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	if (argc == 1 || error) {
 		mexPrintf ("grdgradient - Compute directional gradients from grdfiles\n\n");
 		mexPrintf ( "usage: R = grdgradient_m(infile,head,'[-A<azim>[/<azim2>]]', '[-D[a][o][n]]',\n");
-		mexPrintf ( "\t'[-L<flag>]', '[-E[s|p|m|h)]/<azim>/<elev>', [-M]',\n");
+		mexPrintf ( "\t'[-L<flag>]', '[-E[s|p|m|h)]/<azim>/<elev>', [-M[scale]]',\n");
 		mexPrintf ( "\t''[-N[t_or_e][<amp>[/<sigma>[/<offset>]]]]', '[-S<p|d>]', '[-a<nan_val>]')\n\n");
 		mexPrintf ("\t<infile> is name of input array\n");
 		mexPrintf ("\t<head> is array header descriptor of the form\n");
@@ -455,6 +462,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		mexPrintf ( "\t-M to use map units.  In this case, dx,dy of grdfile\n");
 		mexPrintf ( "\t   will be converted from degrees lon,lat into meters.\n");
 		mexPrintf ( "\t   Default computes gradient in units of data/grid_distance.\n");
+		mexPrintf ( "\t-M <scale> Use scale factor (e.g. 0.5 or 2 or 5) scale the gradients in the ManipRaster (-Em)\n");
+		mexPrintf ( "\t   case. This particular usefull when the gradients are to be used in Anaglyphs.\n");
 		mexPrintf ( "\t-N will normalize gradients so that max |grad| = <amp> [1.0]\n");
 		mexPrintf ( "\t  -Nt will make atan transform, then scale to <amp> [1.0]\n");
 		mexPrintf ( "\t  -Ne will make exp  transform, then scale to <amp> [1.0]\n");
@@ -692,6 +701,10 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		dy_grid /= lim_y;
 		x_factor = -dy_grid / (2 * lim_z);
 		y_factor = -dx_grid / (2 * lim_z);
+	}
+
+	if (m_scale != 0) {		/* This applies only in the ManipRaster case */
+		x_factor = y_factor = m_scale;
 	}
 
 	if (algo_hillshade)		/* The horror, a GOTO */
