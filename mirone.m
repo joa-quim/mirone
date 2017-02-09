@@ -20,7 +20,7 @@ function varargout = mirone(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: mirone.m 10017 2017-02-08 17:22:15Z j $
+% $Id: mirone.m 10018 2017-02-09 01:52:20Z j $
 
 	if (nargin > 1 && ischar(varargin{1}))
 		if ( ~isempty(strfind(varargin{1},':')) || ~isempty(strfind(varargin{1},filesep)) )
@@ -619,9 +619,14 @@ function  PlatesAgeLift_CB(handles)
 	lift = single(350 * sqrt(double(Age)));
 	[X,Y,Z] = load_grd(handles);
 	lift = cvlib_mex('resize', lift, [size(Z,1) size(Z,2)]);
-	cvlib_mex('add', lift, Z);
+	lifted = cvlib_mex('add', lift, Z);
 	miniHandles.head(7:9) = handles.head(7:9);		% min/max (5:6) will be updated in GRDdisplay
-	GRDdisplay(handles,X,Y,lift,miniHandles.head,[],'AgeLiftedBathymetry',srsWKT)
+	GRDdisplay(handles,X,Y,lifted,miniHandles.head,[],'AgeLiftedBathymetry',srsWKT)
+
+	% Now compute the depth anomaly
+	cvlib_mex('addS', lift, 2500);
+	cvlib_mex('add', lift, Z);
+	GRDdisplay(handles,X,Y,lift,miniHandles.head,[],'Bathymetry anomaly',srsWKT)
 
 % --------------------------------------------------------------------------------------------------
 function load_ps(handles, fname)
@@ -2546,72 +2551,6 @@ function ImageIllumFalseColor(luz, handles)
 	guidata(handles.figure1, handles);
 
 % --------------------------------------------------------------------
-function ImageAnaglyph_CB_(handles)
-	if (aux_funs('msg_dlg',14,handles)),	return,		end
-	[X,Y,Z,head,m,n] = load_grd(handles);
-	if isempty(Z),	return,		end		% An error message was already issued
-
-	[ny,nx] = size(Z);		D2R = pi/180;			deg2m = 111194.9;
-	x_min = head(1);		y_min = head(3);		x_max = head(2);	y_max = head(4);
-	z_min = head(5);		z_max = head(6) + 1;	x_inc = head(8);	y_inc = head(9);
-
-	if (handles.geog)
-		p_size = sqrt((x_inc * deg2m) * (y_inc * deg2m * cos ((y_max + y_min)*0.5 * D2R))); 
-	else
-		p_size = x_inc * y_inc;
-	end
-
-	azimuth	= -90 * D2R;	elevation = 20 * D2R;
-
-	% Tiling
-	[ind_s,ind] = tile(m,600,4);	% shade_manip_raster "only consumes" 3 times Z grid size
-	if (size(ind_s,1) > 1)
-		sh = [];
-		sh(m,n) = 0;				% pre-allocation
-		last_row = 1;
-		for i = 1:size(ind_s,1)
-			tmp1 = (ind_s(i,1):ind_s(i,2));		% Indexes with overlapping zone
-			tmp2 = ind(i,1):ind(i,2);			% Indexes of chunks without the overlaping zone
-			tmp = shade_manip_raster(azimuth,elevation,Z(tmp1,1:end));
-			tmp = tmp(tmp2, 1:end);
-			sh(last_row : (last_row + size(tmp,1) - 1), :) = tmp;
-			last_row = last_row + size(tmp,1);
-		end
-	else
-		sh = shade_manip_raster(azimuth,elevation,Z);
-	end
-	sh = uint8((254 * sh) + 1);
-
-	str_amp = 2;
-	alpha = tan(25 * D2R) * str_amp / p_size;
-	decal = 1 + fix(2 * alpha * (z_max - z_min));
-	ana_header.nx = nx + decal;
-	ana_header.x_min = x_min - x_inc * (decal / 2);
-	ana_header.x_max = x_max + x_inc * (decal / 2);
-
-	left = repmat(uint8(255), 1, ana_header.nx);	right = left;
-	ar = repmat(uint8(0), ny, ana_header.nx);		ag = ar;	l = 0;	r = l;
-	for (i = 1:ny)
-		for (j = 1:nx)
-			iz = fix(alpha * (double(Z(i,j)) - z_min));
-			if (j == 1)
-				left(j+iz) = sh(i,j);
-				right(decal+j-iz) = sh(i,j);
-			else
-				for (k=r:decal + j - iz),	right(k) = sh(i,j);		end
-				for (k=l:j + iz),			left(k)  = sh(i,j);		end
-			end
-			l = j + iz;			r = decal + j-iz;
-		end
-		ar(i,1:end) = left;		ag(i,1:end) = right;
-		left(:) = uint8(0);		right(:) = uint8(0);
-	end
-	zz(:,:,1) = ar;		zz(:,:,2) = ag;		zz(:,:,3) = ag; 
-	tmp.head = head;		tmp.geog = handles.geog;	tmp.name = 'Anaglyph';
-	tmp.X = head(1:2);		tmp.Y = head(3:4);
-	mirone(zz,tmp);
-
-% --------------------------------------------------------------------
 function ImageAnaglyph_CB(handles)
 	if (aux_funs('msg_dlg',14,handles)),	return,		end
 	if (handles.have_nans)
@@ -2620,7 +2559,6 @@ function ImageAnaglyph_CB(handles)
 	[X,Y,Z,head] = load_grd(handles);
 	if isempty(Z),	return,		end		% An error message was already issued
 
-	set(handles.figure1,'pointer','watch'),			pause(0.05)
 	[ny,nx] = size(Z);		D2R = pi/180;			deg2m = 111194.9;
 	z_min = head(5);		z_max = head(6) + 1;
 
@@ -2636,6 +2574,7 @@ function ImageAnaglyph_CB(handles)
 		m_scale = str2double(resp{1});
 	end
 
+	set(handles.figure1,'pointer','watch'),			pause(0.05)
 	sh = grdgradient_m(Z, head, sprintf('-Em%.2f/%.2f', 0, 30), sprintf('-M%f', m_scale));
 	sh = uint8(cvlib_mex('CvtScale', sh, 254, 1));
 
