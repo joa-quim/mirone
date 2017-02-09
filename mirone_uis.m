@@ -1,7 +1,7 @@
 function [H1,handles,home_dir] = mirone_uis(home_dir)
 % Creates and returns a handle to the GUI MIRONE figure.
 
-%	Copyright (c) 2004-2016 by J. Luis
+%	Copyright (c) 2004-2017 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -59,7 +59,7 @@ function [H1,handles,home_dir] = mirone_uis(home_dir)
 	% In the 'catch' branch we check if the MIRONE_HOME environment variable exists. If yes
 	% its value, the correct home_dir, is returned back to mirone.m
 	try
-        load ([home_dir filesep 'data' filesep 'mirone_icons.mat']);
+        load([home_dir filesep 'data' filesep 'mirone_icons.mat']);
 	catch
         if (IamCompiled && ispc)
             home_dir = winqueryreg('HKEY_CURRENT_USER', 'Environment', 'MIRONE_HOME');
@@ -754,10 +754,10 @@ if (IamCompiled)
 	uimenu('Parent',h, 'Call', 'mirone(''TransferB_CB'',guidata(gcbo),''sharedir'')','Label','Debug - Print GMT_SHAREDIR')
 	uimenu('Parent',h, 'Call', 'mirone(''TransferB_CB'',guidata(gcbo),''update'')','Label','Check for updates','Sep','on')
 end
-uimenu('Parent',h, 'Call', 'update_gmt(guidata(gcbo))','Label','Update your GMT5','Sep','on')
+%uimenu('Parent',h, 'Call', 'update_gmt(guidata(gcbo))','Label','Update your GMT5','Sep','on')
 uimenu('Parent',h, 'Call',['mirone(''FileOpenWebImage_CB'',guidata(gcbo),',...
 	' ''http://www2.clustrmaps.com/stats/maps-clusters/w3.ualg.pt-~jluis-mirone-world.jpg'',''nikles'');'],'Label','See visitors map','Sep','on');
-uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 22 Oct 2016'',''2.8.0dev'')','Label','About','Sep','on');
+uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 9 Feb 2017'',''2.8.0dev'')','Label','About','Sep','on');
 
 %% --------------------------- Build HANDLES and finish things here
 	handles = guihandles(H1);
