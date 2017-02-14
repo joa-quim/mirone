@@ -136,7 +136,7 @@ function [hNext, is_pole_new] = compute_pole2neighbor_newStage(hLine)
 		p = parse_finite_pole(lineInfo);
 		if (isempty(p))
 			msg = sprintf('Failed to find the finite pole (instantaneous pole) for this ridge\n%s', lineInfo);
-			errodlg(msg, 'Error')
+			errordlg(msg, 'Error')
 			error('compute_pole2neighbor_newStage:z', msg)
 		end
 		pole = [p.lon p.lat p2.age 0 p.ang];	% For C0 we cannot compute a stage ... but we can set it
@@ -316,7 +316,7 @@ function [out1, out2] = get_plate_stages(hLine)
 		return
 	end
 	dist_age3 = gmtmex('mapproject -Gk -o2,3', flo);
-	ecran(dist_age1.data(:,1),[dist_age1.data(:,2) dist_age2.data(:,2) dist_age3.data(:,2)])
+% 	ecran(dist_age1.data(:,1),[dist_age1.data(:,2) dist_age2.data(:,2) dist_age3.data(:,2)])
 	title = get_plate_pair(hLine0);
 	ecran(dist_age3.data(:,1),dist_age3.data(:,2), title)
 
