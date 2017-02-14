@@ -1,7 +1,7 @@
 /*--------------------------------------------------------------------
- *	$Id: distmin.c 9839 2016-10-01 22:12:33Z j $
+ *	$Id: distmin.c 10020 2017-02-14 03:27:06Z j $
  *
- *	Copyright (c) 2004-2016 by J. Luis
+ *	Copyright (c) 2004-2017 by J. Luis
  *
  * 	This program is part of Mirone and is free software; you can redistribute
  * 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -18,12 +18,12 @@
 
 /*
  * Compute the shortest distance between each point in (lon,lat) and the
- * polyline (r_lon,r_lat) SEGLEN holds the segment length of polyline 
- * (r_lon,r_lat) corresponding to elements of DIST.
+ * polyline (r_lon,r_lat). LENGTHS & LENGTHSROT holds the segment length of (lon,lat) and the
+ * (r_lon,r_lat) respectively.
  *
  * This MEX is 40x faster than the corresponding matlab code (in compute_euler)
  * Equivalent Matlab call
- * [dist, [xy_near, dists, pesos]] = distmin(lon, lat, r_lon, r_lat, lengthsRot)
+ * [dist, [xy_near, dists, pesos]] = distmin(lon, lat, lengths, r_lon, r_lat, lengthsRot)
  *
  * NOTE: This assumes that both lines have the same "growing direction"
  *
@@ -122,6 +122,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 
 	/* Heuristic to find if data came in radians or in km (* 6371) */
 	tmp = MAX (MAX (MAX (fabs(lat[0]), fabs(lat[(int)(n_pt/3)])), fabs(lat[(int)(n_pt*2/3)])), fabs(lat[n_pt-1]));
+
+	if (tmp > 10)
+		mexErrMsgTxt("DISTMIN ERROR: Not implemented for cartesian coordinates. Or you forgot to convert to radians.");
 
 	plhs[0] = mxCreateDoubleMatrix (1,1, mxREAL);
 	soma    = mxGetPr(plhs[0]);
