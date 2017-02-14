@@ -214,7 +214,7 @@ function polygonui(varargin)
 		case 'off'					% We are entering in the edit mode
 			% Make sure that only one polygon is edited at a time
 			h_active = getappdata(s.h_fig,'epActivHand');
-			if (h_active),		polygonui(h_active),	end
+			if (h_active ~= 0),		polygonui(h_active),	end
 			setappdata(s.h_fig,'epActivHand',s.h_pol)
 			s.controls = 'on';
 			if (~s.duplicate)
