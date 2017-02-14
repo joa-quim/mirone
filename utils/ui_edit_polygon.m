@@ -82,7 +82,7 @@ function ui_edit_polygon(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: ui_edit_polygon.m 9900 2016-11-02 11:38:44Z j $
+% $Id: ui_edit_polygon.m 10022 2017-02-14 23:57:23Z j $
 
 	if (isa(varargin{end},'char'))	% Moving polygon option was transmitted in input
 		move_choice = varargin{end};
@@ -214,7 +214,7 @@ function polygonui(varargin)
 		case 'off'					% We are entering in the edit mode
 			% Make sure that only one polygon is edited at a time
 			h_active = getappdata(s.h_fig,'epActivHand');
-			if (h_active),		polygonui(h_active),	end
+			if (h_active ~= 0),		polygonui(h_active),	end
 			setappdata(s.h_fig,'epActivHand',s.h_pol)
 			s.controls = 'on';
 			if (~s.duplicate)
