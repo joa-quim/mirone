@@ -1,4 +1,4 @@
-function [along, alat, rho] = hellinger(along, alat, rho, isow, isoe, isoc1_props, isoc2_props)
+function [along, alat, rho] = hellinger(along, alat, rho, isoc_mov, isoc_fix, isoc1_props, isoc2_props)
 % c simplified September 9, 2000, July 2001
 % c
 % c program implementing section 1 of 'on reconstructing tectonic plate
@@ -27,92 +27,184 @@ function [along, alat, rho] = hellinger(along, alat, rho, isow, isoe, isoc1_prop
 
 % $Id$
 
-	global eta etai
-
-% calculating matrices sigma and sigma-tilde
-
+	verbose = false;
 	if (nargin == 0)
 		alat = 64;		along = 135;	rho = 0.66;
 	end
 
 	% Converting to geocentric, as is correct, makes almost no difference
-	D2R = pi / 180;
-	ecc = 0.0818191908426215;			% WGS84
-	isow = isow * D2R;
-	isoe = isoe * D2R;
-	isow(:,2) = atan2((1-ecc^2)*sin(isow(:,2)), cos(isow(:,2)));	% Lat da isow geocentrica
-	isoe(:,2) = atan2((1-ecc^2)*sin(isoe(:,2)), cos(isoe(:,2)));	% Lat da isoe geocentrica
-	isow = isow / D2R;
-	isoe = isoe / D2R;
-
-% 	isow = load('c:\j\chang\a2w.dat');
-% 	isoe = load('c:\j\chang\a2e.dat');
+ 	D2R = pi / 180;
+% 	ecc = 0.0818191908426215;			% WGS84
+% 	isoc_mov = isoc_mov * D2R;
+% 	isoc_fix = isoc_fix * D2R;
+% 	isoc_mov(:,2) = atan2((1-ecc^2)*sin(isoc_mov(:,2)), cos(isoc_mov(:,2)));	% Lat da isoc_mov geocentrica
+% 	isoc_fix(:,2) = atan2((1-ecc^2)*sin(isoc_fix(:,2)), cos(isoc_fix(:,2)));	% Lat da isoc_fix geocentrica
+% 	isoc_mov = isoc_mov / D2R;
+% 	isoc_fix = isoc_fix / D2R;
 
 	if (nargin == 7)
-		data = [ones(size(isow,1),1) isoc1_props(:,1) isow(:,2:-1:1) isoc1_props(:,2); ...
-			ones(size(isoe,1),1)*2 isoc2_props(:,1) isoe(:,2:-1:1) isoc2_props(:,2)];
+		data = [ones(size(isoc_mov,1),1) isoc1_props(:,1) isoc_mov(:,2:-1:1) isoc1_props(:,2); ...
+			ones(size(isoc_fix,1),1)*2 isoc2_props(:,1) isoc_fix(:,2:-1:1) isoc2_props(:,2)];
 	else
-		if (nargin < 6),		DP_tol = 0.05;
+		if (nargin < 6),		DP_tol = 5;
 		elseif (nargin == 6),	DP_tol = isoc1_props;
 		end
-		%[lat, lon] = reducem_m(isow(:,2), isow(:,1), DP_tol);
-		DP_tol = DP_tol * 111;			% Crude conversion of TOL from degrees to km
-		B = cvlib_mex('dp',isow,DP_tol,'GEOG');
-		lat = B(:,2);	lon = B(:,1);
+		%DP_tol = DP_tol * 111;			% Crude conversion of TOL from degrees to km
+		B = cvlib_mex('dp', isoc_mov, DP_tol, 'GEOG');
+		lat_dp = B(:,2);	lon_dp = B(:,1);
 
-		isow_dp = [lat lon];
-		[c,ind] = intersect(isow(:,2),lat);
-		ind = ind(end:-1:1);
-		flags_w = zeros(size(isow,1),1);
-		for (k = 1:numel(ind)-1)
-			flags_w(ind(k):ind(k+1)-1) = k;
-		end
-		flags_w(end) = numel(ind) - 1;
+ 		handles = guidata(gcf);
+% 		hLine = line('parent',get(handles.hCallingFig,'CurrentAxes'),'XData',lon_dp,'YData',lat_dp, ...
+% 		             'LineStyle','-','LineWidth',1,'Color','b','Tag','polyline');
+% 		draw_funs(hLine,'line_uicontext')			% Set lines's uicontextmenu
 
-		[r_lon,r_lat] = rot_euler(isow_dp(:,2),isow_dp(:,1), along, alat, rho, -1);		% Rotate DP moving isoc
-		ndata = size(isoe,1);
-		n_pts_dp = size(isow_dp,1);
-		flags_e = zeros(ndata,1);
-		for (k = 1:ndata)						% Loop over points of the static isoc
-			P  = isoe(k,1:2);
-			Dsts = sqrt((P(1)-r_lon).^2 + (P(2)-r_lat).^2);
-			[D,ind] = min(Dsts);
-			if ~(ind == 1 || ind == n_pts_dp)
-				Q1 = [r_lon(ind-1) r_lat(ind-1)];		Q2 = [r_lon(ind) r_lat(ind)];
-				D1 = abs(det([Q2-Q1; P-Q1])) / norm(Q2-Q1);
-				Q1 = [r_lon(ind) r_lat(ind)];			Q2 = [r_lon(ind+1) r_lat(ind+1)];
-				D2 = abs(det([Q2-Q1; P-Q1])) / norm(Q2-Q1);
-			else
-				D1 = 1;		D2 = 2;		% dumb values for D1 < D2
-			end
-			if (D1 < D2)
-				flags_e(k) = ind;
-			else
-				flags_e(k) = ind + 1;
-			end
+		[c,ind] = intersect(isoc_mov(:,2),lat_dp, 'stable');	% Get only those points that are common to both data-sets
+		flags_mov = zeros(size(isoc_mov,1),1);
+		for (k = 1:numel(ind)-1)					% Store how points belong to each sector (segment)
+			flags_mov(ind(k):ind(k+1)-1) = k;
 		end
-		data = [ones(size(isow,1),1) flags_w isow(:,2:-1:1) ones(size(isow,1),1); ...
-			ones(size(isoe,1),1)*2 flags_e isoe(:,2:-1:1) ones(ndata,1)];
+		flags_mov(end) = numel(ind) - 1;
+
+% 		breaks = (diff(ind) == 1);
+% 		segmented_dp = zeros(3*(numel(ind) - 1), 2);
+% 		n = 1;
+% 		for (k = 1:numel(ind)-1)
+% 			segmented_dp(n,:) = [lon_dp(k) lat_dp(k)];
+% 			n = n + 1;
+% 			segmented_dp(n,:) = [lon_dp(k+1) lat_dp(k+1)];
+% 			n = n + 1;
+% 			segmented_dp(n,:) = [NaN NaN];
+% 			if (breaks(k))
+% 				segmented_dp(n-2:n,1) = Inf;
+% 			end
+% 			n = n + 1;
+% 		end
+% 		ind = isinf(segmented_dp(:,1));		% Remove the segments that have no middle points in them
+% 		segmented_dp(ind,:) = [];
+
+% 		hLine = line('parent',get(handles.hCallingFig,'CurrentAxes'),'XData',segmented_dp(:,1),'YData',segmented_dp(:,2), ...
+% 		             'LineStyle','-','LineWidth',1,'Color','r','Tag','broken');
+% 		draw_funs(hLine,'line_uicontext')
+
+		isoc_mov_dp = [lat_dp lon_dp];
+		[r_lon,r_lat] = rot_euler(isoc_mov_dp(:,2),isoc_mov_dp(:,1), along, alat, rho, -1);		% Rotate DP moving isoc
+% 		hLine = line('parent',get(handles.hCallingFig,'CurrentAxes'),'XData',r_lon,'YData',r_lat, ...
+% 		             'LineStyle','-','LineWidth',1,'Color','b','Tag','polyline');
+% 		draw_funs(hLine,'line_uicontext')
+
+		% --------------------- Segmentation based on accumulated distances ----------------------------------------
+		% Compute ...
+		isoc_fix = isoc_fix * D2R;		r_lon = r_lon * D2R;	r_lat = r_lat * D2R;
+		X = isoc_fix(:,1) .* cos(isoc_fix(:,2)) * 6371;
+		Y = isoc_fix(:,2) * 6371;
+		xd = diff(X);		yd = diff(Y);
+		lenFix = sqrt(xd .* xd + yd .* yd);
+		X_rot = r_lon .* cos(r_lat) * 6371;		Y_rot = r_lat * 6371;
+		xd = diff(X_rot);		yd = diff(Y_rot);
+		lenRot = sqrt(xd .* xd + yd .* yd);
+		[area0, closest, dst, pesos] = distmin(isoc_fix(:,1), isoc_fix(:,2), lenFix, r_lon, r_lat, lenRot);
+		isoc_fix = isoc_fix / D2R;		r_lon = r_lon / D2R;	r_lat = r_lat / D2R;
+
+		% These are the closest rotated isoc_mov_dp to isoc_fix so it has size(isoc_fix)
+		% Or, in other words, the projection of isoc_fix into isoc_mov_dp
+		closest = closest / D2R;
+
+% 		hLine = line('parent',get(handles.hCallingFig,'CurrentAxes'),'XData',closest(:,1),'YData',closest(:,2), ...
+% 		             'LineStyle','-','LineWidth',1,'Color','g','Tag','polyline');
+% 		draw_funs(hLine,'line_uicontext')		% Set lines's uicontextmenu
+
+		acum_dist_mov_rot = gmtmex('mapproject -Gk', gmt('wrapseg', {[r_lon r_lat]}));
+		acum_dist_closest = gmtmex('mapproject -Gk', gmt('wrapseg', {closest}));
+		acum_dist_mov_rot = acum_dist_mov_rot.data(:,3);
+		acum_dist_closest = acum_dist_closest.data(:,3);
+
+		ndata = size(isoc_fix,1);				% Same as numel(acum_dist_closest)
+		flags_fix = zeros(ndata,1);
+		k = 1;		start = 1;		off = 0;
+ 		% But because we can get points where closest == 0 (for the portions where the 2 lines do not overlap) we need to take care of them
+		while (closest(k) == 0),	k = k + 1;		end
+		if (k > 1)
+			acum_dist_closest = acum_dist_closest - acum_dist_closest(k);
+			flags_fix(1:k-1) = 1;
+			flags_mov = flags_mov + 1;			% Because we just introduced a new, unpaired, segment
+			start = k;							% And set the start of the paired points to right after last unpaired pt
+			off = 1;
+		end
+
+		% Compute the distance first pt in isoc_mov_dp rotated and first pt in isoc_fix that is inside isoc_mov_dp segments
+		s = vdist(r_lat(1),r_lon(1), closest(start,2),closest(start,1)) / 1000;
+		% We need to compensate this distance so that both acum_dist_closest and acum_dist_mov_rot have the same origin in terms of accum dist
+		acum_dist_closest(start:end) = acum_dist_closest(start:end) + s;
+
+		for (k = 2:numel(acum_dist_mov_rot))
+			ind = find(acum_dist_closest >= acum_dist_mov_rot(k-1) & acum_dist_closest < acum_dist_mov_rot(k));
+			stop = start + numel(ind) - 1;
+			flags_fix(start:stop) = k + off - 1;
+			start = stop + 1;
+		end
+
+		ind = find(flags_fix == 0);		% See if any points in isoc_fix 'overflows' the rotated isoc_mov_dp
+		if (~isempty(ind))				% If any, make them unpaired points so that hellinger will not use them
+			flags_fix(ind) = max(flags_fix) + 1;
+		end
+		% -------------------------------------------------------------------------------------------------------------
+
+		% --------------------- Segmentation based on old idea (which I now forgot) -----------------------------------
+% 		ndata = size(isoc_fix,1);
+% 		n_pts_dp = size(isoc_mov_dp,1);
+% 		flags_fix = zeros(ndata,1);
+% 		for (k = 1:ndata)						% Loop over points of the static isoc
+% 			P  = isoc_fix(k,1:2);
+% 			Dsts = sqrt((P(1)-r_lon).^2 + (P(2)-r_lat).^2);
+% 			[D,ind] = min(Dsts);
+% 			if ~(ind == 1 || ind == n_pts_dp)
+% 				Q1 = [r_lon(ind-1) r_lat(ind-1)];		Q2 = [r_lon(ind) r_lat(ind)];
+% 				D1 = abs(det([Q2-Q1; P-Q1])) / norm(Q2-Q1);
+% 				Q1 = [r_lon(ind) r_lat(ind)];			Q2 = [r_lon(ind+1) r_lat(ind+1)];
+% 				D2 = abs(det([Q2-Q1; P-Q1])) / norm(Q2-Q1);
+% 			else
+% 				D1 = 1;		D2 = 2;		% dumb values for D1 < D2
+% 			end
+% 			if (D1 < D2)
+% 				flags_fix(k) = ind;
+% 			else
+% 				flags_fix(k) = ind + 1;
+% 			end
+% 		end
+		% -------------------------------------------------------------------------------------------------------------
+
+		std_invented = 2;
+		data = [ones(size(isoc_mov,1),1) flags_mov isoc_mov(:,2:-1:1) ones(size(isoc_mov,1),1)*std_invented; ...
+			ones(size(isoc_fix,1),1)*2 flags_fix isoc_fix(:,2:-1:1) ones(ndata,1)*std_invented];
+
+		mixed = classical_hellinger_order(flags_mov, isoc_mov, flags_fix, isoc_fix);
+		hLine = findobj(get(handles.hCallingFig,'CurrentAxes'), 'Tag','HellingerPicks');
+		if (isempty(hLine))
+			hLine = line('parent',get(handles.hCallingFig,'CurrentAxes'),'XData',mixed(:,1),'YData',mixed(:,2), ...
+						 'LineStyle','-.','LineWidth',1,'Tag','HellingerPicks');
+			draw_funs(hLine,'line_uicontext')		% Set lines's uicontextmenu
+		else		% Just update old one
+			set(hLine, 'XData', mixed(:,1),'YData',mixed(:,2))
+		end
 	end
-
-% 	fname = 'c:\j\chang\a2hell_lin.dat';
-% 	data = load(fname);
 	
-	eps_ = 1e-4;
+	rfact = 4.0528473e07;
+	hlim=1e-10;
+	eps_ = 10;			% If == 0, ouput pole == input
 	nsig = 4;
 	maxfn = 1000;
 	ndata = size(data,1);
 	nsect = max(data(:,2));
 	sigma = zeros(2,nsect,3,3);
 	msig  = 2*nsect*nsect+7*nsect+6;
-	msig2 = 2*nsect+3;
-	plev = .95;				% Confidence level
+	%msig2 = 2*nsect+3;
+	plev = 0.95;				% Confidence level
 	eta = zeros(nsect,3,3);
 	etai= zeros(nsect,3,2);
 	  
 	[x,y,z] = trans1(data(:,3), data(:,4));
 	axis = [x y z];
-	sd = (data(:,5) / 6366.197724) .^2;
+	sd = data(:,5).^2;
 
 	for (k = 1:ndata)
 		for (j1 = 1:3)
@@ -122,21 +214,14 @@ function [along, alat, rho] = hellinger(along, alat, rho, isow, isoe, isoc1_prop
 			end
 		end
 	end	
-
-% minimization section--grid search
+	
+	% minimization section--grid search
 	qhati = trans3(alat,along,rho);
-	%h = zeros(3,1);
+	h = ones(3,1);
+	[rmin, eta, etai] = r1(h, sigma, qhati, nsect, eta, etai);		% Not sure but think it's for initializing eta & etai
+
 	%[qhati, eps_, rmin] = grds(eps_, sigma, qhati, nsect);
 
-% 250   write(6,*) 'Initial guess: alat, along, rho? '
-%       read(5,*) alat,along,rho
-%       write(6,*) 'Search radius (radians)? '
-%       read(5,*) eps
-%       call trans3(alat,along,rho,qhati)
-%       write(6,*) 'qhat: ',qhati
-%       do 207 i=1,3
-% 207   h(i)=0.
-%       rmin=r1(h)
 % 251   write(6,*) 'do you want a grid search, eps = ',eps
 %       read(5,'(a)') ans
 %       if ((ans.ne.'Y').and.(ans.ne.'y')) go to 260
@@ -150,81 +235,54 @@ function [along, alat, rho] = hellinger(along, alat, rho, isow, isoe, isoc1_prop
 %       write(6,*) 'qhat: ',qhati
 %       go to 251
 
-% minimization section--calling amoeba
+	eps_ = eps_ * D2R;
+ 
+	h = zeros(1,3);
+	[rmin, eta, etai] = r1(h, sigma, qhati, nsect, eta, etai);
+	rmin = rmin * rfact;
 
-	count = 1;	rprev = 1e30;		rmin = 0;	r_fac = rmin / rprev;
-	yp = zeros(1, 4);
-	while (r_fac < 0.99 && count <= 5)
-		hp = [zeros(3,1) eye(3,3) * eps_];
-		for (k = 1:4)
-			yp(k) = r1(hp(:,k), sigma, qhati, nsect);
+	% minimization section--calling amoeba
+	hp = zeros(3,4);	yp = zeros(1,4);
+	kflag = 0;
+	count = 0;
+	while (count < 15)
+		for (j = 1:4)
+			hp(1:3, j) = 0;
+			if (j ~= 1)
+				 hp(j-1,j) = eps_;
+			end
+			[yp(j), eta, etai] = r1(hp(1:end,j:end), sigma, qhati, nsect, eta, etai);
 		end
-	
-		rmin = yp(1);
-		ftol = (.1)^(2*nsig+1);
+
+		ftol = (0.1)^(2*nsig+1);
 		iter = maxfn;
-	
-		rprev = rmin;
-		[hp, yp] = amoeba(hp,yp,3,3,ftol,iter, 'r1', sigma, qhati, nsect);
-		rmin = r1(hp(:,1), sigma, qhati, nsect);
-		qhat = trans2(hp(:,1),qhati);
-		[alat, along, rho] = trans5(qhat);
-		eps_ = eps_ / 20;
-		qhati = qhat;
-		r_fac = rmin / rprev;
+		[hp, yp, eta, etai] = amoeba(hp,yp,3,3,ftol,iter, 'r1', sigma, qhati, nsect, eta, etai);
+		[rmin, eta, etai] = r1(hp, sigma, qhati, nsect, eta, etai);
+		rmin = rmin * rfact;
+		qhat=trans2(hp(:,1),qhati);
+		[alat,along,rho]=trans5(qhat);
+		eps_=eps_ / 20;
+		qhati(1:4)=qhat(1:4);
+
+		% run amoeba as long as hp(1:3,1) > 10E-10,  and one more time
+		if (kflag == 1),	break,	end		% Break (get out of) the loop here
+		if (abs(hp(1,1)) < hlim && abs(hp(2,1)) < hlim && abs(hp(3,1)) < hlim)
+			kflag = fix(1+kflag);
+		end
 		count = count + 1;
 	end
+
+	[alat,along,rho] = trans5(qhat);
 	ahat = trans4(qhat);
-	if (nargout == 0)
-		disp(['Fitted rotation: ' num2str(alat) '  ' num2str(along) '  ' num2str(rho)])
-	end
-	
-% 260   do 215 j=1,4
-%       	do 210 i=1,3
-% 210   		hp(i,j)=0.
-%       	if (j.ne.1) hp(j-1,j)=eps
-% 215   	yp(j)=r1(hp(1,j))
-%       rmin=yp(1)
-%       ftol=(.1)**(2*nsig+1)
-%       iter=maxfn
-%       write(6,*)
-%       write(6,*) 'calling amoeba--r = ',rmin
-%       rprev=rmin
-%       call amoeba(hp,yp,3,3,ftol,r1,iter,work)
-%       rmin=r1(hp(1,1))
-%       call trans2(hp(1,1),qhati,qhat)
-%       write(6,*) 'return from amoeba--r = ',rmin
-%       write(6,*) 'r improvement: ',rprev-rmin
-%       write(6,*) 'h: ',(hp(i,1),i=1,3)
-%       write(6,*) 'qhat: ',qhat
-%       call trans5(qhat,alat,along,rho)
-%       write(6,*) 'Fitted rotation: ',alat,along,rho
-%       write(6,*) 'ftol, iter: ',ftol,iter
-%       write(6,*) 'do you want to call amoeba again? '
-%       read(5,'(a)') ans
-%       if ((ans.eq.'Y').or.(ans.eq.'y')) then
-%           eps=eps/20.
-%           do 212 i=1,4
-% 212       qhati(i)=qhat(i)
-%           go to 260
-%       endif
-%       call trans1(alat,along,axis)
-%       call trans4(qhat,ahat)
-%       write(6,*) 'Fitted rotation--alat,along,rho: '
-%       write(6,*) alat,along,rho
-%       write(6,*) 'ahat: '
-%       do 211 i=1,3
-% 211   write(6,*) (ahat(i,j),j=1,3)
 
-% replace sigma-tilde with (ahat**t)*sigma-tilde*ahat
-
-	temp = zeros(3,3);
+	% replace sigma-tilde with (ahat**t)*sigma-tilde*ahat
 	for (isect = 1:nsect)
+		temp = zeros(3,3);
 		for (i = 1:3)
 			for (j = 1:3)
 				for (k1 = 1:3)
 					for (k2 = 1:3)
-						temp(i,j) = temp(i,j) + ahat(k1,i)*sigma(2,isect,k1,k2)*ahat(k2,j);
+						temp(i,j) = temp(i,j) + ahat(k1,i) * sigma(2,isect,k1,k2) * ahat(k2,j);
 					end
 				end
 			end
@@ -232,10 +290,9 @@ function [along, alat, rho] = hellinger(along, alat, rho, isow, isoe, isoc1_prop
 		sigma(2,isect,1:3,1:3) = temp;
 	end
 
-% calculation of (x**t)*x matrix--stored in sigma2 in symmetric mode
-% eta is the matrix m(eta) of paper; etai is the matrix o-sub i.
-% eta and etai are set by r1.
-
+	% calculation of (x**t)*x matrix--stored in sigma2 in symmetric mode
+	% eta is the matrix m(eta) of paper; etai is the matrix o-sub i.
+	% eta and etai are set by r1.
 	sigma2 = zeros(msig,1);
 	k = 0;
 	for (i = 1:3)
@@ -282,47 +339,12 @@ function [along, alat, rho] = hellinger(along, alat, rho, isow, isoe, isoc1_prop
 			sigma3(j,i) = sigma2(k);
 		end
 	end
-	
 
-%       do 300 i=1,msig
-% 300   sigma2(i)=0.
-%       k=0
-%       do 301 i=1,3
-%       do 301 j=1,i
-%       k=k+1
-%       do 301 isect=1,nsect
-%       do 301 k1=1,3
-%       do 301 k2=1,3
-% 301   sigma2(k)=sigma2(k)+
-%      & eta(isect,i,k1)*sigma(2,isect,k1,k2)*eta(isect,j,k2)
-%       do 302 isect=1,nsect
-%       do 302 i=1,2
-%       do 303 j=1,3
-%       k=k+1
-%       do 303 k1=1,3
-%       do 303 k2=1,3
-% 303   sigma2(k)=sigma2(k)+
-%      & etai(isect,k1,i)*sigma(2,isect,k1,k2)*eta(isect,j,k2)
-%       k=k+2*(isect-1)
-%       do 302 j=1,i
-%       k=k+1
-%       do 302 k1=1,3
-%       do 302 k2=1,3
-% 302   sigma2(k)=sigma2(k)+etai(isect,k1,i)*(sigma(1,isect,k1,k2)+
-%      & sigma(2,isect,k1,k2))*etai(isect,k2,j)
-% 
-%       ndim=2*nsect+3
-%       k=0
-%       do 304 i=1,ndim
-%       do 304 j=1,i
-%       k=k+1
-%       sigma3(i,j)=sigma2(k)
-% 304   sigma3(j,i)=sigma2(k)
+	% sigma3 is the full variance-covariance matrix of the rotation and
+	% normal section parameters (except possibly for division by hatkap).
+	% rotation parameters are stored in upper 3 by 3 corner.
 
-% sigma3 is the full variance-covariance matrix of the rotation and
-% normal section parameters (except possibly for division by hatkap).
-% rotation parameters are stored in upper 3 by 3 corner.
-
+	% [D,V,nrot]=jacobi(sigma3,ndim,size(sigma3,1));
 	[V,D] = eig(sigma3);
 	[D, ind] = sort(diag(D));		% Make sure that eigs are in ascending order
 	V = V(:,ind);
@@ -330,54 +352,29 @@ function [along, alat, rho] = hellinger(along, alat, rho, isow, isoe, isoc1_prop
 	for (i = 1:ndim)
 		for (j = 1:ndim)
 			for (k = 1:ndim)
-				sigma3(i,j) = sigma3(i,j) + V(i,k)*V(j,k) / D(k);
+				sigma3(i,j) = sigma3(i,j) + V(i,k)*V(j,k) / (D(k) * rfact);
 			end
 		end
 	end
 
-% calculation of critical point
+	% calculation of critical point
 	df = ndata - 2*nsect - 3;
 	plev1 = (1-plev) / 2;
 	[xchi1,ier] = xidch(plev1,df);
+	if (ier ~= 0),	fprintf('subroutine xidch--ier: %g\n', ier),	end
 	plev1 = 1 - plev1;
 	[xchi,ier] = xidch(plev1,df);
+	if (ier ~= 0),	fprintf('subroutine xidch--ier: %g\n', ier),	end
 	fkap1 = xchi / rmin;
 	fkap2 = xchi1 / rmin;
 	hatkap = df / rmin;
 	[xchi,ier] = xidf(plev, 3, df);
+	if(ier ~= 0),	fprintf('subroutine xidf--ier: %g\n', ier),	end
 	xchi = xchi * rmin * 3 / df;
 
-%       write(6,*)
-%       write(6,*) 'Enter confidence level: '
-%       read(5,*) plev
-%       write(6,*)
-%       write(6,*) 'Do you want an estimated kappa? '
-%       read(5,1000) ans
-%       if ((ans.eq.'n').or.(ans.eq.'n')) then
-%          call xidch(plev,3.,xchi,ier)
-%          if (ier.ne.0) write(6,*) 'subroutine xidch--ier ',ier
-%       else
-%          df=ndat-2*nsect-3
-%          plev1=(1.-plev)/2
-%          call xidch(plev1,df,xchi1,ier)
-%          if (ier.ne.0) write(6,*) 'subroutine xidch--ier: ',ier
-%          plev1=1-plev1
-%          call xidch(plev1,df,xchi,ier)
-%          if (ier.ne.0) write(6,*) 'subroutine xidch--ier: ',ier
-%          fkap1=xchi/rmin
-%          fkap2=xchi1/rmin
-%          write(6,*) plev,' confidence interval for kappa'
-%          write(6,*) fkap2,fkap1
-%          hatkap=df/rmin
-%          write(6,*) 'kappahat, degrees of freedom: ',hatkap, df
-%          call xidf(plev,3.,df,xchi,ier)
-%          if (ier.ne.0) write(6,*) 'subroutine xidf--ier: ',ier
-%          xchi=xchi*rmin*3./df
-%       endif
-
-% calculation of h11.2 matrix--stored sigma4
+	% calculation of h11.2 matrix--stored sigma4
 	cov = sigma3(1:3,1:3);
-	[V,D] = eig(sigma3);
+	[V,D]    = eig(cov);
 	[D, ind] = sort(diag(D));		% Make sure that eigs are in ascending order
 	V = V(:,ind);
 	sigma4 = zeros(3);
@@ -388,78 +385,52 @@ function [along, alat, rho] = hellinger(along, alat, rho, isow, isoe, isoc1_prop
 			end
 		end
 	end
-	D = 1 ./ D;
-	[alat,along] = trans6(V(:,j));
-	%angle = (D(j) / xchi)^(-.5);
-	%angled = angle*45 / atan(1);
 
-%       do 317 i=1,3
-%       do 317 j=1,3
-% 317   cov(i,j)=sigma3(i,j)
-%       call jacobi(sigma3,3,msig2,d,z,msig2,work,nrot)
-%       if (nrot.lt.0) write(6,*) 'subroutine jacobi(2)--nrot ',nrot
-%       do 311 i=1,3
-%       do 311 j=1,3
-%       sigma4(i,j)=0.
-%       do 311 k=1,3
-% 311   sigma4(i,j)=sigma4(i,j)+z(i,k)*z(j,k)/d(k)
-%       do 316 i=1,3
-% 316   d(i)=1./d(i)
-%       write(6,*)
-%       write(6,*) 'h11.2: ',((sigma4(i,j),j=1,i),i=1,3)
-%       write(6,*) 'eigenvalues: ',(d(j),j=1,3)
-%       do 312 j=1,3
-% 312   write(6,*) 'eigenvector: ',(z(i,j),i=1,3)
-%       write(6,*)
-%       write(6,*) '"confidence region endmembers"'
-%       do 313 j=1,3
-%       write(6,*) 'u-side eigenvector: ',(sngl(z(i,j)),i=1,3)
-%       call trans6(z(1,j),alat,along)
-%       write(6,*) 'latitude, longitude: ',sngl(alat),sngl(along)
-%       angle=(d(j)/xchi)**(-.5)
-%       angled=angle*45./atan(dble(1.))
-%       j1=2*j
-%       j2=j1+1
-%       do 314 i=1,3
-%       h(i)=0.
-%       do 314 k=1,3
-%       h(i)=h(i)+ahat(i,k)*z(k,j)
-% 314   continue
-%       write(6,*) 'v-side eigenvector: ',(sngl(h(i)),i=1,3)
-%       call trans6(h,alat,along)
-%       write(6,*) 'latitude, longitude: ',sngl(alat),sngl(along)
-% 313   write(6,*) 'angle of rotation: radians, degrees ', sngl(angle),sngl(angled)
+	qbing = zeros(1,10);	ahatm = zeros(3,4);
+	ahatm(1,1)=-qhat(2);	ahatm(1,2)=qhat(1);		ahatm(1,3)=qhat(4);		ahatm(1,4)=-qhat(3);
+	ahatm(2,1)=-qhat(3);	ahatm(2,2)=-qhat(4);	ahatm(2,3)=qhat(1);		ahatm(2,4)=qhat(2);
+	ahatm(3,1)=-qhat(4);	ahatm(3,2)=qhat(3);		ahatm(3,3)=-qhat(2);	ahatm(3,4)=qhat(1);
+	k = 0;
+	for (i=1:4)
+		for (j=1:i)
+			k=k+1;
+			for (k1=1:3)
+				for (k2=1:3)
+					qbing(k) = qbing(k) + 4 * ahatm(k1,i) .* sigma4(k1,k2) .* ahatm(k2,j);
+				end
+			end
+		end
+	end
+	
+% 	[x,y,z] = trans1(alat, along);		% geo2cart
+% 	axis = [x y z];
+%  	[blong,blat,jer]=bingham(qbing,0,xchi,axis);
+% 	figure;plot(blong,blat)
 
-	[alat,along,rho] = trans5(qhat);
+	% compute volume of confidence  region: vol=4/3*pi*a*b*c following the conreg.f program from J-Y Royer
+	[V,D]  = eig(sigma4);
+	D      = diag(D);
+	angled = sqrt(xchi ./ D) / D2R;
+	vol = 4/3 * pi * prod(angled) * 111.111^3;
+	fprintf('\nVolume = %g  km3\n\n', vol)
 
-%       write(15,1460) filnam
-%  1460 format ('Results from Hellinger1 using ',a,/)
-%       write(15,*) 'Fitted rotation--alat,along,rho: '
-%       call trans5(qhat,alat,along,rho)
-%       write(15,*) alat,along,rho
-%       write(15,*) 'conf. level, conf. interval for kappa: '
-%       write(15,*) plev,fkap2,fkap1
-%       if(hatkap.eq.0.) hatkap=1.
-%       if (df.eq.0.) df=10000.
-% c  flag is used by addplus.f to indicate origin of estimates
-%       write(15,*) 'kappahat, degrees of freedom,xchi,flag'
-%       write(15,*) hatkap,df,xchi,0.0
-%       write(15,*) 'Number of points, sections'
-%       write(15,*) ndat,nsect
-%       write(15,*) 'ahat: '
-%       do 460 i=1,3
-% 460   write(15,*) (ahat(i,j),j=1,3)
-%       write(15,*) 'covariance matrix'
-%       do 465 i=1,3
-% 465   write(15,*) (cov(i,j),j=1,3)
-%       write(15,*) 'H11.2 matrix: '
-%       do 470 i=1,3
-% 470   write(15,*) (sigma4(i,j),j=1,3)
+	if (verbose)
+		fprintf(' Fitted rotation--alat,along,rho:\n')
+		fprintf('%f\t%f\t%f\n', alat,along,rho)
+		fprintf('conf. level, conf. interval for kappa:\n')
+		fprintf('%f\t%f\t%f\n', plev,fkap2,fkap1)
+		fprintf('kappahat, degrees of freedom,xchi:\n')
+		fprintf('%f\t%d\t%f\n', hatkap,df,xchi)
+		fprintf('Number of points, sections, misfit, reduced misfit:\n')
+		fprintf('%d\t%d\t%f\t%f\n', ndata, nsect, rmin, 1/sqrt(hatkap))
+		fprintf('ahat:\n%f\t%f\t%f\n%f\t%f\t%f\n%f\t%f\t%f\n', ahat')
+		fprintf('covariance matrix:\n%g\t%g\t%g\n%g\t%g\t%g\n%g\t%g\t%g\n', cov')
+		fprintf('H11.2 matrix:\n%f\t%f\t%f\n%f\t%f\t%f\n%f\t%f\t%f\n', sigma4')
+	end
 
 % ---------------------------------------------------------------------------
-function [r, eta, etai] = r1(h, sigma, qhati, nsect)
+function [r, eta, etai] = r1(h, sigma, qhati, nsect, eta, etai)
 
-	global eta etai
 	qhat = trans2(h,qhati);
 	ahat = trans4(qhat);
 	r = 0;
@@ -485,16 +456,19 @@ function [r, eta, etai] = r1(h, sigma, qhati, nsect)
 		[V,D] = eig(sig);
 		[D, ind] = sort(diag(D));
 		V = V(:,ind);
+		eta(i,1,1) = 0;
 		eta(i,2,1) = V(3,1);
 		eta(i,3,1) = -V(2,1);
 		eta(i,1,2) = -V(3,1);
+		eta(i,2,2) = 0;
 		eta(i,3,2) = V(1,1);
 		eta(i,1,3) = V(2,1);
 		eta(i,2,3) = -V(1,1);
-		if (abs(V(3,1)) > .2)
+		eta(i,3,3) = 0;
+		if (abs(V(3,1)) > 0.2)
 			etai(i,1:3,1) = eta(i,1:3,1);
 			etai(i,1:3,2) = eta(i,1:3,2);
-		elseif (abs(V(1,1)) > .2)
+		elseif (abs(V(1,1)) > 0.2)
 			etai(i,1:3,1) = eta(i,1:3,2);
 			etai(i,1:3,2) = eta(i,1:3,3);
 		else
@@ -570,13 +544,13 @@ function amhat = trans4(ahat)
 	A2=ahat(3);
 	A3=ahat(4);
 	amhat(1,1)=A0*A0+A1*A1-A2*A2-A3*A3;
-	amhat(2,1)=2.*(A0*A3+A1*A2);
-	amhat(3,1)=2.*(A1*A3-A0*A2);
-	amhat(1,2)=2.*(A1*A2-A0*A3);
+	amhat(2,1)=2*(A0*A3+A1*A2);
+	amhat(3,1)=2*(A1*A3-A0*A2);
+	amhat(1,2)=2*(A1*A2-A0*A3);
 	amhat(2,2)=A0*A0-A1*A1+A2*A2-A3*A3;
-	amhat(3,2)=2.*(A0*A1+A2*A3);
-	amhat(1,3)=2.*(A0*A2+A1*A3);
-	amhat(2,3)=2.*(A2*A3-A0*A1);
+	amhat(3,2)=2*(A0*A1+A2*A3);
+	amhat(1,3)=2*(A0*A2+A1*A3);
+	amhat(2,3)=2*(A2*A3-A0*A1);
 	amhat(3,3)=A0*A0-A1*A1-A2*A2+A3*A3;
 
 % -------------------------------------------------------------------
@@ -617,7 +591,7 @@ function [ULAT,ULONG] = trans6(U)
 	ULONG=atan2(U(2),U(1))* R2D;
 
 % ---------------------------------------------------------------------
-function [P, Y] = amoeba(P,Y,MP,NDIM,FTOL,ITER, funk, varargin)
+function [P, Y, eta, etai] = amoeba(P,Y,MP,NDIM,FTOL,ITER, funk, varargin)
 % MODIFICATION OF PRESS ET AL: NUMBERICAL RECIPES, PAGES 292-293
 % SIMPLEX METHOD OF NELDER AND MEAD
 %
@@ -644,7 +618,7 @@ function [P, Y] = amoeba(P,Y,MP,NDIM,FTOL,ITER, funk, varargin)
 	WORK = zeros(NDIM,3);
 
 	for i=1:MPTS
-		Y(i) = feval(funk,P(:,i), varargin{:});
+		[Y(i), eta, etai] = feval(funk,P(:,i), varargin{:});
 	end
 	ITER=0;
 	while (true)
@@ -690,10 +664,10 @@ function [P, Y] = amoeba(P,Y,MP,NDIM,FTOL,ITER, funk, varargin)
 		WORK(1:NDIM,1) = WORK(1:NDIM,1)/NDIM;
 		WORK(1:NDIM,2) = (1+ALPHA)*WORK(1:NDIM,1) - ALPHA*P(1:NDIM,IHI);
 	
-		YPR = feval(funk,WORK(:,2), varargin{:});
+		[YPR, eta, etai] = feval(funk,WORK(:,2), varargin{:});
 		if (YPR <= Y(ILO))
 			WORK(1:NDIM,3) = GAMMA*WORK(1:NDIM,2) + (1-GAMMA)*WORK(1:NDIM,1);
-			YPRR = feval(funk, WORK(:,3), varargin{:});
+			[YPRR, eta, etai] = feval(funk, WORK(:,3), varargin{:});
 			if (YPRR < Y(ILO))
 				P(1:NDIM,IHI)=WORK(1:NDIM,3);
           		Y(IHI)=YPRR;
@@ -706,8 +680,8 @@ function [P, Y] = amoeba(P,Y,MP,NDIM,FTOL,ITER, funk, varargin)
 				P(1:NDIM,IHI)=WORK(1:NDIM,2);
           		Y(IHI)=YPR;
 			end
-			WORK(1:NDIM,3)=BETA*P(1:NDIM,IHI)+(1-BETA)*WORK(1:NDIM,1);
-          	YPRR=feval(funk,WORK(:,3), varargin{:});
+			WORK(1:NDIM,3) = BETA*P(1:NDIM,IHI)+(1-BETA)*WORK(1:NDIM,1);
+          	[YPRR, eta, etai] = feval(funk,WORK(:,3), varargin{:});
 			if (YPRR < Y(IHI))
 				P(1:NDIM,IHI)=WORK(1:NDIM,3);
 				Y(IHI)=YPRR;
@@ -716,7 +690,7 @@ function [P, Y] = amoeba(P,Y,MP,NDIM,FTOL,ITER, funk, varargin)
 					if (i ~= ILO)
 						WORK(1:NDIM,2)=0.5*(P(1:NDIM,i)+P(1:NDIM,ILO));
 						P(1:NDIM,i)=WORK(1:NDIM,2);
-						Y(i)=feval(funk,WORK(:,2), varargin{:});
+						[Y(i), eta, etai] = feval(funk,WORK(:,2), varargin{:});
 					end
 				end
 			end
@@ -785,7 +759,7 @@ function ZBR = zbrent(FUNC,FVAL,DUMMY,X1,X2,TOL,NER)
 			end
 			if (P > 0),	Q=-Q;	end
 			P=abs(P);
-			if (2.*P < min(3.*XM*Q-abs(TOL1*Q),abs(E*Q)))
+			if (2 * P < min(3.*XM*Q-abs(TOL1*Q),abs(E*Q)))
 				E=D;
 				D=P/Q;
 			else
@@ -851,10 +825,10 @@ function [XCHI,IER] = xidch(PLEV,DF)
 	P = [.5 .7 .9 .95 .99];
 	IER = 0;
 	if (DF <= 0)
-		XCHI=0.;
+		XCHI=0;
 		IER=111111;
 	end
-      
+
 	D = DF;
 	IDF = DF + .001;
 	if ((abs(IDF-DF) < .001) && (IDF <= 22))
@@ -892,7 +866,7 @@ function [XCHI,IER] = xidch(PLEV,DF)
 
 % -------------------------------------------------------------------------------------
 function [XF,IER] = xidf(PLEV,D1,D2)
-	TOL = [0.0001];
+	TOL = 0.0001;
 	D = [D1 D2];
 	if ((PLEV <= 0) || (PLEV >= 1) || (D1 <= 0) || (D2 <= 0))
 		XF = 1;
@@ -902,7 +876,7 @@ function [XF,IER] = xidf(PLEV,D1,D2)
 	[XF,IER] = xidch(PLEV,D(1));
 	A = XF;
 	PA = xdf(D,A,IER);
-	while (PA <= PLEV)
+	while (PA >= PLEV)
 		A = A / 2;
 		PA = xdf(D,A,IER);
 	end
@@ -944,7 +918,7 @@ function X2VAL = x2tab(PC,IDF)
 % C                    SPECIAL FUNCTION ROUTINES
 % C  MODIFIED FROM PRESS ET AL: NUMERICAL RECIPES
 % C***********************************************************************
-function g = gammp(A,X,IER)
+function [g, IER] = gammp(A,X,IER)
 % INCOMPLETE GAMMA FUNCTION
 	if (X < 0 || A <= 0)
          IER=100;
@@ -956,12 +930,12 @@ function g = gammp(A,X,IER)
 		gammpT = gser(A,X,GLN,IER);
 		g = gammpT;
 	else
-		GAMMCF = gcf(A,X,GLN,IER);
+		GAMMCF = gcf__(A,X,GLN,IER);
 		g = 1 - GAMMCF;
 	end
 
 % -------------------------------------------------------------------------------------
-function GAMSER = gser(A,X,GLN,IER)
+function [GAMSER, IER] = gser(A,X,GLN,IER)
 % INCOMPLETE GAMMA FUNCTION USING SERIES REPRESENTATION; GLN=LN GAMMA(A)
 	ITMAX = 100;	eps_ = 3.E-7;
 	GLN=gammln(A);
@@ -983,7 +957,7 @@ function GAMSER = gser(A,X,GLN,IER)
 	GAMSER=SOM*exp(-X+A*log(X)-GLN);
 
 % -------------------------------------------------------------------------------------
-function GAMMCF = gcf(A,X,GLN,IER)
+function GAMMCF = gcf__(A,X,GLN,IER)
 % CONTINUED FRACTION CALCULATION OF INCOMPLETE GAMMA FUNCTION
 	ITMAX = 100;	eps_ = 3.E-7;
 	GLN=gammln(A);
@@ -1047,7 +1021,7 @@ function E = erf0(X,IER)
 	end
 
 % -------------------------------------------------------------------------------------
-function B = betai(A,B,X,IER)
+function [B, IER] = betai(A,B,X,IER)
 	if (X <= 0)
 		B=0;
 		if (X < 0),		IER=105;	end
@@ -1064,7 +1038,7 @@ function B = betai(A,B,X,IER)
 	end
 
 % -------------------------------------------------------------------------------------
-function B = betacf(A,B,X,IER)
+function [B, IER] = betacf(A,B,X,IER)
 	ITMAX = 100;	eps_ = 3.E-7;
 	AM=1;
 	BM=1;
@@ -1091,3 +1065,151 @@ function B = betacf(A,B,X,IER)
 	end
 	IER = 106;
 	B = AZ;
+
+% -------------------------------------------------------------------------------------
+function mixed = classical_hellinger_order(flags_w, isow, flags_e, isoe)
+% Join the two isochrons ISOW & ISOE and their flags indicating to which Hellinger
+% segment belongs each point in the isoc into one single array where points are
+% ranged by growing order os sgment number. That is, the classical hellinger file organization
+
+	max_seg = max(flags_w(end), flags_e(end));		% Get the greater  segment number
+	
+	mixed = zeros(size(flags_w,1) + size(flags_e,1), 2);
+	off = 0;
+	for (k = 1:max_seg)
+		ind = find(flags_w == k);
+		mixed(off+(1:numel(ind))', :) = isow(ind, :);
+		if (~isempty(ind)),		off = off + numel(ind);	end
+		ind = find(flags_e == k);
+		mixed(off+(1:numel(ind))', :) = isoe(ind, :);
+		if (~isempty(ind)),		off = off + numel(ind);	end
+	end
+% ------------------------------------------------------------------
+function [d,v,nrot]=jacobi(a,n,na)
+% Computes the eigenvalues and eigenvectors of the N by N matrix A.
+% Modification of JACOBI in Press et al, Numerical Recipes, pp 346-348.
+% A is stored in FULL storage mode.
+% NA=row dimension of A in declarations of calling program
+% D output vector of eigenvalues in ascending order
+% V=output matrix whose columns are the eigenvectors of A
+% NV=row dimension of V in calling program
+% WORK=work vector of length at least 2*N
+% NROT=output number of Jacobi revolutions
+
+v = eye(n);
+work = zeros(1, 2*n);
+d = zeros(1, n);
+for  ip=1:n
+	work(ip)=a(ip,ip);
+	d(ip)=work(ip);
+end
+nrot=0;
+for  i=1:50
+	sm=0;
+	for  ip=1:n-1;
+		for  iq=ip+1:n;
+			sm=sm+abs(a(ip,iq));
+		end
+	end
+	if (sm == 0);
+		break
+	end
+	if(i < 4)
+		thresh=0.2*sm./n.^2;
+	else
+		thresh=0;
+	end
+	for  ip=1:n-1
+		for  iq=ip+1:n
+			g=100*abs(a(ip,iq));
+			if((i > 4)&&(abs(d(ip))+g == abs(d(ip)))&&(abs(d(iq))+g == abs(d(iq))));
+				a(ip,iq)=0;
+			elseif(abs(a(ip,iq)) > thresh) ;
+				h=d(iq)-d(ip);
+				if(abs(h)+g == abs(h));
+					t=a(ip,iq)./h;
+				else
+					theta=0.5 * h / a(ip,iq);
+					t=1./(abs(theta)+sqrt(1+theta.^2));
+					if(theta < 0)
+						t=-t;
+					end
+				end
+				c=1./sqrt(1.0d0+t.^2);
+				s=t.*c;
+				tau=s./(1+c);
+				h=t.*a(ip,iq);
+				ipn=ip+n;
+				work(ipn)=work(ipn)-h;
+				iqn=iq+n;
+				work(iqn)=work(iqn)+h;
+				d(ip)=d(ip)-h;
+				d(iq)=d(iq)+h;
+				a(ip,iq)=0.0d0;
+				if(ip > 1)
+					for  j=1:ip-1;
+						g=a(j,ip);
+						h=a(j,iq);
+						a(j,ip)=g-s.*(h+g.*tau);
+						a(j,iq)=h+s.*(g-h.*tau);
+					end
+				end
+				if(iq >(ip+1))
+					for  j=ip+1:iq-1;
+						g=a(ip,j);
+						h=a(j,iq);
+						a(ip,j)=g-s.*(h+g.*tau);
+						a(j,iq)=h+s.*(g-h.*tau);
+					end
+				end
+				if(iq < n);
+					for  j=iq+1:n;
+						g=a(ip,j);
+						h=a(iq,j);
+						a(ip,j)=g-s.*(h+g.*tau);
+						a(iq,j)=h+s.*(g-h.*tau);
+					end
+				end
+				for  j=1:n;
+					g=v(j,ip);
+					h=v(j,iq);
+					v(j,ip)=g-s.*(h+g.*tau);
+					v(j,iq)=h+s.*(g-h.*tau);
+				end
+				nrot=fix(nrot+1);
+			end
+		end
+	end
+	for  ip=1:n;
+		ipn=ip+n;
+		work(ip)=work(ip)+work(ipn);
+		d(ip)=work(ip);
+		work(ipn)=0;
+	end
+end
+nrot=fix(-nrot);
+
+for  ip=1:n-1
+	for  iq=ip+1:n
+		a(ip,iq)=a(iq,ip);
+	end
+end
+for  i=1:n-1
+	k=i;
+	p=d(i);
+	for  j=i+1:n;
+		if(d(j) < p);
+			k=j;
+			p=d(j);
+		end;
+	end
+	if(k ~= i)
+		d(k)=d(i);
+		d(i)=p;
+		for  j=1:n;
+			p=v(j,i);
+			v(j,i)=v(j,k);
+			v(j,k)=p;
+		end
+	end
+end
