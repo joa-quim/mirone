@@ -537,6 +537,7 @@ utils/aux_funs.m -text
 utils/azimuth_geo.m -text
 utils/bathymetrator.m -text
 utils/bi_linear.m -text
+utils/bingham.m -text
 utils/blend_images.m -text
 utils/bpass3d.m -text
 utils/buffer_j.m -text
