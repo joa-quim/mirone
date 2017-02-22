@@ -1,4 +1,4 @@
-function [along, alat, rho] = hellinger(along, alat, rho, isoc_mov, isoc_fix, isoc1_props, isoc2_props)
+function [along, alat, rho, vol] = hellinger(along, alat, rho, isoc_mov, isoc_fix, DP_tol, isoc1_props, isoc2_props)
 % c simplified September 9, 2000, July 2001
 % c
 % c program implementing section 1 of 'on reconstructing tectonic plate
@@ -25,180 +25,135 @@ function [along, alat, rho] = hellinger(along, alat, rho, isoc_mov, isoc_fix, is
 % c
 % c***********************************************************************
 
+% The original fortran code had no License so I'm releasing this translation 
+% that is part of Mirone, to the Public Domain
+%
+%	Copyright (c) 2004-2017 by J. Luis
+%
+%	Contact info: w3.ualg.pt/~jluis/mirone
+% --------------------------------------------------------------------
+
 % $Id$
 
+	do_geodetic = true;
 	verbose = false;
-	if (nargin == 0)
-		alat = 64;		along = 135;	rho = 0.66;
+	plot_segmentation_lines = true;
+	std_invented = 4;		% If this is ~= 0 the residues transmitted in the ISOC1_PROPS (non pure Hellinger) are ignored
+
+	plev = 0.95;				% Confidence level
+	eps_ = 10;					% If == 0, ouput pole == input
+	rfact = 4.0528473e07;
+	hlim=1e-10;
+	nsig = 4;
+	maxfn = 1000;
+ 	D2R = pi / 180;
+
+	% Converting to geocentric, as is correct, but makes little difference
+	if (do_geodetic)
+		ecc = 0.0818191908426215;			% WGS84
+		isoc_mov = isoc_mov * D2R;
+		isoc_fix = isoc_fix * D2R;
+		isoc_mov(:,2) = atan2((1-ecc^2)*sin(isoc_mov(:,2)), cos(isoc_mov(:,2)));	% Lat da isoc_mov geocentrica
+		isoc_fix(:,2) = atan2((1-ecc^2)*sin(isoc_fix(:,2)), cos(isoc_fix(:,2)));	% Lat da isoc_fix geocentrica
+		isoc_mov = isoc_mov / D2R;
+		isoc_fix = isoc_fix / D2R;
 	end
 
-	% Converting to geocentric, as is correct, makes almost no difference
- 	D2R = pi / 180;
-% 	ecc = 0.0818191908426215;			% WGS84
-% 	isoc_mov = isoc_mov * D2R;
-% 	isoc_fix = isoc_fix * D2R;
-% 	isoc_mov(:,2) = atan2((1-ecc^2)*sin(isoc_mov(:,2)), cos(isoc_mov(:,2)));	% Lat da isoc_mov geocentrica
-% 	isoc_fix(:,2) = atan2((1-ecc^2)*sin(isoc_fix(:,2)), cos(isoc_fix(:,2)));	% Lat da isoc_fix geocentrica
-% 	isoc_mov = isoc_mov / D2R;
-% 	isoc_fix = isoc_fix / D2R;
-
-	if (nargin == 7)
+	if (nargin == 8)
 		data = [ones(size(isoc_mov,1),1) isoc1_props(:,1) isoc_mov(:,2:-1:1) isoc1_props(:,2); ...
 			ones(size(isoc_fix,1),1)*2 isoc2_props(:,1) isoc_fix(:,2:-1:1) isoc2_props(:,2)];
 	else
-		if (nargin < 6),		DP_tol = 5;
-		elseif (nargin == 6),	DP_tol = isoc1_props;
-		end
-		%DP_tol = DP_tol * 111;			% Crude conversion of TOL from degrees to km
+		residues = isoc1_props;		% Unfortunatelly this doesn't work as I thought. Solution gets unstable
+ 		handles = guidata(gcf);
+		
+		% ------------------------------- Guess Hellinger segmentation ------------------------------------
+		% Apply a line simplification to estimate the Hellinger segmentation
 		B = cvlib_mex('dp', isoc_mov, DP_tol, 'GEOG');
 		lat_dp = B(:,2);	lon_dp = B(:,1);
-
- 		handles = guidata(gcf);
-% 		hLine = line('parent',get(handles.hCallingFig,'CurrentAxes'),'XData',lon_dp,'YData',lat_dp, ...
-% 		             'LineStyle','-','LineWidth',1,'Color','b','Tag','polyline');
-% 		draw_funs(hLine,'line_uicontext')			% Set lines's uicontextmenu
-
 		[c,ind] = intersect(isoc_mov(:,2),lat_dp, 'stable');	% Get only those points that are common to both data-sets
-		flags_mov = zeros(size(isoc_mov,1),1);
-		for (k = 1:numel(ind)-1)					% Store how points belong to each sector (segment)
-			flags_mov(ind(k):ind(k+1)-1) = k;
+
+		breaks = (diff(ind) == 1);				% This tells us whose segments have no midle points
+		segmented_dp = zeros(3*(numel(ind) - 1), 2);
+		n = 1;
+		for (k = 1:numel(ind)-1)
+			segmented_dp(n,:) = [lon_dp(k) lat_dp(k)];		n = n + 1;
+			segmented_dp(n,:) = [lon_dp(k+1) lat_dp(k+1)];	n = n + 1;
+			segmented_dp(n,:) = [NaN NaN];
+			if (breaks(k))
+				segmented_dp(n-2:n,1) = Inf;	% Use Inf to later be able to find these and delete them
+			end
+			n = n + 1;
 		end
-		flags_mov(end) = numel(ind) - 1;
+		ind = isinf(segmented_dp(:,1));			% Remove the segments that have no middle points in them
+		segmented_dp(ind,:) = [];
 
-% 		breaks = (diff(ind) == 1);
-% 		segmented_dp = zeros(3*(numel(ind) - 1), 2);
-% 		n = 1;
-% 		for (k = 1:numel(ind)-1)
-% 			segmented_dp(n,:) = [lon_dp(k) lat_dp(k)];
-% 			n = n + 1;
-% 			segmented_dp(n,:) = [lon_dp(k+1) lat_dp(k+1)];
-% 			n = n + 1;
-% 			segmented_dp(n,:) = [NaN NaN];
-% 			if (breaks(k))
-% 				segmented_dp(n-2:n,1) = Inf;
-% 			end
-% 			n = n + 1;
-% 		end
-% 		ind = isinf(segmented_dp(:,1));		% Remove the segments that have no middle points in them
-% 		segmented_dp(ind,:) = [];
+		% Compute the segment indices to which each point in isoc_mov belongs 
+		flags_mov = segmentate(isoc_mov, segmented_dp);
 
-% 		hLine = line('parent',get(handles.hCallingFig,'CurrentAxes'),'XData',segmented_dp(:,1),'YData',segmented_dp(:,2), ...
-% 		             'LineStyle','-','LineWidth',1,'Color','r','Tag','broken');
-% 		draw_funs(hLine,'line_uicontext')
+		% Now rotate the segmented_dp line and do the same for isoc_fix
+		[r_lon,r_lat] = rot_euler(segmented_dp(:,1),segmented_dp(:,2), along, alat, rho, -1);		% Rotate DP moving isoc
+		segmented_dp_rot = [r_lon r_lat];
+		flags_fix = segmentate(isoc_fix, segmented_dp_rot);
 
-		isoc_mov_dp = [lat_dp lon_dp];
-		[r_lon,r_lat] = rot_euler(isoc_mov_dp(:,2),isoc_mov_dp(:,1), along, alat, rho, -1);		% Rotate DP moving isoc
-% 		hLine = line('parent',get(handles.hCallingFig,'CurrentAxes'),'XData',r_lon,'YData',r_lat, ...
-% 		             'LineStyle','-','LineWidth',1,'Color','b','Tag','polyline');
-% 		draw_funs(hLine,'line_uicontext')
-
-		% --------------------- Segmentation based on accumulated distances ----------------------------------------
-		% Compute ...
-		isoc_fix = isoc_fix * D2R;		r_lon = r_lon * D2R;	r_lat = r_lat * D2R;
-		X = isoc_fix(:,1) .* cos(isoc_fix(:,2)) * 6371;
-		Y = isoc_fix(:,2) * 6371;
-		xd = diff(X);		yd = diff(Y);
-		lenFix = sqrt(xd .* xd + yd .* yd);
-		X_rot = r_lon .* cos(r_lat) * 6371;		Y_rot = r_lat * 6371;
-		xd = diff(X_rot);		yd = diff(Y_rot);
-		lenRot = sqrt(xd .* xd + yd .* yd);
-		[area0, closest, dst, pesos] = distmin(isoc_fix(:,1), isoc_fix(:,2), lenFix, r_lon, r_lat, lenRot);
-		isoc_fix = isoc_fix / D2R;		r_lon = r_lon / D2R;	r_lat = r_lat / D2R;
-
-		% These are the closest rotated isoc_mov_dp to isoc_fix so it has size(isoc_fix)
-		% Or, in other words, the projection of isoc_fix into isoc_mov_dp
-		closest = closest / D2R;
-
-% 		hLine = line('parent',get(handles.hCallingFig,'CurrentAxes'),'XData',closest(:,1),'YData',closest(:,2), ...
-% 		             'LineStyle','-','LineWidth',1,'Color','g','Tag','polyline');
-% 		draw_funs(hLine,'line_uicontext')		% Set lines's uicontextmenu
-
-		acum_dist_mov_rot = gmtmex('mapproject -Gk', gmt('wrapseg', {[r_lon r_lat]}));
-		acum_dist_closest = gmtmex('mapproject -Gk', gmt('wrapseg', {closest}));
-		acum_dist_mov_rot = acum_dist_mov_rot.data(:,3);
-		acum_dist_closest = acum_dist_closest.data(:,3);
-
-		ndata = size(isoc_fix,1);				% Same as numel(acum_dist_closest)
-		flags_fix = zeros(ndata,1);
-		k = 1;		start = 1;		off = 0;
- 		% But because we can get points where closest == 0 (for the portions where the 2 lines do not overlap) we need to take care of them
-		while (closest(k) == 0),	k = k + 1;		end
-		if (k > 1)
-			acum_dist_closest = acum_dist_closest - acum_dist_closest(k);
-			flags_fix(1:k-1) = 1;
-			flags_mov = flags_mov + 1;			% Because we just introduced a new, unpaired, segment
-			start = k;							% And set the start of the paired points to right after last unpaired pt
-			off = 1;
-		end
-
-		% Compute the distance first pt in isoc_mov_dp rotated and first pt in isoc_fix that is inside isoc_mov_dp segments
-		s = vdist(r_lat(1),r_lon(1), closest(start,2),closest(start,1)) / 1000;
-		% We need to compensate this distance so that both acum_dist_closest and acum_dist_mov_rot have the same origin in terms of accum dist
-		acum_dist_closest(start:end) = acum_dist_closest(start:end) + s;
-
-		for (k = 2:numel(acum_dist_mov_rot))
-			ind = find(acum_dist_closest >= acum_dist_mov_rot(k-1) & acum_dist_closest < acum_dist_mov_rot(k));
-			stop = start + numel(ind) - 1;
-			flags_fix(start:stop) = k + off - 1;
-			start = stop + 1;
-		end
-
-		ind = find(flags_fix == 0);		% See if any points in isoc_fix 'overflows' the rotated isoc_mov_dp
-		if (~isempty(ind))				% If any, make them unpaired points so that hellinger will not use them
-			flags_fix(ind) = max(flags_fix) + 1;
+		if (plot_segmentation_lines)			% Plot the segmentation guess as well as its rotation
+			lat_geod = segmented_dp(:,2);
+			lat_geod_rot = r_lat;
+			if (do_geodetic)					% Convert back to geodetic latitudes
+				lat_geod = lat_geod * D2R;
+				lat_geod = atan2(sin(lat_geod), (1-ecc^2)*cos(lat_geod)) / D2R;
+				lat_geod_rot = lat_geod_rot * D2R;
+				lat_geod_rot = atan2(sin(lat_geod_rot), (1-ecc^2)*cos(lat_geod_rot)) / D2R;
+			end
+			
+			hLine = findobj(get(handles.hCallingFig,'CurrentAxes'), 'Tag','broken_dp');
+			if (isempty(hLine))
+				hLine = line('parent',get(handles.hCallingFig,'CurrentAxes'),'XData',segmented_dp(:,1),'YData',lat_geod, ...
+							 'LineStyle','-','LineWidth',1,'Color','b','Tag','broken_dp');
+				draw_funs(hLine,'line_uicontext')
+				hLine = line('parent',get(handles.hCallingFig,'CurrentAxes'),'XData',r_lon, 'YData',lat_geod_rot, ...
+							 'LineStyle','-','LineWidth',1,'Color','b','Tag','broken_dp_rot');
+				draw_funs(hLine,'line_uicontext')
+			else
+				set(hLine, 'XData', segmented_dp(:,1), 'YData',lat_geod)
+				hLine = findobj(get(handles.hCallingFig,'CurrentAxes'), 'Tag','broken_dp_rot');
+				set(hLine, 'XData',r_lon, 'YData',lat_geod_rot)
+			end
 		end
 		% -------------------------------------------------------------------------------------------------------------
 
-		% --------------------- Segmentation based on old idea (which I now forgot) -----------------------------------
-% 		ndata = size(isoc_fix,1);
-% 		n_pts_dp = size(isoc_mov_dp,1);
-% 		flags_fix = zeros(ndata,1);
-% 		for (k = 1:ndata)						% Loop over points of the static isoc
-% 			P  = isoc_fix(k,1:2);
-% 			Dsts = sqrt((P(1)-r_lon).^2 + (P(2)-r_lat).^2);
-% 			[D,ind] = min(Dsts);
-% 			if ~(ind == 1 || ind == n_pts_dp)
-% 				Q1 = [r_lon(ind-1) r_lat(ind-1)];		Q2 = [r_lon(ind) r_lat(ind)];
-% 				D1 = abs(det([Q2-Q1; P-Q1])) / norm(Q2-Q1);
-% 				Q1 = [r_lon(ind) r_lat(ind)];			Q2 = [r_lon(ind+1) r_lat(ind+1)];
-% 				D2 = abs(det([Q2-Q1; P-Q1])) / norm(Q2-Q1);
-% 			else
-% 				D1 = 1;		D2 = 2;		% dumb values for D1 < D2
-% 			end
-% 			if (D1 < D2)
-% 				flags_fix(k) = ind;
-% 			else
-% 				flags_fix(k) = ind + 1;
-% 			end
-% 		end
-		% -------------------------------------------------------------------------------------------------------------
-
-		std_invented = 2;
-		data = [ones(size(isoc_mov,1),1) flags_mov isoc_mov(:,2:-1:1) ones(size(isoc_mov,1),1)*std_invented; ...
-			ones(size(isoc_fix,1),1)*2 flags_fix isoc_fix(:,2:-1:1) ones(ndata,1)*std_invented];
+		if (std_invented)
+			sig_mov = ones(size(isoc_mov,1),1)*std_invented;
+			sig_fix = ones(size(isoc_fix,1),1)*std_invented;
+		else
+			residues(residues == 0) = 0.1;		% I simply do not believe them
+			sig_mov = residues(1:size(isoc_mov,1));
+			sig_fix = residues(size(isoc_mov,1)+1:end);
+		end
+		data = [ones(size(isoc_mov,1),1) flags_mov isoc_mov(:,2:-1:1)   sig_mov; ...
+		        ones(size(isoc_fix,1),1)*2 flags_fix isoc_fix(:,2:-1:1) sig_fix];
+		clear sig_fix sig_mov
 
 		mixed = classical_hellinger_order(flags_mov, isoc_mov, flags_fix, isoc_fix);
+		lat_geod = mixed(:,2);
+		if (do_geodetic)					% Convert back to geodetic latitudes
+			lat_geod = lat_geod * D2R;
+			lat_geod = atan2(sin(lat_geod), (1-ecc^2)*cos(lat_geod)) / D2R;
+		end
 		hLine = findobj(get(handles.hCallingFig,'CurrentAxes'), 'Tag','HellingerPicks');
 		if (isempty(hLine))
-			hLine = line('parent',get(handles.hCallingFig,'CurrentAxes'),'XData',mixed(:,1),'YData',mixed(:,2), ...
+			hLine = line('parent',get(handles.hCallingFig,'CurrentAxes'),'XData',mixed(:,1),'YData',lat_geod, ...
 						 'LineStyle','-.','LineWidth',1,'Tag','HellingerPicks');
 			draw_funs(hLine,'line_uicontext')		% Set lines's uicontextmenu
 		else		% Just update old one
-			set(hLine, 'XData', mixed(:,1),'YData',mixed(:,2))
+			set(hLine, 'XData', mixed(:,1),'YData',lat_geod)
 		end
 	end
 	
-	rfact = 4.0528473e07;
-	hlim=1e-10;
-	eps_ = 10;			% If == 0, ouput pole == input
-	nsig = 4;
-	maxfn = 1000;
 	ndata = size(data,1);
 	nsect = max(data(:,2));
 	sigma = zeros(2,nsect,3,3);
 	msig  = 2*nsect*nsect+7*nsect+6;
 	%msig2 = 2*nsect+3;
-	plev = 0.95;				% Confidence level
 	eta = zeros(nsect,3,3);
 	etai= zeros(nsect,3,2);
 	  
@@ -221,7 +176,6 @@ function [along, alat, rho] = hellinger(along, alat, rho, isoc_mov, isoc_fix, is
 	[rmin, eta, etai] = r1(h, sigma, qhati, nsect, eta, etai);		% Not sure but think it's for initializing eta & etai
 
 	%[qhati, eps_, rmin] = grds(eps_, sigma, qhati, nsect);
-
 % 251   write(6,*) 'do you want a grid search, eps = ',eps
 %       read(5,'(a)') ans
 %       if ((ans.ne.'Y').and.(ans.ne.'y')) go to 260
@@ -396,7 +350,7 @@ function [along, alat, rho] = hellinger(along, alat, rho, isoc_mov, isoc_fix, is
 			k=k+1;
 			for (k1=1:3)
 				for (k2=1:3)
-					qbing(k) = qbing(k) + 4 * ahatm(k1,i) .* sigma4(k1,k2) .* ahatm(k2,j);
+					qbing(k) = qbing(k) + 4 * ahatm(k1,i) * sigma4(k1,k2) * ahatm(k2,j);
 				end
 			end
 		end
@@ -412,20 +366,21 @@ function [along, alat, rho] = hellinger(along, alat, rho, isoc_mov, isoc_fix, is
 	D      = diag(D);
 	angled = sqrt(xchi ./ D) / D2R;
 	vol = 4/3 * pi * prod(angled) * 111.111^3;
-	fprintf('\nVolume = %g  km3\n\n', vol)
 
 	if (verbose)
-		fprintf(' Fitted rotation--alat,along,rho:\n')
-		fprintf('%f\t%f\t%f\n', alat,along,rho)
-		fprintf('conf. level, conf. interval for kappa:\n')
-		fprintf('%f\t%f\t%f\n', plev,fkap2,fkap1)
-		fprintf('kappahat, degrees of freedom,xchi:\n')
-		fprintf('%f\t%d\t%f\n', hatkap,df,xchi)
-		fprintf('Number of points, sections, misfit, reduced misfit:\n')
-		fprintf('%d\t%d\t%f\t%f\n', ndata, nsect, rmin, 1/sqrt(hatkap))
-		fprintf('ahat:\n%f\t%f\t%f\n%f\t%f\t%f\n%f\t%f\t%f\n', ahat')
-		fprintf('covariance matrix:\n%g\t%g\t%g\n%g\t%g\t%g\n%g\t%g\t%g\n', cov')
-		fprintf('H11.2 matrix:\n%f\t%f\t%f\n%f\t%f\t%f\n%f\t%f\t%f\n', sigma4')
+		t = cell(11,1);
+		t{1}  = sprintf('Fitted rotation--alat,along,rho:');
+		t{2}  = sprintf('%f\t%f\t%f', alat,along,rho);
+		t{3}  = sprintf('conf. level, conf. interval for kappa:');
+		t{4}  = sprintf('%f\t%f\t%f', plev,fkap2,fkap1);
+		t{5}  = sprintf('kappahat, degrees of freedom,xchi:');
+		t{6}  = sprintf('%f\t%d\t%f', hatkap,df,xchi);
+		t{7}  = sprintf('Number of points, sections, misfit, reduced misfit:');
+		t{8}  = sprintf('%d\t%d\t%f\t%f', ndata, nsect, rmin, 1/sqrt(hatkap));
+		t{9}  = sprintf('ahat:%f\t%f\t%f\n%f\t%f\t%f\n%f\t%f\t%f', ahat');
+		t{10} = sprintf('covariance matrix:%g\t%g\t%g\n%g\t%g\t%g\n%g\t%g\t%g', cov');
+		t{11} = sprintf('H11.2 matrix:%f\t%f\t%f\n%f\t%f\t%f\n%f\t%f\t%f', sigma4');
+		message_win('create',t,'figname','Hellinger pole stats','edit','sim','position','right')
 	end
 
 % ---------------------------------------------------------------------------
@@ -591,7 +546,7 @@ function [ULAT,ULONG] = trans6(U)
 	ULONG=atan2(U(2),U(1))* R2D;
 
 % ---------------------------------------------------------------------
-function [P, Y, eta, etai] = amoeba(P,Y,MP,NDIM,FTOL,ITER, funk, varargin)
+function [P, Y, eta, etai, FTOL] = amoeba(P,Y,MP,NDIM,FTOL,ITER, funk, varargin)
 % MODIFICATION OF PRESS ET AL: NUMBERICAL RECIPES, PAGES 292-293
 % SIMPLEX METHOD OF NELDER AND MEAD
 %
@@ -713,7 +668,7 @@ function PLEV = xdch(DF,XCHI,IER)
 	PLEV = gammp(DF(1)/2.,XCHI/2.,IER);
 
 % -------------------------------------------------------------------------------------
-function ZBR = zbrent(FUNC,FVAL,DUMMY,X1,X2,TOL,NER)
+function [ZBR, NER] = zbrent(FUNC,FVAL,DUMMY,X1,X2,TOL)
 %       Root finding using Brent algorithms
 %       Modification of Press et al, Numerical Recipes, pages 253-254
 
@@ -806,7 +761,7 @@ function [XN,IER] = xidn(PLEV)
 			break
 		end
 		if (QLEV < P(I))
-			XN = zbrent('xdn',QLEV,0,TABLE(I-1),TABLE(I),TOL,IER);
+			XN = zbrent('xdn',QLEV,0,TABLE(I-1),TABLE(I),TOL);
 			from_a_goto = true;
 			break
 		end
@@ -827,6 +782,7 @@ function [XCHI,IER] = xidch(PLEV,DF)
 	if (DF <= 0)
 		XCHI=0;
 		IER=111111;
+		return
 	end
 
 	D = DF;
@@ -841,7 +797,7 @@ function [XCHI,IER] = xidch(PLEV,DF)
 				if ((PLEV > P(I-1)) && (PLEV < P(I)))
 					A = x2tab(P(I-1),IDF);
 					B = x2tab(P(I),IDF);
-					XCHI = zbrent('xdch',PLEV,D,A,B,TOL,IER);
+					XCHI = zbrent('xdch',PLEV,D,A,B,TOL);
 					return
 				end
 			end
@@ -862,7 +818,7 @@ function [XCHI,IER] = xidch(PLEV,DF)
 		B = 1.1 * B;
 		PB = xdch(D,B,IER);
 	end
-	XCHI = zbrent('xdch',PLEV,D,A,B,TOL,IER);
+	XCHI = zbrent('xdch',PLEV,D,A,B,TOL);
 
 % -------------------------------------------------------------------------------------
 function [XF,IER] = xidf(PLEV,D1,D2)
@@ -886,7 +842,7 @@ function [XF,IER] = xidf(PLEV,D1,D2)
 		B = 2 * B;
 		PB = xdf(D,B,IER);
 	end
-	XF = zbrent('xdf',PLEV,D,A,B,TOL,IER);
+	XF = zbrent('xdf',PLEV,D,A,B,TOL);
 
 % -------------------------------------------------------------------------------------
 function X2VAL = x2tab(PC,IDF)
@@ -1084,132 +1040,25 @@ function mixed = classical_hellinger_order(flags_w, isow, flags_e, isoe)
 		mixed(off+(1:numel(ind))', :) = isoe(ind, :);
 		if (~isempty(ind)),		off = off + numel(ind);	end
 	end
-% ------------------------------------------------------------------
-function [d,v,nrot]=jacobi(a,n,na)
-% Computes the eigenvalues and eigenvectors of the N by N matrix A.
-% Modification of JACOBI in Press et al, Numerical Recipes, pp 346-348.
-% A is stored in FULL storage mode.
-% NA=row dimension of A in declarations of calling program
-% D output vector of eigenvalues in ascending order
-% V=output matrix whose columns are the eigenvectors of A
-% NV=row dimension of V in calling program
-% WORK=work vector of length at least 2*N
-% NROT=output number of Jacobi revolutions
 
-v = eye(n);
-work = zeros(1, 2*n);
-d = zeros(1, n);
-for  ip=1:n
-	work(ip)=a(ip,ip);
-	d(ip)=work(ip);
-end
-nrot=0;
-for  i=1:50
-	sm=0;
-	for  ip=1:n-1;
-		for  iq=ip+1:n;
-			sm=sm+abs(a(ip,iq));
-		end
-	end
-	if (sm == 0);
-		break
-	end
-	if(i < 4)
-		thresh=0.2*sm./n.^2;
-	else
-		thresh=0;
-	end
-	for  ip=1:n-1
-		for  iq=ip+1:n
-			g=100*abs(a(ip,iq));
-			if((i > 4)&&(abs(d(ip))+g == abs(d(ip)))&&(abs(d(iq))+g == abs(d(iq))));
-				a(ip,iq)=0;
-			elseif(abs(a(ip,iq)) > thresh) ;
-				h=d(iq)-d(ip);
-				if(abs(h)+g == abs(h));
-					t=a(ip,iq)./h;
-				else
-					theta=0.5 * h / a(ip,iq);
-					t=1./(abs(theta)+sqrt(1+theta.^2));
-					if(theta < 0)
-						t=-t;
-					end
-				end
-				c=1./sqrt(1.0d0+t.^2);
-				s=t.*c;
-				tau=s./(1+c);
-				h=t.*a(ip,iq);
-				ipn=ip+n;
-				work(ipn)=work(ipn)-h;
-				iqn=iq+n;
-				work(iqn)=work(iqn)+h;
-				d(ip)=d(ip)-h;
-				d(iq)=d(iq)+h;
-				a(ip,iq)=0.0d0;
-				if(ip > 1)
-					for  j=1:ip-1;
-						g=a(j,ip);
-						h=a(j,iq);
-						a(j,ip)=g-s.*(h+g.*tau);
-						a(j,iq)=h+s.*(g-h.*tau);
-					end
-				end
-				if(iq >(ip+1))
-					for  j=ip+1:iq-1;
-						g=a(ip,j);
-						h=a(j,iq);
-						a(ip,j)=g-s.*(h+g.*tau);
-						a(j,iq)=h+s.*(g-h.*tau);
-					end
-				end
-				if(iq < n);
-					for  j=iq+1:n;
-						g=a(ip,j);
-						h=a(iq,j);
-						a(ip,j)=g-s.*(h+g.*tau);
-						a(iq,j)=h+s.*(g-h.*tau);
-					end
-				end
-				for  j=1:n;
-					g=v(j,ip);
-					h=v(j,iq);
-					v(j,ip)=g-s.*(h+g.*tau);
-					v(j,iq)=h+s.*(g-h.*tau);
-				end
-				nrot=fix(nrot+1);
-			end
-		end
-	end
-	for  ip=1:n;
-		ipn=ip+n;
-		work(ip)=work(ip)+work(ipn);
-		d(ip)=work(ip);
-		work(ipn)=0;
-	end
-end
-nrot=fix(-nrot);
+% -----------------------------------------------------------------
+function flags = segmentate(isoc, segmented)
+% Take the Mx2 (lon lat) ISOC array and compare it to the segmemted multi-segment
+% line SEGMENTED. This line has actually all the segments delimited by NaNs, so we must
+% first extract them into a cell array.
+% Next mapproject does the magic of finding to which segment belongs each point of ISOC
 
-for  ip=1:n-1
-	for  iq=ip+1:n
-		a(ip,iq)=a(iq,ip);
+	% First, extracts the segments from the NaN-delimited array
+	% Make sure last row is a NaNs one
+	if (~isnan(segmented(end,1))),	segmented = [segmented; NaN NaN];		end
+	ind = find(isnan(segmented(:,1)));
+	cells = cell(numel(ind), 1);		% Assumes first and last rows are NOT NaNs
+	cells{1} = segmented(1:ind(1)-1,:);
+	for (i = 2:numel(ind))
+		cells{i} = segmented(ind(i-1)+1:ind(i)-1, :);
 	end
-end
-for  i=1:n-1
-	k=i;
-	p=d(i);
-	for  j=i+1:n;
-		if(d(j) < p);
-			k=j;
-			p=d(j);
-		end;
-	end
-	if(k ~= i)
-		d(k)=d(i);
-		d(i)=p;
-		for  j=1:n;
-			p=v(j,i);
-			v(j,i)=v(j,k);
-			v(j,k)=p;
-		end
-	end
-end
+
+	out = gmtmex('mapproject -L+uk+p', isoc, gmt('wrapseg', cells));
+	
+	% Now the flags are just the fourth column. Just beautifull
+	flags = out.data(:,4) + 1;		% + 1 because mapproject is C and so 0 based
