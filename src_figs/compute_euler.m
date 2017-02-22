@@ -24,7 +24,7 @@ function varargout = compute_euler(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: compute_euler.m 9995 2017-01-22 18:02:16Z j $
+% $Id: compute_euler.m 10031 2017-02-22 19:30:30Z j $
 
 	if (isempty(varargin) || (numel(varargin) >= 2 && numel(varargin) <= 5))
 		errordlg('COMPUTE EULER: wrong number of input arguments.','Error'),	return
@@ -94,7 +94,7 @@ function varargout = compute_euler(varargin)
 	handles.pLat_ini = [];
 	handles.pAng_ini = [];
 	handles.do_graphic = false;
-	handles.DP_tol = 0.05;
+	handles.DP_tol = 8;				% 8 km
 	handles.residGrdName = [];
 	handles.is_spheric = true;
 	handles.projection = '';		% To use if lines are in projected coords.
@@ -345,17 +345,22 @@ function toggle_pickLines_CB(hObject, handles)
 function check_hellinger_CB(hObject, handles)
 	if (get(hObject,'Value'))
 		set([handles.edit_LonRange handles.edit_LatRange handles.edit_AngRange],'Enable','off')
+		set([handles.edit_err_file handles.push_err_file handles.text_resid_grid ...
+			handles.radio_VTK handles.radio_netcdf], 'Vis','off')
+		set([handles.check_show_stats handles.check_error_ellipse handles.check_in_equal_out], 'Vis','on')
 		for (k = 1:3)
 			tag = get(handles.edit_nInt(k), 'UserData');
 			setappdata(handles.edit_nInt(k), 'Tip', get(handles.edit_nInt(k), 'Tooltip'))	% Copy this for eventual restore
 			setappdata(handles.edit_nInt(k), 'Str', get(handles.edit_nInt(k), 'Str'))
-			if (~strcmp(tag, 'lon'))
-				set(handles.edit_nInt(k), 'Vis','off'),		continue
+			if (strcmp(tag, 'lon'))
+				set(handles.edit_nInt(k),'Tooltip', sprintf(['Tolerance used to break up the isochron into\n' ...
+					'linear chunks (the Heillinger segments).\n' ...
+					'The units of the tolerance are in km']), 'String', handles.DP_tol)
+			elseif (strcmp(tag, 'lat'))
+				set(handles.edit_nInt(k),'Tooltip', 'Volume error im km3', 'String', '')
+			else
+				set(handles.edit_nInt(k), 'Vis','off')
 			end
-			set(handles.edit_nInt(k),'Tooltip', sprintf(['Tolerance used to break up the isochron into\n' ...
-				'linear chunks (the Heillinger segments).\n' ...
-				'The units of the tolerance are degrees\n', ...
-				'of arc on the surface of a sphere']), 'String', handles.DP_tol)
 		end
 		set(handles.textNint,'String','DP tolerance')
 	else
@@ -366,6 +371,9 @@ function check_hellinger_CB(hObject, handles)
 			set(handles.edit_nInt(k), 'Str', getappdata(handles.edit_nInt(k), 'Str'))
 			set(handles.edit_nInt(k), 'Tooltip', getappdata(handles.edit_nInt(k), 'Tip'))
 		end
+		set([handles.edit_err_file handles.push_err_file handles.text_resid_grid ...
+			handles.radio_VTK handles.radio_netcdf], 'Vis','on')
+		set([handles.check_show_stats handles.check_error_ellipse handles.check_in_equal_out], 'Vis','off')
 	end
 
 % -----------------------------------------------------------------------------
@@ -506,6 +514,11 @@ function push_compute_CB(hObject, handles)
 
 	else											% Try with Hellinger's (pfiu)
 		conjug = getappdata(handles.hLines(1),'HellingConjug');
+		area0 = [];
+		force_pole = false;
+		if (get(handles.check_in_equal_out, 'Val'))
+			force_pole = true;
+		end
 		if (~isempty(conjug))		% Have Hellinger pair of isocs
 			if (conjug ~= handles.hLines(2))
 				errordlg('Error: the pair of lines do not constitue a pair of Hellinger conjugate isochrons.', 'Error')
@@ -513,16 +526,28 @@ function push_compute_CB(hObject, handles)
 			end
 			props1 = getappdata(handles.hLines(1),'HellingProps');		% First column segments, second the stds
 			props2 = getappdata(handles.hLines(2),'HellingProps');
-			[pLon,pLat,pAng] = hellinger(handles.pLon_ini,handles.pLat_ini,handles.pAng_ini, handles.isoca1, handles.isoca2, ...
-			                             props1, props2);
+			[pLon, pLat, pAng, vol, stats, ellip_long, ellip_lat] = hellinger(handles.pLon_ini,handles.pLat_ini,handles.pAng_ini, ...
+					handles.isoca1, handles.isoca1, handles.isoca2, handles.DP_tol, force_pole, props1, props2);
 		else
-			[pLon,pLat,pAng] = hellinger(handles.pLon_ini,handles.pLat_ini,handles.pAng_ini, handles.isoca1, handles.isoca2, ...
-			                             handles.DP_tol);
+			[area0, resid] = calca_pEuler(handles, false, false, []);
+			[pLon, pLat, pAng, vol, stats, ellip_long, ellip_lat] = hellinger(handles.pLon_ini,handles.pLat_ini,handles.pAng_ini, ...
+					handles.isoca1, handles.isoca2, handles.DP_tol, force_pole, resid);
 		end
+
+		if (get(handles.check_show_stats, 'Val'))
+			message_win('create',stats,'figname','Hellinger pole stats','edit','sim','position','right')
+		end
+		if (get(handles.check_error_ellipse, 'Val'))
+			ecran(ellip_long, ellip_lat, 'Error ellipse')
+		end
+
+		set(handles.edit_nInt(2), 'Str', vol)
 		set(handles.edit_pLon_fim,'String',pLon);			set(handles.edit_pLat_fim,'String',pLat)
 		set(handles.edit_pAng_fim,'String',pAng)
-		if (handles.do_graphic)     % Create a empty line handle
-			area0 = calca_pEuler(handles, false, false, []);
+		if (handles.do_graphic)			% Create a empty line handle
+			if (isempty(area0))			% Because it might have been computed already a couple of lines above
+				area0 = calca_pEuler(handles, false, false, []);
+			end
 			% Put new pole params in handles that will be needed in next call to calca_pEuler()
 			handles.pLon_ini = pLon;	handles.pLat_ini = pLat;	handles.pAng_ini = pAng;
 			handles.do_graphic = false;
@@ -531,7 +556,7 @@ function push_compute_CB(hObject, handles)
 			set(handles.edit_InitialResidue,'String',sprintf('%.4f', area0));
 			set(handles.edit_BFresidue,'String',sprintf('%.4f', area1));
 			hLine = line('parent',get(handles.hCallingFig,'CurrentAxes'),'XData',rlon,'YData',rlat, ...
-			             'LineStyle','-.','LineWidth',2,'Tag','Fitted Line','Userdata',1);
+			             'LineStyle','-.','LineWidth',1,'Tag','Fitted Line','Userdata',1);
 			setappdata(hLine,'LineInfo','Fitted Line');
 			draw_funs(hLine,'isochron',{'Fitted Line'})
 		end
@@ -652,9 +677,13 @@ function [polLon, polLat, polAng, area_f] = calca_pEuler(handles, do_weighted, i
 	%sum22 = weightedSum(dist2, segLen2, do_weighted);
 
 	% ----------- See if this function was called only to compute the initial rotation/residue --------------
-	if (nargout == 1 || nargout == 3)
+	if (nargout >= 1 && nargout <= 3)
 		polLon = area0;
-		if (nargout == 3)
+		if (nargout == 2)		% This case used with Hellinger where the distances will be used as sigma
+			[area0, xy, distsA, w] = distmin(isoca2(:,1), isoca2(:,2), lenRot2, rlon, rlat, lenRot1);
+			[area0, xy, distsB, w] = distmin(rlon, rlat, lenRot1, isoca2(:,1), isoca2(:,2), lenRot2);
+			polLat = [distsA; distsB];
+		elseif (nargout == 3)
 			rlat = atan2(sin(rlat), (1-ecc^2)*cos(rlat));		% Convert back to geodetic latitudes
 			polLat = rlon / D2R;		polAng = rlat / D2R;
 		end
@@ -663,7 +692,8 @@ function [polLon, polLat, polAng, area_f] = calca_pEuler(handles, do_weighted, i
 
 	% See if there is a request to plot only the signed residues of the starting pole.
 	if (get(handles.check_plotRes,'Val'))
-		resid_along_isoca(handles, isoca2, lenRot2, rlon, rlat, lenRot1)
+		[lat, dists] = resid_along_isoca(handles, isoca2, lenRot2, rlon, rlat, lenRot1);
+		ecran(lat, dists, 'Residues along isoc')
 		return
 	end
 
@@ -853,14 +883,18 @@ function [lon_bf, lat_bf, omega_bf, area_f, resid] = ...
 	area_f = area0;
 
 % -------------------------------------------------------------------------------
-function resid_along_isoca(handles, isoca2, lenRot2, rlon, rlat, lenRot1)
-% ...
+function [lat, dists] = resid_along_isoca(handles, isoca2, lenRot2, rlon, rlat, lenRot1, threshold)
+% Compute the distances of the points on one ISOCA to the line defined by the other ISOCA.
+% Do this for both isocas ans cat both sets into DISTS.
+% LAT is a crude estimation of the latitude of each point-to-line crossing to be used as absissae in xy plots
+
+	if (nargin == 6),	threshold = 0.25;		end
 	R2D = 180 / pi;		ecc = 0.0818191908426215;			% WGS84
 	[area0, xy, distsA, weights] = distmin(isoca2(:,1), isoca2(:,2), lenRot2, rlon, rlat, lenRot1);
-	ind = (weights < 0.25);		% Ad-hoc criterium
+	ind = (weights < threshold);		% Ad-hoc criterium
 	distsA(ind) = [];	xy(ind,:) = [];		isoBak = isoca2;	isoca2(ind,:) = [];
 
-	% Compute the azims of points and their the ones that are closest on the otehr line, next
+	% Compute the azims of points and their the ones that are closest on the other line, next
 	% compare them with the azimuth given by the Euler pole and thus decide the ones on left and right
 	azPtsNear = azimuth_geo(xy(:,2),xy(:,1),isoca2(:,2),isoca2(:,1),'rad') * R2D;
 	azEuler   = compute_EulerAzim(xy(:,2),xy(:,1), handles.pLat_ini/R2D,handles.pLon_ini/R2D) * R2D;
@@ -869,11 +903,11 @@ function resid_along_isoca(handles, isoca2, lenRot2, rlon, rlat, lenRot1)
 	inds(difa < 60) = 1;	inds(difa > 120) = -1;
 	distsA = distsA .* inds;
 	distsA(~inds) = [];		xy(~inds,:) = [];		% Those should be points edging Fracture Zones
-	latA = atan2( sin(xy(:,2)), (1-ecc^2)*cos(xy(:,2)) ) * R2D;		% Convert back to geodetic latitudes
+	latA = atan2(sin(xy(:,2)), (1-ecc^2)*cos(xy(:,2))) * R2D;		% Convert back to geodetic latitudes
 	
 	% Now again but swaping order of lines
 	[area0, xy, distsB, weights] = distmin(rlon, rlat, lenRot1, isoBak(:,1), isoBak(:,2), lenRot2);
-	ind = (weights < 0.25);
+	ind = (weights < threshold);
 	distsB(ind) = [];	xy(ind,:) = [];		rlon(ind,:) = [];	rlat(ind,:) = [];
 	azPtsNear = azimuth_geo(xy(:,2),xy(:,1),rlat,rlon,'rad') * R2D;
 	azEuler   = compute_EulerAzim(xy(:,2),xy(:,1), handles.pLat_ini/R2D,handles.pLon_ini/R2D) * R2D;
@@ -882,15 +916,13 @@ function resid_along_isoca(handles, isoca2, lenRot2, rlon, rlat, lenRot1)
 	inds(difa < 60) = -1;	inds(difa > 120) = 1;	% NOTE: swapp signs because we reversed order of lines
 	distsB = distsB .* inds;
 	distsB(~inds) = [];		xy(~inds,:) = [];
-	latB = atan2( sin(xy(:,2)), (1-ecc^2)*cos(xy(:,2)) ) * R2D;
+	latB = atan2(sin(xy(:,2)), (1-ecc^2)*cos(xy(:,2))) * R2D;
 
 	% The correct thing to do would be to interpolate along ridge to get a common reference
 	% but we'll do the crude aproximation of using Lat as the X axis (good enough for the Atlantic)
-	lat = [latA; latB];		dists = ([distsA; distsB]);
+	lat = [latA; latB];		dists = [distsA; distsB];
 	[lat, ind] = sort(lat);
 	dists = dists(ind);
-
-	ecran(lat, dists, 'Residues along isoc')
 
 % -----------------------------------------------------------------------------------------
 function azim = compute_EulerAzim(alat,alon,plat,plon)
@@ -1387,6 +1419,27 @@ uicontrol('Parent',h1, 'Pos',[20 90 110 15],...
 'Tooltip','Use the Hellinger method',...
 'Tag','check_hellinger');
 
+uicontrol('Parent',h1, 'Pos',[160 90 110 15],...
+'String','Show stats',...
+'Style','checkbox',...
+'Tooltip','Show the Hellinger pole solution statistics',...
+'Visible', 'off', ...
+'Tag','check_show_stats');
+
+uicontrol('Parent',h1, 'Pos',[160 60 120 15],...
+'String','Plot error ellipse',...
+'Style','checkbox',...
+'Tooltip','Plot the 95% ellipse error in a separate window',...
+'Visible', 'off', ...
+'Tag','check_error_ellipse');
+
+uicontrol('Parent',h1, 'Pos',[300 75 120 15],...
+'String','Force input = output',...
+'Style','checkbox',...
+'Tooltip','Useful for geting Hellinger statistics of independent poles',...
+'Visible', 'off', ...
+'Tag','check_in_equal_out');
+
 uicontrol('Parent',h1, 'Pos',[20 60 120 15],...
 'String','Plot residues only',...
 'Style','checkbox',...
@@ -1412,7 +1465,7 @@ uicontrol('Parent',h1, 'Pos',[394 61 21 21],...
 uicontrol('Parent',h1, 'Pos',[220 84 155 18],...
 'FontSize',10,...
 'String','Residues grid (optional)',...
-'Style','text')
+'Style','text', 'Tag', 'text_resid_grid')
 
 uicontrol('Parent',h1, 'Pos',[431 79 75 21],...
 'Call',@compute_euler_uiCB,...
