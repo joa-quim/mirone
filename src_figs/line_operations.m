@@ -16,7 +16,7 @@ function varargout = line_operations(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: line_operations.m 7754 2016-01-12 14:45:30Z j $
+% $Id: line_operations.m 10030 2017-02-22 19:28:45Z j $
 
 	if (isempty(varargin)),		return,		end
 	if (~isfield(varargin{1}, 'head')),		return,		end		% Call from an empty fig
@@ -675,6 +675,11 @@ function push_apply_CB(hObject, handles)
 
 		case 'stitch'
 			out = validate_args(handles.known_ops{ind}, r);
+			if (out.sort)
+				sortline(handles.hLine)
+				return
+			end
+
 			tol = out.val;
 			if (out.toDegFac)		% Convert to degrees using the simple s = R*theta relation
 				tol = (out.val * out.toDegFac) / 6371005.076 * 180 / pi;		% Use the Authalic radius
@@ -1004,6 +1009,42 @@ function do_stitching(hLines, hCurrLine, tol, xcell, ycell)
 	if (ishandle(hAguenta)),	delete(hAguenta),	end
 
 % -------------------------------------------------------------------------------------------------
+function sortline(hMe)
+% Rearange the polyline vertex sutch they are sorted by proximity
+	count = 1;
+	x = get(hMe,'XData');		y = get(hMe,'YData');
+	x = x(:);	y = y(:);
+	[xs, ys, inds] = do_sortline(x, y);
+	x(inds) = [];	y(inds) = [];
+	while (~isempty(inds) && count < 6)
+		[x2, y2, inds] = do_sortline(x, y);
+		xs = [xs; x2];	ys = [ys; y2];		% Now concatenate both chunks
+		x(inds) = [];	y(inds) = [];
+		%indT = [indT; inds];				% Keep track of the used points to not use them twice
+		count = count + 1;
+	end
+	hLine = line('Parent',get(hMe,'Parent'), 'XData', xs, 'YData', ys, 'Tag', 'polyline');
+	draw_funs(hLine,'line_uicontext')		% Set lines's uicontextmenu
+	disp(count)
+
+	% THIS IS NOT A NESTED FUNCTION. I'M JUST INDENTING IT
+	function [x, y, inds] = do_sortline(x, y)
+		inds = zeros(numel(x),1);
+		inds(1) = 1;		% First point is always retained
+		k = 1;
+		while (k < numel(x))
+			[d, ind] = sort((x(k+1:end)-x(k)).^2 + (y(k+1:end)-y(k)).^2);
+			inds(k+1) = ind(1)+k;
+			k = inds(k+1);		% Jump to selected point, but those in between were lost
+		end
+		inds(~inds) = [];		% Remove the remaining zeros
+		if (~isempty(x))
+			x = x(inds);	y = y(inds);
+		else
+			inds = [];
+		end
+
+% -------------------------------------------------------------------------------------------------
 function [hLineClosest, endType, indOfFound] = find_closestline(hMe, hLines, TOL)
 % Find among the HLINES vector of line handles which one is closest the line with handle HME.
 % TOL is the max distance that the two lines can be apart and still be considered close.
@@ -1269,10 +1310,11 @@ function [out, msg] = validate_args(qual, str, np)
 
 		case 'stitch'
 			out.toDegFac = 0;		% Means no conversion from cartesian to degrees
-			if ( isempty(str) || strcmpi(str, 'TOL') )
+			out.sort = false;		% Means, sort the vertex by proximity
+			if (isempty(str) || strcmpi(str, 'TOL'))
 				out.val = Inf;
 			else
-				if ( strcmpi(str(end), 'm') || strcmpi(str(end), 'k') || strcmpi(str(end), 'n') )	% Convert any of those to degrees
+				if (strcmpi(str(end), 'm') || strcmpi(str(end), 'k') || strcmpi(str(end), 'n'))	% Convert any of those to degrees
 					convFrom = lower(str(end));		str(end) = [];
 					% Right. We must convert the DIST distance given in cartesians to degrees
 					% But the problem is that here we don't know the lat so we can't finish the conversion. So, send back the collected info
@@ -1282,6 +1324,7 @@ function [out, msg] = validate_args(qual, str, np)
 					end
 				end
 				out.val = abs(str2double(str));
+				if (strcmp(str, 'SORT')),	out.sort = true;	end
 			end
 	end
 
