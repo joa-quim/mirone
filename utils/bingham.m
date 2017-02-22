@@ -63,7 +63,7 @@ function [blong,blat,jer] = bingham(q,lhat,fk,uxx)
 	%     m = (azero - 1)*b - dvect*transpose(dvect)
 	% and find its eigenvalues and eigenvectors.
 	azero=qf(1,1);
-	if (azero <= 1.0)
+	if (azero <= 1)
 		icase=7;
 	else
 		[nu,w,mf,icase,ier] = meig(qf,uxx,nu,w,mf);
@@ -73,24 +73,23 @@ function [blong,blat,jer] = bingham(q,lhat,fk,uxx)
 		end
 	end
 	% print a description of the set a of admissible axes, depending on the value of icase.
-	if (icase == 1)		
+	printa = false;
+	if (icase == 1 && printa)
 		fprintf('\nThe set a of admissible axes is a cap not containing either pole.\n');
 		fprintf('In the longitude-latitude plane, this set is bounded by a closed curve.\n');
-	elseif (icase == 2)
-		fprintf('\nthe set a of admissible axes is a cap containing\n')
-		fprintf('the north pole.  in the axis longitude-axis latitude\n')
-		fprintf('plane this set is bounded by the lines: axis longi\n')
-		fprintf('tude = -180 degrees, axis longitude = 180 degrees\n')
-		fprintf('axis latitude = 90 degrees, and a curve which forms\n')
-		fprintf('the southern border.\n')
-	elseif (icase == 3)
+	elseif (icase == 2 && printa)
+		fprintf('\nThe set a of admissible axes is a cap containing the north pole.\n')
+		fprintf('In the axis longitude-axis latitude plane this set is bounded by\n')
+		fprintf('the lines: axis longitude = -180 degrees, axis longitude = 180 degrees\n')
+		fprintf('axis latitude = 90 degrees, and a curve which forms the southern border.\n')
+	elseif (icase == 3 && printa)
 		fprintf('\nthe set a of admissible axes is a cap containing');
 		fprintf('the south pole.  in the axis longitude-axis latitude');
 		fprintf('plane this set is bounded by the lines: axis longi-');
 		fprintf('tude = -180 degrees, axis longitude = 180 degrees,');
 		fprintf('axis latitude = -90 degrees, and a curve which forms');
 		fprintf('the northern border.');
-	elseif (icase == 4)
+	elseif (icase == 4 && printa)
 		fprintf('\nthe set a of admissible axes is the complement of');
 		fprintf('two anti-podal caps which contain the poles.');
 		fprintf('hence, this set is an equatorial belt.  in the axis');
@@ -98,7 +97,7 @@ function [blong,blat,jer] = bingham(q,lhat,fk,uxx)
 		fprintf('the lines: axis longitude = -180 degrees, axis longi-');
 		fprintf('tude = 180 degrees, and two curves which form the');
 		fprintf('northern and southern borders of the belt.');
-	elseif (icase == 5)
+	elseif (icase == 5 && printa)
 		fprintf('\nthe set a of admissible axes is the complement of');
 		fprintf('two anti-podal caps which do not contain the');
 		fprintf('poles.  in the axis longitude-axis latitude plane');
@@ -106,11 +105,11 @@ function [blong,blat,jer] = bingham(q,lhat,fk,uxx)
 		fprintf('tude = -180 degrees, axis longitude = 180 degrees,');
 		fprintf('axis latitude = -90 degrees, and axis latitude =');
 		fprintf('90 degrees; however, there are two holes in the set.');
-	elseif (icase == 6)
+	elseif (icase == 6 && printa)
 		fprintf('\nany axis is admissible; however, the identity is not');
 		fprintf('in the confidence region.  the set a of admissible');
 		fprintf('axes is the entire axis longitude-axis latitude plane.');
-	elseif (icase == 7)
+	elseif (icase == 7 && printa)
 		fprintf('\nthe identity is in the confidence region.  hence, each');
 		fprintf('axis is admissible.  that is, the set a of admissible');
 		fprintf('axes is the entire axis longitude-axis latitude plane.');
