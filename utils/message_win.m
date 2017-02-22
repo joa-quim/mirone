@@ -41,7 +41,7 @@ function handFig = message_win(option, texto, varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: message_win.m 4725 2015-07-20 21:53:37Z j $
+% $Id: message_win.m 10026 2017-02-22 03:24:23Z j $
 
 tagFig = 'Wdmsgfig';
 tagTxt = 'textTag';
@@ -90,7 +90,7 @@ switch option
 			fpos = figpos;				% Make a copy and use a fixed size ... for the time being.
 			if (~got_size)				% Otherwise respect input
 				n = maxTextWidth(texto);
-				fpos(3) = min(max(n * 5 + 20, 200), winMaxH);
+				fpos(3) = min(max(n * 3 + 20, 200), winMaxH);
 				fpos(4) = min(numel(texto)*20+90, winMaxH);
 				if ((fpos(2) + fpos(4)) > winMaxH)
 					fpos = getnicelocation(fpos, 'pixels');		% Reposition again
