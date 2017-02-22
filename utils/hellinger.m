@@ -1,4 +1,5 @@
-function [along, alat, rho, vol] = hellinger(along, alat, rho, isoc_mov, isoc_fix, DP_tol, isoc1_props, isoc2_props)
+function [along, alat, rho, vol, t_stats, ellip_long, ellip_lat] = ...
+	      hellinger(along, alat, rho, isoc_mov, isoc_fix, DP_tol, force_pole, isoc1_props, isoc2_props)
 % c simplified September 9, 2000, July 2001
 % c
 % c program implementing section 1 of 'on reconstructing tectonic plate
@@ -33,20 +34,20 @@ function [along, alat, rho, vol] = hellinger(along, alat, rho, isoc_mov, isoc_fi
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: hellinger.m 10027 2017-02-22 03:26:14Z j $
+% $Id: hellinger.m 10029 2017-02-22 19:23:21Z j $
 
 	do_geodetic = true;
-	verbose = false;
 	plot_segmentation_lines = true;
 	std_invented = 4;		% If this is ~= 0 the residues transmitted in the ISOC1_PROPS (non pure Hellinger) are ignored
 
 	plev = 0.95;				% Confidence level
-	eps_ = 10;					% If == 0, ouput pole == input
 	rfact = 4.0528473e07;
 	hlim=1e-10;
 	nsig = 4;
 	maxfn = 1000;
  	D2R = pi / 180;
+	eps_ = 10;					% If == 0, ouput pole == input
+	if (force_pole),	eps_ = 0;	end
 
 	% Converting to geocentric, as is correct, but makes little difference
 	if (do_geodetic)
@@ -59,7 +60,7 @@ function [along, alat, rho, vol] = hellinger(along, alat, rho, isoc_mov, isoc_fi
 		isoc_fix = isoc_fix / D2R;
 	end
 
-	if (nargin == 8)
+	if (nargin == 9)
 		data = [ones(size(isoc_mov,1),1) isoc1_props(:,1) isoc_mov(:,2:-1:1) isoc1_props(:,2); ...
 			ones(size(isoc_fix,1),1)*2 isoc2_props(:,1) isoc_fix(:,2:-1:1) isoc2_props(:,2)];
 	else
@@ -169,7 +170,7 @@ function [along, alat, rho, vol] = hellinger(along, alat, rho, isoc_mov, isoc_fi
 			end
 		end
 	end	
-	
+
 	% minimization section--grid search
 	qhati = trans3(alat,along,rho);
 	h = ones(3,1);
@@ -190,7 +191,7 @@ function [along, alat, rho, vol] = hellinger(along, alat, rho, isoc_mov, isoc_fi
 %       go to 251
 
 	eps_ = eps_ * D2R;
- 
+
 	h = zeros(1,3);
 	[rmin, eta, etai] = r1(h, sigma, qhati, nsect, eta, etai);
 	rmin = rmin * rfact;
@@ -356,10 +357,9 @@ function [along, alat, rho, vol] = hellinger(along, alat, rho, isoc_mov, isoc_fi
 		end
 	end
 	
-% 	[x,y,z] = trans1(alat, along);		% geo2cart
-% 	axis = [x y z];
-%  	[blong,blat,jer]=bingham(qbing,0,xchi,axis);
-% 	figure;plot(blong,blat)
+	[x,y,z] = trans1(alat, along);		% geo2cart
+	axis = [x y z];
+ 	[ellip_long, ellip_lat,jer] = bingham(qbing,0,xchi,axis);
 
 	% compute volume of confidence  region: vol=4/3*pi*a*b*c following the conreg.f program from J-Y Royer
 	[V,D]  = eig(sigma4);
@@ -367,21 +367,18 @@ function [along, alat, rho, vol] = hellinger(along, alat, rho, isoc_mov, isoc_fi
 	angled = sqrt(xchi ./ D) / D2R;
 	vol = 4/3 * pi * prod(angled) * 111.111^3;
 
-	if (verbose)
-		t = cell(11,1);
-		t{1}  = sprintf('Fitted rotation--alat,along,rho:');
-		t{2}  = sprintf('%f\t%f\t%f', alat,along,rho);
-		t{3}  = sprintf('conf. level, conf. interval for kappa:');
-		t{4}  = sprintf('%f\t%f\t%f', plev,fkap2,fkap1);
-		t{5}  = sprintf('kappahat, degrees of freedom,xchi:');
-		t{6}  = sprintf('%f\t%d\t%f', hatkap,df,xchi);
-		t{7}  = sprintf('Number of points, sections, misfit, reduced misfit:');
-		t{8}  = sprintf('%d\t%d\t%f\t%f', ndata, nsect, rmin, 1/sqrt(hatkap));
-		t{9}  = sprintf('ahat:%f\t%f\t%f\n%f\t%f\t%f\n%f\t%f\t%f', ahat');
-		t{10} = sprintf('covariance matrix:%g\t%g\t%g\n%g\t%g\t%g\n%g\t%g\t%g', cov');
-		t{11} = sprintf('H11.2 matrix:%f\t%f\t%f\n%f\t%f\t%f\n%f\t%f\t%f', sigma4');
-		message_win('create',t,'figname','Hellinger pole stats','edit','sim','position','right')
-	end
+	t_stats = cell(11,1);
+	t_stats{1}  = sprintf('Fitted rotation--alat,along,rho:');
+	t_stats{2}  = sprintf('%f\t%f\t%f', alat,along,rho);
+	t_stats{3}  = sprintf('conf. level, conf. interval for kappa:');
+	t_stats{4}  = sprintf('%f\t%f\t%f', plev,fkap2,fkap1);
+	t_stats{5}  = sprintf('kappahat, degrees of freedom,xchi:');
+	t_stats{6}  = sprintf('%f\t%d\t%f', hatkap,df,xchi);
+	t_stats{7}  = sprintf('Number of points, sections, misfit, reduced misfit:');
+	t_stats{8}  = sprintf('%d\t%d\t%f\t%f', ndata, nsect, rmin, 1/sqrt(hatkap));
+	t_stats{9}  = sprintf('ahat:\n%f\t%f\t%f\n%f\t%f\t%f\n%f\t%f\t%f', ahat');
+	t_stats{10} = sprintf('covariance matrix:\n%g\t%g\t%g\n%g\t%g\t%g\n%g\t%g\t%g', cov');
+	t_stats{11} = sprintf('H11.2 matrix:\n%f\t%f\t%f\n%f\t%f\t%f\n%f\t%f\t%f', sigma4');
 
 % ---------------------------------------------------------------------------
 function [r, eta, etai] = r1(h, sigma, qhati, nsect, eta, etai)
