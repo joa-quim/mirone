@@ -27,16 +27,17 @@
 142.50  53.10   -9.984  47.06 !NAM<-EUR An21  (res = 4.081) 
 143.50  54.50  -10.613  49.37 !NAM<-EUR An22  (res = 2.922) 
 144.00  51.20  -15.498  51.30 !NAM<-EUR An23  (res = 5.692)
-142.80  67.10  -15.498  52.79 !NAM<-EUR An24  (res = 6.918)
+141.30  73.30  -13.447  52.79 !NAM<-EUR An24  (res = 6.219)
 144.10  72.00  -14.863  56.14 !NAM<-EUR An25  (res = 4.023)
+153.70  68.80  -14.895  57.70 !NAM<-EUR An26  (res = 1.737) Mas mau
 145.70  56.50  -15.498  64.30 !NAM<-EUR An29  (res = 3.424)
 146.20  55.50  -15.910  67.02 !NAM<-EUR An30  (res = 2.143)
 147.70  57.80  -16.650  72.25 !NAM<-EUR An32  (res = 4.762)
 148.00  64.40  -19.058  81.00 !NAM<-EUR An33r (res = 2.330)
 
   0.0    0.0     0.0     0.0  !GRE<-EUR Greenland-Eurasia (Entre Islandia e 57 N)
-136.40  61.80   -8.455  39.13 !NAM<-EUR An18  (res = 2.724) Sem Rockall
-140.50  55.60   -8.852  43.14 !NAM<-EUR An20  (res = 4.723) Sem Rockall
+136.40  61.80   -8.455  39.13 !GRE<-EUR An18  (res = 2.724) Sem Rockall
+140.50  55.60   -8.852  43.14 !GRE<-EUR An20  (res = 4.723) Sem Rockall
 135.00  45.70   -8.801  47.06 !GRE<-EUR An21  (res = 2.882) Sem Rockall 
 131.10  40.70   -9.002  49.37 !GRE<-EUR An22  (res = 2.199) Sem Rockall
 130.80  35.10   -9.428  51.30 !GRE<-EUR An23  (res = 2.591) Sem Rockall
@@ -97,7 +98,7 @@
 147.90  28.7    -1.452   8.88 !NAM<-Jan Mayen  An4A  (res = 0.910)
 129.00  67.0    -2.465  10.30 !NAM<-Jan Mayen  An5   (res = 1.501) 
 141.90  58.5    -3.587  16.37 !NAM<-Jan Mayen  An5c  (res = 0.642)
-138.70  14.7    -3.289  16.37 !NAM<-Jan Mayen  An6   (res = 2.122)
+138.70  14.7    -3.289  19.60 !NAM<-Jan Mayen  An6   (res = 2.122)
 
 124.50  57.8    -0.621   3.06 !NAM<-XXX An2A (res = 1.981)
 126.80  68.20   -2.541  10.33 !NAM<-XXX  An5 (res = 2.885)
