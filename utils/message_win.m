@@ -90,8 +90,8 @@ switch option
 			fpos = figpos;				% Make a copy and use a fixed size ... for the time being.
 			if (~got_size)				% Otherwise respect input
 				n = maxTextWidth(texto);
-				fpos(3) = min(max(n * 3 + 20, 200), winMaxH);
-				fpos(4) = min(numel(texto)*20+90, winMaxH);
+				fpos(3) = min(max(n * 5 + 20, 200), winMaxH);
+				fpos(4) = min(numel(texto)*18+90, winMaxH);
 				if ((fpos(2) + fpos(4)) > winMaxH)
 					fpos = getnicelocation(fpos, 'pixels');		% Reposition again
 				end
