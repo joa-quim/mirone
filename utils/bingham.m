@@ -24,7 +24,7 @@
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: bingham.m 10028 2017-02-22 19:06:59Z j $
+% $Id: bingham.m 10036 2017-02-27 01:27:27Z j $
 
 function [blong,blat,jer] = bingham(q,lhat,fk,uxx)
 
@@ -236,7 +236,7 @@ format_816=[' ','  one of the holes straddles the line: axis',' longitude =', '\
 	% where f(phit) = 1./sqrt((dphi/dphit)**2 + (dtheta/dphit)**2).
 	% here s is the arc length along the bounding curve, measured in radians.
 	did_break = false;
-	for  k=2:kmax
+	for (k = 2:kmax)
 		[fval,phi(k-1),theta(k-1),u,ier] = evalf(phit(k-1), nu, w, azero, k-2, oldu, ophi);
 		if (ier ~= 0)
 			jer=1;
@@ -262,7 +262,7 @@ format_816=[' ','  one of the holes straddles the line: axis',' longitude =', '\
 	end
 
 	if (icase == 1)		% The set a is a cap not containing either pole. Center the phi values, if necessary.
-		npt=k;
+		npt = k;
 		blong = zeros(npt, 1);
 		blat = zeros(npt, 1);
 		phit(npt) = TWOPI;
@@ -303,17 +303,10 @@ format_816=[' ','  one of the holes straddles the line: axis',' longitude =', '\
 		%fprintf('Min., Max. longitude: %10.5f\t%10.5f\nMin., Max. latitude: %10.5f\t%10.5f\n',pmind,pmaxd,tmind,tmaxd)
 		if (ind == 1)
 			% Printagens
-% 				writeFmt(30,format_801,'npt');
-				for  k_=1:npt
+				for  (k_= 1:npt)
 					blong(k_) = phi(k_) * R2D;
 					blat(k_)  = theta(k_) * R2D;
-% 					writeFmt(30,format_802,'blong','blat');
 				end
-% 				try
-% 					fclose(unit2fid(find(unit2fid(:,1)==30,1,'last'),2));
-% 					unit2fid=unit2fid(unit2fid(:,1)~=30,:);
-% 				end
-% 				fprintf(format_703,npt,bfile);
 		end
 		return
 	elseif ((icase >= 2) && (icase <= 4))
@@ -324,14 +317,15 @@ format_816=[' ','  one of the holes straddles the line: axis',' longitude =', '\
 		% calculate a sequence of points (phim(k),thetm(k),k=1,2,...,npt,
 		% which are arranged in order on phi, with phi going from -180 to 180.
 
-		npt=k - 1;
-		for (k_=2:npt)
+		npt = k - 1;
+		blong = zeros(npt, 1);
+		blat = zeros(npt, 1);
+		for (k_= 2:npt)
 			if (phi(k_) <= pi)
-				for  (k__ = 1:npt)
+				for (k__ = 1:npt)
 					phim(k__)=phi(k__);
 					thetm(k__)=theta(k__);
 				end
-				go to 225;
 			else
 				% 215 continue;
 				kz=k-1;
@@ -352,41 +346,30 @@ format_816=[' ','  one of the holes straddles the line: axis',' longitude =', '\
 		if (icase ~= 4)
 			tmin=thetm(1);
 			tmax=thetm(1);
-			for  k_=1:npt
+			for  (k_ = 1:npt)
 				if (thetm(k_) < tmin)
 					tmin=thetm(k_);
 				elseif (thetm(k_) > tmax)
 					tmax=thetm(k_);
 				end
 			end
-			pmind= -180;
-			pmaxd=  180;
+			pmind = -180;
+			pmaxd =  180;
 			if (icase == 2)
-				tmind=tmin * 180/pi;
+				tmind=tmin * D2R;
 				tmaxd=90;
 			elseif (icase == 3)
 				tmind= -90;
-				tmaxd=tmax * 180/pi;
+				tmaxd=tmax * D2R;
 			end
 
-			fprintf('Min., Max. longitude: %10.5f\t%10.5f\nMin., Max. latitude: %10.5f\t%10.5f\n',pmind,pmaxd,tmind,tmaxd)
+			%fprintf('Min., Max. longitude: %10.5f\t%10.5f\nMin., Max. latitude: %10.5f\t%10.5f\n',pmind,pmaxd,tmind,tmaxd)
 			if (ind == 1)
 				% Printagens
-% 					writeFmt(30,format_803,'npt');
-% 					for  k=1:npt
-% 						blong=phim(k).*180/pi;
-% 						blat=thetm(k).*180/pi;
-% 						writeFmt(30,format_802,'blong','blat');
-% 					end
-% 					try
-% 						fclose(unit2fid(find(unit2fid(:,1)==30,1,'last'),2));
-% 						unit2fid=unit2fid(unit2fid(:,1)~=30,:);
-% 					end
-% 					if (icase == 2)
-% 						[writeErrFlag]=writeFmt(1,[format_712],'npt','bfile');
-% 					elseif (icase == 3) ;
-% 						[writeErrFlag]=writeFmt(1,[format_713],'npt','bfile');
-% 					end
+					for (k_ = 1:npt)
+						blong(k_) = phim(k_) * D2R;
+						blat(k_)  = thetm(k_) * D2R;
+					end
 			end
 			return
 		end
@@ -395,21 +378,21 @@ format_816=[' ','  one of the holes straddles the line: axis',' longitude =', '\
 		% which contain the poles.  kzz is the number of points (phim(k), thetm(k)) with phi negative.
 
 		% 400 continue;
-		for (k_=1:npt)
+		for (k_ = 1:npt)
 			if (phim(k_) <= 0)
 				jer=1;
-				fprinf('error in boundc (icase=4):\n');
-				fprinf('there are no points on the bounding curve with positve\n');
-				fprinf('longitude.  the points on the bounding curve are too sparse\n');
+				fprintf('error in boundc (icase=4):\n');
+				fprintf('there are no points on the bounding curve with positve\n');
+				fprintf('longitude.  the points on the bounding curve are too sparse\n');
 				return
 			end
 			kzz = k-1;
 			if (kzz <= 0)
 				jer=1;
-				fprinf('error in boundc (icase=4):\n');
-				fprinf('there are no points on the bounding curve with\n');
-				fprinf('negative longitude.  the points on the bounding\n');
-				fprinf('curve are too sparse.\n');
+				fprintf('error in boundc (icase=4):\n');
+				fprintf('there are no points on the bounding curve with\n');
+				fprintf('negative longitude.  the points on the bounding\n');
+				fprintf('curve are too sparse.\n');
 				return
 			end
 		end
@@ -427,28 +410,22 @@ format_816=[' ','  one of the holes straddles the line: axis',' longitude =', '\
 		fprintf('Min., Max. longitude: %10.5f\t%10.5f\nMin., Max. latitude: %10.5f\t%10.5f\n',pmind,pmaxd,tmind,tmaxd)
 		if (ind == 1)
 			% Printagens
+				for (k_ = 1:npt)
+					blong(k_) = phim(k_) * R2D;
+					blat(k_)  = thetm(k_) * R2D;
+					writeFmt(30,format_802,'blong','blat');
+				end
 % 				writeFmt(30,format_803,'npt');
-% 				for  k=1:npt;
-% 					blong=phim(k) * 180/pi;
-% 					blat=thetm(k) * 180/pi;
-% 					writeFmt(30,format_802,'blong','blat');
-% 				end
-% 				writeFmt(30,format_803,'npt');
-% 				for  l=kzz+1:npt;
-% 					blong=phim(l).*180/pi - 180.;
-% 					blat= -thetm(l).*180/pi;
+% 				for (l = kzz+1:npt)
+% 					blong = phim(l) * R2D - 180;
+% 					blat  = -thetm(l) * R2D;
 % 					writeFmt(30,format_802,'blong','blat');
 % 				end
 % 				for  l=1:kzz
-% 					blong=phim(l).*180/pi + 180.;
-% 					blat= -thetm(l).*180/pi;
+% 					blong=phim(l) * R2D + 180.;
+% 					blat= -thetm(l) * R2D;
 % 					writeFmt(30,format_802,'blong','blat');
 % 				end
-% 				try
-% 					fclose(unit2fid(find(unit2fid(:,1)==30,1,'last'),2));
-% 					unit2fid=unit2fid(find(unit2fid(:,1)~=30),:);
-% 				end
-% 				writeFmt(1,format_714,'npt','bfile');
 		end
 		return
 
@@ -461,6 +438,8 @@ format_816=[' ','  one of the holes straddles the line: axis',' longitude =', '\
 		% line phi=0, or does cross it.
 
 		npt=k;
+		blong = zeros(npt, 1);
+		blat = zeros(npt, 1);
 		phi(npt)   = phi(1);
 		theta(npt) = theta(1);
 		pmind = -180;
@@ -468,7 +447,7 @@ format_816=[' ','  one of the holes straddles the line: axis',' longitude =', '\
 		tmind = -90;
 		tmaxd =  90;
 		fprintf('Min., Max. longitude: %10.5f\t%10.5f\nMin., Max. latitude: %10.5f\t%10.5f\n',pmind,pmaxd,tmind,tmaxd)
-		for (k_=1:npt)
+		for (k_ = 1:npt)
 			if (phi(k_) > pi)
 				for  (k__ =1:npt)
 					phi(k__)   = phi(k__) - pi;
@@ -509,24 +488,15 @@ format_816=[' ','  one of the holes straddles the line: axis',' longitude =', '\
 
 				if (ind == 1)
 					% Printagens
-% 						writeFmt(30,format_805,'npt');
+						for (k__ = 1:npt)
+							blong(k__) = phi(k) * R2D;
+							blat(k__)  = theta(k)* R2D;
+						end
 % 						for  k=1:npt;
-% 							blong=phi(k).*180/pi;
-% 							blat=theta(k).*180/pi;
-% 							writeFmt(30,format_802,'blong','blat');
-% 						end
-% 						writeFmt(30,format_805,'npt');
-% 						for  k=1:npt;
-% 							blong=phi(k).*180./pi + isign.*180.;
-% 							blat= -theta(k).*180./pi;
+% 							blong=phi(k) * R2D + isign * 180;
+% 							blat= -theta(k).*R2D;
 % 							writeFmt(30,[format_802],'blong','blat');
 % 						end
-% 						try
-% 							fclose(unit2fid(find(unit2fid(:,1)==30,1,'last'),2));
-% 							unit2fid=unit2fid(unit2fid(:,1)~=30,:);
-% 						end
-% 						writeFmt(1,format_815);
-% 						writeFmt(1,format_715,'npt','bfile');
 				end
 				return
 			else
@@ -538,7 +508,7 @@ format_816=[' ','  one of the holes straddles the line: axis',' longitude =', '\
 				else				isw = -1;
 				end
 
-				for  (kk=2:npt)
+				for  (kk = 2:npt)
 					if (phi(kk) >= 0),	ksw =  1;
 					else				ksw = -1;
 					end
@@ -566,24 +536,23 @@ format_816=[' ','  one of the holes straddles the line: axis',' longitude =', '\
 								if (ind == 1)
 									% Printagens
 % 										writeFmt(30,format_805,'npt');
-% 										for  k=1:npt
-% 											blong=phi(k).*180/pi;
-% 											blat=theta(k).*180/pi;
-% 											writeFmt(30,format_802,'blong','blat');
-% 										end
+										for (k = 1:npt)
+											blong(k) = phi(k) * R2D;
+											blat(k)  = theta(k) * R2D;
+										end
 % 										writeFmt(30,format_803,'n1');
 % 										for  l=1:n1
 % 											k=k1 + l;
-% 											blong=phi(k).*180/pi + isw.*180.;
-% 											blat= -theta(k).*180/pi;
+% 											blong=phi(k).*R2D + isw.*180.;
+% 											blat= -theta(k).*R2D;
 % 											writeFmt(30,format_802,'blong','blat');
 % 										end
 % 										writeFmt(30,format_803,'n2');
 % 										if (n3 > 0)
 % 											for  l=1:n3
 % 												k=k2 + l;
-% 												blong=phi(k).*180/pi - isw.*180.;
-% 												blat= -theta(k).*180/pi;
+% 												blong=phi(k).*R2D - isw.*180.;
+% 												blat= -theta(k).*R2D;
 % 												writeFmt(30,format_802,'blong','blat');
 % 											end
 % 										end
@@ -592,10 +561,6 @@ format_816=[' ','  one of the holes straddles the line: axis',' longitude =', '\
 % 											blong=phi(k).*180../pi - isw.*180.;
 % 											blat= -theta(k).*180../pi;
 % 											writeFmt(30,format_802,'blong','blat');
-% 										end
-% 										try
-% 											fclose(unit2fid(find(unit2fid(:,1)==30,1,'last'),2));
-% 											unit2fid=unit2fid(find(unit2fid(:,1)~=30),:);
 % 										end
 % 										fprintf(format_816);
 % 										writeFmt(1,format_716,'npt','bfile','n1','n2');
