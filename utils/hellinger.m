@@ -34,7 +34,7 @@ function [along, alat, rho, vol, t_stats, ellip_long, ellip_lat] = ...
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: hellinger.m 10029 2017-02-22 19:23:21Z j $
+% $Id: hellinger.m 10039 2017-02-27 01:38:27Z j $
 
 	do_geodetic = true;
 	plot_segmentation_lines = true;
@@ -71,18 +71,25 @@ function [along, alat, rho, vol, t_stats, ellip_long, ellip_lat] = ...
 		% Apply a line simplification to estimate the Hellinger segmentation
 		B = cvlib_mex('dp', isoc_mov, DP_tol, 'GEOG');
 		lat_dp = B(:,2);	lon_dp = B(:,1);
-		[c,ind] = intersect(isoc_mov(:,2),lat_dp, 'stable');	% Get only those points that are common to both data-sets
+		[c,ind] = intersect(isoc_mov(:,2),lat_dp);	% Get only those points that are common to both data-sets
+		ind = sort(ind);	% We need them in original order and the 'stable' flag to intersect doesn't exist in R13
 
-		breaks = (diff(ind) == 1);				% This tells us whose segments have no midle points
+% 		breaks = (diff(ind) == 1);				% This tells us whose segments have no middle points
+% 		breaks(1) = false;						% Otherwise we would be loosing the first point
+% 		for (k = 2:numel(breaks)-1)				% And do not let break two segments in a row (would loose points)
+% 			if (breaks(k) && breaks(k+1))
+% 				breaks(k) = false;
+% 			end
+% 		end
 		segmented_dp = zeros(3*(numel(ind) - 1), 2);
 		n = 1;
 		for (k = 1:numel(ind)-1)
 			segmented_dp(n,:) = [lon_dp(k) lat_dp(k)];		n = n + 1;
 			segmented_dp(n,:) = [lon_dp(k+1) lat_dp(k+1)];	n = n + 1;
 			segmented_dp(n,:) = [NaN NaN];
-			if (breaks(k))
-				segmented_dp(n-2:n,1) = Inf;	% Use Inf to later be able to find these and delete them
-			end
+% 			if (breaks(k))
+% 				segmented_dp(n-2:n,1) = Inf;	% Use Inf to later be able to find these and delete them
+% 			end
 			n = n + 1;
 		end
 		ind = isinf(segmented_dp(:,1));			% Remove the segments that have no middle points in them
