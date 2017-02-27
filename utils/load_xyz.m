@@ -571,6 +571,7 @@ function varargout = load_xyz(handles, opt, opt2)
 		end
 
 		drawnow
+		lThick = [];	cor = [];	% Means those will recieve default values (DefLineThick DefLineColor) later down
 		for (i = 1:n_segments)		% Loop over number of segments of current file (external loop)
 			tmpz = [];
 			if (do_project)         % We need to project
@@ -634,7 +635,7 @@ function varargout = load_xyz(handles, opt, opt2)
 			end
 
 			multi_segs_str{i} = deblank(multi_segs_str{i});
-			[lThick, cor, multi_segs_str{i}] = parseW(multi_segs_str{i}(min(2,numel(multi_segs_str{i})):end)); % First time, we can chop the '>' char
+			[lThick, cor, multi_segs_str{i}] = parseW(multi_segs_str{i}, lThick, cor);
 			if (isempty(lThick)),	lThick = handles.DefLineThick;	end		% IF not provided, use default
 			if (isempty(cor)),		cor = handles.DefLineColor;		end		%           "
 
@@ -913,11 +914,12 @@ function [cor, str2] = parseG(str)
 	end
 
 % --------------------------------------------------------------------
-function [thick, cor, str2] = parseW(str)
+function [thick, cor, str2] = parseW(str, thick, cor)
 % Parse the STR string in search for a -Wpen. Valid options are -W1,38/130/255 -W3 or -W100/255/255
-% If not found or error THICK = [] &/or COR = [].
+% If not found or error THICK and COR are equal to the input. This is a nice mechanism to specify
+% the line thickness &/or color only once in a multi-segment file.
 % STR2 is the STR string less the -W[thick,][r/g/b] part
-	thick = [];     cor = [];   str2 = str;
+	str2 = str;
 	ind = strfind(str,' -W');
 	if (isempty(ind)),		return,		end		% No -W option
 	try                                 % There are so many ways to have it wrong that I won't bother testing
@@ -945,7 +947,7 @@ function [thick, cor, str2] = parseW(str)
 		% Come here when -Wt,r/g/b and '-Wt,' have already been riped
 		ind = strfind(strW,'/');
 		if (~isempty(ind))
-			% This the relevant part in num2str. I think it is enough here
+			% This is the relevant part in num2str. I think it is enough here
 			cor = [eval(['[' strW(1:ind(1)-1) ']']) eval(['[' strW(ind(1)+1:ind(2)-1) ']']) eval(['[' strW(ind(2)+1:end) ']'])];
 			cor = cor / 255;
 		end
