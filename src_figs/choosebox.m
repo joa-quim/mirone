@@ -71,7 +71,7 @@ function [selection,value] = choosebox(varargin)
 %     return
 % end
 
-% $Id: choosebox.m 9962 2016-12-21 03:06:04Z j $
+% $Id: choosebox.m 10044 2017-02-27 23:35:34Z j $
 
 	mir_dirs = getappdata(0,'MIRONE_DIRS');
 	if (~isempty(mir_dirs))
@@ -471,35 +471,48 @@ function writeGMTscript(in)
 % Also display the commnads in a message window
 
 	x_min = min(in.x);			x_max = max(in.x);
-	y_min = min(in.y);			y_max = max(in.y);
-	x_range = x_max - x_min;	y_range = y_max - y_min;
-	x_c = (x_min + x_max) / 2;	y_c = (y_min + y_max) / 2;
+	x_c = (x_min + x_max) / 2;
 	if (x_c > 360),		x_c = x_c - 360;	end
-	horizon = round((max(x_range, y_range)/2 + 2.5) / 10) * 10;	% Round to next 5
-	horizon = max(min(horizon, 90), 10);	% Not > 90 nor < 10
+	% Convert to PS to get the BB and than convert back to geogs and build the -R option
+	t = sprintf('-Js%.0f/90/1:1 -C -F', x_c);
+	xy_ps = gmtmex(['mapproject -Rd ' t], [in.x(:) in.y(:)]);
+	mins = min(xy_ps.data);		maxs = max(xy_ps.data);
+	corners_PS = [mins(1:2); maxs(1:2)];
+	corners_g = gmtmex(['mapproject -Rg -I ' t], corners_PS);
+	ind = (corners_g.data(:,1) > 180);			% Want the [-180 180] interval
+	corners_g.data(ind,1) = corners_g.data(ind,1) - 360;
+	% And a little padding
+	LLx = max(-180, corners_g.data(1,1)-1);		LLy = corners_g.data(1,2) - 0.5;
+	URx = min(180, corners_g.data(2,1)-1);		URy = corners_g.data(2,2) + 0.5;
+	opt_R = sprintf('-R%.0f/%.0f/%.0f/%.0fr', LLx, LLy, URx, URy);
 
-	ad = getappdata(0,'ListDialogAppData');
-	fiche_dat  = [ad.home_dir '/tmp/poles_data.dat'];
-	fiche_bat  = [ad.home_dir '/tmp/plot_poles.bat'];
 	n_poles = numel(in.str);
-	script_str = cell(n_poles*2 + 4, 1);
-	fid = fopen(fiche_dat,'wt');
-	for (k = 1:n_poles)
-		script_str{k+4} = sprintf('echo %.2f %.2f | psxy -R -JG -Sa0.2c -Gblack -fg -O -K >> poles.ps', in.x(k), in.y(k));
-		script_str{k+4+n_poles} = sprintf('echo %.2f %.2f 12 0 5 LB %s | pstext -R -JG -fg -Dj0.1 -O >> poles.ps', ...
-			in.x(k), in.y(k), in.str{k});
-		fprintf(fid,'%.2f\t%.2f\t12\t0\t5\tLB\t%s\n', in.x(k), in.y(k), in.str{k});
+	script_str = cell(n_poles*2 + 9, 1);
+	if (ispc)
+		script_str{1} = '@echo off';
+		script_str{5} = sprintf('set ps=polos.ps');
+		script_str{6} = sprintf('set font=+f10,5+jLB');
+		script_str{7} = sprintf('set symb=c0.2c');
+		fname = '%ps%';		font = '%font%';	symb = '%symb%';
+		comm  = 'REM ';
+	else
+		script_str{1} = '#!/bin/bash';
+		script_str{5} = sprintf('ps=polos.ps');
+		script_str{6} = sprintf('font=+f10,5+jLB');
+		script_str{7} = sprintf('symb=-Sc0.2c -Gblack');
+		fname = '$ps';		font = '$font';	symb = '$symb';
+		comm  = '# ';
 	end
-	fclose(fid);
-	fid = fopen(fiche_bat,'wt');
-	fprintf(fid,'@echo off\nREM Plot poles in Orthographic projection\nREM Mirone Tech automatic batch\n\n');
-	fprintf(fid,'pscoast -Rg -JG%.1f/%.1f/%.0f/13c -Di -A5000 -G200 -W0.5p -Bg15 -K -P > poles.ps\n', x_c, y_c, horizon);
-	fprintf(fid,'psxy %s -R -JG -Sa0.2c -Gblack -fg -O -K >> poles.ps\n', fiche_dat);
-	fprintf(fid,'pstext %s -R -JG -fg -Dj0.1 -O >> poles.ps', fiche_dat);
-	fclose(fid);
-	script_str{1} = 'Plot poles in Orthographic projection';
-	script_str{3} = sprintf('pscoast -Rg -JG%.1f/%.1f/%.0f/13c -Di -A5000 -G200 -W0.5p -Bg15 -K -P > poles.ps', ...
-		x_c, y_c, horizon);
+	script_str{2} = sprintf('%s Plot poles in Polar Stereographic projection', comm);
+	script_str{3} = sprintf('%s Mirone Tech automatic script', comm);
+	script_str{8} = sprintf('pscoast %s -JS%.0f/90/13c -Di -A5000 -G200 -W0.5p -Bag15 -BWSen -K -P > %s', ...
+		opt_R, x_c, fname);
+	for (k = 1:n_poles)
+		script_str{k+8} = sprintf('echo %.2f %.2f | psxy -R -JS %s -fg -O -K >> %s', in.x(k), in.y(k), symb, fname);
+		script_str{k+8+n_poles} = sprintf('echo %.2f %.2f | pstext -F%s+t%s -R -JS -fg -Dj0.1 -O -K >> %s', ...
+			in.x(k), in.y(k), font, in.str{k}, fname);
+	end
+	%script_str{end} = 'ps??? -O';		% Need to close the PS file 
 	message_win('create',script_str,'figname','Poles script','edit','sim')
 
 %-----------------------------------------------------------------------------------
