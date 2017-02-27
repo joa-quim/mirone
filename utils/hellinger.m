@@ -374,18 +374,20 @@ function [along, alat, rho, vol, t_stats, ellip_long, ellip_lat] = ...
 	angled = sqrt(xchi ./ D) / D2R;
 	vol = 4/3 * pi * prod(angled) * 111.111^3;
 
-	t_stats = cell(11,1);
-	t_stats{1}  = sprintf('Fitted rotation--alat,along,rho:');
-	t_stats{2}  = sprintf('%f\t%f\t%f', alat,along,rho);
-	t_stats{3}  = sprintf('conf. level, conf. interval for kappa:');
-	t_stats{4}  = sprintf('%f\t%f\t%f', plev,fkap2,fkap1);
-	t_stats{5}  = sprintf('kappahat, degrees of freedom,xchi:');
-	t_stats{6}  = sprintf('%f\t%d\t%f', hatkap,df,xchi);
-	t_stats{7}  = sprintf('Number of points, sections, misfit, reduced misfit:');
-	t_stats{8}  = sprintf('%d\t%d\t%f\t%f', ndata, nsect, rmin, 1/sqrt(hatkap));
-	t_stats{9}  = sprintf('ahat:\n%f\t%f\t%f\n%f\t%f\t%f\n%f\t%f\t%f', ahat');
-	t_stats{10} = sprintf('covariance matrix:\n%g\t%g\t%g\n%g\t%g\t%g\n%g\t%g\t%g', cov');
-	t_stats{11} = sprintf('H11.2 matrix:\n%f\t%f\t%f\n%f\t%f\t%f\n%f\t%f\t%f', sigma4');
+	t_stats = cell(13,1);
+	t_stats{1}  = sprintf('Results from Hellinger1 using in memory segmentation');
+	t_stats{2}  = 'Junk';
+	t_stats{3}  = sprintf('Fitted rotation--alat,along,rho:');
+	t_stats{4}  = sprintf('%f\t%f\t%f', alat,along,rho);
+	t_stats{5}  = sprintf('conf. level, conf. interval for kappa:');
+	t_stats{5}  = sprintf('%f\t%f\t%f', plev,fkap2,fkap1);
+	t_stats{6}  = sprintf('kappahat, degrees of freedom,xchi:');
+	t_stats{7}  = sprintf('%f\t%d\t%f', hatkap,df,xchi);
+	t_stats{8}  = sprintf('Number of points, sections, misfit, reduced misfit:');
+	t_stats{9}  = sprintf('%d\t%d\t%f\t%f', ndata, nsect, rmin, 1/sqrt(hatkap));
+	t_stats{10}  = sprintf('ahat:\n%f\t%f\t%f\n%f\t%f\t%f\n%f\t%f\t%f', ahat');
+	t_stats{11} = sprintf('covariance matrix:\n%g\t%g\t%g\n%g\t%g\t%g\n%g\t%g\t%g', cov');
+	t_stats{12} = sprintf('H11.2 matrix:\n%f\t%f\t%f\n%f\t%f\t%f\n%f\t%f\t%f', sigma4');
 
 % ---------------------------------------------------------------------------
 function [r, eta, etai] = r1(h, sigma, qhati, nsect, eta, etai)
