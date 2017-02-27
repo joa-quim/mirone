@@ -24,7 +24,7 @@ function varargout = compute_euler(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: compute_euler.m 10031 2017-02-22 19:30:30Z j $
+% $Id: compute_euler.m 10033 2017-02-27 01:18:12Z j $
 
 	if (isempty(varargin) || (numel(varargin) >= 2 && numel(varargin) <= 5))
 		errordlg('COMPUTE EULER: wrong number of input arguments.','Error'),	return
@@ -527,7 +527,7 @@ function push_compute_CB(hObject, handles)
 			props1 = getappdata(handles.hLines(1),'HellingProps');		% First column segments, second the stds
 			props2 = getappdata(handles.hLines(2),'HellingProps');
 			[pLon, pLat, pAng, vol, stats, ellip_long, ellip_lat] = hellinger(handles.pLon_ini,handles.pLat_ini,handles.pAng_ini, ...
-					handles.isoca1, handles.isoca1, handles.isoca2, handles.DP_tol, force_pole, props1, props2);
+					handles.isoca1, handles.isoca2, handles.DP_tol, force_pole, props1, props2);
 		else
 			[area0, resid] = calca_pEuler(handles, false, false, []);
 			[pLon, pLat, pAng, vol, stats, ellip_long, ellip_lat] = hellinger(handles.pLon_ini,handles.pLat_ini,handles.pAng_ini, ...
