@@ -1841,6 +1841,17 @@ function Analysis2derivative_CB(hObject, handles)
 	recall_me(handles, xx, a, 'Second derivative')		% New Fig
 
 % --------------------------------------------------------------------
+% function AnalysisSegmentation_CB(hObject, handles)
+% 	if (isempty(handles.hLine)),	return,		end
+% 	[xx, yy] = get_inside_rect(handles);
+% 	xx = xx(:);		yy = yy(:);
+% 	DP_tol = 5;
+% 	B = cvlib_mex('dp',[xx yy],DP_tol,'GEOG');
+% 	XI = B(:,1);
+% 	YI = lsq_lut_piecewise(xx, yy, XI);
+% 	figure; plot(xx,yy,'.',XI,YI,'+-')
+
+% --------------------------------------------------------------------
 function recall_me(handles, x, y_new, title)
 % Create another Ecran fig but try to maintain all features of the original one (e.g, the linking button)
 	if (~isempty(handles.handMir))
