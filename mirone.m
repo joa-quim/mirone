@@ -20,7 +20,7 @@ function varargout = mirone(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: mirone.m 10023 2017-02-20 17:17:02Z j $
+% $Id: mirone.m 10034 2017-02-27 01:24:05Z j $
 
 	if (nargin > 1 && ischar(varargin{1}))
 		if ( ~isempty(strfind(varargin{1},':')) || ~isempty(strfind(varargin{1},filesep)) )
@@ -66,7 +66,7 @@ function hObject = mirone_OpeningFcn(varargin)
 %#function lasreader_mex laszreader_mex escorrega show_manguito travel thresholdit intersections nswing runCB_tintol
 %#function usgs_recent_seismicity sat_orbits uisetdate doy
 %#function c_cpt2cmap c_grdfilter c_grdinfo c_grdlandmask c_grdproject c_grdread c_grdsample
-%#function c_grdtrend c_mapproject c_nearneighbor c_shoredump c_surface popenr diffCenterVar
+%#function c_grdtrend c_mapproject c_nearneighbor c_shoredump c_surface popenr diffCenterVar hellinger bingham
 
 	global gmt_ver;		gmt_ver = 5;	global home_dir;	fsep = filesep;
 	toCompile = false;		% To compile set this one to TRUE
