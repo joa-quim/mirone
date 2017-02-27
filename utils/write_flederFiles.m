@@ -37,7 +37,25 @@ function filename = write_flederFiles(opt,varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: write_flederFiles.m 9981 2017-01-06 02:01:57Z j $
+% $Id: write_flederFiles.m 10040 2017-02-27 01:53:19Z j $
+
+	% - Little initial block to deal with the adding of two new input vars and try to
+	%   do it in a compatible way. That is, set up a mechanism that guaranties backward
+	%   compat for functions that call ME without these two new and now mandatory options.
+	% - New options should be wrapped in a struct so that we can detect it in the varargin list
+	global TDRver
+	if (~isa(varargin{end}, 'struct') || ~isfield(varargin{end}, 'TDRver'))
+		varargin{end+1} = struct('TDRver', '2.0', 'proj', '');
+	end
+	s = varargin{end};
+	TDRver = s.TDRver;		proj = s.proj;
+	if (~(strcmp(TDRver, '2.0') || strcmp(TDRver, '2.1')))
+		warndlg('write_flederFiles: ''TDRver'' MUST really be either ''2.0'' OR ''2.1'' and it wasn''t. Defaulting to 2.0', 'WarnError')
+		TDRver = '2.0';
+	end
+	varargin(end) = [];		clear s
+	varargin{end+1} = TDRver;
+	varargin{end+1} = proj;
 
 	% - Little initial block to deal with the adding of two new input vars and try to
 	%   do it in a compatible way. That is, set up a mechanism that guaranties backward
