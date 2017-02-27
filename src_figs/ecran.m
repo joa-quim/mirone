@@ -38,7 +38,7 @@ function varargout = ecran(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: ecran.m 10012 2017-01-30 02:07:38Z j $
+% $Id: ecran.m 10037 2017-02-27 01:29:16Z j $
 
 	% This before-start test is to allow updating magnetic tracks that are used to pick the isochrons
 	% using the convolution method. If no synthetic plot is found, the whole updating issue is simply ignored.
@@ -1839,6 +1839,17 @@ function Analysis2derivative_CB(hObject, handles)
 	[xx, yy] = get_inside_rect(handles);
 	[v, a] = diffCenterVar(xx, yy);
 	recall_me(handles, xx, a, 'Second derivative')		% New Fig
+
+% --------------------------------------------------------------------
+% function AnalysisSegmentation_CB(hObject, handles)
+% 	if (isempty(handles.hLine)),	return,		end
+% 	[xx, yy] = get_inside_rect(handles);
+% 	xx = xx(:);		yy = yy(:);
+% 	DP_tol = 5;
+% 	B = cvlib_mex('dp',[xx yy],DP_tol,'GEOG');
+% 	XI = B(:,1);
+% 	YI = lsq_lut_piecewise(xx, yy, XI);
+% 	figure; plot(xx,yy,'.',XI,YI,'+-')
 
 % --------------------------------------------------------------------
 function recall_me(handles, x, y_new, title)
