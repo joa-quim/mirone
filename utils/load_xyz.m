@@ -635,7 +635,7 @@ function varargout = load_xyz(handles, opt, opt2)
 			end
 
 			multi_segs_str{i} = deblank(multi_segs_str{i});
-			[lThick, cor, multi_segs_str{i}] = parseW(multi_segs_str{i}, lThick, cor);
+			[lThick, cor, multi_segs_str{i}] = parseW(multi_segs_str{i}(min(2,numel(multi_segs_str{i})):end), lThick, cor);
 			if (isempty(lThick)),	lThick = handles.DefLineThick;	end		% IF not provided, use default
 			if (isempty(cor)),		cor = handles.DefLineColor;		end		%           "
 
@@ -682,7 +682,7 @@ function varargout = load_xyz(handles, opt, opt2)
 						case {'AsLine' 'i_file'}		% 'i_file' means internal file (Isochrons or FZs)
 							hLine(i) = line('XData',tmpx, 'YData',tmpy, 'Parent',handles.axes1, 'Linewidth',lThick,...
 									'Color',cor, 'Tag',tag, 'Userdata',n_isoc);
-							if ~((numel(multi_segs_str{i}) <= 2) && strfind(multi_segs_str{i}, '>')) % Sometimes we still have only '>'
+							if ~((numel(multi_segs_str{i}) <= 2) && ~isempty(strfind(multi_segs_str{i}, '>'))) % Sometimes we still have only '>'
 								setappdata(hLine(i),'LineInfo',multi_segs_str{i});
 								if (isGSHHS)	% Need to store this for writing edited GSHHG polygons.
 									setappdata(hLine(i),'GSHHS_str', GSHHS_str);
