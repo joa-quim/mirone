@@ -291,7 +291,11 @@ function [numericData, textData, numHeaderRows] = stringparse(string, delimiter,
 
 	if (numHeaderRows)
 		firstLineOffset = numHeaderRows - 1;
-		headerData = strread(string,'%[^\n]',firstLineOffset,'delimiter',delimiter);
+		try			% Have to wrap it because f 2016 is bugged and could fail here due to a supposed out of memory error
+			headerData = strread(string,'%[^\n]',firstLineOffset,'delimiter',delimiter);
+		catch
+			headerData = [];
+		end
 		origHeaderData = headerData;
 
 		if numDataCols
