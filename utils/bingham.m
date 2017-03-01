@@ -24,7 +24,7 @@
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: bingham.m 10036 2017-02-27 01:27:27Z j $
+% $Id: bingham.m 10048 2017-03-01 03:07:55Z j $
 
 function [blong,blat,jer] = bingham(q,lhat,fk,uxx)
 
@@ -413,18 +413,14 @@ format_816=[' ','  one of the holes straddles the line: axis',' longitude =', '\
 				for (k_ = 1:npt)
 					blong(k_) = phim(k_) * R2D;
 					blat(k_)  = thetm(k_) * R2D;
-					writeFmt(30,format_802,'blong','blat');
 				end
-% 				writeFmt(30,format_803,'npt');
 % 				for (l = kzz+1:npt)
 % 					blong = phim(l) * R2D - 180;
 % 					blat  = -thetm(l) * R2D;
-% 					writeFmt(30,format_802,'blong','blat');
 % 				end
 % 				for  l=1:kzz
 % 					blong=phim(l) * R2D + 180.;
 % 					blat= -thetm(l) * R2D;
-% 					writeFmt(30,format_802,'blong','blat');
 % 				end
 		end
 		return
@@ -495,7 +491,6 @@ format_816=[' ','  one of the holes straddles the line: axis',' longitude =', '\
 % 						for  k=1:npt;
 % 							blong=phi(k) * R2D + isign * 180;
 % 							blat= -theta(k).*R2D;
-% 							writeFmt(30,[format_802],'blong','blat');
 % 						end
 				end
 				return
@@ -535,32 +530,26 @@ format_816=[' ','  one of the holes straddles the line: axis',' longitude =', '\
 								n3=npt - 1 - k2;
 								if (ind == 1)
 									% Printagens
-% 										writeFmt(30,format_805,'npt');
 										for (k = 1:npt)
 											blong(k) = phi(k) * R2D;
 											blat(k)  = theta(k) * R2D;
 										end
-% 										writeFmt(30,format_803,'n1');
 % 										for  l=1:n1
 % 											k=k1 + l;
 % 											blong=phi(k).*R2D + isw.*180.;
 % 											blat= -theta(k).*R2D;
-% 											writeFmt(30,format_802,'blong','blat');
 % 										end
-% 										writeFmt(30,format_803,'n2');
 % 										if (n3 > 0)
 % 											for  l=1:n3
 % 												k=k2 + l;
 % 												blong=phi(k).*R2D - isw.*180.;
 % 												blat= -theta(k).*R2D;
-% 												writeFmt(30,format_802,'blong','blat');
 % 											end
 % 										end
 % 										for  l=n3+1:n2
 % 											k=l - n3;
 % 											blong=phi(k).*180../pi - isw.*180.;
 % 											blat= -theta(k).*180../pi;
-% 											writeFmt(30,format_802,'blong','blat');
 % 										end
 % 										fprintf(format_816);
 % 										writeFmt(1,format_716,'npt','bfile','n1','n2');
