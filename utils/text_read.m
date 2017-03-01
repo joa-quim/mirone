@@ -30,7 +30,7 @@ function [numeric_data,date,headerlines,str_col,out] = text_read(varargin)
 % This function uses some sub-functions of IMPORTDATA
 % Coffeeright Joaquim Luis
 
-% $Id: text_read.m 9953 2016-12-13 03:28:31Z j $
+% $Id: text_read.m 10045 2017-03-01 01:03:40Z j $
 
 	filename = varargin{1};     headerlines = 0;
 	requestedDelimiter = NaN;	requestedHeaderLines = NaN;		requestedMultiSeg = NaN;
@@ -291,7 +291,11 @@ function [numericData, textData, numHeaderRows] = stringparse(string, delimiter,
 
 	if (numHeaderRows)
 		firstLineOffset = numHeaderRows - 1;
-		headerData = strread(string,'%[^\n]',firstLineOffset,'delimiter',delimiter);
+		try			% Have to wrap it because f 2016 is bugged and could fail here due to a supposed out of memory error
+			headerData = strread(string,'%[^\n]',firstLineOffset,'delimiter',delimiter);
+		catch
+			headerData = [];
+		end
 		origHeaderData = headerData;
 
 		if numDataCols
