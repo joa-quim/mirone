@@ -492,7 +492,7 @@ function writeGMTscript(in)
 		script_str{1} = '@echo off';
 		script_str{5} = sprintf('set ps=polos.ps');
 		script_str{6} = sprintf('set font=+f10,5+jLB');
-		script_str{7} = sprintf('set symb=c0.2c');
+		script_str{7} = sprintf('set symb=-Sc0.2c -Gblack');
 		fname = '%ps%';		font = '%font%';	symb = '%symb%';
 		comm  = 'REM ';
 	else
@@ -512,7 +512,7 @@ function writeGMTscript(in)
 		script_str{k+8+n_poles} = sprintf('echo %.2f %.2f | pstext -F%s+t%s -R -JS -fg -Dj0.1 -O -K >> %s', ...
 			in.x(k), in.y(k), font, in.str{k}, fname);
 	end
-	%script_str{end} = 'ps??? -O';		% Need to close the PS file 
+	script_str{end} = strrep(script_str{end}, '-K ', '');		% To close the PS file
 	message_win('create',script_str,'figname','Poles script','edit','sim')
 
 %-----------------------------------------------------------------------------------
