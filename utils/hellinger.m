@@ -34,7 +34,7 @@ function [along, alat, rho, vol, t_stats, ellip_long, ellip_lat] = ...
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: hellinger.m 10043 2017-02-27 23:27:50Z j $
+% $Id: hellinger.m 10049 2017-03-02 03:17:05Z j $
 
 	do_geodetic = true;
 	plot_segmentation_lines = true;
@@ -102,6 +102,23 @@ function [along, alat, rho, vol, t_stats, ellip_long, ellip_lat] = ...
 		[r_lon,r_lat] = rot_euler(segmented_dp(:,1),segmented_dp(:,2), along, alat, rho, -1);		% Rotate DP moving isoc
 		segmented_dp_rot = [r_lon r_lat];
 		flags_fix = segmentate(isoc_fix, segmented_dp_rot);
+
+		% I found cases where covariance was NaNs when one of the isocs had more than 2 segment at the end than the other
+		% example flags_fix = [... 24 25]; flags_mov = [... 24 25 26 27 28];
+		% This trick avoided that case and we should have lost no valid points because extreme points were unpaired anyway.
+		delta = flags_fix(end) - flags_mov(end);
+		if (abs(delta) > 1)
+			k = 0;
+			if (flags_fix(end) > flags_mov(end))
+				while (flags_mov(end-k) > flags_fix(end) + 1)		% delta > 0
+					flags_fix(end-k) = flags_mov(end) + 1;			k = k + 1;
+				end
+			else													% delta < 0
+				while (flags_mov(end-k) > flags_fix(end) + 1)
+					flags_mov(end-k) = flags_fix(end) + 1;			k = k + 1;
+				end
+			end
+		end
 
 		if (plot_segmentation_lines)			% Plot the segmentation guess as well as its rotation
 			lat_geod = segmented_dp(:,2);
@@ -336,6 +353,11 @@ function [along, alat, rho, vol, t_stats, ellip_long, ellip_lat] = ...
 
 	% calculation of h11.2 matrix--stored sigma4
 	cov = sigma3(1:3,1:3);
+	if (any(isnan(cov)))
+		errordlg('Boom: Covariance is NaNs.', 'Error')
+		vol = NaN;	ellip_long = NaN;	ellip_lat = NaN;	t_stats = {'Boom'};
+		return
+	end
 	[V,D]    = eig(cov);
 	[D, ind] = sort(diag(D));		% Make sure that eigs are in ascending order
 	V = V(:,ind);
