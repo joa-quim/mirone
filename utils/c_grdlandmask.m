@@ -19,6 +19,7 @@ function [mask, head, X, Y] = c_grdlandmask(varargin)
 		for (k = 1:numel(varargin))
 			cmd = sprintf('%s %s', cmd, varargin{k});
 		end
+		cmd = strrep(cmd, '-e','');		% This -e option is only for the GMT4 mex
 		mask = gmtmex(cmd);
 		gmtmex('destroy')
 		if (nargout > 1)
