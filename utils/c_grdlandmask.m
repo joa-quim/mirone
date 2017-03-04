@@ -1,7 +1,7 @@
 function [mask, head, X, Y] = c_grdlandmask(varargin)
 % Temporary function to easy up transition from GMT4 to GMT5.2
 
-% $Id: c_grdlandmask.m 9840 2016-10-03 01:18:59Z j $
+% $Id: c_grdlandmask.m 10052 2017-03-04 18:26:19Z j $
 
 	global gmt_ver
 	if (isempty(gmt_ver)),		gmt_ver = 4;	end		% For example, if calls do not come via mirone.m
@@ -19,6 +19,7 @@ function [mask, head, X, Y] = c_grdlandmask(varargin)
 		for (k = 1:numel(varargin))
 			cmd = sprintf('%s %s', cmd, varargin{k});
 		end
+		cmd = strrep(cmd, '-e','');		% This -e option is only for the GMT4 mex
 		mask = gmtmex(cmd);
 		gmtmex('destroy')
 		if (nargout > 1)
