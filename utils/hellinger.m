@@ -1,5 +1,5 @@
 function [along, alat, rho, vol, t_stats, ellip_long, ellip_lat] = ...
-	      hellinger(along, alat, rho, isoc_mov, isoc_fix, DP_tol, force_pole, isoc1_props, isoc2_props)
+	      hellinger(along, alat, rho, isoc_mov, isoc_fix, DP_tol, force_pole, show_segs, isoc1_props, isoc2_props)
 % c simplified September 9, 2000, July 2001
 % c
 % c program implementing section 1 of 'on reconstructing tectonic plate
@@ -26,7 +26,7 @@ function [along, alat, rho, vol, t_stats, ellip_long, ellip_lat] = ...
 % c
 % c***********************************************************************
 
-% The original fortran code had no License so I'm releasing this translation 
+% The original fortran code had no License so I'm releasing this translation, 
 % that is part of Mirone, to the Public Domain
 %
 %	Copyright (c) 2004-2017 by J. Luis
@@ -34,7 +34,7 @@ function [along, alat, rho, vol, t_stats, ellip_long, ellip_lat] = ...
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: hellinger.m 10049 2017-03-02 03:17:05Z j $
+% $Id: hellinger.m 10050 2017-03-04 18:15:27Z j $
 
 	do_geodetic = true;
 	plot_segmentation_lines = true;
@@ -60,7 +60,7 @@ function [along, alat, rho, vol, t_stats, ellip_long, ellip_lat] = ...
 		isoc_fix = isoc_fix / D2R;
 	end
 
-	if (nargin == 9)
+	if (nargin == 10)
 		data = [ones(size(isoc_mov,1),1) isoc1_props(:,1) isoc_mov(:,2:-1:1) isoc1_props(:,2); ...
 			ones(size(isoc_fix,1),1)*2 isoc2_props(:,1) isoc_fix(:,2:-1:1) isoc2_props(:,2)];
 	else
@@ -160,20 +160,28 @@ function [along, alat, rho, vol, t_stats, ellip_long, ellip_lat] = ...
 
 		mixed = classical_hellinger_order(flags_mov, isoc_mov, flags_fix, isoc_fix);
 		lat_geod = mixed(:,2);
+		data_geod = data;					% For segmentation patches we need geodetic latitudes
 		if (do_geodetic)					% Convert back to geodetic latitudes
 			lat_geod = lat_geod * D2R;
 			lat_geod = atan2(sin(lat_geod), (1-ecc^2)*cos(lat_geod)) / D2R;
+			% Set the data column in the 'data_geod' array to geodetic coords (those we use in plots)
+			lat_geod_or = data(:,3);
+			lat_geod_or = lat_geod_or * D2R;
+			lat_geod_or = atan2(sin(lat_geod_or), (1-ecc^2)*cos(lat_geod_or)) / D2R;
+			data_geod(:,3) = lat_geod_or;
 		end
 		hLine = findobj(get(handles.hCallingFig,'CurrentAxes'), 'Tag','HellingerPicks');
 		if (isempty(hLine))
 			hLine = line('parent',get(handles.hCallingFig,'CurrentAxes'),'XData',mixed(:,1),'YData',lat_geod, ...
 						 'LineStyle','-.','LineWidth',1,'Tag','HellingerPicks');
-			draw_funs(hLine,'line_uicontext')		% Set lines's uicontextmenu
+			draw_funs(hLine,'line_uicontext')			% Set lines's uicontextmenu
+			set_extra_uicb_options(hLine, data_geod)
 		else		% Just update old one
 			set(hLine, 'XData', mixed(:,1),'YData',lat_geod)
 		end
+		update_patches(hLine, data_geod, show_segs)		% Either update or create first time creation
 	end
-	
+
 	ndata = size(data,1);
 	nsect = max(data(:,2));
 	sigma = zeros(2,nsect,3,3);
@@ -239,7 +247,7 @@ function [along, alat, rho, vol, t_stats, ellip_long, ellip_lat] = ...
 		[rmin, eta, etai] = r1(hp, sigma, qhati, nsect, eta, etai);
 		rmin = rmin * rfact;
 		qhat=trans2(hp(:,1),qhati);
-		[alat,along,rho]=trans5(qhat);
+		[alat,along,rho] = trans5(qhat);
 		eps_=eps_ / 20;
 		qhati(1:4)=qhat(1:4);
 
@@ -1087,6 +1095,67 @@ function flags = segmentate(isoc, segmented)
 	end
 
 	out = gmtmex('mapproject -L+uk+p', isoc, gmt('wrapseg', cells));
-	
+
 	% Now the flags are just the fourth column. Just beautifull
 	flags = out.data(:,4) + 1;		% + 1 because mapproject is C and so 0 based
+
+% ------------------------------------------------------------------------------
+function set_extra_uicb_options(hLine, data)
+% Reuse two entries (in this context) of the polygon's UIContextMenu to allow
+% saving a .pick file or showing patches with the conjugated segments.
+
+	h1 = get(get(hLine,'UIContextMenu'),'Children');
+	h2 = findobj(h1,'-depth',0, 'Label','Join lines');	% Resuse this entry that has no sense in this context
+	h3 = findobj(h1,'-depth',0, 'Label','Copy');
+	set(h2,'Label','Save as .pick file')
+	set(h3,'Label','Show conjugated picks')
+	hMirFig = get(get(hLine, 'Parent'), 'Parent');
+	set(h2,'Call', {@save_pick, data, hMirFig})
+	set(h3,'Call', {@show_conjugates, hLine, data})
+	h4 = findobj(h1,'-depth',0, 'Label','Spline Smooth');
+	h5 = findobj(h1,'-depth',0, 'Label','Line length(s)');
+	h6 = findobj(h1,'-depth',0, 'Label','Line azimuth(s)');
+	h7 = findobj(h1,'-depth',0, 'Label','Extract profile');
+	delete([h4 h5 h6 h7])		% Need to delay deletion because h1 has them all and can't have invalid handles
+
+function save_pick(obj, evt, data, hMirFig)
+% Save the contents of the DATA array in a .pick file (Hellinger stuff)
+	handles = guidata(hMirFig);
+	txt1 = 'Hellinger pick file (*.pick)';	txt2 = 'Select output Hellinger pick file format';
+	[FileName,PathName] = put_or_get_file(handles,{'*.pick',txt1; '*.*', 'All Files (*.*)'},txt2,'put','.pick');
+	if isequal(FileName,0),		return,		end
+	f_name = [PathName FileName];
+	fid = fopen(f_name, 'wt');
+	fprintf(fid, '%d  %d  %.4f  %.4f  %.1f\n', data');
+	fclose(fid);
+
+function show_conjugates(obj, evt, hLine, data)
+% Show colored patches illustrating the result of the automatic Hellinger segmentation.
+	handles = guidata(hLine);
+	cmenuHand = uicontextmenu('Parent',handles.figure1);
+	left  = data(data(:,1) == 1, 2:4);
+	right = data(data(:,1) == 2, 2:4);
+	n_segs = min(left(end,1), right(end,1));
+	for (k = 1:n_segs)
+		ind_l = find(left(:,1)  == k);
+		ind_r = find(right(:,1) == k);
+		if (isempty(ind_l) || isempty(ind_r)),	continue,	end
+		x = [left(ind_l,3); right(ind_r(end:-1:1),3)];		% data is in lat long
+		y = [left(ind_l,2); right(ind_r(end:-1:1),2)];
+		hP = patch('Parent',handles.axes1,'XData',x, 'YData',y, 'FaceColor',rand(1,3), 'Tag', 'HellPair');
+		set(hP, 'UIContextMenu', cmenuHand);
+	end
+	uimenu(cmenuHand, 'Label', 'Delete all', 'Call', 'delete(findobj(''Tag'',''HellPair''))')
+
+% --------------------------------------------------------------------------------------------
+function update_patches(hLine, data, show_segs)
+% Create patches showing the segmentation or update existent ones.
+% In this later case just delete old ones and recreate.
+	hP = findobj('Tag','HellPair');
+	if (~isempty(hP))
+		delete(hP)
+		if (~show_segs),	return,		end		% Ok, do not reconstruct them then.
+		show_conjugates([], [], hLine, data)
+	elseif (show_segs)		% Here we don't have them yet but they were required.
+		show_conjugates([], [], hLine, data)
+	end
