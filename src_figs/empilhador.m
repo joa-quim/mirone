@@ -253,9 +253,9 @@ function push_namesList_CB(hObject, handles, opt)
 	end
 
 	% -------------- Check if we have a Sub-Datasets request ------------------
-	if ( n_column == 3 && (strncmpi(SDSinfo{1}, 'sds', 3) || SDSinfo{1}(1) == '-') )
+	if (n_column == 3 && (strncmpi(SDSinfo{1}, 'sds', 3) || SDSinfo{1}(1) == '-'))
 		handles.SDSinfo = SDSinfo;
-	elseif (n_column == 2 && (strncmpi(handles.strTimes{1}, 'sds', 3) || handles.strTimes{1}(1) == '-') )
+	elseif (n_column == 2 && (strncmpi(handles.strTimes{1}, 'sds', 3) || handles.strTimes{1}(1) == '-'))
 		% Two cols with SDS info in the second
 		handles.SDSinfo = handles.strTimes;
 		for (k = 1:m),		handles.strTimes{k} = sprintf('%d',k);		end
@@ -699,11 +699,11 @@ function cut2tif(handles, got_R, west, east, south, north, FileName)
 		cp = round(([west east] - head(1)) / head(8));
 		rp = round(([south north] - head(3)) / head(9));
 		if (cp(1) < 0 || cp(2) > att.RasterXSize)		% Almost sure it should be >=
-			msg = 'Sub-region West/Est is outside that grid''s limits';
+			msg = 'Sub-region West/Est is outside the grid''s limits';
 			errordlg(msg, 'ERROR'),		error(msg)
 		end
 		if (rp(1) < 0 || rp(2) > att.RasterYSize)		% Almost sure it should be >=
-			msg = 'Sub-region South/North is outside that grid''s limits';
+			msg = 'Sub-region South/North is outside the grid''s limits';
 			errordlg(msg, 'ERROR'),		error(msg)
 		end
 		head(1) = head(1) + cp(1)*head(8);		head(2) = head(1) + cp(2)*head(8);
@@ -1063,9 +1063,15 @@ function [head , slope, intercept, base, is_modis, is_linear, is_log, att, opt_R
 		modis_or_seawifs = true;
 	end
 
+	% When called from this Figure and for the new OC format we must apply the cheaty trick here
+	if (strcmp(att.DriverShortName, 'HDF5Image') && strcmp(att.DriverLongName, 'HDF5 Dataset'))
+		att.DriverShortName = 'HDF4_fake';		% To be able to use the old pathways
+	end
+
 	isHDF4 = (strncmp(att.DriverShortName, 'HDF4', 4) && ~strcmp(att.DriverShortName, 'HDF4_fake')); % The fake doesn't count
 	
-	if (modis_or_seawifs && (strncmp(att.DriverShortName, 'HDF4', 4) || strcmp(att.DriverShortName, 'netCDF')) && ~isempty(search_scaleOffset(att.Metadata, 'Level-2')))
+	if (modis_or_seawifs && ~isempty(search_scaleOffset(att.Metadata, 'Level-2')) && ...
+			(strncmp(att.DriverShortName, 'HDF4', 4) || strcmp(att.DriverShortName, 'netCDF')))
 		% OK, here the NASA guys fck again and changed the names of the variables. Right, now thew use the CF
 		% compliant ones but the f... broke the compatibility
 		what = 'scale_factor';		% CF name
@@ -1236,11 +1242,11 @@ function [head , slope, intercept, base, is_modis, is_linear, is_log, att, opt_R
 		cp = round(([west east] - x_min) / dx);
 		rp = round(([south north] - y_min) / dx);
 		if (cp(1) < 0 || cp(2) > att.RasterXSize)		% Almost sure it should be >=
-			msg = 'Sub-region West/Est is outside that grid''s limits';
+			msg = 'Sub-region West/Est is outside the grid''s limits';
 			errordlg(msg, 'ERROR'),		error(msg)
 		end
 		if (rp(1) < 0 || rp(2) > att.RasterYSize)		% Almost sure it should be >=
-			msg = 'Sub-region South/North is outside that grid''s limits';
+			msg = 'Sub-region South/North is outside the grid''s limits';
 			errordlg(msg, 'ERROR'),		error(msg)
 		end
 		head(1) = x_min + cp(1)*dx;		head(2) = x_min + cp(2)*dx;
@@ -1974,9 +1980,14 @@ function ID = find_in_subdatasets(AllSubdatasets, name)
 		if (got_it),	ID = k;		end
 	else
 		for (k = 2:2:numel(AllSubdatasets))
-			ind = strfind(AllSubdatasets{k}, ' ');		
-			if (strfind(AllSubdatasets{k}(ind(1)+1:ind(2)-1), name))
-				got_it = true;		break
+			ind = strfind(AllSubdatasets{k}, ' ');
+			t = AllSubdatasets{k}(ind(1)+1:ind(2)-1);		% Get the middle word
+			if (~isempty(strfind(t, name)))					% Means at least part of name is in there
+				ind = strfind(t, '/');						% but we want only an exact match. Strip eventual data groupe name
+				if (~isempty(ind)),		t = t(ind(end)+1:end);		end		% like in //geophysical_data/bias_sst
+				if (strcmp(t, name))
+					got_it = true;		break
+				end	
 			end
 		end
 		if (got_it),	ID = k - 1;	end		% -1 because the subdataset name is one position before
