@@ -15,8 +15,8 @@ function  varargout = url2image(opt, varargin)
 %			The problem with Google images is that they are not free to use (see their terms of use)
 %			Since the Mars images are free, we'll use that as an example
 %			SERVER is cell array with two fields
-%				SERVER{1} = url-to-the-map-server (for example for Mars: mw1.google.com/mw-planetary/mars/elevation/t )
-%				SERVSR{2} = the key characters used to code the tiles names ( example MS '0132' or Google's 'qrst' )
+%				SERVER{1} = url-to-the-map-server (for example for Mars: mw1.google.com/mw-planetary/mars/elevation/t)
+%				SERVSR{2} = the key characters used to code the tiles names (example MS '0132' or Google's 'qrst')
 %
 %		url2image(...,'what', whatKind).
 %			whatKind is any of 'aerial', 'road' or 'hybrid'
@@ -108,7 +108,7 @@ function  varargout = url2image(opt, varargin)
 %   AUTHOR
 %       Joaquim Luis (jluis@ualg.pt)   01-Feb-2008
 
-%	Copyright (c) 2004-2012 by J. Luis
+%	Copyright (c) 2004-2017 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -123,31 +123,33 @@ function  varargout = url2image(opt, varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
+% $Id: url2image.m 10055 2017-03-11 22:44:46Z j $
+
 	quadkey = {'0' '1'; '2' '3'};				% Default to Virtual Earth
 	prefix = 'http://a0.ortho.tiles.virtualearth.net/tiles/a';
 	
 	if (~nargin),		return,		end
 	% ---------------------------- Test args ----------------------------
 	varargs = [];		cache = 'D:\lixo\GoogleMV2\GoogleMV\Cache';		%cache = [];
-	if ( strcmp(opt(1:3), 'til') || strcmp(opt(1:3), 'cal') )
+	if (strcmp(opt(1:3), 'til') || strcmp(opt(1:3), 'cal'))
 		if (nargin < 4)
 			error('url2image: minimum number of argins is 4')
 		end
 		
 		lon = varargin{1};		lat = varargin{2};		zoomL = varargin{3};
-		if ( ~isnumeric(lon) || ~isnumeric(lat) || ~isnumeric(zoomL) )
+		if (~isnumeric(lon) || ~isnumeric(lat) || ~isnumeric(zoomL))
 			error('url2image: First 3 arguments must be numeric (lon, lat, zoomlevel)')
 		end
 	
-		if ( numel(varargin) > 3 ),		varargs = varargin(4:end);		end
-	elseif ( strcmp(opt(1:3), 'qua') )		% 'quadcoord'
+		if (numel(varargin) > 3),		varargs = varargin(4:end);		end
+	elseif (strcmp(opt(1:3), 'qua'))		% 'quadcoord'
 		if (numel(varargin) < 1)
 			error('url2image: minimum number of argins is 1')
 		else
 			varargs = varargin(2:end);		% To use if needed to change 'quadkey'
 		end
 	end
-	if ( ~isempty(varargs) && rem(numel(varargs), 2) )
+	if (~isempty(varargs) && rem(numel(varargs), 2))
 		error('url2image:tile2url', 'Property names - property values must came in pairs')
 	end
 
@@ -155,10 +157,10 @@ function  varargout = url2image(opt, varargin)
 
 	if (~isempty(varargs))
 		for (k = 1:2:numel(varargs))
-			if ( strncmp(varargs{k}, 'cache', 2) )
+			if (strncmp(varargs{k}, 'cache', 2))
 				cache = varargs{k+1};
 				if (~isempty(cache) && cache(end) == filesep),		cache(end) = [];	end		% No '/' at the end
-			elseif ( strncmp(varargs{k}, 'source', 3) )
+			elseif (strncmp(varargs{k}, 'source', 3))
 				dumb = varargs{k+1};		msg = [];
 				if (~isa(dumb, 'cell'))
 					msg = '"source" property value must be a cell array';
@@ -169,20 +171,20 @@ function  varargout = url2image(opt, varargin)
 				prefix  = varargs{k+1}{1};
 				if (~strcmp(prefix(1:7),'http://')),	prefix = ['http://' prefix];	end
 				quadkey = varargs{k+1}{2};
-				if ( isa(quadkey, 'char') )			% Need to conver to the cell array format
+				if (isa(quadkey, 'char'))			% Need to conver to the cell array format
 					if (numel(quadkey) ~= 4)
 						error('url2image:tile2url', '"quadkee" keeyword must contain 4 characters')
 					end
 					dumb = quadkey;
 					quadkey = {dumb(1) dumb(2); dumb(4) dumb(3)};
-				elseif ( isa(quadkey, 'cell') )
+				elseif (isa(quadkey, 'cell'))
 					if (numel(quadkey) ~= 4)
 						error('url2image:tile2url', '"quadkee" keeyword must contain 4 characters')
 					end
 				else
 					error('url2image:tile2url', 'Wrong type for the "quadkee" keeyword')
 				end
-			elseif ( strncmp(varargs{k}, 'proxy', 2) )
+			elseif (strncmp(varargs{k}, 'proxy', 2))
 				if (strncmp(computer,'PC',2))
 					dos(['set http_proxy=' varargs{k+1}])
 				else
@@ -231,26 +233,26 @@ function [url, lon_mm, lat_mm, x, y] = tile2url(opt, geoid, quadkey, prefix, lon
 	mosaic = [];		verbose = false;	whatKind = 'a';		reportMerc = true;		quadonly = false;
 
 	for (k = 1:2:n_varargin)
-		if ( strncmp(varargin{k}, 'mosaic', 1) )
+		if (strncmp(varargin{k}, 'mosaic', 1))
 			mosaic = varargin{k+1};
-		elseif ( strncmp(varargin{k}, 'what', 1) )
+		elseif (strncmp(varargin{k}, 'what', 1))
 			whatKind = varargin{k+1}(1);
 			if (quadkey{1} == '0')			% Virtual Earth
-				%if ( isempty(strfind('r',whatKind)) && isempty(strfind('h',whatKind)) ),	whatKind = 'a';	continue,	end		% Was error
-				if ( (whatKind ~= 'r') && (whatKind ~= 'h') ),		whatKind = 'a';		continue,	end		% Was error
+				%if (isempty(strfind('r',whatKind)) && isempty(strfind('h',whatKind))),	whatKind = 'a';	continue,	end		% Was error
+				if ((whatKind ~= 'r') && (whatKind ~= 'h')),		whatKind = 'a';		continue,	end		% Was error
 				prefix(8) = whatKind;			prefix(end) = whatKind;
 			end
-		elseif ( strncmp(varargin{k}, 'lonlat', 1) )
+		elseif (strncmp(varargin{k}, 'lonlat', 1))
 			reportMerc = false;
-		elseif ( strncmp(varargin{k}, 'verbose', 1) )
+		elseif (strncmp(varargin{k}, 'verbose', 1))
 			verbose = true;
 			if (varargin{k+1}(1) == 'a'),		verbose = 2;	end		% Speak up also when reading file from cache
-		elseif ( strncmp(varargin{k}, 'quadonly', 1) )		% NOT TO BE USED WITH IMGs
+		elseif (strncmp(varargin{k}, 'quadonly', 1))		% NOT TO BE USED WITH IMGs
 			quadonly = true;
 		end
 	end
 
-	if ( ~isequal(size(lon), size(lat)) )
+	if (~isequal(size(lon), size(lat)))
 		error('lon & lat must be of the same size')
 	end
 
@@ -316,11 +318,11 @@ function [url, lon_mm, lat_mm, x, y] = tile2url(opt, geoid, quadkey, prefix, lon
 	
 	isMapForFree = false;
 	pref_bak = prefix;
-	if ( quadkey{1} ~= '0' && ~isempty(strfind('rh',whatKind)) )		% hiden cat with outside tail
+	if (quadkey{1} ~= '0' && ~isempty(strfind('rh',whatKind)))		% hiden cat with outside tail
 		prefix = [prefix sprintf('%d&y=%d&z=%d',decimal_adress,zoomL-1)];
-	elseif ( quadkey{1} == 'm' && quadkey{2} == 'e' && quadkey{3} == 'f' && quadkey{4} == 'r')
+	elseif (quadkey{1} == 'm' && quadkey{2} == 'e' && quadkey{3} == 'f' && quadkey{4} == 'r')
 		isMapForFree = true;
-		prefix = [prefix sprintf( '%d/row%d/%d_%d-%d.jpg',zoomL-1,decimal_adress(2),zoomL-1,decimal_adress(1),decimal_adress(2) )];
+		prefix = [prefix sprintf('%d/row%d/%d_%d-%d.jpg',zoomL-1,decimal_adress(2),zoomL-1,decimal_adress(1),decimal_adress(2))];
 	end
 
 	if (quadonly)		% NOT TO BE USED WITH IMGs. The character used is irrelevant
@@ -353,9 +355,9 @@ function [url, lon_mm, lat_mm, x, y] = tile2url(opt, geoid, quadkey, prefix, lon
 							url{i+mc,j+nc} = [pref_bak sprintf('%d/row%d/%d_%d-%d.jpg',zoomL-1,decAdr(2),zoomL-1,decAdr(1),decAdr(2))];
 						else
 							url{i+mc,j+nc} = [prefix quad_{i+mc,j+nc}];
-							if ( numel(prefix) > 9 && strcmp(prefix(8:10), 'mw1') )			% Good for Mars but fails for Moon (different algo)
+							if (numel(prefix) > 9 && strcmp(prefix(8:10), 'mw1'))			% Good for Mars but fails for Moon (different algo)
 								url{i+mc,j+nc} = [url{i+mc,j+nc} '.jpg'];
-							elseif ( numel(prefix) > 9)
+							elseif (numel(prefix) > 9)
 								url{i+mc,j+nc} = [pref_bak sprintf('%d&y=%d&z=%d',decAdr, zoomL-1)];
 							end
 						end
@@ -386,12 +388,20 @@ function [url, lon_mm, lat_mm, x, y] = tile2url(opt, geoid, quadkey, prefix, lon
 	end
 	% -------------------------------------------------------------------------------------------------
 
-	if ( strcmp(opt, 'callmir') || strcmp(opt, 'tile2img') )
-
+	if (strcmp(opt, 'callmir') || strcmp(opt, 'tile2img'))
+	
 		nTilesX = size(mosaic,2);			nTilesY = size(mosaic,1);
+
+		hdrStruct.ULx = x(1);	hdrStruct.ULy = y(2);	%  pixel reg
+		hdrStruct.DstProjSRS = '+proj=latlong +datum=WGS84';
+		hdrStruct.SrcProjSRS = '+proj=merc +lon_0=0 +k=1 +x_0=0 +y_0=0 +a=6378137 +b=6378137 +units=m +no_defs';
+		hdrStruct.t_size = 0;
+		hdrStruct.ResampleAlg = 'bilinear';
+		dx = diff(x)/(256*nTilesX);		dy = diff(y)/(256*nTilesY);			% Here we are still in the Pixel reg world
+		hdrStruct.Xinc = dx;    hdrStruct.Yinc = dy;
+
 		if (reportMerc)			% Output coords in Mercator
-			dx = diff(x)/(256*nTilesX);			dy = diff(y)/(256*nTilesY);		% Here we are still in the Pixel reg world
-			x = x + [1 -1] * dx / 2;			y = y + [1 -1] * dy / 2;		% But now we are on Grid reg
+			x = x + [1 -1] * dx / 2;			y = y + [1 -1] * dy / 2;	% But now we are on Grid reg
 			tmp.head = [x y 0 255 0 dx dy];
 			tmp.X = x;			tmp.Y = y;
 		else					% Output coords in Geogs (image is unchanged, that is it remain mercatorized)
@@ -402,17 +412,17 @@ function [url, lon_mm, lat_mm, x, y] = tile2url(opt, geoid, quadkey, prefix, lon
 		end
 		tmp.geog = 0;		tmp.name = 'EuGooglo';
 		ext = 'jpg';		% Default image extension
-		if ( (whatKind == 'r') || (whatKind == 'h') ),	ext = 'png';	end		% Maps use png files
+		if ((whatKind == 'r') || (whatKind == 'h')),	ext = 'png';	end		% Maps use png files
 
 		if (~iscell(url))
 			[cache, cache_supp, ext, isWW] = completeCacheName(cache, ext, zoomL, decimal_adress, whatKind);
 			[img, cmap] = getImgTile(quadkey, quad_, url, cache, cache_supp, ext, decimal_adress, isWW, verbose);
 		else
-			img = repmat( repmat(uint8(200), [256 256 3]), mMo, nMo );		% Pre-allocate the final image size
+			img = repmat(repmat(uint8(200), [256 256 3]), mMo, nMo);		% Pre-allocate the final image size
 			for (i=1:mMo)
 				[cache, cache_supp, ext, isWW] = completeCacheName(cache, ext, zoomL, decimal_adress, whatKind);	% WW changes cache dir per rows
 				for (j=1:nMo)
-					if ( isWW && quadkey{1} == '0' )		% VE and WW cache - We need to recompute the dec adress for each quad
+					if (isWW && quadkey{1} == '0')		% VE and WW cache - We need to recompute the dec adress for each quad
 						decimal_adress = getQuadLims(['a' quad_{mMo-i+1,j}], quadkey, 1);	% Get decimal adress
 					end
 					[img((i-1)*256+1:i*256, (j-1)*256+1:j*256, :), cmap] = ...
@@ -420,7 +430,16 @@ function [url, lon_mm, lat_mm, x, y] = tile2url(opt, geoid, quadkey, prefix, lon
 				end
 			end
 		end
-		if ( strcmp(opt, 'callmir') )
+
+		if (~reportMerc)			% That is, if project to Geogs
+			[ras, att] = gdalwarp_mex(img, hdrStruct);
+			tmp.head = att.GMT_hdr;
+			tmp.name = 'Reprojected (Geog) image';
+			tmp.srsWKT = att.ProjectionRef;
+			tmp.X = att.GMT_hdr(1:2);	tmp.Y = att.GMT_hdr(3:4);
+		end
+
+		if (strcmp(opt, 'callmir'))
 			if (~isempty(cmap)),	tmp.cmap = cmap;	end
 			if (reportMerc),		tmp.srsWKT = ogrproj(['+proj=merc +R=' num2str(geoid(1))]);	end
 			mirone(img, tmp)
@@ -437,18 +456,18 @@ function [cache, cache_supp, ext, isWW] = completeCacheName(cache, ext, zoomL, d
 % For the type 2) cache refered at the main help, if cache dir doesn't end with 'cache', append it as well
 	isWW = false;				% Will be true if CACHE is a WW cache
 	cache_supp = [];
-	if ( ~isempty(cache) )
+	if (~isempty(cache))
 		[pato, nome] = fileparts(cache);
 		fsep = filesep;
-		if ( strcmp(nome, 'Virtual Earth') )
-			%cache = [cache fsep sprintf('%d%c%c%c%.4d',zoomL-1,fsep,whatKind(1), fsep, decimal_adress(2) )];
+		if (strcmp(nome, 'Virtual Earth'))
+			%cache = [cache fsep sprintf('%d%c%c%c%.4d',zoomL-1,fsep,whatKind(1), fsep, decimal_adress(2))];
 			if (whatKind(1) == 'a'),	ext = 'jpeg';		% Ghrr, could they not have used .jpg ?
 			else						ext = 'png';
 			end
 			isWW = true;
-			cache_supp = [fsep sprintf('%d%c%c%c%.4d',zoomL-1,fsep,whatKind(1), fsep, decimal_adress(2) )];
+			cache_supp = [fsep sprintf('%d%c%c%c%.4d',zoomL-1,fsep,whatKind(1), fsep, decimal_adress(2))];
 		else
-			if ( ~strcmpi(nome, 'cache') )				% If the cache dir doesn't end by 'cache', add it
+			if (~strcmpi(nome, 'cache'))				% If the cache dir doesn't end by 'cache', add it
 				cache = [cache fsep 'cache'];
 			end
 			plusZLnumber = sprintf('%s%.2d',fsep, zoomL);		% Append the zoomlevel to the cache dir tree
@@ -472,7 +491,7 @@ function mappcache(flatness, quadkey, quad, cache, ext)
 	if (nargin < 3)
 		error('url2image:mappcache', 'number of argins must be >= 3')
 	end
-	if (~isempty(quad) && ~(ischar(quad) || iscell(quad)) )
+	if (~isempty(quad) && ~(ischar(quad) || iscell(quad)))
 		error('url2image:mappcache','"QUAD" must be a string or a cell array of strings')
 	end
 	if (~exist(cache, 'dir'))
@@ -489,7 +508,7 @@ function mappcache(flatness, quadkey, quad, cache, ext)
 		quad = {files.name};
 	end
 	
-	[lims, tiles_bb, zoomL] = quadcoord(quad, quadkey, flatness);
+	[lims, tiles_bb] = quadcoord(quad, quadkey, flatness);
 	
 	% Calculate mid point of each tile
 	tiles_midpt = [(tiles_bb(:,1) + tiles_bb(:,2)) / 2 (tiles_bb(:,3) + tiles_bb(:,4)) / 2];
@@ -497,8 +516,8 @@ function mappcache(flatness, quadkey, quad, cache, ext)
 	region = [min(tiles_midpt(:,1)) max(tiles_midpt(:,1)) min(tiles_midpt(:,2)) max(tiles_midpt(:,2))];
 	% Make bb_limits pix reg in longitude and apply the same margin to lat (too complicated to do correctly)
 	region = region + [-0.5 0.5 -0.5 0.5] * diff(tiles_bb(1:2));
-	if ( region(3) < 85.0841 ),		region(3) = -85.0841;	end		% Isometric 180
-	if ( region(4) > 85.0841 ),		region(4) =  85.0841;	end
+	if (region(3) < 85.0841),		region(3) = -85.0841;	end		% Isometric 180
+	if (region(4) > 85.0841),		region(4) =  85.0841;	end
 
 	save([cache filesep 'tilesMapping'], 'region', 'zoomL', 'tiles_midpt')
 
@@ -509,7 +528,7 @@ function [lims, tiles_bb, zoomL] = quadcoord(flatness, quadkey, quad)
 	% TILES_BB contains the rectangle BB coords of each tile [lonMin lonMax latMin latMax]
 	% This matrix is written by columns. That is like coords(quad{:})
 
-	if ( ~(isa(quad,'char') || isa(quad,'cell')) )
+	if (~(isa(quad,'char') || isa(quad,'cell')))
 		error('url2image:quadcoord','First arg must be a string or a cell array of strings')
 	end
 	
@@ -569,7 +588,7 @@ function new_quad = getNext(quad, quadkey, v, h)
 	% Test if we are getting out of +180. If yes, wrap the exccess it to -180
 	if (numel(H) > N),		H = dec2bin(h-1, N);	end
 	% Test if we are getting out of -180. If yes, wrap the exccess it to +180
-	if ( H(1) == '/' ),		H = dec2bin(bin2dec(tmp(:,2)')+(2^N - 1), N);	end
+	if (H(1) == '/'),		H = dec2bin(bin2dec(tmp(:,2)')+(2^N - 1), N);	end
 	
 	new_tile_bin = [V(:) H(:)];
 	quad_num = bin2dec(new_tile_bin);
@@ -657,7 +676,7 @@ function [img, cmap] = getImgTile(quadkey, quad, url, cache, cache_supp, ext, de
 		cmap = [];		att = [];	fname = [];		img = [];
 		if (~isempty(cache))		% We have a cache dir to look for
 
-			if ( isWW )		% We guessed it before as beeing a WW cache
+			if (isWW)		% We guessed it before as beeing a WW cache
 				fname = [cache cache_supp filesep sprintf('%.4d_%.4d', decAdr(2), decAdr(1)) '.' ext];
 			else
 				fname = [cache cache_supp filesep quad '.' ext];
@@ -673,24 +692,24 @@ function [img, cmap] = getImgTile(quadkey, quad, url, cache, cache_supp, ext, de
 		end
 		img = flipdim(img, 1);
 		
-		if ( isempty(img) )
+		if (isempty(img))
 			img = repmat(uint8(200), [256 256 3]);
-		elseif ( ndims(img) == 2 && ext(1) == 'p')
-			if ( ~isempty(cmap) )
+		elseif (ndims(img) == 2 && ext(1) == 'p')
+			if (~isempty(cmap))
 				img = ind2rgb8(img, cmap);
-			elseif ( isempty(cmap) && ~isempty(att) )
+			elseif (isempty(cmap) && ~isempty(att))
 				cmap = att.Band.ColorMap.CMap(:,1:3);
 				img = ind2rgb8(img, cmap);
 			else
 				disp('url2image:getImgTile  Unknown error in retrieving image')
 				img = repmat(uint8(200), [256 256 3]);
 			end
-		elseif ( ndims(img) == 2 && ext(1) == 'j')		% VE returns a 256x256 when the tile has no image
+		elseif (ndims(img) == 2 && ext(1) == 'j')		% VE returns a 256x256 when the tile has no image
 			img = repmat(uint8(200), [256 256 3]);
 		end
 	catch
 		disp(lasterr)
-		if ( isempty(img) && ~isempty(fname) )			% An empty screwed tile exists in the cache. Delete it
+		if (isempty(img) && ~isempty(fname))			% An empty screwed tile exists in the cache. Delete it
 			builtin('delete',fname);
 		end
 		img = repmat(uint8(200), [256 256 3]);
@@ -701,8 +720,8 @@ function [img, att] = netFetchTile(url, cache, quad, ext, verbose, fname)
 % Fetch a file from the web either using gdal or wget (when gdal is not able to)
 	if (verbose),	disp(['Downloading file ' url]),	end
 	if (true || strcmp(url(8:9),'kh') || strcmp(url(8:9),'mt'))		% --> FORCE USE OF WGET 
-		if ( ~isempty(cache) )
-			if ( exist(cache,'dir') ~= 7 ),		make_dir(cache),	end		% Need to create a new dir
+		if (~isempty(cache))
+			if (exist(cache,'dir') ~= 7),		make_dir(cache),	end		% Need to create a new dir
 			dest_fiche = [cache filesep quad '.' ext];		% Save the file directly in susitu (cache)
 		else
 			dest_fiche = 'lixogrr';
@@ -722,7 +741,7 @@ function [img, att] = netFetchTile(url, cache, quad, ext, verbose, fname)
 		if (size(img,3) == 4),		img(:,:,4) = [];	end		% We don't deal yet with alpha-maps in images
 	else
 		[img, att] = gdalread(url);				% Don't read flipped ('-U') because of saving
-		if ( ~isempty(cache) )
+		if (~isempty(cache))
 			saveInCache(cache, fname, att, img, ext)	% Save tile in the cache directory
 		end
 	end
@@ -737,20 +756,20 @@ function saveInCache(cache, fname, att, img, ext)
 % IMG is ... the image (2D or 3D)
 % EXT is either 'jpg', 'jpeg' (3D) or 'png' (2D)
 
-	if ( isempty(cache) ),		return,		end			% No CACHE, no money
+	if (isempty(cache)),		return,		end			% No CACHE, no money
 	
-	if ( exist(cache,'dir') ~= 7 )						% Ghrr, make a new dir
+	if (exist(cache,'dir') ~= 7)						% Ghrr, make a new dir
 		make_dir(cache)
 	end
 
-	if ( ndims(img) == 3 && (strcmp(ext,'jpg') || strcmp(ext,'jpeg')) )
+	if (ndims(img) == 3 && (strcmp(ext,'jpg') || strcmp(ext,'jpeg')))
 		imwrite(img, fname, 'Quality', 100);
-	elseif ( ndims(img) == 3 && strcmp(ext,'png') )
+	elseif (ndims(img) == 3 && strcmp(ext,'png'))
 		imwrite(img, fname);
-	elseif ( ndims(img) == 2 && strcmp(ext,'png') )
+	elseif (ndims(img) == 2 && strcmp(ext,'png'))
 		cmap = att.Band.ColorMap.CMap(:,1:3);
 		imwrite(img, cmap, fname);
-	elseif ( ndims(img) == 2 && strcmp(ext,'jpg') )		% Do nothing. VE returns a 256x256 when the tile has no image
+	elseif (ndims(img) == 2 && strcmp(ext,'jpg'))		% Do nothing. VE returns a 256x256 when the tile has no image
 	else
 		error('url2image:saveInCache', 'Shit. Unknown error while trying to save image in cache')
 	end
@@ -818,7 +837,7 @@ function lat = geod2isometric(latin, flat)
 	latin = latin * pi / 180;
 
 	latcnf = geod2cnf(latin,e);   %  Compute the conformal lat
-	lat = log ( tan(pi/4 + latcnf/2) );      %  Transform to isometric
+	lat = log (tan(pi/4 + latcnf/2));      %  Transform to isometric
 	lat = lat * 180 / pi; 
 
 % -------------------------------------------------------------------------------
@@ -827,7 +846,7 @@ function latout = geod2cnf(latin,e)
 
 	f1  = 1 - e*sin(latin);     f2 = 1 + e*sin(latin);
 	f3  = 1 - sin(latin);       f4 = 1 + sin(latin);
-	latout = 2 * atan(sqrt((f4./f3) .* ((f1./f2).^e)) ) - pi/2;
+	latout = 2 * atan(sqrt((f4./f3) .* ((f1./f2).^e))) - pi/2;
 
 % -------------------------------------------------------------------------------
 function meridionalRadius = meridionalRad(a,f)
@@ -841,6 +860,6 @@ function meridionalRadius = meridionalRad(a,f)
 	xx1 = xx0 * 3 / 16;
 	xx2 = xx1 * 3 * 5 / 36;
 	xx3 = xx2 * 5 * 7 / 64;
-	x = xx0 * e2 + ( xx1 * e4 + ( xx2 * e6 + xx3 * e8));
+	x = xx0 * e2 + (xx1 * e4 + (xx2 * e6 + xx3 * e8));
 	meridionalRadius = a * (1 - x);	
 
