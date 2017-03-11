@@ -1,7 +1,7 @@
 function varargout = tiles_tool(varargin)
 % Get tiles and mosaic them from Virtual Earth (and others) web tile servers 
 
-%	Copyright (c) 2004-2014 by J. Luis
+%	Copyright (c) 2004-2017 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -58,18 +58,18 @@ function varargout = tiles_tool(varargin)
 	% --------------------- Read the cache directory list from mirone_pref ----------------------
 	load([handles.path_data 'mirone_pref.mat']);
 	try			cacheDirs = cacheTilesDir;	% Try if we already have a cache directory store in prefs
-	catch,		cacheDirs = [];
+	catch,		cacheDirs = {handMir.path_tmp};
 	end
 
-	if ( ~isempty(cacheDirs) )			% We have cache dir(s), but make sure it exists
+	if (~isempty(cacheDirs))			% We have cache dir(s), but make sure it exists
 		ind = true(1,numel(cacheDirs));
 		for (k = 1:numel(ind))					% dir(s) are stored in a cell array
-			if ( exist(cacheDirs{k}, 'dir') == 7)
+			if (exist(cacheDirs{k}, 'dir') == 7)
 				ind(k) = false;
 			end
 		end
 		cacheDirs(ind) = [];			% Remove eventual non existent dirs
-		if ( isempty(cacheDirs) ),		cacheDirs = {''};		val = 1;		% It can't be an empty var
+		if (isempty(cacheDirs)),		cacheDirs = {''};		val = 1;		% It can't be an empty var
 		else							cacheDirs = [{''}; cacheDirs];		val = 2;
 		end
 		set(handles.popup_directory_list,'String',cacheDirs, 'Val', val)
@@ -91,7 +91,7 @@ function varargout = tiles_tool(varargin)
 		% Remove comment and also eventual empty lines
 		m = numel(servers);		c = false(m,1);
 		for (k = 1:m)
-			if ( isempty(servers{k}) || servers{k}(1) == '#' ),		c(k) = true;	end
+			if (isempty(servers{k}) || servers{k}(1) == '#'),		c(k) = true;	end
 		end
 		servers(c) = [];			n_servers = numel(servers);
 
@@ -101,24 +101,18 @@ function varargout = tiles_tool(varargin)
 		for (k = 1:n_servers)					% Loop over number of servers (not that many, we hope)
 			[tok,rem] = strtok(servers{k});
 			handles.servers_image{k} = tok;		% Images server
-			if ( ~isempty(rem) )				% Maps server
+			if (~isempty(rem))				% Maps server
 				[tok,rem] = strtok(rem);		handles.servers_road{k} = tok;
 			end
-			if ( ~isempty(rem) )				% Hybrids server
+			if (~isempty(rem))				% Hybrids server
 				[tok,rem] = strtok(rem);		handles.servers_hybrid{k} = tok;
 			end
-			if ( ~isempty(rem) )				% Quadtree keeword
+			if (~isempty(rem))				% Quadtree keeword
 				tok = strtok(rem);				handles.servers_quadkey{k} = tok;
 			end
 		end
 	end
 	% -------------------------------------------------------------------------------------------
-
-	% ------------- Some tooltips strings -------------------------
-	str = sprintf('Return image in its original Mercator coordinates\n NOTE: THIS IS THE CORRECT THING TO DO');
-	set(handles.radio_mercator, 'Tooltip', str)
-	str = sprintf('Return image in approximate geographical coordinates\n WARNING: THIS IS IS ONLY A CRUDE APPROXIMATION');
-	set(handles.radio_geogs, 'Tooltip', str)
 
 	% ----------------- Finish sliders configurations ------------------------------------------
 	st = [1 1] / 23;		% 23 is the currently maximum as far as i know
@@ -138,7 +132,7 @@ function varargout = tiles_tool(varargin)
 
 % -----------------------------------------------------------------------------------------
 function click_whatkind_CB(obj, evt, opt)
-	if ( strcmp(get(obj, 'State'), 'off') )			% Don't let deselect a toggled button
+	if (strcmp(get(obj, 'State'), 'off'))			% Don't let deselect a toggled button
 		set(obj,'State', 'on'),		return
 	end
 	handles = guidata(obj);
@@ -152,7 +146,7 @@ function click_whatkind_CB(obj, evt, opt)
 % -----------------------------------------------------------------------------------------
 function click_zoom_CB(hObject, evt)
 	handles = guidata(hObject);
-	if ( strcmp(get(hObject,'State'), 'on') )
+	if (strcmp(get(hObject,'State'), 'on'))
 		zoom_j(handles.figure1, 'on')
 	else
 		zoom_j(handles.figure1, 'off')
@@ -167,7 +161,7 @@ function click_source_CB(hObject, evt)
 	% out.order contains the order that the out.whatkind{i} has in the tilesServers file
 	% For example [1 2 1] means that Image and Hybrid are to be fetched from the servers specified
 	% on the first line of tilesServers.txt whilst Maps server is the second entry of that file
-	if ( ~isempty(out) )
+	if (~isempty(out))
 		handles.serversImageOut = out.whatkind{1};
 		handles.serversRoadOut = out.whatkind{2};
 		handles.serversHybridOut = out.whatkind{3};
@@ -177,13 +171,13 @@ function click_source_CB(hObject, evt)
 
 % -----------------------------------------------------------------------------------------
 function popup_directory_list_CB(hObject, handles, opt)
-% OPT, used by push_change_dir, is char array
+% OPT, used by push_change_dir, is char a array
 
-	if (nargin == 2)    opt = [];   end
-	if ( ~isempty(opt) )				% Add a new entry to the cache dir list. Otherwise, just normal popup functioning.
+	if (nargin == 2),	opt = [];	end
+	if (~isempty(opt))				% Add a new entry to the cache dir list. Otherwise, just normal popup functioning.
 		contents = get(hObject, 'String');
-		if ( numel(contents) == 1 ),	rest = [];
-		else							rest = contents(2:end);
+		if (numel(contents) == 1),	rest = [];
+		else						rest = contents(2:end);
 		end
 
 		cacheTilesDir = [{opt}; rest];			% Also the var that will be saved in 'mirone_pref'
@@ -214,10 +208,10 @@ function click_anchor_CB(hObject, event)
 	hAnchor = findobj(handles.axes1,'Tag','Anchor');
 	if (isempty(hAnchor))
 		hAnchor = line(pt(1,1),pt(1,2),'Marker','p','MarkerFaceColor','y','MarkerEdgeColor','k','MarkerSize',12,'Tag','Anchor');
+		set(hAnchor, 'ButtonDownFcn', 'move_obj(1)')	% Set the dragging option
 	else
 		set(hAnchor,'XData',pt(1,1) ,'YData',pt(1,2))
 	end
-	ui_edit_polygon(hAnchor)				% Set edition functions
 
 % -----------------------------------------------------------------------------------------
 function click_MOSAIC_e_GO_CB(hObject, event)
@@ -227,13 +221,13 @@ function click_MOSAIC_e_GO_CB(hObject, event)
 	ind = get(handles.patchHandles, 'UserData');
 	if (isempty(ind)),		return,		end			% No patches ploted
 	ind = logical(cat(1,ind{:}));
-	if ( ~any(ind) ),		return,		end			% No patch selected
+	if (~any(ind)),			return,		end			% No patch selected
 	
 	% ---------------- Have cache info? -----------------
 	val = get(handles.popup_directory_list,'Value');
 	contents = get(handles.popup_directory_list, 'String');
 	str = contents{val};		cacheDir = [];
-	if ( ~isempty(str) ),		cacheDir = str;		end
+	if (~isempty(str)),		cacheDir = str;		end
 
 	tiles_bb = handles.tiles_bb(ind,:);
 	lon = [min(tiles_bb(:,1)) max(tiles_bb(:,2))] + [1 -1] * 1e-6;		% eps is for not getting neighboring tiles
@@ -247,9 +241,9 @@ function click_MOSAIC_e_GO_CB(hObject, event)
 
 	[whatkind, source_PN, source_PV] = get_kind(handles);
 
-	if ( get(handles.radio_geogs, 'Val') )		% Somewhat wrong but practical
+	if (get(handles.radio_geogs, 'Val'))		% Somewhat wrong but practical
 		url2image('callmir',lon,lat, zoomLevel, 'lonlat', 'yes', 'cache', cacheDir, ...
-			'what',whatkind, source_PN, source_PV, 'verbose','yes');
+		          'what',whatkind, source_PN, source_PV, 'verbose','yes');
 	else
 		url2image('callmir',lon,lat, zoomLevel, 'cache', cacheDir, 'what',whatkind, source_PN, source_PV, 'verbose','yes');
 	end
@@ -260,17 +254,17 @@ function [whatkind, source_PN, source_PV] = get_kind(handles)
 
 	whatkind = handles.slected_whatkind;
 	source_PN = 'treta';		source_PV = [];		% Dumb value used to default to VE 
-	if ( whatkind(1) == 'a' && isempty(strfind(handles.serversImageOut, 'virtualearth')) )
+	if (whatkind(1) == 'a' && isempty(strfind(handles.serversImageOut, 'virtualearth')))
 		server = handles.serversImageOut;		quadkey = handles.servers_quadkey(handles.serversOrder(1));
-		if ( ~strncmp(server, 'http', 4) ),		server = ['http://' server];	end
+		if (~strncmp(server, 'http', 4)),		server = ['http://' server];	end
 		source_PN = 'source';					source_PV = {server; quadkey{1}};
-	elseif ( whatkind(1) == 'r' && isempty(strfind(handles.serversRoadOut, 'virtualearth')) )
+	elseif (whatkind(1) == 'r' && isempty(strfind(handles.serversRoadOut, 'virtualearth')))
 		server = handles.serversRoadOut;		quadkey = handles.servers_quadkey(handles.serversOrder(2));
-		if ( ~strncmp(server, 'http', 4) ),		server = ['http://' server];	end
+		if (~strncmp(server, 'http', 4)),		server = ['http://' server];	end
 		source_PN = 'source';					source_PV = {server; quadkey{1}};
-	elseif ( whatkind(1) == 'h' && isempty(strfind(handles.serversHybridOut, 'virtualearth')) )
+	elseif (whatkind(1) == 'h' && isempty(strfind(handles.serversHybridOut, 'virtualearth')))
 		server = handles.serversHybridOut;		quadkey = handles.servers_quadkey(handles.serversOrder(3));
-		if ( ~strncmp(server, 'http', 4) ),		server = ['http://' server];	end
+		if (~strncmp(server, 'http', 4)),		server = ['http://' server];	end
 		source_PN = 'source';					source_PV = {server; quadkey{1}};
 	end
 
@@ -281,7 +275,7 @@ function region2tiles(handles,lon,lat,zoomFactor)
 	if (~isempty(handles.patchHandles))
 		try		delete(handles.patchHandles),	handles.patchHandles = [];	end
 	end
-	if ( zoomFactor == 1 ),		return,		end
+	if (zoomFactor == 1),		return,		end
 
 	url = url2image('tile2url', lon, lat, zoomFactor,'quadonly',1);
 	[lims, tiles_bb]  = url2image('quadcoord', url);
@@ -342,11 +336,15 @@ function slider_zoomFactor_CB(hObject, handles)
 		bgZoomLevel = zoomLevel - 3;
 		val = get(handles.popup_directory_list,'Value');			% Have cache info?
 		contents = get(handles.popup_directory_list, 'String');
-		str = contents{val};		cacheDir = [];
-		if ( ~isempty(str) ),		cacheDir = str;		end
+		str = contents{val};	cacheDir = [];
+		if (~isempty(str)),		cacheDir = str;		end
+		if (isempty(cacheDir))
+			errordlg('The Cache directory is not set (see bottom left corner). Need one to store the downloaded tiles.', 'Error')
+			return
+		end
 		[whatkind, src_PN, src_PV] = get_kind(handles);			% Decide based on the (1)(2)(3) buttons
-		[img, hdr] = ...
-			url2image('tile2img',lon,lat, bgZoomLevel, 'cache', cacheDir, 'what',whatkind, src_PN, src_PV,'lonlat', 'yes', 'verbose','y');
+		[img, hdr] = url2image('tile2img',lon,lat, bgZoomLevel, 'cache', cacheDir, ...
+			                   'what',whatkind, src_PN, src_PV,'lonlat', 'yes', 'verbose','y');
 		h = image('XData',hdr.X, 'YData',hdr.Y, 'CData',img, 'Parent', handles.axes1);
 		if (ishandle(handles.hImgZoomed)),		delete(handles.hImgZoomed),		end		% Delete the previous zoomed image
 		handles.hImgZoomed = h;
@@ -398,10 +396,10 @@ function radio_geogs_CB(hObject, handles)
 
 % -------------------------------------------------------------------------------------
 function check_proxy_CB(hObject, handles)
-	if ( get(hObject, 'Val') )
+	if (get(hObject, 'Val'))
 		set([handles.edit_proxy handles.edit_port handles.text_port], 'Enable', 'on')
 		ind = strfind(handles.proxyPort, ':');
-		if ( ~isempty(ind) )		% We already have a full proxy adress
+		if (~isempty(ind))		% We already have a full proxy adress
 			set_gmt(['http_proxy=' handles.proxyPort]);
 		end
 	else
@@ -441,7 +439,7 @@ msg{3} = ['Tiles images are obtained, by default, from MS servers - the same tha
 		'that resides on the "data" subdirectory of Mirone''s instalation. If you have more than one set of servers, you can ' ...
 		'select among them by clicking on the button with hammers icon. '];
 msg{4} = ' ';
-msg{5} = ['CACHE: the cache directory is very important since imgas will be searched there before trying to download them ' ...
+msg{5} = ['CACHE: the cache directory is very important since images will be searched there before trying to download them ' ...
 		'from internet. The cache directory structure can have one of the two following forms.'];
 %msg{5} = ' ';
 msg{6} = sprintf(['1) NASA World Wind type cache. There is a plugin for WW that allows downloading of Virtual Earth tiles. ' ...
@@ -529,7 +527,7 @@ function figure1_KeyPressFcn(hObj, eventdata)
 		zoom_j(hObj,0.5,[]);
 	end
 	hSliders = getappdata(handles.axes1,'SliderAxes');
-	if (~isempty(hSliders) && strcmp( get(hSliders(1),'Vis'),'on' ) )	% If (1) is visible so is the other
+	if (~isempty(hSliders) && strcmp(get(hSliders(1),'Vis'),'on'))	% If (1) is visible so is the other
 		CK = get(hObj,'CurrentKey');
 		if (strcmp(CK,'rightarrow') || strcmp(CK,'leftarrow'))
 			SS = get(hSliders(1),'SliderStep');			val = get(hSliders(1),'Value');
@@ -623,21 +621,21 @@ uicontrol('Parent',h1, 'Position',[931 74 10 450],...
 'Tag','VER',...
 'Visible','off');
 
-uicontrol('Parent',h1, 'Position',[10 5 80 17],...
-'String','Cache directory',...
-'Style','text');
+uicontrol('Parent',h1, 'Position',[10 5 80 17], 'String','Cache directory', 'Style','text');
 
 uicontrol('Parent',h1, 'Position',[550 30 110 15],...
 'Call',@tiles_tool_uiCB,...
-'String','Mercator (correct)',...
+'String','Mercator',...
 'Style','radiobutton',...
-'Value',1,...
+'Tooltip', 'Return image in its original Mercator coordinates', ...
 'Tag','radio_mercator');
 
 uicontrol('Parent',h1, 'Position',[550 8 100 15],...
 'Call',@tiles_tool_uiCB,...
-'String','Geogs (approx)',...
+'String','Geogs',...
 'Style','radiobutton',...
+'Value',1,...
+'Tooltip', 'Project image in to geographical coordinates. It will take a bit longer but not that much', ...
 'Tag','radio_geogs');
 
 uicontrol('Parent',h1, 'Position',[18 28 70 17],...
@@ -702,9 +700,9 @@ function varargout = tiles_servers(varargin)
 	order = varargin{4};
 
 	% ------- Fill edit and popup menus with just recieved info -----------
-	set(handles.edit_aerial,  'String', handles.servers_image{order(1)} )
-	set(handles.edit_road,    'String', handles.servers_road{order(2)} )
-	set(handles.edit_hybrid,  'String', handles.servers_hybrid{order(3)} )
+	set(handles.edit_aerial,  'String', handles.servers_image{order(1)})
+	set(handles.edit_road,    'String', handles.servers_road{order(2)})
+	set(handles.edit_hybrid,  'String', handles.servers_hybrid{order(3)})
 	set(handles.popup_aerial, 'String', handles.servers_image, 'Val', order(1))
 	set(handles.popup_road,   'String', handles.servers_road,  'Val', order(2))
 	set(handles.popup_hybrid, 'String', handles.servers_hybrid,'Val', order(3))
@@ -721,7 +719,7 @@ function varargout = tiles_servers(varargin)
 	uiwait(handles.figure1);
 	handles = guidata(hObject);
 	varargout{1} = handles.output;
-	if ( ishandle(handles.figure1) ),	delete(handles.figure1),	end
+	if (ishandle(handles.figure1)),	delete(handles.figure1),	end
 
 % -----------------------------------------------------------------------------------------
 function edit_aerial_CB(hObject, handles, opt)
@@ -790,7 +788,7 @@ function push_cancel_CB(hObject, handles)
 function figure_servers_CloseRequestFcn(hObject, eventdata)
 	handles = guidata(hObject);
 	if (exist('OCTAVE_VERSION','builtin'))		% To know if we are running under Octave
-		do_uiresume = ( isprop(hObject, '__uiwait_state__') && strcmp(get(hObject, '__uiwait_state__'), 'active') );
+		do_uiresume = (isprop(hObject, '__uiwait_state__') && strcmp(get(hObject, '__uiwait_state__'), 'active'));
 	else
 		do_uiresume = strcmp(get(handles.figure1, 'waitstatus'), 'waiting');
 	end
