@@ -508,7 +508,7 @@ function mappcache(flatness, quadkey, quad, cache, ext)
 		quad = {files.name};
 	end
 	
-	[lims, tiles_bb] = quadcoord(quad, quadkey, flatness);
+	[lims, tiles_bb, zoomL] = quadcoord(quad, quadkey, flatness);
 	
 	% Calculate mid point of each tile
 	tiles_midpt = [(tiles_bb(:,1) + tiles_bb(:,2)) / 2 (tiles_bb(:,3) + tiles_bb(:,4)) / 2];
