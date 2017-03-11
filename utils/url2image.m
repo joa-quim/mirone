@@ -123,7 +123,7 @@ function  varargout = url2image(opt, varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: url2image.m 10055 2017-03-11 22:44:46Z j $
+% $Id: url2image.m 10056 2017-03-11 23:01:01Z j $
 
 	quadkey = {'0' '1'; '2' '3'};				% Default to Virtual Earth
 	prefix = 'http://a0.ortho.tiles.virtualearth.net/tiles/a';
@@ -508,7 +508,7 @@ function mappcache(flatness, quadkey, quad, cache, ext)
 		quad = {files.name};
 	end
 	
-	[lims, tiles_bb] = quadcoord(quad, quadkey, flatness);
+	[lims, tiles_bb, zoomL] = quadcoord(quad, quadkey, flatness);
 	
 	% Calculate mid point of each tile
 	tiles_midpt = [(tiles_bb(:,1) + tiles_bb(:,2)) / 2 (tiles_bb(:,3) + tiles_bb(:,4)) / 2];
