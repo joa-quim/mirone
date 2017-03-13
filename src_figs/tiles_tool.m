@@ -26,8 +26,12 @@ function varargout = tiles_tool(varargin)
 	if (numel(varargin) > 0)
 		handMir = varargin{1};
         handles.path_data = handMir.path_data;
+		handles.version7 = handMir.version7;
+		path_tmp = handMir.path_tmp;
 	else
         handles.path_data = [pwd filesep 'data' filesep];
+		handles.version7 = 7;		% Boggus value. Just something below 8.4 where big breakage fell down our heads
+        path_tmp = [pwd filesep 'tmp' filesep];
 	end
 
 	% -------------- Import icons -----------------------------------------------
@@ -58,7 +62,7 @@ function varargout = tiles_tool(varargin)
 	% --------------------- Read the cache directory list from mirone_pref ----------------------
 	load([handles.path_data 'mirone_pref.mat']);
 	try			cacheDirs = cacheTilesDir;	% Try if we already have a cache directory store in prefs
-	catch,		cacheDirs = {handMir.path_tmp};
+	catch,		cacheDirs = {path_tmp};
 	end
 
 	if (~isempty(cacheDirs))			% We have cache dir(s), but make sure it exists
@@ -282,16 +286,28 @@ function region2tiles(handles,lon,lat,zoomFactor)
 	[m,n] = size(url);		hp = zeros(m, n);
 
 	k = 1;
-	for (j = 1:n)			% col
-		xp = [tiles_bb(k,1) tiles_bb(k,1) tiles_bb(k,2) tiles_bb(k,2)];
-		for (i = 1:m)
-			yp = [tiles_bb(k,3) tiles_bb(k,4) tiles_bb(k,4) tiles_bb(k,3)];
-			hp(i,j) = patch('XData',xp,'YData',yp,'Parent',handles.axes1,'FaceColor','none','EdgeColor','k', ...
-				'UserData',0, 'ButtonDownFcn',@bdn_tile, 'HitTest', 'on');
-			k = k + 1;
+	if (handles.version7 < 8.4)		% When things still behaved decently
+		for (j = 1:n)			% col
+			xp = [tiles_bb(k,1) tiles_bb(k,1) tiles_bb(k,2) tiles_bb(k,2)];
+			for (i = 1:m)
+				yp = [tiles_bb(k,3) tiles_bb(k,4) tiles_bb(k,4) tiles_bb(k,3)];
+				hp(i,j) = patch('XData',xp,'YData',yp,'Parent',handles.axes1,'FaceColor','none','EdgeColor','k', ...
+					'UserData',0, 'ButtonDownFcn',@bdn_tile, 'HitTest', 'on');
+				k = k + 1;
+			end
 		end
+	else							% R2015 fckage
+		for (j = 1:n)			% col
+			xp = [tiles_bb(k,1) tiles_bb(k,1) tiles_bb(k,2) tiles_bb(k,2)];
+			for (i = 1:m)
+				yp = [tiles_bb(k,3) tiles_bb(k,4) tiles_bb(k,4) tiles_bb(k,3)];
+				hp(i,j) = patch('XData',xp,'YData',yp,'Parent',handles.axes1,'FaceColor','w','FaceAlpha', 0.005, ...
+					'EdgeColor','k', 'UserData',0, 'ButtonDownFcn',@bdn_tile_fckd, 'HitTest', 'on');
+				k = k + 1;
+			end
+		end
+		drawnow
 	end
-
 	handles.tiles_bb = tiles_bb;
 	handles.patchHandles = hp;
 	guidata(handles.figure1,handles)
@@ -301,6 +317,15 @@ function bdn_tile(obj,eventdata)
 	stat = get(gcbo,'UserData');
 	if (~stat),		set(gcbo,'FaceColor','y','UserData',1)        % If not selected
 	else			set(gcbo,'FaceColor','none','UserData',0)
+	end
+	refresh
+
+% -----------------------------------------------------------------------------------------
+function bdn_tile_fckd(obj,eventdata)
+% Version to work with the post R2015 fckage
+	stat = get(gcbo,'UserData');
+	if (~stat),		set(gcbo,'FaceColor','y','UserData',1,'FaceAlpha', 1)        % If not selected
+	else			set(gcbo,'FaceColor','w','UserData',0, 'FaceAlpha', 0.005)
 	end
 	refresh
 
