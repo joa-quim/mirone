@@ -11,7 +11,7 @@ function h = makescale(hAx, hObject)
 %       A spherical body is assumed but it's the major axis that is used
 %       in computations. The scale is correct at the point of insertion.
 
-%	Copyright (c) 2004-2014 by J. Luis
+%	Copyright (c) 2004-2017 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -26,7 +26,7 @@ function h = makescale(hAx, hObject)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: makescale.m 4379 2014-04-08 22:26:32Z j $
+% $Id: makescale.m 10057 2017-03-13 16:52:34Z j $
 
 	handles = guidata(hAx);
 	if (handles.no_file),		return,		end
@@ -48,13 +48,31 @@ function h = makescale(hAx, hObject)
 	x0 = x_lim(1) + 0.02 * diff(x_lim);
 	y0 = y_lim(1) + 0.02 * DY;
 	[slon,slat,str] = scale_line(handles, x0, y0, x_lim);
-	
+
+	% Try to guess if background is too dark ans if yes plot scale bar in white
+	scale_color = 'k';
+	if (handles.image_type ~= 20)
+		img = get(handles.hImg, 'CData');
+		col = aux_funs('getPixel_coords', size(img,2), x_lim, x0);
+		row = aux_funs('getPixel_coords', size(img,1), y_lim, y0);
+		bg_color = img(row,col,:);
+		if (all(bg_color < 60))
+			scale_color = 'w';
+		end
+	end
+
 	% Make the scale
-	hline = line('xdata',slon, 'ydata',slat, 'Parent',hAx, 'color','k', 'LineWidth',3,'Tag','MapScale');
-	htext = text(slon(end),slat(1)+.01*DY,str,'HorizontalAlignment','center', ...
+	hLine = line('xdata',slon, 'ydata',slat, 'Parent',hAx, 'color',scale_color, 'LineWidth',3,'Tag','MapScale');
+	hText = text(slon(end),slat(1)+.01*DY,str,'HorizontalAlignment','center', 'color',scale_color, ...
 		'VerticalAlignment','bottom','FontSize',12,'FontWeight','bold','Tag','MapScale');
 
-	if (nargout > 0),	h = [hline htext];	end
+	draw_funs(hText,'DrawText')
+	draw_funs(hLine,'line_uicontext')
+	% Now deactivate the line editing facility. This line is not editable
+	set(hLine,'buttondownfcn','');
+	rmappdata(hLine,'polygon_data')
+
+	if (nargout > 0),	h = [hLine hText];	end
 
 % -----------------------------------------------------------------------
 function [x,y,str] = scale_line(handles, x0, y0, x_lim)
@@ -99,7 +117,7 @@ function dd = dtick(dlim,geog)
 	end
 	p = ceil(dlim/m);
 	if     (p <= 1),	dd = 0.1*m;
-	elseif (p == 2)		dd = 0.2*m;
-	elseif (p <= 5)		dd = 0.5*m;
+	elseif (p == 2),	dd = 0.2*m;
+	elseif (p <= 5),	dd = 0.5*m;
 	else				dd = m;
 	end
