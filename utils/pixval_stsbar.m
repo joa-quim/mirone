@@ -1,9 +1,9 @@
 function pixval_stsbar(arg1)
 % Based on the defunct pixval, but heavily hacked in several ways.
 
-% Coffeeright J. Luis 2004-2016
+% Coffeeright J. Luis 2004-2017
 
-% $Id: pixval_stsbar.m 9931 2016-11-17 14:14:07Z j $
+% $Id: pixval_stsbar.m 10060 2017-03-14 22:12:06Z j $
 
 	if (nargin == 0),	arg1 = [];		end
 
@@ -261,6 +261,9 @@ function UpdatePixelValues(hFig, hImg, imageType, displayBar, img, x, y)
 			out_x = degree2dms(x,'DDMMSS.x',2,'str');	x = [out_x.dd ':' out_x.mm ':' out_x.ss];
 			out_y = degree2dms(y,'DDMMSS.x',2,'str');	y = [out_y.dd ':' out_y.mm ':' out_y.ss];
 			form_xy = ' %s, %s =';
+		case 'Date'
+			x = datestr(x,'dd-mmm-yyyy HH:MM:SS');
+			form_xy = ' %s,%7.3f =';
 	end
  
 	% figure out the new string
