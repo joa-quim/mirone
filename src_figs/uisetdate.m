@@ -23,12 +23,12 @@ function varargout = uisetdate(varargin)
 %  Luc Masset (2004)  e-mail: luc.masset@ulg.ac.be
 
 % Rewritten to use handles and be more robust.
-%	Coffeeright (c) 2004-2016 by J. Luis
+%	Coffeeright (c) 2004-2017 by J. Luis
 %
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: uisetdate.m 7790 2016-02-12 01:33:03Z j $
+% $Id: uisetdate.m 10059 2017-03-14 22:07:54Z j $
 
 	[datet,Y,M,D,nD] = init;
 	varargout{1} = datet;
@@ -75,6 +75,8 @@ function [datet,Y,M,D,nD] = init(datet)
 		pos=[10+40*(i-1) 190 30 20];
 		uicontrol('style','text','units','pixels','position',pos,'string',listJ{i}, 'horizontalalignment','center');
 	end
+	uicontrol('style','text','units','pixels','position',[5 7 150 16],'string','(Press ''y'' to change year)', ...
+		'horizontalalignment','left','Fontsize',8)
 
 	%------------ Give a Pro look (3D) to the frame boxes  --------
 	new_frame3D(hFig, NaN)
@@ -166,7 +168,7 @@ function update(hObject, handles)
 
 %------------------------------------------------------------------------------
 function changeday_CB(hObject, handles)
-	D = str2num(get(hObject,'string'));
+	D = str2double(get(hObject,'string'));
 	setappdata(handles.figure1,'day',D)
 	update(hObject, handles)
 
@@ -190,7 +192,7 @@ function changeyear(hObject, evt)
 			def = {sprintf('%i',Y)};
 			answer = inputdlg({'Year:'},'Set current year',1,def);
 			if isempty(answer),		return,		end
-			Y = str2num(answer{1});
+			Y = str2double(answer{1});
 			if isempty(Y),	return,		end
 			Y = round(Y);
 		otherwise
