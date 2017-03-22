@@ -151,6 +151,10 @@ function [hAx, imageType, x, y] = OverAxes(hFig)
 	% Make sure that the Axes's Button Down & Up functions will queue
 	set(hAxes, 'ButtonDownFcn', {@ButtonDownOnImage,hFig}, 'Interruptible','off', 'BusyAction','Queue');
 
+	% With external mouses something fcked up this property. Set it back again
+	displayBar = findobj(hFig, 'Tag', 'pixValStsBar');
+	set(hFig, 'WindowButtonUpFcn', {@BackToNormalPixvalDisplay, displayBar});
+
 	% Loop over the axes, see if we are above any of them
 	axCurPt = get(hAxes, {'CurrentPoint'});
 
