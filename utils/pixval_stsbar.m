@@ -3,7 +3,7 @@ function pixval_stsbar(arg1)
 
 % Coffeeright J. Luis 2004-2017
 
-% $Id: pixval_stsbar.m 10060 2017-03-14 22:12:06Z j $
+% $Id: pixval_stsbar.m 10064 2017-03-22 00:54:00Z j $
 
 	if (nargin == 0),	arg1 = [];		end
 
@@ -150,6 +150,10 @@ function [hAx, imageType, x, y] = OverAxes(hFig)
 	end
 	% Make sure that the Axes's Button Down & Up functions will queue
 	set(hAxes, 'ButtonDownFcn', {@ButtonDownOnImage,hFig}, 'Interruptible','off', 'BusyAction','Queue');
+
+	% With external mouses something fcked up this property. Set it back again
+	displayBar = findobj(hFig, 'Tag', 'pixValStsBar');
+	set(hFig, 'WindowButtonUpFcn', {@BackToNormalPixvalDisplay, displayBar});
 
 	% Loop over the axes, see if we are above any of them
 	axCurPt = get(hAxes, {'CurrentPoint'});
