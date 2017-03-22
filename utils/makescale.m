@@ -49,7 +49,7 @@ function h = makescale(hAx, hObject)
 	y0 = y_lim(1) + 0.02 * DY;
 	[slon,slat,str] = scale_line(handles, x0, y0, x_lim);
 
-	% Try to guess if background is too dark ans if yes plot scale bar in white
+	% Try to guess if background is too dark and if yes plot scale bar in white
 	scale_color = 'k';
 	if (handles.image_type ~= 20)
 		img = get(handles.hImg, 'CData');
@@ -88,7 +88,6 @@ function [x,y,str] = scale_line(handles, x0, y0, x_lim)
 			str = sprintf('%g Nm', ruler_len);
 		else
 			if (ruler_len < 1)	% We are in m
-				f = f * 1000;
 				str = sprintf('%g m', ruler_len * 1000);
 			end
 		end
