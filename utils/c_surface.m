@@ -3,7 +3,7 @@ function [out, hdr] = c_surface(data, varargin)
 
 % A merda é que 'data' pode ser um Mx3 ou entao um Mx1 e os X,Y[,W] devem tar no varargin
 
-% $Id: c_surface.m 9918 2016-11-14 18:27:48Z j $
+% $Id: c_surface.m 10065 2017-03-28 23:59:09Z j $
 
 	global gmt_ver
 	if (isempty(gmt_ver)),		gmt_ver = 4;	end		% For example, if calls do not come via mirone.m
@@ -12,7 +12,7 @@ function [out, hdr] = c_surface(data, varargin)
 		[out, hdr] = surface_m(data, varargin{:});
 	else
 		% nearneighbor in GMT5 is less elastic in terms of how to swallow the data array(s)
-		if (size(data,2) == 3 || size(data,2) == 4)
+		if (size(data,2) == 3 || size(data,2) == 4 || isa(data,'char'))
 			k0 = 1;
 		elseif (numel(varargin) >= 2 && isnumeric(varargin{1}) && size(varargin{1},2) == 1 && ...
 				isnumeric(varargin{2}) && size(varargin{2},2) == 1)
@@ -28,7 +28,11 @@ function [out, hdr] = c_surface(data, varargin)
 		for (k = k0:numel(varargin))
 			cmd = sprintf('%s %s', cmd, varargin{k});
 		end
-		G = gmtmex(cmd, data);
+		if (isa(data,'char'))				% DATA is actually a file name
+			G = gmtmex([cmd ' ' data]);
+		else
+			G = gmtmex(cmd, data);
+		end
 		gmtmex('destroy')
 		if (nargout == 1)
 			out = G.z;
