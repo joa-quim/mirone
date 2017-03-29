@@ -1,7 +1,7 @@
 function varargout = griding_mir(varargin)
 % Wrapper figure to call apropriate interpolation MEX
 
-%	Copyright (c) 2004-2014 by J. Luis
+%	Copyright (c) 2004-2017 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -16,7 +16,10 @@ function varargout = griding_mir(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: griding_mir.m 4730 2015-07-22 15:17:26Z j $
+% $Id: griding_mir.m 10067 2017-03-29 00:05:00Z j $
+
+	global gmt_ver
+	if (isempty(gmt_ver)),		gmt_ver = 5;	end
 
 	hObject = figure('Vis','off');
 	griding_mir_LayoutFcn(hObject);
@@ -49,6 +52,7 @@ function varargout = griding_mir(varargin)
 	handles.x_inc = [];				handles.y_inc = [];
 	handles.dms_xinc = 0;			handles.dms_yinc = 0;
 	handles.IamCompiled = false;
+	handles.xyz = [];
 	handles.one_or_zero = 1;		% For Grid Registration grids, which are the most common cases
 	handles.hMirFig = [];			% Update this bellow when integrated in Mirone
 
@@ -142,23 +146,23 @@ function varargout = griding_mir(varargin)
 
 % -----------------------------------------------------------------------------------
 function check_Option_H_CB(hObject, handles)
-if get(hObject,'Value')
-    if isempty(get(handles.edit_InputFile,'String'))
-        handles.command{41} = ' -H';
-        set(handles.edit_nHeaders,'Enable','on', 'Backgroundcolor','white')
-    else
-        errordlg(['Now it''s to late to chose this option. If you realy want to do this, clean ' ...
-                'the "Input Data File" box, hit the "Return" key, and start again but ' ...
-                'check this option before load the data file.'],'Error')
-        handles.command{41} = '';
-        set(hObject,'Value',0)
-        set(handles.edit_nHeaders,'Enable','off', 'Backgroundcolor',[.764,.603,.603])
-    end
-else
-    handles.command{41} = '';     handles.command{42} = '';
-    set(handles.edit_nHeaders,'String','1','Enable','off', 'Backgroundcolor',[.764,.603,.603])
-end
-guidata(hObject,handles)
+	if get(hObject,'Value')
+		if isempty(get(handles.edit_InputFile,'String'))
+			handles.command{41} = ' -H';
+			set(handles.edit_nHeaders,'Enable','on', 'Backgroundcolor','white')
+		else
+			errordlg(['Now it''s to late to chose this option. If you realy want to do this, clean ' ...
+					'the "Input Data File" box, hit the "Return" key, and start again but ' ...
+					'check this option before load the data file.'],'Error')
+			handles.command{41} = '';
+			set(hObject,'Value',0)
+			set(handles.edit_nHeaders,'Enable','off', 'Backgroundcolor',[.764,.603,.603])
+		end
+	else
+		handles.command{41} = '';     handles.command{42} = '';
+		set(handles.edit_nHeaders,'String','0','Enable','off', 'Backgroundcolor',[.764,.603,.603])
+	end
+	guidata(hObject,handles)
 
 % -----------------------------------------------------------------------------------
 function edit_nHeaders_CB(hObject, handles)
@@ -179,42 +183,42 @@ function edit_nHeaders_CB(hObject, handles)
 
 % -----------------------------------------------------------------------------------
 function popup_binInput_CB(hObject, handles)
-if ~isempty(get(handles.edit_InputFile,'String'))
-    errordlg(['Now it''s to late to choose any of these options. If you realy want to do this, clean ' ...
-              'the "Input Data File" box, hit the "Return" key, and start again but first ' ...
-              'choose here the input file format before load the data file.'],'Error')
-    return
-end
-val = get(hObject,'Value');     str = get(hObject, 'String');
-switch str{val};
-    case 'ascii'
-        handles.command{38} = '';     handles.command{39} = '';
-        set(handles.edit_binary_ncolumnIn,'String','3')
-        set(handles.edit_binary_ncolumnIn,'Enable','off', 'Backgroundcolor',[.764,.603,.603])
-        set(handles.check_Option_H,'Enable','on')
-        set(handles.edit_nHeaders,'Enable','on', 'Backgroundcolor','white')
-        set(handles.check_Option_H,'Value',0);   set(handles.edit_nHeaders,'String','1');
-        set(handles.edit_binary_ncolumnIn,'Visible','off')
-        if ~get(handles.check_Option_H,'Value')
-            set(handles.edit_nHeaders,'Enable','off', 'Backgroundcolor',[.764,.603,.603])
-            set(hObject,'Enable','off')
-        end
-    case 'binary double'
-        set(handles.edit_binary_ncolumnIn,'Visible','on')
-        handles.command{38} = ' -bi';  handles.command{41} = '';    handles.command{42} = '';
-        set(handles.edit_binary_ncolumnIn,'Enable','on', 'Backgroundcolor','white')
-        set(handles.check_Option_H,'Value',0);   set(handles.edit_nHeaders,'String','1');
-        set(handles.check_Option_H,'Enable','off')
-        set(handles.edit_nHeaders,'Enable','off', 'Backgroundcolor',[.764,.603,.603])
-    case 'binary single'
-        set(handles.edit_binary_ncolumnIn,'Visible','on')
-        handles.command{38} = ' -bis';  handles.command{41} = '';    handles.command{42} = '';
-        %set(handles.edit_binary_ncolumnIn,'Enable','on', 'Backgroundcolor','white')
-        set(handles.check_Option_H,'Value',0);   set(handles.edit_nHeaders,'String','1');
-        set(handles.check_Option_H,'Enable','off')
-        set(handles.edit_nHeaders,'Enable','off', 'Backgroundcolor',[.764,.603,.603])
-end
-guidata(hObject,handles)
+	if ~isempty(get(handles.edit_InputFile,'String'))
+		errordlg(['Now it''s to late to choose any of these options. If you realy want to do this, clean ' ...
+				  'the "Input Data File" box, hit the "Return" key, and start again but first ' ...
+				  'choose here the input file format before load the data file.'],'Error')
+		return
+	end
+	val = get(hObject,'Value');     str = get(hObject, 'String');
+	switch str{val};
+		case 'ascii'
+			handles.command{38} = '';     handles.command{39} = '';
+			set(handles.edit_binary_ncolumnIn,'String','3')
+			set(handles.edit_binary_ncolumnIn,'Enable','off', 'Backgroundcolor',[.764,.603,.603])
+			set(handles.check_Option_H,'Enable','on')
+			set(handles.edit_nHeaders,'Enable','on', 'Backgroundcolor','white')
+			set(handles.check_Option_H,'Value',0);   set(handles.edit_nHeaders,'String','0');
+			set(handles.edit_binary_ncolumnIn,'Visible','off')
+			if ~get(handles.check_Option_H,'Value')
+				set(handles.edit_nHeaders,'Enable','off', 'Backgroundcolor',[.764,.603,.603])
+				set(hObject,'Enable','off')
+			end
+		case 'binary double'
+			set(handles.edit_binary_ncolumnIn,'Visible','on')
+			handles.command{38} = ' -bi';  handles.command{41} = '';    handles.command{42} = '';
+			set(handles.edit_binary_ncolumnIn,'Enable','on', 'Backgroundcolor','white')
+			set(handles.check_Option_H,'Value',0);   set(handles.edit_nHeaders,'String','0');
+			set(handles.check_Option_H,'Enable','off')
+			set(handles.edit_nHeaders,'Enable','off', 'Backgroundcolor',[.764,.603,.603])
+		case 'binary single'
+			set(handles.edit_binary_ncolumnIn,'Visible','on')
+			handles.command{38} = ' -bis';  handles.command{41} = '';    handles.command{42} = '';
+			%set(handles.edit_binary_ncolumnIn,'Enable','on', 'Backgroundcolor','white')
+			set(handles.check_Option_H,'Value',0);   set(handles.edit_nHeaders,'String','0');
+			set(handles.check_Option_H,'Enable','off')
+			set(handles.edit_nHeaders,'Enable','off', 'Backgroundcolor',[.764,.603,.603])
+	end
+	guidata(hObject,handles)
 
 %----------------------------------------------------------------------------------------------
 function edit_binary_ncolumnIn_CB(hObject, handles)
@@ -230,24 +234,48 @@ function edit_binary_ncolumnIn_CB(hObject, handles)
 
 %----------------------------------------------------------------------------------------------
 function push_Help_H_CB(hObject, handles)
-message = {'Input file has Header record(s). Number of header records can be changed'
-           'on the "N? of headers" box. Not used with binary data. This, like all GMT'
-           'programs, accept table data input in ASCII or binary data. When using'
-           'binary data you must be aware of the fact that GMT has no way of'
-           'determining the actual number of columns in the file. You should therefore'
-           'pass that information to GMT via the ascii/binary popup menu and its side'
-           'box, where the actual number of data columns can be introduced.'};
-message_win('create',message,'figname','Help on input data');
+	message = {'Input file has Header record(s). Number of header records can be changed'
+				'on the "N? of headers" box. Not used with binary data. This, like all GMT'
+				'programs, accept table data input in ASCII or binary data. When using'
+				'binary data you must be aware of the fact that GMT has no way of'
+				'determining the actual number of columns in the file. You should therefore'
+				'pass that information to GMT via the ascii/binary popup menu and its side'
+				'box, where the actual number of data columns can be introduced.'};
+	message_win('create',message,'figname','Help on input data');
 
 %----------------------------------------------------------------------------------------------
 function edit_InputFile_CB(hObject, handles, opt)
-	if (nargin == 3 && ischar(opt))   % OPT is a file name transmited by push_InputFile_CB
+	global gmt_ver
+
+	if (nargin == 3 && ischar(opt))		% OPT is a file name transmited by push_InputFile_CB
 		xx = opt;
 	else
 		xx = get(hObject,'String');
 	end
-	if ~isempty(xx)
-		handles.command{3} = xx;
+
+	if (isempty(xx))
+		% Reset everything to initial state (falta a parte do nearneigh)
+		set(handles.edit_x_min,'String','');	set(handles.edit_x_max,'String','');
+		set(handles.edit_y_min,'String','');	set(handles.edit_y_max,'String','');
+		set(handles.edit_x_inc,'String','');	set(handles.edit_y_inc,'String','');
+		set(handles.edit_Ncols,'String','');	set(handles.edit_Nrows,'String','');
+		set(handles.check_ToggleXY,'Value',0);
+		%set(handles.popup_binInput,'Value',1);
+		%set(handles.edit_binary_ncolumnIn,'String','3');
+		for i = 3:length(handles.command),	handles.command{i} = '';	end
+		guidata(handles.figure1, handles)
+		return
+	end
+
+	handles.command{3} = xx;
+	if (gmt_ver == 5)
+		d_info = gmtmex(['gmtinfo -C ' xx]);
+		x_min = d_info.data(1);		x_max = d_info.data(2);
+		y_min = d_info.data(3);		y_max = d_info.data(4);
+		val{1} = sprintf('%0.12g', x_min);			val{2} = sprintf('%0.12g', x_max);
+		val{3} = sprintf('%0.12g', y_min);			val{4} = sprintf('%0.12g', y_max);
+		val{5} = sprintf('%0.12g', d_info.data(5));	val{6} = sprintf('%0.12g', d_info.data(6));
+	else
 		str = ['minmax -C ' xx];
 		[s,w] = mat_lyies(str);
 		if ~(isequal(s,0))                  % An error as occured. Try loading the file ourselves.
@@ -270,7 +298,7 @@ function edit_InputFile_CB(hObject, handles, opt)
 				guidata(hObject, handles);
 				return
 			end
-			
+
 			% compute also handles.x_min, handles.x_max, ...
 			xx = test_dms(val{1});		x_min = 0;
 			if str2double(xx{1}) > 0
@@ -297,32 +325,24 @@ function edit_InputFile_CB(hObject, handles, opt)
 				for (i = 1:numel(xx)),	y_max = y_max - abs(str2double(xx{i})) / (60^(i-1));   end
 			end
 		end
-		handles.command{6} = val{1};    handles.command{7} = '/';
-		handles.command{8} = val{2};    handles.command{9} = '/';
-		handles.command{10} = val{3};   handles.command{11} = '/';
-		handles.command{12} = val{4};   handles.command{5} = ' -R';
-		handles.x_min = x_min;  handles.x_max = x_max;  handles.y_min = y_min;  handles.y_max = y_max;
-		set(handles.edit_x_min,'String',val{1});     set(handles.edit_x_max,'String',val{2});
-		set(handles.edit_y_min,'String',val{3});     set(handles.edit_y_max,'String',val{4});
-		% Until something more inteligent is devised (like using some kind of estatistics to estimate
-		% default's Nrow & Ncol) the default value of Nrow = Ncol = 100 will be used.
-		x_inc = ivan_the_terrible((x_max - x_min),100,1);			% This will be recomputed in dim_funs()
-		y_inc = ivan_the_terrible((y_max - y_min),100,1);
-		handles.command{14} = ' -I';    handles.command{16} = '/';
-		handles.command{15} = num2str(x_inc,8);   handles.command{17} = num2str(y_inc,8);
-		set(handles.edit_x_inc,'String',num2str(x_inc,8));     set(handles.edit_y_inc,'String',num2str(y_inc,8));
-		set(handles.edit_Ncols,'String','100');     set(handles.edit_Nrows,'String','100');
-	else
-		% Reset everything to initial state (falta a parte do nearneigh)
-		set(handles.edit_x_min,'String','');	set(handles.edit_x_max,'String','');
-		set(handles.edit_y_min,'String','');	set(handles.edit_y_max,'String','');
-		set(handles.edit_x_inc,'String','');	set(handles.edit_y_inc,'String','');
-		set(handles.edit_Ncols,'String','');	set(handles.edit_Nrows,'String','');
-		set(handles.check_ToggleXY,'Value',0);
-		%set(handles.popup_binInput,'Value',1);
-		%set(handles.edit_binary_ncolumnIn,'String','3');
-		for i = 3:length(handles.command)   handles.command{i} = '';  end
-	end 
+	end
+
+	handles.command{6} = val{1};    handles.command{7} = '/';
+	handles.command{8} = val{2};    handles.command{9} = '/';
+	handles.command{10} = val{3};   handles.command{11} = '/';
+	handles.command{12} = val{4};   handles.command{5} = ' -R';
+	handles.x_min = x_min;  handles.x_max = x_max;  handles.y_min = y_min;  handles.y_max = y_max;
+	set(handles.edit_x_min,'String',val{1});     set(handles.edit_x_max,'String',val{2});
+	set(handles.edit_y_min,'String',val{3});     set(handles.edit_y_max,'String',val{4});
+	% Until something more inteligent is devised (like using some kind of estatistics to estimate
+	% default's Nrow & Ncol) the default value of Nrow = Ncol = 100 will be used.
+	x_inc = ivan_the_terrible((x_max - x_min),100,1);			% This will be recomputed in dim_funs()
+	y_inc = ivan_the_terrible((y_max - y_min),100,1);
+	handles.command{14} = ' -I';    handles.command{16} = '/';
+	handles.command{15} = num2str(x_inc,8);   handles.command{17} = num2str(y_inc,8);
+	set(handles.edit_x_inc,'String',num2str(x_inc,8));     set(handles.edit_y_inc,'String',num2str(y_inc,8));
+	set(handles.edit_Ncols,'String','100');     set(handles.edit_Nrows,'String','100');
+
 	guidata(handles.figure1, handles)
 
 %----------------------------------------------------------------------------------------------
@@ -340,7 +360,7 @@ function push_InputFile_CB(hObject, handles)
 
 	handles.command{3} = [PathName FileName];
 	set(handles.edit_InputFile, 'String',handles.command{3})
-	guidata(hObject, handles);
+	guidata(hObject, handles)
 	edit_InputFile_CB(handles.edit_InputFile, handles, [PathName FileName]);
 
 % -----------------------------------------------------------------------------------
@@ -533,10 +553,11 @@ function push_Grid_Options_CB(hObject, handles)
 
 % -----------------------------------------------------------------------------------
 function push_OK_CB(hObject, handles)
-% I will still use the old technique
+% Still using the old technique
 
 	tmp = horzcat(handles.command{1:end});
 	[tok,rem] = strtok(tmp);
+	out = cell(1,1);		% Probably too short but will shut up Lint
 	out{1} = tok;
 	i = 2;
 	while (rem)
@@ -560,7 +581,7 @@ function push_OK_CB(hObject, handles)
 		errordlg('One (or two) of the grid dimensions are not valid. Do your best.','Error'),	return
 	end
 
-	if ( strcmp(handles.type,'nearneighbor') && isempty(get(handles.edit_S1_Neighbor,'String')) )
+	if (strcmp(handles.type,'nearneighbor') && isempty(get(handles.edit_S1_Neighbor,'String')))
 		errordlg('Must give a value for "Search radius".','Error'),		return
 	end
 
@@ -575,10 +596,24 @@ function push_OK_CB(hObject, handles)
 	end
 	out{3} = opt_R;			out{4} = opt_I;
 
+	method = handles.type;
+
+	% We are going to use the eventual presence of a -c<n_cells> option to secretely swapp to gmtmbgrid
+	ind = strfind(out, '-c');
+	for (k = 1:numel(ind))
+		if (~isempty(ind{k}))
+			opt_c = out{k};		opt_c(2) = 'C';		% it was 'c'
+			n_cells = str2double(opt_c(3:end));
+			if (n_cells > 0)
+				method = 'gmtmbgrid';
+				break
+			end
+		end
+	end
+
 	set(handles.figure1,'Name','COMPUTING')
-	switch handles.type
+	switch method
 		case 'surface'
-% 			[Z,head] = gmtmbgrid_m(out{2:end}, '-Mz');		% NOT READY because it doesn't read from file neither -:
 			[Z,head] = c_surface(out{2:end});
 			tit = 'surface interpolation';
 			set(handles.figure1,'Name','Surface')
@@ -587,13 +622,19 @@ function push_OK_CB(hObject, handles)
 			tit = 'nearneighbor interpolation';
 			set(handles.figure1,'Name','Nearneighbor')
 		case 'gmtmbgrid'
- 			% Data points were transmitted in input. The must-be-dubles is horrible here
-			if (size(handles.xyz,1) > 3)	% xyz is a cols array
-				[Z, head] = gmtmbgrid_m(double(handles.xyz(:,1)), double(handles.xyz(:,2)), ...
-					double(handles.xyz(:,3)), opt_I, opt_R, '-Mz', '-C3');
+ 			% Data points were transmitted in input. The must-be-doubles is horrible here
+			if (~isempty(handles.xyz))
+				if (size(handles.xyz,1) > 3)	% xyz is a cols array
+					[Z, head] = gmtmbgrid_m(double(handles.xyz(:,1)), double(handles.xyz(:,2)), ...
+						double(handles.xyz(:,3)), opt_I, opt_R, '-Mz', '-C3');
+				else
+					[Z, head] = gmtmbgrid_m(double(handles.xyz(1,:)), double(handles.xyz(2,:)), ...
+						double(handles.xyz(3,:)), opt_I, opt_R, '-Mz', '-C3');
+				end
 			else
-				[Z, head] = gmtmbgrid_m(double(handles.xyz(1,:)), double(handles.xyz(2,:)), ...
-					double(handles.xyz(3,:)), opt_I, opt_R, '-Mz', '-C3');
+				D = gmtmex(['read -Td ' out{2}]);
+				if (~isa(D.data,'double')),		D.data = double(D.data);	end
+				[Z, head] = gmtmbgrid_m(D.data(:,1), D.data(:,2), D.data(:,3), opt_I, opt_R, '-Mz', opt_c);
 			end
 			Z = single(Z);
 			tit = 'mbgrid interpolation';
@@ -680,13 +721,12 @@ function about_window_CB(hObject, handles)
 % --- Creates and returns a handle to the GUI figure. 
 function griding_mir_LayoutFcn(h1)
 
-set(h1,'PaperUnits',get(0,'defaultfigurePaperUnits'),...
+set(h1,'PaperUnits',get(0,'defaultfigurePaperUnits'), 'Position',[265 206 391 353],...
 'Color',get(0,'factoryUicontrolBackgroundColor'),...
 'KeyPressFcn',@figure1_KeyPressFcn,...
 'MenuBar','none',...
 'Name','griding_mir',...
 'NumberTitle','off',...
-'Position',[265 206 391 353],...
 'Resize','off',...
 'Tag','figure1');
 
@@ -695,125 +735,113 @@ uicontrol('Parent',h1, 'Position',[10 43 370 41], 'Style','frame');
 uicontrol('Parent',h1, 'Position',[10 279 370 67], 'Style','frame');
 uicontrol('Parent',h1, 'Position',[10 166 370 93], 'Style','frame');
 
-uicontrol('Parent',h1,...
+uicontrol('Parent',h1, 'Position',[21 318 80 15],...
 'Call',@griding_mir_uiCB,...
-'Position',[21 318 80 15],...
 'String','Headers?',...
 'Style','checkbox',...
 'Tooltip','Are there any header lines in the input file?',...
 'Tag','check_Option_H');
 
-uicontrol('Parent',h1,...
+uicontrol('Parent',h1, 'Position',[170 314 31 20],...
 'BackgroundColor',[1 1 1],...
 'Call',@griding_mir_uiCB,...
 'HorizontalAlignment','left',...
-'Position',[170 314 31 20],...
-'String','1',...
+'String','0',...
 'Style','edit',...
 'Tooltip','How many?',...
 'Tag','edit_nHeaders');
 
-uicontrol('Parent',h1,...
+uicontrol('Parent',h1, 'Position',[214 313 91 22],...
 'BackgroundColor',[1 1 1],...
 'Call',@griding_mir_uiCB,...
-'Position',[214 313 91 22],...
 'String',{  'ascii'; 'binary double'; 'binary single' },...
 'Style','popupmenu',...
 'Tooltip','Input data type',...
 'Value',1,...
 'Tag','popup_binInput');
 
-uicontrol('Parent',h1,...
+uicontrol('Parent',h1, 'Position',[304 314 25 20],...
 'BackgroundColor',[1 1 1],...
 'Call',@griding_mir_uiCB,...
 'HorizontalAlignment','left',...
-'Position',[304 314 25 20],...
 'String','3',...
 'Style','edit',...
 'Tooltip','Number of columns in binary data',...
 'Tag','edit_binary_ncolumnIn');
 
-uicontrol('Parent',h1,...
+uicontrol('Parent',h1, 'Position',[351 314 22 22],...
 'BackgroundColor',[0.8313725591 0.81568629 0.784314],...
 'Call',@griding_mir_uiCB,...
 'FontWeight','bold',...
 'ForegroundColor',[0 0 1],...
-'Position',[351 314 22 22],...
 'String','?',...
 'Tag','push_Help_H');
 
-uicontrol('Parent',h1,...
+uicontrol('Parent',h1, 'Position',[20 286 330 22],...
 'BackgroundColor',[1 1 1],...
 'Call',@griding_mir_uiCB,...
 'HorizontalAlignment','left',...
-'Position',[20 286 330 22],...
 'Style','edit',...
+'Tooltip','Enter input file name',...
 'Tag','edit_InputFile');
 
-uicontrol('Parent',h1,...
+uicontrol('Parent',h1, 'Position',[350 285 23 23],...
 'Call',@griding_mir_uiCB,...
-'Position',[350 285 23 23],...
+'Tooltip','Browse for th input file',...
 'Tag','push_InputFile');
 
-uicontrol('Parent',h1,...
+uicontrol('Parent',h1, 'Position',[76 219 71 21],...
 'BackgroundColor',[1 1 1],...
 'Call',@griding_mir_uiCB,...
 'HorizontalAlignment','left',...
-'Position',[76 219 71 21],...
 'Style','edit',...
 'Tooltip','X min value',...
 'Tag','edit_x_min');
 
-uicontrol('Parent',h1,...
+uicontrol('Parent',h1, 'Position',[152 219 71 21],...
 'BackgroundColor',[1 1 1],...
 'Call',@griding_mir_uiCB,...
 'HorizontalAlignment','left',...
-'Position',[152 219 71 21],...
 'Style','edit',...
 'Tooltip','X max value',...
 'Tag','edit_x_max');
 
-uicontrol('Parent',h1,...
+uicontrol('Parent',h1, 'Position',[228 219 71 21],...
 'BackgroundColor',[1 1 1],...
 'Call',@griding_mir_uiCB,...
 'HorizontalAlignment','left',...
-'Position',[228 219 71 21],...
 'Style','edit',...
 'Tooltip','DX grid spacing',...
 'Tag','edit_x_inc');
 
-uicontrol('Parent',h1,...
+uicontrol('Parent',h1, 'Position',[304 219 65 21],...
 'BackgroundColor',[1 1 1],...
 'Call',@griding_mir_uiCB,...
 'HorizontalAlignment','left',...
-'Position',[304 219 65 21],...
 'Style','edit',...
 'Tooltip','Number of columns in the grid',...
 'Tag','edit_Ncols');
 
-uicontrol('Parent',h1,...
+uicontrol('Parent',h1, 'Position',[76 193 71 21],...
 'BackgroundColor',[1 1 1],...
 'Call',@griding_mir_uiCB,...
 'HorizontalAlignment','left',...
-'Position',[76 193 71 21],...
 'Style','edit',...
 'Tooltip','Y min value',...
 'Tag','edit_y_min');
 
-uicontrol('Parent',h1,...
+uicontrol('Parent',h1, 'Position',[152 193 71 21],...
 'BackgroundColor',[1 1 1],...
 'Call',@griding_mir_uiCB,...
 'HorizontalAlignment','left',...
-'Position',[152 193 71 21],...
 'Style','edit',...
 'Tooltip','Y max value',...
 'Tag','edit_y_max');
 
-uicontrol('Parent',h1,...
+uicontrol('Parent',h1, 'Position',[228 193 71 21],...
 'BackgroundColor',[1 1 1],...
 'Call',@griding_mir_uiCB,...
 'HorizontalAlignment','left',...
-'Position',[228 193 71 21],...
 'Style','edit',...
 'Tooltip','DY grid spacing',...
 'Tag','edit_y_inc');
@@ -958,15 +986,13 @@ uicontrol('Parent',h1, 'Position',[38 142 133 17],...
 'Tag','txt_FNo',...
 'Style','text');
 
-uicontrol('Parent',h1,...
+uicontrol('Parent',h1, 'Position',[17 113 40 30],...
 'Enable','inactive',...
-'Position',[17 113 40 30],...
 'String',{'Search'; 'Radius'},...
 'Style','text');
 
-uicontrol('Parent',h1,...
+uicontrol('Parent',h1, 'Position',[149 120 41 15],...
 'Enable','inactive',...
-'Position',[149 120 41 15],...
 'String','Unities',...
 'Style','text');
 
@@ -975,17 +1001,15 @@ uimenu('Parent',h1,...
 'Label','About',...
 'Tag','about_window');
 
-uicontrol('Parent',h1,...
+uicontrol('Parent',h1, 'Position',[101 317 67 15],...
 'HorizontalAlignment','left',...
-'Position',[101 317 67 15],...
 'String','N? of headers',...
 'Style','text',...
 'Tooltip','How many?');
 
-uicontrol('Parent',h1,...
+uicontrol('Parent',h1, 'Position',[270 7 111 21],...
 'Call',@griding_mir_uiCB,...
 'FontWeight','bold',...
-'Position',[270 7 111 21],...
 'String','Compute',...
 'Tag','push_OK');
 
