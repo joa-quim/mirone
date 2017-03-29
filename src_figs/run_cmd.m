@@ -16,7 +16,7 @@ function varargout = run_cmd(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: run_cmd.m 4701 2015-04-15 14:15:04Z j $
+% $Id: run_cmd.m 10068 2017-03-29 00:06:25Z j $
 
 	if (isempty(varargin)),		return,		end
  
@@ -50,6 +50,7 @@ function varargout = run_cmd(varargin)
 	handles.image_type = handlesMir.image_type;
 	handles.imgSize = size(get(handles.hImg,'CData'));
 	handles.path_tmp = handlesMir.path_tmp;
+	handles.IamCompiled = handlesMir.IamCompiled;
 	handles.isTrue = 1;
 
 	% Add this figure handle to the carraças list
@@ -151,8 +152,26 @@ function push_compute_CB(hObject, handles)
 			Z(isnan(Z)) = 0;
 			is_1D = true;
 		end
-		arg1.Z = Z;
- 		Z_out = feval(cb,arg1,com);
+
+		if (handles.IamCompiled)		% PARTICULAR CASES FOR CLASSES
+			if (~isempty(strfind(com, 'Z >')) || ~isempty(strfind(com, 'Z>')))
+				if (com(end) == ';'),	com(end) = [];		end		% We don't want the trailing ';' here
+				ind = strfind(com, '>');
+				thresh = str2double(com(ind(1)+1:end));
+				Z_out = Z > thresh;
+			elseif (is_1D)
+				ind1 = strfind(com, ',');
+				ind2 = strfind(com, ')');
+				dim = str2double(com(ind1+1:ind2-1));
+				Z_out = sum(Z, dim);
+			else
+				warndlg('In the compiled version only a very limmited set of operations work. Unfortunately not this one.','Warning')
+				return
+			end
+		else
+			arg1.Z = Z;
+			Z_out = feval(cb,arg1,com);
+		end
 	catch
 		errordlg(['It didn''t work: ' lasterr],'Error'),		return
 	end
