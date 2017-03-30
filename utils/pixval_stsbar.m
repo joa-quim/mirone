@@ -56,6 +56,7 @@ function pixval_stsbar(arg1)
 		userData.head  = handles.head;
 		userData.axes1 = handles.axes1;
 		userData.geog  = handles.geog;
+		userData.line = [];
 		if isempty(getappdata(hFig,'dem_x')),   userData.haveGrid = 0;
 		else                                    userData.haveGrid = 1;
 		end
