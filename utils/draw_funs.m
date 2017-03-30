@@ -25,7 +25,7 @@ function varargout = draw_funs(hand, varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: draw_funs.m 10014 2017-02-07 18:15:21Z j $
+% $Id: draw_funs.m 10070 2017-03-30 23:55:08Z j $
 
 % A bit of strange tests but they are necessary for the cases when we use the new feval(fun,varargin{:}) 
 opt = varargin{1};		% function name to evaluate (new) or keyword to select one (old form)
@@ -224,6 +224,7 @@ function set_line_uicontext_XY(h, opt)
 			uimenu('Parent',hh, 'Label', 'XY origin');
 			uimenu(cmenuHand,   'Label', 'Filter Outliers', 'Sep','on');
 			uimenu(cmenuHand,   'Label', 'Show histogram',  'Sep','on');
+			uimenu(cmenuHand,   'Label', 'Show Bar graph');
 		else
 			ui_edit_polygon(h(k))			% Set edition functions
 			uimenu(cmenuHand, 'Label', 'Line length', 'Call', @show_LineLength_XY)
@@ -2489,7 +2490,7 @@ function copy_text_object(obj,eventdata)
     move_text([],[])
 
 % -----------------------------------------------------------------------------------------
-function move_text(obj,eventdata)
+function move_text(obj,evt)
 	h = gco;
     hFig = get(0,'CurrentFigure');  hAxes = get(hFig,'CurrentAxes');
 	state = uisuspend_j(hFig);     % Remember initial figure state
@@ -2503,7 +2504,7 @@ function wbd_txt(obj,eventdata,h,state,hAxes)
 % check if x,y is inside of axis
 	pt = get(hAxes, 'CurrentPoint');  x = pt(1,1);    y = pt(1,2);
 	x_lim = get(hAxes,'xlim');      y_lim = get(hAxes,'ylim');
-	if (x<x_lim(1)) || (x>x_lim(2)) || (y<y_lim(1)) || (y>y_lim(2));   return; end
+	if (x < x_lim(1)) || (x > x_lim(2)) || (y < y_lim(1)) || (y > y_lim(2));	return,	end
 	refresh
 	uirestore_j(state, 'nochildren');	% Restore the figure's initial state
 % -----------------------------------------------------------------------------------------
@@ -3013,7 +3014,7 @@ function save_GMT_DB_asc(h, fname)
 		if (isempty(getappdata(h(k), 'edited'))),	continue,	end		% Skip because it was not modified
 		GSHHS_str = getappdata(h(k),'GSHHS_str');
 		if (k == 1 && ~isempty(GSHHS_str))		% Write back the magic string that allows us to recognize these type of files
-			fprintf(fid,'# $Id: draw_funs.m 10014 2017-02-07 18:15:21Z j $\n#\n%s\n#\n', GSHHS_str);
+			fprintf(fid,'# $Id: draw_funs.m 10070 2017-03-30 23:55:08Z j $\n#\n%s\n#\n', GSHHS_str);
 		end
 		hdr = getappdata(h(k), 'LineInfo');
 		x = get(h(k), 'XData');			y = get(h(k), 'YData');
@@ -3232,6 +3233,8 @@ function mareg_online(obj,eventdata,h, data, opt)
 	end
 	serial_date = datenummx(y);
 	hf = ecran(handles, serial_date, sl, [nome ' (' pais ')']);
+	hAxes = findobj(hf,'Tag','axes1');
+	setappdata(hAxes, 'LabelFormatType', 'Date');		% Tell pixval_stsbar to display XX coords as Date-Time
 	h = findobj(hf,'Tag','add_uictx');
 	cb = get(h, 'Call');
 	feval(cb, h, guidata(hf))			% Call the ecran's add_uictx_CB function
