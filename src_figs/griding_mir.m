@@ -16,7 +16,7 @@ function varargout = griding_mir(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: griding_mir.m 10067 2017-03-29 00:05:00Z j $
+% $Id: griding_mir.m 10072 2017-03-31 00:04:42Z j $
 
 	global gmt_ver
 	if (isempty(gmt_ver)),		gmt_ver = 5;	end
@@ -599,9 +599,9 @@ function push_OK_CB(hObject, handles)
 	method = handles.type;
 
 	% We are going to use the eventual presence of a -c<n_cells> option to secretely swapp to gmtmbgrid
-	ind = strfind(out, '-c');
-	for (k = 1:numel(ind))
-		if (~isempty(ind{k}))
+	for (k = 1:numel(out))
+		ind  = strfind(out{k}, '-c');
+		if (~isempty(ind))
 			opt_c = out{k};		opt_c(2) = 'C';		% it was 'c'
 			n_cells = str2double(opt_c(3:end));
 			if (n_cells > 0)
