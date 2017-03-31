@@ -16,7 +16,7 @@ function [H1,handles,home_dir] = mirone_uis(home_dir)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: mirone_uis.m 10069 2017-03-29 01:04:18Z j $
+% $Id: mirone_uis.m 10075 2017-03-31 00:13:03Z j $
 
 %#function pan igrf_options rally_plater plate_calculator ecran snapshot
 %#function about_box parker_stuff euler_stuff grid_calculator tableGUI
@@ -719,9 +719,7 @@ uimenu('Parent',h2,'Call','mirone(''TransferB_CB'',guidata(gcbo),''Multiscale'')
 % uimenu('Parent',h,'Call','mirone(''TransferB_CB'',guidata(gcbo),''hydro_flow'')','Label','Compute Flow');
 % uimenu('Parent',h,'Call','mirone(''TransferB_CB'',guidata(gcbo),''hydro_basin'')','Label','Compute drainage basin');
 
-h = uimenu('Parent',hGT,'Label','Interpolate','Sep','on');
-uimenu('Parent',h,'Call','griding_mir(gcf,''surface'');', 'Label','Minimum curvature');
-uimenu('Parent',h,'Call','griding_mir(gcf,''nearneighbor'');', 'Label','Near neighbor');
+uimenu('Parent',hGT,'Label','Interpolate', 'Call','griding_mir(gcf,''surface'');', 'Sep','on');
 
 h2 = uimenu('Parent',hGT,'Label','SRTM tools','Sep','on');
 
@@ -757,7 +755,7 @@ end
 %uimenu('Parent',h, 'Call', 'update_gmt(guidata(gcbo))','Label','Update your GMT5','Sep','on')
 uimenu('Parent',h, 'Call',['mirone(''FileOpenWebImage_CB'',guidata(gcbo),',...
 	' ''http://www2.clustrmaps.com/stats/maps-clusters/w3.ualg.pt-~jluis-mirone-world.jpg'',''nikles'');'],'Label','See visitors map','Sep','on');
-uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 29 Mar 2017'',''2.8.0dev'')','Label','About','Sep','on');
+uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 31 Mar 2017'',''2.8.0dev'')','Label','About','Sep','on');
 
 %% --------------------------- Build HANDLES and finish things here
 	handles = guihandles(H1);
