@@ -260,10 +260,10 @@ function varargout = write_gmt_script(varargin)
 	% ---------------------------------------------------------------------------------------------------
 
 	% ------------------------- See if we have pscoast stuff --------------------------------------------
-	ALLlineHand = findobj(get(handMir.axes1,'Child'),'Type','line');
+	ALLlineHand = findobj(get(handMir.axes1,'Child'),'Type','line','Visible','on');
 	handles.psc_res = [];	handles.psc_opt_W = [];		handles.psc_type_p = [];	handles.psc_type_r  = [];
 	if (~isempty(findobj(ALLlineHand,'Tag','CoastLineNetCDF')) || ~isempty(findobj(ALLlineHand,'Tag','Rivers')) ...
-			|| ~isempty(findobj(ALLlineHand,'Tag','PoliticalBoundaries')) )
+			|| ~isempty(findobj(ALLlineHand,'Tag','PoliticalBoundaries')))
 		[handles.ALLlineHand, handles.psc_res, handles.psc_opt_W, handles.psc_type_p, handles.psc_type_r] = ...
 			find_psc_stuff(ALLlineHand);
 	else
@@ -1127,6 +1127,8 @@ function [out_msg, warn_msg_pscoast] = build_write_script(handles, opt_J, dest_d
 		end
 	end
 
+	RJOK = ' -R -J -O -K';
+
 	% ------------ Some (maybe) needed vars -----------------------------------------------
 	haveSymbol = false;     used_grd = false;  out_msg = 0;
 	need_path = false;      used_countries = false;
@@ -1239,16 +1241,25 @@ function [out_msg, warn_msg_pscoast] = build_write_script(handles, opt_J, dest_d
 
 	% ------------- Start writing GMT commands --------------------------------
 	script{l} = sprintf('\n%s --- Start by creating the basemap frame.', comm);		l=l+1;
+	if (~isempty(frmPen))
+		frmPen = [pb 'framePen' pf];		% Only write this if exists
+	end
 	script{l} = ['psbasemap ' pb 'lim' pf ' ' pb 'proj' pf ' ' pb 'frm' pf ' ' X0 ' ' Y0 opt_U opt_P ...
-	             ' ' pb 'deg_form' pf ' ' pb 'annot_size' pf ' ' pb 'framePen' pf ' ' pb 'frame_width' pf ' -K > ' pb 'ps' pf];
+	             ' ' pb 'deg_form' pf ' ' pb 'annot_size' pf ' ' frmPen ' ' pb 'frame_width' pf ' -K > ' pb 'ps' pf];
 			 l=l+1;
 
 	if (~isempty(grd_name))
 		% If renderer == OpenGL, that is interpreted as a transparency request. In that case we need a screen capture
-		if (strcmp(get(handMir.figure1,'Renderer'), 'OpenGL'))
+		if (strcmpi(get(handMir.figure1,'Renderer'), 'OpenGL'))
 			if (~isempty(findobj(get(handMir.axes1,'Child'),'Type','patch')))		% Extra test
-				handMir.Illumin_type = 10;		% Dumb fake value just to force screen capture
-				haveAlfa = true;
+				hP = findobj(get(handMir.axes1,'Child'),'Type','patch');
+				for (k = 1:numel(hP))
+					% 0.005 is a fake number set in DrawClosedPolygon_CB to trick the R2015 breakage in hitting patches
+					if (get(hP(k), 'FaceAlpha') ~= 0.005)	% So if they are all == 0.005 ignore them as transparent
+						handMir.Illumin_type = 10;		% Dumb fake value just to force screen capture
+						haveAlfa = true;
+					end
+				end
 			end
 		end
 		if (handMir.nLayers > 1)	% While we could try to read the layer, that's complicated. So, force screen capture
@@ -1345,7 +1356,7 @@ function [out_msg, warn_msg_pscoast] = build_write_script(handles, opt_J, dest_d
 	if (have_psc)       % We have pscoast commands
 		[script, l, warn_msg_pscoast] = do_pscoast(handles, script, l, comm, pb, pf, ellips);
 	elseif (~isempty(opt_L))
-		script{l} = ['psbasemap ' opt_L ' -R -J -O -K >> ' pb 'ps' pf];    l=l+1;
+		script{l} = ['psbasemap ' opt_L RJOK ' >> ' pb 'ps' pf];    l=l+1;
 	end
 
 	% -------------- Search for contour lines --------------------------------------------------------------
@@ -1382,7 +1393,7 @@ function [out_msg, warn_msg_pscoast] = build_write_script(handles, opt_J, dest_d
 			end
 			fclose(fid);
 			script{l} = sprintf('\n%s ---- Plot contours', comm);	l=l+1;
-			script{l} = ['grdcontour ' pb 'grd' pf ' -R -J -C' [prefix '_cont.dat'] ellips ' -O -K >> ' pb 'ps' pf];
+			script{l} = ['grdcontour ' pb 'grd' pf ' -C' [prefix '_cont.dat'] ellips RJOK ' >> ' pb 'ps' pf];
 			l=l+1;
 			used_grd = true;
 			ALLlineHand = setxor(ALLlineHand, h);       % h is processed, so remove it from handles list
@@ -1438,13 +1449,13 @@ function [out_msg, warn_msg_pscoast] = build_write_script(handles, opt_J, dest_d
 			fprintf(fid,'%.5f\t%.5f\n',[symbols.x{:}; symbols.y{:}]);
 			script{l} = sprintf('\n%s ---- Plot symbols', comm);    l=l+1;
 			script{l} = ['psxy ' name_sc ' -S' symbols.Marker num2str(symbols.Size{1}) 'p' opt_G ...
-					opt_W ellips ' -R -J -O -K >> ' pb 'ps' pf];    l=l+1;
+					opt_W ellips RJOK ' >> ' pb 'ps' pf];    l=l+1;
 			fclose(fid);
 		elseif (ns == 1 && numel(symbols.Size) == 1)	% We have only one symbol
 			script{l} = sprintf('\n%s  ---- Plot symbol', comm);		l=l+1;
 			script{l} = [sprintf('echo %.6f\t%.6f',symbols.x{1},symbols.y{1}) ' | ' ...
 						'psxy -S' symbols.Marker num2str(symbols.Size{1}) 'p' opt_G ...
-						opt_W ellips ' -R -J -O -K >> ' pb 'ps' pf];    l=l+1;        
+						opt_W ellips RJOK ' >> ' pb 'ps' pf];    l=l+1;        
 		else								% We have ns different symbols
 			m = zeros(ns,1);
 			for (i = 1:ns)
@@ -1475,15 +1486,16 @@ function [out_msg, warn_msg_pscoast] = build_write_script(handles, opt_J, dest_d
 			end
 			script{l} = ' ';                        	l=l+1;
 			script{l} = [comm ' ---- Plot symbols'];    l=l+1;
-			script{l} = ['psxy ' name_sc ellips opt_len_unit opt_m ' -S -R -J -O -K >> ' pb 'ps' pf];    l=l+1;
+			script{l} = ['psxy ' name_sc ellips opt_len_unit opt_m RJOK ' -S >> ' pb 'ps' pf];    l=l+1;
 			fclose(fid);
 		end
 		clear ns symbols haveSymbol name name_sc;
 	end
 	% ------------------------------------------------------------------------------------------------
 
-	% -------------- Search for focal mecanisms ----------------------------
 	ALLpatchHand = findobj(get(handMir.axes1,'Child'),'Type','patch');
+
+	% ------------------------------------ Search for focal mecanisms --------------------------------
 	if (~isempty(ALLpatchHand))
 		focHand = findobj(ALLpatchHand,'Tag','FocalMeca');
 		if (~isempty(focHand))
@@ -1537,15 +1549,15 @@ function [out_msg, warn_msg_pscoast] = build_write_script(handles, opt_J, dest_d
 			end
 			fclose(fid);
 			script{l} = sprintf('\n%s ---- Plot Focal Mechanisms', comm);   l=l+1;
-			script{l} = ['psmeca ' opt_S opt_C ' ' name_sc ellips ' -R -J -O -K >> ' pb 'ps' pf];    l=l+1;
+			script{l} = ['psmeca ' opt_S opt_C ' ' name_sc ellips RJOK ' >> ' pb 'ps' pf];    l=l+1;
 			ALLpatchHand = setxor(ALLpatchHand, focHand);		% focHand is processed, so remove it from handles list
 			ALLlineHand  = setxor(ALLlineHand, focHandAnchor);	%       iden
 			clear focHand name name_sc psmeca_line with_label n_cols id_anch opt_S opt_C
 		end
 	end
-	% -------------------------------------------------------------------------------------------------------
+	% ------------------------------------------------------------------------------------------
 
-	% ---------------------------------- Search for "telhas" ---------------------------------
+	% ---------------------------------- Search for "telhas" -----------------------------------
 	if (~isempty(ALLpatchHand))
 		TelhasHand = findobj(ALLpatchHand,'Tag','tapete');
 		if (~isempty(TelhasHand))
@@ -1563,14 +1575,14 @@ function [out_msg, warn_msg_pscoast] = build_write_script(handles, opt_J, dest_d
 					script{l} = sprintf('\n%s ---- Plot telhas. NOTE: THIS IS NOT A GMT PROGRAM', comm);   l=l+1;
 					script{l} = ['telha ' name_sc ' ' saved.opt_E ' ' saved.opt_I ' ',...
 						saved.opt_N ' ' saved.opt_T ' -Blixo.dat'];     l=l+1;
-					script{l} = ['psxy lixo.dat ' ellips opt_m ' -R -J -L -O -K >> ' pb 'ps' pf];    l=l+1;
+					script{l} = ['psxy lixo.dat ' ellips opt_m RJOK ' -L >> ' pb 'ps' pf];    l=l+1;
 				end
 			end
 			ALLpatchHand = setxor(ALLpatchHand, TelhasHand);       % TelhasHand is processed, so remove it from handles list
 			clear TelhasHand name name_sc n_tapetes tmp 
 		end
 	end
-	% -------------------------------------------------------------------------------------------------------
+	% -------------------------------------------------------------------------------------------------
 
 	% ------------------------------------- Search for countries --------------------------------------
 	if (~isempty(ALLpatchHand))
@@ -1602,9 +1614,9 @@ function [out_msg, warn_msg_pscoast] = build_write_script(handles, opt_J, dest_d
 			clear AtlasHand name n_cts ct_with_pato
 		end
 	end
-	% -------------------------------------------------------------------------------------------------------
+	% -----------------------------------------------------------------------------------------
 
-	% ------------------------------ Search for "Arrows" ---------------------------------
+	% ----------------------------------- Search for "Arrows" ---------------------------------
 	if (~isempty(ALLpatchHand))
 		thisHand = findobj(ALLpatchHand,'Tag','Arrow');
 		if (~isempty(thisHand))
@@ -1641,9 +1653,60 @@ function [out_msg, warn_msg_pscoast] = build_write_script(handles, opt_J, dest_d
 			clear thisHand name name_sc n_vectors 
 		end
 	end
-	% -------------------------------------------------------------------------------------------------------
+	% --------------------------------------------------------------------------------------
 
-	% -------------- Search for closed polygons ----------------------------
+	% ----------------------------------- Search for "Bar graphs" --------------------------
+	if (~isempty(ALLpatchHand))
+		thisHand = findobj(ALLpatchHand,'Tag','BarGraph');
+		if (~isempty(thisHand))
+			xx = get(thisHand,'XData');     yy = get(thisHand,'YData');
+			bar_W = xx(4,1) - xx(1,1);
+			xx = (xx(1,:) + xx(4,:)) / 2;		% Coordinates at the bars half width
+			yy = yy(2, :);
+
+			name = [prefix_ddir '_bars.dat'];	name_sc = [prefix '_bars.dat'];
+			FillColor = get(thisHand,'FaceColor');		LineWidth = get(thisHand,'LineWidth');
+			EdgeColor = get(thisHand,'EdgeColor');
+			cor_fill = sprintf('%d/%d/%d', round(FillColor * 255));
+			cor_edge = sprintf('%d/%d/%d', round(EdgeColor * 255));
+			cor = [' -G' cor_fill ' -W' num2str(LineWidth) 'p,' cor_edge];
+			fid = fopen(name,'wt');
+			fprintf(fid,'%f\t%f\n',[xx; yy]);
+			fclose(fid);
+			script{l} = sprintf('\n%s ---- Plot Bar graph', comm);   l=l+1;
+			opt_S = sprintf(' -Sb%fu', bar_W);
+			script{l} = ['psxy ' name_sc opt_len_unit opt_S RJOK cor ' >> ' pb 'ps' pf];    l=l+1;
+			ALLpatchHand = setxor(ALLpatchHand, thisHand);       % thisHand is processed, so remove it from handles list
+			clear thisHand name name_sc opt_S
+		end
+	end
+	% --------------------------------------------------------------------------------------
+
+	% ----------------------------------- Search for "Histograms" --------------------------
+	if (~isempty(ALLpatchHand))
+		thisHand = findobj(ALLpatchHand,'Tag','Histogram');
+		if (~isempty(thisHand))
+			xh = get(thisHand,'XData');			% 2xN matrix
+			bar_W = xh(4,1) - xh(1,1);
+
+			name = [prefix_ddir '_histo.dat'];	name_sc = [prefix '_histo.dat'];
+			FillColor = get(thisHand,'FaceColor');		LineWidth = get(thisHand,'LineWidth');
+			EdgeColor = get(thisHand,'EdgeColor');
+			y = getappdata(thisHand, 'xy');	% Have to store it here in order that GMT can reconstruct the command
+			fid = fopen(name,'wt');
+			fprintf(fid,'%f\n', y);
+			fclose(fid);
+			script{l} = sprintf('\n%s ---- Plot Histogram', comm);   l=l+1;
+			opt_G = sprintf(' -G%d/%d/%d', round(FillColor * 255));
+			opt_W = sprintf(' -W%g', bar_W);
+			opt_L = sprintf(' -L%gp,%d/%d/%d', LineWidth, round(EdgeColor * 255));
+			script{l} = ['pshistogram ' name_sc opt_len_unit opt_G opt_W opt_L RJOK ' -F >> ' pb 'ps' pf];    l=l+1;
+			ALLpatchHand = setxor(ALLpatchHand, thisHand);       % thisHand is processed, so remove it from handles list
+			clear thisHand name name_sc opt_G opt_W opt_L
+		end
+	end
+
+	% ----------------------------- Search for closed polygons -----------------------------
 	if (~isempty(ALLpatchHand))
 		xx = get(ALLpatchHand,'XData');     yy = get(ALLpatchHand,'YData');
 		n_patch = length(ALLpatchHand);
@@ -1654,6 +1717,13 @@ function [out_msg, warn_msg_pscoast] = build_write_script(handles, opt_J, dest_d
 		if (iscell(EdgeColor)),     EdgeColor = cat(1,EdgeColor{:});     end
 		FillColor = get(ALLpatchHand,'FaceColor');
 		if (iscell(FillColor))
+			if (handMir.version7 >= 8.4)	% Must check if have to undo a trick to workarround a R2015 bug
+				for (k = 1:numel(ALLpatchHand))
+					if (get(ALLpatchHand(k), 'FaceAlpha') == 0.005)
+						FillColor{k} = 'none';
+					end
+				end
+			end
 			resp = strcmp('none',FillColor);
 			if (~any(resp))
 				FillColor = cat(1,FillColor{:});
@@ -1668,11 +1738,11 @@ function [out_msg, warn_msg_pscoast] = build_write_script(handles, opt_J, dest_d
 		else				% We have only one patch
 			xx = num2cell(xx,1);   yy = num2cell(yy,1);	% Make it a cell for reducing the head-hakes
 			resp = strcmp('none',FillColor);
-			if (resp)
+			if (resp || get(ALLpatchHand, 'FaceAlpha') == 0.005)	% The 0.005 is the flag to workaround R2015 bug
 				FillColor = [-1 -1 -1];					% Signal down that this is a non colored polygon
 			end
 		end
-		name = [prefix_ddir '_patch.dat'];    name_sc = [prefix '_patch.dat'];
+		name = [prefix_ddir '_patch.dat'];		name_sc = [prefix '_patch.dat'];
 		fid = fopen(name,'wt');
 		for (i = 1:n_patch)
 			cor_edge = sprintf('%d/%d/%d', round(EdgeColor(i,1:3) * 255));
@@ -1942,7 +2012,7 @@ function [out_msg, warn_msg_pscoast] = build_write_script(handles, opt_J, dest_d
 		script{l} = ['psxy ' name_sc opt_R opt_J Y0 opt_m ' -O -K >> ' pb 'ps' pf];
 	end
 	% ==============================================================================================
-
+%gsimage(script, comm)
 	% ----------------------------------------------------------------------------------------------
 	% ------------------------------------- WRITE THE SCRIPT ---------------------------------------
 	% First do some eventual cleaning
@@ -1989,6 +2059,79 @@ function [out_msg, warn_msg_pscoast] = build_write_script(handles, opt_J, dest_d
 	end
 	fprintf(fid,'%s\n',script{i+1});
 	fclose(fid);
+
+% -------------------------------------------------------------------------------------------
+function gsimage(script, comm)
+% ...
+	ind = false(numel(script),1);
+	for (k = 1:numel(script))				% Remove comment lines
+		ind(k) = isempty(script{k}) || ~isempty(strfind(script{k}, comm));
+	end
+	ind(1) = true;							% First line is to go for sure
+	script(ind) = [];
+	if (comm(1) == '#')
+		script = strrep(script, '$', '');
+	else
+		script = strrep(script, '%', '');
+	end
+	script = strrep(script, ' > ps',  '');	% Remove the to-PS-file redirection
+	script = strrep(script, ' >> ps', '');	% Remove the to-PS-file redirection
+
+	ind = strfind(script, 'set ');
+	for (k = 1:numel(ind))					% Loop over number batch variables
+		if (isempty(ind{k})),		continue,	end
+		n = strfind(script{k}, '=');
+		tok = [' ' script{k}(5:n-1)];	
+		rep = [' ' script{k}(n+1:end)];
+		if (strcmp(tok, ' cpt'))
+			tok = 'cpt ';	rep = [rep(2:end) ' '];
+		end
+		script{k} = '';						% Mark line for deletion
+		ind_ = strfind(script, tok);
+		for (n = k:numel(ind_))				% Loop over script lines and replace TOK by its content
+			if (isempty(ind_{n})),	continue,	end
+			[t, r] = strtok(script{n});
+			script{n} = [t strrep(r, tok, rep)];
+		end
+	end
+
+	% Now remove the empty lines
+	ind = false(numel(script),1);
+	for (k = 1:numel(script)),		ind(k) = isempty(script{k});	end
+	script(ind) = [];
+	script{end} = strrep(script{end}, ' -K', '');	% Remove last -K
+
+	ind = strfind(script, 'grdgradient');
+	lhs = cell(numel(script),1);
+	rhs_ind = zeros(numel(script),1);
+	for (k = 1:numel(ind))
+		if (isempty(ind{k})),	continue,	end
+		ind_ = strfind(script{k}, '-G');
+		[t, r] = strtok(script{k}(ind_+2:end));		% The gradient grid name
+		script{k} = [script{k}(1:ind_-1) r];		% Remove the -Gillum_grid chunk right away
+		lhs{k} = 'G';
+		[p, f] = fileparts(t);
+		ind_ = strfind(script, f);
+		for (n = k+1:numel(ind_))					% k+1 because the usage will have to be on the remaining lines
+			if (isempty(ind_{n})),	continue,	end
+			[t, r] = strtok(script{n}(ind_{n}:end));
+			script{n} = [script{n}(1:ind_{n}-1) r];
+			rhs_ind(n) = k;
+		end
+	end
+
+	for (k = 1:numel(script))
+		if (~isempty(lhs{k}))
+			lhs{k} = gmtmex(script{k});
+		elseif (rhs_ind(k))
+			gmtmex(script{k}, lhs{rhs_ind(k)});
+		else
+			gmtmex(script{k});
+		end
+	end
+	I = gmtmex('psconvert =');
+	mirone(I)
+	drawnow
 
 % -------------------------------------------------------------------------------------------
 function [script, l, warn_msg_pscoast] = do_pscoast(handles, script, l, comm, pb, pf, ellips)
@@ -2149,7 +2292,8 @@ function [ALLpatchHand, hAlfaPatch] = findTransparents(ALLpatchHand)
 % Find patches which have a level of transparency > 0.05
 	ind = false(1,numel(ALLpatchHand));
 	for (k = 1:numel(ALLpatchHand))
-		if (get(ALLpatchHand(k),'FaceAlpha') < 0.95)		% Patch has transparency
+		fa = get(ALLpatchHand(k),'FaceAlpha');
+		if (fa < 0.95 && fa > 0.005)		% Patch has transparency
 			ind(k) = true;
 		end
 	end
