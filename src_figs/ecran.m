@@ -38,7 +38,7 @@ function varargout = ecran(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: ecran.m 10037 2017-02-27 01:29:16Z j $
+% $Id: ecran.m 10074 2017-03-31 00:10:17Z j $
 
 	% This before-start test is to allow updating magnetic tracks that are used to pick the isochrons
 	% using the convolution method. If no synthetic plot is found, the whole updating issue is simply ignored.
@@ -467,7 +467,9 @@ function finish_line_uictx(hLine)
 	h = findobj(uictx, 'Label', 'Filter Outliers');
 	set(h, 'Call', {@outliers_clean, hLine})
 	h = findobj(uictx, 'Label', 'Show histogram');
-	set(h, 'Call', {@do_histogram, hLine})
+	set(h, 'Call', {@do_histogram, hLine, 'Hist'})
+	h = findobj(uictx, 'Label', 'Show Bar graph');
+	set(h, 'Call', {@do_histogram, hLine, 'Bar'})
 
 % --------------------------------------------------------------------------------------------------
 function shift_orig(obj, evt, eixo, hLine, pt_x, pt_y, opt)
@@ -845,13 +847,24 @@ function outliers_clean(obj, evt, h)
 		guidata(handles.figure1, handles);
 	end
 
-
 % ------------------------------------------------------------------------------------------
-function do_histogram(obj, evt, h)
+function do_histogram(obj, evt, h, tipo)
 % Show an histogram of the yy data
 	y = get(h, 'YData');
-	n_bins = sshist(y);			% Automatic bining
-	figure,histo_m('hist', y, n_bins);
+	if (strcmp(tipo, 'Hist'))
+		this_name = get(get(get(h, 'Parent'), 'Parent'), 'Name');
+		n_bins = sshist(y);			% Automatic bining
+		hFig = ecran;				% Create a new Ecran Fig to hold the histogram
+		delete(findobj(hFig, 'Tag', 'isocs_but'))	% Others uis should be removed too
+		set(hFig, 'Name', ['Histogram of ' this_name])
+		hP = histo_m('hist', y, n_bins, 'hands');
+		set(hP, 'Tag', 'Histogram')	% To be used by write_gmt_script
+		setappdata(hP, 'xy', y)		% Store it for use in write_gmt_script
+	else
+		hP = histo_m('bar', get(h, 'XData'), y);
+		set(hP, 'Tag', 'BarGraph')	% To be used by write_gmt_script
+		set(h, 'Visible', 'off')	% Instead of deleting it?
+	end
 
 % ------------------------------------------------------------------------------------------
 function pick_onLines2reference(obj, evt)
