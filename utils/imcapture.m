@@ -108,7 +108,7 @@ function img = imcapture( h, opt, dpi, opt2, opt3)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: imcapture.m 7927 2016-06-23 00:25:36Z j $
+% $Id: imcapture.m 10077 2017-03-31 20:43:57Z j $
 
 	hAxes = [];
 	if (nargin == 0 || isempty(h)),     h = get(0,'CurrentFigure');    end
@@ -297,12 +297,12 @@ function [img, msg] = imgOnly(opt, hAxes, have_fancy, varargin)
 
 		XTickLabel = get(hAxes,'XTickLabel');       XTick = get(hAxes,'XTick');
 		YTickLabel = get(hAxes,'YTickLabel');       YTick = get(hAxes,'YTick');
-		if ( str2double(XTickLabel(end,:)) / XTick(end) < 0.1 )
+		if (str2double(XTickLabel(end,:)) / XTick(end) < 0.1)
 			% We have a 10 power. That's the only way I found to detect
 			% the presence of this otherwise completely ghost text.
 			tenSizeX = 20;       % Take into account the 10 power text size
 		end
-		if ( str2double(YTickLabel(end,:)) / YTick(end) < 0.1 )
+		if (str2double(YTickLabel(end,:)) / YTick(end) < 0.1)
 			tenSizeY = 20;       % Take into account the 10 power text size
 		end
 
@@ -310,8 +310,8 @@ function [img, msg] = imgOnly(opt, hAxes, have_fancy, varargin)
 		FontSize = get(hAxes,'FontSize');       set(hAxes,'FontUnits',old_FU)
 		nYchars = size(YTickLabel,2);
 		% This is kitchen sizing, but what else can it be done with such can of bugs?
-		%Ylabel_pos(1) = max(abs(Ylabel_pos(1)), nYchars * FontSize * 0.8 + 2);
-		Ylabel_pos(1) = abs(Ylabel_pos(1));
+		Ylabel_pos(1) = max(abs(Ylabel_pos(1)), nYchars * FontSize * 0.75 + 2);
+		%Ylabel_pos(1) = abs(Ylabel_pos(1));
 
 		% Today (8 May 2016) I found a beautiful fact. The XYlabel_pos keep growing when I repeat
 		% the capturing command (as is typical in debugging sessions). TMW, Why, Why????
@@ -332,32 +332,36 @@ function [img, msg] = imgOnly(opt, hAxes, have_fancy, varargin)
 		y0 = y_margin / figPos(4);
 		tenSizeY = tenSizeY / figPos(4);    % Normalize it as well
 		cbWidth = cbWidth / figPos(3);      % Either 0 or the Mirone Colorbar width
-		pad = 1e-2;							% Only needed if Fancy Frame or when upper Y label == YLim
+		pad = 1e-2;						% Only needed if Fancy Frame or when upper Y label == YLim
 		CB_label_width = 0;
 		if (cbWidth > 0)		% A "At side CB"
 			CB_Ylabel_pos = get(get(cbAx,'Ylabel'),'Extent');
 			CB_label_width = abs(CB_Ylabel_pos(1)) / figPos(3);
 		end
-		pos_main_Ax = [x0 y0-tenSizeY 1-[x0+cbWidth+CB_label_width y0]-pad];
+		fancy_width = 0;
 		if (have_fancy)
 			hFrancyFrames = findobj(get(hAxes,'Parent'), '-depth',1, 'Tag', 'FancyFrame');
 			Fu = get(hFrancyFrames(1), 'Units');		set(hFrancyFrames(1), 'Units', 'Normalized');
 			pos_fancy = get(hFrancyFrames(1), 'Pos');	set(hFrancyFrames(1), 'Units', Fu);
 			fancy_width = min(pos_fancy(3), pos_fancy(4));
-			pos_main_Ax(1) = pos_main_Ax(1) + fancy_width;
-			pad = pad + pad;		% to account for the frame on the right side
+			pad = fancy_width * 1.25;
+			x0 = x0 + fancy_width;		% Because the fancy frame moved the YLabels a bit away.
 		end
+
+		pos_main_Ax = [x0 y0-tenSizeY 1-[x0+cbWidth+CB_label_width y0]-pad];
 		set(hAxes,'pos',pos_main_Ax)
-		if (~isempty(cbAx))					% If we have one color bar we must deal with it too
+		if (~isempty(cbAx))					% If we have one color bar.
 			% When DAR != 1 this is damn complicated. Apparently the imcapture applyies the DAR
 			% to the CB position under the hood. So we have to compute a new CB position so that
 			% the two operations cancel and we get the Color Bar in the position we see it in Mirone fig.
 			sc = (1 - DAR(2)) / 2 + DAR(2);
+			fw = fancy_width;
 			if (cbWidth > 0)		% A "At side CB"
 				if (DAR_is_not_one)			% Mirone Figs with cos(lat) active
-					set(cbAx, 'Pos', [(x0+pos_main_Ax(3) + pad + CB_label_width)*sc pos_main_Ax(2) cbar_pos(3) cbar_pos(4)]);
+					if (have_fancy),	pad = 2*pad;	end
+					set(cbAx, 'Pos', [(x0+pos_main_Ax(3) + pad + fw + CB_label_width)*sc pos_main_Ax(2) cbar_pos(3) cbar_pos(4)]);
 				else
-					set(cbAx, 'Pos', [(x0+pos_main_Ax(3) + pad) cbar_pos(2)+2e-2 cbar_pos(3) cbar_pos(4)]);	% VooDoo
+					set(cbAx, 'Pos', [(x0+pos_main_Ax(3) + pad + fw) cbar_pos(2)+2e-2 cbar_pos(3) cbar_pos(4)]);	% VooDoo
 				end
 			else
 				set(cbAx, 'Pos', [(x0+pos_main_Ax(3) - pad)*sc pos_main_Ax(2) cbar_pos(3) pos_main_Ax(4)]);
