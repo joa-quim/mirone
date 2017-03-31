@@ -1,7 +1,7 @@
 function fancyFrame(handles, opt)
 % Create a FANCY frame with 'frame' objects if OPT == 'set' or delete it if OPT == 'unset'
 
-%	Copyright (c) 2004-2013 by J. Luis
+%	Copyright (c) 2004-2017 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -16,7 +16,7 @@ function fancyFrame(handles, opt)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: fancyFrame.m 7921 2016-06-01 01:42:56Z j $
+% $Id: fancyFrame.m 10076 2017-03-31 20:40:02Z j $
 
 	if (opt(1) == 'p')		% Temporary solution for printing (create a frame made of patches)
 		frame_patch(handles, opt(2:end))
@@ -128,10 +128,10 @@ function frame_patch(handles, opt)
 	bwy = 0.009*diff(yLim);			% Y border width = 1%
 	bwx = bwy/DAR(2);				% border width (in degree of longitude)
 
-	patch([xLim(1)-bwx,xLim(2)+bwx,xLim(2)+bwx,xLim(1)-bwx],yLim(1) - bwy*[0,0,1,1],'k','FaceColor','none','clipping','off','Tag','PatchFrame')
-	patch([xLim(1)-bwx,xLim(2)+bwx,xLim(2)+bwx,xLim(1)-bwx],yLim(2) + bwy*[0,0,1,1],'k','FaceColor','none','clipping','off','Tag','PatchFrame')
-	patch(xLim(1) - bwx*[0,0,1,1],[yLim(1)-bwy,yLim(2)+bwy,yLim(2)+bwy,yLim(1)-bwy],'k','FaceColor','none','clipping','off','Tag','PatchFrame')
-	patch(xLim(2) + bwx*[0,0,1,1],[yLim(1)-bwy,yLim(2)+bwy,yLim(2)+bwy,yLim(1)-bwy],'k','FaceColor','none','clipping','off','Tag','PatchFrame')
+	patch([xLim(1)-bwx,xLim(2)+bwx,xLim(2)+bwx,xLim(1)-bwx],yLim(1) - bwy*[0,0,1,1],'k','Parent',handles.axes1,'FaceColor','none','clipping','off','Tag','PatchFrame')
+	patch([xLim(1)-bwx,xLim(2)+bwx,xLim(2)+bwx,xLim(1)-bwx],yLim(2) + bwy*[0,0,1,1],'k','Parent',handles.axes1,'FaceColor','none','clipping','off','Tag','PatchFrame')
+	patch(xLim(1) - bwx*[0,0,1,1],[yLim(1)-bwy,yLim(2)+bwy,yLim(2)+bwy,yLim(1)-bwy],'k','Parent',handles.axes1,'FaceColor','none','clipping','off','Tag','PatchFrame')
+	patch(xLim(2) + bwx*[0,0,1,1],[yLim(1)-bwy,yLim(2)+bwy,yLim(2)+bwy,yLim(1)-bwy],'k','Parent',handles.axes1,'FaceColor','none','clipping','off','Tag','PatchFrame')
 
 	ddx = dtick(diff(xLim), handles.geog > 0);
 	ddy = dtick(diff(yLim), handles.geog > 0);
@@ -139,13 +139,13 @@ function frame_patch(handles, opt)
 	xtick = get(handles.axes1,'XTick');
 	for xt = xtick(1:2:end)
 		dt = ddx - max(0,xt + ddx - xLim(2));
-		patch(repmat(xt + dt*[0,1,1,0]',[1,2]),[yLim(1) - bwy*[0,0,1,1];yLim(2) + bwy*[0,0,1,1]]','k','clipping','off','Tag','PatchFrame')
+		patch(repmat(xt + dt*[0,1,1,0]',[1,2]),[yLim(1) - bwy*[0,0,1,1];yLim(2) + bwy*[0,0,1,1]]','k','Parent',handles.axes1,'clipping','off','Tag','PatchFrame')
 	end
 
 	ytick = get(handles.axes1,'YTick');
 	for yt = ytick(1:2:end)
 		dt = ddy - max(0,yt + ddy - yLim(2));
-		patch([xLim(1) - bwx*[0,0,1,1];xLim(2) + bwx*[0,0,1,1]]',repmat(yt + dt*[0,1,1,0]',[1,2]),'k','clipping','off','Tag','PatchFrame')
+		patch([xLim(1) - bwx*[0,0,1,1];xLim(2) + bwx*[0,0,1,1]]',repmat(yt + dt*[0,1,1,0]',[1,2]),'k','Parent',handles.axes1,'clipping','off','Tag','PatchFrame')
 	end
 
 % -----------------------------------------------------------------------------------------
