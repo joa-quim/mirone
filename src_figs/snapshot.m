@@ -7,7 +7,7 @@ function varargout = snapshot(varargin)
 %   snapshot(H,'noname') Form used for saving Georefed images where format is not selectable here
 %   snapshot(H,'img') same as snapshot(H)
 
-%	Copyright (c) 2004-2016 by J. Luis
+%	Copyright (c) 2004-2017 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -216,7 +216,7 @@ function edit_fname_CB(hObject, handles)
 		errordlg('You cannot choose a different file format than the ones offered to you.','ERROR')
 		set(hObject,'String','')
 	else
-		handles.handlesMir.last_dir = [pato];
+		handles.handlesMir.last_dir = pato;
 		guidata(handles.handlesMir.figure1, handles.handlesMir)		% Update the Mirone handles
 	end
 
