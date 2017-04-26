@@ -64,7 +64,7 @@ function hObject = mirone_OpeningFcn(varargin)
 %#function mat2clip buffer_j PolygonClip trend1d_m akimaspline shake_mex ground_motion wms_tool microlev
 %#function write_esri_hdr distmin mag_synthetic image_histo write_gmt_symb mkpj decompress mosaicer
 %#function lasreader_mex laszreader_mex escorrega show_manguito travel thresholdit intersections nswing runCB_tintol
-%#function usgs_recent_seismicity sat_orbits uisetdate doy
+%#function usgs_recent_seismicity sat_orbits uisetdate doy sshist
 %#function c_cpt2cmap c_grdfilter c_grdinfo c_grdlandmask c_grdproject c_grdread c_grdsample
 %#function c_grdtrend c_mapproject c_nearneighbor c_shoredump c_surface popenr diffCenterVar hellinger bingham
 
@@ -1830,8 +1830,10 @@ function erro = FileOpenGeoTIFF_CB(handles, tipo, opt)
 		str1(2,1:2) = {'*.*', 'All Files (*.*)'};
 		[FileName,PathName,handles] = put_or_get_file(handles,str1,['Select ' tipo ' file'],'get');
 		if isequal(FileName,0),		return,		end
+		handles.last_dir = PathName;
 	else				% Filename was transmited in input
 		PathName = [];	FileName = opt;
+		handles.last_dir = fileparts(FileName);
 	end
 	handles.fileName = [PathName FileName];
 
@@ -5007,8 +5009,8 @@ function line_levelling(handles)
 function TransferB_CB(handles, opt, opt2)
 % OPT2 is only used by custom_menus() and holds the directory name to start in
 	if (strcmp(opt,'guessType'))
-		str = {'*.grd;*.nc;*.tif;*.tiff;*.jpg;*.jp2;*.png;*.gif;*.mat;*.cpt;*.hdf;*.img', ...
-				'Files (*.grd,*.nc,*.tif,*.tiff,*.jpg,*.jp2,*.png,*.gif,*.mat,*.cpt,*.hdf,*.img)'; '*.*', 'All Files (*.*)'};
+		str = {'*.grd;*.nc;*.tif;*.tiff;*.jpg;*.jp2;*.png;*.gif;*.mat;*.cpt;*.hdf;*.img;*.dat', ...
+				'Files (*.grd,*.nc,*.tif,*.tiff,*.jpg,*.jp2,*.png,*.gif,*.mat,*.cpt,*.hdf,*.img,*.dat)'; '*.*', 'All Files (*.*)'};
 		if (nargin == 3 && ~isempty(opt2)),		handles.last_dir = opt2;		end
 		[FileName,PathName,handles] = put_or_get_file(handles,str,'Select file','get');
 		if (isequal(FileName,0)),	return,		end				% User gave up
