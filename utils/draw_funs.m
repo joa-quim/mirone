@@ -25,7 +25,7 @@ function varargout = draw_funs(hand, varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: draw_funs.m 10070 2017-03-30 23:55:08Z j $
+% $Id: draw_funs.m 10079 2017-04-26 11:02:50Z j $
 
 % A bit of strange tests but they are necessary for the cases when we use the new feval(fun,varargin{:}) 
 opt = varargin{1};		% function name to evaluate (new) or keyword to select one (old form)
@@ -324,7 +324,7 @@ function set_line_uicontext(h, opt)
 		uimenu(cmenuHand, 'Label', 'Area under polygon', 'Call', @show_Area);
 		if (IS_PATCH && ~IS_SEISPOLYG)
 			item8 = uimenu(cmenuHand, 'Label','Fill Color');
-			setLineColor( item8, uictx_color(h, 'facecolor') )		% there are 9 cb_color outputs
+			setLineColor(item8, uictx_color(h, 'facecolor'))		% there are 9 cb_color outputs
 			uimenu(item8, 'Label', 'None', 'Sep','on', 'Call', 'set(gco, ''FaceColor'', ''none'');refresh');
 			uimenu(cmenuHand, 'Label', 'Transparency', 'Call', @set_transparency);
 		end
@@ -1667,7 +1667,7 @@ function set_vector_uicontext(h)
 	uimenu(cmenuHand, 'Label', 'Save line', 'Call', {@save_formated, h});
 	uimenu(cmenuHand, 'Label', 'Copy', 'Call', {@copy_line_object, handles.figure1, handles.axes1});
  	uimenu(cmenuHand, 'Label', 'Edit (redraw)', 'Call', @arrowRedraw);
-	uimenu(cmenuHand, 'Label', 'Reshape (head)','Call', {@arrow_shape,gco});
+	uimenu(cmenuHand, 'Label', 'Reshape (head)','Call', {@arrow_shape,h});
 	if (handles.geog)		% No solution yet for cartesian arrows
 		uimenu(cmenuHand, 'Label', 'Copy (mirror)', 'Call', @mirror_arrow);
 	end
@@ -2087,15 +2087,25 @@ function cb = uictx_color(h, opt)
 	cb{5} = ['set(gco,''' c_type ''',''b'');refresh'];       cb{6} = ['set(gco,''' c_type ''',''y'');refresh'];
 	cb{7} = ['set(gco,''' c_type ''',''c'');refresh'];       cb{8} = ['set(gco,''' c_type ''',''m'');refresh'];
 	cb{9} = {@other_color,h,opt};
+	if (strcmp(opt, 'facecolor') && get(h, 'FaceAlpha') <= 0.005)	% Because of the R2015 shit with patches
+		ind = strfind(cb{1}, ')');
+		for (k = 1:8)
+			cb{k} = [cb{k}(1:ind-1) ',''FaceAlpha'',1);refresh'];	% Have to set opacity so color can be seen
+		end
+	end
 
 	function other_color(obj, evt, h, opt)
 	if (nargin == 3),   opt = [];   end
 	c = uisetcolor;
 	if (isequal(c, 0)),		return,		end			% User gave up
 	if (~isempty(opt) && ischar(opt))
-		set(h, opt, c);   refresh;
+		set(h, opt, c);
+		if (strcmp(opt, 'facecolor') && get(h, 'FaceAlpha') <= 0.005)
+			set(h, 'FaceAlpha', 1)
+		end
+		refresh
 	else
-		set(h,'color',c);   refresh;
+		set(h,'color',c);   refresh
 	end
 % -----------------------------------------------------------------------------------------
 
@@ -3014,7 +3024,7 @@ function save_GMT_DB_asc(h, fname)
 		if (isempty(getappdata(h(k), 'edited'))),	continue,	end		% Skip because it was not modified
 		GSHHS_str = getappdata(h(k),'GSHHS_str');
 		if (k == 1 && ~isempty(GSHHS_str))		% Write back the magic string that allows us to recognize these type of files
-			fprintf(fid,'# $Id: draw_funs.m 10070 2017-03-30 23:55:08Z j $\n#\n%s\n#\n', GSHHS_str);
+			fprintf(fid,'# $Id: draw_funs.m 10079 2017-04-26 11:02:50Z j $\n#\n%s\n#\n', GSHHS_str);
 		end
 		hdr = getappdata(h(k), 'LineInfo');
 		x = get(h(k), 'XData');			y = get(h(k), 'YData');
@@ -3116,7 +3126,10 @@ function doSave_formated(xx, yy, opt_z)
 		case 'DegMinSecDec'     % I'm writing the seconds with a precision of 2 decimals
 			out_x = degree2dms(xx,'DDMMSS',2,'numeric');      out_y = degree2dms(yy,'DDMMSS',2,'numeric');
 			xy = [out_x.dd(:) out_x.mm(:) out_x.ss(:) out_y.dd(:) out_y.mm(:) out_y.ss(:)];
-			fmt = '%4d %02d %02.2f\t%4d %02d %02.2f';		
+			fmt = '%4d %02d %02.2f\t%4d %02d %02.2f';
+		case 'Date'
+			xy = [xx(:) yy(:)];
+			fmt = '%.f\t%f';
 	end
 	
 	if (nargin == 3 && ~isempty(opt_z))      
