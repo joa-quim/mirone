@@ -1,7 +1,7 @@
 function varargout = show_palette(varargin)
 % Plot a color palette either as an idependent figure or inside the main window
 
-%	Copyright (c) 2004-2016 by J. Luis
+%	Copyright (c) 2004-2017 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -16,7 +16,7 @@ function varargout = show_palette(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: show_palette.m 9906 2016-11-04 16:51:35Z j $
+% $Id: show_palette.m 10081 2017-04-26 11:18:57Z j $
 
 	handMir = varargin{1};
 	tipo = varargin{2};
@@ -75,10 +75,10 @@ function varargout = show_palette(varargin)
 		% If we already have a colorbar, remove it
 		if (strcmp(get(hUict,'Check'),'on'))
 			ud = get(hUict,'Userdata');
-			posFigParent(3) = ud(2);		% Figure's width before palette insertion 
+			posFigParent(3) = ud{2};		% Figure's width before palette insertion 
 			if (posFigParent(3) == screen(3)),      posFigParent(3) = posFigParent(3)-1;    end     % The elastic
 			set(handMir.figure1,'pos',posFigParent)
-			delete(ud(1))					% Delete the color palette
+			delete(ud{1})					% Delete the color palette
 			set(hUict,'Checked','off')
 			return
 		end
@@ -100,7 +100,7 @@ function varargout = show_palette(varargin)
 			if (posFigParent(3) == screen(3)),      posFigParent(3) = posFigParent(3)-1;    end     % The elastic
 			set(handMir.figure1, 'Position', posFigParent);
 		end
-		set(hUict,'Userdata',[hAx origFigWidth])		% Save it so that we can restore upon colorbar deletion
+		set(hUict,'Userdata',{hAx origFigWidth})		% Save it so that we can restore upon colorbar deletion
 		set(hAx,'Units','normalized','Vis','on')
 		set(hUict,'Checked','on')
 
