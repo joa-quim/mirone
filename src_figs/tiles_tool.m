@@ -196,7 +196,7 @@ function push_change_dir_CB(hObject, handles)
 	else            % This guy doesn't let to be compiled
 		cache_dir = uigetdir(cd, 'Select a directory');
 	end
-	if ~isempty(cache_dir)
+	if (~isempty(cache_dir) && cache_dir ~= 0)
 		popup_directory_list_CB(handles.popup_directory_list, handles, cache_dir)
 	end
 
