@@ -64,7 +64,7 @@ function hObject = mirone_OpeningFcn(varargin)
 %#function mat2clip buffer_j PolygonClip trend1d_m akimaspline shake_mex ground_motion wms_tool microlev
 %#function write_esri_hdr distmin mag_synthetic image_histo write_gmt_symb mkpj decompress mosaicer
 %#function lasreader_mex laszreader_mex escorrega show_manguito travel thresholdit intersections nswing runCB_tintol
-%#function usgs_recent_seismicity sat_orbits uisetdate doy sshist
+%#function usgs_recent_seismicity sat_orbits uisetdate doy sshist win_open_mex
 %#function c_cpt2cmap c_grdfilter c_grdinfo c_grdlandmask c_grdproject c_grdread c_grdsample
 %#function c_grdtrend c_mapproject c_nearneighbor c_shoredump c_surface popenr diffCenterVar hellinger bingham
 
