@@ -14,6 +14,19 @@ function filename = write_flederFiles(opt,varargin)
 %   'TDRver', which holds a '2.0' or '2.1' string
 %   'proj' which can be == 'geog', a WKT projection string or be empty
 %
+% When ploting symbols, the last argument can also be a struct with another struct member
+% called 'PTparams' with the parameters controling the symbol. Being a struct in a struct
+% allows this option to accumulate with the TDR versioning described above.
+%    The 'PTparams' optional struct will contain:
+%       At least the 'Symbol' and 'PointRad' members.
+%         'Symbol' are one of the following (numeric):
+%           0 -> circle; 1 -> square; 2 -> cross hair; 3 -> cube; 4 -> dyamond; 5 -> cylinder; 6 -> sphere; 7 -> point
+%       And the optional members (defaults in parenthesis):
+%         'PointRad'  -> Symbol radius (default = 0.02)
+%         'ColorBy'   -> 0 -> Solid; 1 -> Line Height (Z); 2 -> Attribute (default = 1)
+%         'LabelSize' -> ?? (default = 0.502)
+%
+%
 % It is also possible to use this as a gateway to some subfunctions. In that case 
 % OPT = subfunction, and VARARGIN varies with the function called
 % In main_SD must be: VARARGIN = (fid|fname, 'Planar|other', Z, img, limits [,OPTstruct])
@@ -44,8 +57,16 @@ function filename = write_flederFiles(opt,varargin)
 	%   compat for functions that call ME without these two new and now mandatory options.
 	% - New options should be wrapped in a struct so that we can detect it in the varargin list
 	global TDRver
-	if (~isa(varargin{end}, 'struct') || ~isfield(varargin{end}, 'TDRver'))
+	PTparams = [];
+	if (~isa(varargin{end}, 'struct'))
 		varargin{end+1} = struct('TDRver', '2.0', 'proj', '');
+	else
+		if (~isfield(varargin{end}, 'TDRver'))	% Else it's a struct but doesn't have the needed members
+			varargin{end}.TDRver = '2.0';		varargin{end}.proj = '';
+		end
+		if (isfield(varargin{end}, 'PTparams'))	% Parameters defining the 'point' symbols
+			PTparams = varargin{end}.PTparams;	% Get them out of the container that will be deleted below. 
+		end
 	end
 	s = varargin{end};
 	TDRver = s.TDRver;		proj = s.proj;
@@ -53,7 +74,7 @@ function filename = write_flederFiles(opt,varargin)
 		warndlg('write_flederFiles: ''TDRver'' MUST really be either ''2.0'' OR ''2.1'' and it wasn''t. Defaulting to 2.0', 'WarnError')
 		TDRver = '2.0';
 	end
-	varargin(end) = [];		clear s
+	varargin(end) = [];		clear s				% Remove the container
 	varargin{end+1} = TDRver;
 	varargin{end+1} = proj;
 
@@ -117,7 +138,7 @@ function filename = write_flederFiles(opt,varargin)
 				write_scene(fid, tipo, 'vimage', Z, img, img2, head(1:6), vimage, TDRver, proj)
 			end
 		end
-		if (handles.flederBurn ~= 2)		% If not screen capture, see if there are lines & pts to flederize
+		if (handles.flederBurn ~= 2)			% If not screen capture, see if there are lines & pts to flederize
 			write_lines_or_points(fid, handles.axes1, head(1:6), handles.flederBurn, TDRver, proj);
 		end
 		write_block_tag(fid, 999999999, 0, 1)	% Write EOF block and close the file
@@ -142,6 +163,10 @@ function filename = write_flederFiles(opt,varargin)
 			write_line(varargin{:});			% Write line objects
 		case 'points'
 			if (ischar(varargin{1})),	varargin{1} = fopen(varargin{1},'wb');	end		% Was file name
+			if (~isempty(PTparams))				% We have a specific request for the point parameters settings
+				varargin{end+1} = '';			% The 'Earthquakes' option
+				varargin{end+1} = PTparams;
+			end
 			write_pts(varargin{:});				% Write point objects
 			write_eof(varargin{1})				% Write EOF block and close the file
 	end
@@ -848,17 +873,34 @@ function write_line(fid,mode,x,y,z,np,lim_reg,line_props, TDRver, proj)
 	fwrite(fid,[1 1 ColorBy 0 0 1 l_thick],'integer*4'); % First 1 is 'gap', but don't know what are the others
 
 %----------------------------------------------------------------------------------
-function write_pts(fid, hand, mode, limits, TDRver, proj, opt)
+function write_pts(fid, hand, mode, limits, TDRver, proj, quakes, opt)
 % HAND -> handles of the line (points) object
 % MODE = FIRST or ADD. Where FIRST indicates that the TDR object starts to created here.
-% OPT, when it exists, is = 'Earthquakes'
+% QUAKES, when it exists, has to be = 'Earthquakes'
+% OPT  -> An optional struct with the parameters controling the symbol. No testing on its correctness
+%         When provide it must have at least the 'Symbol' and 'PointRad' members.
+%         'Symbol' are one of the following (numeric):
+%           0 -> circle; 1 -> square; 2 -> cross hair; 3 -> cube; 4 -> dyamond; 5 -> cylinder; 6 -> sphere; 7 -> point
+%         'PointRad'  -> Symbol radius (default = 0.02)
+%         'ColorBy'   -> 0 -> Solid; 1 -> Line Height (Z); 2 -> Attribute (default = 1)
+%         'LabelSize' -> ?? (default = 0.502)
 
-    if (nargin == 6),   opt = [];   end
-    
-    symb = 3;	% 0 -> circle; 1 -> square; 2 -> cross hair; 3 -> cube; 4 -> dyamond; 5 -> cylinder; 6 -> sphere; 7 -> point
-    PointRad = 0.02;						% Symbol radius
-    ColorBy = 1;							% 0 -> Solid; 1 -> Line Height (Z); 2 -> Attribute
-    LabelSize = 0.502;
+	if (nargin == 6),		quakes = '';	opt = [];
+	elseif (nargin == 7),	opt = [];
+	end
+
+	% Defaults to prevail unless they are overwritten by OPT contents
+	% 0 -> circle; 1 -> square; 2 -> cross hair; 3 -> cube; 4 -> dyamond; 5 -> cylinder; 6 -> sphere; 7 -> point
+	symb = 3;
+	PointRad = 0.02;						% Symbol radius
+	ColorBy = 1;							% 0 -> Solid; 1 -> Line Height (Z); 2 -> Attribute
+	LabelSize = 0.502;
+	if (~isempty(opt) && isa(opt, 'struct'))
+		symb = opt.Symbol;	PointRad = opt.PointRad;	% Mandatory members
+		if (isfield(opt, 'ColorBy')),		ColorBy = opt.ColorBy;		end
+		if (isfield(opt, 'LabelSize')),		LabelSize = opt.LabelSize;	end
+	end
+
     n_col = 3;								% N of columns
 	if (~isa(hand,'cell') && ~ishandle(hand(1)))	% We need cells in this case
 		hand = {hand};
@@ -878,7 +920,7 @@ function write_pts(fid, hand, mode, limits, TDRver, proj, opt)
 			else			xx = hand{i}(1,:);		yy = hand{i}(2,:);
 			end
 		end
-		if (strcmp(opt,'Earthquakes'))  % Test those first because they have a z
+		if (strcmp(quakes,'Earthquakes'))  % Test those first because they have a z
 			zz = -double(getappdata(hand(i),'SeismicityDepth')) * 100;    % zz is now in meters positive up
 			if (size(zz,1) > 1)         % We need them as a row vector for fwrite
 				zz = zz';
