@@ -19,7 +19,7 @@ function filename = write_flederFiles(opt,varargin)
 % In main_SD must be: VARARGIN = (fid|fname, 'Planar|other', Z, img, limits [,OPTstruct])
 % In write_all3 must be: VARARGIN = (name, flederPlanar, Z, img, limits [,OPTstruct])
 
-% NOTE: For every line/point object FM_CMAP and a GEOREF blocks are writen.
+% NOTE: For every line/point objects FM_CMAP and a GEOREF blocks are writen.
 % Though it doesn't hurt much, it is an idiot thing
 
 %	Copyright (c) 2004-2017 by J. Luis
@@ -37,25 +37,7 @@ function filename = write_flederFiles(opt,varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: write_flederFiles.m 10040 2017-02-27 01:53:19Z j $
-
-	% - Little initial block to deal with the adding of two new input vars and try to
-	%   do it in a compatible way. That is, set up a mechanism that guaranties backward
-	%   compat for functions that call ME without these two new and now mandatory options.
-	% - New options should be wrapped in a struct so that we can detect it in the varargin list
-	global TDRver
-	if (~isa(varargin{end}, 'struct') || ~isfield(varargin{end}, 'TDRver'))
-		varargin{end+1} = struct('TDRver', '2.0', 'proj', '');
-	end
-	s = varargin{end};
-	TDRver = s.TDRver;		proj = s.proj;
-	if (~(strcmp(TDRver, '2.0') || strcmp(TDRver, '2.1')))
-		warndlg('write_flederFiles: ''TDRver'' MUST really be either ''2.0'' OR ''2.1'' and it wasn''t. Defaulting to 2.0', 'WarnError')
-		TDRver = '2.0';
-	end
-	varargin(end) = [];		clear s
-	varargin{end+1} = TDRver;
-	varargin{end+1} = proj;
+% $Id: write_flederFiles.m 10085 2017-05-07 00:26:07Z j $
 
 	% - Little initial block to deal with the adding of two new input vars and try to
 	%   do it in a compatible way. That is, set up a mechanism that guaranties backward
@@ -144,24 +126,24 @@ function filename = write_flederFiles(opt,varargin)
 	% Go trough here when using specific external calls (some are probably not possible to call from outside)
 	switch opt
 		case 'geo'
-			write_georef(varargin{:});		% Write a .geo block
+			write_georef(varargin{:});			% Write a .geo block
 		case 'dtm'
-			write_dtm(varargin{:});		% Write a .dtm object
+			write_dtm(varargin{:});				% Write a .dtm object
 		case 'shade'
-			write_shade(varargin{:});	% Write a .shade object
+			write_shade(varargin{:});			% Write a .shade object
 		case 'main_SD'		% The call must be: write_main(fid, tipo, Z, img, img2, limits)
 			fid = write_main(varargin{:});		% Write a .sd object made of .geo .dtm & .shade blocks
 			write_eof(fid)						% Write EOF block and close the file
 		case 'all3'			% The call must be: write_all3(name, flederPlanar, Z, img, limits)
-			write_all3(varargin{:})		% Write three files: .geo, .dtm, .shade as DMagic would do
+			write_all3(varargin{:})				% Write three files: .geo, .dtm, .shade as DMagic would do
 		case 'line_or_points'
-			write_lines_or_points(varargin{:});    % Search for and write lines and/or points objects
+			write_lines_or_points(varargin{:});	% Search for and write lines and/or points objects
 		case 'line'
-			write_line(varargin{:});	% Write line objects
+			write_line(varargin{:});			% Write line objects
 		case 'points'
 			if (ischar(varargin{1})),	varargin{1} = fopen(varargin{1},'wb');	end		% Was file name
-			write_pts(varargin{:});		% Write point objects
-			write_eof(varargin{1})		% Write EOF block and close the file
+			write_pts(varargin{:});				% Write point objects
+			write_eof(varargin{1})				% Write EOF block and close the file
 	end
 
 	if (nargout),	filename = fname;	end		% Otherwise the compiled version would silently error
@@ -172,6 +154,7 @@ function start_TDR(fid, mode)
 	global TDRver
 	if (strcmp(mode,'first'))       % The TDR object starts here
 		fprintf(fid,'%s\n%s\n%s\f\n',['%% TDR ' TDRver ' Binary'],'Created by:    Mirone Tech!','%%');
+		%fprintf(fid,'%s\n%s\n%s\n',['%% TDR ' TDRver ' Binary'],'','%%');
 	end
 
 %----------------------------------------------------------------------------------
@@ -231,10 +214,11 @@ function write_georef(fid, mode, limits, TDRver, proj)
 % Write a GEOREF block
 	if (nargin == 3 || strcmp(TDRver, '2.0'))	% Write a Version 6 GEOREF block
 		start_TDR(fid, mode)				% If mode == 'first' the TDR object starts here
-		write_block_tag(fid, 15000, 6*8+4*3, 1)
-		fwrite(fid, [0 0 0], 'integer*4');	% Don't know what there are
+		write_block_tag(fid, 15000, 100, 1)
 		fwrite(fid, limits,'real*8');
-	else						% Write a Version 7 GEOREF block
+		fwrite(fid, (1:52)*0, 'uchar');		% Is this a Ver 6 georeference string?
+	else
+		% Write a Version 7 GEOREF block
 		start_TDR(fid, mode)				% If mode == 'first' the TDR object starts here
 		if (strncmp(proj, 'geo', 3))
 			str = geo_WKT;
@@ -570,16 +554,13 @@ function write_vimage_atb_block(fid)
 function write_cmap(fid, pal)
 % Write the FM_CMAP block
 	if (nargin == 1),	pal = uint8(round(jet(256) * 255));		end		% default colormap
-	fwrite(fid,[20010 768],'integer*4');		% ID of FM_CMAP block & n of bytes in this block
-	fwrite(fid,[0 0 1 1 1 1 (1:18)*0],'uchar');	% 24 bytes (seams to be an offset)
+	write_block_tag(fid, 20010, numel(pal), 1)
 	fwrite(fid,pal','uchar');    
 
 %----------------------------------------------------------------------------------
 function write_eof(fid)
 % Write the EOF block
-	fwrite(fid,[999999999 0],'integer*4');
-	fwrite(fid,[0 0 1 1 1 1 (1:18)*0],'uchar');
-	fclose(fid);
+	write_block_tag(fid, 999999999, 0, 1)		% It also closes the fid
 
 %----------------------------------------------------------------------------------
 function write_block_tag(fid, ID, len, DBver)
@@ -616,7 +597,7 @@ end
 if (~isempty(ALLlineHand))
 	h = findobj(ALLlineHand,'Tag','Earthquakes');		% Search first for earthquakes because they have depths
 	if (~isempty(h))
-		write_pts(fid,h,'add',limits,'Earthquakes', TDRver, proj)
+		write_pts(fid,h,'add',limits, TDRver, proj, 'Earthquakes')
 		ALLlineHand = setxor(ALLlineHand, h);			% h is processed, so remove it from handles list
 	end
 
@@ -867,14 +848,14 @@ function write_line(fid,mode,x,y,z,np,lim_reg,line_props, TDRver, proj)
 	fwrite(fid,[1 1 ColorBy 0 0 1 l_thick],'integer*4'); % First 1 is 'gap', but don't know what are the others
 
 %----------------------------------------------------------------------------------
-function write_pts(fid, hand, mode, limits, opt, TDRver, proj)
+function write_pts(fid, hand, mode, limits, TDRver, proj, opt)
 % HAND -> handles of the line (points) object
 % MODE = FIRST or ADD. Where FIRST indicates that the TDR object starts to created here.
 % OPT, when it exists, is = 'Earthquakes'
 
-    if (nargin == 4),   opt = [];   end
+    if (nargin == 6),   opt = [];   end
     
-    symb = 6;	% 0 -> circle; 1 -> square; 2 -> cross hair; 3 -> cube; 4 -> dyamond; 5 -> cylinder; 6 -> sphere; 7 -> point
+    symb = 3;	% 0 -> circle; 1 -> square; 2 -> cross hair; 3 -> cube; 4 -> dyamond; 5 -> cylinder; 6 -> sphere; 7 -> point
     PointRad = 0.02;						% Symbol radius
     ColorBy = 1;							% 0 -> Solid; 1 -> Line Height (Z); 2 -> Attribute
     LabelSize = 0.502;
@@ -892,7 +873,7 @@ function write_pts(fid, hand, mode, limits, opt, TDRver, proj)
 			xx = get(hand(i),'XData');	yy = get(hand(i),'YData');
 			PointRad = get(hand(i),'MarkerSize') / 72 * 2.54 / 7;   % Symbol size. The 7 is an ad-hoc corr factor
 		else
-			[m n] = size(hand{i});		% We must allow for column or row vectors in input
+			[m, n] = size(hand{i});		% We must allow for column or row vectors in input
 			if (m > n),		xx = hand{i}(:,1)';		yy = hand{i}(:,2)';
 			else			xx = hand{i}(1,:);		yy = hand{i}(2,:);
 			end
@@ -917,35 +898,31 @@ function write_pts(fid, hand, mode, limits, opt, TDRver, proj)
 			end
 		end
 
-		np = numel(xx);					% Number of points in this segment
-		if (isempty(zz))				% We need to have a z. Obviously it has to be 0
+		np = numel(xx);						% Number of points in this segment
+		if (isempty(zz))					% We need to have a z. Obviously it has to be 0
 			zz = repmat(limits(6),1,np);
-		else							% Since we have a z, we need to update limits
+		else								% Since we have a z, we need to update limits
 			limits(5) = min(zz);        limits(6) = max(zz);
 		end
 
-		fwrite(fid,10520,'integer*4');		% 10520 is the SD_POINT3D code
-		%fwrite(fid,np*3*8+64,'integer*4');	% data length
-		fwrite(fid,np*3*8+20,'integer*4');	% data length
-		fwrite(fid,[0 0 1 1 1 2 (1:18)*0],'integer*1');
-		fwrite(fid,[np n_col 0 0 1],'integer*4');	% Number of points
+  		write_block_tag(fid, 10520, np*3*8+20, 2)			% 10521 is the SD_POINT3D code, but that 2???? Should be DBver!!!
+		fwrite(fid,[np n_col 0 0 1],'integer*4');			% Number of points
 		fwrite(fid,[xx; yy; zz;],'real*8');
 
 		limits(1:4) = [min(xx) max(xx) min(yy) max(yy)];	% Required by Fleder7 (???)
-		write_georef(fid,'add',limits, TDRver, proj)			% Write a GEOREF block
+		write_georef(fid,'add',limits, TDRver, proj)		% Write a GEOREF block
 		if (this_CB > 0),	write_cmap(fid),	end			% Write a FM_CMAP block (no need if color is solid)
+  		write_block_tag(fid, 10521, 35, 5)					% 10521 is the SD_POINT3D_ATB code, but that 5???? Should be DBver!!!
 
-		fwrite(fid,[10521 35],'integer*4');				% 10520 is the SD_POINT3D_ATB code, 35 -> Data Length
-		fwrite(fid,[0 0 1 1 1 5 (1:18)*0],'integer*1');
-		fwrite(fid,[1 this_CB symb],'integer*4');
-		fwrite(fid,[PointRad LabelSize],'real*4');
-		fwrite(fid,[0 1 1],'integer*4');
+		fwrite(fid,[1 this_CB symb],'integer*4');			% 12 bytes
+		fwrite(fid,[PointRad LabelSize],'real*4');			% 8
+		fwrite(fid,[0 1 1],'integer*4');					% 12
 		if (ishandle(hand(i)))
 			cor = uint8(get(hand(i),'MarkerFaceColor')*255);
 		else
 			cor = [255 255 255];	% ??
 		end
-		fwrite(fid,cor,'uint8');					% symbol's color
+		fwrite(fid, cor, 'uint8');							% 3 byte, symbol's color
 	end
 
 %----------------------------------------------------------------------------------
