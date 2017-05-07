@@ -89,7 +89,11 @@ function varargout = write_gmt_script(varargin)
 	handles.have_GMT5 = false;
 	try
 		if (ispc)
-			[s, w] = dos('gmt --show-bindir');
+			if (handes.handMir.IamCompiled)
+				s = dos('gmt --show-bindir');
+			else
+				[s, w] = dos('gmt --show-bindir');
+			end
 		else
 			[s, w] = unix('gmt --show-bindir');
 		end
@@ -564,7 +568,7 @@ function update_scales(handles)
 		else
 			opt_J = [handles.opt_J_no_scale '/1'];
 		end
-		out = c_mapproject(in,opt_R,'-C','-F',opt_J);
+		out = c_mapproject(in,opt_R,'-C','-F',[opt_J 'c']);
 		if (isa(out, 'struct')),	out = out.data;		end		% When GMT5, out is a struct
 		dx_prj = out(4,1) - out(1,1);			% It's in projected meters
 		dy_prj = out(2,2) - out(1,2);			% It's in projected meters
@@ -810,63 +814,6 @@ function push_coastLines_CB(hObject, handles)
 	guidata(hObject, handles);
 
 %-------------------------------------------------------------------------------------
-function push_OK_CB(hObject, handles)
-% Here we transmit the: -J<...>, paper name, files prefix, X0, Y0 and destination directory
-	if (~strncmp(handles.opt_J_no_scale, '-JX', 3))
-		opt_J = [handles.opt_J_no_scale '/' handles.scale handles.which_unit(1)];
-	else        % Linear projection
-		if (~handles.handMir.IamXY)			% A Mirone figure
-			opt_J = [handles.opt_J_no_scale(1:3) handles.scale handles.which_unit(1) '/0'];
-		else
-			opt_J = sprintf('-JX%s%s/%s%s', get(handles.edit_mapWidth,'Str'), handles.which_unit(1), ...
-				get(handles.edit_mapHeight,'Str'), handles.which_unit(1));
-		end
-	end
-	val   = get(handles.popup_PaperSize,'Value');
-	list  = get(handles.popup_PaperSize,'String');
-	str   = list{val};        k = strfind(str,' ');
-	paper = str(1:k(1)-1);
-	d_dir = get(handles.popup_directory_list,'String');
-	if (iscell(d_dir)),		d_dir = d_dir{1};		end
-	prefix = get(handles.edit_prefix,'String');
-
-	X0 = get(handles.edit_X0,'String');		Y0 = get(handles.edit_Y0,'String');
-	X0 = ['-X' X0 handles.which_unit(1)];	Y0 = ['-Y' Y0 handles.which_unit(1)];
-
-	if (handles.have_GMT5),		opt_deg = '--FORMAT_GEO_MAP';
-	else						opt_deg = '--PLOT_DEGREE_FORMAT';
-	end
-	if (get(handles.radio_180_180,'Value'))		% [-180;180] range
-		opt_deg = [opt_deg '=ddd:mm:ss'];
-	else										% [0;360] range
-		opt_deg = [opt_deg '=+ddd:mm:ss'];
-	end
-
-    % Before calling the write script routine we have to find if we have any pscoast stuff
-	if (isempty(handles.opt_psc))		% Means that the pscoast_options was not used
-		if (~isempty(handles.psc_res))	% Means that we have coastlines and will use the Mirone settings
-			handles.opt_psc = [handles.psc_res ' ' handles.psc_opt_W ' ' handles.psc_type_p ' ' handles.psc_type_r];
-		end
-	end
-	if (get(handles.radio_P,'Value')),		opt_P = ' -P';
-	else									opt_P = '';
-	end
-	msg = '';
-	[out_msg, warn_msg_pscoast] = build_write_script(handles, opt_J, d_dir, prefix, paper, X0, Y0, opt_P, opt_deg);
-	if (get(handles.check_saveScript, 'Val'))
-		msg{1} = ['File ' prefix '_mir.' handles.script_type ' successfuly created in:  ' d_dir];
-	end
-	if (out_msg)
-		msg{2} = '';
-		msg{3} = 'WARNING: Read the important message on the header of the script';
-	end
-	if (~isempty(warn_msg_pscoast))
-		msg{end+1} = '';   
-		msg{end+1} = warn_msg_pscoast;   
-	end
-	if (~isempty(msg)),		msgbox(msg);	end
-
-%-------------------------------------------------------------------------------------
 function [handles,out] = check_coord_system(handles,coord_system,side)
 % Currently the coord_system structure must contain the following fields:
 %              group_val
@@ -1082,8 +1029,43 @@ function [ALLlineHand, res, opt_W, type_p, type_r] = find_psc_stuff(ALLlineHand)
 		end
 	end
 
+%----------------------------------------------------------------------------------------------
+function push_OK_CB(hObject, handles)
+% This function should be merged with build_write_script(), which in turn should be split in more functions.
+	val   = get(handles.popup_PaperSize,'Value');
+	list  = get(handles.popup_PaperSize,'String');
+	str   = list{val};        k = strfind(str,' ');
+	paper = str(1:k(1)-1);
+	d_dir = get(handles.popup_directory_list,'String');
+	if (iscell(d_dir)),		d_dir = d_dir{1};		end
+	prefix = get(handles.edit_prefix,'String');
+
+	X0 = get(handles.edit_X0,'String');		Y0 = get(handles.edit_Y0,'String');
+	X0 = ['-X' X0 handles.which_unit(1)];	Y0 = ['-Y' Y0 handles.which_unit(1)];
+
+    % Before calling the write script routine we have to find if we have any pscoast stuff
+	if (isempty(handles.opt_psc))		% Means that the pscoast_options was not used
+		if (~isempty(handles.psc_res))	% Means that we have coastlines and will use the Mirone settings
+			handles.opt_psc = [handles.psc_res ' ' handles.psc_opt_W ' ' handles.psc_type_p ' ' handles.psc_type_r];
+		end
+	end
+	msg = '';
+	[out_msg, warn_msg_pscoast] = build_write_script(handles, d_dir, prefix, paper, X0, Y0);
+	if (get(handles.check_saveScript, 'Val'))
+		msg{1} = ['File ' prefix '_mir.' handles.script_type ' successfuly created in:  ' d_dir];
+	end
+	if (out_msg)
+		msg{2} = '';
+		msg{3} = 'WARNING: Read the important message on the header of the script';
+	end
+	if (~isempty(warn_msg_pscoast))
+		msg{end+1} = '';   
+		msg{end+1} = warn_msg_pscoast;   
+	end
+	if (~isempty(msg)),		msgbox(msg);	end
+
 % --------------------------------------------------------------------------------------------------------
-function [out_msg, warn_msg_pscoast] = build_write_script(handles, opt_J, dest_dir, prefix, paper, X0, Y0, opt_P, opt_deg)
+function [out_msg, warn_msg_pscoast] = build_write_script(handles, dest_dir, prefix, paper, X0, Y0)
 % This function do most of the hard work in finding the script components.
 % The pscoast stuff is worked out by the "find_psc_stuff" function.
 
@@ -1096,13 +1078,26 @@ function [out_msg, warn_msg_pscoast] = build_write_script(handles, opt_J, dest_d
 		o = 1;										% The MEX script counter. DO NOT USE IT FOR ANYTHING ELSE
 	end
 
-	% Probably this should be done where opt_J is first defined.
+	if (~strncmp(handles.opt_J_no_scale, '-JX', 3))
+		opt_J = [handles.opt_J_no_scale '/' handles.scale handles.which_unit(1)];
+	else        % Linear projection
+		if (~handles.handMir.IamXY)			% A Mirone figure
+			opt_J = [handles.opt_J_no_scale(1:3) handles.scale handles.which_unit(1) '/0'];
+		else
+			opt_J = sprintf('-JX%s%s/%s%s', get(handles.edit_mapWidth,'Str'), handles.which_unit(1), ...
+				get(handles.edit_mapHeight,'Str'), handles.which_unit(1));
+		end
+	end
 	if (handles.handMir.geog && strncmp(opt_J, '-JX', 3) && opt_J(end) ~= 'd')	% Append the 'd' otherwise pscoast barfs
 		opt_J = [opt_J 'd'];
 		ind = strfind(opt_J, '/');
 		if (~isempty(ind))				% To turn (e.g) -JX15c/0d into -JX15cd/0d
 			opt_J = [opt_J(1:ind(1)-1) 'd' opt_J(ind(1):end)];
 		end
+	end
+
+	if (get(handles.radio_P,'Value')),		opt_P = ' -P';
+	else									opt_P = '';
 	end
 
 	handMir = handles.handMir;	ALLlineHand = handles.ALLlineHand;
@@ -1128,17 +1123,26 @@ function [out_msg, warn_msg_pscoast] = build_write_script(handles, opt_J, dest_d
 		ellips = [' --ELLIPSOID=' ellips];
 	end
 
-	if (handles.have_GMT5)
-		opt_annotsize  = '--FONT_ANNOT_PRIMARY=10p';
+	if (handles.have_GMT5 || (do_MEX_fig && ~do_writeScript))
+		opt_annotsize  = ' --FONT_ANNOT_PRIMARY=10p';
 		opt_len_unit   = ' --PROJ_LENGTH_UNIT=point';
-		opt_frameWidth = '--MAP_FRAME_WIDTH=0.15c';
+		opt_frameWidth = ' --MAP_FRAME_WIDTH=0.15c';
+		opt_deg        = ' --FORMAT_GEO_MAP';
 		opt_m = '';
 	else
-		opt_annotsize = '--ANNOT_FONT_SIZE_PRIMARY=10p';
-		opt_len_unit  = ' --MEASURE_UNIT=point';
-		opt_frameWidth = '--FRAME_WIDTH=0.15c';
+		opt_annotsize  = ' --ANNOT_FONT_SIZE_PRIMARY=10p';
+		opt_len_unit   = ' --MEASURE_UNIT=point';
+		opt_frameWidth = ' --FRAME_WIDTH=0.15c';
+		opt_deg        = ' --PLOT_DEGREE_FORMAT';
 		opt_m = ' -m';
 	end
+
+	if (get(handles.radio_180_180,'Value'))		% [-180;180] range
+		opt_deg = [opt_deg '=ddd:mm:ss'];
+	else										% [0;360] range
+		opt_deg = [opt_deg '=+ddd:mm:ss'];
+	end
+
 	frmPen = '';
 	if (handMir.IamXY)
 		if (handles.have_GMT5)
@@ -1186,7 +1190,7 @@ function [out_msg, warn_msg_pscoast] = build_write_script(handles, opt_J, dest_d
 	% --------------------------------------------------------------------------------------
 
 	l = 1;
-	if (~strcmp(sc,'bat'))							% Write a csh script
+	if (~strcmp(sc,'bat'))							% Write a bash script
 		script{l} = '#!/bin/bash -f';				l=l+1;
 		script{l} = [comm 'Coffeeright Mirone Tec'];l=l+1;
 		script{l} = comm;							l=l+1;
@@ -1339,7 +1343,9 @@ function [out_msg, warn_msg_pscoast] = build_write_script(handles, opt_J, dest_d
 		l = l + 1;
 	end
 
+	hWait = [];
 	if (do_MEX_fig && handMir.image_type ~= 20)
+		hWait = aguentabar(0,'title','Computing PDF fig');
 		pad = 0;
 		if (handles.handMir.geog && ~strncmp(opt_J, '-JX', 3)),		pad = 2;	end
 		img = get(handMir.hImg, 'CData');
@@ -1350,7 +1356,7 @@ function [out_msg, warn_msg_pscoast] = build_write_script(handles, opt_J, dest_d
 		r = 1;		off = n_band - 1;
 		n_col_pad = n_col + 2*pad;
 		for (row = size(img,1):-1:1)
-			k = ((r - 1) * n_col_pad + n_col_pad + pad) * n_band + 1;
+			k = (n_col_pad * (pad + r - 1) + pad) * n_band + 1;
 			for (col = 1:n_col)
 				img2(k:k+off) = img(row,col,:);
 				k = k + n_band;
@@ -1368,6 +1374,7 @@ function [out_msg, warn_msg_pscoast] = build_write_script(handles, opt_J, dest_d
 		I.pad = pad;
 		mex_sc{o,1} = 'grdimage -R -J -Dr -O -K';
 		mex_sc{o,2} = I;		o = o + 1;
+		aguentabar(1/3);
 
 % 		for (k = 1:size(img,3))
 % 			img(:,:,k) = reshape(img(:,:,k)', [size(img,1) size(img,2)]);
@@ -2177,7 +2184,7 @@ function [out_msg, warn_msg_pscoast] = build_write_script(handles, opt_J, dest_d
 
 	if (do_MEX_fig)
 		try
-			gsimage(handles, mex_sc)
+			gsimage(handles, mex_sc, hWait)
 		catch
 			errordlg(lasterr, 'Error')
 		end
@@ -2234,74 +2241,8 @@ function [out_msg, warn_msg_pscoast] = build_write_script(handles, opt_J, dest_d
 	fclose(fid);
 
 % -------------------------------------------------------------------------------------------
-function gsimage(handles, script, comm)
+function gsimage(handles, script, hWait)
 % ...
-% 	ind = false(numel(script),1);
-% 	for (k = 1:numel(script))				% Remove comment lines
-% 		ind(k) = isempty(script{k}) || ~isempty(strfind(script{k}, comm));
-% 	end
-% 	ind(1) = true;							% First line is to go for sure
-% 	script(ind) = [];
-% 	if (comm(1) == '#')
-% 		script = strrep(script, '$', '');
-% 	else
-% 		script = strrep(script, '%', '');
-% 	end
-% 	script = strrep(script, ' > ps',  '');	% Remove the to-PS-file redirection
-% 	script = strrep(script, ' >> ps', '');	% Remove the to-PS-file redirection
-% 
-% 	ind = strfind(script, 'set ');
-% 	for (k = 1:numel(ind))					% Loop over number batch variables
-% 		if (isempty(ind{k})),		continue,	end
-% 		n = strfind(script{k}, '=');
-% 		tok = [' ' script{k}(5:n-1)];	
-% 		rep = [' ' script{k}(n+1:end)];
-% 		if (strcmp(tok, ' cpt'))
-% 			tok = 'cpt ';	rep = [rep(2:end) ' '];
-% 		end
-% 		script{k} = '';						% Mark line for deletion
-% 		ind_ = strfind(script, tok);
-% 		for (n = k:numel(ind_))				% Loop over script lines and replace TOK by its content
-% 			if (isempty(ind_{n})),	continue,	end
-% 			[t, r] = strtok(script{n});
-% 			script{n} = [t strrep(r, tok, rep)];
-% 		end
-% 	end
-% 
-% 	% Now remove the empty lines
-% 	ind = false(numel(script),1);
-% 	for (k = 1:numel(script)),		ind(k) = isempty(script{k});	end
-% 	script(ind) = [];
-% 	script{end} = strrep(script{end}, ' -K', '');	% Remove last -K
-% 
-% 	ind = strfind(script, 'grdgradient');
-% 	lhs = cell(numel(script),1);
-% 	rhs_ind = zeros(numel(script),1);
-% 	for (k = 1:numel(ind))
-% 		if (isempty(ind{k})),	continue,	end
-% 		ind_ = strfind(script{k}, '-G');
-% 		[t, r] = strtok(script{k}(ind_+2:end));		% The gradient grid name
-% 		script{k} = [script{k}(1:ind_-1) r];		% Remove the -Gillum_grid chunk right away
-% 		lhs{k} = 'G';
-% 		[p, f] = fileparts(t);
-% 		ind_ = strfind(script, f);
-% 		for (n = k+1:numel(ind_))					% k+1 because the usage will have to be on the remaining lines
-% 			if (isempty(ind_{n})),	continue,	end
-% 			[t, r] = strtok(script{n}(ind_{n}:end));
-% 			script{n} = [script{n}(1:ind_{n}-1) r];
-% 			rhs_ind(n) = k;
-% 		end
-% 	end
-% 
-% 	for (k = 1:numel(script))
-% 		if (~isempty(lhs{k}))
-% 			lhs{k} = gmtmex(script{k});
-% 		elseif (rhs_ind(k))
-% 			gmtmex(script{k}, lhs{rhs_ind(k)});
-% 		else
-% 			gmtmex(script{k});
-% 		end
-% 	end
 
 	% Start by deleting the empties
 	c = false(size(script,1), 1);
@@ -2316,12 +2257,26 @@ function gsimage(handles, script, comm)
 			gmtmex(script{k,1});
 		else
 			gmtmex(script{k,1}, script{k,2});
+			if (strncmp(script{k,1}, 'grdim', 5))
+				aguentabar(2/3);
+			end
 		end
 	end
+	if (~isempty(hWait)),	aguentabar(1);		end
 
-	fname = [handles.handMir.path_tmp '/auto.pdf'];
+	fname = [handles.handMir.path_tmp 'auto.pdf'];
 	gmtmex(['psconvert = -Tf -F' fname]);
-	open(fname)
+	if (handles.handMir.IamCompiled)
+		win_open_mex(handles.handMir.path_tmp, 'auto.pdf');
+	else
+		if ispc
+			winopen(fname);
+		elseif strncmp(computer,'MAC',3) 
+			unix(['open "' fname '" &']);
+		else
+			warndlg(sprintf('Automatically opening of PDF files not implemented in Linux\nOpen it youself in\n%s', fname), 'Warning')
+		end
+	end
 
 % 	I = gmtmex('psconvert =');
 % 	mirone(I)
