@@ -319,9 +319,12 @@ function out = findFileType(fname)
 			ind = strcmp({s.Dimension.Name},'number_of_volumes');
 			if (any(ind)),		out = 'sww';	end		% Yes, it's ANUGA file.
 		end
-	elseif (strncmpi(EXT,'.mb',3) && numel(EXT) > 3)	% A MB datalist or an MB file
+	elseif ((strncmpi(EXT,'.mb',3) && numel(EXT) > 3) || strcmpi(EXT,'.fbt') || strcmpi(EXT,'.all'))
+		% A MB datalist or an MB file
 		if (strcmpi(EXT,'.mb-1'))
 			out = 'MB-1';
+		elseif (strcmpi(EXT,'.fbt') || strcmpi(EXT,'.all'))
+			out = ['MB' EXT(2:end)];
 		else
 			out = ['MB' EXT(4:end)];
 		end
