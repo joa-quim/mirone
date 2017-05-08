@@ -492,7 +492,7 @@ function erro = gateLoadFile(handles,drv,fname)
 		case 'ghost',		load_ps(handles, fname);		% Put ghostscript on works
 		case 'sww',			aquamoto(fname);
 % 		case 'MB',			load_MB(handles, fname, drv_or);
-		case 'MB',			show_MB(handles, fname);
+		case 'MB',			show_MB(handles, fname, drv);
 		otherwise,			erro = 1;
 	end
 	if (erro),		warndlg(['Sorry but couldn''t figure out what to do with the ' fname ' file'],'Warning'),	end
