@@ -50,7 +50,7 @@ function filename = write_flederFiles(opt,varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: write_flederFiles.m 10086 2017-05-07 22:36:48Z j $
+% $Id: write_flederFiles.m 10093 2017-05-14 22:09:54Z j $
 
 	% - Little initial block to deal with the adding of two new input vars and try to
 	%   do it in a compatible way. That is, set up a mechanism that guaranties backward
@@ -144,7 +144,7 @@ function filename = write_flederFiles(opt,varargin)
 		write_block_tag(fid, 999999999, 0, 1)	% Write EOF block and close the file
 	end
 
-	% Go trough here when using specific external calls (some are probably not possible to call from outside)
+	% Come here when using specific external calls (some are probably not possible to call from outside)
 	switch opt
 		case 'geo'
 			write_georef(varargin{:});			% Write a .geo block
@@ -162,13 +162,47 @@ function filename = write_flederFiles(opt,varargin)
 		case 'line'
 			write_line(varargin{:});			% Write line objects
 		case 'points'
-			if (ischar(varargin{1})),	varargin{1} = fopen(varargin{1},'wb');	end		% Was file name
+			if (ischar(varargin{1}))			% Was file name
+				varargin{1} = fopen(varargin{1},'wb');
+				fname = varargin{1};			% So that it can be sent back and used to append things in Scenes.
+			end
 			if (~isempty(PTparams))				% We have a specific request for the point parameters settings
 				varargin{end+1} = '';			% The 'Earthquakes' option
 				varargin{end+1} = PTparams;
 			end
 			write_pts(varargin{:});				% Write point objects
 			write_eof(varargin{1})				% Write EOF block and close the file
+		case 'scene_pts'
+			if (ischar(varargin{1}))			% Was file name, otherwise expected to be the fid
+				varargin{1} = fopen([varargin{1} '.scene'],'wb');
+				fname = varargin{1};			% So that it can be sent back and used to append things in Scenes.
+			end
+			fid = varargin{1};
+			if (~isempty(PTparams))				% We have a specific request for the point parameters settings
+				varargin{end+1} = '';			% The 'Earthquakes' option
+				varargin{end+1} = PTparams;
+			end
+			
+			limits = varargin{4};				% If not ... boom
+			if (strcmp(varargin{3}, 'begin'))	% As it says
+				start_TDR(fid, 'first')			% mode == 'first' so the TDR object starts here
+				write_scene_block(fid)
+				write_node_block(fid, 'root', 'Root Node', 'Unknown')
+				write_georef(fid,'add',limits(1:6), TDRver, proj)
+				write_alignparent_block(fid)
+				write_georef(fid,'add',limits(1:6), TDRver, proj)
+				if (nargout),	filename = fid;		end
+				return
+			end
+			% TESTAR QUE limits TEM 12 ELEMENTOS
+			write_node_block(fid, 'scatter', 'scater2.sd', 'V:/tmp/scater1.sd', limits)	% TMP
+			write_georef(fid,'add',limits(1:6), TDRver, proj)
+
+			varargin{4} = varargin{4}(1:6);
+			write_pts(varargin{:});				% Write point objects
+			if (strcmp(varargin{3}, 'end'))		% Means that it needs to 
+				write_eof(fid)
+			end
 	end
 
 	if (nargout),	filename = fname;	end		% Otherwise the compiled version would silently error
@@ -179,7 +213,7 @@ function start_TDR(fid, mode)
 	global TDRver
 	if (strcmp(mode,'first'))       % The TDR object starts here
 		fprintf(fid,'%s\n%s\n%s\f\n',['%% TDR ' TDRver ' Binary'],'Created by:    Mirone Tech!','%%');
-		%fprintf(fid,'%s\n%s\n%s\n',['%% TDR ' TDRver ' Binary'],'','%%');
+		%fprintf(fid,'%s\n%s\n%s\f\n',['%% TDR ' TDRver ' Binary'],'Fledermaus wrote this scene file!','%%');
 	end
 
 %----------------------------------------------------------------------------------
@@ -239,9 +273,11 @@ function write_georef(fid, mode, limits, TDRver, proj)
 % Write a GEOREF block
 	if (nargin == 3 || strcmp(TDRver, '2.0'))	% Write a Version 6 GEOREF block
 		start_TDR(fid, mode)				% If mode == 'first' the TDR object starts here
-		write_block_tag(fid, 15000, 100, 1)
-		fwrite(fid, limits,'real*8');
-		fwrite(fid, (1:52)*0, 'uchar');		% Is this a Ver 6 georeference string?
+		write_block_tag(fid, 15000, 100, 1)	% 100 = len;	1 = DBver
+		fwrite(fid, (1:12)*0, 'uchar');
+		fwrite(fid, limits,'real*8');		% 48 bytes
+%		fwrite(fid, (1:52)*0, 'uchar');		% +52 = 100;	Is this a Ver 6 georeference string?
+		fwrite(fid, (1:40)*0, 'uchar');
 	else
 		% Write a Version 7 GEOREF block
 		start_TDR(fid, mode)				% If mode == 'first' the TDR object starts here
@@ -461,45 +497,82 @@ function write_sonardtm_block(fid, tipo)
 	end
 
 %----------------------------------------------------------------------------------
-function write_scene_block(fid)
+function write_scene_block(fid, proj)
 % Write the FM_SCENE block
 
-	fwrite(fid,[20002 116],'integer*4');		% Tag ID, Data Length
-	fwrite(fid,[0 0 1 1 1 3 0 0],'uchar');
-	fwrite(fid,(1:9)*0,'integer*4');
-	fwrite(fid,[205 204 204 61 0 64 28 70 1 0 1 0 10 215 35 60 0 36 116 72],'uchar');
-	fwrite(fid,[72 127 248 66 0 192 90 69 0 0 128 63 (1:16)*0 202 232 227 62 21 61 101 191],'uchar');
-	fwrite(fid,[0 0],'integer*4');
+	if (nargin == 1),	proj = 'geog';	end
+	code1 = 1;	% 1 = Geog;	2 = UTM;	3 = Meters;		4 = Spherical
+	if (strncmpi(proj, 'met', 3)),		code1 = 3;
+	elseif (strncmpi(proj, 'UTM', 3)),	code1 = 2;
+	elseif (strncmpi(proj, 'sph', 3)),	code1 = 4;
+	% Miss the WKT case
+	end
+	%code2 = 0.0315315;		% These are unknown scale factors and unapropriate fot all cases
+	code2 = 806.919;	
+	% What I found is that 3500 divided by second number in type 'root' in write_node_block below
+	% is (almost) equal to code2 above. That is 3500/4.34152 = 806.17
+	if (code1 > 1)
+		code2 = 3500;
+	end
+	write_block_tag(fid, 20002, 116, 3)
+	fwrite(fid,(1:20)*0,'uchar');			% 20 bytes
+	fwrite(fid,[205 204 204 61 0 64 28 70 1 0 code1 0 10 215 35 60 0 36 116 72],'uchar');	% 20 bytes
+	fwrite(fid,[code2 3500 1], 'real*4');	% 12 bytes
+	fwrite(fid,[(1:16)*0 202 232 227 62 21 61 101 191],'uchar');	% 24 bytes
+	fwrite(fid,[0 0],'integer*4');		% 8 bytes.
 
- 	fwrite(fid,[21 61 101 63 202 232 227 62 (1:13)*0 64 156 197 0 0 128 63 0 0 72 66],'uchar');
-	fwrite(fid,[9900 0],'integer*4');				% Tag ID, Data Length		-- SD_HIERARCHY
-	fwrite(fid,[0 0 1 1 1 1 (1:18)*0],'uchar');
+ 	fwrite(fid,[21 61 101 63 202 232 227 62 (1:13)*0 64 156 197 0 0 128 63 0 0 72 66],'uchar');		% 32 bytes
+	% Tot = 116
+	write_block_tag(fid, 9900, 0, 1)		% SD_HIERARCHY.		Length = 0;		Version = 1
 
 %----------------------------------------------------------------------------------
 function write_node_block(fid, tipo, str1, str2, BBfig, BBimg)
-% Write the FM_NODE block
+% Write the FM_NODE block. Used only when writting scenes.
 % BBfig is the Figure's BoundingBox
 % BBimg is the Vimage's BoundingBox
 
 	dl = 180 + numel(str1) + numel(str2);
 	fwrite(fid,[9910 dl],'integer*4');		% Tag ID, Data Length
-	fwrite(fid,[0 0 1 1 1 1 (1:18)*0],'uchar');
-	fwrite(fid,[-1 0 0 0 0],'integer*4');
+	fwrite(fid,[0 0 1 1 1 1 (1:18)*0],'uchar');		% 24 bytes
 	if (strcmp(tipo,'root'))
-		%fwrite(fid,[0 0 128 63 0 0 128 63 0 0 128 63],'uchar');		% Non VIMAGE ???
-		fwrite(fid,[24 4 41 66 203 90 225 65 0 0 128 63],'uchar');
-		fwrite(fid,[0 0 0 3 1 1 1],'integer*4');
+		fwrite(fid,[0 0],'integer*4');		% The first 0 is to show/allow the frame
+	else
+		fwrite(fid,[-1 0],'integer*4');		% 8 bytes, so end of block tag. Data follows
+	end
+	fwrite(fid,[0 0 0],'integer*4');		% 12 bytes
+	if (strcmp(tipo,'root'))
+		%fwrite(fid,[0 0 128 63 0 0 128 63 0 0 128 63],'uchar');		% Non VIMAGE ??? <=> fwrite(fid,[1 1 1], 'real*4);
+		%fwrite(fid,[24 4 41 66 203 90 225 65 0 0 128 63],'uchar');		% 12 bytes  ? [42.254 28.1693 1]
+		%fwrite(fid,[0 204 216 71 0 204 216 71 0 0 192 64],'uchar');	% For Scenes ? <=> fwrite(fid,[111000 111000 6],'real*4);
+		%fwrite(fid,[111000 111000 6],'real*4');		% For Scenes ?  3rd element is the vertical exageration
+		fwrite(fid,[5.2937 4.34152 6],'real*4');		% For Scenes ?
+		fwrite(fid,[0 0 0 3 1 1 1],'integer*4');		% 28 bytes		--> Tot = 40
 	elseif (strcmp(tipo, 'dtm'))
-		fwrite(fid,[0 0 128 63 0 0 128 63],'uchar');
-		fwrite(fid,[11 234 229 62 0 0 0 128 0 0 0 128 251 10 141 62],'uchar');
-		fwrite(fid,[12 0 1 1],'integer*4');
+		fwrite(fid,[0 0 128 63 0 0 128 63],'uchar');	% 8 bytes
+		fwrite(fid,[11 234 229 62 0 0 0 128 0 0 0 128 251 10 141 62],'uchar');	% 16 bytes
+		fwrite(fid,[12 0 1 1],'integer*4');		% 16 bytes		--> Tot = 40
 	elseif (strcmp(tipo, 'dtm-vimage'))
-		fwrite(fid,[0 0 128 63 0 0 128 63],'uchar');
-		fwrite(fid,[200 215 129 62 0 0 0 128 0 0 0 128 28 20 191 62],'uchar');
-		fwrite(fid,[12 0 1 1],'integer*4');
+		fwrite(fid,[0 0 128 63 0 0 128 63],'uchar');	% 8 bytes
+		fwrite(fid,[200 215 129 62 0 0 0 128 0 0 0 128 28 20 191 62],'uchar');	% 16 bytes
+		fwrite(fid,[12 0 1 1],'integer*4');		% 16 bytes --> Tot = 40
+	elseif (strcmp(tipo, 'scatter'))
+		% This was f difficult to find too
+		% Here BBfig is the a 12 elements vector with [xmin xmax ymin ... zmax xgmin ... zgmax]
+		% where the first 6 are for this group and the last 6 are the global min/maxs
+		thisBB = BBfig(1:6);		globalBB = BBfig(7:12);
+		xWidth = diff(globalBB(1:2));		yWidth = diff(globalBB(3:4));		zWidth = diff(globalBB(5:6));
+		global_center = [(globalBB(1)+globalBB(2))/2 (globalBB(3)+globalBB(4))/2 (globalBB(5)+globalBB(6))/2];
+		this_center   = [(thisBB(1)+thisBB(2))/2 (thisBB(3)+thisBB(4))/2 (thisBB(5)+thisBB(6))/2];
+		fwrite(fid, diff(thisBB(1:2)) / xWidth, 'real*4');		% Fraction THISGROUP_DX / FIG_DX
+		fwrite(fid, diff(thisBB(3:4)) / yWidth, 'real*4');		% Fraction THISGROUP_DY / FIG_DY
+		fwrite(fid, diff(thisBB(5:6)) / zWidth, 'real*4');		% Fraction THISGROUP_DZ / FIG_DZ
+		fwrite(fid, (this_center(1)-global_center(1)) / xWidth, 'real*4');	% Fraction of group_x mid-point away from Fig center
+		fwrite(fid, (this_center(2)-global_center(2)) / yWidth, 'real*4');	% 	idem for Y
+		fwrite(fid, (this_center(3)-global_center(3)) / zWidth, 'real*4');	%	and Z
+		fwrite(fid,[34 0 1 1],'integer*4');		% 28 bytes		--> Tot = 52
 	elseif (strcmp(tipo, 'geoimg'))
-		fwrite(fid,[0 0 128 63 0 0 128 63 0 0 128 63],'uchar');
-		fwrite(fid,[0 0 0 36 0 1 1],'integer*4');
+		fwrite(fid,[0 0 128 63 0 0 128 63 0 0 128 63],'uchar');		% 12 bytes
+		fwrite(fid,[0 0 0 36 0 1 1],'integer*4');		% 48 bytes		--> Tot = 60
 	elseif (strcmp(tipo, 'vimage'))
 		% This was damn difficult to find
 		center_fig = [(BBfig(1)+BBfig(2))/2 (BBfig(3)+BBfig(4))/2 (BBfig(5)+BBfig(6))/2];
@@ -516,24 +589,28 @@ function write_node_block(fid, tipo, str1, str2, BBfig, BBimg)
 	else
 		error('Case unpredicted in write_node_block')
 	end
-	fwrite(fid,numel(str1),'integer*4');	fprintf(fid,str1);
-	fwrite(fid,numel(str2),'integer*4');	fprintf(fid,str2);
-	fwrite(fid,(1:8)*0,'integer*4');
-	fwrite(fid,[0 16256],'integer*2');
-	fwrite(fid,(1:12)*0,'integer*4');
+	fwrite(fid,numel(str1),'integer*4');	fprintf(fid,str1);	% 4 + strlen()
+	fwrite(fid,numel(str2),'integer*4');	fprintf(fid,str2);	% 4 + strlen()
+	fwrite(fid,(1:8)*0,'integer*4');		% 32 bytes
+	fwrite(fid,[0 16256],'integer*2');		% 4 bytes (This is the [128 63](x803F) used several times above)
+	fwrite(fid,(1:12)*0,'integer*4');		% 48 bytes
 	if (strcmp(tipo, 'vimage'))
-		fwrite(fid,[0 0 62 66 0 0 66 66 0 0 40 194 0 0 36 194 0 112 148 198 0 240 135 197],'uchar');
+		fwrite(fid,[0 0 62 66 0 0 66 66 0 0 40 194 0 0 36 194 0 112 148 198 0 240 135 197],'uchar');	% 24 bytes
+	elseif (strcmp(tipo, 'root'))
+		fwrite(fid,[0 0 64 64 0 0 64 65 0 0 0 64 0 0 48 65 0 0 128 64 0 0 80 65],'uchar');	% 24
+	elseif (strcmp(tipo, 'scatter'))
+		fwrite(fid,[13 230 18 66 65 178 19 66 77 39 58 193 134 68 54 193 146 8 160 197 115 235 178 192],'uchar');% 24 bytes
 	else
-		fwrite(fid,[188 251 29 66 68 4 38 66 17 17 88 193 239 238 39 193 45 208 176 197 0 0 128 63],'uchar');
+		fwrite(fid,[188 251 29 66 68 4 38 66 17 17 88 193 239 238 39 193 45 208 176 197 0 0 128 63],'uchar');	% 24
 	end
-	fwrite(fid,0,'integer*4');
+	fwrite(fid,0,'integer*4');	% 4 bytes;	--> Tot = 
 
 %----------------------------------------------------------------------------------
 function write_alignparent_block(fid)
 % Write the SD_ALIGNPARENT block
 	fwrite(fid,[9955 4],'integer*4');			% Tag ID, Data Length
-	fwrite(fid,[0 0 1 1 1 1 (1:18)*0],'uchar');
-	fwrite(fid,0,'integer*4');
+	fwrite(fid,[0 0 1 1 1 1 (1:18)*0],'uchar');	% 24 bytes
+	fwrite(fid,0,'integer*4');		% So, this doesn't amount to 32 + 4, ... and still works??
 
 %----------------------------------------------------------------------------------
 function write_geoimg_block(fid)
@@ -591,7 +668,8 @@ function write_eof(fid)
 function write_block_tag(fid, ID, len, DBver)
 % Write block Tag.
 % ID    -> A unique unsigned integer based identifier for each DB type
-% len   -> The length in bytes of the DB's contents
+% len   -> The length in bytes of the DB's contents.
+%          WARN: The length does NOT count with this block size (32 bytes)
 % DBver -> Version of the data block contents
 % Example for a EOF DB: write_block_tag(fid, 999999999, 0, 1)
 	fwrite(fid,ID,'uint');
@@ -601,8 +679,8 @@ function write_block_tag(fid, ID, len, DBver)
 	fwrite(fid,1,'uint8');		% Data type (Binary)
 	fwrite(fid,1,'uchar');		% Endianess (little)
 	fwrite(fid, DBver, 'uint16');
-	fwrite(fid,0,'int64');		% Length64
-	fwrite(fid,(1:9)*0,'uchar');% Padding bytes
+	fwrite(fid,0,'int64');		% Length64			# 23 bytes up here
+	fwrite(fid,(1:9)*0,'uchar');% Padding bytes		# 32 bytes
 	if (ID == 999999999),	fclose(fid);	end
 
 %----------------------------------------------------------------------------------
