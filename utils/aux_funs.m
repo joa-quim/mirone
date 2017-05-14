@@ -18,7 +18,7 @@ function  varargout = aux_funs(opt,varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: aux_funs.m 10090 2017-05-08 15:37:44Z j $
+% $Id: aux_funs.m 10092 2017-05-14 22:07:16Z j $
 
 switch opt(1:4)
 	case 'Stor'		% 'StoreZ'
@@ -1052,7 +1052,19 @@ function out = figs_XOR(hFig, hFigs)
 	end
 	out = hFigs(IAmAMir);						% Retain only the Mirone figures
 
-% ----------------------------------------------------------------
+% -----------------------------------------------------------------------------------------
+function hFig = showgrd(handles, Z, head, name, srsWKT)
+% Display the the grid Z with grid params in HEAD. NAME and srsWKT are optional
+% HANDLES can be the true Mir handles or just a struct with a 'geog' member
+	tmp.X = linspace(head(1),head(2), size(Z,2));
+	tmp.Y = linspace(head(3),head(4), size(Z,1));
+	tmp.head = head;	tmp.geog = handles.geog;
+	if (nargin > 3 && ~isempty(name)),		tmp.name = name;	end
+	if (nargin > 4 && ~isempty(srsWKT)),	tmp.srsWKT = srsWKT;	end
+	h = mirone(Z,tmp);
+	if (nargout),	hFig = h;	end
+
+% -----------------------------------------------------------------------------------------
 function [img, pal] = semaforo_green()
 
 ind = cell(16,1);
