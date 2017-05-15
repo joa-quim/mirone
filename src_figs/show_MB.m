@@ -16,7 +16,7 @@ function varargout = show_MB(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: show_MB.m 10096 2017-05-15 00:00:07Z j $
+% $Id: show_MB.m 10097 2017-05-15 00:20:21Z j $
 
 	hObject = figure('Vis','off');
 	show_MB_LayoutFcn(hObject);
@@ -236,16 +236,17 @@ function push_OK_CB(hObject, handles)
 		end
 
 	else
-		if (get(handles.check_datalist,'Val'))
-			opt_C = handles.opt_C;		opt_N = handles.opt_N;	opt_Z = handles.opt_Z;
-		else
-			opt_C = '';		opt_N = '';
+		opt_C = '';		opt_N = '';
+		opt_Z = ' -Z5';
+		if (get(handles.radio_imgSimple, 'Val')),		opt_Z = ' -Z1';
+		elseif (get(handles.radio_imgShaded, 'Val')),	opt_Z = ' -Z2';
+		elseif (get(handles.radio_imgAmp, 'Val')),		opt_Z = ' -Z4';
 		end
-		if (isempty(handles.opt_Z))		% Than we must use the this window selection
-			opt_Z = ' -Z5';
-			if (get(handles.radio_imgSimple, 'Val')),		opt_Z = ' -Z1';
-			elseif (get(handles.radio_imgShaded, 'Val')),	opt_Z = ' -Z2';
-			elseif (get(handles.radio_imgAmp, 'Val')),		opt_Z = ' -Z4';
+		
+		if (get(handles.check_datalist,'Val'))
+			opt_C = handles.opt_C;		opt_N = handles.opt_N;	% For these we have buttons here
+			if (~isempty(handles.opt_Z))
+				opt_Z = handles.opt_Z;
 			end
 		end
 		I = gmtmex(['mbimport -I' handles.fnameMB opt_Z opt_N opt_C]);
