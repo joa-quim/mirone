@@ -32,7 +32,8 @@ function varargout = show_MB(varargin)
 	handles.hMirFig  = handMir.figure1;
 
 	handles.opt_N = '';		handles.opt_C = '';		handles.opt_Z = '';	% Defaults that might be used later
-	handles.first_datalist_scan = false;
+	handles.first_datalist_scan = true;
+	handles.show_datalist_check = false;
 
 	if (strcmp(varargin{3}, 'MBfbt') || strcmp(varargin{3}, 'MBall'))	% Can't make images of these
 		set(handles.radio_image, 'Enable', 'off')
@@ -53,7 +54,7 @@ function radio_pointCloud_CB(hObject, handles)
 	set([handles.popup_symb handles.edit_symbSize handles.radio_justSee ...
 		handles.radio_autoclean],'Enable','on')
 	set([handles.radio_imgSimple handles.radio_imgShaded handles.radio_imgAmp ...
-		handles.radio_imgSS],'Enable','off')
+		handles.radio_imgSS handles.check_datalist],'Enable','off')
 
 % ----------------------------------------------------------------------
 function edit_symbSize_CB(hObject, handles)
@@ -82,11 +83,14 @@ function radio_image_CB(hObject, handles)
 	set(handles.radio_pointCloud,'Value',0)
 	set([handles.radio_imgSimple handles.radio_imgShaded handles.radio_imgAmp ...
 		handles.radio_imgSS],'Enable','on', 'Val',0)
+	if (handles.show_datalist_check)
+		 set(handles.check_datalist,'Enable','on')
+	end
 	set(handles.radio_imgSimple, 'Val', 1)
 	set([handles.popup_symb handles.edit_symbSize handles.radio_justSee ...
 		handles.radio_autoclean],'Enable','off')
 
-	if (handles.first_datalist_scan)		% If we haven't doene this yet (checking if 1st line in datalist has MB options)
+	if (handles.first_datalist_scan)		% If we haven't donne this yet (checking if 1st line in datalist has MB options)
 		cmd = '';
 		fid = fopen(handles.fnameMB,'rt');
 		todos = fread(fid,'*char');		fclose(fid);
@@ -101,16 +105,17 @@ function radio_image_CB(hObject, handles)
 			end
 			ind = strfind(cmd, ' -C');
 			if (~isempty(ind))
-				handles.opt_C = [' ' strtok(cmd(ind(1)+1))];
+				handles.opt_C = [' ' strtok(cmd(ind(1)+1:end))];
 			end
 			ind = strfind(cmd, ' -N');
 			if (~isempty(ind))
-				handles.opt_N = [' ' strtok(cmd(ind(1)+1))];
+				handles.opt_N = [' ' strtok(cmd(ind(1)+1:end))];
 			end
 			if (~isempty(handles.opt_C) || ~isempty(handles.opt_N) || ~isempty(handles.opt_Z))
-				set(handles.check_file, 'Enable','on')
+				set(handles.check_datalist, 'Enable','on')
 			end
-			handles.first_datalist_scan = true;
+			handles.first_datalist_scan = false;
+			handles.show_datalist_check = true;
 			guidata(handles.figure1, handles)
 		end
 	end
@@ -201,7 +206,6 @@ function push_OK_CB(hObject, handles)
 			fwrite(fid, size(D(1).data), 'integer*4');
 			fwrite(fid, ind(:), 'uchar');
 			fclose(fid);
-disp(['escreveu o fiche: ' flags_file])
 
 			fid = write_flederFiles('scene_pts', fname, [], 'begin', bbg, par);
 			write_flederFiles('scene_pts', fid, xyz1, 'sec', [bb1 bbg], par);
@@ -232,8 +236,10 @@ disp(['escreveu o fiche: ' flags_file])
 		end
 
 	else
-		if (get(handles.check_file,'Val'))
+		if (get(handles.check_datalist,'Val'))
 			opt_C = handles.opt_C;		opt_N = handles.opt_N;	opt_Z = handles.opt_Z;
+		else
+			opt_C = '';		opt_N = '';
 		end
 		if (isempty(handles.opt_Z))		% Than we must use the this window selection
 			opt_Z = ' -Z5';
@@ -242,8 +248,8 @@ disp(['escreveu o fiche: ' flags_file])
 			elseif (get(handles.radio_imgAmp, 'Val')),		opt_Z = ' -Z4';
 			end
 		end
-		I = flipdim(gmtmex(['mbimport -I' handles.fnameMB opt_Z opt_N opt_C]),1);	% THE FLIP MUST BE DONE BY MBIMPORT
-		move2side(handles.figure1,'right');		% Move it out of the way the best we can
+		I = gmtmex(['mbimport -I' handles.fnameMB opt_Z opt_N opt_C]);
+		I.image = flipdim(I.image,1);
 		mirone(I)
 		if (handles.no_file && ishandle(handles.hMirFig)),	delete(handles.hMirFig),	end
 	end
@@ -361,6 +367,7 @@ function show_MB_LayoutFcn(h1)
 		'String','Simple bathymetry',...
 		'Style','radiobutton',...
 		'Tooltip','Plain color image',...
+		'Enable','off',...
 		'Tag','radio_imgSimple');
 
 	uicontrol('Parent',h1, 'Position',[51 119 121 15],...
@@ -368,6 +375,7 @@ function show_MB_LayoutFcn(h1)
 		'String','Shaded bathymetry',...
 		'Style','radiobutton',...
 		'Tooltip','Shaded illuminated color image',...
+		'Enable','off',...
 		'Tag','radio_imgShaded');
 
 	uicontrol('Parent',h1, 'Position',[51 96 71 15],...
@@ -375,6 +383,7 @@ function show_MB_LayoutFcn(h1)
 		'String','Amplitude',...
 		'Style','radiobutton',...
 		'Tooltip','Gray scale amplitude plot',...
+		'Enable','off',...
 		'Tag','radio_imgAmp');
 
 	uicontrol('Parent',h1, 'Position',[51 73 71 15],...
@@ -382,26 +391,28 @@ function show_MB_LayoutFcn(h1)
 		'String','Side Scan',...
 		'Style','radiobutton',...
 		'Tooltip','Gray scale Side Scan plot',...
+		'Enable','off',...
 		'Tag','radio_imgSS');
 
 	uicontrol('Parent',h1, 'Position',[21 50 151 15],...
 		'String','Use commands in datalist',...
 		'Style','checkbox',...
 		'Tooltip','The datalist has it''s own commands. If checked, use those commands',...
-		'Tag','check_file');
+		'Enable','off',...
+		'Tag','check_datalist');
 
 	uicontrol('Parent',h1, 'Position',[30 337 181 16],...
 		'FontAngle','oblique',...
 		'FontSize',10,...
 		'FontWeight','demi',...
 		'String','How to show this data?',...
-		'Style','text',...
-		'Tag','text1');
+		'Style','text');
 
 	uicontrol('Parent',h1, 'Position',[181 209 50 23],...
 		'Call',@showMB_uiCB,...
 		'String','Params',...
 		'Tooltip','Set parameters for the automatic cleaning',...
+		'Enable','off',...
 		'Tag','push_params');
 
 	uicontrol('Parent',h1, 'Position',[61 286 51 15],...
