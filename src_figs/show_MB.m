@@ -16,7 +16,7 @@ function varargout = show_MB(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: show_MB.m 10098 2017-05-18 16:04:51Z j $
+% $Id: show_MB.m 10099 2017-05-22 02:25:39Z j $
 
 	hObject = figure('Vis','off');
 	show_MB_LayoutFcn(hObject);
@@ -30,6 +30,7 @@ function varargout = show_MB(varargin)
 	handles.path_tmp = handMir.path_tmp;
 	handles.no_file  = handMir.no_file;
 	handles.hMirFig  = handMir.figure1;
+	handles.IamCompiled = handMir.IamCompiled;
 
 	handles.opt_N = '';		handles.opt_C = '';		handles.opt_Z = '';	% Defaults that might be used later
 	handles.first_datalist_scan = true;
@@ -82,16 +83,23 @@ function push_params_CB(hObject, handles)
 % ----------------------------------------------------------------------
 function push_applyClean_CB(hObject, handles)
 % Apply the cleanings stored in the .mask file created previously.
-	if (isempty(handles.list_files))		% Single file
-		gmtmex(['mbflags -I' handles.fnameMB ' -E' handles.fnameMB '.mask'])
-	else									% datalist file
-		for (k = 1:numel(handles.list_files))
-			gmtmex(['mbflags -I' handles.list_files{k} ' -E' handles.list_files{k} '.mask'])
+	try
+		% Have to use mbset to tell the .par files where esf file should be written
+		if (isempty(handles.list_files))		% Single file
+			gmtmex(['mbset -I' handles.fnameMB ' -PEDITSAVEFILE:' handles.fnameMB '.esf'])
+			gmtmex(['mbflags -I' handles.fnameMB ' -E' handles.fnameMB '.mask'])
+		else									% datalist file
+			for (k = 1:numel(handles.list_files))
+				gmtmex(['mbset -I' handles.list_files{k} ' -PEDITSAVEFILE:' handles.list_files{k} '.esf'])
+				gmtmex(['mbflags -I' handles.list_files{k} ' -E' handles.list_files{k} '.mask'])
+			end
 		end
+		h = msgbox('DONE');
+		pause(3)
+		delete(h)
+	catch
+		errordlg(lasterr, 'Error')
 	end
-	h = msgbox('DONE');
-	pause(3)
-	delete(h)
 
 % ----------------------------------------------------------------------
 function radio_image_CB(hObject, handles)
@@ -176,7 +184,7 @@ function push_help_CB(hObject, handles)
 % ----------------------------------------------------------------------
 function push_OK_CB(hObject, handles)
 % ...
-	tol = 0.03;			N_ITER = 3;		% For the aultocleaner cases
+	tol = 0.02;			N_ITER = 3;			% For the aultocleaner cases
 	if (get(handles.radio_image, 'Val'))
 		show_as_img(handles),	return		% Done, bye bye
 	end
@@ -203,7 +211,7 @@ function push_OK_CB(hObject, handles)
 	end
 
 	if (get(handles.radio_justSee, 'Val'))	% See the raw points
-		D = gmtmex(sprintf('mbgetdata -I%s', handles.fnameMB));
+		D = gmtmex(sprintf('mbgetdata -I%s -A', handles.fnameMB));
 		xyz = [D(1).data(:) D(2).data(:) D(3).data(:)];
 		bb = [min(xyz)' max(xyz)']';		bb = bb(:)';
 		write_flederFiles('points', fname, xyz, 'first', bb, par);
@@ -251,7 +259,7 @@ function push_OK_CB(hObject, handles)
 function [xyz, xyzK] = autocleaner(handles, tol, N_ITER, datalist)
 % ...
 	if (isempty(datalist))			% Single file, simplest case
-		D = gmtmex(sprintf('mbgetdata -I%s', handles.fnameMB));
+		D = gmtmex(sprintf('mbgetdata -I%s -A', handles.fnameMB));
 		x = D(1).data(:);		y = D(2).data(:);		z = D(3).data(:);
 		% Compute increment as 3 times the typical point spacing fetch from data's first row.
 		dy = abs(median(diff(D(2).data(1,:))));
@@ -362,8 +370,8 @@ function [xc,yc,zc, xk,yk,zk] = autocleaner_list(handles, tol, N_ITER)
 		end
 		fclose(fid);
 
-		Dcurr   = gmtmex(['mbgetdata -I', list_files{k}]);
-		Dothers = gmtmex(['mbgetdata -I' fname_tmp]);
+		Dcurr   = gmtmex(['mbgetdata -I' list_files{k} ' -A']);
+		Dothers = gmtmex(['mbgetdata -I' fname_tmp ' -A']);
 		if (k == 1)								% Compute working inc as 3 times typical pt spacings
 			dy = abs(median(diff(Dcurr(2).data(1,:))));
 			dx = abs(median(diff(Dcurr(1).data(1,:)))) * cos(Dcurr(2).data(1));
