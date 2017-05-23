@@ -16,7 +16,7 @@ function varargout = surface_options(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: surface_options.m 10066 2017-03-29 00:03:15Z j $
+% $Id: surface_options.m 10104 2017-05-23 23:05:17Z j $
 
 	hObject = figure('Tag','figure1','Visible','off');
 	surface_options_LayoutFcn(hObject);
@@ -246,7 +246,12 @@ function edit_OverRelaxation_CB(hObject, handles)
 % ----------------------------------------------------------------------------------------
 function edit_clipCells_CB(hObject, handles)
 % This one is still not implemented in surface, so use a fake option
-	handles.command{24} = [' -c' get(hObject,'String')];
+	cells = get(hObject,'String');
+	if (isempty(cells))
+		handles.command{24} = '';
+	else
+		handles.command{24} = [' -c' cells];
+	end
 	set(handles.edit_ShowCommand, 'String', [handles.command{5:end}]);
 	guidata(hObject, handles);
 
