@@ -79,7 +79,7 @@ function varargout = load_xyz(handles, opt, opt2)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: load_xyz.m 10046 2017-03-01 02:44:32Z j $
+% $Id: load_xyz.m 10106 2017-05-23 23:10:44Z j $
 
 %	EXAMPLE CODE OF HOW TO CREATE A TEMPLATE FOR UICTX WHEN THESE ARE TOO MANY
 % 	cmenuHand = get(h, 'UIContextMenu');
@@ -133,7 +133,7 @@ function varargout = load_xyz(handles, opt, opt2)
 		if isequal(FileName,0),		return,		end
 		fname = [PathName FileName];
 		[lix,lix,EXT] = fileparts(FileName);
-	elseif (n_argin >= 2)		% Read a ascii file of which we already know the name (drag N'drop)
+	elseif (n_argin >= 2)		% Read a file of which we already know the name (drag N'drop)
 		fname = opt;
 		[PathName,lix,EXT] = fileparts(fname);			% We need the 'PathName' below
 	end
