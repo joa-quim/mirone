@@ -115,6 +115,7 @@ function push_autoclean_CB(hObject, handles)
 
 	if (~get(handles.check_showCleaneds, 'Val'))	% No Viz, only compute and exit
 		autocleaner(handles, tol, N_ITER, datalist);
+		set(handles.push_applyClean, 'Enable', 'on')
 		h = msgbox('DONE');		pause(3),		delete(h)
 	else
 		[xyz1,xyz2] = autocleaner(handles, tol, N_ITER, datalist);
@@ -181,7 +182,6 @@ function push_applyClean_CB(hObject, handles)
 % ----------------------------------------------------------------------
 function push_params_CB(hObject, handles)
 % Will call a new window to help with the autocleaning choices
-	msgdlg('Sorry, not yet implemented. So far a 3 iterations procedure is applyied.')
 
 % ----------------------------------------------------------------------
 function push_help_CB(hObject, handles)
