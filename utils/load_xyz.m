@@ -133,7 +133,7 @@ function varargout = load_xyz(handles, opt, opt2)
 		if isequal(FileName,0),		return,		end
 		fname = [PathName FileName];
 		[lix,lix,EXT] = fileparts(FileName);
-	elseif (n_argin >= 2)		% Read a ascii file of which we already know the name (drag N'drop)
+	elseif (n_argin >= 2)		% Read a file of which we already know the name (drag N'drop)
 		fname = opt;
 		[PathName,lix,EXT] = fileparts(fname);			% We need the 'PathName' below
 	end
