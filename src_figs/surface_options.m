@@ -246,7 +246,12 @@ function edit_OverRelaxation_CB(hObject, handles)
 % ----------------------------------------------------------------------------------------
 function edit_clipCells_CB(hObject, handles)
 % This one is still not implemented in surface, so use a fake option
-	handles.command{24} = [' -c' get(hObject,'String')];
+	cells = get(hObject,'String');
+	if (isempty(cells))
+		handles.command{24} = '';
+	else
+		handles.command{24} = [' -c' cells];
+	end
 	set(handles.edit_ShowCommand, 'String', [handles.command{5:end}]);
 	guidata(hObject, handles);
 
