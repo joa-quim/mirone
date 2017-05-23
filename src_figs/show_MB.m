@@ -16,7 +16,7 @@ function varargout = show_MB(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: show_MB.m 10101 2017-05-23 01:56:20Z j $
+% $Id: show_MB.m 10102 2017-05-23 14:10:09Z j $
 
 	hObject = figure('Vis','off');
 	show_MB_LayoutFcn(hObject);
@@ -164,14 +164,21 @@ function show_fleder(handles, comm)
 function push_applyClean_CB(hObject, handles)
 % Apply the cleanings stored in the .mask file created previously.
 	try
-		% Have to use mbset to tell the .par files where esf file should be written
+		% Have to use mbset to tell the .par files where esf and processed files should be written
 		if (isempty(handles.list_files))		% Single file
-			gmtmex(['mbset -I' handles.fnameMB ' -PEDITSAVEFILE:' handles.fnameMB '.esf'])
+			[pato,outfile,ext] = fileparts(handles.fnameMB);
+			outfile = [pato filesep outfile 'p' ext];
+			cmd = ['mbset -I' handles.fnameMB ' -POUTFILE:' outfile ' -PEDITSAVEFILE:' handles.fnameMB '.esf'];
+			gmtmex(cmd)
 			gmtmex(['mbflags -I' handles.fnameMB ' -E' handles.fnameMB '.mask'])
 		else									% datalist file
 			for (k = 1:numel(handles.list_files))
-				gmtmex(['mbset -I' handles.list_files{k} ' -PEDITSAVEFILE:' handles.list_files{k} '.esf'])
-				gmtmex(['mbflags -I' handles.list_files{k} ' -E' handles.list_files{k} '.mask'])
+				this_file = handles.list_files{k};
+				[pato,outfile_,ext] = fileparts(this_file);
+				outfile = [pato filesep outfile_ 'p' ext]; 
+				cmd = ['mbset -I' this_file ' -POUTFILE:' outfile ' -PEDITSAVEFILE:' this_file '.esf'];
+				gmtmex(cmd)
+				gmtmex(['mbflags -I' this_file ' -E' this_file '.mask'])
 			end
 		end
 		h = msgbox('DONE');		pause(3),		delete(h)
