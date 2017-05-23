@@ -55,12 +55,13 @@ function varargout = griding_mir(varargin)
 	handles.xyz = [];
 	handles.one_or_zero = 1;		% For Grid Registration grids, which are the most common cases
 	handles.hMirFig = [];			% Update this bellow when integrated in Mirone
+	handles.opt_b = '';				% For binary files
 
 	% Inactivate the headers parameters. They will be activated by the header checkbox
 	set(handles.edit_nHeaders,'Enable','inactive')
 	set(handles.popup_binInput,'Visible','off')
 	set(handles.edit_binary_ncolumnIn,'Visible','off')  % Those two have to wait until we
-	set(handles.push_Help_H,'Visible','off')      % know how to read binary files
+	set(handles.push_Help_H,'Visible','off')			% know how to read binary files
 
 	% When called by Mirone varargin must contain: mirone fig handle, "type"
 	if ~isempty(varargin)
@@ -183,7 +184,7 @@ function edit_nHeaders_CB(hObject, handles)
 
 % -----------------------------------------------------------------------------------
 function popup_binInput_CB(hObject, handles)
-	if ~isempty(get(handles.edit_InputFile,'String'))
+	if (~isempty(get(handles.edit_InputFile,'String')))
 		errordlg(['Now it''s to late to choose any of these options. If you realy want to do this, clean ' ...
 				  'the "Input Data File" box, hit the "Return" key, and start again but first ' ...
 				  'choose here the input file format before load the data file.'],'Error')
@@ -262,14 +263,35 @@ function edit_InputFile_CB(hObject, handles, opt)
 		set(handles.check_ToggleXY,'Value',0);
 		%set(handles.popup_binInput,'Value',1);
 		%set(handles.edit_binary_ncolumnIn,'String','3');
-		for i = 3:length(handles.command),	handles.command{i} = '';	end
+		for (i = 3:length(handles.command)),	handles.command{i} = '';	end
 		guidata(handles.figure1, handles)
 		return
 	end
 
 	handles.command{3} = xx;
 	if (gmt_ver == 5)
-		d_info = gmtmex(['gmtinfo -C ' xx]);
+		[bin, n_column] = guess_file(xx);
+		if (isempty(bin))
+			errordlg(['Error reading file (probably empty)' xx],'Error'),	return
+		end
+		opt_b = '';
+		if (isa(bin,'struct') || bin ~= 0)				% =====---****** BINARY FILE *******---=====
+			if (isa(bin,'struct'))
+				bin = guess_bin(bin.nCols, bin.type);	% Ask user to confirm/modify guessing
+			else
+				bin = guess_bin(false);					% Ask user what's in file
+			end
+			if (isempty(bin))		% User quit
+				set(hObject,'String',''),	return
+			elseif (bin.nCols < 3)
+				errordlg('Number of data columns vcannot be less than 3 (without inventions)','Error')
+				set(hObject,'String',''),	return
+			end
+			opt_b = sprintf(' -bi%d%c', bin.nCols, bin.type(1));
+		end
+		handles.opt_b = opt_b;
+
+		d_info = gmtmex(['gmtinfo -C ' xx opt_b]);
 		x_min = d_info.data(1);		x_max = d_info.data(2);
 		y_min = d_info.data(3);		y_max = d_info.data(4);
 		val{1} = sprintf('%0.12g', x_min);			val{2} = sprintf('%0.12g', x_max);
@@ -548,7 +570,11 @@ function push_Grid_Options_CB(hObject, handles)
 		case 'nearneighbor '
 			out = nearneighbor_options(handles.command{30});
 	end
-	if (~isempty(out)),		handles.command{30} = [' ' out];	end
+	if (~isempty(out))
+		handles.command{30} = [' ' out];
+	else
+		handles.command{30} = '';
+	end
 	guidata(hObject,handles)
 
 % -----------------------------------------------------------------------------------
@@ -632,7 +658,7 @@ function push_OK_CB(hObject, handles)
 						double(handles.xyz(3,:)), opt_I, opt_R, '-Mz', '-C3');
 				end
 			else
-				D = gmtmex(['read -Td ' out{2}]);
+				D = gmtmex(['read -Td ' out{2} handles.opt_b]);
 				if (~isa(D.data,'double')),		D.data = double(D.data);	end
 				[Z, head] = gmtmbgrid_m(D.data(:,1), D.data(:,2), D.data(:,3), opt_I, opt_R, '-Mz', opt_c);
 			end
@@ -742,7 +768,7 @@ uicontrol('Parent',h1, 'Position',[21 318 80 15],...
 'Tooltip','Are there any header lines in the input file?',...
 'Tag','check_Option_H');
 
-uicontrol('Parent',h1, 'Position',[170 314 31 20],...
+uicontrol('Parent',h1, 'Position',[170 315 31 18],...
 'BackgroundColor',[1 1 1],...
 'Call',@griding_mir_uiCB,...
 'HorizontalAlignment','left',...
@@ -751,16 +777,16 @@ uicontrol('Parent',h1, 'Position',[170 314 31 20],...
 'Tooltip','How many?',...
 'Tag','edit_nHeaders');
 
-uicontrol('Parent',h1, 'Position',[214 313 91 22],...
+uicontrol('Parent',h1, 'Position',[214 310 91 23],...
 'BackgroundColor',[1 1 1],...
 'Call',@griding_mir_uiCB,...
-'String',{  'ascii'; 'binary double'; 'binary single' },...
+'String',{'ascii'; 'binary double'; 'binary single'},...
 'Style','popupmenu',...
 'Tooltip','Input data type',...
 'Value',1,...
 'Tag','popup_binInput');
 
-uicontrol('Parent',h1, 'Position',[304 314 25 20],...
+uicontrol('Parent',h1, 'Position',[304 315 25 18],...
 'BackgroundColor',[1 1 1],...
 'Call',@griding_mir_uiCB,...
 'HorizontalAlignment','left',...
