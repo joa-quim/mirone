@@ -16,7 +16,7 @@ function varargout = show_MB(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: show_MB.m 10102 2017-05-23 14:10:09Z j $
+% $Id: show_MB.m 10103 2017-05-23 23:00:33Z j $
 
 	hObject = figure('Vis','off');
 	show_MB_LayoutFcn(hObject);
@@ -227,7 +227,7 @@ function [xyz, xyzK] = autocleaner(handles, tol, N_ITER, datalist)
 		end
 		save_flags(handles, handles.fnameMB, ind, size(D(1).data))	% Save the new flags in a .mask file
 
-		if (nargout > 0)
+		if (nargout > 0 || true)
 			% Now it's time to remove the NaNs that were inserted in place of the cleaned pts
 			indNaN = isnan(z);
 			x(indNaN) = [];		y(indNaN) = [];		z(indNaN) = [];
@@ -238,7 +238,7 @@ function [xyz, xyzK] = autocleaner(handles, tol, N_ITER, datalist)
 		end
 
 	else
-		if (nargout > 0)
+		if (nargout > 0 || true)
 			[xc,yc,zc, xk,yk,zk] = autocleaner_list(handles, tol, N_ITER);
 			xyz  = [xc yc zc];	clear xc yc zc		% AWFULL MEMORY WASTE
 			xyzK = [xk yk zk];
@@ -247,7 +247,13 @@ function [xyz, xyzK] = autocleaner(handles, tol, N_ITER, datalist)
 		end
 	end
 
-% 	[Z, head] = gmtmbgrid_m(x, y, z, '-I0.001', opt_R, '-Mz', '-C3');
+	patoMother = fileparts(handles.fnameMB);		% Path of the datlist file
+	fid = fopen([patoMother filesep 'data_cleaned.bin'],'wb');
+	fwrite(fid, xyz', 'real*8');
+	fclose(fid);
+% 	[Z, head] = gmtmbgrid_m(xyz(:,:,1), xyz(:,:,2), xyz(:,:,3), '-I0.0005', opt_R, '-Mz', '-C2');
+% 	opt_R = sprintf('-R%.12g/%.12g/%.12g/%.12g', min(xc),max(xc),min(yc),max(yc));
+% 	[Z, head] = gmtmbgrid_m(xc, yc, zc, '-I0.0005', opt_R, '-Mz', '-C2');
 % 	aux_funs('showgrd', struct('geog',1), Z, head, 'Autocleaned')
 	
 %-------------------------------------------------------------------------------------
