@@ -302,7 +302,12 @@ function edit_InputFile_CB(hObject, handles, opt)
 		[s,w] = mat_lyies(str);
 		if ~(isequal(s,0))                  % An error as occured. Try loading the file ourselves.
 			try
-				out = load_xyz([],xx);
+				if (~isempty(handles.hMirFig) && ishandle(handles.hMirFig))			% If we know it and it exists
+					hand = guidata(handles.hMirFig);		% get handles of the calling fig
+				else
+					hand = [];
+				end
+				out = load_xyz(hand,xx);	% If HAND is empty and file is binary double shit will follow
 			catch
 				errordlg('Error reading input data file', 'Error'),		return
 			end
