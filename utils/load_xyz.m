@@ -17,8 +17,9 @@ function varargout = load_xyz(handles, opt, opt2)
 %
 %	It does also deal with the case of ploting the isochrons.dat
 %
-%	HANDLES	->	Should be the Mirone handles. However, when this function is used with output
-%				HANDLES can be empty([]) or just a simple structure with the field 'no_file' = false
+%	HANDLES	->  Should be the Mirone handles. However, when this function is used with output
+%               HANDLES can be empty([]) or just a simple structure with the field 'no_file' = false
+%               Except when reading binary files. Than the 'version7' member must exist too.
 %
 %	Optional output:
 %
