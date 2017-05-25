@@ -17,8 +17,9 @@ function varargout = load_xyz(handles, opt, opt2)
 %
 %	It does also deal with the case of ploting the isochrons.dat
 %
-%	HANDLES	->	Should be the Mirone handles. However, when this function is used with output
-%				HANDLES can be empty([]) or just a simple structure with the field 'no_file' = false
+%	HANDLES	->  Should be the Mirone handles. However, when this function is used with output
+%               HANDLES can be empty([]) or just a simple structure with the field 'no_file' = false
+%               Except when reading binary files. Than the 'version7' member must exist too.
 %
 %	Optional output:
 %
@@ -79,7 +80,7 @@ function varargout = load_xyz(handles, opt, opt2)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: load_xyz.m 10106 2017-05-23 23:10:44Z j $
+% $Id: load_xyz.m 10107 2017-05-25 11:29:50Z j $
 
 %	EXAMPLE CODE OF HOW TO CREATE A TEMPLATE FOR UICTX WHEN THESE ARE TOO MANY
 % 	cmenuHand = get(h, 'UIContextMenu');
