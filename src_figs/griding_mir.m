@@ -16,7 +16,7 @@ function varargout = griding_mir(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: griding_mir.m 10105 2017-05-23 23:07:32Z j $
+% $Id: griding_mir.m 10108 2017-05-25 13:05:07Z j $
 
 	global gmt_ver
 	if (isempty(gmt_ver)),		gmt_ver = 5;	end
@@ -302,7 +302,12 @@ function edit_InputFile_CB(hObject, handles, opt)
 		[s,w] = mat_lyies(str);
 		if ~(isequal(s,0))                  % An error as occured. Try loading the file ourselves.
 			try
-				out = load_xyz([],xx);
+				if (~isempty(handles.hMirFig) && ishandle(handles.hMirFig))			% If we know it and it exists
+					hand = guidata(handles.hMirFig);		% get handles of the calling fig
+				else
+					hand = [];
+				end
+				out = load_xyz(hand,xx);	% If HAND is empty and file is binary double shit will follow
 			catch
 				errordlg('Error reading input data file', 'Error'),		return
 			end
