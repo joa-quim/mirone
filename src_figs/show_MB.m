@@ -16,7 +16,7 @@ function varargout = show_MB(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: show_MB.m 10103 2017-05-23 23:00:33Z j $
+% $Id: show_MB.m 10110 2017-05-26 15:48:04Z j $
 
 	hObject = figure('Vis','off');
 	show_MB_LayoutFcn(hObject);
@@ -37,6 +37,8 @@ function varargout = show_MB(varargin)
 	handles.show_datalist_check = false;
 	handles.did_autoclean = false;
 	handles.list_files = '';		% Will store the contents of datalists files when those are used.
+	handles.tol = 0.02;				% For the autocleaner step.
+	handles.N_ITER = 3;
 
 	%------------ Give a Pro look (3D) to the frame boxes  ------------------------------------
 	new_frame3D(hObject, [handles.text_PC handles.text_PI])
@@ -90,7 +92,7 @@ function push_showPC_CB(hObject, handles)
 % ----------------------------------------------------------------------
 function push_autoclean_CB(hObject, handles)
 % Do an automatic cleaning and optionally show a point cloud with cleaned and flagged
-	tol = 0.02;			N_ITER = 3;
+	tol = handles.tol;			N_ITER = handles.N_ITER;
 
 	contents = cellstr(get(handles.popup_symb,'String'));
 	val = get(handles.popup_symb,'Value');
@@ -251,6 +253,7 @@ function [xyz, xyzK] = autocleaner(handles, tol, N_ITER, datalist)
 	fid = fopen([patoMother filesep 'data_cleaned.bin'],'wb');
 	fwrite(fid, xyz', 'real*8');
 	fclose(fid);
+
 % 	[Z, head] = gmtmbgrid_m(xyz(:,:,1), xyz(:,:,2), xyz(:,:,3), '-I0.0005', opt_R, '-Mz', '-C2');
 % 	opt_R = sprintf('-R%.12g/%.12g/%.12g/%.12g', min(xc),max(xc),min(yc),max(yc));
 % 	[Z, head] = gmtmbgrid_m(xc, yc, zc, '-I0.0005', opt_R, '-Mz', '-C2');
@@ -335,8 +338,20 @@ function [xc,yc,zc, xk,yk,zk] = autocleaner_list(handles, tol, N_ITER)
 		overlaps = find_overlaps(list_files, k, info);	% Get indices of files that overlap with current one
 		if (isempty(overlaps))					% Shit, this doesn't overlap with any other file
 			% Call the single file case
-			errordlg(['File ' list_files{k} ' does not overlap with any other file. This currently not allowed'], 'Error')
-			error('Non overlapping files must be processed individually (no datalist)')
+			if (nargout > 0)
+				[xyz1,xyzK] = autocleaner(handles, tol, N_ITER, '');
+				if (k == 1)								% First time, create the output arrays
+					xc = xyz1(:,1);		yc = xyz1(:,2);		zc = xyz1(:,3);		clear xyz1
+					xk = xyzK(:,1);		yk = xyzK(:,2);		zk = xyzK(:,3);		clear xyzK
+				else
+					xc = [xc; xyz1(:,1)];	yc = [yc; xyz1(:,2)];	zc = [zc; xyz1(:,3)];	clear xyz1 %#ok<AGROW>
+					xk = [xk; xyzK(:,1)];	yk = [yk; xyzK(:,2)];	zk = [zk; xyzK(:,3)];	clear xyzK %#ok<AGROW>
+				end
+			else
+				autocleaner(handles, tol, N_ITER, '');	% Do the cleaning silently
+			end
+			aguentabar(k/n_files)
+			continue
 		end
 
 		lista_t = list_files(overlaps);
@@ -357,7 +372,7 @@ function [xc,yc,zc, xk,yk,zk] = autocleaner_list(handles, tol, N_ITER)
 			Dothers(1).data(:),Dothers(2).data(:),Dothers(3).data(:), opt_I, tol, N_ITER);	% X,Y,Z are the cleaned PTs
 
 		save_flags(handles, list_files{k}, ind, size(Dcurr(1).data))	% Time to save flags
-		
+
 		if (nargout > 0)
 			Dcurr(3).data(old_flags) = Dcurr(3).data(old_flags) - 100000;	% Restore the true value of the old flagged PTs
 			ind = (ind | old_flags);				% Add the old and new flags
