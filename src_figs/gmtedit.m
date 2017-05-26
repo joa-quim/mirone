@@ -338,6 +338,7 @@ function import_clickedCB(hObject, evt, opt)
 		[handles, track] = read_mgd77_plus(handles, f_name);
 		MIRONE_DIRS = getappdata(0,'MIRONE_DIRS');
 		[handles.vars, handles.multi_plot, handles.xISdist] = parse_optV(MIRONE_DIRS.home_dir);
+		handles.fname_nc = track.fname;		% Needed when saving into a new file
 	else
 		handles.f_name = [FNAME '.gmt'];	handles.is_gmt = true;			handles.is_mgd77 = false;
 		track = gmtlist_m([PATH filesep FNAME], '-Fsxygmtd', handles.opt_G);
@@ -350,7 +351,6 @@ function import_clickedCB(hObject, evt, opt)
 	handles.lat   = track.latitude;
 	handles.year  = track.year;
 	handles.info  = track.info;
-	handles.fname_nc = track.fname;
 	if (length(track.agency) ~= 10)			% Ensures that agency is exactly 10 chars
 		agency = '          ';				% 10 blanks
 		len = min(length(track.agency),10);
