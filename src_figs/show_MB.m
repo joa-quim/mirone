@@ -39,6 +39,8 @@ function varargout = show_MB(varargin)
 	handles.list_files = '';		% Will store the contents of datalists files when those are used.
 	handles.tol = 0.02;				% For the autocleaner step.
 	handles.N_ITER = 3;
+	handles.grid_inc = [];			% If not set, it will be estimated from point spread.
+	handles.area_cmd = '';			% If the "Params" fig is called this may hold the mbareaclen command
 
 	%------------ Give a Pro look (3D) to the frame boxes  ------------------------------------
 	new_frame3D(hObject, [handles.text_PC handles.text_PI])
@@ -118,7 +120,8 @@ function push_autoclean_CB(hObject, handles)
 	if (~get(handles.check_showCleaneds, 'Val'))	% No Viz, only compute and exit
 		autocleaner(handles, tol, N_ITER, datalist);
 		set(handles.push_applyClean, 'Enable', 'on')
-		h = msgbox('DONE');		pause(3),		delete(h)
+		%h = msgbox('DONE');
+		jumping_done
 	else
 		[xyz1,xyz2] = autocleaner(handles, tol, N_ITER, datalist);
 		if(isempty(xyz1) && isempty(xyz2)),		return,		end			% Some error occured
@@ -183,7 +186,8 @@ function push_applyClean_CB(hObject, handles)
 				gmtmex(['mbflags -I' this_file ' -E' this_file '.mask'])
 			end
 		end
-		h = msgbox('DONE');		pause(3),		delete(h)
+		%h = msgbox('DONE');
+		jumping_done
 	catch
 		errordlg(lasterr, 'Error')
 	end
@@ -191,6 +195,56 @@ function push_applyClean_CB(hObject, handles)
 % ----------------------------------------------------------------------
 function push_params_CB(hObject, handles)
 % Will call a new window to help with the autocleaning choices
+	% Check if we are dealing with a single file or a datalist file
+	[pato, fila, ext] = fileparts(handles.fnameMB);
+	if (strcmpi(ext, '.mb-1'))
+		list_files = sanitize_datalist(handles);	% Read and sanitize a datalist file. Returns cell array with full fnames
+		if (numel(list_files) == 0)
+			errordlg('This datalist file is empty. Bye Bye.','Error')
+			return
+		end
+	else
+		list_files = {handles.fnameMB};
+	end
+
+	info = find_BBs(list_files);		% Get the BBs of each file
+	if (size(info.BB,1) == 1)
+		global_BB = info.BB;
+	else
+		mins = min(info.BB);	maxs = max(info.BB);
+		global_BB = [mins(1) maxs(2) mins(3) maxs(4) mins(5) maxs(6)];
+	end
+	
+	% ------------------------------ OK, ready to call the Params Fig -------------------------------
+	out = mb_cleaning_params(global_BB);
+	if (isempty(out) || (~out.gridclean && ~out.areaclean)),	return,		end		% Neither method was selected
+
+	if (out.gridclean)
+		handles.grid_inc = out.grid_inc;
+		handles.N_ITER = out.grid_n_iter;
+		handles.tol = out.grid_tol / (0.7^out.grid_n_iter);		% 0.7 because that's the scaling fact we use in the iterations
+		handles.area_cmd = '';		% Make sure we wont run both
+	else
+		if (isnan(out.opt_S)),		return,		end		% An errors in binsize
+		binsize = out.opt_S * 111000;		% Convert back to aproximate meters because that's what MB wants
+		cmd = sprintf('mbareaclean %s -S%f', out.opt_R, binsize);
+		if (out.opt_D_active)
+			cmd = sprintf('%s -D%.6g/%d', cmd, out.opt_D_threshold, out.opt_D_nmin);
+		end
+		if (out.opt_M_active)
+			cmd = sprintf('%s -M%.6g/%d', cmd, out.opt_M_threshold, out.opt_M_nmin);
+		end
+		if (out.opt_N_active)
+			if (out.opt_N_Rev),		out.opt_N_min = -out.opt_N_min;		end
+			cmd = sprintf('%s -N%d', cmd, out.opt_N_min);
+		end
+		if (out.opt_G_active)
+			cmd = [cmd ' -G'];
+		end
+		cmd = sprintf('%s -I%s', cmd, handles.fnameMB);
+		handles.area_cmd = cmd;
+	end
+	guidata(handles.figure1, handles)
 
 % ----------------------------------------------------------------------
 function push_help_CB(hObject, handles)
@@ -207,11 +261,23 @@ function push_help_CB(hObject, handles)
 		'of a datalist.mb-1 file. This file may additionally have a first commnet line (a line starting ' ...
 		'with the # character) with the options -Z, -C and -N of the ''mbswath'' program to control what ' ...
 		'is displayed. In such cases the ''Use commands in datalist'' must be checked.']);
-	msgbox(t, 'Help on show MB data')
+	helpdlg(t, 'Help on show MB data')
 
 %-------------------------------------------------------------------------------------
 function [xyz, xyzK] = autocleaner(handles, tol, N_ITER, datalist)
 % ...
+	% If we have a hanging mbareaclean command, run it and return
+	if (~isempty(handles.area_cmd))
+		gmtmex(handles.area_cmd)			% Run the mbareaclean command
+		handles.area_cmd = '';				% Reset to not run it again without uses further request
+		set(handles.push_applyClean, 'Enable', 'off')
+		guidata(handles.figure1, handles)
+		if (get(handles.check_showCleaneds, 'Val'))
+			push_showPC_CB([], handles)		% Show the result
+		end
+		return
+	end
+
 	if (isempty(datalist))					% Single file, simplest case
 		D = gmtmex(sprintf('mbgetdata -I%s -A100000', handles.fnameMB));	% -A is to allow fishing the flagged pts
 		x = D(1).data(:);		y = D(2).data(:);		z = D(3).data(:);
@@ -289,7 +355,7 @@ function todos = sanitize_datalist(handles)
 	patoMother = fileparts(handles.fnameMB);			% Path of the datlist file
 	c = false(n_files,1);
 	msg = '';
-	for (k = 1:n_files)			% Passar isto a uma funcao chamda sanitize_datalist()
+	for (k = 1:n_files)
 		if (todos{k}(1) == '#' || todos{k}(1) == '>')	% Remove comment lines
 			c(k) = true;
 		else
@@ -427,7 +493,7 @@ function [xc,yc,zc, the_ind, old_flags] = iteration_cleaner_list(xc,yc,zc, xo,yo
 function out = find_BBs(list)
 % Find the BoundingBoxs of all files in the cell array LIST
 % The result is stored in the OUT struct, which has BB (numeric) and REGIONS (-R strings) members
-	BB = zeros(numel(list),4);
+	BB = zeros(numel(list),6);
 	regions = cell(numel(list),1);
 	for (n = 1:numel(list))
 		info = gmtmex(['mbinfo -I' list{n}]);
@@ -447,7 +513,11 @@ function out = find_BBs(list)
 		ind = strfind(info.text{m}, ':');
 		t = strtok(info.text{m}(ind(1)+3:end));		BB(n,1) = str2double(t);
 		t = strtok(info.text{m}(ind(2)+3:end));		BB(n,2) = str2double(t);
-		regions{n} = sprintf('-R%.12g/%.12g/%.12g/%.12g', BB(n,:));
+		m = m + 4;		% Do Depth now
+		ind = strfind(info.text{m}, ':');
+		t = strtok(info.text{m}(ind(1)+3:end));		BB(n,5) = str2double(t);
+		t = strtok(info.text{m}(ind(2)+3:end));		BB(n,6) = str2double(t);
+		regions{n} = sprintf('-R%.12g/%.12g/%.12g/%.12g', BB(n,1:4));
 	end
 	out.BB = BB;		out.regions = regions;
 
@@ -550,6 +620,21 @@ function push_OK_CB(hObject, handles)
 	if (handles.no_file && ishandle(handles.hMirFig)),	delete(handles.hMirFig),	end
 
 %-------------------------------------------------------------------------------------
+function jumping_done(N)
+% ...
+	if (nargin == 0),	N = 3;		end
+	sz = get(0,'screensize');
+	sz(3) = sz(3) / 2;		sz(4) = sz(4) / 2;
+	h = msgbox('DONE');		set(h, 'units', 'pixels');		pos = get(h, 'pos');
+	for (k = 1:N)
+		pos(1:2) = round(rand(1,2) .* sz(3:4)) + sz(3:4) / 4;
+		set(h, 'pos', pos)
+		pause(0.8),
+	end
+	delete(h)
+	
+
+%-------------------------------------------------------------------------------------
 function figure1_KeyPressFcn(hObject, eventdata)
 	if isequal(get(hObject,'CurrentKey'),'escape')
 		delete(hObject);
@@ -623,37 +708,36 @@ function show_MB_LayoutFcn(h1)
 		'String','Size', 'Style','text',...
 		'Tag','text_size');
 
-	uicontrol('Parent',h1, 'Position',[31 214 100 20],...
+	uicontrol('Parent',h1, 'Position',[31 217 100 20],...
 		'Call',@showMB_uiCB,...
 		'String','Show point cloud',...
 		'TooltipString','Show the point cloud, including the previously flagged points',...
 		'Value',1,...
 		'Tag','push_showPC');
 
-	uicontrol('Parent',h1, 'Position',[32 187 118 20],...
+	uicontrol('Parent',h1, 'Position',[31 185 118 26],...
 		'Call',@showMB_uiCB,...
-		'String','Do automatic cleaning',...
+		'String','Automatic cleaning',...
 		'TooltipString','Do an automatic cleaning, show it and save results in file.',...
 		'Tag','push_autoclean');
 
-	uicontrol('Parent',h1, 'Position',[152 188 70 17],...
+	uicontrol('Parent',h1, 'Position',[155 201 70 17],...
 		'String','and show',...
 		'Style','checkbox',...
 		'TooltipString','Show the point cloud including the result of this cleanings (Memory consuming)',...
 		'Tag','check_showCleaneds');
 
-	uicontrol('Parent',h1, 'Position',[32 162 95 20],...
+	uicontrol('Parent',h1, 'Position',[31 160 100 20],...
 		'Call',@showMB_uiCB,...
 		'Enable','off',...
 		'String','Apply cleanings',...
 		'TooltipString','Apply the automatic cleanings to the MB file',...
 		'Tag','push_applyClean');
 
-	uicontrol('Parent',h1, 'Position',[180 163 50 20],...
+	uicontrol('Parent',h1, 'Position',[155 178 50 20],...
 		'Call',@showMB_uiCB,...
 		'String','Params',...
 		'TooltipString','Set parameters for the automatic cleaning',...
-		'Visible','off',...
 		'Tag','push_params');
 
 	uicontrol('Parent',h1, 'Position',[30 113 111 15],...
