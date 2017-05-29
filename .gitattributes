@@ -467,6 +467,7 @@ src_figs/listbox_message.m -text
 src_figs/mag_synthetic.m -text
 src_figs/magbarcode.m -text
 src_figs/manual_pole_adjust.m -text
+src_figs/mb_cleaning_params.m -text
 src_figs/meca_studio.m -text
 src_figs/mesher_helper.m -text
 src_figs/microlev.m -text
