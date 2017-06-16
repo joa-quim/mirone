@@ -16,7 +16,7 @@ function varargout = show_MB(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: show_MB.m 10111 2017-05-29 20:07:44Z j $
+% $Id: show_MB.m 10116 2017-06-16 13:19:40Z j $
 
 	hObject = figure('Vis','off');
 	show_MB_LayoutFcn(hObject);
@@ -282,10 +282,30 @@ function [xyz, xyzK] = autocleaner(handles, tol, N_ITER, datalist)
 		D = gmtmex(sprintf('mbgetdata -I%s -A100000', handles.fnameMB));	% -A is to allow fishing the flagged pts
 		x = D(1).data(:);		y = D(2).data(:);		z = D(3).data(:);
 		% Compute increment as 3 times the typical point spacing fetch from data's first row.
-		dy = abs(median(diff(D(2).data(1,:))));
-		dx = abs(median(diff(D(1).data(1,:)))) * cos(y(1));
-		opt_I = sprintf('-I%f', sqrt(dx*dx + dy*dy) * 3);
-		opt_R = sprintf('-R%.12g/%.12g/%.12g/%.12g', min(x),max(x),min(y),max(y));
+		mid_row = round(size(D(2).data, 1));
+		dy = abs(median(diff(D(2).data(mid_row,:))));
+		dx = abs(median(diff(D(1).data(mid_row,:)))) * cos(D(2).data(mid_row,1) * pi/180);
+		% If it's still 0, give up
+		if (dx == 0 || dy == 0)
+			txt = ['This file ' handles.fnameMB ' is really screwed. Can''t guess a decent point spread distance ' ...
+					'You will have to use the "Params" option and set a your guess of the bin size, or otherwise ' ...
+					'this option can not be used with this file'];
+			errordlg(txt, 'Error')
+			xyz = [];	xyzK = [];
+			return
+		end
+		x_min = min(x);		x_max = max(x);		y_min = min(y);		y_max = max(y);
+		ds = sqrt(dx*dx + dy*dy) * 3;
+		nx = round((x_max - x_min) / ds);		ny = round((y_max - y_min) / ds);
+		if (nx > 3000 || ny > 3000)
+			t = sprintf(['The estimated grid size is unresonable (%d x %d). This is normally due to too bad ' ...
+				'coodinates in file\n\nQUITING'],nx,ny);
+			errordlg(t,'Error');
+			xyz = [];	xyzK = [];
+			return
+		end
+		opt_I = sprintf('-I%f', ds);
+		opt_R = sprintf('-R%.12g/%.12g/%.12g/%.12g', x_min, x_max, y_min, y_max);
 		old_flags = (z > 50000);			% Need this to be able to restore the true Z's of old flagged PTs
 		z(old_flags) = NaN;					% We don't want to use the old flagged
 		ind = [];
@@ -406,6 +426,7 @@ function [xc,yc,zc, xk,yk,zk] = autocleaner_list(handles, tol, N_ITER)
 			% Call the single file case
 			if (nargout > 0)
 				[xyz1,xyzK] = autocleaner(handles, tol, N_ITER, '');
+				if (isempty(xyz1)),	continue,	end
 				if (k == 1)								% First time, create the output arrays
 					xc = xyz1(:,1);		yc = xyz1(:,2);		zc = xyz1(:,3);		clear xyz1
 					xk = xyzK(:,1);		yk = xyzK(:,2);		zk = xyzK(:,3);		clear xyzK
@@ -430,8 +451,18 @@ function [xc,yc,zc, xk,yk,zk] = autocleaner_list(handles, tol, N_ITER)
 		Dcurr   = gmtmex(['mbgetdata -I' list_files{k} ' -A100000']);	% -A1e5 is to allow recovering true values
 		Dothers = gmtmex(['mbgetdata -I' fname_tmp ' -A']);		% These ones I know that, flagged => NaN
 		if (k == 1)								% Compute working inc as 3 times typical pt spacings
-			dy = abs(median(diff(Dcurr(2).data(1,:))));
-			dx = abs(median(diff(Dcurr(1).data(1,:)))) * cos(Dcurr(2).data(1));
+			mid_row = round(size(Dcurr(2).data, 1));
+			dy = abs(median(diff(Dcurr(2).data(mid_row,:))));
+			dx = abs(median(diff(Dcurr(1).data(mid_row,:)))) * cos(Dcurr(2).data(mid_row,1) * pi/180);
+			% If it's still 0, give up
+			if (dx == 0 || dy == 0)
+				txt = ['This file ' handles.fnameMB ' is really screwed. Can''t guess a decent point spread distance ' ...
+					'You will have to use the "Params" option and set a your guess of the bin size, or otherwise ' ...
+					'this option can not be used with this file'];
+				errordlg(txt, 'Error')
+				xc=[];yc=[];zc=[];xk=[];yk=[];zk=[];
+				return
+			end
 			opt_I = sprintf('-I%f', sqrt(dx*dx + dy*dy) * 3);
 		end
 		[x,y,z, ind, old_flags] = iteration_cleaner_list(Dcurr(1).data(:),Dcurr(2).data(:),Dcurr(3).data(:), ...
