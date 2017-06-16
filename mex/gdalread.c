@@ -262,6 +262,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	if (!runed_once)		/* Do next call only at first time this MEX is loaded */
 		GDALAllRegister();
 
+	CPLSetConfigOption("GDAL_HTTP_UNSAFESSL", "YES");	/* For the full story see https://github.com/curl/curl/issues/1538 */
+
 	if (metadata_only) {
 		plhs[0] = populate_metadata_struct (gdal_filename, correct_bounds, pixel_reg, got_R, 
 		                                    nXSize, nYSize, dfULX, dfULY, dfLRX, dfLRY, z_min, z_max);
