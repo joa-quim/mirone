@@ -306,7 +306,7 @@ function check_web_CB(hObject, handles)
 		if (get(handles.radio_srtm,'Val'))
 			url = 'http://dds.cr.usgs.gov/srtm/version2_1/SRTM3/Eurasia/';
 		elseif (get(handles.radio_srtm30,'Val'))
-			url = 'ftp://topex.ucsd.edu/pub/srtm30_plus/srtm30/data';
+			url = 'ftp://topex.ucsd.edu/pub/srtm30_plus/srtm30/grd';
 		end
 	else
 		set([handles.popup_grd_dir handles.push_grd_dir],'Enable', 'on')
@@ -956,7 +956,7 @@ function n_tiles = mosaic_gmted(handles)
 	[x, y, xP, yP, x_min, y_max] = mosaic_grid(handles.hRectangle, 30, 20);
 
 	local_pato = handles.path_tmp;		% VRT files will be stored here
-	prefix = '/vsicurl/http://topotools.cr.usgs.gov/GMTED_Viewer/data/Global_tiles_GMTED/';
+	prefix = '/vsicurl/http://edcintl.cr.usgs.gov/downloads/sciweb1/shared/topo/downloads/GMTED/Global_tiles_GMTED/';
 
 	if (get(handles.radio_gmted075,'Val'))
 		prefix = [prefix '075darcsec/bln/'];
