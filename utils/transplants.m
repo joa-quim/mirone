@@ -344,41 +344,53 @@ function [Zhost_rect, r_c, hdr_new] = job_no_nans(handlesHost, Zhost, handlesImp
 function [Zhost_rect, r_c] = job_NanHost_noNanImp(handlesHost, Zhost, handlesImp, Ximp, Yimp, Zimp, ...
                                                   implanting_fits_inside_host, pad, res)
 % ...
-	% Compute the rectangle about Zimp + pad but that doesn't get out of Host Grid
-	x_min = max(handlesImp.head(1) - pad * handlesHost.head(8), handlesHost.head(1));
-	x_max = min(handlesImp.head(2) + pad * handlesHost.head(8), handlesHost.head(2));
-	y_min = max(handlesImp.head(3) - pad * handlesHost.head(9), handlesHost.head(3));
-	y_max = min(handlesImp.head(4) + pad * handlesHost.head(9), handlesHost.head(4));
+	% New strategy. Pick up the NaNs in Host, interpolate them in Imp, join with non-NaNs in Host and regrid
+	G = gmt('wrapgrid', Zhost, handlesHost.head);
+	D = gmtmex('grd2xyz -sr', G);
+	xy = D.data(:,1:2);		clear D
+	xyz = grdtrack_m(Zimp, handlesImp.head, xy, '-S');
+	D = gmtmex('grd2xyz -s', G);
+	xyz = [xyz; D.data];	clear D
+	opt_R = sprintf('-R%.12g/%.12g/%.12g/%.12g', handlesHost.head(1:4));
+	opt_I = sprintf('-I%.12g/%.12g', handlesHost.head(8:9));
+	Zhost_rect = gmtmbgrid_m(xyz(:,1),xyz(:,2),xyz(:,3), opt_R, opt_I, '-T0.25', '-Mz');
+	r_c = [1 size(Zhost,1) 1 size(Zhost,2)];
 
-	rect_host = [x_min y_min (x_max - x_min) (y_max - y_min)];
-	[Zhost_rect, r_c] = cropimg(handlesHost.head(1:2), handlesHost.head(3:4), Zhost, rect_host, 'out_grid');
-
-	if (grdutils(Zhost_rect, '-N') == 0)	% OK, we have NaNs in Host but not in the Implanting zone
-		[Zhost_rect, r_c] = job_no_nans(handlesHost, Zhost, handlesImp, Ximp, Yimp, Zimp, implanting_fits_inside_host, pad, res);
-		return
-	end
-
-	[Xhost, Yhost, x, y, opt_R, opt_I] = helper1(handlesHost, handlesImp, r_c, res);
-	mask_skirt = ~(img_fun('roipoly_j',[x_min x_max],[y_min y_max],Zhost_rect,x,y));	% Mask at the Host grid resolution
-
-	Zhost_skirt = double(Zhost_rect(mask_skirt));
-
-	[Xhost, Yhost] = meshgrid(Xhost, Yhost);
-	XX = Xhost(mask_skirt(:));
-	YY = Yhost(mask_skirt(:));
-	indNaN = isnan(Zhost_skirt);		% But since we have NaNs around they may be under the skirt
-	if (any(indNaN))
-		Zhost_skirt(indNaN) = [];	XX(indNaN) = [];	YY(indNaN) = [];
-	end
-
-	[Xhost, Yhost] = meshgrid(Ximp, Yimp);
-	XX = [XX(:); Xhost(:)];			clear Xhost
-	YY = [YY(:); Yhost(:)];			clear Yhost
-	ZZ = [Zhost_skirt(:); double(Zimp(:))];				% Add Implant data with the skirt (of width pad-1) of Host data
-	clear Zhost_skirt indNaN
-	opt_C = ' ';
-
-	Zhost_rect = gmtmbgrid_m(XX,YY,ZZ(:), opt_R, opt_I, '-T0.25', '-Mz', opt_C);
+% 	% Compute the rectangle about Zimp + pad but that doesn't get out of Host Grid
+% 	x_min = max(handlesImp.head(1) - pad * handlesHost.head(8), handlesHost.head(1));
+% 	x_max = min(handlesImp.head(2) + pad * handlesHost.head(8), handlesHost.head(2));
+% 	y_min = max(handlesImp.head(3) - pad * handlesHost.head(9), handlesHost.head(3));
+% 	y_max = min(handlesImp.head(4) + pad * handlesHost.head(9), handlesHost.head(4));
+% 
+% 	rect_host = [x_min y_min (x_max - x_min) (y_max - y_min)];
+% 	[Zhost_rect, r_c] = cropimg(handlesHost.head(1:2), handlesHost.head(3:4), Zhost, rect_host, 'out_grid');
+% 
+% 	if (grdutils(Zhost_rect, '-N') == 0)	% OK, we have NaNs in Host but not in the Implanting zone
+% 		[Zhost_rect, r_c] = job_no_nans(handlesHost, Zhost, handlesImp, Ximp, Yimp, Zimp, implanting_fits_inside_host, pad, res);
+% 		return
+% 	end
+% 
+% 	[Xhost, Yhost, x, y, opt_R, opt_I] = helper1(handlesHost, handlesImp, r_c, res);
+% 	mask_skirt = ~(img_fun('roipoly_j',[x_min x_max],[y_min y_max],Zhost_rect,x,y));	% Mask at the Host grid resolution
+% 
+% 	Zhost_skirt = double(Zhost_rect(mask_skirt));
+% 
+% 	[Xhost, Yhost] = meshgrid(Xhost, Yhost);
+% 	XX = Xhost(mask_skirt(:));
+% 	YY = Yhost(mask_skirt(:));
+% 	indNaN = isnan(Zhost_skirt);		% But since we have NaNs around they may be under the skirt
+% 	if (any(indNaN))
+% 		Zhost_skirt(indNaN) = [];	XX(indNaN) = [];	YY(indNaN) = [];
+% 	end
+% 
+% 	[Xhost, Yhost] = meshgrid(Ximp, Yimp);
+% 	XX = [XX(:); Xhost(:)];			clear Xhost
+% 	YY = [YY(:); Yhost(:)];			clear Yhost
+% 	ZZ = [Zhost_skirt(:); double(Zimp(:))];				% Add Implant data with the skirt (of width pad-1) of Host data
+% 	clear Zhost_skirt indNaN
+% 	opt_C = ' ';
+% 
+% 	Zhost_rect = gmtmbgrid_m(XX,YY,ZZ(:), opt_R, opt_I, '-T0.25', '-Mz', opt_C);
 
 % ---------------------------------------------------------------------------------------
 function [Zhost_rect, r_c] = job_noNanHost_NanImp(handlesHost, Zhost, handlesImp, Ximp, Yimp, Zimp, ...
@@ -665,6 +677,9 @@ function fill_one_hole(handles, kind, second_g)
 	                (handlesImp.head(3) + (r_c(1)-1) * handlesImp.head(9)) (handlesImp.head(3) + (r_c(2)-1) * handlesImp.head(9)) ...
 	                 handlesImp.head(5:9)];			% Well z_min z_max here may be wrong, but that shouldn't matter.	
 	[Zimp, hdr_imp] = c_grdsample(Zimp_rect, hdr_imp_rect, opt_R, opt_I);		% Zimp_rect interpolated at Host grid resolution
+	if (isempty(hdr_imp))		% We can return here because c_grdsample already issued the error message
+		return
+	end
 	clear Zimp_rect
 
 	% and insert it into the hole
