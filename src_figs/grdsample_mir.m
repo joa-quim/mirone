@@ -1,7 +1,7 @@
 function varargout = grdsample_mir(varargin)
 % Helper window to interface with grdsample MEX 
 
-%	Copyright (c) 2004-2016 by J. Luis
+%	Copyright (c) 2004-2017 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -16,7 +16,7 @@ function varargout = grdsample_mir(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: grdsample_mir.m 9867 2016-10-16 18:39:36Z j $
+% $Id: grdsample_mir.m 10119 2017-06-24 21:54:37Z j $
 
 	if isempty(varargin)
 		errordlg('GRDSAMPLE: wrong number of input arguments.','Error'),	return
@@ -231,6 +231,9 @@ function push_OK_CB(hObject, handles)
 		opt_N(2) = 'I';
 		opt_N = strrep(opt_N, '/', '+/');
 		opt_N(end+1) = '+';
+		if (opt_Q(1) == '-')		% in GMT5 is global -n
+			opt_Q = '-nl';
+		end
 	end
 
 	newZ = c_grdsample(handles.Z, handles.head, opt_R, opt_N, opt_Q, opt_L);
