@@ -1,7 +1,7 @@
 function varargout = grdsample_mir(varargin)
 % Helper window to interface with grdsample MEX 
 
-%	Copyright (c) 2004-2016 by J. Luis
+%	Copyright (c) 2004-2017 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -231,6 +231,9 @@ function push_OK_CB(hObject, handles)
 		opt_N(2) = 'I';
 		opt_N = strrep(opt_N, '/', '+/');
 		opt_N(end+1) = '+';
+		if (opt_Q(1) == '-')		% in GMT5 is global -n
+			opt_Q = '-nl';
+		end
 	end
 
 	newZ = c_grdsample(handles.Z, handles.head, opt_R, opt_N, opt_Q, opt_L);
