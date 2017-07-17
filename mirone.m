@@ -20,7 +20,7 @@ function varargout = mirone(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: mirone.m 10113 2017-05-29 22:03:44Z j $
+% $Id: mirone.m 10122 2017-07-17 19:05:32Z j $
 
 	if (nargin > 1 && ischar(varargin{1}))
 		if ( ~isempty(strfind(varargin{1},':')) || ~isempty(strfind(varargin{1},filesep)) )
@@ -463,6 +463,7 @@ function hObject = mirone_OpeningFcn(varargin)
 	set_gmt(['PROJ_LIB=' home_dir fsep 'data' fsep 'proj_lib']);		% For projections with GDAL
 	set_gmt(['GDAL_DATA=' home_dir fsep 'data' fsep 'gdal_data']);
 	set_gmt(['GEOTIFF_CSV=' home_dir fsep 'data' fsep 'gdal_data']);
+	set_gmt('GDAL_HTTP_UNSAFESSL=YES');				% To tell libcurl to not verify the peer  
 
  	try		custom_menus(hObject, handles.path_data),	end			% Add any custom menus as commanded by OPTcontrol.txt
 
