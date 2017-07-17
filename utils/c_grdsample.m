@@ -16,7 +16,7 @@ function [Zout, hdr] = c_grdsample(Zin, head, varargin)
 		end
 	else
 		G = fill_grid_struct(Zin, head);
-		cmd = 'grdsample';
+		cmd = 'grdsample -n+c';
 		for (k = 1:numel(varargin))
 			cmd = sprintf('%s %s', cmd, varargin{k});
 		end
