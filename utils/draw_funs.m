@@ -3129,7 +3129,7 @@ function doSave_formated(xx, yy, opt_z)
 			fmt = '%4d %02d %02.2f\t%4d %02d %02.2f';
 		case 'Date'
 			xy = [xx(:) yy(:)];
-			fmt = '%.f\t%f';
+			fmt = '%.14g\t%f';
 	end
 	
 	if (nargin == 3 && ~isempty(opt_z))      
