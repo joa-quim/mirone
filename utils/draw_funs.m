@@ -25,7 +25,7 @@ function varargout = draw_funs(hand, varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: draw_funs.m 10079 2017-04-26 11:02:50Z j $
+% $Id: draw_funs.m 10120 2017-07-17 18:58:05Z j $
 
 % A bit of strange tests but they are necessary for the cases when we use the new feval(fun,varargin{:}) 
 opt = varargin{1};		% function name to evaluate (new) or keyword to select one (old form)
@@ -3024,7 +3024,7 @@ function save_GMT_DB_asc(h, fname)
 		if (isempty(getappdata(h(k), 'edited'))),	continue,	end		% Skip because it was not modified
 		GSHHS_str = getappdata(h(k),'GSHHS_str');
 		if (k == 1 && ~isempty(GSHHS_str))		% Write back the magic string that allows us to recognize these type of files
-			fprintf(fid,'# $Id: draw_funs.m 10079 2017-04-26 11:02:50Z j $\n#\n%s\n#\n', GSHHS_str);
+			fprintf(fid,'# $Id: draw_funs.m 10120 2017-07-17 18:58:05Z j $\n#\n%s\n#\n', GSHHS_str);
 		end
 		hdr = getappdata(h(k), 'LineInfo');
 		x = get(h(k), 'XData');			y = get(h(k), 'YData');
@@ -3129,7 +3129,7 @@ function doSave_formated(xx, yy, opt_z)
 			fmt = '%4d %02d %02.2f\t%4d %02d %02.2f';
 		case 'Date'
 			xy = [xx(:) yy(:)];
-			fmt = '%.f\t%f';
+			fmt = '%.14g\t%f';
 	end
 	
 	if (nargin == 3 && ~isempty(opt_z))      
