@@ -240,8 +240,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	y_max = y_min + (irint ((y_max - y_min) / y_inc)) * y_inc;
 
 	/* Compute i_end and j_end (that is, last row and last column) */
-	i_end = irint ((y_max - y_min) / x_inc) + 1;
-	j_end = irint ((x_max - x_min) / y_inc) + 1;
+	i_end = irint ((y_max - y_min) / y_inc) + 1;
+	j_end = irint ((x_max - x_min) / x_inc) + 1;
 
 	/* Initialize TM variables. Fault origin will be used as projection's origin. However,
 	   this would set it as a singularity point. That's whay it is arbitrarely shifted
@@ -300,8 +300,8 @@ void deform(double x_min, double y_min, int i_end, int j_end, float *z, double d
 /*	fault_length - comprimento da falha (m)
 	fault_width  - largura da falha (m)
 	th - azimute					strike angle
-	dip - inclinaç do plano falha em relacao à horiz	dip angle
-	rake - deslocação oblíqua da falha		rake or slip angle 
+	dip - inclinaï¿½ do plano falha em relacao ï¿½ horiz	dip angle
+	rake - deslocaï¿½ï¿½o oblï¿½qua da falha		rake or slip angle 
 	d - escorregamento (m)				dislocation
 	top_depth - profundidade do topo (m)		Top fault depth
 */
