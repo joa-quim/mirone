@@ -217,13 +217,10 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 
 
 
-GDALRasterBandH MEMCreateRasterBand( GDALDataset *poDS, int nBand, 
-                                    GByte *pabyData, GDALDataType eType, 
-                                    int nPixelOffset, int nLineOffset, 
-                                    int bAssumeOwnership )
-
-
-
+	GDALRasterBandH MEMCreateRasterBand(GDALDataset *poDS, int nBand, 
+                                        GByte *pabyData, GDALDataType eType, 
+                                        int nPixelOffset, int nLineOffset, 
+                                        int bAssumeOwnership)
 
 	if (hDstDS == NULL) {
 		mexPrintf ("GDALOpen failed - %d\n%s\n",
