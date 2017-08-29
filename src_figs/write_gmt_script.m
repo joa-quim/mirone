@@ -89,7 +89,7 @@ function varargout = write_gmt_script(varargin)
 	handles.have_GMT5 = false;
 	try
 		if (ispc)
-			if (handes.handMir.IamCompiled)
+			if (handMir.IamCompiled)
 				s = dos('gmt --show-bindir');
 			else
 				[s, w] = dos('gmt --show-bindir');
@@ -1172,7 +1172,7 @@ function [out_msg, warn_msg_pscoast] = build_write_script(handles, dest_dir, pre
 	% ------------ Get size of Rectangle to use as info on the image size ------------------
 	units = 'cm';
 	if (get(handles.radio_in,'Val')),		units = 'inch';
-	elseif (get(handles.radio_pt,'Val')),	units = 'poits';
+	elseif (get(handles.radio_pt,'Val')),	units = 'points';
 	end
 	imgDimsInfo = sprintf(' ---- The image area has exactly %s x %s %s (unless you change -R or -J)', ...
 		get(handles.edit_mapWidth,'Str'), get(handles.edit_mapHeight,'Str'), units);
