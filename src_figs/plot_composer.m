@@ -40,7 +40,7 @@ function varargout = plot_composer(varargin)
 	for (k = 1:numel(all_figs))
 		[pato, nomes{k}] = fileparts(nomes{k});
 		ind = strfind(nomes{k}, '@');
-		nomes{k}(ind(end)-1:end) = [];						% Remove the zooming info
+		if (~isempty(ind)),		nomes{k}(ind(end)-1:end) = [];	end		% Remove the zooming info
 	end
 	set(handles.popup_familyPlots, 'Str', nomes)
 
@@ -90,38 +90,33 @@ function varargout = plot_composer(varargin)
 	% Set the default projections ofered here
 	handles.projGDAL_name = {
 			'Linear (meaning, no projection)'; ...
-			'Geographical                                 (EPSG:4326)'; ...
-			'World Equidistant Cilindrical (Sphere)       (EPSG:3786)'; ...
-			'WGS 84 / Plate Caree                         (EPSG:32662)'; ...
-			'World Mercator                               (EPSG:54004)'; ...
-			'Pseudo Mercator                              (EPSG:3857)'; ...
-			'ETRS89 / Portugal TM06                       (EPSG:3763)'; ...
-			'Datum 73 (Portugal)                          (EPSG:27493)'; ...
-			'WGS84 / UTM zone 29N                         (EPSG:32629)'; ...
-			'Miller Cylindrical (Sphere)                  (EPSG:53003)'; ...
-			'Gall Stereographic (Sphere)                  (EPSG:53016)'; ...
-			'Cassini (Sphere)                             (EPSG:53028)'; ...
-			'Sinusoidal (Sphere)                          (EPSG:53008)'; ...
-			'Mollweide (Sphere)                           (EPSG:53009)'; ...
-			'Robinson (Sphere)                            (EPSG:53030)'; ...
+			'Geographical                                   (EPSG:4326)'; ...
+			'Equidistant Cilindrical (Plate Caree Sphere)   (EPSG:3786)'; ...
+			'World Mercator                                 (EPSG:54004)'; ...
+			'Pseudo Mercator                                (EPSG:3857)'; ...
+			'ETRS89 / Portugal TM06                         (EPSG:3763)'; ...
+			'Datum 73 (Portugal)                            (EPSG:27493)'; ...
+			'WGS84 / UTM zone 29N                           (EPSG:32629)'; ...
+			'Miller Cylindrical (Sphere)                    (EPSG:53003)'; ...
+			'Gall Stereographic (Sphere)                    (EPSG:53016)'; ...
+			'Cassini (Sphere)                               (EPSG:53028)'; ...
+			'Sinusoidal (Sphere)                            (EPSG:53008)'; ...
+			'Mollweide (Sphere)                             (EPSG:53009)'; ...
+			'Robinson (Sphere)                              (EPSG:53030)'; ...
 			'Eckert IV'; ...
 			'Eckert VI'; ...
-			'Goode Homolosine'; ...
 			'Lambert Conformal Conic'; ...
 			'Equidistant Conic'; ...
 			'Albers Equal Area'; ...
 			'Lambert Equal Area';  ...
-			'Bonne Sphere                                 (EPSG:53024)'; ...
-			'North Pole Stereographic                     (EPSG:102018)'; ...
-			'Gnomonic'; ...
-			'Ortographic'; ...
-			'Sphere Van der Grinten I                     (EPSG:53029)'};
+			'Bonne Sphere                                   (EPSG:53024)'; ...
+			'North Pole Stereographic                       (EPSG:102018)'; ...
+			'Van der Grinten I (Sphere)                     (EPSG:53029)'};
 	
 	handles.projGDAL_pars = {
 			''; ...
-			'+proj=longlat +datum=WGS84 +no_defs'; ...
+			'+proj=longlat'; ...
 			'+proj=eqc +lat_ts=0 +lat_0=0 +lon_0=0 +x_0=0 +y_0=0 +a=6371007 +b=6371007 +units=m +no_defs'; ...
-			'+proj=eqc +lat_ts=0 +lat_0=0 +lon_0=0 +x_0=0 +y_0=0 +datum=WGS84 +units=m +no_defs'; ...
 			'+proj=merc +lon_0=0 +k=1 +x_0=0 +y_0=0 +datum=WGS84 +units=m +no_defs'; ...
 			'+proj=merc +a=6378137 +b=6378137 +lat_ts=0.0 +lon_0=0.0 +x_0=0.0 +y_0=0 +k=1.0 +units=m +nadgrids=@null +wktext +no_defs'; ...
 			'+proj=tmerc +lat_0=39.66825833333333 +lon_0=-8.133108333333334 +k=1 +x_0=0 +y_0=0 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs'; ...
@@ -135,15 +130,12 @@ function varargout = plot_composer(varargin)
 			'+proj=robin +lon_0=0 +x_0=0 +y_0=0 +a=6371000 +b=6371000 +units=m +no_defs'; ...
 			'+proj=eck4'; ...
 			'+proj=eck6'; ...
-			'+proj=goode'; ...
 			'+proj=lcc +lat_1=20n +lat_2=60n'; ...
 			'+proj=eqdc +lat_1=15n +lat_2=75n'; ...
 			'+proj=aea +lat_1=20n +lat_2=60n'; ...
 			'+proj=laea +lat_1=20n +lat_2=60n'; ...
 			'+proj=bonne +lon_0=0 +lat_1=60 +x_0=0 +y_0=0 +a=6371000 +b=6371000 +units=m +no_defs'; ...
 			'+proj=stere +lat_0=90 +lon_0=0 +k=1 +x_0=0 +y_0=0 +datum=WGS84 +units=m +no_defs'; ...
-			'+proj=gnom'; ...
-			'+proj=ortho'; ...
 			'+proj=vandg +lon_0=0 +x_0=0 +y_0=0 +R_A +a=6371000 +b=6371000 +units=m +no_defs';};
 
 	set(handles.popup_projections,'String',handles.projGDAL_name)
@@ -157,6 +149,7 @@ function varargout = plot_composer(varargin)
 	handles.opt_psc = [];			% To eventualy hold several of the pscoast options
 	handles.scale_set = false;		% To signal that user changed scale
 	handles.script_type = 'bat';	% MUST CHANGE THIS FOR THE UNIX CASES
+	handles.supported_proj = false;	% Will turn to true when confirmed that we can make a map with GMT
 
 	% ---------------------- See if the caller is 'ecran' ----------------------------------------------
 	% If yes, we must set several fake handles struct members that exist in Mirone
@@ -210,7 +203,7 @@ function varargout = plot_composer(varargin)
 
 	handles.handMir = handMir;
 	handles.width_orig = width;		handles.height_orig = height;
-	handles.scale = width;
+	handles.map_width = width;
 	handles.which_unit = 'cm';
 	handles.d_path = handMir.path_data;
 
@@ -226,13 +219,13 @@ function varargout = plot_composer(varargin)
 	rect_x = [X0 X0 X0+width X0+width X0];
 	rect_y = [Y0 Y0+height Y0+height Y0 Y0];
 	handles.rect_x = rect_x;   handles.rect_y = rect_y;
-	handles.scale  = sprintf('%.2g', width);
+	handles.map_width  = sprintf('%.2g', width);
 	set(handles.edit_mapWidth, 'String',sprintf('%.2f', width))		% Fill the width editbox
 	set(handles.edit_mapHeight,'String',sprintf('%.2f',height))		% Fill the height editbox
 	% --------------------------------------------------------------------------------------------------
 
 	% ---------- Draw the image rectangle --------------------------------------------------------------
-	h = patch('XData',rect_x,'YData',rect_y,'FaceColor','w','EdgeColor','k','LineWidth',.5,'Tag','PlotRect');
+	h = patch('XData',rect_x,'YData',rect_y,'FaceColor','b','FaceAlpha',0.05,'EdgeColor','k','LineWidth',0.1,'Tag','PlotRect');
 	ui_edit_polygon(h)						% Set edition functions
 	setappdata(h, 'RunCB', {@update_scales, h})
 	handles.hRect = h;						% Save the rectangle hand
@@ -245,7 +238,7 @@ function varargout = plot_composer(varargin)
 
 	% ----------- Pick up the projection initial (and sometimes final) guess ---------------------------
 	if (handMir.is_projected)
-		prj4 = get_proj_string(handMir.figure1);
+		prj4 = aux_funs('get_proj_string', handMir.figure1);
 		if (~isempty(prj4))
 			set(handles.edit_projection,'String', prj4, 'Enable', 'off')
 		else
@@ -271,7 +264,7 @@ function varargout = plot_composer(varargin)
 			if ~exist(directory_list{i},'dir'),   j(i) = true;   end
 		end
 		directory_list(j) = [];							% clean eventual non-existing directories
-		directory_list    = [{handles.handMir.last_dir}; directory_list];
+		%directory_list    = [{handles.handMir.last_dir}; directory_list];
 		set(handles.popup_directory_list,'String',directory_list)
 		handles.last_directories = directory_list;
 	else												% mirone_pref had no dir list
@@ -451,9 +444,26 @@ function push_change_dir_CB(hObject, handles)
 		work_dir = uigetdir(pato, 'Select scripts folder');
 	end
 	if (~isempty(work_dir))
-		handles.last_directories = [cellstr(work_dir); handles.last_directories];
-		set(handles.popup_directory_list,'String', handles.last_directories)
+		% Because unique returns a sorted array and I want the just selected dir on top, do this trick
+		directory_list = unique([cellstr(work_dir); handles.last_directories]);
+		directory_list = [cellstr(work_dir); directory_list];	% Put it on top
+		for (k = 2:numel(directory_list))
+			if (strcmp(directory_list{k}, work_dir))			% Find the repetition
+				break
+			end
+		end
+		directory_list(k) = [];		% This is the repeated entry
+		handles.last_directories = directory_list;
+		set(handles.popup_directory_list,'String', directory_list)
 		guidata(hObject, handles);
+
+		version7 = version;
+		V7 = (sscanf(version7(1),'%f') > 6);
+		if (~V7)                  % R <= 13
+			save([handles.d_path 'mirone_pref.mat'],'directory_list', '-append')
+		else
+			save([handles.d_path 'mirone_pref.mat'],'directory_list', '-append', '-v6')
+		end
 	end
 
 % -----------------------------------------------------------------------------------------
@@ -462,17 +472,18 @@ function edit_scale_CB(hObject, handles)
 	str = get(hObject,'String');
 	xx = get(handles.hRect,'XData');		yy = get(handles.hRect,'YData');
 	if (~handles.handMir.is_projected)
-		prj = get(handles.edit_projection,'String');
-		if (isempty(prj) || strncmp(prj, '-JX', 3))		% A linear image
-			opt_J = ['-Jx' str];
-		else
-			if (prj(1) == '+' || strncmpi(prj, 'epsg', 4))
-				opt_J = sprintf('-J"%s +scale=%s"', prj, str);
-			else		% Presumably a GMT projection, otherwise error.
-				opt_J = [prj '/' str];
-				opt_J(3) = lower(opt_J(3));
-			end
-		end
+		opt_J = create_opt_J(handles, str);
+% 		prj = handles.projection_str;
+% 		if (isempty(prj) || strncmp(prj, '-JX', 3))		% A linear image
+% 			opt_J = ['-Jx' str];
+% 		else
+% 			if (prj(1) == '+' || strncmpi(prj, 'epsg', 4))
+% 				opt_J = sprintf('-J"%s +scale=%s"', prj, str);
+% 			else		% Presumably a GMT projection, otherwise error.
+% 				opt_J = [prj '/' str];
+% 				opt_J(3) = lower(opt_J(3));
+% 			end
+% 		end
 
 		in = [handles.x_min handles.y_min; handles.x_min handles.y_max; ...
 		      handles.x_max handles.y_max; handles.x_max handles.y_min];
@@ -522,6 +533,36 @@ function edit_mapHeight_CB(hObject, handles)
 	set(handles.hRect,'YData',yy)
 	update_scales(handles)
 
+% -----------------------------------------------------------------------------------------
+function opt_J = create_opt_J(handles, scale)
+% Create an option -J strin given the projection selected.
+% This can be a classic -J or a new -J<proj4>
+
+	prj = handles.projection_str;
+	if (~isempty(strfind(prj, '+proj=longlat')) || ~isempty(strfind(prj, '+proj=latlong')))
+		prj = '-JX';		% +proj=latlong is still giving troubles in GMT
+	end
+
+	if (isempty(prj) || strncmp(prj, '-JX', 3))		% A linear image
+		if (handles.handMir.IamXY)					% An Ecran figure
+			opt_J = sprintf('-JX%s%s/%s%s', get(handles.edit_mapWidth,'Str'), handles.which_unit(1), ...
+			                 get(handles.edit_mapHeight,'Str'), handles.which_unit(1));
+		else
+			if (nargin == 2)		% This is the case used in edit_scale_CB() that needs a true 1:xxxx scale
+				opt_J = ['-Jx' scale];
+			else
+				opt_J = ['-JX' handles.map_width handles.which_unit(1) '/0'];
+			end
+		end
+	else
+		if (prj(1) == '+' || strncmpi(prj, 'epsg', 4))
+			opt_J = sprintf('-J"%s +width=%s%c"', prj, handles.map_width, handles.which_unit(1));
+		else			% Presumably a GMT projection, otherwise error.
+			opt_J = [prj '/' handles.map_width handles.which_unit(1)];
+			opt_J(3) = lower(opt_J(3));
+		end
+	end
+
 % -----------------------------------------------------------------------------------
 function update_scales(handles)
 % Update the scale, sizes or the scale when those were changed.
@@ -537,16 +578,17 @@ function update_scales(handles)
 	new_w = sprintf('%.2f', (xx(3) - xx(2)));
 	set(handles.edit_mapWidth,'String',new_w);
 
-	prj = get(handles.edit_projection,'String');
-	if (isempty(prj))
-		opt_J = ['-JX' new_w handles.which_unit(1)];
-	else
-		if (prj(1) == '+' || strncmpi(prj, 'epsg', 4))
-			opt_J = sprintf('-J"%s +width=%s%c"', prj, new_w, handles.which_unit(1));
-		else		% Presumably a GMT projection, otherwise error.
-			opt_J = [prj '/' new_w handles.which_unit(1)];
-		end
-	end
+	opt_J = create_opt_J(handles);
+% 	prj = handles.projection_str;
+% 	if (isempty(prj) || strncmp(prj, '-JX', 3))
+% 		opt_J = ['-JX' new_w handles.which_unit(1)];
+% 	else
+% 		if (prj(1) == '+' || strncmpi(prj, 'epsg', 4))
+% 			opt_J = sprintf('-J"%s +width=%s%c"', prj, new_w, handles.which_unit(1));
+% 		else		% Presumably a GMT projection, otherwise error.
+% 			opt_J = [prj '/' new_w handles.which_unit(1)];
+% 		end
+% 	end
 
 	if (strncmp(opt_J, '-JX', 3))				% Linear proj has a different treatment
 		scale_str = '1:1';						% Default value when no projected grids
@@ -562,8 +604,9 @@ function update_scales(handles)
 		set(handles.edit_mapWidth,'String', sprintf('%.2f', (xx(3) - xx(2))));	% Uppdate map width
 		set(handles.edit_mapHeight,'String',sprintf('%.2f', (yy(2) - yy(1))));	% Uppdate map height
 		set(handles.edit_scale,'String', scale_str)
-		handles.scale = sprintf('%.2f', (xx(3) - xx(2)));
-		
+		handles.map_width = sprintf('%.2f', (xx(3) - xx(2)));
+		handles.supported_proj = true;
+
 		guidata(handles.figure1, handles)
 		return		% We are donne
 	end
@@ -573,9 +616,18 @@ function update_scales(handles)
 		opt_R = sprintf('-R%.12g/%.12g/%.12g/%.12g', handles.x_min, handles.x_max, handles.y_min, handles.y_max);
 		out = c_mapproject(in,opt_R,opt_J,['-D' handles.which_unit(1)]);
 		if (isa(out, 'struct')),	out = out.data;		end		% When GMT5, out is a struct
+		if (all(out(:) == 0))
+			warndlg('Sorry, it is not yet possible to create maps in GMT with this PROJ.4 projection.','Warning')
+			handles.supported_proj = false;
+		else
+			handles.supported_proj = true;
+		end
 	catch
-		return
+		handles.supported_proj = false;
 	end
+
+	guidata(handles.figure1, handles)
+	if (~handles.supported_proj),		return,		end
 
 	new_y = max(out(:,2)) - min(out(:,2));
 
@@ -583,7 +635,7 @@ function update_scales(handles)
 	set(handles.hRect, 'XData', xx, 'YData', yy);
 	set(handles.edit_mapWidth, 'String',num2str((xx(3) - xx(2)),'%.2f'));	% Uppdate map width
 	set(handles.edit_mapHeight,'String',num2str((yy(2) - yy(1)),'%.2f'));	% Uppdate map height
-	handles.scale = num2str((xx(3) - xx(2)),'%.2f');
+	handles.map_width = num2str((xx(3) - xx(2)),'%.2f');
 
 	% --- Compute a projected mini frame
 	n = 21;
@@ -599,8 +651,8 @@ function update_scales(handles)
 	% Draw it if it's not a rectangle
 	if (out_f(1,1) ~= out_f(n,1) || out_f(n,2) ~= out_f(2*n-1,2))
 		if (isempty(handles.hand_frame_proj))		% First time. Creat it.
-			handles.hand_frame_proj = line('XData',new_x,'YData',new_y, 'Color','r','LineWidth',.5,'Tag','PlotFrameProj');
-			uistack_j(handles.hand_frame_proj, 'down')
+			handles.hand_frame_proj = line('XData',new_x,'YData',new_y, 'Color','r','LineWidth',2,'Tag','PlotFrameProj');
+			uistack_j(handles.hRect, 'top')			% Move the rectangle patch to Top
 		else
 			set(handles.hand_frame_proj, 'XData', new_x, 'YData', new_y);
 		end
@@ -695,14 +747,14 @@ function popup_projections_CB(hObject, handles)
 	end
 	prj = handles.projGDAL_pars{get(hObject,'Value')};
 	set(handles.edit_projection,'String',prj)
-	update_scales(handles)
+	edit_projection_CB(handles.edit_projection, handles)
 
 % -----------------------------------------------------------------------------------------
 function edit_projection_CB(hObject, handles)
 	try
-		update_scales(handles)
-		handles.projection_str = get(hObject, 'String');	% And save a copy
-		guidata(handles.figure1)
+		prj = get(hObject, 'String');
+		handles.projection_str = prj;	% And save a copy
+		update_scales(handles)			% It saves handles as well	
 	catch
 		str = get(hObject, 'String');
 		errordlg(sprintf('This transformation\n%s\nis not valid. Error:\n%s', str, lasterr), 'ERROR')
@@ -842,6 +894,10 @@ function [ALLlineHand, res, opt_W, type_p, type_r] = find_psc_stuff(ALLlineHand)
 % -----------------------------------------------------------------------------------------
 function push_OK_CB(hObject, handles)
 % ...
+	if (~handles.supported_proj)
+		errordlg('I told you before that this is not possible (unsupported projection)', 'Error'),	return
+	end
+
 	val   = get(handles.popup_paperSize,'Value');
 	list  = get(handles.popup_paperSize,'String');
 	str   = list{val};        k = strfind(str,' ');
@@ -869,21 +925,22 @@ function push_OK_CB(hObject, handles)
 		handles.opt_psc = [handles.psc_res ' ' handles.psc_opt_W ' ' handles.psc_type_p ' ' handles.psc_type_r];
 	end
 
-	prj = get(handles.edit_projection,'String');
-	if (isempty(prj) || strncmp(prj, '-JX', 3))		% A linear image
-		if (handles.handMir.IamXY)					% An Ecran figure
-			handles.opt_J = sprintf('-JX%s%s/%s%s', get(handles.edit_mapWidth,'Str'), handles.which_unit(1), ...
-			                        get(handles.edit_mapHeight,'Str'), handles.which_unit(1));
-		else
-			handles.opt_J = ['-JX' handles.scale handles.which_unit(1) '/0'];
-		end
-	else
-		if (prj(1) == '+' || strncmpi(prj, 'epsg', 4))
-			handles.opt_J = sprintf('-J"%s +width=%s%c"', prj, handles.scale, handles.which_unit(1));
-		else		% Presumably a GMT projection, otherwise error.
-			handles.opt_J = [prj '/' handles.scale handles.which_unit(1)];
-		end
-	end
+	handles.opt_J = create_opt_J(handles);
+% 	prj = handles.projection_str;
+% 	if (isempty(prj) || strncmp(prj, '-JX', 3))		% A linear image
+% 		if (handles.handMir.IamXY)					% An Ecran figure
+% 			handles.opt_J = sprintf('-JX%s%s/%s%s', get(handles.edit_mapWidth,'Str'), handles.which_unit(1), ...
+% 			                        get(handles.edit_mapHeight,'Str'), handles.which_unit(1));
+% 		else
+% 			handles.opt_J = ['-JX' handles.map_width handles.which_unit(1) '/0'];
+% 		end
+% 	else
+% 		if (prj(1) == '+' || strncmpi(prj, 'epsg', 4))
+% 			handles.opt_J = sprintf('-J"%s +width=%s%c"', prj, handles.map_width, handles.which_unit(1));
+% 		else		% Presumably a GMT projection, otherwise error.
+% 			handles.opt_J = [prj '/' handles.map_width handles.which_unit(1)];
+% 		end
+% 	end
 
 	msg = '';
 	[out_msg, warn_msg_pscoast] = build_write_script(handles, d_dir, prefix, paper, X0, Y0);
@@ -898,7 +955,11 @@ function push_OK_CB(hObject, handles)
 		msg{end+1} = '';   
 		msg{end+1} = warn_msg_pscoast;   
 	end
-	if (~isempty(msg)),		msgbox(msg);	end
+	if (~isempty(msg))			% This message self distructs in 4 sec
+		h = msgbox(msg);
+		pause(4)
+		if (ishandle(h)),	delete(h),	end
+	end
 
 
 % --------------------------------------------------------------------------------------------------------
@@ -1691,8 +1752,8 @@ function [out_msg, warn_msg_pscoast] = build_write_script(handles, dest_dir, pre
 			y_max = max(yy);		y_min = min(yy);
 			sym_width = x_max - x_min;
 			x0 = x_min + sym_width/2;	y0 = y_min + (y_max - y_min)/2;
-			map_width = handles.x_max - handles.x_min;
-			w = sym_width / map_width * str2double(handles.scale);	% OK, and if handles.which_unit(1) is not cm?
+			m_width = handles.x_max - handles.x_min;
+			w = sym_width / m_width * str2double(handles.map_width);	% OK, and if handles.which_unit(1) is not cm?
 			script{l} = sprintf('echo %0.10g %0.10g | psxy %s -Sk%s/%f%c >> %sps%s', ...
 			                    RJOK, x0,y0, cs_fname, w, handles.which_unit(1), pb, pf);		l = l + 1;
 			if (do_MEX_fig)
@@ -2067,26 +2128,8 @@ function [script, l, warn_msg_pscoast, o, mex_sc] = do_pscoast(handles, script, 
 			end
 		end
 
-		% Now try to fish some known projections from the proj4 string and make a -J one
-		if (~isempty(proj4))
-			escala = get(handles.edit_scale , 'String');
-			try
-				opt_J = parse_proj4(proj4);
-				if (~isempty(opt_J))
-					opt_J = [' ' opt_J '/' escala];
-				else
-					warn_msg_pscoast = ['Your grid is projected but with a projection that I don''t know ' ...
-						'how to convert to the GMT -J sintax. You will have to do it manually ' ...
-						'by editing the script and reading the comment before the pscoast command.'];
-				end
-			catch
-				warn_msg_pscoast = ['Your grid is projected but with a projection that I don''t know ' ...
-					'how to convert to the GMT -J sintax. You will have to do it manually ' ...
-					'by editing the script and reading the comment before the pscoast command.'];
-			end
-		end
-
 		% Here we need also to use the map scale in the form 1:xxxxx
+		escala = get(handles.edit_scale , 'String');
 		ind = strfind(script{5}, '-J');
 		script{5} = [script{5}(1:ind+1) 'x' escala];	% DANGEROUS. IT RELIES ON THE INDEX 5
 	end
