@@ -23,26 +23,35 @@ function varargout = plot_composer(varargin)
 		return
 	end
 
-	hFigs = findobj(0,'type','figure');						% Fish all figures, but not the one that we are about to create
-
 	hObject = figure('Vis','off');
 	plot_composer_LayoutFcn(hObject);
 	handles = guihandles(hObject);
 	move2side(hObject,'right');
 
+	hFigs = findobj(0,'type','figure');		% Fish all figures, but not the one that we are about to create
 	all_figs = handMir.figure1;
 	if (numel(hFigs) > 1)
 		hFigs = aux_funs('figs_XOR', handles.figure1, hFigs);	% Get all unique Mirone Figs
-		if (~isempty(hFigs)),	all_figs = hFigs;	end
+		if (~isempty(hFigs))
+			if (numel(hFigs) > 1)	% The problem here is that hFigs is sorted and I need the handMir.figure1 at the top
+				hFigs(hFigs == handMir.figure1) = [];
+				hFigs = [handMir.figure1; hFigs(:)];
+			end
+			all_figs = hFigs;
+		end
 	end
+
+	N_figs = numel(all_figs);
 	nomes = get(all_figs,'name');
 	if (~isa(nomes,'cell')),	nomes = {nomes};	end
-	for (k = 1:numel(all_figs))
+	for (k = 1:N_figs)
 		[pato, nomes{k}] = fileparts(nomes{k});
 		ind = strfind(nomes{k}, '@');
 		if (~isempty(ind)),		nomes{k}(ind(end)-1:end) = [];	end		% Remove the zooming info
 	end
 	set(handles.popup_familyPlots, 'Str', nomes)
+
+	handles.all_figs = all_figs;	% Those are Fig handles
 
 	sizes_cm = {'A0 (83.96 118.82 cm)'; 'A1 (59.41 83.96 cm)'; 'A2 (41.98 59.41 cm)'; 'A3 (29.70 41.98 cm)'
 		'A4 (20.99 29.70 cm)'; 'A5 (14.85 20.99 cm)'; 'A6 (10.48 14.85 cm)'; 'A7 (7.41 10.48 cm)'
@@ -154,20 +163,16 @@ function varargout = plot_composer(varargin)
 	handles.supported_proj = false;	% Will turn to true when confirmed that we can make a map with GMT
 	handles.d_path = handMir.path_data;
 	handles.which_unit = 'cm';
-	if (strcmp(computer, 'PCWIN'))
-		handles.script_type = 'bat';
-	else
-		handles.script_type = 'bash';
+	if (strncmp(computer, 'PC', 2)),	handles.script_type = 'bat';
+	else								handles.script_type = 'bash';
 	end
 
 	% ---------------------- See if the caller is 'ecran' ----------------------------------------------
 	% If yes, we must set several fake handles struct members that exist in Mirone
 	if (strcmp(get(handMir.axes1,'UserData'), 'XY'))
 		handMir.image_type = 20;
-		handMir.geog = 0;
-		handMir.head = [];
-		handMir.PalAt = [];
-		handMir.PalIn = [];
+		handMir.geog = 0;		handMir.head = [];
+		handMir.PalAt = [];		handMir.PalIn = [];
 		handMir.grdname = [];
 		handMir.path_data = handMir.d_path;		% Idiot name confusion
 		handMir.IamXY = true;
@@ -176,10 +181,12 @@ function varargout = plot_composer(varargin)
 	end
 	% --------------------------------------------------------------------------------------------------
 
-	handles.handMir = handMir;
+	handles.handMir  = handMir;
 
-	handles = get_img_dims(handles);		% In a function so it can later be called on different images
-	handles = draw_img_rectangle(handles);
+	for (k = 1:N_figs)
+		handles = get_img_dims(handles, k);		% In a function so it can later be called on different images
+		handles = draw_img_rectangle(handles, k);
+	end
 
 	% ------------------ Set prefix name based on grid/image name --------------------------------------
 	[lixo,figname] = fileparts(get(handMir.figure1, 'Name'));
@@ -209,7 +216,10 @@ function varargout = plot_composer(varargin)
 		set(handles.popup_projections,'String', 'Linear (can''t change)', 'Enable', 'off')
 		set(handles.edit_projection,'String', '', 'Enable', 'off')
 	end
-	handles.projection_str = get(handles.edit_projection,'String');		% To restore in case of error
+	handles.projection_str = cell(N_figs,1);		% SO FAR MAKE THEM INITIALLY ALL EQUAL
+	for (k = 1:N_figs)
+		handles.projection_str{k} = get(handles.edit_projection,'String');		% To restore in case of error
+	end
 	% --------------------------------------------------------------------------------------------------
 
 	% ----------------- Use the directory list from mirone_pref ----------------------------------------
@@ -219,7 +229,7 @@ function varargout = plot_composer(varargin)
 	j = false(1,numel(directory_list));					% vector for eventual cleaning non-existing dirs
 	if iscell(directory_list)							% When exists a dir list in mirone_pref
 		for (i = 1:length(directory_list))
-			if ~exist(directory_list{i},'dir'),   j(i) = true;   end
+			if (~exist(directory_list{i},'dir')),   j(i) = true;   end
 		end
 		directory_list(j) = [];							% clean eventual non-existing directories
 		%directory_list    = [{handles.handMir.last_dir}; directory_list];
@@ -238,12 +248,14 @@ function varargout = plot_composer(varargin)
 
 	%------------ Give a Pro look (3D) to the frame boxes  ---------------------------------------------
 	new_frame3D(hObject, [handles.text_ps handles.text_out handles.text_dim])
-	% ---------------------------------------------------------------------------------------------------
+	% --------------------------------------------------------------------------------------------------
 
 	% ------------ Apply inherited projection ----------------------------------------------------------
 	guidata(hObject, handles);
-	update_scales(handles)
-	handles = guidata(hObject);		% Recover in "this handles" the changes donne in push_uppdate
+	for (k = 1:N_figs)
+		update_scales(handles, k)
+		handles = guidata(hObject);		% Recover in "this handles" the changes donne in update_scales
+	end
 
 	% ------------- Add this figure handle to the carraças list ----------------------------------------
 	plugedWin = getappdata(handMir.figure1,'dependentFigs');
@@ -256,25 +268,26 @@ function varargout = plot_composer(varargin)
 	if (nargout),   varargout{1} = hObject;     end
 
 % -----------------------------------------------------------------------------------------
-function handles = get_img_dims(handles)
+function handles = get_img_dims(handles, N)
 % ...
-	imgXlim = get(handles.handMir.axes1,'XLim');    imgYlim = get(handles.handMir.axes1,'YLim');
-	if (handles.handMir.image_type == 2 || handles.handMir.image_type == 20)		% "trivial" images
-		if (~handles.handMir.IamXY)
-			[ny,nx,nz] = size(get(handles.handMir.hImg,'CData'));
+	handMir = guidata(handles.all_figs(N));
+	imgXlim = get(handMir.axes1,'XLim');    imgYlim = get(handMir.axes1,'YLim');
+	if (handMir.image_type == 2 || handMir.image_type == 20)		% "trivial" images
+		if (~handMir.IamXY)
+			[ny,nx,nz] = size(get(handMir.hImg,'CData'));
 		else
 			nx = 300;	ny = 200;		% Pure INVENTION
 		end
-		handles.x_min = imgXlim(1);     handles.x_max = imgXlim(2);
-		handles.y_min = imgYlim(1);     handles.y_max = imgYlim(2);
+		handles.x_min(N) = imgXlim(1);     handles.x_max(N) = imgXlim(2);
+		handles.y_min(N) = imgYlim(1);     handles.y_max(N) = imgYlim(2);
 	else
-		head = handles.handMir.head;
+		head = handMir.head;
 		if (diff(imgXlim) < diff(head(1:2))*0.9)		% Figure is zoomed
-			handles.x_min = imgXlim(1) + head(8)/2;		handles.x_max = imgXlim(2) - head(8)/2;
-			handles.y_min = imgYlim(1) + head(9)/2;		handles.y_max = imgYlim(2) - head(9)/2;
+			handles.x_min(N) = imgXlim(1) + head(8)/2;		handles.x_max(N) = imgXlim(2) - head(8)/2;
+			handles.y_min(N) = imgYlim(1) + head(9)/2;		handles.y_max(N) = imgYlim(2) - head(9)/2;
 		else
-			handles.x_min = head(1);    handles.x_max = head(2);
-			handles.y_min = head(3);    handles.y_max = head(4);
+			handles.x_min(N) = head(1);    handles.x_max(N) = head(2);
+			handles.y_min(N) = head(3);    handles.y_max(N) = head(4);
 		end
 		nx = round((head(2) - head(1)) / head(8));		% May not be exactly correct but is good enough here
 		ny = round((head(4) - head(3)) / head(9));
@@ -290,30 +303,40 @@ function handles = get_img_dims(handles)
 		end
 	end
 
-	handles.opt_R = sprintf('-R%.12g/%.12g/%.12g/%.12g', handles.x_min, handles.x_max, handles.y_min, handles.y_max);
-	handles.width_orig = width;		handles.height_orig = height;
-	handles.map_width = width;
+	handles.opt_R{N} = sprintf('-R%.12g/%.12g/%.12g/%.12g', ...
+	                           handles.x_min(N), handles.x_max(N), handles.y_min(N), handles.y_max(N));
+	handles.width_orig(N)  = width;		handles.height_orig(N) = height;	handles.map_width{N} = width;
 
 % -----------------------------------------------------------------------------------------
-function handles = draw_img_rectangle(handles)
+function handles = draw_img_rectangle(handles, N)
 % ...
-	X0 = 2.5;				Y0 = 2.5;		% This is the GMT default's plot origin in cm
-	rect_x = [X0 X0 X0+handles.map_width X0+handles.map_width X0];
-	rect_y = [Y0 Y0+handles.height_orig Y0+handles.height_orig Y0 Y0];
-	handles.rect_x = rect_x;   handles.rect_y = rect_y;
-	handles.map_width  = sprintf('%.2g', handles.map_width);	% Now it's a string
-	set(handles.edit_mapWidth, 'String', handles.map_width)		% Fill the width editbox
-	set(handles.edit_mapHeight,'String', sprintf('%.2f',handles.height_orig))		% Fill the height editbox
+	X0 = 2.5;			Y0 = 2.5;			% This is the GMT default's plot origin in cm
+	if (N > 1)			% Cascade the figs from Bottom up
+		Y0 = Y0 + cumsum(handles.height_orig(1:N-1));		% Just a first guess
+	end
+	rect_x = [X0 X0 X0+handles.width_orig(N) X0+handles.width_orig(N) X0];
+	rect_y = [Y0 Y0+handles.height_orig(N) Y0+handles.height_orig(N) Y0 Y0];
+	handles.rect_x{N} = rect_x;   handles.rect_y{N} = rect_y;
+	handles.map_width{N} = sprintf('%.2g', handles.map_width{N});	% Now it's a string
+	set(handles.edit_mapWidth, 'String', handles.map_width(N))		% Fill the width editbox
+	set(handles.edit_mapHeight,'String', sprintf('%.2f',handles.height_orig(N)))	% Fill the height editbox
 
 	% ---------- Draw the image rectangle 
 	h = patch('XData',rect_x,'YData',rect_y,'FaceColor','b','FaceAlpha',0.05,'EdgeColor','k','LineWidth',0.1,'Tag','PlotRect');
 	ui_edit_polygon(h)						% Set edition functions
-	setappdata(h, 'RunCB', {@update_scales, h})
-	handles.hRect = h;						% Save the rectangle hand
-	handles.hand_frame_proj = [];
+	setappdata(h, 'RunCB', {@update_scales, h, N})
+	handles.hRect(N) = h;					% Save the rectangle hand
+	handles.hand_frame_proj(N) = NaN;		% Will store line handles
 
 % -----------------------------------------------------------------------------------------
 function popup_familyPlots_CB(hObject, handles)
+% ...
+	N = get(hObject, 'Val');
+	set(handles.edit_projection,  'Str', handles.projection_str{N})
+	set(handles.edit_mapWidth,    'Str', handles.width_orig(N))
+	set(handles.edit_mapHeight,   'Str', handles.height_orig(N))
+	set(handles.edit_X0,          'Str', handles.X0(N))
+	set(handles.edit_Y0,          'Str', handles.Y0(N))
 
 % -----------------------------------------------------------------------------------------
 function popup_paperSize_CB(hObject, handles)
@@ -356,8 +379,9 @@ function popup_paperUnits_CB(hObject, handles)
 	guidata(hObject,handles);
 
 % -----------------------------------------------------------------------------------
-function conv_units(handles,dest)
-	xx = get(handles.hRect,'XData');        yy = get(handles.hRect,'YData');
+function conv_units(handles, dest, N)
+	if (nargin == 2),	N = 1;	end
+	xx = get(handles.hRect(N),'XData');			yy = get(handles.hRect(N),'YData');
 	xf = get(handles.hand_frame_proj,'XData');  yf = get(handles.hand_frame_proj,'YData');
 	if (strcmp(handles.which_unit,'cm') && strcmp(dest,'in'))
 		xx = xx / 2.54;		yy = yy / 2.54;
@@ -402,9 +426,9 @@ function conv_units(handles,dest)
 		set(handles.edit_X0,'String',sprintf('%.2f',str2double(get(handles.edit_X0,'String'))/72 ))
 		set(handles.edit_Y0,'String',sprintf('%.2f',str2double(get(handles.edit_Y0,'String'))/72 ))
 	end
-	set(handles.hRect,'XData',xx),				set(handles.hRect,'YData',yy);
+	set(handles.hRect(N),'XData',xx, 'YData',yy);
 	if (~isempty(handles.hand_frame_proj))
-		set(handles.hand_frame_proj,'XData',xf),	set(handles.hand_frame_proj,'YData',yf);
+		set(handles.hand_frame_proj(N),'XData',xf, 'YData',yf);
 	end
 
 % -----------------------------------------------------------------------------------------
@@ -420,10 +444,6 @@ function radio_Landscape_CB(hObject, handles)
 	set(handles.axes1, 'XLim',get(handles.axes1,'YLim'), 'YLim',get(handles.axes1,'XLim'),'Pos', handles.landscape_pos);
 
 % -----------------------------------------------------------------------------------------
-function check_trimWhite_CB(hObject, handles)
-
-
-% -----------------------------------------------------------------------------------------
 function radio_autoRun_CB(hObject, handles)
 	if (~get(hObject,'Val')),	set(hObject,'Val',1),	return,		end
 	set(handles.radio_writeScript, 'Val', 0)
@@ -432,10 +452,6 @@ function radio_autoRun_CB(hObject, handles)
 function radio_writeScript_CB(hObject, handles)
 	if (~get(hObject,'Val')),	set(hObject,'Val',1),	return,		end
 	set(handles.radio_autoRun, 'Val', 0)
-
-% -----------------------------------------------------------------------------------------
-function popup_figFormat_CB(hObject, handles)
-
 
 % -----------------------------------------------------------------------------------------
 function popup_directory_list_CB(hObject, handles)
@@ -447,7 +463,7 @@ function popup_directory_list_CB(hObject, handles)
 % -----------------------------------------------------------------------------------------
 function push_change_dir_CB(hObject, handles)
 	pato = handles.handMir.last_dir;
-	if (strcmp(computer, 'PCWIN'))
+	if (strncmp(computer, 'PC', 2))
 		work_dir = uigetfolder_win32('Select scripts folder',pato);
 	else			% This guy doesn't let to be compiled
 		work_dir = uigetdir(pato, 'Select scripts folder');
@@ -476,16 +492,18 @@ function push_change_dir_CB(hObject, handles)
 	end
 
 % -----------------------------------------------------------------------------------------
-function edit_scale_CB(hObject, handles)
+function edit_scale_CB(hObject, handles, N)
 % ...
+	if (nargin == 2),	N = get(handles.popup_familyPlots, 'Value');	end
+	handMir = guidata(handles.all_figs(N));
 	str = get(hObject,'String');
-	xx = get(handles.hRect,'XData');		yy = get(handles.hRect,'YData');
-	if (~handles.handMir.is_projected)
-		opt_J = create_opt_J(handles, str);
-		in = [handles.x_min handles.y_min; handles.x_min handles.y_max; ...
-		      handles.x_max handles.y_max; handles.x_max handles.y_min];
+	xx  = get(handles.hRect(N),'XData');	yy = get(handles.hRect(N),'YData');
+	if (~handMir.is_projected)
+		opt_J = create_opt_J(handles, 1, str);
+		in = [handles.x_min(N) handles.y_min(N); handles.x_min(N) handles.y_max(N); ...
+		      handles.x_max(N) handles.y_max(N); handles.x_max(N) handles.y_min(N)];
 		try
-			opt_R = sprintf('-R%.12g/%.12g/%.12g/%.12g', handles.x_min, handles.x_max, handles.y_min, handles.y_max);
+			opt_R = sprintf('-R%.12g/%.12g/%.12g/%.12g', handles.x_min(N), handles.x_max(N), handles.y_min(N), handles.y_max(N));
 			out = c_mapproject(in,opt_R,opt_J,['-D' handles.which_unit(1)]);
 			if (isa(out, 'struct')),	out = out.data;		end		% When GMT5, out is a struct
 		catch
@@ -496,8 +514,8 @@ function edit_scale_CB(hObject, handles)
 		yy(2) = ymax+yy(1);			yy(3) = ymax+yy(1);
 	else
 		scale = 1 / sscanf(str(3:end),'%f',1);
-		dx_prj = handles.x_max - handles.x_min;		% It's in projected meters
-		dy_prj = handles.y_max - handles.y_min;		% 		""
+		dx_prj = handles.x_max(N) - handles.x_min(N);		% It's in projected meters
+		dy_prj = handles.y_max(N) - handles.y_min(N);		% 		""
 		width  = dx_prj * scale * 100;
 		height = dy_prj * scale * 100;
 		if (strcmp(handles.which_unit,'in')),     width = width * 2.54;     height = height * 2.54;     end
@@ -505,7 +523,7 @@ function edit_scale_CB(hObject, handles)
 		xx(3:4) = xx(1) + width;
 		yy(2:3) = yy(1) + height;
 	end
-	set(handles.hRect,'XData',xx,'YData',yy)
+	set(handles.hRect(N),'XData',xx,'YData',yy)
 	handles.scale_set = true;
 	guidata(hObject, handles);
 	update_scales(handles)
@@ -513,29 +531,32 @@ function edit_scale_CB(hObject, handles)
 % -----------------------------------------------------------------------------------------
 function edit_mapWidth_CB(hObject, handles)
 % Set new map width
+	N = get(handles.popup_familyPlots, 'Value');
 	str = get(hObject,'String');        w = str2double(str);
 	if (isnan(w)),     set(hObject,'String',str),		return,		end
-	xx = get(handles.hRect,'XData');
+	xx = get(handles.hRect(N),'XData');
 	xx(3) = xx(2) + w;      xx(4) = xx(1) + w;
-	set(handles.hRect,'XData',xx)
+	set(handles.hRect(N),'XData',xx)
 	update_scales(handles)
 
 % -----------------------------------------------------------------------------------------
 function edit_mapHeight_CB(hObject, handles)
 % Set new map height
+	N = get(handles.popup_familyPlots, 'Value');
 	str = get(hObject,'String');		h = str2double(str);
 	if (isnan(h)),			set(hObject,'String',str),		return,		end
 	yy = get(handles.hRect,'YData');
 	yy(2) = yy(1) + h;		yy(3) = yy(4) + h;
-	set(handles.hRect,'YData',yy)
+	set(handles.hRect(N),'YData',yy)
 	update_scales(handles)
 
 % -----------------------------------------------------------------------------------------
-function opt_J = create_opt_J(handles, scale)
+function opt_J = create_opt_J(handles, N, scale)
 % Create an option -J strin given the projection selected.
 % This can be a classic -J or a new -J<proj4>
 
-	prj = handles.projection_str;
+	if (isempty(N)),	N = 1;	end
+	prj = handles.projection_str{N};
 	if (~isempty(strfind(prj, '+proj=longlat')) || ~isempty(strfind(prj, '+proj=latlong')))
 		prj = '-JX';		% +proj=latlong is still giving troubles in GMT
 	end
@@ -545,62 +566,64 @@ function opt_J = create_opt_J(handles, scale)
 			opt_J = sprintf('-JX%s%s/%s%s', get(handles.edit_mapWidth,'Str'), handles.which_unit(1), ...
 			                 get(handles.edit_mapHeight,'Str'), handles.which_unit(1));
 		else
-			if (nargin == 2)		% This is the case used in edit_scale_CB() that needs a true 1:xxxx scale
+			if (nargin == 3)		% This is the case used in edit_scale_CB() that needs a true 1:xxxx scale
 				opt_J = ['-Jx' scale];
 			else
-				opt_J = ['-JX' handles.map_width handles.which_unit(1) '/0'];
+				opt_J = ['-JX' handles.map_width{N} handles.which_unit(1) '/0'];
 			end
 		end
 	else
 		if (prj(1) == '+' || strncmpi(prj, 'epsg', 4))
-			opt_J = sprintf('-J"%s +width=%s%c"', prj, handles.map_width, handles.which_unit(1));
+			opt_J = sprintf('-J"%s +width=%s%c"', prj, handles.map_width{N}, handles.which_unit(1));
 		else			% Presumably a GMT projection, otherwise error.
-			opt_J = [prj '/' handles.map_width handles.which_unit(1)];
+			opt_J = [prj '/' handles.map_width{N} handles.which_unit(1)];
 			opt_J(3) = lower(opt_J(3));
 		end
 	end
 
 % -----------------------------------------------------------------------------------
-function update_scales(handles)
+function update_scales(handles, N)
 % Update the scale, sizes or the scale when those were changed.
 % This fun is also called as a callback registered in ui_edit_polygon()
 
 	if (~isa(handles, 'struct'))		% Than this is a call from the RunCB registered by ui_edit_polygon
 		handles = guidata(handles);		% and handles is actually the rectangle handle.
 	end
-	xx = get(handles.hRect,'XData');		yy = get(handles.hRect,'YData');
+	xx = get(handles.hRect(N),'XData');		yy = get(handles.hRect(N),'YData');
+	handles.X0(N) = xx(1);		handles.Y0(N) = yy(1);		% Save this to use in the push_OK_CB() loop
 	set(handles.edit_X0,'String', sprintf('%.2f', xx(1)));
 	set(handles.edit_Y0,'String', sprintf('%.2f', yy(1)));
 
 	new_w = sprintf('%.2f', (xx(3) - xx(2)));
 	set(handles.edit_mapWidth,'String',new_w);
 
-	opt_J = create_opt_J(handles);
+	opt_J = create_opt_J(handles, N);
 
 	if (strncmp(opt_J, '-JX', 3))				% Linear proj has a different treatment
 		scale_str = '1:1';						% Default value when no projected grids
 		if (~handles.handMir.IamXY)				% Only rescale if image, not XY plot
-			scale_x = (xx(3) - xx(2)) / handles.width_orig;
-			scale_y = (yy(2) - yy(1)) / handles.height_orig;
-			new_y = handles.height_orig * scale_x;
-			new_x = handles.width_orig  * scale_y;
+			scale_x = (xx(3) - xx(2)) / handles.width_orig(N);
+			scale_y = (yy(2) - yy(1)) / handles.height_orig(N);
+			new_y = handles.height_orig(N) * scale_x;
+			new_x = handles.width_orig(N)  * scale_y;
 			yy(2) = new_y + yy(1);      yy(3) = new_y + yy(1);		% It will become "True" scale
-			set(handles.hRect, 'XData', xx, 'YData', yy);
-			scale_str = get_scale(handles, new_x, new_y);
+			set(handles.hRect(N), 'XData', xx, 'YData', yy);
+			scale_str = get_scale(handles, new_x, new_y, N);
 		end
 		set(handles.edit_mapWidth,'String', sprintf('%.2f', (xx(3) - xx(2))));	% Uppdate map width
 		set(handles.edit_mapHeight,'String',sprintf('%.2f', (yy(2) - yy(1))));	% Uppdate map height
 		set(handles.edit_scale,'String', scale_str)
-		handles.map_width = sprintf('%.2f', (xx(3) - xx(2)));
+		handles.map_width{N} = sprintf('%.2f', (xx(3) - xx(2)));
 		handles.supported_proj = true;
 
 		guidata(handles.figure1, handles)
 		return		% We are donne
 	end
 
-	in = [handles.x_min handles.y_min; handles.x_min handles.y_max; handles.x_max handles.y_max; handles.x_max handles.y_min];
+	in = [handles.x_min(N) handles.y_min(N); handles.x_min(N) handles.y_max(N); ...
+	      handles.x_max(N) handles.y_max(N); handles.x_max(N) handles.y_min(N)];
 	try
-		opt_R = sprintf('-R%.12g/%.12g/%.12g/%.12g', handles.x_min, handles.x_max, handles.y_min, handles.y_max);
+		opt_R = sprintf('-R%.12g/%.12g/%.12g/%.12g', handles.x_min(N), handles.x_max(N), handles.y_min(N), handles.y_max(N));
 		out = c_mapproject(in,opt_R,opt_J,['-D' handles.which_unit(1)]);
 		if (isa(out, 'struct')),	out = out.data;		end		% When GMT5, out is a struct
 		if (all(out(:) == 0))
@@ -619,15 +642,15 @@ function update_scales(handles)
 	new_y = max(out(:,2)) - min(out(:,2));
 
 	yy(2) = new_y + yy(1);      yy(3) = new_y + yy(1);			% It will become "True" scale
-	set(handles.hRect, 'XData', xx, 'YData', yy);
+	set(handles.hRect(N), 'XData', xx, 'YData', yy);
 	set(handles.edit_mapWidth, 'String',num2str((xx(3) - xx(2)),'%.2f'));	% Uppdate map width
 	set(handles.edit_mapHeight,'String',num2str((yy(2) - yy(1)),'%.2f'));	% Uppdate map height
-	handles.map_width = num2str((xx(3) - xx(2)),'%.2f');
+	handles.map_width{N} = num2str((xx(3) - xx(2)),'%.2f');
 
 	% --- Compute a projected mini frame
 	n = 21;
-	xf = linspace(handles.x_min, handles.x_max, n)';
-	yf = linspace(handles.y_min, handles.y_max, n)';
+	xf = linspace(handles.x_min(N), handles.x_max(N), n)';
+	yf = linspace(handles.y_min(N), handles.y_max(N), n)';
 	in = [repmat(xf(1),n,1) yf; xf(2:end) repmat(yf(end),n-1,1); repmat(xf(end),n-1,1) yf(end-1:-1:1); ...
 	      xf(end:-1:1) repmat(yf(1),n,1)];
 	out_f = c_mapproject(in,opt_R,opt_J,['-D' handles.which_unit(1)]);
@@ -637,23 +660,24 @@ function update_scales(handles)
 
 	% Draw it if it's not a rectangle
 	if (out_f(1,1) ~= out_f(n,1) || out_f(n,2) ~= out_f(2*n-1,2))
-		if (isempty(handles.hand_frame_proj))		% First time. Creat it.
-			handles.hand_frame_proj = line('XData',new_x,'YData',new_y, 'Color','r','LineWidth',2,'Tag','PlotFrameProj');
-			uistack_j(handles.hRect, 'top')			% Move the rectangle patch to Top
+		if (isnan(handles.hand_frame_proj(N)))		% First time. Creat it.
+			handles.hand_frame_proj(N) = line('XData',new_x,'YData',new_y, 'Color','r','LineWidth',2,'Tag','PlotFrameProj');
+			uistack_j(handles.hRect(N), 'top')			% Move the rectangle patch to Top
 		else
-			set(handles.hand_frame_proj, 'XData', new_x, 'YData', new_y);
+			set(handles.hand_frame_proj(N), 'XData', new_x, 'YData', new_y);
 		end
 	else		% It is a rectangle
-		if (~isempty(handles.hand_frame_proj))		% If we have a previous red frame, delete it
-			delete(handles.hand_frame_proj);		handles.hand_frame_proj = [];
+		if (~isnan(handles.hand_frame_proj(N)))		% If we have a previous red frame, delete it
+			delete(handles.hand_frame_proj(N));		handles.hand_frame_proj(N) = NaN;
 		end
 	end
 
 	% ----------- Compute scale 1:xxxx -----------------------------
 	if (~handles.scale_set)						% If user changed scale, don't compute it here
-		xm = (handles.x_min + handles.x_max) / 2;   ym = (handles.y_min + handles.y_max) / 2;
+		xm = (handles.x_min(N) + handles.x_max(N)) / 2;   ym = (handles.y_min(N) + handles.y_max(N)) / 2;
 		opt_R = sprintf('-R%f/%f/%f/%f', xm-2, xm+2, ym-2, ym+2);
-		in = [handles.x_min handles.y_min; handles.x_min handles.y_max; handles.x_max handles.y_max; handles.x_max handles.y_min];
+		in = [handles.x_min(N) handles.y_min(N); handles.x_min(N) handles.y_max(N); ...
+		      handles.x_max(N) handles.y_max(N); handles.x_max(N) handles.y_min(N)];
 
 		prj = get(handles.edit_projection,'String');
 		if (isempty(prj))
@@ -684,12 +708,13 @@ function update_scales(handles)
 	guidata(handles.figure1, handles)
 
 % -----------------------------------------------------------------------------------
-function scale_str = get_scale(handles, width, height)
+function scale_str = get_scale(handles, width, height, N)
 % For now this only computes the scale when we have a projected grid
 	scale_str = '1:1';
-	if (handles.handMir.is_projected)
-		dx_prj = handles.x_max - handles.x_min;		% It's in projected meters
-		dy_prj = handles.y_max - handles.y_min;		% It's in projected meters
+	handMir = guidata(handles.all_figs(N));
+	if (handMir.is_projected)
+		dx_prj = handles.x_max(N) - handles.x_min(N);		% It's in projected meters
+		dy_prj = handles.y_max(N) - handles.y_min(N);		% It's in projected meters
 		scale = max(width/dx_prj/100, height/dy_prj/100);
 		[n,d] = rat(scale,1e-9);
 		if (n > 1),    d = d / n;      end
@@ -699,32 +724,32 @@ function scale_str = get_scale(handles, width, height)
 % -----------------------------------------------------------------------------------------
 function edit_X0_CB(hObject, handles)
 % Set new x origin
+	N = get(handles.popup_familyPlots, 'Value');
 	str = get(hObject,'String');		x0 = str2double(str);
 	if (isnan(x0)),		set(hObject,'String',str),		return,		end
-	xx = get(handles.hRect,'XData');
-	set(handles.hRect,'XData',xx - xx(1) + x0)
-	if (~isempty(handles.hand_frame_proj))
-		set(handles.hand_frame_proj,'XData',get(handles.hand_frame_proj,'XData') - xx(1) + x0)
+	xx = get(handles.hRect(N),'XData');
+	set(handles.hRect(N),'XData',xx - xx(1) + x0)
+	if (~isempty(handles.hand_frame_proj(N)))
+		set(handles.hand_frame_proj(N),'XData',get(handles.hand_frame_proj(N),'XData') - xx(1) + x0)
 	end
 
 % -----------------------------------------------------------------------------------------
 function edit_Y0_CB(hObject, handles)
 % Set new y origin
+	N = get(handles.popup_familyPlots, 'Value');
 	str = get(hObject,'String');        y0 = str2double(str);
 	if (isnan(y0)),     set(hObject,'String',str),		return,		end
-	yy = get(handles.hRect,'YData');
-	set(handles.hRect,'YData',yy - yy(1) + y0)
-	if (~isempty(handles.hand_frame_proj))
-		set(handles.hand_frame_proj,'YData',get(handles.hand_frame_proj,'YData') - yy(1) + y0)
+	yy = get(handles.hRect(N),'YData');
+	set(handles.hRect(N),'YData',yy - yy(1) + y0)
+	if (~isempty(handles.hand_frame_proj(N)))
+		set(handles.hand_frame_proj(N),'YData',get(handles.hand_frame_proj(N),'YData') - yy(1) + y0)
 	end
 
 % -----------------------------------------------------------------------------------------
 function check_timeStamp_CB(hObject, handles)
 
-
 % -----------------------------------------------------------------------------------------
 function check_scaleBar_CB(hObject, handles)
-
 
 % -----------------------------------------------------------------------------------------
 function popup_projections_CB(hObject, handles)
@@ -739,13 +764,14 @@ function popup_projections_CB(hObject, handles)
 % -----------------------------------------------------------------------------------------
 function edit_projection_CB(hObject, handles)
 	try
+		N = get(handles.popup_familyPlots, 'Value');
 		prj = get(hObject, 'String');
-		handles.projection_str = prj;	% And save a copy
-		update_scales(handles)			% It saves handles as well	
+		handles.projection_str{N} = prj;	% And save a copy
+		update_scales(handles, N)				% It saves handles as well	
 	catch
 		str = get(hObject, 'String');
 		errordlg(sprintf('This transformation\n%s\nis not valid. Error:\n%s', str, lasterr), 'ERROR')
-		set(hObject, 'String', handles.projection_str)
+		set(hObject, 'String', handles.projection_str{N})
 	end
 
 % -----------------------------------------------------------------------------------------
@@ -885,83 +911,24 @@ function push_OK_CB(hObject, handles)
 		errordlg('I told you before that this is not possible (unsupported projection)', 'Error'),	return
 	end
 
-	val   = get(handles.popup_paperSize,'Value');
-	list  = get(handles.popup_paperSize,'String');
-	str   = list{val};        k = strfind(str,' ');
-	paper = str(1:k(1)-1);
-	d_dir = get(handles.popup_directory_list,'String');
-	if (iscell(d_dir)),		d_dir = d_dir{1};		end
-	if (d_dir(end) ~= '\' && d_dir(end) ~= '/')
-		d_dir = [d_dir filesep];
+	dest_dir = get(handles.popup_directory_list,'String');
+	if (iscell(dest_dir)),		dest_dir = dest_dir{1};		end
+	if (dest_dir(end) ~= '\' && dest_dir(end) ~= '/')
+		dest_dir = [dest_dir filesep];
 	end
 	prefix = get(handles.edit_prefix,'String');
 
-	X0 = get(handles.edit_X0,'String');		Y0 = get(handles.edit_Y0,'String');
-	X0 = ['-X' X0 handles.which_unit(1)];	Y0 = ['-Y' Y0 handles.which_unit(1)];
+	writeScript = (get(handles.radio_writeScript, 'Val') ~= 0);
+	do_MEX_fig  = (get(handles.radio_autoRun, 'Val') ~= 0);
 
-	handles.ALLlineHand = findobj(get(handles.handMir.axes1,'Child'),'Type','line','Visible','on');
-
-	% If we have costlines, need to their (Mirone) settings 
-	if (~isempty(findobj(handles.ALLlineHand,'Tag','CoastLineNetCDF')) || ...
-	    ~isempty(findobj(handles.ALLlineHand,'Tag','Rivers')) || ...
-	    ~isempty(findobj(handles.ALLlineHand,'Tag','PoliticalBoundaries')))
-		[handles.ALLlineHand, handles.psc_res, handles.psc_opt_W, handles.psc_type_p, handles.psc_type_r] = ...
-			find_psc_stuff(handles.ALLlineHand);
-	end
-	if (~isempty(handles.psc_res))	% Means that we have coastlines and will use the Mirone settings
-		handles.opt_psc = [handles.psc_res ' ' handles.psc_opt_W ' ' handles.psc_type_p ' ' handles.psc_type_r];
-	end
-
-	handles.opt_J = create_opt_J(handles);
-
-	msg = '';
-	build_write_script(handles, d_dir, prefix, paper, X0, Y0);
-	if (get(handles.radio_writeScript, 'Val'))
-		msg{1} = ['File ' prefix '_mir.' handles.script_type ' successfuly created in:  ' d_dir];
-	end
-	if (~isempty(msg))			% This message self distructs in 4 sec
-		h = msgbox(msg);
-		pause(4)
-		if (ishandle(h)),	delete(h),	end
-	end
-
-% --------------------------------------------------------------------------------------------------------
-function build_write_script(handles, dest_dir, prefix, paper, X0, Y0)
-% This function do most of the hard work in finding the script components.
-% The pscoast stuff is worked out by the "find_psc_stuff" function.
-
-	do_writeScript = (get(handles.radio_writeScript, 'Val') ~= 0);
-	do_MEX_fig = false;
-	if (get(handles.radio_autoRun, 'Val'))
-		do_MEX_fig = true;
-	end
-	o = 1;								% The MEX script counter. DO NOT USE IT FOR ANYTHING ELSE
-
-	opt_J = handles.opt_J;
-	if (handles.handMir.geog && strncmp(opt_J, '-JX', 3) && opt_J(end) ~= 'd')	% Append the 'd' otherwise pscoast barfs
-		opt_J = [opt_J 'd'];
-		ind = strfind(opt_J, '/');
-		if (~isempty(ind))				% To turn (e.g) -JX15c/0d into -JX15cd/0d
-			opt_J = [opt_J(1:ind(1)-1) 'd' opt_J(ind(1):end)];
-		end
-	end
-
+	opt_B = '-Ba -BWSen';
 	opt_P = '';
 	if (get(handles.radio_Portrait,'Value')),	opt_P = ' -P';	end
 
-	handMir = handles.handMir;	ALLlineHand = handles.ALLlineHand;
-	opt_R = handles.opt_R;		opt_L = handles.opt_L;		opt_U = handles.opt_U;
+	opt_R = handles.opt_R{1};	opt_U = handles.opt_U;
 	sc = handles.script_type;	ellips = 'WGS-84';
-	opt_psc = handles.opt_psc;
 	hAlfaPatch = [];
 
-	if (isempty(opt_psc)),		have_psc = false;	% We do not have any pscoast commands
-	else						have_psc = true;
-	end
-
-	if (~strcmp(paper,'A4')),	paper_media = paper;
-	else						paper_media = [];
-	end
 	if (strcmp(sc,'bat')),		comm = 'REM ';		pb = '%';	pf = '%';
 	else						comm = '# ';		pb = '$';	pf = '';
 	end
@@ -974,58 +941,205 @@ function build_write_script(handles, dest_dir, prefix, paper, X0, Y0)
 	opt_annotsize  = ' --FONT_ANNOT_PRIMARY=10p';
 	opt_len_unit   = ' --PROJ_LENGTH_UNIT=point';
 	opt_frameWidth = ' --MAP_FRAME_WIDTH=0.15c';
-	opt_deg        = ' --FORMAT_GEO_MAP';
+	frmPen = '';
+	if (handles.handMir.IamXY),		frmPen = '--MAP_FRAME_PEN=1.25p';	end
 
-% 	if (get(handles.radio_180_180,'Value'))		% [-180;180] range
-% 		opt_deg = [opt_deg '=ddd:mm:ss'];
-% 	else										% [0;360] range
-% 		opt_deg = [opt_deg '=+ddd:mm:ss'];
-% 	end
-	if (handMir.geog == 1)
-		opt_deg = [opt_deg '=ddd:mm:ss'];
-	elseif (handMir.geog == 2)
-		opt_deg = [opt_deg '=+ddd:mm:ss'];
-	else		% Non geog
-		opt_deg = '';
+	o = 1;					% The MEX script counter. DO NOT USE IT FOR ANYTHING ELSE
+	mex_sc = cell(26,1);
+
+	prefix_ddir = [dest_dir prefix];
+	pack = struct('comm',comm, 'pb',pb, 'pf',pf, 'do_MEX',do_MEX_fig, 'dest_dir',dest_dir, 'prefix',prefix, ...
+		'prefix_ddir',prefix_ddir, 'ellips',ellips, 'opt_len_unit', opt_len_unit, 'RJOK',' -R -J -O -K', 'KORJ','');
+
+	for (N = 1:numel(get(handles.popup_familyPlots, 'String')))
+
+		handMir = guidata(handles.all_figs(N));
+
+		hLine = findobj(get(handMir.axes1,'Child'),'Type','line','Visible','on');
+		% If we have costlines, need to use their (Mirone) settings 
+		if (~isempty(findobj(hLine,'Tag','CoastLineNetCDF')) || ...
+			~isempty(findobj(hLine,'Tag','Rivers')) || ...
+			~isempty(findobj(hLine,'Tag','PoliticalBoundaries')))
+			[hLine, handles.psc_res, handles.psc_opt_W, handles.psc_type_p, handles.psc_type_r] = ...
+				find_psc_stuff(hLine);
+		end
+		if (~isempty(handles.psc_res))	% Means that we have coastlines and will use the Mirone settings
+			handles.opt_psc = [handles.psc_res ' ' handles.psc_opt_W ' ' handles.psc_type_p ' ' handles.psc_type_r];
+		end
+
+		opt_J = create_opt_J(handles, N);
+		if (handMir.geog && strncmp(opt_J, '-JX', 3) && opt_J(end) ~= 'd')	% Append the 'd' otherwise pscoast barfs
+			opt_J = [opt_J 'd']; %#ok<AGROW>
+			ind = strfind(opt_J, '/');
+			if (~isempty(ind))				% To turn (e.g) -JX15c/0d into -JX15cd/0d
+				opt_J = [opt_J(1:ind(1)-1) 'd' opt_J(ind(1):end)];
+			end
+		end
+		pack.KORJ = [' -K -O -R ' opt_J];
+
+		if (handMir.geog == 1),		opt_deg = '--FORMAT_GEO_MAP=ddd:mm:ss';
+		elseif (handMir.geog == 2),	opt_deg = '--FORMAT_GEO_MAP=+ddd:mm:ss';
+		else						opt_deg = '';		% Non geog
+		end
+
+		if (N == 1)
+			handMir = handles.handMir;		% POR CAUSA DO handMir.IamXY
+			[script, l, saveBind, id_grd, id_cpt] = do_init_script(handles, handMir, opt_B, handles.opt_R{1}, ...
+				opt_J, opt_deg, opt_frameWidth, opt_annotsize, frmPen, comm, pb, pf, dest_dir, prefix);
+			X0 = sprintf('-X%.3g%s', handles.X0(N), handles.which_unit(1));
+			Y0 = sprintf('-Y%.3g%s', handles.Y0(N), handles.which_unit(1));
+		else			% The N > 1 cases are somewhat different			
+			X0 = sprintf('-X%.3g%s', handles.X0(N)-handles.X0(1), handles.which_unit(1));
+			Y0 = sprintf('-Y%.3g%s', handles.Y0(N)-handles.Y0(1), handles.which_unit(1));
+
+			script{l} = sprintf('\nset lim=%s', handles.opt_R{N});		l = l + 1; %#ok<AGROW>
+			script{l} = sprintf('set deg_form=%s', opt_deg);			l = l + 1; %#ok<AGROW>
+		end
+
+		% Start writing the GMT commands
+		[script, mex_sc, l, o] = do_psbasemap(script, mex_sc, l, o, pack, handles.opt_R{N}, opt_J, opt_B, ...
+			X0, Y0, opt_U, opt_P, opt_deg, opt_annotsize, frmPen, opt_frameWidth, N);
+
+		[script, mex_sc, l, o, haveAlfa, used_grd, nameRGB] = do_grdimg(handMir, script, mex_sc, pack, l, o);
+		hWait = [];
+		if (pack.do_MEX && handMir.image_type ~= 20)
+			[mex_sc, o, hWait] = do_grdimg_MEX(handMir, mex_sc, o, pack.KORJ);
+		end
+
+		% If we have used a grid, build the GMT palette
+		[script, mex_sc, l, o, sc_cpt] = do_palette(handMir, script, mex_sc, l, o, pack, used_grd, id_cpt);
+
+		% Coastlines section
+		[script, mex_sc, l, o] = do_pscoast(handles, handMir, script, mex_sc, l, o, pack, opt_R, opt_J);
+
+		% Search for contour lines
+		hText = findobj(get(handMir.axes1,'Child'),'Type','text');
+		% % If we have focal mecanisms with labels, remove their handles right away
+		% h = findobj(ALLtextHand,'Tag','TextMeca');					% I'M NOT SURE ON THIS ONE
+		% if (~isempty(h))    ALLtextHand = setxor(ALLtextHand, h);   end
+		[script, mex_sc, l, o, used_grd, hLine, hText] = do_contour(handMir, script, mex_sc, l, o, ...
+																	pack, hLine, hText, used_grd);
+
+		% Search for symbols
+		[script, mex_sc, l, o, hLine] = do_symbols(handMir, script, mex_sc, l, o, pack, hLine, opt_J);
+
+		hPatch = findobj(get(handMir.axes1,'Child'),'Type','patch');
+
+		% Search for focal mecanisms
+		[script, mex_sc, l, o, hLine, hPatch] = do_meca(handMir, script, mex_sc, l, o, pack, hLine, hPatch, opt_J);
+
+		% Search for "telhas"
+		[script, l, hPatch] = do_telhas(script, l, hPatch, pack);
+
+		% Search for countries
+		[script, l, haveAlfa, hPatch] = do_countries(handMir, script, l, pack, haveAlfa, hPatch);
+
+		% Search for "Bar graphs"
+		[script, mex_sc, l, o, hPatch, xx, yy] = do_bargraphs(handMir, script, mex_sc, l, o, pack, hPatch);
+
+		% Search for "Histograms"
+		[script, mex_sc, l, o, hPatch] = do_histograms(handMir, script, mex_sc, l, o, pack, hPatch, xx, yy);
+
+		% Search for closed polygons
+		[script, mex_sc, l, o] = do_patches(handMir, script, mex_sc, l, o, pack, hPatch, writeScript);
+		clear ALLpatchHand		% We are done with them
+
+		% Search for lines associated with GMT custom symbols
+		[script, mex_sc, l, o, hLine] = do_custom_symbols(handles, script, mex_sc, l, o, pack, hLine);
+
+		% Search for lines or polylines
+		[script, mex_sc, l, o, hLine] = do_lines(script, mex_sc, l, o, pack, hLine);
+
+		% Search for text strings
+		[script, mex_sc, l, o, hText] = do_text(script, mex_sc, l, o, pack, hText);
+
+		% Search for colorbar
+		[script, mex_sc, l, o] = do_colorbar(handles, handMir, script, mex_sc, l, o, pack, sc_cpt);
+
+		% See if we have to do a screen capture to 3 RGB grids
+		do_screncapture(handMir, hAlfaPatch, haveAlfa, writeScript, nameRGB)
+
+		% =============================== Search for "MagBars" (XY only) ===============================
+		%[script, mex_sc, l, o] = do_magbars(handMir, script, mex_sc, do_MEX_fig, l, o, pack, saveBind, opt_J);
+		% ==============================================================================================
 	end
 
-	frmPen = '';
-	if (handMir.IamXY),		frmPen = '--MAP_FRAME_PEN=1.25p';	end
+	if (pack.do_MEX)
+		try		gsimage(handles, mex_sc, hWait)
+		catch,	errordlg(lasterr, 'Error')
+		end
+		return
+	end
 
-	KORJ = [' -K -O -R ' opt_J];
-	RJOK = ' -R -J -O -K';
+	% ------------------------------------- WRITE THE SCRIPT ---------------------------------------
+	% First do some eventual cleaning
+	if (~isempty(handMir.grdname) && ~used_grd),	script(id_grd) = [];	end;
 
-	% ------------ Some (maybe) needed vars -----------------------------------------------
-	need_path = false;
+	% Remove empties at the end of 'script' to not screw the last command patching below
+	k = numel(script);
+	while (isempty(script{k})),		k = k - 1;		end
+	if (k < numel(script)),	script(k+1:end) = [];	end
+
+	if (strcmp(sc,'bat'))
+		fid = fopen([prefix_ddir '_mir.' sc],'wt');
+	else
+		fid = fopen([prefix_ddir '_mir.' sc],'wb');		% This way scripts are directly executable
+	end
+	for (i = 1:numel(script) - 1)
+		fprintf(fid,'%s\n',script{i});
+	end
+
+	ind = strfind(script{i+1}, ' -K');
+	if (~isempty(ind))
+		script{i+1}(ind:ind+2) = [];		% Remove the last '-K'
+	end
+	fprintf(fid,'%s\n',script{i+1});
+	fclose(fid);
+
+	if (get(handles.radio_writeScript, 'Val'))
+		msg{1} = ['File ' prefix '_mir.' handles.script_type ' successfuly created in:  ' dest_dir];
+		h = msgbox(msg);		% This message self distructs in 4 sec
+		pause(4)
+		if (ishandle(h)),	delete(h),	end
+	end
+
+% -------------------------------------------------------------------------------------------
+function [script, l, saveBind, id_grd, id_cpt] = do_init_script(handles, handMir, opt_B, opt_R, ...
+	opt_J, opt_deg, opt_frameWidth, opt_annotsize, frmPen, comm, pb, pf, dest_dir, prefix)
+% Write the script initialization part (variables declaration)
+
 	script = cell(26,1);
-	mex_sc = cell(26,1);
+
+	val   = get(handles.popup_paperSize,'Value');
+	list  = get(handles.popup_paperSize,'String');
+	str   = list{val};			k = strfind(str,' ');
+	paper = str(1:k(1)-1);
+	if (~strcmp(paper,'A4')),	paper_media = paper;
+	else						paper_media = [];
+	end
+
+	need_path = false;
 	if (~isempty(handMir.grdname))
 		[PATH,FNAME,EXT] = fileparts(handMir.grdname);
 		just_grd_name = [FNAME EXT];
 		ind = 0;
 		if (dest_dir(end) == '\' || dest_dir(end) == '/'),	ind = 1;	end
 		need_path = true;
-		if (strcmp(PATH,dest_dir(1:end-ind))),		need_path = false;	end		% Because PATH has no trailing /
-		clear PATH FNAME EXT;
+		if (strcmp(PATH,dest_dir(1:end-ind))),	need_path = false;		end		% Because PATH has no trailing /
 	end
-	grd_name = handMir.grdname;
 
 	% ------------ Get size of Rectangle to use as info on the image size ------------------
 	units = 'cm';
 	val = get(handles.popup_paperUnits, 'Val');
-	if (val == 2),	units = 'inch';
+	if (val == 2),		units = 'inch';
 	elseif (val == 3),	units = 'points';
 	end
 	imgDimsInfo = sprintf(' ---- The image area has exactly %s x %s %s (unless you change -R or -J)', ...
 		get(handles.edit_mapWidth,'Str'), get(handles.edit_mapHeight,'Str'), units);
 	% --------------------------------------------------------------------------------------
 
-	% --------------------- Build -B string ------------------------------------------------
-	opt_B = '-Ba -BWSen';
-	% --------------------------------------------------------------------------------------
-
 	l = 1;
-	if (~strcmp(sc,'bat'))							% Write a bash script
+	if (~strcmp(handles.script_type, 'bat'))		% Write a bash script
 		script{l} = '#!/bin/bash -f';				l=l+1;
 		script{l} = [comm 'Coffeeright Mirone Tec'];l=l+1;
 		script{l} = comm;							l=l+1;
@@ -1036,20 +1150,19 @@ function build_write_script(handles, dest_dir, prefix, paper, X0, Y0)
 		script{l} = [comm imgDimsInfo];		l=l+1;
 		script{l} = [comm ' ---- Map limits. You may change it if you know how to'];    l=l+1;
 		script{l} = ['lim=' opt_R];			l=l+1;
-		script{l} = comm;							l=l+1;
+		script{l} = comm;					l=l+1;
 		script{l} = [comm ' ---- Longitude annotation style. Use the +ddd:mm:ss form => [0;360] range '];    l=l+1;
-		script{l} = ['deg_form=' opt_deg];      l=l+1;
-		script{l} = '';                             l=l+1;
+		script{l} = ['deg_form=' opt_deg];	l=l+1;
+		script{l} = '';						l=l+1;
 		script{l} = [comm ' ---- Width (> 0) of map borders for fancy map frame'];    l=l+1;
 		script{l} = ['frame_width=' opt_frameWidth];      l=l+1;
 		script{l} = [comm ' ---- Annotation font size in points'];    l=l+1;
 		script{l} = ['annot_size=' opt_annotsize];      l=l+1;
-		prefix_ddir = [dest_dir prefix];    % Add destination dir to the name prefix
-		if (~isempty(grd_name))
+ 		if (~isempty(handMir.grdname))
 			if (~need_path)
-				script{l} = ['grd=' just_grd_name];   id_grd = l; l=l+1;
+				script{l} = ['grd=' just_grd_name];		id_grd = l;		l=l+1;
 			else
-				script{l} = ['grd=' grd_name];        id_grd = l; l=l+1;
+				script{l} = ['grd=' handMir.grdname];	id_grd = l;		l=l+1;
 			end
 		end
 		script{l} = ['cpt=' prefix '.cpt'];		id_cpt = l;   l=l+1;
@@ -1083,12 +1196,11 @@ function build_write_script(handles, dest_dir, prefix, paper, X0, Y0)
 			script{l} = ['set framePen=' frmPen];	l=l+1;
 		end
 		script{l} = '';								l=l+1;
-		prefix_ddir = [dest_dir prefix];    % Add destination dir to the name prefix
-		if (~isempty(grd_name))
+		if (~isempty(handMir.grdname))
 			if (~need_path)
 				script{l} = ['set grd=' just_grd_name];		id_grd = l; l=l+1;
 			else
-				script{l} = ['set grd=' grd_name];			id_grd = l; l=l+1;
+				script{l} = ['set grd=' handMir.grdname];			id_grd = l; l=l+1;
 			end
 		end
 		script{l} = ['set cpt=' prefix '.cpt'];		id_cpt = l; l=l+1;
@@ -1100,162 +1212,40 @@ function build_write_script(handles, dest_dir, prefix, paper, X0, Y0)
 		end
 	end
 
-	% ------------- Start writing GMT commands --------------------------------
-	[script, mex_sc, l, o] = do_psbasemap(script, mex_sc, do_MEX_fig, comm, l, o, pb, pf, opt_R, opt_J, opt_B, ...
-		X0, Y0, opt_U, opt_P, opt_deg, opt_annotsize, frmPen, opt_frameWidth);
-
-	[script, mex_sc, l, o, haveAlfa, used_grd, nameRGB] = do_grdimg(handMir, script, mex_sc, do_MEX_fig, comm, ...
-	                                                      l, o, pb, pf, ellips, RJOK, prefix, prefix_ddir, grd_name);
- 	hWait = [];
- 	if (do_MEX_fig && handMir.image_type ~= 20)
-		[mex_sc, o, hWait] = do_grdimg_MEX(handMir, mex_sc, o, KORJ);
-	end
-
-	% ---------------- If we have used a grid, build the GMT palette -------------------------
-	[script, mex_sc, l, o, sc_cpt] = do_palette(handMir, script, mex_sc, do_MEX_fig, l, o, used_grd, ...
-	                                            dest_dir, prefix, id_cpt);
-	% --------------------------------------------------------------------------------------
-
-	% -------------- Coastlines section --------------------------------------------------------------------
-	[script, mex_sc, l, o] = do_pscoast(handles, handMir, script, mex_sc, do_MEX_fig, l, o, ...
-	                                    have_psc, comm, pb, pf, ellips, RJOK, opt_R, opt_J, opt_L);
-	% --------------------------------------------------------------------------------------
-
-	% -------------- Search for contour lines --------------------------------------------------------------
-	ALLtextHand = findobj(get(handMir.axes1,'Child'),'Type','text');
-	% % If we have focal mecanisms with labels, remove their handles right away
-	% h = findobj(ALLtextHand,'Tag','TextMeca');					% I'M NOT SURE ON THIS ONE
-	% if (~isempty(h))    ALLtextHand = setxor(ALLtextHand, h);   end
-
-	[script, mex_sc, l, o, used_grd, ALLlineHand, ALLtextHand] = do_contour(handMir, script, mex_sc, do_MEX_fig, ...
-		l, o, ALLlineHand, ALLtextHand, used_grd, comm, pb, pf, ellips, RJOK, KORJ, dest_dir, prefix, prefix_ddir);
-	% --------------------------------------------------------------------------------------
-
-	% ------------------------ Search for symbols --------------------------------------------------------
-	[script, mex_sc, l, o, ALLlineHand] = do_symbols(handMir, script, mex_sc, do_MEX_fig, l, o, ALLlineHand, ...
-		comm, pb, pf, ellips, RJOK, KORJ, dest_dir, prefix, prefix_ddir, opt_len_unit, opt_J);
-	% --------------------------------------------------------------------------------------
-
-	ALLpatchHand = findobj(get(handMir.axes1,'Child'),'Type','patch');
-
-	% ------------------------------------ Search for focal mecanisms -------------------------------------
-	[script, mex_sc, l, o, ALLlineHand, ALLpatchHand] = do_meca(handMir, script, mex_sc, do_MEX_fig, l, o, ...
-		ALLlineHand, ALLpatchHand, comm, pb, pf, ellips, RJOK, KORJ, dest_dir, prefix, prefix_ddir, opt_J);
-	% --------------------------------------------------------------------------------------
-
-	% ---------------------------------- Search for "telhas" ----------------------------------------------
-	[script, l, ALLpatchHand] = do_telhas(script, l, ALLpatchHand, comm, pb, pf, ellips, RJOK, ...
-	                                      dest_dir, prefix, prefix_ddir);
-	% --------------------------------------------------------------------------------------
-
-	% ------------------------------------- Search for countries ------------------------------------------
-	[script, l, haveAlfa, ALLpatchHand] = do_countries(handMir, script, l, do_MEX_fig, haveAlfa, ALLpatchHand, ...
-                                                       comm, pb, pf, ellips, RJOK, dest_dir, prefix, prefix_ddir);
-	% --------------------------------------------------------------------------------------
-
-	% ----------------------------------- Search for "Bar graphs" --------------------------
-	[script, mex_sc, l, o, ALLpatchHand, xx, yy] = do_bargraphs(handMir, script, mex_sc, do_MEX_fig, l, o, ...
-		ALLpatchHand, comm, pb, pf, ellips, RJOK, KORJ, dest_dir, prefix, prefix_ddir, opt_len_unit);
-	% --------------------------------------------------------------------------------------
-
-	% ----------------------------------- Search for "Histograms" --------------------------
-	[script, mex_sc, l, o, ALLpatchHand] = do_histograms(handMir, script, mex_sc, do_MEX_fig, l, o, ...
-		ALLpatchHand, comm, pb, pf, ellips, RJOK, KORJ, dest_dir, prefix, prefix_ddir, opt_len_unit, xx, yy);
-	% --------------------------------------------------------------------------------------
-
-	% ----------------------------- Search for closed polygons -----------------------------
-	[script, mex_sc, l, o] = do_patches(handMir, script, mex_sc, do_MEX_fig, l, o, ALLpatchHand, ...
-		do_writeScript, comm, pb, pf, ellips, RJOK, KORJ, dest_dir, prefix, prefix_ddir, opt_len_unit);
-	clear ALLpatchHand		% We are done with them
-	% --------------------------------------------------------------------------------------
-
-	% ----------- Search for lines associated with GMT custom symbols ------------------------------
-	[script, mex_sc, l, o, ALLlineHand] = do_custom_symbols(handles, script, mex_sc, do_MEX_fig, l, o, ...
-		ALLlineHand, comm, pb, pf, RJOK, KORJ);
-	% --------------------------------------------------------------------------------------
-
-	% ----------------------------------- Search for lines or polylines ----------------------------
-	[script, mex_sc, l, o, ALLlineHand] = do_lines(script, mex_sc, do_MEX_fig, l, o, ALLlineHand, ...
-		comm, pb, pf, ellips, RJOK, KORJ, dest_dir, prefix, prefix_ddir, opt_len_unit);
-	% --------------------------------------------------------------------------------------
-
-	% -------------- Search for text strings ---------------------------------------------
-	[script, mex_sc, l, o, ALLtextHand] = do_text(script, mex_sc, do_MEX_fig, l, o, ALLtextHand, ...
-		comm, pb, pf, ellips, RJOK, KORJ);
-
-	% -------------- Search for colorbar ------------------------------------------------------------
-	[script, mex_sc, l, o] = do_colorbar(handles, handMir, script, mex_sc, do_MEX_fig, l, o, sc_cpt, comm, pb, pf);
-	% -----------------------------------------------------------------------------------------------
-
-	% -------------- See if we have to do a screen capture to 3 RGB grids ---------------------------
-	do_screncapture(handMir, hAlfaPatch, haveAlfa, do_writeScript, nameRGB)
-	% -----------------------------------------------------------------------------------------------
-
-	% =============================== Search for "MagBars" (XY only) ===============================
-	[script, mex_sc, l, o] = do_magbars(handMir, script, mex_sc, do_MEX_fig, l, o, saveBind, ...
-		comm, pb, pf, opt_J, dest_dir, prefix, prefix_ddir);
-	% ==============================================================================================
-
-	if (do_MEX_fig)
-		try
-			gsimage(handles, mex_sc, hWait)
-		catch
-			errordlg(lasterr, 'Error')
-		end
-		return
-	end
-
-	% ----------------------------------------------------------------------------------------------
-	% ------------------------------------- WRITE THE SCRIPT ---------------------------------------
-	% First do some eventual cleaning
-	if (~isempty(handMir.grdname) && ~used_grd),         script(id_grd) = [];        end;
-
-	if (strcmp(sc,'bat'))
-		fid = fopen([prefix_ddir '_mir.' sc],'wt');
-	else
-		fid = fopen([prefix_ddir '_mir.' sc],'wb');		% This way scripts are directly executable
-	end
-
-	% Remove empties at the end of 'script' to not screw the last command patching below
-	k = numel(script);
-	while (isempty(script{k})),		k = k - 1;			end
-	if (k < numel(script)),	script(k+1:end) = [];		end
-
-	for (i = 1:numel(script) - 1)
-		fprintf(fid,'%s\n',script{i});
-	end
-
-	ind = strfind(script{i+1}, ' -K');
-	if (~isempty(ind))
-		script{i+1}(ind:ind+2) = [];		% Remove the last '-K'
-	end
-	fprintf(fid,'%s\n',script{i+1});
-	fclose(fid);
-
 % -------------------------------------------------------------------------------------------
-function [script, mex_sc, l, o] = do_psbasemap(script, mex_sc, do_MEX_fig, comm, l, o, pb, pf, opt_R, opt_J, opt_B, ...
-	                              X0, Y0, opt_U, opt_P, opt_deg, opt_annotsize, frmPen, opt_frameWidth)
-	script{l} = sprintf('\n%s --- Start by creating the basemap frame.', comm);		l=l+1;
+function [script, mex_sc, l, o] = do_psbasemap(script, mex_sc, l, o, pack, opt_R, opt_J, opt_B, X0, Y0, ...
+	                              opt_U, opt_P, opt_deg, opt_annotsize, frmPen, opt_frameWidth, N)
+% ...
+	[comm, pb, pf, do_MEX] = unpack(pack);
+	if (N == 1)
+		script{l} = sprintf('\n%s --- Start by creating the basemap frame.', comm);		l=l+1;
+		OK = ' -K  > ';
+	else
+		script{l} = sprintf('\n%s --- Creating basemap of the %dth image.', comm, N);	l=l+1;
+		OK = ' -K -O >> ';
+	end
+
 	if (~isempty(frmPen))
 		frmPen = [pb 'framePen' pf];		% Only write if it exists
 	end
 	script{l} = ['psbasemap ' pb 'lim' pf ' ' pb 'proj' pf ' ' pb 'frm' pf ' ' X0 ' ' Y0 opt_U opt_P ...
-	             ' ' pb 'deg_form' pf ' ' pb 'annot_size' pf ' ' frmPen ' ' pb 'frame_width' pf ' -K > ' pb 'ps' pf];
+	             ' ' pb 'deg_form' pf ' ' pb 'annot_size' pf ' ' frmPen ' ' pb 'frame_width' pf OK pb 'ps' pf];
 	l = l + 1;
-	if (do_MEX_fig)
-		mex_sc{o,1} = sprintf('psbasemap %s %s %s %s %s %s %s %s %s %s %s -K', ...
-					  opt_R, opt_J, opt_B, X0, Y0, opt_U, opt_P, opt_deg, opt_annotsize, frmPen, opt_frameWidth);
+	if (do_MEX)
+		mex_sc{o,1} = sprintf('psbasemap %s %s %s %s %s %s %s %s %s %s %s %s', ...
+					  opt_R, opt_J, opt_B, X0, Y0, opt_U, opt_P, opt_deg, opt_annotsize, frmPen, ...
+					  opt_frameWidth, OK(1:end-3));		% We don't want the '>' or '>>' in 'OK'
 		o = o + 1;
 	end
 
 % -------------------------------------------------------------------------------------------
-function [script, mex_sc, l, o, haveAlfa, used_grd, nameRGB] = do_grdimg(handMir, script, mex_sc, do_MEX_fig, ...
-	     comm, l, o, pb, pf, ellips, RJOK, prefix, prefix_ddir, grd_name)
+function [script, mex_sc, l, o, haveAlfa, used_grd, nameRGB] = do_grdimg(handMir, script, mex_sc, pack, l, o)
 % Deal with the grdimage & grdgradient part
 
+	[comm, pb, pf, do_MEX, ellips, RJOK, KORJ, dest_dir, prefix, prefix_ddir, opt_len_unit] = unpack(pack);
 	haveAlfa = false;	used_grd = false;
 	nameRGB = [];				% When not empty it means we'll do a screen capture ('image' or to capture transp)
-	if (~isempty(grd_name))
+	if (~isempty(handMir.grdname))
 		% If renderer == OpenGL, that is interpreted as a transparency request. In that case we need a screen capture
 		if (strcmpi(get(handMir.figure1,'Renderer'), 'OpenGL'))
 			if (~isempty(findobj(get(handMir.axes1,'Child'),'Type','patch')))		% Extra test
@@ -1281,7 +1271,7 @@ function [script, mex_sc, l, o, haveAlfa, used_grd, nameRGB] = do_grdimg(handMir
 			opt_N = '';
 			if (handMir.Illumin_type == 1),		opt_N = ' -Nt';     end
 			ind_A = strfind(illumComm, '-A');	ind_N = strfind(opt_N, ' -N');
-			if (do_MEX_fig && ~isempty(ind_A) && ~isempty(ind_N))		% Use the new grdimage -I option ... when know GMT version
+			if (do_MEX && ~isempty(ind_A) && ~isempty(ind_N))		% Use the new grdimage -I option ... when know GMT version
 				illum = sprintf(' -I+a%s+n%s', illumComm(ind_A+2:end), opt_N(4:end));
 			else
 				name_illum = [prefix '_intens.grd'];
@@ -1325,10 +1315,10 @@ function [script, mex_sc, l, o, haveAlfa, used_grd, nameRGB] = do_grdimg(handMir
 	end
 
 % -------------------------------------------------------------------------------------------
-function [script, mex_sc, l, o, sc_cpt] = do_palette(handMir, script, mex_sc, do_MEX_fig, l, o, used_grd, ...
-                                                     dest_dir, prefix, id_cpt)
+function [script, mex_sc, l, o, sc_cpt] = do_palette(handMir, script, mex_sc, l, o, pack, used_grd, id_cpt)
 % ...
 	if (used_grd || strcmp(get(handMir.PalAt,'Check'),'on') || strcmp(get(handMir.PalIn,'Check'),'on') )
+		[comm, pb, pf, do_MEX, ellips, RJOK, KORJ, dest_dir, prefix, prefix_ddir, opt_len_unit] = unpack(pack);
 		tmp = cell(261,1);
 		pal = get(handMir.figure1,'colormap');
 		%Z = getappdata(handMir.figure1,'dem_z');
@@ -1364,7 +1354,7 @@ function [script, mex_sc, l, o, sc_cpt] = do_palette(handMir, script, mex_sc, do
 		clear tmp z_min z_max pal_len pal cor cor_str fid dz z1 z2
 	else        % Remove the cpt declaration. After all we won't go to use it
 		sc_cpt = '';
-		script(id_cpt) = [];    l=l-1;
+		script(id_cpt) = [];    l = l - 1;
 	end
 
 % -------------------------------------------------------------------------------------------
@@ -1372,9 +1362,13 @@ function [mex_sc, o, hWait] = do_grdimg_MEX(handMir, mex_sc, o, KORJ)
 % Do the grdimage stuff for MEX
 	hWait = aguentabar(0,'title','Computing PDF fig');
 	pad = 0;
-	if (handMir.geog && isempty(strfind(KORJ, '-JX'))),	pad = 2;	end
+	if (handMir.geog && isempty(strfind(KORJ, '-JX'))),		pad = 2;	end
 	img = get(handMir.hImg, 'CData');
 	n_band = size(img,3);
+	if (n_band == 1)		% DONT KNOW IF THERE IS A BETTER SOLUTION, BUT img MUST BE RGB
+		img = ind2rgb8(img, get(handMir.figure1,'Colormap'));	% img is now RGB
+		n_band = 3;
+	end
 	n_col = size(img,2);
 	new_size = [(size(img,1) + 2*pad) (n_col + 2*pad) size(img,3)];
 	img2(prod(new_size)) = uint8(0);
@@ -1407,11 +1401,13 @@ function [mex_sc, o, hWait] = do_grdimg_MEX(handMir, mex_sc, o, KORJ)
 	aguentabar(1/3);
 
 % -------------------------------------------------------------------------------------------
-function [script, mex_sc, l, o] = do_pscoast(handles, handMir, script, mex_sc, do_MEX_fig, l, o, ...
-	have_psc, comm, pb, pf, ellips, RJOK, opt_R, opt_J, opt_L)
+function [script, mex_sc, l, o] = do_pscoast(handles, handMir, script, mex_sc, l, o, pack, opt_R, opt_J)
 % Do wrapping work around the pscoast call
-	if (have_psc)       % We have pscoast commands
-		if (~do_MEX_fig)
+
+	[comm, pb, pf, do_MEX, ellips, RJOK, KORJ, dest_dir, prefix, prefix_ddir] = unpack(pack);
+
+	if (~isempty(handles.opt_psc))	% We have pscoast commands
+		if (~do_MEX)
 			[script, l] = do_pscoast_job(handles, handMir, script, l, comm, pb, pf, ellips);
 		else
 			[script, l, o, mex_sc] = do_pscoast_job(handles, handMir, script, l, comm, pb, pf, ellips, o, mex_sc);
@@ -1423,8 +1419,8 @@ function [script, mex_sc, l, o] = do_pscoast(handles, handMir, script, mex_sc, d
 				o = o + 1;
 			end
 		end
-	elseif (~isempty(opt_L))
-		script{l} = ['psbasemap ' opt_L RJOK ' >> ' pb 'ps' pf];	l = l + 1;
+	elseif (~isempty(handles.opt_L))
+		script{l} = ['psbasemap ' handles.opt_L RJOK ' >> ' pb 'ps' pf];	l = l + 1;
 	end
 
 % -------------------------------------------------------------------------------------------
@@ -1466,15 +1462,16 @@ function [script, l, o, mex_sc] = do_pscoast_job(handles, handMir, script, l, co
 	end
 
 % -------------------------------------------------------------------------------------------
-function [script, mex_sc, l, o, used_grd, ALLlineHand, ALLtextHand] = do_contour(handMir, script, mex_sc, do_MEX_fig, ...
-	l, o, ALLlineHand, ALLtextHand, used_grd, comm, pb, pf, ellips, RJOK, KORJ, dest_dir, prefix, prefix_ddir)
+function [script, mex_sc, l, o, used_grd, hLine, hText] = do_contour(handMir, script, mex_sc, ...
+	l, o, pack, hLine, hText, used_grd)
 % Handle the contour plots
 
-	tag = get(ALLlineHand,'Tag');
-	if (~isempty(tag) && (~isempty(handMir.grdname) || do_MEX_fig))
-		h = findobj(ALLlineHand,'Tag','contour');
+	[comm, pb, pf, do_MEX, ellips, RJOK, KORJ, dest_dir, prefix, prefix_ddir] = unpack(pack);
+	tag = get(hLine,'Tag');
+	if (~isempty(tag) && (~isempty(handMir.grdname) || do_MEX))
+		h = findobj(hLine,'Tag','contour');
 		if (~isempty(h))
-			h_label = findobj(ALLtextHand,'Tag','contour');		% Search for contour labels
+			h_label = findobj(hText,'Tag','contour');		% Search for contour labels
 			if (~isempty(h_label))
 				lab = get(h_label,'UserData');
 				if (iscell(lab)),   lab = unique(cat(1,lab{:}));    end
@@ -1502,55 +1499,53 @@ function [script, mex_sc, l, o, used_grd, ALLlineHand, ALLtextHand] = do_contour
 				script{l} = ['grdcontour ' pb 'grd' pf ' -C' [prefix '_cont.dat'] ellips RJOK ' >> ' pb 'ps' pf];
 				l = l + 1;
 			end
-			if (do_MEX_fig)
+			if (do_MEX)
 				mex_sc{o,1} = ['grdcontour -C' dest_dir prefix '_cont.dat' ellips KORJ];
 				[X,Y,Z] = load_grd(handMir);	clear X Y
 				mex_sc{o,2} = gmt('wrapgrid', Z, handMir.head);
 				o = o + 1;
 			end
 			used_grd = true;
-			ALLlineHand = setxor(ALLlineHand, h);       % h is processed, so remove it from handles list
-			ALLtextHand = setxor(ALLtextHand, h_label); % same for contour label strings
+			hLine = setxor(hLine, h);       % h is processed, so remove it from handles list
+			hText = setxor(hText, h_label); % same for contour label strings
 			clear h conts fid name no_anot lab;
 		end
 	end
 
 % -------------------------------------------------------------------------------------------
-function [script, mex_sc, l, o, ALLlineHand] = do_symbols(handMir, script, mex_sc, do_MEX_fig, l, o, ALLlineHand, ...
-comm, pb, pf, ellips, RJOK, KORJ, dest_dir, prefix, prefix_ddir, opt_len_unit, opt_J)
+function [script, mex_sc, l, o, hLine] = do_symbols(handMir, script, mex_sc, l, o, pack, hLine, opt_J)
 % Deal with the symbols plotting
 
 	haveSymbol = false;
-	tag = get(ALLlineHand,'Tag');
+	tag = get(hLine,'Tag');
 	if (~isempty(tag))
-		h = findobj(ALLlineHand,'Tag','Symbol');
-		h = [h; findobj(ALLlineHand,'Tag','City_major')];
-		h = [h; findobj(ALLlineHand,'Tag','City_other')];
-		h = [h; findobj(ALLlineHand,'Tag','volcano')];
-		h = [h; findobj(ALLlineHand,'Tag','hotspot')];
-		h = [h; findobj(ALLlineHand,'Tag','Earthquakes')];
-		h = [h; findobj(ALLlineHand,'Tag','DSDP')];
-		h = [h; findobj(ALLlineHand,'Tag','ODP')];
+		h = findobj(hLine,'Tag','Symbol');
+		h = [h; findobj(hLine,'Tag','City_major')];
+		h = [h; findobj(hLine,'Tag','City_other')];
+		h = [h; findobj(hLine,'Tag','volcano')];
+		h = [h; findobj(hLine,'Tag','hotspot')];
+		h = [h; findobj(hLine,'Tag','Earthquakes')];
+		h = [h; findobj(hLine,'Tag','DSDP')];
+		h = [h; findobj(hLine,'Tag','ODP')];
 
 		% Search for points as Markers (that is, line with no line - just symbols on vertices)
-		h_shit = get(ALLlineHand,'LineStyle');
+		h_shit = get(hLine,'LineStyle');
 		h_num_shit = find(strcmp('none', h_shit));
 		if (h_num_shit)
-			id = ismember(h, ALLlineHand(h_num_shit));		% Many, if not all, can be repeated
-			h(id) = [];										% This will remove repeted elements
-			h = [h; ALLlineHand(h_num_shit)];
+			id = ismember(h, hLine(h_num_shit));		% Many, if not all, can be repeated
+			h(id) = [];									% This will remove repeted elements
+			h = [h; hLine(h_num_shit)];
 		end
-		clear h_shit h_num_shit;
 
 		if (~isempty(h))
 			symbols = get_symbols(h);
 			haveSymbol = true;
-			ALLlineHand = setxor(ALLlineHand, h);			% h is processed, so remove it from handles list
+			hLine = setxor(hLine, h);			% h is processed, so remove it from handles list
 		end
-		clear h;
 	end
 
 	if (haveSymbol)
+		[comm, pb, pf, do_MEX, ellips, RJOK, KORJ, dest_dir, prefix, prefix_ddir, opt_len_unit] = unpack(pack);
 		ns = numel(symbols.x);
 		name = [prefix_ddir '_symb.dat'];	name_sc = [prefix '_symb.dat'];
 		fc = symbols.FillColor{1};			ec = symbols.EdgeColor{1};
@@ -1569,7 +1564,7 @@ comm, pb, pf, ellips, RJOK, KORJ, dest_dir, prefix, prefix_ddir, opt_len_unit, o
 			script{l} = ['psxy ' name_sc ' -S' symbols.Marker num2str(symbols.Size{1}) 'p' opt_G ...
 			             opt_W ellips RJOK ' >> ' pb 'ps' pf];		l = l + 1;
 			fclose(fid);
-			if (do_MEX_fig)
+			if (do_MEX)
 				mex_sc{o,1} = ['psxy -S' symbols.Marker num2str(symbols.Size{1}) 'p' opt_G opt_W ellips KORJ];
 				mex_sc{o,2} = [symbols.x{:}; symbols.y{:}];			o = o + 1;
 			end
@@ -1578,7 +1573,7 @@ comm, pb, pf, ellips, RJOK, KORJ, dest_dir, prefix, prefix_ddir, opt_len_unit, o
 			script{l} = [sprintf('echo %.6f\t%.6f',symbols.x{1},symbols.y{1}) ' | ' ...
 						'psxy -S' symbols.Marker num2str(symbols.Size{1}) 'p' opt_G ...
 						opt_W ellips RJOK ' >> ' pb 'ps' pf];		l = l + 1;
-			if (do_MEX_fig)
+			if (do_MEX)
 				mex_sc{o,1} = ['psxy -S' symbols.Marker num2str(symbols.Size{1}) 'p' opt_G opt_W ellips KORJ];
 				mex_sc{o,2} = [symbols.x{1}; symbols.y{1}];			o = o + 1;
 			end
@@ -1613,7 +1608,7 @@ comm, pb, pf, ellips, RJOK, KORJ, dest_dir, prefix, prefix_ddir, opt_len_unit, o
 			script{l} = ' ';                        	l=l+1;
 			script{l} = [comm ' ---- Plot symbols'];    l=l+1;
 			script{l} = ['psxy ' name_sc ellips opt_len_unit RJOK ' -S >> ' pb 'ps' pf];		l = l + 1;
-			if (do_MEX_fig)
+			if (do_MEX)
 				mex_sc{o,1} = ['psxy -S ' dest_dir name_sc ellips opt_len_unit KORJ];		o = o + 1;
 			end
 			fclose(fid);
@@ -1621,15 +1616,16 @@ comm, pb, pf, ellips, RJOK, KORJ, dest_dir, prefix, prefix_ddir, opt_len_unit, o
 	end
 
 % -------------------------------------------------------------------------------------------
-function [script, mex_sc, l, o, ALLlineHand, ALLpatchHand] = do_meca(handMir, script, mex_sc, do_MEX_fig, l, o, ...
-ALLlineHand, ALLpatchHand, comm, pb, pf, ellips, RJOK, KORJ, dest_dir, prefix, prefix_ddir, opt_J)
+function [script, mex_sc, l, o, hLine, hPatch] = do_meca(handMir, script, mex_sc, l, o, ...
+	pack, hLine, hPatch, opt_J)
 % Handle focal mechanisms plotting
 
-	if (~isempty(ALLpatchHand))
-		focHand = findobj(ALLpatchHand,'Tag','FocalMeca');
+	if (~isempty(hPatch))
+		focHand = findobj(hPatch,'Tag','FocalMeca');
 		if (~isempty(focHand))
+			[comm, pb, pf, do_MEX, ellips, RJOK, KORJ, dest_dir, prefix, prefix_ddir, opt_len_unit] = unpack(pack);
 			% First deal with the 'line anchors'
-			focHandAnchor = findobj(ALLlineHand,'Tag','FocalMecaAnchor');   % Handles of the line anchors
+			focHandAnchor = findobj(hLine,'Tag','FocalMecaAnchor');   % Handles of the line anchors
 			x = get(focHandAnchor,'XData');			y = get(focHandAnchor,'YData');
 			if (iscell(x)),		x = cell2mat(x);	y = cell2mat(y);    end
 			id_anch = find(diff(x,1,2));
@@ -1679,24 +1675,24 @@ ALLlineHand, ALLpatchHand, comm, pb, pf, ellips, RJOK, KORJ, dest_dir, prefix, p
 			fclose(fid);
 			script{l} = sprintf('\n%s ---- Plot Focal Mechanisms', comm);   l=l+1;
 			script{l} = ['psmeca ' opt_S opt_C ' ' name_sc ellips RJOK ' >> ' pb 'ps' pf];	l = l + 1;
-			if (do_MEX_fig)
+			if (do_MEX)
 				mex_sc{o,1} = ['psmeca ' opt_S opt_C ' ' dest_dir name_sc ellips KORJ];		o = o + 1;
 			end
-			ALLpatchHand = setxor(ALLpatchHand, focHand);		% focHand is processed, so remove it from handles list
-			ALLlineHand  = setxor(ALLlineHand, focHandAnchor);	%       iden
+			hPatch = setxor(hPatch, focHand);		% focHand is processed, so remove it from handles list
+			hLine  = setxor(hLine, focHandAnchor);	%       iden
 		end
 	end
 
 % -------------------------------------------------------------------------------------------
-function [script, l, ALLpatchHand] = do_telhas(script, l, ALLpatchHand, comm, pb, pf, ellips, RJOK, ...
-                                               dest_dir, prefix, prefix_ddir)
+function [script, l, hPatch] = do_telhas(script, l, hPatch, pack)
 % Handles the "Telhas", but telhas is no mex
 
-	if (~isempty(ALLpatchHand))
-		hTelhas = findobj(ALLpatchHand,'Tag','tapete');
+	if (~isempty(hPatch))
+		hTelhas = findobj(hPatch,'Tag','tapete');
 		if (~isempty(hTelhas))
-			tmp = findobj(ALLpatchHand,'Tag','tapete_R');
-			ALLpatchHand = setxor(ALLpatchHand, tmp);       % Remove the reverse "telhas" 
+			[comm, pb, pf, ellips, RJOK, KORJ, dest_dir, prefix, prefix_ddir] = unpack(pack);
+			tmp = findobj(hPatch,'Tag','tapete_R');
+			hPatch = setxor(hPatch, tmp);       % Remove the reverse "telhas" 
 			n_tapetes = length(hTelhas);
 			for (i=1:n_tapetes)
 				saved = get(hTelhas(i),'UserData');
@@ -1716,24 +1712,24 @@ function [script, l, ALLpatchHand] = do_telhas(script, l, ALLpatchHand, comm, pb
 					l = l + 1;
 				end
 			end
-			ALLpatchHand = setxor(ALLpatchHand, hTelhas);       % hTelhas is processed, so remove it from handles list
+			hPatch = setxor(hPatch, hTelhas);       % hTelhas is processed, so remove it from handles list
 		end
 	end
 
 % -------------------------------------------------------------------------------------------
-function [script, l, haveAlfa, ALLpatchHand] = do_countries(handMir, script, l, do_MEX_fig, haveAlfa, ALLpatchHand, ...
-                                                            comm, pb, pf, ellips, RJOK, dest_dir, prefix, prefix_ddir)
+function [script, l, haveAlfa, hPatch] = do_countries(handMir, script, l, pack, haveAlfa, hPatch)
 % Deal with country plots but this have to be replaced by a pscoast call
 
-	if (~isempty(ALLpatchHand))
+	if (~isempty(hPatch))
 		% First see about these still remaining patch transparency
 		% But if both write script and auto PDF and transparencies, the script will probably be wrong
-		if (~do_MEX_fig)
-			[ALLpatchHand, hAlfaPatch] = findTransparents(ALLpatchHand);
+		[comm, pb, pf, do_MEX, ellips, RJOK, KORJ, dest_dir, prefix, prefix_ddir] = unpack(pack);
+		if (~do_MEX)
+			[hPatch, hAlfaPatch] = findTransparents(hPatch);
 			if (isempty(hAlfaPatch)),		haveAlfa = false;		end			% An extra test
 		end
 
-		hAtlas = findobj(ALLpatchHand,'Tag','Atlas');
+		hAtlas = findobj(hPatch,'Tag','Atlas');
 		if (~isempty(hAtlas))
 			n_cts = length(hAtlas);
 			if (n_cts > 1)                  % We have multiple countries
@@ -1753,18 +1749,19 @@ function [script, l, haveAlfa, ALLpatchHand] = do_countries(handMir, script, l, 
 			script{l} = [cd filesep 'country_extract -P' name ' ' ct_with_pato ' -C | ',...
 					'psxy -W0.5p ' ellips RJOK ' >> ' pb 'ps' pf];
 			l = l + 1;
-			ALLpatchHand = setxor(ALLpatchHand, hAtlas);       % AtlasHand is processed, so remove it from handles list
+			hPatch = setxor(hPatch, hAtlas);       % AtlasHand is processed, so remove it from handles list
 		end
 	end
 
 % -------------------------------------------------------------------------------------------
-function [script, mex_sc, l, o, ALLpatchHand, xx, yy] = do_bargraphs(handMir, script, mex_sc, do_MEX_fig, l, o, ...
-	ALLpatchHand, comm, pb, pf, ellips, RJOK, KORJ, dest_dir, prefix, prefix_ddir, opt_len_unit)
+function [script, mex_sc, l, o, hPatch, xx, yy] = do_bargraphs(handMir, script, mex_sc, l, o, ...
+	pack, hPatch)
 % ...
 	xx = [];	yy = [];
-	if (~isempty(ALLpatchHand))
-		thisHand = findobj(ALLpatchHand,'Tag','BarGraph');
+	if (~isempty(hPatch))
+		thisHand = findobj(hPatch,'Tag','BarGraph');
 		if (~isempty(thisHand))
+			[comm, pb, pf, do_MEX, ellips, RJOK, KORJ, dest_dir, prefix, prefix_ddir, opt_len_unit] = unpack(pack);
 			xx = get(thisHand,'XData');     yy = get(thisHand,'YData');
 			bar_W = xx(4,1) - xx(1,1);
 			xx = (xx(1,:) + xx(4,:)) / 2;		% Coordinates at the bars half width
@@ -1782,21 +1779,22 @@ function [script, mex_sc, l, o, ALLpatchHand, xx, yy] = do_bargraphs(handMir, sc
 			script{l} = sprintf('\n%s ---- Plot Bar graph', comm);		l = l + 1;
 			opt_S = sprintf(' -Sb%fu', bar_W);
 			script{l} = ['psxy ' name_sc opt_len_unit opt_S RJOK cor ' >> ' pb 'ps' pf];	l = l + 1;
-			if (do_MEX_fig)
+			if (do_MEX)
 				mex_sc{o,1} = ['psxy ' opt_len_unit opt_S KORJ cor];
 				mex_sc{o,2} = [xx(:) yy(:)];		o = o + 1;
 			end
-			ALLpatchHand = setxor(ALLpatchHand, thisHand);       % thisHand is processed, so remove it from handles list
+			hPatch = setxor(hPatch, thisHand);       % thisHand is processed, so remove it from handles list
 		end
 	end
 	
 % -------------------------------------------------------------------------------------------
-function [script, mex_sc, l, o, ALLpatchHand] = do_histograms(handMir, script, mex_sc, do_MEX_fig, l, o, ...
-	ALLpatchHand, comm, pb, pf, ellips, RJOK, KORJ, dest_dir, prefix, prefix_ddir, opt_len_unit, xx, yy)
+function [script, mex_sc, l, o, hPatch] = do_histograms(handMir, script, mex_sc, l, o, ...
+	pack, hPatch, xx, yy)
 % ...
-	if (~isempty(ALLpatchHand))
-		thisHand = findobj(ALLpatchHand,'Tag','Histogram');
+	if (~isempty(hPatch))
+		thisHand = findobj(hPatch,'Tag','Histogram');
 		if (~isempty(thisHand))
+			[comm, pb, pf, do_MEX, ellips, RJOK, KORJ, dest_dir, prefix, prefix_ddir, opt_len_unit] = unpack(pack);
 			xh = get(thisHand,'XData');			% 2xN matrix
 			bar_W = xh(4,1) - xh(1,1);
 
@@ -1813,31 +1811,32 @@ function [script, mex_sc, l, o, ALLpatchHand] = do_histograms(handMir, script, m
 			opt_L = sprintf(' -L%gp,%d/%d/%d', LineWidth, round(EdgeColor * 255));
 			script{l} = ['pshistogram ' name_sc opt_len_unit opt_G opt_W opt_L RJOK ' -F >> ' pb 'ps' pf];
 			l = l + 1;
-			if (do_MEX_fig)
+			if (do_MEX)
 				mex_sc{o,1} = ['pshistogram -F ' opt_len_unit opt_G opt_W opt_L KORJ];
 				mex_sc{o,2} = [xx(:) yy(:)];		o = o + 1;
 			end
-			ALLpatchHand = setxor(ALLpatchHand, thisHand);       % thisHand is processed, so remove it from handles list
+			hPatch = setxor(hPatch, thisHand);       % thisHand is processed, so remove it from handles list
 		end
 	end
 
 % -------------------------------------------------------------------------------------------
-function [script, mex_sc, l, o] = do_patches(handMir, script, mex_sc, do_MEX_fig, l, o, ALLpatchHand, ...
-	do_writeScript, comm, pb, pf, ellips, RJOK, KORJ, dest_dir, prefix, prefix_ddir, opt_len_unit)
+function [script, mex_sc, l, o] = do_patches(handMir, script, mex_sc, l, o, pack, hPatch, ...
+	writeScript)
 % ...
-	if (~isempty(ALLpatchHand))
-		xx = get(ALLpatchHand,'XData');     yy = get(ALLpatchHand,'YData');
-		n_patch = numel(ALLpatchHand);
+	if (~isempty(hPatch))
+		[comm, pb, pf, do_MEX, ellips, RJOK, KORJ, dest_dir, prefix, prefix_ddir, opt_len_unit] = unpack(pack);
+		xx = get(hPatch,'XData');     yy = get(hPatch,'YData');
+		n_patch = numel(hPatch);
 		%LineStyle = get(ALLpatchHand,'LineStyle');
-		LineWidth = get(ALLpatchHand,'LineWidth');
+		LineWidth = get(hPatch,'LineWidth');
 		if (iscell(LineWidth)),     LineWidth = cat(1,LineWidth{:});     end
-		EdgeColor = get(ALLpatchHand,'EdgeColor');
+		EdgeColor = get(hPatch,'EdgeColor');
 		if (iscell(EdgeColor)),     EdgeColor = cat(1,EdgeColor{:});     end
-		FillColor = get(ALLpatchHand,'FaceColor');
+		FillColor = get(hPatch,'FaceColor');
 		if (iscell(FillColor))
 			if (handMir.version7 >= 8.4)	% Must check if have to undo a trick to workarround a R2015 bug
 				for (k = 1:n_patch)
-					if (get(ALLpatchHand(k), 'FaceAlpha') == 0.005)
+					if (get(hPatch(k), 'FaceAlpha') == 0.005)
 						FillColor{k} = 'none';
 					end
 				end
@@ -1856,12 +1855,12 @@ function [script, mex_sc, l, o] = do_patches(handMir, script, mex_sc, do_MEX_fig
 		else				% We have only one patch
 			xx = num2cell(xx,1);   yy = num2cell(yy,1);	% Make it a cell for reducing the head-hakes
 			resp = strcmp('none',FillColor);
-			if (resp || get(ALLpatchHand, 'FaceAlpha') == 0.005)	% The 0.005 is the flag to workaround R2015 bug
+			if (resp || get(hPatch, 'FaceAlpha') == 0.005)	% The 0.005 is the flag to workaround R2015 bug
 				FillColor = [-1 -1 -1];					% Signal down that this is a non colored polygon
 			end
 		end
 		name = [prefix_ddir '_patch.dat'];		name_sc = [prefix '_patch.dat'];
-		if (do_writeScript),	fid = fopen(name,'wt');		end
+		if (writeScript),	fid = fopen(name,'wt');		end
 		for (i = 1:n_patch)
 			cor_edge = sprintf('%d/%d/%d', round(EdgeColor(i,1:3) * 255));
 			if (FillColor(i,1) >= 0)		% Color filled polygon
@@ -1871,7 +1870,7 @@ function [script, mex_sc, l, o] = do_patches(handMir, script, mex_sc, do_MEX_fig
 				mlt_comm = ['> -G- -W' num2str(LineWidth(i)) 'p,' cor_edge];
 			end
 
-			if (do_writeScript)
+			if (writeScript)
 				if (any(isnan(xx{i})))      % If we have NaNs we need to split into segments
 					[latcells,loncells] = aux_funs('polysplit', yy{i}(:),xx{i}(:));
 					for (j = 1:numel(loncells))
@@ -1883,29 +1882,30 @@ function [script, mex_sc, l, o] = do_patches(handMir, script, mex_sc, do_MEX_fig
 					fprintf(fid,'%.5f\t%.5f\n',[xx{i}(:)'; yy{i}(:)']);
 				end
 			end
-			if (do_MEX_fig)
-				transp = get(ALLpatchHand(i), 'FaceAlpha');		opt_t = '';
+			if (do_MEX)
+				transp = get(hPatch(i), 'FaceAlpha');		opt_t = '';
 				if (transp > 0.005),	opt_t = sprintf(' -t%d', round((1-transp) * 100));	end		% Have transparency
 		 		mex_sc{o,1} = ['psxy ' mlt_comm(3:end) ellips opt_len_unit opt_t KORJ];
 				mex_sc{o,2} = [xx{i}(:) yy{i}(:)];		o = o + 1;
 			end
 		end
-		if (do_writeScript),	fclose(fid);	end
+		if (writeScript),	fclose(fid);	end
 		script{l} = sprintf('\n%s ---- Plot closed AND colored polygons', comm);		l = l + 1;
 		script{l} = ['psxy ' name_sc ellips opt_len_unit RJOK ' >> ' pb 'ps' pf];		l = l + 1;
-		if (do_MEX_fig)
+		if (do_MEX)
 	 		%mex_sc{o,1} = ['psxy ' dest_dir name_sc ellips opt_len_unit KORJ];		% For now, use the disk file
 		end
 	end
 
 % -------------------------------------------------------------------------------------------
-function [script, mex_sc, l, o, ALLlineHand] = do_custom_symbols(handles, script, mex_sc, do_MEX_fig, l, o, ...
-	ALLlineHand, comm, pb, pf, RJOK, KORJ)
+function [script, mex_sc, l, o, hLine] = do_custom_symbols(handles, script, mex_sc, l, o, ...
+	pack, hLine)
 % ...
-	if (~isempty(ALLlineHand))
-		c = false(1, numel(ALLlineHand));
-		for (i = 1:numel(ALLlineHand))
-			cs_fname = getappdata(ALLlineHand(i), 'cust_symb');
+	if (~isempty(hLine))
+		[comm, pb, pf, do_MEX, ellips, RJOK, KORJ] = unpack(pack);
+		c = false(1, numel(hLine));
+		for (i = 1:numel(hLine))
+			cs_fname = getappdata(hLine(i), 'cust_symb');
 			if (isempty(cs_fname)),		continue,	end			% Just a regular element. Will be dealt later
 
 			if (i == 1)
@@ -1913,7 +1913,7 @@ function [script, mex_sc, l, o, ALLlineHand] = do_custom_symbols(handles, script
 			end
 			[PATH,FNAME] = fileparts(cs_fname);
 			cs_fname = [PATH filesep FNAME];		% Must remove the extension
-			xx = get(ALLlineHand(i),'XData');		yy = get(ALLlineHand(i),'YData');
+			xx = get(hLine(i),'XData');		yy = get(hLine(i),'YData');
 			x_max = max(xx);		x_min = min(xx);
 			y_max = max(yy);		y_min = min(yy);
 			sym_width = x_max - x_min;
@@ -1922,32 +1922,32 @@ function [script, mex_sc, l, o, ALLlineHand] = do_custom_symbols(handles, script
 			w = sym_width / m_width * str2double(handles.map_width);	% OK, and if handles.which_unit(1) is not cm?
 			script{l} = sprintf('echo %0.10g %0.10g | psxy %s -Sk%s/%f%c >> %sps%s', ...
 			                    RJOK, x0,y0, cs_fname, w, handles.which_unit(1), pb, pf);		l = l + 1;
-			if (do_MEX_fig)
+			if (do_MEX)
 				mex_sc{o,1} = sprintf('psxy %s -Sk%s/%f%c', KORJ, cs_fname, w, handles.which_unit(1));
 				mex_sc{o,2} = [x0 y0];		o = o + 1;
 			end
 			c(i) = true;
 		end
-		ALLlineHand(c) = [];		% Delete these since we don't want to plot them
+		hLine(c) = [];		% Delete these since we don't want to plot them
 	end
 
 % -------------------------------------------------------------------------------------------
-function [script, mex_sc, l, o, ALLlineHand] = do_lines(script, mex_sc, do_MEX_fig, l, o, ALLlineHand, ...
-	comm, pb, pf, ellips, RJOK, KORJ, dest_dir, prefix, prefix_ddir, opt_len_unit)
+function [script, mex_sc, l, o, hLine] = do_lines(script, mex_sc, l, o, pack, hLine)
 % ...
-	if (~isempty(ALLlineHand))      % OK, now the only left line handles must be, plines, mb-tracks, etc
-		xx = get(ALLlineHand,'XData');		yy = get(ALLlineHand,'YData');
+	if (~isempty(hLine))      % OK, now the only left line handles must be, plines, mb-tracks, etc
+		[comm, pb, pf, do_MEX, ellips, RJOK, KORJ, dest_dir, prefix, prefix_ddir, opt_len_unit] = unpack(pack);
+		xx = get(hLine,'XData');		yy = get(hLine,'YData');
 		if (~iscell(xx))            % We have only one line
 			xx = num2cell(xx(:),1);			yy = num2cell(yy(:),1);
 		end
 		n_lin = length(xx);
 		script{l} = sprintf('\n%s ---- Plot lines', comm);  l=l+1;
 		if (n_lin > 0)     % We have more than one line.         E SENAO?
-			LineStyle = get(ALLlineHand,'LineStyle');
+			LineStyle = get(hLine,'LineStyle');
 			[LineStyle,LineStyle_gmt] = lineStyle2num(LineStyle);
-			LineWidth = get(ALLlineHand,'LineWidth');
+			LineWidth = get(hLine,'LineWidth');
 			if (iscell(LineWidth)),     LineWidth = cat(1,LineWidth{:});    end
-			LineColor = get(ALLlineHand,'Color');
+			LineColor = get(hLine,'Color');
 			if (iscell(LineColor)),     LineColor = cat(1,LineColor{:});    end
 			[b,m] = sortrows([LineWidth LineColor LineStyle]);
 			m = m(end:-1:1);			% Revert order because I want thicker lines ploted first
@@ -1978,7 +1978,7 @@ function [script, mex_sc, l, o, ALLlineHand] = do_lines(script, mex_sc, do_MEX_f
 				cor = [num2str(cor(1)) '/' num2str(cor(2)) '/' num2str(cor(3))];
 				script{l} = ['psxy ' name_sc ellips ' -W' num2str(LineWidth(j)) 'p,' ...
 				             cor LineStyle_gmt{j} opt_len_unit RJOK ' >> ' pb 'ps' pf];	l = l + 1;
-				if (do_MEX_fig)
+				if (do_MEX)
 					mex_sc{o,1} = ['psxy ' dest_dir name_sc ellips ' -W' num2str(LineWidth(j)) 'p,' cor LineStyle_gmt{j} opt_len_unit KORJ];
 					o = o + 1;
 				end
@@ -1987,16 +1987,16 @@ function [script, mex_sc, l, o, ALLlineHand] = do_lines(script, mex_sc, do_MEX_f
 	end
 
 % -------------------------------------------------------------------------------------------
-function [script, mex_sc, l, o, ALLtextHand] = do_text(script, mex_sc, do_MEX_fig, l, o, ALLtextHand, ...
-	comm, pb, pf, ellips, RJOK, KORJ)
+function [script, mex_sc, l, o, hText] = do_text(script, mex_sc, l, o, pack, hText)
 % ...
-	if (~isempty(ALLtextHand))      % ALLtextHand was found in the search for contours -- We (still) have text fields
-		pos = get(ALLtextHand,'Position');      %font = get(ALLtextHand,'FontName');
-		fsize = get(ALLtextHand,'FontSize');    fcolor = get(ALLtextHand,'Color');
+	if (~isempty(hText))      % ALLtextHand was found in the search for contours -- We (still) have text fields
+		[comm, pb, pf, do_MEX, ellips, RJOK, KORJ] = unpack(pack);
+		pos = get(hText,'Position');      %font = get(ALLtextHand,'FontName');
+		fsize = get(hText,'FontSize');    fcolor = get(hText,'Color');
 
 		% Find the Hor/Vert alignment
-		HA = get(ALLtextHand, 'HorizontalAlignment');
-		VA = get(ALLtextHand, 'VerticalAlignment');
+		HA = get(hText, 'HorizontalAlignment');
+		VA = get(hText, 'VerticalAlignment');
 		if (isa(HA,'cell'))		% Get only the first char of each row
 			HA_ = char(zeros(numel(HA),1));
 			VA_ = char(zeros(numel(HA),1));
@@ -2048,7 +2048,7 @@ function [script, mex_sc, l, o, ALLtextHand] = do_text(script, mex_sc, do_MEX_fi
 		else
 			opt_G = {''};
 		end
-        str = get(ALLtextHand,'String');		angle = get(ALLtextHand,'Rotation');
+        str = get(hText,'String');		angle = get(hText,'Rotation');
         if (~iscell(pos))				% Make them cells for author's mental sanity
             pos = num2cell(pos(:),1);	fsize = num2cell(fsize,1);		angle = num2cell(angle,1);
             str = {str};				%font = {font};
@@ -2062,18 +2062,18 @@ function [script, mex_sc, l, o, ALLtextHand] = do_text(script, mex_sc, do_MEX_fi
 			if (isa(texto,'cell')),		texto = texto{1};	end
 			script{l} = sprintf(frmt, pos{i}(1), pos{i}(2), fsize{i}, angle{i}, HV(i,:), str{i}(1,:), ellips, texto, RJOK, pb, pf);
 			l = l + 1;
-			if (do_MEX_fig)
+			if (do_MEX)
 				mex_sc{o,1} = sprintf('pstext %s -F+f%g+a%g+j%s %s', ellips, fsize{i}, angle{i}, HV, KORJ);
 				mex_sc{o,2} = sprintf('%f %f %s',pos{i}(1), pos{i}(2), str{i}(1,:));	o = o + 1;
 			end
 			this_nLines = size(str{i},1);		% How many lines has this text element?
 			if (this_nLines > 1)				% More than one. So try to estimate each line Pos from a simple calculus
-				ext = get(ALLtextHand(i), 'Extent');
+				ext = get(hText(i), 'Extent');
 				for (k = 2:this_nLines)
 					yPos = pos{i}(2) - (k - 1) * (ext(4) / this_nLines);
 					script{l} = sprintf(frmt, pos{i}(1), yPos, fsize{i}, angle{i}, HV(i,:), str{i}(k,:), ellips, texto, RJOK, pb, pf);
 					l = l + 1;
-					if (do_MEX_fig)
+					if (do_MEX)
 						mex_sc{o,1} = sprintf('pstext %s -F+f%g+a%g+j%s %s', ellips, fsize{i}, angle{i}, HV(i,:), KORJ);
 						mex_sc{o,2} = sprintf('%f %f %s',pos{i}(1), yPos, str{i}(k,:));		o = o + 1;
 					end
@@ -2083,9 +2083,11 @@ function [script, mex_sc, l, o, ALLtextHand] = do_text(script, mex_sc, do_MEX_fi
 	end
 
 % -------------------------------------------------------------------------------------------
-function [script, mex_sc, l, o] = do_colorbar(handles, handMir, script, mex_sc, do_MEX_fig, l, o, sc_cpt, comm, pb, pf)
+function [script, mex_sc, l, o] = do_colorbar(handles, handMir, script, mex_sc, l, o, pack, sc_cpt)
 % Handle psscale plottings
+
 	if (strcmp(get(handMir.PalAt,'Check'),'on') || strcmp(get(handMir.PalIn,'Check'),'on'))
+		[comm, pb, pf, do_MEX] = unpack(pack);
 		if (strcmp(get(handMir.PalAt,'Check'),'on')),	axHandle = get(handMir.PalAt,'UserData');
 		else											axHandle = get(handMir.PalIn,'UserData');
 		end
@@ -2113,7 +2115,7 @@ function [script, mex_sc, l, o] = do_colorbar(handles, handMir, script, mex_sc, 
 		script{l} = sprintf('\n%s ---- Plot colorbar ---', comm);   l=l+1;
 		script{l} = ['psscale' opt_D ' -S -C' pb 'cpt' pf ' -B' num2str(bInt) ' -O -K >> ' pb 'ps' pf];
 		l = l + 1;
-		if (do_MEX_fig)
+		if (do_MEX)
 			mex_sc{o,1} = sprintf('psscale %s -S -C%s -B%g -O -K', opt_D, sc_cpt, bInt);	o = o + 1;
 		end
 	end
@@ -2143,10 +2145,10 @@ function do_screncapture(handMir, hAlfaPatch, haveAlfa, do_writeScript, nameRGB)
 	end
 
 % -------------------------------------------------------------------------------------------
-function [script, mex_sc, l, o] = do_magbars(handMir, script, mex_sc, do_MEX_fig, l, o, saveBind, ...
-	comm, pb, pf, opt_J, dest_dir, prefix, prefix_ddir)
+function [script, mex_sc, l, o] = do_magbars(handMir, script, mex_sc, l, o, pack, saveBind, opt_J)
 % ...
 	if (handMir.IamXY && strcmp(get(handMir.axes2, 'Vis'), 'on'))
+		[comm, pb, pf, do_MEX, ellips, RJOK, KORJ, dest_dir, prefix, prefix_ddir] = unpack(pack);
  		hMagBar = findobj(handMir.axes2, 'type', 'patch');
 		if (~isempty(hMagBar))
 			name = sprintf('%s_magbar.dat', prefix_ddir);
@@ -2169,12 +2171,25 @@ function [script, mex_sc, l, o] = do_magbars(handMir, script, mex_sc, do_MEX_fig
 		if (strcmpi(script{saveBind}(end), 'n')),	script{saveBind}(end) = [];		end		% Don't want top frame line
 		script{l} = sprintf('\n%s ---- Plot the magnetic reversals bars (positives only)', comm);   l=l+1;
 		script{l} = ['psxy ' name_sc opt_R opt_J Y0 ' -O -K >> ' pb 'ps' pf];
-		if (do_MEX_fig)
+		if (do_MEX)
 			mex_sc{o,1} = ['psxy ' dest_dir name_sc opt_R opt_J Y0 ' -O -K'];
 		end
 	end
 
 % -------------------------------------------------------------------------------------------
+function [comm, pb, pf, do_MEX, ellips, RJOK, KORJ, dest_dir, prefix, prefix_ddir, opt_len_unit] = unpack(pack)
+%
+	comm = pack.comm;
+	pb = pack.pb;
+	pf = pack.pf;
+	do_MEX = pack.do_MEX;
+	ellips = pack.ellips;
+	RJOK = pack.RJOK;
+	KORJ  = pack.KORJ;
+	dest_dir = pack.dest_dir;
+	prefix = pack.prefix;
+	prefix_ddir = pack.prefix_ddir;
+	opt_len_unit = pack.opt_len_unit;
 
 % -------------------------------------------------------------------------------------------
 function gsimage(handles, script, hWait)
@@ -2389,7 +2404,6 @@ uicontrol('Parent',h1, 'Position',[655 207 61 21],...
 	'Tag','edit_X0');
 
 uicontrol('Parent',h1, 'Position',[623 507 120 15],...
-	'Call',@plot_composer_uiCB,...
 	'String','Trim white borders',...
 	'Style','checkbox',...
 	'TooltipString','Remove all border spaces arround the figure.',...
@@ -2406,7 +2420,6 @@ uicontrol('Parent',h1, 'Position',[576 448 65 15],...
 
 uicontrol('Parent',h1, 'Position',[644 445 50 21],...
 	'BackgroundColor',[1 1 1],...
-	'Call',@plot_composer_uiCB,...
 	'String',{'pdf'; 'jpg'; 'png'; 'ps'},...
 	'Style','popupmenu',...
 	'Tooltip','Select format for the auto run figure',...
