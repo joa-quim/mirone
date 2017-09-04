@@ -1304,7 +1304,7 @@ function [out_msg, warn_msg_pscoast] = build_write_script(handles, dest_dir, pre
 			if (~isempty(opt_M) && handles.have_GMT5),			opt_M = ' -fg';	end
 			opt_N = '';
 			if (handMir.Illumin_type == 1),      opt_N = ' -Nt';     end
-			name_illum = [prefix '_intens.grd=cf'];
+			name_illum = [prefix '_intens.grd'];
 			script{l} = sprintf('\n%s -------- Compute the illumination grid', comm);    l=l+1;
 			script{l} = ['grdgradient ' pb 'grd' pf opt_M ' ' illumComm opt_N ' -G' name_illum ellips];    l=l+1;
 			have_gmt_illum = 1;     used_grd = true;
@@ -1711,7 +1711,7 @@ function [out_msg, warn_msg_pscoast] = build_write_script(handles, dest_dir, pre
 					ct_names{k} = get(AtlasHand(k),'UserData');
 				end
 			else                            % We have only one country
-				ct_names = {get(AtlasHand(k),'UserData')};
+				ct_names = {get(AtlasHand,'UserData')};
 			end
 			ct_names = unique(ct_names);    % Many countries have several polygons (e.g. islands).
 			name = [prefix_ddir '_country_names.txt'];
