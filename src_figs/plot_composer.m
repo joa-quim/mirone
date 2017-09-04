@@ -16,7 +16,7 @@ function varargout = plot_composer(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: plot_composer.m 10129 2017-09-03 23:54:09Z j $
+% $Id: plot_composer.m 10130 2017-09-04 23:50:31Z j $
 
 	handMir = varargin{1};
 	if (handMir.no_file)     % Stupid call with nothing loaded on the Mirone window
@@ -25,8 +25,25 @@ function varargout = plot_composer(varargin)
 
 	hObject = figure('Vis','off');
 	plot_composer_LayoutFcn(hObject);
-	handles = guihandles(hObject);
 	move2side(hObject,'right');
+
+	load([handMir.path_data 'mirone_icons.mat']);
+	hTB = uitoolbar('parent',hObject, 'BusyAction','queue','HandleVisibility','on','Interruptible','on',...
+		'Tag','FigureToolBar','Vis','on');
+	uipushtool('parent',hTB,'Click','mirone(''Draw_CB'',guidata(gcbo),''Text'')', ...
+		'Tag','DrawText','cdata',text_ico,'Tooltip','Insert Text','Sep','on');
+	uipushtool('parent',hTB,'Click','mirone(''DrawLine_CB'',guidata(gcbo))', ...
+		'Tag','DrawLine','cdata',Mline_ico,'Tooltip','Draw Line');
+	uipushtool('parent',hTB,'Click','mirone(''DrawClosedPolygon_CB'',guidata(gcbo),''rectangle'')', ...
+		'Tag','DrawRect','cdata',rectang_ico,'Tooltip','Draw Rectangle');
+	uipushtool('parent',hTB,'Click','mirone(''DrawClosedPolygon_CB'',guidata(gcbo),[])', ...
+		'Tag','DrawPolyg','cdata',polygon_ico,'Tooltip','Draw Closed Polygon');
+	uipushtool('parent',hTB,'Click','mirone(''Draw_CB'',guidata(gcbo),''Vector'')', ...
+		'Tag','DrawArrow','cdata',Marrow_ico,'Tooltip','Draw Arrow');
+	uitoggletool('parent',hTB,'Click','mirone(''PanZoom_CB'',guidata(gcbo),gcbo,''zoom'')', ...
+		'Tag','Zoom','cdata',zoom_ico,'Tooltip','Zooming on/off','Sep','on');
+
+	handles = guihandles(hObject);
 
 	hFigs = findobj(0,'type','figure');		% Fish all figures, but not the one that we are about to create
 	all_figs = handMir.figure1;
@@ -163,39 +180,48 @@ function varargout = plot_composer(varargin)
 	handles.supported_proj = false;	% Will turn to true when confirmed that we can make a map with GMT
 	handles.d_path = handMir.path_data;
 	handles.which_unit = 'cm';
+	handles.last_dir = handMir.last_dir;
 	if (strncmp(computer, 'PC', 2)),	handles.script_type = 'bat';
 	else								handles.script_type = 'bash';
 	end
+	
+	% These are for Mirone calls not barf
+	handles.no_file = false;
+	handles.DefLineColor = 'k';
+	handles.DefLineThick = 0.5;
+	handles.head = [0 21 0 29.7 0 1 0 0.001 0.001];		% FAKE
+	handles.geog = 0;
+	handles.version7 = 8.4;
+	handles.image_type = 20;
+	handles.validGrid = false;
+	handles.Tesoura = [];
+	handles.Mao = [];
+	setappdata(handles.axes1,'ThisImageLims', [0 21 0 29.7])
 
-	% ---------------------- See if the caller is 'ecran' ----------------------------------------------
-	% If yes, we must set several fake handles struct members that exist in Mirone
-	if (strcmp(get(handMir.axes1,'UserData'), 'XY'))
-		handMir.image_type = 20;
-		handMir.geog = 0;		handMir.head = [];
-		handMir.PalAt = [];		handMir.PalIn = [];
-		handMir.grdname = [];
-		handMir.path_data = handMir.d_path;		% Idiot name confusion
-		handMir.IamXY = true;
-	else
-		handMir.IamXY = false;
-	end
-	% --------------------------------------------------------------------------------------------------
-
-	handles.handMir  = handMir;
-
+	% Loop over the number of figures and do preparatory work
 	for (k = 1:N_figs)
 		handles = get_img_dims(handles, k);		% In a function so it can later be called on different images
 		handles = draw_img_rectangle(handles, k);
+	
+		% If the caller is 'ecran' we must set several fake handles struct members that exist in Mirone
+		this_hMir = guidata(all_figs(k));
+		if (strcmp(get(this_hMir.axes1, 'UserData'), 'XY'))
+			this_hMir.image_type = 20;
+			this_hMir.geog = 0;			this_hMir.head = [];
+			this_hMir.PalAt = [];		this_hMir.PalIn = [];
+			this_hMir.grdname = [];
+			this_hMir.path_data = handles.d_path;		% Idiot name confusion
+			this_hMir.IamXY = true;
+		else
+			this_hMir.IamXY = false;
+		end
+		guidata(this_hMir.figure1, this_hMir)
 	end
 
 	% ------------------ Set prefix name based on grid/image name --------------------------------------
 	[lixo,figname] = fileparts(get(handMir.figure1, 'Name'));
 	set(handles.edit_prefix,'String',strtok(figname))
 
-% 	if (~handMir.geog)		% Non geogs don't use scale bars
-% 		set(handles.toggle_Option_L,'Visible','off')
-% 		set(findobj(hObject,'Style','text','Tag','text_MapScale'), 'Visible','off');
-% 	end
 	% ---------------------------------------------------------------------------------------------------
 
 	% ----------- Pick up the projection initial (and sometimes final) guess ---------------------------
@@ -232,11 +258,11 @@ function varargout = plot_composer(varargin)
 			if (~exist(directory_list{i},'dir')),   j(i) = true;   end
 		end
 		directory_list(j) = [];							% clean eventual non-existing directories
-		%directory_list    = [{handles.handMir.last_dir}; directory_list];
-		set(handles.popup_directory_list,'String',directory_list)
+		%directory_list    = [{handMir.last_dir}; directory_list];
+		set(handles.popup_directory_list, 'String', directory_list)
 		handles.last_directories = directory_list;
 	else												% mirone_pref had no dir list
-		handles.last_directories = {handles.handMir.last_dir};
+		handles.last_directories = {handles.last_dir};
 		set(handles.popup_directory_list,'String',handles.last_directories)
 	end
 	% --------------------------------------------------------------------------------------------------
@@ -322,21 +348,29 @@ function handles = draw_img_rectangle(handles, N)
 	set(handles.edit_mapHeight,'String', sprintf('%.2f',handles.height_orig(N)))	% Fill the height editbox
 
 	% ---------- Draw the image rectangle 
-	h = patch('XData',rect_x,'YData',rect_y,'FaceColor','b','FaceAlpha',0.05,'EdgeColor','k','LineWidth',0.1,'Tag','PlotRect');
+	h = patch('XData',rect_x,'YData',rect_y,'FaceColor','b','FaceAlpha',0.05,'EdgeColor','k', ...
+	          'LineWidth',0.1,'Tag','PlotRect');
+	set(h, 'ButtonDownFcn', {@popup_familyPlots_CB, h, [], N})		% Must come before the ui_edit_polygon() call
 	ui_edit_polygon(h)						% Set edition functions
 	setappdata(h, 'RunCB', {@update_scales, h, N})
 	handles.hRect(N) = h;					% Save the rectangle hand
 	handles.hand_frame_proj(N) = NaN;		% Will store line handles
 
 % -----------------------------------------------------------------------------------------
-function popup_familyPlots_CB(hObject, handles)
+function popup_familyPlots_CB(hObject, handles, N)
 % ...
-	N = get(hObject, 'Val');
+	if (nargin == 2)		% Is == 3 when this fun is called by the image's rectangle buttondownfcn
+		N = get(hObject, 'Val');
+	else
+		handles = guidata(hObject);		% In this case hObject is the image's patch rectangle handle
+		set(handles.popup_familyPlots, 'Val', N)
+	end
 	set(handles.edit_projection,  'Str', handles.projection_str{N})
 	set(handles.edit_mapWidth,    'Str', handles.width_orig(N))
 	set(handles.edit_mapHeight,   'Str', handles.height_orig(N))
 	set(handles.edit_X0,          'Str', handles.X0(N))
 	set(handles.edit_Y0,          'Str', handles.Y0(N))
+	set(handles.edit_scale,       'Str', handles.scale{N})
 
 % -----------------------------------------------------------------------------------------
 function popup_paperSize_CB(hObject, handles)
@@ -381,53 +415,24 @@ function popup_paperUnits_CB(hObject, handles)
 % -----------------------------------------------------------------------------------
 function conv_units(handles, dest, N)
 	if (nargin == 2),	N = 1;	end
-	xx = get(handles.hRect(N),'XData');			yy = get(handles.hRect(N),'YData');
-	xf = get(handles.hand_frame_proj,'XData');  yf = get(handles.hand_frame_proj,'YData');
-	if (strcmp(handles.which_unit,'cm') && strcmp(dest,'in'))
-		xx = xx / 2.54;		yy = yy / 2.54;
-		xf = xf / 2.54;		yf = yf / 2.54;
-		set(handles.edit_mapWidth,'String',sprintf('%.2f',str2double(get(handles.edit_mapWidth,'String'))/2.54 ))
-		set(handles.edit_mapHeight,'String',sprintf('%.2f',str2double(get(handles.edit_mapHeight,'String'))/2.54 ))
-		set(handles.edit_X0,'String',sprintf('%.2f',str2double(get(handles.edit_X0,'String'))/2.54 ))
-		set(handles.edit_Y0,'String',sprintf('%.2f',str2double(get(handles.edit_Y0,'String'))/2.54 ))
-	elseif (strcmp(handles.which_unit,'cm') && strcmp(dest,'pt'))
-		xx = xx * 72/2.54;	yy = yy * 72/2.54;
-		xf = xf * 72/2.54;	yf = yf * 72/2.54;
-		set(handles.edit_mapWidth,'String',sprintf('%.2f',str2double(get(handles.edit_mapWidth,'String'))* 72/2.54 ))
-		set(handles.edit_mapHeight,'String',sprintf('%.2f',str2double(get(handles.edit_mapHeight,'String'))* 72/2.54 ))
-		set(handles.edit_X0,'String',sprintf('%.2f',str2double(get(handles.edit_X0,'String'))* 72/2.54 ))
-		set(handles.edit_Y0,'String',sprintf('%.2f',str2double(get(handles.edit_Y0,'String'))* 72/2.54 ))
-	elseif (strcmp(handles.which_unit,'in') && strcmp(dest,'cm'))
-		xx = xx * 2.54;		yy = yy * 2.54;
-		xf = xf * 2.54;		yf = yf * 2.54;
-		set(handles.edit_mapWidth,'String',sprintf('%.2f',str2double(get(handles.edit_mapWidth,'String'))*2.54 ))
-		set(handles.edit_mapHeight,'String',sprintf('%.2f',str2double(get(handles.edit_mapHeight,'String'))*2.54 ))
-		set(handles.edit_X0,'String',sprintf('%.2f',str2double(get(handles.edit_X0,'String'))*2.54 ))
-		set(handles.edit_Y0,'String',sprintf('%.2f',str2double(get(handles.edit_Y0,'String'))*2.54 ))
-	elseif (strcmp(handles.which_unit,'in') && strcmp(dest,'pt'))
-		xx = xx * 72;		yy = yy * 72;
-		xf = xf * 72;		yf = yf * 72;
-		set(handles.edit_mapWidth,'String',sprintf('%.2f',str2double(get(handles.edit_mapWidth,'String'))*72 ))
-		set(handles.edit_mapHeight,'String',sprintf('%.2f',str2double(get(handles.edit_mapHeight,'String'))*72 ))
-		set(handles.edit_X0,'String',sprintf('%.2f',str2double(get(handles.edit_X0,'String'))*72 ))
-		set(handles.edit_Y0,'String',sprintf('%.2f',str2double(get(handles.edit_Y0,'String'))*72 ))
-	elseif (strcmp(handles.which_unit,'pt') && strcmp(dest,'cm'))
-		xx = xx * 2.54/72;	yy = yy * 2.54/72;
-		xf = xf * 2.54/72;	yf = yf * 2.54/72;
-		set(handles.edit_mapWidth,'String',sprintf('%.2f',str2double(get(handles.edit_mapWidth,'String'))*2.54/72 ))
-		set(handles.edit_mapHeight,'String',sprintf('%.2f',str2double(get(handles.edit_mapHeight,'String'))*2.54/72 ))
-		set(handles.edit_X0,'String',sprintf('%.2f',str2double(get(handles.edit_X0,'String'))*2.54/72 ))
-		set(handles.edit_Y0,'String',sprintf('%.2f',str2double(get(handles.edit_Y0,'String'))*2.54/72 ))
-	elseif (strcmp(handles.which_unit,'pt') && strcmp(dest,'in'))
-		xx = xx / 72;		yy = yy / 72;
-		xf = xf / 72;		yf = yf / 72;
-		set(handles.edit_mapWidth,'String', sprintf('%.2f',str2double(get(handles.edit_mapWidth,'String'))/72 ))
-		set(handles.edit_mapHeight,'String',sprintf('%.2f',str2double(get(handles.edit_mapHeight,'String'))/72 ))
-		set(handles.edit_X0,'String',sprintf('%.2f',str2double(get(handles.edit_X0,'String'))/72 ))
-		set(handles.edit_Y0,'String',sprintf('%.2f',str2double(get(handles.edit_Y0,'String'))/72 ))
+	if (strcmp(handles.which_unit,'cm') && strcmp(dest,'in')),		fact = 1  / 2.54;
+	elseif (strcmp(handles.which_unit,'cm') && strcmp(dest,'pt')),	fact = 72 / 2.54;
+	elseif (strcmp(handles.which_unit,'in') && strcmp(dest,'cm')),	fact = 2.54;
+	elseif (strcmp(handles.which_unit,'in') && strcmp(dest,'pt')),	fact = 72;
+	elseif (strcmp(handles.which_unit,'pt') && strcmp(dest,'cm')),	fact = 2.54/72;
+	elseif (strcmp(handles.which_unit,'pt') && strcmp(dest,'in')),	fact = 1/72;
 	end
+
+	set(handles.edit_mapWidth,'String',sprintf('%.2f',str2double(get(handles.edit_mapWidth,'String')) * fact))
+	set(handles.edit_mapHeight,'String',sprintf('%.2f',str2double(get(handles.edit_mapHeight,'String')) * fact))
+	set(handles.edit_X0,'String',sprintf('%.2f',str2double(get(handles.edit_X0,'String')) * fact))
+	set(handles.edit_Y0,'String',sprintf('%.2f',str2double(get(handles.edit_Y0,'String')) * fact))
+
+	xx = get(handles.hRect(N),'XData') * fact;			yy = get(handles.hRect(N),'YData') * fact;
 	set(handles.hRect(N),'XData',xx, 'YData',yy);
 	if (~isempty(handles.hand_frame_proj))
+		xf = get(handles.hand_frame_proj,'XData') * fact;
+		yf = get(handles.hand_frame_proj,'YData') * fact;
 		set(handles.hand_frame_proj(N),'XData',xf, 'YData',yf);
 	end
 
@@ -462,7 +467,7 @@ function popup_directory_list_CB(hObject, handles)
 
 % -----------------------------------------------------------------------------------------
 function push_change_dir_CB(hObject, handles)
-	pato = handles.handMir.last_dir;
+	pato = handles.last_dir;
 	if (strncmp(computer, 'PC', 2))
 		work_dir = uigetfolder_win32('Select scripts folder',pato);
 	else			% This guy doesn't let to be compiled
@@ -556,13 +561,15 @@ function opt_J = create_opt_J(handles, N, scale)
 % This can be a classic -J or a new -J<proj4>
 
 	if (isempty(N)),	N = 1;	end
+	handMir = guidata(handles.all_figs(N));
+
 	prj = handles.projection_str{N};
 	if (~isempty(strfind(prj, '+proj=longlat')) || ~isempty(strfind(prj, '+proj=latlong')))
 		prj = '-JX';		% +proj=latlong is still giving troubles in GMT
 	end
 
 	if (isempty(prj) || strncmp(prj, '-JX', 3))		% A linear image
-		if (handles.handMir.IamXY)					% An Ecran figure
+		if (handMir.IamXY)					% An Ecran figure
 			opt_J = sprintf('-JX%s%s/%s%s', get(handles.edit_mapWidth,'Str'), handles.which_unit(1), ...
 			                 get(handles.edit_mapHeight,'Str'), handles.which_unit(1));
 		else
@@ -589,6 +596,8 @@ function update_scales(handles, N)
 	if (~isa(handles, 'struct'))		% Than this is a call from the RunCB registered by ui_edit_polygon
 		handles = guidata(handles);		% and handles is actually the rectangle handle.
 	end
+	handMir = guidata(handles.all_figs(N));
+
 	xx = get(handles.hRect(N),'XData');		yy = get(handles.hRect(N),'YData');
 	handles.X0(N) = xx(1);		handles.Y0(N) = yy(1);		% Save this to use in the push_OK_CB() loop
 	set(handles.edit_X0,'String', sprintf('%.2f', xx(1)));
@@ -600,20 +609,20 @@ function update_scales(handles, N)
 	opt_J = create_opt_J(handles, N);
 
 	if (strncmp(opt_J, '-JX', 3))				% Linear proj has a different treatment
-		scale_str = '1:1';						% Default value when no projected grids
-		if (~handles.handMir.IamXY)				% Only rescale if image, not XY plot
+		handles.scale{N} = '1:1';				% Default value when no projected grids
+		if (~handMir.IamXY)						% Only rescale if image, not XY plot
 			scale_x = (xx(3) - xx(2)) / handles.width_orig(N);
 			scale_y = (yy(2) - yy(1)) / handles.height_orig(N);
 			new_y = handles.height_orig(N) * scale_x;
 			new_x = handles.width_orig(N)  * scale_y;
 			yy(2) = new_y + yy(1);      yy(3) = new_y + yy(1);		% It will become "True" scale
 			set(handles.hRect(N), 'XData', xx, 'YData', yy);
-			scale_str = get_scale(handles, new_x, new_y, N);
+			handles.scale{N} = get_scale(handles, new_x, new_y, N);
 		end
 		set(handles.edit_mapWidth,'String', sprintf('%.2f', (xx(3) - xx(2))));	% Uppdate map width
 		set(handles.edit_mapHeight,'String',sprintf('%.2f', (yy(2) - yy(1))));	% Uppdate map height
-		set(handles.edit_scale,'String', scale_str)
-		handles.map_width{N} = sprintf('%.2f', (xx(3) - xx(2)));
+		set(handles.edit_scale,'String', handles.scale{N})
+		handles.map_width{N}   = sprintf('%.2f', (xx(3) - xx(2)));
 		handles.supported_proj = true;
 
 		guidata(handles.figure1, handles)
@@ -701,8 +710,11 @@ function update_scales(handles, N)
 		scale = max(dx_rect/dx_prj/100, dy_rect/dy_prj/100);
 		[n,d] = rat(scale,1e-9);
 		if (n > 1),		d = d / n;		end
-		set(handles.edit_scale,'String',['1:' num2str(d)])
+		handles.scale{N} = sprintf('1:%d', d);
+		set(handles.edit_scale, 'String', handles.scale{N})
 		handles.scale_set = false;
+	else
+		handles.scale{N} = get(handles.edit_scale, 'String');	% If custom scale, store it too
 	end
 
 	guidata(handles.figure1, handles)
@@ -753,7 +765,8 @@ function check_scaleBar_CB(hObject, handles)
 
 % -----------------------------------------------------------------------------------------
 function popup_projections_CB(hObject, handles)
-	if (~handles.handMir.geog)
+	handMir = guidata(handles.all_figs(1));
+	if (~handMir.geog)
 		warndlg('Only GEOGRAPHIC coordinates can be projected. I don''t do reprojections yet.','Warning')
 		return
 	end
@@ -779,12 +792,12 @@ function push_worldCRS_CB(hObject, handles)
 	warndlg('Sorry, not yet.','Warning')
 
 % ----------------------------------------------------------------------------------
-function [ALLlineHand, res, opt_W, type_p, type_r] = find_psc_stuff(ALLlineHand)
+function [hLine, res, opt_W, type_p, type_r] = find_psc_stuff(hLine)
 % See if we have any pscoast stuff
 
-	haveCoasts = 0;     havePolitical = 0;  haveRivers = 0;
+	haveCoasts = false;     havePolitical = false;  haveRivers = false;
 	res = [];           opt_W = [];         type_p = [];        type_r = [];
-	h_c = findobj(ALLlineHand,'Tag','CoastLineNetCDF');
+	h_c = findobj(hLine,'Tag','CoastLineNetCDF');
 	if (~isempty(h_c))
 		if (length(h_c) > 1),   h_c = h_c(1);     end
 		CoastRes    = get(h_c,'UserData');
@@ -793,7 +806,7 @@ function [ALLlineHand, res, opt_W, type_p, type_r] = find_psc_stuff(ALLlineHand)
 		LineStyle_c = get(h_c,'LineStyle');
 		haveCoasts  = true;
 	end
-	h_p = findobj(ALLlineHand,'Tag','PoliticalBoundaries');
+	h_p = findobj(hLine,'Tag','PoliticalBoundaries');
 	if (~isempty(h_p))
 		if (length(h_p) > 1),   h_p = h_p(1);     end
 		zz = get(h_p,'UserData');
@@ -804,7 +817,7 @@ function [ALLlineHand, res, opt_W, type_p, type_r] = find_psc_stuff(ALLlineHand)
 		LineStyle_p = get(h_p,'LineStyle');
 		havePolitical = true;
 	end
-	h_r = findobj(ALLlineHand,'Tag','Rivers');
+	h_r = findobj(hLine,'Tag','Rivers');
 	if (~isempty(h_r))
 		if (length(h_r) > 1),   h_r = h_r(1);     end
 		zz = get(h_r,'UserData');
@@ -815,7 +828,7 @@ function [ALLlineHand, res, opt_W, type_p, type_r] = find_psc_stuff(ALLlineHand)
 		LineStyle_r = get(h_r,'LineStyle');
 		haveRivers = true;
 	end
-	ALLlineHand = setxor(ALLlineHand, [h_c; h_p; h_r]);
+	hLine = setxor(hLine, [h_c; h_p; h_r]);
 
 	if (haveCoasts || havePolitical || haveRivers)
 		res_c = '';     res_p = '';     res_r = '';
@@ -910,6 +923,8 @@ function push_OK_CB(hObject, handles)
 	if (~handles.supported_proj)
 		errordlg('I told you before that this is not possible (unsupported projection)', 'Error'),	return
 	end
+	
+	handMir = guidata(handles.all_figs(1));
 
 	dest_dir = get(handles.popup_directory_list,'String');
 	if (iscell(dest_dir)),		dest_dir = dest_dir{1};		end
@@ -942,7 +957,7 @@ function push_OK_CB(hObject, handles)
 	opt_len_unit   = ' --PROJ_LENGTH_UNIT=point';
 	opt_frameWidth = ' --MAP_FRAME_WIDTH=0.15c';
 	frmPen = '';
-	if (handles.handMir.IamXY),		frmPen = '--MAP_FRAME_PEN=1.25p';	end
+	if (handMir.IamXY),		frmPen = '--MAP_FRAME_PEN=1.25p';	end
 
 	o = 1;					% The MEX script counter. DO NOT USE IT FOR ANYTHING ELSE
 	mex_sc = cell(26,1);
@@ -962,6 +977,9 @@ function push_OK_CB(hObject, handles)
 			~isempty(findobj(hLine,'Tag','PoliticalBoundaries')))
 			[hLine, handles.psc_res, handles.psc_opt_W, handles.psc_type_p, handles.psc_type_r] = ...
 				find_psc_stuff(hLine);
+		else
+			handles.psc_res = '';
+			handles.opt_psc = '';		% Need to reset for every time we don't find coasts in figure
 		end
 		if (~isempty(handles.psc_res))	% Means that we have coastlines and will use the Mirone settings
 			handles.opt_psc = [handles.psc_res ' ' handles.psc_opt_W ' ' handles.psc_type_p ' ' handles.psc_type_r];
@@ -983,16 +1001,20 @@ function push_OK_CB(hObject, handles)
 		end
 
 		if (N == 1)
-			handMir = handles.handMir;		% POR CAUSA DO handMir.IamXY
 			[script, l, saveBind, id_grd, id_cpt] = do_init_script(handles, handMir, opt_B, handles.opt_R{1}, ...
-				opt_J, opt_deg, opt_frameWidth, opt_annotsize, frmPen, comm, pb, pf, dest_dir, prefix);
+				opt_J, opt_deg, opt_frameWidth, opt_annotsize, frmPen, pack);
 			X0 = sprintf('-X%.3g%s', handles.X0(N), handles.which_unit(1));
 			Y0 = sprintf('-Y%.3g%s', handles.Y0(N), handles.which_unit(1));
+			X0_cum = handles.X0(1);		Y0_cum = handles.Y0(1);
 		else			% The N > 1 cases are somewhat different			
 			X0 = sprintf('-X%.3g%s', handles.X0(N)-handles.X0(1), handles.which_unit(1));
 			Y0 = sprintf('-Y%.3g%s', handles.Y0(N)-handles.Y0(1), handles.which_unit(1));
+			X0_cum = X0_cum + handles.X0(N)-handles.X0(1);
+			Y0_cum = Y0_cum + handles.Y0(N)-handles.Y0(1);		% The accumulated shifts
 
+			% UPDATE -R, -J and others for this Fig
 			script{l} = sprintf('\nset lim=%s', handles.opt_R{N});		l = l + 1; %#ok<AGROW>
+			script{l} = sprintf('\nset proj=%s', opt_J);				l = l + 1; %#ok<AGROW>
 			script{l} = sprintf('set deg_form=%s', opt_deg);			l = l + 1; %#ok<AGROW>
 		end
 
@@ -1014,9 +1036,6 @@ function push_OK_CB(hObject, handles)
 
 		% Search for contour lines
 		hText = findobj(get(handMir.axes1,'Child'),'Type','text');
-		% % If we have focal mecanisms with labels, remove their handles right away
-		% h = findobj(ALLtextHand,'Tag','TextMeca');					% I'M NOT SURE ON THIS ONE
-		% if (~isempty(h))    ALLtextHand = setxor(ALLtextHand, h);   end
 		[script, mex_sc, l, o, used_grd, hLine, hText] = do_contour(handMir, script, mex_sc, l, o, ...
 																	pack, hLine, hText, used_grd);
 
@@ -1048,10 +1067,10 @@ function push_OK_CB(hObject, handles)
 		[script, mex_sc, l, o, hLine] = do_custom_symbols(handles, script, mex_sc, l, o, pack, hLine);
 
 		% Search for lines or polylines
-		[script, mex_sc, l, o, hLine] = do_lines(script, mex_sc, l, o, pack, hLine);
+		[script, mex_sc, l, o] = do_lines(script, mex_sc, l, o, pack, hLine);
 
 		% Search for text strings
-		[script, mex_sc, l, o, hText] = do_text(script, mex_sc, l, o, pack, hText);
+		[script, mex_sc, l, o] = do_text(script, mex_sc, l, o, pack, hText);
 
 		% Search for colorbar
 		[script, mex_sc, l, o] = do_colorbar(handles, handMir, script, mex_sc, l, o, pack, sc_cpt);
@@ -1060,8 +1079,30 @@ function push_OK_CB(hObject, handles)
 		do_screncapture(handMir, hAlfaPatch, haveAlfa, writeScript, nameRGB)
 
 		% =============================== Search for "MagBars" (XY only) ===============================
-		%[script, mex_sc, l, o] = do_magbars(handMir, script, mex_sc, do_MEX_fig, l, o, pack, saveBind, opt_J);
+		[script, mex_sc, l, o] = do_magbars(handMir, script, mex_sc, l, o, pack, saveBind, opt_J);
 		% ==============================================================================================
+	end
+
+	hText  = findobj(get(handles.axes1,'Child'),'Type','text');
+ 	hPatch = findobj(get(handles.axes1,'Child'),'Type','patch');
+	hLine  = findobj(get(handles.axes1,'Child'),'Type','line','Visible','on');
+	if (~isempty(hText) || ~isempty(hPatch) || ~isempty(hLine))
+		paper_size = handles.paper_cm(get(handles.popup_paperSize,'Val'), 1:2);
+		ix = 1;		iy = 2;
+		if (get(handles.radio_Landscape, 'Val')),		ix = 2;		iy = 1;		end
+		opt_R = sprintf('-R0/%.3g/0/%.3g', paper_size(ix), paper_size(iy));
+		script{l} = sprintf('\nset lim=%s', opt_R);			l = l + 1;
+		script{l} = sprintf('set proj=-Jx1c');				l = l + 1;
+		script{l} = 'set frame=-Ba5f1 --MAP_FRAME_TYPE=inside';				l = l + 1;
+		pack.KORJ = ' -K -O -R -Jx1c';
+		X0 = sprintf('-X%.2g', -X0_cum);		Y0 = sprintf('-Y%.2g', -Y0_cum);
+		[script, mex_sc, l, o] = do_psbasemap(script, mex_sc, l, o, pack, opt_R, '-Jx1c', ' -Ba5f1WS --MAP_FRAME_TYPE=inside', ...
+			X0, Y0, opt_U, [opt_P ' -Vq'], opt_deg, opt_annotsize, frmPen, opt_frameWidth, 2);
+
+		[script, mex_sc, l, o] = do_text(script, mex_sc, l, o, pack, hText);
+		hPatch = setxor(hPatch, handles.hRect);		% setxor is not the best opt
+		[script, mex_sc, l, o] = do_patches(handMir, script, mex_sc, l, o, pack, hPatch, writeScript);
+		[script, mex_sc] = do_lines(script, mex_sc, l, o, pack, hLine);
 	end
 
 	if (pack.do_MEX)
@@ -1105,18 +1146,18 @@ function push_OK_CB(hObject, handles)
 
 % -------------------------------------------------------------------------------------------
 function [script, l, saveBind, id_grd, id_cpt] = do_init_script(handles, handMir, opt_B, opt_R, ...
-	opt_J, opt_deg, opt_frameWidth, opt_annotsize, frmPen, comm, pb, pf, dest_dir, prefix)
+	opt_J, opt_deg, opt_frameWidth, opt_annotsize, frmPen, pack)
 % Write the script initialization part (variables declaration)
 
+	[comm, pb, pf, do_MEX, ellips, RJOK, KORJ, dest_dir, prefix] = unpack(pack);
+
 	script = cell(26,1);
+	id_grd = 0;			% Will force an error if used later and not changed below
 
 	val   = get(handles.popup_paperSize,'Value');
 	list  = get(handles.popup_paperSize,'String');
 	str   = list{val};			k = strfind(str,' ');
-	paper = str(1:k(1)-1);
-	if (~strcmp(paper,'A4')),	paper_media = paper;
-	else						paper_media = [];
-	end
+	paper_media = str(1:k(1)-1);
 
 	need_path = false;
 	if (~isempty(handMir.grdname))
@@ -1146,17 +1187,17 @@ function [script, l, saveBind, id_grd, id_cpt] = do_init_script(handles, handMir
 		script{l} = [comm ' ---- Projection. You may change it if you know how to'];    l=l+1;
 		script{l} = ['proj=' opt_J];		l=l+1;		% Map scale
 		script{l} = [comm ' ---- Frame annotations. You may change it if you know how to'];    l=l+1;
-		script{l} = ['frm=' opt_B];			l=l+1;      saveBind = l-1;
+		script{l} = ['frame=' opt_B];		l=l+1;      saveBind = l-1;
 		script{l} = [comm imgDimsInfo];		l=l+1;
 		script{l} = [comm ' ---- Map limits. You may change it if you know how to'];    l=l+1;
 		script{l} = ['lim=' opt_R];			l=l+1;
 		script{l} = comm;					l=l+1;
-		script{l} = [comm ' ---- Longitude annotation style. Use the +ddd:mm:ss form => [0;360] range '];    l=l+1;
+		script{l} = [comm ' ---- Longitude annotation style. Use the +ddd:mm:ss form => [0;360] range '];	l=l+1;
 		script{l} = ['deg_form=' opt_deg];	l=l+1;
 		script{l} = '';						l=l+1;
 		script{l} = [comm ' ---- Width (> 0) of map borders for fancy map frame'];    l=l+1;
-		script{l} = ['frame_width=' opt_frameWidth];      l=l+1;
-		script{l} = [comm ' ---- Annotation font size in points'];    l=l+1;
+		script{l} = ['frame_width=' opt_frameWidth];	l=l+1;
+		script{l} = [comm ' ---- Annotation font size in points'];		l=l+1;
 		script{l} = ['annot_size=' opt_annotsize];      l=l+1;
  		if (~isempty(handMir.grdname))
 			if (~need_path)
@@ -1166,12 +1207,8 @@ function [script, l, saveBind, id_grd, id_cpt] = do_init_script(handles, handMir
 			end
 		end
 		script{l} = ['cpt=' prefix '.cpt'];		id_cpt = l;   l=l+1;
-		script{l} = ['ps=' prefix '.ps'];		l=l+1;
-		if (~isempty(paper_media))
-			script{l} = [comm ' We are not using A4'];  l=l+1;
-			script{l} = ['gmtset PAPER_MEDIA=' paper_media]; l=l+1;
-			script{l} = comm;						l=l+1;        
-		end
+		script{l} = ['ps=' prefix '.ps'];			l=l+1;
+		script{l} = ['gmtset PS_MEDIA=' paper_media]; l=l+1;
 	else											% Write a dos batch    
 		script{l} = '@echo OFF';					l=l+1;
 		script{l} = [comm 'Coffeewrite Mirone Tec'];l=l+1;
@@ -1179,7 +1216,7 @@ function [script, l, saveBind, id_grd, id_cpt] = do_init_script(handles, handMir
 		script{l} = [comm ' ---- Projection. You may change it if you know how to'];		l=l+1;
 		script{l} = ['set proj=' opt_J];			l=l+1;		% Map scale
 		script{l} = [comm ' ---- Frame annotations. You may change it if you know how to'];	l=l+1;
-		script{l} = ['set frm=' opt_B];				l=l+1;      saveBind = l-1;
+		script{l} = ['set frame=' opt_B];			l=l+1;      saveBind = l-1;
 		script{l} = [comm imgDimsInfo];				l=l+1;
 		script{l} = [comm ' ---- Map limits. You may change it if you know how to'];		l=l+1;
 		script{l} = ['set lim=' opt_R];				l=l+1;
@@ -1200,16 +1237,12 @@ function [script, l, saveBind, id_grd, id_cpt] = do_init_script(handles, handMir
 			if (~need_path)
 				script{l} = ['set grd=' just_grd_name];		id_grd = l; l=l+1;
 			else
-				script{l} = ['set grd=' handMir.grdname];			id_grd = l; l=l+1;
+				script{l} = ['set grd=' handMir.grdname];	id_grd = l; l=l+1;
 			end
 		end
-		script{l} = ['set cpt=' prefix '.cpt'];		id_cpt = l; l=l+1;
-		script{l} = ['set ps=' prefix '.ps'];		l=l+1;
-		if (~isempty(paper_media))
-			script{l} = [comm ' ---- We are not using A4'];  l=l+1;
-			script{l} = ['gmtset PAPER_MEDIA=' paper_media]; l=l+1;
-			script{l} = comm;						l=l+1;        
-		end
+		script{l} = ['set cpt=' prefix '.cpt'];			id_cpt = l; l=l+1;
+		script{l} = ['set ps=' prefix '.ps'];			l=l+1;
+		script{l} = ['gmtset PS_MEDIA=' paper_media];	l=l+1;
 	end
 
 % -------------------------------------------------------------------------------------------
@@ -1228,7 +1261,7 @@ function [script, mex_sc, l, o] = do_psbasemap(script, mex_sc, l, o, pack, opt_R
 	if (~isempty(frmPen))
 		frmPen = [pb 'framePen' pf];		% Only write if it exists
 	end
-	script{l} = ['psbasemap ' pb 'lim' pf ' ' pb 'proj' pf ' ' pb 'frm' pf ' ' X0 ' ' Y0 opt_U opt_P ...
+	script{l} = ['psbasemap ' pb 'lim' pf ' ' pb 'proj' pf ' ' pb 'frame' pf ' ' X0 ' ' Y0 opt_U opt_P ...
 	             ' ' pb 'deg_form' pf ' ' pb 'annot_size' pf ' ' frmPen ' ' pb 'frame_width' pf OK pb 'ps' pf];
 	l = l + 1;
 	if (do_MEX)
@@ -1430,7 +1463,7 @@ function [script, l, o, mex_sc] = do_pscoast_job(handles, handMir, script, l, co
 	if (nargin == 8),	mex_sc = '';	end
 	script{l} = sprintf('\n%s Plot coastlines', comm);	l = l + 1;
 	opt_R = ' -R';		opt_J = ' -J';
-	if (~handles.handMir.geog && handles.handMir.is_projected)
+	if (~handMir.geog && handMir.is_projected)
 		[xy_prj, msg] = geog2projected_pts(handMir, [handles.x_min handles.y_min; handles.x_min handles.y_max; ...
 										   handles.x_max handles.y_max; handles.x_max handles.y_min;], ...
 										   [get(handMir.axes1,'Xlim') get(handMir.axes1,'Ylim') 1]);
@@ -1820,8 +1853,7 @@ function [script, mex_sc, l, o, hPatch] = do_histograms(handMir, script, mex_sc,
 	end
 
 % -------------------------------------------------------------------------------------------
-function [script, mex_sc, l, o] = do_patches(handMir, script, mex_sc, l, o, pack, hPatch, ...
-	writeScript)
+function [script, mex_sc, l, o] = do_patches(handMir, script, mex_sc, l, o, pack, hPatch, writeScript)
 % ...
 	if (~isempty(hPatch))
 		[comm, pb, pf, do_MEX, ellips, RJOK, KORJ, dest_dir, prefix, prefix_ddir, opt_len_unit] = unpack(pack);
@@ -2152,14 +2184,14 @@ function [script, mex_sc, l, o] = do_magbars(handMir, script, mex_sc, l, o, pack
  		hMagBar = findobj(handMir.axes2, 'type', 'patch');
 		if (~isempty(hMagBar))
 			name = sprintf('%s_magbar.dat', prefix_ddir);
-			name_sc = sprintf('%s_magbar.dat',prefix);
+			name_sc = sprintf('%s_magbar.dat', prefix);
 			xx = get(hMagBar,'XData');     yy = get(hMagBar,'YData');
 			cor = get(hMagBar, 'FaceVertexCData');
 			fid = fopen(name,'wt');
 			for (i = 1:size(xx,2))
 				if (cor(i,1) == 0)
-					fprintf(fid,'> -G0\n');
-					fprintf(fid,'%.5f\t%.1f\n',[xx(:,i) yy(:,i)]');
+					fprintf(fid, '> -G0\n');
+					fprintf(fid, '%.5f\t%.1f\n',[xx(:,i) yy(:,i)]');
 				end
 			end
 			fclose(fid);
@@ -2194,6 +2226,7 @@ function [comm, pb, pf, do_MEX, ellips, RJOK, KORJ, dest_dir, prefix, prefix_ddi
 % -------------------------------------------------------------------------------------------
 function gsimage(handles, script, hWait)
 % ...
+	handMir = guidata(handles.all_figs(1));
 
 	% Start by deleting the empties
 	c = false(size(script,1), 1);
@@ -2215,10 +2248,10 @@ function gsimage(handles, script, hWait)
 	end
 	if (~isempty(hWait)),	aguentabar(1);		end
 
-	fname = [handles.handMir.path_tmp 'auto.pdf'];
+	fname = [handMir.path_tmp 'auto.pdf'];
 	gmtmex(['psconvert = -Tf -F' fname]);
-	if (handles.handMir.IamCompiled)
-		win_open_mex(handles.handMir.path_tmp, 'auto.pdf');
+	if (handMir.IamCompiled)
+		win_open_mex(handMir.path_tmp, 'auto.pdf');
 	else
 		if ispc
 			winopen(fname);
@@ -2228,7 +2261,6 @@ function gsimage(handles, script, hWait)
 			warndlg(sprintf('Automatically opening of PDF files not implemented in Linux\nOpen it youself in\n%s', fname), 'Warning')
 		end
 	end
-
 % 	I = gmtmex('psconvert =');
 % 	mirone(I)
 % 	drawnow
