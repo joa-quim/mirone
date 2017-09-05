@@ -16,7 +16,7 @@ function varargout = plot_composer(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: plot_composer.m 10130 2017-09-04 23:50:31Z j $
+% $Id: plot_composer.m 10132 2017-09-05 00:19:39Z j $
 
 	handMir = varargin{1};
 	if (handMir.no_file)     % Stupid call with nothing loaded on the Mirone window
@@ -1061,7 +1061,6 @@ function push_OK_CB(hObject, handles)
 
 		% Search for closed polygons
 		[script, mex_sc, l, o] = do_patches(handMir, script, mex_sc, l, o, pack, hPatch, writeScript);
-		clear ALLpatchHand		% We are done with them
 
 		% Search for lines associated with GMT custom symbols
 		[script, mex_sc, l, o, hLine] = do_custom_symbols(handles, script, mex_sc, l, o, pack, hLine);
@@ -1337,7 +1336,6 @@ function [script, mex_sc, l, o, haveAlfa, used_grd, nameRGB] = do_grdimg(handMir
 			script{l} = ['grdimage ' name_sc '_r.grd ' name_sc '_g.grd ' name_sc '_b.grd' ellips RJOK ' >> ' pb 'ps' pf];
 			l=l+1;    
 		end
-		clear grd_name have_gmt_illum illum;
 	elseif (handMir.image_type == 20)
 		% Do nothing regarding the basemap image (in fact we don't have any image)
 	else    % We don't have a grid, so we need to fish the image and save it as R,G,B triplet
@@ -1384,7 +1382,6 @@ function [script, mex_sc, l, o, sc_cpt] = do_palette(handMir, script, mex_sc, l,
 		fid = fopen(sc_cpt,'wt');
 		for (i = 1:pal_len+5),	fprintf(fid,'%s\n',tmp{i});     end
 		fclose(fid);
-		clear tmp z_min z_max pal_len pal cor cor_str fid dz z1 z2
 	else        % Remove the cpt declaration. After all we won't go to use it
 		sc_cpt = '';
 		script(id_cpt) = [];    l = l - 1;
@@ -1534,14 +1531,13 @@ function [script, mex_sc, l, o, used_grd, hLine, hText] = do_contour(handMir, sc
 			end
 			if (do_MEX)
 				mex_sc{o,1} = ['grdcontour -C' dest_dir prefix '_cont.dat' ellips KORJ];
-				[X,Y,Z] = load_grd(handMir);	clear X Y
+				[X,Y,Z] = load_grd(handMir);
 				mex_sc{o,2} = gmt('wrapgrid', Z, handMir.head);
 				o = o + 1;
 			end
 			used_grd = true;
 			hLine = setxor(hLine, h);       % h is processed, so remove it from handles list
 			hText = setxor(hText, h_label); % same for contour label strings
-			clear h conts fid name no_anot lab;
 		end
 	end
 
@@ -1624,7 +1620,6 @@ function [script, mex_sc, l, o, hLine] = do_symbols(handMir, script, mex_sc, l, 
 				l = numel(script) + 1;
 				ns = ns - numel(n);
 			end
-			clear m n;
 			fid = fopen(name,'wt');
 			for (i = 1:ns)
 				fc = symbols.FillColor{i};			ec = symbols.EdgeColor{i};
@@ -2036,7 +2031,7 @@ function [script, mex_sc, l, o, hText] = do_text(script, mex_sc, l, o, pack, hTe
 				HA_(k) = upper(HA{k}(1));
 				VA_(k) = upper(VA{k}(1));
 			end
-			HA = HA_;	VA = VA_;	clear HA_ VA_
+			HA = HA_;	VA = VA_;
 		else
 			HA = upper(HA(1));		VA = upper(VA(1));
 		end
