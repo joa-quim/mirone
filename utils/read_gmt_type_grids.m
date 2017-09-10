@@ -26,7 +26,7 @@ function [handles, X, Y, Z, head, misc] = read_gmt_type_grids(handles,fullname,o
 
 % Must rewrite this function to use the GMT5 machinery in first place.
 
-% $Id: read_gmt_type_grids.m 7959 2016-09-27 13:47:03Z j $
+% $Id: read_gmt_type_grids.m 10135 2017-09-10 10:46:31Z j $
 
 	global gmt_ver
 
@@ -38,6 +38,8 @@ function [handles, X, Y, Z, head, misc] = read_gmt_type_grids(handles,fullname,o
 	if (fid < 0),   errordlg([fullname ': ' msg],'ERROR');
 		return
 	end
+	
+	handles.was_pixreg = false;		% Reset to NO before (re)reading a grid
 
 	% Because GMT and Surfer share the .grd extension, find out which grid kind we are dealing with
 	ID = fread(fid,3,'*char');      ID = ID';      fclose(fid);
@@ -78,6 +80,7 @@ function [handles, X, Y, Z, head, misc] = read_gmt_type_grids(handles,fullname,o
 			else
 				errordlg([fullname ' : Is not a grid that GMT can read!'],'ERROR');
 			end
+			if (head(7)),	handles.was_pixreg = true;	end
 			return
 		end
 	end
@@ -93,6 +96,7 @@ function [handles, X, Y, Z, head, misc] = read_gmt_type_grids(handles,fullname,o
 			X = c_grdinfo(fullname, 'silent');
 			head = X;				% To not error at next IF test
 		end
+		if (head(7)),	handles.was_pixreg = true;	end
 	else
 		errordlg([fullname ' : Is not a GMT or binary Surfer grid!'],'ERROR');
 		return
@@ -141,6 +145,7 @@ if (strcmp(tipo,'CDF'))
         head(1) = head(1) + head(8) / 2;        head(2) = head(2) - head(8) / 2;
         head(3) = head(3) + head(9) / 2;        head(4) = head(4) - head(9) / 2;
         head(7) = 0;
+		handles.was_pixreg = true;
     end
 elseif (strcmp(tipo,'SRF6'))
 	fread(fid,4,'*char');

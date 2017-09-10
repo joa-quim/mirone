@@ -34,7 +34,7 @@ function [Z, X, Y, srsWKT, handles, att, pal_file] = read_grid(handles, fullname
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: read_grid.m 7958 2016-09-27 13:44:35Z j $
+% $Id: read_grid.m 10135 2017-09-10 10:46:31Z j $
 
 	if (nargin == 3),	opt = ' ';	end
 	opt_I = ' ';	srsWKT = [];	att = [];	attVRT = [];	Z = [];		X = [];		Y = [];
@@ -121,9 +121,10 @@ function [Z, X, Y, srsWKT, handles, att, pal_file] = read_grid(handles, fullname
 			if (strcmp(tipo,'OVR') && strncmp(opt,'-P',2))	% A call from the overview tool
 				grdMaxSize = 1e15;							% Preview mode does not care of grdMaxSize
 			end
+			handles.was_pixreg = true;		% Because it was read with gdalread(-C)
 		end
 		if ((att.RasterXSize * att.RasterYSize * 4) > grdMaxSize)
-			if ( strcmp(yes_or_no('title','Warning'),'Yes')),	return,		end		% Advise accepted
+			if (strcmp(yes_or_no('title','Warning'),'Yes')),	return,		end		% Advise accepted
 		end
 		if (strcmp(att.Band(1).DataType,'Int16')),		handles.was_int16 = true;	end
 
@@ -197,7 +198,7 @@ function [Z, X, Y, srsWKT, handles, att, pal_file] = read_grid(handles, fullname
 % 	end
 
 	if (~strncmp(tipo,'GMT',3) && ~strncmpi(tipo,'IN',2) && ~strcmp(tipo,'SSimg'))
-		if ( ~isempty(att.Band(1).NoDataValue) && ~isnan(att.Band(1).NoDataValue) && att.Band(1).NoDataValue ~= 0 )
+		if (~isempty(att.Band(1).NoDataValue) && ~isnan(att.Band(1).NoDataValue) && att.Band(1).NoDataValue ~= 0 )
 			% Do this because some formats (e.g MOLA PDS v3) are so dumb that they declare a NoDataValue
 			% and than don't use it !!!!!!
 			if (att.Band(1).NoDataValue < 0)
