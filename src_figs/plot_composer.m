@@ -40,6 +40,8 @@ function varargout = plot_composer(varargin)
 		'Tag','DrawPolyg','cdata',polygon_ico,'Tooltip','Draw Closed Polygon');
 	uipushtool('parent',hTB,'Click','mirone(''Draw_CB'',guidata(gcbo),''Vector'')', ...
 		'Tag','DrawArrow','cdata',Marrow_ico,'Tooltip','Draw Arrow');
+	uipushtool('parent',hTB,'Click','mirone(''DrawGeogCircle_CB'',guidata(gcbo),''cartCirc'')', ...
+		'Tag','DrawGeogCirc','cdata',circ_ico,'Tooltip','Draw circle');
 	uitoggletool('parent',hTB,'Click','mirone(''PanZoom_CB'',guidata(gcbo),gcbo,''zoom'')', ...
 		'Tag','Zoom','cdata',zoom_ico,'Tooltip','Zooming on/off','Sep','on');
 
@@ -67,6 +69,20 @@ function varargout = plot_composer(varargin)
 		if (~isempty(ind)),		nomes{k}(ind(end)-1:end) = [];	end		% Remove the zooming info
 	end
 	set(handles.popup_familyPlots, 'Str', nomes)
+
+	if (N_figs > 1)			% Set up the figures grid options
+		if     (N_figs == 2),	str = {'2x1'; '1x2'};
+		elseif (N_figs == 3),	str = {'3x1'; '1x3'};
+		elseif (N_figs == 4),	str = {'2x2'; '4x1'; '1x4'};
+		elseif (N_figs == 5),	str = {'2x2'; '3x2'; '2x3'};
+		elseif (N_figs == 6),	str = {'3x2'; '2x3'};
+		elseif (N_figs == 7),	str = {'4x2'; '2x4'};
+		elseif (N_figs == 8),	str = {'4x2'; '2x4'};
+		elseif (N_figs == 9),	str = {'3x3'; '5x2'; '2x5'};
+		else					str = {'5x2'; '2x5'};
+		end
+		set(handles.popup_gridFigs, 'Str', str, 'Vis', 'on')
+	end
 
 	handles.all_figs = all_figs;	% Those are Fig handles
 
@@ -181,6 +197,7 @@ function varargout = plot_composer(varargin)
 	handles.d_path = handMir.path_data;
 	handles.which_unit = 'cm';
 	handles.last_dir = handMir.last_dir;
+	handles.hRect = zeros(N_figs, 1) * NaN;
 	if (strncmp(computer, 'PC', 2)),	handles.script_type = 'bat';
 	else								handles.script_type = 'bash';
 	end
@@ -217,6 +234,7 @@ function varargout = plot_composer(varargin)
 		end
 		guidata(this_hMir.figure1, this_hMir)
 	end
+	set(handles.figure1,'Renderer','opengl')		% R13 does't do it automatically when we set a FaceAlpha prop
 
 	% ------------------ Set prefix name based on grid/image name --------------------------------------
 	[lixo,figname] = fileparts(get(handMir.figure1, 'Name'));
@@ -294,8 +312,9 @@ function varargout = plot_composer(varargin)
 	if (nargout),   varargout{1} = hObject;     end
 
 % -----------------------------------------------------------------------------------------
-function handles = get_img_dims(handles, N)
+function handles = get_img_dims(handles, N, width)
 % ...
+	if (nargin == 2),	width  = 15;	end			% Default width in cm
 	handMir = guidata(handles.all_figs(N));
 	imgXlim = get(handMir.axes1,'XLim');    imgYlim = get(handMir.axes1,'YLim');
 	if (handMir.image_type == 2 || handMir.image_type == 20)		% "trivial" images
@@ -308,6 +327,11 @@ function handles = get_img_dims(handles, N)
 		handles.y_min(N) = imgYlim(1);     handles.y_max(N) = imgYlim(2);
 	else
 		head = handMir.head;
+		if (handMir.was_pixreg)			% If we under the hood converted a pix reg to grid reg, undo it now
+			dx2 = handMir.head(8) / 2;		dy2 = handMir.head(9) / 2;
+			head(1) = head(1)-dx2;			head(2) = head(2)+dx2;
+			head(3) = head(3)-dy2;			head(4) = head(4)+dy2;
+		end
 		if (diff(imgXlim) < diff(head(1:2))*0.9)		% Figure is zoomed
 			handles.x_min(N) = imgXlim(1) + head(8)/2;		handles.x_max(N) = imgXlim(2) - head(8)/2;
 			handles.y_min(N) = imgYlim(1) + head(9)/2;		handles.y_max(N) = imgYlim(2) - head(9)/2;
@@ -319,41 +343,50 @@ function handles = get_img_dims(handles, N)
 		ny = round((head(4) - head(3)) / head(9));
 	end
 
-	width  = 15;					% Default starting width in cm
-	fac_15 = nx / width;
-	height = round(ny) / fac_15;
-	if (height > 27)				% That is, if height + Y0 nearly outside the A4 page
-		while (height > 27)			% Make it approximately fit the page height
+	ratio  = nx / width;
+	height = round(ny) / ratio;
+	if (height > 29)				% That is, if height + Y0 nearly outside the A4 page
+		while (height > 29)			% Make it approximately fit the page height
 			height = round(height * 0.1);
 			width  = round(width  * 0.1);
 		end
 	end
 
 	handles.opt_R{N} = sprintf('-R%.12g/%.12g/%.12g/%.12g', ...
-	                           handles.x_min(N), handles.x_max(N), handles.y_min(N), handles.y_max(N));
+	                   handles.x_min(N), handles.x_max(N), handles.y_min(N), handles.y_max(N));
 	handles.width_orig(N)  = width;		handles.height_orig(N) = height;	handles.map_width{N} = width;
 
 % -----------------------------------------------------------------------------------------
-function handles = draw_img_rectangle(handles, N)
+function handles = draw_img_rectangle(handles, N, X0, Y0)
 % ...
-	X0 = 2.5;			Y0 = 2.5;			% This is the GMT default's plot origin in cm
-	if (N > 1)			% Cascade the figs from Bottom up
-		Y0 = Y0 + cumsum(handles.height_orig(1:N-1));		% Just a first guess
+	if (nargin == 2)
+		X0 = 2.5;			Y0 = 2.5;			% This is the GMT default's plot origin in cm
+		if (N > 1)			% Cascade the figs from Bottom up
+			Y0 = Y0 + cumsum(handles.height_orig(1:N-1));		% Just a first guess
+		end
 	end
 	rect_x = [X0 X0 X0+handles.width_orig(N) X0+handles.width_orig(N) X0];
 	rect_y = [Y0 Y0+handles.height_orig(N) Y0+handles.height_orig(N) Y0 Y0];
 	handles.rect_x{N} = rect_x;   handles.rect_y{N} = rect_y;
 	handles.map_width{N} = sprintf('%.2g', handles.map_width{N});	% Now it's a string
-	set(handles.edit_mapWidth, 'String', handles.map_width(N))		% Fill the width editbox
+	set(handles.edit_mapWidth, 'String', handles.map_width{N})		% Fill the width editbox
 	set(handles.edit_mapHeight,'String', sprintf('%.2f',handles.height_orig(N)))	% Fill the height editbox
 
-	% ---------- Draw the image rectangle 
-	h = patch('XData',rect_x,'YData',rect_y,'FaceColor','b','FaceAlpha',0.05,'EdgeColor','k', ...
-	          'LineWidth',0.1,'Tag','PlotRect');
-	set(h, 'ButtonDownFcn', {@popup_familyPlots_CB, h, [], N})		% Must come before the ui_edit_polygon() call
-	ui_edit_polygon(h)						% Set edition functions
-	setappdata(h, 'RunCB', {@update_scales, h, N})
-	handles.hRect(N) = h;					% Save the rectangle hand
+	% ---------- Draw the image rectangle
+	if (~ishandle(handles.hRect(N)))			% First time, create it
+		h = patch('XData',rect_x,'YData',rect_y,'FaceColor',rand(1,3),'FaceAlpha',0.1,'EdgeColor','k', ...
+				  'LineWidth',0.1,'Tag','PlotRect');
+		cmenuHand = uicontextmenu('Parent',handles.figure1);
+		set(h, 'UIContextMenu', cmenuHand);
+		uimenu(cmenuHand, 'Label', 'Frame settings', 'Call', {@set_opt_B, h});
+		set(h, 'ButtonDownFcn', {@popup_familyPlots_CB, h, [], N})		% Must come before the ui_edit_polygon() call
+		ui_edit_polygon(h)						% Set edition functions
+		setappdata(h, 'RunCB', {@update_scales, h, N})
+		setappdata(h, 'opt_B', '-Ba -BWSen')
+		handles.hRect(N) = h;					% Save the rectangle hand
+	else
+		set(handles.hRect(N), 'XData',rect_x,'YData',rect_y)
+	end
 	handles.hand_frame_proj(N) = NaN;		% Will store line handles
 
 % -----------------------------------------------------------------------------------------
@@ -373,12 +406,55 @@ function popup_familyPlots_CB(hObject, handles, N)
 	set(handles.edit_scale,       'Str', handles.scale{N})
 
 % -----------------------------------------------------------------------------------------
+function popup_gridFigs_CB(hObject, handles)
+% Arrange figs in a grid
+	val = get(hObject, 'Value');	str = get(hObject, 'String');	str = str{val};
+	n_rows = str2double(str(1));	n_cols = str2double(str(3));
+	N = numel(get(handles.popup_familyPlots, 'Str'));
+	pad = 1.5;	% 1 cm
+	X0 = 2.5;	Y0 = 2.5;
+	iy = 1;
+	if (get(handles.radio_Landscape, 'Val')),	iy = 2;		end
+	ind = get(handles.popup_paperSize, 'Val');
+	f_width = round((handles.paper_cm(ind, iy) - (n_cols-1)*pad - X0) / n_cols);
+	row_height = zeros(1, n_rows);
+	k = 1;
+	for (n = 1:n_rows)
+		this_row_height = 0;
+		for (m = 1:n_cols)
+			if (k <= N)			% Because we may have more cells than figures
+				handles = get_img_dims(handles, k, f_width);
+				this_row_height = max(this_row_height, handles.height_orig(k));
+			end
+			k = k + 1;
+		end
+		row_height(n) = this_row_height;
+	end
+
+	% Now that we know the height of each row we can draw the images bounding boxes
+	k = 1;
+	for (n = 1:n_rows)
+		if (n > 1),		Y0 = Y0 + cumsum(row_height(1:n-1)) + (n-1) * pad;	end
+		X0 = 2.5;
+		for (m = 1:n_cols)
+			if (k <= N)
+				X0 = X0 + (m-1) * (f_width + pad);
+				handles = draw_img_rectangle(handles, k, X0, Y0);
+				update_scales(handles, k)
+				handles = guidata(hObject);		% Recover in "this handles" the changes donne in update_scales
+			end
+			k = k + 1;
+		end
+	end
+	guidata(handles.figure1, handles)
+
+% -----------------------------------------------------------------------------------------
 function popup_paperSize_CB(hObject, handles)
-	val = get(hObject,'Value');
-	switch handles.which_unit
-		case 'cm',		lims = handles.paper_cm(val,1:2);
-		case 'in',		lims = handles.paper_in(val,1:2);
-		case 'pt',		lims = handles.paper_pt(val,1:2);
+	val = get(hObject,'Value');		str = get(hObject,'String');	str = str{val};
+	switch str
+		case 'cm',			lims = handles.paper_cm(val,1:2);
+		case 'in',			lims = handles.paper_in(val,1:2);
+		case 'pt',			lims = handles.paper_pt(val,1:2);
 	end
 	if (get(handles.radio_Portrait,'Value'))
 		set(handles.axes1,'XLim',[0 lims(1)],'YLim',[0 lims(2)]);
@@ -393,26 +469,31 @@ function popup_paperUnits_CB(hObject, handles)
 	switch str{val}
 		case 'cm'
 			set(handles.popup_paperSize,'String',handles.sizes_cm,'Value',lav)
-			if (get(handles.radio_portrait,'Value'))
-				set(handles.axes1,'XLim',[0 handles.paper_cm(val,1)],'YLim',[0 handles.paper_cm(val,2)])
+			if (get(handles.radio_Portrait,'Value'))
+				set(handles.axes1,'XLim',[0 handles.paper_cm(lav,1)],'YLim',[0 handles.paper_cm(lav,2)])
 			else
-				set(handles.axes1,'XLim',[0 handles.paper_cm(val,2)],'YLim',[0 handles.paper_cm(val,1)])
+				set(handles.axes1,'XLim',[0 handles.paper_cm(lav,2)],'YLim',[0 handles.paper_cm(lav,1)])
 			end
-			conv_units(handles,'cm')
-			handles.which_unit = 'cm';
 		case 'in'
 			set(handles.popup_paperSize,'String',handles.sizes_in,'Value',lav)
-			if (get(handles.radio_portrait,'Value'))
-				set(handles.axes1,'XLim',[0 handles.paper_in(val,1)],'YLim',[0 handles.paper_in(val,2)])
+			if (get(handles.radio_Portrait,'Value'))
+				set(handles.axes1,'XLim',[0 handles.paper_in(lav,1)],'YLim',[0 handles.paper_in(lav,2)])
 			else
-				set(handles.axes1,'XLim',[0 handles.paper_in(val,2)],'YLim',[0 handles.paper_in(val,1)])
+				set(handles.axes1,'XLim',[0 handles.paper_in(lav,2)],'YLim',[0 handles.paper_in(lav,1)])
 			end
-			conv_units(handles,'in')
-			handles.which_unit = 'in';
+		case 'pt'
+			set(handles.popup_paperSize,'String',handles.sizes_pt,'Value',lav)
+			if (get(handles.radio_Portrait,'Value'))
+				set(handles.axes1,'XLim',[0 handles.paper_pt(lav,1)],'YLim',[0 handles.paper_pt(lav,2)])
+			else
+				set(handles.axes1,'XLim',[0 handles.paper_pt(lav,2)],'YLim',[0 handles.paper_pt(lav,1)])
+			end
 	end
+	conv_units(handles, str{val})
+	handles.which_unit = str{val};
 	guidata(hObject,handles);
 
-% -----------------------------------------------------------------------------------
+% -----------------------------------------------------------------------------------------
 function conv_units(handles, dest, N)
 	if (nargin == 2),	N = 1;	end
 	if (strcmp(handles.which_unit,'cm') && strcmp(dest,'in')),		fact = 1  / 2.54;
@@ -430,7 +511,7 @@ function conv_units(handles, dest, N)
 
 	xx = get(handles.hRect(N),'XData') * fact;			yy = get(handles.hRect(N),'YData') * fact;
 	set(handles.hRect(N),'XData',xx, 'YData',yy);
-	if (~isempty(handles.hand_frame_proj))
+	if (~isnan(handles.hand_frame_proj))
 		xf = get(handles.hand_frame_proj,'XData') * fact;
 		yf = get(handles.hand_frame_proj,'YData') * fact;
 		set(handles.hand_frame_proj(N),'XData',xf, 'YData',yf);
@@ -588,9 +669,10 @@ function opt_J = create_opt_J(handles, N, scale)
 		end
 	end
 
-% -----------------------------------------------------------------------------------
+% -----------------------------------------------------------------------------------------
 function update_scales(handles, N)
 % Update the scale, sizes or the scale when those were changed.
+% Plot a projected mini frame when it's not rectangular.
 % This fun is also called as a callback registered in ui_edit_polygon()
 
 	if (~isa(handles, 'struct'))		% Than this is a call from the RunCB registered by ui_edit_polygon
@@ -719,7 +801,7 @@ function update_scales(handles, N)
 
 	guidata(handles.figure1, handles)
 
-% -----------------------------------------------------------------------------------
+% -----------------------------------------------------------------------------------------
 function scale_str = get_scale(handles, width, height, N)
 % For now this only computes the scale when we have a projected grid
 	scale_str = '1:1';
@@ -791,7 +873,7 @@ function edit_projection_CB(hObject, handles)
 function push_worldCRS_CB(hObject, handles)
 	warndlg('Sorry, not yet.','Warning')
 
-% ----------------------------------------------------------------------------------
+% -----------------------------------------------------------------------------------------
 function [hLine, res, opt_W, type_p, type_r] = find_psc_stuff(hLine)
 % See if we have any pscoast stuff
 
@@ -923,7 +1005,7 @@ function push_OK_CB(hObject, handles)
 	if (~handles.supported_proj)
 		errordlg('I told you before that this is not possible (unsupported projection)', 'Error'),	return
 	end
-	
+
 	handMir = guidata(handles.all_figs(1));
 
 	dest_dir = get(handles.popup_directory_list,'String');
@@ -936,7 +1018,6 @@ function push_OK_CB(hObject, handles)
 	writeScript = (get(handles.radio_writeScript, 'Val') ~= 0);
 	do_MEX_fig  = (get(handles.radio_autoRun, 'Val') ~= 0);
 
-	opt_B = '-Ba -BWSen';
 	opt_P = '';
 	if (get(handles.radio_Portrait,'Value')),	opt_P = ' -P';	end
 
@@ -994,6 +1075,7 @@ function push_OK_CB(hObject, handles)
 			end
 		end
 		pack.KORJ = [' -K -O -R ' opt_J];
+		opt_B = getappdata(handles.hRect(N), 'opt_B');
 
 		if (handMir.geog == 1),		opt_deg = '--FORMAT_GEO_MAP=ddd:mm:ss';
 		elseif (handMir.geog == 2),	opt_deg = '--FORMAT_GEO_MAP=+ddd:mm:ss';
@@ -1085,6 +1167,13 @@ function push_OK_CB(hObject, handles)
 	hText  = findobj(get(handles.axes1,'Child'),'Type','text');
  	hPatch = findobj(get(handles.axes1,'Child'),'Type','patch');
 	hLine  = findobj(get(handles.axes1,'Child'),'Type','line','Visible','on');
+	hPatch = setxor(hPatch, handles.hRect);		% But setxor screws order by sorting the result
+	tmp = handles.hand_frame_proj;
+	tmp(isnan(tmp)) = [];
+	if (~isempty(tmp))
+		hLine = setxor(hLine, tmp);		% Remove any eventual projected frame lines
+	end
+
 	if (~isempty(hText) || ~isempty(hPatch) || ~isempty(hLine))
 		paper_size = handles.paper_cm(get(handles.popup_paperSize,'Val'), 1:2);
 		ix = 1;		iy = 2;
@@ -1092,14 +1181,22 @@ function push_OK_CB(hObject, handles)
 		opt_R = sprintf('-R0/%.3g/0/%.3g', paper_size(ix), paper_size(iy));
 		script{l} = sprintf('\nset lim=%s', opt_R);			l = l + 1;
 		script{l} = sprintf('set proj=-Jx1c');				l = l + 1;
-		script{l} = 'set frame=-Ba5f1 --MAP_FRAME_TYPE=inside';				l = l + 1;
+		want_ruler = false;
+		ruler = '-Blbrt';
+		if (want_ruler),	ruler = '-Ba5f1WS --MAP_FRAME_TYPE=inside';		end
+		if (~pack.do_MEX)
+			if (want_ruler)
+				script{l} = 'set frame=-Ba5f1WS --MAP_FRAME_TYPE=inside';	l = l + 1;
+			else
+				script{l} = 'set frame=';	l = l + 1;
+			end
+		end
 		pack.KORJ = ' -K -O -R -Jx1c';
 		X0 = sprintf('-X%.2g', -X0_cum);		Y0 = sprintf('-Y%.2g', -Y0_cum);
-		[script, mex_sc, l, o] = do_psbasemap(script, mex_sc, l, o, pack, opt_R, '-Jx1c', ' -Ba5f1WS --MAP_FRAME_TYPE=inside', ...
+		[script, mex_sc, l, o] = do_psbasemap(script, mex_sc, l, o, pack, opt_R, '-Jx1c', ruler, ...
 			X0, Y0, opt_U, [opt_P ' -Vq'], opt_deg, opt_annotsize, frmPen, opt_frameWidth, 2);
 
 		[script, mex_sc, l, o] = do_text(script, mex_sc, l, o, pack, hText);
-		hPatch = setxor(hPatch, handles.hRect);		% setxor is not the best opt
 		[script, mex_sc, l, o] = do_patches(handMir, script, mex_sc, l, o, pack, hPatch, writeScript);
 		[script, mex_sc] = do_lines(script, mex_sc, l, o, pack, hLine);
 	end
@@ -2020,6 +2117,14 @@ function [script, mex_sc, l, o, hText] = do_text(script, mex_sc, l, o, pack, hTe
 		[comm, pb, pf, do_MEX, ellips, RJOK, KORJ] = unpack(pack);
 		pos = get(hText,'Position');      %font = get(ALLtextHand,'FontName');
 		fsize = get(hText,'FontSize');    fcolor = get(hText,'Color');
+		% Convert to string right away
+		if (isa(fsize, 'cell'))
+			for (k = 1:numel(fsize))
+				fsize{k} = sprintf('%d', fsize{k});
+			end
+		else
+			fsize = sprintf('%d', fsize);
+		end
 
 		% Find the Hor/Vert alignment
 		HA = get(hText, 'HorizontalAlignment');
@@ -2045,52 +2150,46 @@ function [script, mex_sc, l, o, hText] = do_text(script, mex_sc, l, o, pack, hTe
 		end
 		HV = [HA VA];			% Hor/Ver justification code
 
+		fcolor_s = {''};
 		if (isnumeric(fcolor))
 			fcolor = round(fcolor * 255);
 			if (numel(fcolor) == 1 && fcolor ~= 0)
-				opt_G = {sprintf(' -G%d', fcolor)};
+				fcolor_s{1} = sprintf('%d/%d/%d', fcolor, fcolor, fcolor);
 			elseif (~isequal(fcolor, [0 0 0]))
-				opt_G = {sprintf(' -G%d/%d/%d', fcolor(1:3))};
-			else
-				opt_G = {''};		% If color is black do nothing because is the GMT4 and won't screw on GMT5
+				fcolor_s{1} = sprintf('%d/%d/%d', fcolor(1:3));
 			end
 		elseif (ischar(fcolor))		% Shit, we have to decode the color letter
 			switch fcolor
-				case 'w',		opt_G = {' -G255'};
-				case 'k',		opt_G = {''};
-				case 'y',		opt_G = {' -G255/255/0'};
-				case 'c',		opt_G = {' -G0/255/255'};
-				case 'r',		opt_G = {' -G255/0/0'};
-				case 'g',		opt_G = {' -G0/255/0'};
-				case 'b',		opt_G = {' -G0/0/255'};
-				otherwise,		opt_G = {''};
+				case 'w',		fcolor_s{1} = '255/255/255';
+				case 'y',		fcolor_s{1} = '255/255/0';
+				case 'c',		fcolor_s{1} = '0/255/255';
+				case 'r',		fcolor_s{1} = '255/0/0';
+				case 'g',		fcolor_s{1} = '0/255/0';
+				case 'b',		fcolor_s{1} = '0/0/255';
 			end
 		elseif (iscell(fcolor))			% Double shit, we have to convert a Mx3 cell matrix into texts
             tmp = cell2mat(fcolor) * 255;
-            opt_G = cell(size(tmp,1),1);
+            fcolor_s = cell(size(tmp,1),1);
 			for (m = 1:size(tmp,1))
-				if (isequal(tmp(m,:), [0 0 0])),	opt_G{m} = {''};	continue,	end
-				opt_G{m} = {sprintf(' -G%d/%d/%d', tmp(m,1:3))};
+				if (isequal(tmp(m,:), [0 0 0])),	fcolor_s{m} = '';	continue,	end
+				fcolor_s{m} = sprintf('%d/%d/%d', tmp(m,1:3));
 			end
-		else
-			opt_G = {''};
 		end
         str = get(hText,'String');		angle = get(hText,'Rotation');
         if (~iscell(pos))				% Make them cells for author's mental sanity
-            pos = num2cell(pos(:),1);	fsize = num2cell(fsize,1);		angle = num2cell(angle,1);
+            pos = {pos};				fsize = {fsize};		angle = {angle};
             str = {str};				%font = {font};
         end
         n_text = numel(str);
         script{l} = sprintf('\n%s ---- Plot text strings', comm);   l=l+1;    
         for (i = 1:n_text)
-			frmt = 'echo %.5f %.5f %d %.2f 4 %s %s | pstext %s %s %s >> %sps%s';
 			% Quick and dirty patch for when opt_G is a cell of cells and it than crash below on sprintf
-			texto = opt_G{i};
-			if (isa(texto,'cell')),		texto = texto{1};	end
-			script{l} = sprintf(frmt, pos{i}(1), pos{i}(2), fsize{i}, angle{i}, HV(i,:), str{i}(1,:), ellips, texto, RJOK, pb, pf);
+			if (~isempty(fcolor_s{i})),	fsize{i} = [fsize{i} ',' fcolor_s{i}];	end
+			opt_F = sprintf('-F+f%s+a%g+j%s', fsize{i}, angle{i}, HV);
+			script{l} = sprintf('echo %.5f %.5f %s | pstext %s %s %s >> %sps%s', pos{i}(1), pos{i}(2), str{i}(1,:), opt_F, ellips, RJOK, pb, pf);
 			l = l + 1;
 			if (do_MEX)
-				mex_sc{o,1} = sprintf('pstext %s -F+f%g+a%g+j%s %s', ellips, fsize{i}, angle{i}, HV, KORJ);
+				mex_sc{o,1} = sprintf('pstext %s %s %s', ellips, opt_F, KORJ);
 				mex_sc{o,2} = sprintf('%f %f %s',pos{i}(1), pos{i}(2), str{i}(1,:));	o = o + 1;
 			end
 			this_nLines = size(str{i},1);		% How many lines has this text element?
@@ -2098,10 +2197,10 @@ function [script, mex_sc, l, o, hText] = do_text(script, mex_sc, l, o, pack, hTe
 				ext = get(hText(i), 'Extent');
 				for (k = 2:this_nLines)
 					yPos = pos{i}(2) - (k - 1) * (ext(4) / this_nLines);
-					script{l} = sprintf(frmt, pos{i}(1), yPos, fsize{i}, angle{i}, HV(i,:), str{i}(k,:), ellips, texto, RJOK, pb, pf);
+					script{l} = sprintf('echo %.5f %.5f %s | pstext %s %s %s >> %sps%s', pos{i}(1), yPos, str{i}(k,:), opt_F, ellips, RJOK, pb, pf);
 					l = l + 1;
 					if (do_MEX)
-						mex_sc{o,1} = sprintf('pstext %s -F+f%g+a%g+j%s %s', ellips, fsize{i}, angle{i}, HV(i,:), KORJ);
+						mex_sc{o,1} = sprintf('pstext %s %s %s', ellips, opt_F, KORJ);
 						mex_sc{o,2} = sprintf('%f %f %s',pos{i}(1), yPos, str{i}(k,:));		o = o + 1;
 					end
 				end
@@ -2244,7 +2343,11 @@ function gsimage(handles, script, hWait)
 	if (~isempty(hWait)),	aguentabar(1);		end
 
 	fname = [handMir.path_tmp 'auto.pdf'];
-	gmtmex(['psconvert = -Tf -F' fname]);
+	if (get(handles.check_trimWhite, 'Val'))
+		gmtmex(['psconvert = -Tf -A0.5p -F' fname]);
+	else
+		gmtmex(['psconvert = -Tf -F' fname]);
+	end
 	if (handMir.IamCompiled)
 		win_open_mex(handMir.path_tmp, 'auto.pdf');
 	else
@@ -2256,11 +2359,8 @@ function gsimage(handles, script, hWait)
 			warndlg(sprintf('Automatically opening of PDF files not implemented in Linux\nOpen it youself in\n%s', fname), 'Warning')
 		end
 	end
-% 	I = gmtmex('psconvert =');
-% 	mirone(I)
-% 	drawnow
 
-% ----------------------------------------------------------------------------------
+% -------------------------------------------------------------------------------------------
 function symbol = get_symbols(hand)
 	xx = get(hand,'XData');     yy = get(hand,'YData');
 	if (~iscell(xx))
@@ -2298,7 +2398,7 @@ function symbol = get_symbols(hand)
 	symbol.Marker(symbol.Marker == 'p') = 'a';      % not in GMT
 	symbol.Marker(symbol.Marker == 'h') = 'a';      % not in GMT
 
-% ----------------------------------------------------------------------------------
+% -------------------------------------------------------------------------------------------
 function [LineStyle_num,LineStyle_gmt] = lineStyle2num(LineStyle)
 	if (~iscell(LineStyle)),    LineStyle = {LineStyle};    end
 	lt = {'-'; '--'; ':'; '-.'};
@@ -2314,7 +2414,7 @@ function [LineStyle_num,LineStyle_gmt] = lineStyle2num(LineStyle)
 	tmp = strrep(tmp,'2',',-');
 	LineStyle_gmt = strrep(tmp,'1','');
 
-% --------------------------------------------------------------------
+% -------------------------------------------------------------------------------------------
 function script = write_group_symb(prefix,prefix_ddir,comm,pb,pf,ellips,symbols,n,script, opt_J)
 % Write a group symbol to file, and uppdate the "script"
 	l = numel(script) + 1;
@@ -2341,7 +2441,7 @@ function script = write_group_symb(prefix,prefix_ddir,comm,pb,pf,ellips,symbols,
 		fclose(fid);
 	end
 
-% --------------------------------------------------------------------------------
+% -------------------------------------------------------------------------------------------
 function [ALLpatchHand, hAlfaPatch] = findTransparents(ALLpatchHand)
 % Find patches which have a level of transparency > 0.05
 	ind = false(1,numel(ALLpatchHand));
@@ -2354,7 +2454,14 @@ function [ALLpatchHand, hAlfaPatch] = findTransparents(ALLpatchHand)
 	hAlfaPatch = ALLpatchHand(ind);			% Split the transparent and non-transparent
 	ALLpatchHand(ind) = [];
 
-% -----------------------------------------------------------------------------------------
+% -------------------------------------------------------------------------------------------
+function set_opt_B(obj, evt, hPatch)
+% Ask for a Frame Settings, an -B option for now, and store as an appdata in hPatch
+	old_B = getappdata(hPatch, 'opt_B');
+	opt_B = inputdlg({'Enter frame settings in the form of a GMT -B option'},'Frame settings',[1 60],{old_B});
+	if (~isempty(opt_B)),	setappdata(hPatch, 'opt_B', opt_B{1}),	end
+
+% -------------------------------------------------------------------------------------------
 function plot_composer_LayoutFcn(h1)
 
 set(h1, 'Position',[520 131 800 670],...
@@ -2391,7 +2498,7 @@ uicontrol('Parent',h1, 'Position',[576 529 71 15],...
 	'Value',1,...
 	'Tag','radio_Portrait');
 
-uicontrol('Parent',h1, 'Position',[575 607 211 22],...
+uicontrol('Parent',h1, 'Position',[570 608 170 22],...
 	'BackgroundColor',[1 1 1],...
 	'Call',@plot_composer_uiCB,...
 	'String','',...
@@ -2399,6 +2506,15 @@ uicontrol('Parent',h1, 'Position',[575 607 211 22],...
 	'TooltipString','Select the Mirone window to plot',...
 	'Value',1,...
 	'Tag','popup_familyPlots');
+
+uicontrol('Parent',h1, 'Position',[738 608 54 22],...
+	'BackgroundColor',[1 1 1],...
+	'Call',@plot_composer_uiCB,...
+	'String','',...
+	'Style','popupmenu',...
+	'TooltipString','Choose how to arrange the figures in a grid',...
+	'Visible','off',...
+	'Tag','popup_gridFigs');
 
 uicontrol('Parent',h1, 'Position',[576 553 161 22],...
 	'BackgroundColor',[1 1 1],...
