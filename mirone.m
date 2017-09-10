@@ -115,6 +115,7 @@ function hObject = mirone_OpeningFcn(varargin)
 	handles.have_nans = 0;			% Used to know if the grids have NaNs
 	handles.is_draped = false;		% Used to know if the image comes from draping
 	handles.was_int16 = false;		% Keep track of short int imported grids
+	handles.was_pixreg = false;		% Keep track of the grid registration type. Currently, only used in plot_composer
 	handles.Nodata_int16 = [];		% To store Nodata of short int grids
 	handles.ForceInsitu = false;	% Use "insitu" grid importing (transposition)
 	handles.DefineEllipsoide = [6378137, 0, 1/298.2572235630];	% Defaults to WGS-84
