@@ -28,7 +28,7 @@ function [H1,handles,home_dir] = mirone_uis(home_dir)
 %#function mxgridtrimesh aquamoto tiles_tool empilhador grdlandmask_win grdlandmask_m escadeirar
 %#function run_cmd line_operations world_is_not_round_enough cartas_militares ice_m magbarcode
 %#function obj_template_detect floodfill meca_studio inpaint_nans globalcmt guess_bin demets_od
-%#function vector_project tintol makescale mesher_helper update_gmt surface_options
+%#function vector_project tintol makescale mesher_helper update_gmt surface_options plot_composer
 
 	% The following test will tell us if we are using the compiled or the ML version
 	try
@@ -118,7 +118,7 @@ uipushtool('parent',hTB,'Click','mirone(''TransferB_CB'',guidata(gcbo),''guessTy
 uipushtool('parent',hTB,'Click','mirone(''TransferB_CB'',guidata(gcbo),''BgMap'')', ...
 	'Tag','LoadBGMap','cdata',ladrilhos,'Tooltip','Base Map');
 hVG(1) = uipushtool('parent',hTB,'Click','mirone(''FileSaveGMTgrid_CB'',guidata(gcbo))', ...
-	'Tag','SaveGMTgrid','cdata',Mfsave_ico,'Tooltip','Save netCDF GMT grid');
+	'Tag','SaveGMTgrid','cdata',Mfsave_ico,'Tooltip','Save netCDF grid');
 uipushtool('parent',hTB,'Click','mirone_pref(guidata(gcbo))', ...
 	'Tag','Preferences','cdata',tools_ico,'Tooltip','Preferences');
 uipushtool('parent',hTB,'Click','mirone(''Draw_CB'',guidata(gcbo),''Text'')', ...
@@ -284,7 +284,8 @@ end
 h = uimenu('Parent',hFL,'Label','Recent Files','Tag','RecentFiles','Sep','on');
 for (i=1:14),    uimenu('Parent',h,'Vis','off','Tag','RecentF');   end
 
-uimenu('Parent',hFL,'Call','print -dsetup','Label','Print Setup','Sep','on');
+uimenu('Parent',hFL,'Call','plot_composer(guidata(gcbo))','Label','Plot Composer','Sep','on');
+uimenu('Parent',hFL,'Call','print -dsetup','Label','Print Setup');
 uimenu('Parent',hFL,'Call','mirone(''Transfer_CB'',guidata(gcbo),''print'')','Label','Print...');
 
 %% --------------------------- IMAGE ------------------------------------
@@ -746,7 +747,7 @@ uimenu('Parent',h,'Call','gdal_project(guidata(gcbo))','Label','GDAL project');
 h = uimenu('Parent',H1,'Label','Help','Tag','Help');
 uimenu('Parent',h, 'Call','aux_funs(''help'',guidata(gcbo))','Label','Mirone Help (v2.0)');
 uimenu('Parent',h, 'Call', @showGDALdrivers,'Label','List GDAL formats','Sep','on')
-if (IamCompiled)
+if (true || IamCompiled)
 	uimenu('Parent',h, 'Call', 'mirone(''TransferB_CB'',guidata(gcbo),''dump'')','Label','Print RAM fragmentation','Sep','on')
 	uimenu('Parent',h, 'Call', 'mirone(''TransferB_CB'',guidata(gcbo),''lasterr'')','Label','Debug - Print last error')
 	uimenu('Parent',h, 'Call', 'mirone(''TransferB_CB'',guidata(gcbo),''sharedir'')','Label','Debug - Print GMT_SHAREDIR')
@@ -755,7 +756,7 @@ end
 %uimenu('Parent',h, 'Call', 'update_gmt(guidata(gcbo))','Label','Update your GMT5','Sep','on')
 uimenu('Parent',h, 'Call',['mirone(''FileOpenWebImage_CB'',guidata(gcbo),',...
 	' ''http://www2.clustrmaps.com/stats/maps-clusters/w3.ualg.pt-~jluis-mirone-world.jpg'',''nikles'');'],'Label','See visitors map','Sep','on');
-uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 31 Mar 2017'',''2.8.0dev'')','Label','About','Sep','on');
+uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 10 Sep 2017'',''2.8.0dev'')','Label','About','Sep','on');
 
 %% --------------------------- Build HANDLES and finish things here
 	handles = guihandles(H1);
