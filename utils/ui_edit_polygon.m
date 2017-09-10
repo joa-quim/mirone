@@ -82,7 +82,7 @@ function ui_edit_polygon(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: ui_edit_polygon.m 10022 2017-02-14 23:57:23Z j $
+% $Id: ui_edit_polygon.m 10133 2017-09-10 10:40:45Z j $
 
 	if (isa(varargin{end},'char'))	% Moving polygon option was transmitted in input
 		move_choice = varargin{end};
@@ -167,6 +167,7 @@ function ui_edit_polygon(varargin)
 
 			s.what_move = move_choice;
 
+			s.prev_buttondownfcn = get(s.h_pol,'buttondownfcn');	% Save any previous buttondownfcn
 			set(s.h_pol,'buttondownfcn',@polygonui);
 			setappdata(s.h_pol,'polygon_data',s)
 		end
@@ -191,7 +192,20 @@ function polygonui(varargin)
 		return
 	end
 
-	if (~strcmpi(stype,'open')),	return,		end
+	if (~strcmpi(stype,'open'))			% If NOT double-click
+		% If we have some buttondown function previously (to the ui_edit_polygon(h) call) registered
+		% in the non-double-click button, try to run it. Wrap it in 'try' because we want risks.
+		try
+			if (~isempty(s.prev_buttondownfcn))
+				if (numel(s.prev_buttondownfcn) > 1)
+					feval(s.prev_buttondownfcn{1}, s.prev_buttondownfcn{2:end})
+				else
+					feval(s.prev_buttondownfcn)
+				end
+			end
+		end
+		return
+	end
 
 	switch s.controls
 		case 'on'						% Getting out of the edit mode
