@@ -4,8 +4,8 @@ function G = fill_grid_struct(Z, head)
 % $Id$
 
 	if (~isa(head, 'double')),	head = double(head);	end
-	G.projection_ref_proj4 = '';
-	G.projection_ref_wkt = '';	
+	G.proj4 = '';
+	G.wkt = '';	
 	G.hdr = head;
 	G.range = head(1:6);
 	G.inc = head(8:9);
