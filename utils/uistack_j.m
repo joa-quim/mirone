@@ -14,7 +14,7 @@ function uistack_j(hand, opt, step)
 % $Id$
 
 	if (~all(ishandle(hand)))
-		error('UISTACK_JUISTACK_J: invalid handle in input.');
+		error('UISTACK_J: invalid handle in input.');
 	end
 	if (nargin == 1)
 		opt = 'up';		step = 1;
@@ -27,6 +27,7 @@ function uistack_j(hand, opt, step)
 	bigOnBack = false;
 
 	children = allchild(Parent);
+	children = double(children);		% Hopefully this is enough to make it work also after the R2015 Breakatomb
 	if (numel(hand) == 1)
 		handPos = find(children == hand);
 	else
