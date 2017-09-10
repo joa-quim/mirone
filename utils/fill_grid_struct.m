@@ -1,11 +1,11 @@
 function G = fill_grid_struct(Z, head)
 % Fill the Grid struct used in gmtmex
 
-% $Id: fill_grid_struct.m 7924 2016-06-23 00:20:27Z j $
+% $Id: fill_grid_struct.m 10136 2017-09-10 10:48:43Z j $
 
 	if (~isa(head, 'double')),	head = double(head);	end
-	G.projection_ref_proj4 = '';
-	G.projection_ref_wkt = '';	
+	G.proj4 = '';
+	G.wkt = '';	
 	G.hdr = head;
 	G.range = head(1:6);
 	G.inc = head(8:9);
