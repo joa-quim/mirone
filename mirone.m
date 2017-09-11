@@ -20,7 +20,7 @@ function varargout = mirone(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: mirone.m 10139 2017-09-10 11:01:02Z j $
+% $Id: mirone.m 10140 2017-09-11 00:33:05Z j $
 
 	if (nargin > 1 && ischar(varargin{1}))
 		if ( ~isempty(strfind(varargin{1},':')) || ~isempty(strfind(varargin{1},filesep)) )
@@ -5118,7 +5118,7 @@ function TransferB_CB(handles, opt, opt2)
 		end
 
  	elseif (strcmp(opt,'update'))				% Update via Web the stand-alone version
-		dest_fiche = [handles.path_tmp 'apudeita.txt'];		url = 'w3.ualg.pt/~jluis/mirone/updates/v28/';
+		dest_fiche = [handles.path_tmp 'apudeita.txt'];		url = 'w3.ualg.pt/~jluis/mirone/updates/v29/';
 		dos(['wget "' url 'apudeita.txt' '" -q --tries=2 --connect-timeout=5 -O ' dest_fiche]);
 		finfo = dir(dest_fiche);
 		if (finfo.bytes == 0)
@@ -5174,7 +5174,7 @@ function TransferB_CB(handles, opt, opt2)
 		if (~isempty(msg))
 			msg{end+1} = '';	msg{end+1} = 'Only the downloaded files will be updated on NEXT Mirone start';
 		else
-			msg = 'Successfully downloaded all necessary files. They will be updated on NEXT Mirone start';
+			msg = 'Successfully downloaded all necessary files. You need to restart Mirone now.';
 		end
 		msgbox(msg, 'Finished download')
 		fid = fopen([handles.path_tmp 'apudeita.bat'],'wt');	% Create the updating batch that will be run by callMir
