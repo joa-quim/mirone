@@ -32,7 +32,7 @@ SET CC=cl
 REM --------------------------------------------------------------------------------------
 
 REM If set to "yes", linkage is done againsts ML6.5 Libs (needed in compiled version)
-SET R13="yes"
+SET R13="no"
 
 REM Set it to 32 or 64 to build under 64-bits or 32-bits respectively.
 SET BITS=32
@@ -160,7 +160,7 @@ SET OMP_F=/openmp
 IF %CC%==icl SET OMP_F=/Qopenmp
 SET COMPFLAGS=/c /Zp8 /GR /EHs /D_CRT_SECURE_NO_DEPRECATE /D_SCL_SECURE_NO_DEPRECATE /D_SECURE_SCL=0 /DMATLAB_MEX_FILE /nologo /MD %OMP_F% /DHAVE_NETCDF 
 SET OPTIM2=/QxSSE4.2 /Qparallel /fp:fast 
-IF %DEBUG%=="no" SET OPTIMFLAGS=/Ox /fp:precise /DNDEBUG /O3 /Qprec-div- /fp:fast=2 
+IF %DEBUG%=="no" SET OPTIMFLAGS=/Ox /fp:precise /DNDEBUG /Ox /Qprec-div- /fp:fast=2 
 IF %DEBUG%=="yes" SET OPTIMFLAGS=/Z7
 
 IF %BITS%==64 SET arc=X64
