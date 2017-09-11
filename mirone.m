@@ -5118,7 +5118,7 @@ function TransferB_CB(handles, opt, opt2)
 		end
 
  	elseif (strcmp(opt,'update'))				% Update via Web the stand-alone version
-		dest_fiche = [handles.path_tmp 'apudeita.txt'];		url = 'w3.ualg.pt/~jluis/mirone/updates/v28/';
+		dest_fiche = [handles.path_tmp 'apudeita.txt'];		url = 'w3.ualg.pt/~jluis/mirone/updates/v29/';
 		dos(['wget "' url 'apudeita.txt' '" -q --tries=2 --connect-timeout=5 -O ' dest_fiche]);
 		finfo = dir(dest_fiche);
 		if (finfo.bytes == 0)
@@ -5174,7 +5174,7 @@ function TransferB_CB(handles, opt, opt2)
 		if (~isempty(msg))
 			msg{end+1} = '';	msg{end+1} = 'Only the downloaded files will be updated on NEXT Mirone start';
 		else
-			msg = 'Successfully downloaded all necessary files. They will be updated on NEXT Mirone start';
+			msg = 'Successfully downloaded all necessary files. You need to restart Mirone now.';
 		end
 		msgbox(msg, 'Finished download')
 		fid = fopen([handles.path_tmp 'apudeita.bat'],'wt');	% Create the updating batch that will be run by callMir
