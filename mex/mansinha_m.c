@@ -150,7 +150,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 					break;
 				case 'A': /* Fault's angle parameters */
 					sscanf (&argv[i][2], "%lf/%lf/%lf/%lf", &dip, &th, &rake, &d);
-					if (dip = 90) dip = 89.9999;	/* There is a problem somewhere when dip is exactly 90 */
+					if (dip == 90) dip = 89.9999;	/* There is a problem somewhere when dip is exactly 90 */
 					break;
 				case 'E': /* epicenter */
 					sscanf (&argv[i][2], "%lf/%lf", &x_epic, &y_epic);
@@ -180,7 +180,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 
 	if (argc == 1 || error) {	/* Display usage */
 		mexPrintf("mansinha - usage:\n Z = mansinha([Zin], '-A<dip/azimuth/rake/slip>', '-E<x_epic/y_epic>', '-F<fault_length/fault_width/top_depth>', '-I<grid_inc>', '-R<xmin/xmax/ymin/ymax>', '[-M]', '[-P[x][/y][/h]]')\n\n");
- 		
+		
 		mexPrintf ("\tZin is an optional pre-allocated array of floats with the exact same size of the solution\n");
 		mexPrintf ("\t that will be used to store it. Hence, no output in this case.\n");
 		mexPrintf ("\t-A<fault_params> Fault parameters describing Dip/Azimuth/Rake/Slip(m)\n");
@@ -332,7 +332,7 @@ void deform(double x_min, double y_min, int i_end, int j_end, float *z, double d
 				rx = xx - xl;
 				ry = yy - yl;
 			}
-			x1 = rx*sn_tmp + ry*cs_tmp - fault_length / 2.0;
+			x1 = rx*sn_tmp + ry*cs_tmp - fl_2;
 			x2 = rx*cs_tmp - ry*sn_tmp + top_depth / tan_dp;
 			x3 = 0.0;
 			f1 = uscal(x1, x2, x3,  fl_2, h2, sin_dp, cos_dp, tan_dp);
@@ -353,7 +353,7 @@ void deform(double x_min, double y_min, int i_end, int j_end, float *z, double d
 double uscal(double x1, double x2, double x3, double c, double cc, double sin_dp, double cos_dp, double tan_dp) {
 /* Computation of the vertical displacement due to the STRIKE and SLIP component */
 	double sn, cs, c1, c2, c3, r, q, r2, r3, q2, q3, h, k, a1, a2, a3, f;
-	double b1, b2, b3, b4, b5, b6, b7, b8, b9, b10, b11, b12, b13, b14;
+	double b1, b2, b3, b4, b5, b6, b7, b8, b9, b10, b11, b12, b13, b14, pow_q3;
 
 	sn = sin_dp;	cs = cos_dp;
 	c1 = c;		c2 = cc * cs;	c3 = cc * sn;
@@ -379,8 +379,9 @@ double uscal(double x1, double x2, double x3, double c, double cc, double sin_dp
 	b11 = (x3+c3) - q3 * sn;
 	b12 = 4 * q2*q2 * q3 * x3 * cs * sn;
 	b13 = 2 * q + q3 + cc;
-	b14 = pow(q,3) * pow((q+q3+cc),2);
-	f   = cs * (a1 + b1*a2 - b2*a3) + b3/r + 2*sn*b4/q - b5/b6 + (b7-b8)/b9 + b10*b11/(pow(q,3)) - b12*b13/b14;
+	pow_q3 = pow(q,3);
+	b14 = pow_q3 * pow((q+q3+cc),2);
+	f   = cs * (a1 + b1*a2 - b2*a3) + b3/r + 2*sn*b4/q - b5/b6 + (b7-b8)/b9 + b10*b11/pow_q3 - b12*b13/b14;
 
 	return (f);
 }
@@ -389,7 +390,7 @@ double uscal(double x1, double x2, double x3, double c, double cc, double sin_dp
 double udcal(double x1, double x2, double x3, double c, double cc, double sin_dp, double cos_dp) {
 /* Computation of the vertical displacement due to the DIP SLIP component */
 	double sn, cs, c1, c2, c3, r, q, r2, r3, q2, q3, h, k, a1, a2;
-	double b1, b2, b3, d1, d2, d3, d4, d5, d6, t1, t2, t3, f;
+	double b1, b2, b3, d1, d2, d3, d4, d5, d6, t1, t2, t3, t4, f;
 
 	sn = sin_dp;	cs = cos_dp;
 	c1 = c;		c2 = cc * cs;	c3 = cc * sn;
@@ -415,9 +416,10 @@ double udcal(double x1, double x2, double x3, double c, double cc, double sin_dp
 	t1 = atan2(d1*d2, (h+d4)*(q+h));
 	t2 = atan2(d1*d5, r2*r);
 	t3 = atan2(d1*d6, q2*q);
-	f  = sn * (d2*(2.*d3/b2 + 4.*d3/b1 - 4.*c3*x3*d4*(2.*q+d1)/(b1*b1*q)) - 6.*t1 + 3.*t2 - 6.*t3) +
-	     cs * (a1-a2 - 2.*(d3*d3)/b2 - 4.*(d4*d4 - c3*x3)/b1 - 4.*c3*x3*d4*d4*(2*q+x1-c1)/(b1*b1*q)) +
-	     6.*x3*(cs*sn*(2.*d6/b1 + d1/b3) - q2*(sn*sn - cs*cs)/b1);
+	t4 = 1 / (b1 * b1 * q);
+	f  = sn * (d2*(2*d3/b2 + 4*d3/b1 - 4*c3*x3*d4*(2*q+d1)*t4) - 6*t1 + 3*t2 - 6*t3) +
+	     cs * (a1-a2 - 2*(d3*d3)/b2 - 4*(d4*d4 - c3*x3)/b1 - 4*c3*x3*d4*d4*(2*q+x1-c1)*t4) +
+	     6*x3*(cs*sn*(2*d6/b1 + d1/b3) - q2*(sn*sn - cs*cs)/b1);
 
 	return (f);
 }
