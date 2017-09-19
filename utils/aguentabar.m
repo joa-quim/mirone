@@ -61,7 +61,7 @@ function stopBar =  aguentabar(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: aguentabar.m 9902 2016-11-02 19:06:23Z j $
+% $Id: aguentabar.m 10145 2017-09-19 15:46:52Z j $
 
 	% Parse inputs
 	n_argin = nargin;
@@ -162,7 +162,7 @@ function stopBar =  aguentabar(varargin)
 		else
 			set(hFig, 'UserData', {hPatch starttime lastupdate killBill})
 		end
-		if (nargout),	stopBar = hFig;		end
+		if (nargout),	stopBar = double(hFig);		end
 		return
 	end
 
@@ -185,7 +185,7 @@ function stopBar =  aguentabar(varargin)
 	% If task completed, close figure and clear vars, then exit
 	if (percentdone == 100)		% Task completed
 		delete(hFig)			% Close figure
-		if (nargout),	stopBar = hFig;		end
+		if (nargout),	stopBar = double(hFig);		end
 		return
 	end
 
@@ -196,7 +196,7 @@ function stopBar =  aguentabar(varargin)
 	else
 		set(hFig, 'UserData', {hPatch starttime lastupdate killBill})		% Store for the next round
 	end
-	if (nargout),	stopBar = hFig;		end
+	if (nargout),	stopBar = double(hFig);		end
 
 % ------------------------------------------------------------------------------
 function changecolor(obj,evt,hPatch)
