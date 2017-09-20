@@ -25,7 +25,7 @@ function varargout = draw_funs(hand, varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: draw_funs.m 10120 2017-07-17 18:58:05Z j $
+% $Id: draw_funs.m 10149 2017-09-20 23:22:28Z j $
 
 % A bit of strange tests but they are necessary for the cases when we use the new feval(fun,varargin{:}) 
 opt = varargin{1};		% function name to evaluate (new) or keyword to select one (old form)
@@ -47,7 +47,7 @@ switch opt
 	case 'SessionRestoreCircleCart'		% Called by "FileOpenSession" or "DrawGeogCircle_CB"
 		set_circleCart_uicontext(hand)
 	case 'DrawText'
-		cmenuHand = uicontextmenu( 'parent',get(get(hand,'parent'),'parent') );		% We know 'hand' is a text handle
+		cmenuHand = uicontextmenu('parent',get(get(hand,'parent'),'parent'));		% We know 'hand' is a text handle
 		set(hand, 'UIContextMenu', cmenuHand);
 		cb_color = uictx_color(hand);	% there are 9 cb_color outputs
 		uimenu(cmenuHand, 'Label', 'Change Font', 'Call', @text_FontSize);
@@ -189,6 +189,40 @@ function setSHPuictx(h,opt)
 		if (~isempty(isPt) && ~isPt)	% For points it makes no sense a 'Join lines'
 			uimenu(cmenuHand, 'Label', 'Join lines', 'Call', {@join_lines,handles.figure1});
 		end
+	end
+
+% -----------------------------------------------------------------------------------------
+function set_rect_uictx_PC(h, opt)
+% Set the line uicontext for rectangles plotted in Plot Composer figure.
+	if (isempty(h)),	return,		end
+	hFig = getParentFigure(h(1));
+	handles = guidata(hFig);		% Get PC handles
+
+	for (k = 1:numel(h))
+		cmenuHand = uicontextmenu('Parent',handles.figure1);
+		set(h(k), 'UIContextMenu', cmenuHand);
+		set(cmenuHand, 'UserData', h(k))			% And with this the cmenuHand knows to whom it belongs
+
+		cb_LineWidth = uictx_LineWidth(h(k));		% there are 5 cb_LineWidth outputs
+		cb_solid   = 'set(gco, ''LineStyle'', ''-''); refresh';
+		cb_dashed  = 'set(gco, ''LineStyle'', ''--''); refresh';
+		cb_dotted  = 'set(gco, ''LineStyle'', '':''); refresh';
+		cb_dashdot = 'set(gco, ''LineStyle'', ''-.''); refresh';
+		cb_color   = uictx_color(h(k));				% there are 9 cb_color outputs
+
+		uimenu(cmenuHand,  'Label', 'Delete', 'Call', {@del_line,h(k)});
+		item_tools = uimenu(cmenuHand, 'Label', 'Trim with rect');
+		uimenu(item_tools, 'Label', 'inside', 'Call', {@trim_withPolygon,h,1});
+		uimenu(item_tools, 'Label', 'outside', 'Call', {@trim_withPolygon,h,0});
+		uimenu(cmenuHand,  'Label', 'Copy', 'Call', {@copy_line_object,handles.figure1,handles.axes1});
+		uimenu(cmenuHand,  'Label', 'Rectangle limits (edit)', 'Sep','on', 'Call', @rectangle_limits);
+		CB = 'deal_opts([], ''assoc_gmt_symbol'', [], [])';
+		uimenu(cmenuHand,  'Label', 'Insert a PostScript file here','Call', CB);
+		setLineWidth(uimenu(cmenuHand, 'Label', 'Line Width', 'Sep','on'), cb_LineWidth)
+		setLineStyle(uimenu(cmenuHand, 'Label', 'Line Style'), {cb_solid cb_dashed cb_dotted cb_dashdot})
+		setLineColor(uimenu(cmenuHand, 'Label', 'Line Color'), cb_color)
+		set_stack_order(cmenuHand)      % Set options to change order in the stackpot
+		ui_edit_polygon(h(k))			% Set edition functions
 	end
 
 % -----------------------------------------------------------------------------------------
@@ -3024,7 +3058,7 @@ function save_GMT_DB_asc(h, fname)
 		if (isempty(getappdata(h(k), 'edited'))),	continue,	end		% Skip because it was not modified
 		GSHHS_str = getappdata(h(k),'GSHHS_str');
 		if (k == 1 && ~isempty(GSHHS_str))		% Write back the magic string that allows us to recognize these type of files
-			fprintf(fid,'# $Id: draw_funs.m 10120 2017-07-17 18:58:05Z j $\n#\n%s\n#\n', GSHHS_str);
+			fprintf(fid,'# $Id: draw_funs.m 10149 2017-09-20 23:22:28Z j $\n#\n%s\n#\n', GSHHS_str);
 		end
 		hdr = getappdata(h(k), 'LineInfo');
 		x = get(h(k), 'XData');			y = get(h(k), 'YData');
