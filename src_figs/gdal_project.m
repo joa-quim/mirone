@@ -236,6 +236,7 @@ function out = do_project(handMir, hdrStruct, prjName)
 		Z = get(handMir.hImg,'CData');
 		tipo = 'image';
 		if (ndims(Z) == 2),		cmap = get(handMir.figure1,'Colormap');		end
+		hdrStruct.nodata = 255;
 	end
 	[ras, att] = gdalwarp_mex(Z, hdrStruct);
 	
