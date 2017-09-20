@@ -32,7 +32,7 @@ function varargout = gdal_project(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: gdal_project.m 7861 2016-04-11 17:43:27Z j $
+% $Id: gdal_project.m 10146 2017-09-20 23:18:24Z j $
 
 	if isempty(varargin)
 		errordlg('GDAL_PROJECT: wrong number of input arguments.','Error'),	return
@@ -236,6 +236,7 @@ function out = do_project(handMir, hdrStruct, prjName)
 		Z = get(handMir.hImg,'CData');
 		tipo = 'image';
 		if (ndims(Z) == 2),		cmap = get(handMir.figure1,'Colormap');		end
+		hdrStruct.nodata = 255;
 	end
 	[ras, att] = gdalwarp_mex(Z, hdrStruct);
 	
