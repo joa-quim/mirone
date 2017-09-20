@@ -19,6 +19,8 @@ function ui_edit_polygon(varargin)
 % 					% If == 'extend', means that we need a Shift-click left mouse button or click both
 % 					%		left and right mouse buttons to move it. A bit more cumbersome, but safer.
 % 					% If == 'y', OR == 'x' means that Y or X vertices are move while editing
+% 					% If == 'axes', handle must be a patch handle of the size of its parent axes,
+%					        which is than resizable by dragging the single marker at NE corner.
 %
 %	An alternative way to set the MOVE_CHOICE option is to put it as an appdata of the axes where lines are drawn.
 %	As an example of how it works see this snipet showing how it is recovered here
@@ -65,7 +67,8 @@ function ui_edit_polygon(varargin)
 %					Allow choosing what mouse selection is used to move the whole polygon.
 %	JL	25-Aug-2008 Added the "e" (extend) keyboard option
 %	JL	08-Feb-2010 Added 'y' or 'x' to the move_choice option
-%	JL	21-apr-2012 Significant re-write with a large boost in efficiency by not needing to duplicate line
+%	JL	21-Apr-2012 Significant re-write with a large boost in efficiency by not needing to duplicate line
+%	JL	19-Sep-2017 Added the 'axes' option to resize axes
 
 %	Copyright (c) 2004-2016 by J. Luis
 %
@@ -87,8 +90,8 @@ function ui_edit_polygon(varargin)
 	if (isa(varargin{end},'char'))	% Moving polygon option was transmitted in input
 		move_choice = varargin{end};
 		varargin(end) = [];
-		if (~(strncmp(move_choice, 'ex' ,2) || strcmp(move_choice, 'x') || strcmp(move_choice, 'y')) )
-			% Besides [], the other possible values are 'extend', 'x' or 'y'
+		if (~(strncmp(move_choice, 'ex' ,2) || strcmp(move_choice, 'x') || strcmp(move_choice, 'y') || strcmp(move_choice, 'axes')) )
+			% Besides [], the other possible values are 'extend', 'axes', 'x' or 'y'
 			move_choice = [];
 		end
 	else							% See if the Moving polygon option is stored in axe's appdata
@@ -99,7 +102,9 @@ function ui_edit_polygon(varargin)
 			move_choice = [];
 		end
 	end
-	if (~isempty(move_choice) && ~((move_choice(1) == 'x') || (move_choice(1) == 'y')) )
+	%if (~isempty(move_choice) && ~((move_choice(1) == 'x') || (move_choice(1) == 'y')) )
+	%if (~isempty(move_choice) && (move_choice(1) ~= 'x') && (move_choice(1) ~= 'y') && ~strcmp(move_choice,'axes'))
+	if (isempty(move_choice))
 		move_choice = 'a';			% Means 'xy'
 	end
 
@@ -143,12 +148,12 @@ function ui_edit_polygon(varargin)
 			s.is_closed_patch = false;
 			s.is_patch  = strcmpi(get(s.h_pol,'Type'),'patch');
 			s.is_rect = false;			s.keep_rect = false;
-			if ( numel(x) == 5 && (x(1) == x(2)) && (x(3) == x(4)) && (y(1) == y(4)) && (y(2) == y(3)) )
+			if (numel(x) == 5 && (x(1) == x(2)) && (x(3) == x(4)) && (y(1) == y(4)) && (y(2) == y(3)) )
 				s.is_rect = true;		s.keep_rect = true;
-			elseif ( numel(x) == 5 && (x(1) == x(4)) && (x(2) == x(3)) && (y(1) == y(2)) && (y(3) == y(4)) )
+			elseif (numel(x) == 5 && (x(1) == x(4)) && (x(2) == x(3)) && (y(1) == y(2)) && (y(3) == y(4)) )
 				s.is_rect = true;		s.keep_rect = false;
 			end
-			if ( numel(x) > 1 && (x(1) == x(end)) && (y(1) == y(end)))
+			if (numel(x) > 1 && (x(1) == x(end)) && (y(1) == y(end)))
 				s.is_closed = true;
 				if (s.is_patch),		s.is_closed_patch = true;  end
 			else
@@ -166,6 +171,9 @@ function ui_edit_polygon(varargin)
 			s.scaleY = get(0,'ScreenPixelsPerInch') * (6/72) / pos(4);
 
 			s.what_move = move_choice;
+			if (strcmp(move_choice,'axes'))		% Hack it to pretend the line has Markers and so create a Marker in a new line
+				s.duplicate = true;
+			end
 
 			s.prev_buttondownfcn = get(s.h_pol,'buttondownfcn');	% Save any previous buttondownfcn
 			set(s.h_pol,'buttondownfcn',@polygonui);
@@ -233,13 +241,20 @@ function polygonui(varargin)
 			s.controls = 'on';
 			if (~s.duplicate)
 				set(s.h_pol, 'Marker','s','MarkerEdgeColor','r', 'MarkerFaceColor','none', ...
-						'MarkerSize',6,'buttondownfcn',{@edit_polygon,s.h_pol});
+							'MarkerSize',6,'buttondownfcn',{@edit_polygon,s.h_pol});
 			else
-				s.h_vert = line('xdata',get(s.h_pol,'XData'),'ydata',get(s.h_pol,'YData'), ...
-						'Parent',s.h_ax, 'Marker','s','color','r', 'MarkerFaceColor','none', ...
-						'MarkerSize',6,'buttondownfcn',{@edit_polygon,s.h_pol});
-				% Now we also need to set the line style to be equal to original so that we can drag it
-				set(s.h_vert, 'linestyle',get(s.h_pol,'linestyle'), 'LineWidth',get(s.h_pol,'LineWidth'))
+				if (strcmp(s.what_move, 'axes'))	% When resizing axes show only the NE corner marker
+					x = get(s.h_pol,'XData');	y = get(s.h_pol,'YData');
+					s.h_vert = line('XData',x(3), 'YData',y(3), 'Parent',s.h_ax, 'Marker','s','color','r', ...
+							'MarkerFaceColor','none', 'MarkerSize',7, 'LineWidth', 1.5, ...
+							'buttondownfcn',{@edit_polygon,s.h_pol});
+				else
+					s.h_vert = line('XData',get(s.h_pol,'XData'), 'YData',get(s.h_pol,'YData'), ...
+							'Parent',s.h_ax, 'Marker','s','color','r', 'MarkerFaceColor','none', ...
+							'MarkerSize',6,'buttondownfcn',{@edit_polygon,s.h_pol});
+					% Now we also need to set the line style to be equal to original so that we can drag it
+					set(s.h_vert, 'linestyle',get(s.h_pol,'linestyle'), 'LineWidth',get(s.h_pol,'LineWidth'))
+				end
 			end
 			set(s.h_fig,'KeyPressFcn',{@KeyPress_local, s.h_pol})
 			setappdata(s.h_pol,'polygon_data',s)
@@ -268,7 +283,7 @@ function edit_polygon(obj,evt,h)
 	dy = 0.6 *  diff(y_lim) * s.scaleY;
 	x0 = current_pt(1,1) - dx;		x1 = current_pt(1,1) + dx;
 	y0 = current_pt(1,2) - dy;		y1 = current_pt(1,2) + dy;
-	ind = ( x > x0 & x < x1 & y > y0 & y < y1);
+	ind = (x > x0 & x < x1 & y > y0 & y < y1);
 	if (any(ind))
 		id = find(ind);
 		s.vert_index = id(1);	% Use the index for the unlikely case that more than one was found
@@ -288,7 +303,7 @@ function edit_polygon(obj,evt,h)
 		s.hCurrentMarker = line('xdata',s.save_x,'ydata', s.save_y, 'parent', s.h_ax,'Marker','s', ...
 								'MarkerFaceColor',cor, 'MarkerSize',6, 'Tag','current_marker');
 		uistack_j(s.hCurrentMarker,'bottom')	% Since it has no ButtonDown and was on top
-	else								% The black marker exists, just move it.
+	else									% The black marker exists, just move it.
 		set(s.hCurrentMarker,'XData',s.save_x,'YData',s.save_y)
 	end
 	setappdata(h,'polygon_data',s);
@@ -302,7 +317,9 @@ function wbm_EditPolygon(obj,eventdata,h,lim,hFig)
 	set(hFig, 'Pointer','fleur')		% I know, but this way fleur pointer shows only when we have a movement
 	s = getappdata(h,'polygon_data');
 	pt = get(s.h_ax, 'CurrentPoint');
-	if (pt(1,1) < lim(1)) || (pt(1,1) > lim(2)) || (pt(1,2) < lim(3)) || (pt(1,2) > lim(4));   return; end
+	if (~strcmp(s.what_move, 'axes'))
+		if (pt(1,1) < lim(1)) || (pt(1,1) > lim(2)) || (pt(1,2) < lim(3)) || (pt(1,2) > lim(4)),	return,	end
+	end
 	xx = get(s.h_pol,'XData');      yy = get(s.h_pol,'YData');
 	xx = xx(:)';                    yy = yy(:)';    % Make sure they are row vectors
 	newx = pt(1,1);                 newy = pt(1,2);
@@ -344,9 +361,25 @@ function wbm_EditPolygon(obj,eventdata,h,lim,hFig)
 
 	set(s.h_pol, 'XData',x, 'YData',y);
 	set(s.hCurrentMarker,'XData',newx,'YData',newy)	% Move the current point marker together with the editing point
-	if (s.duplicate)
+	if (strcmp(s.what_move, 'axes'))
+		set(s.h_vert,'XData',x(s.vert_index), 'YData',y(s.vert_index))	% Move the marker together with the editing point
+		resize_axes(s.h_ax, x, y)
+	elseif (s.duplicate)
 		set(s.h_vert,'XData',x, 'YData',y)			% Move the marker together with the editing point
 	end
+
+%--------------------------------------------------
+function resize_axes(hAx, rect_x, rect_y)
+% ...
+	posAx   = get(hAx, 'pos');			% Dimension is pixels
+	xLim_Ax = get(hAx, 'XLim');
+	yLim_Ax = get(hAx, 'YLim');
+	DX = diff(xLim_Ax);		DY = diff(yLim_Ax);
+	x0 = rect_x(1) / DX * posAx(3) + posAx(1);	% X origin of the rectangle in pixels of figure1
+	y0 = rect_y(1) / DY * posAx(4) + posAx(2);	% Y origin
+	wx = (rect_x(4) - rect_x(1)) / DX * posAx(3);	% Rectangle width  in pixels
+	hy = (rect_y(2) - rect_y(1)) / DY * posAx(4);	% Rectangle Height in pixels
+	set(hAx, 'Pos',[posAx(1:2) ceil(wx) ceil(hy)],'XLim',[0 rect_x(4)-rect_x(1)], 'YLim',[0 rect_y(2)-rect_y(1)])
 
 %--------------------------------------------------
 function wbu_EditPolygon(obj,evt,h,state)
@@ -372,7 +405,7 @@ function move_polygon(h)
 	stype = get(s.h_fig,'selectiontype');
 
 	if (strcmp(stype,'open')),		polygonui(s.h_pol,[]),		return,		end
-	if (~isempty(s.what_move) && ((stype(1) ~= 'e') && s.what_move(1) ~= 'y') )		% needs "password" to continue
+	if (~isempty(s.what_move) && ((stype(1) ~= 'e') && s.what_move(1) ~= 'y'))		% needs "password" to continue
 		return
 	end
 
@@ -393,9 +426,9 @@ function wbm_MovePolygon(obj,evt,h,lim)
 	dx = pt(1,1) - old_pt(1);			dy = pt(1,2) - old_pt(2);
 	xx = get(s.h_pol,'XData') + dx;		yy = get(s.h_pol,'YData') + dy;
 	setappdata(s.h_pol,'old_pt',[pt(1,1) pt(1,2)])
- 	if ( isempty(s.what_move) || s.what_move(1) == 'a' )
+ 	if (isempty(s.what_move) || s.what_move(1) == 'a')
 		set(s.h_pol, 'XData',xx, 'YData',yy);
- 	elseif ( ~isempty(s.what_move) && s.what_move(1) == 'y' )
+ 	elseif (~isempty(s.what_move) && s.what_move(1) == 'y')
 		set(s.h_pol, 'YData',yy);
 	else
 		set(s.h_pol, 'YData',xx);
