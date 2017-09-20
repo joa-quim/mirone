@@ -776,7 +776,7 @@ function push_compute_CB(hObject, handles)
 
 		% Test if the result seams correct in terms of size
 		[m,n] = size(U);        hWarn = [];
-		if ( (m ~= nrow) || (n ~= ncol) )
+		if ((m ~= nrow) || (n ~= ncol))
 			msg{1} = 'Someting went wrong. Output file has not the required size. Maybe a meters<->kilometers bad guess?';
 			if (abs(dx - dy) > 1e-5)
 				msg{2} = ' ';
@@ -831,7 +831,7 @@ function push_compute_CB(hObject, handles)
 			{'*.dat;*.DAT', 'Data files (*.dat,*.DAT)';'*.*', 'All Files (*.*)'},'Select output deformation file','put','.dat');
 		if isequal(FileName,0),		return,		end
 		if (ispc),		fid = fopen([PathName FileName],'wt');
-		elseif (isunix)	fid = fopen([PathName FileName],'w');
+		elseif (isunix),fid = fopen([PathName FileName],'w');
 		else			error('DEFORM_OKADA: Unknown platform.');
 		end
 		fprintf(fid, '#Lon\t\tLat\t\tNorth\t\tEast\t\tZ\t\tAlong unit vector\n');
