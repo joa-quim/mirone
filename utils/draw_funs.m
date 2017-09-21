@@ -672,8 +672,11 @@ function hCopy = copy_line_object(obj, evt, hFig, hAxes)
 % If HCOPY output arg is specified, return without setting WindowButtonMotionFcn(). In this case one very
 % likely need to transmit the original object in EVT, since this function was not called after a mouse event.
 
-	if (~isempty(evt)),		oldH = evt;		% When calling this function by another that just wants a copy.
-	else					oldH = gco(hFig);
+	handles = guidata(hFig);
+	if (~isempty(evt) && handles.version7 < 8.4)
+		oldH = evt;		% When calling this function by another that just wants a copy.
+	else
+		oldH = gco(hFig);
 	end
 
 	newH = copyobj(oldH,hAxes);
