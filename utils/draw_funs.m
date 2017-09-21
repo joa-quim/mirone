@@ -25,7 +25,7 @@ function varargout = draw_funs(hand, varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: draw_funs.m 10149 2017-09-20 23:22:28Z j $
+% $Id: draw_funs.m 10152 2017-09-21 11:09:15Z j $
 
 % A bit of strange tests but they are necessary for the cases when we use the new feval(fun,varargin{:}) 
 opt = varargin{1};		% function name to evaluate (new) or keyword to select one (old form)
@@ -672,8 +672,11 @@ function hCopy = copy_line_object(obj, evt, hFig, hAxes)
 % If HCOPY output arg is specified, return without setting WindowButtonMotionFcn(). In this case one very
 % likely need to transmit the original object in EVT, since this function was not called after a mouse event.
 
-	if (~isempty(evt)),		oldH = evt;		% When calling this function by another that just wants a copy.
-	else					oldH = gco(hFig);
+	handles = guidata(hFig);
+	if (~isempty(evt) && handles.version7 < 8.4)
+		oldH = evt;		% When calling this function by another that just wants a copy.
+	else
+		oldH = gco(hFig);
 	end
 
 	newH = copyobj(oldH,hAxes);
@@ -3058,7 +3061,7 @@ function save_GMT_DB_asc(h, fname)
 		if (isempty(getappdata(h(k), 'edited'))),	continue,	end		% Skip because it was not modified
 		GSHHS_str = getappdata(h(k),'GSHHS_str');
 		if (k == 1 && ~isempty(GSHHS_str))		% Write back the magic string that allows us to recognize these type of files
-			fprintf(fid,'# $Id: draw_funs.m 10149 2017-09-20 23:22:28Z j $\n#\n%s\n#\n', GSHHS_str);
+			fprintf(fid,'# $Id: draw_funs.m 10152 2017-09-21 11:09:15Z j $\n#\n%s\n#\n', GSHHS_str);
 		end
 		hdr = getappdata(h(k), 'LineInfo');
 		x = get(h(k), 'XData');			y = get(h(k), 'YData');
