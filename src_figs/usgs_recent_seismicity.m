@@ -123,9 +123,10 @@ function push_OK_CB(obj, evt)
 		guidata(handles.figure1, handles)	% Update the handles 
 	else
 		mirFigLimits = getappdata(handles.hMirAx,'ThisImageLims');
+		handMir = guidata(handles.hMirFig);
 		if (handles.geog == 2),		lon = lon + 180;		end
 		[lon, lat, indx, indy] = ...	% Get rid of points that are outside the map limits
-			aux_funs('in_map_region',handles,lon,lat,0.01,mirFigLimits);
+			aux_funs('in_map_region',handMir,lon,lat,0.01,mirFigLimits);
 		if (isempty(lon))
 			warndlg('No events inside map region', 'Warning')
 			return
