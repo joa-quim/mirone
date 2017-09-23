@@ -123,7 +123,7 @@ function  varargout = url2image(opt, varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: url2image.m 10056 2017-03-11 23:01:01Z j $
+% $Id: url2image.m 10153 2017-09-23 20:44:14Z j $
 
 	quadkey = {'0' '1'; '2' '3'};				% Default to Virtual Earth
 	prefix = 'http://a0.ortho.tiles.virtualearth.net/tiles/a';
@@ -396,21 +396,21 @@ function [url, lon_mm, lat_mm, x, y] = tile2url(opt, geoid, quadkey, prefix, lon
 		hdrStruct.DstProjSRS = '+proj=latlong +datum=WGS84';
 		hdrStruct.SrcProjSRS = '+proj=merc +lon_0=0 +k=1 +x_0=0 +y_0=0 +a=6378137 +b=6378137 +units=m +no_defs';
 		hdrStruct.t_size = 0;
-		hdrStruct.ResampleAlg = 'bilinear';
+		hdrStruct.ResampleAlg = 'cubicspline';
 		dx = diff(x)/(256*nTilesX);		dy = diff(y)/(256*nTilesY);			% Here we are still in the Pixel reg world
 		hdrStruct.Xinc = dx;    hdrStruct.Yinc = dy;
 
 		if (reportMerc)			% Output coords in Mercator
 			x = x + [1 -1] * dx / 2;			y = y + [1 -1] * dy / 2;	% But now we are on Grid reg
 			tmp.head = [x y 0 255 0 dx dy];
-			tmp.X = x;			tmp.Y = y;
+			tmp.X = x;			tmp.Y = y;		tmp.geog = 0;
 		else					% Output coords in Geogs (image is unchanged, that is it remain mercatorized)
 			dx = diff(lon_mm)/(256*nTilesX);	dy = diff(lat_mm)/(256*nTilesY);		% Here we are still in the Pixel reg world
 			lon_mm = lon_mm + [1 -1] * dx / 2;	lat_mm = lat_mm + [1 -1] * dy / 2;		% But now we are on Grid reg
 			tmp.head = [lon_mm lat_mm 0 255 0 dx dy];
-			tmp.X = lon_mm;		tmp.Y = lat_mm;
+			tmp.X = lon_mm;		tmp.Y = lat_mm;	tmp.geog = 1;
 		end
-		tmp.geog = 0;		tmp.name = 'EuGooglo';
+		tmp.name = 'EuGooglo';
 		ext = 'jpg';		% Default image extension
 		if ((whatKind == 'r') || (whatKind == 'h')),	ext = 'png';	end		% Maps use png files
 
@@ -432,7 +432,7 @@ function [url, lon_mm, lat_mm, x, y] = tile2url(opt, geoid, quadkey, prefix, lon
 		end
 
 		if (~reportMerc)			% That is, if project to Geogs
-			[ras, att] = gdalwarp_mex(img, hdrStruct);
+			[img, att] = gdalwarp_mex(img, hdrStruct);
 			tmp.head = att.GMT_hdr;
 			tmp.name = 'Reprojected (Geog) image';
 			tmp.srsWKT = att.ProjectionRef;
