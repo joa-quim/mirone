@@ -74,6 +74,7 @@ function [out1,out2] = uicirclegeo(varargin)
 	end
 
 	lon_lat_rad = getappdata(h_circ,'LonLatRad');
+	if (isempty(lon_lat_rad)),	out1 = [];		out2 = [];	return,		end
 
 	%  Get the circle definition.
 	lat1 = lon_lat_rad(2);      lon1 = lon_lat_rad(1);
