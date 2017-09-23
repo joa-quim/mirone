@@ -16,7 +16,7 @@ function varargout = plot_composer(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: plot_composer.m 10147 2017-09-20 23:19:56Z j $
+% $Id: plot_composer.m 10157 2017-09-23 21:00:23Z j $
 
 	handMir = varargin{1};
 	if (handMir.no_file)     % Stupid call with nothing loaded on the Mirone window
@@ -49,16 +49,22 @@ function varargout = plot_composer(varargin)
 
 	hFigs = findobj(0,'type','figure');		% Fish all figures, but not the one that we are about to create
 	hAllFigs = handMir.figure1;
-	if (numel(hFigs) > 1)
-		hFigs = aux_funs('figs_XOR', handles.figure1, hFigs);	% Get all unique Mirone Figs
-		if (~isempty(hFigs))
-			if (numel(hFigs) > 1)	% The problem here is that hFigs is sorted and I need the handMir.figure1 at the top
-				hFigs(hFigs == handMir.figure1) = [];
-				hFigs = [handMir.figure1; hFigs(:)];
-			end
-			hAllFigs = hFigs;
+	hFigs = aux_funs('figs_XOR', handles.figure1, hFigs);	% Get all unique Mirone Figs
+	if (~isempty(hFigs))
+		if (numel(hFigs) > 1)	% The problem here is that hFigs is sorted and I need the handMir.figure1 at the top
+			hFigs(hFigs == handMir.figure1) = [];
+			hFigs = [handMir.figure1; hFigs(:)];
 		end
+		hAllFigs = hFigs;
 	end
+
+	% Some of these Mirone Figs may be empty. We don't care about them, so wipe them out from list.
+	c = false(1,numel(hAllFigs));
+	for (k = 1:numel(hAllFigs))
+		handTmp = guidata(hAllFigs(k));
+		if (handTmp.no_file),	c(k) = true;	end
+	end
+	hAllFigs(c) = [];
 
 	N_figs = numel(hAllFigs);
 	nomes = get(hAllFigs,'name');
@@ -1510,7 +1516,7 @@ function [script, mex_sc, l, o, sc_cpt] = do_palette(handMir, script, mex_sc, l,
 		tmp{1} = '# Color palette exported by Mirone';
 		tmp{2} = '# COLOR_MODEL = RGB';
 		cor = round(pal*255);
-		for i=1:pal_len
+		for (i = 1:pal_len)
 			cor_str = sprintf([num2str(cor(i,1),'%.12g') '\t' num2str(cor(i,2),'%.12g') '\t' num2str(cor(i,3),'%.12g')]);
 			z1 = num2str(z_min+dz*(i-1),'%.3f');
 			z2 = num2str(z_min+dz*i,'%.3f');
@@ -1604,7 +1610,7 @@ function [script, mex_sc, l, o] = do_pscoast(handles, handMir, script, mex_sc, l
 function [script, l, o, mex_sc] = do_pscoast_job(handles, handMir, script, l, o, comm, pb, pf, ellips, mex_sc)
 % Do the actual work of writing a pscoast command
 
-	if (nargin == 8),	mex_sc = '';	end
+	if (nargin < 10),	mex_sc = '';	end
 	script{l} = sprintf('\n%s Plot coastlines', comm);	l = l + 1;
 	opt_R = ' -R';		opt_J = ' -J';
 	if (~handMir.geog && handMir.is_projected)
@@ -1677,7 +1683,7 @@ function [script, mex_sc, l, o, used_grd, hLine, hText] = do_contour(handMir, sc
 				l = l + 1;
 			end
 			if (do_MEX)
-				mex_sc{o,1} = ['grdcontour -C' dest_dir prefix '_cont.dat' ellips KORJ];
+				mex_sc{o,1} = ['grdcontour -C"' dest_dir prefix '_cont.dat' '"' ellips KORJ];
 				[X,Y,Z] = load_grd(handMir);
 				mex_sc{o,2} = gmt('wrapgrid', Z, handMir.head);
 				o = o + 1;
@@ -1694,99 +1700,99 @@ function [script, mex_sc, l, o, hLine] = do_symbols(handMir, script, mex_sc, l, 
 
 	haveSymbol = false;
 	tag = get(hLine,'Tag');
-	if (~isempty(tag))
-		h = findobj(hLine,'Tag','Symbol');
-		h = [h; findobj(hLine,'Tag','City_major')];
-		h = [h; findobj(hLine,'Tag','City_other')];
-		h = [h; findobj(hLine,'Tag','volcano')];
-		h = [h; findobj(hLine,'Tag','hotspot')];
-		h = [h; findobj(hLine,'Tag','Earthquakes')];
-		h = [h; findobj(hLine,'Tag','DSDP')];
-		h = [h; findobj(hLine,'Tag','ODP')];
+	if (isempty(tag)),	return,		end
 
-		% Search for points as Markers (that is, line with no line - just symbols on vertices)
-		h_shit = get(hLine,'LineStyle');
-		h_num_shit = find(strcmp('none', h_shit));
-		if (h_num_shit)
-			id = ismember(h, hLine(h_num_shit));		% Many, if not all, can be repeated
-			h(id) = [];									% This will remove repeted elements
-			h = [h; hLine(h_num_shit)];
-		end
+	h = findobj(hLine,'Tag','Symbol');
+	h = [h; findobj(hLine,'Tag','City_major')];
+	h = [h; findobj(hLine,'Tag','City_other')];
+	h = [h; findobj(hLine,'Tag','volcano')];
+	h = [h; findobj(hLine,'Tag','hotspot')];
+	h = [h; findobj(hLine,'Tag','Earthquakes')];
+	h = [h; findobj(hLine,'Tag','DSDP')];
+	h = [h; findobj(hLine,'Tag','ODP')];
 
-		if (~isempty(h))
-			symbols = get_symbols(h);
-			haveSymbol = true;
-			hLine = setxor(hLine, h);			% h is processed, so remove it from handles list
-		end
+	% Search for points as Markers (that is, line with no line - just symbols on vertices)
+	h_shit = get(hLine,'LineStyle');
+	h_num_shit = find(strcmp('none', h_shit));
+	if (h_num_shit)
+		id = ismember(h, hLine(h_num_shit));		% Many, if not all, can be repeated
+		h(id) = [];									% This will remove repeted elements
+		h = [h; hLine(h_num_shit)];
 	end
 
-	if (haveSymbol)
-		[comm, pb, pf, do_MEX, ellips, RJOK, KORJ, dest_dir, prefix, prefix_ddir, opt_len_unit] = unpack(pack);
-		ns = numel(symbols.x);
-		name = [prefix_ddir '_symb.dat'];	name_sc = [prefix '_symb.dat'];
-		fc = symbols.FillColor{1};			ec = symbols.EdgeColor{1};
-		opt_G = '';			opt_W = '';
-		if (~ischar(fc)),	opt_G = sprintf(' -G%d/%d/%d', round(fc * 255));	end
-		if (ischar(ec) && strcmp(ec, 'auto'))			% WRONG. Should be line's 'Color' property
-			opt_W = ' -W1p';
-		elseif (~ischar(ec))
-			opt_W = sprintf(' -W1p,%d/%d/%d', round(ec * 255));
-		end
+	if (~isempty(h))
+		symbols = get_symbols(h);
+		haveSymbol = true;
+		hLine = setxor(hLine, h);			% h is processed, so remove it from handles list
+	end
 
-		if (ns > 1 && numel(symbols.Size) == 1)			% We have the same symbol repeated ns times
-			fid = fopen(name,'wt');
-			fprintf(fid,'%.5f\t%.5f\n',[symbols.x{:}; symbols.y{:}]);
-			script{l} = sprintf('\n%s ---- Plot symbols', comm);    l = l + 1;
-			script{l} = ['psxy ' name_sc ' -S' symbols.Marker num2str(symbols.Size{1}) 'p' opt_G ...
-			             opt_W ellips RJOK ' >> ' pb 'ps' pf];		l = l + 1;
-			fclose(fid);
-			if (do_MEX)
-				mex_sc{o,1} = ['psxy -S' symbols.Marker num2str(symbols.Size{1}) 'p' opt_G opt_W ellips KORJ];
-				mex_sc{o,2} = [symbols.x{:}; symbols.y{:}];			o = o + 1;
+	if (~haveSymbol),	return,		end
+
+	[comm, pb, pf, do_MEX, ellips, RJOK, KORJ, dest_dir, prefix, prefix_ddir, opt_len_unit] = unpack(pack);
+	ns = numel(symbols.x);
+	name = [prefix_ddir '_symb.dat'];	name_sc = [prefix '_symb.dat'];
+	fc = symbols.FillColor{1};			ec = symbols.EdgeColor{1};
+	opt_G = '';			opt_W = '';
+	if (~ischar(fc)),	opt_G = sprintf(' -G%d/%d/%d', round(fc * 255));	end
+	if (ischar(ec) && strcmp(ec, 'auto'))			% WRONG. Should be line's 'Color' property
+		opt_W = ' -W1p';
+	elseif (~ischar(ec))
+		opt_W = sprintf(' -W1p,%d/%d/%d', round(ec * 255));
+	end
+
+	if (ns > 1 && numel(symbols.Size) == 1)			% We have the same symbol repeated ns times
+		fid = fopen(name,'wt');
+		fprintf(fid,'%.5f\t%.5f\n',[symbols.x{:}; symbols.y{:}]);
+		script{l} = sprintf('\n%s ---- Plot symbols', comm);    l = l + 1;
+		script{l} = ['psxy ' name_sc ' -S' symbols.Marker num2str(symbols.Size{1}) 'p' opt_G ...
+					 opt_W ellips RJOK ' >> ' pb 'ps' pf];		l = l + 1;
+		fclose(fid);
+		if (do_MEX)
+			mex_sc{o,1} = ['psxy -S' symbols.Marker num2str(symbols.Size{1}) 'p' opt_G opt_W ellips KORJ];
+			mex_sc{o,2} = [symbols.x{:}; symbols.y{:}];			o = o + 1;
+		end
+	elseif (ns == 1 && numel(symbols.Size) == 1)	% We have only one symbol
+		script{l} = sprintf('\n%s  ---- Plot symbol', comm);		l=l+1;
+		script{l} = [sprintf('echo %.6f\t%.6f',symbols.x{1},symbols.y{1}) ' | ' ...
+					'psxy -S' symbols.Marker num2str(symbols.Size{1}) 'p' opt_G ...
+					opt_W ellips RJOK ' >> ' pb 'ps' pf];		l = l + 1;
+		if (do_MEX)
+			mex_sc{o,1} = ['psxy -S' symbols.Marker num2str(symbols.Size{1}) 'p' opt_G opt_W ellips KORJ];
+			mex_sc{o,2} = [symbols.x{1}; symbols.y{1}];			o = o + 1;
+		end
+	else								% We have ns different symbols
+		m = zeros(ns,1);
+		for (i = 1:ns)
+			m(i) = size(symbols.x{i},2);
+		end
+		n = find(m ~= 1);
+		if (~isempty(n))				% We have a mixed scenario. Individual as well as group symbols
+			script = write_group_symb(prefix,prefix_ddir,comm,pb,pf,ellips,symbols,n,script, opt_J);
+			symbols.x(n) = [];			symbols.y(n) = [];  % Clear processed symbols
+			symbols.FillColor(n) = [];	symbols.EdgeColor(n) = [];
+			symbols.Size(n) = [];		symbols.Marker(n,:) = [];
+			l = numel(script) + 1;
+			ns = ns - numel(n);
+		end
+		fid = fopen(name,'wt');
+		for (i = 1:ns)
+			fc = symbols.FillColor{i};			ec = symbols.EdgeColor{i};
+			opt_G = '';			opt_W = '';
+			if (~ischar(fc)),	opt_G = sprintf(' -G%d/%d/%d', round(fc * 255));	end
+			if (ischar(ec) && strcmp(ec, 'auto'))			% WRONG. Should be line's 'Color' property
+				opt_W = ' -W1p';
+			elseif (~ischar(ec))
+				opt_W = sprintf(' -W1p,%d/%d/%d', round(ec * 255));
 			end
-		elseif (ns == 1 && numel(symbols.Size) == 1)	% We have only one symbol
-			script{l} = sprintf('\n%s  ---- Plot symbol', comm);		l=l+1;
-			script{l} = [sprintf('echo %.6f\t%.6f',symbols.x{1},symbols.y{1}) ' | ' ...
-						'psxy -S' symbols.Marker num2str(symbols.Size{1}) 'p' opt_G ...
-						opt_W ellips RJOK ' >> ' pb 'ps' pf];		l = l + 1;
-			if (do_MEX)
-				mex_sc{o,1} = ['psxy -S' symbols.Marker num2str(symbols.Size{1}) 'p' opt_G opt_W ellips KORJ];
-				mex_sc{o,2} = [symbols.x{1}; symbols.y{1}];			o = o + 1;
-			end
-		else								% We have ns different symbols
-			m = zeros(ns,1);
-			for (i = 1:ns)
-				m(i) = size(symbols.x{i},2);
-			end
-			n = find(m ~= 1);
-			if (~isempty(n))				% We have a mixed scenario. Individual as well as group symbols
-				script = write_group_symb(prefix,prefix_ddir,comm,pb,pf,ellips,symbols,n,script, opt_J);
-				symbols.x(n) = [];			symbols.y(n) = [];  % Clear processed symbols
-				symbols.FillColor(n) = [];	symbols.EdgeColor(n) = [];
-				symbols.Size(n) = [];		symbols.Marker(n,:) = [];
-				l = numel(script) + 1;
-				ns = ns - numel(n);
-			end
-			fid = fopen(name,'wt');
-			for (i = 1:ns)
-				fc = symbols.FillColor{i};			ec = symbols.EdgeColor{i};
-				opt_G = '';			opt_W = '';
-				if (~ischar(fc)),	opt_G = sprintf(' -G%d/%d/%d', round(fc * 255));	end
-				if (ischar(ec) && strcmp(ec, 'auto'))			% WRONG. Should be line's 'Color' property
-					opt_W = ' -W1p';
-				elseif (~ischar(ec))
-					opt_W = sprintf(' -W1p,%d/%d/%d', round(ec * 255));
-				end
-				fprintf(fid,'>%s\n',[opt_G opt_W]);
-				fprintf(fid,'%.5f\t%.5f\t%.0f\t%s\n',symbols.x{i},symbols.y{i},symbols.Size{i},symbols.Marker(i,:));
-			end
-			script{l} = ' ';                        	l=l+1;
-			script{l} = [comm ' ---- Plot symbols'];    l=l+1;
-			script{l} = ['psxy ' name_sc ellips opt_len_unit RJOK ' -S >> ' pb 'ps' pf];		l = l + 1;
-			if (do_MEX)
-				mex_sc{o,1} = ['psxy -S ' dest_dir name_sc ellips opt_len_unit KORJ];		o = o + 1;
-			end
-			fclose(fid);
+			fprintf(fid,'>%s\n',[opt_G opt_W]);
+			fprintf(fid,'%.5f\t%.5f\t%.0f\t%s\n',symbols.x{i},symbols.y{i},symbols.Size{i},symbols.Marker(i,:));
+		end
+		fclose(fid);
+		script{l} = ' ';                        	l = l + 1;
+		script{l} = [comm ' ---- Plot symbols'];    l = l + 1;
+		script{l} = ['psxy ' name_sc ellips opt_len_unit RJOK ' -S >> ' pb 'ps' pf];		l = l + 1;
+		if (do_MEX)
+			mex_sc{o,1} = ['psxy -S "' dest_dir name_sc '"' ellips opt_len_unit KORJ];		o = o + 1;
 		end
 	end
 
@@ -1849,9 +1855,9 @@ function [script, mex_sc, l, o, hLine, hPatch] = do_meca(handMir, script, mex_sc
 			end
 			fclose(fid);
 			script{l} = sprintf('\n%s ---- Plot Focal Mechanisms', comm);   l=l+1;
-			script{l} = ['psmeca ' opt_S opt_C ' ' name_sc ellips RJOK ' >> ' pb 'ps' pf];	l = l + 1;
+			script{l} = ['psmeca ' opt_S opt_C ' ' name_sc ellips RJOK ' >> ' pb 'ps' pf];		l = l + 1;
 			if (do_MEX)
-				mex_sc{o,1} = ['psmeca ' opt_S opt_C ' ' dest_dir name_sc ellips KORJ];		o = o + 1;
+				mex_sc{o,1} = ['psmeca "' dest_dir name_sc '"' opt_S opt_C ' ' ellips KORJ];	o = o + 1;
 			end
 			hPatch = setxor(hPatch, focHand);		% focHand is processed, so remove it from handles list
 			hLine  = setxor(hLine, focHandAnchor);	%       iden
@@ -2064,9 +2070,6 @@ function [script, mex_sc, l, o] = do_patches(handMir, script, mex_sc, l, o, pack
 		if (writeScript),	fclose(fid);	end
 		script{l} = sprintf('\n%s ---- Plot closed AND colored polygons', comm);		l = l + 1;
 		script{l} = ['psxy ' name_sc ellips opt_len_unit RJOK ' >> ' pb 'ps' pf];		l = l + 1;
-		if (do_MEX)
-	 		%mex_sc{o,1} = ['psxy ' dest_dir name_sc ellips opt_len_unit KORJ];		% For now, use the disk file
-		end
 	end
 
 % ------------------------------------------------------------------------------------------------------------
@@ -2118,7 +2121,7 @@ function [script, mex_sc, l, o, hLine] = do_custom_symbols(handles, script, mex_
 		script{l} = sprintf('echo %0.10g %0.10g | psxy %s -Sk%s/%f%c >> %sps%s', ...
 							x0,y0, RJOK, cs_fname, w, handles.which_unit(1), pb, pf);		l = l + 1;
 		if (do_MEX)
-			mex_sc{o,1} = sprintf('psxy %s -Sk%s/%f%c', KORJ, cs_fname, w, handles.which_unit(1));
+			mex_sc{o,1} = sprintf('psxy %s -Sk"%s"/%f%c', KORJ, cs_fname, w, handles.which_unit(1));
 			mex_sc{o,2} = [x0 y0];		o = o + 1;
 		end
 		c(i) = true;
@@ -2172,7 +2175,7 @@ function [script, mex_sc, l, o, hLine] = do_lines(script, mex_sc, l, o, pack, hL
 		script{l} = ['psxy ' name_sc ellips ' -W' num2str(LineWidth(j)) 'p,' ...
 					 cor LineStyle_gmt{j} opt_len_unit RJOK ' >> ' pb 'ps' pf];	l = l + 1;
 		if (do_MEX)
-			mex_sc{o,1} = ['psxy ' dest_dir name_sc ellips ' -W' num2str(LineWidth(j)) 'p,' cor LineStyle_gmt{j} opt_len_unit KORJ];
+			mex_sc{o,1} = ['psxy "' dest_dir name_sc '"' ellips ' -W' num2str(LineWidth(j)) 'p,' cor LineStyle_gmt{j} opt_len_unit KORJ];
 			o = o + 1;
 		end
 	end
@@ -2309,7 +2312,7 @@ function [script, mex_sc, l, o] = do_colorbar(handles, handMir, script, mex_sc, 
 		script{l} = ['psscale' opt_D ' -S -C' pb 'cpt' pf ' -B' num2str(bInt) ' -O -K >> ' pb 'ps' pf];
 		l = l + 1;
 		if (do_MEX)
-			mex_sc{o,1} = sprintf('psscale %s -S -C%s -B%g -O -K', opt_D, sc_cpt, bInt);	o = o + 1;
+			mex_sc{o,1} = sprintf('psscale %s -S -C"%s" -B%g -O -K', opt_D, sc_cpt, bInt);	o = o + 1;
 		end
 	end
 
