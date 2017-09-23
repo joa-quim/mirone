@@ -21,7 +21,7 @@ function usgs_recent_seismicity(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: usgs_recent_seismicity.m 4440 2014-05-01 18:39:30Z j $
+% $Id: usgs_recent_seismicity.m 10155 2017-09-23 20:56:28Z j $
 
 	handMir = guidata(varargin{1});		% Not tested but must be a Mirone fig handle
 
@@ -123,9 +123,10 @@ function push_OK_CB(obj, evt)
 		guidata(handles.figure1, handles)	% Update the handles 
 	else
 		mirFigLimits = getappdata(handles.hMirAx,'ThisImageLims');
+		handMir = guidata(handles.hMirFig);
 		if (handles.geog == 2),		lon = lon + 180;		end
 		[lon, lat, indx, indy] = ...	% Get rid of points that are outside the map limits
-			aux_funs('in_map_region',handles,lon,lat,0.01,mirFigLimits);
+			aux_funs('in_map_region',handMir,lon,lat,0.01,mirFigLimits);
 		if (isempty(lon))
 			warndlg('No events inside map region', 'Warning')
 			return
