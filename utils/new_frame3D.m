@@ -22,7 +22,7 @@ function new_frame3D(hFig, hText, hFrame)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: new_frame3D.m 4651 2014-12-12 17:33:55Z j $
+% $Id: new_frame3D.m 10158 2017-09-25 14:20:11Z j $
 
 	% Give a Pro look (3D) to the frame boxes 
 	bgcolor = get(0,'DefaultUicontrolBackgroundColor');
@@ -55,15 +55,15 @@ function frame3D(hFig,pos,color,bg_color,usr_dat)
 % 
 	% Build the rectangle's left vertical side
 	x1 = [pos(1) pos(2) 1 pos(4)];
-	uicontrol('Parent',hFig, 'Style','frame', 'Position',x1, 'ForegroundColor',color,'BackgroundColor',bg_color,'UserData',usr_dat);
+	uicontrol('Parent',hFig, 'Style','frame', 'Position',x1, 'ForegroundColor',color,'BackgroundColor',bg_color,'UserData',usr_dat,'Tag','L');
 	x2 = [pos(1)+1 pos(2)+1 1 pos(4)-2];
-	uicontrol('Parent',hFig, 'Style','frame', 'Position',x2, 'ForegroundColor',[1 1 1],'BackgroundColor',bg_color,'UserData',usr_dat);
+	uicontrol('Parent',hFig, 'Style','frame', 'Position',x2, 'ForegroundColor',[1 1 1],'BackgroundColor',bg_color,'UserData',usr_dat,'Tag','LL');
 
 	% Build the rectangle's right vertical side
 	x1 = [pos(1)+pos(3)-1 pos(2) 1 pos(4)];
-	uicontrol('Parent',hFig, 'Style','frame', 'Position',x1, 'ForegroundColor',color,'BackgroundColor',bg_color,'UserData',usr_dat);
+	uicontrol('Parent',hFig, 'Style','frame', 'Position',x1, 'ForegroundColor',color,'BackgroundColor',bg_color,'UserData',usr_dat,'Tag','R');
 	x2 = [pos(1)+pos(3) pos(2)-1 1 pos(4)+1];
-	uicontrol('Parent',hFig, 'Style','frame', 'Position',x2, 'ForegroundColor',[1 1 1],'BackgroundColor',bg_color,'UserData',usr_dat);
+	uicontrol('Parent',hFig, 'Style','frame', 'Position',x2, 'ForegroundColor',[1 1 1],'BackgroundColor',bg_color,'UserData',usr_dat,'Tag','RR');
 
 	% Build the rectangle's bottom side
 	x1 = [pos(1) pos(2) pos(3) 1];
