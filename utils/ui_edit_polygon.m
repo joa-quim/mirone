@@ -103,8 +103,7 @@ function ui_edit_polygon(varargin)
 		end
 	end
 	%if (~isempty(move_choice) && ~((move_choice(1) == 'x') || (move_choice(1) == 'y')) )
-	%if (~isempty(move_choice) && (move_choice(1) ~= 'x') && (move_choice(1) ~= 'y') && ~strcmp(move_choice,'axes'))
-	if (isempty(move_choice))
+	if (~isempty(move_choice) && (move_choice(1) ~= 'x') && (move_choice(1) ~= 'y') && ~strcmp(move_choice,'axes'))
 		move_choice = 'a';			% Means 'xy'
 	end
 
@@ -431,7 +430,7 @@ function wbm_MovePolygon(obj,evt,h,lim)
  	elseif (~isempty(s.what_move) && s.what_move(1) == 'y')
 		set(s.h_pol, 'YData',yy);
 	else
-		set(s.h_pol, 'YData',xx);
+		set(s.h_pol, 'XData',xx);
 	end
 
 	if (~isempty(s.hCurrentMarker))				% If the black marker exists, move it too
