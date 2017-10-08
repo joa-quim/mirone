@@ -1,7 +1,7 @@
 function varargout = aquamoto(varargin)
-% A general purpose 3D grid/image file viewer, specialy taylored for tsunami (ANUGA) files
+% A general purpose 3D grid/image file viewer, specialy taylored for tsunami (NSWING & ANUGA) files
 
-%	Copyright (c) 2004-2016 by J. Luis
+%	Copyright (c) 2004-2017 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -16,7 +16,7 @@ function varargout = aquamoto(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: aquamoto.m 9907 2016-11-04 16:55:07Z j $
+% $Id: aquamoto.m 10165 2017-10-08 19:40:23Z j $
 
 % For compiling one need to include the aqua_suppfuns.m files.
 
@@ -394,7 +394,7 @@ function push_swwName_CB(hObject, eventdata, handles, opt)
 				return
 			end
 			set(handles.check_splitDryWet,'Val',0)
-			if (any(strcmp({s.Attribute.Name},'TSU')))			% An NSWING TSUnami file
+			if (any(strcmp({s.Attribute.Name},'TSU')))			% A NSWING TSUnami file
 				if (s.Dataset(misc.z_id).Name(1) == 'V')		% We don't have enough info to split on velocities
 					handles.cmapLand = jet(256);				% Uggly shit but velocities get land color in coards_sliceShow()
 				else
