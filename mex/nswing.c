@@ -1,5 +1,5 @@
 /*--------------------------------------------------------------------
- *	$Id: nswing.c 9936 2016-11-17 17:57:28Z j $
+ *	$Id: nswing.c 10162 2017-10-08 19:16:42Z j $
  *
  *	Copyright (c) 2012-2015 by J. Luis and J. M. Miranda
  *
@@ -16,7 +16,7 @@
  *	Contact info: w3.ualg.pt/~jluis/mirone
  *--------------------------------------------------------------------*/
 
-static char prog_id[] = "$Id: nswing.c 9936 2016-11-17 17:57:28Z j $";
+static char prog_id[] = "$Id: nswing.c 10162 2017-10-08 19:16:42Z j $";
 
 /*
  *	Original Fortran version of core hydrodynamic code by J.M. Miranda and COMCOT
@@ -133,11 +133,12 @@ union {uint64_t i; double d;} loc_nan = {0x7ff8000000000000};
 #define D2R		M_PI / 180.
 #define R2D		180. / M_PI
 
+#define DEPTH_THRESHOLD -40.0       /* When interpolating nested regions stop at this depth to avoid land contamination */
 #define GMT_CONV_LIMIT  1.0e-8      /* Fairly tight convergence limit or "close to zero" limit */ 
 #define	NORMAL_GRAV	9.806199203     /* Moritz's 1980 IGF value for gravity at 45 degrees latitude */
 #define	EQ_RAD 6378137.0            /* WGS-84 */
 #define	flattening  1.0/298.2572235630
-#define LIMIT_DISCHARGE			/* If defined the moment functions will limit the discharge */
+#define LIMIT_DISCHARGE             /* If defined the moment functions will limit the discharge */
 #define ECC2  2 * flattening - flattening * flattening
 #define ECC4  ECC2 * ECC2
 #define ECC6  ECC2 * ECC4
@@ -207,8 +208,6 @@ struct grd_header {     /* Generic grid hdr structure */
 	double y_max;       /* Maximum y coordinate */
 	double z_min;       /* Minimum z value */
 	double z_max;       /* Maximum z value */
-
-	int doCoriolis;		/* Apply Coriolis if this != 0 */
 	double lat_min4Coriolis;	/* PRECISA SOLUCAO. POR AGORA SERA Cte = 0 */
 };
 
@@ -402,7 +401,7 @@ int main(int argc, char **argv) {
 	int     maregs_in_input = FALSE, out_momentum = FALSE, got_R = FALSE;
 	int     with_land = FALSE, IamCompiled = FALSE, do_nestum = FALSE, saveNested = FALSE, verbose = FALSE;
 	int     out_velocity = FALSE, out_velocity_x = FALSE, out_velocity_y = FALSE, out_velocity_r = FALSE;
-	int     out_maregs_velocity = FALSE;
+	int     out_maregs_velocity = FALSE, do_initial_interp = TRUE;
 	int     KbGridCols = 1, KbGridRows = 1; /* Number of rows & columns IF computing a grid of 'Kabas' */
 	int     cntKabas = 0;                /* Counter of the number of Kabas (prisms) already processed */
 	int     n_mareg, n_ptmar, n_oranges, pos_prhs;
@@ -613,6 +612,9 @@ int main(int argc, char **argv) {
 					break;
 				case 'f':	/* */
 					isGeog = TRUE;
+					break;
+				case 'i':	/* Do not interpolate time first run time of nested grids */
+					do_initial_interp = FALSE;
 					break;
 				case 'n':	/* Write MOST files (*.nc) */
 					basename_most  = &argv[i][2];
@@ -997,7 +999,9 @@ int main(int argc, char **argv) {
 		}
 	}
 
-	if (argc <= 1 || error) {
+	if (error) Return(-1);
+
+	if (argc <= 1) {
 #ifdef LIMIT_DISCHARGE
 		mexPrintf("NSWING - A tsunami maker (%s)\t\t-- With DISCHARGE limit.\n\n", prog_id);
 #else
@@ -1080,8 +1084,9 @@ int main(int argc, char **argv) {
 		mexPrintf("\t   nesting levels (if applyable), otherwise specify one for each nesting level separated by commas.\n");
 		mexPrintf("\t   Append +<depth> to only apply Manning at depths shallower than depth (pos up).\n");
 		mexPrintf("\t-Z Same as -G but saves result in a 3D netCDF file.\n");
-		mexPrintf("\t-t <dt> Time step for simulation.\n");
 		mexPrintf("\t-f To use when grids are in geographical coordinates.\n");
+		mexPrintf("\t-i Do not interpolate initial surface of nested grids, at time zero, from mother grids.\n");
+		mexPrintf("\t-t <dt> Time step for simulation.\n");
 #ifdef I_AM_MEX
 		mexPrintf("\t-e To be used from the Mirone stand-alone version.\n");
 		return;
@@ -1194,8 +1199,13 @@ int main(int argc, char **argv) {
 
 		r_bin_b = read_grd_info_ascii(bathy, &hdr_b);	/* To know how what memory to allocate */
 		if (r_bin_b < 0) {
-			mexPrintf("NSWING: %s Invalid bathymetry grid. Possibly it is in the Surfer 7 format\n", bathy); 
+			mexPrintf("NSWING: %s Invalid bathymetry grid. Not in the Surfer 6 format\n", bathy); 
 			Return(-1);
+		}
+
+		if (!isGeog && hdr_b.x_min >= -180 && hdr_b.x_max <= 360 && hdr_b.y_min > -90 && hdr_b.y_max < 90) {
+			mexPrintf("NSWING: Warning, the bathymetry grid seams to be in Geographical coords but -f was not set.\n"); 
+			isGeog = TRUE;
 		}
 		
 		if (!do_Okada && !do_Kaba) {	/* Otherwise we will compute initial condition later down after arrays are allocated */
@@ -1298,6 +1308,11 @@ int main(int argc, char **argv) {
 	if (cumpt && !writeLevel && do_nestum)      /* The case of maregraphs ONLY and nested grids. Use LAST level */
 		writeLevel = num_of_nestGrids;
 
+	if ((write_grids || out_3D) && !writeLevel && num_of_nestGrids) {	/* If no +l selected in -G|Z name stem, default to max */
+		writeLevel = num_of_nestGrids;
+		saveNested = TRUE;
+	}
+
 	/* -------------------------------------------------------------------------------------- */
 	for (k = 0; k < argc; k++) {		/* Build the History string (incomplete if AM_MEX) */
 		strcat(history, argv[k]);		strcat(history, " ");
@@ -1384,7 +1399,6 @@ int main(int argc, char **argv) {
 	hdr.y_min = hdr_b.y_min;    hdr.y_max = hdr_b.y_max;
 	hdr.z_min = hdr_b.z_min;    hdr.z_max = hdr_b.z_max;
 	hdr.lat_min4Coriolis = 0;	/* PRECISA ACABAR ISTO */
-	hdr.doCoriolis = FALSE;
 
 	nest.hdr[0] = hdr;
 
@@ -1491,11 +1505,8 @@ int main(int argc, char **argv) {
 				Return(-1);
 		}
 		nest.time_h = time_h;
-		/* TEMP trick to NOT do initial interpolation of nested grids. For TESTING purposes only. */
-		if (nest.run_jump_time > 0 && nest.run_jump_time < nest.dt[0])
-			nest.run_jump_time = 0;		/* So that we don't trigger resamplegrid in nestify() */
-		else
-			resamplegrid(&nest, num_of_nestGrids);	/* Resample eta(s) in descendent grids to avoid initial jumps at borders */
+		if (do_initial_interp)      /* Resample eta(s) in descendent grids to avoid initial jumps at borders */
+			resamplegrid(&nest, num_of_nestGrids);
 	}
 
 #ifdef HAVE_NETCDF
@@ -2459,7 +2470,6 @@ int initialize_nestum(struct nestContainer *nest, int isGeog, int lev) {
 
 	/* ------------------- PRECISA REVISÃO MAS TAMBÉM PRECISA INICIALIZAR --------------- */
 	nest->hdr[lev].lat_min4Coriolis = 0;
-	nest->hdr[lev].doCoriolis = hdr.doCoriolis;
 
 	return(0);
 }
