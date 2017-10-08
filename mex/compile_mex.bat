@@ -15,7 +15,7 @@ REM
 REM Usage: open the command window set up by the compiler of interest (were all vars are already set)
 REM	   and run this from there.
 REM	   You cannot build one program individualy but you can build one of the following groups:
-REM		simple, swan, edison, GMT, GDAL, OCV, MEXNC, MEXNC4, laszreader, mpgwrite
+REM		simple, nswing, swan, edison, GMT, GDAL, OCV, MEXNC, MEXNC4, laszreader, mpgwrite
 REM	   To do it, give the group name as argument to this batch. E.G. compile_mex GMT
 REM
 REM
@@ -26,10 +26,10 @@ REM ------------- Set the compiler (set to 'icl' to use the Intel compiler) ----
 SET CC=cl
 
 REM If set to "yes", linkage is done againsts ML6.5 Libs (needed in compiled version)
-SET R13="yes"
+SET R13="no"
 
 REM Set it to 32 or 64 to build under 64-bits or 32-bits respectively.
-SET BITS=32
+SET BITS=64
 
 REM Set to "yes" if you want to build a debug version
 SET DEBUG="no"
@@ -138,6 +138,7 @@ IF %1==GDAL GOTO GDAL
 IF %1==OCV  GOTO OCV
 IF %1==MEXNC  GOTO MEXNC
 IF %1==MEXNC4  GOTO MEXNC4
+IF %1==nswing   GOTO nswing
 IF %1==swan   GOTO swan
 IF %1==edison GOTO edison
 IF %1==lasreader GOTO lasreader
@@ -211,6 +212,14 @@ for %%G in (swan swan_sem_wbar nswing) do (
 link  /out:"%%G.%MEX_EXT%" %LINKFLAGS% %NETCDF_LIB% /implib:templib.x %%G.obj 
 )
 IF "%1"=="swan" GOTO END
+
+REM ---------------------- with netCDF ----------------------------------------------
+:nswing
+for %%G in (nswing) do (
+%CC% -DWIN32 %COMPFLAGS% /DHAVE_NETCDF -I%MATINC% -I%NETCDF_INC% %OPTIMFLAGS% %_MX_COMPAT% %TIMEIT% %OMP% %%G.c
+link  /out:"%%G.%MEX_EXT%" %LINKFLAGS% %NETCDF_LIB% /implib:templib.x %%G.obj 
+)
+IF "%1"=="nswing" GOTO END
 
 REM ---------------------- MEXNC4 ---------------------------------------------------
 :MEXNC4
