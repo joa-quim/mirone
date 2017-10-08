@@ -16,7 +16,7 @@ function varargout = aqua_suppfuns(opt, varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: aqua_suppfuns.m 9909 2016-11-04 17:01:22Z j $
+% $Id: aqua_suppfuns.m 10164 2017-10-08 19:38:36Z j $
 
 	switch opt
 		case 'coards_hdr',		[varargout{1:nargout}] = init_header_params(varargin{:});
@@ -84,6 +84,7 @@ function out = init_header_params(handles,X,Y,head,misc,getAllMinMax)
 			warndlg('WARNING: All layers are zero. You better go home.', 'Warning')
 		end
 		head(5:6) = handles.zMinMaxs(k,:);			% Take the first non zero slice min/max
+		set(handles.radio_shade, 'Val', 1);		set(handles.radio_noShade, 'Val', 0)	% Set shading by default
 	elseif (getAllMinMax)
 		aguentabar(0,'title','Computing global min/max')
 		for (k = 1:handles.number_of_timesteps)
