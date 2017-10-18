@@ -1380,6 +1380,13 @@ int main(int argc, char **argv) {
 		}
 	}
 
+	if (z_offset != 0 && !do_HotStart) {				/* If we have a tide offset, apply it. */
+		for (k = 0; k <= num_of_nestGrids; k++) {
+			for (ij = 0; ij < nest.hdr[k].nm; ij++)
+				nest.bat[k][ij] += z_offset;			/* -z_offset because here bathy is already positive down */
+		}
+	}
+
 	if (do_HotStart) {
 		if (!r_bin_mM)					/* Read moment M */
 			read_grd_ascii(fname_momentM, &hdr_mM, nest.fluxm_a[0], 1);
@@ -1565,10 +1572,8 @@ int main(int argc, char **argv) {
 		/* To be used when writing the data slices */
 		count1_M[0] = 1;	count1_M[1] = ny;	count1_M[2] = nx;
 	}
-	if (do_Kaba) {
-		/* To be used when writing the data slices */
+	if (do_Kaba) 				/* To be used when writing the data slices */
 		count_Mar[0] = 1;		/* count_Mar[1] will be set at the end of main loop. */
-	}
 #endif
 
 
@@ -1597,13 +1602,6 @@ int main(int argc, char **argv) {
 				{no_sys_mem("(maregs_array_t)", n_ptmar * n_mareg); Return(-1);}
 			if ((maregs_timeout = (double *)mxCalloc((size_t)n_ptmar, sizeof(double))) == NULL)
 				{no_sys_mem("(maregs_timeout)", n_ptmar); Return(-1);}
-		}
-	}
-
-	if (z_offset != 0 && !do_HotStart) {				/* If we have a tide offset, apply it. */
-		for (k = 0; k == num_of_nestGrids; k++) {
-			for (ij = 0; ij < nest.hdr[k].nm; ij++)
-				nest.bat[k][ij] += -z_offset;			/* -z_offset because here bathy is already positive down */
 		}
 	}
 
