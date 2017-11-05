@@ -756,7 +756,7 @@ end
 %uimenu('Parent',h, 'Call', 'update_gmt(guidata(gcbo))','Label','Update your GMT5','Sep','on')
 uimenu('Parent',h, 'Call',['mirone(''FileOpenWebImage_CB'',guidata(gcbo),',...
 	' ''http://www2.clustrmaps.com/stats/maps-clusters/w3.ualg.pt-~jluis-mirone-world.jpg'',''nikles'');'],'Label','See visitors map','Sep','on');
-uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 20 Sep 2017'',''2.9.0dev'')','Label','About','Sep','on');
+uimenu('Parent',h, 'Call','about_box(guidata(gcbo),''Mirone Last modified at 5 Nov 2017'',''2.9.0dev'')','Label','About','Sep','on');
 
 %% --------------------------- Build HANDLES and finish things here
 	handles = guihandles(H1);
@@ -794,7 +794,7 @@ function figure1_KeyPressFcn(hObj, event)
 	if (handles.no_file),	return,		end
 	cc = get(hObj,'CurrentCharacter');
 	if (isempty(cc)),		return,		end		% HTF can this happen? But I already saw it happen
-	if (cc == '+' || cc == '[')			% Lazzy undocumented keys for convinience when using English keyboards
+	if (cc == '+' || cc == '[')			% Lazy undocumented keys for convinience when using English keyboards
 		zoom_j(hObj,2,[]);
 	elseif (cc == '-' || cc == '/')
 		zoom_j(hObj,0.5,[]);
