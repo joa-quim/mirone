@@ -4100,6 +4100,27 @@ function out = FileSaveSession_CB(handles)
 	IamTINTOL = ~isempty(getappdata(handles.figure1, 'L_UsedByGUIData'));
 	is_defRegion = handles.is_defRegion;
 
+	if (handles.computed_grid)						% Quietly save the grid on disk
+		grd_name = strrep(grd_name, ' ', '_');		pato = fileparts(fname);
+		grd_name = [pato, filesep, grd_name, '.grd'];
+		misc = struct('x_units',[],'y_units',[],'z_units',[],'z_name',[],'desc',[], ...
+		'title','A Mirone grid','history',[],'srsWKT',[], 'strPROJ4',[]);
+		Z = getappdata(handles.figure1,'dem_z');
+		nc_io(grd_name, 'w', handles, Z, misc)
+	elseif (isempty(grd_name))						% Shit. Images are more complicated
+		if (handles.image_type == 2)
+			grd_name = [fname '.jpeg'];
+			warndlg(['You are working on a on-memory only image. That is NOT NOT good.' ...
+				'ATTENTION: you''ll have to save the image first and MUST MUST save it under the name:' ...
+				grd_name], 'Warning', 'modal');
+			snapshot(handles.figure1)
+		elseif (handles.image_type == 3)
+			h = warndlg('You are working on a on-memory only image. That is not good. You''ll have to save the image first');
+			pause(2);		delete(h)
+			FileSaveImgGrdGdal_CB(handles,'GeoTiff','img', [fname, '.tiff'])
+		end
+	end
+
 	save(fname,'grd_name','img_pal', 'havePline','Pline', 'haveMBtrack', 'MBtrack','MBbar', ...
 		'haveText','Texto', 'haveSymbol','Symbol', 'haveCircleGeo','CircleGeo', 'haveCircleCart', ...
 		'havePlineAsPoints','PlineAsPoints','havePlineAsGCPs','PlineAsGCPs','CircleCart', 'map_limits', ...
@@ -4186,10 +4207,11 @@ function GRDdisplay(handles, X, Y, Z, head, tit, name, srsWKT)
 	if (~isempty(thematic_pal)),	setappdata(newHand.figure1,'thematic_pal',thematic_pal),	end
 
 % --------------------------------------------------------------------
-function FileSaveImgGrdGdal_CB(handles, opt1, opt2)
+function FileSaveImgGrdGdal_CB(handles, opt1, opt2, opt3)
 % OPT1 = DRIVER == GTiff, HFA (erdas), ENVI, ECW, JP2ECW
 % OPT2 == grid -> saves the underlaying grid
 % ELSE -> do a screen capture
+% OPT3 = file name (Optional)
 	if (handles.no_file),		return,		end
 	if (strcmp(opt2,'grid') && ~handles.validGrid)
 		errordlg('You don''t have a Grid loaded, so OBVIOUSLY you cannot save it.','Error');  return
@@ -4203,9 +4225,13 @@ function FileSaveImgGrdGdal_CB(handles, opt1, opt2)
 		case 'JP2K',		str1 = {'*.jp2;*.JP2', 'Jpeg2000 (*.jp2;*.JP2)'};		driver = 'JP2ECW';
 		case 'PDF',			str1 = {'*.pdf;*.PDF', 'GeoPDF (*.pdf;*.PDF)'};			driver = 'GeoPDF';
 	end
-	[FileName,PathName] = put_or_get_file(handles,str1,['Select ' opt1 ' file name'],'put', str1{1}(2:5));
-	if isequal(FileName,0),		return,		end
-	fname = [PathName FileName];
+	if (nargin == 4)
+		fname = opt3;
+	else
+		[FileName,PathName] = put_or_get_file(handles,str1,['Select ' opt1 ' file name'],'put', str1{1}(2:5));
+		if isequal(FileName,0),		return,		end
+		fname = [PathName FileName];
+	end
 
 	head = handles.head;
 	% 'ThisImageLims' contains the limits as seen from the pixel-registration stand-point,
