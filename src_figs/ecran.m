@@ -631,7 +631,6 @@ function dynSlope_CB(obj, eventdata)
 		if (strcmp(xl(end-2:end-1), 'km'))		% frequency is in 1/km
 			xFact = 1000;						% Multiplying factor to get depth in meters
 		end
-		xFact = xFact / (2*pi);					% 2Pi because we have x in freq but need wavenumber for SpectorGrant
 	else										% Have to check the various possibilities
 		if (get(handles.check_geog, 'Val'))
 			contents = get(handles.popup_selectPlot, 'Str');
@@ -686,22 +685,28 @@ function wbm_dynSlope(obj,eventdata, x0, I0, hAxes, hLine, hULine, hFLine, hTxt,
 
 	[temp,i] = min(abs(X - pt(1)));
 	if (i < I0),		ii = I0;			I0 = i;		i = ii;		end		% Dragging right to left
-	xx = X(I0:i);		yy = Y(I0:i);		xy = [xx(:) yy(:)];
+	xx = X(I0:i);		yy = Y(I0:i);
+	if (SpectorGrant)
+		xy = [xx(:) log(yy(:))];
+	else
+		xy = [xx(:) yy(:)];
+	end
 	N = numel(xx);
 	if (N > 2),				mb = trend1d_m(xy, '-N2r', '-L');			% Do robust fit
 	elseif (N == 2),		mb = trend1d_m(xy, '-N2', '-L');
 	else					return			% First point. Too soon to do anything
 	end
+	xUnderLine = [x0 xx(end)];
 	if (~SpectorGrant)
 		fstr = 'Dist=%g\t  Slope=%.3f\t (m=%.2f)';
 		slp = atan(mb(1) / xFact)*180/pi;	% slope in (may be) degrees
+		set(hTxt, 'Pos', [xx(1) 0.11], 'Str', sprintf(fstr, diff(xUnderLine), slp, mb(1)))
+		set(hFLine(end), 'XData', [xx(1) xx(end)], 'YData', ([xx(1) xx(end)] * mb(1) + mb(2)), 'UserData', [mb slp xUnderLine])
 	else
-		fstr = 'Dist=%g\t  Depth=%.3f';
 		slp = abs(mb(1) / (4*pi) * xFact);
+		set(hTxt, 'Pos', [xx(1) 0.11], 'Str', sprintf('Dist=%g\t  Depth=%.0f m', diff(xUnderLine), slp))
+		set(hFLine(end), 'XData', [xx(1) xx(end)], 'YData', exp([xx(1) xx(end)] * mb(1) + mb(2)), 'UserData', [mb slp xUnderLine])
 	end
-	xUnderLine = [x0 xx(end)];
-	set(hTxt, 'Pos', [xx(1) 0.11], 'Str', sprintf(fstr, diff(xUnderLine), slp, mb(1)))
-	set(hFLine(end), 'XData', [xx(1) xx(end)], 'YData', ([xx(1) xx(end)] * mb(1) + mb(2)), 'UserData', [mb slp xUnderLine])
 	set(hULine,'XData', xUnderLine)
 
 function wbu_dynSlope(obj,event, h, xFact, SpectorGrant, state)
