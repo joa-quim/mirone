@@ -7,7 +7,7 @@ REM If set to "yes", fish the MEXs with the old .dll extension
 SET R13="no"
 
 REM Set to 32 or 64 to the corresponding bitage version
-SET BITS=64
+SET BITS=32
 
 IF %R13%=="yes" SET BITS=32
 
@@ -17,6 +17,7 @@ SET Pj=c:\j\bin\
 
 REM The GDAL location 
 SET Pgd=C:\programs\compa_libs\gdal\compileds\VC12_%BITS%\bin\
+SET Pgmt=C:\progs_cygw\GMTdev\gmt5\trunk\WIN%BITS%\bin\
 REM ------------------------------------------------------------------------------------------------
 
 IF %BITS%==64 (
@@ -49,15 +50,26 @@ copy /Y %P%opencv_objdetect_w%BITS%.dll .  && copy /Y %P%opencv_video_w%BITS%.dl
 copy /Y %P%opencv_flann_w%BITS%.dll .      && copy /Y %P%opencv_features2d_w%BITS%.dll .
 copy /Y %P%opencv_photo_w%BITS%.dll .      && copy /Y %P%lti_dsdk.dll .
 copy /Y %P%cfitsio_w%BITS%.dll .
+copy /Y %P%pcre_w%BITS%.dll .
+copy /Y %P%glib_w%BITS%.dll .
+copy /Y %P%libintl_w%BITS%.dll .
+copy /Y %P%libeay32_w%BITS%.dll .
+copy /Y %P%ssleay32_w%BITS%.dll .
+copy /Y %P%sqlite3_w%BITS%.dll .
+copy /Y %P%spatialite_w%BITS%.dll .
+copy /Y %P%libxml2_w%BITS%.dll .
+copy /Y %P%freexl_w%BITS%.dll .
+copy /Y %P%libiconv_w%BITS%.dll .
+copy /Y %P%webp_w%BITS%.dll .
 
-copy /Y %P2%libiomp5md.dll .  && copy /Y %P2%libmmd.dll .
+copy /Y %P2%libiomp5md.dll .    && copy /Y %P2%libmmd.dll .
 copy /Y %P2%country_extract.exe .
-copy /Y %P2%gmt.dll .         && copy /Y %P2%gmt_mgg.dll .   && copy /Y %P2%psl.dll .
-copy /Y %Pj%gunzip.exe .      && copy /Y %Pj%unzip.exe .     && copy /Y %Pj%wget.exe .
-copy /Y %Pgd%gdalinfo.exe .   && copy /Y %Pgd%gdal_translate.exe .
-copy /Y %PVC%msvcp100.dll .   && copy /Y %PVC%msvcr100.dll .
-copy /Y %PVC2%msvcp120.dll .  && copy /Y %PVC2%msvcr120.dll .
-copy /Y %P2%gmt.m .
+copy /Y %P2%gmtmex.%MEX_EXT% .
+copy /Y %Pgmt%gmt_w%BITS%.dll . && copy /Y %Pgmt%postscriptlight_w%BITS%.dll .
+copy /Y %Pj%gunzip.exe .        && copy /Y %Pj%unzip.exe .     && copy /Y %Pj%wget.exe .
+copy /Y %Pgd%gdalinfo.exe .     && copy /Y %Pgd%gdal_translate.exe .
+copy /Y %PVC%msvcp100.dll .     && copy /Y %PVC%msvcr100.dll .
+copy /Y %PVC2%msvcp120.dll .    && copy /Y %PVC2%msvcr120.dll .
 
 REM ------------- Copy the MEXs and the P codes --------------------------------------
 md utils  && md lib_mex  &&  cd utils
@@ -66,8 +78,6 @@ IF %R13%=="yes" (
 copy /Y %P2%lib_mex_dll\p\*.p .
 cd ..\lib_mex
 copy /Y %P2%lib_mex_dll\*.dll .
-cd ..
-copy /Y %P2%\gmtmex.dll .
 SET R13="R13"
 
 ) ELSE (
@@ -76,12 +86,11 @@ copy /Y %P2%utils\*.p .
 cd ..\lib_mex
 copy /Y %P2%lib_mex\*.%MEX_EXT% .
 IF %BITS%==32 copy /Y %P2%lib_mex\*.dll .
-cd ..
-copy /Y %P2%\gmtmex.%MEX_EXT% .
 SET R13=
 )
 REM ----------------------------------------------------------------------------------
 
+cd ..
 
 REM Create a simple readme
 echo unzip the contents of this file to the Mirone's root directory > READEME.txt
