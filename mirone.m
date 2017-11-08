@@ -20,7 +20,7 @@ function varargout = mirone(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: mirone.m 10140 2017-09-11 00:33:05Z j $
+% $Id: mirone.m 10178 2017-11-08 19:06:27Z j $
 
 	if (nargin > 1 && ischar(varargin{1}))
 		if ( ~isempty(strfind(varargin{1},':')) || ~isempty(strfind(varargin{1},filesep)) )
@@ -3643,7 +3643,9 @@ function FileOpenSession_CB(handles, fname)
 	end
 
 	% Have to use a try-catch because of the f. compiler bugs ("exist" won't work)
-	try			s.illumComm;
+	try
+		s.illumComm;
+		if (~isa(s.illumComm, 'char')),	s.illumComm = '';	end		% Something bad happened (and I've seen it already)
 	catch,		s.illumComm = '';		flagIllum = false;
 	end
 	try			s.illumType;
@@ -3874,6 +3876,7 @@ function out = FileSaveSession_CB(handles)
 	map_limits = getappdata(handles.axes1,'ThisImageLims');
 	if (handles.validGrid && handles.Illumin_type >= 1 && handles.Illumin_type <= 4)
 		illumComm = getappdata(handles.figure1,'illumComm');
+		if (isa(illumComm, 'struct')),		illumComm = [];		end		% I've seen on such oddity
 	end
 	ALLlineHand = findobj(get(handles.axes1,'Child'),'Type','line');
 	haveMBtrack = 0;	havePline = 0;		haveText = 0;	haveSymbol = 0;		haveCircleGeo = 0;
@@ -4100,7 +4103,7 @@ function out = FileSaveSession_CB(handles)
 	IamTINTOL = ~isempty(getappdata(handles.figure1, 'L_UsedByGUIData'));
 	is_defRegion = handles.is_defRegion;
 
-	if (handles.computed_grid)						% Quietly save the grid on disk
+	if (handles.computed_grid || ~exist(grd_name, 'file'))	% Quietly save the grid on disk
 		grd_name = strrep(grd_name, ' ', '_');		pato = fileparts(fname);
 		grd_name = [pato, filesep, grd_name, '.grd'];
 		misc = struct('x_units',[],'y_units',[],'z_units',[],'z_name',[],'desc',[], ...
