@@ -28,7 +28,11 @@ function [FileName,PathName,handles] = put_or_get_file(handles,str1,str2,type, e
 		try		cd(handles.last_dir),	end		% We cannot risk to error here
 		[FileName,PathName] = uigetfile(str1,str2);
 	elseif (strcmp(type,'put'))
-		if (~isempty(handles.last_dir)),	cd(handles.last_dir),	end
+		try			% May fail when accesing external drives
+			if (~isempty(handles.last_dir)),	cd(handles.last_dir),	end
+		catch
+			handles.last_dir = handles.work_dir;
+		end
 		done = false;
 		if (nargin == 5)				% Last arg may be just the extension, or the complete name
 			[PATH,FNAME] = fileparts(ext);
