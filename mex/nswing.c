@@ -1,7 +1,7 @@
 /*--------------------------------------------------------------------
- *	$Id: nswing.c 10179 2017-11-29 01:23:01Z j $
+ *	$Id: nswing.c 10180 2017-11-29 17:52:51Z j $
  *
- *	Copyright (c) 2012-2015 by J. Luis and J. M. Miranda
+ *	Copyright (c) 2012-2018 by J. Luis and J. M. Miranda
  *
  * 	This program is part of Mirone and is free software; you can redistribute
  * 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -16,7 +16,7 @@
  *	Contact info: w3.ualg.pt/~jluis/mirone
  *--------------------------------------------------------------------*/
 
-static char prog_id[] = "$Id: nswing.c 10179 2017-11-29 01:23:01Z j $";
+static char prog_id[] = "$Id: nswing.c 10180 2017-11-29 17:52:51Z j $";
 
 /*
  *	Original Fortran version of core hydrodynamic code by J.M. Miranda and COMCOT
@@ -58,12 +58,19 @@ static char prog_id[] = "$Id: nswing.c 10179 2017-11-29 01:23:01Z j $";
  *	Rewritten in C, mexified, added number options, etc... By
  *	Joaquim Luis - 2013
  *
+ *  This version is the first to run with more than 2 cores. For that compile with /DPARALLEL
+ * Compiling with /DBY_SLICES runs in single core but with the slicing algorithm used in PARALLEL
+ * It was used to prove that the algorithm works, but now that it has done its job it will be removed soon.
  */
 
 #if defined(WIN32) || defined(_WIN32) || defined(_WIN64)
 #	define DO_MULTI_THREAD	/* ISTO TEM DE SER AUTOMATIZADO, OU VIA COMPILA */
 #else
 #	define strtok_s strtok_r
+#endif
+
+#ifdef PARALLEL
+#	undef DO_MULTI_THREAD
 #endif
 
 #define I_AM_MEX        /* Build as a MEX */
@@ -223,6 +230,7 @@ struct nestContainer {         /* Container for the nestings */
 	int    out_velocity_y;
 	int    out_momentum;       /* To know if save the momentum in the 3D netCDF grid. Mutually exclusive with out_velocity_x|y */
 	int    isGeog;             /* 0 == Cartesian, otherwise Geographic coordinates */
+	int    n_threads;          /* Number of threads for multi-threading */
 	int    writeLevel;         /* Store info about which level is (if) to be writen [0] */
 	int    bnc_pos_nPts;       /* Number of points in a external boundary condition file */
 	int    bnc_var_nTimes;     /* Number of time steps in the external boundary condition file */
@@ -266,6 +274,7 @@ typedef struct {
 	struct nestContainer *nest;   /* Pointer to a nestContainer struct */
 	int iThread;                  /* Thread index */
 	int lev;                      /* Level of nested grid */
+	int row_start, row_end;       /* Start and end rows for the BY slices in PARALLEL mode */
 } ThreadArg;
 
 void no_sys_mem(char *where, unsigned int n);
@@ -307,6 +316,8 @@ void moment_M(struct nestContainer *nest, int lev);
 void moment_N(struct nestContainer *nest, int lev);
 void moment_sp_M(struct nestContainer *nest, int lev);
 void moment_sp_N(struct nestContainer *nest, int lev);
+void moment_sp_M_slice(int lev, int row_start, int row_end, struct nestContainer *nest);
+void moment_sp_N_slice(int lev, int row_start, int row_end, struct nestContainer *nest);
 void free_arrays(struct nestContainer *nest, int isGeog, int lev);
 int  check_paternity(struct nestContainer *nest);
 int  check_binning(double x0P, double x0D, double dxP, double dxD, double tol, double *suggest);
@@ -349,16 +360,20 @@ int write_greens_nc(struct nestContainer *nest, char *fname, float *work, size_t
 void err_trap_(int status);
 #endif
 
-#if defined(WIN32) || defined(_WIN32) || defined(_WIN64)
+#if (defined(WIN32) || defined(_WIN32) || defined(_WIN64)) && (defined(DO_MULTI_THREAD) || defined(PARALLEL))
 /* Prototypes for threading related functions */
 unsigned __stdcall MT_cart(void *Arg_p);
 unsigned __stdcall MT_sp(void *Arg_p);
-int GetLocalNThread(void);
+unsigned __stdcall MT_moment_sp_M_slice(void *Arg_p);
+unsigned __stdcall MT_moment_sp_N_slice(void *Arg_p);
 #endif
+int GetLocalNThread(void);
 
 /* Function pointers to M & N moment components */
 PFV call_moment[2];
 PFV call_moment_sp[2];
+PFV call_moment_sp_M_slice;
+PFV call_moment_sp_N_slice;
 
 int Return(int code) {		/* To handle return codes between MEX and standalone code */
 #ifdef I_AM_MEX
@@ -465,6 +480,11 @@ int main(int argc, char **argv) {
 	call_moment[1] = (PFV)moment_N;
 	call_moment_sp[0] = (PFV)moment_sp_M;
 	call_moment_sp[1] = (PFV)moment_sp_N;
+
+#if defined(BY_SLICES) || defined(PARALLEL)
+	call_moment_sp_M_slice = (PFV)moment_sp_M_slice;
+	call_moment_sp_N_slice = (PFV)moment_sp_N_slice;
+#endif
 
 #ifdef DO_MULTI_THREAD
 	if ((k = GetLocalNThread()) == 1) {
@@ -619,6 +639,14 @@ int main(int argc, char **argv) {
 				case 'n':	/* Write MOST files (*.nc) */
 					basename_most  = &argv[i][2];
 					out_most = TRUE;
+					break;
+				case 'x':	/* */
+					if (argv[i][2] == 'a')		/* Use all processors abvailable */
+						nest.n_threads = GetLocalNThread();
+					else
+						nest.n_threads = atoi(&argv[i][2]);
+
+					if (nest.n_threads < 1) nest.n_threads = 1;
 					break;
 				case 'A':	/* Name for the Anuga .sww netCDF file */
 					fname_sww  = &argv[i][2];
@@ -1643,6 +1671,7 @@ int main(int argc, char **argv) {
 			mexPrintf("Computing a grid of prisms with size %d (rows) x %d (cols)\n", KbGridRows, KbGridCols);
 		if (EPS4 != EPS4_)
 			mexPrintf("Using a modified EPS4 const of %g\n", EPS4);
+		mexPrintf("\nUsing %d cores\n", nest.n_threads);
 #ifdef LIMIT_DISCHARGE
 		mexPrintf("\nUsing DISCHARGE limit to minimize sources of instability\n");
 #endif
@@ -2196,6 +2225,7 @@ void sanitize_nestContainer(struct nestContainer *nest) {
 	nest->out_velocity_x = FALSE;
 	nest->out_velocity_y = FALSE;
 	nest->do_Coriolis    = FALSE;
+	nest->n_threads      = 1;
 	nest->bnc_var_nTimes = 0;
 	nest->bnc_pos_nPts   = 0;
 	nest->bnc_border[0]  = nest->bnc_border[1] = nest->bnc_border[2] = nest->bnc_border[3] = FALSE;
@@ -4559,22 +4589,16 @@ void moment_sp_M(struct nestContainer *nest, int lev) {
 
 	/* - fixes the width of the lateral buffer for linear aproximation */
 	/* - if jupe>nnx/2 and jupe>nny/2 linear model will be applied */
-	if (lev > 0) {
-		jupe = 0;    first = 1;    last = 0;
-	}
-	else {
-		jupe = 10;   first = 0;    last = 1;
-	}
-
+	if (lev > 0) {jupe = 0;    first = 1;    last = 0;}
+	else         {jupe = 10;   first = 0;    last = 1;}
 	if (nest->do_linear) jupe = 1e6;		/* A tricky way of imposing linearity */
 
-	/* - fixes friction parameter */
-	cte = (manning != 0) ? manning * manning * dt * 4.9 : 0;
+	cte = (manning != 0) ? manning * manning * dt * 4.9 : 0;/* - fixes friction parameter */
 
 	memset(fluxm_d, 0, hdr.nm * sizeof(double));	/* Do this rather than set to zero under looping conditions */
 	row_start = 0;		row_end = hdr.ny - last;
 
-#ifdef PARALLEL
+#ifdef BY_SLICES
 	int n_rows_block, cores, n_cores = 4;
 	n_rows_block = (int)ceil(row_end / n_cores);
 
@@ -4582,30 +4606,52 @@ void moment_sp_M(struct nestContainer *nest, int lev) {
 	for (cores = 0; cores < n_cores; cores++) {
 		row_start = cores * n_rows_block;
 		row_end   = MIN(row_start + n_rows_block, hdr.ny - last);
-		moment_M_sp_slice(lev, row_start, row_end, jupe, first, cte, manning, r0, r2m, r3m, r4m,
-		                  htotal_d, htotal_a, etad, bat, fluxn_a, fluxm_a, fluxm_d, vex, hdr, nest);
+		moment_sp_M_slice(lev, row_start, row_end, nest);
 	}
 }
+#endif
+#ifdef PARALLEL		/* Than the moment_sp_M() fun end here */
+}
+#endif
 
-moment_M_sp_slice(int lev, int row_start, int row_end, int jupe, int first, double cte, double manning,
-                  double *r0, double *r2m, double *r3m, double *r4m, double *htotal_d, double *htotal_a,
-				  double *etad, double *bat, double *fluxn_a, double *fluxm_a, double *fluxm_d,
-				  double *vex, struct grd_header hdr, struct nestContainer *nest) {
+#if defined(BY_SLICES) || defined(PARALLEL)
+void moment_sp_M_slice(int lev, int row_start, int row_end, struct nestContainer *nest) {
 	unsigned int ij;
+	int first, last, jupe;
 	int valid_vel;
 	int row, col;
 	int cm1, rm1;			/* previous column (cm1 = col - 1) and row (rm1 = row - 1) */
 	int cp1, rp1;			/* next column (cp1 = col + 1) and row (rp1 = row + 1) */
-	int rm2, cp2, r2m_r;
+	int rm2, cp2;
 	double ff = 0;
 	double dd, df, xp, xqe, xqq, advx, advy, f_limit;
 	double dpa_ij, dpa_ij_rp1, dpa_ij_rm1, dpa_ij_cm1, dpa_ij_cp1;
+	double dt, manning, *htotal_a, *htotal_d, *bat, *etad, *fluxm_a, *fluxn_a, *fluxm_d, *fluxn_d, *vex;
+	double *r0, *r2m, *r3m, *r4m, r2m_r;
+	double cte;
 	double bat__ij;
 	double htotal_d__ij;
 	double htotal_d__ij_cp1;
 	double etad__ij, etad__ij_cp1;
 	double fluxm_a__ij;
+	struct grd_header hdr;
 
+	hdr      = nest->hdr[lev];             vex      = nest->vex[lev];
+	dt       = nest->dt[lev];              manning  = nest->manning[lev];
+	bat      = nest->bat[lev];             etad     = nest->etad[lev];
+	htotal_a = nest->htotal_a[lev];        htotal_d = nest->htotal_d[lev];
+	fluxm_a  = nest->fluxm_a[lev];         fluxm_d  = nest->fluxm_d[lev];
+	fluxn_a  = nest->fluxn_a[lev];         fluxn_d  = nest->fluxn_d[lev];
+	r0       = nest->r0[lev];              r2m      = nest->r2m[lev];
+	r3m      = nest->r3m[lev];             r4m      = nest->r4m[lev];
+
+	/* - fixes the width of the lateral buffer for linear aproximation */
+	/* - if jupe>nnx/2 and jupe>nny/2 linear model will be applied */
+	if (lev > 0) {jupe = 0;    first = 1;    last = 0;}
+	else         {jupe = 10;   first = 0;    last = 1;}
+	if (nest->do_linear) jupe = 1e6;		/* A tricky way of imposing linearity */
+
+	cte = (manning != 0) ? manning * manning * dt * 4.9 : 0;	/* - fixes friction parameter */
 #endif
 
 	for (row = row_start; row < row_end; row++) {		/* - main computation cycle fluxm_d */
@@ -4694,23 +4740,12 @@ moment_M_sp_slice(int lev, int row_start, int row_end, int jupe, int first, doub
 				advx = -r2m_r * (fluxm_a__ij * fluxm_a__ij) / dpa_ij;
 				if (!(dpa_ij_cp1 < EPS3 || htotal_d__ij_cp1 < EPS5))
 					advx += r2m_r * (fluxm_a[ij+cp1]*fluxm_a[ij+cp1]) / dpa_ij_cp1;
-
-				/*if (dpa_ij_cp1 < EPS3 || htotal_d__ij_cp1 < EPS5)
-					advx = -r2m_r * (fluxm_a__ij * fluxm_a__ij) / dpa_ij;
-				else
-					advx = -r2m_r * (fluxm_a__ij * fluxm_a__ij) / dpa_ij + r2m_r * (fluxm_a[ij+cp1]*fluxm_a[ij+cp1]) / dpa_ij_cp1;*/
 			}
 			else {
 				dpa_ij_cm1 = (htotal_d[ij-cm1] + htotal_a[ij-cm1] + htotal_d__ij + htotal_a[ij]) * 0.25;
 				advx = r2m_r * (fluxm_a__ij * fluxm_a__ij) / dpa_ij;
 				if (!(dpa_ij_cm1 < EPS3 || htotal_d__ij < EPS5))
 					advx -= r2m_r * (fluxm_a[ij-cm1] * fluxm_a[ij-cm1]) / dpa_ij_cm1;
-
-				/*if (dpa_ij_cm1 < EPS3 || htotal_d__ij < EPS5)
-					advx = r2m_r * (fluxm_a__ij * fluxm_a__ij) / dpa_ij;
-				else
-					advx = r2m_r * (fluxm_a__ij * fluxm_a__ij) / dpa_ij - 
-						r2m_r * (fluxm_a[ij-cm1] * fluxm_a[ij-cm1]) / dpa_ij_cm1a;*/
 			}
 			/* - upwind scheme for y-direction volume flux */
 			if (xqq < 0) {
@@ -4722,13 +4757,6 @@ moment_M_sp_slice(int lev, int row_start, int row_end, int jupe, int first, doub
 					xqe = (fluxn_a[ij+rp1] + fluxn_a[ij+cp1+rp1] + fluxn_a[ij] + fluxn_a[ij+cp1]) * 0.25;
 					advy += r0[row] * (fluxm_a[ij+rp1] * xqe / dpa_ij_rp1);
 				}
-
-				/*if (dpa_ij_rp1 < EPS5 || htotal_d__ij_rp1 < EPS5 || htotal_d__ij_cp1_rp1 < EPS5)
-					advy = -r0[row] * (fluxm_a__ij * xqq / dpa_ij);
-				else {
-					xqe = (fluxn_a[ij+rp1] + fluxn_a[ij+cp1+rp1] + fluxn_a[ij] + fluxn_a[ij+cp1]) * 0.25;
-					advy = -r0[row] * (fluxm_a__ij * xqq / dpa_ij) + r0[row] * (fluxm_a[ij+rp1] * xqe / dpa_ij_rp1);
-				}*/
 			} 
 			else {
 				double htotal_d__ij_rm1  = htotal_d[ij-rm1];
@@ -4740,14 +4768,6 @@ moment_M_sp_slice(int lev, int row_start, int row_end, int jupe, int first, doub
 					xqe = (fluxn_a[ij-rm1] + fluxn_a[ij+cp1-rm1] + fluxn_a[ij-rm2] + fluxn_a[ij+cp1-rm2]) * 0.25;
 					advy += - r0[row] * (fluxm_a[ij-rm1] * xqe / dpa_ij_rm1);
 				}
-
-				/*if (dpa_ij_rm1 < EPS5 || htotal_d__ij_rm1 < EPS5 || htotal_d__ij_cp1_rm1 < EPS5)
-					advy = r0[row] * (fluxm_a__ij * xqq / dpa_ij);
-				else {
-					rm2 = ((row < 2) ? 0 : 2) * hdr.nx;
-					xqe = (fluxn_a[ij-rm1] + fluxn_a[ij+cp1-rm1] + fluxn_a[ij-rm2] + fluxn_a[ij+cp1-rm2]) * 0.25;
-					advy = r0[row] * (fluxm_a__ij * xqq / dpa_ij) - r0[row] * (fluxm_a[ij-rm1] * xqe / dpa_ij_rm1);
-				}*/
 			}
 			/* - disregards very small advection terms */
 			//if (fabs(advx) < EPS10) advx = 0;
@@ -4807,50 +4827,68 @@ void moment_sp_N(struct nestContainer *nest, int lev) {
 
 	/* - fixes the width of the lateral buffer for linear aproximation */
 	/* - if jupe>nnx/2 and jupe>nny/2 linear model will be applied */
-	if (lev > 0) {			/* We are in a call to a nested grid */
-		jupe = 0;    first = 1;    last = 0;
-	}
-	else {
-		jupe = 10;   first = 0;    last = 1;
-	}
-
+	if (lev > 0) {jupe = 0;    first = 1;    last = 0;} /* We are in a call to a nested grid */
+	else         {jupe = 10;   first = 0;    last = 1;}
 	if (nest->do_linear) jupe = 1e6;		/* A tricky way of imposing linearity */
 
-	/* - fixes friction parameter */
-	cte = (manning != 0) ? manning * manning * dt * 4.9 : 0;
+	cte = (manning != 0) ? manning * manning * dt * 4.9 : 0;	/* - fixes friction parameter */
 
-	memset(fluxn_d, 0, hdr.nm * sizeof(double));	/* Do this rather than seting to zero under looping conditions */
+	memset(fluxn_d, 0, hdr.nm * sizeof(double));
 	row_start = first;		row_end = hdr.ny - 1;
 
-#ifdef PARALLEL
+#ifdef BY_SLICES
 	int n_rows_block, cores, n_cores = 4;
 	n_rows_block = (int)ceil(row_end / n_cores);
 
 	for (cores = 0; cores < n_cores; cores++) {
 		row_start = cores * n_rows_block;
 		row_end   = MIN(row_start + n_rows_block, hdr.ny - last);
-		moment_N_sp_slice(lev, row_start, row_end, jupe, last, cte, manning, r0, r2n, r3n, r4n,
-		                  htotal_d, htotal_a, etad, bat, fluxn_a, fluxm_a, fluxn_d, vey, hdr, nest);
+		moment_sp_N_slice(lev, row_start, row_end, nest);
 	}
 }
+#endif
+#ifdef PARALLEL		/* Than the moment_sp_N() fun ends here */
+}
+#endif
 
-moment_N_sp_slice(int lev, int row_start, int row_end, int jupe, int last, double cte, double manning, double *r0, double *r2n, double *r3n, double *r4n, double *htotal_d, double *htotal_a, double *etad, double *bat, double *fluxn_a, double *fluxm_a, double *fluxn_d, double *vey, struct grd_header hdr, struct nestContainer *nest) {
+#if defined(BY_SLICES) || defined(PARALLEL)
+void moment_sp_N_slice(int lev, int row_start, int row_end, struct nestContainer *nest) {
 	unsigned int ij;
 	int valid_vel;
+	int first, last, jupe;
 	int row, col;
 	int cm1, rm1;			/* previous column (cm1 = col - 1) and row (rm1 = row - 1) */
 	int cp1, rp1;			/* next column (cp1 = col + 1) and row (rp1 = row + 1) */
 	int cm2, rp2;
-	int r2n_r;
 	double ff = 0;
 	double dd, df, xq, xpe, xpp, advx, advy, f_limit;
 	double dqa_ij, dqa_ij_rp1, dqa_ij_rm1, dqa_ij_cm1, dqa_ij_cp1;
+	double dt, manning, *htotal_a, *htotal_d, *bat, *etad, *fluxm_a, *fluxn_a, *fluxm_d, *fluxn_d, *vey;
+	double *r0, *r2n, *r3n, *r4n, r2n_r;
+	double cte;
 	double bat__ij;
 	double htotal_d__ij;
 	double htotal_a__ij_rp1, htotal_d__ij_rp1;
 	double etad__ij, etad__ij_rp1;
 	double fluxn_a__ij;
+	struct grd_header hdr;
 
+	hdr      = nest->hdr[lev];             vey      = nest->vey[lev];
+	dt       = nest->dt[lev];              manning  = nest->manning[lev];
+	bat      = nest->bat[lev];             etad     = nest->etad[lev];
+	htotal_a = nest->htotal_a[lev];        htotal_d = nest->htotal_d[lev];
+	fluxm_a  = nest->fluxm_a[lev];         fluxm_d  = nest->fluxm_d[lev];
+	fluxn_a  = nest->fluxn_a[lev];         fluxn_d  = nest->fluxn_d[lev];
+	r0       = nest->r0[lev];              r2n      = nest->r2n[lev];
+	r3n      = nest->r3n[lev];             r4n      = nest->r4n[lev];
+
+	/* - fixes the width of the lateral buffer for linear aproximation */
+	/* - if jupe>nnx/2 and jupe>nny/2 linear model will be applied */
+	if (lev > 0) {jupe = 0;    first = 1;    last = 0;}
+	else         {jupe = 10;   first = 0;    last = 1;}
+	if (nest->do_linear) jupe = 1e6;		/* A tricky way of imposing linearity */
+
+	cte = (manning != 0) ? manning * manning * dt * 4.9 : 0;	/* - fixes friction parameter */
 #endif
 
 	for (row = row_start; row < row_end; row++) {		/* - main computation cycle fluxn_d */
@@ -4946,23 +4984,12 @@ moment_N_sp_slice(int lev, int row_start, int row_end, int jupe, int last, doubl
 				advy = -r0[row] * (fluxn_a__ij * fluxn_a__ij) / dqa_ij;
 				if (!(dqa_ij_rp1 < EPS5 || htotal_d__ij_rp1 < EPS5))
 					advy += r0[row] * (fluxn_a[ij+rp1] * fluxn_a[ij+rp1]) / dqa_ij_rp1;
-
-				/*if (dqa_ij_rp1 < EPS5 || htotal_d__ij_rp1 < EPS5)
-					advy = -r0[row] * (fluxn_a__ij * fluxn_a__ij) / dqa_ij;
-				else
-					advy = r0[row] * (fluxn_a[ij+rp1] * fluxn_a[ij+rp1]) / dqa_ij_rp1 - r0[row] * (fluxn_a__ij * fluxn_a__ij) / dqa_ij;*/
 			} 
 			else {
 				dqa_ij_rm1 = (htotal_d[ij-rm1] + htotal_a[ij-rm1] + htotal_d__ij + htotal_a[ij]) * 0.25;
 				advy = r0[row] * (fluxn_a__ij * fluxn_a__ij) / dqa_ij;
 				if (!(dqa_ij_rm1 < EPS3 || htotal_d__ij < EPS5))
 					advy -= r0[row] * (fluxn_a[ij-rm1] * fluxn_a[ij-rm1]) / dqa_ij_rm1;
-
-				/*if (dqa_ij_rm1 < EPS3 || htotal_d__ij < EPS5)
-					advy = r0[row] * (fluxn_a__ij * fluxn_a__ij) / dqa_ij;
-				else
-					advy = r0[row] * (fluxn_a__ij * fluxn_a__ij) / dqa_ij - r0[row] *
-						(fluxn_a[ij-rm1] * fluxn_a[ij-rm1]) / dqa_ij_rm1;*/
 			}
 			/* - upwind scheme for x-direction volume flux */
 			if (xpp < 0) {
@@ -4973,13 +5000,6 @@ moment_N_sp_slice(int lev, int row_start, int row_end, int jupe, int last, doubl
 					xpe = (fluxm_a[ij+cp1] + fluxm_a[ij+cp1+rp1] + fluxm_a[ij] + fluxm_a[ij+rp1]) * 0.25;
 					advx += r2n_r * (fluxn_a[ij+cp1] * xpe / dqa_ij_cp1);
 				}
-				
-				/*if (dqa_ij_cp1 < EPS3 || htotal_d__ij_cp1 < EPS5 || htotal_d[ij+cp1+rp1] < EPS5)
-					advx = -r2n_r * (fluxn_a__ij * xpp / dqa_ij);
-				else {
-					xpe = (fluxm_a[ij+cp1] + fluxm_a[ij+cp1+rp1] + fluxm_a[ij] + fluxm_a[ij+rp1]) * 0.25;
-					advx = -r2n_r * (fluxn_a__ij * xpp / dqa_ij) + r2n_r * (fluxn_a[ij+cp1] * xpe / dqa_ij_cp1);
-				}*/
 			} 
 			else {
 				double htotal_d__ij_m_cm1 = htotal_d[ij-cm1];
@@ -4990,14 +5010,6 @@ moment_N_sp_slice(int lev, int row_start, int row_end, int jupe, int last, doubl
 					xpe = (fluxm_a[ij-cm1] + fluxm_a[ij-cm1+rp1] + fluxm_a[ij-cm2] + fluxm_a[ij-cm2+rp1]) * 0.25;
 					advx += - r2n_r * (fluxn_a[ij-cm1] * xpe / dqa_ij_cm1);
 				}
-
-				/*if (dqa_ij_cm1 < EPS3 || htotal_d__ij_m_cm1 < EPS5 || htotal_d[ij-cm1+rp1] < EPS5)
-					advx = r2n_r * (fluxn_a__ij * xpp / dqa_ij);
-				else {
-					cm2 = (col < 2) ? 0 : 2;
-					xpe = (fluxm_a[ij-cm1] + fluxm_a[ij-cm1+rp1] + fluxm_a[ij-cm2] + fluxm_a[ij-cm2+rp1]) * 0.25;
-					advx = r2n_r * (fluxn_a__ij * xpp / dqa_ij) - r2n_r * (fluxn_a[ij-cm1] * xpe / dqa_ij_cm1);
-				}*/
 			}
 
 			/* adds linear+convection terms */
@@ -5439,6 +5451,52 @@ void moment_conservation(struct nestContainer *nest, int isGeog, int m) {
 	WaitForMultipleObjects(2, ThreadList, TRUE, INFINITE);
 	for (i = 0; i < 2; i++)
 		CloseHandle(ThreadList[i]);
+
+#elif defined(PARALLEL)
+	HANDLE ThreadList[8];  /* Handles to the worker threads */
+	ThreadArg Arg_List[8], *Arg_p;
+	int  row_start, row_end, last, n_rows_block;
+
+	if (isGeog) {
+		memset(nest->fluxm_d[m], 0, nest->hdr[m].nm * sizeof(double));
+		last = (m > 0) ? 0 : 1;
+		n_rows_block = (int)ceil((nest->hdr[m].ny - last) / nest->n_threads);
+		for (i = 0; i < nest->n_threads; i++) {
+			row_start       = i * n_rows_block;
+			row_end         = MIN(row_start + n_rows_block, nest->hdr[m].ny - last);
+			Arg_p           = &Arg_List[i];
+			Arg_p->nest     = nest;
+			Arg_p->iThread  = i;
+			Arg_p->lev      = m;
+			Arg_p->row_start= row_start;
+			Arg_p->row_end  = row_end;
+			ThreadList[i] = (HANDLE)_beginthreadex(NULL, 0, MT_moment_sp_M_slice, Arg_p, 0, NULL);
+		}
+		/* Wait until all threads are ready and close the handles */
+		WaitForMultipleObjects(nest->n_threads, ThreadList, TRUE, INFINITE);
+		for (i = 0; i < nest->n_threads; i++)
+			CloseHandle(ThreadList[i]);
+
+		/* Now the N component */
+		memset(nest->fluxn_d[m], 0, nest->hdr[m].nm * sizeof(double));
+		n_rows_block = (int)ceil((nest->hdr[m].ny - 1) / nest->n_threads);
+		for (i = 0; i < nest->n_threads; i++) {
+			row_start       = i * n_rows_block;
+			row_end         = MIN(row_start + n_rows_block, nest->hdr[m].ny - 1);
+			Arg_p           = &Arg_List[i];
+			Arg_p->nest     = nest;
+			Arg_p->iThread  = i;
+			Arg_p->lev      = m;
+			Arg_p->row_start= row_start;
+			Arg_p->row_end  = row_end;
+			ThreadList[i] = (HANDLE)_beginthreadex(NULL, 0, MT_moment_sp_N_slice, Arg_p, 0, NULL);
+		}
+		/* Wait until all threads are ready and close the handles */
+		WaitForMultipleObjects(nest->n_threads, ThreadList, TRUE, INFINITE);
+		for (i = 0; i < nest->n_threads; i++)
+			CloseHandle(ThreadList[i]);
+	}
+
 #else
 	if (isGeog == 0) { 
 		for (i = 0; i < 2; i++)
@@ -5455,7 +5513,6 @@ void moment_conservation(struct nestContainer *nest, int isGeog, int m) {
 /* ------------------------------------------------------------------------------ */
 unsigned __stdcall MT_cart(void *Arg_p) {
 	/* Convert input from (void *) to (ThreadArg *), call the moment and stop the thread. */
-  
 	ThreadArg *Arg = (ThreadArg *)Arg_p;
 	call_moment[Arg->iThread](Arg->nest, Arg->lev);
 	_endthreadex(0);
@@ -5464,13 +5521,14 @@ unsigned __stdcall MT_cart(void *Arg_p) {
 /* ------------------------------------------------------------------------------ */
 unsigned __stdcall MT_sp(void *Arg_p) {
 	/* Convert input from (void *) to (ThreadArg *), call the moment and stop the thread. */
-  
 	ThreadArg *Arg = (ThreadArg *)Arg_p;
 	call_moment_sp[Arg->iThread](Arg->nest, Arg->lev);
 	_endthreadex(0);
 	return (0);
 }
+#endif
 
+#if defined(DO_MULTI_THREAD) || defined(PARALLEL)
 /* ------------------------------------------------------------------------------ */
 int GetLocalNThread(void) {
 	/* Get number of processors from the environment variable NUMBER_OF_PROCESSORS. */
@@ -5483,9 +5541,30 @@ int GetLocalNThread(void) {
   
 	return (localNThread);
 }
-
+#else
+int GetLocalNThread(void) {
+	return 1;
+}
 #endif
 
+#ifdef PARALLEL
+/* ------------------------------------------------------------------------------ */
+unsigned __stdcall MT_moment_sp_M_slice(void *Arg_p) {
+	/* Convert input from (void *) to (ThreadArg *), call the moment and stop the thread. */
+	ThreadArg *Arg = (ThreadArg *)Arg_p;
+	call_moment_sp_M_slice(Arg->lev, Arg->row_start, Arg->row_end, Arg->nest);
+	_endthreadex(0);
+	return (0);
+}
+/* ------------------------------------------------------------------------------ */
+unsigned __stdcall MT_moment_sp_N_slice(void *Arg_p) {
+	/* Convert input from (void *) to (ThreadArg *), call the moment and stop the thread. */
+	ThreadArg *Arg = (ThreadArg *)Arg_p;
+	call_moment_sp_N_slice(Arg->lev, Arg->row_start, Arg->row_end, Arg->nest);
+	_endthreadex(0);
+	return (0);
+}
+#endif
 
 /* ---------------------------------------------------------------------------------------- */
 void kaba_source(struct srf_header hdr, double x_inc, double y_inc, double x_min, double x_max,
