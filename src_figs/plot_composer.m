@@ -1115,7 +1115,6 @@ function push_OK_CB(hObject, handles)
 		ellips = [' --ELLIPSOID=' ellips];
 	end
 
-	opt_annotsize  = ' --FONT_ANNOT_PRIMARY=10p';
 	opt_len_unit   = ' --PROJ_LENGTH_UNIT=point';
 	opt_frameWidth = ' --MAP_FRAME_WIDTH=0.15c';
 	frmPen = '';
@@ -1131,6 +1130,8 @@ function push_OK_CB(hObject, handles)
 	for (N = 1:numel(handles.hAllFigs))
 
 		handMir = guidata(handles.hAllFigs(N));
+
+		opt_annotsize = sprintf(' --FONT_ANNOT_PRIMARY=%dp', get(handMir.axes1, 'FontSize'));
 
 		hLine = findobj(get(handMir.axes1,'Child'),'Type','line','Visible','on');
 		% If we have costlines, need to use their (Mirone) settings 
@@ -1161,6 +1162,9 @@ function push_OK_CB(hObject, handles)
 		opt_B = getappdata(handles.hRect(N), 'opt_B');
 		if (isempty(opt_B))
 			opt_B = ' -Blbrt --MAP_FRAME_TYPE=plain --MAP_FRAME_PEN=faint';		% Trick to not plot any frame
+		else	% If these were sneaked in via -B deactivate the default ones
+			if (strfind(opt_B, '--FONT_ANNOT_PRIMARY')),	opt_annotsize = '';		end
+			if (strfind(opt_B, '--MAP_FRAME_WIDTH')),		opt_frameWidth = '';	end
 		end
 
 		if (handMir.geog == 1),		opt_deg = '--FORMAT_GEO_MAP=ddd:mm:ss';
