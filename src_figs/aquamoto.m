@@ -16,7 +16,7 @@ function varargout = aquamoto(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: aquamoto.m 10165 2017-10-08 19:40:23Z j $
+% $Id: aquamoto.m 10184 2017-11-30 20:00:04Z j $
 
 % For compiling one need to include the aqua_suppfuns.m files.
 
@@ -383,6 +383,7 @@ function push_swwName_CB(hObject, eventdata, handles, opt)
 		attribNames = [];
 	end
 	ind = strcmp({s.Dimension.Name},'number_of_volumes');
+	handles.IamTSU = false;
 	if (~any(ind))
 		if (isempty(handles.ncVarName)),	tmpName = handles.fname;	% Get the first >= 2D var that shows up in file
 		else								tmpName = {handles.fname, handles.ncVarName};	% Get that specific var
@@ -411,8 +412,6 @@ function push_swwName_CB(hObject, eventdata, handles, opt)
 		set(handles.figure1,'pointer','arrow')
 		return
 	end
-
-	handles.IamTSU = false;
 
 	ind = strcmp(attribNames,'xllcorner');		xllcorner = 0;
 	if (any(ind)),	xllcorner = s.Attribute(ind).Value;		end
