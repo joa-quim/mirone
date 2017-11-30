@@ -16,7 +16,7 @@ function varargout = world_is_not_round_enough(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: world_is_not_round_enough.m 7813 2016-02-26 21:48:41Z j $
+% $Id: world_is_not_round_enough.m 10185 2017-11-30 20:01:32Z j $
 
 	if (numel(varargin) == 0),		return,		end
  
@@ -47,7 +47,7 @@ function varargout = world_is_not_round_enough(varargin)
 					  handles.head(1) handles.head(3)];
 
 	% First check if it's a global pix-reg image
-	if ( abs(handles.dx - (360 - handles.head(8))) < 1e-5 )		% Yes, it is.
+	if (abs(handles.dx - (360 - handles.head(8))) < 1e-5)		% Yes, it is.
 		handles.isGblobalPixReg = true;
 		handles.square(1,1) = handles.square(1,1) - handles.head(8)/2;
 		handles.square(2,1) = handles.square(1,1);
@@ -56,12 +56,9 @@ function varargout = world_is_not_round_enough(varargin)
 		handles.square(5,1) = handles.square(1,1);
 	end
 
-	if ( (handles.dx < (360 - handles.head(8)/2)) && ~handles.isGblobalPixReg )
-		%set([handles.push_to360 handles.push_to180],'Enable','inactive')
-		str = sprintf(['This button is blocked because the map is not global\n' ...
-						'That is, it does not cover 360 degrees of longitude\n' ...
-						'You can still click and drag the rectangle and try luck.']);
-		set([handles.push_to360 handles.push_to180],'Enable','off','Tooltip', str)
+	if ((handles.dx < (360 - handles.head(8)/2)) && ~handles.isGblobalPixReg)
+		str = 'You can also click and drag the rectangle';
+		set([handles.push_to360 handles.push_to180],'Tooltip', str)
 	else
 		set(handles.push_to360,'Tooltip', 'Convert map longitudes from [-180 180] to [0 360].')
 		set(handles.push_to180,'Tooltip', 'Convert map longitudes from [0 360] to [-180 180].')
@@ -117,7 +114,13 @@ function edit_xMin_CB(hObject, handles)
 function push_to360_CB(hObject, handles)
 % [-180 180] -> [0 360]
 	rect_x = get(handles.hRectLims, 'xdata');
-	rect_x = rect_x + 180;
+	if (rect_x(1) >= 180),	return,		end
+	if (rect_x(1) >= 0 && rect_x(3) <= 180),	return,		end
+	if (rect_x(3) <= 0)
+		rect_x = rect_x + 360;
+	else
+		rect_x = rect_x + 180;
+	end
 	if (rect_x(4) > 360),	return,		end
 	set(handles.hRectLims, 'XData',rect_x);
 	push_apply_CB(handles.push_apply, handles)
@@ -126,7 +129,13 @@ function push_to360_CB(hObject, handles)
 function push_to180_CB(hObject, handles)
 % [0 360] -> [-180 180]
 	rect_x = get(handles.hRectLims, 'xdata');
-	rect_x = rect_x - 180;
+	if (rect_x(3) <= 0),	return,		end
+	if (rect_x(1) >= 0 && rect_x(3) <= 180),	return,		end
+	if (rect_x(1) > 180)
+		rect_x = rect_x - 360;
+	else
+		rect_x = rect_x - 180;
+	end
 	if (rect_x(1) < -180),	return,		end
 	set(handles.hRectLims, 'XData',rect_x);
 	push_apply_CB(handles.push_apply, handles)
@@ -161,6 +170,8 @@ function push_apply_CB(hObject, handles)
 		Z = get(handles.hMirImg,'CData');
 		Z = to_from_180(handles, handMir, Z, x_min, x_max, dy, eps_x);
 		set(handles.hMirAxes,'XLim',[X(1) X(end)])
+		set(handles.hMirAxes, 'XTickLabel', get(handles.hMirAxes, 'XTick'))
+		handMir.computed_grid = true;
 	else
 		X(1) = x_min;		X(2) = x_max;
 		set(handles.hMirAxes,'XLim',X)
