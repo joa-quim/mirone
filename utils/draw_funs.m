@@ -1451,7 +1451,16 @@ function cb = uictx_setMarker(h,prop)
 
 	function other_Marker(obj,eventdata,h,prop,opt)
 		set(h,prop,opt);    refresh
+
 % -----------------------------------------------------------------------------------------
+function set_font_size(h, opt)
+% Set font size for axes lables when H = gca and nargin == 3 or any other property that fits
+% in the H (handle), OPT (property).
+	resp  = inputdlg({'Enter new font size (pt)'}, 'Font size', [1 30]);
+	resp = str2double(resp);
+	if isnan(resp),		return,		end
+	if (nargin == 1),	opt = 'FontSize';	end
+	set(h,opt,resp);
 
 % -----------------------------------------------------------------------------------------
 function cb = uictx_Class_LineWidth(h)
