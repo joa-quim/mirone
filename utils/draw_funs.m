@@ -25,7 +25,7 @@ function varargout = draw_funs(hand, varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: draw_funs.m 10152 2017-09-21 11:09:15Z j $
+% $Id: draw_funs.m 10186 2017-12-27 16:44:14Z j $
 
 % A bit of strange tests but they are necessary for the cases when we use the new feval(fun,varargin{:}) 
 opt = varargin{1};		% function name to evaluate (new) or keyword to select one (old form)
@@ -1451,7 +1451,16 @@ function cb = uictx_setMarker(h,prop)
 
 	function other_Marker(obj,eventdata,h,prop,opt)
 		set(h,prop,opt);    refresh
+
 % -----------------------------------------------------------------------------------------
+function set_font_size(h, opt)
+% Set font size for axes lables when H = gca and nargin == 3 or any other property that fits
+% in the H (handle), OPT (property).
+	resp  = inputdlg({'Enter new font size (pt)'}, 'Font size', [1 30]);
+	resp = str2double(resp);
+	if isnan(resp),		return,		end
+	if (nargin == 1),	opt = 'FontSize';	end
+	set(h,opt,resp);
 
 % -----------------------------------------------------------------------------------------
 function cb = uictx_Class_LineWidth(h)
@@ -3061,7 +3070,7 @@ function save_GMT_DB_asc(h, fname)
 		if (isempty(getappdata(h(k), 'edited'))),	continue,	end		% Skip because it was not modified
 		GSHHS_str = getappdata(h(k),'GSHHS_str');
 		if (k == 1 && ~isempty(GSHHS_str))		% Write back the magic string that allows us to recognize these type of files
-			fprintf(fid,'# $Id: draw_funs.m 10152 2017-09-21 11:09:15Z j $\n#\n%s\n#\n', GSHHS_str);
+			fprintf(fid,'# $Id: draw_funs.m 10186 2017-12-27 16:44:14Z j $\n#\n%s\n#\n', GSHHS_str);
 		end
 		hdr = getappdata(h(k), 'LineInfo');
 		x = get(h(k), 'XData');			y = get(h(k), 'YData');
