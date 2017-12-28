@@ -26,7 +26,7 @@ function projection_menu(hFig, hProj, home_dir)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: projection_menu.m 4472 2014-05-10 02:18:22Z j $
+% $Id: projection_menu.m 10188 2017-12-28 19:04:34Z j $
 
 	if (nargin == 2)
 		setPRJ([],[], hFig, 1, hProj)
@@ -103,14 +103,14 @@ function projection_menu(hFig, hProj, home_dir)
 	hMain = zeros(1,m);    hSec  = zeros(1,m);
 	for (k = 1:m)
 		if (isempty(subMenu{k}))    % No subMenu, we have than a direct projection setting
-			hMain(k) = uimenu('Parent',hProj,'Label',mainMenu{k},'Call',{@setPRJ,hFig,k,projCOMM});
+			hMain(k) = uimenu('Parent',hProj,'Label',mainMenu{k},'Callback',{@setPRJ,hFig,k,projCOMM});
 		else
 			if (primos(k))          % Parent of a Submenu. No proj string settings
 				hMain(k) = uimenu('Parent',hProj,'Label',mainMenu{k});
 				hUI = hMain(k);     % Make a copy to use on SubMenus
-				hSec(k) = uimenu('Parent',hUI,'Label',subMenu{k},'Call',{@setPRJ,hFig,k,projCOMM});
+				hSec(k) = uimenu('Parent',hUI,'Label',subMenu{k},'Callback',{@setPRJ,hFig,k,projCOMM});
 			else                    % Child of a Parent with a submenu. We have a proj string to set
-				hSec(k) = uimenu('Parent',hUI,'Label',subMenu{k},'Call',{@setPRJ,hFig,k,projCOMM});
+				hSec(k) = uimenu('Parent',hUI,'Label',subMenu{k},'Callback',{@setPRJ,hFig,k,projCOMM});
 			end
 		end
 	end
