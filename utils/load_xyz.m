@@ -30,12 +30,13 @@ function varargout = load_xyz(handles, opt, opt2)
 %	Optional
 %		OPT can be either [] in which case the filename will be asked here or contain the filename
 %		OPT2 can take several values
-%			'arrows'		to read a x,y,u,v file
+%			'AsArrow'		to read a x,y,u,v file
 %			'AsLine'		plots a "regular" line
 %			'AsPoint'		plots the line vertex only using small filled circles 
 %			'AsMaregraph'	plots yellow dots used in the Tsunami modeling tools
 %			'FaultTrace'	plots lines/polylines used by the elastic deformation tools
 %			'Isochron'		plots a isochrons polyline from the internal db.
+%			'pick'			A GPlates isochron formated file
 %			'FZ'			plots a Fracture Zones polyline from the internal db.
 %							Attention, this option needs a non-empty OPT argument
 %			'ncshape'		Input file is a netCDF ncshape
@@ -128,6 +129,7 @@ function varargout = load_xyz(handles, opt, opt2)
 		end
 		varargout{1} = [];					% So that we always have something to return
 	end
+	PathName = '';
 	if (n_argin >= 2 && isempty(opt))		% Read a ascii file
 		[FileName, PathName, handles] = put_or_get_file(handles, ...
 			{'*.dat;*.DAT', 'Data files (*.dat,*.DAT)';'*.*', 'All Files (*.*)'},'Select File','get');
@@ -150,16 +152,24 @@ function varargout = load_xyz(handles, opt, opt2)
 		end
 		if (strncmpi(line_type,'isochron',4) || strcmpi(line_type,'FZ'))
 			if (strncmpi(line_type,'isochron',4))
-				[got_it, fname] = aux_funs('inquire_OPTcontrol', 'MIR_ISOC', [handles.home_dir '/data/OPTcontrol.txt']);
-				if (~got_it)				% Than use the default name
-					fname = [handles.path_data 'isochrons.dat'];
+				if (line_type(end) == 'C')		% Load a Custom Isochrons file
+					[FileName, PathName, handles] = put_or_get_file(handles, ...
+						{'*.dat;*.DAT', 'Data files (*.dat,*.DAT)';'*.*', 'All Files (*.*)'},'Select File','get');
+					if isequal(FileName,0),		return,		end
+					fname = [PathName FileName];
+				else
+					if (isempty(fname))				% Than use the default name
+						fname = [handles.path_data 'isochrons.dat'];
+						got_internal_file = true;
+					end
 				end
 				tag = 'isochron';
 				tol = -1;		% Tell the clipping function (in_map_region) to NOT clip the partially inside lines
 			else
 				tag = 'FZ';				fname = [handles.path_data 'fracture_zones.dat'];
+				got_internal_file = true;
 			end
-			got_internal_file = true;	PathName = handles.path_data;
+			if (isempty(PathName)),	 PathName = handles.path_data;	end
 			line_type = 'i_file';
 		end
 		if (got_pick),	tol = -1;	end		% See right above for the why
@@ -1054,7 +1064,9 @@ function [do, str] = parseSwap(str)
 % --------------------------------------------------------------------------------
 function [XMin, XMax, YMin, YMax] = check_smallness(handles, XMin, XMax, YMin, YMax, numeric_data)
 % Check for the special case of only one pt and pure vertical or horizontal lines.
-% If any of such case is found, change the limits to accoomodate a small padding zone.
+% If any of such case is found, change the limits to accomodate a small padding zone.
+	if (isempty(numeric_data)),		return,		end		% For example, when loading isochron files that have only includes
+
 	only_one_pt = false;
 	dx = XMax - XMin;			dy = YMax - YMin;
 	if (dx == 0 && dy == 0)
