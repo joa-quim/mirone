@@ -50,7 +50,7 @@ function filename = write_flederFiles(opt,varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: write_flederFiles.m 10093 2017-05-14 22:09:54Z j $
+% $Id: write_flederFiles.m 10190 2017-12-29 22:37:53Z j $
 
 	% - Little initial block to deal with the adding of two new input vars and try to
 	%   do it in a compatible way. That is, set up a mechanism that guaranties backward
@@ -289,7 +289,9 @@ function write_georef(fid, mode, limits, TDRver, proj)
 		len_str = numel(str);
 		write_block_tag(fid, 15000, len_str + 19*8+2+4, 2)
 		fwrite(fid, limits,'real*8');
-		fwrite(fid, [0 0 0 1],'real*8');	% Quaternions (no rotation)
+		fwrite(fid, [0 0 0 0],'real*8');	% Quaternions (no rotation)
+		% --- Note for a next bite ---
+		% If the Quaternion is [0 0 0 1] then is flipped left-right and up-down
 		fwrite(fid, limits,'real*8');		% OuterBounds (== to InnerBounds)
 		fwrite(fid, zeros(1,3),'real*8');	% PivotPoint
 		fwrite(fid,[0 0],'uchar');			% defaultPivotPosition & haveCustomPivot
