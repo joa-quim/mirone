@@ -529,7 +529,7 @@ function handles = recentFiles(handles, opt)
 	end
 	for (i = 1:N)			% The ishandle test below is crutial when GCPs
 		if (isempty(handles.FOpenList{i}) || ~ishandle(handles.RecentF(i))),	continue,	end
-		set(handles.RecentF(i), 'Label',handles.FOpenList{i},'Call',{@openRF,i}, 'Vis','on')
+		set(handles.RecentF(i), 'Label',handles.FOpenList{i},'Callback',{@openRF,i}, 'Vis','on')
 	end
 	if (~nargout),	guidata(handles.figure1,handles),	end
 
@@ -564,11 +564,11 @@ function handles = SetAxesNumericType(handles,event)
 	if (~handles.geog),		LFT = 'NotGeog';	visibility = 'off';		end 
 	setappdata(handles.axes1,'LabelFormatType',LFT)
 	set(handles.LabFormat, 'Vis', visibility)
-	if (handles.validGrid), set(handles.PixMode, 'Call', {@PixMode_CB,handles.figure1, true}, 'Vis', 'on')
+	if (handles.validGrid), set(handles.PixMode, 'Callback', {@PixMode_CB,handles.figure1, true}, 'Vis', 'on')
 	else					set(handles.PixMode, 'Vis', 'off')
 	end
-	set(handles.RCMode, 'Call', {@PixMode_CB,handles.figure1, false})
-	set(handles.FancyMode, 'Call', {@FancyMode_CB,handles.figure1})
+	set(handles.RCMode, 'Callback', {@PixMode_CB,handles.figure1, false})
+	set(handles.FancyMode, 'Callback', {@FancyMode_CB,handles.figure1})
 
 % --------------------------------------------------------------------------------------------------
 function PixMode_CB(hObject, event, hFig, opt)
@@ -3574,7 +3574,7 @@ function FileOpenSession_CB(handles, fname)
 		hands = guidata(h);		set(hands.figure1, 'vis', 'off')
 		hands.session_name = [PathName FileName];		% Pass the mat file name in this member
 		guidata(hands.figure1, hands);					% We have to save it on source because it's where is going to be read
-		cb = get(hands.FileOpenSession, 'Call');
+		cb = get(hands.FileOpenSession, 'Callback');
 		feval(cb, hands.FileOpenSession, hands)			% Call the ecran's FileOpenSession_CB function
 		delete(h)
 		return
@@ -4727,8 +4727,11 @@ function FileSaveFleder_CB(handles, opt)
 
 	if (handles.geog)
 		proj = 'geog';
-	else		% NEED TO EXPAND FOR THE CASES WHERE WE KNOW THE WKT PROJECTION
-		proj = '';
+	else
+		proj = aux_funs('get_proj_string', handles.figure1, 'WKT');
+		if (isempty(proj))		% A pure invention but Fleder7 screams like hell when it finds no coordinates
+			proj = 'UNIT["Meter",1]VDATUM["FD_Unspecified_Meters",UNIT["meter",1.0]]';
+		end
 	end
 	s = struct('TDRver', handles.TDRver, 'proj', proj);
 	fname = write_flederFiles(opt, handles, s);		pause(0.01);
