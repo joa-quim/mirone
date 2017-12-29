@@ -71,7 +71,7 @@ function [selection,value] = choosebox(varargin)
 %     return
 % end
 
-% $Id: choosebox.m 10047 2017-03-01 02:47:46Z j $
+% $Id: choosebox.m 10191 2017-12-29 22:51:40Z j $
 
 	mir_dirs = getappdata(0,'MIRONE_DIRS');
 	if (~isempty(mir_dirs))
@@ -278,6 +278,9 @@ uicontrol('style','pushbutton',...
 uicontrol('style','pushbutton',...
 		'position',[ffs+2*fus+listsize(1)+10+asym ffs+uh+4*fus+(smode==2)*(fus+uh)+listsize(2)/2+25 30 30],...
 		'cdata',larrow,'callback',{@doLeft});
+
+uicontrol('style','pushbutton', 'position',[ffs+2*fus+listsize(1)+3+asym 3 45 60],...
+		'String','Filter','Tooltip','Filter the poles shown to those of a plate pair only.','callback',{@doFilter});
 
 if (~addpoles)
 	uicontrol('style','pushbutton', 'string','Finite Pole',...
@@ -681,6 +684,17 @@ function doLeft(varargin)
 	set(leftbox,'String',ad.fromstring,'Value',[]);
 	set(rightbox,'String',ad.tostring,'Value',[]);
 
+%-----------------------------------------------------------------------------------
+function doFilter(varargin)
+	ad = getappdata(0,'ListDialogAppData');
+	res = filtra_polos(ad.fromstring);
+	if (isempty(res)),	return,		end
+	ad.fromstring(~res) = [];
+	h = findobj(ad.hFig, 'Tag', 'leftbox');
+	set(h, 'String', ad.fromstring)
+	h = findobj(ad.hFig, 'Tag', 'rightbox');
+	set(h, 'String', '')
+
 % --------------------------------------------------------
 function R = make_rot_matrix (lonp, latp, w)
 % lonp, latp	Euler pole in degrees
@@ -736,3 +750,93 @@ function [plon,plat,w] = matrix_to_pole (T,side)
 		if (plon > 360),    plon = plon - 360;  end
 		w = -w;
 	end
+
+% --------------------------------------------------------------------------------
+function output = filtra_polos(varargin)
+% Helper window to pick only poles that fit to a certain pattern in their names
+
+	hObject = figure('Vis','on');
+	filtra_polos_LayoutFcn(hObject);
+	handles = guihandles(hObject);
+	move2side(hObject,'right')
+
+	handles.list = varargin{1};
+	handles.output = '';
+	guidata(hObject, handles);
+
+	ind = strfind(handles.list, '!');
+	tmp = cell(numel(ind),1);
+	for (k = 1:numel(ind))
+		tmp{k} = strtok(handles.list{k}(ind{k}+1:end));
+	end
+	tmp = unique(tmp);
+	if (isempty(tmp{1})),	tmp(1) = [];	end
+	set(handles.popup_pairs, 'Str', tmp)
+	
+	uiwait(handles.figure1);
+	handles = guidata(hObject);
+	output = handles.output;
+	delete(handles.figure1);
+
+% -------------------------------------------------------------------------------------------
+function popup_pairs_CB(hObject, handles)
+	contents = get(hObject,'String');
+	txt = contents{get(hObject,'Value')};
+	set(handles.edit_whichPair, 'Str', txt)
+
+% -------------------------------------------------------------------------------------------
+function push_OK_CB(hObject, handles)
+% ...
+	t = get(handles.edit_whichPair, 'Str');
+	c = false(numel(handles.list),1);
+	for (k = 1:numel(handles.list))
+		if (strfind(handles.list{k}, t))
+			c(k) = true;
+		end
+	end
+	handles.output = c;
+	guidata(handles.figure1, handles)
+	uiresume(handles.figure1);
+
+% -------------------------------------------------------------------------------------------
+function figure1_CloseRequestFcn(hObject, evt)
+	handles = guidata(hObject);
+	do_uiresume = strcmp(get(handles.figure1, 'waitstatus'), 'waiting');
+	if (do_uiresume)		% The GUI is still in UIWAIT, us UIRESUME
+		uiresume(handles.figure1);
+	else					% The GUI is no longer waiting, just close it
+		delete(handles.figure1);
+	end
+
+% --- Creates and returns a handle to the GUI figure. 
+function filtra_polos_LayoutFcn(h1)
+	set(h1, 'Pos',[520 734 191 70],...
+		'Color',get(0,'factoryUicontrolBackgroundColor'),...
+		'CloseRequestFcn', @figure1_CloseRequestFcn,...
+		'MenuBar','none',...
+		'Name','Filter poles',...
+		'NumberTitle','off',...
+		'Resize','off',...
+		'HandleVisibility','callback',...
+		'Tag','figure1');
+
+	uicontrol('Parent',h1, 'Position',[10 39 91 21], 'BackgroundColor',[1 1 1],...
+		'Call',@filtra_polos_uiCB,...
+		'Style','popupmenu', 'String', ' ',...
+		'Tag','popup_pairs');
+
+	uicontrol('Parent',h1, 'Position',[110 39 80 21], 'BackgroundColor',[1 1 1],...
+		'Style','edit',...
+		'TooltipString','Enter a single plate acronym to select all poles involving this plate.',...
+		'Tag','edit_whichPair');
+
+	uicontrol('Parent',h1, 'Position',[110 8 80 22],...
+		'Call',@filtra_polos_uiCB,...
+		'FontSize',9,...
+		'FontWeight','bold',...
+		'String','OK',...
+		'Tag','push_OK');
+
+function filtra_polos_uiCB(hObject, eventdata)
+% This function is executed by the callback and than the handles is allways updated.
+	feval([get(hObject,'Tag') '_CB'],hObject, guidata(hObject));
