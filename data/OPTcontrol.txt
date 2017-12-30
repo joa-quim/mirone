@@ -58,6 +58,16 @@ MIR_CUSTOM_MENU Geography,GRIDS/SRTM+,C:\j\cd_grids\SRTM+
 MIR_CUSTOM_MENU Geography,GRIDS/cd_grids,C:\j\cd_grids
 MIR_CUSTOM_MENU Geography,GRIDS/mag_grids,C:\j\cd_grids\mag
 MIR_CUSTOM_MENU Geography,Seafloor/geomorphic,C:\SVN\mironeWC\data\seafloor_geomorphic
+MIR_CUSTOM_MENU CustomIsoc,AF-NA,C:\SVN\mironeWC\data,isochrons_AF_NA.dat,Isochron
+MIR_CUSTOM_MENU CustomIsoc,IB-NA,C:\SVN\mironeWC\data,isochrons_IB_NA.dat,Isochron
+MIR_CUSTOM_MENU CustomIsoc,EU-NA,C:\SVN\mironeWC\data,isochrons_EU_NA.dat,Isochron
+MIR_CUSTOM_MENU CustomIsoc,EU-GR,C:\SVN\mironeWC\data,isochrons_EU_GR.dat,Isochron
+MIR_CUSTOM_MENU CustomIsoc,RO-NA,C:\SVN\mironeWC\data,isochrons_RO_NA.dat,Isochron
+MIR_CUSTOM_MENU CustomIsoc,JM-EU,C:\SVN\mironeWC\data,isochrons_JM_EU.dat,Isochron
+MIR_CUSTOM_MENU CustomIsoc,EU-MO,C:\SVN\mironeWC\data,isochrons_EU_MO.dat,Isochron
+MIR_CUSTOM_MENU CustomIsoc,EU-LO,C:\SVN\mironeWC\data,isochrons_EU_LO.dat,Isochron
+MIR_CUSTOM_MENU CustomIsoc,GR-NA,C:\SVN\mironeWC\data,isochrons_GR_NA.dat,Isochron
+MIR_CUSTOM_MENU MagGrav,MAG7_RTP,C:\j\cd_grids,mag7_rtp.grd
 
 # Activate the option to associate a GMT custom symbol to a line (rectangle) object
 MIR_GMT_SYMBOL
@@ -65,7 +75,5 @@ MIR_GMT_SYMBOL
 # Activate the option to compute a gravity anomaly inside the rectangle object
 MIR_GRAVITY
 
-# Activate the option of providing a different file name with the magnetic isochrons
-MIR_ISOC C:\SVN\mironeWC\data\isochrons_tmp.dat 
 # Finite poles to associate to isochrons. Used by the line's uicontext option "Update poles in headers"
-MIR_POLES_FOR_ISOC C:\SVN\mironeWC\data\isocs\polos_para_idades_EU_MO.dat
+MIR_POLES_FOR_ISOC C:\SVN\mironeWC\data\isocs\polos_para_idades_Hellinger_EU_GR.dat
