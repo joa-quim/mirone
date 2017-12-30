@@ -33,7 +33,8 @@
 145.70  56.50  -15.498  64.30 !NAM<-EUR An29  (res = 3.424)
 146.20  55.50  -15.910  67.02 !NAM<-EUR An30  (res = 2.143)
 147.70  57.80  -16.650  72.25 !NAM<-EUR An32  (res = 4.762)
-148.00  64.40  -19.058  81.00 !NAM<-EUR An33r (res = 2.330)
+148.70  66.30  -18.658  78.00 !NAM<-EUR An33  (res = 3.186)
+149.20  65.20  -19.068  81.00 !NAM<-EUR An33r (res = 2.390)
 
   0.0    0.0     0.0     0.0  !GRE<-EUR Greenland-Eurasia (Entre Islandia e 57 N)
 136.40  61.80   -8.455  39.13 !GRE<-EUR An18  (res = 2.724) Sem Rockall
@@ -67,10 +68,12 @@
 124.70  73.23  -12.931  52.79 !NAM<-IBE An24 (res = 4.889)
 132.20  68.50  -13.809  56.14 !NAM<-IBE An25 (res = 3.275)
 131.30  70.20  -14.419  57.70 !NAM<-IBE An26 (res = 3.795)
+135.90  66.30  -15.174  63.09 !NAM<-IBE An28 (res = 4.930)
 134.70  70.50  -16.079  64.30 !NAM<-IBE An29 (res = 5.911)
-136.85  69.30  -16.504  67.02 !NAM<-IBE An30 (res = 5.822)
+136.20  69.70  -16.546  67.02 !NAM<-IBE An30 (res = 5.695)
 137.40  76.90  -18.486  72.25 !NAM<-IBE An32 (res = 3.809)
-117.86  86.30  -23.234  81.00 !NAM<-IBE An33r (res = 3.795)
+130.10  82.70  -21.333  78.00 !NAM<-IBE An33 (res = 3.366)
+116.70  86.30  -23.235  81.00 !NAM<-IBE An33r (res = 3.514)
 129.70  33.80   -8.720  49.37 !GRE<-ROK An22 (res = 4.125) 
 140.52  53.03   -2.26   10.33 !NAM<-EUR An5  J. Luis & Miranda (2008)
 140.12  56.64   -4.48   19.55 !NAM<-IBE An6  J. Luis & Miranda (2008)
@@ -145,6 +148,28 @@
 -18.50  66.10  -59.479 143.20 !NAM<-Nubia  AnM16 (res = 3.040)
 -18.00  66.30  -62.465 152.03 !NAM<-Nubia  AnM22 (res = 4.984)
 -15.00  67.05  -64.597 156.17 !NAM<-Nubia  AnM25 (res = 6.062)
+
+ 22.75  79.20  -0.441    1.82 !NAM<-Nubia  An2   (Hellinger)
+ 35.80  78.85  -0.721    3.06 !NAM<-Nubia  An2A  (Hellinger)
+ 33.44  79.82  -1.113    4.72 !NAM<-Nubia  An3   (Hellinger)
+ 46.79  79.69  -1.446    6.20 !NAM<-Nubia  An3A  (Hellinger)
+ 51.75  79.77  -1.790    7.74 !NAM<-Nubia  An4   (Hellinger)
+ 39.36  80.30  -2.147    8.88 !NAM<-Nubia  An4A  (Hellinger)
+ 49.90  80.43  -2.557   10.30 !NAM<-Nubia  An5   (Hellinger)
+ 41.34  80.66  -4.373   16.37 !NAM<-Nubia  An5C  (Hellinger)
+ 40.61  80.59  -5.312   19.60 !NAM<-Nubia  An6   (Hellinger)
+ 28.27  78.52  -7.560   27.47 !NAM<-Nubia  An9   (Hellinger)
+  4.90  75.66  -9.929   33.20 !NAM<-Nubia  An13  (Hellinger)
+  1.87  75.35  -12.131  39.13 !NAM<-Nubia  An18  (Hellinger)
+ -2.65  74.70  -13.691  43.14 !NAM<-Nubia  An20  (Hellinger)
+ -4.41  75.07  -15.217  47.00 !NAM<-Nubia  An21  (Hellinger)
+ -4.06  75.40  -16.105  49.37 !NAM<-Nubia  An22  (Hellinger)
+ -2.74  77.94  -17.234  52.79 !NAM<-Nubia  An24  (Hellinger)
+  4.33  80.49  -18.078  56.20 !NAM<-Nubia  An25  (Hellinger)
+ -3.67  82.05  -21.376  66.95 !NAM<-Nubia  An30  (Hellinger)
+ -8.25  81.47  -23.057  72.24 !NAM<-Nubia  An32  (Hellinger)
+-22.83  75.99  -29.686  81.00 !NAM<-Nubia  An33r (Hellinger)
+
 
   0.0    0.00    0.0     0.0  !Nubia<-IBE Eurasia-Nubia (Nubia fixed)
 -20.40  21.60    0.131   0.0  !Nubia<-IBE MORVEL (deg/Ma)
@@ -354,3 +379,16 @@
 133.21  67.97   -4.017 15.974 !NAM<-EUR An5Cn.1 Merc DeMets 2008
 126.70  72.12   -5.048 18.748 !NAM<-EUR An6ny   Merc DeMets 2008
 126.56  72.25   -5.035 18.748 !NAM<-EUR An6ny   Merc DeMets 2008 (+ OD)
+
+ 38.14  77.95   -0.410  1.778 !NAM<-EUR An2n    Merc DeMets 2014
+ 32.72  78.35   -0.609  2.581 !NAM<-EUR An2An.1 Merc DeMets 2014
+ 48.34  79.77   -1.352  6.033 !NAM<-EUR An3An.1 Merc DeMets 2014
+ 79.32  79.19   -2.283  9.779 !NAM<-EUR An5n1   Merc DeMets 2014
+
+ 
+ 17.62 80.84  -2.501   9.7  !NAM<-NWA An5  Mueller Auto
+ 23.29 80.97  -5.242  19.0  !NAM<-NWA An6  Mueller Auto
+  7.39 76.08  -9.711  33.1  !NAM<-NWA An13 Mueller Auto
+ -0.12 74.54 -11.940  38.4  !NAM<-NWA An18 Mueller Auto
+ -6.84 73.97 -15.225  46.3  !NAM<-NWA An21 Mueller Auto
+  6.56 80.66 -17.928  55.9  !NAM<-NWA An25 Mueller Auto
