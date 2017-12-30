@@ -158,7 +158,7 @@ function varargout = load_xyz(handles, opt, opt2)
 					if isequal(FileName,0),		return,		end
 					fname = [PathName FileName];
 				else
-					if (isempty(fname))				% Than use the default name
+					if (isempty(fname) || strcmp(fname, 'nikles'))				% Than use the default name
 						fname = [handles.path_data 'isochrons.dat'];
 						got_internal_file = true;
 					end
