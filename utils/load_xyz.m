@@ -81,7 +81,7 @@ function varargout = load_xyz(handles, opt, opt2)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: load_xyz.m 10189 2017-12-28 19:07:10Z j $
+% $Id: load_xyz.m 10197 2017-12-30 19:30:20Z j $
 
 %	EXAMPLE CODE OF HOW TO CREATE A TEMPLATE FOR UICTX WHEN THESE ARE TOO MANY
 % 	cmenuHand = get(h, 'UIContextMenu');
@@ -158,7 +158,7 @@ function varargout = load_xyz(handles, opt, opt2)
 					if isequal(FileName,0),		return,		end
 					fname = [PathName FileName];
 				else
-					if (isempty(fname))				% Than use the default name
+					if (isempty(fname) || strcmp(fname, 'nikles'))				% Than use the default name
 						fname = [handles.path_data 'isochrons.dat'];
 						got_internal_file = true;
 					end
