@@ -77,7 +77,7 @@ function varargout = euler_stuff(varargin)
 		c = get(varargin{2},'Color');
 		t = get(varargin{2},'LineWidth');
 		h = copyobj(varargin{2},handles.mironeAxes);
-		rmappdata(h,'polygon_data')		% Remove the parent's ui_edit_polygon appdata
+		try,	rmappdata(h,'polygon_data'),	end		% Remove the parent's ui_edit_polygon appdata. Use 'try' because of new shits
 		ui_edit_polygon(h)				% And set a new one
 		set(h,'LineWidth',t+1,'Color',1-c)
 		uistack_j(h,'bottom')
