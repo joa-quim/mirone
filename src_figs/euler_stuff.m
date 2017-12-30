@@ -16,7 +16,7 @@ function varargout = euler_stuff(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: euler_stuff.m 9999 2017-01-22 18:38:04Z j $
+% $Id: euler_stuff.m 10196 2017-12-30 18:58:54Z j $
 
 	if (isempty(varargin))
 		errordlg('EULER_STUFF: wrong number of input arguments.','Error'),	return
@@ -77,7 +77,7 @@ function varargout = euler_stuff(varargin)
 		c = get(varargin{2},'Color');
 		t = get(varargin{2},'LineWidth');
 		h = copyobj(varargin{2},handles.mironeAxes);
-		rmappdata(h,'polygon_data')		% Remove the parent's ui_edit_polygon appdata
+		try,	rmappdata(h,'polygon_data'),	end		% Remove the parent's ui_edit_polygon appdata. Use 'try' because of new shits
 		ui_edit_polygon(h)				% And set a new one
 		set(h,'LineWidth',t+1,'Color',1-c)
 		uistack_j(h,'bottom')
