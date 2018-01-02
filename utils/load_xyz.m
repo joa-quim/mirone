@@ -169,7 +169,9 @@ function varargout = load_xyz(handles, opt, opt2)
 				tag = 'FZ';				fname = [handles.path_data 'fracture_zones.dat'];
 				got_internal_file = true;
 			end
-			if (isempty(PathName)),	 PathName = handles.path_data;	end
+			if (isempty(PathName)),		PathName = handles.path_data;
+			else						handles.last_dir = PathName;
+			end
 			line_type = 'i_file';
 		end
 		if (got_pick),	tol = -1;	end		% See right above for the why
@@ -396,6 +398,7 @@ function varargout = load_xyz(handles, opt, opt2)
 		hPat    = zeros(n_segments,1) * NaN;	% Or this
 		n_clear = false(n_segments,1);
 		do_patch = false;						% Default to line object
+		lThick = [];	cor = [];	% Means they will recieve default values (DefLineThick DefLineColor) if not provided in headers
 
 		% Test if conversion into a single, NaN separated, line its wanted 
 		if (strncmp(multi_segs_str{1}, '>U_N_I_K', 8))
@@ -444,6 +447,7 @@ function varargout = load_xyz(handles, opt, opt2)
 			if (numel(multi_segs_str) - numel(numeric_data) > 1)	% Test if first segment has a true header
 				if (numel(multi_segs_str{1}) > 14)					% If there is more beyond '>HAV...', see if it's a proj string
 					projStr = parseProj(multi_segs_str{1});
+					[lThick, cor, multi_segs_str{1}] = parseW(multi_segs_str{1}, [], []);
 				end
 				multi_segs_str(1) = [];								% This header was now in excess.
 			else
@@ -582,7 +586,6 @@ function varargout = load_xyz(handles, opt, opt2)
 		end
 
 		drawnow
-		lThick = [];	cor = [];	% Means those will recieve default values (DefLineThick DefLineColor) later down
 		for (i = 1:n_segments)		% Loop over number of segments of current file (external loop)
 			tmpz = [];
 			if (do_project)         % We need to project
