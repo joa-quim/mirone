@@ -1,7 +1,7 @@
 function varargout = mesher_helper(varargin)
 % Helper window to create an unstructured grid. It creates a GMT script that does the triangulations step
 
-%	Copyright (c) 2004-2014 by J. Luis
+%	Copyright (c) 2004-2018 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -16,7 +16,7 @@ function varargout = mesher_helper(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % ---------------------------------------------------------------------------------
 
-% $Id: mesher_helper.m 4591 2014-10-27 15:55:23Z j $
+% $Id: mesher_helper.m 10201 2018-01-02 16:21:37Z j $
 
 	if (nargin > 1 && ischar(varargin{1}))
 		gui_CB = str2func(varargin{1});
@@ -141,7 +141,12 @@ function popup_nodes_CB(hObject, handles)
 	set(handles.edit_dataFile,   'Str', handles.data_fname{val})
 	set(handles.check_force,     'Val', handles.interp_first(val))
 	hL = handles.tree{lev}{grp}(pol,1);
-	h  = copyobj(hL, handles.hMirAx);
+	handMir = guidata(handles.hMirFig);
+	if (handMir.version7 < 8.4)
+		h  = copyobj(hL, handles.hMirAx);
+	else
+		h  = copyobj(hL, handles.hMirAx, 'legacy');		% R2015 fcker
+	end
 	rmappdata(h,'polygon_data')			% Remove the parent's ui_edit_polygon appdata
 	ui_edit_polygon(h)					% And set a new one
 	delete(findobj(handles.hMirAx, '-depth',1,'Tag','nestEnhancedLine'))	% Delete old one (if exists)
