@@ -1,7 +1,7 @@
 function varargout = euler_stuff(varargin)
 % Helper window to Euler rotations
 
-%	Copyright (c) 2004-2017 by J. Luis
+%	Copyright (c) 2004-2018 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -76,7 +76,11 @@ function varargout = euler_stuff(varargin)
 	if (length(varargin) == 2)			% Called with the line handle in argument
 		c = get(varargin{2},'Color');
 		t = get(varargin{2},'LineWidth');
-		h = copyobj(varargin{2},handles.mironeAxes);
+		if (handles.version7 < 8.4)
+			h = copyobj(varargin{2},handles.mironeAxes);
+		else							% R2015 fckage
+			h = copyobj(varargin{2},handles.mironeAxes, 'legacy');
+		end
 		try,	rmappdata(h,'polygon_data'),	end		% Remove the parent's ui_edit_polygon appdata. Use 'try' because of new shits
 		ui_edit_polygon(h)				% And set a new one
 		set(h,'LineWidth',t+1,'Color',1-c)
@@ -629,7 +633,11 @@ function push_pickLine_CB(hObject, handles)
 	for (k = 1:numel(h_line))
 		c = get(h_line(k),'Color');
 		t = get(h_line(k),'LineWidth');
-		h = copyobj(h_line(k),handles.mironeAxes);
+		if (handles.version7 < 8.4)
+			h = copyobj(h_line(k),handles.mironeAxes);
+		else
+			h = copyobj(h_line(k),handles.mironeAxes, 'legacy');
+		end
 		rmappdata(h,'polygon_data')			% Remove the parent's ui_edit_polygon appdata
 		ui_edit_polygon(h)					% And set a new one
 		set(h,'LineWidth',t+2,'Color',1-c)
@@ -669,12 +677,16 @@ function push_rectSelect_CB(hObject, handles)
 	for (i=1:numel(h_mir_lines))    % Loop over lines to find out which cross the rectangle
 		x = get(h_mir_lines(i),'XData');
 		y = get(h_mir_lines(i),'YData');
-		if ( any((x >= p1(1) & x <= p2(1)) & (y >= p1(2) & y <= p2(2))) )
+		if (any((x >= p1(1) & x <= p2(1)) & (y >= p1(2) & y <= p2(2))) )
 			tf = ismember(h_mir_lines(i),handles.hLineSelected);    % Check that the line was not already selected
 			if (tf),    continue;     end                           % Repeated line
 			c = get(h_mir_lines(i),'Color');
 			t = get(h_mir_lines(i),'LineWidth');
-			h(i) = copyobj(h_mir_lines(i),handles.mironeAxes);
+			if (handles.version7 < 8.4)
+				h(i) = copyobj(h_mir_lines(i),handles.mironeAxes);
+			else
+				h(i) = copyobj(h_mir_lines(i),handles.mironeAxes, 'legacy');
+			end
 			rmappdata(h(i),'polygon_data')     % Remove the parent's ui_edit_polygon appdata
 			ui_edit_polygon(h(i))              % And set a new one
 			set(h(i),'LineWidth',t+2,'Color',1-c)

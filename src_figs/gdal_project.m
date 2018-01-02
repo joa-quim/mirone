@@ -17,7 +17,7 @@ function varargout = gdal_project(varargin)
 %	        But notice that if second arg == 'hiden', that Mirone Figure is invisible and it's up
 %	        to the user to remove when no loger needed. Otherwise ... (big) memory leaks.
 
-%	Copyright (c) 2004-2016 by J. Luis
+%	Copyright (c) 2004-2018 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -269,7 +269,11 @@ function out = do_project(handMir, hdrStruct, prjName)
 		for (k = 1:numel(thisHandles))
 			x = get(thisHandles(k), 'XData');		y = get(thisHandles(k), 'YData');
 			z = get(thisHandles(k), 'ZData');
-			hNew = copyobj(thisHandles(k), hMirNewHand.axes1);
+			if (handMir.version7 < 8.4)
+				hNew = copyobj(thisHandles(k), hMirNewHand.axes1);
+			else				% R2015 fckage 
+				hNew = copyobj(thisHandles(k), hMirNewHand.axes1, 'legacy');
+			end
 			xy_prj = ogrproj([x(:) y(:) z(:)], hdrStruct);
 			set(hNew, 'XData', xy_prj(:,1), 'YData', xy_prj(:,2))
 			if (~isempty(z)),	set(hNew, 'ZData', xy_prj(:,3)),	end
@@ -280,7 +284,11 @@ function out = do_project(handMir, hdrStruct, prjName)
 	thisHandles = findobj(hMirOldHand.axes1,'Type','text');		% Now the Texts
 	if (~isempty(thisHandles))
 		for (k = 1:numel(thisHandles))
-			hNew = copyobj(thisHandles(k), hMirNewHand.axes1);
+			if (handMir.version7 < 8.4)
+				hNew = copyobj(thisHandles(k), hMirNewHand.axes1);
+			else
+				hNew = copyobj(thisHandles(k), hMirNewHand.axes1, 'legacy');
+			end
 			xy_prj = ogrproj(get(thisHandles(k),'Position'), hdrStruct);
 			set(hNew, 'Position', xy_prj(1:2))
 			draw_funs(hNew,'DrawText')			% We probably have some leaks since old properties went ether.
