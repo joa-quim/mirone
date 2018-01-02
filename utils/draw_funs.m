@@ -10,7 +10,7 @@ function varargout = draw_funs(hand, varargin)
 %	the data from an object handle, call with HAND = []. E.g (in load_xyz)
 %	draw_funs([], 'doSave_formated', x, y, z)
 
-%	Copyright (c) 2004-2016 by J. Luis
+%	Copyright (c) 2004-2018 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -2541,8 +2541,14 @@ function trans = AffineTransform(uv,xy)
 	trans(:,3) = [0 0 1]';
 
 % -----------------------------------------------------------------------------------------
-function copy_text_object(obj,eventdata)
-    copyobj(gco,gca);
+function copy_text_object(obj, eventdata)
+	hAx = gca;
+	handMir = guidata(hAx);
+	if (handMir.version7 < 8.4)
+		copyobj(gco, hAx);
+	else
+		copyobj(gco, hAx, 'legacy');	% R2015 Fcker
+	end
     move_text([],[])
 
 % -----------------------------------------------------------------------------------------
