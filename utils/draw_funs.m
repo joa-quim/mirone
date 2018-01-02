@@ -10,7 +10,7 @@ function varargout = draw_funs(hand, varargin)
 %	the data from an object handle, call with HAND = []. E.g (in load_xyz)
 %	draw_funs([], 'doSave_formated', x, y, z)
 
-%	Copyright (c) 2004-2016 by J. Luis
+%	Copyright (c) 2004-2018 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -25,7 +25,7 @@ function varargout = draw_funs(hand, varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: draw_funs.m 10186 2017-12-27 16:44:14Z j $
+% $Id: draw_funs.m 10198 2018-01-02 16:01:28Z j $
 
 % A bit of strange tests but they are necessary for the cases when we use the new feval(fun,varargin{:}) 
 opt = varargin{1};		% function name to evaluate (new) or keyword to select one (old form)
@@ -2541,8 +2541,14 @@ function trans = AffineTransform(uv,xy)
 	trans(:,3) = [0 0 1]';
 
 % -----------------------------------------------------------------------------------------
-function copy_text_object(obj,eventdata)
-    copyobj(gco,gca);
+function copy_text_object(obj, eventdata)
+	hAx = gca;
+	handMir = guidata(hAx);
+	if (handMir.version7 < 8.4)
+		copyobj(gco, hAx);
+	else
+		copyobj(gco, hAx, 'legacy');	% R2015 Fcker
+	end
     move_text([],[])
 
 % -----------------------------------------------------------------------------------------
@@ -3070,7 +3076,7 @@ function save_GMT_DB_asc(h, fname)
 		if (isempty(getappdata(h(k), 'edited'))),	continue,	end		% Skip because it was not modified
 		GSHHS_str = getappdata(h(k),'GSHHS_str');
 		if (k == 1 && ~isempty(GSHHS_str))		% Write back the magic string that allows us to recognize these type of files
-			fprintf(fid,'# $Id: draw_funs.m 10186 2017-12-27 16:44:14Z j $\n#\n%s\n#\n', GSHHS_str);
+			fprintf(fid,'# $Id: draw_funs.m 10198 2018-01-02 16:01:28Z j $\n#\n%s\n#\n', GSHHS_str);
 		end
 		hdr = getappdata(h(k), 'LineInfo');
 		x = get(h(k), 'XData');			y = get(h(k), 'YData');
