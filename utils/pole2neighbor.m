@@ -25,12 +25,15 @@ function varargout = pole2neighbor(obj, evt, hLine, mode, opt)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: pole2neighbor.m 10021 2017-02-14 23:52:24Z j $
+% $Id: pole2neighbor.m 10199 2018-01-02 16:05:14Z j $
 
 	if (isempty(hLine)),	hLine = gco;	end
 	hNext = hLine;
-	clicked_pt = getappdata(get(hLine, 'UIContextMenu'), 'clicked_pt');
-	[hLines_cross_1, hLines_cross_2] = find_isocs_in_block(hLine, clicked_pt);
+	if (~strcmpi(mode, 'stginfo'))		% Otherwise only scan the header info. No computations
+		clicked_pt = getappdata(get(hLine, 'UIContextMenu'), 'clicked_pt');
+		[hLines_cross_1, hLines_cross_2] = find_isocs_in_block(hLine, clicked_pt);
+	end
+
 	if (strcmpi(mode, 'Bonin'))
 		while (~isempty(hNext))
 			hNext = compute_pole2neighbor_Bonin(hNext);
@@ -248,8 +251,6 @@ function swap_lineInfo(hLine)
 	lineInfo = getappdata(hLine, 'LineInfo');
 	secondLineInfo = getappdata(hLine, 'secondLineInfo');
 	if (isempty(secondLineInfo))					% See if we have poles info to run on conjugate plate
-		%pole2neighbor([], [], hLine, 'anglefit');	% This will set 'secondLineInfo'
-		%secondLineInfo = getappdata(hLine, 'secondLineInfo');
 		error('BUG: secondLineInfo should already have been set before')
 	end
 	setappdata(hLine, 'LineInfo', secondLineInfo)
