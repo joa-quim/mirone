@@ -12,7 +12,7 @@ function varargout = resizetrue(handles, opt, axis_t, opt_pad)
 %   This function is distantly rooted on TRUESIZE, but havily hacked to take into account
 %   the left and bottom margins containing (if they exist) Xlabel & Ylabel, etc...
 
-%	Copyright (c) 2004-2015 by J. Luis
+%	Copyright (c) 2004-2018 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -240,7 +240,7 @@ function resize(hAxes, hImg, imSize, opt, withSliders, firstFigSize, pad_left, s
 	else								% They cannot be both zero
 		test_tick = XTick(end-1);		test_tick_str = sscanf(XTickLabel(end,:),'%f');
     end
-    if ( test_tick_str && (test_tick_str / test_tick < 0.1) )	% Also test if first guy is != 0
+    if (test_tick_str && (test_tick_str / test_tick < 0.1))		% Also test if first guy is != 0
 		% We have a 10 power. That's the only way I found to detect
 		% the presence of this otherwise completely ghost text.
 		tenSizeX = 1;       % Take into account the 10 power text size when creating the pixval stsbar
@@ -282,7 +282,7 @@ function resize(hAxes, hImg, imSize, opt, withSliders, firstFigSize, pad_left, s
 	else
         newFigWidth = imgWidth;				newFigHeight = imgHeight;
 	end
-	while ((newFigWidth > screenWidth) || ((newFigHeight + figBottomBorder + figTopBorder) > (screenHeight - 40)))
+	while ((newFigWidth > screenWidth) || ((newFigHeight + figBottomBorder + figTopBorder) > (screenHeight - 45)))
         imgWidth  = imgWidth * 0.98;		imgHeight  = imgHeight * 0.98;
         newFigWidth = newFigWidth * 0.98;	newFigHeight = newFigHeight * 0.98;
 	end
