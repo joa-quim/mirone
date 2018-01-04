@@ -20,7 +20,7 @@ function varargout = mirone(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: mirone.m 10192 2017-12-29 23:09:37Z j $
+% $Id: mirone.m 10207 2018-01-04 22:45:52Z j $
 
 	if (nargin > 1 && ischar(varargin{1}))
 		if ( ~isempty(strfind(varargin{1},':')) || ~isempty(strfind(varargin{1},filesep)) )
@@ -276,12 +276,16 @@ function hObject = mirone_OpeningFcn(varargin)
 					isReferenced = true;
 					if (~handles.geog),		handles.is_projected = true;	end		% WEAK LOGIC. SHOULD PARSE WKT TO MAKE SURE
 				end
+				ax_t = 'off';
+				if (handles.geog || isReferenced)
+					handles.image_type = 3;		ax_t = 'xy';
+				end
 				if (ndims(varargin{1}.image) == 2),		set(handles.figure1,'Colormap',gray(256));		end
 				win_name = 'Nikles';
 				if (~isempty(varargin{1}.title)),		win_name = varargin{1}.title;	end
 				alpha = 1;
 				if (~isempty(varargin{1}.alpha)),		alpha = varargin{1}.alpha;		end
-				handles = show_image(handles,win_name,X,Y,varargin{1}.image,0,'off',varargin{1}.registration,1, alpha);
+				handles = show_image(handles,win_name,X,Y,varargin{1}.image,0,ax_t,varargin{1}.registration,1, alpha);
 				if (~isReferenced),		grid_info(handles,[],'iminfo',varargin{1}.image);		% Create a info string
 				else					grid_info(handles, ProjectionRefWKT, 'referenced', varargin{1}.image);
 				end
