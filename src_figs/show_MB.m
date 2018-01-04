@@ -75,18 +75,26 @@ function push_showPC_CB(hObject, handles)
 	par.TDRver = handles.TDRver;	par.proj = 'geog';		par.PTparams = PTparams;
 
 	D = gmtmex(sprintf('mbgetdata -I%s -A100000', handles.fnameMB));
-	ind  = (D(3).data < 50000);
-	xyz1 = [D(1).data(ind) D(2).data(ind) D(3).data(ind)];
-	ind  = ~ind;
-	xyz2 = [D(1).data(ind) D(2).data(ind) D(3).data(ind)-100000];
-	bb1  = [min(xyz1)' max(xyz1)']';		bb1 = bb1(:)';
-	bb2  = [min(xyz2)' max(xyz2)']';		bb2 = bb2(:)';
-	bbg  = [min(bb1(1),bb2(1)) max(bb1(2),bb2(2)) min(bb1(3),bb2(3)) max(bb1(4),bb2(4)) ...
-			min(bb1(5),bb2(5)) max(bb1(6),bb2(6))];  
-	fid  = write_flederFiles('scene_pts', fname, [], 'begin', bbg, par);
-	write_flederFiles('scene_pts', fid, xyz1, 'sec', [bb1 bbg], par);
-	PTparams.Symbol = 3;	PTparams.ColorBy = 0;	par.PTparams = PTparams;
-	write_flederFiles('scene_pts', fid, xyz2, 'end', [bb2 bbg], par);
+	ind = (D(3).data < 50000);		% This gives us the indices of all non-flagged guys
+	if (~all(ind))
+		xyz1 = [D(1).data(ind) D(2).data(ind) D(3).data(ind)];
+		ind  = ~ind;
+		xyz2 = [D(1).data(ind) D(2).data(ind) D(3).data(ind)-100000];
+		bb1  = [min(xyz1)' max(xyz1)']';		bb1 = bb1(:)';
+		bb2  = [min(xyz2)' max(xyz2)']';		bb2 = bb2(:)';
+		bbg  = [min(bb1(1),bb2(1)) max(bb1(2),bb2(2)) min(bb1(3),bb2(3)) max(bb1(4),bb2(4)) ...
+				min(bb1(5),bb2(5)) max(bb1(6),bb2(6))];  
+		fid  = write_flederFiles('scene_pts', fname, [], 'begin', bbg, par);
+		write_flederFiles('scene_pts', fid, xyz1, 'sec', [bb1 bbg], par);
+		PTparams.Symbol = 3;	PTparams.ColorBy = 0;	par.PTparams = PTparams;
+		write_flederFiles('scene_pts', fid, xyz2, 'end', [bb2 bbg], par);
+	else							% No flagged pts
+		xyz1 = [D(1).data D(2).data D(3).data];
+		bb1  = [min(xyz1)' max(xyz1)']';		bb1 = bb1(:)';
+		bbg  = bb1(1:6);
+		fid  = write_flederFiles('scene_pts', fname, [], 'begin', bbg, par);
+		write_flederFiles('scene_pts', fid, xyz1, 'end', [bb1 bbg], par);
+	end
 	fname = [fname '.scene'];			% Because name was changed in write_flederFiles()
 	comm  = [' -scene ' fname ' &'];	% A SCENE file
 	show_fleder(handles, comm)
@@ -646,7 +654,6 @@ function push_OK_CB(hObject, handles)
 		end
 	end
 	I = gmtmex(['mbimport -I' handles.fnameMB opt_Z opt_N opt_C]);
-	I.image = flipdim(I.image,1);
 	mirone(I)
 	if (handles.no_file && ishandle(handles.hMirFig)),	delete(handles.hMirFig),	end
 
