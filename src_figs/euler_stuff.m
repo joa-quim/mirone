@@ -50,6 +50,7 @@ function varargout = euler_stuff(varargin)
 	handlesMir = guidata(handles.hCallingFig);
 	handles.geog = handlesMir.geog;
 	handles.mironeAxes = handlesMir.axes1;
+	handles.version7 = handlesMir.version7;
 	if (handlesMir.no_file)
 		errordlg('You didn''t even load a file. What are you expecting then?','Error')
 		delete(hObject);    return
@@ -81,7 +82,7 @@ function varargout = euler_stuff(varargin)
 		else							% R2015 fckage
 			h = copyobj(varargin{2},handles.mironeAxes, 'legacy');
 		end
-		try,	rmappdata(h,'polygon_data'),	end		% Remove the parent's ui_edit_polygon appdata. Use 'try' because of new shits
+		try		rmappdata(h,'polygon_data'),	end		% Remove the parent's ui_edit_polygon appdata. Use 'try' because of new shits
 		ui_edit_polygon(h)				% And set a new one
 		set(h,'LineWidth',t+1,'Color',1-c)
 		uistack_j(h,'bottom')
