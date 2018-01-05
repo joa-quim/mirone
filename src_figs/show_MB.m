@@ -16,7 +16,7 @@ function varargout = show_MB(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: show_MB.m 10205 2018-01-04 22:41:31Z j $
+% $Id: show_MB.m 10208 2018-01-05 00:00:02Z j $
 
 	hObject = figure('Vis','off');
 	show_MB_LayoutFcn(hObject);
@@ -76,7 +76,7 @@ function push_showPC_CB(hObject, handles)
 
 	D = gmtmex(sprintf('mbgetdata -I%s -A100000', handles.fnameMB));
 	ind = (D(3).data < 50000);		% This gives us the indices of all non-flagged guys
-	if (~all(ind))
+	if (~all(ind(:)))
 		xyz1 = [D(1).data(ind) D(2).data(ind) D(3).data(ind)];
 		ind  = ~ind;
 		xyz2 = [D(1).data(ind) D(2).data(ind) D(3).data(ind)-100000];
