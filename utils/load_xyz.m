@@ -88,8 +88,8 @@ function varargout = load_xyz(handles, opt, opt2)
 % 	setappdata(handles.figure1, 'cmenuHand', cmenuHand)
 % 	cmenuHand = uicontextmenu('Parent',handles.figure1);
 % 	set(h, 'UIContextMenu', cmenuHand);
-% 	%uimenu(cmenuHand, 'Label', 'Set all UIcontexts', 'Call', {@resetUIctx,h,handles.axes1});
-% 	uimenu(cmenuHand, 'Label', 'Set all UIcontexts', 'Call', 'hand=guidata(gco); set(gco, ''UIContextMenu'', getappdata(hand.axes1, ''cmenuHand''))' );
+% 	%uimenu(cmenuHand, 'Label', 'Set all UIcontexts', 'Callback', {@resetUIctx,h,handles.axes1});
+% 	uimenu(cmenuHand, 'Label', 'Set all UIcontexts', 'Callback', 'hand=guidata(gco); set(gco, ''UIContextMenu'', getappdata(hand.axes1, ''cmenuHand''))' );
 % 
 % function resetUIctx(obj,evt,h,hAxes)
 % 	cmenuHand = getappdata(hAxes, 'cmenuHand');
@@ -871,10 +871,10 @@ function set_extra_uicb_options(handles, hLine, out_nc)
 	h1 = get(get(hLine(1),'UIContextMenu'),'Children');
 	h2 = findobj(h1,'-depth',0, 'Label','Line azimuths');	% Resuse this entry that has no sense in this context
 	set(h2,'Label','Plot interior points')
-	set(h2,'Call',{@nc_plotSave_pts, out_nc.fname, out_nc.PolyIndex, 'plot'})
+	set(h2,'Callback',{@nc_plotSave_pts, out_nc.fname, out_nc.PolyIndex, 'plot'})
 	set(h2,'Pos',2)			% Move it up on the UIContextMenu order (and hope it doesn't screw)
 	h2 = uimenu(get(h2,'Parent'), 'Label','Save interior points to file', ...
-	            'Call',{@nc_plotSave_pts, out_nc.fname, out_nc.PolyIndex, 'save'});
+	            'Callback',{@nc_plotSave_pts, out_nc.fname, out_nc.PolyIndex, 'save'});
 	set(h2,'Pos',3)
 
 function nc_plotSave_pts(obj, evt, fname, PolyIndex, opt)

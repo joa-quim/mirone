@@ -50,15 +50,15 @@ switch opt
 		cmenuHand = uicontextmenu('parent',get(get(hand,'parent'),'parent'));		% We know 'hand' is a text handle
 		set(hand, 'UIContextMenu', cmenuHand);
 		cb_color = uictx_color(hand);	% there are 9 cb_color outputs
-		uimenu(cmenuHand, 'Label', 'Change Font', 'Call', @text_FontSize);
+		uimenu(cmenuHand, 'Label', 'Change Font', 'Callback', @text_FontSize);
 		item_fc = uimenu(cmenuHand, 'Label', 'Font Color');
 		setLineColor(item_fc,cb_color)
-		uimenu(cmenuHand, 'Label', 'Edit   text', 'Call', 'set(gco, ''Editing'', ''on''); refresh', 'Sep','on');
-		uimenu(cmenuHand, 'Label', 'Copy   text', 'Call', @copy_text_object);
-		uimenu(cmenuHand, 'Label', 'Delete text', 'Call', 'delete(gco); refresh');
-		uimenu(cmenuHand, 'Label', 'Move   text', 'Call', @move_text);
-		uimenu(cmenuHand, 'Label', 'Rotate text', 'Call', @rotate_text);
-		uimenu(cmenuHand, 'Label', 'Export text', 'Call', @export_text);
+		uimenu(cmenuHand, 'Label', 'Edit   text', 'Callback', 'set(gco, ''Editing'', ''on''); refresh', 'Sep','on');
+		uimenu(cmenuHand, 'Label', 'Copy   text', 'Callback', @copy_text_object);
+		uimenu(cmenuHand, 'Label', 'Delete text', 'Callback', 'delete(gco); refresh');
+		uimenu(cmenuHand, 'Label', 'Move   text', 'Callback', @move_text);
+		uimenu(cmenuHand, 'Label', 'Rotate text', 'Callback', @rotate_text);
+		uimenu(cmenuHand, 'Label', 'Export text', 'Callback', @export_text);
 		set(hand, 'ButtonDownFcn', 'move_obj(1)')
 	case 'DrawSymbol',			set_symbol_uicontext(hand)
 	case {'hotspot','volcano','ODP','City_major','City_other','Earthquakes','TideStation', 'Meteor', 'Hydro'}
@@ -117,42 +117,42 @@ function Ctrl_v(h)
 % function setUIcbs(item, labels, cbs)
 % % Set uimenu uicontexts of graphic elements
 % 	for (k = 1:numel(cbs))
-% 		uimenu(item, 'Label', labels{k}, 'Call', cbs{k});
+% 		uimenu(item, 'Label', labels{k}, 'Callback', cbs{k});
 % 	end
 
 % -----------------------------------------------------------------------------------------
 function setLineStyle(item,cbs)
 % Set the line Style uicontexts of graphic elements
-	uimenu(item, 'Label', 'solid', 'Call', cbs{1});
-	uimenu(item, 'Label', 'dashed', 'Call', cbs{2});
-	uimenu(item, 'Label', 'dotted', 'Call', cbs{3});
-	uimenu(item, 'Label', 'dash-dotted', 'Call', cbs{4});
+	uimenu(item, 'Label', 'solid', 'Callback', cbs{1});
+	uimenu(item, 'Label', 'dashed', 'Callback', cbs{2});
+	uimenu(item, 'Label', 'dotted', 'Callback', cbs{3});
+	uimenu(item, 'Label', 'dash-dotted', 'Callback', cbs{4});
 	if (numel(cbs) == 6)
-		uimenu(item, 'Label', 'Show markers', 'Call', cbs{5}, 'Sep', 'on');
-		uimenu(item, 'Label', 'Hide markers', 'Call', cbs{6});
+		uimenu(item, 'Label', 'Show markers', 'Callback', cbs{5}, 'Sep', 'on');
+		uimenu(item, 'Label', 'Hide markers', 'Callback', cbs{6});
 	end
 
 % -----------------------------------------------------------------------------------------
 function setLineColor(item,cbs)
 % Set the line color uicontexts of graphic elements
-	uimenu(item, 'Label', 'Black', 'Call', cbs{1});
-	uimenu(item, 'Label', 'White', 'Call', cbs{2});
-	uimenu(item, 'Label', 'Red', 'Call', cbs{3});
-	uimenu(item, 'Label', 'Green', 'Call', cbs{4});
-	uimenu(item, 'Label', 'Blue', 'Call', cbs{5});
-	uimenu(item, 'Label', 'Yellow', 'Call', cbs{6});
-	uimenu(item, 'Label', 'Cyan', 'Call', cbs{7});
-	uimenu(item, 'Label', 'Magenta', 'Call', cbs{8});
-	uimenu(item, 'Label', 'Other...', 'Call', cbs{9});
+	uimenu(item, 'Label', 'Black', 'Callback', cbs{1});
+	uimenu(item, 'Label', 'White', 'Callback', cbs{2});
+	uimenu(item, 'Label', 'Red', 'Callback', cbs{3});
+	uimenu(item, 'Label', 'Green', 'Callback', cbs{4});
+	uimenu(item, 'Label', 'Blue', 'Callback', cbs{5});
+	uimenu(item, 'Label', 'Yellow', 'Callback', cbs{6});
+	uimenu(item, 'Label', 'Cyan', 'Callback', cbs{7});
+	uimenu(item, 'Label', 'Magenta', 'Callback', cbs{8});
+	uimenu(item, 'Label', 'Other...', 'Callback', cbs{9});
 
 % -----------------------------------------------------------------------------------------
 function setLineWidth(item,cbs)
 % Set the line color uicontexts of graphic elements
-	uimenu(item, 'Label', '1       pt', 'Call', cbs{1});
-	uimenu(item, 'Label', '2       pt', 'Call', cbs{2});
-	uimenu(item, 'Label', '3       pt', 'Call', cbs{3});
-	uimenu(item, 'Label', '4       pt', 'Call', cbs{4});
-	uimenu(item, 'Label', 'Other...', 'Call', cbs{5});
+	uimenu(item, 'Label', '1       pt', 'Callback', cbs{1});
+	uimenu(item, 'Label', '2       pt', 'Callback', cbs{2});
+	uimenu(item, 'Label', '3       pt', 'Callback', cbs{3});
+	uimenu(item, 'Label', '4       pt', 'Callback', cbs{4});
+	uimenu(item, 'Label', 'Other...', 'Callback', cbs{5});
 
 % -----------------------------------------------------------------------------------------
 function setSHPuictx(h,opt)
@@ -161,14 +161,14 @@ function setSHPuictx(h,opt)
 	handles = guidata(h(1));
 	for (i = 1:numel(h))
 		cmenuHand = uicontextmenu('Parent',handles.figure1);      set(h(i), 'UIContextMenu', cmenuHand);
-		uimenu(cmenuHand, 'Label', 'Save line', 'Call', {@save_formated,h});
-		uimenu(cmenuHand, 'Label', 'Delete this line', 'Call', {@del_line,h(i)});
-		uimenu(cmenuHand, 'Label', 'Delete class', 'Call', 'delete(findobj(''Tag'',''SHPpolyline''))');
+		uimenu(cmenuHand, 'Label', 'Save line', 'Callback', {@save_formated,h});
+		uimenu(cmenuHand, 'Label', 'Delete this line', 'Callback', {@del_line,h(i)});
+		uimenu(cmenuHand, 'Label', 'Delete class', 'Callback', 'delete(findobj(''Tag'',''SHPpolyline''))');
 
 		if (~isempty(get(h(i), 'ZData')))				% If we have z info
 			item = uimenu(cmenuHand, 'Label', 'Quick grid', 'Sep', 'on');
-			uimenu(item, 'Label', 'auto', 'Call', {@pt_quick_grd,h(i),'a'});
-			uimenu(item, 'Label', 'set increments', 'Call', {@pt_quick_grd, h(i), 'q'});
+			uimenu(item, 'Label', 'auto', 'Callback', {@pt_quick_grd,h(i),'a'});
+			uimenu(item, 'Label', 'set increments', 'Callback', {@pt_quick_grd, h(i), 'q'});
 		end
 
 		cb_solid   = 'set(gco, ''LineStyle'', ''-''); refresh';
@@ -177,17 +177,17 @@ function setSHPuictx(h,opt)
 		cb_dashdot = 'set(gco, ''LineStyle'', ''-.''); refresh';
 
 		item = uimenu(cmenuHand, 'Label', 'Line Width', 'Sep','on');
-		uimenu(item, 'Label', 'Other...', 'Call', {@other_LineWidth,h(i)});
+		uimenu(item, 'Label', 'Other...', 'Callback', {@other_LineWidth,h(i)});
 
 		item = uimenu(cmenuHand, 'Label', 'Line Style');
 		setLineStyle(item,{cb_solid cb_dashed cb_dotted cb_dashdot})
 
 		item = uimenu(cmenuHand, 'Label', 'Line Color');
-		uimenu(item, 'Label', 'Other...', 'Call', {@other_color,h(i)});
+		uimenu(item, 'Label', 'Other...', 'Callback', {@other_color,h(i)});
 		ui_edit_polygon(h(i))
 		isPt = getappdata(h(1), 'isPoint');
 		if (~isempty(isPt) && ~isPt)	% For points it makes no sense a 'Join lines'
-			uimenu(cmenuHand, 'Label', 'Join lines', 'Call', {@join_lines,handles.figure1});
+			uimenu(cmenuHand, 'Label', 'Join lines', 'Callback', {@join_lines,handles.figure1});
 		end
 	end
 
@@ -210,14 +210,14 @@ function set_rect_uictx_PC(h, opt)
 		cb_dashdot = 'set(gco, ''LineStyle'', ''-.''); refresh';
 		cb_color   = uictx_color(h(k));				% there are 9 cb_color outputs
 
-		uimenu(cmenuHand,  'Label', 'Delete', 'Call', {@del_line,h(k)});
+		uimenu(cmenuHand,  'Label', 'Delete', 'Callback', {@del_line,h(k)});
 		item_tools = uimenu(cmenuHand, 'Label', 'Trim with rect');
-		uimenu(item_tools, 'Label', 'inside', 'Call', {@trim_withPolygon,h,1});
-		uimenu(item_tools, 'Label', 'outside', 'Call', {@trim_withPolygon,h,0});
-		uimenu(cmenuHand,  'Label', 'Copy', 'Call', {@copy_line_object,handles.figure1,handles.axes1});
-		uimenu(cmenuHand,  'Label', 'Rectangle limits (edit)', 'Sep','on', 'Call', @rectangle_limits);
+		uimenu(item_tools, 'Label', 'inside', 'Callback', {@trim_withPolygon,h,1});
+		uimenu(item_tools, 'Label', 'outside', 'Callback', {@trim_withPolygon,h,0});
+		uimenu(cmenuHand,  'Label', 'Copy', 'Callback', {@copy_line_object,handles.figure1,handles.axes1});
+		uimenu(cmenuHand,  'Label', 'Rectangle limits (edit)', 'Sep','on', 'Callback', @rectangle_limits);
 		CB = 'deal_opts([], ''assoc_gmt_symbol'', [], [])';
-		uimenu(cmenuHand,  'Label', 'Insert a PostScript file here','Call', CB);
+		uimenu(cmenuHand,  'Label', 'Insert a PostScript file here','Callback', CB);
 		setLineWidth(uimenu(cmenuHand, 'Label', 'Line Width', 'Sep','on'), cb_LineWidth)
 		setLineStyle(uimenu(cmenuHand, 'Label', 'Line Style'), {cb_solid cb_dashed cb_dotted cb_dashdot})
 		setLineColor(uimenu(cmenuHand, 'Label', 'Line Color'), cb_color)
@@ -248,8 +248,8 @@ function set_line_uicontext_XY(h, opt)
 		cb_markers_off = 'set(gco, ''Marker'', ''none''); refresh';
 		cb_color   = uictx_color(h(k));				% there are 9 cb_color outputs
 
-		uimenu(cmenuHand, 'Label', 'Delete', 'Call', {@del_line,h(k)});
-		uimenu(cmenuHand, 'Label', 'Save line', 'Call', {@save_formated,h(k)});
+		uimenu(cmenuHand, 'Label', 'Delete', 'Callback', {@del_line,h(k)});
+		uimenu(cmenuHand, 'Label', 'Save line', 'Callback', {@save_formated,h(k)});
 		if (strcmp(opt, 'main'))
 			% Attention, if I ever change these labels I MUST do it also in ecran/finish_line_uictx()
 			hh = uimenu(cmenuHand, 'Label', 'Shift origin here');
@@ -261,7 +261,7 @@ function set_line_uicontext_XY(h, opt)
 			uimenu(cmenuHand,   'Label', 'Show Bar graph');
 		else
 			ui_edit_polygon(h(k))			% Set edition functions
-			uimenu(cmenuHand, 'Label', 'Line length', 'Call', @show_LineLength_XY)
+			uimenu(cmenuHand, 'Label', 'Line length', 'Callback', @show_LineLength_XY)
 		end
 		setLineWidth(uimenu(cmenuHand, 'Label', 'Line Width', 'Sep','on'), cb_LineWidth)
 		setLineStyle(uimenu(cmenuHand, 'Label', 'Line Style'), {cb_solid cb_dashed cb_dotted cb_dashdot cb_markers_on cb_markers_off})
@@ -324,113 +324,113 @@ function set_line_uicontext(h, opt)
 	cb_color = uictx_color(h);				% there are 9 cb_color outputs
 
 	if (IS_RECTANGLE)
-		uimenu(cmenuHand, 'Label', 'Delete me', 'Call', {@del_line,h});
-		uimenu(cmenuHand, 'Label', 'Delete inside rect', 'Call', {@del_insideRect,h});
+		uimenu(cmenuHand, 'Label', 'Delete me', 'Callback', {@del_line,h});
+		uimenu(cmenuHand, 'Label', 'Delete inside rect', 'Callback', {@del_insideRect,h});
 		item_tools = uimenu(cmenuHand, 'Label', 'Trim with rect');
-		uimenu(item_tools, 'Label', 'inside', 'Call', {@trim_withPolygon,h,1});
-		uimenu(item_tools, 'Label', 'outside', 'Call', {@trim_withPolygon,h,0});
+		uimenu(item_tools, 'Label', 'inside', 'Callback', {@trim_withPolygon,h,1});
+		uimenu(item_tools, 'Label', 'outside', 'Callback', {@trim_withPolygon,h,0});
 		ui_edit_polygon(h)
 	elseif (IS_LINE)
-		uimenu(cmenuHand, 'Label', 'Delete', 'Call', {@del_line,h});
+		uimenu(cmenuHand, 'Label', 'Delete', 'Callback', {@del_line,h});
 		ui_edit_polygon(h)			% Set edition functions
 	elseif (IS_MBTRACK)				% Multibeam tracks, when deleted, have to delete also the bars
-		uimenu(cmenuHand, 'Label', 'Delete track (left-click on it)', 'Call', 'save_track_mb(1);');
+		uimenu(cmenuHand, 'Label', 'Delete track (left-click on it)', 'Callback', 'save_track_mb(1);');
 		% Old style edit function. New edit is provided by ui_edit_polygon which doesn't work with mbtracks 
-		uimenu(cmenuHand, 'Label', 'Edit track (left-click on it)', 'Call', 'edit_track_mb');
+		uimenu(cmenuHand, 'Label', 'Edit track (left-click on it)', 'Callback', 'edit_track_mb');
 	end
-	uimenu(cmenuHand, 'Label', label_save, 'Call', {@save_formated,h});
+	uimenu(cmenuHand, 'Label', label_save, 'Callback', {@save_formated,h});
 	if (~IS_SEISPOLYG && ~IS_MBTRACK && ~strcmp(get(h,'Tag'),'FaultTrace'))	% Those are not to allowed to copy
 		if (~LINE_ISCLOSED && ~IS_ARROW)
-			uimenu(cmenuHand, 'Label', 'Join lines', 'Call', {@join_lines,handles.figure1});
+			uimenu(cmenuHand, 'Label', 'Join lines', 'Callback', {@join_lines,handles.figure1});
 		end
-		uimenu(cmenuHand, 'Label', 'Copy', 'Call', {@copy_line_object,handles.figure1,handles.axes1});
+		uimenu(cmenuHand, 'Label', 'Copy', 'Callback', {@copy_line_object,handles.figure1,handles.axes1});
 	end
 	if (~IS_SEISPOLYG && ~IS_ARROW && ~IS_RECTANGLE)
 		if (numel(x) > 2)
-			uimenu(cmenuHand, 'Label', 'Spline Smooth', 'Call', {@smooth_line,h})
+			uimenu(cmenuHand, 'Label', 'Spline Smooth', 'Callback', {@smooth_line,h})
 		end
-		uimenu(cmenuHand, 'Label', label_length, 'Call', @show_LineLength)
-		uimenu(cmenuHand, 'Label', label_azim,   'Call', @show_lineAzims)
+		uimenu(cmenuHand, 'Label', label_length, 'Callback', @show_LineLength)
+		uimenu(cmenuHand, 'Label', label_azim,   'Callback', @show_lineAzims)
 	end
-	if (IS_MBTRACK),	uimenu(cmenuHand, 'Label', 'All MB-tracks length', 'Call', @show_AllTrackLength);	end
+	if (IS_MBTRACK),	uimenu(cmenuHand, 'Label', 'All MB-tracks length', 'Callback', @show_AllTrackLength);	end
 
 	if (LINE_ISCLOSED)
-		uimenu(cmenuHand, 'Label', 'Area under polygon', 'Call', @show_Area);
+		uimenu(cmenuHand, 'Label', 'Area under polygon', 'Callback', @show_Area);
 		if (IS_PATCH && ~IS_SEISPOLYG)
 			item8 = uimenu(cmenuHand, 'Label','Fill Color');
 			setLineColor(item8, uictx_color(h, 'facecolor'))		% there are 9 cb_color outputs
-			uimenu(item8, 'Label', 'None', 'Sep','on', 'Call', 'set(gco, ''FaceColor'', ''none'');refresh');
-			uimenu(cmenuHand, 'Label', 'Transparency', 'Call', @set_transparency);
+			uimenu(item8, 'Label', 'None', 'Sep','on', 'Callback', 'set(gco, ''FaceColor'', ''none'');refresh');
+			uimenu(cmenuHand, 'Label', 'Transparency', 'Callback', @set_transparency);
 		end
-		uimenu(cmenuHand, 'Label', 'Create Mask', 'Call', 'poly2mask_fig(guidata(gcbo),gco)');
+		uimenu(cmenuHand, 'Label', 'Create Mask', 'Callback', 'poly2mask_fig(guidata(gcbo),gco)');
 	end
 	if (IS_RECTANGLE && handles.validGrid)
-		uimenu(cmenuHand, 'Label', 'Make Chess board', 'Call', {@chessify, h});
+		uimenu(cmenuHand, 'Label', 'Make Chess board', 'Callback', {@chessify, h});
 	end
 
 	if (handles.image_type ~= 20 && ~LINE_ISCLOSED && strcmp(opt,'line'))
-		%uimenu(cmenuHand, 'Label', 'Stacked profile', 'Call', @stack_profiles);
+		%uimenu(cmenuHand, 'Label', 'Stacked profile', 'Callback', @stack_profiles);
 		if ((ndims(get(handles.hImg,'CData')) == 2) || (handles.validGrid))	% Because Track of RGB doesn't know how to save
 			if (handles.nLayers > 1)
 				cbTrack = 'setappdata(gcf,''TrackThisLine'',gco); mirone(''ExtractProfile_CB'',guidata(gcbo),''3D'')';
-				uimenu(cmenuHand, 'Label', '3D interpolation', 'Call', cbTrack);
+				uimenu(cmenuHand, 'Label', '3D interpolation', 'Callback', cbTrack);
 			end
 			cbTrack = 'setappdata(gcf,''TrackThisLine'',gco); mirone(''ExtractProfile_CB'',guidata(gcbo),''point'')';
-			uimenu(cmenuHand, 'Label', 'Point interpolation', 'Call', cbTrack);
+			uimenu(cmenuHand, 'Label', 'Point interpolation', 'Callback', cbTrack);
 		end
 		cbTrack = 'setappdata(gcf,''TrackThisLine'',gco); mirone(''ExtractProfile_CB'',guidata(gcbo))';
-		uimenu(cmenuHand, 'Label', 'Extract profile', 'Call', cbTrack);
+		uimenu(cmenuHand, 'Label', 'Extract profile', 'Callback', cbTrack);
 	end
 
-	if strcmp(opt,'MBtrack'),	uimenu(cmenuHand, 'Label', 'Show track''s Swath Ratio', 'Call', {@show_swhatRatio,h});	end
+	if strcmp(opt,'MBtrack'),	uimenu(cmenuHand, 'Label', 'Show track''s Swath Ratio', 'Callback', {@show_swhatRatio,h});	end
 
 	if (IS_RECTANGLE)
-		uimenu(cmenuHand, 'Label', 'Rectangle limits (edit)', 'Sep','on', 'Call', @rectangle_limits);
-		if (handles.image_type ~= 20), uimenu(cmenuHand, 'Label', 'Register Image', 'Call', @rectangle_register_img);	end
+		uimenu(cmenuHand, 'Label', 'Rectangle limits (edit)', 'Sep','on', 'Callback', @rectangle_limits);
+		if (handles.image_type ~= 20), uimenu(cmenuHand, 'Label', 'Register Image', 'Callback', @rectangle_register_img);	end
 		if (~handles.validGrid)
-			uimenu(cmenuHand, 'Label', 'Transplant Image here','Call', 'transplants(gco,''image'')');
+			uimenu(cmenuHand, 'Label', 'Transplant Image here','Callback', 'transplants(gco,''image'')');
 		end
 		if (handles.geog)
-			uimenu(cmenuHand, 'Label', 'Grid/Image mosaicer', 'Call', 'mosaicer(gco)');
-			%uimenu(cmenuHand, 'Label', 'Get image from Web Map Server', 'Call', 'wms_tool(gco)');
-			uimenu(cmenuHand, 'Label', 'CMT Catalog (Web download)', 'Call', 'globalcmt(gcf,gco)');
+			uimenu(cmenuHand, 'Label', 'Grid/Image mosaicer', 'Callback', 'mosaicer(gco)');
+			%uimenu(cmenuHand, 'Label', 'Get image from Web Map Server', 'Callback', 'wms_tool(gco)');
+			uimenu(cmenuHand, 'Label', 'CMT Catalog (Web download)', 'Callback', 'globalcmt(gcf,gco)');
 		end
 
 		item_tools = uimenu(cmenuHand, 'Label', 'ROI Crop Tools','Sep','on');
 		if (handles.validGrid)    % Option only available to recognized grids
-			uimenu(item_tools, 'Label', 'Crop Grid', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''CropaGrid_pure'')');
-			uimenu(item_tools, 'Label', 'Crop Image', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco)');
-			uimenu(item_tools, 'Label', 'Crop Image (with coords)', 'Call', ...
+			uimenu(item_tools, 'Label', 'Crop Grid', 'Callback', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''CropaGrid_pure'')');
+			uimenu(item_tools, 'Label', 'Crop Image', 'Callback', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco)');
+			uimenu(item_tools, 'Label', 'Crop Image (with coords)', 'Callback', ...
 				'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''CropaWithCoords'')');
-			uimenu(item_tools, 'Label', 'Set to constant', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''SetConst'')','Sep','on');
+			uimenu(item_tools, 'Label', 'Set to constant', 'Callback', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''SetConst'')','Sep','on');
 			item_tools3 = uimenu(item_tools, 'Label', 'Stats');
-			uimenu(item_tools3,'Label', 'Mean',          'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''GetMean'')');
-			uimenu(item_tools3,'Label', 'Median',        'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''GetMedian'')');
-			uimenu(item_tools3,'Label', 'STD',           'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''GetSTD'')');
-			uimenu(item_tools, 'Label', 'Clip grid',     'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''Clip'')');
-			uimenu(item_tools, 'Label', 'Median filter', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''MedianFilter'')');
-			uimenu(item_tools, 'Label', 'Spline smooth', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''SplineSmooth'')');
-			uimenu(item_tools, 'Label', 'Histogram (grid)', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''CropaGrid_histo'')');
-%			uimenu(item_tools, 'Label', 'Detect Fronts', 'Call', 'cayula_cornillon(guidata(gcbo),gco)');
-			uimenu(item_tools, 'Label', 'Power',           'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''CropaGrid_power'')');
-			uimenu(item_tools, 'Label', 'Autocorrelation', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''CropaGrid_autocorr'')');
-			uimenu(item_tools, 'Label', 'FFT tool', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''CropaGrid_fftTools'')');
+			uimenu(item_tools3,'Label', 'Mean',          'Callback', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''GetMean'')');
+			uimenu(item_tools3,'Label', 'Median',        'Callback', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''GetMedian'')');
+			uimenu(item_tools3,'Label', 'STD',           'Callback', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''GetSTD'')');
+			uimenu(item_tools, 'Label', 'Clip grid',     'Callback', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''Clip'')');
+			uimenu(item_tools, 'Label', 'Median filter', 'Callback', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''MedianFilter'')');
+			uimenu(item_tools, 'Label', 'Spline smooth', 'Callback', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''SplineSmooth'')');
+			uimenu(item_tools, 'Label', 'Histogram (grid)', 'Callback', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''CropaGrid_histo'')');
+%			uimenu(item_tools, 'Label', 'Detect Fronts', 'Callback', 'cayula_cornillon(guidata(gcbo),gco)');
+			uimenu(item_tools, 'Label', 'Power',           'Callback', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''CropaGrid_power'')');
+			uimenu(item_tools, 'Label', 'Autocorrelation', 'Callback', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''CropaGrid_autocorr'')');
+			uimenu(item_tools, 'Label', 'FFT tool', 'Callback', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''CropaGrid_fftTools'')');
 			item_fill = uimenu(item_tools, 'Label', 'Fill gaps');
-			uimenu(item_fill,  'Label', 'Fill gaps (surface)','Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''FillGaps'',''surface'')');
-			uimenu(item_fill,  'Label', 'Fill gaps (cubic)',  'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''FillGaps'',''cubic'');');
-			uimenu(item_fill,  'Label', 'Fill gaps (linear)', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''FillGaps'',''linear'');');
-			uimenu(item_tools, 'Label', 'Fill sinks', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''FillSinks_pitt'')');
-			uimenu(item_tools, 'Label', 'Slice peaks','Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''FillSinks_peak'')');
+			uimenu(item_fill,  'Label', 'Fill gaps (surface)','Callback', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''FillGaps'',''surface'')');
+			uimenu(item_fill,  'Label', 'Fill gaps (cubic)',  'Callback', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''FillGaps'',''cubic'');');
+			uimenu(item_fill,  'Label', 'Fill gaps (linear)', 'Callback', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''FillGaps'',''linear'');');
+			uimenu(item_tools, 'Label', 'Fill sinks', 'Callback', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''FillSinks_pitt'')');
+			uimenu(item_tools, 'Label', 'Slice peaks','Callback', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''FillSinks_peak'')');
 		elseif (handles.image_type ~= 20)			% We have an Image
-			uimenu(item_tools, 'Label', 'Crop Image', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco)');
+			uimenu(item_tools, 'Label', 'Crop Image', 'Callback', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco)');
 			if (handles.image_type == 3)
-					uimenu(item_tools, 'Label', 'Crop Image (with coords)', 'Call', ...
+					uimenu(item_tools, 'Label', 'Crop Image (with coords)', 'Callback', ...
 						'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''CropaWithCoords'')');
 			end
-			uimenu(item_tools, 'Label', 'Histogram', 'Call', 'image_histo(guidata(gcbo),gco)');
+			uimenu(item_tools, 'Label', 'Histogram', 'Callback', 'image_histo(guidata(gcbo),gco)');
 		end
 		if (handles.validGrid || handles.image_type ~= 20)
-			uimenu(item_tools, 'Label', 'Image process', 'Sep','on', 'Call', 'mirone(''DrawClosedPolygon_CB'',guidata(gcbo),gco)');
+			uimenu(item_tools, 'Label', 'Image process', 'Sep','on', 'Callback', 'mirone(''DrawClosedPolygon_CB'',guidata(gcbo),gco)');
 		else
 			delete(item_tools)		% Easier to create it at top and delete in the case where it had no use
 		end
@@ -440,38 +440,38 @@ function set_line_uicontext(h, opt)
 	if (~IS_SEISPOLYG && LINE_ISCLOSED && ~IS_RECTANGLE && (handles.validGrid || handles.image_type ~= 20))
 		item_tools2 = uimenu(cmenuHand, 'Label', 'ROI Crop Tools','Sep','on');
 		if (handles.validGrid)    % Option only available to recognized grids
-			uimenu(item_tools2, 'Label', 'Crop Grid', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''CropaGrid_pure'')');
-			uimenu(item_tools2, 'Label', 'Crop Image', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco)');
-			uimenu(item_tools2, 'Label', 'Crop Image (with coords)', 'Call', ...
+			uimenu(item_tools2, 'Label', 'Crop Grid', 'Callback', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''CropaGrid_pure'')');
+			uimenu(item_tools2, 'Label', 'Crop Image', 'Callback', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco)');
+			uimenu(item_tools2, 'Label', 'Crop Image (with coords)', 'Callback', ...
 				'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''CropaWithCoords'')');
-			uimenu(item_tools2, 'Label', 'Set to constant', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''ROI_SetConst'')','Sep','on');
+			uimenu(item_tools2, 'Label', 'Set to constant', 'Callback', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''ROI_SetConst'')','Sep','on');
 			item_tools3 = uimenu(item_tools2, 'Label', 'Stats');
-			uimenu(item_tools3, 'Label', 'Mean', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''ROI_Mean'')');
-			uimenu(item_tools3, 'Label', 'Median', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''ROI_Median'')');
-			uimenu(item_tools3, 'Label', 'STD', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''ROI_STD'')');
-			uimenu(item_tools2, 'Label', 'Clip grid', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''ROI_Clip'')');
-			uimenu(item_tools2, 'Label', 'Median filter', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''ROI_MedianFilter'')');
-			uimenu(item_tools2, 'Label', 'Spline smooth', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''ROI_SplineSmooth'')');
-			uimenu(item_tools2, 'Label', 'Fill sinks', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''ROI_FillSinks_pitt'')');
-			uimenu(item_tools2, 'Label', 'Slice peaks','Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''ROI_FillSinks_peak'')');
-			uimenu(item_tools2, 'Label', 'Histogram (grid)', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''CropaGrid_histo'')');
+			uimenu(item_tools3, 'Label', 'Mean', 'Callback', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''ROI_Mean'')');
+			uimenu(item_tools3, 'Label', 'Median', 'Callback', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''ROI_Median'')');
+			uimenu(item_tools3, 'Label', 'STD', 'Callback', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''ROI_STD'')');
+			uimenu(item_tools2, 'Label', 'Clip grid', 'Callback', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''ROI_Clip'')');
+			uimenu(item_tools2, 'Label', 'Median filter', 'Callback', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''ROI_MedianFilter'')');
+			uimenu(item_tools2, 'Label', 'Spline smooth', 'Callback', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''ROI_SplineSmooth'')');
+			uimenu(item_tools2, 'Label', 'Fill sinks', 'Callback', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''ROI_FillSinks_pitt'')');
+			uimenu(item_tools2, 'Label', 'Slice peaks','Callback', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''ROI_FillSinks_peak'')');
+			uimenu(item_tools2, 'Label', 'Histogram (grid)', 'Callback', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''CropaGrid_histo'')');
 			hP = getappdata(handles.figure1, 'ParentFig');
 			if ( ~isempty(hP) && ishandle(hP) && ~isempty(strfind(get(handles.figure1,'Name'), 'spectrum')) )
-				uimenu(item_tools2, 'Label', 'Low Pass FFT filter', 'Call', 'mirone(''GridToolsSectrum_CB'',guidata(gcbo), ''lpass'', gco)');
-				uimenu(item_tools2, 'Label', 'High Pass FFT filter','Call', 'mirone(''GridToolsSectrum_CB'',guidata(gcbo), ''hpass'', gco)');
+				uimenu(item_tools2, 'Label', 'Low Pass FFT filter', 'Callback', 'mirone(''GridToolsSectrum_CB'',guidata(gcbo), ''lpass'', gco)');
+				uimenu(item_tools2, 'Label', 'High Pass FFT filter','Callback', 'mirone(''GridToolsSectrum_CB'',guidata(gcbo), ''hpass'', gco)');
 			end
 		else			% We have an Image
-			uimenu(item_tools2, 'Label', 'Crop Image', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco)');
+			uimenu(item_tools2, 'Label', 'Crop Image', 'Callback', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco)');
 			if (handles.image_type == 3)
-					uimenu(item_tools2, 'Label', 'Crop Image (with coords)', 'Call', ...
+					uimenu(item_tools2, 'Label', 'Crop Image (with coords)', 'Callback', ...
 						'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''CropaWithCoords'')');
 			end
-			uimenu(item_tools2, 'Label', 'Histogram', 'Call', 'image_histo(guidata(gcbo),gco)');
+			uimenu(item_tools2, 'Label', 'Histogram', 'Callback', 'image_histo(guidata(gcbo),gco)');
 		end
-		uimenu(item_tools2, 'Label', 'Image process', 'Sep','on', 'Call', 'mirone(''DrawClosedPolygon_CB'',guidata(gcbo),gco)');
+		uimenu(item_tools2, 'Label', 'Image process', 'Sep','on', 'Callback', 'mirone(''DrawClosedPolygon_CB'',guidata(gcbo),gco)');
 
 		if (strcmp(get(h,'Tag'),'EulerTrapezium'))
-			uimenu(cmenuHand, 'Label', 'Compute Euler Pole', 'Sep','on', 'Call',...
+			uimenu(cmenuHand, 'Label', 'Compute Euler Pole', 'Sep','on', 'Callback',...
 				'calc_bonin_euler_pole(get(gco,''XData''), get(gco,''YData''));' );
 		end
 	end
@@ -483,31 +483,31 @@ function set_line_uicontext(h, opt)
 	set_stack_order(cmenuHand)      % Set options to change order in the stackpot
 
 	if (strcmp(get(h,'Tag'),'FaultTrace'))      % For Okada modeling
-		uimenu(cmenuHand, 'Label', 'Okada', 'Sep','on', 'Call', {@okada_model,h,'okada'});    
-		uimenu(cmenuHand, 'Label', 'Mansinha', 'Call', {@okada_model,h,'mansinha'});    
+		uimenu(cmenuHand, 'Label', 'Okada', 'Sep','on', 'Callback', {@okada_model,h,'okada'});    
+		uimenu(cmenuHand, 'Label', 'Mansinha', 'Callback', {@okada_model,h,'mansinha'});    
 	end
 
 	if (IS_SEISPOLYG)                         % Seismicity options
 		% gco gives the same handle as h 
-		uimenu(cmenuHand, 'Label', 'Save events', 'Call', 'save_seismicity(gcf,[],gco)', 'Sep','on');
-		uimenu(cmenuHand, 'Label', 'Find clusters', 'Call', 'find_clusters(gcf,gco)');
+		uimenu(cmenuHand, 'Label', 'Save events', 'Callback', 'save_seismicity(gcf,[],gco)', 'Sep','on');
+		uimenu(cmenuHand, 'Label', 'Find clusters', 'Callback', 'find_clusters(gcf,gco)');
 		itemHist = uimenu(cmenuHand, 'Label','Histograms');
-		uimenu(itemHist, 'Label', 'Guttenberg & Richter', 'Call', 'histos_seis(gco,''GR'')');
-		uimenu(itemHist, 'Label', 'Cumulative number', 'Call', 'histos_seis(gco,''CH'')');
-		uimenu(itemHist, 'Label', 'Cumulative moment', 'Call', 'histos_seis(gco,''CM'')');
-		uimenu(itemHist, 'Label', 'Magnitude', 'Call', 'histos_seis(gco,''MH'')');
-		uimenu(itemHist, 'Label', 'Time', 'Call', 'histos_seis(gco,''TH'')');
-		uimenu(itemHist, 'Label', 'Display in Table', 'Call', 'histos_seis(gcf,''HT'')','Sep','on');
-		%uimenu(itemHist, 'Label', 'Hour of day', 'Call', 'histos_seis(gco,''HH'')');
+		uimenu(itemHist, 'Label', 'Guttenberg & Richter', 'Callback', 'histos_seis(gco,''GR'')');
+		uimenu(itemHist, 'Label', 'Cumulative number', 'Callback', 'histos_seis(gco,''CH'')');
+		uimenu(itemHist, 'Label', 'Cumulative moment', 'Callback', 'histos_seis(gco,''CM'')');
+		uimenu(itemHist, 'Label', 'Magnitude', 'Callback', 'histos_seis(gco,''MH'')');
+		uimenu(itemHist, 'Label', 'Time', 'Callback', 'histos_seis(gco,''TH'')');
+		uimenu(itemHist, 'Label', 'Display in Table', 'Callback', 'histos_seis(gcf,''HT'')','Sep','on');
+		%uimenu(itemHist, 'Label', 'Hour of day', 'Callback', 'histos_seis(gco,''HH'')');
 		itemTime = uimenu(cmenuHand, 'Label','Time series');
-		uimenu(itemTime, 'Label', 'Time magnitude', 'Call', 'histos_seis(gco,''TM'')');
-		uimenu(itemTime, 'Label', 'Time depth', 'Call', 'histos_seis(gco,''TD'')');
-		uimenu(cmenuHand, 'Label', 'Mc and b estimate', 'Call', 'histos_seis(gco,''BV'')');
-		uimenu(cmenuHand, 'Label', 'Fit Omori law', 'Call', 'histos_seis(gco,''OL'')');
-		%uimenu(cmenuHand, 'Label', 'Skell', 'Call', 'esqueleto_tmp(gco)','Sep','on');
+		uimenu(itemTime, 'Label', 'Time magnitude', 'Callback', 'histos_seis(gco,''TM'')');
+		uimenu(itemTime, 'Label', 'Time depth', 'Callback', 'histos_seis(gco,''TD'')');
+		uimenu(cmenuHand, 'Label', 'Mc and b estimate', 'Callback', 'histos_seis(gco,''BV'')');
+		uimenu(cmenuHand, 'Label', 'Fit Omori law', 'Callback', 'histos_seis(gco,''OL'')');
+		%uimenu(cmenuHand, 'Label', 'Skell', 'Callback', 'esqueleto_tmp(gco)','Sep','on');
 	elseif (IS_SEISMICLINE)
-		uimenu(cmenuHand, 'Label', 'Set buffer zone', 'Call', {@seismic_line,h,'buf'}, 'Sep','on');
-		uimenu(cmenuHand, 'Label', 'Project seismicity', 'Call', {@seismic_line,h,'proj'}, 'Enable','off');
+		uimenu(cmenuHand, 'Label', 'Set buffer zone', 'Callback', {@seismic_line,h,'buf'}, 'Sep','on');
+		uimenu(cmenuHand, 'Label', 'Project seismicity', 'Callback', {@seismic_line,h,'proj'}, 'Enable','off');
 	end
 
 % -----------------------------------------------------------------------------------------
@@ -540,19 +540,19 @@ function set_recTsu_uicontext(h)
 				setappdata(h(k),'LineInfo',[sprintf('%.16g %.16g',x_inc, y_inc), handles.head(7)]);
 				do_nest_sizes = true;
 			end
-			uimenu(cmenuHand, 'Label', 'Rectangle limits (edit)', 'Call', @rectangle_limits);
+			uimenu(cmenuHand, 'Label', 'Rectangle limits (edit)', 'Callback', @rectangle_limits);
 			ud = 1;		set(h(k),'UserData',ud)
 		end
 		if (handles.validGrid)			% Option only available to recognized grids
-			uimenu(cmenuHand, 'Label', 'Crop Grid', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''CropaGrid_pure'')');
+			uimenu(cmenuHand, 'Label', 'Crop Grid', 'Callback', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''CropaGrid_pure'')');
 		end
-% 		uimenu(cmenuHand, 'Label', 'Adjust to nesting dimensions', 'Sep', 'on', 'Call', 'nesting_sizes(gcbo)');
+% 		uimenu(cmenuHand, 'Label', 'Adjust to nesting dimensions', 'Sep', 'on', 'Callback', 'nesting_sizes(gcbo)');
 		if (ud > 1 || handles.validGrid)
-			uimenu(cmenuHand, 'Label', 'Show nesting info', 'Call', 'nesting_sizes(gcbo,''Info'')');
-			uimenu(cmenuHand, 'Label', 'Create blank grid', 'Call', 'nesting_sizes(gcbo,''Grid'')');
+			uimenu(cmenuHand, 'Label', 'Show nesting info', 'Callback', 'nesting_sizes(gcbo,''Info'')');
+			uimenu(cmenuHand, 'Label', 'Create blank grid', 'Callback', 'nesting_sizes(gcbo,''Grid'')');
 		end
 		if (k == numel(h))
-			uimenu(cmenuHand, 'Label', 'New nested grid', 'Call', 'nesting_sizes(gcbo,''New'')');
+			uimenu(cmenuHand, 'Label', 'New nested grid', 'Callback', 'nesting_sizes(gcbo,''New'')');
 		end
 
 		set_common_lineProps(h(k), cmenuHand, false)
@@ -682,9 +682,9 @@ function hCopy = copy_line_object(obj, evt, hFig, hAxes)
 	newH = copyobj(oldH,hAxes);
 	h = findobj(get(newH,'uicontextmenu'),'label','Save line');
 	if (~isempty(h))        % Replace the old line handle in the 'Save line' Callback by the just created one
-		hFun = get(h,'Call');
+		hFun = get(h,'Callback');
 		hFun{2} = newH;
-		set(h,'Call',hFun)
+		set(h,'Callback',hFun)
 	end
 	if (isappdata(newH,'polygon_data'))
 		rmappdata(newH,'polygon_data')		% Remove the parent's ui_edit_polygon appdata
@@ -1012,32 +1012,32 @@ function set_country_uicontext(h)
 	for (i = 1:numel(h))
 		cmenuHand = uicontextmenu('Parent',handles.figure1);
 		set(h(i), 'UIContextMenu', cmenuHand);   
-		uimenu(cmenuHand, 'Label', 'Save line', 'Call', @save_line);
-		uimenu(cmenuHand, 'Label', 'Delete', 'Call', 'delete(gco)');
+		uimenu(cmenuHand, 'Label', 'Save line', 'Callback', @save_line);
+		uimenu(cmenuHand, 'Label', 'Delete', 'Callback', 'delete(gco)');
 		if (handles.validGrid)
 			item_ct = uimenu(cmenuHand, 'Label', 'ROI Crop Tools','Sep','on');
-			uimenu(item_ct, 'Label', 'Crop Grid', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''CropaGrid_pure'')');
-			uimenu(item_ct, 'Label', 'Set to constant', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''ROI_SetConst'')');
-			uimenu(item_ct, 'Label', 'Mean', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''ROI_Mean'')');
-			uimenu(item_ct, 'Label', 'Clip grid', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''ROI_Clip'')');
-			uimenu(item_ct, 'Label', 'Median filter', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''ROI_MedianFilter'')');
-			uimenu(item_ct, 'Label', 'Spline smooth', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''ROI_SplineSmooth'')');
-			uimenu(item_ct, 'Label', 'Histogram', 'Call', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''CropaGrid_histo'')');
+			uimenu(item_ct, 'Label', 'Crop Grid', 'Callback', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''CropaGrid_pure'')');
+			uimenu(item_ct, 'Label', 'Set to constant', 'Callback', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''ROI_SetConst'')');
+			uimenu(item_ct, 'Label', 'Mean', 'Callback', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''ROI_Mean'')');
+			uimenu(item_ct, 'Label', 'Clip grid', 'Callback', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''ROI_Clip'')');
+			uimenu(item_ct, 'Label', 'Median filter', 'Callback', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''ROI_MedianFilter'')');
+			uimenu(item_ct, 'Label', 'Spline smooth', 'Callback', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''ROI_SplineSmooth'')');
+			uimenu(item_ct, 'Label', 'Histogram', 'Callback', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''CropaGrid_histo'')');
 		end
 		cb_LineWidth = uictx_LineWidth(h(i));			% there are 5 cb_LineWidth outputs
 		item_lw = uimenu(cmenuHand, 'Label', 'Line Width', 'Sep','on');
-		uimenu(item_lw, 'Label', '1     pt', 'Call', cb_LineWidth{1});
-		uimenu(item_lw, 'Label', 'Other...', 'Call', cb_LineWidth{5});
+		uimenu(item_lw, 'Label', '1     pt', 'Callback', cb_LineWidth{1});
+		uimenu(item_lw, 'Label', 'Other...', 'Callback', cb_LineWidth{5});
 		item8 = uimenu(cmenuHand, 'Label','Fill Color', 'Sep','on');
 		cb_color = uictx_color(h(i),'facecolor');		% there are 9 cb_color outputs
-		uimenu(item8, 'Label', 'Other...', 'Call', cb_color{9});
-		uimenu(item8, 'Label', 'None', 'Call', 'set(gco, ''FaceColor'', ''none'');refresh');
-		uimenu(cmenuHand, 'Label', 'Transparency', 'Call', @set_transparency);
-		uimenu(cmenuHand, 'Label', 'Create Mask', 'Call', 'poly2mask_fig(guidata(gcbo),gco)');
+		uimenu(item8, 'Label', 'Other...', 'Callback', cb_color{9});
+		uimenu(item8, 'Label', 'None', 'Callback', 'set(gco, ''FaceColor'', ''none'');refresh');
+		uimenu(cmenuHand, 'Label', 'Transparency', 'Callback', @set_transparency);
+		uimenu(cmenuHand, 'Label', 'Create Mask', 'Callback', 'poly2mask_fig(guidata(gcbo),gco)');
 		if (handles.validGrid)
 		end
 		if (handles.image_type ~= 20)
-			uimenu(cmenuHand, 'Label', 'Region-Of-Interest', 'Sep','on', 'Call', ...
+			uimenu(cmenuHand, 'Label', 'Region-Of-Interest', 'Sep','on', 'Callback', ...
 				'mirone(''DrawClosedPolygon_CB'',guidata(gcbo),gco)');
 		end
 	end
@@ -1097,15 +1097,15 @@ function set_SRTM_rect_uicontext(h,opt)
 	handles = guidata(h(1));	cmenuHand = uicontextmenu('Parent',handles.figure1);
 	set(h, 'UIContextMenu', cmenuHand);
 	ui_edit_polygon(h)    % Set edition functions
-	uimenu(cmenuHand, 'Label', 'Delete', 'Call', 'delete(gco)');
+	uimenu(cmenuHand, 'Label', 'Delete', 'Callback', 'delete(gco)');
 	cb_Fill_surface = 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''FillGaps'',''surface'');delete(gco)';
 	cb_Fill_cubic = 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''FillGaps'',''cubic'');delete(gco)';
 	cb_Fill_linear = 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''FillGaps'',''linear'');delete(gco)';
 	cb_Fill_sea   = 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''FillGaps'',''sea'');delete(gco)';
-	uimenu(cmenuHand, 'Label', 'Fill gaps (surface)', 'Call', cb_Fill_surface);
-	uimenu(cmenuHand, 'Label', 'Fill gaps (cubic)', 'Call', cb_Fill_cubic);
-	uimenu(cmenuHand, 'Label', 'Fill gaps (linear)', 'Call', cb_Fill_linear);
-	uimenu(cmenuHand, 'Label', 'Fill gaps (sea)', 'Call', cb_Fill_sea);
+	uimenu(cmenuHand, 'Label', 'Fill gaps (surface)', 'Callback', cb_Fill_surface);
+	uimenu(cmenuHand, 'Label', 'Fill gaps (cubic)', 'Callback', cb_Fill_cubic);
+	uimenu(cmenuHand, 'Label', 'Fill gaps (linear)', 'Callback', cb_Fill_linear);
+	uimenu(cmenuHand, 'Label', 'Fill gaps (sea)', 'Callback', cb_Fill_sea);
 
 % -----------------------------------------------------------------------------------------
 function set_ContourLines_uicontext(h,h_label)
@@ -1120,13 +1120,13 @@ function set_ContourLines_uicontext(h,h_label)
 	cb20 = 'set(gco, ''LineStyle'', '':''); refresh';   cb21 = 'set(gco, ''LineStyle'', ''-.''); refresh';
 	cb_color = uictx_color(h);				% there are 9 cb_color outputs
 
-	uimenu(cmenuHand, 'Label', 'Delete contour', 'Call',{@remove_singleContour,h});
-	uimenu(cmenuHand, 'Label', 'Delete all contours', 'Call', cb_rac);
-	% item1 = uimenu(cmenuHand, 'Label', 'Edit contour (left-click on it)', 'Call', cb1);
-	uimenu(cmenuHand, 'Label', 'Join contours', 'Call', {@join_lines,handles.figure1});
-	uimenu(cmenuHand, 'Label', 'Save contour', 'Call', {@save_formated,h});
-	uimenu(cmenuHand, 'Label', 'Contour length', 'Call', {@show_LineLength,[]});
-	uimenu(cmenuHand, 'Label', 'Area under contour', 'Call', @show_Area);
+	uimenu(cmenuHand, 'Label', 'Delete contour', 'Callback',{@remove_singleContour,h});
+	uimenu(cmenuHand, 'Label', 'Delete all contours', 'Callback', cb_rac);
+	% item1 = uimenu(cmenuHand, 'Label', 'Edit contour (left-click on it)', 'Callback', cb1);
+	uimenu(cmenuHand, 'Label', 'Join contours', 'Callback', {@join_lines,handles.figure1});
+	uimenu(cmenuHand, 'Label', 'Save contour', 'Callback', {@save_formated,h});
+	uimenu(cmenuHand, 'Label', 'Contour length', 'Callback', {@show_LineLength,[]});
+	uimenu(cmenuHand, 'Label', 'Area under contour', 'Callback', @show_Area);
 	item_lw = uimenu(cmenuHand, 'Label', 'Contour Line Width', 'Sep','on');
 	setLineWidth(item_lw,cb_LineWidth)
 	item_ls = uimenu(cmenuHand, 'Label', 'Contour Line Style');
@@ -1135,16 +1135,16 @@ function set_ContourLines_uicontext(h,h_label)
 	setLineColor(item_lc,cb_color)
 	cb_CLineWidth = uictx_Class_LineWidth(h);           % there are 5 cb_CLineWidth outputs
 	item8 = uimenu(cmenuHand, 'Label', 'All Contours Line Width', 'Sep','on');
-	uimenu(item8, 'Label', '1       pt', 'Call', cb_CLineWidth{1});
-	uimenu(item8, 'Label', '2       pt', 'Call', cb_CLineWidth{2});
-	uimenu(item8, 'Label', '3       pt', 'Call', cb_CLineWidth{3});
-	uimenu(item8, 'Label', 'Other...', 'Call', cb_CLineWidth{5});
+	uimenu(item8, 'Label', '1       pt', 'Callback', cb_CLineWidth{1});
+	uimenu(item8, 'Label', '2       pt', 'Callback', cb_CLineWidth{2});
+	uimenu(item8, 'Label', '3       pt', 'Callback', cb_CLineWidth{3});
+	uimenu(item8, 'Label', 'Other...', 'Callback', cb_CLineWidth{5});
 	cb_CLineStyle = uictx_Class_LineStyle(h);        % there are 4 cb_CLineStyle outputs
 	item9 = uimenu(cmenuHand, 'Label', 'All Contours Line Style');
-	uimenu(item9, 'Label', 'solid', 'Call', cb_CLineStyle{1});
-	uimenu(item9, 'Label', 'dashed', 'Call', cb_CLineStyle{2});
-	uimenu(item9, 'Label', 'dotted', 'Call', cb_CLineStyle{3});
-	uimenu(item9, 'Label', 'dash-dotted', 'Call', cb_CLineStyle{4});
+	uimenu(item9, 'Label', 'solid', 'Callback', cb_CLineStyle{1});
+	uimenu(item9, 'Label', 'dashed', 'Callback', cb_CLineStyle{2});
+	uimenu(item9, 'Label', 'dotted', 'Callback', cb_CLineStyle{3});
+	uimenu(item9, 'Label', 'dash-dotted', 'Callback', cb_CLineStyle{4});
 	cb_CLineColor = uictx_Class_LineColor(h);              % there are 9 cb_CLineColor outputs
 	item_lc = uimenu(cmenuHand, 'Label', 'All Contours Line Color');
 	setLineColor(item_lc,cb_CLineColor)
@@ -1165,13 +1165,13 @@ function setCoastLineUictx(h)
 	cb15 = 'set(gco, ''LineStyle'', '':''); refresh';   cb16 = 'set(gco, ''LineStyle'', ''-.''); refresh';
 	cb_color = uictx_color(h);				% there are 9 cb_color outputs
 	
-	uimenu(cmenuHand, 'Label', label, 'Call', 'delete(gco)');
-	uimenu(cmenuHand, 'Label', 'Save coastline', 'Call', {@save_formated,h});
+	uimenu(cmenuHand, 'Label', label, 'Callback', 'delete(gco)');
+	uimenu(cmenuHand, 'Label', 'Save coastline', 'Callback', {@save_formated,h});
 
 	if (handles.validGrid && strcmp(tag,'CoastLineNetCDF'))		% Options to apply ocean/land masking
 		item = uimenu(cmenuHand, 'Label', 'Mask', 'Sep','on');
-		uimenu(item, 'Label', 'Land',   'Call', {@apply_grdlandMask,h, 'L'})
-		uimenu(item, 'Label', 'Oecean', 'Call', {@apply_grdlandMask,h, 'O'})
+		uimenu(item, 'Label', 'Land',   'Callback', {@apply_grdlandMask,h, 'L'})
+		uimenu(item, 'Label', 'Oecean', 'Callback', {@apply_grdlandMask,h, 'O'})
 	end
 
 	setLineWidth(uimenu(cmenuHand, 'Label', 'Line Width', 'Sep','on'), cb_LineWidth)
@@ -1237,14 +1237,14 @@ for i = 1:7     % Loop over all Plate Boundaries Types
 	set(h_cur, 'UIContextMenu', cmenuHand);
 	cb_LineWidth = uictx_Class_LineWidth(h_cur);    % there are 5 cb_PB_LineWidth outputs
 	cb_color = uictx_Class_LineColor(h_cur);        % there are 9 cb_PB_color outputs
-	uimenu(cmenuHand, 'Label', 'Segment info', 'Call', {@PB_All_Info,h_cur,data_cur});
-	uimenu(cmenuHand, 'Label', 'Delete class', 'Call', 'delete(findobj(''Tag'',''PB_All''))', 'Sep','on');
-	uimenu(cmenuHand, 'Label', 'Segment length', 'Call', {@show_LineLength,[]});
+	uimenu(cmenuHand, 'Label', 'Segment info', 'Callback', {@PB_All_Info,h_cur,data_cur});
+	uimenu(cmenuHand, 'Label', 'Delete class', 'Callback', 'delete(findobj(''Tag'',''PB_All''))', 'Sep','on');
+	uimenu(cmenuHand, 'Label', 'Segment length', 'Callback', {@show_LineLength,[]});
 	item3 = uimenu(cmenuHand, 'Label', 'Line Width', 'Sep','on');
-	uimenu(item3, 'Label', '2       pt', 'Call', cb_LineWidth{2});
-	uimenu(item3, 'Label', '3       pt', 'Call', cb_LineWidth{3});
-	uimenu(item3, 'Label', '4       pt', 'Call', cb_LineWidth{4});
-	uimenu(item3, 'Label', 'Other...', 'Call', cb_LineWidth{5});
+	uimenu(item3, 'Label', '2       pt', 'Callback', cb_LineWidth{2});
+	uimenu(item3, 'Label', '3       pt', 'Callback', cb_LineWidth{3});
+	uimenu(item3, 'Label', '4       pt', 'Callback', cb_LineWidth{4});
+	uimenu(item3, 'Label', 'Other...', 'Callback', cb_LineWidth{5});
 	item_lc = uimenu(cmenuHand, 'Label', 'Color');
 	setLineColor(item_lc,cb_color)
 end
@@ -1257,22 +1257,22 @@ function set_isochrons_uicontext(h, data)
 	if (iscell(tag)),   tag = tag{1};   end
 
 	handles = guidata(get(h(1),'Parent'));				% Get Mirone handles
-	cmenuHand = uicontextmenu('Parent',handles.figure1, 'Call', @store_clicked_pt);
+	cmenuHand = uicontextmenu('Parent',handles.figure1, 'Callback', @store_clicked_pt);
 	set(h, 'UIContextMenu', cmenuHand);
 	cb_LineWidth = uictx_LineWidth(h);		% there are 5 cb_LineWidth outputs
 	cb_color = uictx_color(h);				% there are 9 cb_color outputs
 	cbls1 = 'set(gco, ''LineStyle'', ''-''); refresh';   cbls2 = 'set(gco, ''LineStyle'', ''--''); refresh';
 	cbls3 = 'set(gco, ''LineStyle'', '':''); refresh';   cbls4 = 'set(gco, ''LineStyle'', ''-.''); refresh';
 	if (~isempty(data) && ~all(isempty(cat(2,data{:}))) )
-		uimenu(cmenuHand, 'Label', [tag ' info'], 'Call', {@Isochrons_Info,data});
-		uimenu(cmenuHand, 'Label', ['Delete this ' tag ' line'], 'Call', {@del_line,h}, 'Sep','on');
+		uimenu(cmenuHand, 'Label', [tag ' info'], 'Callback', {@Isochrons_Info,data});
+		uimenu(cmenuHand, 'Label', ['Delete this ' tag ' line'], 'Callback', {@del_line,h}, 'Sep','on');
 	else
-		uimenu(cmenuHand, 'Label', ['Delete this ' tag ' line'], 'Call', {@del_line,h});
+		uimenu(cmenuHand, 'Label', ['Delete this ' tag ' line'], 'Callback', {@del_line,h});
 	end
-	uimenu(cmenuHand, 'Label', ['Save this '  tag ' line'],  'Call', @save_line);
-	uimenu(cmenuHand, 'Label', 'Join lines', 'Call', {@join_lines,handles.figure1});
-	uimenu(cmenuHand, 'Label', 'Line azimuths', 'Call', @show_lineAzims);
-	uimenu(cmenuHand, 'Label', 'Line length', 'Call', {@show_LineLength,[],'nikles'});
+	uimenu(cmenuHand, 'Label', ['Save this '  tag ' line'],  'Callback', @save_line);
+	uimenu(cmenuHand, 'Label', 'Join lines', 'Callback', {@join_lines,handles.figure1});
+	uimenu(cmenuHand, 'Label', 'Line azimuths', 'Callback', @show_lineAzims);
+	uimenu(cmenuHand, 'Label', 'Line length', 'Callback', {@show_LineLength,[],'nikles'});
 	LINE_ISCLOSED = 0;
 	for (i = 1:numel(h))
 		x = get(h(i),'XData');      y = get(h(i),'YData');
@@ -1282,18 +1282,18 @@ function set_isochrons_uicontext(h, data)
 	end
 	% If at least one is closed, activate the Area option
 	if (LINE_ISCLOSED)
-		uimenu(cmenuHand, 'Label', 'Area under polygon', 'Call', @show_Area);
-		uimenu(cmenuHand, 'Label', 'Create Mask', 'Call', 'poly2mask_fig(guidata(gcbo),gco)');
+		uimenu(cmenuHand, 'Label', 'Area under polygon', 'Callback', @show_Area);
+		uimenu(cmenuHand, 'Label', 'Create Mask', 'Callback', 'poly2mask_fig(guidata(gcbo),gco)');
 	end
 	if (handles.image_type ~= 20 && (ndims(get(handles.hImg,'CData')) == 2 || handles.validGrid))
 		if (handles.nLayers > 1)
 			cbTrack = 'setappdata(gcf,''TrackThisLine'',gco); mirone(''ExtractProfile_CB'',guidata(gcbo),''3D'')';
-			uimenu(cmenuHand, 'Label', '3D interpolation', 'Call', cbTrack);
+			uimenu(cmenuHand, 'Label', '3D interpolation', 'Callback', cbTrack);
 		end
 		cbTrack = 'setappdata(gcf,''TrackThisLine'',gco); mirone(''ExtractProfile_CB'',guidata(gcbo),''point'')';
-		uimenu(cmenuHand, 'Label', 'Point interpolation', 'Call', cbTrack);
+		uimenu(cmenuHand, 'Label', 'Point interpolation', 'Callback', cbTrack);
 		cbTrack = 'setappdata(gcf,''TrackThisLine'',gco); mirone(''ExtractProfile_CB'',guidata(gcbo))';
-		uimenu(cmenuHand, 'Label', 'Extract profile', 'Call', cbTrack);
+		uimenu(cmenuHand, 'Label', 'Extract profile', 'Callback', cbTrack);
 	end
 	setLineWidth(uimenu(cmenuHand, 'Label', 'Line Width', 'Sep','on'), cb_LineWidth)
 	setLineStyle(uimenu(cmenuHand, 'Label', 'Line Style'), {cbls1 cbls2 cbls3 cbls4})
@@ -1302,32 +1302,32 @@ function set_isochrons_uicontext(h, data)
 
 	% --------- Now set the class properties
 	item_allThis = uimenu(cmenuHand, 'Label', ['All ' tag '...'], 'Sep','on');
-	uimenu(item_allThis, 'Label', 'Delete all', 'Call', {@remove_symbolClass,h});
-	uimenu(item_allThis, 'Label', 'Save all', 'Call',   {@save_line,h});
+	uimenu(item_allThis, 'Label', 'Delete all', 'Callback', {@remove_symbolClass,h});
+	uimenu(item_allThis, 'Label', 'Save all', 'Callback',   {@save_line,h});
 
 	cb_ClassColor = uictx_Class_LineColor(h);        % there are 9 cb_color outputs. SHIT, IF h IS MULTIPLE WE CAN'T SET INDIVIDUAL COLORS
 	setLineColor(uimenu(item_allThis, 'Label', 'Color'), cb_ClassColor)
 	cb_ClassLineWidth = uictx_Class_LineWidth(h);    % there are 5 cb_ClassLineWidth outputs
 	item_Class_lw = uimenu(item_allThis, 'Label', 'Line Width');
-	uimenu(item_Class_lw, 'Label', '1       pt', 'Call', cb_ClassLineWidth{1});
-	uimenu(item_Class_lw, 'Label', '2       pt', 'Call', cb_ClassLineWidth{2});
-	uimenu(item_Class_lw, 'Label', '3       pt', 'Call', cb_ClassLineWidth{3});
-	uimenu(item_Class_lw, 'Label', '4       pt', 'Call', cb_ClassLineWidth{4});
-	uimenu(item_Class_lw, 'Label', 'Other...', 'Call', cb_ClassLineWidth{5});
+	uimenu(item_Class_lw, 'Label', '1       pt', 'Callback', cb_ClassLineWidth{1});
+	uimenu(item_Class_lw, 'Label', '2       pt', 'Callback', cb_ClassLineWidth{2});
+	uimenu(item_Class_lw, 'Label', '3       pt', 'Callback', cb_ClassLineWidth{3});
+	uimenu(item_Class_lw, 'Label', '4       pt', 'Callback', cb_ClassLineWidth{4});
+	uimenu(item_Class_lw, 'Label', 'Other...', 'Callback', cb_ClassLineWidth{5});
 	cb_ClassLineStyle = uictx_Class_LineStyle(h);    % there are 4 cb_ClassLineStyle outputs
 	item_Class_lt = uimenu(item_allThis, 'Label', 'Line Style');
 	setLineStyle(item_Class_lt,{cb_ClassLineStyle{1} cb_ClassLineStyle{2} cb_ClassLineStyle{3} cb_ClassLineStyle{4}})
 	item = uimenu(cmenuHand, 'Label', 'Isochron pole operations', 'Sep','on');
-	uimenu(item, 'Label', 'Update poles in headers', 'Call', {@pole2neighbor, [], 'update_poles'});
+	uimenu(item, 'Label', 'Update poles in headers', 'Callback', {@pole2neighbor, [], 'update_poles'});
 	item2 = uimenu(item, 'Label', 'Compute pole to neighbor', 'Sep','on');
-	uimenu(item2, 'Label', 'Best-Fit (all in this plate)', 'Call', {@pole2neighbor, [], 'anglefit'});
-	uimenu(item2, 'Label', 'Best-Fit (only me)', 'Call', {@pole2neighbor, [], 'anglefit', 1});
-	uimenu(item2, 'Label', 'Best-Fit (only me -> iterate)', 'Call', {@pole2neighbor, [], 'anglefit', 10});
-	uimenu(item2, 'Label', 'Show Results', 'Call', {@pole2neighbor, [], 'showresults'});
-	uimenu(item, 'Label', 'Plates stage poles', 'Call', {@pole2neighbor, [], 'plate_stages'});
-	uimenu(item, 'Label', 'Age Grid', 'Call', {@pole2neighbor, [], 'agegrid'}, 'Sep','on');
-	uimenu(item, 'Label', 'Make Age-script', 'Call', @make_age_script);	
-	uimenu(cmenuHand, 'Label', 'Euler rotation', 'Sep','on', 'Call', 'euler_stuff(gcf,gco)');
+	uimenu(item2, 'Label', 'Best-Fit (all in this plate)', 'Callback', {@pole2neighbor, [], 'anglefit'});
+	uimenu(item2, 'Label', 'Best-Fit (only me)', 'Callback', {@pole2neighbor, [], 'anglefit', 1});
+	uimenu(item2, 'Label', 'Best-Fit (only me -> iterate)', 'Callback', {@pole2neighbor, [], 'anglefit', 10});
+	uimenu(item2, 'Label', 'Show Results', 'Callback', {@pole2neighbor, [], 'showresults'});
+	uimenu(item, 'Label', 'Plates stage poles', 'Callback', {@pole2neighbor, [], 'plate_stages'});
+	uimenu(item, 'Label', 'Age Grid', 'Callback', {@pole2neighbor, [], 'agegrid'}, 'Sep','on');
+	uimenu(item, 'Label', 'Make Age-script', 'Callback', @make_age_script);	
+	uimenu(cmenuHand, 'Label', 'Euler rotation', 'Sep','on', 'Callback', 'euler_stuff(gcf,gco)');
 	for (i=1:length(h)),		ui_edit_polygon(h(i)),		end		% Set edition functions
 
 % -----------------------------------------------------------------------------------------
@@ -1350,14 +1350,14 @@ function set_gmtfile_uicontext(h, data)
 	cb_color = uictx_color(h);               % there are 9 cb_color outputs
 	cbls1 = 'set(gco, ''LineStyle'', ''-''); refresh';   cbls2 = 'set(gco, ''LineStyle'', ''--''); refresh';
 	cbls3 = 'set(gco, ''LineStyle'', '':''); refresh';   cbls4 = 'set(gco, ''LineStyle'', ''-.''); refresh';
-	uimenu(cmenuHand, 'Label', [tag ' info'], 'Call', {@gmtfile_Info,h,data});
-	uimenu(cmenuHand, 'Label', ['Delete this ' tag ' line'], 'Call', 'delete(gco)', 'Sep','on');
-	uimenu(cmenuHand, 'Label', ['Save this ' tag ' line'], 'Call', @save_line);
-	uimenu(cmenuHand, 'Label', 'Open with gmtedit', 'Call', {@call_gmtedit,h});
- 	uimenu(cmenuHand, 'Label', 'Extract Mag Chunk', 'Call', {@call_gmtedit,h,'nikles'});
-	uimenu(cmenuHand, 'Label', 'Create Mask', 'Call', 'poly2mask_fig(guidata(gcbo),gco)');
+	uimenu(cmenuHand, 'Label', [tag ' info'], 'Callback', {@gmtfile_Info,h,data});
+	uimenu(cmenuHand, 'Label', ['Delete this ' tag ' line'], 'Callback', 'delete(gco)', 'Sep','on');
+	uimenu(cmenuHand, 'Label', ['Save this ' tag ' line'], 'Callback', @save_line);
+	uimenu(cmenuHand, 'Label', 'Open with gmtedit', 'Callback', {@call_gmtedit,h});
+ 	uimenu(cmenuHand, 'Label', 'Extract Mag Chunk', 'Callback', {@call_gmtedit,h,'nikles'});
+	uimenu(cmenuHand, 'Label', 'Create Mask', 'Callback', 'poly2mask_fig(guidata(gcbo),gco)');
 	deal_opts('mgg_coe', cmenuHand);
-	%uimenu(cmenuHand, 'Label', 'Try to relocate', 'Call', {@tryRelocate,h});
+	%uimenu(cmenuHand, 'Label', 'Try to relocate', 'Callback', {@tryRelocate,h});
 	setLineWidth(uimenu(cmenuHand, 'Label', 'Line Width', 'Sep','on'), cb_LineWidth)
 	setLineStyle(uimenu(cmenuHand, 'Label', 'Line Style'), {cbls1 cbls2 cbls3 cbls4})
 	setLineColor(uimenu(cmenuHand, 'Label', 'Color'), cb_color)
@@ -1537,10 +1537,10 @@ function set_greatCircle_uicontext(h)
 	cb_solid  = 'set(gco, ''LineStyle'', ''-''); refresh';   cb_dashed      = 'set(gco, ''LineStyle'', ''--''); refresh';
 	cb_dotted = 'set(gco, ''LineStyle'', '':''); refresh';   cb_dash_dotted = 'set(gco, ''LineStyle'', ''-.''); refresh';
 	
-	uimenu(cmenuHand, 'Label', 'Delete', 'Call', 'delete(gco)');
-	uimenu(cmenuHand, 'Label', 'Save line', 'Call', {@save_formated,h});
-	uimenu(cmenuHand, 'Label', 'Line length', 'Call', {@show_LineLength,[],'total'});
-	uimenu(cmenuHand, 'Label', 'Line azimuth','Call', @show_lineAzims)
+	uimenu(cmenuHand, 'Label', 'Delete', 'Callback', 'delete(gco)');
+	uimenu(cmenuHand, 'Label', 'Save line', 'Callback', {@save_formated,h});
+	uimenu(cmenuHand, 'Label', 'Line length', 'Callback', {@show_LineLength,[],'total'});
+	uimenu(cmenuHand, 'Label', 'Line azimuth','Callback', @show_lineAzims)
 	setLineWidth(uimenu(cmenuHand, 'Label', 'Line Width', 'Sep','on'), uictx_LineWidth(h))
 	setLineStyle(uimenu(cmenuHand, 'Label', 'Line Style'),{cb_solid cb_dashed cb_dotted cb_dash_dotted})
 	setLineColor(uimenu(cmenuHand, 'Label', 'Line Color'), uictx_color(h))
@@ -1558,16 +1558,16 @@ function set_circleGeo_uicontext(h)
 	cb_dotted = 'set(gco, ''LineStyle'', '':''); refresh';   cb_dash_dotted = 'set(gco, ''LineStyle'', ''-.''); refresh';
 	cb_roi = 'mirone(''DrawClosedPolygon_CB'',guidata(gcbo),gco)';
 	
-	uimenu(cmenuHand, 'Label', 'Delete', 'Call', 'delete(gco)')
-	uimenu(cmenuHand, 'Label', 'Save circle', 'Call', {@save_formated,h})
-	uimenu(cmenuHand, 'Label', 'Line length', 'Call', {@show_LineLength,[]})
+	uimenu(cmenuHand, 'Label', 'Delete', 'Callback', 'delete(gco)')
+	uimenu(cmenuHand, 'Label', 'Save circle', 'Callback', {@save_formated,h})
+	uimenu(cmenuHand, 'Label', 'Line length', 'Callback', {@show_LineLength,[]})
 	if ~strcmp(tag,'CircleEuler')       % "Just" a regular geographical circle
-		uimenu(cmenuHand, 'Label', 'Make me Donut', 'Sep','on', 'Call', {@donutify, h(1), 'geog'})
-		uimenu(cmenuHand, 'Label', 'Region-Of-Interest', 'Sep','on', 'Call', cb_roi)
+		uimenu(cmenuHand, 'Label', 'Make me Donut', 'Sep','on', 'Callback', {@donutify, h(1), 'geog'})
+		uimenu(cmenuHand, 'Label', 'Region-Of-Interest', 'Sep','on', 'Callback', cb_roi)
 	else
-		uimenu(cmenuHand, 'Label', 'Compute velocity', 'Sep','on', 'Call', {@report_EulerVel,h})
-		uimenu(cmenuHand, 'Label', 'Plot tangent arrow', 'Call', {@report_EulerVel, h, 'tg'})
-		uimenu(cmenuHand, 'Label', 'Plot normal arrow',  'Call', {@report_EulerVel, h, 'no'})
+		uimenu(cmenuHand, 'Label', 'Compute velocity', 'Sep','on', 'Callback', {@report_EulerVel,h})
+		uimenu(cmenuHand, 'Label', 'Plot tangent arrow', 'Callback', {@report_EulerVel, h, 'tg'})
+		uimenu(cmenuHand, 'Label', 'Plot normal arrow',  'Callback', {@report_EulerVel, h, 'no'})
 	end
 	setLineWidth(uimenu(cmenuHand, 'Label', 'Line Width', 'Sep','on'), uictx_LineWidth(h))
 	setLineStyle(uimenu(cmenuHand, 'Label', 'Line Style'), {cb_solid cb_dashed cb_dotted cb_dash_dotted})
@@ -1598,8 +1598,8 @@ function donutify(obj, evt, h, opt)
 	setappdata(hP,  'donut', [LLR rad tipo])			% Store circle's center, outer, inner radius and geogacity
 	cmenuHand = uicontextmenu('Parent',handles.figure1);
 	set(hP, 'UIContextMenu', cmenuHand);
-	uimenu(cmenuHand, 'Label', 'Delete', 'Call', 'delete(gco)')
-	uimenu(cmenuHand, 'Label', 'Radial average', 'Call', 'grid_profiler(gcf, gco)', 'Sep', 'on')
+	uimenu(cmenuHand, 'Label', 'Delete', 'Callback', 'delete(gco)')
+	uimenu(cmenuHand, 'Label', 'Radial average', 'Callback', 'grid_profiler(gcf, gco)', 'Sep', 'on')
 
 % -----------------------------------------------------------------------------------------
 function set_circleCart_uicontext(h)
@@ -1610,17 +1610,17 @@ function set_circleCart_uicontext(h)
 	cb_dotted = 'set(gco, ''LineStyle'', '':''); refresh';   cb_dash_dotted = 'set(gco, ''LineStyle'', ''-.''); refresh';
 	cb_roi = 'mirone(''DrawClosedPolygon_CB'',guidata(gcbo),gco)';
 	
-	uimenu(cmenuHand, 'Label', 'Delete', 'Call', 'delete(gco)');
-	uimenu(cmenuHand, 'Label', 'Save circle', 'Call', {@save_formated,h});
-	uimenu(cmenuHand, 'Label', 'Circle perimeter', 'Call', {@show_LineLength,[]});
-	uimenu(cmenuHand, 'Label', 'Move (interactive)', 'Call', {@move_circle,h});
-	uimenu(uimenu(cmenuHand, 'Label', 'Change'), 'Label', 'By coordinates', 'Call', {@change_CircCenter1,h});
-	uimenu(cmenuHand, 'Label', 'Make me Donut', 'Sep','on', 'Call', {@donutify, h(1), 'cart'})
-	uimenu(cmenuHand, 'Label', 'Region-Of-Interest', 'Sep','on', 'Call', cb_roi);
+	uimenu(cmenuHand, 'Label', 'Delete', 'Callback', 'delete(gco)');
+	uimenu(cmenuHand, 'Label', 'Save circle', 'Callback', {@save_formated,h});
+	uimenu(cmenuHand, 'Label', 'Circle perimeter', 'Callback', {@show_LineLength,[]});
+	uimenu(cmenuHand, 'Label', 'Move (interactive)', 'Callback', {@move_circle,h});
+	uimenu(uimenu(cmenuHand, 'Label', 'Change'), 'Label', 'By coordinates', 'Callback', {@change_CircCenter1,h});
+	uimenu(cmenuHand, 'Label', 'Make me Donut', 'Sep','on', 'Callback', {@donutify, h(1), 'cart'})
+	uimenu(cmenuHand, 'Label', 'Region-Of-Interest', 'Sep','on', 'Callback', cb_roi);
 	hp = getappdata(handles.figure1, 'ParentFig');
 	if ( ~isempty(hp) && ishandle(hp) && ~isempty(strfind(get(handles.figure1,'Name'), 'spectrum')) )
-		uimenu(cmenuHand, 'Label', 'Low Pass FFT filter', 'Call', 'mirone(''GridToolsSectrum_CB'',guidata(gcbo), ''lpass'', gco)');
-		uimenu(cmenuHand, 'Label', 'High Pass FFT filter','Call', 'mirone(''GridToolsSectrum_CB'',guidata(gcbo), ''hpass'', gco)');
+		uimenu(cmenuHand, 'Label', 'Low Pass FFT filter', 'Callback', 'mirone(''GridToolsSectrum_CB'',guidata(gcbo), ''lpass'', gco)');
+		uimenu(cmenuHand, 'Label', 'High Pass FFT filter','Callback', 'mirone(''GridToolsSectrum_CB'',guidata(gcbo), ''hpass'', gco)');
 	end
 	setLineWidth(uimenu(cmenuHand, 'Label', 'Line Width', 'Sep','on'), uictx_LineWidth(h))
 	setLineStyle(uimenu(cmenuHand, 'Label', 'Line Style'), {cb_solid cb_dashed cb_dotted cb_dash_dotted})
@@ -1709,24 +1709,24 @@ function set_vector_uicontext(h)
 	h = h(1);
 	handles = guidata(h);	cmenuHand = uicontextmenu('Parent',handles.figure1);
 	set(h, 'UIContextMenu', cmenuHand);
-	uimenu(cmenuHand, 'Label', 'Delete', 'Call', 'delete(gco)');
-	uimenu(cmenuHand, 'Label', 'Save line', 'Call', {@save_formated, h});
-	uimenu(cmenuHand, 'Label', 'Copy', 'Call', {@copy_line_object, handles.figure1, handles.axes1});
- 	uimenu(cmenuHand, 'Label', 'Edit (redraw)', 'Call', @arrowRedraw);
-	uimenu(cmenuHand, 'Label', 'Reshape (head)','Call', {@arrow_shape,h});
+	uimenu(cmenuHand, 'Label', 'Delete', 'Callback', 'delete(gco)');
+	uimenu(cmenuHand, 'Label', 'Save line', 'Callback', {@save_formated, h});
+	uimenu(cmenuHand, 'Label', 'Copy', 'Callback', {@copy_line_object, handles.figure1, handles.axes1});
+ 	uimenu(cmenuHand, 'Label', 'Edit (redraw)', 'Callback', @arrowRedraw);
+	uimenu(cmenuHand, 'Label', 'Reshape (head)','Callback', {@arrow_shape,h});
 	if (handles.geog)		% No solution yet for cartesian arrows
-		uimenu(cmenuHand, 'Label', 'Copy (mirror)', 'Call', @mirror_arrow);
+		uimenu(cmenuHand, 'Label', 'Copy (mirror)', 'Callback', @mirror_arrow);
 	end
 	x = get(h, 'xdata');	y = get(h, 'ydata');
 	L = [x(3) x(6); y(3) y(6)]';	% To compute arrow length (head included)
-	uimenu(cmenuHand, 'Label', 'Arrow length (with head)', 'Call', {@show_LineLength, L}, 'Sep','on')
+	uimenu(cmenuHand, 'Label', 'Arrow length (with head)', 'Callback', {@show_LineLength, L}, 'Sep','on')
 	L = [x(7) x(8); y(7) y(8)]';	% To compute arrow azimuth
-	uimenu(cmenuHand, 'Label', 'Arrow azimuth','Call', {@show_lineAzims, L})
+	uimenu(cmenuHand, 'Label', 'Arrow azimuth','Callback', {@show_lineAzims, L})
 	setLineColor(uimenu(cmenuHand, 'Label', 'Line Color','Sep','on'), uictx_color(h,'EdgeColor'))
 	item2 = uimenu(cmenuHand, 'Label','Fill Color');
 	setLineColor( item2, uictx_color(h, 'facecolor') )
-	uimenu(item2, 'Label', 'None', 'Sep','on', 'Call', 'set(gco, ''FaceColor'', ''none'');refresh');
-	uimenu(cmenuHand, 'Label', 'Transparency', 'Call', @set_transparency);
+	uimenu(item2, 'Label', 'None', 'Sep','on', 'Callback', 'set(gco, ''FaceColor'', ''none'');refresh');
+	uimenu(cmenuHand, 'Label', 'Transparency', 'Callback', @set_transparency);
 	set(h, 'ButtonDownFcn', 'move_obj(1)')
 
 % -----------------------------------------------------------------------------------------
@@ -2107,12 +2107,12 @@ function set_bar_uicontext(h)
 	cb12 = 'set(gco, ''LineStyle'', '':''); refresh';   cb13 = 'set(gco, ''LineStyle'', ''-.''); refresh';
 	cb_color = uictx_color(h);      % there are 9 cb_color outputs
 	item1 = uimenu(cmenuHand, 'Label', 'Line Width');
-	uimenu(item1, 'Label', '1       pt', 'Call', cb_LineWidth{1});
-	uimenu(item1, 'Label', '2       pt', 'Call', cb_LineWidth{2});
-	uimenu(item1, 'Label', '3       pt', 'Call', cb_LineWidth{3});
-	uimenu(item1, 'Label', '4       pt', 'Call', cb_LineWidth{4});
-	uimenu(item1, 'Label', '5       pt', 'Call', cb7);
-	uimenu(item1, 'Label', 'Other...', 'Call', cb_LineWidth{5});
+	uimenu(item1, 'Label', '1       pt', 'Callback', cb_LineWidth{1});
+	uimenu(item1, 'Label', '2       pt', 'Callback', cb_LineWidth{2});
+	uimenu(item1, 'Label', '3       pt', 'Callback', cb_LineWidth{3});
+	uimenu(item1, 'Label', '4       pt', 'Callback', cb_LineWidth{4});
+	uimenu(item1, 'Label', '5       pt', 'Callback', cb7);
+	uimenu(item1, 'Label', 'Other...', 'Callback', cb_LineWidth{5});
 	item_ls = uimenu(cmenuHand, 'Label', 'Line Style');
 	setLineStyle(item_ls,{cb10 cb11 cb12 cb13})
 	item_lc = uimenu(cmenuHand, 'Label', 'Line Color');
@@ -2625,24 +2625,24 @@ function set_symbol_uicontext(h,data)
 	sep = 'off';
 
 	if strcmp(tag,'hotspot')		% DATA must be a structure containing name & age fields
-		uimenu(cmenuHand, 'Label', 'Hotspot info', 'Call', {@hotspot_info,h,data.name,data.age,[]});
-		uimenu(cmenuHand, 'Label', 'Plot name', 'Call', {@hotspot_info,h,data.name,data.age,'text'});
+		uimenu(cmenuHand, 'Label', 'Hotspot info', 'Callback', {@hotspot_info,h,data.name,data.age,[]});
+		uimenu(cmenuHand, 'Label', 'Plot name', 'Callback', {@hotspot_info,h,data.name,data.age,'text'});
 		separator = true;
 	elseif strcmp(tag,'volcano')    % DATA must be a structure containing name, description & dating fields
-		uimenu(cmenuHand, 'Label', 'Volcano info', 'Call', {@volcano_info,h,data.name,data.desc,data.dating});
+		uimenu(cmenuHand, 'Label', 'Volcano info', 'Callback', {@volcano_info,h,data.name,data.desc,data.dating});
 		separator = true;
 	elseif strcmp(tag,'meteor')		% DATA must be a structure containing name, diameter & dating fields
-		uimenu(cmenuHand, 'Label', 'Impact info', 'Call', {@meteor_info,h,data.name,data.diameter,data.dating,data.exposed,data.btype});
+		uimenu(cmenuHand, 'Label', 'Impact info', 'Callback', {@meteor_info,h,data.name,data.diameter,data.dating,data.exposed,data.btype});
 		separator = true;
 	elseif strcmp(tag,'mar_online')	% DATA must be a structure containing name, code station & country fields
-		uimenu(cmenuHand, 'Label', 'Download Mareg (2 days)', 'Call', {@mareg_online,h,data});
-		uimenu(cmenuHand, 'Label', 'Download Mareg (Calendar)', 'Call', {@mareg_online,h,data,'cal'});
+		uimenu(cmenuHand, 'Label', 'Download Mareg (2 days)', 'Callback', {@mareg_online,h,data});
+		uimenu(cmenuHand, 'Label', 'Download Mareg (Calendar)', 'Callback', {@mareg_online,h,data,'cal'});
 		separator = true;
 	elseif strcmp(tag,'hydro')		% DATA must be a cell array with 5 cols contining description of each Vent
-		uimenu(cmenuHand, 'Label', 'Hydrotermal info', 'Call', {@hydro_info,h,data});
+		uimenu(cmenuHand, 'Label', 'Hydrotermal info', 'Callback', {@hydro_info,h,data});
 		separator = true;	
 	elseif ( strcmp(tag,'DSDP') || strcmp(tag,'ODP') || strcmp(tag,'IODP') )	% DATA is a struct with leg, site, z & penetration fields
-		uimenu(cmenuHand, 'Label', [tag ' info'], 'Call', {@ODP_info,h,data.leg,data.site,data.z,data.penetration});
+		uimenu(cmenuHand, 'Label', [tag ' info'], 'Callback', {@ODP_info,h,data.leg,data.site,data.z,data.penetration});
 		separator = true;
 	elseif strcmp(tag,'City_major') || strcmp(tag,'City_other')
 		this_not = true;
@@ -2651,7 +2651,7 @@ function set_symbol_uicontext(h,data)
 	elseif strcmp(tag,'Pointpolyline')	% DATA is empty because it doesn't have any associated info
 		s_info = getappdata(h, 'LineInfo');		% But there might be one in appdata
 		if (~isempty(s_info))
-			uimenu(cmenuHand, 'Label', 'Symbol info', 'Call', {@Isochrons_Info,s_info});
+			uimenu(cmenuHand, 'Label', 'Symbol info', 'Callback', {@Isochrons_Info,s_info});
 			sep = 'on';
 		end
 		this_not = false;
@@ -2666,45 +2666,45 @@ function set_symbol_uicontext(h,data)
 
 	if (~this_not)						% non class symbols can be moved
 		ui_edit_polygon(h)				% Set edition functions
-% 		uimenu(cmenuHand, 'Label', 'LOS', 'Call', 'line_of_sight(gco)');
-		uimenu(cmenuHand, 'Label', 'Move (precise)', 'Call', {@change_SymbPos,h}, 'Sep', sep);
+% 		uimenu(cmenuHand, 'Label', 'LOS', 'Callback', 'line_of_sight(gco)');
+		uimenu(cmenuHand, 'Label', 'Move (precise)', 'Callback', {@change_SymbPos,h}, 'Sep', sep);
 	end
 
 	if separator
 		if (~more_than_one)				% Single symbol
-			uimenu(cmenuHand, 'Label', 'Remove', 'Call', 'delete(gco)', 'Sep','on');
+			uimenu(cmenuHand, 'Label', 'Remove', 'Callback', 'delete(gco)', 'Sep','on');
 		else							% Multiple symbols
-			uimenu(cmenuHand, 'Label', 'Remove this', 'Call', {@remove_one_from_many,h}, 'Sep','on');
+			uimenu(cmenuHand, 'Label', 'Remove this', 'Callback', {@remove_one_from_many,h}, 'Sep','on');
 		end
 	else
 		if (~more_than_one)				% Single symbol
-			uimenu(cmenuHand, 'Label', 'Remove', 'Call', 'delete(gco)');
+			uimenu(cmenuHand, 'Label', 'Remove', 'Callback', 'delete(gco)');
 		else							% Multiple symbols
-			uimenu(cmenuHand, 'Label', 'Remove this', 'Call', {@remove_one_from_many,h});
-			uimenu(cmenuHand, 'Label', 'Delete all', 'Call', {@del_line,h});
+			uimenu(cmenuHand, 'Label', 'Remove this', 'Callback', {@remove_one_from_many,h});
+			uimenu(cmenuHand, 'Label', 'Delete all', 'Callback', {@del_line,h});
 		end
 	end
 
 	if (this_not)						% individual symbols don't belong to a class
-		uimenu(cmenuHand, 'Label', 'Remove class', 'Call', {@remove_symbolClass,h});
+		uimenu(cmenuHand, 'Label', 'Remove class', 'Callback', {@remove_symbolClass,h});
 	end
 
 	if strcmp(tag,'LinkedSymb')			% Symbols plotted by the "Linked" option in either 'ecran' or 'gmtedit'
-		uimenu(cmenuHand, 'Label', 'Remove class', 'Call', {@remove_symbolClass,h});
-		uimenu(cmenuHand, 'Label', 'Save all linked pts', 'Call', {@save_line,h});
+		uimenu(cmenuHand, 'Label', 'Remove class', 'Callback', {@remove_symbolClass,h});
+		uimenu(cmenuHand, 'Label', 'Save all linked pts', 'Callback', {@save_line,h});
 		this_not = true;				% Set this to avoid going inside next IF-test
 	end
 
 	if (~this_not)						% class symbols don't export
-		uimenu(cmenuHand, 'Label', 'Save', 'Call', {@export_symbol,h});
+		uimenu(cmenuHand, 'Label', 'Save', 'Callback', {@export_symbol,h});
 		if (handles.image_type ~= 20)
 			if (strcmp(tag,'Pointpolyline'))	% Allow pure grdtrack interpolation
 				cbTrack = 'setappdata(gcf,''TrackThisLine'',gco); mirone(''ExtractProfile_CB'',guidata(gcbo),''point'')';
-				uimenu(cmenuHand, 'Label', 'Point interpolation', 'Call', cbTrack, 'Sep','on');
+				uimenu(cmenuHand, 'Label', 'Point interpolation', 'Callback', cbTrack, 'Sep','on');
 			end
 			if (handles.nLayers > 1)
 				cbTrack = 'setappdata(gcf,''TrackThisLine'',gco); mirone(''ExtractProfile_CB'',guidata(gcbo),''3D'')';
-				uimenu(cmenuHand, 'Label', '3D interpolation', 'Call', cbTrack, 'Sep','on');
+				uimenu(cmenuHand, 'Label', '3D interpolation', 'Callback', cbTrack, 'Sep','on');
 			end
 		end
 	end
@@ -2714,63 +2714,63 @@ function set_symbol_uicontext(h,data)
 	if (isempty(z)),	z = getappdata(h, 'ZData');		end
 	if (~isempty(z))
 		item = uimenu(cmenuHand, 'Label', 'Quick grid', 'Sep', 'on');
-		uimenu(item, 'Label', 'auto', 'Call', {@pt_quick_grd,h,'a'});
-		uimenu(item, 'Label', 'set increments', 'Call', {@pt_quick_grd,h,'q'});
+		uimenu(item, 'Label', 'auto', 'Callback', {@pt_quick_grd,h,'a'});
+		uimenu(item, 'Label', 'set increments', 'Callback', {@pt_quick_grd,h,'q'});
 	end
 
 	if (seismicity_options)
-		uimenu(cmenuHand, 'Label', 'Save events', 'Call', 'save_seismicity(gcf,gco)', 'Sep','on');
-		uimenu(cmenuHand, 'Label', 'Seismicity movie', 'Call', 'animate_seismicity(gcf,gco)');
-		uimenu(cmenuHand, 'Label', 'Draw polygon', 'Call', ...
+		uimenu(cmenuHand, 'Label', 'Save events', 'Callback', 'save_seismicity(gcf,gco)', 'Sep','on');
+		uimenu(cmenuHand, 'Label', 'Seismicity movie', 'Callback', 'animate_seismicity(gcf,gco)');
+		uimenu(cmenuHand, 'Label', 'Draw polygon', 'Callback', ...
 		       'mirone(''DrawClosedPolygon_CB'',guidata(gcbo),''SeismicPolyg'')');
-		uimenu(cmenuHand, 'Label', 'Draw seismic line', 'Call', ...
+		uimenu(cmenuHand, 'Label', 'Draw seismic line', 'Callback', ...
 		       'mirone(''DrawLine_CB'',guidata(gcbo),''SeismicLine'')');
 		itemHist = uimenu(cmenuHand, 'Label','Histograms');
-		uimenu(itemHist, 'Label', 'Guttenberg & Richter', 'Call', 'histos_seis(gco,''GR'')');
-		uimenu(itemHist, 'Label', 'Cumulative number', 'Call', 'histos_seis(gco,''CH'')');
-		uimenu(itemHist, 'Label', 'Cumulative moment', 'Call', 'histos_seis(gco,''CM'')');
-		uimenu(itemHist, 'Label', 'Magnitude', 'Call', 'histos_seis(gco,''MH'')');
-		uimenu(itemHist, 'Label', 'Time', 'Call', 'histos_seis(gco,''TH'')');
-		uimenu(itemHist, 'Label', 'Display in Table', 'Call', 'histos_seis(gcf,''HT'')','Sep','on');
-		%uimenu(itemHist, 'Label', 'Hour of day', 'Call', 'histos_seis(gco,''HM'')');
+		uimenu(itemHist, 'Label', 'Guttenberg & Richter', 'Callback', 'histos_seis(gco,''GR'')');
+		uimenu(itemHist, 'Label', 'Cumulative number', 'Callback', 'histos_seis(gco,''CH'')');
+		uimenu(itemHist, 'Label', 'Cumulative moment', 'Callback', 'histos_seis(gco,''CM'')');
+		uimenu(itemHist, 'Label', 'Magnitude', 'Callback', 'histos_seis(gco,''MH'')');
+		uimenu(itemHist, 'Label', 'Time', 'Callback', 'histos_seis(gco,''TH'')');
+		uimenu(itemHist, 'Label', 'Display in Table', 'Callback', 'histos_seis(gcf,''HT'')','Sep','on');
+		%uimenu(itemHist, 'Label', 'Hour of day', 'Callback', 'histos_seis(gco,''HM'')');
 		itemTime = uimenu(cmenuHand, 'Label','Time series');
-		uimenu(itemTime, 'Label', 'Time magnitude', 'Call', 'histos_seis(gco,''TM'')');
-		uimenu(itemTime, 'Label', 'Time depth', 'Call', 'histos_seis(gco,''TD'')');
-		uimenu(cmenuHand, 'Label', 'Mc and b estimate', 'Call', 'histos_seis(gcf,''BV'')');
-		uimenu(cmenuHand, 'Label', 'Fit Omori law', 'Call', 'histos_seis(gcf,''OL'')');
+		uimenu(itemTime, 'Label', 'Time magnitude', 'Callback', 'histos_seis(gco,''TM'')');
+		uimenu(itemTime, 'Label', 'Time depth', 'Callback', 'histos_seis(gco,''TD'')');
+		uimenu(cmenuHand, 'Label', 'Mc and b estimate', 'Callback', 'histos_seis(gcf,''BV'')');
+		uimenu(cmenuHand, 'Label', 'Fit Omori law', 'Callback', 'histos_seis(gcf,''OL'')');
 	end
 
 	if (tide_options)
-		uimenu(cmenuHand, 'Label', 'Plot tides', 'Call', {@tidesStuff,h,'plot'}, 'Sep','on');
-		uimenu(cmenuHand, 'Label', 'Station Info', 'Call', {@tidesStuff,h,'info'});
-		%uimenu(cmenuHand, 'Label', 'Tide Calendar', 'Call', {@tidesStuff,h,'calendar'});
+		uimenu(cmenuHand, 'Label', 'Plot tides', 'Callback', {@tidesStuff,h,'plot'}, 'Sep','on');
+		uimenu(cmenuHand, 'Label', 'Station Info', 'Callback', {@tidesStuff,h,'info'});
+		%uimenu(cmenuHand, 'Label', 'Tide Calendar', 'Callback', {@tidesStuff,h,'calendar'});
 	end
 
 	itemSymb = uimenu(cmenuHand, 'Label', 'Symbol', 'Sep','on');
 	cb_mark = uictx_setMarker(h,'Marker');              % there are 13 uictx_setMarker outputs
-	uimenu(itemSymb, 'Label', 'plus sign', 'Call', cb_mark{1});
-	uimenu(itemSymb, 'Label', 'circle', 'Call', cb_mark{2});
-	uimenu(itemSymb, 'Label', 'asterisk', 'Call', cb_mark{3});
-	uimenu(itemSymb, 'Label', 'point', 'Call', cb_mark{4});
-	uimenu(itemSymb, 'Label', 'cross', 'Call', cb_mark{5});
-	uimenu(itemSymb, 'Label', 'square', 'Call', cb_mark{6});
-	uimenu(itemSymb, 'Label', 'diamond', 'Call', cb_mark{7});
-	uimenu(itemSymb, 'Label', 'upward triangle', 'Call', cb_mark{8});
-	uimenu(itemSymb, 'Label', 'downward triangle', 'Call', cb_mark{9});
-	uimenu(itemSymb, 'Label', 'right triangle', 'Call', cb_mark{10});
-	uimenu(itemSymb, 'Label', 'left triangle', 'Call', cb_mark{11});
-	uimenu(itemSymb, 'Label', 'five-point star', 'Call', cb_mark{12});
-	uimenu(itemSymb, 'Label', 'six-point star', 'Call', cb_mark{13});
+	uimenu(itemSymb, 'Label', 'plus sign', 'Callback', cb_mark{1});
+	uimenu(itemSymb, 'Label', 'circle', 'Callback', cb_mark{2});
+	uimenu(itemSymb, 'Label', 'asterisk', 'Callback', cb_mark{3});
+	uimenu(itemSymb, 'Label', 'point', 'Callback', cb_mark{4});
+	uimenu(itemSymb, 'Label', 'cross', 'Callback', cb_mark{5});
+	uimenu(itemSymb, 'Label', 'square', 'Callback', cb_mark{6});
+	uimenu(itemSymb, 'Label', 'diamond', 'Callback', cb_mark{7});
+	uimenu(itemSymb, 'Label', 'upward triangle', 'Callback', cb_mark{8});
+	uimenu(itemSymb, 'Label', 'downward triangle', 'Callback', cb_mark{9});
+	uimenu(itemSymb, 'Label', 'right triangle', 'Callback', cb_mark{10});
+	uimenu(itemSymb, 'Label', 'left triangle', 'Callback', cb_mark{11});
+	uimenu(itemSymb, 'Label', 'five-point star', 'Callback', cb_mark{12});
+	uimenu(itemSymb, 'Label', 'six-point star', 'Callback', cb_mark{13});
 	itemSize = uimenu(cmenuHand, 'Label', 'Size');
 	cb_markSize = uictx_setMarker(h,'MarkerSize');              % there are 8 uictx_setMarker outputs
-	uimenu(itemSize, 'Label', '7       pt', 'Call', cb_markSize{1});
-	uimenu(itemSize, 'Label', '8       pt', 'Call', cb_markSize{2});
-	uimenu(itemSize, 'Label', '9       pt', 'Call', cb_markSize{3});
-	uimenu(itemSize, 'Label', '10     pt', 'Call', cb_markSize{4});
-	uimenu(itemSize, 'Label', '12     pt', 'Call', cb_markSize{5});
-	uimenu(itemSize, 'Label', '14     pt', 'Call', cb_markSize{6});
-	uimenu(itemSize, 'Label', '16     pt', 'Call', cb_markSize{7});
-	uimenu(itemSize, 'Label', 'other...', 'Call', cb_markSize{8});
+	uimenu(itemSize, 'Label', '7       pt', 'Callback', cb_markSize{1});
+	uimenu(itemSize, 'Label', '8       pt', 'Callback', cb_markSize{2});
+	uimenu(itemSize, 'Label', '9       pt', 'Callback', cb_markSize{3});
+	uimenu(itemSize, 'Label', '10     pt', 'Callback', cb_markSize{4});
+	uimenu(itemSize, 'Label', '12     pt', 'Callback', cb_markSize{5});
+	uimenu(itemSize, 'Label', '14     pt', 'Callback', cb_markSize{6});
+	uimenu(itemSize, 'Label', '16     pt', 'Callback', cb_markSize{7});
+	uimenu(itemSize, 'Label', 'other...', 'Callback', cb_markSize{8});
 	setLineColor(uimenu(cmenuHand, 'Label', 'Fill Color'), uictx_Class_LineColor(h,'MarkerFaceColor'))
 	setLineColor(uimenu(cmenuHand, 'Label', 'Edge Color'), uictx_Class_LineColor(h,'MarkerEdgeColor'))
 
@@ -3301,7 +3301,7 @@ function mareg_online(obj,eventdata,h, data, opt)
 	hAxes = findobj(hf,'Tag','axes1');
 	setappdata(hAxes, 'LabelFormatType', 'Date');		% Tell pixval_stsbar to display XX coords as Date-Time
 	h = findobj(hf,'Tag','add_uictx');
-	cb = get(h, 'Call');
+	cb = get(h, 'Callback');
 	feval(cb, h, guidata(hf))			% Call the ecran's add_uictx_CB function
 
 % -----------------------------------------------------------------------------------------
@@ -3869,7 +3869,7 @@ function set_transparency(obj,eventdata, h_patch)
 
 	pos=[0.02 0.5 .97 .25];
 	S = {@apply_transparency,T,h_patch,handles};
-	uicontrol('style','slider','units','normalized','position',pos, 'Call',S,'min',0,'max',1,'Value',transp);
+	uicontrol('style','slider','units','normalized','position',pos, 'Callback',S,'min',0,'max',1,'Value',transp);
 
 	set(F,'Visible','on')
 
@@ -3903,7 +3903,7 @@ function set_telhas_uicontext(h)
 	cb_dotted = 'set(gco, ''LineStyle'', '':''); refresh';
 	cb_dashdot = 'set(gco, ''LineStyle'', ''-.''); refresh';
 
-	uimenu(cmenuHand, 'Label', 'Delete', 'Call', 'delete(gco)');
+	uimenu(cmenuHand, 'Label', 'Delete', 'Callback', 'delete(gco)');
 	item_lw = uimenu(cmenuHand, 'Label', 'Line Width', 'Sep','on');
 	setLineWidth(item_lw,cb_LineWidth)
 	item_ls = uimenu(cmenuHand, 'Label', 'Line Style');
@@ -3914,21 +3914,21 @@ function set_telhas_uicontext(h)
 
 	set_stack_order(cmenuHand)      % Change order in the stackpot
 
-	uimenu(item7, 'Label', 'None', 'Sep','on', 'Call', 'set(gco, ''EdgeColor'', ''none'');refresh');
+	uimenu(item7, 'Label', 'None', 'Sep','on', 'Callback', 'set(gco, ''EdgeColor'', ''none'');refresh');
 	item8 = uimenu(cmenuHand, 'Label','Fill Color', 'Sep','on');
 	cb_color = uictx_color(h,'facecolor');      % there are 9 cb_color outputs
 	setLineColor(item8,cb_color)
-	uimenu(item8, 'Label', 'None', 'Sep','on', 'Call', 'set(gco, ''FaceColor'', ''none'');refresh');
-	uimenu(cmenuHand, 'Label', 'Transparency', 'Call', @set_transparency);
+	uimenu(item8, 'Label', 'None', 'Sep','on', 'Callback', 'set(gco, ''FaceColor'', ''none'');refresh');
+	uimenu(cmenuHand, 'Label', 'Transparency', 'Callback', @set_transparency);
 
 % -----------------------------------------------------------------------------------------
 function set_stack_order(cmenuHand)
 % Change order in the stackpot. cmenuHand is what it says. 
 	item_order = uimenu(cmenuHand, 'Label', 'Order');
-	uimenu(item_order, 'Label', 'Bring to Top', 'Call','uistack_j(gco,''top'')');
-	uimenu(item_order, 'Label', 'Send to Bottom', 'Call','uistack_j(gco,''bottom'')');
-	uimenu(item_order, 'Label', 'Move up', 'Call','uistack_j(gco,''up'')');
-	uimenu(item_order, 'Label', 'Move down', 'Call','uistack_j(gco,''down'')');
+	uimenu(item_order, 'Label', 'Bring to Top', 'Callback','uistack_j(gco,''top'')');
+	uimenu(item_order, 'Label', 'Send to Bottom', 'Callback','uistack_j(gco,''bottom'')');
+	uimenu(item_order, 'Label', 'Move up', 'Callback','uistack_j(gco,''up'')');
+	uimenu(item_order, 'Label', 'Move down', 'Callback','uistack_j(gco,''down'')');
 
 %--------------------------------------------------------------------------------
 function fig = getParentFigure(fig)
