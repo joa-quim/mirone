@@ -1,7 +1,7 @@
 function varargout = about_box(varargin)
 % Display the "About" thing
 
-%	Copyright (c) 2004-2015 by J. Luis
+%	Copyright (c) 2004-2018 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -16,7 +16,7 @@ function varargout = about_box(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: about_box.m 4743 2015-07-24 14:35:38Z j $ 
+% $Id: about_box.m 10217 2018-01-24 21:33:46Z j $ 
 
 	hObject = figure('Vis','off');
 	about_box_LayoutFcn(hObject);
@@ -116,5 +116,5 @@ uicontrol('Parent',h1, 'Position',[10 16 201 15],...
 'Style','text','Tag','text_prog');
 
 uicontrol('Parent',h1, 'Position',[216 11 46 21],...
-'Call', 'delete(gcf)', ...
+'Callback', 'delete(gcf)', ...
 'String','OK');

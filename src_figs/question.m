@@ -1,7 +1,7 @@
 function out = question(varargin)
 % Helper window to ask for a numeric value
 
-%	Copyright (c) 2004-2014 by J. Luis
+%	Copyright (c) 2004-2018 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -16,7 +16,7 @@ function out = question(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: question.m 4555 2014-09-14 17:40:32Z j $
+% $Id: question.m 10217 2018-01-24 21:33:46Z j $
 
 	hObject = figure('Vis','off');
 	question_LayoutFcn(hObject);
@@ -109,7 +109,7 @@ uicontrol('Parent',h1, 'Position',[10 6 55 23],...
 'Tag','check_invert');
 
 uicontrol('Parent',h1, 'Pos',[141 8 50 21],...
-'Call',@question_uiCB,...
+'Callback',@question_uiCB,...
 'FontSize',9,...
 'FontWeight','bold',...
 'String','OK',...

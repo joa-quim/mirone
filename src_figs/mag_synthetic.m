@@ -5,7 +5,7 @@ function varargout = mag_synthetic(varargin)
 %
 % This function has the magmodel repeated from 'ecran', which is bad practice
 
-%	Copyright (c) 2004-2017 by J. Luis
+%	Copyright (c) 2004-2018 by J. Luis
 %
 %	This program is free software; you can redistribute it and/or modify
 %	it under the terms of the GNU General Public License as published by
@@ -19,7 +19,7 @@ function varargout = mag_synthetic(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: mag_synthetic.m 9997 2017-01-22 18:06:38Z j $
+% $Id: mag_synthetic.m 10217 2018-01-24 21:33:46Z j $
 
 	if (nargin ~= 4)
 		errordlg('MAG_SYNTHETIC: Called with wrong number of args (4)'),	return
@@ -46,8 +46,8 @@ function varargout = mag_synthetic(varargin)
 	% Set an uicontext for profile extraction of the mgd77++ file
 	cmenuHand = uicontextmenu('Parent',handles.hCallingFig);
 	set(handles.hGuideLine, 'UIContextMenu', cmenuHand);
-	uimenu(cmenuHand, 'Label', 'Extract mgd77+ profile', 'Call', {@getProfile, hObject});
-	uimenu(cmenuHand, 'Label', 'Delete me', 'Call', {@del_line, hObject}, 'Sep','on');
+	uimenu(cmenuHand, 'Label', 'Extract mgd77+ profile', 'Callback', {@getProfile, hObject});
+	uimenu(cmenuHand, 'Label', 'Delete me', 'Callback', {@del_line, hObject}, 'Sep','on');
 	ui_edit_polygon(handles.hGuideLine)		% Set edition functions
 
 	handles.hZeroAge = [];
@@ -250,7 +250,7 @@ function push_run_CB(hObject, handles)
 		elseif (obliq < 0),		handEcran.stretchMagBar = cos(obliq * pi / 180);
 		end
 		guidata(handEcran.figure1, handEcran)						% Update Ecran handles so it knows hot to plot the mag bars
-		cb = get(handEcran.push_magBar,'Call');						% Clever trick to fish the callback
+		cb = get(handEcran.push_magBar,'Callback');					% Clever trick to fish the callback
 		feval(cb, handEcran.push_magBar, [])						% Call the ecran_uiCB function thats plots the mag bars
 		set(handEcran.push_syntheticRTP, 'Vis','off')				% 'Ecran' button that we don't want to be visible here
 		set(handEcran.popup_selectSave, 'Vis','off')
