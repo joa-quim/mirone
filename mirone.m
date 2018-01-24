@@ -20,7 +20,7 @@ function varargout = mirone(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: mirone.m 10207 2018-01-04 22:45:52Z j $
+% $Id: mirone.m 10214 2018-01-24 01:09:49Z j $
 
 	if (nargin > 1 && ischar(varargin{1}))
 		if ( ~isempty(strfind(varargin{1},':')) || ~isempty(strfind(varargin{1},filesep)) )
@@ -3771,7 +3771,7 @@ function FileOpenSession_CB(handles, fname)
 		end
 	end
 
-	if (s.havePlineAsGCPs)				% case of polyline as GCP points (markers) only
+	if (isfield(s, 'havePlineAsGCPs') && s.havePlineAsGCPs)		% case of polyline as GCP points (markers) only
 		h_line_pt = line('Xdata',s.PlineAsGCPs.x, 'Ydata',s.PlineAsGCPs.y,'Parent',handles.axes1, ...
 			'LineStyle','none', 'Marker',s.PlineAsGCPs.Marker, 'MarkerSize',s.PlineAsGCPs.Size, ...
 			'MarkerFaceColor',s.PlineAsGCPs.FillColor, 'MarkerEdgeColor',s.PlineAsGCPs.EdgeColor, ...
