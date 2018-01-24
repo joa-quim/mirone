@@ -6,7 +6,7 @@ function usgs_recent_seismicity(varargin)
 % the events outside the map limits.
 % The events time is not being stored yet.
 
-%	Copyright (c) 2004-2014 by J. Luis
+%	Copyright (c) 2004-2018 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -51,7 +51,7 @@ function usgs_recent_seismicity(varargin)
 	for (m = 1:4)
 		for (n = 1:4)
 			handles.hRadios(m,n) = uicontrol('Parent',hFig, 'Pos',[(10 + (n-1)*100) (40 + (m-1)*22) 80 22], ...
-				'Call',@radios_CB,'Str', names{m}, 'Style','radiobutton', 'UserData',[m n]);
+				'Callback',@radios_CB,'Str', names{m}, 'Style','radiobutton', 'UserData',[m n]);
 		end
 	end
 	set(handles.hRadios(1,2),'Val',1)		% Make the "Past Day (All)" the default one
@@ -59,7 +59,7 @@ function usgs_recent_seismicity(varargin)
 % 	uicontrol('Parent',hFig, 'Pos',[210 9 82 23], 'Str','Plot control', ...
 % 		'Tooltip','Call a new window to allow fine plot control','Style','checkbox')
 	uicontrol('Parent',hFig, 'Pos',[323 9 69 21], 'FontName','Helvetica',...
-		'Call',@push_OK_CB, 'FontWeight','bold','String','OK')
+		'Callback',@push_OK_CB, 'FontWeight','bold','String','OK')
 
 	guidata(hFig, handles)
 	set(hFig,'Vis','on')

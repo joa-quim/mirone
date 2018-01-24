@@ -68,7 +68,7 @@ function [datet,Y,M,D,nD] = init(datet)
 	uicontrol('style','pushbutton','units','pixels','position',[245 300 30 20], ...
 				'string','OK','tooltipstring','Validate current date', ...
 				'Tag', 'OK', ...
-				'Call',@uisetdate_uiCB)
+				'Callback',@uisetdate_uiCB)
 
 	%static text buttons for day name
 	for (i = 1:7)
@@ -136,7 +136,7 @@ function update(hObject, handles)
 				pos = [15+45*(j-1) 260-(i-1)*30 35 20];
 				st  = listM{6*(i-1)+j};
 				uicontrol('style','togglebutton','units','pixels','position',pos,'string',st, ...
-						'Tag','changemonth', 'Call',@uisetdate_uiCB)
+						'Tag','changemonth', 'Callback',@uisetdate_uiCB)
 			end
 		end
 	end
@@ -147,7 +147,7 @@ function update(hObject, handles)
 				pos = [10+40*(j-1) 160-(i-1)*30 30 20];
 				st  = sprintf('%d', C(i,j));
 				uicontrol('style','togglebutton','units','pixels','position',pos,'string',st, ...
-					'Tag','changeday', 'Call',@uisetdate_uiCB)
+					'Tag','changeday', 'Callback',@uisetdate_uiCB)
 			end
 		end
 	end

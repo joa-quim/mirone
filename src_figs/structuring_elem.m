@@ -34,7 +34,7 @@ function out = structuring_elem(x,y,p, varargin)
 %
 % Inspired on iconeditor of  Elmar Tarajan [MCommander@gmx.de]
 
-%	Copyright (c) 2004-2014 by J. Luis
+%	Copyright (c) 2004-2018 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -139,9 +139,9 @@ function out = structuring_elem(x,y,p, varargin)
 	H.editNcol = uicontrol('parent',H.hFig,'style','edit','units','pixel', ...
 		'pos',[45 figSizeH-25 25 21], 'String',H.x, 'Tooltip','Number of columns (Odd numbers please)');
 	H.resize = uicontrol('parent',H.hFig,'style','pushbutton','units','pixel', 'string','Resize', ...
-		'pos',[6 figSizeH-40 64 15], 'Call',{@resize,H},'Tooltip','Resize figure by new dims');
+		'pos',[6 figSizeH-40 64 15], 'Callback',{@resize,H},'Tooltip','Resize figure by new dims');
 	H.OK = uicontrol('parent',H.hFig,'style','pushbutton','units','pixel', 'string','Apply', ...
-		'pos',[figSizeW-51 1 50 21], 'FontWeight','bold', 'Call',@ok_CB);
+		'pos',[figSizeW-51 1 50 21], 'FontWeight','bold', 'Callback',@ok_CB);
 
 	cfg.string = 'Iterations';
 	uicontrol(cfg,'Pos',[6 figSizeH-68 70 18]);
@@ -157,14 +157,14 @@ function out = structuring_elem(x,y,p, varargin)
 	H.rad(5) = uicontrol(props{:}, 'pos',[6 rad_y0-4*dz 80 dz], 'str','gradient','UserData',5,'Tooltip', 'Dilate - Erode');
 	H.rad(6) = uicontrol(props{:}, 'pos',[6 rad_y0-5*dz 80 dz], 'str','tophat','UserData',6,'Tooltip','Original - open');
 	H.rad(7) = uicontrol(props{:}, 'pos',[6 rad_y0-6*dz 80 dz], 'str','blackhat','UserData',7,'Tooltip','close - Original');
-	set(H.rad,'Call',@radios_CB)
+	set(H.rad,'Callback',@radios_CB)
 
 	H.push = zeros(1,5);
 	for (i = 5:-1:1)
 		H.push(i) = uicontrol('parent',H.hFig,'style','pushbutton', ...
 			'cdata',ones(H.y,H.x,3)*NaN,'backgroundcolor',[.8 .8 .8], ...
 			'units','pixel','pos',[figSizeW-(6-i)*(21+5)-5 figSizeH-25 21 21], ...
-			'Call',{@setpushbutton,i});
+			'Callback',{@setpushbutton,i});
 	end
 	ico = uint8(ones(19)*255);	ico(10,:) = 0;	ico(:,10) = 0;
 	set(H.push(5), 'CData', repmat(ico,[1 1 3]), 'Tooltip', 'Cross')
@@ -260,10 +260,10 @@ function recall(H, x, y, p)
 
 	set(H.editNrow, 'pos',[6 figSizeH-25 25 21], 'String',H.y)
 	set(H.editNcol, 'pos',[45 figSizeH-25 25 21], 'String',H.x)
-	set(H.resize, 'pos',[6 figSizeH-40 64 15], 'Call',{@resize,H})
+	set(H.resize, 'pos',[6 figSizeH-40 64 15], 'Callback',{@resize,H})
 	set(H.OK, 'pos',[figSizeW-41 1 40 21])
 	for (i = 5:-1:1)
-		set(H.push(i), 'pos',[figSizeW-(6-i)*(21+5)-5 figSizeH-25 21 21], 'Call',{@setpushbutton,i})
+		set(H.push(i), 'pos',[figSizeW-(6-i)*(21+5)-5 figSizeH-25 21 21], 'Callback',{@setpushbutton,i})
 	end
 	if (ishandle(H.hMirFig)),	move2side(H.hMirFig, H.hFig),	end
 
@@ -309,7 +309,7 @@ function cdata = ok_CB(obj,event)
 		out = get_outparams(H);			% Get the structuring element struc as used in cvlib_mex
 		if (H.is_grd)
 			handMir = guidata(H.hMirFig);
-			[X,Y,img] = load_grd(handMir);			% Call it 'img' to easy things
+			[X,Y,img] = load_grd(handMir);			% Callback it 'img' to easy things
 			if isempty(img),	return,		end
 		else
 			img = H.origImg;
