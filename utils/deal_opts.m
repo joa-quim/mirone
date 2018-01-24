@@ -10,7 +10,7 @@ function out = deal_opts(opt, opt2, varargin)
 % OPT2 optionally may hold the name of an internal sub-function, in which case that function
 % is called with optional extra arguments transmited in varargin
 
-%	Copyright (c) 2004-2017 by J. Luis
+%	Copyright (c) 2004-2018 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -25,7 +25,7 @@ function out = deal_opts(opt, opt2, varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: deal_opts.m 10001 2017-01-26 01:48:11Z j $
+% $Id: deal_opts.m 10215 2018-01-24 19:57:28Z j $
 
 	if (nargin > 1 && ischar(opt2))
 		if (nargout)
@@ -75,8 +75,8 @@ function out = deal_opts(opt, opt2, varargin)
 						if (isempty(hCust))			% Create a uimenu associated to a rectangle
 							hCust = uimenu(opt2, 'Label', 'Custom','Sep','on');
 						end
-						uimenu(hCust, 'Label', 'MGG tracks', 'Call',  @get_MGGtracks);
-						uimenu(hCust, 'Label', 'MGG from file list', 'Call',  {@get_MGGtracks, ''});
+						uimenu(hCust, 'Label', 'MGG tracks', 'Callback',  @get_MGGtracks);
+						uimenu(hCust, 'Label', 'MGG from file list', 'Callback',  {@get_MGGtracks, ''});
 						break
 					end
 
@@ -87,12 +87,12 @@ function out = deal_opts(opt, opt2, varargin)
 						[t, r] = strtok(out);
 						if (~isempty(r)),		coeVar = ddewhite(r);	end
 						item = uimenu(opt2, 'Label', 'Show Cross Over Errors', 'Sep','on');
-						uimenu(item, 'Label', 'All', 'Call', {@get_COEs, t, coeVar, 'all'});
-						uimenu(item, 'Label', 'External only', 'Call', {@get_COEs, t, coeVar, 'ext'});
-						uimenu(item, 'Label', 'Internal only', 'Call', {@get_COEs, t, coeVar, 'int'});
-						uimenu(item, 'Label', 'Plot histogram (all)', 'Call', {@get_COEs, t, coeVar, 'hstA'},'Sep','on');
-						uimenu(item, 'Label', 'Plot histogram (internal)', 'Call', {@get_COEs, t, coeVar, 'hstI'});
-						%uimenu(opt2, 'Label', 'Show COEs', 'Call', {@get_COEs, t, coeVar},'Sep','on');
+						uimenu(item, 'Label', 'All', 'Callback', {@get_COEs, t, coeVar, 'all'});
+						uimenu(item, 'Label', 'External only', 'Callback', {@get_COEs, t, coeVar, 'ext'});
+						uimenu(item, 'Label', 'Internal only', 'Callback', {@get_COEs, t, coeVar, 'int'});
+						uimenu(item, 'Label', 'Plot histogram (all)', 'Callback', {@get_COEs, t, coeVar, 'hstA'},'Sep','on');
+						uimenu(item, 'Label', 'Plot histogram (internal)', 'Callback', {@get_COEs, t, coeVar, 'hstI'});
+						%uimenu(opt2, 'Label', 'Show COEs', 'Callback', {@get_COEs, t, coeVar},'Sep','on');
 						break
 					end
 
@@ -101,7 +101,7 @@ function out = deal_opts(opt, opt2, varargin)
 						if (isempty(hCust))	% Create a uimenu associated to a rectangle
 							hCust = uimenu(opt2, 'Label', 'Custom','Sep','on');
 						end
-						uimenu(hCust, 'Label', 'ROI microleveling', 'Call', 'microlev(gco)');
+						uimenu(hCust, 'Label', 'ROI microleveling', 'Callback', 'microlev(gco)');
 						break
 					end
 
@@ -110,8 +110,8 @@ function out = deal_opts(opt, opt2, varargin)
 						if (isempty(hCust))		% Create a uimenu associated to a rectangle
 							hCust = uimenu(opt2, 'Label', 'Custom','Sep','on');
 						end
-						uimenu(hCust, 'Label', 'Show GMT db polygon IDs', 'Call', @sow_GMT_DB_IDs);
-						uimenu(hCust, 'Label', 'Load GMT db polygon(s)', 'Call',  @load_GMT_DB);
+						uimenu(hCust, 'Label', 'Show GMT db polygon IDs', 'Callback', @sow_GMT_DB_IDs);
+						uimenu(hCust, 'Label', 'Load GMT db polygon(s)', 'Callback',  @load_GMT_DB);
 						break
 					end
 
@@ -120,7 +120,7 @@ function out = deal_opts(opt, opt2, varargin)
 						if (isempty(hCust))		% Create a uimenu associated to a rectangle
 							hCust = uimenu(opt2, 'Label', 'Custom','Sep','on');
 						end
-						uimenu(hCust, 'Label', 'Associate to a GMT symbol', 'Call', @assoc_gmt_symbol, 'Sep', 'on');
+						uimenu(hCust, 'Label', 'Associate to a GMT symbol', 'Callback', @assoc_gmt_symbol, 'Sep', 'on');
 						h = get(opt2, 'UserData');		% Fish the line handle
 						fname = getappdata(h, 'cust_symb');	% If not empty than we have a call from FileOpenSession_CB
 						if (~isempty(fname)),	assoc_gmt_symbol([], [], h),	end		% and want only to set the BDF CB
@@ -133,7 +133,7 @@ function out = deal_opts(opt, opt2, varargin)
 							hCust = uimenu(opt2, 'Label', 'Custom','Sep','on');
 						end
 						h = get(opt2, 'UserData');		% Fish the line handle
-						uimenu(hCust, 'Label', 'Compute Gravity anomaly', 'Call', {@gravity, h}, 'Sep', 'on');
+						uimenu(hCust, 'Label', 'Compute Gravity anomaly', 'Callback', {@gravity, h}, 'Sep', 'on');
 					end
 			end
 		end
@@ -221,9 +221,9 @@ function get_COEs(obj, event, coeFile, coeVar, opt)
         cmenuHand = uicontextmenu('Parent',handles.figure1);
         set(hS, 'UIContextMenu', cmenuHand);
         uimenu(cmenuHand, 'Label', sprintf('COE = %.1f (with %s)',COEs(k), names{k}));
-        uimenu(cmenuHand, 'Label', sprintf('Plot the track ->  %s', names{k}), 'Call', {@get_MGGtracks, names{k}});
-        uimenu(cmenuHand, 'Label', 'Delete this', 'Call', {@uictxCOE,handles.axes1,hS,'del'}, 'Sep','on');
-        uimenu(cmenuHand, 'Label', 'Delete all',  'Call', {@uictxCOE,handles.axes1,hS,'delAll'});
+        uimenu(cmenuHand, 'Label', sprintf('Plot the track ->  %s', names{k}), 'Callback', {@get_MGGtracks, names{k}});
+        uimenu(cmenuHand, 'Label', 'Delete this', 'Callback', {@uictxCOE,handles.axes1,hS,'del'}, 'Sep','on');
+        uimenu(cmenuHand, 'Label', 'Delete all',  'Callback', {@uictxCOE,handles.axes1,hS,'delAll'});
 	end
 
 function uictxCOE(obj,evt,hAx,h,tipo)
