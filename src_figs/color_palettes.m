@@ -603,7 +603,6 @@ function change_cmap(handles, pal)
 		z_pal = [handles.z_intervals(:,1); handles.z_intervals(end,end)];		% Palette z intervals
 		% Interpolate the grid levels into the palette Z levels
 		y = (len_Pal - 1) * ((z_pal - z_pal(1)) / (z_pal(end) - z_pal(1)));		% Spread z_pal into the [0 len_Pal] interval
-		%ind_pal = interp1(z_pal, y, z_grd, 'linear', 'extrap');
 		ind_pal = interp1(z_pal, y, z_grd, 'linear', NaN);
 		indNaN  = isnan(ind_pal);			% Because interp1 only has one 'extrapval' we must trick it like this 
 		if (any(indNaN))
@@ -621,19 +620,19 @@ function change_cmap(handles, pal)
 	end
 
 	z_grd = [];				% Most common case. No particular scaling or logaritmization
-	if ( get(handles.check_logIt,'Val') )			% If logaritmize
-		if ( ~isempty(handles.z_min) && (handles.z_min ~= handles.z_min_orig || handles.z_max ~= handles.z_max_orig) )
-			z_grd = linspace( handles.z_min,handles.z_max, size(pal,1) )';
+	if (get(handles.check_logIt,'Val'))			% If logaritmize
+		if (~isempty(handles.z_min) && (handles.z_min ~= handles.z_min_orig || handles.z_max ~= handles.z_max_orig))
+			z_grd = linspace(handles.z_min,handles.z_max, size(pal,1))';
 		else
-			z_grd = linspace( handles.z_min_orig,handles.z_max_orig, size(pal,1) )';
+			z_grd = linspace(handles.z_min_orig,handles.z_max_orig, size(pal,1))';
 		end
-	elseif ( ~isempty(handles.z_min) && (handles.z_min ~= handles.z_min_orig || handles.z_max ~= handles.z_max_orig) )
+	elseif (~isempty(handles.z_min) && (handles.z_min ~= handles.z_min_orig || handles.z_max ~= handles.z_max_orig))
 		z_grd = linspace(handles.z_min_orig, handles.z_max_orig, size(pal,1))';
 	end
 
 	if (~isempty(z_grd))		% We have a non data-orig min/max
 		len_Pal = length(pal);    
-		if ( ~get(handles.check_logIt,'Val') )
+		if (~get(handles.check_logIt,'Val'))
 			z_pal = linspace(handles.z_min,handles.z_max,len_Pal)';
 		else				% Calculate a logarithm cmap
 			if (handles.z_min <= 0)		% We don't want to take logs of negative numbers
@@ -668,7 +667,9 @@ function change_cmap(handles, pal)
 	set(handles.figure1,'Colormap',pal);
 
 	if strcmp(get(handles.OptionsAutoApply,'checked'),'on')
-		if (handles.have_nans),     pal_bg = [handles.bg_color; pal(2:end,:)];
+		start = 1;
+		if (length(pal) == 256),	start = 2;		end
+		if (handles.have_nans),     pal_bg = [handles.bg_color; pal(start:end,:)];
 		else                        pal_bg = pal;
 		end
 		set(handles.hCallingFig,'Colormap',pal_bg)         % Change the image colormap
@@ -829,6 +830,7 @@ function OptionsAutoApply_CB(hObject, handles)
 
 % --------------------------------------------------------------------
 function cmap = FileReadPalette_CB(hObject, handles, opt, opt2)
+	global gmt_ver
 	if (nargin == 2),   opt = [];	end
 	if (nargin < 4),	opt2 = [];	end
 	if (isempty(opt2))
@@ -849,7 +851,16 @@ function cmap = FileReadPalette_CB(hObject, handles, opt, opt2)
 			errordlg(['Error reading file ' fname],'Error');		return
 		end
 		if (~isempty(opt))  % Use the cpt Z levels as well
-			[cmap,handles.z_intervals] = c_cpt2cmap(['-C' fname]);
+			if (gmt_ver > 4 && ~isempty(handles.hCallingFig))	% Intervals might not be linear, let GMT handle that.
+				[cmap, z_int] = c_cpt2cmap(['-C' fname]);		% Read once to know the Z limits
+				n_int = 256;
+				if (handles.have_nans),		n_int = 255;	end
+				C = gmtmex(sprintf('makecpt -C%s -T.12%g/%.12g/d+',fname, z_int(1), z_int(end), n_int));
+				cmap = C.colormap;
+				handles.z_intervals = C.range;
+			else
+				[cmap,handles.z_intervals] = c_cpt2cmap(['-C' fname]);
+			end
 		else                % Use only the cpt colors
 			cmap = c_cpt2cmap(['-C' fname]);
 			handles.z_intervals = [];
