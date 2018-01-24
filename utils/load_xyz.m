@@ -1,8 +1,10 @@
 function varargout = load_xyz(handles, opt, opt2)
 % Read a generic ascii file that can be, or not, a multi-segment file
 %
-%	Multi-segs files accept -G, -S -W & -: GMT type options plus a proj4 string for referencing.
+%	Multi-segs files accept -G, -S -W & -: GMT type options plus a proj4 string for referencing and/or a +rot=....
 %		The proj4 string should be one single word e.g. +proj=latlong or enclosed in "+proj=longlat +datum=..."
+%		The +rot=lon/lat/ang instructs to do a Euler rotation before plotting. This option is compatible with
+%		the proj4 as long as the file is in geogs and being loaded in a prject background, but not the inverse.
 %		-S<symb>[size] accepts these GMT type symbol codes <a|c|d|h|i|n|p|s|x|+>
 %		-S<symb>[size][+s<scale>][+f][+c<cor>[+c<cor>]]		==> Full syntax
 %		 Use +s<scale> with files with 3 columns where 3rd column will be used to determine the symbol color
@@ -348,7 +350,7 @@ function varargout = load_xyz(handles, opt, opt2)
 	elseif (~nargout)				% Reading over an established region
 		XYlim = getappdata(handles.axes1,'ThisImageLims');
 		xx = XYlim(1:2);			yy = XYlim(3:4);
-		if (handles.is_projected && (got_internal_file || handles.defCoordsIn > 0) )
+		if (handles.is_projected && (got_internal_file || handles.defCoordsIn > 0))
 			do_project = true;
 		end
 		XMin = XYlim(1);			XMax = XYlim(2);		% In case we need this names below for line trimming
@@ -357,6 +359,7 @@ function varargout = load_xyz(handles, opt, opt2)
 
 	% --------------------------- Main loop over data files ------------------------------
 	for (k = 1:numel(names))
+		do_eulerRot = false;
 		fname = names{k};
 		if (handles.no_file && ~goto_XY && k == 1)		% Rename figure with dragged file name
 			[pato, barName] = fileparts(fname);
@@ -579,6 +582,10 @@ function varargout = load_xyz(handles, opt, opt2)
 		if (~isempty(projStr_)),	projStr = projStr_;		end		% Otherwise maybe 'projStr' already has it
 		if (~isempty(projStr)),		do_project = true;		end
 		% -----------------------------------------------------------------------------------
+		% ------------------ Check if first header line has a +rot=... string ---------------
+		[eulerP, multi_segs_str{1}] = parseRot(multi_segs_str{1});
+		if (~isempty(eulerP)),		do_eulerRot = true;		end
+		% -----------------------------------------------------------------------------------
 
 		if (do_project && handles.no_file)		% If new image set the projection info
 			aux_funs('appProjectionRef', handles, projStr)
@@ -587,6 +594,16 @@ function varargout = load_xyz(handles, opt, opt2)
 
 		drawnow
 		for (i = 1:n_segments)		% Loop over number of segments of current file (external loop)
+
+			if (do_eulerRot)
+				[rlon,rlat] = rot_euler(numeric_data{i}(:,1),numeric_data{i}(:,2),eulerP.lon,eulerP.lat,eulerP.ang, -1);
+				if (handles.geog == 2)
+					ind = (rlon < 0);
+					rlon(ind) = rlon(ind) + 360;
+				end
+				numeric_data{i}(:,1) = rlon;	numeric_data{i}(:,2) = rlat;
+			end
+
 			tmpz = [];
 			if (do_project)         % We need to project
 				try
@@ -968,6 +985,20 @@ function [thick, cor, str2] = parseW(str, thick, cor)
 		% Notice that we cannot have -W100 represent a color because it would have been interpret above as a line thickness
 		if (any(isnan(cor))),   cor = [];   end
 	end
+
+% --------------------------------------------------------------------
+function [pole, str2] = parseRot(str)
+% Parse the STR string in search for a +rot string indicating that data should be Euler rotated
+% Return the Euler pole in a struct POLE.
+	pole = [];		str2 = str;
+	ind = strfind(str, '+rot=');
+	if (isempty(ind)),		return,		end			% No proj. Go away.
+	[t, r] = strtok(str(ind(1):end));			% For example +proj4=longlat
+	str2 = [str(1:ind(1)-1) r];					% Strip the +rot=... string
+	ind = strfind(t, '/');
+	pole.lon = str2double(t(6:ind(1)-1));
+	pole.lat = str2double(t(ind(1)+1:ind(2)-1));
+	pole.ang = str2double(t(ind(2)+1:end));
 
 % --------------------------------------------------------------------
 function [proj, str2] = parseProj(str)
