@@ -1,7 +1,7 @@
 /*--------------------------------------------------------------------
  *	$Id$
  *
- *	Copyright (c) 2004-2013 by J. Luis
+ *	Copyright (c) 2004-2018 by J. Luis
  *
  * 	This program is part of Mirone and is free software; you can redistribute
  * 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -135,13 +135,13 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 				case 'C':
 					if (strlen (&argv[i][2]) == 1) { /* use one of default time scales */
 						if (strcmp (&argv[i][2], "P") == 0) /* Patriat */
-							isoc_p = TRUE;
+							{isoc_p = TRUE;	isoc_c = isoc_o = isoc_cm = FALSE;}
 						else if (strcmp (&argv[i][2], "C") == 0) /* Cande & Kent 95 */
-							isoc_c = TRUE;
+							{isoc_c = TRUE;	isoc_p = isoc_o = isoc_cm = FALSE;}
 						else if (strcmp (&argv[i][2], "O") == 0) /* Cande (old scale given by Patriat)*/
-							isoc_o = TRUE;
+							{isoc_o = TRUE;	isoc_p = isoc_c = isoc_cm = FALSE;}
 						else if (strcmp (&argv[i][2], "M") == 0) /* Cande & Kent 95 + Malinverno 2012 */
-							isoc_cm = TRUE;
+							{isoc_cm = TRUE;	isoc_p = isoc_c = isoc_o = FALSE;}
 						else
 							mexPrintf ("SYNTAX ERROR -C option: Must choose only between -CP (Patriat) or -CC (Cande)\n");
 					}
@@ -262,7 +262,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		isoc_scale = (struct ISOC_SCALE *) mxCalloc ((size_t) n_isoc, sizeof(struct ISOC_SCALE));
 		for (i = 0; i < n_isoc; i++)
 			isoc_scale[i].age = tmp[i];
-		linear_age = ts_file = isoc_p = isoc_o = isoc_c = FALSE;
+		linear_age = ts_file = isoc_p = isoc_o = isoc_c = isoc_cm = FALSE;
 	}
 	else if (n_arg_no_char == 2) {		/* Here, prhs[0] MUST contain the object to rotate */
 						/* and prhs[1] the "rotation ages" */ 
@@ -272,7 +272,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		isoc_scale = (struct ISOC_SCALE *) mxCalloc ((size_t) n_isoc, sizeof(struct ISOC_SCALE));
 		for (i = 0; i < n_isoc; i++)
 			isoc_scale[i].age = tmp[i];
-		linear_age = ts_file = isoc_p = isoc_o = isoc_c = FALSE;
+		linear_age = ts_file = isoc_p = isoc_o = isoc_c = isoc_cm = FALSE;
 		/* And now the the object to rotate */
 		tmp = mxGetPr(prhs[0]);
 		np_in = mxGetM(prhs[0]);
