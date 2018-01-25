@@ -87,9 +87,9 @@ function push_OK_CB(obj, evt)
 	dest_fiche = [handles.path_tmp 'usgs.csv'];
 	url = ['http://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/' name '.csv'];
 	if (strncmp(computer,'PC',2))
-		dos(['wget "' url '" -q --tries=2 --connect-timeout=5 -O ' dest_fiche]);
+		dos(['wget "' url  '" -q --tries=2 --connect-timeout=5 --no-check-certificate -O ' dest_fiche]);
 	else
-		unix(['wget "' url '" -q --tries=2 --connect-timeout=5 -O ' dest_fiche]);
+		unix(['wget "' url '" -q --tries=2 --connect-timeout=5 --no-check-certificate -O ' dest_fiche]);
 	end
 	r = csv2cell(dest_fiche);
 	if (isempty(r))
