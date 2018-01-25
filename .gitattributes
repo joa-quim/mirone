@@ -337,8 +337,6 @@ mex/igrf_m.c -text
 mex/isf_head.h -text
 mex/lasreader_mex.c -text
 mex/laszreader_mex.cpp -text
-mex/make_mexs.m -text
-mex/make_mexs64.m -text
 mex/makefile.mexs -text
 mex/makefileOSX -text
 mex/mansinha_m.c -text
