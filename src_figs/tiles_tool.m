@@ -16,7 +16,7 @@ function varargout = tiles_tool(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: tiles_tool.m 10217 2018-01-24 21:33:46Z j $
+% $Id: tiles_tool.m 10223 2018-01-25 15:47:09Z j $
 
 	hObject = figure('Vis','off');
 	tiles_tool_LayoutFcn(hObject);
@@ -212,6 +212,7 @@ function click_anchor_CB(hObject, event)
 	hAnchor = findobj(handles.axes1,'Tag','Anchor');
 	if (isempty(hAnchor))
 		hAnchor = line(pt(1,1),pt(1,2),'Marker','p','MarkerFaceColor','y','MarkerEdgeColor','k','MarkerSize',12,'Tag','Anchor');
+		draw_funs(hAnchor, 'DrawSymbol')				% Set uicontextmenu
 		set(hAnchor, 'ButtonDownFcn', 'move_obj(1)')	% Set the dragging option
 	else
 		set(hAnchor,'XData',pt(1,1) ,'YData',pt(1,2))
