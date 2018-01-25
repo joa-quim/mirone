@@ -16,7 +16,7 @@ function varargout = shading_params(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: shading_params.m 10217 2018-01-24 21:33:46Z j $
+% $Id: shading_params.m 10220 2018-01-25 14:32:19Z j $
 
 	if (isempty(varargin))
 		errordlg('Unknown Illumination option','Error'),	return
@@ -200,9 +200,13 @@ function show_needed(obj,eventdata,opt)
 % -----------------------------------------------------------------------------------------
 function toggle_uis(handles,ui)
 % Do not let more the one uitoggletool be on the state of pushed
+	if (strcmp(get(handles.ui_tools(ui),'State'), 'off'))		% Do not allow deselct
+		set(handles.ui_tools(ui),'State','on')
+		return
+	end
 	n = 1:numel(handles.ui_tools);
 	n(n == ui) = [];        % Remove current ui index
-	set(handles.ui_tools(n),'State','off');
+	set(handles.ui_tools(n),'State','off')
 	
 	if (ui == 4),	vis = 'on';
 	else			vis = 'off';
