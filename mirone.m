@@ -412,25 +412,32 @@ function hObject = mirone_OpeningFcn(varargin)
 	end
 
 	%Find out which gmt version is beeing used. 
-	info = getappdata(0,'gmt_version');		% See if the info is already there.
+	info = getappdata(0,'gmt_version');		% See if the info is already here.
+	if (isempty(info))
+		pato = [home_dir fsep 'gmt_share/coast/'];
+		info.full = (exist([pato 'binned_GSHHS_f.nc'], 'file') == 2);
+		info.high = (exist([pato 'binned_GSHHS_h.nc'], 'file') == 2);
+		info.intermediate = (exist([pato 'binned_GSHHS_i.nc'], 'file') == 2);
+		info.low  = (exist([pato 'binned_GSHHS_l.nc'], 'file') == 2);
+		setappdata(0,'gmt_version',info);	% Save it to the next time a new mirone window is opened
+		set_gmt(['GMT5_SHAREDIR=' home_dir fsep 'gmt_share']);	% GMT5_SHAREDIR because it's looked for before GMT_SHAREDIR
+	end
+
 	if (isempty(info))
 		info = set_gmt(['GMT_USERDIR=' home_dir fsep 'gmt_userdir']);
-		setappdata(0,'gmt_version',info);	% Save it so that the next time a new mirone window is opened
+		setappdata(0,'gmt_version',info);	% Save it to the next time a new mirone window is opened
 	end
-	if (~strcmp(info.full, 'y'))
+	if (~info.full && ~strcmp(info.full, 'y'))
 		set([handles.CoastLineFull handles.PBFull handles.RiversFull], 'Enable','off')
 	end
-	if (~strcmp(info.high, 'y'))
+	if (~info.high && ~strcmp(info.high, 'y'))
 		set([handles.CoastLineHigh handles.PBHigh handles.RiversHigh], 'Enable','off')
 	end
-	if (~strcmp(info.intermediate, 'y'))
+	if (~info.intermediate && ~strcmp(info.intermediate, 'y'))
 		set([handles.CoastLineInterm handles.PBInterm handles.RiversInterm], 'Enable','off')
 	end
-	if (~strcmp(info.low, 'y'))
+	if (~info.low && ~strcmp(info.low, 'y'))
 		set([handles.CoastLineLow handles.PBLow handles.RiversLow], 'Enable','off')
-	end
-	if (~strcmp(info.crude, 'y'))
-		set([handles.CoastLineCrude handles.PBCrude handles.RiversCrude], 'Enable','off')
 	end
 
 	% Deal with the new (big) troubles introduced by using GMT5.2 that needs to know where to find its own share dir
