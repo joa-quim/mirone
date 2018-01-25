@@ -249,7 +249,6 @@ install_name_tool -change /usr/local/lib/libgdal.1.dylib ${pref}libgdal.dylib re
 install_name_tool -change /usr/local/lib/libgdal.1.dylib ${pref}libgdal.dylib scaleto8.mexmaci64
 install_name_tool -change /usr/local/lib/libgdal.1.dylib ${pref}libgdal.dylib susan.mexmaci64
 install_name_tool -change /usr/local/lib/libgdal.1.dylib ${pref}libgdal.dylib telha_m.mexmaci64
-install_name_tool -change /usr/local/lib/libgdal.1.dylib ${pref}libgdal.dylib test_gmt.mexmaci64
 install_name_tool -change /usr/local/lib/libgdal.1.dylib ${pref}libgdal.dylib trend1d_m.mexmaci64
 install_name_tool -change /usr/local/lib/libgdal.1.dylib ${pref}libgdal.dylib tsun2.mexmaci64
 install_name_tool -change /usr/local/lib/libgdal.1.dylib ${pref}libgdal.dylib wave_travel_time.mexmaci64
