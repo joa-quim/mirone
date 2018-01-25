@@ -148,7 +148,7 @@ IF %1==mpgwrite GOTO mpgwrite
 :todos
 REM ------------------ "simple" (no external Libs dependency) ------------------
 :simple
-for %%G in (test_gmt igrf_m scaleto8 tsun2 wave_travel_time mansinha_m telha_m range_change country_select 
+for %%G in (igrf_m scaleto8 tsun2 wave_travel_time mansinha_m telha_m range_change country_select 
 	mex_illuminate grdutils read_isf alloc_mex susan set_gmt mxgridtrimesh trend1d_m gmtmbgrid_m 
 	grdgradient_m grdtrack_m spa_mex mirblock write_mex xyzokb_m distmin CalcMD5 WindowAPI DateStr2Num) do ( 
 

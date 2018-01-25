@@ -66,7 +66,7 @@ PROG_GMT	= #grdinfo_m grdproject_m grdread_m grdsample_m grdtrend_m grdwrite_m m
 		surface_m nearneighbor_m grdfilter_m cpt2cmap grdlandmask_m grdppa_m shake_mex
 
 # Non LIB dependent mexs (besides matlab libs, of course)
-PROG_SIMPLE	= test_gmt igrf_m scaleto8 tsun2 wave_travel_time mansinha_m telha_m range_change country_select \
+PROG_SIMPLE	= igrf_m scaleto8 tsun2 wave_travel_time mansinha_m telha_m range_change country_select \
 		mex_illuminate grdutils read_isf alloc_mex susan set_gmt mxgridtrimesh trend1d_m \
 		PolygonClip gmtmbgrid_m grdgradient_m grdtrack_m mirblock akimaspline distmin
 
@@ -132,9 +132,6 @@ nswing:
 # ---------------------------------------------------------------------------------------
 # -- "Simple progs" that is, those that don't link agains nothing else than matlab itself
 
-test_gmt:	
-		$(MEX) test_gmt.c
-		$(LINKA) test_gmt.o $(GDAL_LIB) $(MEXLIB) -o test_gmt.$(MEX_EXT)
 igrf_m:	
 		$(MEX) igrf_m.c
 		$(LINKA) igrf_m.o $(GDAL_LIB) $(MEXLIB) -o igrf_m.$(MEX_EXT)
