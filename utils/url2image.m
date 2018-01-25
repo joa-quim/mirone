@@ -108,7 +108,7 @@ function  varargout = url2image(opt, varargin)
 %   AUTHOR
 %       Joaquim Luis (jluis@ualg.pt)   01-Feb-2008
 
-%	Copyright (c) 2004-2017 by J. Luis
+%	Copyright (c) 2004-2018 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -123,7 +123,7 @@ function  varargout = url2image(opt, varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: url2image.m 10153 2017-09-23 20:44:14Z j $
+% $Id: url2image.m 10221 2018-01-25 15:43:56Z j $
 
 	quadkey = {'0' '1'; '2' '3'};				% Default to Virtual Earth
 	prefix = 'http://a0.ortho.tiles.virtualearth.net/tiles/a';
@@ -677,7 +677,7 @@ function [img, cmap] = getImgTile(quadkey, quad, url, cache, cache_supp, ext, de
 		if (~isempty(cache))		% We have a cache dir to look for
 
 			if (isWW)		% We guessed it before as beeing a WW cache
-				fname = [cache cache_supp filesep sprintf('%.4d_%.4d', decAdr(2), decAdr(1)) '.' ext];
+				fname = [sprintf('%s%s%s%.4d_%.4d', cache, cache_supp, filesep, decAdr(2), decAdr(1)) '.' ext];
 			else
 				fname = [cache cache_supp filesep quad '.' ext];
 			end
@@ -722,13 +722,14 @@ function [img, att] = netFetchTile(url, cache, quad, ext, verbose, fname)
 	if (true || strcmp(url(8:9),'kh') || strcmp(url(8:9),'mt'))		% --> FORCE USE OF WGET 
 		if (~isempty(cache))
 			if (exist(cache,'dir') ~= 7),		make_dir(cache),	end		% Need to create a new dir
+			%dest_fiche = ['"' cache filesep quad '.' ext '"'];		% Save the file directly in susitu (cache)
 			dest_fiche = [cache filesep quad '.' ext];		% Save the file directly in susitu (cache)
 		else
 			dest_fiche = 'lixogrr';
 		end
 
-		if (ispc),		dos(['wget "' url '" -q --tries=2 --connect-timeout=5 -O ' dest_fiche]);
-		else			unix(['wget ''' url ''' -q --tries=2 --connect-timeout=5 -O ' dest_fiche]);
+		if (ispc),		dos(['wget "' url '" -q --tries=2 --connect-timeout=5 -O "' dest_fiche '"']);
+		else			unix(['wget ''' url ''' -q --tries=2 --connect-timeout=5 -O "' dest_fiche '"']);
 		end
 		finfo = dir(dest_fiche);
 		if (finfo.bytes < 100)					% Delete the file anyway because it exists but is empty
