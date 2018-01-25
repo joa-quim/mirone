@@ -1325,6 +1325,7 @@ function set_isochrons_uicontext(h, data)
 	uimenu(item2, 'Label', 'Best-Fit (only me -> iterate)', 'Callback', {@pole2neighbor, [], 'anglefit', 10});
 	uimenu(item2, 'Label', 'Show Results', 'Callback', {@pole2neighbor, [], 'showresults'});
 	uimenu(item, 'Label', 'Plates stage poles', 'Callback', {@pole2neighbor, [], 'plate_stages'});
+	uimenu(item, 'Label', 'Reconstruct at this age', 'Callback', {@pole2neighbor, [], 'reconst'}, 'Sep','on');
 	uimenu(item, 'Label', 'Age Grid', 'Callback', {@pole2neighbor, [], 'agegrid'}, 'Sep','on');
 	uimenu(item, 'Label', 'Make Age-script', 'Callback', @make_age_script);	
 	uimenu(cmenuHand, 'Label', 'Euler rotation', 'Sep','on', 'Callback', 'euler_stuff(gcf,gco)');
@@ -2660,6 +2661,9 @@ function set_symbol_uicontext(h,data)
 	elseif strcmp(tag,'TideStation')	% DATA is empty
 		tide_options = true;
 		separator = false;
+	elseif strcmp(tag,'Anchor')			% The Anchor spot of the "Tiles Tool"
+		uimenu(cmenuHand, 'Label', 'Move (precise)', 'Callback', {@change_SymbPos,h});
+		return
 	else
 		this_not = false;
 	end
