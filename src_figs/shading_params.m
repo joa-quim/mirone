@@ -200,9 +200,13 @@ function show_needed(obj,eventdata,opt)
 % -----------------------------------------------------------------------------------------
 function toggle_uis(handles,ui)
 % Do not let more the one uitoggletool be on the state of pushed
+	if (strcmp(get(handles.ui_tools(ui),'State'), 'off'))		% Do not allow deselct
+		set(handles.ui_tools(ui),'State','on')
+		return
+	end
 	n = 1:numel(handles.ui_tools);
 	n(n == ui) = [];        % Remove current ui index
-	set(handles.ui_tools(n),'State','off');
+	set(handles.ui_tools(n),'State','off')
 	
 	if (ui == 4),	vis = 'on';
 	else			vis = 'off';
