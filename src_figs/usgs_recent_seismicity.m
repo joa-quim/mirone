@@ -21,7 +21,7 @@ function usgs_recent_seismicity(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: usgs_recent_seismicity.m 10217 2018-01-24 21:33:46Z j $
+% $Id: usgs_recent_seismicity.m 10218 2018-01-25 00:28:07Z j $
 
 	handMir = guidata(varargin{1});		% Not tested but must be a Mirone fig handle
 
@@ -87,9 +87,9 @@ function push_OK_CB(obj, evt)
 	dest_fiche = [handles.path_tmp 'usgs.csv'];
 	url = ['http://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/' name '.csv'];
 	if (strncmp(computer,'PC',2))
-		dos(['wget "' url '" -q --tries=2 --connect-timeout=5 -O ' dest_fiche]);
+		dos(['wget "' url  '" -q --tries=2 --connect-timeout=5 --no-check-certificate -O ' dest_fiche]);
 	else
-		unix(['wget "' url '" -q --tries=2 --connect-timeout=5 -O ' dest_fiche]);
+		unix(['wget "' url '" -q --tries=2 --connect-timeout=5 --no-check-certificate -O ' dest_fiche]);
 	end
 	r = csv2cell(dest_fiche);
 	if (isempty(r))
