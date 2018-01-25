@@ -21,7 +21,7 @@ function [FileName,PathName,handles] = put_or_get_file(handles,str1,str2,type, e
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: put_or_get_file.m 4805 2015-10-09 21:55:54Z j $
+% $Id: put_or_get_file.m 10177 2017-11-08 18:45:27Z j $
 
 	return_to = cd;						% New behavior. Return to where it was.
 	if (strcmp(type,'get'))
