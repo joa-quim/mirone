@@ -16,7 +16,7 @@ function varargout = mirone_pref(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: mirone_pref.m 10217 2018-01-24 21:33:46Z j $
+% $Id: mirone_pref.m 10232 2018-01-26 01:45:05Z j $
 
 	hObject = figure('Vis','off');
 	mirone_pref_LayoutFcn(hObject);
@@ -44,9 +44,6 @@ function varargout = mirone_pref(varargin)
 		catch
 			handles.deflation_level = 0;
 		end
-		try		handles.gmt_ver = prf.gmt_ver;		% Hope that this will be a temporary thing till GMT5 is fully working
-		catch,	handles.gmt_ver = 5;
-		end
 		if (isfield(prf, 'TDRver')),	handles.TDRver = prf.TDRver;
 		else							handles.TDRver = '2.0';
 		end
@@ -61,7 +58,6 @@ function varargout = mirone_pref(varargin)
 		DefineEllipsoide = [];
 		handles.bg_color = [1 1 1];			% Default is white, but should be update by mirone_pref contents
 		handles.deflation_level = 0;		% Default to classic netCDF
-		handles.gmt_ver = 5;
 		% We need also to create an empty pref file that will be updated by push_OK_CB
 		version7 = version;
 		V7 = (sscanf(version7(1),'%f') > 6);
@@ -74,7 +70,6 @@ function varargout = mirone_pref(varargin)
 	handles.proxyPort = [];
 	handles.proxyAddressPort = [];
 
-    if (handles.gmt_ver == 5),      set(handles.radio_GMT4, 'Val', 0),  set(handles.radio_GMT5, 'Val', 1),  end
 	set(handles.radio_planar,'Val',handles.flederPlanar)
 	set(handles.radio_spherical,'Val',~handles.flederPlanar)
 	if (handles.flederBurn == 0)
@@ -440,7 +435,6 @@ function popup_ellipsoide_CB(hObject, handles)
 % ------------------------------------------------------------------------------------
 function push_OK_CB(hObject, handles)
 % ...
-	global gmt_ver;
 
 	handles.handMir.geog = handles.geog;
 	handles.handMir.grdMaxSize = str2double(get(handles.edit_GridMaxSize,'String')) * 2^20;
@@ -491,10 +485,6 @@ function push_OK_CB(hObject, handles)
 				handles.handMir.DefineEllipsoide(3) = handles.ellipsoide{i,4};
 		end
 	end
-	
-	% See what GMT engine is desired
-	gmt_ver = 5;
-	if (get(handles.radio_GMT4, 'Val')),	gmt_ver = 4;	end
 
 	delete(handles.figure1)		% Killing it here will make look that the tool runs faster
 
@@ -518,12 +508,12 @@ function push_OK_CB(hObject, handles)
 		save(fname,'geog','grdMaxSize','swathRatio','directory_list','DefLineThick','DefLineColor',...
 			'DefineMeasureUnit','DefineEllipsoide','DefineEllipsoide_params', 'scale2meanLat',...
 			'flederPlanar', 'flederBurn', 'whichFleder', 'moveDoubleClick', 'nanColor', 'deflation_level', ...
-			'gmt_ver', 'TDRver', '-append')
+			'TDRver', '-append')
 	else
 		save(fname,'geog','grdMaxSize','swathRatio','directory_list','DefLineThick','DefLineColor',...
 			'DefineMeasureUnit','DefineEllipsoide','DefineEllipsoide_params', 'scale2meanLat',...
 			'flederPlanar', 'flederBurn', 'whichFleder', 'moveDoubleClick', 'nanColor', 'deflation_level', ...
-			'gmt_ver', 'TDRver', '-append', '-v6')
+			'TDRver', '-append', '-v6')
 	end
 
 	% Save the Mirone handles, on the Mirone fig obviously
@@ -649,16 +639,6 @@ function edit_proxyPort_CB(hObject, handles)
 		set_gmt(['http_proxy=' handles.proxyAddressPort]);
 	end
 	guidata(handles.figure1, handles)
-
-% ------------------------------------------------------------------------------------
-function radio_GMT4_CB(hObject, handles)
-	if (~get(hObject,'Val')),		set(hObject,'Val', 1),		return,		end
-	set(handles.radio_GMT5,'Val',0)
-
-% ------------------------------------------------------------------------------------
-function radio_GMT5_CB(hObject, handles)
-	if (~get(hObject,'Val')),		set(hObject,'Val', 1),		return,		end
-	set(handles.radio_GMT4,'Val',0)
 
 % ------------------------------------------------------------------------------------
 % ----------------------- Creates and returns a handle to the GUI figure. 
@@ -1034,23 +1014,6 @@ uicontrol('Parent',h1, 'Position',[19 159 194 20],...
 'Style','text',...
 'UserData','more',...
 'Tag','text_Deflation');
-
-uicontrol('Parent',h1,'Position',[28 86 180 15],...
-'Callback',{@mirone_pref_uiCB,h1,'radio_GMT4_CB'},...
-'String','GMT4 (legacy)',...
-'Style','radiobutton',...
-'Tooltip','Use the GMT4 engine for the GMT MEX files',...
-'Value',1,...
-'Tag','radio_GMT4',...
-'UserData','more');
-
-uicontrol('Parent',h1,'Position',[28 56 180 15],...
-'Callback',{@mirone_pref_uiCB,h1,'radio_GMT5_CB'},...
-'String','GMT5',...
-'Style','radiobutton',...
-'Tooltip','Use the new GMT5.2 engine for the GMT MEX files. This is currently more unstable',...
-'Tag','radio_GMT5',...
-'UserData','more');
 
 function mirone_pref_uiCB(hObject, eventdata, h1, callback_name)
 % This function is executed by the callback and than the handles is allways updated.

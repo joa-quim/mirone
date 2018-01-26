@@ -16,10 +16,7 @@ function varargout = griding_mir(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: griding_mir.m 10217 2018-01-24 21:33:46Z j $
-
-	global gmt_ver
-	if (isempty(gmt_ver)),		gmt_ver = 5;	end
+% $Id: griding_mir.m 10232 2018-01-26 01:45:05Z j $
 
 	hObject = figure('Vis','off');
 	griding_mir_LayoutFcn(hObject);
@@ -246,7 +243,6 @@ function push_Help_H_CB(hObject, handles)
 
 %----------------------------------------------------------------------------------------------
 function edit_InputFile_CB(hObject, handles, opt)
-	global gmt_ver
 
 	if (nargin == 3 && ischar(opt))		% OPT is a file name transmited by push_InputFile_CB
 		xx = opt;
@@ -269,90 +265,33 @@ function edit_InputFile_CB(hObject, handles, opt)
 	end
 
 	handles.command{3} = xx;
-	if (gmt_ver == 5)
-		[bin, n_column] = guess_file(xx);
-		if (isempty(bin))
-			errordlg(['Error reading file (probably empty)' xx],'Error'),	return
-		end
-		opt_b = '';
-		if (isa(bin,'struct') || bin ~= 0)				% =====---****** BINARY FILE *******---=====
-			if (isa(bin,'struct'))
-				bin = guess_bin(bin.nCols, bin.type);	% Ask user to confirm/modify guessing
-			else
-				bin = guess_bin(false);					% Ask user what's in file
-			end
-			if (isempty(bin))		% User quit
-				set(hObject,'String',''),	return
-			elseif (bin.nCols < 3)
-				errordlg('Number of data columns vcannot be less than 3 (without inventions)','Error')
-				set(hObject,'String',''),	return
-			end
-			opt_b = sprintf(' -bi%d%c', bin.nCols, bin.type(1));
-		end
-		handles.opt_b = opt_b;
-
-		d_info = gmtmex(['gmtinfo -C ' xx opt_b]);
-		x_min = d_info.data(1);		x_max = d_info.data(2);
-		y_min = d_info.data(3);		y_max = d_info.data(4);
-		val{1} = sprintf('%0.12g', x_min);			val{2} = sprintf('%0.12g', x_max);
-		val{3} = sprintf('%0.12g', y_min);			val{4} = sprintf('%0.12g', y_max);
-		val{5} = sprintf('%0.12g', d_info.data(5));	val{6} = sprintf('%0.12g', d_info.data(6));
-	else
-		str = ['minmax -C ' xx];
-		[s,w] = mat_lyies(str);
-		if ~(isequal(s,0))                  % An error as occured. Try loading the file ourselves.
-			try
-				if (~isempty(handles.hMirFig) && ishandle(handles.hMirFig))			% If we know it and it exists
-					hand = guidata(handles.hMirFig);		% get handles of the calling fig
-				else
-					hand = [];
-				end
-				out = load_xyz(hand,xx);	% If HAND is empty and file is binary double shit will follow
-			catch
-				errordlg('Error reading input data file', 'Error'),		return
-			end
-			mi = min(out);		x_min = mi(1);	y_min = mi(2);
-			ma = max(out);		x_max = ma(1);	y_max = ma(2);
-			% Create these to mimic the old way with minmax
-			val{1} = sprintf('%0.12g', x_min);			val{2} = sprintf('%0.12g', x_max);
-			val{3} = sprintf('%0.12g', y_min);			val{4} = sprintf('%0.12g', y_max);
-			val{5} = sprintf('%0.12g', mi(3));			val{6} = sprintf('%0.12g', ma(3));
-		else
-			val = string_token(w);      % Decompose the string output from minmax
-			if (length(val) < 6)
-				errordlg('File error. Your file doesn''t have at least 3 columns','Error')
-				handles.command{3} = '';        set(hObject,'String','')
-				guidata(hObject, handles);
-				return
-			end
-
-			% compute also handles.x_min, handles.x_max, ...
-			xx = test_dms(val{1});		x_min = 0;
-			if str2double(xx{1}) > 0
-				for (i = 1:numel(xx)),	x_min = x_min + str2double(xx{i}) / (60^(i-1));    end
-			else
-				for (i = 1:numel(xx)),	x_min = x_min - abs(str2double(xx{i})) / (60^(i-1));   end
-			end
-			xx = test_dms(val{2});		x_max = 0;
-			if str2double(xx{1}) > 0
-				for (i = 1:numel(xx)),	x_max = x_max + str2double(xx{i}) / (60^(i-1));    end
-			else
-				for (i = 1:numel(xx)),	x_max = x_max - abs(str2double(xx{i})) / (60^(i-1));   end
-			end
-			xx = test_dms(val{3});		y_min = 0;
-			if str2double(xx{1}) > 0
-				for (i = 1:numel(xx)),	y_min = y_min + str2double(xx{i}) / (60^(i-1));    end
-			else
-				for (i = 1:numel(xx)),	y_min = y_min - abs(str2double(xx{i})) / (60^(i-1));   end
-			end
-			xx = test_dms(val{4});		y_max = 0;
-			if str2double(xx{1}) > 0
-				for (i = 1:numel(xx)),	y_max = y_max + str2double(xx{i}) / (60^(i-1));    end
-			else
-				for (i = 1:numel(xx)),	y_max = y_max - abs(str2double(xx{i})) / (60^(i-1));   end
-			end
-		end
+	[bin, n_column] = guess_file(xx);
+	if (isempty(bin))
+		errordlg(['Error reading file (probably empty)' xx],'Error'),	return
 	end
+	opt_b = '';
+	if (isa(bin,'struct') || bin ~= 0)				% =====---****** BINARY FILE *******---=====
+		if (isa(bin,'struct'))
+			bin = guess_bin(bin.nCols, bin.type);	% Ask user to confirm/modify guessing
+		else
+			bin = guess_bin(false);					% Ask user what's in file
+		end
+		if (isempty(bin))		% User quit
+			set(hObject,'String',''),	return
+		elseif (bin.nCols < 3)
+			errordlg('Number of data columns vcannot be less than 3 (without inventions)','Error')
+			set(hObject,'String',''),	return
+		end
+		opt_b = sprintf(' -bi%d%c', bin.nCols, bin.type(1));
+	end
+	handles.opt_b = opt_b;
+
+	d_info = gmtmex(['gmtinfo -C ' xx opt_b]);
+	x_min = d_info.data(1);		x_max = d_info.data(2);
+	y_min = d_info.data(3);		y_max = d_info.data(4);
+	val{1} = sprintf('%0.12g', x_min);			val{2} = sprintf('%0.12g', x_max);
+	val{3} = sprintf('%0.12g', y_min);			val{4} = sprintf('%0.12g', y_max);
+	val{5} = sprintf('%0.12g', d_info.data(5));	val{6} = sprintf('%0.12g', d_info.data(6));
 
 	handles.command{6} = val{1};    handles.command{7} = '/';
 	handles.command{8} = val{2};    handles.command{9} = '/';
