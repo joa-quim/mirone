@@ -48,13 +48,12 @@ function varargout = grdlandmask_win(varargin)
         info = set_gmt(['GMT_USERDIR=' home_dir filesep 'gmt_userdir']);
         setappdata(0,'gmt_version',info);   % Save it so that the next time a new mirone window is opened
 	end
-	costas = false(1,5);
-    if (info.full ~= 'y'),		costas(5) = true;    end
-    if (info.high ~= 'y'),		costas(4) = true;    end
-    if (info.intermediate ~= 'y'),		costas(3) = true;    end
-    if (info.low ~= 'y'),		costas(2) = true;    end
-    if (info.crude ~= 'y'),		costas(1) = true;    end
-	costas_str = {'crude' 'low' 'intermediate' 'high' 'full'};
+	costas = false(1,4);
+    if (~info.full && info.full ~= 'y'),		costas(4) = true;    end
+    if (~info.high && info.high ~= 'y'),		costas(3) = true;    end
+    if (~info.intermediate && info.intermediate ~= 'y'),		costas(2) = true;    end
+    if (~info.low  && info.low ~= 'y'),		costas(1) = true;    end
+	costas_str = {'low' 'intermediate' 'high' 'full'};
 	costas_str(costas) = [];
 	if (isempty(costas_str))
 		errordlg('No Coastline database was found in this machine. No point to continue','Error')
@@ -164,7 +163,7 @@ function popup_resolution_CB(hObject, handles)
 % -----------------------------------------------------------------------------------
 function push_helpOptionD_CB(hObject, handles)
 	message = {'Selects the resolution of the data set to use: full, high,'
-		'intermediate, low, and crude.  The  resolution drops off'
+		'intermediate and low.  The  resolution drops off'
 		'by 80% between data sets.'};
 	helpdlg(message,'Help on Coast lines resolution');
 
@@ -477,11 +476,10 @@ uicontrol('Parent',h1,...
 'Value',1,...
 'Tag','check_gridReg');
 
-uicontrol('Parent',h1,...
+uicontrol('Parent',h1, 'Position',[16 107 85 22],...
 'BackgroundColor',[1 1 1],...
 'Callback',@grdlandmask_win_uiCB,...
-'Position',[16 107 85 22],...
-'String',{'crude'; 'low'; 'intermediate'; 'high'; 'full' },...
+'String',{'low'; 'intermediate'; 'high'; 'full' },...
 'Style','popupmenu',...
 'Tooltip','Selects the resolution of the data set to use',...
 'Value',1,...
