@@ -223,7 +223,6 @@ data/wcity.dat -text
 data/wcity_major.dat -text
 doc/MironeMan.chm -text
 /faz2.bat -text
-gmt_share/conf/gmt.conf -text
 gmt_share/localization/gmt_us.locale -text
 gmt_userdir/coastline.conf -text
 lib_mex/octave/Makefile -text
