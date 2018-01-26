@@ -9,7 +9,7 @@ function [handles, X, Y, Z, head, misc] = read_gmt_type_grids(handles,fullname,o
 %
 % When used to read netCDF grids HANDLES can be []. Useful to use this function as a standalone
 
-%	Copyright (c) 2004-2016 by J. Luis
+%	Copyright (c) 2004-2018 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -27,8 +27,6 @@ function [handles, X, Y, Z, head, misc] = read_gmt_type_grids(handles,fullname,o
 % Must rewrite this function to use the GMT5 machinery in first place.
 
 % $Id$
-
-	global gmt_ver
 
     infoOnly = false;
     if (nargin == 3),   infoOnly = true;    end
@@ -67,7 +65,7 @@ function [handles, X, Y, Z, head, misc] = read_gmt_type_grids(handles,fullname,o
 		[PATH,FNAME,EXT] = fileparts(fullname);
 		[s, w] = mat_lyies(str,[handles.path_tmp FNAME EXT '.info']);
 		if ~(isequal(s,0))          % File could not be read
-			if (~isempty(gmt_ver) && gmt_ver == 5 && strfind(w, 'Based on header values we guessed'))
+			if (strfind(w, 'Based on header values we guessed'))
 				% Not so pretty patch to deal with native binary grids (floats).
 				if (infoOnly)
 					head = c_grdinfo(fullname, 'silent');
