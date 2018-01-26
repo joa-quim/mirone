@@ -4,20 +4,12 @@ function [X, Y, Z, head, misc] = c_grdread(fname, varargin)
 % MISC - (GMT5 only) - is a struct with:
 %		'desc', 'title', 'history', 'srsWKT', 'strPROJ4' fields
 
-% $Id: c_grdread.m 7953 2016-09-10 01:28:20Z j $
-
-	global gmt_ver
-	misc = [];
-	if (isempty(gmt_ver)),		gmt_ver = 4;	end		% For example, if calls do not come via mirone.m
+% $Id: c_grdread.m 10230 2018-01-26 01:34:32Z j $
 	
-	if (gmt_ver == 4)
-		[X, Y, Z, head] = grdread_m(fname, 'single', varargin{:});
-	else
-		Zout = gmtmex(['read -Tg ' fname]);
-		X = Zout.x;
-		Y = Zout.y;
-		Z = Zout.z;
-		head = [Zout.range Zout.registration Zout.inc 0];	% Old grdread_m kept trace of data type on 10th element to preserve int16 types
-		misc = struct('desc',Zout.comment,'title',Zout.title,'history',Zout.command,'srsWKT',Zout.wkt,'strPROJ4',Zout.proj4);
-		gmtmex('destroy')
-	end
+	Zout = gmtmex(['read -Tg ' fname]);
+	X = Zout.x;
+	Y = Zout.y;
+	Z = Zout.z;
+	head = [Zout.range Zout.registration Zout.inc 0];	% Old grdread_m kept trace of data type on 10th element to preserve int16 types
+	misc = struct('desc',Zout.comment,'title',Zout.title,'history',Zout.command,'srsWKT',Zout.wkt,'strPROJ4',Zout.proj4);
+	gmtmex('destroy')
