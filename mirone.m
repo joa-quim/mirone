@@ -41,9 +41,9 @@ function varargout = mirone(varargin)
 % --------------------------------------------------------------------------------------------------
 function hObject = mirone_OpeningFcn(varargin)
 % PRAGMA SECTION (It's far far from clear when files must be declared here)
-%#function uigetfolder_standalone mapproject_m grdproject_m coordinate_system gmtmbgrid_m gmtedit
-%#function nearneighbor_m cpt2cmap grdfilter_m grdgradient_m grdsample_m grdtrack_m grdtrend_m 
-%#function grdutils scaleto8 bpass3d inv3d rtp3d syn3d igrf_m surface_m
+%#function uigetfolder_standalone coordinate_system gmtmbgrid_m gmtedit
+%#function grdtrack_m
+%#function grdutils scaleto8 bpass3d inv3d rtp3d syn3d igrf_m
 %#function range_change swan tsun2 mansinha_m deform_mansinha deform_okada dim_funs
 %----- These are for image
 %#function grayto8 grayto16 grayxform imfilter_mex imhistc imlincombc parityscan intlutc ordf
@@ -55,18 +55,19 @@ function hObject = mirone_OpeningFcn(varargin)
 %----- These is for write_gmt_script
 %#function draw_scale time_stamp pscoast_options_Mir paint_option w_option
 %----- Those are ..., the hell with explanations for what I don't realy understand. They are needed, that's all.
-%#function gmtlist_m country_select read_isf choosebox magbarcode listbox_message add_poles animate_seismicity
+%#function country_select read_isf choosebox magbarcode listbox_message add_poles animate_seismicity
 %#function get_polygon rot_euler datums telha_m find_clusters fft_stuff select_cols uistack_j smoothing_param
 %#function patch_meca ui_edit_patch_special bands_list multibandread_j imscroll_j geog2projected_pts
 %#function mltable_j iptcheckinput resampsep wgifc telhometro vitrinite edit_line move_obj make_arrow
 %#function edit_track_mb save_track_mb houghmex qhullmx writegif mpgwrite cq helpdlg
 %#function move2side aguentabar gdal_project gdalwarp_mex poly2mask_fig url2image calc_bonin_euler_pole spline_interp
-%#function mat2clip buffer_j PolygonClip trend1d_m akimaspline shake_mex ground_motion wms_tool microlev
+%#function mat2clip buffer_j PolygonClip akimaspline shake_mex ground_motion wms_tool microlev
 %#function write_esri_hdr distmin mag_synthetic image_histo write_gmt_symb mkpj decompress mosaicer
 %#function lasreader_mex laszreader_mex escorrega show_manguito travel thresholdit intersections nswing runCB_tintol
 %#function usgs_recent_seismicity sat_orbits uisetdate doy sshist win_open_mex show_MB mb_cleaning_params
 %#function c_cpt2cmap c_grdfilter c_grdinfo c_grdlandmask c_grdproject c_grdread c_grdsample
 %#function c_grdtrend c_mapproject c_nearneighbor c_shoredump c_surface popenr diffCenterVar hellinger bingham
+% gmtlist_m  mapproject_m grdproject_m nearneighbor_m cpt2cmap grdfilter_m grdgradient_m grdsample_m surface_m grdtrend_m trend1d_m grdlandmask_m
 
 	global home_dir;	fsep = filesep;
 	toCompile = false;		% To compile set this one to TRUE
@@ -419,8 +420,8 @@ function hObject = mirone_OpeningFcn(varargin)
 		set_gmt(['GMT5_SHAREDIR=' home_dir fsep 'gmt_share']);	% GMT5_SHAREDIR because it's looked for before GMT_SHAREDIR
 	end
 
-	if (isempty(info))
-		info = set_gmt(['GMT_USERDIR=' home_dir fsep 'gmt_userdir']);
+	if (~info.full && ~info.high && ~info.intermediate && ~info.low)
+		info = set_gmt(['GMT_USERDIR=' home_dir fsep 'gmt_userdir']);		% Even this one will have to go
 		setappdata(0,'gmt_version',info);	% Save it to the next time a new mirone window is opened
 	end
 	if (~info.full && ~strcmp(info.full, 'y'))

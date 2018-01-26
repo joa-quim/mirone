@@ -25,7 +25,7 @@ function [H1,handles,home_dir] = mirone_uis(home_dir)
 %#function imcapture filter_funs overview imageresize classificationfig tfw_funs mirone_pref
 %#function griding_mir grdfilter_mir grdsample_mir grdtrend_mir grdgradient_mir ml_clip show_palette 
 %#function geog_calculator color_palettes diluvio fault_models tsu_funs mk_movie_from_list
-%#function mxgridtrimesh aquamoto tiles_tool empilhador grdlandmask_win grdlandmask_m escadeirar
+%#function mxgridtrimesh aquamoto tiles_tool empilhador grdlandmask_win escadeirar
 %#function run_cmd line_operations world_is_not_round_enough cartas_militares ice_m magbarcode
 %#function obj_template_detect floodfill meca_studio inpaint_nans globalcmt guess_bin demets_od
 %#function vector_project tintol makescale mesher_helper update_gmt surface_options plot_composer
