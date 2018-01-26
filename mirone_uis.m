@@ -16,7 +16,7 @@ function [H1,handles,home_dir] = mirone_uis(home_dir)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: mirone_uis.m 10236 2018-01-26 02:15:50Z j $
+% $Id: mirone_uis.m 10239 2018-01-26 16:31:41Z j $
 
 %#function pan igrf_options rally_plater plate_calculator ecran snapshot
 %#function about_box parker_stuff euler_stuff grid_calculator tableGUI usgs_recent_seismicity
@@ -25,7 +25,7 @@ function [H1,handles,home_dir] = mirone_uis(home_dir)
 %#function imcapture filter_funs overview imageresize classificationfig tfw_funs mirone_pref
 %#function griding_mir grdfilter_mir grdsample_mir grdtrend_mir grdgradient_mir ml_clip show_palette 
 %#function geog_calculator color_palettes diluvio fault_models tsu_funs mk_movie_from_list
-%#function mxgridtrimesh aquamoto tiles_tool empilhador grdlandmask_win grdlandmask_m escadeirar
+%#function mxgridtrimesh aquamoto tiles_tool empilhador grdlandmask_win escadeirar
 %#function run_cmd line_operations world_is_not_round_enough cartas_militares ice_m magbarcode
 %#function obj_template_detect floodfill meca_studio inpaint_nans globalcmt guess_bin demets_od
 %#function vector_project tintol makescale mesher_helper update_gmt surface_options plot_composer
