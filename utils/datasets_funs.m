@@ -445,7 +445,6 @@ function CoastLines(handles, res)
     if (isempty(opt_R)),    return;    end      % It should never happen, but ...
 	
 	switch res
-		case 'c',		opt_res = '-Dc';		pad = 2.0;
 		case 'l',		opt_res = '-Dl';		pad = 0.5;
 		case 'i',		opt_res = '-Di';		pad = 0.1;
 		case 'h',		opt_res = '-Dh';		pad = 0.03;
@@ -488,7 +487,7 @@ function PoliticalBound(handles, type, res)
 %          'a' -> All Boundaries
 % RES is:  'c' or 'l' or 'i' or 'h' or 'f' (gmt database resolution)
 	if (aux_funs('msg_dlg',5,handles)),		return,		end    % Test no_file || unknown proj
-	
+
 	lon = get(handles.axes1,'Xlim');      lat = get(handles.axes1,'Ylim');
 	if (handles.geog == 2)
 		ind = (lon < 0);
@@ -503,9 +502,8 @@ function PoliticalBound(handles, type, res)
         case '3',        opt_N = '-N3';
         case 'a',        opt_N = '-Na';
 	end
-	
+
 	switch res
-        case 'c',        opt_res = '-Dc';        pad = 2;
         case 'l',        opt_res = '-Dl';        pad = 0.5;
         case 'i',        opt_res = '-Di';        pad = 0.1;
         case 'h',        opt_res = '-Dh';        pad = 0.05;
@@ -522,7 +520,7 @@ function PoliticalBound(handles, type, res)
         errordlg(msg,'ERROR');
         return
     end
-	
+
     if (strncmp(msg,'0',1))     % They are in geogs so we know how to ...
 		% Get rid of data that are outside the map limits
 		lon = lon - [pad -pad];     lat = lat - [pad -pad];
@@ -569,7 +567,6 @@ function Rivers(handles, type, res)
 	end
 	
 	switch res
-        case 'c',        opt_res = '-Dc';        pad = 2;
         case 'l',        opt_res = '-Dl';        pad = 0.5;
         case 'i',        opt_res = '-Di';        pad = 0.1;
         case 'h',        opt_res = '-Dh';        pad = 0.05;
