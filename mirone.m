@@ -68,7 +68,7 @@ function hObject = mirone_OpeningFcn(varargin)
 %#function c_cpt2cmap c_grdfilter c_grdinfo c_grdlandmask c_grdproject c_grdread c_grdsample
 %#function c_grdtrend c_mapproject c_nearneighbor c_shoredump c_surface popenr diffCenterVar hellinger bingham
 
-	global gmt_ver;		gmt_ver = 5;	global home_dir;	fsep = filesep;
+	global home_dir;	fsep = filesep;
 	toCompile = false;		% To compile set this one to TRUE
 	if (toCompile)
 		home_dir = cd;
@@ -168,9 +168,6 @@ function hObject = mirone_OpeningFcn(varargin)
 		end
 		handles.bg_color = prf.nanColor;
 		handles.deflation_level = prf.deflation_level;
-		try		gmt_ver = prf.gmt_ver;		% Hope that this will be a temporary thing till GMT5 is fully working
-		catch,	gmt_ver = 5;
-		end
 		if (isfield(prf, 'TDRver')),	handles.TDRver = prf.TDRver;
 		else							handles.TDRver = '2.0';
 		end
@@ -178,7 +175,6 @@ function hObject = mirone_OpeningFcn(varargin)
 		% Tell mirone_pref to write up the defaults.
 		mirone_pref(handles,'nikles')
 		handles = guidata(handles.figure1);					% And need also the updated handles
-		gmt_ver = 5;										% Default to GMT4
 	end
 
 	j = false(1,numel(handles.last_directories));			% vector for eventual cleaning non-existing dirs
@@ -440,14 +436,12 @@ function hObject = mirone_OpeningFcn(varargin)
 		set([handles.CoastLineLow handles.PBLow handles.RiversLow], 'Enable','off')
 	end
 
-	% Deal with the new (big) troubles introduced by using GMT5.2 that needs to know where to find its own share dir
-	if (gmt_ver == 5)		% For GMT5 we have a shity highly police control on sharedir. Use this to cheat it.
-		t = set_gmt('GMT5_SHAREDIR', 'whatever');		% Inquire if GMT5_SHAREDIR exists 
-		if (isempty(t) || (~(exist(t, 'dir') == 7)))	% Test also that the dir exists
-			% If not, set a fake one with minimalist files so that GMT does not complain/errors
-			% We have to use GMT5_SHAREDIR and NOT GMT_SHAREDIR because it's the first one checked in gmt_init.c/GMT_set_env()
-			set_gmt(['GMT5_SHAREDIR=' home_dir fsep 'gmt_share']);
-		end
+	% Deal with the new troubles introduced by using GMT5.2 that needs to know where to find its own share dir
+	t = set_gmt('GMT5_SHAREDIR', 'whatever');		% Inquire if GMT5_SHAREDIR exists 
+	if (isempty(t) || (~(exist(t, 'dir') == 7)))	% Test also that the dir exists
+		% If not, set a fake one with minimalist files so that GMT does not complain/errors
+		% We have to use GMT5_SHAREDIR and NOT GMT_SHAREDIR because it's the first one checked in gmt_init.c/GMT_set_env()
+		set_gmt(['GMT5_SHAREDIR=' home_dir fsep 'gmt_share']);
 	end
 
 	% See if we have a TMP dir set by a ENV var that will take precedence over the default one
