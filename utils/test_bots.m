@@ -1,6 +1,5 @@
 function  test_bots(opt,varargin)
 
-	global gmt_ver;		gmt_ver = 5;
 	warning('off', 'MATLAB:dispatcher:ShadowedMEXExtension');	% Fck shutup
 
 	if (nargin)
