@@ -830,7 +830,6 @@ function OptionsAutoApply_CB(hObject, handles)
 
 % --------------------------------------------------------------------
 function cmap = FileReadPalette_CB(hObject, handles, opt, opt2)
-	global gmt_ver
 	if (nargin == 2),   opt = [];	end
 	if (nargin < 4),	opt2 = [];	end
 	if (isempty(opt2))
@@ -851,7 +850,7 @@ function cmap = FileReadPalette_CB(hObject, handles, opt, opt2)
 			errordlg(['Error reading file ' fname],'Error');		return
 		end
 		if (~isempty(opt))  % Use the cpt Z levels as well
-			if (gmt_ver > 4 && ~isempty(handles.hCallingFig))	% Intervals might not be linear, let GMT handle that.
+			if (~isempty(handles.hCallingFig))					% Intervals might not be linear, let GMT handle that.
 				[cmap, z_int] = c_cpt2cmap(['-C' fname]);		% Read once to know the Z limits
 				n_int = 256;
 				if (handles.have_nans),		n_int = 255;	end

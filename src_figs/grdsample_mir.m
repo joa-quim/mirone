@@ -185,8 +185,6 @@ function push_Help_L_CB(hObject, handles)
 
 % --------------------------------------------------------------------
 function push_OK_CB(hObject, handles)
-	
-	global gmt_ver
 
 	opt_R = ' ';     opt_N = ' ';     opt_Q = ' ';     opt_L = ' ';
     n_set = 0;
@@ -227,13 +225,11 @@ function push_OK_CB(hObject, handles)
         errordlg('You haven''t select anything usefull to do (Output grid would be equal to Input).','Chico Clever');   return
 	end
 
-	if (gmt_ver == 5)				% Than use the GMT5 syntax
-		opt_N(2) = 'I';
-		opt_N = strrep(opt_N, '/', '+/');
-		opt_N(end+1) = '+';
-		if (opt_Q(1) == '-')		% in GMT5 is global -n
-			opt_Q = '-nl';
-		end
+	opt_N(2) = 'I';
+	opt_N = strrep(opt_N, '/', '+/');
+	opt_N(end+1) = '+';
+	if (opt_Q(1) == '-')		% in GMT5 is global -n
+		opt_Q = '-nl';
 	end
 
 	newZ = c_grdsample(handles.Z, handles.head, opt_R, opt_N, opt_Q, opt_L);

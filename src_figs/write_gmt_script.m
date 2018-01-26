@@ -1069,8 +1069,6 @@ function [out_msg, warn_msg_pscoast] = build_write_script(handles, dest_dir, pre
 % This function do most of the hard work in finding the script components.
 % The pscoast stuff is worked out by the "find_psc_stuff" function.
 
-	global gmt_ver
-
 	do_writeScript = (get(handles.check_saveScript, 'Val') ~= 0);
 	do_MEX_fig = false;
 	if (get(handles.check_autoPDF, 'Val'))			% Very experimental
@@ -1179,14 +1177,7 @@ function [out_msg, warn_msg_pscoast] = build_write_script(handles, dest_dir, pre
 	% --------------------------------------------------------------------------------------
 
 	% --------------------- Build -B string ------------------------------------------------
-	if (gmt_ver == 5)
-		opt_B = '-Ba -BWSen';
-	else
-		Bx = get(handMir.axes1,'XTick');      d_Bx = diff(Bx);
-		By = get(handMir.axes1,'YTick');      d_By = diff(By);
-		opt_B = ['-B' num2str(d_Bx(1)) '/' num2str(d_By(1)) 'WSen'];
-		clear Bx By d_Bx d_By;
-	end
+	opt_B = '-Ba -BWSen';
 	% --------------------------------------------------------------------------------------
 
 	l = 1;
