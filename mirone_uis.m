@@ -16,10 +16,10 @@ function [H1,handles,home_dir] = mirone_uis(home_dir)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: mirone_uis.m 10206 2018-01-04 22:44:17Z j $
+% $Id: mirone_uis.m 10236 2018-01-26 02:15:50Z j $
 
 %#function pan igrf_options rally_plater plate_calculator ecran snapshot
-%#function about_box parker_stuff euler_stuff grid_calculator tableGUI
+%#function about_box parker_stuff euler_stuff grid_calculator tableGUI usgs_recent_seismicity
 %#function datasets_funs earthquakes manual_pole_adjust compute_euler focal_meca srtm_tool atlas
 %#function image_enhance image_adjust write_gmt_script vitrinite telhometro mpaint
 %#function imcapture filter_funs overview imageresize classificationfig tfw_funs mirone_pref
@@ -450,7 +450,6 @@ uimenu('Parent',hDR,'Callback','makescale(gca,gcbo)','Label','Map Scale','Sep','
 hDS = uimenu('Parent',H1,'Label','Geography','Tag','Geography');
 h = uimenu('Parent',hDS,'Label','Plot coastline','Tag','VoidDatasetsCoastLine');
 
-uimenu('Parent',h,'Callback','datasets_funs(''CoastLines'',guidata(gcbo),''c'')','Label','Crude resolution','Tag','CoastLineCrude');
 uimenu('Parent',h,'Callback','datasets_funs(''CoastLines'',guidata(gcbo),''l'')','Label','Low resolution','Tag','CoastLineLow');
 uimenu('Parent',h,'Callback','datasets_funs(''CoastLines'',guidata(gcbo),''i'')','Label','Intermediate resolution','Tag','CoastLineInterm');
 uimenu('Parent',h,'Callback','datasets_funs(''CoastLines'',guidata(gcbo),''h'')','Label','High resolution','Tag','CoastLineHigh');
@@ -459,7 +458,6 @@ uimenu('Parent',h,'Callback','datasets_funs(''CoastLines'',guidata(gcbo),''f'')'
 h2 = uimenu('Parent',hDS,'Label','Plot political boundaries','Tag','VoidDatasetsPB');
 h = uimenu('Parent',h2,'Label','National boundaries');
 
-uimenu('Parent',h,'Callback','datasets_funs(''Political'',guidata(gcbo),''1'',''c'')','Label','Crude resolution','Tag','PBCrude');
 uimenu('Parent',h,'Callback','datasets_funs(''Political'',guidata(gcbo),''1'',''l'')','Label','Low resolution','Tag','PBLow');
 uimenu('Parent',h,'Callback','datasets_funs(''Political'',guidata(gcbo),''1'',''i'')','Label','Intermediate resolution','Tag','PBInterm');
 uimenu('Parent',h,'Callback','datasets_funs(''Political'',guidata(gcbo),''1'',''h'')','Label','High resolution','Tag','PBHigh');
@@ -467,7 +465,6 @@ uimenu('Parent',h,'Callback','datasets_funs(''Political'',guidata(gcbo),''1'',''
 
 h = uimenu('Parent',h2,'Label','State boundaries (US)');
 
-uimenu('Parent',h,'Callback','datasets_funs(''Political'',guidata(gcbo),''2'',''c'')','Label','Crude resolution','Tag','PBCrude');
 uimenu('Parent',h,'Callback','datasets_funs(''Political'',guidata(gcbo),''2'',''l'')','Label','Low resolution','Tag','PBLow');
 uimenu('Parent',h,'Callback','datasets_funs(''Political'',guidata(gcbo),''2'',''i'')','Label','Intermediate resolution','Tag','PBInterm');
 uimenu('Parent',h,'Callback','datasets_funs(''Political'',guidata(gcbo),''2'',''h'')','Label','High resolution','Tag','PBHigh');
@@ -475,7 +472,6 @@ uimenu('Parent',h,'Callback','datasets_funs(''Political'',guidata(gcbo),''2'',''
 
 h = uimenu('Parent',h2,'Label','All boundaries');
 
-uimenu('Parent',h,'Callback','datasets_funs(''Political'',guidata(gcbo),''a'',''c'')','Label','Crude resolution','Tag','PBCrude');
 uimenu('Parent',h,'Callback','datasets_funs(''Political'',guidata(gcbo),''a'',''l'')','Label','Low resolution','Tag','PBLow');
 uimenu('Parent',h,'Callback','datasets_funs(''Political'',guidata(gcbo),''a'',''i'')','Label','Intermediate resolution','Tag','PBInterm');
 uimenu('Parent',h,'Callback','datasets_funs(''Political'',guidata(gcbo),''a'',''h'')','Label','High resolution','Tag','PBHigh');
@@ -484,7 +480,6 @@ uimenu('Parent',h,'Callback','datasets_funs(''Political'',guidata(gcbo),''a'',''
 h2 = uimenu('Parent',hDS,'Label','Plot rivers','Tag','VoidDatasetsRivers');
 h = uimenu('Parent',h2,'Label','Permanent major rivers');
 
-uimenu('Parent',h,'Callback','datasets_funs(''Rivers'',guidata(gcbo),''1'',''c'')','Label','Crude resolution','Tag','RiversCrude');
 uimenu('Parent',h,'Callback','datasets_funs(''Rivers'',guidata(gcbo),''1'',''l'')','Label','Low resolution','Tag','RiversLow');
 uimenu('Parent',h,'Callback','datasets_funs(''Rivers'',guidata(gcbo),''1'',''i'')','Label','Intermediate resolution','Tag','RiversInterm');
 uimenu('Parent',h,'Callback','datasets_funs(''Rivers'',guidata(gcbo),''1'',''h'')','Label','High resolution','Tag','RiversHigh');
@@ -492,7 +487,6 @@ uimenu('Parent',h,'Callback','datasets_funs(''Rivers'',guidata(gcbo),''1'',''f''
 
 h = uimenu('Parent',h2,'Label','Additional major rivers');
 
-uimenu('Parent',h,'Callback','datasets_funs(''Rivers'',guidata(gcbo),''2'',''c'')','Label','Crude resolution','Tag','RiversCrude');
 uimenu('Parent',h,'Callback','datasets_funs(''Rivers'',guidata(gcbo),''2'',''l'')','Label','Low resolution','Tag','RiversLow');
 uimenu('Parent',h,'Callback','datasets_funs(''Rivers'',guidata(gcbo),''2'',''i'')','Label','Intermediate resolution','Tag','RiversInterm');
 uimenu('Parent',h,'Callback','datasets_funs(''Rivers'',guidata(gcbo),''2'',''h'')','Label','High resolution','Tag','RiversHigh');
@@ -500,7 +494,6 @@ uimenu('Parent',h,'Callback','datasets_funs(''Rivers'',guidata(gcbo),''2'',''f''
 
 h = uimenu('Parent',h2,'Label','Additional rivers');
 
-uimenu('Parent',h,'Callback','datasets_funs(''Rivers'',guidata(gcbo),''3'',''c'')','Label','Crude resolution','Tag','RiversCrude');
 uimenu('Parent',h,'Callback','datasets_funs(''Rivers'',guidata(gcbo),''3'',''l'')','Label','Low resolution','Tag','RiversLow');
 uimenu('Parent',h,'Callback','datasets_funs(''Rivers'',guidata(gcbo),''3'',''i'')','Label','Intermediate resolution','Tag','RiversInterm');
 uimenu('Parent',h,'Callback','datasets_funs(''Rivers'',guidata(gcbo),''3'',''h'')','Label','High resolution','Tag','RiversHigh');
@@ -508,7 +501,6 @@ uimenu('Parent',h,'Callback','datasets_funs(''Rivers'',guidata(gcbo),''3'',''f''
 
 h = uimenu('Parent',h2,'Label','Intermittent rivers - major');
 
-uimenu('Parent',h,'Callback','datasets_funs(''Rivers'',guidata(gcbo),''5'',''c'')','Label','Crude resolution','Tag','RiversCrude');
 uimenu('Parent',h,'Callback','datasets_funs(''Rivers'',guidata(gcbo),''5'',''l'')','Label','Low resolution','Tag','RiversLow');
 uimenu('Parent',h,'Callback','datasets_funs(''Rivers'',guidata(gcbo),''5'',''i'')','Label','Intermediate resolution','Tag','RiversInterm');
 uimenu('Parent',h,'Callback','datasets_funs(''Rivers'',guidata(gcbo),''5'',''h'')','Label','High resolution','Tag','RiversHigh');
@@ -516,7 +508,6 @@ uimenu('Parent',h,'Callback','datasets_funs(''Rivers'',guidata(gcbo),''5'',''f''
 
 h = uimenu('Parent',h2,'Label','Intermittent rivers - additional');
 
-uimenu('Parent',h,'Callback','datasets_funs(''Rivers'',guidata(gcbo),''6'',''c'')','Label','Crude resolution','Tag','RiversCrude');
 uimenu('Parent',h,'Callback','datasets_funs(''Rivers'',guidata(gcbo),''6'',''l'')','Label','Low resolution','Tag','RiversLow');
 uimenu('Parent',h,'Callback','datasets_funs(''Rivers'',guidata(gcbo),''6'',''i'')','Label','Intermediate resolution','Tag','RiversInterm');
 uimenu('Parent',h,'Callback','datasets_funs(''Rivers'',guidata(gcbo),''6'',''h'')','Label','High resolution','Tag','RiversHigh');
@@ -524,7 +515,6 @@ uimenu('Parent',h,'Callback','datasets_funs(''Rivers'',guidata(gcbo),''6'',''f''
 
 h = uimenu('Parent',h2,'Label','Intermittent rivers - minor');
 
-uimenu('Parent',h,'Callback','datasets_funs(''Rivers'',guidata(gcbo),''7'',''c'')','Label','Crude resolution','Tag','RiversCrude');
 uimenu('Parent',h,'Callback','datasets_funs(''Rivers'',guidata(gcbo),''7'',''l'')','Label','Low resolution','Tag','RiversLow');
 uimenu('Parent',h,'Callback','datasets_funs(''Rivers'',guidata(gcbo),''7'',''i'')','Label','Intermediate resolution','Tag','RiversInterm');
 uimenu('Parent',h,'Callback','datasets_funs(''Rivers'',guidata(gcbo),''7'',''h'')','Label','High resolution','Tag','RiversHigh');
@@ -532,7 +522,6 @@ uimenu('Parent',h,'Callback','datasets_funs(''Rivers'',guidata(gcbo),''7'',''f''
 
 h = uimenu('Parent',h2,'Label','All rivers and canals');
 
-uimenu('Parent',h,'Callback','datasets_funs(''Rivers'',guidata(gcbo),''a'',''c'')','Label','Crude resolution','Tag','RiversCrude');
 uimenu('Parent',h,'Callback','datasets_funs(''Rivers'',guidata(gcbo),''a'',''l'')','Label','Low resolution','Tag','RiversLow');
 uimenu('Parent',h,'Callback','datasets_funs(''Rivers'',guidata(gcbo),''a'',''i'')','Label','Intermediate resolution','Tag','RiversInterm');
 uimenu('Parent',h,'Callback','datasets_funs(''Rivers'',guidata(gcbo),''a'',''h'')','Label','High resolution','Tag','RiversHigh');
@@ -540,7 +529,6 @@ uimenu('Parent',h,'Callback','datasets_funs(''Rivers'',guidata(gcbo),''a'',''f''
 
 h = uimenu('Parent',h2,'Label','All permanent rivers');
 
-uimenu('Parent',h,'Callback','datasets_funs(''Rivers'',guidata(gcbo),''r'',''c'')','Label','Crude resolution','Tag','RiversCrude');
 uimenu('Parent',h,'Callback','datasets_funs(''Rivers'',guidata(gcbo),''r'',''l'')','Label','Low resolution','Tag','RiversLow');
 uimenu('Parent',h,'Callback','datasets_funs(''Rivers'',guidata(gcbo),''r'',''i'')','Label','Intermediate resolution','Tag','RiversInterm');
 uimenu('Parent',h,'Callback','datasets_funs(''Rivers'',guidata(gcbo),''r'',''h'')','Label','High resolution','Tag','RiversHigh');
@@ -548,7 +536,6 @@ uimenu('Parent',h,'Callback','datasets_funs(''Rivers'',guidata(gcbo),''r'',''f''
 
 h = uimenu('Parent',h2,'Label','All intermittent rivers');
 
-uimenu('Parent',h,'Callback','datasets_funs(''Rivers'',guidata(gcbo),''i'',''c'')','Label','Crude resolution','Tag','RiversCrude');
 uimenu('Parent',h,'Callback','datasets_funs(''Rivers'',guidata(gcbo),''i'',''l'')','Label','Low resolution','Tag','RiversLow');
 uimenu('Parent',h,'Callback','datasets_funs(''Rivers'',guidata(gcbo),''i'',''i'')','Label','Intermediate resolution','Tag','RiversInterm');
 uimenu('Parent',h,'Callback','datasets_funs(''Rivers'',guidata(gcbo),''i'',''h'')','Label','High resolution','Tag','RiversHigh');
@@ -758,7 +745,7 @@ end
 %uimenu('Parent',h, 'Callback', 'update_gmt(guidata(gcbo))','Label','Update your GMT5','Sep','on')
 uimenu('Parent',h, 'Callback',['mirone(''FileOpenWebImage_CB'',guidata(gcbo),',...
 	' ''http://www2.clustrmaps.com/stats/maps-clusters/w3.ualg.pt-~jluis-mirone-world.jpg'',''nikles'');'],'Label','See visitors map','Sep','on');
-uimenu('Parent',h, 'Callback','about_box(guidata(gcbo),''Mirone Last modified at 4 Jan 2018'',''2.9.0dev'')','Label','About','Sep','on');
+uimenu('Parent',h, 'Callback','about_box(guidata(gcbo),''Mirone Last modified at 26 Jan 2018'',''2.9.0dev'')','Label','About','Sep','on');
 
 %% --------------------------- Build HANDLES and finish things here
 	handles = guihandles(H1);
