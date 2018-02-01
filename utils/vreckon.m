@@ -27,7 +27,7 @@ function [lat2,lon2,a21] = vreckon(lat1, lon1, rng, azim, npts, ellipsoid)
 %		Default = 180
 %
 % ellipsoid = two-element ellipsoid vector. Either [a b] or [a f]
-%		If omitted, defaults to WGS-84
+%		If omitted, or is empty, defaults to WGS-84
 %
 % lat2, lon2 = second point (degrees)
 %
@@ -71,7 +71,7 @@ function [lat2,lon2,a21] = vreckon(lat1, lon1, rng, azim, npts, ellipsoid)
 % Also, lon2 is always converted to the [-180 180] interval
 % Joaquim Luis
 
-% $Id: $
+% $Id$
 
 	% Input check:
 	if (abs(lat1) > 90)
@@ -82,12 +82,16 @@ function [lat2,lon2,a21] = vreckon(lat1, lon1, rng, azim, npts, ellipsoid)
 	end
 
 	if (nargin == 4),		npts = 180;		end
-	if (nargin == 6)			% An ellipsoid vector (with a & b OR a & f) was supplyied
-		a = ellipsoid(1);		% b = ellipsoid(2);
-		if (ellipsoid(2) < 1)	% Second ellipsoid argument contains flattening instead of minor axis
-			f = ellipsoid(2);	b = a * (1 - f);
-		else					% Second ellipsoid argument contains minor axis
-			f = (a - ellipsoid(2)) / a;
+	if (nargin == 6)				% An ellipsoid vector (with a & b OR a & f) was supplyied
+		if (isempty(ellipsoid))		% Default to WGS84
+			a = 6378137;	b = 6356752.31424518;	f = (a-b)/a;
+		else
+			a = ellipsoid(1);		% b = ellipsoid(2);
+			if (ellipsoid(2) < 1)	% Second ellipsoid argument contains flattening instead of minor axis
+				f = ellipsoid(2);	b = a * (1 - f);
+			else					% Second ellipsoid argument contains minor axis
+				f = (a - ellipsoid(2)) / a;
+			end
 		end
 	else
 		% Supply WGS84 earth ellipsoid axis lengths in meters:
