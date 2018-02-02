@@ -52,7 +52,7 @@ function varargout = transplants(hLine, tipo, res, handles, second_g)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: transplants.m 10243 2018-02-02 13:39:56Z j $
+% $Id: transplants.m 10244 2018-02-02 13:41:57Z j $
 
 	if (nargin < 4)		% NOTE: in the IMPLANTGRID mode I'm not really using (YET) hLine for anything else
 		if (~ishandle(hLine) && ~strcmp(get(hLine,'type'), 'line') && ~strcmp(get(hLine,'type'), 'patch'))
@@ -156,125 +156,6 @@ function varargout = transplants(hLine, tipo, res, handles, second_g)
 		[Z_rect, r_c] = job_NanHost_noNanImp(handles, Z, handlesInner, Xinner, Yinner, Zinner, implanting_fits_inside_host, pad, res);
 		varargout = get_the_output(Z, Z_rect, r_c, nargout);
 	end
-
-% -------------------------- OLDER CODE. TO BE REMOVED ------------------------------------------
-% 	rect_outer = [x_min y_min (x_max - x_min) (y_max - y_min)];
-% 	[Z_rect,r_c] = cropimg(handles.head(1:2), handles.head(3:4), Z, rect_outer, 'out_grid');
-% 
-% 	% ------------------ See if Implanting grid actually contains Host grid --------------------
-% 	if (~implanting_fits_inside_host)			% Yes it does
-% 		hd = handlesInner.head;			% Short of
-%         rect_t = [0 0 0 0];
-% 		rect_t(1) = max(rect_outer(1) - 2*hd(8), hd(1));		    rect_t(2) = max(rect_outer(2) - 2*hd(9), hd(2));
-% 		rect_t(3) = min(rect_outer(3) + 4*hd(8), diff(hd(1:2)));    rect_t(4) = min(rect_outer(4) + 4*hd(9), diff(hd(3:4)));
-% 		[Zinner,rc] = cropimg(hd(1:2), hd(3:4), Zinner, rect_t, 'out_grid');
-% 		Xinner = linspace(hd(1) + (rc(3)-1)*hd(8), hd(1) + (rc(4)-1)*hd(8), rc(4) - rc(3) + 1 );
-% 		Yinner = linspace(hd(3) + (rc(1)-1)*hd(9), hd(3) + (rc(2)-1)*hd(9), rc(2) - rc(1) + 1 );
-% 		handlesInner.head(1) = Xinner(1);		handlesInner.head(2) = Xinner(end);
-% 		handlesInner.head(3) = Yinner(1);		handlesInner.head(4) = Yinner(end);
-% 		% When no NaNs and implanting grid has cruder resolution (no aliasing risk) use grdsample and return
-% 		if (~handlesInner.have_nans && handlesInner.head(8) >= handles.head(8))
-% 			opt_R = sprintf('-R%.16g/%.16g/%.16g/%.16g', handles.head(1:4));
-% 			opt_I = sprintf('-I%.16g/%.16g', handles.head(8:9));
-% 			varargout{1} = c_grdsample(Zinner, handlesInner.head, opt_R, opt_I);
-% 			if (nargout == 2),		varargout{2} = r_c;		end
-% 			if (is_graphic),		delete(hLine_t),		end
-% 			return
-% 		end
-% 		% Else we continue but Zinner is now a potentially much smaller array that original
-% 		handlesInner.have_nans = grdutils(Zinner,'-N');		% Must recheck this now.
-% 	end
-% 	% --------------------------------------------------------------------- ----------------------
-% 
-% 	if (handlesInner.have_nans)				% Case in which the inner grid has NaNs
-% 		indNotNaN = ~isnan(Zinner);
-% 		mask = img_fun('bwmorph',indNotNaN,'dilate');
-% 		B    = img_fun('bwboundaries',mask, 8, 'noholes');
-% 		B{1} = cvlib_mex('dp', B{1}, 0.1);	% Simplify line
-% 		Bh   = img_fun('bwboundaries',mask, 8, 'holes');
-% 		if (~isempty(Bh))					% So we have holes. Must find only those inside B{1}
-% 			c = false(numel(Bh),1);
-% 			for (k = 1:numel(Bh))
-% 				Bh{k} = cvlib_mex('dp', Bh{k}, 0.1);		% Simplify line
-% 				if (size(Bh{k},1) == size(B{1},1))			% One of them comes out repeated
-% 					c(k) = true;	continue
-% 				end
-% 				IN = inpolygon(Bh{k}(:,1),Bh{k}(:,2), B{1}(:,1),B{1}(:,2));
-% 				if (~all(IN)),	c(k) = true;	end		% This one is out
-% 			end
-% 			Bh(c) = [];
-% 			if (~isempty(Bh))				% If we have any left its because they are inside holes
-% 				B = [B; Bh];	clear Bh;
-% 			end
-% 		end
-% 		x_inc = handlesInner.head(8);		y_inc = handlesInner.head(9);
-% 		x_min = handlesInner.head(1);		y_min = handlesInner.head(3);
-% 		if (handlesInner.head(7))			% Work in pixel registration
-% 			x_min = x_min + x_inc/2;	y_min = y_min + y_inc/2;
-% 		end
-% 		y = (B{1}(:,1)-1)*y_inc + y_min;
-% 		x = (B{1}(:,2)-1)*x_inc + x_min;
-% 		set(hLine_t, 'xdata',x, 'ydata',y)		% Convert the rectangle into the outer polygon
-% 
-% 	else
-% 		% Compute another rect but this time with pad = 1 that will be used to clip inside
-% 		x1 = max(handlesInner.head(1) - handles.head(8), handles.head(1));
-% 		x2 = min(handlesInner.head(2) + handles.head(8), handles.head(2));
-% 		y1 = max(handlesInner.head(3) - handles.head(9), handles.head(3));
-% 		y2 = min(handlesInner.head(4) + handles.head(9), handles.head(4));
-% 		x = [x1 x1 x2 x2 x1];		y = [y1 y2 y2 y1 y1];
-% 	end
-% 	
-% 	% The r_c bellow is from the rectangle = InnerGrid + pad (where pad = 6)
-% 	% NOTE: I should be able to replace the code below by a call to do_the_tile()
-% 	X = linspace(handles.head(1) + (r_c(3)-1)*handles.head(8), handles.head(1) + (r_c(4)-1)*handles.head(8), r_c(4) - r_c(3) + 1);
-% 	Y = linspace(handles.head(3) + (r_c(1)-1)*handles.head(9), handles.head(3) + (r_c(2)-1)*handles.head(9), r_c(2) - r_c(1) + 1);
-% 	opt_R = sprintf('-R%.16g/%.16g/%.16g/%.16g', X(1), X(end), Y(1), Y(end));
-% 	opt_I = sprintf('-I%.16g/%.16g',handles.head(8),handles.head(9));
-% 	mask = ~(img_fun('roipoly_j',[x_min x_max],[y_min y_max],Z_rect,x,y));		% Mask at the outer grid resolution
-% 
-% 	if (handlesInner.have_nans && numel(B) > 1)		% If we have holes in Inner grid, let the outer grid values survive there
-% 		for (k = 2:numel(B))
-% 			y = (B{k}(:,1)-1)*y_inc + y_min;
-% 			x = (B{k}(:,2)-1)*x_inc + x_min;
-% 			mask_t = (img_fun('roipoly_j',[x_min x_max],[y_min y_max],Z_rect,x,y));
-% 			mask = mask | mask_t;
-% 		end
-% 	end
-% 	ZZ = double(Z_rect(mask));			% It F... has to be
-% 
-% 	[X,Y] = meshgrid(X,Y);
-% 	XX = X(mask(:));
-% 	YY = Y(mask(:));
-% 	indNaN = isnan(ZZ);					% But are those NaN free?
-% 	if (any(indNaN))
-% 		ZZ(indNaN) = [];	XX(indNaN) = [];	YY(indNaN) = [];
-% 	end
-% 
-% 	[X,Y] = meshgrid(Xinner,Yinner);
-% 	if (handlesInner.have_nans)
-% 		XX = [XX(:); X(indNotNaN(:))];		clear X
-% 		YY = [YY(:); Y(indNotNaN(:))];		clear Y
-% 		ZZ = [ZZ(:); double(Zinner(indNotNaN(:)))];	clear Zinner	% Join outer and inner Zs
-% 		opt_C = '-C5';		% Just a heuristic value
-% 		if (handles.head(8) < handlesInner.head(8))		% If host grid is finner than implanting grid
-% 			% Than we must increase -C because data to grid may be too sparse and gaps appear.
-% 			opt_C = sprintf('-C%d', 2*round(handlesInner.head(8) / handles.head(8)));
-% 		end
-% 	else
-% 		XX = [XX(:); X(:)];			clear X
-% 		YY = [YY(:); Y(:)];			clear Y
-% 		ZZ = [ZZ(:); double(Zinner(:))];	%clear Zinner
-% 		opt_C = ' ';
-% 	end
-% 
-% 	Z_rect = gmtmbgrid_m(XX,YY,ZZ(:), opt_R, opt_I, '-T0.25', '-Mz', opt_C);
-% 	clear XX YY ZZ;
-% 
-% 	if (is_graphic),		delete(hLine_t),		end
-% 
-% 	varargout = get_the_output(Z, Z_rect, r_c, nargout);
-
 
 % ---------------------------------------------------------------------------------------
 function out = get_the_output(Z, Z_rect, r_c, n_argout, is_brute)
