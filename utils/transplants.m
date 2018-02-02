@@ -2,8 +2,8 @@ function varargout = transplants(hLine, tipo, res, handles, second_g)
 % Replace a zone in the host grid/image (fetched from HANDLES) by the contents of an external grid/image
 %
 % In the IMPLANTGRID mode this function:
-% Reads an external grid, that can have most of the recognized formats, and "inserts" it
-% on the mother grid. Grid resolutions do not need to be equal as over the modified zone
+% Reads an external grid (in any of the recognized formats) and "inserts" it on the
+% mother grid. Grid resolutions do not need to be equal as over the modified zone
 % the grid is reinterpolated with gmtmbgrid. A padding zone of 1 cell is left between
 % the two datasets so that the interpolation can be made minimally smooth.
 % The to-be-inserted grid may have NaNs but only the outside ones will be acknowledged.
@@ -17,10 +17,14 @@ function varargout = transplants(hLine, tipo, res, handles, second_g)
 %
 %  HLINE     -> a line or patch handle to rectangle. Currently it's only used to fetch
 %               the Mirone handles in the case the HANDLES arg is not provided.
-%  TIPO      -> Is either 'grid' or 'image' (case insensitive) and select the operation to do
-%               OR 'one_sharp' or 'one_smooth' to fill a hole with sharp or smooth transition.
+%  TIPO      -> - Either 'grid' or 'image' (case insensitive) and select the operation to do.
+%               - A 'grid_brute' value means that the implanting grid will be implanted without anny
+%                 padding and its (eventual) NaNs will NOT erase any host nodes. Implies RES = true.
+%               - 'one_sharp' or 'one_smooth' fills a hole with sharp or smooth transition.
 %  RES       -> A logical where 'true' means keep host resolution and 'false' adopt implanting resolution.
 %  HANDLES   -> is the (1/2 optional) Mirone handles. If not provided HLINE must be a valid line handle
+%               However, it can optionally be a FIRST_G, that is a struct with Z,head members,
+%               or 4 members like the SECOND_G bellow.
 %  SECOND_G  -> A char string with the grid name to implant. If not provided, it will asked here.
 %               But it can also be a struct with members: X,Y,Z,head (mostly for testing purposes)
 %
@@ -33,7 +37,7 @@ function varargout = transplants(hLine, tipo, res, handles, second_g)
 % In the IMPLANTIMAGE mode this function calls a subfunction that:
 % An external image will be inplanted inside the zone defined by the rectangle whose handle is HLINE.
 
-%	Copyright (c) 2004-2016 by J. Luis
+%	Copyright (c) 2004-2018 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -48,7 +52,7 @@ function varargout = transplants(hLine, tipo, res, handles, second_g)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: transplants.m 10118 2017-06-16 13:36:40Z j $
+% $Id: transplants.m 10243 2018-02-02 13:39:56Z j $
 
 	if (nargin < 4)		% NOTE: in the IMPLANTGRID mode I'm not really using (YET) hLine for anything else
 		if (~ishandle(hLine) && ~strcmp(get(hLine,'type'), 'line') && ~strcmp(get(hLine,'type'), 'patch'))
@@ -73,10 +77,14 @@ function varargout = transplants(hLine, tipo, res, handles, second_g)
 	end
 	% ------------------------------------------------------------------------------------
 
+	is_brute = false;		% Do smoth implanting paying attention to NaNs
+	if (strcmp(tipo, 'grid_brute')),	is_brute = true;	end		% Implanting grid will just smash host grid
+	is_graphic = true;		% Case when this function is called with a Mirone handles or a line handle in a Mir fig
+
 	varargout = cell(1, nargout);
 
-	is_graphic = true;		% Case when this function is called with a Mirone handles or a line handle in a Mir fig
-	if (numel(fieldnames(handles)) == 2)	% OK, in this case we assume that
+	nFields = numel(fieldnames(handles));
+	if (nFields >= 2 && nFields <= 4)		% OK, in this case we assume that
 		try
 			Z = handles.Z;
 			handles.head;		handles.have_nans = grdutils(Z, '-N');
@@ -126,24 +134,27 @@ function varargout = transplants(hLine, tipo, res, handles, second_g)
 		opt_I = sprintf('-I%.16g/%.16g', handlesInner.head(8:9));
 		[Z, handles.head] = c_grdsample(Z, handles.head, opt_R, opt_I);		% This has all the ingrdients to FAIL
 	end
-	if (~host_has_nans && ~implanting_has_nans)		% Simplest cases
+
+	if (is_brute)
+		[BB, r_c] = aux_funs('adjust_inner_BB', handles.head, second_g.head);
+		opt_R = sprintf('-R%.16g/%.16g/%.16g/%.16g', BB(1:4));
+		opt_I = sprintf('-I%.16g/%.16g', handlesInner.head(8:9));
+		Z_rect = c_grdsample(second_g.Z, [BB(1:4) second_g.head(5:end)], opt_R, opt_I);
+		varargout = get_the_output(Z, Z_rect, r_c, nargout, is_brute);
+	elseif (~host_has_nans && ~implanting_has_nans)		% Simplest cases
 		[Z_rect, r_c] = job_no_nans(handles, Z, handlesInner, Xinner, Yinner, Zinner, implanting_fits_inside_host, pad, res);
 		varargout = get_the_output(Z, Z_rect, r_c, nargout);
-		return
 	elseif (host_has_nans && ~implanting_has_nans)
 		[Z_rect, r_c] = job_NanHost_noNanImp(handles, Z, handlesInner, Xinner, Yinner, Zinner, implanting_fits_inside_host, pad, res);
 		varargout = get_the_output(Z, Z_rect, r_c, nargout);
-		return
 	elseif (~host_has_nans && implanting_has_nans)
 		[Z_rect, r_c] = job_noNanHost_NanImp(handles, Z, handlesInner, Xinner, Yinner, Zinner, implanting_fits_inside_host, pad, res);
 		varargout = get_the_output(Z, Z_rect, r_c, nargout);
-		return
 	else	% Both of them have NaNs
 		%[Z_rect, r_c] = job_NanHost_NanImp(handles, Z, handlesInner, Xinner, Yinner, Zinner, implanting_fits_inside_host, pad, res);
 		warndlg('NaNs in both Host and Implanting grid is not yet implemented. Uknown result.', 'Warning')
 		[Z_rect, r_c] = job_NanHost_noNanImp(handles, Z, handlesInner, Xinner, Yinner, Zinner, implanting_fits_inside_host, pad, res);
 		varargout = get_the_output(Z, Z_rect, r_c, nargout);
-		return
 	end
 
 % -------------------------- OLDER CODE. TO BE REMOVED ------------------------------------------
@@ -265,15 +276,24 @@ function varargout = transplants(hLine, tipo, res, handles, second_g)
 % 	varargout = get_the_output(Z, Z_rect, r_c, nargout);
 
 
-
 % ---------------------------------------------------------------------------------------
-function out = get_the_output(Z, Z_rect, r_c, n_argout)
-% Get the output asked to the main function
+function out = get_the_output(Z, Z_rect, r_c, n_argout, is_brute)
+% Get the output asked by the main function
+	if (nargin < 5),	is_brute = false;	end
 	if (n_argout == 1)
+		if (is_brute)		% In this case we must take care that implanting NaNs don't overwrite good nodes
+			indNaN = isnan(Z_rect);
+			if (any(indNaN(:)))
+				back = Z(r_c(1):r_c(2),r_c(3):r_c(4));
+				Z_rect(indNaN) = back(indNaN);
+				clear back
+			end
+			clear indNaN
+		end
 		if (isa(Z,'single')),		Z(r_c(1):r_c(2),r_c(3):r_c(4)) = single(Z_rect);
 		elseif (isa(Z,'int16')),	Z(r_c(1):r_c(2),r_c(3):r_c(4)) = int16(Z_rect);
 		elseif (isa(Z,'uint16')),	Z(r_c(1):r_c(2),r_c(3):r_c(4)) = uint16(Z_rect);
-		else						Z(r_c(1):r_c(2),r_c(3):r_c(4)) = single(Z_rect);
+		else,						Z(r_c(1):r_c(2),r_c(3):r_c(4)) = single(Z_rect);
 		end
 		out = {Z};
 	else
@@ -440,7 +460,7 @@ function [Zhost_rect, r_c] = job_noNanHost_NanImp(handlesHost, Zhost, handlesImp
 		% Than we must increase -C because data to grid may be too sparse and gaps appear.
 		opt_C = sprintf('-C%d', 2*round(handlesImp.head(8) / handlesHost.head(8)));
 	end
-	
+
 	Zhost_rect = gmtmbgrid_m(XX,YY,ZZ(:), opt_R, opt_I, '-T0.25', '-Mz', opt_C);
 
 % ---------------------------------------------------------------------------------------
@@ -518,13 +538,13 @@ function transplant_img(handles, h)
 	% Find if Implanting image needs to be ud fliped
 	if(strcmp(get(hAxes,'XDir'),'normal') && strcmp(get(hAxes,'YDir'),'reverse'))
 			flip = 0;
-	else	flip = 1;
+	else,	flip = 1;
 	end
 
 	[nl_ip,nc_ip,n_planes_ip] = size(out.ip_img);       % Get dimensions of implanting image
 	[nl_bg,nc_bg,n_planes_bg] = size(zz);               % Get dimensions of bg image
-	if (n_planes_ip == 3),  indexed_ip = 0;     else   indexed_ip = 1;     end
-	if (n_planes_bg == 3),  indexed_bg = 0;     else   indexed_bg = 1;     end
+	if (n_planes_ip == 3),  indexed_ip = 0;     else,   indexed_ip = 1;     end
+	if (n_planes_bg == 3),  indexed_bg = 0;     else,   indexed_bg = 1;     end
 
 	if (out.resizeIP)
 		% We have to interpolate the Ip image to fit exactly with the rectangle dimensions.
@@ -698,7 +718,7 @@ function fill_one_hole(handles, kind, second_g)
 % --------------------------------------------------------------------------------------------------
 function Z = do_the_tile(Zhost, hdr_host, out_geog, Zimp, hdr_imp, x, y, buff_width)
 % ...
-% ZHOST      -> The host grid (or a cropped zone embracinf the whole we want to fill)
+% ZHOST      -> The host grid (or a cropped zone embracing the whole we want to fill)
 % ZIMP       -> The implanting grid. It can be larger or smaller, higher or lower resolution than ZHOST
 % OUT_GEOG   -> The handles.geog of the host grid
 % X,Y        -> polygon coordinates
@@ -802,7 +822,7 @@ function update_display(handles, Z)
 		if (handles.Illumin_type == 1)
 			opt_N = sprintf('-Nt1/%.16g/%.16g', handles.grad_sigma, handles.grad_offset);
 			if (handles.geog),	R = grdgradient_m(Z, handles.head, '-M', illumComm, opt_N);
-			else				R = grdgradient_m(Z, handles.head, illumComm, opt_N);
+			else,				R = grdgradient_m(Z, handles.head, illumComm, opt_N);
 			end
 		else
 			R = grdgradient_m(Z, handles.head, illumComm, '-a1');
