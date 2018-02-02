@@ -74,7 +74,7 @@ function [xx, yy, zz] = grid_profiler(hFig, xp, yp, point_int, do_dynamic, do_st
 		X = handles.X;	Y = handles.Y;	Z = handles.Z;
 	end
 
-	if (do_stack && getappdata(handles.figure1,'PixelMode')),	do_stack = false;	end		% Case not programed
+	if (getappdata(handles.figure1,'PixelMode')),	do_stack = false;	end		% Case not programed
 
 	if (point_int)				% Interpolation at line vertex (cannot be stacked)
 		xx = xp;    yy = yp;
@@ -247,7 +247,7 @@ function [xx, yy] = make_track(x, y, dx, dy, do_stack)
 % interpolate at the half grid spacing for each dimension.
 % Construct the vectors with the points where to interpolate the profile
 
-	if (~do_stack)				% Simple, most common and original case (one track only interpolation)
+	if (~ishandle(do_stack) && ~do_stack)	% Simple, most common and original case (one track only interpolation)
 		xx = [];	yy = [];
 		n_vertex = numel(x);
 		for (i = 1:n_vertex-1)
@@ -257,12 +257,12 @@ function [xx, yy] = make_track(x, y, dx, dy, do_stack)
 	else
 		ud = get(do_stack, 'UserData');		% See end of case 'thicken' in line_operations() for ud contents
 		[n_vertex, n_lines] = size(ud{1});
-		if ( isequal(x(:), ud{4}(:,1)) && isequal(y(:), ud{4}(:,2)) )	% Stack track line was not edited
+		if (isequal(x(:), ud{4}(:,1)) && isequal(y(:), ud{4}(:,2)))	% Stack track line was not edited
 			for (k = 1:n_lines)
 				x = ud{1}(:,k);			y = ud{2}(:,k);
 				x0 = [];	y0 = [];
 				for (i = 1:n_vertex-1)
-					n_int = round( max( abs(x(i+1)-x(i))/(dx/2), abs(y(i+1)-y(i))/(dy/2) ) );
+					n_int = round(max( abs(x(i+1)-x(i))/(dx/2), abs(y(i+1)-y(i))/(dy/2) ));
 					x0 = [x0 linspace(x(i),x(i+1),n_int)];     y0 = [y0 linspace(y(i),y(i+1),n_int)];
 				end
 				xx(k,:) = x0;			yy(k,:) = y0;
@@ -296,12 +296,12 @@ function [xx, yy] = make_track(x, y, dx, dy, do_stack)
 				yL(:,k) = y + repmat(foo(2), n_vertex, 1);
 			end
 
-			% And finaly interpoate them at inc/2
+			% And finaly interpolate them at inc/2
 			for (k = 1:n_lines)
 				x = xL(:,k);		y = yL(:,k);
 				x0 = [];			y0 = [];
 				for (i = 1:n_vertex-1)
-					n_int = round( max( abs(x(i+1)-x(i))/(dx/2), abs(y(i+1)-y(i))/(dy/2) ) );
+					n_int = round(max(abs(x(i+1)-x(i))/(dx/2), abs(y(i+1)-y(i))/(dy/2) ));
 					x0 = [x0 linspace(x(i),x(i+1),n_int)];     y0 = [y0 linspace(y(i),y(i+1),n_int)];
 				end
 				xx(k,:) = x0;		yy(k,:) = y0;
