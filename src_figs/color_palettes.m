@@ -1,7 +1,7 @@
 function varargout = color_palettes(varargin)
 % Helper window to select/modify a color palette
 
-%	Copyright (c) 2004-2014 by J. Luis
+%	Copyright (c) 2004-2018 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -229,8 +229,6 @@ switch pal
 		load([handles.d_path 'gmt_other_palettes.mat'],'gebco');		pal = gebco;
 	case 'globe'
 		load([handles.d_path 'gmt_other_palettes.mat'],'globo');		pal = globo;
-	case 'gray'
-		load([handles.d_path 'gmt_other_palettes.mat'],'gray');			pal = gray;
 	case 'haxby'
 		load([handles.d_path 'gmt_other_palettes.mat'],'haxby');		pal = haxby;
 	case 'no_green'
