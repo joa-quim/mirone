@@ -62,7 +62,7 @@ switch opt(1:4)
 	case 'help'
 		str = [varargin{1}.home_dir filesep 'doc' filesep 'MironeMan.chm &'];
 		if (ispc),      dos(str);
-		else            unix(str);
+		else,           unix(str);
 		end
 	case 'getF'		% Get projection info (if it's there)
  		varargout{1} = getFigProjInfo(varargin{:});
@@ -227,7 +227,7 @@ function colormap_bg(handles,Z,pal)
 %if any(Z(:)~=Z(:))     pal = [handles.bg_color; pal];   end
 if ( handles.have_nans && ~isequal(pal(1,:),handles.bg_color) )
     if (size(pal,1) == 256),    pal = [handles.bg_color; pal(2:end,:)];     % Jump firts color to not have
-    else                        pal = [handles.bg_color; pal];              % a CMAP with more than 256 colors
+	else,                       pal = [handles.bg_color; pal];              % a CMAP with more than 256 colors
     end
 end
 set(handles.figure1,'Colormap',pal)
@@ -249,7 +249,7 @@ function out = findFileType(fname)
 		try
 			if     (any(strcmp({s.Dimension.Name}, 'id_dim'))),			out = 'mgg_gmt';
 			elseif (any(strcmp({s.Attribute.Name}, 'SHAPENC_type'))),	out = 'ncshape';
-			else	out = 'gmt';
+			else,	out = 'gmt';
 			end
 		catch
 			out = 'dono';
@@ -299,7 +299,7 @@ function out = findFileType(fname)
 		fid = fopen(fname,'rt');
 		ID = fread(fid,7,'*char');      ID = ID';      fclose(fid);
 		if (strncmp(ID,'# @VGMT', 7)),	out = 'ogr';
-		else							out = 'mgg_gmt';
+		else,							out = 'mgg_gmt';
 		end
 	elseif (any(strcmpi(EXT,{'.kml' '.gml' '.dxf' '.gpx' '.dgn' '.csv' '.s57' '.svg'})) )
 		out = 'ogr';
@@ -422,7 +422,7 @@ function handles = isProj(handles, opt)
 		handles.is_projected = 0;			prjStr = false;
 	end
 	if (handles.is_projected),      set(handles.hAxMenuLF, 'Vis', 'on', 'Separator','on')	% To load/not in prj coords
-	else                            set(handles.hAxMenuLF, 'Vis', 'off', 'Separator','off')
+	else,                           set(handles.hAxMenuLF, 'Vis', 'off', 'Separator','off')
 	end
 
 	child = get(handles.Projections,'Children');
@@ -473,7 +473,7 @@ function toProjPT(handles)
 		if (~isempty(prjInfoStruc.projWKT) || ~isempty(prjInfoStruc.proj4))
 			% In case we have both 'projWKT' takes precedence because it came from file metadata
 			if (~isempty(prjInfoStruc.projWKT)),	dbud.projStruc.SrcProjWKT = prjInfoStruc.projWKT;
-			else									dbud.projStruc.SrcProjWKT = ogrproj(prjInfoStruc.proj4);
+			else,									dbud.projStruc.SrcProjWKT = ogrproj(prjInfoStruc.proj4);
 			end
 			dbud.toProjPT = 1;
 		elseif (~isempty(prjInfoStruc.projGMT))
@@ -582,6 +582,23 @@ function [rx, ry] = adjust_rect(handles, rx, ry)
 	if (~isempty(ind)),		ry(1) = Y(ind(1)) - dy2 + dPo_y;	end
 	ind = find((Y - ry(2) > 0));
 	if (~isempty(ind)),		ry(2) = Y(ind(1)) - dy2 - dPo_y;	end
+
+% ---------------------------------------------------------------------------------------
+function [BB, r_c] = adjust_inner_BB(headOuter, headInner)
+% Adjust the inner BB such that it fits exactly on nodes of the outer BB (expressed by its limits and increments). 
+% Returns both the new region in BB, and the indices on the outer BB in R_C (rows cols).
+% Grid registration only.
+	w = max(headOuter(1), headInner(1));	e = min(headOuter(2), headInner(2));
+	s = max(headOuter(3), headInner(3));	n = min(headOuter(4), headInner(4));
+	% Now round to the closest host node
+	col_1 = ceil((w - headOuter(1)) / headOuter(8) - 0.5);	col_2 = ceil((e - headOuter(1)) / headOuter(8) - 0.5);
+	row_1 = ceil((s - headOuter(3)) / headOuter(9) - 0.5);	row_2 = ceil((n - headOuter(3)) / headOuter(9) - 0.5);
+	w = col_1 * headOuter(8) + headOuter(1);
+	e = col_2 * headOuter(8) + headOuter(1);
+	s = row_1 * headOuter(9) + headOuter(3);
+	n = row_2 * headOuter(9) + headOuter(3);
+	BB = [w e s n];
+	r_c = [row_1 row_2 col_1 col_2] + 1;
 
 % --------------------------------------------------------------------
 function geog = guessGeog(lims)
@@ -872,7 +889,7 @@ function [latcells,loncells,Zcells] = localPolysplit(lat,lon, Z)
 	N = numel(indx);
 	latcells = cell(N,1);       loncells = cell(N,1);
 	if (n_arg == 3),			Zcells = cell(N,1);
-	else						Zcells = [];
+	else,						Zcells = [];
 	end
 	indx = [0; indx];
 	for k = 1:N
@@ -894,18 +911,18 @@ function [xdata, ydata, zdata] = localRemoveExtraNanSeps(xdata, ydata, zdata)
 	
 	% If there's a leading sequence of NaNs (a sequence starting with a NaN in
 	% position 1), determine the position of each NaN in this sequence.
-	if isempty(p),      r = [];
-	else                r = find((p - (1:numel(p))) == 0);
+	if isempty(p),		r = [];
+	else,				r = find((p - (1:numel(p))) == 0);
 	end
 	
 	% Determine the position of each excess NaN.
-	if isempty(r),      s = q;
-	else                s = [r q(q > r(end))];
+	if isempty(r),		s = q;
+	else,				s = [r q(q > r(end))];
 	end
 	
 	% Remove the excess NaNs.
-	xdata(s) = [];      ydata(s) = [];
-	if (nargin >= 3),   zdata(s) = [];  end
+	xdata(s) = [];		ydata(s) = [];
+	if (nargin >= 3),	zdata(s) = [];  end
 
 % --------------------------------------------------------------------------------
 function out = get_proj_string(hMirFig, opt)
