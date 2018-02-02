@@ -70,7 +70,7 @@ function ui_edit_polygon(varargin)
 %	JL	21-Apr-2012 Significant re-write with a large boost in efficiency by not needing to duplicate line
 %	JL	19-Sep-2017 Added the 'axes' option to resize axes
 
-%	Copyright (c) 2004-2016 by J. Luis
+%	Copyright (c) 2004-2018 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -85,7 +85,7 @@ function ui_edit_polygon(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: ui_edit_polygon.m 10160 2017-09-27 23:28:16Z j $
+% $Id: ui_edit_polygon.m 10248 2018-02-02 23:55:25Z j $
 
 	if (isa(varargin{end},'char'))	% Moving polygon option was transmitted in input
 		move_choice = varargin{end};
@@ -193,7 +193,7 @@ function polygonui(varargin)
 		RunCB = getappdata(varargin{1}, 'BD_runCB');	% See if we have a callback function to run when just right-click
 		if (~isempty(RunCB))
 			if (numel(RunCB) == 1),		feval(RunCB{1});
-			else						feval(RunCB{1},RunCB{2:end});
+			else,						feval(RunCB{1},RunCB{2:end});
 			end
 		end
 		return
@@ -374,8 +374,8 @@ function resize_axes(hAx, rect_x, rect_y)
 	xLim_Ax = get(hAx, 'XLim');
 	yLim_Ax = get(hAx, 'YLim');
 	DX = diff(xLim_Ax);		DY = diff(yLim_Ax);
-	x0 = rect_x(1) / DX * posAx(3) + posAx(1);	% X origin of the rectangle in pixels of figure1
-	y0 = rect_y(1) / DY * posAx(4) + posAx(2);	% Y origin
+	%x0 = rect_x(1) / DX * posAx(3) + posAx(1);	% X origin of the rectangle in pixels of figure1
+	%y0 = rect_y(1) / DY * posAx(4) + posAx(2);	% Y origin
 	wx = (rect_x(4) - rect_x(1)) / DX * posAx(3);	% Rectangle width  in pixels
 	hy = (rect_y(2) - rect_y(1)) / DY * posAx(4);	% Rectangle Height in pixels
 	set(hAx, 'Pos',[posAx(1:2) ceil(wx) ceil(hy)],'XLim',[0 rect_x(4)-rect_x(1)], 'YLim',[0 rect_y(2)-rect_y(1)])
@@ -391,7 +391,7 @@ function wbu_EditPolygon(obj,evt,h,state)
 	RunCB = getappdata(h,'RunCB');		% See if we have a callback function to run after polygon edition
 	if (~isempty(RunCB))
 		if (numel(RunCB) == 1),		feval(RunCB{1})
-		else						feval(RunCB{1},RunCB{2:end})
+		else,						feval(RunCB{1},RunCB{2:end})
 		end
 	end
 
@@ -472,7 +472,7 @@ function wbu_MovePolygon(obj,evt,h,state)
 	RunCB = getappdata(h,'RunCB');			% See if we have a callback function to run after polygon edition
 	if (~isempty(RunCB))
 		if (numel(RunCB) == 1),		feval(RunCB{1})
-		else						feval(RunCB{1},RunCB{2:end})
+		else,						feval(RunCB{1},RunCB{2:end})
 		end
 	end
 
@@ -493,7 +493,7 @@ switch key
 		delete(s.hCurrentMarker);         s.hCurrentMarker = [];
 		s.vert_index = [];
 		if (~s.duplicate),	set(s.h_pol,'XData',x,'YData',y)		% Update data
-		else				set([s.h_pol s.h_vert],'XData',x,'YData',y)
+		else,				set([s.h_pol s.h_vert],'XData',x,'YData',y)
 		end
 		if (~isempty(z)),		setappdata(s.h_pol,'ZData',z),		end
 		setappdata(h,'edited',true)
@@ -515,7 +515,7 @@ switch key
 			set(s.hCurrentMarker,'XData',pt(1,1),'YData',pt(1,2));
 		end
 		if (~s.duplicate),	set(s.h_pol,'XData',x,'YData',y)		% Update data
-		else				set([s.h_pol s.h_vert],'XData',x,'YData',y)
+		else,				set([s.h_pol s.h_vert],'XData',x,'YData',y)
 		end
 		if (~isempty(z)),		setappdata(s.h_pol,'ZData',z),		end
 		setappdata(h,'edited',true)
@@ -530,7 +530,7 @@ switch key
 		if (numel(x1) == 1 || numel(x2) == 1),		return,		end         % We don't break at extremities
 
 		if (~s.duplicate),	set(s.h_pol,'XData',x1,'YData',y1)
-		else				set([s.h_pol s.h_vert],'XData',x1,'YData',y1)
+		else,				set([s.h_pol s.h_vert],'XData',x1,'YData',y1)
 		end
 		if (~isempty(z))
 			z1 = z(1:s.vert_index);     z2 = z(s.vert_index:end);
@@ -567,7 +567,7 @@ switch key
 		s.is_closed = true;
 		setappdata(h,'edited',true)
 		cmenuHand = get(h, 'UIContextMenu');
-		uimenu(cmenuHand, 'Label', 'Create Mask', 'Call', 'poly2mask_fig(guidata(gcbo),gco)');
+		uimenu(cmenuHand, 'Label', 'Create Mask', 'Callback', 'poly2mask_fig(guidata(gcbo),gco)');
 
 	case 'e'						% edit (extend) line with getline_j
 		if (s.duplicate),	delete(s.h_vert);		s.h_vert = [];		end
@@ -611,7 +611,7 @@ switch key
 		s_old.h_pol = p;							% Need to update for the correct handle
 		s_old.is_patch = true;
 		if (s.is_closed),	s_old.is_closed_patch = true;	% This not an "auto-closed" patch
-		else				s_old.is_closed_patch = false;
+		else,				s_old.is_closed_patch = false;
 		end
 		setappdata(p,'polygon_data',s_old);			% Set the corrected appdata
 		polygonui(s.h_pol)							% Remove the markers
