@@ -1,4 +1,4 @@
-function varargout = pole2neighbor(obj, evt, hLine, mode, opt)
+function varargout = pole2neighbor(obj, evt, hLine, mode, opt, varargin)
 % Compute finite poles from isochron N to isochron N+1 of the data/isochrons.dat file (must be loaded)
 %
 % STG0 -> Half Stage pole [lon lat old_age(t_start) new_age(t_end) ang] computed from finite P1 to P2 on one plate
@@ -10,7 +10,7 @@ function varargout = pole2neighbor(obj, evt, hLine, mode, opt)
 %               but in where only the angle is allowed to change. By comparing the predictions of
 %               STG3_CA_CB on both plates we have an excellent estimate of the assymetry.
 
-%	Copyright (c) 2004-2017 by J. Luis
+%	Copyright (c) 2004-2018 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -25,11 +25,20 @@ function varargout = pole2neighbor(obj, evt, hLine, mode, opt)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: pole2neighbor.m 10199 2018-01-02 16:05:14Z j $
+% $Id: pole2neighbor.m 10249 2018-02-03 00:54:59Z j $
+
+	if (isa(obj, 'char'))			% Call a function of this file, name stored in OBJ,  and return
+		if (nargout)
+			[varargout{1:nargout}] = feval(obj, varargin{:});
+		else
+			feval(obj, varargin{:});
+		end
+		return
+	end
 
 	if (isempty(hLine)),	hLine = gco;	end
 	hNext = hLine;
-	if (~strcmpi(mode, 'stginfo'))		% Otherwise only scan the header info. No computations
+	if (~strcmpi(mode, 'stginfo') && ~strcmp(mode, 'reconst'))		% Otherwise only scan the header info or Reconst plates
 		clicked_pt = getappdata(get(hLine, 'UIContextMenu'), 'clicked_pt');
 		[hLines_cross_1, hLines_cross_2] = find_isocs_in_block(hLine, clicked_pt);
 	end
@@ -120,6 +129,9 @@ function varargout = pole2neighbor(obj, evt, hLine, mode, opt)
 	elseif (strcmpi(mode, 'plate_stages'))
 		[out1, out2] = get_plate_stages(hLine);
 		figure;plot(out1(:,4),cumsum(abs(out1(:,17))), out2(:,4),cumsum(abs(out2(:,17))));
+
+	elseif (strcmpi(mode, 'reconst'))		% Reconstruct the base image at the time of the clicked isochrone
+		reconstruct_plates(hLine)
 
 	end
 
@@ -609,8 +621,9 @@ function hLine0 = find_ridge_by_names(hLine)
 	end
 
 % -----------------------------------------------------------------------------------------------------------------
-function pp = get_plate_pair(hLine)
+function [pp, P2] = get_plate_pair(hLine)
 % Get the plate pair info stored in line's appata. HLINE can be a n isochrn handle or it's lineInfo
+% Second argout is optional. If provided get the plate names in separate vars.
 	if (ishandle(hLine))
 		lineInfo = getappdata(hLine, 'LineInfo');
 	else
@@ -618,7 +631,13 @@ function pp = get_plate_pair(hLine)
 	end
 	[t, r] = strtok(lineInfo);
 	ind = strfind(r, 'FIN"');
-	pp = ddewhite(r(1:ind-1));
+	pp = ddewhite(r(1:ind-1));		% Idiot strtok leaves blanks on second output arg
+	if (nargout == 2)				% Get the plate pair separately
+		ind = strfind(pp, '/');
+		P1 = pp(1:ind-1);
+		P2 = pp(ind+1:end);
+		pp = P1;
+	end
 
 % -----------------------------------------------------------------------------------------------------------------
 function [hLines_cross_1, hLines_cross_2] = find_isocs_in_block(hLine, clicked_pt)
