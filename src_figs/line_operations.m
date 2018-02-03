@@ -130,7 +130,10 @@ function varargout = line_operations(varargin)
 								'GEOD -> ''geod'', or [A B|F] uses an ellipsoidal model.\n' ...
 								'First of this cases uses WGS-84 Ellipsoid. Second form selects\n' ...
 								'an ellipsoid with A = semi-major axis and B = semi-minor axis\n' ...
-								'or B = ellipsoid Flatenning.']);
+								'or B = ellipsoid Flatenning.\n' ...
+								'Use SIDE=left to pick only the left one sided buffer. Similar for\n' ...
+								'SIDE=right. This options only apply to non-closed lines ang Geogs.\n' ...
+								'Use BASE=0 or TOP=0 to have flat (non-curved) extremities.']);
 	handles.ttips{4} = sprintf(['Smooth line with a B-form spline\n' ...
 								'It will open a help control window to\n' ...
 								'help with selection of nice parameters']);
@@ -158,12 +161,12 @@ function varargout = line_operations(varargin)
 								'very slow when there are many different lines plotted.\n' ...
 								'This option groups same type lines into one single multi-segment\n' ...
 								'line. Visually it will look the same but performance jumps.']);
-	handles.ttips{9} = 'Convert line objects into patch. Patches, for example, accept fill color.';
+	handles.ttips{9}  = 'Convert line objects into patch. Patches, for example, accept fill color.';
 	handles.ttips{10} = sprintf(['Approximates polygonal curve with desired precision\n' ...
 								'using the Douglas-Peucker algorithm.\n' ...
 								'Replace TOL by the desired approximation accuracy.\n' ...
 								'When data is in geogs, TOL is the tolerance in km.']);
-	handles.ttips{11}  = 'Performs the boolean operation of Union to the selected polygons.';
+	handles.ttips{11} = 'Performs the boolean operation of Union to the selected polygons.';
 	handles.ttips{12} = 'Performs the boolean operation of Intersection to the selected polygons.';
 	handles.ttips{13} = 'Performs the boolean operation of exclusive OR to the selected polygons.';
 	handles.ttips{14} = 'Performs the boolean operation of subtraction to the selected polygons.';
@@ -234,8 +237,10 @@ function popup_cmds_CB(hObject, handles)
 	end
 
 % --------------------------------------------------------------------------------------------------
-function push_apply_CB(hObject, handles)
-	cmd = get(handles.edit_cmd,'String');
+function push_apply_CB(hObject, handles, cmd)
+	if (nargin < 3)
+		cmd = get(handles.edit_cmd,'String');
+	end
 	if (isempty(cmd))
 		h = errordlg('Fiu Fiu!! Apply WHAT????','ERROR');
 		if (handles.version7 < 8.4 && handles.isPC),	WindowAPI(h, 'TopMost'),	end
@@ -332,7 +337,7 @@ function push_apply_CB(hObject, handles)
 
 			for (k = 1:numel(handles.hLine))
 				x = get(handles.hLine(k), 'xdata');		y = get(handles.hLine(k), 'ydata');
- 				[y, x] = buffer_j(y, x, dist, direction, npts, geodetic);
+ 				[y, x] = buffer_j(y, x, dist, direction, npts, geodetic, 'vector', out.geom);
 				if (isempty(x)),	return,		end
 				ind = find(isnan(x));
 				if (isempty(ind))				% One only, so no doubts
@@ -383,7 +388,7 @@ function push_apply_CB(hObject, handles)
 			% Now we will test if user got confused and sent in wrong DIST unites (for geog only)
 			if (geodetic)
 				lims = getappdata(handles.hMirAxes,'ThisImageLims');
-				if ( dist > sqrt( diff(lims(1:2))^2 + diff(lims(3:4))^2)/2 )	% Almost sure a mistake
+				if (dist > sqrt( diff(lims(1:2))^2 + diff(lims(3:4))^2)/2)	% Almost sure a mistake
 					msg = sprintf('You probably gave a bad buffer width (DIST) as the buffer line will be out of map.\nShell I stop?');
 					r = yes_or_no('string',msg,'title','Warning');
 					if (r(1) == 'N'),	return,		end
@@ -424,9 +429,9 @@ function push_apply_CB(hObject, handles)
 				[N, msg] = validate_args(handles.known_ops{ind}, r, numel(x));
 				if (~isempty(msg)),		errordlg(msg,'ERROR'),		continue,		end
 				np = numel(x);			ind = (1:N(1):np);
-				if (x(ind(end)) ~= x(end)),		ind = [ind np];		end		% We want also the last point
+				if (x(ind(end)) ~= x(end)),		ind(end+1) = np;		end		% We want also the last point
 				if (numel(N) == 1),			[x,y] = spline_interp(x(ind),y(ind));				% With 10 pts per segment
-				else						[x,y] = spline_interp(x(ind),y(ind),'n',N(2));		% With a resolution request
+				else,						[x,y] = spline_interp(x(ind),y(ind),'n',N(2));		% With a resolution request
 				end
 				h = line('XData', x, 'YData', y, 'Parent',handles.hMirAxes, 'Color',handles.lc, 'LineWidth',handles.lt,'Tag','polyline');
 				draw_funs(h,'line_uicontext')
@@ -570,7 +575,7 @@ function push_apply_CB(hObject, handles)
 			for (k = 1:numel(handles.hLine))
 				x = get(handles.hLine(k), 'xdata');		y = get(handles.hLine(k), 'ydata');
 				if (handles.geog),		B = cvlib_mex('dp', [x(:) y(:)], tol, 'GEOG');
-				else					B = cvlib_mex('dp', [x(:) y(:)], tol);
+				else,					B = cvlib_mex('dp', [x(:) y(:)], tol);
 				end
 				h = line('XData',B(:,1), 'YData',B(:,2), 'Parent',handles.hMirAxes, 'Color',handles.lc, 'LineWidth',handles.lt, 'Tag','polyline');
 				draw_funs(h,'line_uicontext')
@@ -580,7 +585,7 @@ function push_apply_CB(hObject, handles)
 			if		(handles.known_ops{ind}(5) == 'u'),		ID = 3;
 			elseif	(handles.known_ops{ind}(5) == 'i'),		ID = 1;
 			elseif	(handles.known_ops{ind}(5) == 'x'),		ID = 2;
-			else											ID = 0;
+			else,											ID = 0;
 			end
 			[lixo, msg] = validate_args(handles.known_ops{ind}, numel(handles.hLine));
 			if (~isempty(msg)),		errordlg(msg,'ERROR'),		return,		end
@@ -732,7 +737,7 @@ function push_apply_CB(hObject, handles)
 % 			foo = [co -si; si  co] * [0	 0; thick/2 -thick/2];
 			% Add rotated points to line vertices
 			n_pts = numel(x);
-			x = x(:);			y = y(:);		% We need them as column vectrs
+			x = x(:);			y = y(:);		% We need them as column vectors
 			x_copy = x;			y_copy = y;
 % 			x = [x; x(end:-1:1)];		y = [y; y(end:-1:1)];		% Wrap arround
 % 			x(1:n_pts) = x(1:n_pts) + repmat(foo(1,1),n_pts,1);
@@ -761,7 +766,7 @@ function push_apply_CB(hObject, handles)
 				foo = [co(1) -si(1); si(1) co(1)] * [0; th];
 				xL(:,k) = x_copy + repmat(foo(1), n_pts, 1);		% One line per column
 				yL(:,k) = y_copy + repmat(foo(2), n_pts, 1);
-				
+
 				% Tenho de voltar a remoer isto. O problema (em baixo) é que depois não vai ter
 				% o mesmo número de elementos quando interpolada no grid_profiler (para stakar)
 % 				for (m = 1:n_pts)		% This loop has meaning only for polylines, as angles vray between segments
@@ -773,7 +778,7 @@ function push_apply_CB(hObject, handles)
 			end
 			set(handles.hLine(1), 'UserData', {xL; yL; thick; [x_copy y_copy]; handles.geog; ...	% We'll next info if line is edited
 					'MxN X and Y with M = number_vertex and N = number_lines; THICK = thickness in map units; Mx2 = original line; is geog?'})
-			
+
 		case 'toRidge'
 			hanMir = guidata(handles.hMirFig);
 			[out, msg] = validate_args(handles.known_ops{ind}, r, hanMir);
@@ -948,7 +953,7 @@ function do_stitching(hLines, hCurrLine, tol, xcell, ycell)
 			end
 			xcell{1} = x;				ycell{1} = y;	% Equivallent of the below set(hCurrLine, 'XData',x, 'YData',y)
 			xcell{indOfFound} = [];		ycell{indOfFound} = [];		% Do not process the same segment again.
-			if (doAguenta && ~rem(k, perc)),
+			if (doAguenta && ~rem(k, perc))
 				hAguenta = aguentabar(k/nLines);
 			end
 		end
@@ -1084,9 +1089,9 @@ function [hLineClosest, endType, indOfFound] = find_closestline(hMe, hLines, TOL
 		dif_x2 = ([(x1(1) - x2(1)); (x1(1) - x2(end)); (x1(end) - x2(1)); (x1(end) - x2(end))]).^2;
 		if (min(dif_x2) > minDist),		continue,	end		% we know enough to drop this line.
 		if (ishandle(hLines(1))),		y2 = get(hLines(k),'YData');
-		else							y2 = hLines{2}{k};
+		else,							y2 = hLines{2}{k};
 		end
-		if ( (x2(1) == x2(end)) && (y2(1) == y2(end)) )		% Ignore closed polygons
+		if ((x2(1) == x2(end)) && (y2(1) == y2(end)))		% Ignore closed polygons
 			continue
 		end
 
@@ -1097,7 +1102,7 @@ function [hLineClosest, endType, indOfFound] = find_closestline(hMe, hLines, TOL
 			indOfFound = k;
 			endType = I;
 			if (ishandle(hLines(1))),		hLineClosest = hLines(k);
-			else							hLineClosest = k;
+			else,							hLineClosest = k;
 			end
 			if (mimi < 1e-8),	break,	end		% This is so small that we can assume to have found the closest
 		end
@@ -1162,22 +1167,24 @@ function [out, msg] = validate_args(qual, str, np)
 				msg = 'The argument "DIST" must be replaced by a numeric value representing the width of the buffer zone';	return
 			end
 			if (np)		% Here 'np' is actually the handles.geog
-				if ( strcmpi(t(end), 'm') || strcmpi(t(end), 'k') || strcmpi(t(end), 'n') )	% Convert any of those to degrees
+				if (strcmpi(t(end), 'm') || strcmpi(t(end), 'k') || strcmpi(t(end), 'n'))	% Convert any of those to degrees
 					convFrom = lower(t(end));		t(end) = [];
 				end
 			end
-			out.dist = abs( str2double(t) );
+			out.dist = abs(str2double(t));
 			if (isnan(out.dist)),		msg = 'BUFFER argument is nonsense';	return,		end
 			if (convFrom)		% Right. We must convert the DIST distance given in cartesians to degrees
 				% But the problem is that here we don't know the lat so we can't finish the conversion. So, send back the collected info
 				if (convFrom == 'm'),		out.toDegFac = 1;
 				elseif (convFrom == 'k'),	out.toDegFac = 1000;
-				else						out.toDegFac = 1852;
+				else,						out.toDegFac = 1852;
 				end
 			end
 
 			% OPTIONS
-			str = strrep(str,'''','');		% no ' ' around the char variables
+			out.geom = parse_options(str);		% Search for the SIDE, BASE or TOP options
+
+			str = strrep(str,'''','');			% no ' ' around the char variables
 			ind = strfind(str, 'in');
 			if (~isempty(ind))
 				out.dir = str(ind:ind+1);		str(ind:ind+1) = [];
@@ -1209,10 +1216,10 @@ function [out, msg] = validate_args(qual, str, np)
 				out.ab = [a b];
 				str(ind1:ind2) = [];		% Remove it from the opt string
 			end
-			
+
 			% We still may have the circle NPTS option 
 			np = round(abs( str2double(strtok(str)) ));
-			if (~isnan(np)),	out.npts = np;		end			
+			if (~isnan(np)),	out.npts = np;		end		
 
 		case 'polysimplify'
 			d = strtok(str);
@@ -1320,7 +1327,7 @@ function [out, msg] = validate_args(qual, str, np)
 					% But the problem is that here we don't know the lat so we can't finish the conversion. So, send back the collected info
 					if (convFrom == 'm'),		out.toDegFac = 1;
 					elseif (convFrom == 'k'),	out.toDegFac = 1000;
-					else						out.toDegFac = 1852;
+					else,						out.toDegFac = 1852;
 					end
 				end
 				out.val = abs(str2double(str));
@@ -1328,6 +1335,34 @@ function [out, msg] = validate_args(qual, str, np)
 			end
 	end
 
+% --------------------------------------------------------------------------------------------------
+function out = parse_options(str)
+% Parse the STR string for the presence of SIDE=left|right; BASE=0 and TOP=0 used in the buffer case
+% Other parameters of this option should be turned into this syntax too.
+	out.side = 'both';		out.base = true;	out.top = true;		% The default values
+	ind = strfind(str, 'SIDE=');
+	if (~isempty(ind))
+		[t, r] = strtok(str(ind(1):end));
+		out.side = t(6:end);
+		str = strrep(str, t, '');		% Remove it
+		if (out.side(1) == 'L'),		out.side(1) = 'l';
+		elseif (out.side(1) == 'R'),	out.side(1) = 'r';
+		end
+		if (out.side(1) ~= 'l' && out.side(1) ~= 'r'),	out.side(1) = 'b';	end		% If shit default to both
+	end
+	ind = strfind(str, 'BASE=');
+	if (~isempty(ind))
+		[t, r] = strtok(str(ind(1):end));
+		if (t(6) == '0'),	out.base = false;	end			% Only when BASE=0 is found
+		str = strrep(str, t, '');		% Remove it
+	end
+	ind = strfind(str, 'TOP=');
+	if (~isempty(ind))
+		[t, r] = strtok(str(ind(1):end));
+		if (t(5) == '0'),	out.top = false;	end			% Only when TOP=0 is found
+		%str = strrep(str, t, '');		% Remove it
+	end
+	
 % --------------------------------------------------------------------------------------------------
 % --- Creates and returns a handle to the GUI figure. 
 function h = line_operations_LayoutFcn(h1, hMirFig, axPos, y_off)
