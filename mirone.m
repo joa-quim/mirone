@@ -20,7 +20,7 @@ function varargout = mirone(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: mirone.m 10239 2018-01-26 16:31:41Z j $
+% $Id: mirone.m 10253 2018-02-03 01:26:07Z j $
 
 	if (nargin > 1 && ischar(varargin{1}))
 		if ( ~isempty(strfind(varargin{1},':')) || ~isempty(strfind(varargin{1},filesep)) )
@@ -247,13 +247,15 @@ function hObject = mirone_OpeningFcn(varargin)
 
 			handles = show_image(handles,win_name,X,Y,varargin{1},0,axis_t,handles.head(7),1);
 			if (~isReferenced),		grid_info(handles,[],'iminfo',varargin{1});			% Create a info string
-			else					grid_info(handles,tmp.srsWKT,'referenced',varargin{1});
+			else,					grid_info(handles,tmp.srsWKT,'referenced',varargin{1});
 			end
 			handles = aux_funs('isProj',handles);				% Check/set about coordinates type
 			
 		elseif (n_argin == 1 && isa(varargin{1},'struct') && isfield(varargin{1},'proj4'))
 			% A GMT5 grid/image structure. (for images we still do not use eventual alpha channel)
 			handles.head = [varargin{1}.range varargin{1}.registration varargin{1}.inc];
+			win_name = 'Nikles';
+			if (~isempty(varargin{1}.title)),		win_name = varargin{1}.title;	end
 			if (~isfield(varargin{1}, 'image'))
 				Z = varargin{1}.z;			grd_data_in = true;
 				if (~isa(Z,'single')),		Z = single(Z);		end
@@ -278,13 +280,11 @@ function hObject = mirone_OpeningFcn(varargin)
 					handles.image_type = 3;		ax_t = 'xy';
 				end
 				if (ndims(varargin{1}.image) == 2),		set(handles.figure1,'Colormap',gray(256));		end
-				win_name = 'Nikles';
-				if (~isempty(varargin{1}.title)),		win_name = varargin{1}.title;	end
 				alpha = 1;
 				if (~isempty(varargin{1}.alpha)),		alpha = varargin{1}.alpha;		end
 				handles = show_image(handles,win_name,X,Y,varargin{1}.image,0,ax_t,varargin{1}.registration,1, alpha);
 				if (~isReferenced),		grid_info(handles,[],'iminfo',varargin{1}.image);		% Create a info string
-				else					grid_info(handles, ProjectionRefWKT, 'referenced', varargin{1}.image);
+				else,					grid_info(handles, ProjectionRefWKT, 'referenced', varargin{1}.image);
 				end
 				handles = aux_funs('isProj',handles);				% Check/set about coordinates type
 			end
@@ -311,7 +311,7 @@ function hObject = mirone_OpeningFcn(varargin)
 			handles.head = [X(1) X(end) Y(1) Y(end) zz(1) zz(2) 0 X(2)-X(1) Y(2)-Y(1)];
 
 		elseif (n_argin < 4 && ~(isa(varargin{1},'uint8') || isa(varargin{1},'int8')))
-			% A matrix. Treat it as if it is a gmt grid. No error testing on the grid head descriptor
+			% A matrix with an optional header. Treat it as if it is a gmt grid. No error testing on the grid head descriptor
 			Z = varargin{1};			grd_data_in = true;
 			if (~isa(Z,'single')),		Z = single(Z);		end
 			handles.have_nans = grdutils(Z,'-N');
@@ -790,10 +790,15 @@ if ~isempty(opt)				% OPT must be a rectangle/polygon handle (the rect may serve
 		if (crop_pol)
 			zzz = grdutils(Z_rect,'-L');	z_min = zzz(1);		clear zzz;
 			resp = [];
-			if (strcmp(opt2,'CropaGrid_pure'))
-				resp = inputdlg({'Enter outside polygon value'},'Choose out value',[1 30],{sprintf('%.4f',z_min)});	pause(0.01)
-				if isempty(resp),		return,		end
-				resp = str2double(resp{1});
+			if (strncmp(opt2,'CropaGrid_pure', 14))
+				if (opt2(end) == '-')		% if we get a 'CropaGrid_pure-' don't ask for the fill value. Just use NaNs
+					resp = NaN;
+					opt2(15:end) = [];		% Remove so not to perturb later tests
+				else
+					resp = inputdlg({'Enter outside polygon value'},'Choose out value',[1 30],{sprintf('%.4f',z_min)});	pause(0.01)
+					if isempty(resp),		return,		end
+					resp = str2double(resp{1});
+				end
 			elseif (strcmp(opt2,'ROI_SetConst'))	% Set the polygon in-or-out to cte
 				resp = question({'Enter new grid value'},'Replace with cte value',[1 30],'NaN','whatever');
 				if isempty(resp),		return,		end
@@ -905,7 +910,7 @@ elseif (strncmp(opt2(1:min(length(opt2),9)),'CropaGrid',9))		% Do the operation 
 		head(2) = head(1) + (r_c(4)-1)*head(8);			head(1) = head(1) + (r_c(3)-1)*head(8);
 		head(4) = head(3) + (r_c(2)-1)*head(9);			head(3) = head(3) + (r_c(1)-1)*head(9);
 		if (isa(Z,'single')),	zz = grdutils(Z_rect,'-L');			head(5:6) = [zz(1) zz(2)];
-		else					head(5) = double(min(Z_rect(:)));	head(6) = double(max(Z_rect(:)));
+		else,					head(5) = double(min(Z_rect(:)));	head(6) = double(max(Z_rect(:)));
 		end
 		to_func.Z = Z_rect;		to_func.head = head;
 	end
@@ -914,7 +919,7 @@ elseif (strncmp(opt2(1:min(length(opt2),9)),'CropaGrid',9))		% Do the operation 
 		Y = linspace( head(3) + (r_c(1)-1)*head(9), head(3) + (r_c(2)-1)*head(9), r_c(2) - r_c(1) + 1 );
 		head(1) = X(1);		head(2) = X(end);		head(3) = Y(1);		head(4) = Y(end);
 		if (isa(Z,'single')),	zz = grdutils(Z_rect,'-L');			head(5:6) = [zz(1) zz(2)];
-		else					head(5) = double(min(Z_rect(:)));	head(6) = double(max(Z_rect(:)));
+		else,					head(5) = double(min(Z_rect(:)));	head(6) = double(max(Z_rect(:)));
 		end
 		srsWKT = [];
 		if (~handles.geog)
@@ -2871,7 +2876,8 @@ function ToolsMeasureAreaPerCor_CB(handles)
 	double2ascii([handles.path_tmp 'area_per_color.dat'],[round(pal(:,1)*255) counts],'%d\t%g')		% Save the result
 
 % --------------------------------------------------------------------
-function DrawLine_CB(handles, opt)
+function out = DrawLine_CB(handles, opt, dataX, dataY)
+% DATAX|Y is only transmitted when OPT = 'data'.
 	if (handles.no_file),	return,		end
 	if (nargin == 1),		opt = [];	end
 	% The following is a necessary patch against two big stupidities.
@@ -2882,8 +2888,9 @@ function DrawLine_CB(handles, opt)
 	if (strncmp(opt,'free',4)),				[xp,yp] = getline_j(handles.figure1,'freehand');
 	elseif (strcmp(opt,'GCPmemory')),		xp = [0 0];			% Jump the manual drawing
 	elseif (strcmp(opt,'GCPimport')),		xp = [0 0];			% Jump the manual drawing
+	elseif (strcmp(opt,'data')),			xp = dataX;		yp = dataY;		% Data was sent in input
 	elseif (strcmp(opt,'spline')),			[xp,yp] = getline_j(handles.figure1,'spline');
-	else									[xp,yp] = getline_j(handles.figure1);
+	else,									[xp,yp] = getline_j(handles.figure1);
 	end
 	n_nodes = numel(xp);					LS = 'none';
 	if (n_nodes < 2),	zoom_state(handles,'maybe_on'),		return,		end
@@ -2910,7 +2917,7 @@ function DrawLine_CB(handles, opt)
 		h = line('XData', xp, 'YData', yp,'Color','k','LineWidth',0.5,'LineStyle',LS,'Marker','o',...
 			'MarkerFaceColor','y','MarkerSize',4,'Tag','GCPpolyline');
 		if (opt(4) == 'm'),		register_img(handles,h,GCPinMemory(:,1:4))		% Set uicontext for img registration
-		else					register_img(handles,h)
+		else,					register_img(handles,h)
 		end
 		return
 	elseif (strcmp(opt,'SeismicLine'))
@@ -2924,6 +2931,7 @@ function DrawLine_CB(handles, opt)
 		end
 	end
 	draw_funs(h,'line_uicontext')		% Set lines's uicontextmenu
+	if (nargout),	out = h;	end		% Return the line handle if requested
 
 % --------------------------------------------------------------------
 function hand = Draw_CB(handles, tipo, smb)
@@ -2972,7 +2980,7 @@ function DrawClosedPolygon_CB(handles, opt)
 		end
 		if (strcmp(opt,'EulerTrapezium')),		tag = opt;
 		elseif (strcmp(opt,'SeismicPolyg')),	tag = opt;
-		else									tag = 'Closedpolygon';
+		else,									tag = 'Closedpolygon';
 		end
 		zoom_state(handles,'maybe_on');
 		xp = xp(:)';	yp = yp(:)';
@@ -3463,8 +3471,6 @@ function GeophysicsImportGmtFile_CB(handles, opt)
 
 	% And finaly do the ploting
 	colors = rand(numel(track),3);			% Use a random color schema
-	%use_aguenta = false;					% Less than 20 tracks don't use aguentabar
-% 	if (numel(track) > 20),		aguentabar(0,'title','Plotting tracks'),	use_aguenta = true;		end
 	for (k = 1:numel(track))
 		if (isempty(track(k).longitude)),	continue,	end		% This track is completely outside the map
 		h = line(track(k).longitude,track(k).latitude, 'Parent',handles.axes1,'Linewidth',handles.DefLineThick,'Color',...
@@ -3473,7 +3479,6 @@ function GeophysicsImportGmtFile_CB(handles, opt)
 		setappdata(h,'VarsName',vars(k,:))	% Store field name in case the uicontext wants to open it with gmtedit
 		draw_funs(h,'gmtfile',track(k).info)
 		ui_edit_polygon(h)
-		%if (use_aguenta),	h = aguentabar(k/numel(track));		end
 	end
 	set(handles.figure1,'Pointer','arrow');
 	if (~strcmp(opt, 'list'))				% Insert fileName into "Recent Files" & save handles
@@ -4503,7 +4508,7 @@ function sdgGrid = GridToolsSDG_CB(handles, opt, opt2)
 
 	[ind_s,ind] = tile(m,nl,skirt);				% Get indexes for tiling.
 	R = zeros(m,n);
-	if (size(ind_s,1) > 1),						% There is still a very strange thing that I don't understand.
+	if (size(ind_s,1) > 1)						% There is still a very strange thing that I don't understand.
 		last_row = 1;
 		for k = 1:size(ind_s,1)
 			tmp1 = (ind_s(k,1):ind_s(k,2));		% Indexes with overlapping zone
