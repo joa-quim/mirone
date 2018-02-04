@@ -25,7 +25,7 @@ function varargout = pole2neighbor(obj, evt, hLine, mode, opt, varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: pole2neighbor.m 10249 2018-02-03 00:54:59Z j $
+% $Id: pole2neighbor.m 10254 2018-02-04 01:19:20Z j $
 
 	if (isa(obj, 'char'))			% Call a function of this file, name stored in OBJ,  and return
 		if (nargout)
@@ -277,6 +277,12 @@ function [out1, out2] = get_plate_stages(hLine)
 	if (isempty(pole_fin))
 		errordlg('This isochron has no Finite pole associated so I can''t find the ridge.', 'Error'),	return
 	end
+
+	hLine0 = find_ridge(hLine);								% Find the ridge of the hLine's plate pair
+	if (isempty(getappdata(hLine, 'secondLineInfo')))		% Need to generate some info first
+		pole2neighbor([], [], hLine, 'anglefit')
+	end
+
 	pt = getappdata(get(hLine, 'UIContextMenu'), 'clicked_pt');
 	pt_ridge = gmtmex(sprintf('backtracker -E%f/%f/%f', pole_fin.lon, pole_fin.lat, pole_fin.ang/2), pt(1,1:2));
 
@@ -289,7 +295,6 @@ function [out1, out2] = get_plate_stages(hLine)
 	p = parse_finite_pole(getappdata(hLast, 'LineInfo'));	% Get FINite pole of last isochron
 	pt_ref = [pt_ridge.data(1) pt_ridge.data(2) p.age];		% Seed point on Ridge plus oldest age to extend the flow line to.
 
-	hLine0 = find_ridge(hLine);								% Find the ridge of the hLine's plate pair
 	out1   = get_all_stgs(hLine0);
 	% Now the conjugate plate
 	swap_lineInfo(hLine0)
@@ -663,7 +668,7 @@ function [hLines_cross_1, hLines_cross_2] = find_isocs_in_block(hLine, clicked_p
 	pp = get_plate_pair(lineInfo);
 	if (~isempty(strfind(pp, 'LOMONOSOV')) || ~isempty(strfind(pp, 'MOHNS')) || ~isempty(strfind(pp, 'JAN')))
 		ang = 10;
-	elseif (~isempty(strfind(pp, 'EURASIA')))
+	elseif (~isempty(strfind(pp, 'EURASIA')) || ~isempty(strfind(pp, 'IBERIA')))
 		ang = 13;
 	else					% AFRICA and futures
 		ang = 35;
