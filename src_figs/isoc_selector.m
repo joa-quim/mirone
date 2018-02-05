@@ -1,0 +1,193 @@
+function varargout = isoc_selector(varargin)
+% Helper win to select magnetic isochrons from private collections
+
+%	Copyright (c) 2004-2018 by J. Luis
+%
+% 	This program is part of Mirone and is free software; you can redistribute
+% 	it and/or modify it under the terms of the GNU Lesser General Public
+% 	License as published by the Free Software Foundation; either
+% 	version 2.1 of the License, or any later version.
+% 
+% 	This program is distributed in the hope that it will be useful,
+% 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+% 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+% 	Lesser General Public License for more details.
+%
+%	Contact info: w3.ualg.pt/~jluis/mirone
+% --------------------------------------------------------------------
+
+% $Id: isoc_selector.m 10258 2018-02-05 17:26:41Z j $
+
+	[got_it, pars] = aux_funs('inquire_OPTcontrol', 'MIR_CUSTOM_ISOCS');
+	if (~got_it)
+		errordlg('To use this option the file OPTcontrol.txt in the ''data'' sub-dir must have the MIR_CUSTOM_ISOCS key activated.','Error')
+		return
+	end
+	if (exist(pars,'dir') ~= 7)
+		errordlg('The directory specified in the MIR_CUSTOM_ISOCS KEY of ...\data\OPTcontrol.txt does not exist. Can''t continue', 'Error')
+		return
+	end
+	isoc_dir = ddewhite(pars);
+	if (isoc_dir(end) ~= '\' && isoc_dir(end) ~= '/'),	isoc_dir(end+1) = '/';	end
+
+	hObject = figure('Tag','figure1','Visible','off');
+	isoc_selector_LayoutFcn(hObject);
+	handles = guihandles(hObject);
+	move2side(hObject,'right');
+
+	if (~isempty(varargin))
+		handlesMir = guidata(varargin{1});
+		handles.path_tmp = handlesMir.path_tmp;
+		handles.isoc_dir = isoc_dir;
+		handles.hMirFig = handlesMir.figure1;
+	else		% Just for testing purposes
+		handles.isoc_dir = 'C:\SVN\mironeWC\data\isocs\';
+		handles.path_tmp = 'v:\tmp\';
+	end
+
+	set(handles.listbox_isocs, 'Str', {'2' '2a' '3' '3a' '4' '4a' '5' '5c' '6' '9' '13' '18' '20' '21' ...
+		'22' '23' '24' '25' '26' '28' '29' '30' '31' '32' '33' '33r' 'M0' 'M1' 'M5' 'M10' 'M16' 'M22' 'M25'})
+	plates = {'' 'Africa' 'Eurasia' 'Greenland' 'Iberia' 'Jan Mayen' 'Lomonosov' 'Mohns' 'North America' 'XX1' 'XX2' 'XXX'};
+	set(handles.popup_plate1, 'Str', plates, 'Val', 9)
+	set(handles.popup_plate2, 'Str', plates, 'Val', 1)
+	guidata(hObject, handles);
+	set(hObject,'Visible','on');
+	if (nargout),	varargout{1} = hObject;		end
+
+% --------------------------------------------------------------------------------------
+function push_OK_CB(hObject, handles)
+% 
+	str = get(handles.listbox_isocs, 'Str');
+	isoc = str{get(handles.listbox_isocs, 'Val')};
+
+	str = get(handles.popup_plate1, 'Str');
+	plate_1 = str{get(handles.popup_plate1, 'Val')};
+	if (strfind(plate_1, ' '))
+		[t, r] = strtok(plate_1);
+		r = ddewhite(r);
+		plate_1 = ['_' upper(t(1)) upper(r(1))];
+	else
+		plate_1 = ['_' upper(plate_1(1:2))];
+	end
+
+	% Get second Plate. If empty pick all plates that share a border with Plate1
+	str = get(handles.popup_plate2, 'Str');
+	plate_2 = str{get(handles.popup_plate2, 'Val')};
+	if (~isempty(plate_2))
+		if (strfind(plate_2, ' '))
+			[t, r] = strtok(plate_2);
+			r = ddewhite(r);
+			plate_2 = ['_' upper(t(1)) upper(r(1))];
+		else
+			plate_2 = ['_' upper(plate_2(1:2))];
+		end
+	end
+
+	all = dir([handles.isoc_dir 'c' isoc '_*.dat']);
+	c = false(numel(all), 1);
+	if (isempty(plate_2))				% Here we want all combinations that contain the Plate_1
+		for (k = 1:numel(all))
+			if (~isempty(strfind(all(k).name, plate_1)))
+				c(k) = true;
+			end
+		end
+	else								% Here we want the combination Plate1_Plate2 or Plate2_Plate1
+		AB = [plate_1 plate_2];		BA = [plate_2 plate_1];		% Select only these two pairs
+		for (k = 1:numel(all))
+			if (~isempty(strfind(all(k).name, AB)) || ~isempty(strfind(all(k).name, BA)))
+				c(k) = true;
+			end
+		end
+	end
+
+	all = all(c);			% Retain only those that passed the above tests
+	if (isempty(all))
+		errordlg('Found no isochrons with the specified criteria.','Error')
+		return
+	end
+
+	list = cell(numel(all), 1);
+	for (k = 1:numel(all))
+		list{k} = [handles.isoc_dir all(k).name];
+	end
+	fid = fopen([handles.path_tmp 'isoc_pairs.txt'], 'wt');
+	if (fid < 0)
+		errordlg(['Error writing file ' handles.path_tmp 'isoc_pairs.txt'], 'Error')
+		return
+	end
+	fprintf(fid, '>HAVE_INCLUDES +proj=longlat\n');
+	for (k = 1:numel(list))
+		fprintf(fid, '> INCLUDE=%s\n', list{k});
+	end
+	fclose(fid);
+
+	% Now load the selected Isochrons
+	load_xyz(guidata(handles.hMirFig), [handles.path_tmp 'isoc_pairs.txt'], 'Isochron')
+
+% -----------------------------------------------------------------------------------
+function figure1_KeyPressFcn(hObject, eventdata)
+	handles = guidata(hObject);
+	if isequal(get(hObject,'CurrentKey'),'escape')
+		delete(handles.figure1);
+	end
+
+% --------------------------------------------------------------------------------------
+function h1 = isoc_selector_LayoutFcn(h1)
+
+set(h1, 'Position',[520 608 241 191],...
+'Color',get(0,'factoryUicontrolBackgroundColor'),...
+'KeyPressFcn',@figure1_KeyPressFcn,...
+'MenuBar','none',...
+'Name','Isochorons selector',...
+'NumberTitle','off',...
+'Resize','off',...
+'HandleVisibility','callback',...
+'Tag','figure1',...
+'Visible','on');
+
+uicontrol('Parent',h1, 'Position',[10 10 69 150],...
+'BackgroundColor',[1 1 1],...
+'String',{'2'},...
+'Style','listbox',...
+'Value',1,...
+'Tag','listbox_isocs');
+
+uicontrol('Parent',h1, 'Position',[90 141 141 20],...
+'BackgroundColor',[1 1 1],...
+'String','',...
+'Style','popupmenu',...
+'TooltipString','Selct plate',...
+'Value',1,...
+'Tag','popup_plate1');
+
+uicontrol('Parent',h1, 'Position',[10 166 68 14], 'FontSize',9,...
+'String','Isochrons',...
+'Style','text',...
+'Tag','text1');
+
+uicontrol('Parent',h1, 'Position',[115 166 68 14], 'FontSize',9,...
+'String','Plate1',...
+'Style','text',...
+'Tag','text2');
+
+uicontrol('Parent',h1, 'Position',[90 71 142 20],...
+'BackgroundColor',[1 1 1],...
+'Style','popupmenu',...
+'TooltipString','Leave empty to select "Plate1 against all its neighbors"',...
+'Value',1,...
+'Tag','popup_plate2');
+
+uicontrol('Parent',h1, 'Position',[115 95 68 14], 'FontSize',9,...
+'String','Plate2',...
+'Style','text',...
+'Tag','text3');
+
+uicontrol('Parent',h1, 'Position',[151 10 80 22], 'FontSize',9, 'FontWeight','bold',...
+'Callback',{@isoc_selector_uiCB,h1,'push_OK_CB'},...
+'String','OK',...
+'Tag','push_OK');
+
+
+function isoc_selector_uiCB(hObject, evt, h1, callback_name)
+% This function is executed by the callback and than the handles is allways updated.
+	feval(callback_name,hObject,guidata(h1));
