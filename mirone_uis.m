@@ -29,6 +29,7 @@ function [H1,handles,home_dir] = mirone_uis(home_dir)
 %#function run_cmd line_operations world_is_not_round_enough cartas_militares ice_m magbarcode
 %#function obj_template_detect floodfill meca_studio inpaint_nans globalcmt guess_bin demets_od
 %#function vector_project tintol makescale mesher_helper update_gmt surface_options plot_composer
+%#function isoc_selector
 
 	% The following test will tell us if we are using the compiled or the ML version
 	try
@@ -595,6 +596,7 @@ uimenu('Parent',hMG,'Callback','telhometro(gcf)','Label','Vine-Mathiews Carpet')
 uimenu('Parent',hMG,'Callback','load_xyz(guidata(gcbo), ''nikles'', ''Isochrons'')','Label','Magnetic isochrons');
 h = uimenu('Parent',hMG,'Label','Custom isochrons', 'Tag','CustomIsoc');
 uimenu('Parent',h,'Callback','load_xyz(guidata(gcbo), [], ''IsochronsC'')','Label','Open file');
+uimenu('Parent',h,'Callback','isoc_selector(gcf)','Label','Interactive slection');
 uimenu('Parent',hMG,'Callback','magbarcode','Label','Magnetic Bar Code','Sep','on');
 
 h = uimenu('Parent',hMG,'Label','Import *.gmt/*.nc files(s)','Sep','on');
@@ -745,7 +747,7 @@ end
 %uimenu('Parent',h, 'Callback', 'update_gmt(guidata(gcbo))','Label','Update your GMT5','Sep','on')
 uimenu('Parent',h, 'Callback',['mirone(''FileOpenWebImage_CB'',guidata(gcbo),',...
 	' ''http://www2.clustrmaps.com/stats/maps-clusters/w3.ualg.pt-~jluis-mirone-world.jpg'',''nikles'');'],'Label','See visitors map','Sep','on');
-uimenu('Parent',h, 'Callback','about_box(guidata(gcbo),''Mirone Last modified at 26 Jan 2018'',''2.9.0dev'')','Label','About','Sep','on');
+uimenu('Parent',h, 'Callback','about_box(guidata(gcbo),''Mirone Last modified at 5 Feb 2018'',''2.9.0dev'')','Label','About','Sep','on');
 
 %% --------------------------- Build HANDLES and finish things here
 	handles = guihandles(H1);
