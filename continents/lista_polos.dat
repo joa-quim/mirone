@@ -15,7 +15,7 @@
 135.20  64.8    -2.408  10.30 !NAM<-EUR An5   (res = 3.121) Ate Joao Maia
 136.48  63.94   -3.963  16.37 !NAM<-EUR An5C  (res = 3.022) Sul Islandia
 135.60  65.9    -4.045  16.37 !NAM<-EUR An5C  (res = 3.048) Ate Joao Maia
-138.48  63.94   -3.963  19.60 !NAM<-EUR An6   (res = 3.022) Sul Islandia
+138.50  62.2    -4.619  19.60 !NAM<-EUR An6   (res = 3.022) Sul Islandia
 135.50  66.4    -4.807  19.60 !NAM<-EUR An6   (res = 6.564) Ate aos 74
 138.30  62.33   -6.152  27.47 !NAM<-EUR An9   (res = 3.297) Sul Islandia
 138.00  62.03   -7.277  33.25 !NAM<-EUR An13  (res = 4.814) Sul Islandia
@@ -72,7 +72,7 @@
 134.17  66.62  -14.104  57.70 !NAM<-IBE An26 (res = 2.383)
 140.78  69.59  -15.595  63.09 !NAM<-IBE An28 (res = 4.930)
 141.06  71.72  -16.269  64.30 !NAM<-IBE An29 (res = 2.026)
-138.51  61.18  -16.764  67.02 !NAM<-IBE An30 (res = 3.374)
+135.51  69.98  -16.564  67.02 !NAM<-IBE An30 (res = 6.381)
 137.12  77.51  -18.580  72.25 !NAM<-IBE An32 (res = 4.128)
 131.43  82.81  -21.334  78.00 !NAM<-IBE An33 (res = 3.643)
 113.28  85.23  -22.994  81.00 !NAM<-IBE An33r (res = 3.742)
