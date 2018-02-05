@@ -16,7 +16,7 @@ function varargout = plot_composer(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: plot_composer.m 10255 2018-02-05 01:21:02Z j $
+% $Id: plot_composer.m 10257 2018-02-05 11:43:17Z j $
 
 	handMir = varargin{1};
 	if (handMir.no_file)     % Stupid call with nothing loaded on the Mirone window
@@ -1447,7 +1447,7 @@ function [script, mex_sc, l, o] = do_psbasemap(script, mex_sc, l, o, pack, opt_R
 	if (~isempty(frmPen))
 		frmPen = [pb 'framePen' pf];		% Only write if it exists
 	end
-	script{l} = ['psbasemap ' pb 'lim' pf ' ' pb 'proj' pf ' ' pb 'frame' pf ' ' X0 ' ' Y0 opt_U opt_P ...
+	script{l} = ['gmt psbasemap ' pb 'lim' pf ' ' pb 'proj' pf ' ' pb 'frame' pf ' ' X0 ' ' Y0 opt_U opt_P ...
 	             ' ' pb 'deg_form' pf ' ' pb 'annot_size' pf ' ' frmPen ' ' pb 'frame_width' pf OK pb 'ps' pf];
 	l = l + 1;
 	if (do_MEX)
@@ -1495,7 +1495,7 @@ function [script, l, o, haveAlfa, used_grd, nameRGB] = do_grdimg(handMir, script
 			else
 				name_illum = [prefix '_intens.grd'];
 				script{l} = sprintf('\n%s -------- Compute the illumination grid', comm);    l=l+1;
-				script{l} = ['grdgradient ' pb 'grd' pf opt_M ' ' illumComm opt_N ' -G' name_illum ellips];    l=l+1;
+				script{l} = ['gmt grdgradient ' pb 'grd' pf opt_M ' ' illumComm opt_N ' -G' name_illum ellips];    l=l+1;
 				illum = [' -I' name_illum];
 			end
 			have_gmt_illum = true;     used_grd = true;
@@ -1511,16 +1511,16 @@ function [script, l, o, haveAlfa, used_grd, nameRGB] = do_grdimg(handMir, script
 
 		if (have_gmt_illum)                     % grdimage with illumination
 			script{l} = sprintf('\n%s -------- Plot the the base image using grdimage & illumination', comm);    l=l+1;
-			script{l} = ['grdimage ' pb 'grd' pf ' -C' pb 'cpt' pf illum ellips RJOK ' >> ' pb 'ps' pf];
+			script{l} = ['gmt grdimage ' pb 'grd' pf ' -C' pb 'cpt' pf illum ellips RJOK ' >> ' pb 'ps' pf];
 			l=l+1;
 			used_grd = true;
 		elseif (used_grd && ~have_gmt_illum)     % Simple grdimage call
 			script{l} = sprintf('\n%s -------- Plot the the base image using grdimage', comm);    l=l+1;
-			script{l} = ['grdimage ' pb 'grd' pf ' -C' pb 'cpt' pf ellips RJOK ' >> ' pb 'ps' pf];   l=l+1;
+			script{l} = ['gmt grdimage ' pb 'grd' pf ' -C' pb 'cpt' pf ellips RJOK ' >> ' pb 'ps' pf];   l=l+1;
 			used_grd = true;
 		else                                    % No grd used, use the R,G,B channels
 			script{l} = sprintf('\n%s -------- Plot the 3 RGB base images using grdimage', comm);    l=l+1;
-			script{l} = ['grdimage ' name_sc '_r.grd ' name_sc '_g.grd ' name_sc '_b.grd' ellips RJOK ' >> ' pb 'ps' pf];
+			script{l} = ['gmt grdimage ' name_sc '_r.grd ' name_sc '_g.grd ' name_sc '_b.grd' ellips RJOK ' >> ' pb 'ps' pf];
 			l=l+1;    
 		end
 	elseif (handMir.image_type == 20)
@@ -1528,7 +1528,7 @@ function [script, l, o, haveAlfa, used_grd, nameRGB] = do_grdimg(handMir, script
 	else    % We don't have a grid, so we need to fish the image and save it as R,G,B triplet
 		nameRGB = [prefix_ddir '_channel'];    name_sc = [prefix '_channel'];
 		script{l} = sprintf('\n%s -------- Plot the 3 RGB base images using grdimage', comm);    l=l+1;
-		script{l} = ['grdimage ' name_sc '_r.grd ' name_sc '_g.grd ' name_sc '_b.grd' ellips RJOK ' >> ' pb 'ps' pf];
+		script{l} = ['gmt grdimage ' name_sc '_r.grd ' name_sc '_g.grd ' name_sc '_b.grd' ellips RJOK ' >> ' pb 'ps' pf];
 		l = l + 1;
 	end
 
@@ -1637,7 +1637,7 @@ function [script, mex_sc, l, o] = do_pscoast(handles, handMir, script, mex_sc, l
 			end
 		end
 	elseif (~isempty(handles.opt_L))
-		script{l} = ['psbasemap ' handles.opt_L RJOK ' >> ' pb 'ps' pf];	l = l + 1;
+		script{l} = ['gmt psbasemap ' handles.opt_L RJOK ' >> ' pb 'ps' pf];	l = l + 1;
 	end
 
 % ------------------------------------------------------------------------------------------------------------
@@ -1667,14 +1667,14 @@ function [script, l, o, mex_sc] = do_pscoast_job(handles, handMir, script, l, o,
 		script{5} = [script{5}(1:ind+1) 'x' escala];	% DANGEROUS. IT RELIES ON THE INDEX 5
 	end
 
-	script{l} = ['pscoast ' handles.opt_psc ellips handles.opt_L opt_R opt_J ' -O -K >> ' pb 'ps' pf];	l = l + 1;
+	script{l} = ['gmt pscoast ' handles.opt_psc ellips handles.opt_L opt_R opt_J ' -O -K >> ' pb 'ps' pf];	l = l + 1;
 	if (~isempty(mex_sc))
 		mex_sc{o, 1} = ['pscoast ' handles.opt_psc ellips handles.opt_L opt_R opt_J ' -O -K'];			o = o + 1;
 	end
 
 	if (numel(opt_R) > 3)		% We need a trick to reset -R & -J so that the remaining commands can rely on gmt.history
 		script{l} = sprintf('\n%s -------- Fake command used only to reset the -R & -J to their script defaults.', comm);    l=l+1;
-		script{l} = ['psxy ' pb 'lim' pf ' ' pb 'proj' pf ' -T -O -K >> ' pb 'ps' pf];
+		script{l} = ['gmt psxy ' pb 'lim' pf ' ' pb 'proj' pf ' -T -O -K >> ' pb 'ps' pf];
 		l = l + 1;
 	end
 
@@ -1713,7 +1713,7 @@ function [script, mex_sc, l, o, used_grd, hLine, hText] = do_contour(handMir, sc
 			fclose(fid);
 			if (~isempty(handMir.grdname))
 				script{l} = sprintf('\n%s ---- Plot contours', comm);	l=l+1;
-				script{l} = ['grdcontour ' pb 'grd' pf ' -C' [prefix '_cont.dat'] ellips RJOK ' >> ' pb 'ps' pf];
+				script{l} = ['gmt grdcontour ' pb 'grd' pf ' -C' [prefix '_cont.dat'] ellips RJOK ' >> ' pb 'ps' pf];
 				l = l + 1;
 			end
 			if (do_MEX)
@@ -1778,7 +1778,7 @@ function [script, mex_sc, l, o, hLine] = do_symbols(handMir, script, mex_sc, l, 
 		fid = fopen(name,'wt');
 		fprintf(fid,'%.5f\t%.5f\n',[symbols.x{:}; symbols.y{:}]);
 		script{l} = sprintf('\n%s ---- Plot symbols', comm);    l = l + 1;
-		script{l} = ['psxy ' name_sc ' -S' symbols.Marker num2str(symbols.Size{1}) 'p' opt_G ...
+		script{l} = ['gmt psxy ' name_sc ' -S' symbols.Marker num2str(symbols.Size{1}) 'p' opt_G ...
 					 opt_W ellips RJOK ' >> ' pb 'ps' pf];		l = l + 1;
 		fclose(fid);
 		if (do_MEX)
@@ -1788,7 +1788,7 @@ function [script, mex_sc, l, o, hLine] = do_symbols(handMir, script, mex_sc, l, 
 	elseif (ns == 1 && numel(symbols.Size) == 1)	% We have only one symbol
 		script{l} = sprintf('\n%s  ---- Plot symbol', comm);		l=l+1;
 		script{l} = [sprintf('echo %.6f\t%.6f',symbols.x{1},symbols.y{1}) ' | ' ...
-					'psxy -S' symbols.Marker num2str(symbols.Size{1}) 'p' opt_G ...
+					'gmt psxy -S' symbols.Marker num2str(symbols.Size{1}) 'p' opt_G ...
 					opt_W ellips RJOK ' >> ' pb 'ps' pf];		l = l + 1;
 		if (do_MEX)
 			mex_sc{o,1} = ['psxy -S' symbols.Marker num2str(symbols.Size{1}) 'p' opt_G opt_W ellips KORJ];
@@ -1824,7 +1824,7 @@ function [script, mex_sc, l, o, hLine] = do_symbols(handMir, script, mex_sc, l, 
 		fclose(fid);
 		script{l} = ' ';                        	l = l + 1;
 		script{l} = [comm ' ---- Plot symbols'];    l = l + 1;
-		script{l} = ['psxy ' name_sc ellips opt_len_unit RJOK ' -S >> ' pb 'ps' pf];		l = l + 1;
+		script{l} = ['gmt psxy ' name_sc ellips opt_len_unit RJOK ' -S >> ' pb 'ps' pf];		l = l + 1;
 		if (do_MEX)
 			mex_sc{o,1} = ['psxy -S "' dest_dir name_sc '"' ellips opt_len_unit KORJ];		o = o + 1;
 		end
@@ -1889,7 +1889,7 @@ function [script, mex_sc, l, o, hLine, hPatch] = do_meca(handMir, script, mex_sc
 			end
 			fclose(fid);
 			script{l} = sprintf('\n%s ---- Plot Focal Mechanisms', comm);   l=l+1;
-			script{l} = ['psmeca ' opt_S opt_C ' ' name_sc ellips RJOK ' >> ' pb 'ps' pf];		l = l + 1;
+			script{l} = ['gmt psmeca ' opt_S opt_C ' ' name_sc ellips RJOK ' >> ' pb 'ps' pf];		l = l + 1;
 			if (do_MEX)
 				mex_sc{o,1} = ['psmeca "' dest_dir name_sc '"' opt_S opt_C ' ' ellips KORJ];	o = o + 1;
 			end
@@ -1962,7 +1962,7 @@ function [script, l, haveAlfa, hPatch] = do_countries(handMir, script, l, pack, 
 			script{l} = sprintf('\n%s ---- Plot countries. NOTE: THIS IS NOT A GMT PROGRAM', comm);   l=l+1;
 			ct_with_pato = getappdata(handMir.figure1,'AtlasResolution');
 			script{l} = [cd filesep 'country_extract -P' name ' ' ct_with_pato ' -C | ',...
-					'psxy -W0.5p ' ellips RJOK ' >> ' pb 'ps' pf];
+					'gmt psxy -W0.5p ' ellips RJOK ' >> ' pb 'ps' pf];
 			l = l + 1;
 			hPatch = setxor(hPatch, hAtlas);       % AtlasHand is processed, so remove it from handles list
 		end
@@ -1992,7 +1992,7 @@ function [script, mex_sc, l, o, hPatch, xx, yy] = do_bargraphs(handMir, script, 
 			fclose(fid);
 			script{l} = sprintf('\n%s ---- Plot Bar graph', comm);		l = l + 1;
 			opt_S = sprintf(' -Sb%fu', bar_W);
-			script{l} = ['psxy ' name_sc opt_len_unit opt_S RJOK cor ' >> ' pb 'ps' pf];	l = l + 1;
+			script{l} = ['gmt psxy ' name_sc opt_len_unit opt_S RJOK cor ' >> ' pb 'ps' pf];	l = l + 1;
 			if (do_MEX)
 				mex_sc{o,1} = ['psxy ' opt_len_unit opt_S KORJ cor];
 				mex_sc{o,2} = [xx(:) yy(:)];		o = o + 1;
@@ -2022,7 +2022,7 @@ function [script, mex_sc, l, o, hPatch] = do_histograms(handMir, script, mex_sc,
 			opt_G = sprintf(' -G%d/%d/%d', round(FillColor * 255));
 			opt_W = sprintf(' -W%g', bar_W);
 			opt_L = sprintf(' -L%gp,%d/%d/%d', LineWidth, round(EdgeColor * 255));
-			script{l} = ['pshistogram ' name_sc opt_len_unit opt_G opt_W opt_L RJOK ' -F >> ' pb 'ps' pf];
+			script{l} = ['gmt pshistogram ' name_sc opt_len_unit opt_G opt_W opt_L RJOK ' -F >> ' pb 'ps' pf];
 			l = l + 1;
 			if (do_MEX)
 				mex_sc{o,1} = ['pshistogram -F ' opt_len_unit opt_G opt_W opt_L KORJ];
@@ -2103,7 +2103,7 @@ function [script, mex_sc, l, o] = do_patches(handMir, script, mex_sc, l, o, pack
 		end
 		if (writeScript),	fclose(fid);	end
 		script{l} = sprintf('\n%s ---- Plot closed AND colored polygons', comm);		l = l + 1;
-		script{l} = ['psxy ' name_sc ellips opt_len_unit RJOK ' >> ' pb 'ps' pf];		l = l + 1;
+		script{l} = ['gmt psxy ' name_sc ellips opt_len_unit RJOK ' >> ' pb 'ps' pf];		l = l + 1;
 	end
 
 % ------------------------------------------------------------------------------------------------------------
@@ -2120,7 +2120,7 @@ function [script, mex_sc, l, o, hLine] = do_psimage(handles, script, mex_sc, l, 
 		end
 		xx = get(hLine(i),'XData');		yy = get(hLine(i),'YData');
 		unit = handles.which_unit(1);
-		script{l} = sprintf('psimage %s %s -Dx%.4g%c/%.4g%c+w%.4g%c >> %sps%s', cs_fname, RJOK, xx(1), ...
+		script{l} = sprintf('gmt psimage %s %s -Dx%.4g%c/%.4g%c+w%.4g%c >> %sps%s', cs_fname, RJOK, xx(1), ...
 		                    unit, yy(1), unit, xx(3)-xx(2), unit, pb, pf);		l = l + 1;
 		if (do_MEX)
 			mex_sc{o,1} = sprintf('psimage %s %s -Dx%.4g%c/%.4g%c+w%.4g%c', cs_fname, KORJ, xx(1), ...
@@ -2152,7 +2152,7 @@ function [script, mex_sc, l, o, hLine] = do_custom_symbols(handles, script, mex_
 		x0 = x_min + sym_width/2;	y0 = y_min + (y_max - y_min)/2;
 		m_width = handles.x_max - handles.x_min;
 		w = sym_width / m_width * str2double(handles.map_width);	% OK, and if handles.which_unit(1) is not cm?
-		script{l} = sprintf('echo %0.10g %0.10g | psxy %s -Sk%s/%f%c >> %sps%s', ...
+		script{l} = sprintf('echo %0.10g %0.10g | gmt psxy %s -Sk%s/%f%c >> %sps%s', ...
 							x0,y0, RJOK, cs_fname, w, handles.which_unit(1), pb, pf);		l = l + 1;
 		if (do_MEX)
 			mex_sc{o,1} = sprintf('psxy %s -Sk"%s"/%f%c', KORJ, cs_fname, w, handles.which_unit(1));
@@ -2206,7 +2206,7 @@ function [script, mex_sc, l, o, hLine] = do_lines(script, mex_sc, l, o, pack, hL
 		fclose(fid);
 		cor = round(LineColor(j,:) * 255);
 		cor = [num2str(cor(1)) '/' num2str(cor(2)) '/' num2str(cor(3))];
-		script{l} = ['psxy ' name_sc ellips ' -W' num2str(LineWidth(j)) 'p,' ...
+		script{l} = ['gmt psxy ' name_sc ellips ' -W' num2str(LineWidth(j)) 'p,' ...
 					 cor LineStyle_gmt{j} opt_len_unit RJOK ' >> ' pb 'ps' pf];	l = l + 1;
 		if (do_MEX)
 			mex_sc{o,1} = ['psxy "' dest_dir name_sc '"' ellips ' -W' num2str(LineWidth(j)) 'p,' cor LineStyle_gmt{j} opt_len_unit KORJ];
@@ -2290,7 +2290,7 @@ function [script, mex_sc, l, o, hText] = do_text(script, mex_sc, l, o, pack, hTe
 			% Quick and dirty patch for when opt_G is a cell of cells and it than crash below on sprintf
 			if (~isempty(fcolor_s{i})),	fsize{i} = [fsize{i} ',' fcolor_s{i}];	end
 			opt_F = sprintf('-F+f%s+a%g+j%s', fsize{i}, angle{i}, HV);
-			script{l} = sprintf('echo %.5f %.5f %s | pstext %s %s %s >> %sps%s', pos{i}(1), pos{i}(2), str{i}(1,:), opt_F, ellips, RJOK, pb, pf);
+			script{l} = sprintf('echo %.5f %.5f %s | gmt pstext %s %s %s >> %sps%s', pos{i}(1), pos{i}(2), str{i}(1,:), opt_F, ellips, RJOK, pb, pf);
 			l = l + 1;
 			if (do_MEX)
 				mex_sc{o,1} = sprintf('pstext %s %s %s', ellips, opt_F, KORJ);
@@ -2301,7 +2301,7 @@ function [script, mex_sc, l, o, hText] = do_text(script, mex_sc, l, o, pack, hTe
 				ext = get(hText(i), 'Extent');
 				for (k = 2:this_nLines)
 					yPos = pos{i}(2) - (k - 1) * (ext(4) / this_nLines);
-					script{l} = sprintf('echo %.5f %.5f %s | pstext %s %s %s >> %sps%s', pos{i}(1), yPos, str{i}(k,:), opt_F, ellips, RJOK, pb, pf);
+					script{l} = sprintf('echo %.5f %.5f %s | gmt pstext %s %s %s >> %sps%s', pos{i}(1), yPos, str{i}(k,:), opt_F, ellips, RJOK, pb, pf);
 					l = l + 1;
 					if (do_MEX)
 						mex_sc{o,1} = sprintf('pstext %s %s %s', ellips, opt_F, KORJ);
@@ -2343,7 +2343,7 @@ function [script, mex_sc, l, o] = do_colorbar(handles, handMir, script, mex_sc, 
 		YTick = get(axHandle(1),'YTick');		bInt = YTick(2) - YTick(1);		% To use in -B option
 		opt_D = sprintf(' -D%.2f%c/%.2f%c/%.2f%c/%.2f%c',mapW+marg,unitC, cbH/2,unitC, cbH,unitC, cbW,unitC);
 		script{l} = sprintf('\n%s ---- Plot colorbar ---', comm);   l=l+1;
-		script{l} = ['psscale' opt_D ' -S -C' pb 'cpt' pf ' -B' num2str(bInt) ' -O -K >> ' pb 'ps' pf];
+		script{l} = ['gmt psscale' opt_D ' -S -C' pb 'cpt' pf ' -B' num2str(bInt) ' -O -K >> ' pb 'ps' pf];
 		l = l + 1;
 		if (do_MEX)
 			mex_sc{o,1} = sprintf('psscale %s -S -C"%s" -B%g -O -K', opt_D, sc_cpt, bInt);	o = o + 1;
@@ -2400,7 +2400,7 @@ function [script, mex_sc, l, o] = do_magbars(handMir, script, mex_sc, l, o, pack
 		opt_J = sprintf(' %s0.6c', opt_J(1:i));
 		if (strcmpi(script{saveBind}(end), 'n')),	script{saveBind}(end) = [];		end		% Don't want top frame line
 		script{l} = sprintf('\n%s ---- Plot the magnetic reversals bars (positives only)', comm);   l=l+1;
-		script{l} = ['psxy ' name_sc opt_R opt_J Y0 ' -O -K >> ' pb 'ps' pf];
+		script{l} = ['gmt psxy ' name_sc opt_R opt_J Y0 ' -O -K >> ' pb 'ps' pf];
 		if (do_MEX)
 			mex_sc{o,1} = ['psxy ' dest_dir name_sc opt_R opt_J Y0 ' -O -K'];
 		end
