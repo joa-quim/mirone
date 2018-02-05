@@ -16,7 +16,7 @@ function varargout = plot_composer(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: plot_composer.m 10217 2018-01-24 21:33:46Z j $
+% $Id: plot_composer.m 10255 2018-02-05 01:21:02Z j $
 
 	handMir = varargin{1};
 	if (handMir.no_file)     % Stupid call with nothing loaded on the Mirone window
@@ -192,7 +192,7 @@ function varargout = plot_composer(varargin)
 	handles.version7 = handMir.version7;
 	handles.hRect = zeros(N_figs, 1) * NaN;
 	if (strncmp(computer, 'PC', 2)),	handles.script_type = 'bat';
-	else								handles.script_type = 'bash';
+	else,								handles.script_type = 'bash';
 	end
 	
 	% These are for Mirone calls not barf
@@ -504,7 +504,7 @@ function grid_figs(handles, N_figs)
 		elseif (N_figs == 7),	str = {'4x2'; '2x4'};
 		elseif (N_figs == 8),	str = {'4x2'; '2x4'};
 		elseif (N_figs == 9),	str = {'3x3'; '5x2'; '2x5'};
-		else					str = {'5x2'; '2x5'};
+		else,					str = {'5x2'; '2x5'};
 		end
 		str{end+1} = 'cascade';
 		set(handles.popup_gridFigs, 'Str', str, 'Vis', 'on')
@@ -1071,7 +1071,7 @@ function [hLine, res, opt_W, type_p, type_r] = find_psc_stuff(hLine)
 			res = '-Di';            % TEMPORARY SOLUTION UNTIL I FIND HOW TO FIND THE HIGHEST COMMON RES
 		end
 		if (~isempty(res_c)),   opt_W = res_c(5:end);
-		else                    opt_W = [];
+		else,                   opt_W = [];
 		end
 	end
 
@@ -1107,7 +1107,7 @@ function push_OK_CB(hObject, handles)
 	hAlfaPatch = [];
 
 	if (strcmp(sc,'bat')),		comm = 'REM ';		pb = '%';	pf = '%';
-	else						comm = '# ';		pb = '$';	pf = '';
+	else,						comm = '# ';		pb = '$';	pf = '';
 	end
 	if (strcmp(ellips,'WGS-84'))     % It is the default, so don't use any
 		ellips = '';
@@ -1115,7 +1115,7 @@ function push_OK_CB(hObject, handles)
 		ellips = [' --ELLIPSOID=' ellips];
 	end
 
-	opt_len_unit   = ' --PROJ_LENGTH_UNIT=point';
+	opt_len_unit   = '';%' --PROJ_LENGTH_UNIT=point';
 	opt_frameWidth = ' --MAP_FRAME_WIDTH=0.15c';
 	frmPen = '';
 	if (handMir.IamXY),		frmPen = '--MAP_FRAME_PEN=1.25p';	end
@@ -1158,7 +1158,7 @@ function push_OK_CB(hObject, handles)
 		elseif (strncmp(opt_J, '-JX', 3) && isempty(handles.projection_str{N}))		% Linear, has the freedom to deform
 			opt_J = [opt_J(1:end-1) get(handles.edit_mapHeight,'String') handles.which_unit(1)];
 		end
-		pack.KORJ = [' -K -O -R ' opt_J];
+		pack.KORJ = [' -K -O ' handles.opt_R{N} ' ' opt_J];
 		opt_B = getappdata(handles.hRect(N), 'opt_B');
 		if (isempty(opt_B))
 			opt_B = ' -Blbrt --MAP_FRAME_TYPE=plain --MAP_FRAME_PEN=faint';		% Trick to not plot any frame
@@ -1169,7 +1169,7 @@ function push_OK_CB(hObject, handles)
 
 		if (handMir.geog == 1),		opt_deg = '--FORMAT_GEO_MAP=ddd:mm:ss';
 		elseif (handMir.geog == 2),	opt_deg = '--FORMAT_GEO_MAP=+ddd:mm:ss';
-		else						opt_deg = '';		% Non geog
+		else,						opt_deg = '';		% Non geog
 		end
 
 		opt_U = '';
@@ -1196,14 +1196,14 @@ function push_OK_CB(hObject, handles)
 		[script, mex_sc, l, o] = do_psbasemap(script, mex_sc, l, o, pack, handles.opt_R{N}, opt_J, opt_B, ...
 			X0, Y0, opt_U, opt_P, opt_deg, opt_annotsize, frmPen, opt_frameWidth, N);
 
-		[script, mex_sc, l, o, haveAlfa, used_grd, nameRGB] = do_grdimg(handMir, script, mex_sc, pack, l, o);
+		[script, l, o, haveAlfa, used_grd, nameRGB] = do_grdimg(handMir, script, pack, l, o);
 		hWait = [];
 		if (pack.do_MEX && handMir.image_type ~= 20)
 			[mex_sc, o, hWait] = do_grdimg_MEX(handMir, mex_sc, o, pack.KORJ);
 		end
 
 		% If we have used a grid, build the GMT palette
-		[script, mex_sc, l, o, sc_cpt] = do_palette(handMir, script, mex_sc, l, o, pack, used_grd, id_cpt);
+		[script, l, o, sc_cpt] = do_palette(handMir, script, l, o, pack, used_grd, id_cpt);
 
 		% Coastlines section
 		[script, mex_sc, l, o] = do_pscoast(handles, handMir, script, mex_sc, l, o, pack, handles.opt_R{1}, opt_J);
@@ -1271,7 +1271,7 @@ function push_OK_CB(hObject, handles)
 		script{l} = sprintf('\nset lim=%s', opt_R);			l = l + 1;
 		script{l} = sprintf('set proj=-Jx1c');				l = l + 1;
 		if (want_ruler),	ruler = '-Ba5f1WS --MAP_FRAME_TYPE=inside';
-		else				ruler = '-Blbrt';
+		else,				ruler = '-Blbrt';
 		end
 		if (~pack.do_MEX)
 			if (want_ruler)
@@ -1300,7 +1300,7 @@ function push_OK_CB(hObject, handles)
 
 	% ------------------------------------- WRITE THE SCRIPT ---------------------------------------
 	% First do some eventual cleaning
-	if (~isempty(handMir.grdname) && ~used_grd),	script(id_grd) = [];	end;
+	if (~isempty(handMir.grdname) && ~used_grd),	script(id_grd) = [];	end
 
 	% Remove empties at the end of 'script' to not screw the last command patching below
 	k = numel(script);
@@ -1458,7 +1458,7 @@ function [script, mex_sc, l, o] = do_psbasemap(script, mex_sc, l, o, pack, opt_R
 	end
 
 % ------------------------------------------------------------------------------------------------------------
-function [script, mex_sc, l, o, haveAlfa, used_grd, nameRGB] = do_grdimg(handMir, script, mex_sc, pack, l, o)
+function [script, l, o, haveAlfa, used_grd, nameRGB] = do_grdimg(handMir, script, pack, l, o)
 % Deal with the grdimage & grdgradient part
 
 	[comm, pb, pf, do_MEX, ellips, RJOK, KORJ, dest_dir, prefix, prefix_ddir, opt_len_unit] = unpack(pack);
@@ -1533,7 +1533,7 @@ function [script, mex_sc, l, o, haveAlfa, used_grd, nameRGB] = do_grdimg(handMir
 	end
 
 % ------------------------------------------------------------------------------------------------------------
-function [script, mex_sc, l, o, sc_cpt] = do_palette(handMir, script, mex_sc, l, o, pack, used_grd, id_cpt)
+function [script, l, o, sc_cpt] = do_palette(handMir, script, l, o, pack, used_grd, id_cpt)
 % ...
 	if (used_grd || strcmp(get(handMir.PalAt,'Check'),'on') || strcmp(get(handMir.PalIn,'Check'),'on') )
 		[comm, pb, pf, do_MEX, ellips, RJOK, KORJ, dest_dir, prefix, prefix_ddir, opt_len_unit] = unpack(pack);
@@ -1855,7 +1855,7 @@ function [script, mex_sc, l, o, hLine, hPatch] = do_meca(handMir, script, mex_sc
 			end
 			n_cols = size(psmeca_line,2);
 			if (n_cols == 10 || n_cols == 14),		with_label = 1;
-			else									with_label = 0;
+			else,									with_label = 0;
 			end
 			name = [prefix_ddir '_meca.dat'];   name_sc = [prefix '_meca.dat'];     opt_C = '';
 			fid = fopen(name,'wt');
@@ -1869,7 +1869,7 @@ function [script, mex_sc, l, o, hLine, hPatch] = do_meca(handMir, script, mex_sc
 				for (k=1:size(psmeca_line,1))
 					fprintf(fid,format,psmeca_line(k,1:9));
 					if (with_label),	fprintf(fid,'\t%s\n',num2str(psmeca_line(k,10)));
-					else				fprintf(fid,'\n');
+					else,				fprintf(fid,'\n');
 					end
 				end
 			elseif (n_cols == 13 || n_cols == 14)	% CMT convention
@@ -1883,7 +1883,7 @@ function [script, mex_sc, l, o, hLine, hPatch] = do_meca(handMir, script, mex_sc
 				for (k=1:size(psmeca_line,1))
 					fprintf(fid,format,psmeca_line(k,1:13));
 					if (with_label),	fprintf(fid,'\t%s\n',num2str(psmeca_line(k,14)));
-					else				fprintf(fid,'\n');
+					else,				fprintf(fid,'\n');
 					end
 				end
 			end
@@ -2319,7 +2319,7 @@ function [script, mex_sc, l, o] = do_colorbar(handles, handMir, script, mex_sc, 
 	if (strcmp(get(handMir.PalAt,'Check'),'on') || strcmp(get(handMir.PalIn,'Check'),'on'))
 		[comm, pb, pf, do_MEX] = unpack(pack);
 		if (strcmp(get(handMir.PalAt,'Check'),'on')),	axHandle = get(handMir.PalAt,'UserData');
-		else											axHandle = get(handMir.PalIn,'UserData');
+		else,											axHandle = get(handMir.PalIn,'UserData');
 		end
 
 		if (isa(axHandle, 'cell')),		axHandle = axHandle{1};		end		% After the ML great breakage it may be a cell
@@ -2480,15 +2480,15 @@ function symbol = get_symbols(hand)
 	symbol.Marker = get(hand,'Marker');
 	zz = get(hand,'MarkerSize');
 	if (~iscell(zz)),   symbol.Size = num2cell(zz,1);
-	else				symbol.Size = zz;
+	else,				symbol.Size = zz;
 	end
 	zz = get(hand,'MarkerFaceColor');
 	if (~iscell(zz)),	symbol.FillColor = num2cell(zz(:),1);
-	else				symbol.FillColor = zz;
+	else,				symbol.FillColor = zz;
 	end
 	zz = get(hand,'MarkerEdgeColor');
 	if (~iscell(zz)),	symbol.EdgeColor = num2cell(zz(:),1);
-	else				symbol.EdgeColor = zz;
+	else,				symbol.EdgeColor = zz;
 	end
 
 	symbol.Marker = char(symbol.Marker);
@@ -2534,11 +2534,11 @@ function script = write_group_symb(prefix,prefix_ddir,comm,pb,pf,ellips,symbols,
 		fid = fopen(name,'wt');
 		fc = symbols.FillColor{n(i)};		ec = symbols.EdgeColor{n(i)};
 		if (ischar(fc)),	opt_G = '';
-		else				opt_G = sprintf(' -G%d/%d/%d', round(fc * 255));
+		else,				opt_G = sprintf(' -G%d/%d/%d', round(fc * 255));
 		end
 		if (ischar(ec))
 			if (strcmp(ec, 'none')),	opt_W = '';
-			else						opt_W = ' -W1p';		% 'auto'. WRONG. Should be line's 'Color' property
+			else,						opt_W = ' -W1p';		% 'auto'. WRONG. Should be line's 'Color' property
 			end
 		else
 			opt_W = sprintf(' -W1p,%d/%d/%d', round(ec * 255));
