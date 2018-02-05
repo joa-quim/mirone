@@ -426,6 +426,7 @@ src_figs/image_histo.m -text
 src_figs/imageresize.m -text
 src_figs/implanting_img.m -text
 src_figs/inpaint_nans.m -text
+src_figs/isoc_selector.m -text
 src_figs/line_operations.m -text
 src_figs/listbox_message.m -text
 src_figs/mag_synthetic.m -text
