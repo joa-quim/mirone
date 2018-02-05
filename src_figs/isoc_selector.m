@@ -16,7 +16,11 @@ function varargout = isoc_selector(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: isoc_selector.m 10258 2018-02-05 17:26:41Z j $
+% $Id: isoc_selector.m 10259 2018-02-05 17:42:39Z j $
+
+	if (isempty(varargin))
+		errordlg('ISOC_SELECTOR: wrong number of input arguments.','Error'),	return
+	end
 
 	[got_it, pars] = aux_funs('inquire_OPTcontrol', 'MIR_CUSTOM_ISOCS');
 	if (~got_it)
@@ -33,23 +37,23 @@ function varargout = isoc_selector(varargin)
 	hObject = figure('Tag','figure1','Visible','off');
 	isoc_selector_LayoutFcn(hObject);
 	handles = guihandles(hObject);
-	move2side(hObject,'right');
-
-	if (~isempty(varargin))
-		handlesMir = guidata(varargin{1});
-		handles.path_tmp = handlesMir.path_tmp;
-		handles.isoc_dir = isoc_dir;
-		handles.hMirFig = handlesMir.figure1;
-	else		% Just for testing purposes
-		handles.isoc_dir = 'C:\SVN\mironeWC\data\isocs\';
-		handles.path_tmp = 'v:\tmp\';
+	handlesMir = guidata(varargin{1});
+	if (handlesMir.IamCompiled)
+		move2side(hObject,'center');
+		WindowAPI(hObject, 'TopMost')
+	else
+		move2side(handlesMir.figure1, hObject,'right');
 	end
 
-	set(handles.listbox_isocs, 'Str', {'2' '2a' '3' '3a' '4' '4a' '5' '5c' '6' '9' '13' '18' '20' '21' ...
+	handles.path_tmp = handlesMir.path_tmp;
+	handles.isoc_dir = isoc_dir;
+	handles.hMirFig = handlesMir.figure1;
+
+	set(handles.listbox_isocs, 'Str', {'0' '2' '2a' '3' '3a' '4' '4a' '5' '5c' '6' '9' '13' '18' '20' '21' ...
 		'22' '23' '24' '25' '26' '28' '29' '30' '31' '32' '33' '33r' 'M0' 'M1' 'M5' 'M10' 'M16' 'M22' 'M25'})
 	plates = {'' 'Africa' 'Eurasia' 'Greenland' 'Iberia' 'Jan Mayen' 'Lomonosov' 'Mohns' 'North America' 'XX1' 'XX2' 'XXX'};
 	set(handles.popup_plate1, 'Str', plates, 'Val', 9)
-	set(handles.popup_plate2, 'Str', plates, 'Val', 1)
+	set(handles.popup_plate2, 'Str', plates, 'Val', 2)
 	guidata(hObject, handles);
 	set(hObject,'Visible','on');
 	if (nargout),	varargout{1} = hObject;		end
@@ -142,8 +146,7 @@ set(h1, 'Position',[520 608 241 191],...
 'NumberTitle','off',...
 'Resize','off',...
 'HandleVisibility','callback',...
-'Tag','figure1',...
-'Visible','on');
+'Tag','figure1');
 
 uicontrol('Parent',h1, 'Position',[10 10 69 150],...
 'BackgroundColor',[1 1 1],...
