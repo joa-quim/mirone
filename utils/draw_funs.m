@@ -25,7 +25,7 @@ function varargout = draw_funs(hand, varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: draw_funs.m 10222 2018-01-25 15:45:30Z j $
+% $Id: draw_funs.m 10264 2018-02-07 01:39:38Z j $
 
 % A bit of strange tests but they are necessary for the cases when we use the new feval(fun,varargin{:}) 
 opt = varargin{1};		% function name to evaluate (new) or keyword to select one (old form)
@@ -1692,7 +1692,8 @@ function [vel, azim] = compute_EulerVel(alat,alon,plat,plon,omega, opt)
 	vlat = -sin(alat).*cos(alon).*x-sin(alat).*sin(alon).*y + cos(alat).*z;
 	azim = 90 - atan2(vlat,vlon) / D2R;
 
-	if (azim < 0),		azim = azim + 360;		end		% Give allways the result in the 0-360 range
+	ind = (azim < 0);
+	if (any(ind)),		azim(ind) = azim(ind) + 360;	end		% Give allways the result in the 0-360 range
 
 	x = sin(alat).*sin(plat) + cos(alat).*cos(plat).*cos(plon-alon);
 	delta = acos(x);
@@ -3080,7 +3081,7 @@ function save_GMT_DB_asc(h, fname)
 		if (isempty(getappdata(h(k), 'edited'))),	continue,	end		% Skip because it was not modified
 		GSHHS_str = getappdata(h(k),'GSHHS_str');
 		if (k == 1 && ~isempty(GSHHS_str))		% Write back the magic string that allows us to recognize these type of files
-			fprintf(fid,'# $Id: draw_funs.m 10222 2018-01-25 15:45:30Z j $\n#\n%s\n#\n', GSHHS_str);
+			fprintf(fid,'# $Id: draw_funs.m 10264 2018-02-07 01:39:38Z j $\n#\n%s\n#\n', GSHHS_str);
 		end
 		hdr = getappdata(h(k), 'LineInfo');
 		x = get(h(k), 'XData');			y = get(h(k), 'YData');
