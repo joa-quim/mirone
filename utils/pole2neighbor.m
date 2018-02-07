@@ -57,7 +57,7 @@ function varargout = pole2neighbor(obj, evt, hLine, mode, opt, varargin)
 % 				[hNext, is_pole_new] = compute_pole2neighbor_newStage(hNext);
 % 				nNewPoles = nNewPoles + is_pole_new;
 % 			end
-			
+
 			hLine0 = find_ridge(hLines_cross_1(1));
 			compute_pole2neighbor_newStage(hLine0);
 			for (k = 1:numel(hLines_cross_1))
@@ -270,9 +270,11 @@ function swap_lineInfo(hLine)
 
 % -----------------------------------------------------------------------------------------------------------------
 function [out1, out2] = get_plate_stages(hLine)
-% Get the collection of stage poles for the two plates pair
+% Get the collection of stage poles for the plates pair
 	%pt_ref = [-44.37327966 27.08623588 152.03];	% Origin Point where to start the flow lines. Last value is oldest age 
 	%pt_ref = [-29.71789163 39.51538935 81.0];
+	handles = guidata(hLine);
+
 	pole_fin = parse_finite_pole(getappdata(hLine, 'LineInfo'));
 	if (isempty(pole_fin))
 		errordlg('This isochron has no Finite pole associated so I can''t find the ridge.', 'Error'),	return
@@ -308,17 +310,17 @@ function [out1, out2] = get_plate_stages(hLine)
 		out2(1,5) = -out2(1,5);		out2(1,11) = -out2(1,11);		out2(1,17) = -out2(1,17);
 	end
 
-	fnome1 = 'C:\SVN\mironeWC\data\isocs\stages_tmp_A.stg';
+	fnome1 = [handles.path_tmp 'stages_tmp_A.stg'];
 	fid = fopen(fnome1,'w');
 	fprintf(fid, '#longitude	latitude	tstart(Ma)	tend(Ma)	angle(deg)\n');
 	fprintf(fid, '%.4f\t%.4f\t%.2f\t%.2f\t%.4f\n', out1(end:-1:1,13:17)');
 	fclose(fid);
-	fnome2 = 'C:\SVN\mironeWC\data\isocs\stages_tmp_B.stg';
+	fnome2 = [handles.path_tmp 'stages_tmp_B.stg'];
 	fid = fopen(fnome2,'w');
 	fprintf(fid, '#longitude	latitude	tstart(Ma)	tend(Ma)	angle(deg)\n');
 	fprintf(fid, '%.4f\t%.4f\t%.2f\t%.2f\t%.4f\n', out2(end:-1:1,13:17)');
 	fclose(fid);
-	fnome3 = 'C:\SVN\mironeWC\data\isocs\stages_tmp_AB.stg';
+	fnome3 = [handles.path_tmp 'stages_tmp_AB.stg'];
 	fid = fopen(fnome3,'w');
 	fprintf(fid, '#longitude	latitude	tstart(Ma)	tend(Ma)	angle(deg)\n');
 	fprintf(fid, '%.4f\t%.4f\t%.2f\t%.2f\t%.4f\n', out2(end:-1:1,1:5)');
@@ -340,10 +342,10 @@ function [out1, out2] = get_plate_stages(hLine)
 
 	[vel, azim] = draw_funs([], 'compute_EulerVel', flo.data(1:end-1,2),flo.data(1:end-1,1), ...
 	                        out2(:,2),out2(:,1),out2(:,5)./diff(flo.data(:,3)));
-	ecran(flo.data(1:end-1,3),vel*10, [title ' - Velocity'])	% In mm/Ma
-	ecran(flo.data(1:end-1,3),azim,   [title ' - Azimuth'])
+	ecran(flo.data(1:end-1,3), vel*10, [title ' - Velocity'])	% In mm/Ma
+	ecran(flo.data(1:end-1,3), azim,   [title ' - Azimuth'])
 
-% 	plot_arrows_flowline(hLine, flo.data(1,1), flo.data(1,2), azim)
+%  	plot_arrows_flowline(hLine, flo.data(1,1), flo.data(1,2), azim)
 
 % -----------------------------------------------------------------------------------------------------------------
 function plot_arrows_flowline(hLine, lon0, lat0, azims)
@@ -374,7 +376,7 @@ function plot_arrows_flowline(hLine, lon0, lat0, azims)
 		[lat2,lon2] = vreckon(lat, lon, mag, [azims(k) azims(k)], 1);		% Get arrow tip point
 		[xt, yt] = make_arrow([lon lon2; lat lat2], hscale, vscale, 10);
 
-		hVec = patch('XData',xt, 'YData', yt, 'FaceColor','r','EdgeColor', ...
+		hVec = patch('Parent',handles.axes1, 'XData',xt, 'YData', yt, 'FaceColor','r','EdgeColor', ...
 			handles.DefLineColor,'LineWidth',0.5,'Tag','Arrow');
 		ud.arrow_xy = [xt(:) yt(:)];		
 		ud.vFac = 1.3;			ud.headLength = 10;
@@ -1002,6 +1004,13 @@ function [new_lineInfo, is_pole_new] = set_stg_info(mode, hLine, lineInfo, plon,
 		end
 		is_pole_new = true;
 
+	elseif (strcmpi(mode,'stage0'))					% Set/Update the STAGE0 (half) pole
+		indS = strfind(lineInfo, 'STG0');			% See if we aready have an STG0
+		ind2 = strfind(lineInfo(indS(1):end), '"') + indS(1) - 1;
+		lineInfo(indS+4:ind2(2)) = '';
+		str = sprintf('"%.4f %.4f %.2f %.2f %.4f" ', plon, plat, p_closest, p, omega);
+		new_lineInfo = [lineInfo(1:indS+3) str lineInfo(indS+5:end)];
+
 	else											% Set/update the Best-Fit pole info
 		indS = strfind(lineInfo, 'STG');
 
@@ -1048,24 +1057,18 @@ function stage = get_true_stg (hLineA, hLineB)
 	pA = parse_finite_pole(lineInfoA);
 	pB = parse_finite_pole(lineInfoB);
 
-	indS = strfind(lineInfoA, 'STG0"');			% See if we already have one true (half) STG
-	if (isempty(indS))							% No, create one
-		stage = finite2stages([pA.lon; pB.lon], [pA.lat; pB.lat], [pA.ang; pB.ang], [pA.age; pB.age], 2, 1);
+	% 6/2/2018. Force to always recompute STG0, otherwise a bad STG0 would never be recomputed
+ 	indS = strfind(lineInfoA, 'STG0"');			% See if we already have one true (half) STG
+	stage = finite2stages([pA.lon; pB.lon], [pA.lat; pB.lat], [pA.ang; pB.ang], [pA.age; pB.age], 2, 1, 1);
+	if (isempty(indS))						% No, create one
 		ind =  strfind(lineInfoA, 'FIN"');
 		ind2 = strfind(lineInfoA(ind:end), '"') + ind - 1;	% Find the pair of '"' indices
 		new_lineInfo = sprintf('%s STG0"%.2f %.2f %.2f %.2f %.3f%s', lineInfoA(1:ind2(2)), stage(1,1), stage(1,2), ...
-			stage(1,3), stage(1,4), stage(1,5), lineInfoA(ind2(2):end) );
-		setappdata(hLineA,'LineInfo', new_lineInfo);
-	else										% Yes, read it and send it back to caller
-		ind2 = strfind(lineInfoA(indS:end), '"') + indS - 1;	% Find the pair of '"' indices
-		stage = zeros(1,5);
-		[t, r] = strtok( lineInfoA(ind2(1)+1:ind2(2)-1) );
-		stage(1) = str2double(t);
-		[t, r] = strtok(r);			stage(2) = str2double(t);	% Lat
-		[t, r] = strtok(r);			stage(3) = str2double(t);	% Age older (t_start)
-		[t, r] = strtok(r);			stage(4) = str2double(t);	% Age newer (t_end)
-		t      = strtok(r);			stage(5) = str2double(t);	% Ang
+			stage(1,3), stage(1,4), stage(1,5), lineInfoA(ind2(2):end));
+	else
+		new_lineInfo = set_stg_info('stage0', hLineA, lineInfoA, stage(1,1), stage(1,2), stage(1,5), stage(1,4), stage(1,3));
 	end
+	setappdata(hLineA,'LineInfo', new_lineInfo);
 
 % -----------------------------------------------------------------------------------------------------------------
 function stage = get_stg_pole(stg, lineInfo)
