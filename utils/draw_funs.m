@@ -1692,7 +1692,8 @@ function [vel, azim] = compute_EulerVel(alat,alon,plat,plon,omega, opt)
 	vlat = -sin(alat).*cos(alon).*x-sin(alat).*sin(alon).*y + cos(alat).*z;
 	azim = 90 - atan2(vlat,vlon) / D2R;
 
-	if (azim < 0),		azim = azim + 360;		end		% Give allways the result in the 0-360 range
+	ind = (azim < 0);
+	if (any(ind)),		azim(ind) = azim(ind) + 360;	end		% Give allways the result in the 0-360 range
 
 	x = sin(alat).*sin(plat) + cos(alat).*cos(plat).*cos(plon-alon);
 	delta = acos(x);
