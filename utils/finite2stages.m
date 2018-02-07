@@ -1,4 +1,4 @@
-function stages = finite2stages(lon, lat, omega, t_start, half, side)
+function stages = finite2stages(lon, lat, omega, t_start, half, side, ecc)
 % Convert finite rotations to backwards stage rotations for backtracking
 %
 % LON, LAT, OMEGA & T_START are the finite rotation Euler pole parameters and age of pole
@@ -17,6 +17,9 @@ function stages = finite2stages(lon, lat, omega, t_start, half, side)
 % SIDE = -1 -> poles in the southern hemisphere
 % SIDE = 0  -> report positive rotation angles
 %
+% ECC -> If LAT is not in geocentric coordinates, give ECC = 1 to use the WGS84 model, or the value the
+%        ellipsoide eccentricity. A value o ECC = 0 or not providing an ECC at all assumes LAT are geocentric
+%
 % The libspotter always report the angles going from Old to New but we use in telha_m and other places
 % the assumption is that we go from Young to Old. That means the angles are symetric of what we need.
 % I'll set it here for the time being as -1 coefficient but in future this should be an input arg.
@@ -24,7 +27,7 @@ function stages = finite2stages(lon, lat, omega, t_start, half, side)
 % Translated from C code of libspotter (Paul Wessel - GMT) (Now LGPL)
 % Joaquim Luis 21-4-2005
 
-%	Coffeeright (c) 2004-2013 by J. Luis
+%	Coffeeright (c) 2004-2018 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -42,14 +45,25 @@ function stages = finite2stages(lon, lat, omega, t_start, half, side)
 % $Id$
 
 	n_args = nargin;
-	if (~(n_args == 1 || n_args == 3 || n_args == 6))
+	if (~(n_args == 1 || n_args == 3 || n_args == 6 || n_args == 7))
 		error('Wrong number of arguments')
 	elseif (n_args == 1 || n_args == 3)
 		if (n_args == 3),       half = lat;     side = omega;
-		else                    half = 2;       side = 1;		% Default to half angles & North hemisphere poles
+		else,                   half = 2;       side = 1;		% Default to half angles & North hemisphere poles
 		end
 		t_start = lon(:,4);     omega = lon(:,3);
 		lat = lon(:,2);         lon = lon(:,1);
+	end
+
+	% Deal with the geocentric issue
+	if (n_args < 7)
+		ecc = 0;
+	elseif (ecc == 1)
+		ecc = 0.0818191908426215;		% WGS84
+	end
+	if (ecc ~= 0)
+		D2R = pi / 180;
+		lat = atan2( (1-ecc^2)*sin(lat*D2R), cos(lat*D2R) ) / D2R;
 	end
 
 	t_old = 0;
