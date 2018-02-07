@@ -30,7 +30,7 @@ function reconstruct_plates(hLine)
 	indConj = zeros(numel(hLines),1);		poles = zeros(numel(hLines), 3);
 	for (k = 1:numel(hLines))
 		[ind, pole, msg] = get_conjugates(hAllIsocs, hLines(k));
-		if (~isempty(msg)),		errorldlg(msg, 'ERROR'),	return,		end
+		if (~isempty(msg)),		errordlg(msg, 'ERROR'),	return,		end
 		indConj(k) = ind;
 		poles(k, :) = [pole.lon pole.lat pole.ang];
 	end
