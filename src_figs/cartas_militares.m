@@ -514,7 +514,7 @@ function popup_directory_list_CB(hObject, handles, opt)
 		set(hObject,'Value',1)
 		if iscell(tmp),			new_dir = tmp{1};
 		elseif ischar(tmp),		new_dir = tmp;
-		else                    return        % ???
+		else,					return        % ???
 		end
 	else
 		new_dir = opt;
@@ -526,7 +526,7 @@ function popup_directory_list_CB(hObject, handles, opt)
 function push_change_dir_CB(hObject, handles)
 	if (strcmp(computer, 'PCWIN'))
 		work_dir = uigetfolder_win32('Select a directory', cd);
-		if (~work_dir),		work_dir = '';	end		% To make it compatible with the other brunch
+		if (~work_dir),		work_dir = '';	end		% To make it compatible with the other branch
 	else            % This guy doesn't let to be compiled
 		work_dir = uigetdir(cd, 'Select a directory');
 	end
@@ -537,9 +537,8 @@ function push_change_dir_CB(hObject, handles)
 	popup_directory_list_CB(handles.popup_directory_list, handles, work_dir)
 
 	% In the LIDAR mode save the selected dir into preferences too (Will later extend do Militares)
-	if ( strcmp(get(handles.push_lidarMosaico,'Vis'),'on') )
+	if (strcmp(get(handles.push_lidarMosaico,'Vis'),'on'))
 		fname = [handles.path_data 'mirone_pref.mat'];
-		lidarPT_dir = work_dir;
 		% Detect which matlab version is beeing used. For the moment I'm only interested to know if R13 or >= R14
 		version7 = version;
 		V7 = (sscanf(version7(1),'%f') > 6);
@@ -673,14 +672,14 @@ function figure1_KeyPressFcn(hObj, event)
 		if (strcmp(CK,'rightarrow') || strcmp(CK,'leftarrow'))
 			SS = get(hSliders(1),'SliderStep');			val = get(hSliders(1),'Value');
 			if (CK(1) == 'r'),		newVal = min(val + SS(1), 1);	% I know that imscroll_j sliders are [0 1]
-			else					newVal = max(0, val - SS(1));
+			else,					newVal = max(0, val - SS(1));
 			end
 			set(hSliders(1),'Value', newVal)
 			imscroll_j(handles.axes1,'SetSliderHor')
 		elseif (strcmp(CK,'uparrow') || strcmp(CK,'downarrow'))
 			SS = get(hSliders(2),'SliderStep');			val = get(hSliders(2),'Value');
 			if (CK(1) == 'u'),		newVal = min(val + SS(1), 1);	% I know that imscroll_j sliders are [0 1]
-			else					newVal = max(0, val - SS(1));
+			else,					newVal = max(0, val - SS(1));
 			end
 			set(hSliders(2),'Value', newVal)
 			imscroll_j(handles.axes1,'SetSliderVer')
