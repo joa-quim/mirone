@@ -303,7 +303,7 @@ function [out1, out2] = get_plate_stages(hLine)
 	out2  = get_all_stgs(hLine0);
 	swap_lineInfo(hLine0)				% Reset the original
 	if (out2(end,3) ~= p.age)
-		warn('Will fail because it didn''t find last isoc')
+		warning('Will fail because it didn''t find last isoc')
 	end
 
 	if (sign(out1(1,5)) ~= sign(out1(2,5)))
