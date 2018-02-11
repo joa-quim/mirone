@@ -22,18 +22,6 @@ function varargout = isoc_selector(varargin)
 		errordlg('ISOC_SELECTOR: wrong number of input arguments.','Error'),	return
 	end
 
-	[got_it, pars] = aux_funs('inquire_OPTcontrol', 'MIR_CUSTOM_ISOCS');
-	if (~got_it)
-		errordlg('To use this option the file OPTcontrol.txt in the ''data'' sub-dir must have the MIR_CUSTOM_ISOCS key activated.','Error')
-		return
-	end
-	if (exist(pars,'dir') ~= 7)
-		errordlg('The directory specified in the MIR_CUSTOM_ISOCS KEY of ...\data\OPTcontrol.txt does not exist. Can''t continue', 'Error')
-		return
-	end
-	isoc_dir = ddewhite(pars);
-	if (isoc_dir(end) ~= '\' && isoc_dir(end) ~= '/'),	isoc_dir(end+1) = '/';	end
-
 	hObject = figure('Tag','figure1','Visible','off');
 	isoc_selector_LayoutFcn(hObject);
 	handles = guihandles(hObject);
@@ -45,13 +33,22 @@ function varargout = isoc_selector(varargin)
 		move2side(handlesMir.figure1, hObject,'right');
 	end
 
-	handles.path_tmp = handlesMir.path_tmp;
-	handles.isoc_dir = isoc_dir;
-	handles.hMirFig = handlesMir.figure1;
-	handles.last_dir = handlesMir.last_dir;
+	% Load the directory list stored in mirone_pref
+	s = load([handlesMir.path_data 'mirone_pref.mat'], 'isochrons_dir');
+	try				% STUPID API returns a struct with no fields instead of an EMPTY s
+		isocs_dir = s.isochrons_dir;
+	catch
+		isocs_dir = '';
+	end
+	set(handles.edit_isocsDir, 'Str', isocs_dir)
+
+	handles.path_tmp  = handlesMir.path_tmp;
+	handles.path_data = handlesMir.path_data;
+	handles.hMirFig   = handlesMir.figure1;
+	handles.last_dir  = handlesMir.last_dir;
 
 	set(handles.listbox_isocs, 'Str', {'0' '2' '2a' '3' '3a' '4' '4a' '5' '5c' '6' '9' '13' '18' '20' '21' ...
-		'22' '23' '24' '25' '26' '28' '29' '30' '31' '32' '33' '33r' 'M0' 'M1' 'M5' 'M10' 'M16' 'M22' 'M25'})
+		'22' '23' '24' '25' '26' '28' '29' '30' '32' '33' '33r' 'M0' 'M1' 'M5' 'M10' 'M16' 'M22' 'M25'})
 	plates = {'' 'Africa' 'Acores' 'Eurasia' 'Greenland' 'Iberia' 'Jan Mayen' 'Kings Trough' 'Lomonosov' ...
 		'Mohns' 'North America' 'XX1' 'XX2' 'XXX'};
 	set(handles.popup_plate1, 'Str', plates, 'Val', 11)
@@ -71,10 +68,54 @@ function radio_both_CB(hObject, handles)
 	set(handles.radio_oneOnly, 'Val',0)
 
 % --------------------------------------------------------------------------------------
+function push_isocsDir_CB(hObject, handles)
+% Selelect the directory of isochrons and save current choice ... unless it's faulty
+	if (strcmp(computer, 'PCWIN'))
+		isochrons_dir = uigetfolder_win32('Select a directory', cd);
+		if (~isochrons_dir),	isochrons_dir = '';		end		% To make it compatible with the other branch
+	else            % This guy doesn't let to be compiled
+		isochrons_dir = uigetdir(cd, 'Select a directory');
+	end
+	if (isempty(isochrons_dir)),	return,		end
+	isochrons_dir(end+1) = '/';
+
+	fname = [handles.path_data 'mirone_pref.mat'];
+	version7 = version;			% Find matlab version in use. Only interested to know if R13 or >= R14
+	V7 = (sscanf(version7(1),'%f') > 6);
+	if (~V7)					% R <= 13
+		save(fname,'isochrons_dir', '-append')
+	else
+		save(fname,'isochrons_dir', '-append', '-v6')
+	end
+
+	edit_isocsDir_CB(handles.edit_isocsDir, handles, isochrons_dir)
+
+% --------------------------------------------------------------------------------------
+function edit_isocsDir_CB(hObject, handles, opt)
+% Set path of dir where isochrons files lieve
+	if (nargin == 3)					% Set by push_pato_CB()
+		set(hObject, 'Str', opt)
+	else
+		str = get(hbject, 'Str');
+		if (exists(str, 'dir') ~= 2)	% If entered manually, check calidity
+			errordlg('This directory does not exist. Please pay attention and provide a good one.', 'Error')
+			set(hObject, 'Str', '')
+		end
+	end
+
+% --------------------------------------------------------------------------------------
 function push_OK_CB(hObject, handles)
-% 
-	str = get(handles.listbox_isocs, 'Str');
-	isoc = str{get(handles.listbox_isocs, 'Val')};
+% Check if all is right and do the work.
+
+	isocsDir = get(handles.edit_isocsDir, 'Str');
+	if (isempty(isocsDir))
+		errordlg('Hey, isochrons directory info is empty. How can I know where your isochron files are? Please tell me that via the edit box above.', 'Error')
+		return
+	end
+	if (isocsDir(end) ~= '/' || isocsDir(end) ~= '\'),		isocsDir(end+1) = '/';		end
+
+	strIsocs = get(handles.listbox_isocs, 'Str');
+	selection = get(handles.listbox_isocs, 'Val');
 
 	str = get(handles.popup_plate1, 'Str');
 	plate_1 = str{get(handles.popup_plate1, 'Val')};
@@ -99,7 +140,25 @@ function push_OK_CB(hObject, handles)
 		end
 	end
 
-	all = dir([handles.isoc_dir 'c' isoc '_*.dat']);
+	% Load the selected isocs
+	msg = cell(numel(selection), 1);	c = false(numel(selection), 1);
+	for (k = 1:numel(selection))
+		msg{k} = load_this_isoc(handles, isocsDir, strIsocs{selection(k)}, plate_1, plate_2);
+		if (isempty(msg{k})),	c(k) = true;	end
+	end
+	msg(c) = [];
+	if (~isempty(msg)),		warndlg(msg, 'Warning'),	end
+
+	% Reset the last_dir that was meanwhile set to tmp by the load_xyz() call
+	handMir = guidata(handles.hMirFig);
+	handMir.last_dir = handles.last_dir;
+	guidata(handles.hMirFig, handMir)
+
+% -----------------------------------------------------------------------------------
+function msg = load_this_isoc(handles, isocsDir, isoc, plate_1, plate_2)
+% Load Isochron ISOC or return an warning message if not found in ISOCDIR
+	msg = '';
+	all = dir([isocsDir 'c' isoc '_*.dat']);
 	c = false(numel(all), 1);
 	if (isempty(plate_2))				% Here we want all combinations that contain the Plate_1
 		for (k = 1:numel(all))
@@ -126,13 +185,13 @@ function push_OK_CB(hObject, handles)
 
 	all = all(c);			% Retain only those that passed the above tests
 	if (isempty(all))
-		errordlg('Found no isochrons with the specified criteria.','Error')
+		msg = ['Found no isochron ' isoc ' in the specified path.'];
 		return
 	end
 
 	list = cell(numel(all), 1);
 	for (k = 1:numel(all))
-		list{k} = [handles.isoc_dir all(k).name];
+		list{k} = [isocsDir all(k).name];
 	end
 	fid = fopen([handles.path_tmp 'isoc_pairs.txt'], 'wt');
 	if (fid < 0)
@@ -148,11 +207,6 @@ function push_OK_CB(hObject, handles)
 	% Now load the selected Isochrons
 	load_xyz(guidata(handles.hMirFig), [handles.path_tmp 'isoc_pairs.txt'], 'Isochron')
 
-	% Reset the last_dir that was meanwhile set to tmp by the load_xyz() call
-	handMir = guidata(handles.hMirFig);
-	handMir.last_dir = handles.last_dir;
-	guidata(handles.hMirFig, handMir)
-
 % -----------------------------------------------------------------------------------
 function figure1_KeyPressFcn(hObject, eventdata)
 	handles = guidata(hObject);
@@ -163,32 +217,33 @@ function figure1_KeyPressFcn(hObject, eventdata)
 % --------------------------------------------------------------------------------------
 function h1 = isoc_selector_LayoutFcn(h1)
 
-set(h1, 'Position',[520 608 241 191],...
+set(h1, 'Position',[520 608 240 220],...
 'Color',get(0,'factoryUicontrolBackgroundColor'),...
 'KeyPressFcn',@figure1_KeyPressFcn,...
 'MenuBar','none',...
-'Name','Isochorons selector',...
+'Name','Load Isocs',...
 'NumberTitle','off',...
 'Resize','off',...
 'HandleVisibility','callback',...
 'Tag','figure1');
 
-uicontrol('Parent',h1, 'Position',[10 166 68 14], 'FontSize',9,...
+uicontrol('Parent',h1, 'Position',[10 196 68 14], 'FontSize',9,...
 'String','Isochrons',...
 'Style','text');
 
-uicontrol('Parent',h1, 'Position',[10 10 69 150],...
+uicontrol('Parent',h1, 'Position',[10 10 69 181],...
 'BackgroundColor',[1 1 1],...
 'String',{'2'},...
 'Style','listbox',...
+'max',2,...
 'Value',1,...
 'Tag','listbox_isocs');
 
-uicontrol('Parent',h1, 'Position',[115 166 68 14], 'FontSize',9,...
+uicontrol('Parent',h1, 'Position',[115 196 68 14], 'FontSize',9,...
 'String','Plate A',...
 'Style','text');
 
-uicontrol('Parent',h1, 'Position',[90 141 141 20],...
+uicontrol('Parent',h1, 'Position',[90 171 141 20],...
 'BackgroundColor',[1 1 1],...
 'String','',...
 'Style','popupmenu',...
@@ -196,18 +251,18 @@ uicontrol('Parent',h1, 'Position',[90 141 141 20],...
 'Value',1,...
 'Tag','popup_plate1');
 
-uicontrol('Parent',h1, 'Position',[115 115 68 14], 'FontSize',9,...
+uicontrol('Parent',h1, 'Position',[115 145 68 14], 'FontSize',9,...
 'String','Plate B',...
 'Style','text');
 
-uicontrol('Parent',h1, 'Position',[90 91 142 20],...
+uicontrol('Parent',h1, 'Position',[90 121 141 20],...
 'BackgroundColor',[1 1 1],...
 'Style','popupmenu',...
 'TooltipString','Leave empty to select "Plate1 against all its neighbors"',...
 'Value',1,...
 'Tag','popup_plate2');
 
-uicontrol('Parent',h1, 'Pos',[90 51 60 20],...
+uicontrol('Parent',h1, 'Pos',[100 84 44 20],...
 'Callback',@isoc_selector_uiCB,...
 'String','Both',...
 'Style','radiobutton',...
@@ -215,12 +270,25 @@ uicontrol('Parent',h1, 'Pos',[90 51 60 20],...
 'Tooltip','Pick both combinations (AB and BA)',...
 'Tag','radio_both')
 
-uicontrol('Parent',h1, 'Pos',[140 51 70 20],...
+uicontrol('Parent',h1, 'Pos',[151 84 65 20],...
 'Callback',@isoc_selector_uiCB,...
 'String','Only one',...
 'Style','radiobutton',...
 'Tooltip','Pick ony the selected combination (AB or BA)',...
 'Tag','radio_oneOnly')
+
+uicontrol('Parent',h1, 'Position',[90 40 121 21],...
+'Style','edit',...
+'Callback',@isoc_selector_uiCB,...
+'TooltipString','Path of the isochrons files',...
+'Tag','edit_isocsDir');
+
+uicontrol('Parent',h1, 'Position',[211 40 21 21],...
+'String','...',...
+'Callback',@isoc_selector_uiCB,...
+'FontSize',9,...
+'FontWeight','bold', ...
+'Tag','push_isocsDir');
 
 uicontrol('Parent',h1, 'Position',[151 10 80 22], 'FontSize',9, 'FontWeight','bold',...
 'Callback',@isoc_selector_uiCB,...
