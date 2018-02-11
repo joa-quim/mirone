@@ -25,7 +25,7 @@ function varargout = pole2neighbor(obj, evt, hLine, mode, opt, varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: pole2neighbor.m 10263 2018-02-07 01:32:42Z j $
+% $Id: pole2neighbor.m 10269 2018-02-11 01:00:13Z j $
 
 	if (isa(obj, 'char'))			% Call a function of this file, name stored in OBJ,  and return
 		if (nargout)
@@ -302,6 +302,9 @@ function [out1, out2] = get_plate_stages(hLine)
 	swap_lineInfo(hLine0)
 	out2  = get_all_stgs(hLine0);
 	swap_lineInfo(hLine0)				% Reset the original
+	if (out2(end,3) ~= p.age)
+		warn('Will fail because it didn''t find last isoc')
+	end
 
 	if (sign(out1(1,5)) ~= sign(out1(2,5)))
 		out1(1,5) = -out1(1,5);		out1(1,11) = -out1(1,11);		out1(1,17) = -out1(1,17);
@@ -340,12 +343,14 @@ function [out1, out2] = get_plate_stages(hLine)
 	title = get_plate_pair(hLine0);
 	ecran(dist_age3.data(:,1),dist_age3.data(:,2), title)
 
-	[vel, azim] = draw_funs([], 'compute_EulerVel', flo.data(1:end-1,2),flo.data(1:end-1,1), ...
+	[vel, azima] = draw_funs([], 'compute_EulerVel', flo.data(1:end-1,2),flo.data(1:end-1,1), ...
 	                        out2(:,2),out2(:,1),out2(:,5)./diff(flo.data(:,3)));
 	ecran(flo.data(1:end-1,3), vel*10, [title ' - Velocity'])	% In mm/Ma
-	ecran(flo.data(1:end-1,3), azim,   [title ' - Azimuth'])
+	azim = gmtmex('mapproject -AB -o2,3', flo);
+	ecran(azim.data(:,1), azim.data(:,2), [title ' - Azimuth'])
 
-%  	plot_arrows_flowline(hLine, flo.data(1,1), flo.data(1,2), azim)
+% 	va = gmtmex(['gmtpmodeler -E' fnome3 ' -Sva'], flo);
+%  	plot_arrows_flowline(hLine, flo.data(1,1), flo.data(1,2), azima)
 
 % -----------------------------------------------------------------------------------------------------------------
 function plot_arrows_flowline(hLine, lon0, lat0, azims)
