@@ -25,7 +25,7 @@ function varargout = pole2neighbor(obj, evt, hLine, mode, opt, varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: pole2neighbor.m 10269 2018-02-11 01:00:13Z j $
+% $Id: pole2neighbor.m 10271 2018-02-11 01:38:19Z j $
 
 	if (isa(obj, 'char'))			% Call a function of this file, name stored in OBJ,  and return
 		if (nargout)
@@ -303,7 +303,7 @@ function [out1, out2] = get_plate_stages(hLine)
 	out2  = get_all_stgs(hLine0);
 	swap_lineInfo(hLine0)				% Reset the original
 	if (out2(end,3) ~= p.age)
-		warn('Will fail because it didn''t find last isoc')
+		warning('Will fail because it didn''t find last isoc')
 	end
 
 	if (sign(out1(1,5)) ~= sign(out1(2,5)))
