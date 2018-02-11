@@ -2217,99 +2217,102 @@ function [script, mex_sc, l, o, hLine] = do_lines(script, mex_sc, l, o, pack, hL
 % ------------------------------------------------------------------------------------------------------------
 function [script, mex_sc, l, o, hText] = do_text(script, mex_sc, l, o, pack, hText)
 % ...
-	if (~isempty(hText))      % ALLtextHand was found in the search for contours -- We (still) have text fields
-		[comm, pb, pf, do_MEX, ellips, RJOK, KORJ] = unpack(pack);
-		pos = get(hText,'Position');      %font = get(ALLtextHand,'FontName');
-		fsize = get(hText,'FontSize');    fcolor = get(hText,'Color');
-		% Convert to string right away
-		if (isa(fsize, 'cell'))
-			for (k = 1:numel(fsize))
-				fsize{k} = sprintf('%d', fsize{k});
-			end
-		else
-			fsize = sprintf('%d', fsize);
-		end
+	if (isempty(hText)),	return,		end
 
-		% Find the Hor/Vert alignment
-		HA = get(hText, 'HorizontalAlignment');
-		VA = get(hText, 'VerticalAlignment');
-		if (isa(HA,'cell'))		% Get only the first char of each row
-			HA_ = char(zeros(numel(HA),1));
-			VA_ = char(zeros(numel(HA),1));
-			for (k = 1:numel(HA))
-				HA_(k) = upper(HA{k}(1));
-				VA_(k) = upper(VA{k}(1));
-			end
-			HA = HA_;	VA = VA_;
-		else
-			HA = upper(HA(1));		VA = upper(VA(1));
+	[comm, pb, pf, do_MEX, ellips, RJOK, KORJ] = unpack(pack);
+	pos = get(hText,'Position');      %font = get(ALLtextHand,'FontName');
+	fsize = get(hText,'FontSize');    fcolor = get(hText,'Color');
+	% Convert to string right away
+	if (isa(fsize, 'cell'))
+		for (k = 1:numel(fsize))
+			fsize{k} = sprintf('%d', fsize{k});
 		end
-		ind = (HA ~= 'L') & (HA ~= 'C') & (HA ~= 'R');		% Equivalent to GMT's 'LCR'
-		if (any(ind))
-			HA(ind) = 'L';		% 'Others' get 'L(eft)'
-		end
-		ind = (VA ~= 'T') & (VA ~= 'M') & (VA ~= 'M');		% Equivalent to GMT's 'TMB'
-		if (any(ind))
-			VA(ind) = 'B';		% 'Others' get 'B(ottom)'
-		end
-		HV = [HA VA];			% Hor/Ver justification code
+	else
+		fsize = sprintf('%d', fsize);
+	end
 
-		fcolor_s = {''};
-		if (isnumeric(fcolor))
-			fcolor = round(fcolor * 255);
-			if (numel(fcolor) == 1 && fcolor ~= 0)
-				fcolor_s{1} = sprintf('%d/%d/%d', fcolor, fcolor, fcolor);
-			elseif (~isequal(fcolor, [0 0 0]))
-				fcolor_s{1} = sprintf('%d/%d/%d', fcolor(1:3));
-			end
-		elseif (ischar(fcolor))		% Shit, we have to decode the color letter
-			switch fcolor
-				case 'w',		fcolor_s{1} = '255/255/255';
-				case 'y',		fcolor_s{1} = '255/255/0';
-				case 'c',		fcolor_s{1} = '0/255/255';
-				case 'r',		fcolor_s{1} = '255/0/0';
-				case 'g',		fcolor_s{1} = '0/255/0';
-				case 'b',		fcolor_s{1} = '0/0/255';
-			end
-		elseif (iscell(fcolor))			% Double shit, we have to convert a Mx3 cell matrix into texts
-            tmp = cell2mat(fcolor) * 255;
-            fcolor_s = cell(size(tmp,1),1);
-			for (m = 1:size(tmp,1))
-				if (isequal(tmp(m,:), [0 0 0])),	fcolor_s{m} = '';	continue,	end
-				fcolor_s{m} = sprintf('%d/%d/%d', tmp(m,1:3));
-			end
+	% Find the Hor/Vert alignment
+	HA = get(hText, 'HorizontalAlignment');
+	VA = get(hText, 'VerticalAlignment');
+	if (isa(HA,'cell'))		% Get only the first char of each row
+		HA_ = char(zeros(numel(HA),1));
+		VA_ = char(zeros(numel(HA),1));
+		for (k = 1:numel(HA))
+			HA_(k) = upper(HA{k}(1));
+			VA_(k) = upper(VA{k}(1));
 		end
-        str = get(hText,'String');		angle = get(hText,'Rotation');
-        if (~iscell(pos))				% Make them cells for author's mental sanity
-            pos = {pos};				fsize = {fsize};		angle = {angle};
-            str = {str};				%font = {font};
-        end
-        n_text = numel(str);
-        script{l} = sprintf('\n%s ---- Plot text strings', comm);   l=l+1;    
-        for (i = 1:n_text)
-			% Quick and dirty patch for when opt_G is a cell of cells and it than crash below on sprintf
-			if (~isempty(fcolor_s{i})),	fsize{i} = [fsize{i} ',' fcolor_s{i}];	end
-			opt_F = sprintf('-F+f%s+a%g+j%s', fsize{i}, angle{i}, HV);
-			script{l} = sprintf('echo %.5f %.5f %s | gmt pstext %s %s %s >> %sps%s', pos{i}(1), pos{i}(2), str{i}(1,:), opt_F, ellips, RJOK, pb, pf);
-			l = l + 1;
-			if (do_MEX)
-				mex_sc{o,1} = sprintf('pstext %s %s %s', ellips, opt_F, KORJ);
-				mex_sc{o,2} = sprintf('%f %f %s',pos{i}(1), pos{i}(2), str{i}(1,:));	o = o + 1;
-			end
-			this_nLines = size(str{i},1);		% How many lines has this text element?
-			if (this_nLines > 1)				% More than one. So try to estimate each line Pos from a simple calculus
-				ext = get(hText(i), 'Extent');
-				for (k = 2:this_nLines)
-					yPos = pos{i}(2) - (k - 1) * (ext(4) / this_nLines);
-					script{l} = sprintf('echo %.5f %.5f %s | gmt pstext %s %s %s >> %sps%s', pos{i}(1), yPos, str{i}(k,:), opt_F, ellips, RJOK, pb, pf);
-					l = l + 1;
-					if (do_MEX)
-						mex_sc{o,1} = sprintf('pstext %s %s %s', ellips, opt_F, KORJ);
-						mex_sc{o,2} = sprintf('%f %f %s',pos{i}(1), yPos, str{i}(k,:));		o = o + 1;
-					end
+		HA = HA_;	VA = VA_;
+	else
+		HA = upper(HA(1));		VA = upper(VA(1));
+	end
+	ind = (HA ~= 'L') & (HA ~= 'C') & (HA ~= 'R');		% Equivalent to GMT's 'LCR'
+	if (any(ind))
+		HA(ind) = 'L';		% 'Others' get 'L(eft)'
+	end
+	ind = (VA ~= 'T') & (VA ~= 'M') & (VA ~= 'M');		% Equivalent to GMT's 'TMB'
+	if (any(ind))
+		VA(ind) = 'B';		% 'Others' get 'B(ottom)'
+	end
+	HV = [HA VA];			% Hor/Ver justification code
+
+	fcolor_s = {''};
+	if (isnumeric(fcolor))
+		fcolor = round(fcolor * 255);
+		if (numel(fcolor) == 1 && fcolor ~= 0)
+			fcolor_s{1} = sprintf('%d/%d/%d', fcolor, fcolor, fcolor);
+		elseif (~isequal(fcolor, [0 0 0]))
+			fcolor_s{1} = sprintf('%d/%d/%d', fcolor(1:3));
+		end
+	elseif (ischar(fcolor))		% Shit, we have to decode the color letter
+		switch fcolor
+			case 'w',		fcolor_s{1} = '255/255/255';
+			case 'y',		fcolor_s{1} = '255/255/0';
+			case 'c',		fcolor_s{1} = '0/255/255';
+			case 'r',		fcolor_s{1} = '255/0/0';
+			case 'g',		fcolor_s{1} = '0/255/0';
+			case 'b',		fcolor_s{1} = '0/0/255';
+		end
+	elseif (iscell(fcolor))			% Double shit, we have to convert a Mx3 cell matrix into texts
+		tmp = cell2mat(fcolor) * 255;
+		fcolor_s = cell(size(tmp,1),1);
+		for (m = 1:size(tmp,1))
+			if (isequal(tmp(m,:), [0 0 0])),	fcolor_s{m} = '';	continue,	end
+			fcolor_s{m} = sprintf('%d/%d/%d', tmp(m,1:3));
+		end
+	end
+	str = get(hText,'String');		angle = get(hText,'Rotation');
+	if (~iscell(pos))				% Make them cells for author's mental sanity
+		pos = {pos};				fsize = {fsize};		angle = {angle};
+		str = {str};				%font = {font};
+	end
+
+	n_text = numel(str);
+	script{l} = sprintf('\n%s ---- Plot text strings', comm);   l=l+1;    
+	for (i = 1:n_text)
+		% Quick and dirty patch for when opt_G is a cell of cells and it than crash below on sprintf
+		if (~isempty(fcolor_s{i})),	fsize{i} = [fsize{i} ',' fcolor_s{i}];	end
+		opt_F = sprintf('-F+f%s+a%g+j%s', fsize{i}, angle{i}, HV);
+		script{l} = sprintf('echo %.5f %.5f %s | gmt pstext %s %s %s >> %sps%s', pos{i}(1), pos{i}(2), str{i}(1,:), opt_F, ellips, RJOK, pb, pf);
+		l = l + 1;
+		if (do_MEX)
+			mex_sc{o,1} = sprintf('pstext %s %s %s', ellips, opt_F, KORJ);
+			mex_sc{o,2} = struct('data',pos{i}(1:2), 'text',str{i}(1,:));
+			o = o + 1;
+		end
+		this_nLines = size(str{i},1);		% How many lines has this text element?
+		if (this_nLines > 1)				% More than one. So try to estimate each line Pos from a simple calculus
+			ext = get(hText(i), 'Extent');
+			for (k = 2:this_nLines)
+				yPos = pos{i}(2) - (k - 1) * (ext(4) / this_nLines);
+				script{l} = sprintf('echo %.5f %.5f %s | gmt pstext %s %s %s >> %sps%s', pos{i}(1), yPos, str{i}(k,:), opt_F, ellips, RJOK, pb, pf);
+				l = l + 1;
+				if (do_MEX)
+					mex_sc{o,1} = sprintf('pstext %s %s %s', ellips, opt_F, KORJ);
+					mex_sc{o,2} = struct('data', [pos{i}(1) yPos], 'text',str{i}(k,:));
+					o = o + 1;
 				end
 			end
-        end
+		end
 	end
 
 % ------------------------------------------------------------------------------------------------------------
