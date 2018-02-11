@@ -91,7 +91,7 @@ function Ctrl_v(h)
 % If H has two elements, the second should contain the CurrentAxes
 	hLine = h(1);			% No testing. Do not fail
 	if (numel(h) == 2),		hAx = h(2);
-	else					hAx = get(get(0,'CurrentFigure'), 'CurrentAxes');
+	else,					hAx = get(get(0,'CurrentFigure'), 'CurrentAxes');
 	end
 	x = get(hLine, 'xdata');	y = get(hLine, 'ydata');
 	if (strcmp(get(hLine,'type'), 'line'))
@@ -294,7 +294,7 @@ function set_line_uicontext(h, opt)
 		end  
 		if (strcmp(get(h,'Tag'),'SeismicPolyg')),	IS_SEISPOLYG = true;	end
 	end
-	if (strcmp(get(h,'Type'),'patch')),
+	if (strcmp(get(h,'Type'),'patch'))
 		IS_PATCH = true;
 		if (IS_PATCH && ~LINE_ISCLOSED),	LINE_ISCLOSED = true;	end
 	elseif (strcmp(get(h,'Tag'),'SeismicLine'))
@@ -574,7 +574,7 @@ function set_common_lineProps(h, cmenuHand, IS_PATCH)
 	cb_dotted = 'set(gco, ''LineStyle'', '':''); refresh';
 	cb_dashdot = 'set(gco, ''LineStyle'', ''-.''); refresh';
 	if (IS_PATCH),	cb_color = uictx_color(h,'EdgeColor');      % there are 9 cb_color outputs
-	else			cb_color = uictx_color(h);
+	else,			cb_color = uictx_color(h);
 	end
 	setLineWidth(uimenu(cmenuHand, 'Label', 'Line Width', 'Sep','on'), cb_LineWidth)
 	setLineStyle(uimenu(cmenuHand, 'Label', 'Line Style'), {cb_solid cb_dashed cb_dotted cb_dashdot})
@@ -924,10 +924,10 @@ function hh = loc_quiver(struc,varargin)
 	else
 		hQuiver = struc.hQuiver;		spacingChanged = struc.spacingChanged;		hAx = struc.hAx;
 		if (isfield(struc, 'color')),	lc = struc.color;
-		else							lc = 'k';
+		else,							lc = 'k';
 		end
 		if (isfield(struc, 'thick')),	lThick = struc.thick;
-		else							lThick = 1;
+		else,							lThick = 1;
 		end
 	end
 
@@ -961,7 +961,9 @@ function hh = loc_quiver(struc,varargin)
 		% Base autoscale value on average spacing in the x and y directions.
 		% Estimate number of points in each direction as either the size of the
 		% input arrays or the effective square spacing if x and y are vectors.
-		if min(size(x))==1, n=sqrt(numel(x)); m=n; else [m,n]=size(x); end
+		if (min(size(x))==1),	n=sqrt(numel(x)); m=n;
+		else,					[m,n]=size(x);
+		end
 		delx = diff([min(x(:)) max(x(:))])/n;
 		dely = diff([min(y(:)) max(y(:))])/m;
 		del = delx.^2 + dely.^2;
@@ -1055,7 +1057,7 @@ function okada_model(obj,eventdata,h,opt)
 	else
 		imgLims = getappdata(handles.axes1,'ThisImageLims');
 		if (abs(imgLims(2) - imgLims(1)) < 5000),   min_len = 5;    % Assume that the grid is in km
-		else                                        min_len = 5000; % Assume meters
+		else,                                        min_len = 5000; % Assume meters
 		end
 	end
 	if (numel(hh) > 1)
@@ -1507,11 +1509,11 @@ function other_Class_LineColor(obj,eventdata,h,cor,prop)
 		end
 	else
 		c = uisetcolor;
-		if (length(c) > 1),         % That is, if a color was selected
+		if (length(c) > 1)			% That is, if a color was selected
 			if isempty(prop)
-				set(h,'color',c);   refresh;
+				set(h,'color',c);	refresh;
 			else
-				set(h,prop,c);   refresh;
+				set(h,prop,c);		refresh;
 			end
 		end
 	end
@@ -2192,7 +2194,7 @@ function [hs, vs] = vectorFirstButtonDown(hFig, hAxes, h, state, anchor, ah, vFa
 % When output is requested, minimum args is ([], HAXES).
 
 	if (nargin >= 5),		pt = anchor;
-	else					pt = get(hAxes, 'CurrentPoint');
+	else,					pt = get(hAxes, 'CurrentPoint');
 	end
 	if (nargin ~= 8)
 		ah = 12;	vFac = 1.3;		aspect = 3/2;
@@ -3057,17 +3059,31 @@ function name = create_isoc_name(h)
 % Generate the likely name that I use to use for the isochrons
 	try
 		LineInfo = getappdata(h,'LineInfo');
-		[isoc, r] = strtok(LineInfo);
-		[plates, r] = strtok(r);		r = ddewhite(r);
+		[isoc, plates] = strtok(LineInfo);	plates = ddewhite(plates);
+		
 		ind = strfind(plates, '/');
-		if (strcmp(plates, 'NORTH') || strcmp(plates, 'SOUTH'))		% First word of first plate is this
-			ind = strfind(r, '/');
-			name = sprintf('c%s_%s%s_%s.dat',isoc, plates(1), r(1), r(ind+1:ind+2));
-		elseif (strcmp(plates(ind+1:end), 'NORTH') || strcmp(plates(ind+1:end), 'SOUTH'))	% Second plate is this
-			name = sprintf('c%s_%s_%s%s.dat',isoc, plates(1:2), plates(ind+1), r(1));
+		if (isempty(ind)),		name = '';		return,		end		% No pair plates so no name fishing
+		name1 = plates(1:ind(1)-1);
+		[t,r] = strtok(plates(ind(1)+1:end));	r = ddewhite(r);
+		if (~isempty(r))
+			if (~strncmp(r, 'FIN', 3))		% Second name is made of two words
+				name2 = [t ' ' r];
+			else
+				name2 = t;
+			end
 		else
-			name = sprintf('c%s_%s_%s.dat',isoc, plates(1:2), plates(ind+1:ind+2));
+			name2 = t;
 		end
+		
+		ind = strfind(name1, ' ');
+		if (isempty(ind)),		n1 = name1(1:2);
+		else,					n1 = [name1(1) name1(ind(1)+1)];
+		end
+		ind = strfind(name2, ' ');
+		if (isempty(ind)),		n2 = name2(1:2);
+		else,					n2 = [name2(1) name2(ind(1)+1)];
+		end
+		name = sprintf('c%s_%s_%s.dat', isoc, n1, n2);
 	catch
 		name = [];
 	end
@@ -3107,7 +3123,7 @@ function export_symbol(obj, evt, h, opt)
 	end
 	zz = get(h,'UserData');
 	if (isempty(zz)),		doSave_formated(xx, yy)
-	else					doSave_formated(xx, yy, zz)
+	else,					doSave_formated(xx, yy, zz)
 	end
 
 % -----------------------------------------------------------------------------------------
@@ -3122,7 +3138,7 @@ function save_formated(obj, evt, h, opt)
 		errordlg('save_formated: called with a wrong number of arguments.','ERROR'),	return
 	elseif (nargin == 3)
 		if (~isa(h,'cell')),	h = gco;		% Fish the handle so that it works with copyied objs
-		else					h = h{1};		% Really use this handle.
+		else,					h = h{1};		% Really use this handle.
 		end
 		xx = get(h,'XData');    yy = get(h,'YData');	zz = get(h, 'ZData');
 		doSave_formated(xx, yy, zz)
@@ -3266,7 +3282,7 @@ function mareg_online(obj,eventdata,h, data, opt)
 	url = ['http://www.ioc-sealevelmonitoring.org/bgraph.php?code=' code '&output=asc&period=' nDays '&endtime=' date_start];
 	%url = ['http://www.ioc-sealevelmonitoring.org/bgraph.php?output=asc&time=' date_start '&period=' nDays '&par=' code];
 	if (ispc),		dos(['wget "' url '" -q --tries=2 --connect-timeout=5 -O ' dest_fiche]);
-	else			unix(['wget ''' url ''' -q --tries=2 --connect-timeout=5 -O ' dest_fiche]);
+	else,			unix(['wget ''' url ''' -q --tries=2 --connect-timeout=5 -O ' dest_fiche]);
 	end
 
 	fid = fopen(dest_fiche,'r');
@@ -3826,7 +3842,7 @@ function sout = ddewhite(s)
 	
 	[r, c] = find(~isspace(s));
 	if (size(s, 1) == 1),	sout = s(min(c):max(c));
-	else					sout = s(:,min(c):max(c));
+	else,					sout = s(:,min(c):max(c));
 	end
 
 % --------------------------------------------------------------------
