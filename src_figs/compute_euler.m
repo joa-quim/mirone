@@ -24,7 +24,7 @@ function varargout = compute_euler(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: compute_euler.m 10217 2018-01-24 21:33:46Z j $
+% $Id: compute_euler.m 10270 2018-02-11 01:10:16Z j $
 
 	if (isempty(varargin) || (numel(varargin) >= 2 && numel(varargin) <= 5))
 		errordlg('COMPUTE EULER: wrong number of input arguments.','Error'),	return
@@ -41,7 +41,7 @@ function varargout = compute_euler(varargin)
 		end
 
 		if (ischar(varargin{1})),		handles.isoca1 = le_fiche(varargin{1});
-		else							handles.isoca1 = varargin{1};
+		else,							handles.isoca1 = varargin{1};
 		end
 		
 		if (~handles.IamRegion)				% Otherwise those were already set inside parse_noGUI()
@@ -52,7 +52,7 @@ function varargout = compute_euler(varargin)
 
 		if (isempty(handles.noise))			% "Regular" mode
 			if (ischar(varargin{2})),		handles.isoca2 = le_fiche(varargin{2});
-			else							handles.isoca2 = varargin{2};
+			else,							handles.isoca2 = varargin{2};
 			end
 			% The distmin MEX algo relies on the assumption that both lines have vertex growing in
 			% the same sense. That is, Lat is increasing or decreasing for both (we test only Lat)
@@ -147,7 +147,7 @@ function edit_first_file_CB(hObject, handles)
 % -------------------------------------------------------------------------------------
 function push_first_file_CB(hObject, handles,opt)
 	if (nargin == 3),	fname = opt;
-	else				opt = [];
+	else,				opt = [];
 	end
 
 	if (isempty(opt))    % Otherwise we already know fname from the 4th input argument
@@ -170,7 +170,7 @@ function edit_second_file_CB(hObject, handles)
 % -------------------------------------------------------------------------------------
 function push_second_file_CB(hObject, handles, opt)
 	if (nargin == 3),	fname = opt;
-	else				opt = [];
+	else,				opt = [];
 	end
 
 	if (isempty(opt))    % Otherwise we already know fname from the 4th input argument
@@ -248,8 +248,9 @@ function edit_nInt_CB(hObject, handles)
 		tooltip = sprintf('%s\n%s',tooltip{1},tooltip{2});		% Retain only first 2 lines, third will be updated here
 		if (strcmp(tag,'lon')),			rang = get(handles.edit_LonRange, 'Str');
 		elseif (strcmp(tag,'lat')),		rang = get(handles.edit_LatRange, 'Str');
-		else							rang = get(handles.edit_AngRange, 'Str');
-		end
+		else,							rang = get(handles.edit_AngRange, 'Str');
+		end		
+
 		if (~isempty(ind))
 			nInt = sscanf(str(1:ind(1)-1),'%d');
 			d = sscanf(str(ind(1)+1:end),'%f');
@@ -263,9 +264,10 @@ function edit_nInt_CB(hObject, handles)
 			d = str2double(rang) / (nPts - 1);
 		end
 		set(hObject,'Tooltip', sprintf('%s\nActual point spacing is = %.6g', tooltip, d))
-		if (strcmp(tag,'lon')),			handles.nInt_lon = nPts;	set(handles.edit_LonRange, 'Str', rang)
-		elseif (strcmp(tag,'lat')),		handles.nInt_lat = nPts;	set(handles.edit_LatRange, 'Str', rang)
-		else							handles.nInt_ang = nPts;	set(handles.edit_AngRange, 'Str', rang)
+		r = str2double(rang);
+		if (strcmp(tag,'lon')),			handles.nInt_lon = nPts;	set(handles.edit_LonRange, 'Str', rang);	handles.LonRange = r;
+		elseif (strcmp(tag,'lat')),		handles.nInt_lat = nPts;	set(handles.edit_LatRange, 'Str', rang);	handles.LatRange = r;
+		else,							handles.nInt_ang = nPts;	set(handles.edit_AngRange, 'Str', rang);	handles.AngRange = r;
 		end
 		set(handles.slider_wait,'Max',handles.nInt_lon)
 	else
@@ -393,7 +395,7 @@ function edit_err_file_CB(hObject, handles)
 % -----------------------------------------------------------------------------
 function push_err_file_CB(hObject, handles, opt)
 	if (nargin == 3),	fname = opt;
-	else				opt = [];
+	else,				opt = [];
 	end
 
 	if (isempty(opt))    % Otherwise we already know fname from the 3th input argument
@@ -462,6 +464,7 @@ function out = outward_displacement_treta(handles)
 function push_compute_CB(hObject, handles)
 % OK. See if we have all the information needed to compute the Euler pole
 
+	res_a = str2double(get(handles.edit_InitialResidue, 'Str'));		% Start residue or blank
 	set(handles.edit_BFresidue,'String','');		set(handles.edit_InitialResidue,'String','')
 	set(handles.edit_pLon_fim,'String','');			set(handles.edit_pLat_fim,'String','')
 	set(handles.edit_pAng_fim,'String','')
@@ -513,6 +516,16 @@ function push_compute_CB(hObject, handles)
 	if (~get(handles.check_hellinger,'Val'))		% Our method
 		do_weighted = true;
 		calca_pEuler(handles, do_weighted, true, OD);
+
+		if (get(handles.check_insist, 'Val'))		% See if we can get yet another better fit pole
+			res_d = str2double(get(handles.edit_BFresidue, 'Str'));
+			if (isnan(res_a) || res_d < res_a)
+				push_reciclePole_CB(handles.push_reciclePole, handles)		% Update pole info
+				set(handles.edit_InitialResidue,'String', res_d)
+				push_compute_CB(hObject, handles)
+			end
+			set(handles.check_insist, 'Val', 0)
+		end
 
 	else											% Try with Hellinger's (pfiu)
 		conjug = getappdata(handles.hLines(1),'HellingConjug');
@@ -1306,12 +1319,19 @@ uicontrol('Parent',h1, 'Pos',[289 248 121 21],...
 'Tooltip','Select a pole from the default list',...
 'Tag','push_polesList');
 
-uicontrol('Parent',h1, 'Pos',[440 248 21 21],...
+uicontrol('Parent',h1, 'Pos',[430 248 21 21],...
 'Callback',@compute_euler_uiCB,...
 'String','^',...
 'Tooltip','Re-initialize with computed pole',...
 'Vis', 'off',...
 'Tag','push_reciclePole');
+
+uicontrol('Parent',h1, 'Pos',[466 248 41 21],...
+'String','Loop',...
+'Style','checkbox',...
+'Tooltip','Loop until the best fit pole for the stated params is obtained',...
+'Vis', 'off',...
+'Tag','check_insist');
 
 uicontrol('Parent',h1, 'Pos',[20 168 84 16],'HorizontalAlignment','left','Str','Longitude Range','Style','text');
 
