@@ -16,7 +16,7 @@ function varargout = isoc_selector(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: isoc_selector.m 10273 2018-02-11 20:45:17Z j $
+% $Id: isoc_selector.m 10275 2018-02-12 01:55:01Z j $
 
 	if (isempty(varargin))
 		errordlg('ISOC_SELECTOR: wrong number of input arguments.','Error'),	return
@@ -96,8 +96,8 @@ function edit_isocsDir_CB(hObject, handles, opt)
 	if (nargin == 3)					% Set by push_pato_CB()
 		set(hObject, 'Str', opt)
 	else
-		str = get(hbject, 'Str');
-		if (exists(str, 'dir') ~= 2)	% If entered manually, check calidity
+		str = get(hObject, 'Str');
+		if (exist(str, 'dir') ~= 2)	% If entered manually, check calidity
 			errordlg('This directory does not exist. Please pay attention and provide a good one.', 'Error')
 			set(hObject, 'Str', '')
 		end
