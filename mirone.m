@@ -20,7 +20,7 @@ function varargout = mirone(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: mirone.m 10253 2018-02-03 01:26:07Z j $
+% $Id: mirone.m 10276 2018-02-12 03:23:23Z j $
 
 	if (nargin > 1 && ischar(varargin{1}))
 		if ( ~isempty(strfind(varargin{1},':')) || ~isempty(strfind(varargin{1},filesep)) )
@@ -154,7 +154,7 @@ function hObject = mirone_OpeningFcn(varargin)
 		handles.DefLineThick = sscanf(strtok(prf.DefLineThick{1}),'%f');
 		% Decode the line color string into the corresponding char (e.g. k,w, etc...)
 		if (strcmp(prf.DefLineColor{1},'Black')),	handles.DefLineColor = 'k';
-		else										handles.DefLineColor = lower(prf.DefLineColor{1}(1));
+		else,										handles.DefLineColor = lower(prf.DefLineColor{1}(1));
 		end
 		% Decode the Measure unities into a char code (e.g. n, k, m, u from {'nautical miles' 'kilometers' 'meters' 'user'})
 		handles.DefineMeasureUnit = prf.DefineMeasureUnit{1}(1);
@@ -170,7 +170,7 @@ function hObject = mirone_OpeningFcn(varargin)
 		handles.bg_color = prf.nanColor;
 		handles.deflation_level = prf.deflation_level;
 		if (isfield(prf, 'TDRver')),	handles.TDRver = prf.TDRver;
-		else							handles.TDRver = '2.0';
+		else,							handles.TDRver = '2.0';
 		end
 	catch
 		% Tell mirone_pref to write up the defaults.
@@ -190,7 +190,7 @@ function hObject = mirone_OpeningFcn(varargin)
 	if (any(j))					% If any of the old dirs evaporated, update that info in mirone_prefs
 		directory_list = handles.last_directories;	isempty(directory_list);	% To shut up MLint
 		if (handles.version7),		save([handles.path_data 'mirone_pref.mat'],'directory_list', '-append', '-v6')
-		else						save([handles.path_data 'mirone_pref.mat'],'directory_list', '-append')
+		else,						save([handles.path_data 'mirone_pref.mat'],'directory_list', '-append')
 		end
 	end
 
@@ -530,7 +530,7 @@ function handles = recentFiles(handles, opt)
 	if ( ~jump && (nargin == 1 || (nargin == 2 && ~isempty(opt))) )		% Save only if it worth it
 		FOpenList = handles.FOpenList;		fname = [handles.path_data 'mirone_pref.mat'];
 		if (~handles.version7),		save(fname,'FOpenList','-append')	% Update the list for "Recent files"
-		else						save(fname,'FOpenList','-append', '-v6')
+		else,						save(fname,'FOpenList','-append', '-v6')
 		end
 	end
 	for (i = 1:N)			% The ishandle test below is crutial when GCPs
@@ -571,7 +571,7 @@ function handles = SetAxesNumericType(handles,event)
 	setappdata(handles.axes1,'LabelFormatType',LFT)
 	set(handles.LabFormat, 'Vis', visibility)
 	if (handles.validGrid), set(handles.PixMode, 'Callback', {@PixMode_CB,handles.figure1, true}, 'Vis', 'on')
-	else					set(handles.PixMode, 'Vis', 'off')
+	else,					set(handles.PixMode, 'Vis', 'off')
 	end
 	set(handles.RCMode, 'Callback', {@PixMode_CB,handles.figure1, false})
 	set(handles.FancyMode, 'Callback', {@FancyMode_CB,handles.figure1})
@@ -715,7 +715,7 @@ if ~isempty(opt)				% OPT must be a rectangle/polygon handle (the rect may serve
 		y = [opt(3) opt(4) opt(4) opt(3) opt(3)];
 	else
 		if (size(opt,2) > 2),	x = opt(1,1:end);	y = opt(2,1:end);	% Row vectors
-		else					x = opt(:,1)';		y = opt(:,2)';		% Were col vectors, make them row for consistency
+		else,					x = opt(:,1)';		y = opt(:,2)';		% Were col vectors, make them row for consistency
 		end
 	end
 
@@ -1061,7 +1061,7 @@ if (~strcmp(opt2,'MedianFilter') && ~strcmp(opt2,'ROI_SetConst'))		% Otherwise, 
 	if (isa(Z,'single')),		Z(r_c(1):r_c(2),r_c(3):r_c(4)) = single(Z_rect);
 	elseif (isa(Z,'int16')),	Z(r_c(1):r_c(2),r_c(3):r_c(4)) = int16(Z_rect);
 	elseif (isa(Z,'uint16')),	Z(r_c(1):r_c(2),r_c(3):r_c(4)) = uint16(Z_rect);
-	else						Z(r_c(1):r_c(2),r_c(3):r_c(4)) = single(Z_rect);
+	else,						Z(r_c(1):r_c(2),r_c(3):r_c(4)) = single(Z_rect);
 	end
 	if (handles.have_nans && ~any(isnan(Z_rect(:))))	% Check that old NaNs had not been erased
 		handles.have_nans = grdutils(Z,'-N');
@@ -1070,7 +1070,7 @@ end
 
 if ~isempty(opt2)		% Here we have to update the image in the processed region
 	if (isa(Z,'single')),	zz = grdutils(Z,'-L');		z_min = zz(1);		z_max = zz(2);
-	else					z_min = double(min(Z(:)));	z_max = double(max(Z(:)));
+	else,					z_min = double(min(Z(:)));	z_max = double(max(Z(:)));
 	end
 	img = [];
 	if ((abs(z_min - head(5)) > 1e-5 || abs(z_max - head(6)) > 1e-5) && handles.Illumin_type == 0)
@@ -1087,7 +1087,7 @@ if ~isempty(opt2)		% Here we have to update the image in the processed region
 			if (handles.Illumin_type == 1)
 				opt_N = sprintf('-Nt1/%.6f/%.6f',handles.grad_sigma, handles.grad_offset);
 				if (handles.geog),	R = grdgradient_m(Z_rect,head,'-M',illumComm,opt_N);
-				else				R = grdgradient_m(Z_rect,head,illumComm,opt_N);
+				else,				R = grdgradient_m(Z_rect,head,illumComm,opt_N);
 				end
 			else
 				R = grdgradient_m(Z_rect,head,illumComm, '-a1');
@@ -1154,7 +1154,7 @@ function ImageHistEqualize_CB(handles, hObject)
 	if (handles.no_file),		return,		end
 	zz = get(handles.hImg,'CData');
 	if strcmp(get(hObject,'checked'),'off')		% Then equalize
-		if (ndims(zz) == 3);
+		if (ndims(zz) == 3)
 			zz = cvlib_mex('color',zz,'rgb2hls');
 			zz(:,:,2) = img_fun('histeq_j',zz(:,:,2));
 			%zz(:,:,2) = fcnBPDFHE(zz(:,:,2));
@@ -1261,7 +1261,7 @@ function zoom_state(handles, state)
 		case 'maybe_off'		% If zoom was active, keep trace of it
 			zoom_j(handles.figure1,'off');		h = handles.Zoom;
 			if (strcmp(get(h,'State'),'on')),	handles.zoom_state = 1;
-			else								handles.zoom_state = 0;
+			else,								handles.zoom_state = 0;
 			end
 			set(h,'State','off'),	guidata(handles.figure1,handles)
 		case 'maybe_on'			% Check if zoom has to be re-activated
@@ -1407,7 +1407,7 @@ function File_img2GMT_RGBgrids_CB(handles, opt1, opt2)
 			img = get(handles.hImg,'CData');
 		end
 	elseif (strcmp(opt1,'screen')),		img = snapshot(handles.figure1,'noname');	% Screen capture with resizing option
-	else								img = flipdim(imcapture(handles.axes1,'img',0),1);		% Call from write_script
+	else,								img = flipdim(imcapture(handles.axes1,'img',0),1);		% Call from write_script
 	end
 
 	if (ndims(img) == 2)
@@ -1578,7 +1578,7 @@ function FileOpen_ENVI_Erdas_CB(handles, opt, opt2)
 	end
 	
 	if (~isempty(att.GeoTransform)),	handles.image_type = 3;		opt_U = '-U';
-	else								handles.image_type = 2;		opt_U = ' ';
+	else,								handles.image_type = 2;		opt_U = ' ';
 	end
 
 	set(handles.figure1,'pointer','watch')
@@ -1814,10 +1814,10 @@ function FileOpenGDALmultiBand_CB(handles, opt, opt2, opt3)
 
 	handles.fileName = [];		% Not eligible for automatic re-loading
 	handles.was_int16 = false;	handles.computed_grid = 0;
- 	if ( any(strcmp(opt, {'ENVISAT' 'AVHRR' 'multiband'})) )
+ 	if (any(strcmp(opt, {'ENVISAT' 'AVHRR' 'multiband'})))
 		cmap = att.Band(1).ColorMap;
 		if (isempty(cmap)),		set(handles.figure1,'Colormap',jet(256))
-		else					set(handles.figure1,'Colormap',cmap(1).CMap(:,1:3))
+		else,					set(handles.figure1,'Colormap',cmap(1).CMap(:,1:3))
 		end
 		handles = recentFiles(handles);			% Insert fileName into "Recent Files"
 	end
@@ -1825,7 +1825,7 @@ function FileOpenGDALmultiBand_CB(handles, opt, opt2, opt3)
 	if (islogical(I)),		I = I(:,:,1);		end		% We don't want to try to compose an RGB out of logicals
 	handles = show_image(handles,fname,X,Y,I,0,ax_dir,0);	% It also guidata(...) & reset pointer
 	if (isappdata(handles.axes1,'InfoMsg')),	rmappdata(handles.axes1,'InfoMsg'),		end
-	if ( any(strcmp(opt, {'ENVISAT' 'AVHRR' 'multiband'})) ),		grid_info(handles,att,'gdal');		end		% Construct a info message
+	if (any(strcmp(opt, {'ENVISAT' 'AVHRR' 'multiband'}))),		grid_info(handles,att,'gdal');		end		% Construct a info message
 	aux_funs('isProj',handles,1);				% Check/set about coordinates type
 	setAxesDefCoordIn(handles);					% Sets the value of the axes uicontextmenu that selects whether project or not
 
@@ -2067,7 +2067,7 @@ function loadGRID(handles, fullname, tipo, opt)
 
 	aux_funs('StoreZ',handles,X,Y,Z)				% If grid size is not to big we'll store it
 	if (~isempty(pal_file)),	pal = pal_file;		% If the file has a palette, use it instead.
-	else						pal = jet(256);
+	else,						pal = jet(256);
 	end
 	aux_funs('colormap_bg', handles, Z, pal);		% Insert the background color in the palette for arrays that have NaNs
 	if (~isa(Z, 'uint8'))
@@ -2215,7 +2215,7 @@ function handles = show_image(handles, fname, X, Y, I, validGrid, axis_t, adjust
 		set(handles.hImg,'CDataMapping','direct')
 	end
 	if (handles.geog < 10),		handles.geog = aux_funs('guessGeog',handles.head(1:4));
-	else						handles.geog = handles.geog - 10;		% In this case we believe in the pre-set value
+	else,						handles.geog = handles.geog - 10;		% In this case we believe in the pre-set value
 	end
 	if (handles.image_type == 2),	handles.geog = 0;	end
 
@@ -2240,7 +2240,7 @@ function handles = show_image(handles, fname, X, Y, I, validGrid, axis_t, adjust
 	handles = SetAxesNumericType(handles);					% Set axes uicontextmenus
 	if (handles.image_type ~= 1),	handles.grdname = [];	end
 	if (~handles.have_nans),		set(handles.haveNaNs,'Vis','off')	% If no NaNs no need of these
-	else							set(handles.haveNaNs,'Vis','on')
+	else,							set(handles.haveNaNs,'Vis','on')
 	end
 	guidata(handles.figure1, handles);
 
@@ -2254,7 +2254,7 @@ function handles = show_image(handles, fname, X, Y, I, validGrid, axis_t, adjust
  	if (handles.is_projected),	set(handles.toGE,'Enable', 'on'),	end		% Regardless of the above line
 	set(findobj(handles.Projections,'-depth',1,'Label','GMT project'), 'Vis', st{validGrid + 1})
 	if (handles.geog),		set(handles.DrawGeogCirc,'Tooltip','Draw geographical circle')
-	else					set(handles.DrawGeogCirc,'Tooltip','Draw circle')
+	else,					set(handles.DrawGeogCirc,'Tooltip','Draw circle')
 	end
 
 	GCPmemoryVis = 'off';
@@ -2291,7 +2291,7 @@ function handles = show_image(handles, fname, X, Y, I, validGrid, axis_t, adjust
 
 	% Sets the right "Image mode" checkbox on (well, we still miss the BW case)
 	if (ndims(I) == 3),		hThis = handles.ImModRGB;
-	else					hThis = handles.ImMod8cor;
+	else,					hThis = handles.ImMod8cor;
 	end
 	aux_funs('togCheck',hThis, [handles.ImMod8cor handles.ImMod8gray handles.ImModBW handles.ImModRGB])
 	set(handles.ImRestore,'UserData',hThis)			% We need it when restoring original image
@@ -2346,7 +2346,7 @@ function ToolsMBplaningStart_CB(handles)
 	if (handles.firstMBtrack == 1)
 		button = questdlg(prompt,'Multibeam planing info','Accept','Cancel','Accept');
 		if strcmp(button,'Accept'),		handles.firstMBtrack = 0;
-		else							return
+		else,							return
 		end
 	end
 
@@ -2386,12 +2386,12 @@ function ToolsMBplaningImport_CB(handles)
 	resp = str2double(resp{1});
 	if (isnan(resp)),	return,		end
 	if (iscell(out)),	n_segments = length(out);
-	else				n_segments = 1;
+	else,				n_segments = 1;
 	end
 	h_line = zeros(1, n_segments);
 	for (i = 1:n_segments)
 		if (iscell(out)),	xy = out{i}(:,1:2);
-		else				xy = out(:,1:2);
+		else,				xy = out(:,1:2);
 		end
 		z = abs(bi_linear(getappdata(handles.figure1,'dem_x'),getappdata(handles.figure1,'dem_y'),...
 			getappdata(handles.figure1,'dem_z'),xy(:,1),xy(:,2)));
@@ -2433,7 +2433,7 @@ function varargout = ImageIllumModel_CB(handles, opt)
 	elseif (luz.illum_model == 4),	[varargout{1:nargout}] = ImageIllum(luz, handles, 'lambertian');	% GMT Lambertian
 	elseif (luz.illum_model == 5),	[varargout{1:nargout}] = ImageIllum(luz, handles, 'manip');		% ManipRaster
 	elseif (luz.illum_model == 6),	[varargout{1:nargout}] = ImageIllum(luz, handles, 'hill');		% ESRI's hillshade
-	else							ImageIllumFalseColor(luz, handles)				% False color
+	else,							ImageIllumFalseColor(luz, handles)				% False color
 	end
 	if (luz.illum_model > 6 && nargout),	varargout{1} = [];		end				% No reflectances here
 
@@ -2454,7 +2454,7 @@ function Reft = ImageIllum(luz, handles, opt)
 	if (strcmp(opt,'grdgrad_class'))		% GMT grdgradient classic illumination
 		illumComm = sprintf('-A%.2f',luz.azim);
 		if (handles.geog),	[R,offset,sigma] = grdgradient_m(Z,head,'-M',illumComm,'-Nt',OPT_a);
-		else				[R,offset,sigma] = grdgradient_m(Z,head,illumComm,'-Nt',OPT_a);
+		else,				[R,offset,sigma] = grdgradient_m(Z,head,illumComm,'-Nt',OPT_a);
 		end
 		handles.Illumin_type = 1;
 		if (sigma < 1e-6),		sigma = 1e-6;	end		% We cannot let them be zero on sprintf('%.6f',..) somewhere else
@@ -2518,7 +2518,7 @@ function Reft = ImageIllum(luz, handles, opt)
 		end
 		img = get(handles.hImg,'CData');
 	elseif (handles.firstIllum),img = get(handles.hImg,'CData');	handles.firstIllum = 0;
-	else						img = handles.origFig;
+	else,						img = handles.origFig;
 	end
 	if (ndims(img) == 2),		img = ind2rgb8(img,get(handles.figure1,'Colormap'));	end
 	mex_illuminate(img,R)		% New. It can now operate insitu too
@@ -3439,7 +3439,7 @@ function GeophysicsImportGmtFile_CB(handles, opt)
 	else
 		PathName = '';
 		if (~isa(opt,'cell')),		names = {opt};		% Filename sent in input
-		else						names = opt;		% A list of fnames was sent in
+		else,						names = opt;		% A list of fnames was sent in
 		end
 	end
 
@@ -3670,7 +3670,7 @@ function FileOpenSession_CB(handles, fname)
 		handles.Illumin_type = s.illumType;
 		if (handles.Illumin_type == 1)
 			if (handles.geog),	R = grdgradient_m(Z,head,'-M', s.illumComm,'-Nt');
-			else				R = grdgradient_m(Z,head, s.illumComm,'-Nt');
+			else,				R = grdgradient_m(Z,head, s.illumComm,'-Nt');
 			end
 		else
 			R = grdgradient_m(Z,head, s.illumComm,'-a1');
@@ -4391,7 +4391,7 @@ function GridToolsSectrum_CB(handles, opt1, opt2)
 
 	if (quick),				set(handles.figure1,'pointer','watch');		end
 	if (~isempty(Z)),		fft_stuff(handles.figure1, Z, head, handles.geog, opt1)
-	else					fft_stuff
+	else,					fft_stuff
 	end
 	if (quick),		set(handles.figure1,'pointer','arrow');		end
 
@@ -4676,9 +4676,11 @@ function GridToolsSaveAsSRTM_CB(handles)
 	
 	% Build the file name (appended with the '_p' suffix)
 	if (sign(head(1)) > 0 ),	w = 'E';
-	else						w = 'W';	end
+	else,						w = 'W';
+	end
 	if (sign(head(3)) > 0 ),	n = 'N';
-	else						n = 'S';	end
+	else,						n = 'S';
+	end
 	name = [n sprintf('%.2d',abs(round(head(3)))) w sprintf('%.3d',abs(round(head(1)))) '_p.hgt'];
 	[FileName,PathName] = put_or_get_file(handles, name,'Select SRTM File name', 'put','.hgt');
 	if (isequal(FileName,0)),	return,		end
@@ -4748,11 +4750,11 @@ function FileSaveFleder_CB(handles, opt)
 	fname = write_flederFiles(opt, handles, s);		pause(0.01);
 	if (isempty(fname)),	return,		end
 	if (fname(end) == 'e'),		comm = [' -scene ' fname ' &'];		% A SCENE file
-	else						comm = [' -data ' fname ' &'];		% A SD file
+	else,						comm = [' -data ' fname ' &'];		% A SD file
 	end
 	if (strncmp(opt,'run',3))		% Run the viewer
 		if (handles.whichFleder),	fcomm = ['iview4d' comm];		% Free viewer
-		else						fcomm = ['fledermaus' comm];	% The real thing
+		else,						fcomm = ['fledermaus' comm];	% The real thing
 		end
 		try
 			if (isunix)				% Stupid linux doesn't react to a non-existant iview4d
@@ -4818,7 +4820,7 @@ function ImageEdgeDetect_CB(handles, opt)
 		if (strncmp(opt,'apalpa_body', 11))	% Digitize the Non-NaN zone
 			mask = ~isnan(Z);
 			if (numel(opt) >= 13)			% We have a padding request. Find out how much
-				pad = str2num(opt(13:end));
+				pad = str2double(opt(13:end));
 				se = zeros(2*pad+1);		% If pad = 1 we make a SE (a plus) of 3x3, pad = 2 SE of 5x5
 				se(pad+1, :) = 1;		se(:, pad+1) = 1;
 				mask = img_fun('imdilate',mask,se);
@@ -4861,12 +4863,12 @@ function ImageEdgeDetect_CB(handles, opt)
 		if (ndims(img) == 3),		img = cvlib_mex('color',img,'rgb2gray');	end
 		if (~strcmp(opt(1:3),'SUS'))
 			if (~handles.IamCompiled),		img = canny(img);		% Economic version (uses singles & cvlib_mex but crashs in compiled)
-			else							img = img_fun('edge',img,'canny');
+			else,							img = img_fun('edge',img,'canny');
 			end
 		else
 			img = susan(img,'-e');				% Do SUSAN edge detect
 			if (strcmp(opt(4:end),'vec')),	opt = 'Vec';		% This avoids some extra tests later
-			else							opt = 'Ras';
+			else,							opt = 'Ras';
 			end
 		end
 		if (strcmp(opt,'Vec'))
@@ -4878,7 +4880,7 @@ function ImageEdgeDetect_CB(handles, opt)
 		%BW = cvlib_mex('canny',img,40,200,3);
 		if (ndims(img) == 3),			img = cvlib_mex('color',img,'rgb2gray');	end
 		if (~handles.IamCompiled),		BW = canny(img);
-		else							BW = img_fun('edge',img,'canny');
+		else,							BW = img_fun('edge',img,'canny');
 		end
 
 		[H,T,R] = img_fun('hough',BW);
@@ -5345,7 +5347,7 @@ function Transfer_CB(handles, opt)
 		if (ishandle(h_active))			% We have a line or patch in edit mode. Copy it
 			x = get(h_active,'xdata');		y = get(h_active,'ydata');		z = getappdata(h_active,'ZData');
 			if (isempty(z)),		mat2clip([x(:) y(:)],8)
-			else					mat2clip([x(:) y(:) z(:)],8)
+			else,					mat2clip([x(:) y(:) z(:)],8)
 			end
 			setappdata(0, 'CtrlCHandle', [h_active handles.axes1])	% Put a handle copy on root's appdata
 		end
@@ -5392,7 +5394,7 @@ function Transfer_CB(handles, opt)
 		set(handsStBar,'Visible','off');		set(handles.figure1,'pointer','arrow')
 		ff = findobj(handles.figure1, '-depth',1, 'Style','frame', 'Tag', 'FancyFrame');
 		if (~isempty(ff)),		fancyFrame(guidata(handles.figure1),'pset');	end
-		if (ispc),		print -v,		else	print;  end
+		if (ispc),		print -v,		else,	print,	end
 		if (~isempty(ff)),		fancyFrame(handles,'punset');	end
 		set(h,'Visible','on');  set(handsStBar(2:end),'Visible','on');
 
