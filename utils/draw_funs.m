@@ -1331,6 +1331,7 @@ function set_isochrons_uicontext(h, data)
 	uimenu(item, 'Label', 'Age Grid', 'Callback', {@pole2neighbor, [], 'agegrid'}, 'Sep','on');
 	uimenu(item, 'Label', 'Make Age-script', 'Callback', @make_age_script);	
 	uimenu(cmenuHand, 'Label', 'Euler rotation', 'Sep','on', 'Callback', 'euler_stuff(gcf,gco)');
+	uimenu(cmenuHand, 'Label', 'Rotate all in plate', 'Callback', 'pole2neighbor([],[], gco, ''rot_all'')');
 	for (i=1:length(h)),		ui_edit_polygon(h(i)),		end		% Set edition functions
 
 % -----------------------------------------------------------------------------------------
