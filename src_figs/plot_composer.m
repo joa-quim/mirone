@@ -16,7 +16,7 @@ function varargout = plot_composer(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: plot_composer.m 10267 2018-02-11 00:43:03Z j $
+% $Id: plot_composer.m 10280 2018-02-14 22:08:09Z j $
 
 	handMir = varargin{1};
 	if (handMir.no_file)     % Stupid call with nothing loaded on the Mirone window
@@ -1370,6 +1370,11 @@ function [script, l, saveBind, id_grd, id_cpt] = do_init_script(handles, handMir
 		script{l} = '#!/bin/bash -f';				l=l+1;
 		script{l} = [comm 'Coffeeright Mirone Tec'];l=l+1;
 		script{l} = comm;							l=l+1;
+		if (handles.IamCompiled)
+			script{l} = [comm 'Set path to use Mirone''s GMT version'];l=l+1;
+			script{l} = ['path=' pwd ':%path%'];	l=l+1;
+			script{l} = comm;						l=l+1;
+		end
 		script{l} = [comm ' ---- Projection. You may change it if you know how to'];    l=l+1;
 		script{l} = ['proj=' opt_J];		l=l+1;		% Map scale
 		script{l} = [comm ' ---- Frame annotations. You may change it if you know how to'];    l=l+1;
@@ -1399,6 +1404,11 @@ function [script, l, saveBind, id_grd, id_cpt] = do_init_script(handles, handMir
 		script{l} = '@echo OFF';					l=l+1;
 		script{l} = [comm 'Coffeewrite Mirone Tec'];l=l+1;
 		script{l} = comm;							l=l+1;
+		if (handles.IamCompiled)
+			script{l} = [comm 'Set path to use Mirone''s GMT version'];	l=l+1;
+			script{l} = ['set path=' pwd ';%path%'];l=l+1;
+			script{l} = comm;						l=l+1;
+		end
 		script{l} = [comm ' ---- Projection. You may change it if you know how to'];		l=l+1;
 		script{l} = ['set proj=' opt_J];			l=l+1;		% Map scale
 		script{l} = [comm ' ---- Frame annotations. You may change it if you know how to'];	l=l+1;
