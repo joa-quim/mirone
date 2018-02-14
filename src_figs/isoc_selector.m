@@ -49,9 +49,9 @@ function varargout = isoc_selector(varargin)
 
 	set(handles.listbox_isocs, 'Str', {'0' '2' '2a' '3' '3a' '4' '4a' '5' '5c' '6' '9' '13' '18' '20' '21' ...
 		'22' '23' '24' '25' '26' '28' '29' '30' '32' '33' '33r' 'M0' 'M1' 'M5' 'M10' 'M16' 'M22' 'M25'})
-	plates = {'' 'Africa' 'Acores' 'Eurasia' 'Greenland' 'Iberia' 'Jan Mayen' 'Kings Trough' 'Lomonosov' ...
+	plates = {'' 'Africa' 'Acores' 'Eurasia' 'Greenland' 'Iberia' 'Jan Mayen' 'Kings Trough' 'Kings South' 'Lomonosov' ...
 		'Mohns' 'North America' 'XX1' 'XX2' 'XXX'};
-	set(handles.popup_plate1, 'Str', plates, 'Val', 11)
+	set(handles.popup_plate1, 'Str', plates, 'Val', 12)
 	set(handles.popup_plate2, 'Str', plates, 'Val', 1)
 	guidata(hObject, handles);
 	set(hObject,'Visible','on');
