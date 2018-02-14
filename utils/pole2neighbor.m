@@ -25,7 +25,7 @@ function varargout = pole2neighbor(obj, evt, hLine, mode, opt, varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: pole2neighbor.m 10271 2018-02-11 01:38:19Z j $
+% $Id: pole2neighbor.m 10277 2018-02-14 01:03:27Z j $
 
 	if (isa(obj, 'char'))			% Call a function of this file, name stored in OBJ,  and return
 		if (nargout)
@@ -38,7 +38,8 @@ function varargout = pole2neighbor(obj, evt, hLine, mode, opt, varargin)
 
 	if (isempty(hLine)),	hLine = gco;	end
 	hNext = hLine;
-	if (~strcmpi(mode, 'stginfo') && ~strcmp(mode, 'reconst'))		% Otherwise only scan the header info or Reconst plates
+	if (~strcmpi(mode, 'stginfo') && ~strcmp(mode, 'reconst') && ~strcmp(mode, 'update_poles') && ~strcmp(mode, 'rot_all'))
+		% Otherwise only scan the header info or Reconst plates
 		clicked_pt = getappdata(get(hLine, 'UIContextMenu'), 'clicked_pt');
 		[hLines_cross_1, hLines_cross_2] = find_isocs_in_block(hLine, clicked_pt);
 	end
@@ -132,6 +133,9 @@ function varargout = pole2neighbor(obj, evt, hLine, mode, opt, varargin)
 
 	elseif (strcmpi(mode, 'reconst'))		% Reconstruct the base image at the time of the clicked isochrone
 		reconstruct_plates(hLine)
+
+	elseif (strcmpi(mode, 'rot_all'))		% Rotate all Isocs in this plate using poles in header
+		rotate_all(hLine)
 
 	end
 
@@ -584,6 +588,26 @@ function update_poles_headers(hLine, fname)
 	end
 
 % -----------------------------------------------------------------------------------------------------------------
+function rotate_all(hLine)
+% Rotate all Isocs in same plate as HLINE using poles extracted from their headers
+	hAllIsocs = findobj(get(hLine,'Parent'),'Tag', get(hLine,'Tag'));
+	handles = guidata(hLine);
+	pp = get_plate_pair(hLine);
+	for (n = 1:numel(hAllIsocs))		% Loop over all Isochrons
+		this_pp = get_plate_pair(hAllIsocs(n));
+		if (strcmp(this_pp, pp))
+			pole = parse_finite_pole(hAllIsocs(n));
+			if (isempty(pole)),		continue,	end
+			lon = get(hAllIsocs(n), 'XData');		lat = get(hAllIsocs(n), 'YData');
+			[rlon,rlat] = rot_euler(lon,lat,pole.lon, pole.lat, pole.ang, -1);
+			h = line('Parent',handles.axes1, 'XData',rlon, 'YData',rlat, 'Linewidth',get(hAllIsocs(n),'LineWidth'), ...
+				'Color',get(hAllIsocs(n),'Color'), 'Tag','Rotated Line');
+			line_info = {sprintf('Lon = %.2f\tLat = %.2f\tAng = %.3f', pole.lon, pole.lat, pole.ang)};
+			draw_funs(h,'isochron',line_info)
+		end
+	end
+
+% -----------------------------------------------------------------------------------------------------------------
 function hLine0 = find_ridge(hLine)
 % Find the ridge (isochron 0) of the plate on which this hLine lies
 
@@ -634,7 +658,7 @@ function hLine0 = find_ridge_by_names(hLine)
 
 % -----------------------------------------------------------------------------------------------------------------
 function [pp, P2] = get_plate_pair(hLine)
-% Get the plate pair info stored in line's appata. HLINE can be a n isochrn handle or it's lineInfo
+% Get the plate pair info stored in line's appata. HLINE can be an isochron handle or it's lineInfo
 % Second argout is optional. If provided get the plate names in separate vars.
 	if (ishandle(hLine))
 		lineInfo = getappdata(hLine, 'LineInfo');
@@ -1140,6 +1164,9 @@ function [plon,plat,ang] = get_last_pole(lineInfo)
 % -----------------------------------------------------------------------------------------------------------------
 function p = parse_finite_pole(lineInfo)
 % Find the Euler pole parameters from the header line of an isochron
+	if (ishandle(lineInfo))		% If it's the line handle itself
+		lineInfo = getappdata(lineInfo, 'LineInfo');
+	end
 	indF = strfind(lineInfo, 'FIN"');
 	if (isempty(indF)),		p = [];		return,		end
 	ind2 = strfind(lineInfo(indF+4:end),'"') + indF + 4 - 1;	% So that ind refers to the begining string too
