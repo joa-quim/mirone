@@ -5163,7 +5163,7 @@ function TransferB_CB(handles, opt, opt2)
 		end
 
  	elseif (strcmp(opt,'update'))				% Update via Web the stand-alone version
-		dest_fiche = [handles.path_tmp 'apudeita.txt'];		url = 'w3.ualg.pt/~jluis/mirone/updates/v29/';
+		dest_fiche = [handles.path_tmp 'apudeita.txt'];		url = 'w3.ualg.pt/~jluis/mirone/updates/v30/';
 		dos(['wget "' url 'apudeita.txt' '" -q --tries=2 --connect-timeout=5 -O ' dest_fiche]);
 		finfo = dir(dest_fiche);
 		if (finfo.bytes == 0)
@@ -5210,7 +5210,7 @@ function TransferB_CB(handles, opt, opt2)
 			end
 		end
 		if (any(ind))								% If some file was lost report it and remove them from list
-			namedl(~ind) = [];		nomes(~ind) = [];
+			namedl(ind) = [];		nomes(ind) = [];
 			msg = cell(numel(find(ind))+1,1);
 			msg{1} = 'Failed to download these files:';		msg(2:end) = namedl;
 		elseif (all(ind))
