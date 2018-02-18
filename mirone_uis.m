@@ -16,7 +16,7 @@ function [H1,handles,home_dir] = mirone_uis(home_dir)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: mirone_uis.m 10260 2018-02-05 17:44:23Z j $
+% $Id: mirone_uis.m 10282 2018-02-18 02:59:07Z j $
 
 %#function pan igrf_options rally_plater plate_calculator ecran snapshot
 %#function about_box parker_stuff euler_stuff grid_calculator tableGUI usgs_recent_seismicity
@@ -85,7 +85,7 @@ function [H1,handles,home_dir] = mirone_uis(home_dir)
 		'IntegerHandle','off',...
 		'MenuBar','none',...
 		'Toolbar', 'none',...
-		'Name','Mirone 2.9.0dev',...
+		'Name','Mirone 2.9',...
 		'NumberTitle','off',...
 		'PaperPositionMode','auto',...
 		'PaperSize',[20.984 29.677],...
@@ -101,7 +101,7 @@ function [H1,handles,home_dir] = mirone_uis(home_dir)
 	% Detect which matlab version is beeing used. For the moment I'm only interested to know if R13 or >= R14
 	version7 = version;
 	if (double(version7(1)) > 54),		version7 = sscanf(version7(1:3),'%f');
-	else								version7 = 0;
+	else,								version7 = 0;
 	end
 
 	if (version7)
@@ -747,7 +747,7 @@ end
 %uimenu('Parent',h, 'Callback', 'update_gmt(guidata(gcbo))','Label','Update your GMT5','Sep','on')
 uimenu('Parent',h, 'Callback',['mirone(''FileOpenWebImage_CB'',guidata(gcbo),',...
 	' ''http://www2.clustrmaps.com/stats/maps-clusters/w3.ualg.pt-~jluis-mirone-world.jpg'',''nikles'');'],'Label','See visitors map','Sep','on');
-uimenu('Parent',h, 'Callback','about_box(guidata(gcbo),''Mirone Last modified at 5 Feb 2018'',''2.9.0dev'')','Label','About','Sep','on');
+uimenu('Parent',h, 'Callback','about_box(guidata(gcbo),''Mirone Last modified at 18 Feb 2018'',''2.9'')','Label','About','Sep','on');
 
 %% --------------------------- Build HANDLES and finish things here
 	handles = guihandles(H1);
@@ -796,14 +796,14 @@ function figure1_KeyPressFcn(hObj, event)
 		if (strcmp(CK,'rightarrow') || strcmp(CK,'leftarrow'))
 			SS = get(hSliders(1),'SliderStep');			val = get(hSliders(1),'Value');
 			if (CK(1) == 'r'),		newVal = min(val + SS(1), 1);	% I know that imscroll_j sliders are [0 1]
-			else					newVal = max(0, val - SS(1));
+			else,					newVal = max(0, val - SS(1));
 			end
 			set(hSliders(1),'Value', newVal)
 			imscroll_j(handles.axes1,'SetSliderHor')
 		elseif (strcmp(CK,'uparrow') || strcmp(CK,'downarrow'))
 			SS = get(hSliders(2),'SliderStep');			val = get(hSliders(2),'Value');
 			if (CK(1) == 'u'),		newVal = min(val + SS(1), 1);	% I know that imscroll_j sliders are [0 1]
-			else					newVal = max(0, val - SS(1));
+			else,					newVal = max(0, val - SS(1));
 			end
 			set(hSliders(2),'Value', newVal)
 			imscroll_j(handles.axes1,'SetSliderVer')
@@ -838,5 +838,5 @@ function figure1_CloseRequestFcn(hObj, event)
 	if (isappdata(0, 'linkedStruct')),	rmappdata(0, 'linkedStruct'),	end		% Linked images use this container.
 	FOpenList = handles.FOpenList;	fname = [handles.path_data 'mirone_pref.mat'];
 	if (~handles.version7),			save(fname,'FOpenList','-append')   % Update the list for "Recent files"
-	else							save(fname,'FOpenList','-append', '-v6')
+	else,							save(fname,'FOpenList','-append', '-v6')
 	end
