@@ -61,7 +61,7 @@ function stopBar =  aguentabar(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: aguentabar.m 10145 2017-09-19 15:46:52Z j $
+% $Id: aguentabar.m 10283 2018-02-23 23:31:59Z j $
 
 	% Parse inputs
 	n_argin = nargin;
@@ -240,6 +240,10 @@ function closeBar(obj, evt, hFig)
 	resp = questdlg('Do you want to stop this process (in the next call)?', 'Stop process', 'Yes','No','Yes');
 	if strcmp(resp,'Yes')
 		ud = get(hFig, 'UserData');
-		ud(14) = true;
+		if (isa(ud, 'cell'))		% Post 2015
+			ud{4} = true;
+		else
+			ud(14) = true;
+		end
 		set(hFig, 'UserData', ud)
 	end
