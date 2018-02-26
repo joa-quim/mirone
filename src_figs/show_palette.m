@@ -1,7 +1,7 @@
 function varargout = show_palette(varargin)
 % Plot a color palette either as an idependent figure or inside the main window
 
-%	Copyright (c) 2004-2017 by J. Luis
+%	Copyright (c) 2004-2018 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -20,6 +20,8 @@ function varargout = show_palette(varargin)
 
 	handMir = varargin{1};
 	tipo = varargin{2};
+	update = false;
+	if (nargin == 3),	update = true;	end
 
 	% Some tests
 	if (handMir.no_file),		return,		end
@@ -72,8 +74,8 @@ function varargout = show_palette(varargin)
 	elseif (strcmp(tipo,'At'))				% Create a colorbar right next to image's right side
 		origFigWidth = posFigParent(3);		% To store original figure's width before palette insertion
 		hUict = handMir.PalAt;
-		% If we already have a colorbar, remove it
-		if (strcmp(get(hUict,'Check'),'on'))
+		% If we already have a colorbar, remove or update it
+		if (strcmp(get(hUict,'Check'),'on') && ~update)
 			ud = get(hUict,'Userdata');
 			posFigParent(3) = ud{2};		% Figure's width before palette insertion 
 			if (posFigParent(3) == screen(3)),      posFigParent(3) = posFigParent(3)-1;    end     % The elastic
@@ -81,13 +83,22 @@ function varargout = show_palette(varargin)
 			delete(ud{1})					% Delete the color palette
 			set(hUict,'Checked','off')
 			return
+		elseif (update)						% Just update the cbar and leave (a Slices call)
+			ud = get(hUict,'Userdata');
+			set(ud{1}, 'YLim', min_max)
+			set(findobj(ud{1}, 'Type', 'image'), 'YData', min_max)
+			pal = getappdata(handMir.figure1, 'useThisPalette');
+			if (~isempty(pal))
+				color_palettes('change_cmap', handMir.figure1, pal, false)
+			end
+			return
 		end
 
 		% Create the color bar axes at the right side of the main image axes
 		barW = 20;			% Colorbar width
 		marg = 8;			% Margin between Image and colorbar (must be enoug for slider width)
 		axPos = [posAxParent(1)+posAxParent(3)+marg posAxParent(2) barW min(420,posAxParent(4))];
-		hAx = axes('Units','Pixels','pos',axPos,'Parent',handMir.figure1,'vis','on');
+		hAx  = axes('Units','Pixels','pos',axPos,'Parent',handMir.figure1,'vis','on');
 		image([1 10], min_max, (1:size(cmap,1))', 'Parent',hAx);
 		set(hAx,'XTick',[],'YAxisLocation','right','YDir','normal','HandleVisibility','off','Tag','MIR_CBat')
 
@@ -104,13 +115,22 @@ function varargout = show_palette(varargin)
 		set(hAx,'Units','normalized','Vis','on')
 		set(hUict,'Checked','on')
 
-	elseif (strcmp(tipo,'In'))					% Create a colorbar inside the image, at it's right side
+	elseif (strcmp(tipo,'In'))							% Create a colorbar inside the image, at it's right side
 		hUict = handMir.PalIn;
 		% If we already have a colorbar, remove it
-		if (strcmp(get(hUict,'Check'),'on'))
+		if (strcmp(get(hUict,'Check'),'on') && ~update)
 			ud = get(hUict,'Userdata');
 			delete(ud)
 			set(hUict,'Checked','off')
+			return
+		elseif (update)						% Just update the cbar and leave (a Slices call)
+			ud = get(hUict,'Userdata');
+			set(ud{1}, 'YLim', min_max)
+			set(findobj(ud{1}, 'Type', 'image'), 'YData', min_max)
+			pal = getappdata(handMir.figure1, 'useThisPalette');
+			if (~isempty(pal))
+				color_palettes('change_cmap', handMir.figure1, pal, false)
+			end
 			return
 		end
 
