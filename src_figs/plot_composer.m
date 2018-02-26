@@ -16,7 +16,7 @@ function varargout = plot_composer(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: plot_composer.m 10280 2018-02-14 22:08:09Z j $
+% $Id: plot_composer.m 10288 2018-02-26 03:02:33Z j $
 
 	handMir = varargin{1};
 	if (handMir.no_file)     % Stupid call with nothing loaded on the Mirone window
@@ -25,6 +25,7 @@ function varargout = plot_composer(varargin)
 
 	hObject = figure('Vis','off');
 	plot_composer_LayoutFcn(hObject);
+	handles = guihandles(hObject);
 	move2side(hObject,'right');
 
 	load([handMir.path_data 'mirone_icons.mat']);
@@ -44,8 +45,6 @@ function varargout = plot_composer(varargin)
 		'Tag','DrawGeogCirc','cdata',circ_ico,'Tooltip','Draw circle');
 	uitoggletool('parent',hTB,'Click','mirone(''PanZoom_CB'',guidata(gcbo),gcbo,''zoom'')', ...
 		'Tag','Zoom','cdata',zoom_ico,'Tooltip','Zooming on/off','Sep','on');
-
-	handles = guihandles(hObject);
 
 	hFigs = findobj(0,'type','figure');		% Fish all figures, but not the one that we are about to create
 	hAllFigs = handMir.figure1;
@@ -799,6 +798,12 @@ function update_scales(handles, N)
 		return		% We are done
 	end
 
+	if (strcmp(get(handles.popup_projections,'Enable'), 'off'))	% Image is already projected, no changes allowed.
+		handles.supported_proj = true;
+		guidata(handles.figure1, handles)
+		return
+	end
+	
 	in = [handles.x_min(N) handles.y_min(N); handles.x_min(N) handles.y_max(N); ...
 	      handles.x_max(N) handles.y_max(N); handles.x_max(N) handles.y_min(N)];
 	try
@@ -2629,6 +2634,7 @@ function draw_rectangle(hObj, evt)
 function figure1_ResizeFcn(hObj, evt)
 % Move the right column of uicontrols such that they stay at the same absolute distance from Fig right side
 	handles = guidata(hObj);
+	if (isempty(handles)),		return,		end
 	posFig = get(handles.figure1, 'Pos');
 	if (isequal(posFig(3:4), [800 653]))		% Used to avoid this function to run when on fig creation
 		return
