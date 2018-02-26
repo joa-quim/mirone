@@ -1595,7 +1595,8 @@ function [Z, att, known_coords, have_nans, was_empty_name] = read_gdal(full_name
 			end
 
 			% Go check if -R or quality flags request exists in L2config.txt file
-			[opt_R_out, opt_I, opt_C, bitflags, flagsID, despike] = sniff_in_OPTcontrol(opt_R, att);	% Output opt_R gets preference
+			[opt_R_out, opt_I, opt_C, bitflags, flagsID, despike, quality] = sniff_in_OPTcontrol(opt_R, att);	% Output opt_R gets preference
+			if (~what.quality && quality),		what.quality = quality;		end		% If qual not set by GUI and it's in L2control.txt
 			
 			% Check if the two opt_R intersect
 			r1 = str2num(strrep(opt_R(3:end), '/', ' '));
@@ -1764,11 +1765,11 @@ function [data, did_scale, att, have_new_nans] = handle_scaling(data, att)
 %	to single precision and apply the scaling. 
 
 	have_scale_factor = false;			have_add_offset = false;	did_scale = false;	have_new_nans = false;
-	if ( att.Band(1).ScaleOffset(1) ~= 1 )
+	if (att.Band(1).ScaleOffset(1) ~= 1)
 		have_scale_factor = true;
 		scale_factor = att.Band(1).ScaleOffset(1);
 	end
-	if ( att.Band(1).ScaleOffset(2) ~= 0 )
+	if (att.Band(1).ScaleOffset(2) ~= 0)
 		have_add_offset = true;
 		add_offset = att.Band(1).ScaleOffset(2);
 	end
@@ -1842,7 +1843,7 @@ function [att, uncomp_name] = get_baseNameAttribs(full_name)
 	end
 
 % -----------------------------------------------------------------------------------------
-function [opt_R, opt_I, opt_C, bitflags, flagsID, despike] = sniff_in_OPTcontrol(old_R, att)
+function [opt_R, opt_I, opt_C, bitflags, flagsID, despike, quality] = sniff_in_OPTcontrol(old_R, att)
 % Check the L2config file for particular requests in terms of -R, -I or quality flags
 % OPT_R is what the L2config has in
 %
@@ -1853,7 +1854,7 @@ function [opt_R, opt_I, opt_C, bitflags, flagsID, despike] = sniff_in_OPTcontrol
 % DESPIKE	MODIS L2 SST show an incredible noise level peaking at every other 10 rows of data in
 %			sensor coordinates. If the keyword MIR_EMPILHADOR_C exists, DESPIKE is set to true.
 
-	got_flags = false;		bitflags = [];		flagsID = 0;	despike = false;
+	got_flags = false;		bitflags = [];		flagsID = 0;	despike = false;	quality = 0;
 	opt_I = [];				opt_C = [];
 	opt_R = old_R;			% In case we return without finding a new -R
 
@@ -1899,9 +1900,13 @@ function [opt_R, opt_I, opt_C, bitflags, flagsID, despike] = sniff_in_OPTcontrol
 			[t,r] = strtok(ddewhite(r));
 		end
 		if (got_one),	continue,	end			% Done with this line
+		[t,r] = strtok(opt);					% opt contains the string '_F list' or '_Q val' or '_C'
 		if (strcmp(lines{k}(15:16),'_F'))		% We have a bitflags request
 			got_flags = true;					% If it comes here means that we have a flags request
-			flaglist = opt;
+			flaglist = r;
+		elseif (strcmp(lines{k}(15:16),'_Q'))	% Get the quality factor (SST)
+			q = str2double(r);
+			if (~isnan(q) && q >= 0 && q <= 2),	quality = q;	end
 		elseif (strcmp(lines{k}(15:16),'_C'))	% Despike MODIS SST
 			% The key MIR_EMPILHADOR_C has currently one argument only, 'AVG', but this may change
 			despike = true;
