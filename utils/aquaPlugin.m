@@ -107,7 +107,7 @@ function aquaPlugin(handles, auto)
 			fnameFlag  = 'C:\a1\pathfinder\qual_82_09.nc';
 			flag = 6;				% Compute yearly means
 			if (internal_master),	applyFlags(handles, fnameFlag, flag, 200)
-			else					applyFlags(handles, out{2:end})
+			else,					applyFlags(handles, out{2:end})
 			end
 		case 'yearMeanFlag'			% CASE 4
 			ano = 1:12;				% Compute yearly (ano = 1:12) or seasonal means (ano = start_month:end_month)
@@ -135,20 +135,20 @@ function aquaPlugin(handles, auto)
 			fnameFlag  = 'C:\a1\pathfinder\qual_82_09.nc';	% If not empty check againts this file
 			quality = 6;			% Retain only values of quality >= this (or <= abs(this) when MODIS). Ingored if fnameFlag = []
 			if (internal_master),	calc_polygAVG(handles, fnameOut, op, fnamePolys, sub_set, fnameFlag, quality)
-			else					calc_polygAVG(handles, out{2:end})
+			else,					calc_polygAVG(handles, out{2:end})
 			end
 		case 'flagsStats'			% CASE 6
 			ano = 1:12;				% Compute yearly stats
 			%opt = '';				% Make the counting on a per month basis
 			opt = 'per_year';		% Make the counting on a per year basis
 			if (internal_master),	calc_flagsStats(handles, ano, 7, opt)
-			else					calc_flagsStats(handles, out{2:end})
+			else,					calc_flagsStats(handles, out{2:end})
 			end
 		case 'pass_by_count'		% CASE 7
 			count = 11;
 			fname = 'C:\a1\pathfinder\countPerYear_flag7_Interp200.nc';
 			if (internal_master),	pass_by_count(handles, count, fname)
-			else					pass_by_count(handles, out{2:end})
+			else,					pass_by_count(handles, out{2:end})
 			end
 		case 'do_math'				% CASE 8
 			opt = 'diffstd';		% Sum all layers
@@ -174,11 +174,11 @@ function aquaPlugin(handles, auto)
 			grd_out = 'C:\SVN\mironeWC\tmp\lixoR.nc';
 			sub_set = [0 0];		% [jump_start stop_before_end], make it [] or [0 0] to be ignored
 			if (internal_master),	calc_corrcoef(handles, secondArray, sub_set, false, grd_out)
-			else					calc_corrcoef(handles, out{2:end})
+			else,					calc_corrcoef(handles, out{2:end})
 			end
 		case 'count_blooms'			% CASE 12
 			if (internal_master),	count_blooms(handles)
-			else					count_blooms(handles, out{2:end})
+			else,					count_blooms(handles, out{2:end})
 			end
 	end
 
@@ -250,7 +250,7 @@ function out = zonal(handles, dlat, integ_lon, do_trends, sub_set, fnamePoly1, f
 		if (~isempty(msg)),	errordlg(msg, 'Error'),		return,		end
 		do_flags = true;
 		if (quality > 0 ),	growing_flag = true;		% PATHFINDER flags
-		else				growing_flag = false;		% MODIS flags
+		else,				growing_flag = false;		% MODIS flags
 		end
 	else
 		do_flags = false;
@@ -287,7 +287,7 @@ function out = zonal(handles, dlat, integ_lon, do_trends, sub_set, fnamePoly1, f
 	series_vec = (jump_start:(nSeries - 1 + jump_start)) + 1;		% Add 1 so it never starts at 0 (no good for indices)
 	allSeries = zeros(nStripes, nSeries);
 	if (integ_lon),		N_tot = cols + 1e-10;		% Add eps so that we never have divisions by zero
-	else				N_tot = rows + 1e-10;
+	else,				N_tot = rows + 1e-10;
 	end
 	mask = [];
 
@@ -298,7 +298,7 @@ function out = zonal(handles, dlat, integ_lon, do_trends, sub_set, fnamePoly1, f
 		if (do_flags)
 			flags = nc_funs('varget', fnameFlag, s_flags.Dataset(z_id_flags).Name, [k-1 0 0], [1 rows cols]);
 			if (growing_flag),		Z(flags < quality) = NaN;	% Pathfinder style (higher the best) quality flag
-			else					Z(flags > quality) = NaN;	% MODIS style (lower the best) quality flag
+			else,					Z(flags > quality) = NaN;	% MODIS style (lower the best) quality flag
 			end
 		end
 
@@ -364,8 +364,8 @@ function out = zonal(handles, dlat, integ_lon, do_trends, sub_set, fnamePoly1, f
 		out = allSeries;
 	end
 	
-% ------------------------------------------------------------------------------------
-function calcGrad(handles, slope, sub_set, fnameFlag, quality, splina, scale, grd_out)
+% -------------------1-------2-------3---------4---------5-------6-------7-------8-------9--------10-----
+function calcGrad(handles, slope, sub_set, fnameFlag, quality, splina, scale, grd_out, do_3x3, mask_file)
 % Compute the rate of change of a file by fitting a LS straight line. The file can be one of the
 % already computed yearly means, in which case last three input arguments do not apply,
 % OR the full time series. In this case optional checking against quality flags and spline
@@ -395,6 +395,16 @@ function calcGrad(handles, slope, sub_set, fnameFlag, quality, splina, scale, gr
 %			Ignored if SLOPE is FALSE
 %
 % GRD_OUT	Name of the netCDF file where to store the result. If not provided, open Mirone Fig.
+%
+% DO_3x3	Logical. If true, compute over 3x3 windows
+%
+% MASK_FILE	name of Land mask file. If it has NaNs it will be multiplied but if only 1/0's, 0's will become NaNs
+
+	if (nargin <= 6),	scale = 1;		end
+	if (nargin < 8),	grd_out = [];	end
+	if (nargin < 9),	do_3x3 = false;	end
+	if (nargin < 10),	mask_file = '';	end
+	if (~slope),		scale = 1;		end		% Make sure to not scale p-values
 
 	do_blockMean = false;	% Must be turned into an input parameter
 	do_flags = false;		% Will be set to true if we do a checking against a quality flgas file
@@ -421,10 +431,29 @@ function calcGrad(handles, slope, sub_set, fnameFlag, quality, splina, scale, gr
 
 	n_anos = n_anos - (jump_anos + stop_before_end_anos);	% Number of layers to be used in this run
 
+	% When files are too big (not difficult when number of layers is high) must do a patch processing
+	one_Gb = 1024*1024*1024;		% Use patches of 1 Gb
+	if (rows * cols * n_anos * 4 > one_Gb)
+		slice_cols = round(one_Gb / (rows * n_anos * 4));
+		slice_cols = 1:slice_cols:cols;
+		if (slice_cols(end) < cols),	slice_cols(end+1) = cols;	end
+		slicing = true;
+	else
+		slice_cols = [1 cols];
+		slicing = false;
+	end
+	read_cols = cols;
+
 	if (nargin >= 4 && ~isempty(fnameFlag))
+		if (slicing && ~handles.IamCompiled)
+			slice_cols = [1 cols];
+			slicing = false;
+			warndlg('File very big that would be processed by patches, but that is not implemented whid Flags. Trying wirh a single patch.', 'Warning')
+		elseif (slicing && handles.IamCompiled)
+			errordlg('File too big. Processing it with quality flags is not implemented','Error'),	return
+		end
 		[s_flags, z_id_flags, msg] = checkFlags_compat(fnameFlag, handles.number_of_timesteps, rows, cols);
 		if (~isempty(msg)),	errordlg(msg, 'Error'),		return,		end
- 		%flags = nc_funs('varget', fnameFlag, s_flags.Dataset(z_id_flags).Name, [jump_anos 0 0], [n_anos rows cols]);
 		flags = alloc_mex(rows, cols, n_anos, 'uint8');
 		for (m = 1:n_anos)
 			flags(:,:,m) = nc_funs('varget', fnameFlag, s_flags.Dataset(z_id_flags).Name, [(m - 1 + jump_anos) 0 0], [1 rows cols]);
@@ -436,82 +465,143 @@ function calcGrad(handles, slope, sub_set, fnameFlag, quality, splina, scale, gr
 			splina = false;
 		end
 		if (quality > 0 ),	growing_flag = true;		% PATHFINDER flags
-		else				growing_flag = false;		% MODIS flags
+		else,				growing_flag = false;		% MODIS flags
 		end
 	else
-		splina = false;
-	end
-	if (nargin <= 6),	scale = 1;		end
-	if (nargin < 8),	grd_out = [];	end
-	if (~slope),		scale = 1;		end				% Make sure to not scale p-values
-
-	Tmed = alloc_mex(rows, cols, n_anos, 'single');
-	aguentabar(0,'title','Loading data ...')
-	for (m = 1:n_anos)
- 		Tmed(:,:,m) = nc_funs('varget', handles.fname, s.Dataset(z_id).Name, [(m - 1 + jump_anos) 0 0], [1 rows cols]);
-	end
-% 	Tmed = nc_funs('varget', handles.fname, s.Dataset(z_id).Name, [jump_anos 0 0], [n_anos rows cols]);
-% 	Tmed = permute(Tmed, [2 3 1]);
-
-	% ---- save profiles of points, located inside polygon of Mirone fig, as a multi-segment file
-	if (get_profiles_in_polygon)
-		profiles_in_polygon(handles, Tmed, n_anos)
-		return
-	end
-	% -----------------------------------------------------------------------------------------
-
-	if (do_blockMean)
-		aguentabar(0,'title','Compute block means','CreateCancelBtn')
-		for (m = 1:n_anos)
-			if (do_flags)
-				slice = Tmed(:,:,m);
-				fslice = flags(:,:,m);
-				if (growing_flag),	slice(fslice < quality) = NaN;
-				else				slice(fslice > quality) = NaN;
-				end
-				Tmed(:,:,m) = mirblock(slice, '-A3');
-			else
-				Tmed(:,:,m) = mirblock(Tmed(:,:,m), '-A3');
-			end
-			h = aguentabar(m/n_anos);
-			if (isnan(h)),	return,		end
-		end
-		if (do_flags)
-			clear slice fslice
-		end
+		splina = false;		flags = [];	growing_flag = false;	% Not used
 	end
 
-	if (is_PFV52)		% For Pathfinder V5.2 (daily) use the true time coordinates
-		x = tempos;
+	if (is_PFV52)			% For Pathfinder V5.2 (daily) use the true time coordinates
+		x = tempos;		yy = [];
 		if (splina),	yy = tempos;			end
-		threshold_perc = 0.10;	% AD-HOC threshold percentage of the n points below which do NOT compute slope
+		threshold = 0.10;	% AD-HOC threshold percentage of the n points below which do NOT compute slope
 	else
-		x = (0:n_anos-1)';
+		x = (0:n_anos-1)';	yy = [];
 		if (splina),	yy = (0:n_anos-1)';		end
-		threshold_perc = 0.66;	% 66%
+		threshold = 0.66;	% 66%
 	end
 
-	if (is_PFV52)
-		aguentabar(0,'title','Computing and removing Seazonal cycle','CreateCancelBtn')
-		Tavg = tideman(handles, Tmed, tempos, 52);
-		Tmed = remove_seazon(handles, Tmed, Tavg, tempos);
-	end
-	
-	aguentabar(0,'title','Compute the Time rate','CreateCancelBtn')
+	nSlices = numel(slice_cols) - 1;
+	for (ns = 1:nSlices)		% Loop over number of slices (which may be only one)
+		msg = 'Loading data ...';
+		if (slicing)
+			read_cols = slice_cols(ns+1) - slice_cols(ns) + 1;
+			if (ns == 1)
+				Tvar = zeros(rows, cols);	% To gether the final result. Allocate on first usage
+			end
+			msg = sprintf('Loading (big) data. %d of %d ...', ns, nSlices);
+		end
+		Tmed = alloc_mex(rows, read_cols, n_anos, 'single');
+		aguentabar(0,'title', msg)
+		if (~slicing)
+			for (m = 1:n_anos)
+		 		Tmed(:,:,m) = nc_funs('varget', handles.fname, s.Dataset(z_id).Name, [(m - 1 + jump_anos) 0 0], [1 rows cols]);
+			end
+		else
+			for (m = 1:n_anos)
+		 		t = nc_funs('varget', handles.fname, s.Dataset(z_id).Name, [(m - 1 + jump_anos) 0 0], [1 rows cols]);
+				Tmed(:, :, m) = t(:, slice_cols(ns):slice_cols(ns+1));
+			end
+			clear t
+		end
 
+		% ---- save profiles of points, located inside polygon of Mirone fig, as a multi-segment file
+		if (get_profiles_in_polygon)
+			profiles_in_polygon(handles, Tmed, n_anos)
+			return
+		end
+		% -----------------------------------------------------------------------------------------
+
+		if (do_blockMean)
+			aguentabar(0,'title','Compute block means','CreateCancelBtn')
+			for (m = 1:n_anos)
+				if (do_flags)
+					slice = Tmed(:,:,m);
+					fslice = flags(:,:,m);
+					if (growing_flag),	slice(fslice < quality) = NaN;
+					else,				slice(fslice > quality) = NaN;
+					end
+					Tmed(:,:,m) = mirblock(slice, '-A3');
+				else
+					Tmed(:,:,m) = mirblock(Tmed(:,:,m), '-A3');
+				end
+				h = aguentabar(m/n_anos);
+				if (isnan(h)),	return,		end
+			end
+			if (do_flags)
+				clear slice fslice
+			end
+		end
+
+		if (is_PFV52)
+			aguentabar(0,'title','Computing and removing Seazonal cycle','CreateCancelBtn')
+			Tavg = tideman(handles, Tmed, tempos, 52);
+			Tmed = remove_seazon(handles, Tmed, Tavg, tempos);
+			clear Tavg
+		end
+
+		if (~slicing)			%Do it all in one passage
+			if (do_3x3)
+				[Tvar, stopit] = get_slopes_conn8(Tmed, flags, x, rows, cols, slope, do_flags, growing_flag, threshold);
+			else
+				[Tvar, stopit] = get_slopes(Tmed, flags, x, yy, rows, cols, slope, do_flags, growing_flag, splina, threshold);
+			end
+		else
+			if (do_3x3)
+				[Tvar_slice, stopit] = get_slopes_conn8(Tmed, flags, x, rows, read_cols, slope, do_flags, growing_flag, threshold);
+			else
+				[Tvar_slice, stopit] = get_slopes(Tmed, flags, x, yy, rows, read_cols, slope, do_flags, growing_flag, splina, threshold);
+			end
+			if (stopit),	return,		end
+			Tvar(:, slice_cols(ns):slice_cols(ns+1)) = Tvar_slice;
+		end
+	end
+
+	clear Tmed
+	if (stopit),	return,		end
+
+	if (scale ~= 1),		cvlib_mex('CvtScale', Tvar, double(scale),0);		end
+	Tvar = single(Tvar);
+
+	if (~isempty(mask_file))
+		Tvar = apply_mask(mask_file, [], Tvar);		% Apply the Land mask file
+	end
+
+	zz = grdutils(Tvar,'-L');  handles.head(5:6) = [zz(1) zz(2)];
+	tmp.head = handles.head;
+	if (isempty(grd_out))			% Show result in a Mirone figure
+		tmp.X = linspace(tmp.head(1),tmp.head(2),cols);
+		tmp.Y = linspace(tmp.head(3),tmp.head(4),rows);
+		tmp.name = 'Time gradient (deg/year)';
+		mirone(Tvar, tmp)
+	else							% Got output name from input arg
+		handles.was_int16 = false;
+		handles.computed_grid = true;
+		handles.geog = 1;
+		nc_io(grd_out, 'w', handles, Tvar)
+	end
+
+% --------------------------------------------------------------------------------------
+function [Tvar, stopit] = get_slopes(Tmed, flags, x, yy, rows, cols, slope, do_flags, growing_flag, splina, threshold)
+% Compute the best fit slopes (or p-values) on each node
 	Tvar = zeros(rows, cols) * NaN;
-	for (m = 1:rows)
-		for (n = 1:cols)
+	stopit = false;
+	n_anos = numel(x);
+	atLeast = round(n_anos * threshold);
+	aguentabar(0,'title','Computing the Time rate','CreateCancelBtn')
+
+	for (n = 1:cols)
+		for (m = 1:rows)
 			y = double(squeeze(Tmed(m,n,:)));
 			if (do_flags)
 				this_flag = squeeze(flags(m,n,:));
 				if (growing_flag),		y(this_flag < quality) = NaN;	% Pathfinder style (higher the best) quality flag
-				else					y(this_flag > quality) = NaN;	% MODIS style (lower the best) quality flag
+				else,					y(this_flag > quality) = NaN;	% MODIS style (lower the best) quality flag
 				end
 			end
 			ind = isnan(y);
 			y(ind) = [];
-			if (numel(y) < n_anos * threshold_perc),	continue,	end	% Completely ad-hoc test (it also jumps land cells)
+			if (numel(y) < atLeast),	continue,	end	% Completely ad-hoc test (it also jumps land cells)
 
 			if (splina)
 				if (~all(ind))		% Otherwise we have them all and so nothing to interp
@@ -540,7 +630,6 @@ function calcGrad(handles, slope, sub_set, fnameFlag, quality, splina, scale, gr
 			%z=[xvalues(1:4);ones(1,4)]'\yvalues';
 			if (slope)		% Compute sople of linear fit
 				p = trend1d_m([x(~ind) y],'-L','-N2r');
-				%[model, p] = trend1d_m([x(~ind) y],'-Fm','-N3r');	% To get the acceleration (coeff of x^2)
 				Tvar(m,n) = p(1);
 			else			% Compute p value
 	 			p = trend1d_m([x(~ind) y],'-L','-N2r','-R','-P');
@@ -548,28 +637,76 @@ function calcGrad(handles, slope, sub_set, fnameFlag, quality, splina, scale, gr
 				Tvar(m,n) = p(4);
 			end
 		end
-		h = aguentabar(m/rows);
-		if (isnan(h)),	break,	end
+		h = aguentabar(n/cols);
+		if (isnan(h)),	stopit = true;	break,	end
 	end
-	if (isnan(h)),	return,		end
+	aguentabar(1)
 
-	clear Tmed
-	if (scale ~= 1),		cvlib_mex('CvtScale', Tvar, double(scale),0);		end
-	Tvar = single(Tvar);
-	
-	zz = grdutils(Tvar,'-L');  handles.head(5:6) = [zz(1) zz(2)];
-	tmp.head = handles.head;
-	if (isempty(grd_out))	% Show result in a Mirone figure
-		tmp.X = linspace(tmp.head(1),tmp.head(2),cols);
-		tmp.Y = linspace(tmp.head(3),tmp.head(4),rows);
-		tmp.name = 'Time gradient (deg/year)';
-		mirone(Tvar, tmp)
-	else					% Got output name from input arg
-		handles.was_int16 = false;
-		handles.computed_grid = true;
-		handles.geog = 1;
-		nc_io(grd_out, 'w', handles, Tvar)
+% --------------------------------------------------------------------------------------
+function [Tvar, stopit] = get_slopes_conn8(Tmed, flags, x, rows, cols, slope, do_flags, growing_flag, threshold)
+% Compute the best fit slopes (or p-values) centered on each node but using a 8-connection.
+% That is, on each node the value will be an average of all the 8 data points arround, plut itself.
+	Tvar = zeros(rows, cols) * NaN;
+	stopit = false;
+	aguentabar(0,'title','Computing the Time rate','CreateCancelBtn')
+
+	% First do the left and right columns with the connection 1 algo. Won't do the Top & Bottom rows
+	atLeast = round(numel(x) * threshold);		% Minimum number of points needed to do the fit
+	for (n = [1 cols])
+		for (m = 2:rows-1)
+			y = double(Tmed(m,n,:));
+			y = y(:);
+			if (do_flags)
+				this_flag = flags(m,n,:);
+				if (growing_flag),		y(this_flag < quality) = NaN;	% Pathfinder style (higher the best) quality flag
+				else,					y(this_flag > quality) = NaN;	% MODIS style (lower the best) quality flag
+				end
+			end
+			ind = isnan(y);
+			y(ind) = [];
+			if (numel(y) < atLeast),	continue,	end				% Completely ad-hoc test (it also jumps land cells)
+
+			if (slope)		% Compute sople of linear fit
+				p = trend1d_m([x(~ind) y],'-L','-N2r');
+				Tvar(m,n) = p(1);
+			else			% Compute p value
+	 			p = trend1d_m([x(~ind) y],'-L','-N2r','-R','-P');
+				if (p(1) < -0.5 || p(1) > 1),	continue,	end		% Another ad-hoc (CLIPPING)
+				Tvar(m,n) = p(4);
+			end
+		end
 	end
+	
+	atLeast = round(numel(x) * threshold * 9);		% 9 because we are doing  a 3x3 window
+	x = repmat(x, 1, 9)';
+	x = x(:);
+	for (n = 2:cols-1)
+		for (m = 2:rows-1)
+			y = double(Tmed([m-1 m m+1],[n-1 n n+1],:));
+			y = y(:);
+			if (do_flags)
+				this_flag =flags([m-1 m m+1],[n-1 n n+1],:);
+				if (growing_flag),		y(this_flag < quality) = NaN;	% Pathfinder style (higher the best) quality flag
+				else,					y(this_flag > quality) = NaN;	% MODIS style (lower the best) quality flag
+				end
+			end
+			ind = isnan(y);
+			y(ind) = [];
+			if (numel(y) < atLeast),	continue,	end				% Completely ad-hoc test (it also jumps land cells)
+
+			if (slope)		% Compute sople of linear fit
+				p = trend1d_m([x(~ind) y],'-L','-N2r');
+				Tvar(m,n) = p(1);
+			else			% Compute p value
+	 			p = trend1d_m([x(~ind) y],'-L','-N2r','-R','-P');
+				if (p(1) < -0.5 || p(1) > 1),	continue,	end		% Another ad-hoc (CLIPPING)
+				Tvar(m,n) = p(4);
+			end
+		end
+		h = aguentabar(n/cols);
+		if (isnan(h)),	stopit = true;	break,	end
+	end
+	aguentabar(1)
 
 % --------------------------------------------------------------------------------------
 function profiles_in_polygon(handles, Tmed, n_anos)
@@ -666,7 +803,7 @@ function applyFlags(handles, fname, flag, nCells, grd_out)
 	% -------------------------------------- END PARSING SECTION --------------------------------------------
 
 	if (flag > 0),		growing_flag = true;				% Pathfinder style (higher the best) quality flag
-	else				growing_flag = false;	flag = -flag;	% MODIS style (lower the best) quality flag
+	else,				growing_flag = false;	flag = -flag;	% MODIS style (lower the best) quality flag
 	end
 	pintAnoes = (nCells > 0);
 
@@ -684,7 +821,7 @@ function applyFlags(handles, fname, flag, nCells, grd_out)
 
 		Z_flags = nc_funs('varget', fname, s_flags.Dataset(z_id_flags).Name, [m-1 0 0], [1 rows cols]);
 		if (growing_flag),		Z(Z_flags < flag) = NaN;	% Pathfinder style (higher the best) quality flag
-		else					Z(Z_flags > flag) = NaN;	% MODIS style (lower the best) quality flag
+		else,					Z(Z_flags > flag) = NaN;	% MODIS style (lower the best) quality flag
 		end
 
 		ind = isnan(Z);
@@ -694,15 +831,15 @@ function applyFlags(handles, fname, flag, nCells, grd_out)
 
 		% Write this layer to file
 		if (m == 1),		nc_io(grd_out, sprintf('w%d/time',n_layers), handles, reshape(Z,[1 size(Z)]))
-		else				nc_io(grd_out, sprintf('w%d', m-1), handles, Z)
+		else,				nc_io(grd_out, sprintf('w%d', m-1), handles, Z)
 		end
 
 		h = aguentabar(m/n_layers,'title','Applying flags.');	drawnow
 		if (isnan(h)),	break,	end
 	end
 
-% ------------------------1-------2-------3------4------5-------6--------7-------8---------9-----------10---
-function calc_yearMean(handles, months, fname2, flag, nCells, fname3, splina, tipoStat, chkPts_file, grd_out)
+% ------------------------1-------2-------3------4------5-------6--------7-------8---------9-----------10--------11----
+function calc_yearMean(handles, months, fname2, flag, nCells, fname3, splina, tipoStat, chkPts_file, grd_out, mask_file)
 % Compute anual means or climatologies from monthly data (well, and daily too).
 %
 % MONTHS 	a vector with the months uppon which the mean is to be computed
@@ -741,7 +878,9 @@ function calc_yearMean(handles, months, fname2, flag, nCells, fname3, splina, ti
 %			the data with the holes (NaNs) interpolated with an Akima spline function.
 %
 % GRD_OUT	Name of the netCDF file where to store the result. If not provided, it will be asked here.
-	
+%
+% MASK_FILE	name of Land mask file. If it has NaNs it will be multiplied but if only 1/0's, 0's will become NaNs
+
 	% Variables that are not always used but need to exist
 	Tmed = [];	ZtoSpline = [];	contanoes = [];		total_months = [];	n_pad_months = [];
 	z_id_flags = [];	s_flags= [];
@@ -795,13 +934,15 @@ function calc_yearMean(handles, months, fname2, flag, nCells, fname3, splina, ti
 		if isequal(FileName,0),		return,		end
 		grd_out = [PathName FileName];
 	end
+	if (nargin < 11),	mask_file = '';		end
+	mask = [];		% If needed more than once, this var will hold the amsking array
 
 	% -------------------------------------------------------------------------------------------------------
 	% -------------------------------------- END PARSING SECTION --------------------------------------------
 	% -------------------------------------------------------------------------------------------------------
 
 	if (flag > 0),		growing_flag = true;				% Pathfinder style (higher the best) quality flag
-	else				growing_flag = false;	flag = -flag;	% MODIS style (lower the best) quality flag
+	else,				growing_flag = false;	flag = -flag;	% MODIS style (lower the best) quality flag
 	end
 	pintAnoes = (nCells > 0);
 
@@ -859,7 +1000,7 @@ function calc_yearMean(handles, months, fname2, flag, nCells, fname3, splina, ti
 	[p,f,e] = fileparts(grd_out);
 	if (isempty(e))
 		if (n_anos == 1),	e = '.grd';
-		else				e = '.nc';
+		else,				e = '.nc';
 		end
 		grd_out = [p filesep f e];
 	end
@@ -947,7 +1088,7 @@ function calc_yearMean(handles, months, fname2, flag, nCells, fname3, splina, ti
 			n_meses = numel(this_months);
 
 			if (m == 1),	first_wanted_month = months(1);				% First year in the stack
-			else			first_wanted_month = n_pad_months + 1;
+			else,			first_wanted_month = n_pad_months + 1;
 			end
 			last_wanted_month = first_wanted_month + numel(months) - 1;
 
@@ -1011,6 +1152,10 @@ function calc_yearMean(handles, months, fname2, flag, nCells, fname3, splina, ti
 
 		tmp(tmp == 0) = NaN;		% Reset the NaNs
 
+		if (~isempty(mask_file))
+			[tmp, mask] = apply_mask(mask_file, mask, tmp);		% First time reads from MASK_FILE, second on uses MASK
+		end
+
 		if (in_break),		break,		end		% Fckng no gotos paranoia obliges to this recursive break
 
 % 		% Clip obvious bad data based on cheap median statistics
@@ -1047,7 +1192,7 @@ function calc_yearMean(handles, months, fname2, flag, nCells, fname3, splina, ti
 		if (~isempty(pato)),	fname = [pato filesep fname];	end
 		double2ascii(fname, timeSeries, ['%d' repmat('\t%.4f',[1 size(timeSeries,2)-1])]);
 	end
-	
+
 % ------------------------------------------------------------------------------
 function [Tmed, contanoes, ZtoSpline, already_processed] = ...
 		calc_average_old(handles, s, s_flags, Tmed, ZtoSpline, contanoes, this_months, splina, last_processed_month, ...
@@ -1076,7 +1221,7 @@ function [Tmed, contanoes, ZtoSpline, already_processed] = ...
 		if (do_flags && ~already_processed)
 			Z_flags = nc_funs('varget', fname2, s_flags.Dataset(z_id_flags).Name, [n-1 0 0], [1 rows cols]);
 			if (growing_flag),		Z(Z_flags < flag) = NaN;	% Pathfinder style (higher the best) quality flag
-			else					Z(Z_flags > flag) = NaN;	% MODIS style (lower the best) quality flag
+			else,					Z(Z_flags > flag) = NaN;	% MODIS style (lower the best) quality flag
 			end
 		end
 
@@ -1091,7 +1236,7 @@ function [Tmed, contanoes, ZtoSpline, already_processed] = ...
 				Z_flags(ind0 & ~ind) = flag;					% Promote interpolated pixels to quality 'flag'
 				grdutils(Z_flags,'-c');							% Shift by -128 so it goes well with the uint8 add_off elsewere
 				if (mn == 0),		nc_io(fname3, sprintf('w%d/time',n_anos*numel(months)), handles, reshape(Z_flags,[1 size(Z_flags)]))
-				else				nc_io(fname3, sprintf('w%d', mn), handles, Z_flags)
+				else,				nc_io(fname3, sprintf('w%d', mn), handles, Z_flags)
 				end
 			end
 		end
@@ -1109,8 +1254,8 @@ function [Tmed, contanoes, ZtoSpline, already_processed] = ...
 		end
 	end								% End loop over months
 
-% ------------------------------------------------------------------------------
-function calc_L2_periods(handles, period, tipoStat, regMinMax, grd_out)
+% ------------------------1----------2-------3----------4---------5---------6----
+function calc_L2_periods(handles, period, tipoStat, regMinMax, grd_out, mask_file)
 % Compute averages for 1, 3, 8, month periods of L2 data processed by empilhador
 %
 % PERIOD	Number of days of the composit period (e.g. 3, 8, 30). A variable number
@@ -1129,6 +1274,8 @@ function calc_L2_periods(handles, period, tipoStat, regMinMax, grd_out)
 % REGMINMAX	A 2 elements vector with the MIN and MAX values allowed on the Z function (default [0 inf])
 %
 % GRD_OUT	Name of the netCDF file where to store the result. If not provided, it will be asked here.
+%
+% MASK_FILE	name of Land mask file. If it has NaNs it will be multiplied but if only 1/0's, 0's will become NaNs
 
 	if (nargin < 5 || (nargin == 5 && isempty(grd_out)))	% Note: old and simple CASE 3 in main cannot send here the output name 
 		txt1 = 'netCDF grid format (*.nc,*.grd)';	txt2 = 'Select output netCDF grid';
@@ -1142,6 +1289,8 @@ function calc_L2_periods(handles, period, tipoStat, regMinMax, grd_out)
 		regionalMIN = regMinMax(1);		regionalMAX = regMinMax(2);
 		if (regionalMIN == 0 && regionalMAX == 0),	regionalMIN = Inf;	regionalMAX = Inf;	end
 	end
+	if (nargin < 6),	mask_file = '';		end
+	mask = [];			% If needed more than once, this var will hold the masking array
 
 	[z_id, s, rows, cols] = get_ncInfos(handles);
 
@@ -1171,7 +1320,7 @@ function calc_L2_periods(handles, period, tipoStat, regMinMax, grd_out)
 	% C is the counter to the current layer number being processed.
 	c = find(fix(tempos) < periods(1));		% Find the starting layer number
 	if (isempty(c)),	c = 1;				% We start at the begining of file.
-	else				c = c(end) + 1;		% We start somewhere at the middle of file.
+	else,				c = c(end) + 1;		% We start somewhere at the middle of file.
 	end
 	
 	n_periods = numel(periods);
@@ -1189,6 +1338,10 @@ function calc_L2_periods(handles, period, tipoStat, regMinMax, grd_out)
 			[tmp, s2] = doM_or_M_or_M([], 1, 1, N(m), regionalMIN, regionalMAX, tipoStat, s2);
 			c = s2.layerOI;				% This is crutial because it tells us where we are in the layer stack
 			tmp(tmp == 0) = NaN;		% Reset the NaNs
+			if (~isempty(mask_file))
+				[tmp, mask] = apply_mask(mask_file, mask, tmp);		% First time reads from MASK_FILE, second on uses MASK
+			end
+			
 			zzz = grdutils(tmp,'-L');
 			handles.head(5) = min(handles.head(5), zzz(1));		handles.head(6) = max(handles.head(6), zzz(2));
 		else
@@ -1200,9 +1353,9 @@ function calc_L2_periods(handles, period, tipoStat, regMinMax, grd_out)
 
 		% Write this layer to file, but must treate compiled version differently since
 		% it is not able to write UNLIMITED files
-		if (true || ~handles.IamCompiled)		% TEMP. Later, it it works, we'll simply delete the other branch
+		if (true || ~handles.IamCompiled)		% TEMP. Later, if it works, we'll simply delete the other branch
 			if (m == 1),	nc_io(grd_out, sprintf('w-%f/time',thisLevel), handles, reshape(tmp,[1 size(tmp)]))
-			else			nc_io(grd_out, sprintf('w%d\\%f', m-1, thisLevel), handles, tmp)
+			else,			nc_io(grd_out, sprintf('w%d\\%f', m-1, thisLevel), handles, tmp)
 			end
 		else
 			if (m == 1)
@@ -1215,6 +1368,40 @@ function calc_L2_periods(handles, period, tipoStat, regMinMax, grd_out)
 
 		h = aguentabar(m/n_periods,'title','Computing period means.');	drawnow
 		if (isnan(h)),	break,	end
+	end
+	
+% --------------------------------------------------------------------------------------
+function [Z, mask] = apply_mask(mask_file, mask, Z)
+% When MASK is empty, read data from MASK_FILE otherwise just use MASK to mask out Z.
+% Masking is done either by multiplication by MASK or by logical op when MASK is a logical (or only 1 & 0's)
+	if (isempty(mask))
+		try
+			G = gmtmex(['read -Tg ' mask_file]);
+			if ((size(G.z,1) == size(Z,1)) && (size(G.z,2) == size(S,2)))
+				Z = Z .* G.z;
+			else
+				errordlg('The sizes of the Land mask grid and the input array differ. Ignoring masking request.', 'Error')
+				return
+			end
+		catch
+			errordlg(sprintf('Error reading file %s\n%s', mask_file, lasterror),'Error')
+			return
+		end
+		if (G.range(5) == 0 && G.range(6) == 1)		% A 1/0's mask
+			if (nargout == 2)			% If it's going to be reused, better convert it to logicals right away
+				mask = logical(G.z);
+				clear G
+			end
+			Z(mask) = NaN;
+		else
+			Z = Z .* G.z;
+		end
+	else
+		if (isa(mask, 'logical'))
+			Z(mask) = NaN;
+		else
+			Z = Z .* mask;
+		end
 	end
 
 % ------------------------------------------------------------------------------------
@@ -1324,11 +1511,11 @@ function [out, s] = doM_or_M_or_M(Z, first_level, lev_inc, last_level, regionalM
 		v = version;
 		if (str2double(v(1)) > 6)			% With R14 and above we use the built in min and max
 			if (tipo == 2),		fh = @min;	% Minimum of the selected period
-			else				fh = @max;	% Maximum of the selected period
+			else,				fh = @max;	% Maximum of the selected period
 			end
 		else								% But for R13 and compiled we must avoid the BUGGY NaNs comparisons
 			if (tipo == 2),		fh = @min_nan;		test = 1e10;
-			else				fh = @max_nan;		test = -1e10;
+			else,				fh = @max_nan;		test = -1e10;
 			end
 		end
 		if (isempty(s))
@@ -1561,7 +1748,7 @@ function [tSeries, indTSCurr] = getTimeSeries(ZtoSpline, tSeries, indTS, indTSCu
 % orig		Logical meaning that if true we are writting original series or, otherwise interpolated, where NANs, values
 
 	if (orig),		iStart = 2;			% Remember that first column is always the time
-	else			iStart = 3;
+	else,			iStart = 3;
 	end
 	for (k = 1:size(indTS,1))	% Loop over number of check points
 		tSeries(indTSCurr:(indTSCurr+11), iStart + 2*(k-1)) = ZtoSpline(indTS(k,2), indTS(k,1), first_month:last_month);
@@ -1623,7 +1810,7 @@ function pass_by_count(handles, count, fname2)
 		Z(Z_flags < count) = NaN;
 
 		if (m == 1),		nc_io(grd_out, sprintf('w%d/time',n_layers), handles, reshape(Z,[1 size(Z)]))
-		else				nc_io(grd_out, sprintf('w%d', m-1), handles, Z)
+		else,				nc_io(grd_out, sprintf('w%d', m-1), handles, Z)
 		end
 
 		h = aguentabar(m/n_layers);
@@ -1756,7 +1943,7 @@ function calc_polygAVG(handles, fnameOut, op, fnamePolys, sub_set, fnameFlag, qu
 		fhandle = @local_avg;	fnamePolys = [];
 	elseif (nargin >= 3)
 		if (ischar(op)),		fhandle = str2func(op);
-		else					fhandle = @local_avg;
+		else,					fhandle = @local_avg;
 		end
 		if (nargin == 4)
 			sub_set = [0 0];	fnameFlag = [];
@@ -1780,7 +1967,7 @@ function calc_polygAVG(handles, fnameOut, op, fnamePolys, sub_set, fnameFlag, qu
 		if (~isempty(msg)),	errordlg(msg, 'Error'),		return,		end
 		do_flags = true;
 		if (quality > 0 ),	growing_flag = true;		% PATHFINDER flags
-		else				growing_flag = false;		% MODIS flags
+		else,				growing_flag = false;		% MODIS flags
 		end
 	else
 		do_flags = false;
@@ -1854,7 +2041,7 @@ function calc_polygAVG(handles, fnameOut, op, fnamePolys, sub_set, fnameFlag, qu
 		if (do_flags)
 			flags = nc_funs('varget', fnameFlag, s_flags.Dataset(z_id_flags).Name, [m-1 0 0], [1 rows cols]);
 			if (growing_flag),		Z(flags < quality) = NaN;	% Pathfinder style (higher the best) quality flag
-			else					Z(flags > quality) = NaN;	% MODIS style (lower the best) quality flag
+			else,					Z(flags > quality) = NaN;	% MODIS style (lower the best) quality flag
 			end
 		end
 
@@ -1911,7 +2098,7 @@ function calc_polygAVG(handles, fnameOut, op, fnamePolys, sub_set, fnameFlag, qu
 		if isequal(FileName,0),		return,		end
 		[PATH,FNAME,EXT] = fileparts([PathName FileName]);
 		if isempty(EXT),	fname = [PathName FNAME '.dat'];
-		else				fname = [PathName FNAME EXT];
+		else,				fname = [PathName FNAME EXT];
 		end
 	else
 		fname = fnameOut;
@@ -1920,7 +2107,7 @@ function calc_polygAVG(handles, fnameOut, op, fnamePolys, sub_set, fnameFlag, qu
 	% Open and write to ASCII file
 	if (ispc),		fid = fopen(fname,'wt');
 	elseif (isunix),fid = fopen(fname,'w');
-	else			error('aquamoto: Unknown platform.');
+	else,			error('aquamoto: Unknown platform.');
 	end
 
 	% Calculate a a rough polygon centroid
@@ -1991,7 +2178,7 @@ function calc_flagsStats(handles, months, flag, opt)
 			tmp = int16(goodCount(:,:));
 	
 			if (m == 1),	nc_io(grd_out,sprintf('w%d/time',n_anos), handles, reshape(tmp,[1 size(tmp)]))
-			else			nc_io(grd_out, sprintf('w%d', m-1), handles, tmp)
+			else,			nc_io(grd_out, sprintf('w%d', m-1), handles, tmp)
 			end
 			
 			h = aguentabar(m/n_anos);
@@ -2014,7 +2201,7 @@ function calc_flagsStats(handles, months, flag, opt)
 			tmp = int16(goodCount(:,:));
 	
 			if (n == 1),	nc_io(grd_out,sprintf('w%d/time',numel(months)), handles, reshape(tmp,[1 size(tmp)]))
-			else			nc_io(grd_out, sprintf('w%d', n-1), handles, tmp)
+			else,			nc_io(grd_out, sprintf('w%d', n-1), handles, tmp)
 			end
 			
 			h = aguentabar(n/numel(months));
@@ -2211,7 +2398,7 @@ function count_blooms(handles, Ncount, sub_set, grd_out)
 
 		thisLevel = handles.time(m+2);
 		if (m == 1),	nc_io(grd_out, sprintf('w-%f/time',thisLevel), handles, reshape(t,[1 size(t)]))
-		else			nc_io(grd_out, sprintf('w%d\\%f', m-1, thisLevel), handles, t)
+		else,			nc_io(grd_out, sprintf('w%d\\%f', m-1, thisLevel), handles, t)
 		end
 		layer1 = layer2;
 
