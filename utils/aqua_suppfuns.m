@@ -16,7 +16,7 @@ function varargout = aqua_suppfuns(opt, varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: aqua_suppfuns.m 10164 2017-10-08 19:38:36Z j $
+% $Id: aqua_suppfuns.m 10289 2018-02-26 03:04:46Z j $
 
 	switch opt
 		case 'coards_hdr',		[varargout{1:nargout}] = init_header_params(varargin{:});
@@ -329,10 +329,12 @@ function coards_sliceShow(handles, Z)
 		if (numel(hFigs) == 2)	% Often we have an empty Mir fig but that is very difficult to use here. So blow it
 			inds = [isempty(getappdata(hFigs(1), 'IAmAMirone')) isempty(getappdata(hFigs(2), 'IAmAMirone'))];
 			hFigs = hFigs(~inds);							% Only one of them is a Mirone fig
-			if (~isempty(hFigs))							% It happened once in debug but might happen in areal future case
+			if (~isempty(hFigs))							% It happened once in debug but might happen in a real future case
 				handThis = guidata(hFigs);
-				nLayers  = handThis.nLayers;
-				if (~handThis.validGrid),		delete(hFigs),	clear handThis,	end
+				if (~isempty(handThis))
+					nLayers  = handThis.nLayers;
+					if (~handThis.validGrid),		delete(hFigs),	clear handThis,	end
+				end
 			end
 		end
 
@@ -431,6 +433,13 @@ function coards_sliceShow(handles, Z)
 		set(handles.handMir.figure1, 'Name', sprintf('Level = %.10g',handles.time(handles.sliceNumber+1)))
 		setappdata(handles.handMir.figure1,'dem_x',handles.x);		% Don't get bad surprises (like load another file)
 		setappdata(handles.handMir.figure1,'dem_y',handles.y);
+
+		% See if we have a colorbar to update
+		if (strcmp(get(handles.handMir.PalAt,'Check'),'on'))
+			show_palette(handles.handMir, 'At', 'update')
+		elseif (strcmp(get(handles.handMir.PalIn,'Check'),'on'))
+			show_palette(handles.handMir, 'In', 'update')
+		end
 	end
 
     guidata(handles.figure1,handles)
