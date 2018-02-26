@@ -16,7 +16,7 @@ function varargout = plot_composer(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: plot_composer.m 10288 2018-02-26 03:02:33Z j $
+% $Id: plot_composer.m 10294 2018-02-26 23:28:46Z j $
 
 	handMir = varargin{1};
 	if (handMir.no_file)     % Stupid call with nothing loaded on the Mirone window
@@ -1592,7 +1592,7 @@ function [script, l, o, sc_cpt] = do_palette(handMir, script, l, o, pack, used_g
 % ------------------------------------------------------------------------------------------------------------
 function [mex_sc, o, hWait] = do_grdimg_MEX(handMir, mex_sc, o, KORJ)
 % Do the grdimage stuff for MEX
-	hWait = aguentabar(0,'title','Computing PDF fig');
+	hWait = aguentabar(0,'title','Computing fig');
 	pad = 0;
 	if (handMir.geog && isempty(strfind(KORJ, '-JX'))),		pad = 2;	end
 	img = get(handMir.hImg, 'CData');
@@ -1763,7 +1763,7 @@ function [script, mex_sc, l, o, hLine] = do_symbols(handMir, script, mex_sc, l, 
 	% Search for points as Markers (that is, line with no line - just symbols on vertices)
 	h_shit = get(hLine,'LineStyle');
 	h_num_shit = find(strcmp('none', h_shit));
-	if (h_num_shit)
+	if (~isempty(h_num_shit))
 		id = ismember(h, hLine(h_num_shit));		% Many, if not all, can be repeated
 		h(id) = [];									% This will remove repeted elements
 		h = [h; hLine(h_num_shit)];
@@ -1798,7 +1798,7 @@ function [script, mex_sc, l, o, hLine] = do_symbols(handMir, script, mex_sc, l, 
 		fclose(fid);
 		if (do_MEX)
 			mex_sc{o,1} = ['psxy -S' symbols.Marker num2str(symbols.Size{1}) 'p' opt_G opt_W ellips KORJ];
-			mex_sc{o,2} = [symbols.x{:}; symbols.y{:}];			o = o + 1;
+			mex_sc{o,2} = [symbols.x{:} symbols.y{:}];			o = o + 1;
 		end
 	elseif (ns == 1 && numel(symbols.Size) == 1)	% We have only one symbol
 		script{l} = sprintf('\n%s  ---- Plot symbol', comm);		l=l+1;
@@ -1807,7 +1807,7 @@ function [script, mex_sc, l, o, hLine] = do_symbols(handMir, script, mex_sc, l, 
 					opt_W ellips RJOK ' >> ' pb 'ps' pf];		l = l + 1;
 		if (do_MEX)
 			mex_sc{o,1} = ['psxy -S' symbols.Marker num2str(symbols.Size{1}) 'p' opt_G opt_W ellips KORJ];
-			mex_sc{o,2} = [symbols.x{1}; symbols.y{1}];			o = o + 1;
+			mex_sc{o,2} = [symbols.x{1} symbols.y{1}];			o = o + 1;
 		end
 	else								% We have ns different symbols
 		m = zeros(ns,1);
@@ -1834,7 +1834,7 @@ function [script, mex_sc, l, o, hLine] = do_symbols(handMir, script, mex_sc, l, 
 				opt_W = sprintf(' -W1p,%d/%d/%d', round(ec * 255));
 			end
 			fprintf(fid,'>%s\n',[opt_G opt_W]);
-			fprintf(fid,'%.5f\t%.5f\t%.0f\t%s\n',symbols.x{i},symbols.y{i},symbols.Size{i},symbols.Marker(i,:));
+			fprintf(fid,'%.6f\t%.6f\t%.0fp\t%s\n',symbols.x{i},symbols.y{i},symbols.Size{i},symbols.Marker(i,:));
 		end
 		fclose(fid);
 		script{l} = ' ';                        	l = l + 1;
