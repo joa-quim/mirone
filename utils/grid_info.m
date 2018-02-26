@@ -16,7 +16,7 @@ function grid_info(handles,X,Y,hdr)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: grid_info.m 7960 2016-09-27 13:50:10Z j $
+% $Id: grid_info.m 10290 2018-02-26 14:08:24Z j $
 
 	if (nargin == 3 && strcmp(Y,'gdal'))			% Just extract the relevant info from the attribute struct
 		att2Hdr(handles,X);			return
@@ -38,7 +38,7 @@ function grid_info(handles,X,Y,hdr)
 		end
 		nx = size(Z,2);		ny = size(Z,1);
 		try
-			if (~handles.computed_grid)
+			if (~handles.computed_grid && handles.nLayers == 1)
 				info1 = c_grdinfo(handles.grdname,'hdr_struct');    % info1 is a struct with the GMT grdinfo style
 				if (isa(info1.X_info, 'char'))
 					info_from_GMT_limits = info1.hdr.data(1:4);			% GMT5 case.
@@ -51,7 +51,7 @@ function grid_info(handles,X,Y,hdr)
 			erro = true;
 		end
 
-		if (handles.computed_grid || erro)
+		if (handles.computed_grid || erro || handles.nLayers > 1)
 			info1.Title = 'Unknown';	info1.Command = ' ';	info1.Remark = 'INTERNALY COMPUTED GRID';
 			info1.X_info(4) = nx;		info1.Y_info(4) = ny;
 			info1.Scale = [1 0 -1];
