@@ -21,7 +21,7 @@ function varargout = slices(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: slices.m 10217 2018-01-24 21:33:46Z j $
+% $Id: slices.m 10286 2018-02-26 02:30:31Z j $
 
 % For compiling one need to include the aqua_suppfuns.m aquaPlugin.m files.
 
@@ -92,7 +92,7 @@ function varargout = slices(varargin)
 	% Make a list of visibles on a per operation case
 	handles.cases = cell(10,6);
 	handles.cases{1,1} = [handles.text_boxSize handles.edit_boxSize handles.check_integDim handles.check_doTrends ...
-		handles.text_bounds handles.edit_subSetA handles.edit_subSetB];
+	                      handles.text_bounds handles.edit_subSetA handles.edit_subSetB];
 	handles.cases{1,2} = {'' '' [151 244 139 21] [262 200 81 21] '' '' ''};		% New positions
 	handles.cases{1,3} = {handles.text_bounds 'Subset'};	% Set handle String prop to second element
 	handles.cases{1,4} = {'on' 'Restrict the analysis to the interior of this polygon'};
@@ -100,31 +100,31 @@ function varargout = slices(varargin)
 	handles.cases{1,6} = {'on' 'Filter with quality flags file (opt)'};
 
 	handles.cases{2,1} = [handles.radio_slope handles.radio_pValue handles.check_integDim handles.text_scale ...
-		handles.edit_scale handles.text_bounds handles.edit_subSetA handles.edit_subSetB];
+	                      handles.edit_scale handles.text_bounds handles.edit_subSetA handles.edit_subSetB];
 	handles.cases{2,2} = {'' '' [151 198 137 21] '' '' '' '' ''};
 	handles.cases{2,3} = {handles.text_bounds 'Subset'};	% Set handle String prop to second element
 	handles.cases{2,4} = {'on' 'Output file'};
-	handles.cases{2,5} = {'off' 'Not Used yet'};
+	handles.cases{2,5} = {'on' 'Apply this Land mask (opt)'};
 	handles.cases{2,6} = {'on' 'Filter with quality flags file (opt)'};
 
 	handles.cases{3,1} = [handles.text_nCells handles.edit_nCells];
 	handles.cases{3,2} = {'' ''};
 	handles.cases{3,3} = {handles.text_bounds 'Subset'};	% Set handle String prop to second element
 	handles.cases{3,4} = {'on' 'Output file'};
-	handles.cases{3,5} = {'off' 'Not Used'};
+	handles.cases{3,5} = {'on' 'Not Used'};
 	handles.cases{3,6} = {'on' 'Filter with quality flags file (opt)'};
 
 	handles.cases{4,1} = [handles.text_periods handles.edit_periods handles.check_integDim handles.text_nCells ...
-		handles.edit_nCells handles.text_bounds handles.edit_subSetA handles.edit_subSetB handles.text_What ...
-		handles.popup_what];
+	                      handles.edit_nCells handles.text_bounds handles.edit_subSetA handles.edit_subSetB ...
+	                      handles.text_What handles.popup_what];
 	handles.cases{4,2} = {[11 250 55 16] [64 248 81 23] [137 198 115 21] '' '' '' '' '' '' ''};
 	handles.cases{4,3} = {handles.text_bounds 'Bounds'};	% Set handle String prop to second element
 	handles.cases{4,4} = {'on' 'Output file'};
-	handles.cases{4,5} = {'on' 'Control xy file (optional)'};
+	handles.cases{4,5} = {'on' 'Apply this Land mask (opt)'};		% 'Control xy file (optional)'
 	handles.cases{4,6} = {'on' 'Filter with quality flags file (opt)'};
 
 	handles.cases{5,1} = [handles.text_bounds handles.edit_subSetA handles.edit_subSetB handles.text_What ...
-		handles.popup_what];
+	                      handles.popup_what];
 	handles.cases{5,2} = {'' '' '' '' ''};
 	handles.cases{5,3} = {handles.text_bounds 'Subset'};	% Set handle String prop to second element
 	handles.cases{5,4} = {'on' 'Output file'};
@@ -135,15 +135,15 @@ function varargout = slices(varargin)
 	handles.cases{6,2} = {[11 250 55 16] [64 248 201 23] '' ''};
 	handles.cases{6,3} = {handles.text_bounds 'Bounds'};	% Set handle String prop to second element
 	handles.cases{6,4} = {'on' 'Output file'};
-	handles.cases{6,5} = {'off' ''};
+	handles.cases{6,5} = {'on' 'Apply this Land mask (optional)'};
 	handles.cases{6,6} = {'off' ''};
 
 	handles.cases{7,1} = [handles.text_periods handles.edit_periods handles.text_nCells ...
-		handles.edit_nCells handles.text_What handles.popup_what];
+	                      handles.edit_nCells handles.text_What handles.popup_what];
 	handles.cases{7,2} = {[11 250 55 16] [64 248 81 23] '' '' '' ''};
 	handles.cases{7,3} = {handles.text_bounds 'Bounds'};	% Set handle String prop to second element
 	handles.cases{7,4} = {'on' 'Output file'};
-	handles.cases{7,5} = {'off' ''};
+	handles.cases{7,5} = {'on' 'Apply this Land mask (opt)'};
 	handles.cases{7,6} = {'on' 'Filter with quality flags file (opt)'};
 
 	handles.cases{8,1} = [handles.text_bounds handles.edit_subSetA handles.edit_subSetB];
@@ -294,6 +294,11 @@ function push_inputName_CB(hObject, handles, opt)
 		end
 	end
 
+
+% -------------------------------------------------------------------------------------
+function push_globalMinMax_CB(hObject, handles)
+% ...
+
 % -------------------------------------------------------------------------------------
 function slider_layer_CB(hObject, handles)
 	handles.sliceNumber = round(get(handles.slider_layer,'Value')) - 1;
@@ -345,6 +350,12 @@ function popup_cases_CB(hObject, handles)
 			set(handles.cases{val,1}(k), 'pos', handles.cases{val,2}{k})	% repositioning
 		end
 		set(handles.cases{val,3}{1}, 'Str', handles.cases{val,3}{2})		% Reset uicontrol String
+	end
+
+	if (val == 2)
+		set(handles.check_average3x3, 'Vis', 'on')
+	else
+		set(handles.check_average3x3, 'Vis', 'off')
 	end
 
 	for (k = 4:6)		% Loop over the 3 file names options
@@ -480,7 +491,7 @@ function push_fname2_CB(hObject, handles, fname)
 % ...
 	if (nargin == 2),	fname = [];		end
 	fname = helper_getFile(handles, fname, 2);	% Last arg is used by callee to know who called it
-	if (isempty(fname)),	set(handles.edit_fname2,'Str',''),	return,		end
+	if (isempty(fname)),	return,		end
 	set(handles.edit_fname2, 'Str', fname)
 
 % -------------------------------------------------------------------------------------
@@ -547,8 +558,8 @@ function edit_periods_CB(hObject, handles)
 	erro = false;		n = 0;
 	[t,r] = strtok(str);
 	while (~isempty(t) && ~erro)
-		if (isnan(str2double(t))),  erro = true;
-		else                        [t,r] = strtok(r);
+		if (isnan(str2double(t))),	erro = true;
+		else,						[t,r] = strtok(r);
 		end
 		n = n + 1;
 	end
@@ -721,6 +732,10 @@ function push_compute_CB(hObject, handles)
 		fprintf(fid,'# The ''scale'' var. Scale the final rate by this value\n%s\n',get(handles.edit_scale,'Str'));
 		comm = '# Name of the netCDF file where to store the result. If not provided, it will be asked here';
 		helper_writeFile(handles, fid, comm, 'fname', 1)
+		fprintf(fid,'# The ''do3x3'' var (logical). To do calculations over 3x3 windows.\n');
+		fprintf(fid,'%d\n', get(handles.check_average3x3, 'Val'));
+		comm = '# Name of an optional Land mask grid file';
+		helper_writeFile(handles, fid, comm, 'fname', 2)
 
 	elseif (val == 3)	% Apply flags -- CASE 3
 		comm = '# name of a netCDF file with quality flags. If not provided no quality check is done.';
@@ -760,6 +775,8 @@ function push_compute_CB(hObject, handles)
 		helper_writeFile(handles, fid, comm, 'fname', 2)
 		comm = '# Name of the netCDF file where to store the result. If not provided, it will be asked here';
 		helper_writeFile(handles, fid, comm, 'fname', 1)
+		comm = '# Name of an optional Land mask grid file';
+		helper_writeFile(handles, fid, comm, 'fname', 2)
 
 	elseif (val == 5)	% Polygonal Averages -- CASE 5
 		comm = '# Name of the netCDF file where to store the result. If not provided, it will be asked here';
@@ -797,6 +814,8 @@ function push_compute_CB(hObject, handles)
 		helper_writeFile(handles, fid, comm, 'subset')
 		comm = '# Name of the netCDF file where to store the result. If not provided, it will be asked here';
 		helper_writeFile(handles, fid, comm, 'fname', 1)
+		comm = '# Name of an optional Land mask grid file';
+		helper_writeFile(handles, fid, comm, 'fname', 2)
 
 	elseif (val == 7)	% Climatologies -- CASE 4
 		comm = '# The ''Periods'' variable (The month(s) that we want the climatology)';
@@ -819,6 +838,8 @@ function push_compute_CB(hObject, handles)
 		fprintf(fid,'# Not used here but need to set as empty\n[]\n');
 		comm = '# Name of the netCDF file where to store the result. If not provided, it will be asked here';
 		helper_writeFile(handles, fid, comm, 'fname', 1)
+		comm = '# Name of an optional Land mask grid file';
+		helper_writeFile(handles, fid, comm, 'fname', 2)
 
 	elseif (val == 8)	% Per cell correlation coefficient -- CASE 11
 		comm = '# Name of the other netCDF file whose correlation with loaded array will be estimated';
@@ -857,15 +878,15 @@ function helper_writeFile(handles, fid, comm, opt1, opt2)
 	fprintf(fid, [comm '\n']);	
 	if (strncmp(opt1, 'fname',3))
 		fname = get(handles.(sprintf('edit_fname%d',opt2)), 'Str');
-		if (isempty(fname)),    fprintf(fid,'[]\n');
-		else                    fprintf(fid,'char %s\n', fname);
+		if (isempty(fname)),	fprintf(fid,'[]\n');
+		else,					fprintf(fid,'char %s\n', fname);
 		end
 	elseif (strncmp(opt1, 'subset',3))
 		fprintf(fid, sprintf('[%s %s]\n', get(handles.edit_subSetA,'Str'), get(handles.edit_subSetB,'Str')));
 	elseif (strncmp(opt1, 'flags',3))
 		fname = get(handles.edit_fname3, 'Str');
-		if (isempty(fname)),    fprintf(fid,'[]\n');
-		else                    fprintf(fid,'char %s\n', fname);
+		if (isempty(fname)),	fprintf(fid,'[]\n');
+		else,					fprintf(fid,'char %s\n', fname);
 		end
 		fprintf(fid,sprintf('# The ''quality'' value. Ignored if fname = []\n%s\n', get(handles.edit_qualFlag,'Str')));
 	elseif (strncmp(opt1, 'periods',3))
@@ -923,19 +944,26 @@ uicontrol('Parent',h1, 'Position',[10 396 340 21],...
 'Callback',@slices_uiCB,...
 'HorizontalAlignment','left',...
 'Style','edit',...
-'TooltipString','Enter the name of 3D netCDF file',...
+'Tooltip','Enter the name of 3D netCDF file',...
 'Tag','edit_inputName');
 
 uicontrol('Parent',h1, 'Position',[350 396 21 21],...
 'Callback',@slices_uiCB,...
-'TooltipString','Browse for a 3D netCDF file',...
+'Tooltip','Browse for a 3D netCDF file',...
 'Tag','push_inputName');
 
 uicontrol('Parent',h1, 'Position',[10 370 160 15],...
 'String','Scale color to global min/max',...
 'Style','checkbox',...
-'TooltipString','If checked, color palette is computed using global min/max',...
+'Tooltip','If checked, color palette is computed using global min/max',...
 'Tag','check_globalMinMax');
+
+uicontrol('Parent',h1, 'Position',[180 368 120 19],...
+'Callback',@slices_uiCB,...
+'String','Recompute Min/Max',...
+'Tooltip','Force recomputing of global min/max',...
+'Visible','off',...
+'Tag','push_globalMinMax');
 
 uicontrol('Parent',h1, 'Position',[0 332 382 3], 'Style','frame');
 uicontrol('Parent',h1, 'Position',[5 40 372 190], 'Style','frame');
@@ -971,7 +999,7 @@ uicontrol('Parent',h1, 'Position',[330 343 40 20],...
 'Callback',@slices_uiCB,...
 'String','1',...
 'Style','edit',...
-'TooltipString','Slice number (to go to a specific one, enter a valid slice number here)',...
+'Tooltip','Slice number (to go to a specific one, enter a valid slice number here)',...
 'Enable','inactive',...
 'Tag','edit_sliceNumber');
 
@@ -1016,8 +1044,16 @@ uicontrol('Parent',h1, 'Position',[80 248 55 21],...
 uicontrol('Parent',h1, 'Position',[151 244 139 21],...
 'String','Integration in longitude',...
 'Style','checkbox',...
-'Value',1,...
+'Value',0,...
 'Tag','check_integDim');
+
+uicontrol('Parent',h1, 'Position',[190 250 150 21],...
+'String','Average over 3x3 windows',...
+'Style','checkbox',...
+'Value',0,...
+'Tooltip', 'Do the calculations over 3x3 windows. That is, compute averages values (but slower).',...
+'Visible', 'off',...
+'Tag','check_average3x3');
 
 uicontrol('Parent',h1, 'Position',[262 232 81 21],...
 'String','Do trends',...
@@ -1133,7 +1169,7 @@ uicontrol('Parent',h1, 'Position',[320 247 51 21],...
 'Callback',@slices_uiCB,...
 'String','0',...
 'Style','edit',...
-'TooltipString','Data gaps groups smaller than this are filled by interpolation',...
+'Tooltip','Data gaps groups smaller than this are filled by interpolation',...
 'Tag','edit_nCells');
 
 uicontrol('Parent',h1, 'Position',[298 199 38 16],...
