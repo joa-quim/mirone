@@ -21,7 +21,7 @@ function aquaPlugin(handles, auto)
 %				aquamoto('file.nc', 0)
 %		In the later case the control script name is searched in the OPTcontrol.txt file
 
-%	Copyright (c) 2004-2015 by J. Luis
+%	Copyright (c) 2004-2018 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -481,6 +481,7 @@ function calcGrad(handles, slope, sub_set, fnameFlag, quality, splina, scale, gr
 		threshold = 0.66;	% 66%
 	end
 
+try
 	nSlices = numel(slice_cols) - 1;
 	for (ns = 1:nSlices)		% Loop over number of slices (which may be only one)
 		msg = 'Loading data ...';
@@ -542,20 +543,24 @@ function calcGrad(handles, slope, sub_set, fnameFlag, quality, splina, scale, gr
 
 		if (~slicing)			%Do it all in one passage
 			if (do_3x3)
-				[Tvar, stopit] = get_slopes_conn8(Tmed, flags, x, rows, cols, slope, do_flags, growing_flag, threshold);
+				[Tvar, stopit] = get_slopes_conn8(Tmed, flags, x, rows, cols, slope, do_flags, quality, growing_flag, threshold);
 			else
-				[Tvar, stopit] = get_slopes(Tmed, flags, x, yy, rows, cols, slope, do_flags, growing_flag, splina, threshold);
+				[Tvar, stopit] = get_slopes(Tmed, flags, x, yy, rows, cols, slope, do_flags, quality, growing_flag, splina, threshold);
 			end
 		else
 			if (do_3x3)
-				[Tvar_slice, stopit] = get_slopes_conn8(Tmed, flags, x, rows, read_cols, slope, do_flags, growing_flag, threshold);
+				[Tvar_slice, stopit] = get_slopes_conn8(Tmed, flags, x, rows, read_cols, slope, do_flags, quality, growing_flag, threshold);
 			else
-				[Tvar_slice, stopit] = get_slopes(Tmed, flags, x, yy, rows, read_cols, slope, do_flags, growing_flag, splina, threshold);
+				[Tvar_slice, stopit] = get_slopes(Tmed, flags, x, yy, rows, read_cols, slope, do_flags, quality, growing_flag, splina, threshold);
 			end
 			if (stopit),	return,		end
+			clear Tmed
 			Tvar(:, slice_cols(ns):slice_cols(ns+1)) = Tvar_slice;
 		end
 	end
+catch
+	disp(lasterror)
+end
 
 	clear Tmed
 	if (stopit),	return,		end
@@ -582,7 +587,7 @@ function calcGrad(handles, slope, sub_set, fnameFlag, quality, splina, scale, gr
 	end
 
 % --------------------------------------------------------------------------------------
-function [Tvar, stopit] = get_slopes(Tmed, flags, x, yy, rows, cols, slope, do_flags, growing_flag, splina, threshold)
+function [Tvar, stopit] = get_slopes(Tmed, flags, x, yy, rows, cols, slope, do_flags, quality, growing_flag, splina, threshold)
 % Compute the best fit slopes (or p-values) on each node
 	Tvar = zeros(rows, cols) * NaN;
 	stopit = false;
@@ -590,6 +595,7 @@ function [Tvar, stopit] = get_slopes(Tmed, flags, x, yy, rows, cols, slope, do_f
 	atLeast = round(n_anos * threshold);
 	aguentabar(0,'title','Computing the Time rate','CreateCancelBtn')
 
+	try
 	for (n = 1:cols)
 		for (m = 1:rows)
 			y = double(squeeze(Tmed(m,n,:)));
@@ -641,9 +647,12 @@ function [Tvar, stopit] = get_slopes(Tmed, flags, x, yy, rows, cols, slope, do_f
 		if (isnan(h)),	stopit = true;	break,	end
 	end
 	aguentabar(1)
+	catch
+		disp(lasterror)
+	end
 
 % --------------------------------------------------------------------------------------
-function [Tvar, stopit] = get_slopes_conn8(Tmed, flags, x, rows, cols, slope, do_flags, growing_flag, threshold)
+function [Tvar, stopit] = get_slopes_conn8(Tmed, flags, x, rows, cols, slope, do_flags, quality, growing_flag, threshold)
 % Compute the best fit slopes (or p-values) centered on each node but using a 8-connection.
 % That is, on each node the value will be an average of all the 8 data points arround, plut itself.
 	Tvar = zeros(rows, cols) * NaN;
