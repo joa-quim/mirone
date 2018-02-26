@@ -907,6 +907,8 @@ function calc_yearMean(handles, months, fname2, flag, nCells, fname3, splina, ti
 	elseif (nargin < 8)
 		tipoStat = 0;	chkPts_file = [];	grd_out = [];
 	end
+	if (nargin < 11),	mask_file = '';		end			% Need to test this before the "chkPts_file"
+	if (~isempty(mask_file)),	chkPts_file = [];	end
 
 	% -------------- Test if output time series at locations provided in the CHKPTS_FILE --------------------
 	if (nargin >= 9 && ~isempty(chkPts_file))
@@ -920,7 +922,7 @@ function calc_yearMean(handles, months, fname2, flag, nCells, fname3, splina, ti
 			%timeSeries = zeros(s.Dataset(3).Size, k);		% Total number of layers
 			timeSeries = [(1:s.Dataset(3).Size)' zeros(s.Dataset(3).Size, 2*k)];	% Total N of layers + N of check pts
 			indTSCurr_o = 1;		indTSCurr_s = 1;
-	
+
 			if (rem(size(timeSeries,1), 12) ~= 0)
 				warndlg('Output time series works only with complete years of monthly data. Ignoring request','Warning')
 			else
@@ -934,7 +936,6 @@ function calc_yearMean(handles, months, fname2, flag, nCells, fname3, splina, ti
 		if isequal(FileName,0),		return,		end
 		grd_out = [PathName FileName];
 	end
-	if (nargin < 11),	mask_file = '';		end
 	mask = [];		% If needed more than once, this var will hold the amsking array
 
 	% -------------------------------------------------------------------------------------------------------
@@ -1377,9 +1378,7 @@ function [Z, mask] = apply_mask(mask_file, mask, Z)
 	if (isempty(mask))
 		try
 			G = gmtmex(['read -Tg ' mask_file]);
-			if ((size(G.z,1) == size(Z,1)) && (size(G.z,2) == size(S,2)))
-				Z = Z .* G.z;
-			else
+			if ~((size(G.z,1) == size(Z,1)) && (size(G.z,2) == size(Z,2)))
 				errordlg('The sizes of the Land mask grid and the input array differ. Ignoring masking request.', 'Error')
 				return
 			end
