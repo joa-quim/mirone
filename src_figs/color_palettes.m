@@ -16,7 +16,7 @@ function varargout = color_palettes(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: color_palettes.m 10284 2018-02-26 02:22:37Z j $
+% $Id: color_palettes.m 10296 2018-02-27 20:24:40Z j $
 
 	if (nargin > 1 && ischar(varargin{1}))
 		gui_CB = str2func(varargin{1});
@@ -131,7 +131,7 @@ function varargout = color_palettes_OF(varargin)
 		'Shadows_1' 'Shadows_2' 'Shadows_3' 'Skyline' 'Skyline_polluted' 'Sunrise' ...
 		'Tropical_Colors' 'Wood_1' 'Wood_2' 'Yellow_Contrast' 'Yellow_Orange'};
 	handles.palsT = {'Mag - anomaly' 'SeaLand (m)' 'Bathymetry (m)' 'Topography (m)' ...
-		'SST (12-26)' 'SST (0-20)' 'SST (0-35)'};
+		'SST (12-26)' 'SST (0-20)' 'SST (0-35)' 'Chlor (0-10)'};
 
 	handles.palsML = palsML;
 	pals = [{'Current'} palsML];
@@ -488,10 +488,10 @@ function thematic_pal(handles, pal)
 		load([handles.d_path 'gmt_other_palettes.mat'],'mag');		pal = mag;
 		handles.z_intervals = [-800 -600 -500 -400 -300 -200 -100 -50 50 100 200 300 400 500 600;
 		                       -600 -500 -400 -300 -200 -100 -50 50 100 200 300 400 500 600 800]';
-	elseif (strncmp(pal, 'Chlorophyll', 3) )			% Not visible (results of this are lousy and I need to find why)
-		load([handles.d_path 'gmt_other_palettes.mat'],'rainbow_hist');	pal = rainbow_hist;
-		y = (10).^ [-2 + (0:269-2)*(2 + 2)/(floor(269)-1), 2];		% The same as y = logspace(-2, 2, 269);
-		handles.z_intervals = [0 y(1:254); y(1:255)]';
+% 	elseif (strncmp(pal, 'Chlorophyll', 3) )			% Not visible (results of this are lousy and I need to find why)
+% 		load([handles.d_path 'gmt_other_palettes.mat'],'rainbow_hist');	pal = rainbow_hist;
+% 		y = (10).^ [-2 + (0:269-2)*(2 + 2)/(floor(269)-1), 2];		% The same as y = logspace(-2, 2, 269);
+% 		handles.z_intervals = [0 y(1:254); y(1:255)]';
 	elseif (strncmp(pal, 'SeaLand (m)', 3))			% The "y" case is not used (needs to finish/find a clever algo)
 		load([handles.d_path 'gmt_other_palettes.mat'],'Terre_Mer');	pal = Terre_Mer;
 		y = [linspace(-7000,-1,146) linspace(0,5500,108) 6000]';
@@ -514,6 +514,10 @@ function thematic_pal(handles, pal)
 	elseif (strcmp(pal, 'SST (0-35)'))
 		pal = jet(256);
 		handles.z_intervals = [linspace(0,34.8,175); linspace(0.2,35,175)]';		% 176 = (35-0)/0.2 + 1
+	elseif (strcmp(pal, 'Chlor (0-10)'))
+		pal = jet(256);
+		y = log2(linspace(1,10,257));
+		handles.z_intervals = [y(1:end-1) y(2:end)];
 	else
 		for (k = 1:numel(handles.custom_thematic_name))		% Won't be executed if custom_thematic_name is empty
 			switch pal
@@ -619,7 +623,7 @@ function change_cmap(handles, pal, IamGUI)
 	elseif (handles.thematic)	% Save this palette for eventual future reuse. Note that this pal may be reworked bellow.
 		back = struct('pal',pal, 'thematic',handles.thematic, 'hinge',handles.hinge, 'z_intervals',handles.z_intervals);
 		setappdata(handles.hCallingFig, 'useThisPalette', back)
-	else
+	elseif ishandle(handles.hCallingFig)
 		setappdata(handles.hCallingFig, 'useThisPalette', [])	% To remove I would have inquiry if it exists
 	end
 
@@ -895,7 +899,7 @@ function cmap = FileReadPalette_CB(hObject, handles, opt, opt2)
 				[cmap, z_int] = c_cpt2cmap(['-C' fname]);		% Read once to know the Z limits
 				n_int = 256;
 				if (handles.have_nans),		n_int = 255;	end
-				C = gmtmex(sprintf('makecpt -C%s -T.12%g/%.12g/d+',fname, z_int(1), z_int(end), n_int));
+				C = gmtmex(sprintf('makecpt -C%s -T%.12g/%.12g/%d+n',fname, z_int(1), z_int(end), n_int));
 				cmap = C.colormap;
 				handles.z_intervals = C.range;
 				handles.thematic = true;						% This forces saving the cmap in Mirone's fig appdata
