@@ -1287,7 +1287,7 @@ function calc_L2_periods(handles, period, tipoStat, regMinMax, grd_out, mask_fil
 %
 % MASK_FILE	name of Land mask file. If it has NaNs it will be multiplied but if only 1/0's, 0's will become NaNs
 
-	if (nargin < 5 || (nargin == 5 && isempty(grd_out)))	% Note: old and simple CASE 3 in main cannot send here the output name 
+	if (nargin < 5 || isempty(grd_out))			% Note: old and simple CASE 3 in main cannot send here the output name 
 		txt1 = 'netCDF grid format (*.nc,*.grd)';	txt2 = 'Select output netCDF grid';
 		[FileName,PathName] = put_or_get_file(handles,{'*.nc;*.grd',txt1; '*.*', 'All Files (*.*)'},txt2,'put','.nc');
 		if isequal(FileName,0),		return,		end
