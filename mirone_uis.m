@@ -16,7 +16,7 @@ function [H1,handles,home_dir] = mirone_uis(home_dir)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: mirone_uis.m 10282 2018-02-18 02:59:07Z j $
+% $Id: mirone_uis.m 10295 2018-02-27 00:51:59Z j $
 
 %#function pan igrf_options rally_plater plate_calculator ecran snapshot
 %#function about_box parker_stuff euler_stuff grid_calculator tableGUI usgs_recent_seismicity
@@ -85,7 +85,7 @@ function [H1,handles,home_dir] = mirone_uis(home_dir)
 		'IntegerHandle','off',...
 		'MenuBar','none',...
 		'Toolbar', 'none',...
-		'Name','Mirone 2.9',...
+		'Name','Mirone 2.10dev',...
 		'NumberTitle','off',...
 		'PaperPositionMode','auto',...
 		'PaperSize',[20.984 29.677],...
@@ -747,7 +747,7 @@ end
 %uimenu('Parent',h, 'Callback', 'update_gmt(guidata(gcbo))','Label','Update your GMT5','Sep','on')
 uimenu('Parent',h, 'Callback',['mirone(''FileOpenWebImage_CB'',guidata(gcbo),',...
 	' ''http://www2.clustrmaps.com/stats/maps-clusters/w3.ualg.pt-~jluis-mirone-world.jpg'',''nikles'');'],'Label','See visitors map','Sep','on');
-uimenu('Parent',h, 'Callback','about_box(guidata(gcbo),''Mirone Last modified at 18 Feb 2018'',''2.9'')','Label','About','Sep','on');
+uimenu('Parent',h, 'Callback','about_box(guidata(gcbo),''Mirone Last modified at 26 Feb 2018'',''2.10dev'')','Label','About','Sep','on');
 
 %% --------------------------- Build HANDLES and finish things here
 	handles = guihandles(H1);
@@ -791,7 +791,7 @@ function figure1_KeyPressFcn(hObj, event)
 		zoom_j(hObj,0.5,[]);
 	end
 	hSliders = getappdata(handles.axes1,'SliderAxes');
-	if (~isempty(hSliders) && strcmp( get(hSliders(1),'Vis'),'on' ) )	% If (1) is visible so is the other
+	if (~isempty(hSliders) && strcmp( get(hSliders(1),'Vis'),'on' ))	% If (1) is visible so is the other
 		CK = get(hObj,'CurrentKey');
 		if (strcmp(CK,'rightarrow') || strcmp(CK,'leftarrow'))
 			SS = get(hSliders(1),'SliderStep');			val = get(hSliders(1),'Value');
