@@ -386,13 +386,13 @@ function coards_sliceShow(handles, Z)
 		end
 
 		if (~get(handles.check_globalMinMax, 'Val')),		minmax = [];		% Use Slice's min/max
-		else							minmax = handles.zMinMaxsGlobal;
+		else,							minmax = handles.zMinMaxsGlobal;
 		end
 		if (isa(Z,'int8') && ~isempty(minmax)),	minmax = [];	end	% We don't want to scale a 1 byte array
 
 		if (~isa(Z,'uint8'))
 			if (~isempty(minmax)),		img = scaleto8(Z, 8, minmax);
-			else						img = scaleto8(Z);
+			else,						img = scaleto8(Z);
 			end
 		else
 			img = Z;
@@ -416,7 +416,7 @@ function coards_sliceShow(handles, Z)
 			end
 			img = aquamoto('do_imgWater', handles, 1, Z, handles.imgBat, indLand);
 
-		elseif (get(handles.radio_shade, 'Val'))
+		elseif (get(handles.radio_shade, 'Val'))		% handles.radio_shade was set to [] in slices to not error here
 			indVar = 1;									% FAR FROM SURE THAT THIS IS CORRECT
 			img = ind2rgb8(img, handles.cmapLand);		% img is now RGB
 			head = handles.head;
@@ -439,6 +439,22 @@ function coards_sliceShow(handles, Z)
 			show_palette(handles.handMir, 'At', 'update')
 		elseif (strcmp(get(handles.handMir.PalIn,'Check'),'on'))
 			show_palette(handles.handMir, 'In', 'update')
+		end
+
+		% See if image is illuminated
+		if (handles.handMir.Illumin_type >= 1 && handles.handMir.Illumin_type <= 4)
+			illumComm = getappdata(handles.handMir.figure1,'illumComm');
+			if (handles.handMir.Illumin_type == 1)
+				if (handles.geog),	R = grdgradient_m(Z,handles.head,'-M',illumComm,'-Nt','-a1');
+				else,				R = grdgradient_m(Z,handles.head,illumComm,'-Nt','-a1');
+				end
+			else
+				R = grdgradient_m(Z,handles.head,illumComm, '-a1');
+			end
+			img = ind2rgb8(img,get(handles.handMir.figure1,'Colormap'));
+			mex_illuminate(img,R)		% Operates insitu too
+			clear R
+			set(handles.handMir.hImg,'CData',img),		refresh(handles.handMir.figure1)	% Crazzy beast does not always update the image !!!!!!!!!
 		end
 	end
 
