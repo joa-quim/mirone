@@ -1083,7 +1083,6 @@ if ~isempty(opt2)		% Here we have to update the image in the processed region
 	if (numel(Z_rect) > 9)		% This excludes the case of SetConst in which Z_rect is a scalar
 		if (handles.Illumin_type >= 1 && handles.Illumin_type <= 4)
 			illumComm = getappdata(handles.figure1,'illumComm');
-			z_int = ind2rgb8(z_int,get(handles.figure1,'Colormap'));	% z_int is now RGB
 			if (handles.Illumin_type == 1)
 				opt_N = sprintf('-Nt1/%.6f/%.6f',handles.grad_sigma, handles.grad_offset);
 				if (handles.geog),	R = grdgradient_m(Z_rect,head,'-M',illumComm,opt_N);
@@ -1092,7 +1091,8 @@ if ~isempty(opt2)		% Here we have to update the image in the processed region
 			else
 				R = grdgradient_m(Z_rect,head,illumComm, '-a1');
 			end
-			z_int = shading_mat(z_int,R,'no_scale');	% and now it is illuminated
+			z_int = ind2rgb8(z_int,get(handles.figure1,'Colormap'));	% z_int is now RGB
+			z_int = shading_mat(z_int,R,'no_scale');					% and now is illuminated
 		elseif (handles.Illumin_type ~= 0)
 			warndlg('Sorry, this operation is not allowed with this shading illumination type','Warning')
 			return
@@ -2421,7 +2421,7 @@ function varargout = ImageIllumModel_CB(handles, opt)
 	if (aux_funs('msg_dlg',14,handles)),	return,		end
 	if (nargin == 1),	opt = 'grdgradient_A';	end
 
-	luz = shading_params(opt);
+	luz = shading_params(opt, handles.Illumin_type);
 	if (isempty(luz))
 		if (nargout),	varargout{1} = [];		end
 		return
@@ -2433,7 +2433,8 @@ function varargout = ImageIllumModel_CB(handles, opt)
 	elseif (luz.illum_model == 4),	[varargout{1:nargout}] = ImageIllum(luz, handles, 'lambertian');	% GMT Lambertian
 	elseif (luz.illum_model == 5),	[varargout{1:nargout}] = ImageIllum(luz, handles, 'manip');		% ManipRaster
 	elseif (luz.illum_model == 6),	[varargout{1:nargout}] = ImageIllum(luz, handles, 'hill');		% ESRI's hillshade
-	else,							ImageIllumFalseColor(luz, handles)				% False color
+	elseif (luz.illum_model == 7),	ImageIllumFalseColor(luz, handles)				% False color
+	else,							ImageResetOrigImg_CB(handles)
 	end
 	if (luz.illum_model > 6 && nargout),	varargout{1} = [];		end				% No reflectances here
 
@@ -2445,8 +2446,8 @@ function Reft = ImageIllum(luz, handles, opt)
 % the previously illuminated image. An exception occurs when the image was IP but only for the
 % first time, repeated illums will use the original img. Otherwise we would need to make another img copy
 
-	[X,Y,Z,head] = load_grd(handles);	% If needed, load gmt grid again
-	if isempty(Z),	return,		end		% An error message was already issued
+	[X,Y,Z,head] = load_grd(handles);		% If needed, load gmt grid again
+	if isempty(Z),	return,		end			% An error message was already issued
 
 	OPT_a = '-a1';
 	if (sum(handles.bg_color) < 0.01),	OPT_a = ' ';	end		% Near black bg color has a different treatment
@@ -2465,18 +2466,6 @@ function Reft = ImageIllum(luz, handles, opt)
 		illumComm = sprintf('-Es%.2f/%.2f',luz.azim, luz.elev);
 		R = grdgradient_m(Z,head,illumComm ,OPT_a);
 		handles.Illumin_type = 2;
-% 		nhs = 256;	ncolors = 256;
-% 		R = scaleto8(R);		A = handles.origFig;
-% 		IND  = uint16(R+1) + 256*uint16(A) + 1;
-% 		cmap = get(handles.figure1,'Colormap');
-% 		cmap = cmap(:);
-% 		cmap = bsxfun(@times,cmap,linspace(0,1,nhs));
-% 		cmap = reshape(cmap,[ncolors 3 nhs]);
-% 		cmap = permute(cmap,[3 1 2]);
-% 		cmap = reshape(cmap,[ncolors*nhs 3]);
-% 		cmapUINT8 = uint8(round(cmap*256));
-% 		img = reshape(cmapUINT8(IND(:),:),[size(IND),3]);
-% 		%img = ind2rgb8(IND,cmap);		% WTF this one screws (planty of blacks)? It should be the same but more efficient.
 
 	elseif (strcmp(opt,'grdgrad_peuck'))	% GMT grdgradient Peucker illumination
 		illumComm = '-Ep';
