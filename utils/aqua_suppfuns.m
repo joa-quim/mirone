@@ -16,7 +16,7 @@ function varargout = aqua_suppfuns(opt, varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: aqua_suppfuns.m 10299 2018-02-28 01:15:48Z j $
+% $Id: aqua_suppfuns.m 10302 2018-03-01 01:57:44Z j $
 
 	switch opt
 		case 'coards_hdr',		[varargout{1:nargout}] = init_header_params(varargin{:});
@@ -389,6 +389,10 @@ function coards_sliceShow(handles, Z)
 		else,							minmax = handles.zMinMaxsGlobal;
 		end
 		if (isa(Z,'int8') && ~isempty(minmax)),	minmax = [];	end	% We don't want to scale a 1 byte array
+
+		if (isempty(minmax) && ~isempty(handles.handMir.img_with_minmax))	% Happens when using a Thematic palette
+			minmax = handles.handMir.img_with_minmax;
+		end
 
 		if (~isa(Z,'uint8'))
 			if (~isempty(minmax)),		img = scaleto8(Z, 8, minmax);
