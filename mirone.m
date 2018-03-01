@@ -20,7 +20,7 @@ function varargout = mirone(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: mirone.m 10303 2018-03-01 02:04:47Z j $
+% $Id: mirone.m 10304 2018-03-01 02:13:12Z j $
 
 	if (nargin > 1 && ischar(varargin{1}))
 		if ( ~isempty(strfind(varargin{1},':')) || ~isempty(strfind(varargin{1},filesep)) )
@@ -70,19 +70,19 @@ function hObject = mirone_OpeningFcn(varargin)
 % gmtlist_m  mapproject_m grdproject_m nearneighbor_m cpt2cmap grdfilter_m grdgradient_m grdsample_m surface_m grdtrend_m trend1d_m grdlandmask_m
 
 	global home_dir;	fsep = filesep;
-	toCompile = true;		% To compile set this one to TRUE
+	toCompile = false;		% To compile set this one to TRUE
 	if (toCompile)
 		home_dir = cd;
 	else
-% 		if (isempty(home_dir))		% First time call. Find out where we are
-% 			home_dir = fileparts(mfilename('fullpath'));			% Get the Mirone home dir and set path
-% 			addpath(home_dir, [home_dir fsep 'src_figs'],[home_dir fsep 'utils']);
-% 			if (exist('OCTAVE_VERSION','builtin') ~= 0)				% This is a repetition of the test later in mirone_uis
-% 				addpath([home_dir fsep 'lib_mex' fsep 'octave' fsep octave_config_info.canonical_host_type]);
-% 			else
-% 				addpath([home_dir fsep 'lib_mex']);
-% 			end
-% 		end
+		if (isempty(home_dir))		% First time call. Find out where we are
+			home_dir = fileparts(mfilename('fullpath'));			% Get the Mirone home dir and set path
+			addpath(home_dir, [home_dir fsep 'src_figs'],[home_dir fsep 'utils']);
+			if (exist('OCTAVE_VERSION','builtin') ~= 0)				% This is a repetition of the test later in mirone_uis
+				addpath([home_dir fsep 'lib_mex' fsep 'octave' fsep octave_config_info.canonical_host_type]);
+			else
+				addpath([home_dir fsep 'lib_mex']);
+			end
+		end
 	end
 
 	[hObject,handles,home_dir] = mirone_uis(home_dir);
