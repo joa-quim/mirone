@@ -597,6 +597,7 @@ function change_cmap(handles, pal, IamGUI)
 % Change the Image's colormap to 'pal'
 % When ~IamGUI, PAL is a structure with the palette and some more members
 	if (nargin == 2),		IamGUI = true;		end
+	handMir = [];
 	if (~IamGUI)
 		hMirFig = handles;					% In this case handles is actually the Mirone fig handle
 		handMir = guidata(hMirFig);
@@ -638,27 +639,50 @@ function change_cmap(handles, pal, IamGUI)
 		if (del),	delete(h);		return,		end
 	end
 
-	if (handles.thematic && ~handles.hinge)			% Imported GMT palette with Z levels, OR ...
+	if (handles.thematic && ~handles.hinge)			% Imported GMT palette with Z levels OR a internal thematic cmap
 		if (isempty(handles.z_min_orig)),	return,		end						% No Grid, not possible to continue
-		len_Pal = size(pal, 1);    
-		z_grd = linspace(handles.z_min_orig, handles.z_max_orig, len_Pal)';		% Z[min max] descretized in len_Pal intervals
-		z_pal = [handles.z_intervals(:,1); handles.z_intervals(end,end)];		% Palette z intervals
-		% Interpolate the grid levels into the palette Z levels
-		y = (len_Pal - 1) * ((z_pal - z_pal(1)) / (z_pal(end) - z_pal(1)));		% Spread z_pal into the [0 len_Pal] interval
-		ind_pal = interp1(z_pal, y, z_grd, 'linear', NaN);
-		indNaN  = isnan(ind_pal);			% Because interp1 only has one 'extrapval' we must trick it like this 
-		if (any(indNaN))
-			ib = find(diff(indNaN) == -1);		ie = find(diff(indNaN) == 1);	% Find the indices of extrapolated vals
-			ind_pal(1:ib) = ind_pal(ib+1);		ind_pal(ie+1:end) = ind_pal(ie);% Replace by first/last valid value
-			if (isempty(ib) && isempty(ie)),	ind_pal = zeros(size(ind_pal));	end
-		end
-		ind_pal = round(ind_pal + 0.5);
-		ind_pal(ind_pal < 1) = 1;		ind_pal(ind_pal > len_Pal) = len_Pal;	% Can happen easily for |z_grd| > |z_pal|
-		% Map the old pal indices into the new ones
-		pal = pal(ind_pal,:);
-		set(handles.check_logIt,'Val',0)			% Let no confusions about this
+		handMir = guidata(handles.hCallingFig);
+		[X,Y,Z,head] = load_grd(handMir);		% If needed, load gmt grid again
+		if isempty(Z),	return,		end			% An error message was already issued
+		handMir.img_with_minmax = [handles.z_intervals(1) handles.z_intervals(end)];
+		img = scaleto8(Z, 8, handMir.img_with_minmax);
+		set(handMir.hImg,'CData', img);
+		guidata(handMir.figure1, handMir)
+
+% 		len_Pal = size(pal, 1);    
+% 		z_grd = linspace(handles.z_min_orig, handles.z_max_orig, len_Pal)';		% Z[min max] descretized in len_Pal intervals
+% 		%z_grd = linspace(handles.z_intervals(1), handles.z_intervals(end), len_Pal)';		% Descretize in len_Pal intervals
+% 		z_pal = [handles.z_intervals(:,1); handles.z_intervals(end,end)];		% Palette z intervals
+% 		% Interpolate the grid levels into the palette Z levels
+% 		y = (len_Pal - 1) * ((z_pal - z_pal(1)) / (z_pal(end) - z_pal(1)));		% Spread z_pal into the [0 len_Pal] interval
+% 		ind_pal = interp1(z_pal, y, z_grd, 'linear', NaN);
+% 		indNaN  = isnan(ind_pal);			% Because interp1 only has one 'extrapval' we must trick it like this 
+% 		if (any(indNaN))
+% 			ib = find(diff(indNaN) == -1);		ie = find(diff(indNaN) == 1);	% Find the indices of extrapolated vals
+% 			ind_pal(1:ib) = ind_pal(ib+1);		ind_pal(ie+1:end) = ind_pal(ie);% Replace by first/last valid value
+% 			if (isempty(ib) && isempty(ie)),	ind_pal = zeros(size(ind_pal));	end
+% 		end
+% 		ind_pal = round(ind_pal + 0.5);
+% 		ind_pal(ind_pal < 1) = 1;		ind_pal(ind_pal > len_Pal) = len_Pal;	% Can happen easily for |z_grd| > |z_pal|
+% 		% Map the old pal indices into the new ones
+% 		pal = pal(ind_pal,:);
+ 		set(handles.check_logIt,'Val',0)			% Let no confusions about this
 	elseif (handles.thematic && handles.hinge)
 		pal = makeCmapBat(handles.z_min_orig, handles.z_max_orig, handles.hinge, pal);
+	end
+
+	% The shit here is that if we change between an automatic cmap (one that uses the data min/max) and a thematic one
+	% we need to recompute img because it's it that has the mapping to the palette. So must check that and keep track
+	if (~handles.thematic && ~isempty(handles.hCallingFig))
+		if (isempty(handMir)),	handMir = guidata(handles.hCallingFig);		end
+		if (~handMir.img_with_minmax)
+			[X,Y,Z,head] = load_grd(handMir);		% If needed, load gmt grid again
+			if isempty(Z),	return,		end			% An error message was already issued
+			img = scaleto8(Z);
+			set(handMir.hImg,'CData', img);
+			handMir.img_with_minmax = [];
+			guidata(handMir.figure1, handMir)		% Keep track that we are back to automatic cmaps
+		end
 	end
 
 	z_grd = [];				% Most common case. No particular scaling or logaritmization
@@ -899,12 +923,11 @@ function cmap = FileReadPalette_CB(hObject, handles, opt, opt2)
 				[cmap, z_int] = c_cpt2cmap(['-C' fname]);		% Read once to know the Z limits
 				n_int = 256;
 				if (handles.have_nans),		n_int = 255;	end
-				C = gmtmex(sprintf('makecpt -C%s -T%.12g/%.12g/%d+n',fname, z_int(1), z_int(end), n_int));
+				C = gmtmex(sprintf('makecpt -C%s -T%.12g/%.12g/%d+n',fname, z_int(1), z_int(end), n_int+1));	% +1 because a GMT feature
 				cmap = C.colormap;
 				handles.z_intervals = C.range;
-				handles.thematic = true;						% This forces saving the cmap in Mirone's fig appdata
 			else
-				[cmap,handles.z_intervals] = c_cpt2cmap(['-C' fname]);
+				[cmap, handles.z_intervals] = c_cpt2cmap(['-C' fname]);
 			end
 		else                % Use only the cpt colors
 			cmap = c_cpt2cmap(['-C' fname]);
@@ -936,9 +959,8 @@ function cmap = FileReadPalette_CB(hObject, handles, opt, opt2)
 	list{1} = ['Imported (' FileName ')'];
 	set(handles.listbox1,'String',list,'Value',1);
 	guidata(handles.figure1,handles)
-	%if (~strcmp(opt,'z_levels')),	handles.z_intervals = [];	end	% Trick to avoid cmap recalculation inside change_cmap()
 	if (~isempty(handles.hCallingFig) && ~isempty(handles.z_intervals))
-		handles.thematic = true;
+		handles.thematic = true;		% This forces saving the cmap in Mirone's fig appdata
 	end
 	change_cmap(handles, cmap);
 
@@ -1140,7 +1162,7 @@ msgbox(msg,'Help')
 % --------------------------------------------------------------------
 function edit_Zmin_CB(hObject, handles)
 	xx = str2double(get(hObject,'String'));
-	if (isnan(xx)),     set(hObject,'String',num2str(handles.z_min));   return; end
+	if (isnan(xx)),     set(hObject,'String',num2str(handles.z_min)),	return,		end
 	handles.z_min = xx;
 	guidata(hObject,handles)
 	change_cmap(handles,get(handles.figure1,'Colormap'))
@@ -1148,7 +1170,7 @@ function edit_Zmin_CB(hObject, handles)
 % --------------------------------------------------------------------
 function edit_Zmax_CB(hObject, handles)
 	xx = str2double(get(hObject,'String'));
-	if (isnan(xx)),     set(hObject,'String',num2str(handles.z_max));   return; end
+	if (isnan(xx)),     set(hObject,'String',num2str(handles.z_max)),	return,		end
 	handles.z_max = xx;
 	guidata(hObject,handles)
 	change_cmap(handles,get(handles.figure1,'Colormap'))
