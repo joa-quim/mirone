@@ -70,19 +70,19 @@ function hObject = mirone_OpeningFcn(varargin)
 % gmtlist_m  mapproject_m grdproject_m nearneighbor_m cpt2cmap grdfilter_m grdgradient_m grdsample_m surface_m grdtrend_m trend1d_m grdlandmask_m
 
 	global home_dir;	fsep = filesep;
-	toCompile = false;		% To compile set this one to TRUE
+	toCompile = true;		% To compile set this one to TRUE
 	if (toCompile)
 		home_dir = cd;
 	else
-		if (isempty(home_dir))		% First time call. Find out where we are
-			home_dir = fileparts(mfilename('fullpath'));			% Get the Mirone home dir and set path
-			addpath(home_dir, [home_dir fsep 'src_figs'],[home_dir fsep 'utils']);
-			if (exist('OCTAVE_VERSION','builtin') ~= 0)				% This is a repetition of the test later in mirone_uis
-				addpath([home_dir fsep 'lib_mex' fsep 'octave' fsep octave_config_info.canonical_host_type]);
-			else
-				addpath([home_dir fsep 'lib_mex']);
-			end
-		end
+% 		if (isempty(home_dir))		% First time call. Find out where we are
+% 			home_dir = fileparts(mfilename('fullpath'));			% Get the Mirone home dir and set path
+% 			addpath(home_dir, [home_dir fsep 'src_figs'],[home_dir fsep 'utils']);
+% 			if (exist('OCTAVE_VERSION','builtin') ~= 0)				% This is a repetition of the test later in mirone_uis
+% 				addpath([home_dir fsep 'lib_mex' fsep 'octave' fsep octave_config_info.canonical_host_type]);
+% 			else
+% 				addpath([home_dir fsep 'lib_mex']);
+% 			end
+% 		end
 	end
 
 	[hObject,handles,home_dir] = mirone_uis(home_dir);
@@ -144,6 +144,7 @@ function hObject = mirone_OpeningFcn(varargin)
 	handles.deflation_level = 0;	% If > 0 will create compressed netCDF-4 files
 	handles.is_defRegion = false;	% A def region is a particular case to create GMT custom symbols.
 	handles.screenSize = [];		% Fill it for the case when one wants to fake a different get(0, 'ScreenSize')
+	handles.img_with_minmax = [];	% Will have [lower higher] when scaleto8 is to operate on an interval
 
 	try							% A file named mirone_pref.mat contains the preferences, read them from it
 		prf = load([handles.path_data 'mirone_pref.mat']);
@@ -2110,7 +2111,7 @@ function loadRADARSAT(handles, att)
 	showRADARSAT(handles, att, 'RADARSAT-Imag-component', Z)
 
 function showRADARSAT(handles, att, fname, Z)
-% Plot a RADARSAT-2 band. Unfortunately we still do not allow storing Z as a 16 bits array.
+% Plot a RADARSAT-2 band.
 
 	if (isempty(att.ProjectionRef))								% No georeferenced image
 		X = 1:att.RasterXSize;		Y = 1:att.RasterYSize;
