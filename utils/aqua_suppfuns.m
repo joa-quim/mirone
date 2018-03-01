@@ -390,6 +390,10 @@ function coards_sliceShow(handles, Z)
 		end
 		if (isa(Z,'int8') && ~isempty(minmax)),	minmax = [];	end	% We don't want to scale a 1 byte array
 
+		if (isempty(minmax) && ~isempty(handles.handMir.img_with_minmax))	% Happens when using a Thematic palette
+			minmax = handles.handMir.img_with_minmax;
+		end
+
 		if (~isa(Z,'uint8'))
 			if (~isempty(minmax)),		img = scaleto8(Z, 8, minmax);
 			else,						img = scaleto8(Z);
