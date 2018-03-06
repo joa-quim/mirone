@@ -36,7 +36,7 @@ function aquaPlugin(handles, auto)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: aquaPlugin.m 10297 2018-02-27 20:36:57Z j $
+% $Id: aquaPlugin.m 10308 2018-03-06 23:38:11Z j $
 
 	if (isempty(handles.fname))
 		errordlg('Fast trigger, you probably killed my previous encarnation. Now you have to start again. Bye.','Error')
@@ -1628,7 +1628,7 @@ function out = nanstd_j(Z, first_level, lev_inc, last_level, s)
 	cvlib_mex('pow', out, 0.5)
 
 % ----------------------------------------------------------------------
-function calc_corrcoef(handles, secondArray, sub_set, splina, grd_out)
+function calc_corrcoef(handles, secondArray, sub_set, pValue, grd_out)
 % Compute the correlation coefficien between loaded array and 'secondArray'
 % 
 % NOTE: THIS IS A HIGHLY MEMORY CONSUMPTION ROUTINE AS ALL DATA IS LOADED IN MEMORY
@@ -1641,13 +1641,10 @@ function calc_corrcoef(handles, secondArray, sub_set, splina, grd_out)
 %			For example [3 1] Starts analysis on forth year and stops on the before last year.
 %			[0 0] Means using the all dataset.
 %
-% SPLINA	Logical that if true instruct to spline interpolate the missing monthly values
-%			before computing the rate of change. 
-%			NOT NOT NOT IMPLEMENTED YET. No splining
+% PVALUE	Logical that if true instruct to compute also the p-value of the estimate
 %
 % GRD_OUT	Name of the netCDF file where to store the result. If not provided, open Mirone Fig.
 
-	splina = false;
 	n_anos = handles.number_of_timesteps;
 	[z_idA, sA, rows, cols] = get_ncInfos(handles);
 	if (nargin < 5),	grd_out = [];	end
@@ -1670,64 +1667,58 @@ function calc_corrcoef(handles, secondArray, sub_set, splina, grd_out)
 		arrayB(:,:,m) = nc_funs('varget', secondArray, sB.Dataset(z_idB).Name, [(m - 1 + jump_anos) 0 0], [1 rows cols]);
 	end
 
-	aguentabar(0,'title','Computing correlation coefficients','CreateCancelBtn')
+	h = aguentabar(0,'title','Computing correlation coefficients','CreateCancelBtn');
 
+	try
 	Rgrid = alloc_mex(rows, cols, 'single', NaN);	% Works on R13 as well
-	x = (0:n_anos-1)';
-	if (splina),	yy = (0:n_anos-1)';		end
+	if (pValue),	Pgrid = alloc_mex(rows, cols, 'single', NaN);	end
 	for (m = 1:rows)
 		for (n = 1:cols)
 			Var1 = double(squeeze(arrayA(m,n,:)));
 			Var2 = double(squeeze(arrayB(m,n,:)));
+			
 			ind = isnan(Var1);
-			%Var1(ind) = [];
+			Var1(ind) = [];		Var2(ind) = [];
+			ind = isnan(Var2);
+			Var1(ind) = [];		Var2(ind) = [];
 			% Completely ad-hoc test (it also jumps land cells)
-			if ((numel(Var1) < n_anos*0.66) || (numel(Var1) < n_anos*0.66)),		continue,	end
+			if ((numel(Var1) < n_anos*0.66)),		continue,	end
 
-			if (splina)
-				if (~all(ind))		% Otherwise we have them all and so nothing to interp
-					akimaspline(x(~ind), Var1, x, yy);
-					Var1 = yy;
-					if (ind(1) || ind(end))				% Cases when where we would have extrapolations
-						if (ind(1))
-							ki = 1;
-							while (ind(ki)),	ki = ki + 1;	end
-							Var1(1:ki) = NaN;				% Reset extraped values to NaN
-						end
-						if (ind(end))
-							kf = numel(ind);
-							while (ind(kf)),	kf = kf - 1;	end
-							Var1(kf:numel(ind)) = NaN;		% Reset extraped values to NaN
-						end
-						ind = isnan(Var1);					% Get new nan indices again
-						Var1(ind) = [];
-					else
-						ind = false(n_anos,1);				% Pretend no NaNs for the rest of the code below
-					end
-				end
-			end
-
- 			%R = corrcoef([Var1 Var2]);	%
+%  			%[R_, p] = corrcoef([Var1 Var2]);	%
 			thisN = numel(Var1);
 			VarAB = double([Var1 Var2]);
+			VarAB = VarAB - repmat(sum(VarAB,1) / thisN, thisN, 1);	% Remove mean
 			R = (VarAB' * VarAB) / (thisN - 1);		% Covariance matrix
 			d = sqrt(diag(R));		% sqrt first to avoid under/overflow
 			R = R ./ (d*d');		% Correlation matrix
 
-			% To compute p, but tpvalue() looks expensive. Probably needs mex
-			%-% Tstat = +/-Inf and p = 0 if abs(r) == 1, NaN if r == NaN.
-			%Tstat = R(2) .* sqrt((thisN-2) ./ (1 - R(2).^2));
-			%p = zeros(2);
-			%p(2) = 2*tpvalue(-abs(Tstat), thisN-2);
-			%p = p + p' + diag(diag(R)); % Preserve NaNs on diag.
-
 			Rgrid(m,n) = single(R(2));
+
+			if (pValue)
+	 			p = trend1d_m(VarAB,'-L','-N2r','-R','-P');
+				if (p(1) < -0.5 || p(1) > 1),	continue,	end		% Another ad-hoc (CLIPPING)
+				Pgrid(m,n) = p(4);
+
+				% To compute p, the Matlab way (but too recent Matlab)
+				% Tstat = +/-Inf and p = 0 if abs(r) == 1, NaN if r == NaN.
+% 				Tstat = R(2) .* sqrt((thisN-2) ./ (1 - R(2).^2));
+% 				p = zeros(2);
+% 				p(2) = 2*tpvalue(-abs(Tstat), thisN-2);
+% 				p = p + p' + diag(diag(R)); % Preserve NaNs on diag.
+% 				Pgrid(m,n) = single(p(2));
+			end
+
 		end
-		h = aguentabar(m/rows);
+		if (rem(m, 10) == 0),	h = aguentabar(m/rows);		end
 		if (isnan(h)),	break,	end
 	end
 	if (isnan(h)),	return,		end
+	if (ishandle(h)),	aguentabar(1),		end		% Make sure it goes away.
 
+catch
+	disp(lasterror)
+end
+	
 	clear arrayA arrayB
 
 	zz = grdutils(Rgrid,'-L');  handles.head(5:6) = [zz(1) zz(2)];
@@ -1743,6 +1734,49 @@ function calc_corrcoef(handles, secondArray, sub_set, splina, grd_out)
 		handles.geog = 1;
 		nc_io(grd_out, 'w', handles, Rgrid)
 	end
+
+	if (pValue)
+		zz = grdutils(Pgrid,'-L');  handles.head(5:6) = [zz(1) zz(2)];
+		tmp.head = handles.head;
+		tmp.X = linspace(tmp.head(1),tmp.head(2),cols);
+		tmp.Y = linspace(tmp.head(3),tmp.head(4),rows);
+		tmp.name = 'p-values';
+		mirone(Pgrid, tmp)
+	end
+
+% ----------------------------------------------------------------------
+% function p = tpvalue(x,v)
+% %TPVALUE Compute p-value for t statistic.
+
+% normcutoff = 1e7;
+% if length(x)~=1 && length(v)==1
+%    v = repmat(v,size(x));
+% end
+% 
+% % Initialize P.
+% p = NaN(size(x));
+% nans = (isnan(x) | ~(0<v)); % v == NaN ==> (0<v) == false
+% 
+% % First compute F(-|x|).
+% %
+% % Cauchy distribution.  See Devroye pages 29 and 450.
+% cauchy = (v == 1);
+% p(cauchy) = .5 + atan(x(cauchy))/pi;
+% 
+% % Normal Approximation.
+% normal = (v > normcutoff);
+% p(normal) = 0.5 * erfc(-x(normal) ./ sqrt(2));
+% 
+% % See Abramowitz and Stegun, formulas 26.5.27 and 26.7.1.
+% gen = ~(cauchy | normal | nans);
+% p(gen) = betainc(v(gen) ./ (v(gen) + x(gen).^2), v(gen)/2, 0.5)/2;
+% 
+% % Adjust for x>0.  Right now p<0.5, so this is numerically safe.
+% reflect = gen & (x > 0);
+% p(reflect) = 1 - p(reflect);
+% 
+% % Make the result exact for the median.
+% p(x == 0 & ~nans) = 0.5;
 
 % ----------------------------------------------------------------------
 function [tSeries, indTSCurr] = getTimeSeries(ZtoSpline, tSeries, indTS, indTSCurr, orig, first_month, last_month)
