@@ -16,7 +16,7 @@ function varargout = grdsample_mir(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: grdsample_mir.m 10232 2018-01-26 01:45:05Z j $
+% $Id: grdsample_mir.m 10309 2018-03-06 23:39:11Z j $
 
 	if isempty(varargin)
 		errordlg('GRDSAMPLE: wrong number of input arguments.','Error'),	return
@@ -165,13 +165,13 @@ function push_Help_R_F_T_CB(hObject, handles)
 % --------------------------------------------------------------------
 function popup_BoundaryCondition_CB(hObject, handles)
 	val = get(hObject,'Value');     str = get(hObject, 'String');
-	switch str{val};
+	switch str{val}
         case ' ',        handles.bd_cond = [];
         case '',         handles.bd_cond = [];
-        case 'x',        handles.bd_cond = '-Lx';
-        case 'y',        handles.bd_cond = '-Ly';
-        case 'xy',       handles.bd_cond = '-Lxy'; 
-        case 'g',        handles.bd_cond = '-Lg';
+        case 'x',        handles.bd_cond = '-fx';
+        case 'y',        handles.bd_cond = '-fy';
+        case 'xy',       handles.bd_cond = '-fxy'; 
+        case 'g',        handles.bd_cond = '-fg';
 	end
 	guidata(hObject, handles);
 
@@ -181,7 +181,7 @@ function push_Help_L_CB(hObject, handles)
                'in range of x or y or both set by the grids limits in the above boxes,'
                'or flag may be "g" indicating geographical conditions (x and y may be'
                'lon and lat). [Default is no boundary conditions].'};
-	helpdlg(message,'Help -L option');
+	helpdlg(message,'Help -f option');
 
 % --------------------------------------------------------------------
 function push_OK_CB(hObject, handles)
@@ -206,7 +206,12 @@ function push_OK_CB(hObject, handles)
 	end
 
 	if (get(handles.checkbox_Option_Q,'Value')),    opt_Q = '-Q';   end
-	if (~isempty(handles.bd_cond)),     opt_L = handles.bd_cond;    end
+	if (~isempty(handles.bd_cond))
+		opt_L = handles.bd_cond;
+	else
+		handMir = guidata(handles.hMirFig);
+		if (handMir.geog),		opt_L = '-fg';		end		% Set it anyway and currently there seems to be a bug if we don't
+	end
 
 	% See if grid limits were changed
 	if ((abs(handles.x_min-handles.x_min_or) > 1e-5) || (abs(handles.x_max-handles.x_max_or) > 1e-5) || ...
