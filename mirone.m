@@ -20,7 +20,7 @@ function varargout = mirone(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: mirone.m 10304 2018-03-01 02:13:12Z j $
+% $Id: mirone.m 10306 2018-03-06 14:59:53Z j $
 
 	if (nargin > 1 && ischar(varargin{1}))
 		if ( ~isempty(strfind(varargin{1},':')) || ~isempty(strfind(varargin{1},filesep)) )
@@ -863,7 +863,7 @@ else					% Interactive croping (either Grid or Image)
 		Y = linspace( head(3) + (r_c(1)-1)*head(9), head(3) + (r_c(2)-1)*head(9), r_c(2) - r_c(1) + 1 );
 		head(1) = X(1);		head(2) = X(end);		head(3) = Y(1);		head(4) = Y(end);
 		tit = 'Grid cut by Mirone';		% Have to change this to reflect the old title
-		GRDdisplay(handles,X,Y,Z_rect,head,tit,'Cropped_grid')
+		GRDdisplay(handles,X,Y,Z_rect, head, tit, sprintf('Cropped_(%.0f)_grid', rand(1)*100))
 		return
 	else			% Just a image crop op
 		I = cropimg;	[m,n] = size(I);
@@ -884,7 +884,7 @@ if (isempty(opt2) || strcmp(opt2,'CropaWithCoords'))	% Just pure Image croping
 		head(1) = handles.head(1) + (r_c(3)-1)*handles.head(8);
 		head(4) = handles.head(3) + (r_c(2)-1)*handles.head(9);
 		head(3) = handles.head(3) + (r_c(1)-1)*handles.head(9);
-		head(5:9) = [0 255 0 handles.head(8:9)];	tmp.name = 'Cropped_image';
+		head(5:9) = [0 255 0 handles.head(8:9)];	tmp.name = sprintf('Cropped_(%.0f)_image', rand(1)*100);
 		tmp.head = head;		tmp.geog = handles.geog;			tmp.X = head(1:2);		tmp.Y = head(3:4);
 		if (~isempty(pal)),		tmp.cmap = pal;		end
 		proj4 = getappdata(handles.figure1,'Proj4');
