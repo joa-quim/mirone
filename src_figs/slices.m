@@ -146,8 +146,8 @@ function varargout = slices(varargin)
 	handles.cases{7,5} = {'on' 'Apply this Land mask (opt)'};
 	handles.cases{7,6} = {'on' 'Filter with quality flags file (opt)'};
 
-	handles.cases{8,1} = [handles.text_bounds handles.edit_subSetA handles.edit_subSetB];
-	handles.cases{8,2} = {'' '' ''};
+	handles.cases{8,1} = [handles.text_bounds handles.edit_subSetA handles.edit_subSetB handles.radio_pValue];
+	handles.cases{8,2} = {'' '' '' ''};
 	handles.cases{8,3} = {handles.text_bounds 'Subset'};	% Set handle String prop to second element
 	handles.cases{8,4} = {'on' 'Output file'};
 	handles.cases{8,5} = {'on' 'To correlate file'};
@@ -326,7 +326,7 @@ function popup_cases_CB(hObject, handles)
 % Take care of moving uicontrols around an setting apropriate values for selected case.
 
 	val = get(hObject, 'Val') - 1;
-	set(handles.floaters, 'Vis','off')
+ 	set(handles.floaters, 'Vis','off')
 	if (val == 0),		return,		end		% The NO choice
 
 	% =============== When first time use, grow figure to full size ==========
@@ -846,8 +846,8 @@ function push_compute_CB(hObject, handles)
 		helper_writeFile(handles, fid, comm, 'fname', 2)
 		comm = '# The ''Subset'' var (example: [0 19] -> (82 90)); ([9 9] -> (91 00)); ([19 0] -> (01 09))';
 		helper_writeFile(handles, fid, comm, 'subset')
-		fprintf(fid,'# The ''spline'' - NOT USED YET.\n');
-		fprintf(fid,'0\n');
+		fprintf(fid,'# The ''p-value''.\n');
+		fprintf(fid,'%d\n', get(handles.radio_pValue,'Val'));
 		comm = '# Name of the netCDF file where to store the result. If not provided, it will be asked here';
 		helper_writeFile(handles, fid, comm, 'fname', 1)
 
