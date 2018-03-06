@@ -6,10 +6,19 @@ function [Zout, hdr] = c_grdsample(Zin, head, varargin)
 % $Id$
 
 	G = fill_grid_struct(Zin, head);
-	cmd = 'grdsample -n+c';
+	cmd = 'grdsample';
 	for (k = 1:numel(varargin))
 		cmd = sprintf('%s %s', cmd, varargin{k});
 	end
+
+	ind = strfind(cmd, '-n');
+	if (isempty(ind))
+		cmd = [cmd ' -n+c'];
+	else
+		[t, r] = strtok(cmd(ind(1):end));
+		cmd = [cmd(1:ind(1)-1) t '+c' r];
+	end
+
 	Zout = gmtmex(cmd, G);
 	gmtmex('destroy')
 	if (nargout == 1)
