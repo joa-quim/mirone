@@ -3,13 +3,22 @@ function [Zout, hdr] = c_grdsample(Zin, head, varargin)
 
 % The tsu_funs still calls grdsample directly as a system call
 
-% $Id: c_grdsample.m 10230 2018-01-26 01:34:32Z j $
+% $Id: c_grdsample.m 10307 2018-03-06 23:36:58Z j $
 
 	G = fill_grid_struct(Zin, head);
-	cmd = 'grdsample -n+c';
+	cmd = 'grdsample';
 	for (k = 1:numel(varargin))
 		cmd = sprintf('%s %s', cmd, varargin{k});
 	end
+
+	ind = strfind(cmd, '-n');
+	if (isempty(ind))
+		cmd = [cmd ' -n+c'];
+	else
+		[t, r] = strtok(cmd(ind(1):end));
+		cmd = [cmd(1:ind(1)-1) t '+c' r];
+	end
+
 	Zout = gmtmex(cmd, G);
 	gmtmex('destroy')
 	if (nargout == 1)
