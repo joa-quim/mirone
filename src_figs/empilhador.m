@@ -204,7 +204,7 @@ function push_namesList_CB(hObject, handles, opt)
 			elseif (t(1) == '@')
 				caracol(k) = true;
 				if (~isempty(t(2:end))),	handles.changeCD_msg{n_msg} = t(2:end);		% The '@' was glued with the message
-				else						handles.changeCD_msg{n_msg} = r;
+				else,						handles.changeCD_msg{n_msg} = r;
 				end
 				n_msg = n_msg + 1;
 				continue
@@ -806,7 +806,7 @@ function cut2cdf(handles, got_R, west, east, south, north)
 			resp = yes_or_no('string',['OK, this one is over. ' msg '  ... and Click "Yes" to continue']);
 			n_cd = n_cd + 1;
 			if (strcmp(resp, 'No')),	return
-			else						continue
+			else,						continue
 			end
 		end
 
@@ -850,6 +850,10 @@ function cut2cdf(handles, got_R, west, east, south, north)
 		% Check if all grids have the same size
 		if (k == 1)
 			n_rows = size(Z,1);		n_cols = size(Z,2);
+			if (n_rows == 0)
+				errordlg('Sorry, I will have to stop here. Could not read first file in list and need it to know sizes.', 'Error')
+				return
+			end
 		elseif (~isequal([n_rows n_cols],[size(Z,1) size(Z,2)]))
 			warndlg(['The grid ' curr_fname ' has different size than precedents. Jumping it.'],'Warning')
 			if (~isempty(handles.uncomp_name)),		try		delete(handles.uncomp_name);	end,	end
@@ -882,7 +886,7 @@ function cut2cdf(handles, got_R, west, east, south, north)
 		% The problem of deleting the uncompressed file must be solved too
 		if (isempty(empties{k}))
 			if (~isempty(handles.strTimes)),		t_val = handles.strTimes{k};
-			else									t_val = sprintf('%d',k - 1);	% Hmmm, handles.strTimes starts at 1
+			else,									t_val = sprintf('%d',k - 1);	% Hmmm, handles.strTimes starts at 1
 			end
 			if (got_3D),	t_val = sprintf('%d', nL);	end		% This case has to account for total number already written
 
@@ -948,7 +952,7 @@ function [head, opt_R, slope, intercept, base, is_modis, is_linear, is_log, att,
 
 	% This case needs it
 	if (~isempty(uncomp_name)),		att.fname = uncomp_name;
-	else							att.fname = name;
+	else,							att.fname = name;
 	end
 	[head , slope, intercept, base, is_modis, is_linear, is_log, att, opt_R] = ...
 		getFromMETA(att, got_R, handles, west, east, south, north);
@@ -1596,7 +1600,7 @@ function [Z, att, known_coords, have_nans, was_empty_name] = read_gdal(full_name
 
 			% Go check if -R or quality flags request exists in L2config.txt file
 			[opt_R_out, opt_I, opt_C, bitflags, flagsID, despike, quality] = sniff_in_OPTcontrol(opt_R, att);	% Output opt_R gets preference
-			if (~what.quality && quality),		what.quality = quality;		end		% If qual not set by GUI and it's in L2control.txt
+			if (quality && ~isempty(what.quality) && ~what.quality),	what.quality = quality;		end		% If qual not set by GUI and it's in L2control.txt
 			
 			% Check if the two opt_R intersect
 			r1 = str2num(strrep(opt_R(3:end), '/', ' '));
@@ -2020,7 +2024,7 @@ function [full_name, uncomp_name] = deal_with_compressed(full_name)
 		if (do_warn),	aguentabar(0.5,'title',['Uncompressing ' fname EXT cext]);	end
 		if (isunix),	s = unix(str_d);
 		elseif ispc,	s = dos(str_d);
-		else			errordlg('Unknown platform.','Error');	error('Unknown platform.')
+		else,			errordlg('Unknown platform.','Error');	error('Unknown platform.')
 		end
 		if ~(isequal(s,0))						% An error as occured
 			errordlg(['Error decompressing file ' full_name],'Error');
@@ -2257,7 +2261,7 @@ function check_landMask_CB(hObject, handles)
 		elseif (info.high == 'y'),			handles.out.coastRes = 4;
 		elseif (info.intermediate == 'y'),	handles.out.coastRes = 3;
 		elseif (info.low == 'y'),			handles.out.coastRes = 2;
-		else								handles.out.coastRes = 1;
+		else,								handles.out.coastRes = 1;
 		end
 		guidata(handles.figure1, handles)
 	end
