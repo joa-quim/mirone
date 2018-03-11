@@ -1,5 +1,5 @@
 /*--------------------------------------------------------------------
- *	$Id: gdalread.c 10117 2017-06-16 13:31:52Z j $
+ *	$Id: gdalread.c 10311 2018-03-11 00:18:56Z j $
  *
  *	Copyright (c) 2004-2012 by J. Luis
  *
@@ -124,7 +124,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	int	nXSize = 0, nYSize = 0;
 	int	bGotMin, bGotMax;	/* To know if driver transmited Min/Max */
 	char	*tmp, *outByte, *p;
-	static int runed_once = FALSE;	/* It will be set to true if reaches end of main */
 	float	*tmpF32, *outF32;
 	double	dfNoData, range, aux, adfMinMax[2];
 	double	dfULX = 0.0, dfULY = 0.0, dfLRX = 0.0, dfLRY = 0.0;
@@ -160,8 +159,10 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 			switch (argv[i][1]) {
 			
 				case 'B':	/* We have a selected bands request */
-					for (n = 2, n_commas = 0; argv[i][n]; n++) if (argv[i][n] == ',') n_commas = n;
-					for (n = 2, n_dash = 0; argv[i][n]; n++) if (argv[i][n] == '-') n_dash = n;
+					for (n = 2, n_commas = 0; argv[i][n]; n++)
+						if (argv[i][n] == ',') n_commas = n;
+					for (n = 2, n_dash = 0; argv[i][n]; n++)
+						if (argv[i][n] == '-') n_dash = n;
 					nn = MAX(n_commas, n_dash);
 					if (nn)
 						nn = atoi(&argv[i][nn+1]);
@@ -259,15 +260,14 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 
 	/* Open gdal - If it has not been opened before (in a previous encarnation) */
 
-	if (!runed_once)		/* Do next call only at first time this MEX is loaded */
-		GDALAllRegister();
+	GDALAllRegister();
 
 	CPLSetConfigOption("GDAL_HTTP_UNSAFESSL", "YES");	/* For the full story see https://github.com/curl/curl/issues/1538 */
 
 	if (metadata_only) {
 		plhs[0] = populate_metadata_struct (gdal_filename, correct_bounds, pixel_reg, got_R, 
 		                                    nXSize, nYSize, dfULX, dfULY, dfLRX, dfLRY, z_min, z_max);
-		runed_once = TRUE;	/* Signals that next call won't need to call GDALAllRegister() again */
+		GDALDestroyDriverManager();
 		return;
 	}
 
@@ -310,7 +310,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 
 		if (adfGeoTransform[2] != 0.0 || adfGeoTransform[4] != 0.0) {
 			mexPrintf("The -projwin option was used, but the geotransform is\n"
-					"rotated. This configuration is not supported.\n");
+			          "rotated. This configuration is not supported.\n");
 			GDALClose(hDataset);
 			GDALDestroyDriverManager();
 			return;
@@ -339,6 +339,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 			mexPrintf("Computed -srcwin falls outside raster size of %dx%d.\n",
 			GDALGetRasterXSize(hDataset),
 			GDALGetRasterYSize(hDataset));
+			GDALDestroyDriverManager();
 			return;
 		}
 		xOrigin = anSrcWin[0];
@@ -450,7 +451,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	if (!insitu) {		/* EXPLICAR PORQUE */
 		tmp = mxCalloc(nBufYSize * nBufXSize, nPixelSize);
 		if (tmp == NULL) {
-			mexPrintf("gdalread: failure to allocate enough memory (mutiply those) %d\t%d\t%d\n", nBufYSize, nBufXSize, nPixelSize);
+			GDALDestroyDriverManager();
+			mexPrintf("gdalread: failure to allocate enough memory (mutiply those) %d\t%d\t%d\n",
+			          nBufYSize, nBufXSize, nPixelSize);
 			mexErrMsgTxt("\n");
 		}
 	}
@@ -492,15 +495,15 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 			dataType = GDT_Float32;
 
 		GDALRasterIO(hBand, GF_Read, xOrigin, yOrigin, nXSize, nYSize,
-			tmp, nBufXSize, nBufYSize, dataType, 0, 0);
+		             tmp, nBufXSize, nBufYSize, dataType, 0, 0);
 
-        	dfNoData = GDALGetRasterNoDataValue(hBand, &bGotNodata);
+		dfNoData = GDALGetRasterNoDataValue(hBand, &bGotNodata);
 		/* If we didn't computed it yet, its time to do it now */
 		if (got_R) ComputeRasterMinMax(tmp, hBand, adfMinMax, nXSize, nYSize, z_min, z_max);
 		if (nBands > 1 && scale_range) {	/* got_R && scale_range && nBands > 1 Should never be true */
 			adfMinMax[0] = GDALGetRasterMinimum(hBand, &bGotMin);
 			adfMinMax[1] = GDALGetRasterMaximum(hBand, &bGotMax);
-			if(!(bGotMin && bGotMax))
+			if (!(bGotMin && bGotMax))
 				GDALComputeRasterMinMax(hBand, FALSE, adfMinMax);
 		}
 
@@ -731,10 +734,11 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 
 	if (gdal_dump)
 		plhs[1] = populate_metadata_struct (gdal_filename, correct_bounds, pixel_reg, got_R, 
-						nXSize, nYSize, dfULX, dfULY, dfLRX, dfLRY, z_min, z_max);
+		                                    nXSize, nYSize, dfULX, dfULY, dfLRX, dfLRY, z_min, z_max);
+
+	GDALDestroyDriverManager();
 
 	mxFree(gdal_filename);
-	runed_once = TRUE;	/* Signals that next call won't need to call GDALAllRegister() again */
 }
 
 /* =============================================================================================== */
@@ -1073,6 +1077,8 @@ mxArray *populate_metadata_struct (char *gdal_filename , int correct_bounds, int
 	hDataset = GDALOpen(gdal_filename, GA_ReadOnly);
 	if (hDataset == NULL) {
 		sprintf(error_msg, "Unable to open %s.\n", gdal_filename);
+		GDALClose(hDataset);
+		GDALDestroyDriverManager();
 		mexErrMsgTxt(error_msg);
 	}
 
@@ -1081,12 +1087,12 @@ mxArray *populate_metadata_struct (char *gdal_filename , int correct_bounds, int
 	/* ------------------------------------------------------------------------- */
 	if (GDALGetProjectionRef(hDataset) != NULL) {
 		OGRSpatialReferenceH  hSRS;
-		char		      *pszProjection;
+		char *pszProjection;
 		pszProjection = (char *)GDALGetProjectionRef(hDataset);
 
 		hSRS = OSRNewSpatialReference(NULL);
 		if (OSRImportFromWkt(hSRS, &pszProjection) == CE_None) {
-			char	*pszPrettyWkt = NULL;
+			char *pszPrettyWkt = NULL;
 			OSRExportToPrettyWkt(hSRS, &pszPrettyWkt, FALSE);
 			mxProjectionRef = mxCreateString (pszPrettyWkt);
 			CPLFree(pszPrettyWkt);
@@ -1160,6 +1166,8 @@ mxArray *populate_metadata_struct (char *gdal_filename , int correct_bounds, int
 			mexPrintf("Computed -srcwin falls outside raster size of %dx%d.\n",
 			GDALGetRasterXSize(hDataset),
 			GDALGetRasterYSize(hDataset));
+			GDALClose(hDataset);
+			GDALDestroyDriverManager();
 			mexErrMsgTxt ("Quiting with error\n");
 		}
 		nXSize = anSrcWin[2];	nYSize = anSrcWin[3];
@@ -1630,7 +1638,7 @@ void ComputeRasterMinMax(char *tmp, GDALRasterBandH hBand, double adfMinMax[2],
 	float	*tmpF32;
 	double	dfNoDataValue;
 
-        dfNoDataValue = GDALGetRasterNoDataValue(hBand, &bGotNoDataValue);
+	dfNoDataValue = GDALGetRasterNoDataValue(hBand, &bGotNoDataValue);
 	switch(GDALGetRasterDataType(hBand)) {
 		case GDT_Byte:
 			for (i = 0; i < nXSize*nYSize; i++) {
@@ -1723,7 +1731,8 @@ double ddmmss_to_degree (char *text) {
 	int i, colons = 0, suffix;
 	double degree, minute, degfrac, second;
 
-	for (i = 0; text[i]; i++) if (text[i] == ':') colons++;
+	for (i = 0; text[i]; i++)
+		if (text[i] == ':') colons++;
 	suffix = (int)text[i-1];	/* Last character in string */
 	if (colons == 2) {	/* dd:mm:ss format */
 		sscanf (text, "%lf:%lf:%lf", &degree, &minute, &second);
