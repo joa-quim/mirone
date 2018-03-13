@@ -16,7 +16,7 @@ function varargout = color_palettes(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: color_palettes.m 10301 2018-03-01 01:56:06Z j $
+% $Id: color_palettes.m 10313 2018-03-13 00:11:12Z j $
 
 	if (nargin > 1 && ischar(varargin{1}))
 		gui_CB = str2func(varargin{1});
@@ -40,8 +40,10 @@ function varargout = color_palettes_OF(varargin)
 	handles.pal_bot = [];
 	handles.bg_color = [1 1 1];
 	handles.z_intervals = [];
+	handles.palMinMax = [];			% Thematic will use this to store palette min/max
 	handles.thematic = false;		% Some thematic pals will use a pre-set handles.z_intervals
 	handles.hinge = false;			% Thematic pals may have a hinge point
+	handles.cmapIsLog = false;		% Will temporaruly be set to true when using the Thematic "Chlor 0-10" palette.
 	handles.check_custom_pal = true;% Check once the OPTcontrol.txt file for custom CPTs to apear in 'Thematic'
 	handles.custom_thematic_name = [];% Will contain eventual CPT names
 	handles.txt_cZ_pos = get(handles.h_txt_cZ,'Pos');
@@ -470,63 +472,75 @@ function listbox1_CB(hObject, handles)
 	change_cmap(handles, pal);
 
 % -----------------------------------------------------------------------------------
-function thematic_pal(handles, pal)
+function thematic_pal(handles, pal_name)
 % Deal with the 'Thematic' color tables that may include some imported via OPTcontrol.txt
 
 	handles.thematic = true;
 	handles.hinge = false;
-	if (numel(pal) > 8 && strcmp(pal(1:8),'Imported'))
-		pal = pal(1:8);
+	if (numel(pal_name) > 8 && strcmp(pal_name(1:8),'Imported'))
+		pal_name = pal_name(1:8);
 	end
 
-	if (strncmp(pal, 'Current', 3))
+	if (strncmp(pal_name, 'Current', 3))
 		pal = handles.cmap_original;
-	elseif (strncmp(pal, 'Imported', 3))
+	elseif (strncmp(pal_name, 'Imported', 3))
 		pal = handles.imported_cmap;
 		handles.thematic = false;
-	elseif (strncmp(pal, 'Mag - anomaly', 3))
+	elseif (strncmp(pal_name, 'Mag - anomaly', 3))
 		load([handles.d_path 'gmt_other_palettes.mat'],'mag');		pal = mag;
 		handles.z_intervals = [-800 -600 -500 -400 -300 -200 -100 -50 50 100 200 300 400 500 600;
 		                       -600 -500 -400 -300 -200 -100 -50 50 100 200 300 400 500 600 800]';
-% 	elseif (strncmp(pal, 'Chlorophyll', 3) )			% Not visible (results of this are lousy and I need to find why)
+% 	elseif (strncmp(pal_name, 'Chlorophyll', 3) )		% Not visible (results of this are lousy and I need to find why)
 % 		load([handles.d_path 'gmt_other_palettes.mat'],'rainbow_hist');	pal = rainbow_hist;
 % 		y = (10).^ [-2 + (0:269-2)*(2 + 2)/(floor(269)-1), 2];		% The same as y = logspace(-2, 2, 269);
 % 		handles.z_intervals = [0 y(1:254); y(1:255)]';
-	elseif (strncmp(pal, 'SeaLand (m)', 3))			% The "y" case is not used (needs to finish/find a clever algo)
+	elseif (strncmp(pal_name, 'SeaLand (m)', 3))			% The "y" case is not used (needs to finish/find a clever algo)
 		load([handles.d_path 'gmt_other_palettes.mat'],'Terre_Mer');	pal = Terre_Mer;
 		y = [linspace(-7000,-1,146) linspace(0,5500,108) 6000]';
 		handles.z_intervals = [y(1:end-1) y(2:end)];
 		handles.hinge = 147;
-	elseif (strncmp(pal, 'Bathymetry (m)', 3))		% The "y" case is not used (needs to finish/find a clever algo)
+	elseif (strncmp(pal_name, 'Bathymetry (m)', 3))		% The "y" case is not used (needs to finish/find a clever algo)
 		load([handles.d_path 'caris256.mat'],'Earth');					pal = Earth/255;
 		y = [(-6000:1000:-3000) (-2500:500:-500) (-400:100:-100) -50 0]';
 		handles.z_intervals = [y(1:end-1) y(2:end)];
-	elseif (strncmp(pal, 'Topography (m)', 3))
+	elseif (strncmp(pal_name, 'Topography (m)', 3))
 		load([handles.d_path 'caris256.mat'],'Topographic');			pal = Topographic/255;
 		handles.z_intervals = [0 50 100 200 500 (1000:1000:5000); 50 100 200 500 (1000:1000:6000)]';
 		handles.hinge = 1;
-	elseif (strcmp(pal, 'SST (12-26)'))
-		pal = jet(256);
-		handles.z_intervals = [linspace(12,25.9,140); linspace(12.1,26,140)]';		% 141 = (26-12)/0.1 + 1
-	elseif (strcmp(pal, 'SST (0-20)'))
-		pal = jet(256);
-		handles.z_intervals = [linspace(0,19.9,200); linspace(0.1,20,200)]';		% 201 = (20-0)/0.1 + 1
-	elseif (strcmp(pal, 'SST (0-35)'))
-		pal = jet(256);
-		handles.z_intervals = [linspace(0,34.8,175); linspace(0.2,35,175)]';		% 176 = (35-0)/0.2 + 1
-	elseif (strcmp(pal, 'Chlor (0-10)'))
-		pal = jet(256);
-		y = log2(linspace(1,10,257));
+	elseif (strcmp(pal_name, 'SST (12-26)'))
+		pal = jet(255);
+		t = linspace(12,26,256)';
+		handles.z_intervals = [t(1:end-1); t(2:end)];
+	elseif (strcmp(pal_name, 'SST (0-20)'))
+		pal = jet(255);
+		t = linspace(0,20,256)';
+		handles.z_intervals = [t(1:end-1); t(2:end)];
+	elseif (strcmp(pal_name, 'SST (0-35)'))
+		pal = jet(255);
+		t = linspace(0,35,256)';
+		handles.z_intervals = [t(1:end-1); t(2:end)];
+	elseif (strcmp(pal_name, 'Chlor (0-10)'))
+		pal = jet(255);
+		y = linspace(0,10,256)';
+		z_min = 0.05;
+		if (~isempty(handles.z_min)),	z_min = handles.z_min;	end
+		pal = logit(handles, [], pal, false, y, z_min, 10);
 		handles.z_intervals = [y(1:end-1) y(2:end)];
+		handles.palMinMax = [0 10];
+		handles.cmapIsLog = true;
 	else
 		for (k = 1:numel(handles.custom_thematic_name))		% Won't be executed if custom_thematic_name is empty
-			switch pal
+			switch pal_name
 				case handles.custom_thematic_name{k}
 					pal = handles.custom_thematic_pal{k,1};
 					handles.z_intervals = handles.custom_thematic_pal{k,2};
 					continue
 			end
 		end
+	end
+
+	if (~strcmp(pal_name, 'Chlor (0-10)'))
+		handles.palMinMax = [handles.z_intervals(1) handles.z_intervals(end)];
 	end
 
 	% Search eventual color markers and delete them
@@ -585,14 +599,14 @@ function slider_Top_CB(hObject, handles)
 		yi = interp1(handles.cmap,linspace(1,length(cmap),val_b-val+1));
 		yi(1:end,:) = yi(end:-1:1,:);       % Invert the colormap
 		cmap(val:val_b,:) = yi(:,:);
-		for i = val_b:length(cmap),   cmap(i,:) = handles.cmap(1,:);   end
-		for i = 1:val,            cmap(i,:) = handles.cmap(end,:); end
+		for (i = val_b:length(cmap)),	cmap(i,:) = handles.cmap(1,:);   end
+		for (i = 1:val),				cmap(i,:) = handles.cmap(end,:); end
 	end
 
 	handles.pal_top = cmap;     handles.no_slider = 0;      guidata(hObject, handles);
 	change_cmap(handles,cmap)
 
-% -----------------------------------------------------------------------------------
+% ------------------------------------------------------------------------------------------------------------------
 function change_cmap(handles, pal, IamGUI)
 % Change the Image's colormap to 'pal'
 % When ~IamGUI, PAL is a structure with the palette and some more members
@@ -613,19 +627,29 @@ function change_cmap(handles, pal, IamGUI)
 			handles.z_min_orig = handMir.head(5);	handles.z_max_orig = handMir.head(6);
 		end
 
-		handles.figure1 = [];	handles.check_logIt = [];	handles.OptionsAutoApply = [];	% To use-and-not-error
+		% To use-and-not-error
+		handles.figure1 = [];	handles.check_logIt = [];	handles.OptionsAutoApply = [];	handles.cmapIsLog = false;
+
 		handles.have_nans = handMir.have_nans;
 		handles.bg_color = [1 1 1];
 		% And in this case PAL is a struct with these members
-		handles.hinge = pal.hinge;
-		handles.thematic = pal.thematic;
-		handles.z_intervals = pal.z_intervals;
-		pal = pal.pal;			% Looks crazzy but it's correct
+		if (isa(pal, 'struct'))
+			handles.hinge = pal.hinge;
+			handles.thematic = pal.thematic;
+			handles.z_intervals = pal.z_intervals;
+			pal = pal.pal;		% Looks crazzy but it's correct
+		else
+			handles.thematic = false;
+		end
 	elseif (handles.thematic)	% Save this palette for eventual future reuse. Note that this pal may be reworked bellow.
-		back = struct('pal',pal, 'thematic',handles.thematic, 'hinge',handles.hinge, 'z_intervals',handles.z_intervals);
+		back = struct('pal',pal, 'thematic',handles.thematic, 'hinge',handles.hinge, ...
+			'z_intervals',handles.z_intervals, 'palMinMax',handles.palMinMax);
 		setappdata(handles.hCallingFig, 'useThisPalette', back)
 	elseif ishandle(handles.hCallingFig)
 		setappdata(handles.hCallingFig, 'useThisPalette', [])	% To remove I would have inquiry if it exists
+		if (get(handles.check_logIt,'Val'))
+			setappdata(handles.hCallingFig, 'masterPalette', pal)	% Save to recover in show_palette
+		end
 	end
 
 	if (~IamGUI || strcmp(get(handles.OptionsAutoApply,'checked'),'on')) % otherwise we are just playing with color_palettes alone
@@ -669,13 +693,15 @@ function change_cmap(handles, pal, IamGUI)
  		set(handles.check_logIt,'Val',0)			% Let no confusions about this
 	elseif (handles.thematic && handles.hinge)
 		pal = makeCmapBat(handles.z_min_orig, handles.z_max_orig, handles.hinge, pal);
+	elseif (~handles.thematic)
+		handMir.img_with_minmax = [];
 	end
 
 	% The shit here is that if we change between an automatic cmap (one that uses the data min/max) and a thematic one
 	% we need to recompute img because it's it that has the mapping to the palette. So must check that and keep track
 	if (~handles.thematic && ~isempty(handles.hCallingFig))
 		if (isempty(handMir)),	handMir = guidata(handles.hCallingFig);		end
-		if (~handMir.img_with_minmax)
+		if (~isempty(handMir.img_with_minmax))
 			[X,Y,Z,head] = load_grd(handMir);		% If needed, load gmt grid again
 			if isempty(Z),	return,		end			% An error message was already issued
 			img = scaleto8(Z);
@@ -686,45 +712,37 @@ function change_cmap(handles, pal, IamGUI)
 	end
 
 	z_grd = [];				% Most common case. No particular scaling or logaritmization
-	if (get(handles.check_logIt,'Val'))			% If logaritmize
+	is_linear = true;
+	if ((~isempty(handles.check_logIt) && get(handles.check_logIt,'Val')) || (~IamGUI && handMir.cmapIsLog))	% If logaritmize
 		if (~isempty(handles.z_min) && (handles.z_min ~= handles.z_min_orig || handles.z_max ~= handles.z_max_orig))
 			z_grd = linspace(handles.z_min,handles.z_max, size(pal,1))';
 		else
 			z_grd = linspace(handles.z_min_orig,handles.z_max_orig, size(pal,1))';
 		end
+		is_linear = false;
 	elseif (~isempty(handles.z_min) && (handles.z_min ~= handles.z_min_orig || handles.z_max ~= handles.z_max_orig))
 		z_grd = linspace(handles.z_min_orig, handles.z_max_orig, size(pal,1))';
 	end
 
-	if (~isempty(z_grd))		% We have a non data-orig min/max
-		len_Pal = length(pal);    
-		if (~get(handles.check_logIt,'Val'))
-			z_pal = linspace(handles.z_min,handles.z_max,len_Pal)';
-		else					% Calculate a logarithm cmap
-			if (handles.z_min <= 0)		% We don't want to take logs of negative numbers
-				z_min = -handles.z_min;		z_max = handles.z_max + (z_min-handles.z_min);
-			else
-				z_min = handles.z_min;		z_max = handles.z_max;
-			end
-			log_maxmin = log(z_max / z_min) / len_Pal;
-			z_pal = z_min * exp((1:len_Pal) * log_maxmin);
-			if (handles.z_min <= 0)
-				z_pal = z_pal - (z_min-handles.z_min);		% Reset the shift applyied above to avoid taking log(negative)
-			end
-		end
-		% Interpolate the grid levels into the User selected extrema
-		ind_pal = interp1(z_pal,linspace(0,1,len_Pal),z_grd,'linear','extrap');
-		ind_pal = round(ind_pal * len_Pal);
-		% Map the old pal indices into the new ones
-		pal = interp1(linspace(0,len_Pal-1,length(pal)),pal,ind_pal,'linear','extrap');
+	if (~isempty(z_grd))					% We have a non data-orig min/max or logaritmize 
+		pal = logit(handles, handMir, pal, is_linear, z_grd);
 	end
 
-	if (~isempty(handles.hCallingFig))		% It is when drag-N-drop a .cpt file
+	if (~isempty(handles.hCallingFig))			% It is when drag-N-drop a .cpt file
 		handMir = guidata(handles.hCallingFig);
 		if (isfield(handMir, 'hImg') && strcmp(get(handMir.hImg, 'CDataMapping'), 'scaled'))	% Scaled images may have much shorter cmaps
 			clim = get(handMir.axes1, 'CLim');
 			pal = interp1(linspace(0,1,size(pal,1)), pal, linspace(0,1,diff(clim)+1), 'linear','extrap');
 		end
+		handMir.cmapIsLog = 0;
+		if (~isempty(handles.check_logIt) && (get(handles.check_logIt,'Val') || handles.cmapIsLog))
+			handMir.cmapIsLog = 1;
+			if (handles.cmapIsLog && ~get(handles.check_logIt,'Val'))
+				handMir.cmapIsLog = 2;			% To distinguish from the "Logaritmize" option (So far the "chlor 0-10" cmap)
+			end
+			handles.cmapIsLog = false;			% Reset this for an eventual use with another palette
+		end
+		guidata(handMir.figure1, handMir)
 	end
 
 	pal(pal > 1) = 1;			% Sometimes interpolation gives values that are out of [0,1] range...
@@ -751,7 +769,64 @@ function change_cmap(handles, pal, IamGUI)
 	end
 	guidata(handles.figure1,handles)
 
-% --------------------------------------------------------------------
+% ------------------------------------------------------------------------------------------------------------------
+function pal = logit(handles, handMir, pal, is_linear, z_grd, z_min, z_max)
+% Helper function to use when computing log cmaps
+% Z_MIN|MAX are optional and mean custom extrema (i.e. not data min/max)
+		if (nargin == 5)
+			z_min = [];		z_max = [];
+		end
+		len_pal = length(pal);    
+		if (is_linear)
+			z_pal = linspace(handles.z_min,handles.z_max,len_pal)';
+		else						% Calculate a logarithm cmap
+			if (isempty(z_min))		% Otherwise custom z_min|max were transmitted
+				if (handles.z_min <= 0)			% We don't want to take logs of negative numbers
+					z_min = -handles.z_min;		z_max = handles.z_max + (z_min-handles.z_min);
+				else
+					z_min = handles.z_min;		z_max = handles.z_max;
+				end
+			end
+			log_maxmin = log(z_max / z_min) / len_pal;
+			z_pal = z_min * exp((1:len_pal) * log_maxmin);
+			if (handles.z_min <= 0)
+				z_pal = z_pal - (z_min-handles.z_min);		% Reset the shift applyied above to avoid taking log(negative)
+			end
+		end
+		% Interpolate the grid levels into the User selected extrema
+		ind_pal = interp1(z_pal,linspace(0,1,len_pal),z_grd,'linear','extrap');
+		ind_pal = round(ind_pal * len_pal);
+		% Map the old pal indices into the new ones
+		pal = interp1(linspace(0,len_pal-1,len_pal),pal,ind_pal,'linear','extrap');
+
+		pal(pal > 1) = 1;			% Sometimes interpolation gives values that are out of [0,1] range...
+		pal(pal < 0) = 0;
+
+% ------------------------------------------------------------------------------------------------------------------
+function new_pal = saturated_pal(handles, pal)
+% ...
+	n_tot = size(pal, 1);
+	if ((handles.z_max_orig >= handles.palMinMax(2)) && (handles.z_min_orig <= handles.palMinMax(1)))
+		% Max data >= max palette and Min data <= min palette. Reinterpolate and saturate the extremes
+		n_unique = round(diff(handles.palMinMax) / (handles.z_max_orig - handles.z_min_orig) * n_tot);
+		n_up   = round((handles.z_max_orig - handles.palMinMax(2)) / (handles.z_max_orig - handles.z_min_orig) * n_tot);
+		n_down = n_tot - n_up - n_unique;
+		pal_t = interp1(linspace(0,n_tot-1,n_tot),pal,linspace(0,n_tot-1,n_unique),'linear','extrap');
+		new_pal = [repmat(pal(1,:), n_down,1); pal_t; repmat(pal(end,:), n_up,1)];
+	elseif ((handles.z_max_orig < handles.palMinMax(2)) && (handles.z_min_orig <= handles.palMinMax(1)))
+		% Max data < max palette and Min data <= min palette. Trim upper part of the palette and fill bottom with min palette
+		n_down = round((handles.palMinMax(1) - handles.z_min_orig) / (handles.z_max_orig - handles.z_min_orig) * n_tot);
+		n_unique = n_tot - n_down;
+		pal_t  = repmat(pal(1,:), n_down,1);
+		new_pal = [pal_t; pal(1:n_unique,:)];
+	elseif ((handles.z_max_orig >= handles.palMinMax(2)) && (handles.z_min_orig >= handles.palMinMax(1)))
+		% Max data >= max palette and Min data >= min palette. Trim lower part of the palette and fill upper with max palette
+		n_up = round((handles.z_max_orig - handles.palMinMax(2)) / (handles.z_max_orig - handles.z_min_orig) * n_tot);
+		pal_t  = repmat(pal(end,:), n_up,1);
+		new_pal = [pal(n_up+1:end,:); pal_t];
+	end
+	
+% ------------------------------------------------------------------------------------------------------------------
 function new_cmap = makeCmapBat(z_min, z_max, hinge, cmap)
 % Put the cmap discontinuity at the zero of bathymetry (coastline)
 
@@ -768,7 +843,7 @@ function new_cmap = makeCmapBat(z_min, z_max, hinge, cmap)
 	new_cmap_u = interp1(linspace(0,1,nc-hinge), cmap(hinge+1:nc,:), linspace(0,1,nc-ind_c));
 	new_cmap = [new_cmap_l; new_cmap_u];
 
-% --------------------------------------------------------------------
+% ------------------------------------------------------------------------------------------------------------------
 function FileSavePalette_CB(hObject, handles, opt)
 % OPT == [] writes the current cmap as a descrete GMT palette, but with 256 colors (in fact, a continuous cpt)
 % OPT == 'master_disc' writes the current cmap as a descrete GMT palette with 16 colors
@@ -841,7 +916,7 @@ function FileSavePalette_CB(hObject, handles, opt)
 	for (i=1:pal_len+5),   fprintf(fid,'%s\n',tmp{i});     end
 	fclose(fid);
 
-% --------------------------------------------------------------------
+% ------------------------------------------------------------------------------------------------------------------
 function OptionsDiscretizePalette_CB(hObject, handles, opt)
 	if (nargin == 2),   opt = '16';     end
 	n_color = str2double(opt);
