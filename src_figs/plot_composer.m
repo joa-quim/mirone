@@ -16,7 +16,7 @@ function varargout = plot_composer(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: plot_composer.m 10294 2018-02-26 23:28:46Z j $
+% $Id: plot_composer.m 10314 2018-03-13 00:15:35Z j $
 
 	handMir = varargin{1};
 	if (handMir.no_file)     % Stupid call with nothing loaded on the Mirone window
@@ -1554,12 +1554,15 @@ function [script, l, o, sc_cpt] = do_palette(handMir, script, l, o, pack, used_g
 		[comm, pb, pf, do_MEX, ellips, RJOK, KORJ, dest_dir, prefix, prefix_ddir, opt_len_unit] = unpack(pack);
 		tmp = cell(261,1);
 		pal = get(handMir.figure1,'colormap');
-		%Z = getappdata(handMir.figure1,'dem_z');
-		% SE Z == [] FAZER QUALQUER COISA
 		if (handMir.have_nans),     cor_nan = pal(1,:);     pal = pal(2:end,:);   end     % Remove the bg color
 
 		pal_len = size(pal,1);
 		z_min = handMir.head(5);    z_max = handMir.head(6);
+		if (z_min == 0 && z_max == 0)			% Happens for example with the stacks
+			Z = getappdata(handMir.figure1,'dem_z');
+			zzz = grdutils(Z,'-L');
+			z_min = zzz(1);			z_max = zzz(2);
+		end
 
 		dz = (z_max - z_min) / pal_len;
 		tmp{1} = '# Color palette exported by Mirone';
