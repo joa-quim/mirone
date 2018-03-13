@@ -2,7 +2,7 @@ function handles = setAxesDefCoordIn(handles, opt)
 % Sets the value of the axes uicontextmenu that selects what will be donne
 % when Loading a file in terms of needing, or not, to project it.
 
-%	Copyright (c) 2004-2012 by J. Luis
+%	Copyright (c) 2004-2018 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -17,12 +17,14 @@ function handles = setAxesDefCoordIn(handles, opt)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
+% $Id$
+
     if (nargin == 1),   handles = guidata(handles.figure1);     end     % Otherwise uses input handles
 
     if (handles.is_projected)
         if (~handles.geog)          % Is projected
             set(handles.hAxMenuLF, 'Label', 'Load files in geogs', ...
-                'Call', {@CoordMode_CB,handles.figure1}, 'Vis', 'on', 'Separator','on');
+                'Callback', {@CoordMode_CB,handles.figure1}, 'Vis', 'on', 'Separator','on');
             handles.defCoordsIn = 1;
         else                        % Hum, probably a GDAL file in geogs
             set(handles.hAxMenuLF, 'Vis', 'off', 'Separator','off');
@@ -35,7 +37,7 @@ function handles = setAxesDefCoordIn(handles, opt)
     
     if (handles.defCoordsIn == 1)
         set(handles.hAxMenuLF, 'Vis', 'on', 'Separator','on');
-        set(handles.hAxMenuDM, 'Call', {@DisplayMode_CB,handles.figure1}, 'Vis', 'on', 'Separator','on');
+        set(handles.hAxMenuDM, 'Callback', {@DisplayMode_CB,handles.figure1}, 'Vis', 'on', 'Separator','on');
     else
         set(handles.hAxMenuLF, 'Vis', 'off', 'Separator','off');    % No projection known, no choices offered
         set(handles.hAxMenuDM, 'Vis', 'off', 'Separator','off');
