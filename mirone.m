@@ -20,7 +20,7 @@ function varargout = mirone(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: mirone.m 10306 2018-03-06 14:59:53Z j $
+% $Id: mirone.m 10316 2018-03-13 00:24:01Z j $
 
 	if (nargin > 1 && ischar(varargin{1}))
 		if ( ~isempty(strfind(varargin{1},':')) || ~isempty(strfind(varargin{1},filesep)) )
@@ -145,6 +145,7 @@ function hObject = mirone_OpeningFcn(varargin)
 	handles.is_defRegion = false;	% A def region is a particular case to create GMT custom symbols.
 	handles.screenSize = [];		% Fill it for the case when one wants to fake a different get(0, 'ScreenSize')
 	handles.img_with_minmax = [];	% Will have [lower higher] when scaleto8 is to operate on an interval
+	handles.cmapIsLog = 0;			% So that we know how to update logaritmized cmaps.
 
 	try							% A file named mirone_pref.mat contains the preferences, read them from it
 		prf = load([handles.path_data 'mirone_pref.mat']);
