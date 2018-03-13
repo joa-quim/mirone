@@ -68,6 +68,8 @@ function hObject = empilhador_OF(varargin)
 	handles.OneByOneFirst = true;	% Safety valve to deal with the load one by one case
 	handles.testedDS = false;		% To test if a Sub-Dataset request is idiot
 	handles.automatic = false;		% Set when called from command line and create a Fig
+	handles.year_in_name = false;	% To know if the file name carries the year (e.g. A2017_SST...)
+	handles.carry_time = false;	% When files have time, if this is set to true, carry that time to stacked file
 	handles.Interactive = false;	% Used when need to reinterpolate L2 files. FALSE means do not
 									% call the helper window that asks questions (use default ans)
 
@@ -108,14 +110,20 @@ function push_namesList_CB(hObject, handles, opt)
 %
 % First column holds the filename that can be absolute, relative or have no path info.
 %		If only one column in file the "Time" info below is computed as (1:number_of_files)
-%		However, if any of the input files is 3D the "Time" is computed as (1:number_of_total_layers)
+%		Without further option, any of the input files is 3D the "Time" is computed as (1:number_of_total_layers)
+%		but see bellow for the ?+|Y option
 %
 % Second column is normally the "Time" info. That is, a number that will be used as the 'time'
 %		in the 3D netCDF file. In case of L2 scene products one can use '?' to instruct the
 %		program to get the time from the HDF file name, which is assume to be YYYYDDDHHMMSS....
 %		The '?' mechanism has been extended to the GHRSST PATHFINDER 5.2 netCDF files that have
 %		names of the form YYYYMMDDHHMMSS-...
-%		The "Time" info is, however, ignored when one or more input grids are 3D
+%		The "Time" info is, however, ignored when one or more input grids are 3D but the extend '?'
+%		provides furher control.
+%		'?+' means that any time info in files is carried to the stack.
+%		'?Y' (or any other char intead of Y) means to search the stacking files for a year info,
+%		like for example A2016_SST_months_noite.nc, and use that plus the internal individual times
+%		to get a composed decimal year time in stack.
 %
 % Third column is used when the HDF file has sub-datasets and we want to select one in
 %		particular. In that case use the (clumsy) construct: 'sdsN' as in sds3 where 'sds' is
@@ -155,7 +163,6 @@ function push_namesList_CB(hObject, handles, opt)
 %	share the same format in terms of number of columns. Any eventual lines starting with '#' in the
 %	included files are simply ingnored.
 
-
 	if (nargin == 2)		% Direct call
 		str1 = {'*.dat;*.DAT;*.txt;*.TXT', 'Data files (*.dat,*.DAT,*.txt,*.TXT)';'*.*', 'All Files (*.*)'};
 		[FileName,PathName,handles] = put_or_get_file(handles, str1,'File with grids list','get');
@@ -163,7 +170,7 @@ function push_namesList_CB(hObject, handles, opt)
 	else					% File name on input
 		opt = check_wildcard_fname(opt);	% Check if a lazy 'path/*.xxx X X' request
 		[PathName,FNAME,EXT] = fileparts(opt);
-		PathName = [PathName filesep];      % To be coherent with the 'if' branch
+		PathName = [PathName '/'];      % To be coherent with the 'if' branch
 		FileName = [FNAME EXT];
 	end
 	fname = [PathName FileName];
@@ -195,9 +202,15 @@ function push_namesList_CB(hObject, handles, opt)
 	caracol = false(m,1);				% Case name list has '@' to pause for a CD change
 
 	n_msg = 1;							% Will hold the "change CD messages" counter
-	if (n_column > 1)					% When 2nd column holds the 3D numbering
+	if (n_column > 1)					% When 2nd column holds the 3D numbering OR WE HAVE THE FCKING SPACES
 		for (k = 1:m)
-			[t,r] = strtok(names{k});
+			ind = strfind(names{k}, '/');
+			if (~isempty(ind))			% Should not be
+				[t1,r] = strtok(names{k}(ind(end)+1:end));
+				t = [names{k}(1:ind(end)) t1];	% With this we should solve fck for all the problem with spaces in name
+			else
+				[t,r] = strtok(names{k});
+			end
 			if (numel(t) < 2 || t(1) == '#')	% Jump empty or comment lines
 				c(k) = true;
 				continue
@@ -211,29 +224,43 @@ function push_namesList_CB(hObject, handles, opt)
 			end
 
 			names{k} = ddewhite(t);
-			if (n_column == 2)			% Names & numeric label format OR names & sdsname
+			if (n_column == 2 && ~isempty(r))			% Names & numeric label format OR names & sdsname
 				r = ddewhite(r);
 				if (r(1) == '?')
-					r = squeeze_time_from_name(names{k});
+					get_year = false;
+					if (numel(r) > 1)	% See if name is of the form (e.g.) A2013_...
+						handles.carry_time = true;		% True in both cases
+						if (r(2) ~= '+'),	handles.year_in_name = true;	get_year = true;	end
+					end
+					r = squeeze_time_from_name(names{k}, get_year);
+					if (isempty(r)),	return,		end				% Some error occurred
 				end
 				handles.strTimes{k} = r;
-			else						% Names, numeric label & SDS info format
+			elseif (~isempty(r))						% Names, numeric label & SDS info format
 				[t,r] = strtok(r);
 				t = ddewhite(t);
 				if (t(1) == '?')		% Means get the numeric label as time extracted from file name (OceanColor products)
-					t = squeeze_time_from_name(names{k});
+					get_year = false;
+					if (numel(t) > 1)	% See if name is of the form (e.g.) A2013_...
+						handles.carry_time = true;		% True in both cases
+						if (t(2) ~= '+'),	handles.year_in_name = true;	get_year = true;	end
+					end
+					t = squeeze_time_from_name(names{k}, get_year);
+					if (isempty(t)),	return,		end				% Some error occurred
 				elseif (t(1) == '*')	% 
 					t = sprintf('%d', k);
 				end
 				handles.strTimes{k} = t;
 				SDSinfo{k} = ddewhite(r);
+			else
+				handles.strTimes{k} = sprintf('%d',k);
 			end
 		end
 	else								% Only one column with fnames
 		for (k = 1:m)
-			if ( isempty(names{k}) ),	continue,			end		% Jump empty lines
-			if ( names{k}(1) == '#'),	c(k) = true;		continue,	end
-			if ( names{k}(1) == '@')
+			if (isempty(names{k})),		continue,		end		% Jump empty lines
+			if (names{k}(1) == '#'),	c(k) = true;	continue,	end
+			if (names{k}(1) == '@')
 				caracol(k) = true;
 				handles.changeCD_msg{n_msg} = names{k}(2:end);
 				n_msg = n_msg + 1;
@@ -255,7 +282,8 @@ function push_namesList_CB(hObject, handles, opt)
 	% -------------- Check if we have a Sub-Datasets request ------------------
 	if (n_column == 3 && (strncmpi(SDSinfo{1}, 'sds', 3) || SDSinfo{1}(1) == '-'))
 		handles.SDSinfo = SDSinfo;
-	elseif (n_column == 2 && (strncmpi(handles.strTimes{1}, 'sds', 3) || handles.strTimes{1}(1) == '-'))
+	elseif (n_column == 2 && ~isempty(handles.strTimes{1}) && ...
+			(strncmpi(handles.strTimes{1}, 'sds', 3) || handles.strTimes{1}(1) == '-'))
 		% Two cols with SDS info in the second
 		handles.SDSinfo = handles.strTimes;
 		for (k = 1:m),		handles.strTimes{k} = sprintf('%d',k);		end
@@ -307,8 +335,8 @@ function push_namesList_CB(hObject, handles, opt)
 function [handles, names, n_column] = parse_list_file(handles, fname, n_column)
 % Read a list file, call parse_header() to check for options in header line
 % Search for '>include fname' lines that instruct to include other list files
-% We need to send in the N_COLUMNS because the main list file may be made of only
-% '>include' directives, in which case we don't know yet the true columns number.
+% We need to send in the N_COLUMN because the main list file may be made of only
+% '>include' directives, in which case we don't know yet the true number of columns.
 
 	fid = fopen(fname);
 	if (fid < 0)
@@ -339,7 +367,7 @@ function [handles, names, n_column] = parse_list_file(handles, fname, n_column)
 				if (fid < 0),		continue,	end			% Could not open file
 				c = fread(fid,'*char')';		fclose(fid);
 				names_ = strread(c,'%s','delimiter','\n');
-				names_copy = [names_copy(1:end); names(ini:k-1); names_];		% Update list but without the '>' line
+				names_copy = [names_copy(1:end); names(ini:k-1); names_];	% Update list but without the '>' line
 				ini = k + 1;								% Next time it will start on the line after the '>'
 			end
 		end
@@ -365,7 +393,7 @@ function handles = parse_header(handles, names)
 	ind = strfind(names{1}, '-F');	% Do we have a Flag request?
 	if (~isempty(ind))
 		t = strtok(names{1}(ind+2:end));
-		ind  = strfind(t, '_');
+		ind = strfind(t, '_');
 		handles.SDSflag = t(1:ind(end)-1);	% SDS number of the quality flags array (SubDataset)
 		handles.minQuality = round(sscanf(t(ind(end)+1:end), '%f'));
 		if (isnan(handles.minQuality))
@@ -451,9 +479,10 @@ function fname = check_wildcard_fname(strin)
 	if (~isempty(ind) && (numel(strin) > ind(end)) && (strin(ind(end)+1) ~= ' '))
 		[t, r] = strtok(strin(ind(end)+1:end));
 		t = [strin(1:ind(end)) t];
+		dirlist = dir(t);
+	else
+		dirlist = '';
 	end
-	%[t, r] = strtok(strin);
-	dirlist = dir(t);
 
 	if (isempty(dirlist))
 		errordlg('Wildcard search return an empty result. Have to abort here','ERROR')
@@ -488,22 +517,40 @@ function fname = check_wildcard_fname(strin)
 	fclose(fid);
 
 % -----------------------------------------------------------------------------------------
-function t = squeeze_time_from_name(name)
+function t = squeeze_time_from_name(name, get_year)
 % ... Read the name of L2 daily scene product and convert it into a time string.
 % The name algo is simple YYYYDDDHHMMSS where DDD is day of the year.
+% If optional GET_YEAR is used, try to get the year from files of the form (e.g.) A2005...
 
 	% Example names: A2012024021000.L2_LAC_SST4 S1998001130607.L2_MLAC_OC.x.hdf
 	% 20100109005439-NODC-L3C_GHRSST-SSTskin-AVHRR_Pathfinder-PFV5.2_NOAA18_G_2010009_night-v02.0-fv01.0.nc
 	[PATH,FNAME,EXT] = fileparts(name);
 	indDot = strfind(FNAME,'.');
+	error = false;
 	if (~isempty(indDot) && strcmpi(FNAME(16:17), 'L2'))	% Second case type name
 		FNAME(indDot(1):end) = [];
 	elseif (~isempty(EXT) && strcmpi(EXT(2:3), 'L2'))		% First case type name (nothing to do)
 	elseif (strcmpi(EXT,'.nc') && FNAME(15) == '-')			% A GS... 2.0 netCDF PATHFINDER file
 		FNAME(15:end) = [];
-	else
-		errordlg(sprintf('This "%s" is not a MODIS type name',name),'ERROR'),	return
+	elseif (get_year)
+		try
+			t = str2double(FNAME(2:5));		% Try A2015
+			if (isnan(t)),	t = str2double(FNAME(1:4));		end
+			if (~isnan(t))					% OK, we got a number of four digits
+				t = sprintf('%d',t);		% Because output must be a string
+				return						% WE ARE DONE WITH THE PARSING
+			else
+				error = true;
+			end
+		catch
+			error = true;
+		end
 	end
+	if (error)
+		t = [];
+		errordlg(sprintf('File "%s" is neither a MODIS, GHRSST or Year parseable type name ',name),'ERROR'),	return
+	end
+
 	% Compose name as YYYY.xxxxx where 'xxxxx' is the decimal day of year truncated to hour precision (or minute)
 	if (double(FNAME(1)) >= 48 && double(FNAME(1)) <= 57)	% Numbers. See, char(48:57)
 		% Example 20100109005439 will became 2010.0090379, 2010 (year) 009 (day of year) 0.0379 (decimal part of DOY) 
@@ -519,7 +566,7 @@ function t = squeeze_time_from_name(name)
 
 % -----------------------------------------------------------------------------------------
 function radio_conv2netcdf_CB(hObject, handles)
-	if ( ~get(hObject,'Val') ),		set(hObject,'Val',1),	return,		end
+	if (~get(hObject,'Val')),		set(hObject,'Val',1),	return,		end
 	set([handles.radio_multiBand handles.radio_conv2vtk],'Val',0)
 
 % -----------------------------------------------------------------------------------------
@@ -785,7 +832,7 @@ function cut2cdf(handles, got_R, west, east, south, north)
 
 	% The attributes
 	misc = struct('x_units',[],'y_units',[],'z_units',[],'z_name',[],'desc',[], ...
-		'title',[],'history',[],'srsWKT',[], 'strPROJ4',[]);
+	              'title',[],'history',[],'srsWKT',[], 'strPROJ4',[]);
 	if (~isempty(handles.desc_attrib))
 		misc.desc = handles.desc_attrib;
 	end
@@ -885,8 +932,8 @@ function cut2cdf(handles, got_R, west, east, south, north)
 		% For now we let this case reach here, but in future we should make this test/decision right after getZ()
 		% The problem of deleting the uncompressed file must be solved too
 		if (isempty(empties{k}))
-			if (~isempty(handles.strTimes)),		t_val = handles.strTimes{k};
-			else,									t_val = sprintf('%d',k - 1);	% Hmmm, handles.strTimes starts at 1
+			if (~isempty(handles.strTimes)),	t_val = handles.strTimes{k};
+			else,								t_val = sprintf('%d',k - 1);	% Hmmm, handles.strTimes starts at 1
 			end
 			if (got_3D),	t_val = sprintf('%d', nL);	end		% This case has to account for total number already written
 
@@ -895,10 +942,18 @@ function cut2cdf(handles, got_R, west, east, south, north)
 					nc_io(grd_out, ['w-' t_val '/time'], handles, reshape(Z,[1 size(Z)]), misc)
 				else		% A 3D grid
 					got_3D = true;			% Flag that t_val must be recomputed also for the 2D cases
+					times = search_scaleOffset(att.Metadata, 'NETCDF_DIM_time_VALUES');
+					if ((handles.carry_time || handles.year_in_name) && ~isempty(times) && numel(times) > 1)	% We have an array
+						t_val = compose_date(handles, times(1), handles.strTimes{1});
+					end
 					nc_io(grd_out, ['w-' t_val '/time'], handles, reshape(Z(:,:,1),[1 size(Z,1) size(Z,2)]), misc)
 					for (this_layer = 2:size(Z,3))
 						this_k = this_layer - 1;
-						t_val = sprintf('%d', this_layer);
+						if ((handles.carry_time || handles.year_in_name) && ~isempty(times) && numel(times) > 1)
+							t_val = compose_date(handles, times(this_layer), handles.strTimes{k});
+						else
+							t_val = sprintf('%d', this_layer);
+						end
 						nc_io(grd_out, sprintf('w%d\\%s', this_k, t_val), handles, Z(:,:,this_layer))
 					end
 					nL = this_layer;
@@ -909,9 +964,14 @@ function cut2cdf(handles, got_R, west, east, south, north)
 					nc_io(grd_out, sprintf('w%d\\%s', kk, t_val), handles, Z)
 				else						% Here we have a 3D (not tested otherwise) array. Loop over its pages
 					got_3D = true;			% Flag that t_val must be recomputed also for the 2D cases
+					times = search_scaleOffset(att.Metadata, 'NETCDF_DIM_time_VALUES');
 					for (this_layer = 1:size(Z,3))
 						this_k = kk + this_layer - 1;
-						t_val = sprintf('%d', this_k+1);
+						if ((handles.carry_time || handles.year_in_name) && ~isempty(times) && numel(times) > 1)
+							t_val = compose_date(handles, times(this_layer), handles.strTimes{k});
+						else
+							t_val = sprintf('%d', this_k+1);
+						end
 						nc_io(grd_out, sprintf('w%d\\%s', this_k, t_val), handles, Z(:,:,this_layer))
 					end
 					nL = nL + this_layer - 1;	% -1 because the 1 will be incremented 3 lines below
@@ -936,6 +996,17 @@ function cut2cdf(handles, got_R, west, east, south, north)
 		empties(c) = [];		% The remainings of this are the failures/empties
 		message_win('create',empties, 'figname','Names of no-data files', 'edit','yes')
 	end
+
+% -----------------------------------------------------------------------------------------
+function t = compose_date(handles, time, year_str)
+% Compute the decimal year if handles.year_in_name == true or just return the TIME as string otherwise
+
+	if (~handles.year_in_name)
+		t = sprintf('%.18g', time);		return
+	end
+	year = str2double(year_str);
+	isleapyear = (~rem(year, 4) & rem(year, 100) ) | ~rem(year, 400);
+	t = sprintf('%.12g', year + time / (365 + isleapyear));
 
 % -----------------------------------------------------------------------------------------
 function [head, opt_R, slope, intercept, base, is_modis, is_linear, is_log, att, do_SDS] = ...
@@ -1043,7 +1114,7 @@ function [head , slope, intercept, base, is_modis, is_linear, is_log, att, opt_R
 % Get complementary data from the att struct. This is mostly a helper function to get_headerInfo()
 % but it is detached from it because in this way it can be called by exterior code. Namelly by Mirone.
 % The cases addressed here are some of the ones raised by HDF files.
-% WARNING: the ATT struct must have and extra field att.fname (to be eventualy used by hdfread)
+% WARNING: the ATT struct must have an extra field att.fname (to be eventualy used by hdfread)
 % NOTE1: When called from outside (e.g Mirone) use only the [...] = getFromMETA(att) form
 % NOTE2: For HDF files the ATT struct will be added the field 'hdrInfo' (returned when hdrfinfo)
 
@@ -1287,6 +1358,10 @@ function out = search_scaleOffset(attributes, what, N)
 				id_eq = strfind(attributes{k},'=');			% Find the '=' sign
 				if (numel(id_eq) > 1),	continue,	end		% Sometimes comments have also the '=' char
 				out = str2double(attributes{k}(id_eq+1:end));
+				if (isnan(out) && attributes{k}(id_eq+1) == '{' && attributes{k}(end) == '}') 
+					% Example 'NETCDF_DIM_time_VALUES={16.5,46.5,76.5,107,137.5,168,198.5,229.5,260,290.5,321,351.5}' 
+					out = str2num(attributes{k}(id_eq+2:end-1));
+				end
 				break
 			end
 		end
