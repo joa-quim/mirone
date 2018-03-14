@@ -20,7 +20,7 @@ function varargout = empilhador(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: empilhador.m 10315 2018-03-13 00:18:17Z j $
+% $Id: empilhador.m 10319 2018-03-14 21:29:05Z j $
 
 	if (nargin > 1 && ischar(varargin{1}))
 		gui_CB = str2func(varargin{1});
@@ -490,6 +490,7 @@ function fname = check_wildcard_fname(strin)
 	end
 
 	PATO = fileparts(t);
+	if (PATO(end) == '\' || PATO(end) == '/'),		PATO(end) = [];		end		% Sometimes it dos. No fck comments
 	fname = [PATO '/automatic_list.txt'];
 	fid = fopen(fname, 'w');
 	if (fid < 0)
