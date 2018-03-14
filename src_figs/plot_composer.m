@@ -16,7 +16,7 @@ function varargout = plot_composer(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: plot_composer.m 10314 2018-03-13 00:15:35Z j $
+% $Id: plot_composer.m 10318 2018-03-14 01:43:52Z j $
 
 	handMir = varargin{1};
 	if (handMir.no_file)     % Stupid call with nothing loaded on the Mirone window
@@ -207,10 +207,12 @@ function varargout = plot_composer(varargin)
 	setappdata(handles.axes1,'ThisImageLims', [0 21 0 29.7])
 
 	% Loop over the number of figures and do preparatory work
+	handles.is_projected   = false(N_figs,1);
+	handles.projection_str = cell(N_figs,1);
 	for (k = 1:N_figs)
 		handles = get_img_dims(handles, k);		% In a function so it can later be called on different images
 		handles = draw_img_rectangle(handles, k);
-	
+
 		% If the caller is 'ecran' we must set several fake handles struct members that exist in Mirone
 		this_hMir = guidata(hAllFigs(k));
 		if (strcmp(get(this_hMir.axes1, 'UserData'), 'XY'))
@@ -224,12 +226,22 @@ function varargout = plot_composer(varargin)
 			this_hMir.IamXY = false;
 		end
 		guidata(this_hMir.figure1, this_hMir)
+
+		% ...
+		handles.is_projected(k) = this_hMir.is_projected;
+		if (this_hMir.is_projected)
+			prj4 = aux_funs('get_proj_string', this_hMir.figure1);
+			if (~isempty(prj4))
+				handles.projection_str{k} = prj4;
+			end
+		elseif (this_hMir.geog)
+			handles.projection_str{k} = handles.projGDAL_pars{2};
+		end
 	end
 
 	% ------------------ Set prefix name based on grid/image name --------------------------------------
 	[lixo,figname] = fileparts(get(handMir.figure1, 'Name'));
 	set(handles.edit_prefix,'String',strtok(figname))
-
 	% ---------------------------------------------------------------------------------------------------
 
 	% ----------- Pick up the projection initial (and sometimes final) guess ---------------------------
@@ -241,7 +253,9 @@ function varargout = plot_composer(varargin)
 			set(handles.edit_projection,'String', '', 'Enable', 'off')
 			warndlg('This file claims to be projected but I can''t find its projection info.', 'Warning')
 		end
-		set(handles.popup_projections,'String', 'Already projected (can''t change)', 'Enable', 'off')
+		str = get(handles.popup_projections,'Str');
+		str{1} = 'Already projected (can''t change)';
+		set(handles.popup_projections,'String', str, 'Enable', 'off')
 	elseif (handMir.geog)
 		%  Here we should remember the last choice of how to deal with geogs
 		set(handles.popup_projections,'Val', 2)
@@ -249,10 +263,6 @@ function varargout = plot_composer(varargin)
 	else
 		set(handles.popup_projections,'String', 'Linear (can''t change)', 'Enable', 'off')
 		set(handles.edit_projection,'String', '', 'Enable', 'off')
-	end
-	handles.projection_str = cell(N_figs,1);		% SO FAR MAKE THEM INITIALLY ALL EQUAL
-	for (k = 1:N_figs)
-		handles.projection_str{k} = get(handles.edit_projection,'String');		% To restore in case of error
 	end
 	% --------------------------------------------------------------------------------------------------
 
@@ -436,6 +446,17 @@ function popup_familyPlots_CB(hObject, handles, N)
 	set(handles.edit_X0,          'Str', handles.X0(N))
 	set(handles.edit_Y0,          'Str', handles.Y0(N))
 	set(handles.edit_scale,       'Str', handles.scale{N})
+
+	str = get(handles.popup_projections,'Str');
+	if (handles.is_projected(N))
+		set(handles.edit_projection,  'Enable', 'off')
+		str{1} = 'Already projected (can''t change)';
+		set(handles.popup_projections,'Str', str, 'Val',1, 'Enable', 'off')
+	else
+		set(handles.edit_projection,  'Enable', 'on')
+		str{1} = ' ';
+		set(handles.popup_projections,'Str', str, 'Val',N+1, 'Enable', 'on')
+	end
 
 % -----------------------------------------------------------------------------------------
 function popup_gridFigs_CB(hObject, handles)
@@ -721,7 +742,12 @@ function opt_J = create_opt_J(handles, N, scale)
 	if (isempty(N)),	N = 1;	end
 	handMir = guidata(handles.hAllFigs(N));
 
-	prj = handles.projection_str{N};
+	if (handMir.is_projected)		% If image is originaly projected the plot must be linear
+		prj = '-JX';
+	else
+		prj = handles.projection_str{N};
+	end
+
 	if (~isempty(strfind(prj, '+proj=longlat')) || ~isempty(strfind(prj, '+proj=latlong')))
 		prj = '-JX';		% +proj=latlong is still giving troubles in GMT
 	end
@@ -2475,9 +2501,9 @@ function gsimage(handles, script, hWait)
 
 	fname = [handles.path_tmp 'auto.' EXT];
 	if (get(handles.check_trimWhite, 'Val'))
-		gmtmex(['psconvert = ' opt_T ' -A0.5p -F' fname]);
+		gmtmex(['psconvert = ' opt_T ' -A0.5p -Qt4 -Qg2 -F' fname]);
 	else
-		gmtmex(['psconvert = ' opt_T ' -F' fname]);
+		gmtmex(['psconvert = ' opt_T ' -Qt4 -Qg2 -F' fname]);
 	end
 	if (handles.IamCompiled)
 		win_open_mex(handles.path_tmp, ['auto.' EXT]);
