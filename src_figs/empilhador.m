@@ -490,6 +490,7 @@ function fname = check_wildcard_fname(strin)
 	end
 
 	PATO = fileparts(t);
+	if (PATO(end) == '\' || PATO(end) == '/'),		PATO(end) = [];		end		% Sometimes it dos. No fck comments
 	fname = [PATO '/automatic_list.txt'];
 	fid = fopen(fname, 'w');
 	if (fid < 0)
