@@ -2044,7 +2044,7 @@ function [opt_R, opt_I, opt_C, bitflags, flagsID, despike, quality] = sniff_in_O
 			quality = get(handles.popup_quality, 'Val')-1;
 			got_flags = false;		% For SST we don't care about bitflags
 		elseif (~got_flags)			% And for Chlor if the MIR_EMPILHADOR_F key is not activated replicate it here
-			flaglist = 'ATMFAIL,LAND,HIGLINT,HILT,HISATZEN,STRAYLIGHT,CLDICE,COCCOLITH,HISOLZEN,LOWLW,CHLFAIL,NAVWARN,MAXAERITER,CHLWARN,ATMWARN,NAVFAIL,FILTER';
+			flaglist = 'ATMFAIL,LAND,HIGLINT,HILT,HISATZEN,STRAYLIGHT,CLDICE,COCCOLITH,HISOLZEN,LOWLW,CHLFAIL,NAVWARN,MAXAERITER,CHLWARN,ATMWARN,NAVFAIL,FILTER,SSTWARN,SSTFAIL';
 			got_flags = true;
 			quality = [];			% Flag that we want to use bitflags and not the quality value
 		end
