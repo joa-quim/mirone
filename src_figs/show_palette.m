@@ -181,3 +181,10 @@ function make_cbar(hAx, appdata_pal, cmap, dataMinMax, update, cmapIsLog)
 			image([1 10], dataMinMax, (1:size(cmap,1))', 'Parent',hAx);
 		end
 	end
+
+% 	% Set log scale when needed. SCREWS MANY TIMES
+% 	if (~update)
+% 		if (cmapIsLog),		set(hAx, 'YScale','log')
+% 		else,				set(hAx, 'YScale','linear')
+% 		end
+% 	end
