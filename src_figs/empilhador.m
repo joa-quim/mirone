@@ -20,7 +20,7 @@ function varargout = empilhador(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: empilhador.m 10321 2018-03-16 17:54:25Z j $
+% $Id: empilhador.m 10322 2018-03-16 18:07:46Z j $
 
 	if (nargin > 1 && ischar(varargin{1}))
 		gui_CB = str2func(varargin{1});
@@ -2044,7 +2044,7 @@ function [opt_R, opt_I, opt_C, bitflags, flagsID, despike, quality] = sniff_in_O
 			quality = get(handles.popup_quality, 'Val')-1;
 			got_flags = false;		% For SST we don't care about bitflags
 		elseif (~got_flags)			% And for Chlor if the MIR_EMPILHADOR_F key is not activated replicate it here
-			flaglist = 'ATMFAIL,LAND,HIGLINT,HILT,HISATZEN,STRAYLIGHT,CLDICE,COCCOLITH,HISOLZEN,LOWLW,CHLFAIL,NAVWARN,MAXAERITER,CHLWARN,ATMWARN,NAVFAIL,FILTER';
+			flaglist = 'ATMFAIL,LAND,HIGLINT,HILT,HISATZEN,STRAYLIGHT,CLDICE,COCCOLITH,HISOLZEN,LOWLW,CHLFAIL,NAVWARN,MAXAERITER,CHLWARN,ATMWARN,NAVFAIL,FILTER,SSTWARN,SSTFAIL';
 			got_flags = true;
 			quality = [];			% Flag that we want to use bitflags and not the quality value
 		end
