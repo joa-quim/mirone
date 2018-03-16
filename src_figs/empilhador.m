@@ -20,7 +20,7 @@ function varargout = empilhador(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: empilhador.m 10319 2018-03-14 21:29:05Z j $
+% $Id: empilhador.m 10321 2018-03-16 17:54:25Z j $
 
 	if (nargin > 1 && ischar(varargin{1}))
 		gui_CB = str2func(varargin{1});
@@ -572,12 +572,12 @@ function radio_conv2netcdf_CB(hObject, handles)
 
 % -----------------------------------------------------------------------------------------
 function radio_conv2vtk_CB(hObject, handles)
-	if ( ~get(hObject,'Val') ),		set(hObject,'Val',1),	return,		end
+	if (~get(hObject,'Val')),		set(hObject,'Val',1),	return,		end
 	set([handles.radio_multiBand handles.radio_conv2netcdf],'Val',0)
 
 % -----------------------------------------------------------------------------------------
 function radio_multiBand_CB(hObject, handles)
-	if ( ~get(hObject,'Val') ),		set(hObject,'Val',1),	return,		end
+	if (~get(hObject,'Val')),		set(hObject,'Val',1),	return,		end
 	set([handles.radio_conv2netcdf handles.radio_conv2vtk],'Val',0)
 
 % -----------------------------------------------------------------------------------------
@@ -594,9 +594,10 @@ function check_L2_CB(hObject, handles)
 % -----------------------------------------------------------------------------------------
 function check_L2conf_CB(hObject, handles)
 % Scan the the L2config.txt file for the -R string and fill the region boxes with it
+	posFig = get(handles.figure1, 'Pos');
 	if (get(hObject,'Val'))
 		fake_R = 'nikles';
-		opt_R = sniff_in_OPTcontrol(fake_R);
+		[opt_R, opt_I, opt_C, bitflags, flagsID, despike, quality] = sniff_in_OPTcontrol(fake_R);
 		if (strcmp(opt_R, fake_R))
 			errordlg('The data/L2config.txt file is corrupted and non usable.','Error')
 		else
@@ -612,7 +613,27 @@ function check_L2conf_CB(hObject, handles)
 				set(handles.edit_south, 'Str', '');	set(handles.edit_north, 'Str', '');
 			end
 		end
+
+		set(handles.edit_inc, 'Str', opt_I(3:end))
+		set(handles.edit_nCells, 'Str', opt_C(3:end))
+		quality = round(quality);
+		if (quality >= 0 && quality <= 2)
+			set(handles.popup_quality, 'Val', quality+1)
+		else
+			warndlg('Quality value in L2config.txt is nonsense. Ignoring it.', 'Warning')
+			set(handles.popup_quality, 'Val', 0)
+		end
+		set(handles.figure1, 'Pos', posFig+[0 0 110 0])
+	else
+		set(handles.figure1, 'Pos', posFig-[0 0 110 0])
 	end
+
+	% Move the Compute button to the LR corner
+	posBut = get(handles.push_compute, 'Pos');
+	posFig = get(handles.figure1, 'Pos');
+	set(handles.push_compute, 'Pos', [posFig(3)-posBut(3)-10 posBut(2:4)])
+
+	move2side(handles.figure1,'right')
 
 % -----------------------------------------------------------------------------------------
 function check_region_CB(hObject, handles)
@@ -680,6 +701,24 @@ function edit_stripeWidth_CB(hObject, handles)
 	if (isnan(x1)),		set(hObject,'String','0.5'),	end
 
 % -----------------------------------------------------------------------------------------
+function check_bitflags_CB(hObject, handles)
+	if (get(hObject, 'Val'))
+		set(handles.popup_quality,'Enable','off')
+	else
+		set(handles.popup_quality,'Enable','on')
+	end
+
+% -----------------------------------------------------------------------------------------
+function edit_inc_CB(hObject, handles)
+	x = str2double(get(hObject, 'Str'));
+	if (isnan(x) || x < 0),		set(hObject, 'Str', ''),	end
+
+% -----------------------------------------------------------------------------------------
+function edit_nCells_CB(hObject, handles)
+	n = str2double(get(hObject, 'Str'));
+	if (isnan(n) || n < 0),		set(hObject, 'Str', '0'),	end
+
+% -----------------------------------------------------------------------------------------
 function push_compute_CB(hObject, handles)
 % Test for obvious errors and start computation
 
@@ -699,17 +738,17 @@ function push_compute_CB(hObject, handles)
 	end
 
 	if (isempty(handles.nameList))
-		errordlg('No files to work on. You either didn''t give them or all names are wrong.','Error')
+		errordlg('No files to work on. You either didn''t provide them or all names are wrong.','Error')
 		return
 	end
 
 	got_R = false;		west = [];			east = [];		south = [];		north = [];
 	if (get(handles.check_region, 'Val'))
-		north = str2double(get(handles.edit_north,'String')); 
-		west = str2double(get(handles.edit_west,'String')); 
-		east = str2double(get(handles.edit_east,'String')); 
-		south = str2double(get(handles.edit_south,'String')); 
-		if ( any(isnan([west east south north])) )
+		north = str2double(get(handles.edit_north,'String'));
+		west = str2double(get(handles.edit_west,'String'));
+		east = str2double(get(handles.edit_east,'String'));
+		south = str2double(get(handles.edit_south,'String'));
+		if (any(isnan([west east south north])))
 			errordlg('One or more of the region limits was not provided','Error'),	return
 		end
 		got_R = true;
@@ -722,9 +761,9 @@ function push_compute_CB(hObject, handles)
 			fprintf(fid,'# Config file created by Empilhador with default settings for L2 MODIS files\n\n');
 			fprintf(fid,'# Variables used in converting L2 satellite images from sensor to geographical coordinates.\n');
 			fprintf(fid,'# First one contains parameters of interpolation (-C is gmtmbgrid only) and second are quality flags\n');
-			fprintf(fid,'MIR_EMPILHADOR -I0.01 -C3 -R%.12g/%.12g/%.12g/%.12g\n', west,east,south,north);
+			fprintf(fid,'MIR_EMPILHADOR -I0.01 -C2 -R%.12g/%.12g/%.12g/%.12g\n', west,east,south,north);
 			fprintf(fid,['#MIR_EMPILHADOR_F  ATMFAIL,LAND,HIGLINT,HILT,HISATZEN,STRAYLIGHT,CLDICE,' ...
-				'COCCOLITH,HISOLZEN,LOWLW,CHLFAIL,NAVWARN,MAXAERITER,CHLWARN,ATMWARN,NAVFAIL,FILTER\n']);
+			             'COCCOLITH,HISOLZEN,LOWLW,CHLFAIL,NAVWARN,MAXAERITER,CHLWARN,ATMWARN,NAVFAIL,FILTER\n']);
 			fclose(fid);
 		end
 	end
@@ -1382,7 +1421,7 @@ function NoDataValue = guess_nodataval(DsName)
 	elseif (strcmp(DsName, 'angstrom_531')),NoDataValue = -32767;
 	end
 
-% -----------------------------------------------------------------------------------------
+% ----------------------------------------------------1-----2-------3----------4--------5------6--------7-------8-----9-------10---
 function [Z, have_nans, att, was_empty_name] = getZ(fname, att, is_modis, is_linear, is_log, slope, intercept, base, opt_R, handles)
 % ATT may be still unknown (empty). In that case it will be returned by read_gdal()
 % HANDLES, is transmitted only within internal calls of this function (that is, not from outside calls)
@@ -1411,7 +1450,7 @@ function [Z, have_nans, att, was_empty_name] = getZ(fname, att, is_modis, is_lin
 		if (nargin == 10 && isfield(handles, 'IamCompiled'))
 			IamCompiled = handles.IamCompiled;
 		else
-			try			which('mirone');			IamCompiled = false;
+			try			t = which('mirone');			IamCompiled = false;
 			catch,		IamCompiled = true;
 			end
 		end
@@ -1522,7 +1561,7 @@ function [Z, att, known_coords, have_nans, was_empty_name] = read_gdal(full_name
 % KNOWN_COORDS	Is a logical that when true the informs the caller that we already know the coordinates for sure
 %				and no attempt should be made to fish them from the matadata info.
 %
-% WAS_EMPTY_NAME Is a char string with the name the file (or SDS when an SDS is requested) IF the corresponding
+% WAS_EMPTY_NAME Is a char string with the name of file (or SDS when an SDS is requested) IF the corresponding
 %                array is empty. If the array is not empty, WAS_EMPTY_NAME itself is empty.
 %                This applies only to L2 files that are interpolated. We use it to check suspicious empty frames.
 %
@@ -1633,8 +1672,8 @@ function [Z, att, known_coords, have_nans, was_empty_name] = read_gdal(full_name
 		end
 		if (strcmp(att.DriverShortName, 'netCDF'))					% GHRSST 2.0 PATHFINDER ??
 			if (all(Z(:) == 0))		% When files are compressed GDAL screws and returns all zeros
-				handles_tmp.IamCompiled = IamCompiled;	handles_tmp.grdMaxSize = 1e12;
-				handles_tmp.ForceInsitu = false;
+				%handles_tmp.IamCompiled = IamCompiled;	handles_tmp.grdMaxSize = 1e12;
+				%handles_tmp.ForceInsitu = false;
 				%Z = read_grid(handles_tmp, full_name, 'GMT');		% Read the grid with our own functions
 				% Now, instead of the above (that fails when loading a 3D array), we will use this trick
 				% The second call is only to reset the default value because it remembers the val of previous call
@@ -1662,7 +1701,7 @@ function [Z, att, known_coords, have_nans, was_empty_name] = read_gdal(full_name
 			if (IamInteractive)
 				what = l2_choices(AllSubdatasets);		% Call secondary GUI to select what to do next
 			else
-				what = struct('georeference',1,'nearneighbor',0,'mask',0,'coastRes',0,'quality','');	% sensor coords
+				what = struct('georeference',1,'nearneighbor',0,'bitflags',0,'quality','');	% sensor coords
 				ID = find_in_subdatasets(AllSubdatasets, 'qual_sst');	% Check if we have a quality flags array
 				if (ID)
 					ind = strfind(AllSubdatasets{ID}, '=');			% Yes we have. Use it if not overruled by info in L2config
@@ -1676,8 +1715,11 @@ function [Z, att, known_coords, have_nans, was_empty_name] = read_gdal(full_name
 
 			% Go check if -R or quality flags request exists in L2config.txt file
 			[opt_R_out, opt_I, opt_C, bitflags, flagsID, despike, quality] = sniff_in_OPTcontrol(opt_R, att);	% Output opt_R gets preference
+			if (isempty(quality) && ~isempty(bitflags))		% Means that should use bitflags instead of quality value
+				what.bitflags = 1;		quality = 0;
+			end
 			if (quality && ~isempty(what.quality) && ~what.quality),	what.quality = quality;		end		% If qual not set by GUI and it's in L2control.txt
-			
+
 			% Check if the two opt_R intersect
 			r1 = str2num(strrep(opt_R(3:end), '/', ' '));
 			r2 = str2num(strrep(opt_R_out(3:end), '/', ' '));
@@ -1689,11 +1731,11 @@ function [Z, att, known_coords, have_nans, was_empty_name] = read_gdal(full_name
 				move2side(h, 'right')
 				pause(1)			% Let it be seen before being possibly hiden
 			end
-			
+
 			if (isempty(what))							% User killed the window, but it's too late to stop so pretend ...
-				what =  struct('georeference',1,'nearneighbor',1,'mask',0,'coastRes',0,'quality','');	% sensor coords
+				what =  struct('georeference',1,'nearneighbor',1,'bitflags',0,'quality','');	% sensor coords
 			end
-			if (isempty(bitflags) && ~isempty(what.quality) && what.quality < 2)	% We have a GUI quality request
+			if (~what.bitflags && ~isempty(what.quality) && what.quality < 2)	% We have a GUI quality request
 				qual = gdalread(what.qualSDS, opt_L);
 				if (isequal(size(qual),size(Z)))		% Because we don't want to apply 'qual' to either lon or lat arrays
 					Z(qual > what.quality) = NoDataValue;
@@ -1710,7 +1752,7 @@ function [Z, att, known_coords, have_nans, was_empty_name] = read_gdal(full_name
 				if (isempty(opt_I)),	opt_I = '-I0.01';	end
 				if (isempty(opt_C)),	opt_C = '-C3';		end		% For gmtmbgrid only
 
-				if (~isempty(bitflags))
+				if (what.bitflags)
 					ind = strfind(att.AllSubdatasets{flagsID},'=');	% Still must rip the 'SUBDATASET_XX_NAME='
 					Zf = gdalread(att.AllSubdatasets{flagsID}(ind+1:end), varargin{:}, opt_L);
 					c = false(size(Zf));
@@ -1747,12 +1789,6 @@ function [Z, att, known_coords, have_nans, was_empty_name] = read_gdal(full_name
 						%[Z, head] = gmtmbgrid_m(lon_full(:), lat_full(:), double(Z(:)), opt_I, opt_R, '-Mz', opt_C);
 						[Z, head, was_empty] = smart_grid(lon_full(:), lat_full(:), double(Z(:)), opt_I, opt_R, opt_C);
 						if (was_empty),		was_empty_name = full_name;		end
-					end
-					if (what.mask)
-						opt_D = {'-Dc' '-Dl' '-Di' '-Dh' '-Df'};
-						opt_D = opt_D{what.coastRes};
-						mask = c_grdlandmask(opt_R, opt_D, opt_e, '-I0.01', '-V');
-						Z(mask) = NaN;
 					end
 				end
 				if (isempty(was_empty_name) && all(isnan(Z(:))))	% F. give up and catch all escaped full NaNs here
@@ -1937,22 +1973,24 @@ function [opt_R, opt_I, opt_C, bitflags, flagsID, despike, quality] = sniff_in_O
 	got_flags = false;		bitflags = [];		flagsID = 0;	despike = false;	quality = 0;
 	opt_I = [];				opt_C = [];
 	opt_R = old_R;			% In case we return without finding a new -R
+	GUI_rules = false;		% If set to TRUE below, values from GUI take precedence
 
 	% OK, this is a transitional code. Before we used to seek the info in OPTcontrol.txt but now
 	% the user can choose to use my default values that were written in .../tmp/L2config.txt by
 	% push_compute_CB, or alternatively by redirecting the reading to the .../data/L2config.txt
 	handles = fish_handles;
-	if (~isempty(handles) &&  isfield(handles,'check_L2') && get(handles.check_L2, 'Val'))
+	if (~isempty(handles) && isfield(handles,'check_L2') && get(handles.check_L2, 'Val'))
 		% This should now be the main branch
 		if (get(handles.check_L2conf, 'Val'))
 			opt_file = [handles.path_data 'L2config.txt'];		% Use User edited config file
 			if (~(exist(opt_file, 'file') == 2))
 				errordlg(['GHrrrr. You told me read ' opt_file ' but that file does not exist'],'Error')
-				error('EMPILHADOR:Sniff_in_Config', 'Oh, were is your head?')
+				error('EMPILHADOR:Sniff_in_Config', 'Oh, were is my head?')
 			end
 		else
 			opt_file = [handles.path_tmp 'L2config.txt'];		% Use our automatically generated file
 		end
+		GUI_rules = true;
 	else
 		mir_dirs = getappdata(0,'MIRONE_DIRS');
 		if (~isempty(mir_dirs))
@@ -1962,7 +2000,7 @@ function [opt_R, opt_I, opt_C, bitflags, flagsID, despike, quality] = sniff_in_O
 		end
 	end
 	if (~(exist(opt_file, 'file') == 2)),		return,		end		% Nickles
-	
+
 	fid = fopen(opt_file, 'r');
 	c = (fread(fid,'*char'))';      fclose(fid);
 	lines = strread(c,'%s','delimiter','\n');   clear c fid;
@@ -1993,9 +2031,31 @@ function [opt_R, opt_I, opt_C, bitflags, flagsID, despike, quality] = sniff_in_O
 		end
 	end
 
+	if (GUI_rules)
+		% Since the values in GUI take precedence we need to get them now and overwrite those in conf file
+		t = get(handles.edit_inc, 'Str');
+		if (~isempty(t)),	opt_I = ['-I' t];	end		% 't' is empty on the first call to this fun
+		t = get(handles.edit_nCells, 'Str');
+		if (~isempty(t)),	opt_C = ['-C' t];	end
+		t = [get(handles.edit_west,'Str') '/' get(handles.edit_east,'Str') '/' ...
+		     get(handles.edit_south,'Str') '/' get(handles.edit_north,'Str')];
+		if (~strcmp(t, '///')),	opt_R = ['-R' t];	end
+		if (~get(handles.check_bitflags, 'Val'))
+			quality = get(handles.popup_quality, 'Val')-1;
+			got_flags = false;		% For SST we don't care about bitflags
+		elseif (~got_flags)			% And for Chlor if the MIR_EMPILHADOR_F key is not activated replicate it here
+			flaglist = 'ATMFAIL,LAND,HIGLINT,HILT,HISATZEN,STRAYLIGHT,CLDICE,COCCOLITH,HISOLZEN,LOWLW,CHLFAIL,NAVWARN,MAXAERITER,CHLWARN,ATMWARN,NAVFAIL,FILTER';
+			got_flags = true;
+			quality = [];			% Flag that we want to use bitflags and not the quality value
+		end
+	elseif (nargin == 2 && ~got_flags)
+		flaglist = 'ATMFAIL,LAND,HIGLINT,HILT,HISATZEN,STRAYLIGHT,CLDICE,COCCOLITH,HISOLZEN,LOWLW,CHLFAIL,NAVWARN,MAXAERITER,CHLWARN,ATMWARN,NAVFAIL,FILTER';
+		got_flags = true;
+	end
+
 	if (nargout <= 3),		return,		end		% Used when only MIR_EMPILHADOR was scanned (and no att sent in)
 
-	if (got_flags)
+	if (got_flags && nargin == 2)
 		% Before anything else find the 'fl_flags' array ID. If not found go away right away
 		flagsID = find_in_subdatasets(att.AllSubdatasets, 'l2_flags');
 		if (~flagsID)
@@ -2022,7 +2082,7 @@ function [opt_R, opt_I, opt_C, bitflags, flagsID, despike, quality] = sniff_in_O
 				'FILTER' 27;
 				'SSTWARN' 28;
 				'SSTFAIL' 29};
-		
+
 		loc = [0 strfind(flaglist, ',') numel(flaglist)+1];		% Find the ',' separator. Add 2 to easy algo
 		c = false(1, size(fmap,1));								% Vector with as many elements as input flags
 		fmap_names = fmap(:,1);
@@ -2157,6 +2217,8 @@ function fid = write_vtk(handles, grd_out, arg3)
 % ---------------------------------------------------------------------
 function empilhador_LayoutFcn(h1)
 
+DX = 540;
+
 set(h1,'Position',[520 532 540 280],...
 'Color',get(0,'factoryUicontrolBackgroundColor'),...
 'MenuBar','none',...
@@ -2265,6 +2327,55 @@ uicontrol('Parent',h1,'Position',[6 9 325 236],...
 'Value',1,...
 'Tag','listbox_list');
 
+uicontrol('Parent',h1, 'Position',[-2+DX 141 60 14],...
+'HorizontalAlignment','left',...
+'String','SST Quality',...
+'Style','text',...
+'Tag','text_qual');
+
+uicontrol('Parent',h1, 'Position',[60+DX 139 40 19],...
+'String',{'0'; '1'; '2' },...
+'Style','popupmenu',...
+'Value',1,...
+'BackgroundColor',[1 1 1],...
+'Tooltip','Retain only data with quality flag lower or equal to this value. Zero is best',...
+'Tag','popup_quality');
+
+uicontrol('Parent',h1, 'Position',[0+DX 111 100 16],...
+'Callback',@empilhador_uiCB,...
+'String','Use bitflags filters',...
+'Style','checkbox',...
+'Tooltip','Use INSTEAD the refined bitflags filters declared in data/L2config.txt to filter data',...
+'Tag','check_bitflags');
+
+uicontrol('Parent',h1, 'Position',[-5+DX 70 50 16],...
+'HorizontalAlignment','right',...
+'String','Cell size',...
+'Style','text',...
+'Tag','text_cell_size');
+
+uicontrol('Parent',h1, 'Position',[46+DX 69 49 19],...
+'Callback',@empilhador_uiCB,...
+'String','',...
+'Style','edit',...
+'BackgroundColor',[1 1 1],...
+'TooltipString','Grid step for the interpolation',...
+'Tag','edit_inc');
+
+uicontrol('Parent',h1, 'Position',[-5+DX 42 50 16],...
+'HorizontalAlignment','right',...
+'String','N cells',...
+'Style','text',...
+'Tag','text_nCells');
+
+uicontrol('Parent',h1, 'Position',[46+DX 40 49 19],...
+'Callback',@empilhador_uiCB,...
+'String','2',...
+'Style','edit',...
+'BackgroundColor',[1 1 1],...
+'Tooltip','Do not interpolate further than this number of cells from a data point.',...
+'Tag','edit_nCells');
+
 uicontrol('Parent',h1,'Position',[440 5 90 21],...
 'Callback','empilhador(''push_compute_CB'',gcbo,guidata(gcbo))',...
 'FontName','Helvetica',...
@@ -2272,6 +2383,11 @@ uicontrol('Parent',h1,'Position',[440 5 90 21],...
 'FontWeight','bold',...
 'String','Compute',...
 'Tag','push_compute');
+
+% I'm going to start a slow migration to use this fun
+function empilhador_uiCB(hObject, eventdata)
+% This function is executed by the callback and than the handles is allways updated.
+	feval([get(hObject,'Tag') '_CB'],hObject, guidata(hObject));
 
 % -----------------------------------------------------------------------------------
 % -----------------------------------------------------------------------------------
@@ -2284,9 +2400,8 @@ function varargout = l2_choices(varargin)
 
 	handles.out.georeference = 0;
 	handles.out.nearneighbor = 1;
-	handles.out.mask = 0;
-	handles.out.coastRes = 0;
 	handles.out.quality = '';
+	handles.out.qualSDS = '';
 
 	AllSubdatasets = varargin{1};
 	ID = find_in_subdatasets(AllSubdatasets, 'qual_sst');
@@ -2294,6 +2409,8 @@ function varargout = l2_choices(varargin)
 		set([handles.popup_quality handles.text_quality],'Enable','on')
 		ind = strfind(AllSubdatasets{ID}, '=');
 		handles.out.qualSDS = AllSubdatasets{ID}(ind+1:end);
+	else
+		set(handles.check_bitflags, 'Val', 1)	% Because that's the only other filtering that we may use
 	end
 
 	guidata(hObject, handles);
@@ -2306,48 +2423,32 @@ function varargout = l2_choices(varargin)
 
 % -----------------------------------------------------------------------
 function radio_sensor_CB(hObject, handles)
-	if ( ~get(hObject,'Val') ),		set(hObject,'Val',1),	return,		end
+	if (~get(hObject,'Val')),		set(hObject,'Val',1),	return,		end
 	set([handles.radio_interpMin handles.radio_interpNear handles.check_landMask],'Enable','off')
 	set(handles.radio_georef,'Val',0)
 
 % -----------------------------------------------------------------------
 function radio_georef_CB(hObject, handles)
-	if ( ~get(hObject,'Val') ),		set(hObject,'Val',1),	return,		end
+	if (~get(hObject,'Val')),		set(hObject,'Val',1),	return,		end
 	set([handles.radio_interpMin handles.radio_interpNear handles.check_landMask],'Enable','on')
 	set(handles.radio_sensor,'Val',0)
 
 % -----------------------------------------------------------------------
 function radio_interpNear_CB(hObject, handles)
-	if ( ~get(hObject,'Val') ),		set(hObject,'Val',1),	return,		end
+	if (~get(hObject,'Val')),		set(hObject,'Val',1),	return,		end
 	set(handles.radio_interpMin,'Val',0)
 
 % -----------------------------------------------------------------------
 function radio_interpMin_CB(hObject, handles)
-	if ( ~get(hObject,'Val') ),		set(hObject,'Val',1),	return,		end
+	if (~get(hObject,'Val')),		set(hObject,'Val',1),	return,		end
 	set(handles.radio_interpNear,'Val',0)
-
-% -----------------------------------------------------------------------
-function check_landMask_CB(hObject, handles)
-	if ( get(hObject,'Val') )
-		info = getappdata(0,'gmt_version');		% It should never be empty
-		if (info.crude ~= 'y')
-			errordlg('You do not have GMT installed. So, no coastlines no masking.','Error')
-			set(hObject,'Val',0),	return
-		elseif (info.full == 'y'),			handles.out.coastRes = 5;
-		elseif (info.high == 'y'),			handles.out.coastRes = 4;
-		elseif (info.intermediate == 'y'),	handles.out.coastRes = 3;
-		elseif (info.low == 'y'),			handles.out.coastRes = 2;
-		else,								handles.out.coastRes = 1;
-		end
-		guidata(handles.figure1, handles)
-	end
 
 % -----------------------------------------------------------------------
 function push_OK_CB(hObject, handles)	
 	handles.out.georeference = get(handles.radio_georef, 'Val');
 	handles.out.nearneighbor = get(handles.radio_interpNear, 'Val');
-	handles.out.mask = get(handles.check_landMask, 'Val');
-	if ( strcmp(get(handles.popup_quality,'Enable'),'on') )		% Only if we are using it
+	handles.out.bitflags     = get(handles.check_bitflags, 'Val');
+	if (strcmp(get(handles.popup_quality,'Enable'),'on'))		% Only if we are using it
 		ind = get(handles.popup_quality, 'Val');
 		if (ind ~= 1)
 			handles.out.quality = 3 - ind;
@@ -2388,7 +2489,7 @@ set(h1, 'Position',[520 400 291 148],...
 'HandleVisibility','callback',...
 'Tag','figure1');
 
-uicontrol('Parent',h1, 'Position',[2 124 265 22],...
+uicontrol('Parent',h1, 'Position',[2 126 265 22],...
 'FontAngle','oblique',...
 'FontName','Helvetica',...
 'FontSize',11,...
@@ -2397,26 +2498,26 @@ uicontrol('Parent',h1, 'Position',[2 124 265 22],...
 'String','L2 Level product - Needs decisions',...
 'Style','text');
 
-uicontrol('Parent',h1, 'Position',[10 101 161 16],...
+uicontrol('Parent',h1, 'Position',[10 105 161 16],...
 'Callback',@l2_choices_uiCB,...
 'FontName','Helvetica',...
 'String','Plot in Sensor coordinates',...
 'Style','radiobutton',...
 'Tooltip','Plot data as it is in file (faster, but deformed)',...
-'Value',1,...
+'Value',0,...
 'Tag','radio_sensor');
 
-uicontrol('Parent',h1, 'Position',[10 78 231 16],...
+uicontrol('Parent',h1, 'Position',[10 82 231 16],...
 'Callback',@l2_choices_uiCB,...
 'FontName','Helvetica',...
 'String','Compute georeferenced grid (takes time)',...
 'Style','radiobutton',...
-'Tooltip','Reinterpolate data to get a georeferenced grid. (It may take 1 minute)',...
+'Tooltip','Reinterpolate data to get a georeferenced grid.',...
+'Value',1,...
 'Tag','radio_georef');
 
-uicontrol('Parent',h1, 'Position',[31 55 131 16],...
+uicontrol('Parent',h1, 'Position',[31 60 131 16],...
 'Callback',@l2_choices_uiCB,...
-'Enable','off',...
 'FontName','Helvetica',...
 'String','Minimum curvature',...
 'Style','radiobutton',...
@@ -2424,9 +2525,8 @@ uicontrol('Parent',h1, 'Position',[31 55 131 16],...
 'Tooltip','Interpolation method',...
 'Tag','radio_interpMin');
 
-uicontrol('Parent',h1, 'Position',[31 36 110 16],...
+uicontrol('Parent',h1, 'Position',[170 60 110 16],...
 'Callback',@l2_choices_uiCB,...
-'Enable','off',...
 'FontName','Helvetica',...
 'String','Nearneighbor',...
 'Style','radiobutton',...
@@ -2434,7 +2534,7 @@ uicontrol('Parent',h1, 'Position',[31 36 110 16],...
 'Value',0,...
 'Tag','radio_interpNear');
 
-uicontrol('Parent',h1, 'Position',[10 6 51 22],...
+uicontrol('Parent',h1, 'Position',[10 25 41 21],...
 'BackgroundColor',[1 1 1],...
 'Enable','off',...
 'ListboxTop',0,...
@@ -2444,21 +2544,19 @@ uicontrol('Parent',h1, 'Position',[10 6 51 22],...
 'Value',3,...
 'Tag','popup_quality');
 
-uicontrol('Parent',h1, 'Position',[64 10 75 15],...
+uicontrol('Parent',h1, 'Position',[55 29 100 15],...
 'Enable','off',...
 'FontName','Helvetica',...
 'HorizontalAlignment','left',...
-'String','Quality factor',...
+'String','SST Quality factor',...
 'Style','text',...
 'Tag','text_quality');
 
-uicontrol('Parent',h1, 'Position',[180 48 110 15],...
-'Callback',@l2_choices_uiCB,...
-'Enable','off',...
-'String','Apply Land Mask',...
+uicontrol('Parent',h1, 'Position',[10 6 100 16],...
+'String','Use bitflags filters',...
 'Style','checkbox',...
-'Tooltip','Mask reinterpolated Land pixels (need high definition coastlines installed)',...
-'Tag','check_landMask');
+'Tooltip','Use INSTEAD the refined bitflags declared in data/L2config.txt to filter data',...
+'Tag','check_bitflags');
 
 uicontrol('Parent',h1, 'Position',[215 7 66 23],...
 'Callback',@l2_choices_uiCB,...
