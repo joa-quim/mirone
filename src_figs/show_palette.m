@@ -16,7 +16,7 @@ function varargout = show_palette(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: show_palette.m 10312 2018-03-13 00:10:00Z j $
+% $Id: show_palette.m 10320 2018-03-16 17:51:48Z j $
 
 	handMir = varargin{1};
 	tipo = varargin{2};
@@ -181,3 +181,10 @@ function make_cbar(hAx, appdata_pal, cmap, dataMinMax, update, cmapIsLog)
 			image([1 10], dataMinMax, (1:size(cmap,1))', 'Parent',hAx);
 		end
 	end
+
+% 	% Set log scale when needed. SCREWS MANY TIMES
+% 	if (~update)
+% 		if (cmapIsLog),		set(hAx, 'YScale','log')
+% 		else,				set(hAx, 'YScale','linear')
+% 		end
+% 	end
