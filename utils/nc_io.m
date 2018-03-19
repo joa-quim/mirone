@@ -40,7 +40,7 @@ function varargout = nc_io(fname, mode, handles, data, misc)
 %				reason the mexnc call in nc_funs/write_the_data() errors when writing UNLIMITED variables
 %				so the only way out is to send in the levelVec (vector of times, most of times)
 
-%	Copyright (c) 2004-2015 by J. Luis
+%	Copyright (c) 2004-2018 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -55,7 +55,7 @@ function varargout = nc_io(fname, mode, handles, data, misc)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: nc_io.m 4728 2015-07-22 15:14:51Z j $
+% $Id: nc_io.m 10324 2018-03-19 16:44:55Z j $
 
 	if (isempty(fname))
 		error('NC_IO:write_nc','Output file name cannot be empty')
@@ -75,7 +75,6 @@ function varargout = nc_io(fname, mode, handles, data, misc)
 				page.nLevels = str2double(mode(2:ind(1)-1));	% If it is 0 or a negative float -> 3D unlimited
 				page.levelName = mode(ind(1)+1:end);
 			else								% Append a new page to an existing 3D file
-
 				indLev = strfind(mode,'\');		% Search for a level (3rth dim) value
 				if (~isempty(indLev))
 					page{2} = str2double(mode(indLev(1)+1:end));
@@ -89,11 +88,11 @@ function varargout = nc_io(fname, mode, handles, data, misc)
 			write_nc(fname, handles, data, misc, page)
 		end
 	elseif (mode(1) == 'R')		% Get all but Z
-		[varargout{1} varargout{2} varargout{3} varargout{4} varargout{5}] = read_nc(fname, 1);
+		[varargout{1}, varargout{2}, varargout{3}, varargout{4}, varargout{5}] = read_nc(fname, 1);
 	elseif (mode(1) == 'h')		% Get header[misc]
-		[varargout{1} varargout{2}] = read_nc(fname);
+		[varargout{1}, varargout{2}] = read_nc(fname);
 	else
-		[varargout{1} varargout{2} varargout{3} varargout{4} varargout{5}] = read_nc(fname);
+		[varargout{1}, varargout{2}, varargout{3}, varargout{4}, varargout{5}] = read_nc(fname);
 	end
 
 % _________________________________________________________________________________________________	
@@ -124,9 +123,17 @@ function write_nc(fname, handles, data, misc, page)
 		end
 		is3D = true;
 	elseif (nargin == 5 && isa(page,'cell'))	% 'append' layer mode. Work and return
+		if (isempty(z_name))
+			% This is a shity case. It may arrive now since we added the append option to empilhador (and others may follow)
+			% In appending mode the code flow does not pass through the code block that initialize the below vars,
+			% which would be stored by the 'persistent' call. So we have to workarround ad initialize them here.
+			[x_units, y_units, z_name, z_units, desc, tit] = assign_var_names(misc);
+			levelName = 'time';			% So far we no other choice than to expect 'time' the unlimited var
+			is_unlimited = true;
+		end
 		if (is_unlimited)
 			if (numel(page) == 2),		level = page{2};
-			else						level = page{1};
+			else,						level = page{1};
 			end
 			nc_funs('varput', fname, levelName, level, page{1}, 1 );	% The UNLIMITED var value
 		end
@@ -177,20 +184,8 @@ function write_nc(fname, handles, data, misc, page)
 	end
 
 	% ---------------------- Make sure we always have something assigned to these vars --------------
-	x_units = misc.x_units;			y_units = misc.y_units;
-	if (isempty(misc.z_name)),		z_name = 'z';
-	else							z_name = misc.z_name;
-	end
-	if (isempty(misc.z_units)),		z_units = 'unknown';
-	else							z_units = misc.z_units;
-	end
-	if (isempty(misc.desc)),		desc = 'File written from Matlab';
-	else							desc = misc.desc;
-	end
-	if (isempty(misc.title)),		tit = 'Grid created by Mirone';
-	else							tit = misc.title;
-	end
-	% ----------------------------------------------------------------
+	[x_units, y_units, z_name, z_units, desc, tit] = assign_var_names(misc);
+	% -----------------------------------------------------------------------------------------------
 	
 	% See if we have them in appdata
 	try			% Wrap with a try because we want to be able to use this fun even when no figure1
@@ -350,6 +345,23 @@ function write_nc(fname, handles, data, misc, page)
 		error('NC_IO: array must be 2 or 3D only')
 	end
 
+% ----------------------------------------------------------------------------------------------
+function [x_units, y_units, z_name, z_units, desc, tit] = assign_var_names(misc)
+	% Make sure we always have something assigned to these vars
+	x_units = misc.x_units;			y_units = misc.y_units;
+	if (isempty(misc.z_name)),		z_name = 'z';
+	else,							z_name = misc.z_name;
+	end
+	if (isempty(misc.z_units)),		z_units = 'unknown';
+	else,							z_units = misc.z_units;
+	end
+	if (isempty(misc.desc)),		desc = 'File written from Matlab';
+	else,							desc = misc.desc;
+	end
+	if (isempty(misc.title)),		tit = 'Grid created by Mirone';
+	else,							tit = misc.title;
+	end
+
 % _________________________________________________________________________________________________	
 % -*-*-*-*-*-*-$-$-$-$-$-$-#-#-#-#-#-#-%-%-%-%-%-%-@-@-@-@-@-@-(-)-(-)-(-)-&-&-&-&-&-&-{-}-{-}-{-}-
 function [X,Y,Z,head,misc] = read_nc(fname, opt)
@@ -361,7 +373,7 @@ function [X,Y,Z,head,misc] = read_nc(fname, opt)
 	Z = [];		ncVarName = [];		z_id = 0;
 
 	if (nargin == 1),		get_Z = true;
-	else					get_Z = false;
+	else,					get_Z = false;
 	end
 
 	if (isa(fname, 'cell'))
@@ -450,11 +462,11 @@ function [X,Y,Z,head,misc] = read_nc(fname, opt)
 	
 	% --------------------- Fish the Global attributes ---------------------------
 	if (~isempty(s.Attribute)),		attribNames = {s.Attribute.Name};
-	else							attribNames = [];
+	else,							attribNames = [];
 	end
 	ind = strcmp(attribNames,'node_offset');
 	if (any(ind)),	node_offset = s.Attribute(ind).Value;
-	else			node_offset = 0;				% Hmmm, ...
+	else,			node_offset = 0;				% Hmmm, ...
 	end
 	ind = strcmp(attribNames,'title');					titulo = [];
 	if (any(ind)),	titulo = s.Attribute(ind).Value;	end
@@ -504,10 +516,10 @@ function [X,Y,Z,head,misc] = read_nc(fname, opt)
 	nx = z_dim(end);		ny = z_dim(end-1);
 
 	if (~isempty(x_id)),	X = double(nc_funs('varget', fname, s.Dataset(x_id).Name));
-	else					X = 1:nx;
+	else,					X = 1:nx;
 	end
 	if (~isempty(y_id)),	Y = double(nc_funs('varget', fname, s.Dataset(y_id).Name));
-	else					Y = 1:ny;
+	else,					Y = 1:ny;
 	end
 
 	if (Y(2) < Y(1))
@@ -516,10 +528,10 @@ function [X,Y,Z,head,misc] = read_nc(fname, opt)
 	end
 
 	if (~isempty(x_actual_range)),		head(1:2) = x_actual_range;
-	else								head(1:2) = [X(1) X(end)];
+	else,								head(1:2) = [X(1) X(end)];
 	end
 	if (~isempty(y_actual_range)),		head(3:4) = y_actual_range;
-	else								head(3:4) = [Y(1) Y(end)];
+	else,								head(3:4) = [Y(1) Y(end)];
 	end
 
 	[X, Y, Z, head] = deal_exceptions(Z, X, Y, head, s, attribNames);	% Currently, deal with Ifremer hosted SST stupidities (no coords and Kelvins)
