@@ -46,6 +46,7 @@ function hObject = empilhador_OF(varargin)
 		handles.IamCompiled = handMir.IamCompiled;		% Need to know due to crazy issue of nc_funs
 		handles.path_tmp = handMir.path_tmp;
 		handles.path_data = handMir.path_data;
+		handles.hCallingFig = handMir.figure1;
 	else
 		mir_dirs = getappdata(0,'MIRONE_DIRS');
 		if (~isempty(mir_dirs))
@@ -62,6 +63,7 @@ function hObject = empilhador_OF(varargin)
 			handles.path_data = [pwd filesep 'data' filesep];
 		end
 		handles.IamCompiled = false;
+		handles.hCallingFig = [];
 	end
 	handles.nameList = [];
 	handles.OneByOneNameList = [];	% For when files are loaded one by one (risky)
@@ -69,9 +71,11 @@ function hObject = empilhador_OF(varargin)
 	handles.testedDS = false;		% To test if a Sub-Dataset request is idiot
 	handles.automatic = false;		% Set when called from command line and create a Fig
 	handles.year_in_name = false;	% To know if the file name carries the year (e.g. A2017_SST...)
-	handles.carry_time = false;	% When files have time, if this is set to true, carry that time to stacked file
+	handles.carry_time = false;		% When files have time, if this is set to true, carry that time to stacked file
 	handles.Interactive = false;	% Used when need to reinterpolate L2 files. FALSE means do not
 									% call the helper window that asks questions (use default ans)
+	handles.do_append = false;		% If later set to true via -A option, new layers are appended toexisting file
+	handles.restart_at = 0;			% If ~= 0 the stacking procedure will stop-and-restart to workaround big mem-leak
 
 	% -------------- Import/set icons --------------------------------------------
 	load([handles.path_data 'mirone_icons.mat'],'Mfopen_ico');
@@ -133,6 +137,12 @@ function push_namesList_CB(hObject, handles, opt)
 %		But to distinguish both mechanisms the SDS name must be pre-pended with a '-', as in -sst4
 %
 % The list file may still have one header line (a line that starts with a '#') with any of these:
+%	-A
+%		Append. The output file in -G (or provided via GUI) must exist and new layer will append to it
+%	-B<num>
+%		Breake stacking job at each <num> layers. Stop everything and restart anew. This is desperate
+%		procedure to workaround a huge mem-leak that seams to come from GDAL (files are not closed/freed?).
+%		It implicitly sets -A so that we can finish the task by appending to previous runs.
 %	-F<flagSDS_minQuality>
 %		Which is a composition of two pieces of information. The first, 'flagSDS' is the
 %		sub-dataset name of a quality flags array to be applied to the main dataset.
@@ -193,6 +203,7 @@ function push_namesList_CB(hObject, handles, opt)
 	end
 
 	[handles, names, n_column] = parse_list_file(handles, fname, n_column);
+	handles.backup_list = names;
 
 	m = length(names);
 	handles.strTimes = cell(m,1);		% To hold time steps as strings
@@ -323,7 +334,7 @@ function push_namesList_CB(hObject, handles, opt)
 	handles.nameList = names;
 	handles.caracol = caracol;
 	set(handles.edit_namesList, 'String', fname)
-	set(handles.listbox_list,'String',handles.shortNameList)
+	set(handles.listbox_list,'String',handles.shortNameList, 'Val',1)
 	guidata(handles.figure1,handles)
 
 	if (~isempty(handles.outname) && handles.automatic)	% Automatic + output name means start the job immediately
@@ -335,7 +346,7 @@ function push_namesList_CB(hObject, handles, opt)
 function [handles, names, n_column] = parse_list_file(handles, fname, n_column)
 % Read a list file, call parse_header() to check for options in header line
 % Search for '>include fname' lines that instruct to include other list files
-% We need to send in the N_COLUMN because the main list file may be made of only
+% We need to send out the N_COLUMN because the main list file may be made of only
 % '>include' directives, in which case we don't know yet the true number of columns.
 
 	fid = fopen(fname);
@@ -437,6 +448,18 @@ function handles = parse_header(handles, names)
 		end
 	end
 
+	ind = strfind(names{1}, '-A');	% Do we have an append request?
+	if (~isempty(ind))
+		handles.do_append = true;
+	end
+
+	ind = strfind(names{1}, '-B');	% Do we have a Break-and-restart request? Also sets -A
+	if (~isempty(ind))
+		t = strtok(names{1}(ind+2:end));
+		handles.restart_at = str2double(t);
+		handles.do_append = true;
+	end
+
 % -------------------------------------------------------------------------------------------
 function fname = check_wildcard_fname(strin)
 % Check if user gave a 'path/*.xxx ? -sdsname [OPTs]' on input and if yes, create a resp file
@@ -446,7 +469,17 @@ function fname = check_wildcard_fname(strin)
 	end
 
 	% -------------- First check if any of -D, -F, -R or -G is also present --------------
-	opt_F = [];		opt_G = [];		opt_R = [];		opt_D = [];
+	opt_A = [];		opt_B = [];		opt_F = [];		opt_G = [];		opt_R = [];		opt_D = [];
+	ind = strfind(strin, '-A');
+	if (~isempty(ind))
+		[opt_A, r] = strtok(strin(ind:end));
+		strin = [strin(1:ind-2) r];		% Remove the -A string from input
+	end
+	ind = strfind(strin, '-B');
+	if (~isempty(ind))
+		[opt_B, r] = strtok(strin(ind:end));
+		strin = [strin(1:ind-2) r];		% Remove the -B string from input
+	end
 	ind = strfind(strin, '-F');
 	if (~isempty(ind))
 		[opt_F, r] = strtok(strin(ind:end));
@@ -490,14 +523,15 @@ function fname = check_wildcard_fname(strin)
 	end
 
 	PATO = fileparts(t);
-	if (PATO(end) == '\' || PATO(end) == '/'),		PATO(end) = [];		end		% Sometimes it dos. No fck comments
+	if (PATO(end) == '\' || PATO(end) == '/'),		PATO(end) = [];		end		% Sometimes it does. No fck comments
 	fname = [PATO '/automatic_list.txt'];
 	fid = fopen(fname, 'w');
 	if (fid < 0)
 		error(['Fail to create the list file ', fname, ' Permissions problem?'])
 	end
-	if (~isempty(opt_F) || ~isempty(opt_G) || ~isempty(opt_R) || ~isempty(opt_D))	% Insert -D, -F, -G or -R options
-		fprintf(fid, '# %s\n', [opt_F ' ' opt_G ' ' opt_R ' ' opt_D]);
+	if (~isempty(opt_A) || ~isempty(opt_B) || ~isempty(opt_F) || ~isempty(opt_G) || ~isempty(opt_R) || ...
+		~isempty(opt_D))	% Insert -A, -B, -D, -F, -G or -R options
+		fprintf(fid, '# %s\n', [opt_A ' ' opt_B ' ' opt_F ' ' opt_G ' ' opt_R ' ' opt_D]);
 	end
 
 	% Here we assume that the OS returns a list already lexically sorted
@@ -722,6 +756,11 @@ function edit_nCells_CB(hObject, handles)
 function push_compute_CB(hObject, handles)
 % Test for obvious errors and start computation
 
+% 	if (handles.restart_at)			% See if we have to kill our previous encarnation
+% 		h = getappdata(handles.figure1, 'edipo');
+% 		if (~isempty(h)),	delete(h),		end
+% 	end
+
 	if (~isempty(handles.OneByOneNameList) && handles.OneByOneFirst)	% Files we entered one by one. Must trick to reuse code
 		lixoName = [handles.path_tmp 'listName_lixo.txt'];
 		fid = fopen(lixoName, 'w');
@@ -854,6 +893,7 @@ function cut2cdf(handles, got_R, west, east, south, north)
 	[pato, fname, EXT] = fileparts(FileName);
 	if (isempty(EXT)),		FileName = [fname this_ext];	end
 	grd_out = [PathName FileName];
+	grd_out = strrep(grd_out, '\','/');
 
 	if (get(handles.radio_multiBand,'Val'))		% Multi-band. We now pass the hand to its own function
 		cut2tif(handles, got_R, west, east, south, north, grd_out)
@@ -883,12 +923,25 @@ function cut2cdf(handles, got_R, west, east, south, north)
 	empties = cell(nSlices, 1);			% To hold the names of the empty/failures files/SDSs
 	have_empties = false;
 
-	nL = 1;				% Counter to the effective number of non-empty layers
-	got_3D = false;		% For the case that we have 3D grids in input
+	if (handles.do_append)
+		if (~(exist(grd_out, 'file') == 2))		% Which is the case for the first run
+			nL = 1;
+		else
+			lix = gdalread(grd_out,'-M');
+			nL = lix.RasterCount + 1;
+			n_rows = lix.RasterYSize;		n_cols = lix.RasterXSize;
+			clear lix
+		end
+	else
+		nL = 1;				% Counter of the effective number of non-empty layers
+	end
+
+	got_3D = false;			% For the case that we have 3D grids in input
 	for (k = 1:nSlices)
+% 		if (~ishandle(handles.listbox_list)),	return,	end		% Unroll the recursive calls when -B is in action
 		set(handles.listbox_list,'Val',k),		pause(0.01)			% Show advance
 
-		if (handles.caracol(k))						% Ai, we need to change CD
+		if (handles.caracol(k))					% Ai, we need to change CD
 			msg = handles.changeCD_msg{n_cd};
 			resp = yes_or_no('string',['OK, this one is over. ' msg '  ... and Click "Yes" to continue']);
 			n_cd = n_cd + 1;
@@ -935,7 +988,7 @@ function cut2cdf(handles, got_R, west, east, south, north)
 		end
 
 		% Check if all grids have the same size
-		if (k == 1)
+		if (k == 1 && nL == 1)
 			n_rows = size(Z,1);		n_cols = size(Z,2);
 			if (n_rows == 0)
 				errordlg('Sorry, I will have to stop here. Could not read first file in list and need it to know sizes.', 'Error')
@@ -958,7 +1011,7 @@ function cut2cdf(handles, got_R, west, east, south, north)
 			if (~isempty(handles.uncomp_name)),		try		delete(handles.uncomp_name);	end,	end
 			continue
 		end
-		
+
 		if (isa(Z,'int8') && (min(Z(:)) >= 0))
 			grdutils(Z,'-c');								% Shift by -128 so it goes well with the uint8 add_off elsewere
 		end
@@ -1023,19 +1076,54 @@ function cut2cdf(handles, got_R, west, east, south, north)
 		if (isfield(handles, 'uncomp_name') && ~isempty(handles.uncomp_name))
 			try		delete(handles.uncomp_name);	end
 		end
+
+		if (k == handles.restart_at)		% Stop here, do hara-kiri and restart a new encarnation
+			pato = fileparts(grd_out);
+			fid = fopen([pato '/list_restart.txt'], 'w');
+			fprintf(fid, sprintf('# -B%d -G%s\n', handles.restart_at, grd_out));
+			start = 1;
+			if (handles.backup_list{1}(1) == '#'),		start = 2;		end
+			for (kk = handles.restart_at+start:numel(handles.backup_list))
+				fprintf(fid, '%s\n', handles.backup_list{kk});
+			end
+			fclose(fid);
+			exit
+
+% 			if ((numel(handles.backup_list) - (handles.restart_at+start)) < 0)		% We are finished
+% 				delete(handles.hCallingFig)
+% 				return
+% 			end
+% 
+% 			hh = mirone('-Cempilhador,guidata(gcf)');
+% 			newHand = guidata(hh.hChildFig);
+% 			delete(hh.hMirFig)
+% 			setappdata(newHand.figure1, 'edipo', handles.figure1)		% So new empilhador can kill ancestor
+% 			callExternCB(newHand.push_namesList, [handles.path_tmp 'list_restart.txt'])
+% 			newHand = guidata(newHand.figure1);		% Get updated version
+% 			set(newHand.check_L2, 'Val', 1),		callExternCB(newHand.check_L2);
+% 			newHand = guidata(newHand.figure1);		% Get updated version
+% 			set(newHand.check_L2conf, 'Val', 1),	callExternCB(newHand.check_L2conf);
+% 			newHand = guidata(newHand.figure1);		% Get updated version
+% 			set(newHand.check_bitflags, 'Val', get(handles.check_bitflags, 'Val'))
+% 			callExternCB(newHand.push_compute);
+		end
 	end
 
 	if (get(handles.radio_conv2vtk,'Val')),		fclose(fid);	end
 	set(handles.listbox_list,'Val',1)
 
-	if (have_empties)			% Right. Get the names of empty arrays
-		c = false(nSlices,1);	% c vector with true for the files where we have data
-		for (k = 1:nSlices)
-			if (isempty(empties{k})),	c(k) = true;	end
-		end
-		empties(c) = [];		% The remainings of this are the failures/empties
-		message_win('create',empties, 'figname','Names of no-data files', 'edit','yes')
-	end
+% 	if (have_empties)			% Right. Get the names of empty arrays
+% 		c = false(nSlices,1);	% c vector with true for the files where we have data
+% 		for (k = 1:nSlices)
+% 			if (isempty(empties{k})),	c(k) = true;	end
+% 		end
+% 		empties(c) = [];		% The remainings of this are the failures/empties
+% 		message_win('create',empties, 'figname','Names of no-data files', 'edit','yes')
+% 	end
+
+function callExternCB(extObj, varargin)
+% This function is executed by the callback and than the handles is allways updated.
+	feval([get(extObj,'Tag') '_CB'], extObj, guidata(extObj), varargin{:});
 
 % -----------------------------------------------------------------------------------------
 function t = compose_date(handles, time, year_str)
@@ -2370,7 +2458,7 @@ uicontrol('Parent',h1, 'Position',[-5+DX 42 50 16],...
 
 uicontrol('Parent',h1, 'Position',[46+DX 40 49 19],...
 'Callback',@empilhador_uiCB,...
-'String','2',...
+'String','',...
 'Style','edit',...
 'BackgroundColor',[1 1 1],...
 'Tooltip','Do not interpolate further than this number of cells from a data point.',...
