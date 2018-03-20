@@ -16,7 +16,7 @@ function varargout = color_palettes(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: color_palettes.m 10313 2018-03-13 00:11:12Z j $
+% $Id: color_palettes.m 10326 2018-03-20 01:24:19Z j $
 
 	if (nargin > 1 && ischar(varargin{1}))
 		gui_CB = str2func(varargin{1});
@@ -824,8 +824,14 @@ function new_pal = saturated_pal(handles, pal)
 		n_up = round((handles.z_max_orig - handles.palMinMax(2)) / (handles.z_max_orig - handles.z_min_orig) * n_tot);
 		pal_t  = repmat(pal(end,:), n_up,1);
 		new_pal = [pal(n_up+1:end,:); pal_t];
+	else
+		% MinMax data inside MinMax palette. Trim both ends in palette and reinterpolate the remaining
+		n_up   = n_tot - round((handles.palMinMax(2) - handles.z_max_orig) / diff(handles.palMinMax) * n_tot);
+		n_down = round((handles.z_min_orig - handles.palMinMax(1)) / diff(handles.palMinMax) * n_tot);
+		n_unique = n_up - n_down + 1;
+		new_pal = interp1(linspace(0,n_unique-1,n_unique),pal(n_down:n_up, :),linspace(0,n_unique-1,n_tot),'linear');
 	end
-	
+
 % ------------------------------------------------------------------------------------------------------------------
 function new_cmap = makeCmapBat(z_min, z_max, hinge, cmap)
 % Put the cmap discontinuity at the zero of bathymetry (coastline)
