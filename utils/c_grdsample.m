@@ -3,7 +3,12 @@ function [Zout, hdr] = c_grdsample(Zin, head, varargin)
 
 % The tsu_funs still calls grdsample directly as a system call
 
-% $Id: c_grdsample.m 10307 2018-03-06 23:36:58Z j $
+% $Id: c_grdsample.m 10327 2018-03-22 18:14:50Z j $
+
+	if (head(5) == 0 && head(6) == 0)
+		zMinMax = grdutils(Zin,'-L');
+		head(5) = zMinMax(1);		head(6) = zMinMax(2);
+	end
 
 	G = fill_grid_struct(Zin, head);
 	cmd = 'grdsample';
