@@ -5,6 +5,11 @@ function [Zout, hdr] = c_grdsample(Zin, head, varargin)
 
 % $Id$
 
+	if (head(5) == 0 && head(6) == 0)
+		zMinMax = grdutils(Zin,'-L');
+		head(5) = zMinMax(1);		head(6) = zMinMax(2);
+	end
+
 	G = fill_grid_struct(Zin, head);
 	cmd = 'grdsample';
 	for (k = 1:numel(varargin))
