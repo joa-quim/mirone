@@ -20,18 +20,22 @@ function varargout = mirone(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: mirone.m 10316 2018-03-13 00:24:01Z j $
+% $Id: mirone.m 10331 2018-03-23 22:40:47Z j $
 
 	if (nargin > 1 && ischar(varargin{1}))
-		if ( ~isempty(strfind(varargin{1},':')) || ~isempty(strfind(varargin{1},filesep)) )
+		if (~isempty(strfind(varargin{1},':')) || ~isempty(strfind(varargin{1},filesep)) )	% A file name
 			% Very likely called with a filename with those horrendous stupid blanks
-			for (k = 1:nargin-1),	varargin{k}(end+1) = ' ';	end
-			varargin = {[varargin{:}]};			h = mirone_OpeningFcn(varargin{:});
-
+% 			for (k = 1:nargin-1),	varargin{k}(end+1) = ' ';	end
+% 			varargin = {[varargin{:}]};
+			h = mirone_OpeningFcn(varargin{:});
 			if (nargout),	varargout{1} = h;		end
 		else
-			gui_Callback = str2func(varargin{1});
-			[varargout{1:nargout}] = feval(gui_Callback,varargin{2:end});
+			if (varargin{1}(1) ~= '-')			% Make sure the argument is not any of -C..., -X... magic args
+				gui_Callback = str2func(varargin{1});
+				[varargout{1:nargout}] = feval(gui_Callback,varargin{2:end});
+			else
+				[varargout{1:nargout}] = mirone_OpeningFcn(varargin{:});
+			end
 		end
 	else
 		h = mirone_OpeningFcn(varargin{:});
@@ -67,7 +71,8 @@ function hObject = mirone_OpeningFcn(varargin)
 %#function usgs_recent_seismicity sat_orbits uisetdate doy sshist win_open_mex show_MB mb_cleaning_params
 %#function c_cpt2cmap c_grdfilter c_grdinfo c_grdlandmask c_grdproject c_grdread c_grdsample
 %#function c_grdtrend c_mapproject c_nearneighbor c_shoredump c_surface popenr diffCenterVar hellinger bingham
-% gmtlist_m  mapproject_m grdproject_m nearneighbor_m cpt2cmap grdfilter_m grdgradient_m grdsample_m surface_m grdtrend_m trend1d_m grdlandmask_m
+%#function gmtlist_m  mapproject_m grdproject_m nearneighbor_m cpt2cmap grdfilter_m grdgradient_m grdsample_m surface_m
+%#function grdtrend_m trend1d_m grdlandmask_m external_drive
 
 	global home_dir;	fsep = filesep;
 	toCompile = false;		% To compile set this one to TRUE
@@ -206,8 +211,26 @@ function hObject = mirone_OpeningFcn(varargin)
 
 	% -------------------------- Find in which mode Mirone was called ----------------------------------
 	drv = [];	grd_data_in = 0;	grd_data_interfero = 0;		pal = [];	win_name = 'Mirone';
-	if ~isempty(varargin)
-		n_argin = nargin;
+	feval_me = '';		x_comm = cell(1,numel(varargin));
+
+	% Pre-process vargin to detect, and extract, "self-driving" commands in the form -C<...>
+	if (~isempty(varargin))
+		c = false(numel(varargin),1);
+		for (k = 1:numel(varargin))
+			if (ischar(varargin{k}) && varargin{k}(1) == '-')
+				if (varargin{k}(2) == 'C')
+					feval_me = varargin{k}(3:end);	% A -C<...> command to be executed by feval
+				else
+					x_comm{k} = varargin{k}(3:end);	% A -X<...> command to be send to child
+				end
+				c(k) = true;
+			end
+		end
+		if (any(c)),	varargin(c) = [];	end
+	end
+
+	if (~isempty(varargin))
+		n_argin = numel(varargin);
 		if (n_argin == 1 && ischar(varargin{1}))				% Called with a file name as argument
 			[pato, fname, EXT] = fileparts(varargin{1});		% Test to check online command input
 			if (isempty(pato)),			varargin{1} = [cd fsep fname EXT];	end
@@ -469,12 +492,44 @@ function hObject = mirone_OpeningFcn(varargin)
 		setAxesDefCoordIn(handles,1);
 	end
 
-	set_gmt(['PROJ_LIB=' home_dir fsep 'data' fsep 'proj_lib']);		% For projections with GDAL
+	set_gmt(['PROJ_LIB=' home_dir fsep 'data' fsep 'proj_lib']);	% For projections with GDAL
 	set_gmt(['GDAL_DATA=' home_dir fsep 'data' fsep 'gdal_data']);
 	set_gmt(['GEOTIFF_CSV=' home_dir fsep 'data' fsep 'gdal_data']);
 	set_gmt('GDAL_HTTP_UNSAFESSL=YES');				% To tell libcurl to not verify the peer  
 
  	try		custom_menus(hObject, handles.path_data),	end			% Add any custom menus as commanded by OPTcontrol.txt
+
+	if (~isempty(feval_me))					% 'feval_me' must be a string with a command that calls a child figure.
+		c = false(numel(x_comm),1);
+		for (k = 1:numel(x_comm))			% Retain only eventual commands to be send to children
+			if (~isempty(x_comm{k})),	c(k) = true;	end
+		end
+		if (any(c)),	x_comm = x_comm(c);
+		else,			x_comm = {[]};
+		end
+
+		ind = strfind(feval_me, ',');
+		if (isempty(ind))
+			h = feval(feval_me, x_comm);
+		else
+			gui_Callback = str2func(feval_me(1:ind(1)-1));
+			arg = feval_me(ind(1)+1:end);	% Restrict to one arg only because I have not yet use cases with more
+			ind2 = strfind(arg, '(');
+			if (isempty(ind2))
+				h = feval(gui_Callback, arg, x_comm);			% What case is this ???
+			else							% For example, guidata(gcf)
+				handles = guidata(handles.figure1);				% Need an updated one
+				if (strcmp(arg, 'guidata(gcf)'))
+					h = feval(gui_Callback, handles, x_comm);
+				elseif (strcmp(arg, 'gcf'))
+					h = feval(gui_Callback, handles.figure1, x_comm);
+				else
+					h = feval(gui_Callback, eval(arg), x_comm);	% Does this case exists ???
+				end
+			end
+		end
+		hObject = struct('hMirFig',hObject, 'hChildFig',h);		% Because we may need the handles of both Figs
+	end
 
 % --------------------------------------------------------------------------------------------------
 function erro = gateLoadFile(handles,drv,fname)
@@ -5201,8 +5256,8 @@ function TransferB_CB(handles, opt, opt2)
 			end
 		end
 		if (any(ind))								% If some file was lost report it and remove them from list
-			namedl(ind) = [];		nomes(ind) = [];
-			msg = cell(numel(find(ind))+1,1);
+			namedl(~ind) = [];		nomes(~ind) = [];
+			msg = cell(numel(namedl)+1,1);
 			msg{1} = 'Failed to download these files:';		msg(2:end) = namedl;
 		elseif (all(ind))
 			warndlg(sprintf('Failed to download all %d files. Try again.', n-1),'Warning'),		return
