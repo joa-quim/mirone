@@ -1,5 +1,5 @@
 function varargout = grdsample_mir(varargin)
-% Helper window to interface with grdsample MEX 
+% Helper window to interface with GMT program 'grdsample'
 
 %	Copyright (c) 2004-2018 by J. Luis
 %
@@ -16,7 +16,17 @@ function varargout = grdsample_mir(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: grdsample_mir.m 10309 2018-03-06 23:39:11Z j $
+% $Id: grdsample_mir.m 10328 2018-03-23 22:22:29Z j $
+
+	if (nargin > 1 && ischar(varargin{1}))
+		gui_CB = str2func(varargin{1});
+		[varargout{1:nargout}] = feval(gui_CB,varargin{2:end});
+	else
+		[varargout{1:nargout}] = grdsample_mir_OF(varargin{:});
+	end
+
+% ---------------------------------------------------------------------------------
+function varargout = grdsample_mir_OF(varargin)
 
 	if isempty(varargin)
 		errordlg('GRDSAMPLE: wrong number of input arguments.','Error'),	return
@@ -26,21 +36,26 @@ function varargout = grdsample_mir(varargin)
 	grdsample_mir_LayoutFcn(hObject);
 	handles = guihandles(hObject);
 
-	handMir  = varargin{1};
+	handMir   = varargin{1};
 	handles.Z = getappdata(handMir.figure1,'dem_z');
 	move2side(handMir.figure1, hObject,'right')
-    
+
 	if (handMir.no_file)
 		errordlg('GRDSAMPLE: You didn''t even load a file. What are you expecting then?','ERROR')
-        delete(hObject);    return
+		delete(hObject);    return
 	end
 	if (~handMir.validGrid)
-        errordlg('GRDSAMPLE: This operation is deffined only for images derived from DEM grids.','ERROR')
-        delete(hObject);    return
+		errordlg('GRDSAMPLE: This operation is deffined only for images derived from DEM grids.','ERROR')
+		delete(hObject);    return
 	end
 	if (isempty(handles.Z))
-        errordlg('GRDSAMPLE: Grid was not saved in memory. Increase "Grid max size" and start over.','ERROR')
-        delete(hObject);    return
+		errordlg('GRDSAMPLE: Grid was not saved in memory. Increase "Grid max size" and start over.','ERROR')
+		delete(hObject);    return
+	end
+
+	if (handMir.nLayers > 1)
+		set(handles.radio_thisLayer, 'Vis', 'on', 'Val', 1)
+		set(handles.radio_allLayers, 'Vis', 'on')
 	end
 
 	handles.x_min = [];			handles.x_max = [];
@@ -52,7 +67,7 @@ function varargout = grdsample_mir(varargin)
     handles.nc_or = size(handles.Z,2);
     handles.hMirFig = handMir.figure1;
 
-	%-----------
+	%---------------
 	% Fill in the grid limits boxes with calling fig values and save some limiting value
     head = handMir.head;
 	set(handles.edit_x_min,'String',sprintf('%.8g',head(1)))
@@ -84,9 +99,10 @@ function varargout = grdsample_mir(varargin)
 	setappdata(handles.hMirFig,'dependentFigs',plugedWin);
 
 	guidata(hObject, handles);
-
 	set(hObject,'Visible','on');
 	if (nargout),   varargout{1} = hObject;     end
+
+	if (nargin > 1),	external_drive(handles, 'grdsample_mir', varargin{2:end}),	end
 
 % --------------------------------------------------------------------
 function edit_x_min_CB(hObject, handles)
@@ -184,9 +200,19 @@ function push_Help_L_CB(hObject, handles)
 	helpdlg(message,'Help -f option');
 
 % --------------------------------------------------------------------
+function radio_thisLayer_CB(hObject, handles)
+	if (~get(hObject,'Val')),	set(hObject,'Val',1),	return,		end
+	set(handles.radio_allLayers, 'Val', 0)
+
+% --------------------------------------------------------------------
+function radio_allLayers_CB(hObject, handles)
+	if (~get(hObject,'Val')),	set(hObject,'Val',1),	return,		end
+	set(handles.radio_thisLayer, 'Val', 0)
+
+% --------------------------------------------------------------------
 function push_OK_CB(hObject, handles)
 
-	opt_R = ' ';     opt_N = ' ';     opt_Q = ' ';     opt_L = ' ';
+	opt_R = ' ';     opt_N = ' ';     opt_Q = ' ';     opt_L = ' ';		handMir = [];
     n_set = 0;
 	x_min = get(handles.edit_x_min,'String');   x_max = get(handles.edit_x_max,'String');
 	y_min = get(handles.edit_y_min,'String');   y_max = get(handles.edit_y_max,'String');
@@ -237,9 +263,7 @@ function push_OK_CB(hObject, handles)
 		opt_Q = '-nl';
 	end
 
-	newZ = c_grdsample(handles.Z, handles.head, opt_R, opt_N, opt_Q, opt_L);
-	zMinMax = grdutils(newZ,'-L');	    [ny,nx] = size(newZ);
-    new_head = [handles.head(1:4) zMinMax(1:2)' handles.head(7)];
+    new_head = handles.head(1:7);
 	if (~strcmp(opt_R,' '))       % Grid limits did change
         new_head(1:4) = [x_min x_max y_min y_max];    
 	end
@@ -247,7 +271,6 @@ function push_OK_CB(hObject, handles)
     y_inc = (new_head(4) - new_head(3)) / (ny - ~handles.head(7));
     new_head(8:9) = [x_inc y_inc];
     tmp.X = linspace(new_head(1),new_head(2),nx);       tmp.Y = linspace(new_head(3),new_head(4),ny);
-    tmp.head = new_head;
     tmp.name = 'Resampled grid';
 	prjInfoStruc = aux_funs('getFigProjInfo', handles);
 	if (~isempty(prjInfoStruc.projWKT))
@@ -255,11 +278,42 @@ function push_OK_CB(hObject, handles)
 	elseif (~isempty(prjInfoStruc.proj4))
 		tmp.srsWKT = prjInfoStruc.projWKT;
 	end
-    mirone(newZ,tmp);
-	if (~isempty(prjInfoStruc.projGMT))		% If we have this rare one it was not applied above so do it now.
-		setappdata(handles.figure1, 'ProjGMT', prjInfoStruc.projGMT);
+
+	if (~get(handles.radio_allLayers, 'Val'))
+		newZ = c_grdsample(handles.Z, handles.head, opt_R, opt_N, opt_Q, opt_L);
+		zMinMax = grdutils(newZ,'-L');	    [ny,nx] = size(newZ);
+		new_head(5) = zMinMax(1);	new_head(6) = zMinMax(2);
+		tmp.head = new_head;
+		mirone(newZ,tmp);
+		if (~isempty(prjInfoStruc.projGMT))		% If we have this rare one it was not applied above so do it now.
+			setappdata(handles.figure1, 'ProjGMT', prjInfoStruc.projGMT);
+		end
+		figure(handles.figure1)         % Don't let this figure forgotten behind the newly created one
+	else
+		if (isempty(handMir)),		handMir = guidata(handles.hMirFig);		end
+		txt1 = 'netCDF grid format (*.nc,*.grd)';	txt2 = 'Select output netCDF grid';
+		[FileName,PathName] = put_or_get_file(handMir,{'*.nc;*.grd',txt1; '*.*', 'All Files (*.*)'},txt2,'put','.nc');
+		if isequal(FileName,0),		return,		end
+		grd_out = [PathName FileName];
+
+		handles.geog = handMir.geog;	handles.was_int16 = handMir.was_int16;
+		handles.head(8:9) = [x_inc y_inc];
+
+		aguentabar(0,'title','Resampling.','CreateCancelBtn');
+
+		for (k = 1:handMir.nLayers)
+			Z = nc_funs('varget', handMir.nc_info.Filename, handMir.nc_info.Dataset(handMir.netcdf_z_id).Name, [k-1 0 0], [1 size(handles.Z)]);
+			zMinMax = grdutils(Z,'-L');
+			handles.head(5) = zMinMax(1);	handles.head(6) = zMinMax(2);
+			Z = c_grdsample(Z, handMir.head, opt_R, opt_N, opt_Q, opt_L);
+			% and save it
+			if (k == 1),	nc_io(grd_out, sprintf('w-%f/time',handMir.time_z(k)), handles, reshape(Z,[1 size(Z)]))
+			else,			nc_io(grd_out, sprintf('w%d\\%f', k-1, handMir.time_z(k)), handles, Z)
+			end
+			h = aguentabar(k/handMir.nLayers,'title',sprintf('Resampling %d of %d',k, handMir.nLayers));	drawnow
+			if (isnan(h)),	break,	end
+		end
 	end
-    figure(handles.figure1)         % Don't let this figure forgotten behind the newly created one
 
 % --------------------------------------------------------------------
 % --- Executes on key press over figure1 with no controls selected.
@@ -439,6 +493,22 @@ uicontrol('Parent',h1, 'Position',[221 32 140 15],...
 'Style','checkbox',...
 'Tooltip','Use bilinear rather than bicubic interpolation',...
 'Tag','checkbox_Option_Q');
+
+uicontrol('Parent',h1, 'Position',[15 6 80 16],...
+'Callback',@grdsample_mir_uiCB,...
+'String','This layer',...
+'Style','radiobutton',...
+'Vis', 'off',...
+'Tooltip','Resample only the current layer',...
+'Tag','radio_thisLayer');
+
+uicontrol('Parent',h1, 'Position',[105 6 100 16],...
+'Callback',@grdsample_mir_uiCB,...
+'String','All layers',...
+'Style','radiobutton',...
+'Vis', 'off',...
+'Tooltip','Resample all layers in file',...
+'Tag','radio_allLayers');
 
 uicontrol('Parent',h1, 'Position',[365 8 66 21],...
 'Callback',@grdsample_mir_uiCB,...
