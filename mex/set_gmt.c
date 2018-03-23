@@ -1,5 +1,5 @@
 /*--------------------------------------------------------------------
- *	$Id: set_gmt.c 7914 2016-05-30 16:32:38Z j $
+ *	$Id: set_gmt.c 10333 2018-03-23 23:17:07Z j $
  *
  *	Copyright (c) 2004-2013 by J. Luis
  *
@@ -53,6 +53,10 @@
 #include "mex.h"
 #include <string.h>
 #include <stdio.h>
+#ifdef _WIN32
+#	include <windows.h>
+#	include <tlhelp32.h>
+#endif
 
 #define CNULL		((char *)NULL)
 #ifndef TRUE
@@ -88,10 +92,22 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	char  path[BUFSIZ], *pato, *papato; 
 	int   status;
 	int   keep_searching = TRUE;
-	mxArray *mxStr = NULL, *info_struct = NULL;
+	mxArray *mxStr = NULL, *mxtmp, *info_struct = NULL;
+
+	if (nlhs == 0 && nrhs == 0) {
+		mexPrintf("Usage: info = set_gmt;\n\tReturns the info structure with information on GMT version and costlines\n");
+		mexPrintf("info = set_gmt('envstring');\n\tDo the same as above and set 'envstring' in the environment list\n");
+		mexPrintf("       set_gmt('envstring');\n\tJust set 'envstring' in the environment list and return.\n");
+		mexPrintf("       set_gmt('envstring',whatever);\n\tPrepends 'envstring' to the PATH.\n");
+		mexPrintf(" env = set_gmt('envstring',whatever);\n\tGets the contents of 'envstring' (for debugging mostly).\n");
+		mexPrintf(" pid = set_gmt('PID');\n\tGets the PID of current process.\n");
+		mexPrintf(" ppid= set_gmt('PPID');\n\tGets the PID of parent process.\n");
+		return;
+	}
 
 	if (nrhs >= 1 && mxIsChar(prhs[0])) {
 		char	*envString; 
+		int pid, ppid;
 		envString = (char *)mxArrayToString(prhs[0]);
 		if (nrhs == 2 && nlhs == 0) {		/* The set PATH case */
 			this = getenv ("PATH");
@@ -112,20 +128,36 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 			plhs[0] = mxStr;
 			return;
 		}
+#ifdef _WIN32
+		else if (nrhs == 1 && !strcmp(envString, "PID")) {
+			pid = GetCurrentProcessId();
+			mxtmp = mxCreateDoubleScalar((double)pid);
+			plhs[0] = mxtmp;
+			return;
+		}
+		else if (nrhs == 1 && !strcmp(envString, "PPID")) {
+			pid = GetCurrentProcessId();
+			HANDLE h = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
+			PROCESSENTRY32 pe = { 0 };
+			pe.dwSize = sizeof(PROCESSENTRY32);
+
+			if (Process32First(h, &pe)) {
+				do {
+					if (pe.th32ProcessID == pid)
+						ppid = pe.th32ParentProcessID;
+				} while (ppid == -1 && Process32Next(h, &pe));
+			}
+			CloseHandle(h);
+			mxtmp = mxCreateDoubleScalar((double)ppid);
+			plhs[0] = mxtmp;
+			return;
+		}
+#endif
 		else if (nrhs == 1 && (status = putenv(envString)))
 			mexPrintf("SET_GMT: Failure to set the environmental variable\n %s\n", envString);
 
 		if (nlhs == 0)
 			return;
-	}
-
-	if (nlhs == 0 && nrhs == 0) {
-		mexPrintf("Usage: info = set_gmt;\nReturns the info structure with information on GMT version and costlines\n");
-		mexPrintf("info = set_gmt('envstring');\nDo the same as above and set 'envstring' in the environment list\n");
-		mexPrintf("       set_gmt('envstring');\nJust set 'envstring' in the environment list and return.\n");
-		mexPrintf("       set_gmt('envstring',whatever);\nPrepends 'envstring' to the PATH.\n");
-		mexPrintf(" env = set_gmt('envstring',whatever);\nGets the contents of 'envstring' (for debugging mostly).\n");
-		return;
 	}
 
 	/* Structure field names. If we have an official GMT installation, only full & high 
