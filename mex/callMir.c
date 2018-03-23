@@ -43,24 +43,24 @@
 int main(int argc, char **argv) {
 
 	char *path, *pato, *papato = NULL, *patoUD, *cd; 
-	int   status, size_cd = 256;
+	int   status, size_cd = 2048, k;
 
 	path = getenv ("PATH");
 
 	cd = (char *)malloc((size_t)size_cd);
-	cd = getcwd (cd, (size_t)size_cd);
-	papato = (char *) calloc ((size_t)(strlen(cd) + 12), (size_t)1);
-	strcpy (papato, cd);
-	strcat (papato, "\\mirone.exe");
+	cd = getcwd(cd, (size_t)size_cd);
+	papato = (char *) calloc((size_t)(strlen(cd) + 12), (size_t)1);
+	strcpy(papato, cd);
+	strcat(papato, "\\mirone.exe");
 	patoUD = (char *) calloc ((size_t)(strlen(cd) + 18), (size_t)1);
-	strcpy (patoUD, cd);
-	strcat (patoUD, "\\tmp\\apudeita.bat");
+	strcpy(patoUD, cd);
+	strcat(patoUD, "\\tmp\\apudeita.bat");
 
 	if (!access (papato, R_OK)) {		/* Found, so we are at home */
 		pato = (char *) calloc ((size_t)(strlen(path) + 2*strlen(cd) + 18), (size_t)1);
 		if (!access (patoUD, R_OK)) {	/* See if we have an update to do before start */
-			system (patoUD);
-			remove (patoUD);
+			system(patoUD);
+			remove(patoUD);
 		}
 	}
 	else {		/* Called via file association. See if we have a MIRONE_HOME */
@@ -70,33 +70,38 @@ int main(int argc, char **argv) {
 		/* See if we have an update to do before start */
 		free ((void *)patoUD);
 		patoUD = (char *) calloc ((size_t)(strlen(cd) + 18), (size_t)1);
-		strcpy (patoUD, cd);
-		strcat (patoUD, "\\tmp\\apudeita.bat");
-		if (!access (patoUD, R_OK)) {	
-			system (patoUD);
-			remove (patoUD);
+		strcpy(patoUD, cd);
+		strcat(patoUD, "\\tmp\\apudeita.bat");
+		if (!access(patoUD, R_OK)) {	
+			system(patoUD);
+			remove(patoUD);
 		}
 	}
-	strcpy (pato, "PATH=");
-	strcat (pato, cd);
-	strcat (pato, ";");
-	strcat (pato, cd);
-	strcat (pato, "\\bin\\win32;");
-	strcat (pato, path);
+	strcpy(pato, "PATH=");
+	strcat(pato, cd);
+	strcat(pato, ";");
+	strcat(pato, cd);
+	strcat(pato, "\\bin\\win32;");
+	strcat(pato, path);
 
 
 	if (status = putenv(pato))
 		fprintf(stderr, "callMir: Failure to set the environmental variable\n %s\n", pato);
+
 	free((void *)pato);
-	free ((void *)patoUD);
+	free((void *)patoUD);
 
 	if (argc == 1)		/* Call a blank mirone window */
 		system("mirone.exe");
 	else {			/* Call with a file as argument */
 		papato = (char *) calloc ((size_t)(size_cd), (size_t)1);
-		strcpy (papato, "mirone.exe ");
-		strcat (papato, argv[1]);
-		system (papato);
+		strcpy(papato, "mirone.exe");
+		for (k = 1; k < argc; k++) {
+			strcat(papato, " ");
+			strcat(papato, argv[k]);
+		}
+
+		system(papato);
 	}
 	if (papato) free(papato);
 
