@@ -94,6 +94,8 @@ function hObject = empilhador_OF(varargin)
 		push_namesList_CB(handles.push_namesList, handles, varargin{:})
 	end
 
+	if (nargin > 1),	external_drive(handles, 'empilhador', varargin{2:end}),	end
+
 % -----------------------------------------------------------------------------------------
 function edit_namesList_CB(hObject, handles)
 	fname = get(hObject,'String');
@@ -756,11 +758,6 @@ function edit_nCells_CB(hObject, handles)
 function push_compute_CB(hObject, handles)
 % Test for obvious errors and start computation
 
-% 	if (handles.restart_at)			% See if we have to kill our previous encarnation
-% 		h = getappdata(handles.figure1, 'edipo');
-% 		if (~isempty(h)),	delete(h),		end
-% 	end
-
 	if (~isempty(handles.OneByOneNameList) && handles.OneByOneFirst)	% Files we entered one by one. Must trick to reuse code
 		lixoName = [handles.path_tmp 'listName_lixo.txt'];
 		fid = fopen(lixoName, 'w');
@@ -938,7 +935,6 @@ function cut2cdf(handles, got_R, west, east, south, north)
 
 	got_3D = false;			% For the case that we have 3D grids in input
 	for (k = 1:nSlices)
-% 		if (~ishandle(handles.listbox_list)),	return,	end		% Unroll the recursive calls when -B is in action
 		set(handles.listbox_list,'Val',k),		pause(0.01)			% Show advance
 
 		if (handles.caracol(k))					% Ai, we need to change CD
@@ -1079,7 +1075,8 @@ function cut2cdf(handles, got_R, west, east, south, north)
 
 		if (k == handles.restart_at)		% Stop here, do hara-kiri and restart a new encarnation
 			pato = fileparts(grd_out);
-			fid = fopen([pato '/list_restart.txt'], 'w');
+			fnameRest = [pato '/list_restart.txt'];
+			fid = fopen(fnameRest, 'w');
 			fprintf(fid, sprintf('# -B%d -G%s\n', handles.restart_at, grd_out));
 			start = 1;
 			if (handles.backup_list{1}(1) == '#'),		start = 2;		end
@@ -1087,43 +1084,35 @@ function cut2cdf(handles, got_R, west, east, south, north)
 				fprintf(fid, '%s\n', handles.backup_list{kk});
 			end
 			fclose(fid);
-			exit
-
-% 			if ((numel(handles.backup_list) - (handles.restart_at+start)) < 0)		% We are finished
-% 				delete(handles.hCallingFig)
-% 				return
-% 			end
-% 
-% 			hh = mirone('-Cempilhador,guidata(gcf)');
-% 			newHand = guidata(hh.hChildFig);
-% 			delete(hh.hMirFig)
-% 			setappdata(newHand.figure1, 'edipo', handles.figure1)		% So new empilhador can kill ancestor
-% 			callExternCB(newHand.push_namesList, [handles.path_tmp 'list_restart.txt'])
-% 			newHand = guidata(newHand.figure1);		% Get updated version
-% 			set(newHand.check_L2, 'Val', 1),		callExternCB(newHand.check_L2);
-% 			newHand = guidata(newHand.figure1);		% Get updated version
-% 			set(newHand.check_L2conf, 'Val', 1),	callExternCB(newHand.check_L2conf);
-% 			newHand = guidata(newHand.figure1);		% Get updated version
-% 			set(newHand.check_bitflags, 'Val', get(handles.check_bitflags, 'Val'))
-% 			callExternCB(newHand.push_compute);
+			if (handles.IamCompiled)
+				t = set_gmt('MIRONE_HOME', 'whatever');				% Inquire if MIRONE_HOME exists
+				if (~isempty(t)),	prog = [t '\callMir.exe '];
+				else,				prog = 'callMir.exe ';			% then it better be on Win path, otherwise ...
+				end
+				delete(handles.hCallingFig)			% Don't need it, it was only the Bar
+				cmd = ['start /B ' prog '-Cempilhador,guidata(gcf) -Xedit_namesList,+' fnameRest ...
+				       ' -Xcheck_L2,1 -Xcheck_L2conf,1 -Xcheck_bitflags,1 -Xpush_compute'];
+				dos(cmd);
+				delete(handles.figure1)				% We are done with it
+			else
+				mirone('-Cempilhador,guidata(gcf)',['-Xedit_namesList,+' fnameRest],'-Xcheck_L2,1', ...
+				       '-Xcheck_L2conf,1', '-Xcheck_bitflags,1', '-Xpush_compute');
+				return
+			end
 		end
 	end
 
 	if (get(handles.radio_conv2vtk,'Val')),		fclose(fid);	end
 	set(handles.listbox_list,'Val',1)
 
-% 	if (have_empties)			% Right. Get the names of empty arrays
+	if (have_empties)			% Right. Get the names of empty arrays
 % 		c = false(nSlices,1);	% c vector with true for the files where we have data
 % 		for (k = 1:nSlices)
 % 			if (isempty(empties{k})),	c(k) = true;	end
 % 		end
 % 		empties(c) = [];		% The remainings of this are the failures/empties
 % 		message_win('create',empties, 'figname','Names of no-data files', 'edit','yes')
-% 	end
-
-function callExternCB(extObj, varargin)
-% This function is executed by the callback and than the handles is allways updated.
-	feval([get(extObj,'Tag') '_CB'], extObj, guidata(extObj), varargin{:});
+	end
 
 % -----------------------------------------------------------------------------------------
 function t = compose_date(handles, time, year_str)
