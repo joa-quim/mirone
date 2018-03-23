@@ -556,6 +556,7 @@ utils/doy.m -text
 utils/draw_funs.m -text
 utils/edit_line.m -text
 utils/edit_track_mb.m -text
+utils/external_drive.m -text
 utils/fancyFrame.m -text
 utils/fill_grid_struct.m -text
 utils/filter_butter.p -text
