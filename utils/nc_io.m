@@ -55,7 +55,7 @@ function varargout = nc_io(fname, mode, handles, data, misc)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: nc_io.m 10324 2018-03-19 16:44:55Z j $
+% $Id: nc_io.m 10334 2018-03-25 00:34:21Z j $
 
 	if (isempty(fname))
 		error('NC_IO:write_nc','Output file name cannot be empty')
@@ -524,7 +524,7 @@ function [X,Y,Z,head,misc] = read_nc(fname, opt)
 
 	if (Y(2) < Y(1))
 		Y = Y(end:-1:1);		Z = flipud(Z);
-		if (~isempty(y_actual_range)),		y_actual_range = y_actual_range(2:-1:1);	end
+		y_actual_range = [Y(1) Y(end)];
 	end
 
 	if (~isempty(x_actual_range)),		head(1:2) = x_actual_range;
