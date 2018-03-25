@@ -524,7 +524,7 @@ function [X,Y,Z,head,misc] = read_nc(fname, opt)
 
 	if (Y(2) < Y(1))
 		Y = Y(end:-1:1);		Z = flipud(Z);
-		if (~isempty(y_actual_range)),		y_actual_range = y_actual_range(2:-1:1);	end
+		y_actual_range = [Y(1) Y(end)];
 	end
 
 	if (~isempty(x_actual_range)),		head(1:2) = x_actual_range;
