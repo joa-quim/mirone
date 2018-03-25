@@ -21,7 +21,7 @@ function writekml(handles, Z, fname)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: writekml.m 9853 2016-10-09 22:01:24Z j $
+% $Id: writekml.m 10335 2018-03-25 00:36:25Z j $
 
 	n_argin = nargin;
 	noFig = true;
@@ -164,18 +164,18 @@ function writekml(handles, Z, fname)
 			line_thick = get(ALLpatchHand(i),'LineWidth');   % Line thickness
 
 			corA = get(ALLpatchHand(i),'FaceAlpha');
-			if (ischar(corA)),  corA = 0;
-			else                corA = round(corA*255);
+			if (ischar(corA)),	corA = 0;
+			else,				corA = round(corA*255);
 			end
 
 			corF = get(ALLpatchHand(i),'FaceColor');
-			if (ischar(corF)),  corF = [255 255 255];   corA = 0;   % To account for 'none' or 'flat'
-			else                corF = round(corF(end:-1:1)*255);
+			if (ischar(corF)),	corF = [255 255 255];   corA = 0;   % To account for 'none' or 'flat'
+			else,				corF = round(corF(end:-1:1)*255);
 			end
 
 			corE = get(ALLpatchHand(i),'EdgeColor');
-			if (ischar(corE)),  corE = [255 255 255 255];   % To account for 'none' or 'flat'
-			else                corE = [255 round(corE(end:-1:1)*255)];   % first is transparency (none here)
+			if (ischar(corE)),	corE = [255 255 255 255];   % To account for 'none' or 'flat'
+			else,				corE = [255 round(corE(end:-1:1)*255)];   % first is transparency (none here)
 			end
 			cores{1} = corA;    cores{2} = corF;    cores{3} = corE;
 
@@ -219,16 +219,16 @@ function writekml(handles, Z, fname)
 		% SCATTERS
 		h = findobj(ALLlineHand,'Tag','scatter_symbs');
 		if (~isempty(h))
-			dpis = get(0,'ScreenPixelsPerInch') ;		% screen DPI
-			pos = get(handles.axes1,'Position');		ylim = get(handles.axes1,'Ylim');
-			escala = diff(ylim)/(pos(4)*2.54/dpis);		% Image units / cm
+			%dpis = get(0,'ScreenPixelsPerInch') ;		% screen DPI
+			%pos = get(handles.axes1,'Position');		ylim = get(handles.axes1,'Ylim');
+			%escala = diff(ylim)/(pos(4)*2.54/dpis);		% Image units / cm
 
 			fprintf(fid,'\t%s\n','<Folder>');
 			for (i = 1:numel(h))
 				x = get(h(i),'XData');       y = get(h(i),'YData');     z = getappdata(h(i),'ZData');
-				ss = get(h(i),'MarkerSize');
-				symb_size = ss / 72 * 2.54;				% Symbol size in cm
-				dy = symb_size * escala;
+				%ss = get(h(i),'MarkerSize');
+				%symb_size = ss / 72 * 2.54;				% Symbol size in cm
+				%dy = symb_size * escala;
 				%rad = geo2dist([pt(1,1) center(1)],[pt(1,2) center(2)],'deg');
 				rad = 0.002;
 				[latc,lonc] = circ_geo(y,x,rad,[],18);
@@ -236,7 +236,6 @@ function writekml(handles, Z, fname)
 				c = get(h(i),'MarkerFaceColor');
 				cores{1} = 255;
 				cores{2} = round(c(end:-1:1)*255);
-				%cores{2} = [0 0 255];
 				cores{3} = [255 round(c(end:-1:1)*255)];
 
 				writePolygon(fid, lonc, latc, z, cores, 1, 'SSs')
@@ -286,7 +285,7 @@ function writekml(handles, Z, fname)
 			fp = fopen([handles.path_data 'hotspots.dat'],'r');
 			fgetl(fp);						% Jump the header line
 			todos = fread(fp,'*char');     fclose(fp);
-			[xx yy fogName fogAge] = strread(todos,'%f %f %s %s');
+			[xx, yy, fogName, fogAge] = strread(todos,'%f %f %s %s');
 			clear todos;
 			fogNames = cell(numel(fogName),1);
 			for (m=1:numel(fogName))
@@ -307,11 +306,11 @@ function writekml(handles, Z, fname)
 			symbol.Marker = get(h,'Marker');
 			zz = get(h,'MarkerSize');
 			if (~iscell(zz)),	symbol.Size = num2cell(zz,1);
-			else				symbol.Size = zz;
+			else,				symbol.Size = zz;
 			end
 			zz = get(h,'MarkerFaceColor');
 			if (~iscell(zz)),	symbol.FillColor = {zz};
-			else				symbol.FillColor = zz;
+			else,				symbol.FillColor = zz;
 			end
 			symbol.Marker = char(symbol.Marker);
 			symbol.Marker = symbol.Marker(:,1);
@@ -366,7 +365,7 @@ function writekml(handles, Z, fname)
 					xx = x( ind(k)+1:ind(k+1)-1 );
 					yy = y( ind(k)+1:ind(k+1)-1 );
 					if (~isempty(z)),	zz = z( ind(k)+1:ind(k+1)-1 );
-					else				zz = z;
+					else,				zz = z;
 					end
 					writePolyLine(fid,xx,yy,zz,line_color,line_thick)
 				end
@@ -391,7 +390,7 @@ function writekml(handles, Z, fname)
 			if (isfield(handles, 'line'))
 				x = handles.line.x;					y = handles.line.y;
 				if (isfield(handles.line, 'z')),	z = handles.line.z;
-				else		z = zeros(size(x));
+				else,		z = zeros(size(x));
 				end
 				line_width = 1;
 				if (isfield(handles.line, 'width')),	line_width = handles.line.width;	end
@@ -423,8 +422,13 @@ function writekml(handles, Z, fname)
 
 	if (n_argin == 1)
 		try
-			if (ispc),		dos([fname_kml ' &']);
-			else			unix(fname_kml);
+			if (ispc)
+				if (isfield(handles, 'IamCompiled') && handles.IamCompiled)
+					fname_kml = ['start /b ' fname_kml];
+				end
+				dos([fname_kml ' &']);
+			else
+				unix(fname_kml);
 			end
 		catch
 			errordlg(lasterr,'Error')
@@ -471,8 +475,8 @@ function writeStyle(fid,nTab,fname_img,name)
 function writePolygon(fid, x, y, z, cores, extrude, name, line_thick)
 % Write a polygon (patch)
 
-	if (extrude),       outline = 0;    % Do not draw oulines with extrusions
-	else                outline = 1;
+	if (extrude),	outline = 0;    % Do not draw oulines with extrusions
+	else,			outline = 1;
 	end
 
 	x = x(:)';    y = y(:)';        % Make sure they are row vectors
@@ -528,7 +532,7 @@ function writePolyLine(fid,x,y,z,line_color,line_thick,name)
 	if (nargin == 6),   name = 'Polyline';  end
 	x = x(:)';    y = y(:)';        % Make sure they are row vectors
 	if (isempty(z)),    z = zeros(1,numel(x));
-	else                z = z(:)';
+	else,                z = z(:)';
 	end
 
 	nTab = 1;
