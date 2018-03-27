@@ -20,13 +20,17 @@ function varargout = mirone(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: mirone.m 10331 2018-03-23 22:40:47Z j $
+% $Id: mirone.m 10339 2018-03-27 23:33:05Z j $
 
 	if (nargin > 1 && ischar(varargin{1}))
 		if (~isempty(strfind(varargin{1},':')) || ~isempty(strfind(varargin{1},filesep)) )	% A file name
 			% Very likely called with a filename with those horrendous stupid blanks
 % 			for (k = 1:nargin-1),	varargin{k}(end+1) = ' ';	end
 % 			varargin = {[varargin{:}]};
+			if (ischar(varargin{2}) && varargin{2}(1) ~= '-')		% args of the form -C<...> -X<...> are allowed
+				% Very likely called with a filename with those horrendous stupid blanks. Join only first two argins
+				varargin{1}(end+1) = ' ';	varargin(1) = {[varargin{1:2}]};	varargin(2) = [];
+			end
 			h = mirone_OpeningFcn(varargin{:});
 			if (nargout),	varargout{1} = h;		end
 		else
@@ -784,11 +788,12 @@ if ~isempty(opt)				% OPT must be a rectangle/polygon handle (the rect may serve
 			[xp, yp] = aux_funs('adjust_rect', handles, xp, yp);	% Adjust such that only inside nodes are selected
 		end
 	else
-		if (xp(1) < handles.head(1) || xp(2) > handles.head(2) || yp(1) < handles.head(3) || yp(2) > handles.head(4))
+		dx2 = ~handles.head(7) * handles.head(8)/2;		dy2 = ~handles.head(7) * handles.head(9)/2;
+		if (xp(1) < handles.head(1)-dx2 || xp(2) > handles.head(2)+dx2 || yp(1) < handles.head(3)-dy2 || yp(2) > handles.head(4)+dy2)
 			% Somewhat rare case where the polygon extends to outside grid/img limits. Must crop it to them.
 			P1.x = x(:);	P1.y = y(:);	P1.hole = 0;	P2.hole = 0;
-			P2.x = [handles.head(1); handles.head(1); handles.head(2); handles.head(2); handles.head(1)];
-			P2.y = [handles.head(3); handles.head(4); handles.head(4); handles.head(3); handles.head(3)];
+			P2.x = [handles.head(1)-dx2; handles.head(1)-dx2; handles.head(2)+dx2; handles.head(2)+dx2; handles.head(1)-dx2];
+			P2.y = [handles.head(3)-dy2; handles.head(4)+dy2; handles.head(4)+dy2; handles.head(3)-dy2; handles.head(3)-dy2];
 			outPolyg = PolygonClip(P1, P2);				% Intersection of polygon and map limits
 			x = outPolyg.x;		y = outPolyg.y;
 			xp(1) = min(x);		xp(2) = max(x);
@@ -799,32 +804,16 @@ if ~isempty(opt)				% OPT must be a rectangle/polygon handle (the rect may serve
 	end
 	rect_crop = [xp(1) yp(1) (xp(2) - xp(1)) (yp(2) - yp(1))];	% Even when from a rectangle (to insure a known order)
 
-	if isempty(opt2)				% Just pure Image croping
-		Z_rect = get(handles.hImg,'CData');
-		if (isa(Z_rect, 'uint16')),		Z_rect = scaleto8(Z_rect);	end		% In the rare event of "Noe Diluge" images
-		limits = getappdata(handles.axes1,'ThisImageLims');
-		I = cropimg(limits(1:2),limits(3:4),Z_rect,rect_crop);
-		if (crop_pol)				% Shape cropping
-			mask = ~(img_fun('roipoly_j',x_lim,y_lim,I,x,y));
-			if (ndims(I) == 2),		I(mask) = 0;
-			else
-				for (k = 1:3)		% Sorry for the clutereness
-					tmp = I(:,:,k);		tmp(mask) = 255;	I(:,:,k) = tmp;
-				end
-				mask = uint8(~mask);	cvlib_mex('CvtScale',mask,255,0);	% NEW. 1st transparency attempt
-				I(:,:,4) = mask;
-				clear tmp mask
-			end
-		end
-		[m,n] = size(I);
-
-	elseif (strcmp(opt2,'CropaWithCoords'))		% Crop Image with coordinates
+	if (isempty(opt2) || strcmp(opt2,'CropaWithCoords'))		% Pure Image croping OR Crop Image with coordinates
 		Z_rect = get(handles.hImg,'CData');
 		if (isa(Z_rect, 'uint16')),		Z_rect = scaleto8(Z_rect);	end		% In the rare event of "Noe Diluge" images
 		[I,r_c] = cropimg(handles.head(1:2),handles.head(3:4),Z_rect,rect_crop,'out_grid');
 		if (crop_pol)				% Shape cropping
+			x_lim(1) = handles.head(1) + (r_c(3)-1)*handles.head(8);	x_lim(2) = handles.head(1) + (r_c(4)-1)*handles.head(8);
+			y_lim(1) = handles.head(3) + (r_c(1)-1)*handles.head(9);	y_lim(2) = handles.head(3) + (r_c(2)-1)*handles.head(9);
 			mask = ~(img_fun('roipoly_j',x_lim,y_lim,I,x,y));
-			if (ndims(I) == 2),		I(mask) = 0;
+			if (ndims(I) == 2)
+				I(mask) = 0;
 			else
 				for (k = 1:3)
 					tmp = I(:,:,k);		tmp(mask) = 255;	I(:,:,k) = tmp;
@@ -864,6 +853,8 @@ if ~isempty(opt)				% OPT must be a rectangle/polygon handle (the rect may serve
 			end
 			if (isnan(resp)),	handles.have_nans = 1;	end
 
+			x_lim(1) = head(1) + (r_c(3)-1)*head(8);		x_lim(2) = head(1) + (r_c(4)-1)*head(8);
+			y_lim(1) = head(3) + (r_c(1)-1)*head(9);		y_lim(2) = head(3) + (r_c(2)-1)*head(9);
 			mask = img_fun('roipoly_j', x_lim, y_lim, Z_rect, x, y);
 			if (strcmp(opt2,'CropaGrid_pure'))
 				Z_rect(~mask) = single(resp);
@@ -972,8 +963,8 @@ elseif (strncmp(opt2(1:min(length(opt2),9)),'CropaGrid',9))		% Do the operation 
 		to_func.Z = Z_rect;		to_func.head = head;
 	end
 	if (strcmp(curr_opt,'pure'))			% PURE means pure CropaGrid
-		X = linspace( head(1) + (r_c(3)-1)*head(8), head(1) + (r_c(4)-1)*head(8), r_c(4) - r_c(3) + 1 );
-		Y = linspace( head(3) + (r_c(1)-1)*head(9), head(3) + (r_c(2)-1)*head(9), r_c(2) - r_c(1) + 1 );
+		X = linspace(head(1) + (r_c(3)-1)*head(8), head(1) + (r_c(4)-1)*head(8), r_c(4) - r_c(3) + 1);
+		Y = linspace(head(3) + (r_c(1)-1)*head(9), head(3) + (r_c(2)-1)*head(9), r_c(2) - r_c(1) + 1);
 		head(1) = X(1);		head(2) = X(end);		head(3) = Y(1);		head(4) = Y(end);
 		if (isa(Z,'single')),	zz = grdutils(Z_rect,'-L');			head(5:6) = [zz(1) zz(2)];
 		else,					head(5) = double(min(Z_rect(:)));	head(6) = double(max(Z_rect(:)));
@@ -2100,7 +2091,7 @@ function loadGRID(handles, fullname, tipo, opt)
 %		   'MOLA'		To read Mars MOLA .img with a .lbl header file *OR* a V3 PDS .img
 %		   'whatever'	Let GDAL guess what to do (it means, any string)
 % OPT	-> the "att" attributes structure got from att = gdalread(fname,'-M',...)
- 
+
 	if (nargin == 3),	opt = ' ';	end
 	[Z, X, Y, srsWKT, handles, att, pal_file] = read_grid(handles, fullname, tipo, opt);
 	if (isempty(Z)),	return,		end
@@ -4810,6 +4801,7 @@ function FileSaveFleder_CB(handles, opt)
 				end
 			elseif (ispc)
 				if (strcmp(handles.TDRver, '2.0')),	fcomm(6) = '3';		end		% Call iview3d
+				if (handles.IamCompiled),	fcomm = ['start /b ' fcomm];	end
 				dos(fcomm);		% s is always 0 (success) as long as iview4d is accessible, even when the comm fails
 			else
 				errordlg('Unknown platform.','Error'),	return
