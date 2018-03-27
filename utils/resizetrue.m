@@ -77,7 +77,8 @@ function varargout = resizetrue(handles, opt, axis_t, opt_pad)
 			opt = sprintf('adjust_size_%.12f', opt * xfac);
 		else
 			DAR(2) = opt * xfac;
-			if (opt > 1),	DAR(2) = 1/opt * xfac;	end
+			%if (opt > 1),	DAR(2) = 1/opt * xfac;	end
+			DAR(2) = 1/opt * xfac;
 		end
 	end
 	if (isempty(opt) && xfac ~= 1)                      % Case of isotropic geog grid rescaled to mean lat
