@@ -521,6 +521,7 @@ function sectrumFun(handles, Z, head, opt1, Z2)
 		x = get(handMir.XXXhLine, 'XData');			y = get(handMir.XXXhLine, 'YData');
 		hand = guidata(handMir.XXXhLine);				% Handles of the Spectrum figure
 		xy_lims = getappdata(hand.axes1,'ThisImageLims');
+		[xy_lims(1:2),xy_lims(3:4)] = aux_funs('adjust_lims',xy_lims(1:2),xy_lims(3:4),size(Z,1),size(Z,2));	% roipoly works on grid reg
 		mask = ifftshift(img_fun('roipoly_j',xy_lims(1:2), xy_lims(3:4), Z, x, y));
 		if (strcmp(opt1,'lpass')),	mask = ~mask;	end
 		Z = fft2(Z);
@@ -530,7 +531,7 @@ function sectrumFun(handles, Z, head, opt1, Z2)
 		tmp.name = [upper(opt1(1))  'pass filtering'];
 	end
 
-	if ( (strcmp(opt1,'Autocorr') || strcmp(opt1,'CrossCorrel')) )
+	if ((strcmp(opt1,'Autocorr') || strcmp(opt1,'CrossCorrel')))
 		delta_kx = 1;   delta_ky = 1;
 	else				% make wave number array
 		delta_kx = 2*pi / (handles.new_nx * handles.scaled_dx);
@@ -546,7 +547,7 @@ function sectrumFun(handles, Z, head, opt1, Z2)
 	if (rem(ny,2) == 0),	sft_y = 1;			end
 
 	% This is currently only activated by the experimental Spector & Grant Filtering in R.A.S.
-	if ( strcmp(opt1, 'bpass') )	% The bandpass (Do it here because only now that we know the freq vectors)
+	if (strcmp(opt1, 'bpass'))			% The bandpass (Do it here because only now that we know the freq vectors)
 		x_lim = [-nx2 (nx2-sft_x)] * delta_kx / (2*pi);		y_lim = [-ny2 (ny2-sft_y)] * delta_ky / (2*pi);
 		bp = handles.bandpass;			% Use a shorter name
 		sqLow = [-bp(1) -bp(1); -bp(1) bp(1); bp(1) bp(1); bp(1) -bp(1); -bp(1) -bp(1)];
