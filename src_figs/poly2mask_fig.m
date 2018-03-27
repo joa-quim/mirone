@@ -236,7 +236,7 @@ function push_OK_CB(hObject, handles)
 				Z = Z .* Zg;
 				zz = grdutils(Z,'-L');		handles.head(5:6) = [zz(1) zz(2)];
 			catch
-				errordlg('You probably changed the grid mask dimensions so you cannot apply it to base grid.', Error')
+				errordlg('You probably changed the grid mask dimensions so you cannot apply it to base grid.', 'Error')
 			end
 		end
 	else
