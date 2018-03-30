@@ -18,7 +18,7 @@ function varargout = interp_chimoce(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: interp_chimoce.m 10341 2018-03-30 13:28:09Z j $
+% $Id: interp_chimoce.m 10353 2018-03-30 22:33:50Z j $
 
 	if (nargin > 1 && ischar(varargin{1}))
 		gui_CB = str2func(varargin{1});
@@ -33,7 +33,7 @@ function hObject = interp_chimoce_OF(varargin)
 % varargin is a 3 element array because this function is called as a callback in load_xyz
 % Element of interest is the 3rd element that holds the line handle where necessary info is stored.
 
-	hObject = interp_chimoce_LayoutFcn();
+	hObject = interp_chimoce_LayoutFcn;
 	handles = guihandles(hObject);
 
 	hMirFig = get(get(varargin{3}, 'Parent'), 'Parent');
