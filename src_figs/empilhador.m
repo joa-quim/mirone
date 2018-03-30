@@ -1089,7 +1089,7 @@ function cut2cdf(handles, got_R, west, east, south, north)
 				if (~isempty(t)),	prog = [t '\callMir.exe '];
 				else,				prog = 'callMir.exe ';			% then it better be on Win path, otherwise ...
 				end
-				delete(handles.hCallingFig)			% Don't need it, it was only the Bar
+				if (ishandle(handles.hCallingFig)),		delete(handles.hCallingFig),	end		% Don't need it, it was only the Bar
 				cmd = ['start /B ' prog '-Cempilhador,guidata(gcf) -Xedit_namesList,+' fnameRest ...
 				       ' -Xcheck_L2,1 -Xcheck_L2conf,1 -Xcheck_bitflags,1 -Xpush_compute'];
 				dos(cmd);
