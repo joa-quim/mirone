@@ -18,7 +18,7 @@ function varargout = griding_mir(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: griding_mir.m 10345 2018-03-30 18:28:52Z j $
+% $Id: griding_mir.m 10351 2018-03-30 22:27:41Z j $
 
 	if (nargin > 1 && ischar(varargin{1}))
 		gui_CB = str2func(varargin{1});
@@ -79,8 +79,8 @@ function hObject = griding_mir_OF(varargin)
 			handles.hMirFig = varargin{1};
 			type = varargin{2};
 			if (numel(varargin) >= 4)
-				handles.x_min = varargin{3}(1);		handles.x_max = varargin{3}(2);
-				handles.y_min = varargin{3}(3);		handles.y_max = varargin{3}(4);
+				handles.x_min = double(varargin{3}(1));		handles.x_max = double(varargin{3}(2));
+				handles.y_min = double(varargin{3}(3));		handles.y_max = double(varargin{3}(4));
 				handles.xyz = varargin{4};
 				% Until something more inteligent is devised (like using some kind of estatistics to estimate
 				% default's Nrow & Ncol) the default value of Nrow = Ncol = 100 will be used.
