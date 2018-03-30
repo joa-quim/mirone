@@ -33,7 +33,7 @@ function hObject = interp_chimoce_OF(varargin)
 % varargin is a 3 element array because this function is called as a callback in load_xyz
 % Element of interest is the 3rd element that holds the line handle where necessary info is stored.
 
-	hObject = interp_chimoce_LayoutFcn();
+	hObject = interp_chimoce_LayoutFcn;
 	handles = guihandles(hObject);
 
 	hMirFig = get(get(varargin{3}, 'Parent'), 'Parent');
