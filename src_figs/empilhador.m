@@ -20,7 +20,7 @@ function varargout = empilhador(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: empilhador.m 10329 2018-03-23 22:29:20Z j $
+% $Id: empilhador.m 10348 2018-03-30 18:42:19Z j $
 
 	if (nargin > 1 && ischar(varargin{1}))
 		gui_CB = str2func(varargin{1});
@@ -1089,7 +1089,7 @@ function cut2cdf(handles, got_R, west, east, south, north)
 				if (~isempty(t)),	prog = [t '\callMir.exe '];
 				else,				prog = 'callMir.exe ';			% then it better be on Win path, otherwise ...
 				end
-				delete(handles.hCallingFig)			% Don't need it, it was only the Bar
+				if (ishandle(handles.hCallingFig)),		delete(handles.hCallingFig),	end		% Don't need it, it was only the Bar
 				cmd = ['start /B ' prog '-Cempilhador,guidata(gcf) -Xedit_namesList,+' fnameRest ...
 				       ' -Xcheck_L2,1 -Xcheck_L2conf,1 -Xcheck_bitflags,1 -Xpush_compute'];
 				dos(cmd);
