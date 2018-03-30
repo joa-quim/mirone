@@ -20,7 +20,7 @@ function varargout = mirone(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: mirone.m 10339 2018-03-27 23:33:05Z j $
+% $Id: mirone.m 10349 2018-03-30 18:48:17Z j $
 
 	if (nargin > 1 && ischar(varargin{1}))
 		if (~isempty(strfind(varargin{1},':')) || ~isempty(strfind(varargin{1},filesep)) )	% A file name
@@ -554,6 +554,7 @@ function erro = gateLoadFile(handles,drv,fname)
 		case 'dat',			load_xyz(handles, fname);
 		case 'pick',		load_xyz(handles, fname, drv);
 		case 'ncshape',		load_xyz(handles, fname, drv);
+		case 'ncchimoce',	load_xyz(handles, fname, drv);
 		case 'shp',			DrawImportShape_CB(handles, fname);
 		case 'ogr',			DrawImportOGR_CB(handles, fname);
 		case 'las',			read_las(handles, fname);
