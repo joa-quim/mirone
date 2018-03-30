@@ -3,20 +3,22 @@ function varargout = plot_composer(varargin)
 
 %	Copyright (c) 2004-2018 by J. Luis
 %
-% 	This program is part of Mirone and is free software; you can redistribute
-% 	it and/or modify it under the terms of the GNU Lesser General Public
-% 	License as published by the Free Software Foundation; either
-% 	version 2.1 of the License, or any later version.
+%             DO WHAT THE FUCK YOU WANT TO PUBLIC LICENSE
+%                     Version 2, December 2004
 % 
-% 	This program is distributed in the hope that it will be useful,
-% 	but WITHOUT ANY WARRANTY; without even the implied warranty of
-% 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-% 	Lesser General Public License for more details.
+%  Everyone is permitted to copy and distribute verbatim or modified
+%  copies of this license document, and changing it is allowed as long
+%  as the name is changed.
+% 
+%             DO WHAT THE FUCK YOU WANT TO PUBLIC LICENSE
+%    TERMS AND CONDITIONS FOR COPYING, DISTRIBUTION AND MODIFICATION
+% 
+%   0. You just DO WHAT THE FUCK YOU WANT TO.
 %
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: plot_composer.m 10318 2018-03-14 01:43:52Z j $
+% $Id: plot_composer.m 10346 2018-03-30 18:34:34Z j $
 
 	handMir = varargin{1};
 	if (handMir.no_file)     % Stupid call with nothing loaded on the Mirone window
@@ -327,10 +329,10 @@ function handles = get_img_dims(handles, N, width)
 	handMir = guidata(handles.hAllFigs(N));
 	imgXlim = get(handMir.axes1,'XLim');    imgYlim = get(handMir.axes1,'YLim');
 	if (handMir.image_type == 2 || handMir.image_type == 20)		% "trivial" images
-		if (~handMir.IamXY)
-			[ny,nx,nz] = size(get(handMir.hImg,'CData'));
-		else
+		if (isfield(handMir, 'IamXY') && handMir.IamXY)
 			nx = 300;	ny = 200;		% Pure INVENTION
+		else
+			[ny,nx,nz] = size(get(handMir.hImg,'CData'));
 		end
 		handles.x_min(N) = imgXlim(1);     handles.x_max(N) = imgXlim(2);
 		handles.y_min(N) = imgYlim(1);     handles.y_max(N) = imgYlim(2);
@@ -1780,7 +1782,7 @@ function [script, mex_sc, l, o, hLine] = do_symbols(handMir, script, mex_sc, l, 
 	tag = get(hLine,'Tag');
 	if (isempty(tag)),	return,		end
 
-	h = findobj(hLine,'Tag','Symbol');
+	h = findobj(hLine,'Tag','Symbol');				% Why not just check if LineStyle == none?
 	h = [h; findobj(hLine,'Tag','City_major')];
 	h = [h; findobj(hLine,'Tag','City_other')];
 	h = [h; findobj(hLine,'Tag','volcano')];
@@ -1788,6 +1790,7 @@ function [script, mex_sc, l, o, hLine] = do_symbols(handMir, script, mex_sc, l, 
 	h = [h; findobj(hLine,'Tag','Earthquakes')];
 	h = [h; findobj(hLine,'Tag','DSDP')];
 	h = [h; findobj(hLine,'Tag','ODP')];
+	h = [h; findobj(hLine,'Tag','Pointpolyline')];
 
 	% Search for points as Markers (that is, line with no line - just symbols on vertices)
 	h_shit = get(hLine,'LineStyle');
@@ -1827,7 +1830,7 @@ function [script, mex_sc, l, o, hLine] = do_symbols(handMir, script, mex_sc, l, 
 		fclose(fid);
 		if (do_MEX)
 			mex_sc{o,1} = ['psxy -S' symbols.Marker num2str(symbols.Size{1}) 'p' opt_G opt_W ellips KORJ];
-			mex_sc{o,2} = [symbols.x{:} symbols.y{:}];			o = o + 1;
+			mex_sc{o,2} = reshape([symbols.x{:} symbols.y{:}], numel(symbols.x), 2);	o = o + 1;
 		end
 	elseif (ns == 1 && numel(symbols.Size) == 1)	% We have only one symbol
 		script{l} = sprintf('\n%s  ---- Plot symbol', comm);		l=l+1;
