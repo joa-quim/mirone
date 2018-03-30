@@ -554,6 +554,7 @@ function erro = gateLoadFile(handles,drv,fname)
 		case 'dat',			load_xyz(handles, fname);
 		case 'pick',		load_xyz(handles, fname, drv);
 		case 'ncshape',		load_xyz(handles, fname, drv);
+		case 'ncchimoce',	load_xyz(handles, fname, drv);
 		case 'shp',			DrawImportShape_CB(handles, fname);
 		case 'ogr',			DrawImportOGR_CB(handles, fname);
 		case 'las',			read_las(handles, fname);
