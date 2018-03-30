@@ -134,6 +134,7 @@ function push_compute_CB(hObject, handles)
 			else
 				eval(com2);
 			end
+			msgbox(['Sucessefuly run the comand:  ', com2])
 		catch
 			errordlg(lasterr, 'Error')
 		end
