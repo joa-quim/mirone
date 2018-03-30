@@ -83,7 +83,7 @@ function varargout = load_xyz(handles, opt, opt2)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: load_xyz.m 10211 2018-01-24 00:34:26Z j $
+% $Id: load_xyz.m 10343 2018-03-30 13:37:27Z j $
 
 %	EXAMPLE CODE OF HOW TO CREATE A TEMPLATE FOR UICTX WHEN THESE ARE TOO MANY
 % 	cmenuHand = get(h, 'UIContextMenu');
@@ -102,7 +102,8 @@ function varargout = load_xyz(handles, opt, opt2)
 	do_project = false;         % We'll estimate below if this holds true
 	got_arrow = false;
 	got_internal_file = false;	% Internal files are those shipped with Mirone (e.g. isochrons)
-	got_nc = false;				% Flag to signal if a shapenc type file comes in
+	got_nc  = false;			% Flag to signal if a shapenc type file comes in
+	got_nc2 = false;			% Flag to signal if a ncchimoce (Oce Chemistry) type file comes in
 	got_pick = false;			% Flag to signal if a GPlates isochrn type file comes in
 	orig_no_mseg = false;		% Flag to know if original file had multiseg strings to store
 	line_type = 'AsLine';
@@ -149,8 +150,9 @@ function varargout = load_xyz(handles, opt, opt2)
 		end
 		if (strcmp(opt2, 'AsArrow')),		got_arrow = true;		% This case does not care about 'line_type'
 		elseif (strcmp(opt2, 'ncshape')),	got_nc = true;			%
+		elseif (strcmp(opt2, 'ncchimoce')),	got_nc2 = true;			%
 		elseif (strcmp(opt2, 'pick')),		got_pick = true;		% A GPlates isochron formated file
-		else								line_type = opt2;
+		else,								line_type = opt2;
 		end
 		if (strncmpi(line_type,'isochron',4) || strcmpi(line_type,'FZ'))
 			if (strncmpi(line_type,'isochron',4))
@@ -186,7 +188,7 @@ function varargout = load_xyz(handles, opt, opt2)
 
 	if (got_nc)			% Shapenc files
 		out_nc = read_shapenc(fname);
-		n_column = 2;		% Not surewhat happens if it's > 2 but anyway we need a number > 1 for a test later down
+		n_column = 2;		% Not sure what happens if it's > 2 but anyway we need a number > 1 for a test later down
 		bin = false;		multi_seg = 0;		n_headers = 0;
 		if ((out_nc.n_PolyOUT + out_nc.n_PolyIN) == 0)
 			warndlg('Warning, no polygons to plot in this shapenc file. Bye','Warning')
@@ -226,7 +228,27 @@ function varargout = load_xyz(handles, opt, opt2)
 				multi_segs_str{k} = sprintf('%s\n\n    %s', multi_segs_str{k}, out_nc.Poly(k).OUT.desc);
 			end
 		end
-		out_nc.fname = fname;		% Store the names as we will need it in the set_extra_uicb_options()
+		out_nc.fname = fname;		% Store the name as we will need it in the set_extra_uicb_options()
+
+		% Add the referencing info to multi_segs_str{1} so that later the recogn algo is the same as for ascii files
+		if (~isempty(out_nc.SRS) && out_nc.SRS(1) == '+')		% Only proj4 are accepted
+			multi_segs_str{1} = [multi_segs_str{1} ' ' out_nc.SRS];
+		end
+		already_read = true;
+
+	elseif (got_nc2)			% ncchimoce files
+		out_nc = read_ncchimoce(fname);
+		n_column = 2;		% need a number > 1 for a test later down
+		bin = false;		multi_seg = 0;		n_headers = 0;
+		numeric_data = {[out_nc.lon out_nc.lat]};
+		
+		if (~isempty(out_nc.description))
+			desc = ['> ' out_nc.description];
+		else
+			desc = '> Nikles ';
+		end
+		multi_segs_str = {desc};
+		out_nc.fname = fname;		% Store the name as we will need it in the set_extra_uicb_options()
 
 		% Add the referencing info to multi_segs_str{1} so that later the recogn algo is the same as for ascii files
 		if (~isempty(out_nc.SRS) && out_nc.SRS(1) == '+')		% Only proj4 are accepted
@@ -862,7 +884,7 @@ function varargout = load_xyz(handles, opt, opt2)
 		handles = guidata(handles.figure1);		handles.geog = geog;	 handles.is_projected = is_projected;
 	end
 
-	if (got_nc)
+	if (got_nc || got_nc2)
 		set_extra_uicb_options(handles, hLine, out_nc)	% Reset two Callbacks in UIContextMenu to offer plot/save
 	elseif (got_pick)			% Set these appdata so that one can send them to hellinger pole calculater
 		setappdata(hLine(1), 'HellingProps', [hell_segs1 hell_stds1])
@@ -883,16 +905,25 @@ function set_extra_uicb_options(handles, hLine, out_nc)
 % Reuse two meaningless entries (in this context) of the polygon's UIContextMenu to allow
 % either ploting the interior points to a shape_nc polygon or directly save it on file.
 % Note that the saving, because is done by the draw_funs 'doSave_formated' ... does what it says.
-% OUT_NC is the output of the read_shapenc(fname) call + file name
+% OUT_NC is the output of either the read_chimoce() or read_shapenc(fname) call + file name
 
 	h1 = get(get(hLine(1),'UIContextMenu'),'Children');
-	h2 = findobj(h1,'-depth',0, 'Label','Line azimuths');	% Resuse this entry that has no sense in this context
-	set(h2,'Label','Plot interior points')
-	set(h2,'Callback',{@nc_plotSave_pts, out_nc.fname, out_nc.PolyIndex, 'plot'})
-	set(h2,'Pos',2)			% Move it up on the UIContextMenu order (and hope it doesn't screw)
-	h2 = uimenu(get(h2,'Parent'), 'Label','Save interior points to file', ...
-	            'Callback',{@nc_plotSave_pts, out_nc.fname, out_nc.PolyIndex, 'save'});
-	set(h2,'Pos',3)
+	h2 = findobj(h1,'-depth',0, 'Label','Line azimuths');	% Reuse this entry that has no sense in this context
+	if (strcmp(out_nc.type, 'ACprofiles'))
+		setappdata(hLine, 'all_data', out_nc)				% Save the entire dataset here (they are small)
+		set(h2,'Label','ChimOce Interpolate section', 'Callback',{@interp_chimoce, hLine}, 'Sep', 'on')
+		delete(findobj(h1,'-depth',0, 'Label','Join lines'));
+		delete(findobj(h1,'-depth',0, 'Label','Line length'));
+		delete(findobj(h1,'-depth',0, 'Label','Save this polyline line'));
+		set(hLine, 'Marker', 'o', 'MarkerFaceColor',[0 0 0], 'MarkerSize',6)
+	else
+		set(h2,'Label','Plot interior points')
+		set(h2,'Callback',{@nc_plotSave_pts, out_nc.fname, out_nc.PolyIndex, 'plot'})
+		set(h2,'Pos',2)			% Move it up on the UIContextMenu order (and hope it doesn't screw)
+		h2 = uimenu(get(h2,'Parent'), 'Label','Save interior points to file', ...
+					'Callback',{@nc_plotSave_pts, out_nc.fname, out_nc.PolyIndex, 'save'});
+		set(h2,'Pos',3)
+	end
 
 function nc_plotSave_pts(obj, evt, fname, PolyIndex, opt)
 % Plot or save the points in the interior of the selected Outer polygon (of an shape_nc file)
@@ -1138,6 +1169,31 @@ function [XMin, XMax, YMin, YMax] = check_smallness(handles, XMin, XMax, YMin, Y
 		XMin = XMin - dx / 200;		XMax = XMax + dx / 200;		% Give an extra 0.5% padding margin
 		YMin = YMin - dy / 200;		YMax = YMax + dy / 200;
 	end
+
+% --------------------------------------------------------------------------------
+function out = read_ncchimoce(fname)
+% Read from a ncchimoce (Oce Chemistry) type file FNAME
+% OUT is a structure with field names equal to those of the variables in nc file +
+%	description			Dataset description (or empty if none)
+%	SRS					The referencing system. Usualy a proj4 string (empty if no 'spatial_ref')
+%	var_names			A cell array with the variable names
+
+	s = nc_funs('info',fname);
+
+	out.SRS = [];	out.description = [];	out.type = 'ACprofiles';
+	ind = strcmp({s.Attribute.Name},'spatial_ref');
+	if (~isempty(ind)),		out.SRS = s.Attribute(ind).Value;	end
+
+	ind = strcmpi({s.Attribute.Name},'description');
+	if (~isempty(ind) && any(ind)),		out.description = s.Attribute(ind).Value;	end
+
+	vars = {s.Dataset.Name};		% All variable names in dataset + lon,lat,st_num
+	for (k = 1:numel(vars))
+		ind = strcmp({s.Dataset.Name},vars{k});
+		out.(vars{k}) = nc_funs('varget', fname, s.Dataset(ind).Name);
+	end
+
+	out.var_names = vars;			% Store also the variable names for easier access
 
 % --------------------------------------------------------------------------------
 function out = read_shapenc(fname)
