@@ -79,8 +79,8 @@ function hObject = griding_mir_OF(varargin)
 			handles.hMirFig = varargin{1};
 			type = varargin{2};
 			if (numel(varargin) >= 4)
-				handles.x_min = varargin{3}(1);		handles.x_max = varargin{3}(2);
-				handles.y_min = varargin{3}(3);		handles.y_max = varargin{3}(4);
+				handles.x_min = double(varargin{3}(1));		handles.x_max = double(varargin{3}(2));
+				handles.y_min = double(varargin{3}(3));		handles.y_max = double(varargin{3}(4));
 				handles.xyz = varargin{4};
 				% Until something more inteligent is devised (like using some kind of estatistics to estimate
 				% default's Nrow & Ncol) the default value of Nrow = Ncol = 100 will be used.
