@@ -18,7 +18,7 @@ function  varargout = aux_funs(opt,varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: aux_funs.m 10242 2018-02-02 13:34:20Z j $
+% $Id: aux_funs.m 10342 2018-03-30 13:34:15Z j $
 
 switch opt(1:4)
 	case 'Stor'		% 'StoreZ'
@@ -249,6 +249,7 @@ function out = findFileType(fname)
 		try
 			if     (any(strcmp({s.Dimension.Name}, 'id_dim'))),			out = 'mgg_gmt';
 			elseif (any(strcmp({s.Attribute.Name}, 'SHAPENC_type'))),	out = 'ncshape';
+			elseif (any(strcmp({s.Attribute.Name}, 'ACprofiles'))),		out = 'ncchimoce';
 			else,	out = 'gmt';
 			end
 		catch
