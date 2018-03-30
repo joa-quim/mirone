@@ -18,7 +18,7 @@ function varargout = run_cmd(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: run_cmd.m 10344 2018-03-30 18:23:12Z j $
+% $Id: run_cmd.m 10352 2018-03-30 22:30:58Z j $
 
 	if (nargin > 1 && ischar(varargin{1}))
 		gui_CB = str2func(varargin{1});
@@ -134,6 +134,7 @@ function push_compute_CB(hObject, handles)
 			else
 				eval(com2);
 			end
+			msgbox(['Sucessefuly run the comand:  ', com2])
 		catch
 			errordlg(lasterr, 'Error')
 		end
