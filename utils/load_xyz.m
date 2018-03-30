@@ -913,7 +913,9 @@ function set_extra_uicb_options(handles, hLine, out_nc)
 		setappdata(hLine, 'all_data', out_nc)				% Save the entire dataset here (they are small)
 		set(h2,'Label','ChimOce Interpolate section', 'Callback',{@interp_chimoce, hLine}, 'Sep', 'on')
 		delete(findobj(h1,'-depth',0, 'Label','Join lines'));
+		h1(~ishandle(h1)) = [];
 		delete(findobj(h1,'-depth',0, 'Label','Line length'));
+		h1(~ishandle(h1)) = [];
 		delete(findobj(h1,'-depth',0, 'Label','Save this polyline line'));
 		set(hLine, 'Marker', 'o', 'MarkerFaceColor',[0 0 0], 'MarkerSize',6)
 	else
