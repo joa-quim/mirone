@@ -249,6 +249,7 @@ function out = findFileType(fname)
 		try
 			if     (any(strcmp({s.Dimension.Name}, 'id_dim'))),			out = 'mgg_gmt';
 			elseif (any(strcmp({s.Attribute.Name}, 'SHAPENC_type'))),	out = 'ncshape';
+			elseif (any(strcmp({s.Attribute.Name}, 'ACprofiles'))),		out = 'ncchimoce';
 			else,	out = 'gmt';
 			end
 		catch
