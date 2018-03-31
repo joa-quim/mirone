@@ -39,16 +39,10 @@ function hObject = run_cmd_OF(varargin)
 	move2side(hObject,'right')
  
 	handlesMir = varargin{1};
-	if (handlesMir.no_file)
-		errordlg('You didn''t even load a file. What are you expecting then?','ERROR')
-		delete(hObject);    return
-	end
-	if (handlesMir.image_type == 20)
-		warndlg('This image is just a constant background. Quiting','WarnError')
-		delete(hObject);    return
-	end
-
-	if (handlesMir.validGrid)
+	if (handlesMir.no_file || handlesMir.image_type == 20)
+		set([handles.radio_onGrid handles.radio_onImage], 'Val',0, 'Enable', 'off')
+		set([handles.edit_com handles.edit_true], 'Enable', 'off')
+	elseif (handlesMir.validGrid)
 		set(handles.radio_onGrid,'Val',1)
 	else
 		set(handles.radio_onGrid,'Enable','off')
@@ -59,7 +53,7 @@ function hObject = run_cmd_OF(varargin)
 	handles.image_type = handlesMir.image_type;
 	handles.hCallingAxes = handlesMir.axes1;
 	handles.hImg = handlesMir.hImg;
-	handles.head = handlesMir.head;
+	try		handles.head = handlesMir.head;		end
 	handles.image_type = handlesMir.image_type;
 	handles.imgSize = size(get(handles.hImg,'CData'));
 	handles.path_tmp = handlesMir.path_tmp;
