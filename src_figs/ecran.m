@@ -21,7 +21,7 @@ function varargout = ecran(varargin)
 % Also of interest: add_uictx_CB()
 % Tricky function either called externally to 'ecran' or activated when loading a file with DATENUM info
 
-% WARNING: WHEN COMPILING NEEDS TO INCLUDE filter_butter.m
+% WARNING: WHEN COMPILING NEEDS TO INCLUDE filter_butter.m & legend_.m
 %
 %	Copyright (c) 2004-2017 by J. Luis
 %
@@ -162,7 +162,7 @@ function varargout = ecran(varargin)
 	if (freshFig)
 		% ------------------ Set the UITOOLBAR and its buttons -------------------------------------
 		s = load([handles.d_path 'mirone_icons.mat'],'zoom_ico','zoomx_ico', 'clipcopy_ico',...
-			'Mline_ico', 'rectang_ico', 'bar_ico', 'text_ico');
+			'Mline_ico', 'rectang_ico', 'bar_ico', 'text_ico', 'legend');
 		link_ico = make_link_ico;
 
 		hTB = uitoolbar('parent',hObject,'Clipping', 'on', 'BusyAction','queue','HandleVisibility','on',...
@@ -183,6 +183,8 @@ function varargout = ecran(varargin)
 		uipushtool('parent',hTB,'Click',@write_text_CB, 'cdata',s.text_ico,'Tooltip','Write text','Sep','on');
 		uitoggletool('parent',hTB,'Click',@isocs_CB, 'cdata', s.bar_ico,...
 		             'Tooltip','Enter ages & plot a geomagnetic barcode','Sep','on', 'Tag', 'isocs_but');
+		uitoggletool('parent',hTB,'Click',@legend_CB, 'cdata', s.legend,...
+		             'Tooltip','Insert a Legend','Sep','on', 'Tag', 'Legend');
 		% -------------------------------------------------------------------------------------------
 
 		handles.hLine = [];			% Handles to the ploted line
@@ -205,6 +207,7 @@ function varargout = ecran(varargin)
 		handles.offset_coords = [0 0];	% Will store new origin after a Shift origin op
 		handles.offset_axes   = '';	% Save info on which axe(s) a coordinate shift was applyied
 		handles.fname_session = '';	% If a session is loaded, save its full file name in here
+		handles.hLegend = [];		% To hold the axes legend handle
 	end
 
 	% Choose the default ploting mode
@@ -333,7 +336,7 @@ function varargout = ecran(varargin)
 	handles = createframe(handles);
 	guidata(hObject, handles);
 	set(hObject,'Vis','on');
-	if (~is_CMOP && ~isempty(handles.hLine)),
+	if (~is_CMOP && ~isempty(handles.hLine))
 		draw_funs([], 'set_line_uicontext_XY', handles.hLine, 'main')		% Set lines's uicontextmenu
 		for (k = 1:numel(handles.hLine))
 			finish_line_uictx(handles.hLine(k))		% Assign the callbacks to menus only declared by draw_funs()
@@ -552,7 +555,7 @@ function shift_children(handles, hLine, pt_x, pt_y, eixo, opt)
 function zoom_CB(obj,evt,opt)
 	if (strcmp(get(obj,'State'),'on'))
 		if (strcmp(opt,'x')),		zoom_j xon;
-		else						zoom_j on;
+		else,						zoom_j on;
 		end
 	else
 		zoom_j off;
@@ -694,7 +697,7 @@ function wbm_dynSlope(obj,eventdata, x0, I0, hAxes, hLine, hULine, hFLine, hTxt,
 	N = numel(xx);
 	if (N > 2),				mb = trend1d_m(xy, '-N2r', '-L');			% Do robust fit
 	elseif (N == 2),		mb = trend1d_m(xy, '-N2', '-L');
-	else					return			% First point. Too soon to do anything
+	else,					return			% First point. Too soon to do anything
 	end
 	xUnderLine = [x0 xx(end)];
 	if (~SpectorGrant)
@@ -1125,6 +1128,38 @@ function isocs_CB(obj, evt)
 		end
 	end
 
+% --------------------------------------------------------------------------------------------------
+function legend_CB(obj, evt, opt)
+% 'Click' callback function to deal with Legends
+	handles = guidata(obj);
+	if (strcmp(get(obj,'State'),'on'))
+		if (isempty(handles.hLegend))
+			hLines = findobj(handles.axes1, 'type','line');
+			str = cellstr(num2str((1:numel(hLines))'));
+			[handles.hLegend, handles.hLegLabels] = legend_(handles.axes1, str);
+			guidata(handles.figure1, handles)
+		else
+			if (nargin == 2)
+				set(findobj(handles.hLegend), 'Vis', 'on')
+			else					% Here we must update an existing Legend. Kill old and recreate
+				for (k = 1:numel(handles.hLegLabels))
+					if (strcmp(get(handles.hLegLabels(k), 'Type'), 'text'))
+						oldLabels = get(handles.hLegLabels(k), 'Str');	% Either a char, char matrix or a cell (if edited)
+						break
+					end
+				end
+				delete(handles.hLegend)
+				hLines = findobj(handles.axes1, 'type','line');
+				if (isa(oldLabels, 'char')),	oldLabels = cellstr(oldLabels);		end
+				oldLabels{end+1} = num2str(numel(hLines));
+				[handles.hLegend, handles.hLegLabels] = legend_(handles.axes1, oldLabels);
+				guidata(handles.figure1, handles)
+			end
+		end
+	else
+		set(findobj(handles.hLegend), 'Vis', 'off')
+	end
+
 % -------------------------------------------------------------------------------
 function check_geog_CB(hObject, handles)
 	if get(hObject,'Value')
@@ -1144,7 +1179,7 @@ function check_geog_CB(hObject, handles)
 function popup_selectPlot_CB(hObject, handles)
 	val = get(hObject,'Value');     str = get(hObject, 'String');
 	geog = true;
-	switch str{val};
+	switch str{val}
 		case 'Horizontal coordinates (data units)'	% Compute the accumulated distance along line in data units
 			units = 'u';	geog = false;
 		case 'Horizontal coordinates (km)'			% Compute the accumulated distance along line in km
@@ -1162,7 +1197,7 @@ function popup_selectPlot_CB(hObject, handles)
 % ---------------------------------------------------------------------------------
 function popup_selectSave_CB(hObject, handles)
 	val = get(hObject,'Value');     str = get(hObject, 'String');
-	switch str{val};
+	switch str{val}
 		case 'Save Line on disk'
 		case 'Distance,Z (data units -> ascii)'					% Save profile in ascii data units
 			[FileName,PathName] = put_or_get_file(handles,{'*.dat', 'Dist Z (*.dat)'; '*.*', 'All Files (*.*)'},'Distance,Z (ascii)','put','.dat');
@@ -1214,7 +1249,7 @@ function FileExport_CB(hObject, handles)
 % --------------------------------------------------------------------
 function FilePrint_CB(hObject, handles)
 	if (ispc),		print -v
-	else			print
+	else,			print
 	end
 
 % --------------------------------------------------------------------
@@ -1394,7 +1429,7 @@ function FileOpen_CB(hObject, handles)
 	if (handles.n_plot > 1)
 		c_order = get(handles.axes1,'ColorOrder');
 		if (handles.n_plot <= 7),		nc = handles.n_plot;
-		else							nc = rem(handles.n_plot,7);     % recycle through the default colors
+		else,							nc = rem(handles.n_plot,7);     % recycle through the default colors
 		end
 		cor = c_order(nc,:);
 	else
@@ -1416,6 +1451,11 @@ function FileOpen_CB(hObject, handles)
 	guidata(hObject, handles);
 	if (isDateNum)
 		add_uictx_CB(handles.add_uictx, handles)
+	end
+
+	if (~isempty(handles.hLegend))		% If we already have a legend, add one more entry for this file
+		obj = findobj(handles.figure1, 'Tag', 'Legend');
+		legend_CB(obj, [], '+')
 	end
 
 % --------------------------------------------------------------------
@@ -1932,7 +1972,7 @@ function push_magBar_CB(hObject, handles)
 	id_ini = (age_start >= handles.ageStart);		id_ini = find(id_ini);		id_ini = id_ini(1);
 	id_fim = (age_start <= handles.ageEnd);			id_fim = find(~id_fim);		id_fim = id_fim(1) - 1;
 	if (id_ini > 1),	agesLeftBak = [age_start(id_ini-1) age_end(id_ini-1)];	% We may need this to build a left clipped brick
-	else				agesLeftBak = [age_start(1) age_end(1)];	% To not error out further down
+	else,				agesLeftBak = [age_start(1) age_end(1)];	% To not error out further down
 	end
 	age_start = age_start(id_ini:id_fim);
 	age_end = age_end(id_ini:id_fim);
@@ -2457,7 +2497,7 @@ function shift = sanitize_shift(y_synt, y_ano, percent)
 
 	% Pick the maximum of the correlations and its index between expanding and shrinking
 	if (max_expand > max_shrink),	lag = bak;
-	else							lag = ind_(ind) + bond(1) - 1;
+	else,							lag = ind_(ind) + bond(1) - 1;
 	end
 
 	shift = (lag - n_pts);
@@ -2519,7 +2559,7 @@ function add_uictx_CB(hObject, handles)
 	setappdata(handles.axes1,'xIsDatenum',true)		% For FFTs to know how to compute frequency
 
 	if (isa(xx, 'cell')),	doit = xx{1}(end) > 365;
-	else					doit = xx(end) > 365;
+	else,					doit = xx(end) > 365;
 	end
 	if (doit)			% Assume days of the year. No datenum
 		datetick(handles.axes1, 'x','keeplimits', 'keepticks')		% Make it auto right away
@@ -2701,11 +2741,11 @@ function [L,noverlap,win] = segment_info(M,win,noverlap)
 		win = hamming(L);
 	else
 		% Determine the window and its length (equal to the length of the segments)
-		if ~any(size(win) <= 1) || ischar(win),
+		if (~any(size(win) <= 1) || ischar(win))
 			error('welch:invalidWindow','The WINDOW argument must be a vector or a scalar.')
 		elseif (length(win) > 1)	% WIN is a vector
 			L = length(win);
-		elseif length(win) == 1,
+		elseif (length(win) == 1)
 			L = win;
 			win = hamming(win);
 		end
@@ -2755,7 +2795,7 @@ function [P,f] = periodogram(x,win,nfft)
 
 	% Determine half the number of points.
 	if (isNPTSodd),	halfNPTS = (nfft+1)/2;  % ODD
-	else			halfNPTS = (nfft/2)+1;  % EVEN
+	else,			halfNPTS = (nfft/2)+1;  % EVEN
 	end
 
 	if (isNPTSodd)		% Adjust points on either side of Nyquist.
@@ -2772,7 +2812,7 @@ function w = hamming(n)
 % w = (54 - 46*cos(2*pi*(0:m-1)'/(n-1)))/100;
 
 	if ~rem(n,2),	half = n/2;			last = 0;
-	else			half = (n+1)/2;		last = 1;
+	else,			half = (n+1)/2;		last = 1;
 	end
 	x = (0:half-1)'/(n-1);
 	w = 0.54 - 0.46 * cos(2*pi*x);
@@ -2829,12 +2869,12 @@ function h = sticks(hAx,jd,u,v,ylims)
 	elseif (~ishandle(hAx))
 		jd = hAx;	u = jd;		v = u;
 		if (nargin == 4),	ylims = v;
-		else				ylims = [];
+		else,				ylims = [];
 		end
 		hAx = gca;
 	else
 		if (nargin == 5),	ylims = v;
-		else				ylims = [];
+		else,				ylims = [];
 		end		
 	end
 
@@ -3103,7 +3143,7 @@ function [dir_spread, obliquity] = obliquity_care(dir_spread, dir_profil, ridgeO
 		temp1 = mod(obliquity,90);
 		temp2 = mod(obliquity,-90);
 		if (abs(temp1) <= abs(temp2)),		obliquity = temp1;
-		else								obliquity = temp2;
+		else,								obliquity = temp2;
 		end
 		dir_spread = dir_profil - obliquity;
 	end
