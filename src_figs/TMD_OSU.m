@@ -1,24 +1,22 @@
 function varargout = TMD_OSU(varargin)
-% Helper window to compute tides with the OSU grids
+% Helper window to compute tides with the OSU grids from within Mirone.
 %
 % This is a rework of the Tidal Model Driver (TMD)
-
-%	Copyright (c) 2004-2018 by J. Luis
+% COPYRIGHT: OREGON STATE UNIVERSITY, 2012
 %
-% 	This program is part of Mirone and is free software; you can redistribute
-% 	it and/or modify it under the terms of the GNU Lesser General Public
-% 	License as published by the Free Software Foundation; either
-% 	version 2.1 of the License, or any later version.
-% 
-% 	This program is distributed in the hope that it will be useful,
-% 	but WITHOUT ANY WARRANTY; without even the implied warranty of
-% 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-% 	Lesser General Public License for more details.
+% NONCOMMERCIAL USE:
+% OSU grants to you (hereafter, User) a royalty-free, nonexclusive right to execute, copy,
+% modify and distribute both the binary and source code solely for academic, research and
+% other similar noncommercial uses, subject to the following conditions:
+% See entire license at http://volkov.oce.orst.edu/tides/COPYRIGHT.pdf
+
+% --------------------------------------------------------------------
+% Mironified by J. Luis
 %
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: $
+% $Id: TMD_OSU.m 10360 2018-04-05 15:44:12Z j $
 
 	if (nargin > 1 && ischar(varargin{1}))
 		gui_CB = str2func(varargin{1});
@@ -57,13 +55,22 @@ function varargout = TMD_OSU_OF(varargin)
 		end
 		[gfile, hfile, ufile, msg] = find_model_files(TMDmodel);
 		if (~isempty(msg))		% A second chance to correct has been given inside find_model_files()
-			errordlg({'And again I am warning you that the Model file has fake data.'; '';msg;''; 'Commiting suicide.'}, 'Error')
+			errordlg({'And again I am warning you that the Model file has fake data.'; '';msg;''; 'Suiciding.'}, 'Error')
 			delete(handles.figure1),		return
 		end
 	catch
 		[gfile, hfile, ufile, msg, TMDmodel] = find_model_files([]);
 		if (~isempty(msg))		% A second chance to correct has been given inside find_model_files()
-			errordlg({'And again I am warning you that the Model file has fake data.'; '';msg;''; 'Commiting suicide.'}, 'Error')
+			w = {'It looks that you do not have the model files. They are not shipped'
+				'with Mirone because they are big, so you will have to get them first'
+				'and come back here when you have them. Please see: '
+				''
+				'   http://volkov.oce.orst.edu/tides/global.html'
+				''
+				'and possibly the file you want is (attention: binary, NOT nc format)'
+				''
+				'   ftp://ftp.oce.orst.edu/dist/tides/Global/tpxo9.tar.gz'};
+			warndlg(w,'Warning','modal')
 			delete(handles.figure1),		return
 		end
 	end
@@ -1182,7 +1189,7 @@ function [h,th_lim,ph_lim] = h_in(cfile,ic)
 	fclose(fid);
 
 % ----------------------------------------------------------------------------------------
-function [ll_lims,hz,mz,iob,dt] =  grd_in(cfile)
+function [ll_lims,hz,mz,iob,dt] = grd_in(cfile)
 %  reads a grid file in matlab
 	fid = fopen(cfile,'r','b');
 	fseek(fid,4,'bof');
