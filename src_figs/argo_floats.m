@@ -41,11 +41,12 @@ function hObject = argo_floats_OF(varargin)
 	move2side(hObject, 'right')
 
 	% Set default start and end dates. Don't really care about being 100% accurate at end date (end of month)
-	t1 = char(datetime('today'));
-	t1(1:2) = '01';
+	mos = {'Jan' 'Feb' 'Mar' 'Apr' 'May' 'Jun' 'Jul' 'Aug' 'Sep' 'Oct' 'Nov' 'Dec'};
+	[yr, mo] = datevec(now);
+	t1 = sprintf('01-%s-%d', mos{mo}, yr);	
 	t2 = t1;
-	if (t2(4) == 'F'),		t2(1:2) = '28';
-	else,					t2(1:2) = '30';
+	if (mo == 2),	t2(1:2) = '28';
+	else,			t2(1:2) = '30';
 	end
 	set(handles.edit_startDate, 'Str', t1)
 	set(handles.edit_endDate,   'Str', t2)
@@ -94,11 +95,12 @@ function push_endDate_CB(hObject, handles)
 % -------------------------------------------------------------------------------------
 function push_OK_CB(hObject, handles)
 % ...
+try
 	t1 = datenum(get(handles.edit_startDate, 'Str'));
-	t2 = datenum(get(handles.edit_startDate, 'Str'));
+	t2 = datenum(get(handles.edit_endDate, 'Str'));
 	
 	if (t1 > t2)
-		errordlg('Start date is posterior to end data. Can''t work, right?', 'Error')
+		errordlg('Start date is posterior to end date. Can''t work, right?', 'Error')
 		return
 	end
 
@@ -107,12 +109,24 @@ function push_OK_CB(hObject, handles)
 		handMir = guidata(handMir.figure1);
 	end
 	x_lim = get(handMir.axes1,'Xlim');	y_lim = get(handMir.axes1,'Ylim');
-	[ncfiles,lat,lon,t] = argofiles(y_lim, x_lim, [t1 t2], 'atlantic');
+	str = get(handles.popup_basins, 'Str');		val = get(handles.popup_basins, 'Val');
+	if (val == 4)
+		warndlg('The "All" basins is not yet implemented. Reverting to atlantic.', 'Warning')
+		val = 1;
+	end
+	basin = str{val};
+	[ncfiles,lat,lon,t] = argofiles(y_lim, x_lim, [t1 t2], basin);
+	if (isempty(lat))
+		warndlg('Something went wrong. No points inside data region', 'Warning'),	return
+	end
 
-	h = line(lon,lat,'LineStyle','none','Marker','o','MarkerFaceColor',[1 0.5490196 0],...
+	h = line('Parent',handMir.axes1,'XData',lon,'YData',lat,'LineStyle','none','Marker','o','MarkerFaceColor',[1 0.5490196 0],...
         'MarkerEdgeColor','w','MarkerSize',7,'Tag','ARGO');
 	setappdata(h, 'time', t),	setappdata(h, 'ncfiles', ncfiles)
 	draw_funs(h,'DrawSymbol')		% Set symbol's uicontextmenu
+catch
+	disp(lasterr)
+end
 
 % -------------------------------------------------------------------------------------
 function [ncfiles,lat,lon,t] = argofiles(latlim,lonlim,tlim,basin)
@@ -187,11 +201,9 @@ function [ncfiles,lat,lon,t] = argofiles(latlim,lonlim,tlim,basin)
 % JL: This function is modified to work in R13 and depends on GMT
 
 	%% Error checks: 
-
-	narginchk(4,4) 
-	assert(isequal(size(latlim),size(lonlim))==1,'Input error: Size of latlim must equal size of lonlim.') 
-	assert(numel(latlim)>1,'latlim and lonlim must have at least two elements.') 
-	assert(ismember(lower(basin),{'pacific','atlantic','indian'})==1,'Unrecognized ocean basin. Must be ''pacific'', ''atlantic'', or ''indian''.') 
+	if (ismember(lower(basin),{'pacific','atlantic','indian'}) == 0)
+		error('Unrecognized ocean basin. Must be ''pacific'', ''atlantic'', or ''indian')
+	end
 
 	%% Format latlim,lonlim: 
 
@@ -237,6 +249,7 @@ function [ncfiles,lat,lon,t] = argofiles(latlim,lonlim,tlim,basin)
 
 	% Initialize arrays that we'll try to populate:  
 	ncfiles = {};	latout = [];	lonout = [];	tout = []; 
+	mos = {'-Jan-'; '-Feb-'; '-Mar-'; '-Apr-'; '-May-'; '-Jun-'; '-Jul-'; '-Aug-'; '-Sep-'; '-Oct-'; '-Nov-'; '-Dec-'};
 
 	for (k = 1:numel(yr))  
 		if (k > 1)				% If this month has already been logged, try the next one
@@ -252,16 +265,23 @@ function [ncfiles,lat,lon,t] = argofiles(latlim,lonlim,tlim,basin)
 			[file_urls,tmp,lat,lon] = strread(s, '%*s %s %s %*s %f %*f %f %*s %*s','delimiter', ',');
 
 			% Remove empty rows:
-			ind = cellfun(@isempty,tmp);
+			ind = cellfun('isempty',tmp);
 			file_urls(ind) = [];
 			lat(ind) = [];
 			lon(ind) = [];
 			tmp(ind) = [];
 
 			% Convert date strings to datenums:
-			t = datenum(tmp,'yyyy-mm-dd');
+			%t = datenum(tmp,'yyyy-mm-dd');
+			% R13 datenum is incredibly bugged so must change the times that come as: '2018-04-01T16:56:20Z'
+			% into the 'dd-mmm-yyyy' format (e.g. '01-Apr-2018'). It all look awfully inefficient
+			tt = char(tmp);
+			ind = str2num(tt(:,6:7));
+			mes = char(mos(ind));
+			t = [tt(:,9:10) mes tt(:,1:4)];
+			t = datenum(t,'dd-mmm-yyyy');
 
-			% Get indices of all files with user-specified polygon and timeframe:
+			% Get indices of all files with user-specified polygon and timeframe
 			[inpoly,onpoly] = inpolygon(lon,lat,lonv,latv);
 			inpoly = inpoly+onpoly;
 			ind = t >= dn(1) & t <= dn(end) & inpoly;
@@ -269,7 +289,7 @@ function [ncfiles,lat,lon,t] = argofiles(latlim,lonlim,tlim,basin)
 			% Log any matching filenames:
 			ncfiles(length(ncfiles)+1:length(ncfiles)+sum(ind),1) = strcat('https://data.nodc.noaa.gov/argo/',file_urls(ind));
 
-			% Write geo coordinate and time arrays only if user wants them:
+			% Write geo coordinate and time arrays only if user wants them
 			if (nargout > 1)
 				latout = [latout;lat(ind)];
 				lonout = [lonout;lon(ind)];
@@ -345,7 +365,6 @@ function [lat,lon,t,P,T,S,pn] = argodata(ncfiles,varargin)
 
 	%% Input checks: 
 
-	narginchk(1,2)
 	if (~isa(ncfiles, 'cell')),		ncfiles = {ncfiles};	end
 
 	% Keep .nc files or automatically delete them? 
@@ -372,7 +391,7 @@ function [lat,lon,t,P,T,S,pn] = argodata(ncfiles,varargin)
 	P = cell(1,ln); 
 	T = cell(1,ln); 
 	S = cell(1,ln); 
-	pn = NaN(ln,1); 
+	pn = zeros(ln,1) * NaN; 
 
 	for k = 1:ln
 		try 
@@ -418,7 +437,7 @@ function h1 = argo_floats_LayoutFcn()
 	h1 = figure('Position',[748 837 230 150],...
 	'Color', get(0,'factoryUicontrolBackgroundColor'),...
 	'MenuBar','none',...
-	'Name','Argo dates',...
+	'Name','Argo floats',...
 	'NumberTitle','off',...
 	'Resize','off',...
 	'HandleVisibility','callback',...
@@ -426,14 +445,14 @@ function h1 = argo_floats_LayoutFcn()
 	'Tag','figure1');
 
 	uicontrol('Parent',h1, 'Position',[10 109.5 191 21],...
-	'Callback',@argoDates_uiCB,...
+	'Callback',@argoFloats_uiCB,...
 	'Style','edit',...
 	'BackgroundColor',[1 1 1],...
 	'TooltipString','Begining of period for the data display (rounded to months)',...
 	'Tag','edit_startDate');
 
 	uicontrol('Parent',h1, 'Position',[200 109.5 21 21],...
-	'Callback',@argoDates_uiCB,...
+	'Callback',@argoFloats_uiCB,...
 	'TooltipString','Call the callendar tool',...
 	'Tag','push_startDate');
 
@@ -441,35 +460,44 @@ function h1 = argo_floats_LayoutFcn()
 	'HorizontalAlignment','left',...
 	'String','Start date',...
 	'Style','text',...
-	'Tag','text2',...
 	'FontSize',9);
 
-	uicontrol('Parent',h1, 'Position',[10 50.5 191 21],...
-	'Callback',@argoDates_uiCB,...
+	uicontrol('Parent',h1, 'Position',[10 60 191 21],...
+	'Callback',@argoFloats_uiCB,...
 	'Style','edit',...
 	'BackgroundColor',[1 1 1],...
 	'TooltipString','End of period for the data display (rounded to months)',...
 	'Tag','edit_endDate');
 
-	uicontrol('Parent',h1, 'Position',[200 50 21 21],...
-	'Callback',@argoDates_uiCB,...
+	uicontrol('Parent',h1, 'Position',[200 60 21 21],...
+	'Callback',@argoFloats_uiCB,...
 	'TooltipString','Call the callendar tool',...
 	'Tag','push_endDate');
 
-	uicontrol('Parent',h1, 'Position',[11.5 71.5 70 16],...
+	uicontrol('Parent',h1, 'Position',[11 81 70 16],...
 	'HorizontalAlignment','left',...
 	'String','End date',...
 	'Style','text',...
-	'Tag','text3',...
 	'FontSize',9);
 
-	uicontrol('Parent',h1, 'Position',[140.5 10.5 81 21],...
-	'Callback',@argoDates_uiCB,...
-	'String','OK',...
-	'Tag','push_OK',...
-	'FontSize',9,...
-	'FontWeight','bold');
+	uicontrol('Parent',h1, 'Position',[11 19 75 19],...
+	'String',{'atlantic' 'pacific' 'indian' 'all'}, ...
+	'Style','popupmenu',...
+	'Value',1,...
+	'Tag','popup_basins');
 
-function argoDates_uiCB(hObject, evt)
+	uicontrol('Parent',h1, 'Position',[11 37 40 16],...
+	'HorizontalAlignment','left',...
+	'String','Basins',...
+	'Style','text');
+
+	uicontrol('Parent',h1, 'Position',[140.5 10.5 81 21],...
+	'Callback',@argoFloats_uiCB,...
+	'String','OK',...
+	'FontSize',9,...
+	'FontWeight','bold',...
+	'Tag','push_OK');
+
+function argoFloats_uiCB(hObject, evt)
 % This function is executed by the callback and than the handles is allways updated.
 	feval([get(hObject,'Tag') '_CB'],hObject, guidata(hObject));
