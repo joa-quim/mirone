@@ -2674,8 +2674,12 @@ function set_symbol_uicontext(h,data)
 
 	if (~this_not)						% non class symbols can be moved
 		ui_edit_polygon(h)				% Set edition functions
-% 		uimenu(cmenuHand, 'Label', 'LOS', 'Callback', 'line_of_sight(gco)');
-		uimenu(cmenuHand, 'Label', 'Move (precise)', 'Callback', {@change_SymbPos,h}, 'Sep', sep);
+		if strcmp(tag,'ARGO')
+			uimenu(cmenuHand, 'Label', 'Plot data', 'Callback', {@ARGO_profile,h});
+		else
+%			uimenu(cmenuHand, 'Label', 'LOS', 'Callback', 'line_of_sight(gco)');
+			uimenu(cmenuHand, 'Label', 'Move (precise)', 'Callback', {@change_SymbPos,h}, 'Sep', sep);
+		end
 	end
 
 	if separator
@@ -2851,7 +2855,29 @@ end
 set(h, 'XData', xp, 'YData', yp);
 
 % -----------------------------------------------------------------------------------------
-function remove_one_from_many(obj,eventdata,h)
+function ARGO_profile(obj,evt,h)
+% Download and display ARGO data associated with the selected buoy
+	pt = get(gca,'CurrentPoint');
+	xp = get(h,'XData');    yp = get(h,'YData');
+	% Find out which marker was picked
+	dif_x = xp - pt(1,1);   dif_y = yp - pt(1,2);
+	dist = sqrt(dif_x.^2 + dif_y.^2);   clear dif_x dif_y;
+	[B,IX] = sort(dist);    i = IX(1);  clear dist IX;
+	ncfiles = getappdata(h, 'ncfiles');
+	thisFile = ncfiles{i};
+	[lat,lon,t,P,T,S,pn] = argo_floats('argodata',thisFile);
+	if (all(isnan(lat))),	return,		end
+	%h=figure;scatter(cell2mat(S(:)),cell2mat(T(:)),30,cell2mat(P(:)),'filled')
+	T = T{1}(1,:);
+	if (all(isnan(T)))
+		warndlg('This instrument has no data.','Warning'),	return
+	end
+	h = figure;	scatter(S{1}(1,:),T,30,P{1}(1,:),'filled')
+	hAx = findobj(h, 'Type', 'axes');
+ 	set(set(get(hAx, 'XLabel'), 'Str','salinity'), set(get(hAx, 'YLabel'), 'Str','temperature'))
+
+% -----------------------------------------------------------------------------------------
+function remove_one_from_many(obj,evt,h)
 %Delete one symbol that belongs to a class (in fact a vertex of a polyline)
 	pt = get(gca,'CurrentPoint');
 	xp = get(h,'XData');    yp = get(h,'YData');
