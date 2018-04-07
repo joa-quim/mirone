@@ -76,7 +76,7 @@ function hObject = mirone_OpeningFcn(varargin)
 %#function c_cpt2cmap c_grdfilter c_grdinfo c_grdlandmask c_grdproject c_grdread c_grdsample
 %#function c_grdtrend c_mapproject c_nearneighbor c_shoredump c_surface popenr diffCenterVar hellinger bingham
 %#function gmtlist_m  mapproject_m grdproject_m nearneighbor_m cpt2cmap grdfilter_m grdgradient_m grdsample_m surface_m
-%#function grdtrend_m trend1d_m grdlandmask_m external_drive
+%#function grdtrend_m trend1d_m grdlandmask_m external_drive chimoce interp_chimoce
 
 	global home_dir;	fsep = filesep;
 	toCompile = false;		% To compile set this one to TRUE
@@ -4152,7 +4152,7 @@ function out = FileSaveSession_CB(handles)
 	IamTINTOL = ~isempty(getappdata(handles.figure1, 'L_UsedByGUIData'));
 	is_defRegion = handles.is_defRegion;
 
-	if (handles.computed_grid || ~exist(grd_name, 'file'))	% Quietly save the grid on disk
+	if (handles.computed_grid || (~exist(grd_name, 'file') && ~isempty(grd_name)))	% Quietly save the grid on disk
 		grd_name = strrep(grd_name, ' ', '_');		pato = fileparts(fname);
 		grd_name = [pato, filesep, grd_name, '.grd'];
 		misc = struct('x_units',[],'y_units',[],'z_units',[],'z_name',[],'desc',[], ...
@@ -4322,7 +4322,7 @@ function FileSaveImgGrdGdal_CB(handles, opt1, opt2, opt3)
 	if ((strcmp(opt2,'img') || strcmp(opt2,'screen')) && ndims(Z) == 2)
 		hdr.Cmap = get(handles.figure1,'ColorMap');
 	end
-	if ( strcmp(driver,'GTiff') )
+	if (strcmp(driver,'GTiff'))
 		gcps = getappdata(handles.figure1,'GCPregImage');
 		if (~isempty(gcps))
 			h = findobj(handles.axes1,'Tag','GCPpolyline');		% If we have them visible, they might have been edited
@@ -4344,7 +4344,11 @@ function FileSaveImgGrdGdal_CB(handles, opt1, opt2, opt3)
 		Z = tmp;		hdr.meta = 'NBITS=1';
 		if (strcmp(get(handles.axes1,'YDir'),'reverse')),	hdr.Flip = 1;	end
 	end
-	if (strcmp(driver(1:3), 'JP2')),		ECWpatch(handles,'jp2');	end		% Make sure that the ECW driver is ready
+	if (isa(Z, 'logical'))
+		Z = uint8(Z);
+		hdr.Cmap = [0 0 0; 1 1 1];		% No matter what it was before
+	end
+	if (strcmp(driver(1:3), 'JP2')),	ECWpatch(handles,'jp2');	end		% Make sure that the ECW driver is ready
 	gdalwrite(Z,hdr)
 
 % --------------------------------------------------------------------
