@@ -182,7 +182,11 @@ function push_compute_CB(hObject, handles)
 	else										% Nope. Doing things on a image 
 		Z = get(handles.hImg,'CData');
 		if (ndims(Z) == 2 && get(handles.radio_onImage,'Val') && ~isa(Z,'logical'))		% Convert to RGB
-			Z = ind2rgb8(Z,get(handles.hMirFig1,'Colormap'));
+			if (strncmp(com, 'sum', 3) && (max(Z(:)) == 1))
+				Z = logical(Z);
+			else
+				Z = ind2rgb8(Z,get(handles.hMirFig1,'Colormap'));
+			end
 		end
 		X = handles.head(1:2);		Y = handles.head(3:4);
 	end
@@ -213,6 +217,9 @@ function push_compute_CB(hObject, handles)
 		else
 			arg1.Z = Z;
 			Z_out = feval(cb,arg1,com);
+			if (size(Z,3) == 3)
+				Z_out = squeeze(Z_out);
+			end
 		end
 	catch
 		errordlg(['It didn''t work: ' lasterr],'Error'),		return
