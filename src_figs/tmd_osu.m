@@ -1,4 +1,4 @@
-function varargout = TMD_OSU(varargin)
+function varargout = tmd_osu(varargin)
 % Helper window to compute tides with the OSU grids from within Mirone.
 %
 % This is a rework of the Tidal Model Driver (TMD)
@@ -441,7 +441,7 @@ function push_saveTide_CB(hObject, handles)
 	[SerialDay, TimeSeries] = push_compute(handles);
 	
 	str1 = {'*.dat;*.DAT', 'Tide file (*.dat,*.DAT)'; '*.*', 'All Files (*.*)'};
-	[FileName,PathName] = put_or_get_file(handles,str1,'Select Tide File name','put', name);
+	[FileName,PathName] = put_or_get_file(handles,str1,'Select Tide File name','put', '.dat');
 	if isequal(FileName,0),			return,		end
 
 	fid = fopen([PathName FileName],'w');
