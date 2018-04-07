@@ -16,7 +16,7 @@ function [H1,handles,home_dir] = mirone_uis(home_dir)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: mirone_uis.m 10295 2018-02-27 00:51:59Z j $
+% $Id: mirone_uis.m 10366 2018-04-07 02:25:56Z j $
 
 %#function pan igrf_options rally_plater plate_calculator ecran snapshot
 %#function about_box parker_stuff euler_stuff grid_calculator tableGUI usgs_recent_seismicity
@@ -29,23 +29,23 @@ function [H1,handles,home_dir] = mirone_uis(home_dir)
 %#function run_cmd line_operations world_is_not_round_enough cartas_militares ice_m magbarcode
 %#function obj_template_detect floodfill meca_studio inpaint_nans globalcmt guess_bin demets_od
 %#function vector_project tintol makescale mesher_helper update_gmt surface_options plot_composer
-%#function isoc_selector
+%#function isoc_selector argo_floats tmd_osu
 
 	% The following test will tell us if we are using the compiled or the ML version
 	try
 		s.s = which('mirone');	% Structs don't shout as unused vars in MLint
-		figW = 671;
+		figW = 711;
 		IamCompiled = false;
 	catch
-		figW = 720;				% Compiled version needs to be longer (TMW doesn't know compatibility)
+		figW = 790;				% Compiled version needs to be longer (TMW doesn't know compatibility)
 		IamCompiled = true;
 	end
 
 	IAmAMac = strncmp(computer,'MAC',3);
-	if (IAmAMac),	figW = 840;		end		% On Macs buttons have different sizes
+	if (IAmAMac),	figW = 900;		end		% On Macs buttons have different sizes
 
 	IAmOctave = (exist('OCTAVE_VERSION','builtin') ~= 0);	% To know if we are running under Octave
-	if (IAmOctave),	figW = 750;		end		% QtHandles has different padding size
+	if (IAmOctave),	figW = 800;		end		% QtHandles has different padding size
 
 	% Attempt to deal with the new stupid high-resolution screens that turn Mirone main fig into a dwarf.
 	dpis = get(0,'ScreenPixelsPerInch');	% screen DPI
@@ -639,6 +639,11 @@ uimenu('Parent',hT,'Callback','load_xyz(guidata(gcbo), [], ''AsMaregraph'')','La
 
 uimenu('Parent',hT,'Callback','aquamoto(guidata(gcbo))','Label','Aquamoto Viewer','Sep','on');
 
+%% --------------------------- Met/Oce -------------------------------
+hMO = uimenu('Parent',H1,'Label','Met/Oce','Tag','Met/Oce');
+uimenu('Parent',hMO,'Callback','argo_floats(gcf)', 'Label','Show ARGO buoys');
+uimenu('Parent',hMO,'Callback','tmd_osu', 'Label','Tidal Model Driver (OSU)');
+
 %% --------------------------- GMT ----------------------------------------
 hGMT = uimenu('Parent',H1,'Label','GMT','Tag','GMT');		hVG(kv) = hGMT;		kv = kv + 1;
 
@@ -747,7 +752,7 @@ end
 %uimenu('Parent',h, 'Callback', 'update_gmt(guidata(gcbo))','Label','Update your GMT5','Sep','on')
 uimenu('Parent',h, 'Callback',['mirone(''FileOpenWebImage_CB'',guidata(gcbo),',...
 	' ''http://www2.clustrmaps.com/stats/maps-clusters/w3.ualg.pt-~jluis-mirone-world.jpg'',''nikles'');'],'Label','See visitors map','Sep','on');
-uimenu('Parent',h, 'Callback','about_box(guidata(gcbo),''Mirone Last modified at 26 Feb 2018'',''2.10dev'')','Label','About','Sep','on');
+uimenu('Parent',h, 'Callback','about_box(guidata(gcbo),''Mirone Last modified at 7 Apr 2018'',''2.10dev'')','Label','About','Sep','on');
 
 %% --------------------------- Build HANDLES and finish things here
 	handles = guihandles(H1);
