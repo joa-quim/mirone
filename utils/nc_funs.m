@@ -34,9 +34,20 @@ function  varargout = nc_funs(opt,varargin)
 			nc_cat(varargin{:})
 		case 'dump'
 			if (nargout),		varargout{1} = nc_dump(varargin{:});
-			else				nc_dump(varargin{:});
+			else,				nc_dump(varargin{:});
 			end
+		case 'read'
+			varargout{1} = nc_read(varargin{:});
 	end
+
+% --------------------------------------------------------------------
+function out = nc_read(fname, var)
+% Similar to ML's ncread()
+	out = [];
+	s   = nc_info(fname);
+	ind = strcmp({s.Dataset.Name}, var);
+	if (isempty(ind)),	return,		end
+	out = nc_varget(fname, s.Dataset(ind).Name);
 
 % --------------------------------------------------------------------
 function fileinfo = nc_info(ncfile)
@@ -177,7 +188,7 @@ dinfo.Name = dimname;
 dinfo.Length = dimlength;
 
 if (dimid == unlimdim),		dinfo.Unlimited = true;
-else						dinfo.Unlimited = false;
+else,						dinfo.Unlimited = false;
 end
 
 % --------------------------------------------------------------------
