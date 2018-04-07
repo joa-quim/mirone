@@ -34,9 +34,20 @@ function  varargout = nc_funs(opt,varargin)
 			nc_cat(varargin{:})
 		case 'dump'
 			if (nargout),		varargout{1} = nc_dump(varargin{:});
-			else				nc_dump(varargin{:});
+			else,				nc_dump(varargin{:});
 			end
+		case 'read'
+			varargout{1} = nc_read(varargin{:});
 	end
+
+% --------------------------------------------------------------------
+function out = nc_read(fname, var)
+% Similar to ML's ncread()
+	out = [];
+	s   = nc_info(fname);
+	ind = strcmp({s.Dataset.Name}, var);
+	if (isempty(ind)),	return,		end
+	out = nc_varget(fname, s.Dataset(ind).Name);
 
 % --------------------------------------------------------------------
 function fileinfo = nc_info(ncfile)
@@ -177,7 +188,7 @@ dinfo.Name = dimname;
 dinfo.Length = dimlength;
 
 if (dimid == unlimdim),		dinfo.Unlimited = true;
-else						dinfo.Unlimited = false;
+else,						dinfo.Unlimited = false;
 end
 
 % --------------------------------------------------------------------
@@ -2475,7 +2486,7 @@ function new_data = nc_addnewrecs ( ncfile, input_buffer, record_variable )
 % In case of an error, an exception is thrown.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% $Id: nc_funs.m 7915 2016-05-31 15:39:37Z j $
+% $Id: nc_funs.m 10365 2018-04-07 01:52:34Z j $
 % $LastChangedDate: 2007-04-23 09:05:21 -0400 (Mon, 23 Apr 2007) $
 % $LastChangedRevision: 2178 $
 % $LastChangedBy: johnevans007 $
@@ -2651,7 +2662,7 @@ function nc_add_recs ( ncfile, new_data, varargin )
 %   johnevans@acm.org
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% $Id: nc_funs.m 7915 2016-05-31 15:39:37Z j $
+% $Id: nc_funs.m 10365 2018-04-07 01:52:34Z j $
 % $LastChangedDate: 2007-08-31 16:30:56 -0400 (Fri, 31 Aug 2007) $
 % $LastChangedRevision: 2309 $
 % $LastChangedBy: johnevans007 $
@@ -2860,7 +2871,7 @@ function theBuffer = nc_getbuffer ( ncfile, varargin )
 %        Each such field contains the data for that variable.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% $Id: nc_funs.m 7915 2016-05-31 15:39:37Z j $
+% $Id: nc_funs.m 10365 2018-04-07 01:52:34Z j $
 % $LastChangedDate: 2007-09-03 12:07:33 -0400 (Mon, 03 Sep 2007) $
 % $LastChangedRevision: 2315 $
 % $LastChangedBy: johnevans007 $
@@ -2997,7 +3008,7 @@ function varsize = nc_varsize(ncfile, varname)
 % NCVAR in the netCDF file NCFILE.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% $Id: nc_funs.m 7915 2016-05-31 15:39:37Z j $
+% $Id: nc_funs.m 10365 2018-04-07 01:52:34Z j $
 % $LastChangedDate: 2007-09-03 12:07:33 -0400 (Mon, 03 Sep 2007) $
 % $LastChangedRevision: 2315 $
 % $LastChangedBy: johnevans007 $
@@ -3025,7 +3036,7 @@ function values = nc_getlast(ncfile, var, num_datums)
 % If NUM_DATUMS is not supplied, the default value is 1.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% $Id: nc_funs.m 7915 2016-05-31 15:39:37Z j $
+% $Id: nc_funs.m 10365 2018-04-07 01:52:34Z j $
 % $LastChangedDate: 2007-09-03 12:07:33 -0400 (Mon, 03 Sep 2007) $
 % $LastChangedRevision: 2315 $
 % $LastChangedBy: johnevans007 $
