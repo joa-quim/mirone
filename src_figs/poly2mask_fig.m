@@ -16,7 +16,7 @@ function varargout = poly2mask_fig(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: poly2mask_fig.m 10336 2018-03-27 23:22:06Z j $
+% $Id: poly2mask_fig.m 10340 2018-03-27 23:46:11Z j $
 
 	if (nargin > 1 && ischar(varargin{1}))
 		gui_CB = str2func(varargin{1});
@@ -236,7 +236,7 @@ function push_OK_CB(hObject, handles)
 				Z = Z .* Zg;
 				zz = grdutils(Z,'-L');		handles.head(5:6) = [zz(1) zz(2)];
 			catch
-				errordlg('You probably changed the grid mask dimensions so you cannot apply it to base grid.', Error')
+				errordlg('You probably changed the grid mask dimensions so you cannot apply it to base grid.', 'Error')
 			end
 		end
 	else
