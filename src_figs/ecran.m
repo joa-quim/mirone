@@ -38,7 +38,7 @@ function varargout = ecran(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: ecran.m 10356 2018-04-05 00:35:06Z j $
+% $Id: ecran.m 10369 2018-04-09 16:38:36Z j $
 
 	% This before-start test is to allow updating magnetic tracks that are used to pick the isochrons
 	% using the convolution method. If no synthetic plot is found, the whole updating issue is simply ignored.
@@ -74,12 +74,22 @@ function varargout = ecran(varargin)
 		end
 	end
 
-	if (freshFig)				% Almost always true
-		hObject = figure('Vis','off');
-		ecran_LayoutFcn(hObject);
+	n_in = nargin;		PV = [];
+	if (freshFig)								% Almost always true
+		if (n_in && isa(varargin{end}, 'cell'))
+			if (strcmp(varargin{end}{1,1}, 'figSize'))
+				hObject = ecran_LayoutFcn(varargin{end}{1,1});
+				varargin{end}(1) = [];
+			else								% PV is line props
+				hObject = ecran_LayoutFcn;
+			end
+		else
+			hObject = ecran_LayoutFcn;
+		end
 		handles = guihandles(hObject);
-		set(hObject,'RendererMode','auto')
 		move2side(hObject,'right');
+
+		handles.Misc_menu = findobj(handles.figure1, 'Label','Misc');
 
 		mir_dirs = getappdata(0,'MIRONE_DIRS');
 		if (~isempty(mir_dirs))
@@ -100,9 +110,8 @@ function varargout = ecran(varargin)
 	end
 
 	% ---- OK, the interface for this function is a mess. In part due to backward compatibility issues
-	n_in = nargin;		PV = [];
 	if (~n_in),   varargin(1) = {[]};   end
-	if (isa(varargin{end}, 'cell'))				% A cell with Property-Values for lines (no testing correctness)
+	if (isa(varargin{end}, 'cell'))					% A cell with Property-Values for lines (no testing correctness)
 		PV = varargin{end};		varargin(end) = [];		n_in = n_in - 1;
 	end
 
@@ -208,6 +217,7 @@ function varargout = ecran(varargin)
 		handles.offset_axes   = '';	% Save info on which axe(s) a coordinate shift was applyied
 		handles.fname_session = '';	% If a session is loaded, save its full file name in here
 		handles.hLegend = [];		% To hold the axes legend handle
+		handles.converted2dates = false;	% To assure that time conversions are done only once.
 	end
 
 	% Choose the default ploting mode
@@ -217,8 +227,8 @@ function varargout = ecran(varargin)
 
 	elseif strcmp(varargin{1},'Image')			% Case when the comes referenced to a grid/image
 		handles.data = [varargin{2}(:) varargin{3}(:) varargin{4}(:)];
-		set(handles.popup_selectSave,'String',{'Save Line on disk';'Distance,Z (data units -> ascii)';
-			'Distance,Z (data units -> binary)';'X,Y,Z (data units -> ascii)';'X,Y,Z (data units -> binary)'});
+		set(handles.popup_selectSave,'String',{'Save Line on disk';'Distance,Z (data units, text)';
+			'Distance,Z (data units, binary)';'X,Y,Z (data units, text)';'X,Y,Z (data units, binary)'});
 		rd = get_distances(handles.data(:,1), handles.data(:,2), handles.geog, handles.measureUnit, handles.ellipsoide);
 		handles.dist = rd;			% This one is by default, so save it in case user wants to save to file
 
@@ -292,6 +302,11 @@ function varargout = ecran(varargin)
   		handles.hLine = sticks(handles.axes1, handles.data(:,1), handles.data(:,2), handles.data(:,3));
 		if (isa(varargin{end}, 'char')),	set(hObject,'Name',varargin{end}),	end
 
+	end
+
+	% This is a new feature, for now only for time conversions to allow display calendar labels
+	if (strcmp(get(handles.check_geog, 'Vis'), 'on'))		% If geog then for sure no time conversions are possible
+		set(handles.Misc_menu, 'Vis', 'off')
 	end
 
 	handles.cmenu_axes = uicontextmenu('Parent',handles.figure1);	% Save it because we need it in "add_uictx_CB()"
@@ -1163,16 +1178,16 @@ function legend_CB(obj, evt, opt)
 % -------------------------------------------------------------------------------
 function check_geog_CB(hObject, handles)
 	if get(hObject,'Value')
-		set(handles.popup_selectPlot,'String',{'Horizontal coordinates (data units)';
-			'Horizontal coordinates (km)';'Horizontal coordinates (NM)'; 'Horizontal coordinates (m)'});
-		set(handles.popup_selectSave,'String',{'Save Line on disk';'Distance,Z (data units -> ascii)';
-			'Distance,Z (data units -> binary)';'Distance,Z (km -> ascii)';'Distance,Z (km -> binary)';
-			'Distance,Z (NM -> ascii)';'Distance,Z (NM -> binary)';
-			'X,Y,Z (data units -> ascii)';'X,Y,Z (data units -> binary)'});
+		set(handles.popup_selectPlot,'String',{'Horizontal coords (data units)';
+			'Horizontal coords (km)';'Horizontal coords (NM)'; 'Horizontal coords (m)'});
+		set(handles.popup_selectSave,'String',{'Save Line on disk';'Distance,Z (data units, text)';
+			'Distance,Z (data units, binary)';'Distance,Z (km, text)';'Distance,Z (km, binary)';
+			'Distance,Z (NM, text)';'Distance,Z (NM, binary)';
+			'X,Y,Z (data units, text)';'X,Y,Z (data units, binary)'});
 	else
-		set(handles.popup_selectPlot,'String','Horizontal coordinates (data units)','Value',1);
-		set(handles.popup_selectSave,'String',{'Save Line on disk';'Distance,Z (data units -> ascii)';
-			'Distance,Z (data units -> binary)';'X,Y,Z (data units -> ascii)';'X,Y,Z (data units -> binary)'},'Value',1);
+		set(handles.popup_selectPlot,'String','Horizontal coords (data units)','Value',1);
+		set(handles.popup_selectSave,'String',{'Save Line on disk';'Distance,Z (data units, text)';
+			'Distance,Z (data units, binary)';'X,Y,Z (data units, text)';'X,Y,Z (data units, binary)'},'Value',1);
 	end
 
 % ---------------------------------------------------------------------------------
@@ -1180,13 +1195,13 @@ function popup_selectPlot_CB(hObject, handles)
 	val = get(hObject,'Value');     str = get(hObject, 'String');
 	geog = true;
 	switch str{val}
-		case 'Horizontal coordinates (data units)'	% Compute the accumulated distance along line in data units
+		case 'Horizontal coords (data units)'	% Compute the accumulated distance along line in data units
 			units = 'u';	geog = false;
-		case 'Horizontal coordinates (km)'			% Compute the accumulated distance along line in km
+		case 'Horizontal coords (km)'			% Compute the accumulated distance along line in km
 			units = 'km';
-		case 'Horizontal coordinates (m)'			% Compute the accumulated distance along line in m
+		case 'Horizontal coords (m)'			% Compute the accumulated distance along line in m
 			units = 'm';
-		case 'Horizontal coordinates (NM)'			% Compute the accumulated distance along line in Nmiles
+		case 'Horizontal coords (NM)'			% Compute the accumulated distance along line in Nmiles
 			units = 'nm';
 	end
 	rd = get_distances(handles.data(:,1), handles.data(:,2), geog, units, handles.ellipsoide);
@@ -1199,42 +1214,42 @@ function popup_selectSave_CB(hObject, handles)
 	val = get(hObject,'Value');     str = get(hObject, 'String');
 	switch str{val}
 		case 'Save Line on disk'
-		case 'Distance,Z (data units -> ascii)'					% Save profile in ascii data units
+		case 'Distance,Z (data units, text)'					% Save profile in ascii data units
 			[FileName,PathName] = put_or_get_file(handles,{'*.dat', 'Dist Z (*.dat)'; '*.*', 'All Files (*.*)'},'Distance,Z (ascii)','put','.dat');
 			if isequal(FileName,0),		set(hObject,'Value',1),		return,		end     % User gave up
 			double2ascii([PathName FileName],[handles.dist handles.data(:,3)],'%f\t%f');
-		case 'Distance,Z (data units -> binary)'				% Save profile in binary data units
+		case 'Distance,Z (data units, binary)'				% Save profile in binary data units
 			[FileName,PathName] = put_or_get_file(handles,{'*.dat', 'Dist Z (*.dat)'; '*.*', 'All Files (*.*)'},'Distance,Z (binary float)','put');
 			if isequal(FileName,0),		set(hObject,'Value',1),		return,		end     % User gave up
 			fid = fopen([PathName FileName],'wb');
 			fwrite(fid,[handles.dist handles.data(:,3)]','float');  fclose(fid);
-		case 'Distance,Z (km -> ascii)'							% Save profile in ascii (km Z) 
+		case 'Distance,Z (km, text)'							% Save profile in ascii (km Z) 
 			[FileName,PathName] = put_or_get_file(handles,{'*.dat', 'Dist Z (*.dat)'; '*.*', 'All Files (*.*)'},'Distance (km),Z (ascii)','put','.dat');
 			if isequal(FileName,0),		set(hObject,'Value',1),		return,		end     % User gave up
 			rd = get_distances(handles.data(:,1), handles.data(:,2), true, 'k', handles.ellipsoide);
 			double2ascii([PathName FileName],[rd handles.data(:,3)],'%f\t%f')
-		case 'Distance,Z (km -> binary)'						% Save profile in binary (km Z) 
+		case 'Distance,Z (km, binary)'						% Save profile in binary (km Z) 
 			[FileName,PathName] = put_or_get_file(handles,{'*.dat', 'Dist Z (*.dat)'; '*.*', 'All Files (*.*)'},'Distance (km),Z (binary float)','put');
 			if isequal(FileName,0),		set(hObject,'Value',1),		return,		end     % User gave up
 			rd = get_distances(handles.data(:,1), handles.data(:,2), true, 'k', handles.ellipsoide);
 			fid = fopen([PathName FileName],'wb');
 			fwrite(fid,[rd handles.data(:,3)]','float');  fclose(fid);
-		case 'Distance,Z (NM -> ascii)'							% Save profile in ascii (NM Z) 
+		case 'Distance,Z (NM, text)'							% Save profile in ascii (NM Z) 
 			[FileName,PathName] = put_or_get_file(handles,{'*.dat', 'Dist Z (*.dat)'; '*.*', 'All Files (*.*)'},'Distance (m),Z (ascii)','put','.dat');
 			if isequal(FileName,0),		set(hObject,'Value',1),		return,		end     % User gave up
 			rd = get_distances(handles.data(:,1), handles.data(:,2), true, 'n', handles.ellipsoide);
 			double2ascii([PathName FileName],[rd handles.data(:,3)],'%f\t%f')
-		case 'Distance,Z (NM -> binary)'						% Save profile in binary (NM Z) 
+		case 'Distance,Z (NM, binary)'						% Save profile in binary (NM Z) 
 			[FileName,PathName] = put_or_get_file(handles,{'*.dat', 'Dist Z (*.dat)'; '*.*', 'All Files (*.*)'},'Distance (m),Z (binary float)','put');
 			if isequal(FileName,0),		set(hObject,'Value',1),		return,		end     % User gave up
 			rd = get_distances(handles.data(:,1), handles.data(:,2), true, 'n', handles.ellipsoide);
 			fid = fopen([PathName FileName],'wb');
 			fwrite(fid,[rd handles.data(:,3)]','float');  fclose(fid);
-		case 'X,Y,Z (data units -> ascii)'						% Save profile in ascii (km Z) 
+		case 'X,Y,Z (data units, text)'						% Save profile in ascii (km Z) 
 			[FileName,PathName] = put_or_get_file(handles,{'*.dat', 'x,y,z (*.dat)';'*.*', 'All Files (*.*)'},'X,Y,Z (ascii)','put','.dat');
 			if isequal(FileName,0),		set(hObject,'Value',1),		return,		end     % User gave up
 			double2ascii([PathName FileName],[handles.data(:,1) handles.data(:,2) handles.data(:,3)],'%f\t%f\t%f')
-		case 'X,Y,Z (data units -> binary)'						% Save profile in binary (km Z) 
+		case 'X,Y,Z (data units, binary)'						% Save profile in binary (km Z) 
 			[FileName,PathName] = put_or_get_file(handles,{'*.dat', 'x,y,z (*.dat)';'*.*', 'All Files (*.*)'},'X,Y,Z (binary float)','put');
 			if isequal(FileName,0),		set(hObject,'Value',1),		return,		end     % User gave up
 			fid = fopen([PathName FileName],'wb');
@@ -2596,6 +2611,50 @@ function filterButt_CB(hObject, handles)
 	end
 
 % --------------------------------------------------------------------------------------------------
+function x_is_time_CB(hObject, evt, opt)
+% ...
+	handles = guidata(hObject);
+	if (isempty(handles.hLine)),	return,		end		% Nothing loaded yet
+	if (handles.converted2dates)
+		warndlg('I already did this once. No repetitions.', 'Warning'),		return
+	end
+	if (strcmp(get(handles.check_geog, 'Vis'), 'on'))
+		errordlg('Nope. This is a spatial dataset, no time conversions.', 'Error'),		return
+	end
+
+	x_min = inf;	x_max = -inf;	
+	if (strcmp(opt, 'DOY'))
+		Y = fix(abs(str2double(inputdlg({'I need to know the year'},'Year',[1 30],{''}))));
+		if (isnan(Y))
+			warndlg('OK, you don''t tell me the year and I won''t show you dates', 'Warning')
+			return
+		end
+		for (k = 1:numel(handles.hLine))
+			DOY = get(handles.hLine(k),'XData');
+			x = datenum(Y, 1, 1) + DOY;
+			set(handles.hLine(k),'XData', x);
+			x_min = min(x_min, min(x));		x_max = max(x_max, max(x));
+		end
+	elseif (strcmp(opt, 'DECY'))		% Here we have yyyy.xxxxx and need to convert to datenum time
+		for (k = 1:numel(handles.hLine))
+			x = get(handles.hLine(k),'XData');
+			Years = fix(x);
+			dn = datenum(Years, 1, 1);
+			t = 365 + (~rem(Years, 4) & rem(Years, 100)) | ~rem(Years, 400);
+			dias = (x - Years) .* t;
+			dn = dn + dias;
+			set(handles.hLine(k),'XData', dn);
+			x_min = min(x_min, min(x));		x_max = max(x_max, max(x));
+		end
+	else
+		return
+	end
+	set(handles.axes1, 'XLim', [x_min x_max])		% R13 needs this
+	add_uictx_CB(handles.add_uictx, handles)
+	handles.converted2dates = true;
+	guidata(handles.figure1, handles)
+
+% --------------------------------------------------------------------------------------------------
 function handles = SetAxesDate(hObject,evt,opt)
 % Set X axes labels when we know for sure X units are datenum days
 	handles = guidata(hObject);
@@ -3273,25 +3332,37 @@ function figure1_ResizeFcn(hObj, evt)
 	set(displayBar, 'Pos', pos)
 	
 % --- Creates and returns a handle to the GUI figure. 
-function ecran_LayoutFcn(h1)
+function h1 = ecran_LayoutFcn(opt)
 
-set(h1, 'Position',[500 400 814 389],...
-	'Color',get(0,'factoryUicontrolBackgroundColor'),...
-	'CloseRequestFcn',@figure1_CloseRequestFcn,...
-	'ResizeFcn',@figure1_ResizeFcn,...
-	'DoubleBuffer','on',...
-	'MenuBar','none',...
-	'Name','XY view',...
-	'NumberTitle','off',...
-	'RendererMode','manual',...
-	'FileName','plotxy',...
-	'Tag','figure1');
+	if (nargin)						% Supposedly the Fig's width and height, but not tested
+		fw = opt(1);	fh = opt(2);
+	else
+		fw = 814;	fh = 389;		% Default width and height
+	end
 
-axes('Parent',h1, 'Units','pixels', 'Position',[40 369 771 21], 'Vis','off', 'Tag','axes2');
+	h1 = figure('Position',[500 400 fw fh],...
+		'Color',get(0,'factoryUicontrolBackgroundColor'),...
+		'CloseRequestFcn',@figure1_CloseRequestFcn,...
+		'ResizeFcn',@figure1_ResizeFcn,...
+		'DoubleBuffer','on',...
+		'MenuBar','none',...
+		'Name','XY view',...
+		'NumberTitle','off',...
+		'RendererMode','auto',...
+		'FileName','plotxy',...
+		'Vis','off',...
+		'Tag','figure1');
 
-axes('Parent',h1, 'Units','pixels', 'Position',[40 48 771 321], 'UserData','XY', 'NextPlot','Add', 'Tag','axes1');
+	x0  = 40;	y0 = 48;
+	w   = fw - x0 - 3;			% Dafault = 771
+	a2h = 21;
+	a1h = fh - y0 - a2h + 1;	% Default = 321
+	a2y0 = fh - a2h + 1;		% Default = 369
 
-uicontrol('Parent',h1, 'Position',[40 5 161 23],...
+axes('Parent',h1, 'Units','pixels', 'Position',[x0 a2y0 w a2h], 'Vis','off', 'Tag','axes2');
+axes('Parent',h1, 'Units','pixels', 'Position',[x0 y0   w a1h], 'UserData','XY', 'NextPlot','Add', 'Tag','axes1');
+
+uicontrol('Parent',h1, 'Position',[40 2 161 23],...
 'Callback',@ecran_uiCB,...
 'String','Geographical coordinates',...
 'Tooltip',sprintf(['Check this if your data is in geographical coordinates.\n' ...
@@ -3299,19 +3370,19 @@ uicontrol('Parent',h1, 'Position',[40 5 161 23],...
 'Style','checkbox',...
 'Tag','check_geog');
 
-uicontrol('Parent',h1, 'Position',[360 5 200 23],...
+uicontrol('Parent',h1, 'Position',[360 2 160 23],...
 'BackgroundColor',[1 1 1],...
 'Callback',@ecran_uiCB,...
-'String','Horizontal coordinates (data units)', ...
+'String','Horizontal coords (data units)', ...
 'Style','popupmenu',...
 'Value',1,...
 'Tooltip', 'Select horizontal display coordinates', ...
 'Tag','popup_selectPlot');
 
-uicontrol('Parent',h1, 'Position',[610 5 200 23],...
+uicontrol('Parent',h1, 'Position',[fw-150-2 2 150 23],...
 'BackgroundColor',[1 1 1],...
 'Callback',@ecran_uiCB,...
-'String',{'Save Line on disk'; 'distance Z (data units -> ascii)'; 'distance Z (data units -> binary)'; 'distance Z (km -> ascii)'; 'distance Z (km -> binary)'; 'distance Z (NM -> ascii)'; 'distance Z (NM -> binary)'; 'X Y Z (data units -> ascii)'; 'X Y Z (data units -> binary)' },...
+'String',{'Save Line on disk'; 'distance Z (data units, text)'; 'distance Z (data units, binary)'; 'distance Z (km, text)'; 'distance Z (km, binary)'; 'distance Z (NM, text)'; 'distance Z (NM, binary)'; 'X Y Z (data units, text)'; 'X Y Z (data units, binary)' },...
 'Style','popupmenu',...
 'Value',1,...
 'Tooltip', 'Choose how to save the line', ...
@@ -3361,6 +3432,10 @@ uimenu('Parent',h17, 'Callback','escorrega(''vert'',gcf)', 'Label','Show Vertica
 
 % Here we provide a hiden entry to activate functions of interest to tide analysis (porta do cavalo)
 uimenu('Parent',h17,'Callback',@ecran_uiCB,'Vis','off','Tag','add_uictx');
+
+h21 = uimenu('Parent',h1, 'Label','Misc');
+uimenu('Parent',h21, 'Callback',{@ecran_uiCB, 'DOY'}, 'Label','X axis is decimal Day-Of-Year', 'Tag','x_is_time');
+uimenu('Parent',h21, 'Callback',{@ecran_uiCB, 'DECY'},'Label','X axis is decimal year', 'Tag','x_is_time');
 
 uicontrol('Parent',h1, 'Position',[85 8 51 22],...
 'BackgroundColor',[1 1 1],...
@@ -3451,9 +3526,9 @@ uicontrol('Parent',h1, 'Position',[780 8 26 21],...
 'Tag','push_ageFit',...
 'Vis','off');
 
-function ecran_uiCB(hObject, eventdata)
+function ecran_uiCB(hObject, evt, varargin)
 % This function is executed by the callback and than the handles is allways updated.
-	feval([get(hObject,'Tag') '_CB'], hObject, guidata(hObject));
+	feval([get(hObject,'Tag') '_CB'], hObject, guidata(hObject), varargin{:});
 
 %============================================================================
 function varargout = ecran_trend1d(varargin)
