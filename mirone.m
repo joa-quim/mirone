@@ -20,7 +20,7 @@ function varargout = mirone(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: mirone.m 10368 2018-04-07 20:01:06Z j $
+% $Id: mirone.m 10370 2018-04-09 16:42:37Z j $
 
 	if (nargin > 1 && ischar(varargin{1}))
 		if (~isempty(strfind(varargin{1},':')) || ~isempty(strfind(varargin{1},filesep)) )	% A file name
@@ -4364,15 +4364,16 @@ function GridToolsHistogram_CB(handles, opt)
 	end
 	binwidth = (z_max - z_min) / 20;	% Default to 20 bins
 	resp = inputdlg({'Enter Bin Width (default is 20 bins)'},'Histogram',[1 38],{sprintf('%g',binwidth)});	pause(0.01);
-	if (isempty(resp) || isnan(abs(str2double(resp{1})))),	set(handles.figure1,'pointer','arrow'),		return,		end
-	n = round( (z_max - z_min) / resp );
-	[n,xout] = histo_m('hist',Z(:),n,[z_min z_max]);
-	h = mirone;							% Create a new Mirone figure
-	mirone('FileNewBgFrame_CB', guidata(h), [xout(1) xout(end) 0 max(n) 0], [600 600],'Grid Histogram');
-	histo_m('bar',xout,n,'hist');
-	hand2 = guidata(h);
-	set(hand2.axes1, 'XLim',[xout(1) xout(end)], 'YLim', [0 max(n)])	% Have to because histo_m had screwed them
-	set(handles.figure1,'pointer','arrow')
+	bw = abs(str2double(resp{1}));
+	if (isempty(resp) || isnan(bw)),	return,		end
+	n = round((z_max - z_min) / bw);
+	hFig = ecran;				% Create a new Ecran Fig to hold the histogram
+	delete(findobj(hFig, 'Tag', 'isocs_but'))	% Others uis should be removed too
+	delete(findobj(hFig, 'Label', 'Misc'))
+	set(hFig, 'Name', 'Grid Histogram')
+	hP = histo_m('hist', Z(:), n,[z_min z_max], 'hands');
+	set(hP, 'Tag', 'Histogram')	% To be used by write_gmt_script
+	%setappdata(hP, 'xy', Z(:))		% Store it for use in write_gmt_script. May be too big for grids
 
 % --------------------------------------------------------------------
 function GridToolsGridMask_CB(handles)
