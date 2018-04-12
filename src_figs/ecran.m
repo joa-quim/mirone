@@ -13,7 +13,7 @@ function varargout = ecran(varargin)
 % ecran(x, y [,'title'])
 % ecran([...,]x, y [,'title'][,PV])			% Where PV is a Mx2 cell array with Property name/values to assign to line handle
 %
-% Experimentally, x,y can be matrices or vector (x) and matrix (y) where the y columns hold different lines
+% x,y can be matrices or vector (x) and matrix (y) where the y columns hold different lines
 %
 % Function FileOpen_CB() provides several special cases. Namely TIME column input
 % and other goodies such reference one line to another. See its help
@@ -23,7 +23,7 @@ function varargout = ecran(varargin)
 
 % WARNING: WHEN COMPILING NEEDS TO INCLUDE filter_butter.m & legend_.m
 %
-%	Copyright (c) 2004-2017 by J. Luis
+%	Copyright (c) 2004-2018 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -353,9 +353,7 @@ function varargout = ecran(varargin)
 	set(hObject,'Vis','on');
 	if (~is_CMOP && ~isempty(handles.hLine))
 		draw_funs([], 'set_line_uicontext_XY', handles.hLine, 'main')		% Set lines's uicontextmenu
-		for (k = 1:numel(handles.hLine))
-			finish_line_uictx(handles.hLine(k))		% Assign the callbacks to menus only declared by draw_funs()
-		end
+		finish_line_uictx(handles.hLine)		% Assign the callbacks to menus only declared by draw_funs()
 	end
 	if (nargout),	varargout{1} = hObject;		end
 
@@ -475,19 +473,21 @@ function hide_uimenu(obj,evt, hFig)
 % --------------------------------------------------------------------------------------------------
 function finish_line_uictx(hLine)
 % draw_funs/set_line_uicontext_XY() declared these menus but did not assign Callbacks to them. Do it now
-	uictx = get(hLine, 'UIContextMenu');
-	h = findobj(uictx, 'Label', 'X origin only');
-	set(h, 'Callback', {@shift_orig, 'X'})
-	h = findobj(uictx, 'Label', 'Y origin only');
-	set(h, 'Callback', {@shift_orig, 'Y'})
-	h = findobj(uictx, 'Label', 'XY origin');
-	set(h, 'Callback', {@shift_orig, 'XY'})
-	h = findobj(uictx, 'Label', 'Filter Outliers');
-	set(h, 'Callback', {@outliers_clean, hLine})
-	h = findobj(uictx, 'Label', 'Show histogram');
-	set(h, 'Callback', {@do_histogram, hLine, 'Hist'})
-	h = findobj(uictx, 'Label', 'Show Bar graph');
-	set(h, 'Callback', {@do_histogram, hLine, 'Bar'})
+	for (k = 1:numel(hLine))
+		uictx = get(hLine(k), 'UIContextMenu');
+		h = findobj(uictx, 'Label', 'X origin only');
+		set(h, 'Callback', {@shift_orig, 'X'})
+		h = findobj(uictx, 'Label', 'Y origin only');
+		set(h, 'Callback', {@shift_orig, 'Y'})
+		h = findobj(uictx, 'Label', 'XY origin');
+		set(h, 'Callback', {@shift_orig, 'XY'})
+		h = findobj(uictx, 'Label', 'Filter Outliers');
+		set(h, 'Callback', {@outliers_clean, hLine(k)})
+		h = findobj(uictx, 'Label', 'Show histogram');
+		set(h, 'Callback', {@do_histogram, hLine(k), 'Hist'})
+		h = findobj(uictx, 'Label', 'Show Bar graph');
+		set(h, 'Callback', {@do_histogram, hLine(k), 'Bar'})
+	end
 
 % --------------------------------------------------------------------------------------------------
 function shift_orig(obj, evt, eixo, hLine, pt_x, pt_y, opt)
@@ -1297,7 +1297,10 @@ function FileOpen_CB(hObject, handles)
 	isDateNum = false;		got_toReference = false;
 	fid = fopen(fname);
 	H1 = fgetl(fid);
-	if (~isempty(H1) && H1(1) == '#')
+	if (isempty(H1))
+		errordlg('this file is empty. Bye.','Error'),	return
+	end
+	if (H1(1) == '#')
 		ind = strfind(H1, '# DATENUM');		ind_mareg = strfind(H1, '# MAREG');
 
 		if (isempty(ind) && isempty(ind_mareg))		% Just a ignorant comment line
@@ -1371,11 +1374,22 @@ function FileOpen_CB(hObject, handles)
 			out = [1 2];						% To simulate the output of select_cols
 			isDateNum = true;
 		end
+	else
+		fclose(fid);
 	end
 
 	if (~isDateNum)				% Means data was not yet read
-		[data, lix, lix, lix, out] = text_read(fname);
-		if (isempty(data) || size(data,2) == 1)
+		[bin, n_column, multi_seg, n_headers] = guess_file(fname);
+		if (bin)
+			errordlg('Reading binary files is not yet implemented here', 'Error'),		return
+		end
+		if (multi_seg)
+			[data, lix, lix, lix, out] = text_read(fname,NaN,n_headers,'>');
+		else
+			[data, lix, lix, lix, out] = text_read(fname,NaN,n_headers);
+		end
+		%[data, lix, lix, lix, out] = text_read(fname);
+		if (~isa(data, 'cell') && (isempty(data) || size(data,2) == 1))
 			errordlg('File doesn''t have any recognized nymeric data (Quiting) or one column only.','Error');
 			return
 		end
@@ -1383,7 +1397,7 @@ function FileOpen_CB(hObject, handles)
 		% Check if it exists a comment line of the type # TO_REFERENCE OFFSET=XX SCALE=XX
 		% If yes, scale X coords as (X - X(1)) * scale + offset
 		% Use this, for example, when importing data where X is distance (e.g. cm) and want to convert to time
-		if (~isempty(out.headers))
+		if (~isempty(out) && ~isempty(out.headers))
 			got_it_at_row = 0;
 			for (k = 1:numel(out.headers))
 				ind = strfind(out.headers{k}, 'TO_REFERENCE');
@@ -1416,8 +1430,11 @@ function FileOpen_CB(hObject, handles)
 		end
 		% -----------------------------------------------------------------------------------------------------
 
-		if (size(data,2) > 2)			% If file has more than 2 cols, call the col selection tool
-			out = select_cols(data,'xy',fname,1000);
+		if (multi_seg),		data_ = data{1};
+		else,				data_ = data;
+		end
+		if (size(data_, 2) > 2)			% If file has more than 2 cols, call the col selection tool
+			out = select_cols(data_, 'xy', fname, 1000);	% If multi-seg only first one is used.
 			if (isempty(out)),		return,		end
 		else
 			out = [1 2];
@@ -1425,6 +1442,7 @@ function FileOpen_CB(hObject, handles)
 	end
 
 	if (numel(out) == 4)				% x,y,z but first two are to compute distance
+		if (multi_seg),		data = data{1};		end		% Only first first segment is used
 		geog = aux_funs('guessGeog', [min(data(:,1)) max(data(:,1)) min(data(:,2)) max(data(:,2))]);
 		units = handles.measureUnit;
 		if (geog),	units = 'k';	end
@@ -1432,7 +1450,14 @@ function FileOpen_CB(hObject, handles)
 		handles.dist = rd;				% Save it in case user wants to save it to file
 		handles.hLine = line('Parent',handles.axes1,'XData',rd, 'YData',data(:,out(3)));
 	else
-		handles.hLine = line('Parent',handles.axes1,'XData',data(:,out(1)),'YData',data(:,out(2)));
+		if (multi_seg)
+			handles.hLine = zeros(numel(data),1);
+			for (k = 1:numel(data))
+				handles.hLine(k) = line('Parent',handles.axes1,'XData',data{k}(:,out(1)),'YData',data{k}(:,out(2)));
+			end
+		else
+			handles.hLine = line('Parent',handles.axes1,'XData',data(:,out(1)),'YData',data(:,out(2)));
+		end
 	end
 
 	draw_funs([], 'set_line_uicontext_XY', handles.hLine, 'main')		% Set lines's uicontextmenu
@@ -1440,17 +1465,12 @@ function FileOpen_CB(hObject, handles)
 
 	set(handles.figure1,'Name',fname)
 	axis(handles.axes1,'tight');
-	handles.n_plot = handles.n_plot + 1;
-	if (handles.n_plot > 1)
-		c_order = get(handles.axes1,'ColorOrder');
-		if (handles.n_plot <= 7),		nc = handles.n_plot;
-		else,							nc = rem(handles.n_plot,7);     % recycle through the default colors
-		end
-		cor = c_order(nc,:);
-	else
-		cor = [0 0 1];					% The default blue
+	c_order = get(handles.axes1,'ColorOrder');
+	for (k = 1:numel(handles.hLine))
+		nc = rem(handles.n_plot+k,7);     % recycle through the default colors
+		set(handles.hLine(k),'Color', c_order(nc,:))
 	end
-	set(handles.hLine,'Color',cor)
+	handles.n_plot = handles.n_plot + numel(handles.hLine);
 
 	% ...
 	handles.hLineToRef = [];			% Initialize it
@@ -1462,7 +1482,11 @@ function FileOpen_CB(hObject, handles)
 		set(h, 'Click',@pick_onLines2reference, 'Tooltip','Pick points alternately on the two lines to later reference')
 	end
 
-	handles.data = [data(:,out(1)) data(:,out(2))];     % NOTE, if handles.n_plot > 1 only last data is saved
+	if (multi_seg)
+		handles.data = [data{1}(:,out(1)) data{1}(:,out(2))];	% NOTE, Only this line is saveable. MUST REMOVE THIS OLD SHIT
+	else
+		handles.data = [data(:,out(1)) data(:,out(2))];			% NOTE, if handles.n_plot > 1 only last data is saved
+	end
 	guidata(hObject, handles);
 	if (isDateNum)
 		add_uictx_CB(handles.add_uictx, handles)
