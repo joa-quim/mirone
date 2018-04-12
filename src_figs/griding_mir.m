@@ -18,7 +18,7 @@ function varargout = griding_mir(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: griding_mir.m 10351 2018-03-30 22:27:41Z j $
+% $Id: griding_mir.m 10371 2018-04-12 13:01:44Z j $
 
 	if (nargin > 1 && ischar(varargin{1}))
 		gui_CB = str2func(varargin{1});
@@ -282,7 +282,6 @@ function edit_InputFile_CB(hObject, handles, opt)
 		return
 	end
 
-	handles.command{3} = xx;
 	[bin, n_column] = guess_file(xx);
 	if (isempty(bin))
 		errordlg(['Error reading file (probably empty)' xx],'Error'),	return
@@ -304,6 +303,10 @@ function edit_InputFile_CB(hObject, handles, opt)
 	end
 	handles.opt_b = opt_b;
 
+	% Try to deal with fck spaces
+	if (~isempty(strfind(xx, ' '))),		xx = ['"' xx '"'];		end
+	handles.command{3} = xx;
+	
 	d_info = gmtmex(['gmtinfo -C ' xx opt_b]);
 	x_min = d_info.data(1);		x_max = d_info.data(2);
 	y_min = d_info.data(3);		y_max = d_info.data(4);
@@ -553,11 +556,16 @@ function push_OK_CB(hObject, handles)
 
 	tmp = horzcat(handles.command{1:end});
 	[tok,rem] = strtok(tmp);
-	out = cell(1,1);		% Probably too short but will shut up Lint
+	out = cell(3,1);		% Maybe too short but will shut up Lint
 	out{1} = tok;
 	i = 2;
 	while (numel(rem) > 1)
 		[tok, rem] = strtok(rem);
+		if (tok(1) == '"')				% Fck spaces
+			ind = strfind(rem, '"');	% Find closing quote
+			tok = [tok rem(1:ind(1))];	% Build the name
+			rem(1:ind(1)+1) = [];		% Finally, remove the trailing chunk from rem
+		end
 		out{i} = tok;		i = i + 1;
 	end
 
