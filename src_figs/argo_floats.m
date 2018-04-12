@@ -415,8 +415,14 @@ function [lat,lon,t,P,T,S,pn] = argodata(ncfiles,varargin)
 			x = nc_funs('read', filename,'juld');
 			t(k) = datenum(1950,1,x(1));
 			P{k} = nc_funs('read', filename,'pres_adjusted');
-			T{k} = nc_funs('read', filename,'temp_adjusted');
-			S{k} = nc_funs('read', filename,'psal_adjusted');
+			if (~all(isnan(P{k}(1,:))))
+				T{k} = nc_funs('read', filename,'temp_adjusted');
+				S{k} = nc_funs('read', filename,'psal_adjusted');
+			else					% Then try these
+				P{k} = nc_funs('read', filename,'pres');
+				T{k} = nc_funs('read', filename,'temp');
+				S{k} = nc_funs('read', filename,'psal');
+			end
 			pn(k) = str2double(nc_funs('read', filename,'platform_number')');
 		catch
 			disp(['Error accessing ',ncfiles{k}, '   ', lasterr])
