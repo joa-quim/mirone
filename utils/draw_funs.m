@@ -25,7 +25,7 @@ function varargout = draw_funs(hand, varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: draw_funs.m 10364 2018-04-07 01:49:56Z j $
+% $Id: draw_funs.m 10375 2018-04-13 01:00:21Z j $
 
 % A bit of strange tests but they are necessary for the cases when we use the new feval(fun,varargin{:}) 
 opt = varargin{1};		% function name to evaluate (new) or keyword to select one (old form)
@@ -2855,27 +2855,55 @@ end
 set(h, 'XData', xp, 'YData', yp);
 
 % -----------------------------------------------------------------------------------------
-function ARGO_profile(obj,evt,h)
+function ARGO_profile(obj,evt,hFig)
 % Download and display ARGO data associated with the selected buoy
 	pt = get(gca,'CurrentPoint');
-	xp = get(h,'XData');    yp = get(h,'YData');
+	xp = get(hFig,'XData');    yp = get(hFig,'YData');
 	% Find out which marker was picked
 	dif_x = xp - pt(1,1);   dif_y = yp - pt(1,2);
 	dist = sqrt(dif_x.^2 + dif_y.^2);   clear dif_x dif_y;
 	[B,IX] = sort(dist);    i = IX(1);  clear dist IX;
-	ncfiles = getappdata(h, 'ncfiles');
+	ncfiles = getappdata(hFig, 'ncfiles');
 	thisFile = ncfiles{i};
 	[lat,lon,t,P,T,S,pn] = argo_floats('argodata',thisFile);
 	if (all(isnan(lat))),	return,		end
-	%h=figure;scatter(cell2mat(S(:)),cell2mat(T(:)),30,cell2mat(P(:)),'filled')
 	T = T{1}(1,:);
 	if (all(isnan(T)))
 		warndlg('This instrument has no data.','Warning'),	return
 	end
-	h = figure;	scatter(S{1}(1,:),T,30,P{1}(1,:),'filled')
-	hAx = findobj(h, 'Type', 'axes');
- 	set(set(get(hAx, 'XLabel'), 'Str','salinity'), set(get(hAx, 'YLabel'), 'Str','temperature'))
+% 	h = figure;	scatter(S{1}(1,:),T,30,P{1}(1,:),'filled')
+	s.figSize = [350 500];
+	%s.fhandle = {'scatter', {S{1}(1,:),T,30,P{1}(1,:),'filled'}};
+	hFig = ecran({s});
+	hS = scatter(S{1}(1,:),T,30,P{1}(1,:),'filled');
+	handEcran = guidata(hFig);
+	handEcran.hLine = hS;
+	guidata(hFig, handEcran)
+	hAx = findobj(hFig, 'Type', 'axes', 'Tag', 'axes1');
+ 	set(get(hAx, 'XLabel'), 'Str','Salinity'),		set(get(hAx, 'YLabel'), 'Str','Temperature')
+	set(hFig, 'Name', 'TS diagram')
+	%tightfig(hFig);
 
+	% The PT fig
+	hFig = ecran({s});
+	hS = scatter(T,P{1}(1,:),30,'filled');
+	handEcran = guidata(hFig);		handEcran.hLine = hS;	guidata(hFig, handEcran)
+	hAx = findobj(hFig, 'Type', 'axes', 'Tag', 'axes1');
+ 	set(get(hAx, 'XLabel'), 'Str','Temperature'),	set(get(hAx, 'YLabel'), 'Str','Pressure (decibar)')
+	set(hFig, 'Name', 'PT diagram'),	set(hAx, 'YDir', 'reverse')
+	%tightfig(hFig);
+	pos = get(hFig, 'Pos');		pos(2) = pos(2) - (2-1)*30;		set(hFig, 'Pos', pos);
+
+	% The PS fig
+	hFig = ecran({s});
+	hS = scatter(S{1}(1,:),P{1}(1,:),30,'filled');
+	handEcran = guidata(hFig);		handEcran.hLine = hS;	guidata(hFig, handEcran)
+	hAx = findobj(hFig, 'Type', 'axes', 'Tag', 'axes1');
+ 	set(get(hAx, 'XLabel'), 'Str','Salinity'),		set(get(hAx, 'YLabel'), 'Str','Pressure (decibar)')
+	set(hFig, 'Name', 'PS diagram'),	set(hAx, 'YDir', 'reverse')
+	%tightfig(hFig)
+	pos = get(hFig, 'Pos');		pos(2) = pos(2) - (3-1)*30;		set(hFig, 'Pos', pos);
+	
 % -----------------------------------------------------------------------------------------
 function remove_one_from_many(obj,evt,h)
 %Delete one symbol that belongs to a class (in fact a vertex of a polyline)
@@ -3124,7 +3152,7 @@ function save_GMT_DB_asc(h, fname)
 		if (isempty(getappdata(h(k), 'edited'))),	continue,	end		% Skip because it was not modified
 		GSHHS_str = getappdata(h(k),'GSHHS_str');
 		if (k == 1 && ~isempty(GSHHS_str))		% Write back the magic string that allows us to recognize these type of files
-			fprintf(fid,'# $Id: draw_funs.m 10364 2018-04-07 01:49:56Z j $\n#\n%s\n#\n', GSHHS_str);
+			fprintf(fid,'# $Id: draw_funs.m 10375 2018-04-13 01:00:21Z j $\n#\n%s\n#\n', GSHHS_str);
 		end
 		hdr = getappdata(h(k), 'LineInfo');
 		x = get(h(k), 'XData');			y = get(h(k), 'YData');
