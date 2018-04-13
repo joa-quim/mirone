@@ -12,6 +12,8 @@ function varargout = ecran(varargin)
 % ecran(hMirFig, x, y [,'title'])
 % ecran(x, y [,'title'])
 % ecran([...,]x, y [,'title'][,PV])			% Where PV is a Mx2 cell array with Property name/values to assign to line handle
+%											% First PV element may also contain a struct with axes size and a function handle
+%											% plus its arguments but this has failed in compiled version for the 'scatter' ex.
 %
 % x,y can be matrices or vector (x) and matrix (y) where the y columns hold different lines
 %
@@ -74,12 +76,22 @@ function varargout = ecran(varargin)
 		end
 	end
 
-	n_in = nargin;		PV = [];
+	n_in = nargin;		PV = [];	call_fhandle = [];
 	if (freshFig)								% Almost always true
 		if (n_in && isa(varargin{end}, 'cell'))
-			if (strcmp(varargin{end}{1,1}, 'figSize'))
-				hObject = ecran_LayoutFcn(varargin{end}{1,1});
+			if (isa(varargin{end}{1}, 'struct'))
+				if (isfield(varargin{end}{1}, 'figSize'))
+					hObject = ecran_LayoutFcn(varargin{end}{1}.figSize);
+				end
+				if (isfield(varargin{end}{1}, 'fhandle'))
+					% Here the fhandles must be a cell with 2 elements. First containing the function name
+					% to be run and the second element another cell array with its arguments.
+					call_fhandle = varargin{end}{1}.fhandle;	% The function name
+				end
 				varargin{end}(1) = [];
+				if (isempty(varargin{end}))		% It might not be empty if PV line props are present
+					varargin(end) = [];		n_in = n_in - 1;
+				end
 			else								% PV is line props
 				hObject = ecran_LayoutFcn;
 			end
@@ -224,6 +236,13 @@ function varargout = ecran(varargin)
 	if isempty(varargin{1})			% When the file will be read latter
 		set([handles.check_geog handles.popup_selectPlot handles.popup_selectSave], 'Visible','off')	% Hide those
 		handles.show_popups = false;
+
+		% See if we have some function handle to execute (e.g. 'scatter' like the ARGO plots)
+		if (~isempty(call_fhandle))
+			fh = str2func(call_fhandle{1});		% This failed with scatter. The reason is obscure.
+			o = feval(fh,call_fhandle{2}{:});
+			handles.hLine = o;
+		end
 
 	elseif strcmp(varargin{1},'Image')			% Case when the comes referenced to a grid/image
 		handles.data = [varargin{2}(:) varargin{3}(:) varargin{4}(:)];
@@ -3059,7 +3078,7 @@ function [anoma, age_line, obliquity] = magmodel(hAxesMagBar, reversalsFile, dxy
 	if (any(ind))			% Many files have gaps in bathymetry. Reinvent it
 		profileDepth(ind) = interp1(distAlongProfile(~ind), profileDepth(~ind), distAlongProfile(ind));
 	end
-	
+
 	nBlocks = size(BA,1);
 	nPts = numel(distAlongProfile);		% Number of points
 	stat_z = zeros(nPts,1) + zObs;		% Depth of the points where the magnetic anomaly will be compute
