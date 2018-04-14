@@ -1250,8 +1250,8 @@ function [head , slope, intercept, base, is_modis, is_linear, is_log, att, opt_R
 		end
 	end
 
-	if (~is_HDFEOS && ~isempty(att.Metadata) && ...
-			~isempty(search_scaleOffset(att.Metadata, 'MODIS')) || ~isempty(search_scaleOffset(att.Metadata, 'SeaWiFS')))
+	if (~is_HDFEOS && ~isempty(att.Metadata) && ~isempty(search_scaleOffset(att.Metadata, 'MODIS')) || ...
+			~isempty(search_scaleOffset(att.Metadata, 'VIIRS')) || ~isempty(search_scaleOffset(att.Metadata, 'SeaWiFS')))
 		modis_or_seawifs = true;
 	end
 
@@ -2501,13 +2501,13 @@ function varargout = l2_choices(varargin)
 % -----------------------------------------------------------------------
 function radio_sensor_CB(hObject, handles)
 	if (~get(hObject,'Val')),		set(hObject,'Val',1),	return,		end
-	set([handles.radio_interpMin handles.radio_interpNear handles.check_landMask],'Enable','off')
+	set([handles.radio_interpMin handles.radio_interpNear],'Enable','off')
 	set(handles.radio_georef,'Val',0)
 
 % -----------------------------------------------------------------------
 function radio_georef_CB(hObject, handles)
 	if (~get(hObject,'Val')),		set(hObject,'Val',1),	return,		end
-	set([handles.radio_interpMin handles.radio_interpNear handles.check_landMask],'Enable','on')
+	set([handles.radio_interpMin handles.radio_interpNear],'Enable','on')
 	set(handles.radio_sensor,'Val',0)
 
 % -----------------------------------------------------------------------
