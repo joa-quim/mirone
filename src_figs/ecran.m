@@ -40,7 +40,7 @@ function varargout = ecran(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: ecran.m 10376 2018-04-13 01:08:33Z j $
+% $Id: ecran.m 10379 2018-04-17 01:40:23Z j $
 
 	% This before-start test is to allow updating magnetic tracks that are used to pick the isochrons
 	% using the convolution method. If no synthetic plot is found, the whole updating issue is simply ignored.
@@ -1955,6 +1955,80 @@ function Analysis2derivative_CB(hObject, handles)
 	[xx, yy] = get_inside_rect(handles);
 	[v, a] = diffCenterVar(xx, yy);
 	recall_me(handles, xx, a, 'Second derivative')		% New Fig
+
+% --------------------------------------------------------------------
+function AnalysisSVP_CB(hObject, handles)
+% Compute the SVP of this ARGO data
+% Code from FEX:35916 Chad Greene (BSD license)
+% adapted from from UNESCO (1983): Algorithms for computation of fundamental 
+% properties of seawater. UNESCO technical papers in marine science 44:1-55.
+% Employs CHEN AND MILLERO 1977, JASA, 62, 1129-1135
+
+	pt = double(getappdata(handles.figure1, 'location'));		% [lon lat]
+	T = double(getappdata(handles.figure1, 'Temp'));
+	S = double(getappdata(handles.figure1, 'Sal'));
+	P = double(getappdata(handles.figure1, 'Pressure')) / 10;	% Pressure was stored in decibars
+
+	SR = sqrt(abs(S));
+	% S^2 TERM
+	D = 1.727e-3 - 7.9836e-6 * P;
+	% S^3/2 TERM
+	B1 =  7.3637e-5 + 1.7945e-7 * T;
+	B0 = -1.922e-2  - 4.42e-5   * T;
+	B  = B0 + B1 .* P;
+	% S^1 TERM
+	A3 = (-3.389e-13    .* T + 6.649e-12)  .* T + 1.100e-10;
+	A2 = ((7.988e-12    .* T - 1.6002e-10) .* T + 9.1041e-9) .* T - 3.9064e-7;
+	A1 = (((-2.0122e-10 .* T + 1.0507e-8)  .* T - 6.4885e-8) .* T - 1.2580e-5) .* T + 9.4742e-5;
+	A0 = (((-3.21e-8    .* T + 2.006e-6)   .* T + 7.164e-5)  .* T - 1.262e-2)  .* T + 1.389;
+	A  = ((A3.* P + A2) .*P + A1) .* P + A0;
+	% S^0 TERM
+	C3 = (-2.3643e-12   .* T + 3.8504e-10) .* T - 9.7729e-9;
+	C2 = (((1.0405e-12  .* T - 2.5335e-10) .* T + 2.5974e-8) .* T - 1.7107e-6)  .* T + 3.1260e-5;
+	C1 = (((-6.1185e-10 .* T + 1.3621e-7)  .* T - 8.1788e-6) .* T + 6.8982e-4)  .* T + 0.153563;
+	C0 = ((((3.1464e-9  .* T - 1.47800e-6) .* T + 3.3420e-4) .* T - 5.80852e-2) .* T + 5.03711) .* T + 1402.388;
+	C  = ((C3 .* P + C2) .* P + C1) .* P + C0;
+	
+	SVP = C + (A + B .* SR + D .* S) .* S;
+
+	z = get_z_from_p(P*10, pt(2));		% Here pressure is expected in dbars
+	s.figSize = [350 500];
+	hFig = ecran(SVP, z, {s});
+	delete(findobj(hFig, 'Label','Misc')),		delete(findobj(hFig, 'Label','Analysis'))
+	delete(findobj(hFig, 'Tag','isocs_but')),	delete(findobj(hFig, 'Tag','rectang_but')),	delete(findobj(hFig, 'Tag','DynSlope'))
+	hAx = findobj(hFig, 'Type', 'axes', 'Tag', 'axes1');
+ 	set(get(hAx, 'XLabel'), 'Str','Sound speed (m/s)'),		set(get(hAx, 'YLabel'), 'Str','Depths (m)')
+	set(hFig, 'Name', 'SVP diagram')
+
+% --------------------------------------------------------------------
+function z = get_z_from_p(p, lat)
+% Stripped down from the function with same name in the TEOS-10 Toolbox
+% INPUT:
+%  p    =  sea pressure                                            [ dbar ]
+%          ( i.e. absolute pressure - 10.1325 dbar )
+%  lat  =  latitude in decimal degrees north                [ -90 ... +90 ]
+
+	gamma = 2.26e-7;	% If the graviational acceleration were to be regarded as 
+						% being depth-independent, which is often the case in 
+						% ocean models, then gamma would be set to be zero here,
+						% and the code below works perfectly well.
+	sinlat = sin(lat*pi/180);
+	sin2 = sinlat .* sinlat;
+	B = 9.780327 * (1 + (5.2792e-3 + (2.32e-5*sin2)) .* sin2); 
+	A = -0.5 * gamma * B;
+	C = gsw_enthalpy_SSO_0(p);
+	z = -2 * C ./ (B + sqrt(B.*B - 4 * A .* C));
+
+% --------------------------------------------------------------------
+function enthalpy_SSO_0 = gsw_enthalpy_SSO_0(p)
+% From the function with same name in the TEOS-10 Toolbox
+	z = p.*1e-4;
+	h006 = -2.1078768810e-9;	h007 =  2.8019291329e-10; 
+
+	dynamic_enthalpy_SSO_0_p = z.*(9.726613854843870e-4 + z.*(-2.252956605630465e-5 ...
+		+ z.*(2.376909655387404e-6 + z.*(-1.664294869986011e-7 ...
+		+ z.*(-5.988108894465758e-9 + z.*(h006 + h007.*z))))));
+	enthalpy_SSO_0 = dynamic_enthalpy_SSO_0_p * 1e8;     %Note. 1e8 = db2Pa*1e4;
 
 % --------------------------------------------------------------------
 % function AnalysisSegmentation_CB(hObject, handles)
