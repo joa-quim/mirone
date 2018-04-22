@@ -25,7 +25,7 @@ function varargout = draw_funs(hand, varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: draw_funs.m 10375 2018-04-13 01:00:21Z j $
+% $Id: draw_funs.m 10382 2018-04-22 00:32:35Z j $
 
 % A bit of strange tests but they are necessary for the cases when we use the new feval(fun,varargin{:}) 
 opt = varargin{1};		% function name to evaluate (new) or keyword to select one (old form)
@@ -2867,17 +2867,31 @@ function ARGO_profile(obj,evt,hFig)
 	thisFile = ncfiles{i};
 	[lat,lon,t,P,T,S,pn] = argo_floats('argodata',thisFile);
 	if (all(isnan(lat))),	return,		end
-	T = T{1}(1,:);
+	if (size(P{1},1) == 2)						% Data may come in a misery shape
+		p = P{1}(2,:);		p(isnan(p)) = [];		P = [p P{1}(1,:)];
+		t = T{1}(2,:);		t(isnan(t)) = [];		T = [t T{1}(1,:)];
+		s = S{1}(2,:);		s(isnan(s)) = [];		S = [s S{1}(1,:)];
+		clear p t s
+	else
+		P = P{1}(1,:);		T = T{1}(1,:);			S = S{1}(1,:);
+	end
 	if (all(isnan(T)))
 		warndlg('This instrument has no data.','Warning'),	return
 	end
-% 	h = figure;	scatter(S{1}(1,:),T,30,P{1}(1,:),'filled')
 	s.figSize = [350 500];
-	%s.fhandle = {'scatter', {S{1}(1,:),T,30,P{1}(1,:),'filled'}};
+	%s.fhandle = {'scatter', {S,T,30,P,'filled'}};
 	hFig = ecran({s});
-	hS = scatter(S{1}(1,:),T,30,P{1}(1,:),'filled');
+	hS = scatter(S,T,30,P,'filled');
 	handEcran = guidata(hFig);
 	handEcran.hLine = hS;
+	setappdata(hFig, 'location', [lon lat])		% Save these for eventual later usage in Ecran
+	setappdata(hFig, 'Pressure', P),	setappdata(hFig, 'Temp', T),	setappdata(hFig, 'Sal', S)
+	h = findobj(hFig, 'Label','Analysis');
+	hC = get(h, 'Children');
+	set(hC(end), 'Label','Sound Velocity Profile', 'Tag','AnalysisSVP');	% Recycle this one
+	delete(hC(2:end-1))										% First is add_uictx(). a not visible one
+	delete(findobj(hFig, 'Label','Misc'))
+	delete(findobj(hFig, 'Tag','isocs_but')),	delete(findobj(hFig, 'Tag','rectang_but')),	delete(findobj(hFig, 'Tag','DynSlope'))
 	guidata(hFig, handEcran)
 	hAx = findobj(hFig, 'Type', 'axes', 'Tag', 'axes1');
  	set(get(hAx, 'XLabel'), 'Str','Salinity'),		set(get(hAx, 'YLabel'), 'Str','Temperature')
@@ -2886,7 +2900,9 @@ function ARGO_profile(obj,evt,hFig)
 
 	% The PT fig
 	hFig = ecran({s});
-	hS = scatter(T,P{1}(1,:),30,'filled');
+	hS = scatter(T,P,30,'filled');
+	delete(findobj(hFig, 'Label','Misc')),		delete(findobj(hFig, 'Label','Analysis'))
+	delete(findobj(hFig, 'Tag','isocs_but')),	delete(findobj(hFig, 'Tag','rectang_but')),	delete(findobj(hFig, 'Tag','DynSlope'))
 	handEcran = guidata(hFig);		handEcran.hLine = hS;	guidata(hFig, handEcran)
 	hAx = findobj(hFig, 'Type', 'axes', 'Tag', 'axes1');
  	set(get(hAx, 'XLabel'), 'Str','Temperature'),	set(get(hAx, 'YLabel'), 'Str','Pressure (decibar)')
@@ -2896,7 +2912,9 @@ function ARGO_profile(obj,evt,hFig)
 
 	% The PS fig
 	hFig = ecran({s});
-	hS = scatter(S{1}(1,:),P{1}(1,:),30,'filled');
+	hS = scatter(S,P,30,'filled');
+	delete(findobj(hFig, 'Label','Misc')),		delete(findobj(hFig, 'Label','Analysis'))
+	delete(findobj(hFig, 'Tag','isocs_but')),	delete(findobj(hFig, 'Tag','rectang_but')),	delete(findobj(hFig, 'Tag','DynSlope'))
 	handEcran = guidata(hFig);		handEcran.hLine = hS;	guidata(hFig, handEcran)
 	hAx = findobj(hFig, 'Type', 'axes', 'Tag', 'axes1');
  	set(get(hAx, 'XLabel'), 'Str','Salinity'),		set(get(hAx, 'YLabel'), 'Str','Pressure (decibar)')
@@ -3152,7 +3170,7 @@ function save_GMT_DB_asc(h, fname)
 		if (isempty(getappdata(h(k), 'edited'))),	continue,	end		% Skip because it was not modified
 		GSHHS_str = getappdata(h(k),'GSHHS_str');
 		if (k == 1 && ~isempty(GSHHS_str))		% Write back the magic string that allows us to recognize these type of files
-			fprintf(fid,'# $Id: draw_funs.m 10375 2018-04-13 01:00:21Z j $\n#\n%s\n#\n', GSHHS_str);
+			fprintf(fid,'# $Id: draw_funs.m 10382 2018-04-22 00:32:35Z j $\n#\n%s\n#\n', GSHHS_str);
 		end
 		hdr = getappdata(h(k), 'LineInfo');
 		x = get(h(k), 'XData');			y = get(h(k), 'YData');
