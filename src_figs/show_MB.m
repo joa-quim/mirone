@@ -154,7 +154,7 @@ function push_autoclean_CB(hObject, handles)
 function show_fleder(handles, comm)
 % Show nn Fleder. Free viewer or the other.
 	if (handles.whichFleder),	fcomm = ['iview4d' comm];		% Free viewer
-	else						fcomm = ['fledermaus' comm];	% The real thing
+	else,						fcomm = ['fledermaus' comm];	% The real thing
 	end
 	try
 		if (isunix)				% Stupid linux doesn't react to a non-existant iview4d
@@ -165,6 +165,7 @@ function show_fleder(handles, comm)
 		elseif (ispc)
 			if (strcmp(handles.TDRver, '2.0')),	fcomm(6) = '3';		end		% Call iview3d
 			if (handles.no_file && ishandle(handles.hMirFig)),	delete(handles.hMirFig),	end
+			if (handles.IamCompiled),	fcomm = ['start /b ' fcomm];	end
 			dos(fcomm);		% s is always 0 (success) as long as iview4d is accessible, even when the comm fails
 		else
 			errordlg('Unknown platform.','Error'),	return
@@ -755,7 +756,7 @@ function show_MB_LayoutFcn(h1)
 
 	uicontrol('Parent',h1, 'Position',[31 185 118 26],...
 		'Callback',@showMB_uiCB,...
-		'String','Automatic cleaning',...
+		'String','Aproximate cleaning',...
 		'TooltipString','Do an automatic cleaning, show it and save results in file.',...
 		'Tag','push_autoclean');
 
