@@ -18,7 +18,7 @@ function  varargout = aux_funs(opt,varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: aux_funs.m 10342 2018-03-30 13:34:15Z j $
+% $Id: aux_funs.m 10381 2018-04-22 00:30:14Z j $
 
 switch opt(1:4)
 	case 'Stor'		% 'StoreZ'
@@ -329,6 +329,8 @@ function out = findFileType(fname)
 		else
 			out = ['MB' EXT(4:end)];
 		end
+	elseif (strcmpi(EXT,'.xtf'))
+		out = 'xtf';
 	else
 		% OK, here we'll send ASCII files to load_xyz (after one more test) and binary to GDAL ... and see what happens.
 		bin = guess_file(fname);
