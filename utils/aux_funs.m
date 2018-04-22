@@ -329,6 +329,8 @@ function out = findFileType(fname)
 		else
 			out = ['MB' EXT(4:end)];
 		end
+	elseif (strcmpi(EXT,'.xtf'))
+		out = 'xtf';
 	else
 		% OK, here we'll send ASCII files to load_xyz (after one more test) and binary to GDAL ... and see what happens.
 		bin = guess_file(fname);
