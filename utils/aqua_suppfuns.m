@@ -48,6 +48,9 @@ function out = init_header_params(handles,X,Y,head,misc,getAllMinMax)
 	if (handles.number_of_timesteps > 1)
 		st = [1 10] / (handles.number_of_timesteps - 1);
 		id = find(strcmpi('time',{s.Dataset.Name}));			% ONLY WHEN 3RTH DIM IS CALLED time
+		if (isempty(id))
+			id = find(strcmpi('depth',{s.Dataset.Name}));		% ... or 'depth'
+		end
 		if (~isempty(id))
 			handles.time = double(nc_funs('varget', handles.fname, s.Dataset(id).Name));
 		else
