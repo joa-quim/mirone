@@ -16,7 +16,7 @@ function varargout = aqua_suppfuns(opt, varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: aqua_suppfuns.m 10302 2018-03-01 01:57:44Z j $
+% $Id: aqua_suppfuns.m 10383 2018-04-26 23:06:40Z j $
 
 	switch opt
 		case 'coards_hdr',		[varargout{1:nargout}] = init_header_params(varargin{:});
@@ -48,6 +48,9 @@ function out = init_header_params(handles,X,Y,head,misc,getAllMinMax)
 	if (handles.number_of_timesteps > 1)
 		st = [1 10] / (handles.number_of_timesteps - 1);
 		id = find(strcmpi('time',{s.Dataset.Name}));			% ONLY WHEN 3RTH DIM IS CALLED time
+		if (isempty(id))
+			id = find(strcmpi('depth',{s.Dataset.Name}));		% ... or 'depth'
+		end
 		if (~isempty(id))
 			handles.time = double(nc_funs('varget', handles.fname, s.Dataset(id).Name));
 		else
