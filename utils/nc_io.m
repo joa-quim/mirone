@@ -166,10 +166,15 @@ function write_nc(fname, handles, data, misc, page)
 
 	% ---------------- Decide if netCDF-4 or classic based on deflation level -----------------------
 	deflation_level = get_deflation(handles);
-	if (deflation_level)
-		nc_funs('create_empty', fname, 'netcdf4-classic')	% Despite 'classic' it will be compressed
+	appending_grid = false;
+ 	if (isfield(misc, 'append_grid') && misc.append_grid)
+		appending_grid = true;
 	else
-		nc_funs('create_empty', fname)
+		if (deflation_level)
+			nc_funs('create_empty', fname, 'netcdf4-classic')	% Despite 'classic' it will be compressed
+		else
+			nc_funs('create_empty', fname)
+		end
 	end
 	% -----------------------------------------------------------------------------------------------
 
@@ -200,22 +205,28 @@ function write_nc(fname, handles, data, misc, page)
 	Y = linspace(handles.head(3), handles.head(4), ny);
 
 	% ---------------------------- Write the dimensions --------------------------------
-	nc_funs('add_dimension', fname, x_var, nx)
-	nc_funs('add_dimension', fname, y_var, ny)
+ 	if (~appending_grid)
+		nc_funs('add_dimension', fname, x_var, nx)
+		nc_funs('add_dimension', fname, y_var, ny)
+	end
 
-	if (is3D)		% Initialize a 3D file
+	if (is3D && ~appending_grid)		% Initialize a 3D file
  		nc_funs('add_dimension', fname, levelName, nLevels)
 	end
 
-	x_varstruct.Name = x_var;		x_varstruct.Dimension = {x_var};
-	y_varstruct.Name = y_var;		y_varstruct.Dimension = {y_var};
-	nc_funs('addvar', fname, x_varstruct)
-	nc_funs('addvar', fname, y_varstruct)
-	varstruct.Dimension = {y_var, x_var};
+	if (~appending_grid)
+		x_varstruct.Name = x_var;		x_varstruct.Dimension = {x_var};
+		y_varstruct.Name = y_var;		y_varstruct.Dimension = {y_var};
+		nc_funs('addvar', fname, x_varstruct)
+		nc_funs('addvar', fname, y_varstruct)
+		varstruct.Dimension = {y_var, x_var};
 
-	if (is3D)		% Initialize a 3D file
-		t_varstruct.Name = levelName;		t_varstruct.Dimension = {levelName};
-		nc_funs('addvar', fname, t_varstruct)
+		if (is3D)		% Initialize a 3D file
+			t_varstruct.Name = levelName;		t_varstruct.Dimension = {levelName};
+			nc_funs('addvar', fname, t_varstruct)
+			varstruct.Dimension = {levelName, y_var, x_var};
+		end
+	else
 		varstruct.Dimension = {levelName, y_var, x_var};
 	end
 
@@ -253,6 +264,21 @@ function write_nc(fname, handles, data, misc, page)
 			error('NC_IO:write_nc', ['Unsuported data type: ' class(data)])
 	end
 
+ 	if (isfield(misc, 'change_type') && ~isempty(misc.change_type))
+		varstruct.Nctype = misc.change_type;
+		if (varstruct.Nctype == 1),			no_val = [];
+		elseif (varstruct.Nctype == 3),		no_val = int16(-32768);
+		elseif (varstruct.Nctype == 4),		no_val = int32(-2147483648);
+		elseif (varstruct.Nctype == 5),		no_val = single(nan);
+		elseif (varstruct.Nctype == 6),		no_val = nan;
+		end
+	end
+
+ 	if (isfield(misc, 'scale_factor') && ~isempty(misc.scale_factor))
+		scale_factor = misc.scale_factor;
+		if (isempty(add_off)),	add_off = 0;	end
+	end
+
 	% -------------------- The Attributes of the 'z' variable ----------------------------
 	% We now do this here so that the attributes are written at the same time that the 'z'
 	% variable is created and thus avoid the BAD netCDF 187 bug that ends up in a crash.
@@ -280,9 +306,11 @@ function write_nc(fname, handles, data, misc, page)
 	if (~isempty(add_off))
 		varstruct.Attribute(end+1).Name = 'add_offset';
 		varstruct.Attribute(n+4).Value = add_off;
-		if (isempty(scale_factor))						% We don't use the scale_factor yet in Mirone but CF
-			varstruct.Attribute(end+1).Name = 'scale_factor';	% recommends that one of scale_factor or add_offset
+		varstruct.Attribute(end+1).Name = 'scale_factor';	% recommends that one of scale_factor or add_offset
+		if (isempty(scale_factor))							% We don't use the scale_factor yet in Mirone but CF
 			varstruct.Attribute(n+5).Value = 1;				% is present the other is set as well (with neutral value)
+		else
+			varstruct.Attribute(n+5).Value = scale_factor;
 		end
 	end
 	% ------------------------------------------------------------------------------------
@@ -482,6 +510,10 @@ function [X,Y,Z,head,misc] = read_nc(fname, opt)
 	% --------------------- Finally, get the Data --------------------------------
 	% Now z may be > 2D. If it is, get the first layer
 	z_dim = s.Dataset(z_id).Size;
+	if (numel(z_dim) == 4 && z_dim(1) == 1)			% A 4D singleton array. Try to read it as a 3D array (not easy)
+		z_dim = z_dim(2:end);
+	end
+
 	if (get_Z)
 		nD = numel(z_dim);
 		if (nD == 2 )
