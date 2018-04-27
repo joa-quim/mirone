@@ -20,7 +20,7 @@ function varargout = mirone(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: mirone.m 10370 2018-04-09 16:42:37Z j $
+% $Id: mirone.m 10392 2018-04-27 16:27:43Z j $
 
 	if (nargin > 1 && ischar(varargin{1}))
 		if (~isempty(strfind(varargin{1},':')) || ~isempty(strfind(varargin{1},filesep)) )	% A file name
@@ -430,6 +430,7 @@ function hObject = mirone_OpeningFcn(varargin)
 			set(handles.Seismology, 'Label', ['<HTML><FONT size="3">' get(handles.Seismology, 'Label') '</Font></html>'])
 			set(handles.Tsunamis, 'Label', ['<HTML><FONT size="3">' get(handles.Tsunamis, 'Label') '</Font></html>'])
 			set(handles.GMT, 'Label', ['<HTML><FONT size="3">' get(handles.GMT, 'Label') '</Font></html>'])
+			set(handles.MetOce, 'Label', ['<HTML><FONT size="3">' get(handles.MetOce, 'Label') '</Font></html>'])
 			set(handles.GridTools, 'Label', ['<HTML><FONT size="3">' get(handles.GridTools, 'Label') '</Font></html>'])
 			set(handles.Projections, 'Label', ['<HTML><FONT size="3">' get(handles.Projections, 'Label') '</Font></html>'])
 			set(handles.Help, 'Label', ['<HTML><FONT size="3">' get(handles.Help, 'Label') '</Font></html>'])
@@ -563,6 +564,7 @@ function erro = gateLoadFile(handles,drv,fname)
 		case 'sww',			aquamoto(fname);
 % 		case 'MB',			load_MB(handles, fname, drv_or);
 		case 'MB',			show_MB(handles, fname, drv);
+		case 'xtf',			showXTF_CB(handles, fname);
 		otherwise,			erro = 1;
 	end
 	if (erro),		warndlg(['Sorry but couldn''t figure out what to do with the ' fname ' file'],'Warning'),	end
@@ -1915,8 +1917,14 @@ function erro = FileOpenGeoTIFF_CB(handles, tipo, opt)
 		for (k = 2:2:numel(str))						% Seek for non-interesting (params) arrays 
 			indF = strfind(str{k}, ']');
 			ind = strfind(str{k}(1:indF), 'x');
-			if (isempty(ind) || numel(ind) > 2)			% Don't want 1D or > 3D arrays
+			if (isempty(ind))				% Don't want 1D arrays
 				c(k) = true;	c(k-1) = true;		continue
+			elseif (numel(ind) > 2)			% Don't want > 3D arrays
+				if (numel(ind) == 3 && ~strcmp(str{k}(ind(1)-2:ind(1)-1), '[1'))	% Let first dim singletons go and catch them later
+					c(k) = true;	c(k-1) = true;		continue
+				else
+					c3D(k) = true;													% But exclude 4D singletons, e.g. [1x235x1557x1557]
+				end
 			elseif (numel(ind) == 1 && strcmp(str{k}(ind(1)-2:ind(1)-1), '[1'))		% Nor 1D singletons, e.g. [1x1557]
 				c(k) = true;	c(k-1) = true;		continue
 			elseif (numel(ind) == 2 && ~strcmp(str{k}(ind(1)-2:ind(1)-1), '[1'))	% But exclude 3D singletons, e.g. [1x1557x1557]
@@ -5034,6 +5042,22 @@ function RotateTool_CB(handles, opt)
 	end
 
 % --------------------------------------------------------------------
+function showXTF_CB(handles, fname)
+% ...
+	XtfHead     = gFXtfReadHeader(fname, 0);
+	[Head,Data] = gFXtfRead000(XtfHead, 0);
+	if (size(Data,3) == 4)
+		L = Data(:,:,3);	R = Data(:,:,4);	% The HighRes data
+	else
+		L = Data(:,:,1);	R = Data(:,:,2);
+	end
+	clear Data
+	L(L > 1000) = 1000;		R(R > 1000) = 1000;
+	img1 = scaleto8(L);		img2 = scaleto8(R);
+	img = [img1' img2'];
+	mirone(img)
+
+% --------------------------------------------------------------------
 function [Z, indNaNs] = fillGridGaps(handles, Z)
 % Inspects the array Z for blobs of NaNs and fill them with minimum curvature interpolation.
 
@@ -5106,6 +5130,7 @@ function TransferB_CB(handles, opt, opt2)
 		if (nargin == 3 && ~isempty(opt2)),		handles.last_dir = opt2;		end
 		[FileName,PathName,handles] = put_or_get_file(handles,str,'Select file','get');
 		if (isequal(FileName,0)),	return,		end				% User gave up
+		guidata(handles.figure1, handles)
 		drv = aux_funs('findFileType',[PathName FileName]);
 		if (~isempty(drv)),		gateLoadFile(handles,drv,[PathName FileName]);  end
 
@@ -5114,6 +5139,22 @@ function TransferB_CB(handles, opt, opt2)
 		if isempty(out),	return,		end		% User gave up loading the fig tille
 		handles.geog = 1;				handles.image_type = 3;		handles.head = out.head;
 		show_image(handles,out.imgName,out.X,out.Y,out.img,0,'xy',1,1);
+
+	elseif (strcmp(opt,'Hypso'))				% Caculate the Hypsometric curve
+		if (~handles.validGrid),	return,		end
+		[X,Y,Z] = load_grd(handles);			% load the grid array here
+		if (numel(Z) < 25000)					% 25000 bins is more than enough to compute an hypso curve
+			y = unique(Z);
+			if (handles.have_nans),		y(isnan(y)) = [];	end
+			y = flip(y,1);
+			freq = 1:numel(y);
+		else
+			[freq,y] = hist(Z(:), 25000); 
+			y = flip(y(:),1);
+			freq = cumsum(flip(freq(:),1));
+		end
+		freq = single(freq / freq(end) * 100);
+		ecran(freq, y, 'Hypsometric curve', {struct('xlabel','frequency [%]','ylabel','Elevation')})
 
 	elseif (strcmp(opt,'NewEmpty'))
 		h = mirone;
