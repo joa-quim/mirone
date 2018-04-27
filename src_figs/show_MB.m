@@ -16,10 +16,20 @@ function varargout = show_MB(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: show_MB.m 10380 2018-04-22 00:28:23Z j $
+% $Id: show_MB.m 10388 2018-04-27 16:12:30Z j $
 
-	hObject = figure('Vis','off');
-	show_MB_LayoutFcn(hObject);
+	if (nargin > 1 && ischar(varargin{1}))
+		gui_CB = str2func(varargin{1});
+		[varargout{1:nargout}] = feval(gui_CB,varargin{2:end});
+	else
+		h = show_MB_OF(varargin{:});
+		if (nargout),	varargout{1} = h;   end
+	end
+
+% ---------------------------------------------------------------------------------
+function hObject = show_MB_OF(varargin)
+
+	hObject = show_MB_LayoutFcn;
 	handles = guihandles(hObject);
 	move2side(hObject,'right');
 
@@ -48,7 +58,8 @@ function varargout = show_MB(varargin)
 
 	guidata(hObject, handles);
 	set(hObject,'Visible','on');
-	if (nargout),   varargout{1} = hObject;     end
+
+	if (nargin > 3),	external_drive(handles, 'show_MB', varargin{4:end}),	end
 
 % ----------------------------------------------------------------------
 function edit_symbSize_CB(hObject, handles)
@@ -73,6 +84,15 @@ function push_showPC_CB(hObject, handles)
 	siz = str2double(get(handles.edit_symbSize,'String'));
 	PTparams.Symbol = symb;			PTparams.PointRad = siz;
 	par.TDRver = handles.TDRver;	par.proj = 'geog';		par.PTparams = PTparams;
+
+	if (exist([handles.fnameMB '.inf'], 'file') ~= 2)		% If .inf file does not exist, create one
+		D = gmtmex(sprintf('mbinfo -I%s -O', handles.fnameMB));
+		fid = fopen([handles.fnameMB '.inf'],'wt');
+		for (k = 1:numel(D.text))
+			fprintf(fid, '%s\n', D.text{k});
+		end
+		fclose(fid);
+	end
 
 	D = gmtmex(sprintf('mbgetdata -I%s -A100000', handles.fnameMB));
 	ind = (D(3).data < 50000);		% This gives us the indices of all non-flagged guys
@@ -680,9 +700,9 @@ function figure1_KeyPressFcn(hObject, eventdata)
 	end
 
 % ----------------------------------------------------------------------
-function show_MB_LayoutFcn(h1)
+function h1 = show_MB_LayoutFcn()
 
-	set(h1, 'Position',[520 441 250 330],...
+	h1 = figure('Position',[520 441 250 330],...
 		'Color',get(0,'factoryUicontrolBackgroundColor'),...
 		'KeyPressFcn',@figure1_KeyPressFcn,...
 		'MenuBar','none',...
@@ -691,6 +711,7 @@ function show_MB_LayoutFcn(h1)
 		'DoubleBuffer','on',...
 		'Resize','off',...
 		'HandleVisibility','Callback',...
+		'Vis','off',...
 		'Tag','figure1');
 
 	uicontrol('Parent',h1, 'Position',[11 302 171 16],...
