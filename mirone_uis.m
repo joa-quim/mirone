@@ -16,7 +16,7 @@ function [H1,handles,home_dir] = mirone_uis(home_dir)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: mirone_uis.m 10366 2018-04-07 02:25:56Z j $
+% $Id: mirone_uis.m 10391 2018-04-27 16:25:59Z j $
 
 %#function pan igrf_options rally_plater plate_calculator ecran snapshot
 %#function about_box parker_stuff euler_stuff grid_calculator tableGUI usgs_recent_seismicity
@@ -564,7 +564,7 @@ uimenu('Parent',h,'Callback','datasets_funs(''ODP'',guidata(gcbo),''IODP'')','La
 uimenu('Parent',h,'Callback','datasets_funs(''ODP'',guidata(gcbo),''ALL'')','Label','DSDP+ODP+IODP');
 
 uimenu('Parent',hDS,'Callback','atlas(guidata(gcbo))','Label','Atlas','Tag','Atlas','Sep','on');
-%uimenu('Parent',hDS,'Callback','mirone(''TransferB_CB'',guidata(gcbo),''DayNight'')','Label','Day and Night','Sep','on');
+% uimenu('Parent',hDS,'Callback','mirone(''TransferB_CB'',guidata(gcbo),''DayNight'')','Label','Day and Night','Sep','on');
 % uimenu('Parent',hDS,'Callback','datasets_funs(''GTiles'', guidata(gcbo))','Label','GTiles Map','Sep','on');
 
 %% --------------------------- Plates -------------------------------------
@@ -639,8 +639,8 @@ uimenu('Parent',hT,'Callback','load_xyz(guidata(gcbo), [], ''AsMaregraph'')','La
 
 uimenu('Parent',hT,'Callback','aquamoto(guidata(gcbo))','Label','Aquamoto Viewer','Sep','on');
 
-%% --------------------------- Met/Oce -------------------------------
-hMO = uimenu('Parent',H1,'Label','Met/Oce','Tag','Met/Oce');
+%% --------------------------- Met/Oce ------------------------------------
+hMO = uimenu('Parent',H1,'Label','Met/Oce','Tag','MetOce');
 uimenu('Parent',hMO,'Callback','argo_floats(gcf)', 'Label','Show ARGO buoys');
 uimenu('Parent',hMO,'Callback','tmd_osu', 'Label','Tidal Model Driver (OSU)');
 
@@ -711,6 +711,7 @@ uimenu('Parent',h,'Callback','mirone(''GridToolsDirDerive_CB'',guidata(gcbo),''f
 uimenu('Parent',h,'Callback','mirone(''GridToolsDirDerive_CB'',guidata(gcbo),''second'')','Label','Second derivative');
 uimenu('Parent',h2,'Callback','mirone(''TransferB_CB'',guidata(gcbo),''sinks'')','Label','Fill sinks');
 uimenu('Parent',h2,'Callback','mirone(''TransferB_CB'',guidata(gcbo),''Multiscale'')','Label','Multi-scale Analysis');
+uimenu('Parent',h2,'Callback','mirone(''TransferB_CB'',guidata(gcbo),''Hypso'')','Label','Hypsometric curve', 'Sep', 'on');
 
 % h = uimenu('Parent',hGT,'Label','River Tools','Sep','on');
 % uimenu('Parent',h,'Callback','mirone(''TransferB_CB'',guidata(gcbo),''hydro_flow'')','Label','Compute Flow');
@@ -752,7 +753,7 @@ end
 %uimenu('Parent',h, 'Callback', 'update_gmt(guidata(gcbo))','Label','Update your GMT5','Sep','on')
 uimenu('Parent',h, 'Callback',['mirone(''FileOpenWebImage_CB'',guidata(gcbo),',...
 	' ''http://www2.clustrmaps.com/stats/maps-clusters/w3.ualg.pt-~jluis-mirone-world.jpg'',''nikles'');'],'Label','See visitors map','Sep','on');
-uimenu('Parent',h, 'Callback','about_box(guidata(gcbo),''Mirone Last modified at 7 Apr 2018'',''2.10dev'')','Label','About','Sep','on');
+uimenu('Parent',h, 'Callback','about_box(guidata(gcbo),''Mirone Last modified at 27 Apr 2018'',''2.10dev'')','Label','About','Sep','on');
 
 %% --------------------------- Build HANDLES and finish things here
 	handles = guihandles(H1);
@@ -820,8 +821,10 @@ function figure1_ResizeFcn(hObj, event)
 	handles = guidata(hObj);
 	if (isempty(handles)),      return,     end
 	screen = get(0,'ScreenSize');	    pos = get(handles.figure1,'Pos');
-	if (pos(1) == 1 && isequal(screen(3), pos(3)) && handles.oldSize(1,4) > 20)	% Do not allow figure miximizing
-		set(handles.figure1,'Pos',handles.oldSize(1,:))
+	if (pos(1) == 1 && isequal(screen(3), pos(3)))	% Do not allow figure miximizing
+		oldSize = handles.oldSize(1,:);
+		if (oldSize(4) == 0),	oldSize(4) = 1;		end		% Old R13 puts it to 0
+		set(handles.figure1,'Pos', oldSize)
 	else
 		hSliders = getappdata(handles.axes1,'SliderAxes');
 		if (~isempty(hSliders))		% Reposition the vertical slider so that its always out of image
