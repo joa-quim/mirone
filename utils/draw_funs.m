@@ -2878,7 +2878,7 @@ function ARGO_profile(obj,evt,hFig)
 	if (all(isnan(T)))
 		warndlg('This instrument has no data.','Warning'),	return
 	end
-	s.figSize = [350 500];
+	s.figSize = [350 500];	s.xlabel = 'Salinity';	s.ylabel = 'Temperature';
 	%s.fhandle = {'scatter', {S,T,30,P,'filled'}};
 	hFig = ecran({s});
 	hS = scatter(S,T,30,P,'filled');
@@ -2893,19 +2893,17 @@ function ARGO_profile(obj,evt,hFig)
 	delete(findobj(hFig, 'Label','Misc'))
 	delete(findobj(hFig, 'Tag','isocs_but')),	delete(findobj(hFig, 'Tag','rectang_but')),	delete(findobj(hFig, 'Tag','DynSlope'))
 	guidata(hFig, handEcran)
-	hAx = findobj(hFig, 'Type', 'axes', 'Tag', 'axes1');
- 	set(get(hAx, 'XLabel'), 'Str','Salinity'),		set(get(hAx, 'YLabel'), 'Str','Temperature')
 	set(hFig, 'Name', 'TS diagram')
 	%tightfig(hFig);
 
 	% The PT fig
+	s.xlabel = 'Temperature';	s.ylabel = 'Pressure (decibar)';
 	hFig = ecran({s});
 	hS = scatter(T,P,30,'filled');
 	delete(findobj(hFig, 'Label','Misc')),		delete(findobj(hFig, 'Label','Analysis'))
 	delete(findobj(hFig, 'Tag','isocs_but')),	delete(findobj(hFig, 'Tag','rectang_but')),	delete(findobj(hFig, 'Tag','DynSlope'))
 	handEcran = guidata(hFig);		handEcran.hLine = hS;	guidata(hFig, handEcran)
-	hAx = findobj(hFig, 'Type', 'axes', 'Tag', 'axes1');
- 	set(get(hAx, 'XLabel'), 'Str','Temperature'),	set(get(hAx, 'YLabel'), 'Str','Pressure (decibar)')
+ 	hAx = findobj(hFig, 'Type', 'axes', 'Tag', 'axes1');
 	set(hFig, 'Name', 'PT diagram'),	set(hAx, 'YDir', 'reverse')
 	%tightfig(hFig);
 	pos = get(hFig, 'Pos');		pos(2) = pos(2) - (2-1)*30;		set(hFig, 'Pos', pos);
