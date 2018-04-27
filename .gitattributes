@@ -569,6 +569,8 @@ utils/findcell.m -text
 utils/finite2stages.m eol=lf
 utils/frame3D.m -text
 utils/ft2tms.m -text
+utils/gFXtfRead000.m -text
+utils/gFXtfReadHeader.m -text
 utils/gcirc.m -text
 utils/gcpTool.m -text
 utils/gen_UMF2d.m -text
