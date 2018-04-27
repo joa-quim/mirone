@@ -76,13 +76,15 @@ function varargout = ecran(varargin)
 		end
 	end
 
-	n_in = nargin;		PV = [];	call_fhandle = [];
+	n_in = nargin;		PV = [];	call_fhandle = [];	x_label = '';	y_label = '';
 	if (freshFig)								% Almost always true
 		if (n_in && isa(varargin{end}, 'cell'))
 			if (isa(varargin{end}{1}, 'struct'))
 				if (isfield(varargin{end}{1}, 'figSize'))
 					hObject = ecran_LayoutFcn(varargin{end}{1}.figSize);
 				end
+				if (isfield(varargin{end}{1}, 'xlabel')),	x_label = varargin{end}{1}.xlabel;	end
+				if (isfield(varargin{end}{1}, 'ylabel')),	y_label = varargin{end}{1}.ylabel;	end
 				if (isfield(varargin{end}{1}, 'fhandle'))
 					% Here the fhandles must be a cell with 2 elements. First containing the function name
 					% to be run and the second element another cell array with its arguments.
@@ -92,13 +94,15 @@ function varargout = ecran(varargin)
 				if (isempty(varargin{end}))		% It might not be empty if PV line props are present
 					varargin(end) = [];		n_in = n_in - 1;
 				end
-			else								% PV is line props
-				hObject = ecran_LayoutFcn;
 			end
-		else
+		end
+
+		if (isempty(hObject))					% Still need to create the Fig
 			hObject = ecran_LayoutFcn;
 		end
 		handles = guihandles(hObject);
+		if (~isempty(x_label)),		set(get(handles.axes1, 'XLabel'), 'Str',x_label),	end
+		if (~isempty(y_label)),		set(get(handles.axes1, 'YLabel'), 'Str',y_label),	end
 		move2side(hObject,'right');
 
 		handles.Misc_menu = findobj(handles.figure1, 'Label','Misc');
