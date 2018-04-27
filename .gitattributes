@@ -592,6 +592,7 @@ utils/griddata_j.p -text
 utils/guess_file.m -text
 utils/hdf_funs.p -text
 utils/hellinger.m -text
+utils/histo_m.m -text
 utils/histo_m.p -text
 utils/histos_seis.m -text
 utils/imcapture.m -text
