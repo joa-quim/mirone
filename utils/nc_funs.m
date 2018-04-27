@@ -61,7 +61,7 @@ if status ~= 0
 		fileinfo.Dataset = [];	% was previously open by gdalread and something in it didn't copletely close.
 		return					% As a consequence accessing it with mecnc fails. But that's what we want anyway.
 	end							% so return right now and aux_funs(findFileType,...) will send it to gdal again.
-    snc_error ( 'NC_INFO:MEXNC:OPEN', mexnc('strerror', status) );
+    snc_error('NC_INFO:MEXNC:OPEN', mexnc('strerror', status));
 end
 
 [ndims, nvars, ngatts, record_dimension, status] = mexnc('INQ', ncid);
@@ -72,14 +72,14 @@ end
 
 % Get the dimensions
 if ndims == 0
-	Dimension = struct ( [] );
+	Dimension = struct ([]);
 else
 	if ndims > 0
-		Dimension(1) = nc_getdiminfo( ncid, 0 );
+		Dimension(1) = nc_getdiminfo(ncid, 0);
 	end
-	Dimension = repmat( Dimension, ndims,1 );
+	Dimension = repmat(Dimension, ndims,1);
 	for dimid = 1:ndims-1
-		Dimension(dimid+1) = nc_getdiminfo( ncid, dimid );
+		Dimension(dimid+1) = nc_getdiminfo(ncid, dimid);
 	end
 end
 
@@ -88,11 +88,11 @@ if ngatts == 0
 	fileinfo.Attribute = struct([]);
 else
 	if ngatts > 0
-		Attribute(1) = nc_get_attribute_struct ( ncid, nc_global, 0 );
+		Attribute(1) = nc_get_attribute_struct (ncid, nc_global, 0);
 	end
-	Attribute = repmat ( Attribute, ngatts, 1 );
+	Attribute = repmat (Attribute, ngatts, 1);
 	for attnum = 1:ngatts-1
-		Attribute(attnum+1) = nc_get_attribute_struct ( ncid, nc_global, attnum );
+		Attribute(attnum+1) = nc_get_attribute_struct (ncid, nc_global, attnum);
 	end
 	fileinfo.Attribute = Attribute;
 end
@@ -101,12 +101,12 @@ end
 if nvars == 0
 	Dataset = struct([]);
 else
-	if ( nvars > 0 )
-		Dataset(1) = nc_getvarinfo( ncid, 0 );
+	if (nvars > 0)
+		Dataset(1) = nc_getvarinfo(ncid, 0);
 	end
-	Dataset = repmat ( Dataset, nvars, 1 );
+	Dataset = repmat (Dataset, nvars, 1);
 	for varid=1:nvars-1
-		Dataset(varid+1) = nc_getvarinfo( ncid, varid );
+		Dataset(varid+1) = nc_getvarinfo(ncid, varid);
 	end
 end
 
@@ -115,7 +115,7 @@ fileinfo.Dataset = Dataset;
 mexnc('close',ncid);
 
 % --------------------------------------------------------------------
-function dinfo = nc_getdiminfo ( arg1, arg2 )
+function dinfo = nc_getdiminfo (arg1, arg2)
 % NC_GETDIMINFO:  returns metadata about a specific NetCDF dimension
 %
 % DINFO = NC_GETDIMINFO(NCFILE,DIMNAME) returns information about the
@@ -145,43 +145,43 @@ snc_nargoutchk(1,1,nargout);
 % If we are here, then we must have been given something local.
 if ischar(arg1) && ischar(arg2)
     dinfo = handle_char_nc_getdiminfo(arg1,arg2);
-elseif isnumeric( arg1 ) && isnumeric( arg2 )
+elseif isnumeric(arg1) && isnumeric(arg2)
 	dinfo = handle_numeric_nc_getdiminfo(arg1,arg2);
 else
-	snc_error( 'NC_FUNS:NC_GETDIMINFO:badInput', ...
-	            'Must supply either two character or two numeric arguments.' );
+	snc_error('NC_FUNS:NC_GETDIMINFO:badInput', ...
+	            'Must supply either two character or two numeric arguments.');
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function dinfo = handle_char_nc_getdiminfo ( ncfile, dimname )
+function dinfo = handle_char_nc_getdiminfo (ncfile, dimname)
 
-[ncid,status ]=mexnc('open', ncfile, nc_nowrite_mode );
+[ncid,status ]=mexnc('open', ncfile, nc_nowrite_mode);
 if status ~= 0
-	snc_error ( 'NC_FUNS:NC_GETDIMINFO:handle_char_nc_getdiminfo:openFailed', mexnc('strerror', status) );
+	snc_error('NC_FUNS:NC_GETDIMINFO:handle_char_nc_getdiminfo:openFailed', mexnc('strerror', status));
 end
 
 [dimid, status] = mexnc('INQ_DIMID', ncid, dimname);
-if ( status ~= 0 )
+if (status ~= 0)
 	mexnc('close',ncid);
-	snc_error ( 'NC_FUNS:NC_GETDIMINFO:handle_char_nc_getdiminfo:inq_dimidFailed', mexnc('strerror', status) );
+	snc_error('NC_FUNS:NC_GETDIMINFO:handle_char_nc_getdiminfo:inq_dimidFailed', mexnc('strerror', status));
 end
 
-dinfo = handle_numeric_nc_getdiminfo ( ncid,  dimid );
+dinfo = handle_numeric_nc_getdiminfo (ncid,  dimid);
 mexnc('close',ncid);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function dinfo = handle_numeric_nc_getdiminfo ( ncid, dimid )
+function dinfo = handle_numeric_nc_getdiminfo (ncid, dimid)
 
-[unlimdim, status] = mexnc ( 'inq_unlimdim', ncid );
+[unlimdim, status] = mexnc('inq_unlimdim', ncid);
 if status ~= 0
 	mexnc('close',ncid);
-	snc_error ( 'NC_FUNS:NC_GETDIMINFO:MEXNC:inq_ulimdimFailed', mexnc ( 'strerror', status ) );
+	snc_error('NC_FUNS:NC_GETDIMINFO:MEXNC:inq_ulimdimFailed', mexnc('strerror', status));
 end
 
 [dimname, dimlength, status] = mexnc('INQ_DIM', ncid, dimid);
 if status ~= 0
 	mexnc('close',ncid);
-	snc_error ( 'NC_FUNS:NC_GETDIMINFO:MEXNC:inq_dimFailed', mexnc ( 'strerror', status ) );
+	snc_error('NC_FUNS:NC_GETDIMINFO:MEXNC:inq_dimFailed', mexnc('strerror', status));
 end
 
 dinfo.Name = dimname;
@@ -192,7 +192,7 @@ else,						dinfo.Unlimited = false;
 end
 
 % --------------------------------------------------------------------
-function Dataset = nc_getvarinfo ( arg1, arg2 )
+function Dataset = nc_getvarinfo (arg1, arg2)
 % NC_GETVARINFO:  returns metadata about a specific NetCDF variable
 %
 % VINFO = NC_GETVARINFO(NCFILE,VARNAME) returns a metadata structure VINFO about
@@ -245,41 +245,41 @@ if ischar(arg1) && ischar(arg2)
 
 	[ncid,status ]=mexnc('open',ncfile,nc_nowrite_mode);
 	if status ~= 0
-	    snc_error( 'NC_FUNS:NC_VARGET:MEXNC:OPEN', mexnc('strerror', status) );
+	    snc_error('NC_FUNS:NC_VARGET:MEXNC:OPEN', mexnc('strerror', status));
 	end
 
 	[varid, status] = mexnc('INQ_VARID', ncid, varname);
-	if ( status ~= 0 )
-	    snc_error ( 'NC_FUNS:NC_VARGET:MEXNC:INQ_VARID', mexnc('strerror', status) );
+	if (status ~= 0)
+	    snc_error('NC_FUNS:NC_VARGET:MEXNC:INQ_VARID', mexnc('strerror', status));
 	end
 	
-	Dataset = get_varinfo ( ncid,  varid );
+	Dataset = get_varinfo (ncid,  varid);
 
 	% close whether or not we were successful.
 	mexnc('close',ncid);
 
-elseif isnumeric ( arg1 ) && isnumeric ( arg2 )
+elseif isnumeric (arg1) && isnumeric (arg2)
 	ncid = arg1;
 	varid = arg2;
-	Dataset = get_varinfo ( ncid,  varid );
+	Dataset = get_varinfo (ncid,  varid);
 
 else
-	snc_error ( 'NC_FUNS:NC_GETVARINFO:badTypes', 'Must have either both character inputs, or both numeric.' );
+	snc_error('NC_FUNS:NC_GETVARINFO:badTypes', 'Must have either both character inputs, or both numeric.');
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function Dataset = get_varinfo ( ncid, varid )
+function Dataset = get_varinfo (ncid, varid)
 
-[record_dimension, status] = mexnc ( 'INQ_UNLIMDIM', ncid );
+[record_dimension, status] = mexnc('INQ_UNLIMDIM', ncid);
 if status ~= 0
     mexnc('close',ncid);
-    snc_error ( 'NC_FUNS:NC_VARGET:MEXNC:INQ_UNLIMDIM', mexnc('strerror', status) );
+    snc_error('NC_FUNS:NC_VARGET:MEXNC:INQ_UNLIMDIM', mexnc('strerror', status));
 end
 
 [varname, datatype, ndims, dims, natts, status] = mexnc('INQ_VAR', ncid, varid);
 if status ~= 0 
     mexnc('close',ncid);
-    snc_error ( 'NC_FUNS:NC_VARGET:MEXNC:INQ_VAR', mexnc('strerror', status) );
+    snc_error('NC_FUNS:NC_VARGET:MEXNC:INQ_VAR', mexnc('strerror', status));
 end
 
 Dataset.Name = varname;
@@ -295,9 +295,9 @@ else
 
 	for j = 1:ndims
 		[dimname, dimlength, status] = mexnc('INQ_DIM', ncid, dims(j));
-		if ( status ~= 0 )
+		if (status ~= 0)
 		    mexnc('close',ncid);
-		    snc_error ( 'NC_FUNS:NC_VARGET:MEXNC:INQ_DIM', mexnc('strerror', status) );
+		    snc_error('NC_FUNS:NC_VARGET:MEXNC:INQ_DIM', mexnc('strerror', status));
 		end
 	
 		Dataset.Dimension{j} = dimname; 
@@ -311,7 +311,7 @@ if natts == 0
 	Dataset.Attribute = struct([]);
 else
 	for attnum = 0:natts-1
-		Dataset.Attribute(attnum+1) = nc_get_attribute_struct ( ncid, varid, attnum );
+		Dataset.Attribute(attnum+1) = nc_get_attribute_struct (ncid, varid, attnum);
 	end
 end
 
@@ -333,7 +333,7 @@ function tf = nc_isunlimitedvar(ncfile,varname)
 		info = nc_getvarinfo(ncfile, varname);
 	catch 
 		e = lasterror;
-		switch ( e.identifier )
+		switch (e.identifier)
 			case 'NC_FUNS:NC_VARGET:MEXNC:INQ_VAR'
 				tf = false;
 				return
@@ -352,22 +352,22 @@ function values = nc_varget_t(ncfile, varname, varargin)
 
 	[ncid, status] = mexnc('open',ncfile,'NOWRITE');
 	if (status ~= 0)
-		snc_error('NC_FUNS:NC_VARGET_T:MEXNC:OPEN', mexnc('strerror', status) );
+		snc_error('NC_FUNS:NC_VARGET_T:MEXNC:OPEN', mexnc('strerror', status));
 	end
 
 	[varid, status] = mexnc('inq_varid', ncid, varname);
 	if (status ~= 0)
 		mexnc('close',ncid);
-		snc_error ( 'NC_FUNS:NC_VARGET_T:MEXNC:INQ_VARID', mexnc('strerror', status) );
+		snc_error('NC_FUNS:NC_VARGET_T:MEXNC:INQ_VARID', mexnc('strerror', status));
 	end
 
 	[dud, var_type, nvdims, dimids, dud, status] = mexnc('inq_var', ncid, varid);
 	if (status ~= 0)
 		mexnc('close',ncid);
-		snc_error ( 'NC_FUNS:NC_VARGET_T:MEXNC:INQ_VAR', mexnc('strerror',status) );
+		snc_error('NC_FUNS:NC_VARGET_T:MEXNC:INQ_VAR', mexnc('strerror',status));
 	end
 
-	the_var_size = determine_varsize_mex( ncid, dimids, nvdims );
+	the_var_size = determine_varsize_mex(ncid, dimids, nvdims);
     [start, count, stride] = snc_get_indexing(nvdims, the_var_size, varargin{:});
 
 	% Check that START index is ok.
@@ -395,35 +395,35 @@ function values = nc_varget_t(ncfile, varname, varargin)
 			case nc_char,		funcstr = [prefix '_text'];
 			case nc_byte,		funcstr = [prefix '_schar'];
 			otherwise
-				snc_error ( 'NC_FUNS:NC_VARGET_T:badDatatype', sprintf('Unhandled datatype %d.', var_type) );
+				snc_error('NC_FUNS:NC_VARGET_T:badDatatype', sprintf('Unhandled datatype %d.', var_type));
 		end
-		funcstr = funcstr_as_float ( ncid, varid, var_type, funcstr);	% If we'll need to convert to float, better read as such
+		funcstr = funcstr_as_float (ncid, varid, var_type, funcstr);	% If we'll need to convert to float, better read as such
 
 		imap_coord = [1 count(1)];
 		[values, status] = mexnc(funcstr, ncid, varid, start, count, stride, imap_coord);
 
 	else
 		[funcstr_family, funcstr] = determine_funcstr(var_type, nvdims, start, count, stride);
-		funcstr = funcstr_as_float ( ncid, varid, var_type, funcstr);	% If we'll need to convert to float, better read as such
+		funcstr = funcstr_as_float (ncid, varid, var_type, funcstr);	% If we'll need to convert to float, better read as such
 		switch funcstr_family
-			case 'get_var',		[values, status] = mexnc( funcstr, ncid, varid );
-			case 'get_var1',	[values, status] = mexnc( funcstr, ncid, varid, 0 );
-			case 'get_vara',	[values, status] = mexnc( funcstr, ncid, varid, start, count );
-			case 'get_vars',	[values, status] = mexnc( funcstr, ncid, varid, start, count, stride );
+			case 'get_var',		[values, status] = mexnc(funcstr, ncid, varid);
+			case 'get_var1',	[values, status] = mexnc(funcstr, ncid, varid, 0);
+			case 'get_vara',	[values, status] = mexnc(funcstr, ncid, varid, start, count);
+			case 'get_vars',	[values, status] = mexnc(funcstr, ncid, varid, start, count, stride);
 			otherwise
-				snc_error('NC_FUNS:NC_VARGET:unhandledType', sprintf ('Unhandled function string type ''%s''\n', funcstr_family) );
+				snc_error('NC_FUNS:NC_VARGET:unhandledType', sprintf ('Unhandled function string type ''%s''\n', funcstr_family));
 		end
 	end
 
-	if ( status ~= 0 )
+	if (status ~= 0)
 		mexnc('close',ncid);
-		snc_error ( 'NC_FUNS:NC_VARGET_T', mexnc('strerror', status) );
+		snc_error('NC_FUNS:NC_VARGET_T', mexnc('strerror', status));
 	end
 
 	% Test for situations like the Ifremer SST files where when we get here we have
 	% the_var_size = [1 1024 1024]		and values = [1024 x 1024]
 	% That is, the variable on the netCDF file is singleton on the leading dimension
-	if ( (the_var_size(1) == 1) && (numel(the_var_size) > 2) && (ndims(values) == (numel(the_var_size) - 1)) )
+	if ((the_var_size(1) == 1) && (numel(the_var_size) > 2) && (ndims(values) == (numel(the_var_size) - 1)))
 		the_var_size = the_var_size(2:end);
 	end
 
@@ -431,17 +431,17 @@ function values = nc_varget_t(ncfile, varname, varargin)
 	% to make up for the row-major-order-vs-column-major-order issue.
 	if (numel(the_var_size) == 1),		values = values(:);		end
 
-	[values, status] = handle_fill_value_mex ( ncid, varid, var_type, values );	% Do both '_FillValue' & 'missing_value'
+	[values, status] = handle_fill_value_mex (ncid, varid, var_type, values);	% Do both '_FillValue' & 'missing_value'
 	if (status)		% '_FillValue' was not found. Try the 'missing_value'
-		values = handle_mex_missing_value ( ncid, varid, var_type, values );
+		values = handle_mex_missing_value (ncid, varid, var_type, values);
 	end
 
 	values = handle_scaling_mex(ncid, varid, values);
-	values = squeeze( values );		% remove any singleton dimensions.
+	values = squeeze(values);		% remove any singleton dimensions.
 	mexnc('close',ncid);
 
 % --------------------------------------------------------------------------------------------
-function values = nc_varget(ncfile, varname, varargin )
+function values = nc_varget(ncfile, varname, varargin)
 % NC_VARGET:  Retrieve data from a netCDF variable.
 %
 % DATA = NC_VARGET(NCFILE,VARNAME) retrieves all the data from the 
@@ -480,9 +480,9 @@ function values = nc_varget(ncfile, varname, varargin )
 %      500x700.  We want to retrieve starting at row 300, column 250.
 %      We want 100 contiguous rows, 200 contiguous columns.
 % 
-%      vardata = nc_varget ( file, variable_name, [300 250], [100 200] );
+%      vardata = nc_varget (file, variable_name, [300 250], [100 200]);
 
-% 	values = nc_varget_t(ncfile, varname, varargin{:} );
+% 	values = nc_varget_t(ncfile, varname, varargin{:});
 % 	return
 
 	snc_nargchk(2,5,nargin);
@@ -492,37 +492,42 @@ function values = nc_varget(ncfile, varname, varargin )
 
 	[ncid,status] = mexnc('open',ncfile,'NOWRITE');
 	if status ~= 0
-		snc_error('NC_FUNS:NC_VARGET:MEXNC:OPEN', mexnc('strerror', status) );
+		snc_error('NC_FUNS:NC_VARGET:MEXNC:OPEN', mexnc('strerror', status));
 	end
 
 	[varid, status] = mexnc('inq_varid', ncid, varname);
 	if (status ~= 0)
 		mexnc('close',ncid);
-		snc_error ( 'NC_FUNS:NC_VARGET:MEXNC:INQ_VARID', mexnc('strerror', status) );
+		snc_error('NC_FUNS:NC_VARGET:MEXNC:INQ_VARID', mexnc('strerror', status));
 	end
 
 	[dud,var_type,nvdims,dimids,dud,status] = mexnc('inq_var', ncid, varid);
 	if (status ~= 0)
 		mexnc('close',ncid);
-		snc_error ( 'NC_FUNS:NC_VARGET:MEXNC:INQ_VAR', mexnc('strerror',status) );
+		snc_error('NC_FUNS:NC_VARGET:MEXNC:INQ_VAR', mexnc('strerror',status));
 	end
 
-	the_var_size = determine_varsize_mex( ncid, dimids, nvdims );
+	the_var_size = determine_varsize_mex(ncid, dimids, nvdims);
     %[start, count, stride] = snc_get_indexing(nvdims, the_var_size, varargin{:});	% Only would worth if fvd == true
+
+	% Try to cheat the system and let it read a singleton 4D array
+	if (numel(the_var_size) == 4 && the_var_size(1) == 1 && numel(start) == 3 && numel(count) == 3)
+		start = [0 start];		count = [1 count];
+	end
 
 	% Check that the start, count, stride parameters have appropriate lengths.
 	% Otherwise we get confusing error messages later on.
 	check_index_vectors(start,count,stride,nvdims,ncid,varname);
 
 	% What mexnc operation will we use?
-	[funcstr_family, funcstr] = determine_funcstr( var_type, nvdims, start, count, stride );
+	[funcstr_family, funcstr] = determine_funcstr(var_type, nvdims, start, count, stride);
 
 	% Check that START index is ok.
 	if ~isempty(start) && any(start > the_var_size)
 		snc_error('NC_FUNS:NC_VARGET:badStartIndex', 'The START index argument exceeds the size of the variable.');
 	end
 	
-	funcstr = funcstr_as_float ( ncid, varid, var_type, funcstr);	% If we'll need to convert to float, better read as such
+	funcstr = funcstr_as_float (ncid, varid, var_type, funcstr);	% If we'll need to convert to float, better read as such
 
 	% If the user had set non-positive numbers in "count", then we replace them
 	% with what we need to get the rest of the variable.
@@ -531,23 +536,23 @@ function values = nc_varget(ncfile, varname, varargin )
 
 	% At long last, retrieve the data.
 	switch funcstr_family
-		case 'get_var',		[values, status] = mexnc( funcstr, ncid, varid );
-		case 'get_var1',	[values, status] = mexnc( funcstr, ncid, varid, 0 );
-		case 'get_vara',	[values, status] = mexnc( funcstr, ncid, varid, start, count );
-		case 'get_vars',	[values, status] = mexnc( funcstr, ncid, varid, start, count, stride );
+		case 'get_var',		[values, status] = mexnc(funcstr, ncid, varid);
+		case 'get_var1',	[values, status] = mexnc(funcstr, ncid, varid, 0);
+		case 'get_vara',	[values, status] = mexnc(funcstr, ncid, varid, start, count);
+		case 'get_vars',	[values, status] = mexnc(funcstr, ncid, varid, start, count, stride);
 		otherwise
-			snc_error('NC_FUNS:NC_VARGET:unhandledType', sprintf ('Unhandled function string type ''%s''\n', funcstr_family) );
+			snc_error('NC_FUNS:NC_VARGET:unhandledType', sprintf ('Unhandled function string type ''%s''\n', funcstr_family));
 	end
 
-	if ( status ~= 0 )
+	if (status ~= 0)
 		mexnc('close',ncid);
-		snc_error ( 'NC_FUNS:NC_VARGET:%s', mexnc('strerror', status) );
+		snc_error('NC_FUNS:NC_VARGET:%s', mexnc('strerror', status));
 	end
 
 	% Test for situations like the Ifremer SST files where when we get here we have
 	% the_var_size = [1 1024 1024]		and values = [1024 x 1024]
 	% That is, the variable on the netCDF file is singleton on the leading dimension
-	if ( (the_var_size(1) == 1) && (numel(the_var_size) > 2) && (ndims(values) == (numel(the_var_size) - 1)) )
+	if ((the_var_size(1) == 1) && (numel(the_var_size) > 2) && (ndims(values) == (numel(the_var_size) - 1)))
 		the_var_size = the_var_size(2:end);
 	end
 
@@ -562,14 +567,14 @@ function values = nc_varget(ncfile, varname, varargin )
 		values = permute(values, pv);
 	end                                                                                   
 
-	[values, status] = handle_fill_value_mex ( ncid, varid, var_type, values );	% Do both '_FillValue' & 'missing_value'
+	[values, status] = handle_fill_value_mex (ncid, varid, var_type, values);	% Do both '_FillValue' & 'missing_value'
 	if (status)		% '_FillValue' was not found. Try the 'missing_value'
-		values = handle_mex_missing_value ( ncid, varid, var_type, values );
+		values = handle_mex_missing_value (ncid, varid, var_type, values);
 	end
-	values = handle_scaling_mex ( ncid, varid, values );
+	values = handle_scaling_mex (ncid, varid, values);
 
 	% remove any singleton dimensions.
-	values = squeeze( values );
+	values = squeeze(values);
 
 	mexnc('close',ncid);
 
@@ -591,20 +596,20 @@ start = [];		count = [];		stride = [];
 
 	% Error checking on the inputs.
 	if ~ischar(ncfile)
-		snc_error ( 'NC_FUNS:NC_VARGET:badInput', 'the filename must be character.' );
+		snc_error('NC_FUNS:NC_VARGET:badInput', 'the filename must be character.');
 	end
 	if ~ischar(varname)
-		snc_error ( 'NC_FUNS:NC_VARGET:badInput', 'the variable name must be character.' );
+		snc_error('NC_FUNS:NC_VARGET:badInput', 'the variable name must be character.');
 	end
 
-	if ~isnumeric ( start )
-		snc_error ( 'NC_FUNS:NC_VARGET:badInput', 'the ''start'' argument must be numeric.' );
+	if ~isnumeric (start)
+		snc_error('NC_FUNS:NC_VARGET:badInput', 'the ''start'' argument must be numeric.');
 	end
-	if ~isnumeric ( count )
-		snc_error ( 'NC_FUNS:NC_VARGET:badInput', 'the ''count'' argument must be numeric.' );
+	if ~isnumeric (count)
+		snc_error('NC_FUNS:NC_VARGET:badInput', 'the ''count'' argument must be numeric.');
 	end
-	if ~isnumeric ( stride )
-		snc_error ( 'NC_FUNS:NC_VARGET:badInput', 'the ''stride'' argument must be numeric.' );
+	if ~isnumeric (stride)
+		snc_error('NC_FUNS:NC_VARGET:badInput', 'the ''stride'' argument must be numeric.');
 	end
 	
 % --------------------------------------------------------------------------------
@@ -669,7 +674,7 @@ function [start, count, stride] = snc_get_indexing(nvdims, var_size, varargin)
 	end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function [prefix,funcstr] = determine_funcstr ( var_type, nvdims, start, count, stride )
+function [prefix,funcstr] = determine_funcstr (var_type, nvdims, start, count, stride)
 % DETERMINE_FUNCSTR
 %     Determines if we are to use, say, 'get_var1_text', or 'get_vars_double', or whatever.
 
@@ -684,7 +689,7 @@ function [prefix,funcstr] = determine_funcstr ( var_type, nvdims, start, count, 
 	elseif (~isempty(start) && ~isempty(count) && ~isempty(stride))		% retrieving a contiguous portion
 		prefix = 'get_vars';
 	else
-		snc_error ( 'NC_FUNS:NC_VARGET:FUNCSTR', 'Could not determine funcstr prefix.' );
+		snc_error('NC_FUNS:NC_VARGET:FUNCSTR', 'Could not determine funcstr prefix.');
 	end
 
 	switch (var_type)
@@ -696,11 +701,11 @@ function [prefix,funcstr] = determine_funcstr ( var_type, nvdims, start, count, 
 		case nc_byte,		funcstr = [prefix '_schar'];
 		case nc_ubyte,		funcstr = [prefix '_uchar'];
 		otherwise
-			snc_error ('NC_FUNS:NC_VARGET:badDatatype', sprintf('Unhandled datatype %d.', var_type));
+			snc_error('NC_FUNS:NC_VARGET:badDatatype', sprintf('Unhandled datatype %d.', var_type));
 	end
 	
 % ------------------------------------------------------------------------------
-function funcstr = funcstr_as_float ( ncid, varid, var_type, funcstr)
+function funcstr = funcstr_as_float (ncid, varid, var_type, funcstr)
 % Check for the conditions upon which a short int variable (the grid array) will
 % later be converted to single. If any of those conditions are met, change the
 % reading function string FUNCSTR to its 'float' type which will force the reading
@@ -714,25 +719,25 @@ function funcstr = funcstr_as_float ( ncid, varid, var_type, funcstr)
 	end
 
 	have_scale = false;
-	[dud, dud, status] = mexnc('INQ_ATT', ncid, varid, 'scale_factor' );
+	[dud, dud, status] = mexnc('INQ_ATT', ncid, varid, 'scale_factor');
 	if (status == 0),    have_scale = true;			end
 
 	% Return early if we don't have it.
 	if (~have_scale),    return,	end
 
-	[scale_factor, status] = mexnc ( 'get_att_double', ncid, varid, 'scale_factor' );
-	if ( status ~= 0 )
+	[scale_factor, status] = mexnc('get_att_double', ncid, varid, 'scale_factor');
+	if (status ~= 0)
 		mexnc('close',ncid);
-		snc_error('NC_FUNS:NC_VARGET:MEXNC:GET_ATT_DOUBLE', mexnc('strerror', status) );
+		snc_error('NC_FUNS:NC_VARGET:MEXNC:GET_ATT_DOUBLE', mexnc('strerror', status));
 	end
 
 	do_replace = false;
 
-	if ( scale_factor ~= 1)
+	if (scale_factor ~= 1)
 		do_replace = true;
 	else
-		[dud, dud, status] = mexnc('INQ_ATT', ncid, varid, '_FillValue' );
-		[dud, dud, status2] = mexnc('INQ_ATT', ncid, varid, 'missing_value' );
+		[dud, dud, status] = mexnc('INQ_ATT', ncid, varid, '_FillValue');
+		[dud, dud, status2] = mexnc('INQ_ATT', ncid, varid, 'missing_value');
 		if (status == 0 || status2 == 0)
 			do_replace = true;
 		end
@@ -744,7 +749,7 @@ function funcstr = funcstr_as_float ( ncid, varid, var_type, funcstr)
 	end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function [values, status] = handle_fill_value_mex ( ncid, varid, var_type, values )
+function [values, status] = handle_fill_value_mex (ncid, varid, var_type, values)
 % HANDLE_MEX_FILL_VALUE: If there is a fill value, then replace such values with NaN.
 % And, since the Job is exactly the same as for the missing_value case we now deal
 % both cases here (J. Luis 11-06-2009).
@@ -753,23 +758,23 @@ function [values, status] = handle_fill_value_mex ( ncid, varid, var_type, value
 
 miss_value = [];
 
-[dud, dud, status] = mexnc('INQ_ATT', ncid, varid, '_FillValue' );
-if ( status == 0 )
+[dud, dud, status] = mexnc('INQ_ATT', ncid, varid, '_FillValue');
+if (status == 0)
 	
-	[dud, dud, status2] = mexnc('INQ_ATT', ncid, varid, 'missing_value' );
+	[dud, dud, status2] = mexnc('INQ_ATT', ncid, varid, 'missing_value');
 
-    switch ( var_type )
+    switch (var_type)
         case {nc_char, nc_byte}
 			% For now, do nothing.  Does a fill value even make sense with char data?
 			% If it does, please tell me so.
         case { nc_int, nc_short}
-			[fill_value, status] = mexnc( 'get_att_double', ncid, varid, '_FillValue' );
-			if ( ~status2 )			% Get also the 'missing_value' and do the job for both
-				miss_value = mexnc( 'get_att_double', ncid, varid, 'missing_value' );
+			[fill_value, status] = mexnc('get_att_double', ncid, varid, '_FillValue');
+			if (~status2)			% Get also the 'missing_value' and do the job for both
+				miss_value = mexnc('get_att_double', ncid, varid, 'missing_value');
 			end
 			if (~isnan(fill_value) || ~isnan(miss_value))
 				ind = (values == fill_value);
-				if ( ~isempty(miss_value) && (fill_value ~= miss_value) )	% If 'missing_value' is different from '_FillValue'
+				if (~isempty(miss_value) && (fill_value ~= miss_value))	% If 'missing_value' is different from '_FillValue'
 					ind2 = (values == miss_value);
 					ind = (ind | ind2);				% Ensemble of fill_ and miss_ values
 				end
@@ -781,37 +786,37 @@ if ( status == 0 )
 				% An idiotic case. A _FillValue = NAN in a array of integers.
 			end
         case { nc_double, nc_float }
-			[fill_value, status] = mexnc( 'get_att_double', ncid, varid, '_FillValue' );
-			if ( ~status2 )			% Get also the 'missing_value' and do the job for both
-				miss_value = mexnc( 'get_att_double', ncid, varid, 'missing_value' );
+			[fill_value, status] = mexnc('get_att_double', ncid, varid, '_FillValue');
+			if (~status2)			% Get also the 'missing_value' and do the job for both
+				miss_value = mexnc('get_att_double', ncid, varid, 'missing_value');
 			end
 			if (~isnan(fill_value))
 				values(values == fill_value) = NaN;
 			end
-			if (  ~isempty(miss_value) && (~isnan(miss_value) && (miss_value ~= fill_value)) )
+			if ( ~isempty(miss_value) && (~isnan(miss_value) && (miss_value ~= fill_value)))
 				values(values == miss_value) = NaN;
 			end
         otherwise
 			mexnc('close',ncid);
-			snc_error ( 'NC_FUNS:fill_value_mex',  sprintf('unhandled datatype %d\n', var_type) );
+			snc_error('NC_FUNS:fill_value_mex',  sprintf('unhandled datatype %d\n', var_type));
     end
 
-    if ( status ~= 0 )
+    if (status ~= 0)
         mexnc('close',ncid);
-        snc_error ( 'NC_FUNS:NC_VARGET:MEXNC:GET_ATT', mexnc ( 'strerror', status ) );
+        snc_error('NC_FUNS:NC_VARGET:MEXNC:GET_ATT', mexnc('strerror', status));
     end
 
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function values = handle_mex_missing_value ( ncid, varid, var_type, values )
+function values = handle_mex_missing_value (ncid, varid, var_type, values)
 % HANDLE_MEX_MISSING_VALUE
 %     If there is a missing value, then replace such values with NaN.
 
-[dud, dud, status] = mexnc('INQ_ATT', ncid, varid, 'missing_value' );
-if ( status == 0 )
+[dud, dud, status] = mexnc('INQ_ATT', ncid, varid, 'missing_value');
+if (status == 0)
 
-    switch ( var_type )
+    switch (var_type)
         case {nc_char, nc_byte}
 			% For now, do nothing.  Does a fill value even make sense with char data?
 			% If it does, please tell me so.
@@ -841,53 +846,53 @@ if ( status == 0 )
 			end
         otherwise
 			mexnc('close',ncid);
-			snc_error ( 'NC_FUNS:mex_missing_value', sprintf('unhandled datatype %d\n', mfilename, var_type) );
+			snc_error('NC_FUNS:mex_missing_value', sprintf('unhandled datatype %d\n', mfilename, var_type));
     end
 
-    if ( status ~= 0 )
+    if (status ~= 0)
         mexnc('close',ncid);
-        snc_error ( 'NC_FUNS:NC_VARGET:MEXNC:GET_ATT', mexnc('strerror', status) );
+        snc_error('NC_FUNS:NC_VARGET:MEXNC:GET_ATT', mexnc('strerror', status));
     end
 
 end
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function values = handle_scaling_mex ( ncid, varid, values )
+function values = handle_scaling_mex (ncid, varid, values)
 % HANDLE_MEX_SCALING
 %     If there is a scale factor and/or  add_offset attribute, convert the data
 %     to double precision and apply the scaling.
 
 have_scale = false;
 have_addoffset = false;
-[dud, dud, status] = mexnc('INQ_ATT', ncid, varid, 'scale_factor' );
+[dud, dud, status] = mexnc('INQ_ATT', ncid, varid, 'scale_factor');
 if (status == 0),    have_scale = true;			end
-[dud, dud, status] = mexnc('INQ_ATT', ncid, varid, 'add_offset' );
+[dud, dud, status] = mexnc('INQ_ATT', ncid, varid, 'add_offset');
 if (status == 0),    have_addoffset = true;		end
 
 % Return early if we don't have either one.
 if (~(have_scale || have_addoffset)),    return,	end
 
 if (have_scale)
-    [scale_factor, status] = mexnc ( 'get_att_double', ncid, varid, 'scale_factor' );
-    if ( status ~= 0 )
+    [scale_factor, status] = mexnc('get_att_double', ncid, varid, 'scale_factor');
+    if (status ~= 0)
         mexnc('close',ncid);
-        snc_error('NC_FUNS:NC_VARGET:MEXNC:GET_ATT_DOUBLE', mexnc('strerror', status) );
+        snc_error('NC_FUNS:NC_VARGET:MEXNC:GET_ATT_DOUBLE', mexnc('strerror', status));
     end
 	% If data is other than single or double, change it to single
-	if ( scale_factor ~= 1 && ~( isa(values,'single') || isa(values,'double')) )
+	if (scale_factor ~= 1 && ~(isa(values,'single') || isa(values,'double')))
 		values = single(values);
 	end
-	if ( scale_factor == 1 ),	have_scale = false;		end
+	if (scale_factor == 1),	have_scale = false;		end
 end
 
 if (have_addoffset)
-    [add_offset, status] = mexnc ( 'get_att_double', ncid, varid, 'add_offset' );
-    if ( status ~= 0 )
+    [add_offset, status] = mexnc('get_att_double', ncid, varid, 'add_offset');
+    if (status ~= 0)
         mexnc('close',ncid);
-        snc_error ( 'NC_FUNS:NC_VARGET:MEXNC:GET_ATT_DOUBLE', mexnc('strerror', status) );
+        snc_error('NC_FUNS:NC_VARGET:MEXNC:GET_ATT_DOUBLE', mexnc('strerror', status));
     end
-	if ( add_offset == 0 ),		have_addoffset = false;		end
+	if (add_offset == 0),		have_addoffset = false;		end
 end
 
 if (ndims(values) > 2)			% OpenCV is bugged with 3D grids and sometime we get here a singleton 3D array
@@ -912,7 +917,7 @@ end
 	
 
 % -----------------------------------------------------------------------------
-function dump = nc_dump(file_name, varargin )
+function dump = nc_dump(file_name, varargin)
 % NC_DUMP:  a Matlab counterpart to the NetCDF utility 'ncdump'.
 %     NC_DUMP(NCFILE) prints metadata about the netCDF file NCFILE.  
 %     NC_DUMP(NCFILE,VARNAME) prints metadata about just the one netCDF variable
@@ -929,30 +934,30 @@ else
 	restricted_variable = [];
 end
 
-metadata = nc_info ( file_name );
+metadata = nc_info (file_name);
 
 % print out name of file
 if (nargout)
-	dump = sprintf('netcdf %s { \n', metadata.Filename );
-	dump = dump_dimension_metadata ( metadata, dump );
-	dump = dump_variable_metadata ( metadata, restricted_variable, dump );
+	dump = sprintf('netcdf %s { \n', metadata.Filename);
+	dump = dump_dimension_metadata (metadata, dump);
+	dump = dump_variable_metadata (metadata, restricted_variable, dump);
 else
-	fprintf(1, 'netcdf %s { \n', metadata.Filename );
-	dump_dimension_metadata ( metadata );
-	dump_variable_metadata ( metadata, restricted_variable );
+	fprintf(1, 'netcdf %s { \n', metadata.Filename);
+	dump_dimension_metadata (metadata);
+	dump_variable_metadata (metadata, restricted_variable);
 end
 
 	
-if ( do_restricted_variable == false )
-	if (nargout),	dump = dump_global_attributes ( metadata, dump );
-	else			dump_global_attributes ( metadata );
+if (do_restricted_variable == false)
+	if (nargout),	dump = dump_global_attributes (metadata, dump);
+	else			dump_global_attributes (metadata);
 	end
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function dump = dump_dimension_metadata ( metadata, dump )
+function dump = dump_dimension_metadata (metadata, dump)
 
-if isfield( metadata, 'Dimension' )
+if isfield(metadata, 'Dimension')
 	num_dims = length(metadata.Dimension);
 else
 	num_dims = 0;
@@ -960,29 +965,29 @@ end
 
 n_argin = nargin;
 if (n_argin == 2),	dump = [dump sprintf('dimensions:\n')];
-else				fprintf ( 1, 'dimensions:\n' );
+else,				fprintf (1, 'dimensions:\n');
 end
 for j = 1:num_dims
 	if metadata.Dimension(j).Unlimited
-		str = sprintf('\t%s = UNLIMITED ; (%i currently)\n', deblank(metadata.Dimension(j).Name), metadata.Dimension(j).Length );
+		str = sprintf('\t%s = UNLIMITED ; (%i currently)\n', deblank(metadata.Dimension(j).Name), metadata.Dimension(j).Length);
 		if (n_argin == 2),	dump = [dump str];
-		else				fprintf( 1, str );
+		else,				fprintf(1, str);
 		end
 	else
 		str = sprintf('\t%s = %i ;\n', metadata.Dimension(j).Name, metadata.Dimension(j).Length);
 		if (n_argin == 2),	dump = [dump str];
-		else				fprintf( 1, str );
+		else,				fprintf(1, str);
 		end
 	end
 end
 if (n_argin == 2),	dump = [dump sprintf('\n')];
-else				fprintf('\n');
+else,				fprintf('\n');
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function dump = dump_variable_metadata ( metadata, restricted_variable, dump )
+function dump = dump_variable_metadata (metadata, restricted_variable, dump)
 
-if isfield ( metadata, 'Dataset' )
+if isfield (metadata, 'Dataset')
 	num_vars = length(metadata.Dataset);
 else
 	num_vars = 0;
@@ -990,46 +995,46 @@ end
 
 n_argin = nargin;
 if (n_argin == 3),	dump = [dump sprintf('variables:\n')];
-else				fprintf ( 1, 'variables:\n' );
+else,				fprintf (1, 'variables:\n');
 end
 for j = 1:num_vars
 	if ~isempty(restricted_variable)
-		if ~strcmp ( restricted_variable, metadata.Dataset(j).Name )
+		if ~strcmp (restricted_variable, metadata.Dataset(j).Name)
 			continue
 		end
 	end
-	if (n_argin == 3),		dump = dump_single_variable( metadata.Dataset(j), dump );
-	else					dump_single_variable( metadata.Dataset(j) );
+	if (n_argin == 3),		dump = dump_single_variable(metadata.Dataset(j), dump);
+	else,					dump_single_variable(metadata.Dataset(j));
 	end
 end
 if (n_argin == 3),	dump = [dump sprintf('\n')];
-else				fprintf('\n');
+else,				fprintf('\n');
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function dump = dump_single_variable ( var_metadata, dump )
+function dump = dump_single_variable (var_metadata, dump)
 
-switch ( var_metadata.Nctype )
-	case 1,		str = sprintf('\tbyte ' );
-	case 2,		str = sprintf('\tchar ' );
-	case 3,		str = sprintf('\tshort ' );
-	case 4,		str = sprintf('\tlong ' );
-	case 5,		str = sprintf('\tfloat ' );
-	case 6,		str = sprintf('\tdouble ' );
+switch (var_metadata.Nctype)
+	case 1,		str = sprintf('\tbyte ');
+	case 2,		str = sprintf('\tchar ');
+	case 3,		str = sprintf('\tshort ');
+	case 4,		str = sprintf('\tlong ');
+	case 5,		str = sprintf('\tfloat ');
+	case 6,		str = sprintf('\tdouble ');
 end
 
 n_argin = nargin;
 str = [str sprintf('%s', var_metadata.Name)];
-if (n_argin == 1),		fprintf ( 1, str );
-else					dump = [dump str];
+if (n_argin == 1),		fprintf (1, str);
+else,					dump = [dump str];
 end
 
 if isempty(var_metadata.Dimension)
 	str = sprintf ('([]),');
 else
-	str = sprintf('(%s', var_metadata.Dimension{1} );
+	str = sprintf('(%s', var_metadata.Dimension{1});
 	for (k = 2:length(var_metadata.Size))
-		str = [str sprintf(',%s', var_metadata.Dimension{k} )];
+		str = [str sprintf(',%s', var_metadata.Dimension{k})];
 	end
 	str = [str sprintf('), ')];
 end
@@ -1037,45 +1042,45 @@ end
 if isempty(var_metadata.Dimension)
 	str = [str sprintf('shape = [1]\n')];
 else
-	str = [str sprintf('shape = [%d', var_metadata.Size(1) )];
+	str = [str sprintf('shape = [%d', var_metadata.Size(1))];
 	for k = 2:length(var_metadata.Size)
-		str = [str sprintf(' %d', var_metadata.Size(k) )];
+		str = [str sprintf(' %d', var_metadata.Size(k))];
 	end
 	str = [str sprintf(']\n')];
 end
 
 if (n_argin == 2),	dump = [dump str];
-else				fprintf(1, str);
+else,				fprintf(1, str);
 end
 
 % Now do all attributes for each variable.
 num_atts = length(var_metadata.Attribute);
 for k = 1:num_atts
 	if (n_argin == 1)
-		dump_single_attribute ( var_metadata.Attribute(k), var_metadata.Name );
+		dump_single_attribute (var_metadata.Attribute(k), var_metadata.Name);
 	else
-		dump = dump_single_attribute ( var_metadata.Attribute(k), var_metadata.Name, dump );
+		dump = dump_single_attribute (var_metadata.Attribute(k), var_metadata.Name, dump);
 	end
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function dump = dump_single_attribute ( attribute, varname, dump )
+function dump = dump_single_attribute (attribute, varname, dump)
 
-switch ( attribute.Nctype )
+switch (attribute.Nctype)
 	case 0
 		att_val = '';		att_type = 'NC_NAT';
 	case 1
-		att_type = 'x';		att_val = sprintf ('%d ', fix(attribute.Value) );
+		att_type = 'x';		att_val = sprintf ('%d ', fix(attribute.Value));
 	case 2
-		att_type = '';		att_val = sprintf ('"%s" ', attribute.Value );
+		att_type = '';		att_val = sprintf ('"%s" ', attribute.Value);
 	case 3
-		att_type = 's';		att_val = sprintf ('%i ', attribute.Value );
+		att_type = 's';		att_val = sprintf ('%i ', attribute.Value);
 	case 4
-		att_type = 'd';		att_val = sprintf ('%i ', attribute.Value );
+		att_type = 'd';		att_val = sprintf ('%i ', attribute.Value);
 	case 5
-		att_type = 'f';		att_val = sprintf ('%f ', attribute.Value );
+		att_type = 'f';		att_val = sprintf ('%f ', attribute.Value);
 	case 6
-		att_type = '';		att_val = sprintf ('%g ', attribute.Value );
+		att_type = '';		att_val = sprintf ('%g ', attribute.Value);
 end
 
 n_argin = nargin;
@@ -1090,46 +1095,46 @@ else
 end
 
 if (nargout),	dump = [dump str];
-else			fprintf(1, str);
+else,			fprintf(1, str);
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function dump = dump_global_attributes ( metadata, dump )
+function dump = dump_global_attributes (metadata, dump)
 
-if isfield ( metadata, 'Attribute' )
+if isfield (metadata, 'Attribute')
 	num_atts = length(metadata.Attribute);
 else
 	num_atts = 0;
 end
 
 if (num_atts > 0)
-	str = sprintf('//global attributes:\n' );
+	str = sprintf('//global attributes:\n');
 	if (nargin == 2),	dump = [dump str];
-	else				fprintf(1, str);
+	else,				fprintf(1, str);
 	end
 end
 
 for (k = 1:num_atts)
 	if (nargin == 1)
-		dump_single_attribute ( metadata.Attribute(k) );
+		dump_single_attribute (metadata.Attribute(k));
 	else
-		dump = dump_single_attribute ( metadata.Attribute(k), dump );
+		dump = dump_single_attribute (metadata.Attribute(k), dump);
 	end
 end
 
-if (nargout),	dump = [dump sprintf('}\n' )];
-else			fprintf ( 1, '}\n' );
+if (nargout),	dump = [dump sprintf('}\n')];
+else,			fprintf (1, '}\n');
 end
 		
 % --------------------------------------------------------------------------------		
-function attribute = nc_get_attribute_struct ( cdfid, varid, attnum )
+function attribute = nc_get_attribute_struct (cdfid, varid, attnum)
 % NC_GET_ATTRIBUTE_STRUCT:  Returns a NetCDF attribute as a structure
 %
 % You don't want to be calling this routine directly.  Just don't use 
 % it.  Use nc_attget instead.  Go away.  Nothing to see here, folks.  
 % Move along, move along.
 %
-% USAGE:  attstruct = nc_get_attribute_struct ( cdfid, varid, attnum );
+% USAGE:  attstruct = nc_get_attribute_struct (cdfid, varid, attnum);
 %
 % PARAMETERS:
 % Input:
@@ -1152,13 +1157,13 @@ attribute.Value = NaN;       % In case the routine fails?
 
 [attname, status] = mexnc('INQ_ATTNAME', cdfid, varid, attnum);
 if status < 0 
-	snc_error ( 'NC_FUNS:nc_get_attribute_struct:INQ_ATTNAME', sprintf('%s:  mexnc:inq_attname failed on varid %d.\n', mfilename, varid) );
+	snc_error('NC_FUNS:nc_get_attribute_struct:INQ_ATTNAME', sprintf('%s:  mexnc:inq_attname failed on varid %d.\n', mfilename, varid));
 end
 attribute.Name = attname;
 
 [att_datatype, status] = mexnc('INQ_ATTTYPE', cdfid, varid, attname);
 if status < 0 
-	snc_error ( 'NC_FUNS:nc_get_attribute_struct:INQ_ATTTYPE', sprintf('%s:  mexnc:inq_att failed on varid %d, attribute %s.\n', mfilename, varid, attname) );
+	snc_error('NC_FUNS:nc_get_attribute_struct:INQ_ATTTYPE', sprintf('%s:  mexnc:inq_att failed on varid %d, attribute %s.\n', mfilename, varid, attname));
 end
 attribute.Nctype = att_datatype;
 
@@ -1170,17 +1175,17 @@ switch att_datatype
 	case { nc_double, nc_float, nc_int, nc_short, nc_byte }
 		[attval, status] = mexnc('get_att_double',cdfid,varid,attname);
 	otherwise
-		snc_error ( 'NC_FUNS:nc_get_attribute_struct', sprintf('att_datatype is %d.\n', att_datatype) );
+		snc_error('NC_FUNS:nc_get_attribute_struct', sprintf('att_datatype is %d.\n', att_datatype));
 end
 if status < 0 
-	snc_error ( 'NC_FUNS:nc_get_attribute_struct', sprintf('%s:  mexnc:attget failed on varid %d, attribute %s.\n', mfilename, varid, attname) );
+	snc_error('NC_FUNS:nc_get_attribute_struct', sprintf('%s:  mexnc:attget failed on varid %d, attribute %s.\n', mfilename, varid, attname));
 end
 
 % this puts the attribute into the variable structure
 attribute.Value = attval;
 
 % ----------------------------------------------------------------------------------------
-function values = nc_attget(ncfile, varname, attribute_name )
+function values = nc_attget(ncfile, varname, attribute_name)
 % NC_ATTGET: Get the values of a NetCDF attribute.
 %
 % USAGE:  att_value = nc_attget(ncfile, varname, attribute_name);
@@ -1213,29 +1218,29 @@ function values = nc_attget(ncfile, varname, attribute_name )
 snc_nargchk(3,3,nargin);
 snc_nargoutchk(1,1,nargout);
 
-[ncid, status] = mexnc('open', ncfile, nc_nowrite_mode );
-if ( status ~= 0 )
-	snc_error ( 'NC_FUNS:NC_ATTGET:MEXNC:OPEN', mexnc('STRERROR', status) );
+[ncid, status] = mexnc('open', ncfile, nc_nowrite_mode);
+if (status ~= 0)
+	snc_error('NC_FUNS:NC_ATTGET:MEXNC:OPEN', mexnc('STRERROR', status));
 end
 
 switch class(varname)
 	case {'double'},	varid = varname;
-	case 'char',		varid = figure_out_varid ( ncid, varname );
+	case 'char',		varid = figure_out_varid (ncid, varname);
 	otherwise
-		snc_error ( 'NC_FUNS:NC_ATTGET:badType', 'Must specify either a variable name or NC_GLOBAL' );
+		snc_error('NC_FUNS:NC_ATTGET:badType', 'Must specify either a variable name or NC_GLOBAL');
 end
 
 funcstr = determine_funcstr_attget(ncid,varid,attribute_name);
 
 % And finally, retrieve the attribute.
 [values, status] = mexnc(funcstr,ncid,varid,attribute_name);
-if ( status ~= 0 )
-	snc_error(['NC_FUNS:NC_ATTGET:MEXNC:' funcstr ], mexnc('STRERROR', status) );
+if (status ~= 0)
+	snc_error(['NC_FUNS:NC_ATTGET:MEXNC:' funcstr ], mexnc('STRERROR', status));
 end
 
 status = mexnc('close',ncid);
-if ( status ~= 0 )
-	snc_error ( 'NC_FUNS:NC_ATTGET:MEXNC:CLOSE', mexnc('STRERROR', status) );
+if (status ~= 0)
+	snc_error('NC_FUNS:NC_ATTGET:MEXNC:CLOSE', mexnc('STRERROR', status));
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -1244,12 +1249,12 @@ function funcstr = determine_funcstr_attget(ncid,varid,attribute_name)
 % string we invoke to retrieve the attribute value.
 
 [dt, status] = mexnc('inq_atttype',ncid,varid,attribute_name);
-if ( status ~= 0 )
+if (status ~= 0)
 	mexnc('close',ncid);
-	snc_error ( 'NC_FUNS:NC_ATTGET:MEXNC:INQ_ATTTYPE', mexnc('STRERROR', status) );
+	snc_error('NC_FUNS:NC_ATTGET:MEXNC:INQ_ATTTYPE', mexnc('STRERROR', status));
 end
 
-switch ( dt )
+switch (dt)
 	case nc_double,		funcstr = 'GET_ATT_DOUBLE';
 	case nc_float,		funcstr = 'GET_ATT_FLOAT';
 	case nc_int,		funcstr = 'GET_ATT_INT';
@@ -1258,37 +1263,37 @@ switch ( dt )
 	case nc_char,		funcstr = 'GET_ATT_TEXT';
 	otherwise
 		mexnc('close',ncid);
-		snc_error ( 'NC_FUNS:NC_ATTGET:badDatatype', sprintf ( 'unhandled datatype ID %d', dt ) );
+		snc_error('NC_FUNS:NC_ATTGET:badDatatype', sprintf ('unhandled datatype ID %d', dt));
 end
 
 %===============================================================================
 % Did the user do something really stupid like say 'global' when they meant NC_GLOBAL?
-function varid = figure_out_varid ( ncid, varname )
+function varid = figure_out_varid (ncid, varname)
 
 if isempty(varname)
 	varid = nc_global;
 	return
 end
 
-if ( strcmpi(varname,'global') )
-    [varid, status] = mexnc ( 'inq_varid', ncid, varname );
+if (strcmpi(varname,'global'))
+    [varid, status] = mexnc('inq_varid', ncid, varname);
 	if status 
 		% Ok, the user meant NC_GLOBAL
-		warning ( 'NC_FUNS:nc_attget:doNotUseGlobalString', ...
-		          'Please consider using the m-file NC_GLOBAL.M instead of the string ''%s''.', varname );
+		warning ('NC_FUNS:nc_attget:doNotUseGlobalString', ...
+		          'Please consider using the m-file NC_GLOBAL.M instead of the string ''%s''.', varname);
 		varid = nc_global;
 		return
 	end
 end
 
-[varid, status] = mexnc ( 'inq_varid', ncid, varname );
-if ( status ~= 0 )
+[varid, status] = mexnc('inq_varid', ncid, varname);
+if (status ~= 0)
 	mexnc('close',ncid);
-	snc_error ( 'NC_FUNS:NC_ATTGET:MEXNC:INQ_VARID', mexnc('STRERROR', status) );
+	snc_error('NC_FUNS:NC_ATTGET:MEXNC:INQ_VARID', mexnc('STRERROR', status));
 end
 
 %----------------------------------------------------------------------------
-function nc_varput( ncfile, varname, data, varargin )
+function nc_varput(ncfile, varname, data, varargin)
 % NC_VARPUT:  Writes data into a netCDF file.
 %
 % NC_VARPUT(NCFILE,VARNAME,DATA) writes the matlab variable DATA to
@@ -1308,13 +1313,13 @@ function nc_varput( ncfile, varname, data, varargin )
 %    have an array of data called 'mydata' that is 6x4, then you can 
 %    write to the entire variable with 
 % 
-%        >> nc_varput ( 'foo.nc', 'x', mydata );
+%        >> nc_varput ('foo.nc', 'x', mydata);
 %
 %    If you wish to only write to the first 2 rows and three columns,
 %    you could do the following
 %
 %        >> subdata = mydata(1:2,1:3);
-%        >> nc_varput ( 'foo.nc', 'x', subdata, [0 0], [2 3] );
+%        >> nc_varput ('foo.nc', 'x', subdata, [0 0], [2 3]);
 %
 
 snc_nargchk(3,6,nargin);
@@ -1331,32 +1336,32 @@ end
 
 [ncid, status] = mexnc('open', ncfile, nc_write_mode);
 if (status ~= 0)
-    snc_error ( 'NC_FUNS:NC_VARPUT:MEXNC:OPEN', mexnc('STRERROR', status) );
+    snc_error('NC_FUNS:NC_VARPUT:MEXNC:OPEN', mexnc('STRERROR', status));
 end
 
 % check to see if the variable already exists.  
-[varid, status] = mexnc('INQ_VARID', ncid, varname );
-if ( status ~= 0 )
-    mexnc ( 'close', ncid );
-    snc_error ( 'NC_FUNS:NC_VARPUT:MEXNC:INQ_VARID', mexnc('STRERROR', status) );
+[varid, status] = mexnc('INQ_VARID', ncid, varname);
+if (status ~= 0)
+    mexnc('close', ncid);
+    snc_error('NC_FUNS:NC_VARPUT:MEXNC:INQ_VARID', mexnc('STRERROR', status));
 end
 
 [dud,var_type,nvdims,var_dim,dud, status] = mexnc('INQ_VAR',ncid,varid);
 if status ~= 0 
-    mexnc ( 'close', ncid );
-    snc_error ( 'NC_FUNS:NC_VARPUT:MEXNC:INQ_VAR', mexnc('STRERROR', status) );
+    mexnc('close', ncid);
+    snc_error('NC_FUNS:NC_VARPUT:MEXNC:INQ_VAR', mexnc('STRERROR', status));
 end
 
-nc_count = determine_varsize_mex ( ncid, var_dim, nvdims );
-validate_input_data_rank ( ncid, varname, data, nvdims, nc_count );
+nc_count = determine_varsize_mex (ncid, var_dim, nvdims);
+validate_input_data_rank (ncid, varname, data, nvdims, nc_count);
 [start, count] = validate_indexing (ncid,nvdims,data,start,count,stride);
 
 % check that the length of the start argument matches the rank of the variable.
 if length(start) ~= length(nc_count)
-    mexnc ( 'close', ncid );
+    mexnc('close', ncid);
     fmt = 'Length of START index (%d) does not make sense with a variable rank of %d.\n';
-    msg = sprintf ( fmt, length(start), length(nc_count) );
-    snc_error ( 'NC_FUNS:NC_VARPUT:badIndexing', msg );
+    msg = sprintf (fmt, length(start), length(nc_count));
+    snc_error('NC_FUNS:NC_VARPUT:badIndexing', msg);
 end
 
 
@@ -1371,15 +1376,15 @@ elseif n_in == 5
 elseif n_in == 6
     write_op = 'put_vars';
 else
-    snc_error ( 'NC_FUNS:NC_VARPUT', 'unhandled write op.  How did we come to this??\n' );
+    snc_error('NC_FUNS:NC_VARPUT', 'unhandled write op.  How did we come to this??\n');
 end
 
 validate_input_size_vs_netcdf_size(ncid,data,nc_count,count,write_op);
 
-if ( try_to_scale && ~(isa(data,'int8') || isa(data,'uint8')) )
+if (try_to_scale && ~(isa(data,'int8') || isa(data,'uint8')))
 	[data, did_scale] = handle_scaling(ncid,varid,data);	% Use cvlib_mex
-	data = handle_fill_value ( ncid, varid, data );			% WARNING: Operates only in singles or doubles
-	if ( did_scale )					% Dangerous case. (J. LUIS)
+	data = handle_fill_value (ncid, varid, data);			% WARNING: Operates only in singles or doubles
+	if (did_scale)					% Dangerous case. (J. LUIS)
 		var_type = mexnc('INQ_VARTYPE',ncid,varid);
 		switch var_type
 			case nc_byte,	    if (~isa(data,'int8')),     data = int8(data);		end
@@ -1393,9 +1398,9 @@ end
 
 write_the_data(ncid,varid,start,count,stride,write_op,data);
 
-status = mexnc ( 'close', ncid );
-if ( status ~= 0 )
-    snc_error ( 'NC_FUNS:NC_VARPUT:CLOSE', mexnc('STRERROR',status));
+status = mexnc('close', ncid);
+if (status ~= 0)
+    snc_error('NC_FUNS:NC_VARPUT:CLOSE', mexnc('STRERROR',status));
 end
 
 % ----------------------------------------------------------------------------------
@@ -1417,24 +1422,24 @@ end
 
 % Error checking on the inputs.
 if ~ischar(ncfile)
-    snc_error ( 'NC_FUNS:NC_VARPUT:badInput', 'the filename must be character.' );
+    snc_error('NC_FUNS:NC_VARPUT:badInput', 'the filename must be character.');
 end
 if ~ischar(varname)
-    snc_error ( 'NC_FUNS:NC_VARPUT:badInput', 'the variable name must be character.' );
+    snc_error('NC_FUNS:NC_VARPUT:badInput', 'the variable name must be character.');
 end
 
-if ~isnumeric ( start )
-    snc_error ( 'NC_FUNS:NC_VARPUT:badInput', 'the ''start'' argument must be numeric.' );
+if ~isnumeric (start)
+    snc_error('NC_FUNS:NC_VARPUT:badInput', 'the ''start'' argument must be numeric.');
 end
-if ~isnumeric ( count )
-    snc_error ( 'NC_FUNS:NC_VARPUT:badInput', 'the ''count'' argument must be numeric.' );
+if ~isnumeric (count)
+    snc_error('NC_FUNS:NC_VARPUT:badInput', 'the ''count'' argument must be numeric.');
 end
-if ~isnumeric ( stride )
-    snc_error ( 'NC_FUNS:NC_VARPUT:badInput', 'the ''stride'' argument must be numeric.' );
+if ~isnumeric (stride)
+    snc_error('NC_FUNS:NC_VARPUT:badInput', 'the ''stride'' argument must be numeric.');
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function validate_input_data_rank ( ncid, varname, data, nvdims, nc_count )
+function validate_input_data_rank (ncid, varname, data, nvdims, nc_count)
 % VALIDATE_INPUT_DATA_RANK:
 %     Make sure that the rank of the input data matches up with the netCDF
 %     variable.  There are a few different cases to consider.
@@ -1442,36 +1447,36 @@ function validate_input_data_rank ( ncid, varname, data, nvdims, nc_count )
 if (nvdims == 0)
     % singleton case.
     if numel(data) ~= 1
-        mexnc ( 'close', ncid );
-        snc_error ( 'NC_FUNS:NC_VARPUT:badRank', 'Input data size for this variable should be a scalar.' );
+        mexnc('close', ncid);
+        snc_error('NC_FUNS:NC_VARPUT:badRank', 'Input data size for this variable should be a scalar.');
     end
 
 elseif (nvdims == 1)
     % This is a special case.  Matlab reports 1D vectors as having at least rank 2.
     if ndims(data) > 2
-        mexnc ( 'close', ncid );
-        snc_error ( 'NC_FUNS:NC_VARPUT:badRank', 'Input data size for this variable should be a 1D vector.' );
+        mexnc('close', ncid);
+        snc_error('NC_FUNS:NC_VARPUT:badRank', 'Input data size for this variable should be a 1D vector.');
     end
 
     % At least one of the input data sizes must be 1
     sz = size(data);
     if ~any(find(sz==1))
-        mexnc ( 'close', ncid );
-        snc_error ( 'NC_FUNS:NC_VARPUT:badRank', 'Input data size for this variable should be a 1D vector.' );
+        mexnc('close', ncid);
+        snc_error('NC_FUNS:NC_VARPUT:badRank', 'Input data size for this variable should be a 1D vector.');
     end
 
 else
 	% Trim any trailing singleton dimension.s
 	n = length(nc_count);
 	for k = n:-1:ceil(n/2)
-		if ( nc_count(k) ~= 1 )
+		if (nc_count(k) ~= 1)
 			break;
 		end
 		nc_count(k) = 0;
 	end
 
 	%for k = 1:-1:floor(n/2)
-	%	if ( nc_count(k) ~= 1 )
+	%	if (nc_count(k) ~= 1)
 	%		break;
 	%	end
 	%	nc_count(k) = 0;
@@ -1480,10 +1485,10 @@ else
 	effective_nc_rank = max(2,effective_nc_rank);
 
     % 2D and higher case.  These cases are easier.
-    if ( ndims(data) ~= effective_nc_rank)
-% 		mexnc ( 'close', ncid );
+    if (ndims(data) ~= effective_nc_rank)
+% 		mexnc('close', ncid);
 % 		efmt = 'Rank of input data (%d) does not work for netCDF variable %s.\n';
-% 		snc_error ( 'NC_FUNS:NC_VARPUT:badRank', sprintf(efmt, ndims(data), varname) );
+% 		snc_error('NC_FUNS:NC_VARPUT:badRank', sprintf(efmt, ndims(data), varname));
     end
 end
 
@@ -1493,30 +1498,30 @@ function [start, count] = validate_indexing(ncid,nvdims,data,start,count,stride)
 if nvdims == 0
 
     if isempty(start) && isempty(count) && isempty(stride)
-        % This is the case of "nc_varput ( file, var, data );"
+        % This is the case of "nc_varput (file, var, data);"
         start = 0;
         count = 1;
 
     elseif ~isempty(start) && ~isempty(count) && isempty(stride)
-        % This is the case of "nc_varput ( file, var, data, start, count );"
+        % This is the case of "nc_varput (file, var, data, start, count);"
         % So the user gave us "start" and "count".  Did they do so correctly?
-        if ( start ~= 0 ) || (count ~= 1 )
-            mexnc ( 'close', ncid );
+        if (start ~= 0) || (count ~= 1)
+            mexnc('close', ncid);
             err_msg = 'In case of singleton variable,  ''start'' must be [0] and ''count'' must be [1].';
-            snc_error ( 'NC_FUNS:NC_VARPUT:MEXNC:badIndexing', err_msg );
+            snc_error('NC_FUNS:NC_VARPUT:MEXNC:badIndexing', err_msg);
         end
 
     elseif ~isempty(start) && ~isempty(count) && ~isempty(stride)
-        mexnc ( 'close', ncid );
+        mexnc('close', ncid);
         err_msg = 'Strides make no sense for a singleton variable.';
-        snc_error ( 'NC_FUNS:NC_VARPUT:MEXNC:badIndexing', err_msg );
+        snc_error('NC_FUNS:NC_VARPUT:MEXNC:badIndexing', err_msg);
     end
 
 end
 
 % If START and COUNT not given, and if not a singleton variable, then START is [0,..] and COUNT is 
 % the size of the data.  
-if isempty(start) && isempty(count) && ( nvdims > 0 )
+if isempty(start) && isempty(count) && (nvdims > 0)
     start = zeros(1,nvdims);
     count = zeros(1,nvdims);
 	for j = 1:nvdims
@@ -1525,15 +1530,15 @@ if isempty(start) && isempty(count) && ( nvdims > 0 )
 end
 
 % Check that the start, count, and stride arguments have the same length.
-if ( numel(start) ~= numel(count) )
-    mexnc ( 'close', ncid );
+if (numel(start) ~= numel(count))
+    mexnc('close', ncid);
     err_msg = 'START and COUNT arguments must have the same length.';
-    snc_error ( 'NC_FUNS:NC_VARPUT:MEXNC:badIndexing', err_msg );
+    snc_error('NC_FUNS:NC_VARPUT:MEXNC:badIndexing', err_msg);
 end
-if ( ~isempty(stride) && (length(start) ~= length(stride)) )
-    mexnc ( 'close', ncid );
+if (~isempty(stride) && (length(start) ~= length(stride)))
+    mexnc('close', ncid);
     err_msg = 'START, COUNT, and STRIDE arguments must have the same length.';
-    snc_error ( 'NC_FUNS:NC_VARPUT:MEXNC:badIndexing', err_msg );
+    snc_error('NC_FUNS:NC_VARPUT:MEXNC:badIndexing', err_msg);
 end
 
 
@@ -1545,15 +1550,15 @@ function [data, did_scale] = handle_scaling(ncid,varid,data)
 %	that a scalling and/or offset was performed
 
 did_scale = false;
-[dud, dud, status] = mexnc('INQ_ATT', ncid, varid, 'scale_factor' );
-if ( status == 0 ),		have_scale_factor = 1;
-else					have_scale_factor = 0;
+[dud, dud, status] = mexnc('INQ_ATT', ncid, varid, 'scale_factor');
+if (status == 0),		have_scale_factor = 1;
+else,					have_scale_factor = 0;
 end
 
-[dud, dud, status] = mexnc('INQ_ATT', ncid, varid, 'add_offset' );
+[dud, dud, status] = mexnc('INQ_ATT', ncid, varid, 'add_offset');
 
-if ( status == 0 ),		have_add_offset = 1;
-else					have_add_offset = 0;
+if (status == 0),		have_add_offset = 1;
+else,					have_add_offset = 0;
 end
 
 % Return early if we don't have either one.
@@ -1563,18 +1568,18 @@ scale_factor = 1.0;
 add_offset = 0.0;
 
 if have_scale_factor
-	[scale_factor, status] = mexnc ( 'get_att_double', ncid, varid, 'scale_factor' );
-	if ( status ~= 0 )
-	    mexnc ( 'close', ncid );
-	    snc_error ( 'NC_FUNS:NC_VARPUT:MEXNC:GET_ATT_DOUBLE', mexnc('STRERROR', status) );
+	[scale_factor, status] = mexnc('get_att_double', ncid, varid, 'scale_factor');
+	if (status ~= 0)
+	    mexnc('close', ncid);
+	    snc_error('NC_FUNS:NC_VARPUT:MEXNC:GET_ATT_DOUBLE', mexnc('STRERROR', status));
 	end
 end
 
 if have_add_offset
-	[add_offset, status] = mexnc ( 'get_att_double', ncid, varid, 'add_offset' );
-	if ( status ~= 0 )
-	    mexnc ( 'close', ncid );
-	    snc_error ( 'NC_FUNS:NC_VARPUT:MEXNC:GET_ATT_DOUBLE', mexnc('STRERROR', status) );
+	[add_offset, status] = mexnc('get_att_double', ncid, varid, 'add_offset');
+	if (status ~= 0)
+	    mexnc('close', ncid);
+	    snc_error('NC_FUNS:NC_VARPUT:MEXNC:GET_ATT_DOUBLE', mexnc('STRERROR', status));
 	end
 end
 
@@ -1582,8 +1587,8 @@ if (add_offset == 0 && scale_factor == 1),		return,		end
 
 [var_type,status] = mexnc('INQ_VARTYPE',ncid,varid);
 if status ~= 0 
-    mexnc ( 'close', ncid );
-    snc_error ( 'NC_FUNS:NC_VARPUT:MEXNC:INQ_VARTYPE', mexnc('STRERROR', status) );
+    mexnc('close', ncid);
+    snc_error('NC_FUNS:NC_VARPUT:MEXNC:INQ_VARTYPE', mexnc('STRERROR', status));
 end
 
 if (have_scale_factor && have_add_offset)
@@ -1610,10 +1615,10 @@ end
 function data = handle_fill_value(ncid,varid,data)
 % Handle the fill value.  We do this by changing any NaNs into
 % the _FillValue.  That way the netcdf library will recognize it.
-[dud, dud, status] = mexnc('INQ_ATT', ncid, varid, '_FillValue' );
+[dud, dud, status] = mexnc('INQ_ATT', ncid, varid, '_FillValue');
 
-if ( status == 0 )
-    switch ( class(data) )
+if (status == 0)
+    switch (class(data))
         case 'double',		funcstr = 'get_att_double';
         case 'single',		funcstr = 'get_att_float';
         case 'int32',		funcstr = 'get_att_int';
@@ -1622,17 +1627,17 @@ if ( status == 0 )
         case 'uint8',		funcstr = 'get_att_uchar';
         case 'char',		funcstr = 'get_att_text';
         otherwise
-			mexnc ( 'close', ncid );
-			snc_error ('NC_FUNS:NC_VARPUT:unhandledDatatype', sprintf('Unhandled datatype for fill value, ''%s''.', class(data)) );
+			mexnc('close', ncid);
+			snc_error('NC_FUNS:NC_VARPUT:unhandledDatatype', sprintf('Unhandled datatype for fill value, ''%s''.', class(data)));
     end
 
-    [fill_value, status] = mexnc(funcstr,ncid,varid,'_FillValue' );
-    if ( status ~= 0 )
-	    mexnc( 'close', ncid );
-	    snc_error( ['NC_FUNS:NC_VARPUT:MEXNC:' funcstr], mexnc('STRERROR', status) );
+    [fill_value, status] = mexnc(funcstr,ncid,varid,'_FillValue');
+    if (status ~= 0)
+	    mexnc('close', ncid);
+	    snc_error(['NC_FUNS:NC_VARPUT:MEXNC:' funcstr], mexnc('STRERROR', status));
     end
 
-	if ( ~isnan(fill_value) && (isa(data,'single') || isa(data,'double')) )
+	if (~isnan(fill_value) && (isa(data,'single') || isa(data,'double')))
     	data(isnan(data)) = fill_value;
 	end
 end
@@ -1646,49 +1651,49 @@ function validate_input_size_vs_netcdf_size(ncid,data,nc_count,count,write_op)
 % a larger then expected chunk of data to the netcdf file, have parts of it
 % get lopped off in order to fit, and  never be the wiser.
 
-switch ( write_op )
+switch (write_op)
 
 	case 'put_var1'
 		% Just check that the length of the input data was 1.
 		if numel(data) ~= 1
-			mexnc ( 'close', ncid );
-			snc_error ( 'NC_FUNS:NC_VARPUT:badInput', 'Length of input data must be 1 for singleton variable.'  );
+			mexnc('close', ncid);
+			snc_error('NC_FUNS:NC_VARPUT:badInput', 'Length of input data must be 1 for singleton variable.');
 		end
 
 	case 'put_var'
         % Since 'put_var' writes all the data, check that the extents match up exactly.  
-        if ( numel(data) ~= prod(nc_count) )
+        if (numel(data) ~= prod(nc_count))
 			% Added the following (stupid) test TO LET GO WITH THE UNLIMITED VAR -- J. LUIS
-			rec_dim = mexnc( 'INQ_UNLIMDIM', ncid );
-			if ( ~(rec_dim == 2 && numel(data) == 1) )
-				mexnc ( 'close', ncid );
+			rec_dim = mexnc('INQ_UNLIMDIM', ncid);
+			if (~(rec_dim == 2 && numel(data) == 1))
+				mexnc('close', ncid);
 				fmt = 'Total number of input datums was %d, but the netcdf variable size is %d elements.';
- 				snc_error ( 'NC_FUNS:NC_VARPUT:badInput', sprintf ( fmt, numel(data), prod(nc_count) ) );
+ 				snc_error('NC_FUNS:NC_VARPUT:badInput', sprintf (fmt, numel(data), prod(nc_count)));
 			end
         end
 
 	case { 'put_vara', 'put_vars' }
         % Just check that the chunk of data the user gave us is the same
         % size as the given count.  This works for put_vars as well.
-        if ( numel(data) ~= prod(count) )
-			mexnc ( 'close', ncid );
+        if (numel(data) ~= prod(count))
+			mexnc('close', ncid);
 			fmt = 'Total number of input datums was %d, but the count parameter indicated %d elements.\n';
-			snc_error ( 'NC_FUNS:NC_VARPUT:badInput', sprintf( fmt, numel(data), prod(count)) );
+			snc_error('NC_FUNS:NC_VARPUT:badInput', sprintf(fmt, numel(data), prod(count)));
         end
 
 	otherwise 
-		mexnc ( 'close', ncid );
-		snc_error ( 'NC_FUNS:NC_VARPUT:unhandledCase', sprintf('Unhandled write operation family, ''%s''.', write_op) );
+		mexnc('close', ncid);
+		snc_error('NC_FUNS:NC_VARPUT:unhandledCase', sprintf('Unhandled write operation family, ''%s''.', write_op));
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function write_the_data(ncid,varid,start,count,stride,write_op,data)
 
 % write the data
-pdata = permute(data, fliplr( 1:ndims(data) ));
+pdata = permute(data, fliplr(1:ndims(data)));
 switch (write_op)
     case 'put_var1'
-        switch (class(data)),
+        switch (class(data))
             case 'double',		funcstr = 'put_var1_double';
             case 'single',		funcstr = 'put_var1_float';
             case 'int32',		funcstr = 'put_var1_int';
@@ -1698,9 +1703,9 @@ switch (write_op)
             case 'char',		funcstr = 'put_var1_text';
             otherwise
                 mexnc('close',ncid);
-                snc_error('NC_FUNS:NC_VARPUT:unhandledMatlabType', sprintf('unhandled data class %s\n', class(pdata)) );
+                snc_error('NC_FUNS:NC_VARPUT:unhandledMatlabType', sprintf('unhandled data class %s\n', class(pdata)));
         end
-        status = mexnc (funcstr, ncid, varid, start, pdata );
+        status = mexnc(funcstr, ncid, varid, start, pdata);
 
     case 'put_var'
         switch (class(data))
@@ -1713,9 +1718,9 @@ switch (write_op)
             case 'char',		funcstr = 'put_var_text';
             otherwise
                 mexnc('close',ncid);
-                snc_error ( 'NC_FUNS:NC_VARPUT:unhandledMatlabType', sprintf('unhandled data class %s\n', class(pdata)) );
+                snc_error('NC_FUNS:NC_VARPUT:unhandledMatlabType', sprintf('unhandled data class %s\n', class(pdata)));
         end
-        status = mexnc (funcstr, ncid, varid, pdata );
+        status = mexnc(funcstr, ncid, varid, pdata);
     
     case 'put_vara'
         switch (class(data))
@@ -1728,12 +1733,12 @@ switch (write_op)
             case 'char',		funcstr = 'put_vara_text';
             otherwise
                 mexnc('close',ncid);
-                snc_error ('NC_FUNS:NC_VARPUT:unhandledMatlabType', sprintf('unhandled data class %s\n', class(pdata)) );
+                snc_error('NC_FUNS:NC_VARPUT:unhandledMatlabType', sprintf('unhandled data class %s\n', class(pdata)));
         end
-        status = mexnc(funcstr, ncid, varid, start, count, pdata );
+        status = mexnc(funcstr, ncid, varid, start, count, pdata);
 
     case 'put_vars'
-        switch ( class(data) )
+        switch (class(data))
 			case 'double',		funcstr = 'put_vars_double';
 			case 'single',		funcstr = 'put_vars_float';
 			case 'int32',		funcstr = 'put_vars_int';
@@ -1743,26 +1748,26 @@ switch (write_op)
 			case 'char',		funcstr = 'put_vars_text';
 			otherwise
 				mexnc('close',ncid);
-				snc_error ('NC_FUNS:NC_VARPUT:unhandledMatlabType', sprintf('unhandled data class %s\n', class(pdata)) );
+				snc_error('NC_FUNS:NC_VARPUT:unhandledMatlabType', sprintf('unhandled data class %s\n', class(pdata)));
         end
-        status = mexnc(funcstr, ncid, varid, start, count, stride, pdata );
+        status = mexnc(funcstr, ncid, varid, start, count, stride, pdata);
 
     otherwise 
         mexnc('close', ncid);
-        snc_error('NC_FUNS:NC_VARPUT:unhandledWriteOp', sprintf('unknown write operation''%s''.\n', write_op) );
+        snc_error('NC_FUNS:NC_VARPUT:unhandledWriteOp', sprintf('unknown write operation''%s''.\n', write_op));
 
 end
 
 if (status ~= 0)
 	mexnc('close', ncid);
-	snc_error('NC_FUNS:NC_VARPUT:unhandledMatlabType', sprintf('write operation ''%s'' failed with error ''%s''.\n', write_op, mexnc('STRERROR', status) ) );
+	snc_error('NC_FUNS:NC_VARPUT:unhandledMatlabType', sprintf('write operation ''%s'' failed with error ''%s''.\n', write_op, mexnc('STRERROR', status)));
 end
 
 % ------------------------------------------------------------------------------------------
-function nc_addvar ( ncfile, varstruct )
+function nc_addvar (ncfile, varstruct)
 % NC_ADDVAR:  adds a variable to a NetCDF file
 %
-% USAGE:  nc_addvar ( ncfile, varstruct );
+% USAGE:  nc_addvar (ncfile, varstruct);
 %
 % PARAMETERS:
 % Input
@@ -1795,49 +1800,49 @@ function nc_addvar ( ncfile, varstruct )
 snc_nargchk(2,2,nargin);
 
 if  ~ischar(ncfile) 
-	snc_error ('NC_FUNS:NC_ADDVAR:badInput', 'file argument must be character');
+	snc_error('NC_FUNS:NC_ADDVAR:badInput', 'file argument must be character');
 end
 
-if ( ~isstruct(varstruct) )
-	snc_error ('NC_FUNS:NC_ADDVAR:badInput', '2nd argument must be a structure');
+if (~isstruct(varstruct))
+	snc_error('NC_FUNS:NC_ADDVAR:badInput', '2nd argument must be a structure');
 end
 
 varstruct = validate_varstruct (varstruct);
 
-[ncid, status] = mexnc ('open', ncfile, nc_write_mode);
-if ( status ~= 0 )
+[ncid, status] = mexnc('open', ncfile, nc_write_mode);
+if (status ~= 0)
 	msg = sprintf ('OPEN failed on %s, ''%s''', ncfile, mexnc('STRERROR', status));
-	snc_error ('NC_FUNS:NC_ADDVAR:MEXNC:OPEN', msg);
+	snc_error('NC_FUNS:NC_ADDVAR:MEXNC:OPEN', msg);
 end
 
 % determine the dimids of the named dimensions
 num_dims = length(varstruct.Dimension);
 dimids = zeros(num_dims,1);
 for j = 1:num_dims
-	[dimids(j), status] = mexnc ( 'inq_dimid', ncid, varstruct.Dimension{j} );
-	if ( status ~= 0 )
-		mexnc ( 'close', ncid );
-		snc_error ( 'NC_FUNS:NC_ADDVAR:MEXNC:INQ_DIMID', mexnc('STRERROR', status) );
+	[dimids(j), status] = mexnc('inq_dimid', ncid, varstruct.Dimension{j});
+	if (status ~= 0)
+		mexnc('close', ncid);
+		snc_error('NC_FUNS:NC_ADDVAR:MEXNC:INQ_DIMID', mexnc('STRERROR', status));
 	end
 end
 
 % go into define mode
-status = mexnc ( 'redef', ncid );
-if ( status ~= 0 )
-	mexnc ( 'close', ncid );
-	snc_error ( 'NC_FUNS:NC_ADDVAR:MEXNC:REDEF', mexnc('strerror', status) );
+status = mexnc('redef', ncid);
+if (status ~= 0)
+	mexnc('close', ncid);
+	snc_error('NC_FUNS:NC_ADDVAR:MEXNC:REDEF', mexnc('strerror', status));
 end
 
 % We prefer to use 'Datatype' instead of 'Nctype', but we'll try to be backwards compatible.
 if isfield(varstruct,'Datatype')
-	[varid, status] = mexnc('DEF_VAR', ncid, varstruct.Name, varstruct.Datatype, num_dims, dimids );
+	[varid, status] = mexnc('DEF_VAR', ncid, varstruct.Name, varstruct.Datatype, num_dims, dimids);
 else
-	[varid, status] = mexnc('DEF_VAR', ncid, varstruct.Name, varstruct.Nctype, num_dims, dimids );
+	[varid, status] = mexnc('DEF_VAR', ncid, varstruct.Name, varstruct.Nctype, num_dims, dimids);
 end
 
-%[varid, status] = mexnc('DEF_VAR', ncid, varstruct.Name, varstruct.Nctype, num_dims, dimids );
+%[varid, status] = mexnc('DEF_VAR', ncid, varstruct.Name, varstruct.Nctype, num_dims, dimids);
 
-if ( status ~= 0 )
+if (status ~= 0)
 	mexnc('enddef', ncid);
 	mexnc('close', ncid);
 	snc_error('NC_FUNS:NC_ADDVAR:MEXNC:DEF_VAR', mexnc('STRERROR', status));
@@ -1845,17 +1850,17 @@ end
 
 if (varstruct.Shuffle || varstruct.Deflate)
     status = mexnc('DEF_VAR_DEFLATE',ncid,varid, varstruct.Shuffle,varstruct.Deflate,varstruct.Deflate);
-    if ( status ~= 0 )
+    if (status ~= 0)
         ncerr = mexnc('strerror', status);
         mexnc('enddef', ncid);
         mexnc('close', ncid);
-        snc_error('NC_FUNS:NC_ADDVAR:MEXNC:DEF_VAR_DEFLATE', ncerr );
+        snc_error('NC_FUNS:NC_ADDVAR:MEXNC:DEF_VAR_DEFLATE', ncerr);
     end
 end
 
 % if (~isempty(varstruct.Attribute) && strcmp(varstruct.Attribute(1).Name, '_FillValue'))
 % 	attval = varstruct.Attribute(1).Value;
-% 	nc_attput_while_open ( ncid, varstruct.Name, '_FillValue', attval );
+% 	nc_attput_while_open (ncid, varstruct.Name, '_FillValue', attval);
 % 	varstruct.Attribute(1) = [];		% Remove this and let the eventual others follow the normal nc_attput path
 % end
 
@@ -1863,25 +1868,25 @@ end
 for j = 1:length(varstruct.Attribute)
 	attname = varstruct.Attribute(j).Name;
 	attval = varstruct.Attribute(j).Value;
-	nc_attput_while_open ( ncid, varstruct.Name, attname, attval );
+	nc_attput_while_open (ncid, varstruct.Name, attname, attval);
 end
 
-status = mexnc ( 'enddef', ncid );
-if ( status ~= 0 )
-	mexnc ( 'close', ncid );
-	snc_error ( 'NC_FUNS:NC_ADDVAR:MEXNC:ENDDEF', mexnc('STRERROR', status) );
+status = mexnc('enddef', ncid);
+if (status ~= 0)
+	mexnc('close', ncid);
+	snc_error('NC_FUNS:NC_ADDVAR:MEXNC:ENDDEF', mexnc('STRERROR', status));
 end
 
-status = mexnc ( 'close', ncid );
-if ( status ~= 0 )
-	snc_error ( 'NC_FUNS:NC_ADDVAR:MEXNC:CLOSE', mexnc('STRERROR', status) );
+status = mexnc('close', ncid);
+if (status ~= 0)
+	snc_error('NC_FUNS:NC_ADDVAR:MEXNC:CLOSE', mexnc('STRERROR', status));
 end
 
 % % Now just use nc_attput to put in the attributes
 % for j = 1:length(varstruct.Attribute)
 % 	attname = varstruct.Attribute(j).Name;
 % 	attval = varstruct.Attribute(j).Value;
-% 	nc_attput ( ncfile, varstruct.Name, attname, attval );
+% 	nc_attput (ncfile, varstruct.Name, attname, attval);
 % end
 
 
@@ -1897,8 +1902,8 @@ function varstruct = validate_varstruct(varstruct)
 	if (~isfield (varstruct, 'Nctype')),	varstruct.Nctype = 'double';	end
 
 	if (~isfield(varstruct,'Datatype'))
-		if ~isfield (varstruct, 'Nctype'),	varstruct.Datatype = 'double';
-		else								varstruct.Datatype = varstruct.Nctype;
+		if ~isfield(varstruct, 'Nctype'),	varstruct.Datatype = 'double';
+		else,								varstruct.Datatype = varstruct.Nctype;
 		end
 	end
 
@@ -1922,7 +1927,7 @@ function varstruct = validate_varstruct(varstruct)
 
 	% If the datatype is not a string.
 	% Change suggested by Brian Powell
-	if (isa(varstruct.Nctype, 'double') && varstruct.Nctype < 8 )
+	if (isa(varstruct.Nctype, 'double') && varstruct.Nctype < 8)
 		types={'byte' 'char' 'short' 'int' 'float' 'double' 'ubyte'};
 		varstruct.Nctype = char(types(varstruct.Nctype));
 		varstruct.Datatype = char(types(varstruct.Datatype));
@@ -1952,14 +1957,14 @@ function varstruct = validate_varstruct(varstruct)
 			snc_error('NC_FUNS:NC_ADDVAR:notClassicDatatype', ...
 				'Datatype ''%s'' is not a classic model datatype.', varstruct.Datatype); 
 	otherwise
-		snc_error( 'NC_FUNS:NC_ADDVAR:unknownDatatype', sprintf('unknown type ''%s''\n', mfilename, varstruct.Nctype) );
+		snc_error('NC_FUNS:NC_ADDVAR:unknownDatatype', sprintf('unknown type ''%s''\n', mfilename, varstruct.Nctype));
 	end
 
 	% Check that required fields are there. Default Dimension is none.  Singleton scalar.
-	if (~isfield ( varstruct, 'Dimension' )),	varstruct.Dimension = [];	end
+	if (~isfield (varstruct, 'Dimension')),	varstruct.Dimension = [];	end
 
 	% Check that required fields are there. Default Attributes are none
-	if (~isfield ( varstruct, 'Attribute' )),	varstruct.Attribute = [];	end
+	if (~isfield (varstruct, 'Attribute')),	varstruct.Attribute = [];	end
 
 	if (~isfield(varstruct,'Storage')),		varstruct.Storage = 'contiguous';	end
 	if (~isfield(varstruct,'Chunking')),	varstruct.Chunking = [];	end
@@ -1968,7 +1973,7 @@ function varstruct = validate_varstruct(varstruct)
 	if (~isfield(varstruct,'DeflateLevel')),varstruct.DeflateLevel = 0;	end
 
 % ---------------------------------------------------------------------------------------------------
-function nc_attput_while_open ( ncid, varname, attribute_name, attval )
+function nc_attput_while_open (ncid, varname, attribute_name, attval)
 % Same as nc_attput but works on a ncid of a file that is already open
 % We need this to workaround the netCDF bug 187 that would otherwise result in a crash
 % when adding teh _FillValue attribute
@@ -1976,10 +1981,10 @@ function nc_attput_while_open ( ncid, varname, attribute_name, attval )
 	if isnumeric(varname)
 		varid = varname;
 	else
-		[varid, status] = mexnc ( 'inq_varid', ncid, varname );
-		if ( status ~= 0 )
-			mexnc ( 'close', ncid );
-			snc_error ( 'NC_FUNS:NC_ATTPUT_WHILE_OPEN:MEXNC:INQ_VARID', mexnc('STRERROR', status) );
+		[varid, status] = mexnc('inq_varid', ncid, varname);
+		if (status ~= 0)
+			mexnc('close', ncid);
+			snc_error('NC_FUNS:NC_ATTPUT_WHILE_OPEN:MEXNC:INQ_VARID', mexnc('STRERROR', status));
 		end
 	end
 
@@ -2008,18 +2013,18 @@ function nc_attput_while_open ( ncid, varname, attribute_name, attval )
 			funcstr = 'put_att_text';
 			atttype = nc_char;
 		otherwise
-			msg = sprintf ('attribute class %s is not handled by %s', class(attval), mfilename );
-			snc_error ( 'NC_FUNS:NC_ATTPUT_WHILE_OPEN:unhandleDatatype', msg );
+			msg = sprintf ('attribute class %s is not handled by %s', class(attval), mfilename);
+			snc_error('NC_FUNS:NC_ATTPUT_WHILE_OPEN:unhandleDatatype', msg);
 	end
 
-	status = mexnc ( funcstr, ncid, varid, attribute_name, atttype, length(attval), attval);
-	if ( status ~= 0 )
-		mexnc ( 'close', ncid );
-		snc_error ( ['NC_FUNS:NC_ATTPUT_WHILE_OPEN:MEXNC:' upper(funcstr)], mexnc('STRERROR', status) );
+	status = mexnc(funcstr, ncid, varid, attribute_name, atttype, length(attval), attval);
+	if (status ~= 0)
+		mexnc('close', ncid);
+		snc_error(['NC_FUNS:NC_ATTPUT_WHILE_OPEN:MEXNC:' upper(funcstr)], mexnc('STRERROR', status));
 	end
 
 % ---------------------------------------------------------------------------------------------------
-function nc_attput ( ncfile, varname, attribute_name, attval )
+function nc_attput (ncfile, varname, attribute_name, attval)
 % NC_ATTPUT:  writes an attribute into a netCDF file
 %     NC_ATTPUT(NCFILE,VARNAME,ATTNAME,ATTVAL) writes the data in ATTVAL to
 %     the attribute ATTNAME of the variable VARNAME of the netCDF file NCFILE.
@@ -2033,25 +2038,25 @@ function nc_attput ( ncfile, varname, attribute_name, attval )
 snc_nargchk(4,4,nargin);
 snc_nargoutchk(0,0,nargout);
 
-[ncid, status] = mexnc( 'open', ncfile, nc_write_mode );
+[ncid, status] = mexnc('open', ncfile, nc_write_mode);
 if  status ~= 0 
-	snc_error ( 'NC_FUNS:NC_ATTPUT:MEXNC:badFile', mexnc('STRERROR', status) );
+	snc_error('NC_FUNS:NC_ATTPUT:MEXNC:badFile', mexnc('STRERROR', status));
 end
 
 % Put into define mode.
-status = mexnc ( 'redef', ncid );
-if ( status ~= 0 )
-	mexnc ( 'close', ncid );
-	snc_error ( 'NC_FUNS:NC_ATTPUT:MEXNC:REDEF', mexnc('STRERROR', status) );
+status = mexnc('redef', ncid);
+if (status ~= 0)
+	mexnc('close', ncid);
+	snc_error('NC_FUNS:NC_ATTPUT:MEXNC:REDEF', mexnc('STRERROR', status));
 end
 
 if isnumeric(varname)
 	varid = varname;
 else
-	[varid, status] = mexnc ( 'inq_varid', ncid, varname );
-	if ( status ~= 0 )
-		mexnc ( 'close', ncid );
-		snc_error ( 'NC_FUNS:NC_ATTPUT:MEXNC:INQ_VARID', mexnc('STRERROR', status) );
+	[varid, status] = mexnc('inq_varid', ncid, varname);
+	if (status ~= 0)
+		mexnc('close', ncid);
+		snc_error('NC_FUNS:NC_ATTPUT:MEXNC:INQ_VARID', mexnc('STRERROR', status));
 	end
 end
 
@@ -2080,30 +2085,30 @@ switch class(attval)
 		funcstr = 'put_att_text';
 		atttype = nc_char;
 	otherwise
-		msg = sprintf ('attribute class %s is not handled by %s', class(attval), mfilename );
-		snc_error ( 'NC_FUNS:NC_ATTPUT:unhandleDatatype', msg );
+		msg = sprintf ('attribute class %s is not handled by %s', class(attval), mfilename);
+		snc_error('NC_FUNS:NC_ATTPUT:unhandleDatatype', msg);
 end
 
-status = mexnc ( funcstr, ncid, varid, attribute_name, atttype, length(attval), attval);
-if ( status ~= 0 )
-	mexnc ( 'close', ncid );
-	snc_error ( ['NC_FUNS:NC_ATTPUT:MEXNC:' upper(funcstr)], mexnc('STRERROR', status) );
+status = mexnc(funcstr, ncid, varid, attribute_name, atttype, length(attval), attval);
+if (status ~= 0)
+	mexnc('close', ncid);
+	snc_error(['NC_FUNS:NC_ATTPUT:MEXNC:' upper(funcstr)], mexnc('STRERROR', status));
 end
 
 % End define mode.
-status = mexnc ( 'enddef', ncid );
-if ( status ~= 0 )
-	mexnc ( 'close', ncid );
-	snc_error ( 'NC_FUNS:NC_ATTPUT:MEXNC:ENDDEF', mexnc('STRERROR', status) );
+status = mexnc('enddef', ncid);
+if (status ~= 0)
+	mexnc('close', ncid);
+	snc_error('NC_FUNS:NC_ATTPUT:MEXNC:ENDDEF', mexnc('STRERROR', status));
 end
 
 status = mexnc('close',ncid);
-if ( status ~= 0 )
-	snc_error ( 'NC_FUNS:NC_ATTPUT:MEXNC:CLOSE', mexnc('STRERROR', status) );
+if (status ~= 0)
+	snc_error('NC_FUNS:NC_ATTPUT:MEXNC:CLOSE', mexnc('STRERROR', status));
 end
 
 %--------------------------------------------------------------------------------------
-function nc_addhist ( ncfile, attval )
+function nc_addhist (ncfile, attval)
 % NC_ADDHIST:  adds text to a global history attribute
 %
 % NC_ADDHIST(NCFILE,TEXT) adds the TEXT string to the standard convention
@@ -2113,31 +2118,31 @@ function nc_addhist ( ncfile, attval )
 snc_nargchk(2,2,nargin);
 
 if ~exist(ncfile,'file')
-	snc_error('NC_FUNS:NC_ADDHIST:badFilename', sprintf('%s does not exist', ncfile) );
+	snc_error('NC_FUNS:NC_ADDHIST:badFilename', sprintf('%s does not exist', ncfile));
 end
 if ~ischar(attval)
-	snc_error('NC_FUNS:NC_ADDHIST:badDatatype', 'history attribute addition must be character.' );
+	snc_error('NC_FUNS:NC_ADDHIST:badDatatype', 'history attribute addition must be character.');
 end
 
 try
-	old_hist = nc_attget ( ncfile, nc_global, 'history' );
+	old_hist = nc_attget (ncfile, nc_global, 'history');
 catch
 	% The history attribute must not have existed.  That's ok.
 	old_hist = '';
 end
 
 if isempty(old_hist)
-	new_history = sprintf('%s:  %s', datestr(now), attval );
+	new_history = sprintf('%s:  %s', datestr(now), attval);
 else
-	new_history = sprintf('%s:  %s\n%s', datestr(now), attval, old_hist );
+	new_history = sprintf('%s:  %s\n%s', datestr(now), attval, old_hist);
 end
-nc_attput ( ncfile, nc_global, 'history', new_history );
+nc_attput (ncfile, nc_global, 'history', new_history);
 
 % ---------------------------------------------------------------------------------------
-function nc_add_dimension ( ncfile, dimension_name, dimension_length )
+function nc_add_dimension (ncfile, dimension_name, dimension_length)
 % NC_ADD_DIMENSION:  adds a dimension to an existing netcdf file
 %
-% USAGE:  nc_add_dimension ( ncfile, dimension_name, dimension_size );
+% USAGE:  nc_add_dimension (ncfile, dimension_name, dimension_size);
 %
 % PARAMETERS:
 % Input:
@@ -2152,24 +2157,24 @@ function nc_add_dimension ( ncfile, dimension_name, dimension_length )
 
 snc_nargchk(3,3,nargin);
 
-[ncid, status] = mexnc ( 'open', ncfile, nc_write_mode );
+[ncid, status] = mexnc('open', ncfile, nc_write_mode);
 if status
-	snc_error ( 'NC_FUNS:NC_ADD_DIMENSION:openFailed', mexnc('STRERROR', status) );
+	snc_error('NC_FUNS:NC_ADD_DIMENSION:openFailed', mexnc('STRERROR', status));
 end
 
-status = mexnc ( 'redef', ncid );
+status = mexnc('redef', ncid);
 if status
-	mexnc ( 'close', ncid );
-	snc_error ( 'NC_FUNS:NC_ADD_DIMENSION:redefFailed', mexnc('STRERROR', status) );
+	mexnc('close', ncid);
+	snc_error('NC_FUNS:NC_ADD_DIMENSION:redefFailed', mexnc('STRERROR', status));
 end
 
-[dimid, status] = mexnc ( 'def_dim', ncid, dimension_name, dimension_length );
+[dimid, status] = mexnc('def_dim', ncid, dimension_name, dimension_length);
 if status
-	mexnc ( 'close', ncid );
-	snc_error ( 'NC_FUNS:NC_ADD_DIMENSION:defdimFailed', mexnc('STRERROR', status) );
+	mexnc('close', ncid);
+	snc_error('NC_FUNS:NC_ADD_DIMENSION:defdimFailed', mexnc('STRERROR', status));
 end
 
-status = mexnc ( 'enddef', ncid );
+status = mexnc('enddef', ncid);
 if status
 	mexnc('close', ncid);
 	snc_error('NC_FUNS:NC_ADD_DIMENSION:enddefFailed', mexnc('STRERROR', status));
@@ -2232,7 +2237,7 @@ function nc_create_empty (ncfile, mode)
 	end
 
 % --------------------------------------------------------------------
-function nc_cat ( input_ncfiles, output_ncfile, abscissa_var )
+function nc_cat (input_ncfiles, output_ncfile, abscissa_var)
 % NC_CAT_A:  concatentates a set of netcdf files into ascending order
 %
 % The concatenation is done only along unlimited variable, which by
@@ -2244,7 +2249,7 @@ function nc_cat ( input_ncfiles, output_ncfile, abscissa_var )
 % Zender's terrific NCO tools.  If you need NCO functionality, you should
 % get NCO tools from http://nco.sourceforge.net
 % 
-% USAGE:  nc_cat_a ( input_ncfiles, output_ncfile, abscissa_var )
+% USAGE:  nc_cat_a (input_ncfiles, output_ncfile, abscissa_var)
 % 
 % PARAMETERS:
 %   Input:
@@ -2292,12 +2297,12 @@ snc_nargoutchk(0,0,nargout);
 % concatenated is in a cell array.
 if ischar(input_ncfiles) && exist(input_ncfiles,'file')
 	snc_error('NC_FUNS:NC_CAT','Input files by file was not implemented')
-% 	afid = fopen ( input_ncfiles, 'r' );
-% 	input_ncfiles = textscan ( afid, '%s' );
-elseif iscell ( input_ncfiles )
+% 	afid = fopen (input_ncfiles, 'r');
+% 	input_ncfiles = textscan (afid, '%s');
+elseif iscell (input_ncfiles)
 	% Do nothing
 else
-	snc_error ('NC_FUNS:NC_CAT', 'first input must be either a text file or a cell array\n' );
+	snc_error('NC_FUNS:NC_CAT', 'first input must be either a text file or a cell array\n');
 end
 
 num_input_files = length(input_ncfiles);
@@ -2307,25 +2312,25 @@ num_input_files = length(input_ncfiles);
 tol = 10*eps;
 
 % Now construct the empty output netcdf file.
-ncm = nc_info ( input_ncfiles{1} );
+ncm = nc_info (input_ncfiles{1});
 mode = nc_clobber_mode;
-[ncid, status] = mexnc ( 'CREATE', output_ncfile, mode );
+[ncid, status] = mexnc('CREATE', output_ncfile, mode);
 if status ~= 0
-	snc_error ( 'NC_FUNS:NC_CAT:CREATE', mexnc ( 'STRERROR', status ) );
+	snc_error('NC_FUNS:NC_CAT:CREATE', mexnc('STRERROR', status));
 end
 
-status = mexnc ( 'CLOSE', ncid );
+status = mexnc('CLOSE', ncid);
 if status ~= 0
-	snc_error ( 'NC_FUNS:NC_CAT:CLOSE', mexnc ( 'STRERROR', status ) );
+	snc_error('NC_FUNS:NC_CAT:CLOSE', mexnc('STRERROR', status));
 end
 
 % Add the dimensions.
 % ncm.Dimension(3).Unlimited=1;
 for d = 1:numel(ncm.Dimension)
-	if ( ncm.Dimension(d).Unlimited )
-		nc_add_dimension ( output_ncfile, ncm.Dimension(d).Name, 0 );
+	if (ncm.Dimension(d).Unlimited)
+		nc_add_dimension(output_ncfile, ncm.Dimension(d).Name, 0);
 	else
-		nc_add_dimension ( output_ncfile, ncm.Dimension(d).Name, ncm.Dimension(d).Length );
+		nc_add_dimension(output_ncfile, ncm.Dimension(d).Name, ncm.Dimension(d).Length);
 	end
 end
 
@@ -2333,24 +2338,24 @@ end
 % ncm.Dataset(3).Unlimited=1;
 % ncm.Dataset(4).Unlimited=1;
 for v = 1:numel(ncm.Dataset)
-	nc_addvar ( output_ncfile, ncm.Dataset(v) );
+	nc_addvar(output_ncfile, ncm.Dataset(v));
 
 	% If the variable is NOT unlimited, then we can copy over its data now
 	if ~ncm.Dataset(v).Unlimited
-		vardata = nc_varget ( input_ncfiles{1}, ncm.Dataset(v).Name );
-		nc_varput ( output_ncfile, ncm.Dataset(v).Name, vardata );
+		vardata = nc_varget (input_ncfiles{1}, ncm.Dataset(v).Name);
+		nc_varput(output_ncfile, ncm.Dataset(v).Name, vardata);
 	end
 end
 
 % Add the attributes
 for (j = 1:numel(ncm.Attribute))
-	nc_attput(output_ncfile, nc_global, ncm.Attribute(j).Name, ncm.Attribute(j).Value );
+	nc_attput(output_ncfile, nc_global, ncm.Attribute(j).Name, ncm.Attribute(j).Value);
 end
 
 % Go thru and figure out how much data we are looking at, then pre-allocate for speed.
 total_length = 0;
 for (j = 1:num_input_files)
-	sz = nc_varsize ( input_ncfiles{j}, abscissa_var );
+	sz = nc_varsize(input_ncfiles{j}, abscissa_var);
 	total_length = total_length + sz;
 end
 
@@ -2363,7 +2368,7 @@ start_index = 1;
 use_fake_time = false;			% To signal when "time" var repeats between two contiguous files
 last_first_v = nan;		end_index = nan;		% Just to shut up the compiler
 for j = 1:num_input_files
-	v = double(nc_varget ( input_ncfiles{j}, abscissa_var ));
+	v = double(nc_varget (input_ncfiles{j}, abscissa_var));
 	if (j > 1 && v(1) == last_first_v)		% Poor patch for when the two contiguous files have the the same "time" origin
 		v = v + abscissa_vardata(end_index) + diff(abscissa_vardata(1:2));
 		use_fake_time = true;
@@ -2382,12 +2387,12 @@ for j = 1:num_input_files
 end
 
 % Sort the ascissa_vardata into ascending order.  
-[abscissa_vardata,I] = sort ( abscissa_vardata );
+[abscissa_vardata,I] = sort (abscissa_vardata);
 file_index = file_index(I);
 infile_abscissa_varindex = infile_abscissa_varindex(I);
 
 % Are there any duplicates?
-ind = find ( diff(abscissa_vardata) < tol );
+ind = find (diff(abscissa_vardata) < tol);
 if ~isempty(ind)
 	abscissa_vardata(ind) = [];
 	file_index(ind) = [];
@@ -2398,15 +2403,15 @@ end
 for j = 1:length(abscissa_vardata)
 	ncfile = input_ncfiles{file_index(j)};
 	start = infile_abscissa_varindex(j);
-	input_record = nc_getbuffer ( ncfile, start, 1 );
+	input_record = nc_getbuffer (ncfile, start, 1);
 	if (use_fake_time && j >= jump_index)			% PATCH for the case that the "time" variable repeats in the two files
 		input_record.(abscissa_var) = abscissa_vardata(j);
 	end
-	nc_addnewrecs ( output_ncfile, input_record, abscissa_var );
+	nc_addnewrecs (output_ncfile, input_record, abscissa_var);
 end
 
 % --------------------------------------------------------------------
-function new_data = nc_addnewrecs ( ncfile, input_buffer, record_variable )
+function new_data = nc_addnewrecs (ncfile, input_buffer, record_variable)
 % NC_ADDNEWRECS:  Tacks on new data from simple matlab structure to an unlimited-dimension netcdf file
 % 
 % The difference between this m-file and nc_add_recs is that this 
@@ -2421,13 +2426,13 @@ function new_data = nc_addnewrecs ( ncfile, input_buffer, record_variable )
 %
 % From this point foreward, assume we are talking about time series.
 % It doesn't have to be that way (the record variable could be 
-% monotonically increasing spatially instead ), but talking about it
+% monotonically increasing spatially instead), but talking about it
 % in terms of time series is just easier.  If a field is present in 
 % the structure, but not in the netcdf file, then that field is 
 % ignored.  Only data that is more recent than the last record 
 % currently in the NetCDF file is written.   Older data is discarded.
 %
-% USAGE:  new_data = nc_addnewrecs ( ncfile, input_buffer, record_variable )
+% USAGE:  new_data = nc_addnewrecs (ncfile, input_buffer, record_variable)
 % 
 % PARAMETERS:
 %   Input:
@@ -2486,7 +2491,7 @@ function new_data = nc_addnewrecs ( ncfile, input_buffer, record_variable )
 % In case of an error, an exception is thrown.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% $Id: nc_funs.m 10365 2018-04-07 01:52:34Z j $
+% $Id: nc_funs.m 10385 2018-04-27 16:06:06Z j $
 % $LastChangedDate: 2007-04-23 09:05:21 -0400 (Mon, 23 Apr 2007) $
 % $LastChangedRevision: 2178 $
 % $LastChangedBy: johnevans007 $
@@ -2500,20 +2505,20 @@ if nargin == 2
 	record_variable = 'time';
 end
 
-if isempty ( input_buffer ),	return,		end
+if isempty (input_buffer),	return,		end
 
 % Check that the record variable is present in the input buffer.
-if ~isfield ( input_buffer, record_variable )
-	snc_error ( 'NC_FUNS:NC_ADDNEWRECS:missingRecordVariable', ...
-	        sprintf('input structure is missing the record variable ''%s''.\n', record_variable) );
+if ~isfield (input_buffer, record_variable)
+	snc_error('NC_FUNS:NC_ADDNEWRECS:missingRecordVariable', ...
+	        sprintf('input structure is missing the record variable ''%s''.\n', record_variable));
 end
 
 % check to see that all fields are actually there.
-nc = nc_info ( ncfile );
+nc = nc_info (ncfile);
 num_nc_vars = length(nc.Dataset);
 
 
-fnames = fieldnames ( input_buffer );
+fnames = fieldnames (input_buffer);
 num_fields = length(fnames);
 for j = 1:num_fields
 	not_present = 1;
@@ -2523,8 +2528,8 @@ for j = 1:num_fields
 		end
 	end
 	if not_present
-		fprintf ( 1, '  %s not present in file %s.  Ignoring it...\n', fnames{j}, ncfile );
-		input_buffer = rmfield ( input_buffer, fnames{j} );
+		fprintf (1, '  %s not present in file %s.  Ignoring it...\n', fnames{j}, ncfile);
+		input_buffer = rmfield (input_buffer, fnames{j});
 	end
 end
 
@@ -2533,19 +2538,19 @@ end
 % have been squeezed out of the other variables.  MEXNC wants the rank
 % of the incoming data to match that of the infile variable.  We address 
 % this by forcing the leading dimension in these cases to be 1.
-input_buffer = force_leading_dimension ( ncfile, input_buffer, record_variable );
+input_buffer = force_leading_dimension (ncfile, input_buffer, record_variable);
 
 % Retrieve the dimension id of the unlimited dimension upon which
 % all depends.  It must be the first dimension listed.
-varinfo = nc_getvarinfo ( ncfile, record_variable );
+varinfo = nc_getvarinfo (ncfile, record_variable);
 unlimited_dimension_name = varinfo.Dimension{1};
 
 % Get the last time value.   If the record variable is empty, then
 % only take datums that are more recent than the latest old datum
 input_buffer_time_values = input_buffer.(record_variable);
 if varinfo.Size > 0
-	last_time = nc_getlast ( ncfile, record_variable, 1 );
-    recent_inds = find( input_buffer_time_values > last_time );
+	last_time = nc_getlast (ncfile, record_variable, 1);
+    recent_inds = find(input_buffer_time_values > last_time);
 else
     recent_inds = 1:length(input_buffer_time_values);
 end
@@ -2554,45 +2559,45 @@ end
 if isempty(recent_inds),	return,		end
 
 % Go thru each variable.  Restrict to what's new.
-varnames = fieldnames ( input_buffer );
+varnames = fieldnames (input_buffer);
 for j = 1:numel(varnames)
 	data = input_buffer.(varnames{j});
 	current_varsize = size(data);
 	new_output_size = [length(recent_inds) current_varsize(2:end)];
 	restricted_data = data(recent_inds,:);
-	restricted_data = reshape ( restricted_data, new_output_size );
+	restricted_data = reshape (restricted_data, new_output_size);
 	input_buffer.(varnames{j}) = restricted_data;
 end
 
 % Write the records out to file.
-nc_add_recs ( ncfile, input_buffer, unlimited_dimension_name );
+nc_add_recs(ncfile, input_buffer, unlimited_dimension_name);
 
 new_data = input_buffer;
 
 %==============================================================================
-function input_buffer = force_leading_dimension ( ncfile, input_buffer, record_variable )
+function input_buffer = force_leading_dimension (ncfile, input_buffer, record_variable)
 
-varnames = fieldnames ( input_buffer );
+varnames = fieldnames (input_buffer);
 num_vars = length(varnames);
 if length(input_buffer.(record_variable)) == 1 
 	for j = 1:num_vars
 		% Skip the record variable, it's irrelevant at this stage.
-		if strcmp ( varnames{j}, record_variable ),		continue,	end
+		if strcmp(varnames{j}, record_variable),		continue,	end
 
-		infile_vsize = nc_varsize(ncfile, varnames{j} );
+		infile_vsize = nc_varsize(ncfile, varnames{j});
 
 		% Disregard any trailing singleton dimensions.
 		effective_nc_rank = calculate_effective_nc_rank(infile_vsize);
 
 		% The input data has to have at least 2 as a rank.
-		mlrank = calculate_mlrank ( input_buffer, varnames, j );
+		mlrank = calculate_mlrank (input_buffer, varnames, j);
 
 		if (effective_nc_rank == mlrank)
 			% Do nothing.  The data is fine in this case.
 			% This would be an example of a 1D variable, where we
 			% are tacking on a single value. Or it is the case of a row vector.
 
-		elseif ( effective_nc_rank == mlrank+1 )
+		elseif (effective_nc_rank == mlrank+1)
 			% In this case, the infile definition is, e.g.,
 			% 10x5x5, or in other words, has rank 3.
 			% But the incoming data is just a single timestep,
@@ -2616,13 +2621,13 @@ function effective_nc_rank = calculate_effective_nc_rank(infile_vsize)
 	end
 
 	% Don't get fooled if there is no data in the file.
-	if ( infile_vsize(1) == 0 )
+	if (infile_vsize(1) == 0)
 		infile_vsize(1) = -1;
 	end
 	effective_nc_rank = numel(find(infile_vsize));
 
 %==============================================================================
-function mlrank = calculate_mlrank ( input_buffer, varnames, j )
+function mlrank = calculate_mlrank (input_buffer, varnames, j)
 % If the rank of the file variable and the data is different,  then we assume two
 % conditions have to hold before we augment the data with a leading singleton dimension.
 % The extent of the incoming data must not be one, and the length of the size of the
@@ -2639,10 +2644,10 @@ function mlrank = calculate_mlrank ( input_buffer, varnames, j )
 	end
 
 % --------------------------------------------------------------------
-function nc_add_recs ( ncfile, new_data, varargin )
+function nc_add_recs (ncfile, new_data, varargin)
 % NC_ADD_RECS:  add records onto the end of a netcdf file
 %
-% USAGE:  nc_add_recs ( ncfile, new_data, unlimited_dimension );
+% USAGE:  nc_add_recs (ncfile, new_data, unlimited_dimension);
 % 
 % INPUT:
 %   ncfile:  netcdf file
@@ -2662,7 +2667,7 @@ function nc_add_recs ( ncfile, new_data, varargin )
 %   johnevans@acm.org
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% $Id: nc_funs.m 10365 2018-04-07 01:52:34Z j $
+% $Id: nc_funs.m 10385 2018-04-27 16:06:06Z j $
 % $LastChangedDate: 2007-08-31 16:30:56 -0400 (Fri, 31 Aug 2007) $
 % $LastChangedRevision: 2309 $
 % $LastChangedBy: johnevans007 $
@@ -2671,91 +2676,91 @@ function nc_add_recs ( ncfile, new_data, varargin )
 snc_nargchk(2,3,nargin);
 
 % Check that we were given good inputs.
-if ~isstruct ( new_data )
-	snc_error ( 'NC_FUNS:NC_ADD_RECS:badStruct', '2nd input argument must be a structure .\n' );
+if ~isstruct (new_data)
+	snc_error('NC_FUNS:NC_ADD_RECS:badStruct', '2nd input argument must be a structure .\n');
 end
 
 % Check that each field of the structure has the same length.
-varnames = fieldnames ( new_data );
+varnames = fieldnames (new_data);
 num_fields = length(varnames);
-if ( num_fields <= 0 )
-	snc_error ( 'NC_FUNS:NC_ADD_RECS:badRecord', 'data record cannot be empty' );
+if (num_fields <= 0)
+	snc_error('NC_FUNS:NC_ADD_RECS:badRecord', 'data record cannot be empty');
 end
 field_length = zeros(num_fields,1);
 for j = 1:num_fields
-	command = sprintf ( 'field_length(j) = size(new_data.%s,1);', varnames{j} );
-	eval ( command );
+	command = sprintf ('field_length(j) = size(new_data.%s,1);', varnames{j});
+	eval (command);
 end
 if any(diff(field_length))
-	snc_error ( 'NC_FUNS:NC_ADD_RECS:badFieldLengths', 'Some of the fields do not have the same length.\n' );
+	snc_error('NC_FUNS:NC_ADD_RECS:badFieldLengths', 'Some of the fields do not have the same length.\n');
 end
 
 % So we have this many records to write.
 record_count(1) = field_length(1);
 
 
-[unlim_dimname, unlim_dimlen, unlim_dimid] = get_unlimdim_info ( ncfile, varargin{:} );
+[unlim_dimname, unlim_dimlen, unlim_dimid] = get_unlimdim_info (ncfile, varargin{:});
 
-varsize = get_all_varsizes ( ncfile, new_data, unlim_dimid );
+varsize = get_all_varsizes (ncfile, new_data, unlim_dimid);
 
 % So we start writing here.
 record_corner(1) = unlim_dimlen;
 
 % write out each data field, as well as the minimum and maximum
-input_variable = fieldnames ( new_data );
+input_variable = fieldnames (new_data);
 num_vars = length(input_variable);
 for i = 1:num_vars
 
 	current_var = input_variable{i};
-	%fprintf ( 1, '%s:  processing %s...\n', mfilename, current_var );
+	%fprintf (1, '%s:  processing %s...\n', mfilename, current_var);
 
 	current_var_data = new_data.(current_var);
 	var_buffer_size = size(current_var_data);
 
 	netcdf_var_size = varsize.(current_var);
 
-	corner = zeros( 1, length(netcdf_var_size) );
-	count = ones( 1, length(netcdf_var_size) );
+	corner = zeros(1, length(netcdf_var_size));
+	count = ones(1, length(netcdf_var_size));
 
 	corner(1) = record_corner(1);
 	count(1) = record_count(1);
 	
 	for j = 2:numel(var_buffer_size)
-		if ( var_buffer_size(j) > 1 )
+		if (var_buffer_size(j) > 1)
 			count(j) = var_buffer_size(j);
 		end
 	end
 
 	% Ok, we are finally ready to write some data.
-	nc_varput ( ncfile, current_var, current_var_data, corner, count );
+	nc_varput (ncfile, current_var, current_var_data, corner, count);
 end
 
 % ===============================================================================
-function varsize = get_all_varsizes ( ncfile, new_data,unlimited_dimension_dimid )
+function varsize = get_all_varsizes (ncfile, new_data,unlimited_dimension_dimid)
 
-[ncid,status ]=mexnc( 'open', ncfile, nc_nowrite_mode );
+[ncid,status ]=mexnc('open', ncfile, nc_nowrite_mode);
 if status ~= 0
-	ncerr = mexnc ( 'strerror', status );
+	ncerr = mexnc('strerror', status);
 	error_id = 'NC_FUNS:NC_ADD_RECS:openFailed';
-	snc_error ( error_id, ncerr );
+	snc_error(error_id, ncerr);
 end
 
 % For each field of "new_data" buffer, inquire as to the dimensions in the
 % NetCDF file.  We need this data to properly tell nc_varput how to write the data
-input_variable = fieldnames ( new_data );
+input_variable = fieldnames (new_data);
 num_vars = length(input_variable);
 varsize = [];
 for j = 1:num_vars
-	[varid, status] = mexnc('INQ_VARID', ncid, input_variable{j} );
-	if ( status ~= 0 )
+	[varid, status] = mexnc('INQ_VARID', ncid, input_variable{j});
+	if (status ~= 0)
 		mexnc('close',ncid);
-		snc_error ( 'NC_FUNS:NC_ADD_RECS:inq_varidFailed', mexnc ( 'strerror', status ) );
+		snc_error('NC_FUNS:NC_ADD_RECS:inq_varidFailed', mexnc('strerror', status));
 	end
 
 	[dimids, status] = mexnc('INQ_VARDIMID', ncid, varid);
-	if ( status ~= 0 )
+	if (status ~= 0)
 		mexnc('close',ncid);
-		snc_error ( 'NC_FUNS:NC_ADD_RECS:inq_vardimidFailed', mexnc ( 'strerror', status ) );
+		snc_error('NC_FUNS:NC_ADD_RECS:inq_vardimidFailed', mexnc('strerror', status));
 	end
 	ndims = length(dimids);
 	dimsize = zeros(ndims,1);
@@ -2764,14 +2769,14 @@ for j = 1:num_vars
 	if ~any(find(dimids==unlimited_dimension_dimid))
 		mexnc('close',ncid);
 		format = 'variable %s must be defined along unlimited dimension.\n';
-		snc_error ( 'NC_FUNS:NC_ADD_RECS:missingUnlimitedDimension', format, input_variable{j} );
+		snc_error('NC_FUNS:NC_ADD_RECS:missingUnlimitedDimension', format, input_variable{j});
 	end
 
 	for k = 1:ndims
-		[dim_length, status] = mexnc('INQ_DIMLEN', ncid, dimids(k) );
-		if ( status ~= 0 )
+		[dim_length, status] = mexnc('INQ_DIMLEN', ncid, dimids(k));
+		if (status ~= 0)
 			mexnc('close',ncid);
-			snc_error ( 'NC_FUNS:NC_ADD_RECS:inq_dimlenFailed', mexnc ( 'strerror', status ) );
+			snc_error('NC_FUNS:NC_ADD_RECS:inq_dimlenFailed', mexnc('strerror', status));
 		end
 		dimsize(k) = dim_length;
 	end
@@ -2780,72 +2785,72 @@ end
 
 status = mexnc('close',ncid);
 if status ~= 0 
-	snc_error ( 'NC_FUNS:NC_ADD_RECS:closeFailed', mexnc ( 'strerror', status ) );
+	snc_error('NC_FUNS:NC_ADD_RECS:closeFailed', mexnc('strerror', status));
 end
 
 % =======================================================================
-function [dimname, dimlen, dimid] = get_unlimdim_info ( ncfile, varargin )
+function [dimname, dimlen, dimid] = get_unlimdim_info (ncfile, varargin)
 
-[ncid,status ]=mexnc( 'open', ncfile, nc_nowrite_mode );
+[ncid,status ]=mexnc('open', ncfile, nc_nowrite_mode);
 if status ~= 0
 	mexnc('close',ncid);
-	ncerr = mexnc ( 'strerror', status );
-	snc_error ( 'NC_FUNS:NC_ADD_RECS:openFailed', ncerr );
+	ncerr = mexnc('strerror', status);
+	snc_error('NC_FUNS:NC_ADD_RECS:openFailed', ncerr);
 end
 
 % If we were not given the name of an unlimited dimension, get it now
 if nargin < 2
-	[dimid, status] = mexnc ( 'inq_unlimdim', ncid );
+	[dimid, status] = mexnc('inq_unlimdim', ncid);
 	if status ~= 0
 		mexnc('close',ncid);
-		ncerr = mexnc ( 'strerror', status );
-		snc_error ( 'NC_FUNS:NC_ADD_RECS:inq_unlimdimFailed', ncerr );
+		ncerr = mexnc('strerror', status);
+		snc_error('NC_FUNS:NC_ADD_RECS:inq_unlimdimFailed', ncerr);
 	end
 
-	[dimname, status] = mexnc ( 'INQ_DIMNAME', ncid, dimid );
+	[dimname, status] = mexnc('INQ_DIMNAME', ncid, dimid);
 	if status ~= 0
 		mexnc('close',ncid);
-		ncerr = mexnc ( 'strerror', status );
-		snc_error ( 'NC_FUNS:NC_ADD_RECS:inq_dimnameFailed', ncerr );
+		ncerr = mexnc('strerror', status);
+		snc_error('NC_FUNS:NC_ADD_RECS:inq_dimnameFailed', ncerr);
 	end
 
 	if dimid == -1
 		error_id = 'NC_FUNS:NC_ADD_RECS:noUnlimitedDimension';
-		snc_error ( error_id, sprintf('%s is missing an unlimited dimension, %s requires it', ncfile, mfilename) );
+		snc_error(error_id, sprintf('%s is missing an unlimited dimension, %s requires it', ncfile, mfilename));
 	end
 
 else
 	dimname = varargin{1};
-	[dimid, status] = mexnc ( 'inq_dimid', ncid, dimname );
+	[dimid, status] = mexnc('inq_dimid', ncid, dimname);
 	if status ~= 0
 		mexnc('close',ncid);
-		ncerr = mexnc ( 'strerror', status );
-		snc_error ( 'NC_FUNS:NC_ADD_RECS:OPEN', ncerr );
+		ncerr = mexnc('strerror', status);
+		snc_error('NC_FUNS:NC_ADD_RECS:OPEN', ncerr);
 	end
 	
 end
 	
-[dimlen, status] = mexnc ( 'INQ_DIMLEN', ncid, dimid );
+[dimlen, status] = mexnc('INQ_DIMLEN', ncid, dimid);
 if status ~= 0
 	mexnc('close',ncid);
-	ncerr = mexnc ( 'strerror', status );
-	snc_error ( 'NC_FUNS:NC_ADD_RECS:inq_dimlenFailed', ncerr );
+	ncerr = mexnc('strerror', status);
+	snc_error('NC_FUNS:NC_ADD_RECS:inq_dimlenFailed', ncerr);
 end
 
 status = mexnc('close',ncid);
 if status ~= 0 
-	ncerr = mexnc ( 'strerror', status );
-	snc_error ( 'NC_FUNS:NC_ADD_RECS:closeFailed', ncerr );
+	ncerr = mexnc('strerror', status);
+	snc_error('NC_FUNS:NC_ADD_RECS:closeFailed', ncerr);
 end
 
 % --------------------------------------------------------------------
-function theBuffer = nc_getbuffer ( ncfile, varargin )
+function theBuffer = nc_getbuffer (ncfile, varargin)
 % NC_GETBUFFER:  read the unlimited variables of a netcdf file into a structure
 %
-% USAGE:  theBuffer = nc_getbuffer ( ncfile );
-% USAGE:  theBuffer = nc_getbuffer ( ncfile, varlist );
-% USAGE:  theBuffer = nc_getbuffer ( ncfile, start, count );
-% USAGE:  theBuffer = nc_getbuffer ( ncfile, varlist, start, count );
+% USAGE:  theBuffer = nc_getbuffer (ncfile);
+% USAGE:  theBuffer = nc_getbuffer (ncfile, varlist);
+% USAGE:  theBuffer = nc_getbuffer (ncfile, start, count);
+% USAGE:  theBuffer = nc_getbuffer (ncfile, varlist, start, count);
 %
 % PARAMETERS:
 % INPUT:
@@ -2871,7 +2876,7 @@ function theBuffer = nc_getbuffer ( ncfile, varargin )
 %        Each such field contains the data for that variable.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% $Id: nc_funs.m 10365 2018-04-07 01:52:34Z j $
+% $Id: nc_funs.m 10385 2018-04-27 16:06:06Z j $
 % $LastChangedDate: 2007-09-03 12:07:33 -0400 (Mon, 03 Sep 2007) $
 % $LastChangedRevision: 2315 $
 % $LastChangedBy: johnevans007 $
@@ -2885,12 +2890,12 @@ snc_nargchk(1,4,nargin);
 snc_nargoutchk(1,1,nargout);
 
 % check that the first argument is a char
-if ~ischar ( ncfile )
-   	snc_error (  'NC_FUNS:NC_GETBUFFER:badInput', 'filename argument must be character.' );
+if ~ischar (ncfile)
+   	snc_error( 'NC_FUNS:NC_GETBUFFER:badInput', 'filename argument must be character.');
 end
 
 [varlist,start,count] = parse_inputs_getbuf(varargin{:});
-metadata = nc_info ( ncfile );
+metadata = nc_info (ncfile);
 % metadata.Dimension(3).Unlimited=1;
 % metadata.Dataset(3).Unlimited=1;
 % metadata.Dataset(4).Unlimited=1;
@@ -2907,7 +2912,7 @@ for j = 1:num_dims
 	end
 end
 if record_length < 0
-   	snc_error (  'NC_FUNS:NC_GETBUFFER:noUnlimitedDimension', 'An unlimited dimension is required.');
+   	snc_error( 'NC_FUNS:NC_GETBUFFER:noUnlimitedDimension', 'An unlimited dimension is required.');
 end
 
 % figure out what the start and count really are.
@@ -2919,7 +2924,7 @@ if ~isempty(start) && ~isempty(count)
 		count = record_length - start;
 	end
 	if (start < 0) && (count < 0)
-   		snc_error (  'NC_FUNS:NC_GETBUFFER:badIndexing', 'both start and count cannot be less than zero.');
+   		snc_error( 'NC_FUNS:NC_GETBUFFER:badIndexing', 'both start and count cannot be less than zero.');
 	end
 end
 
@@ -2935,16 +2940,16 @@ for (j = 1:num_datasets)
 		varstart(1) = start;
 		varcount = metadata.Dataset(j).Size;
 		varcount(1) = count;
-		vardata = nc_varget ( ncfile, metadata.Dataset(j).Name, varstart, varcount );
+		vardata = nc_varget (ncfile, metadata.Dataset(j).Name, varstart, varcount);
 	else
-		vardata = nc_varget ( ncfile, metadata.Dataset(j).Name );
+		vardata = nc_varget (ncfile, metadata.Dataset(j).Name);
 	end
 
 	theBuffer.(metadata.Dataset(j).Name) = vardata;
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function [varlist, start, count] = parse_inputs_getbuf( varargin )
+function [varlist, start, count] = parse_inputs_getbuf(varargin)
 
 varlist = {};	start = [];		count = [];
 
@@ -2954,26 +2959,26 @@ case 1
 	if iscell(varargin{1})
 		varlist = varargin{1};
 	else
-		snc_error ( 'NC_FUNS:NC_GETBUFFER:badInput', '2nd of two input arguments must be a cell array.' );
+		snc_error('NC_FUNS:NC_GETBUFFER:badInput', '2nd of two input arguments must be a cell array.');
 	end
 case 2
 	if isnumeric(varargin{1}) && isnumeric(varargin{2})
 		start = varargin{1};
 		count = varargin{2};
 	else
-		snc_error ( 'NC_FUNS:NC_GETBUFFER:badInput', '2nd and 3rd of three input arguments must be numeric.' );
+		snc_error('NC_FUNS:NC_GETBUFFER:badInput', '2nd and 3rd of three input arguments must be numeric.');
 	end
 case 3
 	if iscell(varargin{1})
 		varlist = varargin{1};
 	else
-		snc_error ( 'NC_FUNS:NC_GETBUFFER:badInput', '2nd of four input arguments must be a cell array.' );
+		snc_error('NC_FUNS:NC_GETBUFFER:badInput', '2nd of four input arguments must be a cell array.');
 	end
 	if isnumeric(varargin{2}) && isnumeric(varargin{3})
 		start = varargin{2};
 		count = varargin{3};
 	else
-		snc_error ( 'NC_FUNS:NC_GETBUFFER:badInput', '3rd and 4th of four input arguments must be numeric.' );
+		snc_error('NC_FUNS:NC_GETBUFFER:badInput', '3rd and 4th of four input arguments must be numeric.');
 	end
 end
 
@@ -2997,7 +3002,7 @@ end
 
 retrievable_datasets = find(1 - skip_it);
 if ~any(retrievable_datasets)
-	snc_error ( 'NC_FUNS:skip_list',  'No datasets found.\n' );
+	snc_error('NC_FUNS:skip_list',  'No datasets found.\n');
 end
 
 % -------------------------------------------------------------------
@@ -3008,7 +3013,7 @@ function varsize = nc_varsize(ncfile, varname)
 % NCVAR in the netCDF file NCFILE.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% $Id: nc_funs.m 10365 2018-04-07 01:52:34Z j $
+% $Id: nc_funs.m 10385 2018-04-27 16:06:06Z j $
 % $LastChangedDate: 2007-09-03 12:07:33 -0400 (Mon, 03 Sep 2007) $
 % $LastChangedRevision: 2315 $
 % $LastChangedBy: johnevans007 $
@@ -3018,13 +3023,13 @@ snc_nargchk(2,2,nargin);
 snc_nargoutchk(1,1,nargout);
 
 if ~ischar(ncfile)
-	snc_error ( 'NC_FUNS:NC_VARSIZE:badInputType', 'The input filename must be a string.' );
+	snc_error('NC_FUNS:NC_VARSIZE:badInputType', 'The input filename must be a string.');
 end
 if ~ischar(varname)
-	snc_error ( 'NC_FUNS:NC_VARSIZE:badInputType', 'The input variable name must be a string.' );
+	snc_error('NC_FUNS:NC_VARSIZE:badInputType', 'The input variable name must be a string.');
 end
 
-v = nc_getvarinfo ( ncfile, varname );
+v = nc_getvarinfo (ncfile, varname);
 varsize = v.Size;
 
 % -------------------------------------------------------------------
@@ -3036,7 +3041,7 @@ function values = nc_getlast(ncfile, var, num_datums)
 % If NUM_DATUMS is not supplied, the default value is 1.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% $Id: nc_funs.m 10365 2018-04-07 01:52:34Z j $
+% $Id: nc_funs.m 10385 2018-04-27 16:06:06Z j $
 % $LastChangedDate: 2007-09-03 12:07:33 -0400 (Mon, 03 Sep 2007) $
 % $LastChangedRevision: 2315 $
 % $LastChangedBy: johnevans007 $
@@ -3046,21 +3051,21 @@ snc_nargchk(2,3,nargin);
 snc_nargoutchk(1,1,nargout);
 
 if ~ischar(ncfile) 
-	snc_error ( 'NC_FUNS:NC_GETLAST:badInput', 'The netCDF file argument must be char.' );
+	snc_error('NC_FUNS:NC_GETLAST:badInput', 'The netCDF file argument must be char.');
 end
 
 if ~ischar(var) 
-	snc_error ( 'NC_FUNS:NC_GETLAST:badInput', 'The netCDF variable argument must be char.' );
+	snc_error('NC_FUNS:NC_GETLAST:badInput', 'The netCDF variable argument must be char.');
 end
 
-if ( nargin == 2 )
+if (nargin == 2)
 	num_datums = 1;
 else
 	if ~isnumeric(num_datums) 
-	    snc_error ( 'NC_FUNS:NC_GETLAST:badInput', 'The num_datums argument must be numeric.' );
+	    snc_error('NC_FUNS:NC_GETLAST:badInput', 'The num_datums argument must be numeric.');
 	end
 	if num_datums <= 0
-	    snc_error ( 'NC_FUNS:NC_GETLAST:badInput', 'The num_datums argument must be positive.' );
+	    snc_error('NC_FUNS:NC_GETLAST:badInput', 'The num_datums argument must be positive.');
 	end
 end
 
@@ -3069,7 +3074,7 @@ values = nb.(var);
 
 
 % --------------------------------------------------------------------
-function snc_error (error_id, error_msg)
+function snc_error(error_id, error_msg)
 	disp ([error_id ' ' error_msg]);			% On compiled version that's the only message we'll get
 	error (error_id, error_msg);
 
@@ -3099,21 +3104,21 @@ function check_index_vectors(start,count,stride,nvdims,ncid,varname)
 	if ~isempty(start) && (length(start) ~= nvdims)
 		mexnc('close',ncid);
 		fmt = 'length of the start index vector (%d) does not equal the number of dimensions (%d) for %s';
-		snc_error ( 'NC_FUNS:NC_VARGET:badStartIndex', sprintf(fmt, length(start), nvdims, varname) );
+		snc_error('NC_FUNS:NC_VARGET:badStartIndex', sprintf(fmt, length(start), nvdims, varname));
 	end
 	if ~isempty(count) && (length(count) ~= nvdims)
 		mexnc('close',ncid);
 		fmt = 'length of the count index vector (%d) does not equal the number of dimensions (%d) for %s';
-		snc_error ( 'NC_FUNS:NC_VARGET:badCountIndex', sprintf ( fmt, length(count), nvdims, varname ) );
+		snc_error('NC_FUNS:NC_VARGET:badCountIndex', sprintf (fmt, length(count), nvdims, varname));
 	end
 	if ~isempty(stride) && (length(stride) ~= nvdims)
 		mexnc('close',ncid);
 		fmt = 'length of the stride index vector (%d) does not equal the number of dimensions (%d) for %s';
-		snc_error ( 'NC_FUNS:NC_VARGET:badStrideIndex', sprintf ( fmt, length(count), nvdims, varname ) );
+		snc_error('NC_FUNS:NC_VARGET:badStrideIndex', sprintf (fmt, length(count), nvdims, varname));
 	end
 
 % --------------------------------------------------------------------
-function the_var_size = determine_varsize_mex ( ncid, dimids, nvdims )
+function the_var_size = determine_varsize_mex (ncid, dimids, nvdims)
 % DETERMINE_VARSIZE_MEX: Need to figure out just how big the variable is.
 %
 % VAR_SIZE = DETERMINE_VARSIZE_MEX(NCID,DIMIDS,NVDIMS);
@@ -3126,9 +3131,9 @@ else
     for (j = 1:nvdims)
         dimid = dimids(j);
         [dim_size,status] = mexnc('inq_dimlen', ncid, dimid);
-        if ( status ~= 0 )
+        if (status ~= 0)
 			mexnc('close',ncid);
-            snc_error ( 'NC_FUNS:NC_VARGET:MEXNC:INQ_DIM_LEN', mexnc('strerror', status) );
+            snc_error('NC_FUNS:NC_VARGET:MEXNC:INQ_DIM_LEN', mexnc('strerror', status));
         end
         the_var_size(j)=dim_size;
     end
