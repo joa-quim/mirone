@@ -124,6 +124,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	int	nXSize = 0, nYSize = 0;
 	int	bGotMin, bGotMax;	/* To know if driver transmited Min/Max */
 	char	*tmp, *outByte, *p;
+	static int runed_once = FALSE;	/* It will be set to true if reaches end of main */
 	float	*tmpF32, *outF32;
 	double	dfNoData, range, aux, adfMinMax[2];
 	double	dfULX = 0.0, dfULY = 0.0, dfLRX = 0.0, dfLRY = 0.0;
@@ -260,14 +261,15 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 
 	/* Open gdal - If it has not been opened before (in a previous encarnation) */
 
-	GDALAllRegister();
+	if (!runed_once)		/* Do next call only at first time this MEX is loaded */
+		GDALAllRegister();
 
 	CPLSetConfigOption("GDAL_HTTP_UNSAFESSL", "YES");	/* For the full story see https://github.com/curl/curl/issues/1538 */
 
 	if (metadata_only) {
 		plhs[0] = populate_metadata_struct (gdal_filename, correct_bounds, pixel_reg, got_R, 
 		                                    nXSize, nYSize, dfULX, dfULY, dfLRX, dfLRY, z_min, z_max);
-		GDALDestroyDriverManager();
+		runed_once = TRUE;	/* Signals that next call won't need to call GDALAllRegister() again */
 		return;
 	}
 
@@ -497,7 +499,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		GDALRasterIO(hBand, GF_Read, xOrigin, yOrigin, nXSize, nYSize,
 		             tmp, nBufXSize, nBufYSize, dataType, 0, 0);
 
-		dfNoData = GDALGetRasterNoDataValue(hBand, &bGotNodata);
+        	dfNoData = GDALGetRasterNoDataValue(hBand, &bGotNodata);
 		/* If we didn't computed it yet, its time to do it now */
 		if (got_R) ComputeRasterMinMax(tmp, hBand, adfMinMax, nXSize, nYSize, z_min, z_max);
 		if (nBands > 1 && scale_range) {	/* got_R && scale_range && nBands > 1 Should never be true */
@@ -736,9 +738,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		plhs[1] = populate_metadata_struct (gdal_filename, correct_bounds, pixel_reg, got_R, 
 		                                    nXSize, nYSize, dfULX, dfULY, dfLRX, dfLRY, z_min, z_max);
 
-	GDALDestroyDriverManager();
-
 	mxFree(gdal_filename);
+	runed_once = TRUE;	/* Signals that next call won't need to call GDALAllRegister() again */
 }
 
 /* =============================================================================================== */
