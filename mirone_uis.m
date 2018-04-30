@@ -643,7 +643,7 @@ uimenu('Parent',hT,'Callback','aquamoto(guidata(gcbo))','Label','Aquamoto Viewer
 hMO = uimenu('Parent',H1,'Label','Met/Oce','Tag','MetOce');
 uimenu('Parent',hMO,'Callback','argo_floats(gcf)', 'Label','Show ARGO buoys');
 uimenu('Parent',hMO,'Callback','mirone(''TransferB_CB'',guidata(gcbo),''WOA'')', 'Label','World Ocean Atlas');
-uimenu('Parent',hMO,'Callback','tmd_osu', 'Label','Tidal Model Driver (OSU)');
+uimenu('Parent',hMO,'Callback','tmd_osu(guidata(gcbo))', 'Label','Tidal Model Driver (OSU)');
 
 %% --------------------------- GMT ----------------------------------------
 hGMT = uimenu('Parent',H1,'Label','GMT','Tag','GMT');		hVG(kv) = hGMT;		kv = kv + 1;
