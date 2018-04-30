@@ -16,7 +16,7 @@ function varargout = tmd_osu(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: tmd_osu.m 10373 2018-04-12 13:07:24Z j $
+% $Id: tmd_osu.m 10401 2018-04-30 13:55:47Z j $
 
 	if (nargin > 1 && ischar(varargin{1}))
 		gui_CB = str2func(varargin{1});
@@ -36,20 +36,12 @@ function varargout = TMD_OSU_OF(varargin)
 	handles.harmonic = ones(1, 14);
 	handles.selected_comp = [{handles.check_M2} {1}];	% The by default selected component
 	handles.comp_names = {'M2' 'S2' 'N2' 'K2' 'K1' 'O1' 'P1' 'Q1' 'MF' 'MM' 'M4' 'MS4', 'MN4' 'ALL'};
+	handles.hMirFig = varargin{1}.figure1;
+	handles.path_tmp = varargin{1}.path_tmp;
 
-	% See if we have a TMP dir set by a ENV var that will take precedence over the default one
-	path_tmp = '';
-	t = set_gmt('MIRONE_TMP', 'whatever');				% Inquire if MIRONE_TMP exists
-	if (~isempty(t))		% Now check that the dir exists
-		if (exist(t, 'dir') == 7),		path_tmp = [t '/'];		end
-	end
-	if (isempty(path_tmp))		% If the above failed
-		home_dir = fileparts(mfilename('fullpath'));	% Get the Mirone home dir and set path
-		path_tmp = [home_dir '/../tmp/'];
-	end
-
+	% See if we have a used_pref.mat file with Model files location
 	try
-		x = load([path_tmp 'used_pref.mat'], 'TMDmodel');
+		x = load([handles.path_tmp 'used_pref.mat'], 'TMDmodel');
 		if (isfield(x, 'TMDmodel')),	TMDmodel = x.TMDmodel;
 		else,							TMDmodel = '';
 		end
@@ -101,6 +93,7 @@ function varargout = TMD_OSU_OF(varargin)
 		tmp.X = x;			tmp.Y = y;			tmp.head = handles.head;	tmp.name = 'Bathy for Maregs';
 		pos = get(hObject, 'Pos');
 		tmp.screenSize = get(0, 'ScreenSize');	tmp.screenSize(3) = tmp.screenSize(3) - pos(3) - 10;
+		if (varargin{1}.no_file),		delete(varargin{1}.figure1)	,	end			% Remove this empty Mirone
 		handles.hMirFig = mirone(H, tmp);
 		move2side(hObject, handles.hMirFig,'left');
 	catch
@@ -794,6 +787,8 @@ function [gfile, hfile, ufile, msg, TMDmodel] = find_model_files(TMDmodel, count
 		if (fname ~= 0)
 			TMDmodel = [pato fname];
 			[gfile, hfile, ufile, msg] = find_model_files(TMDmodel, 2);		% Try again
+		else
+			msg = 'Cancel';			% Just to trigger the download instructions window in calling fun
 		end
 	end
 
@@ -803,13 +798,13 @@ function store_in_pref(handles, TMDmodel)
 	handMir = guidata(handles.hMirFig);
 	V7 = handMir.version7;
 	try			% Try if file already exist and if yes, append
-		x.x = load([handMir.path_tmp 'used_pref.mat']);
-		if (~V7),		save([handMir.path_tmp 'used_pref.mat'],'TMDmodel','-append')		% R <= 13
-		else,			save([handMir.path_tmp 'used_pref.mat'],'TMDmodel','-append', '-v6')
+		x.x = load([handles.path_tmp 'used_pref.mat']);
+		if (~V7),		save([handles.path_tmp 'used_pref.mat'],'TMDmodel','-append')		% R <= 13
+		else,			save([handles.path_tmp 'used_pref.mat'],'TMDmodel','-append', '-v6')
 		end
 	catch		% First time. Create a new one
-		if (~V7),		save([handMir.path_tmp 'used_pref.mat'],'TMDmodel','V7')
-		else,			save([handMir.path_tmp 'used_pref.mat'],'TMDmodel','V7','-v6')
+		if (~V7),		save([handles.path_tmp 'used_pref.mat'],'TMDmodel','V7')
+		else,			save([handles.path_tmp 'used_pref.mat'],'TMDmodel','V7','-v6')
 		end
 	end
 
