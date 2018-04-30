@@ -16,7 +16,7 @@ function [H1,handles,home_dir] = mirone_uis(home_dir)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: mirone_uis.m 10399 2018-04-30 00:16:02Z j $
+% $Id: mirone_uis.m 10402 2018-04-30 13:59:44Z j $
 
 %#function pan igrf_options rally_plater plate_calculator ecran snapshot
 %#function about_box parker_stuff euler_stuff grid_calculator tableGUI usgs_recent_seismicity
@@ -643,7 +643,7 @@ uimenu('Parent',hT,'Callback','aquamoto(guidata(gcbo))','Label','Aquamoto Viewer
 hMO = uimenu('Parent',H1,'Label','Met/Oce','Tag','MetOce');
 uimenu('Parent',hMO,'Callback','argo_floats(gcf)', 'Label','Show ARGO buoys');
 uimenu('Parent',hMO,'Callback','mirone(''TransferB_CB'',guidata(gcbo),''WOA'')', 'Label','World Ocean Atlas');
-uimenu('Parent',hMO,'Callback','tmd_osu', 'Label','Tidal Model Driver (OSU)');
+uimenu('Parent',hMO,'Callback','tmd_osu(guidata(gcbo))', 'Label','Tidal Model Driver (OSU)');
 
 %% --------------------------- GMT ----------------------------------------
 hGMT = uimenu('Parent',H1,'Label','GMT','Tag','GMT');		hVG(kv) = hGMT;		kv = kv + 1;
