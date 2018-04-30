@@ -5140,20 +5140,20 @@ function TransferB_CB(handles, opt, opt2)
 		handles.geog = 1;				handles.image_type = 3;		handles.head = out.head;
 		show_image(handles,out.imgName,out.X,out.Y,out.img,0,'xy',1,1);
 
-	elseif (strcmp(opt,'Hypso'))				% Caculate the Hypsometric curve
+	elseif (strcmp(opt,'Hypso'))				% Calculate the Hypsometric curve
 		if (~handles.validGrid),	return,		end
 		[X,Y,Z] = load_grd(handles);			% load the grid array here
 		if (numel(Z) < 25000)					% 25000 bins is more than enough to compute an hypso curve
 			y = unique(Z);
 			if (handles.have_nans),		y(isnan(y)) = [];	end
-			y = flip(y,1);
+			y = flipud(y);
 			freq = 1:numel(y);
 		else
-			[freq,y] = hist(Z(:), 25000); 
-			y = flip(y(:),1);
-			freq = cumsum(flip(freq(:),1));
+			[freq, y] = histo_m('hist', Z(:), 25000); 
+			y = flipud(y(:));
+			freq = cumsum(flipud(freq(:)));
 		end
-		freq = single(freq / freq(end) * 100);
+		freq = freq / freq(end) * 100;
 		ecran(freq, y, 'Hypsometric curve', {struct('xlabel','frequency [%]','ylabel','Elevation')})
 
 	elseif (strcmp(opt,'NewEmpty'))
@@ -5319,7 +5319,31 @@ function TransferB_CB(handles, opt, opt2)
 		fprintf(fid, 'echo Ja ta. Finished update\n');
 		fclose(fid);
 
-	elseif (strcmp(opt,'DayNight'))
+	elseif (strcmp(opt,'WOA'))				% Open the WOA nc file
+		if (exist([handles.path_data '/met_oce'],'dir') ~= 7)		% Need to create a new dir
+			return_to = cd;					% To return to where it was.
+			cd(handles.path_data)
+			if (ispc),	status = dos('mkdir met_oce');
+			else,		status = unix('mkdir -p met_oce');
+			end
+			if (status),	error('WOA:make_dir', 'Error while creating new data (sub)directory'),	end
+			cd(return_to)
+		end
+		dest_fiche = [handles.path_data 'met_oce/WOA13_1x1.nc'];	% 
+		if (~exist(dest_fiche, 'file'))
+			resp = questdlg('The data file needed to run this option is 49 Mb big. Do you want me to download it for you?');
+			if (~strcmp(resp, 'Yes')),		return,		end
+			url = 'w3.ualg.pt/~jluis/mirone/misc/WOA13_1x1.nc';
+			if (ispc),		dos(['wget "' url '" -q --tries=2 --connect-timeout=5 -O "' dest_fiche '"']);
+			else,			unix(['wget ''' url ''' -q --tries=2 --connect-timeout=5 -O "' dest_fiche '"']);
+			end
+			if (~exist(dest_fiche, 'file'))
+				errordlg(['Error downloading file: ' url], 'Error'),	return
+			end
+		end
+		mirone(dest_fiche)
+
+% 	elseif (strcmp(opt,'DayNight'))
 % 		[sun_params, lon, lat] = solar_params(-7.92, 37.073);
 % 		h = patch('XData',lon, 'YData',lat,'FaceColor','none','Parent',handles.axes1,'Tag','DayNight');
 % 		draw_funs(h,'line_uicontext')
