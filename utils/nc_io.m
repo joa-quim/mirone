@@ -55,7 +55,7 @@ function varargout = nc_io(fname, mode, handles, data, misc)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: nc_io.m 10386 2018-04-27 16:07:03Z j $
+% $Id: nc_io.m 10398 2018-04-30 00:14:34Z j $
 
 	if (isempty(fname))
 		error('NC_IO:write_nc','Output file name cannot be empty')
@@ -191,7 +191,7 @@ function write_nc(fname, handles, data, misc, page)
 	% ---------------------- Make sure we always have something assigned to these vars --------------
 	[x_units, y_units, z_name, z_units, desc, tit] = assign_var_names(misc);
 	% -----------------------------------------------------------------------------------------------
-	
+
 	% See if we have them in appdata
 	try			% Wrap with a try because we want to be able to use this fun even when no figure1
 		if (isempty(misc.srsWKT)),		misc.srsWKT = getappdata(handles.figure1,'ProjWKT');	end
@@ -350,6 +350,13 @@ function write_nc(fname, handles, data, misc, page)
 	nc_funs('attput', fname, y_var, 'long_name', y_var);
 	nc_funs('attput', fname, y_var, 'units', y_units);
 	nc_funs('attput', fname, y_var, 'actual_range', [Y(1) Y(end)]);
+
+	if (is3D && isfield(misc, 'threeD_long_name') && ~isempty(misc.threeD_long_name))
+		nc_funs('attput', fname, levelName, 'long_name', misc.threeD_long_name);
+	end
+	if (is3D && isfield(misc, 'threeD_units') && ~isempty(misc.threeD_units))
+		nc_funs('attput', fname, levelName, 'units', misc.threeD_units);
+	end
 
 	if (~isempty(misc.srsWKT) || ~isempty(misc.strPROJ4))
 		% Create a container variable named "grid_mapping" to hold the projection info
