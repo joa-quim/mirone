@@ -16,7 +16,7 @@ function [H1,handles,home_dir] = mirone_uis(home_dir)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: mirone_uis.m 10391 2018-04-27 16:25:59Z j $
+% $Id: mirone_uis.m 10399 2018-04-30 00:16:02Z j $
 
 %#function pan igrf_options rally_plater plate_calculator ecran snapshot
 %#function about_box parker_stuff euler_stuff grid_calculator tableGUI usgs_recent_seismicity
@@ -642,6 +642,7 @@ uimenu('Parent',hT,'Callback','aquamoto(guidata(gcbo))','Label','Aquamoto Viewer
 %% --------------------------- Met/Oce ------------------------------------
 hMO = uimenu('Parent',H1,'Label','Met/Oce','Tag','MetOce');
 uimenu('Parent',hMO,'Callback','argo_floats(gcf)', 'Label','Show ARGO buoys');
+uimenu('Parent',hMO,'Callback','mirone(''TransferB_CB'',guidata(gcbo),''WOA'')', 'Label','World Ocean Atlas');
 uimenu('Parent',hMO,'Callback','tmd_osu', 'Label','Tidal Model Driver (OSU)');
 
 %% --------------------------- GMT ----------------------------------------
@@ -753,7 +754,7 @@ end
 %uimenu('Parent',h, 'Callback', 'update_gmt(guidata(gcbo))','Label','Update your GMT5','Sep','on')
 uimenu('Parent',h, 'Callback',['mirone(''FileOpenWebImage_CB'',guidata(gcbo),',...
 	' ''http://www2.clustrmaps.com/stats/maps-clusters/w3.ualg.pt-~jluis-mirone-world.jpg'',''nikles'');'],'Label','See visitors map','Sep','on');
-uimenu('Parent',h, 'Callback','about_box(guidata(gcbo),''Mirone Last modified at 27 Apr 2018'',''2.10dev'')','Label','About','Sep','on');
+uimenu('Parent',h, 'Callback','about_box(guidata(gcbo),''Mirone Last modified at 30 Apr 2018'',''2.10dev'')','Label','About','Sep','on');
 
 %% --------------------------- Build HANDLES and finish things here
 	handles = guihandles(H1);
