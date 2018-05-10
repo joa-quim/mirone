@@ -72,37 +72,49 @@ if (strcmp(mode,'mirror'))
     to_restore = [];        % The compiler hates non initialized outputs
 else    % pad with a hanning window
 	dnx = nnx - nx;         dny = nny - ny;
-    dnx_w = fix(dnx/2);     dnx_e = dnx - dnx_w;    % Need to do this if dnx is odd
-    dny_n = fix(dny/2);     dny_s = dny - dny_n;    % Need to do this if dny is odd  
-    to_restore = [dny_n dny_s dnx_w dnx_e];
-    % Extend to South
+	dnx_w = fix(dnx/2);     dnx_e = dnx - dnx_w;    % Need to do this if dnx is odd
+	dny_n = fix(dny/2);     dny_s = dny - dny_n;    % Need to do this if dny is odd  
+	to_restore = [dny_n dny_s dnx_w dnx_e];
+	if (strcmp(mode,'zeros'))
+		ww = zeros(nny, nnx);
+		m1 = dny_n + 1;		m2 = m1 + ny - 1;
+		n1 = dnx_w + 1;		n2 = n1 + nx - 1;
+		ww(m1:m2,n1:n2) = w;
+		w = ww;
+		return
+	end
+	% Extend to South
 	vhan = hanning(2*dny_s);    vhan = vhan(end/2+1:end);
 	tmp1 = repmat(vhan,1,nx);       % Replicate the hanning vector by array's n_column
 	tmp2 = repmat(w(end,:),dny_s,1);% Replicate the array's last row by the y_s pading size
-    if (isa(w,'single')),     tmp12 = single(double(tmp1) .* double(tmp2));
-    else                        tmp12 = tmp1 .* tmp2;   end
+	if (isa(w,'single')),	tmp12 = single(double(tmp1) .* double(tmp2));
+	else,					tmp12 = tmp1 .* tmp2;
+	end
 	w(ny+1:ny+dny_s,:) = tmp12;
-    % Extend to East
+	% Extend to East
 	vhan = hanning(2*dnx_e);     vhan = vhan(end/2+1:end)';
 	tmp1 = repmat(vhan,ny+dny_s,1); % Replicate the hanning vector by array's extended n_rows
 	tmp2 = repmat(w(:,nx),1,dnx_e); % Replicate the array last column by the x_e pading size
-    if (isa(w,'single')),     tmp12 = single(double(tmp1) .* double(tmp2));
-    else                        tmp12 = tmp1 .* tmp2;   end
+	if (isa(w,'single')),	tmp12 = single(double(tmp1) .* double(tmp2));
+	else,					tmp12 = tmp1 .* tmp2;
+	end
 	w(:,nx+1:nx+dnx_e) = tmp12;
-    % Extend to North
+	% Extend to North
 	vhan = hanning(2*dny_n);    vhan = vhan(1:end/2);
 	tmp1 = repmat(vhan,1,nx+dnx_e); % Replicate the hanning vector by array's new n_column
 	tmp2 = repmat(w(1,:),dny_n,1);  % Replicate the array's first row by the y_n pading size
-    if (isa(w,'single')),     band_n = single(double(tmp1) .* double(tmp2));
-    else                        band_n = tmp1 .* tmp2;   end
-    w = [band_n; w];                % Remember that we are now adding before the original first row
-    % Extend to West
+	if (isa(w,'single')),	band_n = single(double(tmp1) .* double(tmp2));
+	else,					band_n = tmp1 .* tmp2;
+	end
+	w = [band_n; w];                % Remember that we are now adding before the original first row
+	% Extend to West
 	vhan = hanning(2*dnx_w);    vhan = vhan(1:end/2)';
 	tmp1 = repmat(vhan,nny,1);      % Replicate the hanning vector by array's new n_row (nny)
 	tmp2 = repmat(w(:,1),1,dnx_w);  % Replicate the array's first column by the x_w pading size
-    if (isa(w,'single')),      band_w = single(double(tmp1) .* double(tmp2));
-    else                        band_w = tmp1 .* tmp2;   end
-    w = [band_w w];                 % Remember that we are now adding before the original first column
+	if (isa(w,'single')),	band_w = single(double(tmp1) .* double(tmp2));
+	else,					band_w = tmp1 .* tmp2;
+	end
+	w = [band_w w];                 % Remember that we are now adding before the original first column
 end
 
 %---------------------------------------------------------------------
