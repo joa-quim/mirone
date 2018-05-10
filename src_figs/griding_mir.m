@@ -608,7 +608,7 @@ function push_OK_CB(hObject, handles)
 		if (~isempty(ind))
 			opt_c = out{k};		opt_c(2) = 'C';		% it was 'c'
 			n_cells = str2double(opt_c(3:end));
-			if (n_cells > 0)
+			if (n_cells >= 0)
 				method = 'gmtmbgrid';
 				break
 			end
