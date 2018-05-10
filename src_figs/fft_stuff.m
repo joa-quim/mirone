@@ -163,7 +163,7 @@ function edit_Grid1_CB(hObject, handles)
 % -------------------------------------------------------------------------------------------------
 function push_Grid1_CB(hObject, handles, opt)
 	if (nargin == 3),	fname = opt;
-	else				opt = [];
+	else,				opt = [];
 	end
 
 	if (isempty(opt))       % Otherwise 'opt' already transmited the file name.
@@ -254,7 +254,7 @@ function edit_Grid2_CB(hObject, handles)
 % -------------------------------------------------------------------------------------------------
 function push_Grid2_CB(hObject, handles, opt)
 	if (nargin == 3),	fname = opt;
-	else				opt = [];
+	else,				opt = [];
 	end
 
 	if (isempty(opt))       % Otherwise 'opt' already transmited the file name.
@@ -414,7 +414,7 @@ function push_radialPowerAverage_CB(hObject, handles)
 	end
 
 	if (~isempty(handles.hMirFig)),		arg1 = handles.hMirFig;
-	else								arg1 = 'reuse';
+	else,								arg1 = 'reuse';
 	end
 
 	set(handles.figure1,'pointer','arrow')
@@ -454,7 +454,7 @@ function push_integrate_CB(hObject, handles, opt)
 	Z = real(ifft2(Z));
 	[Z,tmp] = unband(handles,Z,band);
 	if (scale == 1),	tmp.name = 'Integrated grid';
-	else				tmp.name = 'Geoid height';
+	else,				tmp.name = 'Geoid height';
 	end
 	set(handles.figure1,'pointer','arrow')
 	mirone(single(Z),tmp);
@@ -471,7 +471,6 @@ function sectrumFun(handles, Z, head, opt1, Z2)
 
 	two_grids = 0;			image_type = 1;				% Used by the inverse transform case (default case)
 	if (nargin == 5),		two_grids = 1;		end
-	set(handles.figure1,'pointer','watch')
 	if (~isa(Z, 'double')),		Z = double(Z);		end
 	if (get(handles.checkbox_leaveTrend,'Value'))       % Remove trend
 		Z = c_grdtrend(Z,handles.head_Z1,'-D','-N3');
@@ -498,7 +497,7 @@ function sectrumFun(handles, Z, head, opt1, Z2)
 	end
 
 	if (strcmp(opt1,'Power'))
-		Z = log10( (Z .* conj(Z) / (nx*ny)) + 1);       % An offset of 1 is added to avoid log(0)
+		Z = log10((Z .* conj(Z) / (nx*ny)) + 1);       % An offset of 1 is added to avoid log(0)
 		tmp.name = 'Power spectrum';
 	elseif (strcmp(opt1,'CrossPower'))                  % Cross spectra
 		Z = log10( (real(Z).*real(Z2) + imag(Z).*imag(Z2)) / (nx*ny) + 1);  % An offset of 1 is added to avoid log(0)
@@ -515,18 +514,23 @@ function sectrumFun(handles, Z, head, opt1, Z2)
 		Z = fftshift(single(real(Z)));
 		Z = Z(m1:m2,n1:n2);                             % Remove the padding skirt
 		tmp.name = 'Cross Correlation';
-	elseif ( any(strcmp(opt1,{'lpass' 'hpass'})) )		% Filtering
+	elseif (any(strcmp(opt1,{'lpass' 'hpass'})))		% Filtering
 		handMir = guidata(handles.hMirFig);				% Handles of the space domain figure
 		image_type = handMir.image_type;				% Used by the inverse transform case
 		x = get(handMir.XXXhLine, 'XData');			y = get(handMir.XXXhLine, 'YData');
 		hand = guidata(handMir.XXXhLine);				% Handles of the Spectrum figure
 		xy_lims = getappdata(hand.axes1,'ThisImageLims');
 		[xy_lims(1:2),xy_lims(3:4)] = aux_funs('adjust_lims',xy_lims(1:2),xy_lims(3:4),size(Z,1),size(Z,2));	% roipoly works on grid reg
+		xy_lims(1) = xy_lims(1) - band(1) * hand.head(8);	xy_lims(2) = xy_lims(2) + band(2) * hand.head(8);	% adjust for padding
+		xy_lims(3) = xy_lims(3) - band(3) * hand.head(9);	xy_lims(4) = xy_lims(4) + band(4) * hand.head(9);
 		mask = ifftshift(img_fun('roipoly_j',xy_lims(1:2), xy_lims(3:4), Z, x, y));
+		mask = mask | flipud(mask);
+		mask = mask | fliplr(mask);		
 		if (strcmp(opt1,'lpass')),	mask = ~mask;	end
-		Z = fft2(Z);
+		avg = mean(Z);
+		Z = fft2(Z - avg);
 		Z(mask) = 0;		% Do the filtering
-		Z = single(real(ifft2(Z)));
+		Z = single(real(ifft2(Z)) + avg);
 		Z = Z(m1:m2,n1:n2);                             % Remove the padding skirt
 		tmp.name = [upper(opt1(1))  'pass filtering'];
 	end
@@ -557,15 +561,16 @@ function sectrumFun(handles, Z, head, opt1, Z2)
 		mask = maskLow | maskHigh;		% Combine Low and High cuts
 		clear maskLow maskHigh
 		% Need to add the cos tapper code to LP & HP
-		Z = fft2(Z);
+		avg = mean(Z);
+		Z = fft2(Z - avg);
 		Z(mask) = 0;
-		Z = single(real(ifft2(Z)));
+		Z = single(real(ifft2(Z)) + avg);
 		Z = Z(m1:m2,n1:n2);                             % Remove the padding skirt
 		handMir = guidata(handles.hMirFig);				% Handles of the space domain figure
 	end
 
 	if (isa(Z, 'double')),	Z = single(Z);		end
-	if ( ~any(strcmp(opt1,{'lpass' 'hpass' 'bpass'})) )
+	if (~any(strcmp(opt1,{'lpass' 'hpass' 'bpass'})))
 		tmp.X = (-nx2:nx2-sft_x).*delta_kx;		tmp.Y = (-ny2:ny2-sft_y).*delta_ky;
 		tmp.geog = 0;
 	else
@@ -579,10 +584,9 @@ function sectrumFun(handles, Z, head, opt1, Z2)
 		delta_kx = handMir.head(8);						delta_ky = handMir.head(9);
 	end
 
-	set(handles.figure1,'pointer','arrow')
 	if (isa(Z,'uint8')),	tmp.cmap = gray(256);	end
 	if (image_type ~= 2)
-		tmp.head = [tmp.X(1) tmp.X(end) tmp.Y(1) tmp.Y(end) min(Z(:)) max(Z(:)) 0 delta_kx delta_ky];
+		tmp.head = [tmp.X(1) tmp.X(end) tmp.Y(1) tmp.Y(end) double(min(Z(:))) double(max(Z(:))) 0 delta_kx delta_ky];
 		h = mirone(Z,tmp);
 	else
 		setappdata(0,'CropedColormap', gray(256));		% Force it to use a gray colormap
@@ -590,11 +594,11 @@ function sectrumFun(handles, Z, head, opt1, Z2)
 		set(h,'Name','FFT filtered image')
 	end
 
-	if ( ~any(strcmp(opt1,{'lpass' 'hpass' 'bpass'})) )	% FFTs are never geogs
+	if (~any(strcmp(opt1,{'lpass' 'hpass' 'bpass'})))	% FFTs are never geogs
 		handMir = guidata(h);		handMir.geog = 0;
 		guidata(handMir.figure1, handMir)
 	end
-	if ( (strcmp(opt1,'Power') || strcmp(opt1,'Amplitude')) )
+	if ((strcmp(opt1,'Power') || strcmp(opt1,'Amplitude')))
 		setappdata(h, 'ParentFig', handles.hMirFig);	% Save the space domain Fig handle to eventual future use
 	end
 
@@ -621,7 +625,7 @@ function push_goDerivative_CB(hObject, handles, opt)
 % Compute N-vertical derivative
 	if (isempty(handles.Z1)),   errordlg('No grid loaded yet.','Error');    return; end
 	if (isempty(opt)),	scale = 1;
-	else				scale = 980619.9203;
+	else,				scale = 980619.9203;
 	end					% Moritz's 1980 IGF value for gravity in mGal at lat = 45 degrees
 	n_der = fix(str2double(get(handles.edit_derivative,'String')));
 	set(handles.figure1,'pointer','watch')
@@ -636,7 +640,7 @@ function push_goDerivative_CB(hObject, handles, opt)
 	Z = real(ifft2((Z)));
 	[Z,tmp] = unband(handles,Z,band);
 	if (scale == 1),	tmp.name = sprintf('%dth Vertical Derivative',n_der);
-	else				tmp.name = 'Gravity anomaly (mGal)';
+	else,				tmp.name = 'Gravity anomaly (mGal)';
 	end
 	set(handles.figure1,'pointer','arrow')
 	mirone(single(Z),tmp);
@@ -699,10 +703,10 @@ function [Z,band,k] = wavenumber_and_mboard(handles,opt,mode)
 	nx2 = fix(new_nx/2);		ny2 = fix(new_ny/2);
 
 	if (rem(new_nx,2) == 0),	sft_x = 1;
-	else						sft_x = 0;
+	else,						sft_x = 0;
 	end
 	if (rem(new_ny,2) == 0),	sft_y = 1;
-	else						sft_y = 0;
+	else,						sft_y = 0;
 	end
 
 	%nx2 = handles.new_nx/2;     ny2 = handles.new_ny/2;    % Tivey way -> but and if n is odd?
