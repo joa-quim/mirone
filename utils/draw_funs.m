@@ -303,6 +303,11 @@ function set_line_uicontext(h, opt)
 
 	handles = guidata(get(h,'Parent'));		% Get Mirone handles
 
+	IamSpectrum = false;
+	if (handles.validGrid && ~isempty(strfind(get(handles.figure1,'Name'), 'spectrum')))
+		IamSpectrum = true;
+	end
+
 	% Check to see if we are dealing with a multibeam track
 	cmenuHand = uicontextmenu('Parent',handles.figure1);
 	set(h, 'UIContextMenu', cmenuHand);
@@ -362,9 +367,11 @@ function set_line_uicontext(h, opt)
 			uimenu(item8, 'Label', 'None', 'Sep','on', 'Callback', 'set(gco, ''FaceColor'', ''none'');refresh');
 			uimenu(cmenuHand, 'Label', 'Transparency', 'Callback', @set_transparency);
 		end
-		uimenu(cmenuHand, 'Label', 'Create Mask', 'Callback', 'poly2mask_fig(guidata(gcbo),gco)');
+		if (~IamSpectrum)
+			uimenu(cmenuHand, 'Label', 'Create Mask', 'Callback', 'poly2mask_fig(guidata(gcbo),gco)');
+		end
 	end
-	if (IS_RECTANGLE && handles.validGrid)
+	if (IS_RECTANGLE && handles.validGrid && ~IamSpectrum)
 		uimenu(cmenuHand, 'Label', 'Make Chess board', 'Callback', {@chessify, h});
 	end
 
@@ -386,7 +393,7 @@ function set_line_uicontext(h, opt)
 
 	if (IS_RECTANGLE)
 		uimenu(cmenuHand, 'Label', 'Rectangle limits (edit)', 'Sep','on', 'Callback', @rectangle_limits);
-		if (handles.image_type ~= 20), uimenu(cmenuHand, 'Label', 'Register Image', 'Callback', @rectangle_register_img);	end
+		if (handles.image_type ~= 20 && ~IamSpectrum), uimenu(cmenuHand, 'Label', 'Register Image', 'Callback', @rectangle_register_img);	end
 		if (~handles.validGrid)
 			uimenu(cmenuHand, 'Label', 'Transplant Image here','Callback', 'transplants(gco,''image'')');
 		end
@@ -434,7 +441,9 @@ function set_line_uicontext(h, opt)
 		else
 			delete(item_tools)		% Easier to create it at top and delete in the case where it had no use
 		end
-		deal_opts({'MGG' 'MICROLEV' 'GMT_DB_IDS' 'GMT_SYMBOL' 'GRAVITY'}, cmenuHand);
+		if (~IamSpectrum)
+			deal_opts({'MGG' 'MICROLEV' 'GMT_DB_IDS' 'GMT_SYMBOL' 'GRAVITY'}, cmenuHand);
+		end
 	end
 
 	if (~IS_SEISPOLYG && LINE_ISCLOSED && ~IS_RECTANGLE && (handles.validGrid || handles.image_type ~= 20))
@@ -456,7 +465,7 @@ function set_line_uicontext(h, opt)
 			uimenu(item_tools2, 'Label', 'Slice peaks','Callback', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''ROI_FillSinks_peak'')');
 			uimenu(item_tools2, 'Label', 'Histogram (grid)', 'Callback', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''CropaGrid_histo'')');
 			hP = getappdata(handles.figure1, 'ParentFig');
-			if ( ~isempty(hP) && ishandle(hP) && ~isempty(strfind(get(handles.figure1,'Name'), 'spectrum')) )
+			if (~isempty(hP) && ishandle(hP) && IamSpectrum)
 				uimenu(item_tools2, 'Label', 'Low Pass FFT filter', 'Callback', 'mirone(''GridToolsSectrum_CB'',guidata(gcbo), ''lpass'', gco)');
 				uimenu(item_tools2, 'Label', 'High Pass FFT filter','Callback', 'mirone(''GridToolsSectrum_CB'',guidata(gcbo), ''hpass'', gco)');
 			end
@@ -474,6 +483,9 @@ function set_line_uicontext(h, opt)
 			uimenu(cmenuHand, 'Label', 'Compute Euler Pole', 'Sep','on', 'Callback',...
 				'calc_bonin_euler_pole(get(gco,''XData''), get(gco,''YData''));' );
 		end
+	elseif (IS_RECTANGLE && IamSpectrum)
+		uimenu(cmenuHand, 'Label', 'Low Pass FFT filter', 'Callback', 'mirone(''GridToolsSectrum_CB'',guidata(gcbo), ''lpass'', gco)', 'Sep','on');
+		uimenu(cmenuHand, 'Label', 'High Pass FFT filter','Callback', 'mirone(''GridToolsSectrum_CB'',guidata(gcbo), ''hpass'', gco)');
 	end
 
 	setLineWidth(uimenu(cmenuHand, 'Label', 'Line Width', 'Sep','on'), cb_LineWidth)
