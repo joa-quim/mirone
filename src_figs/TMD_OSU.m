@@ -16,7 +16,7 @@ function varargout = tmd_osu(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: tmd_osu.m 10401 2018-04-30 13:55:47Z j $
+% $Id: tmd_osu.m 10403 2018-05-10 01:02:32Z j $
 
 	if (nargin > 1 && ischar(varargin{1}))
 		gui_CB = str2func(varargin{1});
@@ -33,9 +33,9 @@ function varargout = TMD_OSU_OF(varargin)
 	handles = guihandles(hObject);
 	move2side(hObject,'right');
 
-	handles.harmonic = ones(1, 14);
+	handles.harmonic = ones(1, 14);		% 14 is num harmonics in v7.2 + 1
 	handles.selected_comp = [{handles.check_M2} {1}];	% The by default selected component
-	handles.comp_names = {'M2' 'S2' 'N2' 'K2' 'K1' 'O1' 'P1' 'Q1' 'MF' 'MM' 'M4' 'MS4', 'MN4' 'ALL'};
+	handles.comp_names = {'M2' 'S2' 'N2' 'K2' 'K1' 'O1' 'P1' 'Q1' 'MF' 'MM' 'M4' 'MS4', 'MN4' '2N2' 'S1' 'ALL'};	% v9
 	handles.hMirFig = varargin{1}.figure1;
 	handles.path_tmp = varargin{1}.path_tmp;
 
@@ -108,11 +108,18 @@ function varargout = TMD_OSU_OF(varargin)
 	% Save Model's file name in used_pref.mat file for future lazziness.
 	store_in_pref(handles, TMDmodel)
 
+	% Add this figure handle to the carraças list
+	if (~isempty(handles.hMirFig))
+		plugedWin = getappdata(handles.hMirFig,'dependentFigs');
+		plugedWin = [plugedWin hObject];
+		setappdata(handles.hMirFig,'dependentFigs',plugedWin);
+	end
+
 	guidata(hObject, handles);
 	set(hObject,'Visible','on');
 	if (nargout),   varargout{1} = hObject;     end
 
-	if (nargin > 0),	external_drive(handles, 'TDM_OSU', varargin{:}),	end
+	if (nargin > 1),	external_drive(handles, 'TDM_OSU', varargin{2:end}),	end
 
 % ----------------------------------------------------------------------------------------
 function BDNfcn(hObject, evt, comp)
@@ -284,10 +291,10 @@ function check_All_CB(hObject, handles)
 		handles.check_MF handles.check_MM handles.check_M4 handles.check_MS4 handles.check_MN4];
 	if (get(hObject,'Value'))
 		set(v, 'Val', 1)
-		handles.harmonic(4:13) = 1;
+		handles.harmonic(4:end) = 1;
 	else
 		set(v, 'Val', 0)
-		handles.harmonic(4:13) = 0;
+		handles.harmonic(4:end) = 0;
 	end
 	set([handles.check_M2 handles.check_S2 handles.check_M2], 'Val', 1)		% These are always set on
 	handles.harmonic(1:3) = 1;
@@ -305,17 +312,22 @@ function radio_plotBat_CB(hObject, handles)
 function radio_plotAmp_CB(hObject, handles)
 	if (~get(hObject,'Value')),		set(hObject,'Value',1),		return,		end
 	set([handles.radio_plotBat handles.radio_plotPhase],'Val',0)
+	n = which_harmonics(handles);
+	if (n == 0),	return,		end
+	plot_fun(handles, n)
 
 % ----------------------------------------------------------------------------------------
 function radio_plotPhase_CB(hObject, handles)
 	if (~get(hObject,'Value')),		set(hObject,'Value',1),		return,		end
 	set([handles.radio_plotAmp handles.radio_plotBat],'Val',0)
+	n = which_harmonics(handles);
+	if (n == 0),	return,		end
+	plot_fun(handles, n)
 
 % ----------------------------------------------------------------------------------------
 function radio_comp_z_CB(hObject, handles)
 	if (~get(hObject,'Value')),		set(hObject,'Value',1),		return,		end
 	set([handles.radio_comp_u handles.radio_comp_v handles.radio_comp_ut handles.radio_comp_vt],'Val',0)
-	%plot_fun(handles, handles.selected_comp{2})
 	n = which_harmonics(handles);
 	if (n == 0),	return,		end
 	plot_fun(handles, n)
@@ -470,9 +482,9 @@ function push_saveTide_CB(hObject, handles)
 	end
 
 	[SerialDay, TimeSeries] = push_compute(handles);
-	
+
 	str1 = {'*.dat;*.DAT', 'Tide file (*.dat,*.DAT)'; '*.*', 'All Files (*.*)'};
-	[FileName,PathName] = put_or_get_file(handles,str1,'Select Tide File name','put', '.dat');
+	[FileName,PathName] = put_or_get_file(handMir,str1,'Select Tide File name','put', '.dat');
 	if isequal(FileName,0),			return,		end
 
 	fid = fopen([PathName FileName],'w');
@@ -515,13 +527,22 @@ function [SerialDay, TimeSeries] = push_compute(handles)
 		end
 	end
 	n_pts = numel(lon);
-	nz = min(sum(handles.harmonic), 13);
+	n_harmonic = numel(handles.harmonic) - 1;	% -1 because at start (when we didn't know exact number) it was set to 1 too much
+	nz = min(sum(handles.harmonic), n_harmonic);
 	amp = zeros(nz, n_pts);		pha = amp;
 
 	conList = rd_con(handles.hfile);
+	if (size(conList,1) > n_harmonic)			% Because different versions have different number of harmonics (not known at start)
+		handles.harmonic = ones(1, size(conList,1)+1);
+		n_harmonic = numel(handles.harmonic) - 1;
+		nz = min(sum(handles.harmonic), n_harmonic);
+		amp = zeros(nz, n_pts);		pha = amp;
+		guidata(handles.figure1, handles)
+	end
+
 	nz = 0;
-	nc = min(numel(handles.harmonic), 13);
-	Cid = repmat('    ', min(sum(handles.harmonic),13), 1);
+	nc = min(numel(handles.harmonic), n_harmonic);
+	Cid = repmat('    ', min(sum(handles.harmonic),n_harmonic), 1);
 	for (k = 1:nc)		% Constroi um vector com os nomes das componentes
 		if (handles.harmonic(k))
 			nz = nz + 1;
@@ -530,7 +551,7 @@ function [SerialDay, TimeSeries] = push_compute(handles)
 	end
 
 	ic2 = 1;
-	for (k = 1:13)
+	for (k = 1:n_harmonic)
 		if (~handles.harmonic(k)),	continue,	end
 		Z = pick_component(handles, k);
 		zi_r = grdtrack_m(real(Z)', handles.head, [lon(:) lat(:)], '-Z');
@@ -561,6 +582,7 @@ function [SerialDay, TimeSeries] = push_compute(handles)
 		cph = -1i*pha(:,k);% * pi/180;		Already in rads
 		cam = amp(:,k) .* exp(cph);
 		dh   = InferMinor(cam, conList, SerialDay);
+		if (isnan(dh)),		dh = 0;		end			% When something went wrong in InferMinor()
 		hhat = harp1(SerialDay-d0, cam, Cid);
 		TimeSeries(:, k) = hhat + dh;
 	end
@@ -774,9 +796,10 @@ function [gfile, hfile, ufile, msg, TMDmodel] = find_model_files(TMDmodel, count
 		end
 		hfile = fgetl(fid);		ufile = fgetl(fid);		gfile = fgetl(fid);
 		fclose(fid);
-		[p, fn, ext] = fileparts(hfile);	hfile = [pato '/' fn ext];
-		[p, fn, ext] = fileparts(ufile);	ufile = [pato '/' fn ext];
-		[p, fn, ext] = fileparts(gfile);	gfile = [pato '/' fn ext];
+		fsep = filesep;
+		[p, fn, ext] = fileparts(hfile);	hfile = [pato fsep p fsep fn ext];
+		[p, fn, ext] = fileparts(ufile);	ufile = [pato fsep p fsep fn ext];
+		[p, fn, ext] = fileparts(gfile);	gfile = [pato fsep p fsep fn ext];
 		if (~exist(hfile,'file') || ~exist(ufile,'file') || ~exist(gfile,'file'))
 			msg = ['One or more of the model files listed in the Master model file (' TMDmodel ') does not exist'];
 		end
@@ -812,6 +835,9 @@ function store_in_pref(handles, TMDmodel)
 function conList = rd_con(fname)
 % read constituents from h*out or u*out file
 	fid = fopen(fname,'r','b');
+	if (fid < 0)
+		warning(['Error opening file ' fname], 'Error'),	return
+	end
 	fread(fid,1,'long');
 	nm = fread(fid,3,'long');
 	nc = nm(3);
