@@ -18,7 +18,7 @@ function varargout = griding_mir(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: griding_mir.m 10371 2018-04-12 13:01:44Z j $
+% $Id: griding_mir.m 10405 2018-05-10 01:16:41Z j $
 
 	if (nargin > 1 && ischar(varargin{1}))
 		gui_CB = str2func(varargin{1});
@@ -608,7 +608,7 @@ function push_OK_CB(hObject, handles)
 		if (~isempty(ind))
 			opt_c = out{k};		opt_c(2) = 'C';		% it was 'c'
 			n_cells = str2double(opt_c(3:end));
-			if (n_cells > 0)
+			if (n_cells >= 0)
 				method = 'gmtmbgrid';
 				break
 			end
