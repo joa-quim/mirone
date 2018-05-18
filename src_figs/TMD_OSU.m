@@ -16,7 +16,7 @@ function varargout = tmd_osu(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: tmd_osu.m 10403 2018-05-10 01:02:32Z j $
+% $Id: tmd_osu.m 10411 2018-05-18 15:34:07Z j $
 
 	if (nargin > 1 && ischar(varargin{1}))
 		gui_CB = str2func(varargin{1});
@@ -51,6 +51,11 @@ function varargout = TMD_OSU_OF(varargin)
 			delete(handles.figure1),		return
 		end
 	catch
+		w = {'If this is the first time you run this module you should know that it needs'
+			'a set of coefficient files with the tidal harmonics. If you do not have them yet'
+			'close this message and cancel the next window that will ask you for the file'
+			'location. After that, anothe message with download instructions will popup.'};
+		warndlg(w,'Warning','modal')
 		[gfile, hfile, ufile, msg, TMDmodel] = find_model_files([]);
 		if (~isempty(msg))		% A second chance to correct has been given inside find_model_files()
 			w = {'It looks that you do not have the model files. They are not shipped'
@@ -1282,7 +1287,7 @@ function [ll_lims,hz,mz,iob,dt] = grd_in(cfile)
 % ----------------------------------------------------------------------------------------
 function [u,v,th_lim,ph_lim] = u_in(cfile,ic, opt)
 % reads in transports for constituent # ic in file cfile
-% OPT is only used when only one argout is requested. Than it must be == 'u' or 'v'
+% OPT is used when only one argout is requested. Then it must be == 'u' or 'v'
 	fid = fopen(cfile,'r','b');
 	ll = fread(fid,1,'long');
 	nm = fread(fid,3,'long');
