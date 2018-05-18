@@ -49,7 +49,7 @@ function varargout = grid_calculator(varargin)
 		handles.IamCompiled = handMir.IamCompiled;
 		BL = getappdata(varargin{1},'BandList');
 		if (~isempty(BL))
-            for (i = 1:ndims(BL{2}))
+            for (i = 1:size(BL{2},3))
                 handles.name_str{i} = ['Band_' num2str(i)];
             end
             h_figs = [];			% Tear off the net for the 'h_figs' fishing
