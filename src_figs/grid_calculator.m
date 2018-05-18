@@ -25,7 +25,7 @@ function varargout = grid_calculator(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: grid_calculator.m 10217 2018-01-24 21:33:46Z j $
+% $Id: grid_calculator.m 10410 2018-05-18 15:32:41Z j $
 
 	hObject = figure('Vis','off');
 	grid_calculator_LayoutFcn(hObject);
@@ -49,7 +49,7 @@ function varargout = grid_calculator(varargin)
 		handles.IamCompiled = handMir.IamCompiled;
 		BL = getappdata(varargin{1},'BandList');
 		if (~isempty(BL))
-            for (i = 1:ndims(BL{2}))
+            for (i = 1:size(BL{2},3))
                 handles.name_str{i} = ['Band_' num2str(i)];
             end
             h_figs = [];			% Tear off the net for the 'h_figs' fishing
