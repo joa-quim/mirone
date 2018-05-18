@@ -32,7 +32,7 @@ function varargout = image_enhance(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: image_enhance.m 10217 2018-01-24 21:33:46Z j $
+% $Id: image_enhance.m 10409 2018-05-18 15:31:20Z j $
 
 	if (isempty(varargin))	return,		end
 
@@ -378,7 +378,11 @@ function plot_result(x, y, handles)
 	if (handles.isRGB && handles.currAxes < 3)  % We don't want XTicks on R & G axes of a RGB display
 		set(hAxes, 'Xtick',[])
 		label = get(hAxes,'YTickLabel');
-		label(1) = ' ';     % We also don't want the '0' because is overlaps the next axes YTickLabel(end,:)
+		if (isa(label,'char'))
+			label(1) = ' ';     % We also don't want the '0' because is overlaps the next axes YTickLabel(end,:)
+		else					% FCK changed in later ML versions
+			label{1} = ' ';
+		end
 		set(hAxes,'YTickLabel',label)
 	end
 	set(handles.patch(handles.currAxes),'YData',[0 limits(4) limits(4) 0])    % Needed to update y_max
