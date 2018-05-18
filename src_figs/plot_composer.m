@@ -18,7 +18,7 @@ function varargout = plot_composer(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: plot_composer.m 10346 2018-03-30 18:34:34Z j $
+% $Id: plot_composer.m 10408 2018-05-18 15:29:06Z j $
 
 	handMir = varargin{1};
 	if (handMir.no_file)     % Stupid call with nothing loaded on the Mirone window
@@ -1593,13 +1593,18 @@ function [script, l, o, sc_cpt] = do_palette(handMir, script, l, o, pack, used_g
 		end
 
 		dz = (z_max - z_min) / pal_len;
+		% Find a good number of decimals to print the Z value. Small values need more decimal places
+		t = log10(dz);
+		if (t >= 0),	fmt = '%.3f';
+		else,			fmt = sprintf('%%.%df', ceil(abs(t)) + 3);
+		end
 		tmp{1} = '# Color palette exported by Mirone';
 		tmp{2} = '# COLOR_MODEL = RGB';
 		cor = round(pal*255);
 		for (i = 1:pal_len)
 			cor_str = sprintf([num2str(cor(i,1),'%.12g') '\t' num2str(cor(i,2),'%.12g') '\t' num2str(cor(i,3),'%.12g')]);
-			z1 = num2str(z_min+dz*(i-1),'%.3f');
-			z2 = num2str(z_min+dz*i,'%.3f');
+			z1 = num2str(z_min+dz*(i-1), fmt);
+			z2 = num2str(z_min+dz*i, fmt);
 			tmp{i+2} = sprintf([z1 '\t' cor_str '\t' z2 '\t' cor_str]);
 		end
 		tmp{pal_len+3} = sprintf('F\t255\t255\t255');
