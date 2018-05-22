@@ -193,7 +193,11 @@ function plot_result(x, y, handles)
 	if (handles.isRGB && handles.currAxes < 3)  % We don't want XTicks on R & G axes of a RGB display
 		set(hAxes, 'Xtick',[])
 		label = get(hAxes,'YTickLabel');
-		label(1) = ' ';     % We also don't want the '0' because is overlaps the next axes YTickLabel(end,:)
+		if (isa(label,'char'))
+			label(1) = ' ';     % We also don't want the '0' because is overlaps the next axes YTickLabel(end,:)
+		else					% FCK changed in later ML versions
+			label{1} = ' ';
+		end
 		set(hAxes,'YTickLabel',label)
 	end
 
