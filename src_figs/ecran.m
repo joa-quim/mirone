@@ -74,6 +74,7 @@ function varargout = ecran(varargin)
 		if (~isempty(hM))
 			delete(hM),		set(handles.FileSaveRedMark,'Vis','off')
 		end
+		if (freshFig),	hObject = [];	end		% So that we force creation of a new fig later down
 	end
 
 	n_in = nargin;		PV = [];	call_fhandle = [];	x_label = '';	y_label = '';
@@ -248,8 +249,12 @@ function varargout = ecran(varargin)
 			handles.hLine = o;
 		end
 
-	elseif strcmp(varargin{1},'Image')			% Case when the comes referenced to a grid/image
-		handles.data = [varargin{2}(:) varargin{3}(:) varargin{4}(:)];
+	elseif strcmp(varargin{1},'Image')			% Case when it comes referenced to a grid/image
+		if (size(varargin{2},2) == 1)			% When they are column vectors Z can contain several columns
+			handles.data = [varargin{2} varargin{3} varargin{4}];
+		else
+			handles.data = [varargin{2}(:) varargin{3}(:) varargin{4}(:)];
+		end
 		set(handles.popup_selectSave,'String',{'Save Line on disk';'Distance,Z (data units, text)';
 			'Distance,Z (data units, binary)';'X,Y,Z (data units, text)';'X,Y,Z (data units, binary)'});
 		rd = get_distances(handles.data(:,1), handles.data(:,2), handles.geog, handles.measureUnit, handles.ellipsoide);
@@ -257,9 +262,12 @@ function varargout = ecran(varargin)
 
 		if (freshFig)				% First time here. Create the line handle
 			handles.hLine = line('XData',rd,'YData',handles.data(:,3), 'Parent', handles.axes1, 'Color','b');
-			y_lim = [min(handles.data(:,3)) max(handles.data(:,3))];
-			%y_lim(1) = y_lim(1) - abs(y_lim(1)) * 0.007;	% Leave a very small margin on top & bottom
-			%y_lim(2) = y_lim(2) + abs(y_lim(2)) * 0.007;
+			if (size(handles.data, 2) > 3)		% We have more lines to plot
+				for (k = 4:size(handles.data, 2))
+					handles.hLine(k-2) = line('XData',rd,'YData',handles.data(:,k), 'Parent', handles.axes1, 'Color', rand(1,3));
+				end
+			end
+			y_lim = [min(min(handles.data(:,3:end))) max(max(handles.data(:,3:end)))];
 			if (diff(y_lim) < 1e-8),		y_lim = y_lim + [-1 1];		end		% To not error below
 			set(handles.axes1,'xlim',[rd(1) rd(end)], 'ylim',y_lim)
 		else
@@ -1055,7 +1063,9 @@ function add_MarkColor(obj, evt, h)
 			% Get the X,Y coordinates to plot this point in the Mirone figure
 			% We need to add x_off since "i" counts only inside the +/- 1/10 of x_lim centered on current point
 			mir_pt_x = handles.data(x_off,1);		mir_pt_y = handles.data(x_off,2);
-			h = line(mir_pt_x, mir_pt_y,'Parent',handles.handMir.axes1,'Marker','o','MarkerFaceColor',get(handles.hLine,'Color'), ...
+			hLine = handles.hLine;
+			if (numel(hLine) > 1),	hLine = gco;	end		% Happens when we have an RGB triplet from track
+			h = line(mir_pt_x, mir_pt_y,'Parent',handles.handMir.axes1,'Marker','o','MarkerFaceColor',get(hLine,'Color'), ...
 				'MarkerEdgeColor','k', 'MarkerSize',6,'LineStyle','none', 'Tag','LinkedSymb');
 			try
 				% Now get the color of the spot in the Mirone image and make the symbol color the complement of that 
@@ -1119,6 +1129,9 @@ function [pt_x, pt_y, x_off, minDist] = get_pointOnLine(hAxes, hLine, y)
 % X_OFF		holds the index of that point on the line array
 % MINDIST	The minimum distance between the clickage and the picked point on line
 
+	if (numel(hLine) > 1)
+		hLine = gco;
+	end
 	if (nargin == 2),		y = get(hLine,'YData')';	end
 	x = get(hLine,'XData')';
 	pt = get(hAxes, 'CurrentPoint');
