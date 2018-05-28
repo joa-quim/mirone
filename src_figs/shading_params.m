@@ -38,7 +38,7 @@ function varargout = shading_params(varargin)
 	handles.dirDerivative = 0;		% Flag for Directional Derivative option
 
 	if (~strcmp(varargin{1},'dirDerivative'))
-		load([f_path 'mirone_icons.mat'],'um_ico','dois_ico','tres_ico','quatro_ico','cinco_ico','seis_ico','sete_ico','dez_ico');
+		load([f_path 'mirone_icons.mat'],'um_ico','dois_ico','tres_ico','quatro_ico','cinco_ico','seis_ico','sete_ico','oito_ico','dez_ico');
 		h_toolbar = uitoolbar('parent',hObject,'Clipping', 'on', 'BusyAction','queue','HandleVisibility','on',...
 			'Interruptible','on','Tag','FigureToolBar','Vis','on');
 		handles.ui_grdgrad_A = uitoggletool('parent',h_toolbar,'Click',{@show_needed,'grdgradient_A'},...
@@ -55,6 +55,8 @@ function varargout = shading_params(varargin)
 			'Tooltip','Hillshade (ESRI)', 'CData',seis_ico);
 		handles.ui_falseColor = uitoggletool('parent',h_toolbar,'Click',{@show_needed,'mercedes'},...
 			'Tooltip','False color', 'CData',sete_ico);
+		handles.ui_ppdrc = uitoggletool('parent',h_toolbar,'Click',{@show_needed,'PPDRC'},...
+			'Tooltip','Dynamic Range Compression', 'CData',oito_ico);
 		handles.ui_noShade = uitoggletool('parent',h_toolbar,'Click',{@show_needed,'noshade'},...
 			'Tooltip','Remove illumination', 'CData',dez_ico, 'Sep', 'on');
 		if (varargin{2} == 0)		% No shadded fig, no need for this option
@@ -67,7 +69,7 @@ function varargout = shading_params(varargin)
 		% numbers, but in other places its preferable to have names. So we have a
 		% duplicate. Attention, the order in .ui_tools must reproduce its declarations
 		handles.ui_tools = [handles.ui_grdgrad_A handles.ui_grdgrad_E1 handles.ui_grdgrad_E2 handles.ui_lambert ...
-		                    handles.ui_color handles.ui_hillShade handles.ui_falseColor handles.ui_noShade];
+		                    handles.ui_color handles.ui_hillShade handles.ui_falseColor handles.ui_ppdrc handles.ui_noShade];
 	else
 		% With this option the better is realy not to show the rest of the window elements
 		pos_f = get(hObject,'Position');			% Original Fig size
@@ -194,13 +196,20 @@ function show_needed(obj,eventdata,opt)
 		handles.mercedes = 1;
 		toggle_uis(handles,7)
 		set(handles.figure1,'Name','False color')
+	elseif (strcmp(opt,'PPDRC'))
+		set(handles.edit_elev,'Enable','off');		set(handles.edit_azim,'Vis','on')
+		set(handles.edit_azimR,'Vis','off');		set(handles.edit_azimG,'Vis','off')
+		set(handles.edit_azimB,'Vis','off');		set(handles.text_elev,'Enable','on');
+		set(handles.edit_azim,'Enable','on');		set(handles.text_azim,'Enable','on');
+		set(h_all(1),'Vis','on');					set(h_all(2:4),'Vis','off')
+		toggle_uis(handles,8);						set(handles.figure1,'Name','Dynamic Range Compression')
 	elseif (strcmp(opt,'dirDerivative'))			% This is for good because this function will not be called again
 		%set(h_all(1),'Vis','on');                   %set(h_all(2:4),'Vis','off')
 		set(handles.edit_azimR,'Vis','off');		set(handles.edit_azimG,'Vis','off')
 		set(handles.edit_azimB,'Vis','off');		set(handles.text_elev,'Enable','off');
 		set(handles.figure1,'Name','Azim')
 	elseif (strcmp(opt,'noshade'))
-		toggle_uis(handles,8)
+		toggle_uis(handles,9)
 		set(handles.figure1,'Name','Remove shading')
 	end
 	guidata(obj,handles)
@@ -351,6 +360,10 @@ function push_OK_CB(hObject, handles)
 			else
 				out.mercedes_type = 1;			% grdgradient type
 			end
+		elseif (strcmp(get(handles.ui_ppdrc,'State'),'on'))
+			out.illum_model = 8;
+		elseif (strcmp(get(handles.ui_noShade,'State'),'on'))
+			out.illum_model = 9;
 		elseif (strcmp(get(handles.ui_noShade,'State'),'on'))
 			out.illum_model = 0;
 		else
