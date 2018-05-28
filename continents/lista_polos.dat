@@ -11,31 +11,30 @@
 136.10  61.4    -1.664   7.74 !NAM<-EUR An4   (res = 2.048) Ate Joao Maia
 137.52  60.73   -1.950   8.88 !NAM<-EUR An4A  (res = 1.642) Sul Islandia
 135.60  63.4    -1.990   8.88 !NAM<-EUR An4A  (res = 1.956) Ate Joao Maia
-138.74  60.78   -2.331  10.30 !NAM<-EUR An5   (res = 2.416) Sul Islandia
+138.90  60.68   -2.331  10.30 !NAM<-EUR An5   (res = 2.453) Sul Islandia
 135.20  64.8    -2.408  10.30 !NAM<-EUR An5   (res = 3.121) Ate Joao Maia
-136.48  63.94   -3.963  16.37 !NAM<-EUR An5C  (res = 3.022) Sul Islandia
+136.53  63.63   -3.951  16.37 !NAM<-EUR An5C  (res = 3.055) Sul Islandia
 135.60  65.9    -4.045  16.37 !NAM<-EUR An5C  (res = 3.048) Ate Joao Maia
-138.50  62.2    -4.619  19.60 !NAM<-EUR An6   (res = 3.022) Sul Islandia
+138.25  62.52   -4.635  19.60 !NAM<-EUR An6   (res = 3.778) Sul Islandia
 135.50  66.4    -4.807  19.60 !NAM<-EUR An6   (res = 6.564) Ate aos 74
-138.30  62.33   -6.152  27.47 !NAM<-EUR An9   (res = 3.297) Sul Islandia
-138.00  62.03   -7.277  33.25 !NAM<-EUR An13  (res = 4.814) Sul Islandia
-140.55  52.54   -8.063  39.13 !NAM<-EUR An18  (res = 4.783) Da KT ao Sul Islandia
+138.07  62.83   -6.190  27.47 !NAM<-EUR An9   (res = 3.260) Sul Islandia
+138.24  62.26   -7.274  33.25 !NAM<-EUR An13  (res = 3.573) Sul Islandia
 
   0.0    0.0     0.0     0.0  !NAM<-EUR North America-Eurasia (Do Rockall a Kings T)
-139.90  59.90   -8.444  39.13 !NAM<-EUR An18  (res = 3.639)
-140.66  55.33   -9.014  43.14 !NAM<-EUR An20  (res = 5.738)
-141.50  57.68  -10.178  47.06 !NAM<-EUR An21  (res = 3.877)
-143.62  54.46  -10.610  49.37 !NAM<-EUR An22  (res = 2.653)
-144.00  55.52  -11.300  51.30 !NAM<-EUR An23  (res = 3.182)
-140.30  76.20  -13.922  52.79 !NAM<-EUR An24  (res = 4.289)
-134.31  75.45  -15.735  56.14 !NAM<-EUR An25  (res = 5.004)
-144.40  51.13  -13.720  57.70 !NAM<-EUR An26  (res = 4.405)
-142.96  69.88  -16.425  63.09 !NAM<-EUR An28  (res = 3.929)
-144.83  66.00  -16.348  64.30 !NAM<-EUR An29  (res = 2.995)
-146.09  55.36  -15.920  67.02 !NAM<-EUR An30  (res = 2.364)
-146.96  57.64  -16.686  72.25 !NAM<-EUR An32  (res = 1.845)
-147.28  64.88  -18.707  78.00 !NAM<-EUR An33  (res = 3.347)
-148.41  61.98  -18.707  81.00 !NAM<-EUR An33r (res = 2.523)
+139.75  56.84   -8.268  39.13 !NAM<-EUR An18  (res = 2.390)
+140.06  60.18   -9.306  43.14 !NAM<-EUR An20  (res = 2.200)
+141.21  57.65  -10.174  47.06 !NAM<-EUR An21  (res = 3.378)
+143.81  54.34  -10.606  49.37 !NAM<-EUR An22  (res = 2.507)
+143.97  55.21  -11.281  51.30 !NAM<-EUR An23  (res = 3.222)
+140.01  76.60  -13.994  52.79 !NAM<-EUR An24  (res = 4.221)
+137.79  74.99  -15.543  56.14 !NAM<-EUR An25  (res = 4.875)
+144.06  60.45  -14.245  57.70 !NAM<-EUR An26  (res = 4.429)
+142.47  67.67  -16.170  63.09 !NAM<-EUR An28  (res = 3.062)
+144.26  59.80  -15.779  64.30 !NAM<-EUR An29  (res = 2.845)
+146.31  56.80  -15.990  67.02 !NAM<-EUR An30  (res = 2.466)
+146.88  57.96  -16.722  72.25 !NAM<-EUR An32  (res = 1.818)
+146.69  64.07  -18.549  78.00 !NAM<-EUR An33  (res = 3.008)
+148.44  62.00  -18.713  81.00 !NAM<-EUR An33r (res = 2.523)
 
   0.0    0.0     0.0     0.0  !GRE<-EUR Greenland-Eurasia (Entre Islandia e 57 N)
 136.40  61.80   -8.455  39.13 !GRE<-EUR An18  (res = 2.724) Sem Rockall
@@ -59,6 +58,31 @@
 -32.20  21.7    -6.20    8.69 !ACO<-NAM An4A J. Luis et al. 1994
 -37.00   2.2    -3.79   10.10 !ACO<-NAM An5  J. Luis et al. 1994
 
+  0.0    0.0     0.0     0.0  !NAM<-KTR Kings Trough-North America
+145.13  18.88   -6.416  27.47 !NAM<-KTR An9  (res = 1.040)
+144.23  31.85   -6.905  33.25 !NAM<-KTR An13 (res = 0.900)
+146.86  18.58   -8.862  39.13 !NAM<-KTR An18 (res = 2.100)
+147.11  21.42   -9.487  43.14 !NAM<-KTR An20 (res = 2.200)
+148.49  29.83   -9.965  47.06 !NAM<-KTR An21 (res = 1.108)
+145.71  57.52  -10.555  49.37 !NAM<-KTR An22 (res = 3.400)
+146.40  51.21  -10.953  51.30 !NAM<-KTR An23 (res = 2.980)
+147.50  39.77  -11.575  52.79 !NAM<-KTR An24 (res = 2.040)
+146.78  32.73  -13.079  56.14 !NAM<-KTR An25 (res = 4.869)
+147.59  29.30  -13.824  57.70 !NAM<-KTR An26 (res = 5.500)
+148.37  24.78  -15.285  63.09 !NAM<-KTR An28 (res = 3.840)
+148.81  13.53  -17.231  64.30 !NAM<-KTR An29 (res = 2.800)
+149.51  17.22  -17.161  67.02 !NAM<-KTR An30 (res = 2.730)
+149.50  16.20  -18.037  72.25 !NAM<-KTR An32 (res = 3.800)
+138.29  75.65  -20.258  81.00 !NAM<-KTR An33r (res = 2.257)
+
+  0.0    0.0     0.0     0.0  !NAM<-KTS Kings Trough South-North America
+ 92.13  78.61   -9.654  39.13 !NAM<-KTS An18 (res = X.XXX)
+123.95  66.63   -9.083  43.14 !NAM<-KTS An20 (res = X.XXX)
+143.02  13.44  -10.855  47.06 !NAM<-KTS An21 (res = X.XXX)
+139.56  40.53   -9.915  49.37 !NAM<-KTS An22 (res = X.XXX)
+143.73  17.57  -11.987  51.30 !NAM<-KTS An23 (res = X.XXX)
+124.71  75.61  -12.909  52.79 !NAM<-KTS An24 (res = X.XXX)
+
 135.8   62.4     0.0     0.0  !NAM<-IBE North America-Iberia (NAm fixed)
 132.35  65.61   -6.160  27.47 !NAM<-IBE An9  (res = 2.148)
 129.36  67.81   -7.324  33.25 !NAM<-IBE An13 (res = 1.856)
@@ -70,13 +94,13 @@
 131.26  70.09  -12.636  52.79 !NAM<-IBE An24 (res = 2.789)
 133.54  68.15  -13.778  56.14 !NAM<-IBE An25 (res = 2.182)
 134.17  66.62  -14.104  57.70 !NAM<-IBE An26 (res = 2.383)
-140.78  69.59  -15.595  63.09 !NAM<-IBE An28 (res = 4.930)
-141.06  71.72  -16.269  64.30 !NAM<-IBE An29 (res = 2.026)
+137.04  64.52  -15.061  63.09 !NAM<-IBE An28 (res = 6.110)
+135.74  66.67  -15.654  64.30 !NAM<-IBE An29 (res = 2.026)
 135.51  69.98  -16.564  67.02 !NAM<-IBE An30 (res = 6.381)
-137.12  77.51  -18.580  72.25 !NAM<-IBE An32 (res = 4.128)
-131.43  82.81  -21.334  78.00 !NAM<-IBE An33 (res = 3.643)
+131.90  75.96  -18.204  72.25 !NAM<-IBE An32 (res = 6.194)
+113.24  85.42  -22.155  78.00 !NAM<-IBE An33 (res = 2.960)
 113.28  85.23  -22.994  81.00 !NAM<-IBE An33r (res = 3.742)
-129.70  33.80   -8.720  49.37 !GRE<-ROK An22 (res = 4.125)
+
 140.52  53.03   -2.26   10.33 !NAM<-EUR An5  J. Luis & Miranda (2008)
 140.12  56.64   -4.48   19.55 !NAM<-IBE An6  J. Luis & Miranda (2008)
 124.99  71.27   -7.51   33.25 !NAM<-IBE An13 J. Luis & Miranda (2008)
