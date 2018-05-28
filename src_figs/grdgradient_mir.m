@@ -22,7 +22,7 @@ function varargout = grdgradient_mir(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: grdgradient_mir.m 10217 2018-01-24 21:33:46Z j $
+% $Id: grdgradient_mir.m 10418 2018-05-28 20:14:15Z j $
 
 	if isempty(varargin)
 		errordlg('GRDGRADIENT: wrong number of input arguments.','Error'),	return
@@ -141,7 +141,7 @@ helpdlg(message,'Help -D option');
 % ------------------------------------------------------------------------------------
 function popup_BoundaryCondition_CB(hObject, handles)
 	val = get(hObject,'Value');     str = get(hObject, 'String');
-	switch str{val};
+	switch str{val}
 		case ' ',		handles.bd_cond = [];
 		case '',		handles.bd_cond = [];
 		case 'x',		handles.bd_cond = '-Lx';
@@ -161,7 +161,7 @@ helpdlg(message,'Help boundary condition');
 % ------------------------------------------------------------------------------------
 function popup_normalization_CB(hObject, handles)
 	val = get(hObject,'Value');     str = get(hObject, 'String');
-	switch str{val};
+	switch str{val}
 		case ''
 			set(handles.edit_normalization_amp,'String','')
 			set(handles.edit_normalization_sigma,'String','')
@@ -244,7 +244,7 @@ function push_OK_CB(hObject, handles)
 		val = get(handles.popup_direction_grad, 'Value');
 		str = get(handles.popup_direction_grad, 'String');
 		if (val > 1)
-			switch str{val};
+			switch str{val}
 				case 'trignometric angles',				opt_D = [opt_D 'c'];
 				case '0-180 degrees orientations',		opt_D = [opt_D 'o'];
 				case 'add 90 degrees to all angles',	opt_D = [opt_D 'n'];
@@ -269,7 +269,7 @@ function push_OK_CB(hObject, handles)
 	str = get(handles.popup_normalization, 'String');
 	if (val > 1)
         n_set = 1;		opt_N = '-N';
-        switch str{val};
+        switch str{val}
             case 'Simple',		opt_N = '-N';
             case 'Laplace',		opt_N = '-Ne';
             case 'Cauchy',		opt_N = '-Nt';
@@ -279,11 +279,11 @@ function push_OK_CB(hObject, handles)
 	% Check for normalization parameters (Relyes on no error in these params selection)
 	if (n_set)
 		xx = get(handles.edit_normalization_amp,'String');
-		if (~isempty(xx))   opt_N = [opt_N xx];    end
+		if (~isempty(xx)),	opt_N = [opt_N xx];    end
 		xx = get(handles.edit_normalization_sigma,'String');
-		if (~isempty(xx))   opt_N = [opt_N '/' xx];    end
+		if (~isempty(xx)),	opt_N = [opt_N '/' xx];    end
 		xx = get(handles.edit_normalization_offset,'String');
-		if (~isempty(xx))   opt_N = [opt_N '/' xx];    end    
+		if (~isempty(xx)),	opt_N = [opt_N '/' xx];    end    
 	end
 
 	if (handles.geog),           opt_M = '-M';        end
