@@ -344,11 +344,12 @@ function hObject = mirone_OpeningFcn(varargin)
 			Z = varargin{1};			grd_data_in = true;
 			if (~isa(Z,'single')),		Z = single(Z);		end
 			handles.have_nans = grdutils(Z,'-N');
-			if (numel(varargin) == 2 && isa(varargin{2},'struct'))		% An grid with a header
+			if (numel(varargin) == 2 && isa(varargin{2},'struct'))		% A grid with a header
 				tmp = varargin{2};
 				handles.head = tmp.head;	X = tmp.X;	Y = tmp.Y;
 				if (isfield(tmp,'name')),	win_name = tmp.name;	end		% All calls should transmit a name, but ...
 				if (isfield(tmp,'cmap')),	pal = tmp.cmap;			end
+				if (isfield(tmp,'geog')),	handles.geog = tmp.geog + 10;	end
 				if (isfield(tmp,'was_int16'))
 					handles.was_int16 = tmp.was_int16;		handles.Nodata_int16 = tmp.Nodata_int16;
 				end
@@ -1573,12 +1574,21 @@ function out = ExtractProfile_CB(handles, opt, opt2)
 	end
 
 	zoom_state(handles,'maybe_on')
+	% First, screw the bloody row vectors
+	xx = xx(:);		yy = yy(:);
+	if (~isa(zz,'cell'))
+		zz = zz(:);
+	else
+		for (k = 1:numel(zz))
+			zz{k} = zz{k}(:);
+		end
+	end
 	if (do_3D && numel(xx) > 1)				% Save result on file (because it has more than one profile)
 		embrulho.x = xx;		embrulho.y = yy;
 		embrulho.z = zz;		embrulho.time_z = handles.time_z;
 		draw_funs([],'save_xyz',embrulho)
 	elseif (point_int && ~do_3D)			% Save result on file
-		draw_funs([],'save_xyz',[xx(:) yy(:) zz(:)])
+		draw_funs([],'save_xyz',[xx yy zz])
 	else									% Disply profile in ecran
 		[pato,name,ext] = fileparts(get(handles.figure1,'Name'));
 		if (~isempty(ext))
@@ -1596,14 +1606,9 @@ function out = ExtractProfile_CB(handles, opt, opt2)
 		else
 			% Make 3 call, one for each channel. This is a bit ugly but plotting the 3 curves 
 			% on same 'ecran' window would probably open the door to several problems. We'll see.
-			cor = {'r' 'g' 'b'};
-			for (k = 1:3)
-				hFig = ecran(handles,xx,yy,zz{k},['Track from ' name ext ' (' upper(cor{k}) ')']);
-				h = findobj(hFig,'type','line');		set(h,'color',cor{k});		% Set color by band
-				if (k > 1)				% Cascade the 3 figures so that the user get immediately aware
-					pos = get(hFig, 'Pos');		pos(2) = pos(2) - (k-1)*30;		set(hFig, 'Pos', pos);
-				end
-			end
+			hFig = ecran(handles,xx,yy,[zz{1} zz{2} zz{3}],['Track from ' name ext]);
+			h = findobj(hFig,'type','line');
+			set(h(3), 'color','r'),		set(h(2), 'color','g'),		set(h(1), 'color','b')
 		end
 	end
 
@@ -2491,20 +2496,30 @@ function varargout = ImageIllumModel_CB(handles, opt)
 	elseif (luz.illum_model == 5),	[varargout{1:nargout}] = ImageIllum(luz, handles, 'manip');		% ManipRaster
 	elseif (luz.illum_model == 6),	[varargout{1:nargout}] = ImageIllum(luz, handles, 'hill');		% ESRI's hillshade
 	elseif (luz.illum_model == 7),	ImageIllumFalseColor(luz, handles)				% False color
+	elseif (luz.illum_model == 8)	% Phase Preserving Dynamic Range Compression
+% 		[X,Y,Z] = load_grd(handles);
+% 		ppdrc = kovesi_funs('ppdrc', Z);
+% 		ImageIllum(luz, handles, 'grdgrad_class', ppdrc)
 	else,							ImageResetOrigImg_CB(handles)
 	end
 	if (luz.illum_model > 6 && nargout),	varargout{1} = [];		end				% No reflectances here
 
 % --------------------------------------------------------------------
-function Reft = ImageIllum(luz, handles, opt)
+function Reft = ImageIllum(luz, handles, opt, alt_Z)
 % OPT ->  Select which of the GMT grdgradient illumination algorithms to use
 % Illuminate a DEM file and turn it into a RGB image
 % For multiple tries I need to use the original image. Otherwise each attempt would illuminate
 % the previously illuminated image. An exception occurs when the image was IP but only for the
 % first time, repeated illums will use the original img. Otherwise we would need to make another img copy
 
-	[X,Y,Z,head] = load_grd(handles);		% If needed, load gmt grid again
-	if isempty(Z),	return,		end			% An error message was already issued
+	if (nargin == 3)
+		[X,Y,Z,head] = load_grd(handles);		% If needed, load gmt grid again
+		if isempty(Z),	return,		end			% An error message was already issued
+		alt_Z = [];
+	else
+		head = handles.head;
+		Z = alt_Z;
+	end
 
 	OPT_a = '-a1';
 	if (sum(handles.bg_color) < 0.01),	OPT_a = ' ';	end		% Near black bg color has a different treatment
@@ -2565,6 +2580,9 @@ function Reft = ImageIllum(luz, handles, opt)
 		img = get(handles.hImg,'CData');
 	elseif (handles.firstIllum),img = get(handles.hImg,'CData');	handles.firstIllum = 0;
 	else,						img = handles.origFig;
+	end
+	if (~isempty(alt_Z))		% In this case we want to compute img from it and not to use the displayed Mirone grid
+		img = scaleto8(alt_Z);
 	end
 	if (ndims(img) == 2),		img = ind2rgb8(img,get(handles.figure1,'Colormap'));	end
 	mex_illuminate(img,R)		% New. It can now operate insitu too
@@ -5393,9 +5411,9 @@ function Transfer_CB(handles, opt)
 	elseif (strcmp(opt,'8-bit'))
 		if (ndims(img) ~= 3),	set(handles.figure1,'pointer','arrow'),		return,		end		% Nothing to do
 		resp  = inputdlg({'Number of colors (2-256)'},'Color quantization',[1 30],{'256'});	pause(0.01)
-		nColors = round (abs(str2double(resp{1})) );
+		nColors = round(abs(str2double(resp{1})));
 		if (isnan(nColors)),	set(handles.figure1,'pointer','arrow'),		return,		end
-		[img, map] = img_fun( 'rgb2ind', img, max(2, min(nColors, 256)) );	% Ensure we are in the [2-256] int
+		[img, map] = img_fun('rgb2ind', img, max(2, min(nColors, 256)));	% Ensure we are in the [2-256] int
 		set(handles.hImg,'CData', img),			set(handles.figure1,'ColorMap',map)
 		aux_funs('togCheck', handles.ImMod8cor, [handles.ImMod8gray handles.ImModBW handles.ImModRGB handles.ImModNeg handles.ImModNegBW])
 
