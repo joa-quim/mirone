@@ -1581,6 +1581,7 @@ if have_add_offset
 	    mexnc('close', ncid);
 	    snc_error('NC_FUNS:NC_VARPUT:MEXNC:GET_ATT_DOUBLE', mexnc('STRERROR', status));
 	end
+	if (add_offset == 0),	have_add_offset = false;	end
 end
 
 if (add_offset == 0 && scale_factor == 1),		return,		end
@@ -1592,10 +1593,30 @@ if status ~= 0
 end
 
 if (have_scale_factor && have_add_offset)
-	data = cvlib_mex('CvtScale',data, 1 / scale_factor, add_offset);
+	if (size(data,1) == 1)			% This case is screwing some times (???) so squeeze and reshape
+		cvlib_mex('CvtScale',squeeze(data), 1 / scale_factor, add_offset);
+		data = reshape(data, [1 size(data)]);
+	else
+		cvlib_mex('CvtScale',data, 1 / scale_factor, add_offset);
+	end
+% 	if (isa(data, 'double'))				% Some fck times cvlib mex screws so for doubles use plain ML (but no in mem)
+% 		data = data / scale_factor + add_offset;
+% 	else
+% 		data = cvlib_mex('CvtScale',data, 1 / scale_factor, add_offset);
+% 	end
 	did_scale = true;
 elseif (have_scale_factor)
-	data = cvlib_mex('CvtScale',data, 1 / scale_factor);
+	if (size(data,1) == 1)			% This case is screwing some times (???) so squeeze and reshape
+		cvlib_mex('CvtScale',squeeze(data), 1 / scale_factor);
+		data = reshape(data, [1 size(data)]);
+	else
+		cvlib_mex('CvtScale',data, 1 / scale_factor);
+	end
+% 	if (isa(data, 'double'))
+% 		data = data / scale_factor;
+% 	else
+% 		data = cvlib_mex('CvtScale',data, 1 / scale_factor);
+% 	end
 	did_scale = true;
 else
 	data = cvlib_mex('addS',data, add_offset);
@@ -2491,7 +2512,7 @@ function new_data = nc_addnewrecs (ncfile, input_buffer, record_variable)
 % In case of an error, an exception is thrown.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% $Id: nc_funs.m 10385 2018-04-27 16:06:06Z j $
+% $Id: nc_funs.m 10416 2018-05-28 16:34:27Z j $
 % $LastChangedDate: 2007-04-23 09:05:21 -0400 (Mon, 23 Apr 2007) $
 % $LastChangedRevision: 2178 $
 % $LastChangedBy: johnevans007 $
@@ -2667,7 +2688,7 @@ function nc_add_recs (ncfile, new_data, varargin)
 %   johnevans@acm.org
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% $Id: nc_funs.m 10385 2018-04-27 16:06:06Z j $
+% $Id: nc_funs.m 10416 2018-05-28 16:34:27Z j $
 % $LastChangedDate: 2007-08-31 16:30:56 -0400 (Fri, 31 Aug 2007) $
 % $LastChangedRevision: 2309 $
 % $LastChangedBy: johnevans007 $
@@ -2876,7 +2897,7 @@ function theBuffer = nc_getbuffer (ncfile, varargin)
 %        Each such field contains the data for that variable.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% $Id: nc_funs.m 10385 2018-04-27 16:06:06Z j $
+% $Id: nc_funs.m 10416 2018-05-28 16:34:27Z j $
 % $LastChangedDate: 2007-09-03 12:07:33 -0400 (Mon, 03 Sep 2007) $
 % $LastChangedRevision: 2315 $
 % $LastChangedBy: johnevans007 $
@@ -3013,7 +3034,7 @@ function varsize = nc_varsize(ncfile, varname)
 % NCVAR in the netCDF file NCFILE.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% $Id: nc_funs.m 10385 2018-04-27 16:06:06Z j $
+% $Id: nc_funs.m 10416 2018-05-28 16:34:27Z j $
 % $LastChangedDate: 2007-09-03 12:07:33 -0400 (Mon, 03 Sep 2007) $
 % $LastChangedRevision: 2315 $
 % $LastChangedBy: johnevans007 $
@@ -3041,7 +3062,7 @@ function values = nc_getlast(ncfile, var, num_datums)
 % If NUM_DATUMS is not supplied, the default value is 1.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% $Id: nc_funs.m 10385 2018-04-27 16:06:06Z j $
+% $Id: nc_funs.m 10416 2018-05-28 16:34:27Z j $
 % $LastChangedDate: 2007-09-03 12:07:33 -0400 (Mon, 03 Sep 2007) $
 % $LastChangedRevision: 2315 $
 % $LastChangedBy: johnevans007 $
