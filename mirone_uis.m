@@ -33,7 +33,7 @@ function [H1,handles,home_dir] = mirone_uis(home_dir)
 
 	% The following test will tell us if we are using the compiled or the ML version
 	try
-		s.s = which('mirone');	% Structs don't shout as unused vars in MLint
+		s = which('mirone');	clear s
 		figW = 711;
 		IamCompiled = false;
 	catch
@@ -59,6 +59,9 @@ function [H1,handles,home_dir] = mirone_uis(home_dir)
 	% will contain the path of the file and not of the Mirone installation, and it will fail.
 	% In the 'catch' branch we check if the MIRONE_HOME environment variable exists. If yes
 	% its value, the correct home_dir, is returned back to mirone.m
+% 	icos = {'ladrilhos', 'olho_ico', 'Mfnew_ico', 'Mfopen_ico', 'Mfsave_ico', 'tools_ico', 'text_ico', ...
+% 		'circ_ico', 'Mline_ico', 'rectang_ico', 'polygon_ico', 'Marrow_ico', 'zoom_ico', 'mao', 'cut_ico', ...
+% 		'color_ico', 'shade2_ico', 'anaglyph_ico', 'MB_ico', 'olho_ico', 'GE_ico', 'refresh_ico', 'info_ico'};
 	try
         load([home_dir filesep 'data' filesep 'mirone_icons.mat']);
 	catch
@@ -754,7 +757,7 @@ end
 %uimenu('Parent',h, 'Callback', 'update_gmt(guidata(gcbo))','Label','Update your GMT5','Sep','on')
 uimenu('Parent',h, 'Callback',['mirone(''FileOpenWebImage_CB'',guidata(gcbo),',...
 	' ''http://www2.clustrmaps.com/stats/maps-clusters/w3.ualg.pt-~jluis-mirone-world.jpg'',''nikles'');'],'Label','See visitors map','Sep','on');
-uimenu('Parent',h, 'Callback','about_box(guidata(gcbo),''Mirone Last modified at 30 Apr 2018'',''2.10dev'')','Label','About','Sep','on');
+uimenu('Parent',h, 'Callback','about_box(guidata(gcbo),''Mirone Last modified at 28 May 2018'',''2.10dev'')','Label','About','Sep','on');
 
 %% --------------------------- Build HANDLES and finish things here
 	handles = guihandles(H1);
