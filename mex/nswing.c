@@ -1,5 +1,5 @@
 /*--------------------------------------------------------------------
- *	$Id: nswing.c 10181 2017-11-30 02:36:52Z j $
+ *	$Id: nswing.c 10425 2018-05-28 21:25:20Z j $
  *
  *	Copyright (c) 2012-2018 by J. Luis and J. M. Miranda
  *
@@ -16,7 +16,7 @@
  *	Contact info: w3.ualg.pt/~jluis/mirone
  *--------------------------------------------------------------------*/
 
-static char prog_id[] = "$Id: nswing.c 10181 2017-11-30 02:36:52Z j $";
+static char prog_id[] = "$Id: nswing.c 10425 2018-05-28 21:25:20Z j $";
 
 /*
  *	Original Fortran version of core hydrodynamic code by J.M. Miranda and COMCOT
@@ -312,6 +312,8 @@ void upscale_(struct nestContainer *nest, double *out, int lev, int i_tsr);
 void replicate(struct nestContainer *nest, int lev);
 void moment_M(struct nestContainer *nest, int lev);
 void moment_N(struct nestContainer *nest, int lev);
+void moment_M_slice(int lev, int row_start, int row_end, struct nestContainer *nest);
+void moment_N_slice(int lev, int row_start, int row_end, struct nestContainer *nest);
 void moment_sp_M(struct nestContainer *nest, int lev);
 void moment_sp_N(struct nestContainer *nest, int lev);
 void moment_sp_M_slice(int lev, int row_start, int row_end, struct nestContainer *nest);
@@ -366,6 +368,8 @@ unsigned __stdcall MT_cart(void *Arg_p);
 unsigned __stdcall MT_sp(void *Arg_p);
 unsigned __stdcall MT_moment_sp_M_slice(void *Arg_p);
 unsigned __stdcall MT_moment_sp_N_slice(void *Arg_p);
+unsigned __stdcall MT_moment_M_slice(void *Arg_p);
+unsigned __stdcall MT_moment_N_slice(void *Arg_p);
 unsigned __stdcall MT_mass_sp(void *Arg_p);
 unsigned __stdcall MT_mass(void *Arg_p);
 #endif
@@ -376,6 +380,8 @@ PFV call_moment[2];
 PFV call_moment_sp[2];
 PFV call_moment_sp_M_slice;
 PFV call_moment_sp_N_slice;
+PFV call_moment_M_slice;
+PFV call_moment_N_slice;
 PFV call_mass;
 PFV call_mass_sp;
 
@@ -653,7 +659,7 @@ int main(int argc, char **argv) {
 						nest.n_threads = atoi(&argv[i][2]);
 
 					if (nest.n_threads < 1) nest.n_threads = 1;
-					nest.n_threads = MIN(MAX(GetLocalNThread(),8), nest.n_threads);	/* Not > Max available or 8 */
+					nest.n_threads = MIN(MAX(GetLocalNThread(),64), nest.n_threads);	/* Not > Max available or 64 */
 					break;
 				case 'A':	/* Name for the Anuga .sww netCDF file */
 					fname_sww  = &argv[i][2];
@@ -1123,7 +1129,7 @@ int main(int argc, char **argv) {
 		mexPrintf("\t-i Do not interpolate initial surface of nested grids, at time zero, from mother grids.\n");
 		mexPrintf("\t-t <dt> Time step for simulation.\n");
 #ifdef PARALLEL
-		mexPrintf("\t-x <n> Number of cores to use in the parallel run [Defaault is max in machine].\n");
+		mexPrintf("\t-x <n> Number of cores to use in the parallel run [Default is max in machine].\n");
 #endif
 #ifdef I_AM_MEX
 		mexPrintf("\t-e To be used from the Mirone stand-alone version.\n");
@@ -1421,10 +1427,10 @@ int main(int argc, char **argv) {
 		}
 	}
 
-	if (z_offset != 0 && !do_HotStart) {				/* If we have a tide offset, apply it. */
+	if (z_offset != 0 && !do_HotStart) {			/* If we have a tide offset, apply it. */
 		for (k = 0; k <= num_of_nestGrids; k++) {
 			for (ij = 0; ij < nest.hdr[k].nm; ij++)
-				nest.bat[k][ij] += z_offset;			/* -z_offset because here bathy is already positive down */
+				nest.bat[k][ij] += z_offset;		/* -z_offset because here bathy is already positive down */
 		}
 	}
 
@@ -3481,11 +3487,7 @@ int write_greens_nc(struct nestContainer *nest, char *fname, float *work, size_t
 
 	/* ---- Global Attributes ------------ */
 	err_trap(nc_put_att_text(ncid, NC_GLOBAL, "Institution", 10, "Mirone Tec"));
-#ifdef I_AM_MEX
-	err_trap(nc_put_att_text(ncid, NC_GLOBAL, "Description", 24, "Created by Mirone-NSWING"));
-#else
 	err_trap(nc_put_att_text(ncid, NC_GLOBAL, "Description", 17, "Created by NSWING"));
-#endif
 	err_trap(nc_put_att_text(ncid, NC_GLOBAL, "History", strlen(hist), hist));
 	err_trap(nc_put_att_int(ncid,  NC_GLOBAL, "Number of maregraphs", NC_INT, 1, &n_maregs));
 
@@ -3558,11 +3560,7 @@ int write_maregs_nc(struct nestContainer *nest, char *fname, float *work, double
 
 	/* ---- Global Attributes ------------ */
 	err_trap(nc_put_att_text(ncid, NC_GLOBAL, "Institution", 10, "Mirone Tec"));
-#ifdef I_AM_MEX
-	err_trap(nc_put_att_text(ncid, NC_GLOBAL, "Description", 24, "Created by Mirone-NSWING"));
-#else
 	err_trap(nc_put_att_text(ncid, NC_GLOBAL, "Description", 17, "Created by NSWING"));
-#endif
 	err_trap(nc_put_att_text(ncid, NC_GLOBAL, "History", strlen(hist), hist));
 	err_trap(nc_put_att_int(ncid,  NC_GLOBAL, "Number of maregraphs", NC_INT, 1, &n_maregs));
 
@@ -3823,9 +3821,14 @@ void err_trap_(int status) {
  *
  *		Updates only etad and htotal_d
  * -------------------------------------------------------------------- */
+#ifdef PARALLEL
+void mass_slice(struct nestContainer *nest, int lev, int row_start, int row_end) {
+#else
 void mass(struct nestContainer *nest, int lev) {
+	int row_start, row_end;
+#endif
 
-	int row, col, row_start, row_end;
+	int row, col;
 	int cm1, rm1;			/* previous column (cm1 = col -1) and row (rm1 = row - 1) */
 	unsigned int ij;
 	double dtdx, dtdy, dd = 0, zzz;
@@ -3838,17 +3841,8 @@ void mass(struct nestContainer *nest, int lev) {
 	dtdx = nest->dt[lev] / nest->hdr[lev].x_inc;
 	dtdy = nest->dt[lev] / nest->hdr[lev].y_inc;
 
+#ifndef PARALLEL
 	row_start = 0;		row_end = nest->hdr[lev].ny;
-
-#ifdef PARALLEL
-}		/* Than the mass() fun end here */
-void mass_slice(struct nestContainer *nest, int lev, int row_start, int row_end) {
-	int row, col;
-	int cm1, rm1;			/* previous column (cm1 = col -1) and row (rm1 = row - 1) */
-	unsigned int ij;
-	double dtdx, dtdy, dd = 0, zzz;
-	double *etaa, *etad, *htotal_d, *bat, *fluxm_a, *fluxn_a;
-	// NOT FINISHED
 #endif
 
 	for (row = row_start; row_end; row++) {
@@ -4106,7 +4100,7 @@ void update(struct nestContainer *nest, int lev) {
 void moment_M(struct nestContainer *nest, int lev) {
 
 	unsigned int ij;
-	int row, col;
+	int row, col, row_start, row_end;
 	int valid_vel;
 	int cm1, rm1;			/* previous column (cm1 = col - 1) and row (rm1 = row - 1) */
 	int cp1, rp1;			/* next column (cp1 = col + 1) and row (rp1 = row + 1) */
@@ -4114,7 +4108,6 @@ void moment_M(struct nestContainer *nest, int lev) {
 	double xp, xqe, xqq, ff = 0, dd, df, f_limit;
 	double advx, dtdx, dtdy, advy, rlat;
 	double dpa_ij, dpa_ij_rp1, dpa_ij_rm1, dpa_ij_cm1, dpa_ij_cp1;
-
 	double dt, manning, *bat, *htotal_a, *htotal_d, *etad, *fluxm_a, *fluxm_d, *fluxn_a, *fluxn_d, *vex, *r4m;
 	struct grd_header hdr;
 
@@ -4126,15 +4119,38 @@ void moment_M(struct nestContainer *nest, int lev) {
 	fluxn_a  = nest->fluxn_a[lev];         fluxn_d  = nest->fluxn_d[lev];
 	r4m      = nest->r4m[lev];
 
+	row_start = 0;		row_end = hdr.ny - nest->last;
+	memset(fluxm_d, 0, hdr.nm * sizeof(double));
+
+#ifdef PARALLEL
+}		/* Than the moment_M() fun ends here */
+void moment_M_slice(int lev, int row_start, int row_end, struct nestContainer *nest) {
+	unsigned int ij;
+	int row, col;
+	int valid_vel;
+	int cm1, rm1;			/* previous column (cm1 = col - 1) and row (rm1 = row - 1) */
+	int cp1, rp1;			/* next column (cp1 = col + 1) and row (rp1 = row + 1) */
+	int rm2, cp2;
+	double xp, xqe, xqq, ff = 0, dd, df, f_limit;
+	double advx, dtdx, dtdy, advy, rlat;
+	double dpa_ij, dpa_ij_rp1, dpa_ij_rm1, dpa_ij_cm1, dpa_ij_cp1;
+	double dt, manning, *bat, *htotal_a, *htotal_d, *etad, *fluxm_a, *fluxm_d, *fluxn_a, *fluxn_d, *vex, *r4m;
+	struct grd_header hdr;
+
+	hdr      = nest->hdr[lev];             vex      = nest->vex[lev];
+	dt       = nest->dt[lev];              manning  = nest->manning[lev];
+	bat      = nest->bat[lev];             etad     = nest->etad[lev];
+	htotal_a = nest->htotal_a[lev];        htotal_d = nest->htotal_d[lev];
+	fluxm_a  = nest->fluxm_a[lev];         fluxm_d  = nest->fluxm_d[lev];
+	fluxn_a  = nest->fluxn_a[lev];         fluxn_d  = nest->fluxn_d[lev];
+	r4m      = nest->r4m[lev];
+#endif
+
 	dtdx = dt / hdr.x_inc;
 	dtdy = dt / hdr.y_inc;
-
 	manning *= dt;		/* Finish the cte part now that we know 'dt': manning * manning * dt * 4.9  */
 
-	memset(fluxm_d, 0, hdr.nm * sizeof(double));	/* Do this rather than seting to zero under looping conditions */
-
-	/* main computation cycle fluxm_d */
-	for (row = 0; row < hdr.ny - nest->last; row++) {
+	for (row = row_start; row < row_end; row++) {	/* main computation cycle fluxm_d */
 		rp1 = (row < hdr.ny - 1) ? hdr.nx : 0;
 		rm1 = (row == 0) ? 0 : hdr.nx;
 		ij = row * hdr.nx - 1 + nest->first;
@@ -4277,7 +4293,13 @@ L121:
 }
 
 /* -------------------------------------------------------------------- */
+#ifndef PARALLEL
 void moment_N(struct nestContainer *nest, int lev) {
+	int row_start, row_end;
+#else
+void moment_N(struct nestContainer *nest, int lev) {}		// UGLY. Just for it to exist
+void moment_N_slice(int lev, int row_start, int row_end, struct nestContainer *nest) {
+#endif
 
 	unsigned int ij;
 	int row, col;
@@ -4288,7 +4310,6 @@ void moment_N(struct nestContainer *nest, int lev) {
 	double xq, xpe, xpp, ff = 0, dd, df, f_limit;
 	double advx, dtdx, dtdy, advy, rlat;
 	double dqa_ij, dqa_ij_rp1, dqa_ij_rm1, dqa_ij_cm1, dqa_ij_cp1;
-
 	double dt, manning, *bat, *htotal_a, *htotal_d, *etad, *fluxm_a, *fluxm_d, *fluxn_a, *fluxn_d, *vey, *r4n;
 	struct grd_header hdr;
 
@@ -4300,15 +4321,16 @@ void moment_N(struct nestContainer *nest, int lev) {
 	fluxn_a  = nest->fluxn_a[lev];         fluxn_d  = nest->fluxn_d[lev];
 	r4n      = nest->r4n[lev];
 
+#ifndef PARALLEL
+	row_start = 0;		row_end = hdr.ny - 1;
+	memset(fluxm_d, 0, hdr.nm * sizeof(double));
+#endif
+
 	dtdx = dt / hdr.x_inc;
 	dtdy = dt / hdr.y_inc;
-
 	manning *= dt;		/* Finish the cte part now that we know 'dt': manning * manning * dt * 4.9  */
 
-	memset(fluxn_d, 0, hdr.nm * sizeof(double));	/* Do this rather than seting to zero under looping conditions */ 
-
-	/* main computation cycle fluxn_d */
-	for (row = nest->first; row < hdr.ny - 1; row++) {
+	for (row = row_start; row < row_end; row++) {	/* main computation cycle fluxn_d */
 		rp1 = hdr.nx;
 		rp2 = (row < hdr.ny - 2) ? 2*hdr.nx : hdr.nx;
 		rm1 = (row == 0) ? 0 : hdr.nx;
@@ -5369,8 +5391,8 @@ void mass_conservation(struct nestContainer *nest, int isGeog, int m) {
 	int  i, row_start, row_end, n_rows_block;
 
 #ifdef PARALLEL
-	HANDLE ThreadList[8];  /* Handles to the worker threads */
-	ThreadArg Arg_List[8], *Arg_p;
+	HANDLE ThreadList[64];  /* Handles to the worker threads */
+	ThreadArg Arg_List[64], *Arg_p;
 
 	if (isGeog) {
 		n_rows_block = (int)ceil(nest->hdr[m].ny / nest->n_threads);
@@ -5447,8 +5469,8 @@ void moment_conservation(struct nestContainer *nest, int isGeog, int m) {
 		CloseHandle(ThreadList[i]);
 
 #elif defined(PARALLEL)
-	HANDLE ThreadList[8];  /* Handles to the worker threads */
-	ThreadArg Arg_List[8], *Arg_p;
+	HANDLE ThreadList[64];  /* Handles to the worker threads */
+	ThreadArg Arg_List[64], *Arg_p;
 	int  row_start, row_end, last, n_rows_block;
 
 	/* - fixes the width of the lateral buffer for linear aproximation */
@@ -5456,10 +5478,11 @@ void moment_conservation(struct nestContainer *nest, int isGeog, int m) {
 	if (m > 0)   {nest->jupe = 0;    nest->first = 1;    nest->last = 0;}
 	else         {nest->jupe = 10;   nest->first = 0;    nest->last = 1;}
 	if (nest->do_linear) nest->jupe = 1e6;		/* A tricky way of imposing linearity */
+	
+	last = (m > 0) ? 0 : 1;
 
 	if (isGeog) {
 		memset(nest->fluxm_d[m], 0, nest->hdr[m].nm * sizeof(double));
-		last = (m > 0) ? 0 : 1;
 		n_rows_block = (int)ceil((nest->hdr[m].ny - last) / nest->n_threads);
 		for (i = 0; i < nest->n_threads; i++) {
 			row_start       = i * n_rows_block;
@@ -5495,6 +5518,44 @@ void moment_conservation(struct nestContainer *nest, int isGeog, int m) {
 		WaitForMultipleObjects(nest->n_threads, ThreadList, TRUE, INFINITE);
 		for (i = 0; i < nest->n_threads; i++)
 			CloseHandle(ThreadList[i]);
+	}
+	else {
+		memset(nest->fluxm_d[m], 0, nest->hdr[m].nm * sizeof(double));
+		n_rows_block = (int)ceil((nest->hdr[m].ny - last) / nest->n_threads);
+		for (i = 0; i < nest->n_threads; i++) {
+			row_start       = i * n_rows_block;
+			row_end         = MIN(row_start + n_rows_block, nest->hdr[m].ny - last);
+			Arg_p           = &Arg_List[i];
+			Arg_p->nest     = nest;
+			Arg_p->iThread  = i;
+			Arg_p->lev      = m;
+			Arg_p->row_start= row_start;
+			Arg_p->row_end  = row_end;
+			ThreadList[i] = (HANDLE)_beginthreadex(NULL, 0, MT_moment_M_slice, Arg_p, 0, NULL);
+		}
+		/* Wait until all threads are ready and close the handles */
+		WaitForMultipleObjects(nest->n_threads, ThreadList, TRUE, INFINITE);
+		for (i = 0; i < nest->n_threads; i++)
+			CloseHandle(ThreadList[i]);
+
+		/* Now the N component */
+		memset(nest->fluxn_d[m], 0, nest->hdr[m].nm * sizeof(double));
+		n_rows_block = (int)ceil((nest->hdr[m].ny - 1) / nest->n_threads);
+		for (i = 0; i < nest->n_threads; i++) {
+			row_start       = i * n_rows_block;
+			row_end         = MIN(row_start + n_rows_block, nest->hdr[m].ny - 1);
+			Arg_p           = &Arg_List[i];
+			Arg_p->nest     = nest;
+			Arg_p->iThread  = i;
+			Arg_p->lev      = m;
+			Arg_p->row_start= row_start;
+			Arg_p->row_end  = row_end;
+			ThreadList[i] = (HANDLE)_beginthreadex(NULL, 0, MT_moment_N_slice, Arg_p, 0, NULL);
+		}
+		/* Wait until all threads are ready and close the handles */
+		WaitForMultipleObjects(nest->n_threads, ThreadList, TRUE, INFINITE);
+		for (i = 0; i < nest->n_threads; i++)
+			CloseHandle(ThreadList[i]);			
 	}
 
 #else
@@ -5562,9 +5623,22 @@ unsigned __stdcall MT_moment_sp_M_slice(void *Arg_p) {
 }
 /* ------------------------------------------------------------------------------ */
 unsigned __stdcall MT_moment_sp_N_slice(void *Arg_p) {
-	/* Convert input from (void *) to (ThreadArg *), call the moment and stop the thread. */
 	ThreadArg *Arg = (ThreadArg *)Arg_p;
 	call_moment_sp_N_slice(Arg->lev, Arg->row_start, Arg->row_end, Arg->nest);
+	_endthreadex(0);
+	return (0);
+}
+/* ------------------------------------------------------------------------------ */
+unsigned __stdcall MT_moment_M_slice(void *Arg_p) {
+	ThreadArg *Arg = (ThreadArg *)Arg_p;
+	call_moment_M_slice(Arg->lev, Arg->row_start, Arg->row_end, Arg->nest);
+	_endthreadex(0);
+	return (0);
+}
+/* ------------------------------------------------------------------------------ */
+unsigned __stdcall MT_moment_N_slice(void *Arg_p) {
+	ThreadArg *Arg = (ThreadArg *)Arg_p;
+	call_moment_N_slice(Arg->lev, Arg->row_start, Arg->row_end, Arg->nest);
 	_endthreadex(0);
 	return (0);
 }
