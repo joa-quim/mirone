@@ -4,7 +4,7 @@ function [X, Y, Z, head, misc] = c_grdread(fname, varargin)
 % MISC - (GMT5 only) - is a struct with:
 %		'desc', 'title', 'history', 'srsWKT', 'strPROJ4' fields
 
-% $Id: c_grdread.m 10230 2018-01-26 01:34:32Z j $
+% $Id$
 	
 	Zout = gmtmex(['read -Tg ' fname]);
 	X = Zout.x;
