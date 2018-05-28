@@ -67,8 +67,8 @@ MIR_CUSTOM_MENU CustomIsoc,JM-EU,C:\SVN\mironeWC\data,isochrons_JM_EU.dat,Isochr
 MIR_CUSTOM_MENU CustomIsoc,EU-MO,C:\SVN\mironeWC\data,isochrons_EU_MO.dat,Isochron
 MIR_CUSTOM_MENU CustomIsoc,EU-LO,C:\SVN\mironeWC\data,isochrons_EU_LO.dat,Isochron
 MIR_CUSTOM_MENU CustomIsoc,GR-NA,C:\SVN\mironeWC\data,isochrons_GR_NA.dat,Isochron
+MIR_CUSTOM_MENU CustomIsoc,KT-NA,C:\SVN\mironeWC\data,isochrons_KT_NA.dat,Isochron
 MIR_CUSTOM_MENU MagGrav,MAG8_RTP,C:\j\cd_grids,mag8_rtp.grd
-MIR_CUSTOM_ISOCS C:\SVN\mironeWC\data\isocs\
 
 # Activate the option to associate a GMT custom symbol to a line (rectangle) object
 MIR_GMT_SYMBOL
@@ -77,4 +77,4 @@ MIR_GMT_SYMBOL
 MIR_GRAVITY
 
 # Finite poles to associate to isochrons. Used by the line's uicontext option "Update poles in headers"
-MIR_POLES_FOR_ISOC C:\SVN\mironeWC\data\isocs\polos_para_idades_IB_NA.dat
+MIR_POLES_FOR_ISOC C:\SVN\mironeWC\data\isocs\polos_para_idades_EU_NA.dat
