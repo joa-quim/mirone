@@ -1581,6 +1581,7 @@ if have_add_offset
 	    mexnc('close', ncid);
 	    snc_error('NC_FUNS:NC_VARPUT:MEXNC:GET_ATT_DOUBLE', mexnc('STRERROR', status));
 	end
+	if (add_offset == 0),	have_add_offset = false;	end
 end
 
 if (add_offset == 0 && scale_factor == 1),		return,		end
@@ -1592,10 +1593,30 @@ if status ~= 0
 end
 
 if (have_scale_factor && have_add_offset)
-	data = cvlib_mex('CvtScale',data, 1 / scale_factor, add_offset);
+	if (size(data,1) == 1)			% This case is screwing some times (???) so squeeze and reshape
+		cvlib_mex('CvtScale',squeeze(data), 1 / scale_factor, add_offset);
+		data = reshape(data, [1 size(data)]);
+	else
+		cvlib_mex('CvtScale',data, 1 / scale_factor, add_offset);
+	end
+% 	if (isa(data, 'double'))				% Some fck times cvlib mex screws so for doubles use plain ML (but no in mem)
+% 		data = data / scale_factor + add_offset;
+% 	else
+% 		data = cvlib_mex('CvtScale',data, 1 / scale_factor, add_offset);
+% 	end
 	did_scale = true;
 elseif (have_scale_factor)
-	data = cvlib_mex('CvtScale',data, 1 / scale_factor);
+	if (size(data,1) == 1)			% This case is screwing some times (???) so squeeze and reshape
+		cvlib_mex('CvtScale',squeeze(data), 1 / scale_factor);
+		data = reshape(data, [1 size(data)]);
+	else
+		cvlib_mex('CvtScale',data, 1 / scale_factor);
+	end
+% 	if (isa(data, 'double'))
+% 		data = data / scale_factor;
+% 	else
+% 		data = cvlib_mex('CvtScale',data, 1 / scale_factor);
+% 	end
 	did_scale = true;
 else
 	data = cvlib_mex('addS',data, add_offset);
