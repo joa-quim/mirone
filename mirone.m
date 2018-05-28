@@ -20,7 +20,7 @@ function varargout = mirone(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: mirone.m 10414 2018-05-28 16:29:27Z j $
+% $Id: mirone.m 10420 2018-05-28 21:09:01Z j $
 
 	if (nargin > 1 && ischar(varargin{1}))
 		if (~isempty(strfind(varargin{1},':')) || ~isempty(strfind(varargin{1},filesep)) )	% A file name
@@ -2497,9 +2497,9 @@ function varargout = ImageIllumModel_CB(handles, opt)
 	elseif (luz.illum_model == 6),	[varargout{1:nargout}] = ImageIllum(luz, handles, 'hill');		% ESRI's hillshade
 	elseif (luz.illum_model == 7),	ImageIllumFalseColor(luz, handles)				% False color
 	elseif (luz.illum_model == 8)	% Phase Preserving Dynamic Range Compression
-% 		[X,Y,Z] = load_grd(handles);
-% 		ppdrc = kovesi_funs('ppdrc', Z);
-% 		ImageIllum(luz, handles, 'grdgrad_class', ppdrc)
+		[X,Y,Z] = load_grd(handles);
+		ppdrc = kovesi_funs('ppdrc', Z);
+		ImageIllum(luz, handles, 'grdgrad_class', ppdrc)
 	else,							ImageResetOrigImg_CB(handles)
 	end
 	if (luz.illum_model > 6 && nargout),	varargout{1} = [];		end				% No reflectances here
