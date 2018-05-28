@@ -65,6 +65,7 @@ data/AKIM2000_poles.dat -text
 data/AKIM2000_polyg.mat -text
 data/AsteriskIcon.gif -text
 data/BarCode_Cox_direct.dat -text
+data/CETperceptual.mat -text
 data/Cande_Kent_95.dat -text
 data/DEOS2K_poles.dat -text
 data/DSDP_ODP.dat -text
