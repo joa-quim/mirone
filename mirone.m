@@ -2497,9 +2497,9 @@ function varargout = ImageIllumModel_CB(handles, opt)
 	elseif (luz.illum_model == 6),	[varargout{1:nargout}] = ImageIllum(luz, handles, 'hill');		% ESRI's hillshade
 	elseif (luz.illum_model == 7),	ImageIllumFalseColor(luz, handles)				% False color
 	elseif (luz.illum_model == 8)	% Phase Preserving Dynamic Range Compression
-% 		[X,Y,Z] = load_grd(handles);
-% 		ppdrc = kovesi_funs('ppdrc', Z);
-% 		ImageIllum(luz, handles, 'grdgrad_class', ppdrc)
+		[X,Y,Z] = load_grd(handles);
+		ppdrc = kovesi_funs('ppdrc', Z);
+		ImageIllum(luz, handles, 'grdgrad_class', ppdrc)
 	else,							ImageResetOrigImg_CB(handles)
 	end
 	if (luz.illum_model > 6 && nargout),	varargout{1} = [];		end				% No reflectances here
