@@ -16,7 +16,7 @@ function varargout = color_palettes(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: color_palettes.m 10419 2018-05-28 20:18:33Z j $
+% $Id: color_palettes.m 11304 2018-05-29 00:15:41Z j $
 
 	if (nargin > 1 && ischar(varargin{1}))
 		gui_CB = str2func(varargin{1});
@@ -555,52 +555,6 @@ function listbox1_CB(hObject, handles)
 			otherwise
 				error('bad name')
 		end
-	end
-
-	switch pal_name
-
-% 		case 'mag'
-% 			load([handles.d_path 'gmt_other_palettes.mat'],'mag');			pal = mag;
-% 		case 'ArcEnCiel'
-% 			load([handles.d_path 'gmt_other_palettes.mat'],'ArcEnCiel');	pal = ArcEnCiel;
-% 		case 'circular'
-% 			load([handles.d_path 'gmt_other_palettes.mat'],'circular');		pal = circular;
-% 		case 'ChromaDepth'
-% 			load([handles.d_path 'gmt_other_palettes.mat'],'ChromaDepth');	pal = ChromaDepth;
-% 		case 'Mer'
-% 			load([handles.d_path 'gmt_other_palettes.mat'],'Mer');			pal = Mer;
-% 		case 'MetalChaud'
-% 			load([handles.d_path 'gmt_other_palettes.mat'],'MetalChaud');	pal = MetalChaud;
-% 		case 'Paysage'
-% 			load([handles.d_path 'gmt_other_palettes.mat'],'Paysage');		pal = Paysage;
-% 		case 'RougeVert'
-% 			load([handles.d_path 'gmt_other_palettes.mat'],'RougeVert');	pal = RougeVert;
-% 		case 'Sbm'
-% 			load([handles.d_path 'gmt_other_palettes.mat'],'Sbm');			pal = Sbm;
-% 		case 'Sismique'
-% 			load([handles.d_path 'gmt_other_palettes.mat'],'Sismique');		pal = Sismique;
-% 		case 'Terre'
-% 			load([handles.d_path 'gmt_other_palettes.mat'],'Terre');		pal = Terre;
-% 		case 'Terre_Mer'
-% 			load([handles.d_path 'gmt_other_palettes.mat'],'Terre_Mer');	pal = Terre_Mer;
-% 		case 'Tubulare'
-% 			load([handles.d_path 'gmt_other_palettes.mat'],'Tubulare');		pal = Tubulare;
-% 		case 'Tubulare_inv'
-% 			load([handles.d_path 'gmt_other_palettes.mat'],'Tubulare_inv');	pal = Tubulare_inv;
-% 		case 'atlas'
-% 			load([handles.d_path 'gmt_other_palettes.mat'],'atlas');		pal = atlas;
-% 		case 'bvr_180'
-% 			load([handles.d_path 'gmt_other_palettes.mat'],'bvr_180');		pal = bvr_180;
-% 		case 'bvr_90'
-% 			load([handles.d_path 'gmt_other_palettes.mat'],'bvr_90');		pal = bvr_90;
-% 		case 'bvr_clair'
-% 			load([handles.d_path 'gmt_other_palettes.mat'],'bvr_clair');	pal = bvr_clair;
-% 		case 'bvr_sombre'
-% 			load([handles.d_path 'gmt_other_palettes.mat'],'bvr_sombre');	pal = bvr_sombre;
-% 		case 'pente_90'
-% 			load([handles.d_path 'gmt_other_palettes.mat'],'pente_90');		pal = pente_90;
-% 		case 'rainbow_hist'
-% 			load([handles.d_path 'gmt_other_palettes.mat'],'rainbow_hist');	pal = rainbow_hist;
 	end
 
 	% Search eventual color markers and delete them
