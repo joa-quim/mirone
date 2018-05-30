@@ -24,7 +24,7 @@ function varargout = cartas_militares(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: cartas_militares.m 10272 2018-02-11 20:42:10Z j $
+% $Id: cartas_militares.m 11305 2018-05-30 15:34:42Z j $
 
 	hObject = figure('Visible','off');
 	cartas_militares_LayoutFcn(hObject);
@@ -525,16 +525,16 @@ function popup_directory_list_CB(hObject, handles, opt)
 % ----------------------------------------------------------------------------
 function push_change_dir_CB(hObject, handles)
 	if (strcmp(computer, 'PCWIN'))
-		work_dir = uigetfolder_win32('Select a directory', cd);
-		if (~work_dir),		work_dir = '';	end		% To make it compatible with the other branch
+		lidarPT_dir = uigetfolder_win32('Select a directory', cd);
+		if (isempty(lidarPT_dir)),		return,		end
 	else            % This guy doesn't let to be compiled
-		work_dir = uigetdir(cd, 'Select a directory');
+		lidarPT_dir = uigetdir(cd, 'Select a directory');
 	end
-	if (isempty(work_dir)),		return,		end
-	handles.last_directories = [cellstr(work_dir); handles.last_directories];
+	if (~lidarPT_dir),		return,		end
+	handles.last_directories = [cellstr(lidarPT_dir); handles.last_directories];
 	set(handles.popup_directory_list,'String',handles.last_directories)
 	guidata(handles.figure1, handles);
-	popup_directory_list_CB(handles.popup_directory_list, handles, work_dir)
+	popup_directory_list_CB(handles.popup_directory_list, handles, lidarPT_dir)
 
 	% In the LIDAR mode save the selected dir into preferences too (Will later extend do Militares)
 	if (strcmp(get(handles.push_lidarMosaico,'Vis'),'on'))
