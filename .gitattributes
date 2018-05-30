@@ -394,6 +394,7 @@ src_figs/demets_od.m -text
 src_figs/digitalFiltering.m -text
 src_figs/diluvio.m -text
 src_figs/draw_scale.m -text
+src_figs/earth_tides.m -text
 src_figs/earthquakes.m -text
 src_figs/ecran.m -text
 src_figs/empilhador.m -text
