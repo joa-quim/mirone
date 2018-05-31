@@ -16,7 +16,7 @@ function [H1,handles,home_dir] = mirone_uis(home_dir)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: mirone_uis.m 10427 2018-05-28 21:27:07Z j $
+% $Id: mirone_uis.m 11314 2018-05-31 01:39:34Z j $
 
 %#function pan igrf_options rally_plater plate_calculator ecran snapshot
 %#function about_box parker_stuff euler_stuff grid_calculator tableGUI usgs_recent_seismicity
@@ -553,6 +553,7 @@ uimenu('Parent',hDS,'Callback','datasets_funs(''Meteorite'',guidata(gcbo))','Lab
 uimenu('Parent',hDS,'Callback','datasets_funs(''Hydrothermal'',guidata(gcbo))','Label','Hydrothermal sites');
 uimenu('Parent',hDS,'Callback','datasets_funs(''Tides'',guidata(gcbo))','Label','Tide Stations');
 uimenu('Parent',hDS,'Callback','datasets_funs(''Maregs'',guidata(gcbo))','Label','Tides (download)');
+uimenu('Parent',hDS,'Callback','earth_tides(gcf)','Label','Earth Tides');
 uimenu('Parent',hDS,'Callback','load_xyz(guidata(gcbo), ''nikles'', ''FZ'')','Label','Fracture Zones');
 uimenu('Parent',hDS,'Callback','datasets_funs(''Plate'',guidata(gcbo))','Label','Plate boundaries');
 
@@ -757,7 +758,7 @@ end
 %uimenu('Parent',h, 'Callback', 'update_gmt(guidata(gcbo))','Label','Update your GMT5','Sep','on')
 uimenu('Parent',h, 'Callback',['mirone(''FileOpenWebImage_CB'',guidata(gcbo),',...
 	' ''http://www2.clustrmaps.com/stats/maps-clusters/w3.ualg.pt-~jluis-mirone-world.jpg'',''nikles'');'],'Label','See visitors map','Sep','on');
-uimenu('Parent',h, 'Callback','about_box(guidata(gcbo),''Mirone Last modified at 28 May 2018'',''2.10dev'')','Label','About','Sep','on');
+uimenu('Parent',h, 'Callback','about_box(guidata(gcbo),''Mirone Last modified at 31 May 2018'',''2.10dev'')','Label','About','Sep','on');
 
 %% --------------------------- Build HANDLES and finish things here
 	handles = guihandles(H1);
