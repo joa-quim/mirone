@@ -20,7 +20,7 @@ function varargout = mirone(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: mirone.m 10420 2018-05-28 21:09:01Z j $
+% $Id: mirone.m 11313 2018-05-31 01:36:24Z j $
 
 	if (nargin > 1 && ischar(varargin{1}))
 		if (~isempty(strfind(varargin{1},':')) || ~isempty(strfind(varargin{1},filesep)) )	% A file name
@@ -3000,7 +3000,7 @@ function out = DrawLine_CB(handles, opt, dataX, dataY)
 % --------------------------------------------------------------------
 function hand = Draw_CB(handles, tipo, smb)
 % Draw text, arrows & symbols
-	if (handles.no_file),	return,		end
+	if (handles.no_file),	hand = [];	return,		end
 	if (strcmp(tipo, 'Vector'))
 		draw_funs([],'DrawVector')		% Vectors are ploted there
 	else
