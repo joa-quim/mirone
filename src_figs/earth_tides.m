@@ -21,7 +21,7 @@ function varargout = earth_tides(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: earth_tides.m 11310 2018-05-30 22:14:31Z j $
+% $Id: earth_tides.m 11312 2018-05-31 01:13:15Z j $
 
 	if (nargin > 1 && ischar(varargin{1}))
 		gui_CB = str2func(varargin{1});
@@ -39,13 +39,20 @@ function hObject = earth_tides_OF(varargin)
 
 	d1 = datestr(now);		d1(end-1:end) = '00';	% put seconds to 0
 	d2 = datestr(now+10);	d2(end-1:end) = '00';	% put seconds to 0
-	set(handles.edit_start_date, d1)
-	set(handles.edit_end_date, d2)
+	set(handles.edit_date_start, 'Str', d1)
+	set(handles.edit_date_end, 'Str', d2)
+	
+	if (nargin)
+		handles.hMirFig = varargin{1};
+	else
+		handles.hMirFig = [];
+		set(handles.push_clickPT, 'Visible','off')
+	end
 
 	set(hObject,'Vis','on');
 	guidata(hObject, handles);
 	
-	if (nargin > 1),	external_drive(handles, 'argo_floats', varargin{2:end}),	end
+	if (nargin > 1),	external_drive(handles, 'earth_tides', varargin{2:end}),	end
 
 % -------------------------------------------------------------------------
 function edit_date_start_CB(hObject, handles)
@@ -68,6 +75,7 @@ function edit_lon_CB(hObject, handles)
 
 % -------------------------------------------------------------------------
 function edit_lat_CB(hObject, handles)
+	x = str2double(get(hObject, 'Str'));
 	if (isnan(x) || x < -90 || x > 90),	set(hObject, 'Str', 37),		end
 
 % -------------------------------------------------------------------------
@@ -82,16 +90,26 @@ function radio_grids_CB(hObject, handles)
 	set(handles.radio_time_series,'Val',0)
 	set(handles.push_clickPT, 'Enable', 'off')
 
-% ---------------------------------------------------------------------
+% -------------------------------------------------------------------------
 function push_clickPT_CB(hObject, handles)
-
+% Plot a symbol in the Mirone fig where compute the tides
+	if (~ishandle(handles.hMirFig))
+		errordlg('You killed it (the Mir window). Bye Bye','Error'),	return
+	end
+	handMir = guidata(handles.hMirFig);
+	if (handMir.no_file || ~handMir.geog)
+		errordlg('No file loaded or it''s not a Geographical coordinates one. Bye Bye','Error'),	return
+	end
+	figure(handles.hMirFig)
+	h = mirone('Draw_CB', handMir, 'Symbol', 'o');
+	set(h, 'Tag', 'ETide')
 
 % -------------------------------------------------------------------------
 function push_OK_CB(hObject, handles)
 % ...
 	do_up = false;		do_east = false;	do_north = false;
 	date1 = datevec(get(handles.edit_date_start, 'Str'));
-	hdr = [0 360 -90 90 0.5 0.5];
+	hdr = [-180 180 -90 90 0.5 0.5];
 
 	if (get(handles.check_up,    'Val')),	do_up = true;		end
 	if (get(handles.check_east,  'Val')),	do_east = true;		end
@@ -108,17 +126,25 @@ function push_OK_CB(hObject, handles)
 		if (datenum(date2) <= datenum(date1))
 			errordlg('End date older than start date', 'Error'),	return
 		end
-		lon = str2double(get(handles.edit_lon, 'Str'));
-		lat = str2double(get(handles.edit_lat, 'Str'));
+		handMir = guidata(handles.hMirFig);
+		hPt = findobj(handMir.axes1, 'Tag', 'ETide');
+		if (~isempty(hPt))
+			lon = get(hPt(1), 'XData');			lat = get(hPt(1), 'YData');
+		else
+			lon = str2double(get(handles.edit_lon, 'Str'));
+			lat = str2double(get(handles.edit_lat, 'Str'));
+		end
 		hdr(1:2) = [lon lat];		% For time series only this two elements are read in MEX
 	else
 		opt_TG = '-G';
 		if (do_up),		opt_TG = [opt_TG 'u'];	end
 		if (do_east),	opt_TG = [opt_TG 'e'];	end
 		if (do_north),	opt_TG = [opt_TG 'n'];	end
-		head = [-180 180 -90 90 0 0 0 0.5 0.5];		% Header vector les the z_min|max
-		tmp.X = -180:0.5:180;		tmp.Y = -90:0.5:90;		tmp.geog = 1;	tmp.head = head;
+		tmp.X = -180:0.5:180;		tmp.Y = -90:0.5:90;		tmp.geog = 1;
+		head = [tmp.X(1) tmp.X(end) -90 90 0 0 0 0.5 0.5];		% Header vector les the z_min|max
+		tmp.head = head;
 		names = {'Earth tide North component' 'Earth tide East component' 'Earth tide Vertical component'};
+		date2 = [];			% Need to exist as a var
 	end
 
 	O = earthtide(date1, date2, hdr, opt_TG);
@@ -139,9 +165,10 @@ function push_OK_CB(hObject, handles)
 	else
 		if (opt_TG(2) == 'G')
 			zzz = grdutils(O, '-L');		tmp.head(5:6) = double(zzz(1:2));	tmp.name = names{ind_comp};
-			mirone(O, tmp)
+			hFig = mirone(O, tmp);
+			datasets_funs('CoastLines',guidata(hFig),'l')
 		else
-			ecran(O(:,1), O(:,ind_comp), 'Earth tide')	% Plot the 1 to 3 components in a single Fig.
+			ecran(O(:,1), O(:,(find(ind_comp)+1)), 'Earth tide')	% Plot the 1 to 3 components in a single Fig.
 		end
 	end
 
