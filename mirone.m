@@ -20,7 +20,7 @@ function varargout = mirone(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: mirone.m 11313 2018-05-31 01:36:24Z j $
+% $Id: mirone.m 11315 2018-05-31 02:51:15Z j $
 
 	if (nargin > 1 && ischar(varargin{1}))
 		if (~isempty(strfind(varargin{1},':')) || ~isempty(strfind(varargin{1},filesep)) )	% A file name
@@ -76,7 +76,7 @@ function hObject = mirone_OpeningFcn(varargin)
 %#function c_cpt2cmap c_grdfilter c_grdinfo c_grdlandmask c_grdproject c_grdread c_grdsample
 %#function c_grdtrend c_mapproject c_nearneighbor c_shoredump c_surface popenr diffCenterVar hellinger bingham
 %#function gmtlist_m  mapproject_m grdproject_m nearneighbor_m cpt2cmap grdfilter_m grdgradient_m grdsample_m surface_m
-%#function grdtrend_m trend1d_m grdlandmask_m external_drive chimoce interp_chimoce
+%#function grdtrend_m trend1d_m grdlandmask_m external_drive chimoce interp_chimoce earth_tides earthtide DateStr2Num
 
 	global home_dir;	fsep = filesep;
 	toCompile = false;		% To compile set this one to TRUE
