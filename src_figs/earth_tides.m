@@ -107,6 +107,7 @@ function push_clickPT_CB(hObject, handles)
 % -------------------------------------------------------------------------
 function push_OK_CB(hObject, handles)
 % ...
+try
 	do_up = false;		do_east = false;	do_north = false;
 	date1 = datevec(get(handles.edit_date_start, 'Str'));
 	hdr = [-180 180 -90 90 0.5 0.5];
@@ -121,11 +122,13 @@ function push_OK_CB(hObject, handles)
 	end
 
 	if (get(handles.radio_time_series, 'Val'))
-		opt_TG = '-T';
+		%opt_TG = '-T';
 		date2 = datevec(get(handles.edit_date_end, 'Str'));
-		if (datenum(date2) <= datenum(date1))
+		dn1 = datenum(date1);	dn2 = datenum(date2);
+		if (dn2 <= dn1)
 			errordlg('End date older than start date', 'Error'),	return
 		end
+		opt_TG = sprintf('-T%d', round((dn2-dn1)*24*60));
 		handMir = guidata(handles.hMirFig);
 		hPt = findobj(handMir.axes1, 'Tag', 'ETide');
 		if (~isempty(hPt))
@@ -171,6 +174,9 @@ function push_OK_CB(hObject, handles)
 			ecran(O(:,1), O(:,(find(ind_comp)+1)), 'Earth tide')	% Plot the 1 to 3 components in a single Fig.
 		end
 	end
+catch
+	disp(lasterr)
+end
 
 % --- Executes on key press over figure1 with no controls selected.
 function figure1_KeyPressFcn(hObject, evt)
