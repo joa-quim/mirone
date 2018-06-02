@@ -15,9 +15,6 @@ function varargout = earth_tides(varargin)
 % 
 %   0. You just DO WHAT THE FUCK YOU WANT TO.
 %
-% BUT NOTE: This license does not apply to the included argofiles() and argodata()
-%			functions that have their own author and license (BSD)
-%
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
@@ -171,7 +168,21 @@ try
 			hFig = mirone(O, tmp);
 			datasets_funs('CoastLines',guidata(hFig),'l')
 		else
-			ecran(O(:,1), O(:,(find(ind_comp)+1)), 'Earth tide')	% Plot the 1 to 3 components in a single Fig.
+			dn = datenum([date1(1:3) 0 0 0]);
+			t = dn + O(:,1) / (24*3600);		% Time came out from earthtides in secs after start date. Conv to datenum
+			legends = {'_DisplayName' 'North'; '_DisplayName' 'East'; '_DisplayName' 'Up'};
+			legends = legends(ind_comp, :);
+			hf = ecran(t, O(:,(find(ind_comp)+1)), 'Earth tide', legends);	% Plot the 1 to 3 components in a single Fig.
+			hAxes = findobj(hf, 'Tag', 'axes1');
+			setappdata(hAxes, 'LabelFormatType', 'Date');		% Tell pixval_stsbar to display XX coords as Date-Time
+			h = findobj(hf,'Tag','add_uictx');
+			cb = get(h, 'Callback');
+			feval(cb, h, guidata(hf))			% Call the ecran's add_uictx_CB function
+			% Automatically set a legend in the Ecran Fig.
+			handEcran = guidata(hf);
+			h = findobj(handEcran.figure1, 'Tag', 'Legend');
+			set(h,'State','on')
+			feval(get(h, 'Click'), h, [])
 		end
 	end
 catch
