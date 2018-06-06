@@ -27,7 +27,7 @@ function varargout = resizetrue(handles, opt, axis_t, opt_pad)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 	
-% $Id: resizetrue.m 10338 2018-03-27 23:30:22Z j $
+% $Id$
 
 	if (nargin < 4),	opt_pad = 0;	end
 
@@ -233,10 +233,10 @@ function resize(hAxes, hImg, imSize, opt, withSliders, firstFigSize, pad_left, s
     XTickLabel = get(hAxes,'XTickLabel');    XTick = get(hAxes,'XTick');
 	if (isa(XTickLabel,'cell'))			% In R2015 and Octave it is
 		if (~strcmp(XTickLabel{end}, '0')),		XTickLabel = XTickLabel{end};
-		else									XTickLabel = XTickLabel{end-1};
+		else,									XTickLabel = XTickLabel{end-1};
 		end
 	end
-    if (XTick(end) ~= 0)				% See that we do not devide by zero
+    if (XTick(end) ~= 0)				% See that we do not divide by zero
 		test_tick = XTick(end);			test_tick_str = sscanf(XTickLabel(end,:),'%f');
 	else								% They cannot be both zero
 		test_tick = XTick(end-1);		test_tick_str = sscanf(XTickLabel(end,:),'%f');
@@ -252,13 +252,13 @@ function resize(hAxes, hImg, imSize, opt, withSliders, firstFigSize, pad_left, s
     YTickLabel = get(hAxes,'YTickLabel');    YTick = get(hAxes,'YTick');
 	if (isa(YTickLabel,'cell'))			% In R2015 and Octave it is
 		if (~strcmp(YTickLabel{end}, '0')),		YTickLabel = YTickLabel{end};
-		else									YTickLabel = YTickLabel{end};
+		else,									YTickLabel = YTickLabel{end-1};
 		end
 	end
-    if (YTick(end) ~= 0)				% See that we do not devide by zero
+    if (YTick(end) ~= 0)				% See that we do not divide by zero
         test_tick = YTick(end);			test_tick_str = sscanf(YTickLabel(end,:),'%f');
 	else								% They cannot be both zero
-        test_tick = YTick(end-1);		test_tick_str = sscanf(YTickLabel(end-1,:),'%f');
+        test_tick = YTick(end-1);		test_tick_str = sscanf(YTickLabel(end,:),'%f');
     end
     if ( test_tick_str / test_tick < 0.1 )
         tenSizeY = 20;
