@@ -83,7 +83,7 @@ function varargout = load_xyz(handles, opt, opt2)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: load_xyz.m 10350 2018-03-30 22:23:53Z j $
+% $Id$
 
 %	EXAMPLE CODE OF HOW TO CREATE A TEMPLATE FOR UICTX WHEN THESE ARE TOO MANY
 % 	cmenuHand = get(h, 'UIContextMenu');
@@ -979,7 +979,7 @@ function [cor, str2] = parseG(str)
 
 % --------------------------------------------------------------------
 function [thick, cor, str2] = parseW(str, thick, cor)
-% Parse the STR string in search for a -Wpen. Valid options are -W1,38/130/255 -W3 or -W100/255/255
+% Parse the STR string in search for a -Wpen. Valid options are -W1,38/130/255, -W3, -W100/255/255 or -W1,rand
 % If not found or error THICK and COR are equal to the input. This is a nice mechanism to specify
 % the line thickness &/or color only once in a multi-segment file.
 % STR2 is the STR string less the -W[thick,][r/g/b] part
@@ -1008,14 +1008,16 @@ function [thick, cor, str2] = parseW(str, thick, cor)
 				return
 			end
 		end
-		% Come here when -Wt,r/g/b and '-Wt,' have already been riped
+		% Come here when -Wt,r/g/b and '-Wt,' has already been riped
 		ind = strfind(strW,'/');
 		if (~isempty(ind))
 			% This is the relevant part in num2str. I think it is enough here
 			cor = [eval(['[' strW(1:ind(1)-1) ']']) eval(['[' strW(ind(1)+1:ind(2)-1) ']']) eval(['[' strW(ind(2)+1:end) ']'])];
 			cor = cor / 255;
+		elseif (~isempty(strfind(strW, 'rand')))
+			cor = rand(1,3);
 		end
-		% Notice that we cannot have -W100 represent a color because it would have been interpret above as a line thickness
+		% Note that we cannot have -W100 represent a color because it would have been interpret above as a line thickness
 		if (any(isnan(cor))),   cor = [];   end
 	end
 
