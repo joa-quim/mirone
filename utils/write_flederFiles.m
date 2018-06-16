@@ -50,7 +50,7 @@ function filename = write_flederFiles(opt,varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: write_flederFiles.m 10190 2017-12-29 22:37:53Z j $
+% $Id$
 
 	% - Little initial block to deal with the adding of two new input vars and try to
 	%   do it in a compatible way. That is, set up a mechanism that guaranties backward
@@ -982,7 +982,7 @@ function write_pts(fid, hand, mode, limits, TDRver, proj, quakes, opt)
 	end
 
     n_col = 3;								% N of columns
-	if (~isa(hand,'cell') && ~ishandle(hand(1)))	% We need cells in this case
+	if (~isa(hand,'cell') && (~ishandle(hand(1)) || hand(1) == 0))	% We need cells in this case
 		hand = {hand};
 	end
 	n_groups = numel(hand);					% N of different point ensembles
