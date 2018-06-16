@@ -23,7 +23,7 @@ function hh = clabel_j(cs,varargin)
 %
 %   Coffeeright J. Luis 2004-2012
 
-% $Id: clabel_j.m 3618 2012-07-21 01:17:49Z j $
+% $Id: clabel_j.m 11323 2018-06-16 19:32:49Z j $
 
 	if nargin == 0
 		error('Not enough input arguments.')
@@ -55,15 +55,15 @@ function H = inline_labels(CS,h,varargin)
 v=[];	inargs = zeros(1,length(varargin));
 axHand = gca;   figHand = get(axHand,'Parent');
 
-if nargin>=3 && ~ischar(varargin{1}),
+if nargin>=3 && ~ischar(varargin{1})
   v = varargin{1};
   inargs(1)=1;
 end
 
 lab_int=72*2;  % label interval (points)
 
-for k = find(inargs==0),
-    if strncmpi(varargin{k},'lab',3),
+for k = find(inargs==0)
+    if strncmpi(varargin{k},'lab',3)
         inargs([k k+1])= 1;
         lab_int=varargin{k+1};
     end
@@ -71,15 +71,16 @@ end
 
 varargin(inargs)=[]; 
 
-if strcmp(get(h(1),'type'),'patch') && ~strcmp(get(h(1),'facecolor'),'none'),
+ind = find(ishandle(h));
+if strcmp(get(h(ind(1)),'type'),'patch') && ~strcmp(get(h(ind(1)),'facecolor'),'none')
     isfilled = 1;
 else
     isfilled = 0;
 end
 
 % EF 4/97
-if (strcmp(get(axHand, 'XDir'), 'reverse')), XDir = -1; else XDir = 1; end
-if (strcmp(get(axHand, 'YDir'), 'reverse')), YDir = -1; else YDir = 1; end
+if (strcmp(get(axHand, 'XDir'), 'reverse')), XDir = -1; else, XDir = 1; end
+if (strcmp(get(axHand, 'YDir'), 'reverse')), YDir = -1; else, YDir = 1; end
 %
 
 % Compute scaling to make sure printed output looks OK. We have to go via
@@ -105,14 +106,14 @@ end
 
 lCS = size(CS,2);
 
-if ~isempty(get(axHand,'children')),
+if ~isempty(get(axHand,'children'))
     XL=get(axHand,'xlim');    YL=get(axHand,'ylim');
 else
     iL=[];
     k=1;
     XL=[Inf -Inf];
     YL=[Inf -Inf];
-    while (k < lCS),
+    while (k < lCS)
         x=CS(1,k+(1:CS(2,k)));
         y=CS(2,k+(1:CS(2,k)));
         XL=[ min([XL(1),x]) max([XL(2),x]) ];
@@ -141,6 +142,11 @@ EX=get(H1,'extent'); set(H1,'visible','off')
 ii = 1;		k = 0;
 while (ii < lCS)
   k = k+1;
+
+	if (~ishandle(h(k)))
+		ii = ii + 1 + CS(2,ii);
+		continue
+	end
 
   if ~isfilled && k>length(h), error('Not enough contour handles.'); end
 
@@ -263,11 +269,11 @@ while (ii < lCS)
       %
   
       z = get(h(k),'ZData');
-      if ~isfilled, % Only modify lines or patches if unfilled
+      if ~isfilled	% Only modify lines or patches if unfilled
         set(h(k),'xdata',[xf(If) NaN],'ydata',[yf(If) NaN])
   
         % Handle contour3 case (z won't be empty).
-        if ~isempty(z), 
+        if ~isempty(z)
           set(h(k),'ZData',[]) % Work around for bug in face generation
           % Set z to a constant while preserving the location of NaN's
           set(h(k),'ZData',z(1)+0*get(h(k),'xdata'))
@@ -281,7 +287,7 @@ while (ii < lCS)
 	  H_tmp = zeros(lp,1);
       for (jj = 1:lp)
         % Handle contour3 case (z won't be empty).
-        if ~isempty(z),
+        if ~isempty(z)
           H_tmp(jj) = text(xc(jj),yc(jj),z(1),lab,'rotation',trot(jj), ...
                'verticalAlignment','middle','horizontalAlignment','center',...
                'clipping','on','userdata',lvl,varargin{:});
@@ -299,13 +305,13 @@ while (ii < lCS)
       
     end % ~isempty(Il)
   else
-    if ~isfilled, % Only modify lines or patches if unfilled
+    if ~isfilled	% Only modify lines or patches if unfilled
       % Here's another place where we assume the order of the h(k)
       set(h(k),'xdata',[x NaN],'ydata',[y NaN])
 
       % Handle contour3 case (z won't be empty).
       z = get(h(k),'zdata');
-      if ~isempty(z), 
+      if ~isempty(z)
         set(h(k),'ZData',[]) % Work around for bug in face generation
         % Set z to a constant while preserving the location of NaN's
         set(h(k),'ZData',z(1)+0*get(h(k),'xdata'))
