@@ -16,7 +16,7 @@ function varargout = show_MB(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: show_MB.m 10388 2018-04-27 16:12:30Z j $
+% $Id$
 
 	if (nargin > 1 && ischar(varargin{1}))
 		gui_CB = str2func(varargin{1});
@@ -51,6 +51,10 @@ function hObject = show_MB_OF(varargin)
 	handles.N_ITER = 3;
 	handles.grid_inc = [];			% If not set, it will be estimated from point spread.
 	handles.area_cmd = '';			% If the "Params" fig is called this may hold the mbareaclen command
+
+	if (~exist([handles.fnameMB '.esf'], 'file'))		% No .esf's, no option to hide them
+		set(handles.check_showFlagged, 'Vis', 'off')
+	end
 
 	%------------ Give a Pro look (3D) to the frame boxes  ------------------------------------
 	new_frame3D(hObject, [handles.text_PC handles.text_PI])
@@ -94,26 +98,52 @@ function push_showPC_CB(hObject, handles)
 		fclose(fid);
 	end
 
-	D = gmtmex(sprintf('mbgetdata -I%s -A100000', handles.fnameMB));
-	ind = (D(3).data < 50000);		% This gives us the indices of all non-flagged guys
-	if (~all(ind(:)))
+	if (get(handles.check_showFlagged, 'Val'))		% Show all flagged beans
+		D = gmtmex(sprintf('mbgetdata -I%s -A100000', handles.fnameMB));
+	else
+		D = gmtmex(sprintf('mbgetdata -I%s -A-100000', handles.fnameMB));
+	end
+
+	% Search gor garbage around the 0,0 point. If finds some, just delte it
+	central = round(size(D(1).data,2) / 2);		% Find the central bean
+	x = D(1).data(:,central);		y = D(2).data(:,central);		z = D(3).data(:,central);
+	ind = x < 0.01 & x > -0.01 & y < 0.01 & y > -0.01 & z > -2000;
+	if (any(ind))
+		D(1).data(ind,:) = [];	D(2).data(ind,:) = [];	D(3).data(ind,:) = [];
+	end
+	ind = (D(3).data < 50000);				% This gives us the indices of all non-flagged guys
+	if (~all(ind(:)))						% If we have some flagged
 		xyz1 = [D(1).data(ind) D(2).data(ind) D(3).data(ind)];
-		ind  = ~ind;
-		xyz2 = [D(1).data(ind) D(2).data(ind) D(3).data(ind)-100000];
+		ind  = ~ind;						% Now ind holds indices of the flagged guys
+		xyz2 = [];
+		if (~get(handles.check_showFlagged, 'Val'))		% Do not show flagged beans
+			xyz2 = [D(1).data(ind) D(2).data(ind) D(3).data(ind)-100000];
+			xyz2(xyz2(:,3) == 0,:) = [];	% Do not show the z = 0 pts
+		end
 		bb1  = [min(xyz1)' max(xyz1)']';		bb1 = bb1(:)';
-		bb2  = [min(xyz2)' max(xyz2)']';		bb2 = bb2(:)';
-		bbg  = [min(bb1(1),bb2(1)) max(bb1(2),bb2(2)) min(bb1(3),bb2(3)) max(bb1(4),bb2(4)) ...
-				min(bb1(5),bb2(5)) max(bb1(6),bb2(6))];  
+		if (~isempty(xyz2))					% These are the flagged
+			bb2  = [min(xyz2)' max(xyz2)']';	bb2 = bb2(:)';
+			bbg  = [min(bb1(1),bb2(1)) max(bb1(2),bb2(2)) min(bb1(3),bb2(3)) max(bb1(4),bb2(4)) ...
+					min(bb1(5),bb2(5)) max(bb1(6),bb2(6))];
+		else
+			bbg  = bb1(1:6);
+		end
 		fid  = write_flederFiles('scene_pts', fname, [], 'begin', bbg, par);
 		write_flederFiles('scene_pts', fid, xyz1, 'sec', [bb1 bbg], par);
-		PTparams.Symbol = 3;	PTparams.ColorBy = 0;	par.PTparams = PTparams;
-		write_flederFiles('scene_pts', fid, xyz2, 'end', [bb2 bbg], par);
+		if (~isempty(xyz2))
+			PTparams.Symbol = symb;	PTparams.ColorBy = 0;	par.PTparams = PTparams;
+			write_flederFiles('scene_pts', fid, xyz2, 'end', [bb2 bbg], par);
+		else
+			% Here I must cheat. Apparently .scene with only one set makes it screem that can't read something. So give it something
+			write_flederFiles('scene_pts', fid, xyz1(1:4,:), 'end', [bbg bbg], par);	% Need to send in at least 4 pts
+		end
 	else							% No flagged pts
 		xyz1 = [D(1).data D(2).data D(3).data];
 		bb1  = [min(xyz1)' max(xyz1)']';		bb1 = bb1(:)';
 		bbg  = bb1(1:6);
 		fid  = write_flederFiles('scene_pts', fname, [], 'begin', bbg, par);
-		write_flederFiles('scene_pts', fid, xyz1, 'end', [bb1 bbg], par);
+		write_flederFiles('scene_pts', fid, xyz1, 'sec', [bbg bbg], par);
+		write_flederFiles('scene_pts', fid, xyz1(1:4,:), 'end', [bbg bbg], par);	% Cheat second dataset. Need at least 4 pts
 	end
 	fname = [fname '.scene'];			% Because name was changed in write_flederFiles()
 	comm  = [' -scene ' fname ' &'];	% A SCENE file
@@ -148,20 +178,26 @@ function push_autoclean_CB(hObject, handles)
 	if (~get(handles.check_showCleaneds, 'Val'))	% No Viz, only compute and exit
 		autocleaner(handles, tol, N_ITER, datalist);
 		set(handles.push_applyClean, 'Enable', 'on')
-		%h = msgbox('DONE');
 		jumping_done
 	else
 		[xyz1,xyz2] = autocleaner(handles, tol, N_ITER, datalist);
 		if(isempty(xyz1) && isempty(xyz2)),		return,		end			% Some error occured
+		xyz2(xyz2(:,3) == 0,:) = [];		% Do not show the z = 0 pts
 		bb1 = [min(xyz1)' max(xyz1)']';		bb1 = bb1(:)';
-		bb2 = [min(xyz2)' max(xyz2)']';		bb2 = bb2(:)';
-		bbg = [min(bb1(1),bb2(1)) max(bb1(2),bb2(2)) min(bb1(3),bb2(3)) max(bb1(4),bb2(4)) ...
-			   min(bb1(5),bb2(5)) max(bb1(6),bb2(6))];
+		if (~isempty(xyz2))
+			bb2 = [min(xyz2)' max(xyz2)']';		bb2 = bb2(:)';
+			bbg = [min(bb1(1),bb2(1)) max(bb1(2),bb2(2)) min(bb1(3),bb2(3)) max(bb1(4),bb2(4)) ...
+				   min(bb1(5),bb2(5)) max(bb1(6),bb2(6))];
+		else
+			bbg  = bb1(1:6);
+		end
 
 		fid = write_flederFiles('scene_pts', fname, [], 'begin', bbg, par);
 		write_flederFiles('scene_pts', fid, xyz1, 'sec', [bb1 bbg], par);
-		PTparams.Symbol = 3;	PTparams.ColorBy = 0;	par.PTparams = PTparams;
-		write_flederFiles('scene_pts', fid, xyz2, 'end', [bb2 bbg], par);
+		if (~isempty(xyz2))
+			PTparams.Symbol = symb;	PTparams.ColorBy = 0;	par.PTparams = PTparams;
+			write_flederFiles('scene_pts', fid, xyz2, 'end', [bb2 bbg], par);
+		end
 		fname = [fname '.scene'];			% Because name was changed in write_flederFiles()
 		comm = [' -scene ' fname ' &'];		% A SCENE file
 
@@ -215,7 +251,6 @@ function push_applyClean_CB(hObject, handles)
 				gmtmex(['mbflags -I' this_file ' -E' this_file '.mask'])
 			end
 		end
-		%h = msgbox('DONE');
 		jumping_done
 	catch
 		errordlg(lasterr, 'Error')
@@ -307,13 +342,26 @@ function [xyz, xyzK] = autocleaner(handles, tol, N_ITER, datalist)
 		return
 	end
 
+	ds = inf;								% Initialize point sapcing
 	if (isempty(datalist))					% Single file, simplest case
 		D = gmtmex(sprintf('mbgetdata -I%s -A100000', handles.fnameMB));	% -A is to allow fishing the flagged pts
 		x = D(1).data(:);		y = D(2).data(:);		z = D(3).data(:);
+		old_flags = (z > 50000);			% Need this to be able to restore the true Z's of old flagged PTs
+		x(old_flags) = NaN;		y(old_flags) = NaN;
+		z(old_flags) = NaN;					% We don't want to use the old flagged
+		ind = x < 0.1 & x > -0.1 & y < 0.1 & y > -0.1 & z > -2000;
+		if (any(ind))
+			x(ind) = NaN;	y(ind) = NaN;	z(ind) = NaN;
+		end
 		% Compute increment as 3 times the typical point spacing fetch from data's first row.
-		mid_row = round(size(D(2).data, 1));
+		mid_row = round(size(D(2).data, 1) / 2);
 		dy = abs(median(diff(D(2).data(mid_row,:))));
 		dx = abs(median(diff(D(1).data(mid_row,:)))) * cos(D(2).data(mid_row,1) * pi/180);
+		if (dx == 0 || dy == 0)		% Try at another location infile
+			mid_row = round(size(D(2).data, 1) / 3);
+			dy = abs(median(diff(D(2).data(mid_row,:))));
+			dx = abs(median(diff(D(1).data(mid_row,:)))) * cos(D(2).data(mid_row,1) * pi/180);
+		end
 		% If it's still 0, give up
 		if (dx == 0 || dy == 0)
 			txt = ['This file ' handles.fnameMB ' is really screwed. Can''t guess a decent point spread distance ' ...
@@ -326,7 +374,7 @@ function [xyz, xyzK] = autocleaner(handles, tol, N_ITER, datalist)
 		x_min = min(x);		x_max = max(x);		y_min = min(y);		y_max = max(y);
 		ds = sqrt(dx*dx + dy*dy) * 3;
 		nx = round((x_max - x_min) / ds);		ny = round((y_max - y_min) / ds);
-		if (nx > 3000 || ny > 3000)
+		if (nx > 5000 || ny > 5000)
 			t = sprintf(['The estimated grid size is unresonable (%d x %d). This is normally due to too bad ' ...
 				'coodinates in file\n\nQUITING'],nx,ny);
 			errordlg(t,'Error');
@@ -335,9 +383,6 @@ function [xyz, xyzK] = autocleaner(handles, tol, N_ITER, datalist)
 		end
 		opt_I = sprintf('-I%f', ds);
 		opt_R = sprintf('-R%.12g/%.12g/%.12g/%.12g', x_min, x_max, y_min, y_max);
-		old_flags = (z > 50000);			% Need this to be able to restore the true Z's of old flagged PTs
-		z(old_flags) = NaN;					% We don't want to use the old flagged
-		ind = [];
 		for (k = 1:N_ITER)
 			[x,y,z, ind] = iteration_cleaner(x,y,z, opt_R, opt_I, tol, ind);	% return 'cleaned'
 			tol = tol * 0.7;
@@ -356,9 +401,9 @@ function [xyz, xyzK] = autocleaner(handles, tol, N_ITER, datalist)
 
 	else
 		if (nargout > 0 || true)
-			[xc,yc,zc, xk,yk,zk] = autocleaner_list(handles, tol, N_ITER);
+			[xc,yc,zc, xk,yk,zk, ds] = autocleaner_list(handles, tol, N_ITER);
 			xyz  = [xc yc zc];	clear xc yc zc		% AWFULL MEMORY WASTE
-			xyzK = [xk yk zk];
+			xyzK = [xk yk zk];	clear xk yk zk
 		else
 			autocleaner_list(handles, tol, N_ITER);
 		end
@@ -366,7 +411,12 @@ function [xyz, xyzK] = autocleaner(handles, tol, N_ITER, datalist)
 
 	patoMother = fileparts(handles.fnameMB);		% Path of the datlist file
 	fid = fopen([patoMother filesep 'data_cleaned.bin'],'wb');
-	fwrite(fid, xyz', 'real*8');
+	if (ds < 1)					% Save in doubles
+		fwrite(fid, xyz', 'real*8');
+	else						% Save in singles
+		xyz = single(xyz)';
+		fwrite(fid, xyz', 'real*4');
+	end
 	fclose(fid);
 
 % 	[Z, head] = gmtmbgrid_m(xyz(:,:,1), xyz(:,:,2), xyz(:,:,3), '-I0.0005', opt_R, '-Mz', '-C2');
@@ -431,7 +481,7 @@ function todos = sanitize_datalist(handles)
 	end
 
 %-------------------------------------------------------------------------------------
-function [xc,yc,zc, xk,yk,zk] = autocleaner_list(handles, tol, N_ITER)
+function [xc,yc,zc, xk,yk,zk, ds] = autocleaner_list(handles, tol, N_ITER)
 % Scan all files in a datalist file and clean each file individually against the data of
 % all files. This is awfully inefficient since we should work only over sub-regions. Future work.
 
@@ -439,9 +489,10 @@ function [xc,yc,zc, xk,yk,zk] = autocleaner_list(handles, tol, N_ITER)
 	handles.list_files = list_files;
 	guidata(handles.figure1, handles)			% Save this for use in "Apply cleanings"
 
+	ds = inf;
 	n_files = numel(list_files);
 	if (n_files <= 1)
-		xc=[];yc=[];zc=[];xk=[];yk=[];zk=[];
+		xc=[];	yc=[];	zc=[];	xk=[];	yk=[];	zk=[];
 		return
 	end
 
@@ -480,7 +531,7 @@ function [xc,yc,zc, xk,yk,zk] = autocleaner_list(handles, tol, N_ITER)
 		Dcurr   = gmtmex(['mbgetdata -I' list_files{k} ' -A100000']);	% -A1e5 is to allow recovering true values
 		Dothers = gmtmex(['mbgetdata -I' fname_tmp ' -A']);		% These ones I know that, flagged => NaN
 		if (k == 1)								% Compute working inc as 3 times typical pt spacings
-			mid_row = round(size(Dcurr(2).data, 1));
+			mid_row = round(size(Dcurr(2).data, 1) / 2);
 			dy = abs(median(diff(Dcurr(2).data(mid_row,:))));
 			dx = abs(median(diff(Dcurr(1).data(mid_row,:)))) * cos(Dcurr(2).data(mid_row,1) * pi/180);
 			% If it's still 0, give up
@@ -489,10 +540,11 @@ function [xc,yc,zc, xk,yk,zk] = autocleaner_list(handles, tol, N_ITER)
 					'You will have to use the "Params" option and set a your guess of the bin size, or otherwise ' ...
 					'this option can not be used with this file'];
 				errordlg(txt, 'Error')
-				xc=[];yc=[];zc=[];xk=[];yk=[];zk=[];
+				xc=[];	yc=[];	zc=[];	xk=[];	yk=[];	zk=[];
 				return
 			end
-			opt_I = sprintf('-I%f', sqrt(dx*dx + dy*dy) * 3);
+			ds = sqrt(dx*dx + dy*dy) * 3;
+			opt_I = sprintf('-I%f', ds);
 		end
 		[x,y,z, ind, old_flags] = iteration_cleaner_list(Dcurr(1).data(:),Dcurr(2).data(:),Dcurr(3).data(:), ...
 			Dothers(1).data(:),Dothers(2).data(:),Dothers(3).data(:), opt_I, tol, N_ITER);	% X,Y,Z are the cleaned PTs
@@ -771,15 +823,21 @@ function h1 = show_MB_LayoutFcn()
 	uicontrol('Parent',h1, 'Position',[31 217 100 20],...
 		'Callback',@showMB_uiCB,...
 		'String','Show point cloud',...
-		'TooltipString','Show the point cloud, including the previously flagged points',...
+		'TooltipString','Show the point cloud.',...
 		'Value',1,...
 		'Tag','push_showPC');
 
 	uicontrol('Parent',h1, 'Position',[31 185 118 26],...
 		'Callback',@showMB_uiCB,...
-		'String','Aproximate cleaning',...
+		'String','Approximate cleaning',...
 		'TooltipString','Do an automatic cleaning, show it and save results in file.',...
 		'Tag','push_autoclean');
+
+	uicontrol('Parent',h1, 'Position',[134 220 90 17],...
+		'String','Hide flaggeds',...
+		'Style','checkbox',...
+		'TooltipString','Do not show the beams flagged in the .esf file (previouly flagged points).',...
+		'Tag','check_showFlagged');
 
 	uicontrol('Parent',h1, 'Position',[155 201 70 17],...
 		'String','and show',...
