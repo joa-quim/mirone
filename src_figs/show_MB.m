@@ -16,7 +16,7 @@ function varargout = show_MB(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: show_MB.m 11326 2018-06-16 19:40:26Z j $
+% $Id: show_MB.m 11331 2018-06-22 18:52:39Z j $
 
 	if (nargin > 1 && ischar(varargin{1}))
 		gui_CB = str2func(varargin{1});
@@ -63,7 +63,7 @@ function hObject = show_MB_OF(varargin)
 	guidata(hObject, handles);
 	set(hObject,'Visible','on');
 
-	if (nargin > 3),	external_drive(handles, 'show_MB', varargin{4:end}),	end
+	if (nargin > 2),	external_drive(handles, 'show_MB', varargin{3:end}),	end
 
 % ----------------------------------------------------------------------
 function edit_symbSize_CB(hObject, handles)
