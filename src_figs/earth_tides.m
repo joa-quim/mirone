@@ -48,12 +48,12 @@ function hObject = earth_tides_OF(varargin)
 
 	set(hObject,'Vis','on');
 	guidata(hObject, handles);
-	
+
 	if (nargin > 1),	external_drive(handles, 'earth_tides', varargin{2:end}),	end
 
 % -------------------------------------------------------------------------
 function edit_date_start_CB(hObject, handles)
-	if (datenum(get(hObject, 'Str') < 723181))
+	if (datenum(get(hObject, 'Str')) < 723181)
 		warndlg('Dates older than 1-Jan-1980 have loss precision','Warning')
 	end
 
