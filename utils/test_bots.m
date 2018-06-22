@@ -36,26 +36,26 @@ function  test_bots(opt,varargin)
 				digitize_hole
 		end
 	else
-		test_Illum
-		test_xyz
-		writeascii
-		loadPall
-		grdfilter
-		grdinfo
-		grdlandmask
-		grdsample
-		grdtrend
-		grdread
-		coasts
-		gmtlist
-		implant
-		fill_poly_hole
-		digitize_hole
+		test_Illum;			disp('Finish: test_Illum')
+		test_xyz;			disp('Finish: test_xyz')
+		writeascii;			disp('Finish: writeascii')
+		loadPall;			disp('Finish: loadPall')
+		grdfilter;			disp('Finish: grdfilter')
+		grdinfo;			disp('Finish: grdinfo')
+		grdlandmask;		disp('Finish: grdlandmask')
+		grdsample;			disp('Finish: grdsample')
+		grdtrend;			disp('Finish: grdtrend')
+		grdread;			disp('Finish: grdread')
+		coasts;				disp('Finish: coasts')
+		gmtlist;			disp('Finish: gmtlist')
+		implant;			disp('Finish: implant')
+		fill_poly_hole;		disp('Finish: fill_poly_hole')
+		digitize_hole;		disp('Finish: digitize_hole')
 	end
 
 % -----------------
 function test_Illum
-	h = mirone('c:\SVN\mironeWC\swath_grid.grd');
+	h = mirone('data/tests/test_bat.grd');
 	handles = guidata(h);
 	luz = struct('azim',0,'elev',30,'ambient',0.55,'diffuse',0.6,'specular',0.4,'shine',10);
 	try		mirone('ImageIllum',luz, handles, 'grdgrad_class'),		pause(1)
@@ -75,6 +75,15 @@ function test_Illum
 	end
 	try		mirone('ImageIllum',luz, handles, 'hill'),				pause(1)
 	catch,	disp(['FAIL: a ilum com o hill -> ' lasterr])
+	end
+	try
+		[X,Y,Z] = load_grd(handles);
+		ppdrc = kovesi_funs('ppdrc', Z);
+		mirone('ImageIllum',luz, handles, 'grdgrad_class', ppdrc),	pause(1)
+		Z(1:10,1:10) = NaN;			% Now test with NaNs too
+		ppdrc = kovesi_funs('ppdrc', Z);
+		mirone('ImageIllum',luz, handles, 'grdgrad_class', ppdrc),	pause(1)
+	catch,	disp(['FAIL: a ilum com o PPDRC -> ' lasterr])
 	end
 	luz.azim = [0 120 240];		luz.mercedes_type = 1;
 	try		mirone('ImageIllumFalseColor',luz, handles)
@@ -168,14 +177,14 @@ function writeascii
 function loadPall
 % Load a GMT cpt file
 	% Note, if use mola.cpt in 5.2 we get a crash. INVESTIGATE IT
-	color_palettes('C:\progs_cygw\GMTdev\gmt4\share\cpt\GMT_ocean.cpt');	% Should be a file in a test dir
+	color_palettes('gmt_share/cpt/rainbow.cpt');	% Should be a file in a test dir
 	pause(0.2)
 	delete(findobj('type','figure','Name','Color Palettes'))
 
 % ----------------------------
 function grdfilter
 % ...
-	h = mirone('swath_grid.grd');
+	h = mirone('data/tests/test_bat.grd');
 	handles = guidata(h);
 	[X,Y,Z,head] = load_grd(handles);
 	hf = grdfilter_mir(handles);
@@ -185,7 +194,7 @@ function grdfilter
 % ----------------------------
 function grdinfo
 % ...
-	fname = 'swath_grid.grd';
+	fname = 'data/tests/test_bat.grd';
 	h = mirone(fname);
 	grid_info(guidata(h))
 	showBak = get(0,'ShowHiddenHandles');
@@ -205,7 +214,7 @@ function grdlandmask
 % ----------------------------
 function grdsample
 % ...
-	h = mirone('swath_grid.grd');
+	h = mirone('data/tests/test_bat.grd');
 	handles = guidata(h);
 	[X,Y,Z,head] = load_grd(handles);
 	hf = grdsample_mir(handles);
@@ -215,7 +224,7 @@ function grdsample
 % ----------------------------
 function grdtrend
 % ...
-	h = mirone('swath_grid.grd');
+	h = mirone('data/tests/test_bat.grd');
 	handles = guidata(h);
 	[X,Y,Z,head] = load_grd(handles);
 	hf = grdtrend_mir(handles);
@@ -225,7 +234,7 @@ function grdtrend
 % ----------------------------
 function grdread
 % ...
-	fname = 'swath_grid.grd';
+	fname = 'data/tests/test_bat.grd';
 	[X, Y, Z] = c_grdread(fname,'single');
 	h = mirone(Z);
 	pause(0.3);		delete(h);
@@ -262,7 +271,7 @@ function coasts
 % ----------------------------
 function gmtlist
 % ...
-	h = gmtedit('C:\j\cd120\revisao\cd120.gmt');
+	h = gmtedit('data/tests/so_lucky.gmt');
 	pause(0.5);		delete(h);
 
 % ----------------------------
@@ -276,7 +285,7 @@ function implant
 	hand1.head = [1 X(end) 1 Y(end) hdrStruct.head(5:6) 0 5 5];
  	hand2.X = 350:650;
  	hand2.Y = 350:650;
-	hand2.Z = Z(350:650, 350:650)*2;
+	hand2.Z = single(double(Z(350:650, 350:650))*2);
 	hand2.Z(30:150,30:150) = NaN;
 	hand2.head = double([hand2.X(1) hand2.X(end) hand2.Y(1) hand2.Y(end) min(hand2.Z(:)) max(hand2.Z(:)) 0 1 1]);
 
