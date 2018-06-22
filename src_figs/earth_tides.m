@@ -18,7 +18,7 @@ function varargout = earth_tides(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: earth_tides.m 11319 2018-06-02 15:33:33Z j $
+% $Id: earth_tides.m 11330 2018-06-22 18:51:21Z j $
 
 	if (nargin > 1 && ischar(varargin{1}))
 		gui_CB = str2func(varargin{1});
@@ -48,12 +48,12 @@ function hObject = earth_tides_OF(varargin)
 
 	set(hObject,'Vis','on');
 	guidata(hObject, handles);
-	
+
 	if (nargin > 1),	external_drive(handles, 'earth_tides', varargin{2:end}),	end
 
 % -------------------------------------------------------------------------
 function edit_date_start_CB(hObject, handles)
-	if (datenum(get(hObject, 'Str') < 723181))
+	if (datenum(get(hObject, 'Str')) < 723181)
 		warndlg('Dates older than 1-Jan-1980 have loss precision','Warning')
 	end
 
