@@ -29,7 +29,7 @@ function [H1,handles,home_dir] = mirone_uis(home_dir)
 %#function run_cmd line_operations world_is_not_round_enough cartas_militares ice_m magbarcode
 %#function obj_template_detect floodfill meca_studio inpaint_nans globalcmt guess_bin demets_od
 %#function vector_project tintol makescale mesher_helper update_gmt surface_options plot_composer
-%#function isoc_selector argo_floats tmd_osu
+%#function isoc_selector argo_floats tmd_osu test_bots
 
 	% The following test will tell us if we are using the compiled or the ML version
 	try
@@ -753,12 +753,13 @@ if (IamCompiled)
 	uimenu('Parent',h, 'Callback', 'mirone(''TransferB_CB'',guidata(gcbo),''dump'')','Label','Print RAM fragmentation','Sep','on')
 	uimenu('Parent',h, 'Callback', 'mirone(''TransferB_CB'',guidata(gcbo),''lasterr'')','Label','Debug - Print last error')
 	uimenu('Parent',h, 'Callback', 'mirone(''TransferB_CB'',guidata(gcbo),''sharedir'')','Label','Debug - Print GMT_SHAREDIR')
+ 	uimenu('Parent',h, 'Callback', 'test_bots','Label','Tests - Run some tests')
 	uimenu('Parent',h, 'Callback', 'mirone(''TransferB_CB'',guidata(gcbo),''update'')','Label','Check for updates','Sep','on')
 end
 %uimenu('Parent',h, 'Callback', 'update_gmt(guidata(gcbo))','Label','Update your GMT5','Sep','on')
 uimenu('Parent',h, 'Callback',['mirone(''FileOpenWebImage_CB'',guidata(gcbo),',...
 	' ''http://www2.clustrmaps.com/stats/maps-clusters/w3.ualg.pt-~jluis-mirone-world.jpg'',''nikles'');'],'Label','See visitors map','Sep','on');
-uimenu('Parent',h, 'Callback','about_box(guidata(gcbo),''Mirone Last modified at 31 May 2018'',''2.10dev'')','Label','About','Sep','on');
+uimenu('Parent',h, 'Callback','about_box(guidata(gcbo),''Mirone Last modified at 22 Jun 2018'',''2.10dev'')','Label','About','Sep','on');
 
 %% --------------------------- Build HANDLES and finish things here
 	handles = guihandles(H1);
