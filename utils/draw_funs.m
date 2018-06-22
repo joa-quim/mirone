@@ -25,7 +25,7 @@ function varargout = draw_funs(hand, varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: draw_funs.m 10415 2018-05-28 16:32:00Z j $
+% $Id$
 
 % A bit of strange tests but they are necessary for the cases when we use the new feval(fun,varargin{:}) 
 opt = varargin{1};		% function name to evaluate (new) or keyword to select one (old form)
@@ -3180,7 +3180,7 @@ function save_GMT_DB_asc(h, fname)
 		if (isempty(getappdata(h(k), 'edited'))),	continue,	end		% Skip because it was not modified
 		GSHHS_str = getappdata(h(k),'GSHHS_str');
 		if (k == 1 && ~isempty(GSHHS_str))		% Write back the magic string that allows us to recognize these type of files
-			fprintf(fid,'# $Id: draw_funs.m 10415 2018-05-28 16:32:00Z j $\n#\n%s\n#\n', GSHHS_str);
+			fprintf(fid,'# $Id$\n#\n%s\n#\n', GSHHS_str);
 		end
 		hdr = getappdata(h(k), 'LineInfo');
 		x = get(h(k), 'XData');			y = get(h(k), 'YData');
@@ -3456,10 +3456,44 @@ function str = Isochrons_Info(obj, evt, data)
 
 	if (~isempty(LineInfo))
 		if (isa(LineInfo, 'cell')),		LineInfo = LineInfo{1};		end
-		msgbox(sprintf('%s',LineInfo),'This line info')
+		if (strncmp(LineInfo, 'MB ', 3))
+			fname = LineInfo(4:end);
+			WrapString = textwrap({fname}, 100);
+			pato = fileparts(fname);
+			if (isempty(pato))
+				pato = getappdata(hLine, 'filePath');		fname = [pato filesep fname];
+			end
+			DefFigPos=get(0,'DefaultFigurePosition');
+			h = dialog('Position',[DefFigPos(1:2) 300 130],'Name','Info', 'WindowStyle','normal');
+			uicontrol('Parent',h, 'Style','text', 'Position',[10 70 210 50], 'String', WrapString);
+			uicontrol('Parent',h, 'Position',[10 40 130 23], 'String','Show as point cloud', 'Callback',{@show_MBinFleder, fname});
+			handles = guidata(hLine);
+			uicontrol('Parent',h, 'Position',[10 10 130 23], 'String','Open in mbedit', ...
+				'Callback',{@show_inMbedit, fname, handles.figure1});
+			uicontrol('Parent',h, 'Position',[230 10 60 23], 'String','Cancel', 'Callback','delete(gcf)');
+		else
+			msgbox(sprintf('%s',LineInfo),'This line info')
+		end
 	else
 		msgbox('Could not find reference to this object','This line info')
 	end
+	function show_MBinFleder(obj, evt, fname)
+		mirone(['-Cshow_MB,guidata(gcf),' fname], '-Xpush_showPC')	% This case is more convoluted because it takes a fname in
+	function show_inMbedit(obj, evt, fname, hMirFig)
+		fcomm = ['mbedit -I' fname];
+		if (isunix)
+			resp = unix(fcomm);
+			if (resp == 0)
+				errordlg('Need to have MB-system installed and a X11 server installed and running.','Error')
+			end
+		else
+			handles = guidata(hMirFig);
+			if (handles.IamCompiled),	fcomm = ['start /b ' fcomm];	end
+			s = dos(fcomm);
+			if (s == 0)
+				errordlg('Need to have MB-system installed and a X11 server installed and running.','Error')
+			end
+		end
 
 % -----------------------------------------------------------------------------------------
 function gmtfile_Info(obj,eventdata,h,data)
