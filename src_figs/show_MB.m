@@ -63,7 +63,7 @@ function hObject = show_MB_OF(varargin)
 	guidata(hObject, handles);
 	set(hObject,'Visible','on');
 
-	if (nargin > 3),	external_drive(handles, 'show_MB', varargin{4:end}),	end
+	if (nargin > 2),	external_drive(handles, 'show_MB', varargin{3:end}),	end
 
 % ----------------------------------------------------------------------
 function edit_symbSize_CB(hObject, handles)
