@@ -58,6 +58,7 @@ function varargout = load_xyz(handles, opt, opt2)
 %					When used from an empty figure these included files won't be taken into account
 %					to determine data BB because the parsing of this option is done afterwards.
 %					If the indicated file(s) do not exist this option is silently ignored.
+%		'>MB'       Store info about a Mb-system file name to eventual open it from within "draw_funs()"
 %		'>NESTING'	File contains 'Nesting grids' rectangles (multisegment) to help with nested grids creation
 %					These files have >NESTING DX DY REG in first multisegment header and only the
 %					> DX DY REG for the interior rectangles.
@@ -83,7 +84,7 @@ function varargout = load_xyz(handles, opt, opt2)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: load_xyz.m 11324 2018-06-16 19:35:00Z j $
+% $Id: load_xyz.m 11328 2018-06-22 18:47:38Z j $
 
 %	EXAMPLE CODE OF HOW TO CREATE A TEMPLATE FOR UICTX WHEN THESE ARE TOO MANY
 % 	cmenuHand = get(h, 'UIContextMenu');
@@ -117,6 +118,7 @@ function varargout = load_xyz(handles, opt, opt2)
 	isGSHHS = false;			% To flg when we are dealing with a GSHHS polygon
 	goto_XY = false;			% To flag when data will be send to the XYtool
 	projStr = '';				% To hold a proj4 string stored in multi-segment headers
+	savePath = false;			% Will be true when input file path is to be saved in line's appdata
 	% -------------------------------------------------------------------------------
 
 	% ------------------- PARSE INPUTS ----------------------------------------------
@@ -500,6 +502,10 @@ function varargout = load_xyz(handles, opt, opt2)
 			end
 			multi_segs_str(heads_to_del) = [];
 
+		elseif (strncmp(multi_segs_str{1}, '>MB', 3))				% A MB-system file name. Save path to later retrieval
+			savePath = true;
+			filePath = PathName;
+
 		elseif (strncmp(multi_segs_str{1}, '>NESTING', 5))			% 
 			multi_segs_str{1}(2:8) = [];							% Rip the swap NESTING identifier
 			do_nesting = true;
@@ -739,6 +745,9 @@ function varargout = load_xyz(handles, opt, opt2)
 								setappdata(hLine(i),'LineInfo',multi_segs_str{i});
 								if (isGSHHS)	% Need to store this for writing edited GSHHG polygons.
 									setappdata(hLine(i),'GSHHS_str', GSHHS_str);
+								end
+								if (savePath)			% May need this info to be able to load other files
+									setappdata(hLine(i), 'filePath', filePath);
 								end
 							end
 							setappdata(hLine(i),'was_binary',is_bin);	% To offer option to save as binary too
