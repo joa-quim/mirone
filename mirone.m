@@ -20,7 +20,7 @@ function varargout = mirone(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: mirone.m 11315 2018-05-31 02:51:15Z j $
+% $Id: mirone.m 11332 2018-06-22 18:55:46Z j $
 
 	if (nargin > 1 && ischar(varargin{1}))
 		if (~isempty(strfind(varargin{1},':')) || ~isempty(strfind(varargin{1},filesep)) )	% A file name
@@ -77,6 +77,7 @@ function hObject = mirone_OpeningFcn(varargin)
 %#function c_grdtrend c_mapproject c_nearneighbor c_shoredump c_surface popenr diffCenterVar hellinger bingham
 %#function gmtlist_m  mapproject_m grdproject_m nearneighbor_m cpt2cmap grdfilter_m grdgradient_m grdsample_m surface_m
 %#function grdtrend_m trend1d_m grdlandmask_m external_drive chimoce interp_chimoce earth_tides earthtide DateStr2Num
+%#function ddist eucdist2
 
 	global home_dir;	fsep = filesep;
 	toCompile = false;		% To compile set this one to TRUE
@@ -530,7 +531,11 @@ function hObject = mirone_OpeningFcn(varargin)
 				elseif (strcmp(arg, 'gcf'))
 					h = feval(gui_Callback, handles.figure1, x_comm);
 				else
-					h = feval(gui_Callback, eval(arg), x_comm);	% Does this case exists ???
+					if (strncmp(arg,'guidata(gcf),',13))
+						h = feval(gui_Callback, handles, arg(14:end), x_comm);
+					else
+						h = feval(gui_Callback, arg, x_comm);	% Does this case exists ???
+					end
 				end
 			end
 		end
@@ -3599,33 +3604,49 @@ function DrawContours_CB(handles, opt)
 		nPtsContour = handles.nPtsContour;
 	end
 
-	limit = size(c,2);
-	i = 1;		h_cont = [];	cont = [];
-	while(i < limit)
+	k = 1;	count = 0;
+	while(k < size(c,2))
+		npoints = c(2,k);
+		nextk = k+npoints+1;
+		k = nextk;
+		count = count + 1;
+	end
+	hCont = zeros(count,1)*NaN;
+	cont  = zeros(count,1);
+
+	i = 1;		%hCont = [];	cont = [];
+	count = 0;
+	while(i < size(c,2))
+		count = count + 1;
 		z_level = c(1,i);		npoints = c(2,i);
 		if (abs(z_level) < eps),		z_level = 0;	c(1,i) = 0;		end		% Account for another ML BUG
 		nexti = i+npoints+1;
-		xdata = c(1,i+1:i+npoints);		ydata = c(2,i+1:i+npoints);
+		xdata = c(1,i+1:nexti-1);		ydata = c(2,i+1:nexti-1);
 		if (nPtsContour && numel(xdata) < nPtsContour),		i = nexti;	continue,	end
 		% Create the lines
 		cu = line('XData',xdata, 'YData',ydata, 'Parent',handles.axes1, 'LineWidth',handles.DefLineThick, ...
 			'Color',handles.DefLineColor, 'userdata',z_level,'Tag','contour');
-		h_cont = [h_cont; cu(:)];
-		cont = [cont; z_level];
+% 		hCont = [hCont; cu(:)];
+% 		cont = [cont; z_level];
+		hCont(count) = cu;
+		cont(count) = z_level;
 		i = nexti;
 	end
-	handles.which_cont = unique([handles.which_cont; cont]);
-	[zlev, ind] = sort(cont);		clear zlev
-	h_cont = h_cont(ind);					% handles are now sorted by level
-	h_label = '';							% To not hang below if not clabel (anyway, I think it's not used anymore)
 	if (handles.plotContourLabels)
-		h_label = clabel_j(c,h_cont);		% Label countours automatically
+		h_label = clabel_j(c,hCont);		% Label countours automatically
 		set(h_label,'Tag','contour');		% The tag is used in "Delete all contours" to delete also the labels
 	end
+	ind = isnan(hCont);
+	hCont(ind) = [];	cont(ind) = [];		% Delete the entries that were skiped above due to condition < nPtsContour
+
+	handles.which_cont = unique([handles.which_cont; cont]);
+	[zlev, ind] = sort(cont);		clear zlev
+	hCont = hCont(ind);					% handles are now sorted by level
+	h_label = '';							% To not hang below if not clabel (anyway, I think it's not used anymore)
 	drawnow									% Don't wait for the next (SLOW) operations to display the contours
-	for (i = 1:numel(h_cont))				% Set convenient uicontexts. One for each contour
-		setappdata(h_cont(i),'cont_label',get(h_cont(i),'UserData'))	% Used in write_script
-		draw_funs(h_cont(i),'ContourLines',h_label)
+	for (i = 1:numel(hCont))				% Set convenient uicontexts. One for each contour
+		setappdata(hCont(i),'cont_label',get(hCont(i),'UserData'))	% Used in write_script
+		draw_funs(hCont(i),'ContourLines',h_label)
 	end
 	set(handles.figure1,'pointer','arrow')
 	guidata(handles.figure1, handles);
