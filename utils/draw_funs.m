@@ -3478,7 +3478,7 @@ function str = Isochrons_Info(obj, evt, data)
 		msgbox('Could not find reference to this object','This line info')
 	end
 	function show_MBinFleder(obj, evt, fname)
-		mirone(['-Cshow_MB,guidata(gcf),' fname], '-Xpush_showPC')	% This case is more convoluted because it takes a fname in
+		mirone(['-Cshow_mb,guidata(gcf),' fname], '-Xpush_showPC')	% This case is more convoluted because it takes a fname in
 	function show_inMbedit(obj, evt, fname, hMirFig)
 		fcomm = ['mbedit -I' fname];
 		if (isunix)
