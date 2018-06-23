@@ -1,4 +1,4 @@
-function varargout = show_MB(varargin)
+function varargout = show_mb(varargin)
 % Helper window to decide what to do when a multi-beam file, or datalist.mb-1, is loaded
 
 %	Copyright (c) 2004-2018 by J. Luis
@@ -22,14 +22,14 @@ function varargout = show_MB(varargin)
 		gui_CB = str2func(varargin{1});
 		[varargout{1:nargout}] = feval(gui_CB,varargin{2:end});
 	else
-		h = show_MB_OF(varargin{:});
+		h = show_mb_OF(varargin{:});
 		if (nargout),	varargout{1} = h;   end
 	end
 
 % ---------------------------------------------------------------------------------
-function hObject = show_MB_OF(varargin)
+function hObject = show_mb_OF(varargin)
 
-	hObject = show_MB_LayoutFcn;
+	hObject = show_mb_LayoutFcn;
 	handles = guihandles(hObject);
 	move2side(hObject,'right');
 
@@ -63,7 +63,7 @@ function hObject = show_MB_OF(varargin)
 	guidata(hObject, handles);
 	set(hObject,'Visible','on');
 
-	if (nargin > 2),	external_drive(handles, 'show_MB', varargin{3:end}),	end
+	if (nargin > 2),	external_drive(handles, 'show_mb', varargin{3:end}),	end
 
 % ----------------------------------------------------------------------
 function edit_symbSize_CB(hObject, handles)
@@ -752,7 +752,7 @@ function figure1_KeyPressFcn(hObject, eventdata)
 	end
 
 % ----------------------------------------------------------------------
-function h1 = show_MB_LayoutFcn()
+function h1 = show_mb_LayoutFcn()
 
 	h1 = figure('Position',[520 441 250 330],...
 		'Color',get(0,'factoryUicontrolBackgroundColor'),...
