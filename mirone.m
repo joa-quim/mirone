@@ -20,7 +20,7 @@ function varargout = mirone(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: mirone.m 11332 2018-06-22 18:55:46Z j $
+% $Id: mirone.m 11339 2018-07-01 19:26:58Z j $
 
 	if (nargin > 1 && ischar(varargin{1}))
 		if (~isempty(strfind(varargin{1},':')) || ~isempty(strfind(varargin{1},filesep)) )	% A file name
@@ -72,7 +72,7 @@ function hObject = mirone_OpeningFcn(varargin)
 %#function mat2clip buffer_j PolygonClip akimaspline shake_mex ground_motion wms_tool microlev
 %#function write_esri_hdr distmin mag_synthetic image_histo write_gmt_symb mkpj decompress mosaicer
 %#function lasreader_mex laszreader_mex escorrega show_manguito travel thresholdit intersections nswing runCB_tintol
-%#function usgs_recent_seismicity sat_orbits uisetdate doy sshist win_open_mex show_MB mb_cleaning_params
+%#function usgs_recent_seismicity sat_orbits uisetdate doy sshist win_open_mex show_mb mb_cleaning_params
 %#function c_cpt2cmap c_grdfilter c_grdinfo c_grdlandmask c_grdproject c_grdread c_grdsample
 %#function c_grdtrend c_mapproject c_nearneighbor c_shoredump c_surface popenr diffCenterVar hellinger bingham
 %#function gmtlist_m  mapproject_m grdproject_m nearneighbor_m cpt2cmap grdfilter_m grdgradient_m grdsample_m surface_m
@@ -507,37 +507,41 @@ function hObject = mirone_OpeningFcn(varargin)
  	try		custom_menus(hObject, handles.path_data),	end			% Add any custom menus as commanded by OPTcontrol.txt
 
 	if (~isempty(feval_me))					% 'feval_me' must be a string with a command that calls a child figure.
-		c = false(numel(x_comm),1);
-		for (k = 1:numel(x_comm))			% Retain only eventual commands to be send to children
-			if (~isempty(x_comm{k})),	c(k) = true;	end
-		end
-		if (any(c)),	x_comm = x_comm(c);
-		else,			x_comm = {[]};
-		end
+		try
+			c = false(numel(x_comm),1);
+			for (k = 1:numel(x_comm))			% Retain only eventual commands to be send to children
+				if (~isempty(x_comm{k})),	c(k) = true;	end
+			end
+			if (any(c)),	x_comm = x_comm(c);
+			else,			x_comm = {[]};
+			end
 
-		ind = strfind(feval_me, ',');
-		if (isempty(ind))
-			h = feval(feval_me, x_comm);
-		else
-			gui_Callback = str2func(feval_me(1:ind(1)-1));
-			arg = feval_me(ind(1)+1:end);	% Restrict to one arg only because I have not yet use cases with more
-			ind2 = strfind(arg, '(');
-			if (isempty(ind2))
-				h = feval(gui_Callback, arg, x_comm);			% What case is this ???
-			else							% For example, guidata(gcf)
-				handles = guidata(handles.figure1);				% Need an updated one
-				if (strcmp(arg, 'guidata(gcf)'))
-					h = feval(gui_Callback, handles, x_comm);
-				elseif (strcmp(arg, 'gcf'))
-					h = feval(gui_Callback, handles.figure1, x_comm);
-				else
-					if (strncmp(arg,'guidata(gcf),',13))
-						h = feval(gui_Callback, handles, arg(14:end), x_comm);
+			ind = strfind(feval_me, ',');
+			if (isempty(ind))
+				h = feval(feval_me, x_comm);
+			else
+				gui_Callback = str2func(feval_me(1:ind(1)-1));
+				arg = feval_me(ind(1)+1:end);	% Restrict to one arg only because I have not yet use cases with more
+				ind2 = strfind(arg, '(');
+				if (isempty(ind2))
+					h = feval(gui_Callback, arg, x_comm);			% What case is this ???
+				else							% For example, guidata(gcf)
+					handles = guidata(handles.figure1);				% Need an updated one
+					if (strcmp(arg, 'guidata(gcf)'))
+						h = feval(gui_Callback, handles, x_comm);
+					elseif (strcmp(arg, 'gcf'))
+						h = feval(gui_Callback, handles.figure1, x_comm);
 					else
-						h = feval(gui_Callback, arg, x_comm);	% Does this case exists ???
+						if (strncmp(arg,'guidata(gcf),',13))
+							h = feval(gui_Callback, handles, arg(14:end), x_comm);
+						else
+							h = feval(gui_Callback, arg, x_comm);	% Does this case exists ???
+						end
 					end
 				end
 			end
+		catch
+			disp(lasterr)
 		end
 		hObject = struct('hMirFig',hObject, 'hChildFig',h);		% Because we may need the handles of both Figs
 	end
@@ -546,7 +550,7 @@ function hObject = mirone_OpeningFcn(varargin)
 function erro = gateLoadFile(handles,drv,fname)
 % Gateway function to load a recognized file type using its name
 	erro = 0;
-	if (strncmp(drv, 'MB', 2)),	drv_or = drv;	drv = 'MB';		end		% The MB (system) type case are actually several
+	if (strncmp(drv, 'MB', 2)),	drv = 'MB';		end		% The MB (system) type case are actually several
 	switch drv
 		case 'gmt',			loadGRID(handles, fname, 'GMT_relatives')
 		case 'dono',		erro = FileOpenGeoTIFF_CB(handles,'dono',fname);	% It means "I don't know" and dealt by GDAL
@@ -568,8 +572,7 @@ function erro = gateLoadFile(handles,drv,fname)
 		case 'mgg_gmt',		GeophysicsImportGmtFile_CB(handles, fname);
 		case 'ghost',		load_ps(handles, fname);		% Put ghostscript on works
 		case 'sww',			aquamoto(fname);
-% 		case 'MB',			load_MB(handles, fname, drv_or);
-		case 'MB',			show_MB(handles, fname, drv);
+		case 'MB',			show_mb(handles, fname);
 		case 'xtf',			showXTF_CB(handles, fname);
 		otherwise,			erro = 1;
 	end
@@ -3070,7 +3073,7 @@ function DrawClosedPolygon_CB(handles, opt)
 		[p1,p2,hl] = rubberbandbox(handles.axes1);
 		zoom_state(handles,'maybe_on');
 		difa = abs(p2 - p1);
-		if ((difa(1) < handles.head(7)/4) || (difa(2) < handles.head(8)/4))
+		if ((difa(1) < handles.head(8)/4) || (difa(2) < handles.head(9)/4))
 			delete(hl),		return			% Don't draw ultra small rectangles
 		end
 		set(hl,'Color',handles.DefLineColor,'LineWidth',handles.DefLineThick)	% Use defaults LineThick and DefLineColor
