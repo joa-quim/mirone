@@ -50,7 +50,7 @@ function varargout = ecran(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: ecran.m 11320 2018-06-02 15:57:20Z j $
+% $Id: ecran.m 11337 2018-07-01 19:20:31Z j $
 
 	% This before-start test is to allow updating magnetic tracks that are used to pick the isochrons
 	% using the convolution method. If no synthetic plot is found, the whole updating issue is simply ignored.
@@ -2085,13 +2085,13 @@ function enthalpy_SSO_0 = gsw_enthalpy_SSO_0(p)
 function recall_me(handles, x, y_new, title)
 % Create another Ecran fig but try to maintain all features of the original one (e.g, the linking button)
 	if (~isempty(handles.handMir))
-		ecran(handles.handMir, handles.data(:,1), handles.data(:,2), y_new, title)
+		ecran(handles.handMir, handles.data(:,1), handles.data(:,2), y_new(:), title)
 	elseif (size(handles.data,2) == 3)
 		stru = struct('DefineEllipsoide', handles.ellipsoide, 'geog', handles.geog, ...
 		              'DefineMeasureUnit',handles.measureUnit);
-		ecran(stru, handles.data(:,1), handles.data(:,2), y_new, title)
+		ecran(stru, handles.data(:,1), handles.data(:,2), y_new(:), title)
 	else
-		ecran('reuse', x, y_new, [], title)
+		ecran('reuse', x, y_new(:), [], title)
 	end
 
 % --------------------------------------------------------------------
