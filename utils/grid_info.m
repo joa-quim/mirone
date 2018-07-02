@@ -16,7 +16,7 @@ function grid_info(handles,X,Y,hdr)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: grid_info.m 10290 2018-02-26 14:08:24Z j $
+% $Id: grid_info.m 11340 2018-07-02 16:35:15Z j $
 
 	if (nargin == 3 && strcmp(Y,'gdal'))			% Just extract the relevant info from the attribute struct
 		att2Hdr(handles,X);			return
@@ -39,6 +39,7 @@ function grid_info(handles,X,Y,hdr)
 		nx = size(Z,2);		ny = size(Z,1);
 		try
 			if (~handles.computed_grid && handles.nLayers == 1)
+				if (isempty(handles.grdname)),	error(' ');	end		% Probably a multi-band float. Just force error
 				info1 = c_grdinfo(handles.grdname,'hdr_struct');    % info1 is a struct with the GMT grdinfo style
 				if (isa(info1.X_info, 'char'))
 					info_from_GMT_limits = info1.hdr.data(1:4);			% GMT5 case.
@@ -86,7 +87,7 @@ function grid_info(handles,X,Y,hdr)
 		txt2 = sprintf('%.8g',info2(2));		% z_max
 
 		if (head(7)),	half = 0.5;
-		else			half = 0;
+		else,			half = 0;
 		end
 		xx_min = head(1) + (fix((info2(3)-1) / ny) + half) * head(8);	% x of z_min
 		xx_max = head(1) + (fix((info2(4)-1) / ny) + half) * head(8);	% x of z_max
@@ -209,7 +210,7 @@ function img2Hdr(handles,imgName,img)
 			w{5} = ['Color Type:  ' info_img.ColorType];
 		end
 	else
-		[m n k] = size(img);
+		[m, n, k] = size(img);
 		w{1} = 'File Name:  none (imported array)';
 		w{2} = ['Image Size:    ' num2str(m*n*k) '  Bytes'];
 		w{3} = ['Width:  ' num2str(n) '    Height:  ' num2str(m)];
