@@ -1,7 +1,7 @@
 function grid_info(handles,X,Y,hdr)
 % Report info of grid/image currently displayed in Mirone
 
-%	Copyright (c) 2004-2015 by J. Luis
+%	Copyright (c) 2004-2018 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -16,7 +16,7 @@ function grid_info(handles,X,Y,hdr)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: grid_info.m 11340 2018-07-02 16:35:15Z j $
+% $Id: grid_info.m 11346 2018-07-02 16:49:10Z j $
 
 	if (nargin == 3 && strcmp(Y,'gdal'))			% Just extract the relevant info from the attribute struct
 		att2Hdr(handles,X);			return
