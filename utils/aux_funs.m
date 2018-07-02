@@ -3,7 +3,7 @@ function  varargout = aux_funs(opt,varargin)
 % of the Mirone's callback functions. I puted them here to release somehow
 % the burden of the non-stop groing length of the Mirone code.
 
-%	Copyright (c) 2004-2015 by J. Luis
+%	Copyright (c) 2004-2018 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -18,7 +18,7 @@ function  varargout = aux_funs(opt,varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: aux_funs.m 11341 2018-07-02 16:38:17Z j $
+% $Id: aux_funs.m 11345 2018-07-02 16:47:19Z j $
 
 switch opt(1:4)
 	case 'Stor'		% 'StoreZ'
