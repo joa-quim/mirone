@@ -18,7 +18,7 @@ function  varargout = aux_funs(opt,varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: aux_funs.m 10381 2018-04-22 00:30:14Z j $
+% $Id: aux_funs.m 11341 2018-07-02 16:38:17Z j $
 
 switch opt(1:4)
 	case 'Stor'		% 'StoreZ'
@@ -504,7 +504,7 @@ function toBandsList(hFig, I, array_name, fname, n_bands, bands_inMemory, reader
 	tmp1{1,1} = array_name;			tmp1{1,2} = array_name;
 	for (i = 1:n_bands)
 		tmp1{i+1,1} = sprintf('band%d',i);
-		tmp1{i+1,2} = sprintf('banda%d',i);			% TEMP
+		tmp1{i+1,2} = sprintf('band_%d',i);			% TEMP
 		tmp2{i+1,1} = [sprintf('%d',i) 'x1 bip'];	% TEMP
 		tmp2{i+1,2} = i;
 	end
