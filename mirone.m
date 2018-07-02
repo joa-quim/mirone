@@ -20,7 +20,7 @@ function varargout = mirone(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: mirone.m 11339 2018-07-01 19:26:58Z j $
+% $Id: mirone.m 11347 2018-07-02 17:12:13Z j $
 
 	if (nargin > 1 && ischar(varargin{1}))
 		if (~isempty(strfind(varargin{1},':')) || ~isempty(strfind(varargin{1},filesep)) )	% A file name
@@ -1821,6 +1821,7 @@ function FileOpenGDALmultiBand_CB(handles, opt, opt2, opt3)
 		fname = opt2;
 	end
 
+	validGrid = 0;		% The default, but may be changed if data turns out to be a multi-band of floats
 	att.ProjectionRef = [];			X = [];			Y = [];		reseta = false;		ax_dir = 'off';
 	reader = 'GDAL';				% this will be used by bands_list to decide which reader to use
 
@@ -1833,13 +1834,22 @@ function FileOpenGDALmultiBand_CB(handles, opt, opt2, opt3)
 		reader = {cmd1; cmd2};
 		handles.head = [1 size(I,2) 1 size(I,1) 0 255 0 1 1];	% Fake GMT header
 		handles.image_type = 2;		handles.geog = 0;
+
 	elseif (strcmp(opt,'ENVISAT') || strcmp(opt,'AVHRR'))
-		att = gdalread(fname,'-M', '-C');
+		if (nargin == 4),	att = opt3;
+		else,				att = gdalread(fname,'-M', '-C');
+		end
 		bands_inMemory = 10;				% AD-HOC
 		opt_U = ' ';
 		if (~isempty(att.GeoTransform)),	opt_U = '-U';	end
 		opt_B = sprintf('-B1-%d', bands_inMemory);
-		I = gdalread(fname,'-S', opt_B, opt_U, '-C');
+		opt_S = '-S';
+		if (strcmp(att.Band(1).DataType, 'Float32'))
+			opt_S = ' ';
+			opt_B = '-B1';		bands_inMemory = 1;		% If floats, keep only one in mem
+			opt_bak = opt;		opt = 'Multi-band Float32';		reseta = true;
+		end
+		I = gdalread(fname,opt_S, opt_B, opt_U, '-C');
 		n_bands = att.RasterCount;
 		if (n_bands == 4)					% We might have a situation here. A Geotiff with transparency
 			[P,N,EXT] = fileparts(fname);
@@ -1851,7 +1861,7 @@ function FileOpenGDALmultiBand_CB(handles, opt, opt2, opt3)
 		bands_inMemory = 1:min(n_bands,bands_inMemory);			% Make it a vector
 		handles.head = att.GMT_hdr;
 		handles.image_type = 2;		handles.geog = 0;
-		if (~isempty(att.ProjectionRef))							% Georeferenced image
+		if (~isempty(att.ProjectionRef))						% Georeferenced image
 			X = handles.head(1:2);		Y = handles.head(3:4);
 			handles.head(8) = diff(X) / (size(I,2) - 1);		handles.head(9) = diff(Y) / (size(I,1) - 1);
 			ax_dir = 'xy';				handles.image_type = 3;
@@ -1861,10 +1871,13 @@ function FileOpenGDALmultiBand_CB(handles, opt, opt2, opt3)
 			setappdata(handles.figure1,'GCPregImage',att.GCPvalues)
 			setappdata(handles.figure1,'fnameGCP',fname)	% Save this to know when GCPs are to be removed
 		end													% from appdata. That is donne in show_image()
+
 	elseif (strncmp(opt,'PCA',3) || strncmp(opt,'mul',3))	% Generic multiband file transmited in input
 		I = fname;		fname = opt;	nome_tmp = handles.fileName;	opt_bak = opt;
 		if (~isempty(nome_tmp)),	fname = nome_tmp;	[pato, opt] = fileparts(fname);		reseta = true;	end
-		if (nargin == 4),	att = opt3;		end
+		if (nargin == 4),	att = opt3;
+		else,				att = gdalread(fname,'-M', '-C');
+		end
 		[att.RasterYSize, att.RasterXSize, n_bands] = size(I);	% Use 'att' to be consistent with the other cases
 		bands_inMemory = 1:n_bands;
 		if (handles.image_type == 3)
@@ -1884,10 +1897,24 @@ function FileOpenGDALmultiBand_CB(handles, opt, opt2, opt3)
 		else,					set(handles.figure1,'Colormap',cmap(1).CMap(:,1:3))
 		end
 		handles = recentFiles(handles);			% Insert fileName into "Recent Files"
+		handles.is_projected = true;
 	end
 	if (n_bands == 1),		set(handles.figure1,'Colormap',gray(256)),		end		% Takes precedence over the above
 	if (islogical(I)),		I = I(:,:,1);		end		% We don't want to try to compose an RGB out of logicals
-	handles = show_image(handles,fname,X,Y,I,0,ax_dir,0);	% It also guidata(...) & reset pointer
+
+	if (isa(I, 'single'))						% This is special case
+		X = linspace(X(1),X(2),size(I,2));		Y = linspace(Y(1),Y(2),size(I,1));
+		if (~isnan(att.Band(1).NoDataValue))
+			I(I == att.Band(1).NoDataValue) = NaN;
+			handles.have_nans = grdutils(I,'-N');
+		end
+		aux_funs('StoreZ',handles,X,Y,I)		% If grid size is not to big we'll store it
+		aux_funs('colormap_bg', handles, I, get(handles.figure1,'Colormap'));	% Put the bg color in cmap for when we have NaNs
+		handles.image_type = 1;		validGrid = 1;
+		I = scaleto8(I);
+	end
+
+	handles = show_image(handles,fname,X,Y,I,validGrid,ax_dir,0);	% It also guidata(...) & reset pointer
 	if (isappdata(handles.axes1,'InfoMsg')),	rmappdata(handles.axes1,'InfoMsg'),		end
 	if (any(strcmp(opt, {'ENVISAT' 'AVHRR' 'multiband'}))),		grid_info(handles,att,'gdal');		end		% Construct a info message
 	aux_funs('isProj',handles,1);				% Check/set about coordinates type
@@ -1992,8 +2019,9 @@ function erro = FileOpenGeoTIFF_CB(handles, tipo, opt)
 	if (att.RasterCount == 0)			% Should never happen given the piece of code above, but ...
 		errordlg('Probably a multi-container file. Could not read it since its says that it has no raster bands.','ERROR')
 		return
-	elseif (att.RasterCount > 3)		% Since it is a multiband file, try luck there
-		FileOpenGDALmultiBand_CB(handles,'AVHRR',handles.fileName);		return
+	elseif (att.RasterCount > 3 || (att.RasterCount > 1 && strcmp(att.Band(1).DataType,'Float32')))
+		% Since it is a multiband file, try luck there
+		FileOpenGDALmultiBand_CB(handles,'AVHRR',handles.fileName, att);		return
 	end
 
 	if (att.RasterCount == 2 && strcmp(att.Band(1).DataType,'Int16'))	% Good chances that it's a Radarsat-2 file
