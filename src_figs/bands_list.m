@@ -16,9 +16,20 @@ function varargout = bands_list(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: bands_list.m 10217 2018-01-24 21:33:46Z j $
+% $Id$
 
-	if (numel(varargin) == 0),		return,		end
+	if (nargin > 1 && ischar(varargin{1}))
+		gui_CB = str2func(varargin{1});
+		[varargout{1:nargout}] = feval(gui_CB,varargin{2:end});
+	else
+		h = bands_list_OF(varargin{:});
+		if (nargout),	varargout{1} = h;   end
+	end
+
+% ---------------------------------------------------------------------------------
+function hObject = bands_list_OF(varargin)
+
+	if (isempty(varargin)),		return,		end
  
 	hObject = figure('Vis','off');
 	bands_list_LayoutFcn(hObject);
@@ -53,11 +64,25 @@ function varargout = bands_list(varargin)
 	for (i = 1:handles.dims(3))
 		tmp.(sprintf('band%d',i)) = i;	
 	end   
-	handles.struct_values = {tmp};		% TENHO DE MUDAR ESTE NOME
+	handles.struct_values = {tmp};
 
 	%------------ Give a Pro look (3D) to the frame boxes  --------
 	new_frame3D(hObject, NaN)
 	%------------- END Pro look (3D) ------------------------------
+
+	if (isa(handles.image_bands, 'single'))		% When floats we can't have the RGB active
+		set(handles.radio_gray, 'Val', 1)
+		radio_gray_CB(handles.radio_gray, handles)
+		set([handles.radio_gray handles.radio_RGB handles.push_pca], 'Enable', 'off')
+	end
+
+	% Expand the bands list. Simulate user double-cliked on '+'
+	set(handles.figure1, 'SelectionType', 'open')
+	listbox1_CB(handles.listbox1, handles)
+	set(handles.figure1, 'SelectionType', 'normal')
+	handles = guidata(handles.figure1);			% Get updated version
+
+	set(hObject,'Visible','on');
 
 	% Add this figure handle to the carra?as list
 	plugedWin = getappdata(handles.hMirFig,'dependentFigs');
@@ -66,9 +91,14 @@ function varargout = bands_list(varargin)
 
 	handMir = guidata(handles.hMirFig);        % Retrive Mirone handles
 	handles.image_type_orig = handMir.image_type;
+	if (strcmp(handles.reader, 'GDAL'))
+		handles.att = gdalread(handles.fname, '-M', '-C');
+	else
+		handles.att = [];
+	end
 	guidata(hObject, handles);
-	set(hObject,'Visible','on');
-	if (nargout),	varargout{1} = hObject;		end
+
+	if (nargin > 1),	external_drive(handles, 'bands_list', varargin{2:end}),	end
 
 % ------------------------------------------------------------------------
 function radio_gray_CB(hObject, handles)
@@ -136,7 +166,7 @@ function push_pca_CB(hObject, handles)
 	P = princomp(handles.image_bands, q, true);
 	lamb = diag(P.Cy);				% The eigenvalues
 	P = reshape(P.Y, m, n, q);
-% 	P = reshape( fastica(reshape(handles.image_bands, m * n, k)', 'lastEig',q)', m, n, q );		lamb = ones(q,1);
+% 	P = reshape(fastica(reshape(handles.image_bands, m * n, k)', 'lastEig',q)', m, n, q);		lamb = ones(q,1);
 	P8 = alloc_mex(m,n,q,'uint8');
 	for (i = 1:q)
 		P8(:,:,i) = scaleto8(P(:,:,i),-8);		% Each component must be scaled independently of the others
@@ -158,227 +188,243 @@ function push_pca_CB(hObject, handles)
 function push_Load_CB(hObject, handles)
 % TENHO QUE TESTAR SE CASO FOR PRECISO LOADAR BANDAS ELAS SEJAM GDALICAS
 
-if (get(handles.radio_RGB,'Value') && ...
-        (isempty(handles.Rband) || isempty(handles.Gband) || isempty(handles.Bband)))
-    errordlg('Error: you must select three bands','ERROR')
-    return
-end
-if ( get(handles.radio_gray,'Value') && (isempty(handles.Rband)) )
-    errordlg('Error: Are you blind? You must select a band. Kinda obvious no?','ERROR')
-    return
-end
+	if (get(handles.radio_RGB,'Value') && ...
+			(isempty(handles.Rband) || isempty(handles.Gband) || isempty(handles.Bband)))
+		errordlg('Error: you must select three bands','ERROR')
+		return
+	end
+	if (get(handles.radio_gray,'Value') && (isempty(handles.Rband)))
+		errordlg('Error: Are you blind? You must select a band. Kinda obvious no?','ERROR')
+		return
+	end
 
-handMir = guidata(handles.hMirFig);        % Retrive Mirone handles
-img = get(handMir.hImg,'CData');
-head = [];              % It will be changed only if we load a composition of non uint8
+	handMir = guidata(handles.hMirFig);        % Retrive Mirone handles
+	img = get(handMir.hImg,'CData');
+	head = [];              % It will be changed only if we load a composition of non uint8
 
-if (get(handles.radio_RGB,'Value'))       % RGB - pure image for sure (is it??)
-    [b,b] = ismember([handles.Rband handles.Gband handles.Bband],handles.bands_inMemory);
-    idx = (b == 0);		% ISMEMBER returns zeros for elements of A not in B
-    b(idx) = [];		% If they exis, clear them
-    if (length(b) == 3)         % All bands are aready in memory
-        img = handles.image_bands(:,:,b);
-    elseif (length(b) == 2)     % Two bands are in memory. Need to load the third
-        id = intersect([handles.Rband handles.Gband handles.Bband], b);
-        if (isequal(id,[1 2]) || isequal(id,[2 1]))          % Red & Green in memory
-            img(:,:,1:2) = handles.image_bands(:,:,b);
-            img(:,:,3) = gdalread(handles.fname,'-S', ['-B' num2str(handles.Bband)]);
-        elseif (isequal(id,[1 3]) || isequal(id,[3 1]))      % Red & Blue in memory
-            img(:,:,1) = handles.image_bands(:,:,b(1));
-            img(:,:,2) = gdalread(handles.fname,'-S', ['-B' num2str(handles.Gband)]);
-            img(:,:,3) = handles.image_bands(:,:,b(2));
-        elseif (isequal(id,[2 3]) || isequal(id,[3 2]))      % Green & Blue in memory
-            img(:,:,1) = gdalread(handles.fname,'-S', ['-B' num2str(handles.Rband)]);
-            img(:,:,2:3) = handles.image_bands(:,:,b);
-        end
-    elseif (length(b) == 1)     % One band in memory. Need to load the other two
-        id = find([handles.Rband handles.Gband handles.Bband] == b);
-        if (id == 1)            % In memory band is the Red layer
-            img(:,:,1) = handles.image_bands(:,:,b);
-            if (handles.Gband < handles.Bband)  % OK, band numbers are in ascending order
-                img(:,:,2:3) = gdalread(handles.fname,'-S', ['-B' num2str(handles.Gband) ',' num2str(handles.Bband)]);
-            else                % gdalread cannot read e.g. -B2,1 so we have to make two calls
-                img(:,:,2) = gdalread(handles.fname,'-S', ['-B' num2str(handles.Gband)]);
-                img(:,:,3) = gdalread(handles.fname,'-S', ['-B' num2str(handles.Bband)]);
-            end
-        elseif (id == 2)        % In memory band is the Green layer
-            img(:,:,1) = gdalread(handles.fname,'-S', ['-B' num2str(handles.Rband)]);
-            img(:,:,2) = handles.image_bands(:,:,b);
-            img(:,:,3) = gdalread(handles.fname,'-S', ['-B' num2str(handles.Bband)]);
-        else                    % In memory band is the Blue layer
-            if (handles.Rband < handles.Gband)  % OK, band numbers are in ascending order
-                img(:,:,1:2) = gdalread(handles.fname,'-S', ['-B' num2str(handles.Rband) ',' num2str(handles.Gband)]);
-            else
-                img(:,:,1) = gdalread(handles.fname,'-S', ['-B' num2str(handles.Rband)]);
-                img(:,:,2) = gdalread(handles.fname,'-S', ['-B' num2str(handles.Gband)]);
-            end
-            img(:,:,3) = handles.image_bands(:,:,b);
-        end
-    else                        % No bands in memory. Need to load them all
-        if (handles.Rband < handles.Gband && handles.Gband < handles.Bband)
-            img = gdalread(handles.fname,'-S', ['-B' num2str(handles.Rband) ',' ...
-                    num2str(handles.Gband) ',' num2str(handles.Bband)]);
-        else                % Just read one band at a time
-            img(:,:,1) = gdalread(handles.fname,'-S', ['-B' num2str(handles.Rband)]);
-            img(:,:,2) = gdalread(handles.fname,'-S', ['-B' num2str(handles.Gband)]);
-            img(:,:,3) = gdalread(handles.fname,'-S', ['-B' num2str(handles.Bband)]);
-        end
-    end
-
-    set(handMir.hImg,'CData',img)
-    try
-		rmappdata(handles.hMirFig,'dem_x');		rmappdata(handles.hMirFig,'dem_y');		rmappdata(handles.hMirFig,'dem_z');
-    end
-    image_type = handles.image_type_orig;		% Reset indicator that this is an image only
-    computed_grid = 0;      % Reset this also
-    was_int16 = 0;
-else                        % GRAY SCALE, which can be an image or a > uint8 image band that needs scaling
-    %b = intersect(handles.Rband,handles.bands_inMemory);
-    [b,b] = ismember(handles.Rband,handles.bands_inMemory);
-    idx = (b == 0);         % ISMEMBER returns zeros for elements of A not in B
-    b(idx) = [];            % If they exis, clear them
-    if (~isempty(b))        % The band is on memory
-        img = handles.image_bands(:,:,handles.Rband);
-    else                    % Need to load band
-        % Here it will fail if the file is not to be read by GDAL
-        img = gdalread(handles.fname,'-S', ['-B' num2str(handles.Rband)]);
-%         img = gdalread(handles.fname, ['-B' num2str(handles.Rband)]);
-%         img = scaleto8(img,8,0);        % Need to give the noDataValue
-    end
-
-    if (isa(img,'uint8') || islogical(img))
-        image_type = handles.image_type_orig;		% Reset indicator that this is an image only
-        computed_grid = 0;							% Reset this also
-        was_int16 = 0;
-
-    else                        % Not uint8, so we need scalings
-        % Now we are going to load the band not scaled and treat it as a GMT grid
-        if (~iscell(handles.reader))    % reader is GDAL
-            Z = gdalread(handles.fname, ['-B' num2str(handles.Rband)]);
-        else                            % reader is MULTIBANDREAD - SHIT, WHAT A MESS OF TESTS WE NEED TO DO
-			if (length(handles.reader(2)) >= 2)     % Two (or three) subsets have been choosed. Ignore third one
-                if (strcmp(handles.reader{2}(1), 'Row') && strcmp(handles.reader{2}(2), 'Column'))      % Row & Column
-                    Z = multibandread_j(handles.fname, [handles.dims(1) handles.dims(2) handles.dims(3)],...
-                        handles.reader{1}{1},handles.reader{1}{2},handles.reader{1}{3},handles.reader{1}{4},...
-                        handles.reader{2}(1),handles.reader{2}(2),{'Band','Direct',handles.Rband});
-                elseif (strcmp(handles.reader{2}(1), 'Row') && ~strcmp(handles.reader{2}(2), 'Column')) % Row only
-                    Z = multibandread_j(handles.fname, [handles.dims(1) handles.dims(2) handles.dims(3)],...
-                        handles.reader{1}{1},handles.reader{1}{2},handles.reader{1}{3},handles.reader{1}{4},...
-                        handles.reader{2}(1),{'Band','Direct',handles.Rband});
-                elseif (~strcmp(handles.reader{2}(1), 'Row') && strcmp(handles.reader{2}(2), 'Column')) % Column only
-                    Z = multibandread_j(handles.fname, [handles.dims(1) handles.dims(2) handles.dims(3)],...
-                        handles.reader{1}{1},handles.reader{1}{2},handles.reader{1}{3},handles.reader{1}{4},...
-                        handles.reader{2}(2),{'Band','Direct',handles.Rband});
-                end
-			else                                    % One subsect selectet. Ignore it if it was the 'Band'
-                if (strcmp(handles.reader{2}(1), 'Row'))            % Row only
-                    Z = multibandread_j(handles.fname, [handles.dims(1) handles.dims(2) handles.dims(3)],...
-                        handles.reader{1}{1},handles.reader{1}{2},handles.reader{1}{3},handles.reader{1}{4},...
-                        handles.reader{2}(1),{'Band','Direct',handles.Rband});
-                elseif (strcmp(handles.reader{2}(1), 'Column'))     % Column only
-                    Z = multibandread_j(handles.fname, [handles.dims(1) handles.dims(2) handles.dims(3)],...
-                        handles.reader{1}{1},handles.reader{1}{2},handles.reader{1}{3},handles.reader{1}{4},...
-                        handles.reader{2}(2),{'Band','Direct',handles.Rband});
-                else                                                % Neither Row or Column
-                    Z = multibandread_j(handles.fname, [handles.dims(1) handles.dims(2) handles.dims(3)],...
-                        handles.reader{1}{1},handles.reader{1}{2},handles.reader{1}{3},handles.reader{1}{4},...
-                        {'Band','Direct',handles.Rband});
-                end
+	if (get(handles.radio_RGB,'Value'))       % RGB - pure image for sure (is it??)
+		[b,b] = ismember([handles.Rband handles.Gband handles.Bband],handles.bands_inMemory);
+		idx = (b == 0);		% ISMEMBER returns zeros for elements of A not in B
+		b(idx) = [];		% If they exis, clear them
+		if (length(b) == 3)         % All bands are aready in memory
+			img = handles.image_bands(:,:,b);
+		elseif (length(b) == 2)     % Two bands are in memory. Need to load the third
+			id = intersect([handles.Rband handles.Gband handles.Bband], b);
+			if (isequal(id,[1 2]) || isequal(id,[2 1]))          % Red & Green in memory
+				img(:,:,1:2) = handles.image_bands(:,:,b);
+				img(:,:,3) = gdalread(handles.fname,'-S', ['-B' num2str(handles.Bband)]);
+			elseif (isequal(id,[1 3]) || isequal(id,[3 1]))      % Red & Blue in memory
+				img(:,:,1) = handles.image_bands(:,:,b(1));
+				img(:,:,2) = gdalread(handles.fname,'-S', ['-B' num2str(handles.Gband)]);
+				img(:,:,3) = handles.image_bands(:,:,b(2));
+			elseif (isequal(id,[2 3]) || isequal(id,[3 2]))      % Green & Blue in memory
+				img(:,:,1) = gdalread(handles.fname,'-S', ['-B' num2str(handles.Rband)]);
+				img(:,:,2:3) = handles.image_bands(:,:,b);
 			end
-        end
-        X = 1:handles.dims(2);    Y = 1:handles.dims(1);
-        head = handMir.head;
-        head(5:6) = [double(min(min(Z))) double(max(max(Z)))];
-        setappdata(handles.hMirFig,'dem_z',Z);  setappdata(handles.hMirFig,'dem_x',X);
-        setappdata(handles.hMirFig,'dem_y',Y);
-        image_type = 1;         % Pretend this a GMT grid
-        computed_grid = 1;      % But set to computed_grid to avoid attempts to reload it with grdread_m
-        if (isa(Z,'uint16') || isa(Z,'int16'))
-            was_int16 = 1;
-        else
-            was_int16 = 0;
-        end
-    
-    end         % end if is uint8
-    
-	set(handMir.hImg,'CData',img)
-	set(handles.hMirFig,'ColorMap',gray(256))
-end
+		elseif (length(b) == 1)     % One band in memory. Need to load the other two
+			id = find([handles.Rband handles.Gband handles.Bband] == b);
+			if (id == 1)            % In memory band is the Red layer
+				img(:,:,1) = handles.image_bands(:,:,b);
+				if (handles.Gband < handles.Bband)  % OK, band numbers are in ascending order
+					img(:,:,2:3) = gdalread(handles.fname,'-S', ['-B' num2str(handles.Gband) ',' num2str(handles.Bband)]);
+				else                % gdalread cannot read e.g. -B2,1 so we have to make two calls
+					img(:,:,2) = gdalread(handles.fname,'-S', ['-B' num2str(handles.Gband)]);
+					img(:,:,3) = gdalread(handles.fname,'-S', ['-B' num2str(handles.Bband)]);
+				end
+			elseif (id == 2)        % In memory band is the Green layer
+				img(:,:,1) = gdalread(handles.fname,'-S', ['-B' num2str(handles.Rband)]);
+				img(:,:,2) = handles.image_bands(:,:,b);
+				img(:,:,3) = gdalread(handles.fname,'-S', ['-B' num2str(handles.Bband)]);
+			else                    % In memory band is the Blue layer
+				if (handles.Rband < handles.Gband)  % OK, band numbers are in ascending order
+					img(:,:,1:2) = gdalread(handles.fname,'-S', ['-B' num2str(handles.Rband) ',' num2str(handles.Gband)]);
+				else
+					img(:,:,1) = gdalread(handles.fname,'-S', ['-B' num2str(handles.Rband)]);
+					img(:,:,2) = gdalread(handles.fname,'-S', ['-B' num2str(handles.Gband)]);
+				end
+				img(:,:,3) = handles.image_bands(:,:,b);
+			end
+		else                        % No bands in memory. Need to load them all
+			if (handles.Rband < handles.Gband && handles.Gband < handles.Bband)
+				img = gdalread(handles.fname,'-S', ['-B' num2str(handles.Rband) ',' ...
+						num2str(handles.Gband) ',' num2str(handles.Bband)]);
+			else                % Just read one band at a time
+				img(:,:,1) = gdalread(handles.fname,'-S', ['-B' num2str(handles.Rband)]);
+				img(:,:,2) = gdalread(handles.fname,'-S', ['-B' num2str(handles.Gband)]);
+				img(:,:,3) = gdalread(handles.fname,'-S', ['-B' num2str(handles.Bband)]);
+			end
+		end
 
-if (~isempty(head)),    handMir.head = head;    end
-handMir.image_type = image_type;
-handMir.computed_grid = computed_grid;
-handMir.was_int16 = was_int16;
-guidata(handles.hMirFig,handMir)           % Save those in Mirone handles
+		set(handMir.hImg,'CData',img)
+		try
+			rmappdata(handles.hMirFig,'dem_x');		rmappdata(handles.hMirFig,'dem_y');		rmappdata(handles.hMirFig,'dem_z');
+		end
+		image_type = handles.image_type_orig;		% Reset indicator that this is an image only
+		computed_grid = 0;      % Reset this also
+		was_int16 = 0;
+	else                        % GRAY SCALE, which can be an image or a > uint8 image band that needs scaling
+		[b,b] = ismember(handles.Rband,handles.bands_inMemory);
+		idx = (b == 0);         % ISMEMBER returns zeros for elements of A not in B
+		b(idx) = [];            % If they exist, clear them
+		if (~isempty(b))        % The band is in memory
+			img = handles.image_bands(:,:,handles.Rband);
+		else                    % Need to load band
+			% Here it will fail if the file is not to be read by GDAL
+			if (isa(handles.image_bands, 'single'))
+				opt_U = ' ';
+				if (~isempty(handles.att.GeoTransform)),	opt_U = '-U';	end
+				img = gdalread(handles.fname, opt_U, ['-B' num2str(handles.Rband)], '-C');
+			else
+				img = gdalread(handles.fname,'-S', ['-B' num2str(handles.Rband)]);
+			end
+		end
+
+		is_gray = true;
+		if (isa(img,'uint8') || islogical(img))
+			image_type = handles.image_type_orig;		% Reset indicator that this is an image only
+			computed_grid = 0;		was_int16 = 0;		% Reset this also
+
+		elseif (isa(img,'single'))
+			if (~isnan(handles.att.Band(handles.Rband).NoDataValue))
+				img(img == handles.att.Band(handles.Rband).NoDataValue) = NaN;
+			end
+			setappdata(handles.hMirFig,'dem_z',img);
+			handMir = guidata(handles.hMirFig);
+			handMir.firstIllum = true;		% Must set firstIllum to true so that we can shade all layers
+			guidata(handles.hMirFig, handMir)
+			img = scaleto8(img);			% Need to give the noDataValue
+			is_gray = false;				% To not set cmap to gray down below
+			image_type = handles.image_type_orig;
+			computed_grid = 0;		was_int16 = 0;		% Reset this also
+
+		else                        % Not uint8, so we need scalings
+			% Now we are going to load the band not scaled and treat it as a GMT grid
+			if (~iscell(handles.reader))    % reader is GDAL
+				Z = gdalread(handles.fname, ['-B' num2str(handles.Rband)]);
+			else                            % reader is MULTIBANDREAD - SHIT, WHAT A MESS OF TESTS WE NEED TO DO
+				if (length(handles.reader(2)) >= 2)     % Two (or three) subsets have been choosed. Ignore third one
+					if (strcmp(handles.reader{2}(1), 'Row') && strcmp(handles.reader{2}(2), 'Column'))      % Row & Column
+						Z = multibandread_j(handles.fname, [handles.dims(1) handles.dims(2) handles.dims(3)],...
+							handles.reader{1}{1},handles.reader{1}{2},handles.reader{1}{3},handles.reader{1}{4},...
+							handles.reader{2}(1),handles.reader{2}(2),{'Band','Direct',handles.Rband});
+					elseif (strcmp(handles.reader{2}(1), 'Row') && ~strcmp(handles.reader{2}(2), 'Column')) % Row only
+						Z = multibandread_j(handles.fname, [handles.dims(1) handles.dims(2) handles.dims(3)],...
+							handles.reader{1}{1},handles.reader{1}{2},handles.reader{1}{3},handles.reader{1}{4},...
+							handles.reader{2}(1),{'Band','Direct',handles.Rband});
+					elseif (~strcmp(handles.reader{2}(1), 'Row') && strcmp(handles.reader{2}(2), 'Column')) % Column only
+						Z = multibandread_j(handles.fname, [handles.dims(1) handles.dims(2) handles.dims(3)],...
+							handles.reader{1}{1},handles.reader{1}{2},handles.reader{1}{3},handles.reader{1}{4},...
+							handles.reader{2}(2),{'Band','Direct',handles.Rband});
+					end
+				else                                    % One subsect selectet. Ignore it if it was the 'Band'
+					if (strcmp(handles.reader{2}(1), 'Row'))            % Row only
+						Z = multibandread_j(handles.fname, [handles.dims(1) handles.dims(2) handles.dims(3)],...
+							handles.reader{1}{1},handles.reader{1}{2},handles.reader{1}{3},handles.reader{1}{4},...
+							handles.reader{2}(1),{'Band','Direct',handles.Rband});
+					elseif (strcmp(handles.reader{2}(1), 'Column'))     % Column only
+						Z = multibandread_j(handles.fname, [handles.dims(1) handles.dims(2) handles.dims(3)],...
+							handles.reader{1}{1},handles.reader{1}{2},handles.reader{1}{3},handles.reader{1}{4},...
+							handles.reader{2}(2),{'Band','Direct',handles.Rband});
+					else                                                % Neither Row or Column
+						Z = multibandread_j(handles.fname, [handles.dims(1) handles.dims(2) handles.dims(3)],...
+							handles.reader{1}{1},handles.reader{1}{2},handles.reader{1}{3},handles.reader{1}{4},...
+							{'Band','Direct',handles.Rband});
+					end
+				end
+			end
+			X = 1:handles.dims(2);    Y = 1:handles.dims(1);
+			head = handMir.head;
+			head(5:6) = [double(min(min(Z))) double(max(max(Z)))];
+			setappdata(handles.hMirFig,'dem_z',Z);  setappdata(handles.hMirFig,'dem_x',X);
+			setappdata(handles.hMirFig,'dem_y',Y);
+			image_type = 1;         % Pretend this a GMT grid
+			computed_grid = 1;      % But set to computed_grid to avoid attempts to reload it with grdread_m
+			if (isa(Z,'uint16') || isa(Z,'int16'))
+				was_int16 = 1;
+			else
+				was_int16 = 0;
+			end
+
+		end         % end if is uint8
+
+		set(handMir.hImg,'CData',img)
+		if (is_gray),	set(handles.hMirFig,'ColorMap',gray(256)),	end
+	end
+
+	if (~isempty(head)),    handMir.head = head;    end
+	handMir.image_type = image_type;
+	handMir.computed_grid = computed_grid;
+	handMir.was_int16 = was_int16;
+	guidata(handles.hMirFig,handMir)           % Save those in Mirone handles
 
 % --------------------------------------------------------------------------
 function listbox1_CB(hObject, handles)
-index_struct = get(hObject,'Value');
-struct_names = handles.struct_names;
-struct_values = handles.struct_values;
+	index_struct = get(hObject,'Value');
+	struct_names = handles.struct_names;
+	struct_values = handles.struct_values;
 
-indent = '       ';
-root_1 = struct_names{index_struct};
-is_indent = strfind(root_1, indent);
-if (isempty(is_indent)),	level = 0;
-else						level = (is_indent(end) - 1)/7 + 1;
-end
-    
-struct_val = struct_values{index_struct};
-all_names = handles.all_names;
+	indent = '       ';
+	root_1 = struct_names{index_struct};
+	is_indent = strfind(root_1, indent);
+	if (isempty(is_indent)),	level = 0;
+	else,						level = (is_indent(end) - 1)/7 + 1;
+	end
 
-if isa(struct_val,'struct')
-    fields =  fieldnames(struct_val);
-    for i = 1:numel(fields)
-        if isstruct(struct_val(1).(fields{i}))
-            fields{i} = ['+ ' fields{i}];
-        end
-    end
-end
+	struct_val = struct_values{index_struct};
+	all_names = handles.all_names;
 
-% Display info
-name_clean = ddewhite(struct_names{index_struct});
-if (name_clean(1) == '+' || name_clean(1) == '-'),       name_clean = name_clean(3:end);     end
-%idx = strmatch(name_clean,all_names(:,1),'exact');
-idx = find( strcmp(name_clean,all_names(:,1)) );
-%handles.tree_indice = idx;
-set(handles.edit_dimsDesc,'String',handles.band_desc{idx,1})
-
-if (isnumeric(struct_val))   
-	handles = order_bands(handles,idx);
-end
-
-% If double-click, and is struct, expand structure, and show fields
-if (strcmp(get(handles.figure1, 'SelectionType'), 'open'))		% if double click
-	idxP = strfind(struct_names{index_struct}, '+');
-	idxM = strfind(struct_names{index_struct}, '-');
-	if ~isempty(idxP)
-		[struct_names, struct_values] = expand_struct(struct_names, struct_values, ...
-			index_struct, fields, level, idxP);
-	elseif  ~isempty(idxM)
-		[struct_names, struct_values] = shrink_struct(struct_names, struct_values, ...
-			index_struct, fields, level, idxM);
-	else
-		if (get(handles.radio_gray,'Value'))
-			push_Load_CB(handles.push_Load, handles)
+	if isa(struct_val,'struct')
+		fields =  fieldnames(struct_val);
+		for i = 1:numel(fields)
+			if isstruct(struct_val(1).(fields{i}))
+				fields{i} = ['+ ' fields{i}];
+			end
 		end
-		guidata(hObject, handles);
-		return
 	end
-	names = cell(length(struct_names),1);
-	for (i = 1:numel(struct_names))
-		name_clean = ddewhite(struct_names{i});
-		if (name_clean(1) == '+' || name_clean(1) == '-'),       name_clean = name_clean(3:end);     end
-		id1 = strcmp(name_clean,all_names(:,1)) ;				% Find index to pretended name
-		id2 = findstr(name_clean,struct_names{i});				% Find index of starting text (after the blanks)
-		names{i} = [struct_names{i}(1:id2-1) all_names{id1,2}];        
-	end
-	set(handles.listbox1,'String',names);
-	handles.struct_names = struct_names;
-	handles.struct_values = struct_values;
-end
 
-guidata(hObject, handles);
+	% Display info
+	name_clean = ddewhite(struct_names{index_struct});
+	if (name_clean(1) == '+' || name_clean(1) == '-'),       name_clean = name_clean(3:end);     end
+	%idx = strmatch(name_clean,all_names(:,1),'exact');
+	idx = find( strcmp(name_clean,all_names(:,1)) );
+	%handles.tree_indice = idx;
+	set(handles.edit_dimsDesc,'String',handles.band_desc{idx,1})
+
+	if (isnumeric(struct_val))   
+		handles = order_bands(handles,idx);
+	end
+
+	% If double-click, and is struct, expand structure, and show fields
+	if (strcmp(get(handles.figure1, 'SelectionType'), 'open'))		% if double click
+		idxP = strfind(struct_names{index_struct}, '+');
+		idxM = strfind(struct_names{index_struct}, '-');
+		if ~isempty(idxP)
+			[struct_names, struct_values] = expand_struct(struct_names, struct_values, ...
+				index_struct, fields, level, idxP);
+		elseif  ~isempty(idxM)
+			[struct_names, struct_values] = shrink_struct(struct_names, struct_values, ...
+				index_struct, fields, level, idxM);
+		else
+			if (get(handles.radio_gray,'Value'))
+				push_Load_CB(handles.push_Load, handles)
+			end
+			guidata(hObject, handles);
+			return
+		end
+		names = cell(length(struct_names),1);
+		for (i = 1:numel(struct_names))
+			name_clean = ddewhite(struct_names{i});
+			if (name_clean(1) == '+' || name_clean(1) == '-'),       name_clean = name_clean(3:end);     end
+			id1 = strcmp(name_clean,all_names(:,1)) ;				% Find index to pretended name
+			id2 = strfind(struct_names{i}, name_clean);				% Find index of starting text (after the blanks)
+			names{i} = [struct_names{i}(1:id2-1) all_names{id1,2}];        
+		end
+		set(handles.listbox1,'String',names);
+		handles.struct_names = struct_names;
+		handles.struct_values = struct_values;
+	end
+
+	guidata(hObject, handles);
 
 % ------------------------------------------------------------------------
 function cell_array = indent_cell(cell_array, level)
@@ -390,78 +436,78 @@ function cell_array = indent_cell(cell_array, level)
 function [struct_names, struct_values] = expand_struct(struct_names, struct_values, idx, fields, level, idxP)
 % expand structure if '+' is double-clicked and update the structure tree
 
-size_val = size(struct_values{idx});
-if (size_val(1) ~= 1),  struct_values{idx} = (struct_values{idx})';     end
-N = size_val(2);
-names_be = struct_names(1:idx);
-names_af = struct_names(idx + 1:length(struct_names));
-values_be = struct_values(1:idx);
-values_af = struct_values(idx + 1:length(struct_names));
-if N == 1           % if the structure is of size 1 x 1
-    names_app = indent_cell(fields, level);
-    values_app = cell(1,length(fields));
-    for i = 1:length(fields)
-        if (fields{i}(1) == '+' || fields{i}(1) == '-')
-            fields{i} = fields{i}(3:end);
-        end
-        values_app{i} = struct_values{idx}.(fields{i});
-    end
-    struct_names = [names_be; names_app; names_af];
-    struct_values = [values_be; values_app'; values_af];
-    struct_names{idx}(idxP) = '-';
-else                % if the structure is of size 1 x N
-    names_app = cell(N,1);
-    values_app = cell(N,1);
-    struct_name = struct_names{idx};
-    struct_name = remove_indent(struct_name);
-    for (j = 1:N)
-        names_app(j) = indent_cell(cellstr(strcat(struct_name,'(', num2str(j),')')), level);
-    end
-    for (j = 1:N)
-        values_app{j} = struct_values{idx}(j) ;
-    end
-    struct_names = [names_be; names_app; names_af];
-    struct_values = [values_be; values_app; values_af];
-    struct_names{idx}(idxP) = '-';
-end
+	size_val = size(struct_values{idx});
+	if (size_val(1) ~= 1),  struct_values{idx} = (struct_values{idx})';     end
+	N = size_val(2);
+	names_be = struct_names(1:idx);
+	names_af = struct_names(idx + 1:length(struct_names));
+	values_be = struct_values(1:idx);
+	values_af = struct_values(idx + 1:length(struct_names));
+	if N == 1           % if the structure is of size 1 x 1
+		names_app = indent_cell(fields, level);
+		values_app = cell(1,length(fields));
+		for i = 1:length(fields)
+			if (fields{i}(1) == '+' || fields{i}(1) == '-')
+				fields{i} = fields{i}(3:end);
+			end
+			values_app{i} = struct_values{idx}.(fields{i});
+		end
+		struct_names = [names_be; names_app; names_af];
+		struct_values = [values_be; values_app'; values_af];
+		struct_names{idx}(idxP) = '-';
+	else                % if the structure is of size 1 x N
+		names_app = cell(N,1);
+		values_app = cell(N,1);
+		struct_name = struct_names{idx};
+		struct_name = remove_indent(struct_name);
+		for (j = 1:N)
+			names_app(j) = indent_cell(cellstr(strcat(struct_name,'(', num2str(j),')')), level);
+		end
+		for (j = 1:N)
+			values_app{j} = struct_values{idx}(j) ;
+		end
+		struct_names = [names_be; names_app; names_af];
+		struct_values = [values_be; values_app; values_af];
+		struct_names{idx}(idxP) = '-';
+	end
 
 % ------------------------------------------------------------------------
 function [struct_names, struct_values] = shrink_struct(struct_names, struct_values, idx, fields, level, idxM)
 % shrink structure if '- ' is double-clicked
-struct_names{idx}(idxM) = '+';
-indent = '       ';
-if ((idxM-1)/7 - level) == 0
-    num_steps = 0;
-    is_indent_select = strfind(struct_names{idx}, indent);
-    if ~isempty(is_indent_select)
-        for (k = idx+1 : length(struct_names))
-            is_indent = strfind(struct_names{k}, indent);
-            if (isempty(is_indent) || is_indent(end) - is_indent_select(end) <= 0),  break;  end
-            num_steps = num_steps + 1;
-        end
-    else
-        for (k = idx+1 : length(struct_names))
-            is_indent = strfind(struct_names{k}, indent);
-            if (isempty(is_indent)),    break;      end
-            num_steps = num_steps + 1;
-        end
-    end
-else
-    num_steps = length(fields);
-end
-names_be = struct_names(1:idx);
-names_app = struct_names(idx+num_steps+1:length(struct_names));
-values_be = struct_values(1:idx);
-values_app = struct_values(idx+num_steps+1:length(struct_names));
-struct_names = [names_be; names_app];
-struct_values = [values_be; values_app];
+	struct_names{idx}(idxM) = '+';
+	indent = '       ';
+	if ((idxM-1)/7 - level) == 0
+		num_steps = 0;
+		is_indent_select = strfind(struct_names{idx}, indent);
+		if ~isempty(is_indent_select)
+			for (k = idx+1 : length(struct_names))
+				is_indent = strfind(struct_names{k}, indent);
+				if (isempty(is_indent) || is_indent(end) - is_indent_select(end) <= 0),  break;  end
+				num_steps = num_steps + 1;
+			end
+		else
+			for (k = idx+1 : length(struct_names))
+				is_indent = strfind(struct_names{k}, indent);
+				if (isempty(is_indent)),    break;      end
+				num_steps = num_steps + 1;
+			end
+		end
+	else
+		num_steps = length(fields);
+	end
+	names_be = struct_names(1:idx);
+	names_app = struct_names(idx+num_steps+1:length(struct_names));
+	values_be = struct_values(1:idx);
+	values_app = struct_values(idx+num_steps+1:length(struct_names));
+	struct_names = [names_be; names_app];
+	struct_values = [values_be; values_app];
 
 % ------------------------------------------------------------------------
 function str1 = remove_indent(str0)
 % remove indent keeping '+ ' and '- '
 	c = find(isspace(str0));
-	if (~isempty(c)),   str1 = str0(max(c)+1:end);
-	else                str1 = str0;
+	if (~isempty(c)),	str1 = str0(max(c)+1:end);
+	else,				str1 = str0;
 	end
     
 % ------------------------------------------------------------------------
@@ -530,7 +576,7 @@ function P = princomp(X, q, smaller)
 
 
 	if (nargin == 3),	smaller = true;			% Do not compute P.X
-	else				smaller = false;
+	else,				smaller = false;
 	end
 
 	X = imstack2vectors(X);
@@ -638,7 +684,7 @@ function [X, R] = imstack2vectors(S, MASK)
 	% Preliminaries.
 	[M, N, n] = size(S);
 	if (nargin == 1),		MASK = true(M, N);
-	else					MASK = (MASK ~= 0);
+	else,					MASK = (MASK ~= 0);
 	end
 
 	% Find the set of locations where the vectors will be kept before
