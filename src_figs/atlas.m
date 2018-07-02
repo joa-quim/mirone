@@ -16,9 +16,9 @@ function varargout = atlas(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: atlas.m 10217 2018-01-24 21:33:46Z j $
+% $Id: atlas.m 11342 2018-07-02 16:40:19Z j $
 
-	if (isempty(varargin))		return,		end
+	if (isempty(varargin)),		return,		end
 
 	hObject = figure('Vis','off');
 	atlas_LayoutFcn(hObject);
@@ -26,7 +26,7 @@ function varargout = atlas(varargin)
 	move2side(hObject,'center');
 
     handMir = varargin{1};
-    if ( ~handMir.no_file && (~handMir.is_projected && ~handMir.geog) )
+    if (~handMir.no_file && (~handMir.is_projected && ~handMir.geog))
 		errordlg('This operation is only possible for geographic data OR when the Map Projection is known','ERROR')
 		delete(hObject);    return
     end
@@ -209,7 +209,7 @@ function push_OK_CB(hObject, handles)
 	
 	% See if user wants uicontexts. Test here so that it can be overriden below
 	if (get(handles.check_setUicontrols,'Value')),		handles.uicontrols = 1;
-	else												handles.uicontrols = 0;
+	else,												handles.uicontrols = 0;
 	end
 
 	if (numel(atlas) > 1)
@@ -318,8 +318,8 @@ function do_ploting(handles,paises)
 		pcm = repmat([1 1 1], length(paises.ct), 1);
 	end
 
-	if (handles.transparency < 0.01)	no_alfa = 1;
-	else								no_alfa = 0;    alfa = handles.transparency;
+	if (handles.transparency < 0.01),	no_alfa = 1;
+	else,								no_alfa = 0;    alfa = handles.transparency;
 	end
 
 	% See if we have to create a BG map
@@ -327,7 +327,7 @@ function do_ploting(handles,paises)
 		region = [handles.region 1];
 		if (abs(region(2) - region(1)) > 360 || abs(region(4) - region(3)) > 180),   region(5) = 0;   end
 		if (numel(paises.ct) == 1),		figTitle = paises.ct.Tag;
-		else							figTitle = 'Atlas';
+		else,							figTitle = 'Atlas';
 		end
 		mirone('FileNewBgFrame_CB',guidata(handles.mirone_fig), region, figTitle)
 	end
@@ -341,7 +341,7 @@ for (k = 1:length(paises.ct))
     h = zeros(numel(id),1);
     for (m = 1:numel(id))
 		if (m == 1),	ini = 1;
-		else			ini = id(m-1)+1;
+		else,			ini = id(m-1)+1;
 		end
         fim = id(m)-1;
         xx = paises.ct(k).Country(1,ini:fim);
@@ -473,11 +473,11 @@ guidata(hObject, handles);
 
 % -------------------------------------------------------------------------------
 function check_setUicontrols_CB(hObject, handles)
-str = sprintf(['Give the possibility of change colors,\n'...
-    'transparency and other attributes. Be awere,\n'...
-    'however, that is highly memory consuming.\n'...
-    'Particularly with the high definition file.']);
-set(hObject,'Tooltip',str)
+	str = sprintf(['Give the possibility of change colors,\n'...
+		'transparency and other attributes. Be awere,\n'...
+		'however, that is highly memory consuming.\n'...
+		'Particularly with the high definition file.']);
+	set(hObject,'Tooltip',str)
 
 
 % --- Executes on key press over figure1 with no controls selected.%
@@ -600,7 +600,7 @@ else				% ...	do search across <cell>s
 end
 
 % find indices
-ix=findstr(k,c);
+ix = strfind(c,k);
 if	~isempty(ix)
 	[mx,mn]=meshgrid(ix,cumsum(in)-in);
 	crow=sum(mx>mn,1)';
