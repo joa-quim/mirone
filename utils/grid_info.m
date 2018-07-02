@@ -1,7 +1,7 @@
 function grid_info(handles,X,Y,hdr)
 % Report info of grid/image currently displayed in Mirone
 
-%	Copyright (c) 2004-2015 by J. Luis
+%	Copyright (c) 2004-2018 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
