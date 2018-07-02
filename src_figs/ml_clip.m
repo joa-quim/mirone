@@ -24,7 +24,7 @@ function varargout = ml_clip(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: ml_clip.m 10217 2018-01-24 21:33:46Z j $
+% $Id: ml_clip.m 11343 2018-07-02 16:41:26Z j $
 
 	if isempty(varargin)
 		errordlg('GRDCLIP: wrong number of arguments.','Error'),	return
@@ -51,7 +51,6 @@ function varargout = ml_clip(varargin)
 	else
 		handles.Z = varargin{2};		% Operate on a given array
 	end
-	handles.have_nans = handMir.have_nans;
 
 	if (isempty(handles.Z))
         errordlg('GRDCLIP: Grid was not saved in memory. Increase "Grid max size" and start over.','ERROR')
@@ -61,6 +60,7 @@ function varargout = ml_clip(varargin)
     handles.hMirFig = handMir.figure1;
 	handles.version6 = ~handMir.version7;
 	handles.have_nans = handMir.have_nans;
+	handles.geog = handMir.geog;
 	handles.head = handMir.head;
 	handles.above_val = [];
 	handles.below_val = [];
@@ -102,7 +102,7 @@ function varargout = ml_clip(varargin)
 function edit_above_CB(hObject, handles)
 	xx = str2double(get(hObject,'String'));
 	if (~isnan(xx) && xx < handles.z_max),	handles.above = xx;
-	else									set(hObject,'String',handles.z_max);
+	else,									set(hObject,'String',handles.z_max);
 	end
 	guidata(hObject,handles)
 
@@ -115,7 +115,7 @@ function edit_Ab_val_CB(hObject, handles)
 function edit_below_CB(hObject, handles)
 	xx = str2double(get(hObject,'String'));
 	if (~isnan(xx) && xx > handles.z_min),	handles.below = xx;
-	else									set(hObject,'String',handles.z_min);
+	else,									set(hObject,'String',handles.z_min);
 	end
 	guidata(hObject,handles)
 
@@ -177,7 +177,14 @@ function push_OK_CB(hObject, handles)
     tmp.Y = linspace(handles.head(3),handles.head(4),size(handles.Z,1));
     tmp.head = handles.head;
     tmp.name = 'Clipped grid';
-    mirone(handles.Z,tmp);
+	if (~handles.geog)			% See if we must carry on the projection info
+		handMir = guidata(handles.hMirFig);
+		prjInfoStruc = aux_funs('getFigProjInfo',handMir);
+		if (~isempty(prjInfoStruc.projWKT))	% TODO. Otherwise check if prjInfoStruc.proj4 and convert it to WKT
+			tmp.srsWKT = prjInfoStruc.projWKT;
+		end
+	end
+    mirone(handles.Z, tmp);
 
 % -------------------------------------------------------------------------------------
 function edit_percent_CB(hObject, handles)
@@ -237,10 +244,10 @@ function push_okUP_CB(hObject, handles)
 	end
 	
 	if (isempty(up)),	return,		end			% No entries in any of the option boxes
-	set(handles.edit_above, 'String', up)
-	set(handles.edit_below, 'String', low)
-	handles.above = up;
-	handles.below = low;
+	set(handles.edit_above, 'String', up),		set(handles.edit_Ab_val, 'String', up)
+	set(handles.edit_below, 'String', low),		set(handles.edit_Bl_val, 'String', low)
+	handles.above = up;			handles.above_val = up;
+	handles.below = low;		handles.below_val = low;
 	guidata(handles.figure1,handles)
 
 % -------------------------------------------------------------------------------------
