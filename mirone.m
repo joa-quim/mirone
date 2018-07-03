@@ -20,7 +20,7 @@ function varargout = mirone(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: mirone.m 11351 2018-07-03 11:32:00Z j $
+% $Id: mirone.m 11354 2018-07-03 16:06:19Z j $
 
 	if (nargin > 1 && ischar(varargin{1}))
 		if (~isempty(strfind(varargin{1},':')) || ~isempty(strfind(varargin{1},filesep)) )	% A file name
@@ -1886,7 +1886,19 @@ function FileOpenGDALmultiBand_CB(handles, opt, opt2, opt3)
 		reader = [];
 	end
 
-	aux_funs('toBandsList', handles.figure1, I, opt, fname, n_bands, bands_inMemory, reader);
+	bnd_names = '';
+	c = false(numel(att.Metadata), 1);
+	for (k = 1:numel(att.Metadata))
+		if (~isempty(strfind(att.Metadata{k}, 'Band_Name'))),	c(k) = true;	end
+	end
+	if (any(c))
+		bnd_names = att.Metadata(c);
+		for (k = 1:numel(bnd_names))
+			bnd_names{k} = bnd_names{k}(11:end);
+		end
+	end
+
+	aux_funs('toBandsList', handles.figure1, I, opt, fname, n_bands, bands_inMemory, reader, bnd_names);
 	if (reseta),	opt = opt_bak;		end		% Wee need it with a known value for the remaining tests 
 
 	handles.fileName = [];		% Not eligible for automatic re-loading
