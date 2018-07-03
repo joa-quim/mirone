@@ -32,7 +32,7 @@ function [bin,n_column,multi_seg,n_headers,isGSHHS, GSHHS_str] = guess_file(fich
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: guess_file.m 7952 2016-09-06 14:52:34Z j $
+% $Id: guess_file.m 11352 2018-07-03 15:42:10Z j $
 
 	% Error testing
 	bin = 0;    multi_seg = 0;  n_headers = 0;  n_column = 0;	isGSHHS = false;	GSHHS_str = '';
@@ -241,6 +241,7 @@ function [bin,n_column,multi_seg,n_headers,isGSHHS, GSHHS_str] = guess_file(fich
 	end
 
 	frewind(fid);
+	warning off MATLAB:divideByZero
 	out = fread(fid,36,'single');	out = reshape(out,3,12)';
 	if ( (abs(out(1,1)) < 1e10) && (abs(out(1,2)) < 1e10) && (abs(out(1,3)) < 1e10) )
 		rel = abs(std(out) ./ out(1,:));
