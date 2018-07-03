@@ -30,7 +30,9 @@ function varargout = bands_list(varargin)
 function hObject = bands_list_OF(varargin)
 
 	if (isempty(varargin)),		return,		end
- 
+ 	bandList = getappdata(varargin{1},'BandList');
+	if (isempty(bandList)),		hObject = [];	return,		end
+
 	hObject = figure('Vis','off');
 	bands_list_LayoutFcn(hObject);
 	handles = guihandles(hObject);
@@ -42,11 +44,6 @@ function hObject = bands_list_OF(varargin)
 	handles.edit_Rband_pos = get(handles.edit_Rband,'Pos');
 
 	handles.hMirFig = varargin{1};
-	bandList = getappdata(varargin{1},'BandList');
-	if (isempty(bandList))
-		errordlg('ERROR: There is no list of bands available. Do you know what you are doing?','ERROR')
-		delete(hObject);    return
-	end
 	move2side(handles.hMirFig,hObject,'left')	% Reposition this figure
 	handles.struct_names = bandList(1);
 	set(handles.listbox1,'String',bandList(1))
