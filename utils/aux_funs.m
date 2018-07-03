@@ -492,21 +492,25 @@ function toProjPT(handles)
 	end
 
 % ----------------------------------------------------------------------------------
-function toBandsList(hFig, I, array_name, fname, n_bands, bands_inMemory, reader)
+function toBandsList(hFig, I, array_name, fname, n_bands, bands_inMemory, reader, bnd_names)
 % Create a structure with data to be retrieved by the BANDS_LIST() GUI
 % This still needs to be improved. Not much of error testing
 	if (nargin == 3)
-		fname = [];		n_bands = size(I,3);	bands_inMemory = 1:n_bands;		reader = [];
+		fname = [];		n_bands = size(I,3);	bands_inMemory = 1:n_bands;		reader = [];	bnd_names = '';
 	end
 	if (isempty(n_bands)),			n_bands = size(I,3);		end
-	if (isempty(bands_inMemory)),	bands_inMemory = 1:n_bands;		end
+	if (isempty(bands_inMemory)),	bands_inMemory = 1:n_bands;	end
 	tmp1 = cell(n_bands+1,2);		tmp2 = cell(n_bands+1,2);
 	tmp1{1,1} = array_name;			tmp1{1,2} = array_name;
-	for (i = 1:n_bands)
-		tmp1{i+1,1} = sprintf('band%d',i);
-		tmp1{i+1,2} = sprintf('band_%d',i);			% TEMP
-		tmp2{i+1,1} = [sprintf('%d',i) 'x1 bip'];	% TEMP
-		tmp2{i+1,2} = i;
+	for (k = 1:n_bands)
+		tmp1{k+1,1} = sprintf('band%d',k);
+		if (isempty(bnd_names) || (numel(bnd_names) ~= n_bands))
+			tmp1{k+1,2} = sprintf('band_%d',k);
+		else
+			tmp1{k+1,2} = bnd_names{k};
+		end
+		tmp2{k+1,1} = [sprintf('%d',k) 'x1 bip'];
+		tmp2{k+1,2} = k;
 	end
 	tmp = {['+ ' array_name]; I; tmp1; tmp2; fname; bands_inMemory; [size(I,1) size(I,2) n_bands]; reader};
 	setappdata(hFig,'BandList',tmp)
