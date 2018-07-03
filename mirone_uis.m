@@ -67,7 +67,7 @@ function [H1,handles,home_dir] = mirone_uis(home_dir)
 	catch
         if (IamCompiled && ispc)
             home_dir = winqueryreg('HKEY_CURRENT_USER', 'Environment', 'MIRONE_HOME');
-            load ([home_dir filesep 'data' filesep 'mirone_icons.mat']);
+            load([home_dir filesep 'data' filesep 'mirone_icons.mat']);
         end
 	end
 
@@ -154,7 +154,8 @@ hVG(4) = uipushtool('parent',hTB,'Click','mirone(''ToolsMBplaningStart_CB'',guid
 uipushtool('parent',hTB,'Click','mirone(''FileSaveFleder_CB'',guidata(gcbo),''runPlanar'')', ...  
 	'Tag','FlederPlanar','cdata',olho_ico,'Tooltip','Run Fleder 3D Viewer');
 uipushtool('parent',hTB,'Click','writekml(guidata(gcbo))', 'Tag','toGE','cdata',GE_ico,'Tooltip','See it in Google Earth');
-uipushtool('parent',hTB,'Click',@refresca, 'Tag','Refresh','cdata',refresh_ico,'Tooltip','Refresh','Sep','on');
+uipushtool('parent',hTB,'Click','bands_list(gcf)','Tag','ImgLayers','cdata',layers_ico,'Tooltip','Load bands','Sep','on');
+uipushtool('parent',hTB,'Click',@refresca, 'Tag','Refresh','cdata',refresh_ico,'Tooltip','Refresh');
 uipushtool('parent',hTB,'Click','grid_info(guidata(gcbo))','Tag','ImageInfo','cdata',info_ico,'Tooltip','Image info');
 
 h_axes = axes('Parent',H1,'Units','pixels','Position',[60 0 50 10],'Tag','axes1','Vis','off');
@@ -759,7 +760,7 @@ end
 %uimenu('Parent',h, 'Callback', 'update_gmt(guidata(gcbo))','Label','Update your GMT5','Sep','on')
 uimenu('Parent',h, 'Callback',['mirone(''FileOpenWebImage_CB'',guidata(gcbo),',...
 	' ''http://www2.clustrmaps.com/stats/maps-clusters/w3.ualg.pt-~jluis-mirone-world.jpg'',''nikles'');'],'Label','See visitors map','Sep','on');
-uimenu('Parent',h, 'Callback','about_box(guidata(gcbo),''Mirone Last modified at 22 Jun 2018'',''2.10dev'')','Label','About','Sep','on');
+uimenu('Parent',h, 'Callback','about_box(guidata(gcbo),''Mirone Last modified at 3 July 2018'',''2.10dev'')','Label','About','Sep','on');
 
 %% --------------------------- Build HANDLES and finish things here
 	handles = guihandles(H1);
@@ -784,7 +785,7 @@ function refresca(obj, evt)
 
 % --------------------------------------------------------------------------------------------------
 function showGDALdrivers(hObj, evt)
-	att   = gdalread('','-M');
+	att   = gdalread('','-M','-D');
 	long  = {att.Driver.DriverLongName}';
 	short = {att.Driver.DriverShortName}';
 	list  = cat(2,short,long);
