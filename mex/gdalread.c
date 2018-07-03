@@ -1,5 +1,5 @@
 /*--------------------------------------------------------------------
- *	$Id: gdalread.c 10396 2018-04-29 23:36:42Z j $
+ *	$Id$
  *
  *	Copyright (c) 2004-2012 by J. Luis
  *
@@ -80,7 +80,7 @@
 #include "cpl_conv.h"
 
 int record_geotransform (char *gdal_filename, GDALDatasetH hDataset, double *adfGeoTransform);
-mxArray * populate_metadata_struct (char * ,int , int, int, int, int, double, double, double, double, double, double);
+mxArray *populate_metadata_struct (char * ,int , int, int, int, int, double, double, double, double, double, double, int);
 int ReportCorner(GDALDatasetH hDataset, double x, double y, double *xy_c, double *xy_geo);
 void grd_FLIPUD_I32(int data[], int nx, int ny);
 void grd_FLIPUD_UI32(unsigned int data[], int nx, int ny);
@@ -116,7 +116,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	int	nPixelSize, nBands, nXYSize, i, m, n, nn, nReqBands = 0, got_r = FALSE;
 	int	dims[]={0,0,0,0,0,0,0}, argc = 0, n_arg_no_char = 0;
 	int	error = FALSE, gdal_dump = FALSE, insitu = FALSE, scale_range = FALSE;
-	int	pixel_reg = FALSE, correct_bounds = FALSE, fliplr = FALSE, forceSingle = FALSE;
+	int	pixel_reg = FALSE, correct_bounds = FALSE, fliplr = FALSE, forceSingle = FALSE, get_drivers = FALSE;
 	int	anSrcWin[4], xOrigin = 0, yOrigin = 0, i_x_nXYSize;
 	int	nBufXSize, nBufYSize, jump = 0, *whichBands = NULL, *nVector, *mVector;
 	int	n_commas, n_dash, nX, nY;
@@ -185,6 +185,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 						CPLSetConfigOption(&argv[i][2], p); 
 						mexPrintf("key = %s\tval = %s\n",&argv[i][2], p);
 					}
+					break;
+				case 'D':
+					get_drivers = TRUE;
 					break;
 				case 'F':
 					pixel_reg = TRUE;
@@ -268,7 +271,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 
 	if (metadata_only) {
 		plhs[0] = populate_metadata_struct (gdal_filename, correct_bounds, pixel_reg, got_R, 
-		                                    nXSize, nYSize, dfULX, dfULY, dfLRX, dfLRY, z_min, z_max);
+		                                    nXSize, nYSize, dfULX, dfULY, dfLRX, dfLRY, z_min, z_max, get_drivers);
 		runed_once = TRUE;	/* Signals that next call won't need to call GDALAllRegister() again */
 		return;
 	}
@@ -736,7 +739,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 
 	if (gdal_dump)
 		plhs[1] = populate_metadata_struct (gdal_filename, correct_bounds, pixel_reg, got_R, 
-		                                    nXSize, nYSize, dfULX, dfULY, dfLRX, dfLRY, z_min, z_max);
+		                                    nXSize, nYSize, dfULX, dfULY, dfLRX, dfLRY, z_min, z_max, get_drivers);
 
 	mxFree(gdal_filename);
 	runed_once = TRUE;	/* Signals that next call won't need to call GDALAllRegister() again */
@@ -961,11 +964,11 @@ void grd_FLIPUD_F32(float data[], int nx, int ny) {
  * */
 mxArray *populate_metadata_struct (char *gdal_filename , int correct_bounds, int pixel_reg, int got_R, 
                                    int nXSize, int nYSize, double dfULX, double dfULY, double dfLRX, 
-                                   double dfLRY, double z_min, double z_max) {
+                                   double dfLRY, double z_min, double z_max, int get_drivers) {
 	static int driverCount = 0;	/* Number of available drivers for the version of GDAL we are using. */
 
 	/* These are used to define the metadata structure about available GDAL drivers. */
-	char *driver_fieldnames[100];
+	char *driver_fieldnames[4];
 	const char	*format;
 	int num_driver_fields;
 
@@ -1059,14 +1062,19 @@ mxArray *populate_metadata_struct (char *gdal_filename , int correct_bounds, int
 	num_driver_fields = 2;
 	driver_fieldnames[0] = mxstrdup("DriverLongName");
 	driver_fieldnames[1] = mxstrdup("DriverShortName");
-	driver_struct = mxCreateStructMatrix (driverCount, 1, num_driver_fields, (const char **)driver_fieldnames);
-	for (j = 0; j < driverCount; ++j) {
-		hDriver = GDALGetDriver(j);
-		mxtmp = mxCreateString (GDALGetDriverLongName(hDriver));
-		mxSetField (driver_struct, j, (const char *) "DriverLongName", mxtmp);
-		mxtmp = mxCreateString (GDALGetDriverShortName(hDriver));
-		mxSetField (driver_struct, j, (const char *) "DriverShortName", mxtmp);
+	if (get_drivers) {
+		driver_struct = mxCreateStructMatrix (driverCount, 1, num_driver_fields, (const char **)driver_fieldnames);
+		for (j = 0; j < driverCount; j++) {
+			hDriver = GDALGetDriver(j);
+			mxtmp = mxCreateString (GDALGetDriverLongName(hDriver));
+			mxSetField (driver_struct, j, (const char *) "DriverLongName", mxtmp);
+			mxtmp = mxCreateString (GDALGetDriverShortName(hDriver));
+			mxSetField (driver_struct, j, (const char *) "DriverShortName", mxtmp);
+		}
 	}
+	else
+		driver_struct = mxCreateStructMatrix (0, 1, num_driver_fields, (const char **)driver_fieldnames);
+
 	mxSetField(metadata_struct, 0, "Driver", driver_struct);
 
 	if (strlen(gdal_filename) == 0)
@@ -1490,15 +1498,27 @@ mxArray *populate_metadata_struct (char *gdal_filename , int correct_bounds, int
 		nCounterBand = CSLCount(papszMetadataBand) + 1;		/* +1 to account for a separator line */
 	}
 	nCounter = CSLCount(papszMetadata);
-	mxtmp = mxCreateCellMatrix(nCounter + nCounterBand, 1);
+	//nCounterBand = 0;
+	//mxtmp = mxCreateCellMatrix(nCounter + nCounterBand + 1, 1);
+	mxtmp = mxCreateCellMatrix(nCounter + nCounterBand*raster_count + 1, 1);
 	if (nCounter > 0) {
 		for (i = 0; i < nCounter; i++)
 			mxSetCell(mxtmp,i,mxDuplicateArray(mxCreateString(papszMetadata[i])));
 	}
 	if (nCounterBand > 1) {			/* And add the band specific metadata */
-		mxSetCell(mxtmp, nCounter, mxDuplicateArray(mxCreateString("SUBDATSET Metadata")));		/* Flag that band meta starts here */
-		for (i = 0; i < nCounterBand; i++)
-			mxSetCell(mxtmp, i + nCounter + 1, mxDuplicateArray(mxCreateString(papszMetadataBand[i])));
+		char bnd[32] = {""};
+		j = nCounter;
+		for (band_number = 0; band_number < raster_count; band_number++) {
+			hBand = GDALGetRasterBand(hDataset, band_number+1);
+			/* Flag that band meta starts here */
+			sprintf(bnd, "BAND_%d METADATA", band_number+1);
+			mxSetCell(mxtmp, j, mxDuplicateArray(mxCreateString(bnd)));
+			papszMetadataBand = GDALGetMetadata(hBand, NULL);	/* So get its own metadata */
+			nCounterBand = CSLCount(papszMetadataBand) + 1;		/* +1 to account for a separator line */
+			for (i = 0; i < nCounterBand; i++)
+				mxSetCell(mxtmp, i + j + 1, mxDuplicateArray(mxCreateString(papszMetadataBand[i])));
+			j += nCounterBand;
+		}
 	}
 	mxSetField (metadata_struct, 0, "Metadata", mxtmp);
 
