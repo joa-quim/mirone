@@ -20,7 +20,7 @@ function varargout = mirone(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: mirone.m 11347 2018-07-02 17:12:13Z j $
+% $Id: mirone.m 11351 2018-07-03 11:32:00Z j $
 
 	if (nargin > 1 && ischar(varargin{1}))
 		if (~isempty(strfind(varargin{1},':')) || ~isempty(strfind(varargin{1},filesep)) )	% A file name
@@ -2377,10 +2377,12 @@ function handles = show_image(handles, fname, X, Y, I, validGrid, axis_t, adjust
 			tmp = {['+ ' 'RGB']; I; tmp1; tmp2; ''; 1:3; [size(I,1) size(I,2) 3]; 'Mirone'};
 			setappdata(handles.figure1,'BandList',tmp)
 			set(findobj(handles.Image,'-depth',1,'Label','Load Bands'), 'Vis','on')
+			set(handles.ImgLayers,'Enable', 'on')
 			set(findobj(handles.Image,'-depth',1,'Label','Explore RGB'),'Vis','on')
 		elseif (ndims(I) == 2)				% Remove it so it won't try to operate on indexed images
 			if (isappdata(handles.figure1,'BandList')),		rmappdata(handles.figure1,'BandList'),	end
 			set(findobj(handles.figure1,'Label','Load Bands'), 'Vis','off')
+			set(handles.ImgLayers,'Enable', 'off')
 			set(findobj(handles.figure1,'Label','Explore RGB'),'Vis','off')
 		end
 	end
