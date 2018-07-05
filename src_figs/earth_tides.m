@@ -159,7 +159,7 @@ try
 			mirone(O.east, tmp)
 		end
 		if (~isempty(O.up))
-			zzz = grdutils(O.up, '-L');		tmp.head(5:6) = double(zzz(1:2));	tmp.name = names{1};
+			zzz = grdutils(O.up, '-L');		tmp.head(5:6) = double(zzz(1:2));	tmp.name = names{3};
 			mirone(O.up, tmp)
 		end
 	else
