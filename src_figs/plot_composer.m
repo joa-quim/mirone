@@ -18,7 +18,7 @@ function varargout = plot_composer(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: plot_composer.m 10408 2018-05-18 15:29:06Z j $
+% $Id$
 
 	handMir = varargin{1};
 	if (handMir.no_file)     % Stupid call with nothing loaded on the Mirone window
@@ -63,7 +63,7 @@ function varargout = plot_composer(varargin)
 	c = false(1,numel(hAllFigs));
 	for (k = 1:numel(hAllFigs))
 		handTmp = guidata(hAllFigs(k));
-		if (handTmp.no_file),	c(k) = true;	end
+		if (isempty(handTmp) || handTmp.no_file),	c(k) = true;	end
 	end
 	hAllFigs(c) = [];
 
