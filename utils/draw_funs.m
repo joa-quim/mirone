@@ -25,7 +25,7 @@ function varargout = draw_funs(hand, varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: draw_funs.m 11336 2018-06-23 18:18:11Z j $
+% $Id: draw_funs.m 11358 2018-07-09 10:57:22Z j $
 
 % A bit of strange tests but they are necessary for the cases when we use the new feval(fun,varargin{:}) 
 opt = varargin{1};		% function name to evaluate (new) or keyword to select one (old form)
@@ -250,6 +250,7 @@ function set_line_uicontext_XY(h, opt)
 
 		uimenu(cmenuHand, 'Label', 'Delete', 'Callback', {@del_line,h(k)});
 		uimenu(cmenuHand, 'Label', 'Save line', 'Callback', {@save_formated,h(k)});
+		uimenu(cmenuHand, 'Label', 'Copy line', 'Callback', 'setappdata(0,''CtrlCHandEcran'',gco)');
 		if (strcmp(opt, 'main'))
 			% Attention, if I ever change these labels I MUST do it also in ecran/finish_line_uictx()
 			hh = uimenu(cmenuHand, 'Label', 'Shift origin here');
@@ -3180,7 +3181,7 @@ function save_GMT_DB_asc(h, fname)
 		if (isempty(getappdata(h(k), 'edited'))),	continue,	end		% Skip because it was not modified
 		GSHHS_str = getappdata(h(k),'GSHHS_str');
 		if (k == 1 && ~isempty(GSHHS_str))		% Write back the magic string that allows us to recognize these type of files
-			fprintf(fid,'# $Id: draw_funs.m 11336 2018-06-23 18:18:11Z j $\n#\n%s\n#\n', GSHHS_str);
+			fprintf(fid,'# $Id: draw_funs.m 11358 2018-07-09 10:57:22Z j $\n#\n%s\n#\n', GSHHS_str);
 		end
 		hdr = getappdata(h(k), 'LineInfo');
 		x = get(h(k), 'XData');			y = get(h(k), 'YData');
