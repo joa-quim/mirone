@@ -50,13 +50,16 @@ function varargout = ecran(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: ecran.m 11337 2018-07-01 19:20:31Z j $
+% $Id: ecran.m 11363 2018-07-09 11:09:28Z j $
 
 	% This before-start test is to allow updating magnetic tracks that are used to pick the isochrons
 	% using the convolution method. If no synthetic plot is found, the whole updating issue is simply ignored.
 	showBak = get(0,'ShowHiddenHandles');
 	set(0,'ShowHiddenHandles','on');
-	hObject = findobj(get(0,'Children'),'flat', 'FileName', 'plotxy');		% Find a copy of myself. But what if many?
+	hObject = findobj(get(0,'Children'),'flat', 'FileName', 'plotxy');
+	if (numel(hObject) > 1)			% If there are more than 1, use GCF to distinguish
+		hObject = hObject(hObject == gcf);
+	end
 	set(0,'ShowHiddenHandles',showBak);
 	freshFig = true;
 
@@ -395,7 +398,7 @@ function varargout = ecran(varargin)
 	end
 	% --------------------------------------------------------------------------------------------------------
 
-	handles = createframe(handles);
+	if (freshFig),	handles = createframe(handles);		end
 	guidata(hObject, handles);
 	set(hObject,'Vis','on');
 	if (~is_CMOP && ~isempty(handles.hLine))
@@ -1588,6 +1591,16 @@ function FileSaveRedMark_CB(hObject, handles)
 	r  = get_distances(x, y, handles.geog, handles.measureUnit, handles.ellipsoide);	% This starts counting dist at x(1)
 	% add r0 so distances are from start of profile
 	double2ascii([PathName FileName], [x(:) y(:) r(:)+r0(2), z(:), ind(:)], '%f\t%f\t%f\t%f\t%d');
+
+% ----------------------------------------------------------------------------------------------------
+function Ctrl_v_CB(hObject, handles)
+% Paste a line whose handle is stored in root's appdata
+% For now only the x,y is fetch from stored line handle, but we should deal also with the case of a lon,lat,z line
+	h = getappdata(0, 'CtrlCHandEcran');	% Get what's in this root's appdata
+	if (isempty(h) || ~ishandle(h(1))),		return,		end
+	x = get(h, 'xdata');		y = get(h, 'ydata');
+	rmappdata(0, 'CtrlCHandEcran')
+	ecran('add', x(:), y(:))
 
 % ----------------------------------------------------------------------------------------------------
 function extensional_CB(hObject, handles)
@@ -3487,7 +3500,7 @@ function figure1_ResizeFcn(hObj, evt)
 	pos = get(displayBar, 'Pos');
 	pos(2) = posA2(2) + 1;
 	set(displayBar, 'Pos', pos)
-	
+
 % --- Creates and returns a handle to the GUI figure. 
 function h1 = ecran_LayoutFcn(opt)
 
@@ -3550,6 +3563,7 @@ h10 = uimenu('Parent',h1,'Label','File','Tag','menuFile');
 uimenu('Parent',h10, 'Callback',@ecran_uiCB, 'Label','Open', 'Tag','FileOpen');
 uimenu('Parent',h10, 'Callback',@ecran_uiCB, 'Label','Save', 'Tag','FileSave');
 uimenu('Parent',h10, 'Callback',@ecran_uiCB, 'Label','Save Red Markers', 'Vis', 'off', 'Tag','FileSaveRedMark');
+uimenu('Parent',h10, 'Callback',@ecran_uiCB, 'Label','Paste line', 'Tag','Ctrl_v', 'Accel','v')
 hSe = uimenu('Parent',h10,'Label','Session','Sep','on');
 uimenu('Parent',hSe, 'Callback',@ecran_uiCB, 'Label','Open', 'Tag','FileOpenSession');
 uimenu('Parent',hSe, 'Callback',@ecran_uiCB, 'Label','Save', 'Tag','FileSaveSession');
