@@ -18,7 +18,7 @@ function varargout = run_cmd(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: run_cmd.m 10367 2018-04-07 19:47:53Z j $
+% $Id$
 
 	if (nargin > 1 && ischar(varargin{1}))
 		gui_CB = str2func(varargin{1});
@@ -97,7 +97,7 @@ function hObject = run_cmd_OF(varargin)
 	guidata(hObject, handles);
 	set(hObject,'Visible','on');
 
-	if (nargin > 1),	external_drive(handles, 'griding_mir', varargin{2:end}),	end
+	if (nargin > 1),	external_drive(handles, 'run_cmd', varargin{2:end}),	end
 
 % -----------------------------------------------------------------------------------------
 function push_compute_CB(hObject, handles)
