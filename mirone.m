@@ -5336,8 +5336,24 @@ function TransferB_CB(handles, opt, opt2)
 		dos(['wget "' url 'apudeita.txt' '" -q --tries=2 --connect-timeout=5 -O ' dest_fiche]);
 		finfo = dir(dest_fiche);
 		if (finfo.bytes == 0)
-			builtin('delete',dest_fiche);
-			msgbox('This Mirone version is updated to latest.','Nothing New1'),	return
+			builtin('delete', dest_fiche);
+			mirrors = [handles.path_data filesep 'mirrors.txt'];
+			got_one = false;	
+			if (exist(mirrors, 'file'))
+				fid = fopen(mirrors,'rt');		todos = fread(fid,'*char');		fclose(fid);
+				urls = strread(todos,'%s');
+				for (k = 1:numel(urls))
+					if (urls{k}(1) == '#'),		continue,	end
+					url = urls{k};
+					dos(['wget "' url 'apudeita.txt' '" -q --tries=2 --connect-timeout=5 -O ' dest_fiche]);
+					finfo = dir(dest_fiche);
+					if (finfo.bytes ~= 0),	got_one = true;		break,	end
+				end
+			end
+			if (~got_one)
+				builtin('delete', dest_fiche);
+				errordlg('Failed to connect to the Mirone updating server(s).','Error'),	return
+			end
 		end
 		fid = fopen(dest_fiche,'rt');
 		todos = fread(fid,'*char');		fclose(fid);
