@@ -18,7 +18,7 @@ function varargout = griding_mir(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: griding_mir.m 10405 2018-05-10 01:16:41Z j $
+% $Id$
 
 	if (nargin > 1 && ischar(varargin{1}))
 		gui_CB = str2func(varargin{1});
@@ -94,9 +94,6 @@ function hObject = griding_mir_OF(varargin)
 				set(handles.edit_y_inc,'Str',sprintf('%.12g',handles.y_inc));
 				set(handles.edit_Ncols,'Str','100');	set(handles.edit_Nrows,'Str','100');
 				set([handles.edit_InputFile handles.push_InputFile handles.popup_GridMethod], 'Enable', 'off')
-				if (~strcmp(type, 'surface'))
-					type = 'gmtmbgrid';		% hardwire - not so nice
-				end
 			end
 		else
 			type = 'surface';		% Default to surface
@@ -106,39 +103,46 @@ function hObject = griding_mir_OF(varargin)
 	end
 	handles.type = type;
 
-	% Choose the default griding_mir_export method
+	% Choose the default griding_mir method
 	% In Mirone the 'Delauny Triangulation' method is not yet implemented
-	if strcmp(type,'surface')
-		set(hObject,'Name','Surface')
-		%set(handles.popup_GridMethod, 'String', {'Minimum Curvature';'Delauny Triangulation';'Near Neighbor'});
-		set(handles.popup_GridMethod, 'String', {'Minimum Curvature';'Near Neighbor'});
-		handles.command{1} = 'surface ';
-		set(handles.edit_S1_Neighbor,'Enable', 'off', 'Backgroundcolor',[.764,.603,.603])
-		set(handles.popup_S2_Neighbor,'Enable', 'off', 'Backgroundcolor',[.764,.603,.603])
+	set(handles.popup_GridMethod, 'String', {'Minimum Curvature - surface';'Minimum Curvature - mbgrid';'Delauny Triangulation';'Near Neighbor';'Median';'Mean'});
+	if (strcmp(type,'surface') || strcmp(type,'mbgrid'))
+		if (strcmp(type,'surface'))
+			set(hObject,'Name','Surface'),		handles.command{1} = 'surface ';
+		else
+			set(hObject,'Name','gmtmbgrid'),	handles.command{1} = 'gmtmbgrid ';
+			set(handles.popup_GridMethod, 'Value', 2)
+		end
 		set(handles.push_Help_S,'Enable', 'off')
 		set(handles.check_Option_F,'Enable', 'off')
 	elseif strcmp(type,'triangulate')
 		set(hObject,'Name','Triangulate')
-		set(handles.popup_GridMethod, 'String', {'Delauny Triangulation';'Minimum Curvature';'Near Neighbor'});
+		set(handles.popup_GridMethod, 'Value', 3)
 		handles.command{1} = 'triangulate ';
-		set(handles.edit_S1_Neighbor,'Enable', 'off', 'Backgroundcolor',[.764,.603,.603])
-		set(handles.popup_S2_Neighbor,'Enable', 'off', 'Backgroundcolor',[.764,.603,.603])
 		set(handles.push_Help_S,'Enable', 'off')
 	elseif strcmp(type,'nearneighbor')
 		set(hObject,'Name','Nearneighbor')
-		%set(handles.popup_GridMethod, 'String', {'Near Neighbor';'Delauny Triangulation';'Minimum Curvature'});
-		set(handles.popup_GridMethod, 'String', {'Near Neighbor';'Minimum Curvature'});
+		set(handles.popup_GridMethod, 'Value', 4)
 		set(handles.check_Option_V,'Enable', 'off')
 		handles.command{1} = 'nearneighbor ';
+	elseif strcmp(type,'blockmedian')
+		set(hObject,'Name','Median')
+		set(handles.popup_GridMethod, 'Value', 5)
+		handles.command{1} = 'blockmedian ';
+	elseif strcmp(type,'blockmean')
+		set(hObject,'Name','Mean')
+		set(handles.popup_GridMethod, 'Value', 6)
+		handles.command{1} = 'blockmean ';
 	else			% Defaults to surface
 		set(hObject,'Name','Surface')
-		%set(handles.popup_GridMethod, 'String', {'Minimum Curvature';'Delauny Triangulation';'Near Neighbor'});
-		set(handles.popup_GridMethod, 'String', {'Minimum Curvature';'Near Neighbor'});
 		handles.command{1} = 'surface ';
-		set(handles.edit_S1_Neighbor,'Enable', 'off', 'Backgroundcolor',[.764,.603,.603])
-		set(handles.popup_S2_Neighbor,'Enable', 'off', 'Backgroundcolor',[.764,.603,.603])
 		set(handles.check_Option_F,'Enable', 'off')
 		set(handles.push_Help_S,'Enable', 'off')
+	end
+
+	if (~strcmp(type,'nearneighbor'))
+		set(handles.edit_S1_Neighbor,'Enable', 'off', 'Backgroundcolor',[.764,.603,.603])
+		set(handles.popup_S2_Neighbor,'Enable', 'off', 'Backgroundcolor',[.764,.603,.603])
 	end
 
 	if (~isempty(handles.hMirFig))						% If we know the handle to the calling fig
@@ -156,8 +160,14 @@ function hObject = griding_mir_OF(varargin)
 	guidata(hObject, handles);
 	set(hObject,'Visible','on');
 
-	if (nargin && isa(varargin{end}, 'char') && varargin{end}(1) == '-')
-		external_drive(handles, 'griding_mir', varargin{3:end})		% {3:end} Might very well be wrong
+	if (nargin)
+		do_it = false;
+		for (k = 1:nargin)
+			if (isa(varargin{k}, 'cell')),	do_it = true;	break,	end
+		end
+		if (do_it)
+			external_drive(handles, 'griding_mir', varargin{k:end})
+		end
 	end
 
 % -----------------------------------------------------------------------------------
@@ -495,15 +505,18 @@ message_win('create',message,'figname','Help -S option');
 function popup_GridMethod_CB(hObject, handles)
 	val = get(hObject,'Value');     str = get(hObject, 'String');
 	switch str{val}
-		case 'Minimum Curvature'
+		case {'Minimum Curvature - surface' 'Minimum Curvature - mbgrid'}
 			set(handles.edit_S1_Neighbor,'Enable', 'off', 'Backgroundcolor',[.764,.603,.603])
 			set(handles.popup_S2_Neighbor,'Enable', 'off', 'Backgroundcolor',[.764,.603,.603])
 			set(handles.push_Help_S,'Enable', 'off')
 			set(handles.check_Option_F,'Enable', 'off')
 			handles.command{19} = '';     handles.command{20} = '';
 			handles.command{21} = '';     handles.command{30} = '';
-			handles.command{1} = 'surface ';
-			handles.type = 'surface';
+			if (strcmp(str{val}, 'Minimum Curvature - surface'))
+				handles.command{1} = 'surface ';		handles.type = 'surface';
+			else
+				handles.command{1} = 'gmtmbgrid ';		handles.type = 'gmtmbgrid';
+			end
 		case 'Delauny Triangulation'
 			set(handles.edit_S1_Neighbor,'Enable', 'off', 'Backgroundcolor',[.764,.603,.603])
 			set(handles.popup_S2_Neighbor,'Enable', 'off', 'Backgroundcolor',[.764,.603,.603])
@@ -522,16 +535,26 @@ function popup_GridMethod_CB(hObject, handles)
 			set(handles.popup_S2_Neighbor,'Value',1)
 			handles.command{1} = 'nearneighbor ';     handles.command{30} = '';
 			handles.type = 'nearneighbor';
+		case 'Median'
+			set(handles.edit_S1_Neighbor,'Enable', 'on', 'Backgroundcolor','white')
+			set(handles.popup_S2_Neighbor,'Enable', 'on', 'Backgroundcolor','white')
+			set(handles.push_Help_S,'Enable', 'on')
+			set(handles.check_Option_F,'Enable', 'on')
+			set(handles.edit_S1_Neighbor,'String','')
+			set(handles.popup_S2_Neighbor,'Value',1)
+			handles.command{1} = 'blockmedian ';     handles.command{30} = '';
+			handles.type = 'blockmedian';
 	end
 	guidata(hObject,handles)
 
 % -----------------------------------------------------------------------------------
 function push_Grid_Options_CB(hObject, handles)
 	switch handles.command{1}
-		case 'surface '
+		case {'surface ', 'gmtmbgrid '}
 			out = surface_options(handles.command{30});
 		case 'triangulate '
 			msgbox('Not yet programed')
+			out = [];
 		case 'nearneighbor '
 			out = nearneighbor_options(handles.command{30});
 	end
@@ -595,21 +618,22 @@ function push_OK_CB(hObject, handles)
 		opt_R = sprintf('-R%.12g/%.12g/%.12g/%.12g',handles.y_min, handles.y_max, handles.x_min, handles.x_max);
 	end
 	opt_I = ['-I' get(handles.edit_x_inc,'string') '/' get(handles.edit_y_inc,'string')];
-	if (handles.IamCompiled),	opt_e = '-e';
-	else,						opt_e = '';
-	end
 	out{3} = opt_R;			out{4} = opt_I;
 
 	method = handles.type;
 
 	% We are going to use the eventual presence of a -c<n_cells> option to secretely swapp to gmtmbgrid
+	opt_c = ' ';
 	for (k = 1:numel(out))
 		ind  = strfind(out{k}, '-c');
 		if (~isempty(ind))
 			opt_c = out{k};		opt_c(2) = 'C';		% it was 'c'
 			n_cells = str2double(opt_c(3:end));
 			if (n_cells >= 0)
-				method = 'gmtmbgrid';
+				if (strcmp(method, 'surface'))
+					out{k} = sprintf('-M%dc', n_cells);	% Because the equivalent in surface is -M
+				end
+				%method = 'gmtmbgrid';
 				break
 			end
 		end
@@ -626,10 +650,12 @@ function push_OK_CB(hObject, handles)
 			end
 			tit = 'surface interpolation';
 			set(handles.figure1,'Name','Surface')
+
 		case 'nearneighbor'
-			[Z,head] = c_nearneighbor(out{2:end}, opt_e);	% We don't want the last ','
+			[Z,head] = c_nearneighbor(out{2:end}, '-N2+m1');	% The -N option must be parameterizable
 			tit = 'nearneighbor interpolation';
 			set(handles.figure1,'Name','Nearneighbor')
+
 		case 'gmtmbgrid'
  			% Data points were transmitted in input. The must-be-doubles is horrible here
 			if (~isempty(handles.xyz))
@@ -648,7 +674,21 @@ function push_OK_CB(hObject, handles)
 			Z = single(Z);
 			tit = 'mbgrid interpolation';
 			set(handles.figure1,'Name','gmtmbgrid')
+
+		case {'blockmedian' 'blockmean' 'triangulate'}
+			extra_opt = '-Az';
+			if (strncmp(method, 'tri', 3)),		extra_opt = '-G';	end
+			if (~isempty(handles.xyz))
+				G = gmtmex(sprintf('%s %s %s %s', method, opt_R, opt_I, extra_opt), handles.xyz);
+			else
+				G = gmtmex(sprintf('%s %s %s %s %s', method, out{2}, opt_R, opt_I, extra_opt));
+			end
+			Z = G.z;
+			head = [G.range G.registration G.inc];
+			tit = [method ' interpolation'];
+			set(handles.figure1,'Name', method)
 	end
+
 	if (isnan(head(5))),	head(5) = min(min(Z));		end	% It happens and needs to be investigated
 	if (isnan(head(6))),	head(6) = max(max(Z));		end
 	[ny,nx] = size(Z);		clear tmp
@@ -720,19 +760,6 @@ function figure1_KeyPressFcn(hObject, eventdata)
 	handles = guidata(hObject);
 	if isequal(get(hObject,'CurrentKey'),'escape')
 		delete(handles.figure1)
-	end
-
-% --------------------------------------------------------------------
-function about_window_CB(hObject, handles)
-	if (~isempty(handles.hMirFig))
-		handMir = guidata(handles.hMirFig);
-		if (strcmp(handles.command{1},'surface '))
-			about_box(handMir, 'surface Last modified 27 Oct 2010', '2.0.1');
-		elseif (strcmp(handles.command{1},'triangulate '))
-			about_box(handMir, 'triangulate Last modified 27 Oct 2010', '2.0.1');
-		else
-			about_box(handMir, 'nearneighbor Last modified 27 Oct 2010', '2.0.1');
-		end
 	end
 
 % --- Creates and returns a handle to the GUI figure. 
@@ -996,11 +1023,6 @@ uicontrol('Parent',h1, 'Position',[149 120 41 15],...
 'Enable','inactive',...
 'String','Unities',...
 'Style','text');
-
-uimenu('Parent',h1,...
-'Callback',@griding_mir_uiCB,...
-'Label','About',...
-'Tag','about_window');
 
 uicontrol('Parent',h1, 'Position',[101 317 67 15],...
 'HorizontalAlignment','left',...
