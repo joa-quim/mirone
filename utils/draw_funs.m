@@ -250,6 +250,7 @@ function set_line_uicontext_XY(h, opt)
 
 		uimenu(cmenuHand, 'Label', 'Delete', 'Callback', {@del_line,h(k)});
 		uimenu(cmenuHand, 'Label', 'Save line', 'Callback', {@save_formated,h(k)});
+		uimenu(cmenuHand, 'Label', 'Copy line', 'Callback', 'setappdata(0,''CtrlCHandEcran'',gco)');
 		if (strcmp(opt, 'main'))
 			% Attention, if I ever change these labels I MUST do it also in ecran/finish_line_uictx()
 			hh = uimenu(cmenuHand, 'Label', 'Shift origin here');
