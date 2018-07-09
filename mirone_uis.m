@@ -153,9 +153,13 @@ hVG(4) = uipushtool('parent',hTB,'Click','mirone(''ToolsMBplaningStart_CB'',guid
 	'Tag','MBplaning','cdata',MB_ico,'Tooltip','Multi-beam planing');
 uipushtool('parent',hTB,'Click','mirone(''FileSaveFleder_CB'',guidata(gcbo),''runPlanar'')', ...  
 	'Tag','FlederPlanar','cdata',olho_ico,'Tooltip','Run Fleder 3D Viewer');
-uipushtool('parent',hTB,'Click','writekml(guidata(gcbo))', 'Tag','toGE','cdata',GE_ico,'Tooltip','See it in Google Earth');
+uipushtool('parent',hTB,'Click','writekml(guidata(gcbo))', 'Tag','toGE','cdata',GE_ico,'Tooltip','See in Google Earth');
 uipushtool('parent',hTB,'Click','bands_list(gcf)','Tag','ImgLayers','cdata',layers_ico,'Tooltip','Load bands','Sep','on');
-uipushtool('parent',hTB,'Click',@refresca, 'Tag','Refresh','cdata',refresh_ico,'Tooltip','Refresh');
+ico = uint8(ones(16,16,3)*255);
+ico(1,:,:) = 50; ico(16,:,:) = 50; ico(:,1,:) = 50; ico(:,16,:) = 50;
+ico(6,2:end-1,:) = 100; ico(11,2:end-1,:) = 100; ico(2:15,6,:) = 100; ico(2:15,11,:) = 100;
+uipushtool('parent',hTB,'Click','plot_composer(guidata(gcbo))', 'Tag','PlotComposer','cdata',ico,'Tooltip','Plot composer');
+uipushtool('parent',hTB,'Click',@refresca, 'Tag','Refresh','cdata',refresh_ico,'Tooltip','Refresh','Sep','on');
 uipushtool('parent',hTB,'Click','grid_info(guidata(gcbo))','Tag','ImageInfo','cdata',info_ico,'Tooltip','Image info');
 
 h_axes = axes('Parent',H1,'Units','pixels','Position',[60 0 50 10],'Tag','axes1','Vis','off');
@@ -750,7 +754,7 @@ uimenu('Parent',h,'Callback','gdal_project(guidata(gcbo))','Label','GDAL project
 h = uimenu('Parent',H1,'Label','Help','Tag','Help');
 uimenu('Parent',h, 'Callback','aux_funs(''help'',guidata(gcbo))','Label','Mirone Help (v2.0)');
 uimenu('Parent',h, 'Callback', @showGDALdrivers,'Label','List GDAL formats','Sep','on')
-if (IamCompiled)
+if (1 || IamCompiled)
 	uimenu('Parent',h, 'Callback', 'mirone(''TransferB_CB'',guidata(gcbo),''dump'')','Label','Print RAM fragmentation','Sep','on')
 	uimenu('Parent',h, 'Callback', 'mirone(''TransferB_CB'',guidata(gcbo),''lasterr'')','Label','Debug - Print last error')
 	uimenu('Parent',h, 'Callback', 'mirone(''TransferB_CB'',guidata(gcbo),''sharedir'')','Label','Debug - Print GMT_SHAREDIR')
@@ -760,7 +764,7 @@ end
 %uimenu('Parent',h, 'Callback', 'update_gmt(guidata(gcbo))','Label','Update your GMT5','Sep','on')
 uimenu('Parent',h, 'Callback',['mirone(''FileOpenWebImage_CB'',guidata(gcbo),',...
 	' ''http://www2.clustrmaps.com/stats/maps-clusters/w3.ualg.pt-~jluis-mirone-world.jpg'',''nikles'');'],'Label','See visitors map','Sep','on');
-uimenu('Parent',h, 'Callback','about_box(guidata(gcbo),''Mirone Last modified at 3 July 2018'',''2.10dev'')','Label','About','Sep','on');
+uimenu('Parent',h, 'Callback','about_box(guidata(gcbo),''Mirone Last modified at 9 July 2018'',''2.10dev'')','Label','About','Sep','on');
 
 %% --------------------------- Build HANDLES and finish things here
 	handles = guihandles(H1);
