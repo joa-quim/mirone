@@ -34,6 +34,8 @@ function  test_bots(opt,varargin)
 				fill_poly_hole
 			case 'digitize_hole'
 				digitize_hole
+			case 'interp'
+				interpa
 		end
 	else
 		test_Illum;			disp('Finish: test_Illum')
@@ -46,6 +48,7 @@ function  test_bots(opt,varargin)
 		grdsample;			disp('Finish: grdsample')
 		grdtrend;			disp('Finish: grdtrend')
 		grdread;			disp('Finish: grdread')
+		interp;				disp('Finish: interpolations')
 		coasts;				disp('Finish: coasts')
 		gmtlist;			disp('Finish: gmtlist')
 		implant;			disp('Finish: implant')
@@ -171,6 +174,31 @@ function writeascii
 	zzz = load_xyz([], fname);
 	if (~isequal(zzz{1}, xyz) && ~isequal(zzz{2}, xyz)),		disp('FAIL: With NaNs and multiseg'),	end
 
+	builtin('delete',fname);
+
+% ----------------------------
+function interpa
+% Test interpolations
+	xyz = single(rand(100,3)*150);
+	fname = 'lixo_test.dat';
+	fid = fopen(fname,'w');
+	fprintf(fid,'%f %f %f\n', xyz);
+	fclose(fid);
+	h = mirone('-Cgriding_mir,guidata(gcf)', '-Xedit_InputFile,+lixo_test.dat', '-Xpush_OK');
+	pause(0.5),	delete([h.hMirFig h.hChildFig])
+	h = mirone('-Cgriding_mir,guidata(gcf)', '-Xedit_InputFile,+lixo_test.dat', '-Xpopup_GridMethod,2', '-Xpush_OK');
+	pause(0.5),	delete([h.hMirFig h.hChildFig])
+	h = mirone('-Cgriding_mir,guidata(gcf)', '-Xedit_InputFile,+lixo_test.dat', '-Xpopup_GridMethod,3', '-Xpush_OK');
+	pause(0.5),	delete([h.hMirFig h.hChildFig])
+	h = mirone('-Cgriding_mir,guidata(gcf)', '-Xedit_InputFile,+lixo_test.dat', '-Xpopup_GridMethod,5', '-Xpush_OK');
+	pause(0.5),	delete([h.hMirFig h.hChildFig])
+	set(0,'ShowHiddenHandles','on')
+	h = findobj('type','figure');
+	for (k = 1:numel(h))
+		if (strfind(get(h(k), 'Name'), 'interpolation')),	delete(h(k)),	end
+	end
+	set(0,'ShowHiddenHandles','off')
+	
 	builtin('delete',fname);
 
 % ----------------------------
