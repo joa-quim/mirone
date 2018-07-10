@@ -48,7 +48,7 @@ function  test_bots(opt,varargin)
 		grdsample;			disp('Finish: grdsample')
 		grdtrend;			disp('Finish: grdtrend')
 		grdread;			disp('Finish: grdread')
-		interp;				disp('Finish: interpolations')
+		interpa;			disp('Finish: interpolations')
 		coasts;				disp('Finish: coasts')
 		gmtlist;			disp('Finish: gmtlist')
 		implant;			disp('Finish: implant')
@@ -179,7 +179,7 @@ function writeascii
 % ----------------------------
 function interpa
 % Test interpolations
-	xyz = single(rand(100,3)*150);
+	xyz = rand(100,3)*150;
 	fname = 'lixo_test.dat';
 	fid = fopen(fname,'w');
 	fprintf(fid,'%f %f %f\n', xyz);
