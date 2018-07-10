@@ -20,16 +20,33 @@ function varargout = mirone(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: mirone.m 11364 2018-07-09 11:18:04Z j $
+% $Id: mirone.m 11370 2018-07-10 22:43:02Z j $
 
 	if (nargin > 1 && ischar(varargin{1}))
 		if (~isempty(strfind(varargin{1},':')) || ~isempty(strfind(varargin{1},filesep)) )	% A file name
 			% Very likely called with a filename with those horrendous stupid blanks
-% 			for (k = 1:nargin-1),	varargin{k}(end+1) = ' ';	end
-% 			varargin = {[varargin{:}]};
-			if (ischar(varargin{2}) && varargin{2}(1) ~= '-')		% args of the form -C<...> -X<...> are allowed
-				% Very likely called with a filename with those horrendous stupid blanks. Join only first two argins
-				varargin{1}(end+1) = ' ';	varargin(1) = {[varargin{1:2}]};	varargin(2) = [];
+% 			if (ischar(varargin{2}) && varargin{2}(1) ~= '-')		% args of the form -C<...> -X<...> are allowed
+% 				% Very likely called with a filename with those horrendous stupid blanks. Join only first two argins
+% 				varargin{1}(end+1) = ' ';	varargin(1) = {[varargin{1:2}]};	varargin(2) = [];
+% 			end
+			if (ischar(varargin{2}))
+				% OK, this may mean a name with those horrendous stupid blanks. And we don't know how many
+				% So scan the first n elemennts on nargin that are chars, cat the and try to see if they much to
+				% an existing file. If it does, assume that's fname in, otherwise we assume that the remaing
+				% args are of the form -C<...> -X<...>, which are allowed for calling the external_drive() mechanism.
+				n = 2;						% At least this we know
+				for (k = 3:nargin)
+					if (~ischar(varargin{k})),	break,	end		% Increments conter on number of first args being char
+					n = n + 1;
+				end
+				for (k = 2:n)
+					fmt = repmat('%s ', 1, k);		fmt(end) = [];	% We don't want the last ' ' in name
+					t = sprintf(fmt, varargin{1:k});
+					if (exist(t, 'file'))
+						varargin{1} = t;	varargin(2:k) = [];
+						break
+					end
+				end
 			end
 			h = mirone_OpeningFcn(varargin{:});
 			if (nargout),	varargout{1} = h;		end
