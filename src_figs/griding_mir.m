@@ -18,7 +18,7 @@ function varargout = griding_mir(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: griding_mir.m 11361 2018-07-09 11:04:07Z j $
+% $Id: griding_mir.m 11366 2018-07-10 11:11:10Z j $
 
 	if (nargin > 1 && ischar(varargin{1}))
 		gui_CB = str2func(varargin{1});
@@ -61,7 +61,6 @@ function hObject = griding_mir_OF(varargin)
 	handles.y_min_or = [];			handles.y_max_or = [];
 	handles.x_inc = [];				handles.y_inc = [];
 	handles.dms_xinc = 0;			handles.dms_yinc = 0;
-	handles.IamCompiled = false;
 	handles.xyz = [];
 	handles.one_or_zero = 1;		% For Grid Registration grids, which are the most common cases
 	handles.hMirFig = [];			% Update this bellow when integrated in Mirone
@@ -75,7 +74,7 @@ function hObject = griding_mir_OF(varargin)
 
 	% When called by Mirone varargin must contain: mirone fig handle, "type"
 	if ~isempty(varargin)
-		if (numel(varargin) >= 2 && ishandle(varargin{1}) && ischar(varargin{2}))
+		if (numel(varargin) >= 2 && ischar(varargin{2}))
 			handles.hMirFig = varargin{1};
 			type = varargin{2};
 			if (numel(varargin) >= 4)
@@ -93,7 +92,6 @@ function hObject = griding_mir_OF(varargin)
 				set(handles.edit_x_inc,'Str',sprintf('%.12g',handles.x_inc));
 				set(handles.edit_y_inc,'Str',sprintf('%.12g',handles.y_inc));
 				set(handles.edit_Ncols,'Str','100');	set(handles.edit_Nrows,'Str','100');
-				set([handles.edit_InputFile handles.push_InputFile handles.popup_GridMethod], 'Enable', 'off')
 			end
 		else
 			type = 'surface';		% Default to surface
@@ -123,7 +121,6 @@ function hObject = griding_mir_OF(varargin)
 	elseif strcmp(type,'nearneighbor')
 		set(hObject,'Name','Nearneighbor')
 		set(handles.popup_GridMethod, 'Value', 4)
-		set(handles.check_Option_V,'Enable', 'off')
 		handles.command{1} = 'nearneighbor ';
 	elseif strcmp(type,'blockmedian')
 		set(hObject,'Name','Median')
@@ -150,7 +147,6 @@ function hObject = griding_mir_OF(varargin)
 		handles.last_dir = handMir.last_dir;
 		handles.home_dir = handMir.home_dir;
 		handles.work_dir = handMir.work_dir;
-		handles.IamCompiled = handMir.IamCompiled;
 	end
 
 	%------------ Give a Pro look (3D) to the frame boxes  -------------------------------
@@ -484,10 +480,11 @@ function edit_S1_Neighbor_CB(hObject, handles)
 function popup_S2_Neighbor_CB(hObject, handles)
 	val = get(hObject,'Value');     str = get(hObject, 'String');
 	switch str{val}
+		case 'degrees',		handles.command{21} = 'd';
 		case 'minutes',		handles.command{21} = 'm';
-		case 'seconds',		handles.command{21} = 'c';
+		case 'seconds',		handles.command{21} = 's';
+		case 'meters',		handles.command{21} = 'e';
 		case 'kilometers',	handles.command{21} = 'k';
-		case 'Kilometers',	handles.command{21} = 'K';
 		otherwise,			handles.command{21} = '';
 	end
 	guidata(hObject,handles)
@@ -533,17 +530,22 @@ function popup_GridMethod_CB(hObject, handles)
 			set(handles.check_Option_F,'Enable', 'on')
 			set(handles.edit_S1_Neighbor,'String','')
 			set(handles.popup_S2_Neighbor,'Value',1)
-			handles.command{1} = 'nearneighbor ';     handles.command{30} = '';
+			handles.command{1} = 'nearneighbor ';		handles.command{30} = '';
 			handles.type = 'nearneighbor';
-		case 'Median'
+		case {'Median' 'Mean'}
 			set(handles.edit_S1_Neighbor,'Enable', 'on', 'Backgroundcolor','white')
-			set(handles.popup_S2_Neighbor,'Enable', 'on', 'Backgroundcolor','white')
+			set(handles.popup_S2_Neighbor,'Enable', 'on','Backgroundcolor','white')
 			set(handles.push_Help_S,'Enable', 'on')
 			set(handles.check_Option_F,'Enable', 'on')
 			set(handles.edit_S1_Neighbor,'String','')
 			set(handles.popup_S2_Neighbor,'Value',1)
-			handles.command{1} = 'blockmedian ';     handles.command{30} = '';
-			handles.type = 'blockmedian';
+			if (strcmp(str{val}, 'Median'))
+				handles.command{1} = 'blockmedian ';	handles.command{30} = '';
+				handles.type = 'blockmedian';
+			else
+				handles.command{1} = 'blockmean ';		handles.command{30} = '';
+				handles.type = 'blockmean';
+			end
 	end
 	guidata(hObject,handles)
 
@@ -591,10 +593,6 @@ function push_OK_CB(hObject, handles)
 		end
 		out{i} = tok;		i = i + 1;
 	end
-
-	if (get(handles.check_Option_V,'Value'))
-		out{end+1} = '-V';
-	end
 	
 	x_min = get(handles.edit_x_min,'String');   x_max = get(handles.edit_x_max,'String');
 	y_min = get(handles.edit_y_min,'String');   y_max = get(handles.edit_y_max,'String');
@@ -620,6 +618,10 @@ function push_OK_CB(hObject, handles)
 	opt_I = ['-I' get(handles.edit_x_inc,'string') '/' get(handles.edit_y_inc,'string')];
 	out{3} = opt_R;			out{4} = opt_I;
 
+	if (get(handles.check_Option_V,'Value'))
+		out{end+1} = '-Vl';
+	end
+
 	method = handles.type;
 
 	% We are going to use the eventual presence of a -c<n_cells> option to secretely swapp to gmtmbgrid
@@ -633,13 +635,13 @@ function push_OK_CB(hObject, handles)
 				if (strcmp(method, 'surface'))
 					out{k} = sprintf('-M%dc', n_cells);	% Because the equivalent in surface is -M
 				end
-				%method = 'gmtmbgrid';
 				break
 			end
 		end
 	end
 
 	set(handles.figure1,'Name','COMPUTING')
+	set(handles.figure1,'Pointer','watch');
 	switch method
 		case 'surface'
 			if (~isempty(out{2}))				% Then out{2} is presumably a file name
@@ -652,7 +654,11 @@ function push_OK_CB(hObject, handles)
 			set(handles.figure1,'Name','Surface')
 
 		case 'nearneighbor'
-			[Z,head] = c_nearneighbor(out{2:end}, '-N2+m1');	% The -N option must be parameterizable
+			if (~isempty(handles.xyz))
+				[Z,head] = c_nearneighbor(handles.xyz, out{2:end}, '-N4');	% The -N option must be parameterizable
+			else
+				[Z,head] = c_nearneighbor(out{2:end}, '-N4');
+			end
 			tit = 'nearneighbor interpolation';
 			set(handles.figure1,'Name','Nearneighbor')
 
@@ -661,10 +667,10 @@ function push_OK_CB(hObject, handles)
 			if (~isempty(handles.xyz))
 				if (size(handles.xyz,1) > 3)	% xyz is a cols array
 					[Z, head] = gmtmbgrid_m(double(handles.xyz(:,1)), double(handles.xyz(:,2)), ...
-						double(handles.xyz(:,3)), opt_I, opt_R, '-Mz', '-C3');
+						double(handles.xyz(:,3)), opt_I, opt_R, '-Mz', opt_c);
 				else
 					[Z, head] = gmtmbgrid_m(double(handles.xyz(1,:)), double(handles.xyz(2,:)), ...
-						double(handles.xyz(3,:)), opt_I, opt_R, '-Mz', '-C3');
+						double(handles.xyz(3,:)), opt_I, opt_R, '-Mz', opt_c);
 				end
 			else
 				D = gmtmex(['read -Td ' out{2} handles.opt_b]);
@@ -688,6 +694,7 @@ function push_OK_CB(hObject, handles)
 			tit = [method ' interpolation'];
 			set(handles.figure1,'Name', method)
 	end
+	set(handles.figure1,'Pointer','arrow');
 
 	if (isnan(head(5))),	head(5) = min(min(Z));		end	% It happens and needs to be investigated
 	if (isnan(head(6))),	head(6) = max(max(Z));		end
@@ -929,7 +936,7 @@ uicontrol('Parent',h1, 'Position',[60 117 51 21],...
 uicontrol('Parent',h1, 'Position',[193 116 91 22],...
 'BackgroundColor',[1 1 1],...
 'Callback',@griding_mir_uiCB,...
-'String',{''; 'minutes'; 'seconds'; 'kilometers'; 'Kilometers' },...
+'String',{''; 'degrees'; 'minutes'; 'seconds'; 'meters'; 'kilometers' },...
 'Style','popupmenu',...
 'Value',1,...
 'Tag','popup_S2_Neighbor');
@@ -1043,6 +1050,6 @@ uicontrol('Parent',h1, 'Position',[270 7 111 21],...
 'String','Compute',...
 'Tag','push_OK');
 
-function griding_mir_uiCB(hObject, eventdata)
+function griding_mir_uiCB(hObject, evt)
 % This function is executed by the callback and than the handles is allways updated.
 	feval([get(hObject,'Tag') '_CB'],hObject, guidata(hObject));
