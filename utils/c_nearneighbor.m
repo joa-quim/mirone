@@ -6,7 +6,6 @@ function [out, hdr] = c_nearneighbor(data, varargin)
 % $Id$
 
 	% nearneighbor in GMT5 is less elastic in terms of how to swallow the data array(s)
-	%if (size(data,2) == 3 || size(data,2) == 4)
 	if (size(data,2) == 3 || size(data,2) == 4 || isa(data,'char'))
 		k0 = 1;
 	elseif (numel(varargin) >= 2 && isnumeric(varargin{1}) && size(varargin{1},2) == 1 && ...
