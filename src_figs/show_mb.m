@@ -72,9 +72,12 @@ function edit_symbSize_CB(hObject, handles)
 	if (isnan(s) || s <= 0),	set(hObject,'String','0.01'),	return,		end
 
 % ----------------------------------------------------------------------
-function push_showPC_CB(hObject, handles)
+function [out, BB, DS] = push_showPC_CB(hObject, handles, opt)
 % Show data as Point Cloud. Flagged points go to a second layer
+% OPT, is present, must be either '-C' or '-Ca' to fetch SideScan or Amplitude instead of Bathymetry
+% If argout, OUT is the data as Mx3 (no flagged vals), BB is the BoundingBox and DS the point spacing
 
+	if (nargin == 2),	opt = [];	end
 	contents = cellstr(get(handles.popup_symb,'String'));
 	val = get(handles.popup_symb,'Value');
 	switch contents{val}
@@ -100,19 +103,24 @@ function push_showPC_CB(hObject, handles)
 
 	set(handles.figure1,'Pointer','watch');
 	if (get(handles.check_showFlagged, 'Val'))		% Show all flagged beans
-		D = gmtmex(sprintf('mbgetdata -I%s -A100000', handles.fnameMB));
+		D = gmtmex(sprintf('mbgetdata -I%s -A100000 %s', handles.fnameMB, opt));
 	else
-		D = gmtmex(sprintf('mbgetdata -I%s -A-100000', handles.fnameMB));
+		D = gmtmex(sprintf('mbgetdata -I%s -A-100000 %s', handles.fnameMB, opt));
 	end
 
 	% Search gor garbage around the 0,0 point. If finds some, just delte it
-	central = round(size(D(1).data,2) / 2);		% Find the central bean
+	central = round(size(D(1).data,2) / 2);		% Find the central beam
 	x = D(1).data(:,central);		y = D(2).data(:,central);		z = D(3).data(:,central);
-	ind = x < 0.01 & x > -0.01 & y < 0.01 & y > -0.01 & z > -2000;
+	ind = x < 0.01 & x > -0.01 & y < 0.01 & y > -0.01;
+	if (~strncmp(opt, '-C', 2)),	ind = ind & z > -2000;	end		% This is the bathymetry case
 	if (any(ind))
 		D(1).data(ind,:) = [];	D(2).data(ind,:) = [];	D(3).data(ind,:) = [];
 	end
-	ind = (D(3).data < 50000);				% This gives us the indices of all non-flagged guys
+	% Here we only want to check for flagged guys in the bathymetry case
+	if (strncmp(opt, '-C', 2)),	ind = true;		% SS or Amplitude. This trick makes it ignore the flagging issue.
+	else,						ind = (D(3).data < 50000);	% This gives us the indices of all non-flagged guys
+	end
+
 	if (~all(ind(:)))						% If we have some flagged
 		xyz1 = [D(1).data(ind) D(2).data(ind) D(3).data(ind)];
 		ind  = ~ind;						% Now ind holds indices of the flagged guys
@@ -121,14 +129,23 @@ function push_showPC_CB(hObject, handles)
 			xyz2 = [D(1).data(ind) D(2).data(ind) D(3).data(ind)-100000];
 			xyz2(xyz2(:,3) == 0,:) = [];	% Do not show the z = 0 pts
 		end
-		bb1  = [min(xyz1)' max(xyz1)']';		bb1 = bb1(:)';
+		t = [min(xyz1) max(xyz1)];		bb1 = [t(1) t(4) t(2) t(5) t(3) t(6)];	% [xmin xmax ymin ymax zmin zmax]
 		if (~isempty(xyz2))					% These are the flagged
-			bb2  = [min(xyz2)' max(xyz2)']';	bb2 = bb2(:)';
+			t = [min(xyz2) max(xyz2)];		bb2 = [t(1) t(4) t(2) t(5) t(3) t(6)];
 			bbg  = [min(bb1(1),bb2(1)) max(bb1(2),bb2(2)) min(bb1(3),bb2(3)) max(bb1(4),bb2(4)) ...
 					min(bb1(5),bb2(5)) max(bb1(6),bb2(6))];
 		else
 			bbg  = bb1(1:6);
 		end
+
+		if (nargout)				% Than we are done, just assign output vars and return
+			set(handles.figure1,'Pointer','arrow');
+			out = xyz1;		BB = bbg;
+			[dx, dy] = get_typical_pt_dist(D);
+			DS = sqrt(dx*dx + dy*dy);
+			return
+		end
+
 		fid  = write_flederFiles('scene_pts', fname, [], 'begin', bbg, par);
 		write_flederFiles('scene_pts', fid, xyz1, 'sec', [bb1 bbg], par);
 		if (~isempty(xyz2))
@@ -140,8 +157,20 @@ function push_showPC_CB(hObject, handles)
 		end
 	else							% No flagged pts
 		xyz1 = [D(1).data(:) D(2).data(:) D(3).data(:)];
-		bb1  = [min(xyz1)' max(xyz1)']';		bb1 = bb1(:)';
-		bbg  = bb1(1:6);
+		if (strcmp(opt, '-C'))		% Don't know why but SideScan may have many padding NaNs. Remove them
+			ind = isnan(xyz1(:,3));
+			if (any(ind)),	xyz1(ind, :) = [];	end
+		end
+		t = [min(xyz1) max(xyz1)];		bbg = [t(1) t(4) t(2) t(5) t(3) t(6)];	% [xmin xmax ymin ymax zmin zmax]
+
+		if (nargout)				% Than we are done, just assign output vars and return
+			set(handles.figure1,'Pointer','arrow');
+			out = xyz1;		BB = bbg;
+			[dx, dy] = get_typical_pt_dist(D);
+			DS = sqrt(dx*dx + dy*dy);
+			return
+		end
+
 		fid  = write_flederFiles('scene_pts', fname, [], 'begin', bbg, par);
 		write_flederFiles('scene_pts', fid, xyz1, 'sec', [bbg bbg], par);
 		write_flederFiles('scene_pts', fid, xyz1(1:4,:), 'end', [bbg bbg], par);	% Cheat second dataset. Need at least 4 pts
@@ -355,15 +384,16 @@ function [xyz, xyzK] = autocleaner(handles, tol, N_ITER, datalist)
 		if (any(ind))
 			x(ind) = NaN;	y(ind) = NaN;	z(ind) = NaN;
 		end
-		% Compute increment as 3 times the typical point spacing fetch from data's first row.
-		mid_row = round(size(D(2).data, 1) / 2);
-		dy = abs(median(diff(D(2).data(mid_row,:))));
-		dx = abs(median(diff(D(1).data(mid_row,:)))) * cos(D(2).data(mid_row,1) * pi/180);
-		if (dx == 0 || dy == 0)		% Try at another location infile
-			mid_row = round(size(D(2).data, 1) / 3);
-			dy = abs(median(diff(D(2).data(mid_row,:))));
-			dx = abs(median(diff(D(1).data(mid_row,:)))) * cos(D(2).data(mid_row,1) * pi/180);
-		end
+		% Compute increment as 3 times the typical point spacing fetch from data.
+		[dx, dy] = get_typical_pt_dist(D);
+% 		mid_row = round(size(D(2).data, 1) / 2);
+% 		dy = abs(median(diff(D(2).data(mid_row,:))));
+% 		dx = abs(median(diff(D(1).data(mid_row,:)))) * cos(D(2).data(mid_row,1) * pi/180);
+% 		if (dx == 0 || dy == 0)		% Try at another location infile
+% 			mid_row = round(size(D(2).data, 1) / 3);
+% 			dy = abs(median(diff(D(2).data(mid_row,:))));
+% 			dx = abs(median(diff(D(1).data(mid_row,:)))) * cos(D(2).data(mid_row,1) * pi/180);
+% 		end
 		% If it's still 0, give up
 		if (dx == 0 || dy == 0)
 			txt = ['This file ' handles.fnameMB ' is really screwed. Can''t guess a decent point spread distance ' ...
@@ -425,7 +455,23 @@ function [xyz, xyzK] = autocleaner(handles, tol, N_ITER, datalist)
 % 	opt_R = sprintf('-R%.12g/%.12g/%.12g/%.12g', min(xc),max(xc),min(yc),max(yc));
 % 	[Z, head] = gmtmbgrid_m(xc, yc, zc, '-I0.0005', opt_R, '-Mz', '-C2');
 % 	aux_funs('showgrd', struct('geog',1), Z, head, 'Autocleaned')
-	
+
+%-------------------------------------------------------------------------------------
+function [dx, dy] = get_typical_pt_dist(D)
+% Estimate the typical point spacing fro data mid size
+
+	mid_row = round(size(D(2).data, 1) / 2);
+	dy = abs(median(diff(D(2).data(mid_row,:))));
+	dx = abs(median(diff(D(1).data(mid_row,:)))) * cos(D(2).data(mid_row,1) * pi/180);
+	if (dx == 0 || dy == 0)		% Try at another locations in file
+		for (k = 1:3)
+			mid_row = round(size(D(2).data, 1) * k / 4);
+			dy = abs(median(diff(D(2).data(mid_row,:))));
+			dx = abs(median(diff(D(1).data(mid_row,:)))) * cos(D(2).data(mid_row,1) * pi/180);
+			if (dx ~= 0 && dy ~= 0),	break,	end
+		end
+	end
+
 %-------------------------------------------------------------------------------------
 function [x,y,z, ind] = iteration_cleaner(x,y,z, opt_R, opt_I, tol, ind_old)
 % Do one iteration round and return only the points that are within the condition.
@@ -728,12 +774,28 @@ function push_OK_CB(hObject, handles)
 	end
 
 	if (get(handles.check_datalist,'Val'))
-		opt_C = handles.opt_C;		opt_N = handles.opt_N;	% For these we have buttons here
+		opt_C = handles.opt_C;			opt_N = handles.opt_N;	% For these we have buttons here
 		if (~isempty(handles.opt_R)),	opt_R = handles.opt_R;		end
 		if (~isempty(handles.opt_Z)),	opt_Z = handles.opt_Z;		end
 	end
-	I = gmtmex(['mbimport -I' handles.fnameMB opt_Z opt_N opt_C opt_R]);
-	mirone(I)
+
+	if (~get(handles.check_trueGrid, 'Val'))
+		I = gmtmex(['mbimport -I' handles.fnameMB opt_Z opt_N opt_C opt_R]);
+		mirone(I)
+	else
+		opt_C = '';
+		if (get(handles.radio_imgSS, 'Val')),		opt_C = '-C';
+		elseif (get(handles.radio_imgAmp, 'Val')),	opt_C = '-Ca';
+		end
+		[out, BB, DS] = push_showPC_CB(handles.push_showPC, handles, opt_C);
+		h = griding_mir([], 'nearneighbor', BB(1:4), out);
+		if (DS ~= 0)
+			if (get(handles.radio_imgSS, 'Val')),	DS = 2 * DS;	end		% Otherwise the default is too small
+			external_drive(guidata(h), 'griding_mir', {sprintf('edit_x_inc,+%.12g',DS), sprintf('edit_y_inc,+%.12g',DS), ...
+				sprintf('edit_S1_Neighbor,+%.12g',2.5*DS), 'check_Option_V,1'})	% No -X... because calling it directly
+		end
+
+	end
 	if (handles.no_file && ishandle(handles.hMirFig)),	delete(handles.hMirFig),	end
 
 %-------------------------------------------------------------------------------------
@@ -893,10 +955,16 @@ function h1 = show_mb_LayoutFcn()
 		'TooltipString','Gray scale Side Scan plot',...
 		'Tag','radio_imgSS');
 
+	uicontrol('Parent',h1, 'Position',[190 80 51 15],...
+		'String','grd?',...
+		'Style','checkbox',...
+		'Tooltip','Compute a true grid. But be warned that it may take some time.',...
+		'Tag','check_trueGrid');
+
 	uicontrol('Parent',h1, 'Position',[31 21 151 15],...
 		'String','Use commands in datalist',...
 		'Style','checkbox',...
-		'TooltipString','The datalist has it''s own commands. If checked, use those commands',...
+		'TooltipString','The datalist may have it''s own commands. If checked, use those commands',...
 		'Tag','check_datalist');
 
 	uicontrol( 'Parent',h1, 'Position',[190 17 40 24],...
