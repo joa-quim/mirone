@@ -16,7 +16,7 @@ function [H1,handles,home_dir] = mirone_uis(home_dir)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: mirone_uis.m 11365 2018-07-09 11:21:36Z j $
+% $Id: mirone_uis.m 11371 2018-07-10 23:21:23Z j $
 
 %#function pan igrf_options rally_plater plate_calculator ecran snapshot
 %#function about_box parker_stuff euler_stuff grid_calculator tableGUI usgs_recent_seismicity
@@ -88,7 +88,7 @@ function [H1,handles,home_dir] = mirone_uis(home_dir)
 		'IntegerHandle','off',...
 		'MenuBar','none',...
 		'Toolbar', 'none',...
-		'Name','Mirone 2.10dev',...
+		'Name','Mirone 2.10',...
 		'NumberTitle','off',...
 		'PaperPositionMode','auto',...
 		'PaperSize',[20.984 29.677],...
@@ -754,7 +754,7 @@ uimenu('Parent',h,'Callback','gdal_project(guidata(gcbo))','Label','GDAL project
 h = uimenu('Parent',H1,'Label','Help','Tag','Help');
 uimenu('Parent',h, 'Callback','aux_funs(''help'',guidata(gcbo))','Label','Mirone Help (v2.0)');
 uimenu('Parent',h, 'Callback', @showGDALdrivers,'Label','List GDAL formats','Sep','on')
-if (1 || IamCompiled)
+if (IamCompiled)
 	uimenu('Parent',h, 'Callback', 'mirone(''TransferB_CB'',guidata(gcbo),''dump'')','Label','Print RAM fragmentation','Sep','on')
 	uimenu('Parent',h, 'Callback', 'mirone(''TransferB_CB'',guidata(gcbo),''lasterr'')','Label','Debug - Print last error')
 	uimenu('Parent',h, 'Callback', 'mirone(''TransferB_CB'',guidata(gcbo),''sharedir'')','Label','Debug - Print GMT_SHAREDIR')
@@ -764,7 +764,7 @@ end
 %uimenu('Parent',h, 'Callback', 'update_gmt(guidata(gcbo))','Label','Update your GMT5','Sep','on')
 uimenu('Parent',h, 'Callback',['mirone(''FileOpenWebImage_CB'',guidata(gcbo),',...
 	' ''http://www2.clustrmaps.com/stats/maps-clusters/w3.ualg.pt-~jluis-mirone-world.jpg'',''nikles'');'],'Label','See visitors map','Sep','on');
-uimenu('Parent',h, 'Callback','about_box(guidata(gcbo),''Mirone Last modified at 9 July 2018'',''2.10dev'')','Label','About','Sep','on');
+uimenu('Parent',h, 'Callback','about_box(guidata(gcbo),''Mirone Last modified at 11 July 2018'',''2.10'')','Label','About','Sep','on');
 
 %% --------------------------- Build HANDLES and finish things here
 	handles = guihandles(H1);
