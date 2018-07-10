@@ -108,7 +108,7 @@ function [out, BB, DS] = push_showPC_CB(hObject, handles, opt)
 		D = gmtmex(sprintf('mbgetdata -I%s -A-100000 %s', handles.fnameMB, opt));
 	end
 
-	% Search gor garbage around the 0,0 point. If finds some, just delte it
+	% Search for garbage around the 0,0 point. If finds some, just delte it
 	central = round(size(D(1).data,2) / 2);		% Find the central beam
 	x = D(1).data(:,central);		y = D(2).data(:,central);		z = D(3).data(:,central);
 	ind = x < 0.01 & x > -0.01 & y < 0.01 & y > -0.01;
@@ -789,7 +789,7 @@ function push_OK_CB(hObject, handles)
 		end
 		[out, BB, DS] = push_showPC_CB(handles.push_showPC, handles, opt_C);
 		h = griding_mir([], 'nearneighbor', BB(1:4), out);
-		if (DS ~= 0)
+		if (DS ~= 0 && ~isnan(DS))
 			if (get(handles.radio_imgSS, 'Val')),	DS = 2 * DS;	end		% Otherwise the default is too small
 			external_drive(guidata(h), 'griding_mir', {sprintf('edit_x_inc,+%.12g',DS), sprintf('edit_y_inc,+%.12g',DS), ...
 				sprintf('edit_S1_Neighbor,+%.12g',2.5*DS), 'check_Option_V,1'})	% No -X... because calling it directly
