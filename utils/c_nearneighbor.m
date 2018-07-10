@@ -3,10 +3,9 @@ function [out, hdr] = c_nearneighbor(data, varargin)
 
 % A merda é que 'data' pode ser um Mx3 ou entao um Mx1 e os X,Y[,W] devem tar no varargin
 
-% $Id: c_nearneighbor.m 11357 2018-07-09 10:54:46Z j $
+% $Id: c_nearneighbor.m 11368 2018-07-10 11:20:42Z j $
 
 	% nearneighbor in GMT5 is less elastic in terms of how to swallow the data array(s)
-	%if (size(data,2) == 3 || size(data,2) == 4)
 	if (size(data,2) == 3 || size(data,2) == 4 || isa(data,'char'))
 		k0 = 1;
 	elseif (numel(varargin) >= 2 && isnumeric(varargin{1}) && size(varargin{1},2) == 1 && ...
