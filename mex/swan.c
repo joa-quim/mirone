@@ -1211,7 +1211,7 @@ int read_grd_info_ascii (char *file, struct srf_header *hdr) {
 	fgets (line, 512, fp);
 	sscanf (line, "%s", hdr->id);
 	fgets (line, 512, fp);
-	sscanf (line, "%d %d", &hdr->nx, &hdr->ny);
+	sscanf (line, "%hd %hd", &hdr->nx, &hdr->ny);
 	fgets (line, 512, fp);
 	sscanf (line, "%lf %lf", &hdr->x_min, &hdr->x_max);
 	fgets (line, 512, fp);
@@ -1248,7 +1248,7 @@ int read_grd_ascii (char *file, struct srf_header *hdr, double *work) {
 	fgets (line, 512, fp);
 	sscanf (line, "%s", hdr->id);
 	fgets (line, 512, fp);
-	sscanf (line, "%d %d", &hdr->nx, &hdr->ny);
+	sscanf (line, "%hd %hd", &hdr->nx, &hdr->ny);
 	fgets (line, 512, fp);
 	sscanf (line, "%lf %lf", &hdr->x_min, &hdr->x_max);
 	fgets (line, 512, fp);
