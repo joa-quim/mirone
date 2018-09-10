@@ -466,7 +466,9 @@ function hObject = mirone_OpeningFcn(varargin)
 		info.intermediate = (exist([pato 'binned_GSHHS_i.nc'], 'file') == 2);
 		info.low  = (exist([pato 'binned_GSHHS_l.nc'], 'file') == 2);
 		setappdata(0,'gmt_version',info);	% Save it to the next time a new mirone window is opened
-		set_gmt(['GMT5_SHAREDIR=' home_dir fsep 'gmt_share']);	% GMT5_SHAREDIR because it's looked for before GMT_SHAREDIR
+		if (info.intermediate && info.low && (exist([home_dir fsep 'gmt_share/cpt/'], 'dir') == 7))
+			set_gmt(['GMT5_SHAREDIR=' home_dir fsep 'gmt_share']);	% GMT5_SHAREDIR because it's searched before GMT_SHAREDIR
+		end
 	end
 
 	if (~info.full && ~info.high && ~info.intermediate && ~info.low)
@@ -488,6 +490,7 @@ function hObject = mirone_OpeningFcn(varargin)
 
 	% Deal with the new troubles introduced by using GMT5.2 that needs to know where to find its own share dir
 	t = set_gmt('GMT5_SHAREDIR', 'whatever');		% Inquire if GMT5_SHAREDIR exists 
+	if (isempty(t)),	t = set_gmt('GMT_SHAREDIR', 'whatever');	end		% Then GMT_SHAREDIR
 	if (isempty(t) || (~(exist(t, 'dir') == 7)))	% Test also that the dir exists
 		% If not, set a fake one with minimalist files so that GMT does not complain/errors
 		% We have to use GMT5_SHAREDIR and NOT GMT_SHAREDIR because it's the first one checked in gmt_init.c/GMT_set_env()
