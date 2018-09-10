@@ -1,5 +1,5 @@
 /*--------------------------------------------------------------------
- *	$Id: xyzokb_m.c 4120 2013-08-24 01:22:39Z j $
+ *	$Id$
  *
  *	Copyright (c) 2004-2012 by J. Luis
  *
@@ -214,7 +214,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	int	km, pm;		/* index of current body facet (for mag only) */
 	mwSize	*faces = NULL;
 	float	one_100, *ptr_s = NULL, *vertices = NULL, *out_s;
-	float	*mag_array = NULL, *dec_array = NULL, *dec_array = NULL;
+	float	*mag_array = NULL, *dec_array = NULL, *dip_array = NULL;
 	double	s_rad = 50000, s_rad2, z_dir = -1, z0 = 0.1, rho = 0.0, zobs = 0, dz = 0;
 	double	w = 0.0, e = 0.0, s = 0.0, n = 0.0, t_mag, a, DX, DY;
 	double	t_dec, t_dip, m_int, m_dec, m_dip, cc_t, cs_t, s_t, *ptr_d, *out_d;
@@ -1101,7 +1101,7 @@ double okb_grv (int n_vert, struct LOC_OR *loc_or) {
 		if (r > FLT_EPSILON) {
 			c_psi = dx / r;
 			s_psi = dy / r;
-			grv_p = eq_30(c_psi, s_psi, x2, y2, loc_or[l+1].z) - eq_30(c_psi, s_psi, x1, y1, z1 = loc_or[l].z);
+			grv_p = eq_30(c_psi, s_psi, x2, y2, loc_or[l+1].z) - eq_30(c_psi, s_psi, x1, y1, loc_or[l].z);
 		}
 		else
 			grv_p = 0.0;
