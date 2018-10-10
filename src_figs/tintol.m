@@ -31,14 +31,14 @@ function tintol(handles,axis_t,X,Y,I)
 % 	h2 = setxor(h1,handles.OpenGI);
 % 	delete(h2)
 
-% $Id: tintol.m 10217 2018-01-24 21:33:46Z j $
+% $Id$
 
 	set(handles.figure1, 'Vis', 'off')
 
 	if (handles.validGrid)
 		h = tintol_buttons_LayoutFcn(handles.figure1);
 		handTintButt = local_guihandles(h);				% THIS WILL BE SEEN AS 'HANDLES' inside _CBs
-		handTintButt.nested_level = cell(10,2);			% 10 is more than enough
+		handTintButt.nested_level = cell(10,3);			% 10 is more than enough
 		imSize = [];
 		if (abs(diff(handles.head(8:9))) > 1e-4)
 			imSize = handles.head(8) / handles.head(9);	% Need to remind this to resizetrue
@@ -47,6 +47,7 @@ function tintol(handles,axis_t,X,Y,I)
 		[X,Y,Z,head] = load_grd(handles);				% Copy Z/head into the nested_level cell array
 		handTintButt.nested_level{1,1} = double(Z);
 		handTintButt.nested_level{1,2} = head;
+		handTintButt.nested_level{1,3} = 'In memory grid';
 		handTintButt.geog = handles.geog;
 		str = get(handTintButt.popup_nestings,'Str');
 		str{1} = '0 -- level ready to use';
@@ -61,9 +62,10 @@ function tintol(handles,axis_t,X,Y,I)
 		resizetrue(handles,[512 512], 'xy', [350 550]);
 		h = tintol_buttons_LayoutFcn(handles.figure1);
 		handTintButt = local_guihandles(h);			% THIS WILL BE SEEN AS 'HANDLES' inside _CBs
-		handTintButt.nested_level = cell(10,2);
+		handTintButt.nested_level = cell(10,3);
 	end
 	
+	handTintButt.validGrid = handles.validGrid;
 	set([handTintButt.edit_MaregraphPosFile  handTintButt.push_MaregraphPosFile], 'Enable','off')
 	set([handTintButt.edit_MaregraphDataFile handTintButt.push_MaregraphDataFile],'Enable','off')
 
@@ -190,8 +192,9 @@ function push_NestGrids_CB(hObject, handles, opt)
 
 	str = get(handles.popup_nestings,'Str');
 	val = get(handles.popup_nestings,'Val');
-	if (val > handles.last_nested_level + 1)		% User Screw up, probably a joke/esticanço
+	if (val > handles.last_nested_level + 2)		% User Screw up, probably a joke/esticanço
 		errordlg('You cannot jump steps. Be modest and select one nesting level at a time.','Chico Clever')
+		set(handles.edit_NestGrids, 'Str', '')
 		return
 	elseif (val == 1 && (numel(str{1}) == 1 && str{1} == '0'))
 		handMain = guidata(handles.figure1);
@@ -225,6 +228,7 @@ function push_NestGrids_CB(hObject, handles, opt)
 
 	handles.nested_level{val,1} = double(Z);
 	handles.nested_level{val,2} = head;
+	handles.nested_level{val,3} = fname;
 
 	str{val} = sprintf('%d -- level ready to use', val-1);
 	set(handles.popup_nestings, 'Str', str, 'Val', val);		% Make clear what nesting level we are on
@@ -305,7 +309,18 @@ function push_bordering_CB(hObject, handles)
 %--------------------------------------------------------------------------------
 function popup_nestings_CB(hObject, handles)
 % Show what has been loaded so far but don't let it be changed because we rely on an automatic schema.
-	set(hObject,'Val',handles.last_nested_level)
+	val = get(hObject, 'Val');
+	set(handles.edit_NestGrids, 'Enable', 'on')
+	if (val <= handles.last_nested_level+1)				% If grid is already loaded, show its name
+		set(handles.edit_NestGrids, 'Str', handles.nested_level{val,3})
+		if (val == 1 && handles.validGrid)
+			set(handles.edit_NestGrids, 'Enable', 'off')
+		end
+	elseif (val == handles.last_nested_level + 2)		% If next one to enter, OK, show a blank box
+		set(handles.edit_NestGrids, 'Str', '')
+	else												% Else, just show the last provide one (no gaps allowed)
+		set(hObject,'Val',handles.last_nested_level+1)
+	end
 
 %--------------------------------------------------------------------------------
 function radio_outGrids_CB(hObject, handles)
@@ -525,7 +540,7 @@ function push_RUN_CB(hObject, handles)
 	% Must do this search before calling the check_error function
 	h_mareg = findobj('Type','line','Tag','Maregraph');
 	if (isempty(h_mareg)),		handles.MaregraphInMemory = false;
-	else						handles.MaregraphInMemory = true;
+	else,						handles.MaregraphInMemory = true;
 	end
 
 	err_str = check_errors(handles);
