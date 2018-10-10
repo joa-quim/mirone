@@ -88,6 +88,8 @@ function varargout = ecran(varargin)
 			delete(hM),		set(handles.FileSaveRedMark,'Vis','off')
 		end
 		if (freshFig),	hObject = [];	end		% So that we force creation of a new fig later down
+	elseif (~isempty(hObject) && isempty(varargin) && freshFig)		% A call to "New"
+		hObject = [];
 	end
 
 	n_in = nargin;		PV = [];	call_fhandle = [];	x_label = '';	y_label = '';
@@ -1512,13 +1514,14 @@ function FileOpen_CB(hObject, handles)
 		handles.dist = rd;				% Save it in case user wants to save it to file
 		handles.hLine = line('Parent',handles.axes1,'XData',rd, 'YData',data(:,out(3)));
 	else
+		nPrevLines = numel(handles.hLine);
 		if (multi_seg)
-			handles.hLine = zeros(numel(data),1);
+			handles.hLine = [handles.hLine zeros(1, numel(data))];
 			for (k = 1:numel(data))
-				handles.hLine(k) = line('Parent',handles.axes1,'XData',data{k}(:,out(1)),'YData',data{k}(:,out(2)));
+				handles.hLine(k+nPrevLines) = line('Parent',handles.axes1,'XData',data{k}(:,out(1)),'YData',data{k}(:,out(2)));
 			end
 		else
-			handles.hLine = line('Parent',handles.axes1,'XData',data(:,out(1)),'YData',data(:,out(2)));
+			handles.hLine(nPrevLines+1) = line('Parent',handles.axes1,'XData',data(:,out(1)),'YData',data(:,out(2)));
 		end
 	end
 
