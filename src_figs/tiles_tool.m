@@ -16,7 +16,7 @@ function varargout = tiles_tool(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: tiles_tool.m 10223 2018-01-25 15:47:09Z j $
+% $Id: tiles_tool.m 11380 2018-10-10 10:44:02Z j $
 
 	hObject = figure('Vis','off');
 	tiles_tool_LayoutFcn(hObject);
@@ -74,7 +74,7 @@ function varargout = tiles_tool(varargin)
 		end
 		cacheDirs(ind) = [];			% Remove eventual non existent dirs
 		if (isempty(cacheDirs)),		cacheDirs = {''};		val = 1;		% It can't be an empty var
-		else							cacheDirs = [{''}; cacheDirs];		val = 2;
+		else,							cacheDirs = [{''}; cacheDirs];		val = 2;
 		end
 		set(handles.popup_directory_list,'String',cacheDirs, 'Val', val)
 	end
@@ -181,7 +181,7 @@ function popup_directory_list_CB(hObject, handles, opt)
 	if (~isempty(opt))				% Add a new entry to the cache dir list. Otherwise, just normal popup functioning.
 		contents = get(hObject, 'String');
 		if (numel(contents) == 1),	rest = [];
-		else						rest = contents(2:end);
+		else,						rest = contents(2:end);
 		end
 
 		cacheTilesDir = [{opt}; rest];			% Also the var that will be saved in 'mirone_pref'
@@ -226,8 +226,12 @@ function click_MOSAIC_e_GO_CB(hObject, event)
 	ind = get(handles.patchHandles, 'UserData');
 	if (isempty(ind)),		return,		end			% No patches ploted
 	ind = logical(cat(1,ind{:}));
-	if (~any(ind)),			return,		end			% No patch selected
+	if (~any(ind))			% No patch selected
+		warndlg('You need to select one or more squares (click and they will turn yellow) to use this option.', 'Warning')
+		return
+	end
 	
+try
 	% ---------------- Have cache info? -----------------
 	val = get(handles.popup_directory_list,'Value');
 	contents = get(handles.popup_directory_list, 'String');
@@ -252,6 +256,9 @@ function click_MOSAIC_e_GO_CB(hObject, event)
 	else
 		url2image('callmir',lon,lat, zoomLevel, 'cache', cacheDir, 'what',whatkind, source_PN, source_PV, 'verbose','yes');
 	end
+catch
+	errordlg(lasterr)
+end
 
 % -----------------------------------------------------------------------------------------
 function [whatkind, source_PN, source_PV] = get_kind(handles)
@@ -317,7 +324,7 @@ function region2tiles(handles,lon,lat,zoomFactor)
 function bdn_tile(obj,eventdata)
 	stat = get(gcbo,'UserData');
 	if (~stat),		set(gcbo,'FaceColor','y','UserData',1)        % If not selected
-	else			set(gcbo,'FaceColor','none','UserData',0)
+	else,			set(gcbo,'FaceColor','none','UserData',0)
 	end
 	refresh
 
@@ -326,7 +333,7 @@ function bdn_tile_fckd(obj,eventdata)
 % Version to work with the post R2015 fckage
 	stat = get(gcbo,'UserData');
 	if (~stat),		set(gcbo,'FaceColor','y','UserData',1,'FaceAlpha', 1)        % If not selected
-	else			set(gcbo,'FaceColor','w','UserData',0, 'FaceAlpha', 0.005)
+	else,			set(gcbo,'FaceColor','w','UserData',0, 'FaceAlpha', 0.005)
 	end
 	refresh
 
@@ -411,13 +418,13 @@ function slider_Cb(obj,evt,hAxes,opt)
 % -------------------------------------------------------------------------------------
 function radio_mercator_CB(hObject, handles)
 	if (get(hObject, 'Val')),		set(handles.radio_geogs, 'Val', 0)
-	else							set(hObject, 'Val', 1)
+	else,							set(hObject, 'Val', 1)
 	end
 
 % -------------------------------------------------------------------------------------
 function radio_geogs_CB(hObject, handles)
 	if (get(hObject, 'Val')),		set(handles.radio_mercator, 'Val', 0)
-	else							set(hObject, 'Val', 1)
+	else,							set(hObject, 'Val', 1)
 	end
 
 % -------------------------------------------------------------------------------------
@@ -558,14 +565,14 @@ function figure1_KeyPressFcn(hObj, eventdata)
 		if (strcmp(CK,'rightarrow') || strcmp(CK,'leftarrow'))
 			SS = get(hSliders(1),'SliderStep');			val = get(hSliders(1),'Value');
 			if (CK(1) == 'r'),		newVal = min(val + SS(1), 1);	% I know that imscroll_j sliders are [0 1]
-			else					newVal = max(0, val - SS(1));
+			else,					newVal = max(0, val - SS(1));
 			end
 			set(hSliders(1),'Value', newVal)
 			imscroll_j(handles.axes1,'SetSliderHor')
 		elseif (strcmp(CK,'uparrow') || strcmp(CK,'downarrow'))
 			SS = get(hSliders(2),'SliderStep');			val = get(hSliders(2),'Value');
 			if (CK(1) == 'u'),		newVal = min(val + SS(1), 1);	% I know that imscroll_j sliders are [0 1]
-			else					newVal = max(0, val - SS(1));
+			else,					newVal = max(0, val - SS(1));
 			end
 			set(hSliders(2),'Value', newVal)
 			imscroll_j(handles.axes1,'SetSliderVer')
@@ -617,7 +624,7 @@ uicontrol('Parent',h1, 'Position',[398 5 23 21],...
 
 uicontrol('Parent',h1, 'Position',[450 30 41 19],...
 'Tooltip','When dowloading, add this level to the slider level value',...
-'String',{'0'; '+1'; '+2'; '+3'; '+4'},...
+'String',{'0'; '+1'; '+2'; '+3'; '+4'; '+5'; '+6'; '+7'; '+8'; '+9'; '+10'},...
 'Style','popupmenu',...
 'Value',1,...
 'Tag','popup_addLevel');
@@ -750,21 +757,21 @@ function varargout = tiles_servers(varargin)
 % -----------------------------------------------------------------------------------------
 function edit_aerial_CB(hObject, handles, opt)
 	if (nargin == 3),		handles.aerial = opt;		% Called by popupmenu
-	else					handles.aerial = get(hObject, 'String');
+	else,					handles.aerial = get(hObject, 'String');
 	end
 	guidata(handles.figure1, handles)
 
 % -----------------------------------------------------------------------------------------
 function edit_road_CB(hObject, handles, opt)
 	if (nargin == 3),		handles.road = opt;			% Called by popupmenu
-	else					handles.road = get(hObject, 'String');
+	else,					handles.road = get(hObject, 'String');
 	end
 	guidata(handles.figure1, handles)
 
 % -----------------------------------------------------------------------------------------
 function edit_hybrid_CB(hObject, handles, opt)
 	if (nargin == 3),		handles.hybrid = opt;		% Called by popupmenu
-	else					handles.hybrid = get(hObject, 'String');
+	else,					handles.hybrid = get(hObject, 'String');
 	end
 	guidata(handles.figure1, handles)
 
