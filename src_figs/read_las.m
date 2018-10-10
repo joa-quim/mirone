@@ -21,7 +21,7 @@ function varargout = read_las(varargin)
 % can swapp the readers by simply toggling (search-replace) the mexs
 %	laszreader_mex <-> lasreader_mex
 
-% $Id: read_las.m 10217 2018-01-24 21:33:46Z j $
+% $Id: read_las.m 11379 2018-10-10 10:41:14Z j $
 
 	hObject = figure('Vis','off');
 	read_las_LayoutFcn(hObject);
@@ -115,7 +115,7 @@ function edit_LASfile_CB(hObject, handles, fname)
 	if (nargin == 2),	fname = [];		end
 
 	if (isempty(fname)),	fname = get(hObject, 'Str');
-	else					set(hObject, 'Str', fname)
+	else,					set(hObject, 'Str', fname)
 	end
 
 	if (exist(fname, 'file') == 2)
@@ -278,7 +278,7 @@ function edit_BINfile_CB(hObject, handles, fname)
 	if (nargin == 2),	fname = [];		end
 
 	if (isempty(fname)),	fname = get(hObject, 'Str');
-	else					set(hObject, 'Str', fname)
+	else,					set(hObject, 'Str', fname)
 	end
 % 	fname = [fname '.vtk'];
 
@@ -330,7 +330,7 @@ function edit_FLEDERfile_CB(hObject, handles, fname)
 	end
 	
 	if (isempty(fname)),	fname = get(hObject, 'Str');
-	else					set(hObject, 'Str', fname)
+	else,					set(hObject, 'Str', fname)
 	end
 	write_flederFiles('points', fname, xyz, 'first', handles.bbox);
 	semaforo_toggle(handles, 'green')
@@ -345,13 +345,16 @@ function push_goFleder_CB(hObject, handles)
 	if (isempty(xyz))
 		warndlg('No data points with current selection','Warning'),		return
 	end
-	write_flederFiles('points', fname, xyz, 'first', handles.bbox);		pause(0.1)
+	s.PTparams.Symbol   = 7;		% Point
+	s.PTparams.PointRad = 0.01;
+	s.PTparams.ColorBy  = 1;
+	write_flederFiles('points', fname, xyz, 'first', handles.bbox, s);		pause(0.05)
 	semaforo_toggle(handles, 'green')
 	
 	if (isempty(handles.whichFleder)),	handles.whichFleder = 1;	end
 	comm = [' -data ' fname ' &'];
 	if (handles.whichFleder),	fcomm = ['iview3d' comm];			% Free viewer
-	else						fcomm = ['fledermaus' comm];		% The real thing
+	else,						fcomm = ['fledermaus' comm];		% The real thing
 	end
 	try
 		if (isunix)				% Stupid linux doesn't react to a non-existant iview4d
@@ -360,7 +363,7 @@ function push_goFleder_CB(hObject, handles)
 				errordlg('I could not find Fledermaus. Hmmm, do you have it?','Error')
 			end
 		elseif (ispc),	dos(fcomm);
-		else			errordlg('Unknown platform.','Error'),	return
+		else,			errordlg('Unknown platform.','Error'),	return
 		end
 	catch
 		errordlg('I could not find Fledermaus. Hmmm, do you have it?','Error')
@@ -385,7 +388,7 @@ function xyz = get_data(handles)
 	[out, colorBy] = parse_before_go(handles);
 	if (~colorBy.do)			% Simpler case. No data spliting
 		if (~isempty(out)),		xyz = laszreader_mex(handles.fname, out{:});
-		else					xyz = laszreader_mex(handles.fname);
+		else,					xyz = laszreader_mex(handles.fname);
 		end
 	elseif (colorBy.do && colorBy.split)
 		% Here we have to deal with a convoluted logic as we'll allow Clip options as well
