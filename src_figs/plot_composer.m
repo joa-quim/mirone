@@ -536,12 +536,8 @@ function grid_figs(handles, N_figs)
 
 % -----------------------------------------------------------------------------------------
 function popup_paperSize_CB(hObject, handles)
-	val = get(hObject,'Value');		str = get(hObject,'String');	str = str{val};
-	switch str
-		case 'cm',			lims = handles.paper_cm(val,1:2);
-		case 'in',			lims = handles.paper_in(val,1:2);
-		case 'pt',			lims = handles.paper_pt(val,1:2);
-	end
+	val = get(hObject,'Value');		%str = get(hObject,'String');	str = str{val};
+	lims = handles.paper_cm(val,1:2);
 	if (get(handles.radio_Portrait,'Value'))
 		set(handles.axes1,'XLim',[0 lims(1)],'YLim',[0 lims(2)]);
 	else
@@ -1232,7 +1228,7 @@ function push_OK_CB(hObject, handles)
 		[script, l, o, haveAlfa, used_grd, nameRGB] = do_grdimg(handMir, script, pack, l, o);
 		hWait = [];
 		if (pack.do_MEX && handMir.image_type ~= 20)
-			[mex_sc, o, hWait] = do_grdimg_MEX(handMir, mex_sc, o, pack.KORJ);
+			[mex_sc, o, hWait] = do_grdimg_MEX(handMir, mex_sc, o, pack.KORJ, haveAlfa);
 		end
 
 		% If we have used a grid, build the GMT palette
@@ -1504,7 +1500,7 @@ function [script, mex_sc, l, o] = do_psbasemap(script, mex_sc, l, o, pack, opt_R
 function [script, l, o, haveAlfa, used_grd, nameRGB] = do_grdimg(handMir, script, pack, l, o)
 % Deal with the grdimage & grdgradient part
 
-	[comm, pb, pf, do_MEX, ellips, RJOK, KORJ, dest_dir, prefix, prefix_ddir, opt_len_unit] = unpack(pack);
+	[comm, pb, pf, do_MEX, ellips, RJOK, KORJ, dest_dir, prefix, prefix_ddir] = unpack(pack);
 	haveAlfa = false;	used_grd = false;
 	nameRGB = [];				% When not empty it means we'll do a screen capture ('image' or to capture transp)
 	if (~isempty(handMir.grdname))
@@ -1579,7 +1575,7 @@ function [script, l, o, haveAlfa, used_grd, nameRGB] = do_grdimg(handMir, script
 function [script, l, o, sc_cpt] = do_palette(handMir, script, l, o, pack, used_grd, id_cpt)
 % ...
 	if (used_grd || strcmp(get(handMir.PalAt,'Check'),'on') || strcmp(get(handMir.PalIn,'Check'),'on') )
-		[comm, pb, pf, do_MEX, ellips, RJOK, KORJ, dest_dir, prefix, prefix_ddir, opt_len_unit] = unpack(pack);
+		[comm, pb, pf, do_MEX, ellips, RJOK, KORJ, dest_dir, prefix] = unpack(pack);
 		tmp = cell(261,1);
 		pal = get(handMir.figure1,'colormap');
 		if (handMir.have_nans),     cor_nan = pal(1,:);     pal = pal(2:end,:);   end     % Remove the bg color
@@ -1626,12 +1622,34 @@ function [script, l, o, sc_cpt] = do_palette(handMir, script, l, o, pack, used_g
 	end
 
 % ------------------------------------------------------------------------------------------------------------
-function [mex_sc, o, hWait] = do_grdimg_MEX(handMir, mex_sc, o, KORJ)
+function [mex_sc, o, hWait] = do_grdimg_MEX(handMir, mex_sc, o, KORJ, haveAlfa)
 % Do the grdimage stuff for MEX
 	hWait = aguentabar(0,'title','Computing fig');
 	pad = 0;
 	if (handMir.geog && isempty(strfind(KORJ, '-JX'))),		pad = 2;	end
-	img = get(handMir.hImg, 'CData');
+	%img = get(handMir.hImg, 'CData');
+
+	alphaMask = (numel(get(handMir.hImg,'AlphaData')) ~= 1);	% If it has AlphaData, assume that SC is needed
+	if (~haveAlfa && ~handMir.is_draped && ~alphaMask)
+        img = mirone('File_img2GMT_RGBgrids_CB', handMir, 'image', 'lixo');
+	else
+		% Here we'll hide everything except the patches with transparency
+		ALLlineHand  = findobj(get(handMir.axes1,'Child'),'Type','line');
+		ALLpatchHand = findobj(get(handMir.axes1,'Child'),'Type','patch');
+		ALLtextHand  = findobj(get(handMir.axes1,'Child'),'Type','text');
+		set(ALLlineHand, 'Vis', 'off');		set(ALLpatchHand, 'Vis', 'off');	set(ALLtextHand, 'Vis', 'off')
+		[hPatch, hAlfaPatch] = findTransparents(ALLpatchHand);
+		set(hAlfaPatch, 'Vis', 'on')		% Only semi-transparent ones are visible now
+		refresh(handMir.figure1)			% F... Matlab OpenGL driver has more bugs than a dead rat
+		if (isempty(ALLlineHand) && isempty(ALLpatchHand) && isempty(ALLtextHand))	% No need to SC because image is clean
+			img = mirone('File_img2GMT_RGBgrids_CB', handMir, 'image', 'lixo');
+		else
+			img = mirone('File_img2GMT_RGBgrids_CB', handMir, 'fromWS', 'lixo');
+		end
+		% Make everybody visible again
+		set(ALLlineHand, 'Vis', 'on');		set(ALLpatchHand, 'Vis', 'on');	set(ALLtextHand, 'Vis', 'on')
+	end
+
 	n_band = size(img,3);
 	if (n_band == 1)		% DONT KNOW IF THERE IS A BETTER SOLUTION, BUT img MUST BE RGB
 		img = ind2rgb8(img, get(handMir.figure1,'Colormap'));	% img is now RGB
@@ -1652,10 +1670,11 @@ function [mex_sc, o, hWait] = do_grdimg_MEX(handMir, mex_sc, o, KORJ)
 	end
 	img2 = reshape(img2, new_size);
 
-	I.proj4 = '';	I.wkt = '';		I.range = handMir.head(1:6);	I.inc = handMir.head(8:9);	I.nodata = NaN;
+	I.proj4 = '';	I.wkt = '';		I.range = handMir.head(1:6);	I.nodata = NaN;
 	I.registration = handMir.head(7);	I.title = '';	I.comment = '';	I.command = '';	I.datatype = 'uint8';
 	I.x = linspace(handMir.head(1), handMir.head(2), size(img,2));
 	I.y = linspace(handMir.head(3), handMir.head(4), size(img,1));
+	I.inc = [(I.x(2) - I.x(1)) (I.y(2) - I.y(1))];		% This is a safer value then head(8:9) because SC may have change img dims
 	I.image = img2;	I.x_unit = '';	I.y_unit = '';	I.z_unit = '';	I.colormap = [];	I.alpha = [];
 	I.layout = 'BRPa';
 	I.pad = pad;
@@ -1672,7 +1691,7 @@ function [mex_sc, o, hWait] = do_grdimg_MEX(handMir, mex_sc, o, KORJ)
 function [script, mex_sc, l, o] = do_pscoast(handles, handMir, script, mex_sc, l, o, pack, opt_R, opt_J)
 % Do wrapping work around the pscoast call
 
-	[comm, pb, pf, do_MEX, ellips, RJOK, KORJ, dest_dir, prefix, prefix_ddir] = unpack(pack);
+	[comm, pb, pf, do_MEX, ellips, RJOK] = unpack(pack);
 
 	if (~isempty(handles.opt_psc))	% We have pscoast commands
 		if (~do_MEX)
@@ -1890,7 +1909,7 @@ function [script, mex_sc, l, o, hLine, hPatch] = do_meca(handMir, script, mex_sc
 	if (~isempty(hPatch))
 		focHand = findobj(hPatch,'Tag','FocalMeca');
 		if (~isempty(focHand))
-			[comm, pb, pf, do_MEX, ellips, RJOK, KORJ, dest_dir, prefix, prefix_ddir, opt_len_unit] = unpack(pack);
+			[comm, pb, pf, do_MEX, ellips, RJOK, KORJ, dest_dir, prefix, prefix_ddir] = unpack(pack);
 			% First deal with the 'line anchors'
 			focHandAnchor = findobj(hLine,'Tag','FocalMecaAnchor');   % Handles of the line anchors
 			x = get(focHandAnchor,'XData');			y = get(focHandAnchor,'YData');
@@ -2408,25 +2427,28 @@ function [script, mex_sc, l, o] = do_colorbar(handles, handMir, script, mex_sc, 
 % ------------------------------------------------------------------------------------------------------------
 function do_screncapture(handMir, hAlfaPatch, haveAlfa, do_writeScript, nameRGB)
 % ...
-	if (~isempty(nameRGB) && ~haveAlfa && do_writeScript)
-        mirone('File_img2GMT_RGBgrids_CB', handMir, 'image', nameRGB)
-	elseif (~isempty(nameRGB) && haveAlfa && do_writeScript)
-		% Here we'll hide everything except the patches with transparency
-		ALLlineHand = findobj(get(handMir.axes1,'Child'),'Type','line');
-		ALLpatchHand = findobj(get(handMir.axes1,'Child'),'Type','patch');
-		ALLtextHand = findobj(get(handMir.axes1,'Child'),'Type','text');
-		set(ALLlineHand, 'Vis', 'off');		set(ALLpatchHand, 'Vis', 'off');	set(ALLtextHand, 'Vis', 'off')
-		set(hAlfaPatch, 'Vis', 'on')					% Only semi-transparent ones are visible now
-		try
-			refresh(handMir.figure1)		% F... Matlab OpenGL driver has more bugs than a dead rat
-			if (isempty(ALLlineHand) && isempty(ALLpatchHand) && isempty(ALLtextHand))	% No need to SC because image is clean
-	        	mirone('File_img2GMT_RGBgrids_CB', handMir, 'image', nameRGB)
-			else
-				mirone('File_img2GMT_RGBgrids_CB', handMir, 'fromWS', nameRGB)
+	if (do_writeScript)
+		alphaMask = (numel(get(handMir.hImg,'AlphaData')) ~= 1);	% If it has AlphaData, assume that SC is needed
+		if (~isempty(nameRGB) && ~haveAlfa && ~handMir.is_draped && ~alphaMask)
+			mirone('File_img2GMT_RGBgrids_CB', handMir, 'image', nameRGB)
+		elseif (~isempty(nameRGB) && (haveAlfa || handMir.is_draped || alphaMask))
+			% Here we'll hide everything except the patches with transparency
+			ALLlineHand = findobj(get(handMir.axes1,'Child'),'Type','line');
+			ALLpatchHand = findobj(get(handMir.axes1,'Child'),'Type','patch');
+			ALLtextHand = findobj(get(handMir.axes1,'Child'),'Type','text');
+			set(ALLlineHand, 'Vis', 'off');		set(ALLpatchHand, 'Vis', 'off');	set(ALLtextHand, 'Vis', 'off')
+			set(hAlfaPatch, 'Vis', 'on')		% Only semi-transparent ones are visible now
+			try
+				refresh(handMir.figure1)		% F... Matlab OpenGL driver has more bugs than a dead rat
+				if (isempty(ALLlineHand) && isempty(ALLpatchHand) && isempty(ALLtextHand))	% No need to SC because image is clean
+					mirone('File_img2GMT_RGBgrids_CB', handMir, 'image', nameRGB)
+				else
+					mirone('File_img2GMT_RGBgrids_CB', handMir, 'fromWS', nameRGB)
+				end
 			end
+			% Make everybody visible again
+			set(ALLlineHand, 'Vis', 'on');		set(ALLpatchHand, 'Vis', 'on');	set(ALLtextHand, 'Vis', 'on')
 		end
-		% Make everybody visible again
-		set(ALLlineHand, 'Vis', 'on');		set(ALLpatchHand, 'Vis', 'on');	set(ALLtextHand, 'Vis', 'on')
 	end
 
 % ------------------------------------------------------------------------------------------------------------
