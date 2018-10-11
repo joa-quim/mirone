@@ -123,7 +123,7 @@ function  varargout = url2image(opt, varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: url2image.m 10221 2018-01-25 15:43:56Z j $
+% $Id$
 
 	quadkey = {'0' '1'; '2' '3'};				% Default to Virtual Earth
 	prefix = 'http://a0.ortho.tiles.virtualearth.net/tiles/a';
@@ -418,7 +418,8 @@ function [url, lon_mm, lat_mm, x, y] = tile2url(opt, geoid, quadkey, prefix, lon
 			[cache, cache_supp, ext, isWW] = completeCacheName(cache, ext, zoomL, decimal_adress, whatKind);
 			[img, cmap] = getImgTile(quadkey, quad_, url, cache, cache_supp, ext, decimal_adress, isWW, verbose);
 		else
-			img = repmat(repmat(uint8(200), [256 256 3]), mMo, nMo);		% Pre-allocate the final image size
+			%img = repmat(repmat(uint8(200), [256 256 3]), mMo, nMo);		% Pre-allocate the final image size
+			img = alloc_mex(256*mMo, 256*mMo, 3, 'uint8', 200);			% repmat can't do it for big arrays, and that before the mem limit. Fck.
 			for (i=1:mMo)
 				[cache, cache_supp, ext, isWW] = completeCacheName(cache, ext, zoomL, decimal_adress, whatKind);	% WW changes cache dir per rows
 				for (j=1:nMo)
