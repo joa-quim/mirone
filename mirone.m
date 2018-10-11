@@ -20,7 +20,7 @@ function varargout = mirone(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: mirone.m 11371 2018-07-10 23:21:23Z j $
+% $Id: mirone.m 11387 2018-10-11 13:13:34Z j $
 
 	if (nargin > 1 && ischar(varargin{1}))
 		if (~isempty(strfind(varargin{1},':')) || ~isempty(strfind(varargin{1},filesep)) )	% A file name
@@ -1439,7 +1439,7 @@ function FileSaveGMTgrid_CB(handles, opt)
 	nc_io(f_name, 'w', handles, Z, misc)
 
 % --------------------------------------------------------------------
-function File_img2GMT_RGBgrids_CB(handles, opt1, opt2)
+function out = File_img2GMT_RGBgrids_CB(handles, opt1, opt2)
 % Save image as a triplet of gmt grids - R,G,B.
 % OPT1 == 'image' || == [] Capture only the image and not graphical elements
 %	(lines, symbols, etc...). The grids nrow & ncol is the same as the image
@@ -1448,6 +1448,9 @@ function File_img2GMT_RGBgrids_CB(handles, opt1, opt2)
 %	that may have been drawn (lines, symbols, etc...).
 % OPT2 == fname. It is used by the write gmt script routine to capture the image and
 %	write the image as a triplet of gmt grids with name stem = OPT2.
+%
+% If OUT is required return image before saving nc files.
+
 	if (handles.no_file),	return,		end
 
 	if    (nargin == 1),	opt1 = 'image';		opt2 = [];
@@ -1490,21 +1493,25 @@ function File_img2GMT_RGBgrids_CB(handles, opt1, opt2)
 	else,								img = flipdim(imcapture(handles.axes1,'img',0),1);		% Call from write_script
 	end
 
+	if (~strcmp(get(handles.axes1,'Ydir'),'normal')),	flip = true;	else,	flip = false;	end
+
 	if (ndims(img) == 2)
+		if (flip),	img = flipud(img);	flip = false;	end		% Cheaper to flip while it's still 2D
 		img = ind2rgb8(img,get(handles.figure1,'Colormap'));	% Need this because image is indexed
 	end
-	flip = false;
-	if (~strcmp(get(handles.axes1,'Ydir'),'normal')),	flip = true;	end
+
+	if (nargout)
+		out = img;		return
+	end
 
 	% Defaults and srsWKT fishing are set in nc_io
 	if (~flip)
-		nc_io(f_name_r, 'w', handles, img(:,:,1));		nc_io(f_name_g, 'w', handles, img(:,:,2))
+		nc_io(f_name_r, 'w', handles, img(:,:,1));			nc_io(f_name_g, 'w', handles, img(:,:,2))
 		nc_io(f_name_b, 'w', handles, img(:,:,3))
 	else
-		nc_io(f_name_r, 'w', handles, flipud(img(:,:,1)));		nc_io(f_name_g, 'w', handles, flipud(img(:,:,2)))
+		nc_io(f_name_r, 'w', handles, flipud(img(:,:,1)));	nc_io(f_name_g, 'w', handles, flipud(img(:,:,2)))
 		nc_io(f_name_b, 'w', handles, flipud(img(:,:,3)))
 	end
-	set(handles.figure1,'pointer','arrow')
 
 % --------------------------------------------------------------------
 function FileSaveENCOMgrid_CB(handles)
@@ -3141,6 +3148,14 @@ function DrawClosedPolygon_CB(handles, opt)
 		set(hl,'Color',handles.DefLineColor,'LineWidth',handles.DefLineThick)	% Use defaults LineThick and DefLineColor
 		am_I_padded = getappdata(handles.figure1,'SidePadded');
 		if (~isempty(am_I_padded))			% TINTOL mode
+			h = findobj(handles.axes1, 'type', 'line', 'Tag', 'NEST');
+			if (~isempty(h))
+				delete(hl)
+				msg{1} = 'You CANNOT draw more than one family of nested grids.';
+				msg{2} = 'If you want to add more nesting levels, right-click on inner one and select "New nested grid"';
+				msg{3} = 'Otherwise, to start over, just delete all plotted rectangles';
+				errordlg(msg, 'Error'),		return
+			end
 			draw_funs([],'set_recTsu_uicontext', hl)	% Set uicontextmenus appropriate for grid nesting
 		else
 			draw_funs(hl,'line_uicontext')	% Set lines's uicontextmenu
