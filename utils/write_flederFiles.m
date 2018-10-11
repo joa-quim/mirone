@@ -86,7 +86,7 @@ function filename = write_flederFiles(opt,varargin)
 		else
 			% A bit of cheating. Modify the OPT string to build a geoimage obj 
 			if (opt(1) == 'r'),		opt = 'runGeoimg';
-			else					opt = 'writeGeoimg';
+			else,					opt = 'writeGeoimg';
 			end
 			head = handles.head;
 		end
@@ -914,8 +914,8 @@ function write_line(fid,mode,x,y,z,np,lim_reg,line_props, TDRver, proj)
 
 	start_TDR(fid, mode)				% If mode == 'first' the TDR object starts here
 
-	if (iscell(x)),     n_segments = length(x);
-	else                n_segments = 1;
+	if (iscell(x)),		n_segments = length(x);
+	else,				n_segments = 1;
 	end
     
 	% Make sure x & y are row vectors
@@ -997,7 +997,7 @@ function write_pts(fid, hand, mode, limits, TDRver, proj, quakes, opt)
 		else
 			[m, n] = size(hand{i});		% We must allow for column or row vectors in input
 			if (m > n),		xx = hand{i}(:,1)';		yy = hand{i}(:,2)';
-			else			xx = hand{i}(1,:);		yy = hand{i}(2,:);
+			else,			xx = hand{i}(1,:);		yy = hand{i}(2,:);
 			end
 		end
 		if (strcmp(quakes,'Earthquakes'))  % Test those first because they have a z
@@ -1014,7 +1014,7 @@ function write_pts(fid, hand, mode, limits, TDRver, proj, quakes, opt)
 			else
 				if (min(m,n) == 3)	% Have Z
 					if (m > n),		zz = hand{i}(:,3)';
-					else			zz = hand{i}(3,:);
+					else,			zz = hand{i}(3,:);
 					end
 				end
 			end
@@ -1061,7 +1061,7 @@ function [x,y,z,count] = lines2multiseg(hands,z_level)
 
 	x = get(hands,'XData');		y = get(hands,'YData');		z = get(hands,'UserData');
 	got_Z = false;
-	
+
 	if (iscell(x))
 		n_lines = length(x);			% Number of lines
 		if (~isempty(z{1}) && isnumeric(z{1})),		got_Z = true;	end		% Line(s) have Z info
@@ -1121,7 +1121,7 @@ function [x,y,z,count] = lines2multiseg(hands,z_level)
 				id_nan = find(xt ~= xt);% Find the new position of the now non-contiguous NaNs
 			end
 			id_nan = [0 id_nan];        % Used to make it start at one        
-			
+
 			n_segments = length(id_nan)-1;
 			xx = cell(n_segments,1);    yy = xx;    zz = xx;
 			for (k = 1:n_segments)
