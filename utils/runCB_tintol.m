@@ -9,7 +9,7 @@ function runCB_tintol(handles)
 	set([handles.Image handles.Tools handles.Plates handles.MagGrav ...
 		handles.Seismology handles.GMT handles.GridTools], 'Vis', 'off')
 % 	set([handles.DrawGeogCirc handles.Anaglyph handles.MBplaning], 'Vis', 'off')	% Stupid compiler screws here
- 	set([handles.Anaglyph handles.MBplaning], 'Vis', 'off')
+ 	set([handles.Anaglyph handles.MBplaning handles.FlederPlanar handles.toGE handles.ImgLayers handles.PlotComposer], 'Vis', 'off')
 	
 	set(findobj(handles.Tsunamis, 'Label', 'TINTOL'), 'Vis','off')			% When in TINTOL we don't want to see this anymore
 	set(findobj(handles.Tsunamis, 'Label', 'Plot Stations'), 'Vis','on')	% And these were hiden waiting for showing up here
