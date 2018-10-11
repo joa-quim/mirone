@@ -25,7 +25,7 @@ function varargout = draw_funs(hand, varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: draw_funs.m 11358 2018-07-09 10:57:22Z j $
+% $Id: draw_funs.m 11383 2018-10-11 11:23:30Z j $
 
 % A bit of strange tests but they are necessary for the cases when we use the new feval(fun,varargin{:}) 
 opt = varargin{1};		% function name to evaluate (new) or keyword to select one (old form)
@@ -1635,7 +1635,7 @@ function set_circleCart_uicontext(h)
 	uimenu(cmenuHand, 'Label', 'Make me Donut', 'Sep','on', 'Callback', {@donutify, h(1), 'cart'})
 	uimenu(cmenuHand, 'Label', 'Region-Of-Interest', 'Sep','on', 'Callback', cb_roi);
 	hp = getappdata(handles.figure1, 'ParentFig');
-	if ( ~isempty(hp) && ishandle(hp) && ~isempty(strfind(get(handles.figure1,'Name'), 'spectrum')) )
+	if (~isempty(hp) && ishandle(hp) && ~isempty(strfind(get(handles.figure1,'Name'), 'spectrum')))
 		uimenu(cmenuHand, 'Label', 'Low Pass FFT filter', 'Callback', 'mirone(''GridToolsSectrum_CB'',guidata(gcbo), ''lpass'', gco)');
 		uimenu(cmenuHand, 'Label', 'High Pass FFT filter','Callback', 'mirone(''GridToolsSectrum_CB'',guidata(gcbo), ''hpass'', gco)');
 	end
@@ -2659,7 +2659,7 @@ function set_symbol_uicontext(h,data)
 	elseif strcmp(tag,'hydro')		% DATA must be a cell array with 5 cols contining description of each Vent
 		uimenu(cmenuHand, 'Label', 'Hydrotermal info', 'Callback', {@hydro_info,h,data});
 		separator = true;	
-	elseif ( strcmp(tag,'DSDP') || strcmp(tag,'ODP') || strcmp(tag,'IODP') )	% DATA is a struct with leg, site, z & penetration fields
+	elseif (strcmp(tag,'DSDP') || strcmp(tag,'ODP') || strcmp(tag,'IODP'))	% DATA is a struct with leg, site, z & penetration fields
 		uimenu(cmenuHand, 'Label', [tag ' info'], 'Callback', {@ODP_info,h,data.leg,data.site,data.z,data.penetration});
 		separator = true;
 	elseif strcmp(tag,'City_major') || strcmp(tag,'City_other')
@@ -3181,7 +3181,7 @@ function save_GMT_DB_asc(h, fname)
 		if (isempty(getappdata(h(k), 'edited'))),	continue,	end		% Skip because it was not modified
 		GSHHS_str = getappdata(h(k),'GSHHS_str');
 		if (k == 1 && ~isempty(GSHHS_str))		% Write back the magic string that allows us to recognize these type of files
-			fprintf(fid,'# $Id: draw_funs.m 11358 2018-07-09 10:57:22Z j $\n#\n%s\n#\n', GSHHS_str);
+			fprintf(fid,'# $Id: draw_funs.m 11383 2018-10-11 11:23:30Z j $\n#\n%s\n#\n', GSHHS_str);
 		end
 		hdr = getappdata(h(k), 'LineInfo');
 		x = get(h(k), 'XData');			y = get(h(k), 'YData');
@@ -3969,7 +3969,7 @@ function set_transparency(obj,eventdata, h_patch)
 
 	if (nargin == 2),	h_patch = gco;	end
 	p_fc = get(h_patch,'FaceColor');
-	if ( strcmpi(p_fc,'none') )
+	if (strcmpi(p_fc,'none'))
 		msg{1} = 'Transparency assumes that the element has a color';
 		msg{2} = 'However, as you will agree, that is not the case.';
 		msg{3} = 'See "Fill color" in this element properties.';
