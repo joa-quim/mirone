@@ -248,6 +248,7 @@ mex/cvcolor_mex.c -text
 mex/cvlib_mex.c -text
 mex/cvlib_mex.cpp -text
 mex/distmin.c -text
+mex/earthtide.c -text
 mex/edison/compile_edison_wrapper.m -text
 mex/edison/edge/BgDefaults.h -text
 mex/edison/edge/BgEdge.cpp -text
@@ -394,6 +395,7 @@ src_figs/demets_od.m -text
 src_figs/digitalFiltering.m -text
 src_figs/diluvio.m -text
 src_figs/draw_scale.m -text
+src_figs/earth_tides.m -text
 src_figs/earthquakes.m -text
 src_figs/ecran.m -text
 src_figs/empilhador.m -text
@@ -465,8 +467,8 @@ src_figs/sat_orbits.m -text
 src_figs/scatter_plot.m -text
 src_figs/select_cols.m -text
 src_figs/shading_params.m -text
-src_figs/show_MB.m -text
 src_figs/show_manguito.m -text
+src_figs/show_mb.m -text
 src_figs/show_palette.m -text
 src_figs/slices.m -text
 src_figs/smoothing_param.m -text
@@ -600,6 +602,7 @@ utils/intersections.m eol=lf
 utils/inv3d.m -text
 utils/ivan_the_terrible.m -text
 utils/jd2date.m -text
+utils/kovesi_funs.m -text
 utils/line_of_sight.m -text
 utils/load_grd.m -text
 utils/load_xyz.m -text

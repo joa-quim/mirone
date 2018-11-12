@@ -16,7 +16,7 @@ function varargout = aquamoto(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: aquamoto.m 10217 2018-01-24 21:33:46Z j $
+% $Id: aquamoto.m 11391 2018-11-12 12:24:32Z j $
 
 % For compiling one need to include the aqua_suppfuns.m files.
 
@@ -386,7 +386,7 @@ function push_swwName_CB(hObject, eventdata, handles, opt)
 	handles.IamTSU = false;
 	if (~any(ind))
 		if (isempty(handles.ncVarName)),	tmpName = handles.fname;	% Get the first >= 2D var that shows up in file
-		else								tmpName = {handles.fname, handles.ncVarName};	% Get that specific var
+		else,								tmpName = {handles.fname, handles.ncVarName};	% Get that specific var
 		end
 		[X,Y,Z,head,misc] = nc_io(tmpName,'R');
 		if (numel(head) == 9 && isfield(misc,'z_id'))			% INTERCEPT POINT FOR PLAIN COARDS NETCDF FILES
@@ -492,17 +492,33 @@ function push_swwName_CB(hObject, eventdata, handles, opt)
 		for (k = 17:-1:11),		handles.ranges{k} = handles.ranges{k-1};	end
 		for (k = 7:-1:5),		handles.ranges{k} = handles.ranges{k-1};	end
 		handles.ranges{4} = double(nc_funs('varget', handles.fname, 'elevation_range'));
-		set(handles.popup_extraFields, 'Enable', 'on')
+		contents = get(handles.popup_extraFields, 'String');
+		contents{end+1} = 'Elevation';
+		set(handles.popup_extraFields, 'Str', contents, 'Enable', 'on')
 	end
 
-	% --- Find if Roughness exists and if is single or multi-layer
+	% --- Find if any multi-layered variable with the same size of stage exists. If yes, pick the first one
+	ind = strcmpi(varNames,'stage');	% Find the indice of the Stage var
+	stg_size = s.Dataset(ind).Size;		% Size of the stage var
+	extra_ind = 0;
+	ind = ind(ind);			% Make it a scalar
+	for (k = 1:numel(varNames))
+		if (k ~= ind && isequal(s.Dataset(k).Size, stg_size))
+			if ~(strcmpi(varNames{k}, 'xmomentum') || strcmpi(varNames{k}, 'ymomentum') || strcmpi(varNames{k}, 'elevation'))
+				extra_ind = k;
+				break
+			end
+		end
+	end
+
 	handles.n_roughness = 0;
-	ind = strcmpi(varNames,'roughness');
-	if (any(ind))
+	if (extra_ind)
+		ind = extra_ind;
 		handles.n_roughness = numel(s.Dataset(ind).Size);
-		handles.ranges{30} = double(nc_funs('varget', handles.fname, 'roughness_range'));
+		range_name = sprintf('%s_range', varNames{ind});
+		handles.ranges{30} = double(nc_funs('varget', handles.fname, range_name));
 		contents = get(handles.popup_extraFields, 'String');
-		contents{end+1} = 'Rougness';
+		contents{end+1} = varNames{ind};
 		set(handles.popup_extraFields, 'Str', contents, 'Enable', 'on')
 	end
 
@@ -659,11 +675,11 @@ function push_showSlice_CB(hObject, eventdata, handles)
 
 		elseif (~splitDryWet)								% No Land/Water spliting
 			if (~get(handles.check_globalMinMax, 'Val')),	minmax = [];		% Use Slice's min/max
-			else				minmax = [handles.minWater handles.maxWater];
+			else,				minmax = [handles.minWater handles.maxWater];
 			end
 			
 			if (~isempty(minmax)),			img = scaleto8(Z, 8, minmax);
-			else							img = scaleto8(Z);
+			else,							img = scaleto8(Z);
 			end
 
 			if (get(handles.radio_shade, 'Val'))
@@ -964,7 +980,7 @@ function [theVar, U, V, indVar, indWater, qual] = get_derivedVar(handles)
 function elev = get_elevation(handles, opt)
 % Since elevation started to be a multi-layered var we have this chunk of code repeatedly
 	if (nargin == 1),	sliceNumber = handles.sliceNumber;
-	else				sliceNumber = opt;
+	else,				sliceNumber = opt;
 	end
 	if (handles.n_elevations == 1)
 		elev = nc_funs('varget', handles.fname, 'elevation')';
@@ -981,8 +997,8 @@ function img = do_imgWater(handles, indVar, Z, imgBat, indLand)
 
 	minmax = [handles.minWater handles.maxWater];		% Despite the name it respects the "indVar"
 	if (~get(handles.check_globalMinMax, 'Val')),		minmax = [];	end		% Use Slice's min/max
-	if (~isempty(minmax)),		imgWater = scaleto8(Z, 8, minmax);
-	else						imgWater = scaleto8(Z);
+	if (~isempty(minmax)),	imgWater = scaleto8(Z, 8, minmax);
+	else,					imgWater = scaleto8(Z);
 	end
 
 	handles.handMir = guidata(handles.hMirFig);			% Get updated handles to see if illum has changed
@@ -1034,7 +1050,7 @@ function R = illumByType(handles, Z, head, illumComm)
 
 	if (strncmp(illumComm, '-A', 2))	% This is a bit risky if I ever add other illumination options
 		if (handles.geog),  R = grdgradient_m(Z,head,'-M',illumComm,'-Nt');
-		else                R = grdgradient_m(Z,head,illumComm,'-Nt');
+		else,                R = grdgradient_m(Z,head,illumComm,'-Nt');
 		end
 	else
 		R = grdgradient_m(Z,head,illumComm);
@@ -1207,10 +1223,8 @@ function radio_ymoment_CB(hObject, eventdata, handles)
 % -----------------------------------------------------------------------------------------
 function popup_extraFields_CB(hObject, eventdata, handles)
 % Here we just set or unset the radio buttons depending on the popup's value
-	contents = get(hObject, 'String');
 	val = get(hObject,'Value');
-	qual = contents{val};
-	if (strcmpi(qual,'elevation') || strcmpi(qual,'roughness'))
+	if (val > 1)
 		set([handles.radio_stage handles.radio_xmoment handles.radio_ymoment], 'Value', 0)
 		set([handles.check_derivedVar handles.check_splitDryWet],'Val',0)
 	else
@@ -1273,7 +1287,7 @@ function toggle_1_CB(hObject, eventdata, handles)
 	paint_toggle_ico(handles.toggle_1, handles.toggle_2)
 	show_needed(handles,'grdgradient_A')
 	if (get(handles.radio_land,'Value')),   handles.landCurrIllumType  = 'grdgradient_A';
-	else                                    handles.waterCurrIllumType = 'grdgradient_A';
+	else,                                    handles.waterCurrIllumType = 'grdgradient_A';
 	end
 	ButtonUp([],[],handles.h_line,handles)		% This call updates the handles. water|land IllumComm
 
@@ -1282,7 +1296,7 @@ function toggle_2_CB(hObject, eventdata, handles)
 	paint_toggle_ico(handles.toggle_2, handles.toggle_1)
 	show_needed(handles,'lambertian')
 	if (get(handles.radio_land,'Value')),   handles.landCurrIllumType  = 'lambertian';
-	else                                    handles.waterCurrIllumType = 'lambertian';
+	else,                                    handles.waterCurrIllumType = 'lambertian';
 	end
 	ButtonUp([],[],handles.h_line,handles)		% This call updates the handles. water|land IllumComm
 
@@ -1353,7 +1367,7 @@ function push_palette_CB(hObject, eventdata, handles)
 		if (get(handles.radio_land,'Val'))
 			handles.cmapLand = cmap;        % This copy will be used if user loads another bat grid
 			if (~isempty(handles.head_bat)),	head = handles.head_bat;	% ---> DESENRASQUE DA TRETA
-			else								head = handles.head;
+			else,								head = handles.head;
 			end
 			handles.cmapBat = makeCmapBat(handles, head, cmap, 1);
 			handles.imgBat = [];			% Force recomputing on next call
@@ -1369,7 +1383,7 @@ function check_resetCmaps_CB(hObject, eventdata, handles)
 % Reset to the default cmaps and make this ui invisible
 	if (get(hObject,'Value'))
 		if (~isempty(handles.head_bat)),	head = handles.head_bat;	% ---> DESENRASQUE DA TRETA
-		else								head = handles.head;
+		else,								head = handles.head;
 		end
 		handles.cmapBat = makeCmapBat(handles, head, handles.cmapLand_bak, 1);    % Put the discontinuity at the zero of bat
 		handles.cmapWater = handles.cmapWater_bak;
@@ -1405,7 +1419,7 @@ function push_apply_CB(hObject, eventdata, handles)
 % -----------------------------------------------------------------------------------------
 function radio_gif_CB(hObject, eventdata, handles)
 	if (get(hObject,'Value')),      set([handles.radio_avi handles.radio_mpg],'Value',0)
-	else                            set(hObject,'Value',1)
+	else,                            set(hObject,'Value',1)
 	end
 	mname = get(handles.edit_movieName,'String');
 	if (~isempty(mname))
@@ -1415,7 +1429,7 @@ function radio_gif_CB(hObject, eventdata, handles)
 % -----------------------------------------------------------------------------------------
 function radio_avi_CB(hObject, eventdata, handles)
 	if (get(hObject,'Value')),      set([handles.radio_gif handles.radio_mpg],'Value',0)
-	else                            set(hObject,'Value',1)
+	else,                            set(hObject,'Value',1)
 	end
 	mname = get(handles.edit_movieName,'String');
 	if (~isempty(mname))
@@ -1425,7 +1439,7 @@ function radio_avi_CB(hObject, eventdata, handles)
 % -----------------------------------------------------------------------------------------
 function radio_mpg_CB(hObject, eventdata, handles)
 	if (get(hObject,'Value')),		set([handles.radio_avi handles.radio_gif],'Value',0)
-	else							set(hObject,'Value',1)
+	else,							set(hObject,'Value',1)
 	end
 	mname = get(handles.edit_movieName,'String');
 	if (~isempty(mname))
@@ -1471,7 +1485,7 @@ function push_movieName_CB(hObject, eventdata, handles, opt)
 	if (isempty(EXT))
 		if (get(handles.radio_gif,'Value')),		EXT = '.gif';
 		elseif (get(handles.radio_mpg,'Value')),	EXT = '.mpg';
-		else										EXT = '.avi';
+		else,										EXT = '.avi';
 		end
 		fname = [fname EXT];
 	end
@@ -1623,7 +1637,7 @@ function push_OK_CB(hObject, eventdata, handles, opt)
 				img(2:2+logo_nrow-1, 2:2+logo_ncol-1, :) = im;
 			end
 			if (ndims(img) == 3),	map = [];
-			else					map = get(handles.handMir.figure1,'Colormap');
+			else,					map = get(handles.handMir.figure1,'Colormap');
 			end
 			[M, map] = aux_movie(handles, is_gif, is_mpg, is_avi, img, i, M, map);	% Save gif in file too
 		end
@@ -1700,7 +1714,7 @@ function push_OK_CB(hObject, eventdata, handles, opt)
 
 		% ------ Compute indices of Land
 		if (is_surfElev),	indLand = (handles.Z_bat >= 0);		% Surface height (not water depth)
-		else				indLand = (handles.Z_water == 0);
+		else,				indLand = (handles.Z_water == 0);
 		end
 		imgWater = mixe_images(handles, imgBat, imgWater, indLand, alfa);
 		if (~isempty(handles.strTimes))
@@ -2056,7 +2070,7 @@ function ButtonMotion(obj, evt, h)
 			epsilon = -1e-7;        %  Allow points near zero to remain there
 			indx = find(ang_2pi < epsilon);
 			%  Shift the points in the [-pi 0] range to [pi 2pi] range
-			if ~isempty(indx);  ang_2pi(indx) = ang_2pi(indx) + 2*pi;  end;
+			if ~isempty(indx);  ang_2pi(indx) = ang_2pi(indx) + 2*pi;  end
 			set(handles.edit_azim,'String',sprintf('%.0f',ang_2pi *180/pi))
 		end
 	end
@@ -2128,7 +2142,7 @@ function push_batGrid_CB(hObject, eventdata, handles, opt)
 	[dump,FNAME] = fileparts(FileName);
 	if (get(handles.radio_gif,'Value')),		EXT = '.gif';
 	elseif (get(handles.radio_mpg,'Value')),	EXT = '.mpg';
-	else										EXT = '.avi';
+	else,										EXT = '.avi';
 	end
 	handles.moviePato = PathName;
 	handles.movieName = FNAME;
@@ -2301,7 +2315,7 @@ function push_maregs_CB(hObject, eventdata, handles, opt)
 	end
 	if (isempty(n_headers)),    n_headers = NaN;    end
 	if (multi_seg),		[numeric_data, labels] = text_read(fname,NaN,n_headers,'>');
-	else				[numeric_data, labels] = text_read(fname,NaN,n_headers);
+	else,				[numeric_data, labels] = text_read(fname,NaN,n_headers);
 	end
 
 	% NEED TO FORESEE THE CASE OF MULTISEGS
@@ -2354,7 +2368,7 @@ function push_interpolate_CB(hObject, eventdata, handles)
 	
 	%Open and write to ASCII file
 	if (ispc),		fid = fopen(fname,'wt');
-	else			fid = fopen(fname,'w');
+	else,			fid = fopen(fname,'w');
 	end
  	if (get(handles.check_miscWriteHeader, 'Val'))		% Write an header
 		fprintf(fid,'# Interpolated file: %s\n', handles.fname);
@@ -2417,8 +2431,8 @@ function [theVar, U, V, indVar, indWater, theVarName] = get_swwVar(handles)
 			if (strcmpi(qual,'elevation'))
 				theVarName = 'elevation';	indVar = 4;		% Don't know yet how to deal with this new case
 				if (handles.n_elevations == 1),	handles.sliceNumber = 0;	end		% Make sure not asking for non-existing layer
-			elseif strcmpi(qual,'roughness')
-				theVarName = 'roughness';	indVar = 30;	% CASE NOT EXISTING (YET)
+			else
+				theVarName = qual;	indVar = 30;	% CASE NOT EXISTING (YET)
 				if (handles.n_roughness == 1),	handles.sliceNumber = 0;	end		% Make sure not asking for non-existing layer
 			end
 		end
@@ -2501,7 +2515,12 @@ function hh = loc_quiver(struc_in,varargin)
 		% Base autoscale value on average spacing in the x and y directions.
 		% Estimate number of points in each direction as either the size of the
 		% input arrays or the effective square spacing if x and y are vectors.
-		if min(size(x))==1, n=sqrt(numel(x)); m=n; else [m,n]=size(x); end
+		if (min(size(x)) == 1)
+			n = sqrt(numel(x));
+			m=n;
+		else
+			[m,n] = size(x);
+		end
 		maxlen = 0;
 		delx = diff([min(x(:)) max(x(:))])/n;
 		dely = diff([min(y(:)) max(y(:))])/m;
@@ -2577,7 +2596,7 @@ function timestr = sec2timestr(sec)
 		timestr = sprintf('%d hr, %d min',h, m);
 	elseif (m > 0)
 		if (m > 9),		timestr = sprintf('%d min',m);
-		else			timestr = sprintf('%d min, %d sec',m,s);
+		else,			timestr = sprintf('%d min, %d sec',m,s);
 		end
 	else
 		timestr = sprintf('%d sec',s);
@@ -3342,7 +3361,7 @@ uicontrol('Parent',h1, 'Position',[275 316 80 22],...
 'BackgroundColor',[1 1 1],...
 'Callback',{@aquamoto_uiCB,h1,'popup_extraFields_CB'},...
 'Enable','off',...
-'String',{'Or ...'; 'Elevation'},...
+'String',{'Or ...'},...
 'Style','popupmenu',...
 'Value',1,...
 'Tooltip','Other variables, not always available in all .sww',...
