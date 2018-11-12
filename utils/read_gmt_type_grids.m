@@ -26,7 +26,7 @@ function [handles, X, Y, Z, head, misc] = read_gmt_type_grids(handles,fullname,o
 
 % Must rewrite this function to use the GMT5 machinery in first place.
 
-% $Id: read_gmt_type_grids.m 10229 2018-01-26 00:26:11Z j $
+% $Id: read_gmt_type_grids.m 11303 2018-05-28 21:39:31Z Joaquim Luis $
 
     infoOnly = false;
     if (nargin == 3),   infoOnly = true;    end

@@ -33,7 +33,7 @@ function m3d=inv3d(f3d,h,wl,ws,rlat,rlon,yr,zobs,thick,slin,dx,dy,sdec,sdip)
 %               sdec = rlon = 0 & sdip = rlat = 90
 %-----------------------------------------------------------
 
-% $Id: inv3d.m 4248 2013-12-27 03:51:55Z j $
+% $Id: inv3d.m 11303 2018-05-28 21:39:31Z Joaquim Luis $
 
 if (nargin == 0)
 %     try,    message_win('create','DEMO OF INV3D');  pause(0.001);

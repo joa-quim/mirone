@@ -21,7 +21,7 @@ function [out, msg, opt_R] = proj2proj_pts(handles, data, varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: proj2proj_pts.m 9866 2016-10-16 18:37:47Z j $
+% $Id: proj2proj_pts.m 11303 2018-05-28 21:39:31Z Joaquim Luis $
 
 	opt_R = [];
 	[srcWKT, srcProj4, srcGMT, dstProj4, dstWKT, limits, pad, msg] = parseIn(handles, varargin{:});

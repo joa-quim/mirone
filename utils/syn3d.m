@@ -32,7 +32,7 @@ function f3d = syn3d(m3d,h,rlat,rlon,yr,zobs,thick,slin,dx,dy,sdip,sdec)
 %               sdec = rlon = 0 & sdip = rlat = 90
 %---------------------------------------------------------------------------------
 
-% $Id: syn3d.m 4249 2013-12-27 03:54:38Z j $
+% $Id: syn3d.m 11303 2018-05-28 21:39:31Z Joaquim Luis $
 
 	if (nargin == 0)
 % 		fprintf('\n\n             DEMO OF SYN3D mfile\n\n');

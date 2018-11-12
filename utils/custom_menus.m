@@ -23,7 +23,7 @@ function custom_menus(hFig, path_data)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: custom_menus.m 10187 2017-12-28 18:33:37Z j $
+% $Id: custom_menus.m 11303 2018-05-28 21:39:31Z Joaquim Luis $
 
 	% Example1: Geography,Basins[/sub],dir (simple case of directing to the DIR where file lieves)
 	% Example2: CustomIsoc,AF-NAM,C:\SVN\mironeWC\data,isochrons_AF.dat,Isochron

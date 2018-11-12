@@ -17,7 +17,7 @@ function    img = shading_mat(img,R,scale)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: shading_mat.m 3499 2012-04-22 23:39:22Z j $
+% $Id: shading_mat.m 11303 2018-05-28 21:39:31Z Joaquim Luis $
 
 	if (nargin == 2),    scale = 'scale';    end
 

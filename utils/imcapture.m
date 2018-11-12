@@ -108,7 +108,7 @@ function img = imcapture( h, opt, dpi, opt2, opt3)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: imcapture.m 10077 2017-03-31 20:43:57Z j $
+% $Id: imcapture.m 11303 2018-05-28 21:39:31Z Joaquim Luis $
 
 	hAxes = [];
 	if (nargin == 0 || isempty(h)),     h = get(0,'CurrentFigure');    end

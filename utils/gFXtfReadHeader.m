@@ -11,7 +11,7 @@ function XtfHead=gFXtfReadHeader(fName,flStat)
 % mail@ge0mlib.ru 01/08/2016
 % This function comes from geomlib (FEX: 58387, BSD Licence)
 
-% $Id: gFXtfReadHeader.m 10387 2018-04-27 16:09:09Z j $
+% $Id: gFXtfReadHeader.m 11303 2018-05-28 21:39:31Z Joaquim Luis $
 
 	Descript.SonarType.Code=(0:58)';
 	Descript.SonarType.Text={'0=NONE , defaul','1=JAMSTEC, Jamstec chirp 2-channel subbottom','2=ANALOG_C31, PC31 8-channel','3=SIS1000, Chirp SIS-1000 sonar','4=ANALOG_32CHAN, Spectrum with 32-channel DSPlink card','5=KLEIN2000, Klein system 2000 with digital interface','6=RWS, Standard PC31 analog with special nav code','7=DF1000, EG&G DF1000 digital interface','8=SEABAT, Reson SEABAT 900x analog/serial','9=KLEIN595, 4-chan Klein 595, same  as ANALOG_C31',...

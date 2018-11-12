@@ -34,7 +34,7 @@ function [Z, X, Y, srsWKT, handles, att, pal_file] = read_grid(handles, fullname
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: read_grid.m 10135 2017-09-10 10:46:31Z j $
+% $Id: read_grid.m 11303 2018-05-28 21:39:31Z Joaquim Luis $
 
 	if (nargin == 3),	opt = ' ';	end
 	opt_I = ' ';	srsWKT = [];	att = [];	attVRT = [];	Z = [];		X = [];		Y = [];

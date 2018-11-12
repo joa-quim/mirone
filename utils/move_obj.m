@@ -23,7 +23,7 @@ function move_obj(arg)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: move_obj.m 3648 2012-07-25 20:38:10Z j $
+% $Id: move_obj.m 11303 2018-05-28 21:39:31Z Joaquim Luis $
 
 this_obj = gco;
 last_pos = getappdata(this_obj,'pos');

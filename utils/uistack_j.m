@@ -11,7 +11,7 @@ function uistack_j(hand, opt, step)
   
 %   Coffeeright J. Luis 2004-2014
 
-% $Id: uistack_j.m 10134 2017-09-10 10:44:15Z j $
+% $Id: uistack_j.m 11303 2018-05-28 21:39:31Z Joaquim Luis $
 
 	if (~all(ishandle(hand)))
 		error('UISTACK_J: invalid handle in input.');

@@ -1,7 +1,7 @@
 function info = c_grdinfo(fname, opt)
 % Temporary function to easy up transition from GMT4 to GMT5.2
 
-% $Id: c_grdinfo.m 10230 2018-01-26 01:34:32Z j $
+% $Id: c_grdinfo.m 11303 2018-05-28 21:39:31Z Joaquim Luis $
 
 	flen = numel(fname);
 	if (~strcmp(opt, 'hdr_struct'))

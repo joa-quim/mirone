@@ -21,7 +21,7 @@ function register_img(handles,h,GCPs)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: register_img.m 9946 2016-11-30 14:08:37Z j $
+% $Id: register_img.m 11303 2018-05-28 21:39:31Z Joaquim Luis $
 
 	if (nargin < 2)
 		errordlg('REGISTER_IMG: wrong number of arguments (must be at least two)','ERROR')

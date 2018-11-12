@@ -31,7 +31,7 @@ function [lon, lat, z, ym] = readimgSS (file, west, east, south, north, scl)
 %          otherwise Z is int16
 %          Renamed to readimgSS for file name safety.
 
-% $Id: readimgSS.m 4293 2014-01-19 18:10:28Z j $
+% $Id: readimgSS.m 11303 2018-05-28 21:39:31Z Joaquim Luis $
 
 	if (nargin == 5),	scl = 1;	end		% Must specify default scale
 

@@ -25,7 +25,7 @@ function out = deal_opts(opt, opt2, varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: deal_opts.m 10215 2018-01-24 19:57:28Z j $
+% $Id: deal_opts.m 11303 2018-05-28 21:39:31Z Joaquim Luis $
 
 	if (nargin > 1 && ischar(opt2))
 		if (nargout)

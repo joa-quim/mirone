@@ -14,7 +14,7 @@ function line_of_sight(hand, observerAltitude)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: line_of_sight.m 9880 2016-10-22 16:28:04Z j $
+% $Id: line_of_sight.m 11303 2018-05-28 21:39:31Z Joaquim Luis $
 
 % This is a non-finished code. The computations works fine but the API needs to be decided.
 

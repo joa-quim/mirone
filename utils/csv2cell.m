@@ -20,7 +20,7 @@ function data = csv2cell(fname)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: csv2cell.m 4437 2014-05-01 01:29:10Z j $
+% $Id: csv2cell.m 11303 2018-05-28 21:39:31Z Joaquim Luis $
 
 	fid = fopen(fname);
 	text = fread(fid,inf,'*char')';

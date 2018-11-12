@@ -22,7 +22,7 @@ function [xx, yy, zz] = grid_profiler(hFig, xp, yp, point_int, do_dynamic, do_st
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: grid_profiler.m 10245 2018-02-02 13:43:58Z j $
+% $Id: grid_profiler.m 11303 2018-05-28 21:39:31Z Joaquim Luis $
 
 	if (ishandle(hFig))
 		handles = guidata(hFig);

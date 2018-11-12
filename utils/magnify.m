@@ -12,7 +12,7 @@ function magnify(hAx)
 
 % Coffeeright J. Luis 2004-2016
 
-% $Id: magnify.m 9861 2016-10-12 00:51:18Z j $
+% $Id: magnify.m 11303 2018-05-28 21:39:31Z Joaquim Luis $
 
 	if (nargin == 0), hAx = gca; end
 	oldFigureUIState = uisuspend_j(get(hAx, 'parent'), true);

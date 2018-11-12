@@ -45,7 +45,7 @@ function [optN, C, N] = sshist(x,N)
 
 % Licence MIT (FEX 24913)
 
-% $Id: sshist.m 10000 2017-01-26 01:44:58Z j $
+% $Id: sshist.m 11303 2018-05-28 21:39:31Z Joaquim Luis $
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Parameters Setting

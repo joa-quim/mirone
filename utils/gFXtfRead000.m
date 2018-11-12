@@ -11,7 +11,7 @@ function [Head,Data]=gFXtfRead000(XtfHead,SubCh)
 %
 % This function comes from geomlib (FEX: 58387, BSD Licence)
 
-% $Id: gFXtfRead000.m 10387 2018-04-27 16:09:09Z j $
+% $Id: gFXtfRead000.m 11303 2018-05-28 21:39:31Z Joaquim Luis $
 
 	[fId, mes]=fopen(XtfHead.fName,'r');
 	if ~isempty(mes), error(['gFXtfRead000: ' mes]),	end

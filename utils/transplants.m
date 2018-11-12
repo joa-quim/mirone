@@ -52,7 +52,7 @@ function varargout = transplants(hLine, tipo, res, handles, second_g)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: transplants.m 10244 2018-02-02 13:41:57Z j $
+% $Id: transplants.m 11303 2018-05-28 21:39:31Z Joaquim Luis $
 
 	if (nargin < 4)		% NOTE: in the IMPLANTGRID mode I'm not really using (YET) hLine for anything else
 		if (~ishandle(hLine) && ~strcmp(get(hLine,'type'), 'line') && ~strcmp(get(hLine,'type'), 'patch'))

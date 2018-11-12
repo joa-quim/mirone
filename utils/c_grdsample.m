@@ -3,7 +3,7 @@ function [Zout, hdr] = c_grdsample(Zin, head, varargin)
 
 % The tsu_funs still calls grdsample directly as a system call
 
-% $Id: c_grdsample.m 10327 2018-03-22 18:14:50Z j $
+% $Id: c_grdsample.m 11303 2018-05-28 21:39:31Z Joaquim Luis $
 
 	if (head(5) == 0 && head(6) == 0)
 		zMinMax = grdutils(Zin,'-L');

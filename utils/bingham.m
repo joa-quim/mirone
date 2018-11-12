@@ -24,7 +24,7 @@
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: bingham.m 10048 2017-03-01 03:07:55Z j $
+% $Id: bingham.m 11303 2018-05-28 21:39:31Z Joaquim Luis $
 
 function [blong,blat,jer] = bingham(q,lhat,fk,uxx)
 

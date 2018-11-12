@@ -17,7 +17,7 @@ function handles = setAxesDefCoordIn(handles, opt)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: setAxesDefCoordIn.m 10317 2018-03-13 22:37:51Z j $
+% $Id: setAxesDefCoordIn.m 11303 2018-05-28 21:39:31Z Joaquim Luis $
 
     if (nargin == 1),   handles = guidata(handles.figure1);     end     % Otherwise uses input handles
 

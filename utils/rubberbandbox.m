@@ -24,7 +24,7 @@ function [p1,p2,lh1] = rubberbandbox(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: rubberbandbox.m 3892 2013-03-04 15:43:46Z j $
+% $Id: rubberbandbox.m 11303 2018-05-28 21:39:31Z Joaquim Luis $
 
 	%Check for optional argument
 	switch nargin

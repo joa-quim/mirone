@@ -25,7 +25,7 @@ function varargout = pole2neighbor(obj, evt, hLine, mode, opt, varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: pole2neighbor.m 10277 2018-02-14 01:03:27Z j $
+% $Id: pole2neighbor.m 11303 2018-05-28 21:39:31Z Joaquim Luis $
 
 	if (isa(obj, 'char'))			% Call a function of this file, name stored in OBJ,  and return
 		if (nargout)

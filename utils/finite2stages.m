@@ -42,7 +42,7 @@ function stages = finite2stages(lon, lat, omega, t_start, half, side, ecc)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: finite2stages.m 10262 2018-02-07 01:26:42Z j $
+% $Id: finite2stages.m 11303 2018-05-28 21:39:31Z Joaquim Luis $
 
 	n_args = nargin;
 	if (~(n_args == 1 || n_args == 3 || n_args == 6 || n_args == 7))

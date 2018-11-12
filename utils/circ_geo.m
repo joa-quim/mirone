@@ -24,7 +24,7 @@ function [latc,lonc] = circ_geo(lat, lon, rng, azim, np, noforce_pipi)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: circ_geo.m 9874 2016-10-22 00:55:49Z j $
+% $Id: circ_geo.m 11303 2018-05-28 21:39:31Z Joaquim Luis $
 
 	D2R = pi/180;   npts  = 180;       az    = [];		n_args = nargin;
 	if (n_args < 3)

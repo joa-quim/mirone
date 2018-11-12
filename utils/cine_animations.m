@@ -16,7 +16,7 @@ function varargout = cine_animations(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 	
-% $Id: cine_animations.m 4182 2013-09-28 17:15:54Z j $
+% $Id: cine_animations.m 11303 2018-05-28 21:39:31Z Joaquim Luis $
 
 	if (isempty(varargin)),		return,		end
  

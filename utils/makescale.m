@@ -26,7 +26,7 @@ function h = makescale(hAx, hObject)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: makescale.m 10063 2017-03-22 00:47:47Z j $
+% $Id: makescale.m 11303 2018-05-28 21:39:31Z Joaquim Luis $
 
 	handles = guidata(hAx);
 	if (handles.no_file),		return,		end

@@ -1,7 +1,7 @@
 function G = fill_grid_struct(Z, head)
 % Fill the Grid struct used in gmtmex
 
-% $Id: fill_grid_struct.m 10136 2017-09-10 10:48:43Z j $
+% $Id: fill_grid_struct.m 11303 2018-05-28 21:39:31Z Joaquim Luis $
 
 	if (~isa(head, 'double')),	head = double(head);	end
 	G.proj4 = '';

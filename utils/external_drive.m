@@ -16,7 +16,7 @@ function external_drive(handles, prog_name, varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: external_drive.m 10330 2018-03-23 22:36:04Z j $
+% $Id: external_drive.m 11303 2018-05-28 21:39:31Z Joaquim Luis $
 
 % ex: mirone('v:\pes.grd','-Cgrdsample_mir,guidata(gcf)','-Xcheckbox_Option_Q,1','-Xedit_x_inc,+0.04','-Xedit_y_inc,+0.04','-Xpush_OK')
 

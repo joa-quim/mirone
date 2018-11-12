@@ -1,7 +1,7 @@
 function [Zout, hdr] = c_grdproject(Zin, head, varargin)
 % Temporary function to easy up transition from GMT4 to GMT5.2
 
-% $Id: c_grdproject.m 10230 2018-01-26 01:34:32Z j $
+% $Id: c_grdproject.m 11303 2018-05-28 21:39:31Z Joaquim Luis $
 
 	G = fill_grid_struct(Zin, head);
 	cmd = 'grdproject';

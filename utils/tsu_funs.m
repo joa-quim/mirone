@@ -16,7 +16,7 @@ function tsu_funs(opt,varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: tsu_funs.m 9954 2016-12-13 03:30:02Z j $
+% $Id: tsu_funs.m 11303 2018-05-28 21:39:31Z Joaquim Luis $
 
 	switch opt
 		case 'SwanCompute'

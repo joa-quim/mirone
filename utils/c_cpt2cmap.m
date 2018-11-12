@@ -1,7 +1,7 @@
 function [cmap, range] = c_cpt2cmap(fname, varargin)
 % Temporary function to easy up transition from GMT4 to GMT5
 
-% $Id: c_cpt2cmap.m 10230 2018-01-26 01:34:32Z j $
+% $Id: c_cpt2cmap.m 11303 2018-05-28 21:39:31Z Joaquim Luis $
 	
 	if (strcmp(fname(1:2), '-C')),	fname = fname(3:end);	end		% Strip the -C from name. It should only be added here
 

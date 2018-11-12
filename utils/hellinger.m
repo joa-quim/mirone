@@ -34,7 +34,7 @@ function [along, alat, rho, vol, t_stats, ellip_long, ellip_lat] = ...
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: hellinger.m 10050 2017-03-04 18:15:27Z j $
+% $Id: hellinger.m 11303 2018-05-28 21:39:31Z Joaquim Luis $
 
 	do_geodetic = true;
 	plot_segmentation_lines = true;

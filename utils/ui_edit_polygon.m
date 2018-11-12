@@ -85,7 +85,7 @@ function ui_edit_polygon(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: ui_edit_polygon.m 10248 2018-02-02 23:55:25Z j $
+% $Id: ui_edit_polygon.m 11303 2018-05-28 21:39:31Z Joaquim Luis $
 
 	if (isa(varargin{end},'char'))	% Moving polygon option was transmitted in input
 		move_choice = varargin{end};

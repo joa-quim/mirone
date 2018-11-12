@@ -71,7 +71,7 @@ function [lat2,lon2,a21] = vreckon(lat1, lon1, rng, azim, npts, ellipsoid)
 % Also, lon2 is always converted to the [-180 180] interval
 % Joaquim Luis
 
-% $Id: vreckon.m 10241 2018-02-01 02:00:16Z j $
+% $Id: vreckon.m 11303 2018-05-28 21:39:31Z Joaquim Luis $
 
 	% Input check:
 	if (abs(lat1) > 90)

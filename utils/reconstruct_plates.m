@@ -16,7 +16,7 @@ function reconstruct_plates(hLine)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: reconstruct_plates.m 10265 2018-02-07 01:41:02Z j $
+% $Id: reconstruct_plates.m 11303 2018-05-28 21:39:31Z Joaquim Luis $
 
 	handles = guidata(hLine);
 

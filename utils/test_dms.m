@@ -18,7 +18,7 @@ function val = test_dms(s)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: test_dms.m 4290 2014-01-19 17:45:45Z j $
+% $Id: test_dms.m 11303 2018-05-28 21:39:31Z Joaquim Luis $
 
 	if isempty(s),		val = [];		return,	end
 	error = 0;

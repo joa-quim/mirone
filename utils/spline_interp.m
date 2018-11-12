@@ -14,7 +14,7 @@ function [xout,yout] = spline_interp(x,y,varargin)
 % namely the sparse array calculations.
 % J. Luis
 
-% $Id: spline_interp.m 4423 2014-04-27 14:19:31Z j $
+% $Id: spline_interp.m 11303 2018-05-28 21:39:31Z Joaquim Luis $
 
 	if (nargin < 2),		error('spline_interp: wrong number of arguments'),	end
 	P = [x(:) y(:)];	NDIM = 2;	N = 10;		BC = [];

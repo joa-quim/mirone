@@ -16,7 +16,7 @@ function frame3D(parent,pos,color,bg_color,usr_dat)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: frame3D.m 4650 2014-12-12 17:32:25Z j $
+% $Id: frame3D.m 11303 2018-05-28 21:39:31Z Joaquim Luis $
 
 
 % Build the rectangle's left vertical side

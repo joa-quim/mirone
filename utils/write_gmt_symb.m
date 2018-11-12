@@ -16,7 +16,7 @@ function write_gmt_symb(handles)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: write_gmt_symb.m 7840 2016-03-15 15:49:59Z j $
+% $Id: write_gmt_symb.m 11303 2018-05-28 21:39:31Z Joaquim Luis $
 
 	ALLlineHand = findobj(get(handles.axes1,'Child'),'Type','line');
 	ALLpatchHand = findobj(get(handles.axes1,'Child'),'Type','patch');

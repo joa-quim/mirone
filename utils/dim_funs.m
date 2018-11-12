@@ -27,7 +27,7 @@ function  dim_funs(opt, varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: dim_funs.m 4256 2014-01-03 01:22:22Z j $
+% $Id: dim_funs.m 11303 2018-05-28 21:39:31Z Joaquim Luis $
 
 	switch opt
 		case 'xMin',	edit_x_min(varargin{:})

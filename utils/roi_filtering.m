@@ -16,7 +16,7 @@ function [Z,Z_rect,handles] = roi_filtering(handles, Z, head, Z_rect, r_c, mask,
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: roi_filtering.m 7817 2016-03-02 00:02:05Z j $
+% $Id: roi_filtering.m 11303 2018-05-28 21:39:31Z Joaquim Luis $
 
 	is_rect = 0;			done = 0;
 	if (ischar(mask)),		is_rect = 1;	end

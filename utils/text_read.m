@@ -30,7 +30,7 @@ function [numeric_data,date,headerlines,str_col,out] = text_read(varargin)
 % This function uses some sub-functions of IMPORTDATA
 % Coffeeright Joaquim Luis
 
-% $Id: text_read.m 10045 2017-03-01 01:03:40Z j $
+% $Id: text_read.m 11303 2018-05-28 21:39:31Z Joaquim Luis $
 
 	filename = varargin{1};     headerlines = 0;
 	requestedDelimiter = NaN;	requestedHeaderLines = NaN;		requestedMultiSeg = NaN;

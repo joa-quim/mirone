@@ -61,7 +61,7 @@ function stopBar =  aguentabar(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: aguentabar.m 10283 2018-02-23 23:31:59Z j $
+% $Id: aguentabar.m 11303 2018-05-28 21:39:31Z Joaquim Luis $
 
 	% Parse inputs
 	n_argin = nargin;

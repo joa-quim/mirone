@@ -46,7 +46,7 @@ function [fractfield, hdrStruct] = gen_UMF2d(alpha, C1, H, dim, region)
 
 % Cleaned a lot of the unfortunatelly usual memory absurdity use
 
-% $Id: gen_UMF2d.m 7901 2016-05-17 21:38:17Z j $
+% $Id: gen_UMF2d.m 11303 2018-05-28 21:39:31Z Joaquim Luis $
 
 	if nargin == 0
 		alpha = 1.8;	C1 = 0.05;		H = 0.9;	dim = 512;
