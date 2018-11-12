@@ -2545,10 +2545,10 @@ function gsimage(handles, script, hWait)
 		gmtmex(['psconvert = ' opt_T ' -Qt4 -Qg2 -F' fname]);
 	end
 	if (handles.IamCompiled)
-		win_open_mex(handles.path_tmp, ['auto.' EXT]);
+		win_open_mex(dest_dir, fname);
 	else
 		if ispc
-			winopen(fname);
+			winopen(fname, [prefix '.' EXT]);
 		elseif strncmp(computer,'MAC',3) 
 			unix(['open "' fname '" &']);
 		else
