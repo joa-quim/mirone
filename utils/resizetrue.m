@@ -27,7 +27,7 @@ function varargout = resizetrue(handles, opt, axis_t, opt_pad)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 	
-% $Id: resizetrue.m 11321 2018-06-06 01:24:25Z j $
+% $Id: resizetrue.m 11390 2018-11-12 11:58:54Z j $
 
 	if (nargin < 4),	opt_pad = 0;	end
 
@@ -37,7 +37,10 @@ function varargout = resizetrue(handles, opt, axis_t, opt_pad)
 		set(handles.PalIn,'Checked','off')
 	end
 	if (strcmp(get(handles.PalAt,'Check'),'on'))
-		delete(get(handles.PalAt,'Userdata'))
+		ud = get(handles.PalAt,'Userdata');
+		if (isa(ud, 'cell')),	delete(ud{1})
+		else,					delete(ud)
+		end
 		set(handles.PalAt,'Checked','off')
 	end
 
