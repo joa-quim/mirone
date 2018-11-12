@@ -18,7 +18,7 @@ function varargout = plot_composer(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: plot_composer.m 11382 2018-10-11 11:20:58Z j $
+% $Id: plot_composer.m 11389 2018-11-12 11:55:19Z j $
 
 	handMir = varargin{1};
 	if (handMir.no_file)     % Stupid call with nothing loaded on the Mirone window
@@ -2529,7 +2529,16 @@ function gsimage(handles, script, hWait)
 	elseif (strcmp(EXT, 'ps')),		opt_T = '-Te';
 	end
 
-	fname = [handles.path_tmp 'auto.' EXT];
+	% Save image in same place as it would do for saving script.
+	dest_dir = get(handles.popup_directory_list,'String');
+	if (iscell(dest_dir)),		dest_dir = dest_dir{1};		end
+	if (dest_dir(end) ~= '\' && dest_dir(end) ~= '/')
+		dest_dir = [dest_dir filesep];
+	end
+	prefix = get(handles.edit_prefix,'String');
+	fname = [dest_dir prefix '.' EXT];
+
+	%fname = [handles.path_tmp 'auto.' EXT];
 	if (get(handles.check_trimWhite, 'Val'))
 		gmtmex(['psconvert = ' opt_T ' -A0.5p -Qt4 -Qg2 -F' fname]);
 	else
