@@ -18,7 +18,7 @@ function varargout = earth_tides(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: earth_tides.m 11356 2018-07-05 00:51:54Z j $
+% $Id: earth_tides.m 11392 2018-11-12 14:04:59Z j $
 
 	if (nargin > 1 && ischar(varargin{1}))
 		gui_CB = str2func(varargin{1});
