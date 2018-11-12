@@ -37,7 +37,10 @@ function varargout = resizetrue(handles, opt, axis_t, opt_pad)
 		set(handles.PalIn,'Checked','off')
 	end
 	if (strcmp(get(handles.PalAt,'Check'),'on'))
-		delete(get(handles.PalAt,'Userdata'))
+		ud = get(handles.PalAt,'Userdata');
+		if (isa(ud, 'cell')),	delete(ud{1})
+		else,					delete(ud)
+		end
 		set(handles.PalAt,'Checked','off')
 	end
 
