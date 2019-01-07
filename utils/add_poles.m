@@ -1,14 +1,15 @@
-function [lon_s,lat_s,ang_s] = add_poles(lon1, lat1, ang1, lon2, lat2, ang2, ecc)
+function [lon_s,lat_s,ang_s] = add_poles(lon1, lat1, ang1, lon2, lat2, ang2, ecc, hemisphere)
 % Add two finite rotation Euler poles.
 %
 % All angles are assumed to be in degrees
 %	ECC is the excentricity for the computations using geocentric latitudes.
 %	That is, if lats are in geodetic coords ECC is used to convert to geocentric Latitude.
-%	If not provided, use the provided lats as they come in.
-%	ECC = -1	 ->		use the default value for the WGS84 datum
-%	ECC = 0		 ->		Ignore the to geocentric conversion request
+%	If not provided, or is empty, use the provided lats as they come in.
+%	ECC = -1     ->  use the default value for the WGS84 datum
+%	ECC = 0      ->  Ignore the to geocentric conversion request
+%	HEMISPHERE   ->  If present, 1 -> force North Hemisphere poles or -1 to force South Hemi poles
 
-%	Copyright (c) 2004-2012 by J. Luis
+%	Copyright (c) 2004-2019 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -24,7 +25,7 @@ function [lon_s,lat_s,ang_s] = add_poles(lon1, lat1, ang1, lon2, lat2, ang2, ecc
 % --------------------------------------------------------------------
 
 	do_geocentric = false;
-	if (nargin == 7)
+	if (nargin == 7 && ~isempty(ecc))
 		do_geocentric = true;
 		if (ecc < 0)
 			ecc = 0.0818191908426215;		% WGS84
@@ -77,9 +78,9 @@ function [lon_s,lat_s,ang_s] = add_poles(lon1, lat1, ang1, lon2, lat2, ang2, ecc
 	T = r2 * r1;
 
 	% Compute the Euler pole whose rotation matrix is T
-	lon_s = atan2( (T(1,3) - T(3,1)), (T(3,2) - T(2,3)) ) * R2D;		% Lon
-	tmp = sqrt( (T(3,2)-T(2,3))^2 + (T(1,3)-T(3,1))^2 + (T(2,1)-T(1,2))^2);
-	lat_s = asin( (T(2,1) - T(1,2)) / tmp);								% Lat
+	lon_s = atan2((T(1,3) - T(3,1)), (T(3,2) - T(2,3)) ) * R2D;		% Lon
+	tmp = sqrt((T(3,2)-T(2,3))^2 + (T(1,3)-T(3,1))^2 + (T(2,1)-T(1,2))^2);
+	lat_s = asin((T(2,1) - T(1,2)) / tmp);								% Lat
 
 	if (do_geocentric)		% Convert back to geodetic latitudes
 		lat_s = atan2( sin(lat_s), (1-ecc^2)*cos(lat_s) ) * R2D;
@@ -91,3 +92,10 @@ function [lon_s,lat_s,ang_s] = add_poles(lon1, lat1, ang1, lon2, lat2, ang2, ecc
 
 	% Make sure that 0 <= ang_s <= 180
 	if (ang_s < 0),     ang_s = ang_s + 180;    end
+
+	if (nargin == 8 && ((hemisphere == 1 && lat_s < 0) || (hemisphere == -1 && lat_s > 0)))
+		lat_s = -lat_s;
+		lon_s = lon_s + 180;
+		if (lon_s > 360),    lon_s = lon_s - 360;  end
+		ang_s = -ang_s;
+	end
