@@ -1172,7 +1172,7 @@ switch att_datatype
 		attval = NaN;
 	case nc_char
 		[attval, status] = mexnc('get_att_text',cdfid,varid,attname);
-	case { nc_double, nc_float, nc_int, nc_short, nc_byte }
+	case {nc_double, nc_float, nc_int, nc_short, nc_byte, nc_int64, nc_ubyte}
 		[attval, status] = mexnc('get_att_double',cdfid,varid,attname);
 	otherwise
 		snc_error('NC_FUNS:nc_get_attribute_struct', sprintf('att_datatype is %d.\n', att_datatype));
@@ -2512,7 +2512,7 @@ function new_data = nc_addnewrecs (ncfile, input_buffer, record_variable)
 % In case of an error, an exception is thrown.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% $Id: nc_funs.m 10416 2018-05-28 16:34:27Z j $
+% $Id$
 % $LastChangedDate: 2007-04-23 09:05:21 -0400 (Mon, 23 Apr 2007) $
 % $LastChangedRevision: 2178 $
 % $LastChangedBy: johnevans007 $
@@ -2688,7 +2688,7 @@ function nc_add_recs (ncfile, new_data, varargin)
 %   johnevans@acm.org
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% $Id: nc_funs.m 10416 2018-05-28 16:34:27Z j $
+% $Id$
 % $LastChangedDate: 2007-08-31 16:30:56 -0400 (Fri, 31 Aug 2007) $
 % $LastChangedRevision: 2309 $
 % $LastChangedBy: johnevans007 $
@@ -2897,7 +2897,7 @@ function theBuffer = nc_getbuffer (ncfile, varargin)
 %        Each such field contains the data for that variable.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% $Id: nc_funs.m 10416 2018-05-28 16:34:27Z j $
+% $Id$
 % $LastChangedDate: 2007-09-03 12:07:33 -0400 (Mon, 03 Sep 2007) $
 % $LastChangedRevision: 2315 $
 % $LastChangedBy: johnevans007 $
@@ -3034,7 +3034,7 @@ function varsize = nc_varsize(ncfile, varname)
 % NCVAR in the netCDF file NCFILE.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% $Id: nc_funs.m 10416 2018-05-28 16:34:27Z j $
+% $Id$
 % $LastChangedDate: 2007-09-03 12:07:33 -0400 (Mon, 03 Sep 2007) $
 % $LastChangedRevision: 2315 $
 % $LastChangedBy: johnevans007 $
@@ -3062,7 +3062,7 @@ function values = nc_getlast(ncfile, var, num_datums)
 % If NUM_DATUMS is not supplied, the default value is 1.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% $Id: nc_funs.m 10416 2018-05-28 16:34:27Z j $
+% $Id$
 % $LastChangedDate: 2007-09-03 12:07:33 -0400 (Mon, 03 Sep 2007) $
 % $LastChangedRevision: 2315 $
 % $LastChangedBy: johnevans007 $
