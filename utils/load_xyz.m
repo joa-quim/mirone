@@ -84,7 +84,7 @@ function varargout = load_xyz(handles, opt, opt2)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: load_xyz.m 11328 2018-06-22 18:47:38Z j $
+% $Id: load_xyz.m 11397 2019-01-10 20:27:35Z j $
 
 %	EXAMPLE CODE OF HOW TO CREATE A TEMPLATE FOR UICTX WHEN THESE ARE TOO MANY
 % 	cmenuHand = get(h, 'UIContextMenu');
@@ -134,7 +134,7 @@ function varargout = load_xyz(handles, opt, opt2)
 		end
 		varargout{1} = [];					% So that we always have something to return
 	end
-	PathName = '';
+	PathName = '';		fileName = '';
 	if (n_argin >= 2 && isempty(opt))		% Read a ascii file
 		[FileName, PathName, handles] = put_or_get_file(handles, ...
 			{'*.dat;*.DAT', 'Data files (*.dat,*.DAT)';'*.*', 'All Files (*.*)'},'Select File','get');
@@ -143,7 +143,11 @@ function varargout = load_xyz(handles, opt, opt2)
 		[lix,lix,EXT] = fileparts(FileName);
 	elseif (n_argin >= 2)		% Read a file of which we already know the name (drag N'drop)
 		fname = opt;
-		[PathName,lix,EXT] = fileparts(fname);			% We need the 'PathName' below
+		[PathName,lix,EXT] = fileparts(fname);	% We need the 'PathName' below
+		fileName = [lix EXT];					% Usefull if user later wants to edit and save to same file
+		savePath = true;
+		filePath = PathName;
+		handles.last_dir = PathName;
 	end
 	if (n_argin == 3)
 		if (strcmp(opt2, 'AsLine') && strcmpi(EXT, '.nc'))			% A shapenc loaded 'AsLine', but confirm
@@ -176,7 +180,7 @@ function varargout = load_xyz(handles, opt, opt2)
 				got_internal_file = true;
 			end
 			if (isempty(PathName)),		PathName = handles.path_data;
-			else						handles.last_dir = PathName;
+			else,						handles.last_dir = PathName;
 			end
 			line_type = 'i_file';
 		end
@@ -746,9 +750,6 @@ function varargout = load_xyz(handles, opt, opt2)
 								if (isGSHHS)	% Need to store this for writing edited GSHHG polygons.
 									setappdata(hLine(i),'GSHHS_str', GSHHS_str);
 								end
-								if (savePath)			% May need this info to be able to load other files
-									setappdata(hLine(i), 'filePath', filePath);
-								end
 							end
 							setappdata(hLine(i),'was_binary',is_bin);	% To offer option to save as binary too
 						case 'AsPoint'
@@ -832,6 +833,11 @@ function varargout = load_xyz(handles, opt, opt2)
 							end
 							tmpz = [];				% Because later we test this for other purposes
 							orig_no_mseg = true;	% Also cheat here for the same reason
+					end		% switch
+
+					if (savePath)			% May need this info to be able to load other files
+						setappdata(hLine(i), 'filePath', filePath);
+						if (~isempty(fileName)),	setappdata(hLine(i), 'fileName', fileName);		end
 					end
 				else
 					struc_arrow.color = cor;
@@ -886,7 +892,7 @@ function varargout = load_xyz(handles, opt, opt2)
 	% --------------------- End main loop over files -----------------------------------------
 	if (goto_XY),	return,		end		% Time now to abandon this function (it had a 'continue' when its job was finish)
 
-	set(handles.figure1,'pointer','arrow')
+	%set(handles.figure1,'pointer','arrow')
 
 	if (handles.no_file)		% Be very carefull, do not trust on the 'geog' estimate donne in show_image (too soon)
 		geog = handles.geog;	 is_projected = handles.is_projected;
