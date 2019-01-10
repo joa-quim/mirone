@@ -5,7 +5,7 @@ function varargout = mirone(varargin)
 %
 %	mirone('CALLBACK',handles,...) calls the local function named CALLBACK with the given input arguments.
 
-%	Copyright (c) 2004-2017 by J. Luis
+%	Copyright (c) 2004-2019 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -723,12 +723,12 @@ function  PlatesAgeLift_CB(handles)
 	lift = cvlib_mex('resize', lift, [size(Z,1) size(Z,2)]);
 	lifted = cvlib_mex('add', lift, Z);
 	miniHandles.head(7:9) = handles.head(7:9);		% min/max (5:6) will be updated in GRDdisplay
-	GRDdisplay(handles,X,Y,lifted,miniHandles.head,[],'AgeLiftedBathymetry',srsWKT)
+	GRDdisplay(handles,X,Y,lifted,miniHandles.head,'','AgeLiftedBathymetry',srsWKT)
 
 	% Now compute the depth anomaly
 	cvlib_mex('addS', lift, 2500);
 	cvlib_mex('add', lift, Z);
-	GRDdisplay(handles,X,Y,lift,miniHandles.head,[],'Bathymetry anomaly',srsWKT)
+	GRDdisplay(handles,X,Y,lift,miniHandles.head,'','Bathymetry anomaly',srsWKT)
 
 % --------------------------------------------------------------------------------------------------
 function load_ps(handles, fname)
@@ -941,8 +941,7 @@ else					% Interactive croping (either Grid or Image)
 		X = linspace( head(1) + (r_c(3)-1)*head(8), head(1) + (r_c(4)-1)*head(8), r_c(4) - r_c(3) + 1 );
 		Y = linspace( head(3) + (r_c(1)-1)*head(9), head(3) + (r_c(2)-1)*head(9), r_c(2) - r_c(1) + 1 );
 		head(1) = X(1);		head(2) = X(end);		head(3) = Y(1);		head(4) = Y(end);
-		tit = 'Grid cut by Mirone';		% Have to change this to reflect the old title
-		GRDdisplay(handles,X,Y,Z_rect, head, tit, sprintf('Cropped_(%.0f)_grid', rand(1)*100))
+		GRDdisplay(handles,X,Y,Z_rect, head, '', sprintf('Cropped_(%.0f)_grid', rand(1)*100))
 		return
 	else			% Just a image crop op
 		I = cropimg;	[m,n] = size(I);
@@ -1006,11 +1005,11 @@ elseif (strncmp(opt2(1:min(length(opt2),9)),'CropaGrid',9))		% Do the operation 
 			prjInfoStruc = aux_funs('getFigProjInfo',handles);
 			if (~isempty(prjInfoStruc.projWKT))	% TODO. Otherwise check if prjInfoStruc.proj4 and convert it to WKT
 				srsWKT = prjInfoStruc.projWKT;
-			end
+				end
 		end
 		if (~nargout)						% Create a new Fig
-			tit = 'Grid cuted by Mirone';	% Have to change this to reflect the old title
-			GRDdisplay(handles,X,Y,Z_rect,head,tit,'Cropped_grid',srsWKT)
+			%get(handles.figure1,'Colormap')
+			GRDdisplay(handles,X,Y,Z_rect,head,'','Cropped_grid',srsWKT)
 		else								% Send back the cropped grid to whom asked for it.
 			varargout = {X,Y,Z_rect,head};	% Is not going to be easy to document this
 		end
@@ -4373,14 +4372,14 @@ function GeophysicsSwanPlotStations_CB(handles)
 	zoom_state(handles,'maybe_on');		guidata(handles.figure1, handles)
 
 % --------------------------------------------------------------------
-function GRDdisplay(handles, X, Y, Z, head, tit, name, srsWKT)
+function GRDdisplay(handles, X, Y, Z, head, tit, name, srsWKT, cmap)
 % Show matrix Z in a new window.
 	if (isa(Z,'double')),		Z = single(Z);	end
 	zz = grdutils(Z,'-L');		% Do not trust that handles.have_nans is always correct
 	head(5:6) = double(zz(1:2));
 	tmp.head = head;			tmp.X = X;		tmp.Y = Y;		tmp.geog = handles.geog;	tmp.name = name;
-	if (nargin == 8 && ~isempty(srsWKT)),		tmp.srsWKT = srsWKT;	end
-	set(handles.figure1,'pointer','arrow')
+	if (nargin >= 8 && ~isempty(srsWKT)),		tmp.srsWKT = srsWKT;	end
+	if (nargin == 9 && ~isempty(cmap)),			tmp.cmap = cmap;	end
 	h = mirone(Z,tmp);			newHand = guidata(h);
 	thematic_pal = getappdata(handles.figure1, 'thematic_pal');		% Because of the bloody cpt2cmap crash
 	if (~isempty(thematic_pal)),	setappdata(newHand.figure1,'thematic_pal',thematic_pal),	end
@@ -4784,7 +4783,6 @@ function GridToolsDirDerive_CB(handles, opt)
 	[X,Y,Z,head] = load_grd(handles,'double');
 	if isempty(Z),		return,		end		% An error message was already issued
 
-	set(handles.figure1,'pointer','watch')
 	doGeog = 'geog';
 	if (~handles.geog),		doGeog = 'cart';	end
 	[gradN, gradE] = gradient_geo(Y,X,Z,'grad',doGeog);				% df/dy & df/dx
@@ -5331,7 +5329,7 @@ function TransferB_CB(handles, opt, opt2)
 		if (~isempty(ind)),	Z(ind) = NaN;	end
 		projWKT = getappdata(handles.figure1,'ProjWKT');
 		if (strcmp(resp.name, 'Slope')),	resp.name = 'Slope in degrees';		end
-		GRDdisplay(handles,X,Y,Z,handles.head,[],resp.name, projWKT);
+		GRDdisplay(handles,X,Y,Z,handles.head,'',resp.name, projWKT);
 
  	elseif (strcmp(opt,'dump'))					% Show the RAM fragmentation (Windows only)
 		dumpmemmex
