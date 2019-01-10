@@ -1,12 +1,13 @@
 function [FileName,PathName,handles] = put_or_get_file(handles,str1,str2,type, ext)
 % Use this function to select input or output filename
 % EXT if provided forces 'FileName' to output with that wished extension
+% It can be just the extension or the complete file name
 %
 % On output HANDLES is option but if not provided (i.e. nargout = 2) there will be
 % a call to guidata to update HANDLES after the local changes in this function.
 % If that behavior is not desired, remember to call this function with 3 output args.
 
-%	Copyright (c) 2004-2015 by J. Luis
+%	Copyright (c) 2004-2019 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -21,12 +22,12 @@ function [FileName,PathName,handles] = put_or_get_file(handles,str1,str2,type, e
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: put_or_get_file.m 11303 2018-05-28 21:39:31Z Joaquim Luis $
+% $Id: put_or_get_file.m 11398 2019-01-10 20:28:18Z j $
 
 	return_to = cd;						% New behavior. Return to where it was.
 	if (strcmp(type,'get'))
 		try		cd(handles.last_dir),	end		% We cannot risk to error here
-		[FileName,PathName] = uigetfile(str1,str2);
+		[FileName,PathName] = uigetfile(str1, str2);
 	elseif (strcmp(type,'put'))
 		try			% May fail when accesing external drives
 			if (~isempty(handles.last_dir)),	cd(handles.last_dir),	end
@@ -37,13 +38,13 @@ function [FileName,PathName,handles] = put_or_get_file(handles,str1,str2,type, e
 		if (nargin == 5)				% Last arg may be just the extension, or the complete name
 			[PATH,FNAME] = fileparts(ext);
 			if (~isempty(FNAME))		% The complete name
-				[FileName,PathName] = uiputfile(str1,str2,ext);
+				[FileName,PathName] = uiputfile(str1, str2, ext);
 				done = true;			% Means do not check for the extension further down
 			else						% Just the extension. To be confirmed further down.
-				[FileName,PathName] = uiputfile(str1,str2);
+				[FileName,PathName] = uiputfile(str1, str2);
 			end
 		else
-			[FileName,PathName] = uiputfile(str1,str2);
+			[FileName,PathName] = uiputfile(str1, str2);
 		end
 		if (isequal(FileName,0))
 			cd(return_to)
