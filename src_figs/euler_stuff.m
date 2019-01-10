@@ -16,7 +16,7 @@ function varargout = euler_stuff(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: euler_stuff.m 10204 2018-01-04 22:38:32Z j $
+% $Id$
 
 	if (isempty(varargin))
 		errordlg('EULER_STUFF: wrong number of input arguments.','Error'),	return
@@ -51,10 +51,6 @@ function varargout = euler_stuff(varargin)
 	handles.geog = handlesMir.geog;
 	handles.mironeAxes = handlesMir.axes1;
 	handles.version7 = handlesMir.version7;
-	if (handlesMir.no_file)
-		errordlg('You didn''t even load a file. What are you expecting then?','Error')
-		delete(hObject);    return
-	end
 
 	if (~handles.geog)
 		srcWKT = getappdata(handlesMir.figure1,'ProjWKT');
@@ -177,7 +173,7 @@ function edit_polesFile_CB(hObject, handles)
 function push_readPolesFile_CB(hObject, handles, opt)
 % Get poles file name
 	if (nargin == 3),	fname = opt;
-	else				opt = [];
+	else,				opt = [];
 	end
 
 	if (isempty(opt))           % Otherwise we already know fname from the 4th input argument
@@ -205,7 +201,7 @@ function edit_agesFile_CB(hObject, handles)
 function push_ReadAgesFile_CB(hObject, handles, opt)
 % Read a file with ages where to compute the rotations
 	if (nargin == 3),	fname = opt;
-	else				opt = [];
+	else,				opt = [];
 	end
 
 	if (isempty(opt))           % Otherwise we already know fname from the 4th input argument
@@ -383,7 +379,7 @@ function cumpute_interp(handles)
 		errordlg('I need to know the ages at which to interpolate the poles','Error');    return
 	end
 
-	if ( strcmp(get(handles.edit_polesFile,'String'),'In memory poles') )
+	if (strcmp(get(handles.edit_polesFile,'String'),'In memory poles'))
 		poles = handles.finite_poles;
 	else
 		poles_name = get(handles.edit_polesFile,'String');
@@ -447,7 +443,7 @@ function cumpute_interp(handles)
 	% Open and write to ASCII file
 	if (ispc),			fid = fopen([PathName FileName],'wt');
 	elseif (isunix),	fid = fopen([PathName FileName],'w');
-	else				errordlg('Unknown platform.','Error');
+	else,				errordlg('Unknown platform.','Error');
 	end
 	fprintf(fid,'#longitude\tlatitude\tangle(deg)\tage(Ma)\n');
 	fprintf(fid,'%9.5f\t%9.5f\t%7.4f\t%8.4f\n', pol');
@@ -524,11 +520,10 @@ function check_singleRotation_CB(hObject, handles)
 
 % --------------------------------------------------------------------
 function push_polesList_CB(hObject, handles)
-% Create a poles list from the 'lista_poles' file plus eventual poles info stored
-% at the headers of Isochrons as loaded from the 'isochrons.dat' file
+% Create a poles list from the 'lista_poles' file plus eventual poles info stored in the header
 
 	str = [];
-	if ( (numel(handles.h_line_orig) == 1) && strcmpi(get(handles.h_line_orig,'Tag'), 'Isochron') )
+	if (numel(handles.h_line_orig) == 1)
 		stgs = pole2neighbor([], [], handles.h_line_orig, 'stginfo', 'FIN');
 		if (~isempty(stgs) && ~isnan(stgs(1)))
 			str{1,1} = sprintf('%.2f  %.2f  %.3f  %.2f  !FINITE - From Isoc header', stgs(1), stgs(2), stgs(5), stgs(4));
@@ -710,7 +705,7 @@ function edit_pole1Lon_CB(hObject, handles)
 	guidata(hObject, handles);
 	if (~got_them_all(handles)),	return,		end     % Not yet all parameters of the 2 poles
 	[lon_s,lat_s,ang_s] = add_poles(handles.pole1Lon,handles.pole1Lat,handles.pole1Ang,...
-		handles.pole2Lon,handles.pole2Lat,handles.pole2Ang);
+		handles.pole2Lon,handles.pole2Lat,handles.pole2Ang, [], 1);
 	set(handles.edit_pole3Lon,'String',num2str(lon_s,'%.4f'))
 	set(handles.edit_pole3Lat,'String',num2str(lat_s,'%.4f'))
 	set(handles.edit_pole3Ang,'String',num2str(ang_s,'%.4f'))
@@ -722,7 +717,7 @@ function edit_pole1Lat_CB(hObject, handles)
 	guidata(hObject, handles);
 	if (~got_them_all(handles)),	return,		end     % Not yet all parameters of the 2 poles
 	[lon_s,lat_s,ang_s] = add_poles(handles.pole1Lon,handles.pole1Lat,handles.pole1Ang,...
-		handles.pole2Lon,handles.pole2Lat,handles.pole2Ang);
+		handles.pole2Lon,handles.pole2Lat,handles.pole2Ang, [], 1);
 	set(handles.edit_pole3Lon,'String',num2str(lon_s,'%.4f'))
 	set(handles.edit_pole3Lat,'String',num2str(lat_s,'%.4f'))
 	set(handles.edit_pole3Ang,'String',num2str(ang_s,'%.4f'))
@@ -734,7 +729,7 @@ function edit_pole1Ang_CB(hObject, handles)
 	guidata(hObject, handles);
 	if (~got_them_all(handles)),	return,		end     % Not yet all parameters of the 2 poles
 	[lon_s,lat_s,ang_s] = add_poles(handles.pole1Lon,handles.pole1Lat,handles.pole1Ang,...
-		handles.pole2Lon,handles.pole2Lat,handles.pole2Ang);
+		handles.pole2Lon,handles.pole2Lat,handles.pole2Ang, [], 1);
 	set(handles.edit_pole3Lon,'String',num2str(lon_s,'%.4f'))
 	set(handles.edit_pole3Lat,'String',num2str(lat_s,'%.4f'))
 	set(handles.edit_pole3Ang,'String',num2str(ang_s,'%.4f'))
@@ -746,7 +741,7 @@ function edit_pole2Lon_CB(hObject, handles)
 	guidata(hObject, handles);
 	if (~got_them_all(handles)),	return;     end     % Not yet all parameters of the 2 poles
 	[lon_s,lat_s,ang_s] = add_poles(handles.pole1Lon,handles.pole1Lat,handles.pole1Ang,...
-		handles.pole2Lon,handles.pole2Lat,handles.pole2Ang);
+		handles.pole2Lon,handles.pole2Lat,handles.pole2Ang, [], 1);
 	set(handles.edit_pole3Lon,'String',num2str(lon_s,'%.4f'))
 	set(handles.edit_pole3Lat,'String',num2str(lat_s,'%.4f'))
 	set(handles.edit_pole3Ang,'String',num2str(ang_s,'%.4f'))
@@ -758,7 +753,7 @@ function edit_pole2Lat_CB(hObject, handles)
 	guidata(hObject, handles);
 	if (~got_them_all(handles)),	return;     end     % Not yet all parameters of the 2 poles
 	[lon_s,lat_s,ang_s] = add_poles(handles.pole1Lon,handles.pole1Lat,handles.pole1Ang,...
-		handles.pole2Lon,handles.pole2Lat,handles.pole2Ang);
+		handles.pole2Lon,handles.pole2Lat,handles.pole2Ang, [], 1);
 	set(handles.edit_pole3Lon,'String',num2str(lon_s,'%.4f'))
 	set(handles.edit_pole3Lat,'String',num2str(lat_s,'%.4f'))
 	set(handles.edit_pole3Ang,'String',num2str(ang_s,'%.4f'))
@@ -770,7 +765,7 @@ function edit_pole2Ang_CB(hObject, handles)
 	guidata(hObject, handles);
 	if (~got_them_all(handles)),	return;     end     % Not yet all parameters of the 2 poles
 	[lon_s,lat_s,ang_s] = add_poles(handles.pole1Lon,handles.pole1Lat,handles.pole1Ang,...
-		handles.pole2Lon,handles.pole2Lat,handles.pole2Ang);
+		handles.pole2Lon,handles.pole2Lat,handles.pole2Ang, [], 1);
 	set(handles.edit_pole3Lon,'String',num2str(lon_s,'%.4f'))
 	set(handles.edit_pole3Lat,'String',num2str(lat_s,'%.4f'))
 	set(handles.edit_pole3Ang,'String',num2str(ang_s,'%.4f'))
