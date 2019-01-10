@@ -3054,14 +3054,24 @@ function save_line(obj, evt, h)
 	end
 	handles = guidata(gcbo);
 	name = '.dat';				% Default to this extension but if true isochron we try to construct a good name
+	return_to = '';
 	if (strcmp(get(h, 'Tag'),'isochron'))	% Special case
 		name = create_isoc_name(h);
 		if (isempty(name)),		name = '.dat';	end		% Something did not work well
+	else
+		pato = getappdata(h, 'filePath');	% Now that we have this the other branch seems completely superfelous.
+		if (~isempty(pato))
+			return_to = cd;			% Return to where it we are now.
+			cd(pato)				% Temporary change dir to file location
+			fn = getappdata(h, 'fileName');
+			if (~isempty(fn) && numel(h) == 1),		name = fn;	end
+		end
 	end
 	str1 = {'*.dat;*.DAT', 'Line file (*.dat,*.DAT)'; '*.*', 'All Files (*.*)'};
 	[FileName,PathName] = put_or_get_file(handles,str1,'Select Line File name','put', name);
-	if isequal(FileName,0),			return,		end
-	x = get(h,'XData');				y = get(h,'YData');
+	if (~isempty(return_to)),	cd(return_to),	end
+	if isequal(FileName,0),		return,		end
+	x = get(h,'XData');			y = get(h,'YData');
 
 	fname = [PathName FileName];
 	[PATH,FNAME,EXT] = fileparts([PathName FileName]);
