@@ -1,7 +1,7 @@
 function varargout = euler_stuff(varargin)
 % Helper window to Euler rotations
 
-%	Copyright (c) 2004-2018 by J. Luis
+%	Copyright (c) 2004-2019 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
