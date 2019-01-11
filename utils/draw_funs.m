@@ -25,7 +25,7 @@ function varargout = draw_funs(hand, varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: draw_funs.m 11396 2019-01-10 20:26:22Z j $
+% $Id: draw_funs.m 11402 2019-01-11 00:10:11Z j $
 
 % A bit of strange tests but they are necessary for the cases when we use the new feval(fun,varargin{:}) 
 opt = varargin{1};		% function name to evaluate (new) or keyword to select one (old form)
@@ -3054,22 +3054,23 @@ function save_line(obj, evt, h)
 	end
 	handles = guidata(gcbo);
 	name = '.dat';				% Default to this extension but if true isochron we try to construct a good name
-	return_to = '';
+	last_dir = '';
 	if (strcmp(get(h, 'Tag'),'isochron'))	% Special case
 		name = create_isoc_name(h);
 		if (isempty(name)),		name = '.dat';	end		% Something did not work well
 	else
 		pato = getappdata(h, 'filePath');	% Now that we have this the other branch seems completely superfelous.
 		if (~isempty(pato))
-			return_to = cd;			% Return to where it we are now.
-			cd(pato)				% Temporary change dir to file location
+			last_dir = handles.last_dir;
+			handles.last_dir = pato;		% Temporary change 
 			fn = getappdata(h, 'fileName');
 			if (~isempty(fn) && numel(h) == 1),		name = fn;	end
 		end
 	end
 	str1 = {'*.dat;*.DAT', 'Line file (*.dat,*.DAT)'; '*.*', 'All Files (*.*)'};
-	[FileName,PathName] = put_or_get_file(handles,str1,'Select Line File name','put', name);
-	if (~isempty(return_to)),	cd(return_to),	end
+	[FileName,PathName,handles] = put_or_get_file(handles,str1,'Select Line File name','put', name);
+	if (~isempty(last_dir)),	handles.last_dir = last_dir;	end		% Reset the right dir
+	guidata(handles.figure1,handles)
 	if isequal(FileName,0),		return,		end
 	x = get(h,'XData');			y = get(h,'YData');
 
@@ -3191,7 +3192,7 @@ function save_GMT_DB_asc(h, fname)
 		if (isempty(getappdata(h(k), 'edited'))),	continue,	end		% Skip because it was not modified
 		GSHHS_str = getappdata(h(k),'GSHHS_str');
 		if (k == 1 && ~isempty(GSHHS_str))		% Write back the magic string that allows us to recognize these type of files
-			fprintf(fid,'# $Id: draw_funs.m 11396 2019-01-10 20:26:22Z j $\n#\n%s\n#\n', GSHHS_str);
+			fprintf(fid,'# $Id: draw_funs.m 11402 2019-01-11 00:10:11Z j $\n#\n%s\n#\n', GSHHS_str);
 		end
 		hdr = getappdata(h(k), 'LineInfo');
 		x = get(h(k), 'XData');			y = get(h(k), 'YData');
