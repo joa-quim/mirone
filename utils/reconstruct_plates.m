@@ -1,7 +1,7 @@
 function reconstruct_plates(hLine)
 % Reconstruct the base image at the time of the HLINE isochron
 
-%	Copyright (c) 2004-2018 by J. Luis
+%	Copyright (c) 2004-2019 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -16,13 +16,14 @@ function reconstruct_plates(hLine)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: reconstruct_plates.m 10265 2018-02-07 01:41:02Z j $
+% $Id$
 
 	handles = guidata(hLine);
 
 	hLines = get_polygon(handles.figure1, 'multi');				% Get the line handles
 	hLines = setxor(hLines, hLine);
-	pause(0.1)
+	if (isempty(hLines)),	hLines = hLine;		end				% One selection only, which was the hLine
+	pause(0.01)
 
 	hAllIsocs = findobj(get(hLine,'Parent'),'Tag', get(hLine,'Tag'));		% Fish all isocs, but only the isocs
 
@@ -54,9 +55,9 @@ function reconstruct_plates(hLine)
 function do_reconst(obj, evt, poles, name)
 % Callback function that does the reconstruction work
 	handles = guidata(obj);
-	set(handles.figure1,'pointer','watch')
+	set(handles.figure1,'pointer','watch'),		pause(0.01)
 
-	% We do this again to allow for the possibility that polygons have been edited
+	% Do this again to allow for the possibility that polygons have been edited
 	[plates_fixed, plates_mobile, globalBB, opt_A] = get_plate_polyg(handles, poles);
 
 	n_rows = round((globalBB(4) - globalBB(3)) / handles.head(9) + 1 - handles.head(7));
@@ -133,8 +134,8 @@ function [ind, pole, msg] = get_conjugates(hAllIsocs, hLine)
 % -----------------------------------------------------------------------------------------------------------------
 function [plates_fixed, plates_mobile] = build_plate_polyg(handles, hAllIsocs, hLines, indConj, poles)
 % Construct the polygons of each pseudo-plate from each isochron. Do this crudly from an isoc outward rotation
-% Comute also the global limits (in BB) of the final grid holding the fix and rotated plates.
-% OPT_A hold the limits (-R) of the rotated plates as sub-grids of the global grid.
+% Compute also the global limits (in BB) of the final grid holding the fix and rotated plates.
+% OPT_A holds the limits (-R) of the rotated plates as sub-grids of the global grid.
 
 	nPlates = numel(hLines);
 	plates_fixed = cell(nPlates,1);		plates_mobile = cell(nPlates,1);
@@ -214,9 +215,9 @@ function [xP, yP] = pseudo_plate_polyg(x, y, pole, side)
 % ... The base and top should be flow-lines?
 	x = x(:);	y = y(:);
 	if (side(1) == 'l')			% Left
-		ang = -4;
+		ang = -8;
 	else
-		ang = 4;
+		ang = 8;
 	end
 
 	[rlon,rlat] = rot_euler(x, y, pole(1), pole(2), ang, -1);
