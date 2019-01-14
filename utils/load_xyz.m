@@ -69,7 +69,7 @@ function varargout = load_xyz(handles, opt, opt2)
 %					Example: >POLYMESH -pol=L-1_G-1_P-1.dat -inc=1000 -interp=1 -data= -grid=0 -binary=0 -single=1
 %		'>XY'       Send the data read here to the XYtool (Ecran). File can be single or multi-column & multi-segment
 
-%	Copyright (c) 2004-2016 by J. Luis
+%	Copyright (c) 2004-2019 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -84,7 +84,7 @@ function varargout = load_xyz(handles, opt, opt2)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: load_xyz.m 11397 2019-01-10 20:27:35Z j $
+% $Id: load_xyz.m 11403 2019-01-14 02:38:15Z j $
 
 %	EXAMPLE CODE OF HOW TO CREATE A TEMPLATE FOR UICTX WHEN THESE ARE TOO MANY
 % 	cmenuHand = get(h, 'UIContextMenu');
@@ -119,13 +119,14 @@ function varargout = load_xyz(handles, opt, opt2)
 	goto_XY = false;			% To flag when data will be send to the XYtool
 	projStr = '';				% To hold a proj4 string stored in multi-segment headers
 	savePath = false;			% Will be true when input file path is to be saved in line's appdata
+	fname = '';					% May hold the to open file name
 	% -------------------------------------------------------------------------------
 
 	% ------------------- PARSE INPUTS ----------------------------------------------
 	n_argin = nargin;
 	if (nargout)				% A bit convoluted this test but it's necessary for backward compat reasons
 		if (n_argin == 0)
-			handles = [];	fname = [];		opt = [];
+			handles = [];	opt = [];
 			n_argin = 2;
 		end
 		if (isempty(handles))	% When this function is used to just read a file and return its contents
@@ -162,7 +163,7 @@ function varargout = load_xyz(handles, opt, opt2)
 		end
 		if (strncmpi(line_type,'isochron',4) || strcmpi(line_type,'FZ'))
 			if (strncmpi(line_type,'isochron',4))
-				if (line_type(end) == 'C')		% Load a Custom Isochrons file
+				if (line_type(end) == 'C' && isempty(fname))		% Load a Custom Isochrons file
 					[FileName, PathName, handles] = put_or_get_file(handles, ...
 						{'*.dat;*.DAT', 'Data files (*.dat,*.DAT)';'*.*', 'All Files (*.*)'},'Select File','get');
 					if isequal(FileName,0),		return,		end
@@ -497,7 +498,7 @@ function varargout = load_xyz(handles, opt, opt2)
 					if (iscell(out_data)),	imp_n_segments = numel(out_data);	end
 					for (imp_i = 1:imp_n_segments)					% Loop over number of segments of this imported file					
 						if (iscell(out_data)),	numeric_data{end+1} = out_data{imp_i};
-						else					numeric_data{end+1} = out_data;
+						else,					numeric_data{end+1} = out_data;
 						end
 						n_segments = n_segments + 1;
 						multi_segs_str{end+1} = out_str{imp_i};% Import also eventual included headers
