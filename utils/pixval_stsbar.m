@@ -3,7 +3,7 @@ function pixval_stsbar(arg1)
 
 % Coffeeright J. Luis 2004-2017
 
-% $Id: pixval_stsbar.m 10071 2017-03-30 23:56:42Z j $
+% $Id$
 
 	if (nargin == 0),	arg1 = [];		end
 
@@ -387,19 +387,19 @@ function ButtonDownOnImage(hImg, evt, hFig)
 				if (isnan(z))		% Create the UIContextMenu
 					cmenu = uicontextmenu('Parent', hFig, 'Tag','clickedHole');
 					set(hImg, 'UIContextMenu', cmenu);
-					uimenu(cmenu, 'Label', 'Digitize body', 'Call', 'mirone(''ImageEdgeDetect_CB'',guidata(gcbo),''apalpa_body'')');
+					uimenu(cmenu, 'Label', 'Digitize body', 'Callback', 'mirone(''ImageEdgeDetect_CB'',guidata(gcbo),''apalpa_body'')');
 					item0 = uimenu(cmenu, 'Label', 'Digitize body with pad');
-					uimenu(item0, 'Label', 'pad = 1 cell', 'Call', 'mirone(''ImageEdgeDetect_CB'',guidata(gcbo),''apalpa_body_1'')');
-					uimenu(item0, 'Label', 'pad = 2 cell', 'Call', 'mirone(''ImageEdgeDetect_CB'',guidata(gcbo),''apalpa_body_2'')');
-					uimenu(item0, 'Label', 'other...',  'Call', @other_pad);
-					uimenu(cmenu, 'Label', 'Digitize this hole', 'Call', 'mirone(''ImageEdgeDetect_CB'',guidata(gcbo),''apalpa_um'')', 'Sep','on');
-					uimenu(cmenu, 'Label', 'Inpaint this hole', 'Call', 'inpaint_nans(guidata(gcbo), ''single'')');
+					uimenu(item0, 'Label', 'pad = 1 cell', 'Callback', 'mirone(''ImageEdgeDetect_CB'',guidata(gcbo),''apalpa_body_1'')');
+					uimenu(item0, 'Label', 'pad = 2 cell', 'Callback', 'mirone(''ImageEdgeDetect_CB'',guidata(gcbo),''apalpa_body_2'')');
+					uimenu(item0, 'Label', 'other...',  'Callback', @other_pad);
+					uimenu(cmenu, 'Label', 'Digitize this hole', 'Callback', 'mirone(''ImageEdgeDetect_CB'',guidata(gcbo),''apalpa_um'')', 'Sep','on');
+					uimenu(cmenu, 'Label', 'Inpaint this hole', 'Callback', 'inpaint_nans(guidata(gcbo), ''single'')');
 					item1 = uimenu(cmenu, 'Label', 'Fill this hole ...', 'Sep','on');
-					uimenu(item1, 'Label', 'with 2nd Grid (sharp edges)', 'Call', 'transplants([], ''one_sharp'', true, guidata(gcbo))');
-					uimenu(item1, 'Label', 'with 2nd Grid (smooth edges)','Call', 'transplants([], ''one_smooth'', true, guidata(gcbo))');
+					uimenu(item1, 'Label', 'with 2nd Grid (sharp edges)', 'Callback', 'transplants([], ''one_sharp'', true, guidata(gcbo))');
+					uimenu(item1, 'Label', 'with 2nd Grid (smooth edges)','Callback', 'transplants([], ''one_smooth'', true, guidata(gcbo))');
 					item2 = uimenu(cmenu, 'Label', 'Fill all holes ...');
-					uimenu(item2, 'Label', 'with 2nd Grid (sharp edges)', 'Call', '');
-					uimenu(item2, 'Label', 'with 2nd Grid (smooth edges)', 'Call', '');
+					uimenu(item2, 'Label', 'with 2nd Grid (sharp edges)', 'Callback', '');
+					uimenu(item2, 'Label', 'with 2nd Grid (smooth edges)', 'Callback', '');
 				else
 					delete(findobj('Tag','clickedHole'))	% Delete uctx so that it does show up on right-clicks on ANY point
 				end
