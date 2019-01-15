@@ -18,7 +18,7 @@ function  varargout = aux_funs(opt,varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: aux_funs.m 11353 2018-07-03 15:46:35Z j $
+% $Id: aux_funs.m 11405 2019-01-15 20:31:52Z j $
 
 switch opt(1:4)
 	case 'Stor'		% 'StoreZ'
@@ -402,6 +402,18 @@ function out = msg_dlg(in,handles)
 	axes(handles.axes1)     % This is for the GCP mode be able to plot on the Master Image
 	if (~isempty(h))        % Bring the figure forward because it was hiden by the previous command
 		figure(h)
+	end
+
+% ----------------------------------------------------------------------------------
+function resp = isclosed(hLine, tol)
+% Check if HLINE is the handle of a closed polyline
+	if (strcmp(get(hLine, 'type'), 'patch')),	resp = true;	return,		end
+	x = get(hLine, 'XData');	y = get(hLine, 'YData');
+	if (nargin == 1),	tol = 0;	end
+	dx = x(end) - x(1);		dy = y(end) - y(1);
+	dr = sqrt(dx*dx + dy*dy);
+	if (dr <= tol),	resp = true;
+	else,			resp = false;
 	end
 
 % ----------------------------------------------------------------------------------
