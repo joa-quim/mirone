@@ -19,46 +19,86 @@ function reconstruct_plates(hLine)
 % $Id$
 
 	handles = guidata(hLine);
+	name = strtok(getappdata(hLine,'LineInfo'));			% The anomaly name
 
-	hLines = get_polygon(handles.figure1, 'multi');				% Get the line handles
-	hLines = setxor(hLines, hLine);
-	if (isempty(hLines)),	hLines = hLine;		end				% One selection only, which was the hLine
-	pause(0.01)
-
-	hAllIsocs = findobj(get(hLine,'Parent'),'Tag', get(hLine,'Tag'));		% Fish all isocs, but only the isocs
-
-	% Find the conjugate anomaly pairs.
-	indConj = zeros(numel(hLines),1);		poles = zeros(numel(hLines), 3);
-	for (k = 1:numel(hLines))
-		[ind, pole, msg] = get_conjugates(hAllIsocs, hLines(k));
-		if (~isempty(msg)),		errordlg(msg, 'ERROR'),	return,		end
-		indConj(k) = ind;
-		poles(k, :) = [pole.lon pole.lat pole.ang];
+	is_polygon = aux_funs('isclosed', hLine, 0.5);
+	if (is_polygon)
+		hLines = hLine;						% For polygons only one at each time
+% 	x = get(hLine, 'XData');	y = get(hLine, 'YData');
+% 	if (x(1) == x(end) && y(1) == y(end))
+% 		hLines = hLine;						% For polygons only one at each time
+% 		is_polygon = true;
+	else
+		hLines = get_polygon(handles.figure1, 'multi');		% Get other line handles
+		hLines = setxor(hLines, hLine);
+		if (isempty(hLines)),	hLines = hLine;		end		% One selection only, which was the hLine
+% 		is_polygon = false;
 	end
 
-	[plates_fixed, plates_mobile] = build_plate_polyg(handles, hAllIsocs, hLines, indConj, poles);
-	name = strtok(getappdata(hLines(1),'LineInfo'));		% The anomaly name
+	hAllIsocs = findobj(get(hLine,'Parent'),'Tag', get(hLine,'Tag'));	% Fish all isocs, but only the isocs
 
-	for (k = 1:numel(hLines))
-		h = mirone('DrawLine_CB', handles, 'data', plates_fixed{k}(:,1),  plates_fixed{k}(:,2));
-		set(h, 'Tag', 'PlateFix'),		setappdata(h, 'PlateFix', k)
-		ui = get(h, 'UIContextMenu');
-		uimenu(ui, 'Label', 'RECONSTRUCT PLATES','Sep','on', 'Callback', {@do_reconst, poles, name});
+	% Find the conjugate anomaly pairs.
+	indConj = zeros(numel(hLines),1);	poles = zeros(numel(hLines), 3);
+	for (k = 1:numel(hLines))				% Loop over fixed plates
+		if (is_polygon)
+			[ind, p] = get_conjugates_polyg(hAllIsocs, hLines(k));
+			if (k == 1),	poles = cell(numel(hLines),1);		indConj = cell(numel(hLines),1);	end
+			poles{k} = p;	indConj{k} = ind;
+		else
+			[ind, pole] = get_conjugates(hAllIsocs, hLines(k));
+			indConj(k)  = ind;
+			poles(k,:) = [pole.lon pole.lat pole.ang];
+		end
+	end
 
-		h = mirone('DrawLine_CB', handles, 'data', plates_mobile{k}(:,1), plates_mobile{k}(:,2));
-		set(h, 'Tag', 'PlateMov'),		setappdata(h, 'PlateMov', k)
-		ui = get(h, 'UIContextMenu');
-		uimenu(ui, 'Label', 'RECONSTRUCT PLATES', 'Sep','on', 'Callback', {@do_reconst, poles, name});
+	if (is_polygon)
+		hPF = zeros(10,1);		hPM = zeros(10,1);		% Allocate in excess
+		n = 1;
+		for (k = 1:numel(indConj))
+			for (m = 1:numel(indConj{k}))
+				hPF(n) = hLines(k);
+				hPM(n) = hAllIsocs(indConj{k}(m));
+				n = n + 1;
+			end
+		end
+		poles = cat(1, poles{:});			% We need an array in which the rows correspond to the line handles in hPM
+		hPF(hPF == 0) = [];		hPM(hPM == 0) = [];
+		hF = unique(hPF);
+		for (k = 1:numel(hF))				% Loop over unique fixed plates (normally should be only 1)
+			setappdata(hF(k), 'PlateFix', k)
+			ui = get(hF(k), 'UIContextMenu');
+			uimenu(ui, 'Label', 'RECONSTRUCT PLATES','Sep','on', 'Callback', {@do_reconst, poles, name, hPF, hPM});
+		end
+		for (k = 1:numel(hPM))
+			setappdata(hPM(k), 'PlateMov', k)
+			ui = get(hPM(k), 'UIContextMenu');
+			uimenu(ui, 'Label', 'RECONSTRUCT PLATES','Sep','on', 'Callback', {@do_reconst, poles, name, hPF, hPM});
+		end
+	else
+		[plates_fixed, plates_mobile] = build_plate_polyg(handles, hAllIsocs, hLines, indConj, poles);
+		poles(:,3) = -poles(:,3);		% Because in the automatic polygons mode the poles were fetch from Fix plate
+		for (k = 1:numel(hLines))
+			h = mirone('DrawLine_CB', handles, 'data', plates_fixed{k}(:,1),  plates_fixed{k}(:,2));
+			set(h, 'Tag', 'PlateFix'),		setappdata(h, 'PlateFix', k)
+			ui = get(h, 'UIContextMenu');
+			uimenu(ui, 'Label', 'RECONSTRUCT PLATES','Sep','on', 'Callback', {@do_reconst, poles, name});
+
+			h = mirone('DrawLine_CB', handles, 'data', plates_mobile{k}(:,1), plates_mobile{k}(:,2));
+			set(h, 'Tag', 'PlateMov'),		setappdata(h, 'PlateMov', k)
+			ui = get(h, 'UIContextMenu');
+			uimenu(ui, 'Label', 'RECONSTRUCT PLATES', 'Sep','on', 'Callback', {@do_reconst, poles, name});
+		end
 	end
 
 % -----------------------------------------------------------------------------------------------------------------
-function do_reconst(obj, evt, poles, name)
+function do_reconst(obj, evt, poles, name, hPlateFix, hPlateMov)
 % Callback function that does the reconstruction work
+	if (nargin == 4),	hPlateFix = [];		hPlateMov = [];		end
 	handles = guidata(obj);
 	set(handles.figure1,'pointer','watch'),		pause(0.01)
 
 	% Do this again to allow for the possibility that polygons have been edited
-	[plates_fixed, plates_mobile, globalBB, opt_A] = get_plate_polyg(handles, poles);
+	[plates_fixed, plates_mobile, globalBB, opt_A] = get_plate_polyg(handles, poles, hPlateFix, hPlateMov);
 
 	n_rows = round((globalBB(4) - globalBB(3)) / handles.head(9) + 1 - handles.head(7));
 	n_cols = round((globalBB(2) - globalBB(1)) / handles.head(8) + 1 - handles.head(7));
@@ -77,7 +117,7 @@ function do_reconst(obj, evt, poles, name)
 
 		[X,Y,Z,head] = mirone('ImageCrop_CB', handles, plates_mobile{k}, 'CropaGrid_pure-');
 		G = gmt('wrapgrid', Z, head);
-		Gr = gmtmex(sprintf('grdrotater %s -N -nn -E%g/%g/%g -F', opt_A{k}, poles(k,1), poles(k,2), -poles(k,3)), G, plates_mobile{k});
+		Gr = gmtmex(sprintf('grdrotater %s -N -nn -E%g/%g/%g -F', opt_A{k}, poles(k,1), poles(k,2), poles(k,3)), G, plates_mobile{k});
 		s.head = [Gr.range 0 Gr.inc];	s.X = Gr.x;		s.Y = Gr.y;		s.Z = Gr.z;
 		sG.Z = Zg;
 		Zg = transplants([], 'grid_brute', true, sG, s);				% Transplant this rotated plate to final grid
@@ -93,18 +133,18 @@ function do_reconst(obj, evt, poles, name)
 	handMirNew = guidata(h);
 	for (k = 1:nPlates)
 		mirone('DrawLine_CB', handMirNew, 'data', plates_fixed{k}(:,1), plates_fixed{k}(:,2))
-	end	
-	for (k = 1:nPlates)
-		[rlon,rlat] = rot_euler(plates_mobile{k}(:,1), plates_mobile{k}(:,2), poles(k,1), poles(k,2), -poles(k,3), -1);
+		[rlon,rlat] = rot_euler(plates_mobile{k}(:,1), plates_mobile{k}(:,2), poles(k,1), poles(k,2), poles(k,3), -1);
 		mirone('DrawLine_CB', handMirNew, 'data', rlon, rlat)
 	end	
 
 % -----------------------------------------------------------------------------------------------------------------
-function [ind, pole, msg] = get_conjugates(hAllIsocs, hLine)
+function [ind, pole] = get_conjugates(hAllIsocs, hLine)
 % Find the conjugate plate of HLINE. Return its index in HALLISOCS and the finite pole stored in HLINE appdata.
 
-	ind = 0;	msg = '';
+	ind = 0;
 	lineInfo = getappdata(hLine, 'LineInfo');	% Ex: 9 NORTH AMERICA/IBERIA FIN"138.2 62 6.132 27.47"
+	pole = pole2neighbor('parse_finite_pole', [], [], [], [], lineInfo);
+	if (isempty(pole)),		errordlg('The selected anomaly has no FINite rotation info. Bye'),	end
 	isoc = strtok(lineInfo);
 	[P1, P2] = pole2neighbor('get_plate_pair', [], [], [], [], hLine);
 
@@ -123,19 +163,43 @@ function [ind, pole, msg] = get_conjugates(hAllIsocs, hLine)
 		end
 	end
 	if (~ind)
-		msg = sprintf('Could not find the conjugate anomaly -> %s  %s/%s  Bye', isoc, PP2, PP1);
-		return
+		errordlg(sprintf('Could not find the conjugate anomaly -> %s  %s/%s  Bye', isoc, PP2, PP1))
 	end
-	pole = pole2neighbor('parse_finite_pole', [], [], [], [], lineInfo);
-	if (isempty(pole))
-		msg = 'The selected anomaly has no FINite rotation info. Bye';
+
+% -----------------------------------------------------------------------------------------------------------------
+function [ind, poles] = get_conjugates_polyg(hAllIsocs, hLine)
+% Find the conjugate plate of HLINE. Return its index in HALLISOCS and the finite pole stored in HLINE appdata.
+
+	lineInfo = getappdata(hLine, 'LineInfo');   % Ex: 9 NORTH AMERICA/IBERIA FIN"138.2 62 6.132 27.47"
+	isoc = strtok(lineInfo);
+	[P1, P2] = pole2neighbor('get_plate_pair', [], [], [], [], hLine);
+
+	ind = zeros(10,1);		poles = zeros(10, 3);		k = 1;
+	for (n = 1:numel(hAllIsocs))		% Loop over all Isochrons
+		this_lineInfo  = getappdata(hAllIsocs(n),'LineInfo');
+		this_isoc = strtok(this_lineInfo);
+		if (strcmpi(this_isoc, isoc))	% OK, same isochron so now search for plates that connect to HLINE (P1 == PP2)
+			if (~isempty(strfind(this_lineInfo, P1)))	% Potential target. But only want the P1 == PP2 combination
+				[PP1, PP2] = pole2neighbor('get_plate_pair', [], [], [], [], this_lineInfo);
+				if (strcmp(P1, PP2))	% Found one target
+					p = pole2neighbor('parse_finite_pole', [], [], [], [], this_lineInfo);
+					if (isempty(p)),	errordlg('The conjugated polygon has no FINite rotation info. Bye'),	end
+					closed = aux_funs('isclosed', hAllIsocs(n), 0.5);
+					if (~closed),	errordlg('This conjugated polygon is NOT closed as it must. Bye'),	end
+					poles(k, :) = [p.lon p.lat p.ang];
+					ind(k) = n;		k = k + 1;
+				end
+			end
+		end
 	end
+	poles(ind == 0, :) = [];
+	ind(ind == 0) = [];			% Remove empties
+	if (isempty(ind)),	errordlg(sprintf('Could not find the paired polygons to %s. Bye', isoc)),	end
 
 % -----------------------------------------------------------------------------------------------------------------
 function [plates_fixed, plates_mobile] = build_plate_polyg(handles, hAllIsocs, hLines, indConj, poles)
 % Construct the polygons of each pseudo-plate from each isochron. Do this crudly from an isoc outward rotation
 % Compute also the global limits (in BB) of the final grid holding the fix and rotated plates.
-% OPT_A holds the limits (-R) of the rotated plates as sub-grids of the global grid.
 
 	nPlates = numel(hLines);
 	plates_fixed = cell(nPlates,1);		plates_mobile = cell(nPlates,1);
@@ -149,27 +213,34 @@ function [plates_fixed, plates_mobile] = build_plate_polyg(handles, hAllIsocs, h
 	end
 
 % -----------------------------------------------------------------------------------------------------------------
-function [plates_fixed, plates_mobile, BB, opt_A] = get_plate_polyg(handles, poles)
-% ...
-	hFix = findobj(handles.axes1, 'Tag', 'PlateFix');
-	hMov = findobj(handles.axes1, 'Tag', 'PlateMov');
-	if (numel(hFix) ~= numel(hMov))
-		errordlg('Happy? You screw it by deleting plates polygons. Bye Bye!', 'Error')
-		plates_fixed = [];	plates_mobile = [];		BB = [];	opt_A = '';
-		return
-	end
+function [plates_fixed, plates_mobile, BB, opt_A] = get_plate_polyg(handles, poles, hPlateFix, hPlateMov)
+% BB    Global BB
+% OPT_A holds the limits (-R) of the rotated plates as sub-grids of the global grid.
 
-	nPlates = numel(hFix);
-	orderFix = zeros(nPlates,1);	orderMov = zeros(nPlates,1);
-	for (k = 1:nPlates)
-		orderFix(k) = getappdata(hFix(k), 'PlateFix');
-		orderMov(k) = getappdata(hMov(k), 'PlateMov');
-	end
+	if (~isempty(hPlateFix))		% Case of given polygons
+		hFix = hPlateFix;		hMov = hPlateMov;
+		nPlates = numel(hFix);
+	else
+		hFix = findobj(handles.axes1, 'Tag', 'PlateFix');
+		hMov = findobj(handles.axes1, 'Tag', 'PlateMov');
+		if (numel(hFix) ~= numel(hMov))
+			errordlg('Happy? You screw it by deleting plates polygons. Bye Bye!', 'Error')
+			plates_fixed = [];	plates_mobile = [];		BB = [];	opt_A = '';
+			return
+		end
 
-	[lix, ind] = sort(orderFix);
-	hFix = hFix(ind);
-	[lix, ind] = sort(orderMov);
-	hMov = hMov(ind);
+		nPlates = numel(hFix);
+		orderFix = zeros(nPlates,1);	orderMov = zeros(nPlates,1);
+		for (k = 1:nPlates)
+			orderFix(k) = getappdata(hFix(k), 'PlateFix');
+			orderMov(k) = getappdata(hMov(k), 'PlateMov');
+		end
+
+		[lix, ind] = sort(orderFix);
+		hFix = hFix(ind);
+		[lix, ind] = sort(orderMov);
+		hMov = hMov(ind);
+	end
 
 	plates_fixed = cell(nPlates,1);		plates_mobile = cell(nPlates,1);
 	for (k = 1:nPlates)
@@ -191,7 +262,7 @@ function [plates_fixed, plates_mobile, BB, opt_A] = get_plate_polyg(handles, pol
 	for (k = 1:nPlates)
 		thisBB(k,1:2:3) = min(plates_mobile{k});	thisBB(k,2:2:4) = max(plates_mobile{k});
 		[rlon,rlat] = rot_euler([thisBB(k,1) thisBB(k,1) thisBB(k,2) thisBB(k,2)]', [thisBB(k,3) thisBB(k,4) thisBB(k,4) thisBB(k,3)]', ...
-		                        poles(k,1), poles(k,2), -poles(k,3), -1);
+		                        poles(k,1), poles(k,2), poles(k,3), -1);
 		movBB(k,1) = min(rlon);				movBB(k,2) = max(rlon);
 		movBB(k,3) = min(rlat);				movBB(k,4) = max(rlat);
 		BB(1) = min(BB(1), movBB(k,1));		BB(2) = max(BB(2), movBB(k,2));
