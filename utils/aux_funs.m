@@ -405,6 +405,18 @@ function out = msg_dlg(in,handles)
 	end
 
 % ----------------------------------------------------------------------------------
+function resp = isclosed(hLine, tol)
+% Check if HLINE is the handle of a closed polyline
+	if (strcmp(get(hLine, 'type'), 'patch')),	resp = true;	return,		end
+	x = get(hLine, 'XData');	y = get(hLine, 'YData');
+	if (nargin == 1),	tol = 0;	end
+	dx = x(end) - x(1);		dy = y(end) - y(1);
+	dr = sqrt(dx*dx + dy*dy);
+	if (dr <= tol),	resp = true;
+	else,			resp = false;
+	end
+
+% ----------------------------------------------------------------------------------
 function handles = isProj(handles, opt)
 % Se if we have projected grid/images and act acordingly
 
