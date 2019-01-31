@@ -16,7 +16,7 @@ function varargout = euler_stuff(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: euler_stuff.m 11400 2019-01-10 20:33:51Z j $
+% $Id: euler_stuff.m 11408 2019-01-31 15:28:09Z j $
 
 	if (isempty(varargin))
 		errordlg('EULER_STUFF: wrong number of input arguments.','Error'),	return
@@ -567,11 +567,6 @@ function push_polesList_CB(hObject, handles)
 						'addpoles',doAddPoles,...
 						'ListString',s);
 
-	if (~isempty(s) && handles.activeTab == 2 && size(s,1) ~= 2)
-		errordlg('I should tease you but maybe you just don''t know what you are doing.','Error')
-		return
-	end
-
 	if (v == 1)         % Finite pole (one only)
 		handles.p_lon = s(1);
 		handles.p_lat = s(2);
@@ -590,17 +585,17 @@ function push_polesList_CB(hObject, handles)
 			set(handles.edit_pole1Lon, 'String', num2str(s(1,1)))
 			set(handles.edit_pole1Lat, 'String', num2str(s(1,2)))
 			set(handles.edit_pole1Ang, 'String', num2str(s(1,3)))
-			set(handles.edit_pole2Lon, 'String', num2str(s(2,1)))
-			set(handles.edit_pole2Lat, 'String', num2str(s(2,2)))
-			set(handles.edit_pole2Ang, 'String', num2str(s(2,3)))
-			[lon_s,lat_s,ang_s] = add_poles(s(1,1), s(1,2), s(1,3), s(2,1), s(2,2), s(2,3));
-			set(handles.edit_pole3Lon,'String', sprintf('%.2f', lon_s))
-			set(handles.edit_pole3Lat,'String', sprintf('%.2f', lat_s))
-			set(handles.edit_pole3Ang,'String', sprintf('%.4f', ang_s))
-			handles.pole1Lon = s(1,1);			handles.pole1Lat = s(1,2);
-			handles.pole1Ang = s(1,3);
-			handles.pole2Lon = s(2,1);			handles.pole2Lat = s(2,2);
-			handles.pole2Ang = s(2,3);
+			handles.pole1Lon = s(1,1);	handles.pole1Lat = s(1,2);		handles.pole1Ang = s(1,3);
+			if (size(s,1) > 1)
+				set(handles.edit_pole2Lon, 'String', num2str(s(2,1)))
+				set(handles.edit_pole2Lat, 'String', num2str(s(2,2)))
+				set(handles.edit_pole2Ang, 'String', num2str(s(2,3)))
+				[lon_s,lat_s,ang_s] = add_poles(s(1,1), s(1,2), s(1,3), s(2,1), s(2,2), s(2,3));
+				set(handles.edit_pole3Lon,'String', sprintf('%.2f', lon_s))
+				set(handles.edit_pole3Lat,'String', sprintf('%.2f', lat_s))
+				set(handles.edit_pole3Ang,'String', sprintf('%.4f', ang_s))
+				handles.pole2Lon = s(2,1);	handles.pole2Lat = s(2,2);	handles.pole2Ang = s(2,3);
+			end
 		else
 			set(handles.edit_polesFile,'String','In memory poles')
 			handles.finite_poles = s;
