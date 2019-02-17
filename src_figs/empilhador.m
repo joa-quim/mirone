@@ -5,7 +5,7 @@ function varargout = empilhador(varargin)
 %
 % NOTE: The gotFromMETA and getZ functions are callable directly by mirone
 
-%	Copyright (c) 2004-2018 by J. Luis
+%	Copyright (c) 2004-2019 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -20,7 +20,7 @@ function varargout = empilhador(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: empilhador.m 10378 2018-04-14 00:39:22Z j $
+% $Id$
 
 	if (nargin > 1 && ischar(varargin{1}))
 		gui_CB = str2func(varargin{1});
@@ -567,7 +567,7 @@ function t = squeeze_time_from_name(name, get_year)
 	if (~isempty(indDot) && strcmpi(FNAME(16:17), 'L2'))	% Second case type name
 		FNAME(indDot(1):end) = [];
 	elseif (~isempty(EXT) && strcmpi(EXT(2:3), 'L2'))		% First case type name (nothing to do)
-	elseif (strcmpi(EXT,'.nc') && FNAME(15) == '-')			% A GS... 2.0 netCDF PATHFINDER file
+	elseif (strcmpi(EXT,'.nc') && FNAME(min(15,numel(FNAME))) == '-')	% A GS... 2.0 netCDF PATHFINDER file
 		FNAME(15:end) = [];
 	elseif (get_year)
 		try
@@ -1084,6 +1084,8 @@ function cut2cdf(handles, got_R, west, east, south, north)
 				fprintf(fid, '%s\n', handles.backup_list{kk});
 			end
 			fclose(fid);
+			bf = sprintf('-Xcheck_bitflags,%d', get(handles.check_bitflags, 'Val'));
+			qual = sprintf('-Xpopup_quality,%d', get(handles.popup_quality, 'Val'));
 			if (handles.IamCompiled)
 				t = set_gmt('MIRONE_HOME', 'whatever');				% Inquire if MIRONE_HOME exists
 				if (~isempty(t)),	prog = [t '\callMir.exe '];
@@ -1091,12 +1093,12 @@ function cut2cdf(handles, got_R, west, east, south, north)
 				end
 				if (ishandle(handles.hCallingFig)),		delete(handles.hCallingFig),	end		% Don't need it, it was only the Bar
 				cmd = ['start /B ' prog '-Cempilhador,guidata(gcf) -Xedit_namesList,+' fnameRest ...
-				       ' -Xcheck_L2,1 -Xcheck_L2conf,1 -Xcheck_bitflags,1 -Xpush_compute'];
+				       ' -Xcheck_L2,1 -Xcheck_L2conf,1 ' bf ' ' qual ' -Xpush_compute'];
 				dos(cmd);
 				delete(handles.figure1)				% We are done with it
 			else
 				mirone('-Cempilhador,guidata(gcf)',['-Xedit_namesList,+' fnameRest],'-Xcheck_L2,1', ...
-				       '-Xcheck_L2conf,1', '-Xcheck_bitflags,1', '-Xpush_compute');
+				       '-Xcheck_L2conf,1', bf, qual, '-Xpush_compute');
 				return
 			end
 		end
@@ -1819,6 +1821,16 @@ function [Z, att, known_coords, have_nans, was_empty_name] = read_gdal(full_name
 				end
 				clear qual
 			end
+
+% 			if (true)
+% 				lon_full = lon_full';	lat_full = lat_full';	Z = Z';
+% 				xyz = [lon_full(:) lat_full(:) Z(:)];
+% 				%set_gmt('X2SYS_HOME=c:\v');
+% 				%D = gmtmex('x2sys_cross -TLINE -Qi', xyz);
+% 				D = gmtmex('gmtspatial -Ii', xyz);
+% 				xerr = D.data(:,[1 2 10]);
+% 				gmtmex('pshistogram -R-5/5/0/400 -W0.2 -JX12 -P -Gred -Ba -L0.25p > c:\v\sst_xerr.ps', xerr)
+% 			end
 
 			if (despike)					% MODIS SST are horribly spiked every other 10 vertical positions in
 				Z = clipMySpikes(Z);		% sensor coordinates. This functions signifficantly reduces that effect.
