@@ -1,5 +1,5 @@
 /*--------------------------------------------------------------------
- *	$Id: nswing.c 10425 2018-05-28 21:25:20Z j $
+ *	$Id$
  *
  *	Copyright (c) 2012-2018 by J. Luis and J. M. Miranda
  *
@@ -16,7 +16,7 @@
  *	Contact info: w3.ualg.pt/~jluis/mirone
  *--------------------------------------------------------------------*/
 
-static char prog_id[] = "$Id: nswing.c 10425 2018-05-28 21:25:20Z j $";
+static char prog_id[] = "$Id$";
 
 /*
  *	Original Fortran version of core hydrodynamic code by J.M. Miranda and COMCOT
@@ -2221,7 +2221,7 @@ LoopKabas:		/* When computing a grid of Kabas we use a GOTO to simulate a loop. 
 	if (workMax) mxFree (workMax);
 	if (work) mxFree (work);
 	if (mareg_names) {
-		for (k = 0; k < n_mareg; k++) mxFree(mareg_names[k]);
+		for (k = 0; k < n_mareg; k++) free(mareg_names[k]);		/* They were allocated with strdup() */
 		mxFree(mareg_names);
 	}
 
@@ -2669,7 +2669,7 @@ int read_grd_info_ascii(char *file, struct srf_header *hdr) {
 	sprintf (id, "%.4s", hdr->id);
 	if (strcmp (id, "DSAA") == 0) {
 		fgets (line, 128, fp);
-		sscanf (line, "%d %d", &hdr->nx, &hdr->ny);
+		sscanf (line, "%hd %hd", &hdr->nx, &hdr->ny);
 		fgets (line, 128, fp);
 		sscanf (line, "%lf %lf", &hdr->x_min, &hdr->x_max);
 		fgets (line, 128, fp);
@@ -2707,7 +2707,7 @@ int read_grd_ascii(char *file, struct srf_header *hdr, double *work, int sign) {
 	fgets (line, 512, fp);
 	sscanf (line, "%s", hdr->id);
 	fgets (line, 512, fp);
-	sscanf (line, "%d %d", &hdr->nx, &hdr->ny);
+	sscanf (line, "%hd %hd", &hdr->nx, &hdr->ny);
 	fgets (line, 512, fp);
 	sscanf (line, "%lf %lf", &hdr->x_min, &hdr->x_max);
 	fgets (line, 512, fp);
@@ -5394,8 +5394,8 @@ void mass_conservation(struct nestContainer *nest, int isGeog, int m) {
 	HANDLE ThreadList[64];  /* Handles to the worker threads */
 	ThreadArg Arg_List[64], *Arg_p;
 
+	n_rows_block = (int)ceil(nest->hdr[m].ny / nest->n_threads);
 	if (isGeog) {
-		n_rows_block = (int)ceil(nest->hdr[m].ny / nest->n_threads);
 		for (i = 0; i < nest->n_threads; i++) {
 			row_start       = i * n_rows_block;
 			row_end         = MIN(row_start + n_rows_block, nest->hdr[m].ny);
