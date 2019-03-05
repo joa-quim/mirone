@@ -302,7 +302,7 @@ function out = findFileType(fname)
 		if (strncmp(ID,'# @VGMT', 7)),	out = 'ogr';
 		else,							out = 'mgg_gmt';
 		end
-	elseif (any(strcmpi(EXT,{'.kml' '.gml' '.dxf' '.gpx' '.dgn' '.csv' '.s57' '.svg'})) )
+	elseif (any(strcmpi(EXT,{'.kml' '.gml' '.dxf' '.gpx' '.dgn' '.csv' '.s57' '.svg' '.json'})) )
 		out = 'ogr';
 	elseif (strcmpi(EXT,'.ps') || strcmpi(EXT,'.eps'))
 		out = 'ghost';
