@@ -1,7 +1,7 @@
 function varargout = vector_project(varargin)
 %
 %
-%	Copyright (c) 2004-2018 by J. Luis
+%	Copyright (c) 2004-2019 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -16,7 +16,7 @@ function varargout = vector_project(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: vector_project.m 10217 2018-01-24 21:33:46Z j $
+% $Id: vector_project.m 11414 2019-03-05 19:53:33Z j $
 
 	hObject = figure('Vis','off');
 	vector_project_LayoutFcn(hObject);
@@ -44,8 +44,8 @@ function varargout = vector_project(varargin)
 		'Polar Stereographic' ...
 		};
 
-	handles.prjPROJ4 = {''; '+proj=latlong +datum=wgs84 +no_defs'; ...
-		'+proj=utm +zone=29 +k=0.9996 +ellps=grs80 +towgs84=0,0,0'; ...
+	handles.prjPROJ4 = {''; '+proj=latlong +datum=WGS84 +no_defs'; ...
+		'+proj=utm +zone=29 +datum=WGS84 +units=m +no_defs'; ...
 		'+proj=tmerc +lat_0=39.668258333333333 +lon_0=-8.133108333333333 +k=1 +x_0=0 +y_0=0 +ellps=GRS80 +units=m +no_defs'; ...
 		'+proj=tmerc +lat_0=39.666666666666667 +lon_0=-8.131906111111111 +k=1 +x_0=200000 +y_0=300000 +ellps=intl +towgs84=-304.046,-60.576,103.640,0,0,0,0'; ...
 		'+proj=tmerc +lat_0=39.666666666666667 +lon_0=-8.131906111111111 +k=1 +x_0=0 +y_0=0 +ellps=intl +towgs84=-283.088,-70.693,117.445,-1.157,0.059,-0.652,-4.058'; ...
@@ -212,11 +212,11 @@ function popup_destinyFormat_CB(hObject, handles)
 function out = push_OK_CB(hObject, handles)
 % ...
 	
-	if ( isempty(handles.projStruc.SrcProjWKT) || isempty(handles.projStruc.DstProjWKT) )
+	if (isempty(handles.projStruc.SrcProjWKT) || isempty(handles.projStruc.DstProjWKT))
 		errordlg('Invalid Source or Destiny projection string.','Error'),	return
 	end
 
-	if ( strcmp(get(handles.edit_xLeft,'Vis'), 'on') )		% Point conversions
+	if (strcmp(get(handles.edit_xLeft,'Vis'), 'on'))		% Point conversions
 		x = str2double(get(handles.edit_xLeft, 'Str'));
 		y = str2double(get(handles.edit_yLeft, 'Str'));
 		z = str2double(get(handles.edit_zLeft, 'Str'));
@@ -226,8 +226,8 @@ function out = push_OK_CB(hObject, handles)
 		if (nargout)
 			out = xy_prj;
 		else
-			set(handles.edit_xRight, 'Str', num2str(xy_prj(1)))
-			set(handles.edit_yRight, 'Str', num2str(xy_prj(2)))
+			set(handles.edit_xRight, 'Str', sprintf('%.12g',xy_prj(1)))
+			set(handles.edit_yRight, 'Str', sprintf('%.12g',xy_prj(2)))
 			if (numel(xy_prj) == 3),	set(handles.edit_zRight, 'Str', num2str(xy_prj(3))),	end
 		end
 	else
