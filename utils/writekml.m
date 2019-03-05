@@ -21,7 +21,7 @@ function writekml(handles, Z, fname)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: writekml.m 11303 2018-05-28 21:39:31Z Joaquim Luis $
+% $Id: writekml.m 11413 2019-03-05 19:51:26Z j $
 
 	n_argin = nargin;
 	noFig = true;
@@ -597,7 +597,7 @@ function writeSymbols(fid,nTab,x,y,scale,nameGroup,names)
 	Pname = false;      % To use when we have Placemark names
 	if (nargin == 7 && iscell(names)),      Pname = true;   end
 	fprintf(fid,[sTab_p1 '%s%s%s\n'],'<name>',nameGroup,'</name>');
-	% OK, now loop over number of points ('grou symbols' have several points)
+	% OK, now loop over number of points ('group symbols' have several points)
 	for (k = 1:numel(x))
 		fprintf(fid,[sTab_p1 '%s\n'],'<Placemark>');
 		if (Pname)
@@ -623,37 +623,55 @@ function writeText(fid,nTab,h,nameGroup)
 	sTab_p1 = repmat('\t',1,(nTab+1));		sTab_p2 = repmat('\t',1,(nTab+2));
 	sTab_p3 = repmat('\t',1,(nTab+3));
 
-	% Create a style block that doesn't print any marker (but needs improvement)
-	fprintf(fid,[sTab_p1 '%s\n'],'<Style id="Mir-1">');
-	fprintf(fid,[sTab_p2 '<IconStyle><Icon></Icon></IconStyle>\n']);
-	fprintf(fid,[sTab_p2 '%s\n'],'<LineStyle>');
-	fprintf(fid,[sTab_p3 '<color>ff000000</color>\n']);
-	fprintf(fid,[sTab_p3 '<width>1</width>\n']);
-	fprintf(fid,[sTab_p2 '%s\n'],'</LineStyle>');
-	fprintf(fid,[sTab_p2 '%s\n'],'<PolyStyle>');
-	fprintf(fid,[sTab_p3 '<color>ff80c0ff</color>\n']);
-	fprintf(fid,[sTab_p3 '<fill>1</fill>\n']);
-	fprintf(fid,[sTab_p3 '<outline>1</outline>\n']);
-	fprintf(fid,[sTab_p2 '%s\n'],'</PolyStyle>');
-	fprintf(fid,[sTab_p2 '%s\n'],'<LabelStyle>');
-	fprintf(fid,[sTab_p3 '%s\n'],'<scale>1</scale>');
-	fprintf(fid,[sTab_p3 '<color>bfffffff</color>\n']);
-	fprintf(fid,[sTab_p2 '%s\n'],'</LabelStyle>');
-	fprintf(fid,[sTab_p1 '%s\n'],'</Style>');
-
-	str = get(h,'String');		pos = get(h,'Position');
+	str = get(h,'String');	pos = get(h,'Position');	cor = get(h,'Color');
 	if (~isa(str,'cell'))		% We need to access them as cell arrays
-		str = {str};			pos = {pos};
+		str = {str};		pos = {pos};		cor = {cor};
 	end
 
+	id = 1;
+	writeLabelStyle(fid, sTab_p1, sTab_p2, sTab_p3, cor{1}, id)
+	sTab_p1_ = [sTab_p1 '\t'];	sTab_p2_ = [sTab_p2 '\t'];	sTab_p3_ = [sTab_p3 '\t'];
+
 	fprintf(fid,[sTab_p1 '%s%s%s\n'],'<name>',nameGroup,'</name>');
-	% OK, now loop ever number of points ('grou symbols' have several points)
+	% OK, now loop over number of Texts
+	last_color = cor{1};
 	for (k = 1:numel(h))
 		fprintf(fid,[sTab_p1 '%s\n'],'<Placemark>');
 		fprintf(fid,[sTab_p1 '%s%s%s\n'],'<name>',str{k},'</name>');
-		fprintf(fid,[sTab_p2 '%s%s%s\n'],'<styleUrl>','#Mir-1','</styleUrl>');
+		if (k > 1 && ~isequal(cor{k}, last_color))
+			id = id + 1;
+			writeLabelStyle(fid, sTab_p1_, sTab_p2_, sTab_p3_, cor{k}, id)
+			last_color = cor{k};
+		end
+		fprintf(fid,[sTab_p2 '%s%s%d%s\n'],'<styleUrl>','#Mir-',id,'</styleUrl>');
 		fprintf(fid,[sTab_p2 '%s\n'],'<Point>');
 		fprintf(fid,[sTab_p3 '%s%.4f,%.4f%s\n'],'<coordinates>',pos{k}(1),pos{k}(2),',0</coordinates>');
 		fprintf(fid,[sTab_p2 '%s\n'],'</Point>');
 		fprintf(fid,[sTab_p1 '%s\n'],'</Placemark>');        
 	end
+
+% ------------------------------------------------------------------------------------
+function writeLabelStyle(fid, sTab_p1, sTab_p2, sTab_p3, color, id)
+% Write a LabelStyl block to be used in text strings.
+
+    rgb = fliplr(round(color*255));		% Flip because colors go as BGR
+	% Convert (Thanks to Stephen Cobeldick for this clever, efficient solution):
+	hex(:,3:8) = reshape(sprintf('%02X',rgb.'),6,[]).'; 
+	hex(:,1:2) = 'FF';
+
+	fprintf(fid,[sTab_p1 '%s%d%s\n'],'<Style id="Mir-',id,'">');
+	fprintf(fid,[sTab_p2 '<IconStyle><Icon></Icon></IconStyle>\n']);
+% 	fprintf(fid,[sTab_p2 '%s\n'],'<LineStyle>');
+% 	fprintf(fid,[sTab_p3 '<color>ff000000</color>\n']);
+% 	fprintf(fid,[sTab_p3 '<width>1</width>\n']);
+% 	fprintf(fid,[sTab_p2 '%s\n'],'</LineStyle>');
+% 	fprintf(fid,[sTab_p2 '%s\n'],'<PolyStyle>');
+% 	fprintf(fid,[sTab_p3 '<color>ff80c0ff</color>\n']);
+% 	fprintf(fid,[sTab_p3 '<fill>1</fill>\n']);
+% 	fprintf(fid,[sTab_p3 '<outline>1</outline>\n']);
+% 	fprintf(fid,[sTab_p2 '%s\n'],'</PolyStyle>');
+	fprintf(fid,[sTab_p2 '%s\n'],'<LabelStyle>');
+	fprintf(fid,[sTab_p3 '%s\n'],'<scale>1</scale>');
+	fprintf(fid,[sTab_p3 '<color>%s</color>\n'], hex);
+	fprintf(fid,[sTab_p2 '%s\n'],'</LabelStyle>');
+	fprintf(fid,[sTab_p1 '%s\n'],'</Style>');
