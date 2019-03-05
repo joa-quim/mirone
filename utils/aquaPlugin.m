@@ -21,7 +21,7 @@ function aquaPlugin(handles, auto)
 %				aquamoto('file.nc', 0)
 %		In the later case the control script name is searched in the OPTcontrol.txt file
 
-%	Copyright (c) 2004-2018 by J. Luis
+%	Copyright (c) 2004-2019 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -36,7 +36,7 @@ function aquaPlugin(handles, auto)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: aquaPlugin.m 10308 2018-03-06 23:38:11Z j $
+% $Id$
 
 	if (isempty(handles.fname))
 		errordlg('Fast trigger, you probably killed my previous encarnation. Now you have to start again. Bye.','Error')
@@ -1402,13 +1402,13 @@ function [Z, mask] = apply_mask(mask_file, mask, Z)
 			end
 			Z(mask) = NaN;
 		else
-			Z = Z .* G.z;
+			cvlib_mex('mul', Z, G.z)
 		end
 	else
 		if (isa(mask, 'logical'))
 			Z(mask) = NaN;
 		else
-			Z = Z .* mask;
+			cvlib_mex('mul', Z, mask)
 		end
 	end
 
