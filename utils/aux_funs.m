@@ -18,7 +18,7 @@ function  varargout = aux_funs(opt,varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: aux_funs.m 11405 2019-01-15 20:31:52Z j $
+% $Id: aux_funs.m 11411 2019-03-05 19:43:25Z j $
 
 switch opt(1:4)
 	case 'Stor'		% 'StoreZ'
@@ -302,7 +302,7 @@ function out = findFileType(fname)
 		if (strncmp(ID,'# @VGMT', 7)),	out = 'ogr';
 		else,							out = 'mgg_gmt';
 		end
-	elseif (any(strcmpi(EXT,{'.kml' '.gml' '.dxf' '.gpx' '.dgn' '.csv' '.s57' '.svg'})) )
+	elseif (any(strcmpi(EXT,{'.kml' '.gml' '.dxf' '.gpx' '.dgn' '.csv' '.s57' '.svg' '.json'})) )
 		out = 'ogr';
 	elseif (strcmpi(EXT,'.ps') || strcmpi(EXT,'.eps'))
 		out = 'ghost';
