@@ -203,15 +203,20 @@ function push_compute_CB(hObject, handles)
 			if (~isempty(strfind(com, 'Z >')) || ~isempty(strfind(com, 'Z>')))
 				if (com(end) == ';'),	com(end) = [];		end		% We don't want the trailing ';' here
 				ind = strfind(com, '>');
-				thresh = str2double(com(ind(1)+1:end));
-				Z_out = Z > thresh;
+				if (com(ind(1)+1) == '=')
+					thresh = str2double(com(ind(1)+2:end));
+					Z_out = Z >= thresh;
+				else
+					thresh = str2double(com(ind(1)+1:end));
+					Z_out = Z > thresh;
+				end
 			elseif (is_1D)
 				ind1 = strfind(com, ',');
 				ind2 = strfind(com, ')');
 				dim = str2double(com(ind1+1:ind2-1));
 				Z_out = sum(Z, dim);
 			else
-				warndlg('In the compiled version only a very limmited set of operations work. Unfortunately not this one.','Warning')
+				warndlg('The compiled version has only a very limmited set of operations. Unfortunately not this one.','Warning')
 				return
 			end
 		else
