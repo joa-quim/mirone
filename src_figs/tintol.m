@@ -3,7 +3,7 @@ function tintol(handles,axis_t,X,Y,I)
 % Image registration tool. If the master image has coordinates this will work
 % as Image-to-Map rectification, otherwise it works in the Image-to-Image mode.
 
-%	Copyright (c) 2004-2018 by J. Luis
+%	Copyright (c) 2004-2019 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -451,7 +451,7 @@ function push_MaregraphPosFile_CB(hObject, handles, opt)
 
 	if (isempty(get(handles.edit_MaregraphDataFile,'Str')))		% Than fill with an automatic default name
 		[pato, fn, ext] = fileparts(fname);
-		out = [pato fn '_auto' ext];
+		out = [pato filesep fn '_auto' ext];
 		set(handles.edit_MaregraphDataFile,'Str', out)
 	end
 
