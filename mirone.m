@@ -20,7 +20,7 @@ function varargout = mirone(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: mirone.m 11401 2019-01-10 21:02:20Z j $
+% $Id: mirone.m 11417 2019-03-05 19:58:49Z j $
 
 	if (nargin > 1 && ischar(varargin{1}))
 		if (~isempty(strfind(varargin{1},':')) || ~isempty(strfind(varargin{1},filesep)) )	% A file name
@@ -505,6 +505,15 @@ function hObject = mirone_OpeningFcn(varargin)
 		end
 	end
 
+	set_gmt(['PROJ_LIB=' home_dir fsep 'data' fsep 'proj_lib']);	% For projections with GDAL
+	set_gmt(['GDAL_DATA=' home_dir fsep 'data' fsep 'gdal_data']);
+	%set_gmt('GDAL_DATA=C:\programs\compa_libs\gdal_GIT\gdal\data');
+	%set_gmt('PROJ_LIB=C:\programs\compa_libs\proj5_GIT\compileds\VC14_64\share\proj');
+	set_gmt(['GEOTIFF_CSV=' home_dir fsep 'data' fsep 'gdal_data']);
+	set_gmt('GDAL_HTTP_UNSAFESSL=YES');				% To tell libcurl to not verify the peer  
+	%set_gmt('PROJ_DEBUG=5');
+	%set_gmt('CPL_DEBUG=ON');
+
 	guidata(hObject, handles);
 	tmp.home_dir = home_dir;	tmp.work_dir = handles.work_dir;	tmp.last_dir = handles.last_dir;
 	setappdata(0,'MIRONE_DIRS',tmp);		% To access from places where handles.home_dir is unknown (must precede gateLoadFile())
@@ -518,11 +527,6 @@ function hObject = mirone_OpeningFcn(varargin)
 		handles = aux_funs('isProj', guidata(hObject));
 		setAxesDefCoordIn(handles,1);
 	end
-
-	set_gmt(['PROJ_LIB=' home_dir fsep 'data' fsep 'proj_lib']);	% For projections with GDAL
-	set_gmt(['GDAL_DATA=' home_dir fsep 'data' fsep 'gdal_data']);
-	set_gmt(['GEOTIFF_CSV=' home_dir fsep 'data' fsep 'gdal_data']);
-	set_gmt('GDAL_HTTP_UNSAFESSL=YES');				% To tell libcurl to not verify the peer  
 
  	try		custom_menus(hObject, handles.path_data),	end			% Add any custom menus as commanded by OPTcontrol.txt
 
@@ -1402,10 +1406,14 @@ function hand = FileNewBgFrame_CB(handles, region, imSize, figTitle)
 % --------------------------------------------------------------------
 function FileSaveGMTgrid_CB(handles, opt)
 % Save internaly computed grids and GDAL recognized DEM grids into GMT grd grids
-	if (aux_funs('msg_dlg',14,handles)),	return,		end
 	if (nargin == 1),	opt = [];	end
 
-	[X,Y,Z,head] = load_grd(handles);
+	if (~handles.validGrid)				% Then ir must be a 2D uint8 or logical (that were let go in show_image)
+		Z = int16(handles.origFig);		% Both byte and uint16 gave some troubles.
+		head = handles.head;
+	else
+		[X,Y,Z,head] = load_grd(handles);
+	end
 	if isempty(Z),	return,		end		% An error message was already issued
 	if (~isempty(opt) && strcmp(opt,'Surfer'))
 		txt1 = 'Surfer 6 binary grid (*.grd,*.GRD)';	txt2 = 'Select output Surfer 6 grid';
@@ -2384,6 +2392,7 @@ function handles = show_image(handles, fname, X, Y, I, validGrid, axis_t, adjust
 	st = {'off' 'on'};
 	set(handles.Projections,'Vis', st{(handles.image_type ~= 2) + 1})
 	set(handles.noVGlist(6:end),'Vis', st{validGrid + 1}),		set(handles.noVGlist(1:5),'Ena', st{validGrid + 1})
+	if (~validGrid && ndims(I) == 2),	set(handles.noVGlist([1 5]),'Enable', 'on'),	end		% Let them be saved as grids
 	set([handles.Geography handles.MagGrav handles.Seismology handles.Plates],'Vis', st{(handles.image_type ~= 2) + 1})
 	set(handles.noAxes,'Vis', st{~strcmp(axis_t,'off') + 1})
 	set(handles.toGE,'Enable', st{min(handles.geog,1) + 1})
@@ -4046,7 +4055,8 @@ function out = FileSaveSession_CB(handles)
 	fname = [PathName FileName];
 
 	grd_name = handles.fileName;	% Use this variable name for compatibility reason
-	if (handles.image_type == 20),	grd_name = [];	end		% The idea is if we have only vector data it may have been edited
+	if (handles.image_type == 20),	grd_name = '';	end		% The idea is if we have only vector data it may have been edited
+	if (isempty(grd_name)),			grd_name = '';	end		% Compiled can't test 'exist' against a float empty
 	img_pal = get(handles.figure1,'Colormap');		illumComm = [];		illumType = handles.Illumin_type;
 	map_limits = getappdata(handles.axes1,'ThisImageLims');
 	if (handles.validGrid && handles.Illumin_type >= 1 && handles.Illumin_type <= 4)
@@ -4078,7 +4088,7 @@ function out = FileSaveSession_CB(handles)
 		haveSymbol = 1;
 		ALLlineHand = setxor(ALLlineHand, h);       % Those are processed, so remove them from handles list
 	end
-	
+
 	h = findobj(ALLlineHand,'Tag','Pointpolyline');		% Polyline with only markers are particular line cases
 	if (~isempty(h))
 		nO = numel(h);
@@ -4095,7 +4105,7 @@ function out = FileSaveSession_CB(handles)
 		end
 		ALLlineHand = setxor(ALLlineHand, h);		havePlineAsPoints = 1;
 	end
-	
+
 	h = findobj(ALLlineHand,'Tag','GCPpolyline');		% Polyline with markers (yellow circles) acting as GCPs
 	if (~isempty(h))
 		xx = get(h(1),'XData');		yy = get(h(1),'YData');
@@ -4278,7 +4288,7 @@ function out = FileSaveSession_CB(handles)
 	IamTINTOL = ~isempty(getappdata(handles.figure1, 'L_UsedByGUIData'));
 	is_defRegion = handles.is_defRegion;
 
-	if (handles.computed_grid || (~exist(grd_name, 'file') && ~isempty(grd_name)))	% Quietly save the grid on disk
+	if (handles.computed_grid || (~isempty(grd_name) && ~exist(grd_name, 'file')))	% Quietly save the grid on disk
 		grd_name = strrep(grd_name, ' ', '_');		pato = fileparts(fname);
 		grd_name = [pato, filesep, grd_name, '.grd'];
 		misc = struct('x_units',[],'y_units',[],'z_units',[],'z_name',[],'desc',[], ...
@@ -4311,7 +4321,7 @@ function out = FileSaveSession_CB(handles)
 	if (0 && haveCircleCart && havePlineAsPoints && haveCoasts && illumComm && haveMBtrack && illumType && PlineAsGCPs), end
 	if (0 && havePolitic && haveRivers && MBtrack && MBbar && Symbol && CircleGeo && MecaMag5 && CircleCart), end
 	if (0 && PlineAsPoints && havePlineAsGCPs && coastUD && politicUD && riversUD && haveCircleGeo && IamTINTOL && is_defRegion), end
-
+	
 % --------------------------------------------------------------------
 function ImageMapLimits_CB(handles, opt)
 % Change the Image OR the Map extents limits by asking it's corner coordinates
@@ -5341,15 +5351,18 @@ function TransferB_CB(handles, opt, opt2)
  	elseif (strcmp(opt,'sharedir'))				% Show GMT_SHAREDIR env var (standalone only and for debug)
 		env4 = set_gmt('GMT_SHAREDIR','lixo');
 		env5 = set_gmt('GMT5_SHAREDIR','lixo');
+		msg{2} = sprintf('GDAL_DATA = %s', set_gmt('GDAL_DATA','lixo'));
+		msg{3} = sprintf('PROJ_LIB = %s', set_gmt('PROJ_LIB','lixo'));
 		if (~isempty(env4) && ~isempty(env5))
-			msgbox(sprintf('GMT_SHAREDIR = %s\nGMT5_SHAREDIR = %s', env4, env5))
+			msg{1} = sprintf('GMT_SHAREDIR = %s\nGMT5_SHAREDIR = %s', env4, env5);
 		elseif (~isempty(env4))
-			msgbox(sprintf('GMT_SHAREDIR = %s', env4))
+			msg{1} = sprintf('GMT_SHAREDIR = %s', env4);
 		elseif (~isempty(env5))
-			msgbox(sprintf('GMT5_SHAREDIR = %s', env5))
+			msg{1} = sprintf('GMT5_SHAREDIR = %s', env5);
 		else
-			warndlg('No GMT_SHAREDIR variables found. Most likely you do not have GMT installed.', 'Warning')
+			msg{1} = 'No GMT_SHAREDIR variables found.';
 		end
+		msgbox(msg)
 
  	elseif (strncmp(opt,'TransplantGrid',6))	%
 		ImageCrop_CB(handles,zeros(5,2),'ImplantGrid')	% The '0' is only to avoid the call to ruberbandbox in ImageCrop_CB
