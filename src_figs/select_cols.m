@@ -21,7 +21,7 @@ function out = select_cols(varargin)
 % OUT   contains a row vector with the order by which the array columns must be arranged in
 %       order to have X,Y[,Z] in the 'xy[z]' modes or lon,lat,F,Date,Altitude in the 'igrf' mode
 
-%	Copyright (c) 2004-2014 by J. Luis
+%	Copyright (c) 2004-2019 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -36,7 +36,7 @@ function out = select_cols(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: select_cols.m 4506 2014-07-17 13:53:57Z j $
+% $Id: select_cols.m 11420 2019-03-18 22:33:16Z j $
 
 	demo = 0;
 	if (nargin == 0)        % Demo mode
@@ -66,7 +66,7 @@ function out = select_cols(varargin)
 	end
 
 	if (nargin > 2 && ischar(varargin{3})),	fname = varargin{3};
-	else									fname = [];
+	else,									fname = [];
 	end
 
 	if (nargin > 3)
@@ -134,11 +134,11 @@ function out = select_cols(varargin)
 		if (length(i_alt) == 1 && (i_alt == 1 || i_alt == 2))		% Altitude values may be confused with lon/lat
 			i_alt = [];
 		elseif (length(i_alt) == 2)
-			if ((i_alt(1) == 1 && i_alt(2) == 2) || (i_alt(1) == 2 && i_alt(2) == 1))   i_alt = [];
-			elseif ((i_alt(1) == 1 || i_alt(1) == 2))   i_alt = i_alt(2);
+			if ((i_alt(1) == 1 && i_alt(2) == 2) || (i_alt(1) == 2 && i_alt(2) == 1)),	i_alt = [];
+			elseif ((i_alt(1) == 1 || i_alt(1) == 2)),	i_alt = i_alt(2);
 			end
 		elseif (length(i_alt) == 3)
-			if ((i_alt(1) == 1 && i_alt(2) == 2) || (i_alt(1) == 2 && i_alt(2) == 1))   i_alt = i_alt(3); end
+			if ((i_alt(1) == 1 && i_alt(2) == 2) || (i_alt(1) == 2 && i_alt(2) == 1)),	i_alt = i_alt(3); end
 		end
 		% Now if any of the above is empty, we'll assume that the corresponding info was not provided
 		n_rec_cols = 2;     emp_field = 1;  emp_date = 1;   emp_alt = 1;
@@ -167,14 +167,14 @@ function out = select_cols(varargin)
 				pop_def_value(4) = length(str_nc);
 				pop_def_value(5) = length(str_nc);
 			elseif (cols >= 3)
-				if (emp_field)		pop_def_value(3) = length(str_nc);
-				else				pop_def_value(3) = i_field(1);
+				if (emp_field),		pop_def_value(3) = length(str_nc);
+				else,				pop_def_value(3) = i_field(1);
 				end
-				if (emp_date)		pop_def_value(4) = length(str_nc);
-				else				pop_def_value(4) = i_date(1);
+				if (emp_date),		pop_def_value(4) = length(str_nc);
+				else,				pop_def_value(4) = i_date(1);
 				end
-				if (emp_alt)		pop_def_value(5) = length(str_nc);
-				else				pop_def_value(5) = i_alt(1);
+				if (emp_alt),		pop_def_value(5) = length(str_nc);
+				else,				pop_def_value(5) = i_alt(1);
 				end
 			end
 		else        % (n_rec_cols == 5)
@@ -222,7 +222,7 @@ function out = select_cols(varargin)
 	end
 
 	% -------- Make one/two checkboxes for selecting what to write in file (only for the igrf or xyz cases)
-	chk_but = [];
+	chk_but = zeros(1,2);
 	if (igrf_mode)
 		tip1 = 'Add a column to the file containg the computed IGRF Total field';
 		tip2 = 'Add a column to the file containg the computed anomaly (measured field - IGRF)';
@@ -234,8 +234,12 @@ function out = select_cols(varargin)
 			set(chk_but(2),'Value',0,'Enable','inactive')   % No Total Field no anomaly
 		end
 	else
-		chk_but = uicontrol(h_fig, 'Style','checkbox', 'Units','pixels', 'Value',0,...
+		chk_but(1) = uicontrol(h_fig, 'Style','checkbox', 'Units','pixels', 'Value',0,...
 			'Position',[pos_pop(1) 70 101 18], 'String','A & B to dist', 'Tooltip','Tell reader to compute hypot(A,B)');
+		if (size(data_in,2) > 3)
+			chk_but(2) = uicontrol(h_fig, 'Style','checkbox', 'Units','pixels', 'Value',0,...
+				'Position',[pos_pop(1) 45 101 18], 'String','Read all cols', 'TooltipString','Load all coluns in filed');
+		end
 	end
 	% -------- Make the OK button
 	OK_but = uicontrol(h_fig, 'Style', 'pushbutton', 'Units','pixels',...
@@ -266,7 +270,7 @@ function out = select_cols(varargin)
 		h_all_uis = [h_all_uis; h_tmp];
 		pos = get(h_tmp,'Position');
 		if (~isa(pos,'cell')),		pos_all_uis = [pos_all_uis; {pos}];
-		else						pos_all_uis = [pos_all_uis; pos];
+		else,						pos_all_uis = [pos_all_uis; pos];
 		end
 		clear h_tmp pos;
 		cb_slider = {@move_all_uis,h_all_uis,pos_all_uis};
@@ -303,27 +307,29 @@ function OK_push(obj, eventdata, h_pop, h_list, h_chk, igrf_mode, xyz_mode)
 	
 	if (igrf_mode)
 		contents = get(h_pop(3),'String');
-		if ( strcmp(contents{get(h_pop(3),'Value')},'#') ),		col(3) = 0;     end
+		if (strcmp(contents{get(h_pop(3),'Value')},'#')),		col(3) = 0;     end
 		contents = get(h_pop(4),'String');
-		if ( strcmp(contents{get(h_pop(4),'Value')},'#') ),		col(4) = 0;     end
+		if (strcmp(contents{get(h_pop(4),'Value')},'#')),		col(4) = 0;     end
 		contents = get(h_pop(5),'String');
-		if ( strcmp(contents{get(h_pop(5),'Value')},'#') ),		col(5) = 0;     end
+		if (strcmp(contents{get(h_pop(5),'Value')},'#')),		col(5) = 0;     end
 		% See if Total field and Anomaly are still selected for writing in file
 		write_total_field = 0;			write_anom = 0;
-		if (get(h_chk(1),'Value')),		write_total_field = 1;   end
+		if (get(h_chk(1),'Value')),		write_total_field = 1;	end
 		if (get(h_chk(2),'Value')),		write_anom = 1;   end
 		set(obj,'UserData',[col write_total_field write_anom])
 	else
 		if (get(h_chk(1),'val'))
 			if (xyz_mode)
 				col = [col 0];			% This extra value is to be interpreted by the reader
-			else					% the 'xy' case
+			else						% the 'xy' case
 				if (col(2) <= 2)
 					errordlg('When A & B are selected to compute distance, Y must be C or greater.','Error')
 					return
 				end
 				col = [1 2 col(2) 0];	% ... to compute hypot(col(1),col(2))
 			end
+		elseif (h_chk(2) && get(h_chk(2),'val'))	% All columns?
+			col = 1:numel(get(h_pop(end),'Str'));	% Yes
 		end
 		set(obj,'UserData',col)
 	end
