@@ -25,7 +25,7 @@ function varargout = draw_funs(hand, varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: draw_funs.m 11402 2019-01-11 00:10:11Z j $
+% $Id: draw_funs.m 11418 2019-03-18 22:25:37Z j $
 
 % A bit of strange tests but they are necessary for the cases when we use the new feval(fun,varargin{:}) 
 opt = varargin{1};		% function name to evaluate (new) or keyword to select one (old form)
@@ -3192,7 +3192,7 @@ function save_GMT_DB_asc(h, fname)
 		if (isempty(getappdata(h(k), 'edited'))),	continue,	end		% Skip because it was not modified
 		GSHHS_str = getappdata(h(k),'GSHHS_str');
 		if (k == 1 && ~isempty(GSHHS_str))		% Write back the magic string that allows us to recognize these type of files
-			fprintf(fid,'# $Id: draw_funs.m 11402 2019-01-11 00:10:11Z j $\n#\n%s\n#\n', GSHHS_str);
+			fprintf(fid,'# $Id: draw_funs.m 11418 2019-03-18 22:25:37Z j $\n#\n%s\n#\n', GSHHS_str);
 		end
 		hdr = getappdata(h(k), 'LineInfo');
 		x = get(h(k), 'XData');			y = get(h(k), 'YData');
@@ -3256,6 +3256,7 @@ function save_formated(obj, evt, h, opt)
 			fprintf(fid,'# Interpolated file: %s\n', handles.grdname);
 			fprintf(fid, ['#  \t', repmat('%g(X)\t', [1,size(opt.z,2)]) '\n'], opt.x(:));
 			fprintf(fid, ['#  \t', repmat('%g(Y)\t', [1,size(opt.z,2)]) '\n'], opt.y(:));
+			fprintf(fid, '>XY\n');
 			fprintf(fid, ['%.2f\t' repmat('%f\t',[1,size(opt.z,2)]) '\n'], [t(:) double(opt.z)]');
 			fclose(fid);
 		end
