@@ -20,7 +20,7 @@ function varargout = mirone(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: mirone.m 11417 2019-03-05 19:58:49Z j $
+% $Id: mirone.m 11422 2019-03-18 22:39:01Z j $
 
 	if (nargin > 1 && ischar(varargin{1}))
 		if (~isempty(strfind(varargin{1},':')) || ~isempty(strfind(varargin{1},filesep)) )	% A file name
@@ -1619,7 +1619,9 @@ function out = ExtractProfile_CB(handles, opt, opt2)
 	% First, screw the bloody row vectors
 	xx = xx(:);		yy = yy(:);
 	if (~isa(zz,'cell'))
-		zz = zz(:);
+		if (size(zz,1) == 1)			% I may have shit here but the idea (e.g. 3D interp) is if zz is multicolumn, don't touch it
+			zz = zz(:);
+		end
 	else
 		for (k = 1:numel(zz))
 			zz{k} = zz{k}(:);
