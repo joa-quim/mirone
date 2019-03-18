@@ -1533,6 +1533,7 @@ function FileOpen_CB(hObject, handles)
 	c_order = get(handles.axes1,'ColorOrder');
 	for (k = 1:numel(handles.hLine))
 		nc = rem(handles.n_plot+k,7);     % recycle through the default colors
+		if (nc == 0),	nc = 7;		end
 		set(handles.hLine(k),'Color', c_order(nc,:))
 	end
 	handles.n_plot = handles.n_plot + numel(handles.hLine);
@@ -3954,3 +3955,4 @@ uicontrol('Parent',h1, 'Position',[264 7 80 21],...
 function bandpass_uiCB(hObject, eventdata, h1, callback_name)
 % This function is executed by the callback and than the handles is allways updated.
 	feval(callback_name,hObject,guidata(h1));
+
