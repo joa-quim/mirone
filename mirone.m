@@ -1619,7 +1619,9 @@ function out = ExtractProfile_CB(handles, opt, opt2)
 	% First, screw the bloody row vectors
 	xx = xx(:);		yy = yy(:);
 	if (~isa(zz,'cell'))
-		zz = zz(:);
+		if (size(zz,1) == 1)			% I may have shit here but the idea (e.g. 3D interp) is if zz is multicolumn, don't touch it
+			zz = zz(:);
+		end
 	else
 		for (k = 1:numel(zz))
 			zz{k} = zz{k}(:);
