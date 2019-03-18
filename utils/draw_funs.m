@@ -3256,6 +3256,7 @@ function save_formated(obj, evt, h, opt)
 			fprintf(fid,'# Interpolated file: %s\n', handles.grdname);
 			fprintf(fid, ['#  \t', repmat('%g(X)\t', [1,size(opt.z,2)]) '\n'], opt.x(:));
 			fprintf(fid, ['#  \t', repmat('%g(Y)\t', [1,size(opt.z,2)]) '\n'], opt.y(:));
+			fprintf(fid, '>XY\n');
 			fprintf(fid, ['%.2f\t' repmat('%f\t',[1,size(opt.z,2)]) '\n'], [t(:) double(opt.z)]');
 			fclose(fid);
 		end
