@@ -84,7 +84,7 @@ function varargout = load_xyz(handles, opt, opt2)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: load_xyz.m 11403 2019-01-14 02:38:15Z j $
+% $Id: load_xyz.m 11419 2019-03-18 22:30:17Z j $
 
 %	EXAMPLE CODE OF HOW TO CREATE A TEMPLATE FOR UICTX WHEN THESE ARE TOO MANY
 % 	cmenuHand = get(h, 'UIContextMenu');
@@ -318,7 +318,8 @@ function varargout = load_xyz(handles, opt, opt2)
 
 		for (k = 1:numel(names))
 			fname = names{k};
-			j = strfind(fname,filesep);
+			j = strfind(fname,'\');
+			if (isempty(j)),	j = strfind(fname,'/');		end
 			if (isempty(j)),    fname = sprintf('%s/%s',PathName, fname);   end		% Need to add path as well 
 			if (isempty(n_headers)),    n_headers = NaN;    end
 			if (~already_read)			% Otherwise data was read already
@@ -592,14 +593,18 @@ function varargout = load_xyz(handles, opt, opt2)
 				out = select_cols(numeric_data{1}, 'xy', fname, 1000);
 				if (isempty(out)),		return,		end
 				h = [];
-				if (numel(out) == 4)				% x,y,z and distance request but we don't use it here
-					out(2) = out(3);
+				if (numel(out) > n_cols)			% x,y,z and distance request but we don't use it here
+					out(2) = out(3);				% ??
 					h = warndlg('Sorry, computing distance is not supported here. Must open the file directly in XYtool.','Warning');
 				end
 				if (n_segments > 1)
 					h = warndlg('With multiple coluns and multi-segments, only first segment is processed.', 'Warning');
 				end
-				ecran(numeric_data{1}(:,out(1)), numeric_data{1}(:,out(2)), fname)
+				if (numel(out) == 2)
+					ecran(numeric_data{1}(:,out(1)), numeric_data{1}(:,out(2)), fname)
+				else
+					ecran(numeric_data{1}(:,out(1)), numeric_data{1}(:,2:out(end)), fname)
+				end
 				if (~isempty(h)),	figure(h),		end		% Bring warning message to top
 			end
 			continue				% Continue the loop over input files (main loop)
