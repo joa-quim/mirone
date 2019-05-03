@@ -1,7 +1,7 @@
 function varargout = fft_stuff(varargin)
 % Helper window to do FFT operations 
 
-%	Copyright (c) 2004-2018 by J. Luis
+%	Copyright (c) 2004-2019 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -16,7 +16,7 @@ function varargout = fft_stuff(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: fft_stuff.m 10404 2018-05-10 01:06:11Z j $
+% $Id: fft_stuff.m 11423 2019-05-03 16:42:18Z j $
 
 	hObject = figure('Tag','figure1','Visible','off');
 	fft_stuff_LayoutFcn(hObject);
@@ -527,7 +527,7 @@ function sectrumFun(handles, Z, head, opt1, Z2)
 		mask = mask | flipud(mask);
 		mask = mask | fliplr(mask);		
 		if (strcmp(opt1,'lpass')),	mask = ~mask;	end
-		avg = mean(Z);
+		avg = mean(Z(:));
 		Z = fft2(Z - avg);
 		Z(mask) = 0;		% Do the filtering
 		Z = single(real(ifft2(Z)) + avg);
