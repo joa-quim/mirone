@@ -18,7 +18,7 @@ function varargout = griding_mir(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: griding_mir.m 11366 2018-07-10 11:11:10Z j $
+% $Id: griding_mir.m 11426 2019-07-04 19:28:17Z j $
 
 	if (nargin > 1 && ischar(varargin{1}))
 		gui_CB = str2func(varargin{1});
@@ -314,6 +314,9 @@ function edit_InputFile_CB(hObject, handles, opt)
 	handles.command{3} = xx;
 	
 	d_info = gmtmex(['gmtinfo -C ' xx opt_b]);
+	if (numel(d_info.data) < 6)
+		errordlg('Your data file does not have at least 3 columns.', 'Error')
+	end
 	x_min = d_info.data(1);		x_max = d_info.data(2);
 	y_min = d_info.data(3);		y_max = d_info.data(4);
 	val{1} = sprintf('%0.12g', x_min);			val{2} = sprintf('%0.12g', x_max);
