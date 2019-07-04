@@ -20,7 +20,7 @@ function varargout = mirone(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: mirone.m 11422 2019-03-18 22:39:01Z j $
+% $Id: mirone.m 11430 2019-07-04 19:56:54Z j $
 
 	if (nargin > 1 && ischar(varargin{1}))
 		if (~isempty(strfind(varargin{1},':')) || ~isempty(strfind(varargin{1},filesep)) )	% A file name
@@ -1911,8 +1911,8 @@ function FileOpenGDALmultiBand_CB(handles, opt, opt2, opt3)
 	elseif (strncmp(opt,'PCA',3) || strncmp(opt,'mul',3))	% Generic multiband file transmited in input
 		I = fname;		fname = opt;	nome_tmp = handles.fileName;	opt_bak = opt;
 		if (~isempty(nome_tmp)),	fname = nome_tmp;	[pato, opt] = fileparts(fname);		reseta = true;	end
-		if (nargin == 4),	att = opt3;
-		else,				att = gdalread(fname,'-M', '-C');
+		if (nargin == 4),				att = opt3;
+		elseif (~strncmp(opt,'PCA',3)),	att = gdalread(fname,'-M', '-C');
 		end
 		[att.RasterYSize, att.RasterXSize, n_bands] = size(I);	% Use 'att' to be consistent with the other cases
 		bands_inMemory = 1:n_bands;
@@ -1922,15 +1922,20 @@ function FileOpenGDALmultiBand_CB(handles, opt, opt2, opt3)
 		reader = [];
 	end
 
-	bnd_names = '';
-	c = false(numel(att.Metadata), 1);
-	for (k = 1:numel(att.Metadata))
-		if (~isempty(strfind(att.Metadata{k}, 'Band_Name'))),	c(k) = true;	end
-	end
-	if (any(c))
-		bnd_names = att.Metadata(c);
-		for (k = 1:numel(bnd_names))
-			bnd_names{k} = bnd_names{k}(11:end);
+	if (strcmp(opt,'RAW') || strncmp(opt,'PCA',3))
+		bnd_names = cell(n_bands,1);
+		for (k = 1:n_bands),	bnd_names{k} = sprintf('%d', k);	end
+	else
+		bnd_names = '';
+		c = false(numel(att.Metadata), 1);
+		for (k = 1:numel(att.Metadata))
+			if (~isempty(strfind(att.Metadata{k}, 'Band_Name'))),	c(k) = true;	end
+		end
+		if (any(c))
+			bnd_names = att.Metadata(c);
+			for (k = 1:numel(bnd_names))
+				bnd_names{k} = bnd_names{k}(11:end);
+			end
 		end
 	end
 
@@ -5491,6 +5496,13 @@ function TransferB_CB(handles, opt, opt2)
 		end
 		mirone(dest_fiche)
 
+	elseif (strcmp(opt,'scatter'))
+		str = {'*.dat;*.DAT;*.txt;*.TXT', 'Data file (*.dat,*.DAT,*.txt,*.TXT)'; '*.*', 'All Files (*.*)'};
+		[FileName,PathName] = put_or_get_file(handles,str,'Select file','get');
+		if isequal(FileName,0),		set(handles.figure1,'pointer','arrow'),		return,		end		% User gave up
+		scatter_plot(handles,[PathName,FileName]);
+		
+
 % 	elseif (strcmp(opt,'DayNight'))
 % 		[sun_params, lon, lat] = solar_params(-7.92, 37.073);
 % 		h = patch('XData',lon, 'YData',lat,'FaceColor','none','Parent',handles.axes1,'Tag','DayNight');
@@ -5638,12 +5650,6 @@ function Transfer_CB(handles, opt)
 	elseif (strncmp(opt,'morph',5))				% Works for either image or grids
 		set(handles.figure1,'pointer','arrow')
 		structuring_elem(handles.figure1, strcmp(opt(7:end), 'grd'))
-
-	elseif (strcmp(opt,'scatter'))
-		str = {'*.dat;*.DAT;*.txt;*.TXT', 'Data file (*.dat,*.DAT,*.txt,*.TXT)'; '*.*', 'All Files (*.*)'};
-		[FileName,PathName] = put_or_get_file(handles,str,'Select file','get');
-		if isequal(FileName,0),		set(handles.figure1,'pointer','arrow'),		return,		end		% User gave up
-		scatter_plot(handles,[PathName,FileName]);
 
 	elseif (strcmp(opt,'print'))
 		h = findobj('Type','uicontrol');		set(h,'Visible','off')	% We don't want to print the buttons
