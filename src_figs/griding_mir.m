@@ -314,6 +314,9 @@ function edit_InputFile_CB(hObject, handles, opt)
 	handles.command{3} = xx;
 	
 	d_info = gmtmex(['gmtinfo -C ' xx opt_b]);
+	if (numel(d_info.data) < 6)
+		errordlg('Your data file does not have at least 3 columns.', 'Error')
+	end
 	x_min = d_info.data(1);		x_max = d_info.data(2);
 	y_min = d_info.data(3);		y_max = d_info.data(4);
 	val{1} = sprintf('%0.12g', x_min);			val{2} = sprintf('%0.12g', x_max);
