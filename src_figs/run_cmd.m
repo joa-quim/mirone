@@ -18,7 +18,7 @@ function varargout = run_cmd(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: run_cmd.m 11415 2019-03-05 19:54:56Z j $
+% $Id: run_cmd.m 11428 2019-07-04 19:32:16Z j $
 
 	if (nargin > 1 && ischar(varargin{1}))
 		gui_CB = str2func(varargin{1});
@@ -79,11 +79,15 @@ function hObject = run_cmd_OF(varargin)
 					'referred as the variable Z. You MUST stick to this convention.\n\n' ...
 					'Simple examples:\n' ...
 					'- to multiply the displayed grid by 10\n' ...
-					'Z * 10\n' ...
+					'Z * 10\n\n' ...
 					'- create a mask where values in the [0 5] interval are set to 1\n' ...
-					'Z > 0 && & Z < 5    (ignore the underscore, it''s a ML bug)\n' ...
+					'Z > 0 && & Z < 5    (ignore the underscore, it''s a ML bug)\n\n' ...
 					'- Put to white the blue channel of the displayed image (select "Apply to Image")\n' ...
-					'Z(:,:,3) = 255']);
+					'Z(:,:,3) = 255\n\n' ...
+					'- Apply a mask to image. Select mask from loaded images\n' ...
+					'mask(Z)\n\n' ...
+					'- Now the same but load mask from disk\n' ...
+					'mask(Z,"")']);
 	set(handles.edit_com,'ToolTip', str)		
 
 	str = sprintf(['This is a tool where you can enter an arbitrarily complicated MATLAB\n' ...
@@ -181,6 +185,13 @@ function push_compute_CB(hObject, handles)
 		if isempty(Z),  return,		end			% An error message was already issued
 	else										% Nope. Doing things on a image 
 		Z = get(handles.hImg,'CData');
+		out = mask_img(handles, Z, com);		% See if we have a a masking request
+		if (out == -1)
+			warndlg('No valid mask available in memory for this operation', 'Warning'),		return
+		elseif (out >= 1)						% Either success or user gave up
+			return
+		end
+
 		if (ndims(Z) == 2 && get(handles.radio_onImage,'Val') && ~isa(Z,'logical'))		% Convert to RGB
 			if (strncmp(com, 'sum', 3) && (max(Z(:)) == 1))
 				Z = logical(Z);
@@ -297,6 +308,89 @@ function Z = runCmd_cmda(arg1,cmd)
 			Z = int8(Z * 255 - 127);
 		end
 	end
+
+% -----------------------------------------------------------------------------------------
+function out = mask_img(handles, img, com)
+% Apply a mask to the incoming IMG if:
+% OUT =  0	==> No masking asked
+% OUT = -1	==> Asked for masking but no conditions to do it
+% OUT =  1	==> User gave up when presented with a valid masking possibility
+% OUT =  2	==> Masking successfuly done
+	if (~strncmp(com, 'mask(Z', 6)),	out = 0;	return,		end
+	out = -1;
+	got_mask = false;
+	[H,W,layers] = size(img);
+	if (~isempty(strfind(com, ',')))	% mask(Z, watever) form. Load the mask from file
+		try
+			str1 = {'*.jpg', 'JPEG image (*.jpg)'; ...
+				'*.png', 'Portable Network Graphics(*.png)';	'*.bmp', 'Windows Bitmap (*.bmp)'; ...
+				'*.gif', 'GIF image (*.gif)';					'*.tif', 'Tagged Image File (*.tif)'; ...
+				'*.pcx', 'Windows Paintbrush (*.pcx)';			'*.pgm', 'Portable Graymap (*.pgm)'; ...
+				'*.*', 'All Files (*.*)'};
+			[FileName,PathName] = put_or_get_file(handles,str1,'Select image format','get');
+			if isequal(FileName,0),		out = 1;	return,		end
+
+			mask = imread([PathName FileName]);
+			if (size(mask, 3) ~= 1)
+				errordlg('This is not a mask file. Masks have only one layer','Error')
+				out = 1;	return
+			elseif (W ~= size(mask, 2) || H ~= size(mask, 1))
+				errordlg('The mask and working image have different sizes.','Error')
+				out = 1;	return
+			end
+			mask = ~logical(mask);			% Watever this does
+			got_mask = true;
+		catch
+			errordlg(lasterr, 'Error')
+			out = 1;		% Error message already issued so we can now leave sintly
+			return
+		end
+	end
+
+	if (~got_mask)
+		hFigs = findobj(0,'type','figure');						% Fish all figures
+		if (numel(hFigs) == 1),	return,		end					% No one else arround
+		hFigs = aux_funs('figs_XOR', handles.hMirFig1, hFigs);	% Get all unique Mirone Figs
+		if (isempty(hFigs)),	return,		end
+		masks = false(1, numel(hFigs));
+		for (k = 1:numel(hFigs))
+			thisHand = guidata(hFigs(k));
+			this_im = get(thisHand.hImg,'CData');
+			[H_,W_,layer] = size(this_im);
+			if (layer == 1 && W == W_ && H == H_),	masks(k) = true;	end
+		end
+		hFigs = hFigs(masks);
+		if (isempty(hFigs)),	return,		end		% None of them is a mask with the same size as IMG
+		nomes = get(hFigs,'name');
+		if (~isa(nomes,'cell')),	nomes = {nomes};	end
+		for (k = 1:numel(hFigs))
+			[pato, nomes{k}] = fileparts(nomes{k});
+		end
+		s = listdlg('PromptString','Pick mask', 'SelectionMode','single', 'ListString',nomes);
+		if (isempty(s)),	out = 1;	return,		end
+		thisHand = guidata(hFigs(s));
+		mask = ~get(thisHand.hImg,'CData');
+	end
+
+	if (ndims(img) == 3)
+		img(repmat(mask,[1 1 3])) = 255;
+		mask = ~mask;
+		alpha = uint8(mask);
+		alpha(mask) = 255;
+		img(:,:,4) = alpha;		% Apply the mask as transparency
+	else
+		img(mask) = 0;
+	end
+	handMir = guidata(handles.hMirFig1);
+	if (handMir.image_type == 2 || handMir.image_type == 20)
+		h = mirone(img);
+		set(h,'ColorMap',get(handMir.figure1,'ColorMap'),'Name','Color segmentation')
+	else
+		tmp.X = handMir.head(1:2);  tmp.Y = handMir.head(3:4);  tmp.head = handMir.head;
+		tmp.name = 'Color segmentation';
+		mirone(img,tmp);
+	end
+	out = 2;					% Means success
 
 % -----------------------------------------------------------------------------------------
 function radio_onImage_CB(hObject, handles)
