@@ -1,7 +1,7 @@
 function varargout = plot_composer(varargin)
 % Helper window to generate a GMT script that reproduces the Mirone's figure contents
 
-%	Copyright (c) 2004-2018 by J. Luis
+%	Copyright (c) 2004-2019 by J. Luis
 %
 %             DO WHAT THE FUCK YOU WANT TO PUBLIC LICENSE
 %                     Version 2, December 2004
@@ -18,7 +18,7 @@ function varargout = plot_composer(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: plot_composer.m 11393 2018-11-12 21:11:39Z j $
+% $Id: plot_composer.m 11427 2019-07-04 19:31:16Z j $
 
 	handMir = varargin{1};
 	if (handMir.no_file)     % Stupid call with nothing loaded on the Mirone window
@@ -646,7 +646,11 @@ function popup_directory_list_CB(hObject, handles)
 function push_change_dir_CB(hObject, handles)
 	pato = handles.last_dir;
 	if (strncmp(computer, 'PC', 2))
-		work_dir = uigetfolder_win32('Select scripts folder',pato);
+		try
+			work_dir = uigetfolder_win32('Select scripts folder',pato);
+		catch
+			work_dir = uigetdir(pato, 'Select scripts folder');
+		end
 	else			% This guy doesn't let to be compiled
 		work_dir = uigetdir(pato, 'Select scripts folder');
 	end
@@ -958,6 +962,18 @@ function popup_projections_CB(hObject, handles)
 		return
 	end
 	prj = handles.projGDAL_pars{get(hObject,'Value')};
+	ind = strfind(prj, '+zone=');
+	lm = (handMir.head(1) + handMir.head(2)) / 2;
+	if (~isempty(ind))
+		if (lm > 180),	lm = lm - 180;
+		else,			lm = lm + 180;
+		end
+		zone = ceil(lm / 6);	% UTM zone
+		prj(17:18) = sprintf('%2d', zone);
+	elseif (~isempty(strfind(prj, '=lcc')) || ~isempty(strfind(prj, '=eqdc')) || ...
+		    ~isempty(strfind(prj, '=aea')) || ~isempty(strfind(prj, '=laea')))
+		prj = [prj sprintf(' +lon_0=%d', round(lm))];
+	end
 	set(handles.edit_projection,'String',prj)
 	edit_projection_CB(handles.edit_projection, handles)
 
@@ -1579,6 +1595,12 @@ function [script, l, o, sc_cpt] = do_palette(handMir, script, l, o, pack, used_g
 		tmp = cell(261,1);
 		pal = get(handMir.figure1,'colormap');
 		if (handMir.have_nans),     cor_nan = pal(1,:);     pal = pal(2:end,:);   end     % Remove the bg color
+
+		appdata_pal = getappdata(handMir.figure1, 'useThisPalette');
+		if (~isempty(appdata_pal) && appdata_pal.thematic)
+			s.z_min_orig = handMir.head(5);		s.z_max_orig = handMir.head(6);	s.palMinMax = appdata_pal.palMinMax;
+			pal = color_palettes('saturated_pal', s, pal);
+		end
 
 		pal_len = size(pal,1);
 		z_min = handMir.head(5);    z_max = handMir.head(6);
