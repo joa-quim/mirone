@@ -20,7 +20,7 @@ function varargout = scatter_plot(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: scatter_plot.m 10217 2018-01-24 21:33:46Z j $
+% $Id: scatter_plot.m 11429 2019-07-04 19:33:34Z j $
 
 	if (isempty(varargin))
 		errordlg('SCATTER PLOT: wrong number of arguments.','Error'),	return
@@ -162,11 +162,11 @@ function push_plot_CB(hObject, handles)
 % 
 	if (handles.no_file)			% Start empty but below we'll find the true data region
 		geog = 1;					% Not important. It will be confirmed later
-		XMin = min(handles.symbXYZ(:,1));       XMax = max(handles.symbXYZ(:,1));        
-		YMin = min(handles.symbXYZ(:,2));       YMax = max(handles.symbXYZ(:,2));
-		xx = [XMin XMax];           yy = [YMin YMax];
+		XMin = min(handles.symbXYZ(:,1));		XMax = max(handles.symbXYZ(:,1));        
+		YMin = min(handles.symbXYZ(:,2));		YMax = max(handles.symbXYZ(:,2));
+		xx = [XMin XMax] + [-0.1 0.1];	yy = [YMin YMax] + [-0.1 0.1];
 		region = [xx yy];			% 1 stands for geog but that will be confirmed later
-		mirone('FileNewBgFrame_CB', handles, [region geog])   % Create a background
+		mirone('FileNewBgFrame_CB', handles.handMir, [region geog])   % Create a background
 	else							% Reading over an established region
 		XYlim = getappdata(handles.hCallingAxes,'ThisImageLims');
 		xx = XYlim(1:2);            yy = XYlim(3:4);
@@ -192,16 +192,6 @@ function push_plot_CB(hObject, handles)
 	end
 
 	nPts = numel(x);
-
-	if (handles.no_file)        % We need to compute the data extent in order to set the correct axes limits
-		XMin = min(XMin,min(x));     XMax = max(XMax,max(x));
-		YMin = min(YMin,min(y));     YMax = max(YMax,max(y));
-		region = [XMin XMax YMin YMax];
-		set(handles.hCallingAxes,'XLim',[XMin XMax],'YLim',[YMin YMax])
-		setappdata(handles.hCallingAxes,'ThisImageLims',region)
-		handles.geog = aux_funs('guessGeog',region);
-		guidata(handles.hCallingFig,handles)
-	end
 
 	if (isempty(handles.symbSIZES))     % Symbol sizes was not provided in input
 		ss = str2double(get(handles.edit_symbSize,'String'));
