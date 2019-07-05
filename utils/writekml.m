@@ -21,7 +21,7 @@ function writekml(handles, Z, fname)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: writekml.m 11413 2019-03-05 19:51:26Z j $
+% $Id: writekml.m 11433 2019-07-05 20:28:26Z j $
 
 	n_argin = nargin;
 	noFig = true;
@@ -221,24 +221,29 @@ function writekml(handles, Z, fname)
 		if (~isempty(h))
 			%dpis = get(0,'ScreenPixelsPerInch') ;		% screen DPI
 			%pos = get(handles.axes1,'Position');		ylim = get(handles.axes1,'Ylim');
-			%escala = diff(ylim)/(pos(4)*2.54/dpis);		% Image units / cm
+			%escala = diff(ylim)/(pos(4)*2.54/dpis);	% Image units / cm
 
 			fprintf(fid,'\t%s\n','<Folder>');
 			for (i = 1:numel(h))
-				x = get(h(i),'XData');       y = get(h(i),'YData');     z = getappdata(h(i),'ZData');
+				x = get(h(i),'XData');       y = get(h(i),'YData');     z = get(h(i),'ZData');
 				%ss = get(h(i),'MarkerSize');
 				%symb_size = ss / 72 * 2.54;				% Symbol size in cm
 				%dy = symb_size * escala;
 				%rad = geo2dist([pt(1,1) center(1)],[pt(1,2) center(2)],'deg');
 				rad = 0.002;
-				[latc,lonc] = circ_geo(y,x,rad,[],18);
-				z = repmat(z*200,1,numel(latc));
+				r = getappdata(h(i), 'Radius');			% See if radius in meters is stored
+				if (~isempty(r))			% Have a Cyl diameter setting
+					rad = r / 6378137 * 180 / pi;
+				end
 				c = get(h(i),'MarkerFaceColor');
 				cores{1} = 255;
 				cores{2} = round(c(end:-1:1)*255);
 				cores{3} = [255 round(c(end:-1:1)*255)];
-
-				writePolygon(fid, lonc, latc, z, cores, 1, 'SSs')
+				for (k = 1:numel(x))						% This allows having a line instead of only pts
+					[latc,lonc] = circ_geo(y(k),x(k),rad,[],18);
+					zz = repmat(z(k),1,numel(latc));
+					writePolygon(fid, lonc, latc, zz, cores, 1, 'SSs')
+				end
 			end
 			fprintf(fid,'\t%s\n','</Folder>');
 			ALLlineHand = setxor(ALLlineHand, h);			% h is processed, remove it from handles list
@@ -645,7 +650,8 @@ function writeText(fid,nTab,h,nameGroup)
 		end
 		fprintf(fid,[sTab_p2 '%s%s%d%s\n'],'<styleUrl>','#Mir-',id,'</styleUrl>');
 		fprintf(fid,[sTab_p2 '%s\n'],'<Point>');
-		fprintf(fid,[sTab_p3 '%s%.4f,%.4f%s\n'],'<coordinates>',pos{k}(1),pos{k}(2),',0</coordinates>');
+		fprintf(fid,[sTab_p3 '%s\n'],'<altitudeMode>relativeToGround</altitudeMode>');
+		fprintf(fid,[sTab_p3 '%s%.12g,%.12g,%.12g,%s\n'],'<coordinates>',pos{k}(1),pos{k}(2),pos{k}(3),'</coordinates>');
 		fprintf(fid,[sTab_p2 '%s\n'],'</Point>');
 		fprintf(fid,[sTab_p1 '%s\n'],'</Placemark>');        
 	end
