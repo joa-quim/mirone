@@ -828,19 +828,19 @@ function varargout = load_xyz(handles, opt, opt2)
 							if (opt_S.z_off),	tmpz = tmpz + opt_S.z_off;		end		% Offset Z origin of cylinders in GE
 							if (opt_S.y_off),	tmpy = tmpy + opt_S.y_off;		end		%		Y
 							if (opt_S.x_off),	tmpx = tmpx + opt_S.x_off ./ cos(tmpx * pi/180);	end		% & assume given in meters
-							if (~isnan(opt_S.txt))
+							if (opt_S.txt)
 								pt_labels = cell(numel(tmpz),1);
 								for (kl = 1:numel(tmpz)),	pt_labels{kl} = sprintf('%.12g',tmpz(kl));	end
 								HAlign = opt_S.txt_just{1};		VAlign = opt_S.txt_just{2};
 							end
 							if (opt_S.scale ~= 1),	tmpz = tmpz * opt_S.scale;		end
-							if (~isnan(opt_S.cor1) && isnan(opt_S.cor2))		% Unique color, we can plot them all in one single line
+							if (~isnan(opt_S.cor1(1)) && isnan(opt_S.cor2(1)))		% Unique color, we can plot them all in one single line
 								hLine(i) = line('XData',tmpx,'YData',tmpy,'ZData',tmpz, 'Parent',handles.axes1, ...
 									'LineStyle','none', 'Tag','scatter_symbs', 'Marker',marker,'Color','k', ...
 									'MarkerFaceColor',opt_S.cor1, 'MarkerSize',symbSIZES(1));					
 								if (~isnan(opt_S.rad)),	setappdata(hLine(i),'Radius',opt_S.rad),	end
 								draw_funs(hLine(i),'DrawSymbol')			% Set marker's uicontextmenu
-								if (~isnan(opt_S.txt))
+								if (opt_S.txt)
 									hTxt = text(tmpx,tmpy,tmpz,pt_labels, 'FontSize',10, 'Margin',1, ...
 										'HorizontalAlignment','left', 'VerticalAlignment','bottom');
 									draw_funs(hTxt,'DrawText')
@@ -853,7 +853,7 @@ function varargout = load_xyz(handles, opt, opt2)
 										'MarkerFaceColor',zC(ks,:), 'MarkerSize',symbSIZES(ks));
 									if (~isnan(opt_S.rad)),	setappdata(h(ks),'Radius',opt_S.rad),	end
 									draw_funs(h(ks),'DrawSymbol')
-									if (~isnan(opt_S.txt))
+									if (opt_S.txt)
 										hTxt = text(tmpx(ks),tmpy(ks),tmpz(ks),pt_labels{ks},'Parent',handles.axes1, ... 
 											'FontSize',10, 'HorizontalAlignment',HAlign, 'VerticalAlignment',VAlign, 'Margin',1);
 										draw_funs(hTxt,'DrawText')
@@ -1114,7 +1114,7 @@ function [out, symbol, symbSize, str2] = parseS(str)
 % STR2 is the STR string less the -S... part
 	symbol = [];	symbSize = 7;	cor1 = [];
 	out = struct('symbol',NaN, 'symbSize',7, 'scale',NaN, 'rad',NaN, 'x_off',0, 'y_off',0, 'z_off',0, ...
-		'color_by4',false, 'txt',NaN, 'cor1',NaN, 'cor2',NaN);
+		'color_by4',false, 'txt',false, 'cor1',NaN, 'cor2',NaN);
 	out.txt_just = {'left','bottom'};	% FCK bug. Can't put this above because it create a struct array. FDS
 	symb_pos = 4;	% default symbol start position in string
 	str2 = str;
