@@ -1,7 +1,7 @@
 function varargout = classificationfig(varargin)
 %   Perform image classification, supervised an unsupervised, using k-means
 
-%	Copyright (c) 2004-2018 by J. Luis
+%	Copyright (c) 2004-2019 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -18,7 +18,7 @@ function varargout = classificationfig(varargin)
 %
 % The dcKMeans function is Copyright (C) David Corney 2000		D.Corney@cs.ucl.ac.uk
 
-% $Id: classificationfig.m 10217 2018-01-24 21:33:46Z j $
+% $Id: classificationfig.m 11431 2019-07-05 19:30:11Z j $
 
 	hObject = figure('Vis','off');
 	classificationfig_LayoutFcn(hObject);
@@ -274,38 +274,38 @@ function push_getClass_CB(hObject, handles)
 	else
 		tmp.X = handles.head(1:2);  tmp.Y = handles.head(3:4);  tmp.head = handles.head;
 		if (islogical(img)),        tmp.name = 'Class Mask';
-		else						tmp.name = 'Class Image';
+		else,						tmp.name = 'Class Image';
 		end
 		mirone(img,tmp)
 	end
 
 % -------------------------------------------------------------------------------------
 function push_bgColor_CB(hObject, handles)
-    c = uisetcolor;
-    if (isempty(c)),	return,		end
+	c = uisetcolor;
+	if (isequal(c, 0)),	return,		end
 	handles.bg_color = uint8(round(c*255));
 	set(hObject,'BackgroundColor', c, 'ForegroundColor', 1-c)
-    guidata(handles.figure1,handles)
+	guidata(handles.figure1,handles)
 
 % -------------------------------------------------------------------------------------
 function edit_nNeighbors_CB(hObject, handles)
-    xx = str2double(get(hObject,'String'));
-    if (isnan(xx)),		set(hObject,'String',3),	return,		end
-    handles.nNeighbors = round(abs(xx));
-    guidata(handles.figure1,handles)
+	xx = str2double(get(hObject,'String'));
+	if (isnan(xx)),		set(hObject,'String',3),	return,		end
+	handles.nNeighbors = round(abs(xx));
+	guidata(handles.figure1,handles)
 
 % -------------------------------------------------------------------------------------
 function [x,y] = getpixcoords(handles,x,y)
-    % Convert x,y to pixel coordinates (they are not when the image has other coordinates)
-    if (handles.head(7))                % Image is pixel registered
-        X = [handles.head(1) handles.head(2)] + [handles.head(8) -handles.head(8)]/2;
-        Y = [handles.head(3) handles.head(4)] + [handles.head(9) -handles.head(9)]/2;
-    else                                % Image is grid registered
-        X = [handles.head(1) handles.head(2)];
-        Y = [handles.head(3) handles.head(4)];
-    end
-    x = getPixel_coords(handles.imgSize(2),X,x);
-    y = getPixel_coords(handles.imgSize(1),Y,y);
+	% Convert x,y to pixel coordinates (they are not when the image has other coordinates)
+	if (handles.head(7))                % Image is pixel registered
+		X = [handles.head(1) handles.head(2)] + [handles.head(8) -handles.head(8)]/2;
+		Y = [handles.head(3) handles.head(4)] + [handles.head(9) -handles.head(9)]/2;
+	else                                % Image is grid registered
+		X = [handles.head(1) handles.head(2)];
+		Y = [handles.head(3) handles.head(4)];
+	end
+	x = getPixel_coords(handles.imgSize(2),X,x);
+	y = getPixel_coords(handles.imgSize(1),Y,y);
 
 % -------------------------------------------------------------------------------------
 function pix_coords = getPixel_coords(img_length, XData, axes_coord)
