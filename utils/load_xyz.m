@@ -4,18 +4,22 @@ function varargout = load_xyz(handles, opt, opt2)
 %	Multi-segs files accept -G, -S -W & -: GMT type options plus a proj4 string for referencing and/or a +rot=....
 %		The proj4 string should be one single word e.g. +proj=latlong or enclosed in "+proj=longlat +datum=..."
 %		The +rot=lon/lat/ang instructs to do a Euler rotation before plotting. This option is compatible with
-%		the proj4 as long as the file is in geogs and being loaded in a prject background, but not the inverse.
+%		the proj4 as long as the file is in geogs and being loaded in a projected background, but not the inverse.
 %		-S<symb>[size] accepts these GMT type symbol codes <a|c|d|h|i|n|p|s|x|+>
-%		-S<symb>[size][+s<scale>][+f][+c<cor>[+c<cor>]]		==> Full syntax
+%		-S<symbol>[size][+s<scale>][+r<radius>][+x<offset>][+y<offset>][+z<offset>][+f][+t<just>][+c<cor1>[+c<cor2>]]
 %		 Use +s<scale> with files with 3 columns where 3rd column will be used to determine the symbol color
 %		 NOTE that to use this option <scale> must be provided, even if == 1.
 %		      A bonus of this option is that GE will plot cylinders with height determined by Z * scale
 %		 However, if file has 4 columns we can use fourth column to determine the color. To do that
 %		 we use the +f flag. When plotted in GE, cylinders height are set from 3rth column and color from 4rth.
-%		 If no +c<cor> is provided, use the current cmap or 'jet(64)' if no fig exists yet.
-%		 If only one +c<cor> is provided, use it as constant color for all symbols.
+%		 If no +c<color> is provided, use the current cmap or 'jet(64)' if no fig exists yet.
+%		 If only one +c<color> is provided, use it as constant color for all symbols.
 %		 Alternatively use the -G<color> if that option is used
-%		 If two +c<cor> are provided, interpolate between them and assign them from z_min to z_max.
+%		 If two +c<color> are provided, interpolate between them and assign them from z_min to z_max.
+%		 The +r<rad> sets the radius (in meters) of the cylinder in GE
+%		 Use +x|y<offset> to offset the symbol by that ammount append 'm' to set it in meters x_offset expects that)
+%		 +z<offset> adds <offset> to the 3rd column
+%		 +t[<just>] prints the z column as text. Can append a GMT style justification (i.e. CM) but conversin to GE looses it
 %
 %	It does also deal with the case of ploting the isochrons.dat
 %
@@ -84,7 +88,7 @@ function varargout = load_xyz(handles, opt, opt2)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: load_xyz.m 11419 2019-03-18 22:30:17Z j $
+% $Id: load_xyz.m 11434 2019-07-05 20:31:31Z j $
 
 %	EXAMPLE CODE OF HOW TO CREATE A TEMPLATE FOR UICTX WHEN THESE ARE TOO MANY
 % 	cmenuHand = get(h, 'UIContextMenu');
@@ -672,7 +676,7 @@ function varargout = load_xyz(handles, opt, opt2)
 			end
 
 			% Check if we have a symbols request. If yes turn the 'AsPoint' option on, but do the potential trimming first
-			[marker, markerSize, markerScale, color_by4, cor1_sc, cor2_sc, multi_segs_str{i}] = parseS(multi_segs_str{i});
+			[opt_S, marker, markerSize, multi_segs_str{i}] = parseS(multi_segs_str{i});
 			if (~isempty(marker) || strcmp(line_type, 'AsPoint') || strcmp(line_type, 'AsMaregraph'))
 				tol = 0;
 			end
@@ -709,14 +713,14 @@ function varargout = load_xyz(handles, opt, opt2)
 			if (isempty(cor)),		cor = handles.DefLineColor;		end		%           "
 
 			% ---- Resume case analysis of -S option in multi-seg that had to be intrrrupted above because of trimming ----
-			if (color_by4 && numel(numeric_data{i}(1,:)) >= 4)
+			if (opt_S.color_by4 && numel(numeric_data{i}(1,:)) >= 4)
 				tmpz4 = numeric_data{i}(:,4);		% Will be used to color symbols
 				if (~isempty(indx) || ~isempty(indy)), tmpz4(indx) = [];	tmpz4(indy) = [];	end	% If needed, clip outside map data
 			else
-				color_by4 = false;					% bad +f setting. Just ignore it
+				opt_S.color_by4 = false;					% bad +f setting. Just ignore it
 			end
 			if (~isempty(marker))
-				if (~isempty(markerScale) && ~isempty(tmpz))
+				if (~isnan(opt_S.scale) && ~isempty(tmpz))
 					line_type = 'scaled';
 				else
 					line_type = 'AsPoint';
@@ -784,27 +788,28 @@ function varargout = load_xyz(handles, opt, opt2)
 							ind_NaN = isnan(tmpz);
 							if (any(ind_NaN))
 								tmpx(ind_NaN) = [];	tmpy(ind_NaN) = [];		tmpz(ind_NaN) = [];
-								if (color_by4),		tmpz4(ind_NaN) = [];	end
+								if (opt_S.color_by4),		tmpz4(ind_NaN) = [];	end
 							end
 							nPts = numel(tmpx);
 							symbSIZES = repmat(markerSize,nPts,1);
-							if (isempty(cor1_sc))	% Make another attempt to see if a color was set by -G
-								cor1_sc = parseG(multi_segs_str{i});
+							if (isnan(opt_S.cor1))	% Make another attempt to see if a color was set by -G
+								cor1 = parseG(multi_segs_str{i});
+								if (~isempty(cor1)),	opt_S.cor1 = cor1;	end
 							end
 							z_colCor = tmpz;
-							if (color_by4),		z_colCor = tmpz4;	end
+							if (opt_S.color_by4),		z_colCor = tmpz4;	end
 							Zmin = min(z_colCor);	Zmax = max(z_colCor);
 							dZ = Zmax - Zmin;
 
-							if (~isempty(cor1_sc))			% Case of colors set in -S option (not finished)
-								if (isempty(cor2_sc))
-									zC = repmat(cor1_sc, nPts, 1);
+							if (~isnan(opt_S.cor1))			% Case of colors set in -S option (not finished)
+								if (isnan(opt_S.cor2))
+									zC = repmat(opt_S.cor1, nPts, 1);
 								else
 									rn = (z_colCor - Zmin) / dZ;	% range normalized to [0 1]
 									rn(isnan(rn)) = 1;		% Happens when Zmax == Zmin
 									rn = rn(:)';
-									dc = cor2_sc - cor1_sc;
-									zC = [(cor1_sc(1) + dc(1) * rn)' (cor1_sc(2) + dc(2) * rn)' (cor1_sc(3) + dc(3) * rn)'];							
+									dc = opt_S.cor2 - opt_S.cor1;
+									zC = [(opt_S.cor1(1) + dc(1) * rn)' (opt_S.cor1(2) + dc(2) * rn)' (opt_S.cor1(3) + dc(3) * rn)'];							
 								end
 							else
 								if (handles.no_file)		% In this case the fig cmap is all whites
@@ -820,28 +825,46 @@ function varargout = load_xyz(handles, opt, opt2)
 								end
 							end
 							tmpz = abs(tmpz);				% Currently the Z is only used to make cylinders in GE
-							if (markerScale ~= 1),	tmpz = tmpz * markerScale;		end
-							if (~isempty(cor1_sc) && isempty(cor2_sc))	% Unique color, we can plot them all in one single line
-								hLine(i) = line('XData',tmpx,'YData',tmpy, 'Parent',handles.axes1, ...
+							if (opt_S.z_off),	tmpz = tmpz + opt_S.z_off;		end		% Offset Z origin of cylinders in GE
+							if (opt_S.y_off),	tmpy = tmpy + opt_S.y_off;		end		%		Y
+							if (opt_S.x_off),	tmpx = tmpx + opt_S.x_off ./ cos(tmpx * pi/180);	end		% & assume given in meters
+							if (~isnan(opt_S.txt))
+								pt_labels = cell(numel(tmpz),1);
+								for (kl = 1:numel(tmpz)),	pt_labels{kl} = sprintf('%.12g',tmpz(kl));	end
+								HAlign = opt_S.txt_just{1};		VAlign = opt_S.txt_just{2};
+							end
+							if (opt_S.scale ~= 1),	tmpz = tmpz * opt_S.scale;		end
+							if (~isnan(opt_S.cor1) && isnan(opt_S.cor2))		% Unique color, we can plot them all in one single line
+								hLine(i) = line('XData',tmpx,'YData',tmpy,'ZData',tmpz, 'Parent',handles.axes1, ...
 									'LineStyle','none', 'Tag','scatter_symbs', 'Marker',marker,'Color','k', ...
-									'MarkerFaceColor',cor1_sc, 'MarkerSize',symbSIZES(1));					
-								setappdata(hLine(i),'ZData',tmpz)
-								draw_funs(hLine(i),'DrawSymbol')			% Set marker's uicontextmenu					
+									'MarkerFaceColor',opt_S.cor1, 'MarkerSize',symbSIZES(1));					
+								if (~isnan(opt_S.rad)),	setappdata(hLine(i),'Radius',opt_S.rad),	end
+								draw_funs(hLine(i),'DrawSymbol')			% Set marker's uicontextmenu
+								if (~isnan(opt_S.txt))
+									hTxt = text(tmpx,tmpy,tmpz,pt_labels, 'FontSize',10, 'Margin',1, ...
+										'HorizontalAlignment','left', 'VerticalAlignment','bottom');
+									draw_funs(hTxt,'DrawText')
+								end
 							else
 								h = zeros(1,nPts);
 								for (ks = 1:nPts)
-									h(ks) = line('XData',tmpx(ks),'YData',tmpy(ks),'Parent',handles.axes1, ...
+									h(ks) = line('XData',tmpx(ks),'YData',tmpy(ks),'ZData',tmpz(ks),'Parent',handles.axes1, ...
 										'LineStyle','none', 'Tag','scatter_symbs', 'Marker',marker,'Color','k', ...
 										'MarkerFaceColor',zC(ks,:), 'MarkerSize',symbSIZES(ks));
-									setappdata(h(ks),'ZData',tmpz(ks))
+									if (~isnan(opt_S.rad)),	setappdata(h(ks),'Radius',opt_S.rad),	end
 									draw_funs(h(ks),'DrawSymbol')
+									if (~isnan(opt_S.txt))
+										hTxt = text(tmpx(ks),tmpy(ks),tmpz(ks),pt_labels{ks},'Parent',handles.axes1, ... 
+											'FontSize',10, 'HorizontalAlignment',HAlign, 'VerticalAlignment',VAlign, 'Margin',1);
+										draw_funs(hTxt,'DrawText')
+									end
 								end
 							end
 							tmpz = [];				% Because later we test this for other purposes
 							orig_no_mseg = true;	% Also cheat here for the same reason
 					end		% switch
 
-					if (savePath)			% May need this info to be able to load other files
+					if (savePath && ishandle(hLine(i)))		%  To be able to load other files (skips scaled pts)
 						setappdata(hLine(i), 'filePath', filePath);
 						if (~isempty(fileName)),	setappdata(hLine(i), 'fileName', fileName);		end
 					end
@@ -1084,17 +1107,21 @@ function [proj, str2] = parseProj(str)
 	str2 = str;
 
 % ---------------------------------------------------------------------------
-function [symbol, symbSize, scale, color_by4, cor1, cor2, str2] = parseS(str)
-% Parse the STR string in search for a -S<symbol>[size][+s<scale>][+f][+c<cor>[+c<cor>]]
+function [out, symbol, symbSize, str2] = parseS(str)
+% Parse the STR string in search for a:
+%	-S<symbol>[size][+s<scale>][+r<radius>][+x<offset>][+y<offset>][+z<offset>][+f][+t<just>][+c<cor1>[+c<cor2>]]
 % If not found or error SYMBOL = [] &/or SYMBSIZE = [].
 % STR2 is the STR string less the -S... part
-	symbol = [];	symbSize = 7;	scale = [];	cor1 = [];	cor2 = [];	color_by4 = false;
+	symbol = [];	symbSize = 7;	cor1 = [];
+	out = struct('symbol',NaN, 'symbSize',7, 'scale',NaN, 'rad',NaN, 'x_off',0, 'y_off',0, 'z_off',0, ...
+		'color_by4',false, 'txt',NaN, 'cor1',NaN, 'cor2',NaN);
+	out.txt_just = {'left','bottom'};	% FCK bug. Can't put this above because it create a struct array. FDS
 	symb_pos = 4;	% default symbol start position in string
 	str2 = str;
 	ind = strfind(str,'-S');
 	if (isempty(ind)),		return,		end		% No -S option
 	symbol = 'o';		% OK, now we have a new default
-	try                                 % There are so many ways to have it wrong that I won't bother testing
+ 	try                                 % There are so many ways to have it wrong that I won't bother testing
 		[strS, rem] = strtok(str(ind:end));
 		str2 = [str(1:ind(1)-1) rem];   % Remove the -S<str> from STR
 
@@ -1119,27 +1146,58 @@ function [symbol, symbSize, scale, color_by4, cor1, cor2, str2] = parseS(str)
         end
 		if (~isempty(ind_p))
 			ind_p(end+1) = numel(strS) + 1;		% A fake last one to easy up algo
-			for (k = 1:numel(ind_p))
+			for (k = 1:numel(ind_p)-1)
 				switch strS(ind_p(k)+1)
 					case 's'
-						scale = str2double(strS(ind_p(k)+2:ind_p(k+1)-1));
+						out.scale    = str2double(strS(ind_p(k)+2:ind_p(k+1)-1));
+					case 'r'
+						out.rad  = str2double(strS(ind_p(k)+2:ind_p(k+1)-1));
+					case 'x'
+						out.x_off = strS(ind_p(k)+2:ind_p(k+1)-1);
+						if (out.x_off(end) == 'm'),	out.x_off = str2double(out.x_off(1:end-1)) / 6378137 * 180 / pi;
+						else,						out.x_off = str2double(out.x_off);
+						end
+					case 'y'
+						out.y_off = strS(ind_p(k)+2:ind_p(k+1)-1);
+						if (out.y_off(end) == 'm'),	out.y_off = str2double(out.y_off(1:end-1) / 6378137) * 180 / pi;
+						else,						out.y_off = str2double(out.y_off);
+						end
+					case 'z'
+						out.z_off = str2double(strS(ind_p(k)+2:ind_p(k+1)-1));
 					case 'f'
-						color_by4 = true;
+						out.color_by4 = true;
+					case 't'
+						out.txt = true;
+						just = strS(ind_p(k)+2:ind_p(k+1)-1);
+						if (numel(just) == 2)
+							% Left,Bottom are already the defaults, so no need to test for them
+							if     (just(1) == 'C'),	out.txt_just{1} = 'center';
+							elseif (just(1) == 'R'),	out.txt_just{1} = 'right';
+							end
+							if     (just(2) == 'T'),	out.txt_just{2} = 'top';
+							elseif (just(2) == 'M'),	out.txt_just{2} = 'middle';
+							end
+						end
 					case 'c'
 						if (isempty(cor1))
 							[cor1, count] = sscanf(strS(ind_p(k)+2:ind_p(k+1)-1),'%d/%d/%d');
-							cor1 = cor1' / 255;
+							out.cor1 = cor1' / 255;
 						else
 							[cor2, count] = sscanf(strS(ind_p(k)+2:ind_p(k+1)-1), '%d/%d/%d');
-							cor2 = cor2' / 255;
+							out.cor2 = cor2' / 255;
 						end
 						if (count ~= 3)
 							warndlg('Error in parsing symbol color. Baddly formed color string. Ignoring it','WarnError')
-							cor1 = [];	cor2 = [];
+							out.cor1 = NaN;		out.cor2 = NaN;
 						end
 				end
 			end
+			if (any(isnan([out.symbSize, out.scale, out.rad, out.x_off, out.y_off, out.z_off])))
+				errordlg('One of the -S parameters is garbage. Expect ...', 'Error')
+			end
 		end
+	catch
+		warning(['parseS: ' lasterr])
 	end
 
 % --------------------------------------------------------------------------------
