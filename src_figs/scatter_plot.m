@@ -5,7 +5,7 @@ function varargout = scatter_plot(varargin)
 % Optional columns 5-7 hold  individual symbol color
 % This function is still somewhat inefficient as it always plot each symbol as a different line
 
-%	Copyright (c) 2004-2018 by J. Luis
+%	Copyright (c) 2004-2019 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -216,9 +216,8 @@ function push_plot_CB(hObject, handles)
 	if (handles.edit_symbScale ~= 1),	z = z * handles.edit_symbScale;		end
 	h = zeros(1,nPts);
 	for (k = 1:nPts)
-		h(k) = line('XData',x(k),'YData',y(k),'Parent',handles.hCallingAxes, 'LineStyle','none', 'Tag','scatter_symbs',...
+		h(k) = line('XData',x(k),'YData',y(k),'ZData',z(k),'Parent',handles.hCallingAxes, 'LineStyle','none', 'Tag','scatter_symbs',...
 			'Marker',handles.symbSYMB,'Color','k','MarkerFaceColor',zC(k,:),'MarkerSize',symbSIZES(k));
-		setappdata(h(k),'ZData',z(k)) 
 	end
 	setUIs(handles,h)
 
