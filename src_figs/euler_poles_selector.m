@@ -1,7 +1,7 @@
 function varargout = euler_poles_selector(varargin)
 % command line arguments to euler_poles_selector
 
-%	Copyright (c) 2004-2018 by J. Luis
+%	Copyright (c) 2004-2019 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -16,18 +16,21 @@ function varargout = euler_poles_selector(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: euler_poles_selector.m 10217 2018-01-24 21:33:46Z j $
+% $Id: euler_poles_selector.m 11436 2019-07-18 15:17:07Z j $
+
+	if (isempty(varargin)),		return,		end
+	hMirFig = varargin{1};
+	handMir = guidata(hMirFig);
+	if (aux_funs('msg_dlg',1,handMir)),		return,		end		% Test geog & no_file
+	if (strcmp(get(hMirFig,'Pointer'), 'crosshair')),	return,	end		% Already drawing something else
 
 	hObject = figure('Tag','figure1','Visible','off');
 	euler_poles_selector_LayoutFcn(hObject);
 	handles = guihandles(hObject);
 	move2side(hObject,'right')
 
-	if (isempty(varargin)),
-		home_dir = pwd;
-	else
-		home_dir = varargin{1};
-	end
+	home_dir = handMir.home_dir;
+	handles.hMirFig = hMirFig;
 
 	fs = filesep;
 	handles.path_data = [home_dir fs 'data' fs];
@@ -46,7 +49,7 @@ function varargout = euler_poles_selector(varargin)
 
 	% Read the Nuvel-1A poles file as they are the default
 	fid = fopen([handles.path_data 'Nuvel1A_poles.dat'],'r');
-	[abbrev name lat lon omega] = strread(fread(fid,'*char'),'%s %s %f %f %f');
+	[abbrev, name, lat, lon, omega] = strread(fread(fid,'*char'),'%s %s %f %f %f');
 	fclose(fid);
 
 	% Save the poles parameters in the handles structure
@@ -66,17 +69,15 @@ function varargout = euler_poles_selector(varargin)
 	new_frame3D(hObject, [handles.txt_Absolute handles.txt_Relative])
 	%------------- END Pro look (3D) -----------------------------------------------------
 
-	% Choose default command line output for euler_poles_selector_export
-	handles.output = hObject;
+	% ------------- Add this figure handle to the carraças list ----------------------------------------
+	plugedWin = getappdata(handMir.figure1,'dependentFigs');
+	plugedWin = [plugedWin hObject];
+	setappdata(handMir.figure1,'dependentFigs',plugedWin);
+	% --------------------------------------------------------------------------------------------------
+
 	guidata(hObject, handles);
-
 	set(hObject,'Visible','on');
-	% UIWAIT makes euler_poles_selector_export wait for user response (see UIRESUME)
-	uiwait(handles.figure1);
-
-	handles = guidata(hObject);
-	varargout{1} = handles.output;
-	delete(handles.figure1);
+	if (nargout),   varargout{1} = hObject;     end
 
 %--------------------------------------------------------------------------------------------------
 function popup_PickPlate_CB(hObject, handles, qual)
@@ -177,7 +178,7 @@ function radio_Nuvel1A_CB(hObject, handles, tipo)
 
 	if (handles.first_MORVEL && tipo(1) == 'M')	% Load and read poles deffinition
 		fid = fopen([handles.path_data 'MORVEL_poles.dat'],'r');
-		[abbrev name lat lon omega] = strread(fread(fid,'*char'),'%s %s %f %f %f');
+		[abbrev, name, lat, lon, omega] = strread(fread(fid,'*char'),'%s %s %f %f %f');
 		fclose(fid);
 		% Save the poles parameters in the handles structure
 		handles.MORVEL_abbrev = abbrev;
@@ -209,13 +210,13 @@ function radio_Nuvel1A_NNR_CB(hObject, handles)
 	if ( ~get(hObject,'Val') ),		set(hObject,'Val',1),	return,		end
 
 	D2R = pi/180;
-	set([handles.radio_Nuvel1A handles.radio_PBird handles.radio_DEOS2K handles.radio_REVEL
+	set([handles.radio_Nuvel1A handles.radio_PBird handles.radio_DEOS2K handles.radio_REVEL ...
 		handles.radio_MORVEL handles.radio_GEODVEL],'Val',0)
 	set(handles.check_Abs2Rel,'Visible','on')
 
 	if (handles.first_NNR)      % Load and read poles deffinition
         fid = fopen([handles.path_data 'Nuvel1A_NNR_poles.dat'],'r');
-        [abbrev name lat lon omega] = strread(fread(fid,'*char'),'%s %s %f %f %f');
+        [abbrev, name, lat, lon, omega] = strread(fread(fid,'*char'),'%s %s %f %f %f');
         fclose(fid);
         % Save the poles parameters in the handles structure
         handles.Nuvel1A_NNR_abbrev = abbrev;
@@ -269,7 +270,7 @@ function radio_Nuvel1A_NNR_CB(hObject, handles)
 function radio_PBird_CB(hObject, handles)
 	if ( ~get(hObject,'Val') ),		set(hObject,'Val',1),	return,		end
 
-	set([handles.radio_Nuvel1A handles.radio_Nuvel1A_NNR handles.radio_DEOS2K handles.radio_REVEL
+	set([handles.radio_Nuvel1A handles.radio_Nuvel1A_NNR handles.radio_DEOS2K handles.radio_REVEL ...
 		handles.radio_MORVEL handles.radio_GEODVEL],'Val',0)
 	set(handles.check_Abs2Rel,'Visible','off')
 
@@ -278,7 +279,7 @@ function radio_PBird_CB(hObject, handles)
 
 	if (handles.first_PB)      % Load and read poles deffinition
         fid = fopen([handles.path_data 'PB_poles.dat'],'r');
-        [abbrev name lat lon omega] = strread(fread(fid,'*char'),'%s %s %f %f %f');
+        [abbrev, name, lat, lon, omega] = strread(fread(fid,'*char'),'%s %s %f %f %f');
         fclose(fid);
         % Save the poles parameters in the handles structure
         handles.PB_abbrev = abbrev;
@@ -315,7 +316,7 @@ function radio_GEODVEL_CB(hObject, handles)
 
 	if (handles.first_GEODVEL)      % Load and read poles deffinition
         fid = fopen([handles.path_data 'GEODVEL_poles.dat'],'r');
-        [abbrev name lat lon omega] = strread(fread(fid,'*char'),'%s %s %f %f %f');
+        [abbrev, name, lat, lon, omega] = strread(fread(fid,'*char'),'%s %s %f %f %f');
         fclose(fid);
         % Save the poles parameters in the handles structure
         handles.GEODVEL_abbrev = abbrev;
@@ -344,13 +345,13 @@ function radio_AKIM2000_CB(hObject, handles)
 	if ( ~get(hObject,'Val') ),		set(hObject,'Val',1),	return,		end
 
 	D2R = pi/180;
-	set([handles.radio_Nuvel1A handles.radio_Nuvel1A_NNR handles.radio_PBird handles.radio_REVEL
+	set([handles.radio_Nuvel1A handles.radio_Nuvel1A_NNR handles.radio_PBird handles.radio_REVEL ...
 		handles.radio_MORVEL handles.radio_GEODVEL],'Val',0)
 	set(handles.check_Abs2Rel,'Visible','on')
 
 	if (handles.first_AKIM2000)      % Load and read poles deffinition
         fid = fopen([handles.path_data 'AKIM2000_poles.dat'],'r');
-        [abbrev name lat lon omega] = strread(fread(fid,'*char'),'%s %s %f %f %f');
+        [abbrev, name, lat, lon, omega] = strread(fread(fid,'*char'),'%s %s %f %f %f');
         fclose(fid);
         % Save the poles parameters in the handles structure
         handles.AKIM2000_abbrev = abbrev;
@@ -404,13 +405,13 @@ function radio_REVEL_CB(hObject, handles)
 	if ( ~get(hObject,'Val') ),		set(hObject,'Val',1),	return,		end
 
 	D2R = pi/180;
-	set([handles.radio_Nuvel1A handles.radio_Nuvel1A_NNR handles.radio_PBird handles.radio_DEOS2K
+	set([handles.radio_Nuvel1A handles.radio_Nuvel1A_NNR handles.radio_PBird handles.radio_DEOS2K ...
 		handles.radio_MORVEL handles.radio_GEODVEL],'Val',0)
 	set(handles.check_Abs2Rel,'Visible','on')
 
 	if (handles.first_REVEL)      % Load and read poles deffinition
         fid = fopen([handles.path_data 'REVEL_poles.dat'],'r');
-        [abbrev name lat lon omega] = strread(fread(fid,'*char'),'%s %s %f %f %f');
+        [abbrev, name, lat, lon, omega] = strread(fread(fid,'*char'),'%s %s %f %f %f');
         fclose(fid);
         % Save the poles parameters in the handles structure
         handles.REVEL_abbrev = abbrev;
@@ -466,13 +467,13 @@ function radio_DEOS2K_CB(hObject, handles)
 	end
 
 	D2R = pi/180;
-	set([handles.radio_Nuvel1A handles.radio_Nuvel1A_NNR handles.radio_PBird handles.radio_REVEL
+	set([handles.radio_Nuvel1A handles.radio_Nuvel1A_NNR handles.radio_PBird handles.radio_REVEL ...
 		handles.radio_MORVEL handles.radio_GEODVEL],'Val',0)
 	set(handles.check_Abs2Rel,'Visible','on')
 
 	if (handles.first_DEOS2K)      % Load and read poles deffinition
         fid = fopen([handles.path_data 'DEOS2K_poles.dat'],'r');
-        [abbrev name lat lon omega] = strread(fread(fid,'*char'),'%s %s %f %f %f');
+        [abbrev, name, lat, lon, omega] = strread(fread(fid,'*char'),'%s %s %f %f %f');
         fclose(fid);
         % Save the poles parameters in the handles structure
         handles.DEOS2K_abbrev = abbrev;
@@ -522,29 +523,64 @@ function radio_DEOS2K_CB(hObject, handles)
 	guidata(handles.figure1, handles);
 
 %--------------------------------------------------------------------------------------------------
+function radio_circle_CB(hObject, handles)
+	if (~get(hObject,'Val')),		set(hObject,'Val',1),	return,		end
+	set(handles.radio_arrow, 'Val', 0)
+
+%--------------------------------------------------------------------------------------------------
+function radio_arrow_CB(hObject, handles)
+	if (~get(hObject,'Val')),		set(hObject,'Val',1),	return,		end
+	set(handles.radio_circle, 'Val', 0)
+
+%--------------------------------------------------------------------------------------------------
 function push_OK_CB(hObject, handles, opt)
 
-	lon = str2double(get(handles.edit_PoleLon,'String'));
-	lat = str2double(get(handles.edit_PoleLat,'String'));
+	plon = str2double(get(handles.edit_PoleLon,'String'));
+	plat = str2double(get(handles.edit_PoleLat,'String'));
 	omega = str2double(get(handles.edit_PoleRate,'String'));
-	
-	if (isempty(lon) || isempty(lat) || isempty(omega))  % I any of these is empty insult
+
+	if (isempty(plon) || isempty(plat) || isempty(omega))  % I any of these is empty insult
         errordlg('OK what? It would work better if you select something meaningful first.','Error')
         return
 	else            % Valid choice, so fill also the plate(s) abbreviation string
         plates = [handles.abb_fix '-' handles.abb_mov];
 	end
-	
+
 	model = getappdata(handles.figure1,'current_model');
-	out.lon = lon;      out.lat = lat;      out.omega = omega;      out.plates = plates;    out.model = model;
-	if (strcmp(get(handles.check_Abs2Rel,'Vis'), 'on') && ~get(handles.check_Abs2Rel,'Val') )
-		out.absolute = true;		% Inform if model is absolute or relative.
+
+	handMir = guidata(handles.hMirFig);
+	figure(handles.hMirFig);		% Make it the active figure
+
+	if (get(handles.radio_circle, 'Val'))
+		h_circ = uicirclegeo(plon, plat, handMir.axes1);
+		set(h_circ,'Tag','CircleEuler')		% This is used by draw_funs to allow velocity computations
+		s = get(h_circ,'Userdata');
+		s.omega = omega;
+		if ~isempty(plates)			% Just in case
+			if (~strncmp('absolute', plates, 8))			% A relative plate model
+				s.plates = [plates '  -- Model = ' model];
+			else											% An absolute plate model
+				s.plates = [plates(end-1:end) ' -- Model = ' model ' (Absolute)'];
+			end
+		else
+			s.plates = 'I''m lost';
+		end
+		set(h_circ,'Userdata',s)
+		draw_funs(h_circ,'SessionRestoreCircle')
 	else
-		out.absolute = false;
+		% This plots an arrow. But it's horrible. It should call the same code as "tangent arrow to Euler circle"
+		pt = click_e_point(1,'crosshair');
+		if (isempty(pt)),	return,		end
+		lon = pt(1);		lat = pt(2);
+		[Vx, Vy] = draw_funs([], 'compute_EulerVel', lat, lon, plat, plon, omega, 'Nikles');
+		struc_arrow = struct('spacingChanged',[], 'hQuiver', [], 'hAx', handMir.axes1);
+		hQuiver = draw_funs([], 'loc_quiver', struc_arrow, lon, lat, Vx, Vy);
+		x = get(hQuiver,'XData');		y = get(hQuiver,'YData');
+		set(hQuiver(1),'XData',[x{1} x{2}], 'YData',[y{1} y{2}])	% Merge the header with the "trunk"
+		delete(hQuiver(2));		hQuiver(2) = [];
+		set(hQuiver,'Tag','Seta','Userdata',1)
+		draw_funs(hQuiver,'line_uicontext')
 	end
-	handles.output = out;
-	guidata(handles.figure1,handles);
-	uiresume(handles.figure1);
 
 %--------------------------------------------------------------------------------------------------
 function [plon,plat,omega] = calculate_pole(lon1,lat1,omega1,lon2,lat2,omega2)
@@ -834,7 +870,22 @@ uicontrol('Parent',h1, 'Position',[108 167 87 15],...
 'Style','radiobutton',...
 'Tag','radio_REVEL');
 
-uicontrol('Parent',h1, 'Position',[206 144 74 15],...
+uicontrol('Parent',h1, 'Position',[206 200 87 15],...
+'Callback',{@main_uiCB,h1,'radio_circle_CB'},...
+'String','Circle',...
+'Value', 1, ...
+'Style','radiobutton',...
+'TooltipString','Draw circle',...
+'Tag','radio_circle');
+
+uicontrol('Parent',h1, 'Position',[206 180 87 15],...
+'Callback',{@main_uiCB,h1,'radio_arrow_CB'},...
+'String','Arrow',...
+'Style','radiobutton',...
+'TooltipString','Plot velocity arrow',...
+'Tag','radio_arrow');
+
+uicontrol('Parent',h1, 'Position',[206 140 74 15],...
 'Callback',{@main_uiCB,h1,'check_Abs2Rel_CB'},...
 'String','Relativize',...
 'Vis', 'off',...
