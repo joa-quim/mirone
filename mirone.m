@@ -20,7 +20,7 @@ function varargout = mirone(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: mirone.m 11430 2019-07-04 19:56:54Z j $
+% $Id: mirone.m 11437 2019-07-18 15:20:44Z j $
 
 	if (nargin > 1 && ischar(varargin{1}))
 		if (~isempty(strfind(varargin{1},':')) || ~isempty(strfind(varargin{1},filesep)) )	% A file name
@@ -3176,46 +3176,6 @@ function DrawClosedPolygon_CB(handles, opt)
 			draw_funs(hl,'line_uicontext')	% Set lines's uicontextmenu
 		end
 	end
-
-% --------------------------------------------------------------------
-function DrawEulerPoleCircle_CB(handles)
-	if (aux_funs('msg_dlg',1,handles)),		return,		end		% Test geog & no_file
-	if (strcmp(get(handles.figure1,'Pointer'), 'crosshair')),	return,		end		% Already drawing something else
-	zoom_state(handles,'maybe_off');
-	
-	out = euler_poles_selector(handles.home_dir);			% The output is a struct with fields: lon lat omega plates model
-	if isempty(out),	return,		end % User gave up
-	plon = out.lon;		plat = out.lat;
-	if (~out.absolute)
-		h_circ = uicirclegeo(plon, plat, handles.axes1);
-		set(h_circ,'Tag','CircleEuler')		% This is used by draw_funs to allow velocity computations
-		s = get(h_circ,'Userdata');
-		s.omega = out.omega;
-		if ~isempty(out.plates)			% Just in case
-			if (~strncmp('absolute',out.plates,8))			% A relative plate model
-				s.plates = [out.plates '  -- Model = ' out.model];
-			else											% An absolute plate model
-				s.plates = [out.plates(end-1:end) ' -- Model = ' out.model ' (Absolute)'];
-			end
-		else
-			s.plates = 'I''m lost';
-		end
-		set(h_circ,'Userdata',s)
-		draw_funs(h_circ,'SessionRestoreCircle')
-	else
-		pt = click_e_point(1,'crosshair');
-		if (isempty(pt)),	return,		end
-		lon = pt(1);		lat = pt(2);
-		[Vx, Vy] = draw_funs([], 'compute_EulerVel', lat, lon, plat, plon, out.omega, 'Nikles');
-		struc_arrow = struct('spacingChanged',[], 'hQuiver', [], 'hAx', handles.axes1);
-		hQuiver = draw_funs([], 'loc_quiver', struc_arrow, lon, lat, Vx, Vy);
-		x = get(hQuiver,'XData');		y = get(hQuiver,'YData');
-		set(hQuiver(1),'XData',[x{1} x{2}], 'YData',[y{1} y{2}])	% Merge the header with the "trunk"
-		delete(hQuiver(2));		hQuiver(2) = [];
-		set(hQuiver,'Tag','Seta','Userdata',1)
-		draw_funs(hQuiver,'line_uicontext')
-	end
-	zoom_state(handles,'maybe_on');
 
 % --------------------------------------------------------------------
 function DrawGeogCircle_CB(handles, opt)
