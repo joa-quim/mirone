@@ -123,7 +123,7 @@ function  varargout = url2image(opt, varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: url2image.m 11385 2018-10-11 11:30:10Z j $
+% $Id: url2image.m 11442 2019-07-24 14:37:34Z j $
 
 	quadkey = {'0' '1'; '2' '3'};				% Default to Virtual Earth
 	prefix = 'http://a0.ortho.tiles.virtualearth.net/tiles/a';
@@ -729,8 +729,8 @@ function [img, att] = netFetchTile(url, cache, quad, ext, verbose, fname)
 			dest_fiche = 'lixogrr';
 		end
 
-		if (ispc),		dos(['wget "' url '" -q --tries=2 --connect-timeout=5 -O "' dest_fiche '"']);
-		else			unix(['wget ''' url ''' -q --tries=2 --connect-timeout=5 -O "' dest_fiche '"']);
+		if (ispc),		dos(['wget "' url '" -q --tries=2 --connect-timeout=5 --no-check-certificate -O "' dest_fiche '"']);
+		else			unix(['wget ''' url ''' -q --tries=2 --connect-timeout=5 --no-check-certificate -O "' dest_fiche '"']);
 		end
 		finfo = dir(dest_fiche);
 		if (finfo.bytes < 100)					% Delete the file anyway because it exists but is empty
