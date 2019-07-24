@@ -16,7 +16,7 @@ function varargout = globalcmt(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: globalcmt.m 10217 2018-01-24 21:33:46Z j $
+% $Id$
 
 	if (isempty(varargin))
 		errordlg('GlobalCMT: wrong number of input arguments.','Error'),	return
@@ -235,7 +235,7 @@ function push_OK_CB(hObject, handles)
 	end
 	% Other qantities are tested by the callbacks, so we should be done here.
 
-	url = ['http://www.globalcmt.org/cgi-bin/globalcmt-cgi-bin/CMT4/form?itype=ymd&yr=' ...
+	url = ['https://www.globalcmt.org/cgi-bin/globalcmt-cgi-bin/CMT5/form?itype=ymd&yr=' ...
 		get(handles.edit_StartYear,'Str'), ...
 		'&mo=' get(handles.edit_StartMonth,'Str'), ...
 		'&day=' get(handles.edit_StartDay,'Str'), ...
@@ -264,20 +264,21 @@ function push_OK_CB(hObject, handles)
 	dest_fiche = 'lixogrr.html';
 	for (n = 1:2)
 		if (n == 2),	url(end) = '2';		end			% Get data with the A&R convention 
-		if (ispc),		dos(['wget "' url '" -q --tries=2 --connect-timeout=5 -O ' dest_fiche]);
-		else			unix(['wget ''' url ''' -q --tries=2 --connect-timeout=5 -O ' dest_fiche]);
+		if (ispc),		dos(['wget "' url '" -q --tries=2 --connect-timeout=5 --no-check-certificate -O ' dest_fiche]);
+		else,			unix(['wget ''' url ''' -q --tries=2 --connect-timeout=5 --no-check-certificate -O ' dest_fiche]);
 		end
 
 		finfo = dir(dest_fiche);
 		if (finfo.bytes < 100)					% Delete the file anyway because it exists but is empty
 			warndlg('Failed to download the CMT file.','Warning')
 			builtin('delete',dest_fiche);
-			set(handles.figure1,'pointer','arrow'),		return
+			set(handles.figure1,'pointer','arrow')
+			return
 		end
 
 		fid = fopen(dest_fiche,'r');
 		for (k = 1:24)					% Jump first 24 html related lines
-			lix = fgets(fid);
+			fgets(fid);
 		end
 		todos = fread(fid,'*char');		fclose(fid);
 		if (todos(1) == '<')
@@ -294,10 +295,10 @@ function push_OK_CB(hObject, handles)
 		end
 
 		if (n == 1)
-			[lix lat lon depth lix lix mag lix lix lix lix lix lix lix] = ...
+			[lix, lat, lon, depth, lix, lix, mag, lix, lix, lix, lix, lix, lix, lix] = ...
 				strread(todos,'%s %f %f %f %f %f %f %f %f %f %f %f %f %f');
 		else
-			[lix lix strike dip rake lix lix lix lix lix data] = ...
+			[lix, lix, strike, dip, rake, lix, lix, lix, lix, lix, data] = ...
 				strread(todos,'%f %f %f %f %f %f %f %f %f %f %s');
 		end
 	end
