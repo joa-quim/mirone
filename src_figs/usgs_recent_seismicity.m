@@ -21,7 +21,7 @@ function usgs_recent_seismicity(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: usgs_recent_seismicity.m 10219 2018-01-25 14:19:43Z j $
+% $Id: usgs_recent_seismicity.m 11440 2019-07-24 14:33:14Z j $
 
 	handMir = guidata(varargin{1});		% Not tested but must be a Mirone fig handle
 
@@ -85,7 +85,7 @@ function push_OK_CB(obj, evt)
 	name = [mags{m} periods{n}];
 
 	dest_fiche = [handles.path_tmp 'usgs.csv'];
-	url = ['http://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/' name '.csv'];
+	url = ['https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/' name '.csv'];
 	cmd = ['wget "' url  '" -q --tries=2 --connect-timeout=5 --no-check-certificate -O ' dest_fiche];
 	%cmd = ['curl "' url  '" --retry 2 --max-time 5 -s -k -o ' dest_fiche];
 	if (strncmp(computer,'PC',2))
@@ -222,7 +222,7 @@ function data = csv2cell(fname)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: usgs_recent_seismicity.m 10219 2018-01-25 14:19:43Z j $
+% $Id: usgs_recent_seismicity.m 11440 2019-07-24 14:33:14Z j $
 
 	fid = fopen(fname);
 	text = fread(fid,inf,'*char')';
