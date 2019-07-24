@@ -1,7 +1,7 @@
 function varargout = focal_meca(varargin)
 % Helper window to plot focal mechanisms
 
-%	Copyright (c) 2004-2018 by J. Luis
+%	Copyright (c) 2004-2019 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -16,7 +16,7 @@ function varargout = focal_meca(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: focal_meca.m 10217 2018-01-24 21:33:46Z j $
+% $Id$
 
 	if (isempty(varargin))
 		errordlg('FOCAL MECA: wrong number of arguments.','Error'),		return
@@ -55,10 +55,10 @@ function varargout = focal_meca(varargin)
 			handMir.geog = 1;		handles.image_type = 3;		% Here we know this for sure
 		end
 
-		set(handles.edit_MagMin, 'Str', sprintf('%.1f', min(varargin{2}(:,7))))
-		set(handles.edit_MagMax, 'Str', sprintf('%.1f', max(varargin{2}(:,7))))
-		set(handles.edit_DepthMin, 'Str', sprintf('%.1f', min(varargin{2}(:,3))))
-		set(handles.edit_DepthMax, 'Str', sprintf('%.1f', max(varargin{2}(:,3))))
+		set(handles.edit_MagMin, 'Str', sprintf('%.1f', floor(min(varargin{2}(:,7))) ))
+		set(handles.edit_MagMax, 'Str', sprintf('%.1f', ceil(max(varargin{2}(:,7))) ))
+		set(handles.edit_DepthMin, 'Str', sprintf('%.1f', floor(min(varargin{2}(:,3))) ))
+		set(handles.edit_DepthMax, 'Str', sprintf('%.1f', ceil(max(varargin{2}(:,3))) ))
 		set(handles.listbox_readFilter,'Enable','off')
 		set(handles.push_readFile,'Enable','off')
 		set(handles.check_plotDate,'Enable','on')
@@ -374,8 +374,8 @@ function push_OK_CB(hObject, handles)
 
 	% Retain only the requested interval
 	ind1 = find(handles.data(:,3) < DepthMin | handles.data(:,3) > DepthMax);
-    handles.data(ind1,:) = [];      handles.plot_pos(ind1,:) = [];
-    if (~isempty(handles.date))     handles.date(ind1,:) = [];  end
+    handles.data(ind1,:) = [];		handles.plot_pos(ind1,:) = [];
+    if (~isempty(handles.date)),	handles.date(ind1,:) = [];  end
 	if (strcmp(filtro,'aki'))
 		ind2 = (handles.data(:,7) < MagMin | handles.data(:,7) > MagMax);
 	else							% ISF catalog, CMT, CMT .ndk 
@@ -383,8 +383,8 @@ function push_OK_CB(hObject, handles)
 		ind2 = (handles.data(:,10) < MagMin | handles.data(:,10) > MagMax);
 		handles.mantiss_exp(ind2,:) = [];
 	end
-    handles.data(ind2,:) = [];      handles.plot_pos(ind2,:) = [];
-    if (~isempty(handles.date))     handles.date(ind2,:) = [];  end
+    handles.data(ind2,:) = [];		handles.plot_pos(ind2,:) = [];
+    if (~isempty(handles.date)),	handles.date(ind2,:) = [];  end
 
 	if (all(isempty(handles.data)))
         warndlg('There were no events left.','Warning');  return;
@@ -476,10 +476,10 @@ function push_OK_CB(hObject, handles)
 % -------------------------------------------------------------------------------------
 function cor = find_color(z, id)
 	if (z < 33),					cor = id{1};
-	elseif (z >= 33 && z < 70)		cor = id{2};
-	elseif (z >= 70 && z < 150)		cor = id{3};
-	elseif (z >= 150 && z < 300)	cor = id{4};
-	else							cor = id{5};
+	elseif (z >= 33 && z < 70),		cor = id{2};
+	elseif (z >= 70 && z < 150),		cor = id{3};
+	elseif (z >= 150 && z < 300),	cor = id{4};
+	else,							cor = id{5};
 	end
 
 % -------------------------------------------------------------------------------------
@@ -573,10 +573,10 @@ function [data, mantiss_exp, eventDate, error] = readHarvardCMT(fname)
 	try									% This try will slow down the parsing but fileshit happens (alot)
 		for (k = 1:nEvents)
 			n = (k - 1) * 3 + 1;		% To read the data line numbers correctly
-			[data(k,2) data(k,1) data(k,3)] = strread(todos{n}(28:47),'%f %f %f');		% lat lon dep
+			[data(k,2), data(k,1), data(k,3)] = strread(todos{n}(28:47),'%f %f %f');		% lat lon dep
 			eventDate{k} = [todos{n}(15:15) todos{n}(10:13) todos{n}(6:9)];		% day/month/year is the civilized way of displaying dates
 			mantiss_exp(k,2) = str2double(todos{n+1}(1:2)) - 7;					% -7 because I want SI units
-			[data(k,4) data(k,5) data(k,6) data(k,7) data(k,8) data(k,9)] = strread(todos{n+2}(58:80),'%f %f %f %f %f %f');		% str1 dip1 rake1 str2 dip2 rake2
+			[data(k,4), data(k,5), data(k,6), data(k,7), data(k,8), data(k,9)] = strread(todos{n+2}(58:80),'%f %f %f %f %f %f');		% str1 dip1 rake1 str2 dip2 rake2
 			mantiss_exp(k,1) = str2double(todos{n+2}(52:56));					% M0 mantissa
 			M0  = mantiss_exp(k,1) * 10.0^mantiss_exp(k,2);
 			data(k,10) = 2/3 * (log10(M0) - 9.1);			% Mw
