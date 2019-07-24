@@ -1696,10 +1696,14 @@ function [vel, azim] = compute_EulerVel(alat,alon,plat,plon,omega, opt)
 % alat & alon are the point coords. plat, plon & omega are the pole parameters (All in degrees)
 % OPT, if given (anything will do), selects output as X,Y velocity components
 
-	D2R = pi/180;
+	D2R = pi / 180;
 	earth_rad = 6371e3;    % Earth radius in km
 	plat = plat*D2R;      plon = plon*D2R;      omega = omega*D2R;
 	alat = alat*D2R;      alon = alon*D2R;
+
+	% Convert to geocentric
+	ecc = 0.0818191908426215;		% WGS84
+	alat = atan2((1-ecc^2) .* sin(alat), cos(alat));
 
 	x = cos(plat).*sin(plon).*sin(alat) - cos(alat).*sin(alon).*sin(plat);    % East vel
 	y = cos(alat).*cos(alon).*sin(plat) - cos(plat).*cos(plon).*sin(alat);    % North vel
@@ -1717,8 +1721,9 @@ function [vel, azim] = compute_EulerVel(alat,alon,plat,plon,omega, opt)
 	
 	if (nargin == 6)
 		azim = azim * D2R;			% Put it back in radians
-		vel = vel .* cos(azim);		% X
-		azim = vel .* sin(azim);	% Y
+		vel_ = vel .* sin(azim);	% X	(azim is angle to North)
+		azim = vel .* cos(azim);	% Y
+		vel = vel_;
 	end
 
 % -----------------------------------------------------------------------------------------
@@ -3377,8 +3382,8 @@ function mareg_online(obj,eventdata,h, data, opt)
 	end
 	url = ['http://www.ioc-sealevelmonitoring.org/bgraph.php?code=' code '&output=asc&period=' nDays '&endtime=' date_start];
 	%url = ['http://www.ioc-sealevelmonitoring.org/bgraph.php?output=asc&time=' date_start '&period=' nDays '&par=' code];
-	if (ispc),		dos(['wget "' url '" -q --tries=2 --connect-timeout=5 -O ' dest_fiche]);
-	else,			unix(['wget ''' url ''' -q --tries=2 --connect-timeout=5 -O ' dest_fiche]);
+	if (ispc),		dos(['wget "' url '" -q --tries=2 --connect-timeout=5 --no-check-certificate -O ' dest_fiche]);
+	else,			unix(['wget ''' url ''' -q --tries=2 --connect-timeout=5 --no-check-certificate -O ' dest_fiche]);
 	end
 
 	fid = fopen(dest_fiche,'r');
