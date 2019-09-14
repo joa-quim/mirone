@@ -15,9 +15,8 @@ function varargout = image_enhance(varargin)
 %   the window changes the brightness of the image. It is possible to manually enter
 %   the minimum, maximum, width, and center values for the window. Changing one value
 %   automatically updates the other values and the image.
-%
 
-%	Copyright (c) 2004-2018 by J. Luis
+%	Copyright (c) 2004-2019 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -34,7 +33,9 @@ function varargout = image_enhance(varargin)
 
 % $Id: image_enhance.m 10409 2018-05-18 15:31:20Z j $
 
-	if (isempty(varargin))	return,		end
+	if (isempty(varargin)),     return,		end
+	handMir = guidata(varargin{1});
+	if (handMir.no_file),   return,     end
 
 	hObject = figure('Vis','on');
 	image_enhance_LayoutFcn(hObject);
@@ -58,21 +59,24 @@ function varargout = image_enhance(varargin)
 			NaN	NaN	NaN	NaN	NaN	NaN	NaN	2	NaN	NaN	NaN	NaN	NaN	NaN	NaN	NaN; ...
 			NaN	NaN	NaN	NaN	NaN	NaN	NaN	NaN	NaN	NaN	NaN	NaN	NaN	NaN	NaN	NaN]';
 
-	handMir = guidata(varargin{1});
 	handles.hMirAxes = handMir.axes1;
 	handles.hMirImg = handMir.hImg;
 	img = (get(handles.hMirImg,'CData'));
 
-	if (isempty(img))
-		errordlg('C''mon load a file first. It''s logic, isn''t it?','Error')
-		delete(hObject);
-		return
-	elseif (ndims(img) == 3)
+	handles.use_data = false;
+	if (nargin > 1)				% Currently only "Clipp Grid" does it
+		handles.use_data = true;
+		handClip = guidata(varargin{2});	% Handles of the "Clipp Grid" figure
+		handles.Clipp_edit_below  = handClip.edit_below;	handles.Clipp_edit_above = handClip.edit_above;
+		handles.Clipp_edit_Bl_val = handClip.edit_Bl_val;	handles.Clipp_edit_Ab_val = handClip.edit_Ab_val;
+		delete(handles.push_contStrectch);    %delete(handles.edit_percentOutliersB)
+	end
+
+	if (ndims(img) == 3)
 		handles.isRGB = 1;
 		set(handles.edit_percentOutliersR,'BackgroundColor','r')
 		handles.percentOutliers(1:3) = [2 2 2];
-	elseif (ndims(img) == 2)
-		set(handles.hMirImg,'CDataMapping','scaled')   % We will change CLim in intensity images
+	else
 		handles.isRGB = 0;
 		handles.percentOutliers = 2;
 		% OK, here we must reshape the GUI, but we can delete some uis first
@@ -96,9 +100,11 @@ function varargout = image_enhance(varargin)
 		post = get(handles.text_stat,'pos');
 		set(handles.text_stat,'pos',[post(1) pos_a1(2)-40 post(3) post(4)])
 		handles.currAxes = zeros(1,3);
-	else
-		errordlg('This tool only works with Intensity or RGB images.','Error')
-		delete(hObject);    return
+		if (~handles.use_data)
+			set(handles.hMirImg,'CDataMapping','scaled')   % We will change CLim in intensity images
+		else
+			move2side(handClip.figure1, hObject, 'bottom')
+		end
 	end
 
 	%------------ Give a Pro look (3D) to the frame boxes  -------------------------------
@@ -110,9 +116,21 @@ function varargout = image_enhance(varargin)
 
 	if (~handles.isRGB)
 		handles.currAxes = 1;	set(handles.figure1,'CurrentAxes',handles.axes1);
-		localImhist(handles,img);
-		handles = guidata(handles.figure1);			% The handles has been saved in plot_results
-		handles.minCData = double(min(min(img)));	handles.maxCData = double(max(max(img)));
+		if (handles.use_data)
+			Z = getappdata(handMir.figure1,'dem_z');
+			if (isa(Z, 'single'))		% Must normalize it
+				Z1 = Z;		Z1(1) = Z(1) + 0;	% Force copy
+				grdutils(Z1, sprintf('-A%f', -handMir.head(5)))
+				grdutils(Z1, sprintf('-M%f', 1/(handMir.head(6) - handMir.head(5))) )
+				localImhist(handles, Z1);
+			else
+				localImhist(handles, Z);
+			end
+		else
+			localImhist(handles,img);
+		end
+		handles = guidata(handles.figure1);			% Update. The handles has been saved in plot_results
+		handles.minCData = double(min(img(:)));		handles.maxCData = double(max(img(:)));
 	else
 		handles.currAxes = 3;	set(handles.figure1,'CurrentAxes',handles.axes3);
 		localImhist(handles,img(:,:,3));
@@ -133,8 +151,13 @@ function varargout = image_enhance(varargin)
 	end
 	handles.orig_img = img;             % Store a copy of the original image
 
-	set(handles.edit_minRange,'String',num2str(double(handles.minCData(1))))
-	set(handles.edit_maxRange,'String',num2str(double(handles.maxCData(1))))
+	if (handles.use_data)
+		set(handles.edit_minRange,'String', get(handles.edit_minWindow, 'String'))
+		set(handles.edit_maxRange,'String', get(handles.edit_maxWindow, 'String'))
+	else
+		set(handles.edit_minRange,'String',num2str(double(handles.minCData(1))))
+		set(handles.edit_maxRange,'String',num2str(double(handles.maxCData(1))))
+	end
 
 	if (nargout),   varargout{1} = hObject;     end
 	guidata(hObject, handles);
@@ -201,55 +224,55 @@ function radio_delOutliers_CB(hObject, handles)
 % --------------------------------------------------------------------------
 function radio_R_CB(hObject, handles)
 	if (get(hObject,'Value')),	swap_radios(handles,1)
-	else						set(hObject, 'Value',1)
+	else,						set(hObject, 'Value',1)
 	end
 
 % --------------------------------------------------------------------------
 function radio_G_CB(hObject, handles)
 	if (get(hObject,'Value')),	swap_radios(handles,2)
-	else						set(hObject, 'Value',1)
+	else,						set(hObject, 'Value',1)
 	end
 
 % --------------------------------------------------------------------------
 function radio_B_CB(hObject, handles)
 	if (get(hObject,'Value')),	swap_radios(handles,3)
-	else						set(hObject, 'Value',1)
+	else,						set(hObject, 'Value',1)
 	end
 
 % --------------------------------------------------------------------------
 function push_applyRange_CB(hObject, handles)
-if (get(handles.radio_delOutliers,'Value'))
-    if (~handles.isRGB)
-    	outlierPct = str2double(get(handles.edit_percentOutliersR,'String')) / 100;
-    	newClim = localStretchlim(handles.orig_img, outlierPct / 2);
-    else
-        img = handles.orig_img;
-        switch handles.currAxes
-            case 1
-                outlierPct = str2double(get(handles.edit_percentOutliersR,'String')) / 100;
-                img(:,:,2:3) = [];
-            case 2
-                outlierPct = str2double(get(handles.edit_percentOutliersG,'String')) / 100;
-                img(:,:,[1 3]) = [];
-            case 3
-                outlierPct = str2double(get(handles.edit_percentOutliersB,'String')) / 100;
-                img(:,:,1:2) = [];
-        end
-    	newClim = localStretchlim(img, outlierPct / 2);
-    end
-    if isequal(newClim, [0;1])
-        if outlierPct > 0.02
-            errordlg('The specified percentage is too great. Coose a smaller one','Percentage Too Large')
-        elseif outlierPct ~= 0
-            errordlg('This image contains too few grayscale values to eliminate outliers.','Cannot Eliminate Outliers')
-        end
-        return
-    end
-    updateAll(handles,newClim,'convert')
-else                            % Use pre-stored data range
-    newClim = [handles.minCData(handles.currAxes) handles.maxCData(handles.currAxes)];
-    updateAll(handles,newClim,'final')
-end
+	if (get(handles.radio_delOutliers,'Value'))
+		if (~handles.isRGB)
+			outlierPct = str2double(get(handles.edit_percentOutliersR,'String')) / 100;
+			newClim = localStretchlim(handles.orig_img, outlierPct / 2);
+		else
+			img = handles.orig_img;
+			switch handles.currAxes
+				case 1
+					outlierPct = str2double(get(handles.edit_percentOutliersR,'String')) / 100;
+					img(:,:,2:3) = [];
+				case 2
+					outlierPct = str2double(get(handles.edit_percentOutliersG,'String')) / 100;
+					img(:,:,[1 3]) = [];
+				case 3
+					outlierPct = str2double(get(handles.edit_percentOutliersB,'String')) / 100;
+					img(:,:,1:2) = [];
+			end
+			newClim = localStretchlim(img, outlierPct / 2);
+		end
+		if isequal(newClim, [0;1])
+			if outlierPct > 0.02
+				errordlg('The specified percentage is too great. Coose a smaller one','Percentage Too Large')
+			elseif outlierPct ~= 0
+				errordlg('This image contains too few grayscale values to eliminate outliers.','Cannot Eliminate Outliers')
+			end
+			return
+		end
+		updateAll(handles,newClim,'convert')
+	else                            % Use pre-stored data range
+		newClim = [handles.minCData(handles.currAxes) handles.maxCData(handles.currAxes)];
+		updateAll(handles,newClim,'final')
+	end
 
 % --------------------------------------------------------------------------
 function push_contStrectch_CB(hObject, handles)
@@ -276,17 +299,17 @@ function push_decorrStrectch_CB(hObject, handles)
 
 % --------------------------------------------------------------------------
 function push_scaterPlot_CB(hObject, handles)
-[m,n,k] = size(handles.orig_img);
-if (m*n > 256*256)      % For scater plots we don't need all points (If they are many)
-    fac = min(256/m,256/n);
-    img = localImresize(get(handles.hMirImg,'CData'),fac);
-    r = img(:,:,1);     g = img(:,:,2);     b = img(:,:,3);
-else
-    r = handles.orig_img(:,:,1);     g = handles.orig_img(:,:,2);     b = handles.orig_img(:,:,3);
-end
-h = figure;
-plot3(r(:),g(:),b(:),'.')
-grid('on');     xlabel('Red Band');     ylabel('Green Band');   zlabel('Blue Band')
+	[m,n,k] = size(handles.orig_img);
+	if (m*n > 256*256)      % For scater plots we don't need all points (If they are many)
+		fac = min(256/m,256/n);
+		img = localImresize(get(handles.hMirImg,'CData'),fac);
+		r = img(:,:,1);     g = img(:,:,2);     b = img(:,:,3);
+	else
+		r = handles.orig_img(:,:,1);     g = handles.orig_img(:,:,2);     b = handles.orig_img(:,:,3);
+	end
+	figure;
+	plot3(r(:),g(:),b(:),'.')
+	grid('on');     xlabel('Red Band');     ylabel('Green Band');   zlabel('Blue Band')
 
 % --------------------------------------------------------------------------
 function img = localImresize(img,m)
@@ -308,14 +331,26 @@ function [y,x] = localImhist(handles,varargin)
 		y = y';
 	else
 		y = imhistc(a, n, isScaled, top);       % Call MEX file to do work.
+		bak = y(1);		y(1) = 0;
+		ma = max(y);
+		if (bak > 2 * ma),	y(1) = ma;		% Don't let the blacks (0) hide all the rest
+		else,				y(1) = bak;
+		end
 	end
 
 	classin = class(a);
 	switch classin
 		case 'uint8',   x = linspace(0,255,n)';
-		case 'uint16',  x = linspace(0,65535,n)';
+		case 'uint16',  x = linspace(0,top,n)';
 		case 'double',  x = linspace(0,1,n)';
 		case 'logical', x = [0,1]';
+		case 'single'	% Likely from a grid, so try this
+			try
+				handMir = guidata(handles.hMirAxes);
+				x = linspace(handMir.head(5), handMir.head(6), n)';
+			catch
+				x = linspace(0,1,n)';
+			end
 	otherwise
 		errordlg('The input image must be uint8, uint16, double, or logical.','ERROR');
 		return
@@ -328,17 +363,17 @@ function [a, n, isScaled, top] = parse_inputs(varargin)
 
 	a = varargin{1};        n = 256;
 
-	if (isa(a,'double'))
+	if (isa(a,'double') || isa(a,'single'))
 		isScaled = 1;   top = 1;
 	elseif (isa(a,'uint8'))
 		isScaled = 1;   top = 255;
 	elseif (islogical(a))
 		n = 2;      isScaled = 1;    top = 1;
-	else % a must be uint16
-		isScaled = 1;   top = 65535;
+	else		% a must be uint16
+		isScaled = 1;   top = double(max(a(:)));	n = top;	%top = 65535;
 	end
 
-	if (nargin ==2)
+	if (nargin == 2)
 		if (numel(varargin{2}) == 1)        % IMHIST(I, N)
 			n = varargin{2};
 		elseif (size(varargin{2},2) == 3)   % IMHIST(X,MAP) or invalid second argument
@@ -372,7 +407,15 @@ function plot_result(x, y, handles)
 
 	localStem(x,y)
 	limits = [get(hAxes,'XLim') get(hAxes,'YLim')];
-	limits(1) = -10;    limits(2) = 266;
+	margin = 0.04;
+	if (x_max > 256),	margin = 0.02;	end
+	%limits(1) = -10;	limits(2) = 266;
+
+	x_range = limits(2) - limits(1);
+	if (~handles.use_data),	margin = 5;
+	else,					margin = x_range / 70;	% Heuristics
+	end
+	limits(1) = x_min - margin;		limits(2) = x_max + margin;
 	set(hAxes,'XLim',limits(1:2),'YLim',limits(3:4),'XLimMode','manual','YLimMode','manual');
 
 	if (handles.isRGB && handles.currAxes < 3)  % We don't want XTicks on R & G axes of a RGB display
@@ -416,6 +459,10 @@ function localStem(x,y)
 %   This is a hacked code from the stem function
 %   Only strictly necessary code was kept
 
+	if (numel(x) > 256)		% To be clear it should be a condition on 'use_data'
+		line('XData',x,'YData',y,'color','k');
+	end
+
 	% Set up data using fancing indexing
 	[m,n] = size(x);
 	xx = zeros(3*m,n);      yy = xx;
@@ -443,11 +490,11 @@ function lowhigh = localStretchlim(img,tol)
 	tol = [.01 .99];
 	end
 
-	if isa(img,'uint8'),    nbins = 256;
-	else                    nbins = 65536;
+	if isa(img,'uint8'),	nbins = 256;
+	else,					nbins = 65536;
 	end
 
-	tol_low = tol(1);       tol_high = tol(2); 
+	tol_low = tol(1);		tol_high = tol(2); 
 	p = size(img,3);
 
 	if (tol_low < tol_high)
@@ -500,7 +547,7 @@ function updateAll(handles,newClim, opt)
 	handles.widthWindow(handles.currAxes) = round(newClim(2)-newClim(1));
 	handles.centerWindow(handles.currAxes) = round((newClim(1)+newClim(2))/2);
 
-	if (~handles.isRGB),    set(handles.hMirAxes,'CLim',newClim);  end
+	if (~handles.isRGB && ~handles.use_data),    set(handles.hMirAxes,'CLim',newClim);  end
 	set(handles.patch(handles.currAxes),'XData',[newClim(1) newClim(1) newClim(2) newClim(2)]);
 	set(handles.h_vert_lines{handles.currAxes}(1),'XData',[newClim(1) newClim(1)])
 	set(handles.h_vert_lines{handles.currAxes}(2),'XData',[(newClim(1)+newClim(2))/2 (newClim(1)+newClim(2))/2])
@@ -544,19 +591,23 @@ function wbm_vertLine(obj,eventdata,handles)
 
 	hAxes = get(handles.figure1,'CurrentAxes');
 	pt = get(hAxes, 'CurrentPoint');        lim = [get(hAxes,'XLim') get(hAxes,'YLim')];
-	if (pt(1,1) < lim(1)) || (pt(1,1) > lim(2)) || (pt(1,2) < lim(3)) || (pt(1,2) > lim(4));
+	if (pt(1,1) < lim(1)) || (pt(1,1) > lim(2)) || (pt(1,2) < lim(3)) || (pt(1,2) > lim(4))
 		set(handles.figure1,'Pointer','arrow','WindowButtonDownFcn',{@wbd_strayClick,handles})
 		return
 	end
+	x_range = lim(2) - lim(1);
+	if (x_range < 300),		difa = 2;
+	else,					difa = x_range / 150;	% Heuristics
+	end
 	xx = get(handles.h_vert_lines{handles.currAxes},'XData');
-	if ( abs(pt(1,1) - xx{1}(1)) < 2)
+	if (abs(pt(1,1) - xx{1}(1)) < difa)
 		set(handles.figure1,'Pointer','custom','PointerShapeCData',handles.new_pointer,'PointerShapeHotSpot',[8 8], ...
 		'WindowButtonDownFcn',{@wbd_vertLine,handles.h_vert_lines{handles.currAxes}(1),handles},'WindowButtonUpFcn',{@wbu_vertLine,handles})
-	elseif ( abs(pt(1,1) - xx{2}(1)) < 2 )
+	elseif (abs(pt(1,1) - xx{2}(1)) < difa)
 		set(handles.figure1,'Pointer','custom','PointerShapeCData',handles.new_pointer,'PointerShapeHotSpot',[8 8], ...
 		'WindowButtonDownFcn',{@wbd_vertLine,handles.h_vert_lines{handles.currAxes}(2),handles}, ...
 		'WindowButtonUpFcn',{@wbu_vertLine,handles})
-	elseif ( abs(pt(1,1) - xx{3}(1)) < 2 )
+	elseif (abs(pt(1,1) - xx{3}(1)) < difa)
 		set(handles.figure1,'Pointer','custom','PointerShapeCData',handles.new_pointer,'PointerShapeHotSpot',[8 8], ...
 		'WindowButtonDownFcn',{@wbd_vertLine,handles.h_vert_lines{handles.currAxes}(3),handles}, ...
 		'WindowButtonUpFcn',{@wbu_vertLine,handles})
@@ -584,7 +635,7 @@ function drag_vertLine(obj,eventdata,h,handles,n)
 %pt = get(handles.(['axes' sprintf('%d',handles.currAxes)]), 'CurrentPoint');    x = pt(1,1);
 	pt = get(get(handles.figure1,'CurrentAxes'), 'CurrentPoint');    x = pt(1,1);
 	xp = get(handles.patch(handles.currAxes),'XData');
-	if (x < handles.min_max{handles.currAxes}(1)-0.4 || x > handles.min_max{handles.currAxes}(2)),  return;     end
+	if (x < handles.min_max{handles.currAxes}(1)-0.4 || x > handles.min_max{handles.currAxes}(2)),	return,	end
 	set(h,'XData',[x x]);
 	% OK, now adapt the patch accordingly
 	switch n
@@ -620,7 +671,12 @@ function drag_vertLine(obj,eventdata,h,handles,n)
 	end
 
 	handles.centerWindow(handles.currAxes) = round(x);
-	set(handles.hMirAxes,'CLim',[new_patch_lims(1) new_patch_lims(4)])
+	if (~handles.use_data)		% Otherwise we don't want to change CLim
+		set(handles.hMirAxes,'CLim',[new_patch_lims(1) new_patch_lims(4)])
+	else
+		set([handles.Clipp_edit_below handles.Clipp_edit_Bl_val], 'String', new_patch_lims(1))
+		set([handles.Clipp_edit_above handles.Clipp_edit_Ab_val], 'String', new_patch_lims(4))
+	end
 	set(handles.patch(handles.currAxes),'XData',new_patch_lims)
 	set(handles.edit_centerWindow,'String',round(x))
 	idx = (handles.histo{handles.currAxes}(:,1) >= new_patch_lims(1)) & (handles.histo{handles.currAxes}(:,1) <= new_patch_lims(4));
@@ -630,12 +686,14 @@ function drag_vertLine(obj,eventdata,h,handles,n)
 	guidata(handles.figure1,handles)
 
 % -----------
-function wbu_vertLine(obj,eventdata,handles)
+function wbu_vertLine(obj,evt,handles)
 	set(handles.figure1,'Pointer','arrow', 'WindowButtonUpFcn','', 'WindowButtonDownFcn','', ...
 	'WindowButtonMotionFcn',{@wbm_vertLine,handles});
 
-	xp = get(handles.patch(handles.currAxes),'XData');
-	set(handles.hMirAxes,'CLim',[xp(1) xp(4)])
+	if (~handles.use_data)		% Otherwise we don't want to change CLim
+		xp = get(handles.patch(handles.currAxes),'XData');
+		set(handles.hMirAxes,'CLim',[xp(1) xp(4)])
+	end
 
 % --------------------------------------------------------------------------
 function swap_radios(handles,n)
@@ -698,7 +756,7 @@ uicontrol('Parent',h1, 'BackgroundColor',[0.753 0.753 0.753],...
 'Position',[66 467 46 20], 'Style','edit', 'Tag','edit_maxRange');
 
 uicontrol('Parent',h1, 'HorizontalAlignment','right',...
-'Position',[5 472 60 15], 'String','Maximum:', 'Style','text');
+'Position',[5 469 60 15], 'String','Maximum:', 'Style','text');
 
 uicontrol('Parent',h1, 'BackgroundColor',[1 1 1],...
 'Callback',@main_uiCB,...
@@ -714,7 +772,7 @@ uicontrol('Parent',h1, 'BackgroundColor',[1 1 1],...
 'Style','edit', 'Tag','edit_maxWindow');
 
 uicontrol('Parent',h1, 'HorizontalAlignment','right',...
-'Position',[130 472 55 15], 'String','Maximum:', 'Style','text');
+'Position',[130 469 55 15], 'String','Maximum:', 'Style','text');
 
 uicontrol('Parent',h1, 'BackgroundColor',[1 1 1],...
 'Callback',@main_uiCB,...
