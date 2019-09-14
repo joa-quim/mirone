@@ -1,7 +1,5 @@
 /*--------------------------------------------------------------------
- *	$Id:$
- *
- *	Copyright (c) 2004-2012 by J. Luis
+ *	Copyright (c) 2004-2019 by J. Luis
  *
  * 	This program is part of Mirone and is free software; you can redistribute
  * 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -69,9 +67,9 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	double  range8 = 1, *z_min, *z_max, *z_8, min8 = DBL_MAX, max8 = -DBL_MAX;
 	double	*pNodata, *which_scale, *pLimits;
 	float	range = 1, min = FLT_MAX, max = -FLT_MAX, *z_4, new_range, nodata;
-	int     nx, ny, i, is_double = 0, is_single = 0, is_int32 = 0, is_int16 = 0;
+	int     nx, ny, i, is_double = 0, is_single = 0, is_int32 = 0, is_int16 = 0, inodata = 0;
 	int     is_uint16 = 0, is_int8 = 0, scale_range = 1, *i_4, scale8 = 1, scale16 = 0;
-	int     n_row, n_col, got_nodata = 0, got_limits = 0, add_off = 1;
+	int     n_row, n_col, got_nodata = 0, got_limits = 0, add_off = 1, imin = INT_MAX, imax = INT_MIN;
 	char	*i_1;
 	short int *i_2;
 	unsigned short int *ui_2, *out16;
@@ -178,7 +176,7 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 			}
 			else
 				mexErrMsgTxt("SCALETO8 ERROR: Third argument must be a scalar or a 1x2 vector.");
-			
+
 			if (nrhs == 4) {
 				pLimits = (double *)mxGetData(prhs[3]);
 				min8 = pLimits[0];		max8 = pLimits[1];
@@ -229,16 +227,6 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 				max8 = MAX(max8,z_8[i]);
 			}
 		}
-		else {			/* Replace outside limits values by min | max */
-#if HAVE_OPENMP
-#pragma omp parallel for private(i)
-#endif
-			for (i = 0; i < nx*ny; i++) {
-				if (mxIsNaN(z_8[i])) continue;
-				if (z_8[i] < min8) z_8[i] = min8;
-				else if (z_8[i] > max8) z_8[i] = max8;
-			}
-		}
 		if (scale_range) {	/* Scale data into the new_range ([0 255] or [0 65535]) */ 
 			if (max8 != min8)
 				range8 = new_range / (max8 - min8);
@@ -249,7 +237,13 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 #endif
 				for (i = 0; i < nx*ny; i++) { 	/* if z == NaN, out will be = 0 */
 					if (mxIsNaN(z_8[i])) continue;
-					out8[i] = (char)((z_8[i] - min8) * range8) + add_off;
+					if (got_limits) {
+						if      (z_8[i] < min8) out8[i] = (char)add_off;
+						else if (z_8[i] > max8) out8[i] = (char)((((float)max8 - min8) * range8) + add_off);
+						else    out8[i] = (char)((((float)z_8[i] - min8) * range8) + add_off);
+					}
+					else
+						out8[i] = (char)((((float)z_8[i] - min8) * range8) + add_off);
 				}
 			} 
 			else if (scale16) {	/* Scale to uint16 */
@@ -258,7 +252,13 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 #endif
 				for (i = 0; i < nx*ny; i++) {
 					if (mxIsNaN(z_8[i])) continue;
-					out16[i] = (unsigned short int)((z_8[i] - min8) * range8) + add_off;
+					if (got_limits) {
+						if      (z_8[i] < min8) out16[i] = (unsigned short int)add_off;
+						else if (z_8[i] > max8) out16[i] = (unsigned short int)((((float)max8 - min8) * range8) + add_off);
+						else    out16[i] = (unsigned short int)((((float)z_8[i] - min8) * range8) + add_off);
+					}
+					else
+						out16[i] = (unsigned short int)((((float)z_8[i] - min8) * range8) + add_off);
 				}
 			} 
 		}
@@ -270,18 +270,8 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		if (!got_limits) {
 			for (i = 0; i < nx*ny; i++) {
 				if (ISNAN_F(z_4[i])) continue;
-				min = MIN(min,z_4[i]);
-				max = MAX(max,z_4[i]);
-			}
-		}
-		else {			/* Replace outside limits values by min | max */
-#if HAVE_OPENMP
-#pragma omp parallel for private(i)
-#endif
-			for (i = 0; i < nx*ny; i++) {
-				if (ISNAN_F(z_4[i])) continue;
-				if (z_4[i] < min) z_4[i] = min;
-				else if (z_4[i] > max) z_4[i] = max;
+				if      (z_4[i] < min) min = z_4[i];
+				else if (z_4[i] > max) max = z_4[i];
 			}
 		}
 		if (scale_range) {	/* Scale data into the new_range ([0 255] or [0 65535]) */ 
@@ -294,7 +284,13 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 #endif
 				for (i = 0; i < nx*ny; i++) {	/* if z == NaN, out will be = 0 */
 					if (ISNAN_F(z_4[i])) continue;
-					out8[i] = (char)(((z_4[i] - min) * range) + add_off);
+					if (got_limits) {
+						if      (z_4[i] < min) out8[i] = (char)add_off;
+						else if (z_4[i] > max) out8[i] = (char)((((float)max - min) * range) + add_off);
+						else    out8[i] = (char)((((float)z_4[i] - min) * range) + add_off);
+					}
+					else
+						out8[i] = (char)((((float)z_4[i] - min) * range) + add_off);
 				}
 			} 
 			else if (scale16) {	/* Scale to uint16 */
@@ -303,7 +299,13 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 #endif
 				for (i = 0; i < nx*ny; i++) {
 					if (ISNAN_F(z_4[i])) continue;
-					out16[i] = (unsigned short int)(((z_4[i] - min) * range) + add_off);
+					if (got_limits) {
+						if      (z_4[i] < min) out16[i] = (unsigned short int)add_off;
+						else if (z_4[i] > max) out16[i] = (unsigned short int)((((float)max - min) * range) + add_off);
+						else    out16[i] = (unsigned short int)((((float)z_4[i] - min) * range) + add_off);
+					}
+					else
+						out16[i] = (unsigned short int)((((float)z_4[i] - min) * range) + add_off);
 				} 
 			} 
 		}
@@ -315,15 +317,15 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		if (!got_limits) {
 			if (!got_nodata) {
 				for (i = 0; i < nx*ny; i++) {
-					min = MIN(min,i_4[i]);
-					max = MAX(max,i_4[i]);
+					if      (i_4[i] < min) min = i_4[i];
+					else if (i_4[i] > max) max = i_4[i];
 				}
 			}
 			else {
 				for (i = 0; i < nx*ny; i++) {
 					if ((float)i_4[i] == nodata) continue;
-					min = MIN(min,i_4[i]);
-					max = MAX(max,i_4[i]);
+					if      (i_4[i] < min) min = i_4[i];
+					else if (i_4[i] > max) max = i_4[i];
 				}
 			}
 		}
@@ -361,15 +363,15 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		if (!got_limits) {
 			if (!got_nodata) {
 				for (i = 0; i < nx*ny; i++) {
-					min = MIN(min,i_2[i]);
-					max = MAX(max,i_2[i]);
+					if      (i_2[i] < min) min = i_2[i];
+					else if (i_2[i] > max) max = i_2[i];
 				}
 			}
 			else {
 				for (i = 0; i < nx*ny; i++) {
 					if ((float)i_2[i] == nodata) continue;
-					min = MIN(min,i_2[i]);
-					max = MAX(max,i_2[i]);
+					if      (i_2[i] < min) min = i_2[i];
+					else if (i_2[i] > max) max = i_2[i];
 				}
 			}
 		}
@@ -404,44 +406,73 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		}
 	}
 	else if (is_uint16) {
-		if (!got_limits) {
-			if (!got_nodata) {
+		if (!got_nodata) {
+			if (!got_limits) {		/* Otherwise we don't need to find min/max */
+#if HAVE_OPENMP
+#pragma omp parallel for private(i)
+#endif
 				for (i = 0; i < nx*ny; i++) {
-					min = MIN(min,ui_2[i]);
-					max = MAX(max,ui_2[i]);
+					if (ui_2[i]) {			/* Assume 0 is nodata, so jump it */
+						if      (ui_2[i] < imin) imin = ui_2[i];
+						else if (ui_2[i] > imax) imax = ui_2[i];
+					}
+				}
+				got_nodata = 1;	nodata = 0;
+			}
+			else {
+				imin = (int)min;	imax = (int)max;
+			}
+		}
+		else {
+			if (!got_limits) {		/* Otherwise we don't need to find min/max */
+				inodata = (int)nodata;
+				for (i = 0; i < nx*ny; i++) {
+					if (ui_2[i] != inodata) {
+						if      (ui_2[i] < imin) imin = ui_2[i];
+						else if (ui_2[i] > imax) imax = ui_2[i];
+					}
 				}
 			}
 			else {
-				for (i = 0; i < nx*ny; i++) {
-					if ((float)ui_2[i] == nodata) continue;
-					min = MIN(min,ui_2[i]);
-					max = MAX(max,ui_2[i]);
-				}
+				imin = (int)min;	imax = (int)max;
 			}
 		}
-		else {			/* Replace outside limits values by min | max */
-			unsigned short int min_ui2, max_ui2;
-			min_ui2 = (unsigned short int)min;	max_ui2 = (unsigned short int)max;
-			for (i = 0; i < nx*ny; i++) {
-				if (got_nodata && (float)ui_2[i] == nodata) continue;
-				if (ui_2[i] < min_ui2) ui_2[i] = min_ui2;
-				else if (ui_2[i] > max_ui2) ui_2[i] = max_ui2;
-			}
-		}
-		if (scale_range) {	/* Scale data into the new_range ([0 255] or [0 65535]) */ 
-			if (max != min)
-				range = new_range / (max - min);
 
+		if (scale_range) {	/* Scale data into the new_range ([0 255] or [0 65535]) */ 
+			unsigned short int min_ui2, max_ui2;
+			min_ui2 = (unsigned short int)imin;		max_ui2 = (unsigned short int)imax;
+			if (imax != imin)
+				range = new_range / (imax - imin);
+
+			inodata = (int)nodata;
 			if (scale8) {	/* Scale to uint8 */
+#if HAVE_OPENMP
+#pragma omp parallel for private(i)
+#endif
 				for (i = 0; i < nx*ny; i++) {
-					if (got_nodata && (float)ui_2[i] == nodata) continue;
-					out8[i] = (char)(((float)ui_2[i] - min) * range) + add_off;
+					if (got_nodata && ui_2[i] == inodata) continue;
+					if (got_limits) {
+						if      (ui_2[i] < min_ui2) out8[i] = (char)add_off;
+						else if (ui_2[i] > max_ui2) out8[i] = (char)((((float)max_ui2 - min_ui2) * range) + add_off);
+						else    out8[i] = (char)((((float)ui_2[i] - min_ui2) * range) + add_off);
+					}
+					else
+						out8[i] = (char)((((float)ui_2[i] - min_ui2) * range) + add_off);
 				}
 			}
 			else if (scale16) {	/* Scale to uint16 */
+#if HAVE_OPENMP
+#pragma omp parallel for private(i)
+#endif
 				for (i = 0; i < nx*ny; i++) {
-					if (got_nodata && (float)ui_2[i] == nodata) continue;
-					out16[i] = (unsigned short int)(((float)ui_2[i] - min) * range) + add_off;
+					if (got_nodata && ui_2[i] == inodata) continue;
+					if (got_limits) {
+						if      (ui_2[i] < min_ui2) out16[i] = (unsigned short int)add_off;
+						else if (ui_2[i] > max_ui2) out16[i] = (unsigned short int)((((float)max_ui2 - min_ui2) * range) + add_off);
+						else    out16[i] = (unsigned short int)((((float)ui_2[i] - min_ui2) * range) + add_off);
+					}
+					else
+						out16[i] = (unsigned short int)((((float)ui_2[i] - min_ui2) * range) + add_off);
 				}
 			}
 		}
