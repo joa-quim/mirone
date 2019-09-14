@@ -155,21 +155,24 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 			OGR_L_SetSpatialFilter(hLayer, poSpatialFilter);
 
 		nMaxFeatures = MAX(OGR_L_GetFeatureCount(hLayer, 1), nMaxFeatures);
-		hFeature = OGR_L_GetNextFeature(hLayer);
-		if (hFeature == NULL) {		/* Yes, this can happen. Probably on crapy files */
-			nEmptyLayers++;
-			continue;
+		//hFeature = OGR_L_GetNextFeature(hLayer);
+		//if (hFeature == NULL) {		/* Yes, this can happen. Probably on crapy files */
+			//nEmptyLayers++;
+			//continue;
+		//}
+
+		while ((hFeature = OGR_L_GetNextFeature(hLayer)) != NULL) { 
+			hGeom = OGR_F_GetGeometryRef(hFeature);
+			//hFeatureDefn = OGR_L_GetLayerDefn(hLayer);
+			eType = wkbFlatten(OGR_G_GetGeometryType(hGeom));
+			if (eType != wkbPolygon)	/* For simple polygons, next would return only the number of interior rings */
+				nMaxGeoms = MAX(OGR_G_GetGeometryCount(hGeom), nMaxGeoms);
+
+			OGR_F_Destroy(hFeature);
 		}
 		layers[j++] = i;		/* Store indices of non-empty layers */
-		hGeom = OGR_F_GetGeometryRef(hFeature);
-		hFeatureDefn = OGR_L_GetLayerDefn(hLayer);
-		eType = wkbFlatten(OGR_G_GetGeometryType(hGeom));
-		if (eType != wkbPolygon)	/* For simple polygons, next would return only the number of interior rings */
-			nMaxGeoms = MAX(OGR_G_GetGeometryCount(hGeom), nMaxGeoms);
-
-		OGR_F_Destroy(hFeature);
 	}
-	if (nEmptyLayers) nLayers -= nEmptyLayers;
+	//if (nEmptyLayers) nLayers -= nEmptyLayers;
 
 	nFields = 0;
 	fnames[nFields++] = mxStrdup ("Name");
@@ -190,7 +193,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	nDims = (nLayers > 1) ? 3 : 2;
 	dims[0] = nMaxFeatures;		dims[1] = nMaxGeoms;
 	dims[2] = nLayers;
-	out_struct = mxCreateStructArray ( nDims, dims, nFields, (const char **)fnames );
+	out_struct = mxCreateStructArray(nDims, dims, nFields, (const char **)fnames);
 
 	for (iLayer = nFeature = nEmptyGeoms = 0; iLayer < nLayers; iLayer++) {
 
@@ -266,7 +269,7 @@ int get_data(mxArray *out_struct, OGRFeatureH hFeature, OGRFeatureDefnH hFeature
 	is3D = (OGR_G_GetCoordinateDimension(hGeom) > 2);
 	eType = wkbFlatten(OGR_G_GetGeometryType(hGeom));
 	do_recursion = (eType == wkbGeometryCollection || eType == wkbMultiPolygon ||	/* Find if we are going to do recursive calls */
-			eType == wkbMultiLineString || eType == wkbMultiPoint);
+	                eType == wkbMultiLineString || eType == wkbMultiPoint);
 
 	if (!do_recursion) {	/* Multis are break up into pieces by recursive calls, so no need to alloc anything */
 		if (eType == wkbPoint || eType == wkbLineString) {
@@ -283,20 +286,20 @@ int get_data(mxArray *out_struct, OGRFeatureH hFeature, OGRFeatureDefnH hFeature
 			np += (nRings - 1);			/* To account for NaNs separating islands from outer ring */
 		}
 		dims[0] = np;		dims[1] = 1;
-		x_out = mxCreateNumericArray (2, dims, mxDOUBLE_CLASS, mxREAL);
-		y_out = mxCreateNumericArray (2, dims, mxDOUBLE_CLASS, mxREAL);
+		x_out = mxCreateNumericArray(2, dims, mxDOUBLE_CLASS, mxREAL);
+		y_out = mxCreateNumericArray(2, dims, mxDOUBLE_CLASS, mxREAL);
 		x_out_ptr = mxGetData (x_out);
 		y_out_ptr = mxGetData (y_out);
 		if (is3D) {
-			z_out = mxCreateNumericArray (2, dims, mxDOUBLE_CLASS, mxREAL);
+			z_out = mxCreateNumericArray(2, dims, mxDOUBLE_CLASS, mxREAL);
 			z_out_ptr = mxGetData (z_out);
 		}
 	}
 
 	nGeoms = OGR_G_GetGeometryCount(hGeom);
-	if ( (nGeoms == 0) && (eType == wkbPoint || eType == wkbLineString) )	/* These geometries will silently return 0 */
+	if ((nGeoms == 0) && (eType == wkbPoint || eType == wkbLineString))	/* These geometries will silently return 0 */
 		nGeoms = 1;
-	else if ( (nGeoms > 1) && (eType == wkbPolygon) )	/* Other geometries are Islands and those are dealt separately */
+	else if ((nGeoms > 1) && (eType == wkbPolygon))	/* Other geometries are Islands and those are dealt separately */
 		nGeoms = 1;
 	else if (nGeoms == 0) {
 		mexPrintf("Screammm: No Geometries in this Feature\n");
@@ -420,14 +423,14 @@ int get_data(mxArray *out_struct, OGRFeatureH hFeature, OGRFeatureDefnH hFeature
 char *mxStrdup(const char *s) {
     char *buf;
 
-    if (s == NULL) {
-	buf = mxMalloc(1);
-	buf[0] = '\0';
-    }
-    else {
-	buf = mxMalloc(strlen(s) + 1);
-	strcpy(buf, s);
-    }
+	if (s == NULL) {
+		buf = mxMalloc(1);
+		buf[0] = '\0';
+	}
+	else {
+		buf = mxMalloc(strlen(s) + 1);
+		strcpy(buf, s);
+	}
     
     return buf;
 }
