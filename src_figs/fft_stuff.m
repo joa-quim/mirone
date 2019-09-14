@@ -142,7 +142,7 @@ function varargout = fft_stuff(varargin)
 	new_frame3D(hObject, NaN)
 	%------------- END Pro look (3D) -----------------------------------------------------
 
-	% Add this figure handle to the carraças list
+	% Add this figure handle to the carraï¿½as list
 	if (~isempty(handles.hMirFig))
 		plugedWin = getappdata(handles.hMirFig,'dependentFigs');
 		plugedWin = [plugedWin hObject];

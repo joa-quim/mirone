@@ -97,7 +97,7 @@ function varargout = scatter_plot(varargin)
 
 	handles.symbXYZ = numeric_data(:,1:3);
 
-	% Add this figure handle to the carraças list
+	% Add this figure handle to the carraï¿½as list
 	plugedWin = getappdata(handles.hCallingFig,'dependentFigs');
 	plugedWin = [plugedWin hObject];
 	setappdata(handles.hCallingFig,'dependentFigs',plugedWin);

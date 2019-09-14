@@ -54,7 +54,7 @@ function varargout = diluvio(varargin)
 	image(I(end:-1:1)','Parent',handles.axes1);
 	set(handles.axes1,'YTick',[],'XTick',[]);
 
-	% Add this figure handle to the carraças list
+	% Add this figure handle to the carraï¿½as list
 	plugedWin = getappdata(handles.hMirFig,'dependentFigs');
 	plugedWin = [plugedWin hObject];
 	setappdata(handles.hMirFig,'dependentFigs',plugedWin);

@@ -69,7 +69,7 @@ function varargout = euler_poles_selector(varargin)
 	new_frame3D(hObject, [handles.txt_Absolute handles.txt_Relative])
 	%------------- END Pro look (3D) -----------------------------------------------------
 
-	% ------------- Add this figure handle to the carraças list ----------------------------------------
+	% ------------- Add this figure handle to the carraï¿½as list ----------------------------------------
 	plugedWin = getappdata(handMir.figure1,'dependentFigs');
 	plugedWin = [plugedWin hObject];
 	setappdata(handMir.figure1,'dependentFigs',plugedWin);
