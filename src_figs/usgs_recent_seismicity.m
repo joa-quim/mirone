@@ -84,16 +84,21 @@ function push_OK_CB(obj, evt)
 	mags = {'all_', '2.5_', '4.5_', 'significant_'};
 	name = [mags{m} periods{n}];
 
-	dest_fiche = [handles.path_tmp 'usgs.csv'];
-	url = ['https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/' name '.csv'];
-	cmd = ['wget "' url  '" -q --tries=2 --connect-timeout=5 --no-check-certificate -O ' dest_fiche];
-	%cmd = ['curl "' url  '" --retry 2 --max-time 5 -s -k -o ' dest_fiche];
-	if (strncmp(computer,'PC',2))
-		dos(cmd);
-	else
-		unix(cmd);
-	end
-	r = csv2cell(dest_fiche);
+% 	dest_fiche = [handles.path_tmp 'usgs.csv'];
+ 	url = ['https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/' name '.csv'];
+% 	cmd = ['wget "' url  '" -q --tries=2 --connect-timeout=5 --no-check-certificate -O ' dest_fiche];
+% 	%cmd = ['curl "' url  '" --retry 2 --max-time 5 -s -k -o ' dest_fiche];
+% 	if (strncmp(computer,'PC',2))
+% 		dos(cmd);
+% 	else
+% 		unix(cmd);
+% 	end
+% 	r = csv2cell(dest_fiche);
+
+	gmtmex(['gmtwhich -Gl ', url]);
+	r = csv2cell([name '.csv']);
+	builtin('delete', [name '.csv']);
+
 	if (isempty(r))
 		errordlg(['Some network problem occured and the ' url ' was not downloaded'], 'Error'),		return
 	end
