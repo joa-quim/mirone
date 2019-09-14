@@ -249,7 +249,7 @@ function UpdatePixelValues(hFig, hImg, imageType, displayBar, img, x, y)
 	x1 = x;		y1 = y;
 	switch labelType
 		case {'DegDec', 'NotGeog'}       % This's the default. Just build the format string
-			form_xy = ' %8.3f,%7.3f =';
+			form_xy = ' %8.4f,%8.4f =';
 		case 'DegMin'
 			out_x = degree2dms(x,'DDMM',0,'str');		x = [out_x.dd ':' out_x.mm];
 			out_y = degree2dms(y,'DDMM',0,'str');		y = [out_y.dd ':' out_y.mm];
