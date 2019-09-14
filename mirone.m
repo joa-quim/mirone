@@ -24,11 +24,6 @@ function varargout = mirone(varargin)
 
 	if (nargin > 1 && ischar(varargin{1}))
 		if (~isempty(strfind(varargin{1},':')) || ~isempty(strfind(varargin{1},filesep)) )	% A file name
-			% Very likely called with a filename with those horrendous stupid blanks
-% 			if (ischar(varargin{2}) && varargin{2}(1) ~= '-')		% args of the form -C<...> -X<...> are allowed
-% 				% Very likely called with a filename with those horrendous stupid blanks. Join only first two argins
-% 				varargin{1}(end+1) = ' ';	varargin(1) = {[varargin{1:2}]};	varargin(2) = [];
-% 			end
 			if (ischar(varargin{2}))
 				% OK, this may mean a name with those horrendous stupid blanks. And we don't know how many
 				% So scan the first n elemennts on nargin that are chars, cat the and try to see if they much to
