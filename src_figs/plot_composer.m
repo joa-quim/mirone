@@ -1984,7 +1984,7 @@ function [script, mex_sc, l, o, hLine, hPatch] = do_meca(handMir, script, mex_sc
 			script{l} = sprintf('\n%s ---- Plot Focal Mechanisms', comm);   l=l+1;
 			script{l} = ['gmt psmeca ' opt_S opt_C ' ' name_sc ellips RJOK ' >> ' pb 'ps' pf];		l = l + 1;
 			if (do_MEX)
-				mex_sc{o,1} = ['psmeca "' dest_dir name_sc '"' opt_S opt_C ' ' ellips KORJ];	o = o + 1;
+				mex_sc{o,1} = ['psmeca "' dest_dir name_sc '" ' opt_S opt_C ' ' ellips KORJ];	o = o + 1;
 			end
 			hPatch = setxor(hPatch, focHand);		% focHand is processed, so remove it from handles list
 			hLine  = setxor(hLine, focHandAnchor);	%       iden
