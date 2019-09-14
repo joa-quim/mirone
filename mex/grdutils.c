@@ -43,6 +43,10 @@
 #include <math.h>
 #include <time.h>
 
+#if HAVE_OPENMP
+#include <omp.h>
+#endif
+
 /* For floats ONLY */
 #define ISNAN_F(x) (((*(int32_T *)&(x) & 0x7f800000L) == 0x7f800000L) && \
                     ((*(int32_T *)&(x) & 0x007fffffL) != 0x00000000L))
@@ -253,6 +257,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	}
 
 	if (is_single) {
+#if HAVE_OPENMP
+#pragma omp parallel for private(i)
+#endif
 		for (i = 0; i < nxy; i++) {
 			tmp = (double)zdata[i];
 			if (!ISNAN_F(zdata[i])) {
@@ -265,7 +272,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 						min_limit = tmp;
 						i_min = i;
 					}
-					if (tmp > max_limit) {
+					else if (tmp > max_limit) {
 						max_limit = tmp;
 						i_max = i;
 					}
@@ -287,8 +294,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		if (do_min_max) {
 			for (i = 0; i < nxy; i++) {
 				tmp = (double)dataU16[i];
-				if (tmp < min_limit) min_limit = tmp;
-				if (tmp > max_limit) max_limit = tmp;
+				if      (tmp < min_limit) min_limit = tmp;
+				else if (tmp > max_limit) max_limit = tmp;
 			}
 		}
 		else if (do_min_max_loc) {
@@ -298,7 +305,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 					min_limit = tmp;
 					i_min = i;
 				}
-				if (tmp > max_limit) {
+				else if (tmp > max_limit) {
 					max_limit = tmp;
 					i_max = i;
 				}
@@ -324,15 +331,15 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		for (i = 0; i < nxy; i++) {
 			tmp = (double)data16[i];
 			if (do_min_max) {
-				if (tmp < min_limit) min_limit = tmp;
-				if (tmp > max_limit) max_limit = tmp;
+				if      (tmp < min_limit) min_limit = tmp;
+				else if (tmp > max_limit) max_limit = tmp;
 			}
 			else if (do_min_max_loc) {
 				if (tmp < min_limit) {
 					min_limit = tmp;
 					i_min = i;
 				}
-				if (tmp > max_limit) {
+				else if (tmp > max_limit) {
 					max_limit = tmp;
 					i_max = i;
 				}
@@ -351,8 +358,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		if (do_min_max) {
 			for (i = 0; i < nxy; i++) {
 				tmp = (double)data8[i];
-				if (tmp < min_limit) min_limit = tmp;
-				if (tmp > max_limit) max_limit = tmp;
+				if      (tmp < min_limit) min_limit = tmp;
+				else if (tmp > max_limit) max_limit = tmp;
 			}
 		}
 		else if (do_min_max_loc) {
@@ -362,7 +369,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 					min_limit = tmp;
 					i_min = i;
 				}
-				if (tmp > max_limit) {
+				else if (tmp > max_limit) {
 					max_limit = tmp;
 					i_max = i;
 				}
