@@ -276,6 +276,10 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		return;
 	}
 
+	if (strstr(gdal_filename, ".jp2") || strstr(gdal_filename, ".JP2"))
+		if ((hDriver = GDALGetDriverByName("JP2OpenJPEG")) != NULL && (hDriver = GDALGetDriverByName("JP2ECW")) != NULL)
+			GDALDeregisterDriver(hDriver);		/* Deregister the JP2ECW driver. That is, prefer the OpenJPEG one */
+
 	hDataset = GDALOpen(gdal_filename, GA_ReadOnly);
 
 	if (hDataset == NULL) {
