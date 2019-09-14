@@ -176,6 +176,11 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	}
 	/* ------------------------------------------------------------------ */
 
+#if (GDAL_VERSION_NUM >= 2500)
+	 oSrcSRS.SetAxisMappingStrategy(OAMS_TRADITIONAL_GIS_ORDER);
+	 oDstSRS.SetAxisMappingStrategy(OAMS_TRADITIONAL_GIS_ORDER);
+#endif
+
 	poCT = OGRCreateCoordinateTransformation( &oSrcSRS, &oDstSRS );
 	if( poCT == NULL ) {
 		mexPrintf("Failed to create coordinate transformation between the\n"
