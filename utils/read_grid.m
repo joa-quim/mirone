@@ -198,7 +198,7 @@ function [Z, X, Y, srsWKT, handles, att, pal_file] = read_grid(handles, fullname
 % 	end
 
 	if (~strncmp(tipo,'GMT',3) && ~strncmpi(tipo,'IN',2) && ~strcmp(tipo,'SSimg'))
-		if (~isempty(att.Band(1).NoDataValue) && ~isnan(att.Band(1).NoDataValue) && att.Band(1).NoDataValue ~= 0 )
+		if (isa(Z, 'single') && ~isempty(att.Band(1).NoDataValue) && ~isnan(att.Band(1).NoDataValue) && att.Band(1).NoDataValue ~= 0 )
 			% Do this because some formats (e.g MOLA PDS v3) are so dumb that they declare a NoDataValue
 			% and than don't use it !!!!!!
 			if (att.Band(1).NoDataValue < 0)
