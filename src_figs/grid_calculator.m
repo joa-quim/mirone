@@ -10,7 +10,7 @@ function varargout = grid_calculator(varargin)
 %
 % This stil does all computations in doubles
 
-%	Copyright (c) 2004-2018 by J. Luis
+%	Copyright (c) 2004-2019 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -66,10 +66,10 @@ function varargout = grid_calculator(varargin)
 
 	% Fish whatever arrays are in memory now (hopefully)
 	if (~isempty(h_figs))
-        n = 1;
-        for (i = 1:numel(h_figs))
-            hand_fig = guidata(h_figs(i));
-            % Use a try->catch to easily fish only the "filled" Mir figs
+		n = 1;
+		for (i = 1:numel(h_figs))
+			hand_fig = guidata(h_figs(i));
+			% Use a try->catch to easily fish only the "filled" Mir figs
 			try
 				Z = getappdata(hand_fig.figure1,'dem_z');
 				handles.home_dir = hand_fig.home_dir;		% Since I don't know which is the last good one
@@ -78,18 +78,21 @@ function varargout = grid_calculator(varargin)
 			catch
 				Z = [];        
 			end
-            if (isempty(Z)),	continue,	end
-            name = get(h_figs(i),'Name');
-            ind = strfind(name,' @ ');
-            if (~isempty(ind))
-                name = ddewhite(name(1:ind-1));
-            end
-            [pathstr,name,ext] = fileparts(name);
+			if (isempty(Z)),	continue,	end
+			name = get(h_figs(i),'Name');
+			ind = strfind(name,' @ ');
+			if (~isempty(ind))
+				name = ddewhite(name(1:ind-1));
+			end
+			[pathstr,name,ext] = fileparts(name);
 			name = strrep(name, ' ', '_');		% No bloody blanks in names
-            handles.name_str{n} = [name ext];
-            handles.h_figs(n) = h_figs(i);      % Save the figure handles
-            n = n + 1;
-        end
+			handles.name_str{n} = [name ext];
+			handles.h_figs(n) = h_figs(i);      % Save the figure handles
+			if (n == 1 && ~isempty(getappdata(hand_fig.axes1, 'LandSAT8')))
+				set(handles.push_Trad, 'Vis', 'on')
+			end
+			n = n + 1;
+		end
 	end
 
 	% Fill the listbox with the names of the in-memory arrays
@@ -258,6 +261,22 @@ function push_leftPar_CB(hObject, handles)
 % ------------------------------------------------------------------------
 function push_rightPar_CB(hObject, handles)
 	set(handles.edit_command,'String', [get(handles.edit_command,'String') ' )'])
+
+% ------------------------------------------------------------------------
+function push_Trad_CB(hObject, handles)
+% Compute Bright temperature of a LandSat8 termal band
+	handMir = guidata(handles.h_figs(1));
+	pars = getappdata(handMir.axes1, 'LandSAT8');
+	if (isempty(pars)),	warndlg('Sorry, this grid is not a Landsat8 thermal band.','Warning'),	return,	end
+	opt_T = sprintf('-T%f/%f/%f/%f', pars.rad_mul, pars.rad_add, pars.K1, pars.K2);
+	T = grdutils(getappdata(handMir.figure1,'dem_z'), opt_T);
+	tmp.head = handMir.head;
+	zMinMax = grdutils(T,'-L');
+	tmp.head(5) = zMinMax(1);	tmp.head(6) = zMinMax(2);
+    tmp.X = linspace(tmp.head(1),tmp.head(2),size(T,2));
+	tmp.Y = linspace(tmp.head(3),tmp.head(4),size(T,1));
+	tmp.name = 'Bright temperture';
+	mirone(T, tmp)
 
 % ------------------------------------------------------------------------
 function push_compute_CB(hObject, handles)
@@ -925,34 +944,36 @@ uicontrol('Parent',h1,...
 'Position',[611 72 50 21],...
 'String','exp','Tag','push_exp');
 
-uicontrol('Parent',h1,...
+uicontrol('Parent',h1, 'Position',[491 39 50 21],...
 'Callback',@grid_calculator_uiCB,...
 'FontSize',10,...
-'Position',[491 39 50 21],...
 'String','sqrt','Tag','push_sqrt');
 
-uicontrol('Parent',h1,...
+uicontrol('Parent',h1, 'Position',[550 39 50 21],...
 'Callback',@grid_calculator_uiCB,...
 'FontSize',10,...
-'Position',[550 39 50 21],...
 'String','abs','Tag','push_abs');
 
-uicontrol('Parent',h1,...
+uicontrol('Parent',h1, 'Position',[610 39 23 23],...
 'Callback',@grid_calculator_uiCB,...
 'FontSize',10,...
-'Position',[610 39 23 23],...
 'String','(','Tag','push_leftPar');
 
-uicontrol('Parent',h1,...
+uicontrol('Parent',h1, 'Position',[637 39 23 23],...
 'Callback',@grid_calculator_uiCB,...
 'FontSize',10,...
-'Position',[637 39 23 23],...
 'String',')','Tag','push_rightPar');
 
-uicontrol('Parent',h1,...
+uicontrol('Parent',h1, 'Position',[491 6 50 21],...
 'Callback',@grid_calculator_uiCB,...
 'FontSize',10,...
-'Position',[589 6 71 21],...
+'Tooltip', 'Compute Bright temperature in Celsius', ...
+'Vis', 'off', ...
+'String','Trad','Tag','push_Trad');
+
+uicontrol('Parent',h1, 'Position',[589 6 71 21],...
+'Callback',@grid_calculator_uiCB,...
+'FontSize',10,...
 'String','Compute','Tag','push_compute');
 
 uicontrol('Parent',h1,...
