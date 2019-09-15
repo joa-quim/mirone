@@ -45,27 +45,39 @@
 
 #if HAVE_OPENMP
 #include <omp.h>
+	#ifdef _MSC_VER
+		#define OMP_PARF __pragma(omp parallel for private(i))
+	#else
+		#define OMP_PARF _Pragma("omp parallel for private(i)")
+	#endif
+#else
+	#define OMP_PARF
 #endif
 
 /* For floats ONLY */
 #define ISNAN_F(x) (((*(int32_T *)&(x) & 0x7f800000L) == 0x7f800000L) && \
                     ((*(int32_T *)&(x) & 0x007fffffL) != 0x00000000L))
+
+void mul_add(void *array_in, void *array_out, float fac_x, float fac_a, size_t np, int type);
+
 /* --------------------------------------------------------------------------- */
 /* Matlab Gateway routine */
 
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 
-	int i, j, nxy, nx, ny, nfound = 0, ngood, argc = 0, n_arg_no_char = 0;
-	int error = FALSE, ADD = FALSE, MUL = FALSE, do_min_max = FALSE, do_std = FALSE;
-	int is_double = FALSE, is_single = FALSE, is_int32 = FALSE, is_int16 = FALSE, is_uint8 = FALSE;
+	int n, nx, ny, nfound = 0, ngood, argc = 0, n_arg_no_char = 0;
+	int error = FALSE, ADD = FALSE, MUL = FALSE, ADD_MUL = FALSE, do_min_max = FALSE, do_std = FALSE;
+	int is_double = FALSE, is_single = FALSE, is_int16 = FALSE, is_uint8 = FALSE;
 	int is_uint16 = FALSE, report_nans = FALSE, only_report_nans = FALSE, do_cast = FALSE;
 	int i_min = 0, i_max = 0, do_min_max_loc = FALSE, report_min_max_loc_nan_mean_std = FALSE;
-	int do_shift_int8 = FALSE, insitu = FALSE, is_int8 = FALSE; 
+	int do_shift_int8 = FALSE, insitu = FALSE, is_int8 = FALSE, show_time = FALSE, Trad = FALSE;
+	long long i;
+	size_t j, nxy;
 	char   **argv;
 	char    *data8;
 	short int *data16;
 	unsigned short int *dataU16;
-	float   *zdata, fact;
+	float   *zdata, *array_out, fact_x = 1, fact_a = 0, K1, K2, Ml, Al, NaN;
 	double  *z, min_limit = FLT_MAX, max_limit = -FLT_MAX, mean = 0., sd = 0., rms = 0., tmp;
 	clock_t tic;
 
@@ -88,9 +100,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	for (i = 1; !error && i < argc; i++) {
 		if (argv[i][0] == '-') {
 			switch (argv[i][1]) {
-			
 				case 'A':
-					if (sscanf(&argv[i][2], "%f", &fact) != 1) {
+					if (sscanf(&argv[i][2], "%f", &fact_a) != 1) {
 						mexPrintf("GRDUTILS ERROR: -A option. Cannot decode value\n");
 						error++;
 					}
@@ -109,7 +120,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 					report_min_max_loc_nan_mean_std = TRUE;
 					break;
 				case 'M':
-					if (sscanf(&argv[i][2], "%f", &fact) != 1) {
+					if (sscanf(&argv[i][2], "%f", &fact_x) != 1) {
 						mexPrintf("GRDUTILS ERROR: -M option. Cannot decode value\n");
 						error++;
 					}
@@ -117,8 +128,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 					break;
 				case 'L':
 					do_min_max = TRUE;
-					if (argv[i][2] == '+')
-						report_nans = TRUE;
+					if (argv[i][2] == '+') report_nans = TRUE;
 					break;
 				case 'N':
 					only_report_nans = TRUE;
@@ -126,19 +136,32 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 				case 'S':
 					do_std = TRUE;
 					break;
+				case 'T':
+					if ((n = sscanf (&argv[i][2], "%f/%f/%f/%f", &Ml, &Al, &K1, &K2)) != 4) {
+						mexPrintf("GRDUTILS ERROR: -T option must pass 4 values. -Tx1/x2/x3/x4\n");
+						error++;
+					}
+					Trad = TRUE;
+					break;
+				case 't':
+					show_time = TRUE;
+					break;
 				default:
 					error = TRUE;
 					break;
 			}
 		}
 	}
+	if (ADD && MUL) ADD_MUL = TRUE;
 	
 	if (n_arg_no_char == 0 || error) {
 		mexPrintf ("grdutils - Do some usefull things on arrays that are in single precision\n\n");
-		mexPrintf ("usage: [out] = grdutils(infile, ['-A<const>'], [-C], ['-L[+]'], [-H], [-M<fact>], [-N], [-S], [-c]\n");
+		mexPrintf ("usage: [out] = grdutils(infile, ['-A<const>'], [-C], ['-L[+]'], [-H], [-M<fact>]\n");
+		mexPrintf ("                        [-TMl/Al/K1/k2], [-N], [-S], [-c], [-t])\n");
 		
 		mexPrintf ("\t<out> is a two line vector with [min,max] or [mean,std] if -L OR -S\n");
-		mexPrintf ("\t Do not use <out> with -A or -M because infile is a pointer and no copy of it is made here\n");
+		mexPrintf ("\t<out> is a float array when -A and/or -M and infile is a uint16 array\n");
+		mexPrintf ("\t Except in the case above do not use <out> with -A or -M because operation is insitu.\n");
 		mexPrintf ("\t<infile> is name of input array\n");
 		mexPrintf ("\n\tOPTIONS (but must choose only one):\n");
 		mexPrintf ("\t   ---------------------------------\n");
@@ -151,12 +174,16 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		mexPrintf ("\t-M factor multiplies array by factor.\n");
 		mexPrintf ("\t-N See if grid has NaNs and if yes returns its index + 1 and exit.\n");
 		mexPrintf ("\t-S Compute mean and standard deviation.\n");
+		mexPrintf ("\t-T Compute bright Temperature from Landsat8 bands 10 or 11. Where:\n");
+		mexPrintf ("\t   Ml = RADIANCE_MULT_BAND_X where 'X' is the band number\n");
+		mexPrintf ("\t   Al = RADIANCE_ADD_BAND_X) where 'X' is the band number\n");
+		mexPrintf ("\t   K1 = K1_CONSTANT_BAND_X where 'X' is the band number\n");
+		mexPrintf ("\t   K2 = K2_CONSTANT_BAND_X where 'X' is the band number\n");
+		mexPrintf ("\t-t Print execution time.\n");
 		mexErrMsgTxt("\n");
 	}
 
-#ifdef MIR_TIMEIT
-	tic = clock();
-#endif
+	if (show_time) tic = clock();
 	
 	if (nlhs == 0 && !(ADD + MUL) && !insitu) {
 		mexPrintf("GRDUTILS ERROR: Must provide an output.\n");
@@ -168,27 +195,19 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	}
 
 	/* Find out in which data type was given the input array. Doubles are excluded */
-	if (mxIsSingle(prhs[0])) {
+	if (mxIsSingle(prhs[0]))
 		is_single = TRUE;
-	}
-	else if (mxIsInt32(prhs[0])) {
-		is_int32 = TRUE;
-	}
-	else if (mxIsInt16(prhs[0])) {
+	else if (mxIsInt16(prhs[0]))
 		is_int16 = TRUE;
-	}
-	else if (mxIsUint16(prhs[0])) {
+	else if (mxIsUint16(prhs[0]))
 		is_uint16 = TRUE;
-	}
-	else if (mxIsUint8(prhs[0])) {
+	else if (mxIsUint8(prhs[0]))
 		is_uint8 = TRUE;
-	}
-	else if (mxIsInt8(prhs[0])) {
+	else if (mxIsInt8(prhs[0]))
 		is_int8 = TRUE;
-	}
 	else {
 		mexPrintf("GRDUTILS ERROR: Unknown input data type.\n");
-		mexErrMsgTxt("Valid type is: single, int, short or unsigned short and uint8\n");
+		mexErrMsgTxt("Valid type is: single, short or unsigned short and uint8\n");
 	}
 
 	nx = mxGetN (prhs[0]);
@@ -196,13 +215,13 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	if (!mxIsNumeric(prhs[0]) || ny < 2 || nx < 2)
 		mexErrMsgTxt("GRDUTILS ERROR: First argument must contain a decent array\n");
 
-	nxy = nx * ny;
+	nxy = (size_t)nx * ny;
 
 	if (do_cast && is_uint8) {	/* Case where we only want to cast a uint8 to int8 */
 		unsigned char *Udata8;
 		Udata8 = (unsigned char *)(mxGetData(prhs[0]));
 		plhs[0] = mxCreateNumericArray(mxGetNumberOfDimensions(prhs[0]),
-			mxGetDimensions(prhs[0]), mxINT8_CLASS, mxREAL);
+		                               mxGetDimensions(prhs[0]), mxINT8_CLASS, mxREAL);
 		data8 = (char *)(mxGetData(plhs[0]));
 		for (i = 0; i < nxy; i++)
 			data8[i] = (char)(Udata8[i] - 128);
@@ -238,7 +257,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 			data8   = (char *)mxGetData(prhs[0]);
 	}
 
-
 	if (only_report_nans) {
 		/* Loop over the file and find if we have NaNs. Stop at first NaN occurence. */
 		if (is_single) {
@@ -257,15 +275,16 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	}
 
 	if (is_single) {
-#if HAVE_OPENMP
-#pragma omp parallel for private(i)
-#endif
-		for (i = 0; i < nxy; i++) {
-			tmp = (double)zdata[i];
-			if (!ISNAN_F(zdata[i])) {
+		if (ADD_MUL || MUL || ADD)
+			mul_add((void *)zdata, NULL, fact_x, fact_a, (size_t)nxy, 0);
+		else {
+OMP_PARF
+			for (i = 0; i < nxy; i++) {
+				if (ISNAN_F(zdata[i])) {nfound++;	continue;}
+				tmp = (double)zdata[i];
 				if (do_min_max) {
-					if (tmp < min_limit) min_limit = tmp;
-					if (tmp > max_limit) max_limit = tmp;
+					if      (tmp < min_limit) min_limit = tmp;
+					else if (tmp > max_limit) max_limit = tmp;
 				}
 				else if (do_min_max_loc) {
 					if (tmp < min_limit) {
@@ -277,57 +296,65 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 						i_max = i;
 					}
 				}
-				else if (MUL)
-					zdata[i] *= fact;
-				else if (ADD)
-					zdata[i] += fact;
 				if (do_std) {
 					mean += tmp;
 					sd += tmp * tmp;
 				}
 			}
-			else
-				nfound++;
 		}
 	}
 	else if (is_uint16) {
-		if (do_min_max) {
-			for (i = 0; i < nxy; i++) {
-				tmp = (double)dataU16[i];
-				if      (tmp < min_limit) min_limit = tmp;
-				else if (tmp > max_limit) max_limit = tmp;
-			}
-		}
-		else if (do_min_max_loc) {
-			for (i = 0; i < nxy; i++) {
-				tmp = (double)dataU16[i];
-				if (tmp < min_limit) {
-					min_limit = tmp;
-					i_min = i;
-				}
-				else if (tmp > max_limit) {
-					max_limit = tmp;
-					i_max = i;
+		if (ADD_MUL || MUL || ADD || Trad) {
+			plhs[0] = mxCreateNumericArray(mxGetNumberOfDimensions(prhs[0]),
+		  	                               mxGetDimensions(prhs[0]), mxSINGLE_CLASS, mxREAL);
+			array_out = (float *)mxGetData(plhs[0]);
+			if (Trad) {
+				NaN = mxGetNaN();
+OMP_PARF
+				for (i = 0; i < nxy; i++) {
+					if (dataU16[i])
+						array_out[i] = K2 / (log(K1 / (dataU16[i] * Ml + Al) + 1)) - 273.15;
+					else
+						array_out[i] = NaN;
 				}
 			}
+			else
+				mul_add((void *)dataU16, array_out, fact_x, fact_a, (size_t)nxy, 1);
 		}
-		else if (MUL) {
-			for (i = 0; i < nxy; i++)
-				dataU16[i] *= (unsigned short int)fact;
-		}
-		else if (ADD) {
-			for (i = 0; i < nxy; i++)
-				dataU16[i] += (unsigned short int)fact;
-		}
-		if (do_std) {
-			for (i = 0; i < nxy; i++) {
-				tmp = (double)dataU16[i];
-				mean += tmp;
-				sd += tmp * tmp;
+		else {
+			if (do_min_max) {
+OMP_PARF
+				for (i = 0; i < nxy; i++) {
+					tmp = (double)dataU16[i];
+					if      (tmp < min_limit) min_limit = tmp;
+					else if (tmp > max_limit) max_limit = tmp;
+				}
+			}
+			else if (do_min_max_loc) {
+OMP_PARF
+				for (i = 0; i < nxy; i++) {
+					tmp = (double)dataU16[i];
+					if (tmp < min_limit) {
+						min_limit = tmp;
+						i_min = i;
+					}
+					else if (tmp > max_limit) {
+						max_limit = tmp;
+						i_max = i;
+					}
+				}
+			}
+			if (do_std) {
+				for (i = 0; i < nxy; i++) {
+					tmp = (double)dataU16[i];
+					mean += tmp;
+					sd += tmp * tmp;
+				}
 			}
 		}
 	}
 	else if (is_int16) {
+OMP_PARF
 		for (i = 0; i < nxy; i++) {
 			tmp = (double)data16[i];
 			if (do_min_max) {
@@ -344,10 +371,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 					i_max = i;
 				}
 			}
-			else if (MUL)
-				data16[i] *= (short int)fact;
-			else if (ADD)
-				data16[i] += (short int)fact;
 			if (do_std) {
 				mean += tmp;
 				sd += tmp * tmp;
@@ -356,6 +379,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	}
 	else {
 		if (do_min_max) {
+OMP_PARF
 			for (i = 0; i < nxy; i++) {
 				tmp = (double)data8[i];
 				if      (tmp < min_limit) min_limit = tmp;
@@ -363,6 +387,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 			}
 		}
 		else if (do_min_max_loc) {
+OMP_PARF
 			for (i = 0; i < nxy; i++) {
 				tmp = (double)data8[i];
 				if (tmp < min_limit) {
@@ -374,14 +399,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 					i_max = i;
 				}
 			}
-		}
-		else if (MUL) {		/* Will overflow almost for sure */
-			for (i = 0; i < nxy; i++)
-				data8[i] *= (char)fact;
-		}
-		else if (ADD) {
-			for (i = 0; i < nxy; i++)
-				data8[i] += (char)fact;
 		}
 		if (do_std) {
 			for (i = 0; i < nxy; i++) {
@@ -413,9 +430,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 			z[0] = min_limit;	z[1] = max_limit;
 			z[2] = (double)i_min;	z[3] = (double)i_max;
 			z[4] = (double)nfound;	z[5] = mean;	z[6] = sd;
-#ifdef MIR_TIMEIT
-	mexPrintf("GRDUTILS: CPU ticks = %.3f\tCPS = %d\n", (double)(clock() - tic), CLOCKS_PER_SEC);
-#endif
+			if (show_time)
+				mexPrintf("GRDUTILS: CPU ticks = %.3f\tCPS = %d\n", (double)(clock() - tic), CLOCKS_PER_SEC);
 			return;
 		}
 
@@ -430,9 +446,64 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		}
 	}
 
-#ifdef MIR_TIMEIT
-	mexPrintf("GRDUTILS: CPU ticks = %.3f\tCPS = %d\n", (double)(clock() - tic), CLOCKS_PER_SEC);
-#endif
+	if (show_time)
+		mexPrintf("GRDUTILS: CPU ticks = %.3f\tCPS = %d\n", (double)(clock() - tic), CLOCKS_PER_SEC);
 
 }
 
+void mul_add(void *array_in, void *array_out, float fac_x, float fac_a, size_t np, int type) {
+	/* Do a MULL & ADD or just one of them. array_out is only used when input is uint16 and out a float.
+	   type = 0 ==> array_in is float and array_out is not used (in situ)
+	   type = 1 ==> array_in is uint16 and array_out is float
+	*/
+
+	long long i;
+	unsigned short int *u2_i, *u2_o;
+	float *f4_i, *f4_o;
+
+	if (type == 0) {				/* A Insitu op with floats */
+		f4_i = (float *)array_in;
+		if (fac_x != 1 && fac_a != 0) {		/* MULL_ADD */
+OMP_PARF
+			for (i = 0; i < np; i++) {
+				if (ISNAN_F(f4_i[i])) continue;
+				f4_i[i] *= fac_x + fac_a;
+			}
+		}
+		else if (fac_x != 1) {		/* MUL */
+OMP_PARF
+			for (i = 0; i < np; i++) {
+				if (ISNAN_F(f4_i[i])) continue;
+				f4_i[i] *= fac_x;
+			}
+		}
+		else {					/* ADD */
+OMP_PARF
+			for (i = 0; i < np; i++) {
+				if (ISNAN_F(f4_i[i])) continue;
+				f4_i[i] += fac_a;
+			}
+		}
+	}
+	else if (type == 1) {				/* Mixed float & uint16 */
+		u2_i = (unsigned short int *)array_in;		f4_o = (float *)array_out;
+		if (fac_x != 1 && fac_a != 0)	/* MULL_ADD */
+OMP_PARF
+			for (i = 0; i < np; i++) f4_o[i] = u2_i[i] * fac_x + fac_a;
+		else if (fac_x != 1)			/* MUL */
+OMP_PARF
+			for (i = 0; i < np; i++) f4_o[i] = u2_i[i] * fac_x;
+		else							/* ADD */
+OMP_PARF
+			for (i = 0; i < np; i++) f4_o[i] = u2_i[i] + fac_a;
+	}
+}
+
+/*
+void mul_add(float *in, float *out, float K1, float K2, size_t np) {
+	size_t i;
+	for (i = 0; i < np; i++)
+		f4_o[i] = u2_i[i] * fac_x + fac_a;
+		out[i] = K2 / (log(K1 / in[i] + 1));
+}
+*/
