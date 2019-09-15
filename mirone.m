@@ -2147,7 +2147,7 @@ function erro = FileOpenGeoTIFF_CB(handles, tipo, opt)
 function ECWpatch(handles, tipo)
 % This is a tortuous solution to overcome the shity job that the ECW library performs on the memory continuity
 % The fact is that the ECW dll chooses to sit rigth in the midle of the largest memory block, thus highly reducing its usability
-	if (strcmp(tipo,'jp2') || strcmp(tipo,'ecw'))
+	if (strcmp(tipo,'ecw'))
 		clear gdalread gdalwrite
 		set_gmt(['GDAL_DRIVER_PATH=' handles.home_dir]);
 	end
@@ -2202,6 +2202,8 @@ function loadGRID(handles, fullname, tipo, opt)
 			if (~isempty(ind2))				% It seams it was a subdatset name
 				pato = fileparts(fullname(ind1+2:ind2-1));
 			end
+		elseif (strcmp(att.DriverShortName,'GTiff') && strcmp(att.Band(1).DataType, 'UInt16'))
+			aux_funs('check_LandSat8', handles, fullname)	% If file is a Landsat8 save some params in appdata
 		end
 		handles.last_dir = pato;
 	end
