@@ -87,6 +87,34 @@ function addUI(handles)
 	end
 
 % --------------------------------------------------------------------
+function check_LandSat8(handles, fname)
+% Find if file is a LSat8. Note that here we already know it's GeoTiff UInt16 file
+% For the moment we only store the 4 coefficients needed to compute bright
+% temp or the spectral radiance at top of atmosphere (TOA).
+	[pato, name] = fileparts(fname);
+	name = upper(name);
+	if (~strncmp(name, 'LC', 2)),	return,	end		% Need to learn more on this test
+	ind = strfind(name, '_B');
+	if (isempty(ind)),	return,		end
+	t = [pato filesep name(1:ind) 'MTL.txt'];
+	if (~exist(t, 'file')),		return,		end
+	band = name(ind+2:end);
+	fid = fopen(t, 'rt');
+	if (fid < 0),	errordlg(['Error opening file: ' t], 'Error');	return,	end
+	s = strread(fread(fid,'*char').','%s','delimiter','\n');	fclose(fid);
+	t = s{strncmp(s, ['RADIANCE_MULT_BAND_' band], 19+numel(band))};
+	pars.rad_mul = str2double(t(strfind(t, '=')+1:end));
+	t = s{strncmp(s, ['RADIANCE_ADD_BAND_' band], 18+numel(band))};
+	pars.rad_add = str2double(t(strfind(t, '=')+1:end));
+	if (str2double(band) >= 10)
+		t = s{strncmp(s, ['K1_CONSTANT_BAND_' band], 17+numel(band))};
+		pars.K1 = str2double(t(strfind(t, '=')+1:end));
+		t = s{strncmp(s, ['K2_CONSTANT_BAND_' band], 17+numel(band))};
+		pars.K2 = str2double(t(strfind(t, '=')+1:end));
+	end
+	setappdata(handles.axes1, 'LandSAT8', pars)
+
+% --------------------------------------------------------------------
 function StoreZ(handles,X,Y,Z)
 % If grid size is not to big I'll store it
 	fac = 4;
@@ -225,7 +253,7 @@ function colormap_bg(handles,Z,pal)
 % return
 
 %if any(Z(:)~=Z(:))     pal = [handles.bg_color; pal];   end
-if ( handles.have_nans && ~isequal(pal(1,:),handles.bg_color) )
+if ((handles.have_nans && ~isequal(pal(1,:),handles.bg_color)) || isa(Z, 'uint16'))
     if (size(pal,1) == 256),    pal = [handles.bg_color; pal(2:end,:)];     % Jump firts color to not have
 	else,                       pal = [handles.bg_color; pal];              % a CMAP with more than 256 colors
     end
