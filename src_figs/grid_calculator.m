@@ -273,10 +273,8 @@ function push_Trad_CB(hObject, handles)
 	tmp.head = handMir.head;
 	zMinMax = grdutils(T,'-L');
 	tmp.head(5) = zMinMax(1);	tmp.head(6) = zMinMax(2);
-    tmp.X = linspace(tmp.head(1),tmp.head(2),size(T,2));
-	tmp.Y = linspace(tmp.head(3),tmp.head(4),size(T,1));
-	tmp.name = 'Bright temperture';
-	mirone(T, tmp)
+	tmp.name = 'Brightness temperture';
+	mirone(T, tmp, handMir.figure1)
 
 % ------------------------------------------------------------------------
 function push_compute_CB(hObject, handles)
@@ -672,14 +670,14 @@ function [r, msg] = do_mull_add(a, b, op, grid)
 		elseif (op == '-'),	r = a_n - b_n;
 		elseif (op == '*'),	r = a_n * b_n;
 		elseif (op == '/'),	r = a_n / b_n;
-		else				r = a_n ^ b_n;
+		else,				r = a_n ^ b_n;
 		end
 	elseif (strncmp(a,'grid',3) && ~isnan(b_n))				% add|sub|mull|div|pow(Matrix, b)
 		if (op == '+'),		r = grid.(a(6)) + b_n;
 		elseif (op == '-'),	r = grid.(a(6)) - b_n;
 		elseif (op == '*'),	r = grid.(a(6)) * b_n;
 		elseif (op == '/'),	r = grid.(a(6)) / b_n;
-		else				r = grid.(a(6)) ^ b_n;
+		else,				r = grid.(a(6)) ^ b_n;
 		end
 	elseif (strncmp(a,'grid',3) && strncmp(b,'grid',3))		% add|sub|mull|div|pow(Matrix, Matrix)
 		if (~isequal(size(grid.(a(6))), size(grid.(a(6))) ))
@@ -690,7 +688,7 @@ function [r, msg] = do_mull_add(a, b, op, grid)
 			elseif (op == '-'),	r = grid.(a(6)) -  grid.(b(6));
 			elseif (op == '*'),	r = grid.(a(6)) .* grid.(b(6));
 			elseif (op == '/'),	r = grid.(a(6)) ./ grid.(b(6));
-			else				r = grid.(a(6)) .^ grid.(b(6));
+			else,				r = grid.(a(6)) .^ grid.(b(6));
 			end
 		catch,	msg = lasterr;			% Quite likely a data type operation error
 		end
@@ -699,7 +697,7 @@ function [r, msg] = do_mull_add(a, b, op, grid)
 		elseif (op == '-'),	r = a_n - grid.(b(6));			%		""
 		elseif (op == '*'),	r = a_n * grid.(b(6));
 		elseif (op == '/'),	r = a_n ./ grid.(b(6));
-		else				r = a_n .^ grid.(b(6));
+		else,				r = a_n .^ grid.(b(6));
 		end
 	end
 
