@@ -10,7 +10,7 @@ function out = deal_opts(opt, opt2, varargin)
 % OPT2 optionally may hold the name of an internal sub-function, in which case that function
 % is called with optional extra arguments transmited in varargin
 
-%	Copyright (c) 2004-2018 by J. Luis
+%	Copyright (c) 2004-2019 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -171,9 +171,9 @@ function get_COEs(obj, event, coeFile, coeVar, opt)
 	end
 
 	if (ispc)
-		dos( ['x2sys_list ' coeFile ' -TMGD77+ -Fnxyc -C' coeVar ' -S' fname opt_Q opt_R ' > ' tmp_file]);
+		dos( ['x2sys_list ' coeFile ' -TMGD77+ -Fxycn -C' coeVar ' -S' fname opt_Q opt_R ' > ' tmp_file]);
 	else
-		unix(['x2sys_list ' coeFile ' -TMGD77+ -Fnxyc -C' coeVar ' -S' fname opt_Q opt_R ' > ' tmp_file]);
+		unix(['x2sys_list ' coeFile ' -TMGD77+ -Fxycn -C' coeVar ' -S' fname opt_Q opt_R ' > ' tmp_file]);
 	end
 
 	fid = fopen(tmp_file);
@@ -182,7 +182,7 @@ function get_COEs(obj, event, coeFile, coeVar, opt)
 	ind2 = find(c == sprintf('\n'));	% Find the line breaks
 	ind = ind2(numel(ind1));			% Index of last comment line newline
 	c = c(ind+1:end);					% Rip the header lines
-	[names,x,y,COEs] = strread(c,'%s\t%f\t%f\t%f');
+	[x,y,COEs,names] = strread(c,'%f\t%f\t%f\t%s');
 	delete(tmp_file);
 
 	if (isempty(COEs))
