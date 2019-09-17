@@ -1,7 +1,7 @@
 function grid_info(handles,X,Y,hdr)
 % Report info of grid/image currently displayed in Mirone
 
-%	Copyright (c) 2004-2018 by J. Luis
+%	Copyright (c) 2004-2019 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -70,6 +70,7 @@ function grid_info(handles,X,Y,hdr)
 			head(7) = 1;
 		end
 
+		w = cell(11,1);
 		w{1} = ['Title: ' info1.Title];
 		w{2} = ['Command: ' info1.Command];
 		w{3} = ['Remark: ' info1.Remark];
@@ -115,6 +116,11 @@ function grid_info(handles,X,Y,hdr)
 		end
 		if (info2(5))       % We have NaNs, report them also
 			w{12} = ['nodes set to NaN: ' sprintf('%d',info2(5))];
+		end
+		InfoMsg = getappdata(handles.axes1,'InfoMsg');
+		if (~isempty(InfoMsg))
+			w{12} = '';
+			w = [w; InfoMsg];
 		end
 		hMsg = message_win('create',w, 'figname','Grid Info', 'button','yes');
 
