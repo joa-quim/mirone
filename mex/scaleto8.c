@@ -57,23 +57,46 @@
 
 #if HAVE_OPENMP
 #include <omp.h>
+	#ifdef _MSC_VER
+		#define OMP_PARF __pragma(omp parallel for private(i))
+	#else
+		#define OMP_PARF _Pragma("omp parallel for private(i)")
+	#endif
+	#if defined(_OPENMP) && (_OPENMP > 201200)
+		#ifdef _MSC_VER
+			#define OMP_PARF_MINMAX __pragma(omp parallel for reduction(min : min_val) reduction(max : max_val))
+		#else
+			#define OMP_PARF_MINMAX _Pragma("omp parallel for reduction(min : min_val) reduction(max : max_val)")
+		#endif
+	#else
+		#define OMP_PARF_MINMAX 
+	#endif
+#else
+	#define OMP_PARF
+	#define OMP_PARF_MINMAX 
 #endif
 
-int mxUnshareArray(mxArray *);
+//int mxUnshareArray(mxArray *);
+
+void scale_16(unsigned short int *ui_2, unsigned char *out8, unsigned short int *out16, int got_nodata,
+              int got_limits, int scale_range, int scale8, int scale16, size_t np, int add_off, float nodata,
+              float min_val, float max_val, float new_range, double *z_min, double *z_max);
 
 /* --------------------------------------------------------------------------- */
 /* the gateway function */
 void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	double  range8 = 1, *z_min, *z_max, *z_8, min8 = DBL_MAX, max8 = -DBL_MAX;
 	double	*pNodata, *which_scale, *pLimits;
-	float	range = 1, min = FLT_MAX, max = -FLT_MAX, *z_4, new_range, nodata;
+	float	range = 1, min_val = FLT_MAX, max_val = -FLT_MAX, *z_4, new_range, nodata;
 	int     nx, ny, i, is_double = 0, is_single = 0, is_int32 = 0, is_int16 = 0, inodata = 0;
-	int     is_uint16 = 0, is_int8 = 0, scale_range = 1, *i_4, scale8 = 1, scale16 = 0;
+	int     is_uint16 = 0, is_int8 = 0, scale_range = 1, *i_4, scale8 = 1, scale16 = 0, nBands = 1;
 	int     n_row, n_col, got_nodata = 0, got_limits = 0, add_off = 1, imin = INT_MAX, imax = INT_MIN;
 	char	*i_1;
 	short int *i_2;
-	unsigned short int *ui_2, *out16;
-	unsigned char *out8;
+	unsigned short int *ui_2 = NULL, *out16 = NULL;
+	unsigned char *out8 = NULL;
+	const int *dim_array;
+	size_t np;
 	clock_t tic;
  
   	/*  check for proper number of arguments */
@@ -125,12 +148,19 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	/*  get the dimensions of the matrix input */
 	ny = mxGetM(prhs[0]);
 	nx = mxGetN(prhs[0]);
-	if (nx * ny == 1)
-		mexErrMsgTxt("SCALETO8 ERROR: First input must be a matrix.");
+	if ((size_t)nx * ny == 1) mexErrMsgTxt("SCALETO8 ERROR: First input must be a matrix.");
+
+	/* Check if 3D */
+	if (mxGetNumberOfDimensions(prhs[0]) > 2) {
+		dim_array = mxGetDimensions(prhs[0]);
+		nx = dim_array[1];
+		nBands = dim_array[2];
+	}
+	np = (size_t)nx * ny;
  
 	if (nrhs == 1) {
 		new_range = 254;		/* scale to uint8 */
-		scale8 = 1;	scale16 = 0;
+		scale8 = 1;		scale16 = 0;
 	}
 	else {
 		n_col = mxGetN (prhs[1]);
@@ -170,7 +200,7 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 			else if (n_row == 1 && n_col == 2) {	/* Third arg is a [Lmin Lmax] vector */
 				pLimits = (double *)mxGetData(prhs[2]);
 				min8 = pLimits[0];		max8 = pLimits[1];
-				if (!is_double) {min = (float)min8;		max = (float)max8;}
+				if (!is_double) {min_val = (float)min8;		max_val = (float)max8;}
 				got_limits = 1;
 				mxUnshareArray(prhs[0]);	/* Only matters if prhs[0] is a copy */
 			}
@@ -180,7 +210,7 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 			if (nrhs == 4) {
 				pLimits = (double *)mxGetData(prhs[3]);
 				min8 = pLimits[0];		max8 = pLimits[1];
-				if (!is_double) {min = (float)min8;		max = (float)max8;}
+				if (!is_double) {min_val = (float)min8;		max_val = (float)max8;}
 				got_limits = 1;
 				mxUnshareArray(prhs[0]);	/* Only matters if prhs[0] is a copy */
 			}
@@ -189,11 +219,9 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		}
 	}
 
-	if(nlhs == 2) {
-		if (got_limits)
-			mexErrMsgTxt("SCALETO8 ERROR: No, No! no minmax inside grid bounds.");
-
-		scale_range = 0;	/* Output min/max */
+	if (nlhs == 2) {
+		if (got_limits) mexErrMsgTxt("SCALETO8 ERROR: No, No! no minmax inside grid bounds.");
+		scale_range = 0;	/* Output min_val/max_val */
 	}
 
 
@@ -202,12 +230,12 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		/*  create a C pointer to a copy of the output matrix */
 		if (scale8) {
 			plhs[0] = mxCreateNumericArray(mxGetNumberOfDimensions(prhs[0]),
-		  			mxGetDimensions(prhs[0]), mxUINT8_CLASS, mxREAL);
+		  	                               mxGetDimensions(prhs[0]), mxUINT8_CLASS, mxREAL);
 			out8 = (unsigned char *)mxGetData(plhs[0]);
 		}
 		else {
 			plhs[0] = mxCreateNumericArray(mxGetNumberOfDimensions(prhs[0]),
-		  			mxGetDimensions(prhs[0]), mxUINT16_CLASS, mxREAL);
+		  	                               mxGetDimensions(prhs[0]), mxUINT16_CLASS, mxREAL);
 			out16 = (unsigned short int *)mxGetData(plhs[0]);
 		}
 	}
@@ -221,7 +249,7 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 
 	if (is_double) {
 		if (!got_limits) {
-			for (i = 0; i < nx*ny; i++) {	/* Find min and max value */
+			for (i = 0; i < nx*ny; i++) {	/* Find min_val and max_val value */
 				if (mxIsNaN(z_8[i])) continue;
 				min8 = MIN(min8,z_8[i]);
 				max8 = MAX(max8,z_8[i]);
@@ -232,9 +260,7 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 				range8 = new_range / (max8 - min8);
 
 			if (scale8) {	/* Scale to uint8 */
-#if HAVE_OPENMP
-#pragma omp parallel for private(i)
-#endif
+OMP_PARF
 				for (i = 0; i < nx*ny; i++) { 	/* if z == NaN, out will be = 0 */
 					if (mxIsNaN(z_8[i])) continue;
 					if (got_limits) {
@@ -247,9 +273,7 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 				}
 			} 
 			else if (scale16) {	/* Scale to uint16 */
-#if HAVE_OPENMP
-#pragma omp parallel for private(i)
-#endif
+OMP_PARF
 				for (i = 0; i < nx*ny; i++) {
 					if (mxIsNaN(z_8[i])) continue;
 					if (got_limits) {
@@ -262,223 +286,160 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 				}
 			} 
 		}
-		else { 			/* min/max required */
+		else { 			/* min_val/max_val required */
 			*z_min = min8;	*z_max = max8;
 		}
 	}
 	else if (is_single) {
 		if (!got_limits) {
+OMP_PARF_MINMAX
 			for (i = 0; i < nx*ny; i++) {
 				if (ISNAN_F(z_4[i])) continue;
-				if      (z_4[i] < min) min = z_4[i];
-				else if (z_4[i] > max) max = z_4[i];
+				if (z_4[i] < min_val) min_val = z_4[i];
+				if (z_4[i] > max_val) max_val = z_4[i];
 			}
 		}
 		if (scale_range) {	/* Scale data into the new_range ([0 255] or [0 65535]) */ 
-			if (max != min)
-				range = new_range / (max - min);
+			if (max_val != min_val)
+				range = new_range / (max_val - min_val);
 
 			if (scale8) {	/* Scale to uint8 */
-#if HAVE_OPENMP
-#pragma omp parallel for private(i)
-#endif
+OMP_PARF
 				for (i = 0; i < nx*ny; i++) {	/* if z == NaN, out will be = 0 */
 					if (ISNAN_F(z_4[i])) continue;
 					if (got_limits) {
-						if      (z_4[i] < min) out8[i] = (char)add_off;
-						else if (z_4[i] > max) out8[i] = (char)((((float)max - min) * range) + add_off);
-						else    out8[i] = (char)((((float)z_4[i] - min) * range) + add_off);
+						if      (z_4[i] < min_val) out8[i] = (char)add_off;
+						else if (z_4[i] > max_val) out8[i] = (char)((((float)max_val - min_val) * range) + add_off);
+						else    out8[i] = (char)((((float)z_4[i] - min_val) * range) + add_off);
 					}
 					else
-						out8[i] = (char)((((float)z_4[i] - min) * range) + add_off);
+						out8[i] = (char)((((float)z_4[i] - min_val) * range) + add_off);
 				}
 			} 
 			else if (scale16) {	/* Scale to uint16 */
-#if HAVE_OPENMP
-#pragma omp parallel for private(i)
-#endif
+OMP_PARF
 				for (i = 0; i < nx*ny; i++) {
 					if (ISNAN_F(z_4[i])) continue;
 					if (got_limits) {
-						if      (z_4[i] < min) out16[i] = (unsigned short int)add_off;
-						else if (z_4[i] > max) out16[i] = (unsigned short int)((((float)max - min) * range) + add_off);
-						else    out16[i] = (unsigned short int)((((float)z_4[i] - min) * range) + add_off);
+						if      (z_4[i] < min_val) out16[i] = (unsigned short int)add_off;
+						else if (z_4[i] > max_val) out16[i] = (unsigned short int)((((float)max_val - min_val) * range) + add_off);
+						else    out16[i] = (unsigned short int)((((float)z_4[i] - min_val) * range) + add_off);
 					}
 					else
-						out16[i] = (unsigned short int)((((float)z_4[i] - min) * range) + add_off);
+						out16[i] = (unsigned short int)((((float)z_4[i] - min_val) * range) + add_off);
 				} 
 			} 
 		}
-		else { 			/* min/max required */
-			*z_min = min;	*z_max = max;
+		else { 			/* min_val/max_val required */
+			*z_min = min_val;	*z_max = max_val;
 		}
 	}
 	else if (is_int32) {
 		if (!got_limits) {
 			if (!got_nodata) {
 				for (i = 0; i < nx*ny; i++) {
-					if      (i_4[i] < min) min = i_4[i];
-					else if (i_4[i] > max) max = i_4[i];
+					if (i_4[i] < min_val) min_val = i_4[i];
+					if (i_4[i] > max_val) max_val = i_4[i];
 				}
 			}
 			else {
 				for (i = 0; i < nx*ny; i++) {
 					if ((float)i_4[i] == nodata) continue;
-					if      (i_4[i] < min) min = i_4[i];
-					else if (i_4[i] > max) max = i_4[i];
+					if (i_4[i] < min_val) min_val = i_4[i];
+					if (i_4[i] > max_val) max_val = i_4[i];
 				}
 			}
 		}
-		else {			/* Replace outside limits values by min | max */
+		else {			/* Replace outside limits values by min_val | max_val */
 			int min_i4, max_i4;
-			min_i4 = (int)min;	max_i4 = (int)max;
+			min_i4 = (int)min_val;	max_i4 = (int)max_val;
 			for (i = 0; i < nx*ny; i++) {
 				if (got_nodata && (float)i_4[i] == nodata) continue;
 				if (i_4[i] < min_i4) i_4[i] = min_i4;
-				else if (i_4[i] > max_i4) i_4[i] = max_i4;
+				if (i_4[i] > max_i4) i_4[i] = max_i4;
 			}
 		}
 		if (scale_range) {	/* Scale data into the new_range ([0 255] or [0 65535]) */ 
-			if (max != min)
-				range = new_range / (max - min);
+			if (max_val != min_val)
+				range = new_range / (max_val - min_val);
 
 			if (scale8) {	/* Scale to uint8 */
 				for (i = 0; i < nx*ny; i++) {
 					if (got_nodata && (float)i_4[i] == nodata) continue;
-					out8[i] = (char)(((float)i_4[i] - min) * range) + add_off;
+					out8[i] = (char)(((float)i_4[i] - min_val) * range) + add_off;
 				}
 			}
 			else if (scale16) {	/* Scale to uint16 */
 				for (i = 0; i < nx*ny; i++) {
 					if (got_nodata && (float)i_4[i] == nodata) continue;
-					out16[i] = (unsigned short int)(((float)i_4[i] - min) * range) + add_off;
+					out16[i] = (unsigned short int)(((float)i_4[i] - min_val) * range) + add_off;
 				}
 			}
 		}
-		else { 			/* min/max required */
-			*z_min = min;	*z_max = max;
+		else { 			/* min_val/max_val required */
+			*z_min = min_val;	*z_max = max_val;
 		}
 	}
 	else if (is_int16) {
 		if (!got_limits) {
 			if (!got_nodata) {
+OMP_PARF_MINMAX
 				for (i = 0; i < nx*ny; i++) {
-					if      (i_2[i] < min) min = i_2[i];
-					else if (i_2[i] > max) max = i_2[i];
+					if (i_2[i] < min_val) min_val = i_2[i];
+					if (i_2[i] > max_val) max_val = i_2[i];
 				}
 			}
 			else {
+OMP_PARF_MINMAX
 				for (i = 0; i < nx*ny; i++) {
 					if ((float)i_2[i] == nodata) continue;
-					if      (i_2[i] < min) min = i_2[i];
-					else if (i_2[i] > max) max = i_2[i];
+					if (i_2[i] < min_val) min_val = i_2[i];
+					if (i_2[i] > max_val) max_val = i_2[i];
 				}
 			}
 		}
-		else {			/* Replace outside limits values by min | max */
+		else {			/* Replace outside limits values by min_val | max_val */
 			short int min_i2, max_i2;
-			min_i2 = (short int)min;	max_i2 = (short int)max;
+			min_i2 = (short int)min_val;	max_i2 = (short int)max_val;
+OMP_PARF_MINMAX
 			for (i = 0; i < nx*ny; i++) {
 				if (got_nodata && (float)i_2[i] == nodata) continue;
 				if (i_2[i] < min_i2) i_2[i] = min_i2;
-				else if (i_2[i] > max_i2) i_2[i] = max_i2;
+				if (i_2[i] > max_i2) i_2[i] = max_i2;
 			}
 		}
 		if (scale_range) {	/* Scale data into the new_range ([0 255] or [0 65535]) */ 
-			if (max != min)
-				range = new_range / (max - min);
+			if (max_val != min_val)
+				range = new_range / (max_val - min_val);
 
 			if (scale8) {	/* Scale to uint8 */
 				for (i = 0; i < nx*ny; i++) {
 					if (got_nodata && (float)i_2[i] == nodata) continue;
-					out8[i] = (char)(((float)i_2[i] - min) * range) + add_off;
+					out8[i] = (char)(((float)i_2[i] - min_val) * range) + add_off;
 				}
 			}
 			else if (scale16) {	/* Scale to uint16 */
 				for (i = 0; i < nx*ny; i++) {
 					if (got_nodata && (float)i_2[i] == nodata) continue;
-					out16[i] = (unsigned short int)(((float)i_2[i] - min) * range) + add_off;
+					out16[i] = (unsigned short int)(((float)i_2[i] - min_val) * range) + add_off;
 				}
 			}
 		}
-		else { 			/* min/max required */
-			*z_min = min;	*z_max = max;
+		else { 			/* min_val/max_val required */
+			*z_min = min_val;	*z_max = max_val;
 		}
 	}
 	else if (is_uint16) {
-		if (!got_nodata) {
-			if (!got_limits) {		/* Otherwise we don't need to find min/max */
-#if HAVE_OPENMP
-#pragma omp parallel for private(i)
-#endif
-				for (i = 0; i < nx*ny; i++) {
-					if (ui_2[i]) {			/* Assume 0 is nodata, so jump it */
-						if      (ui_2[i] < imin) imin = ui_2[i];
-						else if (ui_2[i] > imax) imax = ui_2[i];
-					}
-				}
-				got_nodata = 1;	nodata = 0;
-			}
-			else {
-				imin = (int)min;	imax = (int)max;
-			}
-		}
-		else {
-			if (!got_limits) {		/* Otherwise we don't need to find min/max */
-				inodata = (int)nodata;
-				for (i = 0; i < nx*ny; i++) {
-					if (ui_2[i] != inodata) {
-						if      (ui_2[i] < imin) imin = ui_2[i];
-						else if (ui_2[i] > imax) imax = ui_2[i];
-					}
-				}
-			}
-			else {
-				imin = (int)min;	imax = (int)max;
-			}
+		for (i = 0; i < nBands; i++) {
+			if (scale_range && scale8)
+				scale_16(&ui_2[np*i], &out8[np*i], out16, got_nodata, got_limits, scale_range, scale8, scale16, np,
+				         add_off, nodata, min_val, max_val, new_range, z_min, z_max);
+			else if (scale_range && scale16)
+				scale_16(&ui_2[np*i], out8, &out16[np*i], got_nodata, got_limits, scale_range, scale8, scale16, np,
+				         add_off, nodata, min_val, max_val, new_range, z_min, z_max);
+			/* The else case would compute global min_val max_val (with some more coding). Idiot thing to do */
 		}
 
-		if (scale_range) {	/* Scale data into the new_range ([0 255] or [0 65535]) */ 
-			unsigned short int min_ui2, max_ui2;
-			min_ui2 = (unsigned short int)imin;		max_ui2 = (unsigned short int)imax;
-			if (imax != imin)
-				range = new_range / (imax - imin);
-
-			inodata = (int)nodata;
-			if (scale8) {	/* Scale to uint8 */
-#if HAVE_OPENMP
-#pragma omp parallel for private(i)
-#endif
-				for (i = 0; i < nx*ny; i++) {
-					if (got_nodata && ui_2[i] == inodata) continue;
-					if (got_limits) {
-						if      (ui_2[i] < min_ui2) out8[i] = (char)add_off;
-						else if (ui_2[i] > max_ui2) out8[i] = (char)((((float)max_ui2 - min_ui2) * range) + add_off);
-						else    out8[i] = (char)((((float)ui_2[i] - min_ui2) * range) + add_off);
-					}
-					else
-						out8[i] = (char)((((float)ui_2[i] - min_ui2) * range) + add_off);
-				}
-			}
-			else if (scale16) {	/* Scale to uint16 */
-#if HAVE_OPENMP
-#pragma omp parallel for private(i)
-#endif
-				for (i = 0; i < nx*ny; i++) {
-					if (got_nodata && ui_2[i] == inodata) continue;
-					if (got_limits) {
-						if      (ui_2[i] < min_ui2) out16[i] = (unsigned short int)add_off;
-						else if (ui_2[i] > max_ui2) out16[i] = (unsigned short int)((((float)max_ui2 - min_ui2) * range) + add_off);
-						else    out16[i] = (unsigned short int)((((float)ui_2[i] - min_ui2) * range) + add_off);
-					}
-					else
-						out16[i] = (unsigned short int)((((float)ui_2[i] - min_ui2) * range) + add_off);
-				}
-			}
-		}
-		else { 			/* min/max required */
-			*z_min = min;	*z_max = max;
-		}
 	}
 	else if (is_int8) {	/* This whole cases are a bit stupid */
 		if (got_limits)
@@ -486,41 +447,41 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 
 		if (!got_nodata) {
 			for (i = 0; i < nx*ny; i++) {
-				min = MIN(min,i_1[i]);
-				max = MAX(max,i_1[i]);
+				min_val = MIN(min_val,i_1[i]);
+				max_val = MAX(max_val,i_1[i]);
 			}
 		}
 		else {
 			for (i = 0; i < nx*ny; i++) {
 				if ((float)i_1[i] == nodata) continue;
-				min = MIN(min,i_1[i]);
-				max = MAX(max,i_1[i]);
+				min_val = MIN(min_val,i_1[i]);
+				max_val = MAX(max_val,i_1[i]);
 			}
 		}
 
 		if (scale_range) {	/* Scale data into the new_range ([0 255] or [0 65535]) */ 
-			if (max != min)
-				range = new_range / (max - min);
+			if (max_val != min_val)
+				range = new_range / (max_val - min_val);
 
-			if (min >= 0 && scale8) {	/* There is nothing to scale here */ 
+			if (min_val >= 0 && scale8) {	/* There is nothing to scale here */ 
 				for (i = 0; i < nx*ny; i++)
 					out8[i] = (char)i_1[i];
 			}
 			else if (scale8) {	/* Scale to uint8 */
 				for (i = 0; i < nx*ny; i++) {
 					if (got_nodata && (float)i_1[i] == nodata) continue;
-					out8[i] = (char)(((float)i_1[i] - min) * range) + add_off;
+					out8[i] = (char)(((float)i_1[i] - min_val) * range) + add_off;
 				}
 			}
 			else if (scale16) {	/* Scale to uint16 - IDIOT thing to do but ... */
 				for (i = 0; i < nx*ny; i++) {
 					if (got_nodata && (float)i_1[i] == nodata) continue;
-					out16[i] = (unsigned short int)(((float)i_1[i] - min) * range) + add_off;
+					out16[i] = (unsigned short int)(((float)i_1[i] - min_val) * range) + add_off;
 				}
 			}
 		}
-		else { 			/* min/max required */
-			*z_min = min;	*z_max = max;
+		else { 			/* min_val/max_val required */
+			*z_min = min_val;	*z_max = max_val;
 		}
 	}
 
@@ -528,4 +489,83 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	mexPrintf("SCALETO8: CPU ticks = %.3f\tCPS = %d\n", (double)(clock() - tic), CLOCKS_PER_SEC);
 #endif
 
+}
+
+/* ----------------------------------------------------------------------------------------------------------- */
+void scale_16(unsigned short int *ui_2, unsigned char *out8, unsigned short int *out16, int got_nodata,
+              int got_limits, int scale_range, int scale8, int scale16, size_t np, int add_off, float nodata,
+              float min_val, float max_val, float new_range, double *z_min, double *z_max) {
+	/* Make it a separate function so that it can be called for each band */
+	long long i;
+	int     inodata = 0, imin = INT_MAX, imax = INT_MIN;
+	float	range = 1;
+
+	if (!got_nodata) {
+		if (!got_limits) {		/* Otherwise we don't need to find min_val/max_val */
+OMP_PARF_MINMAX
+			for (i = 0; i < np; i++) {
+				if (ui_2[i]) {			/* Assume 0 is nodata, so jump it */
+					if (ui_2[i] < imin) imin = ui_2[i];
+					if (ui_2[i] > imax) imax = ui_2[i];
+				}
+			}
+			got_nodata = 1;	nodata = 0;
+		}
+		else {
+			imin = (int)min_val;	imax = (int)max_val;
+		}
+	}
+	else {
+		if (!got_limits) {		/* Otherwise we don't need to find min_val/max_val */
+			inodata = (int)nodata;
+OMP_PARF_MINMAX
+			for (i = 0; i < np; i++) {
+				if (ui_2[i] != inodata) {
+					if (ui_2[i] < imin) imin = ui_2[i];
+					if (ui_2[i] > imax) imax = ui_2[i];
+				}
+			}
+		}
+		else {
+			imin = (int)min_val;	imax = (int)max_val;
+		}
+	}
+
+	if (scale_range) {	/* Scale data into the new_range ([0 255] or [0 65535]) */ 
+		unsigned short int min_ui2, max_ui2;
+		min_ui2 = (unsigned short int)imin;		max_ui2 = (unsigned short int)imax;
+		if (imax != imin)
+			range = new_range / (imax - imin);
+
+		inodata = (int)nodata;
+		if (scale8) {	/* Scale to uint8 */
+OMP_PARF
+			for (i = 0; i < np; i++) {
+				if (got_nodata && ui_2[i] == inodata) continue;
+				if (got_limits) {
+					if      (ui_2[i] < min_ui2) out8[i] = (char)add_off;
+					else if (ui_2[i] > max_ui2) out8[i] = (char)((((float)max_ui2 - min_ui2) * range) + add_off);
+					else    out8[i] = (char)((((float)ui_2[i] - min_ui2) * range) + add_off);
+				}
+				else
+					out8[i] = (char)((((float)ui_2[i] - min_ui2) * range) + add_off);
+			}
+		}
+		else if (scale16) {	/* Scale to uint16 */
+OMP_PARF
+			for (i = 0; i < np; i++) {
+				if (got_nodata && ui_2[i] == inodata) continue;
+				if (got_limits) {
+					if      (ui_2[i] < min_ui2) out16[i] = (unsigned short int)add_off;
+					else if (ui_2[i] > max_ui2) out16[i] = (unsigned short int)((((float)max_ui2 - min_ui2) * range) + add_off);
+					else    out16[i] = (unsigned short int)((((float)ui_2[i] - min_ui2) * range) + add_off);
+				}
+				else
+					out16[i] = (unsigned short int)((((float)ui_2[i] - min_ui2) * range) + add_off);
+			}
+		}
+	}
+	else { 			/* min_val/max_val required */
+		*z_min = imin;	*z_max = imax;
+	}
 }
