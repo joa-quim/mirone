@@ -50,8 +50,18 @@
 	#else
 		#define OMP_PARF _Pragma("omp parallel for private(i)")
 	#endif
+	#if defined(_OPENMP) && (_OPENMP > 201200)
+		#ifdef _MSC_VER
+			#define OMP_PARF_MINMAX __pragma(omp parallel for reduction(min : min_val) reduction(max : max_val))
+		#else
+			#define OMP_PARF_MINMAX _Pragma("omp parallel for reduction(min : min_val) reduction(max : max_val)")
+		#endif
+	#else
+		#define OMP_PARF_MINMAX 
+	#endif
 #else
 	#define OMP_PARF
+	#define OMP_PARF_MINMAX 
 #endif
 
 /* For floats ONLY */
@@ -78,7 +88,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	short int *data16;
 	unsigned short int *dataU16;
 	float   *zdata, *array_out, fact_x = 1, fact_a = 0, K1, K2, Ml, Al, NaN;
-	double  *z, min_limit = FLT_MAX, max_limit = -FLT_MAX, mean = 0., sd = 0., rms = 0., tmp;
+	double  *z, min_val = FLT_MAX, max_val = -FLT_MAX, mean = 0., sd = 0., rms = 0., tmp;
 	clock_t tic;
 
 	argc = nrhs;
@@ -278,21 +288,48 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		if (ADD_MUL || MUL || ADD)
 			mul_add((void *)zdata, NULL, fact_x, fact_a, (size_t)nxy, 0);
 		else {
+			if (do_min_max) {
+OMP_PARF_MINMAX
+				for (i = 0; i < nxy; i++) {
+					if (ISNAN_F(zdata[i])) {nfound++;	continue;}
+					tmp = (double)zdata[i];
+					if (tmp < min_val) min_val = tmp;
+					if (tmp > max_val) max_val = tmp;
+				}
+			}
+			else if (do_min_max_loc) {
+OMP_PARF_MINMAX
+				for (i = 0; i < nxy; i++) {
+					if (ISNAN_F(zdata[i])) {nfound++;	continue;}
+					tmp = (double)zdata[i];
+					if (tmp < min_val) {min_val = tmp;		i_min = i;}
+					if (tmp > max_val) {max_val = tmp;		i_max = i;}
+				}
+			}
+			if (do_std) {
 OMP_PARF
+				for (i = 0; i < nxy; i++) {
+					tmp = (double)zdata[i];
+					mean += tmp;
+					sd += tmp * tmp;
+				}
+			}
+
+#if 0
 			for (i = 0; i < nxy; i++) {
 				if (ISNAN_F(zdata[i])) {nfound++;	continue;}
 				tmp = (double)zdata[i];
 				if (do_min_max) {
-					if      (tmp < min_limit) min_limit = tmp;
-					else if (tmp > max_limit) max_limit = tmp;
+					if (tmp < min_val) min_val = tmp;
+					if (tmp > max_val) max_val = tmp;
 				}
 				else if (do_min_max_loc) {
-					if (tmp < min_limit) {
-						min_limit = tmp;
+					if (tmp < min_val) {
+						min_val = tmp;
 						i_min = i;
 					}
-					else if (tmp > max_limit) {
-						max_limit = tmp;
+					if (tmp > max_val) {
+						max_val = tmp;
 						i_max = i;
 					}
 				}
@@ -301,6 +338,7 @@ OMP_PARF
 					sd += tmp * tmp;
 				}
 			}
+#endif
 		}
 	}
 	else if (is_uint16) {
@@ -323,28 +361,23 @@ OMP_PARF
 		}
 		else {
 			if (do_min_max) {
-OMP_PARF
+OMP_PARF_MINMAX
 				for (i = 0; i < nxy; i++) {
 					tmp = (double)dataU16[i];
-					if      (tmp < min_limit) min_limit = tmp;
-					else if (tmp > max_limit) max_limit = tmp;
+					if (tmp < min_val) min_val = tmp;
+					if (tmp > max_val) max_val = tmp;
 				}
 			}
 			else if (do_min_max_loc) {
-OMP_PARF
+OMP_PARF_MINMAX
 				for (i = 0; i < nxy; i++) {
 					tmp = (double)dataU16[i];
-					if (tmp < min_limit) {
-						min_limit = tmp;
-						i_min = i;
-					}
-					else if (tmp > max_limit) {
-						max_limit = tmp;
-						i_max = i;
-					}
+					if (tmp < min_val) {min_val = tmp;		i_min = i;}
+					if (tmp > max_val) {max_val = tmp;		i_max = i;}
 				}
 			}
 			if (do_std) {
+OMP_PARF
 				for (i = 0; i < nxy; i++) {
 					tmp = (double)dataU16[i];
 					mean += tmp;
@@ -358,18 +391,12 @@ OMP_PARF
 		for (i = 0; i < nxy; i++) {
 			tmp = (double)data16[i];
 			if (do_min_max) {
-				if      (tmp < min_limit) min_limit = tmp;
-				else if (tmp > max_limit) max_limit = tmp;
+				if (tmp < min_val) min_val = tmp;
+				if (tmp > max_val) max_val = tmp;
 			}
 			else if (do_min_max_loc) {
-				if (tmp < min_limit) {
-					min_limit = tmp;
-					i_min = i;
-				}
-				else if (tmp > max_limit) {
-					max_limit = tmp;
-					i_max = i;
-				}
+				if (tmp < min_val) {min_val = tmp;		i_min = i;}
+				if (tmp > max_val) {max_val = tmp;		i_max = i;}
 			}
 			if (do_std) {
 				mean += tmp;
@@ -379,28 +406,23 @@ OMP_PARF
 	}
 	else {
 		if (do_min_max) {
-OMP_PARF
+OMP_PARF_MINMAX
 			for (i = 0; i < nxy; i++) {
 				tmp = (double)data8[i];
-				if      (tmp < min_limit) min_limit = tmp;
-				else if (tmp > max_limit) max_limit = tmp;
+				if (tmp < min_val) min_val = tmp;
+				if (tmp > max_val) max_val = tmp;
 			}
 		}
 		else if (do_min_max_loc) {
-OMP_PARF
+OMP_PARF_MINMAX
 			for (i = 0; i < nxy; i++) {
 				tmp = (double)data8[i];
-				if (tmp < min_limit) {
-					min_limit = tmp;
-					i_min = i;
-				}
-				else if (tmp > max_limit) {
-					max_limit = tmp;
-					i_max = i;
-				}
+				if (tmp < min_val) {min_val = tmp;		i_min = i;}
+				if (tmp > max_val) {max_val = tmp;		i_max = i;}
 			}
 		}
 		if (do_std) {
+OMP_PARF
 			for (i = 0; i < nxy; i++) {
 				tmp = (double)data8[i];
 				mean += tmp;
@@ -427,7 +449,7 @@ OMP_PARF
 		else if (report_min_max_loc_nan_mean_std) {
 			plhs[0] = mxCreateDoubleMatrix (7,1, mxREAL);
 			z = mxGetPr(plhs[0]);
-			z[0] = min_limit;	z[1] = max_limit;
+			z[0] = min_val;	z[1] = max_val;
 			z[2] = (double)i_min;	z[3] = (double)i_max;
 			z[4] = (double)nfound;	z[5] = mean;	z[6] = sd;
 			if (show_time)
@@ -436,8 +458,8 @@ OMP_PARF
 		}
 
 		if (do_min_max) {
-			z[0] = min_limit;
-			z[1] = max_limit;
+			z[0] = min_val;
+			z[1] = max_val;
 			if (report_nans) z[2] = nfound;
 		}
 		else if (do_std) {
@@ -498,12 +520,3 @@ OMP_PARF
 			for (i = 0; i < np; i++) f4_o[i] = u2_i[i] + fac_a;
 	}
 }
-
-/*
-void mul_add(float *in, float *out, float K1, float K2, size_t np) {
-	size_t i;
-	for (i = 0; i < np; i++)
-		f4_o[i] = u2_i[i] * fac_x + fac_a;
-		out[i] = K2 / (log(K1 / in[i] + 1));
-}
-*/
