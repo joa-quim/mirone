@@ -181,7 +181,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		mexPrintf ("\t   Without output do operation insitu.\n");
 		mexPrintf ("\t-L Compute min and max. Apend + (-L+) to check also for NaNs\n");
 		mexPrintf ("\t-H outputs [z_min z_max i_zmin i_zmax firstNaNind mean std]\n");
-		mexPrintf ("\t-M factor multiplies array by factor.\n");
+		mexPrintf ("\t-M factor multiplies array by factor. If both -A and -M, first add then multiply\n");
 		mexPrintf ("\t-N See if grid has NaNs and if yes returns its index + 1 and exit.\n");
 		mexPrintf ("\t-S Compute mean and standard deviation.\n");
 		mexPrintf ("\t-T Compute bright Temperature from Landsat8 bands 10 or 11. Where:\n");
@@ -489,7 +489,7 @@ void mul_add(void *array_in, void *array_out, float fac_x, float fac_a, size_t n
 OMP_PARF
 			for (i = 0; i < np; i++) {
 				if (ISNAN_F(f4_i[i])) continue;
-				f4_i[i] *= fac_x + fac_a;
+				f4_i[i] = (f4_i[i] + fac_a) * fac_x;
 			}
 		}
 		else if (fac_x != 1) {		/* MUL */
@@ -511,7 +511,7 @@ OMP_PARF
 		u2_i = (unsigned short int *)array_in;		f4_o = (float *)array_out;
 		if (fac_x != 1 && fac_a != 0)	/* MULL_ADD */
 OMP_PARF
-			for (i = 0; i < np; i++) f4_o[i] = u2_i[i] * fac_x + fac_a;
+			for (i = 0; i < np; i++) f4_o[i] = (u2_i[i] + fac_a) * fac_x;
 		else if (fac_x != 1)			/* MUL */
 OMP_PARF
 			for (i = 0; i < np; i++) f4_o[i] = u2_i[i] * fac_x;
