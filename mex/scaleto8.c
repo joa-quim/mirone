@@ -431,10 +431,10 @@ OMP_PARF_MINMAX
 	}
 	else if (is_uint16) {
 		for (i = 0; i < nBands; i++) {
-			if (scale_range && scale8)
+			if (scale8)
 				scale_16(&ui_2[np*i], &out8[np*i], out16, got_nodata, got_limits, scale_range, scale8, scale16, np,
 				         add_off, nodata, min_val, max_val, new_range, z_min, z_max);
-			else if (scale_range && scale16)
+			else if (scale16)
 				scale_16(&ui_2[np*i], out8, &out16[np*i], got_nodata, got_limits, scale_range, scale8, scale16, np,
 				         add_off, nodata, min_val, max_val, new_range, z_min, z_max);
 			/* The else case would compute global min_val max_val (with some more coding). Idiot thing to do */
