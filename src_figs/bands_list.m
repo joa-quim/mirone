@@ -191,7 +191,6 @@ function push_Load_CB(hObject, handles)
 		return
 	end
 	if (get(handles.radio_gray,'Value') && (isempty(handles.Rband)))
-		errordlg('Error: Are you blind? You must select a band. Kinda obvious no?','ERROR')
 		return
 	end
 
@@ -253,12 +252,17 @@ function push_Load_CB(hObject, handles)
 		end
 
 		set(handMir.hImg,'CData',img)
-		try
-			rmappdata(handles.hMirFig,'dem_x');		rmappdata(handles.hMirFig,'dem_y');		rmappdata(handles.hMirFig,'dem_z');
-		end
 		image_type = handles.image_type_orig;		% Reset indicator that this is an image only
 		computed_grid = 0;      % Reset this also
 		was_int16 = 0;
+		try
+			t = findobj(handles.hMirFig, 'Tag','pixValStsBar');
+			ud = get(t, 'UserData');
+			ud.haveGrid = 0;
+			set(t, 'UserData', ud)
+			%rmappdata(handles.hMirFig,'dem_x');		rmappdata(handles.hMirFig,'dem_y');		rmappdata(handles.hMirFig,'dem_z');
+			%image_type = 3;		% If it reaches here means that the collection was > int8
+		end
 	else                        % GRAY SCALE, which can be an image or a > uint8 image band that needs scaling
 		[b,b] = ismember(handles.Rband,handles.bands_inMemory);
 		idx = (b == 0);         % ISMEMBER returns zeros for elements of A not in B
