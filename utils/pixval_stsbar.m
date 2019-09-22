@@ -90,7 +90,7 @@ function PixvalMotionFcn(obj, evt, displayBar)
 		  end
 	   end
 	end
-	set(displayBar, 'UserData', userData);
+	%set(displayBar, 'UserData', userData);
 
 %-----------------------------------------------------------------------------------------
 function [hImg,imageType,img,x,y] = OverImage(hFig)
@@ -206,6 +206,11 @@ function UpdatePixelValues(hFig, hImg, imageType, displayBar, img, x, y)
 			end
 		else
 			pixel = bi_linear(getappdata(hFig,'dem_x'),getappdata(hFig,'dem_y'),getappdata(hFig,'dem_z'),x,y);
+			if (isnan(pixel))		% Can happen if bands_list removed dem_z when making a pseudo color from uint16
+				userData.haveGrid = 0;
+				set(displayBar, 'UserData', userData);
+				return
+			end
 		end
 
 	else						% work on a image type
