@@ -292,7 +292,7 @@ function hObject = mirone_OpeningFcn(varargin)
 			else,					grid_info(handles,tmp.srsWKT,'referenced',varargin{1});
 			end
 			handles = aux_funs('isProj',handles);				% Check/set about coordinates type
-			
+
 		elseif (n_argin == 1 && isa(varargin{1},'struct') && isfield(varargin{1},'proj4'))
 			% A GMT5 grid/image structure. (for images we still do not use eventual alpha channel)
 			handles.head = [varargin{1}.range varargin{1}.registration varargin{1}.inc];
@@ -340,7 +340,7 @@ function hObject = mirone_OpeningFcn(varargin)
 			X = linspace(handles.head(1), handles.head(2), size(Z,2));
 			Y = linspace(handles.head(3), handles.head(4), size(Z,1));
 
-		elseif (n_argin == 3 && numel(varargin{1} == size(varargin{3},2)) && numel(varargin{2} == size(varargin{3},1)))
+		elseif (n_argin == 3 && numel(varargin{1}) == size(varargin{3},2) && numel(varargin{2}) == size(varargin{3},1))
 			% A (X, Y, Z) where X,Y are the coord vectors and Z is the grid matrix
 			Z = varargin{3};			grd_data_in = true;
 			X = varargin{1}(:)';		Y = varargin{2}(:)';
@@ -353,27 +353,45 @@ function hObject = mirone_OpeningFcn(varargin)
 			handles.head = [X(1) X(end) Y(1) Y(end) zz(1) zz(2) 0 X(2)-X(1) Y(2)-Y(1)];
 
 		elseif (n_argin < 4 && ~(isa(varargin{1},'uint8') || isa(varargin{1},'int8')))
-			% A matrix with an optional header. Treat it as if it is a gmt grid. No error testing on the grid head descriptor
+			% A matrix with an optional header. Treat it as a gmt grid. No error testing on the grid head descriptor
+			% A third argument is optional but if exists must contain a Mirone's fig or axes handle.
+			% The prefered way of calling this option should now be:
+			%		mirone(Z, struct('head',[...], 'name','...'), [parent_mir_fig_handle])
 			Z = varargin{1};			grd_data_in = true;
 			if (~isa(Z,'single')),		Z = single(Z);		end
 			handles.have_nans = grdutils(Z,'-N');
-			if (numel(varargin) == 2 && isa(varargin{2},'struct'))		% A grid with a header
+			if (numel(varargin) >= 2 && isa(varargin{2},'struct'))		% A grid with a header
 				tmp = varargin{2};
-				handles.head = tmp.head;	X = tmp.X;	Y = tmp.Y;
+				handles.head = tmp.head;
+				if (~isfield(tmp,'X'))
+					X = linspace(handles.head(1), handles.head(2), size(Z,2));
+					Y = linspace(handles.head(3), handles.head(4), size(Z,1));
+				else
+					X = tmp.X;	Y = tmp.Y;
+				end
 				if (isfield(tmp,'name')),	win_name = tmp.name;	end		% All calls should transmit a name, but ...
-				if (isfield(tmp,'cmap')),	pal = tmp.cmap;			end
-				if (isfield(tmp,'geog')),	handles.geog = tmp.geog + 10;	end
 				if (isfield(tmp,'was_int16'))
 					handles.was_int16 = tmp.was_int16;		handles.Nodata_int16 = tmp.Nodata_int16;
 				end
-				if (isfield(tmp,'srsWKT'))
-					grid_info(handles,tmp.srsWKT,'referenced',varargin{1});	% Create a info string
-					aux_funs('appP', handles, tmp.srsWKT)					% We have a WKT proj, store it
+				projWKT ='';
+				if (isfield(tmp,'srsWKT')),		projWKT = tmp.srsWKT;	end		% If exists, take precedence
+				if (n_argin == 3 && ishandle(varargin{3}))
+					handTmp = guidata(varargin{3});
+					pal = get(handTmp.figure1, 'colormap');
+					if (isempty(projWKT)),	projWKT = getappdata(handTmp.figure1,'ProjWKT');	end
+					if (isempty(projWKT)),	projWKT = getappdata(handTmp.figure1,'Proj4');		end
+					handles.geog = handTmp.geog + 10;
+				end
+				if (isfield(tmp,'geog')),	handles.geog = tmp.geog + 10;	end		% If exists, take precedence
+				if (~isempty(projWKT))
+					grid_info(handles,projWKT,'referenced',varargin{1});	% Create a info string and save projWKT
+					%aux_funs('appP', handles, projWKT)						% We have a WKT proj, store it
 					handles.is_projected = true;		% WEAK LOGIC. SHOULD PARSE WKT TO MAKE SURE
 				elseif (isfield(tmp,'ProjGMT'))			% From geog_calculator. Has opt_J.
 					projection_menu(handles, tmp.ProjGMT)
 					handles = guidata(hObject);			% Get the updated version changed in the above call
 				end
+				if (isfield(tmp,'cmap')),	pal = tmp.cmap;		end		% Takes precedence over the above.
 				if (isfield(tmp,'screenSize'))
 					handles.screenSize = tmp.screenSize;
 				end
@@ -2202,7 +2220,7 @@ function loadGRID(handles, fullname, tipo, opt)
 			if (~isempty(ind2))				% It seams it was a subdatset name
 				pato = fileparts(fullname(ind1+2:ind2-1));
 			end
-		elseif (strcmp(att.DriverShortName,'GTiff') && strcmp(att.Band(1).DataType, 'UInt16'))
+		elseif (~isempty(att) && strcmp(att.DriverShortName,'GTiff') && strcmp(att.Band(1).DataType, 'UInt16'))
 			aux_funs('check_LandSat8', handles, fullname)	% If file is a Landsat8 save some params in appdata
 		end
 		handles.last_dir = pato;
