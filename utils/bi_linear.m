@@ -15,6 +15,7 @@ function [F, row, col] = bi_linear(arg1,arg2,arg3,arg4,arg5)
 %
 %   Clay M. Thompson 3-22-93.
 
+	if (isempty(arg1)),		F=NaN;row=0;col=0;	return,		end
 	[nrows,ncols,dumb] = size(arg3);
 	mx = numel(arg1);   my = numel(arg2);
 	if any([mx my] ~= [ncols nrows]) && ~isequal(size(arg1),size(arg2),size(arg3))
@@ -42,14 +43,14 @@ function [F, row, col] = bi_linear(arg1,arg2,arg3,arg4,arg5)
 
 	% Compute intepolation parameters, check for boundary value.
 	if isempty(s),	d = s;
-	else			d = find(s == ncols);
+	else,			d = find(s == ncols);
 	end
 	s(:) = (s - floor(s));
 	if ~isempty(d), s(d) = s(d)+1; ndx(d) = ndx(d)-nrows; end
 
 	% Compute intepolation parameters, check for boundary value.
 	if isempty(t),	d = t;
-	else			d = find(t == nrows);
+	else,			d = find(t == nrows);
 	end
 	t(:) = (t - floor(t));
 	if (~isempty(d))
