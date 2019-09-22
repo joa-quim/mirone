@@ -64,12 +64,25 @@ function varargout = image_enhance(varargin)
 	img = (get(handles.hMirImg,'CData'));
 
 	handles.use_data = false;
-	if (nargin > 1)				% Currently only "Clipp Grid" does it
+	handles.have_1uint16 = false;		% For Contrast Stretch on uin16
+	handles.have_3uint16 = false;		% For Contrast Stretch on uin16
+	Z = getappdata(handMir.figure1,'dem_z');
+	if (isa(Z, 'uint16') && size(Z,3) == size(img,3))
 		handles.use_data = true;
-		handClip = guidata(varargin{2});	% Handles of the "Clipp Grid" figure
+		if (size(Z,3) == 1),	handles.have_1uint16 = true;
+		else,					handles.have_3uint16 = true;
+		end
+	end
+
+	if (nargin > 1)			% Currently only "Clipp Grid" does nargin > 1
+		handles.use_data = true;
+		handClip = guidata(varargin{2});		% Handles of the "Clipp Grid" figure
 		handles.Clipp_edit_below  = handClip.edit_below;	handles.Clipp_edit_above = handClip.edit_above;
 		handles.Clipp_edit_Bl_val = handClip.edit_Bl_val;	handles.Clipp_edit_Ab_val = handClip.edit_Ab_val;
-		delete(handles.push_contStrectch);    %delete(handles.edit_percentOutliersB)
+		handles.update_clipp_boxes = true;
+		delete(handles.push_contStrectch);		%delete(handles.edit_percentOutliersB)
+	else
+		handles.update_clipp_boxes = false;		% True only when caled from clipp grid (ml_clipp)
 	end
 
 	if (ndims(img) == 3)
@@ -81,8 +94,8 @@ function varargout = image_enhance(varargin)
 		handles.percentOutliers = 2;
 		% OK, here we must reshape the GUI, but we can delete some uis first
 		delete(handles.edit_percentOutliersG);    delete(handles.edit_percentOutliersB)
-		delete(handles.radio_R);    delete(handles.radio_G);    delete(handles.radio_B);
-		delete(handles.push_scaterPlot);    delete(handles.push_decorrStrectch);
+		delete(handles.radio_R);    delete(handles.radio_G);    delete(handles.radio_B)
+		delete(handles.push_scaterPlot);    delete(handles.push_decorrStrectch)
 		pos_fig = get(hObject,'pos');
 		pos_a1 = get(handles.axes1,'pos');
 		new_height = pos_fig(4) - pos_a1(2) + 40;
@@ -120,8 +133,7 @@ function varargout = image_enhance(varargin)
 			Z = getappdata(handMir.figure1,'dem_z');
 			if (isa(Z, 'single'))		% Must normalize it
 				Z1 = Z;		Z1(1) = Z(1) + 0;	% Force copy
-				grdutils(Z1, sprintf('-A%f', -handMir.head(5)))
-				grdutils(Z1, sprintf('-M%f', 1/(handMir.head(6) - handMir.head(5))) )
+				grdutils(Z1, sprintf('-A%f', -handMir.head(5)), sprintf('-M%f', 1/(handMir.head(6) - handMir.head(5))) )
 				localImhist(handles, Z1);
 			else
 				localImhist(handles, Z);
@@ -133,13 +145,22 @@ function varargout = image_enhance(varargin)
 		handles.minCData = double(min(img(:)));		handles.maxCData = double(max(img(:)));
 	else
 		handles.currAxes = 3;	set(handles.figure1,'CurrentAxes',handles.axes3);
-		localImhist(handles,img(:,:,3));
+		%localImhist(handles,img(:,:,3));
+		if (handles.use_data),	localImhist(handles,Z(:,:,3));
+		else,					localImhist(handles,img(:,:,3));
+		end
 		handles = guidata(handles.figure1);			% The handles has been saved in plot_results
 		handles.currAxes = 2;	set(handles.figure1,'CurrentAxes',handles.axes2);
-		localImhist(handles,img(:,:,2));
+		%localImhist(handles,img(:,:,2));
+		if (handles.use_data),	localImhist(handles,Z(:,:,2));
+		else,					localImhist(handles,img(:,:,2));
+		end
 		handles = guidata(handles.figure1);			% The handles has been saved in plot_results
 		handles.currAxes = 1;	set(handles.figure1,'CurrentAxes',handles.axes1);
-		localImhist(handles,img(:,:,1));
+		%localImhist(handles,img(:,:,1));
+		if (handles.use_data),	localImhist(handles,Z(:,:,1));
+		else,					localImhist(handles,img(:,:,1));
+		end
 		handles = guidata(handles.figure1);			% The handles has been saved in plot_results
 		handles.minCData(1) = double(min(min(img(:,:,1))));
 		handles.maxCData(1) = double(max(max(img(:,:,1))));
@@ -285,7 +306,20 @@ function push_contStrectch_CB(hObject, handles)
 		low_high = [limsR(1) limsR(4)] / 255;
 	end
 	set(handles.figure1,'pointer','watch')
-	img = img_fun('imadjust_j',handles.orig_img,low_high,[]);
+	if (handles.have_1uint16 || handles.have_3uint16)	% Only in these two cases
+		handMir = guidata(handles.hMirAxes);
+		Z = getappdata(handMir.figure1,'dem_z');
+		if (handles.have_1uint16)
+			img = scaleto8(Z, 8, [limsR(1) limsR(4)]);
+		else
+			img = handles.orig_img;
+			img(:,:,1) = scaleto8(Z(:,:,1), 8, [limsR(1) limsR(4)]);	% MUST IMPROVE scaleto8 to do all 3 at once
+			img(:,:,2) = scaleto8(Z(:,:,2), 8, [limsG(1) limsG(4)]);
+			img(:,:,3) = scaleto8(Z(:,:,3), 8, [limsB(1) limsB(4)]);
+		end
+	else
+		img = img_fun('imadjust_j',handles.orig_img,low_high,[]);
+	end
 	set(handles.hMirImg, 'Cdata', img)
 	set(handles.figure1,'pointer','arrow')
 
@@ -407,8 +441,6 @@ function plot_result(x, y, handles)
 
 	localStem(x,y)
 	limits = [get(hAxes,'XLim') get(hAxes,'YLim')];
-	margin = 0.04;
-	if (x_max > 256),	margin = 0.02;	end
 	%limits(1) = -10;	limits(2) = 266;
 
 	x_range = limits(2) - limits(1);
@@ -431,11 +463,11 @@ function plot_result(x, y, handles)
 	set(handles.patch(handles.currAxes),'YData',[0 limits(4) limits(4) 0])    % Needed to update y_max
 
 	% Create three vertical lines
-	h_min = line('XData',[x_min x_min],'YData',[0 limits(4)],'color','r','LineWidth',2);
+	h_min = line('XData',[x_min x_min],'YData',[0 limits(4)],'color','r','LineWidth',1);
 	set(h_min,'UserData',1)     % Flag to indicate left line
 	h_med = line('XData',[(x_min+x_max)/2 (x_min+x_max)/2],'YData',[0 limits(4)],'color','r','LineWidth',2,'LineStyle','--');
 	set(h_med,'UserData',2)     % Flag to indicate middle line
-	h_max = line('XData',[x_max x_max],'YData',[0 limits(4)],'color','r','LineWidth',2);
+	h_max = line('XData',[x_max x_max],'YData',[0 limits(4)],'color','r','LineWidth',1);
 	set(h_max,'UserData',3)     % Flag to indicate right line
 	handles.h_vert_lines{handles.currAxes} = [h_min h_med h_max];
 	handles.min_max{handles.currAxes} = [x_min x_max];        % In fact this is always [0 255]
@@ -673,7 +705,7 @@ function drag_vertLine(obj,eventdata,h,handles,n)
 	handles.centerWindow(handles.currAxes) = round(x);
 	if (~handles.use_data)		% Otherwise we don't want to change CLim
 		set(handles.hMirAxes,'CLim',[new_patch_lims(1) new_patch_lims(4)])
-	else
+	elseif (handles.update_clipp_boxes)
 		set([handles.Clipp_edit_below handles.Clipp_edit_Bl_val], 'String', new_patch_lims(1))
 		set([handles.Clipp_edit_above handles.Clipp_edit_Ab_val], 'String', new_patch_lims(4))
 	end
