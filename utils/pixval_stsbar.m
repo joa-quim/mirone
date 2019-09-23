@@ -90,7 +90,7 @@ function PixvalMotionFcn(obj, evt, displayBar)
 		  end
 	   end
 	end
-	%set(displayBar, 'UserData', userData);
+	set(displayBar, 'UserData', userData);		% Need to have this line. Apparently in between someone changes it.
 
 %-----------------------------------------------------------------------------------------
 function [hImg,imageType,img,x,y] = OverImage(hFig)
