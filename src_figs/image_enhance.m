@@ -115,7 +115,7 @@ function varargout = image_enhance(varargin)
 		handles.currAxes = zeros(1,3);
 		if (~handles.use_data)
 			set(handles.hMirImg,'CDataMapping','scaled')   % We will change CLim in intensity images
-		else
+		elseif (handles.update_clipp_boxes)
 			move2side(handClip.figure1, hObject, 'bottom')
 		end
 	end
@@ -437,7 +437,13 @@ function plot_result(x, y, handles)
 	else
 		cor = [120 255 114] / 255;
 	end
-	handles.patch(handles.currAxes) = patch([x_min x_min x_max x_max],[0 y_max y_max 0],cor);
+	h = patch([x_min x_min x_max x_max],[0 y_max y_max 0],cor);
+	handles.patch(handles.currAxes) = h;
+
+	cmenuHand = uicontextmenu('Parent',handles.figure1);
+	set(h, 'UIContextMenu', cmenuHand);   
+	uimenu(cmenuHand, 'Label', 'Save histogram', 'Callback', {@save_line, h, true});
+	uimenu(cmenuHand, 'Label', 'Show in X,Y grapher', 'Callback', {@save_line, h, false});
 
 	localStem(x,y)
 	limits = [get(hAxes,'XLim') get(hAxes,'YLim')];
@@ -470,8 +476,8 @@ function plot_result(x, y, handles)
 	h_max = line('XData',[x_max x_max],'YData',[0 limits(4)],'color','r','LineWidth',1);
 	set(h_max,'UserData',3)     % Flag to indicate right line
 	handles.h_vert_lines{handles.currAxes} = [h_min h_med h_max];
-	handles.min_max{handles.currAxes} = [x_min x_max];        % In fact this is always [0 255]
-	set(handles.figure1,'WindowButtonMotionFcn',{@wbm_vertLine,handles})
+	handles.min_max{handles.currAxes} = [x_min x_max];
+	set(handles.figure1,'WindowButtonMotionFcn',{@wbm_vertLine, handles})
 
 	% OK, now fill the edit boxes that are still empty
 	set(handles.edit_minWindow,'String',sprintf('%d',round(x_min)))
@@ -486,6 +492,23 @@ function plot_result(x, y, handles)
 
 	guidata(handles.figure1,handles)
 
+	% -----------------------------------
+	function save_line(obj, evt, h, save_)
+		handles = guidata(h);
+		if (save_)		% Save to file
+			handMir = guidata(handles.hMirAxes);
+			[FileName,PathName] = put_or_get_file(handMir,{'*.dat', 'X,Y (*.dat)';'*.*', 'All Files (*.*)'},'X,Y (ascii)','put', '.dat');
+			if isequal(FileName,0),		return,		end     % User gave up
+			double2ascii([PathName FileName],handles.histo{handles.currAxes}, '%.12g\t%g');
+		else
+			if (handles.isRGB)
+				tit = {'Red band histogram', 'Green band histogram', 'Blue band histogram'};
+			else
+				tit = {'Gray histogram'};
+			end
+			ecran(handles.histo{handles.currAxes}(:,1), handles.histo{handles.currAxes}(:,2), tit{handles.currAxes})
+		end
+
 % --------------------------------------------------------------------------
 function localStem(x,y)
 %   This is a hacked code from the stem function
@@ -493,6 +516,7 @@ function localStem(x,y)
 
 	if (numel(x) > 256)		% To be clear it should be a condition on 'use_data'
 		line('XData',x,'YData',y,'color','k');
+		return
 	end
 
 	% Set up data using fancing indexing
