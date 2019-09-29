@@ -14,7 +14,7 @@ function [v, f] = reduce_qslim(varargin)
 %
 %   REDUCE_QSLIM(...,'verbose') prints progress messages to the command window.  
 
-%	Copyright (c) 2004-2012 by J. Luis
+%	Copyright (c) 2004-2019 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -36,7 +36,7 @@ function [v, f] = reduce_qslim(varargin)
 
 	if (got_handle)
 		handles = varargin{1};
-		[X,Y,Z,head,nRow,nCol] = load_grd(handles);
+		[X,Y,Z,head] = load_grd(handles);		nRow = size(Z,1);	nCol = size(Z,2);
 		if (isempty(Z)),	return,		end
 
 		if (~isempty(base))
@@ -126,7 +126,7 @@ function [v, f] = reduce_qslim(varargin)
 	if (~isempty(outFname))
 		if (strcmp(formato,'nc'))
 			if (got_handle),	geog = handles.geog;
-			else				geog = 0;
+			else,				geog = 0;
 			end
 			saveFV_nc(outFname, f, v, geog)
 		elseif (strcmp(formato,'stl') || strcmp(formato,'xyz'))
