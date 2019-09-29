@@ -1,7 +1,7 @@
 function varargout = inpaint_nans(varargin)
 % Fill holes in 2D arrays
 
-%	Copyright (c) 2004-2018 by J. Luis
+%	Copyright (c) 2004-2019 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -111,7 +111,7 @@ function radio_newWin_CB(hObject, handles)
 % -----------------------------------------------------------------------------------------
 function push_OK_CB(hObject, handles)
 
-	[X,Y,Z,head,rows,cols] = load_grd(handles.handMir);
+	[X,Y,Z,head] = load_grd(handles.handMir);		rows = size(Z,1);	cols = size(Z,2);
 	if isempty(Z),		return,		end		% An error message was already issued
 	if (get(handles.radio_newWin,'Val'))
 		hdr.X = X;		hdr.Y = Y;		hdr.head = head;		% Save this for use at this function's end
