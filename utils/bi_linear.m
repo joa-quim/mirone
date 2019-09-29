@@ -1,4 +1,4 @@
-function [F, row, col] = bi_linear(arg1,arg2,arg3,arg4,arg5)
+function [F, row, col] = bi_linear(arg1,arg2,arg3,arg4,arg5, layer)
 %LINEAR 2-D bilinear data interpolation.
 %   ZI = BI_LINEAR(X,Y,Z,XI,YI) uses bilinear interpolation to
 %   find ZI, the values of the underlying 2-D function in Z at the points
@@ -16,8 +16,9 @@ function [F, row, col] = bi_linear(arg1,arg2,arg3,arg4,arg5)
 %   Clay M. Thompson 3-22-93.
 
 	if (isempty(arg1)),		F=NaN;row=0;col=0;	return,		end
-	[nrows,ncols,dumb] = size(arg3);
-	mx = numel(arg1);   my = numel(arg2);
+	[nrows,ncols,nlayers] = size(arg3);
+	if (layer+1 > nlayers),	error('Requested layer number is larger then available layers'),	end
+	mx = numel(arg1);		my = numel(arg2);
 	if any([mx my] ~= [ncols nrows]) && ~isequal(size(arg1),size(arg2),size(arg3))
 		error('The lengths of the X and Y vectors must match Z.');
 	end
@@ -39,7 +40,8 @@ function [F, row, col] = bi_linear(arg1,arg2,arg3,arg4,arg5)
 	if ~isempty(tout), t(tout) = ones(size(tout)); end
 
 	% Matrix element indexing
-	ndx = floor(t)+floor(s-1)*nrows;
+	%ndx = floor(t)+floor(s-1)*nrows;
+	ndx = floor(t)+floor(s-1)*nrows + layer * (nrows*ncols);
 
 	% Compute intepolation parameters, check for boundary value.
 	if isempty(s),	d = s;
