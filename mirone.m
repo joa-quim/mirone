@@ -358,7 +358,7 @@ function hObject = mirone_OpeningFcn(varargin)
 			% The prefered way of calling this option should now be:
 			%		mirone(Z, struct('head',[...], 'name','...'), [parent_mir_fig_handle])
 			Z = varargin{1};			grd_data_in = true;
-			if (~isa(Z,'single')),		Z = single(Z);		end
+			if (~isa(Z,'single') && ~isa(Z,'uint16') && ~isa(Z,'int16')),	Z = single(Z);		end
 			handles.have_nans = grdutils(Z,'-N');
 			if (numel(varargin) >= 2 && isa(varargin{2},'struct'))		% A grid with a header
 				tmp = varargin{2};
@@ -1542,7 +1542,7 @@ function FileSaveENCOMgrid_CB(handles)
 	[FileName,PathName] = put_or_get_file(handles,{'*.grd;*.GRD',txt1; '*.*', 'All Files (*.*)'},txt2,'put','.grd');
 	if isequal(FileName,0),		return,		end
 
-	[X,Y,Z,head,m,n] = load_grd(handles);
+	[X,Y,Z,head] = load_grd(handles);		m = size(Z,1);	n = size(Z,2);
 	if isempty(Z),		return,		end		% An error message was already issued
 	f_name = [PathName FileName];
 
@@ -1888,17 +1888,40 @@ function FileOpenGDALmultiBand_CB(handles, opt, opt2, opt3)
 		if (nargin == 4),	att = opt3;
 		else,				att = gdalread(fname,'-M', '-C');
 		end
-		bands_inMemory = 10;				% AD-HOC
 		opt_U = ' ';
 		if (~isempty(att.GeoTransform)),	opt_U = '-U';	end
-		opt_B = sprintf('-B1-%d', bands_inMemory);
 		opt_S = '-S';
-		if (strcmp(att.Band(1).DataType, 'Float32'))
+		if (strcmp(att.Band(1).DataType, 'Float32'))	% WTF case is this?
 			opt_S = ' ';
 			opt_B = '-B1';		bands_inMemory = 1;		% If floats, keep only one in mem
 			opt_bak = opt;		opt = 'Multi-band Float32';		reseta = true;
+		elseif (strcmp(att.Band(1).DataType, 'UInt16'))
+			k = 1;
+			opt_S = ' ';
+			while (k <= min(att.RasterCount,1) && strcmp(att.Band(k).DataType, 'UInt16'))
+				k = k + 1;		% The shit is that some files have also bands with other bitages
+			end
+			% Estimate max bands to save in memory as about 1/2 handles.grdMaxSize
+			% but not yet because image_enhance can only deal with 1 or 3 uint16 layers
+			%max_bands = fix(handles.grdMaxSize / (att.RasterXSize * att.RasterYSize * 2 * 2));
+			%bands_inMemory = min(k - 1, max_bands);
+			bands_inMemory = k - 1;
+			opt_B = sprintf('-B1-%d', bands_inMemory);
+			opt_bak = opt;		opt = att.DriverShortName;		reseta = true;
 		end
 		I = gdalread(fname,opt_S, opt_B, opt_U, '-C');
+		if (~isa(I, 'uint8'))
+			if (isempty(att.ProjectionRef))
+				X = 1:att.RasterXSize;		Y = 1:att.RasterYSize;
+			else
+				X = linspace(att.GMT_hdr(1), att.GMT_hdr(2), att.RasterXSize);
+				Y = linspace(att.GMT_hdr(3), att.GMT_hdr(4), att.RasterYSize);
+			end
+			aux_funs('StoreZ',handles,X,Y,I)			% If grid size is not to big we'll store it
+			validGrid = 1;
+			I = scaleto8(I);
+		end
+
 		n_bands = att.RasterCount;
 		if (n_bands == 4)					% We might have a situation here. A Geotiff with transparency
 			[P,N,EXT] = fileparts(fname);
@@ -1932,22 +1955,25 @@ function FileOpenGDALmultiBand_CB(handles, opt, opt2, opt3)
 		if (handles.image_type == 3)
 			X = handles.head(1:2);		Y = handles.head(3:4);		ax_dir = 'xy';
 		end
-		reader = [];
+		if (strncmp(opt,'PCA',3)),	reader = '';	end		% PCA images were computed, so they have no reader
 	end
 
 	if (strcmp(opt,'RAW') || strncmp(opt,'PCA',3))
 		bnd_names = cell(n_bands,1);
-		for (k = 1:n_bands),	bnd_names{k} = sprintf('%d', k);	end
+		for (k = 1:n_bands),	bnd_names{k} = sprintf('Band_%d', k);	end
 	else
 		bnd_names = '';
 		c = false(numel(att.Metadata), 1);
 		for (k = 1:numel(att.Metadata))
-			if (~isempty(strfind(att.Metadata{k}, 'Band_Name'))),	c(k) = true;	end
+			if (~isempty(strfind(att.Metadata{k}, 'Band_'))),	c(k) = true;	end
 		end
 		if (any(c))
 			bnd_names = att.Metadata(c);
 			for (k = 1:numel(bnd_names))
-				bnd_names{k} = bnd_names{k}(11:end);
+				ind = strfind(bnd_names{k}, '=');
+				bnd_names{k} = strrep(bnd_names{k}(ind(1)+1:end), ' ', '_');
+				bnd_names{k} = strrep(bnd_names{k}, '(', '[');
+				bnd_names{k} = strrep(bnd_names{k}, ')', ']');	% Neither of these three can used in band_arithm
 			end
 		end
 	end
@@ -1968,7 +1994,7 @@ function FileOpenGDALmultiBand_CB(handles, opt, opt2, opt3)
 	if (n_bands == 1),		set(handles.figure1,'Colormap',gray(256)),		end		% Takes precedence over the above
 	if (islogical(I)),		I = I(:,:,1);		end		% We don't want to try to compose an RGB out of logicals
 
-	if (isa(I, 'single'))						% This is special case
+	if (isa(I, 'single'))						% This is a special case
 		X = linspace(X(1),X(2),size(I,2));		Y = linspace(Y(1),Y(2),size(I,1));
 		if (~isnan(att.Band(1).NoDataValue))
 			I(I == att.Band(1).NoDataValue) = NaN;
@@ -1982,9 +2008,13 @@ function FileOpenGDALmultiBand_CB(handles, opt, opt2, opt3)
 
 	handles = show_image(handles,fname,X,Y,I,validGrid,ax_dir,0);	% It also guidata(...) & reset pointer
 	if (isappdata(handles.axes1,'InfoMsg')),	rmappdata(handles.axes1,'InfoMsg'),		end
-	if (any(strcmp(opt, {'ENVISAT' 'AVHRR' 'multiband'}))),		grid_info(handles,att,'gdal');		end		% Construct a info message
-	aux_funs('isProj',handles,1);				% Check/set about coordinates type
-	setAxesDefCoordIn(handles);					% Sets the value of the axes uicontextmenu that selects whether project or not
+	if (any(strcmp(opt, {'ENVISAT' 'AVHRR' 'multiband'}))),		grid_info(handles,att,'gdal');	end	% Construct a info message
+	aux_funs('isProj',handles,1);		% Check/set about coordinates type
+	setAxesDefCoordIn(handles);			% Sets the value of the axes uicontextmenu that selects whether project or not
+% 	if (size(I,3) == 3)					% 3 means it's an image and we may have uint16 stored making it think it's a grid
+% 		t = findobj(handles.figure1, 'Tag','pixValStsBar');
+% 		ud = get(t, 'UserData');	ud.haveGrid = 0;	set(t, 'UserData', ud)
+% 	end
 
 % --------------------------------------------------------------------
 function erro = FileOpenGeoTIFF_CB(handles, tipo, opt)
@@ -2440,7 +2470,7 @@ function handles = show_image(handles, fname, X, Y, I, validGrid, axis_t, adjust
 		if (ndims(I) == 3)		% Some cheating to allow selecting individual bands of a RGB image
 			tmp1 = cell(4,2);	tmp2 = cell(4,2);		tmp1{1,1} = 'RGB';		tmp1{1,2} = 'RGB';
 			for (i = 1:3)
-				tmp1{i+1,1} = ['band' sprintf('%d',i)];		tmp1{i+1,2} = ['banda' sprintf('%d',i)];
+				tmp1{i+1,1} = sprintf('band%d',i);		tmp1{i+1,2} = sprintf('banda%d',i);
 				tmp2{i+1,1} = [sprintf('%d',i) sprintf('%d',size(I,1)) 'x' sprintf('%d',size(I,2)) ' BSQ']; tmp2{i+1,2} = i;
 			end
 			tmp = {['+ ' 'RGB']; I; tmp1; tmp2; ''; 1:3; [size(I,1) size(I,2) 3]; 'Mirone'};
@@ -4372,7 +4402,7 @@ function GRDdisplay(handles, X, Y, Z, head, tit, name, srsWKT, cmap)
 	tmp.head = head;			tmp.X = X;		tmp.Y = Y;		tmp.geog = handles.geog;	tmp.name = name;
 	if (nargin >= 8 && ~isempty(srsWKT)),		tmp.srsWKT = srsWKT;	end
 	if (nargin == 9 && ~isempty(cmap)),			tmp.cmap = cmap;	end
-	h = mirone(Z,tmp);			newHand = guidata(h);
+	h = mirone(Z, tmp, handles.figure1);		newHand = guidata(h);
 	thematic_pal = getappdata(handles.figure1, 'thematic_pal');		% Because of the bloody cpt2cmap crash
 	if (~isempty(thematic_pal)),	setappdata(newHand.figure1,'thematic_pal',thematic_pal),	end
 
@@ -4447,6 +4477,7 @@ function FileSaveImgGrdGdal_CB(handles, opt1, opt2, opt3)
 			if (~isempty(h))
 				x = get(h,'XData');		y = get(h,'YData');		gcps(:,1:2) = [x(:) y(:)];
 			end
+			if (size(gcps,2) > 4),	gcps(:,5:end) = [];		end		% Shitilly this may happen
 			hdr.gcp = gcps;
 		end
 	end
@@ -4565,7 +4596,7 @@ function Zsmoothed = GridToolsSmooth_CB(handles, opt)
 % function from another one and send back the final result without stopping due to any questions.
 
 	if (aux_funs('msg_dlg',14,handles)),		return,		end
-	[X,Y,Z,head,m,n] = load_grd(handles,'double');
+	[X,Y,Z,head] = load_grd(handles,'double');		m = size(Z,1);	n = size(Z,2);
 	if isempty(Z),		return,		end				% An error message was already issued
 
 	[pp, p_guess] = spl_fun('csaps',{Y(1:5),X(1:5)},Z(1:5,1:5));		% Get a good estimate of p
@@ -4630,7 +4661,7 @@ function sdgGrid = GridToolsSDG_CB(handles, opt, opt2)
 % function from another one and send back the final result without stopping due to any questions.
 
 	if (aux_funs('msg_dlg',14,handles)),		return,		end
-	[X,Y,Z,head,m,n] = load_grd(handles,'double');
+	[X,Y,Z,head] = load_grd(handles,'double');		m = size(Z,1);	n = size(Z,2);
 	if isempty(Z),		return,		end
 	[pp, p_guess] = spl_fun('csaps',{Y(1:5),X(1:5)},Z(1:5,1:5));	% Get a good estimate of p
 	if (nargin == 2)
@@ -4797,7 +4828,7 @@ function out = GridToolsFindHoles_CB(handles)
 
 	if (aux_funs('msg_dlg',14,handles)),	return,		end  
 	if (~handles.have_nans),	warndlg('This grid has no holes','Warning'),	return,	end
-	[X,Y,Z,head,m,n] = load_grd(handles);
+	[X,Y,Z,head] = load_grd(handles);		m = size(Z,1);	n = size(Z,2);
 	if isempty(Z),		return,		end		% An error message was already issued
 
 	set(handles.figure1,'pointer','watch'),		go_out = false;
@@ -4854,7 +4885,7 @@ function GridToolsSaveAsSRTM_CB(handles)
 function GridToolsPadd2Const_CB(handles)
 % Pad the array to a const value (currently ct = zero) using a Hanning window
 	if (aux_funs('msg_dlg',14,handles)),	return,		end
-	[X,Y,Z,head,m,n] = load_grd(handles);
+	[X,Y,Z,head] = load_grd(handles);		m = size(Z,1);	n = size(Z,2);
 	if isempty(Z),		return,		end		% An error message was already issued
 	resp  = inputdlg({'Enter number of border lines'},'Skirt width',[1 38],{'10'});		pause(0.01)
 	resp = abs( round(str2double(resp{1})) );
