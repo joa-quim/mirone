@@ -59,19 +59,15 @@ function varargout = image_enhance(varargin)
 			NaN	NaN	NaN	NaN	NaN	NaN	NaN	2	NaN	NaN	NaN	NaN	NaN	NaN	NaN	NaN; ...
 			NaN	NaN	NaN	NaN	NaN	NaN	NaN	NaN	NaN	NaN	NaN	NaN	NaN	NaN	NaN	NaN]';
 
+	handles.hMirFig  = handMir.figure1;
 	handles.hMirAxes = handMir.axes1;
-	handles.hMirImg = handMir.hImg;
-	img = (get(handles.hMirImg,'CData'));
+	handles.hMirImg  = handMir.hImg;
+	img = get(handles.hMirImg,'CData');
 
 	handles.use_data = false;
-	handles.have_1uint16 = false;		% For Contrast Stretch on uin16
-	handles.have_3uint16 = false;		% For Contrast Stretch on uin16
 	Z = getappdata(handMir.figure1,'dem_z');
-	if (isa(Z, 'uint16') && size(Z,3) == size(img,3))
+	if (isa(Z, 'uint16') || isa(Z, 'int16'))
 		handles.use_data = true;
-		if (size(Z,3) == 1),	handles.have_1uint16 = true;
-		else,					handles.have_3uint16 = true;
-		end
 	end
 
 	if (nargin > 1)			% Currently only "Clipp Grid" does nargin > 1
@@ -126,7 +122,7 @@ function varargout = image_enhance(varargin)
 
 	handles.imgClass = class(img);
 	handles.satistic(1) = {' '};
-
+	
 	if (~handles.isRGB)
 		handles.currAxes = 1;	set(handles.figure1,'CurrentAxes',handles.axes1);
 		if (handles.use_data)
@@ -136,32 +132,39 @@ function varargout = image_enhance(varargin)
 				grdutils(Z1, sprintf('-A%f', -handMir.head(5)), sprintf('-M%f', 1/(handMir.head(6) - handMir.head(5))) )
 				localImhist(handles, Z1);
 			else
-				localImhist(handles, Z);
+				out = get_from_multi_bands(handles);
+				if (isempty(out{1}))	% We have the data in memory
+					localImhist(handles, Z(:,:,out{2}(1)));
+				else					% Must load band
+					localImhist(handles, gdalread(out{1}, sprintf('-B%d', out{2}(1))) );
+				end
 			end
 		else
 			localImhist(handles,img);
 		end
-		handles = guidata(handles.figure1);			% Update. The handles has been saved in plot_results
+		handles = guidata(handles.figure1);			% Update. The handles was saved in plot_results
 		handles.minCData = double(min(img(:)));		handles.maxCData = double(max(img(:)));
 	else
-		handles.currAxes = 3;	set(handles.figure1,'CurrentAxes',handles.axes3);
-		%localImhist(handles,img(:,:,3));
-		if (handles.use_data),	localImhist(handles,Z(:,:,3));
-		else,					localImhist(handles,img(:,:,3));
+		hAxes = [handles.axes1 handles.axes2 handles.axes3];
+		if (~handles.use_data)			% Use the uint8 img 
+			for (k = 3:-1:1)
+				set(handles.figure1,'CurrentAxes',hAxes(k));	handles.currAxes = k;
+				localImhist(handles,img(:,:,k));
+				handles = guidata(handles.figure1);		% The handles was saved in plot_results
+			end
+		else
+			out = get_from_multi_bands(handles);
+			for (k = 3:-1:1)
+				set(handles.figure1,'CurrentAxes',hAxes(k));	handles.currAxes = k;
+				if (isempty(out{1}))	% We have the data in memory
+					localImhist(handles, Z(:,:,out{2}(k)));
+				else					% Must load band
+					localImhist(handles, gdalread(out{1}, sprintf('-B%d', out{2}(k))) );
+				end
+				handles = guidata(handles.figure1);		% The handles was saved in plot_results
+			end
 		end
-		handles = guidata(handles.figure1);			% The handles has been saved in plot_results
-		handles.currAxes = 2;	set(handles.figure1,'CurrentAxes',handles.axes2);
-		%localImhist(handles,img(:,:,2));
-		if (handles.use_data),	localImhist(handles,Z(:,:,2));
-		else,					localImhist(handles,img(:,:,2));
-		end
-		handles = guidata(handles.figure1);			% The handles has been saved in plot_results
-		handles.currAxes = 1;	set(handles.figure1,'CurrentAxes',handles.axes1);
-		%localImhist(handles,img(:,:,1));
-		if (handles.use_data),	localImhist(handles,Z(:,:,1));
-		else,					localImhist(handles,img(:,:,1));
-		end
-		handles = guidata(handles.figure1);			% The handles has been saved in plot_results
+
 		handles.minCData(1) = double(min(min(img(:,:,1))));
 		handles.maxCData(1) = double(max(max(img(:,:,1))));
 		handles.minCData(2) = double(min(min(img(:,:,2))));
@@ -228,25 +231,18 @@ function edit_percentOutliersB_CB(hObject, handles)
 
 % --------------------------------------------------------------------------
 function radio_matchRange_CB(hObject, handles)
-	if (get(hObject,'Value'))
-		set(handles.radio_delOutliers,'Value',0)
-	else
-		set(hObject,'Value',1)
-	end
+	if (~get(hObject,'Value')),		set(hObject,'Value',1),		return,	end
+	set(handles.radio_delOutliers,'Value',0)
 
 % --------------------------------------------------------------------------
 function radio_delOutliers_CB(hObject, handles)
-	if (get(hObject,'Value'))
-		set(handles.radio_matchRange,'Value',0)
-	else
-		set(hObject,'Value',1)
-	end
+	if (~get(hObject,'Value')),		set(hObject,'Value',1),		return,	end
+	set(handles.radio_matchRange,'Value',0)
 
 % --------------------------------------------------------------------------
 function radio_R_CB(hObject, handles)
-	if (get(hObject,'Value')),	swap_radios(handles,1)
-	else,						set(hObject, 'Value',1)
-	end
+	if (~get(hObject,'Value')),		set(hObject,'Value',1),		return,	end
+	swap_radios(handles,1)
 
 % --------------------------------------------------------------------------
 function radio_G_CB(hObject, handles)
@@ -306,22 +302,71 @@ function push_contStrectch_CB(hObject, handles)
 		low_high = [limsR(1) limsR(4)] / 255;
 	end
 	set(handles.figure1,'pointer','watch')
-	if (handles.have_1uint16 || handles.have_3uint16)	% Only in these two cases
+
+	if (handles.use_data)
 		handMir = guidata(handles.hMirAxes);
-		Z = getappdata(handMir.figure1,'dem_z');
-		if (handles.have_1uint16)
-			img = scaleto8(Z, 8, [limsR(1) limsR(4)]);
+		Z = getappdata(handMir.figure1,'dem_z');		% Even if wont use it, this op is free
+		
+		out = get_from_multi_bands(handles);
+		if (handles.isRGB)
+			img = get(handles.hMirImg, 'Cdata');
+			if (isempty(out{1}))		% All bands are already in memory
+				img(:,:,1) = scaleto8(Z(:,:,out{2}(1)), 8, [limsR(1) limsR(4)]);	% TODO, IMPROVE scaleto8 to do all 3 at once
+				img(:,:,2) = scaleto8(Z(:,:,out{2}(2)), 8, [limsG(1) limsG(4)]);
+				img(:,:,3) = scaleto8(Z(:,:,out{2}(3)), 8, [limsB(1) limsB(4)]);
+			else
+				% For now just read them all 3 again
+				img(:,:,1) = scaleto8(gdalread(out{1}, sprintf('-B%d', out{2}(1))), 8, [limsR(1) limsR(4)]);
+				img(:,:,2) = scaleto8(gdalread(out{1}, sprintf('-B%d', out{2}(2))), 8, [limsG(1) limsG(4)]);
+				img(:,:,3) = scaleto8(gdalread(out{1}, sprintf('-B%d', out{2}(3))), 8, [limsB(1) limsB(4)]);
+			end
 		else
-			img = handles.orig_img;
-			img(:,:,1) = scaleto8(Z(:,:,1), 8, [limsR(1) limsR(4)]);	% MUST IMPROVE scaleto8 to do all 3 at once
-			img(:,:,2) = scaleto8(Z(:,:,2), 8, [limsG(1) limsG(4)]);
-			img(:,:,3) = scaleto8(Z(:,:,3), 8, [limsB(1) limsB(4)]);
+			if (isempty(out{1}))		% Band is already in memory
+				img = scaleto8(Z(:,:,out{2}(1)), 8, [limsR(1) limsR(4)]);
+			else
+				img = scaleto8(gdalread(out{1}, sprintf('-B%d', out{2}(1))), 8, [limsR(1) limsR(4)]);
+			end
 		end
 	else
 		img = img_fun('imadjust_j',handles.orig_img,low_high,[]);
 	end
 	set(handles.hMirImg, 'Cdata', img)
-	set(handles.figure1,'pointer','arrow')
+	set(handles.figure1, 'pointer','arrow')
+
+% --------------------------------------------------------------------------
+function out = get_from_multi_bands(handles)
+% Get the band number from info stored in appdata 'BandList'
+	out{1} = '';				% The file name
+	out{2} = [];
+	if (~handles.use_data),		return,		end
+
+	BL = getappdata(handles.hMirFig, 'BandList');
+	if (isempty(BL)),	out{2} = 1;		return,		end		% Not from a multiband collection
+
+	ZL = aux_funs('get_set_zLayers', handles.hMirFig);
+	handMir = guidata(handles.hMirAxes);
+	Z = getappdata(handMir.figure1,'dem_z');
+	
+	[b,b] = ismember(ZL, BL{6});
+	idx = (b == 0);				% ISMEMBER returns zeros for elements of A not in B
+	b(idx) = [];				% If they exis, clear them
+	if (handles.isRGB)
+		if (numel(b) == 3)		% All bands are already in memory
+			out{2} = b;
+		else
+			% For now just read them all 3 again
+			out{1} = BL{5};		% File name
+			out{2} = ZL;
+		end
+	else
+		if (ZL(1) <= size(Z,3))	% It's in mem for sure
+			out{2} = ZL(1);
+		else
+			out{1} = BL{5};		% File name
+			out{2} = ZL(1);
+		end
+	end
+
 
 % --------------------------------------------------------------------------
 function push_decorrStrectch_CB(hObject, handles)
