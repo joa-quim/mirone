@@ -1,7 +1,7 @@
 function varargout = bands_list(varargin)
 % Compose a false color image by band selection
 
-%	Copyright (c) 2004-2018 by J. Luis
+%	Copyright (c) 2004-2019 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -55,8 +55,10 @@ function hObject = bands_list_OF(varargin)
 	handles.dims = bandList{7};			% A [n_row n_col nBands_total] vector with the 2D image dimensions and the
 										% TOTAL number of bands in the dataset (some of them may not be on memory)
 	handles.reader = bandList{8};		% A string with 'GDAL' if the dataset was openend with it OR:
-										% a Mx2 cell array with {byte_resolution, header, interleave, endian};
+										% a Mx2 cell array with {byte_resolution, header len, interleave, endian};
 										% and a 1 to 3 elements with the subsets option of multiband read.
+	inBands = size(handles.image_bands,3);
+	handles.all_in_mem = (inBands > 1 && (inBands == numel(handles.bands_inMemory)));
 
 	for (i = 1:handles.dims(3))
 		tmp.(sprintf('band%d',i)) = i;	
@@ -77,7 +79,12 @@ function hObject = bands_list_OF(varargin)
 	set(handles.figure1, 'SelectionType', 'open')
 	listbox1_CB(handles.listbox1, handles)
 	set(handles.figure1, 'SelectionType', 'normal')
-	handles = guidata(handles.figure1);			% Get updated version
+	handles = guidata(handles.figure1);		% Get updated version
+	if (size(bandList{2},3) == 1)			% Switch to Gray mode
+		set(handles.radio_gray, 'Val', 1)
+		radio_gray_CB(handles.radio_gray, handles)
+		set(handles.edit_Rband,'String',handles.all_names{2,2})
+	end
 
 	set(hObject,'Visible','on');
 
@@ -104,11 +111,8 @@ function radio_gray_CB(hObject, handles)
 		pos = handles.frame_movel_pos;
 		pos = [pos(1) pos(2)+pos(4)/2 pos(3) pos(4)/2];
 		set(handles.edit_Rband,'Pos',pos+[10 5 -20 -28])
-		set(handles.radio_R,'Vis','off')
-		set(handles.radio_G,'Vis','off')
-		set(handles.radio_B,'Vis','off')
-		set(handles.edit_Gband,'Vis','off')
-		set(handles.edit_Bband,'Vis','off')
+		set([handles.radio_R handles.radio_G handles.radio_B],'Vis','off')
+		set([handles.edit_Gband handles.edit_Bband],'Vis','off')
 		set(handles.text_toGray,'Vis','on')
 	else
 		set(hObject,'Value',1)
@@ -119,11 +123,8 @@ function radio_RGB_CB(hObject, handles)
 	if (get(hObject,'Value'))
 		set(handles.radio_gray,'Value',0)
 		set(handles.edit_Rband,'Pos',handles.edit_Rband_pos)
-		set(handles.radio_R,'Vis','on')
-		set(handles.radio_G,'Vis','on')
-		set(handles.radio_B,'Vis','on')
-		set(handles.edit_Gband,'Vis','on')
-		set(handles.edit_Bband,'Vis','on')
+		set([handles.radio_R handles.radio_G handles.radio_B],'Vis','on')
+		set([handles.edit_Gband handles.edit_Bband],'Vis','on')
 		set(handles.text_toGray,'Vis','off')
 	else
 		set(hObject,'Value',1)
@@ -131,30 +132,18 @@ function radio_RGB_CB(hObject, handles)
 
 % ------------------------------------------------------------------------
 function radio_R_CB(hObject, handles)
-	if (get(hObject,'Value'))
-		set(handles.radio_G,'Value',0)
-		set(handles.radio_B,'Value',0)
-	else
-		set(hObject,'Value',1)
-	end
+	if (~get(hObject,'Value')),		set(hObject,'Value',1),		return,	end
+	set([handles.radio_G, handles.radio_B], 'Value',0)
 
 % ------------------------------------------------------------------------
 function radio_G_CB(hObject, handles)
-	if (get(hObject,'Value'))
-		set(handles.radio_R,'Value',0)
-		set(handles.radio_B,'Value',0)
-	else
-		set(hObject,'Value',1)
-	end
+	if (~get(hObject,'Value')),		set(hObject,'Value',1),		return,	end
+	set([handles.radio_R, handles.radio_B], 'Value',0)
 
 % ------------------------------------------------------------------------
 function radio_B_CB(hObject, handles)
-	if (get(hObject,'Value'))
-		set(handles.radio_R,'Value',0)
-		set(handles.radio_G,'Value',0)
-	else
-		set(hObject,'Value',1)
-	end
+	if (~get(hObject,'Value')),		set(hObject,'Value',1),		return,	end
+	set([handles.radio_R, handles.radio_G], 'Value',0)
 
 % --------------------------------------------------------------------------
 function push_pca_CB(hObject, handles)
@@ -194,57 +183,18 @@ function push_Load_CB(hObject, handles)
 		return
 	end
 
-	handMir = guidata(handles.hMirFig);        % Retrive Mirone handles
+	handMir = guidata(handles.hMirFig);			% Retrive Mirone handles
 	img = get(handMir.hImg,'CData');
 	head = [];              % It will be changed only if we load a composition of non uint8
 
-	if (get(handles.radio_RGB,'Value'))       % RGB - pure image for sure (is it??)
-		[b,b] = ismember([handles.Rband handles.Gband handles.Bband],handles.bands_inMemory);
-		idx = (b == 0);		% ISMEMBER returns zeros for elements of A not in B
-		b(idx) = [];		% If they exis, clear them
-		if (length(b) == 3)         % All bands are aready in memory
-			img = handles.image_bands(:,:,b);
-		elseif (length(b) == 2)     % Two bands are in memory. Need to load the third
-			id = intersect([handles.Rband handles.Gband handles.Bband], b);
-			if (isequal(id,[1 2]) || isequal(id,[2 1]))          % Red & Green in memory
-				img(:,:,1:2) = handles.image_bands(:,:,b);
-				img(:,:,3) = gdalread(handles.fname,'-S', ['-B' num2str(handles.Bband)]);
-			elseif (isequal(id,[1 3]) || isequal(id,[3 1]))      % Red & Blue in memory
-				img(:,:,1) = handles.image_bands(:,:,b(1));
-				img(:,:,2) = gdalread(handles.fname,'-S', ['-B' num2str(handles.Gband)]);
-				img(:,:,3) = handles.image_bands(:,:,b(2));
-			elseif (isequal(id,[2 3]) || isequal(id,[3 2]))      % Green & Blue in memory
-				img(:,:,1) = gdalread(handles.fname,'-S', ['-B' num2str(handles.Rband)]);
-				img(:,:,2:3) = handles.image_bands(:,:,b);
-			end
-		elseif (length(b) == 1)     % One band in memory. Need to load the other two
-			id = find([handles.Rband handles.Gband handles.Bband] == b);
-			if (id == 1)            % In memory band is the Red layer
-				img(:,:,1) = handles.image_bands(:,:,b);
-				if (handles.Gband < handles.Bband)  % OK, band numbers are in ascending order
-					img(:,:,2:3) = gdalread(handles.fname,'-S', ['-B' num2str(handles.Gband) ',' num2str(handles.Bband)]);
-				else                % gdalread cannot read e.g. -B2,1 so we have to make two calls
-					img(:,:,2) = gdalread(handles.fname,'-S', ['-B' num2str(handles.Gband)]);
-					img(:,:,3) = gdalread(handles.fname,'-S', ['-B' num2str(handles.Bband)]);
-				end
-			elseif (id == 2)        % In memory band is the Green layer
-				img(:,:,1) = gdalread(handles.fname,'-S', ['-B' num2str(handles.Rband)]);
-				img(:,:,2) = handles.image_bands(:,:,b);
-				img(:,:,3) = gdalread(handles.fname,'-S', ['-B' num2str(handles.Bband)]);
-			else                    % In memory band is the Blue layer
-				if (handles.Rband < handles.Gband)  % OK, band numbers are in ascending order
-					img(:,:,1:2) = gdalread(handles.fname,'-S', ['-B' num2str(handles.Rband) ',' num2str(handles.Gband)]);
-				else
-					img(:,:,1) = gdalread(handles.fname,'-S', ['-B' num2str(handles.Rband)]);
-					img(:,:,2) = gdalread(handles.fname,'-S', ['-B' num2str(handles.Gband)]);
-				end
-				img(:,:,3) = handles.image_bands(:,:,b);
-			end
-		else                        % No bands in memory. Need to load them all
+	if (get(handles.radio_RGB,'Value'))			% RGB - pure image for sure (is it??)
+		if (handles.all_in_mem)
+			img = handles.image_bands(:,:,[handles.Rband handles.Gband handles.Bband]);
+		else 
 			if (handles.Rband < handles.Gband && handles.Gband < handles.Bband)
 				img = gdalread(handles.fname,'-S', ['-B' num2str(handles.Rband) ',' ...
 						num2str(handles.Gband) ',' num2str(handles.Bband)]);
-			else                % Just read one band at a time
+			else					% Just read one band at a time
 				img(:,:,1) = gdalread(handles.fname,'-S', ['-B' num2str(handles.Rband)]);
 				img(:,:,2) = gdalread(handles.fname,'-S', ['-B' num2str(handles.Gband)]);
 				img(:,:,3) = gdalread(handles.fname,'-S', ['-B' num2str(handles.Bband)]);
@@ -253,30 +203,37 @@ function push_Load_CB(hObject, handles)
 
 		set(handMir.hImg,'CData',img)
 		image_type = handles.image_type_orig;		% Reset indicator that this is an image only
-		computed_grid = 0;      % Reset this also
+		computed_grid = 0;		% Reset this also
 		was_int16 = 0;
-		try
-			t = findobj(handles.hMirFig, 'Tag','pixValStsBar');
-			ud = get(t, 'UserData');
-			ud.haveGrid = 0;
-			set(t, 'UserData', ud)
-			%rmappdata(handles.hMirFig,'dem_x');		rmappdata(handles.hMirFig,'dem_y');		rmappdata(handles.hMirFig,'dem_z');
-			%image_type = 3;		% If it reaches here means that the collection was > int8
-		end
-	else                        % GRAY SCALE, which can be an image or a > uint8 image band that needs scaling
-		[b,b] = ismember(handles.Rband,handles.bands_inMemory);
-		idx = (b == 0);         % ISMEMBER returns zeros for elements of A not in B
-		b(idx) = [];            % If they exist, clear them
-		if (~isempty(b))        % The band is in memory
-			img = handles.image_bands(:,:,handles.Rband);
-		else                    % Need to load band
-			% Here it will fail if the file is not to be read by GDAL
+
+		t = findobj(handles.hMirFig, 'Tag','pixValStsBar');
+		ud = get(t, 'UserData');	ud.haveGrid = 0;	set(t, 'UserData', ud)
+		aux_funs('get_set_zLayers', handles.hMirFig, [handles.Rband handles.Gband handles.Bband]); % Save bands order
+
+	else						% GRAY SCALE, which can be an image or a > uint8 image band that needs scaling
+		if (handles.Rband == 1 || handles.all_in_mem)		% The band is in memory
+			img = handles.image_bands(:,:,handles.Rband);	% Trust that this one always exist
+			setappdata(handles.hMirFig,'dem_z_curLayer', handles.Rband)	% To be used by pixval, grdtrack, grdcut etc
+			if (isappdata(handles.hMirFig, 'dem_z_tmp')),	rmappdata(handles.hMirFig, 'dem_z_tmp'),	end
+		else                    % Need to load band (will fail if the file is not to be read by GDAL)
 			if (isa(handles.image_bands, 'single'))
 				opt_U = ' ';
 				if (~isempty(handles.att.GeoTransform)),	opt_U = '-U';	end
 				img = gdalread(handles.fname, opt_U, ['-B' num2str(handles.Rband)], '-C');
 			else
-				img = gdalread(handles.fname,'-S', ['-B' num2str(handles.Rband)]);
+				%img = gdalread(handles.fname,'-S', ['-B' num2str(handles.Rband)]);
+				Z = gdalread(handles.fname,['-B' num2str(handles.Rband)]);
+				if (isa(Z, 'uint16') || isa(Z, 'int16'))
+					setappdata(handles.hMirFig,'dem_z_tmp',Z);		% Dangerous ground. MUST remove when no longer valid.
+					setappdata(handles.hMirFig,'dem_z_curLayer', -handles.Rband)	% - to eventually be used by band_calc
+					img = scaleto8(Z);
+					t = findobj(handles.hMirFig, 'Tag','pixValStsBar');
+					ud = get(t, 'UserData');	ud.haveGrid = 1;	set(t, 'UserData', ud)
+				elseif (isa(Z, 'uint8'))
+					img = Z;
+				else
+					warning('Case not foreseen in bands_list')
+				end
 			end
 		end
 
@@ -305,29 +262,29 @@ function push_Load_CB(hObject, handles)
 			else                            % reader is MULTIBANDREAD - SHIT, WHAT A MESS OF TESTS WE NEED TO DO
 				if (length(handles.reader(2)) >= 2)     % Two (or three) subsets have been choosed. Ignore third one
 					if (strcmp(handles.reader{2}(1), 'Row') && strcmp(handles.reader{2}(2), 'Column'))      % Row & Column
-						Z = multibandread_j(handles.fname, [handles.dims(1) handles.dims(2) handles.dims(3)],...
+						Z = multibandread_j(handles.fname, handles.dims(1:3),...
 							handles.reader{1}{1},handles.reader{1}{2},handles.reader{1}{3},handles.reader{1}{4},...
 							handles.reader{2}(1),handles.reader{2}(2),{'Band','Direct',handles.Rband});
 					elseif (strcmp(handles.reader{2}(1), 'Row') && ~strcmp(handles.reader{2}(2), 'Column')) % Row only
-						Z = multibandread_j(handles.fname, [handles.dims(1) handles.dims(2) handles.dims(3)],...
+						Z = multibandread_j(handles.fname, handles.dims(1:3),...
 							handles.reader{1}{1},handles.reader{1}{2},handles.reader{1}{3},handles.reader{1}{4},...
 							handles.reader{2}(1),{'Band','Direct',handles.Rband});
 					elseif (~strcmp(handles.reader{2}(1), 'Row') && strcmp(handles.reader{2}(2), 'Column')) % Column only
-						Z = multibandread_j(handles.fname, [handles.dims(1) handles.dims(2) handles.dims(3)],...
+						Z = multibandread_j(handles.fname, handles.dims(1:3),...
 							handles.reader{1}{1},handles.reader{1}{2},handles.reader{1}{3},handles.reader{1}{4},...
 							handles.reader{2}(2),{'Band','Direct',handles.Rband});
 					end
 				else                                    % One subsect selectet. Ignore it if it was the 'Band'
 					if (strcmp(handles.reader{2}(1), 'Row'))            % Row only
-						Z = multibandread_j(handles.fname, [handles.dims(1) handles.dims(2) handles.dims(3)],...
+						Z = multibandread_j(handles.fname, handles.dims(1:3),...
 							handles.reader{1}{1},handles.reader{1}{2},handles.reader{1}{3},handles.reader{1}{4},...
 							handles.reader{2}(1),{'Band','Direct',handles.Rband});
 					elseif (strcmp(handles.reader{2}(1), 'Column'))     % Column only
-						Z = multibandread_j(handles.fname, [handles.dims(1) handles.dims(2) handles.dims(3)],...
+						Z = multibandread_j(handles.fname, handles.dims(1:3),...
 							handles.reader{1}{1},handles.reader{1}{2},handles.reader{1}{3},handles.reader{1}{4},...
 							handles.reader{2}(2),{'Band','Direct',handles.Rband});
 					else                                                % Neither Row or Column
-						Z = multibandread_j(handles.fname, [handles.dims(1) handles.dims(2) handles.dims(3)],...
+						Z = multibandread_j(handles.fname, handles.dims(1:3),...
 							handles.reader{1}{1},handles.reader{1}{2},handles.reader{1}{3},handles.reader{1}{4},...
 							{'Band','Direct',handles.Rband});
 					end
@@ -341,12 +298,16 @@ function push_Load_CB(hObject, handles)
 			image_type = 1;         % Pretend this a GMT grid
 			computed_grid = 1;      % But set to computed_grid to avoid attempts to reload it with grdread_m
 			if (isa(Z,'uint16') || isa(Z,'int16'))
+				t = findobj(handles.hMirFig, 'Tag','pixValStsBar');
+				ud = get(t, 'UserData');	ud.haveGrid = 1;	set(t, 'UserData', ud)
 				was_int16 = 1;
 			else
 				was_int16 = 0;
 			end
 
 		end         % end if is uint8
+			
+		aux_funs('get_set_zLayers', handles.hMirFig, handles.Rband); % Save band order
 
 		set(handMir.hImg,'CData',img)
 		if (is_gray),	set(handles.hMirFig,'ColorMap',gray(256)),	end
@@ -386,9 +347,7 @@ function listbox1_CB(hObject, handles)
 	% Display info
 	name_clean = ddewhite(struct_names{index_struct});
 	if (name_clean(1) == '+' || name_clean(1) == '-'),       name_clean = name_clean(3:end);     end
-	%idx = strmatch(name_clean,all_names(:,1),'exact');
-	idx = find( strcmp(name_clean,all_names(:,1)) );
-	%handles.tree_indice = idx;
+	idx = find(strcmp(name_clean,all_names(:,1)));
 	set(handles.edit_dimsDesc,'String',handles.band_desc{idx,1})
 
 	if (isnumeric(struct_val))   
@@ -516,8 +475,7 @@ function handles = order_bands(handles,idx)
 % Put selected band (pointed by idx) on the box corresponding to active radiobutton
 
 	n_band = handles.band_desc{idx,2};
-	if (get(handles.radio_RGB,'Value'))
-		% put the clicked band on the box that has the active radiobutton
+	if (get(handles.radio_RGB,'Value'))		% put the clicked band in the box with the active radiobutton
 		r = get(handles.radio_R,'Value');
 		g = get(handles.radio_G,'Value');
 
