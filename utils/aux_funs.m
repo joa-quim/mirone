@@ -120,11 +120,57 @@ function StoreZ(handles,X,Y,Z)
 	fac = 4;
 	if (~isa(Z, 'single')),		fac = 2;		end		% Here only arrive singles or int16
 	if (numel(Z)*fac > handles.grdMaxSize),		return,		end
-% 	if (~handles.IamCompiled && ~isa(Z,'single')),	setappdata(handles.figure1,'dem_z',single(Z));	% TMP
-% 	else					setappdata(handles.figure1,'dem_z',Z);
-% 	end
 	setappdata(handles.figure1,'dem_z',Z);
 	setappdata(handles.figure1,'dem_x',X);  setappdata(handles.figure1,'dem_y',Y);
+	% For multi-bands in mem, this will be used to know which band(s) are used for creating RGB, or GRAY images
+	setappdata(handles.figure1,'dem_z_layers',1:min(size(Z,3),3))
+
+% --------------------------------------------------------------------
+function out = get_set_zLayers(hand, order)
+% Set ot Get the order that a multiband in mem (normaly of uin16 type) is accessed to produce RGB or GRAY images.
+% HAND is any handle that allows fetching the Mirone handles
+% ORDER is the new order of the bands that will be used to create the RGB or GRAY image (1 or 3 elements array).
+% When used to ask the current order do only "out = get_set_zLayers(hand)"
+	seta = true;
+	if (nargin == 1),	seta = false;	end
+	handMir = guidata(hand);
+	lay = getappdata(handMir.figure1, 'dem_z_layers');
+	if (seta)
+		n = numel(order);
+		if (n ~= 1 && n ~= 3),	error('The "order" array can have only 1 or 3 elements'),	end
+		lay(1:n) = order;
+		setappdata(handMir.figure1,'dem_z_layers', lay)
+	else
+		out = lay;
+	end
+
+% --------------------------------------------------------------------
+function Z = get_layer_n(handles, layer)
+% Get the layer LAYER of a multiband set. Either the one(s) in mem or by reading from file.
+	handMir = handles;
+	if (ishandle(handles)),		handMir = guidata(handles);		end
+	BL = getappdata(handMir.figure1,'BandList');
+	if (isempty(BL)),	Z = nan;		return,		end		% Not from a multiband collection
+	if (layer < 1 || layer >= length(BL{3})),	error('Requested layer is outside availabe range'),	end
+	fname  = BL{5};		dims = BL{7};	reader = BL{end};
+	if (isempty(reader)),	error('The "reader" for multibands acnnot be empty'),	end
+	if (strcmp(reader, 'GDAL'))
+		if (layer == 1)
+			Z = getappdata(handMir.figure1, 'dem_z');
+			if (size(Z,3) > 1),		Z = Z(:,:,1);	end			% Make sure only one layer is returned
+		else
+			t = getappdata(handMir.figure1, 'dem_z_curLayer');
+			if (~isempty(t) && t < 0 && layer == -t)	% Check if we have a tmp array in apdata that happens to be the one
+				Z = getappdata(handMir.figure1, 'dem_z_tmp');
+			else
+				Z = gdalread(fname, sprintf('-B%d', layer));
+			end
+		end
+	else
+		% Idealy we should support subregions on x,y as well but for now only band(s) selection is allowed
+		Z = multibandread_j(fname, dims(1:3), reader{1}{1},reader{1}{2},reader{1}{3},reader{1}{4},...
+							{'Band','Direct',layer});
+	end
 
 % --------------------------------------------------------------------
 function [x,y,indx,indy,hdr_str] = in_map_region(handles, x, y, tol, map_lims, hdr_str)
@@ -538,8 +584,6 @@ function toBandsList(hFig, I, array_name, fname, n_bands, bands_inMemory, reader
 	if (nargin == 3)
 		fname = [];		n_bands = size(I,3);	bands_inMemory = 1:n_bands;		reader = [];	bnd_names = '';
 	end
-	if (isempty(n_bands)),			n_bands = size(I,3);		end
-	if (isempty(bands_inMemory)),	bands_inMemory = 1:n_bands;	end
 	tmp1 = cell(n_bands+1,2);		tmp2 = cell(n_bands+1,2);
 	tmp1{1,1} = array_name;			tmp1{1,2} = array_name;
 	for (k = 1:n_bands)
