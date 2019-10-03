@@ -1,7 +1,7 @@
 function varargout = read_FlatFile(varargin)
 % Helper window to read a flat naked true raw file
 
-%	Copyright (c) 2004-2018 by J. Luis
+%	Copyright (c) 2004-2019 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -70,21 +70,21 @@ function edit_nHeadeBytes_CB(hObject, handles)
 function edit_pixelsPerLine_CB(hObject, handles)
 	n = str2double(get(hObject,'String'));
 	if (isnan(n) || n < 0),		set(hObject,'String','')
-	else						set(handles.edit_Xlast,'String',get(hObject,'String'))
+	else,						set(handles.edit_Xlast,'String',get(hObject,'String'))
 	end
 
 % ------------------------------------------------------------------------------------------
 function edit_nLines_CB(hObject, handles)
 	n = str2double(get(hObject,'String'));
 	if (isnan(n) || n < 0),		set(hObject,'String','')
-	else						set(handles.edit_Ylast,'String',get(hObject,'String'))
+	else,						set(handles.edit_Ylast,'String',get(hObject,'String'))
 	end
 
 % ------------------------------------------------------------------------------------------
 function edit_nBands_CB(hObject, handles)
 	n = str2double(get(hObject,'String'));
 	if (isnan(n) || n < 0),		set(hObject,'String','1')
-	else						set(handles.edit_lastBand,'String',get(hObject,'String'))
+	else,						set(handles.edit_lastBand,'String',get(hObject,'String'))
 	end
 
 % ------------------------------------------------------------------------------------------
@@ -141,37 +141,24 @@ function edit_Ysample_CB(hObject, handles)
 
 % ------------------------------------------------------------------------------------------
 function radio_BSQ_CB(hObject, handles)
-% Hint: get(hObject,'Value') returns toggle state of radio_BSQ
-	if (get(hObject,'Value'))
-		set(handles.radio_BIL,'Value',0)
-		set(handles.radio_BIP,'Value',0)
-		handles.interleave = 'bsq';
-		guidata(handles.figure1,handles)
-	else
-		set(hObject,'Value',1)
-	end
+	if (~get(hObject,'Value')),		set(hObject,'Value',1),		return,	end
+	set([handles.radio_BIL handles.radio_BIP],'Value',0)
+	handles.interleave = 'bsq';
+	guidata(handles.figure1,handles)
 
 % ------------------------------------------------------------------------------------------
 function radio_BIL_CB(hObject, handles)
-	if (get(hObject,'Value'))
-		set(handles.radio_BSQ,'Value',0)
-		set(handles.radio_BIP,'Value',0)
-		handles.interleave = 'bil';
-		guidata(handles.figure1,handles)
-	else
-		set(hObject,'Value',1)
-	end
+	if (~get(hObject,'Value')),		set(hObject,'Value',1),		return,	end
+	set([handles.radio_BSQ handles.radio_BIP],'Value',0)
+	handles.interleave = 'bil';
+	guidata(handles.figure1,handles)
 
 % ------------------------------------------------------------------------------------------
 function radio_BIP_CB(hObject, handles)
-	if (get(hObject,'Value'))
-		set(handles.radio_BSQ,'Value',0)
-		set(handles.radio_BIL,'Value',0)
-		handles.interleave = 'bip';
-		guidata(handles.figure1,handles)
-	else
-		set(hObject,'Value',1)
-	end
+	if (~get(hObject,'Value')),		set(hObject,'Value',1),		return,	end
+	set([handles.radio_BSQ handles.radio_BIL],'Value',0)
+	handles.interleave = 'bip';
+	guidata(handles.figure1,handles)
 
 % ------------------------------------------------------------------------------------------
 function push_OK_CB(hObject, handles)
@@ -215,7 +202,7 @@ function push_OK_CB(hObject, handles)
 	krf = str2double(get(handles.edit_Yfirst,'String'));        % First row
 	krl = str2double(get(handles.edit_Ylast,'String'));         % Last row
 	krs = str2double(get(handles.edit_Ysample,'String'));       % Increment row
-	if ( (~isnan(krl) && krl ~= n_row) || krs ~= 1)
+	if ((~isnan(krl) && krl ~= n_row) || krs ~= 1)
 		subset_row = {'Row','Range',[krf krs krl]};
 		got_subset_row = 1;
 	elseif (isnan(krl) && krs ~= 1)
@@ -229,7 +216,7 @@ function push_OK_CB(hObject, handles)
 	kcf = str2double(get(handles.edit_Xfirst,'String'));        % First column
 	kcl = str2double(get(handles.edit_Xlast,'String'));         % Last column
 	kcs = str2double(get(handles.edit_Xsample,'String'));       % Increment column
-	if ( (~isnan(kcl) && kcl ~= n_col) || kcs ~= 1)
+	if ((~isnan(kcl) && kcl ~= n_col) || kcs ~= 1)
 		subset_column = {'Column','Range',[kcf kcs kcl]};
 		got_subset_column = 1;
 	elseif (isnan(kcl) && kcs ~= 1)
@@ -290,15 +277,7 @@ function push_OK_CB(hObject, handles)
 		third_out = [];
 	end
 
-	if (~isa(raw,'uint8'))
-		img = alloc_mex(size(raw),'uint8');     % Pre allocation
-		for i=1:size(raw,3)
-			img(:,:,i) = scaleto8(raw(:,:,i));
-		end
-		handles.output{1} = img;
-	else
-		handles.output{1} = raw;
-	end
+	handles.output{1} = raw;
 
 	handles.output{2} = {fmt, hdr, handles.interleave, endian};
 	handles.output{3} = third_out;
