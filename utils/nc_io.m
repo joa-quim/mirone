@@ -234,13 +234,11 @@ function write_nc(fname, handles, data, misc, page)
 	add_off = [];	scale_factor = [];
 	switch (class(data))
 		case 'single'			% NC_FLOAT
-			if (handles.was_int16 && ~handles.computed_grid)
-				if (handles.have_nans),		data(isnan(data)) = -32768;		end
-				data = int16(data);
-				varstruct.Nctype = 3;		no_val = int16(-32768);
-			else
-				varstruct.Nctype = 5;		no_val = single(nan);
-			end
+			varstruct.Nctype = 5;		no_val = single(nan);
+		case 'uint16'			% NC_USHORT			Can't manage to make this work
+% 			varstruct.Nctype = 8;		no_val = uint16(0);
+			data = single(data);		% FCK
+			varstruct.Nctype = 5;		no_val = single(nan);
 		case 'int16'			% NC_SHORT
 			varstruct.Nctype = 3;		no_val = int16(-32768);
 		case 'int32'			% NC_INT
