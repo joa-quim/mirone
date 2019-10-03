@@ -136,7 +136,7 @@ function varargout = image_enhance(varargin)
 				if (isempty(out{1}))	% We have the data in memory
 					localImhist(handles, Z(:,:,out{2}(1)));
 				else					% Must load band
-					localImhist(handles, gdalread(out{1}, sprintf('-B%d', out{2}(1))) );
+					localImhist(handles, aux_funs('get_layer_n',handles.hMirFig, out{2}(1)) );
 				end
 			end
 		else
@@ -159,7 +159,7 @@ function varargout = image_enhance(varargin)
 				if (isempty(out{1}))	% We have the data in memory
 					localImhist(handles, Z(:,:,out{2}(k)));
 				else					% Must load band
-					localImhist(handles, gdalread(out{1}, sprintf('-B%d', out{2}(k))) );
+					localImhist(handles, aux_funs('get_layer_n',handles.hMirFig, out{2}(k)) );
 				end
 				handles = guidata(handles.figure1);		% The handles was saved in plot_results
 			end
@@ -306,7 +306,7 @@ function push_contStrectch_CB(hObject, handles)
 	if (handles.use_data)
 		handMir = guidata(handles.hMirAxes);
 		Z = getappdata(handMir.figure1,'dem_z');		% Even if wont use it, this op is free
-		
+
 		out = get_from_multi_bands(handles);
 		if (handles.isRGB)
 			img = get(handles.hMirImg, 'Cdata');
@@ -316,15 +316,15 @@ function push_contStrectch_CB(hObject, handles)
 				img(:,:,3) = scaleto8(Z(:,:,out{2}(3)), 8, [limsB(1) limsB(4)]);
 			else
 				% For now just read them all 3 again
-				img(:,:,1) = scaleto8(gdalread(out{1}, sprintf('-B%d', out{2}(1))), 8, [limsR(1) limsR(4)]);
-				img(:,:,2) = scaleto8(gdalread(out{1}, sprintf('-B%d', out{2}(2))), 8, [limsG(1) limsG(4)]);
-				img(:,:,3) = scaleto8(gdalread(out{1}, sprintf('-B%d', out{2}(3))), 8, [limsB(1) limsB(4)]);
+				img(:,:,1) = aux_funs('get_layer_n', handles.hMirFig, out{2}(1), [limsR(1) limsR(4)]);
+				img(:,:,2) = aux_funs('get_layer_n', handles.hMirFig, out{2}(2), [limsG(1) limsG(4)]);
+				img(:,:,3) = aux_funs('get_layer_n', handles.hMirFig, out{2}(3), [limsB(1) limsB(4)]);
 			end
 		else
 			if (isempty(out{1}))		% Band is already in memory
 				img = scaleto8(Z(:,:,out{2}(1)), 8, [limsR(1) limsR(4)]);
 			else
-				img = scaleto8(gdalread(out{1}, sprintf('-B%d', out{2}(1))), 8, [limsR(1) limsR(4)]);
+				img = aux_funs('get_layer_n', handles.hMirFig, out{2}(1), [limsR(1) limsR(4)]);
 			end
 		end
 	else
@@ -366,7 +366,6 @@ function out = get_from_multi_bands(handles)
 			out{2} = ZL(1);
 		end
 	end
-
 
 % --------------------------------------------------------------------------
 function push_decorrStrectch_CB(hObject, handles)
