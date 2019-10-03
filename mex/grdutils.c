@@ -85,6 +85,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	size_t j, nxy;
 	char   **argv;
 	char    *data8;
+	unsigned char  *dataU8;
 	short int *data16;
 	unsigned short int *dataU16;
 	float   *zdata, *array_out, fact_x = 1, fact_a = 0, K1, K2, Ml, Al, NaN;
@@ -255,16 +256,18 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		return;
 	}
 	else {
-		if (!is_single && !is_int16 && !is_uint16 && !is_int8)
-			mexErrMsgTxt("GRDUTILS ERROR: Invalid input data type. Only valid type is: Single, UInt16, Int16 or Int8.\n");
+		if (!is_single && !is_int16 && !is_uint16 && !is_int8 && !is_uint8)
+			mexErrMsgTxt("GRDUTILS ERROR: Invalid input data type. Valid type are: Single, UInt16, Int16, UInt8 or Int8.\n");
 		if (is_single)
 			zdata = (float *)mxGetData(prhs[0]);
 		else if (is_uint16)
 			dataU16 = (unsigned short int *)mxGetData(prhs[0]);
 		else if (is_int16)
 			data16  = (short int *)mxGetData(prhs[0]);
-		else
+		else if (is_int8)
 			data8   = (char *)mxGetData(prhs[0]);
+		else
+			dataU8   = (unsigned char *)mxGetData(prhs[0]);
 	}
 
 	if (only_report_nans) {
@@ -314,31 +317,6 @@ OMP_PARF
 					sd += tmp * tmp;
 				}
 			}
-
-#if 0
-			for (i = 0; i < nxy; i++) {
-				if (ISNAN_F(zdata[i])) {nfound++;	continue;}
-				tmp = (double)zdata[i];
-				if (do_min_max) {
-					if (tmp < min_val) min_val = tmp;
-					if (tmp > max_val) max_val = tmp;
-				}
-				else if (do_min_max_loc) {
-					if (tmp < min_val) {
-						min_val = tmp;
-						i_min = i;
-					}
-					if (tmp > max_val) {
-						max_val = tmp;
-						i_max = i;
-					}
-				}
-				if (do_std) {
-					mean += tmp;
-					sd += tmp * tmp;
-				}
-			}
-#endif
 		}
 	}
 	else if (is_uint16) {
@@ -404,7 +382,7 @@ OMP_PARF
 			}
 		}
 	}
-	else {
+	else if (is_int8) {
 		if (do_min_max) {
 OMP_PARF_MINMAX
 			for (i = 0; i < nxy; i++) {
@@ -427,6 +405,16 @@ OMP_PARF
 				tmp = (double)data8[i];
 				mean += tmp;
 				sd += tmp * tmp;
+			}
+		}
+	}
+	else {
+		if (do_min_max) {		/* For the moment I only need this case */
+OMP_PARF_MINMAX
+			for (i = 0; i < nxy; i++) {
+				tmp = (double)dataU8[i];
+				if (tmp < min_val) min_val = tmp;
+				if (tmp > max_val) max_val = tmp;
 			}
 		}
 	}
