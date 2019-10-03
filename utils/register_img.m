@@ -6,7 +6,7 @@ function register_img(handles,h,GCPs)
 % H is the handle of a line or patch object
 % GCPs is a Mx4 matrix with the source and target GCP coordinates (normally given by GDAL)
 
-%	Copyright (c) 2004-2016 by J. Luis
+%	Copyright (c) 2004-2019 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -27,7 +27,7 @@ function register_img(handles,h,GCPs)
 		errordlg('REGISTER_IMG: wrong number of arguments (must be at least two)','ERROR')
 		return
 	end
-	if ( ~ishandle(h) || ~(strcmp(get(h,'Type'),'line') || strcmp(get(h,'Type'),'patch')) )
+	if (~ishandle(h) || ~(strcmp(get(h,'Type'),'line') || strcmp(get(h,'Type'),'patch')))
 		errordlg('REGISTER_IMG: Second argument must be a handle to a line or patch object','ERROR')
 		return
 	end
@@ -83,8 +83,8 @@ function register_img(handles,h,GCPs)
 	cmenuHand = uicontextmenu('Parent',handles.figure1);
 	set(h, 'UIContextMenu', cmenuHand);
 
-	if (nargin == 2),   label = 'Set reference Points';
-	else                label = 'Show GCPs';
+	if (nargin == 2),	label = 'Set reference Points';
+	else,				label = 'Show GCPs';
 	end
 	uimenu(cmenuHand, 'Label', label, 'Callback', {@regOptions,handles,'set'});
 	uimenu(cmenuHand, 'Label', 'Show GCPs residuals', 'Callback', {@regOptions,handles,'residue'});
@@ -99,64 +99,64 @@ function register_img(handles,h,GCPs)
 
 	if (nargin == 3)
 		setappdata(handles.figure1,'GCPregImage',GCPs)
-		if (size(GCPs,1) > 10)      % This is likely a mutch better choice
-			setappdata(handles.figure1,'RegistMethod',{'polynomial (6 pts)' 'bilinear'})
+		if (size(GCPs,1) > 20)      % This is likely a mutch better choice
+			setappdata(handles.figure1,'RegistMethod',{'gdal splines' 'bilinear'})
 		end
 	end
 
 % ----------------------------------------------------------------------------------
 function regOptions(obj,event,handles,opt)
 
-hImg = findobj(handles.axes1,'Type','image');
-h = findobj(handles.axes1,'Tag','GCPpolyline');     % Fish them because they might have been edited
-x = get(h,'XData');     y = get(h,'YData');
+	hImg = findobj(handles.axes1,'Type','image');
+	h = findobj(handles.axes1,'Tag','GCPpolyline');     % Fish them because they might have been edited
+	x = get(h,'XData');     y = get(h,'YData');
 
 try             % I'm fed up with so many possible errors
 	switch opt
-        case 'set'
+		case 'set'
 
-            gcpInMem = getappdata(handles.figure1,'GCPregImage');
-            if (~isempty(gcpInMem))             % We have them in memory so show them
-			    gcps = tableGUI('array',gcpInMem,'RowNumbers','y','ColNames',{'Slave Points - X','Slave Points - Y',...
-                        'Master Points - X','Master Points - Y'},'ColWidth',100,'FigName','GCP Table');
-            else
-                gcps = tableGUI('array',[num2cell([x(:) y(:)]) cell(numel(x),2)],'RowNumbers','y','ColNames',...
-                    {'Unreg Points - X','Unreg Points - Y', 'Reg Points - X','Reg Points - Y'},...
-                    'ColWidth',100,'FigName','Control Points Table');
-            end
-            if isempty(gcps),    return;  end     % User gave up
-            base = str2double(gcps(:,3:4));
-            if ( any(isnan(base)) )
-                errordlg('Incomplete table of Control Points','Error')
-                return                              % User gave up
-            end
-            input_x = getPixel_coords(size(get(hImg,'CData'),2),get(hImg,'XData'),x);
-            input_y = getPixel_coords(size(get(hImg,'CData'),1),get(hImg,'YData'),y);
-            input = [input_x(:) input_y(:)];
-            setappdata(handles.figure1,'GCPregImage',[input base])
-            
-        case 'change'           % Change registration &/| interpolation method
-            fig_RegMethod(handles);
-            
-        case 'residue'
-            input_base = getappdata(handles.figure1,'GCPregImage');
-            if (isempty(input_base))
-                errordlg('You need to set first all pairs of Image-Reference Points.','ERROR'); return
-            end
-            if ( any(isnan(input_base(:,3:4))) )
-                errordlg('Incomplete table of Control Points. Use the ''Set reference Points'' option first.','ERROR')
-                return
-            end
-            
-            RegistMethod = getappdata(handles.figure1,'RegistMethod');
-            trfType      = RegistMethod{1};
-            type         = checkTransform(trfType,numel(x));	% Test that n pts and tranfs type are compatible
-            if (isempty(type)),		return,		end				% Error message already issued
-            
+			gcpInMem = getappdata(handles.figure1,'GCPregImage');
+			if (~isempty(gcpInMem))             % We have them in memory so show them
+				gcps = tableGUI('array',gcpInMem,'RowNumbers','y','ColNames',{'Slave Points - X','Slave Points - Y',...
+						'Master Points - X','Master Points - Y'},'ColWidth',100,'FigName','GCP Table');
+			else
+				gcps = tableGUI('array',[num2cell([x(:) y(:)]) cell(numel(x),2)],'RowNumbers','y','ColNames',...
+					{'Unreg Points - X','Unreg Points - Y', 'Reg Points - X','Reg Points - Y'},...
+					'ColWidth',100,'FigName','Control Points Table');
+			end
+			if isempty(gcps),    return;  end     % User gave up
+			base = str2double(gcps(:,3:4));
+			if ( any(isnan(base)) )
+				errordlg('Incomplete table of Control Points','Error')
+				return                              % User gave up
+			end
+			input_x = getPixel_coords(size(get(hImg,'CData'),2),get(hImg,'XData'),x);
+			input_y = getPixel_coords(size(get(hImg,'CData'),1),get(hImg,'YData'),y);
+			input = [input_x(:) input_y(:)];
+			setappdata(handles.figure1,'GCPregImage',[input base])
+
+		case 'change'           % Change registration &/| interpolation method
+			fig_RegMethod(handles);
+
+		case 'residue'
+			input_base = getappdata(handles.figure1,'GCPregImage');
+			if (isempty(input_base))
+				errordlg('You need to set first all pairs of Image-Reference Points.','ERROR'); return
+			end
+			if ( any(isnan(input_base(:,3:4))) )
+				errordlg('Incomplete table of Control Points. Use the ''Set reference Points'' option first.','ERROR')
+				return
+			end
+
+			RegistMethod = getappdata(handles.figure1,'RegistMethod');
+			trfType      = RegistMethod{1};
+			type         = checkTransform(trfType,numel(x));	% Test that n pts and tranfs type are compatible
+			if (isempty(type)),		return,		end				% Error message already issued
+
 			if (strncmp(trfType,'gdal',4))		% 
 				hdr.gcp = input_base;
 				if (trfType(end) == 's'),	hdr.order = -1;
-				else						hdr.order = str2double(trfType(end));
+				else,						hdr.order = str2double(trfType(end));
 				end
 				xy = gdaltransform_mex(input_base(:,1:2), hdr);
 				x = xy(:,1);		y = xy(:,2);
@@ -169,10 +169,10 @@ try             % I'm fed up with so many possible errors
 				[x,y] = transform_fun('tformfwd',trf,input_base(:,1),input_base(:,2));
 			end
 			set(handles.figure1,'Pointer','watch')
-            
+
 			if (handles.geog)
-                residue = vdist(input_base(:,4),input_base(:,3), y, x);
-                str_res = 'Residue (m)';
+				residue = vdist(input_base(:,4),input_base(:,3), y, x);
+				str_res = 'Residue (m)';
 			else
 				residue = input_base(:,3:4) - [x y];
 				residue = sqrt(residue(:,1).^2 + residue(:,2).^2);
@@ -180,26 +180,26 @@ try             % I'm fed up with so many possible errors
 			end
 			gcp = [x y input_base(:,3:4) residue];
 			tableGUI('array',gcp,'RowNumbers','y','ColNames',{'Slave Points - X','Slave Points - Y',...
-                    'Master Points - X','Master Points - Y',str_res},'ColWidth',100,'FigName','GCP Table','modal','');
-            set(handles.figure1,'Pointer','arrow')
-                    
-        case 'reg'          % Register image
-            input_base = getappdata(handles.figure1,'GCPregImage');
-            if (isempty(input_base))
-                errordlg('You need to set first all pairs of Image-Reference Points.','ERROR'); return
-            end
-            base = input_base(:,3:4);
-            if ( any(isnan(base)) )
-                errordlg('Incomplete table of Control Points. Use the ''Set reference Points'' option first.','ERROR')
-                return
-            end
-            set(handles.figure1,'Pointer','watch')
-            do_register(handles,input_base(:,1:2),base)
-            set(handles.figure1,'Pointer','arrow')
+					'Master Points - X','Master Points - Y',str_res},'ColWidth',100,'FigName','GCP Table','modal','');
+			set(handles.figure1,'Pointer','arrow')
+
+		case 'reg'          % Register image
+			input_base = getappdata(handles.figure1,'GCPregImage');
+			if (isempty(input_base))
+				errordlg('You need to set first all pairs of Image-Reference Points.','ERROR'); return
+			end
+			base = input_base(:,3:4);
+			if (any(isnan(base)))
+				errordlg('Incomplete table of Control Points. Use the ''Set reference Points'' option first.','ERROR')
+				return
+			end
+			set(handles.figure1,'Pointer','watch')
+			do_register(handles,input_base(:,1:2),base)
+			set(handles.figure1,'Pointer','arrow')
 	end
 catch
-    errordlg(lasterr,'Error')
-    set(handles.figure1,'Pointer','arrow')
+	errordlg(lasterr,'Error')
+	set(handles.figure1,'Pointer','arrow')
 end
 
 % ----------------------------------------------------------------------------------
@@ -221,7 +221,7 @@ function do_register(handles,input,base)
 
 	if (strncmp(trfType,'gdal',4))			% Use gdalwarp
 		if (trfType(end) == 's'),	hdr.order = -1;
-		else						hdr.order = str2double(trfType(end));
+		else,						hdr.order = str2double(trfType(end));
 		end
 		hdr.gcp = [input base];
 		hdr.ULx = 0;		hdr.ULy = 0;
@@ -242,6 +242,8 @@ function do_register(handles,input,base)
 		tmp.head  = att.GMT_hdr;
 	else
 		trf = transform_fun('cp2tform',input,base,type{:});
+		% Should be possible to avoid the flipud below by changing the GCPs, but couldn't find how.
+		if (strcmp(get(handles.axes1, 'YDir'), 'normal')),	Z = flipud(Z);	end
 		[Z,new_xlim,new_ylim] = transform_fun('imtransform',Z,trf,interpola,'size',size(Z));
 
 		tmp.head(1:7) = [new_xlim new_ylim 0 255 1];
