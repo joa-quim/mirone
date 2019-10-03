@@ -145,31 +145,49 @@ function out = get_set_zLayers(hand, order)
 	end
 
 % --------------------------------------------------------------------
-function Z = get_layer_n(handles, layer)
+function Z = get_layer_n(handles, layer, scale)
 % Get the layer LAYER of a multiband set. Either the one(s) in mem or by reading from file.
+% SCALE, optional, means scale the fetched layer to uint8
+%        It can aslso be a [min max] vector, case in which we scale between these values.
+%        We do it with an extra call to scaleto8(), but gdalread should learn to do it too.
+	if (nargin == 2),			opt_S = ' ';	scale = false;			scale_bound = [];
+	elseif (numel(scale) == 2),	opt_S = ' ';	scale_bound = scale;	scale = false;
+	elseif (scale),				opt_S = '-S';	scale_bound = [];
+	end
 	handMir = handles;
 	if (ishandle(handles)),		handMir = guidata(handles);		end
 	BL = getappdata(handMir.figure1,'BandList');
 	if (isempty(BL)),	Z = nan;		return,		end		% Not from a multiband collection
-	if (layer < 1 || layer >= length(BL{3})),	error('Requested layer is outside availabe range'),	end
+	if (any(layer < 1) || any(layer >= length(BL{3}))),	error('Requested layer is outside availabe range'),	end
 	fname  = BL{5};		dims = BL{7};	reader = BL{end};
-	if (isempty(reader)),	error('The "reader" for multibands acnnot be empty'),	end
-	if (strcmp(reader, 'GDAL'))
-		if (layer == 1)
-			Z = getappdata(handMir.figure1, 'dem_z');
-			if (size(Z,3) > 1),		Z = Z(:,:,1);	end			% Make sure only one layer is returned
-		else
-			t = getappdata(handMir.figure1, 'dem_z_curLayer');
-			if (~isempty(t) && t < 0 && layer == -t)	% Check if we have a tmp array in apdata that happens to be the one
-				Z = getappdata(handMir.figure1, 'dem_z_tmp');
+	if (isempty(reader)),	error('The "reader" for multibands cannot be empty'),	end
+	if (strcmp(reader{1}, 'GDAL'))
+		if (numel(layer) == 1)			% Only one layer requested
+			if (layer == 1)
+				Z = getappdata(handMir.figure1, 'dem_z');
+				if (size(Z,3) > 1),		Z = Z(:,:,1);	end			% Make sure only one layer is returned
+				if (scale),		Z = scaleto8(Z);	end
 			else
-				Z = gdalread(fname, sprintf('-B%d', layer));
+				t = getappdata(handMir.figure1, 'dem_z_curLayer');	% Current layer from those in mem (if more than first)
+				if (~isempty(t) && t < 0 && layer == -t)	% Check if we have a tmp array in apdata that happens to be the one
+					Z = getappdata(handMir.figure1, 'dem_z_tmp');
+					if (scale),		Z = scaleto8(Z);	end
+				else
+					Z = gdalread(fname, sprintf('-B%d', layer), opt_S, reader{2}{:});
+				end
 			end
+			if (~isempty(scale_bound)),		Z = scaleto8(Z, 8, scale_bound);	end
+		else							% Several layers at once
+			fmt = repmat('%d,',1,numel(layer));		fmt(end) = [];		% remove last comma
+			Z = gdalread(fname, sprintf(['-B' fmt], layer), opt_S, reader{2}{:});
 		end
-	else
+	elseif (numel(reader(1)) == 4)
 		% Idealy we should support subregions on x,y as well but for now only band(s) selection is allowed
 		Z = multibandread_j(fname, dims(1:3), reader{1}{1},reader{1}{2},reader{1}{3},reader{1}{4},...
 							{'Band','Direct',layer});
+		if (scale && ~isa(Z, 'uint8')),		Z = scaleto8(Z);	end
+	else
+		error('Unknown "reader" for multibands')
 	end
 
 % --------------------------------------------------------------------
@@ -578,11 +596,17 @@ function toProjPT(handles)
 	end
 
 % ----------------------------------------------------------------------------------
-function toBandsList(hFig, I, array_name, fname, n_bands, bands_inMemory, reader, bnd_names)
+function toBandsList(hFig, I, array_name, fname, n_bands, bands_inMemory, reader, bnd_names, gdal_opts)
 % Create a structure with data to be retrieved by the BANDS_LIST() GUI
-% This still needs to be improved. Not much of error testing
+% Not much of error testing
 	if (nargin == 3)
 		fname = [];		n_bands = size(I,3);	bands_inMemory = 1:n_bands;		reader = [];	bnd_names = '';
+	end
+	if (isa(reader, 'char') || isempty(reader))
+		reader = {reader};
+		if (nargin == 9),	reader{2} = gdal_opts;
+		else,				reader{2} = '';
+		end
 	end
 	tmp1 = cell(n_bands+1,2);		tmp2 = cell(n_bands+1,2);
 	tmp1{1,1} = array_name;			tmp1{1,2} = array_name;
@@ -694,7 +718,7 @@ function [BB, r_c] = adjust_inner_BB(headOuter, headInner)
 % --------------------------------------------------------------------
 function geog = guessGeog(lims)
 % Make a good guess if LIMS are geographic
-	geog = double( ( (lims(1) >= -180 && lims(2) <= 180) || (lims(1) >= 0 && lims(2) <= 360) )...
+	geog = double( ((lims(1) >= -180 && lims(2) <= 180) || (lims(1) >= 0 && lims(2) <= 360))...
 		&& (lims(3) >= -90 && lims(4) <= 90) );
 	if (geog && lims(2) > 180)
 		geog = 2;			% We have a [0 360] range
@@ -706,7 +730,7 @@ function res = insideRect(rect,pt)
 % RECT = [x_min x_max y_min y_max]
 % RES is a logical column vector with length = size(PT,1)
 % NO ERROR TESTING
-    res = ( pt(:,1) >= rect(1) & pt(:,1) <= rect(2) & pt(:,2) >= rect(3) & pt(:,2) <= rect(4) );
+    res = (pt(:,1) >= rect(1) & pt(:,1) <= rect(2) & pt(:,2) >= rect(3) & pt(:,2) <= rect(4));
 
 % --------------------------------------------------------------------
 function clean_GRDappdata(handles)
