@@ -419,7 +419,7 @@ function bandArithm(handles, com)
 				tok = strtok(com(k(i)+1:end),' )+-*/^');
 				n = find(strcmp(tok,handles.name_str));		% n ~= [] when it is in memory
 				%grid.(char(n+96)) = double(handles.BL(:,:,n)) / double(intmax_(class(handles.BL)));
-				if (strcmp(handles.reader, 'GDAL'))
+				if (strcmp(handles.reader{1}, 'GDAL'))
 					Z = aux_funs('get_layer_n',handles.hMirFig, n);
 					if (isempty(Z)),	Z = handles.BL(:,:,1);	end		% Happens when data is uint8
 				else
