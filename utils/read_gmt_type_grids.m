@@ -5,7 +5,6 @@ function [handles, X, Y, Z, head, misc] = read_gmt_type_grids(handles,fullname,o
 % If OPT == 'hdr' outputs info in the struct format, else outputs in the head format
 %
 % The HANDLES fields 'grdname', 'image_type', 'have_nans' and 'computed_grid' are reset
-% and 'was_int16' may or not
 %
 % When used to read netCDF grids HANDLES can be []. Useful to use this function as a standalone
 
@@ -123,9 +122,8 @@ function [handles, X, Y, Z, head, misc] = read_grid(handles,fullname,tipo)
 if (strcmp(tipo,'CDF'))
 	try				% Use the new nc_io()
 		[X, Y, Z, head, misc] = nc_io(fullname, 'r');
-		if (isa(Z,'double')),		Z = single(Z);		end		% The HORRRRRRRRROOOOOOOOOORRRRR
-		if (isa(Z,'int16')),		handles.was_int16 = true;
-		elseif (isa(Z,'single')),	handles.have_nans = grdutils(Z,'-N');
+		if (isa(Z,'double')),	Z = single(Z);		end		% The HORRRRRRRRROOOOOOOOOORRRRR
+		if (isa(Z,'single')),	handles.have_nans = grdutils(Z,'-N');
 		end
 	catch			% If it have failed try GMT
 		str = sprintf(['First attempt to load netCDF file failed because ... \n\n\n %s\n\n\n       Trying now with GMT mex ...' ...
@@ -136,7 +134,6 @@ if (strcmp(tipo,'CDF'))
 		end
     	[X, Y, Z, head] = c_grdread(fullname,'single',opt_I);
     	handles.have_nans = grdutils(Z,'-N');
-    	if (head(10) == 2 || head(10) == 8 || head(10) == 16),   handles.was_int16 = true;  end     % New output from grdread_m
 		head(10) = [];
 	end
     if (head(7))            % Convert to grid registration

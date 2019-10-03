@@ -60,7 +60,6 @@ function [Z, X, Y, srsWKT, handles, att, pal_file] = read_grid(handles, fullname
 	try
 		if (handles.ForceInsitu),	opt_I = '-I';		end	% Use only in desperate cases.
 	end
-	handles.was_int16 = false;		% To make sure that it wasnt left = 1 from a previous use.
 
 	if (strncmp(tipo,'GMT',3))		% GMT_relatives - Reading is done by the read_gmt_type_grids function
 		[handles, X, Y, Z, head, misc] = read_gmt_type_grids(handles, fname);
@@ -126,7 +125,6 @@ function [Z, X, Y, srsWKT, handles, att, pal_file] = read_grid(handles, fullname
 		if ((att.RasterXSize * att.RasterYSize * 4) > grdMaxSize)
 			if (strcmp(yes_or_no('title','Warning'),'Yes')),	return,		end		% Advise accepted
 		end
-		if (strcmp(att.Band(1).DataType,'Int16')),		handles.was_int16 = true;	end
 
 		% The new nc with HDF (groups) by OceanColor broke the old logic. Let's see if this new one works.
 		if (strncmp(att.DriverShortName, 'HDF4', 4) || strcmp(tipo, 'ncHDF'))
@@ -155,7 +153,6 @@ function [Z, X, Y, srsWKT, handles, att, pal_file] = read_grid(handles, fullname
 					att.GMT_hdr(5:6) = head(5:6);% Because later there is a if branch that overwrites head with att.GMT_hdr
 				end
 				fname = att.fname;				% We'll need better but for now this ensures that no subdataset name is taken as the whole.
-				if (~isa(Z,'int16')),		handles.was_int16 = false;		end
 			end
 		else
 			if (strcmp(att.DriverShortName, 'BAG'))		% Read only first band
@@ -181,7 +178,6 @@ function [Z, X, Y, srsWKT, handles, att, pal_file] = read_grid(handles, fullname
 % 				att.GMT_hdr(5:6) = head(5:6);% Because later there is a if branch that overwrites head with att.GMT_hdr
 % 			end
 % 			fname = att.fname;				% We'll need better but for now this ensures that no subdataset name is taken as the whole.
-% 			if (~isa(Z,'int16')),		handles.was_int16 = false;		end
 % 		end
 		[Z, did_scale, att, have_new_nans] = handle_scaling(Z, att);	% See if we need to apply a scale/offset
 		if (~did_scale),	handles.Nodata_int16 = att.Band(1).NoDataValue;		end
