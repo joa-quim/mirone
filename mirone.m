@@ -370,9 +370,6 @@ function hObject = mirone_OpeningFcn(varargin)
 					X = tmp.X;	Y = tmp.Y;
 				end
 				if (isfield(tmp,'name')),	win_name = tmp.name;	end		% All calls should transmit a name, but ...
-				if (isfield(tmp,'was_int16'))
-					handles.was_int16 = tmp.was_int16;		handles.Nodata_int16 = tmp.Nodata_int16;
-				end
 				projWKT ='';
 				if (isfield(tmp,'srsWKT')),		projWKT = tmp.srsWKT;	end		% If exists, take precedence
 				if (n_argin == 3 && ishandle(varargin{3}))
@@ -1255,7 +1252,7 @@ function ImageResetOrigImg_CB(handles)
 	set(handles.hImg,'CData', handles.origFig);
 	set(handles.figure1,'ColorMap',handles.origCmap)
 	handles.Illumin_type = 0;		handles.firstIllum = 1;
-	handles.validGrid = handles.validGrid_orig;		handles.was_int16 = handles.was_int16_orig;
+	handles.validGrid = handles.validGrid_orig;
 	handles.computed_grid = handles.computed_grid_orig;
 	set(handles.ImgHist,'checked','off');
 	aux_funs('togCheck',get(handles.ImRestore,'UserData'), [handles.ImMod8cor handles.ImMod8gray handles.ImModBW handles.ImModRGB])
@@ -2001,7 +1998,7 @@ function FileOpenGDALmultiBand_CB(handles, opt, opt2, opt3)
 	if (reseta),	opt = opt_bak;		end		% Wee need it with a known value for the remaining tests 
 
 	handles.fileName = [];		% Not eligible for automatic re-loading
-	handles.was_int16 = false;	handles.computed_grid = 0;
+	handles.computed_grid = 0;
  	if (any(strcmp(opt, {'ENVISAT' 'AVHRR' 'multiband'})))
 		cmap = att.Band(1).ColorMap;
 		if (isempty(cmap)),		set(handles.figure1,'Colormap',jet(256))
@@ -2449,7 +2446,7 @@ function handles = show_image(handles, fname, X, Y, I, validGrid, axis_t, adjust
 	handles.origCmap = get(handles.figure1,'ColorMap');		% Save original colormap 
 	set(handles.ImgHist,'checked','off')
 	% Make an extra copy of those to use in "restore" because they may be changed by 'bands_list()'
-	handles.validGrid_orig = validGrid;			handles.was_int16_orig = handles.was_int16;
+	handles.validGrid_orig = validGrid;
 	handles.computed_grid_orig = handles.computed_grid;
 	fix_axes_labels(handles)		% Make ALL labels have the same number of decimals.
 	handles = SetAxesNumericType(handles);					% Set axes uicontextmenus
@@ -4459,12 +4456,6 @@ function FileSaveImgGrdGdal_CB(handles, opt1, opt2, opt3)
 	if (strcmp(opt2,'grid'))
 		[X,Y,Z,head] = load_grd(handles);
 		if isempty(Z),		return,		end		% An error message was already issued
-		if (handles.was_int16)
-			if (handles.have_nans)		% Restore the original Nodata value, or use -32768 if we don't know it
-				Z(isnan(Z(:))) = handles.Nodata_int16;
-			end
-			Z = int16(Z);
-		end
 	else										% 'image'
 		Z = snapshot(handles.figure1,'noname');		pause(0.01)
 		if (isempty(Z)),		return,		end
