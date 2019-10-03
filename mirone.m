@@ -381,6 +381,10 @@ function hObject = mirone_OpeningFcn(varargin)
 					if (isempty(projWKT)),	projWKT = getappdata(handTmp.figure1,'ProjWKT');	end
 					if (isempty(projWKT)),	projWKT = getappdata(handTmp.figure1,'Proj4');		end
 					handles.geog = handTmp.geog + 10;
+					if (isappdata(handTmp.figure1,'GCPregImage'))
+						setappdata(hObject,'GCPregImage',getappdata(handTmp.figure1,'GCPregImage'))
+						setappdata(hObject,'fnameGCP', win_name)
+					end
 				end
 				if (isfield(tmp,'geog')),	handles.geog = tmp.geog + 10;	end		% If exists, take precedence
 				if (~isempty(projWKT))
@@ -1022,11 +1026,23 @@ elseif (strncmp(opt2(1:min(length(opt2),9)),'CropaGrid',9))		% Do the operation 
 			prjInfoStruc = aux_funs('getFigProjInfo',handles);
 			if (~isempty(prjInfoStruc.projWKT))	% TODO. Otherwise check if prjInfoStruc.proj4 and convert it to WKT
 				srsWKT = prjInfoStruc.projWKT;
-				end
+			end
 		end
 		if (~nargout)						% Create a new Fig
-			%get(handles.figure1,'Colormap')
+			gcps = getappdata(handles.figure1,'GCPregImage');
+			if (~isempty(gcps))				% Must crop the GCPs too.
+				% Shit is that the GCPs for gdal count rows top-down, so we must do a flipud
+				rr = r_c(2);
+				r_c(2) = size(Z,1) - r_c(1) + 1;	r_c(1) = size(Z,1) - rr + 1;
+				ind = (gcps(:,1) >= r_c(3) & gcps(:,1) <= r_c(4) & gcps(:,2) >= r_c(1) & gcps(:,2) <= r_c(2));
+				pt = gcps(ind,1:4);
+				pt(:,1) = pt(:,1) - r_c(3) + 1;		pt(:,2) = pt(:,2) - r_c(1) + 1;
+				X = 1:size(Z_rect,2);	Y = 1:size(Z_rect,1);
+				head(1:4) = [1 size(Z_rect,2) 1 size(Z_rect,1)];
+				setappdata(handles.figure1,'GCPregImage',pt)
+			end
 			GRDdisplay(handles,X,Y,Z_rect,head,'','Cropped_grid',srsWKT)
+			if (~isempty(gcps)),	setappdata(handles.figure1, 'GCPregImage', gcps),	end		% Reset originals
 		else								% Send back the cropped grid to whom asked for it.
 			varargout = {X,Y,Z_rect,head};	% Is not going to be easy to document this
 		end
@@ -1873,6 +1889,7 @@ function FileOpenGDALmultiBand_CB(handles, opt, opt2, opt3)
 	validGrid = 0;		% The default, but may be changed if data turns out to be a multi-band of floats
 	att.ProjectionRef = [];			X = [];			Y = [];		reseta = false;		ax_dir = 'off';
 	reader = 'GDAL';				% this will be used by bands_list to decide which reader to use
+	opt_S = ' ';	opt_U = ' ';	opt_C = ' ';
 
 	set(handles.figure1,'pointer','watch')
 	if (strcmp(opt,'RAW'))
@@ -1888,14 +1905,14 @@ function FileOpenGDALmultiBand_CB(handles, opt, opt2, opt3)
 		if (nargin == 4),	att = opt3;
 		else,				att = gdalread(fname,'-M', '-C');
 		end
-		opt_U = ' ';
-		if (~isempty(att.GeoTransform)),	opt_U = '-U';	end
+		%if (~isempty(att.GeoTransform)),	opt_U = '-U';	end
+		if (~isempty(att.GeoTransform) || ~strcmp(att.Band(1).DataType, 'Byte')),	opt_U = '-U';	ax_dir = 'xy';	end
 		opt_S = '-S';
 		if (strcmp(att.Band(1).DataType, 'Float32'))	% WTF case is this?
 			opt_S = ' ';
 			opt_B = '-B1';		bands_inMemory = 1;		% If floats, keep only one in mem
 			opt_bak = opt;		opt = 'Multi-band Float32';		reseta = true;
-		elseif (strcmp(att.Band(1).DataType, 'UInt16'))
+		elseif (~strcmp(att.Band(1).DataType, 'Byte'))
 			k = 1;
 			opt_S = ' ';
 			while (k <= min(att.RasterCount,1) && strcmp(att.Band(k).DataType, 'UInt16'))
@@ -1909,7 +1926,8 @@ function FileOpenGDALmultiBand_CB(handles, opt, opt2, opt3)
 			opt_B = sprintf('-B1-%d', bands_inMemory);
 			opt_bak = opt;		opt = att.DriverShortName;		reseta = true;
 		end
-		I = gdalread(fname,opt_S, opt_B, opt_U, '-C');
+		opt_C = '-C';
+		I = gdalread(fname, opt_S, opt_B, opt_U, opt_C);
 		if (~isa(I, 'uint8'))
 			if (isempty(att.ProjectionRef))
 				X = 1:att.RasterXSize;		Y = 1:att.RasterYSize;
@@ -1978,7 +1996,8 @@ function FileOpenGDALmultiBand_CB(handles, opt, opt2, opt3)
 		end
 	end
 
-	aux_funs('toBandsList', handles.figure1, I, opt, fname, n_bands, bands_inMemory, reader, bnd_names);
+	aux_funs('toBandsList', handles.figure1, I, opt, fname, n_bands, bands_inMemory, reader, ...
+	          bnd_names, {opt_S, opt_U, opt_C});
 	if (reseta),	opt = opt_bak;		end		% Wee need it with a known value for the remaining tests 
 
 	handles.fileName = [];		% Not eligible for automatic re-loading
@@ -2298,9 +2317,9 @@ function loadGRID(handles, fullname, tipo, opt)
 function loadRADARSAT(handles, att)
 % Take a geotiff with 2 bands of 2 bytes each and read the real & imaginary components of a RADARSAT-2
 
-	Z = single(gdalread(handles.fileName, '-B1'));
+	Z = gdalread(handles.fileName, '-B1');
 	showRADARSAT(handles, att, 'RADARSAT-Real-component', Z)
-	Z = single(gdalread(handles.fileName, '-B2'));
+	Z = gdalread(handles.fileName, '-B2');
 	fname = handles.fileName;		% Make a copy
 	h = mirone;		handles = guidata(h);		handles.fileName = fname;
 	showRADARSAT(handles, att, 'RADARSAT-Imag-component', Z)
@@ -2466,7 +2485,7 @@ function handles = show_image(handles, fname, X, Y, I, validGrid, axis_t, adjust
 	set(handles.GCPmemory,'Visible',GCPmemoryVis)
 
 	BL = getappdata(handles.figure1,'BandList');		% We must tell between fakes and true 'BandList'
-	if (isempty(BL) || ((numel(BL{end}) == 1) && strcmp(BL{end},'Mirone')))
+	if (isempty(BL) || strcmp(BL{end}{1},'Mirone'))
 		if (ndims(I) == 3)		% Some cheating to allow selecting individual bands of a RGB image
 			tmp1 = cell(4,2);	tmp2 = cell(4,2);		tmp1{1,1} = 'RGB';		tmp1{1,2} = 'RGB';
 			for (i = 1:3)
