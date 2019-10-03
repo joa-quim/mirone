@@ -79,8 +79,19 @@
 #include "cpl_string.h"
 #include "cpl_conv.h"
 
-int record_geotransform (char *gdal_filename, GDALDatasetH hDataset, double *adfGeoTransform);
-mxArray *populate_metadata_struct (char * ,int , int, int, int, int, double, double, double, double, double, double, int);
+#if HAVE_OPENMP
+#include <omp.h>
+	#ifdef _MSC_VER
+		#define OMP_PARF __pragma(omp parallel for private(m,n,nn))
+	#else
+		#define OMP_PARF _Pragma("omp parallel for private(m,n,nn)")
+	#endif
+#else
+	#define OMP_PARF
+#endif
+
+int record_geotransform(char *gdal_filename, GDALDatasetH hDataset, double *adfGeoTransform);
+mxArray *populate_metadata_struct(char * ,int , int, int, int, int, double, double, double, double, double, double, int);
 int ReportCorner(GDALDatasetH hDataset, double x, double y, double *xy_c, double *xy_geo);
 void grd_FLIPUD_I32(int data[], int nx, int ny);
 void grd_FLIPUD_UI32(unsigned int data[], int nx, int ny);
@@ -92,11 +103,11 @@ void to_col_majorI32(int *in, int *out, int n_col, int n_row, int flipud, int in
 void to_col_majorUI32(unsigned int *in, unsigned int *out, int n_col, int n_row, int flipud, int insitu, int *nVector, int *mVector, int offset);
 void to_col_majorF32(float *in, float *out, int n_col, int n_row, int flipud, int insitu, int *nVector, int *mVector, int offset);
 void ComputeRasterMinMax(char *tmp, GDALRasterBandH hBand, double adfMinMax[2], int nXSize, int nYSize, double, double);
-int decode_R (char *item, double *w, double *e, double *s, double *n);
-int check_region (double w, double e, double s, double n);
-int decode_columns (char *txt, int *whichBands, int n_col);
-int GMT_strtok (const char *string, const char *sep, int *start, char *token);
-double ddmmss_to_degree (char *text);
+int decode_R(char *item, double *w, double *e, double *s, double *n);
+int check_region(double w, double e, double s, double n);
+int decode_columns(char *txt, int *whichBands);
+int GMT_strtok(const char *string, const char *sep, int *start, char *token);
+double ddmmss_to_degree(char *text);
 
 
 static char *mxstrdup (const char *s) {
@@ -119,8 +130,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	int	pixel_reg = FALSE, correct_bounds = FALSE, fliplr = FALSE, forceSingle = FALSE, get_drivers = FALSE;
 	int	anSrcWin[4], xOrigin = 0, yOrigin = 0, i_x_nXYSize;
 	int	nBufXSize, nBufYSize, jump = 0, *whichBands = NULL, *nVector, *mVector;
-	int	n_commas, n_dash, nX, nY;
-	int dataType;
+	int	nX, nY, dataType, show_time = FALSE;
 	int	nXSize = 0, nYSize = 0;
 	int	bGotMin, bGotMax;	/* To know if driver transmited Min/Max */
 	char	*tmp, *outByte, *p;
@@ -129,6 +139,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	double	dfNoData, range, aux, adfMinMax[2];
 	double	dfULX = 0.0, dfULY = 0.0, dfLRX = 0.0, dfLRY = 0.0;
 	double	z_min = 1e50, z_max = -1e50;
+	clock_t tic;
 	GDALDatasetH	hDataset;
 	GDALRasterBandH	hBand;
 	GDALDriverH	hDriver;
@@ -156,21 +167,14 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	}
 
 	for (i = 1; !error && i < argc; i++) {
+		if (argv[i] == NULL)
+			mexErrMsgTxt ("gdalread: Currupted input. Probably a numeric argument after the string ones.\n");
 		if (argv[i][0] == '-') {
 			switch (argv[i][1]) {
 			
 				case 'B':	/* We have a selected bands request */
-					for (n = 2, n_commas = 0; argv[i][n]; n++)
-						if (argv[i][n] == ',') n_commas = n;
-					for (n = 2, n_dash = 0; argv[i][n]; n++)
-						if (argv[i][n] == '-') n_dash = n;
-					nn = MAX(n_commas, n_dash);
-					if (nn)
-						nn = atoi(&argv[i][nn+1]);
-					else
-						nn = atoi(&argv[i][2]);
-					whichBands = mxCalloc(nn, sizeof(int));
-					nReqBands = decode_columns(&argv[i][2], whichBands, nn);
+					whichBands = mxCalloc(128, sizeof(int));	/* Alloc in excess. 128 is a gigantic number of bands */
+					nReqBands = decode_columns(&argv[i][2], whichBands);
 					break;
 				case 'C':
 					correct_bounds = TRUE;
@@ -221,6 +225,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 				case 'U':
 					flipud = TRUE;
 					break;
+				case 't':
+					show_time = TRUE;
+					break;
 				default:
 					error = TRUE;
 					break;
@@ -246,8 +253,11 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		mexPrintf("\t-s Force the output 'z' array to be of float type (singles)\n");
 		mexPrintf("\t-R read only the sub-region enclosed by <west/east/south/north>\n");
 		mexPrintf("\t-U flip the grid UpDown (needed for all DEM grids in Mirone)\n");
+		mexPrintf("\t-t Print execution time.\n");
 		return;
 	}
+
+	if (show_time) tic = clock();
 
 	/* Load the file name into a char string */
 
@@ -267,6 +277,10 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	if (!runed_once)		/* Do next call only at first time this MEX is loaded */
 		GDALAllRegister();
 
+	if (strstr(gdal_filename, ".jp2") || strstr(gdal_filename, ".JP2"))
+		if ((hDriver = GDALGetDriverByName("JP2OpenJPEG")) != NULL && (hDriver = GDALGetDriverByName("JP2ECW")) != NULL)
+			GDALDeregisterDriver(hDriver);		/* Deregister the JP2ECW driver. That is, prefer the OpenJPEG one */
+
 	CPLSetConfigOption("GDAL_HTTP_UNSAFESSL", "YES");	/* For the full story see https://github.com/curl/curl/issues/1538 */
 
 	if (metadata_only) {
@@ -275,10 +289,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		runed_once = TRUE;	/* Signals that next call won't need to call GDALAllRegister() again */
 		return;
 	}
-
-	if (strstr(gdal_filename, ".jp2") || strstr(gdal_filename, ".JP2"))
-		if ((hDriver = GDALGetDriverByName("JP2OpenJPEG")) != NULL && (hDriver = GDALGetDriverByName("JP2ECW")) != NULL)
-			GDALDeregisterDriver(hDriver);		/* Deregister the JP2ECW driver. That is, prefer the OpenJPEG one */
 
 	hDataset = GDALOpen(gdal_filename, GA_ReadOnly);
 
@@ -367,7 +377,10 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	}
 
 	/* The following assumes that all bands have the same PixelSize. Otherwise ... */
-	hBand = GDALGetRasterBand(hDataset,1);
+	if (whichBands)
+		hBand = GDALGetRasterBand(hDataset,whichBands[0]);		/* also assumes all requested bands have the same type */
+	else
+		hBand = GDALGetRasterBand(hDataset, 1);
 	nPixelSize = GDALGetDataTypeSize(GDALGetRasterDataType(hBand)) / 8;	/* /8 because return value is in BITS */
 
 	if (jump) {
@@ -483,14 +496,19 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	nVector = mxCalloc(nX, sizeof(int));
 	mVector = mxCalloc(nY, sizeof(int));
 	for (m = 0; m < nY; m++) mVector[m] = m*nX;
-	if (flipud)
-		for (n = 0; n < nX; n++) nVector[n] = n*nY-1 + nY;
+	if (flipud) {
+		if (fliplr)
+			for (n = 0, m = nX-1; n < nX; m--, n++) nVector[n] = (m + 1)*nY - 1;
+		else
+			for (n = 0; n < nX; n++) nVector[n] = n*nY-1 + nY;
+	}
 	else {		/* For now I do the fliplr test only here because of the ENVISAT case */
 		if (fliplr)
 			for (n = 0, m = nX-1; n < nX; m--, n++) nVector[n] = m*nY;
 		else
 			for (n = 0; n < nX; n++) nVector[n] = n*nY;
 	}
+
 	/* --------------------------------------------------------------------------------- */
 
 	for (i = 0; i < nBands; i++) {
@@ -608,6 +626,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 				tmpUI16 = (GUInt16 *) tmp;
 				if (scale_range) {	 /* Scale data into the [0 255] range */
 					range = adfMinMax[1] - adfMinMax[0];
+//OMP_PARF
 					for (m = 0; m < nYSize; m++) for (n = 0; n < nXSize; n++) {
 						if (bGotNodata) {
 							if (tmpUI16[mVector[m]+n] != (GUInt16)dfNoData) {
@@ -627,6 +646,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 					}
 				}
 				else {	/* No scaling */
+//OMP_PARF
 					for (m = 0; m < nYSize; m++) for (n = 0; n < nXSize; n++) {
 						if (flipud)	nn = nVector[n]-m + i_x_nXYSize;
 						else		nn = nVector[n]+m + i_x_nXYSize;
@@ -732,6 +752,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 				CPLAssert(FALSE);
 		}
 	}
+
+	if (show_time)
+		mexPrintf("GDALREAD: CPU ticks = %.3f\tCPS = %d\n", (double)(clock() - tic), CLOCKS_PER_SEC);
 
 	mxFree(argv);
 	mxFree(nVector);
@@ -1774,23 +1797,19 @@ double ddmmss_to_degree (char *text) {
 }
 
 /* -------------------------------------------------------------------- */
-int decode_columns (char *txt, int *whichBands, int n_col) {
+int decode_columns (char *txt, int *whichBands) {
 	int i, start, stop, pos, n = 0;
 	char p[1024];
 
 	pos = 0;
 	while ((GMT_strtok (txt, ",", &pos, p))) {
-		if (strchr (p, '-'))
+		if (strchr (p, '-')) {
 			sscanf (p, "%d-%d", &start, &stop);
-		else {
-			sscanf (p, "%d", &start);
-			stop = start;
+			for (i = start; i <= stop; i++)
+				whichBands[n++] = i;
 		}
-		stop = MIN (stop, n_col-0);
-		for (i = start; i <= stop; i++) {
-			whichBands[n] = i;
-			n++;
-		}
+		else
+			sscanf (p, "%d", &whichBands[n++]);
 	}
 	return (n);
 }
