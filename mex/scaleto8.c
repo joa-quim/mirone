@@ -202,7 +202,7 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 				min8 = pLimits[0];		max8 = pLimits[1];
 				if (!is_double) {min_val = (float)min8;		max_val = (float)max8;}
 				got_limits = 1;
-				mxUnshareArray(prhs[0]);	/* Only matters if prhs[0] is a copy */
+				//mxUnshareArray(prhs[0]);	/* Only matters if prhs[0] is a copy */
 			}
 			else
 				mexErrMsgTxt("SCALETO8 ERROR: Third argument must be a scalar or a 1x2 vector.");
@@ -212,7 +212,7 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 				min8 = pLimits[0];		max8 = pLimits[1];
 				if (!is_double) {min_val = (float)min8;		max_val = (float)max8;}
 				got_limits = 1;
-				mxUnshareArray(prhs[0]);	/* Only matters if prhs[0] is a copy */
+				//mxUnshareArray(prhs[0]);	/* Only matters if prhs[0] is a copy */
 			}
 			else if (nrhs > 4)
 				mexErrMsgTxt("SCALETO8 ERROR: Hei stop! no more than four input args.");
