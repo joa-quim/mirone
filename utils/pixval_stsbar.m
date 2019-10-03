@@ -192,6 +192,13 @@ function UpdatePixelValues(hFig, hImg, imageType, displayBar, img, x, y)
 		pMode = getappdata(hFig,'PixelMode');		rcMode = getappdata(hFig,'RCMode');
 		if (isempty(pMode)),		pMode = false;		end
 		if (isempty(rcMode)),		rcMode = false;		end
+		% See bands_list/push_Load_CB() for where dem_z_tmp and dem_z_curLayer may be set
+		which_z = 'dem_z';
+		if (~isempty(getappdata(hFig,'dem_z_tmp'))),	which_z = 'dem_z_tmp';	end
+		t = getappdata(hFig, 'dem_z_curLayer');
+		curLayer = 0;		% Used only when we have multi-bands in memory. Then interpolate from curLayer (0 based)
+		if (~isempty(t) && t > 0),	curLayer = t - 1;	end
+
  		if (pMode || rcMode)
 			% Inside each grid cell, which is a pixel on the screen, display only the grid node value
 			rows = size(img, 1);		cols = size(img, 2);
@@ -199,18 +206,13 @@ function UpdatePixelValues(hFig, hImg, imageType, displayBar, img, x, y)
 			cp = getPixel_coords(cols, get(hImg,'XData'),x);
 			r = min(rows, max(1, round(rp)));   c = min(cols, max(1, round(cp)));
 			if (pMode)
-				Z = getappdata(hFig,'dem_z');
+				Z = getappdata(hFig,which_z);
 				pixel = double(Z(r,c));
 			else
 				pixel = [r c];
 			end
 		else
-			pixel = bi_linear(getappdata(hFig,'dem_x'),getappdata(hFig,'dem_y'),getappdata(hFig,'dem_z'),x,y);
-			if (isnan(pixel))		% Can happen if bands_list removed dem_z when making a pseudo color from uint16
-				userData.haveGrid = 0;
-				set(displayBar, 'UserData', userData);
-				return
-			end
+			pixel = bi_linear(getappdata(hFig,'dem_x'),getappdata(hFig,'dem_y'),getappdata(hFig,which_z),x,y, curLayer);
 		end
 
 	else						% work on a image type
