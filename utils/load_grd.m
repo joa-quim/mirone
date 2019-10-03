@@ -27,7 +27,7 @@ function [X,Y,Z,head] = load_grd(handles, opt)
 	X = getappdata(handles.figure1,'dem_x');	Y = getappdata(handles.figure1,'dem_y');
 	Z = getappdata(handles.figure1,'dem_z');	head = handles.head;
 
-	if (~strcmp(opt,'multi'))
+	%if (strcmp(opt,'multi'))
 		zLayers = aux_funs('get_set_zLayers', handles.figure1);	% Returns either 1 or a [1 x nLayers] vector with band order for multi-bands arrays
 		if (zLayers(1) > 1)
 			if (zLayers(1) <= size(Z,3))	% Requested layer is in memory
@@ -38,7 +38,7 @@ function [X,Y,Z,head] = load_grd(handles, opt)
 		elseif (size(Z,3) > 1)
 			Z = Z(:,:,1);
 		end
-	end
+	%end
 
 	err_msg = '';
 	if (isempty(X) && handles.image_type == 1 && ~handles.computed_grid)
