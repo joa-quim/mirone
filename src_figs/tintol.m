@@ -217,6 +217,8 @@ function push_NestGrids_CB(hObject, handles, opt)
 	elseif (val == handles.last_nested_level)
 		val = val + 1;
 		handles.last_nested_level = val;
+	elseif (val == handles.last_nested_level+1)		% When we allowed to select the level first
+		handles.last_nested_level = val;
 	end		% ELSE just replace one previous level (DUMB and DANGEROUS thing to do -- should not be allowed)
 
 	[handles,X,Y,Z,head] = read_gmt_type_grids(handles, fname);
@@ -311,15 +313,16 @@ function popup_nestings_CB(hObject, handles)
 % Show what has been loaded so far but don't let it be changed because we rely on an automatic schema.
 	val = get(hObject, 'Val');
 	set(handles.edit_NestGrids, 'Enable', 'on')
-	if (val <= handles.last_nested_level+1)				% If grid is already loaded, show its name
+	if (val <= handles.last_nested_level+0)				% If grid is already loaded, show its name
 		set(handles.edit_NestGrids, 'Str', handles.nested_level{val,3})
 		if (val == 1 && handles.validGrid)
 			set(handles.edit_NestGrids, 'Enable', 'off')
 		end
-	elseif (val == handles.last_nested_level + 2)		% If next one to enter, OK, show a blank box
-		set(handles.edit_NestGrids, 'Str', '')
+	elseif (val == handles.last_nested_level + 1)		% If next one to enter, OK, show a blank box
+		set(handles.edit_NestGrids, 'Str', sprintf(' PLEASE ENTER GRID NAME FOR LEVEL = %d', val-1))
 	else												% Else, just show the last provide one (no gaps allowed)
 		set(hObject,'Val',handles.last_nested_level+1)
+		set(handles.edit_NestGrids, 'Str', sprintf(' PLEASE ENTER GRID NAME FOR LEVEL = %d', handles.last_nested_level))
 	end
 
 %--------------------------------------------------------------------------------
@@ -628,7 +631,7 @@ function push_RUN_CB(hObject, handles)
 	% Now get the nestings, if any
 	if (~isempty(handles.nested_level{2,1}))
 		nswing(handles.nested_level{1,1}, handles.nested_level{1,2}, handles.Z_src, handles.head_src, ...
-			handles.nested_level(2:handles.last_nested_level,:), mareg_pos, opt_t, opt_G, opt_S, opt_M, ...
+			handles.nested_level(2:handles.last_nested_level,1:2), mareg_pos, opt_t, opt_G, opt_S, opt_M, ...
 			opt_M_plus, opt_M_minus, opt_D, opt_N, opt_O, opt_T, opt_J, opt_f)
 	else
 		nswing(handles.nested_level{1,1}, handles.nested_level{1,2}, handles.Z_src, handles.head_src, ...
