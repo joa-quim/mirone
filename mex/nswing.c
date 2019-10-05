@@ -2159,7 +2159,7 @@ LoopKabas:		/* When computing a grid of Kabas we use a GOTO to simulate a loop. 
 					memset(nest.htotal_d[lev], 0, (size_t)(nm * sizeof(double)));
 				}
 				/* ------------------------------------------------------------------------------- */
-				fprintf(stderr, "Computing prism %d out of %d (row = %d\tcol = %d)\t%s\n",
+				fprintf(stderr, "Computing prism %d out of %d (row = %zd\tcol = %zd)\t%s\n",
 				        cntKabas+1, KbGridRows * KbGridCols, row+1, col+1, txt);
 				goto LoopKabas;			/* A LOOP HERE */
 			}
