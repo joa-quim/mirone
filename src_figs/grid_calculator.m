@@ -270,13 +270,25 @@ function push_Trad_CB(hObject, handles)
 % Compute Bright temperature of a LandSat8 termal band
 	handMir = guidata(handles.h_figs(1));
 	pars = getappdata(handMir.axes1, 'LandSAT8');
-	if (isempty(pars)),	warndlg('Sorry, this grid is not a Landsat8 thermal band.','Warning'),	return,	end
-	opt_T = sprintf('-T%f/%f/%f/%f', pars.rad_mul, pars.rad_add, pars.K1, pars.K2);
-	T = grdutils(getappdata(handMir.figure1,'dem_z'), opt_T);
+	if (isempty(pars)),	warndlg('Sorry, this grid is not a Landsat8 thermal.','Warning'),	return,	end
+	s = get(hObject, 'String');
+	if (strcmp(s, 'Trad'))
+		opt_T = sprintf('-T%f/%f/%f/%f', pars.rad_mul, pars.rad_add, pars.K1, pars.K2);
+		T = grdutils(getappdata(handMir.figure1,'dem_z'), opt_T);
+		tmp.name = 'Brightness temperture';
+	elseif (strcmp(s, 'R(toa)'))
+		opt_M = sprintf('-M%f', pars.rad_mul);	opt_A = sprintf('-A%f', pars.rad_add);
+		T = grdutils(getappdata(handMir.figure1,'dem_z'), opt_M, opt_A);
+		tmp.name = 'Radiance TOA';
+	else
+		s_elev = sin(pars.sun_elev * pi/180);
+		opt_M = sprintf('-M%f', pars.reflect_mul/s_elev);	opt_A = sprintf('-A%f', pars.reflect_add/s_elev);
+		T = grdutils(getappdata(handMir.figure1,'dem_z'), opt_M, opt_A);
+		tmp.name = 'Reflectance TOA';
+	end
 	tmp.head = handMir.head;
 	zMinMax = grdutils(T,'-L');
 	tmp.head(5) = zMinMax(1);	tmp.head(6) = zMinMax(2);
-	tmp.name = 'Brightness temperture';
 	mirone(T, tmp, handMir.figure1)
 
 % ------------------------------------------------------------------------
@@ -992,6 +1004,20 @@ uicontrol('Parent',h1, 'Position',[491 51 50 21],...
 'Tooltip', 'Compute Bright temperature in Celsius', ...
 'Vis', 'off', ...
 'String','Trad','Tag','push_Trad');
+
+uicontrol('Parent',h1, 'Position',[551 51 50 21],...
+'Callback',@grid_calculator_uiCB,...
+'FontSize',10,...
+'Tooltip', 'Compute Radiance at Top of Atmosphere', ...
+'Vis', 'off', ...
+'String','R(toa)','Tag','push_Trad');
+
+uicontrol('Parent',h1, 'Position',[611 51 50 21],...
+'Callback',@grid_calculator_uiCB,...
+'FontSize',10,...
+'Tooltip', 'Compute Reflectance at Top of Atmosphere', ...
+'Vis', 'off', ...
+'String','Rho(toa)','Tag','push_Trad');
 
 uicontrol('Parent',h1, 'Position',[589 6 71 21],...
 'Callback',@grid_calculator_uiCB,...
