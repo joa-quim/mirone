@@ -87,8 +87,7 @@ function hObject = mirone_OpeningFcn(varargin)
 %#function usgs_recent_seismicity sat_orbits uisetdate doy sshist win_open_mex show_mb mb_cleaning_params
 %#function c_cpt2cmap c_grdfilter c_grdinfo c_grdlandmask c_grdproject c_grdread c_grdsample
 %#function c_grdtrend c_mapproject c_nearneighbor c_shoredump c_surface popenr diffCenterVar hellinger bingham
-%#function gmtlist_m  mapproject_m grdproject_m nearneighbor_m cpt2cmap grdfilter_m grdgradient_m grdsample_m surface_m
-%#function grdtrend_m trend1d_m grdlandmask_m external_drive chimoce interp_chimoce earth_tides earthtide DateStr2Num
+%#function gmtlist_m grdgradient_m trend1d_m external_drive chimoce interp_chimoce earth_tides earthtide DateStr2Num
 %#function ddist eucdist2
 
 	global home_dir;	fsep = filesep;
@@ -1905,9 +1904,9 @@ function FileOpenGDALmultiBand_CB(handles, opt, opt2, opt3)
 		%if (~isempty(att.GeoTransform)),	opt_U = '-U';	end
 		if (~isempty(att.GeoTransform) || ~strcmp(att.Band(1).DataType, 'Byte')),	opt_U = '-U';	ax_dir = 'xy';	end
 		opt_S = '-S';
+		opt_B = '-B1';		bands_inMemory = 1;		% If floats, keep only one in mem
 		if (strcmp(att.Band(1).DataType, 'Float32'))	% WTF case is this?
 			opt_S = ' ';
-			opt_B = '-B1';		bands_inMemory = 1;		% If floats, keep only one in mem
 			opt_bak = opt;		opt = 'Multi-band Float32';		reseta = true;
 		elseif (~strcmp(att.Band(1).DataType, 'Byte'))
 			k = 1;
