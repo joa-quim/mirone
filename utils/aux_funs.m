@@ -106,6 +106,15 @@ function check_LandSat8(handles, fname)
 	pars.rad_mul = str2double(t(strfind(t, '=')+1:end));
 	t = s{strncmp(s, ['RADIANCE_ADD_BAND_' band], 18+numel(band))};
 	pars.rad_add = str2double(t(strfind(t, '=')+1:end));
+	t = s{strncmp(s, ['REFLECTANCE_MULT_BAND_' band], 22+numel(band))};
+	pars.reflect_mul = str2double(t(strfind(t, '=')+1:end));
+	t = s{strncmp(s, ['REFLECTANCE_ADD_BAND_' band], 21+numel(band))};
+	pars.reflect_add = str2double(t(strfind(t, '=')+1:end));
+	t = s{strncmp(s, 'SUN_AZIMUTH', 11)};
+	pars.sun_azim = str2double(t(strfind(t, '=')+1:end));
+	t = s{strncmp(s, 'SUN_ELEVATION', 13)};
+	pars.sun_elev = str2double(t(strfind(t, '=')+1:end));
+	
 	if (str2double(band) >= 10)
 		t = s{strncmp(s, ['K1_CONSTANT_BAND_' band], 17+numel(band))};
 		pars.K1 = str2double(t(strfind(t, '=')+1:end));
