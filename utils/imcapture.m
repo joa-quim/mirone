@@ -1,4 +1,4 @@
-function img = imcapture( h, opt, dpi, opt2, opt3)
+function img = imcapture(h, opt, dpi, opt2, opt3)
 % IMCAPTURE do screen captures at controllable resolution using the undocumented "hardcopy" built-in function.
 %
 % USAGE:
@@ -50,10 +50,10 @@ function img = imcapture( h, opt, dpi, opt2, opt3)
 %       rgb=imcapture(h,'img',300);
 %       % In order to confirm the correct aspect ratio you need either to call axis image
 %       figure; image(rgb); axis image
-%       % or save into an raster format an open it with outside Matlab. E.G
+%       % or save into a raster format. e.g.
 %       imwrite(rgb,'lixo.jpg')
 
-%   HOW DOES IT WORKS?
+%   HOW DOES IT WORK?
 %       A lot of testings revealed that the array size returned by 'hardcopy()' function
 %       depends on the 'PaperPosition' property.
 %       BTW the help hardcopy says
@@ -63,7 +63,7 @@ function img = imcapture( h, opt, dpi, opt2, opt3)
 %           "Do NOT use this function directly. Use PRINT instead."
 %
 %       Well, fortunately the first is false and I didn't follow the advise.
-%       But let us return to the 'PaperPosition' property. By default figures are created
+%       But let's return to the 'PaperPosition' property. By default figures are created
 %       (at least in my system) with this values in centimeters
 %       get(hFig,'PaperPosition') = [0.6345    6.3452   20.3046   15.2284]
 %       Using the example above (the clown) X = 200x320
@@ -72,13 +72,13 @@ function img = imcapture( h, opt, dpi, opt2, opt3)
 %       We can find that X & Y resolution are different
 %           DPIx = round(320 / 20.3046 * 2.54) = 40
 %           DPIy = round(200 / 15.2284 * 2.54) = 33
-%       Shit, we have different resolutions - what are these guys doing?
+%       Shit, we have different resolutions for X & Y?- what are these guys doing?
 %       But see this
 %           DPIx = round(1201 / 20.3046 * 2.54) = 150
 %       So the capture is carried out at 150 dpi, and using this on the DPIy expression
 %           N = 15.22842 * 150 / 2.54 = 899
 %       We nearly got it. 899 instead of 900. This is may be due to inch<->centimeters
-%       rounding error ... or to a bug. 
+%       rounding error. 
 %       OK, now that we found how the size is picked, the trick is to play arround with
 %       the 'PaperPosition' in order to get what we want.
 %
@@ -93,7 +93,7 @@ function img = imcapture( h, opt, dpi, opt2, opt3)
 %           27-Aug-2007     Was failing if H = fighandle; OPT = imgAx and there were more that one visible axes
 %                           Recognizes and captures a Mirone "At side" Colorbar (but not perfect)
 
-%	Copyright (c) 2004-2016 by J. Luis
+%	Copyright (c) 2004-2019 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -132,20 +132,24 @@ function img = imcapture( h, opt, dpi, opt2, opt3)
 	if (~ishandle(h))
 		error('imcapture:a','First argument is not a valid Fig/Axes/Image handle')
 	end
+	handMir = guidata(h);
 	if (nargin <= 1),   opt = [];   end
 
 	inputargs{1} = h;
-	pause(0.01);        % Otherwise it so fast (ah ha!?) that next line returns 'none'
+	pause(0.001);			% Otherwise it so fast (ah ha!?) that next line returns 'none'
 	renderer = get(h, 'Renderer');
 
-	if (nargout == 1)                   % Raster mode. We expect to return a RGB array
-		inputargs{4} = '-r150';         % Default value for the case we got none in input
-		inputargs{2} = 'lixo.jpg';      % The name doesn't really matter, but we need one.
-		if strcmp(renderer,'painters')
-			renderer = 'zbuffer';
+	if (nargout == 1)					% Raster mode. We expect to return a RGB array
+		inputargs{4} = '-r150';			% Default value for the case we got none in input
+		if (handMir.version7 < 9)
+			inputargs{2} = 'lixo.jpg';	% The name doesn't really matter, but we need one.
+			if strcmp(renderer,'painters'),		renderer = 'zbuffer';	end
+			inputargs{3} = ['-d' renderer];
+		else
+			inputargs{2} = '-RGBImage';
+			inputargs{3} = ['-' renderer];
 		end
-		inputargs{3} = ['-d' renderer];
-		if (nargin == 3)                % Use round(dpi) because decimals dpi make it blow 
+		if (nargin == 3)				% Use round(dpi) because decimals dpi make it blow 
 			if (isnumeric(dpi) && numel(dpi) == 1)
 				inputargs{4} = ['-r' sprintf('%d',round(dpi))];
 			elseif (isnumeric(dpi) && numel(dpi) == 2)      % New image size in [mrows ncols]
@@ -157,12 +161,17 @@ function img = imcapture( h, opt, dpi, opt2, opt3)
 			end
 		end
 	elseif (nargout == 0 && nargin == 2)    % Clipboard
-		if (~ispc)
-			error('imcapture:a','Copying to clipboard is only possible in windows')
+		if (handMir.version7 < 9)
+			if (~ispc),		error('imcapture:a','Copying to clipboard is only possible in windows'),	end
+			inputargs{2} = '';
+			inputargs{3} = '-dmeta';
+		else
+			inputargs{2} = '-clipboard';
+			if (ispc),	inputargs{3} = '-dmeta';
+			else,		inputargs{3} = '-dbitmap';	% But apparently this is for Win & OSX only
+			end
 		end
-		inputargs{2} = '';
-		inputargs{3} = '-dmeta';
-		inputargs{4} = '-r300';     % I think that it realy doesn't matter in this case
+		inputargs{4} = '-r300';     % I don't think that it realy matters in this case but we need a 4rth element
 	else                            % Vector graphics mode. Returns nothing but save capture on file
 		if (nargin < 3),    error('imcapture:a','Missing output filename.');  end
 		if (~ischar(dpi)),  error('imcapture:a','Third argument must be a string with the filename');  end
@@ -177,8 +186,8 @@ function img = imcapture( h, opt, dpi, opt2, opt3)
 		end
 		inputargs{2} = dpi;
 		if (nargin >= 4)
-			if (isnumeric(opt2)),       inputargs{4} = ['-r' sprintf('%d',opt2)];
-			else                        inputargs{4} = ['-r' opt2];
+			if (isnumeric(opt2)),	inputargs{4} = ['-r' sprintf('%d',opt2)];
+			else,					inputargs{4} = ['-r' opt2];
 			end
 		end
 		if (nargin == 5)
@@ -191,7 +200,6 @@ function img = imcapture( h, opt, dpi, opt2, opt3)
 
 	msg = [];
 	if (numel(hAxes) == 1 && strcmp(get(hAxes,'Visible'),'off') && (nargin == 1 || isempty(opt)))
-		
 		% Default to 'imgOnly' when we have only one image with invisible axes
 		opt = 'img';
 	end
@@ -220,7 +228,7 @@ function img = imcapture( h, opt, dpi, opt2, opt3)
 	if (~isempty(ff)),		fancyFrame(guidata(h),'punset');	end		% Remove (if) the temporary patch frame
 
 	if (~isempty(msg))      % If we had an error inside imgOnly()
-		warning('imcapture:a',msg);
+		error('imcapture:a',msg);
 	end
 
 % ------------------------------------------------------------------    
@@ -404,7 +412,7 @@ function [img, msg] = imgOnly(opt, hAxes, have_fancy, varargin)
 		Stsb = getappdata(hFig,'CoordsStBar');		% Mirone status bar
 		if (~isempty(Stsb)),		set(Stsb(2:end), 'Vis', 'off'),		end
 
-		img = hardcopy( varargin{:} );      % CAPTURE -- CAPTURE -- CAPTURE -- CAPTURE -- CAPTURE
+		img = do_scapture(varargin{:});		% CAPTURE -- CAPTURE -- CAPTURE -- CAPTURE -- CAPTURE
 
 		if (confirm)                        % We asked for a pre-determined size. Check that the result is correct
 			dy = mrows - size(img,1);       % DX & DY should be zero or one (when it buggs).
@@ -413,7 +421,7 @@ function [img, msg] = imgOnly(opt, hAxes, have_fancy, varargin)
 				mrows_desBUG = mrows + dy;
 				ncols_desBUG = ncols + dx;
 				set(hFig,'paperposition',[pp(1:2) ncols_desBUG/dpi mrows_desBUG/dpi])
-				img = hardcopy( varargin{:} );      % Insist
+				img = do_scapture(varargin{:});	% Insist
 			end
 		end
 		if (~isempty(Stsb)),	set(Stsb(2:end), 'Vis', 'on'),	end
@@ -444,13 +452,30 @@ function [img, msg] = imgOnly(opt, hAxes, have_fancy, varargin)
 function img = allInFig(varargin)
 % Get everything in the Figure
 	h = varargin{1};
-	fig_c = get(h,'Color');       set(h,'Color','w')
-	if (numel(varargin) == 3)
-		varargin{4} = '-r150';
-	end
-	img = hardcopy( varargin{:} );    
+	fig_c = get(h,'Color');			set(h,'Color','w')
+	if (numel(varargin) == 3),		varargin{4} = '-r150';	end
+	img = do_scapture(varargin{:});
 	set(h,'Color',fig_c)
-    
+
+% ------------------------------------------------------------------    
+function img = do_scapture(varargin)
+% Do the screen capture. HARDCOPY was removed at some point
+	handMir = guidata(varargin{1});
+	if (handMir.version7 < 9)
+		img = hardcopy(varargin{:});
+	else
+		warning off MATLAB:print:CustomResizeFcnInPrint
+		warning off MATLAB:print:UIControlsScaled
+		displayBar = findobj(gcf, 'Tag', 'pixValStsBar');
+		set(displayBar, 'Vis', 'off')
+		if (strcmp(varargin{2}, '-clipboard'))
+			print(varargin{:});		img = [];	% Can't have a argout
+		else
+			img = print(varargin{:});
+		end
+		set(displayBar, 'Vis', 'on')
+	end
+
 % ------------------------------------------------------------------    
 function [all_axes, cbFullWidth, cbAx] = getAllAxes(hFig)
 % Finds all visible axes plus the Mirone Colorbar (if present) which
