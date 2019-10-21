@@ -128,7 +128,7 @@ function varargout = image_enhance(varargin)
 		if (handles.use_data)
 			Z = getappdata(handMir.figure1,'dem_z');
 			if (isa(Z, 'single'))		% Must normalize it
-				Z1 = Z;		Z1(1) = Z(1) + 0;	% Force copy
+				Z1 = Z;		Z1(1) = single(double(Z(1)) + 0);	% Force copy
 				grdutils(Z1, sprintf('-A%f', -handMir.head(5)), sprintf('-M%f', 1/(handMir.head(6) - handMir.head(5))) )
 				localImhist(handles, Z1);
 			else
@@ -524,15 +524,17 @@ function plot_result(x, y, handles)
 	set(handles.figure1,'WindowButtonMotionFcn',{@wbm_vertLine, handles})
 
 	% OK, now fill the edit boxes that are still empty
-	set(handles.edit_minWindow,'String',sprintf('%d',round(x_min)))
-	set(handles.edit_maxWindow,'String',sprintf('%d',round(x_max)))
-	set(handles.edit_widthWindow,'String',sprintf('%d',round(x_max-x_min)))
-	set(handles.edit_centerWindow,'String',sprintf('%d',round((x_min+x_max)/2)))
+	fmt = '%.0f';		% Fill with integers when working on the images
+	if (handles.use_data),		fmt = '%g';		end
+	set(handles.edit_minWindow,'String',sprintf(fmt, x_min))
+	set(handles.edit_maxWindow,'String',sprintf(fmt, x_max))
+	set(handles.edit_widthWindow,'String',sprintf(fmt, x_max-x_min))
+	set(handles.edit_centerWindow,'String',sprintf(fmt, (x_min+x_max)/2))
 
-	handles.minWindow(handles.currAxes) = round(x_min);
-	handles.maxWindow(handles.currAxes) = round(x_max);
-	handles.widthWindow(handles.currAxes) = round(x_max-x_min);
-	handles.centerWindow(handles.currAxes) = round((x_min+x_max)/2);
+	handles.minWindow(handles.currAxes) = x_min;
+	handles.maxWindow(handles.currAxes) = x_max;
+	handles.widthWindow(handles.currAxes) = x_max-x_min;
+	handles.centerWindow(handles.currAxes) = (x_min+x_max)/2;
 
 	guidata(handles.figure1,handles)
 
@@ -638,14 +640,14 @@ function updateAll(handles,newClim, opt)
 
 	set(handles.edit_minRange,'String',num2str(double(handles.minCData(handles.currAxes))))
 	set(handles.edit_maxRange,'String',num2str(double(handles.maxCData(handles.currAxes))))
-	set(handles.edit_minWindow,'String',round(newClim(1)))
-	set(handles.edit_maxWindow,'String',round(newClim(2)))
-	set(handles.edit_widthWindow,'String',round(newClim(2)-newClim(1)))
-	set(handles.edit_centerWindow,'String',round((newClim(1)+newClim(2))/2))
-	handles.minWindow(handles.currAxes) = round(newClim(1));
-	handles.maxWindow(handles.currAxes) = round(newClim(2));
-	handles.widthWindow(handles.currAxes) = round(newClim(2)-newClim(1));
-	handles.centerWindow(handles.currAxes) = round((newClim(1)+newClim(2))/2);
+	set(handles.edit_minWindow,'String', newClim(1))
+	set(handles.edit_maxWindow,'String', newClim(2))
+	set(handles.edit_widthWindow,'String', newClim(2)-newClim(1))
+	set(handles.edit_centerWindow,'String',(newClim(1)+newClim(2))/2)
+	handles.minWindow(handles.currAxes) = newClim(1);
+	handles.maxWindow(handles.currAxes) = newClim(2);
+	handles.widthWindow(handles.currAxes)  = newClim(2)-newClim(1);
+	handles.centerWindow(handles.currAxes) = (newClim(1)+newClim(2))/2;
 
 	if (~handles.isRGB && ~handles.use_data),    set(handles.hMirAxes,'CLim',newClim);  end
 	set(handles.patch(handles.currAxes),'XData',[newClim(1) newClim(1) newClim(2) newClim(2)]);
@@ -695,9 +697,10 @@ function wbm_vertLine(obj,eventdata,handles)
 		set(handles.figure1,'Pointer','arrow','WindowButtonDownFcn',{@wbd_strayClick,handles})
 		return
 	end
-	x_range = lim(2) - lim(1);
-	if (x_range < 300),		difa = 2;
-	else,					difa = x_range / 150;	% Heuristics
+
+	difa = 2;
+	if (handles.use_data)
+		difa = (lim(2) - lim(1)) / 150;		% Heuristics
 	end
 	xx = get(handles.h_vert_lines{handles.currAxes},'XData');
 	if (abs(pt(1,1) - xx{1}(1)) < difa)
@@ -741,12 +744,12 @@ function drag_vertLine(obj,eventdata,h,handles,n)
 	switch n
 		case 1				% Update the left side
 			x = (xp(1) + xp(4)) / 2;
-			new_patch_lims = [round(pt(1,1)) round(pt(1,1)) xp(3) xp(4)];
+			new_patch_lims = [pt(1,1) pt(1,1) xp(3) xp(4)];
 			set(handles.h_vert_lines{handles.currAxes}(2),'XData',[x x])    % Update central line
-			set(handles.edit_minWindow,'String',round(pt(1,1)))
-			set(handles.edit_widthWindow,'String',round(xp(4)-pt(1,1)))
-			handles.minWindow(handles.currAxes) = round(pt(1,1));
-			handles.widthWindow(handles.currAxes) = round(xp(4)-pt(1,1));
+			set(handles.edit_minWindow,'String', pt(1,1))
+			set(handles.edit_widthWindow,'String', xp(4)-pt(1,1))
+			handles.minWindow(handles.currAxes) = pt(1,1);
+			handles.widthWindow(handles.currAxes) = xp(4)-pt(1,1);
 		case 2				% Update both left and right sides
 			dx = xp(4) - xp(1);
 			xp(1) = max(handles.min_max{handles.currAxes}(1),pt(1,1)-dx/2);
@@ -754,23 +757,23 @@ function drag_vertLine(obj,eventdata,h,handles,n)
 			new_patch_lims = [xp(1) xp(1) xp(4) xp(4)];
 			set(handles.h_vert_lines{handles.currAxes}(1),'XData',[xp(1) xp(1)])    % Update left line
 			set(handles.h_vert_lines{handles.currAxes}(3),'XData',[xp(4) xp(4)])    % Update right line
-			set(handles.edit_minWindow,'String',round(xp(1)))
-			set(handles.edit_maxWindow,'String',round(xp(4)))
-			set(handles.edit_widthWindow,'String',round(xp(4)-xp(1)))
-			handles.minWindow(handles.currAxes) = round(xp(1));
-			handles.maxWindow(handles.currAxes) = round(xp(4));
-			handles.widthWindow(handles.currAxes) = round(xp(4)-xp(1));
+			set(handles.edit_minWindow,'String',xp(1))
+			set(handles.edit_maxWindow,'String',xp(4))
+			set(handles.edit_widthWindow,'String',xp(4)-xp(1))
+			handles.minWindow(handles.currAxes) = xp(1);
+			handles.maxWindow(handles.currAxes) = xp(4);
+			handles.widthWindow(handles.currAxes) = xp(4)-xp(1);
 		case 3				% Update the right side
 			x = (xp(1) + xp(4)) / 2;
-			new_patch_lims = [xp(1) xp(2) round(pt(1,1)) round(pt(1,1))];
+			new_patch_lims = [xp(1) xp(2) pt(1,1) pt(1,1)];
 			set(handles.h_vert_lines{handles.currAxes}(2),'XData',[x x])    % Update central line
-			set(handles.edit_maxWindow,'String',round(pt(1,1)))
-			set(handles.edit_widthWindow,'String',round(pt(1,1)-xp(1)))
-			handles.maxWindow(handles.currAxes) = round(pt(1,1));
-			handles.widthWindow(handles.currAxes) = round(pt(1,1)-xp(1));
+			set(handles.edit_maxWindow,'String',pt(1,1))
+			set(handles.edit_widthWindow,'String',pt(1,1)-xp(1))
+			handles.maxWindow(handles.currAxes) = pt(1,1);
+			handles.widthWindow(handles.currAxes) = pt(1,1)-xp(1);
 	end
 
-	handles.centerWindow(handles.currAxes) = round(x);
+	handles.centerWindow(handles.currAxes) = x;
 	if (~handles.use_data)		% Otherwise we don't want to change CLim
 		set(handles.hMirAxes,'CLim',[new_patch_lims(1) new_patch_lims(4)])
 	elseif (handles.update_clipp_boxes)
@@ -778,7 +781,7 @@ function drag_vertLine(obj,eventdata,h,handles,n)
 		set([handles.Clipp_edit_above handles.Clipp_edit_Ab_val], 'String', new_patch_lims(4))
 	end
 	set(handles.patch(handles.currAxes),'XData',new_patch_lims)
-	set(handles.edit_centerWindow,'String',round(x))
+	set(handles.edit_centerWindow,'String',x)
 	idx = (handles.histo{handles.currAxes}(:,1) >= new_patch_lims(1)) & (handles.histo{handles.currAxes}(:,1) <= new_patch_lims(4));
 	n_pixels_in_patch = sum(handles.histo{handles.currAxes}(idx,2));
 	str = sprintf('N = %d\t(%.2f%%)',[n_pixels_in_patch n_pixels_in_patch/handles.n_tot(handles.currAxes)*100]);
