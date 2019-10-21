@@ -27,15 +27,15 @@ function varargout = grid_calculator(varargin)
 
 % $Id: grid_calculator.m 10410 2018-05-18 15:32:41Z j $
 
+	old_vis = get(0,'ShowHiddenHandles');
+	set(0,'ShowHiddenHandles','on')
+	h_figs = findobj('Type','figure');		% Do this before creating the calc figure
+	set(0,'ShowHiddenHandles',old_vis)
+
 	hObject = figure('Vis','off');
 	grid_calculator_LayoutFcn(hObject);
 	handles = guihandles(hObject);
 	move2side(hObject,'right')
-
-	old_vis = get(0,'ShowHiddenHandles');
-	set(0,'ShowHiddenHandles','on')
-	h_figs = findobj('Type','figure');
-	set(0,'ShowHiddenHandles',old_vis)
 
 	handles.grid_patos = [];    % To hold paths of eventual future loaded grids
 	handles.loaded_grid = [];   % To hold names of eventual future loaded grids
@@ -79,7 +79,7 @@ function varargout = grid_calculator(varargin)
 				handles.last_dir = hand_fig.last_dir;
 				handles.work_dir = hand_fig.work_dir;
 			catch
-				Z = [];        
+				continue;
 			end
 			if (isempty(Z)),	continue,	end
 			name = get(h_figs(i),'Name');
@@ -394,18 +394,22 @@ function push_compute_CB(hObject, handles)
 			elseif (~isempty(msg)),		errordlg(['ERROR: ' msg]),	return
 			end
 		end
+		resp = single(resp);
 
+		[zzz] = grdutils(resp,'-L');  z_min = zzz(1);     z_max = zzz(2);
 		if (~isempty(k))					% We had grids in input
-			tmp.head(5:6) = [min(resp(:)) max(resp(:))];
-			tmp.name = 'Computed_grid';
-			mirone(single(resp),tmp);
+			tmp.head(5:6) = [z_min z_max];
+			tmp.name = 'Calculated_grid';
+			if (~load_it),	mirone(resp, tmp, hand_fig.figure1);	% For the case we have proj info
+			else,			mirone(resp, tmp);
+			end
 		elseif (numel(resp) > 1)			% 'resp' is a array. Construct a fake grid
 			[m,n] = size(resp);
-			resp = single(resp);
+			%resp = single(resp);
 			tmp.X = 1:n;        tmp.Y = 1:m;
-			[zzz] = grdutils(resp,'-L');  z_min = zzz(1);     z_max = zzz(2);
+			%[zzz] = grdutils(resp,'-L');  z_min = zzz(1);     z_max = zzz(2);
 			tmp.head = [1 n 1 m z_min z_max 0 1 1];
-			tmp.name = 'Computed_array';
+			tmp.name = 'Calculated_array';
 			mirone(resp,tmp);
 		else								% Computations that do not involve grids
 			txt = sprintf('%.10f',resp);
