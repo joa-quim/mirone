@@ -380,7 +380,7 @@ function out = findFileType(fname)
 			s = load(fname,'FitLine');	% Try if it is a Ecran session
 			if (isfield(s, 'FitLine')),	out = 'mat';	end
 		end
-	elseif (any(strcmpi(EXT,{'.n1' '.n14' '.n15' '.n16' '.n17'})) )
+	elseif (any(strcmpi(EXT,{'.n1' '.n14' '.n15' '.n16' '.n17' '.vrt'})) )
 		out = 'multiband';
 	elseif (strcmpi(EXT,'.img'))
 		nome = [PATH filesep FNAME '.lbl'];
@@ -391,7 +391,7 @@ function out = findFileType(fname)
 		end
 	elseif (strcmpi(EXT,'.cpt'))
 		out = 'cpt';
-	elseif ( any(strcmpi(EXT,{'.dat' '.xy' 'xyz' '.b' '.txt' '.bin'})) )
+	elseif (any(strcmpi(EXT,{'.dat' '.xy' 'xyz' '.b' '.txt' '.bin'})) )
 		out = 'dat';
 	elseif (strcmpi(EXT,'.shp'))
 		out = 'shp';
