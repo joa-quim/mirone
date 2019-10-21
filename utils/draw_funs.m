@@ -1183,10 +1183,10 @@ function setCoastLineUictx(h)
 	uimenu(cmenuHand, 'Label', label, 'Callback', 'delete(gco)');
 	uimenu(cmenuHand, 'Label', 'Save coastline', 'Callback', {@save_formated,h});
 
-	if (handles.validGrid && strcmp(tag,'CoastLineNetCDF'))		% Options to apply ocean/land masking
+	if (strcmp(tag,'CoastLineNetCDF'))		% Options to apply ocean/land masking
 		item = uimenu(cmenuHand, 'Label', 'Mask', 'Sep','on');
-		uimenu(item, 'Label', 'Land',   'Callback', {@apply_grdlandMask,h, 'L'})
-		uimenu(item, 'Label', 'Oecean', 'Callback', {@apply_grdlandMask,h, 'O'})
+		uimenu(item, 'Label', 'Land',  'Callback', {@apply_grdlandMask,h, 'L'})
+		uimenu(item, 'Label', 'Ocean', 'Callback', {@apply_grdlandMask,h, 'O'})
 	end
 
 	setLineWidth(uimenu(cmenuHand, 'Label', 'Line Width', 'Sep','on'), cb_LineWidth)
@@ -1197,16 +1197,43 @@ function setCoastLineUictx(h)
 
 % -----------------------------------------------------------------------------------------
 function apply_grdlandMask(hObj, evt, h, opt)
-% Blank current grid with the default's grdlandmask setting for this coastline resolution
+% Blank current grid/image with the default's grdlandmask setting for this coastline resolution
 	handles = guidata(h);
-	opt_R = sprintf('-R%.10g/%.10g/%.10g/%.10g',handles.head(1), handles.head(2), handles.head(3), handles.head(4));
-	opt_I = sprintf('-I%0.10g/%0.10g',handles.head(8), handles.head(9));
+	if (~handles.is_projected)
+		opt_R = sprintf('-R%.12g/%.12g/%.12g/%.12g',handles.head(1), handles.head(2), handles.head(3), handles.head(4));
+		opt_I = sprintf('-I%0.12g/%0.12g',handles.head(8), handles.head(9));
+	else			% Now this adds quite a lot of processing to the job
+		wkt = aux_funs('get_proj_string', handles, 'wkt');
+		if (isempty(wkt))
+			errordlg('Figure is projected, but failed to get proj info.', 'Error'),		return
+		end
+		data = [handles.head(1) handles.head(3); handles.head(2) handles.head(4)];		% Diagonal points
+		[out, msg, opt_R] = proj2proj_pts(handles, data, 'srcWKT',wkt, 'dstProj4','+proj=longlat');
+		if (~isempty(msg)),		errordlg(msg, 'Error'),		return,		end
+		inc = handles.head(8:9) / (handles.EarthRad * 1000) * 180 / pi;
+		opt_I = sprintf('-I%0.12g/%0.12g',inc(1), inc(2));
+	end
 	opt_F = ' ';	opt_e = ' ';
 	if (handles.head(7)),		opt_F = '-F';	end
 	if (handles.IamCompiled),	opt_e = '-e';	end
 	opt_D = sprintf('-D%s', getappdata(h,'resolution'));	% Get the resolution as stored in line's appdata
-	opt_N = '0/1/0/0/0';		% Continent masking
-	mask = c_grdlandmask(opt_R, opt_I, opt_D, opt_N, opt_F, opt_e, '-A0/0/1', '-V');
+	opt_N = '-N0/1';			% Continent masking
+	set(handles.figure1,'pointer','watch'),		pause(0.01)
+	[mask, new_hdr] = c_grdlandmask(opt_R, opt_I, opt_D, opt_N, opt_F, opt_e, '-A0/0/1', '-V');
+	mask = uint8(mask);
+	if (handles.is_projected)	% Then MASK is in geogs and we need to project it.
+		hdrStruct.ULx = new_hdr(1) - new_hdr(8) / 2 * (~new_hdr(7));	% Goto pixel reg
+		hdrStruct.ULy = new_hdr(4) + new_hdr(9) / 2 * (~new_hdr(7));
+		hdrStruct.Xinc = new_hdr(8);		hdrStruct.Yinc = new_hdr(9);
+		hdrStruct.ResampleAlg = 'bilinear';
+		hdrStruct.t_res = handles.head(8:9);
+		hdrStruct.SrcProjSRS = '+proj=longlat';
+		hdrStruct.DstProjSRS = wkt;
+		[mask, att] = gdalwarp_mex(mask, hdrStruct);	% The output is normally larger then base grid
+		rect_crop = [handles.head(1) handles.head(3) diff(handles.head(1:2)) diff(handles.head(3:4))];
+		[mask,r_c] = cropimg(att.GMT_hdr(1:2), att.GMT_hdr(3:4), mask, rect_crop, 'out_grid');
+	end
+	mask = logical(mask);
 	if (opt == 'O'),	mask = ~mask;	end			% Ocean masking. Setting '1/0/0/0/0' is not working. A bug.
 
 	img = get(handles.hImg, 'CData');	% Mask the image as well
@@ -1222,14 +1249,17 @@ function apply_grdlandMask(hObj, evt, h, opt)
 		set(handles.figure1, 'Colormap', pal);
 	end
 	set(handles.hImg, 'CData', img)
+	set(handles.figure1,'pointer','arrow');
 
-	[X,Y,Z] = load_grd(handles);	Z(mask) = NaN;
-	setappdata(handles.figure1,'dem_z',Z);
-	handles.have_nans = grdutils(Z,'-N');
-	zz = grdutils(Z,'-L');			handles.head(5:6) = [zz(1) zz(2)];
-	handles.firstIllum = true;
-	set(handles.haveNaNs,'Vis','on')
-	guidata(handles.figure1, handles)
+	if (handles.validGrid)
+		[X,Y,Z] = load_grd(handles);	Z(mask) = NaN;
+		setappdata(handles.figure1,'dem_z',Z);
+		handles.have_nans = grdutils(Z,'-N');
+		zz = grdutils(Z,'-L');			handles.head(5:6) = [zz(1) zz(2)];
+		handles.firstIllum = true;
+		set(handles.haveNaNs,'Vis','on')
+		guidata(handles.figure1, handles)
+	end
 % -----------------------------------------------------------------------------------------
 
 % -----------------------------------------------------------------------------------------
@@ -1297,8 +1327,9 @@ function set_isochrons_uicontext(h, data)
 	end
 	% If at least one is closed, activate the Area option
 	if (LINE_ISCLOSED)
-		uimenu(cmenuHand, 'Label', 'Area under polygon', 'Callback', @show_Area);
+		uimenu(cmenuHand, 'Label', 'Area under polygon', 'Callback', @show_Area, 'Sep','on');
 		uimenu(cmenuHand, 'Label', 'Create Mask', 'Callback', 'poly2mask_fig(guidata(gcbo),gco)');
+		uimenu(cmenuHand, 'Label', 'Set to constant', 'Callback', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''ROI_SetConst'')');
 	end
 	if (handles.image_type ~= 20 && (ndims(get(handles.hImg,'CData')) == 2 || handles.validGrid))
 		if (handles.nLayers > 1)
@@ -1306,7 +1337,7 @@ function set_isochrons_uicontext(h, data)
 			uimenu(cmenuHand, 'Label', '3D interpolation', 'Callback', cbTrack);
 		end
 		cbTrack = 'setappdata(gcf,''TrackThisLine'',gco); mirone(''ExtractProfile_CB'',guidata(gcbo),''point'')';
-		uimenu(cmenuHand, 'Label', 'Point interpolation', 'Callback', cbTrack);
+		uimenu(cmenuHand, 'Label', 'Point interpolation', 'Callback', cbTrack, 'Sep','on');
 		cbTrack = 'setappdata(gcf,''TrackThisLine'',gco); mirone(''ExtractProfile_CB'',guidata(gcbo))';
 		uimenu(cmenuHand, 'Label', 'Extract profile', 'Callback', cbTrack);
 	end
