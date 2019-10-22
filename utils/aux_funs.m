@@ -97,7 +97,15 @@ function check_LandSat8(handles, fname)
 	ind = strfind(name, '_B');
 	if (isempty(ind)),	return,		end
 	t = [pato filesep name(1:ind) 'MTL.txt'];
-	if (~exist(t, 'file')),		return,		end
+	if (~exist(t, 'file'))
+		lst = dir([pato filesep '*_MTL.txt']);		% Try to find a MTL with a slightly different name
+		if (numel(lst) == 1 && strncmp(lst.name, name(1:16), 16))
+			t = [pato filesep lst.name];
+			if (~exist(t, 'file')),		return,		end
+		else
+			return
+		end
+	end
 	band = name(ind+2:end);
 	fid = fopen(t, 'rt');
 	if (fid < 0),	errordlg(['Error opening file: ' t], 'Error');	return,	end
@@ -106,10 +114,17 @@ function check_LandSat8(handles, fname)
 	pars.rad_mul = str2double(t(strfind(t, '=')+1:end));
 	t = s{strncmp(s, ['RADIANCE_ADD_BAND_' band], 18+numel(band))};
 	pars.rad_add = str2double(t(strfind(t, '=')+1:end));
-	t = s{strncmp(s, ['REFLECTANCE_MULT_BAND_' band], 22+numel(band))};
-	pars.reflect_mul = str2double(t(strfind(t, '=')+1:end));
-	t = s{strncmp(s, ['REFLECTANCE_ADD_BAND_' band], 21+numel(band))};
-	pars.reflect_add = str2double(t(strfind(t, '=')+1:end));
+	
+	% Bands 10 & 11 have no REFLECTANCE coeffs
+	if (~strcmp(band, '10') && ~strcmp(band, '11'))
+		t = s{strncmp(s, ['REFLECTANCE_MULT_BAND_' band], 22+numel(band))};
+		pars.reflect_mul = str2double(t(strfind(t, '=')+1:end));
+		t = s{strncmp(s, ['REFLECTANCE_ADD_BAND_' band], 21+numel(band))};
+		pars.reflect_add = str2double(t(strfind(t, '=')+1:end));
+	else
+		pars.reflect_mul = 1;	pars.reflect_add = 0;
+	end
+	
 	t = s{strncmp(s, 'SUN_AZIMUTH', 11)};
 	pars.sun_azim = str2double(t(strfind(t, '=')+1:end));
 	t = s{strncmp(s, 'SUN_ELEVATION', 13)};
