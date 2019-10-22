@@ -281,6 +281,10 @@ function push_Trad_CB(hObject, handles)
 		T = grdutils(getappdata(handMir.figure1,'dem_z'), opt_M, opt_A);
 		tmp.name = 'Radiance TOA';
 	else
+		if (pars.reflect_mul == 1)
+			warndlg('Computing Reflectance for Thermal bands is not defined.','Warning')
+			return
+		end
 		s_elev = sin(pars.sun_elev * pi/180);
 		opt_M = sprintf('-M%f', pars.reflect_mul/s_elev);	opt_A = sprintf('-A%f', pars.reflect_add/s_elev);
 		T = grdutils(getappdata(handMir.figure1,'dem_z'), opt_M, opt_A);
