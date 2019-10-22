@@ -2488,7 +2488,7 @@ function handles = show_image(handles, fname, X, Y, I, validGrid, axis_t, adjust
 				tmp1{i+1,1} = sprintf('band%d',i);		tmp1{i+1,2} = sprintf('banda%d',i);
 				tmp2{i+1,1} = [sprintf('%d',i) sprintf('%d',size(I,1)) 'x' sprintf('%d',size(I,2)) ' BSQ']; tmp2{i+1,2} = i;
 			end
-			tmp = {['+ ' 'RGB']; I; tmp1; tmp2; ''; 1:3; [size(I,1) size(I,2) 3]; 'Mirone'};
+			tmp = {['+ ' 'RGB']; I; tmp1; tmp2; ''; 1:3; [size(I,1) size(I,2) 3]; {'Mirone'}};
 			setappdata(handles.figure1,'BandList',tmp)
 			set(findobj(handles.Image,'-depth',1,'Label','Load Bands'), 'Vis','on')
 			set(handles.ImgLayers,'Enable', 'on')
@@ -2924,12 +2924,21 @@ function ImageDrape_CB(handles, alfa)
 	if (handles.no_file),	return,		end
 	if (nargin == 1),	alfa = [];		end				% Transparency will be asked later
 	son_img = get(handles.hImg,'CData');				% Get "son" image
+	if (strcmp(get(handles.hImg,'CDataMapping'), 'scaled'))	% We have to replicate what CLim does
+		clim = get(handles.axes1, 'CLim');
+		son_img = scaleto8(son_img, -8, round(clim));
+	end
+	
 	h_f = getappdata(handles.figure1,'hFigParent');		% Get the parent figure handle
 	if (~ishandle(h_f))
 		msgbox('Parent window no longer exists (you kiled it). Exiting.','Warning');		return
 	end
 	handParent = guidata(h_f);			% We need the parent handles
 	parent_img = get(handParent.hImg,'CData');			parent_was_resized = false;
+	if (strcmp(get(handParent.hImg,'CDataMapping'), 'scaled'))	% We have to replicate what CLim does
+		clim = get(handParent.axes1, 'CLim');
+		parent_img = scaleto8(parent_img, -8, round(clim));
+	end
 	y_son = size(son_img,1);			x_son = size(son_img,2);			% Get "son" image dimensions 
 	y_parent = size(parent_img,1);		x_parent = size(parent_img,2);		% Get "parent" image dimensions 
 	transp = [];
@@ -2944,8 +2953,9 @@ function ImageDrape_CB(handles, alfa)
 
 	% See about transparency
 	if (isempty(alfa))			% transparency was NOT transmitted as argument to this function
-		dlg_title = 'Draping Transparency';		num_lines= [1 38];	defAns = {'0'};
-		resp = inputdlg('Use Transparency (0-1)?',dlg_title,num_lines,defAns);		pause(0.01);
+		dlg_title = 'Draping Transparency';		num_lines= [1 50];	defAns = {'0'};
+		resp = inputdlg('Use Transparency (0-1)?', dlg_title, num_lines,defAns);	pause(0.01);
+		if (isempty(resp)),		return,		end
 		alfa = sscanf(resp{1},'%f');
 	end
 	if (isempty(alfa) || alfa > 1),		alfa = 1;	end
@@ -2999,6 +3009,11 @@ function ImageDrape_CB(handles, alfa)
 			son_img = ind2rgb8(son_img,get(handles.figure1,'Colormap'));
 		elseif (ndims(son_img) == 3 && ndims(parent_img) == 2)
 			parent_img = ind2rgb8(parent_img,get(h_f,'Colormap'));
+		elseif (ndims(son_img) == 2 && ndims(parent_img) == 2)		% Here the shit is that they can have different cmaps
+			if (~isequal(get(handles.figure1,'Colormap'), get(h_f,'Colormap')))		% Shit, the both need to go RGB
+				son_img = ind2rgb8(son_img,get(handles.figure1,'Colormap'));
+				parent_img = ind2rgb8(parent_img,get(h_f,'Colormap'));
+			end
 		end
 		if (alfa)		% We must process this case here
 			tmp = parent_img(r_c(1):r_c(2),r_c(3):r_c(4), 1:end);
