@@ -448,36 +448,7 @@ function set_line_uicontext(h, opt)
 	end
 
 	if (~IS_SEISPOLYG && LINE_ISCLOSED && ~IS_RECTANGLE && (handles.validGrid || handles.image_type ~= 20))
-		item_tools2 = uimenu(cmenuHand, 'Label', 'ROI Crop Tools','Sep','on');
-		if (handles.validGrid)    % Option only available to recognized grids
-			uimenu(item_tools2, 'Label', 'Crop Grid', 'Callback', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''CropaGrid_pure'')');
-			uimenu(item_tools2, 'Label', 'Crop Image', 'Callback', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco)');
-			uimenu(item_tools2, 'Label', 'Crop Image (with coords)', 'Callback', ...
-				'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''CropaWithCoords'')');
-			uimenu(item_tools2, 'Label', 'Set to constant', 'Callback', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''ROI_SetConst'')','Sep','on');
-			item_tools3 = uimenu(item_tools2, 'Label', 'Stats');
-			uimenu(item_tools3, 'Label', 'Mean', 'Callback', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''ROI_Mean'')');
-			uimenu(item_tools3, 'Label', 'Median', 'Callback', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''ROI_Median'')');
-			uimenu(item_tools3, 'Label', 'STD', 'Callback', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''ROI_STD'')');
-			uimenu(item_tools2, 'Label', 'Clip grid', 'Callback', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''ROI_Clip'')');
-			uimenu(item_tools2, 'Label', 'Median filter', 'Callback', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''ROI_MedianFilter'')');
-			uimenu(item_tools2, 'Label', 'Spline smooth', 'Callback', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''ROI_SplineSmooth'')');
-			uimenu(item_tools2, 'Label', 'Fill sinks', 'Callback', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''ROI_FillSinks_pitt'')');
-			uimenu(item_tools2, 'Label', 'Slice peaks','Callback', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''ROI_FillSinks_peak'')');
-			uimenu(item_tools2, 'Label', 'Histogram (grid)', 'Callback', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''CropaGrid_histo'')');
-			hP = getappdata(handles.figure1, 'ParentFig');
-			if (~isempty(hP) && ishandle(hP) && IamSpectrum)
-				uimenu(item_tools2, 'Label', 'Low Pass FFT filter', 'Callback', 'mirone(''GridToolsSectrum_CB'',guidata(gcbo), ''lpass'', gco)');
-				uimenu(item_tools2, 'Label', 'High Pass FFT filter','Callback', 'mirone(''GridToolsSectrum_CB'',guidata(gcbo), ''hpass'', gco)');
-			end
-		else			% We have an Image
-			uimenu(item_tools2, 'Label', 'Crop Image', 'Callback', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco)');
-			if (handles.image_type == 3)
-					uimenu(item_tools2, 'Label', 'Crop Image (with coords)', 'Callback', ...
-						'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''CropaWithCoords'')');
-			end
-			uimenu(item_tools2, 'Label', 'Histogram', 'Callback', 'image_histo(guidata(gcbo),gco)');
-		end
+		item_tools2 = set_ROI_uicontext(handles, cmenuHand, IamSpectrum);
 		uimenu(item_tools2, 'Label', 'Image process', 'Sep','on', 'Callback', 'mirone(''DrawClosedPolygon_CB'',guidata(gcbo),gco)');
 
 		if (strcmp(get(h,'Tag'),'EulerTrapezium'))
@@ -521,6 +492,40 @@ function set_line_uicontext(h, opt)
 	elseif (IS_SEISMICLINE)
 		uimenu(cmenuHand, 'Label', 'Set buffer zone', 'Callback', {@seismic_line,h,'buf'}, 'Sep','on');
 		uimenu(cmenuHand, 'Label', 'Project seismicity', 'Callback', {@seismic_line,h,'proj'}, 'Enable','off');
+	end
+
+% -----------------------------------------------------------------------------------------
+function item_tools2 = set_ROI_uicontext(handles, cmenuHand, IamSpectrum)
+% ...
+	item_tools2 = uimenu(cmenuHand, 'Label', 'ROI Crop Tools','Sep','on');
+	if (handles.validGrid)    % Option only available to recognized grids
+		uimenu(item_tools2, 'Label', 'Crop Grid', 'Callback', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''CropaGrid_pure'')');
+		uimenu(item_tools2, 'Label', 'Crop Image', 'Callback', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco)');
+		uimenu(item_tools2, 'Label', 'Crop Image (with coords)', 'Callback', ...
+			'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''CropaWithCoords'')');
+		uimenu(item_tools2, 'Label', 'Set to constant', 'Callback', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''ROI_SetConst'')','Sep','on');
+		item_tools3 = uimenu(item_tools2, 'Label', 'Stats');
+		uimenu(item_tools3, 'Label', 'Mean', 'Callback', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''ROI_Mean'')');
+		uimenu(item_tools3, 'Label', 'Median', 'Callback', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''ROI_Median'')');
+		uimenu(item_tools3, 'Label', 'STD', 'Callback', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''ROI_STD'')');
+		uimenu(item_tools2, 'Label', 'Clip grid', 'Callback', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''ROI_Clip'')');
+		uimenu(item_tools2, 'Label', 'Median filter', 'Callback', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''ROI_MedianFilter'')');
+		uimenu(item_tools2, 'Label', 'Spline smooth', 'Callback', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''ROI_SplineSmooth'')');
+		uimenu(item_tools2, 'Label', 'Fill sinks', 'Callback', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''ROI_FillSinks_pitt'')');
+		uimenu(item_tools2, 'Label', 'Slice peaks','Callback', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''ROI_FillSinks_peak'')');
+		uimenu(item_tools2, 'Label', 'Histogram (grid)', 'Callback', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''CropaGrid_histo'')');
+		hP = getappdata(handles.figure1, 'ParentFig');
+		if (~isempty(hP) && ishandle(hP) && IamSpectrum)
+			uimenu(item_tools2, 'Label', 'Low Pass FFT filter', 'Callback', 'mirone(''GridToolsSectrum_CB'',guidata(gcbo), ''lpass'', gco)');
+			uimenu(item_tools2, 'Label', 'High Pass FFT filter','Callback', 'mirone(''GridToolsSectrum_CB'',guidata(gcbo), ''hpass'', gco)');
+		end
+	else			% We have an Image
+		uimenu(item_tools2, 'Label', 'Crop Image', 'Callback', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco)');
+		if (handles.image_type == 3)
+			uimenu(item_tools2, 'Label', 'Crop Image (with coords)', 'Callback', ...
+				'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''CropaWithCoords'')');
+		end
+		uimenu(item_tools2, 'Label', 'Histogram', 'Callback', 'image_histo(guidata(gcbo),gco)');
 	end
 
 % -----------------------------------------------------------------------------------------
@@ -1329,7 +1334,7 @@ function set_isochrons_uicontext(h, data)
 	if (LINE_ISCLOSED)
 		uimenu(cmenuHand, 'Label', 'Area under polygon', 'Callback', @show_Area, 'Sep','on');
 		uimenu(cmenuHand, 'Label', 'Create Mask', 'Callback', 'poly2mask_fig(guidata(gcbo),gco)');
-		uimenu(cmenuHand, 'Label', 'Set to constant', 'Callback', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''ROI_SetConst'')');
+		set_ROI_uicontext(handles, cmenuHand, false);
 	end
 	if (handles.image_type ~= 20 && (ndims(get(handles.hImg,'CData')) == 2 || handles.validGrid))
 		if (handles.nLayers > 1)
