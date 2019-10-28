@@ -143,41 +143,6 @@ function push_compute_CB(hObject, handles)
 	if (isempty(com)),	return,		end			% Idiot call
 	com = [com ';'];
 
-% 	fname = 'runCmd_cmd.m';
-% 
-% 	% Write the running command in a temporary file (This was an experimental idea, which is not in use)
-% 	fid = fopen(fname,'w');
-% 	fprintf(fid,'function Z = runCmd_cmd(arg1)\n');
-% 	fprintf(fid,'Z = arg1.Z;\n');
-% 	fprintf(fid,'claZ = [];\n');			% In case we need it to know if the fck doubles tirany came on ground
-% 	fprintf(fid,'try\n\t%s\n', com);		% Exec the command in a try wraper
-% 	fprintf(fid,'catch\n');
-% 	fprintf(fid,'\tle = lasterr;\n');
-% 	fprintf(fid,'\tind = strfind(le, ''values of class'');\n');	% Screwed. Use lasterr to see if it was due to fck double issue
-% 	fprintf(fid,'\tif (~isempty(ind))\n');
-% 	fprintf(fid,'\t\tZ = double(Z);\n');		% Try again with fck doubles
-% 	fprintf(fid,'\t\tclaZ = le(ind+17:end-2);\n\tend\n');	% Signal that we have to convert from doubles
-% 	fprintf(fid,'\ttry\n\t\t%s\n\tend\n', com);
-% 	fprintf(fid,'end\n');
-% 
-% 	% Check if we had class algebra problem (fck doubles)
-% 	fprintf(fid,'if (~isempty(claZ))\n');						% Yes we had a fck doubles shit
-% 	fprintf(fid,'\tif (strcmp(claZ,''single''))\n');
-% 	fprintf(fid,'\t\tZ = single(Z);\n');		% Singles in original, convert back to them 
-% 	fprintf(fid,'\telseif (strcmp(claZ,''int16''))\n');
-% 	fprintf(fid,'\t\tZ = int16(Z * (2^16  - 1) -2^16 / 2 );\n');% Int16 in original		-- Not sure of this
-% 	fprintf(fid,'\telseif (strcmp(claZ,''uint16''))\n');
-% 	fprintf(fid,'\t\tZ = int16(Z * (2^16 - 1));\n');			% UInt16 in original 
-% 	fprintf(fid,'\telseif (strcmp(claZ,''uint8''));\n');
-% 	fprintf(fid,'\t\tZ = uint8(Z * 255)\n');					% UInt8 in original 
-% 	fprintf(fid,'\telseif (strcmp(claZ,''int8''));\n');
-% 	fprintf(fid,'\t\tZ = int8(Z * 255 - 127)\n');				% Int8 in original 		-- Not sure of this
-% 	fprintf(fid,'\tend\n');
-% 	fprintf(fid,'end\n');
-% 	fclose(fid);
-% 	pause(0.01);		% Otherwise it's too fast for feval() below
-% 	builtin('delete',fname);
-
 	% See if we are operating on a grid ...
 	if (strcmp(get(handles.radio_onGrid, 'Enable'), 'on') && get(handles.radio_onGrid, 'Val'))
 		handles.figure1 = handles.hMirFig1;		% it won't hurt as long as we don't save the handles
@@ -296,16 +261,11 @@ function Z = runCmd_cmda(arg1,cmd)
 		end
 	end
 	if (~isempty(claZ))
-		if (strcmp(claZ,'single'))
-			Z = single(Z);
-		elseif (strcmp(claZ,'int16'))
-			Z = int16(Z * (2^16  - 1) -2^16 / 2 );
-		elseif (strcmp(claZ,'uint16'))
-			Z = int16(Z * (2^16 - 1));
-		elseif (strcmp(claZ,'uint8'))
-			Z = uint8(Z * 255);
-		elseif (strcmp(claZ,'int8'))
-			Z = int8(Z * 255 - 127);
+		if (strcmp(claZ,'single')),			Z = single(Z);
+		elseif (strcmp(claZ,'int16')),		Z = int16(Z * (2^16  - 1) -2^16 / 2 );
+		elseif (strcmp(claZ,'uint16')),		Z = int16(Z * (2^16 - 1));
+		elseif (strcmp(claZ,'uint8')),		Z = uint8(Z * 255);
+		elseif (strcmp(claZ,'int8')),		Z = int8(Z * 255 - 127);
 		end
 	end
 
@@ -347,7 +307,7 @@ function out = mask_img(handles, img, com)
 		end
 	end
 
-	if (~got_mask)
+	if (~got_mask)			% Right, so search for trailing arround mask figs
 		hFigs = findobj(0,'type','figure');						% Fish all figures
 		if (numel(hFigs) == 1),	return,		end					% No one else arround
 		hFigs = aux_funs('figs_XOR', handles.hMirFig1, hFigs);	% Get all unique Mirone Figs
@@ -379,7 +339,7 @@ function out = mask_img(handles, img, com)
 		alpha(mask) = 255;
 		img(:,:,4) = alpha;		% Apply the mask as transparency
 	else
-		img(mask) = 0;
+		img(mask) = 0;			% 0 means bg color
 	end
 	handMir = guidata(handles.hMirFig1);
 	if (handMir.image_type == 2 || handMir.image_type == 20)
@@ -388,7 +348,7 @@ function out = mask_img(handles, img, com)
 	else
 		tmp.X = handMir.head(1:2);  tmp.Y = handMir.head(3:4);  tmp.head = handMir.head;
 		tmp.name = 'Color segmentation';
-		mirone(img,tmp);
+		mirone(img,tmp, handMir.figure1);
 	end
 	out = 2;					% Means success
 
