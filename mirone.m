@@ -88,7 +88,7 @@ function hObject = mirone_OpeningFcn(varargin)
 %#function c_cpt2cmap c_grdfilter c_grdinfo c_grdlandmask c_grdproject c_grdread c_grdsample
 %#function c_grdtrend c_mapproject c_nearneighbor c_shoredump c_surface popenr diffCenterVar hellinger bingham
 %#function gmtlist_m grdgradient_m trend1d_m external_drive chimoce interp_chimoce earth_tides earthtide DateStr2Num
-%#function ddist eucdist2
+%#function ddist eucdist2 masker
 
 	global home_dir;	fsep = filesep;
 	toCompile = false;		% To compile set this one to TRUE
@@ -812,7 +812,7 @@ function varargout = ImageCrop_CB(handles, opt, opt2, opt3)
 %              For the 'CropaGrid_pure' case varargout actualy returns 4 values -- {X,Y,Z_rect,head}
 
 if (handles.no_file),		return,		end
-first_nans = 0;		pal = [];		mask = [];	crop_pol = false;	% Defaults to croping from a rectangle
+first_nans = false;	pal = [];		mask = [];	crop_pol = false;	% Defaults to croping from a rectangle
 wasROI = false;		done = false;	invert = false;
 if (nargin < 3),	opt2 = [];		end
 if (nargin < 4),	opt3 = [];		end
@@ -916,7 +916,7 @@ if ~isempty(opt)				% OPT must be a rectangle/polygon handle (the rect may serve
 					handles.Z_back = Z(r_c(1):r_c(2),r_c(3):r_c(4));	handles.r_c = r_c;		% For the Undo op
 				end
 				Z(r_c(1):r_c(2),r_c(3):r_c(4)) = Z_rect;
-				if (isnan(resp)),		handles.have_nans = 1;	first_nans = 1;		end
+				if (isnan(resp)),		handles.have_nans = 1;	first_nans = true;		end
 			elseif (strcmp(opt2,'ROI_Mean'))
 				res = Z_rect(mask);		res(isnan(res)) = [];	res = mean(double(res));
 				if (nargout),	varargout{1} = res;		return,		end
@@ -1137,7 +1137,7 @@ elseif (strcmp(opt2,'SetConst'))		% Replace grid values inside rect by a cte val
 	Z_rect = single(resp);
 	handles.Z_back = Z(r_c(1):r_c(2),r_c(3):r_c(4));	handles.r_c = r_c;			% For the Undo op
 	if (~handles.have_nans && isnan(resp))				% See if we have new NaNs
-		handles.have_nans = 1;		first_nans = 1;
+		handles.have_nans = 1;		first_nans = true;
 	end
 	
 elseif (strcmp(opt2,'GetMean'))			% ...
@@ -1729,7 +1729,9 @@ function FileOpen_ENVI_Erdas_CB(handles, opt, opt2)
 	recentFiles(handles);					% Insert fileName into "Recent Files" & save handles
 
 % --------------------------------------------------------------------
-function FileOpenNewImage_CB(handles, opt)
+function [img, handles_out, att] = FileOpenNewImage_CB(handles, opt)
+% When called with nargout > 0, handles can be a fake handles struct. HNDLES_OUT will contain header info
+	img = [];	handles_out = [];	att = [];
 	str1 = {'*.jpg', 'JPEG image (*.jpg)'; ...
 		'*.png', 'Portable Network Graphics(*.png)';		'*.bmp', 'Windows Bitmap (*.bmp)'; ...
 		'*.gif', 'GIF image (*.gif)';						'*.tif', 'Tagged Image File (*.tif)'; ...
@@ -1787,7 +1789,7 @@ function FileOpenNewImage_CB(handles, opt)
 			end
 		end
 		try		handles.transparency = info_img.Transparency;	end
-		if (att.RasterCount > 4)
+		if (att.RasterCount > 4 && nargout == 0)
 			% Animatted images.	BUT WORK ONLY WITH INDEXED IMAGES, OTHERWISE ... DON'T KNOW WHAT ERROR
 			handles.cinemaImgs = I;
 			I = I(:,:,1);
@@ -1806,12 +1808,14 @@ function FileOpenNewImage_CB(handles, opt)
 			warndlg(['A registering world file was found but the following error occured: ' err_msg],'Warning')
 		end
 
-		if (strcmp(info_img(1).ColorType,'grayscale') || (strcmp(info_img(1).ColorType,'truecolor') && (ndims(I) ~= 3)) )
-			set(handles.figure1,'Colormap',gray(256))
-		elseif (isfield(info_img(1),'ColorTable'))			% Gif images call it 'ColorTable'
-			set(handles.figure1,'Colormap',info_img(1).ColorTable)
-		elseif (isfield(info_img(1),'Colormap') && ~isempty(info_img(1).Colormap))
-			set(handles.figure1,'Colormap',info_img(1).Colormap)
+		if (nargout == 0)
+			if (strcmp(info_img(1).ColorType,'grayscale') || (strcmp(info_img(1).ColorType,'truecolor') && (ndims(I) ~= 3)))
+				set(handles.figure1,'Colormap',gray(256))
+			elseif (isfield(info_img(1),'ColorTable'))			% Gif images call it 'ColorTable'
+				set(handles.figure1,'Colormap',info_img(1).ColorTable)
+			elseif (isfield(info_img(1),'Colormap') && ~isempty(info_img(1).Colormap))
+				set(handles.figure1,'Colormap',info_img(1).Colormap)
+			end
 		end
 	end
 
@@ -1823,6 +1827,12 @@ function FileOpenNewImage_CB(handles, opt)
 		X = handles.head(1:2);		Y = handles.head(3:4);		ax_dir = 'xy';
 		I = flipdim(I,1);
 	end
+	
+	if (nargout)
+		img = I;	handles_out = handles;
+		return
+	end
+
 	handles = show_image(handles,handles.fileName,X,Y,I,0,ax_dir,0);
 	grid_info(handles,handles.fileName,'iminfo');	% Construct a info string
 	handles = aux_funs('isProj',handles);			% Check/set about coordinates type
@@ -4796,7 +4806,6 @@ function [X,Y,slope,head] = GridToolsSlope_CB(handles, opt)
 	if (aux_funs('msg_dlg',14,handles)),	return,		end
 	[X,Y,Z,head] = load_grd(handles,'double');
 	if isempty(Z),		return,		end
-	set(handles.figure1,'pointer','watch')
 	
 	D2R = pi/180;	R2D = 180/pi;	tit = ['Slope in ' opt];
 	if (handles.geog)
