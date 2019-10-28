@@ -1222,7 +1222,7 @@ function apply_grdlandMask(hObj, evt, h, opt)
 	if (handles.head(7)),		opt_F = '-F';	end
 	if (handles.IamCompiled),	opt_e = '-e';	end
 	opt_D = sprintf('-D%s', getappdata(h,'resolution'));	% Get the resolution as stored in line's appdata
-	opt_N = '-N0/1';			% Continent masking
+	opt_N = '-N0/255';			% Continent masking
 	set(handles.figure1,'pointer','watch'),		pause(0.01)
 	[mask, new_hdr] = c_grdlandmask(opt_R, opt_I, opt_D, opt_N, opt_F, opt_e, '-A0/0/1', '-V');
 	mask = uint8(mask);
@@ -1238,6 +1238,7 @@ function apply_grdlandMask(hObj, evt, h, opt)
 		rect_crop = [handles.head(1) handles.head(3) diff(handles.head(1:2)) diff(handles.head(3:4))];
 		[mask,r_c] = cropimg(att.GMT_hdr(1:2), att.GMT_hdr(3:4), mask, rect_crop, 'out_grid');
 	end
+	set(handles.hImg, 'AlphaData', mask)
 	mask = logical(mask);
 	if (opt == 'O'),	mask = ~mask;	end			% Ocean masking. Setting '1/0/0/0/0' is not working. A bug.
 
