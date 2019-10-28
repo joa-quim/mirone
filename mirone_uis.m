@@ -29,7 +29,7 @@ function [H1,handles,home_dir] = mirone_uis(home_dir)
 %#function run_cmd line_operations world_is_not_round_enough cartas_militares ice_m magbarcode
 %#function obj_template_detect floodfill meca_studio inpaint_nans globalcmt guess_bin demets_od
 %#function vector_project tintol makescale mesher_helper update_gmt surface_options plot_composer
-%#function isoc_selector argo_floats tmd_osu test_bots
+%#function isoc_selector argo_floats tmd_osu test_bots euler_poles_selector
 
 	% The following test will tell us if we are using the compiled or the ML version
 	try
@@ -224,7 +224,7 @@ h = uimenu('Parent',hFL,'Label','Open xy(z)','Sep','on');
 uimenu('Parent',h,'Callback','load_xyz(guidata(gcbo), [], ''AsLine'')','Label','Import line');
 uimenu('Parent',h,'Callback','load_xyz(guidata(gcbo), [], ''AsPoint'')','Label','Import points');
 uimenu('Parent',h,'Callback','load_xyz(guidata(gcbo), [], ''AsArrow'')','Label','Import Arrow field');
-uimenu('Parent',h,'Callback','mirone(''Transfer_CB'',guidata(gcbo),''scatter'')','Label','Import scaled symbols');
+uimenu('Parent',h,'Callback','mirone(''TransferB_CB'',guidata(gcbo),''scatter'')','Label','Import scaled symbols');
 uimenu('Parent',h,'Callback','mirone(''DrawImportText_CB'',guidata(gcbo))','Label','Import text');
 uimenu('Parent',h,'Callback','mirone(''DrawImportShape_CB'',guidata(gcbo))','Label','Import shape file');
 uimenu('Parent',h,'Callback','read_las(guidata(gcbo))','Label','Import LAS file');
@@ -349,6 +349,7 @@ uimenu('Parent',hIM,'Callback','floodfill(gcf)','Label','Shape detector')
 uimenu('Parent',hIM,'Callback','mpaint(gcf)','Label','Paint Brush');
 uimenu('Parent',hIM,'Callback','classificationfig(gcf);','Label','K-means classification');
 uimenu('Parent',hIM,'Callback','imageresize(gcf)','Label','Image resize','Sep','on');
+uimenu('Parent',hIM,'Callback','masker(guidata(gcbo))','Label','Mask Image');
 uimenu('Parent',hIM,'Callback','mirone(''RotateTool_CB'',guidata(gcbo),''image'')','Label','Image rotation');
 
 h = uimenu('Parent',hIM,'Label','Image mode');
@@ -583,7 +584,7 @@ uimenu('Parent',hP,'Callback','euler_stuff(gcf)','Label','Euler rotations');
 uimenu('Parent',hP,'Callback','compute_euler(gcf)','Label','Compute Euler pole');
 uimenu('Parent',hP,'Callback','demets_od(gcf)','Label','Apply (isoc) Outward Displacement');
 uimenu('Parent',hP,'Callback','manual_pole_adjust(gcf)','Label','Manual adjust Euler pole');
-uimenu('Parent',hP,'Callback','mirone(''DrawEulerPoleCircle_CB'',guidata(gcbo))','Label','Draw Circle about Euler pole');
+uimenu('Parent',hP,'Callback','euler_poles_selector(gcf)','Label','Draw Circle about Euler pole');
 uimenu('Parent',hP,'Callback','mirone(''DrawClosedPolygon_CB'',guidata(gcbo),''EulerTrapezium'')','Label','Draw Euler trapezium');
 uimenu('Parent',hP,'Callback','datasets_funs(''ITRF'',guidata(gcbo))','Label','Plot ITRF2008 velocities');
 uimenu('Parent',hP,'Callback','datasets_funs(''Plate'',guidata(gcbo))','Label','Plot Plate boundaries');
@@ -679,6 +680,7 @@ uimenu('Parent',h,'Callback','mirone(''DrawContours_CB'',guidata(gcbo),''gui'')'
 
 uimenu('Parent',hGT,'Callback','ml_clip(guidata(gcbo))','Label','Clip Grid');
 uimenu('Parent',hGT,'Callback','mirone(''ImageCrop_CB'',guidata(gcbo),[],''CropaGrid'')','Label','Crop Grid');
+uimenu('Parent',hGT,'Callback','masker(guidata(gcbo))','Label','Mask Grid');
 uimenu('Parent',hGT,'Callback','mirone(''RotateTool_CB'',guidata(gcbo),''grid'')','Label','Rotate Grid');
 uimenu('Parent',hGT,'Callback','mirone(''TransferB_CB'',guidata(gcbo),''TransplantGrid'')','Label','Transplant 2nd Grid');
 %uimenu('Parent',hGT,'Callback','transplant_grid(guidata(gcbo))','Label','Transplant 2nd Grid');
@@ -691,7 +693,7 @@ uimenu('Parent',h,'Callback','mirone(''GridToolsFindHoles_CB'',guidata(gcbo))','
 
 uimenu('Parent',hGT,'Callback','mirone(''Transfer_CB'',guidata(gcbo),''morph-grd'')','Label','Morphology');
 uimenu('Parent',hGT,'Callback','mirone(''DigitalFilt_CB'',guidata(gcbo),''grid'')','Label','Digital filtering Tool');
-uimenu('Parent',hGT,'Callback','mirone(''TransferB_CB'',guidata(gcbo),''fract'')','Label','Fractal field');
+uimenu('Parent',hGT,'Callback','mirone(''TransferB_CB'',guidata(gcbo),''fract'')','Label','Fractal field','Sep','on');
 
 h = uimenu('Parent',hGT,'Label','Hammer this grid','Sep','on');
 uimenu('Parent',h,'Callback','escadeirar(guidata(gcbo))','Label','Rice-field Grid');
@@ -764,7 +766,7 @@ end
 %uimenu('Parent',h, 'Callback', 'update_gmt(guidata(gcbo))','Label','Update your GMT5','Sep','on')
 uimenu('Parent',h, 'Callback',['mirone(''FileOpenWebImage_CB'',guidata(gcbo),',...
 	' ''http://www2.clustrmaps.com/stats/maps-clusters/w3.ualg.pt-~jluis-mirone-world.jpg'',''nikles'');'],'Label','See visitors map','Sep','on');
-uimenu('Parent',h, 'Callback','about_box(guidata(gcbo),''Mirone Last modified at 11 October 2018'',''2.11dev'')','Label','About','Sep','on');
+uimenu('Parent',h, 'Callback','about_box(guidata(gcbo),''Mirone Last modified at 28 Oct 2019'',''2.11dev'')','Label','About','Sep','on');
 
 %% --------------------------- Build HANDLES and finish things here
 	handles = guihandles(H1);
