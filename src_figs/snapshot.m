@@ -7,7 +7,7 @@ function varargout = snapshot(varargin)
 %   snapshot(H,'noname') Form used for saving Georefed images where format is not selectable here
 %   snapshot(H,'img') same as snapshot(H)
 
-%	Copyright (c) 2004-2018 by J. Luis
+%	Copyright (c) 2004-2019 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -299,9 +299,9 @@ function slider_mag_CB(hObject, handles)
 		handles.txtThisSize = [sprintf('(%d',nRows) 'x' sprintf('%d) ',nCols) sprintf('%.1f',Megs) sizeUnits];
 		set(handles.edit_imgSize,'String',handles.txtThisSize);
 	end
-	if (handles.vecGraph),          handles.currVecDPI = mag;
-	elseif (handles.imgOnly),       handles.currMag = mag;
-	else                            handles.currDPI = mag;
+	if (handles.vecGraph),		handles.currVecDPI = mag;
+	elseif (handles.imgOnly),	handles.currMag = mag;
+	else,						handles.currDPI = mag;
 	end
 	guidata(handles.figure1,handles)
     
@@ -347,7 +347,7 @@ function push_save_CB(hObject, handles)
 	% The next flipdim() cases are a result of MANY hours trying to figure out where the guys in TMW
 	% f... had the head when they invented that MESS of image fliped up/down depending on axes 'YDir'
 	% is normal or STUPIDLY Y->down and, if that was not enough, make the result vary from image capture
-	% or get(hImage,'CData'). Someone should really be punished for this.
+	% or get(hImage,'CData').
 	try
 		if (handles.vecGraph)           % PS, etc ...
 			ctype = 'img';
@@ -359,7 +359,7 @@ function push_save_CB(hObject, handles)
 		else                            % RASTER FORMATS
 			captura = true;
 			if (handles.imgOnly)            % Image only
-				if ( handles.imgIsClean && get(handles.checkbox_origSize,'Val') && (handles.currMag == 1) )
+				if (handles.imgIsClean && get(handles.checkbox_origSize,'Val') && (handles.currMag == 1))
 					% Here we don't need to do any screen capture which forces img to be RGB
 					img = im;
 					captura = false;
@@ -388,7 +388,7 @@ function push_save_CB(hObject, handles)
 	end
 	set(handsStBar(2:end),'Visible','on')
 
-	if ( strcmpi(EXT,'.jpg') || strcmpi(EXT,'.jpeg') )
+	if (strcmpi(EXT,'.jpg') || strcmpi(EXT,'.jpeg'))
 		if (ndims(img) == 2),   img = ind2rgb8(img,get(handles.hCallingFig,'Colormap'));    end
 		imwrite(img,fname,'Quality',handles.quality);
 	elseif (strcmpi(EXT,'.raw'))
@@ -404,16 +404,25 @@ function push_save_CB(hObject, handles)
 		end
 		fwrite(fid,pix,'uint8');        fclose(fid);
 	elseif strcmpi(EXT,'.gif')              % Non existent in < R14
-		if (islogical(img)),        writegif(img,fname);
-		else                        writegif(img,get(handles.hCallingFig,'Colormap'),fname);
+		if (islogical(img)),		writegif(img,fname);
+		else,						writegif(img,get(handles.hCallingFig,'Colormap'),fname);
 		end
 	elseif (strcmpi(EXT,'.png') || strcmpi(EXT,'.tif'))
 		if (ndims(img) == 2)
-			if (islogical(img)),    imwrite(img,fname);
-			else                    imwrite(img,get(handles.hCallingFig,'Colormap'),fname);
+			if (islogical(img)),	imwrite(img,fname);
+			else,					imwrite(img,get(handles.hCallingFig,'Colormap'),fname);
 			end
 		else
-			imwrite(img,fname);
+			if (strcmpi(EXT,'.png') && ~isempty(get(handles.hImg, 'AlphaData')))
+				alpha = get(handles.hImg, 'AlphaData');
+				if (size(alpha,1) ~= size(img,1) || size(alpha,2) ~= size(img,2))
+					alpha = round(cvlib_mex('resize',alpha,[size(alpha,1) size(alpha,2)],'bilinear'));
+				end
+				if (strcmp(get(handles.handlesMir.axes1, 'YDir'), 'normal')),	alpha = flipud(alpha);	end		% Not enough fcks!!!
+				imwrite(img,fname, 'Alpha', alpha);
+			else
+				imwrite(img,fname);
+			end
 		end
 	else
 		imwrite(img,fname);
