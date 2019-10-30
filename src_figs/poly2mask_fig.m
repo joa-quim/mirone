@@ -1,7 +1,7 @@
 function varargout = poly2mask_fig(varargin)
 % Helper figure to create a mask image from lines or polygons in the calling fig 
 
-%	Copyright (c) 2004-2018 by J. Luis
+%	Copyright (c) 2004-2019 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -54,7 +54,7 @@ function hObject = poly2mask_fig_OF(varargin)
 
 	if (strcmp(get(handles.hPoly_current, 'Type'), 'line'))		% If called "from a line" (we'll do a screencature)
 		x = get(handles.hPoly_current,'XData');		y = get(handles.hPoly_current,'YData');
-		if (numel(x) < 3 || x(1) ~= x(end) || y(1) ~= y(end) )
+		if (numel(x) < 3 || x(1) ~= x(end) || y(1) ~= y(end))
 			handles.inputIsLine = true;
 		end
 	end
@@ -116,12 +116,14 @@ function radio_float_CB(hObject, handles)
 % -------------------------------------------------------------------------
 function radio_in_CB(hObject, handles)
 	if (~get(hObject,'Value')),		set(hObject,'Value',1),		return,		end
-	set(handles.radio_out,'Val',0)
+	set(handles.radio_out,'Val',0, 'Tooltip', 'Outside polygon set to 0')
+	set(hObject, 'Tooltip', 'Polygon interior set to 1')
 
 % -------------------------------------------------------------------------
 function radio_out_CB(hObject, handles)
 	if (~get(hObject,'Value')),		set(hObject,'Value',1),		return,		end
-	set(handles.radio_in,'Val',0)
+	set(handles.radio_in,'Val',0, 'Tooltip', 'Polygon interior set to 0')
+	set(hObject, 'Tooltip', 'Outside polygon set to 1')
 
 % -------------------------------------------------------------------------
 function edit_in_CB(hObject, handles)
@@ -163,7 +165,7 @@ function push_OK_CB(hObject, handles)
 	end
 
 	hMsg = false;
-	if (~handles.inputIsLine)
+	if (~handles.inputIsLine)			% Closed polyline/patch
 
 		if (get(handles.check_allPolygs,'Val'))		% We have more than one closed poly
 			hLine = handles.hPoly;
@@ -222,8 +224,7 @@ function push_OK_CB(hObject, handles)
 	end
 
 	if (get(handles.radio_float,'Val'))			% Float mask
-		Z(size(mask,1), size(mask,2)) = single(0);
-		Z(mask)  = single(handles.grid_in);
+		Z = alloc_mex(size(mask,1), size(mask,2), 'single', handles.grid_in);
 		Z(~mask) = single(handles.grid_out);
 		if (get(handles.check_ternary,'Val'))
 			[X,Y,Zg] = load_grd(guidata(handles.hMirFig));
@@ -233,13 +234,13 @@ function push_OK_CB(hObject, handles)
 		if (get(handles.check_blank, 'Val'))
 			[X,Y,Zg] = load_grd(guidata(handles.hMirFig));
 			try
-				Z = Z .* Zg;
+				cvlib_mex('mul', Z, Zg);
 				zz = grdutils(Z,'-L');		handles.head(5:6) = [zz(1) zz(2)];
 			catch
-				errordlg('You probably changed the grid mask dimensions so you cannot apply it to base grid.', 'Error')
+				errordlg(lasterr, 'Error')
 			end
 		end
-	else
+	else						% Binary mask
 		if (get(handles.radio_out,'Val')),		mask = ~mask;	end
 		Z = mask;
 	end
@@ -251,8 +252,10 @@ function push_OK_CB(hObject, handles)
 			tmp.name = 'Mask grid';
 			tmp.X = linspace(tmp.X(1), tmp.X(2), size(Z,2));
 			tmp.Y = linspace(tmp.Y(1), tmp.Y(2), size(Z,1));
+		else
+			tmp.head(5:6) = [0 1];
 		end
-     	mirone(Z, tmp)
+     	mirone(Z, tmp, handles.hMirFig)
 	else
 		h = mirone(Z);
 		set(h,'Name','Mask image')
