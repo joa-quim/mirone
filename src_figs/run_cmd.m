@@ -255,7 +255,11 @@ function Z = runCmd_cmda(arg1,cmd)
 			claZ = le(ind+17:end-2);		% Signal that we have to convert from doubles
 		end
 		try
-			Z = eval(cmd);
+			if (isempty(strfind(cmd, '=')))
+				Z = eval(cmd);				% Since we don't have an equality in CMD
+			else
+				eval(cmd);
+			end
 		catch
 			errordlg(['Failed to run command. Probably you are running the compiled version. Error message was: ' lasterr],'ERROR')
 		end
