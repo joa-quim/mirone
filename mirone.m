@@ -262,7 +262,7 @@ function hObject = mirone_OpeningFcn(varargin)
 			if (size(varargin{1},3) > 3),		aux_funs('toBandsList', handles.figure1, varargin{1}, 'multiband array'),	end
 
 			isReferenced = false;
-			if (n_argin == 2 && isa(varargin{2},'struct'))		% An image with coordinates
+			if (n_argin >= 2 && isa(varargin{2},'struct'))		% An image with coordinates
 				tmp = varargin{2};
 				handles.head = tmp.head;		X = tmp.X;		Y = tmp.Y;
 				handles.image_type = 3;			axis_t = 'xy';
@@ -273,6 +273,19 @@ function hObject = mirone_OpeningFcn(varargin)
 					aux_funs('appP', handles, tmp.srsWKT)			% If we have a WKT proj, store it
 					isReferenced = true;
 					if (~handles.geog),		handles.is_projected = true;	end		% WEAK LOGIC. SHOULD PARSE WKT TO MAKE SURE
+				else
+					projWKT ='';
+					if (n_argin == 3 && ishandle(varargin{3}))
+						handTmp = guidata(varargin{3});
+						projWKT = getappdata(handTmp.figure1,'ProjWKT');
+						if (isempty(projWKT)),	projWKT = getappdata(handTmp.figure1,'Proj4');		end
+						handles.geog = handTmp.geog + 10;
+						if (isappdata(handTmp.figure1,'GCPregImage'))
+							setappdata(hObject,'GCPregImage',getappdata(handTmp.figure1,'GCPregImage'))
+							setappdata(hObject,'fnameGCP', win_name)
+						end
+					end
+					if (~isempty(projWKT)),		isReferenced = true;	tmp.srsWKT = projWKT;	end
 				end
 			else
 				X = [];			Y = [];			win_name = 'Cropped_image';
@@ -293,7 +306,7 @@ function hObject = mirone_OpeningFcn(varargin)
 			handles = aux_funs('isProj',handles);				% Check/set about coordinates type
 
 		elseif (n_argin == 1 && isa(varargin{1},'struct') && isfield(varargin{1},'proj4'))
-			% A GMT5 grid/image structure. (for images we still do not use eventual alpha channel)
+			% A GMT grid/image structure. (for images we still do not use eventual alpha channel)
 			handles.head = [varargin{1}.range varargin{1}.registration varargin{1}.inc];
 			win_name = 'Nikles';
 			if (~isempty(varargin{1}.title)),		win_name = varargin{1}.title;	end
@@ -385,7 +398,6 @@ function hObject = mirone_OpeningFcn(varargin)
 				if (isfield(tmp,'geog')),	handles.geog = tmp.geog + 10;	end		% If exists, take precedence
 				if (~isempty(projWKT))
 					grid_info(handles,projWKT,'referenced',varargin{1});	% Create a info string and save projWKT
-					%aux_funs('appP', handles, projWKT)						% We have a WKT proj, store it
 					handles.is_projected = true;		% WEAK LOGIC. SHOULD PARSE WKT TO MAKE SURE
 				elseif (isfield(tmp,'ProjGMT'))			% From geog_calculator. Has opt_J.
 					projection_menu(handles, tmp.ProjGMT)
@@ -1784,7 +1796,7 @@ function [img, handles_out, att] = FileOpenNewImage_CB(handles, opt)
 					I = imread(handles.fileName);
 					att.RasterCount = size(I, 3);
 				catch
-					errordlg(lasterr, 'Error')
+					errordlg(lasterr, 'Error'),		return
 				end
 			end
 		end
@@ -1810,7 +1822,13 @@ function [img, handles_out, att] = FileOpenNewImage_CB(handles, opt)
 
 		if (nargout == 0)
 			if (strcmp(info_img(1).ColorType,'grayscale') || (strcmp(info_img(1).ColorType,'truecolor') && (ndims(I) ~= 3)))
-				set(handles.figure1,'Colormap',gray(256))
+				if (~isempty(att.Band.ColorMap))
+					set(handles.figure1,'Colormap', att.Band.ColorMap.CMap(:,1:3))
+				elseif(isfield(info_img(1), 'BitDepth') && info_img(1).BitDepth == 1)	% Binary files
+					set(handles.figure1,'Colormap',gray(2))
+				else
+					set(handles.figure1,'Colormap',gray(256))
+				end
 			elseif (isfield(info_img(1),'ColorTable'))			% Gif images call it 'ColorTable'
 				set(handles.figure1,'Colormap',info_img(1).ColorTable)
 			elseif (isfield(info_img(1),'Colormap') && ~isempty(info_img(1).Colormap))
