@@ -1238,9 +1238,16 @@ function apply_grdlandMask(hObj, evt, h, opt)
 		rect_crop = [handles.head(1) handles.head(3) diff(handles.head(1:2)) diff(handles.head(3:4))];
 		[mask,r_c] = cropimg(att.GMT_hdr(1:2), att.GMT_hdr(3:4), mask, rect_crop, 'out_grid');
 	end
-	set(handles.hImg, 'AlphaData', mask)
-	mask = logical(mask);
-	if (opt == 'O'),	mask = ~mask;	end			% Ocean masking. Setting '1/0/0/0/0' is not working. A bug.
+
+	if (opt == 'O')				% Ocean masking.
+		set(handles.hImg, 'AlphaData', mask)
+		mask = ~logical(mask);
+	else
+		mask = logical(mask);
+		new_mask = alloc_mex(size(mask,1), size(mask,2), 'uint8', 255);
+		new_mask(mask) = 0;
+		set(handles.hImg, 'AlphaData', new_mask)
+	end
 
 	img = get(handles.hImg, 'CData');	% Mask the image as well
 	if (ndims(img) == 3)
