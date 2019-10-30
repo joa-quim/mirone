@@ -136,7 +136,7 @@ function varargout = snapshot(varargin)
 		fname = strrep(fname,' ','_');
 		[pato, fname] = fileparts(fname);
 		if (islogical(get(handlesMir.hImg,'CData')) && handles.imgOnly)   % Best proposition when we have a logical (mask) image
-			fname = [handlesMir.last_dir fname '.png'];
+			fname = [handlesMir.last_dir filesep fname '.png'];
 			set(handles.popup_fileType,'Val',2)
 			set(handles.checkbox_origSize,'Val',1)
 			set(handles.slider_quality,'Visible','off')
