@@ -29,7 +29,7 @@ function varargout = bands_list(varargin)
 % ---------------------------------------------------------------------------------
 function hObject = bands_list_OF(varargin)
 
-	if (isempty(varargin)),		return,		end
+	if (isempty(varargin)),		hObject = [];	return,		end
  	bandList = getappdata(varargin{1},'BandList');
 	if (isempty(bandList)),		hObject = [];	return,		end
 
