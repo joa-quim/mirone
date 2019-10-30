@@ -1,5 +1,5 @@
 function varargout = masker(varargin)
-% Helper Window to run
+% Helper Window to run masking ops using second grid/images
 
 %	Copyright (c) 2004-2019 by J. Luis
 %
@@ -51,7 +51,17 @@ function hObject = masker_OF(varargin)
 		set(handles.figure1, 'Pos', pos)
 	end
 
-	if (handMir.validGrid),		set(handles.check_alpha, 'Vis', 'off'),	end
+	if (handMir.validGrid)
+		set(handles.check_alpha, 'Vis', 'off')
+	else
+		set(handles.edit_value, 'String', 0)
+		if (size(get(handMir.hImg, 'CData'),3) == 1)
+			set(handles.edit_value, 'Enable', 'off')	% Indexed imges can only use the bg color 
+		else
+			s = sprintf('Enter a scalar in the [0 255] range\nor a color like 100/20/250\nThe scalar 0 means use bg color');
+			set(handles.edit_value, 'Tooltip', s)
+		end
+	end
 	guidata(hObject, handles);
 	set(hObject,'Visible','on');
 	if (nargin > 1),	external_drive(handles, 'masker', varargin{2:end}),	end
@@ -120,12 +130,40 @@ function push_OK_CB(hObject, handles)
 		if (size(img,3) == 1)
 			img(mask) = 0;			% 0 means bg color
 		else
-			img(repmat(mask,[1 1 3])) = handMir.bg_color(1);
+			val_str = ddewhite(get(handles.edit_value, 'String'));
+			ind = strfind(val_str, '/');
+			if (numel(ind) == 2 && (ind(1) ~= 1 && ind(2) < numel(val_str)))	% Accept entries like 12/123/234
+				val = [str2double(val_str(1:ind(1)-1)) str2double(val_str(ind(1)+1:ind(2)-1)) str2double(val_str(ind(2)+1:end))];
+				img = maskRGB(img, mask, uint8(val));
+			else
+				if (strcmp(val_str, '0'))		% 0 means we'll use the bg_color
+					img = maskRGB(img, mask, uint8(handMir.bg_color(1,:) * 255));
+				else
+					img = maskRGB(img, mask, uint8(str2double(val_str)));
+				end
+			end
 		end
 		if (get(handles.check_alpha, 'Val'))
-			set(handles.hMirImg, 'AlphaData', mask)
+			new_mask = alloc_mex(size(mask,1), size(mask,2), 'uint8', 255);
+			new_mask(mask) = 0;
+			set(handles.hMirImg, 'AlphaData', new_mask)
+		else
+			set(handles.hMirImg, 'AlphaData', 1)
 		end
 		set(handMir.hImg, 'CData', img)
+	end
+
+% -----------------------------------------------------------------------------------------
+function img = maskRGB(img, mask, val)
+% Mask the IMG RGB array at positions where MASK == 1 to VAL
+	if (numel(val) == 3)
+		t = img(:,:,1);		t(mask) = val(1);	img(:,:,1) = t;
+		t = img(:,:,2);		t(mask) = val(2);	img(:,:,2) = t;
+		t = img(:,:,3);		t(mask) = val(3);	img(:,:,3) = t;
+	else
+		t = img(:,:,1);		t(mask) = val;		img(:,:,1) = t;
+		t = img(:,:,2);		t(mask) = val;		img(:,:,2) = t;
+		t = img(:,:,3);		t(mask) = val;		img(:,:,3) = t;
 	end
 
 % -----------------------------------------------------------------------------------------
@@ -144,7 +182,7 @@ function [masks, hFigs] = fish_MirMasks(handles)
 		if (layer == 1 && W == W_ && H == H_),	masks(k) = true;	end
 	end
 	hFigs = hFigs(masks);
-	if (isempty(hFigs)),	return,		end		% None of them is a mask with the same size as IMG
+	if (isempty(hFigs)),	masks = [];	return,		end		% None of them is a mask with the same size as IMG
 	nomes = get(hFigs,'name');
 	if (~isa(nomes,'cell')),	nomes = {nomes};	end
 	for (k = 1:numel(hFigs))
