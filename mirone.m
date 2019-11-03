@@ -1177,7 +1177,7 @@ end
 
 if (done),		return,		end
 
-if (~strcmp(opt2,'MedianFilter') && ~strcmp(opt2,'ROI_SetConst'))		% Otherwise, this was already done in roi_filtering
+if (~strcmp(opt2,'MedianFilter') && ~strcmp(opt2,'ROI_SetConst'))		% Otherwise, already done in roi_filtering
 	if (isa(Z,'single')),		Z(r_c(1):r_c(2),r_c(3):r_c(4)) = single(Z_rect);
 	elseif (isa(Z,'int16')),	Z(r_c(1):r_c(2),r_c(3):r_c(4)) = int16(Z_rect);
 	elseif (isa(Z,'uint16')),	Z(r_c(1):r_c(2),r_c(3):r_c(4)) = uint16(Z_rect);
@@ -1199,34 +1199,45 @@ if ~isempty(opt2)		% Here we have to update the image in the processed region
 	if (first_nans)		% We have NaNs for the first time. Adjust the colormap
 		aux_funs('colormap_bg',handles,Z,get(handles.figure1,'Colormap'));
 	end
-	z_int = uint8(round( ((double(Z_rect) - z_min) / (z_max - z_min))*255 ));
-	if (numel(Z_rect) > 9)		% This excludes the case of SetConst in which Z_rect is a scalar
-		if (handles.Illumin_type >= 1 && handles.Illumin_type <= 4)
-			illumComm = getappdata(handles.figure1,'illumComm');
-			if (handles.Illumin_type == 1)
-				opt_N = sprintf('-Nt1/%.6f/%.6f',handles.grad_sigma, handles.grad_offset);
-				if (handles.geog),	R = grdgradient_m(Z_rect,head,'-M',illumComm,opt_N);
-				else,				R = grdgradient_m(Z_rect,head,illumComm,opt_N);
+	if (strcmp(opt2, 'ROI_SetConst') && isnan(resp) && ~isempty(mask) && handles.Illumin_type ~= 0) % Just mask the image
+		if (isempty(img)),		img = get(handles.hImg,'CData');	end		% If img was not recomputed
+		handles.img_back = img(r_c(1):r_c(2),r_c(3):r_c(4),1:end);			% For the undo op
+		img_ = handles.img_back;
+		t = img_(:,:,1);	t(mask) = handles.bg_color(1) * 255;	img_(:,:,1)	= t;
+		t = img_(:,:,2);	t(mask) = handles.bg_color(2) * 255;	img_(:,:,2)	= t;
+		t = img_(:,:,3);	t(mask) = handles.bg_color(3) * 255;	img_(:,:,3)	= t;
+		img(r_c(1):r_c(2),r_c(3):r_c(4),1:end) = img_;
+	else
+		z_int = scaleto8(Z_rect, 8, [z_min z_max]);
+		if (numel(Z_rect) > 9)		% This excludes the case of SetConst in which Z_rect is a scalar
+			if (handles.Illumin_type >= 1 && handles.Illumin_type <= 4)
+				illumComm = getappdata(handles.figure1,'illumComm');
+				if (handles.Illumin_type == 1)
+					opt_N = sprintf('-Nt1/%.6f/%.6f',handles.grad_sigma, handles.grad_offset);
+					if (handles.geog),	R = grdgradient_m(Z_rect,head,'-M',illumComm,opt_N);
+					else,				R = grdgradient_m(Z_rect,head,illumComm,opt_N);
+					end
+				else
+					R = grdgradient_m(Z_rect,head,illumComm, '-a1');
 				end
-			else
-				R = grdgradient_m(Z_rect,head,illumComm, '-a1');
+				z_int = ind2rgb8(z_int,get(handles.figure1,'Colormap'));	% z_int is now RGB
+				z_int = shading_mat(z_int,R,'no_scale');					% and now is illuminated
+			elseif (handles.Illumin_type ~= 0)
+				warndlg('Sorry, this operation is not allowed with this shading illumination type','Warning')
+				return
 			end
-			z_int = ind2rgb8(z_int,get(handles.figure1,'Colormap'));	% z_int is now RGB
-			z_int = shading_mat(z_int,R,'no_scale');					% and now is illuminated
-		elseif (handles.Illumin_type ~= 0)
-			warndlg('Sorry, this operation is not allowed with this shading illumination type','Warning')
-			return
+		elseif (numel(Z_rect) == 1 && isnan(Z_rect))
+			z_int = handles.bg_color(1);
 		end
-	elseif (numel(Z_rect) == 1 && isnan(Z_rect))
-		z_int = handles.bg_color(1);
+		if (isempty(img)),		img = get(handles.hImg,'CData');	end		% If img was not recomputed
+		handles.img_back = img(r_c(1):r_c(2),r_c(3):r_c(4),1:end);			% For the undo op
+		if (~isempty(mask) && handles.Illumin_type ~= 0)
+			mask = repmat(~mask,[1 1 3]);
+			z_int(mask) = handles.img_back(mask);
+		end
+		img(r_c(1):r_c(2),r_c(3):r_c(4),1:end) = z_int;			clear z_int Z_rect R;
 	end
-	if (isempty(img)),		img = get(handles.hImg,'CData');	end		% If img was not recomputed, get from screen 
-	handles.img_back = img(r_c(1):r_c(2),r_c(3):r_c(4),1:end);			% For the undo op
-	if (~isempty(mask) && handles.Illumin_type ~= 0)
-		mask = repmat(~mask,[1 1 3]);
-		z_int(mask) = handles.img_back(mask);
-	end
-	img(r_c(1):r_c(2),r_c(3):r_c(4),1:end) = z_int;			clear z_int Z_rect R;
+	
 	set(handles.hImg,'CData',img)
 
 	head(5) = z_min;	head(6) = z_max;
@@ -1235,8 +1246,8 @@ if ~isempty(opt2)		% Here we have to update the image in the processed region
 end
 
 % UNDO that works only with these cases
-if (~invert && (numel(opt) == 1) && any(strcmp(opt2,{'MedianFilter' 'ROI_MedianFilter' 'SetConst' 'ROI_SetConst' 'SplineSmooth' ...
-		'FillSinks_pitt' 'FillSinks_peak'})))
+if (~invert && (numel(opt) == 1) && any(strcmp(opt2,{'MedianFilter' 'ROI_MedianFilter' 'SetConst' ...
+		'ROI_SetConst' 'SplineSmooth' 'FillSinks_pitt' 'FillSinks_peak'})))
 	cmenuHand = get(opt,'UIContextMenu');
 	u = findobj(cmenuHand, 'Label', 'Undo');
 	if (isempty(u))		% Otherwise just reuse previous one
