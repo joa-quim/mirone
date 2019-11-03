@@ -1,4 +1,4 @@
-function [handles, X, Y, Z, head, misc] = read_gmt_type_grids(handles,fullname,opt)
+function [handles, X, Y, Z, head, misc, msg] = read_gmt_type_grids(handles,fullname,opt)
 % OPT indicates that only the grid info is outputed.
 % MISC - which exists only when nc_io was used - is a struct with:
 %		'desc', 'title', 'history', 'srsWKT', 'strPROJ4' fields
@@ -30,7 +30,7 @@ function [handles, X, Y, Z, head, misc] = read_gmt_type_grids(handles,fullname,o
     infoOnly = false;
     if (nargin == 3),   infoOnly = true;    end
     
-	X = [];		Y = [];		Z = [];		head = [];		misc = [];
+	X = [];		Y = [];		Z = [];		head = [];		misc = [];	msg = '';
 	[fid, msg] = fopen(fullname, 'r');
 	if (fid < 0),   errordlg([fullname ': ' msg],'ERROR');
 		return
@@ -75,9 +75,10 @@ function [handles, X, Y, Z, head, misc] = read_gmt_type_grids(handles,fullname,o
 					handles.grdname = fullname;		handles.image_type = 1;		handles.computed_grid = 0;
 				end
 			else
-				errordlg([fullname ' : Is not a grid that GMT can read!'],'ERROR');
+				msg = [fullname ' : Is not a grid that GMT can read!'];
+				if (nargout < 7),	errordlg(msg, 'Error'),		end
 			end
-			if (head(7)),	handles.was_pixreg = true;	end
+			if (~isempty(head) && head(7)),		handles.was_pixreg = true;	end
 			return
 		end
 	end
@@ -95,7 +96,8 @@ function [handles, X, Y, Z, head, misc] = read_gmt_type_grids(handles,fullname,o
 		end
 		if (head(7)),	handles.was_pixreg = true;	end
 	else
-		errordlg([fullname ' : Is not a GMT or binary Surfer grid!'],'ERROR');
+		msg = [fullname ' : Is not a GMT or binary Surfer grid!'];
+		if (nargout < 7),	errordlg(msg, 'Error'),		end
 		return
 	end
 

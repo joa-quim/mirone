@@ -19,7 +19,7 @@ function [Z, X, Y, srsWKT, handles, att, pal_file] = read_grid(handles, fullname
 %				We use this construct to take advantage to all testing/setting machinery of this function.
 %				With all of that still note that OPT is optional
 
-%	Copyright (c) 2004-2014 by J. Luis
+%	Copyright (c) 2004-2019 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -62,10 +62,12 @@ function [Z, X, Y, srsWKT, handles, att, pal_file] = read_grid(handles, fullname
 	end
 
 	if (strncmp(tipo,'GMT',3))		% GMT_relatives - Reading is done by the read_gmt_type_grids function
-		[handles, X, Y, Z, head, misc] = read_gmt_type_grids(handles, fname);
+		[handles, X, Y, Z, head, misc, msg] = read_gmt_type_grids(handles, fname);
 		if (isempty(X))
-			warndlg('read_grid: Failed to read file with the ''GMT'' branch. Trying with ''GDAL''.')
 			[Z, X, Y, srsWKT, handles, att] = read_grid(handles, fullname, 'GDAL');
+			if (isempty(X))
+				errordlg('read_grid: Failed to read file with both ''GMT'' branch and ''GDAL''.')
+			end
 			return
 		end
 		if (isfield(misc,'z_dim') && numel(misc.z_dim) == 3),	handles.nLayers = misc.z_dim(1);	end
