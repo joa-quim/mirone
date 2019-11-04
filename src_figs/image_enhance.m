@@ -129,7 +129,8 @@ function varargout = image_enhance(varargin)
 			Z = getappdata(handMir.figure1,'dem_z');
 			if (isa(Z, 'single'))		% Must normalize it
 				Z1 = Z;		Z1(1) = single(double(Z(1)) + 0);	% Force copy
-				grdutils(Z1, sprintf('-A%f', -handMir.head(5)), sprintf('-M%f', 1/(handMir.head(6) - handMir.head(5))) )
+				grdutils(Z1, sprintf('-A%f', -handMir.head(5)))
+				grdutils(Z1, sprintf('-M%f', 1/(handMir.head(6) - handMir.head(5))) )
 				localImhist(handles, Z1);
 			else
 				out = get_from_multi_bands(handles);
