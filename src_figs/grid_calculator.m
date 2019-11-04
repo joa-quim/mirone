@@ -49,6 +49,7 @@ function varargout = grid_calculator(varargin)
 		handles.work_dir = handMir.work_dir;		handles.path_tmp = handMir.path_tmp;
 		handles.hMirFig  = handMir.figure1;
 		handles.IamCompiled = handMir.IamCompiled;
+		handles.version7 = handMir.version7;
 		BL = getappdata(varargin{1},'BandList');
 		if (~isempty(BL))
 			handles.name_str = BL{3}(2:end,2);
@@ -97,6 +98,10 @@ function varargout = grid_calculator(varargin)
 			n = n + 1;
 		end
 	end
+
+	% ------------ Create a Semaforo -----------------------------------------------------
+	%[semaforo, pal] = aux_funs('semaforo_green');
+	%set(handles.push_semaforo, 'CData', ind2rgb8(semaforo,pal))
 
 	% Fill the listbox with the names of the in-memory arrays
 	if (~isempty(handles.name_str))
@@ -267,36 +272,83 @@ function push_rightPar_CB(hObject, handles)
 
 % ------------------------------------------------------------------------
 function push_Trad_CB(hObject, handles)
-% Compute Bright temperature of a LandSat8 termal band
+% Compute Brightness temperature of a LandSat8 termal band, OR Radiance/Reflectance 
 	handMir = guidata(handles.h_figs(1));
 	pars = getappdata(handMir.axes1, 'LandSAT8');
 	if (isempty(pars)),	warndlg('Sorry, this grid is not a Landsat8 thermal.','Warning'),	return,	end
+	
+	out = push_compute_CB([], handles);		% See if we have an array loaded in the edit box
+	if (~isempty(out))
+		T = out.a;
+		if (~isa(T, 'uint16'))
+			errordlg('This is clearly NOT an Landsat 8 band data.', 'Error'),	return
+		end
+		[p,s] = fileparts(strtok(get(handles.edit_command, 'String')));
+		suff = s(2:end);		% Suffix
+	else
+		T = getappdata(handMir.figure1,'dem_z');
+		[p, suff] = fileparts(get(handMir.figure1,'Name'));
+	end
+	suff = [' [' suff ']'];
+	
 	s = get(hObject, 'String');
 	if (strcmp(s, 'Trad'))
 		opt_T = sprintf('-T%f/%f/%f/%f', pars.rad_mul, pars.rad_add, pars.K1, pars.K2);
-		T = grdutils(getappdata(handMir.figure1,'dem_z'), opt_T);
-		tmp.name = 'Brightness temperture';
+		T = grdutils(T, opt_T);
+		tmp.name = ['Brightness temperture' suff];
 	elseif (strcmp(s, 'R(toa)'))
 		opt_M = sprintf('-M%f', pars.rad_mul);	opt_A = sprintf('-A%f', pars.rad_add);
-		T = grdutils(getappdata(handMir.figure1,'dem_z'), opt_M, opt_A);
-		tmp.name = 'Radiance TOA';
-	else
+		T = grdutils(T, opt_M, opt_A);
+		tmp.name = ['Radiance TOA' suff];
+	elseif (strcmp(s, 'Rho(toa)'))
 		if (pars.reflect_mul == 1)
 			warndlg('Computing Reflectance for Thermal bands is not defined.','Warning')
 			return
 		end
 		s_elev = sin(pars.sun_elev * pi/180);
 		opt_M = sprintf('-M%f', pars.reflect_mul/s_elev);	opt_A = sprintf('-A%f', pars.reflect_add/s_elev);
-		T = grdutils(getappdata(handMir.figure1,'dem_z'), opt_M, opt_A);
-		tmp.name = 'Reflectance TOA';
+		T = grdutils(T, opt_M, opt_A);
+		tmp.name = ['Reflectance TOA' suff];
+	elseif (strcmp(s, 'Rho(surf)'))
+		if (pars.reflect_max == 0)
+			warndlg('Computing "At Surface Reflectance" for Thermal bands is not defined.','Warning')
+			return
+		end
+		s_elev = sin(pars.sun_elev * pi/180);
+		Esun = (pi * pars.sun_dist ^2) * pars.rad_max / pars.reflect_max;
+		TAUv = 1.0;		TAUz = s_elev;		Esky = 0.0;		sun_prct=1;
+		if (pars.band == 6 || pars.band == 7 || pars.band == 9)
+			TAUz = 1.0;
+		end
+		Sun_Radiance = TAUv * (Esun * s_elev * TAUz + Esky) / (pi * pars.sun_dist ^2);
+		opt_M = sprintf('-M%f', pars.rad_mul);		opt_A = sprintf('-A%f', pars.rad_add);
+		T = grdutils(T, opt_M, opt_A);
+		T(getappdata(handMir.figure1,'dem_z') == 0) = NaN;
+		radiance_dark = pars.rad_mul * (getDarkDN(handMir, 0.01)) + pars.rad_add;
+		LHaze = radiance_dark - sun_prct * Sun_Radiance / 100;
+		grdutils(T, sprintf('-A%f', -LHaze));
+		grdutils(T, sprintf('-M%f', 1/Sun_Radiance));
+		T(T < 0) = 0;
+		T(T > 1) = 1;
+		tmp.name = ['Surface Reflectance [COST]' suff];
 	end
 	tmp.head = handMir.head;
 	zMinMax = grdutils(T,'-L');
 	tmp.head(5) = zMinMax(1);	tmp.head(6) = zMinMax(2);
 	mirone(T, tmp, handMir.figure1)
+	% ---------------------------------------
+	function darkDN = getDarkDN(handles, pct)
+		DN = getappdata(handles.figure1,'dem_z');
+		DN = DN(DN > 0);
+		DN = sort(DN(:));
+% 		DN = double(DN);
+% 		cumsumDN = cumsum(DN);
+% 		darkDN = DN(find( ((cumsumDN / cumsumDN(end)*100) <= pct), 1, 'last'));
+		darkDN = double(DN(round(numel(DN) * pct * 0.01)));
 
 % ------------------------------------------------------------------------
-function push_compute_CB(hObject, handles)
+function out = push_compute_CB(hObject, handles)
+	out = [];
 	com = get(handles.edit_command,'String');
 	if (isempty(com)),	return,		end
 
@@ -305,7 +357,7 @@ function push_compute_CB(hObject, handles)
 	end
 
 	% Those start at 2 because they are meant to be used only when grid names apear repeatedly
-	in_g_count = 2;     out_g_count = 2;
+	in_g_count = 2;     out_g_count = 2;	grid = [];
 
 	com = move_operator(com);		% Make sure operators are not "glued" to operands (it currently screws names with '-' characters)
 	k = strfind(com,'&');
@@ -347,9 +399,9 @@ function push_compute_CB(hObject, handles)
 							return
 						end
 						tmp.head = handtmp.head;
-						grid_t = double(grid_t);      % grid reading don't outpus doubles
+						%grid_t = double(grid_t);      % grid reading don't outpus doubles
 					else
-						grid_t = double(getappdata(hand_fig.figure1,'dem_z'));
+						grid_t = (getappdata(hand_fig.figure1,'dem_z'));
 						tmp.X = getappdata(hand_fig.figure1,'dem_x');
 						tmp.Y = getappdata(hand_fig.figure1,'dem_y');
 						tmp.head = hand_fig.head;
@@ -361,13 +413,12 @@ function push_compute_CB(hObject, handles)
 							'IamCompiled', handles.IamCompiled, 'path_tmp',handles.path_tmp);
 						[grid_t, tmp.X, tmp.Y, srsWKT, handtmp] = read_grid(handtmp, [handles.grid_patos{n_load} tok], 'GMT');
 						tmp.head = handtmp.head;
-						grid_t = double(grid_t);      % grid reading don't outpus doubles
+						%grid_t = double(grid_t);      % grid reading don't outpus doubles
 					else
-						grid_t = double(getappdata(hand_fig.figure1,'dem_z'));
+						grid_t = (getappdata(hand_fig.figure1,'dem_z'));
 					end
 					grid.(char(i+96)) = grid_t;
 				end
-
 			end         % Loop over grids
 
 			for (i = 1:numel(k))
@@ -378,6 +429,19 @@ function push_compute_CB(hObject, handles)
 					com(kf+1:kf+6) = [];
 				end
 				com = [com(1:k(i)) 'grid.' char(i+96) ' ' com(kf+1:end)];
+			end
+
+			if (nargout),	out = grid;		return,		end		% Landsat functions process this separatelly.
+
+		end			% IF We have grids
+
+		if (isempty(grid))
+			errordlg('This is a grid calculator, but none of your operands is a matrix. Bye.', 'Error')
+			return
+		elseif (handles.IamCompiled || ~handles.version7)	% So far here we have to do OPs in doubles
+			fnames = fields(grid);
+			for (k = 1:numel(fnames))
+				grid.(fnames{k}) = double(grid.(fnames{k}));
 			end
 		end
 
@@ -501,6 +565,7 @@ function bandArithm(handles, com)
 function str = move_operator(str)
 % Make sure that operators are not "glued" to operands.
 % But allow grid names with the '-' character.
+% Also ensure that parentsis are not glued
 
 	[str, did] = let_gridnames_have(str, 'forward');	% Temporarily replace +-()= by invisible chars
 	k = strfind(str,')');
@@ -533,6 +598,16 @@ function str = move_operator(str)
             str = [str(1:k(1)-1) str(min(k(1)+1,length(str)):end)];
             k = strfind(str,' ''');
         end    
+	end
+	k = strfind(str,'(');
+	if (k),		str = strrep(str,'(',' ( ');	end
+	k = strfind(str,')');
+	if (k),		str = strrep(str,')',' ) ');	end
+	% Now remove the extra blanks
+	k = strfind(str,'  ');
+	while (~isempty(k))
+		str = strrep(str,'  ',' ');
+		k = strfind(str,'  ');
 	end
 
 % ------------------------------------------------------------------------
@@ -841,12 +916,10 @@ function imax = intmax_(varargin)
 			error('MATLAB:intmax_:invalidClassName','Invalid class name.')
 	end
 
-
-
 % --- Creates and returns a handle to the GUI figure. 
 function grid_calculator_LayoutFcn(h1)
 
-set(h1,'PaperUnits',get(0,'defaultfigurePaperUnits'), 'Position',[520 602 669 240],...
+set(h1,'PaperUnits',get(0,'defaultfigurePaperUnits'), 'Position',[520 602 669 260],...
 'Color',get(0,'factoryUicontrolBackgroundColor'),...
 'MenuBar','none',...
 'Name','Grid calculator',...
@@ -854,7 +927,7 @@ set(h1,'PaperUnits',get(0,'defaultfigurePaperUnits'), 'Position',[520 602 669 24
 'Resize','off',...
 'Tag','figure1');
 
-uicontrol('Parent',h1, 'Position',[10 190 651 41],...
+uicontrol('Parent',h1, 'Position',[10 190 651 61],...
 'BackgroundColor',[1 1 1],...
 'HorizontalAlignment','left',...
 'Max',3,...
@@ -991,6 +1064,10 @@ uicontrol('Parent',h1, 'Position',[491 84 50 21],...
 'FontSize',10,...
 'String','sqrt','Tag','push_sqrt');
 
+% uicontrol('Parent',h1, 'Position',[471 51 19 49],...
+% 'Enable','off',...
+% 'Tag','push_semaforo');
+
 uicontrol('Parent',h1, 'Position',[550 84 50 21],...
 'Callback',@grid_calculator_uiCB,...
 'FontSize',10,...
@@ -1022,14 +1099,22 @@ uicontrol('Parent',h1, 'Position',[551 51 50 21],...
 
 uicontrol('Parent',h1, 'Position',[611 51 50 21],...
 'Callback',@grid_calculator_uiCB,...
-'FontSize',10,...
+'FontSize',9,...
 'Tooltip', 'Compute Reflectance at Top of Atmosphere', ...
 'Vis', 'off', ...
 'String','Rho(toa)','Tag','push_Trad');
 
-uicontrol('Parent',h1, 'Position',[589 6 71 21],...
+uicontrol('Parent',h1, 'Position',[491 23 50 21],...
+'Callback',@grid_calculator_uiCB,...
+'FontSize',8,...
+'Tooltip', 'Compute "At Surface Reflectance" using DOS2 (COST) method', ...
+'Vis', 'off', ...
+'String','Rho(surf)','Tag','push_Trad');
+
+uicontrol('Parent',h1, 'Position',[569 6 91 21],...
 'Callback',@grid_calculator_uiCB,...
 'FontSize',10,...
+'FontWeight','bold',...
 'String','Compute','Tag','push_compute');
 
 uicontrol('Parent',h1, 'Position',[221 7 23 23],...
