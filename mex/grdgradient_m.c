@@ -98,6 +98,13 @@
 
 #if HAVE_OPENMP
 #include <omp.h>
+	#ifdef _MSC_VER
+		#define OMP_PARF __pragma(omp parallel for private(i,j,ij,k,k1))
+	#else
+		#define OMP_PARF _Pragma("omp parallel for private(i,j,ij,k,k1)")
+	#endif
+#else
+	#define OMP_PARF
 #endif
 
 #define GMT_SMALL		1.0e-4	/* Needed when results aren't exactly zero but close */
@@ -193,7 +200,8 @@ void hillshade(struct GRD_HEADER *header, float *data, double azim, double elev,
 
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 
-	int	i, j, ij, k, n, nm, nx, ny, i2, k1, k2, argc = 0, n_arg_no_char = 0;
+	size_t nm;
+	int	i, j, ij, k, n, nx, ny, k1, k2, argc = 0, n_arg_no_char = 0;
 	int p[4], n_used = 0, mx, my, nc_h, nr_h, *i_4, *pdata_i4, entry, GMT_pad[4];
 	short int *i_2, *pdata_i2;
 	unsigned short int *ui_2, *pdata_ui2;
@@ -204,7 +212,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	int	find_directions = FALSE, do_cartesian = FALSE, do_orientations = FALSE, save_slopes = FALSE;
 	int slope_percent = FALSE, slope_deg = FALSE, add_ninety = FALSE, do_change_Zsign = FALSE;
 	int	lambertian_s = FALSE, peucker = FALSE, lambertian = FALSE, unknown_nans = TRUE, check_nans = FALSE;
-	int	sigma_set = FALSE, offset_set = FALSE, exp_trans = FALSE, two_azims = FALSE;
+	int	sigma_set = FALSE, offset_set = FALSE, exp_trans = FALSE, two_azims = FALSE, show_time = FALSE;
 	int algo_manipRaster = FALSE, algo_hillshade = FALSE;
 	int	is_double = FALSE, is_single = FALSE, is_int32 = FALSE, is_int16 = FALSE;
 	int	is_uint16 = FALSE, is_uint8 = FALSE;
@@ -221,13 +229,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	double	norm_z, mag, s[3], lim_x, lim_y, lim_z;
 	double	dx_grid, dy_grid, x_factor, y_factor, *dx_grid__, *x_factor__, *x_factor2__;
 	float	r_min = FLT_MAX, r_max = -FLT_MAX, scale;
-	char	input[BUFSIZ], *ptr;
+	char	input[512], *ptr;
 	struct	GRD_HEADER header;
 	struct	GMT_EDGEINFO edgeinfo;
-
-#ifdef MIR_TIMEIT
-	tic = clock();
-#endif
 
 	argc = nrhs;
 	for (i = 0; i < nrhs; i++) {		/* Check input to find how many arguments are of type char */
@@ -415,6 +419,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 							slope_deg = TRUE;
 					}
 					break;
+				case 't':
+					show_time = TRUE;
+					break;
 				case 'z':
 					do_change_Zsign = TRUE;		/* Multiply Z by -1 */
 					break;
@@ -472,6 +479,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		mexPrintf ( "\t-S output |grad z| (slope)\n");
 		mexPrintf ( "\t     append 'p' or 'd' to compute slope in percentage or degrees, respectively.\n");
 		mexPrintf ( "\t-a NaN value. Use 1 to not change the illuminated NaNs color [default is NaN]\n");
+		mexPrintf ("\t-t Print execution time.\n");
 		return;
 	}
 
@@ -510,6 +518,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	}
 
 	if (error) return;
+
+	if (show_time) tic = clock();
 
 	/* Get non char inputs */
 	if (nlhs == 0)
@@ -565,52 +575,58 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	header.node_offset = irint(head[6]);
 	mx = nx + 4;
 	my = ny + 4;
-	nm = header.nx * header.ny;
+	nm = (size_t)header.nx * header.ny;
 
 	if ( (data = (float *)mxMalloc (mx * my * sizeof (float)) ) == NULL)
 		mexPrintf ("Fatal Error: grdgradient could not allocate memory, n = %d\n", mx * my * sizeof (float));
 
 	/* Transpose from Matlab orientation to gmt grd orientation */
 	if (is_double) {
-		for (i = i2 = 0; i < nx; i++) {
-			k1 = my * (i + 2) + 2;
+OMP_PARF
+		for (size_t i = 0; i < nx; i++) {
+			size_t k1 = my * (i + 2) + 2;
 			for (j = 0; j < ny; j++)
-				data[j + k1] = (float)z_8[i2++];
+				data[j + k1] = (float)z_8[i*ny + j];
 		}
 	}
 	else if (is_single) {
-		for (i = i2 = 0; i < nx; i++) {
-			k1 = my * (i + 2) + 2;
+OMP_PARF
+		for (size_t i = 0; i < nx; i++) {
+			size_t k1 = my * (i + 2) + 2;
 			for (j = 0; j < ny; j++)
-				data[j + k1] = z_4[i2++];
+				data[j + k1] = z_4[i*ny + j];
 		}
 	}
 	else if (is_int32) {
-		for (i = i2 = 0; i < nx; i++) {
-			k1 = my * (i + 2) + 2;
+OMP_PARF
+		for (size_t i = 0; i < nx; i++) {
+			size_t k1 = my * (i + 2) + 2;
 			for (j = 0; j < ny; j++)
-				data[j + k1] = (float)i_4[i2++];
+				data[j + k1] = (float)i_4[i*ny + j];
 		}
 	}
 	else if (is_int16) {
-		for (i = i2 = 0; i < nx; i++) {
-			k1 = my * (i + 2) + 2;
+OMP_PARF
+		for (size_t i = 0; i < nx; i++) {
+			size_t k1 = my * (i + 2) + 2;
 			for (j = 0; j < ny; j++)
-				data[j + k1] = (float)i_2[i2++];
+				data[j + k1] = (float)i_2[i*ny + j];
 		}
 	}
 	else if (is_uint16) {
-		for (i = i2 = 0; i < nx; i++) {
-			k1 = my * (i + 2) + 2;
+OMP_PARF
+		for (size_t i = 0; i < nx; i++) {
+			size_t k1 = my * (i + 2) + 2;
 			for (j = 0; j < ny; j++)
-				data[j + k1] = (float)ui_2[i2++];
+				data[j + k1] = (float)ui_2[i*ny + j];
 		}
 	}
 	else if (is_uint8) {
-		for (i = i2 = 0; i < nx; i++) {
-			k1 = my * (i + 2) + 2;
+OMP_PARF
+		for (size_t i = 0; i < nx; i++) {
+			size_t k1 = my * (i + 2) + 2;
 			for (j = 0; j < ny; j++)
-				data[j + k1] = (float)ui_1[i2++];
+				data[j + k1] = (float)ui_1[i*ny + j];
 		}
 	}
 
@@ -626,6 +642,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 
 	/* For direction derivatives we need to revert the sign of Z */
 	if (do_change_Zsign)
+OMP_PARF
 		for (i = 0; i < (nx+4)*(ny+4); i++)
 			data[i] *= -1;
 
@@ -792,13 +809,12 @@ Lhill:
 	}
 
 	if (slope_percent) {
+OMP_PARF
 		for (i = 0; i < nm; i++)
 			data[i] *= 100;
 	}
 	else if (slope_deg) {
-#if HAVE_OPENMP
-#pragma omp parallel for
-#endif
+OMP_PARF
 		for (i = 0; i < nm; i++)
 			data[i] = atan(data[i]) * R2D;
 	}
@@ -812,6 +828,7 @@ Lhill:
 
 	if (lambertian || lambertian_s || peucker) {	/* data must be scaled to the [-1,1] interval, but we'll do it into [-.95, .95] to not get too bright */
 		scale = (float)(1. / (r_max - r_min));
+OMP_PARF
 		for (k = 0; k < nm; k++) {
 			if (check_nans && ISNAN_F (data[k])) continue;
 			data[k] = (-1. + 2. * ((data[k] - r_min) * scale)) * 0.95;
@@ -833,15 +850,11 @@ Lhill:
 				else {
 					denom = 0.0;
 					if (!check_nans) {
-#if HAVE_OPENMP
-#pragma omp parallel for
-#endif
+OMP_PARF
 						for (k = 0; k < nm; k++) denom += pow(data[k] - ave_gradient, 2.0);
 					}
 					else {
-#if HAVE_OPENMP
-#pragma omp parallel for
-#endif
+OMP_PARF
 						for (k = 0; k < nm; k++) 
 							if (!ISNAN_F(data[k])) denom += pow(data[k] - ave_gradient, 2.0);
 					}
@@ -850,15 +863,11 @@ Lhill:
 				}
 				rpi = 2.0 * norm_val / M_PI;
 				if (!check_nans) {
-#if HAVE_OPENMP
-#pragma omp parallel for
-#endif
+OMP_PARF
 					for (k = 0; k < nm; k++) data[k] = (float)(rpi * atan((data[k] - ave_gradient)*denom));
 				}
 				else {
-#if HAVE_OPENMP
-#pragma omp parallel for
-#endif
+OMP_PARF
 					for (k = 0; k < nm; k++) 
 						if (!ISNAN_F (data[k])) data[k] = (float)(rpi * atan((data[k] - ave_gradient)*denom));
 				}
@@ -868,11 +877,13 @@ Lhill:
 			else if (exp_trans) {
 				if (!sigma_set) {
 					sigma = 0.0;
+OMP_PARF
 					for (k = 0; k < nm; k++) 
 						if (!ISNAN_F (data[k])) sigma += fabs((double)data[k]);
 					sigma = M_SQRT2 * sigma / n_used;
 				}
 				denom = M_SQRT2 / sigma;
+OMP_PARF
 				for (k = 0; k < nm; k++) {
 					if (check_nans && ISNAN_F (data[k])) continue;
 					if (data[k] < ave_gradient) {
@@ -893,9 +904,11 @@ Lhill:
 					denom = norm_val / (ave_gradient - min_gradient);
 				}
 				if (!check_nans) {
+OMP_PARF
 					for (k = 0; k < nm; k++) data[k] = (float)((data[k] - ave_gradient) * denom);
 				}
 				else {
+OMP_PARF
 					for (k = 0; k < nm; k++) 
 						if (!ISNAN_F (data[k])) data[k] = (float)((data[k] - ave_gradient) * denom);
 				}
@@ -906,7 +919,9 @@ Lhill:
 	}
 
 	if (check_nans && nan != -999) {
-		for (ij = 0; ij < header.nx * header.ny; ij++) {
+OMP_PARF
+		//for (ij = 0; ij < header.nx * header.ny; ij++) {
+		for (size_t ij = 0; ij < (size_t)header.nx * header.ny; ij++) {
 			if (ISNAN_F(data[ij])) data[ij] = nan;
 		}
 	}
@@ -969,9 +984,8 @@ Lhill:
 
 	}
 
-#ifdef MIR_TIMEIT
-	mexPrintf("GRDGRADIENT_M: CPU ticks = %.3f\tCPS = %d\n", (double)(clock() - tic), CLOCKS_PER_SEC);
-#endif
+	if (show_time)
+		mexPrintf("GRDGRADIENT_M: CPU ticks = %.3f\tCPS = %d\n", (double)(clock() - tic), CLOCKS_PER_SEC);
 
 }
 
