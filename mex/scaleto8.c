@@ -89,12 +89,12 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	double	*pNodata, *which_scale, *pLimits;
 	float	range = 1, min_val = FLT_MAX, max_val = -FLT_MAX, *z_4, new_range, nodata;
 	int     nx, ny, i, is_double = 0, is_single = 0, is_int32 = 0, is_int16 = 0, inodata = 0;
-	int     is_uint16 = 0, is_int8 = 0, scale_range = 1, *i_4, scale8 = 1, scale16 = 0, nBands = 1;
+	int     is_uint16 = 0, is_int8 = 0, is_uint8 = 0, scale_range = 1, *i_4, scale8 = 1, scale16 = 0, nBands = 1;
 	int     n_row, n_col, got_nodata = 0, got_limits = 0, add_off = 1, imin = INT_MAX, imax = INT_MIN;
 	char	*i_1;
 	short int *i_2;
 	unsigned short int *ui_2 = NULL, *out16 = NULL;
-	unsigned char *out8 = NULL;
+	unsigned char *ui_1, *out8 = NULL;
 	const int *dim_array;
 	size_t np;
 	clock_t tic;
@@ -140,9 +140,13 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		i_1 = (char *)mxGetData(prhs[0]);
 		is_int8 = 1;
 	}
+	else if (mxIsUint8(prhs[0])) {
+		ui_1 = (unsigned char *)mxGetData(prhs[0]);
+		is_uint8 = 1;
+	}
 	else {
 		mexPrintf("SCALETO8 ERROR: Unknown input data type.\n");
-		mexErrMsgTxt("Valid types are:double, single, Int32, Int16, UInt16 and Int8.\n");
+		mexErrMsgTxt("Valid types are:double, single, Int32, Int16, UInt16, UInt8 and Int8.\n");
 	}
 
 	/*  get the dimensions of the matrix input */
@@ -441,7 +445,7 @@ OMP_PARF_MINMAX
 		}
 
 	}
-	else if (is_int8) {	/* This whole cases are a bit stupid */
+	else if (is_int8) {	/* This whole case is a bit stupid */
 		if (got_limits)
 			mexErrMsgTxt("SCALETO8 ERROR: Asking for limits on a INT8 array is not availabe (does it make sense?).");
 
@@ -477,6 +481,44 @@ OMP_PARF_MINMAX
 				for (i = 0; i < nx*ny; i++) {
 					if (got_nodata && (float)i_1[i] == nodata) continue;
 					out16[i] = (unsigned short int)(((float)i_1[i] - min_val) * range) + add_off;
+				}
+			}
+		}
+		else { 			/* min_val/max_val required */
+			*z_min = min_val;	*z_max = max_val;
+		}
+	}
+	else if (is_uint8) {	/* This case is used to mimic the effect of CLim */
+		unsigned char min_i1 = 255, max_i1 = 0;
+		//min_i1 = (unsigned char)min_val;	max_i1 = (unsigned char)max_val;
+
+		if (!got_limits) {
+OMP_PARF_MINMAX
+			for (i = 0; i < nx*ny; i++) {
+				if (ui_2[i] < min_i1) ui_2[i] = min_i1;
+				if (ui_2[i] > max_i1) ui_2[i] = max_i1;
+			}
+			min_val = min_i1;		max_val = max_i1;
+		}
+		else {
+			if (!scale_range) {
+OMP_PARF_MINMAX	
+				for (i = 0; i < nx*ny; i++) {
+					if (ui_1[i] < min_val) min_val = ui_1[i];
+					if (ui_1[i] > max_val) max_val = ui_1[i];
+				}
+			}
+		}
+		if (scale_range) {	/* Scale data into the new_range ([0 255]) */ 
+			if (max_val != min_val)
+				range = new_range / (max_val - min_val);
+
+			if (scale8) {
+OMP_PARF
+				for (i = 0; i < nx*ny; i++) {
+					if      (ui_1[i] >= max_val) out8[i] = 255;		/* Need IFs because C wraps, not trims */
+					else if (ui_1[i] <= min_val) out8[i] = 0;
+					else    out8[i] = (char)(((float)ui_1[i] - min_val) * range + add_off);
 				}
 			}
 		}
