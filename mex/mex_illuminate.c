@@ -133,7 +133,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	}
 
 #if HAVE_OPENMP
-#pragma omp parallel for  private(k1, rgb_pt)
+#pragma omp parallel for  private(rgb_pt, k2, k3)
 #endif
 	for (k1 = 0; k1 < nm; k1++) {
 		k2 = k1 + nm;
