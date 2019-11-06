@@ -293,6 +293,10 @@ function push_Trad_CB(hObject, handles)
 	
 	s = get(hObject, 'String');
 	if (strcmp(s, 'Trad'))
+		if (pars.band < 10)
+			warndlg('Nope. Brightness temperature is only for bands 10 or 11. Not yours', 'Error')
+			return
+		end
 		opt_T = sprintf('-T%f/%f/%f/%f', pars.rad_mul, pars.rad_add, pars.K1, pars.K2);
 		T = grdutils(T, opt_T);
 		tmp.name = ['Brightness temperture' suff];
@@ -302,7 +306,7 @@ function push_Trad_CB(hObject, handles)
 		tmp.name = ['Radiance TOA' suff];
 	elseif (strcmp(s, 'Rho(toa)'))
 		if (pars.reflect_mul == 1)
-			warndlg('Computing Reflectance for Thermal bands is not defined.','Warning')
+			warndlg('Computing Reflectance for Thermal bands is not defined.','Error')
 			return
 		end
 		s_elev = sin(pars.sun_elev * pi/180);
@@ -311,7 +315,7 @@ function push_Trad_CB(hObject, handles)
 		tmp.name = ['Reflectance TOA' suff];
 	elseif (strcmp(s, 'Rho(surf)'))
 		if (pars.reflect_max == 0)
-			warndlg('Computing "At Surface Reflectance" for Thermal bands is not defined.','Warning')
+			warndlg('Computing "At Surface Reflectance" for Thermal bands is not defined.','Error')
 			return
 		end
 		s_elev = sin(pars.sun_elev * pi/180);
@@ -323,8 +327,7 @@ function push_Trad_CB(hObject, handles)
 		Sun_Radiance = TAUv * (Esun * s_elev * TAUz + Esky) / (pi * pars.sun_dist ^2);
 		opt_M = sprintf('-M%f', pars.rad_mul);		opt_A = sprintf('-A%f', pars.rad_add);
 		T = grdutils(T, opt_M, opt_A);
-		T(getappdata(handMir.figure1,'dem_z') == 0) = NaN;
-		radiance_dark = pars.rad_mul * (getDarkDN(handMir, 0.01)) + pars.rad_add;
+		radiance_dark = pars.rad_mul * (getDarkDN(handMir, 0.0001)) + pars.rad_add;	% 0.01%
 		LHaze = radiance_dark - sun_prct * Sun_Radiance / 100;
 		grdutils(T, sprintf('-A%f', -LHaze));
 		grdutils(T, sprintf('-M%f', 1/Sun_Radiance));
@@ -335,16 +338,14 @@ function push_Trad_CB(hObject, handles)
 	tmp.head = handMir.head;
 	zMinMax = grdutils(T,'-L');
 	tmp.head(5) = zMinMax(1);	tmp.head(6) = zMinMax(2);
+	T(getappdata(handMir.figure1,'dem_z') == 0) = NaN;
 	mirone(T, tmp, handMir.figure1)
 	% ---------------------------------------
 	function darkDN = getDarkDN(handles, pct)
 		DN = getappdata(handles.figure1,'dem_z');
 		DN = DN(DN > 0);
-		DN = sort(DN(:));
-% 		DN = double(DN);
-% 		cumsumDN = cumsum(DN);
-% 		darkDN = DN(find( ((cumsumDN / cumsumDN(end)*100) <= pct), 1, 'last'));
-		darkDN = double(DN(round(numel(DN) * pct * 0.01)));
+		DN = nth_element(DN(:), round(numel(DN) * pct));
+		darkDN = double(DN(round(numel(DN) * pct)));
 
 % ------------------------------------------------------------------------
 function out = push_compute_CB(hObject, handles)
@@ -439,9 +440,18 @@ function out = push_compute_CB(hObject, handles)
 			errordlg('This is a grid calculator, but none of your operands is a matrix. Bye.', 'Error')
 			return
 		elseif (handles.IamCompiled || ~handles.version7)	% So far here we have to do OPs in doubles
-			fnames = fields(grid);
-			for (k = 1:numel(fnames))
-				grid.(fnames{k}) = double(grid.(fnames{k}));
+			grid.a = double(grid.a);
+			if (isfield(grid, 'b'))
+				grid.b = double(grid.b);
+				if (isfield(grid, 'c'))
+					grid.c = double(grid.c);
+					if (isfield(grid, 'd'))
+						grid.d = double(grid.d);
+						if (isfield(grid, 'e'))
+							grid.e = double(grid.e);
+						end
+					end
+				end
 			end
 		end
 
@@ -791,7 +801,7 @@ function [r, msg] = do_mull_add(a, b, op, grid)
 		else,				r = grid.(a(6)) ^ b_n;
 		end
 	elseif (strncmp(a,'grid',3) && strncmp(b,'grid',3))		% add|sub|mull|div|pow(Matrix, Matrix)
-		if (~isequal(size(grid.(a(6))), size(grid.(a(6))) ))
+		if (~isequal(size(grid.(a(6))), size(grid.(b(6))) ))
 			msg = 'matrix dimension are not equal in Add, Sub or Power operator';	return
 		end
 		try
