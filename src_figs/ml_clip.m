@@ -32,10 +32,7 @@ function varargout = ml_clip(varargin)
 
 	handMir = varargin{1};
 
-	if (handMir.no_file)
-		errordlg('GRDCLIP: You didn''t even load a file. What are you expecting then?','ERROR')
-		return
-	end
+	if (handMir.no_file),	return,		end
 	if (~handMir.validGrid)
         errordlg('GRDCLIP: This operation is deffined only for images derived from DEM grids.','ERROR')
 		return
@@ -149,9 +146,11 @@ function push_OK_CB(hObject, handles)
 	% These might have been updated by image_enhance that did not update the handles
 	handles.below = str2double(get(handles.edit_below, 'String'));
 	handles.above = str2double(get(handles.edit_above, 'String'));
-	handles.below_val = str2double(get(handles.edit_Bl_val, 'String'));
-	handles.above_val = str2double(get(handles.edit_Ab_val, 'String'));
-	guidata(handles.figure1,handles)
+	s = get(handles.edit_Bl_val, 'String');
+	if (~isempty(s)),	handles.below_val = str2double(s);	end
+	s = get(handles.edit_Ab_val, 'String');
+	if (~isempty(s)),	handles.above_val = str2double(s);	end
+	%guidata(handles.figure1,handles)
 	
 	if (get(handles.radio_img, 'Value'))
 		img = scaleto8(handles.Z, 8, [handles.below handles.above]);
@@ -160,12 +159,20 @@ function push_OK_CB(hObject, handles)
 		return
 	end
 
+	if (~isa(handles.Z, 'single'))		% Then we must promote the Z array to floats
+		if (~isempty(handles.below_val) && (isnan(handles.below_val) || (handles.above_val - fix(handles.above_val)) ~= 0))
+			handles.Z = single(handles.Z);
+		elseif (~isempty(handles.above_val) && (isnan(handles.above_val) || (handles.above_val - fix(handles.above_val)) ~= 0))
+			handles.Z = single(handles.Z);
+		end
+	end
+
 	if (get(handles.check_inBetween, 'val'))
-		if (isempty(handles.below_val)),	show_manguito,		return,		end
+		if (isempty(handles.below_val)),	errordlg('Nothing to do','Error'),	return,		end
 		ind = ((handles.Z >= handles.below) & (handles.Z <= handles.above));
 		handles.Z(ind) = handles.below_val;		clear ind		% No mistake, below_val is actually in_between
 	else
-		if (isempty(handles.below_val) && isempty(handles.above_val)),	return,		end
+		if (isempty(handles.below_val) && isempty(handles.above_val)),	errordlg('Nothing to do','Error'),	return,	end
 		if (~isempty(handles.above_val) && ~isempty(handles.below_val) && ...
 				(handles.above_val < handles.below) | (handles.below_val > handles.above) ) %#ok (NEED that |)
 			% Need special care to not clip the already clipped values
@@ -196,19 +203,19 @@ function push_OK_CB(hObject, handles)
 		return
 	end
 
-    tmp.X = linspace(handles.head(1),handles.head(2),size(handles.Z,2));
-    tmp.Y = linspace(handles.head(3),handles.head(4),size(handles.Z,1));
-    tmp.head = handles.head;
-    tmp.name = 'Clipped grid';
+	tmp.X = linspace(handles.head(1),handles.head(2),size(handles.Z,2));
+	tmp.Y = linspace(handles.head(3),handles.head(4),size(handles.Z,1));
+	tmp.head = handles.head;
+	tmp.name = 'Clipped grid';
 	handMir = guidata(handles.hMirFig);
-    tmp.cmap = get(handMir.figure1, 'Colormap');
+	tmp.cmap = get(handMir.figure1, 'Colormap');
 	if (~handles.geog)			% See if we must carry on the projection info
 		prjInfoStruc = aux_funs('getFigProjInfo',handMir);
 		if (~isempty(prjInfoStruc.projWKT))	% TODO. Otherwise check if prjInfoStruc.proj4 and convert it to WKT
 			tmp.srsWKT = prjInfoStruc.projWKT;
 		end
 	end
-    mirone(handles.Z, tmp);
+	mirone(handles.Z, tmp, handles.hMirFig);
 
 % -------------------------------------------------------------------------------------
 function edit_percent_CB(hObject, handles)
