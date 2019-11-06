@@ -173,6 +173,7 @@ function out = get_set_zLayers(hand, order)
 		setappdata(handMir.figure1,'dem_z_layers', lay)
 	else
 		out = lay;
+		if (isempty(out)),	out = 1;	end		% Happens when this fun is called over, e.g., mask images
 	end
 
 % --------------------------------------------------------------------
