@@ -384,32 +384,46 @@ function ButtonDownOnImage(hImg, evt, hFig)
 			linkDisplays(hFig)
 		else						% uictx to options to fill gaps (NaN holes) 
 			Z = getappdata(hFig,'dem_z');
+			%if (isempty(Z)),	return,		end
+			pt = get(get(hImg, 'Parent'), 'CurrentPoint');
+			[rows, cols, rp] = size(get(hImg,'CData'));
+			rp = getPixel_coords(rows, get(hImg,'YData'),pt(1,2));
+			cp = getPixel_coords(cols, get(hImg,'XData'),pt(1,1));
+			r = min(rows, max(1, round(rp)));	c = min(cols, max(1, round(cp)));
+			% Work for both grids & images
 			if (~isempty(Z))
-				pt = get(get(hImg, 'Parent'), 'CurrentPoint');
-				[rows, cols, rp] = size(get(hImg,'CData'));
-				rp = getPixel_coords(rows, get(hImg,'YData'),pt(1,2));
-				cp = getPixel_coords(cols, get(hImg,'XData'),pt(1,1));
-				r = min(rows, max(1, round(rp)));	c = min(cols, max(1, round(cp)));
 				z = Z(r,c);
-				if (isnan(z))		% Create the UIContextMenu
+			else
+				img = get(hImg,'CData');
+				z = img(r,c,1);
+			end
+			if (isnan(z))		% Create the UIContextMenu
+				cmenu = uicontextmenu('Parent', hFig, 'Tag','clickedHole');
+				set(hImg, 'UIContextMenu', cmenu);
+				uimenu(cmenu, 'Label', 'Digitize body', 'Callback', 'mirone(''ImageEdgeDetect_CB'',guidata(gcbo),''apalpa_body'')');
+				item0 = uimenu(cmenu, 'Label', 'Digitize body with pad');
+				uimenu(item0, 'Label', 'pad = 1 cell', 'Callback', 'mirone(''ImageEdgeDetect_CB'',guidata(gcbo),''apalpa_body_1'')');
+				uimenu(item0, 'Label', 'pad = 2 cell', 'Callback', 'mirone(''ImageEdgeDetect_CB'',guidata(gcbo),''apalpa_body_2'')');
+				uimenu(item0, 'Label', 'other...',  'Callback', @other_pad);
+				uimenu(cmenu, 'Label', 'Digitize this hole', 'Callback', 'mirone(''ImageEdgeDetect_CB'',guidata(gcbo),''apalpa_um'')', 'Sep','on');
+				uimenu(cmenu, 'Label', 'Inpaint this hole', 'Callback', 'inpaint_nans(guidata(gcbo), ''single'')');
+				item1 = uimenu(cmenu, 'Label', 'Fill this hole ...', 'Sep','on');
+				uimenu(item1, 'Label', 'with 2nd Grid (sharp edges)', 'Callback', 'transplants([], ''one_sharp'', true, guidata(gcbo))');
+				uimenu(item1, 'Label', 'with 2nd Grid (smooth edges)','Callback', 'transplants([], ''one_smooth'', true, guidata(gcbo))');
+				item2 = uimenu(cmenu, 'Label', 'Fill all holes ...');
+				uimenu(item2, 'Label', 'with 2nd Grid (sharp edges)', 'Callback', '');
+				uimenu(item2, 'Label', 'with 2nd Grid (smooth edges)', 'Callback', '');
+			elseif (z == 1 && ~isa(Z, 'single'))
+				handMir = guidata(hFig);
+				if (handMir.head(6) == 1)
+					label = 'Digitize whites';
+					if (handMir.validGrid),		label = 'Digitize ones';	end
 					cmenu = uicontextmenu('Parent', hFig, 'Tag','clickedHole');
 					set(hImg, 'UIContextMenu', cmenu);
-					uimenu(cmenu, 'Label', 'Digitize body', 'Callback', 'mirone(''ImageEdgeDetect_CB'',guidata(gcbo),''apalpa_body'')');
-					item0 = uimenu(cmenu, 'Label', 'Digitize body with pad');
-					uimenu(item0, 'Label', 'pad = 1 cell', 'Callback', 'mirone(''ImageEdgeDetect_CB'',guidata(gcbo),''apalpa_body_1'')');
-					uimenu(item0, 'Label', 'pad = 2 cell', 'Callback', 'mirone(''ImageEdgeDetect_CB'',guidata(gcbo),''apalpa_body_2'')');
-					uimenu(item0, 'Label', 'other...',  'Callback', @other_pad);
-					uimenu(cmenu, 'Label', 'Digitize this hole', 'Callback', 'mirone(''ImageEdgeDetect_CB'',guidata(gcbo),''apalpa_um'')', 'Sep','on');
-					uimenu(cmenu, 'Label', 'Inpaint this hole', 'Callback', 'inpaint_nans(guidata(gcbo), ''single'')');
-					item1 = uimenu(cmenu, 'Label', 'Fill this hole ...', 'Sep','on');
-					uimenu(item1, 'Label', 'with 2nd Grid (sharp edges)', 'Callback', 'transplants([], ''one_sharp'', true, guidata(gcbo))');
-					uimenu(item1, 'Label', 'with 2nd Grid (smooth edges)','Callback', 'transplants([], ''one_smooth'', true, guidata(gcbo))');
-					item2 = uimenu(cmenu, 'Label', 'Fill all holes ...');
-					uimenu(item2, 'Label', 'with 2nd Grid (sharp edges)', 'Callback', '');
-					uimenu(item2, 'Label', 'with 2nd Grid (smooth edges)', 'Callback', '');
-				else
-					delete(findobj('Tag','clickedHole'))	% Delete uctx so that it does show up on right-clicks on ANY point
+					uimenu(cmenu, 'Label', label, 'Callback', 'mirone(''ImageEdgeDetect_CB'',guidata(gcbo),''apalpa_mask'')', 'Sep','on');
 				end
+			else
+				delete(findobj('Tag','clickedHole'))	% Delete uctx so that it does show up on right-clicks on ANY point
 			end
 		end
 		return
