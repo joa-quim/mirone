@@ -88,7 +88,7 @@ function hObject = mirone_OpeningFcn(varargin)
 %#function c_cpt2cmap c_grdfilter c_grdinfo c_grdlandmask c_grdproject c_grdread c_grdsample
 %#function c_grdtrend c_mapproject c_nearneighbor c_shoredump c_surface popenr diffCenterVar hellinger bingham
 %#function gmtlist_m grdgradient_m trend1d_m external_drive chimoce interp_chimoce earth_tides earthtide DateStr2Num
-%#function ddist eucdist2 masker
+%#function ddist eucdist2 masker nth_element
 
 	global home_dir;	fsep = filesep;
 	toCompile = false;		% To compile set this one to TRUE
@@ -5043,7 +5043,7 @@ function ImageEdgeDetect_CB(handles, opt)
 
 	img = get(handles.hImg,'CData');		% Even when not used, this op cost nothing
 	dims = [size(img,1) size(img,2)];
-	set(handles.figure1,'pointer','watch')
+	set(handles.figure1,'pointer','watch'),		pause(0.001)
 	if (strcmp(opt,'ppa'))
 		[X,Y,Z,handles.head] = load_grd(handles);
 		if isempty(Z),		return,		end
@@ -5066,23 +5066,35 @@ function ImageEdgeDetect_CB(handles, opt)
 	% 	I = flipud(img(:,:,1));
 	% 	delete(h_lixo);
 	elseif (strncmp(opt,'apalpa',6))		% Get the polygons that sorround good data
-		if (~handles.have_nans)
-			warndlg('There are no wholes in this grid.','Chico Clever'),	return
+		if (~handles.have_nans && ~strcmp(opt, 'apalpa_mask'))
+			warndlg('There are no wholes in this grid.','Chico Clever')
+			set(handles.figure1,'pointer','arrow'),		return
 		end
-		[X,Y,Z] = load_grd(handles);
-		if isempty(Z),		return,		end
+		if (handles.validGrid)
+			[X,Y,Z] = load_grd(handles);
+			if (isempty(Z)),	return,		end
+		else								% A Mask BW image
+			Z = [];
+		end
 		if (strncmp(opt,'apalpa_body', 11))	% Digitize the Non-NaN zone
 			mask = ~isnan(Z);
 			if (numel(opt) >= 13)			% We have a padding request. Find out how much
 				pad = str2double(opt(13:end));
 				se = zeros(2*pad+1);		% If pad = 1 we make a SE (a plus) of 3x3, pad = 2 SE of 5x5
 				se(pad+1, :) = 1;		se(:, pad+1) = 1;
-				mask = img_fun('imdilate',mask,se);
+				mask = img_fun('imdilate', mask, se);
+			end
+		elseif (strcmp(opt,'apalpa_mask'))	% Digitize the 1's in a mask
+			if (~isempty(Z))				% Z is an integer type
+				mask = logical(Z);
+			else							% An image
+				img = get(handles.hImg,'CData');
+				mask = logical(img(:,:,1));
 			end
 		else
 			mask = isnan(Z);
 		end
-		B = img_fun('bwboundaries',mask, 8, 'noholes');
+		B = img_fun('bwboundaries', mask, 8, 'noholes');
 
 		if (strcmp(opt,'apalpa_um'))		% When only one hole is to be diditized
 			pt = get(handles.axes1, 'CurrentPoint');
@@ -5111,6 +5123,7 @@ function ImageEdgeDetect_CB(handles, opt)
 		end
 
 		dims = [size(Z,1) size(Z,2)];
+		opt_orig = opt;					% Save it because it can be usefull for line color settings
 		opt = 'Vec';					% Trick to not need to add an extra case in the IF test below
 
 	elseif (strcmp(opt,'Vec') || strcmp(opt,'Ras') || strcmp(opt(1:3),'SUS'))
@@ -5160,6 +5173,8 @@ function ImageEdgeDetect_CB(handles, opt)
 			x_min = x_min + x_inc/2;	y_min = y_min + y_inc/2;
 		end
 		h_edge = zeros(length(B),1);	i = 1;
+		line_color = handles.DefLineColor;
+		if (strncmp(opt_orig,'apalpa',6)),	line_color = 'g';	end
 		for k = 1:length(B)
 			bnd = B{k};
 			if (size(bnd,1) > 4)
@@ -5177,8 +5192,8 @@ function ImageEdgeDetect_CB(handles, opt)
 
 			y = (bnd(:,1)-1)*y_inc + y_min;
 			x = (bnd(:,2)-1)*x_inc + x_min;
-			h_edge(i) = line('XData',x, 'YData',y, 'Parent',handles.axes1,'Linewidth',handles.DefLineThick, ...
-				'Color',handles.DefLineColor,'Tag','edge_detected','Userdata',i);
+			h_edge(i) = line('XData',x, 'YData',y, 'Parent',handles.axes1, 'Linewidth',handles.DefLineThick, ...
+				'Color',line_color, 'Tag','edge_detected', 'Userdata',i);
 			i = i + 1;
 			%ellipse_t = fit_ellipse( x,y,handles.axes1 );
 		end
