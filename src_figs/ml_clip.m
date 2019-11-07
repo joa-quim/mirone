@@ -172,8 +172,11 @@ function push_OK_CB(hObject, handles)
 		ind = ((handles.Z >= handles.below) & (handles.Z <= handles.above));
 		handles.Z(ind) = handles.below_val;		clear ind		% No mistake, below_val is actually in_between
 	else
-		if (isempty(handles.below_val) && isempty(handles.above_val)),	errordlg('Nothing to do','Error'),	return,	end
-		if (~isempty(handles.above_val) && ~isempty(handles.below_val) && ...
+		if (isempty(handles.below_val) && isempty(handles.above_val))
+			errordlg('Nothing to do','Error'),	return
+		end
+		
+		if (~isempty(handles.above_val) && ~isempty(handles.below_val) && ...	% WTF case is this?
 				(handles.above_val < handles.below) | (handles.below_val > handles.above) ) %#ok (NEED that |)
 			% Need special care to not clip the already clipped values
 			ind1 = handles.Z > handles.above;
@@ -182,19 +185,21 @@ function push_OK_CB(hObject, handles)
 			handles.Z(ind2) = handles.below_val;	clear ind2
 		else
 			if ~isempty(handles.above_val)			% Clip above
-				handles.Z(handles.Z > handles.above) = handles.above_val;
+				%handles.Z(handles.Z > handles.above) = handles.above_val;
+				handles.Z = grdutils(handles.Z, sprintf('-F>/%f/%f', handles.above, handles.above_val));
 			end
 			if ~isempty(handles.below_val)			% Clip below
-				handles.Z(handles.Z < handles.below) = handles.below_val;
+				%handles.Z(handles.Z < handles.below) = handles.below_val;
+				handles.Z = grdutils(handles.Z, sprintf('-F</%f/%f', handles.below, handles.below_val));
 			end
 		end
 	end
 
-	if (handles.version6 && handles.have_nans)		% Shame on you TMW
-		% The following is due to unbelievable BUG in R13 that does not know how to deal correctly with single(NaNs)
-		indNaN = isnan(handles.Z);
-		handles.Z(indNaN) = single(NaN);		clear indNaN
-	end
+% 	if (handles.version6 && handles.have_nans)		% Shame on you TMW
+% 		% The following is due to unbelievable BUG in R13 that does not know how to deal correctly with single(NaNs)
+% 		indNaN = isnan(handles.Z);
+% 		handles.Z(indNaN) = single(NaN);		clear indNaN
+% 	end
 	zz = grdutils(handles.Z,'-L');       handles.head(5:6) = zz(1:2);
 
 	if (strcmp(get(handles.figure1,'WindowStyle'),'modal'))		% In this mode we just return the clipped array (in handles)
@@ -206,15 +211,17 @@ function push_OK_CB(hObject, handles)
 	tmp.X = linspace(handles.head(1),handles.head(2),size(handles.Z,2));
 	tmp.Y = linspace(handles.head(3),handles.head(4),size(handles.Z,1));
 	tmp.head = handles.head;
-	tmp.name = 'Clipped grid';
+	[p, fname] = fileparts(get(handles.hMirFig,'Name'));
+	fname = ddewhite(strtok(fname, '@'));		% Remove the zooming info
+	tmp.name = [fname ' [Clipped]'];
 	handMir = guidata(handles.hMirFig);
 	tmp.cmap = get(handMir.figure1, 'Colormap');
-	if (~handles.geog)			% See if we must carry on the projection info
-		prjInfoStruc = aux_funs('getFigProjInfo',handMir);
-		if (~isempty(prjInfoStruc.projWKT))	% TODO. Otherwise check if prjInfoStruc.proj4 and convert it to WKT
-			tmp.srsWKT = prjInfoStruc.projWKT;
-		end
-	end
+% 	if (~handles.geog)			% See if we must carry on the projection info
+% 		prjInfoStruc = aux_funs('getFigProjInfo',handMir);
+% 		if (~isempty(prjInfoStruc.projWKT))	% TODO. Otherwise check if prjInfoStruc.proj4 and convert it to WKT
+% 			tmp.srsWKT = prjInfoStruc.projWKT;
+% 		end
+% 	end
 	mirone(handles.Z, tmp, handles.hMirFig);
 
 % -------------------------------------------------------------------------------------
