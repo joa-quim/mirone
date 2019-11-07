@@ -272,7 +272,7 @@ function push_rightPar_CB(hObject, handles)
 
 % ------------------------------------------------------------------------
 function push_Trad_CB(hObject, handles)
-% Compute Brightness temperature of a LandSat8 termal band, OR Radiance/Reflectance 
+% Compute Brightness temperature of a LandSat8 termal band, OR Radiance/Reflectance
 	handMir = guidata(handles.h_figs(1));
 	pars = getappdata(handMir.axes1, 'LandSAT8');
 	if (isempty(pars)),	warndlg('Sorry, this grid is not a Landsat8 thermal.','Warning'),	return,	end
@@ -331,8 +331,10 @@ function push_Trad_CB(hObject, handles)
 		LHaze = radiance_dark - sun_prct * Sun_Radiance / 100;
 		grdutils(T, sprintf('-A%f', -LHaze));
 		grdutils(T, sprintf('-M%f', 1/Sun_Radiance));
-		T(T < 0) = 0;
-		T(T > 1) = 1;
+		%T(T < 0) = 0;
+		%T(T > 1) = 1;
+		grdutils(T, '-F</0/0')
+		grdutils(T, '-F>/1/1')
 		tmp.name = ['Surface Reflectance [COST]' suff];
 	end
 	tmp.head = handMir.head;
@@ -400,7 +402,7 @@ function out = push_compute_CB(hObject, handles)
 							return
 						end
 						tmp.head = handtmp.head;
-						%grid_t = double(grid_t);      % grid reading don't outpus doubles
+						%grid_t = double(grid_t);      % grid reading don't outputs doubles
 					else
 						grid_t = (getappdata(hand_fig.figure1,'dem_z'));
 						tmp.X = getappdata(hand_fig.figure1,'dem_x');
@@ -439,20 +441,20 @@ function out = push_compute_CB(hObject, handles)
 		if (isempty(grid))
 			errordlg('This is a grid calculator, but none of your operands is a matrix. Bye.', 'Error')
 			return
-		elseif (handles.IamCompiled || ~handles.version7)	% So far here we have to do OPs in doubles
-			grid.a = double(grid.a);
-			if (isfield(grid, 'b'))
-				grid.b = double(grid.b);
-				if (isfield(grid, 'c'))
-					grid.c = double(grid.c);
-					if (isfield(grid, 'd'))
-						grid.d = double(grid.d);
-						if (isfield(grid, 'e'))
-							grid.e = double(grid.e);
-						end
-					end
-				end
-			end
+% 		elseif (handles.IamCompiled || ~handles.version7)	% So far here we have to do OPs in doubles
+% 			grid.a = double(grid.a);
+% 			if (isfield(grid, 'b'))
+% 				grid.b = double(grid.b);
+% 				if (isfield(grid, 'c'))
+% 					grid.c = double(grid.c);
+% 					if (isfield(grid, 'd'))
+% 						grid.d = double(grid.d);
+% 						if (isfield(grid, 'e'))
+% 							grid.e = double(grid.e);
+% 						end
+% 					end
+% 				end
+% 			end
 		end
 
 		com = strrep(com,'&','');					% Remove the '&' characters
@@ -463,6 +465,12 @@ function out = push_compute_CB(hObject, handles)
 			com_s = strrep(com,   '*', '.*');	com_s = strrep(com_s, '..*', '.*');		% Play safe
 			com_s = strrep(com_s, '/', './');	com_s = strrep(com_s, '../', './');
 			com_s = strrep(com_s, '^', '.^');	com_s = strrep(com_s, '..^', '.^');
+			fnames = fields(grid);
+			if (~handles.version7)				% For debugging porposes only
+				for (k = 1:numel(fnames)),	grid.(fnames{k}) = double(grid.(fnames{k}));	end
+			else
+				for (k = 1:numel(fnames)),	grid.(fnames{k}) = single(grid.(fnames{k}));	end
+			end
 			resp = eval(com_s);
 		else
 			com_s = strrep(com,   '.*', '*');	com_s = strrep(com_s, './', '/');
@@ -519,7 +527,8 @@ function bandArithm(handles, com)
 				else
 					Z = handles.BL(:,:,n);	% For now datasets read with multibandread must be all in mem
 				end
-				grid.(char(n+96)) = double(Z) / double(intmax_(class(Z)));
+				%grid.(char(n+96)) = double(Z) / double(intmax_(class(Z)));
+				grid.(char(n+96)) = grdutils(single(Z), sprintf('-M%f',1 / double(intmax_(class(Z)))) );
 				N(i) = n;
 			end
 			clear Z
@@ -651,7 +660,7 @@ function [out, msg] = stalone(comm, grid)
 	while(strfind(comm, '  '))		% Replace any eventual consecutive blanks by a single one
 		comm = strrep(comm,'  ', ' ');
 	end
-	
+
 	ind = strfind(comm, 'grid.');
 	s_names = sort(comm(ind+5));	% Store the original members names
 	[out, msg] = run_inner(comm, grid, s_names);
@@ -703,7 +712,9 @@ function [out, msg, grid, s_names] = run_inner(comm, grid, s_names)
 					comm = sprintf('%s%.20g%s',comm(1:k), out, trail);		% Put the result in the place of the function call
 				else								% A matrix
 					this_member = arg(6);
-					out = feval(fun, grid.(this_member));
+					if (~isa(grid.(this_member), 'double'))
+					end
+					out = single(feval(fun, double(grid.(this_member))));
 					this_member = is_this_member_used(comm, this_member);	% Deal with tricky cases where we may need a new name
 					grid.(this_member) = out;		% Reuse this container to hold the result just obtained
 					s_names = update_gridNames(s_names, comm, k, trail);			% Update the s_names unique names
@@ -794,31 +805,35 @@ function [r, msg] = do_mull_add(a, b, op, grid)
 		else,				r = a_n ^ b_n;
 		end
 	elseif (strncmp(a,'grid',3) && ~isnan(b_n))				% add|sub|mull|div|pow(Matrix, b)
-		if (op == '+'),		r = grid.(a(6)) + b_n;
-		elseif (op == '-'),	r = grid.(a(6)) - b_n;
-		elseif (op == '*'),	r = grid.(a(6)) * b_n;
-		elseif (op == '/'),	r = grid.(a(6)) / b_n;
-		else,				r = grid.(a(6)) ^ b_n;
+		if (~isa(grid.(a(6)), 'single')),	grid.(a(6)) = single(grid.(a(6)));	end
+		if (op == '+'),		r = grdutils(grid.(a(6)), sprintf('-A%f',b_n));		%r = grid.(a(6)) + b_n;
+		elseif (op == '-'),	r = grdutils(grid.(a(6)), sprintf('-A%f',-b_n));	%r = grid.(a(6)) - b_n;
+		elseif (op == '*'),	r = grdutils(grid.(a(6)), sprintf('-M%f',b_n));		%r = grid.(a(6)) * b_n;
+		elseif (op == '/'),	r = grdutils(grid.(a(6)), sprintf('-M%f',1/b_n));	%r = grid.(a(6)) / b_n;
+		else,				r = double(grid.(a(6))) ^ b_n;	%r = grid.(a(6)) ^ b_n;
 		end
 	elseif (strncmp(a,'grid',3) && strncmp(b,'grid',3))		% add|sub|mull|div|pow(Matrix, Matrix)
 		if (~isequal(size(grid.(a(6))), size(grid.(b(6))) ))
 			msg = 'matrix dimension are not equal in Add, Sub or Power operator';	return
 		end
 		try
-			if (op == '+'),		r = grid.(a(6)) +  grid.(b(6));
-			elseif (op == '-'),	r = grid.(a(6)) -  grid.(b(6));
-			elseif (op == '*'),	r = grid.(a(6)) .* grid.(b(6));
-			elseif (op == '/'),	r = grid.(a(6)) ./ grid.(b(6));
-			else,				r = grid.(a(6)) .^ grid.(b(6));
+			if (~isa(grid.(a(6)), 'single')),	grid.(a(6)) = single(grid.(a(6)));	end
+			if (~isa(grid.(b(6)), 'single')),	grid.(b(6)) = single(grid.(b(6)));	end
+			if (op == '+'),		r = grdutils(grid.(a(6)), grid.(b(6)), '-OADD');	%r = grid.(a(6)) +  grid.(b(6));
+			elseif (op == '-'),	r = grdutils(grid.(a(6)), grid.(b(6)), '-OSUB');	%r = grid.(a(6)) -  grid.(b(6));
+			elseif (op == '*'),	r = grdutils(grid.(a(6)), grid.(b(6)), '-OMUL');	%r = grid.(a(6)) .* grid.(b(6));
+			elseif (op == '/'),	r = grdutils(grid.(a(6)), grid.(b(6)), '-ODIV');	%r = grid.(a(6)) ./ grid.(b(6));
+			else,				r = grdutils(grid.(a(6)), grid.(b(6)), '-OEXP');	%r = grid.(a(6)) .^ grid.(b(6));
 			end
-		catch,	msg = lasterr;			% Quite likely a data type operation error
+		catch,	msg = lasterr;			% Who knows what error
 		end
 	elseif (~isnan(a_n) && strncmp(b,'grid',3))				% add|sub|mull|div|pow(a, Matrix), some are odd but possible
-		if (op == '+'),		r = a_n + grid.(b(6));			% A bit idiot, but allowed
-		elseif (op == '-'),	r = a_n - grid.(b(6));			%		""
-		elseif (op == '*'),	r = a_n * grid.(b(6));
-		elseif (op == '/'),	r = a_n ./ grid.(b(6));
-		else,				r = a_n .^ grid.(b(6));
+		if (~isa(grid.(a(6)), 'single')),	grid.(a(6)) = single(grid.(a(6)));	end
+		if (op == '+'),		r = grdutils(grid.(b(6)), sprintf('-A%f',a_n));		%r = a_n + grid.(b(6));
+		elseif (op == '-'),	r = a_n - double(grid.(b(6)));		%r = a_n - grid.(b(6));
+		elseif (op == '*'),	r = grdutils(grid.(a(6)), sprintf('-M%f',a_n));		%r = a_n * grid.(b(6));
+		elseif (op == '/'),	r = a_n ./ double(grid.(b(6)));		%r = a_n ./ grid.(b(6));
+		else,				r = a_n .^ double(grid.(b(6)));		%r = a_n .^ grid.(b(6));
 		end
 	end
 
