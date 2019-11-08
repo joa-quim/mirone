@@ -189,12 +189,6 @@ function [Z, X, Y, srsWKT, handles, att, pal_file] = read_grid(handles, fullname
 	end
 	handles.fileName = fname;
 
-	% Given the Z = single(Z); is horribly memory consuming in R13, we are going to experimentally let the
-	% (u)int16 arrays go without type casting to single. If it works well, we'll do it for all sizes & releases
-% 	if (~isa(Z,'single') && numel(Z) < 78643200)		% Don't type cast. 78643200 +/- = 150 Mb of a int16 array
-% 		Z = single(Z);
-% 	end
-
 	if (~strncmp(tipo,'GMT',3) && ~strncmpi(tipo,'IN',2) && ~strcmp(tipo,'SSimg'))
 		if (isa(Z, 'single') && ~isempty(att.Band(1).NoDataValue) && ~isnan(att.Band(1).NoDataValue) && att.Band(1).NoDataValue ~= 0 )
 			% Do this because some formats (e.g MOLA PDS v3) are so dumb that they declare a NoDataValue
@@ -219,7 +213,11 @@ function [Z, X, Y, srsWKT, handles, att, pal_file] = read_grid(handles, fullname
 		end
 		X = linspace(head(1),head(2),size(Z,2));	Y = linspace(head(3),head(4),size(Z,1));
 	end
-	
+
+	if (isa(Z, 'single') && ~isfield(handles, 'have_nans'))
+		handles.have_nans = grdutils(Z, '-N');
+	end
+
 	handles.head = head;
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
