@@ -87,7 +87,7 @@ function addUI(handles)
 	end
 
 % --------------------------------------------------------------------
-function check_LandSat8(handles, fname)
+function check_LandSat8(handles, fname, todos)
 % Find if file is a LSat8. Note that here we already know it's GeoTiff UInt16 file
 % For the moment we only store the 4 coefficients needed to compute bright
 % temp or the spectral radiance at top of atmosphere (TOA).
@@ -106,44 +106,120 @@ function check_LandSat8(handles, fname)
 			return
 		end
 	end
-	band = name(ind+2:end);
-	pars.band = str2double(band);
-	fid = fopen(t, 'rt');
-	if (fid < 0),	errordlg(['Error opening file: ' t], 'Error');	return,	end
-	s = strread(fread(fid,'*char').','%s','delimiter','\n');	fclose(fid);
-	t = s{strncmp(s, ['RADIANCE_MULT_BAND_' band], 19+numel(band))};
-	pars.rad_mul = str2double(t(strfind(t, '=')+1:end));
-	t = s{strncmp(s, ['RADIANCE_ADD_BAND_' band], 18+numel(band))};
-	pars.rad_add = str2double(t(strfind(t, '=')+1:end));
-	t = s{strncmp(s, ['RADIANCE_MAXIMUM_BAND_' band], 22+numel(band))};
-	pars.rad_max = str2double(t(strfind(t, '=')+1:end));
-	
-	% Bands 10 & 11 have no REFLECTANCE coeffs
-	if (~strcmp(band, '10') && ~strcmp(band, '11'))
-		t = s{strncmp(s, ['REFLECTANCE_MULT_BAND_' band], 22+numel(band))};
-		pars.reflect_mul = str2double(t(strfind(t, '=')+1:end));
-		t = s{strncmp(s, ['REFLECTANCE_ADD_BAND_' band], 21+numel(band))};
-		pars.reflect_add = str2double(t(strfind(t, '=')+1:end));
-		t = s{strncmp(s, ['REFLECTANCE_MAXIMUM_BAND_' band], 25+numel(band))};
-		pars.reflect_max = str2double(t(strfind(t, '=')+1:end));
+
+	if (nargin == 2)
+		band = name(ind+2:end);
+		pars.band = str2double(band);
+		fid = fopen(t, 'rt');
+		if (fid < 0),	errordlg(['Error opening file: ' t], 'Error');	return,	end
+		s = strread(fread(fid,'*char').','%s','delimiter','\n');	fclose(fid);
+		t = s{strncmp(s, ['RADIANCE_MULT_BAND_' band], 19+numel(band))};
+		pars.rad_mul = str2double(t(strfind(t, '=')+1:end));
+		t = s{strncmp(s, ['RADIANCE_ADD_BAND_' band], 18+numel(band))};
+		pars.rad_add = str2double(t(strfind(t, '=')+1:end));
+		t = s{strncmp(s, ['RADIANCE_MAXIMUM_BAND_' band], 22+numel(band))};
+		pars.rad_max = str2double(t(strfind(t, '=')+1:end));
+
+		% Bands 10 & 11 have no REFLECTANCE coeffs
+		if (~strcmp(band, '10') && ~strcmp(band, '11'))
+			t = s{strncmp(s, ['REFLECTANCE_MULT_BAND_' band], 22+numel(band))};
+			pars.reflect_mul = str2double(t(strfind(t, '=')+1:end));
+			t = s{strncmp(s, ['REFLECTANCE_ADD_BAND_' band], 21+numel(band))};
+			pars.reflect_add = str2double(t(strfind(t, '=')+1:end));
+			t = s{strncmp(s, ['REFLECTANCE_MAXIMUM_BAND_' band], 25+numel(band))};
+			pars.reflect_max = str2double(t(strfind(t, '=')+1:end));
+		else
+			pars.reflect_mul = 1;	pars.reflect_add = 0;	pars.reflect_max = 0;
+		end
+
+		t = s{strncmp(s, 'SUN_AZIMUTH', 11)};
+		pars.sun_azim = str2double(t(strfind(t, '=')+1:end));
+		t = s{strncmp(s, 'SUN_ELEVATION', 13)};
+		pars.sun_elev = str2double(t(strfind(t, '=')+1:end));
+		t = s{strncmp(s, 'EARTH_SUN_DISTANCE', 18)};
+		pars.sun_dist = str2double(t(strfind(t, '=')+1:end));
+
+		if (pars.band >= 10)
+			t = s{strncmp(s, ['K1_CONSTANT_BAND_' band], 17+numel(band))};
+			pars.K1 = str2double(t(strfind(t, '=')+1:end));
+			t = s{strncmp(s, ['K2_CONSTANT_BAND_' band], 17+numel(band))};
+			pars.K2 = str2double(t(strfind(t, '=')+1:end));
+		end
+		setappdata(handles.axes1, 'LandSAT8', pars)
 	else
-		pars.reflect_mul = 1;	pars.reflect_add = 0;	pars.reflect_max = 0;
+		pars = parseLandSat8MetaData(t);
+		setappdata(handles.axes1, 'LandSAT8_MTL', pars.L1_METADATA_FILE)
 	end
 	
-	t = s{strncmp(s, 'SUN_AZIMUTH', 11)};
-	pars.sun_azim = str2double(t(strfind(t, '=')+1:end));
-	t = s{strncmp(s, 'SUN_ELEVATION', 13)};
-	pars.sun_elev = str2double(t(strfind(t, '=')+1:end));
-	t = s{strncmp(s, 'EARTH_SUN_DISTANCE', 18)};
-	pars.sun_dist = str2double(t(strfind(t, '=')+1:end));
-	
-	if (pars.band >= 10)
-		t = s{strncmp(s, ['K1_CONSTANT_BAND_' band], 17+numel(band))};
-		pars.K1 = str2double(t(strfind(t, '=')+1:end));
-		t = s{strncmp(s, ['K2_CONSTANT_BAND_' band], 17+numel(band))};
-		pars.K2 = str2double(t(strfind(t, '=')+1:end));
+% --------------------------------------------------------------------
+function mdata = parseLandSat8MetaData(filename)
+
+% Copyright (c) 2014, Mohammad Abouali (maboualiedu@gmail.com)
+% License: MIT
+
+	fid = fopen(filename,'r');
+	if (fid < 0),	error(['Failed to open file ' filename], 'Error'),	end
+	groupList = {'mdata'};	NotDoneYet = true;	mdata = [];
+
+	while (~feof(fid) && NotDoneYet)
+		lineStr=fgetl(fid);
+		lineFields=strsplit(lineStr,'=');
+		switch lower(ddewhite(lineFields{1}))
+			case 'group'					% Adding new subgroup
+				groupList(end+1)={ddewhite(lineFields{2})};
+				%structTag = strjoin(groupList,'.');
+				fmt = repmat('%s.',1,numel(groupList));		fmt(end) = [];
+				structTag = sprintf(fmt, groupList{:});
+			case 'end_group'				% End of the subgroup; preparing for next subgroup
+				groupList=groupList(1:end-1);
+				%structTag=strjoin(groupList,'.');
+				fmt = repmat('%s.',1,numel(groupList));		fmt(end) = [];
+				structTag = sprintf(fmt, groupList{:});
+			case 'end'						% end of metadata
+				NotDoneYet = false;
+			otherwise						% attributes in the subgroup
+				fieldName=ddewhite(lineFields{1});
+				fieldValue=ddewhite(lineFields{2});
+				if (fieldValue(1)=='"')
+					fieldValue=fieldValue(2:end-1);
+				end
+				fieldValue_numeric=str2double(fieldValue);
+				if (isempty(fieldValue_numeric) || isnan(fieldValue_numeric))
+					eval([structTag '.' fieldName '=''' fieldValue ''';']);
+				else
+					eval([structTag '.' fieldName '=' fieldValue ';']);
+				end
+		end
 	end
-	setappdata(handles.axes1, 'LandSAT8', pars)
+	fclose(fid);
+
+	if (NotDoneYet || numel(groupList) ~= 1),	error('In consistency in Meta data file.'),	end
+
+% --------------------------------------------------------------------
+function set_LandSat8_band_pars(handles, band)
+% For Landsat8 VRT multi-bands, fish BAND's parametrs from the VRT ensemble
+	pars_ = getappdata(handles.axes1, 'LandSAT8_MTL');
+	if (~isempty(pars_))
+		pars.band = band;
+		pars.rad_mul = pars_.RADIOMETRIC_RESCALING.(sprintf('RADIANCE_MULT_BAND_%d',band));
+		pars.rad_add = pars_.RADIOMETRIC_RESCALING.(sprintf('RADIANCE_ADD_BAND_%d',band));
+		pars.rad_max = pars_.MIN_MAX_RADIANCE.(sprintf('RADIANCE_MAXIMUM_BAND_%d',band));
+		if (band ~= 10 && band ~= 11)
+			pars.reflect_mul = pars_.RADIOMETRIC_RESCALING.(sprintf('REFLECTANCE_MULT_BAND_%d',band));
+			pars.reflect_add = pars_.RADIOMETRIC_RESCALING.(sprintf('REFLECTANCE_ADD_BAND_%d',band));
+			pars.reflect_max = pars_.MIN_MAX_REFLECTANCE.(sprintf('REFLECTANCE_MAXIMUM_BAND_%d',band));
+		else
+			pars.reflect_mul = 1;	pars.reflect_add = 0;	pars.reflect_max = 0;
+		end
+		pars.sun_azim = pars_.IMAGE_ATTRIBUTES.SUN_AZIMUTH  ;
+		pars.sun_elev = pars_.IMAGE_ATTRIBUTES.SUN_ELEVATION;
+		pars.sun_dist = pars_.IMAGE_ATTRIBUTES.EARTH_SUN_DISTANCE;
+		if (band >= 10)
+			pars.K1 = pars_.TIRS_THERMAL_CONSTANTS.(sprintf('K1_CONSTANT_BAND_%d',band))  ;
+			pars.K2 = pars_.TIRS_THERMAL_CONSTANTS.(sprintf('K2_CONSTANT_BAND_%d',band))  ;
+		end
+		setappdata(handles.axes1, 'LandSAT8', pars)
+	end
 
 % --------------------------------------------------------------------
 function StoreZ(handles,X,Y,Z)
