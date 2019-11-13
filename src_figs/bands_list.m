@@ -222,6 +222,29 @@ function push_Load_CB(hObject, handles)
 			end
 		end
 
+		pars_ = getappdata(handMir.axes1, 'LandSAT8_MTL');
+		if (~isempty(pars_))
+			pars.band = handles.Rband;
+			pars.rad_mul = pars_.RADIOMETRIC_RESCALING.(sprintf('RADIANCE_MULT_BAND_%d',handles.Rband));
+			pars.rad_add = pars_.RADIOMETRIC_RESCALING.(sprintf('RADIANCE_ADD_BAND_%d',handles.Rband));
+			pars.rad_max = pars_.MIN_MAX_RADIANCE.(sprintf('RADIANCE_MAXIMUM_BAND_%d',handles.Rband));
+			if (handles.Rband ~= 10 && handles.Rband ~= 11)
+				pars.reflect_mul = pars_.RADIOMETRIC_RESCALING.(sprintf('REFLECTANCE_MULT_BAND_%d',handles.Rband));
+				pars.reflect_add = pars_.RADIOMETRIC_RESCALING.(sprintf('REFLECTANCE_ADD_BAND_%d',handles.Rband));
+				pars.reflect_max = pars_.MIN_MAX_REFLECTANCE.(sprintf('REFLECTANCE_MAXIMUM_BAND_%d',handles.Rband));
+			else
+				pars.reflect_mul = 1;	pars.reflect_add = 0;	pars.reflect_max = 0;
+			end
+			pars.sun_azim = pars_.IMAGE_ATTRIBUTES.SUN_AZIMUTH  ;
+			pars.sun_elev = pars_.IMAGE_ATTRIBUTES.SUN_ELEVATION;
+			pars.sun_dist = pars_.IMAGE_ATTRIBUTES.EARTH_SUN_DISTANCE;
+			if (handles.Rband >= 10)
+				pars.K1 = pars_.TIRS_THERMAL_CONSTANTS.(sprintf('K1_CONSTANT_BAND_%d',handles.Rband))  ;
+				pars.K2 = pars_.TIRS_THERMAL_CONSTANTS.(sprintf('K2_CONSTANT_BAND_%d',handles.Rband))  ;
+			end
+			setappdata(handMir.axes1, 'LandSAT8', pars)
+		end
+
 		is_gray = true;
 		if (isa(img,'uint8') || islogical(img))
 			image_type = handles.image_type_orig;		% Reset indicator that this is an image only
