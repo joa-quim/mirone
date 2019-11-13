@@ -2026,7 +2026,16 @@ function FileOpenGDALmultiBand_CB(handles, opt, opt2, opt3)
 				ind = strfind(bnd_names{k}, '=');
 				bnd_names{k} = strrep(bnd_names{k}(ind(1)+1:end), ' ', '_');
 				bnd_names{k} = strrep(bnd_names{k}, '(', '[');
-				bnd_names{k} = strrep(bnd_names{k}, ')', ']');	% Neither of these three can used in band_arithm
+				bnd_names{k} = strrep(bnd_names{k}, ')', ']');	% Neither of these 3 can be used in band_arithm
+			end
+		elseif (isfield(att, 'Files') && ~isempty(att.Files))
+			bnd_names = cell(numel(att.Files), 1);
+			for (k = 1:numel(att.Files))
+				[pato, bnd_names{k}] = fileparts(att.Files{k});		
+			end
+			if (strcmp(opt, 'VRT'))
+				aux_funs('check_LandSat8', handles, [pato filesep bnd_names{1}], true)	% This sets tem all
+				aux_funs('set_LandSat8_band_pars', handles, 1)		% This set the first as the active one
 			end
 		end
 	end
