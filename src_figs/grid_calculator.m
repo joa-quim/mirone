@@ -57,6 +57,10 @@ function varargout = grid_calculator(varargin)
 			handles.BL = BL{2};
 			handles.reader = BL{end};
 			set(hObject, 'Name', 'Bands calculator')
+			if (isappdata(handMir.axes1, 'LandSAT8_MTL'))
+				set(handles.push_Trad, 'Vis', 'on')		% They would be set visible because h_figs == []
+				handles.h_figs = handMir.figure1;
+			end
 		end
 	elseif (~isempty(varargin) && isa(varargin{1}, 'char'))
 		do_tests;
@@ -100,8 +104,7 @@ function varargout = grid_calculator(varargin)
 	end
 
 	% ------------ Create a Semaforo -----------------------------------------------------
-	%[semaforo, pal] = aux_funs('semaforo_green');
-	%set(handles.push_semaforo, 'CData', ind2rgb8(semaforo,pal))
+	semaforo(handles, 'green')
 
 	% Fill the listbox with the names of the in-memory arrays
 	if (~isempty(handles.name_str))
@@ -142,13 +145,25 @@ function do_tests
 	end
 
 % ------------------------------------------------------------------------
-function listbox_inArrays_CB(hObject, handles)
+function listbox_inArrays_CB(hObject, handles, manual)
 % if this is a doubleclick, copy the array's name to the edit box
-	if strcmp(get(gcbf,'SelectionType'),'open')
-        str = get(hObject,'String');
-        sel = get(hObject,'Value');
-        com = get(handles.edit_command,'String');
-        set(handles.edit_command,'String', [com ' &' str{sel}])
+% Using 3 argins has lso the same effect
+	if (nargin == 2 && ~strcmp(get(gcbf,'SelectionType'),'open')),	return,		end
+	str = get(hObject,'String');
+	sel = get(hObject,'Value');
+	com = get(handles.edit_command,'String');
+	[t,r] = strtok(com);
+	if (isempty(t) || (t(1) == '&' && isempty(r)))		% Only one grid name, replace it by the new selection
+		set(handles.edit_command,'String', ['&' str{sel}])
+	else
+		set(handles.edit_command,'String', [com ' &' str{sel}])
+	end
+	handMir = guidata(handles.h_figs(1));
+	if (isappdata(handMir.axes1, 'LandSAT8_MTL'))
+		ind = strfind(str{sel}, '_B');						% Find the band number
+		if (isempty(ind)),		return,		end				% For sure not a Lansat8 band
+		band = str2double(str{sel}(ind(end)+2:end));
+		aux_funs('set_LandSat8_band_pars', handMir, band)	% Set this as the active band
 	end
 
 % ------------------------------------------------------------------------
@@ -275,26 +290,41 @@ function push_Trad_CB(hObject, handles)
 % Compute Brightness temperature of a LandSat8 termal band, OR Radiance/Reflectance
 	handMir = guidata(handles.h_figs(1));
 	pars = getappdata(handMir.axes1, 'LandSAT8');
-	if (isempty(pars)),	warndlg('Sorry, this grid is not a Landsat8 thermal.','Warning'),	return,	end
-	
-	out = push_compute_CB([], handles);		% See if we have an array loaded in the edit box
+	if (isempty(pars)),	warndlg('Sorry, this is not a Landsat8 band.','Warning'),	return,	end
+
+	semaforo(handles, 'red'),	pause(0.001)
+	out = push_compute_CB([], handles);			% See if we have an array loaded in the edit box
+	semaforo(handles, 'red'),	pause(0.001)	% Red again because it was set green above
 	if (~isempty(out))
 		T = out.a;
 		if (~isa(T, 'uint16'))
+			semaforo(handles, 'green')
 			errordlg('This is clearly NOT an Landsat 8 band data.', 'Error'),	return
 		end
 		[p,s] = fileparts(strtok(get(handles.edit_command, 'String')));
 		suff = s(2:end);		% Suffix
+		%ind = strfind(suff, '_B');
+		%band = str2double(suff(ind(end)+2:end));
+		%aux_funs('set_LandSat8_band_pars', handMir, band);	% If this is a VRT, update the MTL parameters for this band
 	else
+		if (numel(get(handles.listbox_inArrays, 'Str')) > 1)
+			%errordlg('Have more then one band, so you must select the one you wish to process.', 'Error')
+			listbox_inArrays_CB(handles.listbox_inArrays, handles, true)	% Simulate the double click
+			push_Trad_CB(hObject, handles)		% Recursive call
+			return
+		end
 		T = getappdata(handMir.figure1,'dem_z');
 		[p, suff] = fileparts(get(handMir.figure1,'Name'));
 	end
 	suff = [' [' suff ']'];
-	
+
+	indNaN = (T == 0);		% We need these guys in all the cases
+
 	s = get(hObject, 'String');
 	if (strcmp(s, 'Trad'))
 		if (pars.band < 10)
 			warndlg('Nope. Brightness temperature is only for bands 10 or 11. Not yours', 'Error')
+			semaforo(handles, 'green')
 			return
 		end
 		opt_T = sprintf('-T%f/%f/%f/%f', pars.rad_mul, pars.rad_add, pars.K1, pars.K2);
@@ -307,6 +337,7 @@ function push_Trad_CB(hObject, handles)
 	elseif (strcmp(s, 'Rho(toa)'))
 		if (pars.reflect_mul == 1)
 			warndlg('Computing Reflectance for Thermal bands is not defined.','Error')
+			semaforo(handles, 'green')
 			return
 		end
 		s_elev = sin(pars.sun_elev * pi/180);
@@ -316,6 +347,7 @@ function push_Trad_CB(hObject, handles)
 	elseif (strcmp(s, 'Rho(surf)'))
 		if (pars.reflect_max == 0)
 			warndlg('Computing "At Surface Reflectance" for Thermal bands is not defined.','Error')
+			semaforo(handles, 'green')
 			return
 		end
 		s_elev = sin(pars.sun_elev * pi/180);
@@ -325,14 +357,13 @@ function push_Trad_CB(hObject, handles)
 			TAUz = 1.0;
 		end
 		Sun_Radiance = TAUv * (Esun * s_elev * TAUz + Esky) / (pi * pars.sun_dist ^2);
+		darkDN = getDarkDN(T, 0.0001, indNaN);
 		opt_M = sprintf('-M%f', pars.rad_mul);		opt_A = sprintf('-A%f', pars.rad_add);
 		T = grdutils(T, opt_M, opt_A);
-		radiance_dark = pars.rad_mul * (getDarkDN(handMir, 0.0001)) + pars.rad_add;	% 0.01%
+		radiance_dark = pars.rad_mul * darkDN + pars.rad_add;	% 0.01%
 		LHaze = radiance_dark - sun_prct * Sun_Radiance / 100;
 		grdutils(T, sprintf('-A%f', -LHaze));
 		grdutils(T, sprintf('-M%f', 1/Sun_Radiance));
-		%T(T < 0) = 0;
-		%T(T > 1) = 1;
 		grdutils(T, '-F</0/0')
 		grdutils(T, '-F>/1/1')
 		tmp.name = ['Surface Reflectance [COST]' suff];
@@ -340,23 +371,30 @@ function push_Trad_CB(hObject, handles)
 	tmp.head = handMir.head;
 	zMinMax = grdutils(T,'-L');
 	tmp.head(5) = zMinMax(1);	tmp.head(6) = zMinMax(2);
-	T(getappdata(handMir.figure1,'dem_z') == 0) = NaN;
+	T(indNaN) = NaN;	clear indNaN
+	semaforo(handles, 'green')
 	mirone(T, tmp, handMir.figure1)
 	% ---------------------------------------
-	function darkDN = getDarkDN(handles, pct)
-		DN = getappdata(handles.figure1,'dem_z');
+	function darkDN = getDarkDN(DN, pct, indNaN)
 		DN = DN(DN > 0);
 		DN = nth_element(DN(:), round(numel(DN) * pct));
 		darkDN = double(DN(round(numel(DN) * pct)));
 
 % ------------------------------------------------------------------------
 function out = push_compute_CB(hObject, handles)
+% ...
 	out = [];
 	com = get(handles.edit_command,'String');
 	if (isempty(com)),	return,		end
 
+	semaforo(handles, 'red')
+
 	if (~isempty(handles.BL))		% We are dealing with Bands arithmetics
-		bandArithm(handles, com);	return
+		if (nargout),	out.a = bandArithm(handles, com);		% To be consistent. Other paths also return a struct
+		else,			bandArithm(handles, com);
+		end
+		semaforo(handles, 'green')
+		return
 	end
 
 	% Those start at 2 because they are meant to be used only when grid names apear repeatedly
@@ -440,21 +478,8 @@ function out = push_compute_CB(hObject, handles)
 
 		if (isempty(grid))
 			errordlg('This is a grid calculator, but none of your operands is a matrix. Bye.', 'Error')
+			semaforo(handles, 'green')
 			return
-% 		elseif (handles.IamCompiled || ~handles.version7)	% So far here we have to do OPs in doubles
-% 			grid.a = double(grid.a);
-% 			if (isfield(grid, 'b'))
-% 				grid.b = double(grid.b);
-% 				if (isfield(grid, 'c'))
-% 					grid.c = double(grid.c);
-% 					if (isfield(grid, 'd'))
-% 						grid.d = double(grid.d);
-% 						if (isfield(grid, 'e'))
-% 							grid.e = double(grid.e);
-% 						end
-% 					end
-% 				end
-% 			end
 		end
 
 		com = strrep(com,'&','');					% Remove the '&' characters
@@ -476,11 +501,13 @@ function out = push_compute_CB(hObject, handles)
 			com_s = strrep(com,   '.*', '*');	com_s = strrep(com_s, './', '/');
 			com_s = strrep(com_s, '.^', '^');
 			[resp, msg] = stalone(com_s, grid);
-			if (isempty(resp)),			errordlg('Programming error. Result is empty', 'Error'),	return
-			elseif (~isempty(msg)),		errordlg(['ERROR: ' msg]),	return
+			if (isempty(resp) || ~isempty(msg)),	semaforo(handles, 'green'),		end
+			if     (~isempty(msg)),		errordlg(['ERROR: ' msg]),	return
+			elseif (isempty(resp)),		errordlg('Programming error. Result is empty', 'Error'),	return
 			end
 		end
 		resp = single(resp);
+		semaforo(handles, 'green')
 
 		[zzz] = grdutils(resp,'-L');  z_min = zzz(1);     z_max = zzz(2);
 		if (~isempty(k))					% We had grids in input
@@ -505,14 +532,16 @@ function out = push_compute_CB(hObject, handles)
 			set(handles.edit_command,'String',txt)
 		end
 	catch
+		semaforo(handles, 'green')
 		errordlg(lasterr,'Error')
 	end
 
 % ------------------------------------------------------------------------
-function bandArithm(handles, com)
+function out = bandArithm(handles, com)
 % ...
 	com = move_operator(com);			% Make sure operators are not "glued" to operands
 	k = strfind(com,'&');
+	semaforo(handles, 'red'),	pause(0.001)
 
 	try									% Wrap it here to report any possible error
 		if (~isempty(k))				% We have grids
@@ -527,8 +556,16 @@ function bandArithm(handles, com)
 				else
 					Z = handles.BL(:,:,n);	% For now datasets read with multibandread must be all in mem
 				end
+
+				if (nargout),	out = Z;	return,		end
+
 				%grid.(char(n+96)) = double(Z) / double(intmax_(class(Z)));
-				grid.(char(n+96)) = grdutils(single(Z), sprintf('-M%f',1 / double(intmax_(class(Z)))) );
+				if (isa(Z, 'uint16'))
+					grid.(char(n+96)) = grdutils(Z, sprintf('-M%f',1 / double(intmax_(class(Z)))) );
+				else
+					grid.(char(n+96)) = single(Z);
+					grdutils(grid.(char(n+96)), sprintf('-M%f',1 / double(intmax_(class(Z)))) );	% Here OP is insitu
+				end
 				N(i) = n;
 			end
 			clear Z
@@ -552,10 +589,12 @@ function bandArithm(handles, com)
 			com_s = strrep(com,   '.*', '*');	com_s = strrep(com_s, './', '/');
 			com_s = strrep(com_s, '.^', '^');
 			[resp, msg] = stalone(com_s, grid);
-			if (isempty(resp)),			errordlg('Programming error. Result is empty', 'Error'),	return
-			elseif (~isempty(msg)),		errordlg(['ERROR: ' msg]),	return
+			if (~isempty(msg) || isempty(resp)),	semaforo(handles, 'green'),		end
+			if     (~isempty(msg)),		errordlg(['ERROR: ' msg]),	return
+			elseif (isempty(resp)),		errordlg('Programming error. Result is empty', 'Error'),	return
 			end
 		end
+		semaforo(handles, 'green')
 
 		if (numel(resp) > 1)			% 'resp' is a array. Construct a fake grid
 			resp = single(resp);
@@ -567,7 +606,7 @@ function bandArithm(handles, com)
 			if (~isempty(handles.hMirFig))
 				mirone(resp, tmp, handles.hMirFig);		% Can fish cpt and proj stuff from parent
 			else
-				mirone(resp,tmp);
+				mirone(resp, tmp);
 			end
 		else							% Computations that do not involve grids
 			txt = sprintf('%.10f',resp);
@@ -577,6 +616,7 @@ function bandArithm(handles, com)
 			set(handles.edit_command,'String',txt)
 		end
 	catch
+		semaforo(handles, 'green')
 		errordlg(lasterr,'Error')
 	end
 
@@ -891,6 +931,12 @@ function s_names = update_gridNames(s_names, comm, n_prev, trail)
 		end
 	end
 
+% ---
+function semaforo(handles, cor)
+% Change semaforo color. COR must be either 'red' or 'green'
+	[img, pal] = aux_funs(['semaforo_' cor]);
+	set(handles.push_semaforo, 'CData', ind2rgb8(img, pal))
+
 % ------------------------------------------------------------------------
 function push_help_CB(hObject, handles)
 	str = sprintf(['This is mainly a grid calculator tool that operates on grids but\n'...
@@ -1089,10 +1135,6 @@ uicontrol('Parent',h1, 'Position',[491 84 50 21],...
 'FontSize',10,...
 'String','sqrt','Tag','push_sqrt');
 
-% uicontrol('Parent',h1, 'Position',[471 51 19 49],...
-% 'Enable','off',...
-% 'Tag','push_semaforo');
-
 uicontrol('Parent',h1, 'Position',[550 84 50 21],...
 'Callback',@grid_calculator_uiCB,...
 'FontSize',10,...
@@ -1136,11 +1178,7 @@ uicontrol('Parent',h1, 'Position',[491 23 50 21],...
 'Vis', 'off', ...
 'String','Rho(surf)','Tag','push_Trad');
 
-uicontrol('Parent',h1, 'Position',[569 6 91 21],...
-'Callback',@grid_calculator_uiCB,...
-'FontSize',10,...
-'FontWeight','bold',...
-'String','Compute','Tag','push_compute');
+uicontrol('Parent',h1, 'Position',[469 5 17 49], 'Enable','inactive', 'Tag','push_semaforo');
 
 uicontrol('Parent',h1, 'Position',[221 7 23 23],...
 'Callback',@grid_calculator_uiCB,...
@@ -1148,6 +1186,12 @@ uicontrol('Parent',h1, 'Position',[221 7 23 23],...
 'FontWeight','bold',...
 'ForegroundColor',[0 0 1],...
 'String','?','Tag','push_help');
+
+uicontrol('Parent',h1, 'Position',[569 6 91 21],...
+'Callback',@grid_calculator_uiCB,...
+'FontSize',10,...
+'FontWeight','bold',...
+'String','Compute','Tag','push_compute');
 
 function grid_calculator_uiCB(hObject, eventdata)
 % This function is executed by the callback and than the handles is allways updated.
