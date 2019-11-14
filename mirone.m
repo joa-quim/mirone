@@ -823,438 +823,442 @@ function varargout = ImageCrop_CB(handles, opt, opt2, opt3)
 %                  Crop image (opt == hLine), 'CropaWithCoords', 'CropaGrid_pure', 'ROI_Mean', 'ROI_Median', 'ROI_STD'
 %              For the 'CropaGrid_pure' case varargout actualy returns 4 values -- {X,Y,Z_rect,head}
 
-if (handles.no_file),		return,		end
-first_nans = false;	pal = [];		mask = [];	crop_pol = false;	% Defaults to croping from a rectangle
-wasROI = false;		done = false;	invert = false;
-if (nargin < 3),	opt2 = [];		end
-if (nargin < 4),	opt3 = [];		end
+	if (handles.no_file),		return,		end
+	first_nans = false;	pal = [];		mask = [];	crop_pol = false;	% Defaults to croping from a rectangle
+	wasROI = false;		done = false;	invert = false;
+	if (nargin < 3),	opt2 = [];		end
+	if (nargin < 4),	opt3 = [];		end
 
-if ~isempty(opt)				% OPT must be a rectangle/polygon handle (the rect may serve many purposes)
-	if ((numel(opt) == 1) && ishandle(opt))
-		x = get(opt,'XData');	y = get(opt,'YData');
-	elseif (numel(opt) == 4)	% Assume that we have a [xmin xmax ymin ymax] BB
-		x = [opt(1) opt(1) opt(2) opt(2) opt(1)];
-		y = [opt(3) opt(4) opt(4) opt(3) opt(3)];
-	else
-		if (size(opt,2) > 2),	x = opt(1,1:end);	y = opt(2,1:end);	% Row vectors
-		else,					x = opt(:,1)';		y = opt(:,2)';		% Were col vectors, make them row for consistency
-		end
-	end
-
-	xp = [min(x) max(x)];
-	yp = [min(y) max(y)];
-	if (numel(x) == 5 && (x(1) == x(end)) && (y(1) == y(end)) && ...		% Test if we have a rectangle
-	    (x(1) == x(2)) && (x(3) == x(4)) && (y(1) == y(4)) && (y(2) == y(3)) )
-		if (strcmp(opt2,'SetConst'))
-			[xp, yp] = aux_funs('adjust_rect', handles, xp, yp);	% Adjust such that only inside nodes are selected
-		end
-	else
-		dx2 = ~handles.head(7) * handles.head(8)/2;		dy2 = ~handles.head(7) * handles.head(9)/2;
-		if (xp(1) < handles.head(1)-dx2 || xp(2) > handles.head(2)+dx2 || yp(1) < handles.head(3)-dy2 || yp(2) > handles.head(4)+dy2)
-			% Somewhat rare case where the polygon extends to outside grid/img limits. Must crop it to them.
-			P1.x = x(:);	P1.y = y(:);	P1.hole = 0;	P2.hole = 0;
-			P2.x = [handles.head(1)-dx2; handles.head(1)-dx2; handles.head(2)+dx2; handles.head(2)+dx2; handles.head(1)-dx2];
-			P2.y = [handles.head(3)-dy2; handles.head(4)+dy2; handles.head(4)+dy2; handles.head(3)-dy2; handles.head(3)-dy2];
-			outPolyg = PolygonClip(P1, P2);				% Intersection of polygon and map limits
-			x = outPolyg.x;		y = outPolyg.y;
-			xp(1) = min(x);		xp(2) = max(x);
-			yp(1) = min(y);		yp(2) = max(y);
-		end
-		x_lim = [min(x) max(x)];		y_lim = [min(y) max(y)];
-		crop_pol = true;			% Flag that we are croping from a polygon
-	end
-	rect_crop = [xp(1) yp(1) (xp(2) - xp(1)) (yp(2) - yp(1))];	% Even when from a rectangle (to insure a known order)
-
-	if (isempty(opt2) || strcmp(opt2,'CropaWithCoords'))		% Pure Image croping OR Crop Image with coordinates
-		Z_rect = get(handles.hImg,'CData');
-		if (isa(Z_rect, 'uint16')),		Z_rect = scaleto8(Z_rect);	end		% In the rare event of "Noe Diluge" images
-		[I,r_c] = cropimg(handles.head(1:2),handles.head(3:4),Z_rect,rect_crop,'out_grid');
-		if (crop_pol)				% Shape cropping
-			x_lim(1) = handles.head(1) + (r_c(3)-1)*handles.head(8);	x_lim(2) = handles.head(1) + (r_c(4)-1)*handles.head(8);
-			y_lim(1) = handles.head(3) + (r_c(1)-1)*handles.head(9);	y_lim(2) = handles.head(3) + (r_c(2)-1)*handles.head(9);
-			mask = ~(img_fun('roipoly_j',x_lim,y_lim,I,x,y));
-			if (ndims(I) == 2)
-				I(mask) = 0;
-			else
-				for (k = 1:3)
-					tmp = I(:,:,k);		tmp(mask) = 255;	I(:,:,k) = tmp;
-				end
-				mask = uint8(~mask);	cvlib_mex('CvtScale',mask,255,0);	% NEW. 1st transparency attempt
-				I(:,:,4) = mask;
-				clear tmp mask
+	if ~isempty(opt)				% OPT must be a rectangle/polygon handle (the rect may serve many purposes)
+		if ((numel(opt) == 1) && ishandle(opt))
+			x = get(opt,'XData');	y = get(opt,'YData');
+		elseif (numel(opt) == 4)	% Assume that we have a [xmin xmax ymin ymax] BB
+			x = [opt(1) opt(1) opt(2) opt(2) opt(1)];
+			y = [opt(3) opt(4) opt(4) opt(3) opt(3)];
+		else
+			if (size(opt,2) > 2),	x = opt(1,1:end);	y = opt(2,1:end);	% Row vectors
+			else,					x = opt(:,1)';		y = opt(:,2)';		% Were col vectors, make them row for consistency
 			end
 		end
-		[m,n] = size(I);
 
-	elseif (strcmp(opt2,'ImplantGrid'))				% Read and external grid and implant it in host grid
-		[Z_rect, r_c] = transplants(opt, 'grid', true, handles);
-		if (isempty(Z_rect)),		return,		end		% User gave up
+		xp = [min(x) max(x)];
+		yp = [min(y) max(y)];
+		if (numel(x) == 5 && (x(1) == x(end)) && (y(1) == y(end)) && ...		% Test if we have a rectangle
+			(x(1) == x(2)) && (x(3) == x(4)) && (y(1) == y(4)) && (y(2) == y(3)) )
+			if (strcmp(opt2,'SetConst'))
+				[xp, yp] = aux_funs('adjust_rect', handles, xp, yp);	% Adjust such that only inside nodes are selected
+			end
+		else
+			dx2 = ~handles.head(7) * handles.head(8)/2;		dy2 = ~handles.head(7) * handles.head(9)/2;
+			if (xp(1) < handles.head(1)-dx2 || xp(2) > handles.head(2)+dx2 || yp(1) < handles.head(3)-dy2 || yp(2) > handles.head(4)+dy2)
+				% Somewhat rare case where the polygon extends to outside grid/img limits. Must crop it to them.
+				P1.x = x(:);	P1.y = y(:);	P1.hole = 0;	P2.hole = 0;
+				P2.x = [handles.head(1)-dx2; handles.head(1)-dx2; handles.head(2)+dx2; handles.head(2)+dx2; handles.head(1)-dx2];
+				P2.y = [handles.head(3)-dy2; handles.head(4)+dy2; handles.head(4)+dy2; handles.head(3)-dy2; handles.head(3)-dy2];
+				outPolyg = PolygonClip(P1, P2);				% Intersection of polygon and map limits
+				x = outPolyg.x;		y = outPolyg.y;
+				xp(1) = min(x);		xp(2) = max(x);
+				yp(1) = min(y);		yp(2) = max(y);
+			end
+			x_lim = [min(x) max(x)];		y_lim = [min(y) max(y)];
+			crop_pol = true;			% Flag that we are croping from a polygon
+		end
+		rect_crop = [xp(1) yp(1) (xp(2) - xp(1)) (yp(2) - yp(1))];	% Even when from a rectangle (to insure a known order)
 
-	else					% Extract the sub-grid inside the rectangle/polygon
-		[X,Y,Z,head] = load_grd(handles);
-		if isempty(Z),		return,		end		% An error message was already issued
-		[Z_rect,r_c] = cropimg(head(1:2),head(3:4),Z,rect_crop,'out_grid');
-		if (crop_pol)
-			zzz = grdutils(Z_rect,'-L');	z_min = zzz(1);		clear zzz;
-			resp = [];
-			if (strncmp(opt2,'CropaGrid_pure', 14))
-				if (opt2(end) == '-')		% if we get a 'CropaGrid_pure-' don't ask for the fill value. Just use NaNs
-					resp = NaN;
-					opt2(15:end) = [];		% Remove so not to perturb later tests
+		if (isempty(opt2) || strcmp(opt2,'CropaWithCoords'))		% Pure Image croping OR Crop Image with coordinates
+			Z_rect = get(handles.hImg,'CData');
+			if (isa(Z_rect, 'uint16')),		Z_rect = scaleto8(Z_rect);	end		% In the rare event of "Noe Diluge" images
+			[I,r_c] = cropimg(handles.head(1:2),handles.head(3:4),Z_rect,rect_crop,'out_grid');
+			if (crop_pol)				% Shape cropping
+				x_lim(1) = handles.head(1) + (r_c(3)-1)*handles.head(8);	x_lim(2) = handles.head(1) + (r_c(4)-1)*handles.head(8);
+				y_lim(1) = handles.head(3) + (r_c(1)-1)*handles.head(9);	y_lim(2) = handles.head(3) + (r_c(2)-1)*handles.head(9);
+				mask = ~(img_fun('roipoly_j',x_lim,y_lim,I,x,y));
+				if (ndims(I) == 2)
+					I(mask) = 0;
 				else
-					resp = inputdlg({'Enter outside polygon value'},'Choose out value',[1 30],{sprintf('%.4f',z_min)});	pause(0.01)
+					for (k = 1:3)
+						tmp = I(:,:,k);		tmp(mask) = 255;	I(:,:,k) = tmp;
+					end
+					mask = uint8(~mask);	cvlib_mex('CvtScale',mask,255,0);	% NEW. 1st transparency attempt
+					I(:,:,4) = mask;
+					clear tmp mask
+				end
+			end
+			[m,n] = size(I);
+
+		elseif (strcmp(opt2,'ImplantGrid'))				% Read and external grid and implant it in host grid
+			[Z_rect, r_c] = transplants(opt, 'grid', true, handles);
+			if (isempty(Z_rect)),		return,		end		% User gave up
+
+		else					% Extract the sub-grid inside the rectangle/polygon
+			[X,Y,Z,head] = load_grd(handles);
+			if isempty(Z),		return,		end		% An error message was already issued
+			[Z_rect,r_c] = cropimg(head(1:2),head(3:4),Z,rect_crop,'out_grid');
+			if (crop_pol)
+				zzz = grdutils(Z_rect,'-L');	z_min = zzz(1);		clear zzz;
+				resp = [];
+				if (strncmp(opt2,'CropaGrid_pure', 14))
+					if (opt2(end) == '-')		% if we get a 'CropaGrid_pure-' don't ask for the fill value. Just use NaNs
+						resp = NaN;
+						opt2(15:end) = [];		% Remove so not to perturb later tests
+					else
+						resp = inputdlg({'Enter outside polygon value'},'Choose out value',[1 30],{sprintf('%.4f',z_min)});	pause(0.01)
+						if isempty(resp),		return,		end
+						resp = str2double(resp{1});
+					end
+				elseif (strcmp(opt2,'ROI_SetConst'))	% Set the polygon in-or-out to cte
+					resp = question({'Enter new grid value'},'Replace with cte value',[1 30],'NaN','whatever');
 					if isempty(resp),		return,		end
+					invert = resp{2};
 					resp = str2double(resp{1});
 				end
-			elseif (strcmp(opt2,'ROI_SetConst'))	% Set the polygon in-or-out to cte
-				resp = question({'Enter new grid value'},'Replace with cte value',[1 30],'NaN','whatever');
-				if isempty(resp),		return,		end
-				invert = resp{2};
-				resp = str2double(resp{1});
-			end
-			if (isnan(resp)),	handles.have_nans = 1;	end
+				if (isnan(resp)),	handles.have_nans = 1;	end
 
-			x_lim(1) = head(1) + (r_c(3)-1)*head(8);		x_lim(2) = head(1) + (r_c(4)-1)*head(8);
-			y_lim(1) = head(3) + (r_c(1)-1)*head(9);		y_lim(2) = head(3) + (r_c(2)-1)*head(9);
-			mask = img_fun('roipoly_j', x_lim, y_lim, Z_rect, x, y);
-			if (strcmp(opt2,'CropaGrid_pure'))
-				Z_rect(~mask) = single(resp);
-			elseif (strcmp(opt2,'ROI_SetConst'))
-				if (invert),	mask = ~mask;	end			% Mask in the outside instead
-				Z_rect(mask) = single(resp);				% Set the mask values to const
-				if (invert)
-					Z(:) = single(resp);					% Actually, we need to mask the whole outside
+				x_lim(1) = head(1) + (r_c(3)-1)*head(8);		x_lim(2) = head(1) + (r_c(4)-1)*head(8);
+				y_lim(1) = head(3) + (r_c(1)-1)*head(9);		y_lim(2) = head(3) + (r_c(2)-1)*head(9);
+				mask = img_fun('roipoly_j', x_lim, y_lim, Z_rect, x, y);
+				if (strcmp(opt2,'CropaGrid_pure'))
+					Z_rect(~mask) = single(resp);
+				elseif (strcmp(opt2,'ROI_SetConst'))
+					if (invert),	mask = ~mask;	end			% Mask in the outside instead
+					Z_rect(mask) = single(resp);				% Set the mask values to const
+					if (invert)
+						Z(:) = single(resp);					% Actually, we need to mask the whole outside
+					else
+						handles.Z_back = Z(r_c(1):r_c(2),r_c(3):r_c(4));	handles.r_c = r_c;		% For the Undo op
+					end
+					Z(r_c(1):r_c(2),r_c(3):r_c(4)) = Z_rect;
+					if (isnan(resp)),		handles.have_nans = 1;	first_nans = true;		end
+				elseif (strcmp(opt2,'ROI_Mean'))
+					res = Z_rect(mask);		res(isnan(res)) = [];	res = mean(double(res));
+					if (nargout),	varargout{1} = res;		return,		end
+					msgbox(sprintf('Mean over ROI = %15g',res),'ROI-Mean'),	return	
+				elseif (strcmp(opt2,'ROI_Median'))
+					res = Z_rect(mask);		res(isnan(res)) = [];	res = median(res);
+					if (nargout),	varargout{1} = res;		return,		end
+					msgbox(sprintf('Median over ROI = %15g',res),'ROI-Median'),	return	
+				elseif (strcmp(opt2,'ROI_STD'))
+					res = Z_rect(mask);		res(isnan(res)) = [];	res = std(double(res));
+					if (nargout),	varargout{1} = res;		return,		end
+					msgbox(sprintf('STD over ROI = %15g',res),'ROI-STD'),	return	
+				elseif (strcmp(opt2,'ROI_MedianFilter'))
+					[Z,Z_rect,handles] = roi_filtering(handles, Z, head, Z_rect, r_c, mask);
+				elseif (strcmp(opt2,'ROI_SplineSmooth'))
+					opt2 = 'SplineSmooth';	% Strip the 'ROI_' part so that we can use the same code as for rectangles
+					wasROI = true;			% Signal the SplineSmooth code below that we need to mask result
+				elseif (strncmp(opt2,'ROI_FillSinks', 13))
+					opt2 = opt2(5:end);		% Strip the 'ROI_' part so that we can use the same code as for rectangles
+					wasROI = true;			% Signal the FillSinks_xxxx code below that we need to mask result				
+				elseif (strcmp(opt2,'CropaGrid_histo'))
+					Z_rect(~mask) = single(NaN);
+				elseif (strcmp(opt2,'ROI_Clip'))
+					opt2 = 'Clip';			% Now that we have the mask, make this case == to rectangle clip
 				else
-					handles.Z_back = Z(r_c(1):r_c(2),r_c(3):r_c(4));	handles.r_c = r_c;		% For the Undo op
+					errordlg('Unknown case in ImageCrop','Error'),		return
 				end
-				Z(r_c(1):r_c(2),r_c(3):r_c(4)) = Z_rect;
-				if (isnan(resp)),		handles.have_nans = 1;	first_nans = true;		end
-			elseif (strcmp(opt2,'ROI_Mean'))
-				res = Z_rect(mask);		res(isnan(res)) = [];	res = mean(double(res));
-				if (nargout),	varargout{1} = res;		return,		end
-				msgbox(sprintf('Mean over ROI = %15g',res),'ROI-Mean'),	return	
-			elseif (strcmp(opt2,'ROI_Median'))
-				res = Z_rect(mask);		res(isnan(res)) = [];	res = median(res);
-				if (nargout),	varargout{1} = res;		return,		end
-				msgbox(sprintf('Median over ROI = %15g',res),'ROI-Median'),	return	
-			elseif (strcmp(opt2,'ROI_STD'))
-				res = Z_rect(mask);		res(isnan(res)) = [];	res = std(double(res));
-				if (nargout),	varargout{1} = res;		return,		end
-				msgbox(sprintf('STD over ROI = %15g',res),'ROI-STD'),	return	
-			elseif (strcmp(opt2,'ROI_MedianFilter'))
-				[Z,Z_rect,handles] = roi_filtering(handles, Z, head, Z_rect, r_c, mask);
-			elseif (strcmp(opt2,'ROI_SplineSmooth'))
-				opt2 = 'SplineSmooth';	% Strip the 'ROI_' part so that we can use the same code as for rectangles
-				wasROI = true;			% Signal the SplineSmooth code below that we need to mask result
-			elseif (strncmp(opt2,'ROI_FillSinks', 13))
-				opt2 = opt2(5:end);		% Strip the 'ROI_' part so that we can use the same code as for rectangles
-				wasROI = true;			% Signal the FillSinks_xxxx code below that we need to mask result				
-			elseif (strcmp(opt2,'CropaGrid_histo'))
-				Z_rect(~mask) = single(NaN);
-			elseif (strcmp(opt2,'ROI_Clip'))
-				opt2 = 'Clip';			% Now that we have the mask, make this case == to rectangle clip
+			end
+			[m,n] = size(Z_rect);
+		end
+	else					% Interactive croping (either Grid or Image)
+		if (strcmp(opt2,'CropaGrid'))	% Arrive here when called by "Grid Tools -> Crop Grid"
+			[X,Y,Z,head] = load_grd(handles);
+			if isempty(Z),		return,		end
+			[p1,p2] = rubberbandbox;
+			x0 = min(p1(1),p2(1));		y0 = min(p1(2),p2(2));
+			dx = abs(p2(1)-p1(1));		dy = abs(p2(2)-p1(2));
+			[Z_rect,r_c] = cropimg([head(1) head(2)],[head(3) head(4)],Z,[x0 y0 dx dy],'out_grid');
+			X = linspace( head(1) + (r_c(3)-1)*head(8), head(1) + (r_c(4)-1)*head(8), r_c(4) - r_c(3) + 1 );
+			Y = linspace( head(3) + (r_c(1)-1)*head(9), head(3) + (r_c(2)-1)*head(9), r_c(2) - r_c(1) + 1 );
+			head(1) = X(1);		head(2) = X(end);		head(3) = Y(1);		head(4) = Y(end);
+			GRDdisplay(handles,X,Y,Z_rect, head, '', sprintf('Cropped_(%.0f)_grid', rand(1)*100))
+			return
+		else			% Just a image crop op
+			I = cropimg;	[m,n] = size(I);
+		end
+	end
+
+	if (isempty(opt2) || strcmp(opt2,'CropaWithCoords'))	% Just pure Image croping
+		if (m < 2 || n < 2),	return,	end		% Image too small.
+		if (strcmp(get(handles.axes1,'Ydir'),'normal')),	I = flipdim(I,1);	end
+		if (ndims(I) == 2)
+			pal = get(handles.figure1, 'Colormap');
+			if (length(pal) == 64), pal = jet(256);		end	% Risky - This is a patch for "Find Clusters"
+			setappdata(0,'CropedColormap',pal);			% indexed image, so I need to save it's colormap
+		end
+		set(handles.figure1,'pointer','arrow');
+		if (~isempty(opt2))
+			head(2) = handles.head(1) + (r_c(4)-1)*handles.head(8);
+			head(1) = handles.head(1) + (r_c(3)-1)*handles.head(8);
+			head(4) = handles.head(3) + (r_c(2)-1)*handles.head(9);
+			head(3) = handles.head(3) + (r_c(1)-1)*handles.head(9);
+			head(5:9) = [0 255 0 handles.head(8:9)];	tmp.name = sprintf('Cropped_(%.0f)_image', rand(1)*100);
+			tmp.head = head;		tmp.geog = handles.geog;			tmp.X = head(1:2);		tmp.Y = head(3:4);
+			if (~isempty(pal)),		tmp.cmap = pal;		end
+			proj4 = getappdata(handles.figure1,'Proj4');
+			if (~isempty(proj4))
+				tmp.srsWKT = ogrproj(proj4);
 			else
-				errordlg('Unknown case in ImageCrop','Error'),		return
+				projWKT = getappdata(handles.figure1,'ProjWKT');
+				if (~isempty(projWKT)),		tmp.srsWKT = projWKT;	end
 			end
 		end
-		[m,n] = size(Z_rect);
-	end
-else					% Interactive croping (either Grid or Image)
-	if (strcmp(opt2,'CropaGrid'))	% Arrive here when called by "Grid Tools -> Crop Grid"
-		[X,Y,Z,head] = load_grd(handles);
-		if isempty(Z),		return,		end
-		[p1,p2] = rubberbandbox;
-		x0 = min(p1(1),p2(1));		y0 = min(p1(2),p2(2));
-		dx = abs(p2(1)-p1(1));		dy = abs(p2(2)-p1(2));
-		[Z_rect,r_c] = cropimg([head(1) head(2)],[head(3) head(4)],Z,[x0 y0 dx dy],'out_grid');
+		if (nargout)
+			varargout{1} = I;
+			if (nargout == 2),		varargout{2} = tmp;	end
+		elseif (isempty(opt2))				% Crop without coords
+			mirone(I);
+		else
+			mirone(flipdim(I,1),tmp);		% Crop with coords
+		end
+		done = true;				% We are done. BYE BYE.
+
+	elseif (strncmp(opt2(1:min(length(opt2),9)),'CropaGrid',9))		% Do the operation indicated in opt2(11:end) & return
+		curr_opt = opt2(11:end);
+		if (~strcmp(curr_opt,'pure'))			% We will need those for all other options
+			head(2) = head(1) + (r_c(4)-1)*head(8);			head(1) = head(1) + (r_c(3)-1)*head(8);
+			head(4) = head(3) + (r_c(2)-1)*head(9);			head(3) = head(3) + (r_c(1)-1)*head(9);
+			if (isa(Z,'single')),	zz = grdutils(Z_rect,'-L');			head(5:6) = [zz(1) zz(2)];
+			else,					head(5) = double(min(Z_rect(:)));	head(6) = double(max(Z_rect(:)));
+			end
+			to_func.Z = Z_rect;		to_func.head = head;
+		end
+		if (strcmp(curr_opt,'pure'))			% PURE means pure CropaGrid
+			X = linspace(head(1) + (r_c(3)-1)*head(8), head(1) + (r_c(4)-1)*head(8), r_c(4) - r_c(3) + 1);
+			Y = linspace(head(3) + (r_c(1)-1)*head(9), head(3) + (r_c(2)-1)*head(9), r_c(2) - r_c(1) + 1);
+			head(1) = X(1);		head(2) = X(end);		head(3) = Y(1);		head(4) = Y(end);
+			if (isa(Z,'single')),	zz = grdutils(Z_rect,'-L');			head(5:6) = [zz(1) zz(2)];
+			else,					head(5) = double(min(Z_rect(:)));	head(6) = double(max(Z_rect(:)));
+			end
+			srsWKT = [];
+			if (~handles.geog)
+				prjInfoStruc = aux_funs('getFigProjInfo',handles);
+				if (~isempty(prjInfoStruc.projWKT))	% TODO. Otherwise check if prjInfoStruc.proj4 and convert it to WKT
+					srsWKT = prjInfoStruc.projWKT;
+				end
+			end
+			if (~nargout)						% Create a new Fig
+				gcps = getappdata(handles.figure1,'GCPregImage');
+				if (~isempty(gcps))				% Must crop the GCPs too.
+					% Shit is that the GCPs for gdal count rows top-down, so we must do a flipud
+					rr = r_c(2);
+					r_c(2) = size(Z,1) - r_c(1) + 1;	r_c(1) = size(Z,1) - rr + 1;
+					ind = (gcps(:,1) >= r_c(3) & gcps(:,1) <= r_c(4) & gcps(:,2) >= r_c(1) & gcps(:,2) <= r_c(2));
+					pt = gcps(ind,1:4);
+					pt(:,1) = pt(:,1) - r_c(3) + 1;		pt(:,2) = pt(:,2) - r_c(1) + 1;
+					X = 1:size(Z_rect,2);	Y = 1:size(Z_rect,1);
+					head(1:4) = [1 size(Z_rect,2) 1 size(Z_rect,1)];
+					setappdata(handles.figure1,'GCPregImage',pt)
+				end
+				GRDdisplay(handles,X,Y,Z_rect,head,'','Cropped_grid',srsWKT)
+				if (~isempty(gcps)),	setappdata(handles.figure1, 'GCPregImage', gcps),	end		% Reset originals
+			else								% Send back the cropped grid to whom asked for it.
+				varargout = {X,Y,Z_rect,head};	% Is not going to be easy to document this
+			end
+		elseif (strcmp(curr_opt,'histo'))		% HISTO means compute histogram inside the selected rect area
+			GridToolsHistogram_CB(guidata(handles.figure1), to_func);
+		elseif (strcmp(curr_opt,'power'))		% POWER means compute log10 power spectrum
+			GridToolsSectrum_CB(guidata(handles.figure1), 'Power', to_func)
+		elseif (strcmp(curr_opt,'autocorr'))	% AUTOCORR means compute the autocorrelation
+			GridToolsSectrum_CB(guidata(handles.figure1), 'Autocorr', to_func)
+		elseif (strcmp(curr_opt,'fftTools'))	% FFTTOOLS means call the fft_stuff
+			GridToolsSectrum_CB(guidata(handles.figure1), 'Allopts', to_func)
+		end
+		done = true;				% We are done. BYE BYE.
+
+	elseif (strcmp(opt2,'FillGaps'))
+		if ~any(isnan(Z_rect(:)))	% No gaps
+			warndlg('Selected area does not have any voids (NaNs)','Warning'),	 return
+		end
+
 		X = linspace( head(1) + (r_c(3)-1)*head(8), head(1) + (r_c(4)-1)*head(8), r_c(4) - r_c(3) + 1 );
 		Y = linspace( head(3) + (r_c(1)-1)*head(9), head(3) + (r_c(2)-1)*head(9), r_c(2) - r_c(1) + 1 );
-		head(1) = X(1);		head(2) = X(end);		head(3) = Y(1);		head(4) = Y(end);
-		GRDdisplay(handles,X,Y,Z_rect, head, '', sprintf('Cropped_(%.0f)_grid', rand(1)*100))
-		return
-	else			% Just a image crop op
-		I = cropimg;	[m,n] = size(I);
-	end
-end
-
-if (isempty(opt2) || strcmp(opt2,'CropaWithCoords'))	% Just pure Image croping
-	if (m < 2 || n < 2),	return,	end		% Image too small.
-	if (strcmp(get(handles.axes1,'Ydir'),'normal')),	I = flipdim(I,1);	end
-	if (ndims(I) == 2)
-		pal = get(handles.figure1, 'Colormap');
-		if (length(pal) == 64), pal = jet(256);		end	% Risky - This is a patch for "Find Clusters"
-		setappdata(0,'CropedColormap',pal);			% indexed image, so I need to save it's colormap
-	end
-	set(handles.figure1,'pointer','arrow');
-	if (~isempty(opt2))
-		head(2) = handles.head(1) + (r_c(4)-1)*handles.head(8);
-		head(1) = handles.head(1) + (r_c(3)-1)*handles.head(8);
-		head(4) = handles.head(3) + (r_c(2)-1)*handles.head(9);
-		head(3) = handles.head(3) + (r_c(1)-1)*handles.head(9);
-		head(5:9) = [0 255 0 handles.head(8:9)];	tmp.name = sprintf('Cropped_(%.0f)_image', rand(1)*100);
-		tmp.head = head;		tmp.geog = handles.geog;			tmp.X = head(1:2);		tmp.Y = head(3:4);
-		if (~isempty(pal)),		tmp.cmap = pal;		end
-		proj4 = getappdata(handles.figure1,'Proj4');
-		if (~isempty(proj4))
-			tmp.srsWKT = ogrproj(proj4);
+		if (~isempty(opt3) && strcmp(opt3,'surface'))
+			opt_R = sprintf('-R%.10f/%.10f/%.10f/%.10f', X(1), X(end), Y(1), Y(end));
+			opt_I = sprintf('-I%.10f/%.10f',head(8),head(9));
+		end
+		Z_rect = double(Z_rect);	% It has to be
+		aa = isnan(Z_rect(:));
+		[X,Y] = meshgrid(X,Y);
+		ZZ = Z_rect(:);		ZZ(aa) = [];
+		XX = X(:);			XX(aa) = [];
+		YY = Y(:);			YY(aa) = [];
+		if (~isempty(opt3))
+			switch opt3
+				case 'surface', Z_rect = gmtmbgrid_m(XX,YY,ZZ,opt_R,opt_I,'-T.25', '-Mz');
+				case 'cubic',	Z_rect = griddata_j(XX,YY,ZZ,X,Y,'cubic');
+				case 'linear',	Z_rect = griddata_j(XX,YY,ZZ,X,Y,'linear');
+				case 'sea',		Z_rect(aa) = 0;
+			end
 		else
-			projWKT = getappdata(handles.figure1,'ProjWKT');
-			if (~isempty(projWKT)),		tmp.srsWKT = projWKT;	end
+			Z_rect = gmtmbgrid_m(XX,YY,ZZ,opt_R,opt_I,'-T.25','-v', '-Mz');
 		end
-	end
-	if (nargout)
-		varargout{1} = I;
-		if (nargout == 2),		varargout{2} = tmp;	end
-	elseif (isempty(opt2))				% Crop without coords
-		mirone(I);
-	else
-		mirone(flipdim(I,1),tmp);		% Crop with coords
-	end
-	done = true;				% We are done. BYE BYE.
+		clear X XX Y YY ZZ;
 
-elseif (strncmp(opt2(1:min(length(opt2),9)),'CropaGrid',9))		% Do the operation indicated in opt2(11:end) & return
-	curr_opt = opt2(11:end);
-	if (~strcmp(curr_opt,'pure'))			% We will need those for all other options
-		head(2) = head(1) + (r_c(4)-1)*head(8);			head(1) = head(1) + (r_c(3)-1)*head(8);
-		head(4) = head(3) + (r_c(2)-1)*head(9);			head(3) = head(3) + (r_c(1)-1)*head(9);
-		if (isa(Z,'single')),	zz = grdutils(Z_rect,'-L');			head(5:6) = [zz(1) zz(2)];
-		else,					head(5) = double(min(Z_rect(:)));	head(6) = double(max(Z_rect(:)));
+	elseif (strncmp(opt2,'FillSinks', 9))
+		handles.Z_back = Z(r_c(1):r_c(2),r_c(3):r_c(4));	handles.r_c = r_c;			% For the Undo op
+		if (strcmp(opt2,'FillSinks_pitt'))		% Fill up the holes
+			Z_rect = img_fun('imfill', Z_rect, 'holes');
+		else									% Slice the peaks
+			grdutils(Z_rect, '-M-1');			% In-situ op
+			Z_rect = img_fun('imfill', Z_rect, 'holes');
+			grdutils(Z_rect, '-M-1');			% Set it back to vert-up
 		end
-		to_func.Z = Z_rect;		to_func.head = head;
-	end
-	if (strcmp(curr_opt,'pure'))			% PURE means pure CropaGrid
-		X = linspace(head(1) + (r_c(3)-1)*head(8), head(1) + (r_c(4)-1)*head(8), r_c(4) - r_c(3) + 1);
-		Y = linspace(head(3) + (r_c(1)-1)*head(9), head(3) + (r_c(2)-1)*head(9), r_c(2) - r_c(1) + 1);
-		head(1) = X(1);		head(2) = X(end);		head(3) = Y(1);		head(4) = Y(end);
-		if (isa(Z,'single')),	zz = grdutils(Z_rect,'-L');			head(5:6) = [zz(1) zz(2)];
-		else,					head(5) = double(min(Z_rect(:)));	head(6) = double(max(Z_rect(:)));
+		if (wasROI)					% Reset the outside ROI to unchanged values
+			Z_rect(~mask) = handles.Z_back(~mask);
 		end
-		srsWKT = [];
-		if (~handles.geog)
-			prjInfoStruc = aux_funs('getFigProjInfo',handles);
-			if (~isempty(prjInfoStruc.projWKT))	% TODO. Otherwise check if prjInfoStruc.proj4 and convert it to WKT
-				srsWKT = prjInfoStruc.projWKT;
-			end
-		end
-		if (~nargout)						% Create a new Fig
-			gcps = getappdata(handles.figure1,'GCPregImage');
-			if (~isempty(gcps))				% Must crop the GCPs too.
-				% Shit is that the GCPs for gdal count rows top-down, so we must do a flipud
-				rr = r_c(2);
-				r_c(2) = size(Z,1) - r_c(1) + 1;	r_c(1) = size(Z,1) - rr + 1;
-				ind = (gcps(:,1) >= r_c(3) & gcps(:,1) <= r_c(4) & gcps(:,2) >= r_c(1) & gcps(:,2) <= r_c(2));
-				pt = gcps(ind,1:4);
-				pt(:,1) = pt(:,1) - r_c(3) + 1;		pt(:,2) = pt(:,2) - r_c(1) + 1;
-				X = 1:size(Z_rect,2);	Y = 1:size(Z_rect,1);
-				head(1:4) = [1 size(Z_rect,2) 1 size(Z_rect,1)];
-				setappdata(handles.figure1,'GCPregImage',pt)
-			end
-			GRDdisplay(handles,X,Y,Z_rect,head,'','Cropped_grid',srsWKT)
-			if (~isempty(gcps)),	setappdata(handles.figure1, 'GCPregImage', gcps),	end		% Reset originals
-		else								% Send back the cropped grid to whom asked for it.
-			varargout = {X,Y,Z_rect,head};	% Is not going to be easy to document this
-		end
-	elseif (strcmp(curr_opt,'histo'))		% HISTO means compute histogram inside the selected rect area
-		GridToolsHistogram_CB(guidata(handles.figure1), to_func);
-	elseif (strcmp(curr_opt,'power'))		% POWER means compute log10 power spectrum
-		GridToolsSectrum_CB(guidata(handles.figure1), 'Power', to_func)
-	elseif (strcmp(curr_opt,'autocorr'))	% AUTOCORR means compute the autocorrelation
-		GridToolsSectrum_CB(guidata(handles.figure1), 'Autocorr', to_func)
-	elseif (strcmp(curr_opt,'fftTools'))	% FFTTOOLS means call the fft_stuff
-		GridToolsSectrum_CB(guidata(handles.figure1), 'Allopts', to_func)
-	end
-	done = true;				% We are done. BYE BYE.
 
-elseif (strcmp(opt2,'FillGaps'))
-	if ~any(isnan(Z_rect(:)))	% No gaps
-		warndlg('Selected area does not have any voids (NaNs)','Warning'),	 return
-	end
-
-	X = linspace( head(1) + (r_c(3)-1)*head(8), head(1) + (r_c(4)-1)*head(8), r_c(4) - r_c(3) + 1 );
-	Y = linspace( head(3) + (r_c(1)-1)*head(9), head(3) + (r_c(2)-1)*head(9), r_c(2) - r_c(1) + 1 );
-	if (~isempty(opt3) && strcmp(opt3,'surface'))
-		opt_R = sprintf('-R%.10f/%.10f/%.10f/%.10f', X(1), X(end), Y(1), Y(end));
-		opt_I = sprintf('-I%.10f/%.10f',head(8),head(9));
-	end
-	Z_rect = double(Z_rect);	% It has to be
-	aa = isnan(Z_rect(:));
-	[X,Y] = meshgrid(X,Y);
-	ZZ = Z_rect(:);		ZZ(aa) = [];
-	XX = X(:);			XX(aa) = [];
-	YY = Y(:);			YY(aa) = [];
-	if (~isempty(opt3))
-		switch opt3
-			case 'surface', Z_rect = gmtmbgrid_m(XX,YY,ZZ,opt_R,opt_I,'-T.25', '-Mz');
-			case 'cubic',	Z_rect = griddata_j(XX,YY,ZZ,X,Y,'cubic');
-			case 'linear',	Z_rect = griddata_j(XX,YY,ZZ,X,Y,'linear');
-			case 'sea',		Z_rect(aa) = 0;
-		end
-	else
-		Z_rect = gmtmbgrid_m(XX,YY,ZZ,opt_R,opt_I,'-T.25','-v', '-Mz');
-	end
-	clear X XX Y YY ZZ;
-
-elseif (strncmp(opt2,'FillSinks', 9))
-	handles.Z_back = Z(r_c(1):r_c(2),r_c(3):r_c(4));	handles.r_c = r_c;			% For the Undo op
-	if (strcmp(opt2,'FillSinks_pitt'))		% Fill up the holes
-		Z_rect = img_fun('imfill', Z_rect, 'holes');
-	else									% Slice the peaks
-		grdutils(Z_rect, '-M-1');			% In-situ op
-		Z_rect = img_fun('imfill', Z_rect, 'holes');
-		grdutils(Z_rect, '-M-1');			% Set it back to vert-up
-	end
-	if (wasROI)					% Reset the outside ROI to unchanged values
-		Z_rect(~mask) = handles.Z_back(~mask);
-	end
-
-elseif (strcmp(opt2,'SplineSmooth'))
-	X = linspace( head(1) + (r_c(3)-1)*head(8), head(1) + (r_c(4)-1)*head(8), r_c(4) - r_c(3) + 1 );
-	Y = linspace( head(3) + (r_c(1)-1)*head(9), head(3) + (r_c(2)-1)*head(9), r_c(2) - r_c(1) + 1 );
-	Z_rect = double(Z_rect);	% It has to be
-	[pp, p_guess] = spl_fun('csaps',{Y(1:min(m,10)),X(1:min(n,10))},Z_rect(1:min(m,10),1:min(n,10)));% Get a good estimate of p
-	prompt = {'Enter smoothing p paramer'};		dlg_title = 'Smoothing parameter input';
-	defAns = {sprintf('%.12f',p_guess{1})};		resp = inputdlg(prompt,dlg_title,[1 38],defAns);
-	if (isempty(resp)),		return,		end
-	resp = str2double(resp{1});
-	if (isnan(resp)),		set(handles.figure1,'pointer','arrow'),		return,		end
-	pp = spl_fun('csaps',{Y,X},Z_rect,resp);
-	Z_rect = spl_fun('fnval',pp,{Y,X});		clear pp;
-	handles.Z_back = Z(r_c(1):r_c(2),r_c(3):r_c(4));	handles.r_c = r_c;			% For the Undo op
-	if (wasROI)					% Apply the mask and smooth over the mask edges
-		Z_rect = smooth_roipoly_edge(head, handles.have_nans, Z, handles.Z_back, Z_rect, r_c, mask, 3);
-	end
-
-elseif (strcmp(opt2,'MedianFilter'))
-	[Z,Z_rect,handles] = roi_filtering(handles, Z, head, Z_rect, r_c, 'rect', 'no');
-
-elseif (strcmp(opt2,'Clip'))
-	handles.Z_back = Z(r_c(1):r_c(2),r_c(3):r_c(4));	handles.r_c = r_c;			% For the Undo op
-	[Z_rect,head] = ml_clip(handles, handles.Z_back);
-	if (isempty(Z_rect)),		return,		end
-	handles.head(5:6) = head(5:6);
-	if (crop_pol)			% Means, if ROI_Clip
-		Z_rect(~mask) = handles.Z_back(~mask);
-		zz = grdutils(Z_rect,'-L');		handles.head(5:6) = [min(zz(1),handles.head(5)) max(zz(2),handles.head(6))];
-	end
-
-elseif (strcmp(opt2,'SetConst'))		% Replace grid values inside rect by a cte value
-	if (isempty(opt3))
-		resp = inputdlg({'Enter new grid value'},'Replace with cte value',[1 30]);	pause(0.01)
+	elseif (strcmp(opt2,'SplineSmooth'))
+		X = linspace( head(1) + (r_c(3)-1)*head(8), head(1) + (r_c(4)-1)*head(8), r_c(4) - r_c(3) + 1 );
+		Y = linspace( head(3) + (r_c(1)-1)*head(9), head(3) + (r_c(2)-1)*head(9), r_c(2) - r_c(1) + 1 );
+		Z_rect = double(Z_rect);	% It has to be
+		[pp, p_guess] = spl_fun('csaps',{Y(1:min(m,10)),X(1:min(n,10))},Z_rect(1:min(m,10),1:min(n,10)));% Get a good estimate of p
+		prompt = {'Enter smoothing p paramer'};		dlg_title = 'Smoothing parameter input';
+		defAns = {sprintf('%.12f',p_guess{1})};		resp = inputdlg(prompt,dlg_title,[1 38],defAns);
 		if (isempty(resp)),		return,		end
-		resp = str2double(resp);
-		if (~isreal(resp)),		resp = NaN;		end		% A 'i' or a 'j' in resp would have caused this
-	else
-		resp = opt3;
-	end
-	Z_rect = single(resp);
-	handles.Z_back = Z(r_c(1):r_c(2),r_c(3):r_c(4));	handles.r_c = r_c;			% For the Undo op
-	if (~handles.have_nans && isnan(resp))				% See if we have new NaNs
-		handles.have_nans = 1;		first_nans = true;
-	end
+		resp = str2double(resp{1});
+		if (isnan(resp)),		set(handles.figure1,'pointer','arrow'),		return,		end
+		pp = spl_fun('csaps',{Y,X},Z_rect,resp);
+		Z_rect = spl_fun('fnval',pp,{Y,X});		clear pp;
+		handles.Z_back = Z(r_c(1):r_c(2),r_c(3):r_c(4));	handles.r_c = r_c;			% For the Undo op
+		if (wasROI)					% Apply the mask and smooth over the mask edges
+			Z_rect = smooth_roipoly_edge(head, handles.have_nans, Z, handles.Z_back, Z_rect, r_c, mask, 3);
+		end
+
+	elseif (strcmp(opt2,'MedianFilter'))
+		[Z,Z_rect,handles] = roi_filtering(handles, Z, head, Z_rect, r_c, 'rect', 'no');
+
+	elseif (strcmp(opt2,'Clip'))
+		handles.Z_back = Z(r_c(1):r_c(2),r_c(3):r_c(4));	handles.r_c = r_c;			% For the Undo op
+		[Z_rect,head] = ml_clip(handles, handles.Z_back);
+		if (isempty(Z_rect)),		return,		end
+		handles.head(5:6) = head(5:6);
+		if (crop_pol)			% Means, if ROI_Clip
+			Z_rect(~mask) = handles.Z_back(~mask);
+			zz = grdutils(Z_rect,'-L');		handles.head(5:6) = [min(zz(1),handles.head(5)) max(zz(2),handles.head(6))];
+		end
+
+	elseif (strcmp(opt2,'SetConst'))		% Replace grid values inside rect by a cte value
+		if (isempty(opt3))
+			resp = inputdlg({'Enter new grid value'},'Replace with cte value',[1 30]);	pause(0.01)
+			if (isempty(resp)),		return,		end
+			resp = str2double(resp);
+			if (~isreal(resp)),		resp = NaN;		end		% A 'i' or a 'j' in resp would have caused this
+		else
+			resp = opt3;
+		end
+		Z_rect = single(resp);
+		handles.Z_back = Z(r_c(1):r_c(2),r_c(3):r_c(4));	handles.r_c = r_c;			% For the Undo op
+		if (~handles.have_nans && isnan(resp))				% See if we have new NaNs
+			handles.have_nans = 1;		first_nans = true;
+		end
+
+	elseif (strcmp(opt2,'GetMean'))			% ...
+		Z_rect(isnan(Z_rect)) = [];		res = mean(double(Z_rect(:)));
+		if (nargout),	varargout{1} = res;		return,		end
+		msgbox(sprintf('Mean over ROI = %15g',res),'ROI-Mean')
+		done = true;
+
+	elseif (strcmp(opt2,'GetMedian'))		% ...
+		Z_rect(isnan(Z_rect)) = [];		res = median(Z_rect(:));
+		if (nargout),	varargout{1} = res;		return,		end
+		msgbox(sprintf('Median over ROI = %15g',res),'ROI-Median')
+		done = true;
 	
-elseif (strcmp(opt2,'GetMean'))			% ...
-	Z_rect(isnan(Z_rect)) = [];		res = mean(double(Z_rect(:)));
-	if (nargout),	varargout{1} = res;		return,		end
-	msgbox(sprintf('Mean over ROI = %15g',res),'ROI-Mean')
-	done = true;
+	elseif (strcmp(opt2,'GetSTD'))			% ...
+		Z_rect(isnan(Z_rect)) = [];		res = std(double(Z_rect(:)));
+		if (nargout),	varargout{1} = res;		return,		end
+		msgbox(sprintf('STD over ROI = %15g',res),'ROI-STD')
+		done = true;
 
-elseif (strcmp(opt2,'GetMedian'))		% ...
-	Z_rect(isnan(Z_rect)) = [];		res = median(Z_rect(:));
-	if (nargout),	varargout{1} = res;		return,		end
-	msgbox(sprintf('Median over ROI = %15g',res),'ROI-Median')
-	done = true;
-	
-elseif (strcmp(opt2,'GetSTD'))			% ...
-	Z_rect(isnan(Z_rect)) = [];		res = std(double(Z_rect(:)));
-	if (nargout),	varargout{1} = res;		return,		end
-	msgbox(sprintf('STD over ROI = %15g',res),'ROI-STD')
-	done = true;
+	elseif (strcmp(opt2,'ImplantGrid'))		% The first part of this job was done above, where we got Z_rect and r_c
+		[X,Y,Z,head] = load_grd(handles);
 
-elseif (strcmp(opt2,'ImplantGrid'))		% The first part of this job was done above, where we got Z_rect and r_c
-	[X,Y,Z,head] = load_grd(handles);
-
-end
-
-if (done),		return,		end
-
-if (~strcmp(opt2,'MedianFilter') && ~strcmp(opt2,'ROI_SetConst'))		% Otherwise, already done in roi_filtering
-	if (isa(Z,'single')),		Z(r_c(1):r_c(2),r_c(3):r_c(4)) = single(Z_rect);
-	elseif (isa(Z,'int16')),	Z(r_c(1):r_c(2),r_c(3):r_c(4)) = int16(Z_rect);
-	elseif (isa(Z,'uint16')),	Z(r_c(1):r_c(2),r_c(3):r_c(4)) = uint16(Z_rect);
-	else,						Z(r_c(1):r_c(2),r_c(3):r_c(4)) = single(Z_rect);
 	end
-	if (handles.have_nans && ~any(isnan(Z_rect(:))))	% Check that old NaNs had not been erased
-		handles.have_nans = grdutils(Z,'-N');
-	end
-end
 
-if ~isempty(opt2)		% Here we have to update the image in the processed region
-	if (isa(Z,'single')),	zz = grdutils(Z,'-L');		z_min = zz(1);		z_max = zz(2);
-	else,					z_min = double(min(Z(:)));	z_max = double(max(Z(:)));
+	if (done),		return,		end
+
+	if (~strcmp(opt2,'MedianFilter') && ~strcmp(opt2,'ROI_SetConst'))		% Otherwise, already done in roi_filtering
+		if (isa(Z,'single')),		Z(r_c(1):r_c(2),r_c(3):r_c(4)) = single(Z_rect);
+		elseif (isa(Z,'int16')),	Z(r_c(1):r_c(2),r_c(3):r_c(4)) = int16(Z_rect);
+		elseif (isa(Z,'uint16')),	Z(r_c(1):r_c(2),r_c(3):r_c(4)) = uint16(Z_rect);
+		else,						Z(r_c(1):r_c(2),r_c(3):r_c(4)) = single(Z_rect);
+		end
+		if (handles.have_nans && ~any(isnan(Z_rect(:))))	% Check that old NaNs had not been erased
+			handles.have_nans = grdutils(Z,'-N');
+		end
 	end
-	img = [];
-	if ((abs(z_min - head(5)) > 1e-5 || abs(z_max - head(6)) > 1e-5) && handles.Illumin_type == 0)
-		img = scaleto8(Z);		% Z_MIN or Z_MAX have changed. Need to recompute image (but only if no illumin)
-	end
-	if (first_nans)		% We have NaNs for the first time. Adjust the colormap
-		aux_funs('colormap_bg',handles,Z,get(handles.figure1,'Colormap'));
-	end
-	if (strcmp(opt2, 'ROI_SetConst') && isnan(resp) && ~isempty(mask) && handles.Illumin_type ~= 0) % Just mask the image
-		if (isempty(img)),		img = get(handles.hImg,'CData');	end		% If img was not recomputed
-		handles.img_back = img(r_c(1):r_c(2),r_c(3):r_c(4),1:end);			% For the undo op
-		img_ = handles.img_back;
-		t = img_(:,:,1);	t(mask) = handles.bg_color(1) * 255;	img_(:,:,1)	= t;
-		t = img_(:,:,2);	t(mask) = handles.bg_color(2) * 255;	img_(:,:,2)	= t;
-		t = img_(:,:,3);	t(mask) = handles.bg_color(3) * 255;	img_(:,:,3)	= t;
-		img(r_c(1):r_c(2),r_c(3):r_c(4),1:end) = img_;
-	else
-		z_int = scaleto8(Z_rect, 8, [z_min z_max]);
-		if (numel(Z_rect) > 9)		% This excludes the case of SetConst in which Z_rect is a scalar
-			if (handles.Illumin_type >= 1 && handles.Illumin_type <= 4)
-				illumComm = getappdata(handles.figure1,'illumComm');
-				if (handles.Illumin_type == 1)
-					opt_N = sprintf('-Nt1/%.6f/%.6f',handles.grad_sigma, handles.grad_offset);
-					if (handles.geog),	R = grdgradient_m(Z_rect,head,'-M',illumComm,opt_N);
-					else,				R = grdgradient_m(Z_rect,head,illumComm,opt_N);
-					end
-				else
-					R = grdgradient_m(Z_rect,head,illumComm, '-a1');
-				end
-				z_int = ind2rgb8(z_int,get(handles.figure1,'Colormap'));	% z_int is now RGB
-				z_int = shading_mat(z_int,R,'no_scale');					% and now is illuminated
-			elseif (handles.Illumin_type ~= 0)
-				warndlg('Sorry, this operation is not allowed with this shading illumination type','Warning')
-				return
+
+	if ~isempty(opt2)		% Here we have to update the image in the processed region
+		if (isa(Z,'single')),	zz = grdutils(Z,'-L');		z_min = zz(1);		z_max = zz(2);
+		else,					z_min = double(min(Z(:)));	z_max = double(max(Z(:)));
+		end
+		img = [];
+		if ((abs(z_min - head(5)) > 1e-5 || abs(z_max - head(6)) > 1e-5) && handles.Illumin_type == 0)
+			img = scaleto8(Z);		% Z_MIN or Z_MAX have changed. Need to recompute image (but only if no illumin)
+		end
+		if (first_nans)		% We have NaNs for the first time. Adjust the colormap
+			aux_funs('colormap_bg',handles,Z,get(handles.figure1,'Colormap'));
+		end
+		if (strcmp(opt2, 'ROI_SetConst') && isnan(resp) && ~isempty(mask) && handles.Illumin_type ~= 0) % Just mask the image
+			if (isempty(img)),		img = get(handles.hImg,'CData');	end		% If img was not recomputed
+			handles.img_back = img(r_c(1):r_c(2),r_c(3):r_c(4),1:end);			% For the undo op
+			img_ = handles.img_back;
+			t = img_(:,:,1);	t(mask) = handles.bg_color(1) * 255;	img_(:,:,1)	= t;
+			t = img_(:,:,2);	t(mask) = handles.bg_color(2) * 255;	img_(:,:,2)	= t;
+			t = img_(:,:,3);	t(mask) = handles.bg_color(3) * 255;	img_(:,:,3)	= t;
+			img(r_c(1):r_c(2),r_c(3):r_c(4),1:end) = img_;
+		else
+			if (numel(Z_rect) == 1)
+				z_int = uint8(round( ((double(Z_rect) - z_min) / (z_max - z_min))*255 ));
+			else
+				z_int = scaleto8(Z_rect, 8, [z_min z_max]);
 			end
-		elseif (numel(Z_rect) == 1 && isnan(Z_rect))
-			z_int = handles.bg_color(1);
+			if (numel(Z_rect) > 9)		% This excludes the case of SetConst in which Z_rect is a scalar
+				if (handles.Illumin_type >= 1 && handles.Illumin_type <= 4)
+					illumComm = getappdata(handles.figure1,'illumComm');
+					if (handles.Illumin_type == 1)
+						opt_N = sprintf('-Nt1/%.6f/%.6f',handles.grad_sigma, handles.grad_offset);
+						if (handles.geog),	R = grdgradient_m(Z_rect,head,'-M',illumComm,opt_N);
+						else,				R = grdgradient_m(Z_rect,head,illumComm,opt_N);
+						end
+					else
+						R = grdgradient_m(Z_rect,head,illumComm, '-a1');
+					end
+					z_int = ind2rgb8(z_int,get(handles.figure1,'Colormap'));	% z_int is now RGB
+					z_int = shading_mat(z_int,R,'no_scale');					% and now is illuminated
+				elseif (handles.Illumin_type ~= 0)
+					warndlg('Sorry, this operation is not allowed with this shading illumination type','Warning')
+					return
+				end
+			elseif (numel(Z_rect) == 1 && isnan(Z_rect))
+				z_int = handles.bg_color(1);
+			end
+			if (isempty(img)),		img = get(handles.hImg,'CData');	end		% If img was not recomputed
+			handles.img_back = img(r_c(1):r_c(2),r_c(3):r_c(4),1:end);			% For the undo op
+			if (~isempty(mask) && handles.Illumin_type ~= 0)
+				mask = repmat(~mask,[1 1 3]);
+				z_int(mask) = handles.img_back(mask);
+			end
+			img(r_c(1):r_c(2),r_c(3):r_c(4),1:end) = z_int;			clear z_int Z_rect R;
 		end
-		if (isempty(img)),		img = get(handles.hImg,'CData');	end		% If img was not recomputed
-		handles.img_back = img(r_c(1):r_c(2),r_c(3):r_c(4),1:end);			% For the undo op
-		if (~isempty(mask) && handles.Illumin_type ~= 0)
-			mask = repmat(~mask,[1 1 3]);
-			z_int(mask) = handles.img_back(mask);
+
+		set(handles.hImg,'CData',img)
+
+		head(5) = z_min;	head(6) = z_max;
+		handles.computed_grid = 1;		handles.head = head;	%handles.origFig = img;
+		setappdata(handles.figure1,'dem_z',Z);
+	end
+
+	% UNDO that works only with these cases
+	if (~invert && (numel(opt) == 1) && any(strcmp(opt2,{'MedianFilter' 'ROI_MedianFilter' 'SetConst' ...
+			'ROI_SetConst' 'SplineSmooth' 'FillSinks_pitt' 'FillSinks_peak'})))
+		cmenuHand = get(opt,'UIContextMenu');
+		u = findobj(cmenuHand, 'Label', 'Undo');
+		if (isempty(u))		% Otherwise just reuse previous one
+			uimenu(cmenuHand, 'Label', 'Undo', 'Separator','on', 'Callback', {@do_undo,handles.figure1,opt,cmenuHand});
 		end
-		img(r_c(1):r_c(2),r_c(3):r_c(4),1:end) = z_int;			clear z_int Z_rect R;
 	end
-	
-	set(handles.hImg,'CData',img)
-
-	head(5) = z_min;	head(6) = z_max;
-	handles.computed_grid = 1;		handles.head = head;	%handles.origFig = img;
-	setappdata(handles.figure1,'dem_z',Z);
-end
-
-% UNDO that works only with these cases
-if (~invert && (numel(opt) == 1) && any(strcmp(opt2,{'MedianFilter' 'ROI_MedianFilter' 'SetConst' ...
-		'ROI_SetConst' 'SplineSmooth' 'FillSinks_pitt' 'FillSinks_peak'})))
-	cmenuHand = get(opt,'UIContextMenu');
-	u = findobj(cmenuHand, 'Label', 'Undo');
-	if (isempty(u))		% Otherwise just reuse previous one
-		uimenu(cmenuHand, 'Label', 'Undo', 'Separator','on', 'Callback', {@do_undo,handles.figure1,opt,cmenuHand});
-	end
-end
-guidata(handles.figure1, handles);		set(handles.figure1,'pointer','arrow')
+	guidata(handles.figure1, handles);		set(handles.figure1,'pointer','arrow')
 
 % -----------------------------------------------------------------------------------------
 function do_undo(obj,event,hFig,h,img)
