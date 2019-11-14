@@ -153,8 +153,8 @@ function check_LandSat8(handles, fname, todos)
 	
 % --------------------------------------------------------------------
 function mdata = parseLandSat8MetaData(filename)
-
-% Copyright (c) 2014, Mohammad Abouali (maboualiedu@gmail.com)
+% Based on function of same name from (but improved and made compilable)
+% Mohammad Abouali (maboualiedu@gmail.com)
 % License: MIT
 
 	fid = fopen(filename,'r');
@@ -162,32 +162,32 @@ function mdata = parseLandSat8MetaData(filename)
 	groupList = {'mdata'};	NotDoneYet = true;	mdata = [];
 
 	while (~feof(fid) && NotDoneYet)
-		lineStr=fgetl(fid);
-		lineFields=strsplit(lineStr,'=');
+		lineStr = fgetl(fid);
+		ind = strfind(lineStr, '=');
+		if (~isempty(ind))
+			lineFields{1} = ddewhite(lineStr(1:ind-1));
+			lineFields{2} = ddewhite(lineStr(ind+1:end));
+		else
+			lineFields{1} = lineStr;
+		end
 		switch lower(ddewhite(lineFields{1}))
 			case 'group'					% Adding new subgroup
-				groupList(end+1)={ddewhite(lineFields{2})};
-				%structTag = strjoin(groupList,'.');
-				fmt = repmat('%s.',1,numel(groupList));		fmt(end) = [];
-				structTag = sprintf(fmt, groupList{:});
+				groupList(end+1) = {ddewhite(lineFields{2})};
 			case 'end_group'				% End of the subgroup; preparing for next subgroup
-				groupList=groupList(1:end-1);
-				%structTag=strjoin(groupList,'.');
-				fmt = repmat('%s.',1,numel(groupList));		fmt(end) = [];
-				structTag = sprintf(fmt, groupList{:});
+				groupList = groupList(1:end-1);
 			case 'end'						% end of metadata
 				NotDoneYet = false;
 			otherwise						% attributes in the subgroup
-				fieldName=ddewhite(lineFields{1});
-				fieldValue=ddewhite(lineFields{2});
+				fieldName  = ddewhite(lineFields{1});
+				fieldValue = ddewhite(lineFields{2});
 				if (fieldValue(1)=='"')
-					fieldValue=fieldValue(2:end-1);
+					fieldValue = fieldValue(2:end-1);
 				end
 				fieldValue_numeric=str2double(fieldValue);
 				if (isempty(fieldValue_numeric) || isnan(fieldValue_numeric))
-					eval([structTag '.' fieldName '=''' fieldValue ''';']);
+					mdata.(groupList{2}).(groupList{3}).(fieldName) = fieldValue;
 				else
-					eval([structTag '.' fieldName '=' fieldValue ';']);
+					mdata.(groupList{2}).(groupList{3}).(fieldName) = fieldValue_numeric;
 				end
 		end
 	end
