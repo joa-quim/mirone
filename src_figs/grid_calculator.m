@@ -167,48 +167,9 @@ function listbox_inArrays_CB(hObject, handles, manual)
 	end
 
 % ------------------------------------------------------------------------
-function push_1_CB(hObject, handles)
-	set(handles.edit_command,'String', [get(handles.edit_command,'String') '1'])
-
-% ------------------------------------------------------------------------
-function push_2_CB(hObject, handles)
-	set(handles.edit_command,'String', [get(handles.edit_command,'String') '2'])
-
-% ------------------------------------------------------------------------
-function push_3_CB(hObject, handles)
-	set(handles.edit_command,'String', [get(handles.edit_command,'String') '3'])
-
-% ------------------------------------------------------------------------
-function push_4_CB(hObject, handles)
-	set(handles.edit_command,'String', [get(handles.edit_command,'String') '4'])
-
-% ------------------------------------------------------------------------
-function push_5_CB(hObject, handles)
-	set(handles.edit_command,'String', [get(handles.edit_command,'String') '5'])
-
-% ------------------------------------------------------------------------
-function push_6_CB(hObject, handles)
-	set(handles.edit_command,'String', [get(handles.edit_command,'String') '6'])
-
-% ------------------------------------------------------------------------
-function push_7_CB(hObject, handles)
-	set(handles.edit_command,'String', [get(handles.edit_command,'String') '7'])
-
-% ------------------------------------------------------------------------
-function push_8_CB(hObject, handles)
-	set(handles.edit_command,'String', [get(handles.edit_command,'String') '8'])
-
-% ------------------------------------------------------------------------
-function push_9_CB(hObject, handles)
-	set(handles.edit_command,'String', [get(handles.edit_command,'String') '9'])
-
-% ------------------------------------------------------------------------
-function push_0_CB(hObject, handles)
-	set(handles.edit_command,'String', [get(handles.edit_command,'String') '0'])
-
-% ------------------------------------------------------------------------
-function push_dot_CB(hObject, handles)
-	set(handles.edit_command,'String', [get(handles.edit_command,'String') '.'])
+function push_digit_CB(hObject, handles)
+% Takes care of the 0-9 digits
+	set(handles.edit_command,'String', [get(handles.edit_command,'String') get(hObject, 'String')])
 
 % ------------------------------------------------------------------------
 function push_equal_CB(hObject, handles)
@@ -216,20 +177,16 @@ function push_equal_CB(hObject, handles)
 	push_compute_CB(hObject, handles)
 
 % ------------------------------------------------------------------------
-function push_devide_CB(hObject, handles)
-	set(handles.edit_command,'String', [get(handles.edit_command,'String') ' / '])
+function push_op_CB(hObject, handles)
+% Takes care of +-*/
+	t = [' ' get(hObject,'String'), ' '];
+	set(handles.edit_command,'String', [get(handles.edit_command,'String') t])
 
 % ------------------------------------------------------------------------
-function push_mull_CB(hObject, handles)
-	set(handles.edit_command,'String', [get(handles.edit_command,'String') ' * '])
-
-% ------------------------------------------------------------------------
-function push_minus_CB(hObject, handles)
-	set(handles.edit_command,'String', [get(handles.edit_command,'String') ' - '])
-
-% ------------------------------------------------------------------------
-function push_plus_CB(hObject, handles)
-	set(handles.edit_command,'String', [get(handles.edit_command,'String') ' + '])
+function push_funs_CB(hObject, handles)
+% Takes care of sin,cos,tan.log,.../
+	t = [' ' get(hObject,'String'), '( '];
+	set(handles.edit_command,'String', [get(handles.edit_command,'String') t])
 
 % ------------------------------------------------------------------------
 function push_loadGrid_CB(hObject, handles)
@@ -244,38 +201,6 @@ function push_loadGrid_CB(hObject, handles)
 	handles.grid_patos{end+1} = PathName;
 	handles.loaded_grid{end+1} = FileName;
 	guidata(hObject,handles)
-
-% ------------------------------------------------------------------------
-function push_sin_CB(hObject, handles)
-	set(handles.edit_command,'String', [get(handles.edit_command,'String') ' sin( '])
-
-% ------------------------------------------------------------------------
-function push_cos_CB(hObject, handles)
-	set(handles.edit_command,'String', [get(handles.edit_command,'String') ' cos( '])
-
-% ------------------------------------------------------------------------
-function push_tan_CB(hObject, handles)
-	set(handles.edit_command,'String', [get(handles.edit_command,'String') ' tan( '])
-
-% ------------------------------------------------------------------------
-function push_log10_CB(hObject, handles)
-	set(handles.edit_command,'String', [get(handles.edit_command,'String') ' log10( '])
-
-% ------------------------------------------------------------------------
-function push_log_e_CB(hObject, handles)
-	set(handles.edit_command,'String', [get(handles.edit_command,'String') ' log( '])
-
-% ------------------------------------------------------------------------
-function push_exp_CB(hObject, handles)
-	set(handles.edit_command,'String', [get(handles.edit_command,'String') ' exp( '])
-
-% ------------------------------------------------------------------------
-function push_sqrt_CB(hObject, handles)
-	set(handles.edit_command,'String', [get(handles.edit_command,'String') ' sqrt( '])
-
-% ------------------------------------------------------------------------
-function push_abs_CB(hObject, handles)
-	set(handles.edit_command,'String', [get(handles.edit_command,'String') ' abs( '])
 
 % ------------------------------------------------------------------------
 function push_leftPar_CB(hObject, handles)
@@ -745,25 +670,34 @@ function [out, msg, grid, s_names] = run_inner(comm, grid, s_names)
 			fun = comm(k+1:ind_l(end) - 2);
 			arg_n = str2double(arg);
 			try
-				trail = '';
+				trail = '';		msg = '';
 				if (ind_r(1) < numel(comm)),	trail = comm(ind_r(1)+1:end);	end		% If last char is NOT a ')'
-				if (~isnan(arg_n))					% A scalar
+				if (~isnan(arg_n))					% A scalar, for example log( 5 )
 					out = feval(fun, arg_n);
 					comm = sprintf('%s%.20g%s',comm(1:k), out, trail);		% Put the result in the place of the function call
 				else								% A matrix
 					this_member = arg(6);
 					if (~isa(grid.(this_member), 'double'))
 					end
-					out = single(feval(fun, double(grid.(this_member))));
-					this_member = is_this_member_used(comm, this_member);	% Deal with tricky cases where we may need a new name
-					grid.(this_member) = out;		% Reuse this container to hold the result just obtained
-					s_names = update_gridNames(s_names, comm, k, trail);			% Update the s_names unique names
+					FUN = upper(fun);
+					ind = strcmp(FUN, {'EXP' 'LOG10' 'LOG' 'SIN' 'COS' 'TAN' 'SQRT'});
+					if (any(ind))
+						grid.(this_member) = grdutils(grid.(this_member), ['-O' FUN]);	% Reuse container
+						out = grid.(this_member);		% Because this is this fun's output
+					else
+						out = single(feval(fun, double(grid.(this_member))));
+						this_member = is_this_member_used(comm, this_member);	% Deal with tricky cases where we may need a new name
+						grid.(this_member) = out;		% Reuse this container to hold the result just obtained
+					end
 					comm = sprintf('%sgrid.%s%s',comm(1:k), this_member, trail);	% Put the result in the place of the function call
 				end
 			catch
 				msg = lasterr;		return
 			end
-			[out, msg, grid, s_names] = run_inner(comm,grid,s_names);	% Now recursively call this fun untill all were consumed
+			if (isempty(strfind(comm, '(')) || isempty(strfind(comm, '*')) || isempty(strfind(comm, '/')) || ...
+				isempty(strfind(comm, '+')) || isempty(strfind(comm, '-')))		% Iterate
+				[out, msg, grid, s_names] = run_inner(comm,grid,s_names);
+			end
 
 		else										% Multiple args. Exec the ( ... ) content
 			[out, msg, grid, s_names] = run_inner(arg, grid, s_names);
@@ -807,6 +741,9 @@ function [out, ops, grid, msg, s_names] = exec_n_consume(ops, op, grid, s_names)
 				ops{k-1} = sprintf('%.20g', out);
 			else							% A matrix op
 				new_name = ops{k-1}(6);
+				if (~isnan(str2double(new_name)) && ops{k+1}(1) == 'g')	% Scalar OP grid
+					new_name = ops{k+1}(6);
+				end
 				ind = strfind(s_names, new_name);
 				if (numel(ind) > 1)			% Struct name is taken because it occurs more than once. Need a new one
 					new_name = char(double(s_names(end))+1);		% Pick the next letter in the alphabet
@@ -846,10 +783,13 @@ function [r, msg] = do_mull_add(a, b, op, grid)
 		end
 	elseif (strncmp(a,'grid',3) && ~isnan(b_n))				% add|sub|mull|div|pow(Matrix, b)
 		if (~isa(grid.(a(6)), 'single')),	grid.(a(6)) = single(grid.(a(6)));	end
-		if (op == '+'),		r = grdutils(grid.(a(6)), sprintf('-A%f',b_n));		%r = grid.(a(6)) + b_n;
-		elseif (op == '-'),	r = grdutils(grid.(a(6)), sprintf('-A%f',-b_n));	%r = grid.(a(6)) - b_n;
-		elseif (op == '*'),	r = grdutils(grid.(a(6)), sprintf('-M%f',b_n));		%r = grid.(a(6)) * b_n;
-		elseif (op == '/'),	r = grdutils(grid.(a(6)), sprintf('-M%f',1/b_n));	%r = grid.(a(6)) / b_n;
+		if (op == '+' || op == '-' || op == '*' || op == '/')
+			r = grdutils(grid.(a(6)), '-D');	% Deep copy because MULL & ADD are insitu only
+		end
+		if (op == '+'),		grdutils(r, sprintf('-A%f',b_n));		%r = grid.(a(6)) + b_n;
+		elseif (op == '-'),	grdutils(r, sprintf('-A%f',-b_n));		%r = grid.(a(6)) - b_n;
+		elseif (op == '*'),	grdutils(r, sprintf('-M%f',b_n));		%r = grid.(a(6)) * b_n;
+		elseif (op == '/'),	grdutils(r, sprintf('-M%f',1/b_n));		%r = grid.(a(6)) / b_n;
 		else,				r = double(grid.(a(6))) ^ b_n;	%r = grid.(a(6)) ^ b_n;
 		end
 	elseif (strncmp(a,'grid',3) && strncmp(b,'grid',3))		% add|sub|mull|div|pow(Matrix, Matrix)
@@ -868,12 +808,15 @@ function [r, msg] = do_mull_add(a, b, op, grid)
 		catch,	msg = lasterr;			% Who knows what error
 		end
 	elseif (~isnan(a_n) && strncmp(b,'grid',3))				% add|sub|mull|div|pow(a, Matrix), some are odd but possible
-		if (~isa(grid.(a(6)), 'single')),	grid.(a(6)) = single(grid.(a(6)));	end
-		if (op == '+'),		r = grdutils(grid.(b(6)), sprintf('-A%f',a_n));		%r = a_n + grid.(b(6));
-		elseif (op == '-'),	r = a_n - double(grid.(b(6)));		%r = a_n - grid.(b(6));
-		elseif (op == '*'),	r = grdutils(grid.(a(6)), sprintf('-M%f',a_n));		%r = a_n * grid.(b(6));
-		elseif (op == '/'),	r = a_n ./ double(grid.(b(6)));		%r = a_n ./ grid.(b(6));
-		else,				r = a_n .^ double(grid.(b(6)));		%r = a_n .^ grid.(b(6));
+		if (~isa(grid.(b(6)), 'single')),	grid.(b(6)) = single(grid.(b(6)));	end
+		if (op == '+' || op == '-' || op == '*')
+			r = grdutils(grid.(b(6)), '-D');	% Deep copy because MULL & ADD are insitu only
+		end
+		if (op == '-'),		grdutils(r, '-M-1');	op = '+';	end		% First by -1 then ADD 
+		if (op == '+'),		grdutils(r, sprintf('-A%f',a_n));		%r = a_n + grid.(b(6));
+		elseif (op == '*'),	grdutils(r, sprintf('-M%f',a_n));		%r = a_n * grid.(b(6));
+		elseif (op == '/'),	r = a_n ./ double(grid.(b(6)));			%r = a_n ./ grid.(b(6));
+		else,				r = a_n .^ double(grid.(b(6)));			%r = a_n .^ grid.(b(6));
 		end
 	end
 
@@ -1016,57 +959,57 @@ uicontrol('Parent',h1, 'Position',[10 37 311 135],...
 uicontrol('Parent',h1, 'Position',[341 150 23 23],...
 'Callback',@grid_calculator_uiCB,...
 'FontSize',10,...
-'String','1','Tag','push_1');
+'String','1','Tag','push_digit');
 
 uicontrol('Parent',h1, 'Position',[374 150 23 23],...
 'Callback',@grid_calculator_uiCB,...
 'FontSize',10,...
-'String','2','Tag','push_2');
+'String','2','Tag','push_digit');
 
 uicontrol('Parent',h1, 'Position',[407 150 23 23],...
 'Callback',@grid_calculator_uiCB,...
 'FontSize',10,...
-'String','3','Tag','push_3');
+'String','3','Tag','push_digit');
 
 uicontrol('Parent',h1, 'Position',[341 117 23 23],...
 'Callback',@grid_calculator_uiCB,...
 'FontSize',10,...
-'String','4','Tag','push_4');
+'String','4','Tag','push_digit');
 
 uicontrol('Parent',h1, 'Position',[374 117 23 23],...
 'Callback',@grid_calculator_uiCB,...
 'FontSize',10,...
-'String','5','Tag','push_5');
+'String','5','Tag','push_digit');
 
 uicontrol('Parent',h1, 'Position',[407 117 23 23],...
 'Callback',@grid_calculator_uiCB,...
 'FontSize',10,...
-'String','6','Tag','push_6');
+'String','6','Tag','push_digit');
 
 uicontrol('Parent',h1, 'Position',[341 84 23 23],...
 'Callback',@grid_calculator_uiCB,...
 'FontSize',10,...
-'String','7','Tag','push_7');
+'String','7','Tag','push_digit');
 
 uicontrol('Parent',h1, 'Position',[374 84 23 23],...
 'Callback',@grid_calculator_uiCB,...
 'FontSize',10,...
-'String','8','Tag','push_8');
+'String','8','Tag','push_digit');
 
 uicontrol('Parent',h1, 'Position',[407 84 23 23],...
 'Callback',@grid_calculator_uiCB,...
 'FontSize',10,...
-'String','9','Tag','push_9');
+'String','9','Tag','push_digit');
 
 uicontrol('Parent',h1, 'Position',[341 51 23 23],...
 'Callback',@grid_calculator_uiCB,...
 'FontSize',10,...
-'String','0','Tag','push_0');
+'String','0','Tag','push_digit');
 
 uicontrol('Parent',h1, 'Position',[374 51 23 23],...
 'Callback',@grid_calculator_uiCB,...
 'FontSize',10,...
-'String','.','Tag','push_dot');
+'String','.','Tag','push_digit');
 
 uicontrol('Parent',h1, 'Position',[407 51 23 23],...
 'Callback',@grid_calculator_uiCB,...
@@ -1076,22 +1019,22 @@ uicontrol('Parent',h1, 'Position',[407 51 23 23],...
 uicontrol('Parent',h1, 'Position',[440 150 23 23],...
 'Callback',@grid_calculator_uiCB,...
 'FontSize',10,...
-'String','/','Tag','push_devide');
+'String','/','Tag','push_op');
 
 uicontrol('Parent',h1, 'Position',[440 117 23 23],...
 'Callback',@grid_calculator_uiCB,...
 'FontSize',10,...
-'String','*','Tag','push_mull');
+'String','*','Tag','push_op');
 
 uicontrol('Parent',h1, 'Position',[440 84 23 23],...
 'Callback',@grid_calculator_uiCB,...
 'FontSize',10,...
-'String','-','Tag','push_minus');
+'String','-','Tag','push_op');
 
 uicontrol('Parent',h1, 'Position',[440 51 23 23],...
 'Callback',@grid_calculator_uiCB,...
 'FontSize',10,...
-'String','+','Tag','push_plus');
+'String','+','Tag','push_op');
 
 uicontrol('Parent',h1, 'Position',[11 8 111 21],...
 'Callback',@grid_calculator_uiCB,...
@@ -1103,42 +1046,42 @@ uicontrol('Parent',h1, 'Position',[11 8 111 21],...
 uicontrol('Parent',h1, 'Position',[491 150 50 21],...
 'Callback',@grid_calculator_uiCB,...
 'FontSize',10,...
-'String','sin','Tag','push_sin');
+'String','sin','Tag','push_funs');
 
 uicontrol('Parent',h1, 'Position',[551 150 50 21],...
 'Callback',@grid_calculator_uiCB,...
 'FontSize',10,...
-'String','cos','Tag','push_cos');
+'String','cos','Tag','push_funs');
 
 uicontrol('Parent',h1, 'Position',[611 150 50 21],...
 'Callback',@grid_calculator_uiCB,...
 'FontSize',10,...
-'String','tan','Tag','push_tan');
+'String','tan','Tag','push_funs');
 
 uicontrol('Parent',h1, 'Position',[491 117 50 21],...
 'Callback',@grid_calculator_uiCB,...
 'FontSize',10,...
-'String','log10','Tag','push_log10');
+'String','log10','Tag','push_funs');
 
 uicontrol('Parent',h1, 'Position',[551 117 50 21],...
 'Callback',@grid_calculator_uiCB,...
 'FontSize',10,...
-'String','log e','Tag','push_log_e');
+'String','log e','Tag','push_funs');
 
 uicontrol('Parent',h1, 'Position',[611 117 50 21],...
 'Callback',@grid_calculator_uiCB,...
 'FontSize',10,...
-'String','exp','Tag','push_exp');
+'String','exp','Tag','push_funs');
 
 uicontrol('Parent',h1, 'Position',[491 84 50 21],...
 'Callback',@grid_calculator_uiCB,...
 'FontSize',10,...
-'String','sqrt','Tag','push_sqrt');
+'String','sqrt','Tag','push_funs');
 
 uicontrol('Parent',h1, 'Position',[550 84 50 21],...
 'Callback',@grid_calculator_uiCB,...
 'FontSize',10,...
-'String','abs','Tag','push_abs');
+'String','abs','Tag','push_funs');
 
 uicontrol('Parent',h1, 'Position',[610 84 23 23],...
 'Callback',@grid_calculator_uiCB,...
