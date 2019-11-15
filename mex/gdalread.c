@@ -1046,7 +1046,7 @@ mxArray *populate_metadata_struct (char *gdal_filename , int correct_bounds, int
 	char	*corner_fieldnames[20];
 	char	*overview_fieldnames[20];
 	char	*colormap_fieldnames[1];
-	char	**papszMetadata = NULL, **papszMetadataBand = NULL;
+	char	**papszMetadata = NULL, **papszMetadataBand = NULL, **papszFileList = NULL;
 	int	xSize, ySize, raster_count; /* Dimensions of the dataset */
 	int	gdal_type;		/* Datatype of the bands. */
 	double	nan, tmpdble;		/* NaN & temporary value */
@@ -1054,7 +1054,7 @@ mxArray *populate_metadata_struct (char *gdal_filename , int correct_bounds, int
 	int	dims[2], bSuccess;
 	int	bGotMin, bGotMax;	/* To know if driver transmited Min/Max */
 	double	adfMinMax[2];		/* Dataset Min Max */
-
+	
 	/* ------------------------------------------------------------------------- */
 	/* Retrieve information on all drivers. */
 	/* ------------------------------------------------------------------------- */
@@ -1064,7 +1064,7 @@ mxArray *populate_metadata_struct (char *gdal_filename , int correct_bounds, int
 	/* ------------------------------------------------------------------------- */
 	/* Create the metadata structure. Just one element, with XXX fields. */
 	/* ------------------------------------------------------------------------- */
-	num_struct_fields = 19;
+	num_struct_fields = 20;
 	fieldnames[0]  = mxstrdup("ProjectionRef");
 	fieldnames[1]  = mxstrdup("GeoTransform");
 	fieldnames[2]  = mxstrdup("DriverShortName");
@@ -1081,9 +1081,10 @@ mxArray *populate_metadata_struct (char *gdal_filename , int correct_bounds, int
 	fieldnames[13] = mxstrdup("GCPprojection");
 	fieldnames[14] = mxstrdup("GCPvalues");
 	fieldnames[15] = mxstrdup("Metadata");
-	fieldnames[16] = mxstrdup("Subdatasets");
-	fieldnames[17] = mxstrdup("ImageStructure");
-	fieldnames[18] = mxstrdup("Name");
+	fieldnames[16] = mxstrdup("Files");
+	fieldnames[17] = mxstrdup("Subdatasets");
+	fieldnames[18] = mxstrdup("ImageStructure");
+	fieldnames[19] = mxstrdup("Name");
 	metadata_struct = mxCreateStructMatrix(1, 1, num_struct_fields, (const char **)fieldnames);
 
 	num_driver_fields = 2;
@@ -1548,6 +1549,22 @@ mxArray *populate_metadata_struct (char *gdal_filename , int correct_bounds, int
 		}
 	}
 	mxSetField (metadata_struct, 0, "Metadata", mxtmp);
+
+	/* ------------------------------------------------------------------------- */
+	/* Record File List (if any).                                              */
+	/* ------------------------------------------------------------------------- */
+	papszFileList = GDALGetFileList( hDataset );
+	if (papszFileList) {
+		nCounter = CSLCount(papszFileList);
+		mxtmp = mxCreateCellMatrix(nCounter-1, 1);
+		if (nCounter > 0) {
+			for (i = 0; i < nCounter-1; i++)		/* Jump first that contains the vrt file name */
+				mxSetCell(mxtmp,i,mxDuplicateArray(mxCreateString(papszFileList[i+1])));
+		}
+		mxSetField (metadata_struct, 0, "Files", mxtmp);
+		CSLDestroy(papszFileList);
+	}
+	/* ------------------------------------------------------------------------- */
 
 	/* ------------------------------------------------------------------------- */
 	/* Record Subdatasets (if any).                                              */
