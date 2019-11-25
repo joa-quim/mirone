@@ -1748,15 +1748,19 @@ function [script, l, o, mex_sc] = do_pscoast_job(handles, handMir, script, l, o,
 		else
 			opt_R = sprintf('-R%.12g/%.12g/%.12g/%.12gr', xy_prj(1,:),xy_prj(3,:));		% Note the -R./././.r construct
 		end
-		projGMT = getappdata(handMir.figure1,'ProjGMT');
-		if (~isempty(projGMT))		% Only simple case
-			opt_J = projGMT;
-		end
 
 		% Here we need also to use the map scale in the form 1:xxxxx
 		escala = get(handles.edit_scale , 'String');
 		ind = strfind(script{5}, '-J');
 		script{5} = [script{5}(1:ind+1) 'x' escala];	% DANGEROUS. IT RELIES ON THE INDEX 5
+
+		out = aux_funs('get_proj_string', handMir.figure1);
+		if (~isempty(out))
+			out = strrep(out, ' ', '');
+			opt_J = [' -J' out '+scale=' escala ' --GMT_HISTORY=readonly'];
+		elseif (~isempty(getappdata(handMir.figure1,'ProjGMT')))	% Only simple case
+			opt_J = [getappdata(handMir.figure1,'ProjGMT') '/' escala ' --GMT_HISTORY=readonly'];
+		end
 	end
 
 	script{l} = ['gmt pscoast ' handles.opt_psc ellips handles.opt_L opt_R opt_J ' -O -K >> ' pb 'ps' pf];	l = l + 1;
