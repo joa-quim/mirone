@@ -457,6 +457,9 @@ function CoastLines(handles, res)
 	end
 
 	[coast, msg] = geog2projected_pts(handles, coast, [lon lat], 0);
+	if (isinf(coast(1)))		% Aparently NaNs become Infs in ogrproj. 
+		coast(isinf(coast)) = NaN;
+	end
 	if (numel(msg) > 2)
 		errordlg(msg,'ERROR');
 		return
