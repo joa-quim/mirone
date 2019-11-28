@@ -1288,7 +1288,9 @@ function out = figs_XOR(hFig, hFigs)
 	hFigs(ind) = [];							% Remove current figure from the fished list
 	IAmAMir = true(1, numel(hFigs));
 	for (k = 1:numel(hFigs))
-		if (isempty(getappdata(hFigs(k), 'IAmAMirone'))),	IAmAMir(k) = false;		end
+		if (isempty(getappdata(hFigs(k), 'IAmAMirone')) && isempty(getappdata(hFigs(k), 'IAmAEcran')))
+			IAmAMir(k) = false;
+		end
 	end
 	out = hFigs(IAmAMir);						% Retain only the Mirone figures
 
