@@ -149,11 +149,15 @@ function varargout = ecran(varargin)
 
 	handles.handMir = [];		handles.show_popups = true;
 	handles.ellipsoide = [];	handles.geog = [];
-	handles.measureUnit = [];
+	handles.measureUnit = [];	handles.IamXY = true;
 	if (isa(varargin{1},'struct'))					% ecran(handlesMir, ...) or ecran(struct, ...)
 		if (isfield(varargin{1},'LoadBGMap'))		% First arg is the Mirone handles struct
-			handles.handMir = varargin{1};
-			handles.work_dir = handles.handMir.work_dir;
+			handles.handMir   = varargin{1};
+			handles.work_dir  = handles.handMir.work_dir;
+			handles.path_data = handles.handMir.path_data;
+			handles.path_tmp  = handles.handMir.path_tmp;
+			handles.version7  = handles.handMir.version7;
+			handles.IamCompiled = handles.handMir.IamCompiled;
 		end
 		handles.ellipsoide = varargin{1}.DefineEllipsoide;
 		handles.geog = varargin{1}.geog;
@@ -3526,6 +3530,8 @@ function h1 = ecran_LayoutFcn(opt)
 		'FileName','plotxy',...
 		'Vis','off',...
 		'Tag','figure1');
+	
+	setappdata(h1,'IAmAEcran',true)		% Use this appdata to identify this type of figure
 
 	x0  = 40;	y0 = 48;
 	w   = fw - x0 - 3;			% Dafault = 771
@@ -3574,7 +3580,8 @@ uimenu('Parent',hSe, 'Callback',@ecran_uiCB, 'Label','Save', 'Tag','FileSaveSess
 
 hSc = uimenu('Parent',h10,'Label','Save GMT script','Sep','on');
 uimenu('Parent',hSc, 'Callback','write_gmt_script(guidata(gcbo),''bat'')','Label','dos batch');
-uimenu('Parent',hSc, 'Callback','write_gmt_script(guidata(gcbo),''csh'')','Label','bash script');
+%uimenu('Parent',hSc, 'Callback','write_gmt_script(guidata(gcbo),''csh'')','Label','bash script');
+uimenu('Parent',hSc, 'Callback','plot_composer(guidata(gcbo))','Label','bash script');
 
 uimenu('Parent',h10, 'Callback','ecran','Label','New','Separator','on');
 uimenu('Parent',h10, 'Callback',@ecran_uiCB, 'Label','Export...', 'Tag','FileExport', 'Sep','on');
