@@ -59,7 +59,6 @@ function varargout = grid_calculator(varargin)
 			set(hObject, 'Name', 'Bands calculator')
 			if (isappdata(handMir.axes1, 'LandSAT8_MTL'))
 				set(handles.push_Trad, 'Vis', 'on')		% They would be set visible because h_figs == []
-				handles.h_figs = handMir.figure1;
 			end
 		end
 	elseif (~isempty(varargin) && isa(varargin{1}, 'char'))
@@ -101,6 +100,8 @@ function varargout = grid_calculator(varargin)
 			end
 			n = n + 1;
 		end
+	else
+		handles.h_figs = handMir.figure1;
 	end
 
 	% ------------ Create a Semaforo -----------------------------------------------------
@@ -485,11 +486,15 @@ function out = bandArithm(handles, com)
 				if (nargout),	out = Z;	return,		end
 
 				%grid.(char(n+96)) = double(Z) / double(intmax_(class(Z)));
-				if (isa(Z, 'uint16'))
-					grid.(char(n+96)) = grdutils(Z, sprintf('-M%f',1 / double(intmax_(class(Z)))) );
+				if (numel(k) > 1)			% Promote and Normalize
+					if (isa(Z, 'uint16'))
+						grid.(char(n+96)) = grdutils(Z, sprintf('-M%f',1 / double(intmax_(class(Z)))) );
+					else
+						grid.(char(n+96)) = single(Z);
+						grdutils(grid.(char(n+96)), sprintf('-M%f',1 / double(intmax_(class(Z)))) );	% Here OP is insitu
+					end
 				else
 					grid.(char(n+96)) = single(Z);
-					grdutils(grid.(char(n+96)), sprintf('-M%f',1 / double(intmax_(class(Z)))) );	% Here OP is insitu
 				end
 				N(i) = n;
 			end
@@ -523,14 +528,17 @@ function out = bandArithm(handles, com)
 
 		if (numel(resp) > 1)			% 'resp' is a array. Construct a fake grid
 			resp = single(resp);
-			[m,n] = size(resp);
-			tmp.X = 1:n;        tmp.Y = 1:m;
 			[zzz] = grdutils(resp,'-L');  z_min = zzz(1);     z_max = zzz(2);
-			tmp.head = [1 n 1 m z_min z_max 0 1 1];
 			tmp.name = 'Computed_band';
 			if (~isempty(handles.hMirFig))
+				handMir = guidata(handles.hMirFig);
+				tmp.head = handMir.head;
+				tmp.head(5:6) = [z_min z_max];
 				mirone(resp, tmp, handles.hMirFig);		% Can fish cpt and proj stuff from parent
 			else
+				[m,n] = size(resp);
+				tmp.X = 1:n;        tmp.Y = 1:m;
+				tmp.head = [1 n 1 m z_min z_max 0 1 1];
 				mirone(resp, tmp);
 			end
 		else							% Computations that do not involve grids
