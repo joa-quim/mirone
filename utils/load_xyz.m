@@ -909,7 +909,7 @@ function varargout = load_xyz(handles, opt, opt2)
 				draw_funs(hLine,'line_uicontext')		% Here hLine is actually only a scalar
 			else
 				% Sometimes we still have only '>'. If only one segment, test for that case and jump if true
-				if (numel(multi_segs_str) == 1) && (numel(multi_segs_str{1}) <= 2) && strfind(multi_segs_str{1}, '>')
+				if (numel(multi_segs_str) == 1) && (numel(multi_segs_str{1}) <= 2) && ~isempty(strfind(multi_segs_str{1}, '>'))
 					draw_funs(hLine,'isochron', '')
 				else
 					draw_funs(hLine,'isochron', multi_segs_str)
@@ -999,7 +999,8 @@ function nc_plotSave_pts(obj, evt, fname, PolyIndex, opt)
 % --------------------------------------------------------------------
 function [cor, str2] = parseG(str)
 % Parse the STR string in search of color. If not found or error COR = [].
-% STR2 is the STR string less the -Gr/g/b part
+% STR2 is the STR string less the -Gr/g/b part.
+% Color can be set as -GR/G/B or -Gred | -Gblue | -Ggreen | -Grand | -G[0-255]
 	cor = [];   str2 = str;
 	ind = strfind(str,' -G');
 	if (isempty(ind)),      return;     end		% No -G option
@@ -1011,8 +1012,14 @@ function [cor, str2] = parseG(str)
 		% OK, now 'strG' must contain the color in the r/g/b form
 		ind = strfind(strG,'/');
 		if (isempty(ind))				% E.G. -G100 form
-			cor = eval(['[' strG ']']);
-			cor = [cor cor cor] / 255;
+			if     (~isempty(strfind(strG, 'red'))),	cor = [1 0 0];
+			elseif (~isempty(strfind(strG, 'green'))),	cor = [0 1 0];
+			elseif (~isempty(strfind(strG, 'blue'))),	cor = [0 0 1];
+			elseif (~isempty(strfind(strG, 'rand'))),	cor = rand(1,3);
+			else
+				cor = eval(['[' strG ']']);
+				cor = [cor cor cor] / 255;
+			end
 		else
 			% This the relevant part in num2str. I think it is enough here
 			cor = [eval(['[' strG(1:ind(1)-1) ']']) eval(['[' strG(ind(1)+1:ind(2)-1) ']']) eval(['[' strG(ind(2)+1:end) ']'])];
@@ -1058,8 +1065,12 @@ function [thick, cor, str2] = parseW(str, thick, cor)
 			% This is the relevant part in num2str. I think it is enough here
 			cor = [eval(['[' strW(1:ind(1)-1) ']']) eval(['[' strW(ind(1)+1:ind(2)-1) ']']) eval(['[' strW(ind(2)+1:end) ']'])];
 			cor = cor / 255;
-		elseif (~isempty(strfind(strW, 'rand')))
-			cor = rand(1,3);
+		else
+			if     (~isempty(strfind(strW, 'red'))),	cor = [1 0 0];
+			elseif (~isempty(strfind(strW, 'green'))),	cor = [0 1 0];
+			elseif (~isempty(strfind(strW, 'blue'))),	cor = [0 0 1];
+			elseif (~isempty(strfind(strW, 'rand'))),	cor = rand(1,3);
+			end
 		end
 		% Note that we cannot have -W100 represent a color because it would have been interpret above as a line thickness
 		if (any(isnan(cor))),   cor = [];   end
