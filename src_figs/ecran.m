@@ -128,6 +128,10 @@ function varargout = ecran(varargin)
 			handles.home_dir = mir_dirs.home_dir;		% Start in values
 			handles.work_dir = mir_dirs.work_dir;
 			handles.last_dir = mir_dirs.last_dir;
+			handles.path_data = mir_dirs.path_data;
+			handles.path_tmp  = mir_dirs.path_tmp;
+			handles.version7  = mir_dirs.version7;
+			handles.IamCompiled = mir_dirs.IamCompiled;
 		else
 			handles.home_dir = cd;		handles.work_dir = cd;		handles.last_dir = cd;
 		end
