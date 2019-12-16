@@ -540,8 +540,9 @@ function hObject = mirone_OpeningFcn(varargin)
 	%set_gmt('CPL_DEBUG=ON');
 
 	guidata(hObject, handles);
-	tmp.home_dir = home_dir;	tmp.work_dir = handles.work_dir;	tmp.last_dir = handles.last_dir;
-	setappdata(0,'MIRONE_DIRS',tmp);		% To access from places where handles.home_dir is unknown (must precede gateLoadFile())
+	t.home_dir  = home_dir;	t.work_dir = handles.work_dir;	t.last_dir = handles.last_dir;	t.version7 = handles.version7;
+	t.path_data = handles.path_data;	t.path_tmp = handles.path_tmp;	t.IamCompiled = handles.IamCompiled;
+	setappdata(0,'MIRONE_DIRS',t);		% To access from places where handles.home_dir is unknown (must precede gateLoadFile())
 	if (~isempty(drv))
 		gateLoadFile(handles,drv,varargin{1});		% load recognized file types
 	else
@@ -2980,8 +2981,11 @@ function ImageDrape_CB(handles, alfa)
 		clim = get(handles.axes1, 'CLim');
 		son_img = scaleto8(son_img, -8, round(clim));
 	end
-	
-	h_f = getappdata(handles.figure1,'hFigParent');		% Get the parent figure handle
+
+	h_f = getappdata(handles.figure1,'hFigParent');			% Get the parent figure handle
+	if (isempty(h_f))
+		h_f = getappdata(handles.figure1,'hFigDescendent');	% Get the Descendent figure handle
+	end
 	if (~ishandle(h_f))
 		msgbox('Parent window no longer exists (you kiled it). Exiting.','Warning');		return
 	end
@@ -5392,6 +5396,8 @@ function TransferB_CB(handles, opt, opt2)
 		setappdata(h,'hFigParent',handles.figure1);		% Save the Parent fig handles in this new figure
 		if (~handles.no_file)					% Set the Drape option to 'on' in the New window
 			set(newHand.ImageDrape,'Vis','on')
+			set(handles.ImageDrape,'Vis','on')
+			setappdata(handles.figure1,'hFigDescendent',newHand.figure1);	% Save the Descendent fig handles
 		end
 		if (handles.validGrid)
 			set(newHand.RetroShade,'Vis','on')	% Set the Retro-Illum option to 'on' in the New window
