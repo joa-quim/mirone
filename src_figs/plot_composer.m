@@ -332,7 +332,7 @@ function handles = get_img_dims(handles, N, width)
 	imgXlim = get(handMir.axes1,'XLim');    imgYlim = get(handMir.axes1,'YLim');
 	if (handMir.image_type == 2 || handMir.image_type == 20)		% "trivial" images
 		if (isfield(handMir, 'IamXY') && handMir.IamXY)
-			nx = 300;	ny = 200;		% Pure INVENTION
+			nx = 300;	ny = 150;		% Pure INVENTION. SET ONLY LATER, AT create_images.
 		else
 			[ny,nx,nz] = size(get(handMir.hImg,'CData'));
 		end
@@ -424,9 +424,21 @@ function handles = draw_img_rectangle(handles, N, X0, Y0)
 					img = ind2rgb8(img, get(handMir.figure1,'Colormap'));
 				end
 			else
-				img = repmat(uint8(255), [200 300 3]);
-				img(:,150,1) = 0;	% Just to make it not totally white
-				img(100,:,2) = 0;
+% 				n_rows = 200;		n_cols = 300;
+% 				img = repmat(uint8(255), [n_rows n_cols 3]);
+% 				img(:,150,1) = 0;	% Just to make it not totally white
+% 				img(100,:,2) = 0;
+				pbar = get(handMir.axes1, 'PlotBoxAspectRatio');
+				n_cols = 300;		n_rows = round(pbar(2) * n_cols);
+				x = get(handMir.hLine(1),'XData');		y = get(handMir.hLine(1),'YData');
+				x = x(:) - x(1);	y = y(:) - min(y);	% Move origin to 0
+				xlim = get(handMir.axes1, 'xlim');		ylim = get(handMir.axes1, 'ylim');
+				scale_x = (n_cols-1) / diff(xlim);		scale_y = (n_rows-1) / diff(ylim);
+				x = round(x * scale_x) + 1;				y = round(y * scale_y) + 1;
+				ind = sub2ind([n_rows n_cols], y, x);
+				img = repmat(uint8(255), [n_rows n_cols]);
+				img(ind) = 0;
+				img = repmat(img, [1 1 3]);
 			end
 			handles.orig_img{N} = img;	% Save a copy for (re)projections
 			handles.hAllImgs(N) = image('XData',[rect_x(1) rect_x(3)],'YData',rect_y(1:2),'CData', img);
@@ -636,12 +648,19 @@ function radio_Landscape_CB(hObject, handles)
 % -----------------------------------------------------------------------------------------
 function radio_autoRun_CB(hObject, handles)
 	if (~get(hObject,'Val')),	set(hObject,'Val',1),	return,		end
-	set(handles.radio_writeScript, 'Val', 0)
+	set([handles.radio_writeScript handles.check_runScript], 'Val', 0)
 
 % -----------------------------------------------------------------------------------------
 function radio_writeScript_CB(hObject, handles)
 	if (~get(hObject,'Val')),	set(hObject,'Val',1),	return,		end
 	set(handles.radio_autoRun, 'Val', 0)
+
+% -----------------------------------------------------------------------------------------
+function check_runScript_CB(hObject, handles)
+	if (get(hObject,'Val'))
+		set(handles.radio_writeScript, 'Val', 1)
+		radio_writeScript_CB(handles.radio_writeScript, handles)
+	end
 
 % -----------------------------------------------------------------------------------------
 function popup_directory_list_CB(hObject, handles)
@@ -2738,6 +2757,7 @@ function delete_fig(obj, evt, hPatch)
 	handles = guidata(hPatch);
 	N = get(handles.popup_familyPlots, 'Val');
 	str = get(handles.popup_familyPlots, 'Str');
+	N_tot = numel(str);
 	if (numel(str) == 1)
 		delete(handles.figure1)		% BYE BYE
 		return
@@ -2757,10 +2777,15 @@ function delete_fig(obj, evt, hPatch)
 
 	handles.x_min(N) = [];		handles.x_max(N) = [];	handles.y_min(N) = [];	handles.y_max(N) = [];
 	handles.X0(N) = [];			handles.Y0(N) = [];		handles.scale{N} = [];	handles.opt_R(N) = [];
-	handles.width_orig(N)  = [];		handles.height_orig(N) = [];	handles.map_width(N) = [];
+	handles.width_orig(N) = [];		handles.height_orig(N) = [];	handles.map_width(N) = [];
 	handles.projection_str(N) = [];
 	delete(handles.hAllImgs(N)),		handles.hAllImgs(N) = [];	handles.orig_img{N} = [];
 	guidata(handles.figure1, handles)
+	if (N == N_tot),	N = 1;	end		% Last one was deleted
+	% else the next one is still the old N because it would be N+1 but we deleted one, so N = N
+	if (N <= numel(handles.hRect))
+		popup_familyPlots_CB(handles.hRect(N), [], N)	% Update the edit boxes for the next image in stack
+	end
 
 % ------------------------------------------------------------------------------------------------------------
 function draw_rectangle(hObj, evt)
@@ -2942,7 +2967,8 @@ h(nu) = uicontrol('Parent',hFig, 'Position',[576 417 105 15],...
 	nu = nu + 1;
 
 h(nu) = uicontrol('Parent',hFig, 'Position',[710 417 60 15],...
-	'String','& run it',...
+	'Callback',@plot_composer_uiCB,...
+	'String','& Run it',...
 	'Style','checkbox',...
 	'Tooltip','Run the GMT scrit that will reproduce this plot',...
 	'UserData', figW-710, ...
