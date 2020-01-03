@@ -525,7 +525,7 @@ function [X,Y,Z,head,misc] = read_nc(fname, opt)
 			try
 				Z = nc_funs('varget', fname, s.Dataset(z_id).Name);
 			catch
-				if (~isempty(strfind(lasterr, 'A memory allocation request failed')))
+				if (~isempty(strfind(lasterr, 'A memory allocation request failed')) || ~isempty(strfind(lasterr, 'Out of memory')))
 					h = warndlg('We got an Out of memory error. Trying again with a MUCH SLOWER method.','WARNING');
 					try
 						Z = nc_funs('varget_t', fname, s.Dataset(z_id).Name);
