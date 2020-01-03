@@ -96,7 +96,7 @@ isresize(0);
 %--------------------------
 
 % Determine the legend_ parent axes (ha) is specified
-if narg > 0 && ~isempty(varargin{1}) && ~isa(varargin{1}, 'char') &&ishandle(varargin{1}) && strcmp(get(varargin{1}(1),'type'),'axes') % legend_(ax,...)
+if narg > 0 && ~isempty(varargin{1}) && ~isa(varargin{1}, 'char') && ishandle(varargin{1}(1)) && strcmp(get(varargin{1}(1),'type'),'axes') % legend_(ax,...)
 	ha = varargin{1}(1);
 	varargin(1) = []; % Remove from list
 	narg = narg - 1;
