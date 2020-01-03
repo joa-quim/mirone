@@ -228,7 +228,7 @@ function push_OK_CB(hObject, handles)
         depth = handles.external_dat(:,3);		mag = handles.external_dat(:,4);
         year_dec = handles.external_date(:,2);
 	else
-        errordlg('Plot What? Your fears?','Chico Clever');  return;
+        errordlg('Plot What?','Chico Clever');  return;
 	end
 	
 	lower_date = dec_year(StartYear,StartMonth,StartDay);
@@ -435,10 +435,10 @@ function push_externalFile_CB(hObject, handles)
 			todos = fread(fid,'*char');
 			if (filtro == 2)                    % posit file
 				try
-					[year julio d_h d_m d1 lat lon d1 d1 d1 mag d1] = strread(todos,'%d %d %d %d %d %f %f %f %f %f %f %f');
+					[year, julio, d_h, d_m, d1, lat, lon, d1, d1, d1, mag, d1] = strread(todos,'%d %d %d %d %d %f %f %f %f %f %f %f');
 					d_h = d_h + d_m / 60;
 				catch
-					[tempo d1 d1 lat lon d1 d1 d1 mag d1] = strread(todos,'%s %d %s %f %f %f %f %f %f %f');
+					[tempo, d1, d1, lat, lon, d1, d1, d1, mag, d1] = strread(todos,'%s %d %s %f %f %f %f %f %f %f');
 					d1 = cell2mat(tempo);
 					year = str2num(d1(:,1:4));
 					julio = str2num(d1(:,5:7));
@@ -450,10 +450,10 @@ function push_externalFile_CB(hObject, handles)
 				[mo,day] = jd2monday(julio,year);
 				depth = zeros(length(year),1);
 			elseif (filtro == 3)                % lon,lat,mag,dep,yy,mm,dd,hh,mm,ss
-				[lon lat mag depth year mo day hh mm ss] = strread(todos,'%f %f %f %f %d %d %d %d %d %d');
+				[lon, lat, mag, depth, year, mo, day, hh, mm, ss] = strread(todos,'%f %f %f %f %d %d %d %d %d %d');
 				year_dec = dec_year(year,mo,day,hh,mm,ss);  clear hh mm ss;
 			else                                % lon,lat,dep,mag,yy,mm,dd file
-				[lon lat depth mag year mo day] = strread(todos,'%f %f %f %f %d %d %d');
+				[lon, lat, depth, mag, year, mo, day] = strread(todos,'%f %f %f %f %d %d %d');
 				year_dec = dec_year(year,mo,day);
 			end
 			fclose(fid);	clear todos
