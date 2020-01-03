@@ -410,6 +410,10 @@ function set_line_uicontext(h, opt)
 			uimenu(item_tools, 'Label', 'Crop Image', 'Callback', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco)');
 			uimenu(item_tools, 'Label', 'Crop Image (with coords)', 'Callback', ...
 				'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''CropaWithCoords'')');
+% 			BL = getappdata(handles.figure1,'BandList');
+% 			if (~isempty(BL))
+% 				uimenu(item_tools, 'Label', 'Crop stack', 'Callback', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''CropaStack'')');
+% 			end
 			uimenu(item_tools, 'Label', 'Set to constant', 'Callback', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''SetConst'')','Sep','on');
 			item_tools3 = uimenu(item_tools, 'Label', 'Stats');
 			uimenu(item_tools3,'Label', 'Mean',          'Callback', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''GetMean'')');
