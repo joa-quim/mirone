@@ -889,8 +889,19 @@ function varargout = ImageCrop_CB(handles, opt, opt2, opt3)
 
 		elseif (strcmp(opt2,'ImplantGrid'))				% Read and external grid and implant it in host grid
 			[Z_rect, r_c] = transplants(opt, 'grid', true, handles);
-			if (isempty(Z_rect)),		return,		end		% User gave up
+			if (isempty(Z_rect)),	return,		end		% User gave up
 
+% 		elseif (strcmp(opt2,'CropaStack'))				% Crop a multi-layered file
+% 			BL = getappdata(handles.figure1,'BandList');
+% 			n_layers = BL{7}(end);
+% 			Z_rect = aux_funs('get_layer_n', handles.figure1, 1);
+% 			[I,r_c] = cropimg(handles.head(1:2),handles.head(3:4),Z_rect,rect_crop,'out_grid');
+% 			I = repmat(I, [1, 1, n_layers]);			% Make room for the remaining layers
+% 			for (k = 2:n_layers)
+% 				Z_rect = aux_funs('get_layer_n', handles.figure1, k);
+% 				[I(:,:,k),r_c] = cropimg(handles.head(1:2),handles.head(3:4),Z_rect,rect_crop,'out_grid');
+% 			end
+			
 		else					% Extract the sub-grid inside the rectangle/polygon
 			[X,Y,Z,head] = load_grd(handles);
 			if isempty(Z),		return,		end		% An error message was already issued
