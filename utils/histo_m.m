@@ -43,7 +43,7 @@ function [no,xo] = hist(y,x,min_max, opt)
 	elseif (n_in == 3 && isa(min_max, 'char'))
 		ret_hand = true;	n_in = n_in - 1;
 	end
-	
+
 	if (n_in == 3)            % Min & Max of y was transmited in argument
 		miny = min_max(1);
 		maxy = min_max(2);
