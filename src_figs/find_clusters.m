@@ -102,7 +102,7 @@ function push_compute_CB_(hObject, handles)
 	clus2 = find(clus1);                    % Isolate the 1s (jumps(clus) == starting index of selected jumps)
 	juju = [jumps(clus2)'; jumps(clus2+1)'];% [2 x n_clusters] array where 1st row = cluster_start & 2nd row = cluster_end+2
 	ju = juju(:);
-	if ( (length(dt) - jumps(end)) >= nEvents)  % Check that we are not loosing one last cluster
+	if ((length(dt) - jumps(end)) >= nEvents)  % Check that we are not loosing one last cluster
         ju = [ju; jumps(end); length(events_time)+2];
 	end
 	n_clust = length(ju) / 2;				% Divide by 2 because ju contains the begining AND end of each swarm
@@ -133,7 +133,8 @@ function push_compute_CB_(hObject, handles)
 
 	std_max = str2double(get(handles.edit_maxSTD,'String'));
 	str = cell(n_clust+1,1);                % + 1 to account for the first empty line
-	for (k=1:n_clust)
+	str{1} = 'All';
+	for (k = 1:n_clust)
         [std_dist,dist] = std_geo(handles.clusters{k}(:,1),handles.clusters{k}(:,2));
         ind = (dist > std_max*std_dist);
         handles.clusters{k}(ind,:) = [];
@@ -152,16 +153,16 @@ function push_compute_CB(hObject, handles)
 	events_mag = getFromAppdata(handles.h_events,'SeismicityMag');
 	events_dep = getFromAppdata(handles.h_events,'SeismicityDepth');
 	if (isempty(events_time))
-        errordlg('This seismicity plot somehow lost its time information.','Error');    return;
+		errordlg('This seismicity plot somehow lost its time information.','Error'),	return
 	end
 
 	gap = str2double(get(handles.edit_dt,'String'));
 	nEvents = str2double(get(handles.edit_nEvents,'String'));
 	std_max = str2double(get(handles.edit_maxSTD,'String'));
 
-	x = get(handles.h_events,'XData');      y = get(handles.h_events,'YData');
+	x = get(handles.h_events,'XData');		y = get(handles.h_events,'YData');
 	if (iscell(x))
-        x = cat(2,x{:});        y = cat(2,y{:});
+		x = cat(2,x{:});	y = cat(2,y{:});
 	end
 	IN = inpolygon(x,y,get(handles.h_polyg,'XData'),get(handles.h_polyg,'YData'));
 	IN = ~IN;       % Negate bacause what we are interested in is to remove the out-polygon-points
@@ -169,26 +170,26 @@ function push_compute_CB(hObject, handles)
 	events_mag(IN) = [];           events_dep(IN) = [];
 
 	if (get(handles.radio_bigEvent,'Value'))
-        mode = 'bigest';
+		mode = 'bigest';
 	elseif (get(handles.radio_swarmCenter,'Value'))
-        mode = 'center';
+		mode = 'center';
 	end
 
 	[handles.clusters,handles.times,handles.mags,handles.depths] = ...
-        swarms(handles,x,y,events_time,events_mag,events_dep,gap,nEvents,std_max,mode,1);
-	
+		swarms(handles,x,y,events_time,events_mag,events_dep,gap,nEvents,std_max,mode,true);
+
 	n_clust = length(handles.clusters);
 	set(handles.text_nFound,'String',['Found ' num2str(n_clust) ' potential clusters'],'Visible','on')
 	if (~n_clust)                           % No clusters found
-        set(handles.popup_nSwarm,'String',' ','Value',1);
-        handles.clusters = [];
-        guidata(hObject, handles);
-        return
+		set(handles.popup_nSwarm,'String',' ','Value',1);
+		handles.clusters = [];
+		guidata(hObject, handles);
+		return
 	end
 
 	str = cell(n_clust+1,1);                % + 1 to account for the first empty line
-	for (k=1:n_clust)
-        str{k+1} = [num2str(k) 'th swarm (' num2str(length(handles.clusters{k})) ')'];
+	for (k = 1:n_clust)
+		str{k+1} = [num2str(k) 'th swarm (' num2str(length(handles.clusters{k})) ')'];
 	end
 	set(handles.popup_nSwarm,'String',str,'Value',1)
 
@@ -202,33 +203,33 @@ function [clusters,times,mags,depths] = swarms(handles,x,y,events_time,events_ma
 %           this function to refine the clusters determination.
 
 	if (first)                              % At first time call we are not sure that data is already sorted
-        [events_time,ind] = sort(events_time);
+		[events_time,ind] = sort(events_time);
 	end
 
 	dt = diff(events_time);
 	jumps = find(dt > gap/365) + 1;         % Find time jumps in the seismicity
 	if (isempty(jumps))                     % No jumps > gap, It means no cluster or all data is a single cluster.
-        clusters = [];  times = [];     mags = [];  depths = [];
-        return
+		clusters = [];  times = [];     mags = [];  depths = [];
+		return
 	end
 	clus1 = (diff(jumps) >= nEvents);       % Find which jumps have at least nEvents (logical vector with 0s & 1s)
 	clus2 = find(clus1);                    % Isolate the 1s (jumps(clus) == starting index of selected jumps)
 	juju = [jumps(clus2)'; jumps(clus2+1)'];% [2 x n_clusters] array where 1st row = cluster_start & 2nd row = cluster_end+2
 	ju = juju(:);
-	if ( (length(dt) - jumps(end)) >= nEvents)  % Check that we are not loosing one last cluster
-        ju = [ju; jumps(end); length(events_time)+2];
+	if ((length(dt) - jumps(end)) >= nEvents)  % Check that we are not loosing one last cluster
+		ju = [ju; jumps(end); length(events_time)+2];
 	end
 	n_clust = length(ju) / 2;               % Divide by 2 because ju contains the begining AND end of each swarm
 
 	if (n_clust == 0)						% No clusters found
-        clusters = [];  times = [];     mags = [];  depths = [];
-        return
+		clusters = [];  times = [];     mags = [];  depths = [];
+		return
 	end
 
 	if (first)								% Need to order also those vars according to index of sorting events_time
-        x = x(ind)';     y = y(ind)';		% transpose because x & y come from a get(...,XData) and are row vectors
-        events_mag = events_mag(ind);
-        events_dep = events_dep(ind);
+		x = x(ind)';     y = y(ind)';		% transpose because x & y come from a get(...,XData) and are row vectors
+		events_mag = events_mag(ind);
+		events_dep = events_dep(ind);
 	end
 
 	clusters = cell(n_clust,1);     times = cell(n_clust,1);
@@ -238,38 +239,38 @@ function [clusters,times,mags,depths] = swarms(handles,x,y,events_time,events_ma
 
 	l = 1;
 	for (k=1:2:2*n_clust)                   % Jump 2 because each swarm starts a 1, 3, 5, ... and stops at 2, 4, 6, ...
-        clusters{l} = [x(ju(k):ju(k+1)-2) y(ju(k):ju(k+1)-2)];  % -2 because diff reduces vector length by 1
-        times{l} = events_time(ju(k):ju(k+1)-2);
-        mags{l} = events_mag(ju(k):ju(k+1)-2);
-        depths{l} = events_dep(ju(k):ju(k+1)-2);
-        if (clipa && first)                  % If it is to clip, do it only on the first round
-            [mmag,ind_tm] = max(mags{l});
-            clusters{l}(1:ind_tm-1,:) = [];
-            times{l}(1:ind_tm-1) = [];
-            mags{l}(1:ind_tm-1) = [];
-            depths{l}(1:ind_tm-1) = [];
-        end
-        l = l + 1;
+		clusters{l} = [x(ju(k):ju(k+1)-2) y(ju(k):ju(k+1)-2)];  % -2 because diff reduces vector length by 1
+		times{l} = events_time(ju(k):ju(k+1)-2);
+		mags{l} = events_mag(ju(k):ju(k+1)-2);
+		depths{l} = events_dep(ju(k):ju(k+1)-2);
+		if (clipa && first)                  % If it is to clip, do it only on the first round
+			[mmag,ind_tm] = max(mags{l});
+			clusters{l}(1:ind_tm-1,:) = [];
+			times{l}(1:ind_tm-1) = [];
+			mags{l}(1:ind_tm-1) = [];
+			depths{l}(1:ind_tm-1) = [];
+		end
+		l = l + 1;
 	end
 
 	% Select the center mode to use in std_geo
 	if (strcmp(mode,'center'))
-        center = cell(n_clust,1);
+		center = cell(n_clust,1);
 	elseif (strcmp(mode,'bigest'))
-        center = cell(n_clust,1);
-        for (k=1:n_clust)
-            [mm,ind] = max(mags{k});
-            center{k} = clusters{k}(ind,:); 
-        end
+		center = cell(n_clust,1);
+		for (k=1:n_clust)
+			[mm,ind] = max(mags{k});
+			center{k} = clusters{k}(ind,:);
+		end
 	end
 
-	for (k=1:n_clust)
-        [std_dist,dist] = std_geo(clusters{k}(:,1),clusters{k}(:,2),center{k});
-        ind = (dist > std_max*std_dist);
-        clusters{k}(ind,:) = [];
-        times{k}(ind,:) = [];
-        mags{k}(ind,:) = [];
-        depths{k}(ind,:) = [];
+	for (k = 1:n_clust)
+		[std_dist,dist] = std_geo(clusters{k}(:,1),clusters{k}(:,2),center{k});
+		ind = (dist > std_max*std_dist);
+		clusters{k}(ind,:) = [];
+		times{k}(ind,:) = [];
+		mags{k}(ind,:) = [];
+		depths{k}(ind,:) = [];
 	end
 
 	% The loop above may have rejected some points. A situation occurs when the rejected points
@@ -281,14 +282,14 @@ function [clusters,times,mags,depths] = swarms(handles,x,y,events_time,events_ma
 	% But there is more. If the clip option was used, many events may have gone in each cluster
 
 	if (first)
-        % x = cat(1,clusters{:}(:,1));      % This gives an error. WHY?
-        zz = cat(1,clusters{:});
-        x = zz(:,1);    y = zz(:,2);    clear zz;
-        events_time = cat(1,times{:});
-        events_mag = cat(1,mags{:});
-        events_dep = cat(1,depths{:});
-        [clusters,times,mags,depths] = ...
-            swarms(handles,x,y,events_time,events_mag,events_dep,gap,nEvents,std_max,mode,0);
+		% x = cat(1,clusters{:}(:,1));      % This gives an error. WHY?
+		zz = cat(1,clusters{:});
+		x = zz(:,1);    y = zz(:,2);    clear zz;
+		events_time = cat(1,times{:});
+		events_mag = cat(1,mags{:});
+		events_dep = cat(1,depths{:});
+		[clusters,times,mags,depths] = ...
+			swarms(handles,x,y,events_time,events_mag,events_dep,gap,nEvents,std_max,mode,false);
 	end
 
 %--------------------------------------------------------------------------
@@ -302,46 +303,46 @@ function radio_separate_CB(hObject, handles)
 %--------------------------------------------------------------------------
 function radio_same_CB(hObject, handles)
 	if (get(hObject,'Value'))
-        set(handles.radio_separate,'Value',0)
+		set(handles.radio_separate,'Value',0)
 	else
-        set(handles.radio_separate,'Value',1)
+		set(handles.radio_separate,'Value',1)
 	end
 
 %--------------------------------------------------------------------------
 function push_plot_CB(hObject, handles)
 
 	if (isempty(handles.clusters))
-        warndlg('No, I won''t plot. The reason why should be pretty obvious.','Warning')
-        return
+		warndlg('Nothing to plot.','Warning')
+		return
 	end
 
-	if (get(handles.radio_same,'Value'))    
-        h_mir = new_mir(handles.mirone_fig, handles.h_polyg, handles);
-        set(h_mir,'Name','All swarms')
-        hold on;
+	if (get(handles.radio_same,'Value'))
+		h_mir = new_mir(handles.mirone_fig, handles.h_polyg, handles);
+		set(h_mir,'Name','All swarms')
+		hold on;
 		for (k=1:length(handles.clusters))
-            h_quakes = plot(handles.clusters{k}(:,1),handles.clusters{k}(:,2),'kp','Marker','o', ...
-                'MarkerFaceColor',rand(1,3),'MarkerEdgeColor','k','MarkerSize',5,'Tag','Earthquakes');
-            setappdata(h_quakes,'SeismicityTime',handles.times{k});     % Save events time
-            setappdata(h_quakes,'SeismicityMag',handles.mags{k});       % Save events mags
-            setappdata(h_quakes,'SeismicityDepth',handles.depths{k});   % Save events depths
-            draw_funs(h_quakes,'Earthquakes',[])
+			h_quakes = plot(handles.clusters{k}(:,1),handles.clusters{k}(:,2),'kp','Marker','o', ...
+				'MarkerFaceColor',rand(1,3),'MarkerEdgeColor','k','MarkerSize',5,'Tag','Earthquakes');
+			setappdata(h_quakes,'SeismicityTime',handles.times{k});     % Save events time
+			setappdata(h_quakes,'SeismicityMag',handles.mags{k});       % Save events mags
+			setappdata(h_quakes,'SeismicityDepth',handles.depths{k});   % Save events depths
+			draw_funs(h_quakes,'Earthquakes',[])
 		end
-        hold off;
+		hold off;
 	else            % Plot one swarm per figure
 		h_mir = zeros(1, numel(handles.clusters));
-        for (k = 1:numel(handles.clusters))
-            h_mir(k) = new_mir(handles.mirone_fig, handles.h_polyg, handles);
-            set(h_mir(k),'Name',[num2str(k) 'th  swarm (' num2str(length(handles.clusters{k})) ')'])
-            hold on;
-            h_quakes = plot(handles.clusters{k}(:,1),handles.clusters{k}(:,2),'kp','Marker','o', ...
-                'MarkerFaceColor',rand(1,3),'MarkerEdgeColor','k','MarkerSize',5,'Tag','Earthquakes');
-            setappdata(h_quakes,'SeismicityTime',handles.times{k});     % Save events time
-            setappdata(h_quakes,'SeismicityMag',handles.mags{k});       % Save events mags
-            setappdata(h_quakes,'SeismicityDepth',handles.depths{k});   % Save events depths
-            draw_funs(h_quakes,'Earthquakes',[])
-            hold off;
-        end
+		for (k = 1:numel(handles.clusters))
+			h_mir(k) = new_mir(handles.mirone_fig, handles.h_polyg, handles);
+			set(h_mir(k),'Name',[num2str(k) 'th  swarm (' num2str(length(handles.clusters{k})) ')'])
+			hold on;
+			h_quakes = plot(handles.clusters{k}(:,1),handles.clusters{k}(:,2),'kp','Marker','o', ...
+				'MarkerFaceColor',rand(1,3),'MarkerEdgeColor','k','MarkerSize',5,'Tag','Earthquakes');
+			setappdata(h_quakes,'SeismicityTime',handles.times{k});     % Save events time
+			setappdata(h_quakes,'SeismicityMag',handles.mags{k});       % Save events mags
+			setappdata(h_quakes,'SeismicityDepth',handles.depths{k});   % Save events depths
+			draw_funs(h_quakes,'Earthquakes',[])
+			hold off;
+		end
 	end
 
 %--------------------------------------------------------------------------
@@ -351,19 +352,12 @@ function h_mir = new_mir(h_mirone_fig, h_polyg, handles)
 	% solution of draw_funs.
 
 	mirone('ImageCrop_CB',guidata(h_mirone_fig),h_polyg,'CropaWithCoords');
-	set(0,'ShowHiddenHandles','on')
-	h_mir = findobj(0,'Type','figure','Name','Croped Image');
-	set(0,'ShowHiddenHandles','off')
-
-	if (numel(h_mir) > 1)       % If for bad luck we have more than one, pick the
-        h_mir = h_mir(1);       % first because it seams that it's the newest
-	end
-	figure(h_mir)               % Make it the current figure (crutial)
+	h_mir = gcf;
 
 %--------------------------------------------------------------------------
 function popup_nSwarm_CB(hObject, handles)
 	val = get(hObject,'Value');
-	if (val == 1),   return;     end;    % First in list is empty
+	if (val == 1),	return;		end	% First in list is empty
 	contents = get(hObject,'String');
 	tit = contents{get(hObject,'Value')};
 	tit = [tit(1:end-1) ' events )'];
@@ -384,6 +378,16 @@ function popup_nSwarm_CB(hObject, handles)
 	setappdata(h_quakes,'SeismicityMag',handles.mags{val});       % Save events mags
 	setappdata(h_quakes,'SeismicityDepth',handles.depths{val});   % Save events depths
 	draw_funs(h_quakes,'Earthquakes',[])
+
+ 	st = handles.times{val}(1);		y = fix(st);	t = (~rem(y, 4) & rem(y, 100)) | ~rem(y, 400);
+	st = datestr(datenum(y,1,1) + (st - y) * (365 + t), 'dd-mmm-yyyy');
+	et = handles.times{val}(end);	y = fix(et);	t = (~rem(y, 4) & rem(y, 100)) | ~rem(y, 400);
+	et = datestr(datenum(y,1,1) + (et - y) * (365 + t), 'dd-mmm-yyyy');
+	txt = sprintf('%s\n%s', st, et);
+	handMir = guidata(h_mir);
+	h = text(handMir.head(1), handMir.head(4),txt, 'FontSize',14, ...
+		'HorizontalAlignment','left', 'VerticalAlignment','cap');
+	draw_funs(h,'DrawText')
 
 %--------------------------------------------------------------------------
 function push_save_CB(hObject, handles)
