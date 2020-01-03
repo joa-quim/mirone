@@ -193,7 +193,7 @@ text(max(time_asf)*0.05,yy(2)*0.1,string,'FontSize',10);
 text(max(time_asf)*0.05,yy(2)*0.05,['AIC = ' num2str(fAIC)],'FontSize',10);
 text(max(time_asf)*0.05,yy(2)*0.15,['RMS = ' num2str(fRMS)],'FontSize',10);
 % Legend
-legend([pf2 pf1 paf],'Data',['Model ' num2str(nMod)],'Sec. AF',0);
+legend_([pf2 pf1 paf],'Data',['Model ' num2str(nMod)],'Sec. AF');
 
 
 % Calculate fits of different models
