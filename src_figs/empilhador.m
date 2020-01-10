@@ -5,7 +5,7 @@ function varargout = empilhador(varargin)
 %
 % NOTE: The gotFromMETA and getZ functions are callable directly by mirone
 
-%	Copyright (c) 2004-2019 by J. Luis
+%	Copyright (c) 2004-2020 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -556,19 +556,23 @@ function fname = check_wildcard_fname(strin)
 % -----------------------------------------------------------------------------------------
 function t = squeeze_time_from_name(name, get_year)
 % ... Read the name of L2 daily scene product and convert it into a time string.
-% The name algo is simple YYYYDDDHHMMSS where DDD is day of the year.
-% If optional GET_YEAR is used, try to get the year from files of the form (e.g.) A2005...
+% - The name algo is simple YYYYDDDHHMMSS where DDD is day of the year.
+% - New naming convention TERRA_MODIS.20181223T234501.L2.SST.nc
+% - If optional GET_YEAR is used, try to get the year from files of the form (e.g.) A2005...
 
 	% Example names: A2012024021000.L2_LAC_SST4 S1998001130607.L2_MLAC_OC.x.hdf
 	% 20100109005439-NODC-L3C_GHRSST-SSTskin-AVHRR_Pathfinder-PFV5.2_NOAA18_G_2010009_night-v02.0-fv01.0.nc
 	[PATH,FNAME,EXT] = fileparts(name);
 	indDot = strfind(FNAME,'.');
-	error = false;
+	error = false;		new_naming = false;
 	if (~isempty(indDot) && strcmpi(FNAME(16:17), 'L2'))	% Second case type name
 		FNAME(indDot(1):end) = [];
 	elseif (~isempty(EXT) && strcmpi(EXT(2:3), 'L2'))		% First case type name (nothing to do)
 	elseif (strcmpi(EXT,'.nc') && FNAME(min(15,numel(FNAME))) == '-')	% A GS... 2.0 netCDF PATHFINDER file
 		FNAME(15:end) = [];
+	elseif (numel(indDot) >= 3 && strcmpi(FNAME(indDot(2)+1:indDot(2)+2), 'L2'))	% TERRA_MODIS.20181223T234501.L2.SST.nc
+		FNAME(indDot(2):end) = [];
+		new_naming = true;
 	elseif (get_year)
 		try
 			t = str2double(FNAME(2:5));		% Try A2015
@@ -596,7 +600,16 @@ function t = squeeze_time_from_name(name, get_year)
 			- datenummx( sscanf(FNAME(1:4),'%f'), 0, 0);
 		td = sprintf('%f',(dn - fix(dn)));					% Decimal part of the DateNum as a string
 		t = sprintf('%s.%03d%s', FNAME(1:4), fix(dn), td(3:6));
-	else
+	elseif (new_naming)
+		% TERRA_MODIS.20181223T234501
+		yy = sscanf(FNAME(indDot(1)+1:indDot(1)+4),'%f');
+		mo = sscanf(FNAME(indDot(1)+5:indDot(1)+6),'%f');
+		dd = sscanf(FNAME(indDot(1)+7:indDot(1)+8),'%f');
+		hh = sscanf(FNAME(indDot(1)+10:indDot(1)+11),'%f');
+		mm = sscanf(FNAME(indDot(1)+12:indDot(1)+13),'%f');
+		t = datenum(yy,mo,dd,hh,mm,0) - datenum(yy,1,1) + 1;
+		t = sprintf('%f',t);			% Decimal 'Julian day'
+	else						% A2012024021000
 		dd = sscanf(FNAME(6:8),'%f');	hh = sscanf(FNAME(9:10),'%f');		mm = sscanf(FNAME(11:12),'%f');
 		t = sprintf('%f',dd + (hh + mm / 60) / 24);			% Decimal 'Julian day'
 	end
