@@ -6,7 +6,7 @@ function varargout = slices(varargin)
 %	To read a file and tell aquaPlugin to search the control script name in the OPTcontrol.txt file:
 %		slices('file.nc', 0)
 
-%	Copyright (c) 2004-2018 by J. Luis
+%	Copyright (c) 2004-2020 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -131,9 +131,9 @@ function varargout = slices(varargin)
 	handles.cases{5,5} = {'on' 'External polygon file'};
 	handles.cases{5,6} = {'on' 'Filter with quality flags file (opt)'};
 
-	handles.cases{6,1} = [handles.text_periods handles.edit_periods handles.text_What handles.popup_what];
-	handles.cases{6,2} = {[11 250 55 16] [64 248 201 23] '' ''};
-	handles.cases{6,3} = {handles.text_bounds 'Bounds'};	% Set handle String prop to second element
+	handles.cases{6,1} = [handles.text_periods handles.edit_periods handles.check_integDim handles.text_bounds handles.edit_subSetA handles.text_What handles.popup_what];
+	handles.cases{6,2} = {[11 250 55 16] [64 248 201 23] [105 198 137 21] '' '' '' ''};
+	handles.cases{6,3} = {handles.text_bounds 'Width'};		% Set handle String prop to second element
 	handles.cases{6,4} = {'on' 'Output file'};
 	handles.cases{6,5} = {'on' 'Apply this Land mask (optional)'};
 	handles.cases{6,6} = {'off' ''};
@@ -371,10 +371,12 @@ function popup_cases_CB(hObject, handles)
 	end
 
 	% Exceptions
-	if (val ~= 1)
-		set(handles.check_integDim, 'Val', 0, 'Str', 'Spline interpolation')
+	if (val == 1)
+		set(handles.check_integDim, 'Val', 1, 'Str', 'Integration in longitude', 'Tooltip','')
+	elseif (val == 6)
+		set(handles.check_integDim, 'Val', 0, 'Str', 'Gaussian filter', 'Tooltip','Apply a Gaussian filter after the ''What'' operation')
 	else
-		set(handles.check_integDim, 'Val', 1, 'Str', 'Integration in longitude')
+		set(handles.check_integDim, 'Val', 0, 'Str', 'Spline interpolation', 'Tooltip','Fill gaps with spline interpolation')
 	end
 
 	if (val == 4)
@@ -411,6 +413,8 @@ function popup_cases_CB(hObject, handles)
 	if (str(1) == 'S')		% The 'Subset' case
 		set(handles.edit_subSetA,'Str','0','Tooltip','Jump this number of layers from from start')
 		set(handles.edit_subSetB,'Str','0','Tooltip','Exclude this number of layers, counting from end')
+	elseif (str(1) == 'W')
+		set(handles.edit_subSetA, 'Str','10', 'Tooltip', 'Gaussian full filter width in km')
 	else					% The 'Bounds' case
 		set(handles.edit_subSetA,'Str','0','Tooltip',sprintf(['MIN value allowed on the Z function\n' ...
 			'during the spline interpolation.\n' ...
@@ -816,6 +820,12 @@ function push_compute_CB(hObject, handles)
 		helper_writeFile(handles, fid, comm, 'fname', 1)
 		comm = '# Name of an optional Land mask grid file';
 		helper_writeFile(handles, fid, comm, 'fname', 2)
+		if (get(handles.check_integDim, 'Val'))			% Gaussian filtering?
+			t = get(handles.edit_subSetA, 'Str');
+			if (~strcmp(t, '0') && ~isempty(t))
+				fprintf(fid, '# Do gaussian filter\n%s\n', t);
+			end
+		end
 
 	elseif (val == 7)	% Climatologies -- CASE 4
 		comm = '# The ''Periods'' variable (The month(s) that we want the climatology)';
@@ -876,20 +886,20 @@ function helper_writeFile(handles, fid, comm, opt1, opt2)
 % Write pieces of the script file holding the parametrization of selected case
 
 	fprintf(fid, [comm '\n']);	
-	if (strncmp(opt1, 'fname',3))
+	if (strcmp(opt1, 'fname'))
 		fname = get(handles.(sprintf('edit_fname%d',opt2)), 'Str');
 		if (isempty(fname)),	fprintf(fid,'[]\n');
 		else,					fprintf(fid,'char %s\n', fname);
 		end
-	elseif (strncmp(opt1, 'subset',3))
+	elseif (strcmp(opt1, 'subset'))
 		fprintf(fid, sprintf('[%s %s]\n', get(handles.edit_subSetA,'Str'), get(handles.edit_subSetB,'Str')));
-	elseif (strncmp(opt1, 'flags',3))
+	elseif (strcmp(opt1, 'flags'))
 		fname = get(handles.edit_fname3, 'Str');
 		if (isempty(fname)),	fprintf(fid,'[]\n');
 		else,					fprintf(fid,'char %s\n', fname);
 		end
 		fprintf(fid,sprintf('# The ''quality'' value. Ignored if fname = []\n%s\n', get(handles.edit_qualFlag,'Str')));
-	elseif (strncmp(opt1, 'periods',3))
+	elseif (strcmp(opt1, 'periods'))
 		fprintf(fid,sprintf('%s\n',get(handles.edit_periods,'Str')));
 	end
 
