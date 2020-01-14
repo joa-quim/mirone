@@ -21,7 +21,7 @@ function aquaPlugin(handles, auto)
 %				aquamoto('file.nc', 0)
 %		In the later case the control script name is searched in the OPTcontrol.txt file
 
-%	Copyright (c) 2004-2019 by J. Luis
+%	Copyright (c) 2004-2020 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -1264,8 +1264,8 @@ function [Tmed, contanoes, ZtoSpline, already_processed] = ...
 		end
 	end								% End loop over months
 
-% ------------------------1----------2-------3----------4---------5---------6----
-function calc_L2_periods(handles, period, tipoStat, regMinMax, grd_out, mask_file)
+% ------------------------1----------2-------3----------4---------5---------6-------7---
+function calc_L2_periods(handles, period, tipoStat, regMinMax, grd_out, mask_file, filt)
 % Compute averages for 1, 3, 8, month periods of L2 data processed by empilhador
 %
 % PERIOD	Number of days of the composit period (e.g. 3, 8, 30). A variable number
@@ -1286,6 +1286,8 @@ function calc_L2_periods(handles, period, tipoStat, regMinMax, grd_out, mask_fil
 % GRD_OUT	Name of the netCDF file where to store the result. If not provided, it will be asked here.
 %
 % MASK_FILE	name of Land mask file. If it has NaNs it will be multiplied but if only 1/0's, 0's will become NaNs
+%
+% FILT      If provided apply a gaussian filtering with FILT filtering full width
 
 	if (nargin < 5 || isempty(grd_out))			% Note: old and simple CASE 3 in main cannot send here the output name 
 		txt1 = 'netCDF grid format (*.nc,*.grd)';	txt2 = 'Select output netCDF grid';
@@ -1301,6 +1303,7 @@ function calc_L2_periods(handles, period, tipoStat, regMinMax, grd_out, mask_fil
 	end
 	if (nargin < 6),	mask_file = '';		end
 	mask = [];			% If needed more than once, this var will hold the masking array
+	if (nargin < 7),	filt = 0;			end
 
 	[z_id, s, rows, cols] = get_ncInfos(handles);
 
@@ -1332,7 +1335,7 @@ function calc_L2_periods(handles, period, tipoStat, regMinMax, grd_out, mask_fil
 	if (isempty(c)),	c = 1;				% We start at the begining of file.
 	else,				c = c(end) + 1;		% We start somewhere at the middle of file.
 	end
-	
+
 	n_periods = numel(periods);
 	for (m = 1:n_periods)
 		if (N(m) ~= 0)
@@ -1351,7 +1354,11 @@ function calc_L2_periods(handles, period, tipoStat, regMinMax, grd_out, mask_fil
 			if (~isempty(mask_file))
 				[tmp, mask] = apply_mask(mask_file, mask, tmp);		% First time reads from MASK_FILE, second on uses MASK
 			end
-			
+
+			if (filt)
+				tmp = c_grdfilter(tmp, handles.head, sprintf('-Fg%f', filt), '-D3');
+			end
+
 			zzz = grdutils(tmp,'-L');
 			handles.head(5) = min(handles.head(5), zzz(1));		handles.head(6) = max(handles.head(6), zzz(2));
 		else
@@ -1943,7 +1950,7 @@ function Z = inpaint_nans(handles, Z, bw, nCells)
 		if (isa(Z,'single')),		Z(r_c(1):r_c(2),r_c(3):r_c(4)) = single(Z_rect);
 		elseif (isa(Z,'int16')),	Z(r_c(1):r_c(2),r_c(3):r_c(4)) = int16(Z_rect);
 		elseif (isa(Z,'uint16')),	Z(r_c(1):r_c(2),r_c(3):r_c(4)) = uint16(Z_rect);
-		else						Z(r_c(1):r_c(2),r_c(3):r_c(4)) = single(Z_rect);
+		else,						Z(r_c(1):r_c(2),r_c(3):r_c(4)) = single(Z_rect);
 		end
 	end
 
