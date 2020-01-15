@@ -1296,10 +1296,10 @@ function calc_L2_periods(handles, period, tipoStat, regMinMax, grd_out, mask_fil
 		grd_out = [PathName FileName];
 	end
 	if (nargin < 4)
-		regionalMIN = 0;	regionalMAX = inf;
+		regionalMIN = -2;	regionalMAX = inf;
 	else
 		regionalMIN = regMinMax(1);		regionalMAX = regMinMax(2);
-		if (regionalMIN == 0 && regionalMAX == 0),	regionalMIN = Inf;	regionalMAX = Inf;	end
+		if (regionalMIN == 0 && regionalMAX == 0),	regionalMIN = -Inf;	regionalMAX = Inf;	end
 	end
 	if (nargin < 6),	mask_file = '';		end
 	mask = [];			% If needed more than once, this var will hold the masking array
