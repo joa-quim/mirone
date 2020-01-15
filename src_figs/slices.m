@@ -892,7 +892,11 @@ function helper_writeFile(handles, fid, comm, opt1, opt2)
 		else,					fprintf(fid,'char %s\n', fname);
 		end
 	elseif (strcmp(opt1, 'subset'))
-		fprintf(fid, sprintf('[%s %s]\n', get(handles.edit_subSetA,'Str'), get(handles.edit_subSetB,'Str')));
+		if (strcmp(get(handles.check_integDim, 'String'), 'Gaussian filter'))	% Gaussian filtering? No min/max
+			fprintf(fid, sprintf('[0 inf]\n'));
+		else
+			fprintf(fid, sprintf('[%s %s]\n', get(handles.edit_subSetA,'Str'), get(handles.edit_subSetB,'Str')));
+		end
 	elseif (strcmp(opt1, 'flags'))
 		fname = get(handles.edit_fname3, 'Str');
 		if (isempty(fname)),	fprintf(fid,'[]\n');
