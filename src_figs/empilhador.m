@@ -671,7 +671,7 @@ function check_L2conf_CB(hObject, handles)
 		set(handles.edit_inc, 'Str', opt_I(3:end))
 		set(handles.edit_nCells, 'Str', opt_C(3:end))
 		quality = round(quality);
-		if (quality >= 0 && quality <= 2)
+		if (quality >= -2 && quality <= 2)
 			set(handles.popup_quality, 'Val', quality+1)
 		else
 			warndlg('Quality value in L2config.txt is nonsense. Ignoring it.', 'Warning')
@@ -1115,6 +1115,8 @@ function cut2cdf(handles, got_R, west, east, south, north)
 				fprintf(fid, '%s\n', handles.backup_list{kk});
 			end
 			fclose(fid);
+
+			if (ishandle(handles.hCallingFig)),		delete(handles.hCallingFig),	end		% Don't need it, it was only the Bar
 			bf = sprintf('-Xcheck_bitflags,%d', get(handles.check_bitflags, 'Val'));
 			qual = sprintf('-Xpopup_quality,%d', get(handles.popup_quality, 'Val'));
 			if (handles.IamCompiled)
@@ -1122,14 +1124,15 @@ function cut2cdf(handles, got_R, west, east, south, north)
 				if (~isempty(t)),	prog = [t '\callMir.exe '];
 				else,				prog = 'callMir.exe ';			% then it better be on Win path, otherwise ...
 				end
-				if (ishandle(handles.hCallingFig)),		delete(handles.hCallingFig),	end		% Don't need it, it was only the Bar
 				cmd = ['start /B ' prog '-Cempilhador,guidata(gcf) -Xedit_namesList,+' fnameRest ...
-				       ' -Xcheck_L2,1 -Xcheck_L2conf,1 ' bf ' ' qual ' -Xpush_compute'];
+				       ' -Xcheck_L2,1 -Xcheck_L2conf,1 ' bf ' ' qual ' -Xpush_compute' ...
+				       [' -Xedit_nCells,+' get(handles.edit_nCells, 'Str')] [' -Xedit_inc,+' get(handles.edit_inc, 'Str')]];
 				dos(cmd);
 				delete(handles.figure1)				% We are done with it
 			else
 				mirone('-Cempilhador,guidata(gcf)',['-Xedit_namesList,+' fnameRest],'-Xcheck_L2,1', ...
-				       '-Xcheck_L2conf,1', bf, qual, '-Xpush_compute');
+				       '-Xcheck_L2conf,1', bf, qual, '-Xpush_compute', ...
+				       ['-Xedit_nCells,+' get(handles.edit_nCells, 'Str')], ['-Xedit_inc,+' get(handles.edit_inc, 'Str')]);
 				return
 			end
 		end
@@ -1848,7 +1851,12 @@ function [Z, att, known_coords, have_nans, was_empty_name] = read_gdal(full_name
 			if (~what.bitflags && ~isempty(what.quality) && what.quality < 2)	% We have a GUI quality request
 				qual = gdalread(what.qualSDS, opt_L);
 				if (isequal(size(qual),size(Z)))		% Because we don't want to apply 'qual' to either lon or lat arrays
-					Z(qual > what.quality) = NoDataValue;
+					if (what.quality < 0)
+						Z(:,:) = 0;
+						Z(qual >= -what.quality) = 1;
+					else
+						Z(qual > what.quality) = NoDataValue;
+					end
 				end
 				clear qual
 			end
@@ -1870,7 +1878,7 @@ function [Z, att, known_coords, have_nans, was_empty_name] = read_gdal(full_name
 			if (~isempty(what) && what.georeference)	% OK, let's interpolate it into a regular geog grid
 
 				if (isempty(opt_I)),	opt_I = '-I0.01';	end
-				if (isempty(opt_C)),	opt_C = '-C3';		end		% For gmtmbgrid only
+				if (isempty(opt_C)),	opt_C = '-C2';		end		% For gmtmbgrid only
 
 				if (what.bitflags)
 					ind = strfind(att.AllSubdatasets{flagsID},'=');	% Still must rip the 'SUBDATASET_XX_NAME='
@@ -1909,6 +1917,9 @@ function [Z, att, known_coords, have_nans, was_empty_name] = read_gdal(full_name
 						%[Z, head] = gmtmbgrid_m(lon_full(:), lat_full(:), double(Z(:)), opt_I, opt_R, '-Mz', opt_C);
 						[Z, head, was_empty] = smart_grid(lon_full(:), lat_full(:), double(Z(:)), opt_I, opt_R, opt_C);
 						if (was_empty),		was_empty_name = full_name;		end
+					end
+					if (what.quality < 0)		% Just a counter so round things up
+						Z = round(Z);
 					end
 				end
 				if (isempty(was_empty_name) && all(isnan(Z(:))))	% F. give up and catch all escaped full NaNs here
@@ -2144,7 +2155,7 @@ function [opt_R, opt_I, opt_C, bitflags, flagsID, despike, quality] = sniff_in_O
 			flaglist = r;
 		elseif (strcmp(lines{k}(15:16),'_Q'))	% Get the quality factor (SST)
 			q = str2double(r);
-			if (~isnan(q) && q >= 0 && q <= 2),	quality = q;	end
+			if (~isnan(q) && q >= -2 && q <= 2),	quality = q;	end
 		elseif (strcmp(lines{k}(15:16),'_C'))	% Despike MODIS SST
 			% The key MIR_EMPILHADOR_C has currently one argument only, 'AVG', but this may change
 			despike = true;
@@ -2161,7 +2172,9 @@ function [opt_R, opt_I, opt_C, bitflags, flagsID, despike, quality] = sniff_in_O
 		     get(handles.edit_south,'Str') '/' get(handles.edit_north,'Str')];
 		if (~strcmp(t, '///')),	opt_R = ['-R' t];	end
 		if (~get(handles.check_bitflags, 'Val'))
-			quality = get(handles.popup_quality, 'Val')-1;
+			val = get(handles.popup_quality, 'Val');	str = get(handles.popup_quality, 'Str');
+			quality = str2double(str{val});
+			%quality = get(handles.popup_quality, 'Val')-1;
 			got_flags = false;		% For SST we don't care about bitflags
 		elseif (~got_flags)			% And for Chlor if the MIR_EMPILHADOR_F key is not activated replicate it here
 			flaglist = 'ATMFAIL,LAND,HIGLINT,HILT,HISATZEN,STRAYLIGHT,CLDICE,COCCOLITH,HISOLZEN,LOWLW,CHLFAIL,NAVWARN,MAXAERITER,CHLWARN,ATMWARN,NAVFAIL,FILTER,SSTWARN,SSTFAIL';
@@ -2405,7 +2418,7 @@ uicontrol('Parent',h1,'Position',[345 164 85 15],...
 'Tooltip','Do all hard work to process and reference MODIS L2 products',...
 'Tag','check_L2');
 
-uicontrol('Parent',h1,'Position',[430 167 155 15],...
+uicontrol('Parent',h1,'Position',[430 164 155 15],...
 'Callback','empilhador(''check_L2conf_CB'',gcbo,guidata(gcbo))',...
 'String','Use config file',...
 'Style','checkbox',...
@@ -2461,7 +2474,7 @@ uicontrol('Parent',h1, 'Position',[-2+DX 141 60 14],...
 'Tag','text_qual');
 
 uicontrol('Parent',h1, 'Position',[60+DX 139 40 19],...
-'String',{'0'; '1'; '2' },...
+'String',{'0'; '1'; '2'; '-1'; '-2' },...
 'Style','popupmenu',...
 'Value',1,...
 'BackgroundColor',[1 1 1],...
@@ -2665,7 +2678,7 @@ uicontrol('Parent',h1, 'Position',[10 25 41 21],...
 'BackgroundColor',[1 1 1],...
 'Enable','off',...
 'ListboxTop',0,...
-'String',{'2'; '1'; '0'},...
+'String',{'2'; '1'; '0'; '-1'; '-2'},...
 'Style','popupmenu',...
 'Tooltip','Select the least quality level. 2 - worst - means all values. 0 - only the best',...
 'Value',3,...
