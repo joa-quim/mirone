@@ -1910,10 +1910,12 @@ function [Z, att, known_coords, have_nans, was_empty_name] = read_gdal(full_name
 					was_empty_name = full_name;		% Send back to the caller the file (or sds) name of the empty thing
 					[Z, head] = c_nearneighbor(single(1e3), single(1e3), single(0), opt_R, opt_e, '-N1', opt_I, '-S0.02');
 				else
+					if (~isa(lon_full, 'double')),	lon_full = double(lon_full);	lat_full = double(lat_full);	end
 					if (what.nearneighbor)
 						[Z, head, was_empty] = smart_grid(lon_full(:), lat_full(:), Z(:), opt_I, opt_R, opt_C, opt_e, '-N2', '-S0.04');
 					else
-						[Z, head, was_empty] = smart_grid(lon_full(:), lat_full(:), double(Z(:)), opt_I, opt_R, opt_C);
+						if (~isa(Z, 'double')),		Z = double(Z);		end
+						[Z, head, was_empty] = smart_grid(lon_full(:), lat_full(:), Z(:), opt_I, opt_R, opt_C);
 					end
 					if (was_empty),		was_empty_name = full_name;		end
 % 					if (what.quality < 0)		% Just a counter so round things up
@@ -1990,9 +1992,9 @@ function [Z, head, was_empty] = smart_grid(x, y, z, opt_I, opt_R, opt_C, opt_e, 
 
 	if (c1 <= 3 && c2 >= n_cols - 3 && r1 <= 3 && r2 >= n_cols - 3)		% If almost the full Region, just do it all
 		if (do_neighbor)
-			[Z, head] = c_nearneighbor(x, y, single(z), opt_R, opt_e, opt_N, opt_I, opt_S);
+			[Z, head] = c_nearneighbor(x, y, z, opt_R, opt_e, opt_N, opt_I, opt_S);
 		else
-			[Z, head] = gmtmbgrid_m(double(x), double(y), double(z), opt_I, opt_R, '-Mz', opt_C);
+			[Z, head] = gmtmbgrid_m(x, y, z, opt_I, opt_R, '-Mz', opt_C);
 			Z = single(Z);
 		end
 		return
@@ -2001,9 +2003,9 @@ function [Z, head, was_empty] = smart_grid(x, y, z, opt_I, opt_R, opt_C, opt_e, 
 	opt_subR = sprintf('-R%.10f/%.10f/%.10f/%.10f', X(c1), X(c2), Y(r1), Y(r2));
 
 	if (do_neighbor)
-		[zz, head] = c_nearneighbor(x, y, single(z), opt_subR, opt_e, opt_N, opt_I, opt_S);
+		[zz, head] = c_nearneighbor(x, y, z, opt_subR, opt_e, opt_N, opt_I, opt_S);
 	else
-		[zz, head] = gmtmbgrid_m(double(x), double(y), double(z), opt_I, opt_subR, '-Mz', opt_C);
+		[zz, head] = gmtmbgrid_m(x, y, z, opt_I, opt_subR, '-Mz', opt_C);
 	end
 	head(1:4) = [Rx_min Rx_max Ry_min Ry_max];
 	mm = grdutils(zz,'-L');		head(5:6) = [mm(1) mm(2)];
