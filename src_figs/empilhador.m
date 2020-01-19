@@ -1854,6 +1854,7 @@ function [Z, att, known_coords, have_nans, was_empty_name] = read_gdal(full_name
 					if (what.quality < 0)
 						Z(:,:) = 0;
 						Z(qual >= -what.quality) = 1;
+						opt_C = '-C4';			% Want no holes
 					else
 						Z(qual > what.quality) = NoDataValue;
 					end
@@ -1910,17 +1911,14 @@ function [Z, att, known_coords, have_nans, was_empty_name] = read_gdal(full_name
 					[Z, head] = c_nearneighbor(single(1e3), single(1e3), single(0), opt_R, opt_e, '-N1', opt_I, '-S0.02');
 				else
 					if (what.nearneighbor)
-						lon_full = single(lon_full);			lat_full = single(lat_full);	Z = single(Z);
-						[Z, head] = c_nearneighbor(lon_full(:), lat_full(:), Z(:), opt_R, opt_e, '-N2', opt_I, '-S0.04');
+						[Z, head, was_empty] = smart_grid(lon_full(:), lat_full(:), Z(:), opt_I, opt_R, opt_C, opt_e, '-N2', '-S0.04');
 					else
-						if (~isa(lon_full,'double')),	lon_full = double(lon_full);	lat_full = double(lat_full);	end
-						%[Z, head] = gmtmbgrid_m(lon_full(:), lat_full(:), double(Z(:)), opt_I, opt_R, '-Mz', opt_C);
 						[Z, head, was_empty] = smart_grid(lon_full(:), lat_full(:), double(Z(:)), opt_I, opt_R, opt_C);
-						if (was_empty),		was_empty_name = full_name;		end
 					end
-					if (what.quality < 0)		% Just a counter so round things up
-						Z = round(Z);
-					end
+					if (was_empty),		was_empty_name = full_name;		end
+% 					if (what.quality < 0)		% Just a counter so round things up
+% 						Z = round(Z);
+% 					end
 				end
 				if (isempty(was_empty_name) && all(isnan(Z(:))))	% F. give up and catch all escaped full NaNs here
 					was_empty_name = full_name;
@@ -1942,7 +1940,7 @@ function [Z, att, known_coords, have_nans, was_empty_name] = read_gdal(full_name
 	if (~isempty(uncomp_name)),	delete(uncomp_name);	end		% Delete uncompressed file
 
 % ----------------------------------------------------------------------------------------
-function [Z, head, was_empty] = smart_grid(x, y, z, opt_I, opt_R, opt_C)
+function [Z, head, was_empty] = smart_grid(x, y, z, opt_I, opt_R, opt_C, opt_e, opt_N, opt_S)
 % Interpolate the x,y,z points into the smallest grid that is compatible with
 % opt_I & opt_R. We do this to accelerate the process of interpolating the L2
 % data, which often covers only a small subregion of opt_R.
@@ -1953,23 +1951,25 @@ function [Z, head, was_empty] = smart_grid(x, y, z, opt_I, opt_R, opt_C)
 % We do this interpolating in a smaller subregion determined by x,y and next
 % insert the sub-grid in the array Z.
 
+	do_neighbor = false;
+	if (nargin == 9),	do_neighbor = true;		end
 	was_empty = false;
 
 	x_min = min(x);		x_max = max(x);
 	y_min = min(y);		y_max = max(y);
-	
+
 	ind = strfind(opt_R, '/');
 	inc = str2double(opt_I(3:end));
 	Rx_min = str2double(opt_R(3:ind(1)-1));			% Full Region min/max
 	Rx_max = str2double(opt_R(ind(1)+1:ind(2)-1));
 	Ry_min = str2double(opt_R(ind(2)+1:ind(3)-1));
 	Ry_max = str2double(opt_R(ind(3)+1:end));
-	
+
 	n_cols = round((Rx_max - Rx_min) / inc + 1);
 	n_rows = round((Ry_max - Ry_min) / inc + 1);
 	X = linspace(Rx_min, Rx_max, n_cols);
 	Y = linspace(Ry_min, Ry_max, n_rows);
-	
+
 	% Find rows & columns of Z encompassing all points in x,y
 	c1 = 1;		c2 = n_cols;		r1 = 1;		r2 = n_rows;
 	t = find((X - x_min) > 0);
@@ -1987,16 +1987,24 @@ function [Z, head, was_empty] = smart_grid(x, y, z, opt_I, opt_R, opt_C)
 		was_empty = true;
 		return
 	end
-	
+
 	if (c1 <= 3 && c2 >= n_cols - 3 && r1 <= 3 && r2 >= n_cols - 3)		% If almost the full Region, just do it all
-		[Z, head] = gmtmbgrid_m(x, y, z, opt_I, opt_R, '-Mz', opt_C);
-		Z = single(Z);
+		if (do_neighbor)
+			[Z, head] = c_nearneighbor(x, y, single(z), opt_R, opt_e, opt_N, opt_I, opt_S);
+		else
+			[Z, head] = gmtmbgrid_m(double(x), double(y), double(z), opt_I, opt_R, '-Mz', opt_C);
+			Z = single(Z);
+		end
 		return
 	end
-	
+
 	opt_subR = sprintf('-R%.10f/%.10f/%.10f/%.10f', X(c1), X(c2), Y(r1), Y(r2));
-	
-	[zz, head] = gmtmbgrid_m(x, y, z, opt_I, opt_subR, '-Mz', opt_C);
+
+	if (do_neighbor)
+		[zz, head] = c_nearneighbor(x, y, single(z), opt_subR, opt_e, opt_N, opt_I, opt_S);
+	else
+		[zz, head] = gmtmbgrid_m(double(x), double(y), double(z), opt_I, opt_subR, '-Mz', opt_C);
+	end
 	head(1:4) = [Rx_min Rx_max Ry_min Ry_max];
 	mm = grdutils(zz,'-L');		head(5:6) = [mm(1) mm(2)];
 	Z = alloc_mex(n_rows, n_cols, 'single', NaN);
