@@ -1854,7 +1854,6 @@ function [Z, att, known_coords, have_nans, was_empty_name] = read_gdal(full_name
 					if (what.quality < 0)
 						Z(:,:) = 0;
 						Z(qual >= -what.quality) = 1;
-						opt_C = '-C4';			% Want no holes
 					else
 						Z(qual > what.quality) = NoDataValue;
 					end
@@ -1899,6 +1898,9 @@ function [Z, att, known_coords, have_nans, was_empty_name] = read_gdal(full_name
 					clear c
 				end
 
+				if (what.quality < 0)	% In this case outer columns seem to be always classified bad, so skip a few
+					Z(:,1:5) = NaN;				Z(:,end-4:end) = NaN;
+				end
 				if (isnan(NoDataValue)),		ind = isnan(Z);
 				elseif (~isempty(NoDataValue)),	ind = (Z == NoDataValue);
 				else
@@ -1918,9 +1920,6 @@ function [Z, att, known_coords, have_nans, was_empty_name] = read_gdal(full_name
 						[Z, head, was_empty] = smart_grid(lon_full(:), lat_full(:), Z(:), opt_I, opt_R, opt_C);
 					end
 					if (was_empty),		was_empty_name = full_name;		end
-% 					if (what.quality < 0)		% Just a counter so round things up
-% 						Z = round(Z);
-% 					end
 				end
 				if (isempty(was_empty_name) && all(isnan(Z(:))))	% F. give up and catch all escaped full NaNs here
 					was_empty_name = full_name;
