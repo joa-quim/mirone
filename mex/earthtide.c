@@ -180,6 +180,8 @@ int main(int argc, char **argv) {
 	TS.year = (int)ti[0];		TS.month = (int)ti[1];		TS.day = (int)ti[2];
 	TS.hour = (int)ti[3];		TS.min = (int)ti[4];		TS.sec = ti[5];
 
+	GRD.do_north = GRD.do_east = GRD.do_up = 0;		/* Need to initialize these to no */
+
 	str = (char *)mxArrayToString(prhs[3]);
 	if (str[1] == 'T') {				/* Time-series */
 		n_minutes = atoi(&str[2]);
@@ -220,7 +222,6 @@ int main(int argc, char **argv) {
 	}
 	else if (str[1] == 'G') {			/* Grid(s) */
 		int k = 2;
-		GRD.do_north = GRD.do_east = GRD.do_up = 0;		/* Need to initialize these */
 		while (str[k]) {
 			if (str[k] == 'n')
 				{GRD.do_north = 1;	n_grids++;}
@@ -390,8 +391,8 @@ void solid_grd(struct solid_time_series *TS, struct solid_grid *GRD) {
 			detide(xsta, mjd, fmjd, rsun, rmoon, etide, &leapflag);
 			/* determine local geodetic horizon components (topocentric) */
 			rge(lat, lon, &ut, &vt, &wt, etide[0], etide[1], etide[2]);		/* tide vect */
-			grd_n[ij_n] = (float)ut;
-			grd_e[ij_e] = (float)vt;
+			grd_n[ij_n] = (float)vt;
+			grd_e[ij_e] = (float)ut;
 			grd_u[ij_u] = (float)wt;
 			ij_n += n_inc;
 			ij_e += e_inc;
