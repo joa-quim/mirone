@@ -3664,58 +3664,9 @@ function del_insideRect(obj, evt, h)
 	if (~isempty(hText)),	refresh;    end     % Bloody text bug
 	return
 
-% 	s = getappdata(h,'polygon_data');
-% 	if (~isempty(s))            % If the rectangle is in edit mode, force it out of edit
-% 		if strcmpi(s.controls,'on'),    ui_edit_polygon(h);     end
-% 	end
-% 	set(h, 'HandleVis','off')           % Make the rectangle handle invisible
-% 	hAxes = get(h,'Parent');
-% 
-% 	hLines = findobj(hAxes,'Type','line');     % Fish all objects of type line in Mirone figure
-% 	hPatch = findobj(hAxes,'Type','patch');
-% 	hText = findobj(hAxes,'Type','text');
-% 	hLP = [hLines(:); hPatch(:)];
-% 	rx = get(h,'XData');        ry = get(h,'YData');
-% 	rx = [min(rx) max(rx)];     ry = [min(ry) max(ry)];
-% 	found = false;
-% 	for (i = 1:numel(hLP))		% Loop over objects to find if any is on edit mode
-% 		s = getappdata(hLP(i),'polygon_data');
-% 		if (~isempty(s))
-% 			if strcmpi(s.controls,'on')     % Object is in edit mode, so this
-% 				ui_edit_polygon(hLP(i))     % call will force out of edit mode
-% 				found = true;
-% 			end
-% 		end
-% 	end
-% 	if (found)		% We have to do it again because some line handles have meanwhile desapeared
-% 		hLines = findobj(hAxes,'Type','line');
-% 		hPatch = findobj(hAxes,'Type','patch');
-% 		hLP = [hLines(:); hPatch(:)];
-% 	end
-% 	set(h, 'HandleVis','on')    % Make the rectangle handle findable again
-% 
-% 	de_LP = false(numel(hLP),1);
-% 	for (i = 1:numel(hLP))		% Loop over objects to find out which cross the rectangle
-% 		x = get(hLP(i),'XData');        y = get(hLP(i),'YData');
-% 		if ( any( (x >= rx(1) & x <= rx(2)) & (y >= ry(1) & y <= ry(2)) ) )
-% 			de_LP(i) = true;
-% 			delete(hLP(i))
-% 		end
-% 	end
-% 
-% 	found = false;
-% 	for (i = 1:numel(hText))	% Text objs are a bit different, so treat them separately
-% 		pos = get(hText(i),'Position');
-% 		if ( (pos(1) >= rx(1) && pos(1) <= rx(2)) && (pos(2) >= ry(1) && pos(2) <= ry(2)) )
-% 			delete(hText(i))
-% 			found = true;
-% 		end
-% 	end
-% 	if (found),     refresh;    end     % Bloody text bug
-
 % -----------------------------------------------------------------------------------------
 function trim_withPolygon(obj, evt, h, side)
-% Intention is to ...
+% Trim lines with the polygon whose handle is H. Can trim inside our outside.
 % H is the handle to polyg
 % SIDE -> == 1, kill inside, else kill outside
 
@@ -3723,155 +3674,92 @@ function trim_withPolygon(obj, evt, h, side)
 	if (isempty(hL)),	return,		end
 
 	hAxes = get(h,'Parent');		hFig = get(hAxes,'Parent');
-
 	x0 = get(h,'XData');			y0 = get(h,'YData');	x0 = x0(:);		y0 = y0(:);
 
+	inside = (side ~= 1);
 	for (k = 1:numel(hL))
 		x = get(hL(k),'XData');		y = get(hL(k),'YData');
-		IN = inpolygon(x,y, x0,y0);					% Find which ones are inside the polygon
-		if (~side),		IN = ~IN;		end
-		if (~any(IN)),		continue,	end			% It didn't cross the polygon
-		ind = find(IN);
-		if (numel(ind) == numel(x))					% Object entirely inside
-			delete(hL(k))							% Not wanted, delete it
-			continue
-		end
+		if (numel(x) < 2),	continue,	end		% Points are not for this game
 		[xc, yc, iout] = intersections(x, y, x0, y0, 1);
+		if (isempty(xc)),	continue,	end		% It didn't cross the polygon
 		[iout, I] = sort(iout);			% Shit but they aren't always sorted
 		if (any(diff(I) ~= 1))			% When shit happens we need to reorder the crossings too
 			xc = xc(I);		yc = yc(I);
 		end
+		x_(numel(x) + numel(xc)) = single(0);	y_(numel(x_)) = single(0);
+		pos_int = [0; ceil(iout)];			% Position where to add the intersection points
+		for (n = 1:numel(iout)-1)
+			pos_int(n+2) = pos_int(n+2)+n;
+		end
+		s = 1;
+		for (n = 1:numel(xc))
+			ind = pos_int(n)+1:pos_int(n+1)-1;
+			x_(ind) = x(s:s+numel(ind)-1);		x_(pos_int(n+1)) = xc(n);
+			y_(ind) = y(s:s+numel(ind)-1);		y_(pos_int(n+1)) = yc(n);
+			s = s + numel(ind);
+		end
+		if (pos_int(end) < numel(x_))			% We still have the rest of the line after last intercept
+			x_(pos_int(end)+1:numel(x_)) = x(s:numel(x));
+			y_(pos_int(end)+1:numel(y_)) = y(s:numel(y));
+		end
 
-% 		if (0 && numel(ind) == 1 && numel(xc) == 1)	% Easier case, we have a line with only one vertex inside.
-% 			if (ind == 1)						% A line with only first vertex inside, which we want to kill
-% 				x(1) = xc(1);	y(1) = yc(1);
-% 			else								% A line with last vertex inside, which we want to kill
-% 				x(end) = xc(1);	y(end) = yc(1);
-% 			end
-% 			set(hL(k),'XData',x, 'YData',y)
-% 		else
-% 			if (numel(xc) == 1)					% Better, only one crossing
-% 				if (IN(1))						% Line starts inside the polygon and ends outside
-% 					x(ind(end)) = xc(1);	y(ind(end)) = yc(1);
-% 					x(1:end-1) = [];		y(1:end-1) = [];
-% 				else							% The other way around. Line ends inside polygon
-% 					x(ind(1)) = xc(1);		y(ind(1)) = yc(1);
-% 					x(ind(1)+1:end) = [];	y(ind(1)+1:end) = [];
-% 				end
-% 				set(hL(k),'XData',x, 'YData',y)
-% 			elseif (numel(xc) == 2)				% Not so bad yet.
-% 				if (IN(1))						% Line starts inside polygon (easier, only need to shrink ends)
-% 					n = fix(iout(2)) + 1;		% Indice of first point to remove (after re-entrance)
-% 					x(n) = xc(2);			y(n) = yc(2);
-% 					x(n+1:end) = [];		y(n+1:end) = [];
-% 					n = fix(iout(1));			% Indice of last point to remove (before getting out)
-% 					x(n) = xc(1);			y(n) = yc(1);
-% 					x(1:n-1) = [];			y(1:n-1) = [];
-% 				else							% Line starts outside. Now need to break it into two lines
-% 					n = fix(iout(1)) + 1;		% Indice of last point to retain (after entrance)
-% 					x(n) = xc(1);			y(n) = yc(1);
-% 					x(n+1:end) = [];		y(n+1:end) = [];
-% 					hCopy = copy_line_object([], hL(k), hFig, hAxes);
-% 					xx = get(hCopy,'XData');	yy = get(hCopy,'YData');
-% 					n = fix(iout(2));			% Indice of first point to retain before second exit
-% 					xx(n) = xc(2);			yy(n) = yc(2);
-% 					xx(1:n-1) = [];			yy(1:n-1) = [];
-% 					set(hCopy,'XData',xx, 'YData',yy)
-% 				end
-% 				set(hL(k),'XData',x, 'YData',y)
-% 			else								% WORST, several crossings in and out. We'll need to create new lines
-				%ind2 = find(~diff(diff(ind) == 1)) + 1;	% Convoluted but it gives the indices of the to be removed pts
-				difa = diff(ind);
-				if (any(difa == 1))
-					ind2 = find(difa == 1);
-					ind2 = ind2(diff(ind2) == 1) + 1;	% Find inner sequence of consecutive numbers
-					ind(ind2) = [];						% This guy now has the segment's boundaries
-					if (IN(end) && ind(end) == ind(end-1)+1)
-						ind(end) = [];					% Last pt is inside but not needed for reuse. Must kill it now
-					end
+		in_out = inpolygon([x_(1) x_(end)],[y_(1) y_(end)], x0,y0);
+		start_outside = ~in_out(1);				% True if line starts outside polyg
+		end_outside = ~in_out(2);				% True if line ends outside polyg
+		pos_int(1) = [];						% Remove the 0 indice. Not needed anymore
+		if (start_outside)
+			get_in = pos_int(1:2:end);			% Entry points in polyg.
+			get_out = pos_int(2:2:end);			% Exit points out of polyg
+		else
+			get_out = pos_int(1:2:end);			% Exit points out of polyg.
+			get_in  = pos_int(2:2:end);			% Entry points in polyg
+		end
+		if (inside)					% Construct inside segments
+			if (start_outside)
+				segs = cell(numel(get_in),2);
+				for (n = 1:numel(get_in))
+					segs{n,1} = x_(get_in(n):get_out(n));
+					segs{n,2} = y_(get_in(n):get_out(n));
 				end
-				if (IN(1) && ind(1) ~= fix(iout(1)))	% First point survived but it was not the nearest neighbor to crossing
-					ind(1) = [];
+			else
+				segs = cell(1+numel(get_in),2);
+				segs{1,1} = x_(1:get_out(1));	segs{1,2} = y_(1:get_out(1));
+				if (~end_outside),	get_out(end+1) = numel(x_);	end		% For the algho
+				for (n = 1:numel(get_in))
+					segs{n+1,1} = x_(get_in(n):get_out(n+1));					
+					segs{n+1,2} = y_(get_in(n):get_out(n+1));					
+				end				
+			end
+		else						% Construct outside segments
+			if (end_outside),	get_in(end+1) = numel(x_);	end		% For the algho
+			if (start_outside)
+				segs = cell(numel(get_in),2);
+				segs{1,1} = x_(1:get_in(1));	segs{1,2} = y_(1:get_in(1));
+				for (n = 1:numel(get_out))
+					segs{n+1,1} = x_(get_out(n):get_in(n+1));
+					segs{n+1,2} = y_(get_out(n):get_in(n+1));
 				end
-
-				% Search for vertices that are 'singletons' inside. Those need to be duplicated to account for the 2x crossing
-				c = false(1, numel(ind));
-				for (m = 1:numel(ind))
-					if (ind(m) == 1),	continue,	end	% First vertex does not need duplication
-					difa = ind(m) - fix(iout);
-					ind2 = find((ind(m) - fix(iout)) == 0);
-					if (~isempty(ind2) && ind2 > 1 && difa(ind2-1) == 1)
-						c(m) = true;
-					end
-				end
-				if (any(c))
-					ind2 = ind(c);						% These pt guys need to be duplicated
-					ind3 = [1:ind2(1) ind2(1)];
-					for (m = 2:numel(ind2))				% Awful, we need to grow the array expensively
-						ind3 = [ind3 ind2(m-1)+1:ind2(m) ind2(m)];
-					end
-					ind3 = [ind3 ind2(end)+1:numel(x)];
-					x = x(ind3);	y = y(ind3);
-					% Now also increase the 'ind'
-					ind = sort([ind ind2]);
-					ind2 = find(diff(ind) == 0) + 1;
-					for (m = 1:numel(ind2))
-						ind(ind2(m):end) = ind(ind2(m):end) + 1;	% Increase the second of the repetition by 1
-					end
-				end
-
-				if (~IN(1) && ind(1) ~= 1)				% Line starts outside, need to add first index
-					ind = [1 ind];
-				end
-
-				% Deal with last segment case
-				n1 = numel(x);		n2 = numel(ind);	% To shut up the annoying MLint
-				if (numel(xc) == numel(ind))
-					x(ind) = xc;		y(ind) = yc;
-					if (rem(numel(xc), 2) == 1)			% Odd number, line satrts inside but ends outside
-						ind(n2+1) = n1;
-					end
-				elseif (numel(xc) == numel(ind) + 1)	% More convoluted case with only one last point inside
-					x(ind) = xc(1:numel(ind));	y(ind) = yc(1:numel(ind));
-					if (ind(end) == fix(iout(end)))		% We need to insert an extra pt
-						xx = x(end);		yy = y(end);
-						x(end) = xc(end);	y(end) = yc(end);
-						x(n1+1) = xx;		y(n1+1) = yy;
-						ind(n2+1) = ind(end) + 1;
-						ind(n2+2) = numel(x);
-					else
-						x(fix(iout(end))) = xc(end);
-						y(fix(iout(end))) = yc(end);
-						ind(n2+1) = fix(iout(end));
-						ind(n2+2) = numel(x);
-					end
-				elseif (numel(xc) == numel(ind) - 1)	% Also convoluted case. Line starts outside so we added 1 to ind
-					x(ind(2:end)) = xc;		y(ind(2:end)) = yc;
-					if (rem(numel(ind), 2))				% Hammering thinking, might very screw up
-						ind(n2+1) = n1;
-					end
-				else
-					error('Deu merda1')
-				end
-				break_trimeds(hL(k), ind, hFig, hAxes, x, y);
-%  			end
-% 		end
-
+			else
+				segs = cell(numel(get_out),2);
+				for (n = 1:numel(get_out))
+					segs{n,1} = x_(get_out(n):get_in(n));
+					segs{n,2} = y_(get_out(n):get_in(n));
+				end				
+			end			
+		end
+		break_trimeds(hL(k), segs, hFig, hAxes)
 	end
 
-	function break_trimeds(h, ind, hFig, hAxes, x, y)
-	% ...
-	set(h, 'XData',x(ind(1):ind(2)), 'YData',y(ind(1):ind(2)))
-	if (numel(ind) == 2),	return,		end		% We rae done, only one segment
+	function break_trimeds(h, segs, hFig, hAxes)
+	% Create the segment lines after the cell matix SEGS containing their coordinates
+	set(h, 'XData',segs{1,1}, 'YData',segs{1,2})
+	if (size(segs,1) == 1),	return,		end		% We are done, only one segment
 	hCopy = copy_line_object([], h, hFig, hAxes);
 	set(hCopy, 'XData',[], 'YData',[])			% So that we will not copy potentially big lines for nothing
-	for (k = 3:2:numel(ind)-2)					% From second to before last segments
+	for (k = 2:size(segs,1))					% From second to before last segments
 		hNext = copy_line_object([], hCopy, hFig, hAxes);
-		set(hNext, 'XData',x(ind(k):ind(k+1)), 'YData',y(ind(k):ind(k+1)))
+		set(hNext, 'XData',segs{k,1}, 'YData',segs{k,2})
 	end
-
-	hNext = copy_line_object([], hCopy, hFig, hAxes);
-	set(hNext, 'XData',x(ind(end-1):ind(end)), 'YData',y(ind(end-1):ind(end)))	% Last segment
 	delete(hCopy)
 
 % -------------------------------------------------------------------------------------------------------
