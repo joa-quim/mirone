@@ -255,20 +255,26 @@ function push_readFile_CB(hObject, handles)
 				mirone('FileNewBgFrame_CB', handMir, region + [-1 1 -1 1 0]*.1);		% Create a background
 			end
 
+			mag = (log10(out_d(10,:)) + out_d(11,:) - 9.1) * 2 / 3;    % In fact Mw
+			ind = find(mag > 11);			% I've seen this shit happening
+			if (~isempty(ind))
+				out_d(:, ind) = [];
+				mag(ind) = [];
+			end
 			handles.mantiss_exp = [out_d(10,:)' out_d(11,:)'];
-            mag = (log10(out_d(10,:)) + out_d(11,:) - 9.1) * 2 / 3;    % In fact Mw
-            handles.data = [out_d(1,:)' out_d(2,:)' out_d(3,:)' out_d(4,:)' out_d(5,:)' out_d(6,:)' out_d(7,:)' ...
+
+			handles.data = [out_d(1,:)' out_d(2,:)' out_d(3,:)' out_d(4,:)' out_d(5,:)' out_d(6,:)' out_d(7,:)' ...
 							out_d(8,:)' out_d(9,:)' mag'];
-            handles.plot_pos = [out_d(1,:)' out_d(2,:)'];		clear out_d;
-            n = size(out_i,2);
-            handles.date = cell(n,1);
-            for (k=1:n)
+			handles.plot_pos = [out_d(1,:)' out_d(2,:)'];		clear out_d;
+			n = size(out_i,2);
+			handles.date = cell(n,1);
+			for (k=1:n)
 				handles.date{k} = sprintf('%d/%d/%d',double(out_i(3,k)), double(out_i(2,k)), double(out_i(1,k)));
-            end
-            clear out_i;
-            set(handles.check_plotDate,'Enable','on')
-			
-        elseif (strcmp(filtro,'ndk'))				% CMT .ndk formated catalog
+			end
+			clear out_i;
+			set(handles.check_plotDate,'Enable','on')
+
+		elseif (strcmp(filtro,'ndk'))				% CMT .ndk formated catalog
 			[handles.data, handles.mantiss_exp, handles.date, error] = readHarvardCMT(fname);
 			if (error),		return,		end
 			if (handles.no_file)			% If we have a nothing window
