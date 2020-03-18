@@ -881,6 +881,7 @@ function pal = logit(handles, handMir, pal, is_linear, z_grd, z_min, z_max)
 					z_min = handles.z_min;		z_max = handles.z_max;
 				end
 			end
+			if (z_min == 0),	z_min = 10 * eps;	end
 			log_maxmin = log(z_max / z_min) / len_pal;
 			z_pal = z_min * exp((1:len_pal) * log_maxmin);
 			if (handles.z_min <= 0)
