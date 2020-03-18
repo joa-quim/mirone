@@ -702,8 +702,8 @@ function [out, msg, grid, s_names] = run_inner(comm, grid, s_names)
 			catch
 				msg = lasterr;		return
 			end
-			if (isempty(strfind(comm, '(')) || isempty(strfind(comm, '*')) || isempty(strfind(comm, '/')) || ...
-				isempty(strfind(comm, '+')) || isempty(strfind(comm, '-')))		% Iterate
+			if (~isempty(strfind(comm, '(')) || ~isempty(strfind(comm, '*')) || ~isempty(strfind(comm, '/')) || ...
+				~isempty(strfind(comm, '+')) || ~isempty(strfind(comm, '-')))		% Iterate
 				[out, msg, grid, s_names] = run_inner(comm,grid,s_names);
 			end
 
