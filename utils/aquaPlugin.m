@@ -1356,7 +1356,7 @@ function calc_L2_periods(handles, period, tipoStat, regMinMax, grd_out, mask_fil
 			end
 
 			if (filt)
-				tmp = c_grdfilter(tmp, handles.head, sprintf('-Fg%f', filt), '-D3');
+				tmp = c_grdfilter(tmp, handles.head, sprintf('-Fg%f -Nr', filt), '-D3');
 			end
 
 			zzz = grdutils(tmp,'-L');
