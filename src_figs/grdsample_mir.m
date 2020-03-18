@@ -1,7 +1,7 @@
 function varargout = grdsample_mir(varargin)
 % Helper window to interface with GMT program 'grdsample'
 
-%	Copyright (c) 2004-2018 by J. Luis
+%	Copyright (c) 2004-2020 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -154,6 +154,7 @@ function push_refGrid_CB(hObject, handles, opt)
 	else
 		fname = opt;
 	end
+	if (strfind(fname, ' ')),	fname = ['"' fname '"'];	end		% Fck spaces
 
 	% Now fill the edit boxes after the -R -I of this grid
 	hdr = c_grdinfo(fname,'no_struct');
