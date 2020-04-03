@@ -7,7 +7,7 @@ function varargout = snapshot(varargin)
 %   snapshot(H,'noname') Form used for saving Georefed images where format is not selectable here
 %   snapshot(H,'img') same as snapshot(H)
 
-%	Copyright (c) 2004-2019 by J. Luis
+%	Copyright (c) 2004-2020 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -415,11 +415,15 @@ function push_save_CB(hObject, handles)
 		else
 			if (strcmpi(EXT,'.png') && ~isempty(get(handles.hImg, 'AlphaData')))
 				alpha = get(handles.hImg, 'AlphaData');
-				if (size(alpha,1) ~= size(img,1) || size(alpha,2) ~= size(img,2))
-					alpha = round(cvlib_mex('resize',alpha,[size(alpha,1) size(alpha,2)],'bilinear'));
+				if (numel(alpha) > 1)		% Apparently Matlab uses a default of alpha = 1 when no alpha
+					if (size(alpha,1) ~= size(img,1) || size(alpha,2) ~= size(img,2))
+						alpha = round(cvlib_mex('resize',alpha,[size(alpha,1) size(alpha,2)],'bilinear'));
+					end
+					if (strcmp(get(handles.handlesMir.axes1, 'YDir'), 'normal')),	alpha = flipud(alpha);	end		% Not enough fcks!!!
+					imwrite(img,fname, 'Alpha', alpha);
+				else
+					imwrite(img,fname);
 				end
-				if (strcmp(get(handles.handlesMir.axes1, 'YDir'), 'normal')),	alpha = flipud(alpha);	end		% Not enough fcks!!!
-				imwrite(img,fname, 'Alpha', alpha);
 			else
 				imwrite(img,fname);
 			end
