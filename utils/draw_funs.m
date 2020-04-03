@@ -3699,8 +3699,8 @@ function trim_withPolygon(obj, evt, h, side)
 			s = s + numel(ind);
 		end
 		if (pos_int(end) < numel(x_))			% We still have the rest of the line after last intercept
-			x_(pos_int(end)+1:numel(x_)) = x(s:numel(x));
-			y_(pos_int(end)+1:numel(y_)) = y(s:numel(y));
+			x_(pos_int(end)+1:end) = x(s:end);
+			y_(pos_int(end)+1:end) = y(s:end);
 		end
 
 		in_out = inpolygon([x_(1) x_(end)],[y_(1) y_(end)], x0,y0);
@@ -3717,6 +3717,7 @@ function trim_withPolygon(obj, evt, h, side)
 		if (inside)					% Construct inside segments
 			if (start_outside)
 				segs = cell(numel(get_in),2);
+				if (isempty(get_out)),	get_out = numel(x_);	end
 				for (n = 1:numel(get_in))
 					segs{n,1} = x_(get_in(n):get_out(n));
 					segs{n,2} = y_(get_in(n):get_out(n));
@@ -3747,6 +3748,7 @@ function trim_withPolygon(obj, evt, h, side)
 				end				
 			end			
 		end
+		clear x_ y_				% They are reinialized if more lines
 		break_trimeds(hL(k), segs, hFig, hAxes)
 	end
 
