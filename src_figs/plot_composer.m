@@ -1,7 +1,7 @@
 function varargout = plot_composer(varargin)
 % Helper window to generate a GMT script that reproduces the Mirone's figure contents
 
-%	Copyright (c) 2004-2019 by J. Luis
+%	Copyright (c) 2004-2020 by J. Luis
 %
 %             DO WHAT THE FUCK YOU WANT TO PUBLIC LICENSE
 %                     Version 2, December 2004
@@ -1402,7 +1402,9 @@ function push_OK_CB(hObject, handles)
 	elseif (strcmp(EXT, 'ps')),		opt_T = '-Te';
 	end
 
-	fprintf(fid,'\n%s\n',['gmt psconvert ' opt_T ' -A ' pack.pb 'ps' pack.pf]);
+	if ~(strcmp(opt_T, '-Te'))
+		fprintf(fid,'\n%s\n',['gmt psconvert ' opt_T ' -A ' pack.pb 'ps' pack.pf]);
+	end
 	fclose(fid);
 
 	if (get(handles.radio_writeScript, 'Val'))
@@ -1512,7 +1514,7 @@ function [script, l, saveBind, id_grd, id_cpt] = do_init_script(handles, handMir
 		script{l} = comm;							l=l+1;
 		if (handles.IamCompiled)
 			script{l} = [comm 'Set path to use Mirone''s GMT version'];	l=l+1;
-			script{l} = ['set path=' pwd ';%path%'];l=l+1;
+			script{l} = ['set path=' handles.home_dir ';%path%'];l=l+1;
 			script{l} = comm;						l=l+1;
 		end
 		script{l} = [comm ' ---- Projection. You may change it if you know how to'];		l=l+1;
@@ -1851,45 +1853,45 @@ function [script, mex_sc, l, o, used_grd, hLine, hText] = do_contour(handMir, sc
 	tag = get(hLine,'Tag');
 	if (~isempty(tag) && (~isempty(handMir.grdname) || do_MEX))
 		h = findobj(hLine,'Tag','contour');
-		if (~isempty(h))
-			h_label = findobj(hText,'Tag','contour');		% Search for contour labels
-			if (~isempty(h_label))
-				lab = get(h_label,'UserData');
-				if (iscell(lab)),   lab = unique(cat(1,lab{:}));    end
-			else
-				lab = [];
-			end
-			conts = zeros(numel(h),1);
-			for (i = 1:numel(h))
-				conts(i) = getappdata(h(i),'cont_label');
-			end
-			conts = unique(conts);
-			no_anot = setxor(conts,lab);    % Contour levels that are not annotated
-			name = [prefix_ddir '_cont.dat'];
-			fid = fopen(name,'wt');
-			if (isempty(no_anot))           % Annotate all contours
-				fprintf(fid,'%.5f\tA\n',conts);
-			else                            % Annotate only some contours
-				conts = [[lab; no_anot] [ones(length(lab),1)*double('A'); ones(length(no_anot),1)*double('C')]];
-				conts = sortrows(conts);
-				fprintf(fid,'%.5f\t%c\n',conts');
-			end
-			fclose(fid);
-			if (~isempty(handMir.grdname))
-				script{l} = sprintf('\n%s ---- Plot contours', comm);	l=l+1;
-				script{l} = ['gmt grdcontour ' pb 'grd' pf ' -C' [prefix '_cont.dat'] ellips RJOK ' >> ' pb 'ps' pf];
-				l = l + 1;
-			end
-			if (do_MEX)
-				mex_sc{o,1} = ['grdcontour -C"' dest_dir prefix '_cont.dat' '"' ellips KORJ];
-				[X,Y,Z] = load_grd(handMir);
-				mex_sc{o,2} = gmt('wrapgrid', Z, handMir.head);
-				o = o + 1;
-			end
-			used_grd = true;
-			hLine = setxor(hLine, h);       % h is processed, so remove it from handles list
-			hText = setxor(hText, h_label); % same for contour label strings
+		if (isempty(h)),	return,		end				% Nothing to do here
+
+		h_label = findobj(hText,'Tag','contour');		% Search for contour labels
+		if (~isempty(h_label))
+			lab = get(h_label,'UserData');
+			if (iscell(lab)),   lab = unique(cat(1,lab{:}));    end
+		else
+			lab = [];
 		end
+		conts = zeros(numel(h),1);
+		for (i = 1:numel(h))
+			conts(i) = getappdata(h(i),'cont_label');
+		end
+		conts = unique(conts);
+		no_anot = setxor(conts,lab);    % Contour levels that are not annotated
+		name = [prefix_ddir '_cont.dat'];
+		fid = fopen(name,'wt');
+		if (isempty(no_anot))           % Annotate all contours
+			fprintf(fid,'%.5f\tA\n',conts);
+		else                            % Annotate only some contours
+			conts = [[lab; no_anot] [ones(length(lab),1)*double('A'); ones(length(no_anot),1)*double('C')]];
+			conts = sortrows(conts);
+			fprintf(fid,'%.5f\t%c\n',conts');
+		end
+		fclose(fid);
+		if (~isempty(handMir.grdname))
+			script{l} = sprintf('\n%s ---- Plot contours', comm);	l=l+1;
+			script{l} = ['gmt grdcontour ' pb 'grd' pf ' -C' [prefix '_cont.dat'] ellips RJOK ' >> ' pb 'ps' pf];
+			l = l + 1;
+		end
+		if (do_MEX)
+			mex_sc{o,1} = ['grdcontour -C"' dest_dir prefix '_cont.dat' '"' ellips KORJ];
+			[X,Y,Z] = load_grd(handMir);
+			mex_sc{o,2} = gmt('wrapgrid', Z, handMir.head);
+			o = o + 1;
+		end
+		used_grd = true;
+		hLine = setxor(hLine, h);       % h is processed, so remove it from handles list
+		hText = setxor(hText, h_label); % same for contour label strings
 	end
 
 % ------------------------------------------------------------------------------------------------------------
