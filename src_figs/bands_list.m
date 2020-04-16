@@ -95,7 +95,7 @@ function hObject = bands_list_OF(varargin)
 
 	handMir = guidata(handles.hMirFig);        % Retrive Mirone handles
 	handles.image_type_orig = handMir.image_type;
-	if (~isempty(handles.reader) && strcmp(handles.reader{1}, 'GDAL'))
+	if (~isempty(handles.reader) & strcmp(handles.reader{1}, 'GDAL'))
 		handles.att = gdalread(handles.fname, '-M', '-C');
 	else
 		handles.att = [];
@@ -265,7 +265,7 @@ function push_Load_CB(hObject, handles)
 
 		else                        % Not uint8, so we need scalings
 			% Now we are going to load the band not scaled and treat it as a GMT grid
-			if (~isempty(handles.reader) && strcmp(handles.reader{1}, 'GDAL'))
+			if (~isempty(handles.reader) & strcmp(handles.reader{1}, 'GDAL'))
 				Z = gdalread(handles.fname, ['-B' num2str(handles.Rband)]);
 			end
 			X = 1:handles.dims(2);    Y = 1:handles.dims(1);
