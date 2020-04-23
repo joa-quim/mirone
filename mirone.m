@@ -2236,8 +2236,12 @@ function erro = FileOpenGeoTIFF_CB(handles, tipo, opt)
 		else
 			try
 				pal = att.Band(1).ColorMap.CMap;	pal = pal(:,1:3);		% GDAL creates a Mx4 colormap
-				if ((handles.head(6)+1) < size(pal,1) && isequal(pal(handles.head(6)+2,1:end), [0 0 0]) )
-					pal(handles.head(6)+2:end,:) = [];		% TEMP!? GDAL forces pals of 256 and that screws some cases
+				%max_ind = handles.head(6)+1;		% gdalread is not reporting the true max. Needs investigation
+				max_ind = max(Z(:));
+				%if (max_ind < size(pal,1) && isequal(pal(handles.head(6)+2,1:end), [0 0 0]) )
+				if (max_ind < size(pal,1))
+					%pal(handles.head(6)+2:end,:) = [];		% TEMP!? GDAL forces pals of 256 and that screws some cases
+					pal(double(max_ind)+1:end,:) = [];
 				end
 			catch
 				warndlg('Figure ColorMap had troubles. Replacing by a default one.','Warning'); pal = jet(256);
@@ -2545,7 +2549,7 @@ function handles = show_image(handles, fname, X, Y, I, validGrid, axis_t, adjust
 	set(handles.GCPmemory,'Visible',GCPmemoryVis)
 
 	BL = getappdata(handles.figure1,'BandList');		% We must tell between fakes and true 'BandList'
-	if (isempty(BL) || strcmp(BL{end}{1},'Mirone'))
+	if (isempty(BL) | strcmp(BL{end}{1},'Mirone'))
 		if (ndims(I) == 3)		% Some cheating to allow selecting individual bands of a RGB image
 			tmp1 = cell(4,2);	tmp2 = cell(4,2);		tmp1{1,1} = 'RGB';		tmp1{1,2} = 'RGB';
 			for (i = 1:3)
