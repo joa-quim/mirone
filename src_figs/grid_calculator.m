@@ -7,10 +7,8 @@ function varargout = grid_calculator(varargin)
 % only to run the whole computation as an eval('command') from within Matlab but also
 % to break that 'command' in its tokens and, now with lots of parsings, execute them
 % in a way that also works in the stand-alone (compiled) version.
-%
-% This stil does all computations in doubles
 
-%	Copyright (c) 2004-2019 by J. Luis
+%	Copyright (c) 2004-2020 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -528,10 +526,13 @@ function out = bandArithm(handles, com)
 
 		if (numel(resp) > 1)			% 'resp' is a array. Construct a fake grid
 			resp = single(resp);
+			handMir = guidata(handles.hMirFig);
+			if (handMir.image_type == 2)	% Non-referenced figs
+				resp = flipud(resp);		% Need because grid is YDir direct
+			end
 			[zzz] = grdutils(resp,'-L');  z_min = zzz(1);     z_max = zzz(2);
 			tmp.name = 'Computed_band';
 			if (~isempty(handles.hMirFig))
-				handMir = guidata(handles.hMirFig);
 				tmp.head = handMir.head;
 				tmp.head(5:6) = [z_min z_max];
 				mirone(resp, tmp, handles.hMirFig);		% Can fish cpt and proj stuff from parent
