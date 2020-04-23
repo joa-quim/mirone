@@ -190,6 +190,7 @@ function varargout = plot_composer(varargin)
 	handles.path_tmp = handMir.path_tmp;
 	handles.which_unit = 'cm';
 	handles.last_dir = handMir.last_dir;
+	handles.home_dir = handMir.home_dir;
 	handles.version7 = handMir.version7;
 	handles.hRect = zeros(N_figs, 1) * NaN;
 	if (strncmp(computer, 'PC', 2)),	handles.script_type = 'bat';
