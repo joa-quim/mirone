@@ -87,7 +87,14 @@ function hObject = run_cmd_OF(varargin)
 					'- Apply a mask to image. Select mask from loaded images\n' ...
 					'mask(Z)\n\n' ...
 					'- Now the same but load mask from disk\n' ...
-					'mask(Z,"")']);
+					'mask(Z,"")\n\n' ...
+					'- Mix (or blend) loaded image and a second one in presence of a mask\n' ...
+					'mix(Z, img2, mask)\n\n' ...
+					'- The above case asks both the names of "img" and "mask" but those can be provided\n' ...
+					'Either one or both. If the mask needs to be reversed prepend a ~ like the example below\n' ...
+					'If mask is a number between [0 1] it will do Z*mask + img*(1-mask)\n' ...
+					'mix(Z,c:\\v\\jump.png, ~c:\\v\\mask.png)\n\n' ...
+					]);
 	set(handles.edit_com,'ToolTip', str)		
 
 	str = sprintf(['This is a tool where you can enter an arbitrarily complicated MATLAB\n' ...
@@ -168,11 +175,15 @@ function push_compute_CB(hObject, handles)
 	end
 
 	try
-		is_1D = false;
+		is_1D = false;		is_mixed = false;
 		cb = str2func('runCmd_cmda');
 		if (strncmp(com, 'sum(', 4))
 			Z(isnan(Z)) = 0;
 			is_1D = true;
+		elseif (strncmp(com, 'mix(', 4) || strncmp(com, 'blend(', 4))	% Blend Z and a second image with a mask
+			[Z_out, msg] = blend_A_B_mask(handles, Z, com);
+			if (~isempty(msg)),		errordlg(msg, 'Error'),		return,		end
+			is_mixed = true;
 		end
 
 		if (handles.IamCompiled)		% PARTICULAR CASES FOR CLASSES
@@ -191,15 +202,18 @@ function push_compute_CB(hObject, handles)
 				ind2 = strfind(com, ')');
 				dim = str2double(com(ind1+1:ind2-1));
 				Z_out = sum(Z, dim);
+			elseif (is_mixed)			% Just do nothing here
 			else
 				warndlg('The compiled version has only a very limmited set of operations. Unfortunately not this one.','Warning')
 				return
 			end
 		else
-			arg1.Z = Z;
-			Z_out = feval(cb,arg1,com);
-			if (size(Z,3) == 3)
-				Z_out = squeeze(Z_out);
+			if (~is_mixed)			% Otherwise Z_out is already computed
+				arg1.Z = Z;
+				Z_out = feval(cb,arg1,com);
+				if (size(Z,3) == 3)
+					Z_out = squeeze(Z_out);
+				end
 			end
 		end
 	catch
@@ -230,16 +244,105 @@ function push_compute_CB(hObject, handles)
 		end
 		figTitle = 'Mask image';
 	elseif (isa(Z_out,'single')),	figTitle = 'Refactored grid';
+	elseif (is_mixed),			figTitle = 'Composed image';
 	else,							figTitle = 'Zorro image';
 	end
 
-	tmp.X = X;		tmp.Y = Y;		tmp.head = head;	tmp.name = figTitle;
-	handles.figure1 = handles.hMirFig1;		% it won't hurt as long as we don't save the handles
-	prjInfStruct = aux_funs('getFigProjInfo',handles);
-	if (~isempty(prjInfStruct.projWKT))
-		tmp.srsWKT = prjInfStruct.projWKT;
+	if (handles.image_type == 2 || handles.image_type == 20)
+		h = mirone(Z_out);
+		set(h,'Name',figTitle)
+	else
+		tmp.head = head;	tmp.name = figTitle;	tmp.X = X;		tmp.Y = Y;
+		mirone(Z_out, tmp, handles.hMirFig1)
 	end
-	mirone(Z_out, tmp)
+
+% -----------------------------------------------------------------------------------------
+function [Z_out, msg] = blend_A_B_mask(handles, Z, com)
+% COM must be a command with the form compose(Z,img2,mask).
+% If either IMG2 or MASK have extension we interpret it as meaning a full file name
+% otherwise the file names are asked here.
+
+	msg = '';	Z_out = [];
+	ind = strfind(com, ',');
+	if (numel(ind) ~= 2)
+		msg = 'Error, must provide 3 arguments (Z, fname, mask)';		return
+	end
+	com = ddewhite(com);
+	if (com(end) == ';'),	com = com(1:end-1);	end
+	if (com(end) ~= ')'),	com = [com ')'];	end		% Simpler then erroring
+
+	% Read second image
+	fname = ddewhite(com(ind(1)+1:ind(2)-1));
+	[p,f,ext] = fileparts(fname);
+	if (isempty(ext)),	fname = '';		end
+	[img, cmap] = load_img(handles, fname);
+	if (isempty(img)),	msg = 'Error reading second image';		return,		end
+	if ((size(Z,1) ~= size(img,1)) && (size(Z,2) ~= size(img,2)))
+		if ((size(Z,1) <= size(img,1)) && (size(Z,2) <= size(img,2)))	% Allow the case where Z is totaly inside IMG
+			img = img(1:size(Z,1), 1:size(Z,2), :);
+		else
+			msg = 'Error: dimensions of second image must be equal or larger than those of first.';	return
+		end
+	elseif (size(Z,3) ~= size(img,3))		% One of them must be converted to RGB
+		if (size(Z,3) == 1)
+			Z = ind2rgb8(Z, get(handles.hMirFig1, 'cmap'));
+		else
+			if (isempty(cmap)),	msg = 'Error: colormap of second image is empty and I need it';	return,	end
+			img = ind2rgb8(img, cmap);
+		end
+	end
+
+	% Read mask
+	mask_name = ddewhite(com(ind(2)+1:end-1));
+	negate = false;
+	if (mask_name(1) == '~')		% Means that the mask is to be negated
+		mask_name = mask_name(2:end);
+		negate = true;
+	end
+	
+	mask_val = str2double(mask_name);
+	if (isnan(mask_val))
+		[p,f,ext] = fileparts(mask_name);
+		if (isempty(ext)),	mask_name = '';		end
+		mask = load_img(handles, mask_name);
+		if (isempty(mask)),			msg = 'Error reading mask file';	return,		end
+		if (size(mask, 3) ~= 1),	msg = 'MASK is not a mask file. Masks have only one layer';	return,	end
+		if ((size(Z,1) ~= size(mask,1)) || (size(Z,2) ~= size(mask,2)))
+			msg = 'Error: the MASK does not have the same size as the images.';	return
+		end
+		mask = logical(mask);			% Watever this does
+		if (negate),	mask = ~mask;	end
+
+		if (size(Z,3) == 3),	mask = repmat(mask,[1 1 3]);	end
+		Z(mask) = img(mask);
+		Z_out = Z;
+	else
+		if (mask_val <= 0 || mask_val >= 1)
+			msg = 'Error, when mask is numeric it must be in the ]0 1[ interval';	return
+		end
+		Z_out = cvlib_mex('addweighted',Z,mask_val, img,(1 - mask_val));
+	end
+
+% -----------------------------------------------------------------------------------------
+function [img, cmap] = load_img(handles, fname)
+% ...
+	img = [];	cmap = [];
+	if (isempty(fname))
+		str1 = {'*.jpg', 'JPEG image (*.jpg)'; ...
+			'*.png', 'Portable Network Graphics(*.png)';	'*.bmp', 'Windows Bitmap (*.bmp)'; ...
+			'*.gif', 'GIF image (*.gif)';					'*.tif', 'Tagged Image File (*.tif)'; ...
+			'*.pcx', 'Windows Paintbrush (*.pcx)';			'*.pgm', 'Portable Graymap (*.pgm)'; ...
+			'*.*', 'All Files (*.*)'};
+		[FileName,PathName] = put_or_get_file(handles,str1,'Select image format','get');
+		if isequal(FileName,0),		return,		end
+		[img, cmap] = imread([PathName FileName]);
+	else
+		if (~exist(fname,'file'))
+			errordlg(sprintf('Error: file %s does not exist', fname), 'Error')
+			return
+		end
+		[img, cmap] = imread(fname);
+	end
 
 % -----------------------------------------------------------------------------------------
 function Z = runCmd_cmda(arg1,cmd)
