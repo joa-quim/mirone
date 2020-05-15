@@ -2237,11 +2237,11 @@ function erro = FileOpenGeoTIFF_CB(handles, tipo, opt)
 			try
 				pal = att.Band(1).ColorMap.CMap;	pal = pal(:,1:3);		% GDAL creates a Mx4 colormap
 				%max_ind = handles.head(6)+1;		% gdalread is not reporting the true max. Needs investigation
-				max_ind = max(Z(:));
+				max_ind = double(max(Z(:)));
 				%if (max_ind < size(pal,1) && isequal(pal(handles.head(6)+2,1:end), [0 0 0]) )
-				if (max_ind < size(pal,1))
+				if ((max_ind+1) < size(pal,1))		% max_ind+1 because it starts at 0
 					%pal(handles.head(6)+2:end,:) = [];		% TEMP!? GDAL forces pals of 256 and that screws some cases
-					pal(double(max_ind)+1:end,:) = [];
+					pal(max_ind+2:end,:) = [];
 				end
 			catch
 				warndlg('Figure ColorMap had troubles. Replacing by a default one.','Warning'); pal = jet(256);
