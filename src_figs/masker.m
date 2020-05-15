@@ -1,7 +1,7 @@
 function varargout = masker(varargin)
 % Helper Window to run masking ops using second grid/images
 
-%	Copyright (c) 2004-2019 by J. Luis
+%	Copyright (c) 2004-2020 by J. Luis
 %
 %             DO WHAT THE FUCK YOU WANT TO PUBLIC LICENSE
 %                     Version 2, December 2004
@@ -87,15 +87,15 @@ function edit_fname_CB(hObject, handles)
 
 % -----------------------------------------------------------------------------------------
 function push_fname_CB(hObject, handles, opt)
-	if (nargin == 2)
-		set(handles.edit_fname,'Str',opt)		
-		[img, handles_out, handles.att] = mirone('FileOpenNewImage_CB', handles);
-	else
+	if (nargin == 3)
 		[img, handles_out, handles.att] = mirone('FileOpenNewImage_CB', handles, opt);
+	else
+		[img, handles_out, handles.att] = mirone('FileOpenNewImage_CB', handles);
+		set(handles.edit_fname,'Str',handles_out.fileName)		
 	end
 	handles.mask = logical(img);
 	handles.head = handles_out.head;
-	guidata(handles, handles.figure1)
+	guidata(handles.figure1, handles)
 
 % -----------------------------------------------------------------------------------------
 function push_OK_CB(hObject, handles)
@@ -258,7 +258,6 @@ uicontrol('Parent',h1, 'Position',[10 9 100 15],...
 	'String','Add alpha layer',...
 	'Style','checkbox',...
 	'Tooltip','Add mask to image alpha layer',...
-	'Value',1,...
 	'Tag','check_alpha');
 
 uicontrol('Parent',h1, 'Position',[250 10 60 23],...
@@ -267,7 +266,6 @@ uicontrol('Parent',h1, 'Position',[250 10 60 23],...
 	'FontWeight','bold',...
 	'String','OK',...
 	'Tag','push_OK');
-
 
 function masker_uiCB(hObject, evt)
 % This function is executed by the callback and than the handles is allways updated.
