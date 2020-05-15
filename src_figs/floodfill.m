@@ -1,7 +1,7 @@
 function varargout = floodfill(varargin)
 % Helper Fig to do color segmentation or painting like the magick wand
 
-%	Copyright (c) 2004-2018 by J. Luis
+%	Copyright (c) 2004-2020 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -138,13 +138,13 @@ function line_clickedcallback(hObject, eventdata, opt)
     end
     w = waitforbuttonpress;
     if (w == 0),    paintFirstButtonDown(handles,state,opt)       % A mouse click
-    else            set(handles.hCallingFig,'Pointer', 'arrow');
+	else,            set(handles.hCallingFig,'Pointer', 'arrow');
     end
 
 % -------------------
 function paintFirstButtonDown(handles,state,opt)
-	if (strcmp(opt,'pencil')),      lineThick = 1;
-	else                            lineThick = handles.lineWidth;
+	if (strcmp(opt,'pencil')),	lineThick = 1;
+	else,						lineThick = handles.lineWidth;
 	end
 	lineType = 8;       % Default to 8 connectivity
 	if (get(handles.checkbox_AA,'Value')),      lineType = 16;      end
@@ -268,7 +268,7 @@ function shape_clickedcallback(hObject, eventdata, opt)
 
 	w = waitforbuttonpress;
 	if (w == 0),	ShapeFirstButtonDown(handles,state,opt)       % A mouse click
-	else			set(handles.hCallingFig,'Pointer', 'arrow');
+	else,			set(handles.hCallingFig,'Pointer', 'arrow');
 	end
 
 % -------------------
@@ -489,23 +489,31 @@ function push_pickSingle_CB(hObject, handles)
 		mask = colorseg(img, T, m, C);
 	end
 	if (get(handles.checkbox_useDilation,'Value'))
-		mask  = img_fun('bwmorph',mask,'dilate');
+		mask = img_fun('bwmorph',mask,'dilate');
 	end
-	if (handles.colorSegment)
-		if (ndims(img) == 3)
-			mask = repmat(mask,[1 1 3]);
+	if (handles.colorSegment == 0)
+		digitize(handles, mask)
+	else
+		mask = img_fun('bwmorph',mask,'clean');		% Get rid of isolated pixels
+		if (handles.colorSegment == 1)		% Color segmentation
+			if (ndims(img) == 3),	mask = repmat(mask,[1 1 3]);	end
+			img(~mask) = handles.bg_color;
+			Name = 'Color segmentation';
+		else								% Just want the mask
+			img = mask;
+			Name = 'Segmentation mask';
 		end
-		img(~mask) = handles.bg_color;
 		if (handles.image_type == 2 || handles.image_type == 20)
 			h = mirone(img);
-			set(h,'ColorMap',get(handles.hCallingFig,'ColorMap'),'Name','Color segmentation')
+			set(h,'Name',Name)
+			if (handles.colorSegment == 1)
+				set(h,'ColorMap',get(handles.hCallingFig,'ColorMap'))
+			end
 		else
 			tmp.X = handles.head(1:2);  tmp.Y = handles.head(3:4);  tmp.head = handles.head;
-			tmp.name = 'Color segmentation';
+			tmp.name = Name;
 			mirone(img,tmp);
 		end
-	else
-		digitize(handles, mask)
 	end
 
 % -------------------------------------------------------------------------------------
@@ -576,7 +584,7 @@ function push_pickMultiple_CB(hObject, handles)
 % those options from the GUI. This is for the case that I change my mind and decide
 % to reintroduce it. For the time beeing, RGB seams to work better.
 	[params, but] = prepareParams(handles);
-	if (isempty(params) || but ~= 1),   return;     end
+	if (isempty(params) || but ~= 1),	return,		end
 	img = get(handles.hImage,'CData');              % Get the image
 	nColors = 0;
 	mask = false([size(img,1) size(img,2)]);        % Initialize the mask
@@ -595,11 +603,27 @@ function push_pickMultiple_CB(hObject, handles)
 		img = cvlib_mex('color',img,['rgb2' handles.colorModel]);
 	end
 
-	if (isempty(handles.colorModel) && ndims(img) == 3)        % That is, RGB model
+	if (handles.colorSegment == 2)			% Whatever model used, when MASK is required we fall in this case
+		mask_sum = mask(:,:,1);
+		for (k = 2:nColors)
+			mask_sum = mask_sum | mask(:,:,k);
+		end
+		clear mask
+		mask_sum = img_fun('bwmorph',mask_sum,'clean');		% Get rid of isolated pixels
+		if (handles.image_type == 2 || handles.image_type == 20)
+			h = mirone(mask_sum);
+			set(h,'Name','Segmentation mask')
+		else
+			hdr.X = handles.head(1:2);  hdr.Y = handles.head(3:4);  hdr.head = handles.head;
+			hdr.name = 'Segmentation mask';
+			mirone(mask_sum,hdr);
+		end
+
+	elseif (isempty(handles.colorModel) && ndims(img) == 3)		% That is, RGB model
 		a = img(:,:,1);		b = img(:,:,2);		c = img(:,:,3);
 		cm = zeros(nColors, 6);
 		im_out = repmat(uint8(handles.bg_color), size(img));
-		for count = 1:nColors
+		for (count = 1:nColors)
 			cm(count,1) = mean2(a(mask(:,:,count)));
 			cm(count,1:2) = [max(cm(count,1) - handles.tol, 0) min(cm(count,1) + handles.tol, 255)];
 			cm(count,3)   = mean2(b(mask(:,:,count)));
@@ -638,7 +662,7 @@ function push_pickMultiple_CB(hObject, handles)
 	elseif (isempty(handles.colorModel) && ndims(img) == 2)        % That is, indexed image & RGB model
 		cm = zeros(nColors, 2);
 		im_out = repmat(uint8(handles.bg_color), size(img));
-		for count = 1:nColors
+		for (count = 1:nColors)
 			cm(count,1) = mean2(img(mask(:,:,count)));
 			cm(count,1:2) = [max(cm(count,1) - handles.tol, 0) min(cm(count,1) + handles.tol, 255)];
 			tmp = (img >= cm(count,1) & img <= cm(count,2));
@@ -726,25 +750,31 @@ function push_pickMultiple_CB(hObject, handles)
 % -------------------------------------------------------------------------------------
 function radio_colorSegment_CB(hObject, handles)
 	if (~get(hObject,'Value')),		set(hObject,'Value',1),		return,		end
-	set(handles.radio_digitize,'Value',0)
+	set([handles.radio_digitize handles.radio_mask],'Value',0)
 	handles.colorSegment = 1;
-	set(handles.edit_minPts,'Visible','off')
-	set(handles.text_minPts,'Visible','off')
+	set([handles.edit_minPts handles.text_minPts],'Visible','off')
 	guidata(handles.figure1,handles)
 
 % -------------------------------------------------------------------------------------
 function radio_digitize_CB(hObject, handles)
 	if (~get(hObject,'Value')),		set(hObject,'Value',1),		return,		end
-	set(handles.radio_colorSegment,'Value',0)
+	set([handles.radio_colorSegment handles.radio_mask],'Value',0)
 	handles.colorSegment = 0;
-	set(handles.edit_minPts,'Visible','on')
-	set(handles.text_minPts,'Visible','on')
+	set([handles.edit_minPts handles.text_minPts],'Visible','on')
+	guidata(handles.figure1,handles)
+
+% -------------------------------------------------------------------------------------
+function radio_mask_CB(hObject, handles)
+	if (~get(hObject,'Value')),		set(hObject,'Value',1),		return,		end
+	set([handles.radio_colorSegment handles.radio_digitize],'Value',0)
+	handles.colorSegment = 2;
+	set([handles.edit_minPts handles.text_minPts],'Visible','off')
 	guidata(handles.figure1,handles)
 
 % -------------------------------------------------------------------------------------
 function edit_minPts_CB(hObject, handles)
-	xx = round( str2double(get(hObject,'String')) );
-	if (isnan(xx)),     set(hObject,'String','50');     return;     end
+	xx = round(str2double(get(hObject,'String')));
+	if (isnan(xx)),		set(hObject,'String','50'),		return,		end
 	handles.minPts = xx;
 	guidata(handles.figure1,handles)
 
@@ -793,7 +823,7 @@ function radio_round_CB(hObject, handles)
 % -------------------------------------------------------------------------------------
 function check_mahal_CB(hObject, handles)
 	if (get(hObject,'Value')),		set(handles.push_pickMultiple,'Enable', 'off')
-	else							set(handles.push_pickMultiple,'Enable', 'on')
+	else,							set(handles.push_pickMultiple,'Enable', 'on')
 	end
 
 % ---------------------------------------------------------------------
@@ -1190,7 +1220,7 @@ uicontrol('Parent',h1,...
 
 uicontrol('Parent',h1,...
 'Callback',@floodfill_uiCB,...
-'Position',[12 55 140 15],...
+'Position',[9 55 140 15],...
 'String','Color segmentation',...
 'Style','radiobutton',...
 'TooltipString','Create a separate figure with shapes colored as you selected',...
@@ -1199,7 +1229,15 @@ uicontrol('Parent',h1,...
 
 uicontrol('Parent',h1,...
 'Callback',@floodfill_uiCB,...
-'Position',[12 35 65 15],...
+'Position',[132 55 60 15],...
+'String','Mask',...
+'Style','radiobutton',...
+'TooltipString','Create a separate figure with a mask of the selected shapes',...
+'Tag','radio_mask');
+
+uicontrol('Parent',h1,...
+'Callback',@floodfill_uiCB,...
+'Position',[9 35 65 15],...
 'String','Digitize',...
 'Style','radiobutton',...
 'TooltipString','Detect bounding polygon to the colored selected body',...
