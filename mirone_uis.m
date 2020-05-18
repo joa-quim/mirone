@@ -88,7 +88,7 @@ function [H1,handles,home_dir] = mirone_uis(home_dir)
 		'IntegerHandle','off',...
 		'MenuBar','none',...
 		'Toolbar', 'none',...
-		'Name','Mirone 2.11',...
+		'Name','Mirone 2.12dev',...
 		'NumberTitle','off',...
 		'PaperPositionMode','auto',...
 		'PaperSize',[20.984 29.677],...
@@ -349,6 +349,7 @@ uimenu('Parent',hIM,'Callback','floodfill(gcf)','Label','Shape detector')
 uimenu('Parent',hIM,'Callback','mpaint(gcf)','Label','Paint Brush');
 uimenu('Parent',hIM,'Callback','classificationfig(gcf);','Label','K-means classification');
 uimenu('Parent',hIM,'Callback','imageresize(gcf)','Label','Image resize','Sep','on');
+uimenu('Parent',hIM,'Callback','thresholdit(gcf)','Label','Binarize Image');
 uimenu('Parent',hIM,'Callback','masker(guidata(gcbo))','Label','Mask Image');
 uimenu('Parent',hIM,'Callback','mirone(''RotateTool_CB'',guidata(gcbo),''image'')','Label','Image rotation');
 
@@ -359,7 +360,6 @@ uimenu('Parent',h,'Callback','mirone(''Transfer_CB'',guidata(gcbo),''gray'')','L
 uimenu('Parent',h,'Callback','mirone(''Transfer_CB'',guidata(gcbo),''bw'')','Label','Black and White','Tag','ImModBW');
 uimenu('Parent',h,'Callback','mirone(''Transfer_CB'',guidata(gcbo),''neg'')','Label','Negative','Tag','ImModNeg');
 uimenu('Parent',h,'Callback','mirone(''Transfer_CB'',guidata(gcbo),''negBW'')','Label','Negative BW','Tag','ImModNegBW');
-uimenu('Parent',h,'Callback','thresholdit(gcf)','Label','Limiares','Sep','on');
 uimenu('Parent',h,'Callback','mirone(''ImageResetOrigImg_CB'',guidata(gcbo))','Label','Original Image','Sep','on');
 
 % ------------ Image filters _______ TO BE CONTINUED
@@ -766,7 +766,7 @@ end
 %uimenu('Parent',h, 'Callback', 'update_gmt(guidata(gcbo))','Label','Update your GMT5','Sep','on')
 uimenu('Parent',h, 'Callback',['mirone(''FileOpenWebImage_CB'',guidata(gcbo),',...
 	' ''http://www2.clustrmaps.com/stats/maps-clusters/w3.ualg.pt-~jluis-mirone-world.jpg'',''nikles'');'],'Label','See visitors map','Sep','on');
-uimenu('Parent',h, 'Callback','about_box(guidata(gcbo),''Mirone Last modified at 5 Feb 2020'',''2.11'')','Label','About','Sep','on');
+uimenu('Parent',h, 'Callback','about_box(guidata(gcbo),''Mirone Last modified at 18 May 2020'',''2.12dev'')','Label','About','Sep','on');
 
 %% --------------------------- Build HANDLES and finish things here
 	handles = guihandles(H1);
