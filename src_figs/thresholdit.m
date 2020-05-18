@@ -1,7 +1,7 @@
 function varargout = thresholdit(varargin)
 % Helper window to binarize an image by threshold computation.
 
-%	Copyright (c) 2004-2019 by J. Luis
+%	Copyright (c) 2004-2020 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -56,6 +56,25 @@ function varargout = thresholdit(varargin)
 	handles.I_never_changed_imgMir = true;
 	handles.img = get(handMir.hImg,'CData');
 
+	undo_ico = flipud(uint8(...
+	  [114 114 114 114 114 114 114 114 114 114 114 114 114 114 114 114
+	   114 114 114 114 114 114 114 114 114 114 114 114 114 114 114 114
+	   114 114 114 114 114 114 114 114 114 114 114 114 114 114 114 114
+	   111 103 114 114 114 114 104 112 112 105 104 101 101 114 114 114
+	   131 114 103 114 103 117 142 204 204 208 189 149  97  98 114 114
+	   131 208 127 107 122 207 237 223 219 215 210 202 162  93  99 114
+	   131 255 214 123 219 238 229 230 236 222 210 198 187 134  90 114
+	   131 255 254 250 242 234 239 235 129 108 104 114 114 158  94  97
+	   131 255 249 246 240 244 228 114 103 114 114 114  99 127 115  93
+	   131 255 249 245 245 252 115 104 114 114 114 114 100 124 137  90
+	   131 255 251 246 242 249 226 113 103 114 114 114 114  96 166  88
+	   131 255 254 252 250 248 255 219 110 114 114 114 114  97 162  87
+	   132 160 156 150 145 140 134 114 107 104 114 114 114  99  91  95
+	   114 103 103 114 114 114 114 114 114 114 114 114 114 114 114 114
+	   114 114 114 114 114 114 114 114 114 114 114 114 114 114 114 114
+	   114 114 114 114 114 114 114 114 114 114 114 114 114 114 114 114]));
+   set(handles.push_undo, 'CData', repmat(undo_ico, [1 1 3]))
+
 	% Must find out if Mirone's backup img is the same as the displayed (to eventual use is "Apply to original"
 	handles.fine_to_use_imgMir_orig = true;			% Start by assuming a yes
 	handles.fine_to_use_imgMir_orig = (numel(handles.img) == numel(handMir.origFig));	% simple test on images size
@@ -68,8 +87,15 @@ function varargout = thresholdit(varargin)
 		handles.img = cvlib_mex('color',handles.img,'rgb2gray');
 	end
 
-	[bw,level] = img_fun('im2bw',handles.img);
-	handles.hImg = image(bw,'Parent',handles.axes1);
+	if (max(handles.img(:)) == 1)		% Already a BW img
+		handles.hImg = image(handles.img,'Parent',handles.axes1);
+		handles.mask_backup = handles.img;
+		level = -1;
+	else
+		[bw,level] = img_fun('im2bw',handles.img);
+		handles.hImg = image(bw,'Parent',handles.axes1);
+		handles.mask_backup = bw;
+	end
 	set(handles.hImg,'CDataMapping','scaled');
 	set(handles.figure1,'ColorMap',gray(2));
 
@@ -79,28 +105,34 @@ function varargout = thresholdit(varargin)
 		set(handles.axes1,'YDir','normal')
 	end
 
-	% ---------------- Construct the histogram
-	localImhist(handles.img, handles);
+	if (level > 0)
+		% ---------------- Construct the histogram
+		localImhist(handles.img, handles);
 
-	% ---------------- display level as vertical line
-	x_lim = get(handles.axes2,'xlim');		y_lim = get(handles.axes2,'ylim');
-	handles.hVline = line('XData',[level level], 'YData',y_lim, 'Parent',handles.axes2,...
-		'LineWidth',2,'color',0.5*[1 1 1],'handlevisibility','off');
+		% ---------------- display level as vertical line
+		x_lim = get(handles.axes2,'xlim');		y_lim = get(handles.axes2,'ylim');
+		handles.hVline = line('XData',[level level], 'YData',y_lim, 'Parent',handles.axes2,...
+			'LineWidth',2,'color',0.5*[1 1 1],'handlevisibility','off');
 
-	handles.hText = text(level,-1,sprintf('%d',level),'HorizontalAlignment','Center',...
-		'VerticalAlignment','top','FontWeight','Bold','color',.4*[1 1 1]);
-	movex_text(handles,level)
+		handles.hText = text(level,-1,sprintf('%d',level),'HorizontalAlignment','Center',...
+			'VerticalAlignment','top','FontWeight','Bold','color',.4*[1 1 1]);
+		movex_text(handles,level)
 
-	% ---------------- Create one box plus three vertical lines
-	handles.hBox = patch('XData',[0 0 x_lim(2) x_lim(2)],'YData',[0 y_lim(2) y_lim(2) 0], ...
-		'FaceColor','none', 'Parent',handles.axes2, 'Vis','off');
-	handles.hVertLines(1) = line('XData',[0 0],'YData',[0 y_lim(2)],'color','r','LineWidth',2, 'UserData',1, 'Vis','off');
-	handles.hVertLines(2) = line('XData',[x_lim(2) x_lim(2)]/2,'YData',[0 y_lim(2)],'color','r', ...
-	'LineWidth',2,'LineStyle','--', 'UserData',2, 'Vis','off');
-	handles.hVertLines(3) = line('XData',[x_lim(2) x_lim(2)],'YData',[0 y_lim(2)],'color','r', ...
-		'LineWidth',2, 'UserData',3, 'Vis','off');
+		% ---------------- Create one box plus three vertical lines
+		handles.hBox = patch('XData',[0 0 x_lim(2) x_lim(2)],'YData',[0 y_lim(2) y_lim(2) 0], ...
+			'FaceColor','none', 'Parent',handles.axes2, 'Vis','off');
+		handles.hVertLines(1) = line('XData',[0 0],'YData',[0 y_lim(2)],'color','r','LineWidth',2, 'UserData',1, 'Vis','off');
+		handles.hVertLines(2) = line('XData',[x_lim(2) x_lim(2)]/2,'YData',[0 y_lim(2)],'color','r', ...
+		'LineWidth',2,'LineStyle','--', 'UserData',2, 'Vis','off');
+		handles.hVertLines(3) = line('XData',[x_lim(2) x_lim(2)],'YData',[0 y_lim(2)],'color','r', ...
+			'LineWidth',2, 'UserData',3, 'Vis','off');
 
-	handles = move_vline(handles);			% attach draggable behavior for user to change level
+		handles = move_vline(handles);			% attach draggable behavior for user to change level
+	else
+		set([handles.push_Otsu handles.push_maxEntropy handles.push_isodata handles.push_minCrossEntropy], 'Enable', 'off')
+		set([handles.push_triang handles.radio_singleLine handles.radio_window], 'Enable', 'off')
+		set(handles.axes2, 'Visible', 'off')
+	end
 
 	% Add this figure handle to the carraças list
 	plugedWin = getappdata(handles.hMirFig,'dependentFigs');
@@ -134,7 +166,6 @@ function [y,x] = localImhist(img, handles)
 
 % --------------------------------------------------------------------------
 function [n, isScaled, top] = parse_inputs(img)
-
 	n = 256;
 	if (isa(img,'double'))
 		isScaled = 1;   top = 1;
@@ -182,12 +213,12 @@ function VLineDownFcn(hObject,evt,handles)
 	set(handles.figure1,'WindowButtonMotionFcn',{@VLMoveFcn,handles},'WindowButtonUpFcn',{@VLUpFcn,handles})
 
 function VLMoveFcn(hObject,evt,handles)
-	cp = get(handles.axes2,'CurrentPoint');                 %
-	xpos = cp(1);                                           %
-	x_range = get(handles.axes2,'xlim');                    %
-	if (xpos < x_range(1)),		xpos = x_range(1);	end     %
-	if (xpos > x_range(2)),		xpos = x_range(2);	end     %
-	XData = get(handles.hVline,'XData');                    %
+	cp = get(handles.axes2,'CurrentPoint');
+	xpos = cp(1);
+	x_range = get(handles.axes2,'xlim');
+	if (xpos < x_range(1)),		xpos = x_range(1);	end
+	if (xpos > x_range(2)),		xpos = x_range(2);	end
+	XData = get(handles.hVline,'XData');
 	XData(:) = xpos;
 	set(handles.hVline,'xdata',XData)
 	movex_text(handles,xpos)        % update text
@@ -200,7 +231,7 @@ function VLUpFcn(hObject,evt,handles)
 	else
 		bw = (handles.img <= level);
 	end
-	set(handles.hImg,'cdata',bw)
+	update_bw(handles, bw)
 % -------------------------------------------------------------
 
 % -------------------------------------------------------------
@@ -244,7 +275,7 @@ function BoxUpFcn(obj,evt,handles)
 	else
 		bw = (handles.img < x_min(1) | handles.img > x_max(1));
 	end
-	set(handles.hImg,'cdata',bw)
+	update_bw(handles, bw)
 % -------------------------------------------------------------
 
 %----------------------------------------------------------------------
@@ -252,72 +283,108 @@ function push_Otsu_CB(hObject, handles)
 % ...
 	[bw, threshold] = img_fun('im2bw',handles.img);
 	if (get(handles.check_revert,'Value')),		bw = ~bw;	end
-	set(handles.hImg,'cdata',bw)
+	update_bw(handles, bw)
 	set(handles.hVline,'xdata',[threshold threshold])
 	movex_text(handles, threshold)
 
 %----------------------------------------------------------------------
 function push_maxEntropy_CB(hObject, handles)
-% ...
 	threshold = maxentropy(handles);
-	bw = binarize_it(handles.img, threshold, get(handles.check_revert,'Value'));
-	set(handles.hImg,'cdata',bw)
-	set(handles.hVline,'xdata',[threshold threshold])
-	movex_text(handles, threshold)
+	helper_thresh(handles, threshold)
 
 %----------------------------------------------------------------------
 function push_minCrossEntropy_CB(hObject, handles)
-% ...
 	threshold = minCE(handles);
-	bw = binarize_it(handles.img, threshold, get(handles.check_revert,'Value'));
-	set(handles.hImg,'cdata',bw)
-	set(handles.hVline,'xdata',[threshold threshold])
-	movex_text(handles, threshold)
+	helper_thresh(handles, threshold)
 
 %----------------------------------------------------------------------
 function push_isodata_CB(hObject, handles)
 	threshold = isodata(handles);
-	bw = binarize_it(handles.img, threshold, get(handles.check_revert,'Value'));
-	set(handles.hImg,'cdata',bw)
-	set(handles.hVline,'xdata',[threshold threshold])
-	movex_text(handles, threshold)
+	helper_thresh(handles, threshold)
 
 %----------------------------------------------------------------------
 function push_triang_CB(hObject, handles)
 	threshold = triangle_th(handles);
+	helper_thresh(handles, threshold)
+
+%----------------------------------------------------------------------
+function helper_thresh(handles, threshold)
+% Helper function to gather common code tothe above callbacks
 	bw = binarize_it(handles.img, threshold, get(handles.check_revert,'Value'));
-	set(handles.hImg,'cdata',bw)
+	update_bw(handles, bw)
 	set(handles.hVline,'xdata',[threshold threshold])
 	movex_text(handles, threshold)
 
 %----------------------------------------------------------------------
 function push_cleanDust_CB(hObject, handles)
 % Clean the isolated small group of black pixels inside white zones or vice-versa
-	bw = cleanDust(get(handles.hImg,'cdata'),2);	% Clean white dust over black background
-	set(handles.hImg,'cdata',bw)
+	ds = round(str2double(get(handles.edit_dustSize,'String')));	% Get the dust size
+
+	bw2 = img_fun('bwareaopen', get(handles.hImg,'cdata'), ds);	% Remove all connected components < ds pixels
+	removed = xor(get(handles.hImg,'cdata'), bw2);
+% 	if (opt == 1)		% Not used here (what does ir do?) so comment for compiling safety
+% 		bw3 = imdilate(bw2, strel('disk', 5));
+% 		overlaps = bw3 & removed;
+% 		bw = (bw2 | overlaps);
+% 	else
+		D = img_fun('bwdist', bw2);
+		%D = cvlib_mex('distance',~bw2, 2, 4);	% Negate because OpenCV computes distance to zero and ML to non-zero
+		within_hailing_distance = (D <= 2);		clear D
+		put_back_pixels = removed & within_hailing_distance;	clear removed
+		bw = bw2 | put_back_pixels;
+% 	end
+
+	update_bw(handles, bw)
 
 %----------------------------------------------------------------------
 function push_fillHoles_CB(hObject, handles)
 % Name says it all
 	bw = img_fun('imfill', get(handles.hImg,'cdata'),'holes');
-	set(handles.hImg,'cdata',bw)
+	update_bw(handles, bw)
 
-% --------------------------------------------------------------------------
-function bw = cleanDust(bw, opt)
-% This function comes from autofaults and I don't remember anymore if it was me who wrote it
-	bw2 = img_fun('bwareaopen', bw, 15);	% Remove all connected components that have fewer than 15 pixels
-	removed = xor(bw, bw2);
-	if (opt == 1)		% Not used here (what does ir do?) so comment for compiling safety
-% 		bw3 = imdilate(bw2, strel('disk', 5));
-% 		overlaps = bw3 & removed;
-% 		bw = (bw2 | overlaps);
-	else
-		D = img_fun('bwdist', bw2);
-		%D = cvlib_mex('distance',~bw2, 2, 4);	% Negate because OpenCV computes distance to zero and ML to non-zero
-		within_hailing_distance = (D <= 5);		clear D
-		put_back_pixels = removed & within_hailing_distance;	clear removed
-		bw = bw2 | put_back_pixels;
+%----------------------------------------------------------------------
+function edit_dustSize_CB(hObject, handles)
+% Just check that entered values are not completely idiot.
+	xx = str2double(get(hObject,'String'));
+	if (isnan(xx) || xx < 0),	set(hObject, 'String', '15'),	end
+
+%----------------------------------------------------------------------
+function push_labelimg_CB(hObject, handles)
+	[img, n_comp] = img_fun('bwlabel', get(handles.hImg,'cdata'));
+	label = round(str2double(get(handles.edit_label,'String')));
+	if (label > n_comp)
+		errordlg(['You are rquesting a label number higher then your image allows (' num2str(n_comp) ')'],'Error')
+		return
 	end
+	
+	if (label == 0)				% make an image with all labels
+		if     (n_comp < 256),		img = uint8(img);
+		elseif (n_comp < 2^16-1),	img = uint16(img);
+		end
+		handMir = guidata(handles.hMirFig);
+		cmap = [handMir.bg_color; jet(n_comp)];			% Also put the bg to white
+		if (handMir.image_type == 2)			% If we are processing a simple image
+			h = mirone(img);
+			set(h,'Name','Conneted components', 'Colormap', cmap)
+			return
+		end
+		% Ok, if we get here it's because the image has coordinates. Fish it all
+		imgLims = getappdata(handMir.axes1,'ThisImageLims');
+		tmp.X = imgLims(1:2);		tmp.Y = imgLims(3:4);		tmp.geog = handMir.geog;
+		tmp.head = handMir.head;	tmp.head(5) = 0;			tmp.head(5) = n_comp;
+		tmp.cmap = cmap;			tmp.name = 'Conneted components';
+		mirone(img, tmp, handles.hMirFig)
+	else						% Make a mask out of the selected label
+		img = (img == label);
+		update_bw(handles, img)
+	end
+
+%----------------------------------------------------------------------
+function edit_label_CB(hObject, handles)
+% If value in edit box > 0, make a mask with that label number
+% Just check that enered values are not completely idiot.
+	xx = str2double(get(hObject,'String'));
+	if (isnan(xx) || xx < 0),	set(hObject, 'String', '0'),	end
 
 %----------------------------------------------------------------------
 function radio_singleLine_CB(hObject, handles)
@@ -340,15 +407,20 @@ function radio_window_CB(hObject, handles)
 %----------------------------------------------------------------------
 function check_revert_CB(hObject, handles)
 % Compute the image complement and signal to do that while button is checked
-	set( handles.hImg,'cdata', ~get(handles.hImg,'cdata') )
+	update_bw(handles, ~get(handles.hImg,'cdata'))
+
+%----------------------------------------------------------------------
+function push_undo_CB(hObject, handles)
+% The one level undo
+	update_bw(handles, handles.mask_backup)
 
 %----------------------------------------------------------------------
 function push_OK_CB(hObject, handles)
 % ...
 	handMir = guidata(handles.hMirFig);			% Fish the Mirone handles
-	if (get(handles.check_applyOrig,'Val'))
-		bw  = get(handles.hImg,'cdata');
-		% Here we have to be carefull because the contents of the Mirone fig may have been changed
+	if (get(handles.check_applyOrig,'Val'))		% Apply mask to original image
+		bw = get(handles.hImg,'cdata');
+		% Here we have to be carefull because the contents of the Mirone fig may have changed
 		% BEFORE calling this tool, or BY this tool and the procedure is different for each case.
 		if (handles.I_never_changed_imgMir)
 			img = get(handMir.hImg,'cdata');		% Current image displayed in Mirone fig
@@ -358,17 +430,23 @@ function push_OK_CB(hObject, handles)
 			warndlg('Sorry but I have no more copies of the original image that I can change once again. Bye','Warning')
 			return
 		end
-		if (ndims(img) == 3)
-			x = img(:,:,1);		x(bw) = handles.bg_color(1);	img(:,:,1) = x;
-			x = img(:,:,2);		x(bw) = handles.bg_color(2);	img(:,:,2) = x;
-			x = img(:,:,3);		x(bw) = handles.bg_color(3);	img(:,:,3) = x;
+
+		if (~get(handles.check_useAlpha, 'Val'))
+			bw = ~bw;								% Negate because we want to put the flase to bg_color
+			if (ndims(img) == 3)
+				x = img(:,:,1);		x(bw) = handles.bg_color(1);	img(:,:,1) = x;
+				x = img(:,:,2);		x(bw) = handles.bg_color(2);	img(:,:,2) = x;
+				x = img(:,:,3);		x(bw) = handles.bg_color(3);	img(:,:,3) = x;
+			else
+				img(bw) = handles.bg_color(1);		% Likely not what the user expects
+			end
+			set(handles.hImgMir,'cdata', img);
 		else
-			img(bw) = handles.bg_color(1);		% Likely not what the user expects
+			set(handles.hImgMir, 'AlphaData', bw)
 		end
-		set(handles.hImgMir,'cdata', img);
 		handles.I_never_changed_imgMir = false;
 		guidata(handles.figure1, handles)
-	else
+	else										% Create a new image with the mask
 		if (handMir.image_type == 2)			% If we are processing a simple image
 			h = mirone(get(handles.hImg,'cdata'));
 			set(h,'Name','Threshold mask')
@@ -378,15 +456,19 @@ function push_OK_CB(hObject, handles)
 		imgLims = getappdata(handMir.axes1,'ThisImageLims');
 		tmp.X = imgLims(1:2);		tmp.Y = imgLims(3:4);		tmp.geog = handMir.geog;
 		tmp.head = handMir.head;	tmp.head(5) = 0;			tmp.head(5) = 1;
-		ProjWKT = getappdata(handMir.figure1,'ProjWKT');
-		if (~isempty(ProjWKT))
-			tmp.srsWKT = ProjWKT;
-		else
-			proj4 = getappdata(handMir.figure1,'Proj4');
-			if (~isempty(proj4)),	tmp.srsWKT = proj4;		end
-		end
 		tmp.name = 'Threshold mask';
-		mirone(get(handles.hImg,'cdata'), tmp)
+		mirone(get(handles.hImg,'cdata'), tmp, handles.hMirFig)
+	end
+
+%----------------------------------------------------------------------
+function update_bw(handles, bw)
+% To give a one level-undo capability.
+	if (nargin == 2)			% Update and also make a backup of current version
+		handles.mask_backup = get(handles.hImg,'cdata');
+		guidata(handles.figure1, handles)
+		set(handles.hImg,'cdata',bw)
+	else 
+		set(handles.hImg,'cdata', handles.mask_backup);		% Restore previous version
 	end
 
 % ---------------------------------------------------------------------
@@ -550,7 +632,7 @@ function threshold = minCE(handles)
 % Joaquim Luis
 
 	h = localImhist(handles.img);
-	[n,m]=size(handles.img);
+	[n,m] = size(handles.img);
 	%normalize the histogram ==>  hn(k)=h(k)/(n*m) ==> k  in [1 256]
 	hn=h/(n*m);
 
@@ -724,6 +806,11 @@ uicontrol('Parent',h1, 'Position',[530 376 141 23],...
 'String','Isodata method',...
 'Tag','push_isodata');
 
+uicontrol('Parent',h1, 'Position',[530 346 141 23],...
+'Callback',@thresholdit_uiCB,...
+'String','Triangle method',...
+'Tag','push_triang');
+
 uicontrol('Parent',h1, 'Position',[530 310 73 19],...
 'Callback',@thresholdit_uiCB,...
 'String','Single line',...
@@ -732,10 +819,12 @@ uicontrol('Parent',h1, 'Position',[530 310 73 19],...
 'Value',1,...
 'Tag','radio_singleLine');
 
-uicontrol('Parent',h1, 'Position',[530 346 141 23],...
+uicontrol('Parent',h1, 'Position',[608 310 67 19],...
 'Callback',@thresholdit_uiCB,...
-'String','Triangle method',...
-'Tag','push_triang');
+'String','Window',...
+'Style','radiobutton',...
+'TooltipString','Iside window is 1, outside is 0. You can drag the widow and/or resize it.',...
+'Tag','radio_window');
 
 uicontrol('Parent',h1, 'Position',[531 268 120 19],...
 'Callback',@thresholdit_uiCB,...
@@ -744,11 +833,18 @@ uicontrol('Parent',h1, 'Position',[531 268 120 19],...
 'TooltipString','Invert (negative) thresholded image.',...
 'Tag','check_revert');
 
-uicontrol('Parent',h1, 'Position',[530 228 141 23],...
+uicontrol('Parent',h1, 'Position',[530 228 101 23],...
 'Callback',@thresholdit_uiCB,...
 'String','Clean white dust',...
 'TooltipString','Remove the isolated small group of white pixels inside black zones.',...
 'Tag','push_cleanDust');
+
+uicontrol('Parent',h1, 'Position',[631 228 40 23],...
+'Callback',@thresholdit_uiCB,...
+'Style','edit',...
+'String','15', ...
+'TooltipString','Size of "dust" particles in pixels.',...
+'Tag','edit_dustSize');
 
 uicontrol('Parent',h1, 'Position',[530 200 141 23],...
 'Callback',@thresholdit_uiCB,...
@@ -756,20 +852,39 @@ uicontrol('Parent',h1, 'Position',[530 200 141 23],...
 'TooltipString','Fill holes.',...
 'Tag','push_fillHoles');
 
-uicontrol('Parent',h1, 'Position',[608 310 67 19],...
+uicontrol('Parent',h1, 'Position',[530 172 101 23],...
 'Callback',@thresholdit_uiCB,...
-'String','Window',...
-'Style','radiobutton',...
-'TooltipString','Iside window is 1, outside is 0. You can drag the widow and/or resize it.',...
-'Tag','radio_window');
+'String','Label matrix',...
+'TooltipString','Show a color image with individual connected components (labels).',...
+'Tag','push_labelimg');
 
-uicontrol('Parent',h1, 'Position',[530 142 120 19],...
+str = sprintf(['When > 0 make a mask with that label.\nYou need to run first the "Label matrix" with 0\n' ...
+	'and move the mouse to find the label number.']);
+uicontrol('Parent',h1, 'Position',[631 172 40 23],...
+'Callback',@thresholdit_uiCB,...
+'Style','edit',...
+'String','0', ...
+'TooltipString', str,...
+'Tag','edit_label');
+
+uicontrol('Parent',h1, 'Position',[580 140 23 23],...
+'Callback',@thresholdit_uiCB,...
+'TooltipString','Undo previous operation.',...
+'Tag','push_undo');
+
+uicontrol('Parent',h1, 'Position',[530 112 100 19],...
 'String','Apply to original',...
 'Style','checkbox',...
 'TooltipString','Mask the original image when "Goog, I like it"',...
 'Tag','check_applyOrig');
 
-uicontrol('Parent',h1, 'Position',[530 118 141 23],...
+uicontrol('Parent',h1, 'Position',[630 112 50 19],...
+'String','Alpha',...
+'Style','checkbox',...
+'TooltipString','Mask the original image with an alpha layer',...
+'Tag','check_useAlpha');
+
+uicontrol('Parent',h1, 'Position',[530 88 141 23],...
 'Callback',@thresholdit_uiCB,...
 'FontSize',10,...
 'FontWeight','bold',...
