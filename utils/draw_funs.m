@@ -258,6 +258,7 @@ function set_line_uicontext_XY(h, opt)
 			uimenu('Parent',hh, 'Label', 'Y origin only');
 			uimenu('Parent',hh, 'Label', 'XY origin');
 			uimenu(cmenuHand,   'Label', 'Filter Outliers', 'Sep','on');
+			uimenu(cmenuHand,   'Label', 'Filter line');
 			uimenu(cmenuHand,   'Label', 'Show histogram',  'Sep','on');
 			uimenu(cmenuHand,   'Label', 'Show Bar graph');
 		else
