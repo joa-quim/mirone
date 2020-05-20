@@ -1822,7 +1822,11 @@ function [img, handles_out, att] = FileOpenNewImage_CB(handles, opt)
 				try
 					I = imread(handles.fileName);
 					att.RasterCount = size(I, 3);
-					att.Band.ColorMap = info_img(1).Colormap;
+					if (~strcmp(info_img(1).ColorType, 'truecolor'))
+						att.Band.ColorMap = info_img(1).Colormap;
+					else
+						att.Band.ColorMap = [];
+					end
 				catch
 					errordlg(lasterr, 'Error'),		return
 				end
