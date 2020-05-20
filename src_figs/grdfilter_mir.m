@@ -150,9 +150,9 @@ helpdlg(message,'Help on Grid Line Geometry');
 % -------------------------------------------------------------------------------------
 function popup_FilterType_CB(hObject, handles)
 	val = get(hObject,'Value');		str = get(hObject, 'String');
-	switch str{val};
+	switch str{val}
 		case 'boxcar',				handles.command{1} = '-Fb';
-		case 'cosine arc',			handles.command{1} = '-Fc';
+		case 'cosine arch',			handles.command{1} = '-Fc';
 		case 'gaussian',			handles.command{1} = '-Fg';
 		case 'median',				handles.command{1} = '-Fm';
 		case 'maximum likelihood',	handles.command{1} = '-Fp';
@@ -162,8 +162,8 @@ function popup_FilterType_CB(hObject, handles)
 % -------------------------------------------------------------------------------------
 function edit_FilterWidth_CB(hObject, handles)
 	xx = get(hObject,'String');
-	if ~isempty(xx)    handles.command{2} = xx;
-	else    handles.command{2} = []; end
+	if ~isempty(xx),	handles.command{2} = xx;
+	else,				handles.command{2} = []; end
 	guidata(hObject,handles)
 
 % -------------------------------------------------------------------------------------
@@ -175,7 +175,7 @@ function pushbutton_Help_FilterType_CB(hObject, handles)
 % -------------------------------------------------------------------------------------
 function popup_Option_D_CB(hObject, handles)
 	val = get(hObject,'Value');     str = get(hObject, 'String');
-	switch str{val};
+	switch str{val}
 		case '0',        handles.command{4} = '-D0';
 		case '1',        handles.command{4} = '-D1';
 		case '2',        handles.command{4} = '-D2';
@@ -226,7 +226,7 @@ function push_Compute_CB(hObject, handles)
 	end
 
 	% See if grid limits were changed
-	if ( (abs(handles.x_min-handles.x_min_or) > 1e-5) || (abs(handles.x_max-handles.x_max_or) > 1e-5) || ...
+	if ((abs(handles.x_min-handles.x_min_or) > 1e-5) || (abs(handles.x_max-handles.x_max_or) > 1e-5) || ...
             (abs(handles.y_min-handles.y_min_or) > 1e-5) || (abs(handles.y_max-handles.y_max_or) > 1e-5))
 		opt_R = sprintf('-R%.12g/%.12g/%.12g/%.12g', handles.x_min, handles.x_max, handles.y_min, handles.y_max);
 	end
