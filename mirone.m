@@ -88,7 +88,7 @@ function hObject = mirone_OpeningFcn(varargin)
 %#function c_cpt2cmap c_grdfilter c_grdinfo c_grdlandmask c_grdproject c_grdread c_grdsample
 %#function c_grdtrend c_mapproject c_nearneighbor c_shoredump c_surface popenr diffCenterVar hellinger bingham
 %#function gmtlist_m grdgradient_m trend1d_m external_drive chimoce interp_chimoce earth_tides earthtide DateStr2Num
-%#function ddist eucdist2 masker nth_element
+%#function ddist eucdist2 masker nth_element filter1d
 
 	global home_dir;	fsep = filesep;
 	toCompile = false;		% To compile set this one to TRUE
