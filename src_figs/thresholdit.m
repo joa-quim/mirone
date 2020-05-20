@@ -442,7 +442,9 @@ function push_OK_CB(hObject, handles)
 			end
 			set(handles.hImgMir,'cdata', img);
 		else
-			set(handles.hImgMir, 'AlphaData', bw)
+			alpha(size(bw,1), size(bw,2)) = uint8(0);
+			alpha(bw) = 255;
+			set(handles.hImgMir, 'AlphaData', alpha)
 		end
 		handles.I_never_changed_imgMir = false;
 		guidata(handles.figure1, handles)
