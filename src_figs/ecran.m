@@ -543,6 +543,8 @@ function finish_line_uictx(hLine)
 		set(h, 'Callback', {@shift_orig, 'XY'})
 		h = findobj(uictx, 'Label', 'Filter Outliers');
 		set(h, 'Callback', {@outliers_clean, hLine(k)})
+		h = findobj(uictx, 'Label', 'Filter line');
+		set(h, 'Callback', {@AnalysisFilter_CB, hLine(k)})
 		h = findobj(uictx, 'Label', 'Show histogram');
 		set(h, 'Callback', {@do_histogram, hLine(k), 'Hist'})
 		h = findobj(uictx, 'Label', 'Show Bar graph');
@@ -1955,7 +1957,7 @@ function AnalysisFFT_PSD_CB(hObject, handles)
 function [x, y] = get_inside_rect(handles)
 % Gets the (x,y) data from the plot line and checks if a BB rectangle exists.
 % If yes, clips data inside rectangle.
-	x = get(handles.hLine,'XData');		y = get(handles.hLine,'YData');
+	x = get(handles.hLine(1),'XData');		y = get(handles.hLine(1),'YData');
 	if (~isempty(handles.hRect) && ishandle(handles.hRect))		% Find the points inside rectangle
 		xRect = get(handles.hRect, 'XData');
 		id = find(x >= xRect(1) & x <= xRect(4));
@@ -1986,7 +1988,7 @@ function AnalysisRemoveTrend_CB(hObject, handles)
 % --------------------------------------------------------------------
 function AnalysisFitPoly_CB(hObject, handles)
 	if (isempty(handles.hLine)),	return,		end
-	xx = get(handles.hLine,'XData');		yy = get(handles.hLine,'YData');
+	xx = get(handles.hLine(1),'XData');		yy = get(handles.hLine(1),'YData');
 	ind = isnan(yy);
 	if (any(ind))
 		xx(ind) = [];		yy(ind) = [];
@@ -1997,13 +1999,22 @@ function AnalysisFitPoly_CB(hObject, handles)
 % --------------------------------------------------------------------
 function AnalysisSmoothSpline_CB(hObject, handles)
 	if (isempty(handles.hLine)),	return,		end
-	xx = get(handles.hLine,'XData');		yy = get(handles.hLine,'YData');
+	xx = get(handles.hLine(1),'XData');		yy = get(handles.hLine(1),'YData');
 	[pp,p] = spl_fun('csaps',xx,yy);		% This is just to get csaps's p estimate
 	y = spl_fun('csaps',xx,yy,p,xx);
 	hold on;	h = plot(xx,y);		hold off
 
 	smoothing_param(p, [xx(1) xx(2)-xx(1) xx(end)], handles.figure1, handles.axes1, handles.hLine, h);
 	guidata(hObject, handles);
+
+% --------------------------------------------------------------------
+function AnalysisFilter_CB(hObject, handles, hLine)
+	if (nargin == 2)			% Called from the Analysis menu
+		if (isempty(handles.hLine)),	return,		end
+		filter1d(handles.hLine)
+	else						% Called from uictx menu (function handle call)
+		filter1d(hLine)			% hLine is the handle of currently selected line
+	end
 
 % --------------------------------------------------------------------
 function Analysis1derivative_CB(hObject, handles)
@@ -3605,6 +3616,7 @@ uimenu('Parent',h20, 'Callback',@ecran_uiCB, 'Label','PSD (Welch method)', 'Tag'
 
 uimenu('Parent',h17, 'Callback',@ecran_uiCB, 'Label','Autocorrelation',  'Tag','AnalysisAutocorr');
 uimenu('Parent',h17, 'Callback',@ecran_uiCB, 'Label','Smoothing Spline', 'Tag','AnalysisSmoothSpline', 'Sep','on');
+uimenu('Parent',h17, 'Callback',@ecran_uiCB, 'Label','Filter',           'Tag','AnalysisFilter');
 uimenu('Parent',h17, 'Callback',@ecran_uiCB, 'Label','1 st derivative',  'Tag','Analysis1derivative');
 uimenu('Parent',h17, 'Callback',@ecran_uiCB, 'Label','2 nd derivative',  'Tag','Analysis2derivative');
 
