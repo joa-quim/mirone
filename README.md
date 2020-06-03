@@ -1,3 +1,3 @@
 # Mirone
 
-New *home* to download the Windows executable at http://joa-quim.pt/mirone/
+New *home* to download the Windows installer at http://joa-quim.pt/mirone/
