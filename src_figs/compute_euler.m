@@ -24,7 +24,7 @@ function varargout = compute_euler(varargin)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: compute_euler.m 10270 2018-02-11 01:10:16Z j $
+% $Id: compute_euler.m 10270 2018-02-11 01:10:16Z j  $
 
 	if (isempty(varargin) || (numel(varargin) >= 2 && numel(varargin) <= 5))
 		errordlg('COMPUTE EULER: wrong number of input arguments.','Error'),	return
