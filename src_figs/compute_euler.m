@@ -9,7 +9,7 @@ function varargout = compute_euler(varargin)
 % PLON, PLAT, PANG are the parameters of the initial Euler pole.
 % See function parse_noGUI for the definition of the remsining optional arguments
 
-%	Copyright (c) 2004-2018 by J. Luis
+%	Copyright (c) 2004-2020 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -432,6 +432,16 @@ function push_stop_CB(hObject, handles)
     set(handles.slider_wait,'Value',0)  % We have to do this first
     set(handles.slider_wait,'Max',1)    % This will signal the fit_pEuler function to stop
 
+	% If in Loop mode, restart the computation if the stop has been pushed after a new pole was found
+	if (~isempty(get(handles.edit_pLon_fim,'Str')) && get(handles.check_loopUntil, 'Val'))	
+		set(handles.push_reciclePole,'Vis', 'on')
+		push_reciclePole_CB(handles.push_reciclePole, handles)	% Move pole upward
+		handles = guidata(handles.figure1);						% Need the updated values set in the above call
+		push_compute_CB(handles.push_compute, handles)			% and start running again
+	else
+		set(handles.check_loopUntil,'Val', 0)		% To play safe set it to no loop
+	end
+
 % -------------------------------------------------------------------------------
 function out = outward_displacement_treta(handles)
 % See if the OPTcontrol.txt file has an outward displacement file entry
@@ -472,16 +482,18 @@ function push_compute_CB(hObject, handles)
 	if (isempty(handles.isoca1) || isempty(handles.isoca2))
 		errordlg('Compute Euler pole with what? It would help if you provide me TWO lines.','Chico Clever')
 		return
-	else
-		% Fish the polyline coordinates again so that eventual line edits are taken into account right away
-		if (~ishandle(handles.hLines(1)) || ~ishandle(handles.hLines(2)))
-			errordlg('Line(s) were deleted. Start over by picking new lines.', 'Error'),	return
-		end
-		x = get(handles.hLines(1),'XData');		y = get(handles.hLines(1),'YData');
-		handles.isoca1 = [x(:) y(:)];
-		x = get(handles.hLines(2),'XData');		y = get(handles.hLines(2),'YData');
-		handles.isoca2 = [x(:) y(:)];		
 	end
+
+	% Fish the polyline coordinates again so that eventual line edits are taken into account right away
+	if (~ishandle(handles.hLines(1)) || ~ishandle(handles.hLines(2)))
+		errordlg('Line(s) were deleted. Start over by picking new lines.', 'Error'),	return
+	end
+
+	x = get(handles.hLines(1),'XData');		y = get(handles.hLines(1),'YData');
+	handles.isoca1 = [x(:) y(:)];
+	x = get(handles.hLines(2),'XData');		y = get(handles.hLines(2),'YData');
+	handles.isoca2 = [x(:) y(:)];
+
 	if (isempty(handles.pLon_ini) || isempty(handles.pLat_ini) || isempty(handles.pAng_ini))
 		errordlg(['I need a first guess of the Euler pole you are seeking for.' ...
 			'Pay attention to the "Starting Pole Section"'],'Error')
@@ -585,6 +597,13 @@ function push_compute_CB(hObject, handles)
 
 	if (~isempty(get(handles.edit_pLon_fim,'Str')))	% If a new pole was computed set this button visible (driven by lazyness)
 		set(handles.push_reciclePole,'Vis', 'on')
+		if (get(handles.check_loopUntil, 'Val'))	% Restart all over till a minimum is found
+			push_reciclePole_CB(handles.push_reciclePole, handles)	% Move pole upward
+			handles = guidata(handles.figure1);		% Need the updated values set in the above call
+			push_compute_CB(handles.push_compute, handles)			% and start running again
+		else
+			set(handles.check_loopUntil,'Val', 0)			% To play safe, set it to no loop at the end
+		end
 	else
 		set(handles.push_reciclePole,'Vis', 'off')
 	end
@@ -1462,7 +1481,7 @@ uicontrol('Parent',h1, 'Pos',[300 85 120 15],...
 'Visible', 'off', ...
 'Tag','check_in_equal_out');
 
-uicontrol('Parent',h1, 'Pos',[300 60 120 15],...
+uicontrol('Parent',h1, 'Pos',[300 60 130 15],...
 'String','Show colored segmentation',...
 'Style','checkbox',...
 'Tooltip','Show colored patches of the automatic segmentation',...
@@ -1519,6 +1538,12 @@ uicontrol('Parent',h1, 'Pos',[10 14 231 16],...
 uicontrol('Parent',h1, 'Pos',[241 12 37 19],...
 'Callback',@compute_euler_uiCB,...
 'String','STOP','Tag','push_stop');
+
+uicontrol('Parent',h1, 'Pos',[300 15 90 15],...
+'String','Loop until...',...
+'Style','checkbox',...
+'Tooltip','Loop until a minimum is found',...
+'Tag','check_loopUntil');
 
 uicontrol('Parent',h1,'Pos',[435 10 76 21],...
 'Callback',@compute_euler_uiCB,...
