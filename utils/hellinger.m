@@ -1110,8 +1110,8 @@ function set_extra_uicb_options(hLine, data)
 	set(h2,'Label','Save as .pick file')
 	set(h3,'Label','Show conjugated picks')
 	hMirFig = get(get(hLine, 'Parent'), 'Parent');
-	set(h2,'Call', {@save_pick, data, hMirFig})
-	set(h3,'Call', {@show_conjugates, hLine, data})
+	set(h2,'Callback', {@save_pick, data, hMirFig})
+	set(h3,'Callback', {@show_conjugates, hLine, data})
 	h4 = findobj(h1,'-depth',0, 'Label','Spline Smooth');
 	h5 = findobj(h1,'-depth',0, 'Label','Line length(s)');
 	h6 = findobj(h1,'-depth',0, 'Label','Line azimuth(s)');
@@ -1145,7 +1145,7 @@ function show_conjugates(obj, evt, hLine, data)
 		hP = patch('Parent',handles.axes1,'XData',x, 'YData',y, 'FaceColor',rand(1,3), 'Tag', 'HellPair');
 		set(hP, 'UIContextMenu', cmenuHand);
 	end
-	uimenu(cmenuHand, 'Label', 'Delete all', 'Call', 'delete(findobj(''Tag'',''HellPair''))')
+	uimenu(cmenuHand, 'Label', 'Delete all', 'Callback', 'delete(findobj(''Tag'',''HellPair''))')
 
 % --------------------------------------------------------------------------------------------
 function update_patches(hLine, data, show_segs)
