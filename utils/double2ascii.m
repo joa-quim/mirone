@@ -14,7 +14,8 @@ function double2ascii(filename, X, formatStr, multiseg)
 %		formatStr  - OPTIONAL format string  (Default = '%f')
 %					Provide one string with formats if you want to use different ones
 %					It can also be a two elements cell array, in which case
-%					formatStr{1} is a header string starting with a '#' (for example to describe the columns meanings)
+%					formatStr{1} is a header string starting with a '#' (e.g. to describe the columns meanings)
+%					or formatStr{1} is a new multisegment header (e.g. with a +proj string)
 %					formatStr{2} the format string itself
 %
 %		multiseg   - OPTIONAL
@@ -36,7 +37,7 @@ function double2ascii(filename, X, formatStr, multiseg)
 %		double2ascii('foo2.txt', X, '%d  %5.2f  %10.3e');
 
 % Distantly rooted on file with the same name by Denis Gilbert
-%	Copyright (c) 2004-2014 by J. Luis
+%	Copyright (c) 2004-2020 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -77,7 +78,7 @@ function double2ascii(filename, X, formatStr, multiseg)
 	hdr_str = '';
 	if (isa(formatStr, 'cell'))		% We have a string to be plotted as a header
 		hdr_str = formatStr{1};
-		if (hdr_str(1) ~= '#')		% Headers always start with the '#' character
+		if (hdr_str(1) ~= '#' && hdr_str(1) ~= '>')		% Headers always start with the '#' character
 			hdr_str = ['# ' hdr_str];
 		end
 		formatStr = formatStr{2};
@@ -125,9 +126,9 @@ function double2ascii(filename, X, formatStr, multiseg)
 					fprintf(fid, fmt, X{k}');
 				end
 			end
-		elseif ( ~any(isnan(X)) )		% NO, we haven't
+		elseif (~any(isnan(X)))		% NO, we haven't
 			fprintf(fid, fmt, X');
-		else							% YES, we have them (then multisegs)
+		else						% YES, we have them (then multisegs)
 			if (ncols == 2)
 				[y_cell,x_cell] = aux_funs('localPolysplit',X(:,2),X(:,1));
 				for (k = 1:numel(x_cell))
@@ -152,14 +153,14 @@ function double2ascii(filename, X, formatStr, multiseg)
 function fmt = make_print_format(formatStr, ncols, kpercent)
 % Create the format string for fprintf by repetition of one base format type
 	if (kpercent == 1)
-		if ( strcmp(formatStr(end-1:end),'\n') ),	formatStr = formatStr(1:end-2);		end
-		if ( ~strcmp(formatStr(end-1:end),'\t') )
+		if (strcmp(formatStr(end-1:end),'\n')),	formatStr = formatStr(1:end-2);		end
+		if (~strcmp(formatStr(end-1:end),'\t'))
 			formatStr = [formatStr '\t'];
 		end
 		fmt = repmat(formatStr, [1,ncols-1]);
 		fmt = [fmt formatStr(1:end-2) '\n'];
 	else
-		if ( strcmp(formatStr(end-1:end),'\n') )
+		if (strcmp(formatStr(end-1:end),'\n'))
 			fmt = formatStr;
 		else
 			fmt = [formatStr '\n'];
