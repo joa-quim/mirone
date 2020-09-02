@@ -173,7 +173,7 @@ function varargout = load_xyz(handles, opt, opt2)
 					if isequal(FileName,0),		return,		end
 					fname = [PathName FileName];
 				else
-					if (isempty(fname) || strcmp(fname, 'nikles'))				% Than use the default name
+					if (isempty(fname) || strcmp(fname, 'nikles'))	% Than use the default name
 						fname = [handles.path_data 'isochrons.dat'];
 						got_internal_file = true;
 					end
@@ -511,6 +511,7 @@ function varargout = load_xyz(handles, opt, opt2)
 				end
 			end
 			multi_segs_str(heads_to_del) = [];
+			if (isempty(multi_segs_str)),	errordlg('None of the included file names exist'),	return,	end
 
 		elseif (strncmp(multi_segs_str{1}, '>MB', 3))				% A MB-system file name. Save path to later retrieval
 			savePath = true;
