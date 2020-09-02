@@ -10,7 +10,7 @@ function varargout = draw_funs(hand, varargin)
 %	the data from an object handle, call with HAND = []. E.g (in load_xyz)
 %	draw_funs([], 'doSave_formated', x, y, z)
 
-%	Copyright (c) 2004-2018 by J. Luis
+%	Copyright (c) 2004-2020 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -3137,26 +3137,42 @@ function save_line(obj, evt, h)
 		return
 	end
 
+	prj4 = '';	cvt2geogs = false;
+	if (handles.is_projected)
+		prj4 = aux_funs('get_proj_string',handles.figure1, 'proj');
+		cvt2geogs = (getappdata(handles.figure1,'DispInGeogs') == 1);	% True when user selected to display in geogs
+	end
+
 	fid = fopen(fname, 'w');
 	if (fid < 0),	errordlg(['Can''t open file:  ' fname],'Error'),	return,		end
 
-	if (strcmp(get(h, 'Tag'),'LinkedSymb'))		% Though those are rare cases, we need to check it first
+	if (strcmp(get(h, 'Tag'),'LinkedSymb'))		% Those are rare cases (gmtedit & ecran), need to check it first
 		hAll = findobj(handles.axes1,'-depth',1,'type','line','Tag','LinkedSymb');
 		for (k = 1:numel(hAll))
 			x = get(hAll(k),'XData');		y = get(hAll(k),'YData');	str = getappdata(hAll(k),'box');
-			if (isempty(str))
-				fprintf(fid,'%.6f\t%.6f\n',[x(:)'; y(:)']);
-			else
-				fprintf(fid,'%.6f\t%.6f\t%s\n',[x(:)'; y(:)'], str);
+			if (isempty(str)),	fprintf(fid,'%.6f\t%.6f\n',[x(:)'; y(:)']);
+			else,				fprintf(fid,'%.6f\t%.6f\t%s\n',[x(:)'; y(:)'], str);
 			end
 		end
 	elseif (~iscell(x))
 		LineInfo = getappdata(h,'LineInfo');
-		if (strcmp(LineInfo, '>')),	LineInfo = '';	end		% Sometimes we get a trailling one
-		if (handles.is_projected && ~isempty(getappdata(handles.figure1,'Proj4')))
-			prj4 = getappdata(handles.figure1,'Proj4');
-			LineInfo = [LineInfo ' "' prj4 '"'];			% Append also the Proj4 projection info
+		LineInfo_bak = '';
+		if (isa(LineInfo, 'cell'))
+			LineInfo_bak = LineInfo;	LineInfo = LineInfo{1};
 		end
+		if (~isempty(prj4))
+			if (cvt2geogs)		% OK, so in this case we need to convert from the prj4
+				xy = proj2proj_pts([], [x(:) y(:)], 'srcProj4', prj4, 'dstProj4', '+proj=longlat');
+				x = xy(:,1);	y = xy(:,2);
+				prj4 = '+proj=longlat +ellps=WGS84';
+			end
+			LineInfo = upd_LineInfo(LineInfo, ['"' prj4 '"']);
+		end
+		if (~isempty(LineInfo_bak))			% If LineInfo was a cellarray, restore it.
+			LineInfo_bak{1} = LineInfo;		LineInfo = LineInfo_bak;
+		end
+
+		if (strcmp(LineInfo, '>')),	LineInfo = '';	end		% Sometimes we get a trailling one
 		if (~isempty(LineInfo))
 			if (isa(LineInfo, 'cell'))
 				fprintf(fid,'> %s',LineInfo{1});
@@ -3180,17 +3196,22 @@ function save_line(obj, evt, h)
 	else
 		for (i = 1:numel(h))
 			LineInfo = getappdata(h(i),'LineInfo');
-			if (~isempty(LineInfo))
-				str = ['> ' LineInfo];
-			else
-				str = '>';
+
+			if (cvt2geogs)		% OK, so in this case we need to convert from the prj4
+				if (i == 1)
+					LineInfo = upd_LineInfo(LineInfo, '"+proj=longlat +ellps=WGS84"');
+				end
+				xy = proj2proj_pts([], [x{i}(:) y{i}(:)], 'srcProj4', prj4, 'dstProj4', '+proj=longlat');
+				x{i} = xy(:,1);	y{i} = xy(:,2);
+			elseif (i == 1 && ~isempty(prj4))
+				LineInfo = sprintf('%s "%s"', LineInfo, prj4);		% Works even if LineInfo == ''
 			end
-			if (i == 1 && handles.is_projected && ~isempty(getappdata(handles.figure1,'Proj4')))
-				prj4 = getappdata(handles.figure1,'Proj4');
-				fprintf(fid,'%s\n', [str ' "' prj4 '"']);	% Append also the Proj4 projection info
-			else
-				fprintf(fid,'%s\n',str);
+
+			if (~isempty(LineInfo)),	str = ['> ' LineInfo];
+			else,						str = '>';
 			end
+			fprintf(fid,'%s\n',str);
+
 			z = getappdata(h(i),'ZData');
 			if (isempty(z) || numel(z) ~= numel(x{i}))
 				fprintf(fid,'%.6f\t%.6f\n',[x{i}(:)'; y{i}(:)']);
@@ -3290,7 +3311,7 @@ function save_formated(obj, evt, h, opt)
 		else,					h = h{1};		% Really use this handle.
 		end
 		xx = get(h,'XData');    yy = get(h,'YData');	zz = get(h, 'ZData');
-		doSave_formated(xx, yy, zz)
+		doSave_formated(xx, yy, zz, getappdata(h,'LineInfo'))
 	else
 		if (~isa(opt,'struct'))					% The Mx3 array case
 			if (size(opt,2) ~= 3)
@@ -3317,9 +3338,12 @@ function save_formated(obj, evt, h, opt)
 	end
 
 % -----------------------------------------------------------------------------------------
-function doSave_formated(xx, yy, opt_z)
+function doSave_formated(xx, yy, opt_z, LineInfo)
 % Save x,y[,z] vars into a file but taking into account the 'LabelFormatType'
 % OPT_Z is what the name says, optional
+
+	if (nargin < 4),	LineInfo = '';	end
+
 	hFig = get(0,'CurrentFigure');
 	handles = guidata(hFig);
 	str1 = {'*.dat;*.DAT', 'Symbol file (*.dat,*.DAT)'; '*.*', 'All Files (*.*)'};
@@ -3332,7 +3356,8 @@ function doSave_formated(xx, yy, opt_z)
 	if isempty(labelType),		labelType = ' ';		end		% untempered matlab axes labels
 	switch labelType
 		case {' ','DegDec','NotGeog'}
-			xy = [xx(:) yy(:)];
+			[xy, LineInfo] = lineinfo_proj(handles, xx, yy, LineInfo);
+			if (isempty(xy)),	xy = [xx(:) yy(:)];		end		% Means it was not projected
 			fmt = '%f\t%f';
 		case 'DegMin'
 			out_x = degree2dms(xx,'DDMM',0,'numeric');        out_y = degree2dms(yy,'DDMM',0,'numeric');
@@ -3358,7 +3383,44 @@ function doSave_formated(xx, yy, opt_z)
 	if (nargin == 3 && ~isempty(opt_z))      
 		xy = [xy opt_z(:)];    fmt = [fmt '\t%f'];
 	end
+	if (~isempty(LineInfo))		% Add a line info multiseg first line
+		fmt = {LineInfo, fmt};
+	end
 	double2ascii(f_name,xy,fmt,'maybeMultis');
+
+% -----------------------------------------------------------------------------------------
+function [xy, LineInfo] = lineinfo_proj(handles, x, y, LineInfo)
+% Conditionally project x,y back to geogs and also update or create LineInfo with prj4 info
+	xy = [];
+	if (handles.is_projected)
+		prj4 = aux_funs('get_proj_string',handles.figure1, 'proj');
+		cvt2geogs = (getappdata(handles.figure1,'DispInGeogs') == 1);	% User selected to display in geogs
+		if (~isempty(prj4) && cvt2geogs)		% Convert to geogs
+			xy = proj2proj_pts([], [x(:) y(:)], 'srcProj4', prj4, 'dstProj4', '+proj=longlat');
+			if (~isempty(LineInfo))
+				LineInfo = upd_LineInfo(LineInfo, '"+proj=longlat +ellps=WGS84"');
+			end
+		elseif (~isempty(prj4))		% prj4 should not be, but...
+			LineInfo = upd_LineInfo(LineInfo, prj4);
+		end
+	end
+	
+	function LineInfo = upd_LineInfo(LineInfo, new_prj4)
+	% 1. Update the +proj4 string if it exists in LineInfo
+	% 2. Append the new_prj4 string if LineInfo is not empty
+	% 3. Create a LineInfo with the new_prj4 if LineInfo is empty
+		ind = strfind(LineInfo, '"+proj');
+		if (~isempty(ind))		% A +proj=... already exists. Replace it with the longlat
+			ind2 = strfind(LineInfo(ind(1)+1:end), '"');	% This guy MUST exist
+			if (isempty(ind2))
+				error('+proj string in header MUST be wraped with double quotes')
+			end
+			LineInfo = strrep(LineInfo, LineInfo(ind(1):ind(1)+ind2(1)), [' ' new_prj4]);
+		elseif (~isempty(LineInfo))
+			LineInfo = [LineInfo [' ' new_prj4]];
+		else
+			LineInfo = ['> ' new_prj4];
+		end
 
 % -----------------------------------------------------------------------------------------
 function cb = uictx_SymbColor(h,prop)
