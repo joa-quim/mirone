@@ -1102,13 +1102,13 @@ function [proj, str2] = parseProj(str)
 	if (isempty(ind)),		return,		end			% No proj. Go away.
 	
 	if (str(ind(1)-1) == '"')				% a "+proj=... ... ..."
-		ind2 = strfind(str, '"');
-		if (numel(ind2) < 2)
-			disp('Error in proj4 string of this file. Ignoring projection request')
+		ind2 = strfind(str(ind(1):end), '"');
+		if (isempty(ind2))
+			disp('Error in proj4 string of this file (missing closing quotes). Ignoring projection request')
 			return
 		end
-		proj = str(ind(1):ind2(2)-1);
-		str(ind(1)-1:ind2(2)) = [];			% Strip the proj string
+		proj = str(ind(1):ind(1)+ind2(1)-2);
+		str(ind(1)-1:ind(1)+ind2(1)-1) = [];			% Strip the proj string
 	else
 		proj = strtok(str(ind(1):end));		% For example +proj4=longlat
 		str(ind(1):ind(1)+numel(proj)-1) = [];	% Strip the proj string
