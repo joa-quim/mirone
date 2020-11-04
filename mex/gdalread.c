@@ -134,7 +134,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	int	nXSize = 0, nYSize = 0;
 	int	bGotMin, bGotMax;	/* To know if driver transmited Min/Max */
 	char	*tmp, *outByte, *p;
-	static int runed_once = FALSE;	/* It will be set to true if reaches end of main */
 	float	*tmpF32, *outF32;
 	double	dfNoData, range, aux, adfMinMax[2];
 	double	dfULX = 0.0, dfULY = 0.0, dfLRX = 0.0, dfLRY = 0.0;
@@ -274,8 +273,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 
 	/* Open gdal - If it has not been opened before (in a previous encarnation) */
 
-	if (!runed_once)		/* Do next call only at first time this MEX is loaded */
-		GDALAllRegister();
+	GDALAllRegister();
 
 	if (strstr(gdal_filename, ".jp2") || strstr(gdal_filename, ".JP2"))
 		if ((hDriver = GDALGetDriverByName("JP2OpenJPEG")) != NULL && (hDriver = GDALGetDriverByName("JP2ECW")) != NULL)
@@ -286,7 +284,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	if (metadata_only) {
 		plhs[0] = populate_metadata_struct (gdal_filename, correct_bounds, pixel_reg, got_R, 
 		                                    nXSize, nYSize, dfULX, dfULY, dfLRX, dfLRY, z_min, z_max, get_drivers);
-		runed_once = TRUE;	/* Signals that next call won't need to call GDALAllRegister() again */
 		return;
 	}
 
@@ -769,7 +766,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		                                    nXSize, nYSize, dfULX, dfULY, dfLRX, dfLRY, z_min, z_max, get_drivers);
 
 	mxFree(gdal_filename);
-	runed_once = TRUE;	/* Signals that next call won't need to call GDALAllRegister() again */
+	GDALDestroyDriverManager();
 }
 
 /* =============================================================================================== */
