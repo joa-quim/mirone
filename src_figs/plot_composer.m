@@ -1322,7 +1322,7 @@ function push_OK_CB(hObject, handles)
 		[script, mex_sc, l, o] = do_colorbar(handles, handMir, script, mex_sc, l, o, pack, sc_cpt);
 
 		% See if we have to do a screen capture to 3 RGB grids
-		do_screncapture(handMir, hAlfaPatch, haveAlfa, writeScript, nameRGB)
+		do_screncapture(handMir, haveAlfa, writeScript, nameRGB)
 
 		% =============================== Search for "MagBars" (XY only) ===============================
 		[script, mex_sc, l, o] = do_magbars(handMir, script, mex_sc, l, o, pack, saveBind, opt_J);
@@ -1435,6 +1435,8 @@ function push_OK_CB(hObject, handles)
 					warndlg(sprintf('Automatically opening of raster files not implemented in Linux\nOpen it youself in\n%s', fname), 'Warning')
 				end
 			end
+		catch
+			errordlg(lasterr, 'Error')
 		end
 		cd(return_to)
 	end
@@ -1622,6 +1624,8 @@ function [script, l, o, haveAlfa, used_grd, nameRGB] = do_grdimg(handMir, script
 			have_gmt_illum = true;     used_grd = true;
 		elseif (handMir.Illumin_type > 4 || handMir.is_draped)
 			% We have a Manip or draping illumination. Here we have to use the R,G,B trick
+			prefix_ddir = strrep(prefix_ddir, '.', '_');	% Happens when files have more then one extension
+			prefix = strrep(prefix, '.', '_');
 			nameRGB = [prefix_ddir '_channel'];    name_sc = [prefix '_channel'];
 			illum = [nameRGB '_r.grd ' nameRGB '_g.grd ' nameRGB '_b.grd']; % ????
 			have_gmt_illum = false;
@@ -2522,7 +2526,7 @@ function [script, mex_sc, l, o] = do_colorbar(handles, handMir, script, mex_sc, 
 	end
 
 % ------------------------------------------------------------------------------------------------------------
-function do_screncapture(handMir, hAlfaPatch, haveAlfa, do_writeScript, nameRGB)
+function do_screncapture(handMir, haveAlfa, do_writeScript, nameRGB)
 % ...
 	if (do_writeScript && ~isempty(getappdata(handMir.figure1, 'IAmAMirone')))
 		alphaMask = (numel(get(handMir.hImg,'AlphaData')) ~= 1);	% If it has AlphaData, assume that SC is needed
@@ -2534,6 +2538,7 @@ function do_screncapture(handMir, hAlfaPatch, haveAlfa, do_writeScript, nameRGB)
 			ALLpatchHand = findobj(get(handMir.axes1,'Child'),'Type','patch');
 			ALLtextHand = findobj(get(handMir.axes1,'Child'),'Type','text');
 			set(ALLlineHand, 'Vis', 'off');		set(ALLpatchHand, 'Vis', 'off');	set(ALLtextHand, 'Vis', 'off')
+			[hPatch, hAlfaPatch] = findTransparents(ALLpatchHand);
 			set(hAlfaPatch, 'Vis', 'on')		% Only semi-transparent ones are visible now
 			try
 				refresh(handMir.figure1)		% F... Matlab OpenGL driver has more bugs than a dead rat
