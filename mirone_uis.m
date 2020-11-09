@@ -63,12 +63,12 @@ function [H1,handles,home_dir] = mirone_uis(home_dir)
 % 		'circ_ico', 'Mline_ico', 'rectang_ico', 'polygon_ico', 'Marrow_ico', 'zoom_ico', 'mao', 'cut_ico', ...
 % 		'color_ico', 'shade2_ico', 'anaglyph_ico', 'MB_ico', 'olho_ico', 'GE_ico', 'refresh_ico', 'info_ico'};
 	try
-        load([home_dir filesep 'data' filesep 'mirone_icons.mat']);
+		load([home_dir filesep 'data' filesep 'mirone_icons.mat']);
 	catch
-        if (IamCompiled && ispc)
-            home_dir = winqueryreg('HKEY_CURRENT_USER', 'Environment', 'MIRONE_HOME');
-            load([home_dir filesep 'data' filesep 'mirone_icons.mat']);
-        end
+		if (IamCompiled && ispc)
+			home_dir = winqueryreg('HKEY_CURRENT_USER', 'Environment', 'MIRONE3_HOME');
+			load([home_dir filesep 'data' filesep 'mirone_icons.mat']);
+		end
 	end
 
 	if (IAmOctave)
@@ -88,7 +88,7 @@ function [H1,handles,home_dir] = mirone_uis(home_dir)
 		'IntegerHandle','off',...
 		'MenuBar','none',...
 		'Toolbar', 'none',...
-		'Name','Mirone 2.12dev',...
+		'Name','Mirone 3.0',...
 		'NumberTitle','off',...
 		'PaperPositionMode','auto',...
 		'PaperSize',[20.984 29.677],...
@@ -766,7 +766,7 @@ end
 %uimenu('Parent',h, 'Callback', 'update_gmt(guidata(gcbo))','Label','Update your GMT5','Sep','on')
 uimenu('Parent',h, 'Callback',['mirone(''FileOpenWebImage_CB'',guidata(gcbo),',...
 	' ''http://www2.clustrmaps.com/stats/maps-clusters/w3.ualg.pt-~jluis-mirone-world.jpg'',''nikles'');'],'Label','See visitors map','Sep','on');
-uimenu('Parent',h, 'Callback','about_box(guidata(gcbo),''Mirone Last modified at 18 May 2020'',''2.12dev'')','Label','About','Sep','on');
+uimenu('Parent',h, 'Callback','about_box(guidata(gcbo),''Mirone Last modified at 9 Nov 2020'',''3.0'')','Label','About','Sep','on');
 
 %% --------------------------- Build HANDLES and finish things here
 	handles = guihandles(H1);
