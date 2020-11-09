@@ -5,7 +5,7 @@ function [s,w] = mat_lyies(str,opt)
 % OPT is an optional text string with the file name that will hold the output
 % to stdout. This file will not be deleted upon exit.
 
-%	Copyright (c) 2004-2012 by J. Luis
+%	Copyright (c) 2004-2020 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -20,58 +20,61 @@ function [s,w] = mat_lyies(str,opt)
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-if nargin == 2
-    text_stdout = opt;
-else
-    text_stdout = 'stdout_txt';
-end
+	if nargin == 2
+		text_stdout = opt;
+	else
+		text_stdout = 'stdout_txt';
+	end
 
-w = '';   s = 0;
-run_comm = [str ' > ' text_stdout ' 2> text_stderr'];
+	w = '';   s = 0;
+	if (~isempty(strfind(str, ' ')))
+		str = ['"' str '"'];
+	end
+	run_comm = [str ' > ' text_stdout ' 2> text_stderr'];
 
-if (str(end) == '&')
-	str(end) = [];
-	run_comm = [str ' > ' text_stdout ' 2> text_stderr &'];
-end
+	if (str(end) == '&')
+		str(end) = [];
+		run_comm = [str ' > ' text_stdout ' 2> text_stderr &'];
+	end
 
-if isunix           % UNIX
-    unix(run_comm);
-elseif ispc         % Windows
-    dos(run_comm);
-else
-    errordlg('Unknown platform.','Error');  return;
-end
+	if isunix           % UNIX
+		unix(run_comm);
+	elseif ispc         % Windows
+		dos(run_comm);
+	else
+		errordlg('Unknown platform.','Error');  return;
+	end
 
-% Now find out if it worked and get the output message into w
+	% Now find out if it worked and get the output message into w
 
-fid = fopen('text_stderr');
-while 1
-    tline = fgetl(fid);
-    if ~ischar(tline),	break,	end
-    if strfind(tline,'is not recognized')			% case windows error
-        s = 1;        w = [str '. Command not found'];
-    elseif strfind(tline,'command not found')		% case unix (or cygwin) error
-        s = 1;        w = [str '. Command not found'];
-    elseif strfind(tline,'ERROR')
-        s = 1;        w = tline;
-    elseif strfind(tline,'keyword SI')
-		% This is the gmt.conf issue that I have to solve for GMT5
-		break
-    elseif ~isempty(tline)          % Gave up. I cannot guess all error messages, so if any report it
-        s = 1;        w = tline;
-    end
-end
-fclose(fid);
+	fid = fopen('text_stderr');
+	while 1
+		tline = fgetl(fid);
+		if ~ischar(tline),	break,	end
+		if strfind(tline,'is not recognized')			% case windows error
+			s = 1;        w = [str '. Command not found'];
+		elseif strfind(tline,'command not found')		% case unix (or cygwin) error
+			s = 1;        w = [str '. Command not found'];
+		elseif strfind(tline,'ERROR')
+			s = 1;        w = tline;
+		elseif strfind(tline,'keyword SI')
+			% This is the gmt.conf issue that I have to solve for GMT5
+			break
+		elseif ~isempty(tline)          % Gave up. I cannot guess all error messages, so if any report it
+			s = 1;        w = tline;
+		end
+	end
+	fclose(fid);
 
-if (s == 1),	return,		end
+	if (s == 1),	return,		end
 
-fid = fopen(text_stdout);
-while 1
-    tline = fgetl(fid);
-    if ~ischar(tline), break, end
-    w = [w ' ' tline];
-end
+	fid = fopen(text_stdout);
+	while 1
+		tline = fgetl(fid);
+		if ~ischar(tline), break, end
+		w = [w ' ' tline];
+	end
 
-fclose(fid);
-if (nargin ~= 2),    delete stdout_txt;     end
-delete text_stderr;
+	fclose(fid);
+	if (nargin ~= 2),    delete stdout_txt;     end
+	delete text_stderr;
