@@ -75,7 +75,7 @@ function varargout = resizetrue(handles, opt, axis_t, opt_pad)
 	elseif (~ischar(opt) && numel(opt) == 1)            % Case of anysotropic dx/dy
 		oldDAR = get(hAxes, 'DataAspectRatio');
 		% Attempt heuristic to try to discriminate between same units on both axes or different units
-		if ((oldDAR(1) / oldDAR(2) < 8) && (oldDAR(1) / oldDAR(2) > 1/8))	% Assume same units
+		if (handles.geog || ((oldDAR(1) / oldDAR(2) < 8) && (oldDAR(1) / oldDAR(2) > 1/8)) )	% Assume same units
 			DAR(2) = xfac;
 			opt = sprintf('adjust_size_%.12f', opt * xfac);
 		else
