@@ -1510,7 +1510,7 @@ function FileSaveGMTgrid_CB(handles, opt)
 	nc_io(f_name, 'w', handles, Z, misc)
 
 % --------------------------------------------------------------------
-function out = File_img2GMT_RGBgrids_CB(handles, opt1, opt2)
+function out = File_img2GMT_RGBgrids_CB(handles, opt1, opt2, opt3)
 % Save image as a triplet of gmt grids - R,G,B.
 % OPT1 == 'image' || == [] Capture only the image and not graphical elements
 %	(lines, symbols, etc...). The grids nrow & ncol is the same as the image
@@ -1519,6 +1519,8 @@ function out = File_img2GMT_RGBgrids_CB(handles, opt1, opt2)
 %	that may have been drawn (lines, symbols, etc...).
 % OPT2 == fname. It is used by the write gmt script routine to capture the image and
 %	write the image as a triplet of gmt grids with name stem = OPT2.
+% OPT4 == whatever. It is used by the write gmt script routine to capture the image
+%	and save as PNG image instead of 3 grids.
 %
 % If OUT is required return image before saving nc files.
 
@@ -1528,18 +1530,22 @@ function out = File_img2GMT_RGBgrids_CB(handles, opt1, opt2)
 	elseif(nargin == 2),	opt2 = [];
 	end
 
-	str1 = {'*.grd;*.GRD','netCDF int2 grid format (*.grd,*.GRD)'; '*.*', 'All Files (*.*)'};
 	if (isempty(opt2))
+		str1 = {'*.grd;*.GRD','netCDF int2 grid format (*.grd,*.GRD)'; '*.*', 'All Files (*.*)'};
 		[FileName,PathName] = put_or_get_file(handles,str1,'Select output GMT grid','put');
 		if isequal(FileName,0),		return,		end
 	else		% It means the output file name was transmited in input
 		[PathName,FileName] = fileparts(opt2);		PathName = [PathName filesep];
 	end
 
-	[PATH,FNAME,EXT] = fileparts([PathName FileName]);
-	if isempty(EXT),	EXT = '.grd';		end	
-	f_name_r = [PathName FNAME '_r' EXT];	f_name_g = [PathName FNAME '_g' EXT];
-	f_name_b = [PathName FNAME '_b' EXT];
+	if (nargin <= 3)
+		[PATH,FNAME,EXT] = fileparts([PathName FileName]);
+		if isempty(EXT),	EXT = '.grd';		end	
+		f_name_r = [PathName FNAME '_r' EXT];	f_name_g = [PathName FNAME '_g' EXT];
+		f_name_b = [PathName FNAME '_b' EXT];
+	else
+		f_name = [PathName FileName '.png'];
+	end
 
 	if (strcmp(opt1,'image'))			% Get image but things can get pretty complicated nowadays
 		hImgs = findobj(handles.axes1, 'Type', 'image');
@@ -1557,14 +1563,17 @@ function out = File_img2GMT_RGBgrids_CB(handles, opt1, opt2)
 			if (~isempty(msg)),		errordlg(msg, 'Error'),		return,		end
 			handles.head(8:9) = inc;
 		else
-			warndlg('Where the hell did I invent this 3 images cases not foreseen here?', 'Warning')
+			warndlg('Where the hell did I invent this 3 or more images cases not foreseen here?', 'Warning')
 			img = get(handles.hImg,'CData');
 		end
 	elseif (strcmp(opt1,'screen')),		img = snapshot(handles.figure1,'noname');	% Screen capture with resizing option
 	else,								img = flipdim(imcapture(handles.axes1,'img',0),1);		% Call from write_script
 	end
 
-	if (~strcmp(get(handles.axes1,'Ydir'),'normal')),	flip = true;	else,	flip = false;	end
+	if (nargin <= 3),	flip = false;	% Default for grids
+	else,				flip = true;	% Default for images
+	end
+	if (~strcmp(get(handles.axes1,'Ydir'),'normal')),	flip = ~flip;	end
 
 	if (ndims(img) == 2)
 		if (flip),	img = flipud(img);	flip = false;	end		% Cheaper to flip while it's still 2D
@@ -1575,13 +1584,19 @@ function out = File_img2GMT_RGBgrids_CB(handles, opt1, opt2)
 		out = img;		return
 	end
 
-	% Defaults and srsWKT fishing are set in nc_io
-	if (~flip)
-		nc_io(f_name_r, 'w', handles, img(:,:,1));			nc_io(f_name_g, 'w', handles, img(:,:,2))
-		nc_io(f_name_b, 'w', handles, img(:,:,3))
+	if (nargin <= 3)
+		% Defaults and srsWKT fishing are set in nc_io
+		if (~flip)
+			nc_io(f_name_r, 'w', handles, img(:,:,1));			nc_io(f_name_g, 'w', handles, img(:,:,2))
+			nc_io(f_name_b, 'w', handles, img(:,:,3))
+		else
+			nc_io(f_name_r, 'w', handles, flipud(img(:,:,1)));	nc_io(f_name_g, 'w', handles, flipud(img(:,:,2)))
+			nc_io(f_name_b, 'w', handles, flipud(img(:,:,3)))
+		end
 	else
-		nc_io(f_name_r, 'w', handles, flipud(img(:,:,1)));	nc_io(f_name_g, 'w', handles, flipud(img(:,:,2)))
-		nc_io(f_name_b, 'w', handles, flipud(img(:,:,3)))
+		if (~flip),	imwrite(img, f_name);
+		else,		imwrite(flipdim(img,1), f_name);
+		end
 	end
 
 % --------------------------------------------------------------------
