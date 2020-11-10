@@ -1595,8 +1595,8 @@ function [script, l, o, haveAlfa, used_grd, nameRGB] = do_grdimg(handMir, script
 				for (k = 1:numel(hP))
 					% 0.005 is a fake number set in DrawClosedPolygon_CB to trick the R2015 breakage in hitting patches
 					if (get(hP(k), 'FaceAlpha') ~= 0.005)	% So if they are all == 0.005 ignore them as transparent
-						handMir.Illumin_type = 10;			% Dumb fake value just to force screen capture
-						haveAlfa = true;
+						%handMir.Illumin_type = 10;			% Dumb fake value just to force screen capture
+						%haveAlfa = true;
 					end
 				end
 			end
@@ -1730,8 +1730,8 @@ function [mex_sc, o, hWait] = do_grdimg_MEX(handMir, mex_sc, o, KORJ, haveAlfa)
 		ALLpatchHand = findobj(get(handMir.axes1,'Child'),'Type','patch');
 		ALLtextHand  = findobj(get(handMir.axes1,'Child'),'Type','text');
 		set(ALLlineHand, 'Vis', 'off');		set(ALLpatchHand, 'Vis', 'off');	set(ALLtextHand, 'Vis', 'off')
-		[hPatch, hAlfaPatch] = findTransparents(ALLpatchHand);
-		set(hAlfaPatch, 'Vis', 'on')		% Only semi-transparent ones are visible now
+% 		[hPatch, hAlfaPatch] = findTransparents(ALLpatchHand);
+% 		set(hAlfaPatch, 'Vis', 'on')		% Only semi-transparent ones are visible now
 		refresh(handMir.figure1)			% F... Matlab OpenGL driver has more bugs than a dead rat
 		if (isempty(ALLlineHand) && isempty(ALLpatchHand) && isempty(ALLtextHand))	% No need to SC because image is clean
 			img = mirone('File_img2GMT_RGBgrids_CB', handMir, 'image', 'lixo');
@@ -2111,10 +2111,10 @@ function [script, l, haveAlfa, hPatch] = do_countries(handMir, script, l, pack, 
 		% First see about these still remaining patch transparency
 		% But if both write script and auto PDF and transparencies, the script will probably be wrong
 		[comm, pb, pf, do_MEX, ellips, RJOK, KORJ, dest_dir, prefix, prefix_ddir] = unpack(pack);
-		if (~do_MEX)
-			[hPatch, hAlfaPatch] = findTransparents(hPatch);
-			if (isempty(hAlfaPatch)),		haveAlfa = false;		end			% An extra test
-		end
+% 		if (~do_MEX)
+% 			[hPatch, hAlfaPatch] = findTransparents(hPatch);
+% 			if (isempty(hAlfaPatch)),		haveAlfa = false;		end			% An extra test
+% 		end
 
 		hAtlas = findobj(hPatch,'Tag','Atlas');
 		if (~isempty(hAtlas))
@@ -2207,76 +2207,89 @@ function [script, mex_sc, l, o, hPatch] = do_histograms(handMir, script, mex_sc,
 % ------------------------------------------------------------------------------------------------------------
 function [script, mex_sc, l, o] = do_patches(handMir, script, mex_sc, l, o, pack, hPatch, writeScript)
 % ...
-	if (~isempty(hPatch))
-		[comm, pb, pf, do_MEX, ellips, RJOK, KORJ, dest_dir, prefix, prefix_ddir, opt_len_unit] = unpack(pack);
-		xx = get(hPatch,'XData');     yy = get(hPatch,'YData');
-		n_patch = numel(hPatch);
-		%LineStyle = get(ALLpatchHand,'LineStyle');
-		LineWidth = get(hPatch,'LineWidth');
-		if (iscell(LineWidth)),     LineWidth = cat(1,LineWidth{:});     end
-		EdgeColor = get(hPatch,'EdgeColor');
-		if (iscell(EdgeColor)),     EdgeColor = cat(1,EdgeColor{:});     end
-		FillColor = get(hPatch,'FaceColor');
-		if (iscell(FillColor))
-			if (handMir.version7 >= 8.4)	% Must check if have to undo a trick to workarround a R2015 bug
-				for (k = 1:n_patch)
-					if (get(hPatch(k), 'FaceAlpha') == 0.005)
-						FillColor{k} = 'none';
-					end
-				end
-			end
-			resp = strcmp('none',FillColor);
-			if (~any(resp))
-				FillColor = cat(1,FillColor{:});
-			else
-				for (i = 1:numel(resp))					% Signal down if this is a non colored polygon
-					if (resp(i))
-						FillColor{i} = [-1 -1 -1];		% This is a non-colored one
-					end
-				end
-				FillColor = cat(1,FillColor{:});
-			end
-		else				% We have only one patch
-			xx = num2cell(xx,1);   yy = num2cell(yy,1);	% Make it a cell for reducing the head-hakes
-			resp = strcmp('none',FillColor);
-			if (resp || get(hPatch, 'FaceAlpha') == 0.005)	% The 0.005 is the flag to workaround R2015 bug
-				FillColor = [-1 -1 -1];					% Signal down that this is a non colored polygon
-			end
-		end
-		name = [prefix_ddir '_patch.dat'];		name_sc = [prefix '_patch.dat'];
-		if (writeScript),	fid = fopen(name,'wt');		end
-		for (i = 1:n_patch)
-			cor_edge = sprintf('%d/%d/%d', round(EdgeColor(i,1:3) * 255));
-			if (FillColor(i,1) >= 0)		% Color filled polygon
-				cor_fill = sprintf('%d/%d/%d', round(FillColor(i,1:3) * 255));
-				mlt_comm = ['> -G' cor_fill ' -W' num2str(LineWidth(i)) 'p,' cor_edge];
-			else							% No filling color
-				mlt_comm = ['> -G- -W' num2str(LineWidth(i)) 'p,' cor_edge];
-			end
 
-			if (writeScript)
-				if (any(isnan(xx{i})))      % If we have NaNs we need to split into segments
-					[latcells,loncells] = aux_funs('polysplit', yy{i}(:),xx{i}(:));
-					for (j = 1:numel(loncells))
-						fprintf(fid,'%s\n',mlt_comm);
-						fprintf(fid,'%.5f\t%.5f\n',[loncells{j}(:)'; latcells{j}(:)']);
-					end
-				else
-					fprintf(fid,'%s\n',mlt_comm);
-					fprintf(fid,'%.5f\t%.5f\n',[xx{i}(:)'; yy{i}(:)']);
+	if (isempty(hPatch)),	return,		end
+
+	[comm, pb, pf, do_MEX, ellips, RJOK, KORJ, dest_dir, prefix, prefix_ddir, opt_len_unit] = unpack(pack);
+	xx = get(hPatch,'XData');     yy = get(hPatch,'YData');
+	n_patch = numel(hPatch);
+	%LineStyle = get(ALLpatchHand,'LineStyle');
+	LineWidth = get(hPatch,'LineWidth');
+	if (iscell(LineWidth)),     LineWidth = cat(1,LineWidth{:});     end
+	EdgeColor = get(hPatch,'EdgeColor');
+	if (iscell(EdgeColor)),     EdgeColor = cat(1,EdgeColor{:});     end
+	FillColor = get(hPatch,'FaceColor');
+	falpha = zeros(n_patch,1);
+	if (iscell(FillColor))
+		if (handMir.version7 >= 8.4)	% Must check if have to undo a trick to workarround a R2015 bug
+			for (k = 1:n_patch)
+				fa = get(hPatch(k), 'FaceAlpha');
+				if (fa == 0.005)
+					FillColor{k} = 'none';
+				elseif (fa > 0.005 || fa < 0.95)
+					falpha(k) = fa;
 				end
 			end
-			if (do_MEX)
-				transp = get(hPatch(i), 'FaceAlpha');		opt_t = '';
-				if (transp > 0.005),	opt_t = sprintf(' -t%d', round((1-transp) * 100));	end		% Have transparency
-		 		mex_sc{o,1} = ['psxy ' mlt_comm(3:end) ellips opt_len_unit opt_t KORJ];
-				mex_sc{o,2} = [xx{i}(:) yy{i}(:)];		o = o + 1;
+		else
+			for (k = 1:n_patch)
+				falpha(k) = get(hPatch(k), 'FaceAlpha');
 			end
 		end
-		if (writeScript),	fclose(fid);	end
-		script{l} = sprintf('\n%s ---- Plot closed AND colored polygons', comm);		l = l + 1;
-		script{l} = ['gmt psxy ' name_sc ellips opt_len_unit RJOK ' >> ' pb 'ps' pf];		l = l + 1;
+		resp = strcmp('none',FillColor);
+		if (~any(resp))
+			FillColor = cat(1,FillColor{:});
+		else
+			for (i = 1:numel(resp))					% Signal down if this is a non colored polygon
+				if (resp(i))
+					FillColor{i} = [-1 -1 -1];		% This is a non-colored one
+				end
+			end
+			FillColor = cat(1,FillColor{:});
+		end
+	else				% We have only one patch
+		xx = num2cell(xx,1);   yy = num2cell(yy,1);	% Make it a cell for reducing the head-hakes
+		resp = strcmp('none',FillColor);
+		if (resp || get(hPatch, 'FaceAlpha') == 0.005)	% The 0.005 is the flag to workaround R2015 bug
+			FillColor = [-1 -1 -1];					% Signal down that this is a non colored polygon
+		else
+			falpha(1) = get(hPatch, 'FaceAlpha');
+		end
 	end
+	name = [prefix_ddir '_patch.dat'];		name_sc = [prefix '_patch.dat'];
+	if (writeScript),	fid = fopen(name,'wt');		end
+	for (i = 1:n_patch)
+		cor_edge = sprintf('%d/%d/%d', round(EdgeColor(i,1:3) * 255));
+		if (FillColor(i,1) >= 0)		% Color filled polygon
+			cor_fill = sprintf('%d/%d/%d', round(FillColor(i,1:3) * 255));
+			al = '';
+			if (falpha(i)),	al = sprintf('@%d', falpha(i)*100);		end		% Add a @alpha if we have one
+			mlt_comm = ['> -G' cor_fill al ' -W' num2str(LineWidth(i)) 'p,' cor_edge];
+		else							% No filling color
+			mlt_comm = ['> -G- -W' num2str(LineWidth(i)) 'p,' cor_edge];
+		end
+		
+		if (writeScript)
+			if (any(isnan(xx{i})))      % If we have NaNs we need to split into segments
+				[latcells,loncells] = aux_funs('polysplit', yy{i}(:),xx{i}(:));
+				for (j = 1:numel(loncells))
+					fprintf(fid,'%s\n',mlt_comm);
+					fprintf(fid,'%.5f\t%.5f\n',[loncells{j}(:)'; latcells{j}(:)']);
+				end
+			else
+				fprintf(fid,'%s\n',mlt_comm);
+				fprintf(fid,'%.5f\t%.5f\n',[xx{i}(:)'; yy{i}(:)']);
+			end
+		end
+		if (do_MEX)
+			transp = get(hPatch(i), 'FaceAlpha');		opt_t = '';
+			if (transp > 0.005),	opt_t = sprintf(' -t%d', round((1-transp) * 100));	end		% Have transparency
+			mex_sc{o,1} = ['psxy ' mlt_comm(3:end) ellips opt_len_unit opt_t KORJ];
+			mex_sc{o,2} = [xx{i}(:) yy{i}(:)];		o = o + 1;
+		end
+	end
+	if (writeScript),	fclose(fid);	end
+	script{l} = sprintf('\n%s ---- Plot closed AND colored polygons', comm);		l = l + 1;
+	script{l} = ['gmt psxy ' name_sc ellips opt_len_unit RJOK ' >> ' pb 'ps' pf];		l = l + 1;
 
 % ------------------------------------------------------------------------------------------------------------
 function [script, mex_sc, l, o, hLine] = do_psimage(handles, script, mex_sc, l, o, pack, hLine)
@@ -2538,8 +2551,8 @@ function do_screncapture(handMir, haveAlfa, do_writeScript, nameRGB)
 			ALLpatchHand = findobj(get(handMir.axes1,'Child'),'Type','patch');
 			ALLtextHand = findobj(get(handMir.axes1,'Child'),'Type','text');
 			set(ALLlineHand, 'Vis', 'off');		set(ALLpatchHand, 'Vis', 'off');	set(ALLtextHand, 'Vis', 'off')
-			[hPatch, hAlfaPatch] = findTransparents(ALLpatchHand);
-			set(hAlfaPatch, 'Vis', 'on')		% Only semi-transparent ones are visible now
+			%[hPatch, hAlfaPatch] = findTransparents(ALLpatchHand);
+			%set(hAlfaPatch, 'Vis', 'on')		% Only semi-transparent ones are visible now
 			try
 				refresh(handMir.figure1)		% F... Matlab OpenGL driver has more bugs than a dead rat
 				if (isempty(ALLlineHand) && isempty(ALLpatchHand) && isempty(ALLtextHand))	% No need to SC because image is clean
