@@ -1,7 +1,7 @@
 /*--------------------------------------------------------------------
  *	$Id: callMir.c 10332 2018-03-23 23:15:22Z j $
  *
- *	Copyright (c) 2004-2016 by J. Luis
+ *	Copyright (c) 2004-2020 by J. Luis
  *
  * 	This program is part of Mirone and is free software; you can redistribute
  * 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -22,7 +22,7 @@
  *	Helper function to call mirone.exe but setting the path before the call
  *	This function replaces the mirone.bat batch in order to allow file
  *	associations. In order that the association works a environmental var
- *	MIRONE_HOME pointing to the mirone installation dir must exist. That is 
+ *	MIRONE3_HOME pointing to the mirone installation dir must exist. That is 
  *	so because when we double click a file the current dir is that of the
  *	file and not of the program, which leaves on the state of not knowing
  *	where we are.
@@ -45,7 +45,7 @@ int main(int argc, char **argv) {
 	char *path, *pato, *papato = NULL, *patoUD, *cd; 
 	int   status, size_cd = 2048, k;
 
-	path = getenv ("PATH");
+	path = getenv("PATH");
 
 	cd = (char *)malloc((size_t)size_cd);
 	cd = getcwd(cd, (size_t)size_cd);
@@ -56,20 +56,20 @@ int main(int argc, char **argv) {
 	strcpy(patoUD, cd);
 	strcat(patoUD, "\\tmp\\apudeita.bat");
 
-	if (!access (papato, R_OK)) {		/* Found, so we are at home */
+	if (!access(papato, R_OK)) {		/* Found, so we are at home */
 		pato = (char *) calloc ((size_t)(strlen(path) + 2*strlen(cd) + 18), (size_t)1);
-		if (!access (patoUD, R_OK)) {	/* See if we have an update to do before start */
+		if (!access(patoUD, R_OK)) {	/* See if we have an update to do before start */
 			system(patoUD);
 			remove(patoUD);
 		}
 	}
 	else {		/* Called via file association. See if we have a MIRONE_HOME */
-		cd = getenv ("MIRONE_HOME");
-		pato = (char *) calloc ((size_t)(strlen(path) + 2*strlen(cd) + 18), (size_t)1);
+		cd = getenv("MIRONE3_HOME");
+		pato = (char *)calloc ((size_t)(strlen(path) + 2*strlen(cd) + 18), (size_t)1);
 
 		/* See if we have an update to do before start */
 		free ((void *)patoUD);
-		patoUD = (char *) calloc ((size_t)(strlen(cd) + 18), (size_t)1);
+		patoUD = (char *)calloc ((size_t)(strlen(cd) + 18), (size_t)1);
 		strcpy(patoUD, cd);
 		strcat(patoUD, "\\tmp\\apudeita.bat");
 		if (!access(patoUD, R_OK)) {	
@@ -105,5 +105,5 @@ int main(int argc, char **argv) {
 	}
 	if (papato) free(papato);
 
-	return 1;
+	return 0;
 }
