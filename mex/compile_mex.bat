@@ -24,9 +24,10 @@ REM ----------------------------------------------------------------------------
 
 REM ------------- Set the compiler (set to 'icl' to use the Intel compiler) --------------
 SET CC=cl
+REM --------------------------------------------------------------------------------------
 
 REM If set to "yes", linkage is done againsts ML6.5 Libs (needed in compiled version)
-SET R13="yes"
+SET R13="no"
 
 REM Set it to 32 or 64 to build under 64-bits or 32-bits respectively.
 SET BITS=64
@@ -62,56 +63,39 @@ SET MEX_EXT="dll"
 ) ELSE (
 
 IF %BITS%==64 (
-SET MATLIB=C:\SVN\pracompila\ML2010a_w64\lib\win64\microsoft 
-SET MATINC=C:\SVN\pracompila\ML2010a_w64\include
+SET MATLIB=C:\SVN\pracompila\ML2011b_w64\lib\win64\microsoft 
+SET MATINC=C:\SVN\pracompila\ML2011b_w64\include
 SET _MX_COMPAT=-DMX_COMPAT_32
 SET MEX_EXT="mexw64"
 
 ) ELSE (
 
-SET MATLIB=C:\SVN\pracompila\ML2009b_w32\lib\win32\microsoft 
-SET MATINC=C:\SVN\pracompila\ML2009b_w32\include
+SET MATLIB=C:\SVN\pracompila\ML2012a_w32\lib\win32\microsoft 
+SET MATINC=C:\SVN\pracompila\ML2012a_w32\include
 SET _MX_COMPAT=-DMX_COMPAT_32
 SET MEX_EXT="mexw32"
 ) )
 
  
 REM -------------- Set up libraries here -------------------------------------------------
-IF %BITS%==64 (
 
 SET  NETCDF_LIB=C:\programs\compa_libs\netcdf_GIT\compileds\VC%VC%_%BITS%\lib\netcdf.lib
-SET     GMT_LIB=c:\progs_cygw\GMTdev\gmt5\WIN%BITS%\lib\gmt.lib
-SET    GDAL_LIB=c:\programs\compa_libs\gdal\compileds\VC%VC%_%BITS%\lib\gdal_i.lib
+SET     GMT_LIB=c:\progs_cygw\GMTdev\gmt5\compileds\gmt6\VC%VC%_%BITS%\lib\gmt.lib
+SET    GDAL_LIB=c:\programs\compa_libs\gdal_GIT\compileds\VC%VC%_%BITS%\lib\gdal_i.lib
 SET  CXCORE_LIB=C:\programs\compa_libs\opencv\compileds\VC%VC%_%BITS%\lib\opencv_core.lib
 SET   CVIMG_LIB=C:\programs\compa_libs\opencv\compileds\VC%VC%_%BITS%\lib\opencv_imgproc.lib
 SET CVCALIB_LIB=C:\programs\compa_libs\opencv\compileds\VC%VC%_%BITS%\lib\opencv_calib3d.lib
 SET   CVOBJ_LIB=C:\programs\compa_libs\opencv\compileds\VC%VC%_%BITS%\lib\opencv_objdetect.lib
 SET CVVIDEO_LIB=C:\programs\compa_libs\opencv\compileds\VC%VC%_%BITS%\lib\opencv_video.lib
 SET CVPHOTO_LIB=C:\programs\compa_libs\opencv\compileds\VC%VC%_%BITS%\lib\opencv_photo.lib
-SET     LAS_LIB=C:\programs\compa_libs\liblas-src-1.2.1\lib\VC10_64\liblas_i.lib
-SET  GEOLIB_LIB=C:\programs\compa_libs\GeographicLib-1.49\compileds\VC%VC%_%BITS%\lib\Geographic-i.lib
+SET     LAS_LIB=C:\programs\compa_libs\liblas-src-1.2.1\lib\VC10_%BITS%\liblas_i.lib
+SET  GEOLIB_LIB=C:\programs\compa_libs\GeographicLib-1.49\compileds\VC%VC%_%BITS%\lib\Geographic_i.lib
 SET LASZLIB_LIB=C:\programs\compa_libs\lastools\compileds\VC%VC%_%BITS%\lib\laslib_i.lib 
 
-) ELSE (
-
-SET  NETCDF_LIB=C:\programs\compa_libs\netcdf_GIT\compileds\VC%VC%_%BITS%\lib\netcdf.lib
-SET     GMT_LIB=c:\progs_cygw\GMTdev\gmt5\WIN%BITS%\lib\gmt.lib
-SET    GDAL_LIB=c:\programs\compa_libs\gdal\compileds\VC%VC%_%BITS%\lib\gdal_i.lib
-SET  CXCORE_LIB=C:\programs\compa_libs\opencv\compileds\VC%VC%_%BITS%\lib\opencv_core.lib
-SET   CVIMG_LIB=C:\programs\compa_libs\opencv\compileds\VC%VC%_%BITS%\lib\opencv_imgproc.lib
-SET CVCALIB_LIB=C:\programs\compa_libs\opencv\compileds\VC%VC%_%BITS%\lib\opencv_calib3d.lib
-SET   CVOBJ_LIB=C:\programs\compa_libs\opencv\compileds\VC%VC%_%BITS%\lib\opencv_objdetect.lib
-SET CVVIDEO_LIB=C:\programs\compa_libs\opencv\compileds\VC%VC%_%BITS%\lib\opencv_video.lib
-SET CVPHOTO_LIB=C:\programs\compa_libs\opencv\compileds\VC%VC%_%BITS%\lib\opencv_photo.lib
-SET     LAS_LIB=C:\programs\compa_libs\liblas-src-1.2.1\lib\VC10_32\liblas_i.lib
-SET  GEOLIB_LIB=C:\programs\compa_libs\GeographicLib-1.49\compileds\VC%VC%_%BITS%\lib\Geographic-i.lib
-SET LASZLIB_LIB=C:\programs\compa_libs\lastools\compileds\VC%VC%_%BITS%\lib\laslib_i.lib 
-
-)
 
 SET  NETCDF_INC=C:\programs\compa_libs\netcdf_GIT\compileds\VC%VC%_%BITS%\include
-SET     GMT_INC=c:\progs_cygw\GMTdev\gmt5\WIN64\include\gmt
-SET    GDAL_INC=c:\programs\compa_libs\gdal\compileds\VC%VC%_%BITS%\include
+SET     GMT_INC=c:\progs_cygw\GMTdev\gmt5\compileds\gmt6\VC%VC%_%BITS%\include\gmt
+SET    GDAL_INC=c:\programs\compa_libs\gdal_GIT\compileds\VC%VC%_%BITS%\include
 SET      CV_INC=C:\programs\compa_libs\opencv\compileds\VC%VC%_%BITS%\include
 SET       CVInc=C:\programs\compa_libs\opencv\compileds\VC%VC%_%BITS%\include\opencv
 SET  GEOLIB_INC=C:\programs\compa_libs\GeographicLib-1.49\compileds\VC%VC%_%BITS%\include
@@ -145,6 +129,8 @@ IF %1==edison GOTO edison
 IF %1==lasreader GOTO lasreader
 IF %1==laszreader GOTO laszreader
 IF %1==mpgwrite GOTO mpgwrite
+IF %1==reducep GOTO reducep
+IF %1==MLmex GOTO MLmex
 
 :todos
 REM ------------------ "simple" (no external Libs dependency) ------------------
@@ -230,8 +216,8 @@ IF "%1"=="MEXNC4" GOTO END
 
 REM ---------------------- MEXNC ----------------------------------------------------
 :MEXNC
-%CC% -DWIN32 %COMPFLAGS% -DUSE_API_2 -I%MATINC% -I%NETCDF_INC% %OPTIMFLAGS% %_MX_COMPAT% %TIMEIT% -DDLL_NETCDF -DNC4_V2_COMPAT mexnc\mexgateway.c mexnc\netcdf2.c mexnc\netcdf3.c mexnc\common.c
-link  /out:"mexnc.%MEX_EXT%" %LINKFLAGS% %NETCDF_LIB% /implib:templib.x mexgateway.obj netcdf2.obj netcdf3.obj common.obj
+REM %CC% -DWIN32 %COMPFLAGS% -DUSE_API_2 -I%MATINC% -I%NETCDF_INC% %OPTIMFLAGS% %_MX_COMPAT% %TIMEIT% -DDLL_NETCDF -DNC4_V2_COMPAT mexnc\mexgateway.c mexnc\netcdf2.c mexnc\netcdf3.c mexnc\common.c
+REM link  /out:"mexnc.%MEX_EXT%" %LINKFLAGS% %NETCDF_LIB% /implib:templib.x mexgateway.obj netcdf2.obj netcdf3.obj common.obj
 IF "%1"=="MEXNC" GOTO END
 
 
@@ -261,6 +247,29 @@ set P=mpgwrite\
 %CC% -DWIN32 %COMPFLAGS% -I%MATINC% %OPTIMFLAGS% %_MX_COMPAT% %TIMEIT% %P%mpgwrite.c %P%mfwddct.c %P%postdct.c %P%huff.c %P%bitio.c %P%mheaders.c %P%iframe.c %P%pframe.c %P%bframe.c %P%psearch.c %P%bsearch.c %P%block.c %P%mpeg.c %P%subsampl.c %P%jrevdct.c %P%frame.c %P%fsize.c
 link  /out:"mpgwrite.%MEX_EXT%" %LINKFLAGS% /implib:templib.x mpgwrite.obj mfwddct.obj postdct.obj huff.obj bitio.obj mheaders.obj iframe.obj pframe.obj bframe.obj psearch.obj bsearch.obj block.obj mpeg.obj subsampl.obj jrevdct.obj frame.obj fsize.obj 
 IF "%1"=="mpgwrite" GOTO END
+
+REM ---------------------- REDUCEP -------------------------------------------
+:reducep
+cd reducep
+%CC% -DWIN32 %COMPFLAGS% -I%MATINC% %OPTIMFLAGS% %_MX_COMPAT% reducep_s.cpp 3D.cpp AdjModel.cpp AdjPrims.cpp avars.cpp decimate.cpp heap.cpp Mat4.cpp ProxGrid.cpp quadrics.cpp smf.cpp
+
+link  /out:"reducep_s.%MEX_EXT%" %LINKFLAGS% /implib:templib.x reducep_s.obj 3D.obj AdjModel.obj AdjPrims.obj avars.obj decimate.obj heap.obj Mat4.obj ProxGrid.obj quadrics.obj smf.obj
+cd ..
+IF "%1"=="reduce" GOTO END
+
+REM ---------------------- MLMEX (not all, see MLmex dir) -------------------------------------------
+:MLmex
+cd MLmex
+%CC% -DWIN32 %COMPFLAGS% -I%MATINC% %OPTIMFLAGS% %_MX_COMPAT% bwboundariesmex.cpp boundaries.cpp bwlabelnmex.cpp neighborhood.cpp unionfind.c vectors.cpp ditherc.c dilate_erode_binary.cpp dilate_erode_packed.cpp dilate_erode_gray_nonflat.cpp invcmap.c iptutil.c morphmex.cpp imreconstructmex.cpp
+
+link  /out:"bwboundariesmex.%MEX_EXT%" %LINKFLAGS% /implib:templib.x bwboundariesmex.obj boundaries.obj
+link  /out:"bwlabelnmex.%MEX_EXT%" %LINKFLAGS% /implib:templib.x bwlabelnmex.obj neighborhood.obj unionfind.obj
+link  /out:"imreconstructmex.%MEX_EXT%" %LINKFLAGS% /implib:templib.x imreconstructmex.obj neighborhood.obj
+link  /out:"ditherc.%MEX_EXT%" %LINKFLAGS% /implib:templib.x ditherc.obj invcmap.obj
+link  /out:"morphmex.%MEX_EXT%" %LINKFLAGS% /implib:templib.x morphmex.obj neighborhood.obj vectors.obj dilate_erode_binary.obj dilate_erode_packed.obj dilate_erode_gray_nonflat.obj 
+del *.obj *.exp templib.x
+cd ..
+IF "%1"=="MLmex" GOTO END
 
 
 :END
