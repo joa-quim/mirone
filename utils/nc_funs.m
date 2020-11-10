@@ -764,10 +764,10 @@ if (status == 0)
 	[dud, dud, status2] = mexnc('INQ_ATT', ncid, varid, 'missing_value');
 
     switch (var_type)
-        case {nc_char, nc_byte}
+        case {nc_char, nc_byte, nc_ubyte}
 			% For now, do nothing.  Does a fill value even make sense with char data?
 			% If it does, please tell me so.
-        case { nc_int, nc_short}
+        case {nc_int, nc_short}
 			[fill_value, status] = mexnc('get_att_double', ncid, varid, '_FillValue');
 			if (~status2)			% Get also the 'missing_value' and do the job for both
 				miss_value = mexnc('get_att_double', ncid, varid, 'missing_value');
@@ -785,7 +785,7 @@ if (status == 0)
 			else
 				% An idiotic case. A _FillValue = NAN in a array of integers.
 			end
-        case { nc_double, nc_float }
+        case {nc_double, nc_float}
 			[fill_value, status] = mexnc('get_att_double', ncid, varid, '_FillValue');
 			if (~status2)			% Get also the 'missing_value' and do the job for both
 				miss_value = mexnc('get_att_double', ncid, varid, 'missing_value');
@@ -793,7 +793,7 @@ if (status == 0)
 			if (~isnan(fill_value))
 				values(values == fill_value) = NaN;
 			end
-			if ( ~isempty(miss_value) && (~isnan(miss_value) && (miss_value ~= fill_value)))
+			if (~isempty(miss_value) && (~isnan(miss_value) && (miss_value ~= fill_value)))
 				values(values == miss_value) = NaN;
 			end
         otherwise
@@ -950,7 +950,7 @@ end
 	
 if (do_restricted_variable == false)
 	if (nargout),	dump = dump_global_attributes (metadata, dump);
-	else			dump_global_attributes (metadata);
+	else,			dump_global_attributes (metadata);
 	end
 end
 
@@ -1170,8 +1170,9 @@ attribute.Nctype = att_datatype;
 switch att_datatype
 	case 0
 		attval = NaN;
-	case nc_char
+	case {nc_char, nc_string}
 		[attval, status] = mexnc('get_att_text',cdfid,varid,attname);
+		if (status < 0 && att_datatype == nc_string),	status = 0; attval = 0;	end
 	case {nc_double, nc_float, nc_int, nc_short, nc_byte, nc_int64, nc_ubyte}
 		[attval, status] = mexnc('get_att_double',cdfid,varid,attname);
 	otherwise
@@ -1948,8 +1949,8 @@ function varstruct = validate_varstruct(varstruct)
 
 	% If the datatype is not a string.
 	% Change suggested by Brian Powell
-	if (isa(varstruct.Nctype, 'double') && varstruct.Nctype < 8)
-		types={'byte' 'char' 'short' 'int' 'float' 'double' 'ubyte'};
+	if (isa(varstruct.Nctype, 'double') && varstruct.Nctype < 9)
+		types={'byte' 'char' 'short' 'int' 'float' 'double' 'ubyte' 'ushort'};
 		varstruct.Nctype = char(types(varstruct.Nctype));
 		varstruct.Datatype = char(types(varstruct.Datatype));
 	end
@@ -1960,6 +1961,7 @@ function varstruct = validate_varstruct(varstruct)
 			'NC_FLOAT', 'float', ...
 			'NC_INT', 'int', ...
 			'NC_SHORT', 'short', ...
+			'NC_USHORT', 'ushort', ...
 			'NC_BYTE', 'byte', ...
 			'NC_UBYTE', 'ubyte', ...
 			'NC_CHAR', 'char'}
@@ -1970,11 +1972,13 @@ function varstruct = validate_varstruct(varstruct)
 			varstruct.Datatype = 'int';
 		case 'int16'
 			varstruct.Datatype = 'short';
+		case 'uint16'
+			varstruct.Datatype = 'ushort';
 		case 'int8'
 			varstruct.Datatype = 'byte';
 		case 'uint8'
 			varstruct.Datatype = 'ubyte';
-		case {'uint16', 'uint32', 'int64', 'uint64'}
+		case {'uint32', 'int64', 'uint64'}
 			snc_error('NC_FUNS:NC_ADDVAR:notClassicDatatype', ...
 				'Datatype ''%s'' is not a classic model datatype.', varstruct.Datatype); 
 	otherwise
@@ -2024,6 +2028,9 @@ function nc_attput_while_open (ncid, varname, attribute_name, attval)
 		case 'int16'
 			funcstr = 'put_att_short';
 			atttype = nc_short;
+		case 'uint16'
+			funcstr = 'put_att_ushort';
+			atttype = nc_ushort;
 		case 'int8'
 			funcstr = 'put_att_schar';
 			atttype = nc_byte;
