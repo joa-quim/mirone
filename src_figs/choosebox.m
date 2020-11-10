@@ -478,10 +478,10 @@ function writeGMTscript(in)
 	if (x_c > 360),		x_c = x_c - 360;	end
 	% Convert to PS to get the BB and than convert back to geogs and build the -R option
 	t = sprintf('-Js%.0f/90/1:1 -C -F', x_c);
-	xy_ps = gmtmex(['mapproject -Rd ' t], [in.x(:) in.y(:)]);
+	xy_ps = gmtmex(['mapproject -R-180/180/20/90 ' t], [in.x(:) in.y(:)]);
 	mins = min(xy_ps.data);		maxs = max(xy_ps.data);
 	corners_PS = [mins(1:2); maxs(1:2)];
-	corners_g = gmtmex(['mapproject -Rg -I ' t], corners_PS);
+	corners_g = gmtmex(['mapproject -R-180/180/20/90 -I ' t], corners_PS);
 	ind = (corners_g.data(:,1) > 180);			% Want the [-180 180] interval
 	corners_g.data(ind,1) = corners_g.data(ind,1) - 360;
 	% And a little padding
