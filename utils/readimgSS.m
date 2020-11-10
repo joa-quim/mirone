@@ -176,7 +176,7 @@ function f = GMT_img_ypix_to_lat (ypix, nytop, radius)
 % input img file in pixels, and pointer to coordinate struct,
 % return Latitude in degrees.
 
-	f = rad2deg(GMT_img_gud_fwd ((nytop - ypix) / radius));
+	f = GMT_img_gud_fwd((nytop - ypix) / radius) * (180/pi);
 
 % ---------------------------------------------------------------
 function [nx360, radius, nytop, nyrow] = GMT_img_setup_coord (minlat, maxlat, mpixel)
