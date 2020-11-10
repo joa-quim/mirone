@@ -1587,20 +1587,22 @@ function [script, l, o, haveAlfa, used_grd, nameRGB] = do_grdimg(handMir, script
 	[comm, pb, pf, do_MEX, ellips, RJOK, KORJ, dest_dir, prefix, prefix_ddir] = unpack(pack);
 	haveAlfa = false;	used_grd = false;
 	nameRGB = [];				% When not empty it means we'll do a screen capture ('image' or to capture transp)
+	if (handMir.image_type == 20),	return,		end		% Do nothing because we don't have any image
+
 	if (~isempty(handMir.grdname))
 		% If renderer == OpenGL, that is interpreted as a transparency request. In that case we need a screen capture
-		if (strcmpi(get(handMir.figure1,'Renderer'), 'OpenGL'))
-			if (~isempty(findobj(get(handMir.axes1,'Child'),'Type','patch')))		% Extra test
-				hP = findobj(get(handMir.axes1,'Child'),'Type','patch');
-				for (k = 1:numel(hP))
-					% 0.005 is a fake number set in DrawClosedPolygon_CB to trick the R2015 breakage in hitting patches
-					if (get(hP(k), 'FaceAlpha') ~= 0.005)	% So if they are all == 0.005 ignore them as transparent
-						%handMir.Illumin_type = 10;			% Dumb fake value just to force screen capture
-						%haveAlfa = true;
-					end
-				end
-			end
-		end
+% 		if (strcmpi(get(handMir.figure1,'Renderer'), 'OpenGL'))
+% 			if (~isempty(findobj(get(handMir.axes1,'Child'),'Type','patch')))		% Extra test
+% 				hP = findobj(get(handMir.axes1,'Child'),'Type','patch');
+% 				for (k = 1:numel(hP))
+% 					% 0.005 is a fake number set in DrawClosedPolygon_CB to trick the R2015 breakage in hitting patches
+% 					if (get(hP(k), 'FaceAlpha') ~= 0.005)	% So if they are all == 0.005 ignore them as transparent
+% 						%handMir.Illumin_type = 10;			% Dumb fake value just to force screen capture
+% 						%haveAlfa = true;
+% 					end
+% 				end
+% 			end
+% 		end
 		if (handMir.nLayers > 1)	% While we could try to read the layer, that's complicated. So, force screen capture
 			handMir.Illumin_type = 10;
 		end
@@ -1645,15 +1647,15 @@ function [script, l, o, haveAlfa, used_grd, nameRGB] = do_grdimg(handMir, script
 			used_grd = true;
 		else                                    % No grd used, use the R,G,B channels
 			script{l} = sprintf('\n%s -------- Plot the 3 RGB base images using grdimage', comm);    l=l+1;
-			script{l} = ['gmt grdimage ' name_sc '_r.grd ' name_sc '_g.grd ' name_sc '_b.grd' ellips RJOK ' >> ' pb 'ps' pf];
+%			script{l} = ['gmt grdimage ' name_sc '_r.grd ' name_sc '_g.grd ' name_sc '_b.grd' ellips RJOK ' >> ' pb 'ps' pf];
+			script{l} = ['gmt grdimage ' name_sc '.png -Dr ' ellips RJOK ' >> ' pb 'ps' pf];
 			l=l+1;    
 		end
-	elseif (handMir.image_type == 20)
-		% Do nothing regarding the basemap image (in fact we don't have any image)
 	else    % We don't have a grid, so we need to fish the image and save it as R,G,B triplet
 		nameRGB = [prefix_ddir '_channel'];    name_sc = [prefix '_channel'];
 		script{l} = sprintf('\n%s -------- Plot the 3 RGB base images using grdimage', comm);    l=l+1;
-		script{l} = ['gmt grdimage ' name_sc '_r.grd ' name_sc '_g.grd ' name_sc '_b.grd' ellips RJOK ' >> ' pb 'ps' pf];
+%		script{l} = ['gmt grdimage ' name_sc '_r.grd ' name_sc '_g.grd ' name_sc '_b.grd' ellips RJOK ' >> ' pb 'ps' pf];
+		script{l} = ['gmt grdimage ' name_sc '.png -Dr ' ellips RJOK ' >> ' pb 'ps' pf];
 		l = l + 1;
 	end
 
@@ -2262,7 +2264,7 @@ function [script, mex_sc, l, o] = do_patches(handMir, script, mex_sc, l, o, pack
 		if (FillColor(i,1) >= 0)		% Color filled polygon
 			cor_fill = sprintf('%d/%d/%d', round(FillColor(i,1:3) * 255));
 			al = '';
-			if (falpha(i)),	al = sprintf('@%d', falpha(i)*100);		end		% Add a @alpha if we have one
+			if (falpha(i)),	al = sprintf('@%.0f', (1-falpha(i))*100);		end		% Add a @alpha if we have one
 			mlt_comm = ['> -G' cor_fill al ' -W' num2str(LineWidth(i)) 'p,' cor_edge];
 		else							% No filling color
 			mlt_comm = ['> -G- -W' num2str(LineWidth(i)) 'p,' cor_edge];
@@ -2544,7 +2546,7 @@ function do_screncapture(handMir, haveAlfa, do_writeScript, nameRGB)
 	if (do_writeScript && ~isempty(getappdata(handMir.figure1, 'IAmAMirone')))
 		alphaMask = (numel(get(handMir.hImg,'AlphaData')) ~= 1);	% If it has AlphaData, assume that SC is needed
 		if (~isempty(nameRGB) && ~haveAlfa && ~handMir.is_draped && ~alphaMask)
-			mirone('File_img2GMT_RGBgrids_CB', handMir, 'image', nameRGB)
+			mirone('File_img2GMT_RGBgrids_CB', handMir, 'image', nameRGB, true)
 		elseif (~isempty(nameRGB) && (haveAlfa || handMir.is_draped || alphaMask))
 			% Here we'll hide everything except the patches with transparency
 			ALLlineHand = findobj(get(handMir.axes1,'Child'),'Type','line');
@@ -2556,9 +2558,9 @@ function do_screncapture(handMir, haveAlfa, do_writeScript, nameRGB)
 			try
 				refresh(handMir.figure1)		% F... Matlab OpenGL driver has more bugs than a dead rat
 				if (isempty(ALLlineHand) && isempty(ALLpatchHand) && isempty(ALLtextHand))	% No need to SC because image is clean
-					mirone('File_img2GMT_RGBgrids_CB', handMir, 'image', nameRGB)
+					mirone('File_img2GMT_RGBgrids_CB', handMir, 'image', nameRGB, true)
 				else
-					mirone('File_img2GMT_RGBgrids_CB', handMir, 'fromWS', nameRGB)
+					mirone('File_img2GMT_RGBgrids_CB', handMir, 'fromWS', nameRGB, true)
 				end
 			end
 			% Make everybody visible again
