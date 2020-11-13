@@ -530,11 +530,12 @@ function hObject = mirone_OpeningFcn(varargin)
 		end
 	end
 
-	set_gmt(['PROJ_LIB=' home_dir fsep 'data' fsep 'proj_lib']);	% For projections with GDAL
-	set_gmt(['GDAL_DATA=' home_dir fsep 'data' fsep 'gdal_data']);
-	%set_gmt('GDAL_DATA=C:\programs\compa_libs\gdal_GIT\gdal\data');
-	%set_gmt('PROJ_LIB=C:\programs\compa_libs\proj5_GIT\compileds\VC14_64\share\proj');
-	set_gmt(['GEOTIFF_CSV=' home_dir fsep 'data' fsep 'gdal_data']);
+	set_gmt(['PROJ_LIB=' home_dir fsep 'gmt_share' fsep 'proj']);	% For projections with GDAL
+	set_gmt(['GDAL_DATA=' home_dir fsep 'gmt_share' fsep 'GDAL_DATA']);
+	%set_gmt(['PROJ_LIB=' home_dir fsep 'data' fsep 'proj_lib']);	% For projections with GDAL
+	%set_gmt(['GDAL_DATA=' home_dir fsep 'data' fsep 'gdal_data']);
+	%set_gmt(['GEOTIFF_CSV=' home_dir fsep 'data' fsep 'gdal_data']);
+	set_gmt(['GEOTIFF_CSV=' home_dir fsep 'gmt_share' fsep 'GDAL_DATA']);
 	set_gmt('GDAL_HTTP_UNSAFESSL=YES');				% To tell libcurl to not verify the peer  
 	%set_gmt('PROJ_DEBUG=5');
 	%set_gmt('CPL_DEBUG=ON');
