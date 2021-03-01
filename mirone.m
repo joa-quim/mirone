@@ -2729,6 +2729,8 @@ function varargout = ImageIllumModel_CB(handles, opt)
 		if (nargout),	varargout{1} = [];		end
 		return
 	end
+	
+	luz.azim = rem(luz.azim, 360);
 
 	if (luz.illum_model == 1),		[varargout{1:nargout}] = ImageIllum(luz, handles, 'grdgrad_class');	% GMT grdgradient classic
 	elseif (luz.illum_model == 2),	[varargout{1:nargout}] = ImageIllum(luz, handles, 'grdgrad_lamb');	% GMT grdgradient Lambertian
