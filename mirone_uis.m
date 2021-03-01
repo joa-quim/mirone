@@ -598,6 +598,7 @@ uimenu('Parent',hMG,'Callback','igrf_options(guidata(gcbo))','Label','IGRF calcu
 uimenu('Parent',hMG,'Callback','parker_stuff(''parker_direct'',gcf)','Label','Parker Direct');
 uimenu('Parent',hMG,'Callback','parker_stuff(''parker_inverse'',gcf)','Label','Parker Inversion');
 uimenu('Parent',hMG,'Callback','parker_stuff(''redPole'',gcf)','Label','Reduction to the Pole');
+uimenu('Parent',hMG,'Callback','parker_stuff(''component'',gcf)','Label','Total field to Component');
 uimenu('Parent',hMG,'Callback','microlev(gcf)','Label','Microleveling (anomaly grid)');
 uimenu('Parent',hMG,'Callback','mirone(''line_levelling'',guidata(gcbo))','Label','Macroleveling');
 %uimenu('Parent',hMG,'Callback','gravfft(gcf)','Label','GravFFT');
@@ -766,7 +767,7 @@ end
 %uimenu('Parent',h, 'Callback', 'update_gmt(guidata(gcbo))','Label','Update your GMT5','Sep','on')
 uimenu('Parent',h, 'Callback',['mirone(''FileOpenWebImage_CB'',guidata(gcbo),',...
 	' ''http://www2.clustrmaps.com/stats/maps-clusters/w3.ualg.pt-~jluis-mirone-world.jpg'',''nikles'');'],'Label','See visitors map','Sep','on');
-uimenu('Parent',h, 'Callback','about_box(guidata(gcbo),''Mirone Last modified at 13 Nov 2020'',''3.0.1'')','Label','About','Sep','on');
+uimenu('Parent',h, 'Callback','about_box(guidata(gcbo),''Mirone Last modified at 01 Mar 2021'',''3.0.1'')','Label','About','Sep','on');
 
 %% --------------------------- Build HANDLES and finish things here
 	handles = guihandles(H1);
