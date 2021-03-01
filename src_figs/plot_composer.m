@@ -1177,7 +1177,7 @@ function push_OK_CB(hObject, handles)
 	if (get(handles.radio_Portrait,'Value')),	opt_P = ' -P';	end
 
 	sc = handles.script_type;	ellips = 'WGS-84';
-	hAlfaPatch = [];
+	%hAlfaPatch = [];
 
 	if (strcmp(sc,'bat')),		comm = 'REM ';		pb = '%';	pf = '%';
 	else,						comm = '# ';		pb = '$';	pf = '';
@@ -1542,9 +1542,9 @@ function [script, l, saveBind, id_grd, id_cpt] = do_init_script(handles, handMir
 		script{l} = '';								l=l+1;
 		if (~isempty(handMir.grdname))
 			if (~need_path)
-				script{l} = ['set grd=' just_grd_name];		id_grd = l; l=l+1;
+				script{l} = ['set grd="' just_grd_name '"'];		id_grd = l; l=l+1;
 			else
-				script{l} = ['set grd=' handMir.grdname];	id_grd = l; l=l+1;
+				script{l} = ['set grd="' handMir.grdname '"'];	id_grd = l; l=l+1;
 			end
 		end
 		script{l} = ['set cpt=' prefix '.cpt'];			id_cpt = l; l=l+1;
