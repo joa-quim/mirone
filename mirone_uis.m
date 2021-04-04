@@ -1,7 +1,7 @@
 function [H1,handles,home_dir] = mirone_uis(home_dir)
 % Creates and returns a handle to the GUI MIRONE figure.
 
-%	Copyright (c) 2004-2020 by J. Luis
+%	Copyright (c) 2004-2021 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -15,8 +15,6 @@ function [H1,handles,home_dir] = mirone_uis(home_dir)
 %
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
-
-% $Id: mirone_uis.m 11388 2018-10-11 13:31:24Z j $
 
 %#function pan igrf_options rally_plater plate_calculator ecran snapshot
 %#function about_box parker_stuff euler_stuff grid_calculator tableGUI usgs_recent_seismicity
@@ -88,7 +86,7 @@ function [H1,handles,home_dir] = mirone_uis(home_dir)
 		'IntegerHandle','off',...
 		'MenuBar','none',...
 		'Toolbar', 'none',...
-		'Name','Mirone 3.0',...
+		'Name','Mirone 3.1',...
 		'NumberTitle','off',...
 		'PaperPositionMode','auto',...
 		'PaperSize',[20.984 29.677],...
@@ -767,7 +765,7 @@ end
 %uimenu('Parent',h, 'Callback', 'update_gmt(guidata(gcbo))','Label','Update your GMT5','Sep','on')
 uimenu('Parent',h, 'Callback',['mirone(''FileOpenWebImage_CB'',guidata(gcbo),',...
 	' ''http://www2.clustrmaps.com/stats/maps-clusters/w3.ualg.pt-~jluis-mirone-world.jpg'',''nikles'');'],'Label','See visitors map','Sep','on');
-uimenu('Parent',h, 'Callback','about_box(guidata(gcbo),''Mirone Last modified at 01 Mar 2021'',''3.0.1'')','Label','About','Sep','on');
+uimenu('Parent',h, 'Callback','about_box(guidata(gcbo),''Mirone Last modified at 04 Apr 2021'',''3.1'')','Label','About','Sep','on');
 
 %% --------------------------- Build HANDLES and finish things here
 	handles = guihandles(H1);
