@@ -495,7 +495,9 @@ function set_line_uicontext(h, opt)
 		uimenu(cmenuHand, 'Label', 'Fit Omori law', 'Callback', 'histos_seis(gco,''OL'')');
 		%uimenu(cmenuHand, 'Label', 'Skell', 'Callback', 'esqueleto_tmp(gco)','Sep','on');
 	elseif (IS_SEISMICLINE)
-		uimenu(cmenuHand, 'Label', 'Set buffer zone', 'Callback', {@seismic_line,h,'buf'}, 'Sep','on');
+		itemHist = uimenu(cmenuHand, 'Label','Set buffer zone', 'Sep','on');
+		uimenu(itemHist, 'Label', '1 deg width', 'Callback', {@seismic_line,h,'def'});
+		uimenu(itemHist, 'Label', 'other width', 'Callback', {@seismic_line,h,'buf'});
 		uimenu(cmenuHand, 'Label', 'Project seismicity', 'Callback', {@seismic_line,h,'proj'}, 'Enable','off');
 	end
 
@@ -604,19 +606,24 @@ function set_common_lineProps(h, cmenuHand, IS_PATCH)
 	setLineColor(uimenu(cmenuHand, 'Label', 'Line Color'), cb_color)
 
 % -----------------------------------------------------------------------------------------
-function seismic_line(obj,evt,hL,opt)
+function seismic_line(obj, evt, hL, opt)
 % Plot seismicity projected along a polyline and enclosed inside a buffer zone of that pline
 	handles = guidata(hL);
 	hP = get(hL, 'UserData');	% handle to the buffer zone (if not exist, will be created later)
-	if (opt(1) == 'b')		% Create or expand a buffer zone
-		resp = inputdlg('Width of buffer zone (deg)','Buffer width',[1 30],{'0.5'});
-		if isempty(resp),	return,		end
-		[y, x] = buffer_j(get(hL, 'ydata'), get(hL, 'xdata'), str2double(resp{1}), 'out', 13, 1);
+	if (opt(1) == 'b' || opt(1) == 'd')		% Create or expand a buffer zone
+		if (opt(1) == 'b')
+			resp = inputdlg('Width of buffer zone (deg)','Buffer width',[1 30],{'1.0'});
+			if isempty(resp),	return,		end
+			resp = str2double(resp{1}) / 2;	% Divide by 2 because this is actually the half-width`
+		else
+			resp = 0.5;			% The dafult value
+		end
+		[y, x] = buffer_j(get(hL, 'ydata'), get(hL, 'xdata'), resp, 'out', 13, 1);
 		if (isempty(x)),	return,		end
 		if (isempty(hP) || ~ishandle(hP))
 			hP = patch('XData',x, 'YData',y, 'Parent',handles.axes1, 'EdgeColor',handles.DefLineColor, ...
 				'FaceColor','none', 'LineWidth',handles.DefLineThick+1, 'Tag','SeismicBuffer');
-			uistack_j(hP,'bottom'),		draw_funs(hP,'line_uicontext')
+			draw_funs(hP,'line_uicontext');	%uistack_j(hP,'bottom'),		
 			set(hL, 'UserData', hP)			% Save it there to ease its later retrival
 		else
 			set(hP,'XData',x, 'YData',y)	% Buffer already existed, just resize it
@@ -676,7 +683,7 @@ function seismic_line(obj,evt,hL,opt)
 		f_name = [handles.path_tmp 'lixo.dat'];
 		double2ascii(f_name,[xL(:) yL(:)],'%f\t%f');		% Save as file so we can use it mapproject
 		ptFrac = c_mapproject([x(:) y(:)], ['-L' f_name '+']);	% Project and get fractional points along the line
-		ptFrac = ptFrac(:,5) + 1;								% +1 because mapproject is 0 based
+		ptFrac = ptFrac.data(:,5) + 1;								% +1 because mapproject is 0 based
 		intSeg = fix(ptFrac);
 		rd = lineSegDistAcum(intSeg) + (ptFrac - intSeg) .* lineSegDist(intSeg);
 		[rd, ind] = sort(rd);
@@ -684,9 +691,13 @@ function seismic_line(obj,evt,hL,opt)
 		evt_time = evt_time(ind);	evt_dep = evt_dep(ind);
 		figure;
 		h = subplot(2,2,1);		plot(rd, evt_time, '.'),	set(h,'ylim',[min(evt_time) max(evt_time)],'xlim',[rd(1) rd(end)]);
+		set(get(h,'Title'), 'String', 'Time vs distance (km)');
 		h = subplot(2,2,2);		plot(rd, evt_dep, '.'),		set(h,'ylim',[min(evt_dep) max(evt_dep)+0.01],'xlim',[rd(1) rd(end)]);
-		subplot(2,2,3);			histo_m('hist', rd, 0:25:rd(end), [0 rd(end)]);
+		set(get(h,'Title'), 'String', 'Depth (km) vs distance (km)');
+		h = subplot(2,2,3);		histo_m('hist', rd, 0:25:rd(end), [0 rd(end)]);
+		set(get(h,'Title'), 'String', 'Histogram with 25 km bins');
 		h = subplot(2,2,4);		plot(rd, evt_mag, '.'),		set(h,'ylim',[min(evt_mag) max(evt_mag)],'xlim',[rd(1) rd(end)]);
+		set(get(h,'Title'), 'String', 'Magnitude vs distance (km)');
 	end
 
 % -----------------------------------------------------------------------------------------
@@ -1217,7 +1228,8 @@ function apply_grdlandMask(hObj, evt, h, opt)
 		if (isempty(wkt))
 			errordlg('Figure is projected, but failed to get proj info.', 'Error'),		return
 		end
-		data = [handles.head(1) handles.head(3); handles.head(2) handles.head(4)];		% Diagonal points
+		data = [handles.head(1) handles.head(3); handles.head(1) handles.head(4); ...	% Use the 4 corners
+		        handles.head(2) handles.head(4); handles.head(2) handles.head(3)];		
 		[out, msg, opt_R] = proj2proj_pts(handles, data, 'srcWKT',wkt, 'dstProj4','+proj=longlat');
 		if (~isempty(msg)),		errordlg(msg, 'Error'),		return,		end
 		inc = handles.head(8:9) / (handles.EarthRad * 1000) * 180 / pi;
