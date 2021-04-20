@@ -94,7 +94,7 @@ function check_LandSat8(handles, fname, todos)
 	[pato, name] = fileparts(fname);
 	name = upper(name);
 	if (~strncmp(name, 'LC', 2)),	return,	end		% Need to learn more on this test
-	ind = strfind(name, '_B');
+	ind = strfind(name, '_B');		% The last '*_BXX.*' with the band number. It must exist.
 	if (isempty(ind)),	return,		end
 	t = [pato filesep name(1:ind) 'MTL.txt'];
 	if (~exist(t, 'file'))
