@@ -67,7 +67,7 @@ function [latb,lonb] = buffer_j(lat, lon, dist, direction, npts, geog, outputfor
 %
 % NOTE: Not all of the above was tested and there still misses adding a non-geog operability
 
-%	Coffeeright (c) 2004-2018 by J. Luis
+%	Coffeeright (c) 2004-2021 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -82,13 +82,12 @@ function [latb,lonb] = buffer_j(lat, lon, dist, direction, npts, geog, outputfor
 %	Contact info: w3.ualg.pt/~jluis/mirone
 % --------------------------------------------------------------------
 
-% $Id: $
-
 	% Check input
 	nin = nargin;
 	if (nin < 3 || nin > 8),	error('Wrong number of input arguments'),	end
 
 	% Set defaults if not provided as input
+	if (nin < 8),	geom = struct('side','both', 'base',false, 'top',false);	end
 	if (nin < 4)
 		direction = 'both';		geog = guess_geog(lon, lat);
 		npts = 13;				outputformat = 'vector';
@@ -102,7 +101,7 @@ function [latb,lonb] = buffer_j(lat, lon, dist, direction, npts, geog, outputfor
 	end
 
 	% Check format and dimensions of input
-	if (direction(1) ~= 'i' && direction(1) ~= 'o' && direction(1) ~= 'b'),
+	if (direction(1) ~= 'i' && direction(1) ~= 'o' && direction(1) ~= 'b')
 		error('Direction must be either ''in'' or ''out'' or ''both'' '),
 	end
 	if (~isnumeric(dist) || numel(dist) > 1),	error('Distance must be a scalar.'),	end
@@ -151,7 +150,7 @@ function [xb, yb] = buffer(x, y, dist, npts, direction, geog, geom)
 % GEOG = [] uses WGS-84
 % GEOG = 1  uses spherical aproximation
 % GEOG = 0  do cartesian calculation
-% GEOM -> Struct with fields: SIDE (syting), BASE (logical), TOP (logical)
+% GEOM -> Struct with fields: SIDE (string), BASE (logical), TOP (logical)
 
 %geog =[];
 	if (numel(geog) == 2 || isempty(geog))
@@ -263,7 +262,7 @@ function [xb, yb] = half_buffer(P, x, y, side)
 		r = gmtmex('mapproject -L+p', [x(1) y(1); x(end) y(end)], [xb yb]);
 		ind1 = floor(r.data(1,end))+1;		ind2 = ceil(r.data(2,end))+1;
 		if (side(1) == 'r'),	side(1) = 'l';
-		else					side(1) = 'r';
+		else,					side(1) = 'r';
 		end
 	end
 	r = gmtmex('mapproject -L', [x(1) y(1); x(end) y(end)], [xb yb]);	% Now get the intersection coords
