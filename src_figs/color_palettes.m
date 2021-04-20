@@ -1100,13 +1100,20 @@ function cmap = FileReadPalette_CB(hObject, handles, opt, opt2)
 				n_int = 256;
 				if (handles.have_nans),		n_int = 255;	end
 				C = gmtmex(sprintf('makecpt -C%s -T%.12g/%.12g/%d+n',fname, z_int(1), z_int(end), n_int+1));	% +1 because a GMT feature
+				if (size(C.colormap, 1) ~= n_int)
+					%C.colormap = [C.colormap; repmat([1 1 1], n_int - size(C.colormap, 1) + 1, 1)];
+					%C.range = [C.range; repmat(C.range(end,:), n_int - size(C.range, 1) + 1, 1)];
+					warndlg('Sorry, This is a discrete palette and GMT does not let us interpolate it.','Warning')
+				end
 				cmap = C.colormap;
 				handles.z_intervals = C.range;
 			else
 				[cmap, handles.z_intervals] = c_cpt2cmap(['-C' fname]);
 			end
 		else                % Use only the cpt colors
-			cmap = c_cpt2cmap(['-C' fname]);
+			n_int = 256 + handles.have_nans;
+			C = gmtmex(sprintf('makecpt -C%s -T0/255/%d+n',fname, n_int+1));
+			cmap = C.colormap;
 			handles.z_intervals = [];
 		end
 	catch
