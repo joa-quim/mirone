@@ -42,6 +42,8 @@ function [no,xo] = hist(y,x,min_max, opt)
 		n_in = n_in - 1;
 	elseif (n_in == 3 && isa(min_max, 'char'))
 		ret_hand = true;	n_in = n_in - 1;
+	elseif (n_in == 4)
+		ret_hand = true;	n_in = n_in - 1;
 	end
 
 	if (n_in == 3)            % Min & Max of y was transmited in argument
@@ -88,6 +90,7 @@ function [no,xo] = hist(y,x,min_max, opt)
 	if (nargout == 0 || ret_hand)
 		no = bar(x,nn,'hist');			% If bar handles required, return them in 'no'
 		set(gca, 'xlim',[miny maxy])
+		if (nargout == 2),	xo = x;	end
 	else
 		if (min(size(y)) == 1) % Return row vectors if possible.
 			no = nn';   xo = x;
