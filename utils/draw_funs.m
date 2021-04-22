@@ -623,12 +623,13 @@ function seismic_line(obj, evt, hL, opt)
 		if (isempty(hP) || ~ishandle(hP))
 			hP = patch('XData',x, 'YData',y, 'Parent',handles.axes1, 'EdgeColor',handles.DefLineColor, ...
 				'FaceColor','none', 'LineWidth',handles.DefLineThick+1, 'Tag','SeismicBuffer');
-			draw_funs(hP,'line_uicontext');	%uistack_j(hP,'bottom'),		
+			draw_funs(hP,'line_uicontext');	%uistack_j(hP,'bottom'),
+			uistack_j(hL,'top')				% Put the 'Seismic' line on Top
 			set(hL, 'UserData', hP)			% Save it there to ease its later retrival
 		else
 			set(hP,'XData',x, 'YData',y)	% Buffer already existed, just resize it
 		end
-		h = findobj(get(obj,'Parent'),'Label','Project seismicity');
+		h = findobj(get(get(obj,'Parent'),'Parent') ,'Label','Project seismicity');
 		set(h, 'Enable','on')
 	else					% Project seismicity along the seismic line
 		if (isempty(hP) || ~ishandle(hP))
