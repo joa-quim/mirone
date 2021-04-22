@@ -2158,6 +2158,8 @@ function erro = FileOpenGeoTIFF_CB(handles, tipo, opt)
 			elseif (numel(ind) > 2)			% Don't want > 3D arrays
 				if (numel(ind) == 3 && ~strcmp(str{k}(ind(1)-2:ind(1)-1), '[1'))	% Let first dim singletons go and catch them later
 					c(k) = true;	c(k-1) = true;		continue
+				elseif (numel(ind) == 3 && strcmp(str{k}(ind(1)-2:ind(1)+1), '[1x1'))	% Catch crazzy shits
+					% Crazy "optimally interpolated sea surface temperature (OISST)" have 2D grids masked as 1x1xMxN
 				else
 					c3D(k) = true;													% But exclude 4D singletons, e.g. [1x235x1557x1557]
 				end
