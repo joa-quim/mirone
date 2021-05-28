@@ -759,13 +759,13 @@ if (IamCompiled)
 	uimenu('Parent',h, 'Callback', 'mirone(''TransferB_CB'',guidata(gcbo),''dump'')','Label','Print RAM fragmentation','Sep','on')
 	uimenu('Parent',h, 'Callback', 'mirone(''TransferB_CB'',guidata(gcbo),''lasterr'')','Label','Debug - Print last error')
 	uimenu('Parent',h, 'Callback', 'mirone(''TransferB_CB'',guidata(gcbo),''sharedir'')','Label','Debug - Print GMT_SHAREDIR')
- 	uimenu('Parent',h, 'Callback', 'test_bots','Label','Tests - Run some tests')
 	uimenu('Parent',h, 'Callback', 'mirone(''TransferB_CB'',guidata(gcbo),''update'')','Label','Check for updates','Sep','on')
 end
+uimenu('Parent',h, 'Callback', 'test_bots','Label','Tests - Run some tests')
 %uimenu('Parent',h, 'Callback', 'update_gmt(guidata(gcbo))','Label','Update your GMT5','Sep','on')
 uimenu('Parent',h, 'Callback',['mirone(''FileOpenWebImage_CB'',guidata(gcbo),',...
 	' ''http://www2.clustrmaps.com/stats/maps-clusters/w3.ualg.pt-~jluis-mirone-world.jpg'',''nikles'');'],'Label','See visitors map','Sep','on');
-uimenu('Parent',h, 'Callback','about_box(guidata(gcbo),''Mirone Last modified at 22 Apr 2021'',''3.1'')','Label','About','Sep','on');
+uimenu('Parent',h, 'Callback','about_box(guidata(gcbo),''Mirone Last modified at 29 May 2021'',''3.1'')','Label','About','Sep','on');
 
 %% --------------------------- Build HANDLES and finish things here
 	handles = guihandles(H1);
