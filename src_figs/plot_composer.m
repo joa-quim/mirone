@@ -1,7 +1,7 @@
 function varargout = plot_composer(varargin)
 % Helper window to generate a GMT script that reproduces the Mirone's figure contents
 
-%	Copyright (c) 2004-2020 by J. Luis
+%	Copyright (c) 2004-2021 by J. Luis
 %
 %             DO WHAT THE FUCK YOU WANT TO PUBLIC LICENSE
 %                     Version 2, December 2004
@@ -1422,7 +1422,13 @@ function push_OK_CB(hObject, handles)
 		cd(dest_dir)		% Must cd to where script lives
 		try					% Make sure we are able to return to RETURN_TO
 			[s,w] = mat_lyies([prefix_ddir '_mir.' sc]);
-			if (s),		errordlg(w, 'Error'),	cd(return_to);	return,		end
+			if (s)
+				if (isempty(strfind(w, 'WARNING')))
+					errordlg(w, 'Error'),	cd(return_to);	return
+				else
+					warndlg(w, 'Warning')
+				end
+			end
 			fname = [dest_dir prefix '.' EXT];
 			if (handles.IamCompiled)
 				win_open_mex(dest_dir, fname);
@@ -2531,7 +2537,7 @@ function [script, mex_sc, l, o] = do_colorbar(handles, handMir, script, mex_sc, 
 			marg = marg / 2.54 * 72;	cbW = cbW / 2.54 * 72;
 		end
 		YTick = get(axHandle(1),'YTick');		bInt = YTick(2) - YTick(1);		% To use in -B option
-		opt_D = sprintf(' -D%.2f%c/%.2f%c/%.2f%c/%.2f%c',mapW+marg,unitC, cbH/2,unitC, cbH,unitC, cbW,unitC);
+		opt_D = sprintf(' -Dx%.2f%c/%.2f%c/%.2f%c/%.2f%c',mapW+marg,unitC, cbH/2,unitC, cbH,unitC, cbW,unitC);
 		script{l} = sprintf('\n%s ---- Plot colorbar ---', comm);   l=l+1;
 		script{l} = ['gmt psscale' opt_D ' -S -C' pb 'cpt' pf ' -B' num2str(bInt) ' -O -K >> ' pb 'ps' pf];
 		l = l + 1;
