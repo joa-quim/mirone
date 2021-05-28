@@ -247,7 +247,7 @@ function [Zhost_rect, r_c] = job_NanHost_noNanImp(handlesHost, Zhost, handlesImp
 % ...
 	% New strategy. Pick up the NaNs in Host, interpolate them in Imp, join with non-NaNs in Host and regrid
 	G = gmt('wrapgrid', Zhost, handlesHost.head);
-	D = gmtmex('grd2xyz -sr', G);
+	D = gmtmex('grd2xyz -s+r', G);
 	xy = D.data(:,1:2);		clear D
 	xyz = grdtrack_m(Zimp, handlesImp.head, xy, '-S');
 	D = gmtmex('grd2xyz -s', G);
