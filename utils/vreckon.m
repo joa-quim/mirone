@@ -114,13 +114,13 @@ function [lat2,lon2,a21] = vreckon(lat1, lon1, rng, azim, npts, ellipsoid)
 		lat1 = lat1(ones(size(rng)));		lon1 = lon1(ones(size(rng)));
 	end
 	
-	if isempty(azim),
+	if isempty(azim)
 		azim = [0 360];			azim = azim(ones([size(lat1,1) 1]), :);
 	elseif (isequal(size(azim), [1 2]))
 		azim = azim(ones([size(lat1,1) 1]), :);
 	end
 	if (numel(rng) == 1),		rng = ones(size(azim,1), 1) * rng;
-	else						rng = rng(:);
+	else,						rng = rng(:);
 	end
 	if (numel(rng) ~= size(azim ,1))
 		error('VRECKON: Range must be a scalar or a vector with the same size as azim(:,1).')
