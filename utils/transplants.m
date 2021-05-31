@@ -127,7 +127,9 @@ function varargout = transplants(hLine, tipo, res, handles, second_g)
 		implanting_fits_inside_host = false;
 	end
 	host_has_nans       = (handles.have_nans ~= 0);
-	implanting_has_nans = (handlesInner.have_nans ~= 0);
+	implanting_has_nans = false;
+	if (isfield(handlesInner, 'have_nans') && (handlesInner.have_nans ~= 0)),	implanting_has_nans = true;	end
+	%implanting_has_nans = (handlesInner.have_nans ~= 0);
 
 	if (~res)			% Means we have to resample Host grid to fit resolution of Implanting grid
 		opt_R = sprintf('-R%.16g/%.16g/%.16g/%.16g', handles.head(1:4));
