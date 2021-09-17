@@ -50,7 +50,9 @@ function varargout = grid_calculator(varargin)
 		handles.version7 = handMir.version7;
 		BL = getappdata(varargin{1},'BandList');
 		if (~isempty(BL))
-			handles.name_str = BL{3}(2:end,2);
+			%handles.name_str = BL{3}(2:end,2);
+			t = strrep(BL{3}(2:end,2), ' ', char(160));	% Replace spaces and minus that would broke parsing algo
+			handles.name_str = strrep(t, '-', '~');
 			h_figs = [];			% Tear off the net for the 'h_figs' fishing
 			handles.BL = BL{2};
 			handles.reader = BL{end};
@@ -146,7 +148,7 @@ function do_tests
 % ------------------------------------------------------------------------
 function listbox_inArrays_CB(hObject, handles, manual)
 % if this is a doubleclick, copy the array's name to the edit box
-% Using 3 argins has lso the same effect
+% Using 3 argins has also the same effect
 	if (nargin == 2 && ~strcmp(get(gcbf,'SelectionType'),'open')),	return,		end
 	str = get(hObject,'String');
 	sel = get(hObject,'Value');
