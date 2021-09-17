@@ -2052,27 +2052,37 @@ function FileOpenGDALmultiBand_CB(handles, opt, opt2, opt3)
 		bnd_names = cell(n_bands,1);
 		for (k = 1:n_bands),	bnd_names{k} = sprintf('Band_%d', k);	end
 	else
-		bnd_names = '';
-		c = false(numel(att.Metadata), 1);
-		for (k = 1:numel(att.Metadata))
-			if (~isempty(strfind(att.Metadata{k}, 'Band_'))),	c(k) = true;	end
-		end
-		if (any(c))
-			bnd_names = att.Metadata(c);
-			for (k = 1:numel(bnd_names))
-				ind = strfind(bnd_names{k}, '=');
-				bnd_names{k} = strrep(bnd_names{k}(ind(1)+1:end), ' ', '_');
-				bnd_names{k} = strrep(bnd_names{k}, '(', '[');
-				bnd_names{k} = strrep(bnd_names{k}, ')', ']');	% Neither of these 3 can be used in band_arithm
+		% First check if bands have a Description. If yes, use them, otherwise ... remediate.
+		if (~isempty(att.Band(1).Description))
+			bnd_names = {att.Band.Description};
+			for (k = 1:numel(bnd_names))	% Don't let go any band without a description
+				if (isempty(att.Band(1).Description))
+					bnd_names{k} = sprintf('Band[unknown]_%d', k);
+				end
 			end
-		elseif (isfield(att, 'Files') && ~isempty(att.Files))
-			bnd_names = cell(numel(att.Files), 1);
-			for (k = 1:numel(att.Files))
-				[pato, bnd_names{k}] = fileparts(att.Files{k});		
+		else
+			bnd_names = '';
+			c = false(numel(att.Metadata), 1);
+			for (k = 1:numel(att.Metadata))
+				if (~isempty(strfind(att.Metadata{k}, 'Band_'))),	c(k) = true;	end
 			end
-			if (strcmp(opt, 'VRT'))
-				aux_funs('check_LandSat8', handles, [pato filesep bnd_names{1}], true)	% This sets tem all
-				aux_funs('set_LandSat8_band_pars', handles, 1)		% This set the first as the active one
+			if (any(c))
+				bnd_names = att.Metadata(c);
+				for (k = 1:numel(bnd_names))
+					ind = strfind(bnd_names{k}, '=');
+					bnd_names{k} = strrep(bnd_names{k}(ind(1)+1:end), ' ', '_');
+					bnd_names{k} = strrep(bnd_names{k}, '(', '[');
+					bnd_names{k} = strrep(bnd_names{k}, ')', ']');	% Neither of these 3 can be used in band_arithm
+				end
+			elseif (isfield(att, 'Files') && ~isempty(att.Files))
+				bnd_names = cell(numel(att.Files), 1);
+				for (k = 1:numel(att.Files))
+					[pato, bnd_names{k}] = fileparts(att.Files{k});		
+				end
+				if (strcmp(opt, 'VRT'))
+					aux_funs('check_LandSat8', handles, [pato filesep bnd_names{1}], true)	% This sets tem all
+					aux_funs('set_LandSat8_band_pars', handles, 1)		% This set the first as the active one
+				end
 			end
 		end
 	end
