@@ -1018,39 +1018,39 @@ mxArray *populate_metadata_struct (char *gdal_filename , int correct_bounds, int
 	mxArray *colormap_struct;
 	mxArray *corner_struct;
 
-	int	i,j, overview, band_number;	/* Loop indices */
-	int	n_colors;		/* Number of colors in the eventual Color Table */ 
+	int	i,j, overview, band_number; /* Loop indices */
+	int	n_colors;                   /* Number of colors in the eventual Color Table */ 
 	double	*dptr, *dptr2, *dptrMM, *dptrSO;	/* short cut to the mxArray data */
 
-	GDALDriverH hDriver;		/* This is the driver chosen by the GDAL library to query the dataset. */
-	GDALDatasetH hDataset;		/* pointer structure used to query the gdal file. */
+	GDALDriverH hDriver;            /* This is the driver chosen by the GDAL library to query the dataset. */
+	GDALDatasetH hDataset;          /* pointer structure used to query the gdal file. */
 	GDALRasterBandH hBand, overview_hBand;
 	GDALColorTableH	hTable;
 	GDALColorEntry	sEntry;
-	const	GDAL_GCP *psGCP;	/* Pointer to a GCP structure */
+	const	GDAL_GCP *psGCP;        /* Pointer to a GCP structure */
 
-	char	error_msg[500];		/* Construct error and warning messages using this buffer. */
-	int	num_overview_fields;	/* Number of metadata items for each overview structure. */
-	int	status;			/* success or failure */
-	double 	adfGeoTransform[6];	/* bounds on the dataset */
-	int	num_overviews;		/* Number of overviews in the current band. */
-	int	num_struct_fields;	/* number of fields in the metadata structures. */
+	char	error_msg[500];         /* Construct error and warning messages using this buffer. */
+	int	num_overview_fields;        /* Number of metadata items for each overview structure. */
+	int	status;                     /* success or failure */
+	double 	adfGeoTransform[6];     /* bounds on the dataset */
+	int	num_overviews;              /* Number of overviews in the current band. */
+	int	num_struct_fields;          /* number of fields in the metadata structures. */
 	int	num_band_fields;
 	int	num_corner_fields;
 	int	nCounter = 0, nCounterBand = 0;		/* Generic counter */
-	char	*fieldnames[20];	/* this array contains the names of the fields of the metadata structure. */
+	char	*fieldnames[20];        /* this array contains the names of the fields of the metadata structure. */
 	char	*band_fieldnames[20];
 	char	*corner_fieldnames[20];
 	char	*overview_fieldnames[20];
 	char	*colormap_fieldnames[1];
 	char	**papszMetadata = NULL, **papszMetadataBand = NULL, **papszFileList = NULL;
 	int	xSize, ySize, raster_count; /* Dimensions of the dataset */
-	int	gdal_type;		/* Datatype of the bands. */
-	double	nan, tmpdble;		/* NaN & temporary value */
-	double	xy_c[2], xy_geo[4][2];	/* Corner coordinates in the local coords system and geogs (if it exists) */
+	int	gdal_type;                  /* Datatype of the bands. */
+	double	nan, tmpdble;           /* NaN & temporary value */
+	double	xy_c[2], xy_geo[4][2];  /* Corner coordinates in the local coords system and geogs (if it exists) */
 	int	dims[2], bSuccess;
-	int	bGotMin, bGotMax;	/* To know if driver transmited Min/Max */
-	double	adfMinMax[2];		/* Dataset Min Max */
+	int	bGotMin, bGotMax;           /* To know if driver transmited Min/Max */
+	double	adfMinMax[2];           /* Dataset Min Max */
 	
 	/* ------------------------------------------------------------------------- */
 	/* Retrieve information on all drivers. */
@@ -1242,7 +1242,7 @@ mxArray *populate_metadata_struct (char *gdal_filename , int correct_bounds, int
 	/* ------------------------------------------------------------------------- */
 	/* Get the metadata for each band. */
 	/* ------------------------------------------------------------------------- */
-	num_band_fields = 8;
+	num_band_fields = 9;
 	band_fieldnames[0] = mxstrdup("XSize");
 	band_fieldnames[1] = mxstrdup("YSize");
 	band_fieldnames[2] = mxstrdup("Overview");
@@ -1251,6 +1251,7 @@ mxArray *populate_metadata_struct (char *gdal_filename , int correct_bounds, int
 	band_fieldnames[5] = mxstrdup("ScaleOffset");
 	band_fieldnames[6] = mxstrdup("DataType");
 	band_fieldnames[7] = mxstrdup("ColorMap");
+	band_fieldnames[8] = mxstrdup("Description");
 	band_struct = mxCreateStructMatrix(raster_count, 1, num_band_fields, (const char **)band_fieldnames);
 
 	num_overview_fields = 2;
@@ -1267,23 +1268,23 @@ mxArray *populate_metadata_struct (char *gdal_filename , int correct_bounds, int
 		hBand = GDALGetRasterBand(hDataset, band_number+1);
 
 		if (!got_R) 		/* Not sure about what will realy happen in this case */
-			mxtmp = mxCreateDoubleScalar ((double) GDALGetRasterBandXSize(hBand));
+			mxtmp = mxCreateDoubleScalar((double) GDALGetRasterBandXSize(hBand));
 		else
-			mxtmp = mxCreateDoubleScalar ((double)nXSize);
-		mxSetField (band_struct, band_number, "XSize", mxtmp);
+			mxtmp = mxCreateDoubleScalar((double)nXSize);
+		mxSetField(band_struct, band_number, "XSize", mxtmp);
 
 		if (!got_R)
-			mxtmp = mxCreateDoubleScalar ((double) GDALGetRasterBandYSize(hBand));
+			mxtmp = mxCreateDoubleScalar((double) GDALGetRasterBandYSize(hBand));
 		else
-			mxtmp = mxCreateDoubleScalar ((double)nYSize);
-		mxSetField (band_struct, band_number, "YSize", mxtmp);
+			mxtmp = mxCreateDoubleScalar((double)nYSize);
+		mxSetField(band_struct, band_number, "YSize", mxtmp);
 	
-		gdal_type = GDALGetRasterDataType (hBand);
-		mxtmp = mxCreateString (GDALGetDataTypeName (gdal_type));
-		mxSetField (band_struct, band_number, (const char *) "DataType", mxtmp);
+		gdal_type = GDALGetRasterDataType(hBand);
+		mxtmp = mxCreateString(GDALGetDataTypeName(gdal_type));
+		mxSetField(band_struct, band_number, (const char *) "DataType", mxtmp);
 
-		mxtmp = mxCreateDoubleScalar ((double) (GDALGetRasterNoDataValue (hBand, &status)));
-		mxSetField (band_struct, band_number, "NoDataValue", mxtmp);
+		mxtmp = mxCreateDoubleScalar((double)(GDALGetRasterNoDataValue (hBand, &status)));
+		mxSetField(band_struct, band_number, "NoDataValue", mxtmp);
 	
 		/* Get band's Min/Max. If the band has no record of it we won't compute it */
 		toMinMax = mxCreateNumericMatrix(1, 2, mxDOUBLE_CLASS, mxREAL);	/* To hold band's min/max */
@@ -1297,7 +1298,7 @@ mxArray *populate_metadata_struct (char *gdal_filename , int correct_bounds, int
 		else {		/* No Min/Max, we won't computer it either */
 			dptrMM[0] = dptrMM[1] = nan;
 		}
-		mxSetField (band_struct, band_number, "MinMax", toMinMax);
+		mxSetField(band_struct, band_number, "MinMax", toMinMax);
 
 		/* Get band's Scale/Offset. If the band does not have them use the neutral 1/0 values */
 		toScaleOff = mxCreateNumericMatrix(1, 2, mxDOUBLE_CLASS, mxREAL);	/* To hold band's min/max */
@@ -1310,26 +1311,26 @@ mxArray *populate_metadata_struct (char *gdal_filename , int correct_bounds, int
 			dptrSO[0] = 1.0;
 			dptrSO[1] = 0.0;
 		}
-		mxSetField (band_struct, band_number, "ScaleOffset", toScaleOff);
+		mxSetField(band_struct, band_number, "ScaleOffset", toScaleOff);
 
 		num_overviews = GDALGetOverviewCount(hBand);	/* Can have multiple overviews per band. */
 		if (num_overviews > 0) {
 
-			overview_struct = mxCreateStructMatrix (num_overviews, 1, num_overview_fields,
+			overview_struct = mxCreateStructMatrix(num_overviews, 1, num_overview_fields,
 						(const char **)overview_fieldnames);
 	
 			for (overview = 0; overview < num_overviews; ++overview) {
-				overview_hBand = GDALGetOverview (hBand, overview);
+				overview_hBand = GDALGetOverview(hBand, overview);
 	
-				xSize = GDALGetRasterBandXSize (overview_hBand);
-				mxtmp = mxCreateDoubleScalar (xSize);
-				mxSetField (overview_struct, overview, "XSize", mxtmp);
+				xSize = GDALGetRasterBandXSize(overview_hBand);
+				mxtmp = mxCreateDoubleScalar(xSize);
+				mxSetField(overview_struct, overview, "XSize", mxtmp);
 	
-				ySize = GDALGetRasterBandYSize (overview_hBand);
-				mxtmp = mxCreateDoubleScalar (ySize);
-				mxSetField (overview_struct, overview, "YSize", mxtmp);
+				ySize = GDALGetRasterBandYSize(overview_hBand);
+				mxtmp = mxCreateDoubleScalar(ySize);
+				mxSetField(overview_struct, overview, "YSize", mxtmp);
 			}
-			mxSetField (band_struct, band_number, "Overview", overview_struct);
+			mxSetField(band_struct, band_number, "Overview", overview_struct);
 		}
 
 		/* See if we have Color Tables(s) */
@@ -1339,7 +1340,7 @@ mxArray *populate_metadata_struct (char *gdal_filename , int correct_bounds, int
 
 			n_colors = GDALGetColorEntryCount(hTable);
 			dims[0] = n_colors;	 dims[1] = 4;
-			mxCMap = mxCreateNumericArray (2,dims,mxDOUBLE_CLASS, mxREAL);
+			mxCMap = mxCreateNumericArray(2,dims,mxDOUBLE_CLASS, mxREAL);
 			dptr = mxGetPr(mxCMap);
 
 			for (i = 0; i < n_colors; i++) {
@@ -1349,11 +1350,15 @@ mxArray *populate_metadata_struct (char *gdal_filename , int correct_bounds, int
 				dptr[i+2*n_colors] = (double)sEntry.c3 / 255;
 				dptr[i+3*n_colors] = (double)sEntry.c4 / 255;
 			}
-			mxSetField (colormap_struct, band_number, "CMap", mxCMap);
-			mxSetField (band_struct, band_number, "ColorMap", colormap_struct);
+			mxSetField(colormap_struct, band_number, "CMap", mxCMap);
+			mxSetField(band_struct, band_number, "ColorMap", colormap_struct);
 		}
+
+		/* See if we have a Description */
+		mxtmp = mxCreateString(GDALGetDescription(hBand));
+		mxSetField(band_struct, band_number, (const char *)"Description", mxtmp);
 	}
-	mxSetField (metadata_struct, 0, "Band", band_struct);
+	mxSetField(metadata_struct, 0, "Band", band_struct);
 
 	/* ------------------------------------------------------------------------- */
 	/* Record the GMT header. This will be interleaved with "corners" because they share somes values */
@@ -1377,7 +1382,7 @@ mxArray *populate_metadata_struct (char *gdal_filename , int correct_bounds, int
 		ReportCorner(hDataset, 0.0, GDALGetRasterYSize(hDataset), xy_c, xy_geo[0]);
 	else
 		{xy_c[0] = dfULX;	xy_c[1] = dfLRY;}
-	mxCorners = mxCreateNumericArray (2,dims,mxDOUBLE_CLASS, mxREAL);
+	mxCorners = mxCreateNumericArray(2,dims,mxDOUBLE_CLASS, mxREAL);
 	dptr = mxGetPr(mxCorners);
 	dptr[0] = xy_c[0];		dptr[1] = xy_c[1];
 	dptr2[0] = xy_c[0];		dptr2[2] = xy_c[1];	/* xmin, ymin */
@@ -1387,7 +1392,7 @@ mxArray *populate_metadata_struct (char *gdal_filename , int correct_bounds, int
 		ReportCorner(hDataset, 0.0, 0.0, xy_c, xy_geo[1]);				
 	else
 		{xy_c[0] = dfULX;	xy_c[1] = dfULY;}
-	mxCorners = mxCreateNumericArray (2,dims,mxDOUBLE_CLASS, mxREAL);
+	mxCorners = mxCreateNumericArray(2,dims,mxDOUBLE_CLASS, mxREAL);
 	dptr = mxGetPr(mxCorners);
 	dptr[0] = xy_c[0];		dptr[1] = xy_c[1];
 	mxSetField(corner_struct, 0, "UL", mxCorners);
@@ -1396,7 +1401,7 @@ mxArray *populate_metadata_struct (char *gdal_filename , int correct_bounds, int
 		ReportCorner(hDataset, GDALGetRasterXSize(hDataset), 0.0, xy_c, xy_geo[2]);
 	else
 		{xy_c[0] = dfLRX;	xy_c[1] = dfULY;}
-	mxCorners = mxCreateNumericArray (2,dims,mxDOUBLE_CLASS, mxREAL);
+	mxCorners = mxCreateNumericArray(2,dims,mxDOUBLE_CLASS, mxREAL);
 	dptr = mxGetPr(mxCorners);
 	dptr[0] = xy_c[0];		dptr[1] = xy_c[1];
 	dptr2[1] = xy_c[0];		dptr2[3] = xy_c[1];	/* xmax, ymax */
@@ -1406,12 +1411,12 @@ mxArray *populate_metadata_struct (char *gdal_filename , int correct_bounds, int
 		ReportCorner(hDataset, GDALGetRasterXSize(hDataset), GDALGetRasterYSize(hDataset), xy_c, xy_geo[3]);
 	else
 		{xy_c[0] = dfLRX;	xy_c[1] = dfLRY;}
-	mxCorners = mxCreateNumericArray (2,dims,mxDOUBLE_CLASS, mxREAL);
+	mxCorners = mxCreateNumericArray(2,dims,mxDOUBLE_CLASS, mxREAL);
 	dptr = mxGetPr(mxCorners);
 	dptr[0] = xy_c[0];		dptr[1] = xy_c[1];
 	mxSetField(corner_struct, 0, "LR", mxCorners);
 
-	mxSetField (metadata_struct, 0, "Corners", corner_struct);
+	mxSetField(metadata_struct, 0, "Corners", corner_struct);
 
 	/* --------------------------------------------------------------------------------------
 	 * Record Geographical corners (if they exist) in a 4x4 cell array. First two
@@ -1434,7 +1439,7 @@ mxArray *populate_metadata_struct (char *gdal_filename , int correct_bounds, int
 	else
 		mxtmp = mxCreateCellMatrix(0, 1);
 
-	mxSetField (metadata_struct, 0, "GEOGCorners", mxtmp);
+	mxSetField(metadata_struct, 0, "GEOGCorners", mxtmp);
 
 	/* ------------------------------------------------------------------------- */
 	/* Fill in the rest of the GMT header values (If ...) */
@@ -1484,12 +1489,12 @@ mxArray *populate_metadata_struct (char *gdal_filename , int correct_bounds, int
 			dptr2[2] = dfLRY;	dptr2[3] = dfULY;
 		}
 	}
-	mxSetField (metadata_struct, 0, "GMT_hdr", mxGMT_header);
+	mxSetField(metadata_struct, 0, "GMT_hdr", mxGMT_header);
 
 	/* ------------------------------------------------------------------------- */
 	/* Record the GCPprojection. */
 	/* ------------------------------------------------------------------------- */
-	mxProjectionRef = mxCreateString (GDALGetGCPProjection(hDataset));
+	mxProjectionRef = mxCreateString(GDALGetGCPProjection(hDataset));
 	mxSetField(metadata_struct, 0, "GCPprojection", mxProjectionRef);
 
 	/* ------------------------------------------------------------------------- */
@@ -1512,7 +1517,7 @@ mxArray *populate_metadata_struct (char *gdal_filename , int correct_bounds, int
 			dptr[i+4*nCounter] = psGCP->dfGCPZ;
 		}
 	}
-	mxSetField (metadata_struct, 0, "GCPvalues", mxtmp);
+	mxSetField(metadata_struct, 0, "GCPvalues", mxtmp);
 
 	/* ------------------------------------------------------------------------- */
 	/* Record Metadata (if any).                                                 */
@@ -1545,12 +1550,12 @@ mxArray *populate_metadata_struct (char *gdal_filename , int correct_bounds, int
 			j += nCounterBand;
 		}
 	}
-	mxSetField (metadata_struct, 0, "Metadata", mxtmp);
+	mxSetField(metadata_struct, 0, "Metadata", mxtmp);
 
 	/* ------------------------------------------------------------------------- */
 	/* Record File List (if any).                                              */
 	/* ------------------------------------------------------------------------- */
-	papszFileList = GDALGetFileList( hDataset );
+	papszFileList = GDALGetFileList(hDataset);
 	if (papszFileList) {
 		nCounter = CSLCount(papszFileList);
 		mxtmp = mxCreateCellMatrix(nCounter-1, 1);
@@ -1558,7 +1563,7 @@ mxArray *populate_metadata_struct (char *gdal_filename , int correct_bounds, int
 			for (i = 0; i < nCounter-1; i++)		/* Jump first that contains the vrt file name */
 				mxSetCell(mxtmp,i,mxDuplicateArray(mxCreateString(papszFileList[i+1])));
 		}
-		mxSetField (metadata_struct, 0, "Files", mxtmp);
+		mxSetField(metadata_struct, 0, "Files", mxtmp);
 		CSLDestroy(papszFileList);
 	}
 	/* ------------------------------------------------------------------------- */
@@ -1573,7 +1578,7 @@ mxArray *populate_metadata_struct (char *gdal_filename , int correct_bounds, int
 		for (i = 0; i < nCounter; i++)
 			mxSetCell(mxtmp,i,mxDuplicateArray(mxCreateString(papszMetadata[i])));
 	}
-	mxSetField (metadata_struct, 0, "Subdatasets", mxtmp);
+	mxSetField(metadata_struct, 0, "Subdatasets", mxtmp);
 
 	/* ------------------------------------------------------------------------- */
 	/* Record ImageStructure (if any).                                           */
@@ -1666,7 +1671,7 @@ int ReportCorner(GDALDatasetH hDataset, double x, double y, double *xy_c, double
  * If the gdal file is not internally georeferenced, try to get the world file.
  * Returns -1 in case no world file is found.
  */
-int record_geotransform (char *gdal_filename, GDALDatasetH hDataset, double *adfGeoTransform) {
+int record_geotransform(char *gdal_filename, GDALDatasetH hDataset, double *adfGeoTransform) {
 	int status = -1;
 	char generic_buffer[5000];
 
@@ -1675,12 +1680,12 @@ int record_geotransform (char *gdal_filename, GDALDatasetH hDataset, double *adf
 
 	/* Try a world file.  First the generic extension. If the gdal_filename
 	   is, say, "a.tif", then this will look for "a.wld". */
-	if (GDALReadWorldFile (gdal_filename, "wld", adfGeoTransform))
+	if (GDALReadWorldFile(gdal_filename, "wld", adfGeoTransform))
 		return (0);
 
 	/* Try again, but try "a.tif.wld" instead. */
 	sprintf (generic_buffer, "%s.xxx", gdal_filename);
-	status = GDALReadWorldFile (generic_buffer, "wld", adfGeoTransform);
+	status = GDALReadWorldFile(generic_buffer, "wld", adfGeoTransform);
 	if (status == 1)
 		return (0);
 
@@ -1769,13 +1774,13 @@ int decode_R (char *item, double *w, double *e, double *s, double *n) {
 	strcpy (string, &item[2]);
 	text = strtok (string, "/");
 	while (text) {
-		*p[i] = ddmmss_to_degree (text);
+		*p[i] = ddmmss_to_degree(text);
 		i++;
 		text = strtok (CNULL, "/");
 	}
 	if (item[strlen(item)-1] == 'r')	/* Rectangular box given, but valid here */
 		error++;
-	if (i != 4 || check_region (*p[0], *p[1], *p[2], *p[3]))
+	if (i != 4 || check_region(*p[0], *p[1], *p[2], *p[3]))
 		error++;
 	w = p[0];	e = p[1];
 	s = p[2];	n = p[3];
@@ -1783,13 +1788,13 @@ int decode_R (char *item, double *w, double *e, double *s, double *n) {
 }
 
 /* -------------------------------------------------------------------- */
-int check_region (double w, double e, double s, double n) {
+int check_region(double w, double e, double s, double n) {
 	/* If region is given then we must have w < e and s < n */
 	return ((w >= e || s >= n));
 }
 
 /* -------------------------------------------------------------------- */
-double ddmmss_to_degree (char *text) {
+double ddmmss_to_degree(char *text) {
 	int i, colons = 0, suffix;
 	double degree, minute, degfrac, second;
 
@@ -1811,25 +1816,25 @@ double ddmmss_to_degree (char *text) {
 }
 
 /* -------------------------------------------------------------------- */
-int decode_columns (char *txt, int *whichBands) {
+int decode_columns(char *txt, int *whichBands) {
 	int i, start, stop, pos, n = 0;
 	char p[1024];
 
 	pos = 0;
-	while ((GMT_strtok (txt, ",", &pos, p))) {
-		if (strchr (p, '-')) {
-			sscanf (p, "%d-%d", &start, &stop);
+	while ((GMT_strtok(txt, ",", &pos, p))) {
+		if (strchr(p, '-')) {
+			sscanf(p, "%d-%d", &start, &stop);
 			for (i = start; i <= stop; i++)
 				whichBands[n++] = i;
 		}
 		else
-			sscanf (p, "%d", &whichBands[n++]);
+			sscanf(p, "%d", &whichBands[n++]);
 	}
 	return (n);
 }
 
 /* -------------------------------------------------------------------- */
-int GMT_strtok (const char *string, const char *sep, int *pos, char *token) {
+int GMT_strtok(const char *string, const char *sep, int *pos, char *token) {
         /* Reentrant replacement for strtok that uses no static variables.
          * Breaks string into tokens separated by one of more separator
          * characters (in sep).  Set *pos to 0 before first call.  Unlike
