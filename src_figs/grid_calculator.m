@@ -751,9 +751,13 @@ function [out, ops, grid, msg, s_names] = exec_n_consume(ops, op, grid, s_names)
 			if (numel(out) == 1)			% We had a scalar operation
 				ops{k-1} = sprintf('%.20g', out);
 			else							% A matrix op
-				new_name = ops{k-1}(6);
-				if (~isnan(str2double(new_name)) && ops{k+1}(1) == 'g')	% Scalar OP grid
-					new_name = ops{k+1}(6);
+				is_prev_numeric = ~isnan(str2double(ops{k-1}));
+				if (is_prev_numeric && ops{k+1}(1) == 'g')
+					new_name = ops{k+1}(6);	% Scalar OP grid
+					k_start_kill = k - 1;	% In this case we want to remove the scalar and the OP entries from OPS
+				else
+					new_name = ops{k-1}(6);	% grid OP Scalar, or grid OP grid
+					k_start_kill = k;
 				end
 				ind = strfind(s_names, new_name);
 				if (numel(ind) > 1)			% Struct name is taken because it occurs more than once. Need a new one
@@ -762,7 +766,7 @@ function [out, ops, grid, msg, s_names] = exec_n_consume(ops, op, grid, s_names)
 				end
 				grid.(new_name) = out;		% Reuse this container to hold the result just obtained
 			end
-			ops(k:k+1) = [];				% These ones are consumed, remove them
+			ops(k_start_kill:k_start_kill+1) = [];					% These ones are consumed, remove them
 		else
 			k = k + 2;
 		end
