@@ -129,7 +129,7 @@ function check_LandSat8(handles, fname, todos)
 			t = s{ind(1)};		% Iden
 			pars.reflect_add = str2double(t(strfind(t, '=')+1:end));
 			ind = find(strncmp(s, ['REFLECTANCE_MAXIMUM_BAND_' band], 25+numel(band)));
-			t = s{ind(1)};		% Iden
+			t = s{ind(1)};		% Iden 
 			pars.reflect_max = str2double(t(strfind(t, '=')+1:end));
 		else
 			pars.reflect_mul = 1;	pars.reflect_add = 0;	pars.reflect_max = 0;
