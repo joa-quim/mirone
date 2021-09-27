@@ -122,11 +122,14 @@ function check_LandSat8(handles, fname, todos)
 
 		% Bands 10 & 11 have no REFLECTANCE coeffs
 		if (~strcmp(band, '10') && ~strcmp(band, '11'))
-			t = s{strncmp(s, ['REFLECTANCE_MULT_BAND_' band], 22+numel(band))};
+			ind = find(strncmp(s, ['REFLECTANCE_MULT_BAND_' band], 22+numel(band)));
+			t = s{ind(1)};		% Collection 2 L2 may have this repeated and first says "LEVEL2_SURFACE_REFLECTANCE_PARAMETERS"
 			pars.reflect_mul = str2double(t(strfind(t, '=')+1:end));
-			t = s{strncmp(s, ['REFLECTANCE_ADD_BAND_' band], 21+numel(band))};
+			ind = find(strncmp(s, ['REFLECTANCE_ADD_BAND_' band], 21+numel(band)));
+			t = s{ind(1)};		% Iden
 			pars.reflect_add = str2double(t(strfind(t, '=')+1:end));
-			t = s{strncmp(s, ['REFLECTANCE_MAXIMUM_BAND_' band], 25+numel(band))};
+			ind = find(strncmp(s, ['REFLECTANCE_MAXIMUM_BAND_' band], 25+numel(band)));
+			t = s{ind(1)};		% Iden
 			pars.reflect_max = str2double(t(strfind(t, '=')+1:end));
 		else
 			pars.reflect_mul = 1;	pars.reflect_add = 0;	pars.reflect_max = 0;
