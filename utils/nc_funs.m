@@ -697,6 +697,7 @@ function [prefix,funcstr] = determine_funcstr (var_type, nvdims, start, count, s
 		case nc_float,		funcstr = [prefix '_float'];
 		case nc_double,		funcstr = [prefix '_double'];
 		case nc_short,		funcstr = [prefix '_short'];
+		case nc_ushort,		funcstr = [prefix '_ushort'];
 		case nc_char,		funcstr = [prefix '_text'];
 		case nc_byte,		funcstr = [prefix '_schar'];
 		case nc_ubyte,		funcstr = [prefix '_uchar'];
@@ -767,7 +768,7 @@ if (status == 0)
         case {nc_char, nc_byte, nc_ubyte}
 			% For now, do nothing.  Does a fill value even make sense with char data?
 			% If it does, please tell me so.
-        case {nc_int, nc_short}
+        case {nc_int, nc_short, nc_ushort}
 			[fill_value, status] = mexnc('get_att_double', ncid, varid, '_FillValue');
 			if (~status2)			% Get also the 'missing_value' and do the job for both
 				miss_value = mexnc('get_att_double', ncid, varid, 'missing_value');
@@ -1173,7 +1174,7 @@ switch att_datatype
 	case {nc_char, nc_string}
 		[attval, status] = mexnc('get_att_text',cdfid,varid,attname);
 		if (status < 0 && att_datatype == nc_string),	status = 0; attval = 0;	end
-	case {nc_double, nc_float, nc_int, nc_short, nc_byte, nc_int64, nc_ubyte}
+	case {nc_double, nc_float, nc_int, nc_short, nc_ushort, nc_byte, nc_int64, nc_ubyte}
 		[attval, status] = mexnc('get_att_double',cdfid,varid,attname);
 	otherwise
 		snc_error('NC_FUNS:nc_get_attribute_struct', sprintf('att_datatype is %d.\n', att_datatype));
