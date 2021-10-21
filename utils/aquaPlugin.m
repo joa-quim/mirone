@@ -2164,7 +2164,19 @@ function calc_polygAVG(handles, fnameOut, op, fnamePolys, sub_set, fnameFlag, qu
 	for (k = 1:N)				% Loop over polygons
 		centro(k,:) = mean(polys{k});
 	end
-	
+
+	if (strcmpi(handles.z_units, 'Decimal year'))
+		fprintf(fid, '# DATENUM YYYY.XX\n');	fmt_t = '%.12f\t';
+	elseif (strncmpi(handles.z_units, 'Seconds since 0000-01-01', 24))
+		fprintf(fid, '# DATENUM SECONDS\n');	fmt_t = '%.3f\t';
+	elseif (strncmpi(handles.z_units, 'Milliseconds since 0000-01-01', 29))
+		fprintf(fid, '# DATENUM MILLISECONDS\n');	fmt_t = '%.0f\t';
+	elseif (strncmpi(handles.z_units, 'Days since 0000-01-01', 21))
+		fprintf(fid, '# DATENUM DAYS\n');		fmt_t = '%.8f\t';
+	else
+		fmt_t = '%.5f\t';
+	end
+
 	fprintf(fid, ['#  \t', repmat('%g(X)\t', [1,N]) '\n'], centro(:,1));
 	fprintf(fid, ['# T\t', repmat('%g(Y)\t', [1,N]) '\n'], centro(:,2));
 
@@ -2172,7 +2184,7 @@ function calc_polygAVG(handles, fnameOut, op, fnamePolys, sub_set, fnameFlag, qu
 	catch,		t = (1:size(avg,1))';
 	end
 
-	fprintf(fid,['%.2f\t' repmat('%f\t',[1,N]) '\n'], [t avg]');
+	fprintf(fid,[fmt_t repmat('%f\t',[1,N]) '\n'], [t avg]');
 	fclose(fid);
 
 % ----------------------------------------------------------------------
