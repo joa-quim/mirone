@@ -37,7 +37,7 @@ function out = init_header_params(handles,X,Y,head,misc,getAllMinMax)
 
 	if (nargin < 6),		getAllMinMax = true;		end
 	handles.x = X;		handles.y = Y;
-	handles.time = [];
+	handles.time = [];	handles.z_units = '';
 	handles.number_of_timesteps = misc.z_dim(1);		% ... NEEDS THINKING
 	
 	handles.x_min = head(1);			handles.x_max = head(2);
@@ -53,6 +53,10 @@ function out = init_header_params(handles,X,Y,head,misc,getAllMinMax)
 		end
 		if (~isempty(id))
 			handles.time = double(nc_funs('varget', handles.fname, s.Dataset(id).Name));
+			id_t = find(strcmpi('units',{s.Dataset(id).Attribute.Name}));
+			if (~isempty(id_t))
+				handles.z_units = s.Dataset(id).Attribute(id_t).Value;
+			end
 		else
 			handles.time = 1:handles.number_of_timesteps;
 		end
@@ -161,6 +165,7 @@ function out = init_header_params(handles,X,Y,head,misc,getAllMinMax)
 		handMir.netcdf_z_id = misc.z_id;
 		handMir.nc_info = handles.nc_info;
 		handMir.time_z  = handles.time;
+		handMir.z_units = handles.z_units;
 		handMir.nLayers = misc.z_dim(1);
 		guidata(hFig, handMir)
 	end
