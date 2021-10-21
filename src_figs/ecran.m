@@ -1540,7 +1540,7 @@ function FileOpen_CB(hObject, handles)
 		handles.hLine = line('Parent',handles.axes1,'XData',rd, 'YData',data(:,out(3)));
 	else
 		nPrevLines = numel(handles.hLine);
-		if (multi_seg > 1 || isa(data, "cell"))
+		if (multi_seg > 1 || isa(data, 'cell'))
 			handles.hLine = [handles.hLine zeros(1, numel(data))];
 			for (k = 1:numel(data))
 				handles.hLine(k+nPrevLines) = line('Parent',handles.axes1,'XData',data{k}(:,out(1)),'YData',data{k}(:,out(2)));
@@ -1573,7 +1573,7 @@ function FileOpen_CB(hObject, handles)
 		set(h, 'Click',@pick_onLines2reference, 'Tooltip','Pick points alternately on the two lines to later reference')
 	end
 
-	if (multi_seg > 1 || isa(data, "cell"))
+	if (multi_seg > 1 || isa(data, 'cell'))
 		handles.data = [data{1}(:,out(1)) data{1}(:,out(2))];	% NOTE, Only this line is saveable. MUST REMOVE THIS OLD SHIT
 	else
 		handles.data = [data(:,out(1)) data(:,out(2))];			% NOTE, if handles.n_plot > 1 only last data is saved
