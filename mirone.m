@@ -1724,7 +1724,30 @@ function out = ExtractProfile_CB(handles, opt, opt2)
 			end
 		end
 		if (do_3D)
-			ecran(handles,handles.time_z,zz,['3D Profile from ' name ext])
+			isDateNum = true;
+			if (strcmpi(handles.z_units, 'Decimal year'))
+				Y = fix(handles.time_z);
+				dec = (handles.time_z - Y);
+				days_in_year = (datenum(Y+1,1,1) - datenum(Y,1,1)) .* dec;
+				t = datenum(Y,1,1) + days_in_year;
+			elseif (strncmpi(handles.z_units, 'Seconds since 0000-01-01', 24))
+				t = handles.time_z / 86400;
+			elseif (strncmpi(handles.z_units, 'Milliseconds since 0000-01-01', 29))
+				t = handles.time_z / 86400000;
+			elseif (strncmpi(handles.z_units, 'Days since 0000-01-01', 21))
+				t = handles.time_z;
+			else
+				t = handles.time_z;
+				isDateNum = false;
+			end
+			hf = ecran(handles, t, zz, ['3D Profile from ' name ext]);
+			if (isDateNum)
+				hAx = findobj(hf, 'Tag', 'axes1');
+				setappdata(hAx, 'LabelFormatType', 'Date');		% Tell pixval_stsbar to display XX coords as Date-Time
+				h  = findobj(hf,'Tag','add_uictx');
+				cb = get(h, 'Callback');
+				feval(cb, h, guidata(hf))			% Call the ecran's add_uictx_CB function
+			end
 		elseif (~isa(zz,'cell'))
 			ecran(handles,xx,yy,zz,['Track from ' name ext])
 		else
