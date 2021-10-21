@@ -1349,8 +1349,10 @@ function FileOpen_CB(hObject, handles)
 % In that case first line of file must be of this form (the time format may change)
 % # DATENUM dd-mm-yyyy HH:MM:SS
 %
-% The special case # DATENUM YYYY.MM is also handled (for data output from Aquamoto)
-% but in this case the file must have only 2 columns - (time, data)
+% The special cases # DATENUM YYYY.MM and YYYY.XX (decimal years) is also handled (for data output
+% from Aquamoto) but in this case the file must have only 2 columns - (time, data)
+%
+% # DATENUM SECONDS and DAYS assume seconds (days) since 1 Jan 0000
 %
 % Another special case is # DATENUM YYYYDOY (for data output from Slices) where the file
 % must have two columns - (time_as_Day-Of-Year, data). Note that YYYY must be replaced by
@@ -1391,13 +1393,17 @@ function FileOpen_CB(hObject, handles)
 		end
 
 		if (~isempty(ind))				% The DATENUM case
+			t = strtok(H1(ind(1)+10:end));
 			if (n_cols == 3)
 				[yymmdd, hhmm, sl] = strread(todos,'%s %s %f');
 				yymmdd = strcat(yymmdd, repmat({char(32)}, size(yymmdd,1),1), hhmm);	%BUG {char(' ')} is ignored
 			else
-				[yymmdd, sl] = strread(todos,'%s %f', 'delimiter', '\t');
+				if (strncmpi(t,'YYYY.X',6) || strncmpi(t,'DAY',3) || strncmpi(t,'SEC',3))
+					[yymmdd, sl] = strread(todos,'%f %f', 'delimiter', '\t');
+				else
+					[yymmdd, sl] = strread(todos,'%s %f', 'delimiter', '\t');
+				end
 			end
-			t = strtok(H1(ind(1)+10:end));
 			try
 				if (strcmpi(t,'YYYY.MM'))			% Local form sometimes output from Aquamoto
 					Y = str2double(yymmdd);			% Works for vectors as long as argument is a cell
@@ -1405,6 +1411,15 @@ function FileOpen_CB(hObject, handles)
 					Y = fix(Y);
 					D = ones(numel(M), 1) * 15;		% half month in this aproximation
 					serial_date = datenum(Y, M, D);
+				elseif (strncmpi(t,'YYYY.X',6))		% Also Local form sometimes output from Aquamoto (Decimal years)
+					Y = fix(yymmdd);
+					dec = (yymmdd - Y);
+					days_in_year = (datenum(Y+1,1,1) - datenum(Y,1,1)) .* dec;
+					serial_date = datenum(Y,1,1) + days_in_year;
+				elseif (strncmpi(t,'SEC',3))		% Assumed to be seconds since 1 Jan 0000
+					serial_date = yymmdd / 86400;
+				elseif (strncmpi(t,'DAY',3))		% Assumed to be days since 1 Jan 0000
+					serial_date = yymmdd;
 				elseif (strcmpi(t(5:7),'DOY'))		% YYYYDOY Local form sometimes output from Slices
 					Y = str2double(t(1:4));
 					DOY = str2double(yymmdd);
@@ -1525,7 +1540,7 @@ function FileOpen_CB(hObject, handles)
 		handles.hLine = line('Parent',handles.axes1,'XData',rd, 'YData',data(:,out(3)));
 	else
 		nPrevLines = numel(handles.hLine);
-		if (multi_seg)
+		if (multi_seg > 1 || isa(data, "cell"))
 			handles.hLine = [handles.hLine zeros(1, numel(data))];
 			for (k = 1:numel(data))
 				handles.hLine(k+nPrevLines) = line('Parent',handles.axes1,'XData',data{k}(:,out(1)),'YData',data{k}(:,out(2)));
@@ -1558,7 +1573,7 @@ function FileOpen_CB(hObject, handles)
 		set(h, 'Click',@pick_onLines2reference, 'Tooltip','Pick points alternately on the two lines to later reference')
 	end
 
-	if (multi_seg)
+	if (multi_seg > 1 || isa(data, "cell"))
 		handles.data = [data{1}(:,out(1)) data{1}(:,out(2))];	% NOTE, Only this line is saveable. MUST REMOVE THIS OLD SHIT
 	else
 		handles.data = [data(:,out(1)) data(:,out(2))];			% NOTE, if handles.n_plot > 1 only last data is saved
@@ -2773,8 +2788,16 @@ function add_uictx_CB(hObject, handles)
 		datetick(handles.axes1, 'x','keeplimits', 'keepticks')		% Make it auto right away
 		uimenu(handles.cmenu_axes, 'Label', 'Date Format -> auto', 'Callback', {@SetAxesDate,'x'}, 'Sep','on');
 		uimenu(handles.cmenu_axes, 'Label', 'Date Format -> dd-mmm-yyyy', 'Callback', {@SetAxesDate,1});
+		uimenu(handles.cmenu_axes, 'Label', 'Date Format -> dd/mm/yy', 'Callback',    {@SetAxesDate,20});
+		uimenu(handles.cmenu_axes, 'Label', 'Date Format -> dd/mm/yyyy', 'Callback',  {@SetAxesDate,24});
 		uimenu(handles.cmenu_axes, 'Label', 'Date Format -> mm/dd/yy', 'Callback',    {@SetAxesDate,2});
 		uimenu(handles.cmenu_axes, 'Label', 'Date Format -> mm/dd', 'Callback',       {@SetAxesDate,6});
+		uimenu(handles.cmenu_axes, 'Label', 'Date Format -> yyyy', 'Callback',        {@SetAxesDate,10});
+		uimenu(handles.cmenu_axes, 'Label', 'Date Format -> mmmyy', 'Callback',       {@SetAxesDate,12});
+		uimenu(handles.cmenu_axes, 'Label', 'Date Format -> mmmyyyy', 'Callback',     {@SetAxesDate,28});
+		uimenu(handles.cmenu_axes, 'Label', 'Date Format -> dd/mm', 'Callback',       {@SetAxesDate,19});
+		uimenu(handles.cmenu_axes, 'Label', 'Date Format -> yy/mm/dd', 'Callback',    {@SetAxesDate,25});
+		uimenu(handles.cmenu_axes, 'Label', 'Date Format -> yyyy/mm/dd', 'Callback',  {@SetAxesDate,26});
 		uimenu(handles.cmenu_axes, 'Label', 'Date Format -> HH:MM', 'Callback',       {@SetAxesDate,15});
 		uimenu(handles.cmenu_axes, 'Label', 'Date Format -> HH:MM:SS', 'Callback',    {@SetAxesDate,13});
 		uimenu(handles.cmenu_axes, 'Label', 'Date Format -> dd.xxx', 'Callback',       @SetAxesDate);
