@@ -382,7 +382,7 @@ function ButtonDownOnImage(hImg, evt, hFig)
 	if (strcmp(stype,'alt'))		% A right-click, either return or pass control to ...
 		if (IAmImage && ~isempty(getappdata(hFig,'LinkedTo')))
 			linkDisplays(hFig)
-		else						% uictx to options to fill gaps (NaN holes) 
+		elseif (IAmImage)				% uictx to options to fill gaps (NaN holes) 
 			Z = getappdata(hFig,'dem_z');
 			%if (isempty(Z)),	return,		end
 			pt = get(get(hImg, 'Parent'), 'CurrentPoint');
