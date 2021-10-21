@@ -287,6 +287,7 @@ function push_inputName_CB(hObject, handles, opt)
 			handMir.netcdf_z_id = handles.netcdf_z_id;
 			handMir.nc_info = handles.nc_info;
 			handMir.time_z  = handles.time;
+			handMir.z_units = handles.z_units;
 			handMir.nLayers = misc.z_dim(1);
 			if (isa(fname, 'cell')),	fname = fname{1};	end		% take care when it's a cell
 			handMir.grdname = fname;		% At least grid_profiler() needs this for the 3D interpolations
