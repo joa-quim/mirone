@@ -1353,6 +1353,8 @@ function FileOpen_CB(hObject, handles)
 % from Aquamoto) but in this case the file must have only 2 columns - (time, data)
 %
 % # DATENUM SECONDS and DAYS assume seconds (days) since 1 Jan 0000
+% # DATENUM RATA days since 0000-12-31T00:00:00
+% # DATENUM UNIX seconds since 1970-01-01T00:00:00
 %
 % Another special case is # DATENUM YYYYDOY (for data output from Slices) where the file
 % must have two columns - (time_as_Day-Of-Year, data). Note that YYYY must be replaced by
@@ -1416,8 +1418,12 @@ function FileOpen_CB(hObject, handles)
 					dec = (yymmdd - Y);
 					days_in_year = (datenum(Y+1,1,1) - datenum(Y,1,1)) .* dec;
 					serial_date = datenum(Y,1,1) + days_in_year;
-				elseif (strncmpi(t,'SEC',3))		% Assumed to be seconds since 1 Jan 0000
+				elseif (strncmpi(t,'Seconds since 0000-01-01',24))		% Seconds since 1 Jan 0000
 					serial_date = yymmdd / 86400;
+				elseif (strncmpi(t,'unix',4))		% Seconds since 1970-01-01T00:00:00
+					serial_date = yymmdd / 86400 + datenum('01-Jan-1970');
+				elseif (strncmpi(t,'RATA',4))		% Days since 0000-12-31T00:00:00
+					serial_date = yymmdd + 365;
 				elseif (strncmpi(t,'DAY',3))		% Assumed to be days since 1 Jan 0000
 					serial_date = yymmdd;
 				elseif (strcmpi(t(5:7),'DOY'))		% YYYYDOY Local form sometimes output from Slices
