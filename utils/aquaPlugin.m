@@ -2171,6 +2171,10 @@ function calc_polygAVG(handles, fnameOut, op, fnamePolys, sub_set, fnameFlag, qu
 		fprintf(fid, '# DATENUM SECONDS\n');	fmt_t = '%.3f\t';
 	elseif (strncmpi(handles.z_units, 'Milliseconds since 0000-01-01', 29))
 		fprintf(fid, '# DATENUM MILLISECONDS\n');	fmt_t = '%.0f\t';
+	elseif (strncmpi(handles.z_units, 'UNIX', 4))
+		fprintf(fid, '# DATENUM UNIX\n');		fmt_t = '%.3f\t';
+	elseif (strncmpi(handles.z_units, 'RATA', 4))
+		fprintf(fid, '# DATENUM RATA DIE\n');	fmt_t = '%.8f\t';
 	elseif (strncmpi(handles.z_units, 'Days since 0000-01-01', 21))
 		fprintf(fid, '# DATENUM DAYS\n');		fmt_t = '%.8f\t';
 	else
