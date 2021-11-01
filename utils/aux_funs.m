@@ -113,7 +113,11 @@ function check_LandSat8(handles, fname, todos)
 		fid = fopen(t, 'rt');
 		if (fid < 0),	errordlg(['Error opening file: ' t], 'Error');	return,	end
 		s = strread(fread(fid,'*char').','%s','delimiter','\n');	fclose(fid);
-		t = s{strncmp(s, ['RADIANCE_MULT_BAND_' band], 19+numel(band))};
+		try
+			t = s{strncmp(s, ['RADIANCE_MULT_BAND_' band], 19+numel(band))};
+		catch		% Whatever reason it failed (for example an .ovr file), just abaondon here.
+			return
+		end
 		pars.rad_mul = str2double(t(strfind(t, '=')+1:end));
 		t = s{strncmp(s, ['RADIANCE_ADD_BAND_' band], 18+numel(band))};
 		pars.rad_add = str2double(t(strfind(t, '=')+1:end));
