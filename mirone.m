@@ -1734,6 +1734,10 @@ function out = ExtractProfile_CB(handles, opt, opt2)
 				t = handles.time_z / 86400;
 			elseif (strncmpi(handles.z_units, 'Milliseconds since 0000-01-01', 29))
 				t = handles.time_z / 86400000;
+			elseif (strncmpi(handles.z_units,'Seconds since 1970-01-01',24))	% Unix time
+				t = handles.time_z / 86400 + datenum('01-Jan-1970');
+			elseif (strncmpi(handles.z_units,'RATA',4))		% Days since 0000-12-31T00:00:00
+				t = handles.time_z + 365;
 			elseif (strncmpi(handles.z_units, 'Days since 0000-01-01', 21))
 				t = handles.time_z;
 			else
@@ -5273,7 +5277,7 @@ function ImageEdgeDetect_CB(handles, opt)
 			% Some times we get a BB rectangle, test and ignore it if it's the case
 			if (size(bnd,1) < 10)
 				ma = max(bnd);
-				if (all(abs(min(bnd) - 1)) < 1e-3)
+				if (all(abs(min(bnd) - 1) < 1e-3))
 					if ((abs(ma(1) - dims(1)) < 1e-3) && (abs(ma(2) - dims(2)) < 1e-3))
 						continue
 					end
