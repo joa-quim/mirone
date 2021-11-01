@@ -2550,6 +2550,10 @@ function do_screncapture(handMir, haveAlfa, do_writeScript, nameRGB)
 	if (do_writeScript && ~isempty(getappdata(handMir.figure1, 'IAmAMirone')))
 		alphaMask = (numel(get(handMir.hImg,'AlphaData')) ~= 1);	% If it has AlphaData, assume that SC is needed
 		if (~isempty(nameRGB) && ~haveAlfa && ~handMir.is_draped && ~alphaMask)
+			[lix, lix, ext] = fileparts(nameRGB);
+			if (~isempty(ext) && ~isempty(strfind(nameRGB, 'channel')))	% See if we need to protect against part name trimming
+				nameRGB = [nameRGB '.lix'];		% Because composite names like A2021217131000.L2_LAC_OC_channel drop 'extension'
+			end
 			mirone('File_img2GMT_RGBgrids_CB', handMir, 'image', nameRGB, true)
 		elseif (~isempty(nameRGB) && (haveAlfa || handMir.is_draped || alphaMask))
 			% Here we'll hide everything except the patches with transparency
