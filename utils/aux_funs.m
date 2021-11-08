@@ -155,7 +155,8 @@ function check_LandSat8(handles, fname, todos)
 		setappdata(handles.axes1, 'LandSAT8', pars)
 	else
 		pars = parseLandSat8MetaData(t);
-		setappdata(handles.axes1, 'LandSAT8_MTL', pars.L1_METADATA_FILE)
+		f = fields(pars);
+		setappdata(handles.axes1, 'LandSAT8_MTL', pars.(f{1}))
 	end
 	
 % --------------------------------------------------------------------
@@ -208,13 +209,24 @@ function set_LandSat8_band_pars(handles, band)
 	pars_ = getappdata(handles.axes1, 'LandSAT8_MTL');
 	if (~isempty(pars_))
 		pars.band = band;
-		pars.rad_mul = pars_.RADIOMETRIC_RESCALING.(sprintf('RADIANCE_MULT_BAND_%d',band));
-		pars.rad_add = pars_.RADIOMETRIC_RESCALING.(sprintf('RADIANCE_ADD_BAND_%d',band));
-		pars.rad_max = pars_.MIN_MAX_RADIANCE.(sprintf('RADIANCE_MAXIMUM_BAND_%d',band));
+		if isfield(pars_, "RADIOMETRIC_RESCALING")			% Fck thing keeps changing the names. Dassss
+			prefix = '';
+		elseif isfield(pars_, "LEVEL1_RADIOMETRIC_RESCALING")
+			prefix = 'LEVEL1_';
+		elseif isfield(pars_, "LEVEL2_RADIOMETRIC_RESCALING")
+			prefix = 'LEVEL2_';
+		else
+			warndlg('Cannot decode the saved MTL structure. Returning instead of erroring but later things may not work.', 'Warning')
+			return
+		end
+
+		pars.rad_mul = pars_.([prefix 'RADIOMETRIC_RESCALING']).(sprintf('RADIANCE_MULT_BAND_%d',band));
+		pars.rad_add = pars_.([prefix 'RADIOMETRIC_RESCALING']).(sprintf('RADIANCE_ADD_BAND_%d',band));
+		pars.rad_max = pars_.([prefix 'MIN_MAX_RADIANCE']).(sprintf('RADIANCE_MAXIMUM_BAND_%d',band));
 		if (band ~= 10 && band ~= 11)
-			pars.reflect_mul = pars_.RADIOMETRIC_RESCALING.(sprintf('REFLECTANCE_MULT_BAND_%d',band));
-			pars.reflect_add = pars_.RADIOMETRIC_RESCALING.(sprintf('REFLECTANCE_ADD_BAND_%d',band));
-			pars.reflect_max = pars_.MIN_MAX_REFLECTANCE.(sprintf('REFLECTANCE_MAXIMUM_BAND_%d',band));
+			pars.reflect_mul = pars_.([prefix 'RADIOMETRIC_RESCALING']).(sprintf('REFLECTANCE_MULT_BAND_%d',band));
+			pars.reflect_add = pars_.([prefix 'RADIOMETRIC_RESCALING']).(sprintf('REFLECTANCE_ADD_BAND_%d',band));
+			pars.reflect_max = pars_.([prefix 'MIN_MAX_REFLECTANCE']).(sprintf('REFLECTANCE_MAXIMUM_BAND_%d',band));
 		else
 			pars.reflect_mul = 1;	pars.reflect_add = 0;	pars.reflect_max = 0;
 		end
@@ -222,8 +234,13 @@ function set_LandSat8_band_pars(handles, band)
 		pars.sun_elev = pars_.IMAGE_ATTRIBUTES.SUN_ELEVATION;
 		pars.sun_dist = pars_.IMAGE_ATTRIBUTES.EARTH_SUN_DISTANCE;
 		if (band >= 10)
-			pars.K1 = pars_.TIRS_THERMAL_CONSTANTS.(sprintf('K1_CONSTANT_BAND_%d',band))  ;
-			pars.K2 = pars_.TIRS_THERMAL_CONSTANTS.(sprintf('K2_CONSTANT_BAND_%d',band))  ;
+			if isempty(prefix)
+				ff = 'TIRS_THERMAL_CONSTANTS';
+			else
+				ff = [prefix 'THERMAL_CONSTANTS'];
+			end
+			pars.K1 = pars_.(ff).(sprintf('K1_CONSTANT_BAND_%d',band));
+			pars.K2 = pars_.(ff).(sprintf('K2_CONSTANT_BAND_%d',band));
 		end
 		setappdata(handles.axes1, 'LandSAT8', pars)
 	end
