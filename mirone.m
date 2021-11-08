@@ -2107,8 +2107,12 @@ function FileOpenGDALmultiBand_CB(handles, opt, opt2, opt3)
 					[pato, bnd_names{k}] = fileparts(att.Files{k});		
 				end
 				if (strcmp(opt, 'VRT'))
-					aux_funs('check_LandSat8', handles, [pato filesep bnd_names{1}], true)	% This sets tem all
-					aux_funs('set_LandSat8_band_pars', handles, 1)		% This set the first as the active one
+					try
+						aux_funs('check_LandSat8', handles, [pato filesep bnd_names{1}], true)	% This sets tem all
+						aux_funs('set_LandSat8_band_pars', handles, 1)		% This set the first as the active one
+					catch
+						errordlg('Failed to parse the Landsat MTL file contents. They bloody keep changing it.', 'Error')
+					end
 				end
 			end
 		end
