@@ -164,7 +164,11 @@ function listbox_inArrays_CB(hObject, handles, manual)
 		ind = strfind(str{sel}, '_B');						% Find the band number
 		if (isempty(ind)),		return,		end				% For sure not a Lansat8 band
 		band = str2double(str{sel}(ind(end)+2:end));
-		aux_funs('set_LandSat8_band_pars', handMir, band)	% Set this as the active band
+		try
+			aux_funs('set_LandSat8_band_pars', handMir, band)	% Set this as the active band
+		catch
+			errordlg('Failed to parse the Landsat MTL file contents. They bloody keep changing it.', 'Error')
+		end
 	end
 
 % ------------------------------------------------------------------------
