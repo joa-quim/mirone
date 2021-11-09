@@ -209,11 +209,11 @@ function set_LandSat8_band_pars(handles, band)
 	pars_ = getappdata(handles.axes1, 'LandSAT8_MTL');
 	if (~isempty(pars_))
 		pars.band = band;
-		if isfield(pars_, "RADIOMETRIC_RESCALING")			% Fck thing keeps changing the names. Dassss
+		if isfield(pars_, 'RADIOMETRIC_RESCALING')			% Fck thing keeps changing the names. Dassss
 			prefix = '';
-		elseif isfield(pars_, "LEVEL1_RADIOMETRIC_RESCALING")
+		elseif isfield(pars_, 'LEVEL1_RADIOMETRIC_RESCALING')
 			prefix = 'LEVEL1_';
-		elseif isfield(pars_, "LEVEL2_RADIOMETRIC_RESCALING")
+		elseif isfield(pars_, 'LEVEL2_RADIOMETRIC_RESCALING')
 			prefix = 'LEVEL2_';
 		else
 			warndlg('Cannot decode the saved MTL structure. Returning instead of erroring but later things may not work.', 'Warning')
