@@ -317,13 +317,13 @@ function out = push_compute_CB(hObject, handles)
 	com = get(handles.edit_command,'String');
 	if (isempty(com)),	return,		end
 
-	semaforo(handles, 'red')
+	semaforo(handles, 'red');	pause(0.01)
 
 	if (~isempty(handles.BL))		% We are dealing with Bands arithmetics
 		if (nargout),	out.a = bandArithm(handles, com);		% To be consistent. Other paths also return a struct
 		else,			bandArithm(handles, com);
 		end
-		semaforo(handles, 'green')
+		semaforo(handles, 'green');	pause(0.01)
 		return
 	end
 
@@ -408,7 +408,7 @@ function out = push_compute_CB(hObject, handles)
 
 		if (isempty(grid))
 			errordlg('This is a grid calculator, but none of your operands is a matrix. Bye.', 'Error')
-			semaforo(handles, 'green')
+			semaforo(handles, 'green');	pause(0.01)
 			return
 		end
 
@@ -437,7 +437,7 @@ function out = push_compute_CB(hObject, handles)
 			end
 		end
 		resp = single(resp);
-		semaforo(handles, 'green')
+		semaforo(handles, 'green');		pause(0.01)
 
 		[zzz] = grdutils(resp,'-L');  z_min = zzz(1);     z_max = zzz(2);
 		if (~isempty(k))					% We had grids in input
@@ -462,7 +462,7 @@ function out = push_compute_CB(hObject, handles)
 			set(handles.edit_command,'String',txt)
 		end
 	catch
-		semaforo(handles, 'green')
+		semaforo(handles, 'green');		pause(0.01)
 		errordlg(lasterr,'Error')
 	end
 
