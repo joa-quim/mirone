@@ -60,6 +60,11 @@ function [Z, X, Y, srsWKT, handles, att, pal_file] = read_grid(handles, fullname
 	try
 		if (handles.ForceInsitu),	opt_I = '-I';		end	% Use only in desperate cases.
 	end
+		
+	[pato, nome, ext] = fileparts(fname);
+	if (strncmp(tipo,'GMT',3) && ~strcmpi(ext, '.grd') && ~strcmpi(ext, '.nc'))	% Trying to read .TIF with 'GMT' blows compiled version
+		tipo = 'whatever';
+	end
 
 	if (strncmp(tipo,'GMT',3))		% GMT_relatives - Reading is done by the read_gmt_type_grids function
 		[handles, X, Y, Z, head, misc, msg] = read_gmt_type_grids(handles, fname);
