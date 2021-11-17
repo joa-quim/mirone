@@ -1,7 +1,7 @@
 function varargout = aqua_suppfuns(opt, varargin)
 % Supplement functions to allow using Aquamoto with plain netCDF coards grids
 
-%	Copyright (c) 2004-2016 by J. Luis
+%	Copyright (c) 2004-2021 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -53,9 +53,11 @@ function out = init_header_params(handles,X,Y,head,misc,getAllMinMax)
 		end
 		if (~isempty(id))
 			handles.time = double(nc_funs('varget', handles.fname, s.Dataset(id).Name));
-			id_t = find(strcmpi('units',{s.Dataset(id).Attribute.Name}));
-			if (~isempty(id_t))
-				handles.z_units = s.Dataset(id).Attribute(id_t).Value;
+			if (~isempty(s.Dataset(id).Attribute))
+				id_t = find(strcmpi('units',{s.Dataset(id).Attribute.Name}));
+				if (~isempty(id_t))
+					handles.z_units = s.Dataset(id).Attribute(id_t).Value;
+				end
 			end
 		else
 			handles.time = 1:handles.number_of_timesteps;
