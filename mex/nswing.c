@@ -1,7 +1,7 @@
 /*--------------------------------------------------------------------
  *	$Id: nswing.c 11410 2019-02-23 17:36:11Z j $
  *
- *	Copyright (c) 2012-2018 by J. Luis and J. M. Miranda
+ *	Copyright (c) 2012-2022 by J. Luis and J. M. Miranda
  *
  * 	This program is part of Mirone and is free software; you can redistribute
  * 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -16,7 +16,7 @@
  *	Contact info: w3.ualg.pt/~jluis/mirone
  *--------------------------------------------------------------------*/
 
-static char prog_id[] = "$Id: nswing.c 11410 2019-02-23 17:36:11Z j $";
+static char prog_id[] = "$Id: nswing.c 11410 2022-02-24 17:36:11Z j $";
 
 /*
  *	Original Fortran version of core hydrodynamic code by J.M. Miranda and COMCOT
@@ -771,7 +771,7 @@ int main(int argc, char **argv) {
 					break;
 				case 'G':	/* Write grids at grn intervals */
 				case 'Z':	/* Write one single 3D netCDF at grn intervals */
-					sscanf(&argv[i][2], "%s,%d", stem, &grn);
+					sscanf(&argv[i][2], "%[^\n]s,%d", stem, &grn);
 					if ((pch = strstr(stem,",")) != NULL) {
 						grn = atoi(&pch[1]);
 						pch[0] = '\0';		/* Strip the ",num" part */
@@ -830,7 +830,7 @@ int main(int argc, char **argv) {
 					if (!argv[i][2])
 						nest.do_linear = TRUE;
 					else {
-						sscanf(&argv[i][2], "%s", str_tmp);
+						sscanf(&argv[i][2], "%[^\n]s", str_tmp);
 						if (str_tmp[strlen(str_tmp)-2] == '+') {	/* Output tracers file will be in netCDF */
 							out_oranges_nc = TRUE;
 							str_tmp[strlen(str_tmp)-2] = '\0';
@@ -871,7 +871,7 @@ int main(int argc, char **argv) {
 					n_of_cycles = atoi(&argv[i][2]);
 					break;
 				case 'O':	/* Time interval and fname for maregraph data. Use only when mareg locations were sent in as arg (MEX) */
-					sscanf(&argv[i][2], "%s", str_tmp);
+					sscanf(&argv[i][2], "%[^\n]s", str_tmp);
 					if ((pch = strstr(str_tmp,",")) != NULL) {
 						pch[0] = '\0';
 						cumint = atoi(str_tmp);
