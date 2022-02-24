@@ -5,7 +5,7 @@ function varargout = mirone(varargin)
 %
 %	mirone('CALLBACK',handles,...) calls the local function named CALLBACK with the given input arguments.
 
-%	Copyright (c) 2004-2021 by J. Luis
+%	Copyright (c) 2004-2022 by J. Luis
 %
 % 	This program is part of Mirone and is free software; you can redistribute
 % 	it and/or modify it under the terms of the GNU Lesser General Public
@@ -249,7 +249,12 @@ function hObject = mirone_OpeningFcn(varargin)
 		n_argin = numel(varargin);
 		if (n_argin == 1 && ischar(varargin{1}))				% Called with a file name as argument
 			[pato, fname, EXT] = fileparts(varargin{1});		% Test to check online command input
-			if (isempty(pato)),			varargin{1} = [cd fsep fname EXT];	end
+			if (isempty(pato))
+				varargin{1} = [cd fsep fname EXT];
+				handles.last_dir = cd;
+			else
+				handles.last_dir = pato;
+			end
 			[drv, algures] = aux_funs('findFileType',varargin{1});
 			if (ischar(algures)),		varargin{1} = algures;	end 		% File exists but not in Mirone's root dir
 			if (ischar(algures) || algures),	handles.fileName = varargin{1};		end		% Can be added by recentFiles
@@ -1725,6 +1730,7 @@ function out = ExtractProfile_CB(handles, opt, opt2)
 		end
 		if (do_3D)
 			isDateNum = true;
+			if (~isfield(handles, 'z_units')),  handles.z_units = '';  end	% Lazzy for trying to catch why it wasn't set
 			if (strcmpi(handles.z_units, 'Decimal year'))
 				Y = fix(handles.time_z);
 				dec = (handles.time_z - Y);
