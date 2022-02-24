@@ -50,6 +50,10 @@ REM If set some MEXs will print the execution time (in CPU ticks)
 SET TIMEIT=-DMIR_TIMEIT
 SET TIMEIT=
 
+REM To build nswing with the PARALLEL option
+SET PARA=-DPARALLEL
+SET PARA=
+
 REM To buils with OpenMP support (very few)
 SET OMP=
 SET OMP=-DHAVE_OPENMP 
@@ -157,7 +161,7 @@ IF %BITS%==64 SET arc=X64
 IF %BITS%==32 SET arc=X86
 SET LINKFLAGS=/dll /export:mexFunction /LIBPATH:%MATLIB% libmx.lib libmex.lib libmat.lib /MACHINE:%arc% kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib Vfw32.lib /nologo /incremental:NO %LDEBUG% 
 
-%CC% -DWIN32 %COMPFLAGS% -I%MATINC% -I%NETCDF_INC% -I%GMT_INC% -I%GDAL_INC% -I%CV_INC% -I%CVInc% -I%GEOLIB_INC% -I%LASZLIB_INC2% -I%LASZLIB_INC% %JULIA_INC% %OPTIMFLAGS% %_MX_COMPAT% %TIMEIT% -DDLL_GMT %OMP% %extra_cv_c% %extra_IMREGMAX_src% %1
+%CC% -DWIN32 %COMPFLAGS% -I%MATINC% -I%NETCDF_INC% -I%GMT_INC% -I%GDAL_INC% -I%CV_INC% -I%CVInc% -I%GEOLIB_INC% -I%LASZLIB_INC2% -I%LASZLIB_INC% %JULIA_INC% %OPTIMFLAGS% %_MX_COMPAT% %TIMEIT% %PARA% -DDLL_GMT %OMP% %extra_cv_c% %extra_IMREGMAX_src% %1
 
 link  /out:"%~n1.%MEX_EXT%" %LINKFLAGS% %NETCDF_LIB% %GMT_LIB% %GDAL_LIB% %LAS_LIB% %GEOLIB_LIB% %LASZLIB_LIB% %CXCORE_LIB% %CVIMG_LIB% %CVCALIB_LIB% %CVOBJ_LIB% %CVVIDEO_LIB% %CVPHOTO_LIB% %JULIA_LIB% /implib:templib.x %~n1.obj %extra_cv_o% %extra_IMREGMAX_obj%
 
