@@ -181,6 +181,10 @@ function push_namesList_CB(hObject, handles, opt)
 		if isequal(FileName,0),		return,		end
 	else					% File name on input
 		opt = check_wildcard_fname(opt);	% Check if a lazy 'path/*.xxx X X' request
+		if (isempty(opt))
+			set(handles.listbox_list, 'Str', '')
+			error('Wildcard search return an empty result. Have to abort here')
+		end
 		[PathName,FNAME,EXT] = fileparts(opt);
 		PathName = [PathName '/'];      % To be coherent with the 'if' branch
 		FileName = [FNAME EXT];
@@ -512,16 +516,20 @@ function fname = check_wildcard_fname(strin)
 	strin = strrep(strin, '\', '/');		% So we only have to deal with one type of slash only
 	ind = strfind(strin, '/');
 	if (~isempty(ind) && (numel(strin) > ind(end)) && (strin(ind(end)+1) ~= ' '))
-		[t, r] = strtok(strin(ind(end)+1:end));
+		[t, r] = strtok(strin(ind(end)+1:end));		% strtok because we may have options after the full name.
 		t = [strin(1:ind(end)) t];
 		dirlist = dir(t);
 	else
-		dirlist = '';
+		mir_dirs = getappdata(0,'MIRONE_DIRS');
+		t = strrep([mir_dirs.last_dir '/' strin], '\', '/');
+		[lixo, r] = strtok(strin);					% Here we only care to know if we have options after the filter
+		dirlist = dir(t);
 	end
 
 	if (isempty(dirlist))
 		errordlg('Wildcard search return an empty result. Have to abort here','ERROR')
-		error('Wildcard search return an empty result. Have to abort here')
+		fname = '';
+		return
 	end
 
 	PATO = fileparts(t);
@@ -1827,22 +1835,21 @@ function [Z, att, known_coords, have_nans, was_empty_name] = read_gdal(full_name
 			end
 
 			% Go check if -R or quality flags request exists in L2config.txt file
-			[opt_R_out, opt_I, opt_C, bitflags, flagsID, despike, quality] = sniff_in_OPTcontrol(opt_R, att);	% Output opt_R gets preference
+			[opt_R_out, opt_I, opt_C, bitflags, flagsID, despike, quality, NN] = sniff_in_OPTcontrol(opt_R, att);	% Output opt_R gets preference
 			if (isempty(quality) && ~isempty(bitflags))		% Means that should use bitflags instead of quality value
 				what.bitflags = 1;		quality = 0;
 			end
 			if (quality && ~isempty(what.quality) && ~what.quality),	what.quality = quality;		end		% If qual not set by GUI and it's in L2control.txt
 
 			% Check if the two opt_R intersect
-			r1 = str2num(strrep(opt_R(3:end), '/', ' '));
-			r2 = str2num(strrep(opt_R_out(3:end), '/', ' '));
+			r1 = str2num(strrep(opt_R(3:end), '/', ' '));		r2 = str2num(strrep(opt_R_out(3:end), '/', ' '));
 			rect = aux_funs('rectangle_and', r1, r2);
 			if (~isempty(rect))
 				% All fine. The -R in OPTcontrol may even be different from opt_R (the edit boxes have been usedf to change lims)
 			elseif (what.georeference)
 				h = warndlg('The -R region in the L2config.txt file is outside this file''s region. Ignoring it.','WARNING');
 				move2side(h, 'right')
-				pause(1)			% Let it be seen before being possibly hiden
+				pause(0.5)			% Let it be seen before being possibly hiden
 			end
 
 			if (isempty(what))							% User killed the window, but it's too late to stop so pretend ...
@@ -1860,16 +1867,6 @@ function [Z, att, known_coords, have_nans, was_empty_name] = read_gdal(full_name
 				end
 				clear qual
 			end
-
-% 			if (true)
-% 				lon_full = lon_full';	lat_full = lat_full';	Z = Z';
-% 				xyz = [lon_full(:) lat_full(:) Z(:)];
-% 				%set_gmt('X2SYS_HOME=c:\v');
-% 				%D = gmtmex('x2sys_cross -TLINE -Qi', xyz);
-% 				D = gmtmex('gmtspatial -Ii', xyz);
-% 				xerr = D.data(:,[1 2 10]);
-% 				gmtmex('pshistogram -R-5/5/0/400 -W0.2 -JX12 -P -Gred -Ba -L0.25p > c:\v\sst_xerr.ps', xerr)
-% 			end
 
 			if (despike)					% MODIS SST are horribly spiked every other 10 vertical positions in
 				Z = clipMySpikes(Z);		% sensor coordinates. This functions signifficantly reduces that effect.
@@ -1903,8 +1900,7 @@ function [Z, att, known_coords, have_nans, was_empty_name] = read_gdal(full_name
 				end
 				if (isnan(NoDataValue)),		ind = isnan(Z);
 				elseif (~isempty(NoDataValue)),	ind = (Z == NoDataValue);
-				else
-					ind = false;	% Just to not error below
+				else,							ind = false;	% Just to not error below
 				end
 				Z(ind) = [];		lon_full(ind) = [];		lat_full(ind) = [];
 
@@ -1913,8 +1909,10 @@ function [Z, att, known_coords, have_nans, was_empty_name] = read_gdal(full_name
 					[Z, head] = c_nearneighbor(single(1e3), single(1e3), single(0), opt_R, opt_e, '-N1', opt_I, '-S0.02');
 				else
 					if (~isa(lon_full, 'double')),	lon_full = double(lon_full);	lat_full = double(lat_full);	end
-					if (what.nearneighbor)
-						[Z, head, was_empty] = smart_grid(lon_full(:), lat_full(:), Z(:), opt_I, opt_R, opt_C, opt_e, '-N2', '-S0.04');
+					if (what.nearneighbor || ~isempty(NN))
+						opt_N = '-N2';		opt_S = '-S0.04';
+						if (~isempty(NN)),	opt_N = NN.opt_N;	opt_S = NN.opt_S;	end
+						[Z, head, was_empty] = smart_grid(lon_full(:), lat_full(:), Z(:), opt_I, opt_R, opt_C, opt_e, opt_N, opt_S);
 					else
 						if (~isa(Z, 'double')),		Z = double(Z);		end
 						[Z, head, was_empty] = smart_grid(lon_full(:), lat_full(:), Z(:), opt_I, opt_R, opt_C);
@@ -1929,6 +1927,7 @@ function [Z, att, known_coords, have_nans, was_empty_name] = read_gdal(full_name
 				att.Band(1).NoDataValue = [];		% Don't waist time later trying to NaNify again
 				x_min = head(1) - head(8)/2;		x_max = head(2) + head(8)/2;		% Goto pixel registration
 				y_min = head(3) - head(9)/2;		y_max = head(4) + head(9)/2;		% But not for att.GMT_hdr(7)
+				att.GCPvalues = [];				% Older GDALs may put the lon/lat in here
 			end
 			att.RasterXSize = size(Z,2);		att.RasterYSize = size(Z,1);
 			att.Band.XSize = size(Z,2);			att.Band.YSize = size(Z,1);
@@ -2006,6 +2005,9 @@ function [Z, head, was_empty] = smart_grid(x, y, z, opt_I, opt_R, opt_C, opt_e, 
 	else
 		[zz, head] = gmtmbgrid_m(x, y, z, opt_I, opt_subR, '-Mz', opt_C);
 	end
+	
+	%zz = filt_chloro(x, y, z, opt_I, opt_subR, zz);
+	
 	head(1:4) = [Rx_min Rx_max Ry_min Ry_max];
 	mm = grdutils(zz,'-L');		head(5:6) = [mm(1) mm(2)];
 	Z = alloc_mex(n_rows, n_cols, 'single', NaN);
@@ -2014,6 +2016,20 @@ function [Z, head, was_empty] = smart_grid(x, y, z, opt_I, opt_R, opt_C, opt_e, 
 	else
 		was_empty = true;				% Means no data fall inside the opt_subR sub-region
 	end
+
+% % ------------------------------------------------------------------------------
+% function Z = filt_chloro(x, y, z, opt_I, opt_R, Z)
+% 	opt_I_new = sprintf('-I%f', str2double(opt_I(3:end))*5);
+% 	try
+% 		G_ = gmtmex(['blockmedian -Az ' opt_I_new ' ' opt_R], [x, y, z]);
+% 	catch
+% 		return
+% 	end
+% 	G = gmtmex(['grdsample -nl ' opt_I ' ' opt_R], G_);
+% 	difa = abs(Z - G.z);
+% 	pct = difa ./ Z;
+% 	mask = (pct > 1.0);
+% 	Z(mask) = NaN;
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function [data, did_scale, att, have_new_nans] = handle_scaling(data, att)
@@ -2099,7 +2115,7 @@ function [att, uncomp_name] = get_baseNameAttribs(full_name)
 	end
 
 % -----------------------------------------------------------------------------------------
-function [opt_R, opt_I, opt_C, bitflags, flagsID, despike, quality] = sniff_in_OPTcontrol(old_R, att)
+function [opt_R, opt_I, opt_C, bitflags, flagsID, despike, quality, NN] = sniff_in_OPTcontrol(old_R, att)
 % Check the L2config file for particular requests in terms of -R, -I or quality flags
 % OPT_R is what the L2config has in
 %
@@ -2109,9 +2125,10 @@ function [opt_R, opt_I, opt_C, bitflags, flagsID, despike, quality] = sniff_in_O
 %			Return 0 when no l2_flags array is found.
 % DESPIKE	MODIS L2 SST show an incredible noise level peaking at every other 10 rows of data in
 %			sensor coordinates. If the keyword MIR_EMPILHADOR_C exists, DESPIKE is set to true.
+% NN      Is a struct with opt_N and opt_S fields that is used to select the nearneighbor algo instead of min curvature
 
 	got_flags = false;		bitflags = [];		flagsID = 0;	despike = false;	quality = 0;
-	opt_I = [];				opt_C = [];
+	opt_I = [];				opt_C = [];			opt_N = [];		opt_S = [];		NN = [];
 	opt_R = old_R;			% In case we return without finding a new -R
 	GUI_rules = false;		% If set to TRUE below, values from GUI take precedence
 
@@ -2154,6 +2171,8 @@ function [opt_R, opt_I, opt_C, bitflags, flagsID, despike, quality] = sniff_in_O
 			if (strncmp(t,'-R',2)),		opt_R = t;		got_one = true;
 			elseif (strncmp(t,'-I',2)),	opt_I = t;		got_one = true;
 			elseif (strncmp(t,'-C',2)),	opt_C = t;		got_one = true;
+			elseif (strncmp(t,'-N',2)),	opt_N = t;		got_one = true;
+			elseif (strncmp(t,'-S',2)),	opt_S = t;		got_one = true;
 			end
 			[t,r] = strtok(ddewhite(r));
 		end
@@ -2234,6 +2253,11 @@ function [opt_R, opt_I, opt_C, bitflags, flagsID, despike, quality] = sniff_in_O
 			if (~isempty(n)),	c(n) = true;	end
 		end
 		bitflags = [fmap{c,2}];
+	end
+
+	if (~isempty(opt_N))		% Using nearneighbor was requested
+		if (isempty(opt_S)),	opt_S = '-S0';	end
+		NN.opt_N = opt_N;		NN.opt_S = opt_S;
 	end
 
 % -----------------------------------------------------------------------------------------
