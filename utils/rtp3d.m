@@ -34,7 +34,7 @@ function [fout, k] = rtp3d(f3d, incl_fld, decl_fld, incl_mag, decl_mag, componen
 
 	%------ calculate geometric and amplitude factors
 	Ob = sin(incl_fld) + i*cos(incl_fld) * sin(aux + decl_fld);
-	if ((abs(incl_fld - incl_fld) > 0.03) || (abs(decl_fld - decl_mag) > 0.03) || component) % 0.03 is < 2 deg
+	if ((abs(incl_fld - incl_mag) > 0.03) || (abs(decl_fld - decl_mag) > 0.03) || component) % 0.03 is < 2 deg
 		Om = sin(incl_mag) + i*cos(incl_mag) * sin(aux + decl_mag);
 		O  = Ob .* Om;
 	else
@@ -49,7 +49,7 @@ function [fout, k] = rtp3d(f3d, incl_fld, decl_fld, incl_mag, decl_mag, componen
 		elseif (component == 3),	new_inc = 90;	new_dec = 0;		% Z or Up component
 		end
 		new_inc = new_inc * D2R;	new_dec = new_dec * D2R;
-		O = O ./ ((sin(new_inc) +i*cos(new_inc) * sin(aux + new_dec)) .* Om);	% So that at the end <=> F .* ON ./ O
+		O = O ./ ((sin(new_inc) +i*(cos(new_inc) * sin(aux + new_dec)) + eps) .* Om);	% So that at the end <=> F .* ON ./ O
 	end
 	O = fftshift(O);
 
