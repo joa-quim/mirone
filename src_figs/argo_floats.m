@@ -258,7 +258,7 @@ function [ncfiles,lat,lon,t] = argofiles(latlim,lonlim,tlim,basin)
 
 		try
 			% Download data file for the month: 
-			url = ['https://data.nodc.noaa.gov/argo/inv/basins/',basin,'/',num2str(yr(k),'%04.f'),'/',bsn,num2str(yr(k),'%04.f'),num2str(mo(k),'%02.f'),'_argoinv.txt'];
+			url = ['https://data.nodc.noaa.gov/argo/gadr/inv/basins/',basin,'/',num2str(yr(k),'%04.f'),'/',bsn,num2str(yr(k),'%04.f'),num2str(mo(k),'%02.f'),'_argoinv.txt'];
 
 			s = gmtmex(['gmtconvert -h1 ' url]);
 			s = char(s.text)';
@@ -287,7 +287,7 @@ function [ncfiles,lat,lon,t] = argofiles(latlim,lonlim,tlim,basin)
 			ind = t >= dn(1) & t <= dn(end) & inpoly;
 
 			% Log any matching filenames:
-			ncfiles(length(ncfiles)+1:length(ncfiles)+sum(ind),1) = strcat('https://data.nodc.noaa.gov/argo/',file_urls(ind));
+			ncfiles(length(ncfiles)+1:length(ncfiles)+sum(ind),1) = strcat('https://data.nodc.noaa.gov/argo/gadr/',file_urls(ind));
 
 			% Write geo coordinate and time arrays only if user wants them
 			if (nargout > 1)
