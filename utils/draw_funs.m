@@ -424,7 +424,7 @@ function set_line_uicontext(h, opt)
 			uimenu(item_tools, 'Label', 'Median filter', 'Callback', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''MedianFilter'')');
 			uimenu(item_tools, 'Label', 'Spline smooth', 'Callback', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''SplineSmooth'')');
 			uimenu(item_tools, 'Label', 'Histogram (grid)', 'Callback', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''CropaGrid_histo'')');
-%			uimenu(item_tools, 'Label', 'Detect Fronts', 'Callback', 'cayula_cornillon(guidata(gcbo),gco)');
+			uimenu(item_tools, 'Label', 'Detect Fronts', 'Callback', 'cayula_cornillon(guidata(gcbo),gco)');
 			uimenu(item_tools, 'Label', 'Power',           'Callback', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''CropaGrid_power'')');
 			uimenu(item_tools, 'Label', 'Autocorrelation', 'Callback', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''CropaGrid_autocorr'')');
 			uimenu(item_tools, 'Label', 'FFT tool', 'Callback', 'mirone(''ImageCrop_CB'',guidata(gcbo),gco,''CropaGrid_fftTools'')');
