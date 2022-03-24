@@ -34,7 +34,7 @@ function cayula_cornillon(varargin)
 	x = get(hPolyg,'XData');	y = get(hPolyg,'YData');
 	xp(1) = min(x);		xp(2) = max(x);
 	yp(1) = min(y);		yp(2) = max(y);
-	if (diff(xp) < 1)		% TEMPORARIO. Para fazer so uma janela
+	if (diff(xp) < 5)		% TEMPORARIO. Para fazer so uma janela
 		rect_crop = [xp(1) yp(1) (xp(2) - xp(1)) (yp(2) - yp(1))];		% Insure a known order
 		[w, r_c] = cropimg(head(1:2),head(3:4),Z,rect_crop,'out_grid');
 		head(2) = head(1) + (r_c(4)-1)*head(8);			head(1) = head(1) + (r_c(3)-1)*head(8);
@@ -43,8 +43,9 @@ function cayula_cornillon(varargin)
 		[x, y, z, exitType] = getFrontInWindow(w, head, minTheta, minPopProp, minPopMeanDiff, ...
 											 minSinglePopCohesion, minGlobalPopCohesion);
 		if (~exitType)
-			line('XData',x, 'YData',y, 'Parent',hMirHand.axes1, 'LineWidth',hMirHand.DefLineThick, ...
+			h = line('XData',x, 'YData',y, 'Parent',hMirHand.axes1, 'LineWidth',hMirHand.DefLineThick, ...
 				'Color',hMirHand.DefLineColor, 'userdata',z,'Tag','SSTfront');
+            draw_funs(h,'line_uicontext')		% Set lines's uicontextmenu
 		end
 		return
 	end
@@ -84,15 +85,16 @@ function cayula_cornillon(varargin)
 			for (k = 1:4)					% Loop over the 4 sliding 32x32 sub-windows of the larger 48x48 one.
 				m1 = (rr(k) - 1) * winW16 + 1;			m2 = m1 + 2*winW16 - s;		% indices of the sliding 33x33 window
 				n1 = (cc(k) - 1) * winW16 + 1;			n2 = n1 + 2*winW16 - s;
-				w = wPad(m1:m2, n1:n2);					% Sub-window with size 33x33
+				w = double(wPad(m1:m2, n1:n2));			% Sub-window with size 33x33
 				subWinX0 = x0 + (cc(k)-1) * xSide16;	subWinX1 = subWinX0 + xSide32;	% Corner coordinates
 				subWinY0 = y0 + (rr(k)-1) * ySide16;	subWinY1 = subWinY0 + ySide32;
 				R = [subWinX0 subWinX1 subWinY0 subWinY1];
 				[x, y, z, exitType] = getFrontInWindow(w, R, minTheta, minPopProp, minPopMeanDiff, ...
 													   minSinglePopCohesion, minGlobalPopCohesion, corners(k,:));
 				if (~exitType)
-					line('XData',x, 'YData',y, 'Parent',hMirHand.axes1, 'LineWidth',hMirHand.DefLineThick, ...
+					h = line('XData',x, 'YData',y, 'Parent',hMirHand.axes1, 'LineWidth',hMirHand.DefLineThick, ...
 						'Color',hMirHand.DefLineColor, 'userdata',z, 'Tag','SSTfront');
+                    draw_funs(h,'line_uicontext')		% Set lines's uicontextmenu
 					%rectX = [subWinX0 subWinX0 subWinX1 subWinX1 subWinX0];
 					%rectY = [subWinY0 subWinY1 subWinY1 subWinY0 subWinY0];
 					%hl = line('XData',rectX, 'YData',rectY, 'Parent',hMirHand.axes1);
@@ -259,7 +261,11 @@ function [xdata, ydata, z, exitType] = getFrontInWindow(w, head, minTheta, minPo
 		if (haveNaNs)
 			w(w == 0) = NaN;
 		end
-		c = contourc(X,Y,w,[thresValue thresValue]);
+		if (~all(all(isnan(w))))    % Sometimes w is all NaNs, which would screw later.
+			c = contourc(X,Y,w,[thresValue thresValue]);
+		else
+			c = [];
+		end
 	end
 	limit = size(c,2);
 	i = 1;
