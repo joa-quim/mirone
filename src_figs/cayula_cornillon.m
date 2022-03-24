@@ -40,8 +40,8 @@ function cayula_cornillon(varargin)
 		head(2) = head(1) + (r_c(4)-1)*head(8);			head(1) = head(1) + (r_c(3)-1)*head(8);
 		head(4) = head(3) + (r_c(2)-1)*head(9);			head(3) = head(3) + (r_c(1)-1)*head(9);
 
-		[x, y, z, exitType] = getFrontInWindow(w, head, minTheta, minPopProp, minPopMeanDiff, ...
-											 minSinglePopCohesion, minGlobalPopCohesion);
+		[x, y, z, exitType] = getFrontInWindow(double(w), head, minTheta, minPopProp, minPopMeanDiff, ...
+		                                       minSinglePopCohesion, minGlobalPopCohesion);
 		if (~exitType)
 			h = line('XData',x, 'YData',y, 'Parent',hMirHand.axes1, 'LineWidth',hMirHand.DefLineThick, ...
 				'Color',hMirHand.DefLineColor, 'userdata',z,'Tag','SSTfront');
