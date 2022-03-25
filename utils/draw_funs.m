@@ -695,8 +695,10 @@ function seismic_line(obj, evt, hL, opt)
 		set(get(h,'Title'), 'String', 'Time vs distance (km)');
 		h = subplot(2,2,2);		plot(rd, evt_dep, '.'),		set(h,'ylim',[min(evt_dep) max(evt_dep)+0.01],'xlim',[rd(1) rd(end)]);
 		set(get(h,'Title'), 'String', 'Depth (km) vs distance (km)');
-		h = subplot(2,2,3);		histo_m('hist', rd, 0:25:rd(end), [0 rd(end)]);
-		set(get(h,'Title'), 'String', 'Histogram with 25 km bins');
+		inc = 25;	% Oroginal value. Keep it for backward compat.
+		if (rd(end) < 250),	inc = rd(end) / 21;	end
+		h = subplot(2,2,3);		histo_m('hist', rd, 0:inc:rd(end), [0 rd(end)]);
+		set(get(h,'Title'), 'String', sprintf('Histogram with %.4g km bins', inc));
 		h = subplot(2,2,4);		plot(rd, evt_mag, '.'),		set(h,'ylim',[min(evt_mag) max(evt_mag)],'xlim',[rd(1) rd(end)]);
 		set(get(h,'Title'), 'String', 'Magnitude vs distance (km)');
 	end
