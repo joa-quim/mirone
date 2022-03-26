@@ -1978,7 +1978,16 @@ function AnalysisFFT_PSD_CB(hObject, handles)
 function [x, y] = get_inside_rect(handles)
 % Gets the (x,y) data from the plot line and checks if a BB rectangle exists.
 % If yes, clips data inside rectangle.
-	x = get(handles.hLine(1),'XData');		y = get(handles.hLine(1),'YData');
+	if (isempty(handles.hLine))			% Happens when we created an histogram from "outside". E.g. in hist_seis.m
+		hP = findobj(handles.axes1, 'Tag', 'Histogram');
+		if (~isempty(hP))
+			x = get(hP,'XData');		y = get(hP,'YData');
+		else
+			errordlg('Neither a line nor an histogram was found.', 'Error')
+		end
+	else
+		x = get(handles.hLine(1),'XData');		y = get(handles.hLine(1),'YData');
+	end
 	if (~isempty(handles.hRect) && ishandle(handles.hRect))		% Find the points inside rectangle
 		xRect = get(handles.hRect, 'XData');
 		id = find(x >= xRect(1) & x <= xRect(4));
