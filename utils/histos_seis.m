@@ -166,7 +166,7 @@ function [evt_t, evt_x] = merge_classes(evt_t, evt_x)
 	end
 
 % -------------------------------------------------------------------------------
-function call_ecran(evt_t, evt_x, is_hist, title, lab_x, lab_y, isHist, PV)
+function call_ecran(evt_t, evt_x, is_hist, title, lab_x, lab_y, PV)
 % Call the ecran figure and set the xx axes as time
 	Y = fix(evt_t);
 	dec = (evt_t - Y);
