@@ -287,7 +287,7 @@ function [ncfiles,lat,lon,t] = argofiles(latlim,lonlim,tlim,basin)
 			ind = t >= dn(1) & t <= dn(end) & inpoly;
 
 			% Log any matching filenames:
-			ncfiles(length(ncfiles)+1:length(ncfiles)+sum(ind),1) = strcat('https://data.ncei.noaa.gov/argo/gadr/',file_urls(ind));
+			ncfiles(length(ncfiles)+1:length(ncfiles)+sum(ind),1) = strcat('https://www.ncei.noaa.gov/data/oceans/argo/gadr/',file_urls(ind));
 
 			% Write geo coordinate and time arrays only if user wants them
 			if (nargout > 1)
