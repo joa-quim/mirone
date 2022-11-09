@@ -16,6 +16,7 @@ function [F, row, col] = bi_linear(arg1,arg2,arg3,arg4,arg5, layer)
 %   Clay M. Thompson 3-22-93.
 
 	if (isempty(arg1)),		F=NaN;row=0;col=0;	return,		end
+	if (nargin < 6),  layer = 0; end
 	[nrows,ncols,nlayers] = size(arg3);
 	if (layer+1 > nlayers),	error('Requested layer number is larger then available layers'),	end
 	mx = numel(arg1);		my = numel(arg2);
