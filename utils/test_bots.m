@@ -306,7 +306,7 @@ function gmtlist
 function implant
 % ...
 	[Z, hdrStruct] = gen_UMF2d(1.8, 0.05, 0.9, 1000);		% Pretend it's geogs
-	Zf = c_grdfilter(Z,hdrStruct.head,'-Fb20','-D1');		% Filter boxcar 20 km
+	Zf = c_grdfilter(Z,hdrStruct.head,'-Fb20','-D1', '-fg');		% Filter boxcar 20 km
 	hand1.Z = Zf(1:5:end, 1:5:end);
 
  	X = 1:5:1000; 	Y = 1:5:1000;
