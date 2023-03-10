@@ -115,8 +115,8 @@ function out = gmtedit(varargin)
 	hA = findall(hFig);
 	hh = findobj(hA,'Tooltip','Open File');			openFile_img = get(hh(1),'CData');
 	hh = findobj(hA,'Tooltip','Save Figure');		saveFile_img = get(hh(1),'CData');
-	hh = findobj(hA,'Tooltip','Zoom In');			zoomIn_img   = get(hh(1),'CData');
-	hh = findobj(hA,'Tooltip','Zoom Out');			zoomOut_img  = get(hh(1),'CData');
+	hh = findobj(hA,'Tooltip','Zoom In');			if ~isempty(hh), zoomIn_img  = get(hh(1),'CData');	else, zoomIn_img  = [];	end
+	hh = findobj(hA,'Tooltip','Zoom Out');			if ~isempty(hh), zoomOut_img = get(hh(1),'CData');	else, zoomOut_img = [];	end
 	set(hFig,'menubar','none','units','pixel')		% Set the menubar to none
 
 	handles = guihandles(hFig);
@@ -147,8 +147,8 @@ function out = gmtedit(varargin)
 	           'Tooltip','Rectangular region','Sep','on');
 	s.rectang_ico(7:10,8,:) = 0;
 	uipushtool('parent',h_toolbar,'Click',@rectangMove_clickedCB,'cdata',s.rectang_ico,'Tooltip','Select for moving');
-	uipushtool('parent',h_toolbar,'Click',{@changeScale_clickedCB,'inc'}, 'cdata',zoomIn_img,'Tooltip','Increase scale','Sep','on');
-	uipushtool('parent',h_toolbar,'Click',{@changeScale_clickedCB,'dec'}, 'cdata',zoomOut_img,'Tooltip','Decrease scale');
+	if ~isempty(zoomIn_img), uipushtool('parent',h_toolbar,'Click',{@changeScale_clickedCB,'inc'}, 'cdata',zoomIn_img,'Tooltip','Increase scale','Sep','on'); end
+	if ~isempty(zoomOut_img), uipushtool('parent',h_toolbar,'Click',{@changeScale_clickedCB,'dec'}, 'cdata',zoomOut_img,'Tooltip','Decrease scale');	end
 	uipushtool('parent',h_toolbar,'Click',@outliers_clickedCB, 'cdata',s.trincha_ico,'Tooltip','Outliers detector','Sep','on');
 	if (~is_gmt)				% Not an old .gmt file
 		uipushtool('parent',h_toolbar,'Click',{@NavFilters_ClickedCB,f_name}, ...
