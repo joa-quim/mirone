@@ -186,6 +186,9 @@ grdgradient_m:
 grdtrack_m:
 		$(MEX) grdtrack_m.c
 		$(LINKA) grdtrack_m.o $(GDAL_LIB) $(MEXLIB) -o grdtrack_m.$(MEX_EXT)
+gmtlist_m$:
+		$(MEX) gmtlist_m .c
+		$(LINKA) gmtlist_m.o $(MEXLIB) -o gmtlist_m.$(MEX_EXT)
 gmtmbgrid_m:
 		$(MEX) gmtmbgrid_m.c
 		$(LINKA) gmtmbgrid_m.o $(GDAL_LIB) $(MEXLIB) -o gmtmbgrid_m.$(MEX_EXT)
