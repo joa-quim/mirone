@@ -436,7 +436,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	GDALTransformerInfo *psInfo = (GDALTransformerInfo*)hTransformArg;
 
 	/* -------------------------------------------------------------------------- */
-	/*      Get approximate output georeferenced bounds and resolution for file
+	/*      Get approximate output georeferenced bounds and resolution for file   */
 	/* -------------------------------------------------------------------------- */
 	if (GDALSuggestedWarpOutput2(hSrcDS, GDALGenImgProjTransform, hTransformArg, 
 	                             adfDstGeoTransform, &nPixels, &nLines, adfExtent,
