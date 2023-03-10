@@ -216,7 +216,7 @@ function grdfilter
 	handles = guidata(h);
 	[X,Y,Z,head] = load_grd(handles);
 	hf = grdfilter_mir(handles);
-	Z = c_grdfilter(Z, head, '-Fb20k', '-D1');	%#ok
+	Z = c_grdfilter(Z, head, '-Fb20k', '-D1', '-fg');	%#ok
 	pause(0.3);		delete(h);		delete(hf)
 
 % ----------------------------
