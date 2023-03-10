@@ -70,7 +70,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 			mexPrintf("%s",pszSrcWKT);
 
 		/*OGRSpatialReference::DestroySpatialReference ( &oSrcSRS );*/
-		OGRFree(pszSrcWKT);
+		CPLFree(pszSrcWKT);
 		free((void *)pszSrcSRS);
 		return;
 	}
@@ -227,8 +227,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 	OGRCoordinateTransformation::DestroyCT(poCT);
 	/*OGRSpatialReference::DestroySpatialReference ( &oSrcSRS );
 	OGRSpatialReference::DestroySpatialReference ( &oDstSRS );*/
-	if (pszSrcWKT && strlen(pszSrcWKT) > 1) OGRFree(pszSrcWKT);
-	if (pszDstWKT && strlen(pszDstWKT) > 1) OGRFree(pszDstWKT);
+	if (pszSrcWKT && strlen(pszSrcWKT) > 1) CPLFree(pszSrcWKT);
+	if (pszDstWKT && strlen(pszDstWKT) > 1) CPLFree(pszDstWKT);
 	if (pszSrcWKT && strlen(pszSrcWKT) > 1) free((void *)pszSrcWKT);
 	if (pszDstWKT && strlen(pszDstWKT) > 1) free((void *)pszDstWKT);
 
