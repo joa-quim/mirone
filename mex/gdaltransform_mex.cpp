@@ -299,8 +299,8 @@ DEBUGA(6);
 	mxFree((void *)z);
 
 
-	if (pszDstWKT && strlen(pszDstWKT) > 1 ) OGRFree(pszDstWKT);	
-	if (pszSrcWKT && strlen(pszSrcWKT) > 1 ) OGRFree(pszSrcWKT);
+	if (pszDstWKT && strlen(pszDstWKT) > 1 ) CPLFree(pszDstWKT);	
+	if (pszSrcWKT && strlen(pszSrcWKT) > 1 ) CPLFree(pszSrcWKT);
 	//OGRFree(pszSrcWKT);
 	//OGRFree(pszDstWKT);
 	if (nGCPCount > 0) {

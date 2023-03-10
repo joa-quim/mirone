@@ -769,12 +769,12 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 		plhs[1] = populate_metadata_struct(hDstDS, 1);
 
 	/*GDALDestroyDriverManager();
-	OGRFree(pszDstWKT);*/
+	CPLFree(pszDstWKT);*/
 	GDALClose(hDstDS);
 	CSLDestroy(papszWarpOptions);
 	GDALDestroyDriverManager();
-	if (pszDstWKT && strlen(pszDstWKT) > 1) OGRFree(pszDstWKT);	
-	if (pszSrcWKT && strlen(pszSrcWKT) > 1) OGRFree(pszSrcWKT);
+	if (pszDstWKT && strlen(pszDstWKT) > 1) CPLFree(pszDstWKT);	
+	if (pszSrcWKT && strlen(pszSrcWKT) > 1) CPLFree(pszSrcWKT);
 }
 	
 /* ---------------------------------------------------------------------- */
