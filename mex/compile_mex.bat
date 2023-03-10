@@ -27,10 +27,10 @@ SET CC=cl
 REM --------------------------------------------------------------------------------------
 
 REM If set to "yes", linkage is done againsts ML6.5 Libs (needed in compiled version)
-SET R13="no"
+SET R13="yes"
 
 REM Set it to 32 or 64 to build under 64-bits or 32-bits respectively.
-SET BITS=64
+SET BITS=32
 
 REM Set to "yes" if you want to build a debug version
 SET DEBUG="no"

@@ -291,6 +291,7 @@ int interpret_char_parameter ( const mxArray *mx ) {
 		{ NC_LONG,                    "LONG"                    }, 
 		{ NC_NAT,                     "NAT"                     }, 
 		{ NC_SHORT,                   "SHORT"                   }, 
+		{ NC_USHORT,                  "USHORT"                  }, 
 		{ NC_UBYTE,                   "UBYTE"                   }, 
 
 		/*
@@ -509,6 +510,7 @@ void set_output_matrix_rank
         case GET_VAR_FLOAT:
         case GET_VAR_INT:
         case GET_VAR_SHORT:
+        case GET_VAR_USHORT:
         case GET_VAR_SCHAR:
         case GET_VAR_UCHAR:
         case GET_VAR_TEXT:
@@ -530,6 +532,7 @@ void set_output_matrix_rank
         case GET_VAR1_FLOAT:
         case GET_VAR1_INT:
         case GET_VAR1_SHORT:
+        case GET_VAR1_USHORT:
         case GET_VAR1_SCHAR:
         case GET_VAR1_UCHAR:
         case GET_VAR1_TEXT:
@@ -542,6 +545,7 @@ void set_output_matrix_rank
         case GET_VARA_FLOAT:
         case GET_VARA_INT:
         case GET_VARA_SHORT:
+        case GET_VARA_USHORT:
         case GET_VARA_SCHAR:
         case GET_VARA_UCHAR:
         case GET_VARA_TEXT:
@@ -549,6 +553,7 @@ void set_output_matrix_rank
         case GET_VARS_FLOAT:
         case GET_VARS_INT:
         case GET_VARS_SHORT:
+        case GET_VARS_USHORT:
         case GET_VARS_SCHAR:
         case GET_VARS_UCHAR:
         case GET_VARS_TEXT:
@@ -656,6 +661,8 @@ nc_type unpackDataType ( const mxArray *mx ) {
 		return ( NC_CHAR );
 	} else if ( strcmp ( p, "SHORT" ) == 0 ) {
 		return ( NC_SHORT );
+	} else if ( strcmp ( p, "USHORT" ) == 0 ) {
+		return ( NC_USHORT );
 	} else if ( strcmp ( p, "INT" ) == 0 ) {
 		return ( NC_INT );
 	} else if ( strcmp ( p, "LONG" ) == 0 ) {

@@ -156,6 +156,7 @@ void mexFunction ( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[] ) 
         case GET_ATT_FLOAT:
         case GET_ATT_INT:
         case GET_ATT_SHORT:
+        case GET_ATT_USHORT:
         case GET_ATT_SCHAR:
         case GET_ATT_UCHAR:
         case GET_ATT_TEXT:
@@ -166,6 +167,7 @@ void mexFunction ( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[] ) 
         case GET_VAR_FLOAT:
         case GET_VAR_INT:
         case GET_VAR_SHORT:
+        case GET_VAR_USHORT:
         case GET_VAR_SCHAR:
         case GET_VAR_UCHAR:
         case GET_VAR_TEXT:
@@ -173,6 +175,7 @@ void mexFunction ( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[] ) 
         case GET_VAR1_FLOAT:
         case GET_VAR1_INT:
         case GET_VAR1_SHORT:
+        case GET_VAR1_USHORT:
         case GET_VAR1_SCHAR:
         case GET_VAR1_UCHAR:
         case GET_VAR1_TEXT:
@@ -180,6 +183,7 @@ void mexFunction ( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[] ) 
         case GET_VARA_FLOAT:
         case GET_VARA_INT:
         case GET_VARA_SHORT:
+        case GET_VARA_USHORT:
         case GET_VARA_SCHAR:
         case GET_VARA_UCHAR:
         case GET_VARA_TEXT:
@@ -187,6 +191,7 @@ void mexFunction ( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[] ) 
         case GET_VARS_FLOAT:
         case GET_VARS_INT:
         case GET_VARS_SHORT:
+        case GET_VARS_USHORT:
         case GET_VARS_SCHAR:
         case GET_VARS_UCHAR:
         case GET_VARS_TEXT:
@@ -197,6 +202,7 @@ void mexFunction ( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[] ) 
         case GET_VARM_FLOAT:
         case GET_VARM_INT:
         case GET_VARM_SHORT:
+        case GET_VARM_USHORT:
         case GET_VARM_SCHAR:
         case GET_VARM_UCHAR:
         case GET_VARM_TEXT:
@@ -311,6 +317,7 @@ void mexFunction ( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[] ) 
         case PUT_ATT_FLOAT:
         case PUT_ATT_INT:
         case PUT_ATT_SHORT:
+        case PUT_ATT_USHORT:
         case PUT_ATT_SCHAR:
         case PUT_ATT_UCHAR:
         case PUT_ATT_TEXT:
@@ -321,6 +328,7 @@ void mexFunction ( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[] ) 
         case PUT_VAR_FLOAT:
         case PUT_VAR_INT:
         case PUT_VAR_SHORT:
+        case PUT_VAR_USHORT:
         case PUT_VAR_SCHAR:
         case PUT_VAR_UCHAR:
         case PUT_VAR_TEXT:
@@ -328,6 +336,7 @@ void mexFunction ( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[] ) 
         case PUT_VAR1_FLOAT:
         case PUT_VAR1_INT:
         case PUT_VAR1_SHORT:
+        case PUT_VAR1_USHORT:
         case PUT_VAR1_SCHAR:
         case PUT_VAR1_UCHAR:
         case PUT_VAR1_TEXT:
@@ -335,6 +344,7 @@ void mexFunction ( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[] ) 
         case PUT_VARA_FLOAT:
         case PUT_VARA_INT:
         case PUT_VARA_SHORT:
+        case PUT_VARA_USHORT:
         case PUT_VARA_SCHAR:
         case PUT_VARA_UCHAR:
         case PUT_VARA_TEXT:
@@ -342,6 +352,7 @@ void mexFunction ( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[] ) 
         case PUT_VARS_FLOAT:
         case PUT_VARS_INT:
         case PUT_VARS_SHORT:
+        case PUT_VARS_USHORT:
         case PUT_VARS_SCHAR:
         case PUT_VARS_UCHAR:
         case PUT_VARS_TEXT:
@@ -352,6 +363,7 @@ void mexFunction ( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[] ) 
         case PUT_VARM_FLOAT:
         case PUT_VARM_INT:
         case PUT_VARM_SHORT:
+        case PUT_VARM_USHORT:
         case PUT_VARM_SCHAR:
         case PUT_VARM_UCHAR:
         case PUT_VARM_TEXT:
@@ -438,6 +450,7 @@ op *opname2opcode ( const char *opname, int nlhs, int nrhs ) {
 		{ GET_ATT_FLOAT,    "get_att_float",    4, 2 }, 
 		{ GET_ATT_INT,      "get_att_int",      4, 2 }, 
 		{ GET_ATT_SHORT,    "get_att_short",    4, 2 }, 
+		{ GET_ATT_USHORT,   "get_att_ushort",   4, 2 }, 
 		{ GET_ATT_SCHAR,    "get_att_schar",    4, 2 }, 
 		{ GET_ATT_UCHAR,    "get_att_uchar",    4, 2 }, 
 		{ GET_ATT_TEXT,     "get_att_text",     4, 2 }, 
@@ -446,6 +459,7 @@ op *opname2opcode ( const char *opname, int nlhs, int nrhs ) {
 		{ GET_VAR_FLOAT,    "get_var_float",    3, 2 }, 
 		{ GET_VAR_INT,      "get_var_int",      3, 2 }, 
 		{ GET_VAR_SHORT,    "get_var_short",    3, 2 }, 
+		{ GET_VAR_USHORT,   "get_var_ushort",   3, 2 }, 
 		{ GET_VAR_SCHAR,    "get_var_schar",    3, 2 }, 
 		{ GET_VAR_UCHAR,    "get_var_uchar",    3, 2 }, 
 		{ GET_VAR_TEXT,     "get_var_text",     3, 2 }, 
@@ -453,6 +467,7 @@ op *opname2opcode ( const char *opname, int nlhs, int nrhs ) {
 		{ GET_VAR1_FLOAT,   "get_var1_float",   4, 2 }, 
 		{ GET_VAR1_INT,     "get_var1_int",     4, 2 }, 
 		{ GET_VAR1_SHORT,   "get_var1_short",   4, 2 }, 
+		{ GET_VAR1_USHORT,  "get_var1_ushort",  4, 2 }, 
 		{ GET_VAR1_SCHAR,   "get_var1_schar",   4, 2 }, 
 		{ GET_VAR1_UCHAR,   "get_var1_uchar",   4, 2 }, 
 		{ GET_VAR1_TEXT,    "get_var1_text",    4, 2 }, 
@@ -460,6 +475,7 @@ op *opname2opcode ( const char *opname, int nlhs, int nrhs ) {
 		{ GET_VARA_FLOAT,   "get_vara_float",   5, 2 }, 
 		{ GET_VARA_INT,     "get_vara_int",     5, 2 }, 
 		{ GET_VARA_SHORT,   "get_vara_short",   5, 2 }, 
+		{ GET_VARA_USHORT,  "get_vara_ushort",  5, 2 }, 
 		{ GET_VARA_SCHAR,   "get_vara_schar",   5, 2 }, 
 		{ GET_VARA_UCHAR,   "get_vara_uchar",   5, 2 }, 
 		{ GET_VARA_TEXT,    "get_vara_text",    5, 2 }, 
@@ -467,6 +483,7 @@ op *opname2opcode ( const char *opname, int nlhs, int nrhs ) {
 		{ GET_VARS_FLOAT,   "get_vars_float",   6, 2 }, 
 		{ GET_VARS_INT,     "get_vars_int",     6, 2 }, 
 		{ GET_VARS_SHORT,   "get_vars_short",   6, 2 }, 
+		{ GET_VARS_USHORT,  "get_vars_ushort",  6, 2 }, 
 		{ GET_VARS_SCHAR,   "get_vars_schar",   6, 2 }, 
 		{ GET_VARS_UCHAR,   "get_vars_uchar",   6, 2 }, 
 		{ GET_VARS_TEXT,    "get_vars_text",    6, 2 }, 
@@ -474,6 +491,7 @@ op *opname2opcode ( const char *opname, int nlhs, int nrhs ) {
 		{ GET_VARM_FLOAT,   "get_varm_float",   7, 2 }, 
 		{ GET_VARM_INT,     "get_varm_int",     7, 2 }, 
 		{ GET_VARM_SHORT,   "get_varm_short",   7, 2 }, 
+		{ GET_VARM_USHORT,  "get_varm_ushort",  7, 2 }, 
 		{ GET_VARM_SCHAR,   "get_varm_schar",   7, 2 }, 
 		{ GET_VARM_UCHAR,   "get_varm_uchar",   7, 2 }, 
 		{ GET_VARM_TEXT,    "get_varm_text",    7, 2 }, 
@@ -507,6 +525,7 @@ op *opname2opcode ( const char *opname, int nlhs, int nrhs ) {
 		{ PUT_ATT_FLOAT,    "put_att_float",    7, 1 }, 
 		{ PUT_ATT_INT,      "put_att_int",      7, 1 }, 
 		{ PUT_ATT_SHORT,    "put_att_short",    7, 1 }, 
+		{ PUT_ATT_USHORT,   "put_att_ushort",   7, 1 }, 
 		{ PUT_ATT_SCHAR,    "put_att_schar",    7, 1 }, 
 		{ PUT_ATT_UCHAR,    "put_att_uchar",    7, 1 }, 
 		{ PUT_ATT_TEXT,     "put_att_text",     7, 1 }, 
@@ -514,6 +533,7 @@ op *opname2opcode ( const char *opname, int nlhs, int nrhs ) {
 		{ PUT_VAR_FLOAT,    "put_var_float",    4, 1 }, 
 		{ PUT_VAR_INT,      "put_var_int",      4, 1 }, 
 		{ PUT_VAR_SHORT,    "put_var_short",    4, 1 }, 
+		{ PUT_VAR_USHORT,   "put_var_ushort",   4, 1 }, 
 		{ PUT_VAR_SCHAR,    "put_var_schar",    4, 1 }, 
 		{ PUT_VAR_UCHAR,    "put_var_uchar",    4, 1 }, 
 		{ PUT_VAR_TEXT,     "put_var_text",     4, 1 }, 
@@ -521,6 +541,7 @@ op *opname2opcode ( const char *opname, int nlhs, int nrhs ) {
 		{ PUT_VARA_FLOAT,   "put_vara_float",   6, 1 }, 
 		{ PUT_VARA_INT,     "put_vara_int",     6, 1 }, 
 		{ PUT_VARA_SHORT,   "put_vara_short",   6, 1 }, 
+		{ PUT_VARA_USHORT,  "put_vara_ushort",  6, 1 }, 
 		{ PUT_VARA_SCHAR,   "put_vara_schar",   6, 1 }, 
 		{ PUT_VARA_UCHAR,   "put_vara_uchar",   6, 1 }, 
 		{ PUT_VARA_TEXT,    "put_vara_text",    6, 1 }, 
@@ -528,6 +549,7 @@ op *opname2opcode ( const char *opname, int nlhs, int nrhs ) {
 		{ PUT_VARS_FLOAT,   "put_vars_float",   7, 1 }, 
 		{ PUT_VARS_INT,     "put_vars_int",     7, 1 }, 
 		{ PUT_VARS_SHORT,   "put_vars_short",   7, 1 }, 
+		{ PUT_VARS_USHORT,  "put_vars_ushort",  7, 1 }, 
 		{ PUT_VARS_SCHAR,   "put_vars_schar",   7, 1 }, 
 		{ PUT_VARS_UCHAR,   "put_vars_uchar",   7, 1 }, 
 		{ PUT_VARS_TEXT,    "put_vars_text",    7, 1 }, 
@@ -535,6 +557,7 @@ op *opname2opcode ( const char *opname, int nlhs, int nrhs ) {
 		{ PUT_VARM_FLOAT,   "put_varm_float",   8, 1 }, 
 		{ PUT_VARM_INT,     "put_varm_int",     8, 1 }, 
 		{ PUT_VARM_SHORT,   "put_varm_short",   8, 1 }, 
+		{ PUT_VARM_USHORT,  "put_varm_ushort",  8, 1 }, 
 		{ PUT_VARM_SCHAR,   "put_varm_schar",   8, 1 }, 
 		{ PUT_VARM_UCHAR,   "put_varm_uchar",   8, 1 }, 
 		{ PUT_VARM_TEXT,    "put_varm_text",    8, 1 }, 
@@ -542,6 +565,7 @@ op *opname2opcode ( const char *opname, int nlhs, int nrhs ) {
 		{ PUT_VAR1_FLOAT,   "put_var1_float",   5, 1 }, 
 		{ PUT_VAR1_INT,     "put_var1_int",     5, 1 }, 
 		{ PUT_VAR1_SHORT,   "put_var1_short",   5, 1 }, 
+		{ PUT_VAR1_USHORT,  "put_var1_ushort",  5, 1 }, 
 		{ PUT_VAR1_SCHAR,   "put_var1_schar",   5, 1 }, 
 		{ PUT_VAR1_UCHAR,   "put_var1_uchar",   5, 1 }, 
 		{ PUT_VAR1_TEXT,    "put_var1_text",    5, 1 }, 

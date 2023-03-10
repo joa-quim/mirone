@@ -1151,6 +1151,14 @@ void handle_nc_get_att ( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prh
             break;
 
 
+        case GET_ATT_USHORT:
+            plhs[0] = mxCreateNumericArray ( 2, mxsize, mxUINT16_CLASS, mxREAL );
+            pr = mxGetData ( plhs[0] );
+            status = nc_get_att_ushort ( ncid, varid, attname, (void *)pr );
+            plhs[1] = mexncCreateDoubleScalar ( status );
+            break;
+
+
         case GET_ATT_SCHAR:
             plhs[0] = mxCreateNumericArray ( 2, mxsize, mxINT8_CLASS, mxREAL );
             pr = mxGetData ( plhs[0] );
@@ -1324,6 +1332,7 @@ void handle_nc_get_var_x ( int nlhs, mxArray *plhs[], int nrhs, const mxArray *p
         case GET_VAR_FLOAT:
         case GET_VAR_INT:
         case GET_VAR_SHORT:
+        case GET_VAR_USHORT:
         case GET_VAR_SCHAR:
         case GET_VAR_UCHAR:
         case GET_VAR_TEXT:
@@ -1333,6 +1342,7 @@ void handle_nc_get_var_x ( int nlhs, mxArray *plhs[], int nrhs, const mxArray *p
         case GET_VAR1_FLOAT:
         case GET_VAR1_INT:
         case GET_VAR1_SHORT:
+        case GET_VAR1_USHORT:
         case GET_VAR1_SCHAR:
         case GET_VAR1_UCHAR:
         case GET_VAR1_TEXT:
@@ -1344,6 +1354,7 @@ void handle_nc_get_var_x ( int nlhs, mxArray *plhs[], int nrhs, const mxArray *p
         case GET_VARA_FLOAT:
         case GET_VARA_INT:
         case GET_VARA_SHORT:
+        case GET_VARA_USHORT:
         case GET_VARA_SCHAR:
         case GET_VARA_UCHAR:
         case GET_VARA_TEXT:
@@ -1357,6 +1368,7 @@ void handle_nc_get_var_x ( int nlhs, mxArray *plhs[], int nrhs, const mxArray *p
         case GET_VARS_FLOAT:
         case GET_VARS_INT:
         case GET_VARS_SHORT:
+        case GET_VARS_USHORT:
         case GET_VARS_SCHAR:
         case GET_VARS_UCHAR:
         case GET_VARS_TEXT:
@@ -1436,6 +1448,12 @@ void handle_nc_get_var_x ( int nlhs, mxArray *plhs[], int nrhs, const mxArray *p
             status = nc_get_var_short ( ncid, varid, (short int *)pr );
             break;
 
+        case GET_VAR_USHORT:
+            plhs[0] = mxCreateNumericArray ( num_mat_dims, mx_size, mxUINT16_CLASS, mxREAL );
+            pr = mxGetData ( plhs[0] );
+            status = nc_get_var_ushort ( ncid, varid, (unsigned short int *)pr );
+            break;
+
         case GET_VAR_SCHAR:
             plhs[0] = mxCreateNumericArray ( num_mat_dims, mx_size, mxINT8_CLASS, mxREAL );
             pr = mxGetData ( plhs[0] );
@@ -1496,6 +1514,12 @@ void handle_nc_get_var_x ( int nlhs, mxArray *plhs[], int nrhs, const mxArray *p
             status = nc_get_var1_short ( ncid, varid, nc_start_coord, (short int *)pr );
             break;
 
+        case GET_VAR1_USHORT:
+            plhs[0] = mxCreateNumericArray ( 1, mx_size, mxUINT16_CLASS, mxREAL );
+            pr = mxGetData ( plhs[0] );
+            status = nc_get_var1_ushort ( ncid, varid, nc_start_coord, (unsigned short int *)pr );
+            break;
+
         case GET_VAR1_SCHAR:
             plhs[0] = mxCreateNumericArray ( 1, mx_size, mxINT8_CLASS, mxREAL );
             pr = mxGetData ( plhs[0] );
@@ -1542,6 +1566,12 @@ void handle_nc_get_var_x ( int nlhs, mxArray *plhs[], int nrhs, const mxArray *p
             plhs[0] = mxCreateNumericArray ( num_mat_dims, mx_size, mxINT16_CLASS, mxREAL );
             pr = mxGetData ( plhs[0] );
             status = nc_get_vara_short ( ncid, varid, nc_start_coord, nc_count_coord, (short int *)pr );
+            break;
+
+        case GET_VARA_USHORT:
+            plhs[0] = mxCreateNumericArray ( num_mat_dims, mx_size, mxUINT16_CLASS, mxREAL );
+            pr = mxGetData ( plhs[0] );
+            status = nc_get_vara_ushort ( ncid, varid, nc_start_coord, nc_count_coord, (unsigned short int *)pr );
             break;
 
         case GET_VARA_SCHAR:
@@ -1603,6 +1633,12 @@ void handle_nc_get_var_x ( int nlhs, mxArray *plhs[], int nrhs, const mxArray *p
             plhs[0] = mxCreateNumericArray ( num_mat_dims, mx_size, mxINT16_CLASS, mxREAL );
             pr = mxGetData ( plhs[0] );
             status = nc_get_vars_short ( ncid, varid, nc_start_coord, nc_count_coord, nc_stride_coord, (short int *)pr );
+            break;
+
+        case GET_VARS_USHORT:
+            plhs[0] = mxCreateNumericArray ( num_mat_dims, mx_size, mxUINT16_CLASS, mxREAL );
+            pr = mxGetData ( plhs[0] );
+            status = nc_get_vars_ushort ( ncid, varid, nc_start_coord, nc_count_coord, nc_stride_coord, (unsigned short int *)pr );
             break;
 
         case GET_VARS_SCHAR:
@@ -1870,6 +1906,13 @@ void handle_nc_get_varm_x ( int nlhs, mxArray *plhs[], int nrhs, const mxArray *
                     nc_start_coord, nc_count_coord, nc_stride_coord, nc_imap_coord, (short int *)pr );
             break;
 
+        case GET_VARM_USHORT:
+            plhs[0] = mxCreateNumericArray ( ndims, mx_result_size, mxUINT16_CLASS, mxREAL );
+            pr = mxGetData ( plhs[0] );
+            status = nc_get_varm_ushort ( ncid, varid, 
+                    nc_start_coord, nc_count_coord, nc_stride_coord, nc_imap_coord, (unsigned short int *)pr );
+            break;
+
         case GET_VARM_SCHAR:
             plhs[0] = mxCreateNumericArray ( ndims, mx_result_size, mxINT8_CLASS, mxREAL );
             pr = mxGetData ( plhs[0] );
@@ -2036,6 +2079,11 @@ void handle_nc_put_att   ( int nlhs, mxArray *plhs[], int nrhs, const mxArray *p
             status = nc_put_att_short ( ncid, varid, name, datatype, att_len, (short int *)pr );
             break;
 
+        case PUT_ATT_USHORT:
+            pr = mxGetData ( prhs[6] );
+            status = nc_put_att_ushort ( ncid, varid, name, datatype, att_len, (unsigned short int *)pr );
+            break;
+
         case PUT_ATT_SCHAR:
             pr = mxGetData ( prhs[6] );
             status = nc_put_att_schar ( ncid, varid, name, datatype, att_len, (signed char *)pr );
@@ -2157,6 +2205,7 @@ void handle_nc_put_var_x ( int nlhs, mxArray *plhs[], int nrhs, const mxArray *p
         case PUT_VAR_FLOAT:
         case PUT_VAR_INT:
         case PUT_VAR_SHORT:
+        case PUT_VAR_USHORT:
         case PUT_VAR_SCHAR:
         case PUT_VAR_UCHAR:
         case PUT_VAR_TEXT:
@@ -2167,6 +2216,7 @@ void handle_nc_put_var_x ( int nlhs, mxArray *plhs[], int nrhs, const mxArray *p
         case PUT_VAR1_FLOAT:
         case PUT_VAR1_INT:
         case PUT_VAR1_SHORT:
+        case PUT_VAR1_USHORT:
         case PUT_VAR1_SCHAR:
         case PUT_VAR1_UCHAR:
         case PUT_VAR1_TEXT:
@@ -2179,6 +2229,7 @@ void handle_nc_put_var_x ( int nlhs, mxArray *plhs[], int nrhs, const mxArray *p
         case PUT_VARA_FLOAT:
         case PUT_VARA_INT:
         case PUT_VARA_SHORT:
+        case PUT_VARA_USHORT:
         case PUT_VARA_SCHAR:
         case PUT_VARA_UCHAR:
         case PUT_VARA_TEXT:
@@ -2193,6 +2244,7 @@ void handle_nc_put_var_x ( int nlhs, mxArray *plhs[], int nrhs, const mxArray *p
         case PUT_VARS_FLOAT:
         case PUT_VARS_INT:
         case PUT_VARS_SHORT:
+        case PUT_VARS_USHORT:
         case PUT_VARS_SCHAR:
         case PUT_VARS_UCHAR:
         case PUT_VARS_TEXT:
@@ -2233,6 +2285,10 @@ void handle_nc_put_var_x ( int nlhs, mxArray *plhs[], int nrhs, const mxArray *p
             status = nc_put_var_short ( ncid, varid, (short int *)data_buffer );
             break;
 
+        case PUT_VAR_USHORT:
+            status = nc_put_var_ushort ( ncid, varid, (unsigned short int *)data_buffer );
+            break;
+
         case PUT_VAR_SCHAR:
             status = nc_put_var_schar ( ncid, varid, (signed char *)data_buffer );
             break;
@@ -2265,6 +2321,10 @@ void handle_nc_put_var_x ( int nlhs, mxArray *plhs[], int nrhs, const mxArray *p
 
         case PUT_VAR1_SHORT:
             status = nc_put_var1_short ( ncid, varid, nc_start_coord, (short int *)data_buffer );
+            break;
+
+        case PUT_VAR1_USHORT:
+            status = nc_put_var1_ushort ( ncid, varid, nc_start_coord, (unsigned short int *)data_buffer );
             break;
 
         case PUT_VAR1_SCHAR:
@@ -2308,6 +2368,12 @@ void handle_nc_put_var_x ( int nlhs, mxArray *plhs[], int nrhs, const mxArray *p
                     (short int *)data_buffer );
             break;
 
+        case PUT_VARA_USHORT:
+            status = nc_put_vara_ushort ( ncid, varid, 
+                    nc_start_coord, nc_count_coord, 
+                    (unsigned short int *)data_buffer );
+            break;
+
         case PUT_VARA_SCHAR:
             status = nc_put_vara_schar ( ncid, varid, 
                     nc_start_coord, nc_count_coord, 
@@ -2347,6 +2413,11 @@ void handle_nc_put_var_x ( int nlhs, mxArray *plhs[], int nrhs, const mxArray *p
         case PUT_VARS_SHORT:
             status = nc_put_vars_short ( ncid, varid, nc_start_coord, 
                             nc_count_coord, nc_stride_coord, (short int *)data_buffer );
+            break;
+
+        case PUT_VARS_USHORT:
+            status = nc_put_vars_ushort ( ncid, varid, nc_start_coord, 
+                            nc_count_coord, nc_stride_coord, (unsigned short int *)data_buffer );
             break;
 
         case PUT_VARS_SCHAR:
@@ -2508,6 +2579,11 @@ void handle_nc_put_varm_x ( int nlhs, mxArray *plhs[], int nrhs, const mxArray *
                     nc_start_coord, nc_count_coord, nc_stride_coord, nc_imap_coord, 
                     (short int *)data_buffer );
             break;
+
+        case PUT_VARM_USHORT:
+            status = nc_put_varm_ushort ( ncid, varid, 
+                    nc_start_coord, nc_count_coord, nc_stride_coord, nc_imap_coord, 
+                    (unsigned short int *)data_buffer );
 
         case PUT_VARM_SCHAR:
             status = nc_put_varm_schar ( ncid, varid, 
