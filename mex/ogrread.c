@@ -80,6 +80,8 @@
 #include "ogr_api.h"
 
 char *mxStrdup(const char *s);
+int get_data(mxArray *out_struct, OGRFeatureH hFeature, OGRFeatureDefnH hFeatureDefn, OGRGeometryH hGeom, 
+		int iLayer, int nFeature, int nLayers, int nAttribs, int nMaxFeatures, int recursionLevel);
 
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 
