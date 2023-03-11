@@ -42,6 +42,7 @@
 #include <float.h>
 #include <math.h>
 #include <time.h>
+#include <string.h>
 
 #if HAVE_OPENMP
 #include <omp.h>
