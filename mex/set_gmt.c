@@ -53,10 +53,11 @@
 #include "mex.h"
 #include <string.h>
 #include <stdio.h>
-#include <assert.h>
 #ifdef _WIN32
 #	include <windows.h>
 #	include <tlhelp32.h>
+#else
+#	include <unistd.h>
 #endif
 
 #define CNULL		((char *)NULL)
