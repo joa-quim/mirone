@@ -376,15 +376,16 @@ void rngchn_comp(double *ranges, double *sx, double *sy, double *patchx, double 
 
 int okada_patch(double *fltu1, double *fltu2, double *fltu3, double *fltx, double *flty, double * fltl, double *fltw, double *fltd, double *fltdelta, double *fltlambda, double *fltmu, double *uf) {
 	/*     calculate slip on a finite rectangular patch using Okada's expressions. 
-	/*     input parameters in flt geometry
-	/*     see Figure 1 of paper for definition of these variables
-	/*     strike-slip, dip-slip, and tensile slip components on flt
-	/*     these are input.
-	/*     strike-slip, dip-slip, and tensile slip on surface, in flt geometry
-	/*     these are output
-	/*     local variables
-	/*     dip sine and cosine, useful term
-	/*     Okada variables */
+	       input parameters in flt geometry
+	       see Figure 1 of paper for definition of these variables
+	       strike-slip, dip-slip, and tensile slip components on flt
+	       these are input.
+	       strike-slip, dip-slip, and tensile slip on surface, in flt geometry
+	       these are output
+	       local variables
+	       dip sine and cosine, useful term
+	       Okada variables
+ 	*/
 
 	int i;
 	double p, cd, sd, xi, up[9], eta, fmat, small;
