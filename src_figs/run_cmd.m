@@ -391,13 +391,21 @@ function out = mask_img(handles, img, com)
 		try
 			str1 = {'*.jpg', 'JPEG image (*.jpg)'; ...
 				'*.png', 'Portable Network Graphics(*.png)';	'*.bmp', 'Windows Bitmap (*.bmp)'; ...
-				'*.gif', 'GIF image (*.gif)';					'*.tif', 'Tagged Image File (*.tif)'; ...
+				'*.gif', 'GIF image (*.gif)';					'*.tif', 'Tagged Image File (*.tif)'; '*.tif', 'Tagged Image File (*.tiff)'; ...
 				'*.pcx', 'Windows Paintbrush (*.pcx)';			'*.pgm', 'Portable Graymap (*.pgm)'; ...
 				'*.*', 'All Files (*.*)'};
 			[FileName,PathName] = put_or_get_file(handles,str1,'Select image format','get');
 			if isequal(FileName,0),		out = 1;	return,		end
 
-			mask = imread([PathName FileName]);
+			[pato,fnome,EXT] = fileparts(FileName);
+			if (any(strcmpi(EXT,{'.tif' '.tiff'})) )
+				att = gdalread([PathName FileName],'-M','-C');
+				opt_U = '-U';
+				if (isempty(att.GeoTransform)),		opt_U = ' ';	end
+				mask = gdalread([PathName FileName], opt_U);
+			else
+				mask = imread([PathName FileName]);
+			end
 			if (size(mask, 3) ~= 1)
 				errordlg('This is not a mask file. Masks have only one layer','Error')
 				out = 1;	return
@@ -409,7 +417,7 @@ function out = mask_img(handles, img, com)
 			got_mask = true;
 		catch
 			errordlg(lasterr, 'Error')
-			out = 1;		% Error message already issued so we can now leave sintly
+			out = 1;		% Error message already issued so we can now leave silently
 			return
 		end
 	end
