@@ -1108,12 +1108,18 @@ function [proj, str2] = parseProj(str)
 			return
 		end
 		proj = str(ind(1):ind(1)+ind2(1)-2);
-		str(ind(1)-1:ind(1)+ind2(1)-1) = [];			% Strip the proj string
+		str(ind(1)-1:ind(1)+ind2(1)-1) = [];		% Strip the proj string
 	else
-		proj = strtok(str(ind(1):end));		% For example +proj4=longlat
-		str(ind(1):ind(1)+numel(proj)-1) = [];	% Strip the proj string
+		[proj, rem] = strtok(str(ind(1):end));		% For example +proj4=longlat
+		rem = ddewhite(rem);						% Stupid strtok doesn't strip the whites
+		while (~isempty(rem) && rem(1) == '+')		% Accept also a proj4 string not wrapped in quotes
+			[p, rem] = strtok(rem);
+			rem = ddewhite(rem);
+			proj = [proj ' ' p];
+		end
+		str(ind(1):ind(1)+numel(proj)-1) = [];		% Strip the proj string
 	end
-	if (proj(6) == '4')						% A wrong +proj4 spelling. Remove the extra '4'
+	if (proj(6) == '4')								% A wrong +proj4 spelling. Remove the extra '4'
 		proj(6) = [];
 	end
 	str2 = str;
