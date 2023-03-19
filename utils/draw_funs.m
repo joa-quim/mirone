@@ -3434,7 +3434,9 @@ function [xy, LineInfo] = lineinfo_proj(handles, x, y, LineInfo)
 		elseif (~isempty(LineInfo))
 			LineInfo = [LineInfo [' ' new_prj4]];
 		else
-			LineInfo = ['> ' new_prj4];
+			if (new_prj4(1) == '"'),	LineInfo = ['> ' new_prj4];
+			else,						LineInfo = ['> "' new_prj4 '"'];
+			end
 		end
 
 % -----------------------------------------------------------------------------------------
