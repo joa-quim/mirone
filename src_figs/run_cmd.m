@@ -481,7 +481,7 @@ function radio_onGrid_CB(hObject, handles)
 function edit_true_CB(hObject, handles)
 	xx = str2double(get(hObject,'String'));
 	if (isnan(xx))
-		errordlg('Please, don''t try to be smart - IDIOT','Chico Clever')
+		errordlg('Please, don''t try to be smart. Numbers only.','Chico Clever')
 		set(hObject,'String',1)
 		handles.isTrue = 1;
 	else
@@ -489,7 +489,7 @@ function edit_true_CB(hObject, handles)
 		set(hObject, 'String', xx)
 		handles.isTrue = xx;
 	end
-	guidata(handles.figure1)
+	guidata(handles.figure1);
 
 % --- Creates and returns a handle to the GUI figure. 
 function run_cmd_LayoutFcn(h1)
