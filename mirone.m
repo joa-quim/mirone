@@ -2563,7 +2563,7 @@ function handles = show_image(handles, fname, X, Y, I, validGrid, axis_t, adjust
 	else
 		set(handles.hImg,'CDataMapping','direct')
 	end
-	if (handles.geog < 10),		handles.geog = aux_funs('guessGeog',handles.head(1:4));
+	if (handles.geog < 10),		handles.geog = aux_funs('guessGeog',handles.head(1:4), handles.head(8:9));
 	else,						handles.geog = handles.geog - 10;		% In this case we believe in the pre-set value
 	end
 	if (handles.image_type == 2),	handles.geog = 0;	end
