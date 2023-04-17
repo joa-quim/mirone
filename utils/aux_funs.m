@@ -848,12 +848,17 @@ function [BB, r_c] = adjust_inner_BB(headOuter, headInner)
 	r_c = [row_1 row_2 col_1 col_2] + 1;
 
 % --------------------------------------------------------------------
-function geog = guessGeog(lims)
+function geog = guessGeog(lims, incs)
 % Make a good guess if LIMS are geographic
 	geog = double( ((lims(1) >= -180 && lims(2) <= 180) || (lims(1) >= 0 && lims(2) <= 360))...
 		&& (lims(3) >= -90 && lims(4) <= 90) );
 	if (geog && lims(2) > 180)
 		geog = 2;			% We have a [0 360] range
+	end
+	if (geog && nargin == 2)	% If inc ratio is large and x dim > 5*ydim very likely is not geog
+		if ((incs(2) / incs(1) > 10 || incs(1) / incs(2) > 10)) && (lims(2) - lims(1) > 5 * (lims(4) - lims(3)))
+			geog = 0;
+		end
 	end
 
 % --------------------------------------------------------------------
