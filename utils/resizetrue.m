@@ -119,7 +119,7 @@ function [hAxes,hImg,msg] = ParseInputs(varargin)
 		hFig = varargin{1};
 	end
 	hAxes = get(hFig, 'CurrentAxes');
-	if (isempty(hAxes));
+	if (isempty(hAxes))
 		msg = 'Current figure has no axes';		return
 	end
 
@@ -286,7 +286,7 @@ function resize(hAxes, hImg, imSize, opt, withSliders, firstFigSize, pad_left, s
 	else
         newFigWidth = imgWidth;				newFigHeight = imgHeight;
 	end
-	while ((newFigWidth > screenWidth) || ((newFigHeight + figBottomBorder + figTopBorder) > (screenHeight - 45)))
+	while ((newFigWidth > screenWidth) || ((newFigHeight + figBottomBorder + figTopBorder) > (screenHeight - 54)))
         imgWidth  = imgWidth * 0.98;		imgHeight  = imgHeight * 0.98;
         newFigWidth = newFigWidth * 0.98;	newFigHeight = newFigHeight * 0.98;
 	end
