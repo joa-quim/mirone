@@ -187,9 +187,10 @@ function push_compute_CB(hObject, handles)
 		end
 
 		if (handles.IamCompiled)		% PARTICULAR CASES FOR CLASSES
-			if (~isempty(strfind(com, 'Z >')) || ~isempty(strfind(com, 'Z>')))
+			if (~isempty(strfind(com, 'Z >')) || ~isempty(strfind(com, 'Z>')) || ~isempty(strfind(com, 'Z <')) || ~isempty(strfind(com, 'Z<')))
 				if (com(end) == ';'),	com(end) = [];		end		% We don't want the trailing ';' here
 				ind = strfind(com, '>');
+				if (isempty(ind))  ind = strfind(com, '<');  end
 				if (com(ind(1)+1) == '=')
 					thresh = str2double(com(ind(1)+2:end));
 					Z_out = Z >= thresh;
