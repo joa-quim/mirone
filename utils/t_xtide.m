@@ -77,7 +77,7 @@ function pred = t_xtide(varargin)
 	format = 'raw';     unt = 'original';
 
 	while (~isempty(varargin))
-		switch lower(varargin{1}(1:3)),
+		switch lower(varargin{1}(1:3))
 			case 'for',     format = lower(varargin{2});
 			case 'uni',     unt = lower(varargin{2}); 
 			otherwise,      error(['Can''t understand property:' varargin{1}]);
@@ -119,7 +119,7 @@ function pred = t_xtide(varargin)
 	end
 
 	% Create information structure
-	if strcmp(format(1:2),'in') || strcmp(format(1:2),'fu'),
+	if strcmp(format(1:2),'in') || strcmp(format(1:2),'fu')
 		if (~isempty(pred))
 			pred.yout=pred;     pred.mtime=tim; 
 		else
@@ -226,31 +226,31 @@ function [units,convf] = convert_units(unt,origunits)
 % Conversion factors from origianl units if requested and possible
 % (no conversions from knots to feet).
 
-	if strcmp(unt(1:3),origunits(1:3)) || strcmp(unt(1:3),'ori'),
+	if strcmp(unt(1:3),origunits(1:3)) || strcmp(unt(1:3),'ori')
 		units = origunits;
 		convf = 1;
 	else
-		switch unt(1:3),
-			case 'fee',
-				if strcmp(origunits(1:3), 'met'),
+		switch unt(1:3)
+			case 'fee'
+				if strcmp(origunits(1:3), 'met')
 					units = 'feet';     convf = 3.2808399;
 				else
 					units = origunits;  convf = 1;
 				end
-			case 'met',
-				if strcmp(origunits(1:3), 'fee'),
+			case 'met'
+				if strcmp(origunits(1:3), 'fee')
 					units = 'meters';   convf = 0.3048;
 				else
 					units = origunits;  convf = 1;
 				end
-			case 'm/s',
-				if strcmp(origunits(1:3), 'kno'),
+			case 'm/s'
+				if strcmp(origunits(1:3), 'kno')
 					units = 'meters/sec';   convf = 0.51444444;
 				else
 					units = origunits;      convf = 1;
 				end
-			case 'kno',
-				if strcmp(origunits(1:3), 'm/s'),
+			case 'kno'
+				if strcmp(origunits(1:3), 'm/s')
 					units = 'knots';        convf = 1.9438445;
 				else
 					units = origunits;      convf = 1;
@@ -358,7 +358,7 @@ function export_mare(obj,eventdata,hFig)
 % -------------------------------------------------------------------------------
 function harmonics2mat(obj,eventdata)
 % Attempt to generate one mat-file from an xtide harmonics file....
-% Latest version available from http://bel-marduk.unh.edu/xtide/files.html
+% Latest version available from https://flaterco.com/xtide/files.html
 
 	str1 = {'*.txt;*.dat', 'Harmonics file (*.txt,*.dat)';'*.*', 'All Files (*.*)'};
 	[FileName,PathName] = uigetfile(str1,'Select Harmonics file');
