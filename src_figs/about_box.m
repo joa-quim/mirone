@@ -40,7 +40,7 @@ function varargout = about_box(varargin)
 	if (numel(varargin) == 3) 
         str_prog = 'Mirone. The ultimate indiscreet grid viewer';
         str_analpha = ['Mirone, Version ' varargin{3}];
-        str_url = 'w3.ualg.pt/~jluis/mirone';
+        str_url = 'http://joa-quim.pt/mirone';
         set(handles.text_ProgName,'String',str_prog, 'BackgroundColor', bg_color)
         set(handles.text_AnalphaBeta,'String',str_analpha, 'BackgroundColor', bg_color)
         set(handles.text_url,'String',str_url, 'BackgroundColor', bg_color)
