@@ -419,7 +419,7 @@ function [url, lon_mm, lat_mm, x, y] = tile2url(opt, geoid, quadkey, prefix, lon
 			[img, cmap] = getImgTile(quadkey, quad_, url, cache, cache_supp, ext, decimal_adress, isWW, verbose);
 		else
 			%img = repmat(repmat(uint8(200), [256 256 3]), mMo, nMo);		% Pre-allocate the final image size
-			img = alloc_mex(256*mMo, 256*mMo, 3, 'uint8', 200);			% repmat can't do it for big arrays, and that before the mem limit. Fck.
+			img = alloc_mex(256*mMo, 256*nMo, 3, 'uint8', 200);			% repmat can't do it for big arrays, and that before the mem limit. Fck.
 			for (i=1:mMo)
 				[cache, cache_supp, ext, isWW] = completeCacheName(cache, ext, zoomL, decimal_adress, whatKind);	% WW changes cache dir per rows
 				for (j=1:nMo)
@@ -517,7 +517,7 @@ function mappcache(flatness, quadkey, quad, cache, ext)
 	region = [min(tiles_midpt(:,1)) max(tiles_midpt(:,1)) min(tiles_midpt(:,2)) max(tiles_midpt(:,2))];
 	% Make bb_limits pix reg in longitude and apply the same margin to lat (too complicated to do correctly)
 	region = region + [-0.5 0.5 -0.5 0.5] * diff(tiles_bb(1:2));
-	if (region(3) < 85.0841),		region(3) = -85.0841;	end		% Isometric 180
+	if (region(3) < -85.0841),		region(3) = -85.0841;	end		% Isometric 180
 	if (region(4) > 85.0841),		region(4) =  85.0841;	end
 
 	save([cache filesep 'tilesMapping'], 'region', 'zoomL', 'tiles_midpt')
