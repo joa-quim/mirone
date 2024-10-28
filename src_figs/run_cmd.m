@@ -193,10 +193,14 @@ function push_compute_CB(hObject, handles)
 				if (isempty(ind))  ind = strfind(com, '<');  end
 				if (com(ind(1)+1) == '=')
 					thresh = str2double(com(ind(1)+2:end));
-					Z_out = Z >= thresh;
+					if (com(ind(1)) == '>') Z_out = Z >= thresh;
+					else                    Z_out = Z <= thresh;
+					end
 				else
 					thresh = str2double(com(ind(1)+1:end));
-					Z_out = Z > thresh;
+					if (com(ind(1)) == '>') Z_out = Z > thresh;
+					else                    Z_out = Z < thresh;
+					end
 				end
 			elseif (is_1D)
 				ind1 = strfind(com, ',');
@@ -245,7 +249,7 @@ function push_compute_CB(hObject, handles)
 		end
 		figTitle = 'Mask image';
 	elseif (isa(Z_out,'single')),	figTitle = 'Refactored grid';
-	elseif (is_mixed),			figTitle = 'Composed image';
+	elseif (is_mixed),				figTitle = 'Composed image';
 	else,							figTitle = 'Zorro image';
 	end
 
