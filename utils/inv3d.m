@@ -58,7 +58,7 @@ if (nargin == 0)
     return
 end
 
-if (nargin > 12), % user defined sdip sdec
+if (nargin > 12) % user defined sdip sdec
     pflag = 1;
 else            % geocentric dipole hypothesis assumed
     sdip = 0;    sdec = 0;    pflag = 0;
@@ -73,7 +73,7 @@ tolmag = 0.0001;
 flag = 0;
 
 [ny,nx] = size(f3d);
-if size(h) ~= size(f3d), 
+if size(h) ~= size(f3d)
     fprintf(' bathy and field arrays must e of the same length\n');
     return
 end
@@ -88,18 +88,19 @@ y = igrf_m(rlon, rlat, zobs, yr);
 %bx = y(3);      by = y(4);      bz = y(5);      bh = y(2);
 decl = y(6);    incl = y(7);    clear y;
 %if (abs(sdec) > 0 | abs(sdip) > 0)
-if (abs(sdec) == 0 && abs(sdip) == 90)
+if (sdec == 0 && abs(sdip) == 90)
     %[theta,ampfac] = nskew(yr,rlat,rlon,zobs,slin,sdec,sdip);
-    if (abs(rlat) == 90 && abs(rlon) == 0)       % Trick used to inform that the Field is RTP
+	if (abs(rlat) == 90 && rlon == 0)      % Trick used to inform that the Field is RTP
         incl = 90;      decl = 0;
-    end
+	end
+elseif (sdec ~= 0 || sdip ~= 0)					% Accept what was sent in
 else
     %[theta,ampfac] = nskew(yr,rlat,rlon,zobs,slin);        % Not used
     sdip = atan2( 2.*sin(rlat*D2R),cos(rlat*D2R) )/D2R;
     sdec = 0;
 end
 %
-slin= 0;            % slin is forced to zero
+%slin= 0;            % slin is forced to zero
 ra1 = incl*D2R;     rb1 = (decl-slin)*D2R;
 ra2 = sdip*D2R;     rb2 = (sdec-slin)*D2R;
 
@@ -158,14 +159,14 @@ B = (F.*dexpz) ./ (const.*alap.*amp.*phase);
 B(1,1) = 0;
 clear F dexpz alap amp phase;
 
-for iter=1:nitrs,       % summation loop
+for iter=1:nitrs       % summation loop
     sum = zeros(ny,nx);
-    for nkount=1:nterms,
+    for nkount=1:nterms
         n = nkount-1;
         MH = (fft2(m3d.*(h).^n));
         dsum = dexpw.*((k.^n)./factorial(n)).*MH;
         sum = dsum+sum;
-        errmax = max(max( abs(real(sum)+imag(sum)) ));
+        %errmax = max(max( abs(real(sum)+imag(sum)) ));
     end
     % transform to get new solution
     M = (B-(sum))+mlast;
@@ -192,7 +193,7 @@ for iter=1:nitrs,       % summation loop
     if (errmax < tolmag)    % test for errmax less than tolerance
         flag = 0;        break
     end
-    try,    message_win('add',sprintf('%3.0f, %10.4e, %6.0f %10.4e\n',iter,errmax,nkount,dif_avg));
+    try    message_win('add',sprintf('%3.0f, %10.4e, %6.0f %10.4e\n',iter,errmax,nkount,dif_avg));
     catch,  fprintf('%3.0f, %10.4e, %6.0f %10.4e\n',iter,errmax,nkount,dif_avg);    end
 end  % end of iteration loop
 

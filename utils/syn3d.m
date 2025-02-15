@@ -54,7 +54,7 @@ function f3d = syn3d(m3d,h,rlat,rlon,yr,zobs,thick,slin,dx,dy,sdip,sdec)
 	mu = 100;      % conversion factor to nT
 
 	% changeable parameters 
-	nterms = 8;    tol = 0.1;
+	nterms = 1;    tol = 0.1;
 
 	% If a window for verbose exists
 	old_show = get(0,'ShowHiddenHandles');
@@ -102,7 +102,7 @@ function f3d = syn3d(m3d,h,rlat,rlon,yr,zobs,thick,slin,dx,dy,sdip,sdec)
 	catch,  fprintf(' Spacing of points : %10.4f X %10.4f \n',dx,dy)
 	end
 
-	if (abs(sdec) == 0 && abs(sdip) == 90 && abs(rlat) == 90 && abs(rlon) == 0)
+	if (abs(sdip) == 90 && abs(rlat) == 90)
 		% Trick used to inform that the Field is RTP
 		incl1 = 90;		decl1 = 0;
 	else
@@ -144,7 +144,7 @@ function f3d = syn3d(m3d,h,rlat,rlon,yr,zobs,thick,slin,dx,dy,sdip,sdec)
 
 	%
 	i = sqrt(-1);
-	aux = atan2(Y,X);       clear X Y;
+	aux = atan2(Y,X);%       clear X Y;
 	Ob = (sin(ra1)+i*cos(ra1)*sin(aux+rb1));
 	Om = (sin(ra2)+i*cos(ra2)*sin(aux+rb2));
 	clear aux;
