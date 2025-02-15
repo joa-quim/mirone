@@ -287,10 +287,10 @@ function push_SourceGrid_CB(hObject, handles, opt)
 	if (strcmp(handles.what_parker,'inverse'))
 		if (handles.geog)
 			wshort = max(dx*2, dy*2);
-			wlong = max(dx*handles.edit_Ncols, dy*handles.edit_Nrows);
+			wlong = max(dx*handles.ncols, dy*handles.nrows);
 		else
 			wshort = max(2*handles.head_src(8),2*handles.head_src(9));
-			wlong = max(handles.edit_Ncols*handles.head_src(8),handles.edit_Nrows*handles.head_src(9));
+			wlong = max(handles.ncols*handles.head_src(8),handles.nrows*handles.head_src(9));
 		end
 		wlong = max(wlong,150);     % Beter use this as the wlong default 
 		set(handles.edit_wshort,'string',sprintf('%.1f',wshort))
@@ -565,7 +565,7 @@ function [G, Hdr] = push_compute_CB(hObject, handles)
 			z_min = min(m3d(:));        z_max = max(m3d(:));
 			tmp.head = [handles.head_src(1) handles.head_src(2) handles.head_src(3) handles.head_src(4) ...
 					z_min z_max 0 handles.head_src(8) handles.head_src(9)];
-			tmp.X = handles.X;      tmp.Y = handles.Y;      tmp.name = 'Magnetization (A/m^2)';
+			tmp.X = handles.X;      tmp.Y = handles.Y;      tmp.name = 'Magnetization (A/m)';
 
 			if (get(handles.check_showDirect, 'Val') || get(handles.check_showResidue, 'Val'))
 				handles.what_parker = 'direct';
