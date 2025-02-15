@@ -295,6 +295,7 @@ function push_OK_CB(hObject, handles)
     tmp.X = linspace(handles.head(1),handles.head(2),size(handles.Z,2));
     tmp.Y = linspace(handles.head(3),handles.head(4),size(handles.Z,1));
     tmp.head = handles.head;
+	tmp.geog = handles.geog;
     tmp.name = 'Gradient grid';
     mirone(newZ,tmp);
     figure(handles.figure1)         % Don't let this figure forgotten behind the newly created one

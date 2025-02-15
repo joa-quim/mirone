@@ -307,7 +307,7 @@ function evtag(handles, localHandles, fname, cmap)
 		avgDIP = zeros(1,nSeg);		nx = zeros(1,nSeg);
 		n_seg = nSeg;		k = numel(multi_segs_str);
 		while (n_seg)
-			while (~strncmp(multi_segs_str{k},'%   Nsbfs',9)),	k = k - 1;	end
+			while (~strncmp(multi_segs_str{k},'% Nsbfs',7)),	k = k - 1;	end
 			ind = strfind(multi_segs_str{k},'=');
 			t = strtok(multi_segs_str{k}(ind(1)+1:end));
 			Nsbfs(n_seg) = str2double(t);

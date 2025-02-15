@@ -118,7 +118,14 @@ function push_OK_CB(hObject, handles)
 
 	aguentabar(0.5,'title','Now computing what you asked')
 	n_out = numel(opt_O(3:end));
-	[varargout{1:n_out}] = shake_mex(vs30, head, xy, opt_O, opt_F, opt_M);
+%	[varargout{1:n_out}] = shake_mex(vs30, head, xy, opt_O, opt_F, opt_M);
+	G = fill_grid_struct(vs30, head);
+	opt_O(2) = 'C';
+	opt_L = sprintf('-L%f/%f/%f/%f', x(1), y(1), x(end), y(end));
+	[varargout{1:n_out}] = gmtmex(['shake -fg ' opt_L ' ' opt_O ' ' opt_F ' ' opt_M], G);
+	for (k = 1:n_out)
+		varargout{k} = varargout{k}.z;		% Idiot thing but I'm reusing old code
+	end
 	aguentabar(1,'title','Done'),	pause(0.01)
 
 	ind_0 = [];

@@ -571,7 +571,7 @@ function sectrumFun(handles, Z, head, opt1, Z2)
 
 	if (isa(Z, 'double')),	Z = single(Z);		end
 	if (~any(strcmp(opt1,{'lpass' 'hpass' 'bpass'})))
-		tmp.X = (-nx2:nx2-sft_x).*delta_kx;		tmp.Y = (-ny2:ny2-sft_y).*delta_ky;
+		tmp.X = (-nx2:nx2-sft_x) * delta_kx;		tmp.Y = (-ny2:ny2-sft_y) * delta_ky;
 		tmp.geog = 0;
 	else
 		tmp.X = getappdata(handMir.figure1,'dem_x');	tmp.Y = getappdata(handMir.figure1,'dem_y');
@@ -581,12 +581,17 @@ function sectrumFun(handles, Z, head, opt1, Z2)
 			Z = scaleto8(Z,-8);
 		end
 		tmp.name = 'FFT filtered';
-		delta_kx = handMir.head(8);						delta_ky = handMir.head(9);
+		%delta_kx = handMir.head(8);	delta_ky = handMir.head(9);
+	end
+
+	if (handles.geog)		% Transform wave-numbers into wavelengths is km.
+		%tmp.X = 2*pi*0.001 ./ tmp.X;		tmp.Y = 2*pi*0.001 ./ tmp.Y;
+		tmp.X = tmp.X * 1000;		tmp.Y = tmp.Y * 1000;
 	end
 
 	if (isa(Z,'uint8')),	tmp.cmap = gray(256);	end
 	if (image_type ~= 2)
-		tmp.head = [tmp.X(1) tmp.X(end) tmp.Y(1) tmp.Y(end) double(min(Z(:))) double(max(Z(:))) 0 delta_kx delta_ky];
+		tmp.head = [tmp.X(1) tmp.X(end) tmp.Y(1) tmp.Y(end) double(min(Z(:))) double(max(Z(:))) 0 (tmp.X(2)-tmp.X(1)) (tmp.Y(2)-tmp.Y(1))];
 		h = mirone(Z,tmp);
 	else
 		setappdata(0,'CropedColormap', gray(256));		% Force it to use a gray colormap
