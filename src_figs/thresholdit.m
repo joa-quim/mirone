@@ -457,7 +457,7 @@ function push_OK_CB(hObject, handles)
 		% Ok, if we get here it's because the image has coordinates. Fish it all
 		imgLims = getappdata(handMir.axes1,'ThisImageLims');
 		tmp.X = imgLims(1:2);		tmp.Y = imgLims(3:4);		tmp.geog = handMir.geog;
-		tmp.head = handMir.head;	tmp.head(5) = 0;			tmp.head(5) = 1;
+		tmp.head = handMir.head;	tmp.head(5) = 0;			tmp.head(6) = 1;
 		tmp.name = 'Threshold mask';
 		mirone(get(handles.hImg,'cdata'), tmp, handles.hMirFig)
 	end
