@@ -781,6 +781,7 @@ uimenu('Parent',h, 'Callback','about_box(guidata(gcbo),''Mirone Last modified at
 	move2side(H1,'north');					% Reposition the window on screen
 % 	set(H1,'Vis','on');
 
+
 % --------------------------------------------------------------------------------------------------
 % We need this function also when the pixval_stsbar get stucked
 function refresca(obj, evt)
