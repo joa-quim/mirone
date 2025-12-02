@@ -766,7 +766,7 @@ uimenu('Parent',h, 'Callback', 'test_bots','Label','Tests - Run some tests')
 %uimenu('Parent',h, 'Callback', 'update_gmt(guidata(gcbo))','Label','Update your GMT5','Sep','on')
 uimenu('Parent',h, 'Callback',['mirone(''FileOpenWebImage_CB'',guidata(gcbo),',...
 	' ''http://www2.clustrmaps.com/stats/maps-clusters/w3.ualg.pt-~jluis-mirone-world.jpg'',''nikles'');'],'Label','See visitors map','Sep','on');
-uimenu('Parent',h, 'Callback','about_box(guidata(gcbo),''Mirone Last modified at 28 Oct 2024'',''3.2.4'')','Label','About','Sep','on');
+uimenu('Parent',h, 'Callback','about_box(guidata(gcbo),''Mirone Last modified at 2 Dec 2025'',''3.2.5'')','Label','About','Sep','on');
 
 %% --------------------------- Build HANDLES and finish things here
 	handles = guihandles(H1);
