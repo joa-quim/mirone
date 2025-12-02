@@ -268,7 +268,7 @@ function resize(hAxes, hImg, imSize, opt, withSliders, firstFigSize, pad_left, s
     end
 
 	% assume figure decorations are ?? pixels (!!)
-	figBottomBorder = 30;       figTopBorder = 80;
+	figBottomBorder = 40;       figTopBorder = 80;	% figBottomBorder is to accomodate the Windows bottom bar height.
 	figTopBorder = figTopBorder + tenSizeY;
 
     sldT = 0;
