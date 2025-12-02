@@ -99,6 +99,7 @@ function [H1,handles,home_dir] = mirone_uis(home_dir)
 	setappdata(H1,'IAmAMirone',true)		% Use this appdata to identify Mirone figures
 	setappdata(H1,'PixelMode',0)			% Default
 
+
 	% Detect which matlab version is beeing used. For the moment I'm only interested to know if R13 or >= R14
 	version7 = version;
 	if (double(version7(1)) > 54),		version7 = sscanf(version7(1:3),'%f');
